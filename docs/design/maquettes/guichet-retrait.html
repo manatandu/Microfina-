@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guichet, retrait</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@400;600&family=Atkinson+Hyperlegible+Next:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --papier: #F3F4F2;
+  --feuille: #FFFFFF;
+  --encre: #1B2130;
+  --encre-2: #596173;
+  --trait: #D5D9DF;
+  --tampon: #3A3E96;
+  --tampon-pale: #E7E8F6;
+  --alerte: #B3261E;
+  --alerte-pale: #FBEAE8;
+  --sain: #2E7553;
+  --r1: #B58A12;
+  --r1-pale: #FBF3DC;
+  --texte: "Atkinson Hyperlegible Next", "Segoe UI", system-ui, sans-serif;
+  --chiffres: "Atkinson Hyperlegible Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--papier);
+  color: var(--encre);
+  font: 15px/1.4 var(--texte);
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+.num { font-family: var(--chiffres); font-variant-numeric: tabular-nums; }
+:focus-visible { outline: 3px solid var(--tampon); outline-offset: 2px; }
+
+/* Bandeau */
+.bandeau {
+  display: flex; align-items: center; gap: 24px;
+  padding: 10px 20px;
+  background: var(--feuille);
+  border-bottom: 1px solid var(--trait);
+}
+.bandeau .inst { font-weight: 700; }
+.bandeau .inst span { font-weight: 400; color: var(--encre-2); }
+.journee { display: flex; align-items: center; gap: 8px; }
+.etat {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 8px; border-radius: 4px;
+  background: #E3F1EA; color: var(--sain); font-weight: 600; font-size: 13px;
+}
+.etat::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--sain); }
+.bandeau .poste { margin-left: auto; color: var(--encre-2); }
+.bandeau .poste strong { color: var(--encre); font-weight: 600; }
+
+/* Grille principale */
+.guichet {
+  display: grid;
+  grid-template-columns: 290px minmax(0, 1fr) 330px;
+  gap: 12px;
+  padding: 10px 12px;
+  align-items: start;
+}
+.bloc {
+  background: var(--feuille);
+  border: 1px solid var(--trait);
+  border-radius: 4px;
+  padding: 12px 16px;
+}
+.bloc + .bloc { margin-top: 10px; }
+h2 { font-size: 15px; font-weight: 700; margin: 0 0 10px; }
+.discret { color: var(--encre-2); font-size: 13px; }
+
+/* Membre */
+.recherche { display: flex; gap: 8px; margin-bottom: 12px; }
+.recherche input {
+  flex: 1; min-width: 0; font: inherit; padding: 6px 8px;
+  border: 1px solid var(--trait); border-radius: 2px; background: var(--papier);
+}
+.touche {
+  font-family: var(--chiffres); font-size: 12px;
+  border: 1px solid var(--trait); border-bottom-width: 2px; border-radius: 3px;
+  padding: 1px 5px; background: var(--feuille); color: var(--encre-2);
+}
+.identite { display: grid; grid-template-columns: 72px 1fr; gap: 12px; }
+.photo { width: 72px; height: 88px; border-radius: 2px; background: #DDE1E7; display: block; }
+.nom { font-size: 18px; font-weight: 700; line-height: 1.2; margin: 0 0 4px; }
+.identite dl { margin: 0; font-size: 13px; }
+.identite dt { color: var(--encre-2); display: inline; }
+.identite dd { display: inline; margin: 0; }
+.identite dd::after { content: ""; display: block; }
+.specimen {
+  margin-top: 12px; border: 1px dashed var(--trait); border-radius: 2px;
+  padding: 6px 8px 4px; background: #FCFCFB;
+}
+.specimen svg { display: block; width: 100%; height: 48px; }
+
+.retirant-actif { margin-top: 10px; font-size: 13px; padding: 6px 8px; background: var(--tampon-pale); border-radius: 2px; }
+
+.credit .ligne { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.statut {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 600; color: var(--r1);
+  background: var(--r1-pale); padding: 2px 8px; border-radius: 4px; white-space: nowrap;
+}
+.statut::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--r1); }
+.credit table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+.credit td { padding: 3px 0; }
+.credit td:last-child { text-align: right; }
+.conseil {
+  margin-top: 10px; font-size: 13px;
+  border-left: 3px solid var(--r1); padding: 6px 8px; background: var(--r1-pale);
+}
+
+/* Bordereau */
+.onglets { display: flex; gap: 2px; margin-bottom: -1px; position: relative; }
+.onglets button {
+  font: inherit; font-size: 14px; padding: 8px 14px; cursor: pointer;
+  border: 1px solid var(--trait); border-bottom: none; border-radius: 4px 4px 0 0;
+  background: var(--papier); color: var(--encre-2);
+}
+.onglets button[aria-selected="true"] { background: var(--feuille); color: var(--encre); font-weight: 700; }
+.bordereau { border-top-left-radius: 0; padding: 12px 20px 14px; }
+.entete-b { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.entete-b h2 { font-size: 18px; margin: 0; }
+
+fieldset { border: 0; padding: 0; margin: 0 0 10px; }
+legend { font-weight: 600; font-size: 14px; margin-bottom: 6px; padding: 0; }
+.comptes { display: grid; gap: 6px; }
+.compte {
+  display: grid; grid-template-columns: 20px 1fr auto; gap: 10px; align-items: center;
+  border: 1px solid var(--trait); border-radius: 2px; padding: 6px 10px; cursor: pointer;
+}
+.compte:has(input:checked) { border-color: var(--tampon); background: var(--tampon-pale); }
+.compte:has(input:disabled) { cursor: not-allowed; background: var(--papier); color: var(--encre-2); }
+.compte input { margin: 0; accent-color: var(--tampon); }
+.compte .libelle { font-weight: 600; }
+.compte .libelle small { display: block; font-weight: 400; font-size: 12px; color: var(--encre-2); }
+.compte .solde { text-align: right; }
+.compte .solde small { display: block; font-size: 12px; color: var(--encre-2); font-family: var(--texte); }
+
+.montant { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 12px; }
+.champ-montant { display: flex; align-items: baseline; border-bottom: 2px solid var(--encre); }
+.champ-montant input {
+  font: 600 32px/1.1 var(--chiffres); text-align: right;
+  border: 0; background: transparent; color: var(--encre);
+  width: 100%; padding: 4px 8px 2px 0;
+}
+.champ-montant input:focus-visible { outline: none; }
+.champ-montant:focus-within { border-bottom-color: var(--tampon); box-shadow: 0 2px 0 var(--tampon); }
+.devise { font: 600 20px var(--chiffres); color: var(--encre-2); }
+.apres { text-align: right; font-size: 13px; color: var(--encre-2); }
+.apres strong { display: block; font: 600 17px var(--chiffres); color: var(--encre); }
+.lettres {
+  margin: 8px 0 0; min-height: 24px;
+  font-size: 15px; padding-bottom: 4px;
+  border-bottom: 1px dotted var(--encre-2);
+}
+.lettres::first-letter { text-transform: uppercase; }
+
+.deux { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.choix label, .verif label { display: flex; gap: 8px; align-items: flex-start; padding: 3px 0; cursor: pointer; }
+.choix input, .verif input { margin-top: 3px; accent-color: var(--tampon); }
+.motif input {
+  font: inherit; width: 100%; padding: 6px 8px;
+  border: 1px solid var(--trait); border-radius: 2px;
+}
+
+.cloture { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; border-top: 1px solid var(--trait); padding-top: 12px; }
+.bloquants { margin: 0; padding: 0; list-style: none; font-size: 13px; color: var(--alerte); }
+.bloquants li::before { content: "Bloqué : "; font-weight: 600; }
+.bloquants:empty::after { content: "Tout est vérifié. Le retrait peut être validé."; color: var(--sain); font-weight: 600; }
+.valider {
+  font: 700 15px var(--texte); cursor: pointer; white-space: nowrap;
+  background: var(--tampon); color: #fff; border: 0; border-radius: 4px; padding: 11px 18px;
+}
+.valider:disabled { background: #C9CBD6; color: #F4F4F8; cursor: not-allowed; }
+.valider .touche { background: transparent; color: inherit; border-color: currentColor; margin-left: 6px; }
+
+/* Résultat */
+.resultat[hidden] { display: none; }
+.resultat .tampon {
+  display: inline-block; transform: rotate(-3deg);
+  border: 3px solid var(--tampon); color: var(--tampon); border-radius: 4px;
+  font-weight: 700; font-size: 18px; padding: 4px 12px; margin-bottom: 12px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .resultat:not([hidden]) .tampon { animation: tamponner .28s ease-out; }
+  @keyframes tamponner { from { transform: rotate(-3deg) scale(1.6); opacity: 0; } to { transform: rotate(-3deg) scale(1); opacity: 1; } }
+}
+.ecriture { width: 100%; border-collapse: collapse; font-size: 14px; margin: 8px 0 12px; }
+.ecriture th { text-align: left; font-weight: 600; color: var(--encre-2); font-size: 13px; border-bottom: 1px solid var(--trait); padding: 4px 6px; }
+.ecriture td { padding: 6px; border-bottom: 1px solid var(--trait); }
+.ecriture .d, .ecriture .c { text-align: right; }
+
+/* Billetage */
+.billetage table { width: 100%; border-collapse: collapse; }
+.billetage th { font-size: 12px; font-weight: 600; color: var(--encre-2); text-align: right; padding: 0 4px 6px; white-space: nowrap; }
+.billetage th:first-child { text-align: left; }
+.billetage td { padding: 2px 4px; text-align: right; border-top: 1px solid #ECEEF1; white-space: nowrap; }
+.billetage td:first-child { text-align: left; font-weight: 600; }
+.billetage td.stock { color: var(--encre-2); font-size: 13px; }
+.billetage input {
+  width: 52px; font: 600 15px var(--chiffres); text-align: right;
+  border: 1px solid var(--trait); border-radius: 2px; padding: 3px 5px;
+}
+.billetage input.trop { border-color: var(--alerte); background: var(--alerte-pale); }
+.billetage tfoot td { border-top: 2px solid var(--encre); font-weight: 700; padding-top: 6px; }
+.ecart { margin-top: 8px; font-size: 13px; font-weight: 600; }
+.ecart.ok { color: var(--sain); }
+.ecart.ko { color: var(--alerte); }
+.proposer {
+  margin-top: 10px; font: inherit; font-size: 13px; cursor: pointer; width: 100%;
+  background: var(--feuille); color: var(--tampon); border: 1px solid var(--tampon); border-radius: 4px; padding: 6px;
+}
+.encaisse { width: 100%; font-size: 13px; border-collapse: collapse; }
+.encaisse td { padding: 3px 0; }
+.encaisse td:last-child { text-align: right; }
+
+/* Barre des touches */
+.touches {
+  display: flex; flex-wrap: wrap; gap: 6px 20px; align-items: center;
+  padding: 8px 20px; background: var(--feuille); border-top: 1px solid var(--trait);
+  font-size: 13px; color: var(--encre-2);
+}
+.touches b { color: var(--encre); font-weight: 600; }
+.note { margin-left: auto; font-style: italic; }
+
+@media (max-width: 1100px) {
+  .guichet { grid-template-columns: 1fr; padding: 12px 16px; }
+  .bandeau { flex-wrap: wrap; gap: 8px 16px; padding: 10px 16px; }
+  .bandeau .poste { margin-left: 0; }
+  .deux { grid-template-columns: 1fr; }
+  .cloture { flex-direction: column; align-items: stretch; }
+}
+</style>
+</head>
+<body>
+
+<header class="bandeau">
+  <div class="inst">COOPEC Tujenge <span>agence Matete</span></div>
+  <div class="journee">Journée du jeudi 5 novembre 2026 <span class="etat">ouverte</span></div>
+  <div class="poste">Caisse 2, <strong>Esther Ngalula</strong></div>
+</header>
+
+<main class="guichet">
+
+  <!-- Colonne membre : qui est au guichet -->
+  <section aria-labelledby="t-membre">
+    <div class="bloc">
+      <div class="recherche">
+        <label for="q" class="discret" style="align-self:center">Membre</label>
+        <input id="q" value="0412-000318" autocomplete="off">
+        <span class="touche" title="Rechercher un membre">F2</span>
+      </div>
+      <div class="identite">
+        <svg class="photo" viewBox="0 0 72 88" role="img" aria-label="Photo du membre">
+          <rect width="72" height="88" fill="#DDE1E7"/>
+          <circle cx="36" cy="34" r="15" fill="#B9C0CB"/>
+          <path d="M8 88c2-20 14-30 28-30s26 10 28 30z" fill="#B9C0CB"/>
+        </svg>
+        <div>
+          <h2 id="t-membre" class="nom">Kalala Mbuyi Josée</h2>
+          <dl>
+            <dt>N° membre</dt> <dd class="num">0412-000318</dd>
+            <dt>Membre depuis</dt> <dd>12/03/2019</dd>
+            <dt>Pièce</dt> <dd>carte d'électeur, valide</dd>
+            <dt>Dossier</dt> <dd>revu le 02/09/2026</dd>
+          </dl>
+        </div>
+      </div>
+      <div class="specimen">
+        <svg viewBox="0 0 260 56" aria-label="Specimen de signature">
+          <path d="M14 40c10-26 22-30 20-10-1 12-8 14-4 2 4-12 14-20 18-8 3 9-6 16 2 10 8-6 12-18 20-12 6 5-4 14 4 12 10-3 14-16 24-14 8 2 0 14 8 12 12-3 22-22 32-18 7 3-6 14 4 13 14-1 24-10 40-12 12-2 30 2 44 0" fill="none" stroke="#1B2130" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M60 46c40 4 90 2 150-4" fill="none" stroke="#1B2130" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+        <div class="discret">Specimen de signature déposé le 12/03/2019</div>
+      </div>
+      <div class="retirant-actif" id="retirant-actif">Au guichet : <strong>la titulaire</strong></div>
+    </div>
+
+    <div class="bloc credit" aria-labelledby="t-credit">
+      <div class="ligne">
+        <h2 id="t-credit" style="margin:0">Crédit en cours</h2>
+        <span class="statut" title="Instr. BCC 003, art. 6 et 12 ; compte PCCI 3900">1 à 30 jours</span>
+      </div>
+      <table>
+        <tr><td class="discret">Prêt</td><td class="num">P-2026-00871</td></tr>
+        <tr><td class="discret">Produit</td><td>Crédit AGR</td></tr>
+        <tr><td class="discret">Capital restant dû</td><td class="num">1 240,00 USD</td></tr>
+        <tr><td class="discret">Échéance impayée</td><td class="num">112,50 USD</td></tr>
+        <tr><td class="discret">En retard depuis</td><td>24/10/2026, 12 jours</td></tr>
+      </table>
+      <p class="conseil">Proposer le remboursement de l'échéance avant le retrait. <span class="touche">F8</span></p>
+    </div>
+  </section>
+
+  <!-- Colonne centrale : le bordereau -->
+  <section aria-labelledby="t-bordereau">
+    <div class="onglets" role="tablist" aria-label="Opération">
+      <button role="tab" aria-selected="false" tabindex="-1">Dépôt</button>
+      <button role="tab" aria-selected="true">Retrait</button>
+      <button role="tab" aria-selected="false" tabindex="-1">Remboursement</button>
+      <button role="tab" aria-selected="false" tabindex="-1">Parts sociales</button>
+    </div>
+
+    <div class="bloc bordereau" id="saisie">
+      <div class="entete-b">
+        <h2 id="t-bordereau">Bordereau de retrait</h2>
+        <span class="discret">Pièce attribuée à la validation</span>
+      </div>
+
+      <fieldset>
+        <legend>Compte à débiter</legend>
+        <div class="comptes">
+          <label class="compte">
+            <input type="radio" name="compte" value="usd" checked>
+            <span class="libelle">Épargne à vue, dollars<small class="num">0412-000318-01-USD</small></span>
+            <span class="solde num">1 286,40 USD<small>disponible</small></span>
+          </label>
+          <label class="compte">
+            <input type="radio" name="compte" value="cdf">
+            <span class="libelle">Épargne à vue, francs<small class="num">0412-000318-02-CDF</small></span>
+            <span class="solde num">3 412 500,00 CDF<small>disponible</small></span>
+          </label>
+          <label class="compte">
+            <input type="radio" name="compte" value="oblig" disabled>
+            <span class="libelle">Épargne obligatoire, dollars<small>Indisponible : garantie du prêt P-2026-00871</small></span>
+            <span class="solde num">300,00 USD<small>bloqué</small></span>
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend><label for="montant">Montant à remettre</label></legend>
+        <div class="montant">
+          <div class="champ-montant">
+            <input id="montant" class="num" inputmode="decimal" value="450,00" autocomplete="off" aria-describedby="lettres">
+            <span class="devise" id="devise">USD</span>
+          </div>
+          <div class="apres">Solde après retrait<strong id="apres">836,40 USD</strong></div>
+        </div>
+        <p class="lettres" id="lettres" aria-live="polite"></p>
+      </fieldset>
+
+      <div class="deux">
+        <fieldset class="choix">
+          <legend>Personne au guichet</legend>
+          <label><input type="radio" name="retirant" value="titulaire" checked> La titulaire</label>
+          <label><input type="radio" name="retirant" value="mandataire"> Mbuyi Patrick, mandataire (procuration du 14/01/2025)</label>
+        </fieldset>
+        <fieldset class="verif">
+          <legend>Vérifications</legend>
+          <label><input type="checkbox" id="v-piece"> Pièce d'identité présentée et conforme</label>
+          <label><input type="checkbox" id="v-signature"> Signature comparée au specimen</label>
+        </fieldset>
+      </div>
+
+      <fieldset class="motif">
+        <legend><label for="motif">Motif <span class="discret">(facultatif)</span></label></legend>
+        <input id="motif" value="Achat de marchandises">
+      </fieldset>
+
+      <div class="cloture">
+        <ul class="bloquants" id="bloquants" aria-live="polite"></ul>
+        <button class="valider" id="valider" disabled>Valider le retrait <span class="touche">F9</span></button>
+      </div>
+    </div>
+
+    <div class="bloc bordereau resultat" id="resultat" hidden>
+      <div class="tampon">Retrait enregistré</div>
+      <p style="margin:0">Pièce <strong class="num" id="r-piece">CAI-0412-2026-018731</strong>, journal de caisse 2, date comptable 05/11/2026.</p>
+      <table class="ecriture" aria-label="Écriture comptable générée">
+        <thead><tr><th>Compte PCCI</th><th>Libellé</th><th class="d">Débit</th><th class="c">Crédit</th></tr></thead>
+        <tbody id="r-lignes"></tbody>
+      </table>
+      <p class="discret" id="r-cv"></p>
+      <p class="discret">Écriture définitive. Une erreur se corrige par contre-passation, jamais par modification (PCCI § 3.3 et 3.4).</p>
+      <button class="valider" id="nouvelle">Nouvelle opération <span class="touche">Entrée</span></button>
+    </div>
+  </section>
+
+  <!-- Colonne droite : l'argent physique -->
+  <section aria-labelledby="t-billetage">
+    <div class="bloc billetage">
+      <h2 id="t-billetage">Billetage, <span id="b-devise">USD</span></h2>
+      <table>
+        <thead><tr><th>Coupure</th><th>En caisse</th><th>Nombre</th><th>Montant</th></tr></thead>
+        <tbody id="b-lignes"></tbody>
+        <tfoot><tr><td>Total</td><td></td><td></td><td class="num" id="b-total">0,00</td></tr></tfoot>
+      </table>
+      <p class="ecart" id="b-ecart" aria-live="polite"></p>
+      <button class="proposer" id="proposer">Proposer un billetage <span class="touche">F4</span></button>
+    </div>
+    <div class="bloc">
+      <h2>Encaisse de la caisse 2</h2>
+      <table class="encaisse">
+        <tr><td class="discret">Avant l'opération</td><td class="num" id="e-avant"></td></tr>
+        <tr><td class="discret">Après l'opération</td><td class="num" id="e-apres"></td></tr>
+      </table>
+    </div>
+  </section>
+</main>
+
+<footer class="touches">
+  <span><span class="touche">F2</span> <b>Rechercher un membre</b></span>
+  <span><span class="touche">F4</span> <b>Proposer un billetage</b></span>
+  <span><span class="touche">F8</span> <b>Rembourser d'abord</b></span>
+  <span><span class="touche">F9</span> <b>Valider le retrait</b></span>
+  <span><span class="touche">Échap</span> <b>Annuler</b></span>
+  <span class="note">Maquette : données fictives, aucune opération réelle.</span>
+</footer>
+
+<script>
+// Données fictives de la maquette
+const COMPTES = {
+  usd: { devise: "USD", dispo: 128640, compte: "330", libelle: "Épargnes, dollars" },
+  cdf: { devise: "CDF", dispo: 341250000, compte: "330", libelle: "Épargnes, francs" },
+};
+const CAISSE = {
+  USD: { coupures: [100, 50, 20, 10, 5, 1], stock: { 100: 84, 50: 40, 20: 60, 10: 45, 5: 30, 1: 120 } },
+  CDF: { coupures: [20000, 10000, 5000, 1000, 500, 200, 100, 50], stock: { 20000: 150, 10000: 210, 5000: 180, 1000: 400, 500: 300, 200: 250, 100: 200, 50: 100 } },
+};
+const COURS_USD_CDF = 2850; // fictif
+
+const $ = (id) => document.getElementById(id);
+const fmt = new Intl.NumberFormat("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const money = (centimes, devise) => fmt.format(centimes / 100) + " " + devise;
+const entier = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });
+
+// Montant saisi, en centimes ; null si illisible
+function lireMontant(txt) {
+  const t = txt.replace(/[\s  ]/g, "").replace(",", ".");
+  if (!/^\d+(\.\d{0,2})?$/.test(t)) return null;
+  const [e, d = ""] = t.split(".");
+  return Number(e) * 100 + Number((d + "00").slice(0, 2));
+}
+
+// Nombres en lettres, orthographe traditionnelle
+const U = ["zéro","un","deux","trois","quatre","cinq","six","sept","huit","neuf","dix","onze","douze","treize","quatorze","quinze","seize"];
+const D = { 2: "vingt", 3: "trente", 4: "quarante", 5: "cinquante", 6: "soixante" };
+function sous100(n) {
+  if (n <= 16) return U[n];
+  if (n < 20) return "dix-" + U[n - 10];
+  const t = Math.floor(n / 10), u = n % 10;
+  if (t === 7) return u === 1 ? "soixante et onze" : "soixante-" + sous100(10 + u);
+  if (t === 8) return u === 0 ? "quatre-vingts" : "quatre-vingt-" + U[u];
+  if (t === 9) return "quatre-vingt-" + sous100(10 + u);
+  if (u === 0) return D[t];
+  return D[t] + (u === 1 ? " et un" : "-" + U[u]);
+}
+function sous1000(n, invariable) {
+  const c = Math.floor(n / 100), r = n % 100;
+  let s = "";
+  if (c === 1) s = "cent";
+  else if (c > 1) s = U[c] + " cent" + (r === 0 && !invariable ? "s" : "");
+  if (r) {
+    let w = sous100(r);
+    if (invariable && w.endsWith("quatre-vingts")) w = w.slice(0, -1);
+    s += (s ? " " : "") + w;
+  }
+  return s;
+}
+function enLettres(n) {
+  if (n === 0) return "zéro";
+  const m = Math.floor(n / 1e6), k = Math.floor(n / 1000) % 1000, r = n % 1000;
+  const p = [];
+  if (m) p.push(sous1000(m, false) + (m > 1 ? " millions" : " million"));
+  if (k) p.push(k === 1 ? "mille" : sous1000(k, true) + " mille");
+  if (r) p.push(sous1000(r, false));
+  return p.join(" ");
+}
+const NOMS = {
+  USD: { u: ["dollar américain", "dollars américains"], c: ["cent", "cents"] },
+  CDF: { u: ["franc congolais", "francs congolais"], c: ["centime", "centimes"] },
+};
+function montantEnLettres(centimes, devise) {
+  const e = Math.floor(centimes / 100), c = centimes % 100, n = NOMS[devise];
+  let s = enLettres(e);
+  const exactMillions = e >= 1e6 && e % 1e6 === 0;
+  s += (exactMillions ? " de " : " ") + n.u[e > 1 ? 1 : 0];
+  if (c) s += " et " + enLettres(c) + " " + n.c[c > 1 ? 1 : 0];
+  return s;
+}
+
+// État
+let compte = "usd";
+let compteurs = {};
+
+function devise() { return COMPTES[compte].devise; }
+
+function construireBilletage() {
+  const d = devise(), caisse = CAISSE[d];
+  $("b-devise").textContent = d;
+  $("b-lignes").innerHTML = caisse.coupures.map((v) => `
+    <tr>
+      <td class="num">${v.toLocaleString("fr-FR")}</td>
+      <td class="stock num">${caisse.stock[v]}</td>
+      <td><input class="num" inputmode="numeric" data-v="${v}" aria-label="Nombre de coupures de ${v} ${d}" value="${compteurs[v] || ""}"></td>
+      <td class="num" data-m="${v}">${compteurs[v] ? entier.format(v * compteurs[v]) : ""}</td>
+    </tr>`).join("");
+  $("b-lignes").querySelectorAll("input").forEach((i) => i.addEventListener("input", () => {
+    const v = Number(i.dataset.v), n = parseInt(i.value, 10);
+    compteurs[v] = Number.isFinite(n) && n > 0 ? n : 0;
+    rafraichir();
+  }));
+}
+
+function totalBilletage() {
+  return Object.entries(compteurs).reduce((s, [v, n]) => s + Number(v) * 100 * n, 0);
+}
+
+function rafraichir() {
+  const d = devise(), c = COMPTES[compte], caisse = CAISSE[d];
+  const m = lireMontant($("montant").value);
+  $("devise").textContent = d;
+
+  $("lettres").textContent = m === null ? "Montant illisible" : m === 0 ? "" : montantEnLettres(m, d);
+  $("apres").textContent = m === null ? "" : money(c.dispo - m, d);
+
+  // Billetage
+  const total = totalBilletage();
+  $("b-total").textContent = entier.format(total / 100);
+  let tropDeCoupures = false;
+  $("b-lignes").querySelectorAll("input").forEach((i) => {
+    const v = Number(i.dataset.v), n = compteurs[v] || 0;
+    const trop = n > caisse.stock[v];
+    tropDeCoupures ||= trop;
+    i.classList.toggle("trop", trop);
+    $("b-lignes").querySelector(`[data-m="${v}"]`).textContent = n ? entier.format(v * n) : "";
+  });
+  const ecart = (m ?? 0) - total;
+  $("b-ecart").className = "ecart " + (ecart === 0 && m ? "ok" : "ko");
+  $("b-ecart").textContent = !m ? "" : ecart === 0 ? "Billetage conforme au montant." :
+    ecart > 0 ? `Il manque ${money(ecart, d)}.` : `${money(-ecart, d)} de trop.`;
+
+  // Encaisse
+  const enc = caisse.coupures.reduce((s, v) => s + v * 100 * caisse.stock[v], 0);
+  $("e-avant").textContent = money(enc, d);
+  $("e-apres").textContent = money(enc - total, d);
+
+  // Ce qui bloque la validation
+  const b = [];
+  if (m === null) b.push("le montant est illisible.");
+  else if (m === 0) b.push("saisissez un montant.");
+  else {
+    if (m > c.dispo) b.push(`le montant dépasse le disponible (${money(c.dispo, d)}). Aucun compte d'épargne ne peut devenir débiteur.`);
+    if (d === "USD" && m % 100 !== 0) b.push("les centimes de dollar ne se remettent pas en espèces (règle à confirmer).");
+    if (ecart !== 0) b.push("le billetage ne correspond pas au montant.");
+  }
+  if (tropDeCoupures) b.push("la caisse n'a pas assez de coupures pour ce billetage.");
+  if (!$("v-piece").checked) b.push("cochez la vérification de la pièce d'identité.");
+  if (!$("v-signature").checked) b.push("cochez la comparaison de la signature.");
+  $("bloquants").innerHTML = b.map((x) => `<li>${x}</li>`).join("");
+  $("valider").disabled = b.length > 0;
+}
+
+function proposerBilletage() {
+  const d = devise(), caisse = CAISSE[d];
+  let reste = Math.floor((lireMontant($("montant").value) || 0) / 100);
+  compteurs = {};
+  for (const v of caisse.coupures) {
+    const n = Math.min(Math.floor(reste / v), caisse.stock[v]);
+    if (n) { compteurs[v] = n; reste -= n * v; }
+  }
+  construireBilletage();
+  rafraichir();
+}
+
+function valider() {
+  if ($("valider").disabled) return;
+  const d = devise(), m = lireMontant($("montant").value), c = COMPTES[compte];
+  const cdf = d === "USD" ? m * COURS_USD_CDF : m;
+  $("r-lignes").innerHTML = `
+    <tr><td class="num">${c.compte}</td><td>${c.libelle}, Kalala Mbuyi Josée</td><td class="d num">${money(m, d)}</td><td></td></tr>
+    <tr><td class="num">570</td><td>Caisse 2, monnaies nationale et étrangère</td><td></td><td class="c num">${money(m, d)}</td></tr>`;
+  $("r-cv").innerHTML = d === "USD"
+    ? `Contre-valeur : <span class="num">${money(cdf, "CDF")}</span> au cours du jour de <span class="num">2 850,00</span> CDF pour 1 USD (cours fictif). Écriture équilibrée en USD et en CDF.`
+    : "Écriture équilibrée en CDF.";
+  $("saisie").hidden = true;
+  $("resultat").hidden = false;
+  $("nouvelle").focus();
+}
+
+function reinitialiser() {
+  compte = "usd";
+  document.querySelector('input[name="compte"][value="usd"]').checked = true;
+  $("montant").value = "";
+  $("v-piece").checked = false;
+  $("v-signature").checked = false;
+  $("motif").value = "";
+  compteurs = {};
+  $("resultat").hidden = true;
+  $("saisie").hidden = false;
+  construireBilletage();
+  rafraichir();
+  $("montant").focus();
+}
+
+// Liaisons
+document.querySelectorAll('input[name="compte"]').forEach((r) => r.addEventListener("change", () => {
+  compte = r.value; compteurs = {}; construireBilletage(); rafraichir();
+}));
+document.querySelectorAll('input[name="retirant"]').forEach((r) => r.addEventListener("change", () => {
+  $("retirant-actif").innerHTML = r.value === "titulaire"
+    ? "Au guichet : <strong>la titulaire</strong>"
+    : "Au guichet : <strong>Mbuyi Patrick, mandataire</strong>. Vérifier sa pièce et la procuration du 14/01/2025.";
+}));
+["montant", "v-piece", "v-signature"].forEach((id) => $(id).addEventListener("input", rafraichir));
+$("montant").addEventListener("blur", () => {
+  const m = lireMontant($("montant").value);
+  if (m !== null && m > 0) $("montant").value = fmt.format(m / 100);
+});
+$("valider").addEventListener("click", valider);
+$("proposer").addEventListener("click", proposerBilletage);
+$("nouvelle").addEventListener("click", reinitialiser);
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "F2") { e.preventDefault(); $("q").focus(); $("q").select(); }
+  else if (e.key === "F4") { e.preventDefault(); proposerBilletage(); }
+  else if (e.key === "F8") { e.preventDefault(); alert("Ouvrirait l'onglet Remboursement avec l'échéance de 112,50 USD (non maquetté)."); }
+  else if (e.key === "F9") { e.preventDefault(); valider(); }
+  else if (e.key === "Escape") { e.preventDefault(); reinitialiser(); }
+  else if (e.key === "Enter" && !$("resultat").hidden) { e.preventDefault(); reinitialiser(); }
+});
+
+// Départ : billetage déjà compté pour 450 USD, vérifications à faire
+compteurs = { 100: 4, 50: 1 };
+construireBilletage();
+rafraichir();
+</script>
+</body>
+</html>
