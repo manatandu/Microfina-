@@ -23,6 +23,7 @@ Chaque écran et chaque règle du code est **confronté aux Instructions de la B
 - Règles du projet : `docs/design/DESIGN.md`. Elles priment sur les skills de design.
 - Finition et mouvement : skill `emil-kowalski` (dans `.claude/skills/`). Lire la fiche qui correspond à la tâche avant d'écrire ou de juger, jamais de mémoire. Pour une maquette : `emil-design-eng` et `break-ui`.
 - Les maquettes sont dans `docs/design/maquettes/`.
+- Catalogue de composants 21st.dev : serveur MCP `21st` déclaré dans `.mcp.json`, clé dans la variable `API_KEY_21ST` de chaque poste, jamais dans le dépôt. Un composant trouvé là sert de point de départ : il est réécrit avec nos jetons et nos composants (`replica/design/`), sans Tailwind ni couleur en dur, puis confronté à DESIGN.md (pas d'animation sur ce qui se répète, couleur réservée au sens). Mode d'emploi : skill `21st-composants-ui`.
 
 ## 3. Architecture
 
