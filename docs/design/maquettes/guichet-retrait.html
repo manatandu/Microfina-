@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Guichet, retrait</title>
+<title>Guichet de retrait</title>
+<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@400;600&family=Atkinson+Hyperlegible+Next:wght@400;600;700&display=swap" rel="stylesheet">
@@ -21,16 +22,43 @@
   --sain: #2E7553;
   --r1: #B58A12;
   --r1-pale: #FBF3DC;
+  --sain-pale: #E3F1EA;
+  --ligne: #ECEEF1;
+  --specimen: #FCFCFB;
+  --photo-fond: #DDE1E7;
+  --photo-figure: #B9C0CB;
+  --sur-tampon: #FFFFFF;
+  --inactif: #C9CBD6;
+  --sur-inactif: #F4F4F8;
   --texte: "Atkinson Hyperlegible Next", "Segoe UI", system-ui, sans-serif;
   --chiffres: "Atkinson Hyperlegible Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
 }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --papier: #14161C; --feuille: #1D2029; --encre: #E7E9EE; --encre-2: #A1A8B6; --trait: #343947;
+    --tampon: #A3A7F2; --tampon-pale: #2A2D52; --alerte: #F08A80; --alerte-pale: #3A1F1E;
+    --sain: #6FC79B; --sain-pale: #1C3328; --r1: #E2B84A; --r1-pale: #3A3018;
+    --ligne: #2A2E39; --specimen: #191B22; --photo-fond: #2A2E39; --photo-figure: #4A5060;
+    --sur-tampon: #14161C; --inactif: #3A3E4C; --sur-inactif: #8A90A0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --papier: #14161C; --feuille: #1D2029; --encre: #E7E9EE; --encre-2: #A1A8B6; --trait: #343947;
+  --tampon: #A3A7F2; --tampon-pale: #2A2D52; --alerte: #F08A80; --alerte-pale: #3A1F1E;
+  --sain: #6FC79B; --sain-pale: #1C3328; --r1: #E2B84A; --r1-pale: #3A3018;
+  --ligne: #2A2E39; --specimen: #191B22; --photo-fond: #2A2E39; --photo-figure: #4A5060;
+  --sur-tampon: #14161C; --inactif: #3A3E4C; --sur-inactif: #8A90A0;
+  color-scheme: dark;
+}
 * { box-sizing: border-box; }
+html { height: 100%; }
 html, body { margin: 0; }
 body {
   background: var(--papier);
   color: var(--encre);
   font: 15px/1.4 var(--texte);
-  min-height: 100vh;
+  min-height: 100%;
   display: grid;
   grid-template-rows: auto 1fr auto;
 }
@@ -40,7 +68,9 @@ body {
 /* Bandeau */
 .bandeau {
   display: flex; align-items: center; gap: 24px;
-  padding: 10px 20px;
+  padding-block: 10px;
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
   background: var(--feuille);
   border-bottom: 1px solid var(--trait);
 }
@@ -50,7 +80,7 @@ body {
 .etat {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 2px 8px; border-radius: 4px;
-  background: #E3F1EA; color: var(--sain); font-weight: 600; font-size: 13px;
+  background: var(--sain-pale); color: var(--sain); font-weight: 600; font-size: 13px;
 }
 .etat::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--sain); }
 .bandeau .poste { margin-left: auto; color: var(--encre-2); }
@@ -61,7 +91,9 @@ body {
   display: grid;
   grid-template-columns: 290px minmax(0, 1fr) 330px;
   gap: 12px;
-  padding: 10px 12px;
+  padding-block: 10px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
   align-items: start;
 }
 .bloc {
@@ -78,7 +110,7 @@ h2 { font-size: 15px; font-weight: 700; margin: 0 0 10px; }
 .recherche { display: flex; gap: 8px; margin-bottom: 12px; }
 .recherche input {
   flex: 1; min-width: 0; font: inherit; padding: 6px 8px;
-  border: 1px solid var(--trait); border-radius: 2px; background: var(--papier);
+  border: 1px solid var(--trait); border-radius: 2px; background: var(--papier); color: var(--encre);
 }
 .touche {
   font-family: var(--chiffres); font-size: 12px;
@@ -86,7 +118,10 @@ h2 { font-size: 15px; font-weight: 700; margin: 0 0 10px; }
   padding: 1px 5px; background: var(--feuille); color: var(--encre-2);
 }
 .identite { display: grid; grid-template-columns: 72px 1fr; gap: 12px; }
-.photo { width: 72px; height: 88px; border-radius: 2px; background: #DDE1E7; display: block; }
+.photo { width: 72px; height: 88px; border-radius: 2px; display: block; }
+.photo .fond { fill: var(--photo-fond); }
+.photo .figure { fill: var(--photo-figure); }
+.specimen path { stroke: var(--encre); }
 .nom { font-size: 18px; font-weight: 700; line-height: 1.2; margin: 0 0 4px; }
 .identite dl { margin: 0; font-size: 13px; }
 .identite dt { color: var(--encre-2); display: inline; }
@@ -94,7 +129,7 @@ h2 { font-size: 15px; font-weight: 700; margin: 0 0 10px; }
 .identite dd::after { content: ""; display: block; }
 .specimen {
   margin-top: 12px; border: 1px dashed var(--trait); border-radius: 2px;
-  padding: 6px 8px 4px; background: #FCFCFB;
+  padding: 6px 8px 4px; background: var(--specimen);
 }
 .specimen svg { display: block; width: 100%; height: 48px; }
 
@@ -167,6 +202,7 @@ legend { font-weight: 600; font-size: 14px; margin-bottom: 6px; padding: 0; }
 .motif input {
   font: inherit; width: 100%; padding: 6px 8px;
   border: 1px solid var(--trait); border-radius: 2px;
+  background: var(--feuille); color: var(--encre);
 }
 
 .cloture { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; border-top: 1px solid var(--trait); padding-top: 12px; }
@@ -175,9 +211,9 @@ legend { font-weight: 600; font-size: 14px; margin-bottom: 6px; padding: 0; }
 .bloquants:empty::after { content: "Tout est vérifié. Le retrait peut être validé."; color: var(--sain); font-weight: 600; }
 .valider {
   font: 700 15px var(--texte); cursor: pointer; white-space: nowrap;
-  background: var(--tampon); color: #fff; border: 0; border-radius: 4px; padding: 11px 18px;
+  background: var(--tampon); color: var(--sur-tampon); border: 0; border-radius: 4px; padding: 11px 18px;
 }
-.valider:disabled { background: #C9CBD6; color: #F4F4F8; cursor: not-allowed; }
+.valider:disabled { background: var(--inactif); color: var(--sur-inactif); cursor: not-allowed; }
 .valider .touche { background: transparent; color: inherit; border-color: currentColor; margin-left: 6px; }
 
 /* Résultat */
@@ -200,12 +236,13 @@ legend { font-weight: 600; font-size: 14px; margin-bottom: 6px; padding: 0; }
 .billetage table { width: 100%; border-collapse: collapse; }
 .billetage th { font-size: 12px; font-weight: 600; color: var(--encre-2); text-align: right; padding: 0 4px 6px; white-space: nowrap; }
 .billetage th:first-child { text-align: left; }
-.billetage td { padding: 2px 4px; text-align: right; border-top: 1px solid #ECEEF1; white-space: nowrap; }
+.billetage td { padding: 2px 4px; text-align: right; border-top: 1px solid var(--ligne); white-space: nowrap; }
 .billetage td:first-child { text-align: left; font-weight: 600; }
 .billetage td.stock { color: var(--encre-2); font-size: 13px; }
 .billetage input {
   width: 52px; font: 600 15px var(--chiffres); text-align: right;
   border: 1px solid var(--trait); border-radius: 2px; padding: 3px 5px;
+  background: var(--feuille); color: var(--encre);
 }
 .billetage input.trop { border-color: var(--alerte); background: var(--alerte-pale); }
 .billetage tfoot td { border-top: 2px solid var(--encre); font-weight: 700; padding-top: 6px; }
@@ -223,15 +260,20 @@ legend { font-weight: 600; font-size: 14px; margin-bottom: 6px; padding: 0; }
 /* Barre des touches */
 .touches {
   display: flex; flex-wrap: wrap; gap: 6px 20px; align-items: center;
-  padding: 8px 20px; background: var(--feuille); border-top: 1px solid var(--trait);
+  padding-block: 8px;
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
+  background: var(--feuille); border-top: 1px solid var(--trait);
   font-size: 13px; color: var(--encre-2);
 }
 .touches b { color: var(--encre); font-weight: 600; }
 .note { margin-left: auto; font-style: italic; }
 
 @media (max-width: 1100px) {
-  .guichet { grid-template-columns: 1fr; padding: 12px 16px; }
-  .bandeau { flex-wrap: wrap; gap: 8px 16px; padding: 10px 16px; }
+  .guichet { grid-template-columns: 1fr; }
+  .bandeau { flex-wrap: wrap; gap: 8px 16px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .touches { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .note { margin-left: 0; }
   .bandeau .poste { margin-left: 0; }
   .deux { grid-template-columns: 1fr; }
   .cloture { flex-direction: column; align-items: stretch; }
@@ -258,9 +300,9 @@ legend { font-weight: 600; font-size: 14px; margin-bottom: 6px; padding: 0; }
       </div>
       <div class="identite">
         <svg class="photo" viewBox="0 0 72 88" role="img" aria-label="Photo du membre">
-          <rect width="72" height="88" fill="#DDE1E7"/>
-          <circle cx="36" cy="34" r="15" fill="#B9C0CB"/>
-          <path d="M8 88c2-20 14-30 28-30s26 10 28 30z" fill="#B9C0CB"/>
+          <rect class="fond" width="72" height="88"/>
+          <circle class="figure" cx="36" cy="34" r="15"/>
+          <path class="figure" d="M8 88c2-20 14-30 28-30s26 10 28 30z"/>
         </svg>
         <div>
           <h2 id="t-membre" class="nom">Kalala Mbuyi Josée</h2>
@@ -274,8 +316,8 @@ legend { font-weight: 600; font-size: 14px; margin-bottom: 6px; padding: 0; }
       </div>
       <div class="specimen">
         <svg viewBox="0 0 260 56" aria-label="Specimen de signature">
-          <path d="M14 40c10-26 22-30 20-10-1 12-8 14-4 2 4-12 14-20 18-8 3 9-6 16 2 10 8-6 12-18 20-12 6 5-4 14 4 12 10-3 14-16 24-14 8 2 0 14 8 12 12-3 22-22 32-18 7 3-6 14 4 13 14-1 24-10 40-12 12-2 30 2 44 0" fill="none" stroke="#1B2130" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M60 46c40 4 90 2 150-4" fill="none" stroke="#1B2130" stroke-width="1.2" stroke-linecap="round"/>
+          <path d="M14 40c10-26 22-30 20-10-1 12-8 14-4 2 4-12 14-20 18-8 3 9-6 16 2 10 8-6 12-18 20-12 6 5-4 14 4 12 10-3 14-16 24-14 8 2 0 14 8 12 12-3 22-22 32-18 7 3-6 14 4 13 14-1 24-10 40-12 12-2 30 2 44 0" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M60 46c40 4 90 2 150-4" fill="none" stroke-width="1.2" stroke-linecap="round"/>
         </svg>
         <div class="discret">Specimen de signature déposé le 12/03/2019</div>
       </div>
@@ -294,7 +336,7 @@ legend { font-weight: 600; font-size: 14px; margin-bottom: 6px; padding: 0; }
         <tr><td class="discret">Échéance impayée</td><td class="num">112,50 USD</td></tr>
         <tr><td class="discret">En retard depuis</td><td>24/10/2026, 12 jours</td></tr>
       </table>
-      <p class="conseil">Proposer le remboursement de l'échéance avant le retrait. <span class="touche">F8</span></p>
+      <p class="conseil">Proposer le remboursement de l'échéance avant le retrait. <span class="touche">F8</span><span id="conseil-msg" aria-live="polite" style="display:block"></span></p>
     </div>
   </section>
 
@@ -621,7 +663,7 @@ $("nouvelle").addEventListener("click", reinitialiser);
 document.addEventListener("keydown", (e) => {
   if (e.key === "F2") { e.preventDefault(); $("q").focus(); $("q").select(); }
   else if (e.key === "F4") { e.preventDefault(); proposerBilletage(); }
-  else if (e.key === "F8") { e.preventDefault(); alert("Ouvrirait l'onglet Remboursement avec l'échéance de 112,50 USD (non maquetté)."); }
+  else if (e.key === "F8") { e.preventDefault(); $("conseil-msg").textContent = "Ici s'ouvrirait l'onglet Remboursement, avec l'échéance de 112,50 USD déjà saisie. Écran pas encore maquetté."; }
   else if (e.key === "F9") { e.preventDefault(); valider(); }
   else if (e.key === "Escape") { e.preventDefault(); reinitialiser(); }
   else if (e.key === "Enter" && !$("resultat").hidden) { e.preventDefault(); reinitialiser(); }
