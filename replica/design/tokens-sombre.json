@@ -1,0 +1,200 @@
+{
+  "_about": "Jetons de Likelemba, thème sombre. Mêmes noms et mêmes paires que tokens.json ; seules les couleurs changent.",
+  "_roles": {
+    "bg": "papier",
+    "surface": "feuille",
+    "border": "trait",
+    "border-input": "trait-saisie",
+    "text": "encre",
+    "text-muted": "encre-2",
+    "accent": "tampon",
+    "on-accent": "sur-tampon",
+    "danger": "alerte",
+    "success": "sain"
+  },
+  "color": {
+    "papier": "#14161C",
+    "feuille": "#1D2029",
+    "encre": "#E7E9EE",
+    "encre-2": "#A1A8B6",
+    "trait": "#343947",
+    "trait-saisie": "#7A8194",
+    "ligne": "#2A2E39",
+    "tampon": "#A3A7F2",
+    "tampon-pale": "#2A2D52",
+    "sur-tampon": "#14161C",
+    "alerte": "#F08A80",
+    "alerte-pale": "#3A1F1E",
+    "sain": "#6FC79B",
+    "sain-texte": "#6FC79B",
+    "sain-pale": "#1C3328",
+    "r1": "#E2B84A",
+    "r1-texte": "#E2B84A",
+    "r1-pale": "#3A3018",
+    "r2": "#EE9A55",
+    "r2-texte": "#EE9A55",
+    "r2-pale": "#3A2617",
+    "r3": "#F0876A",
+    "r3-texte": "#F0876A",
+    "r3-pale": "#3A211B",
+    "r4": "#E8808D",
+    "r4-texte": "#E8808D",
+    "r4-pale": "#3A1D22",
+    "r5": "#D9A0AE",
+    "r5-texte": "#D9A0AE",
+    "r5-pale": "#33202A",
+    "inactif": "#3A3E4C",
+    "sur-inactif": "#8A90A0",
+    "specimen": "#191B22",
+    "photo-fond": "#2A2E39",
+    "photo-figure": "#4A5060"
+  },
+  "pairs": [
+    [
+      "encre",
+      "papier"
+    ],
+    [
+      "encre",
+      "feuille"
+    ],
+    [
+      "encre",
+      "tampon-pale"
+    ],
+    [
+      "encre",
+      "specimen"
+    ],
+    [
+      "encre-2",
+      "papier"
+    ],
+    [
+      "encre-2",
+      "feuille"
+    ],
+    [
+      "encre-2",
+      "tampon-pale"
+    ],
+    [
+      "tampon",
+      "feuille"
+    ],
+    [
+      "tampon",
+      "papier"
+    ],
+    [
+      "sur-tampon",
+      "tampon"
+    ],
+    [
+      "alerte",
+      "feuille"
+    ],
+    [
+      "alerte",
+      "alerte-pale"
+    ],
+    [
+      "sain-texte",
+      "feuille"
+    ],
+    [
+      "sain-texte",
+      "sain-pale"
+    ],
+    [
+      "r1-texte",
+      "feuille"
+    ],
+    [
+      "r1-texte",
+      "r1-pale"
+    ],
+    [
+      "r2-texte",
+      "feuille"
+    ],
+    [
+      "r2-texte",
+      "r2-pale"
+    ],
+    [
+      "r3-texte",
+      "feuille"
+    ],
+    [
+      "r3-texte",
+      "r3-pale"
+    ],
+    [
+      "r4-texte",
+      "feuille"
+    ],
+    [
+      "r4-texte",
+      "r4-pale"
+    ],
+    [
+      "r5-texte",
+      "feuille"
+    ],
+    [
+      "r5-texte",
+      "r5-pale"
+    ],
+    [
+      "trait-saisie",
+      "feuille",
+      "ui"
+    ],
+    [
+      "trait-saisie",
+      "papier",
+      "ui"
+    ],
+    [
+      "tampon",
+      "feuille",
+      "ui"
+    ],
+    [
+      "alerte",
+      "feuille",
+      "ui"
+    ],
+    [
+      "sain",
+      "feuille",
+      "ui"
+    ],
+    [
+      "r1",
+      "feuille",
+      "ui"
+    ],
+    [
+      "r2",
+      "feuille",
+      "ui"
+    ],
+    [
+      "r3",
+      "feuille",
+      "ui"
+    ],
+    [
+      "r4",
+      "feuille",
+      "ui"
+    ],
+    [
+      "r5",
+      "feuille",
+      "ui"
+    ]
+  ]
+}

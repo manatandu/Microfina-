@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Primitives Likelemba</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@400;600&family=Atkinson+Hyperlegible+Next:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="composants.css">
+<style>
+  /* Mise en page de la planche uniquement : pas un composant */
+  .planche { max-width: 1366px; margin: 0 auto; padding: var(--espace-4) var(--espace-4) 96px; display: grid; gap: var(--espace-6); }
+  .planche > header h1 { margin: 0; font-size: var(--taille-grand); line-height: var(--interligne-grand); }
+  .planche > header p { margin: var(--espace-1) 0 0; color: var(--encre-2); max-width: 70ch; }
+  .section { display: grid; gap: var(--espace-3); }
+  .section > h2 { margin: 0; font-size: var(--taille-titre); line-height: var(--interligne-titre); }
+  .section > h2 small { font-weight: 400; color: var(--encre-2); font-size: var(--taille-dense); margin-left: var(--espace-2); }
+  .rangee { display: flex; flex-wrap: wrap; gap: var(--espace-3); align-items: flex-start; }
+  .grille-3 { display: grid; grid-template-columns: 270px minmax(0, 1fr) 300px; gap: var(--espace-3); align-items: start; }
+  .grille-champs { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--espace-3); }
+  .etat-nom { font-size: var(--taille-dense); color: var(--encre-2); margin: 0 0 var(--espace-1); }
+  .cadre-ecran { border: 1px solid var(--trait); border-radius: var(--rayon-bloc); overflow: hidden; }
+  @media (max-width: 1100px) { .grille-3 { grid-template-columns: minmax(0, 1fr); } }
+
+  /* Commutateur de données : outil de revue, hors produit (break-ui, règle 4) */
+  .commutateur {
+    position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 50;
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 6px; border-radius: 10px;
+    background: #E5E7EB; font: 13px system-ui, sans-serif; color: #111; max-width: calc(100vw - 24px);
+  }
+  .commutateur fieldset { border: 0; margin: 0; padding: 0; display: flex; gap: 2px; align-items: center; }
+  .commutateur legend { float: left; padding: 0 6px 0 4px; color: #444; }
+  .commutateur label { padding: 4px 10px; border-radius: 6px; cursor: pointer; }
+  .commutateur input { position: absolute; opacity: 0; pointer-events: none; }
+  .commutateur label:has(input:checked) { background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.15); }
+  .commutateur label:has(input:focus-visible) { outline: 2px solid #111; }
+</style>
+</head>
+<body>
+<main class="planche">
+  <header>
+    <h1>Primitives</h1>
+    <p>Chaque composant de <code>components.md</code>, dans ses états. Jetons : <code>tokens.css</code>. Données fictives. Le commutateur en bas change les données, pas les composants.</p>
+  </header>
+
+  <!-- 1. Bandeau de poste et barre de touches -->
+  <section class="section" aria-labelledby="t-poste">
+    <h2 id="t-poste">Bandeau de poste et touches <small>C01, C02</small></h2>
+    <div class="cadre-ecran">
+      <div class="poste" id="poste"></div>
+      <div class="touches" aria-label="Touches de fonction">
+        <span><kbd class="touche">F2</kbd> Rechercher</span>
+        <span><kbd class="touche">F4</kbd> Billetage</span>
+        <span><kbd class="touche">F9</kbd> Valider</span>
+        <span><kbd class="touche">Échap</kbd> Annuler</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Puces -->
+  <section class="section" aria-labelledby="t-puces">
+    <h2 id="t-puces">Puces <small>C03 statut de crédit (Instr. BCC 003), C04 état de journée et de caisse</small></h2>
+    <div class="rangee">
+      <span class="puce" data-tranche="0">Sain</span>
+      <span class="puce" data-tranche="1">1 à 30 jours</span>
+      <span class="puce" data-tranche="2">31 à 60 jours</span>
+      <span class="puce" data-tranche="3">61 à 90 jours</span>
+      <span class="puce" data-tranche="4">91 à 180 jours</span>
+      <span class="puce" data-tranche="5">Plus de 180 jours</span>
+    </div>
+    <div class="rangee">
+      <span class="puce" data-etat="ouverte">Journée ouverte</span>
+      <span class="puce" data-etat="en_cloture">En clôture</span>
+      <span class="puce" data-etat="fermee">Journée fermée</span>
+    </div>
+  </section>
+
+  <!-- 3. Boutons -->
+  <section class="section" aria-labelledby="t-boutons">
+    <h2 id="t-boutons">Boutons <small>C05, sans effet à la pression (DESIGN § 2.7 bis)</small></h2>
+    <div class="rangee">
+      <div><p class="etat-nom">principal</p><button class="bouton grand" type="button">Valider le retrait <kbd class="touche">F9</kbd></button></div>
+      <div><p class="etat-nom">principal, inactif</p><button class="bouton grand" type="button" disabled>Valider le retrait <kbd class="touche">F9</kbd></button></div>
+      <div><p class="etat-nom">en cours</p><button class="bouton grand" type="button" aria-busy="true" aria-disabled="true">Enregistrement…</button></div>
+      <div><p class="etat-nom">secondaire</p><button class="bouton secondaire" type="button">Imprimer le reçu</button></div>
+      <div><p class="etat-nom">discret</p><button class="bouton discret" type="button">Modifier la répartition</button></div>
+    </div>
+  </section>
+
+  <!-- 4. Champs -->
+  <section class="section" aria-labelledby="t-champs">
+    <h2 id="t-champs">Champs <small>C06, C07 date</small></h2>
+    <div class="grille-champs">
+      <div class="champ"><label for="c1">Motif</label><input id="c1" class="saisie" placeholder="Facultatif"></div>
+      <div class="champ"><label for="c2">N° de pièce</label><input id="c2" class="saisie num" value="1-0412-0089" aria-invalid="true" aria-describedby="c2e"><p class="erreur" id="c2e">Pièce expirée le 12/03/2026.</p></div>
+      <div class="champ"><label for="c3">Produit</label><select id="c3" class="saisie"><option>Épargne à vue</option><option>Épargne obligatoire</option><option>Dépôt à terme</option></select></div>
+      <div class="champ"><label for="c4">Date de valeur</label><input id="c4" class="saisie num" inputmode="numeric" placeholder="jj/mm/aaaa" value="05/11/2026" aria-describedby="c4a"><p class="aide" id="c4a">Saisie au clavier ; la date comptable vient de la journée.</p></div>
+      <div class="champ"><label for="c5">Agence</label><input id="c5" class="saisie" value="Matete" readonly></div>
+      <div class="champ"><label for="c6">Taux</label><input id="c6" class="saisie num" value="à confirmer" disabled></div>
+    </div>
+    <label class="case"><input type="checkbox" checked> <span>Le retirant est le titulaire</span></label>
+  </section>
+
+  <!-- 5. Guichet : identité, montant, billetage -->
+  <section class="section" aria-labelledby="t-guichet">
+    <h2 id="t-guichet">Guichet <small>C08 identité, C09 comptes, C10 montant, C11 billetage, C12 étapes</small></h2>
+    <div class="grille-3">
+      <div class="bloc">
+        <h3>Membre</h3>
+        <div id="membre"></div>
+        <h3 style="margin-top: var(--espace-4)">Comptes</h3>
+        <div class="comptes" id="comptes" role="radiogroup" aria-label="Compte"></div>
+      </div>
+      <div class="bloc" style="display: grid; gap: var(--espace-3)">
+        <h3 style="margin: 0">Bordereau de retrait</h3>
+        <div class="onglets" role="tablist" aria-label="Opération">
+          <button role="tab" aria-selected="false" type="button">Dépôt</button>
+          <button role="tab" aria-selected="true" type="button">Retrait</button>
+          <button role="tab" aria-selected="false" type="button">Remboursement</button>
+          <button role="tab" aria-selected="false" type="button">Parts sociales</button>
+        </div>
+        <div class="champ">
+          <label for="montant">Montant</label>
+          <div class="montant-champ" id="montant-cadre">
+            <input id="montant" inputmode="decimal" autocomplete="off" aria-describedby="lettres err-montant">
+            <span class="devise" id="devise"></span>
+          </div>
+          <p class="lettres" id="lettres" aria-live="polite"></p>
+          <p class="erreur" id="err-montant"></p>
+        </div>
+        <ul class="etapes" id="etapes" aria-label="Avant validation"></ul>
+        <p class="bloquant" id="bloquant" hidden><strong>Bloqué :</strong> <span></span></p>
+        <details class="textes"><summary>Textes</summary><ul><li>Instr. BCC 37 : retrait sans frais</li><li>Instr. BCC 15 bis, art. 6 et 7 : examen renforcé au-delà du seuil</li></ul></details>
+        <div><button class="bouton grand" id="valider" type="button" aria-keyshortcuts="F9" disabled>Valider le retrait <kbd class="touche">F9</kbd></button></div>
+      </div>
+      <div class="bloc">
+        <h3>Billetage <span id="b-devise"></span></h3>
+        <table class="billetage" aria-describedby="b-ecart">
+          <thead><tr><th scope="col">Coupure</th><th scope="col">En caisse</th><th scope="col">Nombre</th><th scope="col">Montant</th></tr></thead>
+          <tbody id="b-lignes"></tbody>
+          <tfoot><tr><td colspan="3">Total</td><td id="b-total">0</td></tr></tfoot>
+        </table>
+        <p class="ecart" id="b-ecart" aria-live="polite"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. Messages -->
+  <section class="section" aria-labelledby="t-msg">
+    <h2 id="t-msg">Messages <small>C13 bloquant, C14 à faire, C15 textes</small></h2>
+    <p class="bloquant"><strong>Dépasse le solde disponible.</strong> Libre : <span class="chiffres">0,00 CDF</span>.</p>
+    <p class="attention">Visa du chef d'agence requis pour ce montant.</p>
+  </section>
+
+  <!-- 7. Assistant -->
+  <section class="section" aria-labelledby="t-assist">
+    <h2 id="t-assist">Assistant à étapes <small>C16, enrôlement (S37 à S39)</small></h2>
+    <ol class="assistant">
+      <li class="fait">Identité</li>
+      <li class="fait">Pièce</li>
+      <li aria-current="step">Adresse</li>
+      <li>Liens</li>
+      <li>Photo et signature</li>
+      <li>Récapitulatif</li>
+    </ol>
+  </section>
+
+  <!-- 8. Recherche -->
+  <section class="section" aria-labelledby="t-rech">
+    <h2 id="t-rech">Recherche globale <small>C17, membre, compte, prêt, pièce (DESIGN § 5)</small></h2>
+    <div class="recherche" style="max-width: 560px">
+      <label class="etat-nom" for="q">Rechercher <kbd class="touche">F2</kbd></label>
+      <input id="q" class="saisie" role="combobox" aria-expanded="true" aria-controls="sugg" aria-autocomplete="list" autocomplete="off">
+      <ul class="suggestions" id="sugg" role="listbox" aria-label="Résultats"></ul>
+    </div>
+    <div style="height: 300px" aria-hidden="true"></div>
+  </section>
+
+  <!-- 9. Grille -->
+  <section class="section" aria-labelledby="t-grille">
+    <h2 id="t-grille">Grille dense <small>C18, back-office : tri et lignes au clavier, montants à droite</small></h2>
+    <div class="grille-cadre">
+      <table class="grille" id="grille" aria-label="Opérations du jour">
+        <thead><tr>
+          <th scope="col" aria-sort="none" data-cle="heure"><button type="button">Heure</button></th>
+          <th scope="col" aria-sort="none" data-cle="piece"><button type="button">Pièce</button></th>
+          <th scope="col" aria-sort="none" data-cle="membre"><button type="button">Membre</button></th>
+          <th scope="col" aria-sort="none" data-cle="operation"><button type="button">Opération</button></th>
+          <th scope="col" class="num" aria-sort="none" data-cle="montant"><button type="button">Montant</button></th>
+          <th scope="col" aria-sort="none" data-cle="statut"><button type="button">Crédit</button></th>
+        </tr></thead>
+        <tbody id="g-lignes"></tbody>
+      </table>
+      <div class="pagination"><span id="g-info"></span><span><button class="bouton discret" id="g-prec" type="button">Précédent</button><button class="bouton discret" id="g-suiv" type="button">Suivant</button></span></div>
+    </div>
+  </section>
+
+  <!-- 10. Liste ordonnable -->
+  <section class="section" aria-labelledby="t-ordre">
+    <h2 id="t-ordre">Liste ordonnable <small>C19, ordre de remboursement (S22) : Alt + ↑ ou ↓</small></h2>
+    <ol class="ordre" id="ordre" aria-label="Ordre d'imputation" style="max-width: 480px"></ol>
+  </section>
+
+  <!-- 11. Aperçu papier -->
+  <section class="section" aria-labelledby="t-papier">
+    <h2 id="t-papier">Aperçu du bordereau <small>C20, ce que le membre reçoit (Instr. BCC 40, art. 13)</small></h2>
+    <div class="papier" id="papier" style="max-width: 560px"></div>
+  </section>
+</main>
+
+<form class="commutateur" id="commutateur" aria-label="Outil de revue">
+  <fieldset><legend>Données</legend>
+    <label><input type="radio" name="donnees" value="demo" checked>Démo</label>
+    <label><input type="radio" name="donnees" value="pire">Pire cas</label>
+    <label><input type="radio" name="donnees" value="vide">Vide</label>
+  </fieldset>
+  <fieldset><legend>Thème</legend>
+    <label><input type="radio" name="theme" value="auto" checked>Auto</label>
+    <label><input type="radio" name="theme" value="light">Clair</label>
+    <label><input type="radio" name="theme" value="dark">Sombre</label>
+  </fieldset>
+</form>
+
+<script type="module">
+import { montant, entier, lireMontant, montantEnLettres } from "./montant.js";
+
+// ---------- Jeux de données (fictifs) ----------
+function graine(n) { let s = n; return () => (s = (s * 1103515245 + 12345) % 2147483648) / 2147483648; }
+const NOMS = ["Mwamba Ilunga Grâce", "Kasa Jo", "Ngalula Kabongo-Tshimanga wa Mulumba Bernadette", "Lukusa Mbuyi", "Kabongo Mbuyi Jean", "Kabongo Mbuyi Jean", "Tshala Muana-Kalonji Marie-Thérèse", "Ilunga N."];
+const OPS = ["Dépôt espèces", "Retrait espèces", "Remboursement P-2026-00871", "Achat de 3 parts sociales", "Frais de tenue de compte", "Déblocage de crédit P-2026-01284 sur compte d'épargne"];
+function lignesGrille(n, r) {
+  return Array.from({ length: n }, (_, i) => {
+    const d = r() < 0.6 ? "CDF" : "USD";
+    const m = d === "CDF" ? Math.floor(r() * 12845000) * 10000 : Math.floor(r() * 2500000);
+    return { heure: `${String(8 + Math.floor(i / 160)).padStart(2, "0")}:${String(Math.floor(r() * 60)).padStart(2, "0")}`,
+      piece: `BR-2026-${String(1000 + i).padStart(6, "0")}`, membre: NOMS[Math.floor(r() * NOMS.length)],
+      operation: OPS[Math.floor(r() * OPS.length)], montant: m || 100, devise: d, statut: Math.floor(r() * 6) };
+  });
+}
+const COUPURES = {
+  USD: [100, 50, 20, 10, 5, 1],
+  CDF: [20000, 10000, 5000, 1000, 500, 200, 100, 50],
+};
+const JEUX = {
+  demo: {
+    poste: { institution: "COOPEC Tujenge", lieu: "Agence de Matete", journee: "05/11/2026", etat: "ouverte", caisse: "Caisse 2", agent: "M. Kabeya" },
+    membre: { nom: "Mwamba Ilunga Grâce", numero: "0412-000318", piece: "Carte d'électeur", pieceNo: "1-0412-0089", photo: true, specimen: true, mandataire: null },
+    comptes: [
+      { intitule: "Épargne à vue", numero: "0412-000318-02", devise: "CDF", solde: 341250000, bloque: 0 },
+      { intitule: "Épargne à vue", numero: "0412-000318-01", devise: "USD", solde: 1428640, bloque: 0 },
+      { intitule: "Épargne obligatoire", numero: "0412-000318-05", devise: "USD", solde: 50000, bloque: 50000, motif: "Garantie du crédit P-2026-00871" },
+    ],
+    choisi: 1, saisie: "450",
+    stock: { USD: { 100: 184, 50: 60, 20: 80, 10: 45, 5: 30, 1: 120 }, CDF: { 20000: 150, 10000: 210, 5000: 180, 1000: 400, 500: 300, 200: 250, 100: 200, 50: 100 } },
+    grille: lignesGrille(8, graine(7)), q: "Mwa",
+    ordre: ["Capital", "Intérêts", "Pénalités", "Épargne", "Solidarité"],
+  },
+  pire: {
+    poste: { institution: "Coopérative d'épargne et de crédit Tujenge Pamoja de Kinshasa-Est", lieu: "Agence de Mont-Ngafula, point de service Kimwenza Gare", journee: "31/12/2026", etat: "en_cloture", caisse: "Caisse principale 12", agent: "Mbuyi Kalala-Tshibangu Joséphine" },
+    membre: { nom: "Ngalula Kabongo-Tshimanga wa Mulumba Bernadette", numero: "0412-0003187-04", piece: "Attestation de perte de pièce", pieceNo: "KIN/MTG/2026/000128445", photo: false, specimen: false,
+      mandataire: { nom: "Kasa Jo", qualite: "Mandataire, procuration du 02/01/2026 au 31/12/2026" } },
+    comptes: [
+      { intitule: "Épargne obligatoire liée au crédit P-2026-00871 (groupe solidaire Bomoko ya Basi ya Matete)", numero: "0412-0003187-04-0005", devise: "CDF", solde: 128450000000, bloque: 128450000000, motif: "Garantie du prêt et saisie conservatoire du 14/10/2026" },
+      { intitule: "Épargne à vue", numero: "0412-0003187-04-0001", devise: "CDF", solde: 128450000000, bloque: 0 },
+      { intitule: "Épargne à vue", numero: "0412-0003187-04-0002", devise: "USD", solde: 0, bloque: 0 },
+      { intitule: "Plan d'épargne scolaire", numero: "0412-0003187-04-0003", devise: "USD", solde: 100, bloque: 0 },
+      { intitule: "Dépôt à terme 12 mois", numero: "0412-0003187-04-0004", devise: "USD", solde: 9999999999, bloque: 9999999999, motif: "Échéance 30/09/2027" },
+      { intitule: "Épargne à vue", numero: "0412-0003187-04-0006", devise: "CDF", solde: 5000, bloque: 0 },
+    ],
+    choisi: 1, saisie: "1 284 500 000",
+    stock: { USD: { 100: 3, 50: 0, 20: 1, 10: 0, 5: 0, 1: 7 }, CDF: { 20000: 64224, 10000: 0, 5000: 1, 1000: 0, 500: 0, 200: 0, 100: 0, 50: 0 } },
+    grille: lignesGrille(1284, graine(11)), q: "Kabongo",
+    ordre: ["Capital", "Intérêts conventionnels", "Intérêts de retard", "Pénalités de retard", "Commission de suivi du dossier", "Épargne obligatoire", "Fonds de solidarité du groupe", "Assurance décès emprunteur"],
+  },
+  vide: {
+    poste: { institution: "COOPEC Tujenge", lieu: "Agence de Matete", journee: "05/11/2026", etat: "fermee", caisse: null, agent: "M. Kabeya" },
+    membre: null, comptes: [], choisi: -1, saisie: "",
+    stock: { USD: {}, CDF: {} }, grille: [], q: "zzz", ordre: [],
+  },
+};
+
+// ---------- Rendu ----------
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const ETATS = { ouverte: "Journée ouverte", en_cloture: "En clôture", fermee: "Journée fermée" };
+const TRANCHES = ["Sain", "1 à 30 jours", "31 à 60 jours", "61 à 90 jours", "91 à 180 jours", "Plus de 180 jours"];
+let J, compteurs = {}, page = 0, tri = { cle: null, sens: 1 }, sel = 0;
+
+function rendrePoste() {
+  const p = J.poste;
+  $("poste").innerHTML = `
+    <span class="institution">${esc(p.institution)}</span><span class="lieu">${esc(p.lieu)}</span>
+    <span class="droite">
+      <span class="puce" data-etat="${p.etat}">${ETATS[p.etat]} · <span class="chiffres">${p.journee}</span></span>
+      <span>${p.caisse ? esc(p.caisse) : '<span class="muet">Aucune caisse ouverte</span>'}</span>
+      <span class="muet">${esc(p.agent)}</span>
+    </span>`;
+}
+
+function rendreMembre() {
+  const m = J.membre;
+  if (!m) { $("membre").innerHTML = `<p class="muet" style="margin:0">Aucun membre choisi. <kbd class="touche">F2</kbd> pour rechercher.</p>`; return; }
+  const photo = m.photo
+    ? `<svg viewBox="0 0 64 80" width="64" height="80" aria-hidden="true"><rect width="64" height="80" fill="var(--photo-fond)"/><circle cx="32" cy="30" r="13" fill="var(--photo-figure)"/><path d="M8 80c2-18 12-26 24-26s22 8 24 26z" fill="var(--photo-figure)"/></svg>`
+    : `<span class="absente">Pas de photo</span>`;
+  const spec = m.specimen
+    ? `<svg viewBox="0 0 200 44" width="100%" height="44" aria-label="Specimen de signature"><path d="M8 32c14-22 22-24 26-10s10 12 18-4 14-8 18 6 20-18 30-6 18 10 34-4" fill="none" stroke="var(--encre)" stroke-width="1.6"/></svg>`
+    : `<span class="absente">Pas de specimen : ne pas payer</span>`;
+  const mand = m.mandataire ? `<div class="mandataire"><strong>Au guichet : ${esc(m.mandataire.nom)}</strong><br>${esc(m.mandataire.qualite)}</div>` : "";
+  $("membre").innerHTML = `
+    <div class="identite">
+      <div class="photo">${photo}</div>
+      <div><p class="nom">${esc(m.nom)}</p>
+        <dl><dt>N°</dt><dd><span class="chiffres">${esc(m.numero)}</span></dd><dt>Pièce</dt><dd>${esc(m.piece)}<br><span class="reference">${esc(m.pieceNo)}</span></dd></dl></div>
+    </div>
+    <div class="specimen">${spec}</div>${mand}`;
+}
+
+function rendreComptes() {
+  if (!J.comptes.length) { $("comptes").innerHTML = `<p class="muet" style="margin:0">${J.membre ? "Ce membre n'a pas de compte." : "Les comptes s'affichent avec le membre."}</p>`; return; }
+  $("comptes").innerHTML = J.comptes.map((c, i) => {
+    const libre = c.solde - c.bloque;
+    return `<label class="compte">
+      <input type="radio" name="compte" value="${i}" ${i === J.choisi ? "checked" : ""} ${libre <= 0 ? "disabled" : ""}>
+      <span><span class="intitule">${esc(c.intitule)}</span><br><span class="numero">${esc(c.numero)}</span></span>
+      <dl class="soldes"><dt>Solde</dt><dd>${montant(c.solde, c.devise)}</dd><dt>Bloqué</dt><dd>${montant(c.bloque, c.devise)}</dd><dt>Libre</dt><dd><strong>${montant(libre, c.devise)}</strong></dd></dl>
+      ${c.motif ? `<span class="motif">${esc(c.motif)}</span>` : ""}
+    </label>`;
+  }).join("");
+  $("comptes").querySelectorAll("input").forEach((i) => i.addEventListener("change", () => { J.choisi = Number(i.value); compteurs = {}; rendreBilletage(); rafraichir(); }));
+}
+
+const compte = () => J.comptes[J.choisi];
+const devise = () => compte()?.devise ?? "CDF";
+
+function rendreBilletage() {
+  const d = devise(), st = J.stock[d];
+  $("b-devise").textContent = d;
+  $("b-lignes").innerHTML = COUPURES[d].map((v) => `
+    <tr><td>${entier.format(v)}</td><td>${entier.format(st[v] ?? 0)}</td>
+    <td><input inputmode="numeric" data-v="${v}" aria-label="Nombre de coupures de ${v} ${d}" value="${compteurs[v] || ""}"></td>
+    <td data-m="${v}"></td></tr>`).join("");
+  $("b-lignes").querySelectorAll("input").forEach((i) => i.addEventListener("input", () => {
+    const n = parseInt(i.value.replace(/\D/g, ""), 10);
+    compteurs[Number(i.dataset.v)] = Number.isFinite(n) && n > 0 ? n : 0; rafraichir();
+  }));
+}
+
+function rafraichir() {
+  const c = compte(), d = devise(), m = lireMontant($("montant").value);
+  $("devise").textContent = d;
+  $("lettres").textContent = m ? montantEnLettres(m, d) : "";
+  let err = "";
+  if ($("montant").value && m === null) err = "Montant illisible.";
+  else if (m && c && m > c.solde - c.bloque) err = "Dépasse le solde disponible.";
+  $("err-montant").textContent = err;
+  $("montant").setAttribute("aria-invalid", err ? "true" : "false");
+  $("montant-cadre").toggleAttribute("data-erreur", !!err);
+
+  const st = J.stock[d]; let total = 0, trop = false;
+  COUPURES[d].forEach((v) => {
+    const n = compteurs[v] || 0, t = n > (st[v] ?? 0); trop ||= t; total += v * 100 * n;
+    const i = document.querySelector(`[data-v="${v}"]`); if (i) i.classList.toggle("trop", t);
+    const cel = document.querySelector(`[data-m="${v}"]`); if (cel) cel.textContent = n ? entier.format(v * n) : "";
+  });
+  $("b-total").textContent = entier.format(total / 100);
+  const ecart = (m ?? 0) - total, billetsOk = !!m && ecart === 0 && !trop;
+  $("b-ecart").className = "ecart " + (billetsOk ? "ok" : "ko");
+  $("b-ecart").innerHTML = !m ? "" : trop ? "Pas assez de coupures en caisse." : ecart === 0 ? "Le compte est bon." : ecart > 0 ? `Il manque <span class="chiffres">${montant(ecart, d)}</span>.` : `<span class="chiffres">${montant(-ecart, d)}</span> de trop.`;
+
+  const etapes = [
+    ["Membre", !!J.membre], ["Specimen vu", !!J.membre?.specimen], ["Montant", !!m && !err], ["Billetage", billetsOk],
+  ];
+  $("etapes").innerHTML = etapes.map(([t, ok]) => `<li class="${ok ? "ok" : J.membre && t === "Specimen vu" ? "ko" : ""}">${t}</li>`).join("");
+  const bloque = J.membre && !J.membre.specimen ? "pas de specimen de signature au dossier." : J.poste.etat !== "ouverte" ? "la journée n'est pas ouverte." : "";
+  $("bloquant").hidden = !bloque; $("bloquant").querySelector("span").textContent = bloque;
+  $("valider").disabled = !etapes.every(([, ok]) => ok) || !!bloque;
+  rendrePapier(m, d);
+}
+
+function rendrePapier(m, d) {
+  const c = compte();
+  if (!J.membre || !c) { $("papier").innerHTML = `<p class="muet" style="margin:0">Le bordereau apparaît quand le membre et le compte sont choisis.</p>`; return; }
+  $("papier").innerHTML = `<dl>
+    <dt>Bordereau</dt><dd class="chiffres">BR-2026-001285</dd>
+    <dt>Membre</dt><dd>${esc(J.membre.nom)}</dd>
+    <dt>Retirant</dt><dd>${J.membre.mandataire ? esc(J.membre.mandataire.nom) + ", mandataire" : "Le titulaire"}</dd>
+    <dt>Compte</dt><dd class="chiffres">${esc(c.numero)}</dd>
+    <dt>Montant</dt><dd class="chiffres">${m ? montant(m, d) : "à saisir"}</dd>
+    <dt>En lettres</dt><dd>${m ? montantEnLettres(m, d) : ""}</dd>
+    <dt>Agence</dt><dd>${esc(J.poste.lieu)}, ${J.poste.journee}</dd></dl>`;
+}
+
+// Recherche
+function rendreRecherche() {
+  const q = $("q").value.trim().toLowerCase();
+  const tous = [...new Set(J.grille.map((g) => g.membre))].map((n, i) => ({ type: "Membre", nom: n, ref: `0412-${String(318 + i).padStart(6, "0")}` }))
+    .concat(J.grille.slice(0, 40).map((g) => ({ type: "Pièce", nom: `${g.piece} · ${g.membre}`, ref: g.heure })));
+  const res = q ? tous.filter((r) => r.nom.toLowerCase().includes(q)).slice(0, 40) : [];
+  sel = Math.min(sel, Math.max(res.length - 1, 0));
+  $("sugg").innerHTML = !q ? "" : res.length
+    ? res.map((r, i) => `<li role="option" id="s${i}" aria-selected="${i === sel}"><span class="nom">${esc(r.nom)}</span><span class="type">${r.type} <span class="chiffres">${esc(r.ref)}</span></span></li>`).join("")
+    : `<li class="vide" role="option" aria-disabled="true">Aucun résultat pour « ${esc($("q").value.trim())} ».</li>`;
+  $("q").setAttribute("aria-activedescendant", res.length ? "s" + sel : "");
+}
+$("q").addEventListener("input", () => { sel = 0; rendreRecherche(); });
+$("q").addEventListener("keydown", (e) => {
+  const n = $("sugg").querySelectorAll("[role=option]:not(.vide)").length;
+  if (e.key === "ArrowDown") { sel = Math.min(sel + 1, n - 1); rendreRecherche(); e.preventDefault(); }
+  if (e.key === "ArrowUp") { sel = Math.max(sel - 1, 0); rendreRecherche(); e.preventDefault(); }
+});
+
+// Grille
+const PAR_PAGE = 25;
+function rendreGrille() {
+  let l = [...J.grille];
+  if (tri.cle) l.sort((a, b) => (a[tri.cle] > b[tri.cle] ? 1 : a[tri.cle] < b[tri.cle] ? -1 : 0) * tri.sens);
+  const max = Math.max(Math.ceil(l.length / PAR_PAGE) - 1, 0); page = Math.min(page, max);
+  const p = l.slice(page * PAR_PAGE, (page + 1) * PAR_PAGE);
+  $("g-lignes").innerHTML = p.length ? p.map((g) => `<tr tabindex="-1">
+    <td class="chiffres">${g.heure}</td><td class="chiffres" style="white-space:nowrap">${g.piece}</td><td class="texte">${esc(g.membre)}</td>
+    <td class="texte">${esc(g.operation)}</td><td class="num">${montant(g.montant, g.devise)}</td>
+    <td><span class="puce" data-tranche="${g.statut}">${TRANCHES[g.statut]}</span></td></tr>`).join("")
+    : `<tr class="vide"><td colspan="6">Aucune opération ce jour.</td></tr>`;
+  const n = l.length;
+  $("g-info").textContent = n === 0 ? "0 opération" : n === 1 ? "1 opération" : `${entier.format(page * PAR_PAGE + 1)} à ${entier.format(page * PAR_PAGE + p.length)} sur ${entier.format(n)} opérations`;
+  $("g-prec").disabled = page === 0; $("g-suiv").disabled = page >= max;
+  const lignes = [...$("g-lignes").querySelectorAll("tr[tabindex]")];
+  if (lignes[0]) lignes[0].tabIndex = 0;
+  lignes.forEach((tr, i) => tr.addEventListener("keydown", (e) => {
+    const j = e.key === "ArrowDown" ? i + 1 : e.key === "ArrowUp" ? i - 1 : null;
+    if (j !== null && lignes[j]) { tr.tabIndex = -1; lignes[j].tabIndex = 0; lignes[j].focus(); e.preventDefault(); }
+  }));
+}
+document.querySelectorAll("#grille th").forEach((th) => th.querySelector("button").addEventListener("click", () => {
+  const cle = th.dataset.cle; tri = { cle, sens: tri.cle === cle ? -tri.sens : 1 };
+  document.querySelectorAll("#grille th").forEach((t) => t.setAttribute("aria-sort", t === th ? (tri.sens > 0 ? "ascending" : "descending") : "none"));
+  page = 0; rendreGrille();
+}));
+$("g-prec").addEventListener("click", () => { page--; rendreGrille(); });
+$("g-suiv").addEventListener("click", () => { page++; rendreGrille(); });
+
+// Liste ordonnable
+function rendreOrdre(focus) {
+  const o = J.ordre;
+  $("ordre").innerHTML = o.length ? o.map((t, i) => `<li tabindex="0" data-i="${i}"><span>${esc(t)}</span><span class="actions">
+    <button type="button" data-dir="-1" ${i === 0 ? "disabled" : ""} aria-label="Monter ${esc(t)}">Monter</button>
+    <button type="button" data-dir="1" ${i === o.length - 1 ? "disabled" : ""} aria-label="Descendre ${esc(t)}">Descendre</button></span></li>`).join("")
+    : `<li><span class="muet">Aucun poste à ordonner.</span></li>`;
+  const deplacer = (i, dir) => { const j = i + dir; if (j < 0 || j >= o.length) return; [o[i], o[j]] = [o[j], o[i]]; rendreOrdre(j); };
+  $("ordre").querySelectorAll("li[data-i]").forEach((li) => {
+    const i = Number(li.dataset.i);
+    li.addEventListener("keydown", (e) => { if (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) { deplacer(i, e.key === "ArrowUp" ? -1 : 1); e.preventDefault(); } });
+    li.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => deplacer(i, Number(b.dataset.dir))));
+  });
+  if (focus !== undefined) $("ordre").querySelector(`li[data-i="${focus}"]`)?.focus();
+}
+
+// ---------- Commutateur ----------
+function charger(nom) {
+  J = structuredClone(JEUX[nom]); compteurs = {}; page = 0; tri = { cle: null, sens: 1 }; sel = 0;
+  document.querySelectorAll("#grille th").forEach((t) => t.setAttribute("aria-sort", "none"));
+  $("montant").value = J.saisie; $("q").value = J.q;
+  rendrePoste(); rendreMembre(); rendreComptes(); rendreBilletage(); rafraichir(); rendreRecherche(); rendreGrille(); rendreOrdre();
+}
+function theme(t) { if (t === "auto") document.documentElement.removeAttribute("data-theme"); else document.documentElement.dataset.theme = t; }
+const url = new URL(location.href);
+const f = $("commutateur");
+f.donnees.value = JEUX[url.searchParams.get("donnees")] ? url.searchParams.get("donnees") : "demo";
+f.theme.value = ["light", "dark"].includes(url.searchParams.get("theme")) ? url.searchParams.get("theme") : "auto";
+f.addEventListener("change", () => {
+  url.searchParams.set("donnees", f.donnees.value); url.searchParams.set("theme", f.theme.value);
+  history.replaceState(null, "", url); charger(f.donnees.value); theme(f.theme.value);
+});
+$("montant").addEventListener("input", rafraichir);
+document.querySelectorAll('[role="tablist"]').forEach((tl) => {
+  const tabs = [...tl.querySelectorAll('[role="tab"]')];
+  const choisir = (t) => { tabs.forEach((x) => { x.setAttribute("aria-selected", x === t); x.tabIndex = x === t ? 0 : -1; }); t.focus(); };
+  tabs.forEach((t, i) => {
+    t.tabIndex = t.getAttribute("aria-selected") === "true" ? 0 : -1;
+    t.addEventListener("click", () => choisir(t));
+    t.addEventListener("keydown", (e) => {
+      const j = e.key === "ArrowRight" ? (i + 1) % tabs.length : e.key === "ArrowLeft" ? (i - 1 + tabs.length) % tabs.length : null;
+      if (j !== null) { choisir(tabs[j]); e.preventDefault(); }
+    });
+  });
+});
+charger(f.donnees.value); theme(f.theme.value);
+</script>
+</body>
+</html>

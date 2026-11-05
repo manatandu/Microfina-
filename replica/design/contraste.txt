@@ -1,0 +1,77 @@
+# Contraste, thème clair
+  AAA   14.56:1  encre                    on papier               
+  AAA   16.07:1  encre                    on feuille              
+  AAA   13.22:1  encre                    on tampon-pale          
+  AAA   15.65:1  encre                    on specimen             
+  AA     5.63:1  encre-2                  on papier               
+  AA     6.21:1  encre-2                  on feuille              
+  AA     5.11:1  encre-2                  on tampon-pale          
+  AAA    9.09:1  tampon                   on feuille              
+  AAA    8.24:1  tampon                   on papier               
+  AAA    9.09:1  sur-tampon               on tampon               
+  AA     6.54:1  alerte                   on feuille              
+  AA     5.61:1  alerte                   on alerte-pale          
+  AA     5.55:1  sain-texte               on feuille              
+  AA     4.76:1  sain-texte               on sain-pale            
+  AA     6.24:1  r1-texte                 on feuille              
+  AA     5.64:1  r1-texte                 on r1-pale              
+  AA     6.00:1  r2-texte                 on feuille              
+  AA     5.15:1  r2-texte                 on r2-pale              
+  AA     6.81:1  r3-texte                 on feuille              
+  AA     5.66:1  r3-texte                 on r3-pale              
+  AAA    7.63:1  r4-texte                 on feuille              
+  AA     6.19:1  r4-texte                 on r4-pale              
+  AAA   12.37:1  r5-texte                 on feuille              
+  AAA    9.94:1  r5-texte                 on r5-pale              
+  PASS   3.66:1  trait-saisie             on feuille              ui
+  PASS   3.32:1  trait-saisie             on papier               ui
+  PASS   9.09:1  tampon                   on feuille              ui
+  PASS   6.54:1  alerte                   on feuille              ui
+  PASS   5.55:1  sain                     on feuille              ui
+  PASS   3.18:1  r1                       on feuille              ui
+  PASS   3.78:1  r2                       on feuille              ui
+  PASS   5.05:1  r3                       on feuille              ui
+  PASS   7.63:1  r4                       on feuille              ui
+  PASS  12.37:1  r5                       on feuille              ui
+
+  34 pairs, 0 failing AA
+exit 0
+
+# Contraste, thème sombre
+  AAA   14.89:1  encre                    on papier               
+  AAA   13.39:1  encre                    on feuille              
+  AAA   10.83:1  encre                    on tampon-pale          
+  AAA   14.16:1  encre                    on specimen             
+  AAA    7.57:1  encre-2                  on papier               
+  AA     6.81:1  encre-2                  on feuille              
+  AA     5.51:1  encre-2                  on tampon-pale          
+  AAA    7.26:1  tampon                   on feuille              
+  AAA    8.07:1  tampon                   on papier               
+  AAA    8.07:1  sur-tampon               on tampon               
+  AA     6.70:1  alerte                   on feuille              
+  AA     6.20:1  alerte                   on alerte-pale          
+  AAA    7.99:1  sain-texte               on feuille              
+  AA     6.64:1  sain-texte               on sain-pale            
+  AAA    8.67:1  r1-texte                 on feuille              
+  AA     6.92:1  r1-texte                 on r1-pale              
+  AAA    7.27:1  r2-texte                 on feuille              
+  AA     6.39:1  r2-texte                 on r2-pale              
+  AA     6.49:1  r3-texte                 on feuille              
+  AA     5.93:1  r3-texte                 on r3-pale              
+  AA     6.12:1  r4-texte                 on feuille              
+  AA     5.73:1  r4-texte                 on r4-pale              
+  AAA    7.43:1  r5-texte                 on feuille              
+  AA     6.95:1  r5-texte                 on r5-pale              
+  PASS   4.18:1  trait-saisie             on feuille              ui
+  PASS   4.65:1  trait-saisie             on papier               ui
+  PASS   7.26:1  tampon                   on feuille              ui
+  PASS   6.70:1  alerte                   on feuille              ui
+  PASS   7.99:1  sain                     on feuille              ui
+  PASS   8.67:1  r1                       on feuille              ui
+  PASS   7.27:1  r2                       on feuille              ui
+  PASS   6.49:1  r3                       on feuille              ui
+  PASS   6.12:1  r4                       on feuille              ui
+  PASS   7.43:1  r5                       on feuille              ui
+
+  34 pairs, 0 failing AA
+exit 0

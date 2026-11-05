@@ -1,0 +1,157 @@
+/* Généré par generer.py depuis tokens.json et tokens-sombre.json. Ne pas modifier à la main. */
+
+:root {
+  --papier: #F3F4F2;
+  --feuille: #FFFFFF;
+  --encre: #1B2130;
+  --encre-2: #596173;
+  --trait: #D5D9DF;
+  --trait-saisie: #7E8696;
+  --ligne: #ECEEF1;
+  --tampon: #3A3E96;
+  --tampon-pale: #E7E8F6;
+  --sur-tampon: #FFFFFF;
+  --alerte: #B3261E;
+  --alerte-pale: #FBEAE8;
+  --sain: #2E7553;
+  --sain-texte: #2E7553;
+  --sain-pale: #E3F1EA;
+  --r1: #B58A12;
+  --r1-texte: #7A5C0B;
+  --r1-pale: #FBF3DC;
+  --r2: #C76B1E;
+  --r2-texte: #9A4F12;
+  --r2-pale: #FBEBDD;
+  --r3: #BC4A2F;
+  --r3-texte: #9E3A22;
+  --r3-pale: #F9E6E1;
+  --r4: #982C38;
+  --r4-texte: #982C38;
+  --r4-pale: #F6E3E5;
+  --r5: #5F1D2B;
+  --r5-texte: #5F1D2B;
+  --r5-pale: #F1E3E6;
+  --inactif: #C9CBD6;
+  --sur-inactif: #F4F4F8;
+  --specimen: #FCFCFB;
+  --photo-fond: #DDE1E7;
+  --photo-figure: #B9C0CB;
+  --police-texte: "Atkinson Hyperlegible Next", "Segoe UI", system-ui, sans-serif;
+  --police-chiffres: "Atkinson Hyperlegible Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --taille-dense: 13px;
+  --interligne-dense: 18px;
+  --graisse-dense: 400;
+  --taille-courant: 15px;
+  --interligne-courant: 21px;
+  --graisse-courant: 400;
+  --taille-titre: 18px;
+  --interligne-titre: 24px;
+  --graisse-titre: 600;
+  --taille-grand: 24px;
+  --interligne-grand: 30px;
+  --graisse-grand: 600;
+  --taille-montant: 32px;
+  --interligne-montant: 36px;
+  --graisse-montant: 600;
+  --espace-0: 0px;
+  --espace-1: 4px;
+  --espace-2: 8px;
+  --espace-3: 12px;
+  --espace-4: 16px;
+  --espace-5: 20px;
+  --espace-6: 24px;
+  --espace-7: 32px;
+  --espace-8: 48px;
+  --rayon-champ: 2px;
+  --rayon-bloc: 4px;
+  --rayon-rond: 999px;
+  --ombre-aucune: none;
+  --ombre-flottant: 0 4px 16px rgba(27, 33, 48, .16);
+  --mouvement-repete: 0ms;
+  --mouvement-deroulant: 180ms;
+  --mouvement-courbe-sortie: cubic-bezier(0.23, 1, 0.32, 1);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --papier: #14161C;
+    --feuille: #1D2029;
+    --encre: #E7E9EE;
+    --encre-2: #A1A8B6;
+    --trait: #343947;
+    --trait-saisie: #7A8194;
+    --ligne: #2A2E39;
+    --tampon: #A3A7F2;
+    --tampon-pale: #2A2D52;
+    --sur-tampon: #14161C;
+    --alerte: #F08A80;
+    --alerte-pale: #3A1F1E;
+    --sain: #6FC79B;
+    --sain-texte: #6FC79B;
+    --sain-pale: #1C3328;
+    --r1: #E2B84A;
+    --r1-texte: #E2B84A;
+    --r1-pale: #3A3018;
+    --r2: #EE9A55;
+    --r2-texte: #EE9A55;
+    --r2-pale: #3A2617;
+    --r3: #F0876A;
+    --r3-texte: #F0876A;
+    --r3-pale: #3A211B;
+    --r4: #E8808D;
+    --r4-texte: #E8808D;
+    --r4-pale: #3A1D22;
+    --r5: #D9A0AE;
+    --r5-texte: #D9A0AE;
+    --r5-pale: #33202A;
+    --inactif: #3A3E4C;
+    --sur-inactif: #8A90A0;
+    --specimen: #191B22;
+    --photo-fond: #2A2E39;
+    --photo-figure: #4A5060;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --papier: #14161C;
+  --feuille: #1D2029;
+  --encre: #E7E9EE;
+  --encre-2: #A1A8B6;
+  --trait: #343947;
+  --trait-saisie: #7A8194;
+  --ligne: #2A2E39;
+  --tampon: #A3A7F2;
+  --tampon-pale: #2A2D52;
+  --sur-tampon: #14161C;
+  --alerte: #F08A80;
+  --alerte-pale: #3A1F1E;
+  --sain: #6FC79B;
+  --sain-texte: #6FC79B;
+  --sain-pale: #1C3328;
+  --r1: #E2B84A;
+  --r1-texte: #E2B84A;
+  --r1-pale: #3A3018;
+  --r2: #EE9A55;
+  --r2-texte: #EE9A55;
+  --r2-pale: #3A2617;
+  --r3: #F0876A;
+  --r3-texte: #F0876A;
+  --r3-pale: #3A211B;
+  --r4: #E8808D;
+  --r4-texte: #E8808D;
+  --r4-pale: #3A1D22;
+  --r5: #D9A0AE;
+  --r5-texte: #D9A0AE;
+  --r5-pale: #33202A;
+  --inactif: #3A3E4C;
+  --sur-inactif: #8A90A0;
+  --specimen: #191B22;
+  --photo-fond: #2A2E39;
+  --photo-figure: #4A5060;
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --mouvement-deroulant: 0ms; }
+}
