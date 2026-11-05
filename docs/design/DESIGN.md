@@ -55,19 +55,23 @@ Pas de dégradé, pas d'icône colorée décorative, pas de carte KPI pastel.
 
 Une boîte de confirmation, on la valide sans la lire au bout de la troisième. À la place : un récapitulatif dans le bordereau lui-même (montant en lettres, compte, bénéficiaire, billetage) et une validation unique. Pour les opérations à quatre yeux, l'écran du valideur montre ce qu'il valide, avec les mêmes informations, pas un simple « approuver ».
 
-### 2.6 Chaque règle montre sa source
+### 2.6 Chaque règle a sa source, à un clic
 
-Quand le logiciel bloque ou alerte en vertu d'un texte, il le dit : « Épargne obligatoire indisponible : garantie du prêt P-2026-00871 » ou « Provision 25 % : Instr. 003, art. 12 ». L'utilisateur comprend pourquoi. L'inspecteur aussi.
+Quand le logiciel bloque ou alerte, il dit pourquoi en quelques mots, à côté du champ concerné : « Dépasse le solde disponible », « Bloquée : garantie du prêt ». Le texte de référence (« Instr. 003, art. 12 ») reste à un clic, dans un petit « Textes » replié. Le caissier n'a pas à lire des articles de loi pour travailler ; l'inspecteur les trouve quand il les cherche.
 
-### 2.7 Le papier est un écran comme un autre
+### 2.7 N'afficher que ce qui sert maintenant
+
+Un écran de guichet montre l'opération courante, pas toutes les règles possibles. Les visas n'apparaissent que si le montant les exige, l'examen renforcé que si le seuil est atteint, la procuration que si un mandataire se présente. Ce qui reste à faire tient en une rangée d'étapes cochées au-dessus du bouton Valider. Les détails (écriture comptable, aperçu du bordereau) se déplient à la demande.
+
+### 2.8 Le papier est un écran comme un autre
 
 Reçu, bordereau, échéancier, fiche membre, états BCC : chaque sortie papier a son gabarit dessiné, testé sur une vraie imprimante. Jamais « Imprimer la page » du navigateur.
 
-### 2.8 Densité selon le rôle
+### 2.9 Densité selon le rôle
 
 Le guichet respire : gros montants, peu d'éléments, zones de frappe larges. Le back-office est dense : tableaux serrés, colonnes alignées, tri et filtres au clavier. Deux densités, un seul système de composants.
 
-### 2.9 Le vocabulaire suit le profil
+### 2.10 Le vocabulaire suit le profil
 
 Une COOPEC a des **membres** et des **parts sociales**. Une IMF a des **clients** et des **actionnaires**. L'interface prend les mots du profil réglementaire de l'institution. Les mots suivent les textes, pas le code (on écrit « crédit », « échéance », « déblocage », pas « loan », « installment »).
 
