@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@400;600&family=Atkinson+Hyperlegible+Next:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
+/* Guichet en trois colonnes : la personne, le bordereau, l'argent et les autorisations. */
 :root {
   --papier: #F3F4F2;
   --feuille: #FFFFFF;
@@ -20,9 +21,9 @@
   --alerte: #B3261E;
   --alerte-pale: #FBEAE8;
   --sain: #2E7553;
+  --sain-pale: #E3F1EA;
   --r1: #B58A12;
   --r1-pale: #FBF3DC;
-  --sain-pale: #E3F1EA;
   --ligne: #ECEEF1;
   --specimen: #FCFCFB;
   --photo-fond: #DDE1E7;
@@ -64,6 +65,8 @@ body {
 }
 .num { font-family: var(--chiffres); font-variant-numeric: tabular-nums; }
 :focus-visible { outline: 3px solid var(--tampon); outline-offset: 2px; }
+[hidden] { display: none !important; }
+.source { font-size: 12px; color: var(--encre-2); }
 
 /* Bandeau */
 .bandeau {
@@ -103,11 +106,12 @@ body {
   padding: 12px 16px;
 }
 .bloc + .bloc { margin-top: 10px; }
-h2 { font-size: 15px; font-weight: 700; margin: 0 0 10px; }
+h2 { font-size: 15px; font-weight: 700; margin: 0 0 8px; }
+h3 { font-size: 14px; font-weight: 700; margin: 0 0 6px; }
 .discret { color: var(--encre-2); font-size: 13px; }
 
-/* Membre */
-.recherche { display: flex; gap: 8px; margin-bottom: 12px; }
+/* Personne au guichet */
+.recherche { display: flex; gap: 8px; margin-bottom: 10px; }
 .recherche input {
   flex: 1; min-width: 0; font: inherit; padding: 6px 8px;
   border: 1px solid var(--trait); border-radius: 2px; background: var(--papier); color: var(--encre);
@@ -121,19 +125,21 @@ h2 { font-size: 15px; font-weight: 700; margin: 0 0 10px; }
 .photo { width: 72px; height: 88px; border-radius: 2px; display: block; }
 .photo .fond { fill: var(--photo-fond); }
 .photo .figure { fill: var(--photo-figure); }
-.specimen path { stroke: var(--encre); }
+.role { font-size: 12px; color: var(--encre-2); margin: 0; }
 .nom { font-size: 18px; font-weight: 700; line-height: 1.2; margin: 0 0 4px; }
 .identite dl { margin: 0; font-size: 13px; }
 .identite dt { color: var(--encre-2); display: inline; }
 .identite dd { display: inline; margin: 0; }
 .identite dd::after { content: ""; display: block; }
 .specimen {
-  margin-top: 12px; border: 1px dashed var(--trait); border-radius: 2px;
+  margin-top: 10px; border: 1px dashed var(--trait); border-radius: 2px;
   padding: 6px 8px 4px; background: var(--specimen);
 }
 .specimen svg { display: block; width: 100%; height: 48px; }
-
-.retirant-actif { margin-top: 10px; font-size: 13px; padding: 6px 8px; background: var(--tampon-pale); border-radius: 2px; }
+.specimen path { stroke: var(--encre); }
+.procuration { margin-top: 10px; font-size: 13px; padding: 8px; background: var(--tampon-pale); border-radius: 2px; }
+.procuration p { margin: 0 0 4px; }
+.procuration p:last-child { margin: 0; }
 
 .credit .ligne { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .statut {
@@ -142,11 +148,11 @@ h2 { font-size: 15px; font-weight: 700; margin: 0 0 10px; }
   background: var(--r1-pale); padding: 2px 8px; border-radius: 4px; white-space: nowrap;
 }
 .statut::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--r1); }
-.credit table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
-.credit td { padding: 3px 0; }
+.credit table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 6px; }
+.credit td { padding: 2px 0; }
 .credit td:last-child { text-align: right; }
 .conseil {
-  margin-top: 10px; font-size: 13px;
+  margin: 8px 0 0; font-size: 13px;
   border-left: 3px solid var(--r1); padding: 6px 8px; background: var(--r1-pale);
 }
 
@@ -162,7 +168,7 @@ h2 { font-size: 15px; font-weight: 700; margin: 0 0 10px; }
 .entete-b { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
 .entete-b h2 { font-size: 18px; margin: 0; }
 
-fieldset { border: 0; padding: 0; margin: 0 0 10px; }
+fieldset { border: 0; padding: 0; margin: 0 0 10px; min-width: 0; }
 legend { font-weight: 600; font-size: 14px; margin-bottom: 6px; padding: 0; }
 .comptes { display: grid; gap: 6px; }
 .compte {
@@ -182,55 +188,98 @@ legend { font-weight: 600; font-size: 14px; margin-bottom: 6px; padding: 0; }
 .champ-montant input {
   font: 600 32px/1.1 var(--chiffres); text-align: right;
   border: 0; background: transparent; color: var(--encre);
-  width: 100%; padding: 4px 8px 2px 0;
+  width: 100%; min-width: 0; padding: 4px 8px 2px 0;
 }
 .champ-montant input:focus-visible { outline: none; }
 .champ-montant:focus-within { border-bottom-color: var(--tampon); box-shadow: 0 2px 0 var(--tampon); }
 .devise { font: 600 20px var(--chiffres); color: var(--encre-2); }
 .apres { text-align: right; font-size: 13px; color: var(--encre-2); }
 .apres strong { display: block; font: 600 17px var(--chiffres); color: var(--encre); }
-.lettres {
-  margin: 8px 0 0; min-height: 24px;
-  font-size: 15px; padding-bottom: 4px;
-  border-bottom: 1px dotted var(--encre-2);
-}
+.lettres { margin: 8px 0 0; min-height: 24px; font-size: 15px; padding-bottom: 4px; border-bottom: 1px dotted var(--encre-2); }
 .lettres::first-letter { text-transform: uppercase; }
+.equivalent { margin: 4px 0 0; }
 
 .deux { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.choix label, .verif label { display: flex; gap: 8px; align-items: flex-start; padding: 3px 0; cursor: pointer; }
+.choix label, .verif label { display: flex; gap: 8px; align-items: flex-start; padding: 2px 0; cursor: pointer; }
 .choix input, .verif input { margin-top: 3px; accent-color: var(--tampon); }
-.motif input {
+.verif label small { display: block; color: var(--encre-2); font-size: 12px; }
+.motif input, .renforce textarea {
   font: inherit; width: 100%; padding: 6px 8px;
   border: 1px solid var(--trait); border-radius: 2px;
   background: var(--feuille); color: var(--encre);
 }
 
+/* Examen renforcé */
+.renforce {
+  border: 2px solid var(--alerte); border-radius: 4px; padding: 10px 12px; margin: 0 0 12px;
+  background: var(--alerte-pale);
+}
+.renforce h3 { color: var(--alerte); }
+.renforce p { margin: 0 0 8px; font-size: 13px; }
+.renforce textarea { min-height: 52px; resize: vertical; }
+.renforce label { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; padding: 3px 0; }
+.renforce label.bloc-champ { display: block; }
+.renforce input[type="checkbox"] { margin-top: 3px; accent-color: var(--tampon); }
+
 .cloture { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; border-top: 1px solid var(--trait); padding-top: 12px; }
 .bloquants { margin: 0; padding: 0; list-style: none; font-size: 13px; color: var(--alerte); }
+.bloquants li + li { margin-top: 2px; }
 .bloquants li::before { content: "Bloqué : "; font-weight: 600; }
 .bloquants:empty::after { content: "Tout est vérifié. Le retrait peut être validé."; color: var(--sain); font-weight: 600; }
-.valider {
+.bouton {
   font: 700 15px var(--texte); cursor: pointer; white-space: nowrap;
   background: var(--tampon); color: var(--sur-tampon); border: 0; border-radius: 4px; padding: 11px 18px;
 }
-.valider:disabled { background: var(--inactif); color: var(--sur-inactif); cursor: not-allowed; }
-.valider .touche { background: transparent; color: inherit; border-color: currentColor; margin-left: 6px; }
+.bouton:disabled { background: var(--inactif); color: var(--sur-inactif); cursor: not-allowed; }
+.bouton .touche { background: transparent; color: inherit; border-color: currentColor; margin-left: 6px; }
+.secondaire {
+  font: inherit; font-size: 13px; cursor: pointer;
+  background: var(--feuille); color: var(--tampon); border: 1px solid var(--tampon); border-radius: 4px; padding: 6px 10px;
+}
+.secondaire:disabled { color: var(--encre-2); border-color: var(--trait); cursor: not-allowed; }
+
+/* Autorisations */
+.autor { display: grid; gap: 8px; }
+.autor .item { border: 1px solid var(--trait); border-radius: 2px; padding: 8px 10px; }
+.autor .item.requis { border-color: var(--r1); }
+.autor .item.accorde { border-color: var(--sain); }
+.autor .tete { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-weight: 600; font-size: 14px; }
+.autor .etat-v { font-size: 12px; font-weight: 600; white-space: nowrap; }
+.autor .requis .etat-v { color: var(--r1); }
+.autor .accorde .etat-v { color: var(--sain); }
+.autor .item p { margin: 4px 0 0; font-size: 13px; }
+.autor .item button { margin-top: 6px; }
 
 /* Résultat */
-.resultat[hidden] { display: none; }
 .resultat .tampon {
   display: inline-block; transform: rotate(-3deg);
   border: 3px solid var(--tampon); color: var(--tampon); border-radius: 4px;
-  font-weight: 700; font-size: 18px; padding: 4px 12px; margin-bottom: 12px;
+  font-weight: 700; font-size: 18px; padding: 4px 12px; margin-bottom: 10px;
 }
 @media (prefers-reduced-motion: no-preference) {
   .resultat:not([hidden]) .tampon { animation: tamponner .28s ease-out; }
   @keyframes tamponner { from { transform: rotate(-3deg) scale(1.6); opacity: 0; } to { transform: rotate(-3deg) scale(1); opacity: 1; } }
 }
-.ecriture { width: 100%; border-collapse: collapse; font-size: 14px; margin: 8px 0 12px; }
-.ecriture th { text-align: left; font-weight: 600; color: var(--encre-2); font-size: 13px; border-bottom: 1px solid var(--trait); padding: 4px 6px; }
-.ecriture td { padding: 6px; border-bottom: 1px solid var(--trait); }
-.ecriture .d, .ecriture .c { text-align: right; }
+.table-defil { overflow-x: auto; }
+.ecriture, .carnet { width: 100%; border-collapse: collapse; font-size: 14px; margin: 6px 0 10px; }
+.ecriture th, .carnet th { text-align: left; font-weight: 600; color: var(--encre-2); font-size: 12px; border-bottom: 1px solid var(--trait); padding: 4px 6px; white-space: nowrap; }
+.ecriture td, .carnet td { padding: 6px; border-bottom: 1px solid var(--trait); white-space: nowrap; }
+.ecriture .d, .ecriture .c, .carnet .m { text-align: right; }
+.papier {
+  border: 1px dashed var(--encre-2); border-radius: 2px; padding: 12px 14px; margin: 6px 0 10px;
+  background: var(--specimen); font-size: 13px;
+}
+.papier .titre { display: flex; justify-content: space-between; gap: 8px; font-weight: 700; font-size: 14px; border-bottom: 1px solid var(--trait); padding-bottom: 6px; margin-bottom: 6px; }
+.papier dl { display: grid; grid-template-columns: 150px 1fr; gap: 2px 10px; margin: 0; }
+.papier dt { color: var(--encre-2); }
+.papier dd { margin: 0; }
+.signatures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+.signatures div { border-top: 1px solid var(--encre-2); padding-top: 4px; font-size: 12px; color: var(--encre-2); min-height: 34px; }
+.papier .pied { margin-top: 10px; font-size: 12px; color: var(--encre-2); border-top: 1px solid var(--trait); padding-top: 6px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.confidentiel {
+  border-left: 3px solid var(--alerte); background: var(--alerte-pale); padding: 8px 10px; font-size: 13px; margin: 0 0 10px;
+}
 
 /* Billetage */
 .billetage table { width: 100%; border-collapse: collapse; }
@@ -246,15 +295,12 @@ legend { font-weight: 600; font-size: 14px; margin-bottom: 6px; padding: 0; }
 }
 .billetage input.trop { border-color: var(--alerte); background: var(--alerte-pale); }
 .billetage tfoot td { border-top: 2px solid var(--encre); font-weight: 700; padding-top: 6px; }
-.ecart { margin-top: 8px; font-size: 13px; font-weight: 600; }
+.ecart { margin: 8px 0 0; font-size: 13px; font-weight: 600; }
 .ecart.ok { color: var(--sain); }
 .ecart.ko { color: var(--alerte); }
-.proposer {
-  margin-top: 10px; font: inherit; font-size: 13px; cursor: pointer; width: 100%;
-  background: var(--feuille); color: var(--tampon); border: 1px solid var(--tampon); border-radius: 4px; padding: 6px;
-}
-.encaisse { width: 100%; font-size: 13px; border-collapse: collapse; }
-.encaisse td { padding: 3px 0; }
+.billetage .secondaire { margin-top: 8px; width: 100%; }
+.encaisse { width: 100%; font-size: 13px; border-collapse: collapse; margin-top: 8px; }
+.encaisse td { padding: 2px 0; }
 .encaisse td:last-child { text-align: right; }
 
 /* Barre des touches */
@@ -272,11 +318,13 @@ legend { font-weight: 600; font-size: 14px; margin-bottom: 6px; padding: 0; }
 @media (max-width: 1100px) {
   .guichet { grid-template-columns: 1fr; }
   .bandeau { flex-wrap: wrap; gap: 8px 16px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .bandeau .poste { margin-left: 0; }
   .touches { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
   .note { margin-left: 0; }
-  .bandeau .poste { margin-left: 0; }
   .deux { grid-template-columns: 1fr; }
   .cloture { flex-direction: column; align-items: stretch; }
+  .papier dl { grid-template-columns: 1fr; }
+  .signatures { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -290,8 +338,8 @@ legend { font-weight: 600; font-size: 14px; margin-bottom: 6px; padding: 0; }
 
 <main class="guichet">
 
-  <!-- Colonne membre : qui est au guichet -->
-  <section aria-labelledby="t-membre">
+  <!-- Colonne gauche : la personne au guichet -->
+  <section aria-labelledby="t-personne">
     <div class="bloc">
       <div class="recherche">
         <label for="q" class="discret" style="align-self:center">Membre</label>
@@ -299,29 +347,40 @@ legend { font-weight: 600; font-size: 14px; margin-bottom: 6px; padding: 0; }
         <span class="touche" title="Rechercher un membre">F2</span>
       </div>
       <div class="identite">
-        <svg class="photo" viewBox="0 0 72 88" role="img" aria-label="Photo du membre">
+        <svg class="photo" viewBox="0 0 72 88" role="img" aria-label="Photo de la personne au guichet">
           <rect class="fond" width="72" height="88"/>
           <circle class="figure" cx="36" cy="34" r="15"/>
           <path class="figure" d="M8 88c2-20 14-30 28-30s26 10 28 30z"/>
         </svg>
         <div>
-          <h2 id="t-membre" class="nom">Kalala Mbuyi Josée</h2>
-          <dl>
+          <p class="role" id="p-role">Titulaire du compte</p>
+          <h2 id="t-personne" class="nom">Kalala Mbuyi Josée</h2>
+          <dl id="p-infos">
             <dt>N° membre</dt> <dd class="num">0412-000318</dd>
-            <dt>Membre depuis</dt> <dd>12/03/2019</dd>
             <dt>Pièce</dt> <dd>carte d'électeur, valide</dd>
-            <dt>Dossier</dt> <dd>revu le 02/09/2026</dd>
+            <dt>Dossier revu le</dt> <dd>02/09/2026</dd>
+            <dt>Personne politiquement exposée</dt> <dd>non</dd>
           </dl>
         </div>
       </div>
       <div class="specimen">
         <svg viewBox="0 0 260 56" aria-label="Specimen de signature">
-          <path d="M14 40c10-26 22-30 20-10-1 12-8 14-4 2 4-12 14-20 18-8 3 9-6 16 2 10 8-6 12-18 20-12 6 5-4 14 4 12 10-3 14-16 24-14 8 2 0 14 8 12 12-3 22-22 32-18 7 3-6 14 4 13 14-1 24-10 40-12 12-2 30 2 44 0" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M60 46c40 4 90 2 150-4" fill="none" stroke-width="1.2" stroke-linecap="round"/>
+          <g id="sig-titulaire">
+            <path d="M14 40c10-26 22-30 20-10-1 12-8 14-4 2 4-12 14-20 18-8 3 9-6 16 2 10 8-6 12-18 20-12 6 5-4 14 4 12 10-3 14-16 24-14 8 2 0 14 8 12 12-3 22-22 32-18 7 3-6 14 4 13 14-1 24-10 40-12 12-2 30 2 44 0" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M60 46c40 4 90 2 150-4" fill="none" stroke-width="1.2" stroke-linecap="round"/>
+          </g>
+          <g id="sig-mandataire" hidden>
+            <path d="M20 44c6-30 18-34 16-6l10-24c4 18 6 22 14 2 6 14 10 16 18 4 8 12 30 10 44-4 10 14 24 10 40 2 14-6 30-4 50 4" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M40 50c50-6 120-6 180-2" fill="none" stroke-width="1.2" stroke-linecap="round"/>
+          </g>
         </svg>
-        <div class="discret">Specimen de signature déposé le 12/03/2019</div>
+        <div class="discret" id="sig-legende">Specimen de la titulaire, déposé le 12/03/2019</div>
       </div>
-      <div class="retirant-actif" id="retirant-actif">Au guichet : <strong>la titulaire</strong></div>
+      <div class="procuration" id="procuration" hidden>
+        <p><strong>Procuration du 14/01/2025</strong>, donnée par Kalala Mbuyi Josée, valable jusqu'au 13/01/2027.</p>
+        <p>Pouvoirs : retraits en espèces sur les comptes d'épargne à vue en dollars et en francs, <span class="num">500,00 USD</span> au plus par opération ou leur contre-valeur.</p>
+        <p class="source">Habilitation du représentant vérifiée : Instr. BCC 15, art. 11.</p>
+      </div>
     </div>
 
     <div class="bloc credit" aria-labelledby="t-credit">
@@ -331,7 +390,6 @@ legend { font-weight: 600; font-size: 14px; margin-bottom: 6px; padding: 0; }
       </div>
       <table>
         <tr><td class="discret">Prêt</td><td class="num">P-2026-00871</td></tr>
-        <tr><td class="discret">Produit</td><td>Crédit AGR</td></tr>
         <tr><td class="discret">Capital restant dû</td><td class="num">1 240,00 USD</td></tr>
         <tr><td class="discret">Échéance impayée</td><td class="num">112,50 USD</td></tr>
         <tr><td class="discret">En retard depuis</td><td>24/10/2026, 12 jours</td></tr>
@@ -352,7 +410,7 @@ legend { font-weight: 600; font-size: 14px; margin-bottom: 6px; padding: 0; }
     <div class="bloc bordereau" id="saisie">
       <div class="entete-b">
         <h2 id="t-bordereau">Bordereau de retrait</h2>
-        <span class="discret">Pièce attribuée à la validation</span>
+        <span class="discret">Sans frais (Instr. BCC 37)</span>
       </div>
 
       <fieldset>
@@ -361,7 +419,7 @@ legend { font-weight: 600; font-size: 14px; margin-bottom: 6px; padding: 0; }
           <label class="compte">
             <input type="radio" name="compte" value="usd" checked>
             <span class="libelle">Épargne à vue, dollars<small class="num">0412-000318-01-USD</small></span>
-            <span class="solde num">1 286,40 USD<small>disponible</small></span>
+            <span class="solde num">14 286,40 USD<small>disponible</small></span>
           </label>
           <label class="compte">
             <input type="radio" name="compte" value="cdf">
@@ -383,23 +441,37 @@ legend { font-weight: 600; font-size: 14px; margin-bottom: 6px; padding: 0; }
             <input id="montant" class="num" inputmode="decimal" value="450,00" autocomplete="off" aria-describedby="lettres">
             <span class="devise" id="devise">USD</span>
           </div>
-          <div class="apres">Solde après retrait<strong id="apres">836,40 USD</strong></div>
+          <div class="apres">Solde après retrait<strong id="apres"></strong></div>
         </div>
         <p class="lettres" id="lettres" aria-live="polite"></p>
+        <p class="equivalent source" id="equivalent"></p>
       </fieldset>
 
       <div class="deux">
         <fieldset class="choix">
           <legend>Personne au guichet</legend>
           <label><input type="radio" name="retirant" value="titulaire" checked> La titulaire</label>
-          <label><input type="radio" name="retirant" value="mandataire"> Mbuyi Patrick, mandataire (procuration du 14/01/2025)</label>
+          <label><input type="radio" name="retirant" value="mandataire"> Mbuyi Patrick, mandataire</label>
         </fieldset>
         <fieldset class="verif">
           <legend>Vérifications</legend>
-          <label><input type="checkbox" id="v-piece"> Pièce d'identité présentée et conforme</label>
-          <label><input type="checkbox" id="v-signature"> Signature comparée au specimen</label>
+          <label><input type="checkbox" id="v-piece"> <span id="l-piece">Pièce d'identité de la titulaire présentée et conforme</span></label>
+          <label><input type="checkbox" id="v-signature"> <span id="l-signature">Signature comparée au specimen de la titulaire</span></label>
+          <label><input type="checkbox" id="v-carnet"> <span>Carnet présenté, dernier solde inscrit : <strong class="num" id="carnet-solde"></strong><small id="carnet-date"></small></span></label>
         </fieldset>
       </div>
+
+      <section class="renforce" id="renforce" hidden aria-labelledby="t-renforce">
+        <h3 id="t-renforce">Examen renforcé obligatoire : 10 000 USD ou plus en espèces</h3>
+        <p id="renforce-calcul"></p>
+        <p>Une opération de cette taille ne peut être payée en espèces que dans les cas prévus par la BCC, après diligences, et elle est déclarée à la CENAREF. <span class="source">Loi n° 22/068, art. 23, 54 et 92 bis (inséré par la loi n° 25/048) ; Instr. BCC 15, art. 61 et 62 ; Instr. BCC 15 bis, art. 5 à 8.</span></p>
+        <label class="bloc-champ" for="r-objet">Objet de l'opération et destination des fonds, selon le membre
+          <textarea id="r-objet" placeholder="Exemple : paiement d'un fournisseur de marchandises à Kinshasa, facture n°…"></textarea>
+        </label>
+        <label><input type="checkbox" id="r-mouvements"> Les mouvements du compte sont cohérents avec l'activité déclarée du membre (origine des fonds vérifiée)</label>
+        <label><input type="checkbox" id="r-etabli"> Le membre est régulièrement établi et opère en toute légalité <span class="source">(Instr. 15 bis, art. 8)</span></label>
+        <p class="source" style="margin:6px 0 0">Ne rien dire au membre du rapport à la CENAREF : il est strictement confidentiel (Instr. 15, art. 62 ; Instr. 15 bis, art. 7).</p>
+      </section>
 
       <fieldset class="motif">
         <legend><label for="motif">Motif <span class="discret">(facultatif)</span></label></legend>
@@ -408,41 +480,83 @@ legend { font-weight: 600; font-size: 14px; margin-bottom: 6px; padding: 0; }
 
       <div class="cloture">
         <ul class="bloquants" id="bloquants" aria-live="polite"></ul>
-        <button class="valider" id="valider" disabled>Valider le retrait <span class="touche">F9</span></button>
+        <button class="bouton" id="valider" disabled>Valider le retrait <span class="touche">F9</span></button>
       </div>
     </div>
 
     <div class="bloc bordereau resultat" id="resultat" hidden>
       <div class="tampon">Retrait enregistré</div>
-      <p style="margin:0">Pièce <strong class="num" id="r-piece">CAI-0412-2026-018731</strong>, journal de caisse 2, date comptable 05/11/2026.</p>
-      <table class="ecriture" aria-label="Écriture comptable générée">
-        <thead><tr><th>Compte PCCI</th><th>Libellé</th><th class="d">Débit</th><th class="c">Crédit</th></tr></thead>
-        <tbody id="r-lignes"></tbody>
-      </table>
-      <p class="discret" id="r-cv"></p>
-      <p class="discret">Écriture définitive. Une erreur se corrige par contre-passation, jamais par modification (PCCI § 3.3 et 3.4).</p>
-      <button class="valider" id="nouvelle">Nouvelle opération <span class="touche">Entrée</span></button>
+      <p style="margin:0 0 6px">Pièce <strong class="num" id="r-piece">CAI-0412-2026-018731</strong>, journal de caisse 2, date comptable 05/11/2026.</p>
+
+      <p class="confidentiel" id="r-cenaref" hidden></p>
+
+      <h3>Écriture comptable</h3>
+      <div class="table-defil">
+        <table class="ecriture" aria-label="Écriture comptable générée">
+          <thead><tr><th>Compte PCCI</th><th>Libellé</th><th class="d">Débit</th><th class="c">Crédit</th></tr></thead>
+          <tbody id="r-lignes"></tbody>
+        </table>
+      </div>
+      <p class="source" id="r-cv" style="margin:0 0 10px"></p>
+
+      <h3>Bordereau à faire signer, en deux exemplaires</h3>
+      <div class="papier" id="r-bordereau"></div>
+      <p class="source" style="margin:0 0 8px">Exemplaire 1 remis au membre (Instr. BCC 40, art. 13). Exemplaire 2 signé, classé comme pièce justificative et conservé dix ans (PCCI § 3.2 et 3.5 ; Instr. BCC 15, art. 48).</p>
+
+      <h3>Ligne à imprimer dans le carnet</h3>
+      <div class="table-defil">
+        <table class="carnet" aria-label="Ligne du carnet">
+          <thead><tr><th>Date</th><th>N° pièce</th><th class="m">Dépôt</th><th class="m">Retrait</th><th class="m">Solde</th><th>Paraphe caisse</th><th>Paraphe membre</th></tr></thead>
+          <tbody id="r-carnet"></tbody>
+        </table>
+      </div>
+
+      <div class="actions">
+        <button class="secondaire" id="imp-bordereau">Imprimer le bordereau (2 exemplaires)</button>
+        <button class="secondaire" id="imp-carnet">Imprimer la ligne du carnet</button>
+        <span class="discret" id="imp-msg" aria-live="polite"></span>
+      </div>
+      <p class="source" style="margin:10px 0">Écriture définitive. Une erreur se corrige par contre-passation, jamais par modification (PCCI § 3.3 et 3.4).</p>
+      <button class="bouton" id="nouvelle">Nouvelle opération <span class="touche">Entrée</span></button>
     </div>
   </section>
 
-  <!-- Colonne droite : l'argent physique -->
+  <!-- Colonne droite : l'argent et les autorisations -->
   <section aria-labelledby="t-billetage">
     <div class="bloc billetage">
       <h2 id="t-billetage">Billetage, <span id="b-devise">USD</span></h2>
       <table>
         <thead><tr><th>Coupure</th><th>En caisse</th><th>Nombre</th><th>Montant</th></tr></thead>
         <tbody id="b-lignes"></tbody>
-        <tfoot><tr><td>Total</td><td></td><td></td><td class="num" id="b-total">0,00</td></tr></tfoot>
+        <tfoot><tr><td>Total</td><td></td><td></td><td class="num" id="b-total">0</td></tr></tfoot>
       </table>
       <p class="ecart" id="b-ecart" aria-live="polite"></p>
-      <button class="proposer" id="proposer">Proposer un billetage <span class="touche">F4</span></button>
-    </div>
-    <div class="bloc">
-      <h2>Encaisse de la caisse 2</h2>
+      <button class="secondaire" id="proposer">Proposer un billetage <span class="touche">F4</span></button>
       <table class="encaisse">
-        <tr><td class="discret">Avant l'opération</td><td class="num" id="e-avant"></td></tr>
-        <tr><td class="discret">Après l'opération</td><td class="num" id="e-apres"></td></tr>
+        <tr><td class="discret">Encaisse de la caisse avant</td><td class="num" id="e-avant"></td></tr>
+        <tr><td class="discret">Encaisse après l'opération</td><td class="num" id="e-apres"></td></tr>
       </table>
+    </div>
+
+    <div class="bloc" aria-labelledby="t-autor">
+      <h2 id="t-autor">Autorisations</h2>
+      <div class="autor">
+        <div class="item" id="a-caissier">
+          <div class="tete"><span>Caissière</span><span class="etat-v" id="a-caissier-etat"></span></div>
+          <p class="discret">Retraits jusqu'à <span class="num">1 000,00 USD</span> ou leur contre-valeur. Seuil fixé par la COOPEC.</p>
+        </div>
+        <div class="item" id="a-chef">
+          <div class="tete"><span>Visa du chef d'agence</span><span class="etat-v" id="a-chef-etat"></span></div>
+          <p class="discret" id="a-chef-detail">Au-delà du seuil de la caissière. Le visa porte sur ce montant précis.</p>
+          <button class="secondaire" id="a-chef-btn" hidden>Demander le visa</button>
+        </div>
+        <div class="item" id="a-conf">
+          <div class="tete"><span>Visa de la conformité</span><span class="etat-v" id="a-conf-etat"></span></div>
+          <p class="discret" id="a-conf-detail">À partir de 10 000 USD en espèces, cumul de la journée compris.</p>
+          <button class="secondaire" id="a-conf-btn" hidden>Transmettre à la conformité</button>
+        </div>
+        <p class="source" style="margin:0">Séparation entre manipulation des valeurs et autorisation : Instr. BCC 008, art. 66, et alerte automatique au-delà des délégations, art. 49 (texte visant les IMF) ; pour les COOPEC, PCCI § 11.1.</p>
+      </div>
     </div>
   </section>
 </main>
@@ -453,27 +567,34 @@ legend { font-weight: 600; font-size: 14px; margin-bottom: 6px; padding: 0; }
   <span><span class="touche">F8</span> <b>Rembourser d'abord</b></span>
   <span><span class="touche">F9</span> <b>Valider le retrait</b></span>
   <span><span class="touche">Échap</span> <b>Annuler</b></span>
-  <span class="note">Maquette : données fictives, aucune opération réelle.</span>
+  <span class="note">Maquette : données fictives. Essayez 1 500 puis 12 000 USD.</span>
 </footer>
 
 <script>
-// Données fictives de la maquette
+// ---------- Données fictives de la maquette ----------
+const COURS = 2850;                 // CDF pour 1 USD, cours du jour fictif
+const SEUIL_CAISSIER_USD = 1000;    // fixé par la COOPEC (exemple)
+const SEUIL_ESPECES_USD = 10000;    // loi 22/068, art. 23 ; Instr. 15, art. 61 ; Instr. 15 bis, art. 1
+const ESPECES_DU_JOUR_USD = 0;      // autres opérations en espèces du membre aujourd'hui (cumul, « globalement »)
+const PROCURATION = { fin: "2027-01-13", plafondUSD: 500 };
+const AUJOURDHUI = "2026-11-05";
+const CHEF = "Jean-Pierre Mukendi, chef d'agence";
+const CONFORMITE = "Grâce Ilunga, responsable de la conformité";
+
 const COMPTES = {
-  usd: { devise: "USD", dispo: 128640, compte: "330", libelle: "Épargnes, dollars" },
-  cdf: { devise: "CDF", dispo: 341250000, compte: "330", libelle: "Épargnes, francs" },
+  usd: { devise: "USD", dispo: 1428640, numero: "0412-000318-01-USD", libelle: "Épargnes, dollars", carnet: { solde: 1428640, date: "28/10/2026" } },
+  cdf: { devise: "CDF", dispo: 341250000, numero: "0412-000318-02-CDF", libelle: "Épargnes, francs", carnet: { solde: 341250000, date: "30/10/2026" } },
 };
 const CAISSE = {
-  USD: { coupures: [100, 50, 20, 10, 5, 1], stock: { 100: 84, 50: 40, 20: 60, 10: 45, 5: 30, 1: 120 } },
+  USD: { coupures: [100, 50, 20, 10, 5, 1], stock: { 100: 184, 50: 60, 20: 80, 10: 45, 5: 30, 1: 120 } },
   CDF: { coupures: [20000, 10000, 5000, 1000, 500, 200, 100, 50], stock: { 20000: 150, 10000: 210, 5000: 180, 1000: 400, 500: 300, 200: 250, 100: 200, 50: 100 } },
 };
-const COURS_USD_CDF = 2850; // fictif
 
 const $ = (id) => document.getElementById(id);
 const fmt = new Intl.NumberFormat("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const money = (centimes, devise) => fmt.format(centimes / 100) + " " + devise;
 const entier = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });
+const money = (c, d) => fmt.format(c / 100) + " " + d;
 
-// Montant saisi, en centimes ; null si illisible
 function lireMontant(txt) {
   const t = txt.replace(/[\s  ]/g, "").replace(",", ".");
   if (!/^\d+(\.\d{0,2})?$/.test(t)) return null;
@@ -481,7 +602,7 @@ function lireMontant(txt) {
   return Number(e) * 100 + Number((d + "00").slice(0, 2));
 }
 
-// Nombres en lettres, orthographe traditionnelle
+// ---------- Nombres en lettres ----------
 const U = ["zéro","un","deux","trois","quatre","cinq","six","sept","huit","neuf","dix","onze","douze","treize","quatorze","quinze","seize"];
 const D = { 2: "vingt", 3: "trente", 4: "quarante", 5: "cinquante", 6: "soixante" };
 function sous100(n) {
@@ -494,114 +615,161 @@ function sous100(n) {
   if (u === 0) return D[t];
   return D[t] + (u === 1 ? " et un" : "-" + U[u]);
 }
-function sous1000(n, invariable) {
+function sous1000(n, inv) {
   const c = Math.floor(n / 100), r = n % 100;
-  let s = "";
-  if (c === 1) s = "cent";
-  else if (c > 1) s = U[c] + " cent" + (r === 0 && !invariable ? "s" : "");
-  if (r) {
-    let w = sous100(r);
-    if (invariable && w.endsWith("quatre-vingts")) w = w.slice(0, -1);
-    s += (s ? " " : "") + w;
-  }
+  let s = c === 1 ? "cent" : c > 1 ? U[c] + " cent" + (r === 0 && !inv ? "s" : "") : "";
+  if (r) { let w = sous100(r); if (inv && w.endsWith("quatre-vingts")) w = w.slice(0, -1); s += (s ? " " : "") + w; }
   return s;
 }
 function enLettres(n) {
   if (n === 0) return "zéro";
-  const m = Math.floor(n / 1e6), k = Math.floor(n / 1000) % 1000, r = n % 1000;
-  const p = [];
+  const m = Math.floor(n / 1e6), k = Math.floor(n / 1000) % 1000, r = n % 1000, p = [];
   if (m) p.push(sous1000(m, false) + (m > 1 ? " millions" : " million"));
   if (k) p.push(k === 1 ? "mille" : sous1000(k, true) + " mille");
   if (r) p.push(sous1000(r, false));
   return p.join(" ");
 }
-const NOMS = {
-  USD: { u: ["dollar américain", "dollars américains"], c: ["cent", "cents"] },
-  CDF: { u: ["franc congolais", "francs congolais"], c: ["centime", "centimes"] },
-};
-function montantEnLettres(centimes, devise) {
-  const e = Math.floor(centimes / 100), c = centimes % 100, n = NOMS[devise];
-  let s = enLettres(e);
-  const exactMillions = e >= 1e6 && e % 1e6 === 0;
-  s += (exactMillions ? " de " : " ") + n.u[e > 1 ? 1 : 0];
-  if (c) s += " et " + enLettres(c) + " " + n.c[c > 1 ? 1 : 0];
+const NOMS = { USD: { u: ["dollar américain", "dollars américains"], c: ["cent", "cents"] }, CDF: { u: ["franc congolais", "francs congolais"], c: ["centime", "centimes"] } };
+function montantEnLettres(c, d) {
+  const e = Math.floor(c / 100), ct = c % 100, n = NOMS[d];
+  let s = enLettres(e) + (e >= 1e6 && e % 1e6 === 0 ? " de " : " ") + n.u[e > 1 ? 1 : 0];
+  if (ct) s += " et " + enLettres(ct) + " " + n.c[ct > 1 ? 1 : 0];
   return s;
 }
 
-// État
+// ---------- État ----------
 let compte = "usd";
+let retirant = "titulaire";
 let compteurs = {};
-
-function devise() { return COMPTES[compte].devise; }
+let visaChef = null;   // null, "attente" ou { par, heure, cle }
+let visaConf = null;
+const devise = () => COMPTES[compte].devise;
+const enUSD = (c) => devise() === "USD" ? c / 100 : c / 100 / COURS;   // montant en dollars (contre-valeur)
+const cleOperation = (m) => [compte, m, retirant].join("|");          // un visa porte sur cette opération précise
 
 function construireBilletage() {
   const d = devise(), caisse = CAISSE[d];
   $("b-devise").textContent = d;
   $("b-lignes").innerHTML = caisse.coupures.map((v) => `
     <tr>
-      <td class="num">${v.toLocaleString("fr-FR")}</td>
+      <td class="num">${entier.format(v)}</td>
       <td class="stock num">${caisse.stock[v]}</td>
-      <td><input class="num" inputmode="numeric" data-v="${v}" aria-label="Nombre de coupures de ${v} ${d}" value="${compteurs[v] || ""}"></td>
-      <td class="num" data-m="${v}">${compteurs[v] ? entier.format(v * compteurs[v]) : ""}</td>
+      <td><input class="num" inputmode="numeric" data-v="${v}" id="b-${v}" aria-label="Nombre de coupures de ${v} ${d}" value="${compteurs[v] || ""}"></td>
+      <td class="num" data-m="${v}"></td>
     </tr>`).join("");
   $("b-lignes").querySelectorAll("input").forEach((i) => i.addEventListener("input", () => {
-    const v = Number(i.dataset.v), n = parseInt(i.value, 10);
-    compteurs[v] = Number.isFinite(n) && n > 0 ? n : 0;
+    const n = parseInt(i.value, 10);
+    compteurs[Number(i.dataset.v)] = Number.isFinite(n) && n > 0 ? n : 0;
     rafraichir();
   }));
 }
+const totalBilletage = () => Object.entries(compteurs).reduce((s, [v, n]) => s + Number(v) * 100 * n, 0);
 
-function totalBilletage() {
-  return Object.entries(compteurs).reduce((s, [v, n]) => s + Number(v) * 100 * n, 0);
-}
+function heure() { return new Date().toTimeString().slice(0, 5); }
 
 function rafraichir() {
   const d = devise(), c = COMPTES[compte], caisse = CAISSE[d];
   const m = lireMontant($("montant").value);
-  $("devise").textContent = d;
+  const cle = cleOperation(m);
+  // Un visa obtenu pour un autre montant, compte ou retirant ne vaut plus
+  if (visaChef && visaChef !== "attente" && visaChef.cle !== cle) visaChef = null;
+  if (visaConf && visaConf !== "attente" && visaConf.cle !== cle) visaConf = null;
 
+  $("devise").textContent = d;
   $("lettres").textContent = m === null ? "Montant illisible" : m === 0 ? "" : montantEnLettres(m, d);
   $("apres").textContent = m === null ? "" : money(c.dispo - m, d);
+  const usd = m ? enUSD(m) : 0;
+  $("equivalent").textContent = d === "CDF" && m ? `Contre-valeur : ${fmt.format(usd)} USD au cours du jour de 2 850,00 CDF (fictif).` : "";
+  $("carnet-solde").textContent = money(c.carnet.solde, d);
+  $("carnet-date").textContent = `Dernière ligne du ${c.carnet.date}. Si le carnet affiche autre chose, ne pas payer et signaler l'écart.`;
 
   // Billetage
   const total = totalBilletage();
   $("b-total").textContent = entier.format(total / 100);
   let tropDeCoupures = false;
-  $("b-lignes").querySelectorAll("input").forEach((i) => {
-    const v = Number(i.dataset.v), n = compteurs[v] || 0;
+  caisse.coupures.forEach((v) => {
+    const n = compteurs[v] || 0, i = $("b-" + v);
     const trop = n > caisse.stock[v];
     tropDeCoupures ||= trop;
-    i.classList.toggle("trop", trop);
-    $("b-lignes").querySelector(`[data-m="${v}"]`).textContent = n ? entier.format(v * n) : "";
+    if (i) i.classList.toggle("trop", trop);
+    document.querySelector(`[data-m="${v}"]`).textContent = n ? entier.format(v * n) : "";
   });
   const ecart = (m ?? 0) - total;
   $("b-ecart").className = "ecart " + (ecart === 0 && m ? "ok" : "ko");
-  $("b-ecart").textContent = !m ? "" : ecart === 0 ? "Billetage conforme au montant." :
-    ecart > 0 ? `Il manque ${money(ecart, d)}.` : `${money(-ecart, d)} de trop.`;
-
-  // Encaisse
+  $("b-ecart").textContent = !m ? "" : ecart === 0 ? "Billetage conforme au montant." : ecart > 0 ? `Il manque ${money(ecart, d)}.` : `${money(-ecart, d)} de trop.`;
   const enc = caisse.coupures.reduce((s, v) => s + v * 100 * caisse.stock[v], 0);
   $("e-avant").textContent = money(enc, d);
   $("e-apres").textContent = money(enc - total, d);
 
-  // Ce qui bloque la validation
+  // Seuils
+  const cumulUSD = ESPECES_DU_JOUR_USD + usd;
+  const besoinChef = usd > SEUIL_CAISSIER_USD;
+  const besoinConf = cumulUSD >= SEUIL_ESPECES_USD;
+  const renforce = $("renforce");
+  renforce.hidden = !besoinConf;
+  $("renforce-calcul").textContent = besoinConf
+    ? `Espèces du membre aujourd'hui : ${fmt.format(ESPECES_DU_JOUR_USD)} USD déjà payés + ${fmt.format(usd)} USD demandés = ${fmt.format(cumulUSD)} USD.`
+    : "";
+  const renforceComplet = $("r-objet").value.trim().length >= 10 && $("r-mouvements").checked && $("r-etabli").checked;
+
+  // Panneau des autorisations
+  const setItem = (id, etat, classe) => { $(id + "-etat").textContent = etat; $(id).className = "item " + (classe || ""); };
+  setItem("a-caissier", besoinChef ? "dépassé" : "suffit", besoinChef ? "" : "accorde");
+  const chefDefaut = "Au-delà du seuil de la caissière. Le visa porte sur ce montant précis.";
+  if (!besoinChef) { setItem("a-chef", "non requis"); $("a-chef-detail").textContent = chefDefaut; $("a-chef-btn").hidden = true; }
+  else if (visaChef === "attente") { setItem("a-chef", "en attente", "requis"); $("a-chef-btn").hidden = true; }
+  else if (visaChef) { setItem("a-chef", "accordé", "accorde"); $("a-chef-detail").textContent = `Visé par ${visaChef.par} à ${visaChef.heure}, pour ${money(m, d)}.`; $("a-chef-btn").hidden = true; }
+  else { setItem("a-chef", "requis", "requis"); $("a-chef-detail").textContent = chefDefaut; $("a-chef-btn").hidden = false; }
+  if (!besoinConf) { setItem("a-conf", "non requis"); $("a-conf-btn").hidden = true; $("a-conf-detail").textContent = "À partir de 10 000 USD en espèces, cumul de la journée compris."; }
+  else if (visaConf === "attente") { setItem("a-conf", "en attente", "requis"); $("a-conf-btn").hidden = true; }
+  else if (visaConf) { setItem("a-conf", "accordé", "accorde"); $("a-conf-detail").textContent = `Diligences validées par ${visaConf.par} à ${visaConf.heure}. Rapport confidentiel à la CENAREF préparé.`; $("a-conf-btn").hidden = true; }
+  else { setItem("a-conf", "requis", "requis"); $("a-conf-detail").textContent = "Remplir l'examen renforcé dans le bordereau, puis transmettre."; $("a-conf-btn").hidden = false; $("a-conf-btn").disabled = !renforceComplet; }
+
+  // Ce qui bloque la validation, avec la règle qui le justifie
   const b = [];
   if (m === null) b.push("le montant est illisible.");
   else if (m === 0) b.push("saisissez un montant.");
   else {
-    if (m > c.dispo) b.push(`le montant dépasse le disponible (${money(c.dispo, d)}). Aucun compte d'épargne ne peut devenir débiteur.`);
-    if (d === "USD" && m % 100 !== 0) b.push("les centimes de dollar ne se remettent pas en espèces (règle à confirmer).");
+    if (m > c.dispo) b.push(`le montant dépasse le disponible (${money(c.dispo, d)}). Un compte d'épargne ne peut pas devenir débiteur.`);
+    if (d === "USD" && m % 100 !== 0) b.push("les centimes de dollar ne se remettent pas en espèces (règle de la COOPEC, à confirmer).");
     if (ecart !== 0) b.push("le billetage ne correspond pas au montant.");
+    if (retirant === "mandataire") {
+      if (AUJOURDHUI > PROCURATION.fin) b.push("la procuration a expiré.");
+      if (usd > PROCURATION.plafondUSD) b.push(`le montant dépasse les pouvoirs du mandataire (${fmt.format(PROCURATION.plafondUSD)} USD par opération). Instr. BCC 15, art. 11.`);
+    }
+    if (besoinChef && !(visaChef && visaChef !== "attente")) b.push(`visa du chef d'agence requis au-delà de ${fmt.format(SEUIL_CAISSIER_USD)} USD.`);
+    if (besoinConf && !renforceComplet) b.push("examen renforcé à compléter (Instr. BCC 15, art. 61).");
+    if (besoinConf && !(visaConf && visaConf !== "attente")) b.push("visa de la conformité requis (Instr. BCC 15 bis, art. 6 et 7).");
   }
   if (tropDeCoupures) b.push("la caisse n'a pas assez de coupures pour ce billetage.");
   if (!$("v-piece").checked) b.push("cochez la vérification de la pièce d'identité.");
   if (!$("v-signature").checked) b.push("cochez la comparaison de la signature.");
+  if (!$("v-carnet").checked) b.push("cochez la vérification du carnet.");
   $("bloquants").innerHTML = b.map((x) => `<li>${x}</li>`).join("");
   $("valider").disabled = b.length > 0;
 }
 
+function changerRetirant(valeur) {
+  retirant = valeur;
+  const mand = valeur === "mandataire";
+  $("p-role").textContent = mand ? "Mandataire de Kalala Mbuyi Josée" : "Titulaire du compte";
+  $("t-personne").textContent = mand ? "Mbuyi Patrick" : "Kalala Mbuyi Josée";
+  $("p-infos").innerHTML = mand
+    ? `<dt>Lien</dt> <dd>fils de la titulaire</dd><dt>Pièce</dt> <dd>passeport, valide jusqu'au 03/2029</dd><dt>Personne politiquement exposée</dt> <dd>non</dd>`
+    : `<dt>N° membre</dt> <dd class="num">0412-000318</dd><dt>Pièce</dt> <dd>carte d'électeur, valide</dd><dt>Dossier revu le</dt> <dd>02/09/2026</dd><dt>Personne politiquement exposée</dt> <dd>non</dd>`;
+  $("sig-titulaire").hidden = mand;
+  $("sig-mandataire").hidden = !mand;
+  $("sig-legende").textContent = mand ? "Specimen du mandataire, déposé avec la procuration le 14/01/2025" : "Specimen de la titulaire, déposé le 12/03/2019";
+  $("procuration").hidden = !mand;
+  $("l-piece").textContent = mand ? "Pièce d'identité du mandataire présentée et conforme" : "Pièce d'identité de la titulaire présentée et conforme";
+  $("l-signature").textContent = mand ? "Signature comparée au specimen du mandataire" : "Signature comparée au specimen de la titulaire";
+  $("v-piece").checked = false;
+  $("v-signature").checked = false;
+  rafraichir();
+}
+
 function proposerBilletage() {
-  const d = devise(), caisse = CAISSE[d];
+  const caisse = CAISSE[devise()];
   let reste = Math.floor((lireMontant($("montant").value) || 0) / 100);
   compteurs = {};
   for (const v of caisse.coupures) {
@@ -612,16 +780,59 @@ function proposerBilletage() {
   rafraichir();
 }
 
+function demanderVisa(type) {
+  const m = lireMontant($("montant").value), cle = cleOperation(m);
+  if (type === "chef") visaChef = "attente"; else visaConf = "attente";
+  rafraichir();
+  // Simulation : en vrai, la demande s'affiche sur l'écran du valideur
+  setTimeout(() => {
+    const v = { par: type === "chef" ? CHEF : CONFORMITE, heure: heure(), cle };
+    if (type === "chef" && visaChef === "attente") visaChef = v;
+    if (type === "conf" && visaConf === "attente") visaConf = v;
+    rafraichir();
+  }, 1200);
+}
+
 function valider() {
   if ($("valider").disabled) return;
   const d = devise(), m = lireMontant($("montant").value), c = COMPTES[compte];
-  const cdf = d === "USD" ? m * COURS_USD_CDF : m;
+  const nouveauSolde = c.dispo - m, piece = "CAI-0412-2026-018731";
+  const mand = retirant === "mandataire";
+  const cdf = d === "USD" ? m * COURS : m;
   $("r-lignes").innerHTML = `
-    <tr><td class="num">${c.compte}</td><td>${c.libelle}, Kalala Mbuyi Josée</td><td class="d num">${money(m, d)}</td><td></td></tr>
+    <tr><td class="num">330</td><td>${c.libelle}, Kalala Mbuyi Josée</td><td class="d num">${money(m, d)}</td><td></td></tr>
     <tr><td class="num">570</td><td>Caisse 2, monnaies nationale et étrangère</td><td></td><td class="c num">${money(m, d)}</td></tr>`;
   $("r-cv").innerHTML = d === "USD"
-    ? `Contre-valeur : <span class="num">${money(cdf, "CDF")}</span> au cours du jour de <span class="num">2 850,00</span> CDF pour 1 USD (cours fictif). Écriture équilibrée en USD et en CDF.`
+    ? `Contre-valeur : <span class="num">${money(cdf, "CDF")}</span> au cours du jour de <span class="num">2 850,00</span> CDF pour 1 USD (fictif). Écriture équilibrée en USD et en CDF (PCCI § 7.1).`
     : "Écriture équilibrée en CDF.";
+  const billets = CAISSE[d].coupures.filter((v) => compteurs[v]).map((v) => `${compteurs[v]} × ${entier.format(v)}`).join(", ");
+  $("r-bordereau").innerHTML = `
+    <div class="titre"><span>COOPEC Tujenge, agence Matete</span><span>Bordereau de retrait d'espèces</span></div>
+    <dl>
+      <dt>N° de pièce</dt><dd class="num">${piece}</dd>
+      <dt>Date et heure</dt><dd>05/11/2026 à ${heure()}, caisse 2</dd>
+      <dt>Compte débité</dt><dd><span class="num">${c.numero}</span>, Kalala Mbuyi Josée</dd>
+      <dt>Remis à</dt><dd>${mand ? "Mbuyi Patrick, mandataire (procuration du 14/01/2025), passeport" : "la titulaire, carte d'électeur"}</dd>
+      <dt>Montant</dt><dd class="num"><strong>${money(m, d)}</strong></dd>
+      <dt>En lettres</dt><dd>${montantEnLettres(m, d).replace(/^./, (x) => x.toUpperCase())}</dd>
+      <dt>Coupures remises</dt><dd class="num">${billets} ${d}</dd>
+      <dt>Solde après opération</dt><dd class="num">${money(nouveauSolde, d)}</dd>
+      <dt>Frais</dt><dd>aucun, retrait gratuit (Instr. BCC 37)</dd>
+      ${visaChef && visaChef !== "attente" ? `<dt>Visa</dt><dd>${visaChef.par}, à ${visaChef.heure}</dd>` : ""}
+    </dl>
+    <div class="signatures">
+      <div>Signature ${mand ? "du mandataire" : "de la titulaire"}</div>
+      <div>Signature de la caissière, Esther Ngalula</div>
+      <div>${visaChef && visaChef !== "attente" ? "Visa du chef d'agence" : "Cachet de l'agence"}</div>
+    </div>
+    <p class="pied">Une réclamation ? Adressez-vous au service des plaintes de n'importe quelle agence. La COOPEC vous répond dans un délai de 45 jours au plus. Si la réponse ne vous satisfait pas, vous pouvez saisir la Banque Centrale du Congo (Instr. BCC 39, art. 5).</p>`;
+  $("r-carnet").innerHTML = `<tr><td>05/11/2026</td><td class="num">${piece}</td><td class="m"></td><td class="m num">${money(m, d)}</td><td class="m num">${money(nouveauSolde, d)}</td><td></td><td></td></tr>`;
+  const cenaref = $("r-cenaref");
+  if (visaConf && visaConf !== "attente") {
+    cenaref.hidden = false;
+    cenaref.innerHTML = `<strong>Usage interne, à ne pas montrer au membre.</strong> Rapport confidentiel RC-2026-0007 créé avec l'examen renforcé, transmis à la conformité pour déclaration à la CENAREF (Instr. BCC 15 bis, art. 7 ; loi n° 22/068, art. 92 bis). Il n'apparaît ni sur le bordereau ni dans le carnet. Conservation dix ans (Instr. BCC 15, art. 48 et 62).`;
+  } else cenaref.hidden = true;
+  $("imp-msg").textContent = "";
   $("saisie").hidden = true;
   $("resultat").hidden = false;
   $("nouvelle").focus();
@@ -630,35 +841,36 @@ function valider() {
 function reinitialiser() {
   compte = "usd";
   document.querySelector('input[name="compte"][value="usd"]').checked = true;
+  document.querySelector('input[name="retirant"][value="titulaire"]').checked = true;
   $("montant").value = "";
-  $("v-piece").checked = false;
-  $("v-signature").checked = false;
   $("motif").value = "";
-  compteurs = {};
+  ["v-piece", "v-signature", "v-carnet", "r-mouvements", "r-etabli"].forEach((id) => { $(id).checked = false; });
+  $("r-objet").value = "";
+  compteurs = {}; visaChef = null; visaConf = null;
   $("resultat").hidden = true;
   $("saisie").hidden = false;
   construireBilletage();
-  rafraichir();
+  changerRetirant("titulaire");
   $("montant").focus();
 }
 
-// Liaisons
+// ---------- Liaisons ----------
 document.querySelectorAll('input[name="compte"]').forEach((r) => r.addEventListener("change", () => {
-  compte = r.value; compteurs = {}; construireBilletage(); rafraichir();
+  compte = r.value; compteurs = {}; $("v-carnet").checked = false; construireBilletage(); rafraichir();
 }));
-document.querySelectorAll('input[name="retirant"]').forEach((r) => r.addEventListener("change", () => {
-  $("retirant-actif").innerHTML = r.value === "titulaire"
-    ? "Au guichet : <strong>la titulaire</strong>"
-    : "Au guichet : <strong>Mbuyi Patrick, mandataire</strong>. Vérifier sa pièce et la procuration du 14/01/2025.";
-}));
-["montant", "v-piece", "v-signature"].forEach((id) => $(id).addEventListener("input", rafraichir));
+document.querySelectorAll('input[name="retirant"]').forEach((r) => r.addEventListener("change", () => changerRetirant(r.value)));
+["montant", "v-piece", "v-signature", "v-carnet", "r-objet", "r-mouvements", "r-etabli"].forEach((id) => $(id).addEventListener("input", rafraichir));
 $("montant").addEventListener("blur", () => {
   const m = lireMontant($("montant").value);
-  if (m !== null && m > 0) $("montant").value = fmt.format(m / 100);
+  if (m !== null && m > 0) { $("montant").value = fmt.format(m / 100); rafraichir(); }
 });
 $("valider").addEventListener("click", valider);
 $("proposer").addEventListener("click", proposerBilletage);
 $("nouvelle").addEventListener("click", reinitialiser);
+$("a-chef-btn").addEventListener("click", () => demanderVisa("chef"));
+$("a-conf-btn").addEventListener("click", () => demanderVisa("conf"));
+$("imp-bordereau").addEventListener("click", () => { $("imp-msg").textContent = "Bordereau envoyé à l'imprimante de la caisse 2 en deux exemplaires (simulation)."; });
+$("imp-carnet").addEventListener("click", () => { $("imp-msg").textContent = "Placez le carnet dans l'imprimante, page en cours (simulation)."; });
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "F2") { e.preventDefault(); $("q").focus(); $("q").select(); }
@@ -666,10 +878,10 @@ document.addEventListener("keydown", (e) => {
   else if (e.key === "F8") { e.preventDefault(); $("conseil-msg").textContent = "Ici s'ouvrirait l'onglet Remboursement, avec l'échéance de 112,50 USD déjà saisie. Écran pas encore maquetté."; }
   else if (e.key === "F9") { e.preventDefault(); valider(); }
   else if (e.key === "Escape") { e.preventDefault(); reinitialiser(); }
-  else if (e.key === "Enter" && !$("resultat").hidden) { e.preventDefault(); reinitialiser(); }
+  else if (e.key === "Enter" && !$("resultat").hidden && document.activeElement?.tagName !== "BUTTON") { e.preventDefault(); reinitialiser(); }
 });
 
-// Départ : billetage déjà compté pour 450 USD, vérifications à faire
+// Départ : 450 USD comptés, vérifications à faire par la caissière
 compteurs = { 100: 4, 50: 1 };
 construireBilletage();
 rafraichir();

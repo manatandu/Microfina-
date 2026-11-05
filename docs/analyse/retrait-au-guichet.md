@@ -104,6 +104,19 @@ Conséquences :
 
 ---
 
+## 5. Ajouté à la maquette le 05/11/2026
+
+| Point | Ce que fait la maquette | Textes appliqués |
+|---|---|---|
+| Carnet et bordereau | Vérification obligatoire du carnet avec son dernier solde inscrit. Après validation : bordereau en deux exemplaires (membre, archives) avec montant en lettres, coupures remises, solde, mention « sans frais », lignes de signature et information sur les plaintes ; ligne du carnet à imprimer | Instr. 40, art. 13 ; Instr. 39, art. 5 et 6 ; Instr. 37 ; PCCI § 3.2 et 3.5 ; Instr. 15, art. 48 |
+| Visa du chef d'agence | Au-delà du seuil de la caissière (1 000 USD dans l'exemple, fixé par la COOPEC), le retrait est bloqué jusqu'au visa. Le visa porte sur le montant, le compte et la personne : s'ils changent, il tombe | Instr. 008, art. 49 et 66 (IMF) ; PCCI § 11.1 (COOPEC) |
+| 10 000 USD et plus | Cumul des espèces du membre dans la journée, contre-valeur des francs. À partir du seuil : examen renforcé (objet, destination des fonds, cohérence des mouvements, membre régulièrement établi), visa de la conformité, rapport confidentiel préparé pour la CENAREF, absent du bordereau et du carnet | Loi 22/068, art. 23, 54 et 92 bis (loi 25/048) ; Instr. 15, art. 48, 61 et 62 ; Instr. 15 bis, art. 1 et 5 à 8 |
+| Procuration | Le mandataire remplace la titulaire à l'écran : photo, pièce, specimen, procuration avec date de validité et pouvoirs. Blocage si la procuration a expiré ou si le montant dépasse ses pouvoirs | Instr. 15, art. 10 et 11 |
+
+Points laissés de côté volontairement, à traiter dans d'autres écrans : personne politiquement exposée (autorisation de la conformité, Instr. 15, art. 64), déclaration de soupçon (loi 22/068, art. 93, confidentialité), retrait dans une autre agence.
+
+---
+
 ## 5. Sources
 
 - Guide de l'utilisateur Microfina++, MEDIASOFT, v0.1, 2022 (PDF fourni, non diffusé).
