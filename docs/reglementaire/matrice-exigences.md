@@ -60,6 +60,21 @@ Statut : **lu** = article lu et reporté ici ; **à lire** = texte identifié, d
 
 Note : l'art. 14 associe les pondérations à des niveaux de risque dans l'ordre inverse. Le calcul suit l'art. 15, qui est sans ambiguïté.
 
+## Parts sociales (COOPEC)
+
+| Réf. | Exigence | Module | Statut |
+|---|---|---|---|
+| Loi 002/2002, art. 20 | Capital constitué de parts dont la valeur nominale est fixée par les statuts ; il varie avec le nombre de parts et de membres | Référentiel (statuts), Tiers | lu |
+| Loi 002/2002, art. 21 | Parts intégralement libérées, nominatives, non négociables, cessibles selon les statuts, insaisissables pour le minimum requis ; rémunération dans les limites fixées par l'AG | Tiers, Caisse | lu |
+| Loi 002/2002, art. 22 | Au moins une part souscrite et libérée pour être membre ; droit d'adhésion éventuel fixé par l'AG | Tiers | lu ; droit d'adhésion à confronter à l'Instr. 37 (ouverture de compte gratuite) |
+| Loi 002/2002, art. 24 | Retrait du membre impossible s'il est emprunteur ou caution ; refus possible deux ans si dissolution de fait | Tiers, Crédit | lu |
+| Loi 002/2002, art. 27 | Perte de la qualité de membre : apurement des créances et engagements | Tiers, Crédit, Épargne | lu |
+| Loi 002/2002, art. 62 | Membre exonéré de tout impôt et taxe sur les parts sociales | Caisse | lu |
+| PCCI, compte 10 | Souscription intégralement libérée ; crédit du 1030, 1031 ou 1032 selon la catégorie du membre ; débit au retrait ou à la démission | Grand livre | lu |
+| Instr. 002, art. 8 | Le capital (compte 10) entre dans les fonds propres de base | Prudentiel | lu |
+| Loi 11/020, art. 14 | IMF en SPRL ou SARL : pas de parts sociales au guichet | Référentiel (profil) | lu |
+| AUSCOOP, art. 2 al. 2 et art. 11 | Coopératives à activité financière soumises au droit interne de cette activité ; retrait sur avis écrit, constaté par l'organe d'administration, parts remboursées dans l'année | Tiers | lu ; application aux COOPEC à confirmer |
+
 ## Performance et reporting
 
 | Réf. | Exigence | Module | Statut |

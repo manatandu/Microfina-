@@ -2,7 +2,7 @@
 
 Le design d'un logiciel de microfinance ne se juge pas sur une capture d'écran de tableau de bord. Il se juge à 15 h 40, au guichet de Matete, avec douze personnes dans la file, un écran de 2014 et une coupure de courant il y a vingt minutes. Tout part de là.
 
-Maquettes de référence : [`maquettes/guichet-retrait.html`](maquettes/guichet-retrait.html) , [`maquettes/guichet-depot.html`](maquettes/guichet-depot.html) et [`maquettes/guichet-remboursement.html`](maquettes/guichet-remboursement.html). Elle s'ouvre dans un navigateur ; le montant, le billetage, les vérifications et la validation réagissent comme dans le vrai logiciel, avec des données fictives.
+Maquettes de référence : [`maquettes/guichet-retrait.html`](maquettes/guichet-retrait.html) , [`maquettes/guichet-depot.html`](maquettes/guichet-depot.html) , [`maquettes/guichet-remboursement.html`](maquettes/guichet-remboursement.html) et [`maquettes/guichet-parts.html`](maquettes/guichet-parts.html). Elle s'ouvre dans un navigateur ; le montant, le billetage, les vérifications et la validation réagissent comme dans le vrai logiciel, avec des données fictives.
 
 ---
 
@@ -62,6 +62,10 @@ Quand le logiciel bloque ou alerte, il dit pourquoi en quelques mots, à côté 
 ### 2.7 N'afficher que ce qui sert maintenant
 
 Un écran de guichet montre l'opération courante, pas toutes les règles possibles. Les visas n'apparaissent que si le montant les exige, l'examen renforcé que si le seuil est atteint, la procuration que si un mandataire se présente. Ce qui reste à faire tient en une rangée d'étapes cochées au-dessus du bouton Valider. Les détails (écriture comptable, aperçu du bordereau) se déplient à la demande.
+
+### 2.7 bis Pas d'animation sur ce qui se répète
+
+Le guichet valide des centaines d'opérations par jour, au clavier. Rien ne s'anime après F9 : le résultat s'affiche d'un coup. Seule exception, le retour au toucher des boutons (`scale(0.97)` en 160 ms), coupé si l'utilisateur a demandé moins de mouvement. Source : skill `emil-kowalski`, fiche `emil-design-eng`, « Never animate keyboard-initiated actions » et « Buttons must feel responsive ».
 
 ### 2.8 Le papier est un écran comme un autre
 
