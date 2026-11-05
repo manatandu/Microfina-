@@ -99,6 +99,7 @@ details.textes p { margin: 4px 0 0; }
 }
 .bloc { background: var(--feuille); border: 1px solid var(--trait); border-radius: 4px; padding: 14px 16px; }
 .bloc + .bloc { margin-top: 12px; }
+.guichet > section, .bordereau > * { min-width: 0; }
 h2 { font-size: 15px; font-weight: 700; margin: 0 0 10px; }
 
 /* Personne */
@@ -127,8 +128,9 @@ h2 { font-size: 15px; font-weight: 700; margin: 0 0 10px; }
 
 /* Bordereau */
 .onglets { display: flex; gap: 2px; margin-bottom: -1px; position: relative; }
-.onglets button { font: inherit; font-size: 14px; padding: 8px 14px; cursor: pointer; border: 1px solid var(--trait); border-bottom: none; border-radius: 4px 4px 0 0; background: var(--papier); color: var(--encre-2); }
-.onglets button[aria-selected="true"] { background: var(--feuille); color: var(--encre); font-weight: 700; }
+.onglets a, .onglets span { font-size: 14px; padding: 8px 14px; border: 1px solid var(--trait); border-bottom: none; border-radius: 4px 4px 0 0; background: var(--papier); color: var(--encre-2); text-decoration: none; }
+.onglets a:hover { color: var(--encre); }
+.onglets [aria-current="page"] { background: var(--feuille); color: var(--encre); font-weight: 700; }
 .bordereau { border-top-left-radius: 0; padding: 16px 20px; display: grid; gap: 16px; }
 .entete-b { display: flex; justify-content: space-between; align-items: center; }
 .entete-b h2 { font-size: 18px; margin: 0; }
@@ -243,7 +245,7 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: 14px; }
 .note { margin-left: auto; font-style: italic; }
 
 @media (max-width: 1100px) {
-  .guichet { grid-template-columns: 1fr; }
+  .guichet { grid-template-columns: minmax(0, 1fr); }
   .bandeau { flex-wrap: wrap; gap: 8px 16px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
   .bandeau .poste { margin-left: 0; }
   .touches { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
@@ -319,12 +321,12 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: 14px; }
 
   <!-- Le bordereau -->
   <section aria-labelledby="t-bordereau">
-    <div class="onglets" role="tablist" aria-label="Opération">
-      <button role="tab" aria-selected="false" tabindex="-1">Dépôt</button>
-      <button role="tab" aria-selected="true">Retrait</button>
-      <button role="tab" aria-selected="false" tabindex="-1">Remboursement</button>
-      <button role="tab" aria-selected="false" tabindex="-1">Parts sociales</button>
-    </div>
+    <nav class="onglets" aria-label="Opération">
+      <a href="guichet-depot.html" id="lien-depot">Dépôt</a>
+      <span aria-current="page">Retrait</span>
+      <span>Remboursement</span>
+      <span>Parts sociales</span>
+    </nav>
 
     <div class="bloc bordereau" id="saisie">
       <div class="entete-b">

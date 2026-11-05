@@ -2,7 +2,7 @@
 
 Le design d'un logiciel de microfinance ne se juge pas sur une capture d'écran de tableau de bord. Il se juge à 15 h 40, au guichet de Matete, avec douze personnes dans la file, un écran de 2014 et une coupure de courant il y a vingt minutes. Tout part de là.
 
-Maquette de référence : [`maquettes/guichet-retrait.html`](maquettes/guichet-retrait.html). Elle s'ouvre dans un navigateur ; le montant, le billetage, les vérifications et la validation réagissent comme dans le vrai logiciel, avec des données fictives.
+Maquettes de référence : [`maquettes/guichet-retrait.html`](maquettes/guichet-retrait.html) et [`maquettes/guichet-depot.html`](maquettes/guichet-depot.html). Elle s'ouvre dans un navigateur ; le montant, le billetage, les vérifications et la validation réagissent comme dans le vrai logiciel, avec des données fictives.
 
 ---
 
