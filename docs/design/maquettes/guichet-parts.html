@@ -226,10 +226,6 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: 14px; }
 .signatures div { border-top: 1px solid var(--encre-2); padding-top: 4px; font-size: 12px; color: var(--encre-2); }
 .papier .pied { margin: 10px 0 0; font-size: 12px; color: var(--encre-2); border-top: 1px solid var(--trait); padding-top: 6px; }
 
-/* Retour au toucher : emil-kowalski, emil-design-eng, « Buttons must feel responsive » */
-.bouton, .secondaire { transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1); }
-.bouton:not(:disabled):active, .secondaire:not(:disabled):active { transform: scale(0.97); }
-@media (prefers-reduced-motion: reduce) { .bouton, .secondaire { transition: none; } }
 /* Barre des touches */
 .touches {
   display: flex; flex-wrap: wrap; gap: 6px 20px; align-items: center;
@@ -460,13 +456,13 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: 14px; }
   <span><span class="touche">F2</span> <b>Membre</b></span>
   <span><span class="touche">F9</span> <b>Enregistrer</b></span>
   <span><span class="touche">Échap</span> <b>Annuler</b></span>
-  <span class="note">Maquette sur le modèle de Microfina++. Valeur d'une part : exemple de Microfina++, devise à fixer.</span>
+  <span class="note">Maquette sur le modèle de Microfina++. Valeur d'une part : exemple de Microfina++, à remplacer par celle des statuts.</span>
 </footer>
 
 <script>
 // ---------- Données fictives ----------
-const VALEUR_PART = 400000;   // 4 000 : valeur de l'exemple Microfina++ (manuel, p. 90). La vraie valeur et sa devise viennent des statuts (loi 002/2002, art. 20). DEVISE À CONFIRMER.
-const DEVISE = "CDF";         // À CONFIRMER avec le porteur du projet
+const VALEUR_PART = 400000;   // 4 000 CDF : valeur de l'exemple Microfina++ (manuel, p. 90). La vraie valeur vient des statuts (loi 002/2002, art. 20).
+const DEVISE = "CDF";         // parts en francs congolais : décision du porteur du projet, 05/11/2026
 const DETENUES = 10;
 const EMPRUNTEUR = true;      // prêt P-2026-00871 en cours
 const COURS = 2850;           // CDF pour 1 USD (fictif)

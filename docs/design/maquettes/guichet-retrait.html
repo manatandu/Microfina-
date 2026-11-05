@@ -229,10 +229,6 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: 14px; }
 .signatures div { border-top: 1px solid var(--encre-2); padding-top: 4px; font-size: 12px; color: var(--encre-2); }
 .papier .pied { margin: 10px 0 0; font-size: 12px; color: var(--encre-2); border-top: 1px solid var(--trait); padding-top: 6px; }
 
-/* Retour au toucher : emil-kowalski, emil-design-eng, « Buttons must feel responsive » */
-.bouton, .secondaire { transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1); }
-.bouton:not(:disabled):active, .secondaire:not(:disabled):active { transform: scale(0.97); }
-@media (prefers-reduced-motion: reduce) { .bouton, .secondaire { transition: none; } }
 /* Barre des touches */
 .touches {
   display: flex; flex-wrap: wrap; gap: 6px 20px; align-items: center;

@@ -65,7 +65,7 @@ Un écran de guichet montre l'opération courante, pas toutes les règles possib
 
 ### 2.7 bis Pas d'animation sur ce qui se répète
 
-Le guichet valide des centaines d'opérations par jour, au clavier. Rien ne s'anime après F9 : le résultat s'affiche d'un coup. Seule exception, le retour au toucher des boutons (`scale(0.97)` en 160 ms), coupé si l'utilisateur a demandé moins de mouvement. Source : skill `emil-kowalski`, fiche `emil-design-eng`, « Never animate keyboard-initiated actions » et « Buttons must feel responsive ».
+Le guichet valide des centaines d'opérations par jour, au clavier. Rien ne s'anime après F9 : le résultat s'affiche d'un coup. Source : skill `emil-kowalski`, fiche `emil-design-eng`, « Never animate keyboard-initiated actions ». Les boutons n'ont pas d'effet à la pression (décision du porteur du projet, 05/11/2026).
 
 ### 2.8 Le papier est un écran comme un autre
 
