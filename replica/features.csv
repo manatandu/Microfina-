@@ -1,0 +1,147 @@
+feature,area,priority,original,clone,notes
+Connexion par utilisateur et mot de passe,administration,must,yes,no,S01 ; ajouter verrouillage de session et règles de mot de passe (constat de terrain U22 ; Instr. BCC 008 art. 16 sur accès et authentification)
+Page des modules,administration,must,yes,no,S02
+Profils et droits par tâche,administration,must,yes,no,S03 S04 ; séparation des tâches incompatibles (Instr. BCC 008 art. 66 pour les IMF ; PCCI § 11.1)
+Gestion des utilisateurs et rattachement à une agence,administration,must,yes,no,S05 S06
+Liste des connectés et déconnexion forcée,administration,should,yes,no,S07
+Guichets : création comptes et option billetage,administration,must,yes,no,S08 ; billetage obligatoire et non optionnel (principe P8 de ARCHITECTURE.md ; constats U12 C41)
+Ouverture et fermeture des guichets,administration,must,yes,no,S09
+Affectation des guichets aux utilisateurs,administration,must,yes,no,S10
+Exercices : création activation ouverture,administration,must,yes,no,S11
+Ouverture de journée,administration,must,yes,no,S12 ; journée comptable et clôture mensuelle (PCCI § 3.4)
+Rapport des transactions,administration,should,yes,no,S13 ; ajouter journal des modifications de paramètres et de droits (constats U19 C29 ; Instr. BCC 008 art. 11)
+Secteurs d'activité,paramétrage,must,yes,no,S14
+Numérotation des clients et des comptes,paramétrage,must,yes,no,S15 S17
+Frais par opération et frais d'adhésion par type de client,paramétrage,must,yes,no,S16 ; aucun frais sur dépôt retrait ouverture et clôture de compte virement de compte à compte (Instr. BCC 37 annexe)
+Motifs de départ,paramétrage,should,yes,no,S18
+Référentiel budgétaire,paramétrage,should,yes,no,S19
+Localisation à plusieurs niveaux,paramétrage,must,yes,no,S20 ; niveaux de la RDC à la place de pays département commune arrondissement quartier (à confirmer avec le porteur)
+Référentiel crédit : types objets cycles zones assurances gestionnaires,paramétrage,must,yes,no,S21
+Ordre de remboursement paramétrable,paramétrage,must,yes,no,S22 ; le débiteur ne peut imputer sur le capital avant les intérêts sans l'accord du créancier (Code civil livre III art. 152) : l'ordre choisi par la COOPEC est donc permis
+Produit crédit : montants durées différés intérêts types de client périodicité,paramétrage,must,yes,no,S23 S24 ; TEG calculé et affiché (Instr. BCC 38 à lire avant de coder le calcul)
+Produit crédit : garanties assurance frais autres informations,paramétrage,must,yes,no,S23 onglets non montrés
+Activation et désactivation des produits crédit,paramétrage,must,yes,no,S25
+Modèle crédit : comptes,paramétrage,must,yes,no,S26 ; comptes du PCCI (Instr. BCC 006)
+Modèle crédit : degrés de classement et taux de provision,paramétrage,must,yes,no,S26 montre sain et souffrant 1 à 4 sur 1-90 91-180 181-360 361-720 jours ; à remplacer par les tranches 1-30 31-60 61-90 91-180 et plus de 180 jours à 5 25 50 75 et 100 % (Instr. BCC 003 art. 12)
+Modèle crédit : termes par durée,paramétrage,must,yes,no,S26 montre court moyen et long terme ; classement en comptes 30 31 32 selon la durée (PCCI classe 3) et attributs de durée (PCCI § 10.6 et 10.7)
+Produit épargne : définition et options,paramétrage,must,yes,no,S27 ; option solde négatif à retirer : aucun compte d'épargne débiteur (constats U17 C50 ; Instr. BCC 003 art. 7)
+Produit épargne : comptes comptables,paramétrage,must,yes,no,S28 ; comptes du PCCI 330 à 335
+Numérotation des pièces,paramétrage,must,yes,no,S29 ; séquence sans trou (PCCI § 3.2 et 3.4)
+Journaux,paramétrage,must,yes,no,S30
+Encaissements et décaissements divers autorisés,paramétrage,must,yes,no,S31
+Société agences zones logo,paramétrage,must,yes,no,S32
+Gestionnaires sensibilisateurs commerciaux,paramétrage,should,yes,no,S33
+Jours de travail et jours fériés,paramétrage,should,yes,no,S34
+Devises types de monnaie et coupures,paramétrage,must,yes,no,S35 ; CDF et USD ; pas d'opération de change (PCCI § 7.1)
+Éléments de facture et références de commande,paramétrage,could,yes,no,S36
+Enrôlement personne physique en onglets,clients,must,yes,no,S37 ; attributs d'identification résidence et agent économique (PCCI § 10.1 10.2) ; vigilance à l'ouverture (Instr. BCC 15 art. 10)
+Enrôlement entreprise avec dirigeants et signataires,clients,must,yes,no,S38 ; vérifier l'habilitation des représentants (Instr. BCC 15 art. 11)
+Enrôlement groupe avec membres,clients,must,yes,no,S39 ; parts des groupements au compte 1031 (PCCI compte 10)
+Personnes liées bénéficiaires photo et signature,clients,must,yes,no,S37 à S39 S49 ; personnes liées utiles au plafond des apparentés (Instr. BCC 002 art. 25 à 27)
+Choisir un prospect à l'enrôlement,clients,should,yes,no,S37 S45
+Visa du client et contrat d'adhésion,clients,must,yes,no,S40 ; compte inutilisable en caisse avant visa (constat C47)
+Modifier les frais d'ouverture,clients,should,yes,no,S41 ; ouverture de compte gratuite (Instr. BCC 37 annexe) ; le droit d'adhésion de la loi 002/2002 art. 22 reste à confronter
+Valider un client modifié,clients,must,yes,no,S42
+Consulter l'état initial et actuel d'un client,clients,must,yes,no,S43
+Groupes solidaires et affectation,clients,must,yes,no,S44
+Prospects,clients,should,yes,no,S45
+Mise à jour d'un client,clients,must,yes,no,S46
+Procurations,clients,must,yes,no,S47 ; relier la procuration au mandataire du guichet (Instr. BCC 15 art. 11)
+Résiliation d'un client,clients,must,yes,no,S48 ; membre emprunteur ou caution ne peut se retirer (loi 002/2002 art. 24) ; apurement (art. 27)
+Consentement BIC,clients,skip,yes,skip,S50 ; dispositif de l'UEMOA ; en RDC centrale des risques de la BCC (Instr. BCC 5 à lire)
+Rapports clients,clients,should,yes,no,S51
+Opérations de banque : encaissement décaissement virements,banque,must,yes,no,S52
+Virement et prélèvement client banque,banque,must,yes,no,S53
+Déblocage de crédit par banque,banque,must,yes,no,S54
+Remboursement de crédit par banque,banque,must,yes,no,S55
+Adhésion par banque,banque,should,yes,no,S56 ; part sociale traitée comme un frais dans Microfina++ ; c'est du capital au compte 1030 (PCCI compte 10)
+Visa puis validation des opérations de banque,banque,must,yes,no,S57
+Banques et comptes bancaires,banque,must,yes,no,S58
+Chèques clients : dépôt encaissement historique,banque,should,yes,no,S59
+Chéquier et chèque pour crédit,banque,could,yes,no,S60 ; signalé non fonctionnel par le manuel
+Emprunts bancaires,banque,should,yes,no,S61 ; non décrit
+Rapports banque,banque,should,yes,no,S62
+Ouverture d'un compte d'épargne,épargne,must,yes,no,S63 ; gratuite (Instr. BCC 37)
+Relevé de compte et situation du client,épargne,must,yes,no,S64 ; deux premiers relevés mensuels gratuits (Instr. BCC 37)
+Dépôt à terme : mise en place validation rupture recherche,épargne,must,yes,no,S65 à S68 ; intérêts courus à chaque arrêté (constat U18)
+Reconduction automatique des DAT,épargne,must,yes,no,S65
+Plan d'épargne : simulation création échéancier cotisations rupture,épargne,should,yes,no,S69
+Clôture d'un compte,épargne,must,yes,no,S70 ; signalée non fonctionnelle par le manuel ; gratuite (Instr. BCC 37)
+Blocage de compte ou de montant avec motif,épargne,must,yes,no,S71
+Rapports épargne dont comptes inactifs et dormants,épargne,should,yes,no,S72
+Adhésion au guichet,caisse,must,yes,no,S73 ; parts payées en entier (loi 002/2002 art. 21)
+Dépôt et retrait au guichet,caisse,must,yes,no,S74 ; maquettes guichet-depot et guichet-retrait ; gratuits (Instr. BCC 37) ; espèces de 10 000 USD ou plus (Instr. BCC 15 art. 61 et 62 ; Instr. BCC 15 bis)
+Montant en lettres,caisse,must,yes,no,S74 S81
+Mandataire au retrait,caisse,must,yes,no,S74 champ libre ; à relier aux procurations enregistrées (Instr. BCC 15 art. 11)
+Frais d'opération au guichet,caisse,must,yes,no,S74 montre des frais de versement ; interdits sur dépôt et retrait (Instr. BCC 37)
+Déblocage de crédit en caisse,caisse,must,yes,no,S75
+Remboursement en caisse avec répartition,caisse,must,yes,no,S76 ; répartition selon l'ordre S22 ; maquette guichet-remboursement à revoir (épargne de capitalisation et solidarité absentes ; ordre fixe choisi sans texte qui l'impose)
+Situation plan réel mémo du prêt au guichet,caisse,should,yes,no,S76
+Achat et retrait de parts sociales,caisse,must,yes,no,S77 ; maquette guichet-parts ; loi 002/2002 art. 21 22 24 ; PCCI compte 10
+Encaissements et décaissements divers,caisse,must,yes,no,S78
+Billetage : saisie par coupure,caisse,must,yes,no,S79
+Billetage : validation solde informatique et réel,caisse,must,yes,no,S80 ; journée non comptabilisable sans billetage validé (constats U12 C41)
+Transfert caisse vers caisse et caisse vers banque,caisse,must,yes,no,S81 ; comptes 579 et 59 soldés chaque soir (constat C42)
+Opérations diverses et déplacées validées en caisse,caisse,must,yes,no,S82 ; retrait dans une autre agence gratuit (Instr. BCC 37)
+Journal de caisse,caisse,must,yes,no,S83
+Simulation d'échéancier,crédit,must,yes,no,S84
+Analyse financière allégée et développée,crédit,should,yes,no,S85
+Demande de crédit avec effectifs hommes femmes et groupes,crédit,must,yes,no,S86
+Contrôle de la demande,crédit,must,yes,no,S87
+Approbation,crédit,must,yes,no,S88 ; plafond par membre ou par client et apparentés avant déblocage (Instr. BCC 002 art. 25 à 29)
+Mise en place du prêt : financement épargne obligatoire solidarité assurance objet zone agent,crédit,must,yes,no,S89
+TEG affiché sur le dossier,crédit,must,yes,no,S89 ; formule de l'Instr. BCC 38 à lire avant de coder
+Visas responsable crédit comité service financier,crédit,must,yes,no,S90 ; commission de crédit avec accès en lecture (constats U7 C38)
+Historique des visas,crédit,must,yes,no,S91
+Crédits validés non débloqués,crédit,must,yes,no,S92
+État de crédit,crédit,must,yes,no,S93
+Cautions dépôts de garantie nantissements,crédit,must,yes,no,S94 ; types de garantie à identifier (PCCI § 10.8)
+Consulter un prêt,crédit,must,yes,no,S95
+Affectation de portefeuille entre gestionnaires,crédit,should,yes,no,S96
+Liste rouge,crédit,should,yes,no,S97
+Balance âgée,crédit,must,yes,no,S98 ; calculée chaque jour et non lancée à la main (Instr. BCC 003 art. 6 et 12)
+Déclassement et provisions,crédit,must,yes,no,S99 ; provisions mensuelles automatiques comptes 3800 à 3804 (Instr. BCC 003 art. 12) ; intérêts des crédits en retard en hors bilan (art. 11) ; passage en perte au 31/12 (art. 10)
+Engagement par signature,crédit,should,yes,no,S100 ; hors bilan classe 0 (PCCI)
+Rapports crédit dont exigibles et indicateurs,crédit,must,yes,no,S101 ; indicateurs de l'Instr. BCC 004
+Plan des comptes et modèle à positions,comptabilité,must,yes,no,S102 ; PCCI livré ; création de compte validée (constats U13 C23)
+Plan des tiers,comptabilité,must,yes,no,S103
+Taxes et déclaration,comptabilité,should,yes,no,S104 S108
+Déblocage sur compte d'épargne,comptabilité,must,yes,no,S105
+Remboursement par prélèvement sur l'épargne,comptabilité,must,yes,no,S106 ; virement interne gratuit (Instr. BCC 37)
+Factures fournisseurs bons de commande règlements,comptabilité,should,yes,no,S107
+Saisie d'écritures,comptabilité,must,yes,no,S109 ; suppression avant validation seulement ; écriture validée corrigée par contre-passation (PCCI § 3.3 et 3.4 ; constat C20)
+Rapprochement bancaire et historique,comptabilité,must,yes,no,S110 S112
+Comptabilisation de la journée,comptabilité,must,yes,no,S111 ; principe P1 et P2 de ARCHITECTURE.md
+Visa et validation comptables dont retrait au-delà du plafond,comptabilité,must,yes,no,S113 S114
+Journaux comptables,comptabilité,must,yes,no,S115 ; livre-journal grand livre balance livre d'inventaire (PCCI § 3.3)
+Virement de compte à compte et opérations diverses,comptabilité,must,yes,no,S116 ; virement interne gratuit (Instr. BCC 37)
+Domiciliation de salaire,comptabilité,must,yes,no,S117 ; gratuite (Instr. BCC 37)
+Virement des salaires et prélèvement automatique,comptabilité,should,yes,no,S117 ; signalés non fonctionnels par le manuel
+Contrôle écart gestion et comptabilité,comptabilité,skip,yes,skip,S118 ; inutile par construction (ARCHITECTURE.md P1)
+Contrôle trésorerie et rapport des annulations,comptabilité,must,yes,no,S118
+État des revenus,comptabilité,should,yes,no,S118
+Lettrage,comptabilité,must,yes,no,S119
+Grand livre et balance général et analytique,comptabilité,must,yes,no,S120 S121 ; grand livre complet en une extraction (constats U1 C26)
+Bilan hors bilan résultat annexes,comptabilité,must,yes,no,S122 ; états du PCCI ; tableau des flux de trésorerie et états de l'Instr. BCC 009 à ajouter (constats U23 C11)
+Indicateurs financiers,comptabilité,must,yes,no,S123 ; formules de l'annexe de l'Instr. BCC 004
+Budget : création reconduction suivi consommation financement,budget,should,yes,no,S124 à S126
+Clôtures crédit dépôt comptabilité,autres,must,yes,no,S127 ; traitements automatiques de fin de journée et de mois (ARCHITECTURE.md § 6)
+Calculs : tenue de compte intérêts DAV et DAT provisions,autres,must,yes,no,S128 ; idem
+Caisse mobile,autres,skip,yes,skip,S129 ; non décrite dans le manuel
+Gestion de réunion,autres,skip,yes,skip,S130 ; non décrite dans le manuel
+Paie : données de base grilles états,paie,should,yes,no,S131 S132 ; module complet en deuxième temps (décision du porteur)
+Paie : employé rubriques maquette,paie,should,yes,no,S133 S134
+Paie : avances et retenues avec visa,paie,must,yes,no,S135 ; premier temps du module paie (décision du porteur)
+Immobilisations : données de base et familles avec comptes,immobilisations,must,yes,no,S136 ; ratio des immobilisations (Instr. BCC 002 art. 34 à 36)
+Immobilisations : création affectation transfert,immobilisations,must,yes,no,S137 S138 ; écriture d'acquisition automatique (constats U9 C59)
+Immobilisations : amortissement inventaire sortie,immobilisations,must,yes,no,S139 ; inventaire (PCCI § 3.2)
+Rapports immobilisations,immobilisations,should,yes,no,S140
+Multilingue français et anglais,général,could,yes,no,p. 15
+Aide en ligne,général,could,yes,no,p. 15
+Export des grilles vers Excel,général,must,yes,no,p. 9
+Grilles paginées avec filtres par colonne,général,must,yes,no,p. 9
+Boîtes de confirmation oui ou non,général,skip,yes,skip,p. 11 et 12 ; remplacées par un récapitulatif dans le bordereau (DESIGN.md § 2.5)
+Modifier et supprimer depuis une grille,général,skip,yes,skip,p. 13 ; interdit pour tout ce qui touche à l'argent (PCCI § 3.4 ; ARCHITECTURE.md P8)
+Référentiel comptable des SFD de l'UEMOA,général,skip,yes,skip,p. 4 ; remplacé par le PCCI obligatoire (Instr. BCC 006)
+GRH,modules,skip,yes,skip,hors périmètre par décision du porteur
+Stocks,modules,skip,yes,skip,hors périmètre par décision du porteur
