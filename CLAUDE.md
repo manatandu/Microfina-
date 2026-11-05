@@ -2,6 +2,16 @@
 
 Logiciel de gestion pour COOPEC et IMF en RDC. Le porteur du projet ne code pas : il valide sur écran, en langage métier (voir `README.md`).
 
+## 0. Le modèle, c'est Microfina++ : rien d'inventé
+
+Décision du porteur, 05/11/2026, valable pour tout le projet.
+
+- Chaque écran, chaque parcours, chaque champ, chaque bouton reprend ce que fait Microfina++, tel que le montre son manuel (page citée). Avant d'écrire un écran, ouvrir la page du manuel qui le montre.
+- Ne rien ajouter : ni page, ni texte, ni motif, ni fonction, ni raccourci que Microfina++ n'a pas. Pas de texte d'accroche, pas de décoration.
+- Seule l'apparence est la nôtre (jetons de `replica/design/`) ; la structure est celle de Microfina++.
+- Un écart n'est permis que si un texte l'impose (Instructions BCC, PCCI, lois), avec sa référence, ou si le porteur le demande. Sinon, on pose la question au porteur avant de faire.
+- Ce que le manuel ne montre pas ne s'invente pas : on le marque « à confirmer » et on demande.
+
 ## 1. Rien de mémoire
 
 Toute règle métier, tout article, tout compte, tout taux, tout seuil ou délai est **lu dans le texte avant d'être écrit**, puis cité avec sa référence exacte (« Instr. BCC 15 bis, art. 7 », « PCCI, compte 3900 »). Ce qui n'a pas été lu ne s'écrit pas : on le marque « à confirmer » et on le pose comme question au porteur.
