@@ -92,3 +92,7 @@ Note : l'art. 14 associe les pondérations à des niveaux de risque dans l'ordre
 | Instr. 39 | Plaintes : réponse sous 45 jours calendaires, référence unique | Plaintes | survolé, à lire |
 | Instr. 41 mod. 1 | Agrément, dirigeants, autorisations préalables | Référentiel (données institution) | à lire |
 | Instr. 0011 | Faîtière | Extensions | à lire |
+
+## Exigences issues du terrain
+
+Les constats d'une mission d'octobre 2026 dans une COOPEC utilisatrice de Microfina++ (26 constats d'usage, 70 constats et recommandations) ajoutent des exigences que les textes impliquent sans les détailler : arrêté de caisse bloquant, comptes de transit soldés chaque soir, interdiction des débits au-delà du disponible, journal des modifications non désactivable, sauvegardes testées, rapprochements signés. Chacune est rattachée à son constat et à son module dans [`../analyse/microfina-ecarts.md`](../analyse/microfina-ecarts.md).

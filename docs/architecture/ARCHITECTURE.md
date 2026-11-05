@@ -23,7 +23,11 @@ Un seul produit. Le **profil réglementaire** de l'institution active ou désact
 
 ### Et Microfina++ ?
 
-Je n'ai pas le manuel. Rien de public en ligne non plus. Je ne vais donc pas prétendre le suivre. Ce que je reprends, c'est le périmètre classique de cette famille de logiciels : membres, épargne, crédit, guichet, comptabilité, états réglementaires. Dès que tu déposes le manuel dans `docs/sources/`, je fais un tableau d'écarts écran par écran : ce qu'on reprend, ce qu'on corrige, ce qu'on jette.
+Manuel lu en entier (MEDIASOFT, v0.1, 2022, 306 pages), croisé avec les deux notes d'une mission d'octobre 2026 dans une COOPEC utilisatrice. L'analyse complète est dans [`../analyse/microfina-ecarts.md`](../analyse/microfina-ecarts.md). Trois choses à retenir :
+
+1. **Le périmètre fonctionnel est bon.** On reprend l'essentiel : guichet à onglets, circuit de visa à trois niveaux sur le crédit, DAT avec reconduction, plan d'épargne, liste rouge, budget, immobilisations.
+2. **Il est conçu pour l'UEMOA, pas pour la RDC.** Il suit le référentiel des SFD, pas le PCCI. Il n'a pas FinA. Il parle de BIC au lieu de la centrale des risques de la BCC, et son découpage administratif est ouest-africain.
+3. **Ses contrôles sont optionnels.** Billetage à cocher, séparation des tâches laissée aux droits, suppression et annulation possibles, provisions lancées par bouton. Sur 26 constats d'usage dans cette COOPEC, 20 portent sur des fonctions qui existent mais qu'on peut contourner. D'où le principe P8.
 
 ---
 
@@ -45,7 +49,7 @@ Ces règles ne se négocient pas. Elles viennent des textes. Le reste de l'archi
 
 ### P1. Un seul grand livre. Les soldes des membres en sont une vue.
 
-Le problème classique de ce type de logiciel : la balance des comptes de membres ne colle pas avec le 330 du grand livre. On passe des jours à chercher l'écart.
+Le problème classique de ce type de logiciel : la balance des comptes de membres ne colle pas avec le 330 du grand livre. On passe des jours à chercher l'écart. Microfina++ a même un écran pour ça, « Contrôle des comptes », qui affiche l'écart entre gestion et comptabilité (manuel, p. 163). Dans la COOPEC auditée, les encours par produit ne concordent pas avec la comptabilité (constat C3).
 
 Ici, il n'y a pas deux livres. Chaque ligne d'écriture porte :
 - un **compte général** PCCI (ex. `3300 Épargnes`) ;
@@ -100,6 +104,21 @@ Les frontières entre modules sont réelles : un module n'accède pas aux tables
 ### P7. Quatre yeux, paramétrables
 
 Toute opération sensible passe par un circuit **saisie / validation** (maker-checker) : seuils par profil et par type d'opération, extourne, modification d'un schéma comptable, déblocage de crédit au-delà de la délégation, déblocage d'une épargne bloquée. Le valideur ne peut jamais être le saisisseur. La règle est dans le moteur, pas dans l'écran.
+
+### P8. Ce que la BCC exige n'est pas une option
+
+C'est la leçon de Microfina++ sur le terrain. On peut régler un seuil. On ne peut jamais désactiver le contrôle lui-même. Concrètement, aucun paramètre, aucun profil, pas même l'administrateur, ne permet de :
+- comptabiliser une journée avec une caisse non arrêtée ou un billetage non validé ;
+- saisir et valider la même opération ;
+- modifier ou supprimer une écriture validée ;
+- débiter un compte d'épargne au-delà de son disponible ;
+- utiliser en caisse un compte qui n'a pas reçu son visa ;
+- débloquer un crédit qui dépasse le plafond par membre ou par client, ou le plafond des apparentés, sans l'autorisation prévue par le texte ;
+- modifier un crédit approuvé sans nouvelle approbation ;
+- sauter le classement et le provisionnement mensuels ;
+- couper le journal d'audit.
+
+Chacun de ces blocages a un test automatisé qui doit échouer si quelqu'un le contourne.
 
 ---
 
@@ -170,7 +189,12 @@ flowchart TB
 | LBC/FT | Profil de risque client, seuils espèces, alertes, déclarations | |
 | Centrale des risques | Déclarations à la CR (Instr. 5), modifications, radiations | |
 | Plaintes | Registre, référence unique, délai de 45 jours (Instr. 39, art. 5) | |
-| Reporting | États mensuels et annuels (Instr. 009), FinA, états PCCI, rapport d'activités | Recalculer à côté du GL |
+| Reporting | États mensuels et annuels (Instr. 009), FinA, tableau des flux de trésorerie, états PCCI, rapport d'activités, calendrier des transmissions avec accusés | Recalculer à côté du GL |
+| Immobilisations | Biens, familles et comptes, acquisition, amortissement, réévaluation, inventaire, sortie | Laisser l'acquisition se comptabiliser à la main |
+| Budget | Centres de coût, plans, lignes, bailleurs, réalisé contre prévu, subventions par convention | |
+| Registres de contrôle | Incidents et fraudes, recommandations CAC, BCC et conseil de surveillance, autorisations d'activités connexes, imprimés de valeur | Se substituer aux organes |
+
+**Hors périmètre** : GRH, stocks, calcul de la paie. Les avances et retenues sur salaire entrent dans le noyau (créances sur le personnel, prélèvements sur comptes domiciliés). Le journal de paie s'importe.
 
 ---
 
@@ -255,6 +279,10 @@ JOURNÉE (par agence)
     · calcul des retards, contagion aux autres crédits du membre (Instr. 003, art. 6 al. 2)
     · reclassement par tranche 3900 à 3904
     · pénalités
+  contrôles bloquants avant fermeture
+    · toutes les caisses arrêtées, billetages validés
+    · comptes 579, 59 et de liaison soldés, sinon justification nominative
+    · équilibre par journal et par devise
   fermeture journée
 
 MOIS
@@ -320,7 +348,7 @@ Alternatives sérieuses : .NET (même solidité) ou TypeScript côté serveur (u
 
 Je bloque sur ces points. Il me faut ta réponse avant de figer.
 
-1. **Le manuel Microfina++.** Tu l'as ? Dépose-le dans `docs/sources/`.
+1. **Paie.** Je propose de garder les avances et retenues dans le noyau et d'importer le journal de paie. Ou tu veux un module paie complet comme dans Microfina++ ?
 2. **Pour qui d'abord ?** Une COOPEC isolée, un réseau avec faîtière, ou des IMF ? Ça change l'ordre des modules.
 3. **Connectivité réelle des agences visées.** Fibre, 4G, VSAT, rien ?
 4. **Équipe.** Qui code, avec quelles langues ? Ça tranche la pile (§ 8).
@@ -337,6 +365,6 @@ Je bloque sur ces points. Il me faut ta réponse avant de figer.
 | 0. Socle | Référentiel, habilitations, audit, grand livre, journées et périodes, schémas comptables | Une écriture saisie, validée à quatre yeux, visible au journal et en balance, impossible à modifier |
 | 1. Guichet | Tiers et KYC de base, épargne, caisse et billetage | Une journée complète d'agence : ouverture, dépôts, retraits, arrêté de caisse, fermeture, balance juste |
 | 2. Crédit | Dossier, comité, déblocage, échéancier, remboursements, classement et provisions | Un portefeuille vieilli sur 200 jours simulés, provisions conformes à l'Instr. 003 |
-| 3. Pilotage | Prudentiel, Instr. 004, états mensuels, centrale des risques | Les états du 15 sortis sans retouche manuelle |
-| 4. Conformité | LBC/FT complet, plaintes, TEG et publication des conditions | |
+| 3. Pilotage | Prudentiel, Instr. 004, états mensuels et FinA, flux de trésorerie, centrale des risques, immobilisations, budget | Les états du 15 sortis sans retouche manuelle |
+| 4. Conformité | LBC/FT complet, plaintes, registres de contrôle, TEG et publication des conditions | |
 | 5. Extensions | Faîtière et consolidation, mobile money, agents | |
