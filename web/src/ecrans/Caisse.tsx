@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { DEVISES, montant, totalComptage, type Comptage, type Devise } from "../lib/montant";
+import { DEVISES, montant, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 import { Attention, Billetage, Bloquant, Champ, Chargement, Textes } from "../composants";
 
 /** S09 : ouvrir une caisse pour la journée */

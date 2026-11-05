@@ -7,7 +7,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { useTouches } from "../lib/useTouches";
 import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
-import { lireMontant, montant, montantEnLettres, totalComptage, type Comptage, type Devise } from "../lib/montant";
+import { lireMontant, montant, montantEnLettres, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 import { Attention, Billetage, Bloquant, Chargement, ChampMontant, Etapes, Silhouette, Specimen, Textes, Touche } from "../composants";
 import { mots } from "../lib/vocabulaire";
 

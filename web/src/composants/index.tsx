@@ -1,6 +1,6 @@
 // Primitives de replica/design/components.md, en React. Les classes viennent de composants.css.
 import { useId, type ReactNode } from "react";
-import { COUPURES, entier, lireMontant, montant, montantEnLettres, totalComptage, type Comptage, type Devise } from "../lib/montant";
+import { COUPURES, entier, lireMontant, montant, montantEnLettres, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 
 export function Puce({ etat, children }: { etat?: "ouverte" | "en_cloture" | "fermee"; children: ReactNode }) {
   return <span className="puce" data-etat={etat}>{children}</span>;

@@ -9,120 +9,49 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@400;600&family=Atkinson+Hyperlegible+Next:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../../replica/design/tokens.css">
+<link rel="stylesheet" href="../../../replica/design/composants.css">
 <style>
-/* Même guichet : le membre et son prêt, ce qui est dû et comment le paiement se répartit, l'argent reçu. */
-* { box-sizing: border-box; }
+/* Styles communs : replica/design/tokens.css et composants.css. Ici, seulement ce qui est propre à cet écran. */
 html { height: 100%; }
-html, body { margin: 0; }
-body {
-  background: var(--papier); color: var(--encre);
-  font: var(--taille-courant)/1.4 var(--police-texte);
-  min-height: 100%;
-  display: grid; grid-template-rows: auto 1fr auto;
-}
-.num { font-family: var(--police-chiffres); font-variant-numeric: tabular-nums; }
-:focus-visible { outline: 2px solid var(--tampon); outline-offset: 2px; }
-[hidden] { display: none !important; }
-.discret { color: var(--encre-2); font-size: var(--taille-dense); }
-.erreur { color: var(--alerte); font-size: var(--taille-dense); font-weight: 600; margin: var(--espace-1) 0 0; }
+body { min-height: 100%; display: grid; grid-template-rows: auto 1fr auto; grid-template-columns: minmax(0, 1fr); line-height: 1.4; }
+h2 { font-size: var(--taille-courant); font-weight: 700; margin: 0 0 var(--espace-2); }
 .erreur:empty { display: none; }
-
-details.textes { margin-top: var(--espace-1); font-size: var(--taille-dense); color: var(--encre-2); }
-details.textes summary { cursor: pointer; width: max-content; text-decoration: underline dotted; text-underline-offset: 3px; }
 details.textes p { margin: var(--espace-1) 0 0; }
+fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+legend { font-weight: 600; font-size: var(--taille-courant); margin-bottom: var(--espace-1); padding: 0; }
+.discret { color: var(--encre-2); font-size: var(--taille-dense); }
 
-/* Bandeau */
-.bandeau {
-  display: flex; align-items: center; gap: var(--espace-6);
-  padding-block: var(--espace-2);
-  padding-left: max(var(--espace-5), env(safe-area-inset-left, 0px));
-  padding-right: max(var(--espace-5), env(safe-area-inset-right, 0px));
-  background: var(--feuille); border-bottom: 1px solid var(--trait);
-}
-.bandeau .inst { font-weight: 700; }
-.bandeau .inst span { font-weight: 400; color: var(--encre-2); }
-.journee { display: flex; align-items: center; gap: var(--espace-2); }
-.etat { display: inline-flex; align-items: center; gap: var(--espace-1); padding: 2px var(--espace-2); border-radius: var(--rayon-bloc); background: var(--sain-pale); color: var(--sain-texte); font-weight: 600; font-size: var(--taille-dense); }
-.etat::before { content: ""; width: 8px; height: 8px; border-radius: var(--rayon-rond); background: var(--sain); }
-.bandeau .poste { margin-left: auto; color: var(--encre-2); }
-.bandeau .poste strong { color: var(--encre); font-weight: 600; }
-
-/* Grille */
+/* Grille du guichet */
 .guichet {
-  display: grid; grid-template-columns: 270px minmax(0, 1fr) 300px; gap: var(--espace-3);
-  padding-block: var(--espace-3);
-  padding-left: max(var(--espace-4), env(safe-area-inset-left, 0px));
-  padding-right: max(var(--espace-4), env(safe-area-inset-right, 0px));
+  display: grid; grid-template-columns: var(--mise-guichet-gauche) minmax(0, 1fr) var(--mise-guichet-droite); gap: var(--mise-guichet-gouttiere);
+  padding: var(--espace-3) max(var(--espace-4), env(safe-area-inset-right, 0px)) var(--espace-3) max(var(--espace-4), env(safe-area-inset-left, 0px));
   align-items: start;
 }
-.bloc { background: var(--feuille); border: 1px solid var(--trait); border-radius: var(--rayon-bloc); padding: var(--espace-3) var(--espace-4); }
 .bloc + .bloc { margin-top: var(--espace-3); }
 .guichet > section, .bordereau > * { min-width: 0; }
-h2 { font-size: var(--taille-courant); font-weight: 700; margin: 0 0 var(--espace-2); }
+.onglets { margin-bottom: var(--espace-2); }
 
 /* Personne */
 .recherche { display: flex; gap: var(--espace-2); align-items: center; margin-bottom: var(--espace-3); }
-.recherche input { flex: 1; min-width: 0; font: var(--taille-courant) var(--police-chiffres); padding: var(--espace-1) var(--espace-2); border: 1px solid var(--trait-saisie); border-radius: var(--rayon-champ); background: var(--papier); color: var(--encre); }
-.touche { font-family: var(--police-chiffres); font-size: var(--taille-dense); border: 1px solid var(--trait-saisie); border-bottom-width: 2px; border-radius: var(--rayon-champ); padding: 1px var(--espace-1); background: var(--feuille); color: var(--encre-2); }
-.identite { display: grid; grid-template-columns: 64px 1fr; gap: var(--espace-3); align-items: start; }
-.photo { width: 64px; height: 78px; border-radius: var(--rayon-champ); display: block; }
+.recherche .saisie { flex: 1; }
 .photo .fond { fill: var(--photo-fond); }
 .photo .figure { fill: var(--photo-figure); }
 .role { font-size: var(--taille-dense); color: var(--encre-2); margin: 0; }
-.nom { font-size: var(--taille-titre); font-weight: 700; line-height: 1.2; margin: 2px 0 var(--espace-1); }
 .identite p { margin: 0; font-size: var(--taille-dense); color: var(--encre-2); }
 
-.credit .ligne { display: flex; justify-content: space-between; align-items: center; gap: var(--espace-2); margin-bottom: var(--espace-1); }
-.statut { display: inline-flex; align-items: center; gap: var(--espace-1); font-size: var(--taille-dense); font-weight: 600; color: var(--r1-texte); background: var(--r1-pale); padding: 2px var(--espace-2); border-radius: var(--rayon-bloc); white-space: nowrap; }
-.statut::before { content: ""; width: 8px; height: 8px; border-radius: var(--rayon-rond); background: var(--r1); }
-.credit p { margin: 0; font-size: var(--taille-courant); }
-.credit .action { margin-top: var(--espace-2); display: flex; justify-content: space-between; align-items: center; gap: var(--espace-2); font-size: var(--taille-dense); }
-
 /* Bordereau */
-.onglets { display: flex; flex-wrap: wrap; gap: 2px; margin-bottom: -1px; position: relative; }
-.onglets a, .onglets span { font-size: var(--taille-courant); padding: var(--espace-2) var(--espace-3); border: 1px solid var(--trait); border-bottom: none; border-radius: var(--rayon-bloc) var(--rayon-bloc) 0 0; background: var(--papier); color: var(--encre-2); text-decoration: none; }
-.onglets a:hover { color: var(--encre); }
-.onglets [aria-current="page"] { background: var(--feuille); color: var(--encre); font-weight: 700; }
-.bordereau { border-top-left-radius: 0; padding: var(--espace-3) var(--espace-5); display: grid; gap: var(--espace-3); }
-.entete-b { display: flex; justify-content: space-between; align-items: center; }
+.bordereau { padding: var(--espace-3) var(--espace-5); display: grid; gap: var(--espace-3); }
+.entete-b { display: flex; justify-content: space-between; align-items: center; gap: var(--espace-2); }
 .entete-b h2 { font-size: var(--taille-titre); margin: 0; }
-.gratuit { font-size: var(--taille-dense); font-weight: 600; color: var(--sain-texte); background: var(--sain-pale); border-radius: var(--rayon-bloc); padding: 2px var(--espace-2); }
-
-fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
-legend { font-weight: 600; font-size: var(--taille-courant); margin-bottom: var(--espace-1); padding: 0; }
-.comptes { display: grid; gap: var(--espace-1); }
-.compte { display: grid; grid-template-columns: 20px 1fr auto; gap: var(--espace-2); align-items: center; border: 1px solid var(--trait); border-radius: var(--rayon-champ); padding: var(--espace-2) var(--espace-2); cursor: pointer; }
-.compte:has(input:checked) { border-color: var(--tampon); background: var(--tampon-pale); }
-.compte input { margin: 0; accent-color: var(--tampon); }
-.compte .libelle { font-weight: 600; }
-.compte .libelle small { display: block; font-weight: 400; font-size: var(--taille-dense); color: var(--encre-2); }
-.compte .solde { text-align: right; }
-
-.montant { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: var(--espace-4); }
-.champ-montant { display: flex; align-items: baseline; border-bottom: 2px solid var(--encre); }
-.champ-montant input { font: 600 var(--taille-montant)/1.1 var(--police-chiffres); text-align: right; border: 0; background: transparent; color: var(--encre); width: 100%; min-width: 0; padding: var(--espace-1) var(--espace-2) 2px 0; }
-.champ-montant input:focus-visible { outline: none; }
-.champ-montant:focus-within { border-bottom-color: var(--tampon); box-shadow: 0 2px 0 var(--tampon); }
-.devise { font: 600 var(--taille-titre) var(--police-chiffres); color: var(--encre-2); }
 .apres { text-align: right; font-size: var(--taille-dense); color: var(--encre-2); }
 .apres strong { display: block; font: 600 var(--taille-titre) var(--police-chiffres); color: var(--encre); }
-.lettres { margin: var(--espace-2) 0 0; min-height: 22px; padding-bottom: var(--espace-1); border-bottom: 1px dotted var(--encre-2); }
-.lettres::first-letter { text-transform: uppercase; }
-
-.deux { display: grid; grid-template-columns: 1fr 1fr; gap: var(--espace-4); }
 .choix label, .verif label { display: flex; gap: var(--espace-2); align-items: center; padding: var(--espace-1) 0; cursor: pointer; }
 .choix input, .verif input { accent-color: var(--tampon); }
-.verif .note-carnet { font-size: var(--taille-dense); color: var(--encre-2); margin: 0 0 0 var(--espace-6); }
-
-.tiers { display: grid; grid-template-columns: 1fr 1fr; gap: var(--espace-2) var(--espace-3); padding: var(--espace-2) var(--espace-3); background: var(--tampon-pale); border-radius: var(--rayon-champ); }
-.tiers label { display: grid; gap: var(--espace-1); font-size: var(--taille-dense); font-weight: 600; }
-.tiers input { font: var(--taille-courant) var(--police-texte); padding: var(--espace-1) var(--espace-2); border: 1px solid var(--trait-saisie); border-radius: var(--rayon-champ); background: var(--feuille); color: var(--encre); min-width: 0; }
-.tiers .plein { grid-column: 1 / -1; }
 
 /* Examen renforcé */
-.renforce { border-left: 4px solid var(--alerte); background: var(--alerte-pale); padding: var(--espace-3) var(--espace-3); border-radius: var(--rayon-champ); display: grid; gap: var(--espace-2); }
+.renforce { border-left: 4px solid var(--alerte); background: var(--alerte-pale); padding: var(--espace-3); border-radius: var(--rayon-champ); display: grid; gap: var(--espace-2); }
 .renforce .titre { display: flex; justify-content: space-between; gap: var(--espace-2); font-weight: 700; color: var(--alerte); }
-.renforce textarea { font: inherit; width: 100%; min-height: 48px; padding: var(--espace-1) var(--espace-2); border: 1px solid var(--trait-saisie); border-radius: var(--rayon-champ); background: var(--feuille); color: var(--encre); resize: vertical; }
+.renforce textarea { width: 100%; min-height: 48px; resize: vertical; }
 .renforce label { display: flex; gap: var(--espace-2); align-items: center; }
 .renforce label.champ { display: grid; gap: var(--espace-1); }
 .renforce input { accent-color: var(--tampon); }
@@ -130,32 +59,11 @@ legend { font-weight: 600; font-size: var(--taille-courant); margin-bottom: var(
 
 /* Pied du bordereau */
 .cloture { display: flex; align-items: center; justify-content: space-between; gap: var(--espace-4); border-top: 1px solid var(--trait); padding-top: var(--espace-3); }
-.etapes { display: flex; flex-wrap: wrap; gap: var(--espace-1); margin: 0; padding: 0; list-style: none; }
-.etapes li { font-size: var(--taille-dense); padding: var(--espace-1) var(--espace-2); border-radius: var(--rayon-bloc); border: 1px solid var(--trait-saisie); color: var(--encre-2); }
-.etapes li.ok { border-color: var(--sain); color: var(--sain-texte); background: var(--sain-pale); }
-.etapes li.ok::before { content: "✓ "; }
-.etapes li.ko { border-color: var(--alerte); color: var(--alerte); background: var(--alerte-pale); }
-.bouton { font: 700 var(--taille-courant) var(--police-texte); cursor: pointer; white-space: nowrap; background: var(--tampon); color: var(--sur-tampon); border: 0; border-radius: var(--rayon-bloc); padding: var(--espace-3) var(--espace-4); }
-.bouton:disabled { background: var(--inactif); color: var(--sur-inactif); cursor: not-allowed; }
-.bouton .touche { background: transparent; color: inherit; border-color: currentColor; margin-left: var(--espace-1); }
-.secondaire { font: inherit; font-size: var(--taille-courant); cursor: pointer; white-space: nowrap; background: var(--feuille); color: var(--tampon); border: 1px solid var(--tampon); border-radius: var(--rayon-bloc); padding: var(--espace-2) var(--espace-3); }
-.secondaire:disabled { color: var(--encre-2); border-color: var(--trait); cursor: not-allowed; }
 
-/* Billetage et visa */
-.billetage table { width: 100%; border-collapse: collapse; }
-.billetage th { font-size: var(--taille-dense); font-weight: 600; color: var(--encre-2); text-align: right; padding: 0 var(--espace-1) var(--espace-1); white-space: nowrap; }
-.billetage th:first-child { text-align: left; }
-.billetage td { padding: 2px var(--espace-1); text-align: right; border-top: 1px solid var(--ligne); white-space: nowrap; }
-.billetage td:first-child { text-align: left; font-weight: 600; }
-.billetage input { width: 52px; font: 600 var(--taille-courant) var(--police-chiffres); text-align: right; border: 1px solid var(--trait-saisie); border-radius: var(--rayon-champ); padding: var(--espace-1) var(--espace-1); background: var(--feuille); color: var(--encre); }
-.billetage tfoot td { border-top: 2px solid var(--encre); font-weight: 700; padding-top: var(--espace-1); }
-.ecart { margin: var(--espace-2) 0 0; font-size: var(--taille-dense); font-weight: 600; }
-.ecart.ok { color: var(--sain-texte); }
-.ecart.ko { color: var(--alerte); }
-.billetage .bas { display: flex; justify-content: space-between; align-items: center; gap: var(--espace-2); margin-top: var(--espace-2); font-size: var(--taille-dense); color: var(--encre-2); }
-.billetage label { display: flex; gap: var(--espace-2); align-items: center; margin-top: var(--espace-2); font-size: var(--taille-courant); }
-.billetage label input { width: auto; accent-color: var(--tampon); }
+/* Billetage : le tableau vient des composants */
+#billets .case { margin-top: var(--espace-2); }
 
+/* Visa */
 .visa { display: grid; gap: var(--espace-1); }
 .visa .tete { display: flex; justify-content: space-between; align-items: baseline; font-weight: 600; }
 .visa .etat-v { font-size: var(--taille-dense); font-weight: 600; color: var(--r1-texte); }
@@ -170,88 +78,51 @@ legend { font-weight: 600; font-size: var(--taille-courant); margin-bottom: var(
 .actions { display: flex; flex-wrap: wrap; gap: var(--espace-2); align-items: center; }
 .interne { border-left: 4px solid var(--alerte); background: var(--alerte-pale); padding: var(--espace-2) var(--espace-3); font-size: var(--taille-dense); border-radius: var(--rayon-champ); margin: 0; }
 details.voir { border-top: 1px solid var(--trait); padding-top: var(--espace-2); }
-details.voir summary { cursor: pointer; font-weight: 600; font-size: var(--taille-courant); }
+details.voir summary { cursor: pointer; font-weight: 600; }
 .table-defil { overflow-x: auto; }
-.ecriture { width: 100%; border-collapse: collapse; font-size: var(--taille-courant); margin-top: var(--espace-2); }
-.ecriture th { text-align: left; font-weight: 600; color: var(--encre-2); font-size: var(--taille-dense); border-bottom: 1px solid var(--trait); padding: var(--espace-1) var(--espace-1); }
+.ecriture { width: 100%; border-collapse: collapse; margin-top: var(--espace-2); }
+.ecriture th { text-align: left; font-weight: 600; color: var(--encre-2); font-size: var(--taille-dense); border-bottom: 1px solid var(--trait); padding: var(--espace-1); }
 .ecriture td { padding: var(--espace-1); border-bottom: 1px solid var(--trait); white-space: nowrap; }
 .ecriture .m { text-align: right; }
-.papier { border: 1px dashed var(--encre-2); border-radius: var(--rayon-champ); padding: var(--espace-3) var(--espace-3); margin-top: var(--espace-2); background: var(--specimen); font-size: var(--taille-dense); }
+.papier { margin-top: var(--espace-2); }
 .papier .titre { display: flex; justify-content: space-between; gap: var(--espace-2); font-weight: 700; border-bottom: 1px solid var(--trait); padding-bottom: var(--espace-1); margin-bottom: var(--espace-1); }
-.papier dl { display: grid; grid-template-columns: 130px 1fr; gap: 2px var(--espace-2); margin: 0; }
-.papier dt { color: var(--encre-2); }
-.papier dd { margin: 0; }
 .signatures { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--espace-2); margin-top: var(--espace-3); }
 .signatures div { border-top: 1px solid var(--encre-2); padding-top: var(--espace-1); font-size: var(--taille-dense); color: var(--encre-2); }
 .papier .pied { margin: var(--espace-2) 0 0; font-size: var(--taille-dense); color: var(--encre-2); border-top: 1px solid var(--trait); padding-top: var(--espace-1); }
 
 /* Barre des touches */
-.touches {
-  display: flex; flex-wrap: wrap; gap: var(--espace-1) var(--espace-5); align-items: center;
-  padding-block: var(--espace-2);
-  padding-left: max(var(--espace-5), env(safe-area-inset-left, 0px));
-  padding-right: max(var(--espace-5), env(safe-area-inset-right, 0px));
-  background: var(--feuille); border-top: 1px solid var(--trait); font-size: var(--taille-dense); color: var(--encre-2);
-}
 .touches b { color: var(--encre); font-weight: 600; }
-.note { margin-left: auto; font-style: italic; }
+.touches .note { margin-left: auto; font-style: italic; color: var(--encre-2); white-space: normal; min-width: 0; }
 
 /* Remboursement */
-.du { width: 100%; border-collapse: collapse; font-size: var(--taille-courant); }
-.du th { text-align: left; font-size: var(--taille-dense); font-weight: 600; color: var(--encre-2); padding: 0 var(--espace-1) var(--espace-1) 0; }
-.du td { padding: var(--espace-1) var(--espace-1) var(--espace-1) 0; border-top: 1px solid var(--ligne); }
-.du .m { text-align: right; }
-.du tfoot td { border-top: 2px solid var(--encre); font-weight: 700; }
-.du .regle { color: var(--sain-texte); }
-.du .reste { color: var(--alerte); }
-.apres-pret { display: flex; align-items: center; gap: var(--espace-2); flex-wrap: wrap; font-size: var(--taille-courant); }
-.fleche { color: var(--encre-2); }
-.sain-chip { display: inline-flex; align-items: center; gap: var(--espace-1); font-size: var(--taille-dense); font-weight: 600; color: var(--sain-texte); background: var(--sain-pale); padding: 2px var(--espace-2); border-radius: var(--rayon-bloc); }
-.sain-chip::before { content: ""; width: 8px; height: 8px; border-radius: var(--rayon-rond); background: var(--sain); }
-.surplus { display: grid; gap: var(--espace-1); padding: var(--espace-2) var(--espace-3); background: var(--tampon-pale); border-radius: var(--rayon-champ); }
-.surplus label { display: flex; gap: var(--espace-2); align-items: center; }
-.surplus input { accent-color: var(--tampon); }
-.source-compte { font-size: var(--taille-courant); display: grid; gap: var(--espace-1); }
-.source-compte .ligne { display: flex; justify-content: space-between; }
-.echeancier { width: 100%; border-collapse: collapse; font-size: var(--taille-dense); margin-top: var(--espace-2); }
-.echeancier th { text-align: left; font-size: var(--taille-dense); color: var(--encre-2); font-weight: 600; padding: var(--espace-1) var(--espace-1); border-bottom: 1px solid var(--trait); }
-.echeancier td { padding: var(--espace-1) var(--espace-1); border-bottom: 1px solid var(--ligne); white-space: nowrap; }
-.echeancier .m { text-align: right; }
-
-.repartition { display: grid; grid-template-columns: 1fr 1fr; gap: var(--espace-1) var(--espace-4); }
-.repartition label { display: grid; grid-template-columns: 1fr 9ch; align-items: center; gap: var(--espace-2); font-size: var(--taille-courant); }
-.repartition input { font: 600 var(--taille-courant) var(--police-chiffres); text-align: right; width: 100%; padding: var(--espace-1) var(--espace-1); border: 1px solid var(--trait-saisie); border-radius: var(--rayon-champ); background: var(--papier); color: var(--encre); }
-.repartition input:not([readonly]) { background: var(--feuille); border-color: var(--tampon); }
-.detail { display: grid; grid-template-columns: 1fr auto; gap: 2px var(--espace-3); font-size: var(--taille-dense); margin: 0; }
-.detail dt { color: var(--encre-2); }
-.detail dd { margin: 0; text-align: right; font-family: var(--police-chiffres); }
+.montant { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: var(--espace-4); }
+.infos, .detail { display: grid; grid-template-columns: 1fr auto; gap: 2px var(--espace-3); font-size: var(--taille-dense); margin: 0; }
+.infos dt, .detail dt { color: var(--encre-2); }
+.infos dd, .detail dd { margin: 0; text-align: right; }
+.detail dd { font-family: var(--police-chiffres); }
 .detail .total { color: var(--alerte); font-weight: 700; }
-.infos { display: grid; grid-template-columns: 1fr auto; gap: 2px var(--espace-3); font-size: var(--taille-dense); margin: 0; }
-.infos dt { color: var(--encre-2); }
-.infos dd { margin: 0; text-align: right; }
+.echeancier { width: 100%; border-collapse: collapse; font-size: var(--taille-dense); margin-top: var(--espace-2); }
+.echeancier th { text-align: left; color: var(--encre-2); font-weight: 600; padding: var(--espace-1); border-bottom: 1px solid var(--trait); }
+.echeancier td { padding: var(--espace-1); border-bottom: 1px solid var(--ligne); white-space: nowrap; }
+.echeancier .m { text-align: right; }
+.repartition { display: grid; grid-template-columns: 1fr 1fr; gap: var(--espace-1) var(--espace-4); }
+.repartition label { display: grid; grid-template-columns: 1fr 9ch; align-items: center; gap: var(--espace-2); }
+.repartition input { font: 600 var(--taille-courant) var(--police-chiffres); text-align: right; width: 100%; padding: var(--espace-1); border: 1px solid var(--trait-saisie); border-radius: var(--rayon-champ); background: var(--papier); color: var(--encre); }
+.repartition input:not([readonly]) { background: var(--feuille); border-color: var(--tampon); }
 
 @media (max-width: 1100px) {
-  .montant { grid-template-columns: minmax(0, 1fr); }
+  .guichet, .montant, .repartition, .resume, .papier dl, .signatures { grid-template-columns: minmax(0, 1fr); }
   .apres { text-align: left; }
-  .repartition { grid-template-columns: minmax(0, 1fr); }
-  .guichet { grid-template-columns: minmax(0, 1fr); }
-  .bandeau { flex-wrap: wrap; gap: var(--espace-2) var(--espace-4); padding-left: max(var(--espace-4), env(safe-area-inset-left, 0px)); padding-right: max(var(--espace-4), env(safe-area-inset-right, 0px)); }
-  .bandeau .poste { margin-left: 0; }
-  .touches { padding-left: max(var(--espace-4), env(safe-area-inset-left, 0px)); padding-right: max(var(--espace-4), env(safe-area-inset-right, 0px)); }
-  .note { margin-left: 0; }
-  .deux, .tiers { grid-template-columns: 1fr; }
+  .touches .note { margin-left: 0; }
   .cloture { flex-direction: column; align-items: stretch; }
-  .resume { grid-template-columns: 1fr; }
-  .papier dl, .signatures { grid-template-columns: 1fr; }
 }
 </style>
 </head>
 <body>
 
-<header class="bandeau">
-  <div class="inst">COOPEC Tujenge <span>agence Matete</span></div>
-  <div class="journee">Jeudi 5 novembre 2026 <span class="etat">journée ouverte</span></div>
-  <div class="poste">Caisse 2, <strong>Esther Ngalula</strong></div>
+<header class="poste">
+  <span class="institution">COOPEC Tujenge</span><span class="lieu">Agence de Matete</span>
+  <span class="droite"><span class="puce" data-etat="ouverte">Journée ouverte · <span class="chiffres">05/11/2026</span></span><span>Caisse 2</span><span class="muet">Esther Ngalula</span></span>
 </header>
 
 <main class="guichet">
@@ -261,7 +132,7 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: var(--taill
     <div class="bloc">
       <div class="recherche">
         <label for="q" class="discret">Client</label>
-        <input id="q" value="0412-000318" autocomplete="off">
+        <input id="q" class="saisie" value="0412-000318" autocomplete="off">
         <span class="touche">F2</span>
       </div>
       <div class="identite">
@@ -286,7 +157,7 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: var(--taill
         <dt>Montant du prêt</dt><dd class="num">1 500,00 USD</dd>
         <dt>Capital restant</dt><dd class="num">1 240,00 USD</dd>
         <dt>Reste à payer</dt><dd class="num" id="reste-payer"></dd>
-        <dt>Degré</dt><dd><span class="statut">1 à 30 jours</span></dd>
+        <dt>Degré</dt><dd><span class="puce" data-tranche="1">1 à 30 jours</span></dd>
         <dt>Jours de retard</dt><dd class="num">12</dd>
       </dl>
       <details class="textes"><summary>Textes</summary><p>Degrés selon les tranches de retard de l'Instr. BCC 003, art. 12, et non ceux du modèle de produit de Microfina++.</p></details>
@@ -309,8 +180,6 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: var(--taill
   <!-- Le bordereau -->
   <section aria-labelledby="t-bordereau">
     <nav class="onglets" aria-label="Opération">
-      <a href="guichet-depot.html" id="lien-depot">Dépôt</a>
-      <a href="guichet-retrait.html" id="lien-retrait">Retrait</a>
       <span aria-current="page">Remboursement</span>
       <a href="guichet-parts.html">Parts sociales</a>
     </nav>
@@ -324,7 +193,7 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: var(--taill
       <fieldset>
         <legend><label for="montant">Montant à payer</label></legend>
         <div class="montant">
-          <div class="champ-montant">
+          <div class="montant-champ">
             <input id="montant" class="num" inputmode="decimal" value="113,00" autocomplete="off" aria-describedby="lettres err-montant">
             <span class="devise">USD</span>
           </div>
@@ -340,7 +209,7 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: var(--taill
         <p class="erreur" id="err-repartition"></p>
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px">
           <span class="discret" id="ordre"></span>
-          <button class="secondaire" id="modifier">Modifier</button>
+          <button class="bouton secondaire" id="modifier">Modifier</button>
         </div>
         <details class="textes"><summary>Textes</summary>
           <p>Répartition proposée selon l'ordre de remboursement du produit, paramétré par la COOPEC (Microfina++, Paramétrage, ordre de remboursement). Le créancier peut faire passer le capital avant les intérêts (Code civil livre III, art. 152). La quittance qui porte la répartition l'arrête (art. 153).</p>
@@ -350,13 +219,13 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: var(--taill
 
       <fieldset>
         <legend><label for="mandataire">Mandataire</label></legend>
-        <input id="mandataire" class="champ-texte" value="" placeholder="L'emprunteuse elle-même" autocomplete="off" style="font:inherit;width:100%;padding:6px 8px;border:1px solid var(--trait);border-radius:2px;background:var(--feuille);color:var(--encre)">
+        <input id="mandataire" class="saisie" value="" placeholder="L'emprunteuse elle-même" autocomplete="off">
       </fieldset>
 
       <section class="renforce" id="renforce" hidden aria-labelledby="t-renforce">
         <div class="titre"><span id="t-renforce">Examen renforcé</span><span class="num" id="renforce-cumul"></span></div>
         <label class="champ" for="r-origine">Origine des fonds, selon la personne qui paie
-          <textarea id="r-origine"></textarea>
+          <textarea id="r-origine" class="saisie"></textarea>
         </label>
         <label><input type="checkbox" id="r-justificatif"> Justificatif vu</label>
         <p class="confidentiel">Confidentiel : ne rien dire au client.</p>
@@ -365,7 +234,7 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: var(--taill
 
       <div class="cloture">
         <ul class="etapes" id="etapes" aria-label="Contrôles"></ul>
-        <button class="bouton" id="valider" disabled>Enregistrer <span class="touche">F9</span></button>
+        <button class="bouton grand" id="valider" disabled aria-keyshortcuts="F9">Enregistrer <span class="touche">F9</span></button>
       </div>
     </div>
 
@@ -390,21 +259,21 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: var(--taill
         </div>
         <p class="discret" id="r-note"></p>
       </details>
-      <div><button class="secondaire" id="nouvelle">Opération suivante <span class="touche">Entrée</span></button></div>
+      <div><button class="bouton secondaire" id="nouvelle">Opération suivante <span class="touche">Entrée</span></button></div>
     </div>
   </section>
 
   <!-- L'argent reçu et le détail du crédit -->
   <section aria-labelledby="t-billetage">
-    <div class="bloc billetage" id="bloc-billets">
+    <div class="bloc" id="billets">
       <h2 id="t-billetage">Billets reçus</h2>
-      <table>
+      <table class="billetage">
         <thead><tr><th>Coupure</th><th>Nombre</th><th>Montant</th></tr></thead>
         <tbody id="b-lignes"></tbody>
         <tfoot><tr><td>Total</td><td></td><td class="num" id="b-total">0</td></tr></tfoot>
       </table>
       <p class="ecart" id="b-ecart" aria-live="polite"></p>
-      <label><input type="checkbox" id="v-compte"> Comptés devant la personne</label>
+      <label class="case"><input type="checkbox" id="v-compte"> Comptés devant la personne</label>
     </div>
 
     <div class="bloc">
@@ -417,7 +286,7 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: var(--taill
       <div class="visa" id="v-conf">
         <div class="tete"><span>Conformité</span><span class="etat-v" id="v-conf-etat"></span></div>
         <p id="v-conf-detail"></p>
-        <button class="secondaire" id="v-conf-btn">Transmettre</button>
+        <button class="bouton secondaire" id="v-conf-btn">Transmettre</button>
       </div>
     </div>
   </section>
@@ -430,7 +299,11 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: var(--taill
   <span class="note">Maquette sur le modèle de Microfina++, données fictives. Essayez 50, ou Modifier.</span>
 </footer>
 
-<script>
+<script type="module">
+// Montants : copie unique du projet (replica/design/montant.js)
+import { COUPURES as TOUTES_COUPURES, decimal, entier, lireMontant, montant, montantEnLettres as enToutesLettres } from "../../../replica/design/montant.js";
+const montantEnLettres = (c) => enToutesLettres(c, "USD");
+
 // ---------- Données fictives ----------
 // Postes de la répartition, comme dans Microfina++ (manuel, p. 88). Montants en retard sur l'échéance du 24/10/2026.
 // Épargne et fonds de solidarité : 0 pour ce produit. Pénalité : 0,50 USD, EXEMPLE (taux fixé par le contrat).
@@ -451,56 +324,14 @@ const COURS = 2850;
 const SEUIL_ESPECES_USD = 10000;
 const ESPECES_DU_JOUR_USD = 0;
 const CONFORMITE = "G. Ilunga";
-const COUPURES = [100, 50, 20, 10, 5, 1];
+const COUPURES = TOUTES_COUPURES.USD;
 
 const $ = (id) => document.getElementById(id);
-const fmt = new Intl.NumberFormat("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const entier = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });
-const money = (c, d = "USD") => fmt.format(c / 100) + " " + d;
+const money = (c, d = "USD") => montant(c, d);
 const heure = () => new Date().toTimeString().slice(0, 5);
 const TOTAL_DU = Object.values(POSTES).reduce((s, p) => s + p.du, 0);
 
-function lireMontant(txt) {
-  const t = String(txt).replace(/[\s  ]/g, "").replace(",", ".");
-  if (!/^\d+(\.\d{0,2})?$/.test(t)) return null;
-  const [e, d = ""] = t.split(".");
-  return Number(e) * 100 + Number((d + "00").slice(0, 2));
-}
 
-// ---------- Nombres en lettres ----------
-const U = ["zéro","un","deux","trois","quatre","cinq","six","sept","huit","neuf","dix","onze","douze","treize","quatorze","quinze","seize"];
-const D = { 2: "vingt", 3: "trente", 4: "quarante", 5: "cinquante", 6: "soixante" };
-function sous100(n) {
-  if (n <= 16) return U[n];
-  if (n < 20) return "dix-" + U[n - 10];
-  const t = Math.floor(n / 10), u = n % 10;
-  if (t === 7) return u === 1 ? "soixante et onze" : "soixante-" + sous100(10 + u);
-  if (t === 8) return u === 0 ? "quatre-vingts" : "quatre-vingt-" + U[u];
-  if (t === 9) return "quatre-vingt-" + sous100(10 + u);
-  if (u === 0) return D[t];
-  return D[t] + (u === 1 ? " et un" : "-" + U[u]);
-}
-function sous1000(n, inv) {
-  const c = Math.floor(n / 100), r = n % 100;
-  let s = c === 1 ? "cent" : c > 1 ? U[c] + " cent" + (r === 0 && !inv ? "s" : "") : "";
-  if (r) { let w = sous100(r); if (inv && w.endsWith("quatre-vingts")) w = w.slice(0, -1); s += (s ? " " : "") + w; }
-  return s;
-}
-function enLettres(n) {
-  if (n === 0) return "zéro";
-  const g = Math.floor(n / 1e9), m = Math.floor(n / 1e6) % 1000, k = Math.floor(n / 1000) % 1000, r = n % 1000, p = [];
-  if (g) p.push(sous1000(g, false) + (g > 1 ? " milliards" : " milliard"));
-  if (m) p.push(sous1000(m, false) + (m > 1 ? " millions" : " million"));
-  if (k) p.push(k === 1 ? "mille" : sous1000(k, true) + " mille");
-  if (r) p.push(sous1000(r, false));
-  return p.join(" ");
-}
-function montantEnLettres(c) {
-  const e = Math.floor(c / 100), ct = c % 100;
-  let s = enLettres(e) + (e >= 1e6 && e % 1e6 === 0 ? " de " : " ") + (e > 1 ? "dollars américains" : "dollar américain");
-  if (ct) s += " et " + enLettres(ct) + (ct > 1 ? " cents" : " cent");
-  return s;
-}
 
 // ---------- État ----------
 let compteurs = {}, visaConf = null, modifie = false, saisie = {};
@@ -558,7 +389,7 @@ function rafraichir() {
   AFFICHAGE.forEach((k) => {
     const i = $("r-" + k);
     i.readOnly = !modifie || k === "tva";
-    if (!modifie) i.value = fmt.format(r[k] / 100);
+    if (!modifie) i.value = decimal.format(r[k] / 100);
   });
   const somme = AFFICHAGE.reduce((s, k) => s + (Number.isFinite(r[k]) ? r[k] : 0), 0);
   let errRep = "";
@@ -596,7 +427,7 @@ function rafraichir() {
   const usd = m ? m / 100 : 0;
   const besoinConf = ESPECES_DU_JOUR_USD + usd >= SEUIL_ESPECES_USD;
   $("renforce").hidden = !besoinConf;
-  $("renforce-cumul").textContent = besoinConf ? `${fmt.format(ESPECES_DU_JOUR_USD + usd)} USD aujourd'hui` : "";
+  $("renforce-cumul").textContent = besoinConf ? `${decimal.format(ESPECES_DU_JOUR_USD + usd)} USD aujourd'hui` : "";
   const renforceOk = $("r-origine").value.trim().length >= 10 && $("r-justificatif").checked;
   $("autorisations").hidden = !besoinConf;
   $("v-conf").classList.toggle("accorde", accorde(visaConf));
@@ -615,7 +446,7 @@ function rafraichir() {
 function basculerModification() {
   if (!modifie) {
     const r = proposer(lireMontant($("montant").value) || 0).r;
-    saisie = Object.fromEntries(AFFICHAGE.map((k) => [k, fmt.format(r[k] / 100)]));
+    saisie = Object.fromEntries(AFFICHAGE.map((k) => [k, decimal.format(r[k] / 100)]));
     AFFICHAGE.forEach((k) => { $("r-" + k).value = saisie[k]; });
     modifie = true;
   } else { modifie = false; saisie = {}; }
@@ -680,7 +511,7 @@ function reinitialiser() {
 ["montant", "v-compte", "r-origine", "r-justificatif"].forEach((id) => $(id).addEventListener("input", rafraichir));
 $("montant").addEventListener("blur", () => {
   const m = lireMontant($("montant").value);
-  if (m !== null && m > 0) { $("montant").value = fmt.format(m / 100); rafraichir(); }
+  if (m !== null && m > 0) { $("montant").value = decimal.format(m / 100); rafraichir(); }
 });
 $("modifier").addEventListener("click", basculerModification);
 $("valider").addEventListener("click", valider);

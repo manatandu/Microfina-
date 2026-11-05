@@ -1,4 +1,4 @@
-import type { Comptage, Devise } from "../lib/montant";
+import type { Comptage, Devise } from "@design/montant.js";
 
 export type Role = "caissier" | "chef_agence" | "agent_credit" | "comptable";
 

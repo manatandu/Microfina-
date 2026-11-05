@@ -6,7 +6,7 @@ import type { Operation, Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { useTouches } from "../lib/useTouches";
 import { nouvelleCle } from "../lib/cle";
-import { lireMontant, montant, totalComptage, type Comptage } from "../lib/montant";
+import { lireMontant, montant, totalComptage, type Comptage } from "@design/montant.js";
 import { Attention, Billetage, Bloquant, Chargement, ChampMontant, Etapes, Textes, Touche } from "../composants";
 import { mots } from "../lib/vocabulaire";
 import { OngletsGuichet, PanneauMembre, Recu } from "./Guichet";

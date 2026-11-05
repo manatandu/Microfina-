@@ -8,7 +8,7 @@ import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
   type Operation, type Role, type SessionCaisse, type Tiers, type Utilisateur,
 } from "./types";
-import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "../lib/montant";
+import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 
 // Seuils : valeurs des maquettes
 export const SEUIL_CAISSIER_USD = 1000;   // au-delà, visa du chef d'agence. Exemple : fixé par la COOPEC

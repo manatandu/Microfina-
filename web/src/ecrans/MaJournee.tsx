@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr, lendemain } from "../lib/dates";
-import { montant, totalComptage } from "../lib/montant";
+import { montant, totalComptage } from "@design/montant.js";
 import { Bloquant, Chargement, Champ, Textes, Touche } from "../composants";
 import { mots } from "../lib/vocabulaire";
 

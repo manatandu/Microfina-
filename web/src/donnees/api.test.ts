@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { api, _remplacer } from "./api";
 import { graine } from "./graine";
-import { totalComptage, type Comptage } from "../lib/montant";
+import { totalComptage, type Comptage } from "@design/montant.js";
 
 const connecter = (login: string) => api.session.ouvrir(login);
 let n = 0;

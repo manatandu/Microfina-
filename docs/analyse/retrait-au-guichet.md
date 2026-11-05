@@ -2,6 +2,8 @@
 
 Recherche du 05/11/2026. But : savoir si la maquette du guichet de retrait colle à la réalité avant d'aller plus loin.
 
+La maquette a été retirée le 05/11/2026 : le retrait est construit dans l'application (écran S74). Ce qui n'y est pas encore (mandataire, circuit d'examen renforcé, reçu 80 mm) est suivi dans `replica/build-log.md`.
+
 ---
 
 ## 1. Ce que dit le manuel Microfina++

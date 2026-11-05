@@ -225,13 +225,15 @@ Nom de cinq mots sur trois lignes, mandataire, absence de photo et de specimen �
 
 ---
 
-## 5. Maquettes alignées (05/11/2026)
+## 5. Une seule copie de chaque chose (05/11/2026)
 
-Les quatre maquettes de `docs/design/maquettes/` chargent `tokens.css`. Plus aucune couleur recopiée, toutes les tailles sur l'échelle 13, 15, 18, 24, 32, tous les espacements sur la grille de 4 (multiple le plus proche, vers le bas en cas d'égalité, pour tenir dans 768 px de haut ; les filets de 1 et 2 px restent). Textes de la rampe et bords des champs corrigés, toutes lettres jusqu'aux milliards, focus à 2 px, pastilles d'étapes au rayon de 4 px.
+- **Jetons** : `tokens.json` et `tokens-sombre.json`, écrits en CSS par `generer.py`.
+- **Composants** : `composants.css`. L'application, la planche et les deux maquettes restantes le chargent. Les onglets en liens et la majuscule du montant en lettres y sont passés depuis l'application.
+- **Montants** : `montant.js` (montant en lettres jusqu'aux milliards, lecture, affichage, coupures). Module JavaScript typé en JSDoc, vérifié par TypeScript en mode strict, testé dans `web/` (11 cas). L'application, la planche et les maquettes l'importent.
 
-Elles ne chargent pas `composants.css` : plusieurs classes y portent le même nom pour autre chose (`.discret` est un texte grisé dans les maquettes, un bouton dans les composants). Les écrans du logiciel, eux, partiront des composants.
+Les maquettes du dépôt et du retrait sont retirées : l'écran S74 de l'application les remplace. Celles du remboursement et des parts gardent environ 100 lignes de style chacune (contre 235 et 246 avant), seulement ce qui est propre à leur écran, et plus aucune règle morte. Vérifié en capture : 1366 × 768 clair et sombre, 390 px sans débord, parcours jusqu'à l'enregistrement.
 
-Vérifié en capture : les quatre écrans tiennent toujours dans 1366 × 768, clair et sombre. À 320 px, ils débordaient de 55 px avant l'alignement (onglets qui ne passaient pas à la ligne, répartition du remboursement, « Parts après ») ; plus de débord.
+Prix à payer : une page qui importe un module ne s'ouvre plus par un double-clic sur le fichier. Lien publié ou petit serveur local.
 
 ## 6. À décider
 

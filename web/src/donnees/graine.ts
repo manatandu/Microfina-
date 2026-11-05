@@ -1,5 +1,5 @@
 import type { Etat, Ligne } from "./types";
-import { totalComptage, type Comptage } from "../lib/montant";
+import { totalComptage, type Comptage } from "@design/montant.js";
 
 // Données fictives, reprises des maquettes. Aucune donnée d'une institution réelle (CLAUDE.md § 4).
 // Cours et valeur de la part : exemples, à remplacer par le cours du jour et les statuts.

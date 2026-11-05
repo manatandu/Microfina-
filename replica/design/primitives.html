@@ -224,7 +224,7 @@
 </form>
 
 <script type="module">
-import { montant, entier, lireMontant, montantEnLettres } from "./montant.js";
+import { COUPURES, montant, entier, lireMontant, montantEnLettres } from "./montant.js";
 
 // ---------- Jeux de données (fictifs) ----------
 function graine(n) { let s = n; return () => (s = (s * 1103515245 + 12345) % 2147483648) / 2147483648; }
@@ -239,10 +239,6 @@ function lignesGrille(n, r) {
       operation: OPS[Math.floor(r() * OPS.length)], montant: m || 100, devise: d, statut: Math.floor(r() * 6) };
   });
 }
-const COUPURES = {
-  USD: [100, 50, 20, 10, 5, 1],
-  CDF: [20000, 10000, 5000, 1000, 500, 200, 100, 50],
-};
 const JEUX = {
   demo: {
     poste: { institution: "COOPEC Tujenge", lieu: "Agence de Matete", journee: "05/11/2026", etat: "ouverte", caisse: "Caisse 2", agent: "M. Kabeya" },

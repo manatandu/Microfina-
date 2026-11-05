@@ -33,8 +33,6 @@ a { color: var(--tampon); }
 .choix { display: grid; gap: var(--espace-1); border: 0; margin: 0; padding: 0; min-width: 0; }
 .choix legend { font-size: var(--taille-dense); font-weight: 600; color: var(--encre-2); padding: 0; margin-bottom: var(--espace-1); }
 .resultat-ok { border-left: 4px solid var(--sain); background: var(--sain-pale); padding: var(--espace-2) var(--espace-3); border-radius: var(--rayon-champ); margin: 0; }
-.onglets a { text-decoration: none; display: inline-block; font-weight: 600; color: var(--encre-2); border-bottom: 2px solid transparent; margin-bottom: -1px; padding: var(--espace-2) var(--espace-3); }
-.onglets a[aria-current="page"] { color: var(--tampon); border-bottom-color: var(--tampon); }
 
 /* Connexion */
 .connexion { display: grid; place-items: start center; padding: var(--espace-8) var(--espace-4); }

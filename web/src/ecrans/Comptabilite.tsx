@@ -1,6 +1,6 @@
 import { api } from "../donnees/api";
 import { useDonnees } from "../lib/useDonnees";
-import { montant } from "../lib/montant";
+import { montant } from "@design/montant.js";
 import { Chargement, Textes } from "../composants";
 
 /** S121 : balance, lue directement dans le grand livre (ARCHITECTURE P1 : pas d'écart possible entre auxiliaire et général) */

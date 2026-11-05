@@ -69,7 +69,13 @@ body {
 }
 .onglets [role="tab"][aria-selected="true"] { color: var(--tampon); border-bottom-color: var(--tampon); }
 .onglets [role="tab"] .touche { margin-left: var(--espace-1); }
-@media (hover: hover) and (pointer: fine) { .onglets [role="tab"]:hover { color: var(--encre); } }
+/* Onglets en liens (guichet : une adresse par opération) */
+.onglets > a, .onglets > span {
+  font-weight: 600; color: var(--encre-2); text-decoration: none; white-space: nowrap;
+  border-bottom: 2px solid transparent; margin-bottom: -1px; padding: var(--espace-2) var(--espace-3);
+}
+.onglets > [aria-current="page"] { color: var(--tampon); border-bottom-color: var(--tampon); }
+@media (hover: hover) and (pointer: fine) { .onglets [role="tab"]:hover, .onglets > a:hover { color: var(--encre); } }
 
 .assistant { display: flex; flex-wrap: wrap; gap: var(--espace-2); list-style: none; margin: 0; padding: 0; counter-reset: etape; }
 .assistant li {
@@ -123,6 +129,7 @@ body {
   font-variant-numeric: tabular-nums; text-align: right; padding: var(--espace-1) 0;
 }
 .montant-champ .devise { font: 600 var(--taille-titre) var(--police-chiffres); color: var(--encre-2); flex-shrink: 0; }
+.lettres::first-letter { text-transform: uppercase; }
 .lettres {
   margin: var(--espace-2) 0 0; min-height: var(--interligne-courant);
   border-bottom: 1px dotted var(--encre-2); padding-bottom: var(--espace-1); font-style: italic;
