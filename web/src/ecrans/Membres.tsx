@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { api, type NouveauTiers } from "../donnees/api";
 import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Attention, Bloquant, Champ, Chargement, Textes } from "../composants";
+import { Attention, Bloquant, Champ, Chargement, Textes, ChampDate } from "../composants";
 import { mots } from "../lib/vocabulaire";
 import { AValider } from "./MaJournee";
 
@@ -39,18 +39,18 @@ export function Enrolement() {
           <Champ libelle="Post-nom">{(p) => <input {...p} className="saisie" autoComplete="off" {...champ("postnom")} />}</Champ>
           <Champ libelle="Prénom">{(p) => <input {...p} className="saisie" autoComplete="off" {...champ("prenom")} />}</Champ>
           <Champ libelle="Sexe">{(p) => <select {...p} className="saisie" {...champ("sexe")}><option value="">Non renseigné</option><option value="F">Femme</option><option value="M">Homme</option></select>}</Champ>
-          <Champ libelle="Date de naissance">{(p) => <input {...p} className="saisie num" type="date" {...champ("naissance")} />}</Champ>
+          <ChampDate libelle="Date de naissance" valeur={d.naissance} onChange={(v) => setD({ ...d, naissance: v })} />
         </fieldset>
         <fieldset className="formulaire choix">
           <legend>Pièce d'identité</legend>
           <Champ libelle="Type de pièce *">{(p) => <select {...p} className="saisie" required {...champ("pieceType")}><option value="">Choisir</option><option>Carte d'électeur</option><option>Passeport</option><option>Permis de conduire</option><option>Autre pièce officielle</option></select>}</Champ>
-          <Champ libelle="Numéro *">{(p) => <input {...p} className="saisie num" required autoComplete="off" {...champ("pieceNumero")} />}</Champ>
-          <Champ libelle="Expire le">{(p) => <input {...p} className="saisie num" type="date" {...champ("pieceExpire")} />}</Champ>
+          <Champ libelle="Numéro *">{(p) => <input {...p} className="saisie code" required autoComplete="off" {...champ("pieceNumero")} />}</Champ>
+          <ChampDate libelle="Expire le" valeur={d.pieceExpire} onChange={(v) => setD({ ...d, pieceExpire: v })} />
         </fieldset>
         <fieldset className="formulaire choix">
           <legend>Coordonnées</legend>
           <Champ libelle="Adresse">{(p) => <input {...p} className="saisie" autoComplete="off" {...champ("adresse")} />}</Champ>
-          <Champ libelle="Téléphone">{(p) => <input {...p} className="saisie num" inputMode="tel" autoComplete="off" {...champ("telephone")} />}</Champ>
+          <Champ libelle="Téléphone">{(p) => <input {...p} className="saisie code" inputMode="tel" autoComplete="off" {...champ("telephone")} />}</Champ>
         </fieldset>
         <label className="case"><input type="checkbox" checked={d.personneExposee} onChange={(e) => setD({ ...d, personneExposee: e.target.checked })} /><span>Personne politiquement exposée</span></label>
         <Bloquant>{erreur}</Bloquant>

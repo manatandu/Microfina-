@@ -66,7 +66,7 @@ export default function Adhesion() {
               {!tiers && <p className="muet">Chercher la personne enrôlée (<Link to={vers("S37")}>enrôler</Link> si elle n'existe pas encore).</p>}
               <div className="champ">
                 <label htmlFor="parts">Nombre de parts sociales</label>
-                <input id="parts" className="saisie num" inputMode="numeric" value={parts} onChange={(e) => setParts(e.target.value.replace(/\D/g, ""))} aria-describedby="aide-parts" />
+                <input id="parts" className="saisie num court" inputMode="numeric" value={parts} onChange={(e) => setParts(e.target.value.replace(/\D/g, ""))} aria-describedby="aide-parts" />
                 <p className="aide" id="aide-parts">× <span className="chiffres">{montant(valeurPart, "CDF")}</span> = <strong className="chiffres">{Number.isFinite(nParts) ? montant(nParts * valeurPart, "CDF") : ""}</strong>
                   <span className="exemple"> Valeur d'exemple (Microfina++), à remplacer par celle des statuts.</span></p>
               </div>
@@ -84,7 +84,7 @@ export default function Adhesion() {
         </section>
         <section className="bloc" aria-labelledby="t-bill-adh">
           <h2 id="t-bill-adh">Billets reçus CDF <Touche>F4</Touche></h2>
-          <Billetage devise="CDF" comptage={coupures} onChange={setCoupures} cible={total} sens="recue" idPremier="coupure-adhesion" />
+          <Billetage devise="CDF" comptage={coupures} onChange={setCoupures} cible={total} sens="recue" idPremier="coupure-adhesion" lectureSeule={!!resultat} />
         </section>
       </div>
     </>

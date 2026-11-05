@@ -5,7 +5,7 @@ import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr, lendemain } from "../lib/dates";
 import { montant, totalComptage } from "@design/montant.js";
-import { Bloquant, Chargement, Champ, Textes, Touche } from "../composants";
+import { Bloquant, Chargement, Textes, Touche, ChampDate } from "../composants";
 import { mots } from "../lib/vocabulaire";
 
 /** Accueil : ce que la personne connectée a à faire aujourd'hui. Porte S12 (journée) pour le chef d'agence. */
@@ -45,7 +45,7 @@ function Journee() {
     const j = await api.journees.courante();
     return { j, controles: j?.statut === "ouverte" ? await api.journees.controles(j.id) : [] };
   });
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState<string | null>(null);   // null : la date proposée
   const [erreur, setErreur] = useState("");
   if (!donnees) return <Chargement />;
   const { j, controles } = donnees;
@@ -55,11 +55,10 @@ function Journee() {
   if (!j || j.statut === "fermee") return (
     <section className="bloc pile" aria-labelledby="t-ouvrir">
       <h2 id="t-ouvrir">Ouvrir la journée</h2>
-      <Champ libelle="Date comptable" aide="La date des opérations vient d'ici, jamais de l'horloge du poste.">
-        {(p) => <input {...p} className="saisie num" type="date" value={date || proposee} onChange={(e) => setDate(e.target.value)} />}
-      </Champ>
+      <ChampDate libelle="Date comptable" valeur={date ?? proposee} onChange={setDate} aide="jj/mm/aaaa. La date des opérations vient d'ici, jamais de l'horloge du poste." />
       <Bloquant>{erreur}</Bloquant>
-      <div><button className="bouton" type="button" onClick={() => act(() => api.journees.ouvrir(date || proposee))}>Ouvrir la journée du {fr(date || proposee)}</button></div>
+      <div><button className="bouton" type="button" disabled={!(date ?? proposee)} onClick={() => act(() => api.journees.ouvrir(date ?? proposee))}>
+        {(date ?? proposee) ? `Ouvrir la journée du ${fr(date ?? proposee)}` : "Saisir une date complète"}</button></div>
       <Textes sources={["ARCHITECTURE § 6 : une seule journée ouverte par agence", "ARCHITECTURE P3 : trois dates, la date comptable vient de la journée"]} />
     </section>
   );

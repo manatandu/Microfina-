@@ -1,5 +1,5 @@
 // Primitives de replica/design/components.md, en React. Les classes viennent de composants.css.
-import { useId, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { COUPURES, entier, lireMontant, montant, montantEnLettres, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 
 export function Puce({ etat, children }: { etat?: "ouverte" | "en_cloture" | "fermee"; children: ReactNode }) {
@@ -62,9 +62,9 @@ export function ChampMontant({ valeur, onChange, devise, erreur, libelle = "Mont
 }
 
 /** Billetage : coupures, stock en caisse, nombre, montant, écart avec la cible */
-export function Billetage({ devise, comptage, onChange, stock, cible, sens = "remise", idPremier, libelleStock = "En caisse" }: {
+export function Billetage({ devise, comptage, onChange, stock, cible, sens = "remise", idPremier, libelleStock = "En caisse", lectureSeule = false }: {
   devise: Devise; comptage: Comptage; onChange: (c: Comptage) => void; stock?: Comptage; cible?: number | null;
-  sens?: "remise" | "recue" | "comptage"; idPremier?: string; libelleStock?: string;
+  sens?: "remise" | "recue" | "comptage"; idPremier?: string; libelleStock?: string; lectureSeule?: boolean;
 }) {
   const total = totalComptage(comptage);
   const trop = sens === "remise" && stock ? COUPURES[devise].some((v) => (comptage[v] ?? 0) > (stock[v] ?? 0)) : false;
@@ -83,7 +83,7 @@ export function Billetage({ devise, comptage, onChange, stock, cible, sens = "re
                 <td>{entier.format(v)}</td>
                 {stock && <td>{entier.format(stock[v] ?? 0)}</td>}
                 <td>
-                  <input id={i === 0 ? idPremier : undefined} inputMode="numeric" className={depasse ? "trop" : undefined}
+                  <input id={i === 0 ? idPremier : undefined} inputMode="numeric" readOnly={lectureSeule} className={depasse ? "trop" : undefined}
                     aria-label={`Nombre de coupures de ${entier.format(v)} ${devise}`} value={nb || ""}
                     onChange={(e) => { const n = parseInt(e.target.value.replace(/\D/g, ""), 10); onChange({ ...comptage, [v]: Number.isFinite(n) && n > 0 ? n : 0 }); }} />
                 </td>
@@ -130,4 +130,32 @@ export function Specimen() {
 
 export function Chargement() {
   return <p className="muet" role="status">Chargement…</p>;
+}
+
+/** Date jj/mm/aaaa au clavier (DESIGN § 2.1, composant C06). Jamais le sélecteur du navigateur :
+ * son format suit la langue du poste, et « 11/05 » peut alors vouloir dire le 5 novembre. */
+export function ChampDate({ libelle, valeur, onChange, aide, requis }: { libelle: string; valeur: string; onChange: (iso: string) => void; aide?: string; requis?: boolean }) {
+  const versTexte = (iso: string) => (/^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "");
+  const [texte, setTexte] = useState(versTexte(valeur));
+  useEffect(() => { if (lireDate(texte) !== valeur) setTexte(versTexte(valeur)); }, [valeur]);   // valeur changée de l'extérieur
+  const complet = texte.length === 10, iso = lireDate(texte);
+  const erreur = complet && !iso ? "Date impossible." : "";
+  return (
+    <Champ libelle={libelle} aide={aide ?? "jj/mm/aaaa"} erreur={erreur}>
+      {(p) => <input {...p} className="saisie date" inputMode="numeric" autoComplete="off" placeholder="jj/mm/aaaa" maxLength={10} required={requis} value={texte}
+        onChange={(e) => { const t = masque(e.target.value); setTexte(t); onChange(lireDate(t) ?? ""); }} />}
+    </Champ>
+  );
+}
+function masque(v: string) {
+  const c = v.replace(/\D/g, "").slice(0, 8);
+  return [c.slice(0, 2), c.slice(2, 4), c.slice(4, 8)].filter(Boolean).join("/");
+}
+/** « 05/11/2026 » -> « 2026-11-05 » ; null si incomplète ou impossible (31/02) */
+export function lireDate(t: string): string | null {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(t);
+  if (!m) return null;
+  const [, j, mo, a] = m as unknown as [string, string, string, string];
+  const d = new Date(Date.UTC(Number(a), Number(mo) - 1, Number(j)));
+  return d.getUTCDate() === Number(j) && d.getUTCMonth() === Number(mo) - 1 ? `${a}-${mo}-${j}` : null;
 }

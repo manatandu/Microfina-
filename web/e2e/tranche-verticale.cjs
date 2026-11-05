@@ -33,7 +33,7 @@ const OUT = process.argv[2];
   // Agent : enrôler
   await login('Bijou Kasongo'); await p.getByRole('link', { name: /Enrôler un nouveau membre/ }).click();
   await p.getByLabel('Nom *').fill('Tshala'); await p.getByLabel('Post-nom').fill('Muana'); await p.getByLabel('Prénom').fill('Marie-Thérèse');
-  await p.getByLabel('Type de pièce *').selectOption("Carte d'électeur"); await p.getByLabel('Numéro *').fill('1-0412-0999'); await p.getByLabel('Expire le').fill('2031-01-01');
+  await p.getByLabel('Type de pièce *').selectOption("Carte d'électeur"); await p.getByLabel('Numéro *').fill('1-0412-0999'); await p.getByLabel('Expire le').fill('01012031');
   await etape('04-enrolement');
   await p.getByRole('button', { name: /Enregistrer, à viser/ }).click(); await p.getByText(/est enregistré sous le numéro/).waitFor(); await etape('05-enrole');
   // Chef : valider billetages et viser

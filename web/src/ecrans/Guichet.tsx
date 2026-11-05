@@ -225,7 +225,7 @@ export default function GuichetDepotRetrait() {
         <section className="bloc" aria-labelledby="t-billetage">
           <h2 id="t-billetage">{op === "depot" ? "Billets reçus" : "Billets à remettre"} {devise} <Touche>F4</Touche></h2>
           {c ? <Billetage devise={devise} comptage={coupures} onChange={setCoupures} stock={op === "retrait" ? donnees.stock : undefined}
-              cible={m} sens={op === "retrait" ? "remise" : "recue"} idPremier={premiereCoupure.current} />
+              cible={m} sens={op === "retrait" ? "remise" : "recue"} idPremier={premiereCoupure.current} lectureSeule={fini} />
             : <p className="muet">Choisir d'abord le compte du {mo.membre}.</p>}
         </section>
       </div>
@@ -238,10 +238,10 @@ export function Recu({ id, onNouveau }: { id: number; onNouveau: () => void }) {
   const { donnees: r } = useDonnees(() => api.operations.recu(id), [id]);
   const lettres = useMemo(() => (r ? montantEnLettres(r.o.montant, r.o.devise) : ""), [r]);
   if (!r) return <Chargement />;
-  const titre = { depot: "Dépôt", retrait: "Retrait", adhesion: "Adhésion" }[r.o.type];
+  const titre = { depot: "Dépôt enregistré", retrait: "Retrait enregistré", adhesion: "Adhésion enregistrée" }[r.o.type];
   return (
     <div className="pile">
-      <p className="resultat-ok" role="status"><strong>{titre} enregistré.</strong> Pièce <span className="chiffres">{r.piece}</span>.</p>
+      <p className="resultat-ok" role="status"><strong>{titre}.</strong> Pièce <span className="chiffres">{r.piece}</span>.</p>
       <div className="papier" aria-label="Aperçu du reçu">
         <dl>
           <dt>Pièce</dt><dd className="chiffres">{r.piece}</dd>

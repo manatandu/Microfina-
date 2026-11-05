@@ -116,6 +116,10 @@ body {
 .saisie:disabled { background: var(--papier); color: var(--encre-2); border-style: dashed; cursor: not-allowed; }
 .saisie[readonly] { background: var(--papier); border-color: var(--trait); }
 .saisie.num { font-family: var(--police-chiffres); }
+.saisie.code { font-family: var(--police-chiffres); text-align: left; }   /* numéros, références : lus de gauche à droite */
+.saisie.date { font-family: var(--police-chiffres); max-width: 14ch; }   /* jj/mm/aaaa, jamais le format du navigateur */
+.saisie.court { max-width: 10ch; }
+.champ:has(> .saisie.date), .champ:has(> .saisie.court) { justify-items: start; }
 .aide { font-size: var(--taille-dense); color: var(--encre-2); margin: 0; }
 .erreur { font-size: var(--taille-dense); color: var(--alerte); font-weight: 600; margin: 0; min-height: var(--interligne-dense); }
 
@@ -176,6 +180,7 @@ body {
   border: 1px solid var(--trait-saisie); border-radius: var(--rayon-champ); padding: 2px var(--espace-1);
 }
 .billetage input.trop { border-color: var(--alerte); color: var(--alerte); }
+.billetage input[readonly] { background: var(--papier); border-color: var(--trait); }
 .billetage tfoot td { border-top: 2px solid var(--encre); font-weight: 700; }
 .ecart { margin: var(--espace-2) 0 0; font-weight: 600; font-size: var(--taille-dense); }
 .ecart.ok { color: var(--sain-texte); }
