@@ -94,22 +94,25 @@ L'idée : le bordereau et le tampon. Fond papier neutre et froid, texte encre, u
 | `encre` | `#1B2130` | Texte principal |
 | `encre-2` | `#596173` | Texte secondaire, libellés |
 | `trait` | `#D5D9DF` | Bordures, séparations |
+| `trait-saisie` | `#7E8696` | Bord des champs de saisie (3:1 minimum, WCAG 1.4.11) |
 | `tampon` | `#3A3E96` | Action principale, focus, sélection |
 | `tampon-pale` | `#E7E8F6` | Fond de sélection |
 | `alerte` | `#B3261E` | Erreur bloquante |
 
 Rampe des statuts de crédit (Instr. 003) :
 
-| Statut | Valeur |
-|---|---|
-| Sain | `#2E7553` |
-| 1 à 30 jours | `#B58A12` |
-| 31 à 60 jours | `#C76B1E` |
-| 61 à 90 jours | `#BC4A2F` |
-| 91 à 180 jours | `#982C38` |
-| Plus de 180 jours | `#5F1D2B` |
+| Statut | Valeur (point, bordure) | Texte |
+|---|---|---|
+| Sain | `#2E7553` | `#2E7553` |
+| 1 à 30 jours | `#B58A12` | `#7A5C0B` |
+| 31 à 60 jours | `#C76B1E` | `#9A4F12` |
+| 61 à 90 jours | `#BC4A2F` | `#9E3A22` |
+| 91 à 180 jours | `#982C38` | `#982C38` |
+| Plus de 180 jours | `#5F1D2B` | `#5F1D2B` |
 
-Contraste texte sur fond vérifié AA. La rampe reste lisible en daltonisme parce que le libellé est toujours présent.
+Contraste texte sur fond vérifié AA, thème clair et thème sombre : `replica/design/contraste.txt` (05/11/2026). Les trois premières tranches de retard n'atteignaient pas 4,5:1 en texte ; d'où la colonne « Texte ». La rampe reste lisible en daltonisme parce que le libellé est toujours présent.
+
+Les valeurs font foi dans `replica/design/tokens.json` et `tokens-sombre.json`. Les maquettes chargent `replica/design/tokens.css` et n'ont plus de couleur, de taille ni d'espacement à elles.
 
 ### Typographie
 

@@ -225,9 +225,15 @@ Nom de cinq mots sur trois lignes, mandataire, absence de photo et de specimen �
 
 ---
 
-## 5. À décider
+## 5. Maquettes alignées (05/11/2026)
 
-1. **Les maquettes ont dérivé de DESIGN.md.** Tailles 12, 14, 17, 20, 22 et 34 px hors de l'échelle 13, 15, 18, 24, 32 ; écarts de 5, 6, 10, 14 px hors de la grille de 4. Les primitives suivent DESIGN.md. Je propose d'aligner les quatre maquettes sur les jetons ; rien n'est changé tant que vous ne l'avez pas dit.
-2. **Les quatre maquettes ont les défauts 2, 3, 4 et 7** et les trois contrastes de la rampe. Même proposition : les corriger d'un coup en les branchant sur `tokens.css` et `composants.css`.
-3. **Couleur des états de journée.** DESIGN § 2.4 réserve une couleur à l'état de la journée sans la fixer. La planche propose : ouverte en vert (déjà dans les maquettes), en clôture en encre de tampon, fermée en gris. À valider.
-4. **Rampe en thème sombre** : quatre couleurs proposées (section 3). À valider sur un vrai écran de guichet.
+Les quatre maquettes de `docs/design/maquettes/` chargent `tokens.css`. Plus aucune couleur recopiée, toutes les tailles sur l'échelle 13, 15, 18, 24, 32, tous les espacements sur la grille de 4 (multiple le plus proche, vers le bas en cas d'égalité, pour tenir dans 768 px de haut ; les filets de 1 et 2 px restent). Textes de la rampe et bords des champs corrigés, toutes lettres jusqu'aux milliards, focus à 2 px, pastilles d'étapes au rayon de 4 px.
+
+Elles ne chargent pas `composants.css` : plusieurs classes y portent le même nom pour autre chose (`.discret` est un texte grisé dans les maquettes, un bouton dans les composants). Les écrans du logiciel, eux, partiront des composants.
+
+Vérifié en capture : les quatre écrans tiennent toujours dans 1366 × 768, clair et sombre. À 320 px, ils débordaient de 55 px avant l'alignement (onglets qui ne passaient pas à la ligne, répartition du remboursement, « Parts après ») ; plus de débord.
+
+## 6. À décider
+
+1. **Couleur des états de journée.** DESIGN § 2.4 réserve une couleur à l'état de la journée sans la fixer. La planche propose : ouverte en vert (déjà dans les maquettes), en clôture en encre de tampon, fermée en gris. À valider.
+2. **Rampe en thème sombre** : quatre couleurs proposées (section 3). À valider sur un vrai écran de guichet.
