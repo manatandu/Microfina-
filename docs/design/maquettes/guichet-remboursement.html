@@ -259,6 +259,18 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: 14px; }
 .echeancier td { padding: 4px 6px; border-bottom: 1px solid var(--ligne); white-space: nowrap; }
 .echeancier .m { text-align: right; }
 
+.repartition { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; }
+.repartition label { display: grid; grid-template-columns: 1fr 9ch; align-items: center; gap: 8px; font-size: 14px; }
+.repartition input { font: 600 15px var(--chiffres); text-align: right; width: 100%; padding: 4px 6px; border: 1px solid var(--trait); border-radius: 2px; background: var(--papier); color: var(--encre); }
+.repartition input:not([readonly]) { background: var(--feuille); border-color: var(--tampon); }
+.detail { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; font-size: 13px; margin: 0; }
+.detail dt { color: var(--encre-2); }
+.detail dd { margin: 0; text-align: right; font-family: var(--chiffres); }
+.detail .total { color: var(--alerte); font-weight: 700; }
+.infos { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; font-size: 13px; margin: 0; }
+.infos dt { color: var(--encre-2); }
+.infos dd { margin: 0; text-align: right; }
+
 @media (max-width: 1100px) {
   .guichet { grid-template-columns: minmax(0, 1fr); }
   .bandeau { flex-wrap: wrap; gap: 8px 16px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
@@ -282,16 +294,16 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: 14px; }
 
 <main class="guichet">
 
-  <!-- Le membre et son prêt -->
+  <!-- Le client et son crédit -->
   <section aria-labelledby="t-membre">
     <div class="bloc">
       <div class="recherche">
-        <label for="q" class="discret">Membre</label>
+        <label for="q" class="discret">Client</label>
         <input id="q" value="0412-000318" autocomplete="off">
         <span class="touche">F2</span>
       </div>
       <div class="identite">
-        <svg class="photo" viewBox="0 0 72 88" role="img" aria-label="Photo du membre">
+        <svg class="photo" viewBox="0 0 72 88" role="img" aria-label="Photo du client">
           <rect class="fond" width="72" height="88"/>
           <circle class="figure" cx="36" cy="34" r="15"/>
           <path class="figure" d="M8 88c2-20 14-30 28-30s26 10 28 30z"/>
@@ -299,27 +311,32 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: 14px; }
         <div>
           <p class="role">Emprunteuse</p>
           <h2 id="t-membre" class="nom">Kalala Mbuyi Josée</h2>
-          <p>Carte d'électeur valide</p>
+          <p>Compte <span class="num" style="white-space:nowrap">0412-000318-01</span></p>
         </div>
       </div>
     </div>
 
     <div class="bloc credit">
-      <h2>Prêt P-2026-00871</h2>
-      <p>Crédit AGR, <span class="num">1 500,00 USD</span> sur 15 mois</p>
-      <p class="discret" style="margin-top:6px">Capital restant dû</p>
-      <p class="num" style="font-weight:600">1 240,00 USD</p>
-      <p class="discret" style="margin-top:6px">Garantie</p>
-      <p>Épargne obligatoire, <span class="num">300,00 USD</span></p>
-      <details class="voir" style="margin-top:10px"><summary>Voir l'échéancier</summary>
+      <h2>Crédit P-2026-00871</h2>
+      <dl class="infos">
+        <dt>Produit</dt><dd>Crédit AGR</dd>
+        <dt>Débloqué le</dt><dd>24/08/2026</dd>
+        <dt>Montant du prêt</dt><dd class="num">1 500,00 USD</dd>
+        <dt>Capital restant</dt><dd class="num">1 240,00 USD</dd>
+        <dt>Reste à payer</dt><dd class="num" id="reste-payer"></dd>
+        <dt>Degré</dt><dd><span class="statut">1 à 30 jours</span></dd>
+        <dt>Jours de retard</dt><dd class="num">12</dd>
+      </dl>
+      <details class="textes"><summary>Textes</summary><p>Degrés selon les tranches de retard de l'Instr. BCC 003, art. 12, et non ceux du modèle de produit de Microfina++.</p></details>
+      <details class="voir" style="margin-top:10px"><summary>Échéancier et paiements</summary>
         <div class="table-defil">
           <table class="echeancier">
-            <thead><tr><th>Échéance</th><th class="m">Montant</th><th>État</th></tr></thead>
+            <thead><tr><th>Échéance</th><th class="m">Capital</th><th class="m">Intérêt</th><th class="m">Payé</th></tr></thead>
             <tbody>
-              <tr><td>24/09/2026</td><td class="m num">112,50</td><td>payée</td></tr>
-              <tr><td>24/10/2026</td><td class="m num">112,50</td><td id="ech-oct">impayée</td></tr>
-              <tr><td>24/11/2026</td><td class="m num">112,50</td><td>à venir</td></tr>
-              <tr><td>24/12/2026</td><td class="m num">112,50</td><td>à venir</td></tr>
+              <tr><td>24/09/2026</td><td class="m num">100,00</td><td class="m num">12,50</td><td class="m num">112,50</td></tr>
+              <tr><td>24/10/2026</td><td class="m num">100,00</td><td class="m num">12,50</td><td class="m num" id="ech-oct">0,00</td></tr>
+              <tr><td>24/11/2026</td><td class="m num">100,00</td><td class="m num">12,50</td><td class="m num"></td></tr>
+              <tr><td>24/12/2026</td><td class="m num">100,00</td><td class="m num">12,50</td><td class="m num"></td></tr>
             </tbody>
           </table>
         </div>
@@ -339,30 +356,14 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: 14px; }
     <div class="bloc bordereau" id="saisie">
       <div class="entete-b">
         <h2 id="t-bordereau">Remboursement de crédit</h2>
-        <span class="statut" id="statut-avant">12 jours de retard</span>
+        <span class="discret">Règlement du 05/11/2026</span>
       </div>
 
       <fieldset>
-        <legend>Dû aujourd'hui</legend>
-        <table class="du">
-          <thead><tr><th>Échéance du 24/10/2026</th><th class="m">Dû</th><th class="m">Payé</th></tr></thead>
-          <tbody>
-            <tr><td>Pénalité de retard, 12 jours</td><td class="m num">1,35</td><td class="m num" id="p-pen"></td></tr>
-            <tr><td>Intérêts</td><td class="m num">12,50</td><td class="m num" id="p-int"></td></tr>
-            <tr><td>Capital</td><td class="m num">100,00</td><td class="m num" id="p-cap"></td></tr>
-          </tbody>
-          <tfoot><tr><td>Total exigible</td><td class="m num">113,85 USD</td><td class="m num" id="p-tot"></td></tr></tfoot>
-        </table>
-        <details class="textes"><summary>Textes</summary>
-          <p>Le paiement couvre d'abord la pénalité, puis les intérêts, puis le capital, échéance la plus ancienne en premier : ordre du contrat ; intérêts avant capital, Code civil livre III, art. 152 ; dette la plus ancienne d'abord, art. 154. Pénalité au taux du contrat, publié dans les conditions de banque (Instr. BCC 40).</p>
-        </details>
-      </fieldset>
-
-      <fieldset>
-        <legend><label for="montant">Montant payé</label></legend>
+        <legend><label for="montant">Montant à payer</label></legend>
         <div class="montant">
           <div class="champ-montant">
-            <input id="montant" class="num" inputmode="decimal" value="114,00" autocomplete="off" aria-describedby="lettres err-montant">
+            <input id="montant" class="num" inputmode="decimal" value="113,00" autocomplete="off" aria-describedby="lettres err-montant">
             <span class="devise">USD</span>
           </div>
           <div class="apres">Capital restant après<strong id="crd-apres"></strong></div>
@@ -371,38 +372,24 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: 14px; }
         <p class="erreur" id="err-montant"></p>
       </fieldset>
 
-      <div class="surplus" id="surplus" hidden>
-        <strong id="surplus-titre"></strong>
-        <label><input type="radio" name="surplus" value="epargne" checked> Le verser sur l'épargne à vue</label>
-        <label><input type="radio" name="surplus" value="anticipe"> Rembourser du capital par anticipation</label>
-      </div>
-
-      <div class="deux">
-        <fieldset class="choix">
-          <legend>Paiement</legend>
-          <label><input type="radio" name="source" value="especes" checked> En espèces</label>
-          <label><input type="radio" name="source" value="epargne"> Par l'épargne à vue</label>
-        </fieldset>
-        <fieldset class="choix" id="qui">
-          <legend>Qui paie</legend>
-          <label><input type="radio" name="payeur" value="emprunteur" checked> L'emprunteuse</label>
-          <label><input type="radio" name="payeur" value="tiers"> Une autre personne</label>
-        </fieldset>
-      </div>
-
-      <div class="source-compte" id="source-compte" hidden>
-        <div class="ligne"><span>Épargne à vue USD, <span class="num">0412-000318-01</span></span><span class="num" id="ep-solde">14 286,40 USD</span></div>
-        <div class="ligne discret"><span>Après prélèvement</span><span class="num" id="ep-apres"></span></div>
-        <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="v-ordre" style="accent-color:var(--tampon)"> Ordre de prélèvement signé par le membre</label>
-        <details class="textes"><summary>Textes</summary><p>Virement de compte à compte dans la même institution : gratuit (Instr. BCC 37). Le compte d'épargne ne peut pas devenir débiteur.</p></details>
-      </div>
-
-      <fieldset class="tiers" id="tiers" hidden>
-        <label for="t-nom">Nom de la personne<input id="t-nom" autocomplete="off"></label>
-        <label for="t-piece">Pièce d'identité<input id="t-piece" autocomplete="off" placeholder="Type et numéro"></label>
+      <fieldset>
+        <legend>Répartition</legend>
+        <div class="repartition" id="repartition"></div>
+        <p class="erreur" id="err-repartition"></p>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px">
+          <span class="discret" id="ordre"></span>
+          <button class="secondaire" id="modifier">Modifier</button>
+        </div>
+        <details class="textes"><summary>Textes</summary>
+          <p>Répartition proposée selon l'ordre de remboursement du produit, paramétré par la COOPEC (Microfina++, Paramétrage, ordre de remboursement). Le créancier peut faire passer le capital avant les intérêts (Code civil livre III, art. 152). La quittance qui porte la répartition l'arrête (art. 153).</p>
+          <p>TVA à zéro pour une COOPEC : exonération de tous impôts et taxes sur la distribution du crédit (loi n° 002/2002, art. 62). Pour une IMF : à confirmer.</p>
+        </details>
       </fieldset>
 
-      <div class="apres-pret" id="effet"></div>
+      <fieldset>
+        <legend><label for="mandataire">Mandataire</label></legend>
+        <input id="mandataire" class="champ-texte" value="" placeholder="L'emprunteuse elle-même" autocomplete="off" style="font:inherit;width:100%;padding:6px 8px;border:1px solid var(--trait);border-radius:2px;background:var(--feuille);color:var(--encre)">
+      </fieldset>
 
       <section class="renforce" id="renforce" hidden aria-labelledby="t-renforce">
         <div class="titre"><span id="t-renforce">Examen renforcé</span><span class="num" id="renforce-cumul"></span></div>
@@ -416,7 +403,7 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: 14px; }
 
       <div class="cloture">
         <ul class="etapes" id="etapes" aria-label="Contrôles"></ul>
-        <button class="bouton" id="valider" disabled>Valider <span class="touche">F9</span></button>
+        <button class="bouton" id="valider" disabled>Enregistrer <span class="touche">F9</span></button>
       </div>
     </div>
 
@@ -426,7 +413,6 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: 14px; }
         <dt>Pièce</dt><dt>Montant reçu</dt><dt>Capital restant dû</dt>
         <dd class="num">CAI-0412-2026-018733</dd><dd class="num" id="r-montant"></dd><dd class="num" id="r-crd"></dd>
       </dl>
-      <div class="apres-pret" id="r-effet"></div>
       <p class="interne" id="r-cenaref" hidden></p>
       <div class="actions">
         <button class="bouton" id="imp-quittance">Imprimer la quittance</button>
@@ -440,13 +426,13 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: 14px; }
             <tbody id="r-lignes"></tbody>
           </table>
         </div>
-        <p class="discret" id="r-soir"></p>
+        <p class="discret" id="r-note"></p>
       </details>
       <div><button class="secondaire" id="nouvelle">Opération suivante <span class="touche">Entrée</span></button></div>
     </div>
   </section>
 
-  <!-- L'argent reçu -->
+  <!-- L'argent reçu et le détail du crédit -->
   <section aria-labelledby="t-billetage">
     <div class="bloc billetage" id="bloc-billets">
       <h2 id="t-billetage">Billets reçus</h2>
@@ -457,6 +443,11 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: 14px; }
       </table>
       <p class="ecart" id="b-ecart" aria-live="polite"></p>
       <label><input type="checkbox" id="v-compte"> Comptés devant la personne</label>
+    </div>
+
+    <div class="bloc">
+      <h2>Détail du crédit</h2>
+      <dl class="detail" id="detail"></dl>
     </div>
 
     <div class="bloc" id="autorisations" hidden aria-labelledby="t-autor">
@@ -471,27 +462,33 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: 14px; }
 </main>
 
 <footer class="touches">
-  <span><span class="touche">F2</span> <b>Membre</b></span>
-  <span><span class="touche">F9</span> <b>Valider</b></span>
+  <span><span class="touche">F2</span> <b>Client</b></span>
+  <span><span class="touche">F9</span> <b>Enregistrer</b></span>
   <span><span class="touche">Échap</span> <b>Annuler</b></span>
-  <span class="note">Maquette, données fictives. Essayez 50, 150, ou un paiement par l'épargne.</span>
+  <span class="note">Maquette sur le modèle de Microfina++, données fictives. Essayez 50, ou Modifier.</span>
 </footer>
 
 <script>
 // ---------- Données fictives ----------
+// Postes de la répartition, comme dans Microfina++ (manuel, p. 88). Montants en retard sur l'échéance du 24/10/2026.
+// Épargne et fonds de solidarité : 0 pour ce produit. Pénalité : 0,50 USD, EXEMPLE (taux fixé par le contrat).
+const POSTES = {
+  capital:    { libelle: "Capital",              du: 10000, compte: "3900", texte: "Crédit en retard de 1 à 30 jours, P-2026-00871" },
+  interet:    { libelle: "Intérêt",              du: 1250,  compte: "7170", texte: "Intérêts sur crédit en retard de 1 à 30 jours" },
+  tva:        { libelle: "TVA",                  du: 0,     compte: "",     texte: "" },
+  epargne:    { libelle: "Épargne",              du: 0,     compte: "334",  texte: "Épargne de capitalisation (compte à confirmer)" },
+  solidarite: { libelle: "Fonds de solidarité",  du: 0,     compte: "",     texte: "Fonds de solidarité (compte à confirmer)" },
+  penalite:   { libelle: "Pénalité",             du: 50,    compte: "7170", texte: "Pénalité de retard (compte à confirmer)" },
+};
+// Ordre de remboursement du produit : exemple « CIPES » de Microfina++ (manuel, p. 38)
+const ORDRE = ["capital", "interet", "penalite", "epargne", "solidarite"];
+const AFFICHAGE = ["capital", "interet", "tva", "epargne", "solidarite", "penalite"];
+const CRD = 124000;
+const INTERET_RESTANT = 3750;     // intérêts des échéances non échues (fictif)
 const COURS = 2850;
 const SEUIL_ESPECES_USD = 10000;
 const ESPECES_DU_JOUR_USD = 0;
 const CONFORMITE = "G. Ilunga";
-// Ce qui est dû, en centimes, dans l'ordre d'imputation (pénalité, intérêts, capital)
-const DU = [
-  { cle: "pen", libelle: "Pénalité de retard", montant: 135, compte: "7170", texte: "Pénalité de retard, prêt P-2026-00871" },
-  { cle: "int", libelle: "Intérêts", montant: 1250, compte: "7170", texte: "Intérêts sur crédit en retard de 1 à 30 jours" },
-  { cle: "cap", libelle: "Capital", montant: 10000, compte: "3900", texte: "Crédit en retard de 1 à 30 jours, P-2026-00871" },
-];
-const TOTAL_DU = DU.reduce((s, x) => s + x.montant, 0);   // 113,85 USD
-const CRD = 124000;            // capital restant dû
-const EPARGNE = 1428640;       // épargne à vue USD
 const COUPURES = [100, 50, 20, 10, 5, 1];
 
 const $ = (id) => document.getElementById(id);
@@ -499,9 +496,10 @@ const fmt = new Intl.NumberFormat("fr-FR", { minimumFractionDigits: 2, maximumFr
 const entier = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });
 const money = (c, d = "USD") => fmt.format(c / 100) + " " + d;
 const heure = () => new Date().toTimeString().slice(0, 5);
+const TOTAL_DU = Object.values(POSTES).reduce((s, p) => s + p.du, 0);
 
 function lireMontant(txt) {
-  const t = txt.replace(/[\s  ]/g, "").replace(",", ".");
+  const t = String(txt).replace(/[\s  ]/g, "").replace(",", ".");
   if (!/^\d+(\.\d{0,2})?$/.test(t)) return null;
   const [e, d = ""] = t.split(".");
   return Number(e) * 100 + Number((d + "00").slice(0, 2));
@@ -542,16 +540,21 @@ function montantEnLettres(c) {
 }
 
 // ---------- État ----------
-let source = "especes", payeur = "emprunteur", compteurs = {}, visaConf = null;
+let compteurs = {}, visaConf = null, modifie = false, saisie = {};
 const accorde = (v) => v && v !== "attente";
 
-// Répartit un paiement : pénalité, intérêts, capital, puis surplus
-function repartir(m) {
+// Répartition proposée : chaque poste dans l'ordre du produit, jusqu'à ce qu'il soit couvert
+function proposer(m) {
   let reste = m;
-  const r = {};
-  for (const x of DU) { r[x.cle] = Math.min(reste, x.montant); reste -= r[x.cle]; }
-  r.surplus = reste;
-  return r;
+  const r = Object.fromEntries(AFFICHAGE.map((k) => [k, 0]));
+  for (const k of ORDRE) { r[k] = Math.min(reste, POSTES[k].du); reste -= r[k]; }
+  return { r, reste };
+}
+
+function construireRepartition() {
+  $("repartition").innerHTML = AFFICHAGE.map((k) => `
+    <label for="r-${k}">${POSTES[k].libelle}<input id="r-${k}" inputmode="decimal" readonly></label>`).join("");
+  AFFICHAGE.forEach((k) => $("r-" + k).addEventListener("input", () => { saisie[k] = $("r-" + k).value; rafraichir(); }));
 }
 
 function construireBilletage() {
@@ -569,64 +572,66 @@ function construireBilletage() {
 }
 const totalBilletage = () => Object.entries(compteurs).reduce((s, [v, n]) => s + Number(v) * 100 * n, 0);
 
+function repartitionCourante(m) {
+  if (!modifie) return proposer(m || 0).r;
+  return Object.fromEntries(AFFICHAGE.map((k) => [k, lireMontant(saisie[k] ?? "0") ?? NaN]));
+}
+
 function rafraichir() {
   const m = lireMontant($("montant").value);
-  const r = m ? repartir(m) : { pen: 0, int: 0, cap: 0, surplus: 0 };
-  const especes = source === "especes";
-  const anticipe = r.surplus > 0 && document.querySelector('input[name="surplus"]:checked').value === "anticipe";
-  const capAnticipe = anticipe ? Math.min(r.surplus, CRD - DU[2].montant) : 0;
+  $("reste-payer").textContent = money(CRD + INTERET_RESTANT + POSTES.interet.du + POSTES.penalite.du);
+  $("ordre").textContent = "Ordre du produit : " + ORDRE.map((k) => POSTES[k].libelle.toLowerCase()).join(", ");
+  $("modifier").textContent = modifie ? "Revenir à la proposition" : "Modifier";
 
-  // Répartition affichée
-  $("p-pen").textContent = m ? fmt.format(r.pen / 100) : "";
-  $("p-int").textContent = m ? fmt.format(r.int / 100) : "";
-  $("p-cap").textContent = m ? fmt.format(r.cap / 100) : "";
-  $("p-tot").textContent = m ? fmt.format((r.pen + r.int + r.cap) / 100) + " USD" : "";
-  ["p-pen", "p-int", "p-cap"].forEach((id, i) => {
-    const paye = r[DU[i].cle];
-    $(id).className = "m num " + (!m ? "" : paye === DU[i].montant ? "regle" : "reste");
-  });
-  $("lettres").textContent = m ? montantEnLettres(m) : "";
-  const crdApres = CRD - r.cap - capAnticipe;
-  $("crd-apres").textContent = m === null ? "" : money(crdApres);
-
+  // Montant
   let err = "";
   if (m === null) err = "Montant illisible.";
-  else if (especes && m % 100 !== 0) err = "Pas de centimes en espèces : arrondir et rendre la monnaie, ou payer par l'épargne.";
-  else if (!especes && m > EPARGNE) err = "Dépasse le solde de l'épargne.";
+  else if (m % 100 !== 0) err = "Pas de centimes en espèces (règle à confirmer).";
   $("err-montant").textContent = err;
-  const montantOk = !!m && !err;
+  $("lettres").textContent = m ? montantEnLettres(m) : "";
 
-  // Surplus
-  $("surplus").hidden = !(m && r.surplus > 0);
-  $("surplus-titre").textContent = r.surplus > 0 ? `${money(r.surplus)} de plus que le dû` : "";
+  // Répartition
+  const r = repartitionCourante(m);
+  AFFICHAGE.forEach((k) => {
+    const i = $("r-" + k);
+    i.readOnly = !modifie || k === "tva";
+    if (!modifie) i.value = fmt.format(r[k] / 100);
+  });
+  const somme = AFFICHAGE.reduce((s, k) => s + (Number.isFinite(r[k]) ? r[k] : 0), 0);
+  let errRep = "";
+  if (AFFICHAGE.some((k) => !Number.isFinite(r[k]))) errRep = "Un montant de la répartition est illisible.";
+  else if (m && somme !== m) errRep = somme < m ? `Reste à répartir : ${money(m - somme)}.` : `La répartition dépasse le montant de ${money(somme - m)}.`;
+  $("err-repartition").textContent = errRep;
+  const repOk = !!m && !errRep;
+  const capitalPaye = Number.isFinite(r.capital) ? r.capital : 0;
+  $("crd-apres").textContent = money(CRD - capitalPaye);
 
-  // Effet sur le prêt
-  const toutPaye = m && r.pen + r.int + r.cap === TOTAL_DU;
-  $("effet").innerHTML = !m ? "" : toutPaye
-    ? `<span class="statut">12 jours de retard</span><span class="fleche">devient</span><span class="sain-chip">à jour</span><span class="discret">Prochaine échéance : 24/11/2026</span>`
-    : `<span class="statut">12 jours de retard</span><span class="discret">Reste dû sur l'échéance : ${money(TOTAL_DU - r.pen - r.int - r.cap)}. Le prêt reste en retard.</span>`;
+  // Détail du crédit (retards par poste après ce paiement)
+  const reste = (k) => Math.max(POSTES[k].du - (Number.isFinite(r[k]) ? r[k] : 0), 0);
+  const retardTotal = ["capital", "interet", "epargne", "solidarite", "penalite"].reduce((s, k) => s + reste(k), 0);
+  $("detail").innerHTML = `
+    <dt>Dernier paiement</dt><dd>24/09/2026</dd>
+    <dt>Intérêt restant</dt><dd>${money(INTERET_RESTANT + POSTES.interet.du)}</dd>
+    <dt>Retard capital</dt><dd>${money(POSTES.capital.du)}</dd>
+    <dt>Retard intérêt</dt><dd>${money(POSTES.interet.du)}</dd>
+    <dt>Retard épargne</dt><dd>${money(POSTES.epargne.du)}</dd>
+    <dt>Retard fonds de solidarité</dt><dd>${money(POSTES.solidarite.du)}</dd>
+    <dt>Pénalité</dt><dd>${money(POSTES.penalite.du)}</dd>
+    <dt class="total">Retard total</dt><dd class="total">${money(TOTAL_DU)}</dd>
+    <dt>Retard après ce paiement</dt><dd>${m ? money(retardTotal) : ""}</dd>`;
 
-  // Source du paiement
-  $("bloc-billets").hidden = !especes;
-  $("source-compte").hidden = especes;
-  $("ep-apres").textContent = m ? money(EPARGNE - m) : "";
-  $("qui").hidden = !especes;
-  const tiers = especes && payeur === "tiers";
-  $("tiers").hidden = !tiers;
-  const tiersOk = !tiers || ($("t-nom").value.trim().length >= 3 && $("t-piece").value.trim().length >= 3);
-
-  // Billets reçus et monnaie à rendre
+  // Billets
   const total = totalBilletage();
   $("b-total").textContent = entier.format(total / 100);
   COUPURES.forEach((v) => { document.querySelector(`[data-m="${v}"]`).textContent = compteurs[v] ? entier.format(v * compteurs[v]) : ""; });
   const ecart = (m ?? 0) - total;
   const billetsOk = !!m && ecart === 0;
   $("b-ecart").className = "ecart " + (billetsOk ? "ok" : "ko");
-  $("b-ecart").textContent = !m ? "" : ecart === 0 ? "Le compte est bon." : ecart > 0 ? `Il manque ${money(ecart)}.` : `${money(-ecart)} de trop : corriger le montant ou rendre la monnaie.`;
+  $("b-ecart").textContent = !m ? "" : ecart === 0 ? "Le compte est bon." : ecart > 0 ? `Il manque ${money(ecart)}.` : `${money(-ecart)} de trop.`;
 
   // 10 000 USD et plus en espèces
   const usd = m ? m / 100 : 0;
-  const besoinConf = especes && ESPECES_DU_JOUR_USD + usd >= SEUIL_ESPECES_USD;
+  const besoinConf = ESPECES_DU_JOUR_USD + usd >= SEUIL_ESPECES_USD;
   $("renforce").hidden = !besoinConf;
   $("renforce-cumul").textContent = besoinConf ? `${fmt.format(ESPECES_DU_JOUR_USD + usd)} USD aujourd'hui` : "";
   const renforceOk = $("r-origine").value.trim().length >= 10 && $("r-justificatif").checked;
@@ -638,13 +643,20 @@ function rafraichir() {
   $("v-conf-btn").disabled = !renforceOk;
 
   // Étapes
-  const etapes = [["Montant", montantOk]];
-  if (especes) etapes.push(["Billets", billetsOk], ["Comptés", $("v-compte").checked]);
-  else etapes.push(["Ordre signé", $("v-ordre").checked]);
-  if (tiers) etapes.push(["Payeur", tiersOk]);
+  const etapes = [["Montant", !!m && !err], ["Répartition", repOk], ["Billets", billetsOk], ["Comptés", $("v-compte").checked]];
   if (besoinConf) etapes.push(["Examen renforcé", renforceOk], ["Conformité", accorde(visaConf)]);
-  $("etapes").innerHTML = etapes.map(([nom, ok]) => `<li class="${ok ? "ok" : nom === "Montant" && err ? "ko" : ""}">${nom}</li>`).join("");
+  $("etapes").innerHTML = etapes.map(([nom, ok]) => `<li class="${ok ? "ok" : (nom === "Montant" && err) || (nom === "Répartition" && m && errRep) ? "ko" : ""}">${nom}</li>`).join("");
   $("valider").disabled = !etapes.every(([, ok]) => ok);
+}
+
+function basculerModification() {
+  if (!modifie) {
+    const r = proposer(lireMontant($("montant").value) || 0).r;
+    saisie = Object.fromEntries(AFFICHAGE.map((k) => [k, fmt.format(r[k] / 100)]));
+    AFFICHAGE.forEach((k) => { $("r-" + k).value = saisie[k]; });
+    modifie = true;
+  } else { modifie = false; saisie = {}; }
+  rafraichir();
 }
 
 function demanderVisa() {
@@ -654,45 +666,29 @@ function demanderVisa() {
 
 function valider() {
   if ($("valider").disabled) return;
-  const m = lireMontant($("montant").value), r = repartir(m), especes = source === "especes";
-  const anticipe = r.surplus > 0 && document.querySelector('input[name="surplus"]:checked').value === "anticipe";
-  const capAnticipe = anticipe ? Math.min(r.surplus, CRD - DU[2].montant) : 0;
-  const versEpargne = r.surplus - capAnticipe;
-  const crd = CRD - r.cap - capAnticipe;
-  const toutPaye = r.pen + r.int + r.cap === TOTAL_DU;
+  const m = lireMontant($("montant").value), r = repartitionCourante(m);
+  const crd = CRD - r.capital;
+  const mandataire = $("mandataire").value.trim();
   $("r-montant").textContent = money(m);
   $("r-crd").textContent = money(crd);
-  $("r-effet").innerHTML = toutPaye
-    ? `<span class="sain-chip">à jour</span><span class="discret">Plus aucune échéance en retard. Le prêt redevient sain ce soir.</span>`
-    : `<span class="statut">toujours en retard</span><span class="discret">Reste dû sur l'échéance du 24/10 : ${money(TOTAL_DU - r.pen - r.int - r.cap)}.</span>`;
-  if (toutPaye) $("ech-oct").textContent = "payée";
-
-  // Écriture
-  const lignes = [[especes ? "570" : "330", especes ? "Caisse 2" : "Épargnes USD, Kalala Mbuyi Josée", m, 0]];
-  DU.forEach((x) => { if (r[x.cle]) lignes.push([x.compte, x.texte, 0, r[x.cle]]); });
-  if (capAnticipe) lignes.push(["3900", "Remboursement anticipé du capital, P-2026-00871", 0, capAnticipe]);
-  if (versEpargne) lignes.push(["330", "Épargnes USD, surplus versé", 0, versEpargne]);
+  if (r.capital + r.interet + r.penalite >= POSTES.capital.du + POSTES.interet.du + POSTES.penalite.du) $("ech-oct").textContent = "112,50";
+  const lignes = [["570", "Caisse 2", m, 0]];
+  ["capital", "interet", "epargne", "solidarite", "penalite"].forEach((k) => { if (r[k]) lignes.push([POSTES[k].compte || "à confirmer", POSTES[k].texte, 0, r[k]]); });
   $("r-lignes").innerHTML = lignes.map(([c, l, d, k]) => `<tr><td class="num">${c}</td><td>${l}</td><td class="m num">${d ? money(d) : ""}</td><td class="m num">${k ? money(k) : ""}</td></tr>`).join("");
-  $("r-soir").textContent = toutPaye
-    ? `Ce soir, le prêt n'ayant plus d'échéance en retard, son encours de ${money(crd)} quitte le 3900 et retourne au 327, crédits AGR (Instr. BCC 003, art. 3 ; PCCI, compte 39). Les intérêts encaissés sortent du suivi hors bilan (Instr. BCC 003, art. 11). Contre-valeur au cours du jour : ${money(m * COURS, "CDF")}.`
-    : `Le prêt reste au 3900. Contre-valeur au cours du jour : ${money(m * COURS, "CDF")}.`;
-
-  // Quittance
-  const payePar = !especes ? "prélèvement sur l'épargne à vue, ordre signé" : payeur === "tiers" ? `${$("t-nom").value.trim()}, ${$("t-piece").value.trim()}` : "l'emprunteuse, en espèces";
+  $("r-note").textContent = `Contre-valeur au cours du jour : ${money(m * COURS, "CDF")}. ${modifie ? "Répartition modifiée par la caissière : la modification est conservée avec la pièce." : "Répartition proposée par le système, selon l'ordre du produit."}`;
   $("r-quittance").innerHTML = `
     <div class="titre"><span>COOPEC Tujenge, agence Matete</span><span>Quittance de remboursement</span></div>
     <dl>
       <dt>Pièce</dt><dd class="num">CAI-0412-2026-018733</dd>
       <dt>Date</dt><dd>05/11/2026, ${heure()}, caisse 2</dd>
-      <dt>Prêt</dt><dd class="num">P-2026-00871, Kalala Mbuyi Josée</dd>
-      <dt>Payé par</dt><dd>${payePar}</dd>
+      <dt>Crédit</dt><dd class="num">P-2026-00871, Kalala Mbuyi Josée</dd>
+      <dt>Payé par</dt><dd>${mandataire || "l'emprunteuse"}</dd>
       <dt>Montant reçu</dt><dd class="num"><strong>${money(m)}</strong></dd>
       <dt>En lettres</dt><dd>${montantEnLettres(m).replace(/^./, (x) => x.toUpperCase())}</dd>
-      <dt>Imputé sur</dt><dd class="num">pénalité ${money(r.pen)}, intérêts ${money(r.int)}, capital ${money(r.cap + capAnticipe)}${versEpargne ? `, épargne ${money(versEpargne)}` : ""}</dd>
+      <dt>Répartition</dt><dd class="num">${AFFICHAGE.filter((k) => r[k]).map((k) => `${POSTES[k].libelle.toLowerCase()} ${money(r[k])}`).join(", ")}</dd>
       <dt>Capital restant dû</dt><dd class="num">${money(crd)}</dd>
-      <dt>Prochaine échéance</dt><dd>24/11/2026, <span class="num">112,50 USD</span></dd>
     </dl>
-    <div class="signatures"><div>${especes && payeur === "tiers" ? "Payeur" : "Emprunteuse"}</div><div>Caissière</div><div>Cachet</div></div>
+    <div class="signatures"><div>${mandataire ? "Mandataire" : "Emprunteuse"}</div><div>Caissière</div><div>Cachet</div></div>
     <p class="pied">Réclamation : service des plaintes de toute agence, réponse sous 45 jours. À défaut, recours auprès de la Banque Centrale du Congo.</p>`;
   const cen = $("r-cenaref");
   cen.hidden = !accorde(visaConf);
@@ -704,15 +700,12 @@ function valider() {
 }
 
 function reinitialiser() {
-  source = "especes"; payeur = "emprunteur"; compteurs = {}; visaConf = null;
-  document.querySelector('input[name="source"][value="especes"]').checked = true;
-  document.querySelector('input[name="payeur"][value="emprunteur"]').checked = true;
-  document.querySelector('input[name="surplus"][value="epargne"]').checked = true;
-  $("montant").value = "114,00";
-  compteurs = { 100: 1, 10: 1, 1: 4 };
-  ["t-nom", "t-piece", "r-origine"].forEach((id) => { $(id).value = ""; });
-  ["v-compte", "v-ordre", "r-justificatif"].forEach((id) => { $(id).checked = false; });
-  $("ech-oct").textContent = "impayée";
+  compteurs = { 100: 1, 10: 1, 1: 3 }; visaConf = null; modifie = false; saisie = {};
+  $("montant").value = "113,00";
+  $("mandataire").value = "";
+  $("r-origine").value = "";
+  ["v-compte", "r-justificatif"].forEach((id) => { $(id).checked = false; });
+  $("ech-oct").textContent = "0,00";
   $("resultat").hidden = true;
   $("saisie").hidden = false;
   construireBilletage();
@@ -721,14 +714,12 @@ function reinitialiser() {
 }
 
 // ---------- Liaisons ----------
-document.querySelectorAll('input[name="source"]').forEach((x) => x.addEventListener("change", () => { source = x.value; rafraichir(); }));
-document.querySelectorAll('input[name="payeur"]').forEach((x) => x.addEventListener("change", () => { payeur = x.value; rafraichir(); }));
-document.querySelectorAll('input[name="surplus"]').forEach((x) => x.addEventListener("change", rafraichir));
-["montant", "v-compte", "v-ordre", "t-nom", "t-piece", "r-origine", "r-justificatif"].forEach((id) => $(id).addEventListener("input", rafraichir));
+["montant", "v-compte", "r-origine", "r-justificatif"].forEach((id) => $(id).addEventListener("input", rafraichir));
 $("montant").addEventListener("blur", () => {
   const m = lireMontant($("montant").value);
   if (m !== null && m > 0) { $("montant").value = fmt.format(m / 100); rafraichir(); }
 });
+$("modifier").addEventListener("click", basculerModification);
 $("valider").addEventListener("click", valider);
 $("nouvelle").addEventListener("click", reinitialiser);
 $("v-conf-btn").addEventListener("click", demanderVisa);
@@ -741,8 +732,9 @@ document.addEventListener("keydown", (e) => {
   else if (e.key === "Enter" && !$("resultat").hidden && document.activeElement?.tagName !== "BUTTON") { e.preventDefault(); reinitialiser(); }
 });
 
-// Départ : 113,85 USD dus, pas de centimes en espèces : elle paie 114 USD, les 0,15 vont sur son épargne
-compteurs = { 100: 1, 10: 1, 1: 4 };
+// Départ : 113 USD dus sur l'échéance du 24/10, payés avec 100 + 10 + 3 × 1
+compteurs = { 100: 1, 10: 1, 1: 3 };
+construireRepartition();
 construireBilletage();
 rafraichir();
 </script>

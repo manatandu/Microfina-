@@ -75,7 +75,7 @@ Montant en lettres,caisse,must,yes,no,S74 S81
 Mandataire au retrait,caisse,must,yes,no,S74 champ libre ; à relier aux procurations enregistrées (Instr. BCC 15 art. 11)
 Frais d'opération au guichet,caisse,must,yes,no,S74 montre des frais de versement ; interdits sur dépôt et retrait (Instr. BCC 37)
 Déblocage de crédit en caisse,caisse,must,yes,no,S75
-Remboursement en caisse avec répartition,caisse,must,yes,no,S76 ; répartition selon l'ordre S22 ; maquette guichet-remboursement à revoir (épargne de capitalisation et solidarité absentes ; ordre fixe choisi sans texte qui l'impose)
+Remboursement en caisse avec répartition,caisse,must,yes,no,S76 ; maquette guichet-remboursement : six postes et ordre du produit comme Microfina++ ; TVA nulle pour une COOPEC (loi 002/2002 art. 62) ; comptes de l'épargne de capitalisation du fonds de solidarité et de la pénalité à confirmer
 Situation plan réel mémo du prêt au guichet,caisse,should,yes,no,S76
 Achat et retrait de parts sociales,caisse,must,yes,no,S77 ; maquette guichet-parts ; loi 002/2002 art. 21 22 24 ; PCCI compte 10
 Encaissements et décaissements divers,caisse,must,yes,no,S78
