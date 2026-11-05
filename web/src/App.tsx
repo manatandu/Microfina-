@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, HashRouter, Route, Routes } from "react-router-dom";
 import { Coquille } from "./mise-en-page/Coquille";
 import Connexion from "./ecrans/Connexion";
 import MaJournee from "./ecrans/MaJournee";
@@ -6,9 +6,12 @@ import { AConstruire, Introuvable, ListeModule } from "./ecrans/Modules";
 import { ECRANS } from "./ecrans/registre";
 import { CONSTRUITS } from "./ecrans/construits";
 
+// Version publiée en page de démonstration : adresses après « # », le serveur ne connaît qu'un fichier
+const Routeur = import.meta.env.VITE_ROUTEUR === "hash" ? HashRouter : BrowserRouter;
+
 export default function App() {
   return (
-    <BrowserRouter>
+    <Routeur>
       <Routes>
         <Route path="/connexion" element={<Connexion />} />
         <Route element={<Coquille />}>
@@ -21,6 +24,6 @@ export default function App() {
           <Route path="*" element={<Introuvable />} />
         </Route>
       </Routes>
-    </BrowserRouter>
+    </Routeur>
   );
 }

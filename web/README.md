@@ -22,4 +22,10 @@ Parcours complet dans un navigateur, le serveur de développement lancé sur le 
 node e2e/tranche-verticale.cjs /tmp/captures 1366
 ```
 
+Version publiée en page de démonstration (adresses après « # ») :
+
+```bash
+VITE_ROUTEUR=hash npx vite build --base ./
+```
+
 Les jetons et les styles des composants viennent de `../replica/design/` : on les change là, avec `generer.py`.
