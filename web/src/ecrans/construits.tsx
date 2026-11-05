@@ -3,18 +3,19 @@ import GuichetDepotRetrait from "./Guichet";
 import Adhesion from "./Adhesion";
 import Balance from "./Comptabilite";
 import { BilletageCaisse, OuvertureCaisse } from "./Caisse";
-import { Enrolement, VisaMembres } from "./Membres";
-import MaJournee from "./MaJournee";
+import { Enrolement } from "./Membres";
+import { EcranJournee, EcranValidation } from "./Journee";
 
 /** Écrans de l'inventaire déjà construits. Les autres affichent « pas encore construit ». */
 export const CONSTRUITS: Record<string, ComponentType> = {
   S09: OuvertureCaisse,
-  S12: MaJournee,
+  S12: EcranJournee,
   S37: Enrolement,
-  S40: VisaMembres,
+  S40: () => <EcranValidation titre="Visa du client" seulement="tiers" />,
   S73: Adhesion,
   S74: GuichetDepotRetrait,
   S79: BilletageCaisse,
-  S80: VisaMembres,
+  S80: () => <EcranValidation titre="Validation du billetage" seulement="billetages" />,
+  S113: () => <EcranValidation titre="Visas" seulement="operations" />,
   S121: Balance,
 };

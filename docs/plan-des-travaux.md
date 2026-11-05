@@ -21,7 +21,7 @@ Repères : 140 écrans dans l'inventaire (`replica/recon.md`), 146 fonctions dan
 
 | # | Chantier | Pourquoi | Source |
 | --- | --- | --- | --- |
-| D1 | Recherche globale (F2) dans le bandeau : membre, compte, prêt, pièce | Remplace la navigation profonde | DESIGN § 5 |
+| D1 | Recherche globale (F2) : retirée de l'accueil le 05/11/2026, Microfina++ ne l'a pas. La recherche du membre reste dans chaque écran, comme dans Microfina. À rediscuter | | DESIGN § 5 ; manuel Microfina++, p. 13 |
 | D2 | Écran du valideur à quatre yeux : voir ce qu'on valide (montant en lettres, compte, billetage), pas un simple « Viser » | Aujourd'hui une ligne de liste | DESIGN § 2.5 |
 | D3 | Gabarits papier : reçu 80 mm, bordereau A5, quittance, fiche membre, contrat d'adhésion, échéancier | Pas d'impression de la page du navigateur | DESIGN § 2.8 ; Instr. BCC 40, art. 13 |
 | D4 | Dessiner le dossier de crédit, de la demande au déblocage, avec contrôles prudentiels visibles | Écran le plus complexe du logiciel | DESIGN § 4 |

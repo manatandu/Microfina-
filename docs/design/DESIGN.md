@@ -166,6 +166,10 @@ Ce qui compte : identité à gauche, montant au centre, argent physique à droit
 
 ---
 
+## 4 bis. Accueil et navigation : le modèle Microfina++ (décision du porteur, 05/11/2026)
+
+Connexion (nom d'utilisateur, mot de passe, journée ouverte et date système en lecture seule, serveur), puis page des modules, puis, dans chaque module, une barre de menus horizontale avec ses sous-menus, des menus d'accès rapide à gauche, la zone de travail et un bas de page (serveur, base de données, journée ouverte, utilisateur), comme aux pages 5 à 14 du manuel. Les menus suivent les chemins du manuel. Seule l'apparence est la nôtre.
+
 ## 5. Ce que je refuse
 
 - Le tableau de bord en cartes arrondies avec chiffres géants et dégradés.

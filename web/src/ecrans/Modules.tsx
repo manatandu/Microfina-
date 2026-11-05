@@ -46,5 +46,5 @@ export function AConstruire({ id }: { id: string }) {
 }
 
 export function Introuvable() {
-  return <><h1>Page introuvable</h1><p><Link to="/">Retour à ma journée</Link></p></>;
+  return <><h1>Page introuvable</h1><p><Link to="/">Retour à la page des modules</Link></p></>;
 }

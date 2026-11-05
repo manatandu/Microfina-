@@ -1,11 +1,9 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { api, type NouveauTiers } from "../donnees/api";
 import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { Attention, Bloquant, Champ, Chargement, Textes, ChampDate } from "../composants";
 import { mots } from "../lib/vocabulaire";
-import { AValider } from "./MaJournee";
 
 const VIDE: NouveauTiers = { nom: "", postnom: "", prenom: "", sexe: "", naissance: "", pieceType: "", pieceNumero: "", pieceExpire: "", adresse: "", telephone: "", personneExposee: false };
 
@@ -57,17 +55,6 @@ export function Enrolement() {
         <div><button className="bouton" type="submit">Enregistrer, à viser</button></div>
         <Textes sources={["Instr. BCC 15, art. 10 et 11 : éléments d'identification (liste des champs exigés à confirmer)", "Instr. BCC 15, art. 60 : personnes politiquement exposées", "ARCHITECTURE P7 : enrôlement et visa par deux personnes"]} />
       </form>
-    </>
-  );
-}
-
-/** S40 : visa du client par le chef d'agence */
-export function VisaMembres() {
-  const { donnees: u } = useDonnees(() => api.session.courante());
-  return (
-    <>
-      <h1>Visas</h1>
-      {u?.roles.includes("chef_agence") ? <AValider /> : <p>Réservé au chef d'agence. <Link to="/">Retour à ma journée</Link>.</p>}
     </>
   );
 }

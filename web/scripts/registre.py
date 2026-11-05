@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Écrit src/ecrans/registre.json : les 140 écrans de replica/recon.md, leur module et leur priorité.
+"""Écrit src/ecrans/registre.json : les 140 écrans de replica/recon.md, leur chemin dans les menus de Microfina++
+(pour reproduire la barre de menus), leur module et leur priorité.
 
     python3 scripts/registre.py
 """
@@ -27,7 +28,7 @@ def main():
             continue
         m = re.match(r"\| (S\d+) \| ([^|]+) \| ([^|]*) \| ([^|]*) \|", ligne)
         if m and module:
-            ecrans.append({"id": m.group(1), "nom": m.group(2).strip(),
+            ecrans.append({"id": m.group(1), "nom": m.group(2).strip(), "acces": m.group(3).strip(),
                            "but": m.group(4).strip(), "module": module})
     prio = {}
     for r in csv.DictReader((RACINE / "replica/features.csv").open(encoding="utf-8")):
