@@ -85,19 +85,22 @@ Une COOPEC a des **membres** et des **parts sociales**. Une IMF a des **clients*
 
 ### Couleurs
 
-L'idée : le bordereau et le tampon. Fond papier neutre et froid, texte encre, une seule couleur d'action, celle de l'encre des tampons administratifs.
+**Refonte du 05/11/2026**, à la demande du porteur : la première version (fond papier, violet « tampon », petites capitales) faisait daté. L'idée devient : un outil bancaire d'aujourd'hui, calme et précis, avec une seule touche d'identité, le drapeau. Fond froid et lumineux, cartes blanches aux coins doux, une couleur d'action, le **bleu Congo**, et une barre latérale **nuit** marquée de l'**étoile jaune** du drapeau. Les noms des jetons ne changent pas ; leurs valeurs font foi dans `replica/design/tokens.json` (clair) et `tokens-sombre.json` (sombre).
 
 | Jeton | Valeur | Usage |
 |---|---|---|
-| `papier` | `#F3F4F2` | Fond de l'application |
-| `feuille` | `#FFFFFF` | Surfaces de saisie, bordereau |
-| `encre` | `#1B2130` | Texte principal |
-| `encre-2` | `#596173` | Texte secondaire, libellés |
-| `trait` | `#D5D9DF` | Bordures, séparations |
-| `trait-saisie` | `#7E8696` | Bord des champs de saisie (3:1 minimum, WCAG 1.4.11) |
-| `tampon` | `#3A3E96` | Action principale, focus, sélection |
-| `tampon-pale` | `#E7E8F6` | Fond de sélection |
-| `alerte` | `#B3261E` | Erreur bloquante |
+| `papier` | `#F3F5F8` | Fond de l'application |
+| `feuille` | `#FFFFFF` | Cartes, surfaces de saisie |
+| `encre` | `#0E1628` | Texte principal |
+| `encre-2` | `#4A5468` | Texte secondaire, libellés |
+| `trait` | `#E2E6ED` | Bordures, séparations |
+| `trait-saisie` | `#7F8A9D` | Bord des champs de saisie (3:1 minimum, WCAG 1.4.11) |
+| `tampon` | `#1652D0` | Bleu Congo : action principale, focus, sélection |
+| `tampon-pale` | `#EAF1FF` | Fond de sélection, halo de focus |
+| `alerte` | `#C42B1C` | Erreur bloquante |
+| `nuit`, `nuit-2` | `#0B1526`, `#17253D` | Barre latérale, élément actif |
+| `ciel` | `#62A8FF` | Repère de l'élément actif sur la nuit |
+| `etoile` | `#F7D417` | L'étoile du drapeau, marque de Likelemba. Jamais un état. |
 
 Rampe des statuts de crédit (Instr. 003) :
 
@@ -124,7 +127,7 @@ Une seule famille, choisie pour sa fonction : **Atkinson Hyperlegible**, dessin�
 
 ### Espacement et formes
 
-Grille de 4 px. Rayons : 2 px pour les champs, 4 px pour les blocs. Pas d'ombre portée sauf pour ce qui flotte réellement (menu, liste de suggestions).
+Grille de 4 px. Rayons : 6 px pour les petits éléments, 8 px pour les champs et boutons, 12 px pour les cartes, pastilles arrondies. Ombre très légère sur les cartes pour les détacher du fond ; ombre marquée seulement pour ce qui flotte (menu, liste de suggestions). Titres de carte en casse normale, jamais en petites capitales. Les onglets du guichet sont un contrôle segmenté. Survol : changement de couleur en 120 ms, à la souris seulement ; rien ne bouge après une touche (§ 2.7 bis).
 
 ---
 

@@ -13,18 +13,18 @@
     "success": "sain"
   },
   "color": {
-    "papier": "#14161C",
-    "feuille": "#1D2029",
-    "encre": "#E7E9EE",
-    "encre-2": "#A1A8B6",
-    "trait": "#343947",
-    "trait-saisie": "#7A8194",
-    "ligne": "#2A2E39",
-    "tampon": "#A3A7F2",
-    "tampon-pale": "#2A2D52",
-    "sur-tampon": "#14161C",
-    "alerte": "#F08A80",
-    "alerte-pale": "#3A1F1E",
+    "papier": "#090E17",
+    "feuille": "#111827",
+    "encre": "#E9EDF4",
+    "encre-2": "#A4AEBE",
+    "trait": "#232F42",
+    "trait-saisie": "#6E7A8E",
+    "ligne": "#1A2333",
+    "tampon": "#6FA3FF",
+    "tampon-pale": "#16233F",
+    "sur-tampon": "#090E17",
+    "alerte": "#F28B82",
+    "alerte-pale": "#3A1C1A",
     "sain": "#6FC79B",
     "sain-texte": "#6FC79B",
     "sain-pale": "#1C3328",
@@ -43,11 +43,18 @@
     "r5": "#D9A0AE",
     "r5-texte": "#D9A0AE",
     "r5-pale": "#33202A",
-    "inactif": "#3A3E4C",
-    "sur-inactif": "#8A90A0",
-    "specimen": "#191B22",
-    "photo-fond": "#2A2E39",
-    "photo-figure": "#4A5060"
+    "inactif": "#283244",
+    "sur-inactif": "#7D889B",
+    "specimen": "#0E1521",
+    "photo-fond": "#1E2939",
+    "photo-figure": "#3F4C61",
+    "nuit": "#060B14",
+    "nuit-2": "#12203A",
+    "nuit-texte": "#AEB9CC",
+    "nuit-fort": "#FFFFFF",
+    "nuit-trait": "#18243A",
+    "ciel": "#6FA3FF",
+    "etoile": "#F7D417"
   },
   "pairs": [
     [
@@ -195,6 +202,36 @@
       "r5",
       "feuille",
       "ui"
+    ],
+    [
+      "nuit-texte",
+      "nuit"
+    ],
+    [
+      "nuit-fort",
+      "nuit-2"
+    ],
+    [
+      "nuit-fort",
+      "nuit"
+    ],
+    [
+      "ciel",
+      "nuit",
+      "ui"
+    ],
+    [
+      "etoile",
+      "nuit",
+      "ui"
+    ],
+    [
+      "sur-tampon",
+      "tampon"
+    ],
+    [
+      "tampon",
+      "tampon-pale"
     ]
   ]
 }

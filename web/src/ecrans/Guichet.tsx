@@ -120,6 +120,12 @@ export default function GuichetDepotRetrait() {
 
   const vider = () => { setTiers(null); setCompteId(0); setSaisie(""); setCoupures({}); setVerifie({ piece: false, signature: false, carnet: false }); setRemisPar(""); setErreur(""); setResultat(null); setCle(nouvelleCle()); recherche.current?.focus(); };
   useEffect(() => { vider(); }, [op]);   // changer d'onglet repart d'un bordereau vierge
+  // Arrivée par la recherche globale : le membre est déjà choisi
+  const tiersDemande = q.get("tiers");
+  useEffect(() => {
+    if (!tiersDemande) return;
+    void api.tiers.lire(Number(tiersDemande)).then((t) => { if (t) { setTiers(t); setCompteId(0); setResultat(null); } });
+  }, [tiersDemande, op]);
   // Un visa vaut pour un montant et un compte : toute modification tire une nouvelle clé
   useEffect(() => { if (resultat?.statut !== "visa_requis") setCle(nouvelleCle()); }, [saisie, compteId]);
 

@@ -1,18 +1,18 @@
 /* Généré par generer.py depuis tokens.json et tokens-sombre.json. Ne pas modifier à la main. */
 
 :root {
-  --papier: #F3F4F2;
+  --papier: #F3F5F8;
   --feuille: #FFFFFF;
-  --encre: #1B2130;
-  --encre-2: #596173;
-  --trait: #D5D9DF;
-  --trait-saisie: #7E8696;
-  --ligne: #ECEEF1;
-  --tampon: #3A3E96;
-  --tampon-pale: #E7E8F6;
+  --encre: #0E1628;
+  --encre-2: #4A5468;
+  --trait: #E2E6ED;
+  --trait-saisie: #7F8A9D;
+  --ligne: #EDF0F5;
+  --tampon: #1652D0;
+  --tampon-pale: #EAF1FF;
   --sur-tampon: #FFFFFF;
-  --alerte: #B3261E;
-  --alerte-pale: #FBEAE8;
+  --alerte: #C42B1C;
+  --alerte-pale: #FDECEA;
   --sain: #2E7553;
   --sain-texte: #2E7553;
   --sain-pale: #E3F1EA;
@@ -31,11 +31,18 @@
   --r5: #5F1D2B;
   --r5-texte: #5F1D2B;
   --r5-pale: #F1E3E6;
-  --inactif: #C9CBD6;
-  --sur-inactif: #F4F4F8;
-  --specimen: #FCFCFB;
-  --photo-fond: #DDE1E7;
-  --photo-figure: #B9C0CB;
+  --inactif: #DCE1E9;
+  --sur-inactif: #7D889B;
+  --specimen: #FAFBFD;
+  --photo-fond: #E5EAF1;
+  --photo-figure: #B6C1D1;
+  --nuit: #0B1526;
+  --nuit-2: #17253D;
+  --nuit-texte: #B9C4D6;
+  --nuit-fort: #FFFFFF;
+  --nuit-trait: #1D2C46;
+  --ciel: #62A8FF;
+  --etoile: #F7D417;
   --police-texte: "Atkinson Hyperlegible Next", "Segoe UI", system-ui, sans-serif;
   --police-chiffres: "Atkinson Hyperlegible Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
   --taille-dense: 13px;
@@ -49,7 +56,7 @@
   --graisse-titre: 600;
   --taille-grand: 24px;
   --interligne-grand: 30px;
-  --graisse-grand: 600;
+  --graisse-grand: 700;
   --taille-montant: 32px;
   --interligne-montant: 36px;
   --graisse-montant: 600;
@@ -62,11 +69,13 @@
   --espace-6: 24px;
   --espace-7: 32px;
   --espace-8: 48px;
-  --rayon-champ: 2px;
-  --rayon-bloc: 4px;
+  --rayon-petit: 6px;
+  --rayon-champ: 8px;
+  --rayon-bloc: 12px;
   --rayon-rond: 999px;
   --ombre-aucune: none;
-  --ombre-flottant: 0 4px 16px rgba(27, 33, 48, .16);
+  --ombre-surface: 0 1px 2px rgba(14, 22, 40, .06), 0 1px 1px rgba(14, 22, 40, .03);
+  --ombre-flottant: 0 16px 40px rgba(14, 22, 40, .16);
   --mouvement-repete: 0ms;
   --mouvement-deroulant: 180ms;
   --mouvement-courbe-sortie: cubic-bezier(0.23, 1, 0.32, 1);
@@ -89,18 +98,18 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --papier: #14161C;
-    --feuille: #1D2029;
-    --encre: #E7E9EE;
-    --encre-2: #A1A8B6;
-    --trait: #343947;
-    --trait-saisie: #7A8194;
-    --ligne: #2A2E39;
-    --tampon: #A3A7F2;
-    --tampon-pale: #2A2D52;
-    --sur-tampon: #14161C;
-    --alerte: #F08A80;
-    --alerte-pale: #3A1F1E;
+    --papier: #090E17;
+    --feuille: #111827;
+    --encre: #E9EDF4;
+    --encre-2: #A4AEBE;
+    --trait: #232F42;
+    --trait-saisie: #6E7A8E;
+    --ligne: #1A2333;
+    --tampon: #6FA3FF;
+    --tampon-pale: #16233F;
+    --sur-tampon: #090E17;
+    --alerte: #F28B82;
+    --alerte-pale: #3A1C1A;
     --sain: #6FC79B;
     --sain-texte: #6FC79B;
     --sain-pale: #1C3328;
@@ -119,27 +128,34 @@
     --r5: #D9A0AE;
     --r5-texte: #D9A0AE;
     --r5-pale: #33202A;
-    --inactif: #3A3E4C;
-    --sur-inactif: #8A90A0;
-    --specimen: #191B22;
-    --photo-fond: #2A2E39;
-    --photo-figure: #4A5060;
+    --inactif: #283244;
+    --sur-inactif: #7D889B;
+    --specimen: #0E1521;
+    --photo-fond: #1E2939;
+    --photo-figure: #3F4C61;
+    --nuit: #060B14;
+    --nuit-2: #12203A;
+    --nuit-texte: #AEB9CC;
+    --nuit-fort: #FFFFFF;
+    --nuit-trait: #18243A;
+    --ciel: #6FA3FF;
+    --etoile: #F7D417;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --papier: #14161C;
-  --feuille: #1D2029;
-  --encre: #E7E9EE;
-  --encre-2: #A1A8B6;
-  --trait: #343947;
-  --trait-saisie: #7A8194;
-  --ligne: #2A2E39;
-  --tampon: #A3A7F2;
-  --tampon-pale: #2A2D52;
-  --sur-tampon: #14161C;
-  --alerte: #F08A80;
-  --alerte-pale: #3A1F1E;
+  --papier: #090E17;
+  --feuille: #111827;
+  --encre: #E9EDF4;
+  --encre-2: #A4AEBE;
+  --trait: #232F42;
+  --trait-saisie: #6E7A8E;
+  --ligne: #1A2333;
+  --tampon: #6FA3FF;
+  --tampon-pale: #16233F;
+  --sur-tampon: #090E17;
+  --alerte: #F28B82;
+  --alerte-pale: #3A1C1A;
   --sain: #6FC79B;
   --sain-texte: #6FC79B;
   --sain-pale: #1C3328;
@@ -158,11 +174,18 @@
   --r5: #D9A0AE;
   --r5-texte: #D9A0AE;
   --r5-pale: #33202A;
-  --inactif: #3A3E4C;
-  --sur-inactif: #8A90A0;
-  --specimen: #191B22;
-  --photo-fond: #2A2E39;
-  --photo-figure: #4A5060;
+  --inactif: #283244;
+  --sur-inactif: #7D889B;
+  --specimen: #0E1521;
+  --photo-fond: #1E2939;
+  --photo-figure: #3F4C61;
+  --nuit: #060B14;
+  --nuit-2: #12203A;
+  --nuit-texte: #AEB9CC;
+  --nuit-fort: #FFFFFF;
+  --nuit-trait: #18243A;
+  --ciel: #6FA3FF;
+  --etoile: #F7D417;
   color-scheme: dark;
 }
 

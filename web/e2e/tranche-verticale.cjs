@@ -6,10 +6,10 @@ const OUT = process.argv[2];
 (async () => {
   const b = await chromium.launch();
   const L = Number(process.argv[3] || 1366); const ctx = await b.newContext({ viewport: { width: L, height: 768 } });
-  const p = await ctx.newPage(); p.setDefaultTimeout(5000); globalThis.__p = p;
+  const p = await ctx.newPage(); if (process.argv[4]) await p.emulateMedia({ colorScheme: process.argv[4] }); p.setDefaultTimeout(5000); globalThis.__p = p;
   const errs = []; p.on('pageerror', e => errs.push('page: ' + e.message)); p.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
   const etape = async (nom) => { await p.waitForTimeout(50); const d = await p.evaluate(() => document.documentElement.scrollWidth - innerWidth); await p.screenshot({ path: `${OUT}/${nom}.png`, fullPage: true }); console.log(d > 0 ? '⚠ débord ' + d : '✓', nom); };
-  const login = async (nom) => { await p.goto(B + '/connexion'); await p.getByLabel(new RegExp(nom)).check(); await p.getByRole('button', { name: 'Entrer' }).click(); await p.waitForURL(B + '/'); };
+  const login = async (nom) => { await p.goto(B + '/connexion'); await p.locator('label.profil', { hasText: new RegExp(nom) }).click(); await p.getByRole('button', { name: 'Entrer' }).click(); await p.waitForURL(B + '/'); };
 
   await p.goto(B + '/connexion'); await p.evaluate(() => localStorage.clear()); await p.reload();
   await etape('01-connexion');

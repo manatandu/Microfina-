@@ -36,7 +36,7 @@ export default function Balance() {
           <tfoot><tr>
             <th scope="row" colSpan={2}>Total en CDF</th>
             <td className="num"><strong>{montant(tD, "CDF")}</strong></td><td className="num"><strong>{montant(tC, "CDF")}</strong></td>
-            <td className="num" colSpan={2}>{tD === tC ? <strong>Équilibrée : débit égal au crédit</strong> : <span className="erreur">Écart {montant(tD - tC, "CDF")}</span>}</td>
+            <td className="a-droite" colSpan={2}>{tD === tC ? <strong>Équilibrée : débit égal au crédit</strong> : <span className="erreur">Écart {montant(tD - tC, "CDF")}</span>}</td>
           </tr></tfoot>
         </table>
       </div>
