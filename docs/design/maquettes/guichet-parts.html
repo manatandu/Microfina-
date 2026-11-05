@@ -280,6 +280,11 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: 14px; }
 .identite .photo { flex-shrink: 0; }
 .nom { overflow-wrap: anywhere; }
 
+.specimen { margin-top: 12px; border: 1px dashed var(--trait); border-radius: 2px; padding: 4px 8px; background: var(--specimen); }
+.specimen svg { display: block; width: 100%; height: 44px; }
+.specimen path { stroke: var(--encre); }
+.billetage td.stock { color: var(--encre-2); font-size: 13px; }
+
 @media (max-width: 1100px) {
   .guichet { grid-template-columns: minmax(0, 1fr); }
   .bandeau { flex-wrap: wrap; gap: 8px 16px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
@@ -318,10 +323,17 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: 14px; }
           <path class="figure" d="M8 88c2-20 14-30 28-30s26 10 28 30z"/>
         </svg>
         <div>
-          <p class="role">Membre, personne physique</p>
+          <p class="role">Membre</p>
           <h2 id="t-membre" class="nom">Kalala Mbuyi Josée</h2>
-          <p>Membre depuis le 12/03/2019</p>
+          <p>Carte d'électeur valide</p>
         </div>
+      </div>
+      <div class="specimen" id="specimen" hidden>
+        <svg viewBox="0 0 260 56" aria-label="Specimen de signature">
+          <path d="M14 40c10-26 22-30 20-10-1 12-8 14-4 2 4-12 14-20 18-8 3 9-6 16 2 10 8-6 12-18 20-12 6 5-4 14 4 12 10-3 14-16 24-14 8 2 0 14 8 12 12-3 22-22 32-18 7 3-6 14 4 13 14-1 24-10 40-12 12-2 30 2 44 0" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M60 46c40 4 90 2 150-4" fill="none" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+        <div class="discret">Specimen</div>
       </div>
     </div>
 
@@ -329,10 +341,10 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: 14px; }
       <h2>Parts sociales</h2>
       <p class="chiffre" id="detenues"></p>
       <p class="discret" id="detenues-valeur"></p>
-      <p class="discret" style="margin-top:8px">Minimum pour rester membre : 1 part</p>
+      <p class="discret" style="margin-top:8px">Emprunteuse : prêt P-2026-00871</p>
       <details class="textes"><summary>Textes</summary>
-        <p>Au moins une part souscrite et libérée pour être membre (loi n° 002/2002, art. 22) ; parts nominatives, non négociables, cessibles seulement selon les statuts, insaisissables pour le minimum requis (art. 21). Valeur nominale fixée par les statuts (art. 20).</p>
-        <p>Écran réservé aux COOPEC. Une IMF est une SPRL ou une SARL (loi n° 11/020, art. 14) : son capital appartient à ses associés ou actionnaires, il ne se vend pas au guichet.</p>
+        <p>Au moins une part pour être membre (loi n° 002/2002, art. 22). Un membre emprunteur ou caution ne peut pas se retirer (art. 24). Valeur d'une part fixée par les statuts (art. 20).</p>
+        <p>Écran réservé aux COOPEC : une IMF est une SPRL ou une SARL (loi n° 11/020, art. 14).</p>
       </details>
     </div>
   </section>
@@ -349,80 +361,63 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: 14px; }
     <div class="bloc bordereau" id="saisie">
       <div class="entete-b">
         <h2 id="t-bordereau">Parts sociales</h2>
-        <div class="segments" role="group" aria-label="Opération sur les parts">
-          <button id="m-achat" aria-pressed="true">Acheter</button>
-          <button id="m-remb" aria-pressed="false">Rembourser</button>
-        </div>
       </div>
 
-      <!-- Achat -->
-      <div id="achat" style="display:grid;gap:12px">
-        <fieldset>
-          <legend><label for="nombre">Nombre de parts</label></legend>
-          <div class="nombre">
-            <input id="nombre" inputmode="numeric" value="2" autocomplete="off" aria-describedby="err-nombre">
-            <div class="calc">× <span class="num" id="nominal"></span><strong id="montant"></strong></div>
-            <div class="apres">Parts après<strong id="apres"></strong></div>
-          </div>
-          <p class="lettres" id="lettres" aria-live="polite"></p>
-          <p class="erreur" id="err-nombre"></p>
-          <details class="textes"><summary>Textes</summary>
-            <p>Les parts se paient en entier à la souscription : pas de libération partielle (loi n° 002/2002, art. 21 ; PCCI, compte 10). Elles se paient dans la monnaie de leur valeur nominale, sans conversion (PCCI § 7.1). Aucun impôt ni taxe sur les parts sociales (loi n° 002/2002, art. 62).</p>
-          </details>
-        </fieldset>
+      <fieldset class="choix">
+        <legend>Opération</legend>
+        <label><input type="radio" name="operation" value="achat" checked> Achat de parts</label>
+        <label><input type="radio" name="operation" value="retrait"> Retrait de parts</label>
+      </fieldset>
 
-        <fieldset class="choix">
-          <legend>Paiement</legend>
-          <label><input type="radio" name="source" value="especes" checked> En espèces, francs congolais</label>
-          <label><input type="radio" name="source" value="epargne"> Par l'épargne à vue en francs</label>
-        </fieldset>
-
-        <div class="source-compte" id="source-compte" hidden>
-          <div class="ligne"><span>Épargne à vue CDF, <span class="num">0412-000318-02</span></span><span class="num" id="ep-solde"></span></div>
-          <div class="ligne discret"><span>Après prélèvement</span><span class="num" id="ep-apres"></span></div>
-          <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="v-ordre" style="accent-color:var(--tampon)"> Ordre de prélèvement signé par le membre</label>
+      <fieldset>
+        <legend><label for="nombre">Nombre de parts</label></legend>
+        <div class="nombre">
+          <input id="nombre" inputmode="numeric" value="2" autocomplete="off" aria-describedby="err-nombre">
+          <div class="calc">× <span class="num" id="nominal"></span><strong id="montant"></strong></div>
+          <div class="apres">Parts après<strong id="apres"></strong></div>
         </div>
+        <p class="lettres" id="lettres" aria-live="polite"></p>
+        <p class="erreur" id="err-nombre"></p>
+        <details class="textes"><summary>Textes</summary>
+          <p>Achat : les parts se paient en entier (loi n° 002/2002, art. 21 ; PCCI, compte 10). Aucun impôt ni taxe sur les parts (art. 62).</p>
+          <p>Retrait : tout retirer revient à quitter la COOPEC, impossible pour un emprunteur ou une caution (art. 22 et 24).</p>
+        </details>
+      </fieldset>
 
-        <section class="renforce" id="renforce" hidden aria-labelledby="t-renforce">
-          <div class="titre"><span id="t-renforce">Examen renforcé</span><span class="num" id="renforce-cumul"></span></div>
-          <label class="champ" for="r-origine">Origine des fonds, selon le membre
-            <textarea id="r-origine"></textarea>
-          </label>
-          <label><input type="checkbox" id="r-justificatif"> Justificatif vu</label>
-          <p class="confidentiel">Confidentiel : ne rien dire au membre.</p>
-          <details class="textes"><summary>Textes</summary><p>Espèces de 10 000 USD ou plus, ou leur contre-valeur en francs, cumul de la journée : Instr. BCC 15, art. 61 et 62 ; loi n° 22/068, art. 54 et 92 bis (loi n° 25/048) ; Instr. BCC 15 bis, art. 6 et 7.</p></details>
-        </section>
-      </div>
+      <fieldset class="verif" id="verif" hidden>
+        <legend>J'ai vérifié</legend>
+        <label><input type="checkbox" id="v-piece"> La pièce d'identité</label>
+        <label><input type="checkbox" id="v-signature"> La signature</label>
+      </fieldset>
 
-      <!-- Remboursement -->
-      <div id="remb" hidden style="display:grid;gap:12px">
-        <div class="blocage">
-          <strong>Démission impossible pour l'instant</strong>
-          <p>La membre est emprunteuse : prêt P-2026-00871, capital restant dû <span class="num">1 240,00 USD</span>. Un membre ne peut se retirer que s'il n'est ni emprunteur ni caution d'un prêt.</p>
-          <details class="textes"><summary>Textes</summary><p>Loi n° 002/2002, art. 24 (retrait du membre) et art. 27 (apurement des créances et engagements à la perte de la qualité de membre).</p></details>
-        </div>
-        <p class="discret" style="margin:0">Le remboursement des parts se paie au guichet seulement après une démission constatée par le Conseil d'administration. Aucune démission n'est enregistrée pour ce membre.</p>
-        <p class="discret" style="margin:0">Rembourser une partie des parts en restant membre : la loi ne le prévoit pas. À fixer dans les statuts avant de l'ouvrir au guichet.</p>
-      </div>
+      <section class="renforce" id="renforce" hidden aria-labelledby="t-renforce">
+        <div class="titre"><span id="t-renforce">Examen renforcé</span><span class="num" id="renforce-cumul"></span></div>
+        <label class="champ" for="r-objet"><span id="r-objet-label">Origine des fonds, selon le membre</span>
+          <textarea id="r-objet"></textarea>
+        </label>
+        <label><input type="checkbox" id="r-justificatif"> Justificatif vu</label>
+        <p class="confidentiel">Confidentiel : ne rien dire au membre.</p>
+        <details class="textes"><summary>Textes</summary><p>Espèces de 10 000 USD ou plus, ou leur contre-valeur, cumul de la journée : Instr. BCC 15, art. 61 et 62 ; loi n° 22/068, art. 54 et 92 bis (loi n° 25/048) ; Instr. BCC 15 bis, art. 6 et 7.</p></details>
+      </section>
 
-      <div class="cloture" id="cloture">
+      <div class="cloture">
         <ul class="etapes" id="etapes" aria-label="Contrôles"></ul>
-        <button class="bouton" id="valider" disabled>Valider <span class="touche">F9</span></button>
+        <button class="bouton" id="valider" disabled>Enregistrer <span class="touche">F9</span></button>
       </div>
     </div>
 
     <div class="bloc bordereau resultat" id="resultat" hidden>
-      <div class="tampon">Parts souscrites</div>
+      <div class="tampon" id="r-tampon"></div>
       <dl class="resume">
-        <dt>Pièce</dt><dt>Montant reçu</dt><dt>Parts détenues</dt>
+        <dt>Pièce</dt><dt>Montant</dt><dt>Parts détenues</dt>
         <dd class="num">CAI-0412-2026-018734</dd><dd class="num" id="r-montant"></dd><dd class="num" id="r-parts"></dd>
       </dl>
       <p class="interne" id="r-cenaref" hidden></p>
       <div class="actions">
-        <button class="bouton" id="imp">Imprimer l'attestation</button>
+        <button class="bouton" id="imp">Imprimer</button>
         <span class="discret" id="imp-msg" aria-live="polite"></span>
       </div>
-      <details class="voir"><summary>Voir l'attestation</summary><div class="papier" id="r-attestation"></div></details>
+      <details class="voir"><summary>Voir le bordereau</summary><div class="papier" id="r-bordereau"></div></details>
       <details class="voir"><summary>Voir l'écriture comptable</summary>
         <div class="table-defil">
           <table class="ecriture">
@@ -430,23 +425,24 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: 14px; }
             <tbody id="r-lignes"></tbody>
           </table>
         </div>
-        <p class="discret" id="r-note"></p>
+        <p class="discret">PCCI, compte 10 : crédité à l'achat de parts, débité au retrait, en contrepartie de la caisse.</p>
       </details>
       <div><button class="secondaire" id="nouvelle">Opération suivante <span class="touche">Entrée</span></button></div>
     </div>
   </section>
 
-  <!-- L'argent reçu -->
+  <!-- L'argent -->
   <section aria-labelledby="t-billetage">
-    <div class="bloc billetage" id="bloc-billets">
-      <h2 id="t-billetage">Billets reçus, CDF</h2>
+    <div class="bloc billetage">
+      <h2 id="t-billetage"></h2>
       <table>
-        <thead><tr><th>Coupure</th><th>Nombre</th><th>Montant</th></tr></thead>
+        <thead><tr><th>Coupure</th><th id="col-stock">En caisse</th><th>Nombre</th><th>Montant</th></tr></thead>
         <tbody id="b-lignes"></tbody>
-        <tfoot><tr><td>Total</td><td></td><td class="num" id="b-total">0</td></tr></tfoot>
+        <tfoot><tr><td>Total</td><td></td><td></td><td class="num" id="b-total">0</td></tr></tfoot>
       </table>
       <p class="ecart" id="b-ecart" aria-live="polite"></p>
-      <label><input type="checkbox" id="v-compte"> Comptés devant le membre</label>
+      <label id="l-compte"><input type="checkbox" id="v-compte"> Comptés devant le membre</label>
+      <div class="bas"><span>Caisse après : <span class="num" id="e-apres"></span></span></div>
     </div>
 
     <div class="bloc" id="autorisations" hidden aria-labelledby="t-autor">
@@ -462,26 +458,29 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: 14px; }
 
 <footer class="touches">
   <span><span class="touche">F2</span> <b>Membre</b></span>
-  <span><span class="touche">F9</span> <b>Valider</b></span>
+  <span><span class="touche">F9</span> <b>Enregistrer</b></span>
   <span><span class="touche">Échap</span> <b>Annuler</b></span>
-  <span class="note">Maquette, données fictives. Valeur d'une part : exemple, à prendre dans les statuts.</span>
+  <span class="note">Maquette sur le modèle de Microfina++. Valeur d'une part : exemple de Microfina++, devise à fixer.</span>
 </footer>
 
 <script>
 // ---------- Données fictives ----------
-const NOMINAL = 500000;          // 5 000 CDF par part, en centimes : EXEMPLE, la valeur réelle vient des statuts (loi 002/2002, art. 20)
-const DETENUES = 10;             // parts déjà détenues
-const EPARGNE_CDF = 341250000;   // épargne à vue CDF
-const COURS = 2850;              // CDF pour 1 USD (fictif)
+const VALEUR_PART = 400000;   // 4 000 : valeur de l'exemple Microfina++ (manuel, p. 90). La vraie valeur et sa devise viennent des statuts (loi 002/2002, art. 20). DEVISE À CONFIRMER.
+const DEVISE = "CDF";         // À CONFIRMER avec le porteur du projet
+const DETENUES = 10;
+const EMPRUNTEUR = true;      // prêt P-2026-00871 en cours
+const COURS = 2850;           // CDF pour 1 USD (fictif)
 const SEUIL_ESPECES_USD = 10000;
 const ESPECES_DU_JOUR_USD = 0;
 const CONFORMITE = "G. Ilunga";
 const COUPURES = [20000, 10000, 5000, 1000, 500, 200, 100, 50];
+const STOCK = { 20000: 150, 10000: 210, 5000: 180, 1000: 400, 500: 300, 200: 250, 100: 200, 50: 100 };
+const ENCAISSE = Object.entries(STOCK).reduce((s, [v, n]) => s + v * 100 * n, 0);
 
 const $ = (id) => document.getElementById(id);
 const fmt = new Intl.NumberFormat("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const entier = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });
-const money = (c, d = "CDF") => fmt.format(c / 100) + " " + d;
+const money = (c) => fmt.format(c / 100) + " " + DEVISE;
 const heure = () => new Date().toTimeString().slice(0, 5);
 const pluriel = new Intl.PluralRules("fr-FR");
 const parts = (n) => `${entier.format(n)} ${pluriel.select(n) === "one" ? "part" : "parts"}`;
@@ -519,15 +518,17 @@ function montantEnLettres(c) {
 }
 
 // ---------- État ----------
-let mode = "achat", source = "especes", compteurs = {}, visaConf = null;
+let operation = "achat", compteurs = {}, visaConf = null;
 const accorde = (v) => v && v !== "attente";
 const lireNombre = () => { const t = $("nombre").value.trim(); return /^\d{1,5}$/.test(t) ? Number(t) : null; };
 
 function construireBilletage() {
+  const retrait = operation === "retrait";
   $("b-lignes").innerHTML = COUPURES.map((v) => `
     <tr>
       <td class="num">${entier.format(v)}</td>
-      <td><input class="num" inputmode="numeric" data-v="${v}" id="b-${v}" aria-label="Nombre de billets de ${v} CDF reçus" value="${compteurs[v] || ""}"></td>
+      <td class="stock num">${retrait ? STOCK[v] : ""}</td>
+      <td><input class="num" inputmode="numeric" data-v="${v}" id="b-${v}" aria-label="Nombre de billets de ${v} ${DEVISE}" value="${compteurs[v] || ""}"></td>
       <td class="num" data-m="${v}"></td>
     </tr>`).join("");
   $("b-lignes").querySelectorAll("input").forEach((i) => i.addEventListener("input", () => {
@@ -539,53 +540,55 @@ function construireBilletage() {
 const totalBilletage = () => Object.entries(compteurs).reduce((s, [v, n]) => s + Number(v) * 100 * n, 0);
 
 function rafraichir() {
+  const retrait = operation === "retrait";
   $("detenues").textContent = parts(DETENUES);
-  $("detenues-valeur").textContent = `${money(DETENUES * NOMINAL)}, compte 1030`;
-  $("nominal").textContent = money(NOMINAL);
+  $("detenues-valeur").textContent = `${money(DETENUES * VALEUR_PART)}, compte 1030`;
+  $("nominal").textContent = money(VALEUR_PART);
+  $("t-billetage").textContent = retrait ? "Billets à remettre" : "Billets reçus";
+  $("col-stock").textContent = retrait ? "En caisse" : "";
+  $("l-compte").hidden = retrait;
+  $("verif").hidden = !retrait;
+  $("specimen").hidden = !retrait;
 
-  // Mode
-  $("m-achat").setAttribute("aria-pressed", mode === "achat");
-  $("m-remb").setAttribute("aria-pressed", mode === "remb");
-  $("achat").hidden = mode !== "achat";
-  $("remb").hidden = mode !== "remb";
-  $("cloture").hidden = mode !== "achat";
-  $("bloc-billets").hidden = mode !== "achat" || source !== "especes";
-
-  // Nombre et montant
+  // Nombre de parts
   const n = lireNombre();
-  const m = n ? n * NOMINAL : 0;
-  const especes = source === "especes";
+  const m = n ? n * VALEUR_PART : 0;
   let err = "";
   if (n === null) err = "Saisir un nombre entier de parts.";
   else if (n === 0) err = "Au moins une part.";
-  else if (!especes && m > EPARGNE_CDF) err = "Dépasse le solde de l'épargne en francs.";
+  else if (retrait && n > DETENUES) err = `Le membre n'a que ${parts(DETENUES)}.`;
+  else if (retrait && n === DETENUES && EMPRUNTEUR) err = "Retirer toutes les parts, c'est quitter la COOPEC : impossible, la membre est emprunteuse (loi n° 002/2002, art. 24).";
   $("err-nombre").textContent = err;
   $("montant").textContent = n ? money(m) : "";
-  $("apres").textContent = n ? parts(DETENUES + n) : parts(DETENUES);
+  const apres = n === null ? DETENUES : retrait ? DETENUES - n : DETENUES + n;
+  $("apres").textContent = parts(Math.max(apres, 0));
   $("lettres").textContent = n ? montantEnLettres(m) : "";
   const nombreOk = !!n && !err;
-
-  // Source
-  $("source-compte").hidden = especes;
-  $("ep-solde").textContent = money(EPARGNE_CDF);
-  $("ep-apres").textContent = n ? money(EPARGNE_CDF - m) : "";
 
   // Billets
   const total = totalBilletage();
   $("b-total").textContent = entier.format(total / 100);
-  COUPURES.forEach((v) => { document.querySelector(`[data-m="${v}"]`).textContent = compteurs[v] ? entier.format(v * compteurs[v]) : ""; });
+  let trop = false;
+  COUPURES.forEach((v) => {
+    const k = compteurs[v] || 0, t = retrait && k > STOCK[v];
+    trop ||= t;
+    const i = $("b-" + v); if (i) i.classList.toggle("trop", t);
+    document.querySelector(`[data-m="${v}"]`).textContent = k ? entier.format(v * k) : "";
+  });
   const ecart = m - total;
-  const billetsOk = !!n && ecart === 0;
+  const billetsOk = !!n && ecart === 0 && !trop;
   $("b-ecart").className = "ecart " + (billetsOk ? "ok" : "ko");
-  $("b-ecart").textContent = !n ? "" : ecart === 0 ? "Le compte est bon." : ecart > 0 ? `Il manque ${money(ecart)}.` : `${money(-ecart)} de trop.`;
+  $("b-ecart").textContent = !n ? "" : trop ? "Pas assez de coupures en caisse." : ecart === 0 ? "Le compte est bon." : ecart > 0 ? `Il manque ${money(ecart)}.` : `${money(-ecart)} de trop.`;
+  $("e-apres").textContent = money(retrait ? ENCAISSE - total : ENCAISSE + total);
 
   // 10 000 USD et plus en espèces
   const usd = m / 100 / COURS;
-  const besoinConf = especes && ESPECES_DU_JOUR_USD + usd >= SEUIL_ESPECES_USD;
+  const besoinConf = ESPECES_DU_JOUR_USD + usd >= SEUIL_ESPECES_USD;
   $("renforce").hidden = !besoinConf;
+  $("r-objet-label").textContent = retrait ? "Destination des fonds, selon le membre" : "Origine des fonds, selon le membre";
   $("renforce-cumul").textContent = besoinConf ? `${fmt.format(ESPECES_DU_JOUR_USD + usd)} USD aujourd'hui` : "";
-  const renforceOk = $("r-origine").value.trim().length >= 10 && $("r-justificatif").checked;
-  $("autorisations").hidden = !besoinConf || mode !== "achat";
+  const renforceOk = $("r-objet").value.trim().length >= 10 && $("r-justificatif").checked;
+  $("autorisations").hidden = !besoinConf;
   $("v-conf").classList.toggle("accorde", accorde(visaConf));
   $("v-conf-etat").textContent = accorde(visaConf) ? "accordé" : visaConf === "attente" ? "en attente" : "requis";
   $("v-conf-detail").textContent = accorde(visaConf) ? `${visaConf.par}, ${visaConf.heure}` : visaConf === "attente" ? "Dossier transmis." : "Compléter l'examen renforcé, puis transmettre.";
@@ -593,12 +596,12 @@ function rafraichir() {
   $("v-conf-btn").disabled = !renforceOk;
 
   // Étapes
-  const etapes = [["Nombre", nombreOk]];
-  if (especes) etapes.push(["Billets", billetsOk], ["Comptés", $("v-compte").checked]);
-  else etapes.push(["Ordre signé", $("v-ordre").checked]);
+  const etapes = [["Nombre", nombreOk], ["Billets", billetsOk]];
+  if (retrait) etapes.push(["Pièce", $("v-piece").checked], ["Signature", $("v-signature").checked]);
+  else etapes.push(["Comptés", $("v-compte").checked]);
   if (besoinConf) etapes.push(["Examen renforcé", renforceOk], ["Conformité", accorde(visaConf)]);
-  $("etapes").innerHTML = etapes.map(([nom, ok]) => `<li class="${ok ? "ok" : nom === "Nombre" && err ? "ko" : ""}">${nom}</li>`).join("");
-  $("valider").disabled = mode !== "achat" || !etapes.every(([, ok]) => ok);
+  $("etapes").innerHTML = etapes.map(([nom, ok]) => `<li class="${ok ? "ok" : (nom === "Nombre" && err) || (nom === "Billets" && n && trop) ? "ko" : ""}">${nom}</li>`).join("");
+  $("valider").disabled = !etapes.every(([, ok]) => ok);
 }
 
 function demanderVisa() {
@@ -608,30 +611,30 @@ function demanderVisa() {
 
 function valider() {
   if ($("valider").disabled) return;
-  const n = lireNombre(), m = n * NOMINAL, especes = source === "especes";
+  const n = lireNombre(), m = n * VALEUR_PART, retrait = operation === "retrait";
+  const apres = retrait ? DETENUES - n : DETENUES + n;
+  $("r-tampon").textContent = retrait ? "Retrait de parts enregistré" : "Achat de parts enregistré";
   $("r-montant").textContent = money(m);
-  $("r-parts").textContent = parts(DETENUES + n);
-  $("r-lignes").innerHTML = `
-    <tr><td class="num">${especes ? "570" : "330"}</td><td>${especes ? "Caisse 2" : "Épargnes CDF, Kalala Mbuyi Josée"}</td><td class="m num">${money(m)}</td><td></td></tr>
-    <tr><td class="num">1030</td><td>Parts sociales, personnes physiques, Kalala Mbuyi Josée</td><td></td><td class="m num">${money(m)}</td></tr>`;
-  $("r-note").textContent = "Le capital social augmente du montant souscrit (PCCI, compte 10). Il compte dans les fonds propres de base (Instr. BCC 002, art. 8). Le registre des parts reçoit une ligne à la même date.";
-  $("r-attestation").innerHTML = `
-    <div class="titre"><span>COOPEC Tujenge, agence Matete</span><span>Souscription de parts sociales</span></div>
+  $("r-parts").textContent = parts(apres);
+  const caisse = `<tr><td class="num">570</td><td>Caisse 2</td><td class="m num">${retrait ? "" : money(m)}</td><td class="m num">${retrait ? money(m) : ""}</td></tr>`;
+  const capital = `<tr><td class="num">1030</td><td>Parts sociales, personnes physiques, Kalala Mbuyi Josée</td><td class="m num">${retrait ? money(m) : ""}</td><td class="m num">${retrait ? "" : money(m)}</td></tr>`;
+  $("r-lignes").innerHTML = retrait ? capital + caisse : caisse + capital;
+  $("r-bordereau").innerHTML = `
+    <div class="titre"><span>COOPEC Tujenge, agence Matete</span><span>${retrait ? "Retrait" : "Achat"} de parts sociales</span></div>
     <dl>
       <dt>Pièce</dt><dd class="num">CAI-0412-2026-018734</dd>
       <dt>Date</dt><dd>05/11/2026, ${heure()}, caisse 2</dd>
       <dt>Membre</dt><dd><span class="num">0412-000318</span>, Kalala Mbuyi Josée</dd>
-      <dt>Parts souscrites</dt><dd class="num">${parts(n)} × ${money(NOMINAL)}</dd>
-      <dt>Montant libéré</dt><dd class="num"><strong>${money(m)}</strong></dd>
+      <dt>Parts</dt><dd class="num">${parts(n)} × ${money(VALEUR_PART)}</dd>
+      <dt>Montant</dt><dd class="num"><strong>${money(m)}</strong></dd>
       <dt>En lettres</dt><dd>${montantEnLettres(m).replace(/^./, (x) => x.toUpperCase())}</dd>
-      <dt>Paiement</dt><dd>${especes ? "espèces" : "prélèvement sur l'épargne à vue, ordre signé"}</dd>
-      <dt>Parts détenues</dt><dd class="num">${parts(DETENUES + n)}, ${money((DETENUES + n) * NOMINAL)}</dd>
+      <dt>Parts détenues</dt><dd class="num">${parts(apres)}</dd>
     </dl>
     <div class="signatures"><div>Membre</div><div>Caissière</div><div>Cachet</div></div>
     <p class="pied">Réclamation : service des plaintes de toute agence, réponse sous 45 jours. À défaut, recours auprès de la Banque Centrale du Congo.</p>`;
   const cen = $("r-cenaref");
   cen.hidden = !accorde(visaConf);
-  cen.innerHTML = accorde(visaConf) ? "<strong>Interne.</strong> Rapport confidentiel préparé pour la CENAREF. Absent de l'attestation." : "";
+  cen.innerHTML = accorde(visaConf) ? "<strong>Interne.</strong> Rapport confidentiel préparé pour la CENAREF. Absent du bordereau." : "";
   $("imp-msg").textContent = "";
   $("saisie").hidden = true;
   $("resultat").hidden = false;
@@ -639,12 +642,12 @@ function valider() {
 }
 
 function reinitialiser() {
-  mode = "achat"; source = "especes"; visaConf = null;
-  document.querySelector('input[name="source"][value="especes"]').checked = true;
+  operation = "achat"; visaConf = null;
+  document.querySelector('input[name="operation"][value="achat"]').checked = true;
   $("nombre").value = "2";
-  compteurs = { 10000: 1 };
-  ["r-origine"].forEach((id) => { $(id).value = ""; });
-  ["v-compte", "v-ordre", "r-justificatif"].forEach((id) => { $(id).checked = false; });
+  compteurs = { 5000: 1, 1000: 3 };
+  $("r-objet").value = "";
+  ["v-compte", "v-piece", "v-signature", "r-justificatif"].forEach((id) => { $(id).checked = false; });
   $("resultat").hidden = true;
   $("saisie").hidden = false;
   construireBilletage();
@@ -653,14 +656,14 @@ function reinitialiser() {
 }
 
 // ---------- Liaisons ----------
-$("m-achat").addEventListener("click", () => { mode = "achat"; rafraichir(); });
-$("m-remb").addEventListener("click", () => { mode = "remb"; rafraichir(); });
-document.querySelectorAll('input[name="source"]').forEach((x) => x.addEventListener("change", () => { source = x.value; rafraichir(); }));
-["nombre", "v-compte", "v-ordre", "r-origine", "r-justificatif"].forEach((id) => $(id).addEventListener("input", rafraichir));
+document.querySelectorAll('input[name="operation"]').forEach((x) => x.addEventListener("change", () => {
+  operation = x.value; compteurs = {}; construireBilletage(); rafraichir();
+}));
+["nombre", "v-compte", "v-piece", "v-signature", "r-objet", "r-justificatif"].forEach((id) => $(id).addEventListener("input", rafraichir));
 $("valider").addEventListener("click", valider);
 $("nouvelle").addEventListener("click", reinitialiser);
 $("v-conf-btn").addEventListener("click", demanderVisa);
-$("imp").addEventListener("click", () => { $("imp-msg").textContent = "Envoyée à l'imprimante, deux exemplaires (simulation)."; });
+$("imp").addEventListener("click", () => { $("imp-msg").textContent = "Envoyé à l'imprimante, deux exemplaires (simulation)."; });
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "F2") { e.preventDefault(); $("q").focus(); $("q").select(); }
@@ -669,8 +672,8 @@ document.addEventListener("keydown", (e) => {
   else if (e.key === "Enter" && !$("resultat").hidden && document.activeElement?.tagName !== "BUTTON") { e.preventDefault(); reinitialiser(); }
 });
 
-// Départ : la membre achète 2 parts, soit 10 000 CDF, payés avec un billet de 10 000
-compteurs = { 10000: 1 };
+// Départ : achat de 2 parts, soit 8 000, payés avec un billet de 5 000 et trois de 1 000
+compteurs = { 5000: 1, 1000: 3 };
 construireBilletage();
 rafraichir();
 </script>
