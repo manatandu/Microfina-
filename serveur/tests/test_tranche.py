@@ -137,10 +137,12 @@ def test_enrolement(clients, journee):
     assert "Personne liée" in refus({**base, "liees": [999999]})
     assert "PNG ou JPEG" in refus({**base, "images": {"photo": "data:text/html;base64,AA=="}})
     assert "Premier dépôt" in refus({**base, "premierDepot": -5})
-    r = agent.post("/api/tiers", {**base, "produitCode": "EAV-USD", "premierDepot": 2000, "resident": False, "liees": [T("0412-000318")],
+    assert "Sexe" in refus({**base, "sexe": "X"})
+    r = agent.post("/api/tiers", {**base, "produitCode": "EAV-USD", "premierDepot": 2000, "resident": False, "liees": [T("0412-000318")], "sexe": "F", "telephone": "+243 810 000 000",
                                   "images": {"signature": "data:image/png;base64,iVBORw0KGgo="}}, **H)
     t = r.json()
     assert r.status_code == 200, r.content
+    assert (t["sexe"], t["telephone"]) == ("F", "+243 810 000 000")
     assert (t["statut"], t["produitCode"], t["premierDepot"], t["resident"], t["liees"], t["specimen"], t["photo"]) == \
         ("a_viser", "EAV-USD", 2000, False, [T("0412-000318")], True, False)
 

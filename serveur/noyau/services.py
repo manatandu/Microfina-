@@ -355,6 +355,8 @@ def creer_tiers(u: dict, d: dict) -> dict:
         raise ErreurMetier("À remplir : " + ", ".join(manque) + ".")
     if texte("typeClient") not in TYPES_CLIENT:
         raise ErreurMetier("Type client inconnu.")
+    if texte("sexe") not in ("", "F", "M"):
+        raise ErreurMetier("Sexe inconnu.")
     produit = valeur("select id from produit_epargne where institution_id = %s and code = %s", (u["institution_id"], texte("produitCode")))
     if not produit:
         raise ErreurMetier("Type de compte inconnu.")

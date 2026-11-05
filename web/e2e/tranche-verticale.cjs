@@ -43,7 +43,7 @@ const OUT = process.argv[2];
   await p.getByLabel('Type de compte à créer *').selectOption('EAV-CDF');
   await etape('04-enrolement');
   await p.getByRole('button', { name: 'Suivant' }).click();
-  await p.getByLabel('Nom : *').fill('Tshala'); await p.getByLabel('Post-nom :').fill('Muana'); await p.getByLabel('Prénom :').fill('Marie-Thérèse');
+  await p.getByLabel('Nom : *').fill('Tshala'); await p.getByLabel('Post-nom :').fill('Muana'); await p.getByLabel('Prénom :').fill('Marie-Thérèse'); await p.getByLabel('Sexe :').selectOption('F'); await p.getByLabel('Téléphone :').fill('+243 810 000 000');
   await p.getByLabel('Type de pièce : *').fill("Carte d'électeur"); await p.getByLabel('N° de pièce : *').fill('1-0412-0999'); await p.getByLabel("Valide jusqu'au :").fill('01012031');
   await etape('04b-renseignements');
   for (const o of ['Autres renseignements', 'Personnes Liées']) await p.getByRole('tab', { name: o }).click();

@@ -228,6 +228,7 @@ export function controlerEnrolement(d: NouveauTiers, images: Images, ctx: { prod
     ["nom", d.nom], ["type de pièce", d.pieceType], ["numéro de pièce", d.pieceNumero]] as const).filter(([, v]) => !v?.trim()).map(([k]) => k);
   if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
   if (!TYPES_CLIENT.includes(d.typeClient)) throw new ErreurMetier("Type client inconnu.");
+  if (!["", "F", "M"].includes(d.sexe)) throw new ErreurMetier("Sexe inconnu.");
   if (!ctx.produits.some((p) => p.code === d.produitCode)) throw new ErreurMetier("Type de compte inconnu.");
   if (!Number.isInteger(d.premierDepot) || d.premierDepot < 0) throw new ErreurMetier("Premier dépôt invalide.");
   if (d.pieceExpire && d.pieceExpire < ctx.jour) throw new ErreurMetier("Pièce expirée.", "pieceExpire");
