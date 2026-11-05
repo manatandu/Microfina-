@@ -154,3 +154,18 @@ fieldset.formulaire { padding-bottom: var(--espace-2); }
 
 .a-droite { text-align: right; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Enrôlement en onglets (S37, manuel Microfina++ p. 49) */
+.entete-ecran { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--espace-2) var(--espace-4); }
+.entete-ecran p { margin: 0; color: var(--encre-2); }
+.libelle-vide { display: block; }
+.a-confirmer { margin: 0; padding: var(--espace-2) var(--espace-3); border-left: 3px solid var(--etoile); background: var(--ligne); font-size: var(--taille-dense); }
+.actions-onglets { display: flex; justify-content: flex-end; gap: var(--espace-2); }
+.apercu { margin: 0; display: grid; gap: var(--espace-1); }
+.apercu figcaption { font-size: var(--taille-dense); color: var(--encre-2); }
+.apercu img { max-width: 100%; max-height: 140px; object-fit: contain; border: 1px solid var(--trait); border-radius: var(--rayon-petit); background: var(--feuille); }
+.deux-colonnes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--espace-4) var(--espace-7); align-items: start; }
+@media (max-width: 720px) { .deux-colonnes { grid-template-columns: minmax(0, 1fr); } }
+.ligne-champ { display: flex; flex-wrap: wrap; gap: var(--espace-3); align-items: end; }
+.ligne-champ > .champ { flex: 0 1 auto; }
+.ligne-champ > .bouton { margin-bottom: 22px; }

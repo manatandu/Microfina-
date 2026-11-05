@@ -159,3 +159,24 @@ export function lireDate(t: string): string | null {
   const d = new Date(Date.UTC(Number(a), Number(mo) - 1, Number(j)));
   return d.getUTCDate() === Number(j) && d.getUTCMonth() === Number(mo) - 1 ? `${a}-${mo}-${j}` : null;
 }
+
+/** Boîtes de dialogue du manuel Microfina++ (p. 10 et 11) : confirmation Oui/Non, succès, erreur. */
+export type Boite = { type: "confirmation"; message: string; oui: () => void } | { type: "succes" | "erreur"; message: string };
+const TITRES = { confirmation: "Confirmation", succes: "Succès", erreur: "Erreur" };
+export function Dialogue({ boite, fermer }: { boite: Boite | null; fermer: () => void }) {
+  const [el, setEl] = useState<HTMLDialogElement | null>(null);
+  useEffect(() => { if (el && boite && !el.open) el.showModal?.(); if (el && !boite && el.open) el.close(); }, [el, boite]);
+  if (!boite) return null;
+  return (
+    <dialog ref={setEl} className="boite" data-type={boite.type} aria-labelledby="boite-titre" onCancel={(e) => { e.preventDefault(); fermer(); }}>
+      <h2 id="boite-titre">{TITRES[boite.type]}</h2>
+      <p>{boite.message}</p>
+      <div className="boutons">
+        {boite.type === "confirmation"
+          ? <><button className="bouton" type="button" autoFocus onClick={() => { fermer(); boite.oui(); }}>Oui</button>
+              <button className="bouton secondaire" type="button" onClick={fermer}>Non</button></>
+          : <button className="bouton" type="button" autoFocus onClick={fermer}>Ok</button>}
+      </div>
+    </dialog>
+  );
+}

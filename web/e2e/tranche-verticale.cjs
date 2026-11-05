@@ -40,10 +40,19 @@ const OUT = process.argv[2];
   f = await remplir('USD', { 1: 6 }); await f.getByRole('button', { name: /Envoyer/ }).click(); await f.getByText(/Envoyé/).waitFor();
   // Agent : enrôler
   await login('Bijou Kasongo'); await aller('/clients/s37');
-  await p.getByLabel('Nom *').fill('Tshala'); await p.getByLabel('Post-nom').fill('Muana'); await p.getByLabel('Prénom').fill('Marie-Thérèse');
-  await p.getByLabel('Type de pièce *').selectOption("Carte d'électeur"); await p.getByLabel('Numéro *').fill('1-0412-0999'); await p.getByLabel('Expire le').fill('01012031');
+  await p.getByLabel('Type de compte à créer *').selectOption('EAV-CDF');
   await etape('04-enrolement');
-  await p.getByRole('button', { name: /Enregistrer, à viser/ }).click(); await p.getByText(/est enregistré sous le numéro/).waitFor(); await etape('05-enrole');
+  await p.getByRole('button', { name: 'Suivant' }).click();
+  await p.getByLabel('Nom : *').fill('Tshala'); await p.getByLabel('Post-nom :').fill('Muana'); await p.getByLabel('Prénom :').fill('Marie-Thérèse');
+  await p.getByLabel('Type de pièce : *').fill("Carte d'électeur"); await p.getByLabel('N° de pièce : *').fill('1-0412-0999'); await p.getByLabel("Valide jusqu'au :").fill('01012031');
+  await etape('04b-renseignements');
+  for (const o of ['Autres renseignements', 'Personnes Liées']) await p.getByRole('tab', { name: o }).click();
+  await p.getByLabel('Membre :').fill('Kalala'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('button', { name: '+Ajouter' }).click();
+  await p.getByRole('cell', { name: '0412-000318' }).waitFor(); await etape('04c-personnes-liees');
+  await p.getByRole('tab', { name: 'Photo' }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click();
+  await p.getByRole('dialog', { name: 'Confirmation' }).waitFor(); await etape('04d-confirmation');
+  await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await etape('05-enrole');
+  await p.getByRole('button', { name: 'Ok' }).click();
   // Chef : valider billetages et viser
   await login('J.-P. Mukendi'); await aller('/caisse/s80'); await etape('06-chef-a-valider');
   await validerTout();

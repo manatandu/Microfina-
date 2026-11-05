@@ -26,12 +26,16 @@ export function graine(): Etat {
     { compte: "1030", contrat: "parts:2", sens: "C", devise: "CDF", montant: VALEUR_PART_EXEMPLE, montantCdf: VALEUR_PART_EXEMPLE },
     { compte: "1030", contrat: "parts:3", sens: "C", devise: "CDF", montant: VALEUR_PART_EXEMPLE, montantCdf: VALEUR_PART_EXEMPLE },
   ];
-  const personne = { sexe: "F" as const, naissance: "", pieceExpire: "2030-12-31", adresse: "Matete, quartier Kinsaku", telephone: "", personneExposee: false, creePar: 4, visePar: 2, statut: "actif" as const };
+  const personne = { sexe: "F" as const, naissance: "", pieceExpire: "2030-12-31", adresse: "Matete, quartier Kinsaku", telephone: "", personneExposee: false,
+    dateDemande: "2026-01-15", numeroManuel: "", matricule: "", typeClient: "Client", zone: "", produitCode: "EAV-CDF", premierDepot: 0, resident: true, preleverAgios: true, calculerInteret: false,
+    lieuNaissance: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", liees: [] as number[], creePar: 4, visePar: 2, statut: "actif" as const };
   return {
-    version: 1,
+    version: 2,
     institution: { nom: "COOPEC Tujenge", profil: "coopec" },
     agence: { id: 1, code: "0412", nom: "Matete" },
     guichets: [{ id: 1, code: "G1", nom: "Caisse 1" }, { id: 2, code: "G2", nom: "Caisse 2" }],
+    produits: [{ code: "EAV-CDF", libelle: "Épargne à vue", devise: "CDF" }, { code: "EAV-USD", libelle: "Épargne à vue", devise: "USD" }],
+    zones: [],
     utilisateurs: [
       { id: 1, login: "engalula", nom: "Esther Ngalula", roles: ["caissier"] },
       { id: 2, login: "jpmukendi", nom: "J.-P. Mukendi", roles: ["chef_agence"] },
@@ -60,5 +64,6 @@ export function graine(): Etat {
     fondsVeille: { 1: { CDF: {}, USD: {} }, 2: FONDS_G2 },
     session: null,
     compteurs: { piece: 1284, tiers: 320 },
+    images: {},
   };
 }

@@ -45,6 +45,23 @@ export interface Tiers {
   adresse: string;
   telephone: string;
   personneExposee: boolean;
+  // S37, onglet « Informations de base » (manuel Microfina++, p. 49)
+  dateDemande: string;
+  numeroManuel: string;
+  matricule: string;
+  typeClient: string;
+  zone: string;
+  produitCode: string;         // type de compte à créer
+  premierDepot: number;        // unités mineures, devise du produit
+  resident: boolean;           // PCCI § 10.1
+  preleverAgios: boolean;
+  calculerInteret: boolean;
+  // Instr. BCC 15, art. 13 : éléments de la pièce d'identité
+  lieuNaissance: string;
+  pieceDelivreeLe: string;
+  pieceLieu: string;
+  pieceAutorite: string;
+  liees: number[];             // personnes liées (onglet « Personnes Liées »)
   photo: boolean;
   specimen: boolean;
   creePar: number;
@@ -104,11 +121,15 @@ export interface Operation {
   heure: string;
 }
 
+export interface Produit { code: string; libelle: string; devise: Devise }
+
 export interface Etat {
-  version: 1;
+  version: 2;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];
+  produits: Produit[];
+  zones: string[];
   utilisateurs: Utilisateur[];
   cours: { USD: number };      // CDF pour 1 USD
   valeurPart: number;          // unités mineures, CDF
@@ -122,6 +143,7 @@ export interface Etat {
   fondsVeille: Record<number, Record<Devise, Comptage>>;   // coupures laissées dans chaque guichet au dernier arrêté
   session: number | null;      // utilisateur connecté
   compteurs: { piece: number; tiers: number };
+  images: Record<number, { photo?: string; signature?: string }>;   // photo et specimen chargés à l'enrôlement
 }
 
 export class ErreurMetier extends Error {

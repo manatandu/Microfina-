@@ -2,6 +2,7 @@
 Chaque fonction s'exécute dans la transaction de la requête (ATOMIC_REQUESTS) : tout ou rien.
 Les montants sont des entiers en unités mineures (ARCHITECTURE P4) ; les coupures arrivent en unités."""
 import json
+import re
 import uuid
 
 from psycopg.types.json import Jsonb
@@ -15,6 +16,9 @@ from .bd import ErreurMetier, executer, lignes, une, valeur
 SEUIL_CAISSIER_USD = 1000    # au-delà, visa du chef d'agence. Exemple : fixé par la COOPEC
 SEUIL_ESPECES_USD = 10000    # examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 DEVISES = ("CDF", "USD")
+TYPES_CLIENT = ["Client"]          # seul type montré par le manuel (p. 49) ; la liste viendra du paramétrage S16
+IMAGE_MAX = 400_000                # caractères de l'image encodée, environ 300 Ko
+IMAGE_OK = re.compile(r"^data:image/(png|jpeg);base64,[A-Za-z0-9+/=]+$")
 LIBELLES_ROLES = {"caissier": "caissier", "chef_agence": "chef d'agence", "agent_credit": "agent de crédit", "comptable": "comptable"}
 MSG_RENFORCE = ("Examen renforcé requis (10 000 USD ou plus en espèces dans la journée). "
                 "Le circuit de conformité n'est pas encore construit : opération bloquée.")
@@ -89,6 +93,9 @@ def contexte(u: dict) -> dict:
         "institution": {"nom": i["nom"], "profil": "coopec" if i["profil"] == "coopec" else "imf"},
         "agence": a,
         "guichets": lignes("select id, code, nom from guichet where agence_id = %s and actif order by code", (u["agence_id"],)),
+        "produits": lignes("select code, libelle, devise from produit_epargne where institution_id = %s order by code", (u["institution_id"],)),
+        "zones": [z["nom"] for z in lignes("select nom from zone where institution_id = %s order by nom", (u["institution_id"],))],
+        "typesClient": TYPES_CLIENT,
         "cours": {"USD": cours_usd()},
         "valeurPart": valeur_part(),
         "utilisateurs": utilisateurs(),
@@ -306,10 +313,20 @@ def vue_tiers(t: dict) -> dict:
             "pieceType": t["piece_type"] or "", "pieceNumero": t["piece_numero"] or "",
             "pieceExpire": t["piece_validite"].isoformat() if t["piece_validite"] else "",
             "adresse": t["adresse"] or "", "telephone": t["telephone"] or "", "personneExposee": t["personne_exposee"],
+            "dateDemande": iso(t["date_demande"]), "numeroManuel": t["numero_manuel"] or "", "matricule": t["matricule"] or "", "typeClient": t["type_client"] or "",
+            "zone": t["zone_nom"] or "", "produitCode": t["produit_code"] or "", "premierDepot": t["premier_depot"] or 0, "resident": t["residence"] != "non_resident",
+            "preleverAgios": t["prelever_agios"], "calculerInteret": t["calculer_interet"],
+            "lieuNaissance": t["lieu_naissance"] or "", "pieceDelivreeLe": iso(t["piece_delivree_le"]), "pieceLieu": t["piece_lieu"] or "", "pieceAutorite": t["piece_autorite"] or "",
+            "liees": [r["autre_id"] for r in lignes("select autre_id from lien_tiers where tiers_id = %s and role = 'personne_liee' order by id", (t["id"],))],
             "photo": bool(sp and sp["photo"]), "specimen": bool(sp and sp["signature"]), "creePar": t["cree_par"], "visePar": t["vise_par"]}
 
 
-SQL_TIERS = "select t.*, p.* from tiers t join tiers_personne p on p.tiers_id = t.id"
+def iso(d) -> str:
+    return d.isoformat() if d else ""
+
+
+SQL_TIERS = """select t.*, p.*, z.nom as zone_nom, pe.code as produit_code from tiers t join tiers_personne p on p.tiers_id = t.id
+               left join zone z on z.id = t.zone_id left join produit_epargne pe on pe.id = t.produit_id"""
 
 
 def lire_tiers(tid: int) -> dict | None:
@@ -329,22 +346,52 @@ def rechercher_tiers(u: dict, q: str) -> list[dict]:
 
 
 def creer_tiers(u: dict, d: dict) -> dict:
+    """S37. Mêmes contrôles que controlerEnrolement (web/src/donnees/api.ts)."""
     exiger(u)
-    manque = [k for k, v in (("nom", d.get("nom")), ("type de pièce", d.get("pieceType")), ("numéro de pièce", d.get("pieceNumero"))) if not (v or "").strip()]
+    texte = lambda k: (d.get(k) or "").strip()
+    manque = [n for n, k in (("date demande", "dateDemande"), ("type client", "typeClient"), ("type de compte à créer", "produitCode"),
+                             ("nom", "nom"), ("type de pièce", "pieceType"), ("numéro de pièce", "pieceNumero")) if not texte(k)]
     if manque:
         raise ErreurMetier("À remplir : " + ", ".join(manque) + ".")
+    if texte("typeClient") not in TYPES_CLIENT:
+        raise ErreurMetier("Type client inconnu.")
+    produit = valeur("select id from produit_epargne where institution_id = %s and code = %s", (u["institution_id"], texte("produitCode")))
+    if not produit:
+        raise ErreurMetier("Type de compte inconnu.")
+    depot = d.get("premierDepot", 0)
+    if not isinstance(depot, int) or isinstance(depot, bool) or depot < 0:
+        raise ErreurMetier("Premier dépôt invalide.")
     j = journee_courante(u)
-    if d.get("pieceExpire") and j and d["pieceExpire"] < j["date"]:
+    if texte("pieceExpire") and j and texte("pieceExpire") < j["date"]:
         raise ErreurMetier("Pièce expirée.")
+    liees = d.get("liees") or []
+    if (not isinstance(liees, list) or len(set(liees)) != len(liees) or any(not isinstance(x, int) for x in liees)
+            or valeur("select count(*) from tiers where institution_id = %s and id = any(%s)", (u["institution_id"], liees)) != len(liees)):
+        raise ErreurMetier("Personne liée inconnue ou en double.")
+    images = d.get("images") or {}
+    for k in ("photo", "signature"):
+        v = images.get(k)
+        if v and (not isinstance(v, str) or len(v) > IMAGE_MAX or not IMAGE_OK.match(v)):
+            raise ErreurMetier(("Photo" if k == "photo" else "Signature") + " : image PNG ou JPEG de 300 Ko au plus.")
+    zone = valeur("select id from zone where institution_id = %s and nom = %s", (u["institution_id"], texte("zone"))) if texte("zone") else None
     agence = une("select code from agence where id = %s", (u["agence_id"],))
     numero = f"{agence['code']}-{valeur('select nextval(%s)', ('numero_tiers',)):06d}"
-    tid = valeur("""insert into tiers (institution_id, agence_id, numero, type, statut, personne_exposee, cree_par)
-                    values (%s, %s, %s, 'physique', 'a_viser', %s, %s) returning id""",
-                 (u["institution_id"], u["agence_id"], numero, bool(d.get("personneExposee")), u["id"]))
-    executer("""insert into tiers_personne (tiers_id, nom, postnom, prenom, sexe, date_naissance, piece_type, piece_numero, piece_validite, adresse, telephone)
-                values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-             (tid, d["nom"].strip(), d.get("postnom") or None, d.get("prenom") or None, d.get("sexe") or None, d.get("naissance") or None,
-              d["pieceType"], d["pieceNumero"].strip(), d.get("pieceExpire") or None, d.get("adresse") or None, d.get("telephone") or None))
+    tid = valeur("""insert into tiers (institution_id, agence_id, numero, numero_manuel, type, statut, residence, agent_economique, zone_id, personne_exposee, cree_par,
+                                       date_demande, matricule, type_client, produit_id, premier_depot, prelever_agios, calculer_interet)
+                    values (%s, %s, %s, %s, 'physique', 'a_viser', %s, 'menages', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
+                 (u["institution_id"], u["agence_id"], numero, texte("numeroManuel") or None, "resident" if d.get("resident", True) else "non_resident", zone,
+                  bool(d.get("personneExposee")), u["id"], texte("dateDemande"), texte("matricule") or None, texte("typeClient"), produit, depot,
+                  bool(d.get("preleverAgios", True)), bool(d.get("calculerInteret"))))
+    executer("""insert into tiers_personne (tiers_id, nom, postnom, prenom, sexe, date_naissance, lieu_naissance, piece_type, piece_numero, piece_delivree_le,
+                                            piece_lieu, piece_autorite, piece_validite, adresse, telephone)
+                values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+             (tid, texte("nom"), texte("postnom") or None, texte("prenom") or None, texte("sexe") or None, texte("naissance") or None, texte("lieuNaissance") or None,
+              texte("pieceType"), texte("pieceNumero"), texte("pieceDelivreeLe") or None, texte("pieceLieu") or None, texte("pieceAutorite") or None,
+              texte("pieceExpire") or None, texte("adresse") or None, texte("telephone") or None))
+    for autre in liees:
+        executer("insert into lien_tiers (tiers_id, autre_id, role) values (%s, %s, 'personne_liee')", (tid, autre))
+    if images.get("photo") or images.get("signature"):
+        executer("insert into specimen (tiers_id, photo, signature, depose_le) values (%s, %s, %s, current_date)", (tid, images.get("photo"), images.get("signature")))
     return lire_tiers(tid)
 
 

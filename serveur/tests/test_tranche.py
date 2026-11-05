@@ -123,10 +123,32 @@ def test_visa_au_dela_du_seuil(clients, journee):
     assert caisse.post("/api/guichet/retraits", p, **H).json()["statut"] == "validee"
 
 
+# Fiche d'enrôlement S37 avec les valeurs par défaut de la p. 49
+FICHE = {"dateDemande": "2026-11-05", "typeClient": "Client", "produitCode": "EAV-CDF", "premierDepot": 0, "resident": True, "preleverAgios": True,
+         "calculerInteret": False, "liees": [], "personneExposee": False}
+
+
+def test_enrolement(clients, journee):
+    agent = clients["agent"]
+    base = {**FICHE, "nom": "Tshala", "pieceType": "Passeport", "pieceNumero": "OP1"}
+    def refus(corps):
+        r = agent.post("/api/tiers", corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    assert "type de compte à créer" in refus({**base, "produitCode": ""})
+    assert "Personne liée" in refus({**base, "liees": [999999]})
+    assert "PNG ou JPEG" in refus({**base, "images": {"photo": "data:text/html;base64,AA=="}})
+    assert "Premier dépôt" in refus({**base, "premierDepot": -5})
+    r = agent.post("/api/tiers", {**base, "produitCode": "EAV-USD", "premierDepot": 2000, "resident": False, "liees": [T("0412-000318")],
+                                  "images": {"signature": "data:image/png;base64,iVBORw0KGgo="}}, **H)
+    t = r.json()
+    assert r.status_code == 200, r.content
+    assert (t["statut"], t["produitCode"], t["premierDepot"], t["resident"], t["liees"], t["specimen"], t["photo"]) == \
+        ("a_viser", "EAV-USD", 2000, False, [T("0412-000318")], True, False)
+
+
 def test_adhesion_apres_visa(clients, journee):
     caisse, chef, agent = clients["caisse"], clients["chef"], clients["agent"]
-    t = agent.post("/api/tiers", {"nom": "Tshala", "postnom": "Muana", "prenom": "Marie", "sexe": "F", "naissance": "1990-02-01", "pieceType": "Carte d'électeur",
-                                  "pieceNumero": "1-0412-0999", "pieceExpire": "2031-01-01", "adresse": "Matete", "telephone": "", "personneExposee": False}, **H).json()
+    t = agent.post("/api/tiers", {**FICHE, "nom": "Tshala", "postnom": "Muana", "prenom": "Marie", "naissance": "1990-02-01", "pieceType": "Carte d'électeur",
+                                  "pieceNumero": "1-0412-0999", "pieceExpire": "2031-01-01", "adresse": "Matete"}, **H).json()
     corps = {"cle": cle(), "tiersId": t["id"], "parts": 3, "depot": 0, "compteUsd": True, "coupures": {"5000": 2, "1000": 2}}
     assert "visa" in caisse.post("/api/guichet/adhesions", corps, **H).json()["message"]
     assert agent.post(f"/api/tiers/{t['id']}/visa", **H).status_code == 403                 # l'agent n'est pas chef

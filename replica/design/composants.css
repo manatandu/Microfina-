@@ -315,3 +315,13 @@ details.textes ul { margin: var(--espace-1) 0 0; padding-left: var(--espace-4); 
 .papier dl { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 4px var(--espace-3); margin: 0; }
 .papier dt { color: var(--encre-2); }
 .papier dd { margin: 0; overflow-wrap: anywhere; }
+
+/* Boîtes de dialogue : confirmation, succès, erreur (manuel Microfina++, p. 10 et 11) */
+.boite { border: 1px solid var(--trait); border-radius: var(--rayon-bloc); padding: var(--espace-5); width: min(var(--mise-carte-etroite), calc(100vw - 2 * var(--espace-4)));
+  background: var(--papier); color: var(--encre); box-shadow: var(--ombre-flottant); }
+.boite::backdrop { background: color-mix(in srgb, var(--nuit) 45%, transparent); }
+.boite h2 { margin: 0 0 var(--espace-3); font-size: var(--taille-grand); }
+.boite[data-type="succes"] h2 { color: var(--sain-texte); }
+.boite[data-type="erreur"] h2 { color: var(--alerte); }
+.boite .boutons { display: flex; justify-content: flex-end; gap: var(--espace-2); margin-top: var(--espace-5); }
+.boite .boutons .bouton { min-width: 6rem; }

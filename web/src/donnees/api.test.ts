@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { api, _remplacer } from "./api";
+import { api, _remplacer, enrolementVide } from "./api";
 import { graine } from "./graine";
 import { totalComptage, type Comptage } from "@design/montant.js";
 
@@ -76,9 +76,19 @@ describe("journée de guichet", () => {
     expect((await api.guichet.retrait(p)).statut).toBe("validee");
   });
 
+  it("enrôlement (S37) : champs obligatoires de la p. 49, personnes liées, photo et specimen", async () => {
+    await connecter("bkasongo");
+    const base = { ...enrolementVide("2026-11-05"), nom: "Tshala", pieceType: "Passeport", pieceNumero: "OP1" };
+    await expect(api.tiers.creer(base)).rejects.toThrow("type de compte à créer");
+    await expect(api.tiers.creer({ ...base, produitCode: "EAV-CDF", liees: [999] })).rejects.toThrow("Personne liée");
+    await expect(api.tiers.creer({ ...base, produitCode: "EAV-CDF" }, { photo: "data:text/html;base64,AA==" })).rejects.toThrow("PNG ou JPEG");
+    const t = await api.tiers.creer({ ...base, produitCode: "EAV-USD", premierDepot: 2000, resident: false, liees: [1] }, { signature: "data:image/png;base64,iVBORw0KGgo=" });
+    expect(t).toMatchObject({ statut: "a_viser", produitCode: "EAV-USD", premierDepot: 2000, resident: false, liees: [1], specimen: true, photo: false });
+  });
+
   it("adhésion : parts en 1030, premier dépôt en 330, après visa seulement", async () => {
     await connecter("bkasongo");
-    const t = await api.tiers.creer({ nom: "Tshala", postnom: "Muana", prenom: "Marie", sexe: "F", naissance: "1990-02-01", pieceType: "Carte d'électeur", pieceNumero: "1-0412-0999", pieceExpire: "2031-01-01", adresse: "Matete", telephone: "", personneExposee: false });
+    const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), produitCode: "EAV-CDF", nom: "Tshala", postnom: "Muana", prenom: "Marie", naissance: "1990-02-01", pieceType: "Carte d'électeur", pieceNumero: "1-0412-0999", pieceExpire: "2031-01-01", adresse: "Matete" });
     await journeeOuverte();
     const coupures: Comptage = { 5000: 2, 1000: 2 };
     await expect(api.guichet.adhesion({ cle: cle(), tiersId: t.id, parts: 1, depot: 800000, compteUsd: false, coupures })).rejects.toThrow("visa");

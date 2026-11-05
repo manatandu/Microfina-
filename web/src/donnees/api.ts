@@ -15,14 +15,14 @@ import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@d
 export const SEUIL_CAISSIER_USD = 1000;   // au-delà, visa du chef d'agence. Exemple : fixé par la COOPEC
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v1";
+const CLE = "likelemba-demo-v2";
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
 
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 1) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 2) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   return graine();
 }
@@ -61,7 +61,7 @@ const session = {
 };
 
 function contexte() {
-  return { institution: E.institution, agence: E.agence, guichets: E.guichets, cours: E.cours, valeurPart: E.valeurPart, utilisateurs: E.utilisateurs };
+  return { institution: E.institution, agence: E.agence, guichets: E.guichets, produits: E.produits, zones: E.zones, typesClient: TYPES_CLIENT, cours: E.cours, valeurPart: E.valeurPart, utilisateurs: E.utilisateurs };
 }
 export const nomUtilisateur = (id?: number) => E.utilisateurs.find((u) => u.id === id)?.nom ?? "";
 
@@ -209,6 +209,33 @@ const nettoyer = (c: Comptage): Comptage => Object.fromEntries(Object.entries(c)
 
 // ---------- Tiers ----------
 export type NouveauTiers = Omit<Tiers, "id" | "numero" | "statut" | "creePar" | "visePar" | "photo" | "specimen">;
+/** Photo et specimen chargés à l'onglet « Photo » (p. 49), en image PNG ou JPEG */
+export interface Images { photo?: string; signature?: string }
+/** Types de client : seul « Client » est montré par le manuel (p. 49). La liste vient du paramétrage S16, à construire. */
+export const TYPES_CLIENT = ["Client"];
+export const IMAGE_MAX = 400_000;   // caractères de l'image encodée, environ 300 Ko
+
+/** Fiche vide : valeurs par défaut de la capture p. 49 (Résident et Prélever agios cochés, Calculer intérêt décoché) */
+export function enrolementVide(date: string): NouveauTiers {
+  return { dateDemande: date, numeroManuel: "", matricule: "", typeClient: "Client", zone: "", produitCode: "", premierDepot: 0, resident: true, preleverAgios: true, calculerInteret: false,
+    nom: "", postnom: "", prenom: "", sexe: "", naissance: "", lieuNaissance: "", pieceType: "", pieceNumero: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", pieceExpire: "",
+    adresse: "", telephone: "", personneExposee: false, liees: [] };
+}
+
+/** Contrôles de l'enrôlement, identiques côté serveur (services.creer_tiers) */
+export function controlerEnrolement(d: NouveauTiers, images: Images, ctx: { produits: { code: string }[]; jour: string; existe: (id: number) => boolean }) {
+  const manque = ([["date demande", d.dateDemande], ["type client", d.typeClient], ["type de compte à créer", d.produitCode],
+    ["nom", d.nom], ["type de pièce", d.pieceType], ["numéro de pièce", d.pieceNumero]] as const).filter(([, v]) => !v?.trim()).map(([k]) => k);
+  if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+  if (!TYPES_CLIENT.includes(d.typeClient)) throw new ErreurMetier("Type client inconnu.");
+  if (!ctx.produits.some((p) => p.code === d.produitCode)) throw new ErreurMetier("Type de compte inconnu.");
+  if (!Number.isInteger(d.premierDepot) || d.premierDepot < 0) throw new ErreurMetier("Premier dépôt invalide.");
+  if (d.pieceExpire && d.pieceExpire < ctx.jour) throw new ErreurMetier("Pièce expirée.", "pieceExpire");
+  if (new Set(d.liees).size !== d.liees.length || d.liees.some((id) => !ctx.existe(id))) throw new ErreurMetier("Personne liée inconnue ou en double.");
+  for (const [k, v] of Object.entries(images)) {
+    if (v && (!/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(v) || v.length > IMAGE_MAX)) throw new ErreurMetier(`${k === "photo" ? "Photo" : "Signature"} : image PNG ou JPEG de 300 Ko au plus.`);
+  }
+}
 
 const tiers = {
   lire: (id: number) => E.tiers.find((t) => t.id === id) ?? null,
@@ -218,15 +245,16 @@ const tiers = {
     return E.tiers.filter((x) => [x.numero, x.nom, x.postnom, x.prenom].join(" ").toLowerCase().includes(t)
       || E.comptes.some((c) => c.tiersId === x.id && c.numero.includes(t))).slice(0, 20);
   },
-  creer(d: NouveauTiers) {
+  creer(d: NouveauTiers, images: Images = {}) {
     const u = utilisateur();
     if (!u) throw new ErreurMetier("Session fermée.");
-    const manque = [["nom", d.nom], ["type de pièce", d.pieceType], ["numéro de pièce", d.pieceNumero]].filter(([, v]) => !v?.trim()).map(([k]) => k);
-    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
-    if (d.pieceExpire && d.pieceExpire < (journees.courante()?.date ?? "")) throw new ErreurMetier("Pièce expirée.", "pieceExpire");
+    controlerEnrolement(d, images, { produits: E.produits, jour: journees.courante()?.date ?? "", existe: (id) => E.tiers.some((t) => t.id === id) });
     E.compteurs.tiers += 1;
-    const t: Tiers = { ...d, id: prochain(E.tiers), numero: `${E.agence.code}-${String(E.compteurs.tiers).padStart(6, "0")}`, statut: "a_viser", creePar: u.id, photo: false, specimen: false };
-    E.tiers.push(t); enregistrer(); return t;
+    const id = prochain(E.tiers);
+    const t: Tiers = { ...d, id, numero: `${E.agence.code}-${String(E.compteurs.tiers).padStart(6, "0")}`, statut: "a_viser", creePar: u.id, photo: !!images.photo, specimen: !!images.signature };
+    E.tiers.push(t);
+    if (images.photo || images.signature) E.images[id] = images;
+    enregistrer(); return t;
   },
   aViser: () => E.tiers.filter((t) => t.statut === "a_viser"),
   viser(id: number) {
