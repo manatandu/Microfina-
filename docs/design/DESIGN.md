@@ -182,7 +182,11 @@ Connexion (nom d'utilisateur, mot de passe, journée ouverte et date système en
 
 ## 6. Ce que les écrans de Microfina++ nous apprennent
 
-Lecture complète du manuel dans [`../analyse/microfina-ecarts.md`](../analyse/microfina-ecarts.md), section 5. En résumé :
+Lecture complète du manuel dans [`../analyse/microfina-ecarts.md`](../analyse/microfina-ecarts.md), section 5.
+
+> **Suspendu le 05/11/2026 (CLAUDE.md § 0).** Phase 1 : on reproduit exactement Microfina++, y compris la boîte « Oui / Non », Modifier et Supprimer et l'étape « Comptabiliser ». Les listes « à corriger » et « à retirer » ci-dessous deviennent des propositions pour la phase 2, à soumettre au porteur. Seul un texte (BCC, PCCI, lois) peut les imposer dès la phase 1, avec sa référence.
+
+En résumé :
 
 - **À garder** : un seul écran de guichet avec un onglet par opération ; solde, montant bloqué et montant libre côte à côte ; solde de la caisse visible ; montant en lettres sur les transferts entre caisses (p. 93), qu'on généralise à toutes les opérations en espèces.
 - **À corriger** : aucun montant sans devise (le guichet affiche « Solde client 4 450 », p. 87) ; photo et signature affichées d'office et non derrière un bouton ; recherche au clavier au lieu du double-clic.

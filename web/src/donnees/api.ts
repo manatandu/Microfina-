@@ -4,6 +4,7 @@
 // comme elles le seront par PostgreSQL : équilibre, écritures figées, clé d'idempotence.
 
 import { graine } from "./graine";
+import { creerApiHttp } from "./http";
 import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
   type Operation, type Role, type SessionCaisse, type Tiers, type Utilisateur,
@@ -189,6 +190,7 @@ const caisses = {
     const u = exiger("chef_agence");
     const b = E.billetages.find((x) => x.id === id);
     if (!b) throw new ErreurMetier("Billetage introuvable.");
+    if (b.validePar) throw new ErreurMetier("Ce billetage est déjà validé.");
     if (b.saisiPar === u.id) throw new ErreurMetier("Quatre yeux : le valideur n'est pas celui qui a compté.");
     b.validePar = u.id;
     if (b.moment === "arret") {
@@ -418,7 +420,7 @@ type Asynchrone<T> = { [K in keyof T]: T[K] extends (...a: infer A) => infer R ?
 function asynchrone<T extends object>(o: T): Asynchrone<T> {
   return Object.fromEntries(Object.entries(o).map(([k, f]) => [k, typeof f === "function" ? async (...a: unknown[]) => (f as (...x: unknown[]) => unknown)(...a) : f])) as Asynchrone<T>;
 }
-export const api = {
+const apiLocal = {
   referentiel: asynchrone({ contexte }),
   session: asynchrone(session),
   journees: asynchrone(journees),
@@ -428,3 +430,9 @@ export const api = {
   operations: asynchrone(operations),
   etats: asynchrone(etats),
 };
+
+export type ApiDonnees = typeof apiLocal;
+
+/** Les écrans appellent `api`. VITE_DONNEES=serveur : le serveur Django ; sinon la couche locale de démonstration. */
+export const SUR_SERVEUR = import.meta.env.VITE_DONNEES === "serveur";
+export const api: ApiDonnees = SUR_SERVEUR ? creerApiHttp(() => abonnes.forEach((f) => f())) : apiLocal;

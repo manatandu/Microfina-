@@ -1,6 +1,6 @@
 # Likelemba, application web
 
-Écrans en React et TypeScript. Données provisoires dans le navigateur (`src/donnees/api.ts`) jusqu'au serveur Django.
+Écrans en React et TypeScript. Deux sources de données : la démonstration dans le navigateur (`src/donnees/api.ts`), ou le serveur Django avec `VITE_DONNEES=serveur` (voir `../replica/backend.md`).
 
 ```bash
 npm install

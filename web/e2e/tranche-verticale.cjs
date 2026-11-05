@@ -7,10 +7,13 @@ const OUT = process.argv[2];
   const b = await chromium.launch();
   const L = Number(process.argv[3] || 1366); const ctx = await b.newContext({ viewport: { width: L, height: 768 } });
   const p = await ctx.newPage(); if (process.argv[4]) await p.emulateMedia({ colorScheme: process.argv[4] }); p.setDefaultTimeout(5000); globalThis.__p = p;
-  const errs = []; p.on('pageerror', e => errs.push('page: ' + e.message)); p.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
+  const errs = []; p.on('pageerror', e => errs.push('page: ' + e.message)); p.on('console', m => { if (m.type() === 'error' && !/status of 422/.test(m.text())) errs.push('console: ' + m.text()); }); // 422 : refus métier attendu
   const etape = async (nom) => { await p.waitForTimeout(50); const d = await p.evaluate(() => document.documentElement.scrollWidth - innerWidth); await p.screenshot({ path: `${OUT}/${nom}.png`, fullPage: true }); console.log(d > 0 ? '⚠ débord ' + d : '✓', nom); };
   const IDS = { 'J.-P. Mukendi': 'jpmukendi', 'Esther Ngalula': 'engalula', 'Bijou Kasongo': 'bkasongo', 'Patrick Lumbala': 'plumbala' };
   const login = async (nom) => { await p.goto(B + '/connexion'); await p.getByLabel("Nom d'utilisateur").fill(IDS[nom]); await p.getByRole('button', { name: 'Connexion' }).click(); await p.waitForURL(B + '/'); };
+  // Valide les billetages un par un, en attendant que la liste se mette à jour entre deux clics
+  const validerTout = async () => { for (let n = 2; n > 0; n--) { await p.getByRole('list', { name: 'Billetages' }).getByRole('button', { name: 'Valider' }).first().click();
+    if (n > 1) await p.waitForFunction((k) => document.querySelectorAll('[aria-label="Billetages"] button').length < k, n); } };
   const aller = async (chemin) => { await p.goto(B + chemin); await p.waitForLoadState('networkidle'); };
 
   await p.goto(B + '/connexion'); await p.evaluate(() => localStorage.clear()); await p.reload();
@@ -43,7 +46,7 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: /Enregistrer, à viser/ }).click(); await p.getByText(/est enregistré sous le numéro/).waitFor(); await etape('05-enrole');
   // Chef : valider billetages et viser
   await login('J.-P. Mukendi'); await aller('/caisse/s80'); await etape('06-chef-a-valider');
-  for (let i = 0; i < 2; i++) await p.getByRole('list', { name: 'Billetages' }).getByRole('button', { name: 'Valider' }).first().click();
+  await validerTout();
   await p.getByText('Rien à valider pour l\'instant.').waitFor();
   await aller('/clients/s40'); await etape('06b-visa-client');
   await p.getByRole('list', { name: /Membres à viser/ }).getByRole('button', { name: 'Viser' }).click();
@@ -53,14 +56,14 @@ const OUT = process.argv[2];
   await p.getByLabel(/Nom, numéro ou compte/).waitFor(); await p.keyboard.press('F2'); await p.keyboard.type('Tshala'); await p.getByRole('option', { name: /Tshala/ }).click();
   await p.getByLabel('Nombre de parts sociales').fill('2');
   await p.getByLabel(/Premier dépôt/).fill('20 000');
-  await p.keyboard.press('F4'); await p.keyboard.type('1'); // 1 × 20 000
+  await p.locator('#coupure-1, #coupure-adhesion').waitFor(); await p.keyboard.press('F4'); await p.keyboard.type('1'); // 1 × 20 000
   await p.getByLabel('Nombre de coupures de 5 000 CDF').fill('1'); await p.getByLabel('Nombre de coupures de 1 000 CDF').fill('3');
   await etape('07-adhesion'); await p.keyboard.press('F9'); await p.getByText('Adhésion enregistrée').waitFor().catch(async () => { await etape('07b-adhesion-erreur'); throw new Error('adhésion'); });
   await etape('08-adhesion-recu');
   // Dépôt au clavier
   await p.goto(B + '/caisse/s74?op=depot'); await p.getByLabel(/Nom, numéro ou compte/).waitFor(); await p.keyboard.press('F2'); await p.keyboard.type('Kalala');
   await p.getByRole('option', { name: /Kalala/ }).click(); await p.getByLabel(/Épargne à vue, CDF/).check();
-  await p.getByLabel('Montant').fill('150 000'); await p.keyboard.press('F4'); await p.keyboard.type('5');
+  await p.getByLabel('Montant').fill('150 000'); await p.locator('#coupure-1, #coupure-adhesion').waitFor(); await p.keyboard.press('F4'); await p.keyboard.type('5');
   await p.getByLabel('Nombre de coupures de 10 000 CDF').fill('5');
   await etape('09-depot'); await p.keyboard.press('F9'); await p.getByText('Dépôt enregistré').waitFor(); await etape('10-depot-recu');
   await p.keyboard.press('Escape');
@@ -88,7 +91,7 @@ const OUT = process.argv[2];
   await etape('15-arrete');
   await login('J.-P. Mukendi'); await aller('/administration/s12'); await etape('16-chef-fermeture-bloquee');
   await aller('/caisse/s80');
-  for (let i = 0; i < 2; i++) await p.getByRole('list', { name: 'Billetages' }).getByRole('button', { name: 'Valider' }).first().click();
+  await validerTout();
   await p.getByText('Rien à valider pour l\'instant.').waitFor();
   await aller('/administration/s12');
   await p.getByRole('button', { name: 'Fermer la journée' }).click(); await p.getByRole('heading', { name: 'Ouvrir la journée' }).waitFor();

@@ -1,0 +1,175 @@
+"""La tranche verticale par HTTP, comme les écrans l'appelleront. Mêmes scénarios que web/src/donnees/api.test.ts."""
+import uuid
+
+import pytest
+from django.core.management import call_command
+from django.test import Client
+
+pytestmark = pytest.mark.django_db(transaction=False)
+H = {"HTTP_X_LIKELEMBA": "1", "content_type": "application/json"}
+
+
+@pytest.fixture(autouse=True)
+def graine(django_db_setup, django_db_blocker):
+    call_command("graine")
+
+
+def connecter(c: Client, login: str):
+    r = c.post("/api/session", {"login": login}, **H)
+    assert r.status_code == 200, r.content
+
+
+def cle():
+    return str(uuid.uuid4())
+
+
+def ident(sql, params=()):
+    from noyau.bd import valeur
+    return valeur(sql, params)
+
+
+def G2():
+    return ident("select id from guichet where code = 'G2'")
+
+
+def C(numero):
+    """Compte de dépôt par son numéro : 0412-000318-01 (Kalala, USD), -02 (CDF) ; 000319-01/02 (Mwamba) ; 000320-02 (Lukusa, sans specimen)"""
+    return ident("select id from compte_depot where numero = %s", (numero,))
+
+
+def T(numero):
+    return ident("select id from tiers where numero = %s", (numero,))
+
+
+@pytest.fixture
+def clients():
+    return {n: Client() for n in ("chef", "caisse", "agent", "compta")}
+
+
+@pytest.fixture
+def journee(clients):
+    chef, caisse = clients["chef"], clients["caisse"]
+    connecter(chef, "jpmukendi"); connecter(caisse, "engalula")
+    connecter(clients["agent"], "bkasongo"); connecter(clients["compta"], "plumbala")
+    j = chef.post("/api/journees", {"date": "2026-11-05"}, **H).json()
+    s = caisse.post("/api/caisses", {"guichetId": G2()}, **H).json()
+    for d in ("CDF", "USD"):
+        th = caisse.get(f"/api/caisses/{s['id']}/theorique?devise={d}").json()
+        assert caisse.post(f"/api/caisses/{s['id']}/billetages", {"moment": "ouverture", "devise": d, "compte": th}, **H).status_code == 200
+    for b in chef.get("/api/billetages/a-valider").json():
+        assert chef.post(f"/api/billetages/{b['id']}/validation", **H).status_code == 200
+    return j, s
+
+
+def balance_equilibree(c):
+    b = c.get("/api/etats/balance").json()
+    return sum(x["debitCdf"] for x in b) == sum(x["creditCdf"] for x in b)
+
+
+def test_graine_equilibree(clients):
+    connecter(clients["compta"], "plumbala")
+    assert balance_equilibree(clients["compta"])
+
+
+def test_sans_session_rien(clients):
+    assert clients["caisse"].get("/api/etats/balance").status_code == 401
+    assert clients["caisse"].get("/api/tiers?q=Kalala").status_code == 401
+
+
+def test_ecriture_sans_entete_refusee(clients, journee):
+    r = clients["caisse"].post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}, "remisPar": ""}, content_type="application/json")
+    assert r.status_code == 403
+
+
+def test_depot_retrait(clients, journee):
+    caisse = clients["caisse"]
+    _, s = journee
+    assert caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 5000000, "coupures": {"20000": 2, "10000": 1}, "remisPar": ""}, **H).status_code == 200
+    comptes = {c["id"]: c for c in caisse.get(f"/api/tiers/{T('0412-000318')}/comptes").json()}
+    assert comptes[C("0412-000318-02")]["solde"] == 341250000 + 5000000
+    r = caisse.post("/api/guichet/retraits", {"cle": cle(), "compteId": C("0412-000318-01"), "montant": 45000, "coupures": {"100": 4, "50": 1},
+                                              "verifie": {"piece": True, "signature": True, "carnet": True}}, **H)
+    assert r.json()["statut"] == "validee", r.content
+    assert caisse.get(f"/api/caisses/{s['id']}/theorique?devise=USD").json()["100"] == 136
+    assert balance_equilibree(caisse)
+
+
+def test_meme_cle_ne_paie_pas_deux_fois(clients, journee):
+    caisse = clients["caisse"]
+    p = {"cle": cle(), "compteId": C("0412-000318-01"), "montant": 10000, "coupures": {"100": 1}, "verifie": {"piece": True, "signature": True, "carnet": True}}
+    a = caisse.post("/api/guichet/retraits", p, **H).json(); b = caisse.post("/api/guichet/retraits", p, **H).json()
+    assert a["id"] == b["id"]
+    assert len(caisse.get("/api/etats/journal").json()) == 2   # reprise des soldes + un seul retrait
+
+
+def test_refus(clients, journee):
+    caisse = clients["caisse"]
+    v = {"piece": True, "signature": True, "carnet": True}
+    def msg(route, corps):
+        r = caisse.post(route, corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    assert "solde disponible" in msg("/api/guichet/retraits", {"cle": cle(), "compteId": C("0412-000319-01"), "montant": 60000, "coupures": {"100": 6}, "verifie": v})
+    assert "specimen" in msg("/api/guichet/retraits", {"cle": cle(), "compteId": C("0412-000320-02"), "montant": 100000, "coupures": {"1000": 1}, "verifie": v})
+    assert "vérifier" in msg("/api/guichet/retraits", {"cle": cle(), "compteId": C("0412-000318-01"), "montant": 10000, "coupures": {"50": 2}, "verifie": {**v, "carnet": False}})
+    assert "billetage ne fait pas" in msg("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 30000, "coupures": {"20000": 1}, "remisPar": ""})
+
+
+def test_visa_au_dela_du_seuil(clients, journee):
+    caisse, chef = clients["caisse"], clients["chef"]
+    p = {"cle": cle(), "compteId": C("0412-000318-01"), "montant": 150000, "coupures": {"100": 15}, "verifie": {"piece": True, "signature": True, "carnet": True}}
+    o = caisse.post("/api/guichet/retraits", p, **H).json()
+    assert o["statut"] == "visa_requis"
+    assert caisse.post(f"/api/operations/{o['id']}/visa", **H).status_code == 403          # pas le caissier
+    assert chef.post(f"/api/operations/{o['id']}/visa", **H).status_code == 200
+    assert caisse.post("/api/guichet/retraits", p, **H).json()["statut"] == "validee"
+
+
+def test_adhesion_apres_visa(clients, journee):
+    caisse, chef, agent = clients["caisse"], clients["chef"], clients["agent"]
+    t = agent.post("/api/tiers", {"nom": "Tshala", "postnom": "Muana", "prenom": "Marie", "sexe": "F", "naissance": "1990-02-01", "pieceType": "Carte d'électeur",
+                                  "pieceNumero": "1-0412-0999", "pieceExpire": "2031-01-01", "adresse": "Matete", "telephone": "", "personneExposee": False}, **H).json()
+    corps = {"cle": cle(), "tiersId": t["id"], "parts": 3, "depot": 0, "compteUsd": True, "coupures": {"5000": 2, "1000": 2}}
+    assert "visa" in caisse.post("/api/guichet/adhesions", corps, **H).json()["message"]
+    assert agent.post(f"/api/tiers/{t['id']}/visa", **H).status_code == 403                 # l'agent n'est pas chef
+    assert chef.post(f"/api/tiers/{t['id']}/visa", **H).status_code == 200
+    assert caisse.post("/api/guichet/adhesions", corps, **H).status_code == 200
+    assert caisse.get(f"/api/tiers/{t['id']}/parts").json() == 3
+    assert sorted(c["devise"] for c in caisse.get(f"/api/tiers/{t['id']}/comptes").json()) == ["CDF", "USD"]
+
+
+def test_fermeture(clients, journee):
+    caisse, chef = clients["caisse"], clients["chef"]
+    j, s = journee
+    caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000319-02"), "montant": 2000000, "coupures": {"20000": 1}, "remisPar": ""}, **H)
+    assert "caisses arrêtées" in chef.post(f"/api/journees/{j['id']}/fermeture", **H).json()["message"]
+    for d in ("CDF", "USD"):
+        th = caisse.get(f"/api/caisses/{s['id']}/theorique?devise={d}").json()
+        caisse.post(f"/api/caisses/{s['id']}/billetages", {"moment": "arret", "devise": d, "compte": th}, **H)
+    for b in chef.get("/api/billetages/a-valider").json():
+        chef.post(f"/api/billetages/{b['id']}/validation", **H)
+    assert chef.post(f"/api/journees/{j['id']}/fermeture", **H).json()["statut"] == "fermee"
+    assert caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000319-02"), "montant": 2000000, "coupures": {"20000": 1}, "remisPar": ""}, **H).status_code == 422
+
+
+def test_quatre_yeux_billetage(clients):
+    chef, caisse = clients["chef"], clients["caisse"]
+    connecter(chef, "jpmukendi"); connecter(caisse, "engalula")
+    chef.post("/api/journees", {"date": "2026-11-05"}, **H)
+    s = caisse.post("/api/caisses", {"guichetId": G2()}, **H).json()
+    th = caisse.get(f"/api/caisses/{s['id']}/theorique?devise=CDF").json()
+    b = caisse.post(f"/api/caisses/{s['id']}/billetages", {"moment": "ouverture", "devise": "CDF", "compte": th}, **H).json()
+    assert caisse.post(f"/api/billetages/{b['id']}/validation", **H).status_code == 403
+
+
+def test_grand_livre_immuable(clients, journee):
+    from django.db import connection, DatabaseError
+    with pytest.raises(DatabaseError, match="contre-passation"):
+        with connection.cursor() as c:
+            c.execute("update ecriture set libelle = 'x' where id = (select min(id) from ecriture)")
+
+
+def test_billetage_valide_une_seule_fois(clients, journee):
+    _, s = journee
+    chef = clients["chef"]
+    b = chef.get(f"/api/caisses/{s['id']}/billetages").json()[0]
+    r = chef.post(f"/api/billetages/{b['id']}/validation", **H)
+    assert r.status_code == 422 and "déjà validé" in r.json()["message"]

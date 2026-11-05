@@ -4,7 +4,12 @@ Logiciel de gestion pour les COOPEC et les institutions de microfinance en RDC, 
 
 ## Où en est le projet
 
-Phase de conception. Aucune ligne de code pour l'instant.
+Phase 1 : reproduire exactement Microfina++. La tranche verticale (journée, caisse, enrôlement, adhésion, dépôt, retrait, balance) tourne sur la démonstration et sur le serveur.
+
+| Partie | Dossier |
+|---|---|
+| Écrans | [`web/`](web/README.md) |
+| Serveur et base de données | [`serveur/`](replica/backend.md) |
 
 | Document | Contenu |
 |---|---|

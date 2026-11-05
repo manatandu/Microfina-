@@ -12,6 +12,11 @@ Décision du porteur, 05/11/2026, valable pour tout le projet.
 - Un écart n'est permis que si un texte l'impose (Instructions BCC, PCCI, lois), avec sa référence, ou si le porteur le demande. Sinon, on pose la question au porteur avant de faire.
 - Ce que le manuel ne montre pas ne s'invente pas : on le marque « à confirmer » et on demande.
 
+Deux phases, dans cet ordre (décision du porteur, 05/11/2026) :
+
+1. **Reproduire exactement.** Les 146 fonctions de `replica/features.csv`, module par module, dans l'ordre des menus de Microfina++, avec ses schémas de fonctionnement tels quels : confirmations Oui/Non, étape « Comptabiliser » séparée, boutons Modifier et Supprimer, enchaînement des fenêtres. Ce que j'avais ajouté aux écrans déjà faits est retiré. Seule exception : un comportement qu'un texte interdit (Instructions BCC, PCCI, lois). Il est signalé au porteur avec la référence, jamais corrigé en silence.
+2. **Ensuite seulement, alléger ou améliorer** là où Microfina++ est limité, point par point, avec l'accord du porteur.
+
 ## 1. Rien de mémoire
 
 Toute règle métier, tout article, tout compte, tout taux, tout seuil ou délai est **lu dans le texte avant d'être écrit**, puis cité avec sa référence exacte (« Instr. BCC 15 bis, art. 7 », « PCCI, compte 3900 »). Ce qui n'a pas été lu ne s'écrit pas : on le marque « à confirmer » et on le pose comme question au porteur.

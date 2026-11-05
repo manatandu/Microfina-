@@ -3,7 +3,7 @@
 // (serveur, base de données, journée ouverte, utilisateur), menus complémentaires langue, aide, déconnexion.
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { api } from "../donnees/api";
+import { api, SUR_SERVEUR } from "../donnees/api";
 import { useDonnees } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { menus, applicationDe, APPLICATIONS, type Menu } from "../ecrans/registre";
@@ -65,8 +65,8 @@ export function Coquille() {
       </div>
 
       <footer className="pied">
-        <span>Serveur : <strong>démonstration, dans ce navigateur</strong></span>
-        <span>Base de données : <strong>locale</strong></span>
+        <span>Serveur : <strong>{SUR_SERVEUR ? location.host : "démonstration, dans ce navigateur"}</strong></span>
+        <span>Base de données : <strong>{SUR_SERVEUR ? "PostgreSQL" : "locale"}</strong></span>
         <span>Journée ouverte : <strong className="chiffres">{j && j.statut === "ouverte" ? fr(j.date) : "aucune"}</strong></span>
         <span>Utilisateur : <strong>{u.nom}</strong></span>
         <span className="muet">{ctx.institution.nom} · agence de {ctx.agence.nom}</span>

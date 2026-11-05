@@ -9,6 +9,7 @@ const design = fileURLToPath(new URL("../replica/design", import.meta.url));
 export default defineConfig({
   plugins: [react()],
   resolve: { alias: { "@design": design } },
-  server: { fs: { allow: [".", design] } },
+  // VITE_DONNEES=serveur : les appels /api vont au serveur Django (python manage.py runserver 8000)
+  server: { fs: { allow: [".", design] }, proxy: { "/api": "http://127.0.0.1:8000" } },
   test: { environment: "node" },
 });

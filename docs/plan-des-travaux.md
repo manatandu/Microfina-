@@ -40,6 +40,8 @@ Repères : 140 écrans dans l'inventaire (`replica/recon.md`), 146 fonctions dan
 
 ## C. Construction, par étape
 
+Phase 1 (CLAUDE.md § 0) : chaque fonction de `replica/features.csv` reproduite exactement comme Microfina++, page du manuel à l'appui, module par module dans l'ordre de ses menus, validée par le porteur à la fin de chaque module. Les dix écrans déjà faits sont d'abord réalignés (retrait de mes ajouts). Phase 2 ensuite : allègements et améliorations, avec le porteur.
+
 Ordre d'ARCHITECTURE § 11. Entre parenthèses : fonctions indispensables encore à faire.
 
 **Étape 1. Guichet complet** (caisse 8, membres 9, épargne 6, administration 6)
@@ -75,7 +77,7 @@ Ordre d'ARCHITECTURE § 11. Entre parenthèses : fonctions indispensables encore
 
 ## D. Serveur et données
 
-1. Serveur Django et PostgreSQL : le schéma existe, l'API remplace la couche provisoire sans toucher aux écrans (`/replica-backend`).
+1. ~~Serveur Django et PostgreSQL~~ : fait le 05/11/2026 pour la tranche verticale, parcours complet vérifié (`replica/backend.md`). S'étend avec chaque module.
 2. Authentification réelle, sessions liées au poste, journal d'audit chaîné.
 3. Traitements de fin de journée, de mois et d'exercice, rejouables sans doublon.
 4. Sauvegardes chiffrées hors site, restauration testée chaque trimestre.
