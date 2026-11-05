@@ -8,6 +8,7 @@ import { creerApiHttp } from "./http";
 import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
   type Operation, type Role, type SessionCaisse, type Tiers, type Utilisateur,
+  type Representant,
 } from "./types";
 import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 
@@ -15,14 +16,14 @@ import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@d
 export const SEUIL_CAISSIER_USD = 1000;   // au-delà, visa du chef d'agence. Exemple : fixé par la COOPEC
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v2";
+const CLE = "likelemba-demo-v3";
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
 
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 2) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 3) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   return graine();
 }
@@ -61,7 +62,7 @@ const session = {
 };
 
 function contexte() {
-  return { institution: E.institution, agence: E.agence, guichets: E.guichets, produits: E.produits, zones: E.zones, typesClient: TYPES_CLIENT, cours: E.cours, valeurPart: E.valeurPart, utilisateurs: E.utilisateurs };
+  return { institution: E.institution, agence: E.agence, guichets: E.guichets, produits: E.produits, zones: E.zones, typesClient: TYPES_CLIENT, typesEntreprise: TYPES_ENTREPRISE, pieces: PIECES, cours: E.cours, valeurPart: E.valeurPart, utilisateurs: E.utilisateurs };
 }
 export const nomUtilisateur = (id?: number) => E.utilisateurs.find((u) => u.id === id)?.nom ?? "";
 
@@ -208,34 +209,80 @@ const caisses = {
 const nettoyer = (c: Comptage): Comptage => Object.fromEntries(Object.entries(c).filter(([, n]) => (n ?? 0) > 0));
 
 // ---------- Tiers ----------
-export type NouveauTiers = Omit<Tiers, "id" | "numero" | "statut" | "creePar" | "visePar" | "photo" | "specimen">;
+export type NouveauTiers = Omit<Tiers, "id" | "numero" | "statut" | "creePar" | "visePar" | "photo" | "specimen" | "type" | "dirigeant" | "signataires">;
+/** Dirigeant ou signataire tel que saisi, avec photo et signature chargées */
+export type RepresentantSaisi = Omit<Representant, "photo" | "specimen"> & Images;
 /** Photo et specimen chargés à l'onglet « Photo » (p. 49), en image PNG ou JPEG */
 export interface Images { photo?: string; signature?: string }
 /** Types de client : seul « Client » est montré par le manuel (p. 49). La liste vient du paramétrage S16, à construire. */
 export const TYPES_CLIENT = ["Client"];
+/** Type entreprise (p. 50) : liste de Microfina++ non montrée, à confirmer. En attendant : agents économiques du PCCI § 10.2, hors ménages. */
+export const TYPES_ENTREPRISE = ["Banques commerciales et autres intermédiaires financiers", "Organes faîtiers et autres institutions de microfinance",
+  "Autres COOPEC et IMF", "Institutions financières non bancaires", "Administration centrale", "Administrations provinciales ou locales",
+  "Entreprises publiques", "Entreprises privées", "Institutions sans but lucratif"];
+/** Pièces d'identité admises : Instr. BCC 15, art. 14 */
+export const PIECES = ["Passeport", "Carte d'identité nationale", "Permis de conduire", "Carte d'étudiant", "Carte de l'armée ou de la police", "Carte d'électeur",
+  "Lettre certifiée du chef de village ou de quartier", "Liste des bénéficiaires de programmes sociaux", "Carte de réfugié"];
 export const IMAGE_MAX = 400_000;   // caractères de l'image encodée, environ 300 Ko
 
 /** Fiche vide : valeurs par défaut de la capture p. 49 (Résident et Prélever agios cochés, Calculer intérêt décoché) */
 export function enrolementVide(date: string): NouveauTiers {
   return { dateDemande: date, numeroManuel: "", matricule: "", typeClient: "Client", zone: "", produitCode: "", premierDepot: 0, resident: true, preleverAgios: true, calculerInteret: false,
     nom: "", postnom: "", prenom: "", sexe: "", naissance: "", lieuNaissance: "", pieceType: "", pieceNumero: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", pieceExpire: "",
-    adresse: "", telephone: "", personneExposee: false, liees: [] };
+    adresse: "", telephone: "", personneExposee: false, liees: [], formeJuridique: "", registre: "", centreActivite: "", activite: "" };
 }
 
-/** Contrôles de l'enrôlement, identiques côté serveur (services.creer_tiers) */
-export function controlerEnrolement(d: NouveauTiers, images: Images, ctx: { produits: { code: string }[]; jour: string; existe: (id: number) => boolean }) {
-  const manque = ([["date demande", d.dateDemande], ["type client", d.typeClient], ["type de compte à créer", d.produitCode],
-    ["nom", d.nom], ["type de pièce", d.pieceType], ["numéro de pièce", d.pieceNumero]] as const).filter(([, v]) => !v?.trim()).map(([k]) => k);
+type CtxControle = { produits: { code: string }[]; zones: string[]; jour: string; existe: (id: number) => boolean };
+const manquants = (champs: [string, string | undefined][]) => champs.filter(([, v]) => !v?.trim()).map(([k]) => k);
+function controlerImage(v: string | undefined, quoi: string) {
+  if (v && (!/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(v) || v.length > IMAGE_MAX)) throw new ErreurMetier(`${quoi} : image PNG ou JPEG de 300 Ko au plus.`);
+}
+function controlerPiece(type: string, expire: string, jour: string, qui = "") {
+  if (!PIECES.includes(type)) throw new ErreurMetier(`${qui}Type de pièce non admis (Instr. BCC 15, art. 14).`);
+  if (expire && expire < jour) throw new ErreurMetier(`${qui}Pièce expirée.`, "pieceExpire");
+}
+/** Contrôles communs (Informations de base, Personnes Liées), identiques côté serveur (services.controler_base) */
+function controlerBase(d: NouveauTiers, obligatoires: [string, string | undefined][], types: string[], zoneRequise: boolean, ctx: CtxControle) {
+  const manque = manquants(obligatoires);
   if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
-  if (!TYPES_CLIENT.includes(d.typeClient)) throw new ErreurMetier("Type client inconnu.");
-  if (!["", "F", "M"].includes(d.sexe)) throw new ErreurMetier("Sexe inconnu.");
+  if (!types.includes(d.typeClient)) throw new ErreurMetier("Type inconnu.");
   if (!ctx.produits.some((p) => p.code === d.produitCode)) throw new ErreurMetier("Type de compte inconnu.");
+  if ((d.zone || zoneRequise) && !ctx.zones.includes(d.zone)) throw new ErreurMetier("Zone inconnue.");
   if (!Number.isInteger(d.premierDepot) || d.premierDepot < 0) throw new ErreurMetier("Premier dépôt invalide.");
-  if (d.pieceExpire && d.pieceExpire < ctx.jour) throw new ErreurMetier("Pièce expirée.", "pieceExpire");
   if (new Set(d.liees).size !== d.liees.length || d.liees.some((id) => !ctx.existe(id))) throw new ErreurMetier("Personne liée inconnue ou en double.");
-  for (const [k, v] of Object.entries(images)) {
-    if (v && (!/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(v) || v.length > IMAGE_MAX)) throw new ErreurMetier(`${k === "photo" ? "Photo" : "Signature"} : image PNG ou JPEG de 300 Ko au plus.`);
-  }
+}
+
+/** S37. Contrôles identiques côté serveur (services.creer_tiers) */
+export function controlerEnrolement(d: NouveauTiers, images: Images, ctx: CtxControle) {
+  controlerBase(d, [["date demande", d.dateDemande], ["type client", d.typeClient], ["type de compte à créer", d.produitCode],
+    ["nom", d.nom], ["type de pièce", d.pieceType], ["numéro de pièce", d.pieceNumero]], TYPES_CLIENT, false, ctx);
+  if (!["", "F", "M"].includes(d.sexe)) throw new ErreurMetier("Sexe inconnu.");
+  controlerPiece(d.pieceType, d.pieceExpire, ctx.jour);
+  controlerImage(images.photo, "Photo"); controlerImage(images.signature, "Signature");
+}
+
+function controlerRepresentant(r: RepresentantSaisi, qui: string, jour: string) {
+  const manque = manquants([["nom", r.nom], ["type de pièce", r.pieceType], ["numéro de pièce", r.pieceNumero]]);
+  if (manque.length) throw new ErreurMetier(`${qui} : à remplir : ${manque.join(", ")}.`);
+  controlerPiece(r.pieceType, r.pieceExpire, jour, `${qui} : `);
+  controlerImage(r.photo, `${qui} : photo`); controlerImage(r.signature, `${qui} : signature`);
+}
+
+/** S38. Contrôles identiques côté serveur (services.creer_entreprise) */
+export function controlerEntreprise(d: NouveauTiers, dirigeant: RepresentantSaisi | null, signataires: RepresentantSaisi[], ctx: CtxControle) {
+  controlerBase(d, [["date demande", d.dateDemande], ["type entreprise", d.typeClient], ["zone", d.zone], ["type de compte à créer", d.produitCode],
+    ["dénomination", d.nom], ["forme juridique", d.formeJuridique], ["n° du registre", d.registre], ["adresse du siège", d.adresse]], TYPES_ENTREPRISE, true, ctx);
+  if (dirigeant) controlerRepresentant(dirigeant, "Dirigeant", ctx.jour);
+  signataires.forEach((r, i) => controlerRepresentant(r, `Signataire ${i + 1}`, ctx.jour));
+}
+
+function ctxControle() {
+  return { produits: E.produits, zones: E.zones, jour: journees.courante()?.date ?? "", existe: (id: number) => E.tiers.some((t) => t.id === id) };
+}
+function nouveauTiers(d: NouveauTiers, creePar: number, reste: Pick<Tiers, "type" | "dirigeant" | "signataires" | "photo" | "specimen">): Tiers {
+  E.compteurs.tiers += 1;
+  const t: Tiers = { ...d, ...reste, id: prochain(E.tiers), numero: `${E.agence.code}-${String(E.compteurs.tiers).padStart(6, "0")}`, statut: "a_viser", creePar };
+  E.tiers.push(t); return t;
 }
 
 const tiers = {
@@ -249,12 +296,20 @@ const tiers = {
   creer(d: NouveauTiers, images: Images = {}) {
     const u = utilisateur();
     if (!u) throw new ErreurMetier("Session fermée.");
-    controlerEnrolement(d, images, { produits: E.produits, jour: journees.courante()?.date ?? "", existe: (id) => E.tiers.some((t) => t.id === id) });
-    E.compteurs.tiers += 1;
-    const id = prochain(E.tiers);
-    const t: Tiers = { ...d, id, numero: `${E.agence.code}-${String(E.compteurs.tiers).padStart(6, "0")}`, statut: "a_viser", creePar: u.id, photo: !!images.photo, specimen: !!images.signature };
-    E.tiers.push(t);
-    if (images.photo || images.signature) E.images[id] = images;
+    controlerEnrolement(d, images, ctxControle());
+    const t = nouveauTiers(d, u.id, { type: "physique", dirigeant: null, signataires: [], photo: !!images.photo, specimen: !!images.signature });
+    if (images.photo || images.signature) E.images[t.id] = images;
+    enregistrer(); return t;
+  },
+  creerEntreprise(d: NouveauTiers, dirigeant: RepresentantSaisi | null, signataires: RepresentantSaisi[]) {
+    const u = utilisateur();
+    if (!u) throw new ErreurMetier("Session fermée.");
+    controlerEntreprise(d, dirigeant, signataires, ctxControle());
+    const rep = ({ photo, signature, ...r }: RepresentantSaisi): Representant => ({ ...r, photo: !!photo, specimen: !!signature });
+    const sig = signataires.map(rep);
+    const t = nouveauTiers({ ...d, postnom: "", prenom: "", sexe: "", naissance: "", lieuNaissance: "", pieceType: "", pieceNumero: "", pieceDelivreeLe: "",
+      pieceLieu: "", pieceAutorite: "", pieceExpire: "", telephone: "" }, u.id,
+      { type: "morale", dirigeant: dirigeant ? rep(dirigeant) : null, signataires: sig, photo: false, specimen: sig.some((x) => x.specimen) });
     enregistrer(); return t;
   },
   aViser: () => E.tiers.filter((t) => t.statut === "a_viser"),

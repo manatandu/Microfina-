@@ -325,3 +325,9 @@ details.textes ul { margin: var(--espace-1) 0 0; padding-left: var(--espace-4); 
 .boite[data-type="erreur"] h2 { color: var(--alerte); }
 .boite .boutons { display: flex; justify-content: flex-end; gap: var(--espace-2); margin-top: var(--espace-5); }
 .boite .boutons .bouton { min-width: 6rem; }
+
+/* Fiche ouverte par-dessus l'écran (signataire, bénéficiaire) */
+.fiche { border: 1px solid var(--trait); border-radius: var(--rayon-bloc); padding: var(--espace-5); width: min(48rem, calc(100vw - 2 * var(--espace-4)));
+  max-height: calc(100dvh - 2 * var(--espace-4)); overflow: auto; background: var(--papier); color: var(--encre); box-shadow: var(--ombre-flottant); }
+.fiche::backdrop { background: color-mix(in srgb, var(--nuit) 45%, transparent); }
+.fiche > h2 { margin: 0 0 var(--espace-4); font-size: var(--taille-grand); }

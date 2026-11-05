@@ -147,6 +147,32 @@ def test_enrolement(clients, journee):
         ("a_viser", "EAV-USD", 2000, False, [T("0412-000318")], True, False)
 
 
+def test_piece_admise(clients, journee):
+    r = clients["agent"].post("/api/tiers", {**FICHE, "nom": "X", "pieceType": "Carte de membre", "pieceNumero": "1"}, **H)
+    assert r.status_code == 422 and "art. 14" in r.json()["message"]
+
+
+def test_enrolement_entreprise(clients, journee):
+    agent = clients["agent"]
+    sig = {"nom": "Ilunga", "prenom": "Paul", "pieceType": "Passeport", "pieceNumero": "OP9", "signature": "data:image/png;base64,iVBORw0KGgo="}
+    base = {**FICHE, "typeClient": "Entreprises privées", "zone": "Matete", "nom": "Boulangerie Kinsaku SARL", "formeJuridique": "SARL",
+            "registre": "CD/KNG/RCCM/24-B-00001", "adresse": "Matete, avenue Kinsaku", "dirigeant": {**sig, "signature": None}, "signataires": [sig]}
+    def refus(corps):
+        r = agent.post("/api/tiers/entreprises", corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    assert "zone" in refus({**base, "zone": ""})
+    assert "forme juridique" in refus({**base, "formeJuridique": ""})
+    assert "Type inconnu" in refus({**base, "typeClient": "Client"})
+    assert "Signataire 1 : à remplir : nom" in refus({**base, "signataires": [{**sig, "nom": ""}]})
+    assert "Dirigeant" in refus({**base, "dirigeant": {**sig, "pieceType": "Badge"}})
+    r = agent.post("/api/tiers/entreprises", base, **H)
+    assert r.status_code == 200, r.content
+    t = r.json()
+    assert (t["type"], t["nom"], t["zone"], t["registre"], t["dirigeant"]["nom"], len(t["signataires"]), t["specimen"]) == \
+        ("morale", "Boulangerie Kinsaku SARL", "Matete", "CD/KNG/RCCM/24-B-00001", "Ilunga", 1, True)
+    assert any(x["id"] == t["id"] for x in agent.get("/api/tiers?q=boulangerie").json())
+    assert ident("select agent_economique from tiers where id = %s", (t["id"],)) == "Entreprises privées"
+
+
 def test_adhesion_apres_visa(clients, journee):
     caisse, chef, agent = clients["caisse"], clients["chef"], clients["agent"]
     t = agent.post("/api/tiers", {**FICHE, "nom": "Tshala", "postnom": "Muana", "prenom": "Marie", "naissance": "1990-02-01", "pieceType": "Carte d'électeur",

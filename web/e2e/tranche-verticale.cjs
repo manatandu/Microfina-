@@ -44,7 +44,7 @@ const OUT = process.argv[2];
   await etape('04-enrolement');
   await p.getByRole('button', { name: 'Suivant' }).click();
   await p.getByLabel('Nom : *').fill('Tshala'); await p.getByLabel('Post-nom :').fill('Muana'); await p.getByLabel('Prénom :').fill('Marie-Thérèse'); await p.getByLabel('Sexe :').selectOption('F'); await p.getByLabel('Téléphone :').fill('+243 810 000 000');
-  await p.getByLabel('Type de pièce : *').fill("Carte d'électeur"); await p.getByLabel('N° de pièce : *').fill('1-0412-0999'); await p.getByLabel("Valide jusqu'au :").fill('01012031');
+  await p.getByLabel('Type de pièce : *').selectOption("Carte d'électeur"); await p.getByLabel('N° de pièce : *').fill('1-0412-0999'); await p.getByLabel("Valide jusqu'au :").fill('01012031');
   await etape('04b-renseignements');
   for (const o of ['Autres renseignements', 'Personnes Liées']) await p.getByRole('tab', { name: o }).click();
   await p.getByLabel('Membre :').fill('Kalala'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('button', { name: '+Ajouter' }).click();
@@ -53,12 +53,33 @@ const OUT = process.argv[2];
   await p.getByRole('dialog', { name: 'Confirmation' }).waitFor(); await etape('04d-confirmation');
   await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await etape('05-enrole');
   await p.getByRole('button', { name: 'Ok' }).click();
+  // Entreprise (S38)
+  await aller('/clients/s38');
+  await p.getByLabel('Type entreprise : *').selectOption('Entreprises privées'); await p.getByLabel('Zone : *').selectOption('Matete');
+  await p.getByLabel('Type de compte à créer *').selectOption('EAV-CDF'); await etape('05b-entreprise');
+  await p.getByRole('button', { name: 'Suivant' }).click();
+  await p.getByLabel('Dénomination : *').fill('Boulangerie Kinsaku SARL'); await p.getByLabel('Forme juridique : *').fill('SARL');
+  await p.getByLabel('N° du registre : *').fill('CD/KNG/RCCM/24-B-00001'); await p.getByLabel('Adresse du siège : *').fill('Matete, avenue Kinsaku');
+  await p.getByRole('tab', { name: 'Dirigeant' }).click();
+  await p.getByLabel('Nom : *').fill('Ilunga'); await p.getByLabel('Type de pièce : *').selectOption('Passeport'); await p.getByLabel('N° de pièce : *').fill('OP9');
+  await etape('05c-dirigeant');
+  await p.getByRole('tab', { name: 'Signataires' }).click(); await p.getByRole('button', { name: '+Ajouter' }).click();
+  const sig = p.getByRole('dialog', { name: 'Signataire' });
+  await sig.getByLabel('Nom : *').fill('Ilunga'); await sig.getByLabel('Type de pièce : *').selectOption('Passeport'); await sig.getByLabel('N° de pièce : *').fill('OP9');
+  await etape('05d-fiche-signataire');
+  await sig.getByRole('button', { name: 'Enregistrer' }).click(); await sig.getByRole('button', { name: 'Fermer' }).click();
+  await p.getByRole('cell', { name: 'Ilunga' }).waitFor(); await etape('05e-signataires');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await etape('05f-entreprise-enregistree'); await p.getByRole('button', { name: 'Ok' }).click();
   // Chef : valider billetages et viser
   await login('J.-P. Mukendi'); await aller('/caisse/s80'); await etape('06-chef-a-valider');
   await validerTout();
   await p.getByText('Rien à valider pour l\'instant.').waitFor();
   await aller('/clients/s40'); await etape('06b-visa-client');
-  await p.getByRole('list', { name: /Membres à viser/ }).getByRole('button', { name: 'Viser' }).click();
+  for (const nom of ['Tshala', 'Boulangerie']) {
+    await p.getByRole('list', { name: /Membres à viser/ }).getByRole('listitem').filter({ hasText: nom }).getByRole('button', { name: 'Viser' }).click();
+    await p.getByRole('listitem').filter({ hasText: nom }).waitFor({ state: 'detached' });
+  }
   await p.getByText('Rien à valider pour l\'instant.').waitFor();
   // Caissière : adhésion, dépôt, retrait
   await login('Esther Ngalula'); await aller('/caisse/s73');

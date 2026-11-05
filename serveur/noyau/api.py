@@ -139,6 +139,11 @@ def tiers_a_viser(request):
     return s.tiers_a_viser(u(request))
 
 
+@api.post("/tiers/entreprises")
+def entreprise_creer(request, corps: dict = Body(...)):
+    return s.creer_entreprise(u(request), corps)
+
+
 @api.get("/tiers/{tid}")
 def tiers_lire(request, tid: int):
     u(request)

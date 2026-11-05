@@ -180,3 +180,16 @@ export function Dialogue({ boite, fermer }: { boite: Boite | null; fermer: () =>
     </dialog>
   );
 }
+
+/** Fiche ouverte par-dessus l'écran (ex. fiche d'un signataire, manuel Microfina++ p. 50) */
+export function Fiche({ titre, ouverte, fermer, children }: { titre: string; ouverte: boolean; fermer: () => void; children: ReactNode }) {
+  const [el, setEl] = useState<HTMLDialogElement | null>(null);
+  useEffect(() => { if (el && ouverte && !el.open) el.showModal?.(); if (el && !ouverte && el.open) el.close(); }, [el, ouverte]);
+  if (!ouverte) return null;
+  return (
+    <dialog ref={setEl} className="fiche" aria-labelledby="fiche-titre" onCancel={(e) => { e.preventDefault(); fermer(); }}>
+      <h2 id="fiche-titre">{titre}</h2>
+      {children}
+    </dialog>
+  );
+}

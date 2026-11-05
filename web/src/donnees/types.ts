@@ -30,8 +30,12 @@ export interface SessionCaisse {
   statut: "ouverte" | "arretee";
 }
 
+/** Dirigeant ou signataire d'une entreprise (S38), identifié comme un client : Instr. BCC 15, art. 16 */
+export interface Representant { nom: string; postnom: string; prenom: string; pieceType: string; pieceNumero: string; pieceExpire: string; photo: boolean; specimen: boolean }
+
 export interface Tiers {
   id: number;
+  type: "physique" | "morale";
   numero: string;
   statut: "a_viser" | "actif";
   nom: string;
@@ -62,6 +66,13 @@ export interface Tiers {
   pieceLieu: string;
   pieceAutorite: string;
   liees: number[];             // personnes liées (onglet « Personnes Liées »)
+  // S38, entreprise : nom = dénomination, adresse = siège, typeClient = type entreprise (Instr. BCC 15, art. 17)
+  formeJuridique: string;
+  registre: string;
+  centreActivite: string;
+  activite: string;
+  dirigeant: Representant | null;
+  signataires: Representant[];
   photo: boolean;
   specimen: boolean;
   creePar: number;
@@ -124,7 +135,7 @@ export interface Operation {
 export interface Produit { code: string; libelle: string; devise: Devise }
 
 export interface Etat {
-  version: 2;
+  version: 3;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];

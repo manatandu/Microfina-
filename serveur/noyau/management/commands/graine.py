@@ -27,6 +27,7 @@ class Command(BaseCommand):
             self.stdout.write("Base déjà remplie : rien à faire.")
             return
         ins = valeur("insert into institution (nom, profil) values ('COOPEC Tujenge', 'coopec') returning id")
+        executer("insert into zone (institution_id, nom) values (%s, 'Matete')", (ins,))   # zone fictive (S32 pas encore construit)
         ag = valeur("insert into agence (institution_id, code, nom) values (%s, '0412', 'Matete') returning id", (ins,))
         executer("insert into devise values ('CDF', 'Franc congolais'), ('USD', 'Dollar américain')")
         for d, vs in COUPURES.items():

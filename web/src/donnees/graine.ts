@@ -28,14 +28,15 @@ export function graine(): Etat {
   ];
   const personne = { sexe: "F" as const, naissance: "", pieceExpire: "2030-12-31", adresse: "Matete, quartier Kinsaku", telephone: "", personneExposee: false,
     dateDemande: "2026-01-15", numeroManuel: "", matricule: "", typeClient: "Client", zone: "", produitCode: "EAV-CDF", premierDepot: 0, resident: true, preleverAgios: true, calculerInteret: false,
-    lieuNaissance: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", liees: [] as number[], creePar: 4, visePar: 2, statut: "actif" as const };
+    lieuNaissance: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", liees: [] as number[],
+    type: "physique" as const, formeJuridique: "", registre: "", centreActivite: "", activite: "", dirigeant: null, signataires: [], creePar: 4, visePar: 2, statut: "actif" as const };
   return {
-    version: 2,
+    version: 3,
     institution: { nom: "COOPEC Tujenge", profil: "coopec" },
     agence: { id: 1, code: "0412", nom: "Matete" },
     guichets: [{ id: 1, code: "G1", nom: "Caisse 1" }, { id: 2, code: "G2", nom: "Caisse 2" }],
     produits: [{ code: "EAV-CDF", libelle: "Épargne à vue", devise: "CDF" }, { code: "EAV-USD", libelle: "Épargne à vue", devise: "USD" }],
-    zones: [],
+    zones: ["Matete"],   // zone fictive : le paramétrage S32 n'est pas encore construit
     utilisateurs: [
       { id: 1, login: "engalula", nom: "Esther Ngalula", roles: ["caissier"] },
       { id: 2, login: "jpmukendi", nom: "J.-P. Mukendi", roles: ["chef_agence"] },
