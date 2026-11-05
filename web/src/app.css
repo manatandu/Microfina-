@@ -3,7 +3,7 @@ a { color: var(--tampon); text-underline-offset: 3px; }
 #racine { min-height: 100vh; }
 
 /* ---------- Cadre d'un module : barre de menus, accès rapide, zone de travail, bas de page (manuel Microfina++, p. 13) ---------- */
-.cadre { min-height: 100vh; display: grid; grid-template-rows: auto 1fr auto; }
+.cadre { min-height: 100vh; display: grid; grid-template-rows: auto 1fr auto; grid-template-columns: minmax(0, 1fr); }
 .barre-menus {
   position: sticky; top: 0; z-index: 20; display: flex; align-items: stretch; gap: var(--espace-2);
   background: var(--nuit); color: var(--nuit-texte); padding: 0 var(--espace-4); min-height: 64px;
