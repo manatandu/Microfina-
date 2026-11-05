@@ -317,7 +317,7 @@ C'est la décision qui pèse le plus. Trois options.
 | B. Base par agence, synchronisation | Chaque agence a sa base, remontée au siège | Le guichet tourne sans réseau | Deux retraits sur le même compte dans deux agences, conflits, consolidation lourde |
 | C. Hybride | A par défaut, nœud local pour les agences isolées, consolidé par comptes de liaison 450 et 451 | Couvre le terrain réel | Deux modes à maintenir |
 
-**Ma recommandation : A, avec liaison de secours (4G en plus de la fibre ou du VSAT), et C seulement pour une agence qui le justifie.** Dans ce cas, l'agence isolée est traitée comme une entité comptable à part, reliée par les comptes de liaison prévus au PCCI. Ses membres ne peuvent pas opérer ailleurs tant qu'elle n'est pas consolidée.
+**Décision (05/11/2026) : A, avec liaison de secours (4G en plus de la fibre ou du VSAT), et C seulement pour une agence qui le justifie.** Dans ce cas, l'agence isolée est traitée comme une entité comptable à part, reliée par les comptes de liaison prévus au PCCI. Ses membres ne peuvent pas opérer ailleurs tant qu'elle n'est pas consolidée.
 
 Je refuse le mode « hors ligne puis on synchronise » au guichet pour l'épargne. Un retrait hors ligne, c'est un solde qu'on ne connaît pas. Sur de l'argent, ce n'est pas un détail.
 
@@ -325,17 +325,30 @@ Je refuse le mode « hors ligne puis on synchronise » au guichet pour l'épargn
 
 ## 8. Pile technique
 
-| Couche | Choix proposé | Pourquoi |
+**Décision (05/11/2026) : Python.**
+
+| Couche | Choix | Pourquoi |
 |---|---|---|
 | Base | PostgreSQL 16 | Transactions sérieuses, contraintes, triggers différés, sécurité par ligne si plusieurs institutions, partitionnement par exercice pour les dix ans de conservation |
-| Serveur | Kotlin sur la JVM, Spring Boot avec Spring Modulith | `BigDecimal` natif, typage fort, frontières de modules vérifiées, écosystème bancaire mature |
-| Accès données | jOOQ (SQL explicite) | Sur un grand livre, je veux lire le SQL, pas deviner ce qu'un ORM génère |
-| Interface | React et TypeScript, composants maison sur primitives accessibles (Radix) | Le design system est à nous (voir DESIGN.md), pas celui d'un kit |
-| Impressions | Gabarits PDF générés côté serveur, reçus thermiques 80 mm | Le papier fait partie du produit |
-| Authentification | Comptes locaux, TOTP pour les profils sensibles, session liée au poste | Instr. 008, art. 16 : accès et authentification maîtrisés |
-| Déploiement | Conteneurs, sur site ou en hébergement, sauvegardes chiffrées hors site | Instr. 36 : continuité d'activité |
+| Serveur | Python 3.12, Django 5 | Langage lisible par un comptable ou un économiste qui code un peu. Django apporte d'emblée l'authentification, les droits, les migrations et l'administration. Beaucoup de développeurs Python en RDC. |
+| API | Django Ninja | Contrats d'API typés, documentation générée |
+| Grand livre | SQL explicite pour les écritures et les soldes, ORM pour le reste | Sur un grand livre, on lit le SQL. Les modèles d'écritures n'ont ni `save()` de modification ni `delete()` |
+| Traitements de fin de journée et de mois | Procrastinate (file de tâches dans PostgreSQL) | Pas de Redis ni de serveur en plus. Une tâche plantée se rejoue |
+| Interface | React et TypeScript, composants maison sur primitives accessibles (Radix) | Le guichet au clavier, le billetage en direct et le montant en lettres demandent une vraie application côté écran. Le design system est à nous (voir DESIGN.md) |
+| Impressions | Gabarits PDF générés côté serveur (WeasyPrint), reçus thermiques 80 mm | Le papier fait partie du produit |
+| Authentification | Comptes locaux, TOTP pour les profils sensibles, session liée au poste, verrouillage automatique | Instr. 008, art. 16 |
+| Déploiement | Conteneurs, sur site ou en hébergement, sauvegardes automatiques chiffrées hors site, restauration testée chaque trimestre | Instr. 36 |
 
-Alternatives sérieuses : .NET (même solidité) ou TypeScript côté serveur (une seule langue, mais l'arithmétique décimale demande une discipline constante). **Le bon choix dépend de qui va coder.** Dis-moi qui compose l'équipe et je fige.
+Python a deux faiblesses pour un logiciel financier. On les traite dès le premier jour :
+
+| Faiblesse | Parade |
+|---|---|
+| Le typage est facultatif : une erreur de type se découvre à l'exécution | `mypy --strict` avec `django-stubs`, bloquant dans l'intégration continue. Montants en `Decimal` ou en entiers d'unités mineures, jamais en `float` (règle de lint) |
+| Rien n'empêche un module d'importer les tables d'un autre | `import-linter` vérifie les frontières entre modules à chaque build |
+
+Et le filet principal ne dépend pas du langage : l'équilibre des écritures, l'irréversibilité, la clôture des périodes et l'interdiction des soldes débiteurs sont garantis par PostgreSQL lui-même (§ 5). Les invariants du grand livre sont testés par génération aléatoire de milliers d'opérations (`hypothesis`).
+
+Performance : une COOPEC traite quelques milliers d'opérations par jour. Python suffit largement. Les calculs lourds (soldes, balance âgée, ratios) sont faits en SQL dans PostgreSQL.
 
 ---
 
@@ -351,16 +364,12 @@ Alternatives sérieuses : .NET (même solidité) ou TypeScript côté serveur (u
 
 ## 10. Ce qui reste ouvert
 
-Je bloque sur ces points. Il me faut ta réponse avant de figer.
-
-Décidé le 05/11/2026 : paie complète en deux temps (§ 4), COOPEC et IMF dès le départ (§ 1). Pour FinA, la plateforme de la BCC est indisponible : le reporting produit d'abord les tableaux de l'Instr. 009 en Excel et PDF, et le format FinA viendra comme un simple module d'export dès qu'on aura un gabarit (un fichier FinA déjà rempli par une COOPEC suffit).
+Décidé le 05/11/2026 : paie complète en deux temps (§ 4), COOPEC et IMF dès le départ (§ 1), serveur central avec 4G de secours (§ 7), Python et Django (§ 8). Pour FinA, la plateforme de la BCC est indisponible : le reporting produit d'abord les tableaux de l'Instr. 009 en Excel et PDF, et le format FinA viendra comme un simple module d'export dès qu'on aura un gabarit (un fichier FinA déjà rempli par une COOPEC suffit).
 
 Reste ouvert :
 
-1. **Connexion internet des agences** (§ 7). Le guichet doit-il continuer à tourner quand internet tombe ?
-2. **Qui écrit le code** (§ 8). Ça décide du langage.
-3. **Mono ou multi-institution ?** Un éditeur qui héberge plusieurs COOPEC, ou une installation par institution ?
-4. **Mobile money et agents** (Instr. 24 et 29). Phase 1 ou plus tard ?
+1. **Mono ou multi-institution ?** Un éditeur qui héberge plusieurs COOPEC, ou une installation par institution ?
+2. **Mobile money et agents** (Instr. 24 et 29). Phase 1 ou plus tard ?
 
 ---
 
