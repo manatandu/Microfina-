@@ -70,6 +70,20 @@
   --mouvement-repete: 0ms;
   --mouvement-deroulant: 180ms;
   --mouvement-courbe-sortie: cubic-bezier(0.23, 1, 0.32, 1);
+  --mise-contenu-max: 1366px;
+  --mise-menu: 232px;
+  --mise-guichet-gauche: 270px;
+  --mise-guichet-droite: 300px;
+  --mise-guichet-gouttiere: 12px;
+  --mise-bascule-une-colonne: 1100px;
+  --mise-gouttiere-mobile: 16px;
+  --mise-photo-l: 64px;
+  --mise-photo-h: 80px;
+  --mise-champ-court: 72px;
+  --mise-bouton-h: 40px;
+  --mise-bouton-h-grand: 48px;
+  --mise-champ-min: 220px;
+  --mise-carte-etroite: 420px;
   color-scheme: light;
 }
 

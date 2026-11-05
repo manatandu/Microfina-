@@ -1,14 +1,14 @@
 feature,area,priority,original,clone,notes
-Connexion par utilisateur et mot de passe,administration,must,yes,no,S01 ; ajouter verrouillage de session et règles de mot de passe (constat de terrain U22 ; Instr. BCC 008 art. 16 sur accès et authentification)
+Connexion par utilisateur et mot de passe,administration,must,yes,partial,"S01 ; ajouter verrouillage de session et règles de mot de passe (constat de terrain U22 ; Instr. BCC 008 art. 16 sur accès et authentification) | Construit : Construit en démonstration : choix du profil sans mot de passe. Reste : mot de passe, TOTP, verrouillage (Instr. BCC 008, art. 16)."
 Page des modules,administration,must,yes,no,S02
 Profils et droits par tâche,administration,must,yes,no,S03 S04 ; séparation des tâches incompatibles (Instr. BCC 008 art. 66 pour les IMF ; PCCI § 11.1)
 Gestion des utilisateurs et rattachement à une agence,administration,must,yes,no,S05 S06
 Liste des connectés et déconnexion forcée,administration,should,yes,no,S07
 Guichets : création comptes et option billetage,administration,must,yes,no,S08 ; billetage obligatoire et non optionnel (principe P8 de ARCHITECTURE.md ; constats U12 C41)
-Ouverture et fermeture des guichets,administration,must,yes,no,S09
+Ouverture et fermeture des guichets,administration,must,yes,partial,S09 | Construit : Ouverture d'une caisse par guichet et par jour ; la fermeture passe par l'arrêté (S79). Affectation des guichets (S10) à faire.
 Affectation des guichets aux utilisateurs,administration,must,yes,no,S10
 Exercices : création activation ouverture,administration,must,yes,no,S11
-Ouverture de journée,administration,must,yes,no,S12 ; journée comptable et clôture mensuelle (PCCI § 3.4)
+Ouverture de journée,administration,must,yes,partial,"S12 ; journée comptable et clôture mensuelle (PCCI § 3.4) | Construit : Ouverture et fermeture de journée, contrôles bloquants (caisses arrêtées, billetages validés, écarts, visas, équilibre). Clôture mensuelle à faire."
 Rapport des transactions,administration,should,yes,no,S13 ; ajouter journal des modifications de paramètres et de droits (constats U19 C29 ; Instr. BCC 008 art. 11)
 Secteurs d'activité,paramétrage,must,yes,no,S14
 Numérotation des clients et des comptes,paramétrage,must,yes,no,S15 S17
@@ -34,12 +34,12 @@ Gestionnaires sensibilisateurs commerciaux,paramétrage,should,yes,no,S33
 Jours de travail et jours fériés,paramétrage,should,yes,no,S34
 Devises types de monnaie et coupures,paramétrage,must,yes,no,S35 ; CDF et USD ; pas d'opération de change (PCCI § 7.1)
 Éléments de facture et références de commande,paramétrage,could,yes,no,S36
-Enrôlement personne physique en onglets,clients,must,yes,no,S37 ; attributs d'identification résidence et agent économique (PCCI § 10.1 10.2) ; vigilance à l'ouverture (Instr. BCC 15 art. 10)
+Enrôlement personne physique en onglets,clients,must,yes,partial,"S37 ; attributs d'identification résidence et agent économique (PCCI § 10.1 10.2) ; vigilance à l'ouverture (Instr. BCC 15 art. 10) | Construit : Un seul écran, pas d'onglets. Résidence et agent économique (PCCI § 10.1, 10.2) pas encore saisis ; liste des champs exigés à confirmer (Instr. BCC 15, art. 10 et 11). Photo et specimen : capture à brancher."
 Enrôlement entreprise avec dirigeants et signataires,clients,must,yes,no,S38 ; vérifier l'habilitation des représentants (Instr. BCC 15 art. 11)
 Enrôlement groupe avec membres,clients,must,yes,no,S39 ; parts des groupements au compte 1031 (PCCI compte 10)
 Personnes liées bénéficiaires photo et signature,clients,must,yes,no,S37 à S39 S49 ; personnes liées utiles au plafond des apparentés (Instr. BCC 002 art. 25 à 27)
 Choisir un prospect à l'enrôlement,clients,should,yes,no,S37 S45
-Visa du client et contrat d'adhésion,clients,must,yes,no,S40 ; compte inutilisable en caisse avant visa (constat C47)
+Visa du client et contrat d'adhésion,clients,must,yes,partial,S40 ; compte inutilisable en caisse avant visa (constat C47) | Construit : Visa à quatre yeux ; client inutilisable en caisse avant visa. Contrat d'adhésion imprimé à faire.
 Modifier les frais d'ouverture,clients,should,yes,no,S41 ; ouverture de compte gratuite (Instr. BCC 37 annexe) ; le droit d'adhésion de la loi 002/2002 art. 22 reste à confronter
 Valider un client modifié,clients,must,yes,no,S42
 Consulter l'état initial et actuel d'un client,clients,must,yes,no,S43
@@ -69,18 +69,18 @@ Plan d'épargne : simulation création échéancier cotisations rupture,épargne
 Clôture d'un compte,épargne,must,yes,no,S70 ; signalée non fonctionnelle par le manuel ; gratuite (Instr. BCC 37)
 Blocage de compte ou de montant avec motif,épargne,must,yes,no,S71
 Rapports épargne dont comptes inactifs et dormants,épargne,should,yes,no,S72
-Adhésion au guichet,caisse,must,yes,no,S73 ; parts payées en entier (loi 002/2002 art. 21)
-Dépôt et retrait au guichet,caisse,must,yes,no,S74 ; maquettes guichet-depot et guichet-retrait ; gratuits (Instr. BCC 37) ; espèces de 10 000 USD ou plus (Instr. BCC 15 art. 61 et 62 ; Instr. BCC 15 bis)
-Montant en lettres,caisse,must,yes,no,S74 S81
+Adhésion au guichet,caisse,must,yes,partial,"S73 ; parts payées en entier (loi 002/2002 art. 21) | Construit : Parts payées en entier (1030), premier dépôt (330), compte USD au choix. Valeur de part d'exemple ; frais d'adhésion et minimum de parts à confirmer (statuts)."
+Dépôt et retrait au guichet,caisse,must,yes,partial,"S74 ; maquettes guichet-depot et guichet-retrait ; gratuits (Instr. BCC 37) ; espèces de 10 000 USD ou plus (Instr. BCC 15 art. 61 et 62 ; Instr. BCC 15 bis) | Construit : Dépôt et retrait, billetage obligatoire, specimen et vérifications, visa du chef au-delà du seuil d'exemple, clé d'idempotence. Examen renforcé : bloque (circuit conformité à construire). Mandataire et reçu 80 mm à faire."
+Montant en lettres,caisse,must,yes,partial,"S74 S81 | Construit : Fait sur S73 et S74, jusqu'aux milliards. S81 à faire."
 Mandataire au retrait,caisse,must,yes,no,S74 champ libre ; à relier aux procurations enregistrées (Instr. BCC 15 art. 11)
-Frais d'opération au guichet,caisse,must,yes,no,S74 montre des frais de versement ; interdits sur dépôt et retrait (Instr. BCC 37)
+Frais d'opération au guichet,caisse,must,yes,yes,S74 montre des frais de versement ; interdits sur dépôt et retrait (Instr. BCC 37) | Construit : Aucun frais sur dépôt ni retrait (Instr. BCC 37).
 Déblocage de crédit en caisse,caisse,must,yes,no,S75
 Remboursement en caisse avec répartition,caisse,must,yes,no,S76 ; maquette guichet-remboursement : six postes et ordre du produit comme Microfina++ ; TVA nulle pour une COOPEC (loi 002/2002 art. 62) ; comptes de l'épargne de capitalisation du fonds de solidarité et de la pénalité à confirmer
 Situation plan réel mémo du prêt au guichet,caisse,should,yes,no,S76
 Achat et retrait de parts sociales,caisse,must,yes,no,S77 ; maquette guichet-parts ; loi 002/2002 art. 21 22 24 ; PCCI compte 10
 Encaissements et décaissements divers,caisse,must,yes,no,S78
-Billetage : saisie par coupure,caisse,must,yes,no,S79
-Billetage : validation solde informatique et réel,caisse,must,yes,no,S80 ; journée non comptabilisable sans billetage validé (constats U12 C41)
+Billetage : saisie par coupure,caisse,must,yes,yes,"S79 | Construit : Saisie par coupure à l'ouverture et à l'arrêté, par devise, avec l'attendu."
+Billetage : validation solde informatique et réel,caisse,must,yes,partial,"S80 ; journée non comptabilisable sans billetage validé (constats U12 C41) | Construit : Validation par le chef d'agence (quatre yeux), écart justifié, fermeture bloquée. Écriture de l'écart : compte à confirmer."
 Transfert caisse vers caisse et caisse vers banque,caisse,must,yes,no,S81 ; comptes 579 et 59 soldés chaque soir (constat C42)
 Opérations diverses et déplacées validées en caisse,caisse,must,yes,no,S82 ; retrait dans une autre agence gratuit (Instr. BCC 37)
 Journal de caisse,caisse,must,yes,no,S83
@@ -121,7 +121,7 @@ Contrôle écart gestion et comptabilité,comptabilité,skip,yes,skip,S118 ; inu
 Contrôle trésorerie et rapport des annulations,comptabilité,must,yes,no,S118
 État des revenus,comptabilité,should,yes,no,S118
 Lettrage,comptabilité,must,yes,no,S119
-Grand livre et balance général et analytique,comptabilité,must,yes,no,S120 S121 ; grand livre complet en une extraction (constats U1 C26)
+Grand livre et balance général et analytique,comptabilité,must,yes,partial,"S120 S121 ; grand livre complet en une extraction (constats U1 C26) | Construit : Balance (S121) lue dans le grand livre, par compte et par devise, contre-valeur CDF. Grand livre détaillé (S120) à faire."
 Bilan hors bilan résultat annexes,comptabilité,must,yes,no,S122 ; états du PCCI ; tableau des flux de trésorerie et états de l'Instr. BCC 009 à ajouter (constats U23 C11)
 Indicateurs financiers,comptabilité,must,yes,no,S123 ; formules de l'annexe de l'Instr. BCC 004
 Budget : création reconduction suivi consommation financement,budget,should,yes,no,S124 à S126

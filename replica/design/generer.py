@@ -40,6 +40,9 @@ def main():
     for nom, v in clair["motion"].items():
         if not nom.startswith("_"):
             lignes.append(f"  --mouvement-{nom}: {v};")
+    for nom, v in clair.get("layout", {}).items():
+        if isinstance(v, str) and v.endswith("px"):
+            lignes.append(f"  --mise-{nom}: {v};")
     lignes.append("  color-scheme: light;")
     lignes.append("}")
     lignes.append("")

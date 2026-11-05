@@ -1,0 +1,61 @@
+/* Mise en page de l'application. Jetons seulement (tokens.css). */
+a { color: var(--tampon); }
+#racine { min-height: 100vh; display: grid; grid-template-rows: auto 1fr; }
+.app { display: grid; grid-template-columns: var(--mise-menu) minmax(0, 1fr); min-height: 0; }
+.menu { background: var(--feuille); border-right: 1px solid var(--trait); padding: var(--espace-3) 0; overflow-y: auto; }
+.menu ul { list-style: none; margin: 0; padding: 0; }
+.menu a { display: block; padding: var(--espace-2) var(--espace-4); color: var(--encre); text-decoration: none; }
+.menu a[aria-current="page"] { background: var(--tampon-pale); color: var(--tampon); font-weight: 600; box-shadow: inset 3px 0 0 var(--tampon); }
+.menu .groupe { padding: var(--espace-4) var(--espace-4) var(--espace-1); font-size: var(--taille-dense); color: var(--encre-2); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.menu .nombre-ecrans { color: var(--encre-2); font-size: var(--taille-dense); margin-left: var(--espace-1); }
+.page { padding: var(--espace-4); min-width: 0; display: grid; gap: var(--espace-4); align-content: start; max-width: var(--mise-contenu-max); }
+.page > h1 { margin: 0; font-size: var(--taille-grand); line-height: var(--interligne-grand); }
+.page > .chapeau { margin: 0; color: var(--encre-2); max-width: 70ch; }
+.rangee { display: flex; flex-wrap: wrap; gap: var(--espace-3); align-items: center; }
+.pile { display: grid; gap: var(--espace-3); align-content: start; min-width: 0; }
+.deux-colonnes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--espace-4); align-items: start; }
+.formulaire { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--mise-champ-min)), 1fr)); gap: var(--espace-3); }
+.liste-taches { display: grid; gap: var(--espace-2); margin: 0; padding: 0; list-style: none; }
+.liste-taches li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--espace-2); padding: var(--espace-2) var(--espace-3); border: 1px solid var(--trait); border-radius: var(--rayon-champ); background: var(--feuille); }
+.controle { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--espace-1) var(--espace-3); padding: var(--espace-2) 0; border-top: 1px solid var(--ligne); }
+.controle:first-child { border-top: 0; }
+.controle .marque { font-weight: 700; font-family: var(--police-chiffres); }
+.controle[data-etat="ok"] .marque { color: var(--sain-texte); }
+.controle[data-etat="ko"] .marque { color: var(--alerte); }
+.controle[data-etat="info"] .marque { color: var(--encre-2); }
+.controle p { margin: 0; }
+.controle .detail { grid-column: 2; font-size: var(--taille-dense); color: var(--encre-2); }
+
+/* Guichet : identité, bordereau, argent (DESIGN § 4) */
+.guichet { display: grid; grid-template-columns: var(--mise-guichet-gauche) minmax(0, 1fr) var(--mise-guichet-droite); gap: var(--mise-guichet-gouttiere); align-items: start; }
+.guichet .bordereau { display: grid; gap: var(--espace-4); }
+.pied-guichet { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--espace-3); border-top: 1px solid var(--trait); padding-top: var(--espace-3); }
+.choix { display: grid; gap: var(--espace-1); border: 0; margin: 0; padding: 0; min-width: 0; }
+.choix legend { font-size: var(--taille-dense); font-weight: 600; color: var(--encre-2); padding: 0; margin-bottom: var(--espace-1); }
+.resultat-ok { border-left: 4px solid var(--sain); background: var(--sain-pale); padding: var(--espace-2) var(--espace-3); border-radius: var(--rayon-champ); margin: 0; }
+.onglets a { text-decoration: none; display: inline-block; font-weight: 600; color: var(--encre-2); border-bottom: 2px solid transparent; margin-bottom: -1px; padding: var(--espace-2) var(--espace-3); }
+.onglets a[aria-current="page"] { color: var(--tampon); border-bottom-color: var(--tampon); }
+
+/* Connexion */
+.connexion { display: grid; place-items: start center; padding: var(--espace-8) var(--espace-4); }
+.connexion .bloc { width: 100%; max-width: var(--mise-carte-etroite); display: grid; gap: var(--espace-4); }
+.connexion h1 { margin: 0; font-size: var(--taille-grand); }
+
+/* Valeur d'exemple ou à confirmer */
+.exemple { font-size: var(--taille-dense); color: var(--encre-2); font-style: italic; }
+
+/* 1100px : --mise-bascule-une-colonne (une media query ne lit pas de variable) */
+@media (max-width: 1100px) {
+  .guichet { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .menu { border-right: 0; border-bottom: 1px solid var(--trait); padding: var(--espace-1) 0; }
+  .menu ul { display: flex; overflow-x: auto; }
+  .menu .groupe { display: none; }
+  .menu a { white-space: nowrap; }
+  .page { padding: var(--espace-4) var(--mise-gouttiere-mobile); }
+  .deux-colonnes { grid-template-columns: minmax(0, 1fr); }
+}
+
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
