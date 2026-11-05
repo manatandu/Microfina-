@@ -21,6 +21,8 @@ Un système de gestion intégré (core banking) pour trois types d'assujettis :
 
 Un seul produit. Le **profil réglementaire** de l'institution active ou désactive des règles. Il ne crée pas de branche de code.
 
+**Décision (05/11/2026) : COOPEC et IMF dès le départ.** Les deux profils sont livrés ensemble ; seules les règles listées ci-dessus changent. La faîtière, qui demande la consolidation d'un réseau, vient plus tard (étape 5).
+
 ### Et Microfina++ ?
 
 Manuel lu en entier (MEDIASOFT, v0.1, 2022, 306 pages), croisé avec les deux notes d'une mission d'octobre 2026 dans une COOPEC utilisatrice. L'analyse complète est dans [`../analyse/microfina-ecarts.md`](../analyse/microfina-ecarts.md). Trois choses à retenir :
@@ -193,8 +195,11 @@ flowchart TB
 | Immobilisations | Biens, familles et comptes, acquisition, amortissement, réévaluation, inventaire, sortie | Laisser l'acquisition se comptabiliser à la main |
 | Budget | Centres de coût, plans, lignes, bailleurs, réalisé contre prévu, subventions par convention | |
 | Registres de contrôle | Incidents et fraudes, recommandations CAC, BCC et conseil de surveillance, autorisations d'activités connexes, imprimés de valeur | Se substituer aux organes |
+| Paie | Employés, grilles, rubriques, bulletins, avances et retenues avec visa, comptabilisation de la paie, virement des salaires sur comptes domiciliés | Écrire en comptabilité sans schéma comptable |
 
-**Hors périmètre** : GRH, stocks, calcul de la paie. Les avances et retenues sur salaire entrent dans le noyau (créances sur le personnel, prélèvements sur comptes domiciliés). Le journal de paie s'importe.
+**Hors périmètre** : GRH (recrutement, formations, missions) et stocks.
+
+**Paie (décision du 05/11/2026)** : module complet, construit en deux temps. D'abord les avances et retenues sur salaire (créances sur le personnel, prélèvements sur comptes domiciliés, visa). Ensuite le calcul de la paie et les bulletins.
 
 ---
 
@@ -348,13 +353,14 @@ Alternatives sérieuses : .NET (même solidité) ou TypeScript côté serveur (u
 
 Je bloque sur ces points. Il me faut ta réponse avant de figer.
 
-1. **Paie.** Je propose de garder les avances et retenues dans le noyau et d'importer le journal de paie. Ou tu veux un module paie complet comme dans Microfina++ ?
-2. **Pour qui d'abord ?** Une COOPEC isolée, un réseau avec faîtière, ou des IMF ? Ça change l'ordre des modules.
-3. **Connectivité réelle des agences visées.** Fibre, 4G, VSAT, rien ?
-4. **Équipe.** Qui code, avec quelles langues ? Ça tranche la pile (§ 8).
-5. **Format FinA.** Il faut la spécification exacte (gabarits, codes de postes) auprès de la DSIF de la BCC. Sans elle, le module reporting reste un squelette.
-6. **Mono ou multi-institution ?** Un éditeur qui héberge plusieurs COOPEC, ou une installation par institution ?
-7. **Mobile money et agents** (Instr. 24 et 29). Phase 1 ou plus tard ?
+Décidé le 05/11/2026 : paie complète en deux temps (§ 4), COOPEC et IMF dès le départ (§ 1). Pour FinA, la plateforme de la BCC est indisponible : le reporting produit d'abord les tableaux de l'Instr. 009 en Excel et PDF, et le format FinA viendra comme un simple module d'export dès qu'on aura un gabarit (un fichier FinA déjà rempli par une COOPEC suffit).
+
+Reste ouvert :
+
+1. **Connexion internet des agences** (§ 7). Le guichet doit-il continuer à tourner quand internet tombe ?
+2. **Qui écrit le code** (§ 8). Ça décide du langage.
+3. **Mono ou multi-institution ?** Un éditeur qui héberge plusieurs COOPEC, ou une installation par institution ?
+4. **Mobile money et agents** (Instr. 24 et 29). Phase 1 ou plus tard ?
 
 ---
 
@@ -365,6 +371,6 @@ Je bloque sur ces points. Il me faut ta réponse avant de figer.
 | 0. Socle | Référentiel, habilitations, audit, grand livre, journées et périodes, schémas comptables | Une écriture saisie, validée à quatre yeux, visible au journal et en balance, impossible à modifier |
 | 1. Guichet | Tiers et KYC de base, épargne, caisse et billetage | Une journée complète d'agence : ouverture, dépôts, retraits, arrêté de caisse, fermeture, balance juste |
 | 2. Crédit | Dossier, comité, déblocage, échéancier, remboursements, classement et provisions | Un portefeuille vieilli sur 200 jours simulés, provisions conformes à l'Instr. 003 |
-| 3. Pilotage | Prudentiel, Instr. 004, états mensuels et FinA, flux de trésorerie, centrale des risques, immobilisations, budget | Les états du 15 sortis sans retouche manuelle |
+| 3. Pilotage | Prudentiel, Instr. 004, états mensuels de l'Instr. 009 (Excel et PDF, export FinA dès qu'on a le gabarit), flux de trésorerie, centrale des risques, immobilisations, budget, avances et retenues sur salaire | Les états du 15 sortis sans retouche manuelle |
 | 4. Conformité | LBC/FT complet, plaintes, registres de contrôle, TEG et publication des conditions | |
-| 5. Extensions | Faîtière et consolidation, mobile money, agents | |
+| 5. Extensions | Faîtière et consolidation, calcul de la paie et bulletins, mobile money, agents | |
