@@ -330,7 +330,7 @@ Je refuse le mode « hors ligne puis on synchronise » au guichet pour l'épargn
 | Couche | Choix | Pourquoi |
 |---|---|---|
 | Base | PostgreSQL 16 | Transactions sérieuses, contraintes, triggers différés, sécurité par ligne si plusieurs institutions, partitionnement par exercice pour les dix ans de conservation |
-| Serveur | Python 3.12, Django 5 | Langage lisible par un comptable ou un économiste qui code un peu. Django apporte d'emblée l'authentification, les droits, les migrations et l'administration. Beaucoup de développeurs Python en RDC. |
+| Serveur | Python 3.12, Django 5 | Code court, rapide à construire et facile à reprendre par un développeur. Django apporte d'emblée l'authentification, les droits, les migrations et l'administration. Développeurs Python disponibles en RDC. |
 | API | Django Ninja | Contrats d'API typés, documentation générée |
 | Grand livre | SQL explicite pour les écritures et les soldes, ORM pour le reste | Sur un grand livre, on lit le SQL. Les modèles d'écritures n'ont ni `save()` de modification ni `delete()` |
 | Traitements de fin de journée et de mois | Procrastinate (file de tâches dans PostgreSQL) | Pas de Redis ni de serveur en plus. Une tâche plantée se rejoue |
