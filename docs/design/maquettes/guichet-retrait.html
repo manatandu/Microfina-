@@ -324,7 +324,7 @@ details.voir summary { cursor: pointer; font-weight: 600; font-size: 14px; }
     <nav class="onglets" aria-label="Opération">
       <a href="guichet-depot.html" id="lien-depot">Dépôt</a>
       <span aria-current="page">Retrait</span>
-      <span>Remboursement</span>
+      <a href="guichet-remboursement.html" id="lien-remb">Remboursement</a>
       <span>Parts sociales</span>
     </nav>
 
@@ -762,7 +762,7 @@ $("imp-carnet").addEventListener("click", () => { $("imp-msg").textContent = "Pl
 document.addEventListener("keydown", (e) => {
   if (e.key === "F2") { e.preventDefault(); $("q").focus(); $("q").select(); }
   else if (e.key === "F4") { e.preventDefault(); proposerBilletage(); }
-  else if (e.key === "F8") { e.preventDefault(); $("conseil-msg").textContent = "Ouvrirait l'onglet Remboursement (pas encore maquetté)."; }
+  else if (e.key === "F8") { e.preventDefault(); $("conseil-msg").innerHTML = '<a href="guichet-remboursement.html">Ouvrir le remboursement</a>'; }
   else if (e.key === "F9") { e.preventDefault(); valider(); }
   else if (e.key === "Escape") { e.preventDefault(); reinitialiser(); }
   else if (e.key === "Enter" && !$("resultat").hidden && document.activeElement?.tagName !== "BUTTON") { e.preventDefault(); reinitialiser(); }
