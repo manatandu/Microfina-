@@ -139,10 +139,16 @@ export interface Operation {
   heure: string;
 }
 
+/** S16 (manuel p. 25 à 27) : frais, et leur valeur par sous type de client (opérations) ou par type de membre (adhésion) */
+export interface Frais { id: number; libelle: string; typeOperation: string }
+export interface ParamFrais { id: number; fraisId: number; nature: string; valeur: number | null; compte: string | null }
+export type ParamOperation = ParamFrais & { sousType: string };
+export type ParamAdhesion = ParamFrais & { typeMembre: string };
+
 export interface Produit { code: string; libelle: string; devise: Devise }
 
 export interface Etat {
-  version: 5;
+  version: 6;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];
@@ -161,6 +167,10 @@ export interface Etat {
   fondsVeille: Record<number, Record<Devise, Comptage>>;   // coupures laissées dans chaque guichet au dernier arrêté
   session: number | null;      // utilisateur connecté
   compteurs: { piece: number; tiers: number };
+  sousTypes: string[];
+  frais: Frais[];
+  paramOperations: ParamOperation[];
+  paramAdhesion: ParamAdhesion[];
   images: Record<number, { photo?: string; signature?: string }>;   // photo et specimen chargés à l'enrôlement
 }
 

@@ -20,6 +20,8 @@ export function VisaClient() {
   const [recherche, setRecherche] = useState(false);
   const [contrat, setContrat] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
+  const { donnees: lies } = useDonnees(() => (t ? api.parametrage.fraisLies(t.id) : Promise.resolve([])), [t?.id]);
+  const frais = lies ?? [];
   if (!donnees) return <Chargement />;
   const { ctx, attente } = donnees;
   const vise = t?.statut === "actif";
@@ -62,9 +64,12 @@ export function VisaClient() {
             <legend>Liste des Frais liés</legend>
             <table className="grille">
               <thead><tr><th scope="col">Libellé Frais</th><th scope="col">Compte</th><th scope="col">Nbre</th><th scope="col">Montant</th></tr></thead>
-              <tbody><tr><td colSpan={4}>Liste vide</td></tr></tbody>
+              <tbody>
+                {(!t || frais.length === 0) && <tr><td colSpan={4}>Liste vide</td></tr>}
+                {t && frais.map((f, i) => <tr key={i}><td>{f.libelle}</td><td className="chiffres">{f.compte}</td><td></td><td className="chiffres">{f.montant === null ? "" : montant(f.montant, "CDF")}</td></tr>)}
+              </tbody>
             </table>
-            <p className="a-confirmer">Les frais liés (droit d'entrée, frais de livret) viennent du paramétrage S16, pas encore construit. Droit d'adhésion : loi 002/2002, art. 22, 5°.</p>
+            <p className="a-confirmer">Frais d'adhésion paramétrés pour le type du client (S16). Colonne « Nbre » : à confirmer. Droit d'adhésion : loi 002/2002, art. 22, 5°.</p>
           </fieldset>
         </div>
         <div className="actions-onglets">

@@ -89,13 +89,29 @@ const OUT = process.argv[2];
   await login('J.-P. Mukendi'); await aller('/caisse/s80'); await etape('06-chef-a-valider');
   await validerTout();
   await p.getByText('Rien à valider pour l\'instant.').waitFor();
+  // Paramétrage des frais (S16)
+  await aller('/parametrage/s16');
+  const ok = async () => { await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click(); };
+  await p.getByLabel('Type Opération: *').selectOption('DEPOT'); await p.getByLabel('Libellé du frais: *').fill('FRAIS VERSEMENT');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('dialog', { name: 'Erreur' }).waitFor(); await etape('06d-frais-refus-bcc37'); await p.getByRole('button', { name: 'Ok' }).click();
+  await p.getByLabel('Type Opération: *').selectOption('ADHESION'); await p.getByLabel('Libellé du frais: *').fill("Droit d'entrée");
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
+  await p.getByRole('cell', { name: "Droit d'entrée" }).waitFor(); await etape('06e-frais');
+  await p.getByRole('tab', { name: 'Paramétrage frais Adhésion', exact: true }).click();
+  await p.getByLabel('Frais: *').selectOption({ label: "Droit d'entrée" }); await p.getByLabel('Nature du frais *').selectOption('Montant');
+  await p.getByLabel('Valeur (CDF)').fill('5 000'); await p.getByRole('checkbox', { name: 'Physique' }).check();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok(); await etape('06f-frais-adhesion');
+  await p.getByRole('tab', { name: 'Modif Paramétrage frais Adhésion' }).click();
+  await p.getByLabel('Frais: *').selectOption({ label: "Droit d'entrée" }); await p.getByLabel('Type membre *').selectOption('Physique');
+  await p.getByRole('cell', { name: /5 000/ }).waitFor(); await etape('06g-modif-frais-adhesion');
   await aller('/clients/s40');
   for (const [i, nom] of ['Tshala', 'Mamans', 'Boulangerie'].entries()) {
     if (i > 0) await p.getByRole('button', { name: 'Annuler' }).click();
     await p.getByRole('button', { name: 'Rechercher un client' }).click();
     const r = p.getByRole('dialog', { name: 'Clients en attente de visa' });
     await r.getByRole('row').filter({ hasText: nom }).dblclick();
-    if (i === 0) await etape('06b-visa-client');
+    if (i === 0) { await p.getByRole('cell', { name: "Droit d'entrée" }).waitFor(); await etape('06b-visa-client'); }
     await p.getByRole('button', { name: 'Viser' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
     await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
     if (i === 0) { await p.getByRole('button', { name: 'Imprimer Contrat' }).click(); await p.getByRole('dialog', { name: "Demande d'adhésion" }).waitFor();

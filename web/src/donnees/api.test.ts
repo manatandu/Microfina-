@@ -125,6 +125,26 @@ describe("journée de guichet", () => {
     await expect(api.tiers.viser(t.id)).rejects.toThrow("pas en attente");
   });
 
+  it("paramétrage des frais (S16) : Instr. BCC 37, doublons, modification, suppression, frais liés au visa", async () => {
+    await connecter("jpmukendi");
+    const p = api.parametrage;
+    await expect(p.creerFrais({ typeOperation: "DEPOT", libelle: "FRAIS VERSEMENT" })).rejects.toThrow("Instr. BCC 37");
+    const f = await p.creerFrais({ typeOperation: "ADHESION", libelle: "Droit d'entrée" });
+    await expect(p.creerFrais({ typeOperation: "ADHESION", libelle: "Droit d'entrée" })).rejects.toThrow("existe déjà");
+    await expect(p.parametrerOperation({ fraisId: f.id, nature: "Montant", valeur: null, compte: "", sousTypes: ["Femme"] })).rejects.toThrow("Paramétrage frais Adhésion");
+    await expect(p.parametrerAdhesion({ fraisId: f.id, nature: "Montant", valeur: 500000, compte: "70A", typesMembre: ["Physique"] })).rejects.toThrow("Compte");
+    const pid = (await p.parametrerAdhesion({ fraisId: f.id, nature: "Montant", valeur: 500000, compte: "70291", typesMembre: ["Physique"] }))[0]!;
+    await expect(p.parametrerAdhesion({ fraisId: f.id, nature: "Montant", valeur: null, compte: "", typesMembre: ["Physique"] })).rejects.toThrow("Déjà paramétré");
+    await expect(p.supprimerFrais(f.id)).rejects.toThrow("paramétré");
+    await p.modifierParametrage("adhesion", pid, { nature: "Montant", valeur: 200000, compte: "70291" });
+    expect(await p.fraisLies(1)).toEqual([{ libelle: "Droit d'entrée", compte: "70291", montant: 200000 }]);
+    await connecter("bkasongo");
+    await expect(p.creerFrais({ typeOperation: "ADHESION", libelle: "Frais de livret" })).rejects.toThrow("Réservé");
+    await connecter("jpmukendi");
+    await p.supprimerParametrage("adhesion", pid); await p.supprimerFrais(f.id);
+    expect((await p.lireFrais()).frais).toEqual([]);
+  });
+
   it("adhésion : parts en 1030, premier dépôt en 330, après visa seulement", async () => {
     await connecter("bkasongo");
     const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), produitCode: "EAV-CDF", nom: "Tshala", postnom: "Muana", prenom: "Marie", naissance: "1990-02-01", pieceType: "Carte d'électeur", pieceNumero: "1-0412-0999", pieceExpire: "2031-01-01", adresse: "Matete" });

@@ -3,6 +3,7 @@ Chaque route lit l'utilisateur de la session ; les droits sont vérifiés dans l
 from django.http import HttpRequest
 from ninja import Body, NinjaAPI
 
+from . import frais as fr
 from . import services as s
 from .bd import ErreurMetier
 
@@ -171,6 +172,11 @@ def tiers_comptes(request, tid: int):
     return s.comptes_du_tiers(tid)
 
 
+@api.get("/tiers/{tid}/frais")
+def tiers_frais(request, tid: int):
+    return fr.frais_lies(u(request), tid)
+
+
 @api.get("/tiers/{tid}/parts")
 def tiers_parts(request, tid: int):
     u(request)
@@ -231,3 +237,54 @@ def etats_balance(request):
 @api.get("/etats/journal")
 def etats_journal(request, journee: int | None = None):
     return s.journal(u(request), journee)
+
+
+# ---------- Paramétrage : frais (S16) ----------
+TABLES = {"operation": "parametrage_frais", "adhesion": "parametrage_frais_adhesion"}
+
+
+@api.get("/parametrage/frais")
+def frais_lire(request):
+    return fr.lire(u(request))
+
+
+@api.post("/parametrage/frais")
+def frais_creer(request, corps: dict = Body(...)):
+    return fr.creer_frais(u(request), corps)
+
+
+@api.post("/parametrage/frais/{fid}")
+def frais_modifier(request, fid: int, corps: dict = Body(...)):
+    return fr.modifier_frais(u(request), fid, corps)
+
+
+@api.delete("/parametrage/frais/{fid}")
+def frais_supprimer(request, fid: int):
+    fr.supprimer_frais(u(request), fid)
+    return None
+
+
+@api.post("/parametrage/frais-operation")
+def frais_parametrer_operation(request, corps: dict = Body(...)):
+    return fr.parametrer_operation(u(request), corps)
+
+
+@api.post("/parametrage/frais-adhesion")
+def frais_parametrer_adhesion(request, corps: dict = Body(...)):
+    return fr.parametrer_adhesion(u(request), corps)
+
+
+@api.post("/parametrage/frais-{genre}/{pid}")
+def parametrage_modifier(request, genre: str, pid: int, corps: dict = Body(...)):
+    if genre not in TABLES:
+        raise ErreurMetier("Introuvable.", 404)
+    fr.modifier_parametrage(u(request), TABLES[genre], pid, corps)
+    return None
+
+
+@api.delete("/parametrage/frais-{genre}/{pid}")
+def parametrage_supprimer(request, genre: str, pid: int):
+    if genre not in TABLES:
+        raise ErreurMetier("Introuvable.", 404)
+    fr.supprimer_parametrage(u(request), TABLES[genre], pid)
+    return None

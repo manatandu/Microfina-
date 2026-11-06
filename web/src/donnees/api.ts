@@ -8,7 +8,7 @@ import { creerApiHttp } from "./http";
 import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
   type Operation, type Role, type SessionCaisse, type Tiers, type Utilisateur,
-  type Representant,
+  type Representant, type Frais, type ParamFrais,
 } from "./types";
 import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 
@@ -16,14 +16,14 @@ import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@d
 export const SEUIL_CAISSIER_USD = 1000;   // au-delà, visa du chef d'agence. Exemple : fixé par la COOPEC
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v5";
+const CLE = "likelemba-demo-v6";
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
 
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 5) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 6) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   return graine();
 }
@@ -42,10 +42,10 @@ const prochain = (l: { id: number }[]) => l.reduce((m, x) => Math.max(m, x.id), 
 
 // ---------- Session ----------
 function utilisateur(): Utilisateur | null { return E.utilisateurs.find((u) => u.id === E.session) ?? null; }
-function exiger(role: Role): Utilisateur {
+function exiger(role?: Role): Utilisateur {
   const u = utilisateur();
   if (!u) throw new ErreurMetier("Session fermée. Reconnectez-vous.");
-  if (!u.roles.includes(role)) throw new ErreurMetier(`Réservé au profil « ${LIBELLES_ROLES[role]} ».`);
+  if (role && !u.roles.includes(role)) throw new ErreurMetier(`Réservé au profil « ${LIBELLES_ROLES[role]} ».`);
   return u;
 }
 export const LIBELLES_ROLES: Record<Role, string> = { caissier: "caissier", chef_agence: "chef d'agence", agent_credit: "agent de crédit", comptable: "comptable" };
@@ -366,6 +366,117 @@ const tiers = {
 };
 export type CompteAvecSolde = CompteDepot & { solde: number; disponible: number };
 
+// ---------- Paramétrage : frais (S16, manuel p. 25 à 27). Règles identiques côté serveur (noyau/frais.py). ----------
+/** Types d'opération montrés par le manuel (p. 25 et 26). Liste complète à confirmer. */
+export const TYPES_OPERATION = ["ADHESION", "DEPOT"];
+/** Services gratuits « sans aucune condition » : Instr. BCC 37, art. 2 et 3, annexe */
+const GRATUITS: Record<string, string> = { DEPOT: "dépôt d'espèces", RETRAIT: "retrait d'espèces", OUVERTURE: "ouverture de compte", CLOTURE: "clôture de compte",
+  VIREMENT: "virement de compte à compte" };
+export const NATURES = ["Montant"];   // seule nature montrée (p. 26)
+const TYPES_MEMBRE: Record<string, Tiers["type"]> = { Physique: "physique", Entreprise: "morale", Groupe: "groupe" };
+export type ValeursFrais = { nature: string; valeur: number | null; compte: string };
+
+const droitParametrage = () => exiger("chef_agence");   // profil habilité : à confirmer (S04 à S07)
+function controlerFrais(d: { typeOperation: string; libelle: string }) {
+  const t = d.typeOperation.trim(), l = d.libelle.trim();
+  const manque = manquants([["type opération", t], ["libellé du frais", l]]);
+  if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+  if (!TYPES_OPERATION.includes(t)) throw new ErreurMetier("Type d'opération inconnu.");
+  if (GRATUITS[t]) throw new ErreurMetier(`Aucun frais sur le ${GRATUITS[t]} : service gratuit sans condition (Instr. BCC 37, art. 2 et 3, annexe).`);
+  return { typeOperation: t, libelle: l };
+}
+function fraisDe(id: number) {
+  const f = E.frais.find((x) => x.id === id);
+  if (!f) throw new ErreurMetier("Frais introuvable.");
+  return f;
+}
+function controlerValeurs(v: ValeursFrais) {
+  if (!NATURES.includes(v.nature)) throw new ErreurMetier("À remplir : nature du frais.");
+  if (v.valeur !== null && (!Number.isInteger(v.valeur) || v.valeur < 0)) throw new ErreurMetier("Valeur invalide.");
+  const c = v.compte.trim();
+  if (c && !/^\d+$/.test(c)) throw new ErreurMetier("Compte : chiffres seulement.");
+  return { nature: v.nature, valeur: v.valeur, compte: c || null };
+}
+function ligneParam(liste: ParamFrais[], id: number) {
+  const r = liste.find((x) => x.id === id);
+  if (!r) throw new ErreurMetier("Paramétrage introuvable.");
+  return r;
+}
+
+const parametrage = {
+  lireFrais() {
+    exiger();
+    return { typesOperation: TYPES_OPERATION, natures: NATURES, typesMembre: Object.keys(TYPES_MEMBRE), sousTypes: E.sousTypes,
+      frais: E.frais, operations: E.paramOperations, adhesion: E.paramAdhesion };
+  },
+  creerFrais(d: { typeOperation: string; libelle: string }): Frais {
+    droitParametrage();
+    const c = controlerFrais(d);
+    if (E.frais.some((x) => x.typeOperation === c.typeOperation && x.libelle === c.libelle)) throw new ErreurMetier("Ce frais existe déjà.");
+    const f = { id: prochain(E.frais), ...c };
+    E.frais.push(f); enregistrer(); return f;
+  },
+  modifierFrais(id: number, d: { typeOperation: string; libelle: string }): Frais {
+    droitParametrage();
+    const f = fraisDe(id);
+    const c = controlerFrais(d);
+    if (E.frais.some((x) => x.id !== id && x.typeOperation === c.typeOperation && x.libelle === c.libelle)) throw new ErreurMetier("Ce frais existe déjà.");
+    Object.assign(f, c); enregistrer(); return f;
+  },
+  supprimerFrais(id: number) {
+    droitParametrage();
+    fraisDe(id);
+    if ([...E.paramOperations, ...E.paramAdhesion].some((x) => x.fraisId === id)) throw new ErreurMetier("Ce frais est paramétré : supprimer d'abord son paramétrage.");
+    E.frais = E.frais.filter((x) => x.id !== id); enregistrer();
+  },
+  parametrerOperation(d: ValeursFrais & { fraisId: number; sousTypes: string[] }) {
+    droitParametrage();
+    const f = fraisDe(d.fraisId);
+    if (f.typeOperation === "ADHESION") throw new ErreurMetier("Un frais d'adhésion se paramètre dans l'onglet Paramétrage frais Adhésion.");
+    const v = controlerValeurs(d);
+    if (!d.sousTypes.length) throw new ErreurMetier("Cocher au moins un sous type client.");
+    for (const s of d.sousTypes) {
+      if (!E.sousTypes.includes(s)) throw new ErreurMetier("Sous type client inconnu.");
+      if (E.paramOperations.some((x) => x.fraisId === f.id && x.sousType === s)) throw new ErreurMetier(`Déjà paramétré pour « ${s} » : passer par Modif Paramétrage frais.`);
+    }
+    const ids = d.sousTypes.map((sousType) => { const id = prochain(E.paramOperations); E.paramOperations.push({ id, fraisId: f.id, sousType, ...v }); return id; });
+    enregistrer(); return ids;
+  },
+  parametrerAdhesion(d: ValeursFrais & { fraisId: number; typesMembre: string[] }) {
+    droitParametrage();
+    const f = fraisDe(d.fraisId);
+    if (f.typeOperation !== "ADHESION") throw new ErreurMetier("Ce frais n'est pas un frais d'adhésion.");
+    const v = controlerValeurs(d);
+    if (!d.typesMembre.length) throw new ErreurMetier("Cocher au moins un type client.");
+    for (const t of d.typesMembre) {
+      if (!TYPES_MEMBRE[t]) throw new ErreurMetier("Type client inconnu.");
+      if (E.paramAdhesion.some((x) => x.fraisId === f.id && x.typeMembre === t)) throw new ErreurMetier(`Déjà paramétré pour « ${t} » : passer par Modif Paramétrage frais Adhésion.`);
+    }
+    const ids = d.typesMembre.map((typeMembre) => { const id = prochain(E.paramAdhesion); E.paramAdhesion.push({ id, fraisId: f.id, typeMembre, ...v }); return id; });
+    enregistrer(); return ids;
+  },
+  modifierParametrage(genre: "operation" | "adhesion", id: number, d: ValeursFrais) {
+    droitParametrage();
+    const r = ligneParam(genre === "operation" ? E.paramOperations : E.paramAdhesion, id);
+    const v = controlerValeurs(d);
+    r.valeur = v.valeur; r.compte = v.compte; enregistrer();
+  },
+  supprimerParametrage(genre: "operation" | "adhesion", id: number) {
+    droitParametrage();
+    ligneParam(genre === "operation" ? E.paramOperations : E.paramAdhesion, id);
+    if (genre === "operation") E.paramOperations = E.paramOperations.filter((x) => x.id !== id);
+    else E.paramAdhesion = E.paramAdhesion.filter((x) => x.id !== id);
+    enregistrer();
+  },
+  /** « Liste des Frais liés » du visa (p. 52) : frais d'adhésion paramétrés pour le type du client */
+  fraisLies(tiersId: number) {
+    exiger();
+    const t = E.tiers.find((x) => x.id === tiersId);
+    if (!t) return [];
+    return E.paramAdhesion.filter((p) => TYPES_MEMBRE[p.typeMembre] === t.type).map((p) => ({ libelle: fraisDe(p.fraisId).libelle, compte: p.compte, montant: p.valeur }));
+  },
+};
+
 // ---------- Guichet ----------
 interface Commun { cle: string; coupures: Comptage }
 
@@ -549,6 +660,7 @@ const apiLocal = {
   guichet: asynchrone(guichet),
   operations: asynchrone(operations),
   etats: asynchrone(etats),
+  parametrage: asynchrone(parametrage),
 };
 
 export type ApiDonnees = typeof apiLocal;

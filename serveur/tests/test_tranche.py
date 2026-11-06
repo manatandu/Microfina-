@@ -255,3 +255,26 @@ def test_billetage_valide_une_seule_fois(clients, journee):
     b = chef.get(f"/api/caisses/{s['id']}/billetages").json()[0]
     r = chef.post(f"/api/billetages/{b['id']}/validation", **H)
     assert r.status_code == 422 and "déjà validé" in r.json()["message"]
+
+
+def test_parametrage_frais(clients):
+    chef, agent = clients["chef"], clients["agent"]
+    connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    def refus(c, route, corps, methode="post"):
+        r = getattr(c, methode)(route, corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    assert "Instr. BCC 37" in refus(chef, "/api/parametrage/frais", {"typeOperation": "DEPOT", "libelle": "FRAIS VERSEMENT"})
+    assert "Réservé" in refus(agent, "/api/parametrage/frais", {"typeOperation": "ADHESION", "libelle": "Droit d'entrée"})
+    f = chef.post("/api/parametrage/frais", {"typeOperation": "ADHESION", "libelle": "Droit d'entrée"}, **H).json()
+    assert "existe déjà" in refus(chef, "/api/parametrage/frais", {"typeOperation": "ADHESION", "libelle": "Droit d'entrée"})
+    assert "Paramétrage frais Adhésion" in refus(chef, "/api/parametrage/frais-operation", {"fraisId": f["id"], "nature": "Montant", "sousTypes": ["Femme"]})
+    assert "Compte" in refus(chef, "/api/parametrage/frais-adhesion", {"fraisId": f["id"], "nature": "Montant", "valeur": 500000, "compte": "70A", "typesMembre": ["Physique"]})
+    [pid] = chef.post("/api/parametrage/frais-adhesion", {"fraisId": f["id"], "nature": "Montant", "valeur": 500000, "compte": "70291", "typesMembre": ["Physique"]}, **H).json()
+    assert "Déjà paramétré" in refus(chef, "/api/parametrage/frais-adhesion", {"fraisId": f["id"], "nature": "Montant", "typesMembre": ["Physique"]})
+    assert "paramétré" in chef.delete(f"/api/parametrage/frais/{f['id']}", **H).json()["message"]
+    assert chef.post(f"/api/parametrage/frais-adhesion/{pid}", {"nature": "Montant", "valeur": 200000, "compte": "70291"}, **H).status_code == 200
+    lu = chef.get("/api/parametrage/frais").json()
+    assert lu["adhesion"] == [{"id": pid, "fraisId": f["id"], "typeMembre": "Physique", "valeur": 200000, "compte": "70291", "nature": "Montant"}]
+    assert chef.get(f"/api/tiers/{T('0412-000318')}/frais").json() == [{"libelle": "Droit d'entrée", "compte": "70291", "montant": 200000}]
+    assert chef.delete(f"/api/parametrage/frais-adhesion/{pid}", **H).status_code == 200
+    assert chef.delete(f"/api/parametrage/frais/{f['id']}", **H).status_code == 200
+    assert chef.get("/api/parametrage/frais").json()["frais"] == []

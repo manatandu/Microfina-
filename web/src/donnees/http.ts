@@ -80,5 +80,16 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       balance: () => get("/etats/balance"),
       journal: (journeeId?: number) => get(`/etats/journal${journeeId ? `?journee=${journeeId}` : ""}`),
     },
+    parametrage: {
+      lireFrais: () => get("/parametrage/frais"),
+      creerFrais: (d: object) => post("/parametrage/frais", d),
+      modifierFrais: (id: number, d: object) => post(`/parametrage/frais/${id}`, d),
+      supprimerFrais: (id: number) => appel("DELETE", `/parametrage/frais/${id}`),
+      parametrerOperation: (d: object) => post("/parametrage/frais-operation", d),
+      parametrerAdhesion: (d: object) => post("/parametrage/frais-adhesion", d),
+      modifierParametrage: (genre: string, id: number, d: object) => post(`/parametrage/frais-${genre}/${id}`, d),
+      supprimerParametrage: (genre: string, id: number) => appel("DELETE", `/parametrage/frais-${genre}/${id}`),
+      fraisLies: (id: number) => get(`/tiers/${id}/frais`),
+    },
   } as unknown as ApiDonnees;   // les formes de réponse sont celles des services du serveur (serveur/noyau/services.py)
 }

@@ -189,3 +189,12 @@ fieldset.formulaire { padding-bottom: var(--espace-2); }
   .contrat { position: absolute; inset: 0; padding: 1.5cm; color: var(--encre); }
   .sans-impression { display: none !important; }
 }
+
+/* Menu « Action » (manuel Microfina++, p. 25 à 27) et ligne choisie */
+.menu-action { position: relative; }
+.menu-action > ul { position: absolute; right: 0; top: calc(100% + var(--espace-1)); z-index: 5; list-style: none; margin: 0; padding: var(--espace-1);
+  min-width: 12rem; background: var(--papier); border: 1px solid var(--trait); border-radius: var(--rayon-champ); box-shadow: var(--ombre-flottant); }
+.menu-action button[role="menuitem"] { width: 100%; text-align: left; font: inherit; background: none; border: 0; border-radius: var(--rayon-petit); padding: var(--espace-2) var(--espace-3); color: var(--encre); cursor: pointer; }
+.menu-action button[role="menuitem"]:disabled { color: var(--inactif); cursor: default; }
+@media (hover: hover) and (pointer: fine) { .menu-action button[role="menuitem"]:not(:disabled):hover { background: var(--tampon-pale); } }
+.ligne-choix[aria-selected="true"] { background: var(--tampon-pale); }

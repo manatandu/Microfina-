@@ -566,6 +566,7 @@ create index on liste_rouge (tiers_id);
 -- =====================================================================
 
 -- Frais : la liste des opérations gratuites de l'Instr. BCC 37 est contrôlée par l'application
+-- Remplacée par la migration serveur 0007_frais (forme de Microfina++, S16).
 create table frais (
   id             bigint generated always as identity primary key,
   institution_id bigint not null references institution on delete restrict,
