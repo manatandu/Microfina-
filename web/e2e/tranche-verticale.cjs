@@ -146,6 +146,20 @@ const OUT = process.argv[2];
   await rc.getByLabel('Numéro, Nom et Prénoms :').fill('Mwamba'); await rc.getByRole('row').filter({ hasText: 'Mwamba' }).dblclick();
   await p.getByRole('cell', { name: '+243 990 000 001' }).waitFor(); await etape('06m-informations-client');
   await p.getByRole('tab', { name: 'Dépôts' }).click(); await p.getByRole('cell', { name: '0412-000319-02' }).waitFor(); await etape('06n-informations-depots');
+  // Groupe solidaire (S44)
+  await aller('/clients/s44');
+  await p.getByLabel('nom groupe *').fill('Grp Kinsaku'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
+  await p.getByRole('cell', { name: 'Grp Kinsaku' }).waitFor(); await etape('06o-groupe-solidaire');
+  await p.getByRole('tab', { name: 'Affectation Groupe Solidarité' }).click();
+  await p.getByLabel('Groupe Solidaire *').selectOption({ label: 'Grp Kinsaku' });
+  for (const nom of ['Kalala', 'Mwamba']) {
+    await p.getByRole('button', { name: 'Rechercher un client' }).click();
+    const rg = p.getByRole('dialog', { name: 'Clients' });
+    await rg.getByLabel('Numéro, Nom et Prénoms :').fill(nom); await rg.getByRole('row').filter({ hasText: nom }).first().dblclick();
+    await p.getByRole('button', { name: 'Ajouter', exact: true }).click();
+  }
+  await etape('06p-affectation'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
+  await p.getByRole('cell', { name: 'Mwamba Ilunga Grâce', exact: true }).waitFor(); await etape('06q-affectation-enregistree');
   // Caissière : adhésion, dépôt, retrait
   await login('Esther Ngalula'); await aller('/caisse/s73');
   await p.getByLabel(/Nom, numéro ou compte/).waitFor(); await p.keyboard.press('F2'); await p.keyboard.type('Tshala'); await p.getByRole('option', { name: /Tshala/ }).click();

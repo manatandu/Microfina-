@@ -318,3 +318,23 @@ def test_parametrage_frais(clients):
     assert chef.delete(f"/api/parametrage/frais-adhesion/{pid}", **H).status_code == 200
     assert chef.delete(f"/api/parametrage/frais/{f['id']}", **H).status_code == 200
     assert chef.get("/api/parametrage/frais").json()["frais"] == []
+
+
+def test_groupe_solidaire(clients):
+    agent = clients["agent"]
+    connecter(agent, "bkasongo")
+    def refus(route, corps, methode="post"):
+        r = getattr(agent, methode)(route, corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    lu = agent.get("/api/groupes-solidaires").json()
+    assert lu["codeSuivant"] == "GS/0412/000001" and lu["groupes"] == []
+    assert "nom groupe" in refus("/api/groupes-solidaires", {"code": lu["codeSuivant"], "nom": ""})
+    g = agent.post("/api/groupes-solidaires", {"code": lu["codeSuivant"], "nom": "Grp Kinsaku"}, **H).json()
+    assert "existe déjà" in refus("/api/groupes-solidaires", {"code": lu["codeSuivant"], "nom": "Autre"})
+    k, m = T("0412-000318"), T("0412-000319")
+    lu = agent.post(f"/api/groupes-solidaires/{g['id']}/membres", {"tiersIds": [k, m]}, **H).json()
+    assert [x["tiersId"] for x in lu["membres"]] == [k, m] and lu["groupes"][0]["agence"] == "Matete"
+    assert "déjà membre" in refus(f"/api/groupes-solidaires/{g['id']}/membres", {"tiersIds": [k]})
+    r = agent.delete(f"/api/groupes-solidaires/{g['id']}", **H); assert r.status_code == 422 and "membres" in r.json()["message"]
+    agent.post(f"/api/groupes-solidaires/{g['id']}/retrait", {"tiersIds": [k, m]}, **H)
+    assert agent.post(f"/api/groupes-solidaires/{g['id']}", {"code": "GS/0412/000009", "nom": "Grp Kinsaku 2"}, **H).json()["nom"] == "Grp Kinsaku 2"
+    assert agent.delete(f"/api/groupes-solidaires/{g['id']}", **H).status_code == 200

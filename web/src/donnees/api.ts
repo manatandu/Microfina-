@@ -16,14 +16,14 @@ import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@d
 export const SEUIL_CAISSIER_USD = 1000;   // au-delà, visa du chef d'agence. Exemple : fixé par la COOPEC
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v8";
+const CLE = "likelemba-demo-v9";
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
 
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 8) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 9) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   return graine();
 }
@@ -546,6 +546,70 @@ const parametrage = {
   },
 };
 
+// ---------- Client : groupes solidaires (S44, manuel p. 54 et 55). Règles identiques côté serveur (noyau/groupes.py). ----------
+const nomTiers = (id: number) => { const t = E.tiers.find((x) => x.id === id); return t ? [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ") : ""; };
+function groupeDe(id: number) {
+  const g = E.groupesSolidaires.find((x) => x.id === id);
+  if (!g) throw new ErreurMetier("Groupe introuvable.");
+  return g;
+}
+function controlerGroupeSolidaire(d: { code: string; nom: string }, id?: number) {
+  const code = d.code.trim(), nom = d.nom.trim();
+  const manque = manquants([["code groupe", code], ["nom groupe", nom]]);
+  if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+  if (E.groupesSolidaires.some((g) => g.code === code && g.id !== id)) throw new ErreurMetier("Ce code groupe existe déjà.");
+  return { code, nom };
+}
+function idsDe(ids: number[]) {
+  if (!ids.length || new Set(ids).size !== ids.length) throw new ErreurMetier("Aucun client choisi.");
+  return ids;
+}
+const groupes = {
+  lire() {
+    exiger();
+    return {
+      codeSuivant: `GS/${E.agence.code}/${String(E.groupesSolidaires.length + 1).padStart(6, "0")}`,   // forme de l'exemple (p. 54) ; règle : à confirmer (S15)
+      groupes: E.groupesSolidaires.map((g) => ({ ...g, agence: E.agence.nom })),
+      membres: E.membresGroupes.map((m) => ({ ...m, numero: E.tiers.find((t) => t.id === m.tiersId)?.numero ?? "", membre: nomTiers(m.tiersId) })),
+    };
+  },
+  creer(d: { code: string; nom: string }) {
+    exiger();
+    const g = { id: prochain(E.groupesSolidaires), ...controlerGroupeSolidaire(d) };
+    E.groupesSolidaires.push(g); enregistrer(); return g;
+  },
+  modifier(id: number, d: { code: string; nom: string }) {
+    exiger();
+    const g = groupeDe(id);
+    Object.assign(g, controlerGroupeSolidaire(d, id)); enregistrer(); return g;
+  },
+  supprimer(id: number) {
+    exiger();
+    groupeDe(id);
+    if (E.membresGroupes.some((m) => m.groupeId === id)) throw new ErreurMetier("Ce groupe a des membres : les retirer d'abord.");
+    E.groupesSolidaires = E.groupesSolidaires.filter((g) => g.id !== id); enregistrer();
+  },
+  affecter(id: number, tiersIds: number[]) {
+    exiger();
+    groupeDe(id);
+    for (const tid of idsDe(tiersIds)) {
+      const t = E.tiers.find((x) => x.id === tid);
+      if (!t) throw new ErreurMetier("Client introuvable.");
+      if (t.statut !== "actif") throw new ErreurMetier(`${nomTiers(tid)} : client non actif (visa ou validation à faire).`);
+      if (E.membresGroupes.some((m) => m.groupeId === id && m.tiersId === tid)) throw new ErreurMetier(`${nomTiers(tid)} est déjà membre de ce groupe.`);
+    }
+    tiersIds.forEach((tiersId) => E.membresGroupes.push({ groupeId: id, tiersId }));
+    enregistrer(); return groupes.lire();
+  },
+  retirer(id: number, tiersIds: number[]) {
+    exiger();
+    groupeDe(id);
+    for (const tid of idsDe(tiersIds)) if (!E.membresGroupes.some((m) => m.groupeId === id && m.tiersId === tid)) throw new ErreurMetier("Ce client n'est pas membre de ce groupe.");
+    E.membresGroupes = E.membresGroupes.filter((m) => !(m.groupeId === id && tiersIds.includes(m.tiersId)));
+    enregistrer(); return groupes.lire();
+  },
+};
+
 // ---------- Guichet ----------
 interface Commun { cle: string; coupures: Comptage }
 
@@ -731,6 +795,7 @@ const apiLocal = {
   operations: asynchrone(operations),
   etats: asynchrone(etats),
   parametrage: asynchrone(parametrage),
+  groupes: asynchrone(groupes),
 };
 
 export type ApiDonnees = typeof apiLocal;

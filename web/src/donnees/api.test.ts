@@ -177,6 +177,23 @@ describe("journée de guichet", () => {
     expect(await api.tiers.images(1)).toEqual({ photo: null, signature: null });
   });
 
+  it("groupe solidaire (S44) : code et nom obligatoires, affectation de clients actifs, retrait, suppression", async () => {
+    await connecter("bkasongo");
+    const g0 = api.groupes;
+    const lu = await g0.lire();
+    expect(lu.codeSuivant).toBe("GS/0412/000001");
+    await expect(g0.creer({ code: lu.codeSuivant, nom: "" })).rejects.toThrow("nom groupe");
+    const g = await g0.creer({ code: lu.codeSuivant, nom: "Grp Kinsaku" });
+    await expect(g0.creer({ code: lu.codeSuivant, nom: "Autre" })).rejects.toThrow("existe déjà");
+    expect((await g0.affecter(g.id, [1, 2])).membres.map((m) => m.tiersId)).toEqual([1, 2]);
+    await expect(g0.affecter(g.id, [1])).rejects.toThrow("déjà membre");
+    await expect(g0.supprimer(g.id)).rejects.toThrow("membres");
+    await g0.retirer(g.id, [1, 2]);
+    expect((await g0.modifier(g.id, { code: "GS/0412/000009", nom: "Grp Kinsaku 2" })).nom).toBe("Grp Kinsaku 2");
+    await g0.supprimer(g.id);
+    expect((await g0.lire()).groupes).toEqual([]);
+  });
+
   it("adhésion : parts en 1030, premier dépôt en 330, après visa seulement", async () => {
     await connecter("bkasongo");
     const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), produitCode: "EAV-CDF", nom: "Tshala", postnom: "Muana", prenom: "Marie", naissance: "1990-02-01", pieceType: "Carte d'électeur", pieceNumero: "1-0412-0999", pieceExpire: "2031-01-01", adresse: "Matete" });

@@ -202,3 +202,11 @@ fieldset.sans-cadre { border: 0; padding: 0; margin: 0; min-width: 0; }
 .photo-signature { display: flex; flex-wrap: wrap; gap: var(--espace-4); align-items: center; }
 .photo-signature img { max-height: 120px; max-width: 160px; object-fit: contain; }
 .cadre-signature { width: 160px; height: 100px; border: 1px solid var(--trait); border-radius: var(--rayon-petit); display: grid; place-items: center; background: var(--feuille); }
+
+/* Tableaux filtrés et paginés (S44, manuel Microfina++ p. 54 et 55) */
+.grille tr.filtres td { padding-top: 0; }
+.grille tr.filtres .saisie { min-height: 0; padding: 4px var(--espace-2); font-size: var(--taille-dense); }
+.pagination { display: flex; flex-wrap: wrap; gap: var(--espace-1); justify-content: center; }
+.pagination button { font: inherit; font-size: var(--taille-dense); min-width: 2rem; padding: 2px var(--espace-2); border: 1px solid var(--trait); border-radius: var(--rayon-petit); background: var(--feuille); color: var(--encre); cursor: pointer; }
+.pagination button[aria-current="page"] { border-color: var(--tampon); color: var(--tampon); font-weight: 600; }
+.actions-ligne { display: inline-flex; flex-wrap: wrap; gap: var(--espace-1); }

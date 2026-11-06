@@ -97,5 +97,13 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       fraisLies: (id: number) => get(`/tiers/${id}/frais`),
       modifierFraisClient: (id: number, frais: object[]) => post(`/tiers/${id}/frais`, { frais }),
     },
+    groupes: {
+      lire: () => get("/groupes-solidaires"),
+      creer: (d: object) => post("/groupes-solidaires", d),
+      modifier: (id: number, d: object) => post(`/groupes-solidaires/${id}`, d),
+      supprimer: (id: number) => appel("DELETE", `/groupes-solidaires/${id}`),
+      affecter: (id: number, tiersIds: number[]) => post(`/groupes-solidaires/${id}/membres`, { tiersIds }),
+      retirer: (id: number, tiersIds: number[]) => post(`/groupes-solidaires/${id}/retrait`, { tiersIds }),
+    },
   } as unknown as ApiDonnees;   // les formes de réponse sont celles des services du serveur (serveur/noyau/services.py)
 }

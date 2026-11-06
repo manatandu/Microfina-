@@ -4,6 +4,7 @@ from django.http import HttpRequest
 from ninja import Body, NinjaAPI
 
 from . import frais as fr
+from . import groupes as gs
 from . import services as s
 from .bd import ErreurMetier
 
@@ -318,3 +319,35 @@ def parametrage_supprimer(request, genre: str, pid: int):
         raise ErreurMetier("Introuvable.", 404)
     fr.supprimer_parametrage(u(request), TABLES[genre], pid)
     return None
+
+
+# ---------- Client : groupes solidaires (S44) ----------
+@api.get("/groupes-solidaires")
+def gs_lire(request):
+    return gs.lire(u(request))
+
+
+@api.post("/groupes-solidaires")
+def gs_creer(request, corps: dict = Body(...)):
+    return gs.creer(u(request), corps)
+
+
+@api.post("/groupes-solidaires/{gid}")
+def gs_modifier(request, gid: int, corps: dict = Body(...)):
+    return gs.modifier(u(request), gid, corps)
+
+
+@api.delete("/groupes-solidaires/{gid}")
+def gs_supprimer(request, gid: int):
+    gs.supprimer(u(request), gid)
+    return None
+
+
+@api.post("/groupes-solidaires/{gid}/membres")
+def gs_affecter(request, gid: int, corps: dict = Body(...)):
+    return gs.affecter(u(request), gid, corps)
+
+
+@api.post("/groupes-solidaires/{gid}/retrait")
+def gs_retirer(request, gid: int, corps: dict = Body(...)):
+    return gs.retirer(u(request), gid, corps)
