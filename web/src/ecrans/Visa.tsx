@@ -103,7 +103,7 @@ export function VisaClient() {
 }
 
 /** Recherche par numéro, nom et prénoms ; sélection par double-clic sur la ligne (p. 52 et 53). Entrée fait de même au clavier. */
-function RechercheClient({ source, choisir, fermer }: { source: (q: string) => Promise<Tiers[]>; choisir: (t: Tiers) => void; fermer: () => void }) {
+export function RechercheClient({ source, choisir, fermer }: { source: (q: string) => Promise<Tiers[]>; choisir: (t: Tiers) => void; fermer: () => void }) {
   const [q, setQ] = useState("");
   const { donnees: liste = [] } = useDonnees(() => source(q.trim().toLowerCase()), [q]);
   return (

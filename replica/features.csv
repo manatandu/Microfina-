@@ -45,7 +45,7 @@ Valider un client modifié,clients,must,yes,no,S42
 Consulter l'état initial et actuel d'un client,clients,must,yes,no,S43
 Groupes solidaires et affectation,clients,must,yes,no,S44
 Prospects,clients,should,yes,no,S45
-Mise à jour d'un client,clients,must,yes,no,S46
+Mise à jour d'un client,clients,must,yes,partial,"S46 ; manuel p. 56 | Construit le 06/11/2026 : écran Modification d'un client physique conforme à la capture (N° Client et recherche, Intitulé, Catégorie, onglets Info de base, Info Généraux, Autre Info, Personnes Liées, Bénéficiaires, boutons Modifier et Terminer, Oui/Non). Contrôles de l'enrôlement (Instr. BCC 15 art. 10, 12 à 14, 60). Le client passe « modifié à revalider » et est bloqué au guichet jusqu'à S42. État avant et après gardé pour S43. À confirmer : rôle exact de Modifier et Terminer, modification d'une entreprise ou d'un groupe, champs des onglets 2 et 3."
 Procurations,clients,must,yes,no,S47 ; relier la procuration au mandataire du guichet (Instr. BCC 15 art. 11)
 Résiliation d'un client,clients,must,yes,no,S48 ; membre emprunteur ou caution ne peut se retirer (loi 002/2002 art. 24) ; apurement (art. 27)
 Consentement BIC,clients,skip,yes,skip,S50 ; dispositif de l'UEMOA ; en RDC centrale des risques de la BCC (Instr. BCC 5 à lire)

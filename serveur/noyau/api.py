@@ -172,6 +172,11 @@ def tiers_comptes(request, tid: int):
     return s.comptes_du_tiers(tid)
 
 
+@api.post("/tiers/{tid}/modification")
+def tiers_modifier(request, tid: int, corps: dict = Body(...)):
+    return s.modifier_tiers(u(request), tid, corps)
+
+
 @api.get("/tiers/{tid}/frais")
 def tiers_frais(request, tid: int):
     return fr.frais_lies(u(request), tid)

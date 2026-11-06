@@ -3,7 +3,7 @@ import GuichetDepotRetrait from "./Guichet";
 import Adhesion from "./Adhesion";
 import Balance from "./Comptabilite";
 import { BilletageCaisse, OuvertureCaisse } from "./Caisse";
-import { EnrolementEntreprise, EnrolementGroupe, EnrolementPhysique } from "./Membres";
+import { EnrolementEntreprise, EnrolementGroupe, EnrolementPhysique, MiseAJourClient } from "./Membres";
 import { EcranJournee, EcranValidation } from "./Journee";
 import { ModificationFrais, VisaClient } from "./Visa";
 import { FraisOperations } from "./Parametrage";
@@ -18,6 +18,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S39: EnrolementGroupe,
   S40: VisaClient,
   S41: ModificationFrais,
+  S46: MiseAJourClient,
   S73: Adhesion,
   S74: GuichetDepotRetrait,
   S79: BilletageCaisse,

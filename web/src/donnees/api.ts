@@ -16,14 +16,14 @@ import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@d
 export const SEUIL_CAISSIER_USD = 1000;   // au-delà, visa du chef d'agence. Exemple : fixé par la COOPEC
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v7";
+const CLE = "likelemba-demo-v8";
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
 
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 7) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 8) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   return graine();
 }
@@ -293,6 +293,10 @@ const versRepresentant = ({ photo, signature, ...r }: RepresentantSaisi): Repres
 /** Mentions propres à une personne physique, vides pour une entreprise ou un groupe */
 const SANS_IDENTITE = { postnom: "", prenom: "", sexe: "" as const, naissance: "", lieuNaissance: "", pieceType: "", pieceNumero: "", pieceDelivreeLe: "",
   pieceLieu: "", pieceAutorite: "", pieceExpire: "", telephone: "" };
+function controlerStatutActif(statut: Tiers["statut"], suite = "") {
+  if (statut === "modifie_a_revalider") throw new ErreurMetier("Client modifié : à valider (Client > Visa > Valider client modifié) avant toute opération.");
+  if (statut !== "actif") throw new ErreurMetier(`Client pas encore visé${suite}.`);
+}
 function ctxControle() {
   return { produits: E.produits, zones: E.zones, jour: journees.courante()?.date ?? "", existe: (id: number) => E.tiers.some((t) => t.id === id) };
 }
@@ -354,6 +358,27 @@ const tiers = {
     const depot = v.premierDepot ?? t.premierDepot;
     if (!Number.isInteger(depot) || depot < 0) throw new ErreurMetier("Premier dépôt invalide.");
     Object.assign(t, { statut: "actif", visePar: u.id, dateVisa, intitule, premierDepot: depot });
+    enregistrer(); return t;
+  },
+  /** S46 : Modification d'un client physique (p. 56). Le client passe « modifié à revalider » (S42). Règles identiques côté serveur (services.modifier_tiers). */
+  modifier(id: number, d: NouveauTiers) {
+    const u = exiger();
+    const t = E.tiers.find((x) => x.id === id);
+    if (!t) throw new ErreurMetier("Client introuvable.");
+    if (t.type !== "physique") throw new ErreurMetier("Seule la modification d'un client physique est décrite par le manuel (p. 56).");
+    if (t.statut !== "actif" && t.statut !== "modifie_a_revalider") throw new ErreurMetier("Client pas encore visé : le modifier depuis l'enrôlement.");
+    const ctx = ctxControle();
+    controlerBase({ ...d, produitCode: t.produitCode || "EAV-CDF", premierDepot: t.premierDepot }, [["date demande", d.dateDemande], ["type client", d.typeClient],
+      ["nom", d.nom], ["type de pièce", d.pieceType], ["numéro de pièce", d.pieceNumero]], TYPES_CLIENT, false, ctx);
+    if (!["", "F", "M"].includes(d.sexe)) throw new ErreurMetier("Sexe inconnu.");
+    if (d.liees.includes(id)) throw new ErreurMetier("Un client ne peut pas être sa propre personne liée.");
+    controlerPiece(d.pieceType, d.pieceExpire, ctx.jour);
+    const avant = structuredClone(t);
+    const champs = ["dateDemande", "typeClient", "zone", "resident", "preleverAgios", "calculerInteret", "personneExposee", "nom", "postnom", "prenom", "sexe",
+      "naissance", "lieuNaissance", "pieceType", "pieceNumero", "pieceDelivreeLe", "pieceLieu", "pieceAutorite", "pieceExpire", "adresse", "telephone", "liees"] as const;
+    for (const k of champs) (t as unknown as Record<string, unknown>)[k] = d[k];
+    t.statut = "modifie_a_revalider";
+    E.modifications.push({ id: prochain(E.modifications), tiersId: id, avant, apres: structuredClone(t), modifiePar: u.id });
     enregistrer(); return t;
   },
   comptes(tiersId: number) {
@@ -525,7 +550,7 @@ const guichet = {
     if (!c) throw new ErreurMetier("Compte introuvable.");
     const { u, s } = sessionOuverte(c.devise);
     const t = E.tiers.find((x) => x.id === c.tiersId)!;
-    if (t.statut !== "actif") throw new ErreurMetier("Client pas encore visé.");
+    controlerStatutActif(t.statut);
     if (p.montant <= 0) throw new ErreurMetier("Montant nul.");
     controlerCoupures(p.coupures, p.montant, c.devise);
     if (enUsd(p.montant, c.devise) + especesDuJourUsd(t.id, "depot") >= SEUIL_ESPECES_USD)
@@ -545,7 +570,7 @@ const guichet = {
     if (!c) throw new ErreurMetier("Compte introuvable.");
     const { u, s } = sessionOuverte(c.devise);
     const t = E.tiers.find((x) => x.id === c.tiersId)!;
-    if (t.statut !== "actif") throw new ErreurMetier("Client pas encore visé.");
+    controlerStatutActif(t.statut);
     if (!t.specimen) throw new ErreurMetier("Pas de specimen de signature au dossier : ne pas payer.");
     if (!p.verifie.piece || !p.verifie.signature || !p.verifie.carnet) throw new ErreurMetier("Pièce, signature et carnet à vérifier avant de payer.");
     const solde = soldeContrat(`depot:${c.id}`, c.devise, "C");
@@ -581,7 +606,8 @@ const guichet = {
     const prec = dejaFaite(p.cle); if (prec) return prec;
     const { u, s } = sessionOuverte("CDF");
     const t = E.tiers.find((x) => x.id === p.tiersId);
-    if (!t || t.statut !== "actif") throw new ErreurMetier("Client pas encore visé : l'adhésion attend le visa.");
+    if (!t) throw new ErreurMetier("Client introuvable.");
+    controlerStatutActif(t.statut, " : l'adhésion attend le visa");
     if (E.comptes.some((c) => c.tiersId === t.id)) throw new ErreurMetier("Ce membre a déjà adhéré.");
     if (!Number.isInteger(p.parts) || p.parts < 1) throw new ErreurMetier("Au moins une part sociale, payée en entier.", "Loi 002/2002, art. 21");
     const mParts = p.parts * E.valeurPart, total = mParts + p.depot;

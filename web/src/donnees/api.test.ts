@@ -150,6 +150,19 @@ describe("journée de guichet", () => {
     expect((await p.lireFrais()).frais).toEqual([]);
   });
 
+  it("mise à jour d'un client (S46) : contrôles de l'enrôlement, client à revalider, bloqué au guichet", async () => {
+    await journeeOuverte();
+    await connecter("bkasongo");
+    const t = (await api.tiers.lire(1))!;
+    await expect(api.tiers.modifier(1, { ...t, nom: "" })).rejects.toThrow("nom");
+    await expect(api.tiers.modifier(1, { ...t, pieceType: "Badge" })).rejects.toThrow("art. 14");
+    await expect(api.tiers.modifier(1, { ...t, liees: [1] })).rejects.toThrow("propre personne liée");
+    const m = await api.tiers.modifier(1, { ...t, telephone: "+243 990 000 001", liees: [2] });
+    expect(m).toMatchObject({ statut: "modifie_a_revalider", telephone: "+243 990 000 001", liees: [2] });
+    await connecter("engalula");
+    await expect(api.guichet.depot({ cle: cle(), compteId: 2, montant: 1000000, coupures: { 10000: 1 }, remisPar: "" })).rejects.toThrow("à valider");
+  });
+
   it("adhésion : parts en 1030, premier dépôt en 330, après visa seulement", async () => {
     await connecter("bkasongo");
     const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), produitCode: "EAV-CDF", nom: "Tshala", postnom: "Muana", prenom: "Marie", naissance: "1990-02-01", pieceType: "Carte d'électeur", pieceNumero: "1-0412-0999", pieceExpire: "2031-01-01", adresse: "Matete" });

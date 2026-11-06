@@ -4,6 +4,7 @@ import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
 import { lireMontant } from "@design/montant.js";
+import { RechercheClient } from "./Visa";
 
 const INCONNU = "INCONNU";   // seule valeur montrée pour Sensibilisateur, Gestionnaire et Commercial (p. 49 et 50) ; la liste vient de S33
 type Ctx = Awaited<ReturnType<typeof api.referentiel.contexte>>;
@@ -250,6 +251,32 @@ function useCommun() {
     numero: d ? "" : cree?.numero ?? "" };
 }
 
+/** Identité et pièce d'une personne physique (onglet Renseignements généraux / Info Généraux). Le manuel ne montre pas ces champs :
+ * Instr. BCC 15, art. 12 à 14 ; sexe et téléphone demandés par le porteur. */
+function IdentitePhysique({ f, maj, pieces }: { f: NouveauTiers; maj: (p: Partial<NouveauTiers>) => void; pieces: string[] }) {
+  const texte = (k: keyof NouveauTiers) => ({ value: f[k] as string, onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => maj({ [k]: e.target.value }) });
+  const ctx = { pieces };
+  return (
+    <div className="formulaire">
+      <Champ libelle="Nom : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("nom")} />}</Champ>
+      <Champ libelle="Post-nom :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("postnom")} />}</Champ>
+      <Champ libelle="Prénom :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("prenom")} />}</Champ>
+      <Champ libelle="Sexe :">{(p) => <select {...p} className="saisie" {...texte("sexe")}><option value=""></option><option value="F">Féminin</option><option value="M">Masculin</option></select>}</Champ>
+      <ChampDate libelle="Date de naissance :" valeur={f.naissance} onChange={(v) => maj({ naissance: v })} />
+      <Champ libelle="Lieu de naissance :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("lieuNaissance")} />}</Champ>
+      <Champ libelle="Adresse :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("adresse")} />}</Champ>
+      <Champ libelle="Téléphone :">{(p) => <input {...p} className="saisie code" type="tel" inputMode="tel" autoComplete="off" {...texte("telephone")} />}</Champ>
+      <Champ libelle="Type de pièce : *">{(p) => <select {...p} className="saisie" required {...texte("pieceType")}><option value=""></option>
+        {ctx.pieces.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+      <Champ libelle="N° de pièce : *">{(p) => <input {...p} className="saisie code" required autoComplete="off" {...texte("pieceNumero")} />}</Champ>
+      <ChampDate libelle="Délivrée le :" valeur={f.pieceDelivreeLe} onChange={(v) => maj({ pieceDelivreeLe: v })} />
+      <Champ libelle="Lieu de délivrance :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("pieceLieu")} />}</Champ>
+      <Champ libelle="Autorité de délivrance :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("pieceAutorite")} />}</Champ>
+      <ChampDate libelle="Valide jusqu'au :" valeur={f.pieceExpire} onChange={(v) => maj({ pieceExpire: v })} />
+    </div>
+  );
+}
+
 // ---------- S37 : Client > Enrôlement > Physique (manuel p. 48 et 49) ----------
 
 const ONGLETS_PHYSIQUE = ["Informations de base", "Renseignements généraux", "Autres renseignements", "Personnes Liées", "Bénéficiaires", "Photo"] as const;
@@ -260,7 +287,6 @@ export function EnrolementPhysique() {
   if (!c.donnees) return <Chargement />;
   const { ctx } = c.donnees;
   const { f, maj } = c;
-  const texte = (k: keyof NouveauTiers) => ({ value: f[k] as string, onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => maj({ [k]: e.target.value }) });
   return (
     <Enrolement titre="Enrôlement d'un Client physique" onglets={ONGLETS_PHYSIQUE} numero={c.cree?.numero} onglet={c.onglet} setOnglet={c.setOnglet}
       boite={c.boite} setBoite={c.setBoite}
@@ -277,23 +303,7 @@ export function EnrolementPhysique() {
       {c.onglet === 1 && (
         <>
           <p className="a-confirmer">À confirmer : le manuel ne montre pas les champs de cet onglet (p. 49). Identité et pièce : Instr. BCC 15, art. 12 à 14. Sexe et téléphone : demandés par le porteur.</p>
-          <div className="formulaire">
-            <Champ libelle="Nom : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("nom")} />}</Champ>
-            <Champ libelle="Post-nom :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("postnom")} />}</Champ>
-            <Champ libelle="Prénom :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("prenom")} />}</Champ>
-            <Champ libelle="Sexe :">{(p) => <select {...p} className="saisie" {...texte("sexe")}><option value=""></option><option value="F">Féminin</option><option value="M">Masculin</option></select>}</Champ>
-            <ChampDate libelle="Date de naissance :" valeur={f.naissance} onChange={(v) => maj({ naissance: v })} />
-            <Champ libelle="Lieu de naissance :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("lieuNaissance")} />}</Champ>
-            <Champ libelle="Adresse :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("adresse")} />}</Champ>
-            <Champ libelle="Téléphone :">{(p) => <input {...p} className="saisie code" type="tel" inputMode="tel" autoComplete="off" {...texte("telephone")} />}</Champ>
-            <Champ libelle="Type de pièce : *">{(p) => <select {...p} className="saisie" required {...texte("pieceType")}><option value=""></option>
-              {ctx.pieces.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
-            <Champ libelle="N° de pièce : *">{(p) => <input {...p} className="saisie code" required autoComplete="off" {...texte("pieceNumero")} />}</Champ>
-            <ChampDate libelle="Délivrée le :" valeur={f.pieceDelivreeLe} onChange={(v) => maj({ pieceDelivreeLe: v })} />
-            <Champ libelle="Lieu de délivrance :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("pieceLieu")} />}</Champ>
-            <Champ libelle="Autorité de délivrance :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("pieceAutorite")} />}</Champ>
-            <ChampDate libelle="Valide jusqu'au :" valeur={f.pieceExpire} onChange={(v) => maj({ pieceExpire: v })} />
-          </div>
+          <IdentitePhysique f={f} maj={maj} pieces={ctx.pieces} />
         </>
       )}
 
@@ -439,5 +449,108 @@ export function EnrolementGroupe() {
 
       {c.onglet === 5 && <ChargementImages key={c.generation} images={images} onChange={setImages} erreur={c.erreur} />}
     </Enrolement>
+  );
+}
+
+// ---------- S46 : Client > Mise à jour d'un client (manuel p. 56) ----------
+
+const ONGLETS_MODIFICATION = ["Info de base", "Info Généraux", "Autre Info", "Personnes Liées", "Bénéficiaires"] as const;
+
+/** Modification d'un client physique : N° Client, Intitulé, Catégorie, cinq onglets, Modifier puis Terminer. Le client passe « à revalider » (S42). */
+export function MiseAJourClient() {
+  const { donnees: ctx } = useDonnees(() => api.referentiel.contexte());
+  const [t, setT] = useState<Tiers | null>(null);
+  const [f, setF] = useState<NouveauTiers | null>(null);
+  const [liees, setLiees] = useState<Tiers[]>([]);
+  const [edition, setEdition] = useState(false);
+  const [onglet, setOnglet] = useState(0);
+  const [recherche, setRecherche] = useState(false);
+  const [boite, setBoite] = useState<Boite | null>(null);
+  if (!ctx) return <Chargement />;
+  const maj = (p: Partial<NouveauTiers>) => f && setF({ ...f, ...p });
+  const sel = (k: "typeClient" | "zone") => ({ value: f?.[k] ?? "", onChange: (e: React.ChangeEvent<HTMLSelectElement>) => maj({ [k]: e.target.value }) });
+  const inconnu = (libelle: string) => <Champ libelle={libelle}>{(p) => <select {...p} className="saisie"><option>{INCONNU}</option></select>}</Champ>;
+
+  async function choisir(x: Tiers) {
+    setT(x); setF({ ...x }); setEdition(false); setOnglet(0); setRecherche(false);
+    setLiees((await Promise.all(x.liees.map((id) => api.tiers.lire(id)))).filter((y): y is Tiers => !!y));
+  }
+  function vider() { setT(null); setF(null); setLiees([]); setEdition(false); setOnglet(0); }
+  function terminer() {
+    if (!t || !f || !edition) { vider(); return; }
+    setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
+      try { await api.tiers.modifier(t.id, { ...f, liees: liees.map((x) => x.id) }); vider(); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+      catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+    } });
+  }
+
+  return (
+    <>
+      <h1>Modification d'un client physique</h1>
+      <section className="bloc pile" aria-label="Client">
+        <div className="formulaire">
+          <div className="ligne-champ">
+            <Champ libelle="N° Client">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
+            <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
+          </div>
+          <Champ libelle="Intitulé">{(p) => <input {...p} className="saisie" readOnly value={t ? t.intitule || nomComplet(t) : ""} />}</Champ>
+          <Champ libelle="Catégorie">{(p) => <input {...p} className="saisie" readOnly value={t ? t.typeClient : ""} />}</Champ>
+        </div>
+      </section>
+      <div className="onglets" role="tablist" aria-label="Modification d'un client physique">
+        {ONGLETS_MODIFICATION.map((o, i) => <button key={o} type="button" role="tab" id={`onglet-${i}`} aria-controls="volet" aria-selected={i === onglet} onClick={() => setOnglet(i)}>{o}</button>)}
+      </div>
+      <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${onglet}`}>
+        <h2>{onglet === 0 ? "Informations de base" : ONGLETS_MODIFICATION[onglet]}</h2>
+        {f && (
+          <fieldset className="sans-cadre pile" disabled={!edition}>
+            {onglet === 0 && (
+              <div className="deux-colonnes">
+                <div className="pile">
+                  <ChampDate libelle="Date demande : *" valeur={f.dateDemande} onChange={(v) => maj({ dateDemande: v })} requis />
+                  <Champ libelle="Type Client : *">{(p) => <select {...p} className="saisie" required {...sel("typeClient")}>{ctx.typesClient.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+                  <Champ libelle="Zone :">{(p) => <select {...p} className="saisie" {...sel("zone")}><option value=""></option>{ctx.zones.map((z) => <option key={z}>{z}</option>)}</select>}</Champ>
+                </div>
+                <div className="pile">
+                  {inconnu("Sensibilisateur :")}{inconnu("Gestionnaire :")}{inconnu("Commercial :")}
+                  <label className="case"><input type="checkbox" checked={f.resident} onChange={(e) => maj({ resident: e.target.checked })} /><span>Résident</span></label>
+                  <label className="case"><input type="checkbox" checked={f.preleverAgios} onChange={(e) => maj({ preleverAgios: e.target.checked })} /><span>Prelever Agios</span></label>
+                  <label className="case"><input type="checkbox" checked={f.calculerInteret} onChange={(e) => maj({ calculerInteret: e.target.checked })} /><span>Calculer intéret</span></label>
+                </div>
+              </div>
+            )}
+            {onglet === 1 && <>
+              <p className="a-confirmer">À confirmer : le manuel ne montre pas les champs de cet onglet (p. 56). Mêmes champs qu'à l'enrôlement.</p>
+              <IdentitePhysique f={f} maj={maj} pieces={ctx.pieces} />
+            </>}
+            {onglet === 2 && <>
+              <p className="a-confirmer">À confirmer : le manuel ne montre pas les champs de cet onglet (p. 56). Celui-ci est exigé par l'Instr. BCC 15, art. 60.</p>
+              <label className="case"><input type="checkbox" checked={f.personneExposee} onChange={(e) => maj({ personneExposee: e.target.checked })} /><span>Personne politiquement exposée</span></label>
+            </>}
+            {onglet === 3 && (edition
+              ? <PersonnesLiees liees={liees} onChange={setLiees} />
+              : liees.length === 0 ? <p>Liste vide</p> : (
+                <table className="grille"><thead><tr><th scope="col">N° du Client</th><th scope="col">Nom</th></tr></thead>
+                  <tbody>{liees.map((x) => <tr key={x.id}><td className="chiffres">{x.numero}</td><td>{nomComplet(x)}</td></tr>)}</tbody></table>
+              ))}
+            {onglet === 4 && <p>Liste vide</p>}
+          </fieldset>
+        )}
+        <div className="actions-onglets">
+          <button className="bouton secondaire" type="button" disabled={!t || edition} onClick={() => setEdition(true)}>Modifier</button>
+          <button className="bouton" type="button" onClick={terminer}>Terminer</button>
+        </div>
+        <Textes sources={["Manuel Microfina++, p. 56 : écran Modification d'un client physique, onglets, boutons Modifier et Terminer",
+          "Manuel Microfina++, p. 54 : le client modifié est validé puis réactivé (S42)",
+          "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
+          "Instr. BCC 15, art. 10 : identification à refaire quand les éléments du client changent ; art. 12 à 14 et 60",
+          "Instr. BCC 37, annexe : changement d'éléments du dossier du client, gratuit"]} />
+      </section>
+      <Fiche titre="Clients" ouverte={recherche} fermer={() => setRecherche(false)}>
+        <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.type === "physique" && x.statut !== "a_viser") : [])}
+          choisir={(x) => void choisir(x)} fermer={() => setRecherche(false)} />
+      </Fiche>
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </>
   );
 }

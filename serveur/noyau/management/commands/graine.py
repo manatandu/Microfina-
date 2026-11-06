@@ -69,8 +69,10 @@ class Command(BaseCommand):
                 ("0412-000318", "Kalala", "Mbuyi", "Josée", "F", "Carte d'électeur", "1-0412-0089", True),
                 ("0412-000319", "Mwamba", "Ilunga", "Grâce", "F", "Passeport", "OP0412871", True),
                 ("0412-000320", "Lukusa", "Mbuyi", None, "M", "Carte d'électeur", "1-0412-0204", False)):
-            t = valeur("""insert into tiers (institution_id, agence_id, numero, type, statut, vise_par, vise_le, cree_par)
-                          values (%s, %s, %s, 'physique', 'actif', %s, now(), %s) returning id""", (ins, ag, num, chef, uid["bkasongo"]))
+            t = valeur("""insert into tiers (institution_id, agence_id, numero, type, statut, vise_par, vise_le, cree_par, date_demande, type_client, date_visa,
+                                            residence, agent_economique)
+                          values (%s, %s, %s, 'physique', 'actif', %s, now(), %s, '2026-01-15', 'Client', '2026-01-15', 'resident', 'menages') returning id""",
+                       (ins, ag, num, chef, uid["bkasongo"]))
             executer("""insert into tiers_personne (tiers_id, nom, postnom, prenom, sexe, piece_type, piece_numero, piece_validite, adresse)
                         values (%s, %s, %s, %s, %s, %s, %s, '2030-12-31', 'Matete, quartier Kinsaku')""", (t, nom, postnom, prenom, sexe, piece, piece_no))
             if specimen:

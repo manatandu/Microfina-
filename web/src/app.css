@@ -198,3 +198,4 @@ fieldset.formulaire { padding-bottom: var(--espace-2); }
 .menu-action button[role="menuitem"]:disabled { color: var(--inactif); cursor: default; }
 @media (hover: hover) and (pointer: fine) { .menu-action button[role="menuitem"]:not(:disabled):hover { background: var(--tampon-pale); } }
 .ligne-choix[aria-selected="true"] { background: var(--tampon-pale); }
+fieldset.sans-cadre { border: 0; padding: 0; margin: 0; min-width: 0; }

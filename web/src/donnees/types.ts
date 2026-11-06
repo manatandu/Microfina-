@@ -37,7 +37,7 @@ export interface Tiers {
   id: number;
   type: "physique" | "morale" | "groupe";
   numero: string;
-  statut: "a_viser" | "actif";
+  statut: "a_viser" | "actif" | "modifie_a_revalider";
   nom: string;
   postnom: string;
   prenom: string;
@@ -148,7 +148,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise }
 
 export interface Etat {
-  version: 7;
+  version: 8;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];
@@ -171,6 +171,7 @@ export interface Etat {
   frais: Frais[];
   paramOperations: ParamOperation[];
   paramAdhesion: ParamAdhesion[];
+  modifications: { id: number; tiersId: number; avant: Tiers; apres: Tiers; modifiePar: number; validePar?: number }[];   // S46, S42, S43
   fraisClient: { tiersId: number; fraisId: number; montant: number }[];   // S41 : montant propre à un client
   images: Record<number, { photo?: string; signature?: string }>;   // photo et specimen chargés à l'enrôlement
 }

@@ -205,6 +205,24 @@ def test_visa_client(clients, journee):
     assert "pas en attente" in refus({})
 
 
+def test_mise_a_jour_client(clients, journee):
+    agent, caisse = clients["agent"], clients["caisse"]
+    k = T("0412-000318")
+    t = agent.get(f"/api/tiers/{k}").json()
+    def refus(corps, tid=k):
+        r = agent.post(f"/api/tiers/{tid}/modification", corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    assert "nom" in refus({**t, "nom": ""})
+    assert "art. 14" in refus({**t, "pieceType": "Badge"})
+    assert "propre personne liée" in refus({**t, "liees": [k]})
+    r = agent.post(f"/api/tiers/{k}/modification", {**t, "telephone": "+243 990 000 001", "liees": [T("0412-000319")]}, **H)
+    assert r.status_code == 200, r.content
+    m = r.json()
+    assert (m["statut"], m["telephone"], m["liees"]) == ("modifie_a_revalider", "+243 990 000 001", [T("0412-000319")])
+    assert ident("select avant->>'telephone' from tiers_modification where tiers_id = %s", (k,)) == ""
+    r = caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}, "remisPar": ""}, **H)
+    assert r.status_code == 422 and "à valider" in r.json()["message"]
+
+
 def test_adhesion_apres_visa(clients, journee):
     caisse, chef, agent = clients["caisse"], clients["chef"], clients["agent"]
     t = agent.post("/api/tiers", {**FICHE, "nom": "Tshala", "postnom": "Muana", "prenom": "Marie", "naissance": "1990-02-01", "pieceType": "Carte d'électeur",

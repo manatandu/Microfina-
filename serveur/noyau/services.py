@@ -558,6 +558,53 @@ def viser_tiers(u: dict, tid: int, d: dict | None = None) -> dict:
     return lire_tiers(tid)
 
 
+def controler_statut_actif(statut: str, suite: str = ""):
+    if statut == "modifie_a_revalider":
+        raise ErreurMetier("Client modifié : à valider (Client > Visa > Valider client modifié) avant toute opération.")
+    if statut != "actif":
+        raise ErreurMetier(f"Client pas encore visé{suite}.")
+
+
+def modifier_tiers(u: dict, tid: int, d: dict) -> dict:
+    """S46 : Modification d'un client physique (manuel p. 56) : Info de base, Info Généraux, Autre Info, Personnes Liées.
+    Le client passe « modifié à revalider » (S42). Contrôles identiques à l'enrôlement (Instr. BCC 15, art. 12 à 14, 60)."""
+    exiger(u)
+    t = une("select * from tiers where id = %s and institution_id = %s for update", (tid, u["institution_id"]))
+    if not t:
+        raise ErreurMetier("Client introuvable.")
+    if t["type"] != "physique":
+        raise ErreurMetier("Seule la modification d'un client physique est décrite par le manuel (p. 56).")
+    if t["statut"] not in ("actif", "modifie_a_revalider"):
+        raise ErreurMetier("Client pas encore visé : le modifier depuis l'enrôlement.")
+    b = controler_base(u, {**d, "produitCode": valeur("select code from produit_epargne where id = %s", (t["produit_id"],)) if t["produit_id"] else "EAV-CDF",
+                           "premierDepot": t["premier_depot"] or 0},
+                       [("date demande", "dateDemande"), ("type client", "typeClient"), ("nom", "nom"), ("type de pièce", "pieceType"),
+                        ("numéro de pièce", "pieceNumero")], TYPES_CLIENT, False)
+    texte = b["texte"]
+    if texte("sexe") not in ("", "F", "M"):
+        raise ErreurMetier("Sexe inconnu.")
+    if tid in b["liees"]:
+        raise ErreurMetier("Un client ne peut pas être sa propre personne liée.")
+    controler_piece(texte("pieceType"), texte("pieceExpire"), journee_courante(u))
+    avant = lire_tiers(tid)
+    executer("""update tiers set date_demande = %s, type_client = %s, zone_id = %s, residence = %s, prelever_agios = %s, calculer_interet = %s,
+                                 personne_exposee = %s, statut = 'modifie_a_revalider' where id = %s""",
+             (texte("dateDemande"), texte("typeClient"), b["zone"], "resident" if d.get("resident", True) else "non_resident",
+              bool(d.get("preleverAgios", True)), bool(d.get("calculerInteret")), bool(d.get("personneExposee")), tid))
+    executer("""update tiers_personne set nom = %s, postnom = %s, prenom = %s, sexe = %s, date_naissance = %s, lieu_naissance = %s, piece_type = %s,
+                    piece_numero = %s, piece_delivree_le = %s, piece_lieu = %s, piece_autorite = %s, piece_validite = %s, adresse = %s, telephone = %s
+                where tiers_id = %s""",
+             (texte("nom"), texte("postnom") or None, texte("prenom") or None, texte("sexe") or None, texte("naissance") or None, texte("lieuNaissance") or None,
+              texte("pieceType"), texte("pieceNumero"), texte("pieceDelivreeLe") or None, texte("pieceLieu") or None, texte("pieceAutorite") or None,
+              texte("pieceExpire") or None, texte("adresse") or None, texte("telephone") or None, tid))
+    executer("delete from lien_tiers where tiers_id = %s and role = 'personne_liee'", (tid,))
+    for autre in b["liees"]:
+        executer("insert into lien_tiers (tiers_id, autre_id, role) values (%s, %s, 'personne_liee')", (tid, autre))
+    apres = lire_tiers(tid)
+    executer("insert into tiers_modification (tiers_id, avant, apres, modifie_par) values (%s, %s, %s, %s)", (tid, Jsonb(avant), Jsonb(apres), u["id"]))
+    return apres
+
+
 def solde_contrat(contrat: str, devise: str, sens_normal: str) -> int:
     return int(valeur(f"""select coalesce(sum(case l.sens when %s then l.montant_devise else -l.montant_devise end), 0)
                           from ligne_ecriture l where l.contrat_ref = %s and l.devise = %s""", (sens_normal, contrat, devise)))
@@ -696,8 +743,7 @@ def compte_actif(compte_id: int, verrou: bool = False) -> dict:
     if not c:
         raise ErreurMetier("Compte introuvable.")
     t = une("select statut from tiers where id = %s", (c["tiers_id"],))
-    if t["statut"] != "actif":
-        raise ErreurMetier("Client pas encore visé.")
+    controler_statut_actif(t["statut"])
     c["devise"] = c["devise"].strip()
     c["pcci"] = "334" if c["famille"] == "obligatoire" else "330"
     return c
@@ -780,8 +826,9 @@ def adhesion(u: dict, p: dict) -> dict:
     s = session_ouverte(u, "CDF")
     tid = int(p["tiersId"])
     t = une("select * from tiers where id = %s for update", (tid,))
-    if not t or t["statut"] != "actif":
-        raise ErreurMetier("Client pas encore visé : l'adhésion attend le visa.")
+    if not t:
+        raise ErreurMetier("Client introuvable.")
+    controler_statut_actif(t["statut"], " : l'adhésion attend le visa")
     if une("select 1 from compte_depot where tiers_id = %s", (tid,)):
         raise ErreurMetier("Ce membre a déjà adhéré.")
     nb = p.get("parts")
