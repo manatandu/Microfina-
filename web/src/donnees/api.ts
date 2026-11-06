@@ -381,6 +381,18 @@ const tiers = {
     E.modifications.push({ id: prochain(E.modifications), tiersId: id, avant, apres: structuredClone(t), modifiePar: u.id });
     enregistrer(); return t;
   },
+  aRevalider: () => { exiger(); return E.tiers.filter((t) => t.statut === "modifie_a_revalider"); },
+  /** S42 : Valider client modifié (p. 54), « activer client ». Quatre yeux (ARCHITECTURE P7). Règles identiques côté serveur (services.activer_tiers). */
+  activer(id: number) {
+    const u = exiger("chef_agence");   // profil habilité : à confirmer
+    const t = E.tiers.find((x) => x.id === id);
+    if (!t) throw new ErreurMetier("Client introuvable.");
+    if (t.statut !== "modifie_a_revalider") throw new ErreurMetier("Ce client n'attend pas de validation.");
+    const ouvertes = E.modifications.filter((m) => m.tiersId === id && !m.validePar);
+    if (ouvertes.some((m) => m.modifiePar === u.id)) throw new ErreurMetier("Quatre yeux : la validation vient d'une autre personne que celle qui a modifié.");
+    ouvertes.forEach((m) => { m.validePar = u.id; });
+    t.statut = "actif"; enregistrer(); return t;
+  },
   comptes(tiersId: number) {
     return E.comptes.filter((c) => c.tiersId === tiersId).map((c) => {
       const solde = soldeContrat(`depot:${c.id}`, c.devise, "C");

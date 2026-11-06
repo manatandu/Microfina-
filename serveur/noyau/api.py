@@ -135,6 +135,16 @@ def tiers_rechercher(request, q: str = ""):
     return s.rechercher_tiers(u(request), q)
 
 
+@api.get("/tiers/a-revalider")
+def tiers_a_revalider(request):
+    return s.tiers_a_revalider(u(request))
+
+
+@api.post("/tiers/{tid}/activation")
+def tiers_activer(request, tid: int):
+    return s.activer_tiers(u(request), tid)
+
+
 @api.get("/tiers/a-viser")
 def tiers_a_viser(request):
     return s.tiers_a_viser(u(request))

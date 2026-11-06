@@ -219,8 +219,19 @@ def test_mise_a_jour_client(clients, journee):
     m = r.json()
     assert (m["statut"], m["telephone"], m["liees"]) == ("modifie_a_revalider", "+243 990 000 001", [T("0412-000319")])
     assert ident("select avant->>'telephone' from tiers_modification where tiers_id = %s", (k,)) == ""
-    r = caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}, "remisPar": ""}, **H)
+    depot = lambda: caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}, "remisPar": ""}, **H)
+    r = depot()
     assert r.status_code == 422 and "à valider" in r.json()["message"]
+    # S42 : validation par le chef, autre que celui qui a modifié
+    chef = clients["chef"]
+    assert [x["id"] for x in chef.get("/api/tiers/a-revalider").json()] == [k]
+    assert agent.post(f"/api/tiers/{k}/activation", **H).status_code == 403
+    chef.post(f"/api/tiers/{T('0412-000319')}/modification", {**chef.get(f"/api/tiers/{T('0412-000319')}").json(), "telephone": "1"}, **H)
+    r = chef.post(f"/api/tiers/{T('0412-000319')}/activation", **H)
+    assert r.status_code == 422 and "Quatre yeux" in r.json()["message"]
+    assert chef.post(f"/api/tiers/{k}/activation", **H).json()["statut"] == "actif"
+    assert "n'attend pas" in chef.post(f"/api/tiers/{k}/activation", **H).json()["message"]
+    assert depot().status_code == 200
 
 
 def test_adhesion_apres_visa(clients, journee):

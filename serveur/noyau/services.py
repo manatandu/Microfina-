@@ -605,6 +605,26 @@ def modifier_tiers(u: dict, tid: int, d: dict) -> dict:
     return apres
 
 
+def tiers_a_revalider(u: dict) -> list[dict]:
+    exiger(u)
+    return [vue_tiers(t) for t in lignes(SQL_TIERS + " where t.institution_id = %s and t.statut = 'modifie_a_revalider' order by t.id", (u["institution_id"],))]
+
+
+def activer_tiers(u: dict, tid: int) -> dict:
+    """S42 : Client > Visa > Valider client modifié (manuel p. 54), bouton « activer client ». Quatre yeux : ARCHITECTURE P7."""
+    exiger(u, "chef_agence")                 # profil habilité : à confirmer
+    t = une("select * from tiers where id = %s and institution_id = %s for update", (tid, u["institution_id"]))
+    if not t:
+        raise ErreurMetier("Client introuvable.")
+    if t["statut"] != "modifie_a_revalider":
+        raise ErreurMetier("Ce client n'attend pas de validation.")
+    if valeur("select 1 from tiers_modification where tiers_id = %s and valide_par is null and modifie_par = %s", (tid, u["id"])):
+        raise ErreurMetier("Quatre yeux : la validation vient d'une autre personne que celle qui a modifié.")
+    executer("update tiers_modification set valide_par = %s, valide_le = now() where tiers_id = %s and valide_par is null", (u["id"], tid))
+    executer("update tiers set statut = 'actif' where id = %s", (tid,))
+    return lire_tiers(tid)
+
+
 def solde_contrat(contrat: str, devise: str, sens_normal: str) -> int:
     return int(valeur(f"""select coalesce(sum(case l.sens when %s then l.montant_devise else -l.montant_devise end), 0)
                           from ligne_ecriture l where l.contrat_ref = %s and l.devise = %s""", (sens_normal, contrat, devise)))

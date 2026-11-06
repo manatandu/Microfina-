@@ -61,6 +61,8 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       aViser: () => get("/tiers/a-viser"),
       viser: (id: number, v: object = {}) => post(`/tiers/${id}/visa`, v),
       modifier: (id: number, d: object) => post(`/tiers/${id}/modification`, d),
+      aRevalider: () => get("/tiers/a-revalider"),
+      activer: (id: number) => post(`/tiers/${id}/activation`),
       comptes: (id: number) => get(`/tiers/${id}/comptes`),
       parts: (id: number) => get(`/tiers/${id}/parts`),
     },

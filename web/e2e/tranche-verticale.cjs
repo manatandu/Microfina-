@@ -125,8 +125,8 @@ const OUT = process.argv[2];
   await p.getByLabel("Montant de Droit d'entrée").fill('2 500'); await etape('06h-modification-frais');
   await p.getByRole('button', { name: 'Modifier' }).click(); await ok();
   await p.getByLabel("Montant de Droit d'entrée").waitFor(); await etape('06i-frais-modifies');
-  // Mise à jour d'un client (S46)
-  await aller('/clients/s46');
+  // Mise à jour d'un client (S46), par l'agent
+  await login('Bijou Kasongo'); await aller('/clients/s46');
   await p.getByRole('button', { name: 'Rechercher un client' }).click();
   const rm = p.getByRole('dialog', { name: 'Clients' });
   await rm.getByLabel('Numéro, Nom et Prénoms :').fill('Mwamba'); await rm.getByRole('row').filter({ hasText: 'Mwamba' }).dblclick();
@@ -134,6 +134,12 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Modifier' }).click(); await p.getByRole('tab', { name: 'Info Généraux' }).click();
   await p.getByLabel('Téléphone :').fill('+243 990 000 001'); await etape('06k-mise-a-jour-saisie');
   await p.getByRole('button', { name: 'Terminer' }).click(); await ok();
+  // Validation du client modifié (S42) : par le chef, autre que l'agent qui a modifié
+  await login('J.-P. Mukendi'); await aller('/clients/s42');
+  await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  await p.getByRole('dialog', { name: 'Clients modifiés' }).getByRole('row').filter({ hasText: 'Mwamba' }).dblclick();
+  await p.getByRole('cell', { name: '0412-000319-01' }).waitFor(); await etape('06l-validation-client-modifie');
+  await p.getByRole('button', { name: 'activer client' }).click(); await ok();
   // Caissière : adhésion, dépôt, retrait
   await login('Esther Ngalula'); await aller('/caisse/s73');
   await p.getByLabel(/Nom, numéro ou compte/).waitFor(); await p.keyboard.press('F2'); await p.keyboard.type('Tshala'); await p.getByRole('option', { name: /Tshala/ }).click();

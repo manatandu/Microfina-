@@ -277,3 +277,58 @@ function Contrat({ t, ctx }: { t: Tiers; ctx: Ctx }) {
     </article>
   );
 }
+
+/** S42 : Client > Visa > Valider client modifié (manuel Microfina++, p. 54) : Numéro du Client*, Intitulé, Catégorie, activer client, Annuler, comptes du membre */
+export function ValidationClientModifie() {
+  const { donnees: ctx } = useDonnees(() => api.referentiel.contexte());
+  const [t, setT] = useState<Tiers | null>(null);
+  const [recherche, setRecherche] = useState(false);
+  const [boite, setBoite] = useState<Boite | null>(null);
+  const { donnees: comptes } = useDonnees(() => (t ? api.tiers.comptes(t.id) : Promise.resolve([])), [t?.id]);
+  if (!ctx) return <Chargement />;
+  function activer() {
+    if (!t) { setBoite({ type: "erreur", message: "À remplir : numéro du client." }); return; }
+    setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
+      try { await api.tiers.activer(t.id); setT(null); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+      catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+    } });
+  }
+  return (
+    <>
+      <h1>Validation d'un client modifié</h1>
+      <section className="bloc pile" aria-label="Validation d'un client modifié">
+        <fieldset className="pile cadre-champs">
+          <legend>Informations sur le Client</legend>
+          <div className="ligne-champ">
+            <Champ libelle="Numéro du Client : *">{(p) => <input {...p} className="saisie code" readOnly required value={t?.numero ?? ""} />}</Champ>
+            <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
+          </div>
+          <Champ libelle="Intitulé :">{(p) => <input {...p} className="saisie" readOnly value={t ? t.intitule || nomComplet(t) : ""} />}</Champ>
+          <Champ libelle="Catégorie :">{(p) => <input {...p} className="saisie" readOnly value={t?.typeClient ?? ""} />}</Champ>
+        </fieldset>
+        <div className="actions-onglets">
+          <button className="bouton" type="button" onClick={activer}>activer client</button>
+          <button className="bouton secondaire" type="button" onClick={() => setT(null)}>Annuler</button>
+        </div>
+        <fieldset className="pile cadre-champs">
+          <legend>Liste des Comptes du membre</legend>
+          <table className="grille">
+            <thead><tr><th scope="col">N° Compte</th><th scope="col">Produit</th><th scope="col">Agence</th><th scope="col">Membre</th></tr></thead>
+            <tbody>
+              {(!t || !comptes || comptes.length === 0) && <tr><td colSpan={4}>liste vide</td></tr>}
+              {t && comptes?.map((c) => <tr key={c.id}><td className="chiffres">{c.numero}</td><td>{c.intitule} {c.devise}</td><td>{ctx.agence.nom}</td><td>{nomComplet(t)}</td></tr>)}
+            </tbody>
+          </table>
+        </fieldset>
+        <Textes sources={["Manuel Microfina++, p. 54 : écran Validation d'un client modifié, Numéro du client obligatoire, bouton activer client",
+          "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
+          "ARCHITECTURE P7 : la validation vient d'une autre personne que celle qui a modifié"]} />
+      </section>
+      <Fiche titre="Clients modifiés" ouverte={recherche} fermer={() => setRecherche(false)}>
+        <RechercheClient source={async (q) => (await api.tiers.aRevalider()).filter((x) => [x.numero, x.nom, x.postnom, x.prenom].join(" ").toLowerCase().includes(q))}
+          choisir={(x) => { setT(x); setRecherche(false); }} fermer={() => setRecherche(false)} />
+      </Fiche>
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </>
+  );
+}

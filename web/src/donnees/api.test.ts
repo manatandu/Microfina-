@@ -160,7 +160,17 @@ describe("journée de guichet", () => {
     const m = await api.tiers.modifier(1, { ...t, telephone: "+243 990 000 001", liees: [2] });
     expect(m).toMatchObject({ statut: "modifie_a_revalider", telephone: "+243 990 000 001", liees: [2] });
     await connecter("engalula");
-    await expect(api.guichet.depot({ cle: cle(), compteId: 2, montant: 1000000, coupures: { 10000: 1 }, remisPar: "" })).rejects.toThrow("à valider");
+    const depot = () => api.guichet.depot({ cle: cle(), compteId: 2, montant: 1000000, coupures: { 10000: 1 }, remisPar: "" });
+    await expect(depot()).rejects.toThrow("à valider");
+    // S42 : validation par le chef, autre que celui qui a modifié
+    await connecter("jpmukendi");
+    expect((await api.tiers.aRevalider()).map((x) => x.id)).toEqual([1]);
+    await api.tiers.modifier(2, { ...(await api.tiers.lire(2))!, telephone: "1" });
+    await expect(api.tiers.activer(2)).rejects.toThrow("Quatre yeux");
+    expect((await api.tiers.activer(1)).statut).toBe("actif");
+    await expect(api.tiers.activer(1)).rejects.toThrow("n'attend pas");
+    await connecter("bkasongo"); await expect(api.tiers.activer(2)).rejects.toThrow("Réservé");
+    await connecter("engalula"); expect((await depot()).statut).toBe("validee");
   });
 
   it("adhésion : parts en 1030, premier dépôt en 330, après visa seulement", async () => {
