@@ -112,6 +112,19 @@ describe("journée de guichet", () => {
     expect(t).toMatchObject({ type: "groupe", nom: "Mamans de Kinsaku", nbFemmes: 12, statut: "a_viser", membres: [{ nom: "Mbuyi", specimen: true }] });
   });
 
+  it("visa du client (S40) : date de visa, intitulé, premier dépôt, une seule fois", async () => {
+    await connecter("bkasongo");
+    await journeeOuverte(); await connecter("bkasongo");
+    const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), produitCode: "EAV-CDF", nom: "Tshala", pieceType: "Passeport", pieceNumero: "OP2", premierDepot: 200000 });
+    await expect(api.tiers.viser(t.id)).rejects.toThrow("chef d'agence");
+    await connecter("jpmukendi");
+    await expect(api.tiers.viser(t.id, { dateVisa: "2026-11-01" })).rejects.toThrow("précède");
+    await expect(api.tiers.viser(t.id, { dateVisa: "2026-11-06" })).rejects.toThrow("dépasser");
+    await expect(api.tiers.viser(t.id, { intitule: " " })).rejects.toThrow("intitulé");
+    expect(await api.tiers.viser(t.id, { dateVisa: "2026-11-05", intitule: "TSHALA", premierDepot: 300000 })).toMatchObject({ statut: "actif", dateVisa: "2026-11-05", intitule: "TSHALA", premierDepot: 300000 });
+    await expect(api.tiers.viser(t.id)).rejects.toThrow("pas en attente");
+  });
+
   it("adhésion : parts en 1030, premier dépôt en 330, après visa seulement", async () => {
     await connecter("bkasongo");
     const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), produitCode: "EAV-CDF", nom: "Tshala", postnom: "Muana", prenom: "Marie", naissance: "1990-02-01", pieceType: "Carte d'électeur", pieceNumero: "1-0412-0999", pieceExpire: "2031-01-01", adresse: "Matete" });

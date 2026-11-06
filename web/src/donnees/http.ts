@@ -59,7 +59,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       creerEntreprise: (d: object, dirigeant: object | null, signataires: object[]) => post("/tiers/entreprises", { ...d, dirigeant, signataires }),
       creerGroupe: (d: object, membres: object[], images: object = {}) => post("/tiers/groupes", { ...d, membres, images }),
       aViser: () => get("/tiers/a-viser"),
-      viser: (id: number) => post(`/tiers/${id}/visa`),
+      viser: (id: number, v: object = {}) => post(`/tiers/${id}/visa`, v),
       comptes: (id: number) => get(`/tiers/${id}/comptes`),
       parts: (id: number) => get(`/tiers/${id}/parts`),
     },

@@ -340,6 +340,7 @@ def vue_tiers(t: dict) -> dict:
             "preleverAgios": t["prelever_agios"], "calculerInteret": t["calculer_interet"],
             "lieuNaissance": t["lieu_naissance"] or "", "pieceDelivreeLe": iso(t["piece_delivree_le"]), "pieceLieu": t["piece_lieu"] or "", "pieceAutorite": t["piece_autorite"] or "",
             "liees": [r["autre_id"] for r in lignes("select autre_id from lien_tiers where tiers_id = %s and role = 'personne_liee' order by id", (t["id"],))],
+            "intitule": t["intitule"] or "", "dateVisa": iso(t["date_visa"]),
             "type": t["type"], "formeJuridique": t["forme"] or "", "registre": t["rccm"] or "", "centreActivite": t["centre_activite"] or "", "activite": t["activite"] or "",
             "dirigeant": dirigeant, "signataires": signataires, "membres": membres, "nbHommes": t["nb_hommes"] or 0, "nbFemmes": t["nb_femmes"] or 0,
             "photo": bool(sp and sp["photo"]), "specimen": bool(sp and sp["signature"]) or any(x["specimen"] for x in signataires),
@@ -527,14 +528,33 @@ def tiers_a_viser(u: dict) -> list[dict]:
     return [vue_tiers(t) for t in lignes(SQL_TIERS + " where t.institution_id = %s and t.statut = 'a_viser' order by t.id", (u["institution_id"],))]
 
 
-def viser_tiers(u: dict, tid: int) -> dict:
+def viser_tiers(u: dict, tid: int, d: dict | None = None) -> dict:
+    """S40 : Client > Visa > Viser un client (manuel p. 52). Admission du membre : loi 002/2002, art. 22, 6°."""
     exiger(u, "chef_agence")
-    t = une("select * from tiers where id = %s for update", (tid,))
+    d = d or {}
+    t = une("select * from tiers where id = %s and institution_id = %s for update", (tid, u["institution_id"]))
     if not t:
         raise ErreurMetier("Client introuvable.")
+    if t["statut"] != "a_viser":
+        raise ErreurMetier("Ce client n'est pas en attente de visa.")
     if t["cree_par"] == u["id"]:
         raise ErreurMetier("Quatre yeux : le visa vient d'une autre personne que celle qui a enrôlé.")
-    executer("update tiers set statut = 'actif', vise_par = %s, vise_le = now() where id = %s", (u["id"], tid))
+    j = journee_courante(u)
+    jour = j["date"] if j and j["statut"] == "ouverte" else date.today().isoformat()
+    texte = texte_de(d)
+    date_visa = texte("dateVisa") or jour
+    if t["date_demande"] and date_visa < t["date_demande"].isoformat():
+        raise ErreurMetier("La date de visa précède la date de demande.")
+    if date_visa > jour:
+        raise ErreurMetier("La date de visa ne peut pas dépasser la journée en cours.")
+    intitule = texte("intitule") if "intitule" in d else (t["intitule"] or titulaire(tid))
+    if not intitule:
+        raise ErreurMetier("À remplir : intitulé.")
+    depot = d.get("premierDepot", t["premier_depot"] or 0)
+    if not isinstance(depot, int) or isinstance(depot, bool) or depot < 0:
+        raise ErreurMetier("Premier dépôt invalide.")
+    executer("""update tiers set statut = 'actif', vise_par = %s, vise_le = now(), date_visa = %s, intitule = %s, premier_depot = %s where id = %s""",
+             (u["id"], date_visa, intitule, depot, tid))
     return lire_tiers(tid)
 
 

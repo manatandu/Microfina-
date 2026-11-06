@@ -81,6 +81,9 @@ export interface Tiers {
   specimen: boolean;
   creePar: number;
   visePar?: number;
+  // S40, visa (manuel p. 52)
+  intitule: string;
+  dateVisa: string;
 }
 
 export interface CompteDepot {
@@ -139,7 +142,7 @@ export interface Operation {
 export interface Produit { code: string; libelle: string; devise: Devise }
 
 export interface Etat {
-  version: 4;
+  version: 5;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];

@@ -190,6 +190,21 @@ def test_enrolement_groupe(clients, journee):
     assert ident("select agent_economique from tiers where id = %s", (t["id"],)) == "Institutions sans but lucratif"
 
 
+def test_visa_client(clients, journee):
+    agent, chef = clients["agent"], clients["chef"]
+    t = agent.post("/api/tiers", {**FICHE, "nom": "Tshala", "pieceType": "Passeport", "pieceNumero": "OP2", "premierDepot": 200000}, **H).json()
+    def refus(corps):
+        r = chef.post(f"/api/tiers/{t['id']}/visa", corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    assert "précède" in refus({"dateVisa": "2026-11-01"})
+    assert "dépasser" in refus({"dateVisa": "2026-11-06"})
+    assert "intitulé" in refus({"intitule": " "})
+    r = chef.post(f"/api/tiers/{t['id']}/visa", {"dateVisa": "2026-11-05", "intitule": "TSHALA", "premierDepot": 300000}, **H)
+    assert r.status_code == 200, r.content
+    v = r.json()
+    assert (v["statut"], v["dateVisa"], v["intitule"], v["premierDepot"]) == ("actif", "2026-11-05", "TSHALA", 300000)
+    assert "pas en attente" in refus({})
+
+
 def test_adhesion_apres_visa(clients, journee):
     caisse, chef, agent = clients["caisse"], clients["chef"], clients["agent"]
     t = agent.post("/api/tiers", {**FICHE, "nom": "Tshala", "postnom": "Muana", "prenom": "Marie", "naissance": "1990-02-01", "pieceType": "Carte d'électeur",

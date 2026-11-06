@@ -89,12 +89,18 @@ const OUT = process.argv[2];
   await login('J.-P. Mukendi'); await aller('/caisse/s80'); await etape('06-chef-a-valider');
   await validerTout();
   await p.getByText('Rien à valider pour l\'instant.').waitFor();
-  await aller('/clients/s40'); await etape('06b-visa-client');
-  for (const nom of ['Tshala', 'Mamans', 'Boulangerie']) {
-    await p.getByRole('list', { name: /Membres à viser/ }).getByRole('listitem').filter({ hasText: nom }).getByRole('button', { name: 'Viser' }).click();
-    await p.getByRole('listitem').filter({ hasText: nom }).waitFor({ state: 'detached' });
+  await aller('/clients/s40');
+  for (const [i, nom] of ['Tshala', 'Mamans', 'Boulangerie'].entries()) {
+    if (i > 0) await p.getByRole('button', { name: 'Annuler' }).click();
+    await p.getByRole('button', { name: 'Rechercher un client' }).click();
+    const r = p.getByRole('dialog', { name: 'Clients en attente de visa' });
+    await r.getByRole('row').filter({ hasText: nom }).dblclick();
+    if (i === 0) await etape('06b-visa-client');
+    await p.getByRole('button', { name: 'Viser' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+    await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
+    if (i === 0) { await p.getByRole('button', { name: 'Imprimer Contrat' }).click(); await p.getByRole('dialog', { name: "Demande d'adhésion" }).waitFor();
+      await etape('06c-contrat'); await p.getByRole('dialog', { name: "Demande d'adhésion" }).getByRole('button', { name: 'Fermer' }).click(); }
   }
-  await p.getByText('Rien à valider pour l\'instant.').waitFor();
   // Caissière : adhésion, dépôt, retrait
   await login('Esther Ngalula'); await aller('/caisse/s73');
   await p.getByLabel(/Nom, numéro ou compte/).waitFor(); await p.keyboard.press('F2'); await p.keyboard.type('Tshala'); await p.getByRole('option', { name: /Tshala/ }).click();

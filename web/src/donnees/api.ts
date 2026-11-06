@@ -16,14 +16,14 @@ import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@d
 export const SEUIL_CAISSIER_USD = 1000;   // au-delà, visa du chef d'agence. Exemple : fixé par la COOPEC
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v4";
+const CLE = "likelemba-demo-v5";
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
 
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 4) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 5) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   return graine();
 }
@@ -209,7 +209,9 @@ const caisses = {
 const nettoyer = (c: Comptage): Comptage => Object.fromEntries(Object.entries(c).filter(([, n]) => (n ?? 0) > 0));
 
 // ---------- Tiers ----------
-export type NouveauTiers = Omit<Tiers, "id" | "numero" | "statut" | "creePar" | "visePar" | "photo" | "specimen" | "type" | "dirigeant" | "signataires" | "membres">;
+export type NouveauTiers = Omit<Tiers, "id" | "numero" | "statut" | "creePar" | "visePar" | "photo" | "specimen" | "type" | "dirigeant" | "signataires" | "membres" | "intitule" | "dateVisa">;
+/** Saisie du visa (S40, p. 52) */
+export interface Visa { dateVisa?: string; intitule?: string; premierDepot?: number }
 /** Dirigeant ou signataire tel que saisi, avec photo et signature chargées */
 export type RepresentantSaisi = Omit<Representant, "photo" | "specimen"> & Images;
 /** Photo et specimen chargés à l'onglet « Photo » (p. 49), en image PNG ou JPEG */
@@ -296,7 +298,7 @@ function ctxControle() {
 }
 function nouveauTiers(d: NouveauTiers, creePar: number, reste: Pick<Tiers, "type" | "dirigeant" | "signataires" | "membres" | "photo" | "specimen">): Tiers {
   E.compteurs.tiers += 1;
-  const t: Tiers = { ...d, ...reste, id: prochain(E.tiers), numero: `${E.agence.code}-${String(E.compteurs.tiers).padStart(6, "0")}`, statut: "a_viser", creePar };
+  const t: Tiers = { ...d, ...reste, intitule: "", dateVisa: "", id: prochain(E.tiers), numero: `${E.agence.code}-${String(E.compteurs.tiers).padStart(6, "0")}`, statut: "a_viser", creePar };
   E.tiers.push(t); return t;
 }
 
@@ -335,12 +337,24 @@ const tiers = {
     enregistrer(); return t;
   },
   aViser: () => E.tiers.filter((t) => t.statut === "a_viser"),
-  viser(id: number) {
+  /** S40 : visa du client (p. 52). Admission du membre : loi 002/2002, art. 22, 6°. Contrôles identiques côté serveur (services.viser_tiers). */
+  viser(id: number, v: Visa = {}) {
     const u = exiger("chef_agence");
     const t = E.tiers.find((x) => x.id === id);
     if (!t) throw new ErreurMetier("Client introuvable.");
+    if (t.statut !== "a_viser") throw new ErreurMetier("Ce client n'est pas en attente de visa.");
     if (t.creePar === u.id) throw new ErreurMetier("Quatre yeux : le visa vient d'une autre personne que celle qui a enrôlé.");
-    t.statut = "actif"; t.visePar = u.id; enregistrer(); return t;
+    const j = journees.courante();
+    const jour = j && j.statut === "ouverte" ? j.date : new Date().toISOString().slice(0, 10);
+    const dateVisa = v.dateVisa?.trim() || jour;
+    if (t.dateDemande && dateVisa < t.dateDemande) throw new ErreurMetier("La date de visa précède la date de demande.");
+    if (dateVisa > jour) throw new ErreurMetier("La date de visa ne peut pas dépasser la journée en cours.");
+    const intitule = v.intitule !== undefined ? v.intitule.trim() : t.intitule || [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
+    if (!intitule) throw new ErreurMetier("À remplir : intitulé.");
+    const depot = v.premierDepot ?? t.premierDepot;
+    if (!Number.isInteger(depot) || depot < 0) throw new ErreurMetier("Premier dépôt invalide.");
+    Object.assign(t, { statut: "actif", visePar: u.id, dateVisa, intitule, premierDepot: depot });
+    enregistrer(); return t;
   },
   comptes(tiersId: number) {
     return E.comptes.filter((c) => c.tiersId === tiersId).map((c) => {
