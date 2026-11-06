@@ -5,7 +5,7 @@ import Balance from "./Comptabilite";
 import { BilletageCaisse, OuvertureCaisse } from "./Caisse";
 import { EnrolementEntreprise, EnrolementGroupe, EnrolementPhysique, MiseAJourClient } from "./Membres";
 import { EcranJournee, EcranValidation } from "./Journee";
-import { ModificationFrais, ValidationClientModifie, VisaClient } from "./Visa";
+import { InformationsClient, ModificationFrais, ValidationClientModifie, VisaClient } from "./Visa";
 import { FraisOperations } from "./Parametrage";
 
 /** Écrans de l'inventaire déjà construits. Les autres affichent « pas encore construit ». */
@@ -19,6 +19,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S40: VisaClient,
   S41: ModificationFrais,
   S42: ValidationClientModifie,
+  S43: InformationsClient,
   S46: MiseAJourClient,
   S73: Adhesion,
   S74: GuichetDepotRetrait,

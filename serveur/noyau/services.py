@@ -625,6 +625,24 @@ def activer_tiers(u: dict, tid: int) -> dict:
     return lire_tiers(tid)
 
 
+def images_tiers(u: dict, tid: int) -> dict:
+    """Photo et signature déposées (cadre « Photo / Signature » de S43, p. 54)"""
+    exiger(u)
+    sp = une("""select s.photo, s.signature from specimen s join tiers t on t.id = s.tiers_id
+                where s.tiers_id = %s and t.institution_id = %s order by s.id desc limit 1""", (tid, u["institution_id"]))
+    image = lambda v: v if isinstance(v, str) and IMAGE_OK.match(v) else None
+    return {"photo": image(sp and sp["photo"]), "signature": image(sp and sp["signature"])}
+
+
+def modifications_tiers(u: dict, tid: int) -> list[dict]:
+    """« Informations initiales et actuelles » (S43, p. 54) : chaque modification (S46) avec l'état avant et après"""
+    exiger(u)
+    return [{"avant": json_lu(r["avant"]), "apres": json_lu(r["apres"]), "modifiePar": r["modifie_par"], "modifieLe": r["modifie_le"].isoformat(),
+             "validePar": r["valide_par"]}
+            for r in lignes("""select m.* from tiers_modification m join tiers t on t.id = m.tiers_id where m.tiers_id = %s and t.institution_id = %s
+                               order by m.id""", (tid, u["institution_id"]))]
+
+
 def solde_contrat(contrat: str, devise: str, sens_normal: str) -> int:
     return int(valeur(f"""select coalesce(sum(case l.sens when %s then l.montant_devise else -l.montant_devise end), 0)
                           from ligne_ecriture l where l.contrat_ref = %s and l.devise = %s""", (sens_normal, contrat, devise)))

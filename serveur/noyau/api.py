@@ -187,6 +187,16 @@ def tiers_modifier(request, tid: int, corps: dict = Body(...)):
     return s.modifier_tiers(u(request), tid, corps)
 
 
+@api.get("/tiers/{tid}/images")
+def tiers_images(request, tid: int):
+    return s.images_tiers(u(request), tid)
+
+
+@api.get("/tiers/{tid}/modifications")
+def tiers_modifications(request, tid: int):
+    return s.modifications_tiers(u(request), tid)
+
+
 @api.get("/tiers/{tid}/frais")
 def tiers_frais(request, tid: int):
     return fr.frais_lies(u(request), tid)

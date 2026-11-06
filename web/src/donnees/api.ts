@@ -378,8 +378,19 @@ const tiers = {
       "naissance", "lieuNaissance", "pieceType", "pieceNumero", "pieceDelivreeLe", "pieceLieu", "pieceAutorite", "pieceExpire", "adresse", "telephone", "liees"] as const;
     for (const k of champs) (t as unknown as Record<string, unknown>)[k] = d[k];
     t.statut = "modifie_a_revalider";
-    E.modifications.push({ id: prochain(E.modifications), tiersId: id, avant, apres: structuredClone(t), modifiePar: u.id });
+    E.modifications.push({ id: prochain(E.modifications), tiersId: id, avant, apres: structuredClone(t), modifiePar: u.id, modifieLe: new Date().toISOString() });
     enregistrer(); return t;
+  },
+  /** Cadre « Photo / Signature » de S43 (p. 54) */
+  images(id: number): { photo: string | null; signature: string | null } {
+    exiger();
+    const i = E.images[id] ?? {};
+    return { photo: i.photo ?? null, signature: i.signature ?? null };
+  },
+  /** « Informations initiales et actuelles » (S43, p. 54) */
+  modifications(id: number) {
+    exiger();
+    return E.modifications.filter((m) => m.tiersId === id).map(({ avant, apres, modifiePar, modifieLe, validePar }) => ({ avant, apres, modifiePar, modifieLe, validePar: validePar ?? null }));
   },
   aRevalider: () => { exiger(); return E.tiers.filter((t) => t.statut === "modifie_a_revalider"); },
   /** S42 : Valider client modifié (p. 54), « activer client ». Quatre yeux (ARCHITECTURE P7). Règles identiques côté serveur (services.activer_tiers). */

@@ -199,3 +199,6 @@ fieldset.formulaire { padding-bottom: var(--espace-2); }
 @media (hover: hover) and (pointer: fine) { .menu-action button[role="menuitem"]:not(:disabled):hover { background: var(--tampon-pale); } }
 .ligne-choix[aria-selected="true"] { background: var(--tampon-pale); }
 fieldset.sans-cadre { border: 0; padding: 0; margin: 0; min-width: 0; }
+.photo-signature { display: flex; flex-wrap: wrap; gap: var(--espace-4); align-items: center; }
+.photo-signature img { max-height: 120px; max-width: 160px; object-fit: contain; }
+.cadre-signature { width: 160px; height: 100px; border: 1px solid var(--trait); border-radius: var(--rayon-petit); display: grid; place-items: center; background: var(--feuille); }

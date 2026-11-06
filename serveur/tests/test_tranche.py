@@ -232,6 +232,10 @@ def test_mise_a_jour_client(clients, journee):
     assert chef.post(f"/api/tiers/{k}/activation", **H).json()["statut"] == "actif"
     assert "n'attend pas" in chef.post(f"/api/tiers/{k}/activation", **H).json()["message"]
     assert depot().status_code == 200
+    # S43 : informations initiales et actuelles
+    h = chef.get(f"/api/tiers/{k}/modifications").json()
+    assert (h[0]["avant"]["telephone"], h[0]["apres"]["telephone"], h[0]["validePar"] is not None) == ("", "+243 990 000 001", True)
+    assert chef.get(f"/api/tiers/{k}/images").json() == {"photo": None, "signature": None}   # graine : pas d'image réelle
 
 
 def test_adhesion_apres_visa(clients, journee):

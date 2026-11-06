@@ -140,6 +140,12 @@ const OUT = process.argv[2];
   await p.getByRole('dialog', { name: 'Clients modifiés' }).getByRole('row').filter({ hasText: 'Mwamba' }).dblclick();
   await p.getByRole('cell', { name: '0412-000319-01' }).waitFor(); await etape('06l-validation-client-modifie');
   await p.getByRole('button', { name: 'activer client' }).click(); await ok();
+  // Consulter un client (S43)
+  await aller('/clients/s43'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  const rc = p.getByRole('dialog', { name: 'Clients' });
+  await rc.getByLabel('Numéro, Nom et Prénoms :').fill('Mwamba'); await rc.getByRole('row').filter({ hasText: 'Mwamba' }).dblclick();
+  await p.getByRole('cell', { name: '+243 990 000 001' }).waitFor(); await etape('06m-informations-client');
+  await p.getByRole('tab', { name: 'Dépôts' }).click(); await p.getByRole('cell', { name: '0412-000319-02' }).waitFor(); await etape('06n-informations-depots');
   // Caissière : adhésion, dépôt, retrait
   await login('Esther Ngalula'); await aller('/caisse/s73');
   await p.getByLabel(/Nom, numéro ou compte/).waitFor(); await p.keyboard.press('F2'); await p.keyboard.type('Tshala'); await p.getByRole('option', { name: /Tshala/ }).click();

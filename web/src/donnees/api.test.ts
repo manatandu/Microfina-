@@ -171,6 +171,10 @@ describe("journée de guichet", () => {
     await expect(api.tiers.activer(1)).rejects.toThrow("n'attend pas");
     await connecter("bkasongo"); await expect(api.tiers.activer(2)).rejects.toThrow("Réservé");
     await connecter("engalula"); expect((await depot()).statut).toBe("validee");
+    // S43 : informations initiales et actuelles
+    const h = await api.tiers.modifications(1);
+    expect([h[0]!.avant.telephone, h[0]!.apres.telephone, h[0]!.validePar !== null]).toEqual(["", "+243 990 000 001", true]);
+    expect(await api.tiers.images(1)).toEqual({ photo: null, signature: null });
   });
 
   it("adhésion : parts en 1030, premier dépôt en 330, après visa seulement", async () => {

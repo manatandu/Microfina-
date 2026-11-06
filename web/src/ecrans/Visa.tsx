@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api } from "../donnees/api";
 import type { Representant, Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Silhouette, Textes, type Boite } from "../composants";
 import { lireMontant, montant } from "@design/montant.js";
 
 type Ctx = Awaited<ReturnType<typeof api.referentiel.contexte>>;
@@ -329,6 +329,111 @@ export function ValidationClientModifie() {
           choisir={(x) => { setT(x); setRecherche(false); }} fermer={() => setRecherche(false)} />
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </>
+  );
+}
+
+/** Libellés des champs comparés dans « informations initiales et actuelles » */
+const CHAMPS_SUIVIS: [keyof Tiers, string][] = [["nom", "Nom"], ["postnom", "Post-nom"], ["prenom", "Prénom"], ["sexe", "Sexe"], ["naissance", "Date de naissance"],
+  ["lieuNaissance", "Lieu de naissance"], ["adresse", "Adresse"], ["telephone", "Téléphone"], ["pieceType", "Type de pièce"], ["pieceNumero", "N° de pièce"],
+  ["pieceExpire", "Valide jusqu'au"], ["typeClient", "Type Client"], ["zone", "Zone"], ["resident", "Résident"], ["preleverAgios", "Prelever Agios"],
+  ["calculerInteret", "Calculer intéret"], ["personneExposee", "Personne politiquement exposée"], ["liees", "Personnes liées"]];
+const enTexte = (v: unknown) => (typeof v === "boolean" ? (v ? "Oui" : "Non") : Array.isArray(v) ? v.join(", ") : /^\d{4}-\d{2}-\d{2}$/.test(String(v ?? "")) ? fr(String(v)) : String(v ?? ""));
+
+/** S43 : Client > Consulter client (manuel Microfina++, p. 54) : informations initiales et actuelles du client */
+export function InformationsClient() {
+  const { donnees: ctx } = useDonnees(() => api.referentiel.contexte());
+  const [t, setT] = useState<Tiers | null>(null);
+  const [onglet, setOnglet] = useState(0);
+  const [recherche, setRecherche] = useState(false);
+  const { donnees: detail } = useDonnees(async () => t
+    ? { images: await api.tiers.images(t.id), modifications: await api.tiers.modifications(t.id), comptes: await api.tiers.comptes(t.id), parts: await api.tiers.parts(t.id) }
+    : null, [t?.id]);
+  if (!ctx) return <Chargement />;
+  const onglets = ["Renseignements généraux", "Autres renseignements", "Dépôts", "Crédits", "Part sociale"];
+  const lu = (libelle: string, v: string) => <Champ libelle={libelle}>{(p) => <input {...p} className="saisie" readOnly value={v} />}</Champ>;
+  const initial = detail?.modifications[0]?.avant;
+  const ecarts = t && initial ? CHAMPS_SUIVIS.filter(([k]) => enTexte(initial[k]) !== enTexte(t[k])) : [];
+  return (
+    <>
+      <h1>Informations client</h1>
+      <section className="bloc pile" aria-label="Client">
+        <div className="formulaire">
+          <div className="ligne-champ">
+            <Champ libelle="N° Client :">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
+            <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
+          </div>
+          {lu("Date d'adhésion : *", t ? fr(t.dateVisa) : "")}
+        </div>
+        <div className="deux-colonnes">
+          <fieldset className="cadre-champs formulaire">
+            <legend>Renseignements généraux</legend>
+            {lu("N° du Client :", t?.numero ?? "")}{lu("Gestionnaire :", "")}
+            {lu("N° Manuel:", t?.numeroManuel ?? "")}{lu("Commercial :", "")}
+            {lu("N° Matricule :", t?.matricule ?? "")}{lu("Sensibilisateur :", "")}
+          </fieldset>
+          <fieldset className="cadre-champs">
+            <legend>Photo / Signature</legend>
+            <div className="photo-signature">
+              {detail?.images.photo ? <img src={detail.images.photo} alt="Photo du client" /> : <Silhouette />}
+              <div className="cadre-signature">{detail?.images.signature ? <img src={detail.images.signature} alt="Signature du client" /> : null}</div>
+            </div>
+          </fieldset>
+        </div>
+      </section>
+      <div className="onglets" role="tablist" aria-label="Informations client">
+        {onglets.map((o, i) => <button key={o} type="button" role="tab" id={`onglet-${i}`} aria-controls="volet" aria-selected={i === onglet} onClick={() => setOnglet(i)}>{o}</button>)}
+      </div>
+      <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${onglet}`}>
+        {t && onglet === 0 && <>
+          <div className="formulaire">
+            {t.type === "physique" ? <>
+              {lu("Nom :", t.nom)}{lu("Post-nom :", t.postnom)}{lu("Prénom :", t.prenom)}{lu("Sexe :", t.sexe === "F" ? "Féminin" : t.sexe === "M" ? "Masculin" : "")}
+              {lu("Date de naissance :", fr(t.naissance))}{lu("Lieu de naissance :", t.lieuNaissance)}{lu("Adresse :", t.adresse)}{lu("Téléphone :", t.telephone)}
+              {lu("Type de pièce :", t.pieceType)}{lu("N° de pièce :", t.pieceNumero)}{lu("Valide jusqu'au :", fr(t.pieceExpire))}
+            </> : <>
+              {lu("Dénomination :", t.nom)}{lu("Forme juridique :", t.formeJuridique)}{lu("N° du registre :", t.registre)}{lu("Adresse :", t.adresse)}{lu("Nature de l'activité :", t.activite)}
+            </>}
+          </div>
+          <h2>Informations initiales et actuelles</h2>
+          <p className="a-confirmer">À confirmer : le manuel annonce cette comparaison (p. 54) sans montrer où elle s'affiche.</p>
+          {ecarts.length === 0 ? <p>Aucune modification.</p> : (
+            <table className="grille">
+              <thead><tr><th scope="col">Champ</th><th scope="col">Initial</th><th scope="col">Actuel</th></tr></thead>
+              <tbody>{ecarts.map(([k, l]) => <tr key={k}><td>{l}</td><td>{enTexte(initial![k])}</td><td>{enTexte(t[k])}</td></tr>)}</tbody>
+            </table>
+          )}
+        </>}
+        {t && onglet === 1 && (
+          <div className="formulaire">
+            {lu("Type Client :", t.typeClient)}{lu("Zone :", t.zone)}{lu("Date demande :", fr(t.dateDemande))}{lu("Date Visa :", fr(t.dateVisa))}
+            {lu("Résident :", enTexte(t.resident))}{lu("Prelever Agios :", enTexte(t.preleverAgios))}{lu("Calculer intéret :", enTexte(t.calculerInteret))}
+            {lu("Personne politiquement exposée :", enTexte(t.personneExposee))}
+          </div>
+        )}
+        {t && onglet === 2 && (
+          <table className="grille">
+            <thead><tr><th scope="col">N° Compte</th><th scope="col">Produit</th><th scope="col">Solde</th><th scope="col">Bloqué</th><th scope="col">Disponible</th></tr></thead>
+            <tbody>
+              {(!detail || detail.comptes.length === 0) && <tr><td colSpan={5}>Liste vide</td></tr>}
+              {detail?.comptes.map((c) => <tr key={c.id}><td className="chiffres">{c.numero}</td><td>{c.intitule} {c.devise}</td>
+                <td className="chiffres">{montant(c.solde, c.devise)}</td><td className="chiffres">{montant(c.bloque, c.devise)}</td><td className="chiffres">{montant(c.disponible, c.devise)}</td></tr>)}
+            </tbody>
+          </table>
+        )}
+        {t && onglet === 3 && <p>Liste vide</p>}
+        {t && onglet === 4 && (
+          <div className="formulaire">
+            {lu("Nombre de parts :", String(detail?.parts ?? 0))}{lu("Valeur des parts :", montant((detail?.parts ?? 0) * ctx.valeurPart, "CDF"))}
+          </div>
+        )}
+        {!t && <p className="muet">Rechercher d'abord le client.</p>}
+        <Textes sources={["Manuel Microfina++, p. 54 : écran Informations client, recherche par le bouton du champ Numéro client, informations initiales et actuelles",
+          "Onglet Crédits : le module crédit n'est pas encore construit"]} />
+      </section>
+      <Fiche titre="Clients" ouverte={recherche} fermer={() => setRecherche(false)}>
+        <RechercheClient source={async (q) => (q ? api.tiers.rechercher(q) : [])} choisir={(x) => { setT(x); setOnglet(0); setRecherche(false); }} fermer={() => setRecherche(false)} />
+      </Fiche>
     </>
   );
 }
