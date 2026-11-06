@@ -173,6 +173,23 @@ def test_enrolement_entreprise(clients, journee):
     assert ident("select agent_economique from tiers where id = %s", (t["id"],)) == "Entreprises privées"
 
 
+def test_enrolement_groupe(clients, journee):
+    agent = clients["agent"]
+    mb = {"nom": "Mbuyi", "prenom": "Anne", "pieceType": "Carte d'électeur", "pieceNumero": "1-0412-7777", "signature": "data:image/png;base64,iVBORw0KGgo="}
+    base = {**FICHE, "typeClient": "Association", "nom": "Mamans de Kinsaku", "adresse": "Matete, quartier Kinsaku", "nbHommes": 0, "nbFemmes": 12, "membres": [mb]}
+    def refus(corps):
+        r = agent.post("/api/tiers/groupes", corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    assert "type de groupe" in refus({**base, "typeClient": ""})
+    assert "Type inconnu" in refus({**base, "typeClient": "Coopérative"})
+    assert "Nombre" in refus({**base, "nbFemmes": -1})
+    assert "Membre 1 : Type de pièce non admis" in refus({**base, "membres": [{**mb, "pieceType": "Badge"}]})
+    r = agent.post("/api/tiers/groupes", base, **H)
+    assert r.status_code == 200, r.content
+    t = r.json()
+    assert (t["type"], t["nom"], t["nbFemmes"], len(t["membres"]), t["membres"][0]["specimen"], t["statut"]) == ("groupe", "Mamans de Kinsaku", 12, 1, True, "a_viser")
+    assert ident("select agent_economique from tiers where id = %s", (t["id"],)) == "Institutions sans but lucratif"
+
+
 def test_adhesion_apres_visa(clients, journee):
     caisse, chef, agent = clients["caisse"], clients["chef"], clients["agent"]
     t = agent.post("/api/tiers", {**FICHE, "nom": "Tshala", "postnom": "Muana", "prenom": "Marie", "naissance": "1990-02-01", "pieceType": "Carte d'électeur",

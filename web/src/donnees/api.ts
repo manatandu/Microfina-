@@ -16,14 +16,14 @@ import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@d
 export const SEUIL_CAISSIER_USD = 1000;   // au-delà, visa du chef d'agence. Exemple : fixé par la COOPEC
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v3";
+const CLE = "likelemba-demo-v4";
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
 
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 3) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 4) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   return graine();
 }
@@ -62,7 +62,7 @@ const session = {
 };
 
 function contexte() {
-  return { institution: E.institution, agence: E.agence, guichets: E.guichets, produits: E.produits, zones: E.zones, typesClient: TYPES_CLIENT, typesEntreprise: TYPES_ENTREPRISE, pieces: PIECES, cours: E.cours, valeurPart: E.valeurPart, utilisateurs: E.utilisateurs };
+  return { institution: E.institution, agence: E.agence, guichets: E.guichets, produits: E.produits, zones: E.zones, typesClient: TYPES_CLIENT, typesEntreprise: TYPES_ENTREPRISE, typesGroupe: Object.keys(TYPES_GROUPE), pieces: PIECES, cours: E.cours, valeurPart: E.valeurPart, utilisateurs: E.utilisateurs };
 }
 export const nomUtilisateur = (id?: number) => E.utilisateurs.find((u) => u.id === id)?.nom ?? "";
 
@@ -209,7 +209,7 @@ const caisses = {
 const nettoyer = (c: Comptage): Comptage => Object.fromEntries(Object.entries(c).filter(([, n]) => (n ?? 0) > 0));
 
 // ---------- Tiers ----------
-export type NouveauTiers = Omit<Tiers, "id" | "numero" | "statut" | "creePar" | "visePar" | "photo" | "specimen" | "type" | "dirigeant" | "signataires">;
+export type NouveauTiers = Omit<Tiers, "id" | "numero" | "statut" | "creePar" | "visePar" | "photo" | "specimen" | "type" | "dirigeant" | "signataires" | "membres">;
 /** Dirigeant ou signataire tel que saisi, avec photo et signature chargées */
 export type RepresentantSaisi = Omit<Representant, "photo" | "specimen"> & Images;
 /** Photo et specimen chargés à l'onglet « Photo » (p. 49), en image PNG ou JPEG */
@@ -220,6 +220,8 @@ export const TYPES_CLIENT = ["Client"];
 export const TYPES_ENTREPRISE = ["Banques commerciales et autres intermédiaires financiers", "Organes faîtiers et autres institutions de microfinance",
   "Autres COOPEC et IMF", "Institutions financières non bancaires", "Administration centrale", "Administrations provinciales ou locales",
   "Entreprises publiques", "Entreprises privées", "Institutions sans but lucratif"];
+/** Type de groupe : « les groupements, les associations ou les ONG » (manuel p. 47), avec l'agent économique du PCCI § 10.2 (groupement : à confirmer) */
+export const TYPES_GROUPE: Record<string, string | null> = { Groupement: null, Association: "Institutions sans but lucratif", ONG: "Institutions sans but lucratif" };
 /** Pièces d'identité admises : Instr. BCC 15, art. 14 */
 export const PIECES = ["Passeport", "Carte d'identité nationale", "Permis de conduire", "Carte d'étudiant", "Carte de l'armée ou de la police", "Carte d'électeur",
   "Lettre certifiée du chef de village ou de quartier", "Liste des bénéficiaires de programmes sociaux", "Carte de réfugié"];
@@ -229,7 +231,7 @@ export const IMAGE_MAX = 400_000;   // caractères de l'image encodée, environ 
 export function enrolementVide(date: string): NouveauTiers {
   return { dateDemande: date, numeroManuel: "", matricule: "", typeClient: "Client", zone: "", produitCode: "", premierDepot: 0, resident: true, preleverAgios: true, calculerInteret: false,
     nom: "", postnom: "", prenom: "", sexe: "", naissance: "", lieuNaissance: "", pieceType: "", pieceNumero: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", pieceExpire: "",
-    adresse: "", telephone: "", personneExposee: false, liees: [], formeJuridique: "", registre: "", centreActivite: "", activite: "" };
+    adresse: "", telephone: "", personneExposee: false, liees: [], formeJuridique: "", registre: "", centreActivite: "", activite: "", nbHommes: 0, nbFemmes: 0 };
 }
 
 type CtxControle = { produits: { code: string }[]; zones: string[]; jour: string; existe: (id: number) => boolean };
@@ -268,6 +270,15 @@ function controlerRepresentant(r: RepresentantSaisi, qui: string, jour: string) 
   controlerImage(r.photo, `${qui} : photo`); controlerImage(r.signature, `${qui} : signature`);
 }
 
+/** S39. Contrôles identiques côté serveur (services.creer_groupe) */
+export function controlerGroupe(d: NouveauTiers, membres: RepresentantSaisi[], images: Images, ctx: CtxControle) {
+  controlerBase(d, [["date demande", d.dateDemande], ["type de groupe", d.typeClient], ["type de compte à créer", d.produitCode],
+    ["dénomination", d.nom], ["adresse", d.adresse]], Object.keys(TYPES_GROUPE), false, ctx);
+  if ([d.nbHommes, d.nbFemmes].some((n) => !Number.isInteger(n) || n < 0)) throw new ErreurMetier("Nombre d'hommes ou de femmes invalide.");
+  membres.forEach((r, i) => controlerRepresentant(r, `Membre ${i + 1}`, ctx.jour));
+  controlerImage(images.photo, "Photo"); controlerImage(images.signature, "Signature");
+}
+
 /** S38. Contrôles identiques côté serveur (services.creer_entreprise) */
 export function controlerEntreprise(d: NouveauTiers, dirigeant: RepresentantSaisi | null, signataires: RepresentantSaisi[], ctx: CtxControle) {
   controlerBase(d, [["date demande", d.dateDemande], ["type entreprise", d.typeClient], ["zone", d.zone], ["type de compte à créer", d.produitCode],
@@ -276,10 +287,14 @@ export function controlerEntreprise(d: NouveauTiers, dirigeant: RepresentantSais
   signataires.forEach((r, i) => controlerRepresentant(r, `Signataire ${i + 1}`, ctx.jour));
 }
 
+const versRepresentant = ({ photo, signature, ...r }: RepresentantSaisi): Representant => ({ ...r, photo: !!photo, specimen: !!signature });
+/** Mentions propres à une personne physique, vides pour une entreprise ou un groupe */
+const SANS_IDENTITE = { postnom: "", prenom: "", sexe: "" as const, naissance: "", lieuNaissance: "", pieceType: "", pieceNumero: "", pieceDelivreeLe: "",
+  pieceLieu: "", pieceAutorite: "", pieceExpire: "", telephone: "" };
 function ctxControle() {
   return { produits: E.produits, zones: E.zones, jour: journees.courante()?.date ?? "", existe: (id: number) => E.tiers.some((t) => t.id === id) };
 }
-function nouveauTiers(d: NouveauTiers, creePar: number, reste: Pick<Tiers, "type" | "dirigeant" | "signataires" | "photo" | "specimen">): Tiers {
+function nouveauTiers(d: NouveauTiers, creePar: number, reste: Pick<Tiers, "type" | "dirigeant" | "signataires" | "membres" | "photo" | "specimen">): Tiers {
   E.compteurs.tiers += 1;
   const t: Tiers = { ...d, ...reste, id: prochain(E.tiers), numero: `${E.agence.code}-${String(E.compteurs.tiers).padStart(6, "0")}`, statut: "a_viser", creePar };
   E.tiers.push(t); return t;
@@ -297,7 +312,7 @@ const tiers = {
     const u = utilisateur();
     if (!u) throw new ErreurMetier("Session fermée.");
     controlerEnrolement(d, images, ctxControle());
-    const t = nouveauTiers(d, u.id, { type: "physique", dirigeant: null, signataires: [], photo: !!images.photo, specimen: !!images.signature });
+    const t = nouveauTiers(d, u.id, { type: "physique", dirigeant: null, signataires: [], membres: [], photo: !!images.photo, specimen: !!images.signature });
     if (images.photo || images.signature) E.images[t.id] = images;
     enregistrer(); return t;
   },
@@ -305,11 +320,18 @@ const tiers = {
     const u = utilisateur();
     if (!u) throw new ErreurMetier("Session fermée.");
     controlerEntreprise(d, dirigeant, signataires, ctxControle());
-    const rep = ({ photo, signature, ...r }: RepresentantSaisi): Representant => ({ ...r, photo: !!photo, specimen: !!signature });
-    const sig = signataires.map(rep);
-    const t = nouveauTiers({ ...d, postnom: "", prenom: "", sexe: "", naissance: "", lieuNaissance: "", pieceType: "", pieceNumero: "", pieceDelivreeLe: "",
-      pieceLieu: "", pieceAutorite: "", pieceExpire: "", telephone: "" }, u.id,
-      { type: "morale", dirigeant: dirigeant ? rep(dirigeant) : null, signataires: sig, photo: false, specimen: sig.some((x) => x.specimen) });
+    const sig = signataires.map(versRepresentant);
+    const t = nouveauTiers({ ...d, ...SANS_IDENTITE }, u.id,
+      { type: "morale", dirigeant: dirigeant ? versRepresentant(dirigeant) : null, signataires: sig, membres: [], photo: false, specimen: sig.some((x) => x.specimen) });
+    enregistrer(); return t;
+  },
+  creerGroupe(d: NouveauTiers, membres: RepresentantSaisi[], images: Images = {}) {
+    const u = utilisateur();
+    if (!u) throw new ErreurMetier("Session fermée.");
+    controlerGroupe(d, membres, images, ctxControle());
+    const t = nouveauTiers({ ...d, ...SANS_IDENTITE, centreActivite: "" }, u.id,
+      { type: "groupe", dirigeant: null, signataires: [], membres: membres.map(versRepresentant), photo: !!images.photo, specimen: !!images.signature });
+    if (images.photo || images.signature) E.images[t.id] = images;
     enregistrer(); return t;
   },
   aViser: () => E.tiers.filter((t) => t.statut === "a_viser"),

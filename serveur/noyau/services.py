@@ -21,6 +21,9 @@ TYPES_CLIENT = ["Client"]
 TYPES_ENTREPRISE = ["Banques commerciales et autres intermédiaires financiers", "Organes faîtiers et autres institutions de microfinance",
                     "Autres COOPEC et IMF", "Institutions financières non bancaires", "Administration centrale", "Administrations provinciales ou locales",
                     "Entreprises publiques", "Entreprises privées", "Institutions sans but lucratif"]
+# Type de groupe : « les groupements, les associations ou les ONG » (manuel p. 47). Agent économique (PCCI § 10.2) : associations et ONG
+# sont des institutions sans but lucratif ; pour un groupement, à confirmer.
+TYPES_GROUPE = {"Groupement": None, "Association": "Institutions sans but lucratif", "ONG": "Institutions sans but lucratif"}
 # Pièces d'identité admises : Instr. BCC 15, art. 14
 PIECES = ["Passeport", "Carte d'identité nationale", "Permis de conduire", "Carte d'étudiant", "Carte de l'armée ou de la police", "Carte d'électeur",
           "Lettre certifiée du chef de village ou de quartier", "Liste des bénéficiaires de programmes sociaux", "Carte de réfugié"]          # seul type montré par le manuel (p. 49) ; la liste viendra du paramétrage S16
@@ -104,6 +107,7 @@ def contexte(u: dict) -> dict:
         "zones": [z["nom"] for z in lignes("select nom from zone where institution_id = %s order by nom", (u["institution_id"],))],
         "typesClient": TYPES_CLIENT,
         "typesEntreprise": TYPES_ENTREPRISE,
+        "typesGroupe": list(TYPES_GROUPE),
         "pieces": PIECES,
         "cours": {"USD": cours_usd()},
         "valeurPart": valeur_part(),
@@ -325,6 +329,7 @@ def vue_tiers(t: dict) -> dict:
     reps = lignes("select * from representant where tiers_id = %s order by id", (t["id"],))
     signataires = [vue_representant(r) for r in reps if r["role"] == "signataire"]
     dirigeant = next((vue_representant(r) for r in reps if r["role"] == "dirigeant"), None)
+    membres = [vue_representant(r) for r in reps if r["role"] == "membre"]
     return {"id": t["id"], "numero": t["numero"], "statut": t["statut"], "nom": t["nom"], "postnom": t["postnom"] or "", "prenom": t["prenom"] or "",
             "sexe": t["sexe"] or "", "naissance": t["date_naissance"].isoformat() if t["date_naissance"] else "",
             "pieceType": t["piece_type"] or "", "pieceNumero": t["piece_numero"] or "",
@@ -336,7 +341,7 @@ def vue_tiers(t: dict) -> dict:
             "lieuNaissance": t["lieu_naissance"] or "", "pieceDelivreeLe": iso(t["piece_delivree_le"]), "pieceLieu": t["piece_lieu"] or "", "pieceAutorite": t["piece_autorite"] or "",
             "liees": [r["autre_id"] for r in lignes("select autre_id from lien_tiers where tiers_id = %s and role = 'personne_liee' order by id", (t["id"],))],
             "type": t["type"], "formeJuridique": t["forme"] or "", "registre": t["rccm"] or "", "centreActivite": t["centre_activite"] or "", "activite": t["activite"] or "",
-            "dirigeant": dirigeant, "signataires": signataires,
+            "dirigeant": dirigeant, "signataires": signataires, "membres": membres, "nbHommes": t["nb_hommes"] or 0, "nbFemmes": t["nb_femmes"] or 0,
             "photo": bool(sp and sp["photo"]), "specimen": bool(sp and sp["signature"]) or any(x["specimen"] for x in signataires),
             "creePar": t["cree_par"], "visePar": t["vise_par"]}
 
@@ -347,7 +352,7 @@ def iso(d) -> str:
 
 SQL_TIERS = """select t.*, coalesce(p.nom, m.raison_sociale) as nom, p.postnom, p.prenom, p.sexe, p.date_naissance, p.lieu_naissance, p.piece_type, p.piece_numero,
                       p.piece_delivree_le, p.piece_lieu, p.piece_autorite, p.piece_validite, coalesce(p.adresse, m.adresse_siege) as adresse, p.telephone,
-                      m.forme, m.rccm, m.centre_activite, m.activite, z.nom as zone_nom, pe.code as produit_code
+                      m.forme, m.rccm, m.centre_activite, m.activite, m.nb_hommes, m.nb_femmes, z.nom as zone_nom, pe.code as produit_code
                from tiers t left join tiers_personne p on p.tiers_id = t.id left join tiers_morale m on m.tiers_id = t.id
                left join zone z on z.id = t.zone_id left join produit_epargne pe on pe.id = t.produit_id"""
 
@@ -478,12 +483,43 @@ def creer_entreprise(u: dict, d: dict) -> dict:
     executer("""insert into tiers_morale (tiers_id, raison_sociale, forme, rccm, adresse_siege, centre_activite, activite)
                 values (%s, %s, %s, %s, %s, %s, %s)""",
              (tid, texte("nom"), texte("formeJuridique"), texte("registre"), texte("adresse"), texte("centreActivite") or None, texte("activite") or None))
-    for role, r in ([("dirigeant", dirigeant)] if dirigeant is not None else []) + [("signataire", r) for r in signataires]:
+    inserer_representants(tid, ([("dirigeant", dirigeant)] if dirigeant is not None else []) + [("signataire", r) for r in signataires])
+    return lire_tiers(tid)
+
+
+def inserer_representants(tid: int, liste: list[tuple[str, dict]]):
+    for role, r in liste:
         t = texte_de(r)
         executer("""insert into representant (tiers_id, role, nom, postnom, prenom, piece_type, piece_numero, piece_validite, photo, signature)
                     values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
                  (tid, role, t("nom"), t("postnom") or None, t("prenom") or None, t("pieceType"), t("pieceNumero"), t("pieceExpire") or None,
                   r.get("photo") or None, r.get("signature") or None))
+
+
+def creer_groupe(u: dict, d: dict) -> dict:
+    """S39 : Client > Enrôlement > Groupe (manuel p. 47 et 51). Mêmes contrôles que controlerGroupe (web/src/donnees/api.ts)."""
+    exiger(u)
+    b = controler_base(u, d, [("date demande", "dateDemande"), ("type de groupe", "typeClient"), ("type de compte à créer", "produitCode"),
+                              ("dénomination", "nom"), ("adresse", "adresse")], list(TYPES_GROUPE), False)
+    texte = b["texte"]
+    nombres = [d.get("nbHommes", 0), d.get("nbFemmes", 0)]
+    if any(not isinstance(n, int) or isinstance(n, bool) or n < 0 for n in nombres):
+        raise ErreurMetier("Nombre d'hommes ou de femmes invalide.")
+    j = journee_courante(u)
+    membres = d.get("membres") or []
+    if not isinstance(membres, list):
+        raise ErreurMetier("Membres invalides.")
+    for i, r in enumerate(membres, start=1):
+        controler_representant(r, f"Membre {i}", j)
+    images = d.get("images") or {}
+    controler_image(images.get("photo"), "Photo"); controler_image(images.get("signature"), "Signature")
+    tid = inserer_tiers(u, d, b, "groupe", TYPES_GROUPE[texte("typeClient")])
+    executer("""insert into tiers_morale (tiers_id, raison_sociale, forme, rccm, adresse_siege, activite, nb_hommes, nb_femmes)
+                values (%s, %s, %s, %s, %s, %s, %s, %s)""",
+             (tid, texte("nom"), texte("formeJuridique") or None, texte("registre") or None, texte("adresse"), texte("activite") or None, *nombres))
+    inserer_representants(tid, [("membre", r) for r in membres])
+    if images.get("photo") or images.get("signature"):
+        executer("insert into specimen (tiers_id, photo, signature, depose_le) values (%s, %s, %s, current_date)", (tid, images.get("photo"), images.get("signature")))
     return lire_tiers(tid)
 
 

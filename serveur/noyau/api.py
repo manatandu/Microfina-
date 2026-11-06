@@ -144,6 +144,11 @@ def entreprise_creer(request, corps: dict = Body(...)):
     return s.creer_entreprise(u(request), corps)
 
 
+@api.post("/tiers/groupes")
+def groupe_creer(request, corps: dict = Body(...)):
+    return s.creer_groupe(u(request), corps)
+
+
 @api.get("/tiers/{tid}")
 def tiers_lire(request, tid: int):
     u(request)

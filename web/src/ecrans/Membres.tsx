@@ -43,32 +43,42 @@ function Enrolement({ titre, onglets, numero, onglet, setOnglet, enregistrer, bo
   );
 }
 
-/** Onglet « Informations de base » : physique p. 49, entreprise p. 50 (mêmes champs, colonnes différentes) */
+/** Onglet « Informations de base » : physique p. 49, entreprise p. 50, groupe p. 51 (mêmes champs pour l'essentiel, colonnes différentes) */
 function InformationsDeBase({ genre, f, maj, ctx, numero, depot, setDepot }: {
-  genre: "physique" | "entreprise"; f: NouveauTiers; maj: (p: Partial<NouveauTiers>) => void; ctx: Ctx; numero: string; depot: string; setDepot: (v: string) => void;
+  genre: "physique" | "entreprise" | "groupe"; f: NouveauTiers; maj: (p: Partial<NouveauTiers>) => void; ctx: Ctx; numero: string; depot: string; setDepot: (v: string) => void;
 }) {
   const sel = (k: "typeClient" | "zone" | "produitCode") => ({ value: f[k], onChange: (e: React.ChangeEvent<HTMLSelectElement>) => maj({ [k]: e.target.value }) });
+  const nombre = (k: "nbHommes" | "nbFemmes") => ({ value: String(f[k] || ""), onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value.trim(); if (/^\d{0,6}$/.test(v)) maj({ [k]: Number(v) });   // chiffres seulement
+  } });
   const produit = ctx.produits.find((p) => p.code === f.produitCode);
   const inconnu = (libelle: string) => <Champ libelle={libelle}>{(p) => <select {...p} className="saisie"><option>{INCONNU}</option></select>}</Champ>;
-  const entreprise = genre === "entreprise";
+  const physique = genre === "physique", entreprise = genre === "entreprise", groupe = genre === "groupe";
+  const types = physique ? ctx.typesClient : entreprise ? ctx.typesEntreprise : ctx.typesGroupe;
   return (
     <div className="deux-colonnes">
       <div className="pile">
-        <div className="ligne-champ">
-          <ChampDate libelle="Date demande : *" valeur={f.dateDemande} onChange={(v) => maj({ dateDemande: v })} requis />
-          <button className="bouton secondaire" type="button" disabled title="Prospects : fonction S45, pas encore construite">Choisir prospect</button>
-        </div>
-        <Champ libelle={entreprise ? "N° de l'entreprise :" : "N° du Client :"}>{(p) => <input {...p} className="saisie code" readOnly value={numero} />}</Champ>
+        {groupe
+          ? <ChampDate libelle="Date demande : *" valeur={f.dateDemande} onChange={(v) => maj({ dateDemande: v })} requis />
+          : <div className="ligne-champ">
+              <ChampDate libelle="Date demande : *" valeur={f.dateDemande} onChange={(v) => maj({ dateDemande: v })} requis />
+              <button className="bouton secondaire" type="button" disabled title="Prospects : fonction S45, pas encore construite">Choisir prospect</button>
+            </div>}
+        <Champ libelle={entreprise ? "N° de l'entreprise :" : groupe ? "N° du groupe :" : "N° du Client :"}>{(p) => <input {...p} className="saisie code" readOnly value={numero} />}</Champ>
         <Champ libelle="N° Manuel :">{(p) => <input {...p} className="saisie code" autoComplete="off" value={f.numeroManuel} onChange={(e) => maj({ numeroManuel: e.target.value })} />}</Champ>
-        {!entreprise && <Champ libelle="N° Matricule :">{(p) => <input {...p} className="saisie code" autoComplete="off" value={f.matricule} onChange={(e) => maj({ matricule: e.target.value })} />}</Champ>}
-        <Champ libelle={entreprise ? "Type entreprise : *" : "Type Client : *"}>{(p) => <select {...p} className="saisie" required {...sel("typeClient")}>
-          {entreprise && <option value=""></option>}{(entreprise ? ctx.typesEntreprise : ctx.typesClient).map((t) => <option key={t}>{t}</option>)}</select>}</Champ>
+        {physique && <Champ libelle="N° Matricule :">{(p) => <input {...p} className="saisie code" autoComplete="off" value={f.matricule} onChange={(e) => maj({ matricule: e.target.value })} />}</Champ>}
+        <Champ libelle={entreprise ? "Type entreprise : *" : groupe ? "Type de groupe *" : "Type Client : *"}>{(p) => <select {...p} className="saisie" required {...sel("typeClient")}>
+          {!physique && <option value=""></option>}{types.map((t) => <option key={t}>{t}</option>)}</select>}</Champ>
+        {groupe && <>
+          <Champ libelle="Nombre d'Homme :">{(p) => <input {...p} className="saisie code court" inputMode="numeric" autoComplete="off" {...nombre("nbHommes")} />}</Champ>
+          <Champ libelle="Nombre de Femme :">{(p) => <input {...p} className="saisie code court" inputMode="numeric" autoComplete="off" {...nombre("nbFemmes")} />}</Champ>
+        </>}
         <Champ libelle={entreprise ? "Zone : *" : "Zone :"}>{(p) => <select {...p} className="saisie" required={entreprise} {...sel("zone")}><option value=""></option>
           {ctx.zones.map((z) => <option key={z}>{z}</option>)}</select>}</Champ>
-        {!entreprise && inconnu("Sensibilisateur :")}
+        {physique && inconnu("Sensibilisateur :")}
       </div>
       <div className="pile">
-        {entreprise && inconnu("Sensibilisateur :")}
+        {!physique && inconnu("Sensibilisateur :")}
         {inconnu("Gestionnaire :")}
         {inconnu("Commercial :")}
         <Champ libelle="Type de compte à créer *">{(p) => <select {...p} className="saisie" required {...sel("produitCode")}><option value=""></option>
@@ -175,6 +185,43 @@ function ChampsRepresentant({ r, maj, pieces }: { r: RepresentantSaisi; maj: (p:
 }
 const REPRESENTANT_VIDE: RepresentantSaisi = { nom: "", postnom: "", prenom: "", pieceType: "", pieceNumero: "", pieceExpire: "" };
 
+/** Liste avec fiche ouverte par un bouton : signataires d'une entreprise (p. 50), membres d'un groupe (p. 51) */
+function ListeRepresentants({ fiche: titre, ajouter, page, liste, onChange, pieces, erreur }: {
+  fiche: string; ajouter: string; page: string; liste: RepresentantSaisi[]; onChange: (l: RepresentantSaisi[]) => void; pieces: string[]; erreur: (m: string) => void;
+}) {
+  const [fiche, setFiche] = useState<RepresentantSaisi | null>(null);
+  return (
+    <>
+      <div><button className="bouton secondaire" type="button" onClick={() => setFiche(REPRESENTANT_VIDE)}>{ajouter}</button></div>
+      {liste.length > 0 && (
+        <table className="grille">
+          <thead><tr><th scope="col">Nom</th><th scope="col">Pièce</th><th scope="col">Photo</th><th scope="col">Signature</th></tr></thead>
+          <tbody>{liste.map((r, i) => (
+            <tr key={i}><td>{nomComplet(r)}</td><td>{r.pieceType} <span className="chiffres">{r.pieceNumero}</span></td>
+              <td>{r.photo ? "Oui" : "Non"}</td><td>{r.signature ? "Oui" : "Non"}</td></tr>
+          ))}</tbody>
+        </table>
+      )}
+      <Fiche titre={titre} ouverte={!!fiche} fermer={() => setFiche(null)}>
+        {fiche && (
+          <div className="pile">
+            <p className="a-confirmer">À confirmer : le manuel ne montre pas les champs de la fiche ({page}). Identité selon l'Instr. BCC 15, art. 13 et 14.</p>
+            <ChampsRepresentant r={fiche} maj={(p) => setFiche({ ...fiche, ...p })} pieces={pieces} />
+            <ChargementImages key={liste.length} images={{ photo: fiche.photo, signature: fiche.signature }} onChange={(i) => setFiche({ ...fiche, ...i })} erreur={erreur} />
+            <div className="actions-onglets">
+              <button className="bouton secondaire" type="button" onClick={() => setFiche(null)}>Fermer</button>
+              <button className="bouton" type="button" onClick={() => {
+                if (!fiche.nom.trim() || !fiche.pieceType || !fiche.pieceNumero.trim()) { erreur("À remplir : nom, type de pièce, numéro de pièce."); return; }
+                onChange([...liste, fiche]); setFiche(REPRESENTANT_VIDE);
+              }}>Enregistrer</button>
+            </div>
+          </div>
+        )}
+      </Fiche>
+    </>
+  );
+}
+
 function useCommun() {
   const { donnees } = useDonnees(async () => ({ ctx: await api.referentiel.contexte(), j: await api.journees.courante() }));
   const [d, setD] = useState<NouveauTiers | null>(null);
@@ -280,12 +327,11 @@ export function EnrolementEntreprise() {
   const [avecDirigeant, setAvecDirigeant] = useState(true);   // « par défaut, le champ [Renseigner Dirigeant] est coché » (p. 50)
   const [dirigeant, setDirigeant] = useState<RepresentantSaisi>(REPRESENTANT_VIDE);
   const [signataires, setSignataires] = useState<RepresentantSaisi[]>([]);
-  const [fiche, setFiche] = useState<RepresentantSaisi | null>(null);
   if (!c.donnees) return <Chargement />;
   const { ctx } = c.donnees;
   const { f, maj } = c;
   const texte = (k: keyof NouveauTiers) => ({ value: f[k] as string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => maj({ [k]: e.target.value }) });
-  function vider() { setAvecDirigeant(true); setDirigeant(REPRESENTANT_VIDE); setSignataires([]); setFiche(null); }
+  function vider() { setAvecDirigeant(true); setDirigeant(REPRESENTANT_VIDE); setSignataires([]); }
   return (
     <Enrolement titre="Enregistrement d'une entreprise" onglets={ONGLETS_ENTREPRISE} numero={c.cree?.numero} onglet={c.onglet} setOnglet={c.setOnglet}
       boite={c.boite} setBoite={c.setBoite}
@@ -335,36 +381,63 @@ export function EnrolementEntreprise() {
 
       {c.onglet === 4 && <PersonnesLiees key={c.generation} liees={c.liees} onChange={c.setLiees} />}
 
-      {c.onglet === 5 && (
+      {c.onglet === 5 && <ListeRepresentants fiche="Signataire" ajouter="+Ajouter" page="p. 50" liste={signataires} onChange={setSignataires} pieces={ctx.pieces} erreur={c.erreur} />}
+    </Enrolement>
+  );
+}
+
+// ---------- S39 : Client > Enrôlement > Groupe (manuel p. 47 et 51) ----------
+
+const ONGLETS_GROUPE = ["Informations de base", "Renseignements généraux", "Membres Groupe", "Autres renseignements", "Personnes Liées", "Photo"] as const;
+
+export function EnrolementGroupe() {
+  const c = useCommun();
+  const [membres, setMembres] = useState<RepresentantSaisi[]>([]);
+  const [images, setImages] = useState<Images>({});
+  if (!c.donnees) return <Chargement />;
+  const { ctx } = c.donnees;
+  const { f, maj } = c;
+  const texte = (k: keyof NouveauTiers) => ({ value: f[k] as string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => maj({ [k]: e.target.value }) });
+  return (
+    <Enrolement titre="Enregistrement d'un groupe" onglets={ONGLETS_GROUPE} numero={c.cree?.numero} onglet={c.onglet} setOnglet={c.setOnglet}
+      boite={c.boite} setBoite={c.setBoite}
+      enregistrer={() => c.confirmer((m) => api.tiers.creerGroupe({ ...f, premierDepot: m, liees: c.liees.map((t) => t.id) }, membres, images),
+        () => { setMembres([]); setImages({}); })}
+      textes={["Manuel Microfina++, p. 47 : groupements, associations, ONG ; p. 51 : onglets, champs de l'onglet Informations de base, membres du groupe, photo",
+        "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
+        "PCCI § 10.1 : lieu de résidence ; § 10.2 : agents économiques (associations et ONG : institutions sans but lucratif)",
+        "Instr. BCC 15, art. 11 et 17 : identification d'une personne morale ou d'une autre entité juridique",
+        "Instr. BCC 15, art. 13 et 14 : identité des membres",
+        "Instr. BCC 15, art. 60 : personne politiquement exposée",
+        "ARCHITECTURE P7 : enrôlement et visa par deux personnes"]}>
+
+      {c.onglet === 0 && <InformationsDeBase genre="groupe" f={f} maj={maj} ctx={ctx} numero={c.numero} depot={c.depot} setDepot={c.setDepot} />}
+
+      {c.onglet === 1 && (
         <>
-          <div><button className="bouton secondaire" type="button" onClick={() => setFiche(REPRESENTANT_VIDE)}>+Ajouter</button></div>
-          {signataires.length > 0 && (
-            <table className="grille">
-              <thead><tr><th scope="col">Nom</th><th scope="col">Pièce</th><th scope="col">Photo</th><th scope="col">Signature</th></tr></thead>
-              <tbody>{signataires.map((r, i) => (
-                <tr key={i}><td>{nomComplet(r)}</td><td>{r.pieceType} <span className="chiffres">{r.pieceNumero}</span></td>
-                  <td>{r.photo ? "Oui" : "Non"}</td><td>{r.signature ? "Oui" : "Non"}</td></tr>
-              ))}</tbody>
-            </table>
-          )}
-          <Fiche titre="Signataire" ouverte={!!fiche} fermer={() => setFiche(null)}>
-            {fiche && (
-              <div className="pile">
-                <p className="a-confirmer">À confirmer : le manuel ne montre pas les champs de la fiche (p. 50). Identité selon l'Instr. BCC 15, art. 13, 14 et 16.</p>
-                <ChampsRepresentant r={fiche} maj={(p) => setFiche({ ...fiche, ...p })} pieces={ctx.pieces} />
-                <ChargementImages key={signataires.length} images={{ photo: fiche.photo, signature: fiche.signature }} onChange={(i) => setFiche({ ...fiche, ...i })} erreur={c.erreur} />
-                <div className="actions-onglets">
-                  <button className="bouton secondaire" type="button" onClick={() => setFiche(null)}>Fermer</button>
-                  <button className="bouton" type="button" onClick={() => {
-                    if (!fiche.nom.trim() || !fiche.pieceType || !fiche.pieceNumero.trim()) { c.erreur("À remplir : nom, type de pièce, numéro de pièce."); return; }
-                    setSignataires([...signataires, fiche]); setFiche(REPRESENTANT_VIDE);
-                  }}>Enregistrer</button>
-                </div>
-              </div>
-            )}
-          </Fiche>
+          <p className="a-confirmer">À confirmer : le manuel ne montre pas les champs de cet onglet (p. 51). Dénomination et adresse : Instr. BCC 15, art. 17. Forme juridique et registre : facultatifs, un groupement de fait n'en a pas.</p>
+          <div className="formulaire">
+            <Champ libelle="Dénomination : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("nom")} />}</Champ>
+            <Champ libelle="Adresse : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("adresse")} />}</Champ>
+            <Champ libelle="Forme juridique :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("formeJuridique")} />}</Champ>
+            <Champ libelle="N° du registre ou de l'acte :">{(p) => <input {...p} className="saisie code" autoComplete="off" {...texte("registre")} />}</Champ>
+            <Champ libelle="Nature de l'activité :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("activite")} />}</Champ>
+          </div>
         </>
       )}
+
+      {c.onglet === 2 && <ListeRepresentants fiche="Membre du groupe" ajouter="Ajouter" page="p. 51" liste={membres} onChange={setMembres} pieces={ctx.pieces} erreur={c.erreur} />}
+
+      {c.onglet === 3 && (
+        <>
+          <p className="a-confirmer">À confirmer : le manuel ne montre pas les champs de cet onglet (p. 51). Celui-ci est exigé par l'Instr. BCC 15, art. 60.</p>
+          <label className="case"><input type="checkbox" checked={f.personneExposee} onChange={(e) => maj({ personneExposee: e.target.checked })} /><span>Personne politiquement exposée</span></label>
+        </>
+      )}
+
+      {c.onglet === 4 && <PersonnesLiees key={c.generation} liees={c.liees} onChange={c.setLiees} />}
+
+      {c.onglet === 5 && <ChargementImages key={c.generation} images={images} onChange={setImages} erreur={c.erreur} />}
     </Enrolement>
   );
 }

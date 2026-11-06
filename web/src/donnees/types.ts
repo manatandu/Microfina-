@@ -35,7 +35,7 @@ export interface Representant { nom: string; postnom: string; prenom: string; pi
 
 export interface Tiers {
   id: number;
-  type: "physique" | "morale";
+  type: "physique" | "morale" | "groupe";
   numero: string;
   statut: "a_viser" | "actif";
   nom: string;
@@ -73,6 +73,10 @@ export interface Tiers {
   activite: string;
   dirigeant: Representant | null;
   signataires: Representant[];
+  // S39, groupe : « Nombre d'Homme », « Nombre de Femme » (p. 51), membres du groupe avec photo et specimen
+  nbHommes: number;
+  nbFemmes: number;
+  membres: Representant[];
   photo: boolean;
   specimen: boolean;
   creePar: number;
@@ -135,7 +139,7 @@ export interface Operation {
 export interface Produit { code: string; libelle: string; devise: Devise }
 
 export interface Etat {
-  version: 3;
+  version: 4;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];

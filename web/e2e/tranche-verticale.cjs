@@ -53,6 +53,20 @@ const OUT = process.argv[2];
   await p.getByRole('dialog', { name: 'Confirmation' }).waitFor(); await etape('04d-confirmation');
   await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await etape('05-enrole');
   await p.getByRole('button', { name: 'Ok' }).click();
+  // Groupe (S39)
+  await aller('/clients/s39');
+  await p.getByLabel('Type de groupe *').selectOption('Association'); await p.getByLabel('Nombre de Femme :').fill('12');
+  await p.getByLabel('Type de compte à créer *').selectOption('EAV-CDF'); await etape('05g-groupe');
+  await p.getByRole('button', { name: 'Suivant' }).click();
+  await p.getByLabel('Dénomination : *').fill('Mamans de Kinsaku'); await p.getByLabel('Adresse : *').fill('Matete, quartier Kinsaku');
+  await p.getByRole('button', { name: 'Suivant' }).click(); await p.getByRole('button', { name: 'Ajouter', exact: true }).click();
+  const mb = p.getByRole('dialog', { name: 'Membre du groupe' });
+  await mb.getByLabel('Nom : *').fill('Mbuyi'); await mb.getByLabel('Type de pièce : *').selectOption("Carte d'électeur"); await mb.getByLabel('N° de pièce : *').fill('1-0412-7777');
+  await etape('05h-fiche-membre');
+  await mb.getByRole('button', { name: 'Enregistrer' }).click(); await mb.getByRole('button', { name: 'Fermer' }).click();
+  await p.getByRole('cell', { name: 'Mbuyi' }).waitFor(); await etape('05i-membres-groupe');
+  await p.getByRole('tab', { name: 'Photo' }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
   // Entreprise (S38)
   await aller('/clients/s38');
   await p.getByLabel('Type entreprise : *').selectOption('Entreprises privées'); await p.getByLabel('Zone : *').selectOption('Matete');
@@ -76,7 +90,7 @@ const OUT = process.argv[2];
   await validerTout();
   await p.getByText('Rien à valider pour l\'instant.').waitFor();
   await aller('/clients/s40'); await etape('06b-visa-client');
-  for (const nom of ['Tshala', 'Boulangerie']) {
+  for (const nom of ['Tshala', 'Mamans', 'Boulangerie']) {
     await p.getByRole('list', { name: /Membres à viser/ }).getByRole('listitem').filter({ hasText: nom }).getByRole('button', { name: 'Viser' }).click();
     await p.getByRole('listitem').filter({ hasText: nom }).waitFor({ state: 'detached' });
   }
