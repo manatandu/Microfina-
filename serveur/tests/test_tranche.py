@@ -274,7 +274,14 @@ def test_parametrage_frais(clients):
     assert chef.post(f"/api/parametrage/frais-adhesion/{pid}", {"nature": "Montant", "valeur": 200000, "compte": "70291"}, **H).status_code == 200
     lu = chef.get("/api/parametrage/frais").json()
     assert lu["adhesion"] == [{"id": pid, "fraisId": f["id"], "typeMembre": "Physique", "valeur": 200000, "compte": "70291", "nature": "Montant"}]
-    assert chef.get(f"/api/tiers/{T('0412-000318')}/frais").json() == [{"libelle": "Droit d'entrée", "compte": "70291", "montant": 200000}]
+    assert chef.get(f"/api/tiers/{T('0412-000318')}/frais").json() == [{"fraisId": f["id"], "libelle": "Droit d'entrée", "compte": "70291", "montant": 200000}]
+    # S41 : montant propre au client
+    k = T("0412-000318")
+    assert "Réservé" in refus(agent, f"/api/tiers/{k}/frais", {"frais": [{"fraisId": f["id"], "montant": 0}]})
+    assert "Montant" in refus(chef, f"/api/tiers/{k}/frais", {"frais": [{"fraisId": f["id"], "montant": -1}]})
+    assert "pas lié" in refus(chef, f"/api/tiers/{k}/frais", {"frais": [{"fraisId": 999999, "montant": 0}]})
+    assert chef.post(f"/api/tiers/{k}/frais", {"frais": [{"fraisId": f["id"], "montant": 100000}]}, **H).json()[0]["montant"] == 100000
+    assert chef.get(f"/api/tiers/{T('0412-000319')}/frais").json()[0]["montant"] == 200000
     assert chef.delete(f"/api/parametrage/frais-adhesion/{pid}", **H).status_code == 200
     assert chef.delete(f"/api/parametrage/frais/{f['id']}", **H).status_code == 200
     assert chef.get("/api/parametrage/frais").json()["frais"] == []

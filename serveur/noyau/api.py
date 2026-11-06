@@ -177,6 +177,11 @@ def tiers_frais(request, tid: int):
     return fr.frais_lies(u(request), tid)
 
 
+@api.post("/tiers/{tid}/frais")
+def tiers_frais_modifier(request, tid: int, corps: dict = Body(...)):
+    return fr.modifier_frais_client(u(request), tid, corps)
+
+
 @api.get("/tiers/{tid}/parts")
 def tiers_parts(request, tid: int):
     u(request)

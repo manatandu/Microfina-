@@ -117,6 +117,14 @@ const OUT = process.argv[2];
     if (i === 0) { await p.getByRole('button', { name: 'Imprimer Contrat' }).click(); await p.getByRole('dialog', { name: "Demande d'adhésion" }).waitFor();
       await etape('06c-contrat'); await p.getByRole('dialog', { name: "Demande d'adhésion" }).getByRole('button', { name: 'Fermer' }).click(); }
   }
+  // Modification des frais (S41)
+  await aller('/clients/s41');
+  await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  const rf = p.getByRole('dialog', { name: 'Clients visés' });
+  await rf.getByLabel('Numéro, Nom et Prénoms :').fill('Tshala'); await rf.getByRole('row').filter({ hasText: 'Tshala' }).dblclick();
+  await p.getByLabel("Montant de Droit d'entrée").fill('2 500'); await etape('06h-modification-frais');
+  await p.getByRole('button', { name: 'Modifier' }).click(); await ok();
+  await p.getByLabel("Montant de Droit d'entrée").waitFor(); await etape('06i-frais-modifies');
   // Caissière : adhésion, dépôt, retrait
   await login('Esther Ngalula'); await aller('/caisse/s73');
   await p.getByLabel(/Nom, numéro ou compte/).waitFor(); await p.keyboard.press('F2'); await p.keyboard.type('Tshala'); await p.getByRole('option', { name: /Tshala/ }).click();

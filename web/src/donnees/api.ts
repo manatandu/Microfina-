@@ -16,14 +16,14 @@ import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@d
 export const SEUIL_CAISSIER_USD = 1000;   // au-delà, visa du chef d'agence. Exemple : fixé par la COOPEC
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v6";
+const CLE = "likelemba-demo-v7";
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
 
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 6) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 7) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   return graine();
 }
@@ -427,7 +427,7 @@ const parametrage = {
     droitParametrage();
     fraisDe(id);
     if ([...E.paramOperations, ...E.paramAdhesion].some((x) => x.fraisId === id)) throw new ErreurMetier("Ce frais est paramétré : supprimer d'abord son paramétrage.");
-    E.frais = E.frais.filter((x) => x.id !== id); enregistrer();
+    E.frais = E.frais.filter((x) => x.id !== id); E.fraisClient = E.fraisClient.filter((x) => x.fraisId !== id); enregistrer();
   },
   parametrerOperation(d: ValeursFrais & { fraisId: number; sousTypes: string[] }) {
     droitParametrage();
@@ -468,12 +468,33 @@ const parametrage = {
     else E.paramAdhesion = E.paramAdhesion.filter((x) => x.id !== id);
     enregistrer();
   },
-  /** « Liste des Frais liés » du visa (p. 52) : frais d'adhésion paramétrés pour le type du client */
+  /** « Liste des Frais liés » (p. 52 et 53) : frais d'adhésion paramétrés pour le type du client, ou le montant modifié pour ce client (S41) */
   fraisLies(tiersId: number) {
     exiger();
     const t = E.tiers.find((x) => x.id === tiersId);
     if (!t) return [];
-    return E.paramAdhesion.filter((p) => TYPES_MEMBRE[p.typeMembre] === t.type).map((p) => ({ libelle: fraisDe(p.fraisId).libelle, compte: p.compte, montant: p.valeur }));
+    return E.paramAdhesion.filter((p) => TYPES_MEMBRE[p.typeMembre] === t.type).map((p) => ({
+      fraisId: p.fraisId, libelle: fraisDe(p.fraisId).libelle, compte: p.compte,
+      montant: E.fraisClient.find((x) => x.tiersId === tiersId && x.fraisId === p.fraisId)?.montant ?? p.valeur,
+    }));
+  },
+  /** S41 : Client > Visa > Modifier frais (p. 53). Règles identiques côté serveur (frais.modifier_frais_client). */
+  modifierFraisClient(tiersId: number, frais: { fraisId: number; montant: number }[]) {
+    exiger("chef_agence");   // profil habilité : à confirmer
+    const t = E.tiers.find((x) => x.id === tiersId);
+    if (!t) throw new ErreurMetier("Client introuvable.");
+    if (t.statut !== "actif") throw new ErreurMetier("Client non visé : viser d'abord le client.");
+    const lies = parametrage.fraisLies(tiersId).map((x) => x.fraisId);
+    if (!frais.length) throw new ErreurMetier("Aucun frais à modifier.");
+    for (const l of frais) {
+      if (!lies.includes(l.fraisId)) throw new ErreurMetier("Ce frais n'est pas lié à ce client.");
+      if (!Number.isInteger(l.montant) || l.montant < 0) throw new ErreurMetier("Montant invalide.");
+    }
+    for (const l of frais) {
+      const x = E.fraisClient.find((y) => y.tiersId === tiersId && y.fraisId === l.fraisId);
+      if (x) x.montant = l.montant; else E.fraisClient.push({ tiersId, fraisId: l.fraisId, montant: l.montant });
+    }
+    enregistrer(); return parametrage.fraisLies(tiersId);
   },
 };
 

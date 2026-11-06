@@ -148,7 +148,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise }
 
 export interface Etat {
-  version: 6;
+  version: 7;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];
@@ -171,6 +171,7 @@ export interface Etat {
   frais: Frais[];
   paramOperations: ParamOperation[];
   paramAdhesion: ParamAdhesion[];
+  fraisClient: { tiersId: number; fraisId: number; montant: number }[];   // S41 : montant propre à un client
   images: Record<number, { photo?: string; signature?: string }>;   // photo et specimen chargés à l'enrôlement
 }
 

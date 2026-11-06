@@ -137,7 +137,12 @@ describe("journée de guichet", () => {
     await expect(p.parametrerAdhesion({ fraisId: f.id, nature: "Montant", valeur: null, compte: "", typesMembre: ["Physique"] })).rejects.toThrow("Déjà paramétré");
     await expect(p.supprimerFrais(f.id)).rejects.toThrow("paramétré");
     await p.modifierParametrage("adhesion", pid, { nature: "Montant", valeur: 200000, compte: "70291" });
-    expect(await p.fraisLies(1)).toEqual([{ libelle: "Droit d'entrée", compte: "70291", montant: 200000 }]);
+    expect(await p.fraisLies(1)).toEqual([{ fraisId: f.id, libelle: "Droit d'entrée", compte: "70291", montant: 200000 }]);
+    // S41 : montant propre au client
+    await expect(p.modifierFraisClient(1, [{ fraisId: f.id, montant: -1 }])).rejects.toThrow("Montant");
+    await expect(p.modifierFraisClient(1, [{ fraisId: 999, montant: 0 }])).rejects.toThrow("pas lié");
+    expect((await p.modifierFraisClient(1, [{ fraisId: f.id, montant: 100000 }]))[0]!.montant).toBe(100000);
+    expect((await p.fraisLies(2))[0]!.montant).toBe(200000);
     await connecter("bkasongo");
     await expect(p.creerFrais({ typeOperation: "ADHESION", libelle: "Frais de livret" })).rejects.toThrow("Réservé");
     await connecter("jpmukendi");

@@ -159,7 +159,35 @@ def supprimer_parametrage(u, table: str, pid: int):
 
 
 def frais_lies(u, tid: int) -> list[dict]:
-    """« Liste des Frais liés » du visa (p. 52) : frais d'adhésion paramétrés pour le type du client."""
+    """« Liste des Frais liés » (p. 52 et 53) : frais d'adhésion paramétrés pour le type du client, ou le montant modifié pour ce client (S41)."""
     exiger(u)
-    return lignes("""select f.libelle, p.compte, p.valeur as montant from parametrage_frais_adhesion p join frais f on f.id = p.frais_id
-                     join tiers t on t.type = p.type_membre and t.institution_id = f.institution_id where t.id = %s order by p.id""", (tid,))
+    return lignes("""select f.id as "fraisId", f.libelle, p.compte, coalesce(fc.montant, p.valeur) as montant
+                     from parametrage_frais_adhesion p join frais f on f.id = p.frais_id
+                     join tiers t on t.type = p.type_membre and t.institution_id = f.institution_id
+                     left join frais_client fc on fc.tiers_id = t.id and fc.frais_id = f.id
+                     where t.id = %s order by p.id""", (tid,))
+
+
+def modifier_frais_client(u, tid: int, d) -> list[dict]:
+    """S41 : Client > Visa > Modifier frais (p. 53). Modifier le montant des frais dans la Liste des frais liés."""
+    exiger(u, "chef_agence")                 # profil habilité : à confirmer
+    t = une("select id, statut from tiers where id = %s and institution_id = %s for update", (tid, u["institution_id"]))
+    if not t:
+        raise ErreurMetier("Client introuvable.")
+    if t["statut"] != "actif":
+        raise ErreurMetier("Client non visé : viser d'abord le client.")
+    lies = {r["fraisId"] for r in frais_lies(u, tid)}
+    lignes_ = d.get("frais") if isinstance(d, dict) else None
+    if not isinstance(lignes_, list) or not lignes_:
+        raise ErreurMetier("Aucun frais à modifier.")
+    for l in lignes_:
+        fid, m = (l or {}).get("fraisId"), (l or {}).get("montant")
+        if fid not in lies:
+            raise ErreurMetier("Ce frais n'est pas lié à ce client.")
+        if not isinstance(m, int) or isinstance(m, bool) or m < 0:
+            raise ErreurMetier("Montant invalide.")
+    for l in lignes_:
+        executer("""insert into frais_client (tiers_id, frais_id, montant, modifie_par) values (%s, %s, %s, %s)
+                    on conflict (tiers_id, frais_id) do update set montant = excluded.montant, modifie_par = excluded.modifie_par, modifie_le = now()""",
+                 (tid, l["fraisId"], l["montant"], u["id"]))
+    return frais_lies(u, tid)

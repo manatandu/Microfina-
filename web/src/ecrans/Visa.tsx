@@ -87,7 +87,8 @@ export function VisaClient() {
         "ARCHITECTURE P7 : le visa vient d'une autre personne que celle qui a enrôlé"]} />
 
       <Fiche titre="Clients en attente de visa" ouverte={recherche} fermer={() => setRecherche(false)}>
-        <RechercheClient attente={attente} choisir={(x) => void choisir(x)} fermer={() => setRecherche(false)} />
+        <RechercheClient source={async (q) => attente.filter((x) => [x.numero, x.nom, x.postnom, x.prenom].join(" ").toLowerCase().includes(q))}
+          choisir={(x) => void choisir(x)} fermer={() => setRecherche(false)} />
       </Fiche>
       <Fiche titre="Demande d'adhésion" ouverte={contrat} fermer={() => setContrat(false)}>
         {t && <Contrat t={t} ctx={ctx} />}
@@ -101,11 +102,10 @@ export function VisaClient() {
   );
 }
 
-/** Recherche par numéro, nom et prénoms ; sélection par double-clic sur la ligne (p. 52). Entrée fait de même au clavier. */
-function RechercheClient({ attente, choisir, fermer }: { attente: Tiers[]; choisir: (t: Tiers) => void; fermer: () => void }) {
+/** Recherche par numéro, nom et prénoms ; sélection par double-clic sur la ligne (p. 52 et 53). Entrée fait de même au clavier. */
+function RechercheClient({ source, choisir, fermer }: { source: (q: string) => Promise<Tiers[]>; choisir: (t: Tiers) => void; fermer: () => void }) {
   const [q, setQ] = useState("");
-  const mots = q.trim().toLowerCase();
-  const liste = attente.filter((t) => [t.numero, t.nom, t.postnom, t.prenom].join(" ").toLowerCase().includes(mots));
+  const { donnees: liste = [] } = useDonnees(() => source(q.trim().toLowerCase()), [q]);
   return (
     <div className="pile">
       <Champ libelle="Numéro, Nom et Prénoms :">{(p) => <input {...p} className="saisie" type="search" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} />}</Champ>
@@ -122,6 +122,76 @@ function RechercheClient({ attente, choisir, fermer }: { attente: Tiers[]; chois
       </table>
       <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={fermer}>Fermer</button></div>
     </div>
+  );
+}
+
+/** S41 : Client > Visa > Modifier frais (manuel Microfina++, p. 53) */
+export function ModificationFrais() {
+  const { donnees: ctx } = useDonnees(() => api.referentiel.contexte());
+  const [t, setT] = useState<Tiers | null>(null);
+  const [saisies, setSaisies] = useState<Record<number, string>>({});
+  const [recherche, setRecherche] = useState(false);
+  const [boite, setBoite] = useState<Boite | null>(null);
+  const { donnees: lies } = useDonnees(() => (t ? api.parametrage.fraisLies(t.id) : Promise.resolve([])), [t?.id]);
+  if (!ctx) return <Chargement />;
+  const frais = lies ?? [];
+  const saisie = (f: { fraisId: number; montant: number | null }) => saisies[f.fraisId] ?? (f.montant === null ? "" : String(f.montant / 100).replace(".", ","));
+  function annuler() { setT(null); setSaisies({}); }
+  function modifier() {
+    if (!t) { setBoite({ type: "erreur", message: "Rechercher d'abord le client." }); return; }
+    const lignes = frais.map((f) => ({ fraisId: f.fraisId, montant: saisie(f).trim() ? lireMontant(saisie(f)) : 0 }));
+    if (lignes.some((l) => l.montant === null || l.montant < 0)) { setBoite({ type: "erreur", message: "Montant invalide." }); return; }
+    setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
+      try { await api.parametrage.modifierFraisClient(t.id, lignes as { fraisId: number; montant: number }[]); setSaisies({}); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+      catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+    } });
+  }
+  return (
+    <>
+      <h1>Modification de Frais</h1>
+      <section className="bloc pile" aria-label="Modification de Frais">
+        <div className="deux-colonnes">
+          <fieldset className="pile cadre-champs">
+            <legend>Informations du membre</legend>
+            <div className="ligne-champ">
+              <Champ libelle="Numéro du Client :">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
+              <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
+            </div>
+            <Champ libelle="Date Visa *">{(p) => <input {...p} className="saisie code" readOnly value={t ? fr(t.dateVisa) : ""} />}</Champ>
+            <Champ libelle="Nom ou Raison sociale :">{(p) => <input {...p} className="saisie" readOnly value={t ? t.intitule || nomComplet(t) : ""} />}</Champ>
+            <Champ libelle="Prémier dépôt:">{(p) => <input {...p} className="saisie montant" readOnly value={t ? montant(t.premierDepot, deviseDe(ctx, t)) : ""} />}</Champ>
+            <Champ libelle="Date Demande *">{(p) => <input {...p} className="saisie code" readOnly value={t ? fr(t.dateDemande) : ""} />}</Champ>
+          </fieldset>
+          <fieldset className="pile cadre-champs">
+            <legend>Liste des Frais liés</legend>
+            <table className="grille">
+              <thead><tr><th scope="col">Libellé</th><th scope="col">Compte</th><th scope="col">Nombre</th><th scope="col">Montant (CDF)</th></tr></thead>
+              <tbody>
+                {(!t || frais.length === 0) && <tr><td colSpan={4}>Liste vide</td></tr>}
+                {t && frais.map((f) => (
+                  <tr key={f.fraisId}><td>{f.libelle}</td><td className="chiffres">{f.compte}</td><td></td>
+                    <td><input className="saisie montant" inputMode="decimal" autoComplete="off" aria-label={`Montant de ${f.libelle}`} value={saisie(f)}
+                      onChange={(e) => setSaisies({ ...saisies, [f.fraisId]: e.target.value })} /></td></tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="a-confirmer">Colonne « Nombre » : à confirmer. Frais en CDF comme leur paramétrage (S16).</p>
+          </fieldset>
+        </div>
+        <div className="actions-onglets">
+          <button className="bouton" type="button" onClick={modifier}>Modifier</button>
+          <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
+        </div>
+        <Textes sources={["Manuel Microfina++, p. 53 : écran Modification de Frais, recherche par numéro, nom ou prénoms, montant modifié dans la Liste des frais liés, boutons Modifier et Annuler",
+          "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
+          "Loi 002/2002, art. 22, 5° : droit d'adhésion fixé, le cas échéant, par l'Assemblée générale"]} />
+      </section>
+      <Fiche titre="Clients visés" ouverte={recherche} fermer={() => setRecherche(false)}>
+        <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut === "actif") : [])}
+          choisir={(x) => { setT(x); setSaisies({}); setRecherche(false); }} fermer={() => setRecherche(false)} />
+      </Fiche>
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </>
   );
 }
 

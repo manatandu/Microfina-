@@ -90,6 +90,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       modifierParametrage: (genre: string, id: number, d: object) => post(`/parametrage/frais-${genre}/${id}`, d),
       supprimerParametrage: (genre: string, id: number) => appel("DELETE", `/parametrage/frais-${genre}/${id}`),
       fraisLies: (id: number) => get(`/tiers/${id}/frais`),
+      modifierFraisClient: (id: number, frais: object[]) => post(`/tiers/${id}/frais`, { frais }),
     },
   } as unknown as ApiDonnees;   // les formes de réponse sont celles des services du serveur (serveur/noyau/services.py)
 }
