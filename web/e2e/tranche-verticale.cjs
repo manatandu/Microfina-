@@ -160,6 +160,14 @@ const OUT = process.argv[2];
   }
   await etape('06p-affectation'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('cell', { name: 'Mwamba Ilunga Grâce', exact: true }).waitFor(); await etape('06q-affectation-enregistree');
+  // Prospect (S45)
+  await aller('/clients/s45');
+  await p.getByLabel('Nom : *').fill('Tshibangu'); await p.getByLabel('Prenoms : *').fill('Anne'); await p.getByLabel('Date naissance : *').fill('01031995');
+  await p.getByLabel('à : *').fill('Kinshasa'); await p.getByLabel('Sexe : *').selectOption('F'); await p.getByLabel('Proffession :').selectOption('Commerçant');
+  await p.getByLabel('Pays : *').selectOption('République démocratique du Congo'); await p.getByLabel('Ville : *').selectOption('Kinshasa');
+  await p.getByLabel('Quartier : *').selectOption('Kinsaku'); await p.getByLabel('Portable :').fill('+243 810 000 111'); await etape('06r-prospect');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
+  await p.getByRole('cell', { name: 'Tshibangu Anne' }).waitFor(); await etape('06s-prospect-enregistre');
   // Caissière : adhésion, dépôt, retrait
   await login('Esther Ngalula'); await aller('/caisse/s73');
   await p.getByLabel(/Nom, numéro ou compte/).waitFor(); await p.keyboard.press('F2'); await p.keyboard.type('Tshala'); await p.getByRole('option', { name: /Tshala/ }).click();

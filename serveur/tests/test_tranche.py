@@ -338,3 +338,21 @@ def test_groupe_solidaire(clients):
     agent.post(f"/api/groupes-solidaires/{g['id']}/retrait", {"tiersIds": [k, m]}, **H)
     assert agent.post(f"/api/groupes-solidaires/{g['id']}", {"code": "GS/0412/000009", "nom": "Grp Kinsaku 2"}, **H).json()["nom"] == "Grp Kinsaku 2"
     assert agent.delete(f"/api/groupes-solidaires/{g['id']}", **H).status_code == 200
+
+
+def test_prospect(clients):
+    agent = clients["agent"]
+    connecter(agent, "bkasongo")
+    p = {"nom": "Tshibangu", "prenom": "Anne", "naissance": "1995-03-01", "lieuNaissance": "Kinshasa", "sexe": "F", "profession": "Commerçant",
+         "pays": "République démocratique du Congo", "ville": "Kinshasa", "quartier": "Kinsaku", "telephone": "+243 810 000 111"}
+    def refus(corps, route="/api/prospects"):
+        r = agent.post(route, corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    assert "prénoms" in refus({**p, "prenom": ""})
+    assert "quartier inconnu" in refus({**p, "quartier": "Gombe"})
+    assert "Email" in refus({**p, "email": "pas-un-email"})
+    assert "Profession" in refus({**p, "profession": "Astronaute"})
+    t = agent.post("/api/prospects", p, **H).json()
+    assert (t["statut"], t["quartier"], t["profession"]) == ("prospect", "Kinsaku", "Commerçant")
+    assert agent.post(f"/api/prospects/{t['id']}", {**p, "quartier": "Lemba"}, **H).json()["quartier"] == "Lemba"
+    assert [x["id"] for x in agent.get("/api/prospects").json()] == [t["id"]]
+    assert "introuvable" in refus(p, f"/api/prospects/{T('0412-000318')}")

@@ -194,6 +194,21 @@ describe("journée de guichet", () => {
     expect((await g0.lire()).groupes).toEqual([]);
   });
 
+  it("prospect (S45) : champs obligatoires de la p. 55, localisation, profession, modification", async () => {
+    await connecter("bkasongo");
+    const p = { nom: "Tshibangu", prenom: "Anne", naissance: "1995-03-01", lieuNaissance: "Kinshasa", sexe: "F" as const, profession: "Commerçant",
+      pays: "République démocratique du Congo", ville: "Kinshasa", quartier: "Kinsaku", rue: "", email: "", bp: "", telephoneFixe: "", telephone: "+243 810 000 111" };
+    await expect(api.tiers.creerProspect({ ...p, prenom: "" })).rejects.toThrow("prénoms");
+    await expect(api.tiers.creerProspect({ ...p, quartier: "Gombe" })).rejects.toThrow("quartier inconnu");
+    await expect(api.tiers.creerProspect({ ...p, email: "pas-un-email" })).rejects.toThrow("Email");
+    await expect(api.tiers.creerProspect({ ...p, profession: "Astronaute" })).rejects.toThrow("Profession");
+    const t = await api.tiers.creerProspect(p);
+    expect(t).toMatchObject({ statut: "prospect", quartier: "Kinsaku", profession: "Commerçant" });
+    expect((await api.tiers.modifierProspect(t.id, { ...p, quartier: "Lemba" })).quartier).toBe("Lemba");
+    expect((await api.tiers.prospects()).map((x) => x.id)).toEqual([t.id]);
+    await expect(api.tiers.modifierProspect(1, p)).rejects.toThrow("introuvable");
+  });
+
   it("adhésion : parts en 1030, premier dépôt en 330, après visa seulement", async () => {
     await connecter("bkasongo");
     const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), produitCode: "EAV-CDF", nom: "Tshala", postnom: "Muana", prenom: "Marie", naissance: "1990-02-01", pieceType: "Carte d'électeur", pieceNumero: "1-0412-0999", pieceExpire: "2031-01-01", adresse: "Matete" });

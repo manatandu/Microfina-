@@ -28,6 +28,13 @@ class Command(BaseCommand):
             return
         ins = valeur("insert into institution (nom, profil) values ('COOPEC Tujenge', 'coopec') returning id")
         executer("insert into zone (institution_id, nom) values (%s, 'Matete')", (ins,))
+        # Localisation et professions fictives (paramétrage S14 et Localisation pas encore construits)
+        pays = valeur("insert into localite (niveau, nom) values ('pays', 'République démocratique du Congo') returning id")
+        ville = valeur("insert into localite (parent_id, niveau, nom) values (%s, 'ville', 'Kinshasa') returning id", (pays,))
+        for q in ("Kinsaku", "Matete", "Lemba"):
+            executer("insert into localite (parent_id, niveau, nom) values (%s, 'quartier', %s)", (ville, q))
+        for pr in ("Commerçant", "Enseignant", "Agriculteur"):
+            executer("insert into profession (institution_id, libelle) values (%s, %s)", (ins, pr))
         for st in ("Homme", "Femme", "Entreprise", "Groupement", "Association", "ONG"):     # sous types de client fictifs (S14 pas encore construit)
             executer("insert into sous_type_client (institution_id, libelle) values (%s, %s)", (ins, st))   # zone fictive (S32 pas encore construit)
         ag = valeur("insert into agence (institution_id, code, nom) values (%s, '0412', 'Matete') returning id", (ins,))

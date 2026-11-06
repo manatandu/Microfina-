@@ -136,6 +136,21 @@ def tiers_rechercher(request, q: str = ""):
     return s.rechercher_tiers(u(request), q)
 
 
+@api.get("/prospects")
+def prospects_lire(request):
+    return s.prospects(u(request))
+
+
+@api.post("/prospects")
+def prospect_creer(request, corps: dict = Body(...)):
+    return s.creer_prospect(u(request), corps)
+
+
+@api.post("/prospects/{tid}")
+def prospect_modifier(request, tid: int, corps: dict = Body(...)):
+    return s.modifier_prospect(u(request), tid, corps)
+
+
 @api.get("/tiers/a-revalider")
 def tiers_a_revalider(request):
     return s.tiers_a_revalider(u(request))

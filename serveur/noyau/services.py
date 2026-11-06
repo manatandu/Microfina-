@@ -109,6 +109,8 @@ def contexte(u: dict) -> dict:
         "typesEntreprise": TYPES_ENTREPRISE,
         "typesGroupe": list(TYPES_GROUPE),
         "pieces": PIECES,
+        "professions": [r["libelle"] for r in lignes("select libelle from profession where institution_id = %s order by libelle", (u["institution_id"],))],
+        "localites": localites(),
         "cours": {"USD": cours_usd()},
         "valeurPart": valeur_part(),
         "utilisateurs": utilisateurs(),
@@ -341,6 +343,8 @@ def vue_tiers(t: dict) -> dict:
             "lieuNaissance": t["lieu_naissance"] or "", "pieceDelivreeLe": iso(t["piece_delivree_le"]), "pieceLieu": t["piece_lieu"] or "", "pieceAutorite": t["piece_autorite"] or "",
             "liees": [r["autre_id"] for r in lignes("select autre_id from lien_tiers where tiers_id = %s and role = 'personne_liee' order by id", (t["id"],))],
             "intitule": t["intitule"] or "", "dateVisa": iso(t["date_visa"]),
+            "profession": t["profession"] or "", "pays": t["pays"] or "", "ville": t["ville"] or "", "quartier": t["quartier"] or "", "rue": t["rue"] or "",
+            "email": t["email"] or "", "bp": t["bp"] or "", "telephoneFixe": t["telephone_fixe"] or "",
             "type": t["type"], "formeJuridique": t["forme"] or "", "registre": t["rccm"] or "", "centreActivite": t["centre_activite"] or "", "activite": t["activite"] or "",
             "dirigeant": dirigeant, "signataires": signataires, "membres": membres, "nbHommes": t["nb_hommes"] or 0, "nbFemmes": t["nb_femmes"] or 0,
             "photo": bool(sp and sp["photo"]), "specimen": bool(sp and sp["signature"]) or any(x["specimen"] for x in signataires),
@@ -352,7 +356,7 @@ def iso(d) -> str:
 
 
 SQL_TIERS = """select t.*, coalesce(p.nom, m.raison_sociale) as nom, p.postnom, p.prenom, p.sexe, p.date_naissance, p.lieu_naissance, p.piece_type, p.piece_numero,
-                      p.piece_delivree_le, p.piece_lieu, p.piece_autorite, p.piece_validite, coalesce(p.adresse, m.adresse_siege) as adresse, p.telephone,
+                      p.piece_delivree_le, p.piece_lieu, p.piece_autorite, p.piece_validite, p.profession, p.pays, p.ville, p.quartier, p.rue, p.email, p.bp, p.telephone_fixe, coalesce(p.adresse, m.adresse_siege) as adresse, p.telephone,
                       m.forme, m.rccm, m.centre_activite, m.activite, m.nb_hommes, m.nb_femmes, z.nom as zone_nom, pe.code as produit_code
                from tiers t left join tiers_personne p on p.tiers_id = t.id left join tiers_morale m on m.tiers_id = t.id
                left join zone z on z.id = t.zone_id left join produit_epargne pe on pe.id = t.produit_id"""
@@ -641,6 +645,74 @@ def modifications_tiers(u: dict, tid: int) -> list[dict]:
              "validePar": r["valide_par"]}
             for r in lignes("""select m.* from tiers_modification m join tiers t on t.id = m.tiers_id where m.tiers_id = %s and t.institution_id = %s
                                order by m.id""", (tid, u["institution_id"]))]
+
+
+def localites() -> list[dict]:
+    """Pays > Ville > Quartier (table localite ; paramétrage Localisation, p. 30, pas encore construit)"""
+    rows = lignes("select id, parent_id, niveau, nom from localite order by nom")
+    enfants = lambda pid, niveau: [r for r in rows if r["parent_id"] == pid and r["niveau"] == niveau]
+    return [{"pays": p["nom"], "villes": [{"ville": v["nom"], "quartiers": [q["nom"] for q in enfants(v["id"], "quartier")]} for v in enfants(p["id"], "ville")]}
+            for p in rows if p["niveau"] == "pays" and p["parent_id"] is None]
+
+
+def prospects(u: dict) -> list[dict]:
+    exiger(u)
+    return [vue_tiers(t) for t in lignes(SQL_TIERS + " where t.institution_id = %s and t.statut = 'prospect' order by t.id desc", (u["institution_id"],))]
+
+
+def controler_prospect(u: dict, d: dict):
+    """Champs obligatoires de la capture p. 55 : Nom, Prénoms, Date naissance, à, Sexe, Pays, Ville, Quartier"""
+    texte = texte_de(d)
+    manque = [n for n, k in (("nom", "nom"), ("prénoms", "prenom"), ("date de naissance", "naissance"), ("lieu de naissance", "lieuNaissance"),
+                             ("sexe", "sexe"), ("pays", "pays"), ("ville", "ville"), ("quartier", "quartier")) if not texte(k)]
+    if manque:
+        raise ErreurMetier("À remplir : " + ", ".join(manque) + ".")
+    if texte("sexe") not in ("F", "M"):
+        raise ErreurMetier("Sexe inconnu.")
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", texte("naissance")) or texte("naissance") > date.today().isoformat():
+        raise ErreurMetier("Date de naissance invalide.")
+    lieux = {(p["pays"], v["ville"], q) for p in localites() for v in p["villes"] for q in v["quartiers"]}
+    if (texte("pays"), texte("ville"), texte("quartier")) not in lieux:
+        raise ErreurMetier("Pays, ville ou quartier inconnu.")
+    if texte("profession") and not valeur("select 1 from profession where institution_id = %s and libelle = %s", (u["institution_id"], texte("profession"))):
+        raise ErreurMetier("Profession inconnue.")
+    if texte("email") and not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", texte("email")):
+        raise ErreurMetier("Email invalide.")
+    return texte
+
+
+VALEURS_PROSPECT = """nom = %s, prenom = %s, date_naissance = %s, lieu_naissance = %s, sexe = %s, profession = %s, pays = %s, ville = %s, quartier = %s,
+                      rue = %s, email = %s, bp = %s, telephone_fixe = %s, telephone = %s"""
+
+
+def params_prospect(texte) -> tuple:
+    return (texte("nom"), texte("prenom"), texte("naissance"), texte("lieuNaissance"), texte("sexe"), texte("profession") or None, texte("pays"),
+            texte("ville"), texte("quartier"), texte("rue") or None, texte("email") or None, texte("bp") or None, texte("telephoneFixe") or None,
+            texte("telephone") or None)
+
+
+def creer_prospect(u: dict, d: dict) -> dict:
+    """S45 : Client > Nouveau prospect (manuel p. 55), bouton Enregistrer"""
+    exiger(u)
+    texte = controler_prospect(u, d)
+    agence = une("select code from agence where id = %s", (u["agence_id"],))
+    numero = f"{agence['code']}-{valeur('select nextval(%s)', ('numero_tiers',)):06d}"
+    tid = valeur("""insert into tiers (institution_id, agence_id, numero, type, statut, cree_par) values (%s, %s, %s, 'physique', 'prospect', %s) returning id""",
+                 (u["institution_id"], u["agence_id"], numero, u["id"]))
+    executer("insert into tiers_personne (tiers_id, nom) values (%s, '')", (tid,))
+    executer(f"update tiers_personne set {VALEURS_PROSPECT} where tiers_id = %s", (*params_prospect(texte), tid))
+    return lire_tiers(tid)
+
+
+def modifier_prospect(u: dict, tid: int, d: dict) -> dict:
+    """S45, bouton Modifier"""
+    exiger(u)
+    t = une("select statut from tiers where id = %s and institution_id = %s for update", (tid, u["institution_id"]))
+    if not t or t["statut"] != "prospect":
+        raise ErreurMetier("Prospect introuvable.")
+    texte = controler_prospect(u, d)
+    executer(f"update tiers_personne set {VALEURS_PROSPECT} where tiers_id = %s", (*params_prospect(texte), tid))
+    return lire_tiers(tid)
 
 
 def solde_contrat(contrat: str, devise: str, sens_normal: str) -> int:

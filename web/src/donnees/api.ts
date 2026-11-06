@@ -16,14 +16,14 @@ import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@d
 export const SEUIL_CAISSIER_USD = 1000;   // au-delà, visa du chef d'agence. Exemple : fixé par la COOPEC
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v9";
+const CLE = "likelemba-demo-v10";
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
 
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 9) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 10) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   return graine();
 }
@@ -62,7 +62,7 @@ const session = {
 };
 
 function contexte() {
-  return { institution: E.institution, agence: E.agence, guichets: E.guichets, produits: E.produits, zones: E.zones, typesClient: TYPES_CLIENT, typesEntreprise: TYPES_ENTREPRISE, typesGroupe: Object.keys(TYPES_GROUPE), pieces: PIECES, cours: E.cours, valeurPart: E.valeurPart, utilisateurs: E.utilisateurs };
+  return { institution: E.institution, agence: E.agence, guichets: E.guichets, produits: E.produits, zones: E.zones, typesClient: TYPES_CLIENT, typesEntreprise: TYPES_ENTREPRISE, typesGroupe: Object.keys(TYPES_GROUPE), pieces: PIECES, professions: E.professions, localites: E.localites, cours: E.cours, valeurPart: E.valeurPart, utilisateurs: E.utilisateurs };
 }
 export const nomUtilisateur = (id?: number) => E.utilisateurs.find((u) => u.id === id)?.nom ?? "";
 
@@ -233,7 +233,8 @@ export const IMAGE_MAX = 400_000;   // caractères de l'image encodée, environ 
 export function enrolementVide(date: string): NouveauTiers {
   return { dateDemande: date, numeroManuel: "", matricule: "", typeClient: "Client", zone: "", produitCode: "", premierDepot: 0, resident: true, preleverAgios: true, calculerInteret: false,
     nom: "", postnom: "", prenom: "", sexe: "", naissance: "", lieuNaissance: "", pieceType: "", pieceNumero: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", pieceExpire: "",
-    adresse: "", telephone: "", personneExposee: false, liees: [], formeJuridique: "", registre: "", centreActivite: "", activite: "", nbHommes: 0, nbFemmes: 0 };
+    adresse: "", telephone: "", personneExposee: false, liees: [], profession: "", pays: "", ville: "", quartier: "", rue: "", email: "", bp: "", telephoneFixe: "",
+    formeJuridique: "", registre: "", centreActivite: "", activite: "", nbHommes: 0, nbFemmes: 0 };
 }
 
 type CtxControle = { produits: { code: string }[]; zones: string[]; jour: string; existe: (id: number) => boolean };
@@ -296,6 +297,21 @@ const SANS_IDENTITE = { postnom: "", prenom: "", sexe: "" as const, naissance: "
 function controlerStatutActif(statut: Tiers["statut"], suite = "") {
   if (statut === "modifie_a_revalider") throw new ErreurMetier("Client modifié : à valider (Client > Visa > Valider client modifié) avant toute opération.");
   if (statut !== "actif") throw new ErreurMetier(`Client pas encore visé${suite}.`);
+}
+/** Champs de l'écran prospect (p. 55) */
+export type Prospect = Pick<Tiers, "nom" | "prenom" | "naissance" | "lieuNaissance" | "sexe" | "profession" | "pays" | "ville" | "quartier" | "rue" | "email" | "bp" | "telephoneFixe" | "telephone">;
+/** Champs obligatoires de la capture p. 55. Règles identiques côté serveur (services.controler_prospect). */
+function controlerProspect(d: Prospect): Prospect {
+  const v = Object.fromEntries(Object.entries(d).map(([k, x]) => [k, typeof x === "string" ? x.trim() : x])) as Prospect;
+  const manque = manquants([["nom", v.nom], ["prénoms", v.prenom], ["date de naissance", v.naissance], ["lieu de naissance", v.lieuNaissance], ["sexe", v.sexe],
+    ["pays", v.pays], ["ville", v.ville], ["quartier", v.quartier]]);
+  if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+  if (v.sexe !== "F" && v.sexe !== "M") throw new ErreurMetier("Sexe inconnu.");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v.naissance) || v.naissance > new Date().toISOString().slice(0, 10)) throw new ErreurMetier("Date de naissance invalide.");
+  if (!E.localites.some((p) => p.pays === v.pays && p.villes.some((x) => x.ville === v.ville && x.quartiers.includes(v.quartier)))) throw new ErreurMetier("Pays, ville ou quartier inconnu.");
+  if (v.profession && !E.professions.includes(v.profession)) throw new ErreurMetier("Profession inconnue.");
+  if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) throw new ErreurMetier("Email invalide.");
+  return v;
 }
 function ctxControle() {
   return { produits: E.produits, zones: E.zones, jour: journees.courante()?.date ?? "", existe: (id: number) => E.tiers.some((t) => t.id === id) };
@@ -391,6 +407,20 @@ const tiers = {
   modifications(id: number) {
     exiger();
     return E.modifications.filter((m) => m.tiersId === id).map(({ avant, apres, modifiePar, modifieLe, validePar }) => ({ avant, apres, modifiePar, modifieLe, validePar: validePar ?? null }));
+  },
+  /** S45 : prospects (manuel p. 55) */
+  prospects: () => { exiger(); return E.tiers.filter((t) => t.statut === "prospect").reverse(); },
+  creerProspect(d: Prospect) {
+    const u = exiger();
+    const v = controlerProspect(d);
+    const t = nouveauTiers({ ...enrolementVide(""), ...v }, u.id, { type: "physique", dirigeant: null, signataires: [], membres: [], photo: false, specimen: false });
+    t.statut = "prospect"; enregistrer(); return t;
+  },
+  modifierProspect(id: number, d: Prospect) {
+    exiger();
+    const t = E.tiers.find((x) => x.id === id);
+    if (!t || t.statut !== "prospect") throw new ErreurMetier("Prospect introuvable.");
+    Object.assign(t, controlerProspect(d)); enregistrer(); return t;
   },
   aRevalider: () => { exiger(); return E.tiers.filter((t) => t.statut === "modifie_a_revalider"); },
   /** S42 : Valider client modifié (p. 54), « activer client ». Quatre yeux (ARCHITECTURE P7). Règles identiques côté serveur (services.activer_tiers). */

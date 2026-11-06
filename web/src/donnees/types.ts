@@ -37,7 +37,7 @@ export interface Tiers {
   id: number;
   type: "physique" | "morale" | "groupe";
   numero: string;
-  statut: "a_viser" | "actif" | "modifie_a_revalider";
+  statut: "prospect" | "a_viser" | "actif" | "modifie_a_revalider";
   nom: string;
   postnom: string;
   prenom: string;
@@ -81,6 +81,15 @@ export interface Tiers {
   specimen: boolean;
   creePar: number;
   visePar?: number;
+  // S45, prospect (manuel p. 55)
+  profession: string;
+  pays: string;
+  ville: string;
+  quartier: string;
+  rue: string;
+  email: string;
+  bp: string;
+  telephoneFixe: string;
   // S40, visa (manuel p. 52)
   intitule: string;
   dateVisa: string;
@@ -148,7 +157,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise }
 
 export interface Etat {
-  version: 9;
+  version: 10;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];
@@ -172,6 +181,8 @@ export interface Etat {
   paramOperations: ParamOperation[];
   paramAdhesion: ParamAdhesion[];
   modifications: { id: number; tiersId: number; avant: Tiers; apres: Tiers; modifiePar: number; modifieLe: string; validePar?: number }[];   // S46, S42, S43
+  professions: string[];
+  localites: { pays: string; villes: { ville: string; quartiers: string[] }[] }[];
   groupesSolidaires: { id: number; code: string; nom: string }[];      // S44
   membresGroupes: { groupeId: number; tiersId: number }[];
   fraisClient: { tiersId: number; fraisId: number; montant: number }[];   // S41 : montant propre à un client

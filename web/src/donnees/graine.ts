@@ -29,9 +29,9 @@ export function graine(): Etat {
   const personne = { sexe: "F" as const, naissance: "", pieceExpire: "2030-12-31", adresse: "Matete, quartier Kinsaku", telephone: "", personneExposee: false,
     dateDemande: "2026-01-15", numeroManuel: "", matricule: "", typeClient: "Client", zone: "", produitCode: "EAV-CDF", premierDepot: 0, resident: true, preleverAgios: true, calculerInteret: false,
     lieuNaissance: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", liees: [] as number[],
-    type: "physique" as const, formeJuridique: "", registre: "", centreActivite: "", activite: "", dirigeant: null, signataires: [], nbHommes: 0, nbFemmes: 0, membres: [], intitule: "", dateVisa: "2026-01-15", creePar: 4, visePar: 2, statut: "actif" as const };
+    type: "physique" as const, formeJuridique: "", registre: "", centreActivite: "", activite: "", dirigeant: null, signataires: [], nbHommes: 0, nbFemmes: 0, membres: [], intitule: "", dateVisa: "2026-01-15", profession: "", pays: "", ville: "", quartier: "", rue: "", email: "", bp: "", telephoneFixe: "", creePar: 4, visePar: 2, statut: "actif" as const };
   return {
-    version: 9,
+    version: 10,
     institution: { nom: "COOPEC Tujenge", profil: "coopec" },
     agence: { id: 1, code: "0412", nom: "Matete" },
     guichets: [{ id: 1, code: "G1", nom: "Caisse 1" }, { id: 2, code: "G2", nom: "Caisse 2" }],
@@ -68,5 +68,8 @@ export function graine(): Etat {
     images: {},
     sousTypes: ["Homme", "Femme", "Entreprise", "Groupement", "Association", "ONG"],   // fictifs : S14 pas encore construit
     frais: [], paramOperations: [], paramAdhesion: [], fraisClient: [], modifications: [], groupesSolidaires: [], membresGroupes: [],
+    // Localisation et professions fictives (paramétrage S14 et Localisation pas encore construits)
+    professions: ["Agriculteur", "Commerçant", "Enseignant"],
+    localites: [{ pays: "République démocratique du Congo", villes: [{ ville: "Kinshasa", quartiers: ["Kinsaku", "Lemba", "Matete"] }] }],
   };
 }

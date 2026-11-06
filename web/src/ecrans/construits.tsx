@@ -8,6 +8,7 @@ import { EcranJournee, EcranValidation } from "./Journee";
 import { InformationsClient, ModificationFrais, ValidationClientModifie, VisaClient } from "./Visa";
 import { FraisOperations } from "./Parametrage";
 import { GroupeSolidaire } from "./Groupes";
+import { NouveauProspect } from "./Prospects";
 
 /** Écrans de l'inventaire déjà construits. Les autres affichent « pas encore construit ». */
 export const CONSTRUITS: Record<string, ComponentType> = {
@@ -22,6 +23,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S42: ValidationClientModifie,
   S43: InformationsClient,
   S44: GroupeSolidaire,
+  S45: NouveauProspect,
   S46: MiseAJourClient,
   S73: Adhesion,
   S74: GuichetDepotRetrait,
