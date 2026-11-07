@@ -70,7 +70,7 @@ export function BilletageCaisse() {
   const compte = (d: Devise): Comptage => Object.fromEntries(COUPURES[d].map((v) => [v, /^\d+$/.test(saisis[d][v] ?? "") ? Number(saisis[d][v]) : 0]));
   const mBon = bonSaisi.trim() ? lireMontant(bonSaisi) : 0;
   const changer = (d: Devise, v: number, x: string) => { if (/^\d{0,6}$/.test(x)) { setBon(bonSaisi); setNombres({ ...saisis, [d]: { ...saisis[d], [v]: x } }); } };
-  const deux = (f: (d: Devise) => number) => DEVISES.map((d) => montant(f(d), d)).join(" ; ");
+  const deux = (f: (d: Devise) => number) => DEVISES.map((d) => montant(f(d), d)).join("\n");
   function enregistrer() {
     if (mBon === null) { setBoite({ type: "erreur", message: "Bon de Caisse invalide." }); return; }
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
@@ -85,11 +85,11 @@ export function BilletageCaisse() {
       <h1>Arretée de : {ctx.guichets.find((g) => g.id === s.guichetId)?.nom}</h1>
       <section className="bloc pile" aria-label="Billetage">
         <div className="grille-cadres quatre">
-          <Champ libelle="Solde Caisse :">{(p) => <input {...p} className="saisie montant" readOnly value={deux((d) => totalComptage(theorique[d]))} />}</Champ>
+          <Champ libelle="Solde Caisse :">{(p) => <textarea {...p} className="saisie montant" rows={2} readOnly value={deux((d) => totalComptage(theorique[d]))} />}</Champ>
           <Champ libelle="Journées:">{(p) => <select {...p} className="saisie code" disabled value={j?.date ?? ""}><option value={j?.date ?? ""}>{j ? fr(j.date) : ""}</option></select>}</Champ>
           <Champ libelle="Bon de Caisse">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={bonSaisi}
             onChange={(e) => { setNombres(saisis); setBon(e.target.value); }} />}</Champ>
-          <Champ libelle="Total Caisse">{(p) => <input {...p} className="saisie montant" readOnly value={deux((d) => totalComptage(compte(d)) + (d === "CDF" ? mBon ?? 0 : 0))} />}</Champ>
+          <Champ libelle="Total Caisse">{(p) => <textarea {...p} className="saisie montant" rows={2} readOnly value={deux((d) => totalComptage(compte(d)) + (d === "CDF" ? mBon ?? 0 : 0))} />}</Champ>
         </div>
         <table className="grille">
           <thead><tr><th scope="col">Libelle</th><th scope="col">Nombre</th><th scope="col" className="num">Total</th></tr></thead>
@@ -105,7 +105,7 @@ export function BilletageCaisse() {
               );
             }))}
           </tbody>
-          <tfoot><tr><td colSpan={2} className="num">Total Montant :</td><td className="num chiffres">{deux((d) => totalComptage(compte(d)))}</td></tr></tfoot>
+          <tfoot><tr><td colSpan={2} className="num">Total Montant :</td><td className="num chiffres multi-ligne">{deux((d) => totalComptage(compte(d)))}</td></tr></tfoot>
         </table>
         <div className="actions-onglets">
           <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
@@ -115,6 +115,73 @@ export function BilletageCaisse() {
         <Textes sources={["Manuel Microfina++, p. 90 et 91 : Arretée de, Solde Caisse, Journées, Bon de Caisse, Total Caisse, Libelle, Nombre, Total, Total Montant, Enregistrer, Terminer",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "Manuel Microfina++, p. 18 et 19 : ouverture du guichet sans comptage ; Solde Caisse : dernier arrêté validé et opérations de la journée"]} />
+      </section>
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </>
+  );
+}
+
+/** S80 : Caisse > Billetage > Validation de billetage à la caisse (manuel Microfina++, p. 91 et 92) */
+export function ValidationBilletage() {
+  const [guichetId, setGuichetId] = useState(0);
+  const [relu, setRelu] = useState(0);
+  const [boite, setBoite] = useState<Boite | null>(null);
+  const { donnees } = useDonnees(async () => {
+    const [ctx, j] = await Promise.all([api.referentiel.contexte(), api.journees.courante()]);
+    const sessions = j ? await api.caisses.delaJournee(j.id) : [];
+    const s = sessions.find((x) => x.guichetId === guichetId);
+    const billetages = s ? (await api.caisses.billetages(s.id)).filter((b) => b.moment === "arret") : [];
+    return { ctx, j, sessions, billetages };
+  }, [guichetId, relu]);
+  if (!donnees) return <Chargement />;
+  const { ctx, j, sessions, billetages } = donnees;
+  const parDevise = (f: (d: Devise) => number) => DEVISES.map((d) => montant(f(d), d)).join("\n");
+  const de = (d: Devise) => billetages.find((b) => b.devise === d);
+  const bon = de("CDF")?.bonCaisse ?? 0;
+  const lignes = DEVISES.flatMap((d) => COUPURES[d].filter((v) => (de(d)?.compte[v] ?? 0) > 0).map((v) => ({ d, v, n: de(d)!.compte[v]! })));
+  const guichet = ctx.guichets.find((g) => g.id === guichetId);
+  function valider() {
+    const a = billetages.filter((b) => !b.validePar);
+    if (!a.length) { setBoite({ type: "erreur", message: billetages.length ? "Billetage déjà validé." : "Aucun billetage enregistré pour ce guichet." }); return; }
+    setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
+      try { for (const b of a) await api.caisses.validerBilletage(b.id); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+      catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+    } });
+  }
+  return (
+    <>
+      <h1>Validation Arretée Temporaire : {guichet?.nom ?? ""}</h1>
+      <section className="bloc pile" aria-label="Validation du billetage">
+        <div className="grille-cadres quatre">
+          <Champ libelle="Solde Informatique">{(p) => <textarea {...p} className="saisie montant" rows={2} readOnly value={billetages.length ? parDevise((d) => totalComptage(de(d)?.theorique ?? {})) : ""} />}</Champ>
+          <Champ libelle="Solde Reel">{(p) => <textarea {...p} className="saisie montant" rows={2} readOnly value={billetages.length ? parDevise((d) => totalComptage(de(d)?.compte ?? {}) + (d === "CDF" ? bon : 0)) : ""} />}</Champ>
+          <Champ libelle="Compte Comptable">{(p) => <input {...p} className="saisie code" readOnly value="" />}</Champ>
+        </div>
+        <div className="grille-cadres quatre">
+          <Champ libelle="Guichet">{(p) => (
+            <select {...p} className="saisie" value={guichetId || ""} onChange={(e) => setGuichetId(Number(e.target.value))}>
+              <option value="" disabled></option>
+              {ctx.guichets.filter((g) => sessions.some((x) => x.guichetId === g.id)).map((g) => <option key={g.id} value={g.id}>{g.nom}</option>)}
+            </select>)}</Champ>
+          <Champ libelle="Journées:">{(p) => <select {...p} className="saisie code" disabled value={j?.date ?? ""}><option value={j?.date ?? ""}>{j ? fr(j.date) : ""}</option></select>}</Champ>
+        </div>
+        <table className="grille">
+          <thead><tr><th scope="col">Libelle</th><th scope="col">Nombre</th><th scope="col" className="num">Montant</th></tr></thead>
+          <tbody>
+            {lignes.length === 0 && <tr><td colSpan={3}>Aucune donnée dans la liste</td></tr>}
+            {lignes.map(({ d, v, n }) => <tr key={`${d}-${v}`}><td>Billet de {v} {d}</td><td className="chiffres">{n}</td><td className="num chiffres">{montant(n * v * 100, d)}</td></tr>)}
+          </tbody>
+          <tfoot><tr><td>Bon Caisse ====&gt; <span className="chiffres">{montant(bon, "CDF")}</span></td><td>Total Billetage</td>
+            <td className="num chiffres multi-ligne">{parDevise((d) => totalComptage(de(d)?.compte ?? {}))}</td></tr></tfoot>
+        </table>
+        <div className="actions-onglets">
+          <button className="bouton" type="button" disabled={!guichetId} onClick={valider}>Valider</button>
+          <button className="bouton secondaire" type="button" disabled>Imprimer</button>
+          <button className="bouton secondaire" type="button" disabled>Terminer</button>
+        </div>
+        <p className="a-confirmer">À confirmer : qui valide (ici le chef d'agence, autre que le caissier qui a compté) ; contenu du champ Compte Comptable ; Solde Reel avec ou sans le Bon de Caisse (ici : avec) ; liste des journées (ici : la journée ouverte) ; boutons Imprimer et Terminer ; écriture de l'écart entre solde informatique et réel.</p>
+        <Textes sources={["Manuel Microfina++, p. 91 et 92 : Validation Arretée Temporaire, Solde Informatique, Solde Reel, Compte Comptable, Guichet, Journées, Libelle, Nombre, Montant, Bon Caisse, Total Billetage, Valider, Imprimer, Terminer",
+          "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
       </section>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>

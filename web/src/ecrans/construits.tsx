@@ -2,7 +2,7 @@ import type { ComponentType } from "react";
 import GuichetDepotRetrait from "./Guichet";
 import Adhesion from "./Adhesion";
 import Balance from "./Comptabilite";
-import { BilletageCaisse, OuvertureCaisse } from "./Caisse";
+import { BilletageCaisse, OuvertureCaisse, ValidationBilletage } from "./Caisse";
 import { EnrolementEntreprise, EnrolementGroupe, EnrolementPhysique, MiseAJourClient } from "./Membres";
 import { EcranJournee, EcranValidation } from "./Journee";
 import { Consentement, InformationsClient, ModificationFrais, PhotosSignatures, ResiliationClient, ValidationClientModifie, VisaClient } from "./Visa";
@@ -39,7 +39,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S74: GuichetDepotRetrait,
   S77: PartsSociales,
   S79: BilletageCaisse,
-  S80: () => <EcranValidation titre="Validation du billetage" seulement="billetages" />,
+  S80: ValidationBilletage,
   S113: () => <EcranValidation titre="Visas" seulement="operations" />,
   S121: Balance,
 };

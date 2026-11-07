@@ -12,8 +12,6 @@ const OUT = process.argv[2];
   const IDS = { 'J.-P. Mukendi': 'jpmukendi', 'Esther Ngalula': 'engalula', 'Bijou Kasongo': 'bkasongo', 'Patrick Lumbala': 'plumbala' };
   const login = async (nom) => { await p.goto(B + '/connexion'); await p.getByLabel("Nom d'utilisateur").fill(IDS[nom]); await p.getByRole('button', { name: 'Connexion' }).click(); await p.waitForURL(B + '/'); };
   // Valide les billetages un par un, en attendant que la liste se mette à jour entre deux clics
-  const validerTout = async () => { for (let n = 2; n > 0; n--) { await p.getByRole('list', { name: 'Billetages' }).getByRole('button', { name: 'Valider' }).first().click();
-    if (n > 1) await p.waitForFunction((k) => document.querySelectorAll('[aria-label="Billetages"] button').length < k, n); } };
   const aller = async (chemin) => { await p.goto(B + chemin); await p.waitForLoadState('networkidle'); };
 
   await p.goto(B + '/connexion'); await p.evaluate(() => localStorage.clear()); await p.reload();
@@ -263,9 +261,9 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await etape('15-arrete');
   await login('J.-P. Mukendi'); await aller('/administration/s12'); await etape('16-chef-fermeture-bloquee');
-  await aller('/caisse/s80');
-  await validerTout();
-  await p.getByText('Rien à valider pour l\'instant.').waitFor();
+  await aller('/caisse/s80'); await p.getByLabel('Guichet').selectOption({ label: 'Caisse 2' });
+  await p.getByRole('cell', { name: 'Billet de 20000 CDF' }).waitFor(); await etape('16b-validation-billetage');
+  await p.getByRole('button', { name: 'Valider' }).click(); await ok();
   await aller('/administration/s12');
   await p.getByRole('button', { name: 'Fermer la journée' }).click(); await p.getByRole('heading', { name: 'Ouvrir la journée' }).waitFor();
   await etape('17-journee-fermee');
