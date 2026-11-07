@@ -362,3 +362,15 @@ def test_prospect(clients):
     c = agent.post("/api/tiers", {**fiche, "prospectId": t["id"]}, **H).json()
     assert (c["id"], c["numero"], c["statut"], c["quartier"], c["profession"]) == (t["id"], t["numero"], "a_viser", "Lemba", "Commerçant")
     assert agent.get("/api/prospects").json() == []
+
+
+def test_type_procuration(clients):
+    agent = clients["agent"]
+    connecter(agent, "bkasongo")
+    assert agent.get("/api/types-procuration").json() == []
+    r = agent.post("/api/types-procuration", {"libelle": " "}, **H); assert r.status_code == 422 and "libellé" in r.json()["message"]
+    t = agent.post("/api/types-procuration", {"libelle": "Procuration générale"}, **H).json()
+    r = agent.post("/api/types-procuration", {"libelle": "procuration générale"}, **H); assert r.status_code == 422 and "existe déjà" in r.json()["message"]
+    assert [x["libelle"] for x in agent.get("/api/types-procuration").json()] == ["Procuration générale"]
+    assert agent.delete(f"/api/types-procuration/{t['id']}", **H).status_code == 200
+    assert agent.get("/api/types-procuration").json() == []

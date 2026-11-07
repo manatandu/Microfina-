@@ -5,6 +5,7 @@ from ninja import Body, NinjaAPI
 
 from . import frais as fr
 from . import groupes as gs
+from . import procurations as pr
 from . import services as s
 from .bd import ErreurMetier
 
@@ -366,3 +367,20 @@ def gs_affecter(request, gid: int, corps: dict = Body(...)):
 @api.post("/groupes-solidaires/{gid}/retrait")
 def gs_retirer(request, gid: int, corps: dict = Body(...)):
     return gs.retirer(u(request), gid, corps)
+
+
+# ---------- Client : types de procuration (S47) ----------
+@api.get("/types-procuration")
+def tp_lire(request):
+    return pr.lire(u(request))
+
+
+@api.post("/types-procuration")
+def tp_creer(request, corps: dict = Body(...)):
+    return pr.creer(u(request), corps)
+
+
+@api.delete("/types-procuration/{tid}")
+def tp_supprimer(request, tid: int):
+    pr.supprimer(u(request), tid)
+    return None

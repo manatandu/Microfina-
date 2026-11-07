@@ -157,7 +157,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise }
 
 export interface Etat {
-  version: 10;
+  version: 11;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];
@@ -181,6 +181,7 @@ export interface Etat {
   paramOperations: ParamOperation[];
   paramAdhesion: ParamAdhesion[];
   modifications: { id: number; tiersId: number; avant: Tiers; apres: Tiers; modifiePar: number; modifieLe: string; validePar?: number }[];   // S46, S42, S43
+  typesProcuration: { id: number; libelle: string }[];   // S47
   professions: string[];
   localites: { pays: string; villes: { ville: string; quartiers: string[] }[] }[];
   groupesSolidaires: { id: number; code: string; nom: string }[];      // S44

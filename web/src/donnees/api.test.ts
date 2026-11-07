@@ -215,6 +215,15 @@ describe("journée de guichet", () => {
     expect(await api.tiers.prospects()).toEqual([]);
   });
 
+  it("types de procuration (S47) : libellé obligatoire, sans doublon, suppression", async () => {
+    await connecter("bkasongo");
+    await expect(api.procurations.creer({ libelle: " " })).rejects.toThrow("libellé");
+    const t = await api.procurations.creer({ libelle: "Procuration générale" });
+    await expect(api.procurations.creer({ libelle: "procuration générale" })).rejects.toThrow("existe déjà");
+    await api.procurations.supprimer(t.id);
+    expect(await api.procurations.lire()).toEqual([]);
+  });
+
   it("adhésion : parts en 1030, premier dépôt en 330, après visa seulement", async () => {
     await connecter("bkasongo");
     const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), produitCode: "EAV-CDF", nom: "Tshala", postnom: "Muana", prenom: "Marie", naissance: "1990-02-01", pieceType: "Carte d'électeur", pieceNumero: "1-0412-0999", pieceExpire: "2031-01-01", adresse: "Matete" });

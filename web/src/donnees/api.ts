@@ -16,14 +16,14 @@ import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@d
 export const SEUIL_CAISSIER_USD = 1000;   // au-delà, visa du chef d'agence. Exemple : fixé par la COOPEC
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v10";
+const CLE = "likelemba-demo-v11";
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
 
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 10) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 11) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   return graine();
 }
@@ -650,6 +650,24 @@ const groupes = {
   },
 };
 
+// ---------- Client : types de procuration (S47, manuel p. 56). Règles identiques côté serveur (noyau/procurations.py). ----------
+const procurations = {
+  lire() { exiger(); return [...E.typesProcuration].sort((a, b) => a.libelle.localeCompare(b.libelle, "fr")); },
+  creer(d: { libelle: string }) {
+    exiger();
+    const l = d.libelle.trim();
+    if (!l) throw new ErreurMetier("À remplir : libellé.");
+    if (E.typesProcuration.some((x) => x.libelle.toLowerCase() === l.toLowerCase())) throw new ErreurMetier("Ce type de procuration existe déjà.");
+    const t = { id: prochain(E.typesProcuration), libelle: l };
+    E.typesProcuration.push(t); enregistrer(); return t;
+  },
+  supprimer(id: number) {
+    exiger();
+    if (!E.typesProcuration.some((x) => x.id === id)) throw new ErreurMetier("Type de procuration introuvable.");
+    E.typesProcuration = E.typesProcuration.filter((x) => x.id !== id); enregistrer();
+  },
+};
+
 // ---------- Guichet ----------
 interface Commun { cle: string; coupures: Comptage }
 
@@ -836,6 +854,7 @@ const apiLocal = {
   etats: asynchrone(etats),
   parametrage: asynchrone(parametrage),
   groupes: asynchrone(groupes),
+  procurations: asynchrone(procurations),
 };
 
 export type ApiDonnees = typeof apiLocal;
