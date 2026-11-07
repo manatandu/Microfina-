@@ -407,3 +407,16 @@ def test_photo_signature(clients):
     agent.post(f"/api/tiers/{k}/specimen", {"photo": png}, **H)
     assert agent.get(f"/api/tiers/{k}/images").json() == {"photo": png, "signature": png}
     assert ident("select depose_par from specimen where tiers_id = %s order by id desc limit 1", (k,)) == ident("select id from utilisateur where login = 'bkasongo'")
+
+
+def test_consentement(clients):
+    agent = clients["agent"]
+    connecter(agent, "bkasongo")
+    k = T("0412-000318")
+    def refus(corps):
+        r = agent.post(f"/api/tiers/{k}/consentements", corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    assert "code" in refus({"dateDebut": "2026-11-07"})
+    assert "précède" in refus({"code": "CR-1", "dateDebut": "2026-11-07", "dateFin": "2026-11-01"})
+    l = agent.post(f"/api/tiers/{k}/consentements", {"code": "CR-1", "dateDebut": "2026-11-07", "commentaire": "Signé à la demande de crédit"}, **H).json()
+    assert [(x["code"], x["dateDebut"], x["dateFin"], x["commentaire"]) for x in l] == [("CR-1", "2026-11-07", "", "Signé à la demande de crédit")]
+    assert agent.get(f"/api/tiers/{k}/consentements").json() == l

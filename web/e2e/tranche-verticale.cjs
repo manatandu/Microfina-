@@ -187,6 +187,13 @@ const OUT = process.argv[2];
   await p.locator('fieldset', { hasText: 'Signature client' }).locator('input[type=file]').setInputFiles({ name: 'signature.png', mimeType: 'image/png', buffer: png });
   await p.getByRole('img', { name: 'Aperçu de la signature' }).waitFor(); await etape('06v-photos-signatures');
   await p.getByRole('button', { name: 'Valider les Modifications' }).click(); await ok();
+  // Consentement (S50)
+  await aller('/clients/s50'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  const rcs = p.getByRole('dialog', { name: 'Clients' });
+  await rcs.getByLabel('Numéro, Nom et Prénoms :').fill('Kalala'); await rcs.getByRole('row').filter({ hasText: 'Kalala' }).dblclick();
+  await p.getByLabel('Code *').fill('CR-1'); await p.getByLabel('Commentaire').fill('Signé à la demande de crédit');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
+  await p.getByRole('cell', { name: 'CR-1' }).waitFor(); await etape('06w-consentement');
   // Caissière : adhésion, dépôt, retrait
   await login('Esther Ngalula'); await aller('/caisse/s73');
   await p.getByLabel(/Nom, numéro ou compte/).waitFor(); await p.keyboard.press('F2'); await p.keyboard.type('Tshala'); await p.getByRole('option', { name: /Tshala/ }).click();

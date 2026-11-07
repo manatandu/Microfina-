@@ -5,7 +5,7 @@ import Balance from "./Comptabilite";
 import { BilletageCaisse, OuvertureCaisse } from "./Caisse";
 import { EnrolementEntreprise, EnrolementGroupe, EnrolementPhysique, MiseAJourClient } from "./Membres";
 import { EcranJournee, EcranValidation } from "./Journee";
-import { InformationsClient, ModificationFrais, PhotosSignatures, ResiliationClient, ValidationClientModifie, VisaClient } from "./Visa";
+import { Consentement, InformationsClient, ModificationFrais, PhotosSignatures, ResiliationClient, ValidationClientModifie, VisaClient } from "./Visa";
 import { FraisOperations } from "./Parametrage";
 import { GroupeSolidaire } from "./Groupes";
 import { NouveauProspect } from "./Prospects";
@@ -29,6 +29,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S47: TypesProcuration,
   S48: ResiliationClient,
   S49: PhotosSignatures,
+  S50: Consentement,
   S73: Adhesion,
   S74: GuichetDepotRetrait,
   S79: BilletageCaisse,

@@ -679,6 +679,35 @@ def changer_specimen(u: dict, tid: int, d: dict) -> dict:
     return lire_tiers(tid)
 
 
+def consentements(u: dict, tid: int) -> list[dict]:
+    exiger(u)
+    return [{"id": r["id"], "code": r["code"], "dateDebut": iso(r["date_debut"]), "dateFin": iso(r["date_fin"]), "commentaire": r["commentaire"] or ""}
+            for r in lignes("""select c.* from consentement c join tiers t on t.id = c.tiers_id where c.tiers_id = %s and t.institution_id = %s
+                               order by c.date_debut desc, c.id desc""", (tid, u["institution_id"]))]
+
+
+def creer_consentement(u: dict, tid: int, d: dict) -> list[dict]:
+    """S50 : Consentement (manuel p. 58), bouton Enregistrer. Instr. BCC 5, art. 13 : consentement écrit de l'emprunteur."""
+    exiger(u)
+    t = une("select statut from tiers where id = %s and institution_id = %s", (tid, u["institution_id"]))
+    if not t:
+        raise ErreurMetier("Client introuvable.")
+    if t["statut"] in ("prospect", "resilie"):
+        raise ErreurMetier("Client prospect ou résilié : pas de consentement à enregistrer.")
+    texte = texte_de(d or {})
+    manque = [n for n, k in (("code", "code"), ("date début", "dateDebut")) if not texte(k)]
+    if manque:
+        raise ErreurMetier("À remplir : " + ", ".join(manque) + ".")
+    for k in ("dateDebut", "dateFin"):
+        if texte(k) and not re.match(r"^\d{4}-\d{2}-\d{2}$", texte(k)):
+            raise ErreurMetier("Date invalide.")
+    if texte("dateFin") and texte("dateFin") < texte("dateDebut"):
+        raise ErreurMetier("La date de fin précède la date de début.")
+    executer("insert into consentement (tiers_id, code, date_debut, date_fin, commentaire, saisi_par) values (%s, %s, %s, %s, %s, %s)",
+             (tid, texte("code"), texte("dateDebut"), texte("dateFin") or None, texte("commentaire") or None, u["id"]))
+    return consentements(u, tid)
+
+
 def modifications_tiers(u: dict, tid: int) -> list[dict]:
     """« Informations initiales et actuelles » (S43, p. 54) : chaque modification (S46) avec l'état avant et après"""
     exiger(u)

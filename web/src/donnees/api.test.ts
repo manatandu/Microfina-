@@ -247,6 +247,15 @@ describe("journée de guichet", () => {
     expect(await api.tiers.images(3)).toEqual({ photo: png, signature: png });
   });
 
+  it("consentement (S50) : code et date début obligatoires, dates cohérentes", async () => {
+    await connecter("bkasongo");
+    const c = { code: "CR-1", dateDebut: "2026-11-07", dateFin: "", commentaire: "Signé à la demande de crédit" };
+    await expect(api.tiers.creerConsentement(1, { ...c, code: "" })).rejects.toThrow("code");
+    await expect(api.tiers.creerConsentement(1, { ...c, dateFin: "2026-11-01" })).rejects.toThrow("précède");
+    const l = await api.tiers.creerConsentement(1, c);
+    expect(l.map((x) => [x.code, x.dateDebut, x.dateFin, x.commentaire])).toEqual([["CR-1", "2026-11-07", "", "Signé à la demande de crédit"]]);
+  });
+
   it("adhésion : parts en 1030, premier dépôt en 330, après visa seulement", async () => {
     await connecter("bkasongo");
     const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), produitCode: "EAV-CDF", nom: "Tshala", postnom: "Muana", prenom: "Marie", naissance: "1990-02-01", pieceType: "Carte d'électeur", pieceNumero: "1-0412-0999", pieceExpire: "2031-01-01", adresse: "Matete" });

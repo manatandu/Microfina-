@@ -16,14 +16,14 @@ import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@d
 export const SEUIL_CAISSIER_USD = 1000;   // au-delà, visa du chef d'agence. Exemple : fixé par la COOPEC
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v12";
+const CLE = "likelemba-demo-v13";
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
 
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 12) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 13) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   return graine();
 }
@@ -420,6 +420,26 @@ const tiers = {
     E.images[id] = i;
     t.photo = t.photo || !!i.photo; t.specimen = t.specimen || !!i.signature;
     enregistrer(); return t;
+  },
+  /** S50 : Consentement (p. 58) ; Instr. BCC 5, art. 13 */
+  consentements(id: number) {
+    exiger();
+    return E.consentements.filter((c) => c.tiersId === id).sort((a, b) => b.dateDebut.localeCompare(a.dateDebut) || b.id - a.id)
+      .map(({ id: cid, code, dateDebut, dateFin, commentaire }) => ({ id: cid, code, dateDebut, dateFin, commentaire }));
+  },
+  /** Bouton Enregistrer. Règles identiques côté serveur (services.creer_consentement). */
+  creerConsentement(id: number, d: { code: string; dateDebut: string; dateFin: string; commentaire: string }) {
+    exiger();
+    const t = E.tiers.find((x) => x.id === id);
+    if (!t) throw new ErreurMetier("Client introuvable.");
+    if (t.statut === "prospect" || t.statut === "resilie") throw new ErreurMetier("Client prospect ou résilié : pas de consentement à enregistrer.");
+    const v = { code: d.code.trim(), dateDebut: d.dateDebut.trim(), dateFin: d.dateFin.trim(), commentaire: d.commentaire.trim() };
+    const manque = manquants([["code", v.code], ["date début", v.dateDebut]]);
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    if ([v.dateDebut, v.dateFin].some((x) => x && !/^\d{4}-\d{2}-\d{2}$/.test(x))) throw new ErreurMetier("Date invalide.");
+    if (v.dateFin && v.dateFin < v.dateDebut) throw new ErreurMetier("La date de fin précède la date de début.");
+    E.consentements.push({ id: prochain(E.consentements), tiersId: id, ...v });
+    enregistrer(); return tiers.consentements(id);
   },
   /** Cadre « Photo / Signature » de S43 (p. 54) */
   images(id: number): { photo: string | null; signature: string | null } {

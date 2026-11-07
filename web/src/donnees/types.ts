@@ -160,7 +160,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise }
 
 export interface Etat {
-  version: 12;
+  version: 13;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];
@@ -184,6 +184,7 @@ export interface Etat {
   paramOperations: ParamOperation[];
   paramAdhesion: ParamAdhesion[];
   modifications: { id: number; tiersId: number; avant: Tiers; apres: Tiers; modifiePar: number; modifieLe: string; validePar?: number }[];   // S46, S42, S43
+  consentements: { id: number; tiersId: number; code: string; dateDebut: string; dateFin: string; commentaire: string }[];   // S50
   typesProcuration: { id: number; libelle: string }[];   // S47
   professions: string[];
   motifsDepart: string[];   // S18, exemples de la capture p. 26

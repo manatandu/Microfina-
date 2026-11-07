@@ -663,3 +663,66 @@ export function PhotosSignatures() {
     </>
   );
 }
+
+/** S50 : Client > Consentement (manuel Microfina++, p. 58). En RDC : Instr. BCC 5, art. 13, consentement écrit à la Centrale des risques. */
+export function Consentement() {
+  const [t, setT] = useState<Tiers | null>(null);
+  const aujourdhui = new Date().toISOString().slice(0, 10);
+  const vide = { code: "", dateDebut: aujourdhui, dateFin: "", commentaire: "" };
+  const [d, setD] = useState(vide);
+  const [recherche, setRecherche] = useState(false);
+  const [boite, setBoite] = useState<Boite | null>(null);
+  const { donnees: liste } = useDonnees(() => (t ? api.tiers.consentements(t.id) : Promise.resolve([])), [t?.id]);
+  const info = (libelle: string, v: string) => <div className="info-ligne"><dt>{libelle}</dt><dd>{v}</dd></div>;
+  return (
+    <>
+      <h1>Consentement</h1>
+      <section className="bloc pile" aria-label="Consentement">
+        <div className="ligne-champ">
+          <Champ libelle="N° Client :">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
+          <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
+        </div>
+        <div className="deux-colonnes">
+          <fieldset className="cadre-champs">
+            <legend>Info Membres</legend>
+            <dl className="infos">
+              {info("Intitulé client :", t ? t.intitule || nomComplet(t) : "")}{info("Téléphone :", t?.telephone ?? "")}{info("Adresse :", t?.adresse ?? "")}
+              {info("Sexe :", t?.sexe ?? "")}{info("Email :", t?.email ?? "")}{info("Résident :", t ? (t.resident ? "Oui" : "Non") : "")}
+              {info("Type Pièce", t?.pieceType ?? "")}{info("N° de Pièce :", t?.pieceNumero ?? "")}{info("Pays de délivrace :", t?.pieceLieu ?? "")}
+              {info("Date de délivrace :", t ? fr(t.pieceDelivreeLe) : "")}{info("Date d'expiration :", t ? fr(t.pieceExpire) : "")}
+            </dl>
+          </fieldset>
+          <fieldset className="pile cadre-champs">
+            <legend className="sr-only">Consentement</legend>
+            <Champ libelle="Code *">{(p) => <input {...p} className="saisie code" required autoComplete="off" value={d.code} onChange={(e) => setD({ ...d, code: e.target.value })} />}</Champ>
+            <ChampDate libelle="Date début *" valeur={d.dateDebut} onChange={(v) => setD({ ...d, dateDebut: v })} requis />
+            <ChampDate libelle="Date Fin" valeur={d.dateFin} onChange={(v) => setD({ ...d, dateFin: v })} />
+            <Champ libelle="Commentaire">{(p) => <textarea {...p} className="saisie" rows={3} value={d.commentaire} onChange={(e) => setD({ ...d, commentaire: e.target.value })} />}</Champ>
+            <div className="actions-onglets">
+              <button className="bouton" type="button" disabled={!t} onClick={() => t && setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
+                try { await api.tiers.creerConsentement(t.id, d); setD(vide); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+                catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+              } })}>Enregistrer</button>
+              <button className="bouton secondaire" type="button" onClick={() => setD(vide)}>Annuler</button>
+            </div>
+          </fieldset>
+        </div>
+        <table className="grille">
+          <thead><tr><th scope="col">Code</th><th scope="col">Date début</th><th scope="col">Date fin</th><th scope="col">Commentaire</th></tr></thead>
+          <tbody>
+            {(!liste || liste.length === 0) && <tr><td colSpan={4}>No records found.</td></tr>}
+            {liste?.map((c) => <tr key={c.id}><td className="chiffres">{c.code}</td><td className="chiffres">{fr(c.dateDebut)}</td><td className="chiffres">{fr(c.dateFin)}</td><td>{c.commentaire}</td></tr>)}
+          </tbody>
+        </table>
+        <Textes sources={["Manuel Microfina++, p. 58 : écran Consentement (N° Client, Info Membres, Code*, Date début*, Date Fin, Commentaire, Enregistrer, Annuler)",
+          "Instr. BCC 5, art. 13 : consentement écrit de l'emprunteur avant de communiquer ses informations à la Centrale des risques (le manuel parle du BIC de l'UEMOA)",
+          "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
+      </section>
+      <Fiche titre="Clients" ouverte={recherche} fermer={() => setRecherche(false)}>
+        <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut !== "prospect" && x.statut !== "resilie") : [])}
+          choisir={(x) => { setT(x); setD(vide); setRecherche(false); }} fermer={() => setRecherche(false)} />
+      </Fiche>
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </>
+  );
+}
