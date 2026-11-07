@@ -356,3 +356,9 @@ def test_prospect(clients):
     assert agent.post(f"/api/prospects/{t['id']}", {**p, "quartier": "Lemba"}, **H).json()["quartier"] == "Lemba"
     assert [x["id"] for x in agent.get("/api/prospects").json()] == [t["id"]]
     assert "introuvable" in refus(p, f"/api/prospects/{T('0412-000318')}")
+    # « Choisir prospect » à l'enrôlement (S37, p. 49) : le prospect devient le client, même numéro
+    fiche = {**FICHE, "dateDemande": "2026-11-07", "nom": "Tshibangu", "prenom": "Anne", "sexe": "F", "pieceType": "Passeport", "pieceNumero": "OP7"}
+    assert "Prospect introuvable" in refus({**fiche, "prospectId": T("0412-000318")}, "/api/tiers")
+    c = agent.post("/api/tiers", {**fiche, "prospectId": t["id"]}, **H).json()
+    assert (c["id"], c["numero"], c["statut"], c["quartier"], c["profession"]) == (t["id"], t["numero"], "a_viser", "Lemba", "Commerçant")
+    assert agent.get("/api/prospects").json() == []

@@ -168,6 +168,13 @@ const OUT = process.argv[2];
   await p.getByLabel('Quartier : *').selectOption('Kinsaku'); await p.getByLabel('Portable :').fill('+243 810 000 111'); await etape('06r-prospect');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('cell', { name: 'Tshibangu Anne' }).waitFor(); await etape('06s-prospect-enregistre');
+  // Choisir prospect à l'enrôlement (S37)
+  await aller('/clients/s37'); await p.getByRole('button', { name: 'Choisir prospect' }).click();
+  await p.getByRole('dialog', { name: 'Prospects' }).getByRole('row').filter({ hasText: 'Tshibangu' }).dblclick();
+  await p.getByLabel('Type de compte à créer *').selectOption('EAV-CDF'); await etape('06t-enrolement-prospect');
+  await p.getByRole('button', { name: 'Suivant' }).click();
+  await p.getByLabel('Type de pièce : *').selectOption('Passeport'); await p.getByLabel('N° de pièce : *').fill('OP7');
+  await p.getByRole('tab', { name: 'Photo' }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   // Caissière : adhésion, dépôt, retrait
   await login('Esther Ngalula'); await aller('/caisse/s73');
   await p.getByLabel(/Nom, numéro ou compte/).waitFor(); await p.keyboard.press('F2'); await p.keyboard.type('Tshala'); await p.getByRole('option', { name: /Tshala/ }).click();

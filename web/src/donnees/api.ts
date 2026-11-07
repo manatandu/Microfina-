@@ -330,11 +330,21 @@ const tiers = {
     return E.tiers.filter((x) => [x.numero, x.nom, x.postnom, x.prenom].join(" ").toLowerCase().includes(t)
       || E.comptes.some((c) => c.tiersId === x.id && c.numero.includes(t))).slice(0, 20);
   },
-  creer(d: NouveauTiers, images: Images = {}) {
+  creer(d: NouveauTiers, images: Images = {}, prospectId?: number) {
     const u = utilisateur();
     if (!u) throw new ErreurMetier("Session fermée.");
     controlerEnrolement(d, images, ctxControle());
-    const t = nouveauTiers(d, u.id, { type: "physique", dirigeant: null, signataires: [], membres: [], photo: !!images.photo, specimen: !!images.signature });
+    const reste = { type: "physique" as const, dirigeant: null, signataires: [], membres: [], photo: !!images.photo, specimen: !!images.signature };
+    let t: Tiers;
+    if (prospectId !== undefined) {
+      // « Choisir prospect » (p. 49) : le prospect (S45) devient le client ; il garde son numéro et ses coordonnées
+      const p = E.tiers.find((x) => x.id === prospectId && x.statut === "prospect");
+      if (!p) throw new ErreurMetier("Prospect introuvable.");
+      if (d.liees.includes(prospectId)) throw new ErreurMetier("Un client ne peut pas être sa propre personne liée.");
+      const garde = { profession: p.profession, pays: p.pays, ville: p.ville, quartier: p.quartier, rue: p.rue, email: p.email, bp: p.bp, telephoneFixe: p.telephoneFixe };
+      Object.assign(p, d, garde, reste, { statut: "a_viser", creePar: u.id });
+      t = p;
+    } else t = nouveauTiers(d, u.id, reste);
     if (images.photo || images.signature) E.images[t.id] = images;
     enregistrer(); return t;
   },

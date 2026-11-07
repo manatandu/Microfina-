@@ -444,13 +444,32 @@ def creer_tiers(u: dict, d: dict) -> dict:
     controler_piece(texte("pieceType"), texte("pieceExpire"), journee_courante(u))
     images = d.get("images") or {}
     controler_image(images.get("photo"), "Photo"); controler_image(images.get("signature"), "Signature")
-    tid = inserer_tiers(u, d, b, "physique", "menages")
-    executer("""insert into tiers_personne (tiers_id, nom, postnom, prenom, sexe, date_naissance, lieu_naissance, piece_type, piece_numero, piece_delivree_le,
-                                            piece_lieu, piece_autorite, piece_validite, adresse, telephone)
-                values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-             (tid, texte("nom"), texte("postnom") or None, texte("prenom") or None, texte("sexe") or None, texte("naissance") or None, texte("lieuNaissance") or None,
+    prospect = d.get("prospectId")
+    if prospect is not None:
+        # « Choisir prospect » (p. 49) : le prospect (S45) devient le client ; il garde son numéro et ses coordonnées
+        if not isinstance(prospect, int) or isinstance(prospect, bool) or not une(
+                "select 1 from tiers where id = %s and institution_id = %s and statut = 'prospect' for update", (prospect, u["institution_id"])):
+            raise ErreurMetier("Prospect introuvable.")
+        if prospect in b["liees"]:
+            raise ErreurMetier("Un client ne peut pas être sa propre personne liée.")
+        tid = prospect
+        executer("""update tiers set numero_manuel = %s, statut = 'a_viser', residence = %s, agent_economique = 'menages', zone_id = %s, personne_exposee = %s,
+                                     cree_par = %s, date_demande = %s, matricule = %s, type_client = %s, produit_id = %s, premier_depot = %s, prelever_agios = %s,
+                                     calculer_interet = %s where id = %s""",
+                 (texte("numeroManuel") or None, "resident" if d.get("resident", True) else "non_resident", b["zone"], bool(d.get("personneExposee")), u["id"],
+                  texte("dateDemande"), texte("matricule") or None, texte("typeClient"), b["produit"], b["depot"], bool(d.get("preleverAgios", True)),
+                  bool(d.get("calculerInteret")), tid))
+        for autre in b["liees"]:
+            executer("insert into lien_tiers (tiers_id, autre_id, role) values (%s, %s, 'personne_liee')", (tid, autre))
+    else:
+        tid = inserer_tiers(u, d, b, "physique", "menages")
+        executer("insert into tiers_personne (tiers_id, nom) values (%s, '')", (tid,))
+    executer("""update tiers_personne set nom = %s, postnom = %s, prenom = %s, sexe = %s, date_naissance = %s, lieu_naissance = %s, piece_type = %s, piece_numero = %s,
+                                          piece_delivree_le = %s, piece_lieu = %s, piece_autorite = %s, piece_validite = %s, adresse = %s, telephone = %s
+                where tiers_id = %s""",
+             (texte("nom"), texte("postnom") or None, texte("prenom") or None, texte("sexe") or None, texte("naissance") or None, texte("lieuNaissance") or None,
               texte("pieceType"), texte("pieceNumero"), texte("pieceDelivreeLe") or None, texte("pieceLieu") or None, texte("pieceAutorite") or None,
-              texte("pieceExpire") or None, texte("adresse") or None, texte("telephone") or None))
+              texte("pieceExpire") or None, texte("adresse") or None, texte("telephone") or None, tid))
     if images.get("photo") or images.get("signature"):
         executer("insert into specimen (tiers_id, photo, signature, depose_le) values (%s, %s, %s, current_date)", (tid, images.get("photo"), images.get("signature")))
     return lire_tiers(tid)

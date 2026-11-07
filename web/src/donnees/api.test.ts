@@ -207,6 +207,12 @@ describe("journée de guichet", () => {
     expect((await api.tiers.modifierProspect(t.id, { ...p, quartier: "Lemba" })).quartier).toBe("Lemba");
     expect((await api.tiers.prospects()).map((x) => x.id)).toEqual([t.id]);
     await expect(api.tiers.modifierProspect(1, p)).rejects.toThrow("introuvable");
+    // « Choisir prospect » à l'enrôlement (S37, p. 49) : le prospect devient le client, même numéro
+    const fiche = { ...enrolementVide("2026-11-07"), produitCode: "EAV-CDF", nom: "Tshibangu", prenom: "Anne", sexe: "F" as const, pieceType: "Passeport", pieceNumero: "OP7" };
+    await expect(api.tiers.creer(fiche, {}, 1)).rejects.toThrow("Prospect introuvable");
+    const c = await api.tiers.creer(fiche, {}, t.id);
+    expect([c.id, c.numero, c.statut, c.quartier, c.profession]).toEqual([t.id, t.numero, "a_viser", "Lemba", "Commerçant"]);
+    expect(await api.tiers.prospects()).toEqual([]);
   });
 
   it("adhésion : parts en 1030, premier dépôt en 330, après visa seulement", async () => {

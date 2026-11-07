@@ -45,8 +45,9 @@ function Enrolement({ titre, onglets, numero, onglet, setOnglet, enregistrer, bo
 }
 
 /** Onglet « Informations de base » : physique p. 49, entreprise p. 50, groupe p. 51 (mêmes champs pour l'essentiel, colonnes différentes) */
-function InformationsDeBase({ genre, f, maj, ctx, numero, depot, setDepot }: {
+function InformationsDeBase({ genre, f, maj, ctx, numero, depot, setDepot, choisirProspect }: {
   genre: "physique" | "entreprise" | "groupe"; f: NouveauTiers; maj: (p: Partial<NouveauTiers>) => void; ctx: Ctx; numero: string; depot: string; setDepot: (v: string) => void;
+  choisirProspect?: () => void;
 }) {
   const sel = (k: "typeClient" | "zone" | "produitCode") => ({ value: f[k], onChange: (e: React.ChangeEvent<HTMLSelectElement>) => maj({ [k]: e.target.value }) });
   const nombre = (k: "nbHommes" | "nbFemmes") => ({ value: String(f[k] || ""), onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,7 +64,8 @@ function InformationsDeBase({ genre, f, maj, ctx, numero, depot, setDepot }: {
           ? <ChampDate libelle="Date demande : *" valeur={f.dateDemande} onChange={(v) => maj({ dateDemande: v })} requis />
           : <div className="ligne-champ">
               <ChampDate libelle="Date demande : *" valeur={f.dateDemande} onChange={(v) => maj({ dateDemande: v })} requis />
-              <button className="bouton secondaire" type="button" disabled title="Prospects : fonction S45, pas encore construite">Choisir prospect</button>
+              <button className="bouton secondaire" type="button" disabled={!choisirProspect} onClick={choisirProspect}
+                title={choisirProspect ? undefined : "À confirmer : le prospect (S45) est une personne physique"}>Choisir prospect</button>
             </div>}
         <Champ libelle={entreprise ? "N° de l'entreprise :" : groupe ? "N° du groupe :" : "N° du Client :"}>{(p) => <input {...p} className="saisie code" readOnly value={numero} />}</Champ>
         <Champ libelle="N° Manuel :">{(p) => <input {...p} className="saisie code" autoComplete="off" value={f.numeroManuel} onChange={(e) => maj({ numeroManuel: e.target.value })} />}</Champ>
@@ -284,13 +286,15 @@ const ONGLETS_PHYSIQUE = ["Informations de base", "Renseignements généraux", "
 export function EnrolementPhysique() {
   const c = useCommun();
   const [images, setImages] = useState<Images>({});
+  const [prospect, setProspect] = useState<Tiers | null>(null);
+  const [rechercheProspect, setRechercheProspect] = useState(false);
   if (!c.donnees) return <Chargement />;
   const { ctx } = c.donnees;
   const { f, maj } = c;
   return (
     <Enrolement titre="Enrôlement d'un Client physique" onglets={ONGLETS_PHYSIQUE} numero={c.cree?.numero} onglet={c.onglet} setOnglet={c.setOnglet}
       boite={c.boite} setBoite={c.setBoite}
-      enregistrer={() => c.confirmer((m) => api.tiers.creer({ ...f, premierDepot: m, liees: c.liees.map((t) => t.id) }, images), () => setImages({}))}
+      enregistrer={() => c.confirmer((m) => api.tiers.creer({ ...f, premierDepot: m, liees: c.liees.map((t) => t.id) }, images, prospect?.id), () => { setImages({}); setProspect(null); })}
       textes={["Manuel Microfina++, p. 48 et 49 : onglets, champs de l'onglet Informations de base, boutons Suivant, Précédent, Enregistrer",
         "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
         "PCCI § 10.1 : lieu de résidence (case Résident)",
@@ -298,7 +302,14 @@ export function EnrolementPhysique() {
         "Instr. BCC 15, art. 60 : personne politiquement exposée",
         "ARCHITECTURE P7 : enrôlement et visa par deux personnes"]}>
 
-      {c.onglet === 0 && <InformationsDeBase genre="physique" f={f} maj={maj} ctx={ctx} numero={c.numero} depot={c.depot} setDepot={c.setDepot} />}
+      {c.onglet === 0 && <InformationsDeBase genre="physique" f={f} maj={maj} ctx={ctx} numero={prospect?.numero ?? c.numero} depot={c.depot} setDepot={c.setDepot}
+        choisirProspect={() => setRechercheProspect(true)} />}
+      <Fiche titre="Prospects" ouverte={rechercheProspect} fermer={() => setRechercheProspect(false)}>
+        <RechercheClient source={async (q) => (await api.tiers.prospects()).filter((x) => [x.numero, x.nom, x.prenom].join(" ").toLowerCase().includes(q))}
+          choisir={(p) => { setProspect(p); setRechercheProspect(false);
+            maj({ nom: p.nom, prenom: p.prenom, sexe: p.sexe, naissance: p.naissance, lieuNaissance: p.lieuNaissance, telephone: p.telephone }); }}
+          fermer={() => setRechercheProspect(false)} />
+      </Fiche>
 
       {c.onglet === 1 && (
         <>
