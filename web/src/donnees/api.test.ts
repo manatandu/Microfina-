@@ -275,6 +275,25 @@ describe("journée de guichet", () => {
     expect(compteParts({ ...(await api.tiers.lire(1))!, type: "groupe", typeClient: "Groupement" })).toBe("1031");
   });
 
+  it("banques (S58) : banque client, compte de l'institution en 560 (PCCI), suppression contrôlée", async () => {
+    await connecter("bkasongo");
+    const b = { code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "Kinshasa, Gombe" };
+    await expect(api.banques.enregistrerBanque(b)).rejects.toThrow("Réservé");
+    await connecter("jpmukendi");
+    await expect(api.banques.enregistrerBanque({ ...b, compteLiaison: "" })).rejects.toThrow("compte liaison");
+    let l = await api.banques.enregistrerBanque(b);
+    await expect(api.banques.enregistrerBanque(b)).rejects.toThrow("existe déjà");
+    const bid = l.banques[0]!.id;
+    const c = { banqueId: bid, compte: "56010001", numeroBancaire: "05100-01234567-89", devise: "USD", journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "" };
+    await expect(api.banques.enregistrerCompte({ ...c, compte: "5701" })).rejects.toThrow("NOSTRI");
+    l = await api.banques.enregistrerCompte(c);
+    expect([l.comptes[0]!.libelle, l.comptes[0]!.intitule]).toEqual(["Rawbank USD", "Banque et autres intermédiaires financiers"]);
+    await expect(api.banques.enregistrerCompte({ ...c, numeroBancaire: "AUTRE" })).rejects.toThrow("déjà attribué");
+    await expect(api.banques.supprimerBanque(bid)).rejects.toThrow("comptes de l'institution");
+    expect((await api.banques.supprimerCompte(l.comptes[0]!.id)).comptes).toEqual([]);
+    expect((await api.banques.supprimerBanque(bid)).banques).toEqual([]);
+  });
+
   it("adhésion : parts en 1030, premier dépôt en 330, après visa seulement", async () => {
     await connecter("bkasongo");
     const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), produitCode: "EAV-CDF", nom: "Tshala", postnom: "Muana", prenom: "Marie", naissance: "1990-02-01", pieceType: "Carte d'électeur", pieceNumero: "1-0412-0999", pieceExpire: "2031-01-01", adresse: "Matete" });

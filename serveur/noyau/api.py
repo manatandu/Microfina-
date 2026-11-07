@@ -6,6 +6,7 @@ from ninja import Body, NinjaAPI
 from . import frais as fr
 from . import groupes as gs
 from . import procurations as pr
+from . import banques as bq
 from . import services as s
 from .bd import ErreurMetier
 
@@ -419,3 +420,39 @@ def tp_creer(request, corps: dict = Body(...)):
 def tp_supprimer(request, tid: int):
     pr.supprimer(u(request), tid)
     return None
+
+
+# ---------- Banque : création banque (S58) ----------
+@api.get("/banques")
+def bq_lire(request):
+    return bq.lire(u(request))
+
+
+@api.post("/banques")
+def bq_creer(request, corps: dict = Body(...)):
+    return bq.enregistrer_banque(u(request), corps)
+
+
+@api.post("/banques/comptes")
+def bq_compte_creer(request, corps: dict = Body(...)):
+    return bq.enregistrer_compte(u(request), corps)
+
+
+@api.post("/banques/comptes/{cid}")
+def bq_compte_modifier(request, cid: int, corps: dict = Body(...)):
+    return bq.enregistrer_compte(u(request), corps, cid)
+
+
+@api.delete("/banques/comptes/{cid}")
+def bq_compte_supprimer(request, cid: int):
+    return bq.supprimer_compte(u(request), cid)
+
+
+@api.post("/banques/{bid}")
+def bq_modifier(request, bid: int, corps: dict = Body(...)):
+    return bq.enregistrer_banque(u(request), corps, bid)
+
+
+@api.delete("/banques/{bid}")
+def bq_supprimer(request, bid: int):
+    return bq.supprimer_banque(u(request), bid)

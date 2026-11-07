@@ -161,7 +161,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise }
 
 export interface Etat {
-  version: 14;
+  version: 15;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];
@@ -185,6 +185,8 @@ export interface Etat {
   paramOperations: ParamOperation[];
   paramAdhesion: ParamAdhesion[];
   modifications: { id: number; tiersId: number; avant: Tiers; apres: Tiers; modifiePar: number; modifieLe: string; validePar?: number }[];   // S46, S42, S43
+  banques: { id: number; code: string; libelle: string; compteLiaison: string; adresse: string }[];   // S58
+  comptesBancaires: { id: number; banqueId: number; compte: string; libelle: string; numeroBancaire: string; devise: Devise; journalId: number; contactNom: string; contactNomComplet: string; contactTelephone: string }[];
   consentements: { id: number; tiersId: number; code: string; dateDebut: string; dateFin: string; commentaire: string }[];   // S50
   typesProcuration: { id: number; libelle: string }[];   // S47
   professions: string[];

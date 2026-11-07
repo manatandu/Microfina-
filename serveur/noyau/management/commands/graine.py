@@ -63,7 +63,7 @@ class Command(BaseCommand):
         # Plan de comptes, journaux, schémas comptables (proposés par le comptable, validés par le chef : quatre yeux)
         for numero, libelle, classe, nature in PCCI:
             executer("insert into compte (numero, libelle, classe, nature) values (%s, %s, %s, %s)", (numero, libelle, classe, nature))
-        executer("insert into journal (institution_id, code, libelle, type) values (%s, 'CA', 'Caisse', 'caisse'), (%s, 'AN', 'À-nouveaux', 'a_nouveaux')", (ins, ins))
+        executer("insert into journal (institution_id, code, libelle, type) values (%s, 'CA', 'Caisse', 'caisse'), (%s, 'AN', 'À-nouveaux', 'a_nouveaux'), (%s, 'BQ', 'Journal Banque', 'banque')", (ins, ins, ins))
         for ev in ("depot", "retrait", "adhesion", "achat_parts", "retrait_parts", "a_nouveaux"):
             executer("""insert into schema_comptable (institution_id, type_evenement, version, date_effet, lignes, propose_par, valide_par)
                         values (%s, %s, 1, '2026-01-01', '[]', %s, %s)""", (ins, ev, compta, chef))

@@ -89,6 +89,19 @@ const OUT = process.argv[2];
   await login('J.-P. Mukendi'); await aller('/caisse/s80'); await etape('06-chef-a-valider');
   await validerTout();
   await p.getByText('Rien à valider pour l\'instant.').waitFor();
+  // Création banque (S58)
+  await aller('/banque/s58');
+  await p.getByLabel('Code Banque: *').fill('RAW'); await p.getByLabel('Libelle : *').fill('Rawbank'); await p.getByLabel('Compte Liaison *').fill('5601');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
+  await p.getByRole('cell', { name: 'Rawbank' }).waitFor(); await etape('06c1-banque-client');
+  await p.getByRole('tab', { name: 'Banque Institution' }).click();
+  await p.getByLabel('Banque *').selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte *').fill('5701');
+  await p.getByLabel('N° Compte Bancaire : *').fill('05100-01234567-89'); await p.getByLabel('Devise *').selectOption('USD'); await p.getByLabel('Nom *').fill('Mutombo');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('dialog', { name: 'Erreur' }).waitFor(); await etape('06c2-compte-hors-nostri'); await p.getByRole('button', { name: 'Ok' }).click();
+  await p.getByLabel('Compte *').fill('56010001');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
+  await p.getByRole('cell', { name: '56010001' }).waitFor(); await etape('06c3-banque-institution');
   // Paramétrage des frais (S16)
   await aller('/parametrage/s16');
   const ok = async () => { await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click(); };

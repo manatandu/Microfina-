@@ -122,5 +122,12 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       clients: () => get("/rapports/clients"),
       modifications: () => get("/rapports/modifications"),
     },
+    banques: {
+      lire: () => get("/banques"),
+      enregistrerBanque: (d: object, id?: number) => post(id === undefined ? "/banques" : `/banques/${id}`, d),
+      supprimerBanque: (id: number) => appel("DELETE", `/banques/${id}`),
+      enregistrerCompte: (d: object, id?: number) => post(id === undefined ? "/banques/comptes" : `/banques/comptes/${id}`, d),
+      supprimerCompte: (id: number) => appel("DELETE", `/banques/comptes/${id}`),
+    },
   } as unknown as ApiDonnees;   // les formes de réponse sont celles des services du serveur (serveur/noyau/services.py)
 }

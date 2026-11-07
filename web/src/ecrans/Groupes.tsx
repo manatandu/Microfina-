@@ -10,9 +10,10 @@ const nomComplet = (t: { nom: string; postnom: string; prenom: string }) => [t.n
 const fr = (iso: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "");
 
 /** Tableau avec un filtre sous chaque en-tête et des pages de 10 lignes (captures p. 54 et 55) */
-function TableFiltree<T>({ colonnes, lignes, cle, vide = "Liste vide", avant, apres }: {
+export function TableFiltree<T>({ colonnes, lignes, cle, vide = "Liste vide", avant, apres, choisir, choisi }: {
   colonnes: { titre: string; valeur: (l: T) => string; classe?: string }[]; lignes: T[]; cle: (l: T) => string | number; vide?: string;
   avant?: { titre: ReactNode; cellule: (l: T) => ReactNode }; apres?: { titre: string; cellule: (l: T) => ReactNode };
+  choisir?: (l: T) => void; choisi?: string | number | null;
 }) {
   const [filtres, setFiltres] = useState<string[]>(colonnes.map(() => ""));
   const [page, setPage] = useState(0);
@@ -37,7 +38,8 @@ function TableFiltree<T>({ colonnes, lignes, cle, vide = "Liste vide", avant, ap
         <tbody>
           {retenues.length === 0 && <tr><td colSpan={colonnes.length + (avant ? 1 : 0) + (apres ? 1 : 0)}>{vide}</td></tr>}
           {retenues.slice(p * PAR_PAGE, (p + 1) * PAR_PAGE).map((l) => (
-            <tr key={cle(l)}>{avant && <td>{avant.cellule(l)}</td>}{colonnes.map((c) => <td key={c.titre} className={c.classe}>{c.valeur(l)}</td>)}{apres && <td>{apres.cellule(l)}</td>}</tr>
+            <tr key={cle(l)} {...(choisir ? { className: "ligne-choix", tabIndex: 0, "aria-selected": choisi === cle(l), onClick: () => choisir(l),
+              onKeyDown: (e: React.KeyboardEvent) => { if (e.key === "Enter") choisir(l); } } : {})}>{avant && <td>{avant.cellule(l)}</td>}{colonnes.map((c) => <td key={c.titre} className={c.classe}>{c.valeur(l)}</td>)}{apres && <td>{apres.cellule(l)}</td>}</tr>
           ))}
         </tbody>
       </table>

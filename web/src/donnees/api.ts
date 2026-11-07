@@ -16,14 +16,14 @@ import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@d
 export const SEUIL_CAISSIER_USD = 1000;   // au-delà, visa du chef d'agence. Exemple : fixé par la COOPEC
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v14";
+const CLE = "likelemba-demo-v15";
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
 
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 14) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 15) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   return graine();
 }
@@ -727,6 +727,65 @@ const rapports = {
   },
 };
 
+// ---------- Banque : création banque (S58, manuel p. 67). Règles identiques côté serveur (noyau/banques.py). ----------
+/** PCCI, compte 560 « Comptes NOSTRI disponible » */
+const NOSTRI: Record<string, string> = { "5600": "Organe faîtier", "5601": "Banque et autres intermédiaires financiers", "5602": "Coopérative d'Epargne et de Crédit",
+  "5603": "Institution de Micro Finance" };
+const JOURNAUX_BANQUE = [{ id: 3, code: "BQ", libelle: "Journal Banque" }];
+export type SaisieBanque = { code: string; libelle: string; compteLiaison: string; adresse: string };
+export type SaisieCompteBancaire = { banqueId: number; compte: string; numeroBancaire: string; devise: string; journalId: number; contactNom: string; contactNomComplet: string; contactTelephone: string };
+const banques = {
+  lire() {
+    exiger();
+    return { banques: [...E.banques].sort((a, b) => a.code.localeCompare(b.code)), journaux: JOURNAUX_BANQUE,
+      comptes: [...E.comptesBancaires].sort((a, b) => a.compte.localeCompare(b.compte)).map((c) => ({ ...c, intitule: NOSTRI[c.compte.slice(0, 4)] ?? "" })) };
+  },
+  enregistrerBanque(d: SaisieBanque, id?: number) {
+    exiger("chef_agence");   // profil habilité : à confirmer
+    if (id !== undefined && !E.banques.some((b) => b.id === id)) throw new ErreurMetier("Banque introuvable.");
+    const v = { code: d.code.trim(), libelle: d.libelle.trim(), compteLiaison: d.compteLiaison.trim(), adresse: d.adresse.trim() };
+    const manque = manquants([["code banque", v.code], ["libellé", v.libelle], ["compte liaison", v.compteLiaison]]);
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    if (!/^\d+$/.test(v.compteLiaison)) throw new ErreurMetier("Compte liaison : chiffres seulement.");
+    if (E.banques.some((b) => b.code === v.code && b.id !== id)) throw new ErreurMetier("Ce code banque existe déjà.");
+    if (id === undefined) E.banques.push({ id: prochain(E.banques), ...v }); else Object.assign(E.banques.find((b) => b.id === id)!, v);
+    enregistrer(); return banques.lire();
+  },
+  supprimerBanque(id: number) {
+    exiger("chef_agence");
+    if (!E.banques.some((b) => b.id === id)) throw new ErreurMetier("Banque introuvable.");
+    if (E.comptesBancaires.some((c) => c.banqueId === id)) throw new ErreurMetier("Cette banque a des comptes de l'institution : les supprimer d'abord.");
+    E.banques = E.banques.filter((b) => b.id !== id); enregistrer(); return banques.lire();
+  },
+  enregistrerCompte(d: SaisieCompteBancaire, id?: number) {
+    exiger("chef_agence");
+    const actuel = id !== undefined ? E.comptesBancaires.find((c) => c.id === id) : undefined;
+    if (id !== undefined && !actuel) throw new ErreurMetier("Compte bancaire introuvable.");
+    const banque = E.banques.find((b) => b.id === d.banqueId);
+    const v = { compte: d.compte.trim(), numeroBancaire: d.numeroBancaire.trim(), devise: d.devise.trim(), contactNom: d.contactNom.trim() };
+    const manque = ([["banque", banque ? "x" : ""], ["compte", v.compte], ["n° compte bancaire", v.numeroBancaire], ["devise", v.devise], ["journal", d.journalId ? "x" : ""], ["nom", v.contactNom]] as [string, string][])
+      .filter(([, x]) => !x).map(([k]) => k);
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    if (!/^560[0-3]\d*$/.test(v.compte)) throw new ErreurMetier("Compte : sous-compte de 560 « Comptes NOSTRI disponible » (PCCI, compte 56), par exemple 5601….");
+    if (!["CDF", "USD"].includes(v.devise)) throw new ErreurMetier("Devise inconnue.");
+    if (!JOURNAUX_BANQUE.some((j) => j.id === d.journalId)) throw new ErreurMetier("Journal de banque inconnu.");
+    if (E.comptesBancaires.some((c) => c.banqueId === banque!.id && c.numeroBancaire === v.numeroBancaire && c.id !== id)) throw new ErreurMetier("Ce numéro de compte existe déjà dans cette banque.");
+    if (E.comptesBancaires.some((c) => c.compte === v.compte && c.id !== id)) throw new ErreurMetier("Ce compte comptable est déjà attribué à un compte bancaire.");
+    if (actuel && actuel.compte !== v.compte && E.ecritures.some((e) => e.lignes.some((l) => l.compte === actuel.compte))) throw new ErreurMetier("Ce compte a des écritures : son numéro comptable ne change plus.");
+    const c = { banqueId: banque!.id, ...v, devise: v.devise as Devise, libelle: `${banque!.libelle} ${v.devise}`, journalId: d.journalId,
+      contactNomComplet: d.contactNomComplet.trim(), contactTelephone: d.contactTelephone.trim() };
+    if (actuel) Object.assign(actuel, c); else E.comptesBancaires.push({ id: prochain(E.comptesBancaires), ...c });
+    enregistrer(); return banques.lire();
+  },
+  supprimerCompte(id: number) {
+    exiger("chef_agence");
+    const c = E.comptesBancaires.find((x) => x.id === id);
+    if (!c) throw new ErreurMetier("Compte bancaire introuvable.");
+    if (E.ecritures.some((e) => e.lignes.some((l) => l.compte === c.compte))) throw new ErreurMetier("Ce compte a des écritures : il ne se supprime pas.");
+    E.comptesBancaires = E.comptesBancaires.filter((x) => x.id !== id); enregistrer(); return banques.lire();
+  },
+};
+
 // ---------- Guichet ----------
 interface Commun { cle: string; coupures: Comptage }
 
@@ -957,6 +1016,7 @@ const apiLocal = {
   groupes: asynchrone(groupes),
   procurations: asynchrone(procurations),
   rapports: asynchrone(rapports),
+  banques: asynchrone(banques),
 };
 
 export type ApiDonnees = typeof apiLocal;

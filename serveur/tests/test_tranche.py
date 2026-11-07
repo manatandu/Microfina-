@@ -455,3 +455,30 @@ def test_parts_sociales(clients, journee):
     caisse.post("/api/guichet/adhesions", {"cle": cle(), "tiersId": e["id"], "parts": 1, "depot": 0, "compteUsd": False, "coupures": {"1000": 4}}, **H)
     assert ident("""select c.numero from ligne_ecriture l join compte c on c.id = l.compte_id where l.contrat_ref = %s""", (f"parts:{e['id']}",)) == "1032"
     assert balance_equilibree(caisse)
+
+
+def test_banques(clients):
+    chef, agent = clients["chef"], clients["agent"]
+    connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    def refus(c, route, corps, methode="post"):
+        r = getattr(c, methode)(route, corps, **H) if corps is not None else getattr(c, methode)(route, **H)
+        assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    b = {"code": "RAW", "libelle": "Rawbank", "compteLiaison": "5601", "adresse": "Kinshasa, Gombe"}
+    assert "Réservé" in refus(agent, "/api/banques", b)
+    assert "compte liaison" in refus(chef, "/api/banques", {**b, "compteLiaison": ""})
+    l = chef.post("/api/banques", b, **H).json()
+    assert "existe déjà" in refus(chef, "/api/banques", b)
+    bid = l["banques"][0]["id"]
+    j = l["journaux"][0]["id"]
+    c = {"banqueId": bid, "compte": "56010001", "numeroBancaire": "05100-01234567-89", "devise": "USD", "journalId": j, "contactNom": "Mutombo"}
+    assert "NOSTRI" in refus(chef, "/api/banques/comptes", {**c, "compte": "5701"})
+    assert "nom" in refus(chef, "/api/banques/comptes", {**c, "contactNom": ""})
+    l = chef.post("/api/banques/comptes", c, **H).json()
+    assert (l["comptes"][0]["libelle"], l["comptes"][0]["intitule"]) == ("Rawbank USD", "Banque et autres intermédiaires financiers")
+    assert ident("select classe from compte where numero = '56010001'") == 5
+    assert "déjà attribué" in refus(chef, "/api/banques/comptes", {**c, "numeroBancaire": "AUTRE"})
+    assert "comptes de l'institution" in refus(chef, f"/api/banques/{bid}", None, "delete")
+    cid = l["comptes"][0]["id"]
+    assert chef.post(f"/api/banques/comptes/{cid}", {**c, "contactTelephone": "+243 810 000 222"}, **H).json()["comptes"][0]["contactTelephone"] == "+243 810 000 222"
+    assert chef.delete(f"/api/banques/comptes/{cid}", **H).json()["comptes"] == []
+    assert chef.delete(f"/api/banques/{bid}", **H).json()["banques"] == []

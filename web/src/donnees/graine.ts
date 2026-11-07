@@ -31,7 +31,7 @@ export function graine(): Etat {
     lieuNaissance: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", liees: [] as number[],
     type: "physique" as const, formeJuridique: "", registre: "", centreActivite: "", activite: "", dirigeant: null, signataires: [], nbHommes: 0, nbFemmes: 0, membres: [], intitule: "", dateVisa: "2026-01-15", profession: "", pays: "", ville: "", quartier: "", rue: "", email: "", bp: "", telephoneFixe: "", motifDepart: "", resilieLe: "", creeLe: "2026-01-15", creePar: 4, visePar: 2, statut: "actif" as const };
   return {
-    version: 14,
+    version: 15,
     institution: { nom: "COOPEC Tujenge", profil: "coopec" },
     agence: { id: 1, code: "0412", nom: "Matete" },
     guichets: [{ id: 1, code: "G1", nom: "Caisse 1" }, { id: 2, code: "G2", nom: "Caisse 2" }],
@@ -67,7 +67,7 @@ export function graine(): Etat {
     compteurs: { piece: 1284, tiers: 320 },
     images: {},
     sousTypes: ["Homme", "Femme", "Entreprise", "Groupement", "Association", "ONG"],   // fictifs : S14 pas encore construit
-    frais: [], paramOperations: [], paramAdhesion: [], fraisClient: [], modifications: [], groupesSolidaires: [], membresGroupes: [], typesProcuration: [], consentements: [],
+    frais: [], paramOperations: [], paramAdhesion: [], fraisClient: [], modifications: [], groupesSolidaires: [], membresGroupes: [], typesProcuration: [], consentements: [], banques: [], comptesBancaires: [],
     // Localisation et professions fictives (paramétrage S14 et Localisation pas encore construits)
     professions: ["Agriculteur", "Commerçant", "Enseignant"],
     motifsDepart: ["DEPART DU PAYS", "Raisons personnelles", "DEMENAGEMENT", "DECISION DU CLIENT", "NE VEUT PLUS PRENDRE DE CREDIT", "AUTRES", "TRANSFERT SUR UNE AUTRE AGENCE"],

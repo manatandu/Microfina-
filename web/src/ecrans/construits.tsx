@@ -12,6 +12,7 @@ import { NouveauProspect } from "./Prospects";
 import { TypesProcuration } from "./Procurations";
 import { RapportsClients } from "./Rapports";
 import { PartsSociales } from "./Parts";
+import { CreationBanque } from "./Banques";
 
 /** Écrans de l'inventaire déjà construits. Les autres affichent « pas encore construit ». */
 export const CONSTRUITS: Record<string, ComponentType> = {
@@ -33,6 +34,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S49: PhotosSignatures,
   S50: Consentement,
   S51: RapportsClients,
+  S58: CreationBanque,
   S73: Adhesion,
   S74: GuichetDepotRetrait,
   S77: PartsSociales,

@@ -56,7 +56,7 @@ Déblocage de crédit par banque,banque,must,yes,no,S54
 Remboursement de crédit par banque,banque,must,yes,no,S55
 Adhésion par banque,banque,should,yes,no,S56 ; part sociale traitée comme un frais dans Microfina++ ; c'est du capital au compte 1030 (PCCI compte 10)
 Visa puis validation des opérations de banque,banque,must,yes,no,S57
-Banques et comptes bancaires,banque,must,yes,no,S58
+Banques et comptes bancaires,banque,must,yes,partial,"S58 ; manuel p. 67 | Construit le 07/11/2026 : Banque Client (Code Banque*, Libellé*, Compte Liaison*, Adresse, Enregistrer, Supprimer, Annuler, liste filtrée) et Banque Institution (Banque*, Compte*, Libellé, N° Compte Bancaire*, journal*, Intitulé, Infos Contact, Enregistrer, Supprimer, Annuler, Imprimer, Imprimer tous les comptes) conformes aux captures. Compte de l'institution : sous-compte de 560 NOSTRI (PCCI, compte 56), créé au plan ; devise ajoutée (PCCI § 10). À confirmer : compte liaison d'une banque client, validation « à valider », compte de pénalité et gestionnaire (texte), liste des comptes (non montrée), profil habilité."
 Chèques clients : dépôt encaissement historique,banque,should,yes,no,S59
 Chéquier et chèque pour crédit,banque,could,yes,no,S60 ; signalé non fonctionnel par le manuel
 Emprunts bancaires,banque,should,yes,no,S61 ; non décrit
