@@ -1,51 +1,13 @@
 import { vers } from "./registre";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { COUPURES, DEVISES, lireMontant, montant, totalComptage, type Comptage, type Devise } from "@design/montant.js";
-import { Attention, Bloquant, Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Attention, Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
 import { fr } from "../lib/dates";
 
 const enSaisie = (m: number) => (m ? String(m / 100).replace(".", ",") : "");
-
-/** S09 : ouvrir une caisse pour la journée */
-export function OuvertureCaisse() {
-  const nav = useNavigate();
-  const { donnees } = useDonnees(async () => {
-    const [ctx, j, s] = await Promise.all([api.referentiel.contexte(), api.journees.courante(), api.caisses.duCaissier()]);
-    const prises = j ? await api.caisses.delaJournee(j.id) : [];
-    return { ctx, j, s, prises };
-  });
-  const [guichet, setGuichet] = useState(0);
-  const [erreur, setErreur] = useState("");
-  if (!donnees) return <Chargement />;
-  const { ctx, j, s, prises } = donnees;
-  return (
-    <>
-      <h1>Ouvrir une caisse</h1>
-      {s ? <p>Vous tenez déjà {ctx.guichets.find((g) => g.id === s.guichetId)?.nom} aujourd'hui. <Link to={vers("S79")}>Billetage</Link>.</p> : (
-        <form className="bloc pile" onSubmit={async (e) => { e.preventDefault(); setErreur(""); try { await api.caisses.ouvrir(guichet); nav(vers("S74")); } catch (x) { setErreur(message(x)); } }}>
-          {j?.statut !== "ouverte" && <Attention>La journée n'est pas ouverte : le chef d'agence l'ouvre d'abord.</Attention>}
-          <fieldset className="choix">
-            <legend>Guichet</legend>
-            {ctx.guichets.map((g) => {
-              const prise = prises.find((p) => p.guichetId === g.id);
-              return (
-                <label key={g.id} className="case">
-                  <input type="radio" name="guichet" checked={guichet === g.id} disabled={!!prise} onChange={() => setGuichet(g.id)} />
-                  <span>{g.nom}{prise ? <span className="muet"> : déjà ouverte par {ctx.utilisateurs.find((u) => u.id === prise.caissierId)?.nom}</span> : ""}</span>
-                </label>
-              );
-            })}
-          </fieldset>
-          <Bloquant>{erreur}</Bloquant>
-          <div><button className="bouton" type="submit" disabled={!guichet}>Ouvrir</button></div>
-        </form>
-      )}
-    </>
-  );
-}
 
 /** S79 : Caisse > Billetage > Enregistrer de billetage (manuel Microfina++, p. 90 et 91) */
 export function BilletageCaisse() {

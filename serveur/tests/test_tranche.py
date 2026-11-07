@@ -499,3 +499,30 @@ def test_arrete_de_caisse(clients, journee):
     assert b["bonCaisse"] == 500000
     b2 = caisse.post(f"/api/caisses/{s['id']}/billetages", {"devise": "CDF", "compte": apres, "bonCaisse": 0}, **H).json()
     assert b2["id"] == b["id"] and b2["bonCaisse"] == 0
+
+
+def test_guichets(clients):
+    """S08 (p. 18) : champs obligatoires, code unique ; S09 (p. 19) : liste, ouverture d'un guichet actif, fermeture"""
+    chef, caisse = clients["chef"], clients["caisse"]
+    connecter(chef, "jpmukendi"); connecter(caisse, "engalula")
+    chef.post("/api/journees", {"date": "2026-11-05"}, **H)
+    l = chef.get("/api/guichets", **H).json()
+    ag, jca = l["agences"][0]["id"], next(x["id"] for x in l["journaux"] if x["code"] == "CA")
+    corps = {"agenceId": ag, "code": "G3", "designation": "Caisse 3", "typeGuichet": "SECONDAIRE", "journalId": jca, "maximumCaisse": 0, "retraitPlafonne": 0,
+             "compteGuichet": "5701", "billetage": True, "actif": False}
+    def refus(c):
+        r = chef.post("/api/guichets", c, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    assert "désignation" in refus({**corps, "designation": ""})
+    assert "chiffres" in refus({**corps, "compteSurplus": "57A"})
+    assert caisse.post("/api/guichets", corps, **H).status_code == 403
+    g3 = next(g for g in chef.post("/api/guichets", corps, **H).json()["guichets"] if g["code"] == "G3")
+    assert (g3["typeGuichet"], g3["actif"], g3["ouvert"]) == ("SECONDAIRE", False, False)
+    assert "existe déjà" in refus(corps)
+    assert "inactif" in caisse.post(f"/api/guichets/{g3['id']}/ouverture", **H).json()["message"]
+    g2 = caisse.post(f"/api/guichets/{G2()}/ouverture", **H).json()
+    g2 = next(g for g in g2["guichets"] if g["id"] == G2())
+    assert g2["ouvert"] and g2["dateOuverture"] == "2026-11-05"
+    assert caisse.post(f"/api/guichets/{G2()}/fermeture", **H).status_code == 200
+    assert caisse.get("/api/caisses/moi", **H).json()["statut"] == "fermee"
+    r = caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}}, **H)
+    assert r.status_code == 422 and "Aucune caisse ouverte" in r.json()["message"]

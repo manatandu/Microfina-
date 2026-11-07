@@ -2,7 +2,8 @@ import type { ComponentType } from "react";
 import GuichetDepotRetrait from "./Guichet";
 import Adhesion from "./Adhesion";
 import Balance from "./Comptabilite";
-import { BilletageCaisse, OuvertureCaisse, ValidationBilletage } from "./Caisse";
+import { BilletageCaisse, ValidationBilletage } from "./Caisse";
+import { GestionGuichets, OuvertureFermetureGuichets } from "./Guichets";
 import { EnrolementEntreprise, EnrolementGroupe, EnrolementPhysique, MiseAJourClient } from "./Membres";
 import { EcranJournee, EcranValidation } from "./Journee";
 import { Consentement, InformationsClient, ModificationFrais, PhotosSignatures, ResiliationClient, ValidationClientModifie, VisaClient } from "./Visa";
@@ -16,7 +17,8 @@ import { CreationBanque } from "./Banques";
 
 /** Écrans de l'inventaire déjà construits. Les autres affichent « pas encore construit ». */
 export const CONSTRUITS: Record<string, ComponentType> = {
-  S09: OuvertureCaisse,
+  S08: GestionGuichets,
+  S09: OuvertureFermetureGuichets,
   S12: EcranJournee,
   S16: FraisOperations,
   S37: EnrolementPhysique,

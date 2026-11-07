@@ -57,6 +57,24 @@ describe("journée de guichet", () => {
     await expect(api.guichet.depot({ cle: cle(), compteId: 2, montant: 30000, coupures: { 20000: 1 } })).rejects.toThrow("billetage ne fait pas");
   });
 
+  it("guichets (S08 p. 18, S09 p. 19) : champs obligatoires, code unique, ouverture d'un guichet actif, fermeture", async () => {
+    await connecter("jpmukendi"); await api.journees.ouvrir("2026-11-05");
+    const d = { agenceId: 1, code: "G3", designation: "Caisse 3", typeGuichet: "SECONDAIRE", journalId: 1, maximumCaisse: 0, retraitPlafonne: 0,
+      compteGuichet: "5701", compteLiaison: "", compteSurplus: "", compteManquant: "", billetage: true, actif: false };
+    await expect(api.guichets.creer({ ...d, designation: "" })).rejects.toThrow("désignation");
+    await expect(api.guichets.creer({ ...d, compteSurplus: "57A" })).rejects.toThrow("chiffres");
+    const g3 = (await api.guichets.creer(d)).guichets.find((g) => g.code === "G3")!;
+    expect([g3.typeGuichet, g3.actif, g3.ouvert]).toEqual(["SECONDAIRE", false, false]);
+    await expect(api.guichets.creer(d)).rejects.toThrow("existe déjà");
+    await connecter("engalula");
+    await expect(api.guichets.ouvrir(g3.id)).rejects.toThrow("inactif");
+    const g2 = (await api.guichets.ouvrir(2)).guichets.find((g) => g.id === 2)!;
+    expect([g2.ouvert, g2.dateOuverture]).toEqual([true, "2026-11-05"]);
+    await api.guichets.fermer(2);
+    expect((await api.caisses.duCaissier())?.statut).toBe("fermee");
+    await expect(api.guichet.depot({ cle: cle(), compteId: 2, montant: 1000000, coupures: { 10000: 1 } })).rejects.toThrow("Aucune caisse ouverte");
+  });
+
   it("arrêté de caisse (S79, p. 90 et 91) : sans comptage d'ouverture, Solde Caisse, Bon de Caisse, saisie refaite tant que non validée", async () => {
     const { s } = await journeeOuverte();
     const avant = await api.caisses.theorique(s.id, "CDF");

@@ -5,7 +5,12 @@ export type Role = "caissier" | "chef_agence" | "agent_credit" | "comptable";
 export interface Utilisateur { id: number; login: string; nom: string; roles: Role[] }
 export interface Institution { nom: string; profil: "coopec" | "imf" }
 export interface Agence { id: number; code: string; nom: string }
-export interface Guichet { id: number; code: string; nom: string }
+/** Guichet ; champs de « Gestion des guichets » (S08, manuel p. 18) */
+export interface Guichet {
+  id: number; code: string; nom: string;
+  typeGuichet?: string; journalId?: number; maximumCaisse?: number; retraitPlafonne?: number;
+  compteGuichet?: string; compteLiaison?: string; compteSurplus?: string; compteManquant?: string; billetage?: boolean; actif?: boolean;
+}
 
 export type EtatJournee = "ouverte" | "en_cloture" | "fermee";
 export interface Journee { id: number; date: string; statut: EtatJournee; ouvertePar?: number; fermeePar?: number }
@@ -28,7 +33,7 @@ export interface SessionCaisse {
   guichetId: number;
   journeeId: number;
   caissierId: number;
-  statut: "ouverte" | "arretee";
+  statut: "ouverte" | "arretee" | "fermee";   // « fermee » : bouton Fermeture de S09 (p. 19), avant l'arrêté validé
 }
 
 /** Dirigeant ou signataire d'une entreprise (S38), identifié comme un client : Instr. BCC 15, art. 16 */
@@ -163,7 +168,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise }
 
 export interface Etat {
-  version: 15;
+  version: 16;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];

@@ -15,14 +15,14 @@ import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@d
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v15";
+const CLE = "likelemba-demo-v16";
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
 
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 15) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 16) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   return graine();
 }
@@ -61,7 +61,7 @@ const session = {
 };
 
 function contexte() {
-  return { institution: E.institution, agence: E.agence, guichets: E.guichets, produits: E.produits, zones: E.zones, typesClient: TYPES_CLIENT, typesEntreprise: TYPES_ENTREPRISE, typesGroupe: Object.keys(TYPES_GROUPE), pieces: PIECES, professions: E.professions, localites: E.localites, motifsDepart: E.motifsDepart, cours: E.cours, valeurPart: E.valeurPart, utilisateurs: E.utilisateurs };
+  return { institution: E.institution, agence: E.agence, guichets: E.guichets.filter((g) => g.actif !== false), produits: E.produits, zones: E.zones, typesClient: TYPES_CLIENT, typesEntreprise: TYPES_ENTREPRISE, typesGroupe: Object.keys(TYPES_GROUPE), pieces: PIECES, professions: E.professions, localites: E.localites, motifsDepart: E.motifsDepart, cours: E.cours, valeurPart: E.valeurPart, utilisateurs: E.utilisateurs };
 }
 export const nomUtilisateur = (id?: number) => E.utilisateurs.find((u) => u.id === id)?.nom ?? "";
 
@@ -146,7 +146,7 @@ const caisses = {
   delaJournee: (journeeId: number) => E.sessions.filter((s) => s.journeeId === journeeId),
   duCaissier(): SessionCaisse | null {
     const j = journees.courante();
-    return E.sessions.find((s) => s.journeeId === j?.id && s.caissierId === E.session) ?? null;
+    return E.sessions.findLast((s) => s.journeeId === j?.id && s.caissierId === E.session) ?? null;
   },
   ouvrir(guichetId: number) {
     const u = exiger("caissier");
@@ -998,6 +998,67 @@ type Asynchrone<T> = { [K in keyof T]: T[K] extends (...a: infer A) => infer R ?
 function asynchrone<T extends object>(o: T): Asynchrone<T> {
   return Object.fromEntries(Object.entries(o).map(([k, f]) => [k, typeof f === "function" ? async (...a: unknown[]) => (f as (...x: unknown[]) => unknown)(...a) : f])) as Asynchrone<T>;
 }
+// ---------- Administration : guichets (S08 et S09, manuel p. 18 et 19). Règles identiques côté serveur (noyau/guichets.py). ----------
+/** Types de guichet lus sur la capture p. 19 ; liste complète à confirmer */
+export const TYPES_GUICHET = ["PRINCIPALE", "SECONDAIRE"];
+const JOURNAUX = [{ id: 2, code: "AN", libelle: "À-nouveaux" }, { id: 3, code: "BQ", libelle: "Journal Banque" }, { id: 1, code: "CA", libelle: "Caisse" }];
+export interface SaisieGuichet {
+  agenceId: number; code: string; designation: string; typeGuichet: string; journalId: number; maximumCaisse: number | null; retraitPlafonne: number | null;
+  compteGuichet: string; compteLiaison: string; compteSurplus: string; compteManquant: string; billetage: boolean; actif: boolean;
+}
+const guichets = {
+  lire() {
+    exiger();
+    const j = journees.courante();
+    return {
+      agences: [E.agence], journaux: JOURNAUX, types: TYPES_GUICHET,
+      guichets: [...E.guichets].sort((a, b) => a.code.localeCompare(b.code)).map((g) => {
+        const s = E.sessions.find((x) => x.guichetId === g.id && x.journeeId === j?.id);
+        return { id: g.id, code: g.code, nom: g.nom, typeGuichet: g.typeGuichet ?? "", actif: g.actif !== false, ouvert: s?.statut === "ouverte", dateOuverture: s && j ? j.date : "" };
+      }),
+    };
+  },
+  /** « Gestion des guichets » (p. 18) */
+  creer(d: SaisieGuichet) {
+    exiger("chef_agence");   // profil habilité : à confirmer
+    const v = { code: d.code.trim(), nom: d.designation.trim(), typeGuichet: d.typeGuichet.trim() };
+    const manque = manquants([["agence", d.agenceId ? "x" : ""], ["code guichet", v.code], ["désignation", v.nom], ["type de guichet", v.typeGuichet], ["journal", d.journalId ? "x" : ""]]);
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    if (d.maximumCaisse === null) throw new ErreurMetier("À remplir : maximum autorisé en caisse.");
+    if (d.retraitPlafonne === null) throw new ErreurMetier("À remplir : retrait plafonné.");
+    if (!Number.isInteger(d.maximumCaisse) || d.maximumCaisse < 0) throw new ErreurMetier("Maximum autorisé en caisse : montant invalide.");
+    if (!Number.isInteger(d.retraitPlafonne) || d.retraitPlafonne < 0) throw new ErreurMetier("Retrait plafonné : montant invalide.");
+    if (!TYPES_GUICHET.includes(v.typeGuichet)) throw new ErreurMetier("Type de guichet inconnu.");
+    if (d.agenceId !== E.agence.id) throw new ErreurMetier("Agence inconnue.");
+    if (!JOURNAUX.some((j) => j.id === d.journalId)) throw new ErreurMetier("Journal inconnu.");
+    const comptes: Record<string, string | undefined> = {};
+    for (const [k, n] of [["compteGuichet", "Compte guichet"], ["compteLiaison", "Compte liaison"], ["compteSurplus", "Compte surplus"], ["compteManquant", "Compte manquant"]] as const) {
+      const x = d[k].trim();
+      if (x && !/^\d+$/.test(x)) throw new ErreurMetier(`${n} : chiffres seulement.`);
+      comptes[k] = x || undefined;
+    }
+    if (E.guichets.some((g) => g.code === v.code)) throw new ErreurMetier("Ce code guichet existe déjà.");
+    E.guichets.push({ id: prochain(E.guichets), ...v, journalId: d.journalId, maximumCaisse: d.maximumCaisse, retraitPlafonne: d.retraitPlafonne, ...comptes, billetage: d.billetage, actif: d.actif });
+    enregistrer(); return guichets.lire();
+  },
+  /** « Ouverture/Fermeture de guichets » (p. 19), bouton Ouverture */
+  ouvrir(id: number) {
+    const g = E.guichets.find((x) => x.id === id);
+    if (!g) throw new ErreurMetier("Guichet introuvable.");
+    if (g.actif === false) throw new ErreurMetier("Guichet inactif.");
+    caisses.ouvrir(id); return guichets.lire();
+  },
+  /** Bouton Fermeture */
+  fermer(id: number) {
+    const u = exiger("caissier");   // profil habilité : à confirmer (le même que pour l'ouverture)
+    const j = journees.courante();
+    const s = E.sessions.find((x) => x.guichetId === id && x.journeeId === j?.id);
+    if (!s || s.statut !== "ouverte") throw new ErreurMetier("Ce guichet n'est pas ouvert.");
+    if (s.caissierId !== u.id) throw new ErreurMetier("Cette caisse n'est pas la vôtre.");
+    s.statut = "fermee"; enregistrer(); return guichets.lire();
+  },
+};
+
 const apiLocal = {
   referentiel: asynchrone({ contexte }),
   session: asynchrone(session),
@@ -1012,6 +1073,7 @@ const apiLocal = {
   procurations: asynchrone(procurations),
   rapports: asynchrone(rapports),
   banques: asynchrone(banques),
+  guichets: asynchrone(guichets),
 };
 
 export type ApiDonnees = typeof apiLocal;

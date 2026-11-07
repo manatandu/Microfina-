@@ -7,6 +7,7 @@ from . import frais as fr
 from . import groupes as gs
 from . import procurations as pr
 from . import banques as bq
+from . import guichets as gu
 from . import services as s
 from .bd import ErreurMetier
 
@@ -456,3 +457,24 @@ def bq_modifier(request, bid: int, corps: dict = Body(...)):
 @api.delete("/banques/{bid}")
 def bq_supprimer(request, bid: int):
     return bq.supprimer_banque(u(request), bid)
+
+
+# ---------- Administration : guichets (S08, S09) ----------
+@api.get("/guichets")
+def gu_lire(request):
+    return gu.lire(u(request))
+
+
+@api.post("/guichets")
+def gu_creer(request, corps: dict = Body(...)):
+    return gu.creer(u(request), corps)
+
+
+@api.post("/guichets/{gid}/ouverture")
+def gu_ouvrir(request, gid: int):
+    return gu.ouvrir(u(request), gid)
+
+
+@api.post("/guichets/{gid}/fermeture")
+def gu_fermer(request, gid: int):
+    return gu.fermer(u(request), gid)

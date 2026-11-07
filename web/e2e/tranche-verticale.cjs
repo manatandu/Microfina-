@@ -23,12 +23,20 @@ const OUT = process.argv[2];
   await etape('02-chef-avant-ouverture');
   await p.getByRole('button', { name: /Ouvrir la journée du 05\/11\/2026/ }).click();
   await p.getByRole('heading', { name: /Fermer la journée/ }).waitFor();
+  const oui = async () => { await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click(); };
+  // Chef : créer un guichet (S08, p. 18)
+  await aller('/administration/s08');
+  await p.getByLabel('Agence *').selectOption({ label: 'Matete' }); await p.getByLabel('Code guichet *').fill('G3'); await p.getByLabel('Désignation *').fill('Caisse 3');
+  await p.getByLabel('Type de guichet *').selectOption('SECONDAIRE'); await p.getByLabel('Journal *').selectOption({ label: 'Caisse' });
+  await p.getByLabel('Compte guichet').fill('5701'); await p.getByLabel('Billetage autorisé').check(); await p.getByLabel('Guichet Actif').check();
+  await etape('02a-gestion-guichets'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   // Caissière : ouvrir la caisse (sans comptage : Microfina++ ne compte qu'à l'arrêté, p. 90 et 91)
   await login('Esther Ngalula');
   await aller('/principal'); await etape('01c-menu-general');
   await aller('/administration/s09');
-  await etape('02b-ouverture-caisse'); await p.getByLabel('Caisse 2').check(); await p.getByRole('button', { name: 'Ouvrir' }).click();
-  await p.waitForURL(/s74/);
+  await p.getByRole('row').filter({ hasText: 'Caisse 2' }).dblclick(); await etape('02b-ouverture-caisse');
+  await p.getByRole('button', { name: 'Ouverture' }).click(); await oui();
+  await p.getByRole('checkbox', { name: 'Ouvert : Caisse 2' }).and(p.locator(':checked')).waitFor();
   // Agent : enrôler
   await login('Bijou Kasongo'); await aller('/clients/s37');
   await p.getByLabel('Type de compte à créer *').selectOption('EAV-CDF');
@@ -260,6 +268,8 @@ const OUT = process.argv[2];
   await p.getByLabel('Bon de Caisse').fill('5 000');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await etape('15-arrete');
+  await aller('/administration/s09'); await p.getByRole('row').filter({ hasText: 'Caisse 2' }).dblclick();
+  await p.getByRole('button', { name: 'Fermeture' }).click(); await oui(); await etape('15b-fermeture-guichet');
   await login('J.-P. Mukendi'); await aller('/administration/s12'); await etape('16-chef-fermeture-bloquee');
   await aller('/caisse/s80'); await p.getByLabel('Guichet').selectOption({ label: 'Caisse 2' });
   await p.getByRole('cell', { name: 'Billet de 20000 CDF' }).waitFor(); await etape('16b-validation-billetage');

@@ -122,6 +122,12 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       clients: () => get("/rapports/clients"),
       modifications: () => get("/rapports/modifications"),
     },
+    guichets: {
+      lire: () => get("/guichets"),
+      creer: (d: object) => post("/guichets", d),
+      ouvrir: (id: number) => post(`/guichets/${id}/ouverture`),
+      fermer: (id: number) => post(`/guichets/${id}/fermeture`),
+    },
     banques: {
       lire: () => get("/banques"),
       enregistrerBanque: (d: object, id?: number) => post(id === undefined ? "/banques" : `/banques/${id}`, d),

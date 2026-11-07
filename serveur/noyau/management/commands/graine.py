@@ -72,8 +72,9 @@ class Command(BaseCommand):
         # Produits, guichets
         for code, libelle, d in (("EAV-CDF", "Épargne à vue", "CDF"), ("EAV-USD", "Épargne à vue", "USD")):
             executer("insert into produit_epargne (institution_id, code, libelle, famille, devise) values (%s, %s, %s, 'a_vue', %s)", (ins, code, libelle, d))
-        g1 = valeur("insert into guichet (agence_id, code, nom) values (%s, 'G1', 'Caisse 1') returning id", (ag,))
-        g2 = valeur("insert into guichet (agence_id, code, nom) values (%s, 'G2', 'Caisse 2') returning id", (ag,))
+        jca = valeur("select id from journal where code = 'CA' and institution_id = %s", (ins,))   # données fictives (S08)
+        g1 = valeur("insert into guichet (agence_id, code, nom, type_guichet, journal_id) values (%s, 'G1', 'Caisse 1', 'PRINCIPALE', %s) returning id", (ag, jca))
+        g2 = valeur("insert into guichet (agence_id, code, nom, type_guichet, journal_id) values (%s, 'G2', 'Caisse 2', 'SECONDAIRE', %s) returning id", (ag, jca))
         del g1
 
         # Membres

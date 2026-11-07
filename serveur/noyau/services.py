@@ -205,7 +205,8 @@ def nettoyer(c: dict) -> dict:
 def vue_session(s: dict | None) -> dict | None:
     if not s:
         return None
-    return {"id": s["id"], "guichetId": s["guichet_id"], "journeeId": s["journee_id"], "caissierId": s["caissier_id"], "statut": s["statut"]}
+    statut = "fermee" if s["statut"] == "ouverte" and s.get("fermee_le") else s["statut"]   # Fermeture du guichet (S09, p. 19)
+    return {"id": s["id"], "guichetId": s["guichet_id"], "journeeId": s["journee_id"], "caissierId": s["caissier_id"], "statut": statut}
 
 
 def sessions_journee(jid: int) -> list[dict]:
@@ -216,7 +217,7 @@ def session_du_caissier(u: dict) -> dict | None:
     j = journee_courante(u)
     if not j:
         return None
-    return vue_session(une("select * from session_caisse where journee_id = %s and caissier_id = %s", (j["id"], u["id"])))
+    return vue_session(une("select * from session_caisse where journee_id = %s and caissier_id = %s order by id desc limit 1", (j["id"], u["id"])))
 
 
 def ouvrir_caisse(u: dict, guichet_id: int) -> dict:
@@ -226,7 +227,7 @@ def ouvrir_caisse(u: dict, guichet_id: int) -> dict:
         raise ErreurMetier("La journée n'est pas ouverte. Le chef d'agence l'ouvre d'abord.")
     if une("select 1 from session_caisse where journee_id = %s and guichet_id = %s", (j["id"], guichet_id)):
         raise ErreurMetier("Ce guichet est déjà ouvert aujourd'hui.")
-    if une("select 1 from session_caisse where journee_id = %s and caissier_id = %s and statut = 'ouverte'", (j["id"], u["id"])):
+    if une("select 1 from session_caisse where journee_id = %s and caissier_id = %s and statut = 'ouverte' and fermee_le is null", (j["id"], u["id"])):
         raise ErreurMetier("Vous tenez déjà une caisse ouverte.")
     sid = valeur("insert into session_caisse (guichet_id, journee_id, caissier_id, statut) values (%s, %s, %s, 'ouverte') returning id", (guichet_id, j["id"], u["id"]))
     return vue_session(une("select * from session_caisse where id = %s", (sid,)))
