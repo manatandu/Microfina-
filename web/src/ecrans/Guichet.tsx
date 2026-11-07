@@ -13,18 +13,20 @@ import { mots } from "../lib/vocabulaire";
 
 export const titulaireDe = (t: Tiers) => [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
 
-/** Onglets du guichet : un seul écran, un onglet par opération (écarts Microfina++, § 5) */
+/** Onglets du guichet, dans l'ordre de Microfina++ (manuel p. 85) */
 export function OngletsGuichet() {
   const [q] = useSearchParams();
   const op = q.get("op") ?? "depot";
   const onglet = (to: string, actif: boolean, texte: string) => <Link to={to} aria-current={actif ? "page" : undefined}>{texte}</Link>;
+  const ici = (id: string) => location.pathname.endsWith(id.toLowerCase());
   return (
     <nav className="onglets" aria-label="Opération">
-      {onglet(vers("S74", "?op=depot"), location.pathname.endsWith("s74") && op === "depot", "Dépôt")}
-      {onglet(vers("S74", "?op=retrait"), location.pathname.endsWith("s74") && op === "retrait", "Retrait")}
-      {onglet(vers("S73"), location.pathname.endsWith("s73"), "Adhésion")}
-      {onglet(vers("S76"), false, "Remboursement")}
-      {onglet(vers("S77"), location.pathname.endsWith("s77"), "Parts sociales")}
+      {onglet(vers("S73"), ici("S73"), "Adhésion")}
+      {onglet(vers("S74", `?op=${op}`), ici("S74"), "Dépôt / Retrait")}
+      {onglet(vers("S75"), ici("S75"), "Décaissement crédit")}
+      {onglet(vers("S76"), ici("S76"), "Remboursement de credit")}
+      {onglet(vers("S77"), ici("S77"), "Part sociale(Achat/Retrait)")}
+      {onglet(vers("S78"), ici("S78"), "ED Divers")}
     </nav>
   );
 }
@@ -93,7 +95,7 @@ function ListeComptes({ comptes, choisi, onChoisir }: { comptes: CompteAvecSolde
 
 /** S74 : dépôt et retrait d'espèces */
 export default function GuichetDepotRetrait() {
-  const [q] = useSearchParams();
+  const [q, setQ] = useSearchParams();
   const op: "depot" | "retrait" = q.get("op") === "retrait" ? "retrait" : "depot";
   const recherche = useRef<HTMLInputElement>(null);
   const premiereCoupure = useRef<string>("coupure-1");
@@ -179,6 +181,10 @@ export default function GuichetDepotRetrait() {
     <>
       <h1 className="sr-only">Guichet</h1>
       <OngletsGuichet />
+      <div className="choix-operation" role="radiogroup" aria-label="Opération">
+        <label className="case"><input type="radio" name="op" checked={op === "depot"} onChange={() => setQ({ op: "depot" })} /><span>Dépôt en espèces</span></label>
+        <label className="case"><input type="radio" name="op" checked={op === "retrait"} onChange={() => setQ({ op: "retrait" })} /><span>Retrait en espèces</span></label>
+      </div>
       {op === "retrait" && donnees.enAttente.length > 0 && resultat?.statut !== "visa_requis" && (
         <ul className="liste-taches" aria-label="Retraits en attente de visa">
           {donnees.enAttente.map((o) => (

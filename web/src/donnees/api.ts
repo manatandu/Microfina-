@@ -865,27 +865,33 @@ const guichet = {
     enregistrer(); return o;
   },
 
-  adhesion(p: Commun & { tiersId: number; parts: number; depot: number; compteUsd: boolean }) {
+  /** S73 : Caisse > Opération > Adhésion (p. 85 et 89) : compte du type choisi à l'enrôlement, premier dépôt, frais d'adhésion (S16/S41), parts.
+   *  Règles identiques côté serveur (services.adhesion). */
+  adhesion(p: Commun & { tiersId: number; parts: number; depot: number }) {
     const prec = dejaFaite(p.cle); if (prec) return prec;
     const { u, s } = sessionOuverte("CDF");
     const t = E.tiers.find((x) => x.id === p.tiersId);
     if (!t) throw new ErreurMetier("Client introuvable.");
     controlerStatutActif(t.statut, " : l'adhésion attend le visa");
     if (E.comptes.some((c) => c.tiersId === t.id)) throw new ErreurMetier("Ce membre a déjà adhéré.");
-    if (!Number.isInteger(p.parts) || p.parts < 1) throw new ErreurMetier("Au moins une part sociale, payée en entier.", "Loi 002/2002, art. 21");
-    const mParts = p.parts * E.valeurPart, total = mParts + p.depot;
+    const produit = E.produits.find((x) => x.code === t.produitCode) ?? E.produits.find((x) => x.devise === "CDF")!;
+    if (produit.devise !== "CDF") throw new ErreurMetier("Compte à créer en USD : l'adhésion en deux devises (frais et parts en CDF) est à confirmer avec le porteur.");
+    if (!Number.isInteger(p.parts) || p.parts < 1) throw new ErreurMetier("Au moins une part sociale, payée en entier (loi 002/2002, art. 21 et 22).");
+    if (!Number.isInteger(p.depot) || p.depot < 0) throw new ErreurMetier("Premier dépôt invalide.");
+    const frais = parametrage.fraisLies(t.id).filter((f) => f.montant);
+    for (const f of frais) if (!f.compte || !planComptable().includes(f.compte)) throw new ErreurMetier(`Frais « ${f.libelle} » : compte absent du plan comptable, à paramétrer (Paramétrage > Frais et opérations).`);
+    const mParts = p.parts * E.valeurPart, total = mParts + p.depot + frais.reduce((x, f) => x + (f.montant ?? 0), 0);
     controlerCoupures(p.coupures, total, "CDF");
     if (enUsd(total, "CDF") + especesDuJourUsd(t.id, "depot") >= SEUIL_ESPECES_USD)
       throw new ErreurMetier("Examen renforcé requis (10 000 USD ou plus en espèces dans la journée). Le circuit de conformité n'est pas encore construit : opération bloquée.", "Instr. BCC 15 bis, art. 1, 6 et 7");
-    const base = E.comptes.length;
-    const cCdf: CompteDepot = { id: base + 1, tiersId: t.id, numero: `${t.numero}-02`, intitule: "Épargne à vue", pcci: "330", devise: "CDF", bloque: 0 };
+    const cCdf: CompteDepot = { id: E.comptes.length + 1, tiersId: t.id, numero: `${t.numero}-02`, intitule: produit.libelle, pcci: "330", devise: "CDF", bloque: 0 };
     E.comptes.push(cCdf);
-    if (p.compteUsd) E.comptes.push({ id: base + 2, tiersId: t.id, numero: `${t.numero}-01`, intitule: "Épargne à vue", pcci: "330", devise: "USD", bloque: 0 });
     const lignes: Ligne[] = [
       { compte: "570", contrat: guichetDe(s), sens: "D", devise: "CDF", montant: total, montantCdf: total },
       { compte: compteParts(t), contrat: `parts:${t.id}`, sens: "C", devise: "CDF", montant: mParts, montantCdf: mParts },
     ];
     if (p.depot > 0) lignes.push({ compte: "330", contrat: `depot:${cCdf.id}`, sens: "C", devise: "CDF", montant: p.depot, montantCdf: p.depot });
+    for (const f of frais) lignes.push({ compte: f.compte!, contrat: `frais:${f.fraisId}`, sens: "C", devise: "CDF", montant: f.montant!, montantCdf: f.montant! });
     const e = poster({ journal: "CA", journeeId: s.journeeId, libelle: `Adhésion ${t.numero}`, piece: piece(), saisiPar: u.id, validePar: u.id, lignes });
     const o: Operation = { id: prochain(E.operations), cle: p.cle, type: "adhesion", statut: "validee", sessionId: s.id, tiersId: t.id, compteId: cCdf.id, montant: total, devise: "CDF", parts: p.parts, coupures: nettoyer(p.coupures), remisPar: titulaire(t), saisiPar: u.id, ecritureId: e.id, heure: heure() };
     E.operations.push(o); enregistrer(); return o;
@@ -926,6 +932,10 @@ const guichet = {
   },
 };
 
+/** Comptes du plan comptable déjà chargés (PCCI) ; le plan complet viendra avec S102 */
+function planComptable() {
+  return ["570", "330", "334", "1030", "1031", "1032", "715", "728", ...E.comptesBancaires.map((c) => c.compte)];
+}
 /** Opérations qui font sortir des billets de la caisse */
 const SORTIES: Operation["type"][] = ["retrait", "retrait_parts"];
 /** PCCI, compte 103 : 1030 personnes physiques, 1031 groupements solidaires, 1032 personnes morales.

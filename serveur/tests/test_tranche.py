@@ -242,13 +242,22 @@ def test_adhesion_apres_visa(clients, journee):
     caisse, chef, agent = clients["caisse"], clients["chef"], clients["agent"]
     t = agent.post("/api/tiers", {**FICHE, "nom": "Tshala", "postnom": "Muana", "prenom": "Marie", "naissance": "1990-02-01", "pieceType": "Carte d'électeur",
                                   "pieceNumero": "1-0412-0999", "pieceExpire": "2031-01-01", "adresse": "Matete"}, **H).json()
-    corps = {"cle": cle(), "tiersId": t["id"], "parts": 3, "depot": 0, "compteUsd": True, "coupures": {"5000": 2, "1000": 2}}
+    corps = {"cle": cle(), "tiersId": t["id"], "parts": 3, "depot": 0, "coupures": {"5000": 2, "1000": 2}}
     assert "visa" in caisse.post("/api/guichet/adhesions", corps, **H).json()["message"]
     assert agent.post(f"/api/tiers/{t['id']}/visa", **H).status_code == 403                 # l'agent n'est pas chef
     assert chef.post(f"/api/tiers/{t['id']}/visa", **H).status_code == 200
-    assert caisse.post("/api/guichet/adhesions", corps, **H).status_code == 200
+    # Frais d'adhésion paramétrés (S16) : compte absent du plan, puis compte du plan
+    f = chef.post("/api/parametrage/frais", {"typeOperation": "ADHESION", "libelle": "Droit d'entrée"}, **H).json()
+    [pid] = chef.post("/api/parametrage/frais-adhesion", {"fraisId": f["id"], "nature": "Montant", "valeur": 200000, "compte": "70291", "typesMembre": ["Physique"]}, **H).json()
+    r = caisse.post("/api/guichet/adhesions", {**corps, "coupures": {"5000": 2, "1000": 4}}, **H)
+    assert r.status_code == 422 and "plan comptable" in r.json()["message"]
+    chef.post(f"/api/parametrage/frais-adhesion/{pid}", {"nature": "Montant", "valeur": 200000, "compte": "728"}, **H)
+    assert "billetage" in caisse.post("/api/guichet/adhesions", corps, **H).json()["message"]      # 12 000 de parts + 2 000 de frais
+    assert caisse.post("/api/guichet/adhesions", {**corps, "coupures": {"5000": 2, "1000": 4}}, **H).status_code == 200
     assert caisse.get(f"/api/tiers/{t['id']}/parts").json() == 3
-    assert sorted(c["devise"] for c in caisse.get(f"/api/tiers/{t['id']}/comptes").json()) == ["CDF", "USD"]
+    assert [c["devise"] for c in caisse.get(f"/api/tiers/{t['id']}/comptes").json()] == ["CDF"]
+    assert ident("select sum(montant_devise) from ligne_ecriture l join compte c on c.id = l.compte_id where c.numero = '728'") == 200000
+    assert balance_equilibree(caisse)
 
 
 def test_fermeture(clients, journee):

@@ -16,7 +16,8 @@ COUPURES = {"USD": [100, 50, 20, 10, 5, 1], "CDF": [20000, 10000, 5000, 1000, 50
 FONDS_G2 = {"USD": {100: 140, 50: 12, 20: 8, 10: 3, 5: 2, 1: 6}, "CDF": {20000: 150, 10000: 120, 5000: 100, 1000: 60, 500: 7}}
 PCCI = [("570", "Monnaies nationale et étrangère", 5, "actif"), ("330", "Épargnes", 3, "passif"),
         ("334", "Épargnes obligatoires", 3, "passif"), ("1030", "Parts sociales « personnes physiques effectives »", 1, "passif"),
-        ("1031", "Parts sociales « groupements solidaires effectifs »", 1, "passif"), ("1032", "Parts sociales « personnes morales effectives »", 1, "passif")]
+        ("1031", "Parts sociales « groupements solidaires effectifs »", 1, "passif"), ("1032", "Parts sociales « personnes morales effectives »", 1, "passif"),
+        ("715", "Commissions sur opérations avec la clientèle ou les membres", 7, "produit"), ("728", "Autres commissions", 7, "produit")]
 
 
 class Command(BaseCommand):

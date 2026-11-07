@@ -1059,42 +1059,54 @@ def retrait(u: dict, p: dict) -> dict:
 
 
 def adhesion(u: dict, p: dict) -> dict:
+    """S73 : Caisse > Opération > Adhésion (manuel p. 85 et 89) : compte épargne du type choisi à l'enrôlement, premier dépôt,
+    Liste des Frais (frais d'adhésion S16/S41 et parts sociales), billetage. Loi 002/2002, art. 21 et 22 ; PCCI, comptes 103 et 330."""
+    from .frais import frais_lies
     prec = operation_par_cle(p["cle"])
     if prec and prec["statut"] == "validee":
         return vue_operation(prec)
     s = session_ouverte(u, "CDF")
     tid = int(p["tiersId"])
-    t = une("select * from tiers where id = %s for update", (tid,))
+    t = une("select * from tiers where id = %s and institution_id = %s for update", (tid, u["institution_id"]))
     if not t:
         raise ErreurMetier("Client introuvable.")
     controler_statut_actif(t["statut"], " : l'adhésion attend le visa")
     if une("select 1 from compte_depot where tiers_id = %s", (tid,)):
         raise ErreurMetier("Ce membre a déjà adhéré.")
+    produit = une("select * from produit_epargne where id = %s", (t["produit_id"],)) if t["produit_id"] else \
+        une("select * from produit_epargne where institution_id = %s and famille = 'a_vue' and devise = 'CDF' and actif order by version desc limit 1", (u["institution_id"],))
+    if produit["devise"].strip() != "CDF":
+        raise ErreurMetier("Compte à créer en USD : l'adhésion en deux devises (frais et parts en CDF) est à confirmer avec le porteur.")
     nb = p.get("parts")
-    if not isinstance(nb, int) or nb < 1:
-        raise ErreurMetier("Au moins une part sociale, payée en entier.")
-    m_parts, m_depot = nb * valeur_part(), int(p.get("depot") or 0)
-    total, coupures = m_parts + m_depot, nettoyer(p["coupures"])
+    if not isinstance(nb, int) or isinstance(nb, bool) or nb < 1:
+        raise ErreurMetier("Au moins une part sociale, payée en entier (loi 002/2002, art. 21 et 22).")
+    m_depot = p.get("depot", 0)
+    if not isinstance(m_depot, int) or isinstance(m_depot, bool) or m_depot < 0:
+        raise ErreurMetier("Premier dépôt invalide.")
+    frais = [f for f in frais_lies(u, tid) if f["montant"]]
+    for f in frais:
+        if not f["compte"] or not valeur("select 1 from compte where numero = %s", (f["compte"],)):
+            raise ErreurMetier(f"Frais « {f['libelle']} » : compte absent du plan comptable, à paramétrer (Paramétrage > Frais et opérations).")
+    m_parts = nb * valeur_part()
+    total = m_parts + m_depot + sum(f["montant"] for f in frais)
+    coupures = nettoyer(p["coupures"])
     controler_montant_coupures(coupures, total, "CDF")
     if en_usd(total, "CDF") + especes_du_jour_usd(tid, s["journeeId"], "depot") >= SEUIL_ESPECES_USD:
         raise ErreurMetier(MSG_RENFORCE)
     j = une("select date_comptable from journee_comptable where id = %s", (s["journeeId"],))
-    def ouvrir(devise: str, suffixe: str) -> int:
-        prod = valeur("select id from produit_epargne where institution_id = %s and famille = 'a_vue' and devise = %s and actif order by version desc limit 1", (u["institution_id"], devise))
-        return valeur("""insert into compte_depot (institution_id, agence_id, tiers_id, produit_id, numero, devise, statut, ouvert_le)
-                         values (%s, %s, %s, %s, %s, %s, 'ouvert', %s) returning id""",
-                      (u["institution_id"], t["agence_id"], tid, prod, f"{t['numero']}-{suffixe}", devise, j["date_comptable"]))
-    c_cdf = ouvrir("CDF", "02")
-    if p.get("compteUsd"):
-        ouvrir("USD", "01")
+    c = valeur("""insert into compte_depot (institution_id, agence_id, tiers_id, produit_id, numero, devise, statut, ouvert_le)
+                  values (%s, %s, %s, %s, %s, 'CDF', 'ouvert', %s) returning id""",
+               (u["institution_id"], t["agence_id"], tid, produit["id"], f"{t['numero']}-02", j["date_comptable"]))
     l = [{"compte": "570", "contrat": f"guichet:{s['guichetId']}", "sens": "D", "devise": "CDF", "montant": total},
          {"compte": compte_parts(t), "contrat": f"parts:{tid}", "sens": "C", "devise": "CDF", "montant": m_parts}]
     if m_depot > 0:
-        l.append({"compte": "330", "contrat": f"depot:{c_cdf}", "sens": "C", "devise": "CDF", "montant": m_depot})
+        l.append({"compte": "330", "contrat": f"depot:{c}", "sens": "C", "devise": "CDF", "montant": m_depot})
+    for f in frais:
+        l.append({"compte": f["compte"], "contrat": f"frais:{f['fraisId']}", "sens": "C", "devise": "CDF", "montant": f["montant"]})
     eid = poster(u, journal="CA", journee_id=s["journeeId"], libelle=f"Adhésion {t['numero']}", piece=nouvelle_piece(j["date_comptable"]),
                  evenement="adhesion", cle=p["cle"], valide_par=u["id"], lignes_ecr=l)
     executer("insert into mouvement_parts (tiers_id, sens, nombre, valeur_unitaire, devise, ecriture_id) values (%s, 'achat', %s, %s, 'CDF', %s)", (tid, nb, valeur_part(), eid))
-    oid = creer_operation(u, s, cle=p["cle"], type_="adhesion", statut="validee", tiers_id=tid, contrat=f"depot:{c_cdf}", montant=total,
+    oid = creer_operation(u, s, cle=p["cle"], type_="adhesion", statut="validee", tiers_id=tid, contrat=f"depot:{c}", montant=total,
                           devise="CDF", coupures=coupures, remis_par=titulaire(tid), parts=nb, ecriture_id=eid)
     return vue_operation(une("select * from operation where id = %s", (oid,)))
 

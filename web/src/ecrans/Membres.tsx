@@ -557,7 +557,7 @@ export function MiseAJourClient() {
           "Instr. BCC 15, art. 10 : identification à refaire quand les éléments du client changent ; art. 12 à 14 et 60",
           "Instr. BCC 37, annexe : changement d'éléments du dossier du client, gratuit"]} />
       </section>
-      <Fiche titre="Clients" ouverte={recherche} fermer={() => setRecherche(false)}>
+      <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.type === "physique" && x.statut !== "a_viser") : [])}
           choisir={(x) => void choisir(x)} fermer={() => setRecherche(false)} />
       </Fiche>

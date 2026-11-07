@@ -86,7 +86,7 @@ export function VisaClient() {
         "Loi 002/2002, art. 22 : demande d'adhésion signée (3°), engagement aux statuts (4°), droit d'adhésion (5°), admission par le Conseil d'administration (6°)",
         "ARCHITECTURE P7 : le visa vient d'une autre personne que celle qui a enrôlé"]} />
 
-      <Fiche titre="Clients en attente de visa" ouverte={recherche} fermer={() => setRecherche(false)}>
+      <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => attente.filter((x) => [x.numero, x.nom, x.postnom, x.prenom].join(" ").toLowerCase().includes(q))}
           choisir={(x) => void choisir(x)} fermer={() => setRecherche(false)} />
       </Fiche>
@@ -102,24 +102,41 @@ export function VisaClient() {
   );
 }
 
-/** Recherche par numéro, nom et prénoms ; sélection par double-clic sur la ligne (p. 52 et 53). Entrée fait de même au clavier. */
+/** Fenêtre « Recherche d'un client » (manuel p. 85) : Filtre (Numero, Nom, Prénom), Resultat (Numéro, Nom prénom/raison s., Agence) ; double-clic sur la ligne.
+ *  Entrée fait de même au clavier. */
 export function RechercheClient({ source, choisir, fermer }: { source: (q: string) => Promise<Tiers[]>; choisir: (t: Tiers) => void; fermer: () => void }) {
-  const [q, setQ] = useState("");
-  const { donnees: liste = [] } = useDonnees(() => source(q.trim().toLowerCase()), [q]);
+  const [f, setF] = useState({ numero: "", nom: "", prenom: "" });
+  const [cherche, setCherche] = useState(f);
+  const premier = (cherche.numero || cherche.nom || cherche.prenom).trim().toLowerCase();
+  const { donnees } = useDonnees(async () => ({ liste: await source(premier), ctx: await api.referentiel.contexte() }), [premier]);
+  const garde = (t: Tiers) => t.numero.toLowerCase().includes(cherche.numero.trim().toLowerCase()) && t.nom.toLowerCase().includes(cherche.nom.trim().toLowerCase())
+    && [t.postnom, t.prenom].join(" ").toLowerCase().includes(cherche.prenom.trim().toLowerCase());
+  const liste = (donnees?.liste ?? []).filter(garde);
+  const champ = (k: keyof typeof f, libelle: string) => <Champ libelle={libelle}>{(p) => <input {...p} className="saisie" type="search" autoComplete="off" value={f[k]}
+    onChange={(e) => { const n = { ...f, [k]: e.target.value }; setF(n); setCherche(n); }} onKeyDown={(e) => { if (e.key === "Enter") setCherche(f); }} />}</Champ>;
   return (
     <div className="pile">
-      <Champ libelle="Numéro, Nom et Prénoms :">{(p) => <input {...p} className="saisie" type="search" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} />}</Champ>
-      <table className="grille">
-        <thead><tr><th scope="col">Numéro</th><th scope="col">Nom et Prénoms</th><th scope="col">Date Demande</th></tr></thead>
-        <tbody>
-          {liste.length === 0 && <tr><td colSpan={3}>Liste vide</td></tr>}
-          {liste.map((t) => (
-            <tr key={t.id} className="ligne-choix" tabIndex={0} onDoubleClick={() => choisir(t)} onKeyDown={(e) => { if (e.key === "Enter") choisir(t); }}>
-              <td className="chiffres">{t.numero}</td><td>{nomComplet(t)}</td><td className="chiffres">{fr(t.dateDemande)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <fieldset className="cadre-champs">
+        <legend>Filtre</legend>
+        <div className="ligne-champ">
+          {champ("numero", "Numero:")}{champ("nom", "Nom:")}{champ("prenom", "Prénom:")}
+          <button className="bouton secondaire" type="button" onClick={() => setCherche(f)}>Rechercher</button>
+        </div>
+      </fieldset>
+      <fieldset className="cadre-champs">
+        <legend>Resultat</legend>
+        <table className="grille">
+          <thead><tr><th scope="col">Numéro</th><th scope="col">Nom prénom/raison s.</th><th scope="col">Agence</th></tr></thead>
+          <tbody>
+            {liste.length === 0 && <tr><td colSpan={3}>Liste vide</td></tr>}
+            {liste.map((t) => (
+              <tr key={t.id} className="ligne-choix" tabIndex={0} onDoubleClick={() => choisir(t)} onKeyDown={(e) => { if (e.key === "Enter") choisir(t); }}>
+                <td className="chiffres">{t.numero}</td><td>{nomComplet(t)}</td><td>{donnees?.ctx.agence.nom ?? ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </fieldset>
       <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={fermer}>Fermer</button></div>
     </div>
   );
@@ -186,7 +203,7 @@ export function ModificationFrais() {
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "Loi 002/2002, art. 22, 5° : droit d'adhésion fixé, le cas échéant, par l'Assemblée générale"]} />
       </section>
-      <Fiche titre="Clients visés" ouverte={recherche} fermer={() => setRecherche(false)}>
+      <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut === "actif") : [])}
           choisir={(x) => { setT(x); setSaisies({}); setRecherche(false); }} fermer={() => setRecherche(false)} />
       </Fiche>
@@ -324,7 +341,7 @@ export function ValidationClientModifie() {
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "ARCHITECTURE P7 : la validation vient d'une autre personne que celle qui a modifié"]} />
       </section>
-      <Fiche titre="Clients modifiés" ouverte={recherche} fermer={() => setRecherche(false)}>
+      <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (await api.tiers.aRevalider()).filter((x) => [x.numero, x.nom, x.postnom, x.prenom].join(" ").toLowerCase().includes(q))}
           choisir={(x) => { setT(x); setRecherche(false); }} fermer={() => setRecherche(false)} />
       </Fiche>
@@ -431,7 +448,7 @@ export function InformationsClient() {
         <Textes sources={["Manuel Microfina++, p. 54 : écran Informations client, recherche par le bouton du champ Numéro client, informations initiales et actuelles",
           "Onglet Crédits : le module crédit n'est pas encore construit"]} />
       </section>
-      <Fiche titre="Clients" ouverte={recherche} fermer={() => setRecherche(false)}>
+      <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (q ? api.tiers.rechercher(q) : [])} choisir={(x) => { setT(x); setOnglet(0); setRecherche(false); }} fermer={() => setRecherche(false)} />
       </Fiche>
     </>
@@ -519,7 +536,7 @@ export function ResiliationClient() {
           "Instr. BCC 37, annexe : clôture de compte gratuite",
           "Motifs : exemples de la capture « Motif de départ d'un client » (p. 26), paramétrage S18 à construire"]} />
       </section>
-      <Fiche titre="Clients" ouverte={recherche} fermer={() => setRecherche(false)}>
+      <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut === "actif" || x.statut === "resilie") : [])}
           choisir={(x) => { setT(x); setMotif(""); setRecherche(false); }} fermer={() => setRecherche(false)} />
       </Fiche>
@@ -655,7 +672,7 @@ export function PhotosSignatures() {
           "Chaque dépôt garde son auteur et sa date ; le dernier dépôt fait foi au guichet"]} />
       </section>
       <Capture ouverte={capture} fermer={() => setCapture(false)} prise={(v) => (v.length > IMAGE_MAX ? erreur(new Error("Image trop lourde : 300 Ko au plus.")) : setPhoto(v))} />
-      <Fiche titre="Clients" ouverte={recherche} fermer={() => setRecherche(false)}>
+      <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut !== "prospect" && x.statut !== "resilie") : [])}
           choisir={(x) => { setT(x); setPhoto(null); setSignature(null); setRecherche(false); }} fermer={() => setRecherche(false)} />
       </Fiche>
@@ -718,7 +735,7 @@ export function Consentement() {
           "Instr. BCC 5, art. 13 : consentement écrit de l'emprunteur avant de communiquer ses informations à la Centrale des risques (le manuel parle du BIC de l'UEMOA)",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
       </section>
-      <Fiche titre="Clients" ouverte={recherche} fermer={() => setRecherche(false)}>
+      <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut !== "prospect" && x.statut !== "resilie") : [])}
           choisir={(x) => { setT(x); setD(vide); setRecherche(false); }} fermer={() => setRecherche(false)} />
       </Fiche>

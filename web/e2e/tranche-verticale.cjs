@@ -113,7 +113,7 @@ const OUT = process.argv[2];
   await p.getByRole('cell', { name: "Droit d'entrée" }).waitFor(); await etape('06e-frais');
   await p.getByRole('tab', { name: 'Paramétrage frais Adhésion', exact: true }).click();
   await p.getByLabel('Frais: *').selectOption({ label: "Droit d'entrée" }); await p.getByLabel('Nature du frais *').selectOption('Montant');
-  await p.getByLabel('Valeur (CDF)').fill('5 000'); await p.getByRole('checkbox', { name: 'Physique' }).check();
+  await p.getByLabel('Valeur (CDF)').fill('5 000'); await p.getByLabel('Compte').fill('728'); await p.getByRole('checkbox', { name: 'Physique' }).check();   // 728 : donnée de test, compte à confirmer
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok(); await etape('06f-frais-adhesion');
   await p.getByRole('tab', { name: 'Modif Paramétrage frais Adhésion' }).click();
   await p.getByLabel('Frais: *').selectOption({ label: "Droit d'entrée" }); await p.getByLabel('Type membre *').selectOption('Physique');
@@ -122,7 +122,7 @@ const OUT = process.argv[2];
   for (const [i, nom] of ['Tshala', 'Mamans', 'Boulangerie'].entries()) {
     if (i > 0) await p.getByRole('button', { name: 'Annuler' }).click();
     await p.getByRole('button', { name: 'Rechercher un client' }).click();
-    const r = p.getByRole('dialog', { name: 'Clients en attente de visa' });
+    const r = p.getByRole('dialog', { name: "Recherche d'un client" });
     await r.getByRole('row').filter({ hasText: nom }).dblclick();
     if (i === 0) { await p.getByRole('cell', { name: "Droit d'entrée" }).waitFor(); await etape('06b-visa-client'); }
     await p.getByRole('button', { name: 'Viser' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
@@ -133,16 +133,16 @@ const OUT = process.argv[2];
   // Modification des frais (S41)
   await aller('/clients/s41');
   await p.getByRole('button', { name: 'Rechercher un client' }).click();
-  const rf = p.getByRole('dialog', { name: 'Clients visés' });
-  await rf.getByLabel('Numéro, Nom et Prénoms :').fill('Tshala'); await rf.getByRole('row').filter({ hasText: 'Tshala' }).dblclick();
+  const rf = p.getByRole('dialog', { name: "Recherche d'un client" });
+  await rf.getByLabel('Nom:', { exact: true }).fill('Tshala'); await rf.getByRole('row').filter({ hasText: 'Tshala' }).dblclick();
   await p.getByLabel("Montant de Droit d'entrée").fill('2 500'); await etape('06h-modification-frais');
   await p.getByRole('button', { name: 'Modifier' }).click(); await ok();
   await p.getByLabel("Montant de Droit d'entrée").waitFor(); await etape('06i-frais-modifies');
   // Mise à jour d'un client (S46), par l'agent
   await login('Bijou Kasongo'); await aller('/clients/s46');
   await p.getByRole('button', { name: 'Rechercher un client' }).click();
-  const rm = p.getByRole('dialog', { name: 'Clients' });
-  await rm.getByLabel('Numéro, Nom et Prénoms :').fill('Mwamba'); await rm.getByRole('row').filter({ hasText: 'Mwamba' }).dblclick();
+  const rm = p.getByRole('dialog', { name: "Recherche d'un client" });
+  await rm.getByLabel('Nom:', { exact: true }).fill('Mwamba'); await rm.getByRole('row').filter({ hasText: 'Mwamba' }).dblclick();
   await etape('06j-mise-a-jour');
   await p.getByRole('button', { name: 'Modifier' }).click(); await p.getByRole('tab', { name: 'Info Généraux' }).click();
   await p.getByLabel('Téléphone :').fill('+243 990 000 001'); await etape('06k-mise-a-jour-saisie');
@@ -150,13 +150,13 @@ const OUT = process.argv[2];
   // Validation du client modifié (S42) : par le chef, autre que l'agent qui a modifié
   await login('J.-P. Mukendi'); await aller('/clients/s42');
   await p.getByRole('button', { name: 'Rechercher un client' }).click();
-  await p.getByRole('dialog', { name: 'Clients modifiés' }).getByRole('row').filter({ hasText: 'Mwamba' }).dblclick();
+  await p.getByRole('dialog', { name: "Recherche d'un client" }).getByRole('row').filter({ hasText: 'Mwamba' }).dblclick();
   await p.getByRole('cell', { name: '0412-000319-01' }).waitFor(); await etape('06l-validation-client-modifie');
   await p.getByRole('button', { name: 'activer client' }).click(); await ok();
   // Consulter un client (S43)
   await aller('/clients/s43'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
-  const rc = p.getByRole('dialog', { name: 'Clients' });
-  await rc.getByLabel('Numéro, Nom et Prénoms :').fill('Mwamba'); await rc.getByRole('row').filter({ hasText: 'Mwamba' }).dblclick();
+  const rc = p.getByRole('dialog', { name: "Recherche d'un client" });
+  await rc.getByLabel('Nom:', { exact: true }).fill('Mwamba'); await rc.getByRole('row').filter({ hasText: 'Mwamba' }).dblclick();
   await p.getByRole('cell', { name: '+243 990 000 001' }).waitFor(); await etape('06m-informations-client');
   await p.getByRole('tab', { name: 'Dépôts' }).click(); await p.getByRole('cell', { name: '0412-000319-02' }).waitFor(); await etape('06n-informations-depots');
   // Groupe solidaire (S44)
@@ -167,8 +167,8 @@ const OUT = process.argv[2];
   await p.getByLabel('Groupe Solidaire *').selectOption({ label: 'Grp Kinsaku' });
   for (const nom of ['Kalala', 'Mwamba']) {
     await p.getByRole('button', { name: 'Rechercher un client' }).click();
-    const rg = p.getByRole('dialog', { name: 'Clients' });
-    await rg.getByLabel('Numéro, Nom et Prénoms :').fill(nom); await rg.getByRole('row').filter({ hasText: nom }).first().dblclick();
+    const rg = p.getByRole('dialog', { name: "Recherche d'un client" });
+    await rg.getByLabel('Nom:', { exact: true }).fill(nom); await rg.getByRole('row').filter({ hasText: nom }).first().dblclick();
     await p.getByRole('button', { name: 'Ajouter', exact: true }).click();
   }
   await etape('06p-affectation'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
@@ -194,16 +194,16 @@ const OUT = process.argv[2];
   await p.getByRole('cell', { name: 'Procuration générale' }).waitFor(); await etape('06u-types-procuration');
   // Photos et signatures (S49) : specimen déposé pour Mwamba (image fictive)
   await aller('/clients/s49'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
-  const rp = p.getByRole('dialog', { name: 'Clients' });
-  await rp.getByLabel('Numéro, Nom et Prénoms :').fill('Mwamba'); await rp.getByRole('row').filter({ hasText: 'Mwamba' }).dblclick();
+  const rp = p.getByRole('dialog', { name: "Recherche d'un client" });
+  await rp.getByLabel('Nom:', { exact: true }).fill('Mwamba'); await rp.getByRole('row').filter({ hasText: 'Mwamba' }).dblclick();
   const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
   await p.locator('fieldset', { hasText: 'Signature client' }).locator('input[type=file]').setInputFiles({ name: 'signature.png', mimeType: 'image/png', buffer: png });
   await p.getByRole('img', { name: 'Aperçu de la signature' }).waitFor(); await etape('06v-photos-signatures');
   await p.getByRole('button', { name: 'Valider les Modifications' }).click(); await ok();
   // Consentement (S50)
   await aller('/clients/s50'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
-  const rcs = p.getByRole('dialog', { name: 'Clients' });
-  await rcs.getByLabel('Numéro, Nom et Prénoms :').fill('Kalala'); await rcs.getByRole('row').filter({ hasText: 'Kalala' }).dblclick();
+  const rcs = p.getByRole('dialog', { name: "Recherche d'un client" });
+  await rcs.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rcs.getByRole('row').filter({ hasText: 'Kalala' }).dblclick();
   await p.getByLabel('Code *').fill('CR-1'); await p.getByLabel('Commentaire').fill('Signé à la demande de crédit');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('cell', { name: 'CR-1' }).waitFor(); await etape('06w-consentement');
@@ -215,13 +215,16 @@ const OUT = process.argv[2];
   await p.getByRole('cell', { name: '0412-000319' }).first().waitFor(); await etape('06z-rapport-modifies');
   // Caissière : adhésion, dépôt, retrait
   await login('Esther Ngalula'); await aller('/caisse/s73');
-  await p.getByLabel(/Nom, numéro ou compte/).waitFor(); await p.keyboard.press('F2'); await p.keyboard.type('Tshala'); await p.getByRole('option', { name: /Tshala/ }).click();
-  await p.getByLabel('Nombre de parts sociales').fill('2');
-  await p.getByLabel(/Premier dépôt/).fill('20 000');
-  await p.locator('#coupure-1, #coupure-adhesion').waitFor(); await p.keyboard.press('F4'); await p.keyboard.type('1'); // 1 × 20 000
-  await p.getByLabel('Nombre de coupures de 5 000 CDF').fill('1'); await p.getByLabel('Nombre de coupures de 1 000 CDF').fill('3');
-  await etape('07-adhesion'); await p.keyboard.press('F9'); await p.getByText('Adhésion enregistrée').waitFor().catch(async () => { await etape('07b-adhesion-erreur'); throw new Error('adhésion'); });
-  await etape('08-adhesion-recu');
+  await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  await p.getByRole('dialog', { name: "Recherche d'un client" }).getByLabel('Nom:', { exact: true }).fill('Tshala');
+  await p.getByRole('dialog', { name: "Recherche d'un client" }).getByRole('row').filter({ hasText: 'Tshala' }).dblclick();
+  await p.getByLabel('Nombre de parts sociales').fill('2'); await p.getByLabel(/Premier dépôt/).fill('20 000');   // 2 parts 8 000 + dépôt 20 000 + droit d'entrée 2 500
+  await p.getByRole('button', { name: 'Billetage' }).click(); const bil = p.getByRole('dialog', { name: 'Billetage' });
+  await bil.getByLabel('Nombre de coupures de 20 000 CDF').fill('1'); await bil.getByLabel('Nombre de coupures de 5 000 CDF').fill('2'); await bil.getByLabel('Nombre de coupures de 500 CDF').fill('1');
+  await bil.getByRole('button', { name: 'Fermer' }).click(); await etape('07-adhesion');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
+  await p.getByRole('button', { name: 'Imprimer' }).click(); await p.getByText('Adhésion enregistrée').waitFor(); await etape('08-adhesion-recu');
+  await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
   // Dépôt au clavier
   await p.goto(B + '/caisse/s74?op=depot'); await p.getByLabel(/Nom, numéro ou compte/).waitFor(); await p.keyboard.press('F2'); await p.keyboard.type('Kalala');
   await p.getByRole('option', { name: /Kalala/ }).click(); await p.getByLabel(/Épargne à vue, CDF/).check();
@@ -244,8 +247,8 @@ const OUT = process.argv[2];
   await p.getByText('Pas de specimen : ne pas payer').waitFor(); await etape('14-sans-specimen');
   // Parts sociales (S77) : achat d'une part par Kalala
   await aller('/caisse/s77'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
-  const rps = p.getByRole('dialog', { name: 'Clients' });
-  await rps.getByLabel('Numéro, Nom et Prénoms :').fill('Kalala'); await rps.getByRole('row').filter({ hasText: 'Kalala' }).dblclick();
+  const rps = p.getByRole('dialog', { name: "Recherche d'un client" });
+  await rps.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rps.getByRole('row').filter({ hasText: 'Kalala' }).dblclick();
   await p.getByLabel('N° Compte *').selectOption({ label: '0412-000318-02' }); await p.getByLabel('Part social à achèter *').fill('1');
   await p.getByRole('button', { name: 'Billetage' }).click();
   await p.getByRole('dialog', { name: 'Billetage' }).getByLabel('Nombre de coupures de 1 000 CDF').fill('4');
@@ -273,8 +276,8 @@ const OUT = process.argv[2];
   // Résiliation (S48), par le chef
   await login('J.-P. Mukendi'); await aller('/clients/s48');
   await p.getByRole('button', { name: 'Rechercher un client' }).click();
-  const rr = p.getByRole('dialog', { name: 'Clients' });
-  await rr.getByLabel('Numéro, Nom et Prénoms :').fill('Lukusa'); await rr.getByRole('row').filter({ hasText: 'Lukusa' }).dblclick();
+  const rr = p.getByRole('dialog', { name: "Recherche d'un client" });
+  await rr.getByLabel('Nom:', { exact: true }).fill('Lukusa'); await rr.getByRole('row').filter({ hasText: 'Lukusa' }).dblclick();
   await p.getByLabel('Motif *').selectOption('Raisons personnelles'); await etape('19-resiliation');
   await p.getByRole('button', { name: 'Résilier' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click(); await etape('20-resilie');

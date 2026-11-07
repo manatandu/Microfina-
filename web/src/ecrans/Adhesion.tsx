@@ -1,92 +1,135 @@
-import { vers } from "./registre";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { vers } from "./registre";
 import { api } from "../donnees/api";
 import type { Operation, Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
-import { useTouches } from "../lib/useTouches";
 import { nouvelleCle } from "../lib/cle";
-import { lireMontant, montant, totalComptage, type Comptage } from "@design/montant.js";
-import { Attention, Billetage, Bloquant, Chargement, ChampMontant, Etapes, Textes, Touche } from "../composants";
-import { mots } from "../lib/vocabulaire";
-import { OngletsGuichet, PanneauMembre, Recu } from "./Guichet";
+import { lireMontant, montant, montantEnLettres, totalComptage, type Comptage } from "@design/montant.js";
+import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
+import { OngletsGuichet, Recu } from "./Guichet";
+import { RechercheClient } from "./Visa";
 
-/** S73 : adhésion au guichet. Parts sociales payées en entier, premier dépôt facultatif. */
+const fr = (iso: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "");
+const nomComplet = (t: Tiers) => t.intitule || [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
+const enSaisie = (m: number) => (m ? String(m / 100).replace(".", ",") : "0");
+
+/** S73 : Caisse > Opération > Adhésion (manuel Microfina++, p. 85 ; écran complet p. 89, « Adhésion à la Banque ») */
 export default function Adhesion() {
-  const recherche = useRef<HTMLInputElement>(null);
-  const [tiers, setTiers] = useState<Tiers | null>(null);
-  const [parts, setParts] = useState("1");
+  const [t, setT] = useState<Tiers | null>(null);
   const [depot, setDepot] = useState("");
-  const [usd, setUsd] = useState(false);
+  const [parts, setParts] = useState("1");
   const [coupures, setCoupures] = useState<Comptage>({});
   const [cle, setCle] = useState(nouvelleCle);
-  const [erreur, setErreur] = useState("");
-  const [resultat, setResultat] = useState<Operation | null>(null);
-
+  const [fait, setFait] = useState<Operation | null>(null);
+  const [billetage, setBilletage] = useState(false);
+  const [recu, setRecu] = useState(false);
+  const [recherche, setRecherche] = useState(false);
+  const [boite, setBoite] = useState<Boite | null>(null);
   const { donnees } = useDonnees(async () => {
-    const [s, ctx] = await Promise.all([api.caisses.duCaissier(), api.referentiel.contexte()]);
-    const comptes = tiers ? await api.tiers.comptes(tiers.id) : [];
-    return { s, ctx, dejaMembre: comptes.length > 0 };
-  }, [tiers?.id, resultat?.id]);
-
-  const nParts = /^\d+$/.test(parts) ? Number(parts) : NaN;
-  const mDepot = depot ? lireMontant(depot) : 0;
-  const valeurPart = donnees?.ctx.valeurPart ?? 0;
-  const total = Number.isFinite(nParts) && mDepot !== null ? nParts * valeurPart + mDepot : 0;
-  const etapes = [
-    { titre: "Visé", ok: tiers?.statut === "actif", ko: !!tiers && tiers.statut !== "actif" },
-    { titre: "Parts", ok: Number.isInteger(nParts) && nParts >= 1 },
-    { titre: "Billetage", ok: total > 0 && totalComptage(coupures) === total },
-  ];
-  const pret = etapes.every((e) => e.ok) && !donnees?.dejaMembre && !resultat;
-  const vider = () => { setTiers(null); setParts("1"); setDepot(""); setUsd(false); setCoupures({}); setErreur(""); setResultat(null); setCle(nouvelleCle()); recherche.current?.focus(); };
-
-  async function valider() {
-    if (!pret || !tiers || mDepot === null) return;
-    setErreur("");
-    try { setResultat(await api.guichet.adhesion({ cle, tiersId: tiers.id, parts: nParts, depot: mDepot, compteUsd: usd, coupures })); } catch (x) { setErreur(message(x)); }
-  }
-  useTouches({ F2: () => recherche.current?.focus(), F4: () => document.getElementById("coupure-adhesion")?.focus(), F9: () => { void valider(); }, Escape: vider });
-
+    const [s, ctx, u, j] = await Promise.all([api.caisses.duCaissier(), api.referentiel.contexte(), api.session.courante(), api.journees.courante()]);
+    const stock = s ? await api.caisses.theorique(s.id, "CDF") : {};
+    const frais = t ? await api.parametrage.fraisLies(t.id) : [];
+    const piece = fait ? (await api.operations.recu(fait.id)).piece : "";
+    return { s, ctx, u, j, stock, frais, piece };
+  }, [t?.id, fait?.id]);
   if (!donnees) return <Chargement />;
-  if (!donnees.s || donnees.s.statut !== "ouverte") return <><h1>Adhésion</h1><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>;
-  const m = mots(donnees.ctx.institution);
-
+  const { s, ctx, u, j, stock, frais, piece } = donnees;
+  if (!s || s.statut !== "ouverte") return (
+    <><h1>Guichet</h1><OngletsGuichet /><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>, puis faire valider le fonds.</Attention></>
+  );
+  const nParts = /^\d+$/.test(parts.trim()) ? Number(parts.trim()) : 0;
+  const mDepot = depot.trim() ? lireMontant(depot) : 0;
+  const mFrais = frais.reduce((x, f) => x + (f.montant ?? 0), 0);
+  const total = (mDepot ?? 0) + mFrais + nParts * ctx.valeurPart;
+  const produit = t ? ctx.produits.find((p) => p.code === t.produitCode) : undefined;
+  const effacer = () => { setT(null); setDepot(""); setParts("1"); setCoupures({}); setCle(nouvelleCle()); setFait(null); };
+  function enregistrer() {
+    if (!t || mDepot === null) { setBoite({ type: "erreur", message: !t ? "À remplir : N° Client." : "Premier dépôt invalide." }); return; }
+    setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
+      try { setFait(await api.guichet.adhesion({ cle, tiersId: t.id, parts: nParts, depot: mDepot, coupures })); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+      catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+    } });
+  }
   return (
     <>
-      <h1 className="sr-only">Adhésion</h1>
+      <h1>Guichet</h1>
       <OngletsGuichet />
-      <div className="guichet">
-        <PanneauMembre tiers={tiers} onChoisir={(t) => { setTiers(t); setResultat(null); }} refRecherche={recherche}
-          enfants={donnees.dejaMembre && !resultat ? <Bloquant>déjà {m.membre} : passer par Dépôt.</Bloquant> : null} />
-        <section className="bloc bordereau" aria-labelledby="t-adh">
-          <h2 id="t-adh">Adhésion d'un {m.membre}</h2>
-          {resultat ? <Recu id={resultat.id} onNouveau={vider} /> : (
-            <>
-              {!tiers && <p className="muet">Chercher la personne enrôlée (<Link to={vers("S37")}>enrôler</Link> si elle n'existe pas encore).</p>}
-              <div className="champ">
-                <label htmlFor="parts">Nombre de parts sociales</label>
-                <input id="parts" className="saisie num court" inputMode="numeric" value={parts} onChange={(e) => setParts(e.target.value.replace(/\D/g, ""))} aria-describedby="aide-parts" />
-                <p className="aide" id="aide-parts">× <span className="chiffres">{montant(valeurPart, "CDF")}</span> = <strong className="chiffres">{Number.isFinite(nParts) ? montant(nParts * valeurPart, "CDF") : ""}</strong>
-                  <span className="exemple"> Valeur d'exemple (Microfina++), à remplacer par celle des statuts.</span></p>
-              </div>
-              <ChampMontant libelle="Premier dépôt sur l'épargne en francs (facultatif)" valeur={depot} onChange={setDepot} devise="CDF" erreur={depot && mDepot === null ? "Montant illisible." : ""} />
-              <label className="case"><input type="checkbox" checked={usd} onChange={(e) => setUsd(e.target.checked)} /><span>Ouvrir aussi un compte d'épargne en dollars</span></label>
-              <p className="dense">À encaisser : <strong className="chiffres">{montant(total, "CDF")}</strong>. Frais d'adhésion : aucun pour l'instant, <span className="exemple">montant à confirmer</span>.</p>
-              <Bloquant>{erreur}</Bloquant>
-              <div className="pied-guichet">
-                <Etapes etapes={etapes} />
-                <button type="button" className="bouton grand" disabled={!pret} aria-keyshortcuts="F9" onClick={() => void valider()}>Valider l'adhésion <Touche>F9</Touche></button>
-              </div>
-              <Textes sources={["Loi 002/2002, art. 20 et 21 : parts sociales, payées en entier", "PCCI, compte 1030 : parts sociales « personnes physiques effectives »", "PCCI, compte 330 : épargnes", "Nombre minimum de parts et frais d'adhésion : statuts de la COOPEC, à confirmer"]} />
-            </>
-          )}
-        </section>
-        <section className="bloc" aria-labelledby="t-bill-adh">
-          <h2 id="t-bill-adh">Billets reçus CDF <Touche>F4</Touche></h2>
-          <Billetage devise="CDF" comptage={coupures} onChange={setCoupures} cible={total} sens="recue" idPremier="coupure-adhesion" lectureSeule={!!resultat} />
-        </section>
-      </div>
+      <section className="bloc pile" aria-label="Adhésion">
+        <div className="entete-ecran">
+          <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p>
+          <p>Date Operation : * <strong className="chiffres">{fr(j?.date ?? "")}</strong></p>
+        </div>
+        <div className="grille-cadres">
+          <fieldset className="pile cadre-champs">
+            <legend>Informations sur le Client</legend>
+            <div className="ligne-champ">
+              <Champ libelle="N° Client :">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
+              <button className="bouton secondaire" type="button" aria-label="Rechercher un client" disabled={!!fait} onClick={() => setRecherche(true)}>Rechercher</button>
+            </div>
+            <Champ libelle="Intitulé : *">{(p) => <input {...p} className="saisie" readOnly value={t ? nomComplet(t) : ""} />}</Champ>
+            <Champ libelle="Catégorie : *">{(p) => <input {...p} className="saisie" readOnly value={t?.typeClient ?? ""} />}</Champ>
+          </fieldset>
+          <fieldset className="pile cadre-champs">
+            <legend>Informations sur le Compte</legend>
+            <Champ libelle="N° compte épargne : *">{(p) => <input {...p} className="saisie code" readOnly value={t ? `${t.numero}-02` : ""} />}</Champ>
+            <Champ libelle={`Premier dépôt : *${produit ? ` (${produit.devise})` : ""}`}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" required readOnly={!!fait}
+              autoComplete="off" value={depot} onChange={(e) => { setDepot(e.target.value); setCle(nouvelleCle()); }} />}</Champ>
+            <p>Total : <strong className="chiffres">{montant(total, "CDF")}</strong></p>
+          </fieldset>
+          <fieldset className="pile cadre-champs">
+            <legend>Info guichet</legend>
+            <dl className="infos">
+              <div className="info-ligne"><dt>Agence</dt><dd>{ctx.agence.nom}</dd></div>
+              <div className="info-ligne"><dt>Caisse</dt><dd>{ctx.guichets.find((g) => g.id === s.guichetId)?.nom ?? ""}</dd></div>
+              <div className="info-ligne"><dt>Caissier</dt><dd>{u?.nom ?? ""}</dd></div>
+              <div className="info-ligne"><dt>Solde</dt><dd className="chiffres">{montant(totalComptage(stock), "CDF")}</dd></div>
+            </dl>
+          </fieldset>
+        </div>
+        <fieldset className="pile cadre-champs">
+          <legend>Liste des Frais</legend>
+          <table className="grille">
+            <thead><tr><th scope="col">Libellé Frais</th><th scope="col">Compte</th><th scope="col">Nombre</th><th scope="col">Montant</th></tr></thead>
+            <tbody>
+              {frais.length === 0 && <tr><td colSpan={4}>Liste des Frais vide</td></tr>}
+              {frais.map((f) => <tr key={f.fraisId}><td>{f.libelle}</td><td className="chiffres">{f.compte}</td><td></td><td className="chiffres">{f.montant === null ? "" : montant(f.montant, "CDF")}</td></tr>)}
+              <tr>
+                <td>Part sociale</td><td className="chiffres">{t ? (t.type === "physique" ? "1030" : t.type === "groupe" && t.typeClient === "Groupement" ? "1031" : "1032") : ""}</td>
+                <td><input className="saisie code court" inputMode="numeric" aria-label="Nombre de parts sociales" readOnly={!!fait} value={parts}
+                  onChange={(e) => { if (/^\d{0,4}$/.test(e.target.value)) { setParts(e.target.value); setCle(nouvelleCle()); } }} /></td>
+                <td className="chiffres">{montant(nParts * ctx.valeurPart, "CDF")}</td>
+              </tr>
+            </tbody>
+          </table>
+        </fieldset>
+        <div className="actions-onglets">
+          <button className="bouton" type="button" disabled={!t || !!fait} onClick={enregistrer}>Enregistrer</button>
+          <button className="bouton secondaire" type="button" disabled={!fait} onClick={() => setRecu(true)}>Imprimer</button>
+          <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
+          <button className="bouton secondaire" type="button" disabled={!t || !!fait || total <= 0} onClick={() => setBilletage(true)}>Billetage</button>
+        </div>
+        <p className="montant-lettres">{total > 0 ? montantEnLettres(total, "CDF") : ""}</p>
+        <p className="a-confirmer">À confirmer : Date Operation modifiable dans Microfina (ici : la journée ouverte) ; parts dans la Liste des Frais avec leur compte du PCCI (1030, 1031, 1032), pas comme un frais ; compte en USD (adhésion en deux devises) non traité ; valeur de la part : exemple, à prendre dans les statuts.</p>
+        <Textes sources={["Manuel Microfina++, p. 85 : Adhésion (N° Client, Intitulé*, Catégorie*, N° compte épargne*, Premier dépôt*, Total, Info guichet) ; p. 89 : Liste des Frais, Enregistrer, Imprimer, Effacer, Billetage, montant en lettres",
+          "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
+          "Loi 002/2002, art. 21 et 22 : au moins une part, intégralement libérée ; PCCI, comptes 103 (parts) et 330 (épargne)",
+          "Instr. BCC 37 : ouverture de compte gratuite ; Instr. BCC 15 bis : examen renforcé à 10 000 USD en espèces"]} />
+      </section>
+      <Fiche titre="Billetage" ouverte={billetage} fermer={() => setBilletage(false)}>
+        <div className="pile">
+          <Billetage devise="CDF" comptage={coupures} onChange={(c) => { setCoupures(c); setCle(nouvelleCle()); }} cible={total} sens="recue" />
+          <div className="actions-onglets"><button className="bouton" type="button" onClick={() => setBilletage(false)}>Fermer</button></div>
+        </div>
+      </Fiche>
+      <Fiche titre="Reçu" ouverte={recu} fermer={() => setRecu(false)}>
+        {fait && <Recu id={fait.id} onNouveau={() => { setRecu(false); effacer(); }} />}
+      </Fiche>
+      <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
+        <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut === "actif") : [])}
+          choisir={(x) => { setT(x); setDepot(enSaisie(x.premierDepot)); setParts("1"); setCoupures({}); setCle(nouvelleCle()); setRecherche(false); }} fermer={() => setRecherche(false)} />
+      </Fiche>
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );
 }

@@ -299,11 +299,19 @@ describe("journée de guichet", () => {
     const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), produitCode: "EAV-CDF", nom: "Tshala", postnom: "Muana", prenom: "Marie", naissance: "1990-02-01", pieceType: "Carte d'électeur", pieceNumero: "1-0412-0999", pieceExpire: "2031-01-01", adresse: "Matete" });
     await journeeOuverte();
     const coupures: Comptage = { 5000: 2, 1000: 2 };
-    await expect(api.guichet.adhesion({ cle: cle(), tiersId: t.id, parts: 1, depot: 800000, compteUsd: false, coupures })).rejects.toThrow("visa");
+    await expect(api.guichet.adhesion({ cle: cle(), tiersId: t.id, parts: 1, depot: 800000, coupures })).rejects.toThrow("visa");
     await connecter("jpmukendi"); await api.tiers.viser(t.id); await connecter("engalula");
-    await api.guichet.adhesion({ cle: cle(), tiersId: t.id, parts: 3, depot: 0, compteUsd: true, coupures: { 5000: 2, 1000: 2 } });
+    // Frais d'adhésion (S16) : compte absent du plan, puis compte du plan
+    await connecter("jpmukendi");
+    const f = await api.parametrage.creerFrais({ typeOperation: "ADHESION", libelle: "Droit d'entrée" });
+    const pid = (await api.parametrage.parametrerAdhesion({ fraisId: f.id, nature: "Montant", valeur: 200000, compte: "70291", typesMembre: ["Physique"] }))[0]!;
+    await connecter("engalula");
+    await expect(api.guichet.adhesion({ cle: cle(), tiersId: t.id, parts: 3, depot: 0, coupures: { 5000: 2, 1000: 4 } })).rejects.toThrow("plan comptable");
+    await connecter("jpmukendi"); await api.parametrage.modifierParametrage("adhesion", pid, { nature: "Montant", valeur: 200000, compte: "728" }); await connecter("engalula");
+    await expect(api.guichet.adhesion({ cle: cle(), tiersId: t.id, parts: 3, depot: 0, coupures: { 5000: 2, 1000: 2 } })).rejects.toThrow("billetage");
+    await api.guichet.adhesion({ cle: cle(), tiersId: t.id, parts: 3, depot: 0, coupures: { 5000: 2, 1000: 4 } });
     expect(await api.tiers.parts(t.id)).toBe(3);
-    expect((await api.tiers.comptes(t.id)).map((c) => c.devise).sort()).toEqual(["CDF", "USD"]);
+    expect((await api.tiers.comptes(t.id)).map((c) => c.devise)).toEqual(["CDF"]);
     expect(totalComptage(coupures)).toBe(1200000);
   });
 

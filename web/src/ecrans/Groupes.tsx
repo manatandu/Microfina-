@@ -157,7 +157,7 @@ export function GroupeSolidaire() {
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "PCCI, compte 1031 : parts sociales des groupements solidaires effectifs"]} />
       </section>
-      <Fiche titre="Clients" ouverte={recherche} fermer={() => setRecherche(false)}>
+      <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut === "actif") : [])}
           choisir={(x) => { setClient(x); setRecherche(false); }} fermer={() => setRecherche(false)} />
       </Fiche>

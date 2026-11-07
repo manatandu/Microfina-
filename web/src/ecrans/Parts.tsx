@@ -122,7 +122,7 @@ export function PartsSociales() {
       <Fiche titre="Reçu" ouverte={recu} fermer={() => setRecu(false)}>
         {fait && <Recu id={fait.id} onNouveau={() => { setRecu(false); effacer(); }} />}
       </Fiche>
-      <Fiche titre="Clients" ouverte={recherche} fermer={() => setRecherche(false)}>
+      <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut === "actif" || x.statut === "resilie") : [])}
           choisir={(x) => { setT(x); setCompteId(0); setNombre(""); setCoupures({}); setRecherche(false); }} fermer={() => setRecherche(false)} />
       </Fiche>
