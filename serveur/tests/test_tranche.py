@@ -374,3 +374,20 @@ def test_type_procuration(clients):
     assert [x["libelle"] for x in agent.get("/api/types-procuration").json()] == ["Procuration générale"]
     assert agent.delete(f"/api/types-procuration/{t['id']}", **H).status_code == 200
     assert agent.get("/api/types-procuration").json() == []
+
+
+def test_resiliation(clients, journee):
+    chef, agent, caisse = clients["chef"], clients["agent"], clients["caisse"]
+    k = T("0412-000320")
+    def refus(c, corps, tid=k):
+        r = c.post(f"/api/tiers/{tid}/resiliation", corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    assert "Réservé" in refus(agent, {"motif": "AUTRES"})
+    assert "motif" in refus(chef, {"motif": ""})
+    assert "Motif inconnu" in refus(chef, {"motif": "Fâché"})
+    r = chef.post(f"/api/tiers/{k}/resiliation", {"motif": "Raisons personnelles"}, **H)
+    assert r.status_code == 200, r.content
+    v = r.json()
+    assert (v["statut"], v["motifDepart"], v["resilieLe"]) == ("resilie", "Raisons personnelles", "2026-11-05")
+    assert "déjà résilié" in refus(chef, {"motif": "AUTRES"})
+    r = caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000320-02"), "montant": 1000000, "coupures": {"10000": 1}, "remisPar": ""}, **H)
+    assert r.status_code == 422 and "résilié" in r.json()["message"]

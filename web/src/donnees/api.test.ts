@@ -224,6 +224,19 @@ describe("journée de guichet", () => {
     expect(await api.procurations.lire()).toEqual([]);
   });
 
+  it("résiliation (S48) : chef d'agence, motif de la liste, client bloqué au guichet", async () => {
+    await journeeOuverte();
+    await connecter("bkasongo");
+    await expect(api.tiers.resilier(3, { motif: "AUTRES" })).rejects.toThrow("Réservé");
+    await connecter("jpmukendi");
+    await expect(api.tiers.resilier(3, { motif: "" })).rejects.toThrow("motif");
+    await expect(api.tiers.resilier(3, { motif: "Fâché" })).rejects.toThrow("Motif inconnu");
+    expect(await api.tiers.resilier(3, { motif: "Raisons personnelles" })).toMatchObject({ statut: "resilie", motifDepart: "Raisons personnelles", resilieLe: "2026-11-05" });
+    await expect(api.tiers.resilier(3, { motif: "AUTRES" })).rejects.toThrow("déjà résilié");
+    await connecter("engalula");
+    await expect(api.guichet.depot({ cle: cle(), compteId: 5, montant: 1000000, coupures: { 10000: 1 }, remisPar: "" })).rejects.toThrow("résilié");
+  });
+
   it("adhésion : parts en 1030, premier dépôt en 330, après visa seulement", async () => {
     await connecter("bkasongo");
     const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), produitCode: "EAV-CDF", nom: "Tshala", postnom: "Muana", prenom: "Marie", naissance: "1990-02-01", pieceType: "Carte d'électeur", pieceNumero: "1-0412-0999", pieceExpire: "2031-01-01", adresse: "Matete" });

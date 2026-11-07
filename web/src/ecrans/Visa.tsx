@@ -437,3 +437,93 @@ export function InformationsClient() {
     </>
   );
 }
+
+/** S48 : Client > Résilier un client (manuel Microfina++, p. 57). Loi 002/2002, art. 24 et 27 ; clôture gratuite (Instr. BCC 37). */
+export function ResiliationClient() {
+  const { donnees: ctx } = useDonnees(() => api.referentiel.contexte());
+  const [t, setT] = useState<Tiers | null>(null);
+  const [motif, setMotif] = useState("");
+  const [recherche, setRecherche] = useState(false);
+  const [boite, setBoite] = useState<Boite | null>(null);
+  const { donnees: comptes } = useDonnees(() => (t ? api.tiers.comptes(t.id) : Promise.resolve([])), [t?.id]);
+  const { donnees: j } = useDonnees(() => api.journees.courante());
+  if (!ctx) return <Chargement />;
+  const lu = (libelle: string, v: string) => <Champ libelle={libelle}>{(p) => <input {...p} className="saisie" readOnly value={v} />}</Champ>;
+  const resilie = t?.statut === "resilie";
+  const jour = resilie ? t!.resilieLe : j?.statut === "ouverte" ? j.date : "";
+  const devises = [...new Set((comptes ?? []).map((c) => c.devise))];
+  function resilier() {
+    if (!t) { setBoite({ type: "erreur", message: "Rechercher d'abord le client." }); return; }
+    setBoite({ type: "confirmation", message: "Voulez-vous vraiment résilier ce client ?", oui: async () => {
+      try { setT(await api.tiers.resilier(t.id, { motif })); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+      catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+    } });
+  }
+  return (
+    <>
+      <h1>Résiliation du contrat client</h1>
+      <section className="bloc pile a-imprimer" aria-label="Résiliation du contrat client">
+        <div className="formulaire">
+          <div className="ligne-champ">
+            <Champ libelle="N° Client">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
+            <button className="bouton secondaire sans-impression" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
+          </div>
+          {lu("Intitulé", t ? t.intitule || nomComplet(t) : "")}{lu("Catégorie", t?.typeClient ?? "")}
+        </div>
+        <fieldset className="cadre-champs formulaire">
+          <legend>Informations générales du client</legend>
+          {lu("Secteur d'activité :", "")}{lu("Type d'activité :", "")}
+          {lu("Raison sociale :", t ? nomComplet(t) : "")}{lu("RCCM :", t?.registre ?? "")}
+          {lu("Autorisation d'Installation :", "")}{lu("Crée le :", "")}
+          {lu("Catégorie :", t?.typeClient ?? "")}{lu("Nationalité :", "")}
+          {lu("Type de pièce :", t?.pieceType ?? "")}{lu("Numero de pièce :", t?.pieceNumero ?? "")}
+          {lu("Etabli à:", t?.pieceLieu ?? "")}{lu("Date dexpiration : *", t ? fr(t.pieceExpire) : "")}
+          {t?.type === "groupe" && <>{lu("Type de Groupement :", t.typeClient)}{lu("Nombre d'Homme :", String(t.nbHommes))}{lu("Nombre de Femme :", String(t.nbFemmes))}</>}
+        </fieldset>
+        <div className="deux-colonnes">
+          <div className="formulaire">
+            {lu("Resilié le", fr(jour))}
+            <Champ libelle="Motif *">{(p) => resilie
+              ? <input {...p} className="saisie" readOnly value={t!.motifDepart} />
+              : <select {...p} className="saisie" required value={motif} onChange={(e) => setMotif(e.target.value)}><option value=""></option>
+                  {ctx.motifsDepart.map((m) => <option key={m}>{m}</option>)}</select>}</Champ>
+          </div>
+          <fieldset className="pile cadre-champs">
+            <legend>Frais de résiliation de contrat</legend>
+            <table className="grille"><thead><tr><th scope="col">Libelle Frais</th><th scope="col">Frais</th></tr></thead><tbody><tr><td colSpan={2}>Liste vide</td></tr></tbody></table>
+            <p className="a-confirmer">Aucun frais de fermeture de compte : clôture de compte gratuite sans condition (Instr. BCC 37, art. 2 et 3, annexe). La capture du manuel en montre un.</p>
+          </fieldset>
+        </div>
+        <div className="actions-onglets sans-impression">
+          <button className="bouton" type="button" disabled={!t || resilie} onClick={resilier}>Résilier</button>
+          <button className="bouton secondaire" type="button" disabled={!resilie} onClick={() => window.print()}>Imprimer</button>
+        </div>
+        <table className="grille">
+          <thead>
+            <tr><th scope="col" rowSpan={2}>Intitulé</th><th scope="colgroup" colSpan={2}>Solde</th></tr>
+            <tr><th scope="col">Débit</th><th scope="col">Crédit</th></tr>
+          </thead>
+          <tbody>
+            {(!t || !comptes || comptes.length === 0) && <tr><td colSpan={3}>Liste vide</td></tr>}
+            {t && comptes?.map((c) => <tr key={c.id}><td>{c.intitule} {c.devise}</td><td className="chiffres">{montant(Math.max(0, -c.solde), c.devise)}</td><td className="chiffres">{montant(Math.max(0, c.solde), c.devise)}</td></tr>)}
+            {t && devises.map((d) => {
+              const l = comptes!.filter((c) => c.devise === d);
+              return <tr key={d}><th scope="row">Total {d}</th><td className="chiffres">{montant(l.reduce((s, c) => s + Math.max(0, -c.solde), 0), d)}</td><td className="chiffres">{montant(l.reduce((s, c) => s + Math.max(0, c.solde), 0), d)}</td></tr>;
+            })}
+          </tbody>
+        </table>
+        {t && devises.map((d) => <p key={d}>Solde Créditeur {d} : <strong className="chiffres">{montant(comptes!.filter((c) => c.devise === d).reduce((s, c) => s + c.solde, 0), d)}</strong></p>)}
+        {resilie && <p className="a-confirmer sans-impression">Apurement des créances et engagements du membre à faire (loi 002/2002, art. 27) : l'écran d'apurement n'est pas montré par le manuel.</p>}
+        <Textes sources={["Manuel Microfina++, p. 57 : écran Résiliation du contrat client (N° Client, Informations générales, Résilié le, Motif*, Frais de résiliation, Résilier, Imprimer, soldes)",
+          "Loi 002/2002, art. 24 : un membre emprunteur ou endosseur d'un prêt ne peut pas se retirer ; art. 27 : apurement à la perte de la qualité de membre",
+          "Instr. BCC 37, annexe : clôture de compte gratuite",
+          "Motifs : exemples de la capture « Motif de départ d'un client » (p. 26), paramétrage S18 à construire"]} />
+      </section>
+      <Fiche titre="Clients" ouverte={recherche} fermer={() => setRecherche(false)}>
+        <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut === "actif" || x.statut === "resilie") : [])}
+          choisir={(x) => { setT(x); setMotif(""); setRecherche(false); }} fermer={() => setRecherche(false)} />
+      </Fiche>
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </>
+  );
+}

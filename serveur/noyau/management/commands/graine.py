@@ -35,6 +35,10 @@ class Command(BaseCommand):
             executer("insert into localite (parent_id, niveau, nom) values (%s, 'quartier', %s)", (ville, q))
         for pr in ("Commerçant", "Enseignant", "Agriculteur"):
             executer("insert into profession (institution_id, libelle) values (%s, %s)", (ins, pr))
+        # Motifs de départ : exemples de la capture du manuel (p. 26) ; paramétrage S18 pas encore construit
+        for mo in ("DEPART DU PAYS", "Raisons personnelles", "DEMENAGEMENT", "DECISION DU CLIENT", "NE VEUT PLUS PRENDRE DE CREDIT", "AUTRES",
+                   "TRANSFERT SUR UNE AUTRE AGENCE"):
+            executer("insert into motif_depart (institution_id, libelle) values (%s, %s)", (ins, mo))
         for st in ("Homme", "Femme", "Entreprise", "Groupement", "Association", "ONG"):     # sous types de client fictifs (S14 pas encore construit)
             executer("insert into sous_type_client (institution_id, libelle) values (%s, %s)", (ins, st))   # zone fictive (S32 pas encore construit)
         ag = valeur("insert into agence (institution_id, code, nom) values (%s, '0412', 'Matete') returning id", (ins,))

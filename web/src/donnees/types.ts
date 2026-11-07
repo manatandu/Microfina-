@@ -37,7 +37,7 @@ export interface Tiers {
   id: number;
   type: "physique" | "morale" | "groupe";
   numero: string;
-  statut: "prospect" | "a_viser" | "actif" | "modifie_a_revalider";
+  statut: "prospect" | "a_viser" | "actif" | "modifie_a_revalider" | "resilie";
   nom: string;
   postnom: string;
   prenom: string;
@@ -90,6 +90,9 @@ export interface Tiers {
   email: string;
   bp: string;
   telephoneFixe: string;
+  // S48, résiliation (manuel p. 57)
+  motifDepart: string;
+  resilieLe: string;
   // S40, visa (manuel p. 52)
   intitule: string;
   dateVisa: string;
@@ -157,7 +160,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise }
 
 export interface Etat {
-  version: 11;
+  version: 12;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];
@@ -183,6 +186,7 @@ export interface Etat {
   modifications: { id: number; tiersId: number; avant: Tiers; apres: Tiers; modifiePar: number; modifieLe: string; validePar?: number }[];   // S46, S42, S43
   typesProcuration: { id: number; libelle: string }[];   // S47
   professions: string[];
+  motifsDepart: string[];   // S18, exemples de la capture p. 26
   localites: { pays: string; villes: { ville: string; quartiers: string[] }[] }[];
   groupesSolidaires: { id: number; code: string; nom: string }[];      // S44
   membresGroupes: { groupeId: number; tiersId: number }[];

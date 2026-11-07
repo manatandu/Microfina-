@@ -210,3 +210,7 @@ fieldset.sans-cadre { border: 0; padding: 0; margin: 0; min-width: 0; }
 .pagination button { font: inherit; font-size: var(--taille-dense); min-width: 2rem; padding: 2px var(--espace-2); border: 1px solid var(--trait); border-radius: var(--rayon-petit); background: var(--feuille); color: var(--encre); cursor: pointer; }
 .pagination button[aria-current="page"] { border-color: var(--tampon); color: var(--tampon); font-weight: 600; }
 .actions-ligne { display: inline-flex; flex-wrap: wrap; gap: var(--espace-1); }
+@media print {
+  .a-imprimer, .a-imprimer * { visibility: visible; }
+  .a-imprimer { position: absolute; inset: 0; }
+}

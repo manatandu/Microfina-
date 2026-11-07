@@ -204,6 +204,11 @@ def tiers_modifier(request, tid: int, corps: dict = Body(...)):
     return s.modifier_tiers(u(request), tid, corps)
 
 
+@api.post("/tiers/{tid}/resiliation")
+def tiers_resilier(request, tid: int, corps: dict = Body(...)):
+    return s.resilier_tiers(u(request), tid, corps)
+
+
 @api.get("/tiers/{tid}/images")
 def tiers_images(request, tid: int):
     return s.images_tiers(u(request), tid)

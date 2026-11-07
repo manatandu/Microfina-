@@ -111,6 +111,7 @@ def contexte(u: dict) -> dict:
         "pieces": PIECES,
         "professions": [r["libelle"] for r in lignes("select libelle from profession where institution_id = %s order by libelle", (u["institution_id"],))],
         "localites": localites(),
+        "motifsDepart": [r["libelle"] for r in lignes("select libelle from motif_depart where institution_id = %s order by id", (u["institution_id"],))],
         "cours": {"USD": cours_usd()},
         "valeurPart": valeur_part(),
         "utilisateurs": utilisateurs(),
@@ -342,7 +343,7 @@ def vue_tiers(t: dict) -> dict:
             "preleverAgios": t["prelever_agios"], "calculerInteret": t["calculer_interet"],
             "lieuNaissance": t["lieu_naissance"] or "", "pieceDelivreeLe": iso(t["piece_delivree_le"]), "pieceLieu": t["piece_lieu"] or "", "pieceAutorite": t["piece_autorite"] or "",
             "liees": [r["autre_id"] for r in lignes("select autre_id from lien_tiers where tiers_id = %s and role = 'personne_liee' order by id", (t["id"],))],
-            "intitule": t["intitule"] or "", "dateVisa": iso(t["date_visa"]),
+            "intitule": t["intitule"] or "", "dateVisa": iso(t["date_visa"]), "motifDepart": t["motif_depart"] or "", "resilieLe": iso(t["resilie_le"]),
             "profession": t["profession"] or "", "pays": t["pays"] or "", "ville": t["ville"] or "", "quartier": t["quartier"] or "", "rue": t["rue"] or "",
             "email": t["email"] or "", "bp": t["bp"] or "", "telephoneFixe": t["telephone_fixe"] or "",
             "type": t["type"], "formeJuridique": t["forme"] or "", "registre": t["rccm"] or "", "centreActivite": t["centre_activite"] or "", "activite": t["activite"] or "",
@@ -582,6 +583,8 @@ def viser_tiers(u: dict, tid: int, d: dict | None = None) -> dict:
 
 
 def controler_statut_actif(statut: str, suite: str = ""):
+    if statut == "resilie":
+        raise ErreurMetier("Client résilié : plus d'opération ; apurement de ses comptes à faire (loi 002/2002, art. 27).")
     if statut == "modifie_a_revalider":
         raise ErreurMetier("Client modifié : à valider (Client > Visa > Valider client modifié) avant toute opération.")
     if statut != "actif":
@@ -731,6 +734,39 @@ def modifier_prospect(u: dict, tid: int, d: dict) -> dict:
         raise ErreurMetier("Prospect introuvable.")
     texte = controler_prospect(u, d)
     executer(f"update tiers_personne set {VALEURS_PROSPECT} where tiers_id = %s", (*params_prospect(texte), tid))
+    return lire_tiers(tid)
+
+
+def engagements_credit(tid: int) -> str | None:
+    """Loi 002/2002, art. 24 : un membre emprunteur ou endosseur d'un prêt ne peut pas se retirer"""
+    if valeur("select 1 from credit where tiers_id = %s and statut in ('mis_en_place', 'vise', 'debloque')", (tid,)):
+        raise ErreurMetier("Client emprunteur : il ne peut pas se retirer tant que son prêt court (loi 002/2002, art. 24).")
+    if valeur("""select 1 from garantie g join credit c on c.id = g.credit_id
+                 where g.caution_id = %s and g.liberee_le is null and c.statut in ('mis_en_place', 'vise', 'debloque')""", (tid,)):
+        raise ErreurMetier("Client endosseur d'un prêt en cours : il ne peut pas se retirer (loi 002/2002, art. 24).")
+    return None
+
+
+def resilier_tiers(u: dict, tid: int, d: dict) -> dict:
+    """S48 : Client > Résilier un client (manuel p. 57), bouton Résilier. Loi 002/2002, art. 24 ; apurement ensuite (art. 27).
+    Aucun frais de fermeture de compte : clôture gratuite (Instr. BCC 37, annexe)."""
+    exiger(u, "chef_agence")                 # profil habilité : à confirmer
+    t = une("select * from tiers where id = %s and institution_id = %s for update", (tid, u["institution_id"]))
+    if not t:
+        raise ErreurMetier("Client introuvable.")
+    if t["statut"] == "resilie":
+        raise ErreurMetier("Ce client est déjà résilié.")
+    if t["statut"] != "actif":
+        raise ErreurMetier("Seul un client actif se résilie.")
+    motif = texte_de(d or {})("motif")
+    if not motif:
+        raise ErreurMetier("À remplir : motif.")
+    if not valeur("select 1 from motif_depart where institution_id = %s and libelle = %s", (u["institution_id"], motif)):
+        raise ErreurMetier("Motif inconnu.")
+    engagements_credit(tid)
+    j = journee_courante(u)
+    jour = j["date"] if j and j["statut"] == "ouverte" else date.today().isoformat()
+    executer("update tiers set statut = 'resilie', motif_depart = %s, resilie_le = %s, resilie_par = %s where id = %s", (motif, jour, u["id"], tid))
     return lire_tiers(tid)
 
 

@@ -225,6 +225,14 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Fermer la journée' }).click(); await p.getByRole('heading', { name: 'Ouvrir la journée' }).waitFor();
   await etape('17-journee-fermee');
   await login('Patrick Lumbala'); await p.goto(B + '/comptabilite/s121'); await p.getByText(/Équilibrée/).waitFor(); await etape('18-balance');
+  // Résiliation (S48), par le chef
+  await login('J.-P. Mukendi'); await aller('/clients/s48');
+  await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  const rr = p.getByRole('dialog', { name: 'Clients' });
+  await rr.getByLabel('Numéro, Nom et Prénoms :').fill('Lukusa'); await rr.getByRole('row').filter({ hasText: 'Lukusa' }).dblclick();
+  await p.getByLabel('Motif *').selectOption('Raisons personnelles'); await etape('19-resiliation');
+  await p.getByRole('button', { name: 'Résilier' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click(); await etape('20-resilie');
   console.log(errs.length ? 'ERREURS\n' + errs.join('\n') : 'aucune erreur console');
   await b.close();
 })().catch(async e => { await globalThis.__p.screenshot({ path: OUT + '/zz-echec.png', fullPage: true }); throw e; }).catch(async e => { console.error('ÉCHEC', e.message.split('\n').slice(0,3).join(' / ')); process.exit(1); });

@@ -16,14 +16,14 @@ import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@d
 export const SEUIL_CAISSIER_USD = 1000;   // au-delà, visa du chef d'agence. Exemple : fixé par la COOPEC
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v11";
+const CLE = "likelemba-demo-v12";
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
 
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 11) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 12) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   return graine();
 }
@@ -62,7 +62,7 @@ const session = {
 };
 
 function contexte() {
-  return { institution: E.institution, agence: E.agence, guichets: E.guichets, produits: E.produits, zones: E.zones, typesClient: TYPES_CLIENT, typesEntreprise: TYPES_ENTREPRISE, typesGroupe: Object.keys(TYPES_GROUPE), pieces: PIECES, professions: E.professions, localites: E.localites, cours: E.cours, valeurPart: E.valeurPart, utilisateurs: E.utilisateurs };
+  return { institution: E.institution, agence: E.agence, guichets: E.guichets, produits: E.produits, zones: E.zones, typesClient: TYPES_CLIENT, typesEntreprise: TYPES_ENTREPRISE, typesGroupe: Object.keys(TYPES_GROUPE), pieces: PIECES, professions: E.professions, localites: E.localites, motifsDepart: E.motifsDepart, cours: E.cours, valeurPart: E.valeurPart, utilisateurs: E.utilisateurs };
 }
 export const nomUtilisateur = (id?: number) => E.utilisateurs.find((u) => u.id === id)?.nom ?? "";
 
@@ -209,7 +209,7 @@ const caisses = {
 const nettoyer = (c: Comptage): Comptage => Object.fromEntries(Object.entries(c).filter(([, n]) => (n ?? 0) > 0));
 
 // ---------- Tiers ----------
-export type NouveauTiers = Omit<Tiers, "id" | "numero" | "statut" | "creePar" | "visePar" | "photo" | "specimen" | "type" | "dirigeant" | "signataires" | "membres" | "intitule" | "dateVisa">;
+export type NouveauTiers = Omit<Tiers, "id" | "numero" | "statut" | "creePar" | "visePar" | "photo" | "specimen" | "type" | "dirigeant" | "signataires" | "membres" | "intitule" | "dateVisa" | "motifDepart" | "resilieLe">;
 /** Saisie du visa (S40, p. 52) */
 export interface Visa { dateVisa?: string; intitule?: string; premierDepot?: number }
 /** Dirigeant ou signataire tel que saisi, avec photo et signature chargées */
@@ -295,6 +295,7 @@ const versRepresentant = ({ photo, signature, ...r }: RepresentantSaisi): Repres
 const SANS_IDENTITE = { postnom: "", prenom: "", sexe: "" as const, naissance: "", lieuNaissance: "", pieceType: "", pieceNumero: "", pieceDelivreeLe: "",
   pieceLieu: "", pieceAutorite: "", pieceExpire: "", telephone: "" };
 function controlerStatutActif(statut: Tiers["statut"], suite = "") {
+  if (statut === "resilie") throw new ErreurMetier("Client résilié : plus d'opération ; apurement de ses comptes à faire (loi 002/2002, art. 27).");
   if (statut === "modifie_a_revalider") throw new ErreurMetier("Client modifié : à valider (Client > Visa > Valider client modifié) avant toute opération.");
   if (statut !== "actif") throw new ErreurMetier(`Client pas encore visé${suite}.`);
 }
@@ -318,7 +319,7 @@ function ctxControle() {
 }
 function nouveauTiers(d: NouveauTiers, creePar: number, reste: Pick<Tiers, "type" | "dirigeant" | "signataires" | "membres" | "photo" | "specimen">): Tiers {
   E.compteurs.tiers += 1;
-  const t: Tiers = { ...d, ...reste, intitule: "", dateVisa: "", id: prochain(E.tiers), numero: `${E.agence.code}-${String(E.compteurs.tiers).padStart(6, "0")}`, statut: "a_viser", creePar };
+  const t: Tiers = { ...d, ...reste, intitule: "", dateVisa: "", motifDepart: "", resilieLe: "", id: prochain(E.tiers), numero: `${E.agence.code}-${String(E.compteurs.tiers).padStart(6, "0")}`, statut: "a_viser", creePar };
   E.tiers.push(t); return t;
 }
 
@@ -417,6 +418,21 @@ const tiers = {
   modifications(id: number) {
     exiger();
     return E.modifications.filter((m) => m.tiersId === id).map(({ avant, apres, modifiePar, modifieLe, validePar }) => ({ avant, apres, modifiePar, modifieLe, validePar: validePar ?? null }));
+  },
+  /** S48 : Résilier un client (p. 57). Loi 002/2002, art. 24 (pas de crédit dans la démonstration) ; apurement ensuite (art. 27).
+   *  Aucun frais de fermeture : clôture de compte gratuite (Instr. BCC 37). Règles identiques côté serveur (services.resilier_tiers). */
+  resilier(id: number, d: { motif: string }) {
+    exiger("chef_agence");   // profil habilité : à confirmer
+    const t = E.tiers.find((x) => x.id === id);
+    if (!t) throw new ErreurMetier("Client introuvable.");
+    if (t.statut === "resilie") throw new ErreurMetier("Ce client est déjà résilié.");
+    if (t.statut !== "actif") throw new ErreurMetier("Seul un client actif se résilie.");
+    const motif = d.motif.trim();
+    if (!motif) throw new ErreurMetier("À remplir : motif.");
+    if (!E.motifsDepart.includes(motif)) throw new ErreurMetier("Motif inconnu.");
+    const j = journees.courante();
+    Object.assign(t, { statut: "resilie", motifDepart: motif, resilieLe: j && j.statut === "ouverte" ? j.date : new Date().toISOString().slice(0, 10) });
+    enregistrer(); return t;
   },
   /** S45 : prospects (manuel p. 55) */
   prospects: () => { exiger(); return E.tiers.filter((t) => t.statut === "prospect").reverse(); },
