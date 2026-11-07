@@ -38,7 +38,8 @@ page = f"""<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;600;700&display=swap" rel="stylesheet">
 <style>{STYLE}</style></head><body><main>
 <header><h1>Travaux de Likelemba, par module</h1><p class="intro">Toutes les fonctions relevées dans le manuel de Microfina++, rangées par module dans l'ordre de ses menus.
-Phase 1 : reproduire exactement Microfina++ ; « partiel » veut dire construit, avec des points à confirmer. Source : <code>replica/features.csv</code>, état au {date.today():%d/%m/%Y}.</p></header>
+Phase 1 : reproduire exactement Microfina++. « Fait » : reproduit exactement d'après le manuel, sans point à confirmer.
+« Partiel » : construit, mais avec des points à confirmer, un écart imposé par un texte, ou un écran fait avant la règle du 05/11/2026 et à réaligner. Source : <code>replica/features.csv</code>, état au {date.today():%d/%m/%Y}.</p></header>
 <dl class="bilan"><div><dt>Fonctions</dt><dd>{len(lignes)}</dd></div><div><dt>Indispensables</dt><dd>{sum(ind.values())}</dd></div><div><dt>Faites</dt><dd>{compte['yes']}</dd></div>
 <div><dt>Partielles</dt><dd>{compte['partial']}</dd></div><div><dt>À faire</dt><dd>{compte['no']}</dd></div><div><dt>Non reprises</dt><dd>{compte['skip']}</dd></div></dl>
 {"".join(section(c, n) for c, n in MODULES)}
