@@ -138,10 +138,10 @@ Immobilisations : amortissement inventaire sortie,immobilisations,must,yes,no,S1
 Rapports immobilisations,immobilisations,should,yes,no,S140
 Multilingue français et anglais,général,could,yes,no,p. 15
 Aide en ligne,général,could,yes,no,p. 15
-Export des grilles vers Excel,général,must,yes,no,p. 9
-Grilles paginées avec filtres par colonne,général,must,yes,no,p. 9
-Boîtes de confirmation oui ou non,général,skip,yes,skip,p. 11 et 12 ; remplacées par un récapitulatif dans le bordereau (DESIGN.md § 2.5)
-Modifier et supprimer depuis une grille,général,skip,yes,skip,p. 13 ; interdit pour tout ce qui touche à l'argent (PCCI § 3.4 ; ARCHITECTURE.md P8)
+Export des grilles vers Excel,général,must,yes,partial,p. 9 | Export CSV (lisible par Excel) sur le rapport prospect (S51) ; à étendre.
+Grilles paginées avec filtres par colonne,général,must,yes,partial,"p. 9 | Construit sur S44 et S58 (filtre sous chaque en-tête, pages de 10 lignes) ; à étendre aux autres listes."
+Boîtes de confirmation oui ou non,général,must,yes,yes,"p. 10 et 11 | Reproduites depuis le 05/11/2026 (phase 1, CLAUDE.md § 0) : Confirmation Oui/Non, Succès, Erreur, sur chaque enregistrement et suppression."
+Modifier et supprimer depuis une grille,général,must,yes,partial,"p. 13 | Phase 1 : reproduits sur les paramétrages et référentiels (frais, banques, groupes solidaires, types de procuration). Jamais sur une écriture : correction par contre-passation (PCCI § 3.4 ; ARCHITECTURE.md P8)."
 Référentiel comptable des SFD de l'UEMOA,général,skip,yes,skip,p. 4 ; remplacé par le PCCI obligatoire (Instr. BCC 006)
 GRH,modules,skip,yes,skip,hors périmètre par décision du porteur
 Stocks,modules,skip,yes,skip,hors périmètre par décision du porteur

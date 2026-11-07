@@ -1,0 +1,24 @@
+/* Page « Travaux de Likelemba » : un tableau par module, dans l'ordre des menus de Microfina++ */
+:root { --fond:#F3F5F8; --carte:#FFFFFF; --encre:#0E1628; --encre2:#4A5468; --trait:#E2E6ED; --vert:#2E7553; --vertp:#E3F1EA; --ambre:#7A5C0B; --ambrep:#FBF3DC; --gris:#EDF0F5;
+  --texte:"Atkinson Hyperlegible Next", "Segoe UI", system-ui, sans-serif; color-scheme:light; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --fond:#090E17; --carte:#111827; --encre:#E9EDF4; --encre2:#A4AEBE; --trait:#232F42; --vert:#6FC79B; --vertp:#1C3328; --ambre:#E2B84A; --ambrep:#3A3018; --gris:#1A2333; color-scheme:dark; } }
+:root[data-theme="dark"] { --fond:#090E17; --carte:#111827; --encre:#E9EDF4; --encre2:#A4AEBE; --trait:#232F42; --vert:#6FC79B; --vertp:#1C3328; --ambre:#E2B84A; --ambrep:#3A3018; --gris:#1A2333; color-scheme:dark; }
+body { margin:0; background:var(--fond); color:var(--encre); font:15px/1.5 var(--texte); }
+main { max-width:1000px; margin:0 auto; padding:24px 16px 48px; display:grid; gap:24px; }
+h1 { margin:0; font-size:26px; text-wrap:balance; }
+.intro { margin:4px 0 0; color:var(--encre2); max-width:65ch; }
+.bilan { display:flex; flex-wrap:wrap; gap:8px 24px; margin:0; padding:16px 20px; background:var(--carte); border:1px solid var(--trait); border-radius:12px; }
+.bilan div { display:grid; } .bilan dt { font-size:13px; color:var(--encre2); } .bilan dd { margin:0; font-size:22px; font-weight:700; font-variant-numeric:tabular-nums; }
+section { display:grid; gap:8px; }
+h2 { margin:0; font-size:18px; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 12px; }
+h2 .c { font-size:13px; font-weight:400; color:var(--encre2); }
+.t { overflow-x:auto; background:var(--carte); border:1px solid var(--trait); border-radius:12px; }
+table { width:100%; border-collapse:collapse; font-size:14px; }
+th { text-align:left; font-size:13px; color:var(--encre2); font-weight:600; padding:8px 16px; border-bottom:1px solid var(--trait); background:var(--fond); }
+td { padding:10px 16px; border-bottom:1px solid var(--trait); vertical-align:top; white-space:nowrap; }
+tr:last-child td { border-bottom:0; }
+td.f { white-space:normal; min-width:260px; font-weight:600; }
+.n { margin:2px 0 0; font-weight:400; font-size:13px; color:var(--encre2); }
+.e { display:inline-block; padding:2px 10px; border-radius:999px; font-size:13px; font-weight:600; }
+.fait { background:var(--vertp); color:var(--vert); } .partiel { background:var(--ambrep); color:var(--ambre); } .afaire { background:var(--gris); color:var(--encre); } .nonrepris { background:var(--gris); color:var(--encre2); }
+.src { font-size:13px; color:var(--encre2); margin:0; }
