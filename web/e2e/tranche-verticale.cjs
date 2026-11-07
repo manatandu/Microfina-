@@ -225,26 +225,26 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('button', { name: 'Imprimer' }).click(); await p.getByText('Adhésion enregistrée').waitFor(); await etape('08-adhesion-recu');
   await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
-  // Dépôt au clavier
-  await p.goto(B + '/caisse/s74?op=depot'); await p.getByLabel(/Nom, numéro ou compte/).waitFor(); await p.keyboard.press('F2'); await p.keyboard.type('Kalala');
-  await p.getByRole('option', { name: /Kalala/ }).click(); await p.getByLabel(/Épargne à vue, CDF/).check();
-  await p.getByLabel('Montant').fill('150 000'); await p.locator('#coupure-1, #coupure-adhesion').waitFor(); await p.keyboard.press('F4'); await p.keyboard.type('5');
-  await p.getByLabel('Nombre de coupures de 10 000 CDF').fill('5');
-  await etape('09-depot'); await p.keyboard.press('F9'); await p.getByText('Dépôt enregistré').waitFor(); await etape('10-depot-recu');
-  await p.keyboard.press('Escape');
-  // Retrait au-delà du seuil : visa
-  await p.goto(B + '/caisse/s74?op=retrait'); await p.getByLabel(/Nom, numéro ou compte/).waitFor(); await p.keyboard.press('F2'); await p.keyboard.type('0412-000318');
-  await p.getByRole('option', { name: /Kalala/ }).click(); await p.getByLabel(/Épargne à vue, USD/).check();
-  await p.getByLabel('Montant').fill('1 500'); for (const l of ["La pièce d'identité", 'La signature, comparée au specimen', /Le carnet/]) await p.getByLabel(l).check();
-  await p.getByLabel('Nombre de coupures de 100 USD').fill('15');
-  await etape('11-retrait-visa'); await p.keyboard.press('F9'); await p.getByText(/Demande envoyée/).waitFor();
-  await login('J.-P. Mukendi'); await aller('/comptabilite/s113'); await p.getByRole('list', { name: 'Opérations à viser' }).getByRole('button', { name: 'Viser' }).click();
-  await login('Esther Ngalula'); await p.goto(B + '/caisse/s74?op=retrait'); await p.getByRole('button', { name: 'Reprendre' }).click();
-  for (const l of ["La pièce d'identité", 'La signature, comparée au specimen', /Le carnet/]) await p.getByLabel(l).check();
-  await p.getByText(/Visé par le chef/).waitFor(); await etape('12-retrait-vise'); await p.keyboard.press('F9'); await p.getByText('Retrait enregistré').waitFor(); await etape('13-retrait-recu');
-  // Membre sans specimen : bloqué
-  await p.keyboard.press('Escape'); await p.getByLabel(/Nom, numéro ou compte/).waitFor(); await p.keyboard.press('F2'); await p.keyboard.type('Lukusa'); await p.getByRole('option', { name: /Lukusa/ }).click();
-  await p.getByText('Pas de specimen : ne pas payer').waitFor(); await etape('14-sans-specimen');
+  // Dépôt / Retrait (S74, manuel p. 86)
+  const client = async (nom) => {
+    await p.getByRole('button', { name: 'Rechercher un client' }).click();
+    const r = p.getByRole('dialog', { name: "Recherche d'un client" }); await r.getByLabel('Nom:', { exact: true }).fill(nom);
+    await r.getByRole('row').filter({ hasText: nom }).dblclick();
+  };
+  await aller('/caisse/s74?op=depot'); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-02' });
+  await p.getByLabel('Montant *').fill('150 000'); await p.getByLabel('Mandataire').fill('Moi même'); await p.getByLabel('Motif:').fill('ECOLAGE');
+  await p.getByRole('button', { name: 'Billetage' }).click(); await p.getByRole('dialog', { name: 'Billetage' }).getByLabel('Nombre de coupures de 10 000 CDF').fill('15');
+  await p.getByRole('dialog', { name: 'Billetage' }).getByRole('button', { name: 'Fermer' }).click(); await etape('09-depot');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
+  await p.getByRole('button', { name: 'Imprimer' }).click(); await p.getByText('Dépôt enregistré').waitFor(); await etape('10-depot-recu');
+  await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
+  await p.getByRole('tab', { name: 'Retrait en espèce' }).click(); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-01' });
+  await p.getByLabel('Montant *').fill('1 500'); await p.getByLabel('Motif:').fill('Loyer');
+  await p.getByRole('button', { name: 'Billetage' }).click(); await p.getByRole('dialog', { name: 'Billetage' }).getByLabel('Nombre de coupures de 100 USD').fill('15');
+  await p.getByRole('dialog', { name: 'Billetage' }).getByRole('button', { name: 'Fermer' }).click(); await etape('11-retrait');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
+  await p.getByRole('button', { name: 'Imprimer' }).click(); await p.getByText('Retrait enregistré').waitFor(); await etape('12-retrait-recu');
+  await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
   // Parts sociales (S77) : achat d'une part par Kalala
   await aller('/caisse/s77'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
   const rps = p.getByRole('dialog', { name: "Recherche d'un client" });

@@ -77,18 +77,17 @@ def test_sans_session_rien(clients):
 
 
 def test_ecriture_sans_entete_refusee(clients, journee):
-    r = clients["caisse"].post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}, "remisPar": ""}, content_type="application/json")
+    r = clients["caisse"].post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}, "mandataire": ""}, content_type="application/json")
     assert r.status_code == 403
 
 
 def test_depot_retrait(clients, journee):
     caisse = clients["caisse"]
     _, s = journee
-    assert caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 5000000, "coupures": {"20000": 2, "10000": 1}, "remisPar": ""}, **H).status_code == 200
+    assert caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 5000000, "coupures": {"20000": 2, "10000": 1}, "mandataire": ""}, **H).status_code == 200
     comptes = {c["id"]: c for c in caisse.get(f"/api/tiers/{T('0412-000318')}/comptes").json()}
     assert comptes[C("0412-000318-02")]["solde"] == 341250000 + 5000000
-    r = caisse.post("/api/guichet/retraits", {"cle": cle(), "compteId": C("0412-000318-01"), "montant": 45000, "coupures": {"100": 4, "50": 1},
-                                              "verifie": {"piece": True, "signature": True, "carnet": True}}, **H)
+    r = caisse.post("/api/guichet/retraits", {"cle": cle(), "compteId": C("0412-000318-01"), "montant": 45000, "coupures": {"100": 4, "50": 1}}, **H)
     assert r.json()["statut"] == "validee", r.content
     assert caisse.get(f"/api/caisses/{s['id']}/theorique?devise=USD").json()["100"] == 136
     assert balance_equilibree(caisse)
@@ -96,7 +95,7 @@ def test_depot_retrait(clients, journee):
 
 def test_meme_cle_ne_paie_pas_deux_fois(clients, journee):
     caisse = clients["caisse"]
-    p = {"cle": cle(), "compteId": C("0412-000318-01"), "montant": 10000, "coupures": {"100": 1}, "verifie": {"piece": True, "signature": True, "carnet": True}}
+    p = {"cle": cle(), "compteId": C("0412-000318-01"), "montant": 10000, "coupures": {"100": 1}}
     a = caisse.post("/api/guichet/retraits", p, **H).json(); b = caisse.post("/api/guichet/retraits", p, **H).json()
     assert a["id"] == b["id"]
     assert len(caisse.get("/api/etats/journal").json()) == 2   # reprise des soldes + un seul retrait
@@ -104,23 +103,20 @@ def test_meme_cle_ne_paie_pas_deux_fois(clients, journee):
 
 def test_refus(clients, journee):
     caisse = clients["caisse"]
-    v = {"piece": True, "signature": True, "carnet": True}
     def msg(route, corps):
         r = caisse.post(route, corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
-    assert "solde disponible" in msg("/api/guichet/retraits", {"cle": cle(), "compteId": C("0412-000319-01"), "montant": 60000, "coupures": {"100": 6}, "verifie": v})
-    assert "specimen" in msg("/api/guichet/retraits", {"cle": cle(), "compteId": C("0412-000320-02"), "montant": 100000, "coupures": {"1000": 1}, "verifie": v})
-    assert "vérifier" in msg("/api/guichet/retraits", {"cle": cle(), "compteId": C("0412-000318-01"), "montant": 10000, "coupures": {"50": 2}, "verifie": {**v, "carnet": False}})
-    assert "billetage ne fait pas" in msg("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 30000, "coupures": {"20000": 1}, "remisPar": ""})
+    assert "solde disponible" in msg("/api/guichet/retraits", {"cle": cle(), "compteId": C("0412-000319-01"), "montant": 60000, "coupures": {"100": 6}})
+    assert "billetage ne fait pas" in msg("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 30000, "coupures": {"20000": 1}, "mandataire": ""})
 
 
-def test_visa_au_dela_du_seuil(clients, journee):
-    caisse, chef = clients["caisse"], clients["chef"]
-    p = {"cle": cle(), "compteId": C("0412-000318-01"), "montant": 150000, "coupures": {"100": 15}, "verifie": {"piece": True, "signature": True, "carnet": True}}
-    o = caisse.post("/api/guichet/retraits", p, **H).json()
-    assert o["statut"] == "visa_requis"
-    assert caisse.post(f"/api/operations/{o['id']}/visa", **H).status_code == 403          # pas le caissier
-    assert chef.post(f"/api/operations/{o['id']}/visa", **H).status_code == 200
-    assert caisse.post("/api/guichet/retraits", p, **H).json()["statut"] == "validee"
+def test_depot_retrait_mandataire_motif(clients, journee):
+    """S74 (manuel p. 86) : Mandataire et Motif ; pas de visa ni de cases à cocher, que Microfina++ ne montre pas"""
+    caisse = clients["caisse"]
+    d = caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 500000, "coupures": {"5000": 1},
+                                            "mandataire": "Moi même", "motif": "ECOLAGE"}, **H).json()
+    assert (d["statut"], d["remisPar"], d["motif"]) == ("validee", "Moi même", "ECOLAGE")
+    r = caisse.post("/api/guichet/retraits", {"cle": cle(), "compteId": C("0412-000318-01"), "montant": 150000, "coupures": {"100": 15}, "motif": "Loyer"}, **H).json()
+    assert (r["statut"], r["motif"]) == ("validee", "Loyer") and r["remisPar"]
 
 
 # Fiche d'enrôlement S37 avec les valeurs par défaut de la p. 49
@@ -219,7 +215,7 @@ def test_mise_a_jour_client(clients, journee):
     m = r.json()
     assert (m["statut"], m["telephone"], m["liees"]) == ("modifie_a_revalider", "+243 990 000 001", [T("0412-000319")])
     assert ident("select avant->>'telephone' from tiers_modification where tiers_id = %s", (k,)) == ""
-    depot = lambda: caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}, "remisPar": ""}, **H)
+    depot = lambda: caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}, "mandataire": ""}, **H)
     r = depot()
     assert r.status_code == 422 and "à valider" in r.json()["message"]
     # S42 : validation par le chef, autre que celui qui a modifié
@@ -263,7 +259,7 @@ def test_adhesion_apres_visa(clients, journee):
 def test_fermeture(clients, journee):
     caisse, chef = clients["caisse"], clients["chef"]
     j, s = journee
-    caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000319-02"), "montant": 2000000, "coupures": {"20000": 1}, "remisPar": ""}, **H)
+    caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000319-02"), "montant": 2000000, "coupures": {"20000": 1}, "mandataire": ""}, **H)
     assert "caisses arrêtées" in chef.post(f"/api/journees/{j['id']}/fermeture", **H).json()["message"]
     for d in ("CDF", "USD"):
         th = caisse.get(f"/api/caisses/{s['id']}/theorique?devise={d}").json()
@@ -271,7 +267,7 @@ def test_fermeture(clients, journee):
     for b in chef.get("/api/billetages/a-valider").json():
         chef.post(f"/api/billetages/{b['id']}/validation", **H)
     assert chef.post(f"/api/journees/{j['id']}/fermeture", **H).json()["statut"] == "fermee"
-    assert caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000319-02"), "montant": 2000000, "coupures": {"20000": 1}, "remisPar": ""}, **H).status_code == 422
+    assert caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000319-02"), "montant": 2000000, "coupures": {"20000": 1}, "mandataire": ""}, **H).status_code == 422
 
 
 def test_quatre_yeux_billetage(clients):
@@ -398,7 +394,7 @@ def test_resiliation(clients, journee):
     v = r.json()
     assert (v["statut"], v["motifDepart"], v["resilieLe"]) == ("resilie", "Raisons personnelles", "2026-11-05")
     assert "déjà résilié" in refus(chef, {"motif": "AUTRES"})
-    r = caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000320-02"), "montant": 1000000, "coupures": {"10000": 1}, "remisPar": ""}, **H)
+    r = caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000320-02"), "montant": 1000000, "coupures": {"10000": 1}, "mandataire": ""}, **H)
     assert r.status_code == 422 and "résilié" in r.json()["message"]
 
 

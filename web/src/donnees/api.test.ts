@@ -38,10 +38,10 @@ describe("graine", () => {
 describe("journée de guichet", () => {
   it("dépôt puis retrait : grand livre équilibré, caisse et compte à jour", async () => {
     const { s } = await journeeOuverte();
-    await api.guichet.depot({ cle: cle(), compteId: 2, montant: 5000000, coupures: { 20000: 2, 10000: 1 }, remisPar: "" });
+    await api.guichet.depot({ cle: cle(), compteId: 2, montant: 5000000, coupures: { 20000: 2, 10000: 1 } });
     const c = (await api.tiers.comptes(1)).find((x) => x.id === 2)!;
     expect(c.solde).toBe(341250000 + 5000000);
-    await api.guichet.retrait({ cle: cle(), compteId: 1, montant: 45000, coupures: { 100: 4, 50: 1 }, verifie: { piece: true, signature: true, carnet: true } });
+    await api.guichet.retrait({ cle: cle(), compteId: 1, montant: 45000, coupures: { 100: 4, 50: 1 } });
     expect((await api.tiers.comptes(1)).find((x) => x.id === 1)!.solde).toBe(1428600 - 45000);
     expect((await api.caisses.theorique(s.id, "USD"))[100]).toBe(136);
     expect(await soldeCdfGrandLivre()).toBe(0);
@@ -49,7 +49,7 @@ describe("journée de guichet", () => {
 
   it("la même clé ne paie pas deux fois", async () => {
     await journeeOuverte();
-    const k = cle(), p = { cle: k, compteId: 1, montant: 10000, coupures: { 100: 1 }, verifie: { piece: true, signature: true, carnet: true } };
+    const k = cle(), p = { cle: k, compteId: 1, montant: 10000, coupures: { 100: 1 } };
     const a = await api.guichet.retrait(p), b = await api.guichet.retrait(p);
     expect(a.id).toBe(b.id);
     expect((await api.etats.journal()).length).toBe(2);
@@ -57,23 +57,16 @@ describe("journée de guichet", () => {
 
   it("refuse ce qui doit l'être", async () => {
     await journeeOuverte();
-    const v = { piece: true, signature: true, carnet: true };
-    await expect(api.guichet.retrait({ cle: cle(), compteId: 3, montant: 60000, coupures: { 100: 6 }, verifie: v })).rejects.toThrow("solde disponible");
-    await expect(api.guichet.retrait({ cle: cle(), compteId: 5, montant: 100000, coupures: { 1000: 1 }, verifie: v })).rejects.toThrow("specimen");
-    await expect(api.guichet.retrait({ cle: cle(), compteId: 1, montant: 10000, coupures: { 50: 2 }, verifie: { ...v, carnet: false } })).rejects.toThrow("vérifier");
-    await expect(api.guichet.depot({ cle: cle(), compteId: 2, montant: 30000, coupures: { 20000: 1 }, remisPar: "" })).rejects.toThrow("billetage ne fait pas");
+    await expect(api.guichet.retrait({ cle: cle(), compteId: 3, montant: 60000, coupures: { 100: 6 } })).rejects.toThrow("solde disponible");
+    await expect(api.guichet.depot({ cle: cle(), compteId: 2, montant: 30000, coupures: { 20000: 1 } })).rejects.toThrow("billetage ne fait pas");
   });
 
-  it("au-delà du seuil, le retrait attend le visa d'un autre que le caissier", async () => {
+  it("dépôt et retrait (S74, p. 86) : Mandataire et Motif, sans visa ni cases à cocher que Microfina++ ne montre pas", async () => {
     await journeeOuverte();
-    const p = { cle: cle(), compteId: 1, montant: 150000, coupures: { 100: 15 }, verifie: { piece: true, signature: true, carnet: true } };
-    const o = await api.guichet.retrait(p);
-    expect(o.statut).toBe("visa_requis");
-    expect((await api.etats.journal()).length).toBe(1);
-    await expect(api.operations.viser(o.id)).rejects.toThrow("chef d'agence");
-    await connecter("jpmukendi"); await api.operations.viser(o.id);
-    await connecter("engalula");
-    expect((await api.guichet.retrait(p)).statut).toBe("validee");
+    const d = await api.guichet.depot({ cle: cle(), compteId: 2, montant: 500000, coupures: { 5000: 1 }, mandataire: "Moi même", motif: "ECOLAGE" });
+    expect([d.statut, d.remisPar, d.motif]).toEqual(["validee", "Moi même", "ECOLAGE"]);
+    const r = await api.guichet.retrait({ cle: cle(), compteId: 1, montant: 150000, coupures: { 100: 15 }, motif: "Loyer" });
+    expect([r.statut, r.motif]).toEqual(["validee", "Loyer"]);
   });
 
   it("enrôlement (S37) : champs obligatoires de la p. 49, personnes liées, photo et specimen", async () => {
@@ -160,7 +153,7 @@ describe("journée de guichet", () => {
     const m = await api.tiers.modifier(1, { ...t, telephone: "+243 990 000 001", liees: [2] });
     expect(m).toMatchObject({ statut: "modifie_a_revalider", telephone: "+243 990 000 001", liees: [2] });
     await connecter("engalula");
-    const depot = () => api.guichet.depot({ cle: cle(), compteId: 2, montant: 1000000, coupures: { 10000: 1 }, remisPar: "" });
+    const depot = () => api.guichet.depot({ cle: cle(), compteId: 2, montant: 1000000, coupures: { 10000: 1 } });
     await expect(depot()).rejects.toThrow("à valider");
     // S42 : validation par le chef, autre que celui qui a modifié
     await connecter("jpmukendi");
@@ -234,7 +227,7 @@ describe("journée de guichet", () => {
     expect(await api.tiers.resilier(3, { motif: "Raisons personnelles" })).toMatchObject({ statut: "resilie", motifDepart: "Raisons personnelles", resilieLe: "2026-11-05" });
     await expect(api.tiers.resilier(3, { motif: "AUTRES" })).rejects.toThrow("déjà résilié");
     await connecter("engalula");
-    await expect(api.guichet.depot({ cle: cle(), compteId: 5, montant: 1000000, coupures: { 10000: 1 }, remisPar: "" })).rejects.toThrow("résilié");
+    await expect(api.guichet.depot({ cle: cle(), compteId: 5, montant: 1000000, coupures: { 10000: 1 } })).rejects.toThrow("résilié");
   });
 
   it("photos et signatures (S49) : nouveau dépôt, contrôle de l'image", async () => {
@@ -317,7 +310,7 @@ describe("journée de guichet", () => {
 
   it("fermeture : bloquée tant qu'une caisse est ouverte, possible après l'arrêté validé", async () => {
     const { j, s } = await journeeOuverte();
-    await api.guichet.depot({ cle: cle(), compteId: 4, montant: 2000000, coupures: { 20000: 1 }, remisPar: "" });
+    await api.guichet.depot({ cle: cle(), compteId: 4, montant: 2000000, coupures: { 20000: 1 } });
     await connecter("jpmukendi");
     await expect(api.journees.fermer(j.id)).rejects.toThrow("caisses arrêtées");
     await connecter("engalula");
@@ -325,7 +318,7 @@ describe("journée de guichet", () => {
     await connecter("jpmukendi");
     for (const b of await api.caisses.aValider()) await api.caisses.validerBilletage(b.id);
     expect((await api.journees.fermer(j.id)).statut).toBe("fermee");
-    await expect(api.guichet.depot({ cle: cle(), compteId: 4, montant: 2000000, coupures: { 20000: 1 }, remisPar: "" })).rejects.toThrow();
+    await expect(api.guichet.depot({ cle: cle(), compteId: 4, montant: 2000000, coupures: { 20000: 1 } })).rejects.toThrow();
   });
 
   it("quatre yeux sur le billetage", async () => {

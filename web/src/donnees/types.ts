@@ -145,7 +145,8 @@ export interface Operation {
   devise: Devise;
   parts?: number;
   coupures: Comptage;
-  remisPar: string;            // titulaire ou nom du déposant
+  remisPar: string;            // Mandataire (S74), le titulaire s'il est vide
+  motif?: string;              // Motif (S74, manuel p. 86)
   saisiPar: number;
   visePar?: number;
   ecritureId?: number;

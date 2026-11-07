@@ -13,7 +13,6 @@ from django.conf import settings
 from .bd import ErreurMetier, executer, lignes, une, valeur
 
 # Seuils, valeurs des maquettes
-SEUIL_CAISSIER_USD = 1000    # au-delà, visa du chef d'agence. Exemple : fixé par la COOPEC
 SEUIL_ESPECES_USD = 10000    # examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 DEVISES = ("CDF", "USD")
 SORTIES = ("retrait", "retrait_parts")      # opérations qui font sortir des billets de la caisse
@@ -944,7 +943,7 @@ def vue_operation(o: dict) -> dict:
     return {"id": o["id"], "cle": str(o["cle_idempotence"]), "type": o["type"], "statut": statut, "sessionId": o["session_caisse_id"], "tiersId": o["tiers_id"],
             "compteId": compte_id, "montant": o["montant"], "devise": o["devise"].strip(), "parts": o["parts"],
             "coupures": {str(r["valeur"] // 100): r["nombre"] for r in lignes("select valeur, nombre from operation_coupure where operation_id = %s", (o["id"],))},
-            "remisPar": o["remis_par"] or "", "saisiPar": o["saisi_par"], "visePar": o["vise_par"], "ecritureId": o["ecriture_id"],
+            "remisPar": o["remis_par"] or "", "motif": o.get("motif") or "", "saisiPar": o["saisi_par"], "visePar": o["vise_par"], "ecritureId": o["ecriture_id"],
             "heure": o["cree_le"].astimezone().strftime("%H:%M")}
 
 
@@ -954,13 +953,13 @@ def enregistrer_coupures(oid: int, devise: str, coupures: dict):
         executer("insert into operation_coupure (operation_id, devise, valeur, nombre) values (%s, %s, %s, %s)", (oid, devise, int(v) * 100, n))
 
 
-def creer_operation(u, s, *, cle, type_, statut, tiers_id, contrat, montant, devise, coupures, remis_par, parts=None, ecriture_id=None) -> int:
+def creer_operation(u, s, *, cle, type_, statut, tiers_id, contrat, montant, devise, coupures, remis_par, parts=None, ecriture_id=None, motif=None) -> int:
     j = une("select agence_id from journee_comptable where id = %s", (s["journeeId"],))
     oid = valeur("""insert into operation (institution_id, agence_id, journee_id, session_caisse_id, type, tiers_id, contrat_ref, montant, devise, statut,
-                    cle_idempotence, saisi_par, valide_par, ecriture_id, remis_par, parts)
-                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
+                    cle_idempotence, saisi_par, valide_par, ecriture_id, remis_par, parts, motif)
+                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
                  (u["institution_id"], j["agence_id"], s["journeeId"], s["id"], type_, tiers_id, contrat, montant, devise, statut,
-                  cle, u["id"], u["id"] if statut == "validee" else None, ecriture_id, remis_par, parts))
+                  cle, u["id"], u["id"] if statut == "validee" else None, ecriture_id, remis_par, parts, motif))
     enregistrer_coupures(oid, devise, coupures)
     return oid
 
@@ -989,6 +988,7 @@ def compte_actif(compte_id: int, verrou: bool = False) -> dict:
 
 
 def depot(u: dict, p: dict) -> dict:
+    """S74 : Caisse > Opération > Dépôt / Retrait, onglet Dépôt en espèce (manuel p. 86) : Montant*, Mandataire, Motif. Sans frais (Instr. BCC 37)."""
     prec = operation_par_cle(p["cle"])
     if prec and prec["statut"] == "validee":
         return vue_operation(prec)
@@ -1006,22 +1006,18 @@ def depot(u: dict, p: dict) -> dict:
                      {"compte": "570", "contrat": f"guichet:{s['guichetId']}", "sens": "D", "devise": c["devise"], "montant": m},
                      {"compte": c["pcci"], "contrat": f"depot:{c['id']}", "sens": "C", "devise": c["devise"], "montant": m}])
     oid = creer_operation(u, s, cle=p["cle"], type_="depot", statut="validee", tiers_id=c["tiers_id"], contrat=f"depot:{c['id']}", montant=m,
-                          devise=c["devise"], coupures=coupures, remis_par=(p.get("remisPar") or "").strip() or titulaire(c["tiers_id"]), ecriture_id=eid)
+                          devise=c["devise"], coupures=coupures, remis_par=(p.get("mandataire") or "").strip() or titulaire(c["tiers_id"]), ecriture_id=eid,
+                          motif=(p.get("motif") or "").strip() or None)
     return vue_operation(une("select * from operation where id = %s", (oid,)))
 
 
 def retrait(u: dict, p: dict) -> dict:
+    """S74 : Caisse > Opération > Dépôt / Retrait, onglet Retrait en espèce (manuel p. 86). Sans frais (Instr. BCC 37)."""
     prec = operation_par_cle(p["cle"])
     if prec and prec["statut"] == "validee":
         return vue_operation(prec)
     c = compte_actif(p["compteId"], verrou=True)   # deux retraits sur le même compte ne passent pas en même temps
     s = session_ouverte(u, c["devise"])
-    sp = une("select signature from specimen where tiers_id = %s and signature is not null limit 1", (c["tiers_id"],))
-    if not sp:
-        raise ErreurMetier("Pas de specimen de signature au dossier : ne pas payer.")
-    v = p.get("verifie") or {}
-    if not (v.get("piece") and v.get("signature") and v.get("carnet")):
-        raise ErreurMetier("Pièce, signature et carnet à vérifier avant de payer.")
     m, coupures = int(p["montant"]), nettoyer(p["coupures"])
     if m <= 0:
         raise ErreurMetier("Montant nul.")
@@ -1034,27 +1030,14 @@ def retrait(u: dict, p: dict) -> dict:
         raise ErreurMetier("Pas assez de coupures en caisse.")
     if en_usd(m, c["devise"]) + especes_du_jour_usd(c["tiers_id"], s["journeeId"], "retrait") >= SEUIL_ESPECES_USD:
         raise ErreurMetier(MSG_RENFORCE)
-    if prec and (prec["montant"] != m or prec["contrat_ref"] != f"depot:{c['id']}"):
-        raise ErreurMetier("Le visa porte sur un autre montant ou un autre compte : refaire la demande.")
-    # Visa du chef au-delà du seuil : l'opération attend ; la même clé la reprend une fois visée
-    if en_usd(m, c["devise"]) > SEUIL_CAISSIER_USD and not (prec and prec["vise_par"]):
-        if not prec:
-            oid = creer_operation(u, s, cle=p["cle"], type_="retrait", statut="saisie", tiers_id=c["tiers_id"], contrat=f"depot:{c['id']}",
-                                  montant=m, devise=c["devise"], coupures=coupures, remis_par=titulaire(c["tiers_id"]))
-            prec = une("select * from operation where id = %s", (oid,))
-        return vue_operation(prec)
     j = une("select date_comptable from journee_comptable where id = %s", (s["journeeId"],))
     eid = poster(u, journal="CA", journee_id=s["journeeId"], libelle=f"Retrait espèces {c['numero']}", piece=nouvelle_piece(j["date_comptable"]),
-                 evenement="retrait", cle=p["cle"], valide_par=(prec["vise_par"] if prec else u["id"]), lignes_ecr=[
+                 evenement="retrait", cle=p["cle"], valide_par=u["id"], lignes_ecr=[
                      {"compte": c["pcci"], "contrat": f"depot:{c['id']}", "sens": "D", "devise": c["devise"], "montant": m},
                      {"compte": "570", "contrat": f"guichet:{s['guichetId']}", "sens": "C", "devise": c["devise"], "montant": m}])
-    if prec:
-        executer("update operation set statut = 'validee', valide_par = %s, ecriture_id = %s where id = %s", (u["id"], eid, prec["id"]))
-        enregistrer_coupures(prec["id"], c["devise"], coupures)
-        oid = prec["id"]
-    else:
-        oid = creer_operation(u, s, cle=p["cle"], type_="retrait", statut="validee", tiers_id=c["tiers_id"], contrat=f"depot:{c['id']}",
-                              montant=m, devise=c["devise"], coupures=coupures, remis_par=titulaire(c["tiers_id"]), ecriture_id=eid)
+    oid = creer_operation(u, s, cle=p["cle"], type_="retrait", statut="validee", tiers_id=c["tiers_id"], contrat=f"depot:{c['id']}",
+                          montant=m, devise=c["devise"], coupures=coupures, remis_par=(p.get("mandataire") or "").strip() or titulaire(c["tiers_id"]),
+                          ecriture_id=eid, motif=(p.get("motif") or "").strip() or None)
     return vue_operation(une("select * from operation where id = %s", (oid,)))
 
 

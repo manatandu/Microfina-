@@ -13,7 +13,6 @@ import {
 import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 
 // Seuils : valeurs des maquettes
-export const SEUIL_CAISSIER_USD = 1000;   // au-delà, visa du chef d'agence. Exemple : fixé par la COOPEC
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
 const CLE = "likelemba-demo-v15";
@@ -807,7 +806,8 @@ function piece() { E.compteurs.piece += 1; return `BR-${journees.courante()!.dat
 const titulaire = (t: Tiers) => [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
 
 const guichet = {
-  depot(p: Commun & { compteId: number; montant: number; remisPar: string }) {
+  /** S74 : Caisse > Opération > Dépôt / Retrait, onglet Dépôt en espèce (manuel p. 86) : Montant*, Mandataire, Motif. Sans frais (Instr. BCC 37). */
+  depot(p: Commun & { compteId: number; montant: number; mandataire?: string; motif?: string }) {
     const prec = dejaFaite(p.cle); if (prec) return prec;
     const c = E.comptes.find((x) => x.id === p.compteId);
     if (!c) throw new ErreurMetier("Compte introuvable.");
@@ -823,19 +823,18 @@ const guichet = {
       { compte: "570", contrat: guichetDe(s), sens: "D", devise: c.devise, montant: p.montant, montantCdf: cdf(p.montant, c.devise) },
       { compte: c.pcci, contrat: `depot:${c.id}`, sens: "C", devise: c.devise, montant: p.montant, montantCdf: cdf(p.montant, c.devise) },
     ] });
-    const o: Operation = { id: prochain(E.operations), cle: p.cle, type: "depot", statut: "validee", sessionId: s.id, tiersId: t.id, compteId: c.id, montant: p.montant, devise: c.devise, coupures: nettoyer(p.coupures), remisPar: p.remisPar || titulaire(t), saisiPar: u.id, ecritureId: e.id, heure: heure() };
+    const o: Operation = { id: prochain(E.operations), cle: p.cle, type: "depot", statut: "validee", sessionId: s.id, tiersId: t.id, compteId: c.id, montant: p.montant, devise: c.devise, coupures: nettoyer(p.coupures), remisPar: p.mandataire?.trim() || titulaire(t), motif: p.motif?.trim() ?? "", saisiPar: u.id, ecritureId: e.id, heure: heure() };
     E.operations.push(o); enregistrer(); return o;
   },
 
-  retrait(p: Commun & { compteId: number; montant: number; verifie: { piece: boolean; signature: boolean; carnet: boolean } }) {
+  /** S74 : onglet Retrait en espèce (manuel p. 86). Sans frais (Instr. BCC 37). */
+  retrait(p: Commun & { compteId: number; montant: number; mandataire?: string; motif?: string }) {
     const prec = dejaFaite(p.cle); if (prec) return prec;
     const c = E.comptes.find((x) => x.id === p.compteId);
     if (!c) throw new ErreurMetier("Compte introuvable.");
     const { u, s } = sessionOuverte(c.devise);
     const t = E.tiers.find((x) => x.id === c.tiersId)!;
     controlerStatutActif(t.statut);
-    if (!t.specimen) throw new ErreurMetier("Pas de specimen de signature au dossier : ne pas payer.");
-    if (!p.verifie.piece || !p.verifie.signature || !p.verifie.carnet) throw new ErreurMetier("Pièce, signature et carnet à vérifier avant de payer.");
     const solde = soldeContrat(`depot:${c.id}`, c.devise, "C");
     if (p.montant <= 0) throw new ErreurMetier("Montant nul.");
     if (p.montant > solde - c.bloque) throw new ErreurMetier("Dépasse le solde disponible.");
@@ -844,25 +843,14 @@ const guichet = {
     if (Object.entries(p.coupures).some(([v, n]) => (n ?? 0) > (th[Number(v)] ?? 0))) throw new ErreurMetier("Pas assez de coupures en caisse.");
     if (enUsd(p.montant, c.devise) + especesDuJourUsd(t.id, "retrait") >= SEUIL_ESPECES_USD)
       throw new ErreurMetier("Examen renforcé requis (10 000 USD ou plus en espèces dans la journée). Le circuit de conformité n'est pas encore construit : opération bloquée.", "Instr. BCC 15 bis, art. 1, 6 et 7");
-
-    // Visa du chef au-delà du seuil : l'opération attend, la même clé la reprend une fois visée
-    let o = E.operations.find((x) => x.cle === p.cle);
-    if (o && (o.montant !== p.montant || o.compteId !== p.compteId)) throw new ErreurMetier("Le visa porte sur un autre montant ou un autre compte : refaire la demande.");
-    if (enUsd(p.montant, c.devise) > SEUIL_CAISSIER_USD && !o?.visePar) {
-      if (!o) {
-        o = { id: prochain(E.operations), cle: p.cle, type: "retrait", statut: "visa_requis", sessionId: s.id, tiersId: t.id, compteId: c.id, montant: p.montant, devise: c.devise, coupures: nettoyer(p.coupures), remisPar: titulaire(t), saisiPar: u.id, heure: heure() };
-        E.operations.push(o); enregistrer();
-      }
-      return o;
-    }
     const pc = piece();
-    const e = poster({ journal: "CA", journeeId: s.journeeId, libelle: `Retrait espèces ${c.numero}`, piece: pc, saisiPar: u.id, validePar: o?.visePar ?? u.id, lignes: [
+    const e = poster({ journal: "CA", journeeId: s.journeeId, libelle: `Retrait espèces ${c.numero}`, piece: pc, saisiPar: u.id, validePar: u.id, lignes: [
       { compte: c.pcci, contrat: `depot:${c.id}`, sens: "D", devise: c.devise, montant: p.montant, montantCdf: cdf(p.montant, c.devise) },
       { compte: "570", contrat: guichetDe(s), sens: "C", devise: c.devise, montant: p.montant, montantCdf: cdf(p.montant, c.devise) },
     ] });
-    if (o) Object.assign(o, { statut: "validee", ecritureId: e.id, coupures: nettoyer(p.coupures), heure: heure() });
-    else { o = { id: prochain(E.operations), cle: p.cle, type: "retrait", statut: "validee", sessionId: s.id, tiersId: t.id, compteId: c.id, montant: p.montant, devise: c.devise, coupures: nettoyer(p.coupures), remisPar: titulaire(t), saisiPar: u.id, ecritureId: e.id, heure: heure() }; E.operations.push(o); }
-    enregistrer(); return o;
+    const o: Operation = { id: prochain(E.operations), cle: p.cle, type: "retrait", statut: "validee", sessionId: s.id, tiersId: t.id, compteId: c.id, montant: p.montant, devise: c.devise,
+      coupures: nettoyer(p.coupures), remisPar: p.mandataire?.trim() || titulaire(t), motif: p.motif?.trim() ?? "", saisiPar: u.id, ecritureId: e.id, heure: heure() };
+    E.operations.push(o); enregistrer(); return o;
   },
 
   /** S73 : Caisse > Opération > Adhésion (p. 85 et 89) : compte du type choisi à l'enrôlement, premier dépôt, frais d'adhésion (S16/S41), parts.
