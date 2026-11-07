@@ -168,7 +168,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise }
 
 export interface Etat {
-  version: 17;
+  version: 18;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];

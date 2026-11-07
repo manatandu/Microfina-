@@ -15,7 +15,7 @@ import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@d
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v17";
+const CLE = "likelemba-demo-v18";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -23,7 +23,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 17) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 18) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -1061,16 +1061,101 @@ const guichets = {
   },
 };
 
-/** Démonstration publiée (VITE_DEMO_PRETE=1), demande du porteur du 07/11/2026 : au premier chargement, le chef d'agence a ouvert
- * la journée du 05/11/2026 et la caissière a ouvert la Caisse 2, comme on le ferait à l'écran (S12, S09). Données fictives. */
+/** Démonstration publiée (VITE_DEMO_PRETE=1), demande du porteur du 07/11/2026 : au premier chargement, la démo contient des membres
+ * et des comptes fictifs, enregistrés comme à l'écran (S12, S37 à S40, S45, S48, S09, S73, S74, S77). Noms et chiffres inventés. */
 export function preparerDemo() {
   if (!neuf) return;
   neuf = false;
   const avant = E.session;
-  const id = (login: string) => E.utilisateurs.find((u) => u.login === login)!.id;
+  const comme = (login: string) => { E.session = E.utilisateurs.find((u) => u.login === login)!.id; };
+  const cle = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
+  // Billetage : les plus grosses coupures d'abord, sans dépasser le stock de la caisse pour une sortie
+  const billets = (montant: number, devise: Devise, stock?: Comptage): Comptage => {
+    let reste = montant / 100; const c: Comptage = {};
+    for (const v of COUPURES[devise]) {
+      const n = Math.min(Math.floor(reste / v), stock ? stock[v] ?? 0 : Infinity);
+      if (n > 0) { c[v] = n; reste -= n * v; }
+    }
+    if (reste !== 0) throw new ErreurMetier("Billetage impossible.");
+    return c;
+  };
+  const MEMBRES: [string, string, string, "F" | "M", string, string, number, number][] = [
+    // nom, postnom, prénom, sexe, profession, quartier, parts, premier dépôt (CDF)
+    ["Tshilombo", "Kabeya", "Marie", "F", "Commerçant", "Matete", 2, 50000],
+    ["Mutombo", "Ngoy", "Jean", "M", "Enseignant", "Lemba", 1, 20000],
+    ["Kabila", "Mwanza", "Ruth", "F", "Commerçant", "Kinsaku", 3, 120000],
+    ["Lumumba", "Tshimanga", "Patrice", "M", "Agriculteur", "Matete", 1, 10000],
+    ["Kasongo", "Ilunga", "Sarah", "F", "Commerçant", "Lemba", 2, 75000],
+    ["Mbala", "Kalonji", "Joseph", "M", "Enseignant", "Matete", 1, 30000],
+    ["Nsimba", "Makiese", "Esther", "F", "Agriculteur", "Kinsaku", 1, 15000],
+    ["Kanku", "Mukendi", "David", "M", "Commerçant", "Lemba", 4, 200000],
+    ["Bokele", "Nzuzi", "Grâce", "F", "Enseignant", "Matete", 1, 25000],
+    ["Muteba", "Kazadi", "Pierre", "M", "Commerçant", "Kinsaku", 2, 60000],
+    ["Lunda", "Mbuyi", "Chantal", "F", "Commerçant", "Matete", 1, 40000],
+    ["Kalombo", "Tshibola", "Paul", "M", "Agriculteur", "Lemba", 1, 5000],
+    ["Mayala", "Nkosi", "Rebecca", "F", "Enseignant", "Kinsaku", 2, 90000],
+    ["Ngandu", "Kayembe", "Samuel", "M", "Commerçant", "Matete", 3, 150000],
+    ["Makaba", "Lukusa", "Odette", "F", "Commerçant", "Lemba", 1, 35000],
+    ["Kitenge", "Mulumba", "André", "M", "Enseignant", "Matete", 1, 20000],
+  ];
   try {
-    E.session = id("jpmukendi"); journees.ouvrir("2026-11-05");
-    E.session = id("engalula"); guichets.ouvrir(2);
+    comme("jpmukendi"); journees.ouvrir("2026-11-05");
+    // Enrôlement par l'agent (S37, S38, S39)
+    comme("bkasongo");
+    const ids: number[] = [];
+    MEMBRES.forEach(([nom, postnom, prenom, sexe, profession, quartier, , depot], n) => {
+      ids.push(tiers.creer({ ...enrolementVide("2026-11-05"), produitCode: "EAV-CDF", nom, postnom, prenom, sexe, profession, quartier,
+        pays: "République démocratique du Congo", ville: "Kinshasa", adresse: `${quartier}, Kinshasa`, telephone: `+243 81${String(1000000 + n * 7319).slice(0, 7)}`,
+        pieceType: n % 3 === 0 ? "Passeport" : "Carte d'électeur", pieceNumero: `DEMO-${String(n + 1).padStart(4, "0")}`, premierDepot: depot * 100 }).id);
+    });
+    const sig = { postnom: "", pieceType: "Carte d'électeur", pieceExpire: "", signature: "data:image/png;base64,iVBORw0KGgo=" };
+    const entreprises = [
+      tiers.creerEntreprise({ ...enrolementVide("2026-11-05"), typeClient: "Entreprises privées", zone: "Matete", produitCode: "EAV-CDF", nom: "Pharmacie Lemba Santé SARL",
+        formeJuridique: "SARL", registre: "CD/KNG/RCCM/DEMO-B-00001", adresse: "Lemba, avenue de l'Université", premierDepot: 50000000 },
+        null, [{ ...sig, nom: "Kabongo", prenom: "Alain", pieceNumero: "DEMO-S001" }]).id,
+      tiers.creerEntreprise({ ...enrolementVide("2026-11-05"), typeClient: "Entreprises privées", zone: "Matete", produitCode: "EAV-CDF", nom: "Atelier Couture Matete SARLU",
+        formeJuridique: "SARLU", registre: "CD/KNG/RCCM/DEMO-B-00002", adresse: "Matete, marché central", premierDepot: 20000000 },
+        null, [{ ...sig, nom: "Mpiana", prenom: "Josée", pieceNumero: "DEMO-S002" }]).id,
+    ];
+    const groupes = [
+      tiers.creerGroupe({ ...enrolementVide("2026-11-05"), typeClient: "Association", produitCode: "EAV-CDF", nom: "Mamans commerçantes de Kinsaku", adresse: "Kinsaku", nbFemmes: 14, premierDepot: 10000000 },
+        [{ ...sig, nom: "Ilunga", prenom: "Bernadette", pieceNumero: "DEMO-G001" }, { ...sig, nom: "Mbuyi", prenom: "Claudine", pieceNumero: "DEMO-G002" }]).id,
+      tiers.creerGroupe({ ...enrolementVide("2026-11-05"), typeClient: "Association", produitCode: "EAV-CDF", nom: "Maraîchers de Lemba", adresse: "Lemba", nbHommes: 8, nbFemmes: 5, premierDepot: 5000000 },
+        [{ ...sig, nom: "Kalala", prenom: "Didier", pieceNumero: "DEMO-G003" }]).id,
+    ];
+    // Prospects (S45)
+    for (const [nom, prenom, sexe, naissance] of [["Mbuyamba", "Thérèse", "F", "1990-03-14"], ["Ngoyi", "Fabrice", "M", "1985-07-02"]] as const)
+      tiers.creerProspect({ nom, prenom, sexe, naissance, lieuNaissance: "Kinshasa", profession: "Commerçant", pays: "République démocratique du Congo", ville: "Kinshasa",
+        quartier: "Matete", rue: "", email: "", bp: "", telephoneFixe: "", telephone: "" });
+    // Visa du chef d'agence (S40)
+    comme("jpmukendi");
+    for (const id of [...ids, ...entreprises, ...groupes]) tiers.viser(id, { dateVisa: "2026-11-05" });
+    // Guichet : ouverture (S09), adhésions (S73), dépôts et retraits (S74), parts (S77)
+    comme("engalula"); guichets.ouvrir(2);
+    const partsDe: Record<number, number> = {};
+    MEMBRES.forEach(([, , , , , , parts, depot], n) => { partsDe[ids[n]!] = parts; void depot; });
+    for (const id of [...entreprises, ...groupes]) partsDe[id] = 5;
+    for (const id of [...ids, ...entreprises, ...groupes]) {
+      const t = E.tiers.find((x) => x.id === id)!;
+      const frais = parametrage.fraisLies(id).reduce((x, f) => x + (f.montant ?? 0), 0);
+      const total = partsDe[id]! * E.valeurPart + t.premierDepot + frais;
+      guichet.adhesion({ cle: cle(), tiersId: id, parts: partsDe[id]!, depot: t.premierDepot, coupures: billets(total, "CDF") });
+    }
+    const compteDe = (id: number, devise: Devise) => E.comptes.find((c) => c.tiersId === id && c.devise === devise)!;
+    const sid = caisses.duCaissier()!.id;
+    const DEPOTS: [number, number, string, string][] = [   // membre (rang), montant CDF, mandataire, motif
+      [0, 85000, "", "Recette du marché"], [2, 250000, "", "Épargne"], [4, 40000, "Kasongo Didier", "Épargne"], [7, 500000, "", "Vente de marchandises"],
+      [9, 65000, "", ""], [12, 120000, "", "Épargne scolaire"], [13, 300000, "", "Recette"], [1, 15000, "", ""],
+    ];
+    for (const [r, m, mandataire, motif] of DEPOTS) guichet.depot({ cle: cle(), compteId: compteDe(ids[r]!, "CDF").id, montant: m * 100, coupures: billets(m * 100, "CDF"), mandataire, motif });
+    for (const [id, m] of [[entreprises[0]!, 1200000], [groupes[0]!, 180000]] as const) guichet.depot({ cle: cle(), compteId: compteDe(id, "CDF").id, montant: m * 100, coupures: billets(m * 100, "CDF"), motif: "Versement" });
+    const RETRAITS: [number, number, string][] = [[2, 70000, "Achat de stock"], [7, 150000, "Frais scolaires"], [13, 100000, ""]];
+    for (const [r, m, motif] of RETRAITS) guichet.retrait({ cle: cle(), compteId: compteDe(ids[r]!, "CDF").id, montant: m * 100, coupures: billets(m * 100, "CDF", caisses.theorique(sid, "CDF")), motif });
+    guichet.depot({ cle: cle(), compteId: 1, montant: 25000, coupures: billets(25000, "USD"), motif: "Épargne" });
+    guichet.retrait({ cle: cle(), compteId: 3, montant: 5000, coupures: billets(5000, "USD", caisses.theorique(sid, "USD")), motif: "" });
+    for (const r of [0, 5]) guichet.parts({ cle: cle(), tiersId: ids[r]!, sens: "achat", nombre: 1, coupures: billets(E.valeurPart, "CDF") });
+    // Un membre résilié (S48)
+    comme("jpmukendi"); tiers.resilier(ids[15]!, { motif: "DEMENAGEMENT" });
   } finally { E.session = avant; enregistrer(); }
 }
 
