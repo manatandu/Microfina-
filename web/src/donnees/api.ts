@@ -157,32 +157,31 @@ const caisses = {
     const s: SessionCaisse = { id: prochain(E.sessions), guichetId, journeeId: j.id, caissierId: u.id, statut: "ouverte" };
     E.sessions.push(s); enregistrer(); return s;
   },
-  /** Coupures que la caisse devrait contenir, par devise */
+  /** Coupures que la caisse devrait contenir (« Solde Caisse », S79) : fonds du dernier arrêté validé du guichet, plus les entrées, moins les sorties */
   theorique(sessionId: number, devise: Devise): Comptage {
     const s = E.sessions.find((x) => x.id === sessionId)!;
-    const ouv = E.billetages.find((b) => b.sessionId === sessionId && b.moment === "ouverture" && b.devise === devise && b.validePar);
-    const base: Comptage = { ...(ouv ? ouv.compte : E.fondsVeille[s.guichetId]?.[devise] ?? {}) };
-    if (!ouv) return base;
+    const base: Comptage = { ...(E.fondsVeille[s.guichetId]?.[devise] ?? {}) };
     for (const o of E.operations.filter((x) => x.sessionId === sessionId && x.statut === "validee" && x.devise === devise)) {
       const signe = SORTIES.includes(o.type) ? -1 : 1;
       for (const [v, n] of Object.entries(o.coupures)) base[Number(v)] = (base[Number(v)] ?? 0) + signe * (n ?? 0);
     }
-    return base;
+    return nettoyer(base);
   },
   billetages: (sessionId: number) => E.billetages.filter((b) => b.sessionId === sessionId),
-  saisirBilletage(sessionId: number, moment: "ouverture" | "arret", devise: Devise, compte: Comptage, justification?: string) {
+  /** S79 : Caisse > Billetage > Enregistrer de billetage (manuel p. 90 et 91) : « Arretée de » la caisse, coupures, Bon de Caisse */
+  saisirBilletage(sessionId: number, devise: Devise, compte: Comptage, bonCaisse = 0) {
     const u = exiger("caissier");
     const s = E.sessions.find((x) => x.id === sessionId);
     if (!s || s.caissierId !== u.id) throw new ErreurMetier("Cette caisse n'est pas la vôtre.");
     if (s.statut === "arretee") throw new ErreurMetier("Caisse déjà arrêtée.");
-    if (moment === "arret" && E.operations.some((o) => o.sessionId === sessionId && o.statut === "visa_requis"))
+    if (E.operations.some((o) => o.sessionId === sessionId && o.statut === "visa_requis"))
       throw new ErreurMetier("Une opération attend un visa : la faire viser ou refuser avant l'arrêté.");
+    if (Object.keys(compte).some((v) => !COUPURES[devise].includes(Number(v)))) throw new ErreurMetier("Coupure inconnue.");
+    if (!Number.isInteger(bonCaisse) || bonCaisse < 0) throw new ErreurMetier("Bon de Caisse invalide.");
     const theorique = caisses.theorique(sessionId, devise);
-    if (totalComptage(compte) !== totalComptage(theorique) && !justification?.trim())
-      throw new ErreurMetier("Écart avec le théorique : le justifier avant d'envoyer au chef.");
-    const deja = E.billetages.find((b) => b.sessionId === sessionId && b.moment === moment && b.devise === devise);
+    const deja = E.billetages.find((b) => b.sessionId === sessionId && b.moment === "arret" && b.devise === devise);
     if (deja?.validePar) throw new ErreurMetier("Billetage déjà validé.");
-    const b: Billetage = { id: deja?.id ?? prochain(E.billetages), sessionId, moment, devise, compte: nettoyer(compte), theorique, justification: justification?.trim() || undefined, saisiPar: u.id };
+    const b: Billetage = { id: deja?.id ?? prochain(E.billetages), sessionId, moment: "arret", devise, compte: nettoyer(compte), theorique, bonCaisse, saisiPar: u.id };
     if (deja) Object.assign(deja, b); else E.billetages.push(b);
     enregistrer(); return b;
   },
@@ -788,12 +787,10 @@ const banques = {
 // ---------- Guichet ----------
 interface Commun { cle: string; coupures: Comptage }
 
-function sessionOuverte(devise: Devise) {
+function sessionOuverte(_devise: Devise) {
   const u = exiger("caissier");
   const s = caisses.duCaissier();
   if (!s || s.statut !== "ouverte") throw new ErreurMetier("Aucune caisse ouverte à votre nom.");
-  const ouv = E.billetages.find((b) => b.sessionId === s.id && b.moment === "ouverture" && b.devise === devise);
-  if (!ouv?.validePar) throw new ErreurMetier(`Billetage d'ouverture en ${devise} pas encore validé par le chef d'agence.`);
   return { u, s };
 }
 function dejaFaite(cle: string) { return E.operations.find((o) => o.cle === cle && o.statut === "validee"); }

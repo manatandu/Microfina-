@@ -25,19 +25,12 @@ const OUT = process.argv[2];
   await etape('02-chef-avant-ouverture');
   await p.getByRole('button', { name: /Ouvrir la journée du 05\/11\/2026/ }).click();
   await p.getByRole('heading', { name: /Fermer la journée/ }).waitFor();
-  // Caissière : ouvrir la caisse, compter le fonds
+  // Caissière : ouvrir la caisse (sans comptage : Microfina++ ne compte qu'à l'arrêté, p. 90 et 91)
   await login('Esther Ngalula');
   await aller('/principal'); await etape('01c-menu-general');
   await aller('/administration/s09');
-  await etape('02b-ouverture-caisse'); await p.getByLabel('Caisse 2').check(); await p.getByRole('button', { name: /Ouvrir et compter/ }).click();
-  await p.waitForURL(/s79/);
-  // compte juste en CDF, écart de 1 billet de 1 USD en USD
-  const remplir = async (dev, vals) => { const f = p.getByRole('form', { name: `Billetage ${dev}` }); for (const [v, n] of Object.entries(vals)) await f.getByLabel(`Nombre de coupures de ${Number(v).toLocaleString('fr-FR')} ${dev}`).fill(String(n)); return f; };
-  let f = await remplir('CDF', { 20000: 150, 10000: 120, 5000: 100, 1000: 60, 500: 7 }); await f.getByRole('button', { name: /Envoyer/ }).click();
-  f = await remplir('USD', { 100: 140, 50: 12, 20: 8, 10: 3, 5: 2, 1: 5 });
-  await f.getByRole('button', { name: /Envoyer/ }).click();
-  await f.getByText(/le justifier/).waitFor(); await etape('03-billetage-ecart');
-  f = await remplir('USD', { 1: 6 }); await f.getByRole('button', { name: /Envoyer/ }).click(); await f.getByText(/Envoyé/).waitFor();
+  await etape('02b-ouverture-caisse'); await p.getByLabel('Caisse 2').check(); await p.getByRole('button', { name: 'Ouvrir' }).click();
+  await p.waitForURL(/s74/);
   // Agent : enrôler
   await login('Bijou Kasongo'); await aller('/clients/s37');
   await p.getByLabel('Type de compte à créer *').selectOption('EAV-CDF');
@@ -86,9 +79,7 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await etape('05f-entreprise-enregistree'); await p.getByRole('button', { name: 'Ok' }).click();
   // Chef : valider billetages et viser
-  await login('J.-P. Mukendi'); await aller('/caisse/s80'); await etape('06-chef-a-valider');
-  await validerTout();
-  await p.getByText('Rien à valider pour l\'instant.').waitFor();
+  await login('J.-P. Mukendi');
   // Création banque (S58)
   await aller('/banque/s58');
   await p.getByLabel('Code Banque: *').fill('RAW'); await p.getByLabel('Libelle : *').fill('Rawbank'); await p.getByLabel('Compte Liaison *').fill('5601');
@@ -257,13 +248,19 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Imprimer' }).click(); await p.getByText('Achat de parts enregistré').waitFor(); await etape('14c-parts-recu');
   await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
   // Arrêté de caisse
-  await p.goto(B + '/caisse/s79'); await p.getByRole('heading', { name: /Arrêté de caisse/ }).waitFor();
-  for (const dev of ['CDF', 'USD']) {
-    const fo = p.getByRole('form', { name: `Billetage ${dev}` });
-    const att = await fo.locator('tbody tr').evaluateAll(rs => rs.map(r => [r.cells[0].textContent, r.cells[1].textContent]));
-    for (const [v, n] of att) { const c = fo.getByLabel(`Nombre de coupures de ${v} ${dev}`); await c.fill(n.replace(/\D/g, '') === '0' ? '' : n.replace(/\D/g, '')); }
-    await fo.getByRole('button', { name: /Envoyer/ }).click(); await fo.getByText(/Envoyé/).waitFor();
+  // Le stock de la caisse, par coupure, se lit dans la fenêtre Billetage d'un retrait (S74) ; l'arrêté compte juste
+  const stock = {};
+  await aller('/caisse/s74?op=retrait'); await client('Kalala');
+  for (const [num, dev] of [['0412-000318-02', 'CDF'], ['0412-000318-01', 'USD']]) {
+    await p.getByLabel('N° compte').selectOption({ label: num }); await p.getByLabel('Montant *').fill('1');
+    await p.getByRole('button', { name: 'Billetage' }).click(); const fen = p.getByRole('dialog', { name: 'Billetage' });
+    stock[dev] = await fen.locator('tbody tr').evaluateAll(rs => rs.map(r => [r.cells[0].textContent.replace(/\D/g, ''), r.cells[1].textContent.replace(/\D/g, '')]));
+    await fen.getByRole('button', { name: 'Fermer' }).click();
   }
+  await aller('/caisse/s79'); await p.getByRole('heading', { name: /Arretée de : Caisse 2/ }).waitFor();
+  for (const dev of ['CDF', 'USD']) for (const [v, n] of stock[dev]) await p.getByLabel(`Nombre : Billet de ${v} ${dev}`).fill(n);
+  await p.getByLabel('Bon de Caisse').fill('5 000');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await etape('15-arrete');
   await login('J.-P. Mukendi'); await aller('/administration/s12'); await etape('16-chef-fermeture-bloquee');
   await aller('/caisse/s80');

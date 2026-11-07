@@ -17,7 +17,8 @@ export interface Billetage {
   devise: Devise;
   compte: Comptage;            // ce que le caissier a compté
   theorique: Comptage;         // ce que la caisse devrait contenir
-  justification?: string;
+  justification?: string;      // anciens billetages : la saisie de S79 ne la demande plus
+  bonCaisse?: number;          // « Bon de Caisse » (S79, p. 91)
   saisiPar: number;
   validePar?: number;
 }

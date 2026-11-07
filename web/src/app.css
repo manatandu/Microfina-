@@ -234,6 +234,7 @@ dl.infos { display: grid; gap: var(--espace-2); margin: 0; }
 /* Rapports clients (S51, manuel Microfina++ p. 58 et 59) */
 .grille-cadres { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr)); gap: var(--espace-4); align-items: start; }
 @media (min-width: 60rem) { .grille-cadres.client-large { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); } }
+.grille-cadres.quatre { grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr)); }
 .radios-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--espace-2) var(--espace-4); }
 .choix-operation { display: flex; flex-wrap: wrap; gap: var(--espace-2) var(--espace-5); }
 .montant-lettres { margin: 0; color: var(--tampon); font-style: italic; }

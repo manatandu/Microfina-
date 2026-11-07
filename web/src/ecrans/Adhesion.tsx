@@ -36,7 +36,7 @@ export default function Adhesion() {
   if (!donnees) return <Chargement />;
   const { s, ctx, u, j, stock, frais, piece } = donnees;
   if (!s || s.statut !== "ouverte") return (
-    <><h1>Guichet</h1><OngletsGuichet /><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>, puis faire valider le fonds.</Attention></>
+    <><h1>Guichet</h1><OngletsGuichet /><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>
   );
   const nParts = /^\d+$/.test(parts.trim()) ? Number(parts.trim()) : 0;
   const mDepot = depot.trim() ? lireMontant(depot) : 0;

@@ -119,7 +119,7 @@ def caisse_billetages(request, sid: int):
 
 @api.post("/caisses/{sid}/billetages")
 def billetage_saisir(request, sid: int, corps: dict = Body(...)):
-    return s.saisir_billetage(u(request), sid, corps["moment"], corps["devise"], corps.get("compte") or {}, corps.get("justification"))
+    return s.saisir_billetage(u(request), sid, corps["devise"], corps.get("compte") or {}, corps.get("bonCaisse") or 0)
 
 
 @api.get("/billetages/a-valider")

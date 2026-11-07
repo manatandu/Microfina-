@@ -233,27 +233,24 @@ def ouvrir_caisse(u: dict, guichet_id: int) -> dict:
 
 
 def theorique(session_id: int, devise: str) -> dict:
-    """Coupures que la caisse devrait contenir : fonds validé à l'ouverture, plus les entrées, moins les sorties."""
+    """Coupures que la caisse devrait contenir (« Solde Caisse », S79) : fonds du dernier arrêté validé de ce guichet,
+    plus les entrées, moins les sorties de la journée."""
     s = une("select * from session_caisse where id = %s", (session_id,))
-    ouv = une("select id from billetage where session_caisse_id = %s and moment = 'ouverture' and devise = %s and valide_par is not null", (session_id, devise))
-    if not ouv:
-        # Fonds laissé au dernier arrêté validé de ce guichet
-        veille = une("""select b.id from billetage b join session_caisse s on s.id = b.session_caisse_id
-                        where s.guichet_id = %s and b.moment = 'arret' and b.devise = %s and b.valide_par is not null and s.id <> %s
-                        order by b.valide_le desc nulls last, b.id desc limit 1""", (s["guichet_id"], devise, session_id))
-        return comptage_billetage(veille["id"]) if veille else {}
-    base = {int(k): v for k, v in comptage_billetage(ouv["id"]).items()}
+    veille = une("""select b.id from billetage b join session_caisse s on s.id = b.session_caisse_id
+                    where s.guichet_id = %s and b.moment = 'arret' and b.devise = %s and b.valide_par is not null and s.id <> %s
+                    order by b.valide_le desc nulls last, b.id desc limit 1""", (s["guichet_id"], devise, session_id))
+    base = {int(k): v for k, v in (comptage_billetage(veille["id"]) if veille else {}).items()}
     for r in lignes("""select o.type, c.valeur, c.nombre from operation o join operation_coupure c on c.operation_id = o.id
                        where o.session_caisse_id = %s and o.statut = 'validee' and o.devise = %s""", (session_id, devise)):
         signe = -1 if r["type"] in SORTIES else 1
         base[r["valeur"] // 100] = base.get(r["valeur"] // 100, 0) + signe * r["nombre"]
-    return {str(k): v for k, v in base.items()}
+    return {str(k): v for k, v in base.items() if v}
 
 
 def vue_billetage(b: dict) -> dict:
     return {"id": b["id"], "sessionId": b["session_caisse_id"], "moment": b["moment"], "devise": b["devise"].strip(),
             "compte": comptage_billetage(b["id"]), "theorique": json_lu(b["theorique"]) or {}, "justification": b["justification"],
-            "saisiPar": b["saisi_par"], "validePar": b["valide_par"]}
+            "bonCaisse": b["bon_caisse"], "saisiPar": b["saisi_par"], "validePar": b["valide_par"]}
 
 
 def billetages(session_id: int) -> list[dict]:
@@ -266,30 +263,32 @@ def controler_coupures(c: dict, devise: str):
             raise ErreurMetier("Coupure inconnue.")
 
 
-def saisir_billetage(u: dict, session_id: int, moment: str, devise: str, compte: dict, justification: str | None) -> dict:
+def saisir_billetage(u: dict, session_id: int, devise: str, compte: dict, bon_caisse: int = 0) -> dict:
+    """S79 : Caisse > Billetage > Enregistrer de billetage (manuel p. 90 et 91) : « Arretée de » la caisse, coupures, Bon de Caisse."""
     exiger(u, "caissier")
     s = une("select * from session_caisse where id = %s for update", (session_id,))
     if not s or s["caissier_id"] != u["id"]:
         raise ErreurMetier("Cette caisse n'est pas la vôtre.")
     if s["statut"] == "arretee":
         raise ErreurMetier("Caisse déjà arrêtée.")
-    if moment == "arret" and une("select 1 from operation where session_caisse_id = %s and statut in ('saisie', 'visee')", (session_id,)):
+    if une("select 1 from operation where session_caisse_id = %s and statut in ('saisie', 'visee')", (session_id,)):
         raise ErreurMetier("Une opération attend un visa : la faire viser ou refuser avant l'arrêté.")
     compte = nettoyer(compte)
     controler_coupures(compte, devise)
+    bon = int(bon_caisse or 0)
+    if bon < 0:
+        raise ErreurMetier("Bon de Caisse invalide.")
     th = theorique(session_id, devise)
-    if total_comptage(compte) != total_comptage(th) and not (justification or "").strip():
-        raise ErreurMetier("Écart avec le théorique : le justifier avant d'envoyer au chef.")
-    deja = une("select * from billetage where session_caisse_id = %s and moment = %s and devise = %s", (session_id, moment, devise))
+    deja = une("select * from billetage where session_caisse_id = %s and moment = 'arret' and devise = %s", (session_id, devise))
     if deja and deja["valide_par"]:
         raise ErreurMetier("Billetage déjà validé.")
     if deja:
         bid = deja["id"]
-        executer("update billetage set theorique = %s, justification = %s, saisi_par = %s where id = %s", (Jsonb(th), (justification or "").strip() or None, u["id"], bid))
+        executer("update billetage set theorique = %s, bon_caisse = %s, saisi_par = %s where id = %s", (Jsonb(th), bon, u["id"], bid))
         executer("delete from billetage_ligne where billetage_id = %s", (bid,))
     else:
-        bid = valeur("""insert into billetage (session_caisse_id, moment, devise, saisi_par, theorique, justification)
-                        values (%s, %s, %s, %s, %s, %s) returning id""", (session_id, moment, devise, u["id"], Jsonb(th), (justification or "").strip() or None))
+        bid = valeur("""insert into billetage (session_caisse_id, moment, devise, saisi_par, theorique, bon_caisse)
+                        values (%s, 'arret', %s, %s, %s, %s) returning id""", (session_id, devise, u["id"], Jsonb(th), bon))
     for v, n in compte.items():
         executer("insert into billetage_ligne (billetage_id, devise, valeur, nombre) values (%s, %s, %s, %s)", (bid, devise, int(v) * 100, n))
     return vue_billetage(une("select * from billetage where id = %s", (bid,)))
@@ -927,8 +926,6 @@ def session_ouverte(u: dict, devise: str) -> dict:
     s = session_du_caissier(u)
     if not s or s["statut"] != "ouverte":
         raise ErreurMetier("Aucune caisse ouverte à votre nom.")
-    if not une("select 1 from billetage where session_caisse_id = %s and moment = 'ouverture' and devise = %s and valide_par is not null", (s["id"], devise)):
-        raise ErreurMetier(f"Billetage d'ouverture en {devise} pas encore validé par le chef d'agence.")
     une("select id from session_caisse where id = %s for update", (s["id"],))   # verrou : le stock de coupures ne bouge pas pendant l'opération
     return s
 

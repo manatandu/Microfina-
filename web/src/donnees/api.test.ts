@@ -12,10 +12,6 @@ async function journeeOuverte() {
   const j = await api.journees.ouvrir("2026-11-05");
   await connecter("engalula");
   const s = await api.caisses.ouvrir(2);
-  for (const d of ["CDF", "USD"] as const) await api.caisses.saisirBilletage(s.id, "ouverture", d, await api.caisses.theorique(s.id, d));
-  await connecter("jpmukendi");
-  for (const b of await api.caisses.aValider()) await api.caisses.validerBilletage(b.id);
-  await connecter("engalula");
   return { j, s };
 }
 
@@ -59,6 +55,17 @@ describe("journée de guichet", () => {
     await journeeOuverte();
     await expect(api.guichet.retrait({ cle: cle(), compteId: 3, montant: 60000, coupures: { 100: 6 } })).rejects.toThrow("solde disponible");
     await expect(api.guichet.depot({ cle: cle(), compteId: 2, montant: 30000, coupures: { 20000: 1 } })).rejects.toThrow("billetage ne fait pas");
+  });
+
+  it("arrêté de caisse (S79, p. 90 et 91) : sans comptage d'ouverture, Solde Caisse, Bon de Caisse, saisie refaite tant que non validée", async () => {
+    const { s } = await journeeOuverte();
+    const avant = await api.caisses.theorique(s.id, "CDF");
+    await api.guichet.depot({ cle: cle(), compteId: 2, montant: 1000000, coupures: { 10000: 1 } });
+    expect((await api.caisses.theorique(s.id, "CDF"))[10000]).toBe((avant[10000] ?? 0) + 1);
+    const b = await api.caisses.saisirBilletage(s.id, "CDF", { 10000: 1 }, 500000);
+    expect(b.bonCaisse).toBe(500000);
+    const b2 = await api.caisses.saisirBilletage(s.id, "CDF", await api.caisses.theorique(s.id, "CDF"), 0);
+    expect([b2.id, b2.bonCaisse]).toEqual([b.id, 0]);
   });
 
   it("dépôt et retrait (S74, p. 86) : Mandataire et Motif, sans visa ni cases à cocher que Microfina++ ne montre pas", async () => {
@@ -314,7 +321,7 @@ describe("journée de guichet", () => {
     await connecter("jpmukendi");
     await expect(api.journees.fermer(j.id)).rejects.toThrow("caisses arrêtées");
     await connecter("engalula");
-    for (const d of ["CDF", "USD"] as const) await api.caisses.saisirBilletage(s.id, "arret", d, await api.caisses.theorique(s.id, d));
+    for (const d of ["CDF", "USD"] as const) await api.caisses.saisirBilletage(s.id, d, await api.caisses.theorique(s.id, d));
     await connecter("jpmukendi");
     for (const b of await api.caisses.aValider()) await api.caisses.validerBilletage(b.id);
     expect((await api.journees.fermer(j.id)).statut).toBe("fermee");
@@ -325,7 +332,7 @@ describe("journée de guichet", () => {
     await connecter("jpmukendi"); await api.journees.ouvrir("2026-11-05");
     await connecter("engalula");
     const s = await api.caisses.ouvrir(2);
-    const b = await api.caisses.saisirBilletage(s.id, "ouverture", "CDF", await api.caisses.theorique(s.id, "CDF"));
+    const b = await api.caisses.saisirBilletage(s.id, "CDF", await api.caisses.theorique(s.id, "CDF"));
     await expect(api.caisses.validerBilletage(b.id)).rejects.toThrow("chef d'agence");
   });
 });

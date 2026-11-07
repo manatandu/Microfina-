@@ -53,11 +53,6 @@ def journee(clients):
     connecter(clients["agent"], "bkasongo"); connecter(clients["compta"], "plumbala")
     j = chef.post("/api/journees", {"date": "2026-11-05"}, **H).json()
     s = caisse.post("/api/caisses", {"guichetId": G2()}, **H).json()
-    for d in ("CDF", "USD"):
-        th = caisse.get(f"/api/caisses/{s['id']}/theorique?devise={d}").json()
-        assert caisse.post(f"/api/caisses/{s['id']}/billetages", {"moment": "ouverture", "devise": d, "compte": th}, **H).status_code == 200
-    for b in chef.get("/api/billetages/a-valider").json():
-        assert chef.post(f"/api/billetages/{b['id']}/validation", **H).status_code == 200
     return j, s
 
 
@@ -263,7 +258,7 @@ def test_fermeture(clients, journee):
     assert "caisses arrêtées" in chef.post(f"/api/journees/{j['id']}/fermeture", **H).json()["message"]
     for d in ("CDF", "USD"):
         th = caisse.get(f"/api/caisses/{s['id']}/theorique?devise={d}").json()
-        caisse.post(f"/api/caisses/{s['id']}/billetages", {"moment": "arret", "devise": d, "compte": th}, **H)
+        caisse.post(f"/api/caisses/{s['id']}/billetages", {"devise": d, "compte": th}, **H)
     for b in chef.get("/api/billetages/a-valider").json():
         chef.post(f"/api/billetages/{b['id']}/validation", **H)
     assert chef.post(f"/api/journees/{j['id']}/fermeture", **H).json()["statut"] == "fermee"
@@ -276,7 +271,7 @@ def test_quatre_yeux_billetage(clients):
     chef.post("/api/journees", {"date": "2026-11-05"}, **H)
     s = caisse.post("/api/caisses", {"guichetId": G2()}, **H).json()
     th = caisse.get(f"/api/caisses/{s['id']}/theorique?devise=CDF").json()
-    b = caisse.post(f"/api/caisses/{s['id']}/billetages", {"moment": "ouverture", "devise": "CDF", "compte": th}, **H).json()
+    b = caisse.post(f"/api/caisses/{s['id']}/billetages", {"devise": "CDF", "compte": th}, **H).json()
     assert caisse.post(f"/api/billetages/{b['id']}/validation", **H).status_code == 403
 
 
@@ -289,8 +284,10 @@ def test_grand_livre_immuable(clients, journee):
 
 def test_billetage_valide_une_seule_fois(clients, journee):
     _, s = journee
-    chef = clients["chef"]
-    b = chef.get(f"/api/caisses/{s['id']}/billetages").json()[0]
+    chef, caisse = clients["chef"], clients["caisse"]
+    th = caisse.get(f"/api/caisses/{s['id']}/theorique?devise=CDF").json()
+    b = caisse.post(f"/api/caisses/{s['id']}/billetages", {"devise": "CDF", "compte": th}, **H).json()
+    assert chef.post(f"/api/billetages/{b['id']}/validation", **H).status_code == 200
     r = chef.post(f"/api/billetages/{b['id']}/validation", **H)
     assert r.status_code == 422 and "déjà validé" in r.json()["message"]
 
@@ -487,3 +484,18 @@ def test_banques(clients):
     assert chef.post(f"/api/banques/comptes/{cid}", {**c, "contactTelephone": "+243 810 000 222"}, **H).json()["comptes"][0]["contactTelephone"] == "+243 810 000 222"
     assert chef.delete(f"/api/banques/comptes/{cid}", **H).json()["comptes"] == []
     assert chef.delete(f"/api/banques/{bid}", **H).json()["banques"] == []
+
+
+def test_arrete_de_caisse(clients, journee):
+    """S79 (manuel p. 90 et 91) : pas de comptage à l'ouverture ; Solde Caisse = dernier arrêté validé + opérations du jour ;
+    Bon de Caisse enregistré ; Enregistrer refait la saisie tant que le billetage n'est pas validé"""
+    caisse = clients["caisse"]
+    _, s = journee
+    avant = caisse.get(f"/api/caisses/{s['id']}/theorique?devise=CDF").json()
+    assert caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}}, **H).status_code == 200
+    apres = caisse.get(f"/api/caisses/{s['id']}/theorique?devise=CDF").json()
+    assert apres.get("10000", 0) == avant.get("10000", 0) + 1
+    b = caisse.post(f"/api/caisses/{s['id']}/billetages", {"devise": "CDF", "compte": {"10000": 1}, "bonCaisse": 500000}, **H).json()
+    assert b["bonCaisse"] == 500000
+    b2 = caisse.post(f"/api/caisses/{s['id']}/billetages", {"devise": "CDF", "compte": apres, "bonCaisse": 0}, **H).json()
+    assert b2["id"] == b["id"] and b2["bonCaisse"] == 0
