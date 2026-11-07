@@ -93,6 +93,7 @@ export interface Tiers {
   // S48, résiliation (manuel p. 57)
   motifDepart: string;
   resilieLe: string;
+  creeLe: string;               // date de création de la fiche (rapports S51)
   // S40, visa (manuel p. 52)
   intitule: string;
   dateVisa: string;
@@ -160,7 +161,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise }
 
 export interface Etat {
-  version: 13;
+  version: 14;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];

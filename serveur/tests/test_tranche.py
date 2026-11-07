@@ -420,3 +420,11 @@ def test_consentement(clients):
     l = agent.post(f"/api/tiers/{k}/consentements", {"code": "CR-1", "dateDebut": "2026-11-07", "commentaire": "Signé à la demande de crédit"}, **H).json()
     assert [(x["code"], x["dateDebut"], x["dateFin"], x["commentaire"]) for x in l] == [("CR-1", "2026-11-07", "", "Signé à la demande de crédit")]
     assert agent.get(f"/api/tiers/{k}/consentements").json() == l
+
+
+def test_rapports(clients):
+    agent = clients["agent"]
+    connecter(agent, "bkasongo")
+    l = agent.get("/api/rapports/clients").json()
+    assert [x["numero"] for x in l] == ["0412-000318", "0412-000319", "0412-000320"] and all(x["creeLe"] for x in l)
+    assert agent.get("/api/rapports/modifications").json() == []

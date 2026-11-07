@@ -194,6 +194,12 @@ const OUT = process.argv[2];
   await p.getByLabel('Code *').fill('CR-1'); await p.getByLabel('Commentaire').fill('Signé à la demande de crédit');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('cell', { name: 'CR-1' }).waitFor(); await etape('06w-consentement');
+  // Rapports clients (S51)
+  await aller('/clients/s51'); await p.getByRole('button', { name: 'Rechercher' }).click();
+  await p.getByRole('cell', { name: '0412-000318' }).waitFor(); await etape('06x-rapport-multicritere');
+  await p.getByRole('tab', { name: 'Rapport prospect' }).click(); await p.getByRole('button', { name: 'Rechercher' }).click(); await etape('06y-rapport-prospect');
+  await p.getByRole('tab', { name: 'Rapport des clients modifiés' }).click(); await p.getByRole('button', { name: 'Rechercher' }).click();
+  await p.getByRole('cell', { name: '0412-000319' }).first().waitFor(); await etape('06z-rapport-modifies');
   // Caissière : adhésion, dépôt, retrait
   await login('Esther Ngalula'); await aller('/caisse/s73');
   await p.getByLabel(/Nom, numéro ou compte/).waitFor(); await p.keyboard.press('F2'); await p.keyboard.type('Tshala'); await p.getByRole('option', { name: /Tshala/ }).click();

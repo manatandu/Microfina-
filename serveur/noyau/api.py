@@ -152,6 +152,16 @@ def prospect_modifier(request, tid: int, corps: dict = Body(...)):
     return s.modifier_prospect(u(request), tid, corps)
 
 
+@api.get("/rapports/clients")
+def rapport_clients(request):
+    return s.rapport_clients(u(request))
+
+
+@api.get("/rapports/modifications")
+def rapport_modifications(request):
+    return s.rapport_modifications(u(request))
+
+
 @api.get("/tiers/a-revalider")
 def tiers_a_revalider(request):
     return s.tiers_a_revalider(u(request))

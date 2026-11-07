@@ -16,14 +16,14 @@ import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@d
 export const SEUIL_CAISSIER_USD = 1000;   // au-delà, visa du chef d'agence. Exemple : fixé par la COOPEC
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v13";
+const CLE = "likelemba-demo-v14";
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
 
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 13) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 14) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   return graine();
 }
@@ -209,7 +209,7 @@ const caisses = {
 const nettoyer = (c: Comptage): Comptage => Object.fromEntries(Object.entries(c).filter(([, n]) => (n ?? 0) > 0));
 
 // ---------- Tiers ----------
-export type NouveauTiers = Omit<Tiers, "id" | "numero" | "statut" | "creePar" | "visePar" | "photo" | "specimen" | "type" | "dirigeant" | "signataires" | "membres" | "intitule" | "dateVisa" | "motifDepart" | "resilieLe">;
+export type NouveauTiers = Omit<Tiers, "id" | "numero" | "statut" | "creePar" | "visePar" | "photo" | "specimen" | "type" | "dirigeant" | "signataires" | "membres" | "intitule" | "dateVisa" | "motifDepart" | "resilieLe" | "creeLe">;
 /** Saisie du visa (S40, p. 52) */
 export interface Visa { dateVisa?: string; intitule?: string; premierDepot?: number }
 /** Dirigeant ou signataire tel que saisi, avec photo et signature chargées */
@@ -319,7 +319,7 @@ function ctxControle() {
 }
 function nouveauTiers(d: NouveauTiers, creePar: number, reste: Pick<Tiers, "type" | "dirigeant" | "signataires" | "membres" | "photo" | "specimen">): Tiers {
   E.compteurs.tiers += 1;
-  const t: Tiers = { ...d, ...reste, intitule: "", dateVisa: "", motifDepart: "", resilieLe: "", id: prochain(E.tiers), numero: `${E.agence.code}-${String(E.compteurs.tiers).padStart(6, "0")}`, statut: "a_viser", creePar };
+  const t: Tiers = { ...d, ...reste, intitule: "", dateVisa: "", motifDepart: "", resilieLe: "", creeLe: new Date().toISOString().slice(0, 10), id: prochain(E.tiers), numero: `${E.agence.code}-${String(E.compteurs.tiers).padStart(6, "0")}`, statut: "a_viser", creePar };
   E.tiers.push(t); return t;
 }
 
@@ -717,6 +717,16 @@ const procurations = {
   },
 };
 
+// ---------- Client : rapports (S51, manuel p. 58 et 59) ----------
+const rapports = {
+  clients() { exiger(); return [...E.tiers].sort((a, b) => a.numero.localeCompare(b.numero)); },
+  modifications() {
+    exiger();
+    return [...E.modifications].reverse().map(({ tiersId, avant, apres, modifiePar, modifieLe, validePar }) =>
+      ({ tiersId, numero: E.tiers.find((t) => t.id === tiersId)?.numero ?? "", avant, apres, modifiePar, modifieLe, validePar: validePar ?? null }));
+  },
+};
+
 // ---------- Guichet ----------
 interface Commun { cle: string; coupures: Comptage }
 
@@ -904,6 +914,7 @@ const apiLocal = {
   parametrage: asynchrone(parametrage),
   groupes: asynchrone(groupes),
   procurations: asynchrone(procurations),
+  rapports: asynchrone(rapports),
 };
 
 export type ApiDonnees = typeof apiLocal;

@@ -343,7 +343,7 @@ def vue_tiers(t: dict) -> dict:
             "preleverAgios": t["prelever_agios"], "calculerInteret": t["calculer_interet"],
             "lieuNaissance": t["lieu_naissance"] or "", "pieceDelivreeLe": iso(t["piece_delivree_le"]), "pieceLieu": t["piece_lieu"] or "", "pieceAutorite": t["piece_autorite"] or "",
             "liees": [r["autre_id"] for r in lignes("select autre_id from lien_tiers where tiers_id = %s and role = 'personne_liee' order by id", (t["id"],))],
-            "intitule": t["intitule"] or "", "dateVisa": iso(t["date_visa"]), "motifDepart": t["motif_depart"] or "", "resilieLe": iso(t["resilie_le"]),
+            "intitule": t["intitule"] or "", "dateVisa": iso(t["date_visa"]), "creeLe": t["cree_le"].date().isoformat(), "motifDepart": t["motif_depart"] or "", "resilieLe": iso(t["resilie_le"]),
             "profession": t["profession"] or "", "pays": t["pays"] or "", "ville": t["ville"] or "", "quartier": t["quartier"] or "", "rue": t["rue"] or "",
             "email": t["email"] or "", "bp": t["bp"] or "", "telephoneFixe": t["telephone_fixe"] or "",
             "type": t["type"], "formeJuridique": t["forme"] or "", "registre": t["rccm"] or "", "centreActivite": t["centre_activite"] or "", "activite": t["activite"] or "",
@@ -706,6 +706,21 @@ def creer_consentement(u: dict, tid: int, d: dict) -> list[dict]:
     executer("insert into consentement (tiers_id, code, date_debut, date_fin, commentaire, saisi_par) values (%s, %s, %s, %s, %s, %s)",
              (tid, texte("code"), texte("dateDebut"), texte("dateFin") or None, texte("commentaire") or None, u["id"]))
     return consentements(u, tid)
+
+
+def rapport_clients(u: dict) -> list[dict]:
+    """S51 : tous les clients et prospects de l'institution, filtrés à l'écran (Client > Rapport, manuel p. 58 et 59)"""
+    exiger(u)
+    return [vue_tiers(t) for t in lignes(SQL_TIERS + " where t.institution_id = %s order by t.numero", (u["institution_id"],))]
+
+
+def rapport_modifications(u: dict) -> list[dict]:
+    """S51, « Rapport des clients modifiés » (p. 59) : chaque modification (S46) avec le client, l'auteur et le valideur"""
+    exiger(u)
+    return [{"tiersId": r["tiers_id"], "numero": r["numero"], "avant": json_lu(r["avant"]), "apres": json_lu(r["apres"]), "modifiePar": r["modifie_par"],
+             "modifieLe": r["modifie_le"].isoformat(), "validePar": r["valide_par"]}
+            for r in lignes("""select m.*, t.numero from tiers_modification m join tiers t on t.id = m.tiers_id where t.institution_id = %s
+                               order by m.modifie_le desc""", (u["institution_id"],))]
 
 
 def modifications_tiers(u: dict, tid: int) -> list[dict]:

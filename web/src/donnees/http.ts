@@ -117,5 +117,9 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       creer: (d: object) => post("/types-procuration", d),
       supprimer: (id: number) => appel("DELETE", `/types-procuration/${id}`),
     },
+    rapports: {
+      clients: () => get("/rapports/clients"),
+      modifications: () => get("/rapports/modifications"),
+    },
   } as unknown as ApiDonnees;   // les formes de réponse sont celles des services du serveur (serveur/noyau/services.py)
 }

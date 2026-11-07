@@ -10,6 +10,7 @@ import { FraisOperations } from "./Parametrage";
 import { GroupeSolidaire } from "./Groupes";
 import { NouveauProspect } from "./Prospects";
 import { TypesProcuration } from "./Procurations";
+import { RapportsClients } from "./Rapports";
 
 /** Écrans de l'inventaire déjà construits. Les autres affichent « pas encore construit ». */
 export const CONSTRUITS: Record<string, ComponentType> = {
@@ -30,6 +31,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S48: ResiliationClient,
   S49: PhotosSignatures,
   S50: Consentement,
+  S51: RapportsClients,
   S73: Adhesion,
   S74: GuichetDepotRetrait,
   S79: BilletageCaisse,
