@@ -40,6 +40,8 @@ Repères : 140 écrans dans l'inventaire (`replica/recon.md`), 146 fonctions dan
 
 ## C. Construction, par étape
 
+**Module Client : reproduit et validé par le porteur le 07/11/2026** (journal : `replica/build-log.md`). Suivant : Part sociale.
+
 Phase 1 (CLAUDE.md § 0) : chaque fonction de `replica/features.csv` reproduite exactement comme Microfina++, page du manuel à l'appui, module par module dans l'ordre de ses menus, validée par le porteur à la fin de chaque module. Les dix écrans déjà faits sont d'abord réalignés (retrait de mes ajouts). Phase 2 ensuite : allègements et améliorations, avec le porteur.
 
 Ordre d'ARCHITECTURE § 11. Entre parenthèses : fonctions indispensables encore à faire.

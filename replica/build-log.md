@@ -30,3 +30,18 @@ Une ligne par écran. Les captures sont dans `clone-screens/` (1366 px, et 390 p
 - **Pas de comparaison avec les écrans de Microfina++** : leurs captures restent hors du dépôt (manuel confidentiel). `replica-diff` comparera sur les fonctions, pas sur les pixels.
 
 Valeurs d'exemple encore dans la démonstration, toutes signalées à l'écran : cours 2 850 CDF pour 1 USD, valeur de la part 4 000 CDF (exemple du manuel), seuil de visa 1 000 USD, coupures.
+
+## Phase 1, module Client : validé par le porteur le 07/11/2026
+
+Fonctions reproduites d'après le manuel de Microfina++ (pp. 47 à 59), une par demande :
+S37 enrôlement physique, S38 entreprise, S39 groupe, S40 visa et contrat d'adhésion, S41 modification des frais, S16 paramétrage des frais
+(avancé pour S41), S46 mise à jour, S42 validation d'un client modifié, S43 consultation, S44 groupe solidaire, S45 prospect et « Choisir
+prospect », S47 types de procuration, S48 résiliation, S49 photos et signatures, S50 consentement, S51 rapports.
+
+Écarts imposés par un texte, signalés à l'écran : pièces admises (Instr. BCC 15, art. 14), mentions d'identité (art. 12, 13, 16, 17),
+personne exposée (art. 60), aucun frais sur dépôt, retrait, ouverture ou clôture de compte (Instr. BCC 37), retrait refusé à l'emprunteur
+ou à l'endosseur (loi 002/2002, art. 24), consentement à la Centrale des risques (Instr. BCC 5, art. 13).
+
+Restent « à confirmer » avec le porteur : captures des onglets non montrés de l'enrôlement, listes de paramétrage (S14, S18, S32, S33),
+droits par profil, numérotation (S15), compte du droit d'adhésion, saisie des procurations, apurement après résiliation, forme des rapports.
+Ces points sont repris dans `replica/features.csv`.
