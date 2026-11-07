@@ -15,7 +15,8 @@ VALEUR_PART = 400000         # 4 000 CDF : exemple du manuel Microfina++ ; la vr
 COUPURES = {"USD": [100, 50, 20, 10, 5, 1], "CDF": [20000, 10000, 5000, 1000, 500, 200, 100, 50]}
 FONDS_G2 = {"USD": {100: 140, 50: 12, 20: 8, 10: 3, 5: 2, 1: 6}, "CDF": {20000: 150, 10000: 120, 5000: 100, 1000: 60, 500: 7}}
 PCCI = [("570", "Monnaies nationale et étrangère", 5, "actif"), ("330", "Épargnes", 3, "passif"),
-        ("334", "Épargnes obligatoires", 3, "passif"), ("1030", "Parts sociales « personnes physiques effectives »", 1, "passif")]
+        ("334", "Épargnes obligatoires", 3, "passif"), ("1030", "Parts sociales « personnes physiques effectives »", 1, "passif"),
+        ("1031", "Parts sociales « groupements solidaires effectifs »", 1, "passif"), ("1032", "Parts sociales « personnes morales effectives »", 1, "passif")]
 
 
 class Command(BaseCommand):
@@ -63,7 +64,7 @@ class Command(BaseCommand):
         for numero, libelle, classe, nature in PCCI:
             executer("insert into compte (numero, libelle, classe, nature) values (%s, %s, %s, %s)", (numero, libelle, classe, nature))
         executer("insert into journal (institution_id, code, libelle, type) values (%s, 'CA', 'Caisse', 'caisse'), (%s, 'AN', 'À-nouveaux', 'a_nouveaux')", (ins, ins))
-        for ev in ("depot", "retrait", "adhesion", "a_nouveaux"):
+        for ev in ("depot", "retrait", "adhesion", "achat_parts", "retrait_parts", "a_nouveaux"):
             executer("""insert into schema_comptable (institution_id, type_evenement, version, date_effet, lignes, propose_par, valide_par)
                         values (%s, %s, 1, '2026-01-01', '[]', %s, %s)""", (ins, ev, compta, chef))
 

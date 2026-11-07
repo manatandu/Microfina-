@@ -79,6 +79,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       depot: (p: unknown) => post("/guichet/depots", p),
       retrait: (p: unknown) => post("/guichet/retraits", p),
       adhesion: (p: unknown) => post("/guichet/adhesions", p),
+      parts: (p: unknown) => post("/guichet/parts", p),
     },
     operations: {
       enAttente: () => get("/operations/en-attente"),

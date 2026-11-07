@@ -165,7 +165,7 @@ const caisses = {
     const base: Comptage = { ...(ouv ? ouv.compte : E.fondsVeille[s.guichetId]?.[devise] ?? {}) };
     if (!ouv) return base;
     for (const o of E.operations.filter((x) => x.sessionId === sessionId && x.statut === "validee" && x.devise === devise)) {
-      const signe = o.type === "retrait" ? -1 : 1;
+      const signe = SORTIES.includes(o.type) ? -1 : 1;
       for (const [v, n] of Object.entries(o.coupures)) base[Number(v)] = (base[Number(v)] ?? 0) + signe * (n ?? 0);
     }
     return base;
@@ -824,19 +824,61 @@ const guichet = {
     if (p.compteUsd) E.comptes.push({ id: base + 2, tiersId: t.id, numero: `${t.numero}-01`, intitule: "Épargne à vue", pcci: "330", devise: "USD", bloque: 0 });
     const lignes: Ligne[] = [
       { compte: "570", contrat: guichetDe(s), sens: "D", devise: "CDF", montant: total, montantCdf: total },
-      { compte: "1030", contrat: `parts:${t.id}`, sens: "C", devise: "CDF", montant: mParts, montantCdf: mParts },
+      { compte: compteParts(t), contrat: `parts:${t.id}`, sens: "C", devise: "CDF", montant: mParts, montantCdf: mParts },
     ];
     if (p.depot > 0) lignes.push({ compte: "330", contrat: `depot:${cCdf.id}`, sens: "C", devise: "CDF", montant: p.depot, montantCdf: p.depot });
     const e = poster({ journal: "CA", journeeId: s.journeeId, libelle: `Adhésion ${t.numero}`, piece: piece(), saisiPar: u.id, validePar: u.id, lignes });
     const o: Operation = { id: prochain(E.operations), cle: p.cle, type: "adhesion", statut: "validee", sessionId: s.id, tiersId: t.id, compteId: cCdf.id, montant: total, devise: "CDF", parts: p.parts, coupures: nettoyer(p.coupures), remisPar: titulaire(t), saisiPar: u.id, ecritureId: e.id, heure: heure() };
     E.operations.push(o); enregistrer(); return o;
   },
+  /** S77 : Part sociale (Achat/Retrait) (p. 88 et 89). Loi 002/2002, art. 21, 22 et 27 ; PCCI, compte 103.
+   *  Règles identiques côté serveur (services.operation_parts). */
+  parts(p: Commun & { tiersId: number; sens: "achat" | "retrait"; nombre: number }) {
+    const prec = dejaFaite(p.cle); if (prec) return prec;
+    if (p.sens !== "achat" && p.sens !== "retrait") throw new ErreurMetier("Choisir l'achat ou le retrait de parts.");
+    const { u, s } = sessionOuverte("CDF");
+    const t = E.tiers.find((x) => x.id === p.tiersId);
+    if (!t) throw new ErreurMetier("Client introuvable.");
+    if (!Number.isInteger(p.nombre) || p.nombre < 1) throw new ErreurMetier("Nombre de parts : un nombre entier, au moins une (loi 002/2002, art. 21 : parts intégralement libérées).");
+    const detenues = Math.round(soldeContrat(`parts:${t.id}`, "CDF", "C") / E.valeurPart);
+    if (p.sens === "achat") controlerStatutActif(t.statut);
+    else {
+      if (t.statut !== "resilie") controlerStatutActif(t.statut);   // résilié : toutes les parts peuvent être remboursées (apurement, art. 27)
+      if (p.nombre > detenues) throw new ErreurMetier(`Le membre ne détient que ${detenues} part(s).`);
+      if (t.statut !== "resilie" && detenues - p.nombre < 1) throw new ErreurMetier("Le membre garde au moins une part (loi 002/2002, art. 22) ; pour tout retirer, le résilier d'abord.");
+    }
+    const montant = p.nombre * E.valeurPart;
+    controlerCoupures(p.coupures, montant, "CDF");
+    if (p.sens === "retrait") {
+      const th = caisses.theorique(s.id, "CDF");
+      if (Object.entries(nettoyer(p.coupures)).some(([v, n]) => (n ?? 0) > (th[Number(v)] ?? 0))) throw new ErreurMetier("Pas assez de coupures en caisse.");
+    }
+    if (enUsd(montant, "CDF") + especesDuJourUsd(t.id, p.sens === "retrait" ? "retrait" : "depot") >= SEUIL_ESPECES_USD)
+      throw new ErreurMetier("Examen renforcé requis (10 000 USD ou plus en espèces dans la journée). Le circuit de conformité n'est pas encore construit : opération bloquée.", "Instr. BCC 15 bis, art. 1, 6 et 7");
+    const achat = p.sens === "achat";
+    const lignes: Ligne[] = [
+      { compte: "570", contrat: guichetDe(s), sens: achat ? "D" : "C", devise: "CDF", montant, montantCdf: montant },
+      { compte: compteParts(t), contrat: `parts:${t.id}`, sens: achat ? "C" : "D", devise: "CDF", montant, montantCdf: montant },
+    ];
+    const e = poster({ journal: "CA", journeeId: s.journeeId, libelle: `${achat ? "Achat" : "Retrait"} de parts sociales ${t.numero}`, piece: piece(), saisiPar: u.id, validePar: u.id, lignes });
+    const o: Operation = { id: prochain(E.operations), cle: p.cle, type: achat ? "achat_parts" : "retrait_parts", statut: "validee", sessionId: s.id, tiersId: t.id, montant, devise: "CDF",
+      parts: p.nombre, coupures: nettoyer(p.coupures), remisPar: titulaire(t), saisiPar: u.id, ecritureId: e.id, heure: heure() };
+    E.operations.push(o); enregistrer(); return o;
+  },
 };
+
+/** Opérations qui font sortir des billets de la caisse */
+const SORTIES: Operation["type"][] = ["retrait", "retrait_parts"];
+/** PCCI, compte 103 : 1030 personnes physiques, 1031 groupements solidaires, 1032 personnes morales.
+ *  Groupe de type « Groupement » en 1031 ; association et ONG en 1032 (à confirmer). Identique côté serveur (services.compte_parts). */
+export function compteParts(t: Tiers) {
+  return t.type === "physique" ? "1030" : t.type === "groupe" && t.typeClient === "Groupement" ? "1031" : "1032";
+}
 
 /** Espèces déjà versées (dépôts, adhésion) ou déjà remises (retraits) à ce membre dans la journée, en USD */
 function especesDuJourUsd(tiersId: number, sens: "depot" | "retrait") {
   const j = journees.courante();
-  const meme = (o: Operation) => (sens === "retrait" ? o.type === "retrait" : o.type !== "retrait");
+  const meme = (o: Operation) => SORTIES.includes(o.type) === (sens === "retrait");
   return E.operations.filter((o) => o.tiersId === tiersId && o.statut === "validee" && meme(o) && E.sessions.some((s) => s.id === o.sessionId && s.journeeId === j?.id))
     .reduce((s, o) => s + enUsd(o.montant, o.devise), 0);
 }

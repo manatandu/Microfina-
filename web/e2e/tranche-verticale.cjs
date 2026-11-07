@@ -229,6 +229,17 @@ const OUT = process.argv[2];
   // Membre sans specimen : bloqué
   await p.keyboard.press('Escape'); await p.getByLabel(/Nom, numéro ou compte/).waitFor(); await p.keyboard.press('F2'); await p.keyboard.type('Lukusa'); await p.getByRole('option', { name: /Lukusa/ }).click();
   await p.getByText('Pas de specimen : ne pas payer').waitFor(); await etape('14-sans-specimen');
+  // Parts sociales (S77) : achat d'une part par Kalala
+  await aller('/caisse/s77'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  const rps = p.getByRole('dialog', { name: 'Clients' });
+  await rps.getByLabel('Numéro, Nom et Prénoms :').fill('Kalala'); await rps.getByRole('row').filter({ hasText: 'Kalala' }).dblclick();
+  await p.getByLabel('N° Compte *').selectOption({ label: '0412-000318-02' }); await p.getByLabel('Part social à achèter *').fill('1');
+  await p.getByRole('button', { name: 'Billetage' }).click();
+  await p.getByRole('dialog', { name: 'Billetage' }).getByLabel('Nombre de coupures de 1 000 CDF').fill('4');
+  await p.getByRole('dialog', { name: 'Billetage' }).getByRole('button', { name: 'Fermer' }).click(); await etape('14b-parts-sociales');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
+  await p.getByRole('button', { name: 'Imprimer' }).click(); await p.getByText('Achat de parts enregistré').waitFor(); await etape('14c-parts-recu');
+  await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
   // Arrêté de caisse
   await p.goto(B + '/caisse/s79'); await p.getByRole('heading', { name: /Arrêté de caisse/ }).waitFor();
   for (const dev of ['CDF', 'USD']) {

@@ -131,7 +131,7 @@ export interface Ecriture {
   lignes: readonly Ligne[];
 }
 
-export type TypeOperation = "depot" | "retrait" | "adhesion";
+export type TypeOperation = "depot" | "retrait" | "adhesion" | "achat_parts" | "retrait_parts";
 
 export interface Operation {
   id: number;

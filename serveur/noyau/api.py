@@ -271,6 +271,11 @@ def guichet_retrait(request, corps: dict = Body(...)):
     return s.retrait(u(request), corps)
 
 
+@api.post("/guichet/parts")
+def guichet_parts(request, corps: dict = Body(...)):
+    return s.operation_parts(u(request), corps)
+
+
 @api.post("/guichet/adhesions")
 def guichet_adhesion(request, corps: dict = Body(...)):
     return s.adhesion(u(request), corps)

@@ -428,3 +428,30 @@ def test_rapports(clients):
     l = agent.get("/api/rapports/clients").json()
     assert [x["numero"] for x in l] == ["0412-000318", "0412-000319", "0412-000320"] and all(x["creeLe"] for x in l)
     assert agent.get("/api/rapports/modifications").json() == []
+
+
+def test_parts_sociales(clients, journee):
+    caisse, agent, chef = clients["caisse"], clients["agent"], clients["chef"]
+    k, m = T("0412-000318"), T("0412-000319")                   # Kalala : 2 parts ; Mwamba : 1 part ; 4 000 CDF la part
+    op = lambda corps: caisse.post("/api/guichet/parts", {"cle": cle(), **corps}, **H)
+    def refus(corps):
+        r = op(corps); assert r.status_code == 422, r.content; return r.json()["message"]
+    assert "art. 21" in refus({"tiersId": k, "sens": "achat", "nombre": 0, "coupures": {}})
+    assert "billetage" in refus({"tiersId": k, "sens": "achat", "nombre": 1, "coupures": {"1000": 3}})
+    assert op({"tiersId": k, "sens": "achat", "nombre": 1, "coupures": {"1000": 4}}).json()["statut"] == "validee"
+    assert caisse.get(f"/api/tiers/{k}/parts").json() == 3
+    assert "art. 22" in refus({"tiersId": m, "sens": "retrait", "nombre": 1, "coupures": {"1000": 4}})
+    assert "ne détient que" in refus({"tiersId": k, "sens": "retrait", "nombre": 5, "coupures": {"1000": 20}})
+    assert op({"tiersId": k, "sens": "retrait", "nombre": 2, "coupures": {"5000": 1, "1000": 3}}).json()["statut"] == "validee"
+    assert caisse.get(f"/api/tiers/{k}/parts").json() == 1
+    # Membre résilié : toutes ses parts lui sont rendues (apurement, art. 27)
+    chef.post(f"/api/tiers/{m}/resiliation", {"motif": "AUTRES"}, **H)
+    assert op({"tiersId": m, "sens": "retrait", "nombre": 1, "coupures": {"1000": 4}}).json()["statut"] == "validee"
+    assert "résilié" in refus({"tiersId": m, "sens": "achat", "nombre": 1, "coupures": {"1000": 4}})
+    # Compte de parts selon le type de client (PCCI, compte 103) : une entreprise en 1032
+    e = agent.post("/api/tiers/entreprises", {**FICHE, "typeClient": "Entreprises privées", "zone": "Matete", "nom": "Boulangerie Kinsaku SARL",
+        "formeJuridique": "SARL", "registre": "R1", "adresse": "Matete", "signataires": []}, **H).json()
+    chef.post(f"/api/tiers/{e['id']}/visa", {}, **H)
+    caisse.post("/api/guichet/adhesions", {"cle": cle(), "tiersId": e["id"], "parts": 1, "depot": 0, "compteUsd": False, "coupures": {"1000": 4}}, **H)
+    assert ident("""select c.numero from ligne_ecriture l join compte c on c.id = l.compte_id where l.contrat_ref = %s""", (f"parts:{e['id']}",)) == "1032"
+    assert balance_equilibree(caisse)

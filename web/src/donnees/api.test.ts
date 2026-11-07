@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { api, _remplacer, enrolementVide } from "./api";
+import { api, _remplacer, compteParts, enrolementVide } from "./api";
 import { graine } from "./graine";
 import { totalComptage, type Comptage } from "@design/montant.js";
 
@@ -254,6 +254,25 @@ describe("journée de guichet", () => {
     await expect(api.tiers.creerConsentement(1, { ...c, dateFin: "2026-11-01" })).rejects.toThrow("précède");
     const l = await api.tiers.creerConsentement(1, c);
     expect(l.map((x) => [x.code, x.dateDebut, x.dateFin, x.commentaire])).toEqual([["CR-1", "2026-11-07", "", "Signé à la demande de crédit"]]);
+  });
+
+  it("parts sociales (S77) : achat, retrait en gardant une part, apurement du résilié, compte selon le type", async () => {
+    await journeeOuverte();
+    const g = api.guichet;
+    const op = (tiersId: number, sens: "achat" | "retrait", nombre: number, coupures: Comptage) => g.parts({ cle: cle(), tiersId, sens, nombre, coupures });
+    await expect(op(1, "achat", 0, {})).rejects.toThrow("art. 21");
+    await expect(op(1, "achat", 1, { 1000: 3 })).rejects.toThrow("billetage");
+    expect((await op(1, "achat", 1, { 1000: 4 })).statut).toBe("validee");
+    expect(await api.tiers.parts(1)).toBe(3);
+    await expect(op(2, "retrait", 1, { 1000: 4 })).rejects.toThrow("art. 22");
+    await expect(op(1, "retrait", 5, { 1000: 20 })).rejects.toThrow("ne détient que");
+    expect((await op(1, "retrait", 2, { 5000: 1, 1000: 3 })).statut).toBe("validee");
+    expect(await api.tiers.parts(1)).toBe(1);
+    await connecter("jpmukendi"); await api.tiers.resilier(2, { motif: "AUTRES" }); await connecter("engalula");
+    expect((await op(2, "retrait", 1, { 1000: 4 })).statut).toBe("validee");
+    await expect(op(2, "achat", 1, { 1000: 4 })).rejects.toThrow("résilié");
+    expect(compteParts({ ...(await api.tiers.lire(1))!, type: "morale" })).toBe("1032");
+    expect(compteParts({ ...(await api.tiers.lire(1))!, type: "groupe", typeClient: "Groupement" })).toBe("1031");
   });
 
   it("adhésion : parts en 1030, premier dépôt en 330, après visa seulement", async () => {

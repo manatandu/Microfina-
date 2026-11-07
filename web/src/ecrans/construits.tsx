@@ -11,6 +11,7 @@ import { GroupeSolidaire } from "./Groupes";
 import { NouveauProspect } from "./Prospects";
 import { TypesProcuration } from "./Procurations";
 import { RapportsClients } from "./Rapports";
+import { PartsSociales } from "./Parts";
 
 /** Écrans de l'inventaire déjà construits. Les autres affichent « pas encore construit ». */
 export const CONSTRUITS: Record<string, ComponentType> = {
@@ -34,6 +35,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S51: RapportsClients,
   S73: Adhesion,
   S74: GuichetDepotRetrait,
+  S77: PartsSociales,
   S79: BilletageCaisse,
   S80: () => <EcranValidation titre="Validation du billetage" seulement="billetages" />,
   S113: () => <EcranValidation titre="Visas" seulement="operations" />,

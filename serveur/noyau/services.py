@@ -16,6 +16,7 @@ from .bd import ErreurMetier, executer, lignes, une, valeur
 SEUIL_CAISSIER_USD = 1000    # au-delà, visa du chef d'agence. Exemple : fixé par la COOPEC
 SEUIL_ESPECES_USD = 10000    # examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 DEVISES = ("CDF", "USD")
+SORTIES = ("retrait", "retrait_parts")      # opérations qui font sortir des billets de la caisse
 TYPES_CLIENT = ["Client"]
 # Type entreprise (p. 50) : la liste de Microfina++ n'est pas montrée. À confirmer ; en attendant, les agents économiques du PCCI § 10.2 (hors ménages)
 TYPES_ENTREPRISE = ["Banques commerciales et autres intermédiaires financiers", "Organes faîtiers et autres institutions de microfinance",
@@ -245,7 +246,7 @@ def theorique(session_id: int, devise: str) -> dict:
     base = {int(k): v for k, v in comptage_billetage(ouv["id"]).items()}
     for r in lignes("""select o.type, c.valeur, c.nombre from operation o join operation_coupure c on c.operation_id = o.id
                        where o.session_caisse_id = %s and o.statut = 'validee' and o.devise = %s""", (session_id, devise)):
-        signe = -1 if r["type"] == "retrait" else 1
+        signe = -1 if r["type"] in SORTIES else 1
         base[r["valeur"] // 100] = base.get(r["valeur"] // 100, 0) + signe * r["nombre"]
     return {str(k): v for k, v in base.items()}
 
@@ -851,6 +852,16 @@ def comptes_du_tiers(tid: int) -> list[dict]:
     return res
 
 
+def compte_parts(t: dict) -> str:
+    """PCCI, compte 103 : 1030 personnes physiques, 1031 groupements solidaires, 1032 personnes morales.
+    Groupe de type « Groupement » en 1031 ; association et ONG en 1032 (à confirmer)."""
+    if t["type"] == "physique":
+        return "1030"
+    if t["type"] == "groupe" and t["type_client"] == "Groupement":
+        return "1031"
+    return "1032"
+
+
 def parts_du_tiers(tid: int) -> float:
     return solde_contrat(f"parts:{tid}", "CDF", "C") / valeur_part()
 
@@ -907,7 +918,7 @@ def especes_du_jour_usd(tid: int, journee_id: int, sens: str) -> float:
     total = 0.0
     for o in lignes("""select o.type, o.montant, o.devise from operation o join session_caisse s on s.id = o.session_caisse_id
                        where o.tiers_id = %s and o.statut = 'validee' and s.journee_id = %s""", (tid, journee_id)):
-        if (o["type"] == "retrait") == (sens == "retrait"):
+        if (o["type"] in SORTIES) == (sens == "retrait"):
             total += en_usd(o["montant"], o["devise"].strip())
     return total
 
@@ -1077,7 +1088,7 @@ def adhesion(u: dict, p: dict) -> dict:
     if p.get("compteUsd"):
         ouvrir("USD", "01")
     l = [{"compte": "570", "contrat": f"guichet:{s['guichetId']}", "sens": "D", "devise": "CDF", "montant": total},
-         {"compte": "1030", "contrat": f"parts:{tid}", "sens": "C", "devise": "CDF", "montant": m_parts}]
+         {"compte": compte_parts(t), "contrat": f"parts:{tid}", "sens": "C", "devise": "CDF", "montant": m_parts}]
     if m_depot > 0:
         l.append({"compte": "330", "contrat": f"depot:{c_cdf}", "sens": "C", "devise": "CDF", "montant": m_depot})
     eid = poster(u, journal="CA", journee_id=s["journeeId"], libelle=f"Adhésion {t['numero']}", piece=nouvelle_piece(j["date_comptable"]),
@@ -1085,6 +1096,60 @@ def adhesion(u: dict, p: dict) -> dict:
     executer("insert into mouvement_parts (tiers_id, sens, nombre, valeur_unitaire, devise, ecriture_id) values (%s, 'achat', %s, %s, 'CDF', %s)", (tid, nb, valeur_part(), eid))
     oid = creer_operation(u, s, cle=p["cle"], type_="adhesion", statut="validee", tiers_id=tid, contrat=f"depot:{c_cdf}", montant=total,
                           devise="CDF", coupures=coupures, remis_par=titulaire(tid), parts=nb, ecriture_id=eid)
+    return vue_operation(une("select * from operation where id = %s", (oid,)))
+
+
+def operation_parts(u: dict, p: dict) -> dict:
+    """S77 : Caisse > Opération > Part sociale (Achat/Retrait) (manuel p. 88 et 89), en espèces avec billetage.
+    Loi 002/2002 : parts intégralement libérées (art. 21), au moins une part pour rester membre (art. 22) ; tout retirer au départ (art. 27).
+    PCCI, compte 103 : crédité à l'achat, débité au retrait ou à la démission d'un membre."""
+    try:
+        uuid.UUID(str(p.get("cle")))
+    except ValueError:
+        raise ErreurMetier("Clé d'opération invalide.")
+    prec = operation_par_cle(p["cle"])
+    if prec and prec["statut"] == "validee":
+        return vue_operation(prec)
+    sens = p.get("sens")
+    if sens not in ("achat", "retrait"):
+        raise ErreurMetier("Choisir l'achat ou le retrait de parts.")
+    s = session_ouverte(u, "CDF")
+    tid = p.get("tiersId")
+    t = une("select * from tiers where id = %s and institution_id = %s for update", (tid, u["institution_id"])) if isinstance(tid, int) else None
+    if not t:
+        raise ErreurMetier("Client introuvable.")
+    nb = p.get("nombre")
+    if not isinstance(nb, int) or isinstance(nb, bool) or nb < 1:
+        raise ErreurMetier("Nombre de parts : un nombre entier, au moins une (loi 002/2002, art. 21 : parts intégralement libérées).")
+    detenues = round(parts_du_tiers(tid))
+    if sens == "achat":
+        controler_statut_actif(t["statut"])
+    else:
+        if t["statut"] != "resilie":               # résilié : toutes les parts peuvent être remboursées (apurement, art. 27)
+            controler_statut_actif(t["statut"])
+        if nb > detenues:
+            raise ErreurMetier(f"Le membre ne détient que {detenues} part(s).")
+        if t["statut"] != "resilie" and detenues - nb < 1:
+            raise ErreurMetier("Le membre garde au moins une part (loi 002/2002, art. 22) ; pour tout retirer, le résilier d'abord.")
+    montant = nb * valeur_part()
+    coupures = nettoyer(p.get("coupures") or {})
+    controler_montant_coupures(coupures, montant, "CDF")
+    if sens == "retrait":
+        th = theorique(s["id"], "CDF")
+        if any(n > th.get(v_, 0) for v_, n in coupures.items()):
+            raise ErreurMetier("Pas assez de coupures en caisse.")
+    if en_usd(montant, "CDF") + especes_du_jour_usd(tid, s["journeeId"], "retrait" if sens == "retrait" else "depot") >= SEUIL_ESPECES_USD:
+        raise ErreurMetier(MSG_RENFORCE)
+    j = une("select date_comptable from journee_comptable where id = %s", (s["journeeId"],))
+    caisse = {"compte": "570", "contrat": f"guichet:{s['guichetId']}", "sens": "D" if sens == "achat" else "C", "devise": "CDF", "montant": montant}
+    parts = {"compte": compte_parts(t), "contrat": f"parts:{tid}", "sens": "C" if sens == "achat" else "D", "devise": "CDF", "montant": montant}
+    type_ = "achat_parts" if sens == "achat" else "retrait_parts"
+    eid = poster(u, journal="CA", journee_id=s["journeeId"], libelle=f"{'Achat' if sens == 'achat' else 'Retrait'} de parts sociales {t['numero']}",
+                 piece=nouvelle_piece(j["date_comptable"]), evenement=type_, cle=p["cle"], valide_par=u["id"], lignes_ecr=[caisse, parts])
+    executer("insert into mouvement_parts (tiers_id, sens, nombre, valeur_unitaire, devise, ecriture_id) values (%s, %s, %s, %s, 'CDF', %s)",
+             (tid, sens, nb, valeur_part(), eid))
+    oid = creer_operation(u, s, cle=p["cle"], type_=type_, statut="validee", tiers_id=tid, contrat=f"parts:{tid}", montant=montant, devise="CDF",
+                          coupures=coupures, remis_par=titulaire(tid), parts=nb, ecriture_id=eid)
     return vue_operation(une("select * from operation where id = %s", (oid,)))
 
 
