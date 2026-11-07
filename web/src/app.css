@@ -132,6 +132,11 @@ fieldset.formulaire { padding-bottom: var(--espace-2); }
 .bandeau-nom { background: var(--tampon); color: var(--sur-tampon); display: grid; align-content: center; justify-items: center; gap: 2px; padding: var(--espace-4) 0; font-size: var(--taille-grand); font-weight: 700; line-height: 1; }
 .champs-connexion { display: grid; gap: var(--espace-3); padding: var(--espace-5); }
 .serveur { margin: 0; font-size: var(--taille-dense); color: var(--encre-2); }
+.connexion { gap: var(--espace-5); align-content: center; }
+.comptes-demo { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--espace-3); padding: var(--espace-5); }
+.comptes-demo h2 { margin: 0; font-size: var(--taille-titre); }
+.comptes-demo ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--espace-2); }
+.comptes-demo li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--espace-2) var(--espace-3); padding-block: var(--espace-2); border-top: 1px solid var(--ligne); }
 
 /* Valeur d'exemple ou à confirmer */
 .exemple { font-size: var(--taille-dense); color: var(--encre-2); font-style: italic; }

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { api } from "../donnees/api";
+import { api, LIBELLES_ROLES } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { Bloquant } from "../composants";
@@ -16,9 +16,12 @@ export default function Connexion() {
   const [erreur, setErreur] = useState("");
   const aujourdhui = new Date().toISOString().slice(0, 10);
 
+  async function ouvrir(l: string) {
+    try { await api.session.ouvrir(l); nav(state?.apres ?? "/"); } catch (x) { setErreur(message(x)); }
+  }
   async function entrer(e: React.FormEvent) {
     e.preventDefault();
-    try { await api.session.ouvrir(login.trim()); nav(state?.apres ?? "/"); } catch (x) { setErreur(message(x)); }
+    await ouvrir(login.trim());
   }
 
   return (
@@ -51,6 +54,18 @@ export default function Connexion() {
           <div className="a-droite"><button className="bouton" type="submit" disabled={!login.trim()}>Connexion</button></div>
         </div>
       </form>
+      {/* Demande du porteur (07/11/2026) : une rubrique par utilisateur fictif, pour se connecter directement. Absente de Microfina++. */}
+      <section className="carte-connexion comptes-demo" aria-labelledby="t-comptes-demo">
+        <h2 id="t-comptes-demo">Comptes de démonstration</h2>
+        <ul>
+          {donnees?.users.map((u) => (
+            <li key={u.id}>
+              <span><strong>{u.nom}</strong> <span className="muet">({u.login}, {u.roles.map((r) => LIBELLES_ROLES[r]).join(", ")})</span></span>
+              <button className="bouton secondaire" type="button" onClick={() => void ouvrir(u.login)}>Se connecter</button>
+            </li>
+          ))}
+        </ul>
+      </section>
     </main>
   );
 }
