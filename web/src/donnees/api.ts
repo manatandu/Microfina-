@@ -15,15 +15,17 @@ import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@d
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v16";
+const CLE = "likelemba-demo-v17";
+let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
 
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 16) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 17) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
+  neuf = true;
   return graine();
 }
 function enregistrer() {
@@ -1058,6 +1060,19 @@ const guichets = {
     s.statut = "fermee"; enregistrer(); return guichets.lire();
   },
 };
+
+/** Démonstration publiée (VITE_DEMO_PRETE=1), demande du porteur du 07/11/2026 : au premier chargement, le chef d'agence a ouvert
+ * la journée du 05/11/2026 et la caissière a ouvert la Caisse 2, comme on le ferait à l'écran (S12, S09). Données fictives. */
+export function preparerDemo() {
+  if (!neuf) return;
+  neuf = false;
+  const avant = E.session;
+  const id = (login: string) => E.utilisateurs.find((u) => u.login === login)!.id;
+  try {
+    E.session = id("jpmukendi"); journees.ouvrir("2026-11-05");
+    E.session = id("engalula"); guichets.ouvrir(2);
+  } finally { E.session = avant; enregistrer(); }
+}
 
 const apiLocal = {
   referentiel: asynchrone({ contexte }),
