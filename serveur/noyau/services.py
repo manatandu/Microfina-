@@ -660,6 +660,25 @@ def images_tiers(u: dict, tid: int) -> dict:
     return {"photo": image(sp and sp["photo"]), "signature": image(sp and sp["signature"])}
 
 
+def changer_specimen(u: dict, tid: int, d: dict) -> dict:
+    """S49 : Modification ou Ajout (Photo/Signature) (manuel p. 58), bouton « Valider les Modifications ».
+    Nouveau dépôt ; ce qui n'est pas changé reprend le dépôt précédent."""
+    exiger(u)
+    t = une("select statut from tiers where id = %s and institution_id = %s for update", (tid, u["institution_id"]))
+    if not t:
+        raise ErreurMetier("Client introuvable.")
+    if t["statut"] in ("prospect", "resilie"):
+        raise ErreurMetier("Client prospect ou résilié : pas de photo ni de signature à mettre à jour.")
+    photo, signature = (d or {}).get("photo"), (d or {}).get("signature")
+    if not photo and not signature:
+        raise ErreurMetier("Aucune photo ni signature choisie.")
+    controler_image(photo, "Photo"); controler_image(signature, "Signature")
+    avant = une("select photo, signature from specimen where tiers_id = %s order by id desc limit 1", (tid,)) or {}
+    executer("insert into specimen (tiers_id, photo, signature, depose_le, depose_par) values (%s, %s, %s, current_date, %s)",
+             (tid, photo or avant.get("photo"), signature or avant.get("signature"), u["id"]))
+    return lire_tiers(tid)
+
+
 def modifications_tiers(u: dict, tid: int) -> list[dict]:
     """« Informations initiales et actuelles » (S43, p. 54) : chaque modification (S46) avec l'état avant et après"""
     exiger(u)

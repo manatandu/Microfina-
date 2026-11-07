@@ -408,6 +408,19 @@ const tiers = {
     E.modifications.push({ id: prochain(E.modifications), tiersId: id, avant, apres: structuredClone(t), modifiePar: u.id, modifieLe: new Date().toISOString() });
     enregistrer(); return t;
   },
+  /** S49 : Modification ou Ajout (Photo/Signature) (p. 58), « Valider les Modifications ». Règles identiques côté serveur (services.changer_specimen). */
+  changerSpecimen(id: number, d: Images) {
+    exiger();
+    const t = E.tiers.find((x) => x.id === id);
+    if (!t) throw new ErreurMetier("Client introuvable.");
+    if (t.statut === "prospect" || t.statut === "resilie") throw new ErreurMetier("Client prospect ou résilié : pas de photo ni de signature à mettre à jour.");
+    if (!d.photo && !d.signature) throw new ErreurMetier("Aucune photo ni signature choisie.");
+    controlerImage(d.photo, "Photo"); controlerImage(d.signature, "Signature");
+    const i = { ...(E.images[id] ?? {}), ...(d.photo ? { photo: d.photo } : {}), ...(d.signature ? { signature: d.signature } : {}) };
+    E.images[id] = i;
+    t.photo = t.photo || !!i.photo; t.specimen = t.specimen || !!i.signature;
+    enregistrer(); return t;
+  },
   /** Cadre « Photo / Signature » de S43 (p. 54) */
   images(id: number): { photo: string | null; signature: string | null } {
     exiger();

@@ -67,6 +67,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       creerProspect: (d: object) => post("/prospects", d),
       modifierProspect: (id: number, d: object) => post(`/prospects/${id}`, d),
       images: (id: number) => get(`/tiers/${id}/images`),
+      changerSpecimen: (id: number, d: object) => post(`/tiers/${id}/specimen`, d),
       modifications: (id: number) => get(`/tiers/${id}/modifications`),
       activer: (id: number) => post(`/tiers/${id}/activation`),
       comptes: (id: number) => get(`/tiers/${id}/comptes`),

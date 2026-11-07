@@ -237,6 +237,16 @@ describe("journée de guichet", () => {
     await expect(api.guichet.depot({ cle: cle(), compteId: 5, montant: 1000000, coupures: { 10000: 1 }, remisPar: "" })).rejects.toThrow("résilié");
   });
 
+  it("photos et signatures (S49) : nouveau dépôt, contrôle de l'image", async () => {
+    await connecter("bkasongo");
+    const png = "data:image/png;base64,iVBORw0KGgo=";
+    await expect(api.tiers.changerSpecimen(3, {})).rejects.toThrow("Aucune");
+    await expect(api.tiers.changerSpecimen(3, { signature: "data:text/html;base64,AA==" })).rejects.toThrow("PNG ou JPEG");
+    expect(await api.tiers.changerSpecimen(3, { signature: png })).toMatchObject({ specimen: true, photo: false });
+    await api.tiers.changerSpecimen(3, { photo: png });
+    expect(await api.tiers.images(3)).toEqual({ photo: png, signature: png });
+  });
+
   it("adhésion : parts en 1030, premier dépôt en 330, après visa seulement", async () => {
     await connecter("bkasongo");
     const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), produitCode: "EAV-CDF", nom: "Tshala", postnom: "Muana", prenom: "Marie", naissance: "1990-02-01", pieceType: "Carte d'électeur", pieceNumero: "1-0412-0999", pieceExpire: "2031-01-01", adresse: "Matete" });

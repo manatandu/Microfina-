@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { api } from "../donnees/api";
+import { useEffect, useState } from "react";
+import { api, IMAGE_MAX } from "../donnees/api";
 import type { Representant, Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Silhouette, Textes, type Boite } from "../composants";
@@ -522,6 +522,142 @@ export function ResiliationClient() {
       <Fiche titre="Clients" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut === "actif" || x.statut === "resilie") : [])}
           choisir={(x) => { setT(x); setMotif(""); setRecherche(false); }} fermer={() => setRecherche(false)} />
+      </Fiche>
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </>
+  );
+}
+
+/** Choisir une image (PNG ou JPEG, 300 Ko au plus) et la lire en données */
+function lireImage(f: File): Promise<string> {
+  return new Promise((ok, ko) => {
+    if (!/^image\/(png|jpeg)$/.test(f.type)) { ko(new Error("Image PNG ou JPEG seulement.")); return; }
+    const l = new FileReader();
+    l.onload = () => { const v = String(l.result); if (v.length > IMAGE_MAX) ko(new Error("Image trop lourde : 300 Ko au plus.")); else ok(v); };
+    l.onerror = () => ko(new Error("Lecture de l'image impossible."));
+    l.readAsDataURL(f);
+  });
+}
+
+/** Bouton « Capturer » (p. 58) : photo prise avec la caméra du poste */
+function Capture({ ouverte, fermer, prise }: { ouverte: boolean; fermer: () => void; prise: (v: string) => void }) {
+  const [video, setVideo] = useState<HTMLVideoElement | null>(null);
+  const [flux, setFlux] = useState<MediaStream | null>(null);
+  const [erreur, setErreur] = useState("");
+  useEffect(() => {
+    if (!video || flux) return;
+    let annule = false;
+    (async () => {
+      try {
+        if (!navigator.mediaDevices?.getUserMedia) throw new Error();
+        const f = await navigator.mediaDevices.getUserMedia({ video: true });
+        if (annule) { f.getTracks().forEach((t) => t.stop()); return; }
+        setFlux(f); video.srcObject = f; await video.play();
+      } catch { if (!annule) setErreur("Caméra indisponible sur ce poste : utiliser « Choisir »."); }
+    })();
+    return () => { annule = true; };
+  }, [video, flux]);
+  function arreter() { flux?.getTracks().forEach((t) => t.stop()); setFlux(null); setErreur(""); fermer(); }
+  function prendre() {
+    if (!video) return;
+    const c = document.createElement("canvas");
+    const l = 320; c.width = l; c.height = Math.round((video.videoHeight || 240) * l / (video.videoWidth || 320));
+    c.getContext("2d")?.drawImage(video, 0, 0, c.width, c.height);
+    prise(c.toDataURL("image/jpeg", 0.8)); arreter();
+  }
+  return (
+    <Fiche titre="Capturer" ouverte={ouverte} fermer={arreter}>
+      <div className="pile">
+        {erreur ? <p className="erreur">{erreur}</p> : <video ref={setVideo} className="apercu-video" muted playsInline />}
+        <div className="actions-onglets">
+          <button className="bouton secondaire" type="button" onClick={arreter}>Fermer</button>
+          <button className="bouton" type="button" disabled={!!erreur || !flux} onClick={prendre}>Prendre la photo</button>
+        </div>
+      </div>
+    </Fiche>
+  );
+}
+
+/** S49 : Client > Gestion des photos et signatures (manuel Microfina++, p. 58) */
+export function PhotosSignatures() {
+  const [t, setT] = useState<Tiers | null>(null);
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [signature, setSignature] = useState<string | null>(null);
+  const [recherche, setRecherche] = useState(false);
+  const [capture, setCapture] = useState(false);
+  const [boite, setBoite] = useState<Boite | null>(null);
+  const { donnees: actuelles } = useDonnees(() => (t ? api.tiers.images(t.id) : Promise.resolve({ photo: null, signature: null })), [t?.id]);
+  const erreur = (x: unknown) => setBoite({ type: "erreur", message: message(x) });
+  const choisir = (f: (v: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fichier = e.target.files?.[0]; e.target.value = "";
+    if (fichier) lireImage(fichier).then(f, erreur);
+  };
+  const annuler = () => { setT(null); setPhoto(null); setSignature(null); };
+  const genre = t?.type === "morale" ? "Entreprise" : t?.type === "groupe" ? "Groupe" : "Membre physique";
+  const signataires = t?.type === "morale" ? t.signataires : t?.type === "groupe" ? t.membres : [];
+  const apercuPhoto = photo ?? actuelles?.photo ?? null, apercuSignature = signature ?? actuelles?.signature ?? null;
+  return (
+    <>
+      <h1>Modification ou Ajout (Photo/Signature) : {genre}</h1>
+      <section className="bloc pile" aria-label="Client">
+        <div className="formulaire">
+          <div className="ligne-champ">
+            <Champ libelle="N° client">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
+            <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
+          </div>
+          <Champ libelle="Intitulé">{(p) => <input {...p} className="saisie" readOnly value={t ? t.intitule || nomComplet(t) : ""} />}</Champ>
+          <Champ libelle="Catégorie">{(p) => <input {...p} className="saisie" readOnly value={t?.typeClient ?? ""} />}</Champ>
+        </div>
+      </section>
+      <section className="bloc pile" aria-label="Photo et signature">
+        <div className="photos-signataires">
+          <div className="pile">
+            <fieldset className="pile cadre-champs">
+              <legend>Photo client</legend>
+              <div className="actions-ligne">
+                <button className="bouton secondaire" type="button" disabled={!t} onClick={() => setCapture(true)}>Capturer</button>
+                <label className={`bouton secondaire${t ? "" : " inactif"}`}>Choisir<input className="sr-only" type="file" accept="image/png,image/jpeg" disabled={!t} onChange={choisir(setPhoto)} /></label>
+              </div>
+              <p className="muet">APERCU PHOTO</p>
+              <div className="cadre-signature apercu-grand">{apercuPhoto && <img src={apercuPhoto} alt="Aperçu de la photo" />}</div>
+            </fieldset>
+            <fieldset className="pile cadre-champs">
+              <legend>Signature client</legend>
+              <div className="actions-ligne">
+                <label className={`bouton secondaire${t ? "" : " inactif"}`}>Choisir<input className="sr-only" type="file" accept="image/png,image/jpeg" disabled={!t} onChange={choisir(setSignature)} /></label>
+              </div>
+              <p className="muet">APERCU SIGNATURE</p>
+              <div className="cadre-signature apercu-grand">{apercuSignature && <img src={apercuSignature} alt="Aperçu de la signature" />}</div>
+            </fieldset>
+          </div>
+          <div className="pile">
+            <fieldset className="pile cadre-champs">
+              <legend>Liste des Signataires</legend>
+              <table className="grille">
+                <thead><tr><th scope="col">Nom</th><th scope="col">Prénom</th><th scope="col">Actif</th><th scope="col">Adresse</th><th scope="col">Action</th></tr></thead>
+                <tbody>
+                  {signataires.length === 0 && <tr><td colSpan={5}>Aucun Signataire Renseigné</td></tr>}
+                  {signataires.map((r, i) => <tr key={i}><td>{r.nom}</td><td>{r.prenom}</td><td>Oui</td><td></td><td></td></tr>)}
+                </tbody>
+              </table>
+            </fieldset>
+            <div className="actions-onglets">
+              <button className="bouton" type="button" disabled={!t || (!photo && !signature)} onClick={() => t && setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
+                try { await api.tiers.changerSpecimen(t.id, { ...(photo ? { photo } : {}), ...(signature ? { signature } : {}) }); annuler(); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+                catch (x) { erreur(x); }
+              } })}>Valider les Modifications</button>
+              <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
+            </div>
+          </div>
+        </div>
+        <Textes sources={["Manuel Microfina++, p. 58 : écran Modification ou Ajout (Photo/Signature), Capturer, Choisir, aperçus, Liste des Signataires, Valider les Modifications, Annuler",
+          "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
+          "Chaque dépôt garde son auteur et sa date ; le dernier dépôt fait foi au guichet"]} />
+      </section>
+      <Capture ouverte={capture} fermer={() => setCapture(false)} prise={(v) => (v.length > IMAGE_MAX ? erreur(new Error("Image trop lourde : 300 Ko au plus.")) : setPhoto(v))} />
+      <Fiche titre="Clients" ouverte={recherche} fermer={() => setRecherche(false)}>
+        <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut !== "prospect" && x.statut !== "resilie") : [])}
+          choisir={(x) => { setT(x); setPhoto(null); setSignature(null); setRecherche(false); }} fermer={() => setRecherche(false)} />
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>

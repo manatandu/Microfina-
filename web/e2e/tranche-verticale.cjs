@@ -179,6 +179,14 @@ const OUT = process.argv[2];
   await aller('/clients/s47'); await p.getByLabel('Libellé *').fill('Procuration générale');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('cell', { name: 'Procuration générale' }).waitFor(); await etape('06u-types-procuration');
+  // Photos et signatures (S49) : specimen déposé pour Mwamba (image fictive)
+  await aller('/clients/s49'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  const rp = p.getByRole('dialog', { name: 'Clients' });
+  await rp.getByLabel('Numéro, Nom et Prénoms :').fill('Mwamba'); await rp.getByRole('row').filter({ hasText: 'Mwamba' }).dblclick();
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+  await p.locator('fieldset', { hasText: 'Signature client' }).locator('input[type=file]').setInputFiles({ name: 'signature.png', mimeType: 'image/png', buffer: png });
+  await p.getByRole('img', { name: 'Aperçu de la signature' }).waitFor(); await etape('06v-photos-signatures');
+  await p.getByRole('button', { name: 'Valider les Modifications' }).click(); await ok();
   // Caissière : adhésion, dépôt, retrait
   await login('Esther Ngalula'); await aller('/caisse/s73');
   await p.getByLabel(/Nom, numéro ou compte/).waitFor(); await p.keyboard.press('F2'); await p.keyboard.type('Tshala'); await p.getByRole('option', { name: /Tshala/ }).click();

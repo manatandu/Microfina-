@@ -391,3 +391,19 @@ def test_resiliation(clients, journee):
     assert "déjà résilié" in refus(chef, {"motif": "AUTRES"})
     r = caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000320-02"), "montant": 1000000, "coupures": {"10000": 1}, "remisPar": ""}, **H)
     assert r.status_code == 422 and "résilié" in r.json()["message"]
+
+
+def test_photo_signature(clients):
+    agent = clients["agent"]
+    connecter(agent, "bkasongo")
+    k = T("0412-000320")                      # Lukusa : sans specimen
+    png = "data:image/png;base64,iVBORw0KGgo="
+    def refus(corps):
+        r = agent.post(f"/api/tiers/{k}/specimen", corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    assert "Aucune" in refus({})
+    assert "PNG ou JPEG" in refus({"signature": "data:text/html;base64,AA=="})
+    t = agent.post(f"/api/tiers/{k}/specimen", {"signature": png}, **H).json()
+    assert (t["specimen"], t["photo"]) == (True, False)
+    agent.post(f"/api/tiers/{k}/specimen", {"photo": png}, **H)
+    assert agent.get(f"/api/tiers/{k}/images").json() == {"photo": png, "signature": png}
+    assert ident("select depose_par from specimen where tiers_id = %s order by id desc limit 1", (k,)) == ident("select id from utilisateur where login = 'bkasongo'")

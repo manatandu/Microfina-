@@ -209,6 +209,11 @@ def tiers_resilier(request, tid: int, corps: dict = Body(...)):
     return s.resilier_tiers(u(request), tid, corps)
 
 
+@api.post("/tiers/{tid}/specimen")
+def tiers_specimen(request, tid: int, corps: dict = Body(...)):
+    return s.changer_specimen(u(request), tid, corps)
+
+
 @api.get("/tiers/{tid}/images")
 def tiers_images(request, tid: int):
     return s.images_tiers(u(request), tid)

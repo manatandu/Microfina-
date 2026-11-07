@@ -214,3 +214,13 @@ fieldset.sans-cadre { border: 0; padding: 0; margin: 0; min-width: 0; }
   .a-imprimer, .a-imprimer * { visibility: visible; }
   .a-imprimer { position: absolute; inset: 0; }
 }
+
+/* Photos et signatures (S49, manuel Microfina++ p. 58) */
+.photos-signataires { display: grid; grid-template-columns: minmax(0, 18rem) minmax(0, 1fr); gap: var(--espace-5); align-items: start; }
+@media (max-width: 720px) { .photos-signataires { grid-template-columns: minmax(0, 1fr); } }
+.apercu-grand { width: 100%; max-width: 12rem; height: 10rem; }
+.apercu-grand img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.apercu-video { width: 100%; max-width: 32rem; border-radius: var(--rayon-champ); background: var(--nuit); }
+label.bouton { display: inline-flex; align-items: center; cursor: pointer; }
+label.bouton.inactif { opacity: 0.5; cursor: default; }
+label.bouton:focus-within { outline: 2px solid var(--tampon); outline-offset: 2px; }
