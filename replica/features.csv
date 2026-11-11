@@ -140,7 +140,7 @@ Multilingue français et anglais,général,could,yes,no,p. 15
 Aide en ligne,général,could,yes,no,p. 15
 Export des grilles vers Excel,général,must,yes,partial,p. 9 | Export CSV (lisible par Excel) sur le rapport prospect (S51) ; à étendre.
 Grilles paginées avec filtres par colonne,général,must,yes,partial,"p. 9 | Construit sur S44 et S58 (filtre sous chaque en-tête, pages de 10 lignes) ; à étendre aux autres listes."
-Boîtes de confirmation oui ou non,général,must,yes,partial,"p. 10 et 11 | Reproduites sur les écrans faits depuis le 05/11/2026 (Client, S16, S44, S58, S73, S74, S77, S79, S80, S08, S09, S11, S12…). Pas encore sur les écrans faits avant : journée (S12) ; à réaligner."
+Boîtes de confirmation oui ou non,général,must,yes,partial,"p. 10 et 11 | Reproduites sur les écrans faits depuis le 05/11/2026 (Client, S16, S44, S58, S73, S74, S77, S79, S80, S08, S09, S11, S12…). Les anciens écrans sont tous réalignés."
 Modifier et supprimer depuis une grille,général,must,yes,partial,"p. 13 | Phase 1 : reproduits sur les paramétrages et référentiels (frais, banques, groupes solidaires, types de procuration). Jamais sur une écriture : correction par contre-passation (PCCI § 3.4 ; ARCHITECTURE.md P8)."
 Référentiel comptable des SFD de l'UEMOA,général,skip,yes,skip,p. 4 ; remplacé par le PCCI obligatoire (Instr. BCC 006)
 GRH,modules,skip,yes,skip,hors périmètre par décision du porteur
