@@ -123,7 +123,15 @@ def contexte(u: dict) -> dict:
 def vue_journee(j: dict | None) -> dict | None:
     if not j:
         return None
-    return {"id": j["id"], "date": j["date_comptable"].isoformat(), "statut": j["statut"], "ouvertePar": j["ouverte_par"], "fermeePar": j["fermee_par"]}
+    return {"id": j["id"], "date": j["date_comptable"].isoformat(), "statut": j["statut"], "ouvertePar": j["ouverte_par"], "fermeePar": j["fermee_par"],
+            "ouverteLe": j["ouverte_le"].astimezone().isoformat(timespec="seconds") if j.get("ouverte_le") else None,
+            "fermeeLe": j["fermee_le"].astimezone().isoformat(timespec="seconds") if j.get("fermee_le") else None}
+
+
+def journees(u: dict) -> list[dict]:
+    """S12 (manuel p. 21) : liste des journées de l'agence, la plus récente d'abord"""
+    exiger(u)
+    return [vue_journee(j) for j in lignes("select * from journee_comptable where agence_id = %s order by date_comptable desc", (u["agence_id"],))]
 
 
 def journee_courante(u: dict) -> dict | None:
@@ -174,7 +182,7 @@ def fermer_journee(u: dict, jid: int) -> dict:
     bloquants = [c for c in controles_journee(jid) if c["etat"] == "ko"]
     if bloquants:
         raise ErreurMetier("Fermeture impossible : " + " ; ".join(c["titre"].lower() for c in bloquants) + ".")
-    executer("update journee_comptable set statut = 'fermee', fermee_par = %s where id = %s", (u["id"], jid))
+    executer("update journee_comptable set statut = 'fermee', fermee_par = %s, fermee_le = now() where id = %s", (u["id"], jid))
     return vue_journee(une("select * from journee_comptable where id = %s", (jid,)))
 
 

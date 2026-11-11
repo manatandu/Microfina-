@@ -6,7 +6,7 @@ import { BilletageCaisse, ValidationBilletage } from "./Caisse";
 import { GestionGuichets, OuvertureFermetureGuichets } from "./Guichets";
 import { CompleterJournalDetail, NouvelExercice, OuvertureExercice } from "./Exercices";
 import { EnrolementEntreprise, EnrolementGroupe, EnrolementPhysique, MiseAJourClient } from "./Membres";
-import { EcranJournee, EcranValidation } from "./Journee";
+import { EcranJournee, EcranValidation, FermetureJournee } from "./Journee";
 import { Consentement, InformationsClient, ModificationFrais, PhotosSignatures, ResiliationClient, ValidationClientModifie, VisaClient } from "./Visa";
 import { FraisOperations } from "./Parametrage";
 import { GroupeSolidaire } from "./Groupes";
@@ -46,6 +46,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S77: PartsSociales,
   S79: BilletageCaisse,
   S80: ValidationBilletage,
+  S111: FermetureJournee,
   S113: () => <EcranValidation titre="Visas" seulement="operations" />,
   S121: Balance,
 };

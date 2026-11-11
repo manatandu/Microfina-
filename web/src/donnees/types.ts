@@ -13,7 +13,7 @@ export interface Guichet {
 }
 
 export type EtatJournee = "ouverte" | "en_cloture" | "fermee";
-export interface Journee { id: number; date: string; statut: EtatJournee; ouvertePar?: number; fermeePar?: number }
+export interface Journee { id: number; date: string; statut: EtatJournee; ouvertePar?: number; fermeePar?: number; ouverteLe?: string; fermeeLe?: string }   // S12, p. 21
 
 export interface Billetage {
   id: number;

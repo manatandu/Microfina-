@@ -10,10 +10,10 @@ const nomComplet = (t: { nom: string; postnom: string; prenom: string }) => [t.n
 const fr = (iso: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "");
 
 /** Tableau avec un filtre sous chaque en-tête et des pages de 10 lignes (captures p. 54 et 55) */
-export function TableFiltree<T>({ colonnes, lignes, cle, vide = "Liste vide", avant, apres, choisir, choisi }: {
+export function TableFiltree<T>({ colonnes, lignes, cle, vide = "Liste vide", avant, apres, choisir, choisi, sansFiltres }: {
   colonnes: { titre: string; valeur: (l: T) => string; classe?: string }[]; lignes: T[]; cle: (l: T) => string | number; vide?: string;
   avant?: { titre: ReactNode; cellule: (l: T) => ReactNode }; apres?: { titre: string; cellule: (l: T) => ReactNode };
-  choisir?: (l: T) => void; choisi?: string | number | null;
+  choisir?: (l: T) => void; choisi?: string | number | null; sansFiltres?: boolean;   // sansFiltres : grille sans zone de filtre (ex. S12, p. 21)
 }) {
   const [filtres, setFiltres] = useState<string[]>(colonnes.map(() => ""));
   const [page, setPage] = useState(0);
@@ -30,10 +30,10 @@ export function TableFiltree<T>({ colonnes, lignes, cle, vide = "Liste vide", av
       <table className="grille">
         <thead>
           <tr>{avant && <th scope="col">{avant.titre}</th>}{colonnes.map((c) => <th key={c.titre} scope="col">{c.titre}</th>)}{apres && <th scope="col">{apres.titre}</th>}</tr>
-          <tr className="filtres">{avant && <td />}{colonnes.map((c, i) => (
+          {!sansFiltres && <tr className="filtres">{avant && <td />}{colonnes.map((c, i) => (
             <td key={c.titre}><input className="saisie" type="search" aria-label={`Filtrer ${c.titre}`} value={filtres[i]}
               onChange={(e) => { setFiltres(filtres.map((f, j) => (j === i ? e.target.value : f))); setPage(0); }} /></td>
-          ))}{apres && <td />}</tr>
+          ))}{apres && <td />}</tr>}
         </thead>
         <tbody>
           {retenues.length === 0 && <tr><td colSpan={colonnes.length + (avant ? 1 : 0) + (apres ? 1 : 0)}>{vide}</td></tr>}

@@ -547,3 +547,9 @@ def test_exercices(clients):
     l = chef.post("/api/exercices/2027/ouverture", **H).json()
     assert len([d for d in l["details"] if d["annee"] == 2027]) == len(l["journaux"]) and l["enCours"] == 2027
     r = chef.post("/api/exercices/2027/ouverture", **H); assert r.status_code == 422 and "déjà ouvert" in r.json()["message"]
+
+
+def test_liste_des_journees(clients, journee):
+    """S12 (p. 21) : Journée, Ouverte par, Heure ouverture, Date fermeture, Fermée par ; la plus récente d'abord"""
+    l = clients["chef"].get("/api/journees", **H).json()
+    assert [j["date"] for j in l][:2] == ["2026-11-05", "2026-11-04"] and l[0]["ouverteLe"] and l[0]["fermeeLe"] is None

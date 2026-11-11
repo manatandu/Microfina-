@@ -37,6 +37,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
     },
     journees: {
       courante: () => get("/journees/courante"),
+      liste: () => get("/journees"),
       ouvrir: (date: string) => post("/journees", { date }),
       controles: (id: number) => get(`/journees/${id}/controles`),
       fermer: (id: number) => post(`/journees/${id}/fermeture`),

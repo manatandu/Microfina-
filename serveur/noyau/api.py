@@ -63,6 +63,11 @@ def referentiel(request):
 
 
 # ---------- Journées ----------
+@api.get("/journees")
+def journees_liste(request):
+    return s.journees(u(request))
+
+
 @api.get("/journees/courante")
 def journee_courante(request):
     return s.journee_courante(u(request)) if request.session.get("utilisateur") else None

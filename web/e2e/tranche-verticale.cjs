@@ -20,10 +20,11 @@ const OUT = process.argv[2];
   await login('J.-P. Mukendi');
   await etape('01b-modules');
   await aller('/administration/s12');
-  await etape('02-chef-avant-ouverture');
-  await p.getByRole('button', { name: /Ouvrir la journée du 05\/11\/2026/ }).click();
-  await p.getByRole('heading', { name: /Fermer la journée/ }).waitFor();
   const oui = async () => { await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click(); };
+  // Ouverture de journée (S12, p. 21)
+  await p.getByLabel('Date à ouvrir').fill('05112026'); await etape('02-chef-avant-ouverture');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByRole('cell', { name: '05/11/2026' }).waitFor(); await etape('02-journee-ouverte');
   // Chef : créer un guichet (S08, p. 18)
   await aller('/administration/s08');
   await p.getByLabel('Agence *').selectOption({ label: 'Matete' }); await p.getByLabel('Code guichet *').fill('G3'); await p.getByLabel('Désignation *').fill('Caisse 3');
@@ -276,12 +277,12 @@ const OUT = process.argv[2];
   await etape('15-arrete');
   await aller('/administration/s09'); await p.getByRole('row').filter({ hasText: 'Caisse 2' }).dblclick();
   await p.getByRole('button', { name: 'Fermeture' }).click(); await oui(); await etape('15b-fermeture-guichet');
-  await login('J.-P. Mukendi'); await aller('/administration/s12'); await etape('16-chef-fermeture-bloquee');
+  await login('J.-P. Mukendi'); await aller('/comptabilite/s111'); await etape('16-chef-fermeture-bloquee');
   await aller('/caisse/s80'); await p.getByLabel('Guichet').selectOption({ label: 'Caisse 2' });
   await p.getByRole('cell', { name: 'Billet de 20000 CDF' }).waitFor(); await etape('16b-validation-billetage');
   await p.getByRole('button', { name: 'Valider' }).click(); await ok();
-  await aller('/administration/s12');
-  await p.getByRole('button', { name: 'Fermer la journée' }).click(); await p.getByRole('heading', { name: 'Ouvrir la journée' }).waitFor();
+  await aller('/comptabilite/s111');
+  await p.getByRole('button', { name: 'Fermer la journée' }).click(); await p.getByText('Aucune journée ouverte.').waitFor();
   await etape('17-journee-fermee');
   await login('Patrick Lumbala'); await p.goto(B + '/comptabilite/s121'); await p.getByText(/Équilibrée/).waitFor(); await etape('18-balance');
   // Résiliation (S48), par le chef

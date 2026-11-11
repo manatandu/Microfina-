@@ -95,12 +95,14 @@ function soldeContrat(contrat: string, devise: Devise, sensNormal: "D" | "C"): n
 // ---------- Journées ----------
 const journees = {
   courante: (): Journee | null => E.journees.at(-1) ?? null,
+  /** S12 (manuel p. 21) : liste des journées, la plus récente d'abord */
+  liste: (): Journee[] => { exiger(); return [...E.journees].sort((a, b) => b.date.localeCompare(a.date)); },
   ouvrir(date: string) {
     exiger("chef_agence");
     if (E.journees.some((j) => j.statut !== "fermee")) throw new ErreurMetier("Une journée est déjà ouverte dans cette agence.");
     const derniere = E.journees.at(-1);
     if (derniere && date <= derniere.date) throw new ErreurMetier(`La date doit suivre la dernière journée (${fr(derniere.date)}).`);
-    const j: Journee = { id: prochain(E.journees), date, statut: "ouverte", ouvertePar: E.session ?? undefined };
+    const j: Journee = { id: prochain(E.journees), date, statut: "ouverte", ouvertePar: E.session ?? undefined, ouverteLe: new Date().toISOString() };
     E.journees.push(j); enregistrer(); return j;
   },
   controles(id: number) { return controlesJournee(id); },
@@ -109,7 +111,7 @@ const journees = {
     const bloquants = controlesJournee(id).filter((c) => c.etat === "ko");
     if (bloquants.length) throw new ErreurMetier(`Fermeture impossible : ${bloquants.map((c) => c.titre.toLowerCase()).join(" ; ")}.`);
     const j = E.journees.find((x) => x.id === id)!;
-    j.statut = "fermee"; j.fermeePar = E.session ?? undefined; enregistrer(); return j;
+    j.statut = "fermee"; j.fermeePar = E.session ?? undefined; j.fermeeLe = new Date().toISOString(); enregistrer(); return j;
   },
 };
 
