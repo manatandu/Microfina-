@@ -8,6 +8,7 @@ import { CompleterJournalDetail, NouvelExercice, OuvertureExercice } from "./Exe
 import { EnrolementEntreprise, EnrolementGroupe, EnrolementPhysique, MiseAJourClient } from "./Membres";
 import RapportTransactions from "./Transactions";
 import SecteursActivite from "./Secteurs";
+import ParametragesClients from "./Numerotation";
 import { EcranJournee, EcranValidation, FermetureJournee } from "./Journee";
 import { Consentement, InformationsClient, ModificationFrais, PhotosSignatures, ResiliationClient, ValidationClientModifie, VisaClient } from "./Visa";
 import { FraisOperations } from "./Parametrage";
@@ -28,6 +29,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S12: EcranJournee,
   S13: RapportTransactions,
   S14: SecteursActivite,
+  S15: ParametragesClients,
   S16: FraisOperations,
   S37: EnrolementPhysique,
   S38: EnrolementEntreprise,

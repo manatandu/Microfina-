@@ -10,6 +10,7 @@ from . import banques as bq
 from . import guichets as gu
 from . import exercices as ex
 from . import secteurs as se
+from . import numerotation as nu
 from . import services as s
 from .bd import ErreurMetier
 
@@ -517,3 +518,14 @@ def se_lire(request):
 @api.post("/secteurs")
 def se_creer(request, corps: dict = Body(...)):
     return se.creer(u(request), corps)
+
+
+# ---------- Info de base : numérotation des clients (S15) ----------
+@api.get("/numerotation-clients")
+def nu_lire(request):
+    return nu.lire(u(request))
+
+
+@api.post("/numerotation-clients")
+def nu_enregistrer(request, corps: dict = Body(...)):
+    return nu.enregistrer(u(request), corps)

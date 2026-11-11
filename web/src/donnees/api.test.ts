@@ -384,6 +384,16 @@ describe("journée de guichet", () => {
     expect((await api.secteurs.creer({ code: "S9", libelle: "Pêche" })).at(-1)).toMatchObject({ code: "S9", libelle: "Pêche" });
   });
 
+  it("paramétrages liés aux clients (S15, p. 23 et 24) : institution obligatoire, ordre des éléments cochés", async () => {
+    await connecter("jpmukendi");
+    const l = await api.numerotation.lire(); const i = l.institutions[0]!.id;
+    const r = { institutionId: i, prefixe: { actif: true, valeur: "TJ" }, suffixe: { actif: false, valeur: "" }, institution: { actif: false, position: 1 },
+      agence: { actif: true, position: 2 }, categorie: { actif: false, position: 1 }, position: 1, compteur: 1, ordre: ["PREFIXE", "AGENCE", "COMPTEUR"] };
+    await expect(api.numerotation.enregistrer({ ...r, institutionId: null })).rejects.toThrow("Institution");
+    await expect(api.numerotation.enregistrer({ ...r, ordre: ["PREFIXE", "COMPTEUR"] })).rejects.toThrow("Ordre");
+    expect((await api.numerotation.enregistrer(r)).regles[String(i)]!.ordre).toEqual(["PREFIXE", "AGENCE", "COMPTEUR"]);
+  });
+
   it("quatre yeux sur le billetage", async () => {
     await connecter("jpmukendi"); await api.journees.ouvrir("2026-11-05");
     await connecter("engalula");

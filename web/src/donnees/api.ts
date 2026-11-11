@@ -9,13 +9,14 @@ import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
   type Operation, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais,
+  type RegleNumerotation,
 } from "./types";
 import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v20";
+const CLE = "likelemba-demo-v21";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -23,7 +24,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 20) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 21) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -762,6 +763,30 @@ const secteurs = {
   },
 };
 
+// ---------- Info de base : numérotation des clients (S15, manuel p. 23, capture p. 24). Règles identiques côté serveur (noyau/numerotation.py).
+// La règle est enregistrée ; elle ne change pas encore le numéro donné aux clients (à confirmer). ----------
+const ELEMENTS_NUMEROTATION = ["PREFIXE", "SUFFIXE", "INSTITUTION", "AGENCE", "CATEGORIE", "COMPTEUR"];
+const ID_INSTITUTION = 1;
+const numerotation = {
+  lire() { exiger(); return { institutions: [{ id: ID_INSTITUTION, nom: E.institution.nom }], regles: { ...E.numerotation } }; },
+  enregistrer(d: RegleNumerotation & { institutionId: number | null }) {
+    exiger("chef_agence");   // profil habilité : à confirmer
+    if (d.institutionId !== ID_INSTITUTION) throw new ErreurMetier("À remplir : Institution.");
+    const entier = (v: number, nom: string) => { if (!Number.isInteger(v) || v < 1) throw new ErreurMetier(`${nom} : nombre entier, 1 au moins.`); return v; };
+    const r: RegleNumerotation = {
+      prefixe: { actif: !!d.prefixe.actif, valeur: d.prefixe.valeur.trim() }, suffixe: { actif: !!d.suffixe.actif, valeur: d.suffixe.valeur.trim() },
+      institution: { actif: !!d.institution.actif, position: entier(d.institution.position, "Institution") },
+      agence: { actif: !!d.agence.actif, position: entier(d.agence.position, "Agence") },
+      categorie: { actif: !!d.categorie.actif, position: entier(d.categorie.position, "Categorie") },
+      position: entier(d.position, "Position"), compteur: entier(d.compteur, "Compteur"), ordre: [...d.ordre],
+    };
+    const coches = (e: string) => e === "COMPTEUR" || (r[e.toLowerCase() as "prefixe"] as { actif: boolean }).actif;
+    const attendu = ELEMENTS_NUMEROTATION.filter(coches);
+    if ([...r.ordre].sort().join() !== [...attendu].sort().join()) throw new ErreurMetier("Ordre des éléments : il doit reprendre les éléments cochés et le compteur.");
+    E.numerotation[String(ID_INSTITUTION)] = r; enregistrer(); return numerotation.lire();
+  },
+};
+
 const banques = {
   lire() {
     exiger();
@@ -1251,6 +1276,7 @@ const apiLocal = {
   guichets: asynchrone(guichets),
   exercices: asynchrone(exercices),
   secteurs: asynchrone(secteurs),
+  numerotation: asynchrone(numerotation),
 };
 
 export type ApiDonnees = typeof apiLocal;

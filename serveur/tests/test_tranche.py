@@ -580,3 +580,22 @@ def test_secteurs_activite(clients):
     assert agent.post("/api/secteurs", {"code": "S9", "libelle": "Pêche"}, **H).status_code == 403
     l = chef.post("/api/secteurs", {"code": "S9", "libelle": "Pêche"}, **H).json()
     assert {"code": "S9", "libelle": "Pêche"} in [{"code": s["code"], "libelle": s["libelle"]} for s in l]
+
+
+def test_parametrages_lies_aux_clients(clients):
+    """S15 (p. 23, capture p. 24) : Institution obligatoire ; l'ordre reprend les éléments cochés et le compteur"""
+    chef, agent = clients["chef"], clients["agent"]
+    connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    l = chef.get("/api/numerotation-clients", **H).json()
+    i = l["institutions"][0]["id"]; assert l["regles"] == {}
+    r = {"institutionId": i, "prefixe": {"actif": True, "valeur": "TJ"}, "suffixe": {"actif": False, "valeur": ""},
+         "institution": {"actif": False, "position": 1}, "agence": {"actif": True, "position": 2}, "categorie": {"actif": False, "position": 1},
+         "position": 1, "compteur": 1, "ordre": ["PREFIXE", "AGENCE", "COMPTEUR"]}
+    def refus(c):
+        x = chef.post("/api/numerotation-clients", c, **H); assert x.status_code == 422, x.content; return x.json()["message"]
+    assert "Institution" in refus({**r, "institutionId": None})
+    assert "Ordre" in refus({**r, "ordre": ["PREFIXE", "COMPTEUR"]})
+    assert "Compteur" in refus({**r, "compteur": 0})
+    assert agent.post("/api/numerotation-clients", r, **H).status_code == 403
+    l = chef.post("/api/numerotation-clients", r, **H).json()
+    assert l["regles"][str(i)]["ordre"] == ["PREFIXE", "AGENCE", "COMPTEUR"] and l["regles"][str(i)]["prefixe"]["valeur"] == "TJ"

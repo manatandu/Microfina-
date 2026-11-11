@@ -172,7 +172,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise }
 
 export interface Etat {
-  version: 20;
+  version: 21;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];
@@ -200,6 +200,7 @@ export interface Etat {
   modifications: { id: number; tiersId: number; avant: Tiers; apres: Tiers; modifiePar: number; modifieLe: string; validePar?: number }[];   // S46, S42, S43
   banques: { id: number; code: string; libelle: string; compteLiaison: string; adresse: string }[];   // S58
   secteurs: { id: number; code: string; libelle: string }[];   // S14
+  numerotation: Record<string, RegleNumerotation>;   // S15, par institution
   comptesBancaires: { id: number; banqueId: number; compte: string; libelle: string; numeroBancaire: string; devise: Devise; journalId: number; contactNom: string; contactNomComplet: string; contactTelephone: string }[];
   consentements: { id: number; tiersId: number; code: string; dateDebut: string; dateFin: string; commentaire: string }[];   // S50
   typesProcuration: { id: number; libelle: string }[];   // S47
@@ -214,4 +215,16 @@ export interface Etat {
 
 export class ErreurMetier extends Error {
   constructor(message: string, public source?: string) { super(message); this.name = "ErreurMetier"; }
+}
+
+/** S15 (manuel p. 23, capture p. 24) : Paramétrages liés aux clients */
+export interface RegleNumerotation {
+  prefixe: { actif: boolean; valeur: string };
+  suffixe: { actif: boolean; valeur: string };
+  institution: { actif: boolean; position: number };
+  agence: { actif: boolean; position: number };
+  categorie: { actif: boolean; position: number };
+  position: number;
+  compteur: number;
+  ordre: string[];
 }
