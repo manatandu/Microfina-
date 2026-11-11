@@ -8,6 +8,7 @@ from . import groupes as gs
 from . import procurations as pr
 from . import banques as bq
 from . import guichets as gu
+from . import exercices as ex
 from . import services as s
 from .bd import ErreurMetier
 
@@ -478,3 +479,19 @@ def gu_ouvrir(request, gid: int):
 @api.post("/guichets/{gid}/fermeture")
 def gu_fermer(request, gid: int):
     return gu.fermer(u(request), gid)
+
+
+# ---------- Administration : exercice (S11) ----------
+@api.get("/exercices")
+def ex_lire(request):
+    return ex.lire(u(request))
+
+
+@api.post("/exercices")
+def ex_enregistrer(request, corps: dict = Body(...)):
+    return ex.enregistrer(u(request), corps)
+
+
+@api.post("/exercices/{annee}/ouverture")
+def ex_ouvrir(request, annee: int):
+    return ex.ouvrir(u(request), annee)

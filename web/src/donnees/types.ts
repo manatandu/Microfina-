@@ -28,6 +28,10 @@ export interface Billetage {
   validePar?: number;
 }
 
+/** S11 (manuel p. 20 et 21) : Nouvel Exercice et Liste Détails Journal */
+export interface Exercice { annee: number; actif: boolean; ouvert: boolean; valide: boolean }
+export interface JournalDetail { id: number; annee: number; journalId: number; actif: boolean; ouvert: boolean; compteur: number }
+
 export interface SessionCaisse {
   id: number;
   guichetId: number;
@@ -168,7 +172,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise }
 
 export interface Etat {
-  version: 18;
+  version: 19;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];
@@ -179,6 +183,8 @@ export interface Etat {
   valeurPart: number;          // unités mineures, CDF
   journees: Journee[];
   sessions: SessionCaisse[];
+  exercices: Exercice[];               // S11
+  journauxDetail: JournalDetail[];     // S11, Liste Détails Journal
   billetages: Billetage[];
   tiers: Tiers[];
   comptes: CompteDepot[];

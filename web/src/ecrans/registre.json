@@ -91,12 +91,30 @@
  },
  {
   "id": "S11",
-  "nom": "Exercice",
-  "acces": "Administration > Exercice",
-  "but": "Créer, activer, ouvrir un exercice ; compléter le journal détail",
+  "nom": "Exercice : création",
+  "acces": "Administration > Exercice > Création",
+  "but": "Créer un exercice, cocher Actif, Ouvert, Validé (p. 20)",
   "module": "administration",
   "priorite": "must",
   "chemin": "/administration/s11"
+ },
+ {
+  "id": "S11b",
+  "nom": "Exercice : ouverture",
+  "acces": "Administration > Exercice > Ouverture",
+  "but": "Ouvrir un exercice (p. 21)",
+  "module": "administration",
+  "priorite": "must",
+  "chemin": "/administration/s11b"
+ },
+ {
+  "id": "S11c",
+  "nom": "Exercice : compléter journal détail",
+  "acces": "Administration > Exercice > Compléter journal détail",
+  "but": "Compléter le journal détail de l'exercice en cours (p. 21)",
+  "module": "administration",
+  "priorite": "must",
+  "chemin": "/administration/s11c"
  },
  {
   "id": "S12",
@@ -158,7 +176,7 @@
   "acces": "Info de base > Client > Motif départ",
   "but": "Motifs de résiliation",
   "module": "parametrage",
-  "priorite": "should",
+  "priorite": "must",
   "chemin": "/parametrage/s18"
  },
  {
@@ -293,7 +311,7 @@
   "acces": "Agence > Paramètre",
   "but": "Gestionnaires, sensibilisateurs, commerciaux",
   "module": "parametrage",
-  "priorite": "should",
+  "priorite": "must",
   "chemin": "/parametrage/s33"
  },
  {
@@ -365,7 +383,7 @@
   "acces": "Client > Visa > Modifier frais",
   "but": "Changer le montant des frais liés",
   "module": "clients",
-  "priorite": "should",
+  "priorite": "must",
   "chemin": "/clients/s41"
  },
  {
@@ -401,7 +419,7 @@
   "acces": "Client > Nouveau prospect",
   "but": "Enregistrer un prospect, réutilisable à l'enrôlement",
   "module": "clients",
-  "priorite": "should",
+  "priorite": "must",
   "chemin": "/clients/s45"
  },
  {
@@ -446,7 +464,7 @@
   "acces": "Client > Consentement BIC",
   "but": "Enregistrer le consentement au bureau d'information sur le crédit",
   "module": "clients",
-  "priorite": "skip",
+  "priorite": "should",
   "chemin": "/clients/s50"
  },
  {
@@ -455,7 +473,7 @@
   "acces": "Client > Rapport",
   "but": "Multicritère, prospects, clients modifiés",
   "module": "clients",
-  "priorite": "should",
+  "priorite": "must",
   "chemin": "/clients/s51"
  },
  {

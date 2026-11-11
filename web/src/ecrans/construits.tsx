@@ -4,6 +4,7 @@ import Adhesion from "./Adhesion";
 import Balance from "./Comptabilite";
 import { BilletageCaisse, ValidationBilletage } from "./Caisse";
 import { GestionGuichets, OuvertureFermetureGuichets } from "./Guichets";
+import { CompleterJournalDetail, NouvelExercice, OuvertureExercice } from "./Exercices";
 import { EnrolementEntreprise, EnrolementGroupe, EnrolementPhysique, MiseAJourClient } from "./Membres";
 import { EcranJournee, EcranValidation } from "./Journee";
 import { Consentement, InformationsClient, ModificationFrais, PhotosSignatures, ResiliationClient, ValidationClientModifie, VisaClient } from "./Visa";
@@ -19,6 +20,9 @@ import { CreationBanque } from "./Banques";
 export const CONSTRUITS: Record<string, ComponentType> = {
   S08: GestionGuichets,
   S09: OuvertureFermetureGuichets,
+  S11: NouvelExercice,
+  S11b: OuvertureExercice,
+  S11c: CompleterJournalDetail,
   S12: EcranJournee,
   S16: FraisOperations,
   S37: EnrolementPhysique,

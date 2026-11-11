@@ -51,7 +51,9 @@ Un membre adhère, dépose et retire son épargne au guichet, obtient un crédit
 | S08 | Guichets : gestion | Administration > Guichet | Créer un guichet, ses comptes, l'option billetage, l'activer | champs obligatoires, case billetage, case actif | non montré |
 | S09 | Guichets : ouverture et fermeture | Administration > Guichet > Ouverture/Fermeture | Ouvrir ou fermer un guichet | liste, double-clic, onglet ouverture ou fermeture | non montré |
 | S10 | Guichets : affectation | Administration > Guichet > Affectation | Ajouter ou retirer un guichet à un utilisateur | liste, ajout, retrait, confirmation | non montré |
-| S11 | Exercice | Administration > Exercice | Créer, activer, ouvrir un exercice ; compléter le journal détail | année, cases activation et ouverture | non montré |
+| S11 | Exercice : création | Administration > Exercice > Création | Créer un exercice, cocher Actif, Ouvert, Validé (p. 20) | année, liste des exercices | non montré |
+| S11b | Exercice : ouverture | Administration > Exercice > Ouverture | Ouvrir un exercice (p. 21) | exercice à ouvrir, liste détails journal | non montré |
+| S11c | Exercice : compléter journal détail | Administration > Exercice > Compléter journal détail | Compléter le journal détail de l'exercice en cours (p. 21) | exercice en cours, liste | non montré |
 | S12 | Ouverture de journée | Administration > Ouverture de journée | Ouvrir une journée comptable | date | non montré |
 | S13 | Rapport des transactions | Administration > Rapport des transactions | Lister les opérations d'une période | période, export | non montré |
 

@@ -526,3 +526,24 @@ def test_guichets(clients):
     assert caisse.get("/api/caisses/moi", **H).json()["statut"] == "fermee"
     r = caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}}, **H)
     assert r.status_code == 422 and "Aucune caisse ouverte" in r.json()["message"]
+
+
+def test_exercices(clients):
+    """S11 (p. 20 et 21) : Nouvel Exercice (année obligatoire et unique, cases Actif, Ouvert, Validé), Ouverture d'un Exercice (journaux)"""
+    chef, agent = clients["chef"], clients["agent"]
+    connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    l = chef.get("/api/exercices", **H).json()
+    assert [(e["annee"], e["ouvert"], e["valide"]) for e in l["exercices"]] == [(2025, True, True), (2026, True, False)] and l["enCours"] == 2026
+    def refus(c):
+        r = chef.post("/api/exercices", c, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    assert "année" in refus({"annee": ""})
+    assert "invalide" in refus({"annee": "20x7"})
+    assert "existe déjà" in refus({"annee": "2026"})
+    assert agent.post("/api/exercices", {"annee": "2027"}, **H).status_code == 403
+    l = chef.post("/api/exercices", {"annee": "2027", "lignes": [{"annee": 2026, "actif": True, "ouvert": True, "valide": False}]}, **H).json()
+    assert {"annee": 2027, "actif": False, "ouvert": False, "valide": False} in l["exercices"]
+    l = chef.post("/api/exercices", {"lignes": [{"annee": 2027, "actif": True, "ouvert": False, "valide": False}]}, **H).json()
+    assert next(e for e in l["exercices"] if e["annee"] == 2027)["actif"]
+    l = chef.post("/api/exercices/2027/ouverture", **H).json()
+    assert len([d for d in l["details"] if d["annee"] == 2027]) == len(l["journaux"]) and l["enCours"] == 2027
+    r = chef.post("/api/exercices/2027/ouverture", **H); assert r.status_code == 422 and "déjà ouvert" in r.json()["message"]

@@ -15,7 +15,7 @@ import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@d
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v18";
+const CLE = "likelemba-demo-v19";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -23,7 +23,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 18) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 19) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -1003,7 +1003,7 @@ function asynchrone<T extends object>(o: T): Asynchrone<T> {
 // ---------- Administration : guichets (S08 et S09, manuel p. 18 et 19). Règles identiques côté serveur (noyau/guichets.py). ----------
 /** Types de guichet lus sur la capture p. 19 ; liste complète à confirmer */
 export const TYPES_GUICHET = ["PRINCIPALE", "SECONDAIRE"];
-const JOURNAUX = [{ id: 2, code: "AN", libelle: "À-nouveaux" }, { id: 3, code: "BQ", libelle: "Journal Banque" }, { id: 1, code: "CA", libelle: "Caisse" }];
+const JOURNAUX = [{ id: 2, code: "AN", libelle: "À-nouveaux", type: "a_nouveaux" }, { id: 3, code: "BQ", libelle: "Journal Banque", type: "banque" }, { id: 1, code: "CA", libelle: "Caisse", type: "caisse" }];
 export interface SaisieGuichet {
   agenceId: number; code: string; designation: string; typeGuichet: string; journalId: number; maximumCaisse: number | null; retraitPlafonne: number | null;
   compteGuichet: string; compteLiaison: string; compteSurplus: string; compteManquant: string; billetage: boolean; actif: boolean;
@@ -1058,6 +1058,53 @@ const guichets = {
     if (!s || s.statut !== "ouverte") throw new ErreurMetier("Ce guichet n'est pas ouvert.");
     if (s.caissierId !== u.id) throw new ErreurMetier("Cette caisse n'est pas la vôtre.");
     s.statut = "fermee"; enregistrer(); return guichets.lire();
+  },
+};
+
+// ---------- Administration : exercice (S11, manuel p. 20 et 21). Règles identiques côté serveur (noyau/exercices.py). ----------
+export interface LigneExercice { annee: number; actif: boolean; ouvert: boolean; valide: boolean }
+function anneeDe(v: unknown): number {
+  const a = Number(String(v ?? "").trim());
+  if (!/^\d+$/.test(String(v ?? "").trim()) || a < 1900 || a > 2999) throw new ErreurMetier("Année invalide.");
+  return a;
+}
+const exercices = {
+  lire() {
+    exiger();
+    const ex = [...E.exercices].sort((a, b) => a.annee - b.annee);
+    const ouverts = ex.filter((e) => e.ouvert && !e.valide).map((e) => e.annee);
+    return {
+      exercices: ex.map((e) => ({ ...e })), enCours: ouverts.length ? Math.max(...ouverts) : null, journaux: JOURNAUX,
+      details: E.journauxDetail.map((d) => { const j = JOURNAUX.find((x) => x.id === d.journalId)!; return { ...d, libelle: j.libelle, code: j.code, type: j.type }; })
+        .sort((a, b) => a.annee - b.annee || a.code.localeCompare(b.code)),
+    };
+  },
+  /** « Nouvel Exercice » (p. 20) : Année*, puis les cases Actif ?, Ouvert ?, Validé ? cochées dans la liste, Enregistrer */
+  enregistrer(d: { annee: string; lignes: LigneExercice[] }) {
+    exiger("chef_agence");   // profil habilité : à confirmer
+    const texte = d.annee.trim();
+    if (!texte && !d.lignes.length) throw new ErreurMetier("À remplir : année.");
+    if (texte) {
+      const a = anneeDe(texte);
+      if (E.exercices.some((e) => e.annee === a)) throw new ErreurMetier("Cet exercice existe déjà.");
+      E.exercices.push({ annee: a, actif: false, ouvert: false, valide: false });
+    }
+    for (const l of d.lignes) {
+      const e = E.exercices.find((x) => x.annee === anneeDe(l.annee));
+      if (!e) throw new ErreurMetier("Exercice introuvable.");
+      Object.assign(e, { actif: !!l.actif, ouvert: !!l.ouvert, valide: !!l.valide });
+    }
+    enregistrer(); return exercices.lire();
+  },
+  /** « Ouverture d'un Exercice » (p. 21) : Exercice à ouvrir, Ouvrir ; la Liste Détails Journal reçoit les journaux de l'institution */
+  ouvrir(annee: number | string) {
+    exiger("chef_agence");
+    const a = anneeDe(annee);
+    const e = E.exercices.find((x) => x.annee === a);
+    if (!e) throw new ErreurMetier("Exercice introuvable.");
+    if (E.journauxDetail.some((x) => x.annee === a)) throw new ErreurMetier("Cet exercice est déjà ouvert.");
+    for (const j of JOURNAUX) E.journauxDetail.push({ id: prochain(E.journauxDetail), annee: a, journalId: j.id, actif: true, ouvert: true, compteur: 0 });
+    e.ouvert = true; enregistrer(); return exercices.lire();
   },
 };
 
@@ -1174,6 +1221,7 @@ const apiLocal = {
   rapports: asynchrone(rapports),
   banques: asynchrone(banques),
   guichets: asynchrone(guichets),
+  exercices: asynchrone(exercices),
 };
 
 export type ApiDonnees = typeof apiLocal;

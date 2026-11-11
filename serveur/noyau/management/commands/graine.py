@@ -65,6 +65,9 @@ class Command(BaseCommand):
         for numero, libelle, classe, nature in PCCI:
             executer("insert into compte (numero, libelle, classe, nature) values (%s, %s, %s, %s)", (numero, libelle, classe, nature))
         executer("insert into journal (institution_id, code, libelle, type) values (%s, 'CA', 'Caisse', 'caisse'), (%s, 'AN', 'À-nouveaux', 'a_nouveaux'), (%s, 'BQ', 'Journal Banque', 'banque')", (ins, ins, ins))
+        # Exercices (S11), données fictives : 2025 validé, 2026 actif et ouvert avec ses journaux
+        executer("insert into exercice (institution_id, annee, actif, ouvert, valide) values (%s, 2025, true, true, true), (%s, 2026, true, true, false)", (ins, ins))
+        executer("insert into journal_detail (institution_id, annee, journal_id) select %s, 2026, id from journal where institution_id = %s", (ins, ins))
         for ev in ("depot", "retrait", "adhesion", "achat_parts", "retrait_parts", "a_nouveaux"):
             executer("""insert into schema_comptable (institution_id, type_evenement, version, date_effet, lignes, propose_par, valide_par)
                         values (%s, %s, 1, '2026-01-01', '[]', %s, %s)""", (ins, ev, compta, chef))

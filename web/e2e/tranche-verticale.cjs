@@ -30,6 +30,12 @@ const OUT = process.argv[2];
   await p.getByLabel('Type de guichet *').selectOption('SECONDAIRE'); await p.getByLabel('Journal *').selectOption({ label: 'Caisse' });
   await p.getByLabel('Compte guichet').fill('5701'); await p.getByLabel('Billetage autorisé').check(); await p.getByLabel('Guichet Actif').check();
   await etape('02a-gestion-guichets'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  // Chef : exercices (S11, p. 20 et 21)
+  await aller('/administration/s11'); await p.getByLabel('Année : *').fill('2027'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByLabel('Actif : 2027').check(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('02c-nouvel-exercice');
+  await aller('/administration/s11b'); await p.getByLabel('Exerice à ouvrir').fill('2027'); await p.getByRole('button', { name: 'Ouvrir', exact: true }).click(); await oui();
+  await p.getByRole('cell', { name: 'Journal Banque', exact: true }).waitFor(); await etape('02d-ouverture-exercice');
+  await aller('/administration/s11c'); await p.getByRole('cell', { name: 'Liste vide' }).waitFor(); await etape('02e-completer-journal-detail');
   // Caissière : ouvrir la caisse (sans comptage : Microfina++ ne compte qu'à l'arrêté, p. 90 et 91)
   await login('Esther Ngalula');
   await aller('/principal'); await etape('01c-menu-general');

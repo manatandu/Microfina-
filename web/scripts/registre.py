@@ -26,7 +26,7 @@ def main():
         if m:
             module = MODULES[m.group(1)]
             continue
-        m = re.match(r"\| (S\d+) \| ([^|]+) \| ([^|]*) \| ([^|]*) \|", ligne)
+        m = re.match(r"\| (S\d+[a-z]?) \| ([^|]+) \| ([^|]*) \| ([^|]*) \|", ligne)
         if m and module:
             ecrans.append({"id": m.group(1), "nom": m.group(2).strip(), "acces": m.group(3).strip(),
                            "but": m.group(4).strip(), "module": module})
@@ -36,9 +36,9 @@ def main():
             if s not in prio or ORDRE[r["priority"]] < ORDRE[prio[s]]:
                 prio[s] = r["priority"]
     for e in ecrans:
-        e["priorite"] = prio.get(e["id"], "should")
+        e["priorite"] = prio.get(re.match(r"S\d+", e["id"]).group(0), "should")   # S11b, S11c : écrans de la fonction S11
         e["chemin"] = f"/{e['module']}/{e['id'].lower()}"
-    assert len(ecrans) == 140, len(ecrans)
+    assert len(ecrans) == 142, len(ecrans)   # 140 écrans de la recon, plus S11b et S11c (manuel p. 21)
     sortie = Path(__file__).resolve().parents[1] / "src/ecrans/registre.json"
     sortie.parent.mkdir(parents=True, exist_ok=True)
     sortie.write_text(json.dumps(ecrans, ensure_ascii=False, indent=1), encoding="utf-8")

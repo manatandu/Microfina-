@@ -57,6 +57,24 @@ describe("journée de guichet", () => {
     await expect(api.guichet.depot({ cle: cle(), compteId: 2, montant: 30000, coupures: { 20000: 1 } })).rejects.toThrow("billetage ne fait pas");
   });
 
+  it("exercices (S11, p. 20 et 21) : année obligatoire et unique, cases Actif, Ouvert, Validé, ouverture avec les journaux", async () => {
+    await connecter("jpmukendi");
+    let l = await api.exercices.lire();
+    expect([l.exercices.map((e) => [e.annee, e.ouvert, e.valide]), l.enCours]).toEqual([[[2025, true, true], [2026, true, false]], 2026]);
+    await expect(api.exercices.enregistrer({ annee: "", lignes: [] })).rejects.toThrow("année");
+    await expect(api.exercices.enregistrer({ annee: "20x7", lignes: [] })).rejects.toThrow("invalide");
+    await expect(api.exercices.enregistrer({ annee: "2026", lignes: [] })).rejects.toThrow("existe déjà");
+    l = await api.exercices.enregistrer({ annee: "2027", lignes: [] });
+    expect(l.exercices).toContainEqual({ annee: 2027, actif: false, ouvert: false, valide: false });
+    l = await api.exercices.enregistrer({ annee: "", lignes: [{ annee: 2027, actif: true, ouvert: false, valide: false }] });
+    expect(l.exercices.find((e) => e.annee === 2027)?.actif).toBe(true);
+    l = await api.exercices.ouvrir(2027);
+    expect([l.details.filter((d) => d.annee === 2027).length, l.enCours]).toEqual([l.journaux.length, 2027]);
+    await expect(api.exercices.ouvrir(2027)).rejects.toThrow("déjà ouvert");
+    await connecter("bkasongo");
+    await expect(api.exercices.enregistrer({ annee: "2028", lignes: [] })).rejects.toThrow("chef d'agence");
+  });
+
   it("guichets (S08 p. 18, S09 p. 19) : champs obligatoires, code unique, ouverture d'un guichet actif, fermeture", async () => {
     await connecter("jpmukendi"); await api.journees.ouvrir("2026-11-05");
     const d = { agenceId: 1, code: "G3", designation: "Caisse 3", typeGuichet: "SECONDAIRE", journalId: 1, maximumCaisse: 0, retraitPlafonne: 0,

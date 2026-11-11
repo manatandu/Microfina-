@@ -122,6 +122,11 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       clients: () => get("/rapports/clients"),
       modifications: () => get("/rapports/modifications"),
     },
+    exercices: {
+      lire: () => get("/exercices"),
+      enregistrer: (d: object) => post("/exercices", d),
+      ouvrir: (annee: number | string) => post(`/exercices/${annee}/ouverture`),
+    },
     guichets: {
       lire: () => get("/guichets"),
       creer: (d: object) => post("/guichets", d),
