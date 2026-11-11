@@ -20,6 +20,10 @@ PCCI = [("570", "Monnaies nationale et étrangère", 5, "actif"), ("330", "Épar
         ("715", "Commissions sur opérations avec la clientèle ou les membres", 7, "produit"), ("728", "Autres commissions", 7, "produit")]
 
 
+
+SECTEURS = [("S1", "PRIMAIRE"), ("S2", "SECONDAIRE"), ("S3", "TERTIAIRE"), ("S4", "Transformation"), ("S5", "Autre activités"),
+            ("S6", "Commerce"), ("S7", "Artisanat"), ("S8", "Elevage")]
+
 class Command(BaseCommand):
     help = "Charge les données fictives de démonstration dans une base vide."
 
@@ -68,6 +72,9 @@ class Command(BaseCommand):
         # Exercices (S11), données fictives : 2025 validé, 2026 actif et ouvert avec ses journaux
         executer("insert into exercice (institution_id, annee, actif, ouvert, valide) values (%s, 2025, true, true, true), (%s, 2026, true, true, false)", (ins, ins))
         executer("insert into journal_detail (institution_id, annee, journal_id) select %s, 2026, id from journal where institution_id = %s", (ins, ins))
+        # Secteurs d'activité de démonstration, ceux de la capture du manuel p. 23 (S14)
+        for c, l in SECTEURS:
+            executer("insert into secteur_activite (institution_id, code, libelle) values (%s, %s, %s)", (ins, c, l))
         for ev in ("depot", "retrait", "adhesion", "achat_parts", "retrait_parts", "a_nouveaux"):
             executer("""insert into schema_comptable (institution_id, type_evenement, version, date_effet, lignes, propose_par, valide_par)
                         values (%s, %s, 1, '2026-01-01', '[]', %s, %s)""", (ins, ev, compta, chef))

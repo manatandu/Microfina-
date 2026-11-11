@@ -124,6 +124,10 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       modifications: () => get("/rapports/modifications"),
       transactions: (du: string, au: string) => get(`/rapports/transactions?du=${encodeURIComponent(du)}&au=${encodeURIComponent(au)}`),
     },
+    secteurs: {
+      lire: () => get("/secteurs"),
+      creer: (d: object) => post("/secteurs", d),
+    },
     exercices: {
       lire: () => get("/exercices"),
       enregistrer: (d: object) => post("/exercices", d),

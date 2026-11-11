@@ -37,6 +37,9 @@ const OUT = process.argv[2];
   await aller('/administration/s11b'); await p.getByLabel('Exerice à ouvrir').fill('2027'); await p.getByRole('button', { name: 'Ouvrir', exact: true }).click(); await oui();
   await p.getByRole('cell', { name: 'Journal Banque', exact: true }).waitFor(); await etape('02d-ouverture-exercice');
   await aller('/administration/s11c'); await p.getByRole('cell', { name: 'Liste vide' }).waitFor(); await etape('02e-completer-journal-detail');
+  // Chef : secteur d'activité (S14, p. 23)
+  await aller('/parametrage/s14'); await p.getByLabel('N° secteur : *').fill('S9'); await p.getByLabel("Secteur d'activite : *").fill('Pêche');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Pêche' }).waitFor(); await etape('02f-secteurs-activite');
   // Caissière : ouvrir la caisse (sans comptage : Microfina++ ne compte qu'à l'arrêté, p. 90 et 91)
   await login('Esther Ngalula');
   await aller('/principal'); await etape('01c-menu-general');
@@ -267,6 +270,7 @@ const OUT = process.argv[2];
   for (const [num, dev] of [['0412-000318-02', 'CDF'], ['0412-000318-01', 'USD']]) {
     await p.getByLabel('N° compte').selectOption({ label: num }); await p.getByLabel('Montant *').fill('1');
     await p.getByRole('button', { name: 'Billetage' }).click(); const fen = p.getByRole('dialog', { name: 'Billetage' });
+    await fen.getByLabel(new RegExp(` ${dev}$`)).first().waitFor();   // la fenêtre montre bien la devise du compte choisi
     stock[dev] = await fen.locator('tbody tr').evaluateAll(rs => rs.map(r => [r.cells[0].textContent.replace(/\D/g, ''), r.cells[1].textContent.replace(/\D/g, '')]));
     await fen.getByRole('button', { name: 'Fermer' }).click();
   }

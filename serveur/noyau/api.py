@@ -9,6 +9,7 @@ from . import procurations as pr
 from . import banques as bq
 from . import guichets as gu
 from . import exercices as ex
+from . import secteurs as se
 from . import services as s
 from .bd import ErreurMetier
 
@@ -505,3 +506,14 @@ def ex_enregistrer(request, corps: dict = Body(...)):
 @api.post("/exercices/{annee}/ouverture")
 def ex_ouvrir(request, annee: int):
     return ex.ouvrir(u(request), annee)
+
+
+# ---------- Info de base : secteur d'activité (S14) ----------
+@api.get("/secteurs")
+def se_lire(request):
+    return se.lire(u(request))
+
+
+@api.post("/secteurs")
+def se_creer(request, corps: dict = Body(...)):
+    return se.creer(u(request), corps)

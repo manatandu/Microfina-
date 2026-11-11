@@ -7,6 +7,7 @@ import { GestionGuichets, OuvertureFermetureGuichets } from "./Guichets";
 import { CompleterJournalDetail, NouvelExercice, OuvertureExercice } from "./Exercices";
 import { EnrolementEntreprise, EnrolementGroupe, EnrolementPhysique, MiseAJourClient } from "./Membres";
 import RapportTransactions from "./Transactions";
+import SecteursActivite from "./Secteurs";
 import { EcranJournee, EcranValidation, FermetureJournee } from "./Journee";
 import { Consentement, InformationsClient, ModificationFrais, PhotosSignatures, ResiliationClient, ValidationClientModifie, VisaClient } from "./Visa";
 import { FraisOperations } from "./Parametrage";
@@ -26,6 +27,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S11c: CompleterJournalDetail,
   S12: EcranJournee,
   S13: RapportTransactions,
+  S14: SecteursActivite,
   S16: FraisOperations,
   S37: EnrolementPhysique,
   S38: EnrolementEntreprise,

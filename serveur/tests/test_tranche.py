@@ -564,3 +564,19 @@ def test_rapport_des_transactions(clients, journee):
     assert l == [{"utilisateur": "Esther Ngalula", "operations": 2, "annulations": 0, "transactions": 2}]
     assert chef.get("/api/rapports/transactions?du=2026-11-06&au=2026-11-30", **H).json() == []
     r = chef.get("/api/rapports/transactions?du=&au=2026-11-05", **H); assert r.status_code == 422 and "DU et AU" in r.json()["message"]
+
+
+def test_secteurs_activite(clients):
+    """S14 (p. 23) : N° secteur et Secteur d'activite obligatoires ; liste Numero, Secteur"""
+    chef, agent = clients["chef"], clients["agent"]
+    connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    l = chef.get("/api/secteurs", **H).json()
+    assert [s["code"] for s in l][:3] == ["S1", "S2", "S3"] and l[0]["libelle"] == "PRIMAIRE"
+    def refus(c):
+        r = chef.post("/api/secteurs", c, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    assert "N° secteur" in refus({"code": "", "libelle": "Pêche"})
+    assert "Secteur d'activite" in refus({"code": "S9", "libelle": " "})
+    assert "existe déjà" in refus({"code": "S1", "libelle": "Pêche"})
+    assert agent.post("/api/secteurs", {"code": "S9", "libelle": "Pêche"}, **H).status_code == 403
+    l = chef.post("/api/secteurs", {"code": "S9", "libelle": "Pêche"}, **H).json()
+    assert {"code": "S9", "libelle": "Pêche"} in [{"code": s["code"], "libelle": s["libelle"]} for s in l]

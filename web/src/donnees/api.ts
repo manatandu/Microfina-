@@ -15,7 +15,7 @@ import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@d
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v19";
+const CLE = "likelemba-demo-v20";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -23,7 +23,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 19) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 20) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -749,6 +749,19 @@ const NOSTRI: Record<string, string> = { "5600": "Organe faîtier", "5601": "Ban
 const JOURNAUX_BANQUE = [{ id: 3, code: "BQ", libelle: "Journal Banque" }];
 export type SaisieBanque = { code: string; libelle: string; compteLiaison: string; adresse: string };
 export type SaisieCompteBancaire = { banqueId: number; compte: string; numeroBancaire: string; devise: string; journalId: number; contactNom: string; contactNomComplet: string; contactTelephone: string };
+// ---------- Info de base : secteur d'activité (S14, manuel p. 23). Règles identiques côté serveur (noyau/secteurs.py). ----------
+const secteurs = {
+  lire() { exiger(); return [...E.secteurs].sort((a, b) => a.code.localeCompare(b.code)); },
+  creer(d: { code: string; libelle: string }) {
+    exiger("chef_agence");   // profil habilité : à confirmer
+    const v = { code: d.code.trim(), libelle: d.libelle.trim() };
+    const manque = manquants([["N° secteur", v.code], ["Secteur d'activite", v.libelle]]);
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    if (E.secteurs.some((x) => x.code === v.code)) throw new ErreurMetier("Ce N° secteur existe déjà.");
+    E.secteurs.push({ id: prochain(E.secteurs), ...v }); enregistrer(); return secteurs.lire();
+  },
+};
+
 const banques = {
   lire() {
     exiger();
@@ -1237,6 +1250,7 @@ const apiLocal = {
   banques: asynchrone(banques),
   guichets: asynchrone(guichets),
   exercices: asynchrone(exercices),
+  secteurs: asynchrone(secteurs),
 };
 
 export type ApiDonnees = typeof apiLocal;

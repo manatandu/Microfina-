@@ -373,6 +373,17 @@ describe("journée de guichet", () => {
     await expect(api.rapports.transactions("", "2026-11-05")).rejects.toThrow("DU et AU");
   });
 
+  it("secteurs d'activité (S14, p. 23) : champs obligatoires, numéro unique", async () => {
+    await connecter("jpmukendi");
+    expect((await api.secteurs.lire()).map((x) => x.code).slice(0, 3)).toEqual(["S1", "S2", "S3"]);
+    await expect(api.secteurs.creer({ code: "", libelle: "Pêche" })).rejects.toThrow("N° secteur");
+    await expect(api.secteurs.creer({ code: "S1", libelle: "Pêche" })).rejects.toThrow("existe déjà");
+    await connecter("bkasongo");
+    await expect(api.secteurs.creer({ code: "S9", libelle: "Pêche" })).rejects.toThrow();
+    await connecter("jpmukendi");
+    expect((await api.secteurs.creer({ code: "S9", libelle: "Pêche" })).at(-1)).toMatchObject({ code: "S9", libelle: "Pêche" });
+  });
+
   it("quatre yeux sur le billetage", async () => {
     await connecter("jpmukendi"); await api.journees.ouvrir("2026-11-05");
     await connecter("engalula");

@@ -245,3 +245,16 @@ dl.infos { display: grid; gap: var(--espace-2); margin: 0; }
 .montant-lettres { margin: 0; color: var(--tampon); font-style: italic; }
 .multi-ligne { white-space: pre-line; }
 textarea.saisie.montant { resize: none; text-align: end; }
+
+/* S14 (p. 23) : liste des pages de Info de base > Client > Général, à gauche du formulaire */
+.page-liste-gauche { display: grid; grid-template-columns: 12rem minmax(0, 1fr); gap: var(--espace-4); align-items: start; }
+@media (max-width: 720px) { .page-liste-gauche { grid-template-columns: minmax(0, 1fr); } }
+.liste-gauche { list-style: none; margin: 0; padding: var(--espace-2); background: var(--feuille); border: 1px solid var(--trait); border-radius: var(--rayon-bloc); font-size: var(--taille-dense); }
+.liste-gauche li { padding: var(--espace-1) var(--espace-2); border-radius: var(--rayon-petit); }
+.liste-gauche li[aria-current="page"] { background: var(--tampon-pale); color: var(--tampon); font-weight: 600; }
+.liste-gauche li.non-construit { color: var(--encre-2); }
+/* Libellé à gauche du champ, comme sur la capture p. 23 */
+.champs-a-gauche .champ { grid-template-columns: 10rem auto; align-items: center; justify-content: start; }
+.champs-a-gauche .champ .saisie { inline-size: 16rem; }
+.champs-a-gauche .champ .saisie.code { inline-size: 9rem; }
+@media (max-width: 720px) { .champs-a-gauche .champ { grid-template-columns: minmax(0, 1fr); } .champs-a-gauche .champ .saisie { inline-size: 100%; } }
