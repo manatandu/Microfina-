@@ -170,6 +170,11 @@ def rapport_modifications(request):
     return s.rapport_modifications(u(request))
 
 
+@api.get("/rapports/transactions")
+def rapport_transactions(request, du: str = "", au: str = ""):
+    return s.rapport_transactions(u(request), du, au)
+
+
 @api.get("/tiers/a-revalider")
 def tiers_a_revalider(request):
     return s.tiers_a_revalider(u(request))

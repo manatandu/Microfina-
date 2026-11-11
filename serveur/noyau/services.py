@@ -731,6 +731,18 @@ def rapport_modifications(u: dict) -> list[dict]:
                                order by m.modifie_le desc""", (u["institution_id"],))]
 
 
+def rapport_transactions(u: dict, du: str, au: str) -> list[dict]:
+    """S13, « Rapport des transactions » (manuel p. 22) : par utilisateur, opérations de la période (date des journées de l'agence).
+    Pas encore d'annulation d'opération dans le logiciel : Nbres Annulations vaut 0 (à confirmer). Transactions = Opérations - Annulations (capture p. 22)."""
+    exiger(u)
+    if not du or not au:
+        raise ErreurMetier("À remplir : DU et AU.")
+    r = lignes("""select o.saisi_par, count(*) as n from operation o join journee_comptable j on j.id = o.journee_id
+                  where o.agence_id = %s and j.date_comptable between %s and %s group by o.saisi_par""", (u["agence_id"], du, au))
+    sortie = [{"utilisateur": nom_utilisateur(x["saisi_par"]), "operations": x["n"], "annulations": 0, "transactions": x["n"]} for x in r]
+    return sorted(sortie, key=lambda x: x["utilisateur"].lower())
+
+
 def modifications_tiers(u: dict, tid: int) -> list[dict]:
     """« Informations initiales et actuelles » (S43, p. 54) : chaque modification (S46) avec l'état avant et après"""
     exiger(u)

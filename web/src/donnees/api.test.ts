@@ -364,6 +364,15 @@ describe("journée de guichet", () => {
     await expect(api.guichet.depot({ cle: cle(), compteId: 4, montant: 2000000, coupures: { 20000: 1 } })).rejects.toThrow();
   });
 
+  it("rapport des transactions (S13, p. 22) : par utilisateur sur la période", async () => {
+    await journeeOuverte();
+    for (let i = 0; i < 2; i++) await api.guichet.depot({ cle: cle(), compteId: 4, montant: 2000000, coupures: { 20000: 1 } });
+    await connecter("jpmukendi");
+    expect(await api.rapports.transactions("2026-11-05", "2026-11-05")).toEqual([{ utilisateur: "Esther Ngalula", operations: 2, annulations: 0, transactions: 2 }]);
+    expect(await api.rapports.transactions("2026-11-06", "2026-11-30")).toEqual([]);
+    await expect(api.rapports.transactions("", "2026-11-05")).rejects.toThrow("DU et AU");
+  });
+
   it("quatre yeux sur le billetage", async () => {
     await connecter("jpmukendi"); await api.journees.ouvrir("2026-11-05");
     await connecter("engalula");

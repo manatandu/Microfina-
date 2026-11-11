@@ -553,3 +553,14 @@ def test_liste_des_journees(clients, journee):
     """S12 (p. 21) : Journée, Ouverte par, Heure ouverture, Date fermeture, Fermée par ; la plus récente d'abord"""
     l = clients["chef"].get("/api/journees", **H).json()
     assert [j["date"] for j in l][:2] == ["2026-11-05", "2026-11-04"] and l[0]["ouverteLe"] and l[0]["fermeeLe"] is None
+
+
+def test_rapport_des_transactions(clients, journee):
+    """S13 (p. 22) : par utilisateur, Nbres Opérations, Nbres Annulations, Nbres Tansactions sur la période DU AU"""
+    caisse, chef = clients["caisse"], clients["chef"]
+    for _ in range(2):
+        assert caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}}, **H).status_code == 200
+    l = chef.get("/api/rapports/transactions?du=2026-11-05&au=2026-11-05", **H).json()
+    assert l == [{"utilisateur": "Esther Ngalula", "operations": 2, "annulations": 0, "transactions": 2}]
+    assert chef.get("/api/rapports/transactions?du=2026-11-06&au=2026-11-30", **H).json() == []
+    r = chef.get("/api/rapports/transactions?du=&au=2026-11-05", **H); assert r.status_code == 422 and "DU et AU" in r.json()["message"]
