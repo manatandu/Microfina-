@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**130 décisions.** Solidité : 50 fortes (le manuel ou un texte répond), 62 moyennes (déduites d'un écran voisin ou d'une donnée), 18 faibles (notre choix, faute de mieux). Dans le code : 54 déjà en place, 76 à appliquer.
+**130 décisions.** Solidité : 50 fortes (le manuel ou un texte répond), 62 moyennes (déduites d'un écran voisin ou d'une donnée), 18 faibles (notre choix, faute de mieux). Dans le code : 56 déjà en place, 74 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -83,8 +83,8 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | S12-1 | Date à ouvrir | Postérieure à la dernière journée, dans un exercice ouvert | Texte réglementaire : PCCI § 3.4 (chronologie) | forte | en place |
 | S12-2 | Plusieurs journées sans fermeture | Règle T14 : une seule journée reçoit des opérations, plusieurs peuvent attendre la comptabilisation | Manuel : Manuel p. 22 et 130 | moyenne | à appliquer |
-| S12-3 | Colonnes Date fermeture et Fermée par | Date et auteur de la comptabilisation de la journée (S111) | Manuel : Manuel p. 22 ; p. 130 | moyenne | à appliquer |
-| S12-4 | Ouvrir la journée suivante | Refusé tant qu'un guichet de la journée précédente est encore ouvert | Choix du porteur : ARCHITECTURE P8 | moyenne | à appliquer |
+| S12-3 | Colonnes Date fermeture et Fermée par | Date et auteur de la comptabilisation de la journée (S111) | Manuel : Manuel p. 22 ; p. 130 | moyenne | en place |
+| S12-4 | Ouvrir la journée suivante | Refusé tant qu'un guichet de la journée précédente est encore ouvert | Choix du porteur : ARCHITECTURE P8 | moyenne | en place |
 
 ## S13 Rapport des transactions
 

@@ -47,8 +47,8 @@ S11-7,S11 Exercices,Usage du compteur,Dernier numéro de pièce du journal dans 
 S11-8,S11 Exercices,Bouton de « Compléter journal détail » (bas coupé),"Bouton Enregistrer sous la liste : ajoute les journaux cochés à l'exercice en cours, avec confirmation",G,Manuel p. 11 (Enregistrer une information),moyenne,en place,retenu,12/11/2026
 S12-1,S12 Ouverture de journée,Date à ouvrir,"Postérieure à la dernière journée, dans un exercice ouvert",R,PCCI § 3.4 (chronologie),forte,en place,retenu,12/11/2026
 S12-2,S12 Ouverture de journée,Plusieurs journées sans fermeture,"Règle T14 : une seule journée reçoit des opérations, plusieurs peuvent attendre la comptabilisation",M,Manuel p. 22 et 130,moyenne,à appliquer,retenu,12/11/2026
-S12-3,S12 Ouverture de journée,Colonnes Date fermeture et Fermée par,Date et auteur de la comptabilisation de la journée (S111),M,Manuel p. 22 ; p. 130,moyenne,à appliquer,retenu,12/11/2026
-S12-4,S12 Ouverture de journée,Ouvrir la journée suivante,Refusé tant qu'un guichet de la journée précédente est encore ouvert,P,ARCHITECTURE P8,moyenne,à appliquer,retenu,12/11/2026
+S12-3,S12 Ouverture de journée,Colonnes Date fermeture et Fermée par,Date et auteur de la comptabilisation de la journée (S111),M,Manuel p. 22 ; p. 130,moyenne,en place,retenu,12/11/2026
+S12-4,S12 Ouverture de journée,Ouvrir la journée suivante,Refusé tant qu'un guichet de la journée précédente est encore ouvert,P,ARCHITECTURE P8,moyenne,en place,retenu,12/11/2026
 S13-1,S13 Rapport des transactions,Ce qui compte comme opération,"Toute opération saisie par l'utilisateur, dans tous les menus (caisse, banque, comptabilité)",M,Manuel p. 22 (« rapport des opérations »),moyenne,à appliquer,retenu,12/11/2026
 S13-2,S13 Rapport des transactions,Ce qui compte comme annulation,"Une opération annulée (S142, et rapport des annulations S118). Reste à 0 tant que S142 n'est pas construit",D,"S142 (p. 158), S118 (p. 137)",moyenne,à appliquer,retenu,12/11/2026
 S13-3,S13 Rapport des transactions,Transactions,Opérations moins annulations,M,Chiffres de la capture p. 22,forte,en place,retenu,12/11/2026

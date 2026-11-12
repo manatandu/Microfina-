@@ -655,3 +655,9 @@ def test_affectation_des_guichets(clients):
     chef.post("/api/journees", {"date": "2026-11-05"}, **H)
     r = caisse.post("/api/caisses", {"guichetId": g1}, **H)
     assert r.status_code == 422 and "pas affecté" in r.json()["message"]
+
+
+def test_journee_suivante_refusee_guichet_ouvert(clients, journee):
+    """S12, registre S12-4 : pas de journée suivante tant qu'un guichet est ouvert ; le message nomme le guichet"""
+    r = clients["chef"].post("/api/journees", {"date": "2026-11-06"}, **H)
+    assert r.status_code == 422 and "Guichet encore ouvert : Caisse 2 (05/11/2026)" in r.json()["message"]

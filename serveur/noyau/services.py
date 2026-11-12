@@ -140,6 +140,13 @@ def journee_courante(u: dict) -> dict | None:
 
 def ouvrir_journee(u: dict, jour: str) -> dict:
     exiger(u, "chef_agence")
+    # Registre S12-4 : pas de journée suivante tant qu'un guichet d'une journée précédente est ouvert ; le message nomme les guichets
+    restes = lignes("""select g.nom, j.date_comptable from session_caisse s join guichet g on g.id = s.guichet_id
+                       join journee_comptable j on j.id = s.journee_id
+                       where j.agence_id = %s and s.statut = 'ouverte' and s.fermee_le is null order by g.code""", (u["agence_id"],))
+    if restes:
+        raise ErreurMetier("Guichet encore ouvert : " + ", ".join(f"{r['nom']} ({fr(r['date_comptable'].isoformat())})" for r in restes)
+                           + ". Le fermer d'abord (Administration > Guichet > Ouverture/Fermeture).")
     if une("select 1 from journee_comptable where agence_id = %s and statut <> 'fermee'", (u["agence_id"],)):
         raise ErreurMetier("Une journée est déjà ouverte dans cette agence.")
     e = une("select * from exercice where institution_id = %s and annee = %s", (u["institution_id"], int(str(jour)[:4])))

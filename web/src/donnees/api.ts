@@ -100,6 +100,9 @@ const journees = {
   liste: (): Journee[] => { exiger(); return [...E.journees].sort((a, b) => b.date.localeCompare(a.date)); },
   ouvrir(date: string) {
     exiger("chef_agence");
+    // Registre S12-4 : pas de journée suivante tant qu'un guichet d'une journée précédente est ouvert ; le message nomme les guichets
+    const restes = E.sessions.filter((x) => x.statut === "ouverte");
+    if (restes.length) throw new ErreurMetier(`Guichet encore ouvert : ${restes.map((x) => `${E.guichets.find((g) => g.id === x.guichetId)?.nom ?? ""} (${fr(E.journees.find((j) => j.id === x.journeeId)?.date ?? "")})`).join(", ")}. Le fermer d'abord (Administration > Guichet > Ouverture/Fermeture).`);
     if (E.journees.some((j) => j.statut !== "fermee")) throw new ErreurMetier("Une journée est déjà ouverte dans cette agence.");
     const ex = E.exercices.find((e) => e.annee === Number(date.slice(0, 4)));
     // Registre S11-2 et S12-1 : une journée ne s'ouvre que dans un exercice ouvert et non validé (S11)

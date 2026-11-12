@@ -428,6 +428,12 @@ describe("journée de guichet", () => {
     await expect(api.caisses.ouvrir(1)).rejects.toThrow("pas affecté");
   });
 
+  it("journée suivante refusée tant qu'un guichet est ouvert (S12, registre S12-4)", async () => {
+    await journeeOuverte();
+    await connecter("jpmukendi");
+    await expect(api.journees.ouvrir("2026-11-06")).rejects.toThrow("Guichet encore ouvert : Caisse 2 (05/11/2026)");
+  });
+
   it("quatre yeux sur le billetage", async () => {
     await connecter("jpmukendi"); await api.journees.ouvrir("2026-11-05");
     await connecter("engalula");
