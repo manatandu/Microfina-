@@ -59,6 +59,10 @@ const OUT = process.argv[2];
   await p.getByRole('cell', { name: 'AGENCE' }).click(); await p.getByRole('button', { name: 'Tout en haut' }).click();
   await p.getByRole('button', { name: 'Générer' }).click(); await p.getByText('0412-000321-TJ').waitFor(); await etape('02g-parametrages-clients');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  // Chef : numéro de compte client (S17, p. 26) : Générer un exemple
+  await aller('/parametrage/s17'); await p.getByLabel('Prefixe').check(); await p.getByLabel('Position').fill('3');
+  await p.getByRole('button', { name: 'Générer' }).click(); await p.getByText('0412-0412-000318-002').waitFor(); await etape('02h-numero-compte');
+  await p.getByRole('button', { name: 'Annuler' }).click();
   // Caissière : ouvrir la caisse (sans comptage : Microfina++ ne compte qu'à l'arrêté, p. 90 et 91)
   await login('Esther Ngalula');
   await aller('/principal'); await etape('01c-menu-general');

@@ -9,7 +9,7 @@ import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
   type Operation, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
-  type RegleNumerotation,
+  type RegleNumerotation, type RegleNumeroCompte, type Produit,
 } from "./types";
 import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 import PCCI from "@pcci";
@@ -17,7 +17,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v28";
+const CLE = "likelemba-demo-v29";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -25,7 +25,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 28) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 29) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -842,6 +842,13 @@ export function composerNumero(regle: RegleNumerotation | null | undefined, vale
   return ordre.map((e) => e === "COMPTEUR" ? String(valeurs.COMPTEUR).padStart(6, "0")
     : e === "PREFIXE" || e === "SUFFIXE" ? regle![e.toLowerCase() as "prefixe" | "suffixe"].valeur : String(valeurs[e] ?? "")).filter(Boolean).join("-");
 }
+/** S17 (p. 26) : [Préfixe]-N° Client-[Suffixe]. Préfixe : code de l'agence (S17-4) ; Suffixe : numéro du produit sur « Position » chiffres (S17-2, S17-3).
+ *  Sans règle : N° Client et suffixe sur deux chiffres, la numérotation en place (S17-6). */
+export function composerNumeroCompte(regle: RegleNumeroCompte | null | undefined, numeroClient: string, codeAgence: string, numeroProduit?: number) {
+  const r = regle ?? { prefixe: false, suffixe: true, position: 2 };
+  return [...(r.prefixe ? [codeAgence] : []), numeroClient, ...(r.suffixe ? [String(numeroProduit ?? 0).padStart(r.position, "0")] : [])].join("-");
+}
+function numeroCompte(numeroClient: string, produit: Produit) { return composerNumeroCompte(E.numerotationCompte, numeroClient, E.agence.code, produit.numero); }
 function numeroClient() {
   const regle = E.numerotation[String(ID_INSTITUTION)];
   E.compteurs.tiers = Math.max(E.compteurs.tiers + 1, regle?.compteur ?? 1);   // registre S15-3 et S15-7
@@ -878,6 +885,18 @@ const numerotation = {
     if ([...r.ordre].sort().join() !== [...attendu].sort().join()) throw new ErreurMetier("Ordre des éléments : il doit reprendre les éléments cochés et le compteur.");
     for (const [k, nom] of [["prefixe", "Préfixe"], ["suffixe", "Suffixe"]] as const) if (r[k].actif && !r[k].valeur) throw new ErreurMetier(`À remplir : valeur du ${nom}.`);
     E.numerotation[String(ID_INSTITUTION)] = r; enregistrer(); return numerotation.lire();
+  },
+  /** S17 (p. 26) : la règle enregistrée et un exemple pour Générer (S17-7) */
+  lireCompte() {
+    exiger();
+    const t = E.tiers.find((x) => x.statut === "actif");
+    return { regle: E.numerotationCompte, exemple: { numeroClient: t?.numero ?? "", agence: E.agence.code, produit: Math.max(1, ...E.produits.map((p) => p.numero ?? 0)) } };
+  },
+  /** Enregistrer : Prefixe, Suffixe, Position ; le N° Client est toujours présent (S17-1) */
+  enregistrerCompte(d: { prefixe: boolean; suffixe: boolean; position: number }) {
+    exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
+    if (!Number.isInteger(d.position) || d.position < 1 || d.position > 9) throw new ErreurMetier("Position : un nombre de 1 à 9.");
+    E.numerotationCompte = { prefixe: !!d.prefixe, suffixe: !!d.suffixe, position: d.position }; enregistrer(); return numerotation.lireCompte();
   },
 };
 
@@ -1018,7 +1037,7 @@ const guichet = {
     controlerCoupures(p.coupures, total, "CDF");
     if (enUsd(total, "CDF") + especesDuJourUsd(t.id, "depot") >= SEUIL_ESPECES_USD)
       throw new ErreurMetier("Examen renforcé requis (10 000 USD ou plus en espèces dans la journée). Le circuit de conformité n'est pas encore construit : opération bloquée.", "Instr. BCC 15 bis, art. 1, 6 et 7");
-    const cCdf: CompteDepot = { id: E.comptes.length + 1, tiersId: t.id, numero: `${t.numero}-02`, intitule: produit.libelle, pcci: "330", devise: "CDF", bloque: 0 };
+    const cCdf: CompteDepot = { id: E.comptes.length + 1, tiersId: t.id, numero: numeroCompte(t.numero, produit), intitule: produit.libelle, pcci: "330", devise: "CDF", bloque: 0 };
     E.comptes.push(cCdf);
     const lignes: Ligne[] = [
       { compte: "570", contrat: guichetDe(s), sens: "D", devise: "CDF", montant: total, montantCdf: total },

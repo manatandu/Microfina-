@@ -283,3 +283,5 @@ textarea.saisie.montant { resize: none; text-align: end; }
 .arbre-plan li.feuille { padding: 2px 0 2px var(--espace-4); }
 .plan-consultation .saisie { inline-size: 14rem; }
 .champs-a-gauche .champ .ligne-champ { flex-wrap: nowrap; align-items: center; }
+/* S17 (p. 26) : numéro d'exemple à côté de la Position */
+.apercu-numero { font-family: var(--police-chiffres); font-weight: 600; color: var(--tampon); }

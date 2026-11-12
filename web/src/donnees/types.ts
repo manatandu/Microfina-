@@ -169,10 +169,10 @@ export interface ParamFrais { id: number; fraisId: number; nature: string; valeu
 export type ParamOperation = ParamFrais & { sousType: string };
 export type ParamAdhesion = ParamFrais & { typeMembre: string };
 
-export interface Produit { code: string; libelle: string; devise: Devise }
+export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 28;
+  version: 29;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];
@@ -201,6 +201,7 @@ export interface Etat {
   listes: LigneListe[];   // moteur des listes simples : S14, S14a à S14n
   numerotation: Record<string, RegleNumerotation>;   // S15, par institution
   affectations: AffectationGuichet[];   // S10
+  numerotationCompte: RegleNumeroCompte | null;   // S17
   comptesInstitution: CompteInstitution[];   // S102 : comptes divisionnaires ouverts par l'institution (PCCI § 9)
   comptesBancaires: { id: number; banqueId: number; compte: string; libelle: string; numeroBancaire: string; devise: Devise; journalId: number; contactNom: string; contactNomComplet: string; contactTelephone: string }[];
   consentements: { id: number; tiersId: number; code: string; dateDebut: string; dateFin: string; commentaire: string }[];   // S50
@@ -245,3 +246,6 @@ export interface OptionsCompte {
   immobilisation: boolean; compteTaxe: boolean; compteTaxable: boolean; typeSuivi: string;
 }
 export type CompteInstitution = OptionsCompte & { numero: string; libelle: string; classe: number };
+
+/** S17 (manuel p. 26) : Prefixe, Suffixe, Position ; le N° Client est toujours présent */
+export interface RegleNumeroCompte { prefixe: boolean; suffixe: boolean; position: number }

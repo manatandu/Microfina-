@@ -57,3 +57,28 @@ def enregistrer(u, d) -> dict:
                 on conflict (institution_id) do update set regle = excluded.regle, modifie_par = excluded.modifie_par, modifie_le = now()""",
              (u["institution_id"], Jsonb(regle), u["id"]))
     return lire(u)
+
+
+# ---------- S17 : Paramétrage du Compte Client (manuel Microfina++, p. 26) ----------
+
+def lire_compte(u) -> dict:
+    """La règle enregistrée (« Pamamétrage du N° des Compte Client ») et un exemple pour Générer (registre S17-7)"""
+    exiger(u)
+    r = une("select prefixe, suffixe, position from numerotation_compte where institution_id = %s", (u["institution_id"],))
+    ag = une("select code from agence where id = %s", (u["agence_id"],))
+    t = une("select numero from tiers where institution_id = %s and statut = 'actif' order by id limit 1", (u["institution_id"],))
+    p = une("select numero from produit_epargne where institution_id = %s and numero is not null order by numero desc limit 1", (u["institution_id"],))
+    return {"regle": r, "exemple": {"numeroClient": t["numero"] if t else "", "agence": ag["code"], "produit": p["numero"] if p else 1}}
+
+
+def enregistrer_compte(u, d) -> dict:
+    """Enregistrer : Prefixe, Suffixe, Position ; le N° Client est toujours présent (case grisée p. 26, registre S17-1)"""
+    exiger(u, "chef_agence")          # profil habilité : registre T07, en attendant S03 à S06
+    d = d if isinstance(d, dict) else {}
+    p = d.get("position")
+    if isinstance(p, bool) or not isinstance(p, int) or not 1 <= p <= 9:
+        raise ErreurMetier("Position : un nombre de 1 à 9.")
+    executer("""insert into numerotation_compte (institution_id, prefixe, suffixe, position, modifie_par) values (%s, %s, %s, %s, %s)
+                on conflict (institution_id) do update set prefixe = excluded.prefixe, suffixe = excluded.suffixe, position = excluded.position,
+                modifie_par = excluded.modifie_par, modifie_le = now()""", (u["institution_id"], bool(d.get("prefixe")), bool(d.get("suffixe")), p, u["id"]))
+    return lire_compte(u)

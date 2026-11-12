@@ -592,3 +592,14 @@ def cp_modifier(request, numero: str, corps: dict = Body(...)):
 @api.post("/plan-comptes/{numero}/suppression")
 def cp_supprimer(request, numero: str):
     return cp.supprimer(u(request), numero)
+
+
+# ---------- Info de base : numéro de compte client (S17) ----------
+@api.get("/numerotation-comptes")
+def nu_lire_compte(request):
+    return nu.lire_compte(u(request))
+
+
+@api.post("/numerotation-comptes")
+def nu_enregistrer_compte(request, corps: dict = Body(...)):
+    return nu.enregistrer_compte(u(request), corps)

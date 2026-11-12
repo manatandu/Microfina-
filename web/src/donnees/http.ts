@@ -128,6 +128,8 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
     numerotation: {
       lire: () => get("/numerotation-clients"),
       enregistrer: (d: object) => post("/numerotation-clients", d),
+      lireCompte: () => get("/numerotation-comptes"),
+      enregistrerCompte: (d: object) => post("/numerotation-comptes", d),
     },
     comptes: {
       lire: () => get("/plan-comptes"),

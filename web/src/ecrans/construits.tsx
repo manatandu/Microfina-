@@ -9,7 +9,7 @@ import { EnrolementEntreprise, EnrolementGroupe, EnrolementPhysique, MiseAJourCl
 import RapportTransactions from "./Transactions";
 import ListesGenerales from "./Secteurs";
 import PlanComptes from "./PlanComptes";
-import ParametragesClients from "./Numerotation";
+import ParametragesClients, { ParametrageCompteClient } from "./Numerotation";
 import { EcranJournee, EcranValidation, FermetureJournee } from "./Journee";
 import { Consentement, InformationsClient, ModificationFrais, PhotosSignatures, ResiliationClient, ValidationClientModifie, VisaClient } from "./Visa";
 import { FraisOperations } from "./Parametrage";
@@ -32,6 +32,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S13: RapportTransactions,
   S14: ListesGenerales,
   S15: ParametragesClients,
+  S17: ParametrageCompteClient,
   S16: FraisOperations,
   S37: EnrolementPhysique,
   S38: EnrolementEntreprise,

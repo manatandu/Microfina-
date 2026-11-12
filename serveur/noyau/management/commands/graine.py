@@ -78,8 +78,9 @@ class Command(BaseCommand):
                         values (%s, %s, 1, '2026-01-01', '[]', %s, %s)""", (ins, ev, compta, chef))
 
         # Produits, guichets
-        for code, libelle, d in (("EAV-CDF", "Épargne à vue", "CDF"), ("EAV-USD", "Épargne à vue", "USD")):
-            executer("insert into produit_epargne (institution_id, code, libelle, famille, devise) values (%s, %s, %s, 'a_vue', %s)", (ins, code, libelle, d))
+        # Numéro du produit (S27) : suffixe des numéros de compte, 01 pour l'USD et 02 pour le CDF comme les comptes de démonstration (S17-2)
+        for code, libelle, d, n in (("EAV-CDF", "Épargne à vue", "CDF", 2), ("EAV-USD", "Épargne à vue", "USD", 1)):
+            executer("insert into produit_epargne (institution_id, code, libelle, famille, devise, numero) values (%s, %s, %s, 'a_vue', %s, %s)", (ins, code, libelle, d, n))
         jca = valeur("select id from journal where code = 'CA' and institution_id = %s", (ins,))   # données fictives (S08)
         g1 = valeur("""insert into guichet (agence_id, code, nom, type_guichet, journal_id, compte_guichet, compte_liaison, compte_surplus, compte_manquant)
                      values (%s, 'G1', 'Caisse 1', 'PRINCIPALE', %s, '570', '579', '7790', '671') returning id""", (ag, jca))

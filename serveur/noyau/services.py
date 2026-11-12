@@ -486,6 +486,24 @@ def numero_client(u: dict) -> str:
     return composer_numero(regle, {"INSTITUTION": ag["sigle"] or "", "AGENCE": ag["code"], "CATEGORIE": "", "COMPTEUR": n})
 
 
+def composer_numero_compte(regle: dict | None, numero_client: str, code_agence: str, numero_produit: int | None) -> str:
+    """S17 (p. 26) : [Préfixe]-N° Client-[Suffixe]. Préfixe : code de l'agence (registre S17-4) ; Suffixe : numéro du produit d'épargne
+    sur « Position » chiffres (S17-2, S17-3). Sans règle : N° Client et suffixe sur deux chiffres, la numérotation en place (S17-6)."""
+    r = regle or {"prefixe": False, "suffixe": True, "position": 2}
+    morceaux = [code_agence] if r["prefixe"] else []
+    morceaux.append(numero_client)
+    if r["suffixe"]:
+        morceaux.append(str(numero_produit or 0).zfill(r["position"]))
+    return "-".join(morceaux)
+
+
+def numero_compte(u: dict, t: dict, produit: dict) -> str:
+    """Numéro d'un nouveau compte selon la règle de S17 ; les comptes déjà ouverts gardent leur numéro (S17-6)"""
+    regle = une("select prefixe, suffixe, position from numerotation_compte where institution_id = %s", (u["institution_id"],))
+    ag = une("select code from agence where id = %s", (t["agence_id"],))
+    return composer_numero_compte(regle, t["numero"], ag["code"], produit.get("numero"))
+
+
 def inserer_tiers(u: dict, d: dict, b: dict, type_: str, agent: str) -> int:
     texte = b["texte"]
     numero = numero_client(u)
@@ -1154,7 +1172,7 @@ def adhesion(u: dict, p: dict) -> dict:
     j = une("select date_comptable from journee_comptable where id = %s", (s["journeeId"],))
     c = valeur("""insert into compte_depot (institution_id, agence_id, tiers_id, produit_id, numero, devise, statut, ouvert_le)
                   values (%s, %s, %s, %s, %s, 'CDF', 'ouvert', %s) returning id""",
-               (u["institution_id"], t["agence_id"], tid, produit["id"], f"{t['numero']}-02", j["date_comptable"]))
+               (u["institution_id"], t["agence_id"], tid, produit["id"], numero_compte(u, t, produit), j["date_comptable"]))
     l = [{"compte": "570", "contrat": f"guichet:{s['guichetId']}", "sens": "D", "devise": "CDF", "montant": total},
          {"compte": compte_parts(t), "contrat": f"parts:{tid}", "sens": "C", "devise": "CDF", "montant": m_parts}]
     if m_depot > 0:

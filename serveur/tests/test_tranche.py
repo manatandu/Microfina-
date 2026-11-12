@@ -244,6 +244,7 @@ def test_adhesion_apres_visa(clients, journee):
     assert caisse.post("/api/guichet/adhesions", {**corps, "coupures": {"5000": 2, "1000": 4}}, **H).status_code == 200
     assert caisse.get(f"/api/tiers/{t['id']}/parts").json() == 3
     assert [c["devise"] for c in caisse.get(f"/api/tiers/{t['id']}/comptes").json()] == ["CDF"]
+    assert [c["numero"] for c in caisse.get(f"/api/tiers/{t['id']}/comptes").json()] == [f"{t['numero']}-02"]   # S17-6 : sans règle, suffixe du produit CDF
     assert ident("select sum(montant_devise) from ligne_ecriture l join compte c on c.id = l.compte_id where c.numero = '728'") == 200000
     assert balance_equilibree(caisse)
 
@@ -721,3 +722,19 @@ def test_plan_des_comptes(clients):
     assert "PCCI" in refus({}, "/api/plan-comptes/570/suppression")
     l = compta.post("/api/plan-comptes/5701/suppression", **H).json()
     assert not [x for x in l["comptes"] if x["numero"] == "5701"]
+
+def test_numero_de_compte(clients):
+    """S17 (p. 26) : règle Prefixe, Suffixe, Position ; sans règle, N° Client et suffixe sur deux chiffres"""
+    from noyau.services import composer_numero_compte
+    assert composer_numero_compte(None, "0412-000321", "0412", 2) == "0412-000321-02"
+    assert composer_numero_compte({"prefixe": True, "suffixe": True, "position": 3}, "0412-000321", "0412", 2) == "0412-0412-000321-002"
+    assert composer_numero_compte({"prefixe": False, "suffixe": False, "position": 2}, "0412-000321", "0412", 2) == "0412-000321"
+    chef, agent = clients["chef"], clients["agent"]
+    connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    l = chef.get("/api/numerotation-comptes", **H).json()
+    assert l["regle"] is None and l["exemple"]["agence"] == "0412"
+    r = chef.post("/api/numerotation-comptes", {"prefixe": True, "suffixe": True, "position": 0}, **H)
+    assert r.status_code == 422 and "Position" in r.json()["message"]
+    assert agent.post("/api/numerotation-comptes", {"prefixe": True, "suffixe": True, "position": 3}, **H).status_code == 403
+    l = chef.post("/api/numerotation-comptes", {"prefixe": True, "suffixe": True, "position": 3}, **H).json()
+    assert l["regle"] == {"prefixe": True, "suffixe": True, "position": 3}

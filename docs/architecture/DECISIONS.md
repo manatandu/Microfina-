@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**144 décisions.** Solidité : 56 fortes (le manuel ou un texte répond), 68 moyennes (déduites d'un écran voisin ou d'une donnée), 20 faibles (notre choix, faute de mieux). Dans le code : 90 déjà en place, 54 à appliquer.
+**151 décisions.** Solidité : 58 fortes (le manuel ou un texte répond), 72 moyennes (déduites d'un écran voisin ou d'une donnée), 21 faibles (notre choix, faute de mieux). Dans le code : 97 déjà en place, 54 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -140,6 +140,18 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S16-11 | Valeur de la part sociale | La part est une ligne de la liste des frais d'adhésion. Sa valeur est celle des statuts, saisie dans Paramétrage frais Adhésion. Son compte est 1030, 1031 ou 1032 selon le membre | Manuel : Manuel p. 64 et 89 (liste des frais avec la part sociale) ; loi 002/2002, art. 20 ; PCCI, compte 103 | forte | à appliquer |
+
+## S17 Numéro de compte client
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S17-1 | Case N° Client | Toujours présente, cochée et grisée | Manuel : Capture p. 26 (case grisée) | forte | en place |
+| S17-2 | Valeur du Suffixe | Le numéro du produit d'épargne du compte (S27 « Numéro »). Démonstration : 01 pour l'USD, 02 pour le CDF, comme les comptes déjà ouverts | Donnée exigée ailleurs : Numéros en place (0412-000318-01 en USD, -02 en CDF) ; S27 Produit épargne (p. 40 : numéro) | moyenne | en place |
+| S17-3 | Champ Position | Nombre de chiffres du suffixe | Manuel : Capture p. 26 : Position 2 et exemple terminé par « 05 » | moyenne | en place |
+| S17-4 | Valeur du Préfixe | Le code de l'agence du compte | Choix du porteur : Aucune valeur à saisir sur la capture ; le code agence identifie le lieu du compte | faible | en place |
+| S17-5 | Liste « Pamamétrage du N° des Compte Client » | Une ligne : la règle en vigueur ; Enregistrer la remplace | Manuel : Capture p. 26 (une ligne) | moyenne | en place |
+| S17-6 | Application | La règle vaut pour les comptes ouverts après son enregistrement ; les numéros existants ne changent pas. Sans règle : N° Client, tiret, suffixe sur deux chiffres | Écran voisin : S15-9 | moyenne | en place |
+| S17-7 | Générer | Affiche un numéro d'exemple à côté de la Position, comme sur la capture | Manuel : Capture p. 26 (exemple en couleur) | forte | en place |
 
 ## S37 à S39, S46 Fiche du client
 
@@ -313,6 +325,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S15-7 | S15 Paramétrages liés aux clients | « Défintion des compteurs » | Tableau en lecture seule : un compteur par agence, avec son dernier numéro |
 | S16-2 | S16 Frais | Natures du frais | Montant, ou Taux (pourcentage du montant de l'opération) |
 | S16-10 | S16 Frais | Frais de livret | Reste paramétrable : l'annexe de l'Instr. BCC 37 ne cite pas le livret. À retirer si la BCC l'assimile à l'ouverture de compte |
+| S17-4 | S17 Numéro de compte client | Valeur du Préfixe | Le code de l'agence du compte |
 | S40-2 | S40 Viser un client | Contrat d'adhésion | Document selon T11. Un seul gabarit ; le vocabulaire suit le profil (membre pour une COOPEC, client pour une IMF) |
 | S44-1 | S44 Groupe solidaire | Un client dans plusieurs groupes | Non : un seul groupe solidaire à la fois. Le retirer avant de l'affecter ailleurs |
 | S44-2 | S44 Groupe solidaire | Code du groupe | Donné par la règle de numérotation des clients (S15) |

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { api, _remplacer, compteParts, enrolementVide } from "./api";
+import { composerNumeroCompte, api, _remplacer, compteParts, enrolementVide } from "./api";
 import { graine } from "./graine";
 import { totalComptage, type Comptage } from "@design/montant.js";
 
@@ -485,6 +485,15 @@ describe("journée de guichet", () => {
     expect(l.comptes.some((c) => c.numero === "5701")).toBe(false);
     await connecter("jpmukendi");
     await expect(api.comptes.enregistrer(corps)).rejects.toThrow("comptable");
+  });
+
+  it("numéro de compte (S17, p. 26) : règle Prefixe, Suffixe, Position", async () => {
+    expect(composerNumeroCompte(null, "0412-000321", "0412", 2)).toBe("0412-000321-02");
+    expect(composerNumeroCompte({ prefixe: true, suffixe: true, position: 3 }, "0412-000321", "0412", 2)).toBe("0412-0412-000321-002");
+    await connecter("jpmukendi");
+    expect((await api.numerotation.lireCompte()).regle).toBeNull();
+    await expect(api.numerotation.enregistrerCompte({ prefixe: true, suffixe: true, position: 0 })).rejects.toThrow("Position");
+    expect((await api.numerotation.enregistrerCompte({ prefixe: true, suffixe: true, position: 3 })).regle).toEqual({ prefixe: true, suffixe: true, position: 3 });
   });
 
   it("quatre yeux sur le billetage", async () => {
