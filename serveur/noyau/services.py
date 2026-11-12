@@ -237,6 +237,8 @@ def ouvrir_caisse(u: dict, guichet_id: int) -> dict:
         raise ErreurMetier("Ce guichet est déjà ouvert aujourd'hui.")
     if une("select 1 from session_caisse where journee_id = %s and caissier_id = %s and statut = 'ouverte' and fermee_le is null", (j["id"], u["id"])):
         raise ErreurMetier("Vous tenez déjà une caisse ouverte.")
+    if not une("select 1 from affectation_guichet where utilisateur_id = %s and guichet_id = %s and fin is null", (u["id"], guichet_id)):
+        raise ErreurMetier("Ce guichet ne vous est pas affecté (Administration > Guichet > Affectation).")   # registre S09-4
     sid = valeur("insert into session_caisse (guichet_id, journee_id, caissier_id, statut) values (%s, %s, %s, 'ouverte') returning id", (guichet_id, j["id"], u["id"]))
     return vue_session(une("select * from session_caisse where id = %s", (sid,)))
 

@@ -1,4 +1,4 @@
-"""S08 et S09 : Administration > Guichet (manuel Microfina++, p. 18 et 19). Mêmes règles que web/src/donnees/api.ts (guichets)."""
+"""S08, S09 et S10 : Administration > Guichet (manuel Microfina++, p. 18 à 20, 95 et 96). Mêmes règles que web/src/donnees/api.ts (guichets)."""
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import exiger, journee_courante, ouvrir_caisse
 
@@ -101,3 +101,51 @@ def fermer(u, gid: int) -> dict:
         raise ErreurMetier("Cette caisse n'est pas la vôtre.")
     executer("update session_caisse set fermee_le = now(), fermee_par = %s where id = %s", (u["id"], s["id"]))
     return lire(u)
+
+
+# ---------- S10 : Administration > Guichet > Affectation (manuel Microfina++, p. 20, 96 et 110) ----------
+
+def affectations(u) -> dict:
+    """« Ajout et Retrait de Guichet à un utilisateur » (p. 96) : Login utilisateur, Nom utilisateur, Guichet, Agence ; fenêtre d'ajout (p. 20)"""
+    exiger(u)
+    i = u["institution_id"]
+    return {
+        "utilisateurs": lignes("""select u.id, u.login, u.nom, a.id as "agenceId", a.nom as agence, g.id as "guichetId", coalesce(g.nom, '') as guichet,
+                                         coalesce(f.voir_solde, false) as "voirSolde", coalesce(f.voir_solde_vip, false) as "voirSoldeVip"
+                                  from utilisateur u join agence a on a.id = u.agence_id
+                                  left join affectation_guichet f on f.utilisateur_id = u.id and f.fin is null
+                                  left join guichet g on g.id = f.guichet_id
+                                  where u.institution_id = %s and u.actif order by u.login""", (i,)),
+        "guichets": lignes("""select g.id, g.code, g.nom, g.agence_id as "agenceId" from guichet g join agence a on a.id = g.agence_id
+                              where a.institution_id = %s order by g.code""", (i,)),
+    }
+
+
+def affecter(u, d) -> dict:
+    """Bouton ✎ puis Ajouter : « Voulez-vous attribuer ce guichet à l'utilisateur ? » (p. 20). Un guichet à la fois (p. 96, registre S10-3)."""
+    droit(u)
+    d = d if isinstance(d, dict) else {}
+    cible = une("select id, agence_id from utilisateur where id = %s and institution_id = %s and actif", (d.get("utilisateurId"), u["institution_id"]))
+    if not cible:
+        raise ErreurMetier("Utilisateur introuvable.")
+    if not d.get("guichetId"):
+        raise ErreurMetier("À remplir : guichet.")
+    g = une("select id from guichet where id = %s and agence_id = %s", (d.get("guichetId"), cible["agence_id"]))
+    if not g:
+        raise ErreurMetier("Ce guichet n'est pas dans l'agence de l'utilisateur.")
+    if une("select 1 from affectation_guichet where utilisateur_id = %s and fin is null for update", (cible["id"],)):
+        raise ErreurMetier("Cet utilisateur a déjà un guichet. Retirez-le d'abord.")
+    executer("""insert into affectation_guichet (guichet_id, utilisateur_id, voir_solde, voir_solde_vip, ajoute_par) values (%s, %s, %s, %s, %s)""",
+             (g["id"], cible["id"], bool(d.get("voirSolde")), bool(d.get("voirSoldeVip")), u["id"]))
+    return affectations(u)
+
+
+def retirer(u, uid: int) -> dict:
+    """Bouton ✖ : « Voulez-vous retirer le guichet à cet utilisateur » (p. 20)"""
+    droit(u)
+    f = une("""select f.id from affectation_guichet f join utilisateur x on x.id = f.utilisateur_id
+               where f.utilisateur_id = %s and x.institution_id = %s and f.fin is null for update""", (uid, u["institution_id"]))
+    if not f:
+        raise ErreurMetier("Cet utilisateur n'a pas de guichet.")
+    executer("update affectation_guichet set fin = now(), retire_par = %s where id = %s", (u["id"], f["id"]))
+    return affectations(u)

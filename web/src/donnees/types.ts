@@ -172,7 +172,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise }
 
 export interface Etat {
-  version: 21;
+  version: 22;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];
@@ -201,6 +201,7 @@ export interface Etat {
   banques: { id: number; code: string; libelle: string; compteLiaison: string; adresse: string }[];   // S58
   secteurs: { id: number; code: string; libelle: string }[];   // S14
   numerotation: Record<string, RegleNumerotation>;   // S15, par institution
+  affectations: AffectationGuichet[];   // S10
   comptesBancaires: { id: number; banqueId: number; compte: string; libelle: string; numeroBancaire: string; devise: Devise; journalId: number; contactNom: string; contactNomComplet: string; contactTelephone: string }[];
   consentements: { id: number; tiersId: number; code: string; dateDebut: string; dateFin: string; commentaire: string }[];   // S50
   typesProcuration: { id: number; libelle: string }[];   // S47
@@ -227,4 +228,10 @@ export interface RegleNumerotation {
   position: number;
   compteur: number;
   ordre: string[];
+}
+
+/** S10 (manuel p. 20, 96 et 110) : guichet affecté à un utilisateur ; fin renseignée au retrait */
+export interface AffectationGuichet {
+  id: number; utilisateurId: number; guichetId: number; voirSolde: boolean; voirSoldeVip: boolean;
+  debut: string; fin?: string; ajoutePar: number; retirePar?: number;
 }

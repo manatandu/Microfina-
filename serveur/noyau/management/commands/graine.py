@@ -85,6 +85,8 @@ class Command(BaseCommand):
         jca = valeur("select id from journal where code = 'CA' and institution_id = %s", (ins,))   # données fictives (S08)
         g1 = valeur("insert into guichet (agence_id, code, nom, type_guichet, journal_id) values (%s, 'G1', 'Caisse 1', 'PRINCIPALE', %s) returning id", (ag, jca))
         g2 = valeur("insert into guichet (agence_id, code, nom, type_guichet, journal_id) values (%s, 'G2', 'Caisse 2', 'SECONDAIRE', %s) returning id", (ag, jca))
+        # Affectation des guichets (S10), données fictives : la caissière tient la Caisse 2 et voit les soldes
+        executer("insert into affectation_guichet (guichet_id, utilisateur_id, voir_solde, ajoute_par) values (%s, %s, true, %s)", (g2, caissiere, chef))
         del g1
 
         # Membres

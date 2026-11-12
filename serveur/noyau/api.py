@@ -488,6 +488,21 @@ def gu_ouvrir(request, gid: int):
     return gu.ouvrir(u(request), gid)
 
 
+@api.get("/affectations-guichets")
+def gu_affectations(request):
+    return gu.affectations(u(request))
+
+
+@api.post("/affectations-guichets")
+def gu_affecter(request, corps: dict = Body(...)):
+    return gu.affecter(u(request), corps)
+
+
+@api.post("/affectations-guichets/{uid}/retrait")
+def gu_retirer(request, uid: int):
+    return gu.retirer(u(request), uid)
+
+
 @api.post("/guichets/{gid}/fermeture")
 def gu_fermer(request, gid: int):
     return gu.fermer(u(request), gid)

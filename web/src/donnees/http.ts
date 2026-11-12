@@ -142,6 +142,9 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       creer: (d: object) => post("/guichets", d),
       ouvrir: (id: number) => post(`/guichets/${id}/ouverture`),
       fermer: (id: number) => post(`/guichets/${id}/fermeture`),
+      affectations: () => get("/affectations-guichets"),
+      affecter: (d: object) => post("/affectations-guichets", d),
+      retirer: (utilisateurId: number) => post(`/affectations-guichets/${utilisateurId}/retrait`),
     },
     banques: {
       lire: () => get("/banques"),

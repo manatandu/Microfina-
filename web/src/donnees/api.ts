@@ -16,7 +16,7 @@ import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@d
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v21";
+const CLE = "likelemba-demo-v22";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -24,7 +24,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 21) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 22) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -159,6 +159,8 @@ const caisses = {
     if (!j || j.statut !== "ouverte") throw new ErreurMetier("La journée n'est pas ouverte. Le chef d'agence l'ouvre d'abord.");
     if (E.sessions.some((s) => s.journeeId === j.id && s.guichetId === guichetId)) throw new ErreurMetier("Ce guichet est déjà ouvert aujourd'hui.");
     if (E.sessions.some((s) => s.journeeId === j.id && s.caissierId === u.id && s.statut === "ouverte")) throw new ErreurMetier("Vous tenez déjà une caisse ouverte.");
+    if (!E.affectations.some((f) => f.utilisateurId === u.id && f.guichetId === guichetId && !f.fin))
+      throw new ErreurMetier("Ce guichet ne vous est pas affecté (Administration > Guichet > Affectation).");   // registre S09-4
     const s: SessionCaisse = { id: prochain(E.sessions), guichetId, journeeId: j.id, caissierId: u.id, statut: "ouverte" };
     E.sessions.push(s); enregistrer(); return s;
   },
@@ -1095,6 +1097,38 @@ const guichets = {
     if (E.guichets.some((g) => g.code === v.code)) throw new ErreurMetier("Ce code guichet existe déjà.");
     E.guichets.push({ id: prochain(E.guichets), ...v, journalId: d.journalId, maximumCaisse: d.maximumCaisse, retraitPlafonne: d.retraitPlafonne, ...comptes, billetage: d.billetage, actif: d.actif });
     enregistrer(); return guichets.lire();
+  },
+  /** S10 « Ajout et Retrait de Guichet à un utilisateur » (p. 96) et fenêtre d'ajout (p. 20). Mêmes règles côté serveur (noyau/guichets.py). */
+  affectations() {
+    exiger();
+    return {
+      utilisateurs: [...E.utilisateurs].sort((a, b) => a.login.localeCompare(b.login)).map((u) => {
+        const f = E.affectations.find((x) => x.utilisateurId === u.id && !x.fin);
+        const g = f && E.guichets.find((x) => x.id === f.guichetId);
+        return { id: u.id, login: u.login, nom: u.nom, agenceId: E.agence.id, agence: E.agence.nom, guichetId: g?.id ?? null, guichet: g?.nom ?? "",
+          voirSolde: f?.voirSolde ?? false, voirSoldeVip: f?.voirSoldeVip ?? false };
+      }),
+      guichets: [...E.guichets].sort((a, b) => a.code.localeCompare(b.code)).map((g) => ({ id: g.id, code: g.code, nom: g.nom, agenceId: E.agence.id })),
+    };
+  },
+  /** Bouton ✎ puis Ajouter : un guichet à la fois (p. 96, registre S10-3) */
+  affecter(d: { utilisateurId: number; guichetId: number | null; voirSolde: boolean; voirSoldeVip: boolean }) {
+    const u = exiger("chef_agence");   // profil habilité : registre T07 (droits), en attendant S03 à S06
+    if (!E.utilisateurs.some((x) => x.id === d.utilisateurId)) throw new ErreurMetier("Utilisateur introuvable.");
+    if (!d.guichetId) throw new ErreurMetier("À remplir : guichet.");
+    if (!E.guichets.some((g) => g.id === d.guichetId)) throw new ErreurMetier("Ce guichet n'est pas dans l'agence de l'utilisateur.");
+    if (E.affectations.some((f) => f.utilisateurId === d.utilisateurId && !f.fin)) throw new ErreurMetier("Cet utilisateur a déjà un guichet. Retirez-le d'abord.");
+    E.affectations.push({ id: prochain(E.affectations), utilisateurId: d.utilisateurId, guichetId: d.guichetId, voirSolde: !!d.voirSolde, voirSoldeVip: !!d.voirSoldeVip,
+      debut: new Date().toISOString(), ajoutePar: u.id });
+    enregistrer(); return guichets.affectations();
+  },
+  /** Bouton ✖ */
+  retirer(utilisateurId: number) {
+    const u = exiger("chef_agence");
+    const f = E.affectations.find((x) => x.utilisateurId === utilisateurId && !x.fin);
+    if (!f) throw new ErreurMetier("Cet utilisateur n'a pas de guichet.");
+    f.fin = new Date().toISOString(); f.retirePar = u.id;
+    enregistrer(); return guichets.affectations();
   },
   /** « Ouverture/Fermeture de guichets » (p. 19), bouton Ouverture */
   ouvrir(id: number) {
