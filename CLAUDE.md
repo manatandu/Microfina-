@@ -29,6 +29,8 @@ Le porteur n'a pas de capture pour ce qui manque. Ces manques se complètent par
 - Chaque choix fait par nous est noté dans `replica/decisions.csv` avec son origine, et affiché sur l'écran dans le bloc « Complété par nous ». Le porteur valide en fin de lot. Après toute modification du registre : `python replica/decisions.py`.
 - Toujours interdit : ajouter ce que l'atlas ne nomme pas comme manque, améliorer en passant, écrire une règle métier sans l'avoir lue.
 
+Suivi des travaux (demande du porteur, 12/11/2026) : à chaque avancée, chaque travail dit ce qui est fait et ce qui reste. `python replica/couverture.py` calcule l'état : « Fait » quand tous ses écrans sont construits et qu'aucune décision du registre ne reste à appliquer pour eux, sinon « Partiel » ; la page des travaux écrit sous chaque travail ce qui reste. Une décision appliquée passe à « en place » dans `replica/decisions.csv` au moment où elle l'est.
+
 Après chaque fonction construite : mettre à jour `replica/features.csv`, `replica/atlas.csv` (colonne construit), `replica/decisions.csv`, relancer `python replica/couverture.py`, régénérer la page des travaux (`python replica/travaux.py <fichier>`) et la republier sur l'artefact « Travaux Likelemba ».
 
 ## 1. Rien de mémoire

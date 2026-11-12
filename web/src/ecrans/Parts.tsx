@@ -107,7 +107,7 @@ export function PartsSociales() {
           <button className="bouton secondaire" type="button" disabled={!fait} onClick={() => setRecu(true)}>Imprimer</button>
           <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
         </div>
-        <p className="a-confirmer">À confirmer : rôle du N° Compte (la capture l'exige ; le paiement se fait ici en espèces, avec billetage). Valeur de la part : exemple, à prendre dans les statuts (loi 002/2002, art. 20).</p>
+        <p className="a-confirmer">Complété par nous (registre <code>docs/architecture/DECISIONS.md</code>) : S77-1 le N° Compte identifie le client, le paiement est en espèces avec billetage ; S77-2 une part au minimum. À appliquer avec S16 : S16-11 la valeur de la part vient des statuts, saisie dans Paramétrage frais Adhésion (aujourd'hui une valeur d'exemple ; loi 002/2002, art. 20).</p>
         <Textes sources={["Manuel Microfina++, p. 88 et 89 : Part sociale (Achat/Retrait), client, nombre de parts, Enregistrer, Billetage, Imprimer, Effacer",
           "Loi 002/2002, art. 20 et 21 : valeur fixée par les statuts, parts intégralement libérées ; art. 22 : au moins une part ; art. 27 : apurement au départ",
           "PCCI, compte 103 : 1030 personnes physiques, 1031 groupements solidaires, 1032 personnes morales ; débité au retrait ou à la démission",

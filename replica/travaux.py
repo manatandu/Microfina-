@@ -25,9 +25,21 @@ ind = Counter(l["clone"] for l in lignes if l["priority"] == "must")
 e = html.escape
 
 def complement(x):
+    """Suivi du travail : ce qui reste (écrans à construire, décisions à appliquer), ou « rien »"""
     c = COUVERTURE[x["feature"]]
-    texte = c["complete_par_nous"] or ("Règle " + c["regles"] if c["regles"] else "")
-    return f'<p class="n cp"><strong>Complété par nous :</strong> {e(texte)}</p>' if texte and x["clone"] != "skip" else ""
+    if x["clone"] == "skip":
+        return ""
+    if x["clone"] == "no":
+        texte = c["complete_par_nous"] or ("Règle " + c["regles"] if c["regles"] else "")
+        return f'<p class="n cp"><strong>Complété par nous :</strong> {e(texte)}</p>' if texte else ""
+    morceaux = []
+    if c["ecrans_a_construire"]:
+        morceaux.append("écrans à construire : " + c["ecrans_a_construire"])
+    if c["reste"]:
+        morceaux.append("décisions à appliquer : " + c["reste"])
+    if not morceaux:
+        return '<p class="n cp"><strong>Reste :</strong> rien. Il attend la validation du registre par le porteur, en fin de lot.</p>'
+    return f'<p class="n cp"><strong>Reste :</strong> {e(" ; ".join(morceaux))}</p>'
 
 
 def section(code, nom):
@@ -48,8 +60,8 @@ page = f"""<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;600;700&display=swap" rel="stylesheet">
 <style>{STYLE}</style></head><body><main>
 <header><h1>Travaux de Likelemba, par module</h1><p class="intro">Toutes les fonctions relevées dans le manuel de Microfina++, rangées par module dans l'ordre de ses menus.
-Phase 1 : reproduire exactement Microfina++. « Fait » : reproduit exactement d'après le manuel, sans point à confirmer.
-« Partiel » : construit, mais avec des points à confirmer, un écart imposé par un texte, ou un écran fait avant la règle du 05/11/2026 et à réaligner. Source : <code>replica/features.csv</code>, état au {date.today():%d/%m/%Y}.</p>
+Phase 1 : reproduire exactement Microfina++. « Fait » : tous ses écrans sont construits d'après le manuel et toutes ses décisions du registre sont appliquées ; il attend la validation du porteur en fin de lot.
+« Partiel » : construit, mais il lui reste un écran à construire ou une décision à appliquer, écrits sous la ligne (« Reste »). Source : <code>replica/features.csv</code>, état au {date.today():%d/%m/%Y}.</p>
 <p class="intro">Depuis le 12/11/2026, ce que le manuel ne montre pas est complété par nous, selon <code>docs/architecture/COMPLEMENTS.md</code>.
 « Montré par le manuel » dit ce qu'on recopie ; « Complété par nous » dit ce qu'on conçoit, travail par travail.</p></header>
 <dl class="bilan"><div><dt>Fonctions</dt><dd>{len(lignes)}</dd></div><div><dt>Indispensables</dt><dd>{sum(ind.values())}</dd></div><div><dt>Faites</dt><dd>{compte['yes']}</dd></div>
