@@ -426,7 +426,14 @@ describe("journée de guichet", () => {
       agence: { actif: true, position: 2 }, categorie: { actif: false, position: 1 }, position: 1, compteur: 1, ordre: ["PREFIXE", "AGENCE", "COMPTEUR"] };
     await expect(api.numerotation.enregistrer({ ...r, institutionId: null })).rejects.toThrow("Institution");
     await expect(api.numerotation.enregistrer({ ...r, ordre: ["PREFIXE", "COMPTEUR"] })).rejects.toThrow("Ordre");
-    expect((await api.numerotation.enregistrer(r)).regles[String(i)]!.ordre).toEqual(["PREFIXE", "AGENCE", "COMPTEUR"]);
+    await expect(api.numerotation.enregistrer({ ...r, prefixe: { actif: true, valeur: "" } })).rejects.toThrow("Préfixe");
+    expect([l.compteurs[0]!.dernier, l.exemple.COMPTEUR, l.exemple.INSTITUTION]).toEqual([320, 321, "CTJ"]);
+    const p = { nom: "Tshibangu", prenom: "Anne", naissance: "1995-03-01", lieuNaissance: "Kinshasa", sexe: "F" as const, profession: "Commerçant",
+      pays: "République démocratique du Congo", ville: "Kinshasa", quartier: "Kinsaku", rue: "", email: "", bp: "", telephoneFixe: "", telephone: "+243 810 000 111" };
+    expect((await api.tiers.creerProspect(p)).numero).toBe("0412-000321");   // sans règle (S15-9)
+    const regle = (await api.numerotation.enregistrer({ ...r, compteur: 500 })).regles[String(i)]!;
+    expect([regle.ordre, regle.agence.position, regle.position]).toEqual([["PREFIXE", "AGENCE", "COMPTEUR"], 2, 3]);
+    expect((await api.tiers.creerProspect({ ...p, nom: "Kabeya" })).numero).toBe("TJ-0412-000500");   // S15-3, S15-9
   });
 
   it("affectation des guichets (S10, p. 20 et 96) : un guichet à la fois, ouverture réservée à l'affecté", async () => {

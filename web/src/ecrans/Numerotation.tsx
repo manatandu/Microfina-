@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { api } from "../donnees/api";
+import { api, composerNumero } from "../donnees/api";
 import type { RegleNumerotation } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { Chargement, Dialogue, Textes, type Boite } from "../composants";
@@ -28,8 +28,14 @@ export default function ParametragesClients() {
     const j = { haut: 0, monter: Math.max(0, i - 1), descendre: Math.min(o.length, i + 1), bas: o.length }[vers];
     o.splice(j, 0, choisi); setR({ ...r, ordre: o });
   }
-  function generer() {
-    setApercu(r.ordre.map((e) => (e === "PREFIXE" ? r.prefixe.valeur : e === "SUFFIXE" ? r.suffixe.valeur : e)).join(" + "));
+  /** Registre S15-6 : un numéro d'exemple, avec la règle telle qu'elle est saisie */
+  function generer() { setApercu(composerNumero(r, donnees!.exemple)); }
+  /** Registre S15-1, S15-2, S15-5 : une Position est le rang de l'élément ; la changer déplace l'élément dans l'Ordre des éléments */
+  const rang = (e: string) => r.ordre.indexOf(e) + 1;
+  function placer(e: string, n: number) {
+    if (!r.ordre.includes(e) || !Number.isInteger(n) || n < 1) return;
+    const o = r.ordre.filter((x) => x !== e);
+    o.splice(Math.min(n - 1, o.length), 0, e); setR({ ...r, ordre: o });
   }
   function enregistrerRegle() {
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
@@ -49,8 +55,8 @@ export default function ParametragesClients() {
     <div className="ligne-numerotation">
       <input type="checkbox" checked={r[k].actif} aria-label={`Choisir : ${nom}`} onChange={(e) => cocher(k, e.target.checked)} />
       <span>{nom}</span>
-      <input className="saisie code num" type="number" min={1} aria-label={`Position : ${nom}`} disabled={!r[k].actif} value={r[k].position}
-        onChange={(e) => setR({ ...r, [k]: { ...r[k], position: nombre(e.target.value) } })} />
+      <input className="saisie code num" type="number" min={1} aria-label={`Position : ${nom}`} disabled={!r[k].actif} value={r[k].actif ? rang(k.toUpperCase()) : 1}
+        onChange={(e) => placer(k.toUpperCase(), nombre(e.target.value))} />
     </div>
   );
   return (
@@ -76,7 +82,7 @@ export default function ParametragesClients() {
             {lignePosition("agence", "Agence")}
             {lignePosition("categorie", "Categorie")}
             <div className="ligne-numerotation"><span /><label htmlFor="num-position">Position</label>
-              <input id="num-position" className="saisie code num" type="number" min={1} value={r.position} onChange={(e) => setR({ ...r, position: nombre(e.target.value) })} /></div>
+              <input id="num-position" className="saisie code num" type="number" min={1} value={rang("COMPTEUR")} onChange={(e) => placer("COMPTEUR", nombre(e.target.value))} /></div>
             <div className="ligne-numerotation"><span /><label htmlFor="num-compteur">Compteur</label>
               <input id="num-compteur" className="saisie code num" type="number" min={1} value={r.compteur} onChange={(e) => setR({ ...r, compteur: nombre(e.target.value) })} /></div>
           </div>
@@ -95,7 +101,12 @@ export default function ParametragesClients() {
                 ))}
               </tbody>
             </table>
-            <fieldset className="cadre-champs"><legend>Défintion des compteurs</legend></fieldset>
+            <fieldset className="cadre-champs"><legend>Défintion des compteurs</legend>
+              <table className="grille">
+                <thead><tr><th scope="col">Agence</th><th scope="col" className="num">Dernier numéro</th></tr></thead>
+                <tbody>{donnees.compteurs.map((c) => <tr key={c.agence}><td>{c.agence}</td><td className="num">{String(c.dernier).padStart(6, "0")}</td></tr>)}</tbody>
+              </table>
+            </fieldset>
           </div>
           <div className="pile">
             <button className="bouton" type="button" onClick={generer}>Générer</button>
@@ -103,7 +114,7 @@ export default function ParametragesClients() {
             <button className="bouton" type="button" onClick={enregistrerRegle}>Enregistrer</button>
           </div>
         </div>
-        <p className="a-confirmer">À confirmer : la capture p. 24 est petite et le manuel n'explique que le champ Institution. Ici : cocher un élément l'ajoute à l'Ordre des éléments, les flèches déplacent l'élément choisi (sens lu sur les icônes), Générer affiche l'ordre avec les valeurs du préfixe et du suffixe. Restent à confirmer : sens des cases Position (longueur ? rang ?), de Position et de Compteur ; contenu de « Défintion des compteurs » ; forme de l'Aperçu ; profil habilité. La règle est enregistrée mais ne change pas encore le numéro donné aux clients (aujourd'hui : code agence et compteur, ex. 0412-000318).</p>
+        <p className="a-confirmer">Complété par nous (registre <code>docs/architecture/DECISIONS.md</code>) : S15-1, S15-2 et S15-5 une Position est le rang de l'élément dans l'Ordre des éléments (1 = premier) ; S15-3 Compteur est la première valeur du compteur ; S15-4 compteur sur six chiffres ; S15-10 éléments séparés par un tiret ; S15-6 Générer affiche un numéro d'exemple ; S15-7 un compteur par agence ; S15-8 Categorie est la catégorie du client (Général), sautée tant qu'elle n'est pas saisie à l'enrôlement ; S15-11 Institution est le sigle de l'institution ; S15-9 la règle vaut pour les clients créés après son enregistrement, sans règle le numéro reste code agence et compteur ; T07 profil habilité.</p>
         <Textes sources={["Manuel Microfina++, p. 23 : « dans 1-2 [Numérotation], dans la liste des menus de la page ouverte, choisir [Paramétrages liés aux clients] puis remplir le champ institution qui est obligatoire »",
           "Manuel Microfina++, capture p. 24 : Paramétrages liés aux clients, Institution*, Elément / Valeur (Préfixe, Suffixe), Elément / Position (Institution, Agence, Categorie), Position, Compteur, flèches, Ordre des éléments (COMPTEUR), Générer, Aperçu, Enregistrer, Défintion des compteurs",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />

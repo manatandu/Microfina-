@@ -16,7 +16,7 @@ import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@d
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v25";
+const CLE = "likelemba-demo-v26";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -24,7 +24,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 25) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 26) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -338,8 +338,7 @@ function ctxControle() {
   return { produits: E.produits, zones: E.zones, jour: journees.courante()?.date ?? "", existe: (id: number) => E.tiers.some((t) => t.id === id) };
 }
 function nouveauTiers(d: NouveauTiers, creePar: number, reste: Pick<Tiers, "type" | "dirigeant" | "signataires" | "membres" | "photo" | "specimen">): Tiers {
-  E.compteurs.tiers += 1;
-  const t: Tiers = { ...d, ...reste, intitule: "", dateVisa: "", motifDepart: "", resilieLe: "", creeLe: new Date().toISOString().slice(0, 10), id: prochain(E.tiers), numero: `${E.agence.code}-${String(E.compteurs.tiers).padStart(6, "0")}`, statut: "a_viser", creePar };
+  const t: Tiers = { ...d, ...reste, intitule: "", dateVisa: "", motifDepart: "", resilieLe: "", creeLe: new Date().toISOString().slice(0, 10), id: prochain(E.tiers), numero: numeroClient(), statut: "a_viser", creePar };
   E.tiers.push(t); return t;
 }
 
@@ -822,26 +821,49 @@ const listes = {
   },
 };
 
-// ---------- Info de base : numérotation des clients (S15, manuel p. 23, capture p. 24). Règles identiques côté serveur (noyau/numerotation.py).
-// La règle est enregistrée ; elle ne change pas encore le numéro donné aux clients (à confirmer). ----------
+// ---------- Info de base : numérotation des clients (S15, manuel p. 23, capture p. 24). Règles identiques côté serveur (noyau/numerotation.py,
+// services.numero_client). La règle s'applique aux clients créés après son enregistrement (registre S15-9). ----------
+/** Éléments dans l'Ordre des éléments, séparés par un tiret (S15-10) ; compteur sur six chiffres (S15-4) ; sans règle : code agence, tiret, compteur (S15-9) */
+export function composerNumero(regle: RegleNumerotation | null | undefined, valeurs: Record<string, string | number>) {
+  const ordre = regle ? regle.ordre : ["AGENCE", "COMPTEUR"];
+  return ordre.map((e) => e === "COMPTEUR" ? String(valeurs.COMPTEUR).padStart(6, "0")
+    : e === "PREFIXE" || e === "SUFFIXE" ? regle![e.toLowerCase() as "prefixe" | "suffixe"].valeur : String(valeurs[e] ?? "")).filter(Boolean).join("-");
+}
+function numeroClient() {
+  const regle = E.numerotation[String(ID_INSTITUTION)];
+  E.compteurs.tiers = Math.max(E.compteurs.tiers + 1, regle?.compteur ?? 1);   // registre S15-3 et S15-7
+  // Categorie (S15-8) : la catégorie du client n'est pas encore saisie à l'enrôlement (registre S37-2) ; l'élément est sauté
+  return composerNumero(regle, { INSTITUTION: E.institution.sigle ?? "", AGENCE: E.agence.code, CATEGORIE: "", COMPTEUR: E.compteurs.tiers });
+}
 const ELEMENTS_NUMEROTATION = ["PREFIXE", "SUFFIXE", "INSTITUTION", "AGENCE", "CATEGORIE", "COMPTEUR"];
 const ID_INSTITUTION = 1;
 const numerotation = {
-  lire() { exiger(); return { institutions: [{ id: ID_INSTITUTION, nom: E.institution.nom }], regles: { ...E.numerotation } }; },
+  lire() {
+    exiger();
+    const cat = valeursListe("categorie");
+    return { institutions: [{ id: ID_INSTITUTION, nom: E.institution.nom }], regles: { ...E.numerotation },
+      compteurs: [{ agence: E.agence.nom, dernier: E.compteurs.tiers }],   // registre S15-7
+      // Registre S15-6 : valeurs d'exemple de l'Aperçu (sigle S15-11, code agence, première catégorie S15-8, prochain compteur)
+      exemple: { INSTITUTION: E.institution.sigle ?? "", AGENCE: E.agence.code, CATEGORIE: cat[0]?.code ?? "", COMPTEUR: E.compteurs.tiers + 1 } };
+  },
   enregistrer(d: RegleNumerotation & { institutionId: number | null }) {
     exiger("chef_agence");   // profil habilité : à confirmer
     if (d.institutionId !== ID_INSTITUTION) throw new ErreurMetier("À remplir : Institution.");
     const entier = (v: number, nom: string) => { if (!Number.isInteger(v) || v < 1) throw new ErreurMetier(`${nom} : nombre entier, 1 au moins.`); return v; };
+    const ordre = [...d.ordre];
+    // Registre S15-1, S15-2 et S15-5 : les Positions sont les rangs dans l'Ordre des éléments (1 = premier)
+    const rang = (e: string, actif: boolean) => (actif ? ordre.indexOf(e) + 1 : 1);
     const r: RegleNumerotation = {
       prefixe: { actif: !!d.prefixe.actif, valeur: d.prefixe.valeur.trim() }, suffixe: { actif: !!d.suffixe.actif, valeur: d.suffixe.valeur.trim() },
-      institution: { actif: !!d.institution.actif, position: entier(d.institution.position, "Institution") },
-      agence: { actif: !!d.agence.actif, position: entier(d.agence.position, "Agence") },
-      categorie: { actif: !!d.categorie.actif, position: entier(d.categorie.position, "Categorie") },
-      position: entier(d.position, "Position"), compteur: entier(d.compteur, "Compteur"), ordre: [...d.ordre],
+      institution: { actif: !!d.institution.actif, position: rang("INSTITUTION", !!d.institution.actif) },
+      agence: { actif: !!d.agence.actif, position: rang("AGENCE", !!d.agence.actif) },
+      categorie: { actif: !!d.categorie.actif, position: rang("CATEGORIE", !!d.categorie.actif) },
+      position: ordre.indexOf("COMPTEUR") + 1, compteur: entier(d.compteur, "Compteur"), ordre,
     };
     const coches = (e: string) => e === "COMPTEUR" || (r[e.toLowerCase() as "prefixe"] as { actif: boolean }).actif;
     const attendu = ELEMENTS_NUMEROTATION.filter(coches);
     if ([...r.ordre].sort().join() !== [...attendu].sort().join()) throw new ErreurMetier("Ordre des éléments : il doit reprendre les éléments cochés et le compteur.");
+    for (const [k, nom] of [["prefixe", "Préfixe"], ["suffixe", "Suffixe"]] as const) if (r[k].actif && !r[k].valeur) throw new ErreurMetier(`À remplir : valeur du ${nom}.`);
     E.numerotation[String(ID_INSTITUTION)] = r; enregistrer(); return numerotation.lire();
   },
 };

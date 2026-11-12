@@ -451,10 +451,44 @@ def controler_base(u: dict, d: dict, obligatoires: list[tuple[str, str]], types:
     return {"produit": produit, "zone": zone, "depot": depot, "liees": liees, "texte": texte}
 
 
+def compteur_client(agence_id: int, depart: int = 1) -> int:
+    """Prochain compteur de l'agence (registre S15-7) ; jamais sous la valeur de départ de la règle (S15-3).
+    Une agence sans compteur part de la séquence historique numero_tiers."""
+    executer("""insert into compteur_client (agence_id, dernier)
+                select %s, case when is_called then last_value else last_value - 1 end from numero_tiers on conflict (agence_id) do nothing""", (agence_id,))
+    return valeur("update compteur_client set dernier = greatest(dernier + 1, %s) where agence_id = %s returning dernier", (depart, agence_id))
+
+
+def composer_numero(regle: dict | None, valeurs: dict) -> str:
+    """S15 : les éléments dans l'Ordre des éléments, séparés par un tiret (registre S15-10) ; compteur sur six chiffres (S15-4).
+    Sans règle enregistrée : code agence, tiret, compteur (S15-9). Un élément vide est sauté."""
+    ordre = regle["ordre"] if regle else ["AGENCE", "COMPTEUR"]
+    morceaux = []
+    for e in ordre:
+        if e == "COMPTEUR":
+            v = f"{valeurs['COMPTEUR']:06d}"
+        elif e in ("PREFIXE", "SUFFIXE"):
+            v = regle[e.lower()]["valeur"]
+        else:
+            v = valeurs.get(e, "")
+        if v:
+            morceaux.append(v)
+    return "-".join(morceaux)
+
+
+def numero_client(u: dict) -> str:
+    """Numéro d'un nouveau client selon la règle de S15 (registre S15-9 : elle vaut pour les clients créés après son enregistrement)"""
+    r = une("select regle from numerotation_client where institution_id = %s", (u["institution_id"],))
+    regle = json_lu(r["regle"]) if r else None
+    ag = une("select a.code, i.sigle from agence a join institution i on i.id = a.institution_id where a.id = %s", (u["agence_id"],))
+    n = compteur_client(u["agence_id"], regle["compteur"] if regle else 1)
+    # Categorie (S15-8) : la catégorie du client, pas encore saisie à l'enrôlement (registre S37-2) ; l'élément est sauté
+    return composer_numero(regle, {"INSTITUTION": ag["sigle"] or "", "AGENCE": ag["code"], "CATEGORIE": "", "COMPTEUR": n})
+
+
 def inserer_tiers(u: dict, d: dict, b: dict, type_: str, agent: str) -> int:
     texte = b["texte"]
-    agence = une("select code from agence where id = %s", (u["agence_id"],))
-    numero = f"{agence['code']}-{valeur('select nextval(%s)', ('numero_tiers',)):06d}"
+    numero = numero_client(u)
     tid = valeur("""insert into tiers (institution_id, agence_id, numero, numero_manuel, type, statut, residence, agent_economique, zone_id, personne_exposee, cree_par,
                                        date_demande, matricule, type_client, produit_id, premier_depot, prelever_agios, calculer_interet)
                     values (%s, %s, %s, %s, %s, 'a_viser', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
@@ -824,8 +858,7 @@ def creer_prospect(u: dict, d: dict) -> dict:
     """S45 : Client > Nouveau prospect (manuel p. 55), bouton Enregistrer"""
     exiger(u)
     texte = controler_prospect(u, d)
-    agence = une("select code from agence where id = %s", (u["agence_id"],))
-    numero = f"{agence['code']}-{valeur('select nextval(%s)', ('numero_tiers',)):06d}"
+    numero = numero_client(u)
     tid = valeur("""insert into tiers (institution_id, agence_id, numero, type, statut, cree_par) values (%s, %s, %s, 'physique', 'prospect', %s) returning id""",
                  (u["institution_id"], u["agence_id"], numero, u["id"]))
     executer("insert into tiers_personne (tiers_id, nom) values (%s, '')", (tid,))

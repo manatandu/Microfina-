@@ -3,7 +3,7 @@ import type { Comptage, Devise } from "@design/montant.js";
 export type Role = "caissier" | "chef_agence" | "agent_credit" | "comptable";
 
 export interface Utilisateur { id: number; login: string; nom: string; roles: Role[] }
-export interface Institution { nom: string; profil: "coopec" | "imf" }
+export interface Institution { nom: string; sigle?: string; profil: "coopec" | "imf" }
 export interface Agence { id: number; code: string; nom: string }
 /** Guichet ; champs de « Gestion des guichets » (S08, manuel p. 18) */
 export interface Guichet {
@@ -172,7 +172,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise }
 
 export interface Etat {
-  version: 25;
+  version: 26;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];

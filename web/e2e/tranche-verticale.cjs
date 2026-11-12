@@ -57,7 +57,7 @@ const OUT = process.argv[2];
   await aller('/parametrage/s15'); await p.getByLabel('Institution *').selectOption({ label: 'COOPEC Tujenge' });
   await p.getByLabel('Choisir : Préfixe').check(); await p.getByLabel('Valeur : Préfixe').fill('TJ'); await p.getByLabel('Choisir : Agence').check();
   await p.getByRole('cell', { name: 'AGENCE' }).click(); await p.getByRole('button', { name: 'Tout en haut' }).click();
-  await p.getByRole('button', { name: 'Générer' }).click(); await p.getByText('AGENCE + COMPTEUR + TJ').waitFor(); await etape('02g-parametrages-clients');
+  await p.getByRole('button', { name: 'Générer' }).click(); await p.getByText('0412-000321-TJ').waitFor(); await etape('02g-parametrages-clients');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   // Caissière : ouvrir la caisse (sans comptage : Microfina++ ne compte qu'à l'arrêté, p. 90 et 91)
   await login('Esther Ngalula');

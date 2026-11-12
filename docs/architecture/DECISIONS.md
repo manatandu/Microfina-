@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**131 décisions.** Solidité : 51 fortes (le manuel ou un texte répond), 62 moyennes (déduites d'un écran voisin ou d'une donnée), 18 faibles (notre choix, faute de mieux). Dans le code : 60 déjà en place, 71 à appliquer.
+**133 décisions.** Solidité : 51 fortes (le manuel ou un texte répond), 64 moyennes (déduites d'un écran voisin ou d'une donnée), 18 faibles (notre choix, faute de mieux). Dans le code : 71 déjà en place, 62 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -107,15 +107,17 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S15-1 | Cases Position de Institution, Agence, Categorie | Rang de l'élément dans le numéro (1 = premier) | Écran voisin : S29 (p. 41 : Position Institution, Agence, Journal, compteur), S17 (p. 26 : « Position du N° ») | moyenne | à appliquer |
-| S15-2 | Champ « Position » | Rang du compteur dans le numéro | Écran voisin : S29 (« Position compteur ») | moyenne | à appliquer |
-| S15-3 | Champ « Compteur » | Première valeur du compteur | Écran voisin : S29 | faible | à appliquer |
-| S15-4 | Longueur du compteur | Six chiffres | Manuel : Manuel p. 26 (exemple « …000001 »), p. 130 (« -003807 ») | moyenne | à appliquer |
-| S15-5 | Ordre des éléments et flèches | La liste suit les rangs ; une flèche change le rang de l'élément choisi et met les cases Position à jour | Écran voisin : S22 Ordre de remboursement (p. 37) | moyenne | à appliquer |
-| S15-6 | Aperçu | Un numéro d'exemple, affiché à côté après Générer | Écran voisin : S17 (p. 26 : exemple en couleur) | moyenne | à appliquer |
-| S15-7 | « Défintion des compteurs » | Tableau en lecture seule : un compteur par agence, avec son dernier numéro | Écran voisin : S11b (compteur par journal, p. 21) | faible | à appliquer |
-| S15-8 | Categorie | La catégorie du client (S14c) | Donnée exigée ailleurs : Liste de gauche p. 23 | moyenne | à appliquer |
-| S15-9 | Application au numéro des clients | La règle s'applique aux clients créés après son enregistrement. Les numéros existants ne changent pas. Règle de départ : le format actuel (code agence, tiret, compteur) | Choix du porteur : Prudence : un numéro déjà donné ne change pas | moyenne | à appliquer |
+| S15-1 | Cases Position de Institution, Agence, Categorie | Rang de l'élément dans le numéro (1 = premier) | Écran voisin : S29 (p. 41 : Position Institution, Agence, Journal, compteur), S17 (p. 26 : « Position du N° ») | moyenne | en place |
+| S15-2 | Champ « Position » | Rang du compteur dans le numéro | Écran voisin : S29 (« Position compteur ») | moyenne | en place |
+| S15-3 | Champ « Compteur » | Première valeur du compteur | Écran voisin : S29 | faible | en place |
+| S15-4 | Longueur du compteur | Six chiffres | Manuel : Manuel p. 26 (exemple « …000001 »), p. 130 (« -003807 ») | moyenne | en place |
+| S15-5 | Ordre des éléments et flèches | La liste suit les rangs ; une flèche change le rang de l'élément choisi et met les cases Position à jour | Écran voisin : S22 Ordre de remboursement (p. 37) | moyenne | en place |
+| S15-6 | Aperçu | Un numéro d'exemple, affiché à côté après Générer | Écran voisin : S17 (p. 26 : exemple en couleur) | moyenne | en place |
+| S15-7 | « Défintion des compteurs » | Tableau en lecture seule : un compteur par agence, avec son dernier numéro | Écran voisin : S11b (compteur par journal, p. 21) | faible | en place |
+| S15-8 | Categorie | La catégorie du client (S14c) | Donnée exigée ailleurs : Liste de gauche p. 23 | moyenne | en place |
+| S15-9 | Application au numéro des clients | La règle s'applique aux clients créés après son enregistrement. Les numéros existants ne changent pas. Règle de départ : le format actuel (code agence, tiret, compteur) | Choix du porteur : Prudence : un numéro déjà donné ne change pas | moyenne | en place |
+| S15-10 | Séparateur entre les éléments | Un tiret | Manuel : Exemple de la capture p. 26 (« 25121200-INS000SA000001-E-05 ») et numéros actuels (« 0412-000318 ») | moyenne | en place |
+| S15-11 | Valeur de l'élément Institution | Le sigle de l'institution (Information société, S32) | Donnée exigée ailleurs : S32 (p. 42) : identité de l'institution | moyenne | en place |
 
 ## S16 Frais
 

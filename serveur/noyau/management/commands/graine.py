@@ -32,7 +32,7 @@ class Command(BaseCommand):
         if valeur("select count(*) from institution"):
             self.stdout.write("Base déjà remplie : rien à faire.")
             return
-        ins = valeur("insert into institution (nom, profil) values ('COOPEC Tujenge', 'coopec') returning id")
+        ins = valeur("insert into institution (nom, sigle, profil) values ('COOPEC Tujenge', 'CTJ', 'coopec') returning id")
         executer("insert into zone (institution_id, nom) values (%s, 'Matete')", (ins,))
         # Localisation et professions fictives (paramétrage S14 et Localisation pas encore construits)
         pays = valeur("insert into localite (niveau, nom) values ('pays', 'République démocratique du Congo') returning id")

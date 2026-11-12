@@ -641,8 +641,18 @@ def test_parametrages_lies_aux_clients(clients):
     assert "Ordre" in refus({**r, "ordre": ["PREFIXE", "COMPTEUR"]})
     assert "Compteur" in refus({**r, "compteur": 0})
     assert agent.post("/api/numerotation-clients", r, **H).status_code == 403
-    l = chef.post("/api/numerotation-clients", r, **H).json()
-    assert l["regles"][str(i)]["ordre"] == ["PREFIXE", "AGENCE", "COMPTEUR"] and l["regles"][str(i)]["prefixe"]["valeur"] == "TJ"
+    assert "Préfixe" in refus({**r, "prefixe": {"actif": True, "valeur": ""}})
+    # Sans règle : code agence, tiret, compteur (S15-9) ; exemple et compteur par agence (S15-6, S15-7)
+    assert l["compteurs"][0]["dernier"] == 320 and l["exemple"]["COMPTEUR"] == 321 and l["exemple"]["INSTITUTION"] == "CTJ"
+    p = {"nom": "Tshibangu", "prenom": "Anne", "naissance": "1995-03-01", "lieuNaissance": "Kinshasa", "sexe": "F", "profession": "Commerçant",
+         "pays": "République démocratique du Congo", "ville": "Kinshasa", "quartier": "Kinsaku", "telephone": "+243 810 000 111"}
+    assert agent.post("/api/prospects", p, **H).json()["numero"] == "0412-000321"
+    l = chef.post("/api/numerotation-clients", {**r, "compteur": 500}, **H).json()
+    regle = l["regles"][str(i)]
+    assert regle["ordre"] == ["PREFIXE", "AGENCE", "COMPTEUR"] and regle["prefixe"]["valeur"] == "TJ"
+    assert (regle["agence"]["position"], regle["position"]) == (2, 3)                          # S15-1, S15-2 : rangs
+    # La règle vaut pour les clients créés ensuite (S15-9) ; le compteur part de sa valeur de départ (S15-3)
+    assert agent.post("/api/prospects", {**p, "nom": "Kabeya"}, **H).json()["numero"] == "TJ-0412-000500"
 
 
 def test_affectation_des_guichets(clients):
