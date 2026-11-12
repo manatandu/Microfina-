@@ -109,6 +109,12 @@ class Command(BaseCommand):
         for c, l in (("C01", "PREMIER CYCLE"), ("C02", "DEUXIEME CYCLE")):
             executer("insert into credit_cycle (institution_id, code, libelle) values (%s, %s, %s)", (ins, c, l))
         executer("insert into credit_type_assurance (institution_id, code, libelle) values (%s, 'T01', 'Interne')", (ins,))
+        # Ordres de remboursement (S22) : ceux des captures p. 34 et 37 ; Sains et Impayés en PICES, les autres degrés en CIPES (capture p. 34)
+        od = {c: valeur("insert into credit_ordre (institution_id, code, libelle) values (%s, %s, %s) returning id", (ins, c, l)) for c, l in (
+            ("CIPES", "Capital Intérêt Pénalité Epargne Solidarité"), ("CPIES", "Capital Pénalité Intérêt Epargne Solidarité"),
+            ("PICES", "Pénalité Intérêt Capital Epargne Solidarité"))}
+        for rang in range(1, 8):
+            executer("insert into credit_degre_ordre (institution_id, rang, ordre_id) values (%s, %s, %s)", (ins, rang, od["PICES" if rang <= 2 else "CIPES"]))
         # Types de guichet (S14n), ceux de la capture p. 19 (registre S08-1)
         for c, l in (("1", "PRINCIPALE"), ("2", "SECONDAIRE")):
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'type_guichet', %s, %s)", (ins, c, l))

@@ -881,3 +881,28 @@ def test_credit_general(clients):
     g = ok("gestionnaires", {"code": "1-AA", "nom": "Agent A", "utilisateurId": us[0]["id"], "montantDe": 100, "montantA": 500, "enActivite": True})["lignes"][0]
     assert g["affichage"]["enActivite"] == "OUI"
     assert chef.get(f"/api/gestionnaires/{g['id']}/portefeuille", **H).json() == []
+
+
+def test_ordre_remboursement(clients):
+    """S22 (p. 37) : les cinq éléments une fois chacun, code des initiales, ordre unique ; l'ordre de chaque degré (S21) ; Code civil art. 152"""
+    chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    l = chef.get("/api/ordres-remboursement", **H).json()
+    assert [e["code"] for e in l["elements"]] == ["I", "C", "P", "E", "S"] and [x["code"] for x in l["lignes"]] == ["CIPES", "CPIES", "PICES"]
+    def refus(corps, oid=None):
+        r = chef.post("/api/ordres-remboursement" + (f"/{oid}" if oid else ""), corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    assert agent.post("/api/ordres-remboursement", {"ordre": list("ICPES")}, **H).status_code == 403
+    assert "une fois chacun" in refus({"ordre": list("ICPE")})
+    assert "une fois chacun" in refus({"ordre": list("ICPEE")})
+    assert "existe déjà" in refus({"ordre": list("CIPES")})
+    r = chef.post("/api/ordres-remboursement", {"ordre": list("ICPES")}, **H).json()["lignes"][-1]
+    assert (r["code"], r["libelle"]) == ("ICPES", "Intérêt Capital Pénalité Epargne Solidarité")
+    m = chef.post(f"/api/ordres-remboursement/{r['id']}", {"ordre": list("IPCES")}, **H).json()["lignes"][-1]
+    assert m["id"] == r["id"] and m["code"] == "IPCES"
+    d = chef.get("/api/credit-referentiels/degres", **H).json()
+    assert d["lignes"][0]["affichage"]["ordre"] == "PICES ==> Pénalité Intérêt Capital Epargne Solidarité"
+    cipes = next(x for x in l["lignes"] if x["code"] == "CIPES")
+    assert "attaché à un degré" in chef.post(f"/api/ordres-remboursement/{cipes['id']}/suppression", {}, **H).json()["message"]
+    d = chef.post("/api/credit-degres/ordres", {"ordres": {"7": m["id"]}}, **H).json()
+    assert d["lignes"][6]["affichage"]["ordre"].startswith("IPCES") and d["lignes"][6]["taux"] == 100
+    assert "inconnu" in chef.post("/api/credit-degres/ordres", {"ordres": {"9": m["id"]}}, **H).json()["message"]
+    assert chef.post(f"/api/ordres-remboursement/{next(x for x in l['lignes'] if x['code'] == 'CPIES')['id']}/suppression", {}, **H).status_code == 200

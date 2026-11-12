@@ -505,6 +505,25 @@ describe("journée de guichet", () => {
     expect(await api.credit.portefeuille(g.id)).toEqual([]);
   });
 
+  it("ordre de remboursement (S22, p. 37) : cinq éléments une fois chacun, code des initiales, ordre de chaque degré (S21)", async () => {
+    await connecter("jpmukendi");
+    const l = await api.ordres.lire();
+    expect(l.lignes.map((x) => x.code)).toEqual(["CIPES", "CPIES", "PICES"]);
+    await expect(api.ordres.enregistrer({ ordre: ["I", "C", "P", "E"] })).rejects.toThrow("une fois chacun");
+    await expect(api.ordres.enregistrer({ ordre: ["I", "C", "P", "E", "E"] })).rejects.toThrow("une fois chacun");
+    await expect(api.ordres.enregistrer({ ordre: ["C", "I", "P", "E", "S"] })).rejects.toThrow("existe déjà");
+    const r = (await api.ordres.enregistrer({ ordre: ["I", "C", "P", "E", "S"] })).lignes.at(-1)!;
+    expect([r.code, r.libelle]).toEqual(["ICPES", "Intérêt Capital Pénalité Epargne Solidarité"]);
+    const m = (await api.ordres.enregistrer({ ordre: ["I", "P", "C", "E", "S"] }, r.id)).lignes.at(-1)!;
+    expect([m.id, m.code]).toEqual([r.id, "IPCES"]);
+    expect((await api.credit.lire("degres")).lignes[0]!.affichage.ordre).toBe("PICES ==> Pénalité Intérêt Capital Epargne Solidarité");
+    await expect(api.ordres.supprimer(l.lignes[0]!.id)).rejects.toThrow("attaché à un degré");
+    const d = await api.credit.enregistrerOrdres({ 7: m.id });
+    expect(d.lignes[6]!.affichage.ordre!.startsWith("IPCES")).toBe(true);
+    await expect(api.credit.enregistrerOrdres({ 9: m.id })).rejects.toThrow("inconnu");
+    await api.ordres.supprimer(l.lignes[1]!.id);
+  });
+
   it("localisation (S20, p. 30 à 32), découpage de la RDC : parents obligatoires, nom unique sous un parent, Zone, Supprimer logique", async () => {
     await connecter("jpmukendi");
     const pr = await api.localisation.lire("province");

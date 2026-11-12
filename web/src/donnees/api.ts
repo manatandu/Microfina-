@@ -17,7 +17,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v33";
+const CLE = "likelemba-demo-v34";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -25,7 +25,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 33) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 34) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -1509,7 +1509,7 @@ export type TypeChampBudget = "texte" | "texteLong" | "entier" | "jjmm" | "choix
 export interface ChampBudget { cle: string; libelle: string; type: TypeChampBudget; obligatoire: boolean; ref?: string; aide?: string; colonne: string; defaut?: number | boolean;
   sansEtoile?: boolean; cadre?: string; grille?: boolean }   // sansEtoile : la capture ne montre pas l'astérisque ; grille false : champ absent de la grille
 export interface FicheBudget { page: string; menu: string; entete?: string; grille?: string; cadre?: string; rafraichir?: boolean; filtres?: boolean; unique?: string[];
-  parentMemeTable?: boolean; exporter?: boolean; outils?: boolean; portefeuille?: boolean; fixe?: Record<string, unknown>[]; champs: ChampBudget[] }
+  parentMemeTable?: boolean; exporter?: boolean; outils?: boolean; portefeuille?: boolean; ordres?: boolean; fixe?: Record<string, unknown>[]; champs: ChampBudget[] }
 const ch = (cle: string, libelle: string, colonne: string, type: TypeChampBudget = "texte", obligatoire = true, x: Partial<ChampBudget> = {}): ChampBudget =>
   ({ cle, libelle, colonne, type, obligatoire, ...x });
 export type OptionBudget = { id: number | string; libelle: string };
@@ -1686,7 +1686,7 @@ export const CATALOGUE_CREDIT: FicheBudget[] = [
   { page: "zones", menu: "Zone Credit", champs: [ch("code", "Code Zone :", "Code Zone", "texte", true, { grille: false }), ch("nom", "Nom Zone :", "Nom zone"),
     ch("description", "Description :", "Description", "texteLong"), ch("agenceId", "Agence :", "Agence", "choix", true, { ref: "agences" })] },
   // Instr. BCC 003 : art. 3, 6, 7, 9 et 12 (provision sur le capital restant dû) ; ordre de remboursement : S22 (registre S21-1)
-  { page: "degres", menu: "Dégré Credit", exporter: true, filtres: true,
+  { page: "degres", menu: "Dégré Credit", exporter: true, filtres: true, ordres: true,
     champs: [ch("libelle", "Libelle Degre", "Libelle Degre"), ch("debut", "Debut Degre", "Debut Degre", "entier"), ch("fin", "Fin degre", "Fin degre", "entier"),
       ch("taux", "taux", "taux", "entier"), ch("ordre", "Ordre de remboursement crédit", "Ordre de remboursement crédit")],
     fixe: ([["Sains", 0, 0, 0], ["Impayés", 1, 30, 5], ["Douteux", 31, 60, 25], ["Douteux", 61, 90, 50], ["Douteux", 91, 180, 75], ["Douteux", 181, 365, 100],
@@ -1713,8 +1713,7 @@ export const CATALOGUE_CREDIT: FicheBudget[] = [
       ch("enActivite", "Actif:", "Actif", "ouiNon", false, { defaut: true }), ch("nom", "Nom prénom :", "Nom agent"), ...adresse("Adresse")] },
 ];
 const stockCredit = (page: string) => (E.credit[page] ??= []);
-const credit = {
-  ...referentiel({
+const moteurCredit = referentiel({
     catalogue: CATALOGUE_CREDIT,
     stock: stockCredit,
     etiquette: { zones: "nom", assureurs: "nom", gestionnaires: "nom" },
@@ -1730,7 +1729,33 @@ const credit = {
           if (v[de] != null && v[a] != null && (v[a] as number) < (v[de] as number)) throw new ErreurMetier(`${nom} : la borne haute est inférieure à la borne basse.`);
     },
     utilisePar: { types_objet: [["objets", "typeObjetId", "Objet Credit"]], types_assurance: [["assureurs", "typeAssuranceId", "Assureur crédit"]] },
-  }),
+});
+const ordresActifs = () => E.ordres.filter((o) => o.actif);
+const credit = {
+  ...moteurCredit,
+  /** Degré Crédit : chaque degré porte son ordre de remboursement (S22), choisi dans la colonne et enregistré (registre S22-3) */
+  lire(page: string) {
+    const r = moteurCredit.lire(page);
+    if (page !== "degres") return r;
+    const ordres = new Map(ordresActifs().map((o) => [o.id, o]));
+    r.options = { ordre: ordresActifs().map((o) => ({ id: o.id, libelle: `${o.code} ==> ${o.libelle}` })) };
+    for (const l of r.lignes) {
+      const o = ordres.get(E.degreOrdres[l.id] ?? -1);
+      l.ordre = o ? o.id : null; l.affichage.ordre = o ? `${o.code} ==> ${o.libelle}` : "";
+    }
+    return r;
+  },
+  /** Bouton Enregistrement de Degré Crédit (capture p. 34) : l'ordre de chaque degré ; les taux restent ceux de la BCC */
+  enregistrerOrdres(ordres: Record<string, number | null>) {
+    exiger("chef_agence");
+    const n = CATALOGUE_CREDIT.find((c) => c.page === "degres")!.fixe!.length;
+    for (const [k, v] of Object.entries(ordres)) {
+      if (!/^\d+$/.test(k) || Number(k) < 1 || Number(k) > n) throw new ErreurMetier("Degré inconnu.");
+      if (v !== null && !ordresActifs().some((o) => o.id === v)) throw new ErreurMetier("Ordre de remboursement inconnu.");
+    }
+    for (const [k, v] of Object.entries(ordres)) { if (v === null) delete E.degreOrdres[Number(k)]; else E.degreOrdres[Number(k)] = v; }
+    enregistrer(); return credit.lire("degres");
+  },
   /** Bouton Portefeuille (capture p. 36) : les clients suivis par l'utilisateur rattaché au gestionnaire. La fiche client ne porte pas encore le gestionnaire (S37-2). */
   portefeuille(id: number): { id: number; numero: string; nom: string }[] {
     exiger();
@@ -1740,6 +1765,38 @@ const credit = {
 };
 /** Zones de la fiche client : celles de Zone Crédit (registre S21-4) */
 const zonesActives = () => stockCredit("zones").filter((z) => z.actif).map((z) => String(z.nom)).sort((a, b) => a.localeCompare(b));
+
+// ---------- Paramétrage > Produit > Crédit > Ordre remboursement crédit (S22, manuel p. 37). Code civil, livre III, art. 152 : le créancier
+// peut consentir à un autre ordre que les intérêts d'abord ; la COOPEC fixe l'ordre. Règles identiques côté serveur (noyau/ordres.py). ----------
+export const ELEMENTS_ORDRE = [{ code: "I", libelle: "Intérêt" }, { code: "C", libelle: "Capital" }, { code: "P", libelle: "Pénalité" }, { code: "E", libelle: "Epargne" },
+  { code: "S", libelle: "Solidarité" }];
+const ordres = {
+  lire() {
+    exiger();
+    return { elements: ELEMENTS_ORDRE, lignes: ordresActifs().sort((a, b) => a.id - b.id).map(({ id, code, libelle }) => ({ id, code, libelle })) };
+  },
+  /** Enregistrer l'ordre de la liste Ordonner ; avec une ligne choisie, la modifier (registre S22-1, S22-2) */
+  enregistrer(d: { ordre: string[] }, id?: number) {
+    exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
+    const tous = ELEMENTS_ORDRE.map((e) => e.code);
+    if (!Array.isArray(d.ordre) || [...d.ordre].sort().join() !== [...tous].sort().join()) throw new ErreurMetier("L'ordre doit contenir une fois chacun : Intérêt, Capital, Pénalité, Epargne, Solidarité.");
+    const actuel = id === undefined ? undefined : E.ordres.find((o) => o.id === id && o.actif);
+    if (id !== undefined && !actuel) throw new ErreurMetier("Ligne introuvable.");
+    const code = d.ordre.join(""), libelle = d.ordre.map((e) => ELEMENTS_ORDRE.find((x) => x.code === e)!.libelle).join(" ");
+    if (ordresActifs().some((o) => o.code === code && o.id !== id)) throw new ErreurMetier("Cet ordre existe déjà.");
+    if (actuel) Object.assign(actuel, { code, libelle }); else E.ordres.push({ id: prochain(E.ordres), code, libelle, actif: true });
+    enregistrer(); return ordres.lire();
+  },
+  /** Supprimer (p. 12) : logique (T02) ; un ordre attaché à un degré de crédit ne se supprime pas */
+  supprimer(id: number) {
+    exiger("chef_agence");
+    const o = E.ordres.find((x) => x.id === id && x.actif);
+    if (!o) throw new ErreurMetier("Ligne introuvable.");
+    if (Object.values(E.degreOrdres).includes(id)) throw new ErreurMetier("Cet ordre est attaché à un degré de crédit (Produits > Crédits > Général) : le changer d'abord.");
+    o.actif = false;
+    enregistrer(); return ordres.lire();
+  },
+};
 
 // ---------- Info de base > Localisation (S20, manuel p. 30 à 32), adaptée au découpage de la RDC (demande du porteur, registre S20-1) :
 // Constitution, art. 2 et 3 ; Décret 22/07 du 02/03/2022, art. 9, point 26. Règles identiques côté serveur (noyau/localisation.py). ----------
@@ -1832,6 +1889,7 @@ const apiLocal = {
   budget: asynchrone(budget),
   localisation: asynchrone(localisation),
   credit: asynchrone(credit),
+  ordres: asynchrone(ordres),
   comptes: asynchrone(comptes),
   numerotation: asynchrone(numerotation),
 };

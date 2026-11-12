@@ -1,7 +1,7 @@
 """S21 : Produits > Crédits > Général (manuel Microfina++, p. 32 à 36). Onze onglets servis par le moteur commun (noyau/moteur.py).
 Degré Crédit suit l'Instr. BCC 003 et Terme Crédit le PCCI, à la place des valeurs de la capture (registre S21-1, S21-2).
 Mêmes règles que web/src/donnees/api.ts (credit)."""
-from .bd import ErreurMetier, lignes, une
+from .bd import ErreurMetier, executer, lignes, une
 from .moteur import Referentiel, ch
 from .services import exiger
 
@@ -35,7 +35,7 @@ CATALOGUE = [
         ch("agenceId", "agence_id", "Agence :", "choix", True, "agences", colonne="Agence")]},
     # Instr. BCC 003 du 14/04/2012 : art. 3 (sains), 6 (impayés dès 1 jour), 7 (douteux dès le 31e jour), 9 (irrécupérables au-delà de 12 mois),
     # 12 (provision sur le capital restant dû). L'ordre de remboursement vient de S22 (registre S21-1).
-    {"page": "degres", "menu": "Dégré Credit", "exporter": True, "filtres": True, "champs": [
+    {"page": "degres", "menu": "Dégré Credit", "exporter": True, "filtres": True, "ordres": True, "champs": [
         ch("libelle", "libelle", "Libelle Degre", colonne="Libelle Degre"), ch("debut", "debut", "Debut Degre", "entier", colonne="Debut Degre"),
         ch("fin", "fin", "Fin degre", "entier", colonne="Fin degre"), ch("taux", "taux", "taux", "entier", colonne="taux"),
         ch("ordre", "ordre", "Ordre de remboursement crédit", colonne="Ordre de remboursement crédit")],
@@ -91,7 +91,47 @@ UTILISE_PAR = {
 }
 
 MOTEUR = Referentiel(CATALOGUE, CHOIX, verifier, UTILISE_PAR)
-lire, enregistrer, supprimer = MOTEUR.lire, MOTEUR.enregistrer, MOTEUR.supprimer
+enregistrer, supprimer = MOTEUR.enregistrer, MOTEUR.supprimer
+
+
+def ordres_actifs(u) -> list[dict]:
+    return lignes("select id, code, libelle from credit_ordre where institution_id = %s and actif order by id", (u["institution_id"],))
+
+
+def lire(u, page: str) -> dict:
+    """Degré Crédit : chaque degré porte son ordre de remboursement (S22), choisi dans la colonne et enregistré (registre S22-3)"""
+    r = MOTEUR.lire(u, page)
+    if page == "degres":
+        ordres = {o["id"]: o for o in ordres_actifs(u)}
+        lies = {x["rang"]: x["ordre_id"] for x in lignes("select rang, ordre_id from credit_degre_ordre where institution_id = %s", (u["institution_id"],))}
+        r["options"] = {"ordre": [{"id": o["id"], "libelle": f"{o['code']} ==> {o['libelle']}"} for o in ordres.values()]}
+        for l in r["lignes"]:
+            o = ordres.get(lies.get(l["id"]))
+            l["ordre"] = o["id"] if o else None
+            l["affichage"]["ordre"] = f"{o['code']} ==> {o['libelle']}" if o else ""
+    return r
+
+
+def enregistrer_ordres(u, d) -> dict:
+    """Bouton Enregistrement de Degré Crédit (capture p. 34) : l'ordre de remboursement de chaque degré ; les taux restent ceux de la BCC"""
+    exiger(u, "chef_agence")
+    choix = d.get("ordres") if isinstance(d, dict) else None
+    if not isinstance(choix, dict):
+        raise ErreurMetier("Ordres attendus.")
+    rangs = range(1, len(MOTEUR.fiche("degres")["fixe"]) + 1)
+    valides = {o["id"] for o in ordres_actifs(u)}
+    voulus = {}
+    for k, v in choix.items():
+        if not str(k).isdigit() or int(k) not in rangs:
+            raise ErreurMetier("Degré inconnu.")
+        if v is not None and v not in valides:
+            raise ErreurMetier("Ordre de remboursement inconnu.")
+        voulus[int(k)] = v
+    for rang, oid in voulus.items():
+        executer("delete from credit_degre_ordre where institution_id = %s and rang = %s", (u["institution_id"], rang))
+        if oid is not None:
+            executer("insert into credit_degre_ordre (institution_id, rang, ordre_id) values (%s, %s, %s)", (u["institution_id"], rang, oid))
+    return lire(u, "degres")
 
 
 def portefeuille(u, gid: int) -> list[dict]:

@@ -11,7 +11,7 @@ const SOURCES: Record<string, string> = {
   types_produit: "Manuel Microfina++, p. 33 : Type produit Credit, grille Nom, ID, Exporter",
   cycles: "Manuel Microfina++, p. 34 : Cycle Crédit, Code*, Libellé*",
   zones: "Manuel Microfina++, p. 34 : Zone Crédit, Code Zone*, Nom Zone*, Description*, Agence* ; grille Nom zone, Description, Agence",
-  degres: "Instr. BCC n°003 du 14/04/2012, art. 3, 6, 7, 9 et 12 (classification et provisionnement des crédits), à la place des degrés de la capture p. 34",
+  degres: "Instr. BCC n°003 du 14/04/2012, art. 3, 6, 7, 9 et 12 (classification et provisionnement des crédits), à la place des degrés de la capture p. 34 ; colonne Ordre de remboursement crédit et bouton Enregistrement de la capture (ordres de S22, p. 37)",
   termes: "PCCI, classe 3 : court terme jusqu'à 1 an (compte 32), moyen terme de 1 à 5 ans (compte 31), long terme au-delà de 5 ans (compte 30), à la place des termes de la capture p. 35",
   periodicites: "Manuel Microfina++, p. 35 : Périodicité, grille Libelle, Code, Denominateur, Contante, Unité, Exporter",
   types_assurance: "Manuel Microfina++, p. 36 : Type assurance, Code Type Assurance*, Libellé Type Assurance*, Enregistrer, Annuler, Exporter",
@@ -48,12 +48,13 @@ function Onglet({ page }: { page: string }) {
   const [boite, setBoite] = useState<Boite | null>(null);
   const [relu, setRelu] = useState(0);
   const [clients, setClients] = useState<{ id: number; numero: string; nom: string }[] | null>(null);
+  const [ordres, setOrdres] = useState<Record<string, number | null>>({});   // Degré Crédit : ordre choisi par degré (registre S22-3)
   const { donnees } = useDonnees(() => api.credit.lire(page), [relu]);
   if (!donnees) return <Chargement />;
   const lecture = !!fiche.fixe;
   const effacer = () => { setF(vide()); setChoisi(null); setClients(null); };
   const confirmer = (texte: string, faire: () => Promise<unknown>) => setBoite({ type: "confirmation", message: texte, oui: async () => {
-    try { await faire(); effacer(); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+    try { await faire(); effacer(); setOrdres({}); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   } });
   const envoi = () => Object.fromEntries(fiche.champs.map((c) => {
@@ -134,7 +135,9 @@ function Onglet({ page }: { page: string }) {
           </tbody>
         </table>
       )}
-      {fiche.exporter && <div className="actions-onglets"><button className="bouton" type="button" onClick={exporter}>Exporter</button></div>}
+      {fiche.exporter && <div className="actions-onglets">
+        {fiche.ordres && <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment enregistrer ?", () => api.credit.enregistrerOrdres(ordres))}>Enregistrement</button>}
+        <button className="bouton" type="button" onClick={exporter}>Exporter</button></div>}
       <table className="grille">
         <thead>
           <tr>{colonnes.map((c) => <th key={c.cle} scope="col" className={c.type === "entier" ? "num" : undefined}>{c.colonne}</th>)}</tr>
@@ -147,7 +150,12 @@ function Onglet({ page }: { page: string }) {
           {lignes.map((l) => (
             <tr key={l.id} className={lecture ? undefined : "ligne-choix"} tabIndex={lecture ? undefined : 0} aria-selected={lecture ? undefined : l.id === choisi}
               onClick={() => choisir(l)} onKeyDown={(e) => { if (e.key === "Enter") choisir(l); }}>
-              {colonnes.map((c) => <td key={c.cle} className={c.type === "entier" ? "num" : undefined}>{l.affichage[c.cle]}</td>)}
+              {colonnes.map((c) => fiche.ordres && c.cle === "ordre"
+                ? <td key={c.cle}><select className="saisie" aria-label={`Ordre de remboursement : ${l.affichage.libelle} ${l.affichage.debut} à ${l.affichage.fin}`}
+                    value={String(ordres[l.id] !== undefined ? ordres[l.id] ?? "" : l.ordre ?? "")}
+                    onChange={(e) => setOrdres({ ...ordres, [l.id]: e.target.value ? Number(e.target.value) : null })}>
+                    <option value=""></option>{(donnees.options.ordre ?? []).map((o) => <option key={String(o.id)} value={String(o.id)}>{o.libelle}</option>)}</select></td>
+                : <td key={c.cle} className={c.type === "entier" ? "num" : undefined}>{l.affichage[c.cle]}</td>)}
             </tr>
           ))}
         </tbody>

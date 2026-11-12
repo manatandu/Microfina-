@@ -270,6 +270,9 @@ textarea.saisie.montant { resize: none; text-align: end; }
 .fleches-ordre { display: grid; gap: var(--espace-2); padding-top: 2.5rem; }
 .fleches-ordre .bouton { min-width: 2.5rem; padding-inline: var(--espace-2); }
 .ordre-elements tbody { display: block; min-block-size: 10rem; }
+.ordonner { display: flex; gap: var(--espace-3); align-items: start; }
+.ordonner > .ordre-elements { inline-size: 16rem; flex: 0 0 auto; }
+.ordonner > .ordre-elements td:first-child { inline-size: 2rem; }
 .ordre-elements thead, .ordre-elements tbody tr { display: table; inline-size: 100%; table-layout: fixed; }
 
 /* S10 (p. 96) : boutons ✎ et ✖ de la colonne Action */

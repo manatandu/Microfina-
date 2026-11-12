@@ -13,6 +13,7 @@ from . import listes as li
 from . import budget as bu
 from . import localisation as lo
 from . import credit as cr
+from . import ordres as od
 from . import comptes as cp
 from . import numerotation as nu
 from . import services as s
@@ -626,6 +627,32 @@ def cr_modifier(request, page: str, lid: int, corps: dict = Body(...)):
 @api.post("/credit-referentiels/{page}/{lid}/suppression")
 def cr_supprimer(request, page: str, lid: int):
     return cr.supprimer(u(request), page, lid)
+
+
+@api.post("/credit-degres/ordres")
+def cr_degres_ordres(request, corps: dict = Body(...)):
+    return cr.enregistrer_ordres(u(request), corps)
+
+
+# ---------- Paramétrage > Produit > Crédit > Ordre remboursement crédit (S22) ----------
+@api.get("/ordres-remboursement")
+def od_lire(request):
+    return od.lire(u(request))
+
+
+@api.post("/ordres-remboursement")
+def od_creer(request, corps: dict = Body(...)):
+    return od.enregistrer(u(request), corps)
+
+
+@api.post("/ordres-remboursement/{oid}")
+def od_modifier(request, oid: int, corps: dict = Body(...)):
+    return od.enregistrer(u(request), corps, oid)
+
+
+@api.post("/ordres-remboursement/{oid}/suppression")
+def od_supprimer(request, oid: int):
+    return od.supprimer(u(request), oid)
 
 
 @api.get("/gestionnaires/{gid}/portefeuille")

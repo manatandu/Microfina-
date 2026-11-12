@@ -141,11 +141,17 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       enregistrer: (niveau: string, d: object, id?: number) => post(id === undefined ? `/localisation/${niveau}` : `/localisation/${niveau}/${id}`, d),
       supprimer: (niveau: string, id: number) => post(`/localisation/${niveau}/${id}/suppression`),
     },
+    ordres: {
+      lire: () => get("/ordres-remboursement"),
+      enregistrer: (d: object, id?: number) => post(id === undefined ? "/ordres-remboursement" : `/ordres-remboursement/${id}`, d),
+      supprimer: (id: number) => post(`/ordres-remboursement/${id}/suppression`),
+    },
     credit: {
       lire: (page: string) => get(`/credit-referentiels/${page}`),
       enregistrer: (page: string, d: object, id?: number) => post(id === undefined ? `/credit-referentiels/${page}` : `/credit-referentiels/${page}/${id}`, d),
       supprimer: (page: string, id: number) => post(`/credit-referentiels/${page}/${id}/suppression`),
       portefeuille: (id: number) => get(`/gestionnaires/${id}/portefeuille`),
+      enregistrerOrdres: (ordres: object) => post("/credit-degres/ordres", { ordres }),
     },
     budget: {
       lire: (page: string) => get(`/budget-referentiels/${page}`),

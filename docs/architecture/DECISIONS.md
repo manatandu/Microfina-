@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**176 décisions.** Solidité : 65 fortes (le manuel ou un texte répond), 87 moyennes (déduites d'un écran voisin ou d'une donnée), 24 faibles (notre choix, faute de mieux). Dans le code : 122 déjà en place, 54 à appliquer.
+**179 décisions.** Solidité : 66 fortes (le manuel ou un texte répond), 89 moyennes (déduites d'un écran voisin ou d'une donnée), 24 faibles (notre choix, faute de mieux). Dans le code : 125 déjà en place, 54 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -356,6 +356,14 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S21-6 | Gestionnaire de portefeuille | Utilisateur choisi parmi les utilisateurs de l'institution. Portefeuille : les clients dont la fiche porte cet utilisateur comme gestionnaire. Montants en CDF, durées en mois | Donnée exigée ailleurs : Capture p. 36 ; fiche client (gestionnaire, S37) | faible | en place |
 | S21-7 | Bornes | Montant à et Durée Au ne sont pas inférieurs à Montant de et Durée de | Donnée exigée ailleurs : Capture p. 36 (paires de / à) | moyenne | en place |
 | S21-8 | Doublons et suppression | Type Objet, Objet Credit, Nom Assureur, Nom Zone : un libellé une seule fois (sans tenir compte des majuscules) ; codes uniques. Un type d'objet ou d'assurance utilisé ne se supprime pas | Donnée exigée ailleurs : T08 ; T02 | moyenne | en place |
+
+## S22 Ordre de remboursement
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S22-1 | Ordres possibles | Les cinq éléments de la capture (Intérêt, Capital, Pénalité, Epargne, Solidarité), une fois chacun. Code : les initiales dans l'ordre ; Libellé : les noms dans l'ordre. Un ordre n'est enregistré qu'une fois. Tout ordre est permis : la COOPEC, créancière, consent à l'imputation qu'elle fixe | Texte réglementaire : Capture p. 37 (grille Code CIPES, Libellé) ; Code civil, livre III, art. 152 | forte | en place |
+| S22-2 | Modifier, Supprimer | Clic sur une ligne : l'ordre revient dans Ordonner ; Enregistrer le modifie après confirmation. Supprimer logique ; un ordre attaché à un degré de crédit ne se supprime pas | Règle générale du manuel : Manuel p. 12 (T01, T02) ; capture p. 37 (Supprimer grisé) | moyenne | en place |
+| S22-3 | Lien avec Degré Crédit | Chaque degré de Produits > Crédits > Général reçoit son ordre dans la colonne Ordre de remboursement crédit, enregistré par le bouton Enregistrement. Les taux restent ceux de l'Instr. BCC 003. Graine : Sains et Impayés en PICES, les autres en CIPES, comme sur la capture | Écran voisin : Capture p. 34 (colonne Ordre de remboursement crédit, bouton Enregistrement) ; S21-1 | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 
