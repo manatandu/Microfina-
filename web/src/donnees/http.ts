@@ -136,6 +136,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       lire: () => get("/exercices"),
       enregistrer: (d: object) => post("/exercices", d),
       ouvrir: (annee: number | string) => post(`/exercices/${annee}/ouverture`),
+      completer: (journalIds: number[]) => post("/exercices/completer", { journalIds }),
     },
     guichets: {
       lire: () => get("/guichets"),

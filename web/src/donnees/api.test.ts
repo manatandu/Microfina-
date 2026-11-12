@@ -66,13 +66,21 @@ describe("journée de guichet", () => {
     await expect(api.exercices.enregistrer({ annee: "2026", lignes: [] })).rejects.toThrow("existe déjà");
     l = await api.exercices.enregistrer({ annee: "2027", lignes: [] });
     expect(l.exercices).toContainEqual({ annee: 2027, actif: false, ouvert: false, valide: false });
-    l = await api.exercices.enregistrer({ annee: "", lignes: [{ annee: 2027, actif: true, ouvert: false, valide: false }] });
-    expect(l.exercices.find((e) => e.annee === 2027)?.actif).toBe(true);
+    await expect(api.exercices.enregistrer({ annee: "", lignes: [{ annee: 2027, actif: true, ouvert: false, valide: false }] })).rejects.toThrow("Un seul exercice actif");
+    await expect(api.exercices.enregistrer({ annee: "", lignes: [{ annee: 2025, actif: false, ouvert: true, valide: false }] })).rejects.toThrow("ne se rouvre pas");
+    await expect(api.journees.ouvrir("2027-01-04")).rejects.toThrow("pas ouvert");   // registre S11-2
+    l = await api.exercices.enregistrer({ annee: "", lignes: [{ annee: 2026, actif: false, ouvert: true, valide: false }, { annee: 2027, actif: true, ouvert: false, valide: false }] });
+    expect([l.exercices.find((e) => e.annee === 2027)?.actif, l.enCours]).toEqual([true, 2027]);
     l = await api.exercices.ouvrir(2027);
     expect([l.details.filter((d) => d.annee === 2027).length, l.enCours]).toEqual([l.journaux.length, 2027]);
     await expect(api.exercices.ouvrir(2027)).rejects.toThrow("déjà ouvert");
+    // Compléter journal détail (registre S11-8)
+    await api.exercices.enregistrer({ annee: "2028", lignes: [{ annee: 2027, actif: false, ouvert: true, valide: false }] });
+    l = await api.exercices.enregistrer({ annee: "", lignes: [{ annee: 2028, actif: true, ouvert: true, valide: false }] });
+    l = await api.exercices.completer([1]);
+    expect(l.details.filter((d) => d.annee === 2028).map((d) => d.journalId)).toEqual([1]);
     await connecter("bkasongo");
-    await expect(api.exercices.enregistrer({ annee: "2028", lignes: [] })).rejects.toThrow("chef d'agence");
+    await expect(api.exercices.enregistrer({ annee: "2029", lignes: [] })).rejects.toThrow("chef d'agence");
   });
 
   it("guichets (S08 p. 18, S09 p. 19) : champs obligatoires, code unique, ouverture d'un guichet actif, fermeture", async () => {

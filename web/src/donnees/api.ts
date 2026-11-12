@@ -16,7 +16,7 @@ import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@d
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v23";
+const CLE = "likelemba-demo-v24";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -24,7 +24,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 23) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 24) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -101,6 +101,9 @@ const journees = {
   ouvrir(date: string) {
     exiger("chef_agence");
     if (E.journees.some((j) => j.statut !== "fermee")) throw new ErreurMetier("Une journée est déjà ouverte dans cette agence.");
+    const ex = E.exercices.find((e) => e.annee === Number(date.slice(0, 4)));
+    // Registre S11-2 et S12-1 : une journée ne s'ouvre que dans un exercice ouvert et non validé (S11)
+    if (!ex || !ex.ouvert || ex.valide) throw new ErreurMetier(`L'exercice ${date.slice(0, 4)} n'est pas ouvert (Administration > Exercice).`);
     const derniere = E.journees.at(-1);
     if (derniere && date <= derniere.date) throw new ErreurMetier(`La date doit suivre la dernière journée (${fr(derniere.date)}).`);
     const j: Journee = { id: prochain(E.journees), date, statut: "ouverte", ouvertePar: E.session ?? undefined, ouverteLe: new Date().toISOString() };
@@ -1189,28 +1192,33 @@ const exercices = {
   lire() {
     exiger();
     const ex = [...E.exercices].sort((a, b) => a.annee - b.annee);
-    const ouverts = ex.filter((e) => e.ouvert && !e.valide).map((e) => e.annee);
     return {
-      exercices: ex.map((e) => ({ ...e })), enCours: ouverts.length ? Math.max(...ouverts) : null, journaux: JOURNAUX,
+      exercices: ex.map((e) => ({ ...e })), enCours: ex.find((e) => e.actif)?.annee ?? null, journaux: JOURNAUX,   // registre S11-1 : l'exercice actif est en cours
       details: E.journauxDetail.map((d) => { const j = JOURNAUX.find((x) => x.id === d.journalId)!; return { ...d, libelle: j.libelle, code: j.code, type: j.type }; })
         .sort((a, b) => a.annee - b.annee || a.code.localeCompare(b.code)),
     };
   },
   /** « Nouvel Exercice » (p. 20) : Année*, puis les cases Actif ?, Ouvert ?, Validé ? cochées dans la liste, Enregistrer */
   enregistrer(d: { annee: string; lignes: LigneExercice[] }) {
-    exiger("chef_agence");   // profil habilité : à confirmer
+    exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
     const texte = d.annee.trim();
     if (!texte && !d.lignes.length) throw new ErreurMetier("À remplir : année.");
-    if (texte) {
-      const a = anneeDe(texte);
-      if (E.exercices.some((e) => e.annee === a)) throw new ErreurMetier("Cet exercice existe déjà.");
-      E.exercices.push({ annee: a, actif: false, ouvert: false, valide: false });
-    }
+    const nouvelle = texte ? anneeDe(texte) : null;
+    // Tout est contrôlé avant d'écrire
+    const voulu = new Map(E.exercices.map((e) => [e.annee, { ...e }]));
     for (const l of d.lignes) {
-      const e = E.exercices.find((x) => x.annee === anneeDe(l.annee));
+      const a = anneeDe(l.annee), e = voulu.get(a);
       if (!e) throw new ErreurMetier("Exercice introuvable.");
+      // Registre S11-3 : PCCI § 3.4 (irréversibilité) et § 4.3.6 (intangibilité du bilan d'ouverture)
+      if (e.valide && !l.valide) throw new ErreurMetier(`L'exercice ${a} est validé : il ne se rouvre pas.`);
+      if (l.valide && !e.valide && E.journees.some((j) => j.date.startsWith(String(a)) && j.statut !== "fermee"))
+        throw new ErreurMetier(`L'exercice ${a} a encore une journée ouverte : la comptabiliser avant de le valider.`);
       Object.assign(e, { actif: !!l.actif, ouvert: !!l.ouvert, valide: !!l.valide });
     }
+    if ([...voulu.values()].filter((e) => e.actif).length > 1) throw new ErreurMetier("Un seul exercice actif à la fois.");   // registre S11-1
+    if (nouvelle !== null && voulu.has(nouvelle)) throw new ErreurMetier("Cet exercice existe déjà.");
+    E.exercices = [...voulu.values()];
+    if (nouvelle !== null) E.exercices.push({ annee: nouvelle, actif: false, ouvert: false, valide: false });
     enregistrer(); return exercices.lire();
   },
   /** « Ouverture d'un Exercice » (p. 21) : Exercice à ouvrir, Ouvrir ; la Liste Détails Journal reçoit les journaux de l'institution */
@@ -1222,6 +1230,17 @@ const exercices = {
     if (E.journauxDetail.some((x) => x.annee === a)) throw new ErreurMetier("Cet exercice est déjà ouvert.");
     for (const j of JOURNAUX) E.journauxDetail.push({ id: prochain(E.journauxDetail), annee: a, journalId: j.id, actif: true, ouvert: true, compteur: 0 });
     e.ouvert = true; enregistrer(); return exercices.lire();
+  },
+  /** « Completer journal detail de l'exercice encours » (p. 21) : bouton Enregistrer et confirmation (bas coupé ; registre S11-8) */
+  completer(journalIds: number[]) {
+    exiger("chef_agence");
+    const a = exercices.lire().enCours;
+    if (a === null) throw new ErreurMetier("Aucun exercice en cours.");
+    if (!journalIds.length) throw new ErreurMetier("À remplir : journaux à ajouter.");
+    if (journalIds.some((id) => !JOURNAUX.some((j) => j.id === id))) throw new ErreurMetier("Journal inconnu.");
+    for (const id of journalIds) if (!E.journauxDetail.some((x) => x.annee === a && x.journalId === id))
+      E.journauxDetail.push({ id: prochain(E.journauxDetail), annee: a, journalId: id, actif: true, ouvert: true, compteur: 0 });
+    enregistrer(); return exercices.lire();
   },
 };
 

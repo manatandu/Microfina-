@@ -142,6 +142,10 @@ def ouvrir_journee(u: dict, jour: str) -> dict:
     exiger(u, "chef_agence")
     if une("select 1 from journee_comptable where agence_id = %s and statut <> 'fermee'", (u["agence_id"],)):
         raise ErreurMetier("Une journée est déjà ouverte dans cette agence.")
+    e = une("select * from exercice where institution_id = %s and annee = %s", (u["institution_id"], int(str(jour)[:4])))
+    if not e or not e["ouvert"] or e["valide"]:
+        # Registre S11-2 et S12-1 : une journée ne s'ouvre que dans un exercice ouvert et non validé (S11)
+        raise ErreurMetier(f"L'exercice {str(jour)[:4]} n'est pas ouvert (Administration > Exercice).")
     derniere = journee_courante(u)
     if derniere and jour <= derniere["date"]:
         raise ErreurMetier(f"La date doit suivre la dernière journée ({fr(derniere['date'])}).")

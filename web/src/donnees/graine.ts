@@ -34,7 +34,7 @@ export function graine(): Etat {
     lieuNaissance: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", liees: [] as number[],
     type: "physique" as const, formeJuridique: "", registre: "", centreActivite: "", activite: "", dirigeant: null, signataires: [], nbHommes: 0, nbFemmes: 0, membres: [], intitule: "", dateVisa: "2026-01-15", profession: "", pays: "", ville: "", quartier: "", rue: "", email: "", bp: "", telephoneFixe: "", motifDepart: "", resilieLe: "", creeLe: "2026-01-15", creePar: 4, visePar: 2, statut: "actif" as const };
   return {
-    version: 23,
+    version: 24,
     institution: { nom: "COOPEC Tujenge", profil: "coopec" },
     agence: { id: 1, code: "0412", nom: "Matete" },
     guichets: [{ id: 1, code: "G1", nom: "Caisse 1", typeGuichet: "PRINCIPALE", journalId: 1, ...COMPTES_GUICHET }, { id: 2, code: "G2", nom: "Caisse 2", typeGuichet: "SECONDAIRE", journalId: 1, ...COMPTES_GUICHET }],   // type et journal fictifs (S08)
@@ -51,7 +51,7 @@ export function graine(): Etat {
     journees: [{ id: 1, date: "2026-11-04", statut: "fermee", ouvertePar: 2, fermeePar: 2 }],
     sessions: [],
     // Exercices (S11), données fictives : 2025 validé, 2026 actif et ouvert avec ses journaux
-    exercices: [{ annee: 2025, actif: true, ouvert: true, valide: true }, { annee: 2026, actif: true, ouvert: true, valide: false }],
+    exercices: [{ annee: 2025, actif: false, ouvert: true, valide: true }, { annee: 2026, actif: true, ouvert: true, valide: false }],   // un seul actif (registre S11-1)
     journauxDetail: [1, 2, 3].map((journalId) => ({ id: journalId, annee: 2026, journalId, actif: true, ouvert: true, compteur: 0 })),
     billetages: [],
     tiers: [

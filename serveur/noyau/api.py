@@ -524,6 +524,11 @@ def ex_enregistrer(request, corps: dict = Body(...)):
     return ex.enregistrer(u(request), corps)
 
 
+@api.post("/exercices/completer")
+def ex_completer(request, corps: dict = Body(...)):
+    return ex.completer(u(request), corps)
+
+
 @api.post("/exercices/{annee}/ouverture")
 def ex_ouvrir(request, annee: int):
     return ex.ouvrir(u(request), annee)

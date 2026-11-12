@@ -39,10 +39,12 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Retirer le guichet : bkasongo' }).click(); await oui();
   // Chef : exercices (S11, p. 20 et 21)
   await aller('/administration/s11'); await p.getByLabel('Année : *').fill('2027'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  await p.getByLabel('Actif : 2027').check(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('02c-nouvel-exercice');
+  await p.getByLabel('Actif : 2026').uncheck(); await p.getByLabel('Actif : 2027').check(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('02c-nouvel-exercice');
   await aller('/administration/s11b'); await p.getByLabel('Exerice à ouvrir').fill('2027'); await p.getByRole('button', { name: 'Ouvrir', exact: true }).click(); await oui();
   await p.getByRole('cell', { name: 'Journal Banque', exact: true }).waitFor(); await etape('02d-ouverture-exercice');
   await aller('/administration/s11c'); await p.getByRole('cell', { name: 'Liste vide' }).waitFor(); await etape('02e-completer-journal-detail');
+  // Remettre 2026 en cours pour la suite de la journée (un seul exercice actif, registre S11-1)
+  await aller('/administration/s11'); await p.getByLabel('Actif : 2027').uncheck(); await p.getByLabel('Actif : 2026').check(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   // Chef : secteur d'activité (S14, p. 23)
   await aller('/parametrage/s14'); await p.getByLabel('N° secteur : *').fill('S9'); await p.getByLabel("Secteur d'activite : *").fill('Pêche');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Pêche' }).waitFor(); await etape('02f-secteurs-activite');

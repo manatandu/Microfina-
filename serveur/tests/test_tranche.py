@@ -561,11 +561,25 @@ def test_exercices(clients):
     assert agent.post("/api/exercices", {"annee": "2027"}, **H).status_code == 403
     l = chef.post("/api/exercices", {"annee": "2027", "lignes": [{"annee": 2026, "actif": True, "ouvert": True, "valide": False}]}, **H).json()
     assert {"annee": 2027, "actif": False, "ouvert": False, "valide": False} in l["exercices"]
-    l = chef.post("/api/exercices", {"lignes": [{"annee": 2027, "actif": True, "ouvert": False, "valide": False}]}, **H).json()
-    assert next(e for e in l["exercices"] if e["annee"] == 2027)["actif"]
+    assert "Un seul exercice actif" in refus({"lignes": [{"annee": 2027, "actif": True, "ouvert": False, "valide": False}]})            # registre S11-1
+    assert "ne se rouvre pas" in refus({"lignes": [{"annee": 2025, "actif": False, "ouvert": True, "valide": False}]})          # registre S11-3
+    r = chef.post("/api/journees", {"date": "2027-01-04"}, **H); assert r.status_code == 422 and "pas ouvert" in r.json()["message"]   # registre S11-2
+    chef.post("/api/journees", {"date": "2026-11-05"}, **H)
+    assert "journée ouverte" in refus({"lignes": [{"annee": 2026, "actif": True, "ouvert": True, "valide": True}]})
+    l = chef.post("/api/exercices", {"lignes": [{"annee": 2026, "actif": False, "ouvert": True, "valide": False},
+                                                {"annee": 2027, "actif": True, "ouvert": False, "valide": False}]}, **H).json()
+    assert next(e for e in l["exercices"] if e["annee"] == 2027)["actif"] and l["enCours"] == 2027
     l = chef.post("/api/exercices/2027/ouverture", **H).json()
     assert len([d for d in l["details"] if d["annee"] == 2027]) == len(l["journaux"]) and l["enCours"] == 2027
     r = chef.post("/api/exercices/2027/ouverture", **H); assert r.status_code == 422 and "déjà ouvert" in r.json()["message"]
+    # Compléter journal détail (registre S11-8) : un journal ajouté à l'exercice en cours
+    jid = l["journaux"][0]["id"]
+    chef.post("/api/exercices", {"annee": "2028", "lignes": [{"annee": 2027, "actif": False, "ouvert": True, "valide": False}]}, **H)
+    l = chef.post("/api/exercices", {"lignes": [{"annee": 2028, "actif": True, "ouvert": True, "valide": False}]}, **H).json()
+    assert l["enCours"] == 2028 and not [d for d in l["details"] if d["annee"] == 2028]
+    r = chef.post("/api/exercices/completer", {"journalIds": []}, **H); assert r.status_code == 422
+    l = chef.post("/api/exercices/completer", {"journalIds": [jid]}, **H).json()
+    assert [d["journalId"] for d in l["details"] if d["annee"] == 2028] == [jid]
 
 
 def test_liste_des_journees(clients, journee):

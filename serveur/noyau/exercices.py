@@ -4,14 +4,14 @@ from .services import exiger
 
 
 def droit(u):
-    return exiger(u, "chef_agence")          # profil habilité : à confirmer
+    return exiger(u, "chef_agence")          # profil habilité : registre T07, en attendant S03 à S06
 
 
 def lire(u) -> dict:
     exiger(u)
     i = u["institution_id"]
     ex = lignes("select annee, actif, ouvert, valide from exercice where institution_id = %s order by annee", (i,))
-    en_cours = max((e["annee"] for e in ex if e["ouvert"] and not e["valide"]), default=None)
+    en_cours = next((e["annee"] for e in ex if e["actif"]), None)   # registre S11-1 : l'exercice actif est l'exercice en cours
     return {
         "exercices": ex,
         "enCours": en_cours,
@@ -40,16 +40,34 @@ def enregistrer(u, d) -> dict:
     if not texte and not lignes_:
         raise ErreurMetier("À remplir : année.")
     if texte:
-        a = annee_de(texte)
-        if une("select 1 from exercice where institution_id = %s and annee = %s", (i, a)):
-            raise ErreurMetier("Cet exercice existe déjà.")
-        executer("insert into exercice (institution_id, annee) values (%s, %s)", (i, a))
+        annee_de(texte)
+    # Tout est contrôlé avant d'écrire : une erreur ne laisse rien à moitié enregistré
+    voulu = {e["annee"]: e for e in lignes("select * from exercice where institution_id = %s for update", (i,))}
+    maj = []
     for l in lignes_:
         a = annee_de(l.get("annee"))
-        if not une("select 1 from exercice where institution_id = %s and annee = %s for update", (i, a)):
+        e = voulu.get(a)
+        if not e:
             raise ErreurMetier("Exercice introuvable.")
-        executer("update exercice set actif = %s, ouvert = %s, valide = %s where institution_id = %s and annee = %s",
-                 (bool(l.get("actif")), bool(l.get("ouvert")), bool(l.get("valide")), i, a))
+        valide = bool(l.get("valide"))
+        if e["valide"] and not valide:
+            # Registre S11-3 : PCCI § 3.4 (irréversibilité) et § 4.3.6 (intangibilité du bilan d'ouverture)
+            raise ErreurMetier(f"L'exercice {a} est validé : il ne se rouvre pas.")
+        if valide and not e["valide"] and une("""select 1 from journee_comptable j join agence g on g.id = j.agence_id
+                                                  where g.institution_id = %s and extract(year from j.date_comptable) = %s and j.statut <> 'fermee'""", (i, a)):
+            raise ErreurMetier(f"L'exercice {a} a encore une journée ouverte : la comptabiliser avant de le valider.")
+        voulu[a] = {**e, "actif": bool(l.get("actif")), "ouvert": bool(l.get("ouvert")), "valide": valide}
+        maj.append(a)
+    if sum(1 for e in voulu.values() if e["actif"]) > 1:
+        raise ErreurMetier("Un seul exercice actif à la fois.")   # registre S11-1
+    if texte:
+        a = annee_de(texte)
+        if a in voulu:
+            raise ErreurMetier("Cet exercice existe déjà.")
+        executer("insert into exercice (institution_id, annee) values (%s, %s)", (i, a))
+    for a in maj:
+        e = voulu[a]
+        executer("update exercice set actif = %s, ouvert = %s, valide = %s where institution_id = %s and annee = %s", (e["actif"], e["ouvert"], e["valide"], i, a))
     return lire(u)
 
 
@@ -64,4 +82,24 @@ def ouvrir(u, annee) -> dict:
         raise ErreurMetier("Cet exercice est déjà ouvert.")
     executer("""insert into journal_detail (institution_id, annee, journal_id) select %s, %s, id from journal where institution_id = %s""", (i, a, i))
     executer("update exercice set ouvert = true where institution_id = %s and annee = %s", (i, a))
+    return lire(u)
+
+
+def completer(u, d) -> dict:
+    """« Completer journal detail de l'exercice encours » (p. 21) : les journaux cochés reçoivent leur ligne dans l'exercice en cours.
+    Le bas de l'écran est coupé sur la capture ; bouton Enregistrer et confirmation (registre S11-8, manuel p. 11)."""
+    droit(u)
+    i = u["institution_id"]
+    a = lire(u)["enCours"]
+    if a is None:
+        raise ErreurMetier("Aucun exercice en cours.")
+    ids = d.get("journalIds") if isinstance(d, dict) and isinstance(d.get("journalIds"), list) else []
+    if not ids:
+        raise ErreurMetier("À remplir : journaux à ajouter.")
+    for jid in ids:
+        if not une("select 1 from journal where id = %s and institution_id = %s", (jid, i)):
+            raise ErreurMetier("Journal inconnu.")
+    for jid in ids:
+        if not une("select 1 from journal_detail where institution_id = %s and annee = %s and journal_id = %s", (i, a, jid)):
+            executer("insert into journal_detail (institution_id, annee, journal_id) values (%s, %s, %s)", (i, a, jid))
     return lire(u)

@@ -4,7 +4,8 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
 
 const SOURCES_P20 = ["Manuel Microfina++, p. 20 : Nouvel Exercice, Exercice (Année*), Enregistrer, Effacer, liste Annee, Actif ?, Ouvert ?, Validé ? ; « préciser obligatoirement l'Année puis cocher la case d'activation, d'ouverture et valider avant d'enregistrer »",
-  "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"];
+  "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
+  "PCCI § 3.4 : irréversibilité, validation des enregistrements ; § 4.3.1 : exercice de 12 mois, du 1er janvier au 31 décembre ; § 4.3.6 : intangibilité du bilan d'ouverture"];
 
 function Case({ coche, libelle, onChange }: { coche: boolean; libelle: string; onChange?: (v: boolean) => void }) {
   return <input type="checkbox" checked={coche} disabled={!onChange} aria-label={libelle} onChange={(e) => onChange?.(e.target.checked)} />;
@@ -52,13 +53,13 @@ export function NouvelExercice() {
                   <td className="chiffres">{e.annee}</td>
                   <td><Case coche={c.actif} libelle={`Actif : ${e.annee}`} onChange={cocher(e.annee, "actif")} /></td>
                   <td><Case coche={c.ouvert} libelle={`Ouvert : ${e.annee}`} onChange={cocher(e.annee, "ouvert")} /></td>
-                  <td><Case coche={c.valide} libelle={`Validé : ${e.annee}`} onChange={cocher(e.annee, "valide")} /></td>
+                  <td><Case coche={c.valide} libelle={`Validé : ${e.annee}`} onChange={e.valide ? undefined : cocher(e.annee, "valide")} /></td>
                 </tr>
               );
             })}
           </tbody>
         </table>
-        <p className="a-confirmer">À confirmer : ce que changent les cases Actif, Ouvert et Validé (ici elles sont seulement enregistrées ; elles n'empêchent encore aucune journée ni opération) ; sens de « Validé » (clôture ?) ; profil habilité.</p>
+        <p className="a-confirmer">Complété par nous (registre <code>docs/architecture/DECISIONS.md</code>) : S11-1 un seul exercice actif, c'est l'exercice en cours ; S11-2 une journée ne s'ouvre que dans un exercice ouvert ; S11-3 Validé clôture l'exercice pour de bon (la case ne se décoche plus ; refusé tant qu'une journée de l'année est ouverte) ; S11-4 exercice du 1er janvier au 31 décembre ; T07 profil habilité.</p>
         <Textes sources={SOURCES_P20} />
       </section>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
@@ -71,7 +72,8 @@ const TYPES_JOURNAL: Record<string, string> = { caisse: "Caisse", banque: "Banqu
 
 type Detail = { id: number; annee: number; journalId: number; libelle: string; code: string; type: string; actif: boolean; ouvert: boolean; compteur: number };
 
-function ListeDetails({ lignes, vide, choix }: { lignes: Detail[]; vide: string; choix?: boolean }) {
+function ListeDetails({ lignes, vide, coches, cocher }: { lignes: Detail[]; vide: string; coches?: number[]; cocher?: (journalId: number, v: boolean) => void }) {
+  const choix = !!cocher;
   return (
     <table className="grille">
       <thead><tr>{choix && <th scope="col"><span className="sr-only">Choisir</span></th>}<th scope="col">Libellé</th><th scope="col">ID</th><th scope="col">Exercice</th><th scope="col">Actif?</th>
@@ -80,7 +82,7 @@ function ListeDetails({ lignes, vide, choix }: { lignes: Detail[]; vide: string;
         {lignes.length === 0 && <tr><td colSpan={choix ? 9 : 8}>{vide}</td></tr>}
         {lignes.map((d) => (
           <tr key={`${d.annee}-${d.journalId}`}>
-            {choix && <td><input type="checkbox" aria-label={`Choisir : ${d.libelle}`} /></td>}
+            {choix && <td><input type="checkbox" aria-label={`Choisir : ${d.libelle}`} checked={coches?.includes(d.journalId) ?? false} onChange={(e) => cocher?.(d.journalId, e.target.checked)} /></td>}
             <td>{d.libelle}</td><td className="chiffres">{d.id || ""}</td><td className="chiffres">{d.annee}</td>
             <td><Case coche={d.actif} libelle={`Actif : ${d.libelle}`} /></td><td><Case coche={d.ouvert} libelle={`Ouvert : ${d.libelle}`} /></td>
             <td className="chiffres">{d.compteur}</td><td className="chiffres">{d.code}</td><td>{TYPES_JOURNAL[d.type] ?? d.type}</td>
@@ -123,7 +125,7 @@ export function OuvertureExercice() {
           <button className="bouton" type="button" onClick={ouvrir}>Ouvrir</button>
           <button className="bouton secondaire" type="button" onClick={() => { setSaisie(""); setChoisi(""); }}>Annuler</button>
         </div>
-        <p className="a-confirmer">À confirmer : rôle du bouton « Exercice à ouvrir » (ici : affiche la liste de l'exercice saisi) ; ce que crée Ouvrir (ici : une ligne par journal de l'institution, compteur à 0) ; usage du compteur (la numérotation des pièces ne s'en sert pas encore) ; message après Oui ; profil habilité.</p>
+        <p className="a-confirmer">Complété par nous (registre <code>docs/architecture/DECISIONS.md</code>) : S11-5 « Exercice à ouvrir » affiche les journaux de l'exercice saisi ; S11-6 Ouvrir crée une ligne par journal, compteur à 0 ; S11-7 le compteur numérotera les pièces (à appliquer avec S29) ; T06 message après Oui ; T07 profil habilité.</p>
         <Textes sources={["Manuel Microfina++, p. 21 : Ouverture d'un Exercice, Exerice à ouvrir, Liste Détails Journal (Libellé, ID, Exercice, Actif?, Ouvert?, Compteur, N° Journal, Type Journal), Ouvrir, Annuler ; « Cliquer sur Exercice à ouvrir »"]} />
       </section>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
@@ -133,12 +135,21 @@ export function OuvertureExercice() {
 
 /** S11c : Administration > Exercice > Compléter journal détail (manuel Microfina++, p. 21) */
 export function CompleterJournalDetail() {
-  const { donnees } = useDonnees(() => api.exercices.lire());
+  const [coches, setCoches] = useState<number[]>([]);
+  const [boite, setBoite] = useState<Boite | null>(null);
+  const [relu, setRelu] = useState(0);
+  const { donnees } = useDonnees(() => api.exercices.lire(), [relu]);
   if (!donnees) return <Chargement />;
   const a = donnees.enCours;
   // Journaux de l'institution qui n'ont pas encore de ligne pour l'exercice en cours
   const manquants: Detail[] = a === null ? [] : donnees.journaux.filter((j) => !donnees.details.some((d) => d.annee === a && d.journalId === j.id))
     .map((j) => ({ id: 0, annee: a, journalId: j.id, libelle: j.libelle, code: j.code, type: j.type, actif: false, ouvert: false, compteur: 0 }));
+  function enregistrer() {
+    setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
+      try { await api.exercices.completer(coches); setCoches([]); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+      catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+    } });
+  }
   return (
     <>
       <h1>Completer journal detail de l'exercice encours</h1>
@@ -146,10 +157,15 @@ export function CompleterJournalDetail() {
         <div className="ligne-champ">
           <Champ libelle="Exerice encours">{(p) => <input {...p} className="saisie code" readOnly value={a ?? ""} />}</Champ>
         </div>
-        <ListeDetails lignes={manquants} vide="Liste vide" choix />
-        <p className="a-confirmer">À confirmer : le bas de l'écran est coupé sur la capture p. 21 ; le bouton qui ajoute les journaux cochés n'est pas visible, il n'est donc pas construit. Ici la liste montre les journaux qui n'ont pas encore de ligne pour l'exercice en cours.</p>
-        <Textes sources={["Manuel Microfina++, p. 21 : Completer journal detail de l'exercice encours, Exerice encours, liste (case, Libellé, ID, Exercice, Actif?, Ouvert?, Compteur, N° Journal, Type Journal), « Liste vide »"]} />
+        <ListeDetails lignes={manquants} vide="Liste vide" coches={coches} cocher={(id, v) => setCoches(v ? [...coches, id] : coches.filter((x) => x !== id))} />
+        <div className="actions-onglets">
+          <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
+        </div>
+        <p className="a-confirmer">Complété par nous (registre <code>docs/architecture/DECISIONS.md</code>) : S11-8 le bas de l'écran est coupé sur la capture p. 21 ; un bouton Enregistrer ajoute les journaux cochés à l'exercice en cours, avec confirmation (manuel p. 11) ; S11-1 l'exercice en cours est l'exercice actif.</p>
+        <Textes sources={["Manuel Microfina++, p. 21 : Completer journal detail de l'exercice encours, Exerice encours, liste (case, Libellé, ID, Exercice, Actif?, Ouvert?, Compteur, N° Journal, Type Journal), « Liste vide »",
+          "Manuel Microfina++, p. 10 et 11 : enregistrer une information, boîtes de confirmation, de succès et d'erreur"]} />
       </section>
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );
 }

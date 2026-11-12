@@ -69,8 +69,8 @@ class Command(BaseCommand):
         for numero, libelle, classe, nature in PCCI:
             executer("insert into compte (numero, libelle, classe, nature) values (%s, %s, %s, %s)", (numero, libelle, classe, nature))
         executer("insert into journal (institution_id, code, libelle, type) values (%s, 'CA', 'Caisse', 'caisse'), (%s, 'AN', 'À-nouveaux', 'a_nouveaux'), (%s, 'BQ', 'Journal Banque', 'banque')", (ins, ins, ins))
-        # Exercices (S11), données fictives : 2025 validé, 2026 actif et ouvert avec ses journaux
-        executer("insert into exercice (institution_id, annee, actif, ouvert, valide) values (%s, 2025, true, true, true), (%s, 2026, true, true, false)", (ins, ins))
+        # Exercices (S11), données fictives : 2025 validé, 2026 actif (un seul actif, registre S11-1) et ouvert avec ses journaux
+        executer("insert into exercice (institution_id, annee, actif, ouvert, valide) values (%s, 2025, false, true, true), (%s, 2026, true, true, false)", (ins, ins))
         executer("insert into journal_detail (institution_id, annee, journal_id) select %s, 2026, id from journal where institution_id = %s", (ins, ins))
         # Secteurs d'activité de démonstration, ceux de la capture du manuel p. 23 (S14)
         for c, l in SECTEURS:
