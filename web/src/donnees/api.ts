@@ -12,6 +12,7 @@ import {
   type RegleNumerotation,
 } from "./types";
 import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@design/montant.js";
+import PCCI from "@pcci";
 
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
@@ -1065,9 +1066,10 @@ const guichet = {
   },
 };
 
-/** Comptes du plan comptable déjà chargés (PCCI) ; le plan complet viendra avec S102 */
+/** Plan comptable : le PCCI complet (replica/pcci.json, 604 comptes ; Instruction BCC n° 006), plus les comptes bancaires de l'institution (S58) */
+const NUMEROS_PCCI = PCCI.comptes.map((c) => c.numero);
 function planComptable() {
-  return ["570", "579", "671", "7790", "330", "334", "1030", "1031", "1032", "715", "727", "728", ...E.comptesBancaires.map((c) => c.compte)];
+  return [...NUMEROS_PCCI, ...E.comptesBancaires.map((c) => c.compte)];
 }
 /** Opérations qui font sortir des billets de la caisse */
 const SORTIES: Operation["type"][] = ["retrait", "retrait_parts"];
@@ -1117,12 +1119,7 @@ const operations = {
 
 // ---------- États ----------
 export interface LigneBalance { compte: string; libelle: string; devise: Devise; debit: number; credit: number; debitCdf: number; creditCdf: number }
-export const LIBELLES_PCCI: Record<string, string> = {
-  "570": "Monnaies nationale et étrangère",
-  "330": "Épargnes",
-  "334": "Épargnes obligatoires",
-  "1030": "Parts sociales « personnes physiques effectives »",
-};
+export const LIBELLES_PCCI: Record<string, string> = Object.fromEntries(PCCI.comptes.map((c) => [c.numero, c.libelle]));
 const etats = {
   balance(): LigneBalance[] {
     const m = new Map<string, LigneBalance>();

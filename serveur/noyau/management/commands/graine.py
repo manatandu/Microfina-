@@ -14,10 +14,6 @@ COURS = 2850                 # CDF pour 1 USD, fictif
 VALEUR_PART = 400000         # 4 000 CDF : exemple du manuel Microfina++ ; la vraie valeur vient des statuts (loi 002/2002, art. 20)
 COUPURES = {"USD": [100, 50, 20, 10, 5, 1], "CDF": [20000, 10000, 5000, 1000, 500, 200, 100, 50]}
 FONDS_G2 = {"USD": {100: 140, 50: 12, 20: 8, 10: 3, 5: 2, 1: 6}, "CDF": {20000: 150, 10000: 120, 5000: 100, 1000: 60, 500: 7}}
-PCCI = [("570", "Monnaies nationale et étrangère", 5, "actif"), ("330", "Épargnes", 3, "passif"),
-        ("334", "Épargnes obligatoires", 3, "passif"), ("1030", "Parts sociales « personnes physiques effectives »", 1, "passif"),
-        ("1031", "Parts sociales « groupements solidaires effectifs »", 1, "passif"), ("1032", "Parts sociales « personnes morales effectives »", 1, "passif"),
-        ("715", "Commissions sur opérations avec la clientèle ou les membres", 7, "produit"), ("728", "Autres commissions", 7, "produit")]
 
 
 
@@ -66,8 +62,7 @@ class Command(BaseCommand):
         chef, compta, caissiere = uid["jpmukendi"], uid["plumbala"], uid["engalula"]
 
         # Plan de comptes, journaux, schémas comptables (proposés par le comptable, validés par le chef : quatre yeux)
-        for numero, libelle, classe, nature in PCCI:
-            executer("insert into compte (numero, libelle, classe, nature) values (%s, %s, %s, %s)", (numero, libelle, classe, nature))
+        # Plan comptable : le PCCI complet est chargé par la migration 0029 (replica/pcci.json)
         executer("insert into journal (institution_id, code, libelle, type) values (%s, 'CA', 'Caisse', 'caisse'), (%s, 'AN', 'À-nouveaux', 'a_nouveaux'), (%s, 'BQ', 'Journal Banque', 'banque')", (ins, ins, ins))
         # Exercices (S11), données fictives : 2025 validé, 2026 actif (un seul actif, registre S11-1) et ouvert avec ses journaux
         executer("insert into exercice (institution_id, annee, actif, ouvert, valide) values (%s, 2025, false, true, true), (%s, 2026, true, true, false)", (ins, ins))

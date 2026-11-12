@@ -27,12 +27,16 @@
     "paths": {
       "@design/*": [
         "../replica/design/*"
+      ],
+      "@pcci": [
+        "../replica/pcci.json"
       ]
     }
   },
   "include": [
     "src",
     "vite.config.ts",
-    "../replica/design/montant.js"
+    "../replica/design/montant.js",
+    "../replica/pcci.json"
   ]
 }
