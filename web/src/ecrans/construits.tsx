@@ -11,6 +11,7 @@ import ListesGenerales, { MotifsDepart } from "./Secteurs";
 import PlanComptes from "./PlanComptes";
 import ReferentielsBudget from "./Budget";
 import Localisation from "./Localisation";
+import CreditGeneral from "./Credit";
 import ParametragesClients, { ParametrageCompteClient } from "./Numerotation";
 import { EcranJournee, EcranValidation, FermetureJournee } from "./Journee";
 import { Consentement, InformationsClient, ModificationFrais, PhotosSignatures, ResiliationClient, ValidationClientModifie, VisaClient } from "./Visa";
@@ -38,6 +39,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S18: MotifsDepart,
   S19: ReferentielsBudget,
   S20: Localisation,
+  S21: CreditGeneral,
   S16: FraisOperations,
   S37: EnrolementPhysique,
   S38: EnrolementEntreprise,

@@ -16,7 +16,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 15,Motifs de départ,paramétrage,should,yes,S18,A,liste,2 Paramétrage,,G:p.12,,,
 16,Référentiel budgétaire,paramétrage,should,yes,S19,A,liste,2 Paramétrage,,G:p.12,,,
 17,Localisation à plusieurs niveaux,paramétrage,must,yes,S20,A,liste,2 Paramétrage,S20 : découpage de la RDC à la place de celui du manuel,R:découpage administratif de la RDC ; P,,,
-18,Référentiel crédit : types objets cycles zones assurances gestionnaires,paramétrage,must,no,S21,A,liste,2 Paramétrage,,G:p.12,,S21,
+18,Référentiel crédit : types objets cycles zones assurances gestionnaires,paramétrage,must,yes,S21,A,liste,2 Paramétrage,,G:p.12,,,
 19,Ordre de remboursement paramétrable,paramétrage,must,no,S22,A,composition,2 Paramétrage,,,,S22,
 20,Produit crédit : montants durées différés intérêts types de client périodicité,paramétrage,must,no,S23 S24,B,"onglets, liste",2 Paramétrage,S23 : deux pages sur cinq (à repérer à l'ouverture),"M:texte p. 37 ; D:S89, S75 ; R:Instr. BCC sur le crédit et le TEG",,S23 S24,
 21,Produit crédit : garanties assurance frais autres informations,paramétrage,must,no,S23,B,onglets,2 Paramétrage,S23 : deux pages sur cinq (à repérer à l'ouverture),"M:texte p. 37 ; D:S89, S75 ; R:Instr. BCC sur le crédit et le TEG",,S23,

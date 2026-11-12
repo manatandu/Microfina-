@@ -34,12 +34,11 @@ export function graine(): Etat {
     lieuNaissance: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", liees: [] as number[],
     type: "physique" as const, formeJuridique: "", registre: "", centreActivite: "", activite: "", dirigeant: null, signataires: [], nbHommes: 0, nbFemmes: 0, membres: [], intitule: "", dateVisa: "2026-01-15", profession: "", pays: "", ville: "", quartier: "", rue: "", email: "", bp: "", telephoneFixe: "", motifDepart: "", resilieLe: "", creeLe: "2026-01-15", creePar: 4, visePar: 2, statut: "actif" as const };
   return {
-    version: 32,
+    version: 33,
     institution: { nom: "COOPEC Tujenge", sigle: "CTJ", profil: "coopec" },   // sigle fictif : élément Institution du numéro client (S15-11)
     agence: { id: 1, code: "0412", nom: "Matete" },
     guichets: [{ id: 1, code: "G1", nom: "Caisse 1", typeGuichet: "PRINCIPALE", journalId: 1, ...COMPTES_GUICHET }, { id: 2, code: "G2", nom: "Caisse 2", typeGuichet: "SECONDAIRE", journalId: 1, ...COMPTES_GUICHET }],   // type et journal fictifs (S08)
     produits: [{ code: "EAV-CDF", libelle: "Épargne à vue", devise: "CDF", numero: 2 }, { code: "EAV-USD", libelle: "Épargne à vue", devise: "USD", numero: 1 }],   // numero : S17-2
-    zones: ["Matete"],   // zone fictive : le paramétrage S32 n'est pas encore construit
     utilisateurs: [
       { id: 1, login: "engalula", nom: "Esther Ngalula", roles: ["caissier"] },
       { id: 2, login: "jpmukendi", nom: "J.-P. Mukendi", roles: ["chef_agence"] },
@@ -74,6 +73,17 @@ export function graine(): Etat {
     images: {},
     frais: [], paramOperations: [], paramAdhesion: [], fraisClient: [], modifications: [], groupesSolidaires: [], membresGroupes: [], typesProcuration: [], consentements: [], banques: [], comptesBancaires: [],
     // S14 : secteurs de la capture du manuel p. 23 ; S14n : types de guichet de la capture p. 19 (registre S08-1)
+    // Référentiel crédit (S21) : zone de démonstration et exemples des captures p. 32 à 36
+    credit: {
+      zones: [{ id: 1, actif: true, code: "Z01", nom: "Matete", description: "Commune de Matete", agenceId: 1 }],
+      types_objet: ([["Agriculture, élevage, chasse, pêche, sylviculture, pisciculture et aquaculture", 1], ["Industries extractives", 1], ["Industrie manufacturière", 2],
+        ["Bâtiments et travaux publics", 2], ["Commerce, hôtels et restaurants", 3], ["Electricité, gaz, eau", 2], ["Transports, entrepôts et communications", 3],
+        ["Assurances, services aux entreprises", 3]] as const).map(([libelle, secteurId], i) => ({ id: i + 1, actif: true, libelle, secteurId })),
+      objets: ["Crédits immobiliers", "Crédits d'équipement", "Crédits à la consommation", "Crédits de trésorerie", "Autres crédits"].map((libelle, i) => ({ id: i + 1, actif: true, libelle, typeObjetId: 5 })),
+      cycles: [{ id: 1, actif: true, code: "C01", libelle: "PREMIER CYCLE" }, { id: 2, actif: true, code: "C02", libelle: "DEUXIEME CYCLE" }],
+      types_assurance: [{ id: 1, actif: true, code: "T01", libelle: "Interne" }],
+      assureurs: [], gestionnaires: [],
+    },
     // Référentiels du budget (S19) : exemples des captures p. 27 à 29
     budget: (() => {
       const tc = [["INST", "Institution", 0], ["DIR_GENE", "Direction Générale", 1], ["DIR", "Direction", 2], ["AG", "Agence", 3], ["DEP", "Département", 4], ["SER", "Service", 5]]

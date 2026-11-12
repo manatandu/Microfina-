@@ -473,6 +473,38 @@ describe("journée de guichet", () => {
     expect((await api.budget.enregistrer("plans", { annee: 2026, code: "2026-PL", libelle: "PLAN 2026" }, p.id)).lignes[0]!.libelle).toBe("PLAN 2026");
   });
 
+  it("référentiel crédit (S21, p. 32 à 36) : Degré selon l'Instr. BCC 003, Terme selon le PCCI, listes, zones de la fiche client", async () => {
+    await connecter("jpmukendi");
+    const l = await api.credit.lire("types_objet");
+    expect(l.catalogue).toHaveLength(11);
+    expect((await api.credit.lire("degres")).lignes.map((x) => [x.debut, x.fin, x.taux])).toEqual([[0, 0, 0], [1, 30, 5], [31, 60, 25], [61, 90, 50], [91, 180, 75], [181, 365, 100], [366, 999999, 100]]);
+    await expect(api.credit.enregistrer("degres", { libelle: "X" })).rejects.toThrow("ne se modifie pas");
+    expect((await api.credit.lire("termes")).lignes.map((x) => [x.libelle, x.debut, x.fin])).toEqual([["Court terme", 1, 12], ["Moyen terme", 13, 60], ["Long terme", 61, 9999]]);
+    expect((await api.credit.lire("periodicites")).lignes).toHaveLength(8);
+    await expect(api.credit.enregistrer("types_objet", { libelle: "Pêche artisanale" })).rejects.toThrow("Secteur Activité");
+    const sec = l.options.secteurId![0]!.id;
+    const to = (await api.credit.enregistrer("types_objet", { libelle: "Pêche artisanale", secteurId: sec })).lignes.find((x) => x.libelle === "Pêche artisanale")!;
+    await expect(api.credit.enregistrer("types_objet", { libelle: "pêche ARTISANALE", secteurId: sec })).rejects.toThrow("existe déjà");
+    const ob = await api.credit.enregistrer("objets", { libelle: "Achat de filets", typeObjetId: to.id });
+    expect(ob.lignes.find((x) => x.libelle === "Achat de filets")!.affichage.typeObjetId).toBe("Pêche artisanale");
+    await expect(api.credit.supprimer("types_objet", to.id)).rejects.toThrow("Objet Credit");
+    await expect(api.credit.enregistrer("cycles", { code: "C01", libelle: "X" })).rejects.toThrow("existe déjà");
+    const ag = (await api.credit.lire("zones")).options.agenceId![0]!.id;
+    await expect(api.credit.enregistrer("zones", { code: "Z02", nom: "Lemba", agenceId: ag })).rejects.toThrow("Description");
+    await expect(api.credit.enregistrer("zones", { code: "Z02", nom: "matete", description: "x", agenceId: ag })).rejects.toThrow("existe déjà");
+    await api.credit.enregistrer("zones", { code: "Z02", nom: "Lemba", description: "Commune de Lemba", agenceId: ag });
+    expect((await api.referentiel.contexte()).zones).toContain("Lemba");                 // la zone de la fiche client (registre S21-4)
+    const ta = (await api.credit.lire("types_assurance")).lignes[0]!;
+    await expect(api.credit.enregistrer("assureurs", { nom: "Assureur A", typeAssuranceId: ta.id, compte: "99999" })).rejects.toThrow("n'existe pas");
+    await expect(api.credit.enregistrer("assureurs", { nom: "Assureur A", typeAssuranceId: ta.id, email: "x" })).rejects.toThrow("email invalide");
+    await api.credit.enregistrer("assureurs", { nom: "Assureur A", typeAssuranceId: ta.id, portable: "+243 810 000 222" });
+    const us = (await api.credit.lire("gestionnaires")).options.utilisateurId!;
+    await expect(api.credit.enregistrer("gestionnaires", { code: "1-AA", nom: "Agent A", montantDe: 500, montantA: 100 })).rejects.toThrow("borne haute");
+    const g = (await api.credit.enregistrer("gestionnaires", { code: "1-AA", nom: "Agent A", utilisateurId: us[0]!.id, montantDe: 100, montantA: 500, enActivite: true })).lignes[0]!;
+    expect(g.affichage.enActivite).toBe("OUI");
+    expect(await api.credit.portefeuille(g.id)).toEqual([]);
+  });
+
   it("localisation (S20, p. 30 à 32), découpage de la RDC : parents obligatoires, nom unique sous un parent, Zone, Supprimer logique", async () => {
     await connecter("jpmukendi");
     const pr = await api.localisation.lire("province");

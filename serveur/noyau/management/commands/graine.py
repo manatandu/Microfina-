@@ -35,7 +35,6 @@ class Command(BaseCommand):
             self.stdout.write("Base déjà remplie : rien à faire.")
             return
         ins = valeur("insert into institution (nom, sigle, profil) values ('COOPEC Tujenge', 'CTJ', 'coopec') returning id")
-        executer("insert into zone (institution_id, nom) values (%s, 'Matete')", (ins,))
         # Professions fictives
         # Localisation (S20) : la ville de Kinshasa et les 25 provinces (Constitution, art. 2) ; communes et quartier de démonstration
         pays = valeur("insert into localite (niveau, nom, nationalite, code, zone) values ('pays', 'République démocratique du Congo', 'Congolaise', 'CD', 'Afrique') returning id")
@@ -71,6 +70,8 @@ class Command(BaseCommand):
                               ("14", "1ère Quinzaine de Janvier", "15J", "01/01", "14/01"), ("3", "MARS", "M", "01/03", "31/03"), ("4", "AVRIL", "M", "01/04", "30/04")):
             executer("insert into budget_periode (institution_id, code, libelle, type_id, debut, fin) values (%s, %s, %s, %s, %s, %s)", (ins, c, l, tp[t], d, f))
         ag = valeur("insert into agence (institution_id, code, nom) values (%s, '0412', 'Matete') returning id", (ins,))
+        # Référentiel crédit (S21) : zone de démonstration et exemples des captures p. 32 à 36
+        executer("insert into zone (institution_id, code, nom, description, agence_id) values (%s, 'Z01', 'Matete', 'Commune de Matete', %s)", (ins, ag))
         executer("insert into devise values ('CDF', 'Franc congolais'), ('USD', 'Dollar américain')")
         for d, vs in COUPURES.items():
             for v in vs:
@@ -97,6 +98,17 @@ class Command(BaseCommand):
         # Secteurs d'activité de démonstration, ceux de la capture du manuel p. 23 (S14)
         for c, l in SECTEURS:
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'secteur_activite', %s, %s)", (ins, c, l))
+        secteur = lambda c: valeur("select id from liste_reference where institution_id = %s and liste = 'secteur_activite' and code = %s", (ins, c))
+        to = {}
+        for l, sec in (("Agriculture, élevage, chasse, pêche, sylviculture, pisciculture et aquaculture", "S1"), ("Industries extractives", "S1"),
+                       ("Industrie manufacturière", "S2"), ("Bâtiments et travaux publics", "S2"), ("Commerce, hôtels et restaurants", "S3"),
+                       ("Electricité, gaz, eau", "S2"), ("Transports, entrepôts et communications", "S3"), ("Assurances, services aux entreprises", "S3")):
+            to[l] = valeur("insert into credit_type_objet (institution_id, libelle, secteur_id) values (%s, %s, %s) returning id", (ins, l, secteur(sec)))
+        for l in ("Crédits immobiliers", "Crédits d'équipement", "Crédits à la consommation", "Crédits de trésorerie", "Autres crédits"):
+            executer("insert into credit_objet (institution_id, libelle, type_objet_id) values (%s, %s, %s)", (ins, l, to["Commerce, hôtels et restaurants"]))
+        for c, l in (("C01", "PREMIER CYCLE"), ("C02", "DEUXIEME CYCLE")):
+            executer("insert into credit_cycle (institution_id, code, libelle) values (%s, %s, %s)", (ins, c, l))
+        executer("insert into credit_type_assurance (institution_id, code, libelle) values (%s, 'T01', 'Interne')", (ins,))
         # Types de guichet (S14n), ceux de la capture p. 19 (registre S08-1)
         for c, l in (("1", "PRINCIPALE"), ("2", "SECONDAIRE")):
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'type_guichet', %s, %s)", (ins, c, l))

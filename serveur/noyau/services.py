@@ -104,7 +104,7 @@ def contexte(u: dict) -> dict:
         "agence": a,
         "guichets": lignes("select id, code, nom from guichet where agence_id = %s and actif order by code", (u["agence_id"],)),
         "produits": lignes("select code, libelle, devise from produit_epargne where institution_id = %s order by code", (u["institution_id"],)),
-        "zones": [z["nom"] for z in lignes("select nom from zone where institution_id = %s order by nom", (u["institution_id"],))],
+        "zones": [z["nom"] for z in lignes("select nom from zone where institution_id = %s and actif order by nom", (u["institution_id"],))],
         "typesClient": TYPES_CLIENT,
         "typesEntreprise": TYPES_ENTREPRISE,
         "typesGroupe": list(TYPES_GROUPE),

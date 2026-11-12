@@ -12,6 +12,7 @@ from . import exercices as ex
 from . import listes as li
 from . import budget as bu
 from . import localisation as lo
+from . import credit as cr
 from . import comptes as cp
 from . import numerotation as nu
 from . import services as s
@@ -604,6 +605,32 @@ def lo_modifier(request, niveau: str, lid: int, corps: dict = Body(...)):
 @api.post("/localisation/{niveau}/{lid}/suppression")
 def lo_supprimer(request, niveau: str, lid: int):
     return lo.supprimer(u(request), niveau, lid)
+
+
+# ---------- Produits > Crédits > Général (S21) ----------
+@api.get("/credit-referentiels/{page}")
+def cr_lire(request, page: str):
+    return cr.lire(u(request), page)
+
+
+@api.post("/credit-referentiels/{page}")
+def cr_creer(request, page: str, corps: dict = Body(...)):
+    return cr.enregistrer(u(request), page, corps)
+
+
+@api.post("/credit-referentiels/{page}/{lid}")
+def cr_modifier(request, page: str, lid: int, corps: dict = Body(...)):
+    return cr.enregistrer(u(request), page, corps, lid)
+
+
+@api.post("/credit-referentiels/{page}/{lid}/suppression")
+def cr_supprimer(request, page: str, lid: int):
+    return cr.supprimer(u(request), page, lid)
+
+
+@api.get("/gestionnaires/{gid}/portefeuille")
+def cr_portefeuille(request, gid: int):
+    return cr.portefeuille(u(request), gid)
 
 
 # ---------- Info de base : numérotation des clients (S15) ----------

@@ -839,3 +839,45 @@ def test_localisation(clients):
     assert chef.post(f"{L}/commune/{c['id']}/suppression", {}, **H).status_code == 200
     assert chef.post(f"{L}/ville/{goma['id']}/suppression", {}, **H).status_code == 200
     assert all(x["nom"] != "Goma" for x in chef.get(f"{L}/ville", **H).json()["lignes"])
+
+
+def test_credit_general(clients):
+    """S21 (p. 32 à 36) : onze onglets ; Degré selon l'Instr. BCC 003, Terme selon le PCCI (registre S21-1 à S21-7)"""
+    chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    C = "/api/credit-referentiels"
+    def ok(page, corps, lid=None):
+        r = chef.post(f"{C}/{page}" + (f"/{lid}" if lid else ""), corps, **H); assert r.status_code == 200, r.content; return r.json()
+    def refus(page, corps, lid=None):
+        r = chef.post(f"{C}/{page}" + (f"/{lid}" if lid else ""), corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    l = chef.get(f"{C}/types_objet", **H).json()
+    assert [x["menu"] for x in l["catalogue"]][:3] == ["Type Objet", "Objet Credit", "Type produit Credit"] and len(l["catalogue"]) == 11
+    assert agent.post(f"{C}/cycles", {"code": "C03", "libelle": "TROISIEME CYCLE"}, **H).status_code == 403
+    d = chef.get(f"{C}/degres", **H).json()["lignes"]                     # Instr. BCC 003, art. 12
+    assert [(x["debut"], x["fin"], x["taux"]) for x in d] == [(0, 0, 0), (1, 30, 5), (31, 60, 25), (61, 90, 50), (91, 180, 75), (181, 365, 100), (366, 999999, 100)]
+    assert "ne se modifie pas" in refus("degres", {"libelle": "X"})
+    t = chef.get(f"{C}/termes", **H).json()["lignes"]                     # PCCI, classe 3
+    assert [(x["libelle"], x["debut"], x["fin"]) for x in t] == [("Court terme", 1, 12), ("Moyen terme", 13, 60), ("Long terme", 61, 9999)]
+    assert len(chef.get(f"{C}/periodicites", **H).json()["lignes"]) == 8
+    assert "Secteur Activité" in refus("types_objet", {"libelle": "Pêche artisanale"})
+    sec = l["options"]["secteurId"][0]["id"]
+    to = next(x for x in ok("types_objet", {"libelle": "Pêche artisanale", "secteurId": sec})["lignes"] if x["libelle"] == "Pêche artisanale")
+    assert "existe déjà" in refus("types_objet", {"libelle": "pêche ARTISANALE", "secteurId": sec})
+    ob = ok("objets", {"libelle": "Achat de filets", "typeObjetId": to["id"]})
+    assert next(x for x in ob["lignes"] if x["libelle"] == "Achat de filets")["affichage"]["typeObjetId"] == "Pêche artisanale"
+    assert "Objet Credit" in chef.post(f"{C}/types_objet/{to['id']}/suppression", {}, **H).json()["message"]
+    assert "existe déjà" in refus("cycles", {"code": "C01", "libelle": "X"})
+    z = chef.get(f"{C}/zones", **H).json()
+    ag = z["options"]["agenceId"][0]["id"]
+    assert "Description" in refus("zones", {"code": "Z02", "nom": "Lemba", "agenceId": ag})
+    assert "existe déjà" in refus("zones", {"code": "Z02", "nom": "matete", "description": "x", "agenceId": ag})
+    ok("zones", {"code": "Z02", "nom": "Lemba", "description": "Commune de Lemba", "agenceId": ag})
+    assert "Lemba" in chef.get("/api/referentiel", **H).json()["zones"]               # la zone de la fiche client (registre S21-4)
+    ta = chef.get(f"{C}/types_assurance", **H).json()["lignes"][0]
+    assert "n'existe pas" in refus("assureurs", {"nom": "Assureur A", "typeAssuranceId": ta["id"], "compte": "99999"})
+    assert "email invalide" in refus("assureurs", {"nom": "Assureur A", "typeAssuranceId": ta["id"], "email": "x"})
+    ok("assureurs", {"nom": "Assureur A", "typeAssuranceId": ta["id"], "portable": "+243 810 000 222"})
+    us = chef.get(f"{C}/gestionnaires", **H).json()["options"]["utilisateurId"]
+    assert "borne haute" in refus("gestionnaires", {"code": "1-AA", "nom": "Agent A", "montantDe": 500, "montantA": 100})
+    g = ok("gestionnaires", {"code": "1-AA", "nom": "Agent A", "utilisateurId": us[0]["id"], "montantDe": 100, "montantA": 500, "enActivite": True})["lignes"][0]
+    assert g["affichage"]["enActivite"] == "OUI"
+    assert chef.get(f"/api/gestionnaires/{g['id']}/portefeuille", **H).json() == []

@@ -172,12 +172,11 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 32;
+  version: 33;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];
   produits: Produit[];
-  zones: string[];
   utilisateurs: Utilisateur[];
   cours: { USD: number };      // CDF pour 1 USD
   valeurPart: number;          // unités mineures, CDF
@@ -198,7 +197,8 @@ export interface Etat {
   paramAdhesion: ParamAdhesion[];
   modifications: { id: number; tiersId: number; avant: Tiers; apres: Tiers; modifiePar: number; modifieLe: string; validePar?: number }[];   // S46, S42, S43
   banques: { id: number; code: string; libelle: string; compteLiaison: string; adresse: string }[];   // S58
-  budget: Record<string, LigneBudget[]>;   // S19 : huit référentiels du budget, par page
+  budget: Record<string, LigneBudget[]>;
+  credit: Record<string, LigneBudget[]>;   // S21 : référentiel crédit, par onglet (Zone Credit : zones de la fiche client)   // S19 : huit référentiels du budget, par page
   listes: LigneListe[];   // moteur des listes simples : S14, S14a à S14n
   numerotation: Record<string, RegleNumerotation>;   // S15, par institution
   affectations: AffectationGuichet[];   // S10

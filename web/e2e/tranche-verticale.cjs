@@ -73,6 +73,11 @@ const OUT = process.argv[2];
   await p.getByLabel('Ville ou territoire : *').fill('Goma'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: 'Goma' }).waitFor(); await etape('02f7-localisation-ville');
   await p.getByRole('tab', { name: 'Quartier / Groupement' }).click(); await p.getByRole('cell', { name: 'Kinsaku' }).waitFor(); await etape('02f8-localisation-quartier');
+  // Chef : référentiel crédit (S21, p. 32 à 36) : un cycle, puis Degré Crédit (Instr. BCC 003)
+  await aller('/parametrage/s21'); await p.getByRole('tab', { name: 'Cycle Credit' }).click(); await p.getByLabel('Libellé *').waitFor();
+  await p.getByLabel('Code *').fill('C03'); await p.getByLabel('Libellé *').fill('TROISIEME CYCLE'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByRole('cell', { name: 'TROISIEME CYCLE' }).waitFor(); await etape('02f9-credit-cycles');
+  await p.getByRole('tab', { name: 'Dégré Credit' }).click(); await p.getByRole('cell', { name: 'Irrécupérables' }).waitFor(); await etape('02f10-credit-degres');
   // Chef : paramétrages liés aux clients (S15, p. 23 et 24)
   await aller('/parametrage/s15'); await p.getByLabel('Institution *').selectOption({ label: 'COOPEC Tujenge' });
   await p.getByLabel('Choisir : Préfixe').check(); await p.getByLabel('Valeur : Préfixe').fill('TJ'); await p.getByLabel('Choisir : Agence').check();
