@@ -17,7 +17,18 @@ Deux phases, dans cet ordre (décision du porteur, 05/11/2026) :
 1. **Reproduire exactement.** Les 146 fonctions de `replica/features.csv`, module par module, dans l'ordre des menus de Microfina++, avec ses schémas de fonctionnement tels quels : confirmations Oui/Non, étape « Comptabiliser » séparée, boutons Modifier et Supprimer, enchaînement des fenêtres. Ce que j'avais ajouté aux écrans déjà faits est retiré. Seule exception : un comportement qu'un texte interdit (Instructions BCC, PCCI, lois). Il est signalé au porteur avec la référence, jamais corrigé en silence.
 2. **Ensuite seulement, alléger ou améliorer** là où Microfina++ est limité, point par point, avec l'accord du porteur.
 
-Après chaque fonction construite : mettre à jour `replica/features.csv`, régénérer la page des travaux (`python replica/travaux.py <fichier>`) et la republier sur l'artefact « Travaux Likelemba ».
+### Ce que le manuel ne montre pas : complété par nous (décision du porteur, 12/11/2026)
+
+Le porteur n'a pas de capture pour ce qui manque. Ces manques se complètent par nous, selon `docs/architecture/COMPLEMENTS.md`. Cette décision remplace, pour les manques seulement, la règle « on marque à confirmer et on demande ».
+
+- Avant de construire un écran : lire sa ligne dans `replica/atlas.csv` et ouvrir **toutes** les pages du manuel qu'elle cite (des écrans sont montrés deux fois).
+- Ce que le manuel montre se recopie toujours exactement.
+- Un manque se complète en descendant l'échelle des preuves (COMPLEMENTS § 3) : capture, texte du manuel, règle générale du manuel (p. 7 à 12), écran voisin de la même famille, donnée exigée par un autre écran, texte réglementaire lu, puis seulement le porteur.
+- L'écran complété prend le gabarit de sa famille (COMPLEMENTS § 4) et tient dans sa chaîne d'états (§ 6).
+- Chaque choix fait par nous est noté dans `replica/decisions.csv` avec son origine, et affiché sur l'écran dans le bloc « Complété par nous ». Le porteur valide en fin de lot.
+- Toujours interdit : ajouter ce que l'atlas ne nomme pas comme manque, améliorer en passant, écrire une règle métier sans l'avoir lue.
+
+Après chaque fonction construite : mettre à jour `replica/features.csv`, `replica/atlas.csv` (colonne construit), `replica/decisions.csv`, relancer `python replica/couverture.py`, régénérer la page des travaux (`python replica/travaux.py <fichier>`) et la republier sur l'artefact « Travaux Likelemba ».
 
 ## 1. Rien de mémoire
 

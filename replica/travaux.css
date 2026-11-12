@@ -22,3 +22,5 @@ td.f { white-space:normal; min-width:260px; font-weight:600; }
 .e { display:inline-block; padding:2px 10px; border-radius:999px; font-size:13px; font-weight:600; }
 .fait { background:var(--vertp); color:var(--vert); } .partiel { background:var(--ambrep); color:var(--ambre); } .afaire { background:var(--gris); color:var(--encre); } .nonrepris { background:var(--gris); color:var(--encre2); }
 .src { font-size:13px; color:var(--encre2); margin:0; }
+td.et { white-space:normal; min-width:120px; }
+.cp strong { font-weight:600; color:var(--encre); }

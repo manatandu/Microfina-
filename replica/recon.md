@@ -37,6 +37,8 @@ Un membre adhère, dépose et retire son épargne au guichet, obtient un crédit
 
 États : « vide », « rempli », « erreur » quand le manuel les montre ; sinon « non montré ».
 
+> **Mise à jour du 12/11/2026.** La colonne « états vus » ci-dessous est dépassée : le manuel montre bien plus d'écrans qu'elle ne le dit. Ce que le manuel montre de chaque écran, page par page, est dans [`atlas.csv`](atlas.csv), qui fait foi. Trois écrans retrouvés dans les menus y sont ajoutés (S141, S142, S143), ainsi que les 14 pages de « Général » (S14a à S14n).
+
 ### Administration (p. 15 à 23)
 
 | ID | écran | accès | but | composants clés | états vus |

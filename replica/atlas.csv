@@ -1,0 +1,160 @@
+id,ecran,pages_manuel,niveau,gabarit,manque_dans_le_manuel,complement_par,lot,construit
+S01,Connexion,5,A,connexion,,,1 Administration,non
+S02,Page des modules,6,A,menu,,,1 Administration,non
+S03,Profils : création et modification,15,A,liste,"Modifier et Supprimer (boutons non visibles, formulaire vide)",G:p.12,1 Administration,non
+S04,Profils : assigner et modifier les droits,16 (deux captures),A,composition,contenu de chaque branche de l'arbre des droits,D:menus du logiciel (une tâche par entrée de menu),1 Administration,non
+S05,Utilisateurs : création,17,A,liste,,G:p.12,1 Administration,non
+S06,Utilisateurs : gestion des profils,17,A,composition,fenêtres de recherche Agence et Profil,A:recherche client S40,1 Administration,non
+S07,Utilisateurs : autres fonctions et déconnexion,18 (deux captures),A,liste,,,1 Administration,non
+S08,Guichets : gestion,19 ; doublons 95 et 109,A,liste,"liste des guichets existants, Modifier",G:p.12 ; D:S14n Type Guichet,1 Administration,oui
+S09,Guichets : ouverture et fermeture,19 (deux captures) ; doublons 96 et 110,B,traitement,"bas de l'écran (valeurs de « Dernière journée ouverte », ligne suivante)",D:S12 (journées) ; P,1 Administration,oui
+S10,Guichets : affectation,"20 (fenêtre d'ajout, confirmation) ; page principale 96 et 110",A,liste,,,1 Administration,non
+S11,Exercice : création,"20 (texte), 21",A,liste,"effet des cases Actif, Ouvert, Validé","D:S12, S109, S122 ; R:PCCI (exercice, clôture)",1 Administration,oui
+S11b,Exercice : ouverture,21,A,traitement,,,1 Administration,oui
+S11c,Exercice : compléter journal détail,21,B,traitement,bas de l'écran coupé (bouton d'ajout),A:S11b (bouton Ouvrir) ; G:p.11,1 Administration,oui
+S12,Ouverture de journée,"21 (texte), 22",A,traitement,,,1 Administration,oui
+S13,Rapport des transactions,22,A,rapport,définition d'une opération et d'une annulation,D:S118 rapport des annulations,1 Administration,oui
+S14,Général : secteur d'activité,23,A,liste,Modifier et Supprimer,G:p.12,2 Paramétrage,oui
+S14a,Général : Type d'activité,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S14 (secteur parent), S37 à S39",2 Paramétrage,non
+S14b,Général : Profession,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37",2 Paramétrage,non
+S14c,Général : Catégorie,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37 à S39, S15 (élément Categorie)",2 Paramétrage,non
+S14d,Général : Type de pièce,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37 à S39, S59 (pièce du déposant)",2 Paramétrage,non
+S14e,Général : Civilité,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37",2 Paramétrage,non
+S14f,Général : Type de groupe,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S39",2 Paramétrage,non
+S14g,Général : Type client,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S16, S23, S37 à S39",2 Paramétrage,non
+S14h,Général : Sous type de client,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S16 (frais par sous type)",2 Paramétrage,non
+S14i,Général : Forme juridique,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S38",2 Paramétrage,non
+S14j,Général : Catégorie de groupe,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S39",2 Paramétrage,non
+S14k,Général : Filiation,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37 (personnes liées, bénéficiaires)",2 Paramétrage,non
+S14l,Général : Situation matrimoniale,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37",2 Paramétrage,non
+S14m,Général : Motif de départ,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S48 ; page propre S18 (p. 26)",2 Paramétrage,non
+S14n,Général : Type Guichet,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S08",2 Paramétrage,non
+S15,Numérotation : paramétrages liés aux clients,"23 (texte), 24",B,composition,sens des Positions et du Compteur ; « Défintion des compteurs » ; Aperçu,"A:S17 (même mécanisme, mieux montré) ; D:S37 (numéro du client)",2 Paramétrage,oui
+S16,Opération : frais (cinq onglets),24 à 26 (cinq captures),A,liste,,,2 Paramétrage,oui
+S17,Numéro de compte client,26,A,composition,,A:S15,2 Paramétrage,non
+S18,Motif de départ d'un client,26,A,liste,,G:p.12,2 Paramétrage,non
+S19,Budget : huit référentiels,27 à 30 (huit captures),A,liste,,G:p.12,2 Paramétrage,non
+S20,"Localisation : pays, département, commune, arrondissement, quartier",30 à 32 (cinq captures),A,liste,découpage de la RDC à la place de celui du manuel,R:découpage administratif de la RDC ; P,2 Paramétrage,non
+S21,"Crédit, général : onze listes",32 à 36 (onze captures),A,liste,,G:p.12,2 Paramétrage,non
+S22,Ordre de remboursement,37,A,composition,,,2 Paramétrage,non
+S23,Produit crédit : création (cinq pages),37 à 39 (trois captures),B,onglets,deux pages sur cinq (à repérer à l'ouverture),"M:texte p. 37 ; D:S89, S75 ; R:Instr. BCC sur le crédit et le TEG",2 Paramétrage,non
+S24,Produits crédit : liste,39,B,liste,,,2 Paramétrage,non
+S25,Produits crédit : activation,39,A,traitement,,,2 Paramétrage,non
+S26,Modèle de produit crédit,40,A,liste,,R:Instr. BCC sur le classement et les provisions,2 Paramétrage,non
+S27,Produit épargne,40,A,liste,,,2 Paramétrage,non
+S28,Paramétrage des produits épargne (comptes),41,A,liste,,R:PCCI (comptes de dépôts),2 Paramétrage,non
+S29,Numéro de pièce,41,A,composition,,"A:S15, S17",2 Paramétrage,non
+S30,Journal,"41 (texte), 42",A,liste,,,2 Paramétrage,non
+S31,ED divers : référentiel,42,A,liste,,R:PCCI (comptes),2 Paramétrage,non
+S32,Information société,42,B,liste,pages agences et zones (« afficher les pages »),"D:S05, S08, S21 zone ; A:S33",2 Paramétrage,non
+S33,"Agence : gestionnaire, sensibilisateur, commercial",43 et 44 (trois captures),A,liste,,,2 Paramétrage,non
+S34,"Agence : journée de travail, jours fériés",44 (deux captures),A,composition,,,2 Paramétrage,non
+S35,"Préférences : devise, type sous, sous",45 et 46 (trois captures),A,liste,,,2 Paramétrage,non
+S36,"Facture : élément, référence commande",46 et 47,A,liste,,,2 Paramétrage,non
+S37,Enrôlement physique (six onglets),48,B,onglets,cinq onglets sur six ; fiches Personne liée et Bénéficiaire,M:texte p. 48 ; D:S14a à S14n ; R:identification du client (Instr. BCC LBC),3 Client,oui
+S38,Enrôlement entreprise (six onglets),49,B,onglets,cinq onglets sur six ; fiche Signataire,M:texte p. 49 ; A:S37 ; R:idem,3 Client,oui
+S39,Enrôlement groupe (six onglets),50,B,onglets,cinq onglets sur six ; fiche Membre,M:texte p. 50 ; A:S37,3 Client,oui
+S40,Viser un client,51 et 52,A,visa,contrat d'adhésion imprimé,document,3 Client,oui
+S41,Modifier frais,"52, 53 (texte)",A,consultation,,,3 Client,oui
+S42,Valider client modifié,53,A,visa,,,3 Client,oui
+S43,Consulter client,53,B,consultation,affichage des informations initiales et actuelles,A:S64 situation du client (p. 74),3 Client,oui
+S44,Groupe solidaire (deux onglets),54 (trois captures),A,onglets,,,3 Client,oui
+S45,Nouveau prospect,55,A,liste,,,3 Client,oui
+S46,Mise à jour d'un client,"55, 56 (texte)",B,onglets,onglets suivants,A:S37,3 Client,oui
+S47,Gestion des procurations,56,A,liste,,,3 Client,oui
+S48,Résilier contrat,56,A,traitement,,,3 Client,oui
+S49,Gestion photo et signature,57,A,consultation,,,3 Client,oui
+S50,Consentement BIC,57,A,liste,non repris tel quel (BIC de l'UEMOA),R:centrale des risques de la BCC ; P,3 Client,oui
+S51,Rapports client (trois),58 et 59 (trois captures),B,rapport,forme des résultats,"A:S13 ; G:p.9 (grille, export)",3 Client,oui
+S52,"Opération : encaissement et décaissement, banque vers caisse, banque vers banque",60 et 61 (trois captures),A,guichet,,R:PCCI (comptes de banque et de caisse),4 Banque,non
+S53,Virement prélèvement,61,A,guichet,,,4 Banque,non
+S54,Déblocage crédit par banque,62,A,guichet,"contrat de prêt, échéancier",document ; A:S75,4 Banque,non
+S55,Remboursement de crédit par banque,63,B,guichet,"onglets Répartition et Détail crédit, page après Suivant",A:S76 (p. 87 et 88),4 Banque,non
+S56,Adhésion par banque,64 ; validation en caisse 89 et 104,A,guichet,,A:S73,4 Banque,non
+S57,Visa et validation des opérations de banque (huit listes),65 à 67 (six bandes),B,visa,deux listes sans capture ; colonnes complètes,"A:S113, S114",4 Banque,non
+S58,"Création banque : client, institution",67 (deux captures),A,liste,,,4 Banque,oui
+S59,"Chèque client : dépôt, encaissement, historique",68 et 69 (deux captures),B,guichet,Historique chèque (texte seul),A:S62 (rapport par banque),4 Banque,non
+S60,"Chèque institution : générer chéquier, chèque pour crédit",69,B,liste,« Chèque pour crédit » : en panne dans le manuel,A:S54 ; P,4 Banque,non
+S61,"Emprunts bancaires : mise en place, remboursement","70 et 71 (deux captures, sans texte)",B,guichet,"règles (échéances, intérêts, écritures)",R:PCCI (emprunts) ; P,4 Banque,non
+S62,Rapports banque,71,B,rapport,forme du résultat,A:S13,4 Banque,non
+S63,Nouveau compte,"72 (texte), 73",A,liste,,,5 Épargne,non
+S64,"Relevé de compte, situation du client",73 et 74 (trois captures),A,rapport,,,5 Épargne,non
+S65,DAT : mise en place,75 et 76,A,guichet,,R:PCCI (dépôts à terme),5 Épargne,non
+S66,DAT : validation,76,A,visa,contrat imprimé,document,5 Épargne,non
+S67,DAT : rupture,"76 (texte), 77",A,traitement,calcul de la pénalité,M:taux de pénalité de S65 ; P,5 Épargne,non
+S68,DAT : recherche multicritère,77,A,rapport,,,5 Épargne,non
+S69,"Plan d'épargne : simulation, nouveau, tableau, cotisations, rupture",78 à 80 (quatre captures),B,onglets,Rupture (titre seul),A:S67,5 Épargne,non
+S70,Clôturer un compte,80,D,traitement,tout l'écran (en panne dans le manuel),"A:S48 (résilier), S71 ; R:Instr. BCC sur les frais (clôture gratuite) ; P",5 Épargne,non
+S71,Blocage compte et montant,81,A,liste,déblocage,A:S94 (ajout et libération),5 Épargne,non
+S72,Rapports épargne (six),82 à 84 (six captures),B,rapport,forme des résultats,A:S13,5 Épargne,non
+S73,Adhésion,85 ; doublons 98 et 99,A,guichet,,,6 Caisse,oui
+S74,Dépôt et retrait,86 ; doublon 100,B,guichet,"fenêtres Billetage, Detail, photo et signature ; reçu",A:S79 (billetage) ; document,6 Caisse,oui
+S75,Déblocage de crédit,"86 (texte), 87 ; doublon 101",A,guichet,échéancier et contrat de prêt,document,6 Caisse,non
+S76,Remboursement de crédit,87 et 88 ; doublon 102,B,guichet,"Plan, Réel, Memo, MP (seule Situation est montrée)",A:S95 (p. 119) ; D:S22,6 Caisse,non
+S77,Part sociale : achat et retrait,88 ; doublon 103,A,guichet,,R:loi 002/2002 (parts sociales),6 Caisse,oui
+S78,"ED divers : encaissement, décaissement",89 et 90 ; doublons 97 et 98,A,guichet,,D:S31,6 Caisse,non
+S79,Billetage : enregistrer,91 ; doublon 105,A,guichet,,,6 Caisse,oui
+S80,Billetage : validation,92 ; doublon 106,A,visa,,,6 Caisse,oui
+S81,"Transfert : caisse vers caisse, caisse vers banque",92 et 93 ; doublons 106 et 107,A,guichet,,R:PCCI (mouvements de fonds),6 Caisse,non
+S82,"Valider opérations : diverses, déplacées",93 et 94 ; doublons 107 et 108,A,visa,,,6 Caisse,non
+S83,Rapport : journal des opérations de caisse,95 ; doublon 109,A,rapport,,,6 Caisse,non
+S141,Règlement facture espèce,84 et 97 (nom dans le menu Caisse),D,guichet,tout l'écran,"A:S107 règlement (p. 127 et 153), S78",6 Caisse,non
+S84,Plan d'amortissement (simulation),111,B,onglets,"pages Montant et durée, Récapitulatif, Échéancier",M:texte p. 111 ; A:S89,7 Crédit,non
+S85,"Analyse financière : allégée, développée",112 (deux captures),B,onglets,onglets suivants,M:noms d'onglets ; P,7 Crédit,non
+S86,Dossier : analyse (demande),113,B,onglets,page de détail après Suivant,M:texte p. 113,7 Crédit,non
+S87,Dossier : contrôle,113 (texte),C,visa,tout l'écran,M:texte p. 113 ; A:S90,7 Crédit,non
+S88,Dossier : approbation,113 et 114 (texte),C,visa,tout l'écran,M:texte p. 114 ; A:S90,7 Crédit,non
+S89,Dossier : mise en place,114 (texte détaillé),C,onglets,tout l'écran (capture p. 113 à vérifier),"M:texte p. 114 ; A:S84, S54 ; R:Instr. BCC (TEG, limites)",7 Crédit,non
+S90,"Visas : responsable crédit, comité, service financier",114 et 115 (trois bandes),A,visa,,,7 Crédit,non
+S91,Historique suivi,115,A,rapport,,,7 Crédit,non
+S92,Crédits validés non débloqués,115,A,rapport,,,7 Crédit,non
+S93,État de crédit,"115 (texte), 116",A,rapport,,,7 Crédit,non
+S94,"Caution et nantissement : ajout, libération, rapports",116 à 118 (six captures),A,liste,,,7 Crédit,non
+S95,Consulter prêt,"118 (texte), 119",B,consultation,"Plan, Réel, Mémo",A:S76 Situation (p. 88),7 Crédit,non
+S96,Affectation de dossier,119,A,composition,,,7 Crédit,non
+S97,"Liste rouge : ajouter, retirer",119 et 120 (deux captures),A,liste,,,7 Crédit,non
+S98,Génération de balance âgée,120,A,traitement,résultat,R:Instr. BCC sur le classement,7 Crédit,non
+S99,Déclassement provision et crédit,121 (sans texte),B,traitement,règles,R:Instr. BCC sur le classement et les provisions,7 Crédit,non
+S100,Engagement par signature,121,A,liste,document imprimé,document,7 Crédit,non
+S101,Rapports crédit (huit),121 (menu seul),D,rapport,"les huit rapports : Journal, Rapports de base, Multicritère, Synthèse de la balance âgée, Taux de remboursements, Encours prévisionnel, Exigibles, Indicateur de gestion","A:S72, S93 ; R:Instr. BCC sur les indicateurs",7 Crédit,non
+S102,"Plan des comptes : référentiel, consultation, modèle, création, concordance",122 et 123 ; 145 à 147 ; 156,A,liste,,R:PCCI,8 Comptabilité,non
+S103,Plan des tiers,123 ; texte 156,A,liste,,,8 Comptabilité,non
+S104,Taxes,"123 (texte), 124 ; 155",A,liste,,R:fiscalité RDC ; P,8 Comptabilité,non
+S105,Déblocage crédit sur compte d'épargne,124 ; 157,A,guichet,reconnaissance de dette,document,8 Comptabilité,non
+S106,Remboursement par prélèvement,125 ; 157,A,guichet,,A:S76,8 Comptabilité,non
+S142,Annulation de règlement de crédit,158,A,traitement,,R:PCCI (contre-passation),8 Comptabilité,non
+S107,"Factures : bon de commande, enregistrement, règlement, journal, rapport",125 à 128 ; 147 à 154,A,onglets,,,8 Comptabilité,non
+S108,Déclaration de taxe,128,A,rapport,,,8 Comptabilité,non
+S109,Saisie d'écritures comptables,129,A,guichet,,R:PCCI,8 Comptabilité,non
+S110,Rapprochement bancaire,129 ; texte 154 et 155,A,composition,état du rapprochement,document,8 Comptabilité,non
+S111,Comptabilisation,130 ; 155,A,traitement,,R:PCCI ; ARCHITECTURE P8,8 Comptabilité,oui
+S112,Historique rapprochement bancaire,130,A,rapport,,,8 Comptabilité,non
+S113,Visa (sept listes),130 à 132 (sept bandes) ; 151,A,visa,,,8 Comptabilité,oui
+S114,Validation (sept listes),132 et 133 (sept bandes) ; 152 à 154,A,visa,,,8 Comptabilité,non
+S115,Journaux comptables,133,A,rapport,,,8 Comptabilité,non
+S116,"Autres opérations : virement et prélèvement, compte à compte, diverse, déplacée",133 à 135 ; 161 et 162,A,guichet,,,8 Comptabilité,non
+S117,"Virements mensuels : domiciliation, salaire du personnel, prélèvement automatique",135 et 136,B,traitement,salaire du personnel et prélèvement automatique : en panne dans le manuel,"A:domiciliation (p. 136), S53 ; D:paie S133 à S135 ; P",8 Comptabilité,non
+S118,"Contrôle : compte, trésorerie, rapport annulation, état des revenus",136 à 138 ; 162 et 163,A,rapport,,,8 Comptabilité,non
+S119,Lettrage,138 ; 160,A,composition,,,8 Comptabilité,non
+S120,"Grand livre : général, analytique",138 et 139,B,rapport,forme de l'état,R:PCCI (états) ; document,8 Comptabilité,non
+S121,"Balance : générale, analytique",139 et 140,B,rapport,forme de l'état,R:PCCI ; document,8 Comptabilité,oui
+S122,"États financiers : bilan, hors bilan, résultat, annexe",140 à 142,B,rapport,forme des états,R:PCCI et Instr. BCC sur les états ; document,8 Comptabilité,non
+S123,Indicateurs financiers,142,B,rapport,liste et calcul des indicateurs,R:Instr. BCC sur les indicateurs,8 Comptabilité,non
+S124,"Nouveau budget : définir, reconduire",142 (fenêtre de choix),B,onglets,écran de définition après le choix,A:S125 consultation (p. 143) ; D:S19,9 Budget et Autres,non
+S125,"Consultation, suivi budgétaire, consommation par centre de coût",143 (trois bandes),A,rapport,,,9 Budget et Autres,non
+S126,"Financement : lignes, types, bailleur",143 à 145 (trois captures),A,liste,,,9 Budget et Autres,non
+S127,"Clôture : crédit, dépôt, comptabilité",163 (crédit seul),B,traitement,clôtures Dépôt et Comptabilité,A:clôture crédit ; R:PCCI (clôtures),9 Budget et Autres,non
+S143,Autres : trésorerie,164 (nom dans le menu),D,rapport,tout l'écran,A:S118 contrôle de trésorerie (p. 137 et 162),9 Budget et Autres,non
+S128,Calculs (cinq),164 (menu seul),D,traitement,"Frais de tenue de comptes, Intérêt sur DAV, Intérêts sur DAT, Intérêt et frais de tenue, État des provisions","A:S98, S127 ; D:S27 (options du produit) ; R:Instr. BCC sur les frais",9 Budget et Autres,non
+S129,"Caisse mobile : transfert collecte, paramètres",164 (menu seul),D,guichet,tout (non repris à ce jour),P,9 Budget et Autres,non
+S130,Gestion de réunion (dix entrées),165 (menu seul),D,liste,tout (non repris à ce jour),P,9 Budget et Autres,non
+S131,Données de base (dix listes),269 à 275 ; doublons GRH 181 à 187,A,liste,,R:droit du travail et fiscalité RDC,10 Paie,non
+S132,"Gestion des grilles, gestion des états, signataires",275 et 276,B,liste,fenêtre des signataires,A:recherche,10 Paie,non
+S133,Nouvel employé (quatre onglets),276 et 277 (texte) ; captures GRH 201 à 206,B,onglets,"onglets Classification, Affectation, Contrat",M:texte p. 276 ; A:GRH p. 201,10 Paie,non
+S134,"Rubrique de paie, maquette de paie, liste des employés",277 (texte),C,liste,tous les écrans,M:texte ; A:S131,10 Paie,non
+S135,"Retenues : mise en place, liste, visa",277 et 278 (texte),C,visa,tous les écrans,"M:texte ; A:S94, S113",10 Paie,non
+S136,Données de base (six listes),279 à 282,A,liste,,,11 Immobilisations,non
+S137,Création de bien,283,A,liste,,R:PCCI (immobilisations),11 Immobilisations,non
+S138,"Affectation, transfert, libération",283 à 285 (quatre captures),A,guichet,,,11 Immobilisations,non
+S139,"Amortissement, inventaire, sortie",285 et 286,B,traitement,Sortie de biens (texte seul),M:texte p. 286 ; A:inventaire,11 Immobilisations,non
+S140,Rapports (cinq),286 à 288,A,rapport,,,11 Immobilisations,non
