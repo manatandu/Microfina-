@@ -599,3 +599,26 @@ def test_parametrages_lies_aux_clients(clients):
     assert agent.post("/api/numerotation-clients", r, **H).status_code == 403
     l = chef.post("/api/numerotation-clients", r, **H).json()
     assert l["regles"][str(i)]["ordre"] == ["PREFIXE", "AGENCE", "COMPTEUR"] and l["regles"][str(i)]["prefixe"]["valeur"] == "TJ"
+
+
+def test_affectation_des_guichets(clients):
+    """S10 (p. 20, 96) : un guichet à la fois, ajout et retrait ; un guichet ne s'ouvre que pour l'utilisateur à qui il est affecté"""
+    chef, caisse, agent = clients["chef"], clients["caisse"], clients["agent"]
+    connecter(chef, "jpmukendi"); connecter(caisse, "engalula"); connecter(agent, "bkasongo")
+    l = chef.get("/api/affectations-guichets", **H).json()
+    ligne = lambda l, login: next(x for x in l["utilisateurs"] if x["login"] == login)
+    assert ligne(l, "engalula")["guichet"] == "Caisse 2" and ligne(l, "bkasongo")["guichet"] == ""
+    g1 = next(g["id"] for g in l["guichets"] if g["code"] == "G1")
+    bijou = ligne(l, "bkasongo")["id"]; esther = ligne(l, "engalula")["id"]
+    assert agent.post("/api/affectations-guichets", {"utilisateurId": bijou, "guichetId": g1}, **H).status_code == 403
+    r = chef.post("/api/affectations-guichets", {"utilisateurId": esther, "guichetId": g1}, **H)
+    assert r.status_code == 422 and "déjà un guichet" in r.json()["message"]
+    l = chef.post("/api/affectations-guichets", {"utilisateurId": bijou, "guichetId": g1, "voirSolde": True}, **H).json()
+    assert ligne(l, "bkasongo")["guichet"] == "Caisse 1" and ligne(l, "bkasongo")["voirSolde"]
+    l = chef.post(f"/api/affectations-guichets/{bijou}/retrait", **H).json()
+    assert ligne(l, "bkasongo")["guichet"] == ""
+    r = chef.post(f"/api/affectations-guichets/{bijou}/retrait", **H); assert r.status_code == 422
+    # La caissière ne peut pas ouvrir la Caisse 1, qui ne lui est pas affectée
+    chef.post("/api/journees", {"date": "2026-11-05"}, **H)
+    r = caisse.post("/api/caisses", {"guichetId": g1}, **H)
+    assert r.status_code == 422 and "pas affecté" in r.json()["message"]

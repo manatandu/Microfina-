@@ -270,3 +270,6 @@ textarea.saisie.montant { resize: none; text-align: end; }
 .fleches-ordre .bouton { min-width: 2.5rem; padding-inline: var(--espace-2); }
 .ordre-elements tbody { display: block; min-block-size: 10rem; }
 .ordre-elements thead, .ordre-elements tbody tr { display: table; inline-size: 100%; table-layout: fixed; }
+
+/* S10 (p. 96) : boutons ✎ et ✖ de la colonne Action */
+.bouton.icone { min-inline-size: 2.25rem; padding-inline: var(--espace-2); }

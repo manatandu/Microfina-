@@ -31,6 +31,12 @@ const OUT = process.argv[2];
   await p.getByLabel('Type de guichet *').selectOption('SECONDAIRE'); await p.getByLabel('Journal *').selectOption({ label: 'Caisse' });
   await p.getByLabel('Compte guichet').fill('5701'); await p.getByLabel('Billetage autorisé').check(); await p.getByLabel('Guichet Actif').check();
   await etape('02a-gestion-guichets'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  // Chef : affecter la Caisse 3 à Bijou Kasongo, puis la retirer (S10, p. 20 et 96)
+  await aller('/administration/s10'); await p.getByRole('button', { name: 'Ajouter un guichet : bkasongo' }).click();
+  await p.getByRole('cell', { name: 'Caisse 3' }).click(); await p.getByLabel('Voir solde client', { exact: true }).check(); await etape('02a1-ajout-guichet');
+  await p.getByRole('button', { name: 'Ajouter', exact: true }).click(); await oui();
+  await p.getByRole('row').filter({ hasText: 'bkasongo' }).getByRole('cell', { name: 'Caisse 3' }).waitFor(); await etape('02a2-affectation-guichets');
+  await p.getByRole('button', { name: 'Retirer le guichet : bkasongo' }).click(); await oui();
   // Chef : exercices (S11, p. 20 et 21)
   await aller('/administration/s11'); await p.getByLabel('Année : *').fill('2027'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByLabel('Actif : 2027').check(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('02c-nouvel-exercice');

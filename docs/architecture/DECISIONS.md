@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**129 décisions.** Solidité : 50 fortes (le manuel ou un texte répond), 61 moyennes (déduites d'un écran voisin ou d'une donnée), 18 faibles (notre choix, faute de mieux). Dans le code : 36 déjà en place, 93 à appliquer.
+**130 décisions.** Solidité : 50 fortes (le manuel ou un texte répond), 62 moyennes (déduites d'un écran voisin ou d'une donnée), 18 faibles (notre choix, faute de mieux). Dans le code : 39 déjà en place, 91 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -51,7 +51,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S09-1 | « Dernière journée ouverte » | Date de la dernière journée ouverte de l'agence, en lecture seule | Donnée exigée ailleurs : Libellé p. 19 ; S12 | moyenne | à appliquer |
 | S09-2 | Ligne suivante (libellé coupé) | « Journée ouverte à associer » : liste des journées ouvertes, la dernière proposée. Le guichet s'ouvre sur cette journée, qui s'affiche dans Date ouverture | Manuel : Libellé lisible p. 19 ; S79 a la même liste « Journées » (p. 91) | moyenne | à appliquer |
 | S09-3 | En-tête coupé | « Ouvert » | Manuel : Manuel p. 96 | forte | en place |
-| S09-4 | Qui ouvre et ferme | Celui qui a le droit de cette tâche (T07). Le guichet doit être Actif et affecté à un utilisateur (S10) | Donnée exigée ailleurs : S08 (Guichet Actif), S10 | moyenne | à appliquer |
+| S09-4 | Qui ouvre et ferme | Celui qui a le droit de cette tâche (T07). Le guichet doit être Actif et affecté à un utilisateur (S10) | Donnée exigée ailleurs : S08 (Guichet Actif), S10 | moyenne | en place |
 | S09-5 | Lien entre la Fermeture et l'arrêté | La Fermeture est refusée tant que le billetage du jour n'est pas enregistré (S79) | Choix du porteur : ARCHITECTURE P8 | forte | à appliquer |
 | S09-6 | Réouverture le même jour | Possible tant que le billetage n'est pas validé (S80). Après la validation, non | Donnée exigée ailleurs : Chaîne de la journée (COMPLEMENTS § 6) | moyenne | à appliquer |
 
@@ -61,7 +61,8 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | S10-1 | Case « Voir solde client » | À S74, le cadre Info compte n'affiche les soldes que si la case est cochée pour l'utilisateur | Donnée exigée ailleurs : S74 (p. 86), cadre Info compte | moyenne | à appliquer |
 | S10-2 | Case « Voir solde client VIP » | Case recopiée et enregistrée, sans effet : Likelemba n'a pas de client VIP | Manuel : Manuel p. 20 (case montrée, non expliquée) | faible | à appliquer |
-| S10-3 | Nombre de guichets par utilisateur | Un seul à la fois : ✎ n'est actif que sans guichet, ✖ qu'avec un guichet | Manuel : Manuel p. 96 et 110 | forte | à appliquer |
+| S10-3 | Nombre de guichets par utilisateur | Un seul à la fois : ✎ n'est actif que sans guichet, ✖ qu'avec un guichet | Manuel : Manuel p. 96 et 110 | forte | en place |
+| S10-4 | Guichets proposés dans la fenêtre d'ajout | Les guichets de l'agence de l'utilisateur | Donnée exigée ailleurs : Colonne Agence de la page p. 96 ; un guichet appartient à une agence (S08) | moyenne | en place |
 
 ## S11 Exercices
 

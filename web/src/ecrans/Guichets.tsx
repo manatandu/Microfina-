@@ -3,7 +3,8 @@ import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { lireMontant } from "@design/montant.js";
-import { Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
+import { TableFiltree } from "./Groupes";
 
 const VIDE = { agenceId: 0, code: "", designation: "", typeGuichet: "", journalId: 0, maximumCaisse: "0", retraitPlafonne: "0",
   compteGuichet: "", compteLiaison: "", compteSurplus: "", compteManquant: "", billetage: false, actif: false };
@@ -113,10 +114,71 @@ export function OuvertureFermetureGuichets() {
             <button className="bouton secondaire" type="button" onClick={() => setChoisi(0)}>Annuler</button>
           </div>
         </fieldset>
-        <p className="a-confirmer">À confirmer : valeurs de « Dernière journée ouverte » et de la ligne suivante, dont la fin du libellé (cachées par la boîte de confirmation p. 19) ; en-tête « Ouvert » (coupé sur la capture) ; qui ouvre et ferme (ici le caissier, pour lui-même, en attendant l'Affectation S10) ; lien entre la Fermeture et l'arrêté (S79, S80) ; réouverture le même jour ; message après Oui.</p>
+        <p className="a-confirmer">À confirmer : valeurs de « Dernière journée ouverte » et de la ligne suivante, dont la fin du libellé (cachées par la boîte de confirmation p. 19) ; en-tête « Ouvert » (coupé sur la capture) ; qui ouvre et ferme (l'utilisateur à qui le guichet est affecté, S10 ; registre S09-4) ; lien entre la Fermeture et l'arrêté (S79, S80) ; réouverture le même jour ; message après Oui.</p>
         <Textes sources={["Manuel Microfina++, p. 19 : Ouverture/Fermeture de guichets, Liste des guichets (Code guichet, Type guichet, Designation, Actif, Ouvert, Date ouverture), double-clic sur la ligne, Ouverture, Fermeture, Annuler, « Voulez-vous effectuer cette operation? » Oui/Non",
           "Manuel Microfina++, p. 18 : « Guichet Actif »"]} />
       </section>
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </>
+  );
+}
+
+type LigneAffectation = { id: number; login: string; nom: string; agenceId: number; agence: string; guichetId: number | null; guichet: string };
+
+/** S10 : Administration > Guichet > Affectation (manuel Microfina++, p. 96 et 110 ; fenêtre d'ajout et confirmations p. 20) */
+export function AffectationGuichets() {
+  const [relu, setRelu] = useState(0);
+  const [cible, setCible] = useState<LigneAffectation | null>(null);
+  const [choisi, setChoisi] = useState(0);
+  const [voirSolde, setVoirSolde] = useState(false);
+  const [voirSoldeVip, setVoirSoldeVip] = useState(false);
+  const [boite, setBoite] = useState<Boite | null>(null);
+  const { donnees } = useDonnees(() => api.guichets.affectations(), [relu]);
+  if (!donnees) return <Chargement />;
+  const ouvrir = (l: LigneAffectation) => { setCible(l); setChoisi(0); setVoirSolde(false); setVoirSoldeVip(false); };
+  const fini = (texte: string, faire: () => Promise<unknown>) => setBoite({ type: "confirmation", message: texte, oui: async () => {
+    try { await faire(); setCible(null); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+    catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+  } });
+  function ajouter() {
+    if (!cible) return;
+    if (!choisi) { setBoite({ type: "erreur", message: "À remplir : guichet." }); return; }
+    fini("Voulez-vous attribuer ce guichet à l'utilisateur ?", () => api.guichets.affecter({ utilisateurId: cible.id, guichetId: choisi, voirSolde, voirSoldeVip }));
+  }
+  const guichetsCible = cible ? donnees.guichets.filter((g) => g.agenceId === cible.agenceId) : [];
+  return (
+    <>
+      <h1>Ajout et Retrait de Guichet à un utilisateur</h1>
+      <section className="bloc pile" aria-label="Ajout et Retrait de Guichet à un utilisateur">
+        <TableFiltree lignes={donnees.utilisateurs as LigneAffectation[]} cle={(l) => l.id} colonnes={[
+          { titre: "Login utilisateur", valeur: (l) => l.login },
+          { titre: "Nom utilisateur", valeur: (l) => l.nom },
+          { titre: "Guichet", valeur: (l) => l.guichet },
+          { titre: "Agence", valeur: (l) => l.agence },
+        ]} apres={{ titre: "Action", cellule: (l) => (
+          <span className="actions-ligne">
+            <button className="bouton icone" type="button" disabled={!!l.guichetId} aria-label={`Ajouter un guichet : ${l.login}`} onClick={() => ouvrir(l)}>✎</button>
+            <button className="bouton icone" type="button" disabled={!l.guichetId} aria-label={`Retirer le guichet : ${l.login}`}
+              onClick={() => fini("Voulez-vous retirer le guichet à cet utilisateur", () => api.guichets.retirer(l.id))}>✖</button>
+          </span>
+        ) }} />
+        <p className="a-confirmer">Complété par nous (registre <code>docs/architecture/DECISIONS.md</code>) : S10-1 « Voir solde client » commandera l'affichage des soldes au guichet (S74, à appliquer à sa reprise) ; S10-2 « Voir solde client VIP » est enregistrée sans effet ; S10-3 un guichet à la fois ; S10-4 la fenêtre propose les guichets de l'agence de l'utilisateur ; S09-4 un guichet ne s'ouvre que pour l'utilisateur à qui il est affecté ; T07 profil habilité (ici le chef d'agence, en attendant les droits S03 à S06).</p>
+        <Textes sources={["Manuel Microfina++, p. 96 et 110 : Ajout et Retrait de Guichet à un utilisateur, Login utilisateur, Nom utilisateur, Guichet, Agence, Action (✎, ✖), filtre par colonne",
+          "Manuel Microfina++, p. 20 : fenêtre « Ajout de Guichet à un utilisateur » (Code Guichet, Nom Guichet, Voir solde client, Voir solde client VIP, Ajouter, Fermer), « Voulez-vous attribuer ce guichet à l'utilisateur ? », « Voulez-vous retirer le guichet à cet utilisateur »",
+          "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
+      </section>
+      <Fiche titre="Ajout de Guichet à un utilisateur" ouverte={!!cible && !boite} fermer={() => setCible(null)}>
+        <div className="pile">
+          <TableFiltree sansFiltres lignes={guichetsCible} cle={(g) => g.id} choisir={(g) => setChoisi(g.id)} choisi={choisi} colonnes={[
+            { titre: "Code Guichet", valeur: (g) => g.code }, { titre: "Nom Guichet", valeur: (g) => g.nom }]} />
+          <label className="case"><span>Voir solde client</span><input type="checkbox" checked={voirSolde} onChange={(e) => setVoirSolde(e.target.checked)} /></label>
+          <label className="case"><span>Voir solde client VIP</span><input type="checkbox" checked={voirSoldeVip} onChange={(e) => setVoirSoldeVip(e.target.checked)} /></label>
+          <div className="actions-onglets">
+            <button className="bouton" type="button" onClick={ajouter}>Ajouter</button>
+            <button className="bouton secondaire" type="button" onClick={() => setCible(null)}>Fermer</button>
+          </div>
+        </div>
+      </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );

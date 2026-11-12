@@ -3,7 +3,7 @@ import GuichetDepotRetrait from "./Guichet";
 import Adhesion from "./Adhesion";
 import Balance from "./Comptabilite";
 import { BilletageCaisse, ValidationBilletage } from "./Caisse";
-import { GestionGuichets, OuvertureFermetureGuichets } from "./Guichets";
+import { AffectationGuichets, GestionGuichets, OuvertureFermetureGuichets } from "./Guichets";
 import { CompleterJournalDetail, NouvelExercice, OuvertureExercice } from "./Exercices";
 import { EnrolementEntreprise, EnrolementGroupe, EnrolementPhysique, MiseAJourClient } from "./Membres";
 import RapportTransactions from "./Transactions";
@@ -23,6 +23,7 @@ import { CreationBanque } from "./Banques";
 export const CONSTRUITS: Record<string, ComponentType> = {
   S08: GestionGuichets,
   S09: OuvertureFermetureGuichets,
+  S10: AffectationGuichets,
   S11: NouvelExercice,
   S11b: OuvertureExercice,
   S11c: CompleterJournalDetail,

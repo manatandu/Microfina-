@@ -394,6 +394,21 @@ describe("journée de guichet", () => {
     expect((await api.numerotation.enregistrer(r)).regles[String(i)]!.ordre).toEqual(["PREFIXE", "AGENCE", "COMPTEUR"]);
   });
 
+  it("affectation des guichets (S10, p. 20 et 96) : un guichet à la fois, ouverture réservée à l'affecté", async () => {
+    await connecter("jpmukendi");
+    const ligne = (l: Awaited<ReturnType<typeof api.guichets.affectations>>, login: string) => l.utilisateurs.find((x) => x.login === login)!;
+    let l = await api.guichets.affectations();
+    expect(ligne(l, "engalula").guichet).toBe("Caisse 2");
+    await expect(api.guichets.affecter({ utilisateurId: 1, guichetId: 1, voirSolde: false, voirSoldeVip: false })).rejects.toThrow("déjà un guichet");
+    l = await api.guichets.affecter({ utilisateurId: 4, guichetId: 1, voirSolde: true, voirSoldeVip: false });
+    expect(ligne(l, "bkasongo").guichet).toBe("Caisse 1");
+    l = await api.guichets.retirer(4);
+    expect(ligne(l, "bkasongo").guichet).toBe("");
+    await api.journees.ouvrir("2026-11-05");
+    await connecter("engalula");
+    await expect(api.caisses.ouvrir(1)).rejects.toThrow("pas affecté");
+  });
+
   it("quatre yeux sur le billetage", async () => {
     await connecter("jpmukendi"); await api.journees.ouvrir("2026-11-05");
     await connecter("engalula");

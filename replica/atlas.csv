@@ -8,7 +8,7 @@ S06,Utilisateurs : gestion des profils,17,A,composition,fenêtres de recherche A
 S07,Utilisateurs : autres fonctions et déconnexion,18 (deux captures),A,liste,,,1 Administration,non
 S08,Guichets : gestion,19 ; doublons 95 et 109,A,liste,"liste des guichets existants, Modifier",G:p.12 ; D:S14n Type Guichet,1 Administration,oui
 S09,Guichets : ouverture et fermeture,19 (deux captures) ; doublons 96 et 110,B,traitement,"bas de l'écran (valeurs de « Dernière journée ouverte », ligne suivante)",D:S12 (journées) ; P,1 Administration,oui
-S10,Guichets : affectation,"20 (fenêtre d'ajout, confirmation) ; page principale 96 et 110",A,liste,,,1 Administration,non
+S10,Guichets : affectation,"20 (fenêtre d'ajout, confirmation) ; page principale 96 et 110",A,liste,,,1 Administration,oui
 S11,Exercice : création,"20 (texte), 21",A,liste,"effet des cases Actif, Ouvert, Validé","D:S12, S109, S122 ; R:PCCI (exercice, clôture)",1 Administration,oui
 S11b,Exercice : ouverture,21,A,traitement,,,1 Administration,oui
 S11c,Exercice : compléter journal détail,21,B,traitement,bas de l'écran coupé (bouton d'ajout),A:S11b (bouton Ouvrir) ; G:p.11,1 Administration,oui
