@@ -153,11 +153,20 @@ const caisses = {
     const j = journees.courante();
     return E.sessions.findLast((s) => s.journeeId === j?.id && s.caissierId === E.session) ?? null;
   },
-  ouvrir(guichetId: number) {
+  ouvrir(guichetId: number, journeeId?: number) {
     const u = exiger("caissier");
     const j = journees.courante();
     if (!j || j.statut !== "ouverte") throw new ErreurMetier("La journée n'est pas ouverte. Le chef d'agence l'ouvre d'abord.");
-    if (E.sessions.some((s) => s.journeeId === j.id && s.guichetId === guichetId)) throw new ErreurMetier("Ce guichet est déjà ouvert aujourd'hui.");
+    if (journeeId !== undefined && journeeId !== j.id) throw new ErreurMetier("Seule la dernière journée ouverte reçoit des opérations.");   // registre T14
+    const deja = E.sessions.find((s) => s.journeeId === j.id && s.guichetId === guichetId);
+    if (deja) {
+      // Registre S09-6 : réouverture le même jour, tant que le billetage n'est pas validé
+      if (deja.statut === "ouverte") throw new ErreurMetier("Ce guichet est déjà ouvert aujourd'hui.");
+      if (deja.statut === "arretee" || E.billetages.some((b) => b.sessionId === deja.id && b.validePar))
+        throw new ErreurMetier("Le billetage de ce guichet est validé : il ne se rouvre plus aujourd'hui.");
+      if (deja.caissierId !== u.id) throw new ErreurMetier("Ce guichet a été tenu aujourd'hui par un autre utilisateur.");
+      deja.statut = "ouverte"; enregistrer(); return deja;
+    }
     if (E.sessions.some((s) => s.journeeId === j.id && s.caissierId === u.id && s.statut === "ouverte")) throw new ErreurMetier("Vous tenez déjà une caisse ouverte.");
     if (!E.affectations.some((f) => f.utilisateurId === u.id && f.guichetId === guichetId && !f.fin))
       throw new ErreurMetier("Ce guichet ne vous est pas affecté (Administration > Guichet > Affectation).");   // registre S09-4
@@ -1072,6 +1081,9 @@ const guichets = {
     const j = journees.courante();
     return {
       agences: [E.agence], journaux: JOURNAUX.filter((j) => j.type === "caisse"), types: TYPES_GUICHET, comptesDefaut: COMPTES_DEFAUT,   // registre S08-2
+      // Registre S09-1 et S09-2 (p. 19) : « Dernière journée ouverte », « Journée ouverte à associer »
+      derniereJournee: j?.date ?? "",
+      journeesOuvertes: E.journees.filter((x) => x.statut === "ouverte").sort((a, b) => b.date.localeCompare(a.date)).map((x) => ({ id: x.id, date: x.date })),
       guichets: [...E.guichets].sort((a, b) => a.code.localeCompare(b.code)).map((g) => {
         const s = E.sessions.find((x) => x.guichetId === g.id && x.journeeId === j?.id);
         return { id: g.id, code: g.code, nom: g.nom, typeGuichet: g.typeGuichet ?? "", actif: g.actif !== false, ouvert: s?.statut === "ouverte", dateOuverture: s && j ? j.date : "",
@@ -1145,20 +1157,23 @@ const guichets = {
     f.fin = new Date().toISOString(); f.retirePar = u.id;
     enregistrer(); return guichets.affectations();
   },
-  /** « Ouverture/Fermeture de guichets » (p. 19), bouton Ouverture */
-  ouvrir(id: number) {
+  /** « Ouverture/Fermeture de guichets » (p. 19), bouton Ouverture, sur la « Journée ouverte à associer » (registre S09-2) */
+  ouvrir(id: number, journeeId?: number) {
     const g = E.guichets.find((x) => x.id === id);
     if (!g) throw new ErreurMetier("Guichet introuvable.");
     if (g.actif === false) throw new ErreurMetier("Guichet inactif.");
-    caisses.ouvrir(id); return guichets.lire();
+    caisses.ouvrir(id, journeeId); return guichets.lire();
   },
   /** Bouton Fermeture */
   fermer(id: number) {
-    const u = exiger("caissier");   // profil habilité : à confirmer (le même que pour l'ouverture)
+    const u = exiger("caissier");   // profil habilité : registre T07, en attendant S03 à S06
     const j = journees.courante();
     const s = E.sessions.find((x) => x.guichetId === id && x.journeeId === j?.id);
     if (!s || s.statut !== "ouverte") throw new ErreurMetier("Ce guichet n'est pas ouvert.");
     if (s.caissierId !== u.id) throw new ErreurMetier("Cette caisse n'est pas la vôtre.");
+    // Registre S09-5 : pas de Fermeture sans billetage du jour enregistré (S79), dans chaque devise (T12)
+    const manque = DEVISES.filter((d) => !E.billetages.some((b) => b.sessionId === s.id && b.moment === "arret" && b.devise === d));
+    if (manque.length) throw new ErreurMetier(`Enregistrez d'abord le billetage de la caisse (Caisse > Billetage) : ${manque.join(", ")}.`);
     s.statut = "fermee"; enregistrer(); return guichets.lire();
   },
 };

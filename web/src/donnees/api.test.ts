@@ -94,8 +94,13 @@ describe("journée de guichet", () => {
     await expect(api.guichets.ouvrir(g3.id)).rejects.toThrow("inactif");
     const g2 = (await api.guichets.ouvrir(2)).guichets.find((g) => g.id === 2)!;
     expect([g2.ouvert, g2.dateOuverture]).toEqual([true, "2026-11-05"]);
+    await expect(api.guichets.fermer(2)).rejects.toThrow("billetage");                 // registre S09-5
+    const sid = (await api.caisses.duCaissier())!.id;
+    for (const dv of ["CDF", "USD"] as const) await api.caisses.saisirBilletage(sid, dv, await api.caisses.theorique(sid, dv));
     await api.guichets.fermer(2);
     expect((await api.caisses.duCaissier())?.statut).toBe("fermee");
+    expect((await api.guichets.ouvrir(2)).guichets.find((g) => g.id === 2)!.ouvert).toBe(true);   // registre S09-6 : réouverture
+    await api.guichets.fermer(2);
     await expect(api.guichet.depot({ cle: cle(), compteId: 2, montant: 1000000, coupures: { 10000: 1 } })).rejects.toThrow("Aucune caisse ouverte");
   });
 

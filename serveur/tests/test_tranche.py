@@ -528,8 +528,21 @@ def test_guichets(clients):
     g2 = caisse.post(f"/api/guichets/{G2()}/ouverture", **H).json()
     g2 = next(g for g in g2["guichets"] if g["id"] == G2())
     assert g2["ouvert"] and g2["dateOuverture"] == "2026-11-05"
+    r = caisse.post(f"/api/guichets/{G2()}/fermeture", **H)
+    assert r.status_code == 422 and "billetage" in r.json()["message"]                      # registre S09-5
+    sid = caisse.get("/api/caisses/moi", **H).json()["id"]
+    for dv in ("CDF", "USD"):
+        th = caisse.get(f"/api/caisses/{sid}/theorique?devise={dv}", **H).json()
+        assert caisse.post(f"/api/caisses/{sid}/billetages", {"devise": dv, "compte": th, "bonCaisse": 0}, **H).status_code == 200
     assert caisse.post(f"/api/guichets/{G2()}/fermeture", **H).status_code == 200
     assert caisse.get("/api/caisses/moi", **H).json()["statut"] == "fermee"
+    l = caisse.post(f"/api/guichets/{G2()}/ouverture", {}, **H).json()                       # registre S09-6 : réouverture
+    assert next(g for g in l["guichets"] if g["id"] == G2())["ouvert"] and l["derniereJournee"] == "2026-11-05"
+    assert caisse.post(f"/api/guichets/{G2()}/fermeture", **H).status_code == 200
+    for b in chef.get("/api/billetages/a-valider", **H).json():
+        chef.post(f"/api/billetages/{b['id']}/validation", **H)
+    r = caisse.post(f"/api/guichets/{G2()}/ouverture", {}, **H)
+    assert r.status_code == 422 and "validé" in r.json()["message"]
     r = caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}}, **H)
     assert r.status_code == 422 and "Aucune caisse ouverte" in r.json()["message"]
 

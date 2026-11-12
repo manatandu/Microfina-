@@ -228,13 +228,24 @@ def session_du_caissier(u: dict) -> dict | None:
     return vue_session(une("select * from session_caisse where journee_id = %s and caissier_id = %s order by id desc limit 1", (j["id"], u["id"])))
 
 
-def ouvrir_caisse(u: dict, guichet_id: int) -> dict:
+def ouvrir_caisse(u: dict, guichet_id: int, journee_id: int | None = None) -> dict:
     exiger(u, "caissier")
     j = journee_courante(u)
     if not j or j["statut"] != "ouverte":
         raise ErreurMetier("La journée n'est pas ouverte. Le chef d'agence l'ouvre d'abord.")
-    if une("select 1 from session_caisse where journee_id = %s and guichet_id = %s", (j["id"], guichet_id)):
-        raise ErreurMetier("Ce guichet est déjà ouvert aujourd'hui.")
+    if journee_id is not None and journee_id != j["id"]:
+        raise ErreurMetier("Seule la dernière journée ouverte reçoit des opérations.")   # registre T14
+    deja = une("select * from session_caisse where journee_id = %s and guichet_id = %s for update", (j["id"], guichet_id))
+    if deja:
+        # Registre S09-6 : réouverture le même jour, tant que le billetage n'est pas validé
+        if deja["statut"] == "ouverte" and not deja["fermee_le"]:
+            raise ErreurMetier("Ce guichet est déjà ouvert aujourd'hui.")
+        if deja["statut"] == "arretee" or une("select 1 from billetage where session_caisse_id = %s and valide_par is not null", (deja["id"],)):
+            raise ErreurMetier("Le billetage de ce guichet est validé : il ne se rouvre plus aujourd'hui.")
+        if deja["caissier_id"] != u["id"]:
+            raise ErreurMetier("Ce guichet a été tenu aujourd'hui par un autre utilisateur.")
+        executer("update session_caisse set fermee_le = null, fermee_par = null where id = %s", (deja["id"],))
+        return vue_session(une("select * from session_caisse where id = %s", (deja["id"],)))
     if une("select 1 from session_caisse where journee_id = %s and caissier_id = %s and statut = 'ouverte' and fermee_le is null", (j["id"], u["id"])):
         raise ErreurMetier("Vous tenez déjà une caisse ouverte.")
     if not une("select 1 from affectation_guichet where utilisateur_id = %s and guichet_id = %s and fin is null", (u["id"], guichet_id)):

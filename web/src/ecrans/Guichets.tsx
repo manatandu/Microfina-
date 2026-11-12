@@ -96,6 +96,7 @@ export function GestionGuichets() {
 /** S09 : Administration > Guichet > Ouverture/Fermeture (manuel Microfina++, p. 19) */
 export function OuvertureFermetureGuichets() {
   const [choisi, setChoisi] = useState(0);
+  const [journee, setJournee] = useState(0);
   const [boite, setBoite] = useState<Boite | null>(null);
   const [relu, setRelu] = useState(0);
   const { donnees } = useDonnees(() => api.guichets.lire(), [relu]);
@@ -105,7 +106,7 @@ export function OuvertureFermetureGuichets() {
     if (!g) return;
     setBoite({ type: "confirmation", message: "Voulez-vous effectuer cette operation?", oui: async () => {
       try {
-        await (g.ouvert ? api.guichets.fermer(g.id) : api.guichets.ouvrir(g.id));
+        await (g.ouvert ? api.guichets.fermer(g.id) : api.guichets.ouvrir(g.id, journee || donnees!.journeesOuvertes[0]?.id));
         setChoisi(0); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" });
       } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
     } });
@@ -130,16 +131,20 @@ export function OuvertureFermetureGuichets() {
               ))}
             </tbody>
           </table>
-          <p>Dernière journée ouverte</p>
-          <p>Journée ouverte à associer</p>
+          <div className="grille-cadres quatre">
+            <Champ libelle="Dernière journée ouverte">{(p) => <input {...p} className="saisie code" readOnly value={donnees.derniereJournee ? fr(donnees.derniereJournee) : ""} />}</Champ>
+            <Champ libelle="Journée ouverte à associer">{(p) => <select {...p} className="saisie" value={journee || donnees.journeesOuvertes[0]?.id || ""} onChange={(e) => setJournee(Number(e.target.value))}>
+              {donnees.journeesOuvertes.map((j) => <option key={j.id} value={j.id}>{fr(j.date)}</option>)}</select>}</Champ>
+          </div>
           <div className="actions-onglets">
             <button className="bouton" type="button" disabled={!g} onClick={operation}>{g?.ouvert ? "Fermeture" : "Ouverture"}</button>
             <button className="bouton secondaire" type="button" onClick={() => setChoisi(0)}>Annuler</button>
           </div>
         </fieldset>
-        <p className="a-confirmer">À confirmer : valeurs de « Dernière journée ouverte » et de la ligne suivante, dont la fin du libellé (cachées par la boîte de confirmation p. 19) ; en-tête « Ouvert » (coupé sur la capture) ; qui ouvre et ferme (l'utilisateur à qui le guichet est affecté, S10 ; registre S09-4) ; lien entre la Fermeture et l'arrêté (S79, S80) ; réouverture le même jour ; message après Oui.</p>
+        <p className="a-confirmer">Complété par nous (registre <code>docs/architecture/DECISIONS.md</code>) : S09-1 dernière journée ouverte de l'agence ; S09-2 journée ouverte à associer (registre T14 : seule la dernière ouverte reçoit des opérations) ; S09-3 en-tête « Ouvert » ; S09-4 un guichet ne s'ouvre que pour l'utilisateur à qui il est affecté (S10) ; S09-5 pas de Fermeture sans billetage enregistré dans chaque devise (S79) ; S09-6 réouverture le même jour tant que le billetage n'est pas validé ; T07 profil habilité.</p>
         <Textes sources={["Manuel Microfina++, p. 19 : Ouverture/Fermeture de guichets, Liste des guichets (Code guichet, Type guichet, Designation, Actif, Ouvert, Date ouverture), double-clic sur la ligne, Ouverture, Fermeture, Annuler, « Voulez-vous effectuer cette operation? » Oui/Non",
-          "Manuel Microfina++, p. 18 : « Guichet Actif »"]} />
+          "Manuel Microfina++, p. 18 : « Guichet Actif » ; p. 96 : en-tête « Ouvert »",
+          "Manuel Microfina++, p. 19 : « Dernière journée ouverte », « Journée ouverte à associer » ; p. 91 : liste des journées de l'arrêté"]} />
       </section>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>

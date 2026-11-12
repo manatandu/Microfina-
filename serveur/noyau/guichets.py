@@ -1,6 +1,6 @@
 """S08, S09 et S10 : Administration > Guichet (manuel Microfina++, p. 18 à 20, 95 et 96). Mêmes règles que web/src/donnees/api.ts (guichets)."""
 from .bd import ErreurMetier, executer, lignes, une, valeur
-from .services import exiger, journee_courante, ouvrir_caisse
+from .services import DEVISES, exiger, journee_courante, ouvrir_caisse
 
 TYPES_GUICHET = ["PRINCIPALE", "SECONDAIRE"]   # capture p. 19 ; la liste viendra de Général > Type Guichet (S14n, registre S08-1)
 # Registre S08-7 : comptes du PCCI proposés par défaut (570, 579, 7790, 671), modifiables, contrôlés sur le plan de comptes (règle T16)
@@ -24,6 +24,11 @@ def lire(u) -> dict:
         "agences": lignes("select id, code, nom from agence where institution_id = %s order by code", (i,)),
         "journaux": lignes("select id, code, libelle from journal where institution_id = %s and type = 'caisse' order by code", (i,)),   # registre S08-2
         "comptesDefaut": COMPTES_DEFAUT,
+        # Registre S09-1 et S09-2 (p. 19) : « Dernière journée ouverte », « Journée ouverte à associer »
+        "derniereJournee": j["date"] if j else "",
+        "journeesOuvertes": [{"id": x["id"], "date": x["date_comptable"].isoformat()} for x in
+                             lignes("select id, date_comptable from journee_comptable where agence_id = %s and statut = 'ouverte' order by date_comptable desc",
+                                    (u["agence_id"],))],
         "types": TYPES_GUICHET,
         "guichets": lignes("""select g.id, g.code, g.nom, coalesce(g.type_guichet, '') as "typeGuichet", g.actif, g.agence_id as "agenceId",
                                      g.journal_id as "journalId", g.maximum_caisse as "maximumCaisse", g.retrait_plafonne as "retraitPlafonne",
@@ -97,14 +102,14 @@ def enregistrer(u, d, gid: int | None = None) -> dict:
     return lire(u)
 
 
-def ouvrir(u, gid: int) -> dict:
-    """« Ouverture/Fermeture de guichets » (p. 19), bouton Ouverture"""
+def ouvrir(u, gid: int, journee_id: int | None = None) -> dict:
+    """« Ouverture/Fermeture de guichets » (p. 19), bouton Ouverture, sur la « Journée ouverte à associer » (registre S09-2)"""
     g = une("select g.actif from guichet g join agence a on a.id = g.agence_id where g.id = %s and a.institution_id = %s", (gid, u["institution_id"]))
     if not g:
         raise ErreurMetier("Guichet introuvable.")
     if not g["actif"]:
         raise ErreurMetier("Guichet inactif.")
-    ouvrir_caisse(u, gid)
+    ouvrir_caisse(u, gid, journee_id)
     return lire(u)
 
 
@@ -117,6 +122,11 @@ def fermer(u, gid: int) -> dict:
         raise ErreurMetier("Ce guichet n'est pas ouvert.")
     if s["caissier_id"] != u["id"]:
         raise ErreurMetier("Cette caisse n'est pas la vôtre.")
+    # Registre S09-5 : pas de Fermeture sans billetage du jour enregistré (S79), dans chaque devise (T12)
+    faites = {r["devise"].strip() for r in lignes("select devise from billetage where session_caisse_id = %s and moment = 'arret'", (s["id"],))}
+    manque = [d for d in DEVISES if d not in faites]
+    if manque:
+        raise ErreurMetier("Enregistrez d'abord le billetage de la caisse (Caisse > Billetage) : " + ", ".join(manque) + ".")
     executer("update session_caisse set fermee_le = now(), fermee_par = %s where id = %s", (u["id"], s["id"]))
     return lire(u)
 
