@@ -103,6 +103,11 @@ const OUT = process.argv[2];
   await p.waitForFunction(() => !document.querySelector('input[aria-label="Actif : L001"]')?.checked); await etape('02f15-activation-produits');
   await p.getByLabel('Choisir L001').check(); await p.getByRole('button', { name: 'Activer', exact: true }).click(); await oui();
   await p.waitForFunction(() => document.querySelector('input[aria-label="Actif : L001"]')?.checked);
+  // Chef : modèle pour crédit (S26, p. 40) : un modèle aux comptes proposés, le compte interne des impayés court terme
+  await aller('/parametrage/s26'); await p.getByLabel('Libellé : *').fill('Modèle ressources affectées');
+  await p.getByRole('cell', { name: 'Impayés' }).click(); await p.getByRole('cell', { name: 'Court terme' }).click(); await p.getByLabel('Compte interne').fill('3800');
+  await p.getByRole('button', { name: 'Appliquer les comptes au degré et au terme choisis' }).click();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Modèle ressources affectées' }).waitFor(); await etape('02f16-modele-credit');
   // Chef : paramétrages liés aux clients (S15, p. 23 et 24)
   await aller('/parametrage/s15'); await p.getByLabel('Institution *').selectOption({ label: 'COOPEC Tujenge' });
   await p.getByLabel('Choisir : Préfixe').check(); await p.getByLabel('Valeur : Préfixe').fill('TJ'); await p.getByLabel('Choisir : Agence').check();

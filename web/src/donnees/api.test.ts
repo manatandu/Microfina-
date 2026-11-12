@@ -505,6 +505,24 @@ describe("journée de guichet", () => {
     expect(await api.credit.portefeuille(g.id)).toEqual([]);
   });
 
+  it("modèle pour crédit (S26, p. 40) : libellé, comptes capital et intérêt par degré et terme, au plan (T16) ; comptes proposés par le PCCI", async () => {
+    await connecter("jpmukendi");
+    const l = await api.modeles.lire();
+    expect([l.degres.length, l.termes.length, l.modeles.map((m) => m.libelle)]).toEqual([7, 3, ["Model normal"]]);
+    const d = new Map(l.defauts.map((c) => [`${c.degre}-${c.terme}`, c]));
+    expect([d.get("1-1")!.compteCapital, d.get("1-1")!.compteInteret, d.get("2-3")!.compteCapital, d.get("6-2")!.compteInteret]).toEqual(["329", "7129", "3900", "7174"]);
+    await expect(api.modeles.enregistrer({ libelle: "", comptes: l.defauts })).rejects.toThrow("Libellé");
+    await expect(api.modeles.enregistrer({ libelle: "Modèle ressources affectées", comptes: l.defauts.slice(1) })).rejects.toThrow("à remplir");
+    await expect(api.modeles.enregistrer({ libelle: "Modèle ressources affectées", comptes: l.defauts.map((c) => (c.degre === 3 && c.terme === 1 ? { ...c, compteInterne: "99999" } : c)) })).rejects.toThrow("n'existe pas");
+    await expect(api.modeles.enregistrer({ libelle: "model NORMAL", comptes: l.defauts })).rejects.toThrow("existe déjà");
+    const m = (await api.modeles.enregistrer({ libelle: "Modèle ressources affectées", comptes: l.defauts.map((c) => (c.degre === 2 ? { ...c, compteInterne: "3800" } : c)) })).modele;
+    expect(m.comptes.find((c) => c.degre === 2 && c.terme === 1)!.compteInterne).toBe("3800");
+    await api.produitsCredit.enregistrer({ typeProduit: "CNO", numero: "L009", nom: "Crédit test", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: 2, tauxDiffere: 2,
+      montantMin: 1, montantMax: 10, dureeMin: 1, dureeMax: 6, differeMin: 0, differeMax: 0, clientPhysique: true, periodicite: "M", modeDiffere: "Réparti", paiementInteret: "Normal",
+      interetAnticipation: false, ageMax: 65, categorie: "Prêt commercial", modeleId: m.id });
+    await expect(api.modeles.supprimer(m.id)).rejects.toThrow("produit crédit");
+  });
+
   it("produit crédit (S23, p. 37 et 38) : méthode dégressive (Instr. BCC 38 art. 11), bornes, garanties, assurance, frais (Instr. BCC 40 art. 8)", async () => {
     await connecter("jpmukendi");
     const P = { typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: "2,5", tauxDiffere: 2,

@@ -40,7 +40,7 @@ S22,Ordre de remboursement,37,A,composition,,,2 Paramétrage,oui
 S23,Produit crédit : création (cinq pages),37 à 39 (trois captures),B,onglets,deux pages sur cinq (à repérer à l'ouverture),"M:texte p. 37 ; D:S89, S75 ; R:Instr. BCC sur le crédit et le TEG",2 Paramétrage,oui
 S24,Produits crédit : liste,39,B,liste,,,2 Paramétrage,oui
 S25,Produits crédit : activation,39,A,traitement,,,2 Paramétrage,oui
-S26,Modèle de produit crédit,40,A,liste,,R:Instr. BCC sur le classement et les provisions,2 Paramétrage,non
+S26,Modèle de produit crédit,40,A,liste,,R:Instr. BCC sur le classement et les provisions,2 Paramétrage,oui
 S27,Produit épargne,40,A,liste,,,2 Paramétrage,non
 S28,Paramétrage des produits épargne (comptes),41,A,liste,,R:PCCI (comptes de dépôts),2 Paramétrage,non
 S29,Numéro de pièce,41,A,composition,,"A:S15, S17",2 Paramétrage,non

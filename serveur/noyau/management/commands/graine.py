@@ -115,6 +115,12 @@ class Command(BaseCommand):
             ("PICES", "Pénalité Intérêt Capital Epargne Solidarité"))}
         for rang in range(1, 8):
             executer("insert into credit_degre_ordre (institution_id, rang, ordre_id) values (%s, %s, %s)", (ins, rang, od["PICES" if rang <= 2 else "CIPES"]))
+        # Modèle pour crédit (S26) : « Model normal » de la capture p. 40, avec les comptes proposés par le PCCI
+        from noyau.modeles_credit import defauts
+        mo = valeur("insert into credit_modele (institution_id, libelle) values (%s, 'Model normal') returning id", (ins,))
+        for c in defauts():
+            executer("insert into credit_modele_compte (modele_id, degre, terme, compte_capital, compte_interne, compte_interet) values (%s, %s, %s, %s, %s, %s)",
+                     (mo, c["degre"], c["terme"], c["compteCapital"], c["compteInterne"], c["compteInteret"]))
         # Types de guichet (S14n), ceux de la capture p. 19 (registre S08-1)
         for c, l in (("1", "PRINCIPALE"), ("2", "SECONDAIRE")):
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'type_guichet', %s, %s)", (ins, c, l))

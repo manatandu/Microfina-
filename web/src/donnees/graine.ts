@@ -34,7 +34,7 @@ export function graine(): Etat {
     lieuNaissance: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", liees: [] as number[],
     type: "physique" as const, formeJuridique: "", registre: "", centreActivite: "", activite: "", dirigeant: null, signataires: [], nbHommes: 0, nbFemmes: 0, membres: [], intitule: "", dateVisa: "2026-01-15", profession: "", pays: "", ville: "", quartier: "", rue: "", email: "", bp: "", telephoneFixe: "", motifDepart: "", resilieLe: "", creeLe: "2026-01-15", creePar: 4, visePar: 2, statut: "actif" as const };
   return {
-    version: 35,
+    version: 36,
     institution: { nom: "COOPEC Tujenge", sigle: "CTJ", profil: "coopec" },   // sigle fictif : élément Institution du numéro client (S15-11)
     agence: { id: 1, code: "0412", nom: "Matete" },
     guichets: [{ id: 1, code: "G1", nom: "Caisse 1", typeGuichet: "PRINCIPALE", journalId: 1, ...COMPTES_GUICHET }, { id: 2, code: "G2", nom: "Caisse 2", typeGuichet: "SECONDAIRE", journalId: 1, ...COMPTES_GUICHET }],   // type et journal fictifs (S08)
@@ -89,6 +89,12 @@ export function graine(): Etat {
       .map(([code, libelle], i) => ({ id: i + 1, code: code!, libelle: libelle!, actif: true })),
     degreOrdres: { 1: 3, 2: 3, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1 },
     produitsCredit: [],
+    // Modèle pour crédit (S26) : « Model normal » de la capture p. 40, avec les comptes proposés par le PCCI (comme defautsModele de api.ts)
+    modelesCredit: [{ id: 1, libelle: "Model normal", actif: true, comptes: [1, 2, 3, 4, 5, 6, 7].flatMap((degre) => [1, 2, 3].map((terme) => {
+      const [compteCapital, compteInteret] = degre === 1 ? ({ 1: ["329", "7129"], 2: ["319", "7119"], 3: ["309", "7101"] } as Record<number, string[]>)[terme]!
+        : ({ 2: ["3900", "7170"], 3: ["3901", "7171"], 4: ["3902", "7172"], 5: ["3903", "7173"], 6: ["3904", "7174"], 7: ["3904", "7174"] } as Record<number, string[]>)[degre]!;
+      return { degre, terme, compteCapital: compteCapital!, compteInterne: "", compteInteret: compteInteret! };
+    })) }],
     // Référentiels du budget (S19) : exemples des captures p. 27 à 29
     budget: (() => {
       const tc = [["INST", "Institution", 0], ["DIR_GENE", "Direction Générale", 1], ["DIR", "Direction", 2], ["AG", "Agence", 3], ["DEP", "Département", 4], ["SER", "Service", 5]]

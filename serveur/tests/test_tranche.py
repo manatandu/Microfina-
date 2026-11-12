@@ -956,3 +956,25 @@ def test_activation_produits_credit(clients):
     l = chef.post("/api/produits-credit/activation", {"ids": [p["id"]], "actif": False}, **H).json()
     assert l["produits"][0]["actif"] is False
     assert chef.post("/api/produits-credit/activation", {"ids": [p["id"]], "actif": True}, **H).json()["produits"][0]["actif"] is True
+
+
+def test_modele_credit(clients):
+    """S26 (p. 40) : libellé obligatoire ; comptes capital et intérêt pour chaque degré et terme, au plan (T16) ; comptes proposés par le PCCI"""
+    chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    l = chef.get("/api/modeles-credit", **H).json()
+    assert len(l["degres"]) == 7 and len(l["termes"]) == 3 and [m["libelle"] for m in l["modeles"]] == ["Model normal"]
+    d = {(c["degre"], c["terme"]): c for c in l["defauts"]}
+    assert (d[(1, 1)]["compteCapital"], d[(1, 1)]["compteInteret"], d[(2, 3)]["compteCapital"], d[(6, 2)]["compteInteret"]) == ("329", "7129", "3900", "7174")
+    def refus(corps, mid=None):
+        r = chef.post("/api/modeles-credit" + (f"/{mid}" if mid else ""), corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    assert agent.post("/api/modeles-credit", {"libelle": "X", "comptes": l["defauts"]}, **H).status_code == 403
+    assert "Libellé" in refus({"libelle": "", "comptes": l["defauts"]})
+    assert "à remplir" in refus({"libelle": "Modèle ressources affectées", "comptes": l["defauts"][1:]})
+    faux = [{**c, "compteInterne": "99999"} if (c["degre"], c["terme"]) == (3, 1) else c for c in l["defauts"]]
+    assert "n'existe pas" in refus({"libelle": "Modèle ressources affectées", "comptes": faux})
+    assert "existe déjà" in refus({"libelle": "model NORMAL", "comptes": l["defauts"]})
+    m = chef.post("/api/modeles-credit", {"libelle": "Modèle ressources affectées", "comptes": [{**c, "compteInterne": "3800"} if c["degre"] == 2 else c for c in l["defauts"]]}, **H).json()["modele"]
+    assert next(c for c in m["comptes"] if (c["degre"], c["terme"]) == (2, 1))["compteInterne"] == "3800"
+    p = chef.post("/api/produits-credit", {**PRODUIT, "modeleId": m["id"]}, **H).json()["produit"]
+    assert p["modeleId"] == m["id"]
+    assert "produit crédit" in chef.post(f"/api/modeles-credit/{m['id']}/suppression", {}, **H).json()["message"]

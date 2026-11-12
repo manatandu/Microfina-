@@ -11,9 +11,9 @@ const VIDE: Saisie = {
   clientPhysique: false, clientGroupe: false, clientEntreprise: false, maxParMembre: false,
   periodicite: "", modeDiffere: "Réparti", paiementInteret: "Normal", interetAnticipation: "OUI", ageMax: "",
   epargneNature: "", epargneValeur: "", solidariteNature: "", solidariteValeur: "", typeAssuranceId: "", assuranceNature: "", assuranceValeur: "",
-  categorie: "", tauxRegle: false, penaliteRetard: "", penaliteAnticipation: "", ordreId: "",
+  categorie: "", tauxRegle: false, penaliteRetard: "", penaliteAnticipation: "", ordreId: "", modeleId: "",
 };
-const IDS = ["typeAssuranceId", "ordreId"];
+const IDS = ["typeAssuranceId", "ordreId", "modeleId"];
 const LIGNE_FRAIS = { typeFrais: "", nature: "", valeur: "", compte: "" };
 
 /** S23 : Paramétrage > Produit > Crédit > Produit crédit : création/modification (manuel Microfina++, p. 37 et 38) */
@@ -112,6 +112,7 @@ export default function ProduitCredit({ listeOuverte = false }: { listeOuverte?:
       {cadre("Taux effectif global", <>{choix("categorie", "Catégorie de prêt *", simple(o.categories))}{case_("tauxRegle", "Taux réglementé ou bonifié")}</>)}
       {cadre("Pénalités", <>{texte("penaliteRetard", "Pénalité de retard (%)", "saisie code")}{texte("penaliteAnticipation", "Pénalité de remboursement anticipé (% des intérêts restant dus)", "saisie code")}</>)}
       {cadre("Remboursement", <>{choix("ordreId", "Ordre de remboursement", o.ordres.map((t: { id: number; libelle: string }) => ({ v: String(t.id), l: t.libelle })))}</>)}
+      {cadre("Comptabilisation", <>{choix("modeleId", "Modèle", o.modeles.map((t: { id: number; libelle: string }) => ({ v: String(t.id), l: t.libelle })))}</>)}
     </div>,
   ];
   const produits = donnees.produits.filter((p: { numero: string; nom: string }) => p.numero.toLowerCase().includes(filtres.numero.trim().toLowerCase())
@@ -137,6 +138,7 @@ export default function ProduitCredit({ listeOuverte = false }: { listeOuverte?:
         <Textes sources={["Manuel Microfina++, p. 37 et 38 : pages Information de base, Garanties financières, Assurance, Frais, Autres informations ; Information de base (Minimum, Maximum, Identification, Intérêt, Types de client, Divers) ; liste des produits crédits (Numero, Produit, Type de client, Taux interet, Taux différé)",
           "Instr. BCC n°38 du 03/01/2019 (TEG) : art. 5 (taux réglementés ou bonifiés), 6 (composantes et catégories), 9 (épargne obligatoire), 11 (méthode dégressive), 14 (remboursement anticipé : au plus 50 % des intérêts restant dus)",
           "Instr. BCC n°40 du 03/01/2019, art. 8 et 9 : frais de dossier, d'hypothèque, de mise en place, d'inscription des gages, de suivi du crédit ; frais d'assurance",
+          "Manuel Microfina++, p. 40 : Modèle pour crédit (Model normal, Modèle ressources affectées), choisi par le produit",
           "Manuel Microfina++, p. 86 (Encaisser frais au déblocage) et p. 114 (épargne obligatoire, fonds de solidarité, assureur et montant suivant le paramétrage)"]} />
       </section>
       <Fiche titre="Produit Crédit" ouverte={liste} fermer={() => setListe(false)}>

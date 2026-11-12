@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**189 décisions.** Solidité : 68 fortes (le manuel ou un texte répond), 95 moyennes (déduites d'un écran voisin ou d'une donnée), 26 faibles (notre choix, faute de mieux). Dans le code : 135 déjà en place, 54 à appliquer.
+**192 décisions.** Solidité : 68 fortes (le manuel ou un texte répond), 97 moyennes (déduites d'un écran voisin ou d'une donnée), 27 faibles (notre choix, faute de mieux). Dans le code : 138 déjà en place, 54 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -390,6 +390,14 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | S25-1 | Effet d'une désactivation | Activer ou Désactiver les produits cochés, après confirmation Oui/Non. Un produit désactivé reste dans la liste et ses données sont gardées ; il n'est plus proposé aux nouvelles demandes de crédit (S86), les crédits déjà accordés suivent leur cours. La colonne Actif se lit, ne se coche pas | Écran voisin : Capture p. 39 (Activer, Désactiver, cases, colonne Actif) ; manuel p. 10 et 11 ; T02 | moyenne | en place |
 
+## S26 Modèle pour crédit
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S26-1 | Degrés, termes et saisie | Les degrés de S21 (Instr. BCC 003) et les termes de S21 (PCCI classe 3), à la place des Souffrant 1 à 4 et des six termes de la capture. Choisir un degré et un terme montre leurs trois comptes ; ✓ les attache ; Enregistrer garde le libellé et les 21 croisements. Compte capital et compte intérêt obligatoires partout, compte interne facultatif ; chaque compte existe au plan (T16) | Texte réglementaire : Capture et texte p. 40 ; S21-1, S21-2 ; Instr. BCC 003 art. 12 ; PCCI classe 3 | moyenne | en place |
+| S26-2 | Comptes proposés | Nouveau modèle et « Model normal » de départ : crédit sain, capital 329, 319, 309 et intérêts 7129, 7119, 7101 selon le terme ; crédit en retard, capital 3900 à 3904 et intérêts 7170 à 7174 selon la tranche (irrécupérables sur 3904 et 7174 jusqu'au passage en perte). Compte interne laissé vide, son usage dans Microfina++ n'étant pas montré | Texte réglementaire : PCCI, comptes 30 à 32, 390, 710 à 712, 717 ; Instr. BCC 003, art. 10 | faible | en place |
+| S26-3 | Lien avec le produit crédit | Le produit crédit choisit son modèle dans Autres informations (S23). Un modèle choisi par un produit ne se supprime pas | Donnée exigée ailleurs : Capture p. 40 (Model normal, Modèle ressources affectées : des modèles au choix) ; S23 | moyenne | en place |
+
 ## Les décisions faibles, à regarder en premier
 
 | N° | Écran | Question | Réponse retenue |
@@ -420,3 +428,4 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S21-6 | S21 Référentiel crédit | Gestionnaire de portefeuille | Utilisateur choisi parmi les utilisateurs de l'institution. Portefeuille : les clients dont la fiche porte cet utilisateur comme gestionnaire. Montants en CDF, durées en mois |
 | S23-2 | S23 Produit crédit | Listes de la page Information de base | Type Produit : liste de S21 ; Périodicité : liste de S21 ; Type d'intérêt, Mode différé, Paiement intérêt : la seule valeur montrée par la capture (Fixe, Réparti, Normal), en attendant d'autres valeurs du porteur ; Percevoir int. par anticipation : OUI, NON |
 | S23-7 | S23 Produit crédit | Autres informations | Catégorie de prêt (consommation, commercial, trésorerie, investissement) ; taux réglementé ou bonifié (pas de TEG) ; pénalité de retard (%) ; pénalité de remboursement anticipé, au plus 50 % des intérêts restant dus ; ordre de remboursement (S22) |
+| S26-2 | S26 Modèle pour crédit | Comptes proposés | Nouveau modèle et « Model normal » de départ : crédit sain, capital 329, 319, 309 et intérêts 7129, 7119, 7101 selon le terme ; crédit en retard, capital 3900 à 3904 et intérêts 7170 à 7174 selon la tranche (irrécupérables sur 3904 et 7174 jusqu'au passage en perte). Compte interne laissé vide, son usage dans Microfina++ n'étant pas montré |

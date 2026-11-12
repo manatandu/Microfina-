@@ -401,8 +401,8 @@ Lecture de la colonne « Manuel » : c'est le niveau le plus faible parmi les é
 | 21 | Produit crédit : garanties assurance frais autres informations | S23 | Montré en partie | 2 Paramétrage | S23 : deux pages sur cinq (à repérer à l'ouverture) |
 | 22 | Activation et désactivation des produits crédit | S25 | Montré en entier | 2 Paramétrage | Rien : à recopier |
 | 23 | Modèle crédit : comptes | S26 | Montré en entier | 2 Paramétrage | Rien : à recopier |
-| 24 | Modèle crédit : degrés de classement et taux de provision | S26 | Montré en entier | 2 Paramétrage | Rien : à recopier |
-| 25 | Modèle crédit : termes par durée | S26 | Montré en entier | 2 Paramétrage | Rien : à recopier |
+| 24 | Modèle crédit : degrés de classement et taux de provision | S21 S26 | Montré en entier | 2 Paramétrage | Rien : à recopier |
+| 25 | Modèle crédit : termes par durée | S21 S26 | Montré en entier | 2 Paramétrage | Rien : à recopier |
 | 26 | Produit épargne : définition et options | S27 | Montré en entier | 2 Paramétrage | Rien : à recopier |
 | 27 | Produit épargne : comptes comptables | S28 | Montré en entier | 2 Paramétrage | Rien : à recopier |
 | 28 | Numérotation des pièces | S29 | Montré en entier | 2 Paramétrage | Rien : à recopier |

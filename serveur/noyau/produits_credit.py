@@ -43,7 +43,7 @@ CHAMPS = {   # clé -> (colonne, libellé, sorte) ; sorte : texte, nombre, entie
     "categorie": ("categorie", "Catégorie de prêt", "texte"), "tauxRegle": ("taux_regle", "Taux réglementé ou bonifié", "oui"),
     "penaliteRetard": ("penalite_retard", "Pénalité de retard (%)", "nombre"),
     "penaliteAnticipation": ("penalite_anticipation", "Pénalité de remboursement anticipé (% des intérêts restant dus)", "nombre"),
-    "ordreId": ("ordre_id", "Ordre de remboursement", "id"),
+    "ordreId": ("ordre_id", "Ordre de remboursement", "id"), "modeleId": ("modele_id", "Modèle", "id"),
 }
 OBLIGATOIRES = ["typeProduit", "numero", "nom", "devise", "modeCalcul", "typeInteret", "tauxInteret", "tauxDiffere", "montantMin", "dureeMin", "differeMin",
                 "montantMax", "dureeMax", "differeMax", "periodicite", "modeDiffere", "paiementInteret", "interetAnticipation", "ageMax", "categorie"]
@@ -69,7 +69,8 @@ def options(u) -> dict:
             "modesDiffere": MODES_DIFFERE, "paiementsInteret": PAIEMENTS_INTERET, "natures": NATURES, "categories": CATEGORIES, "typesFrais": TYPES_FRAIS,
             "typesAssurance": lignes("select id, libelle from credit_type_assurance where institution_id = %s and actif order by id", (i,)),
             "ordres": [{"id": o["id"], "libelle": f"{o['code']} ==> {o['libelle']}"} for o in
-                       lignes("select id, code, libelle from credit_ordre where institution_id = %s and actif order by id", (i,))]}
+                       lignes("select id, code, libelle from credit_ordre where institution_id = %s and actif order by id", (i,))],
+            "modeles": lignes("select id, libelle from credit_modele where institution_id = %s and actif order by id", (i,))}
 
 
 def vue(r) -> dict:
@@ -173,6 +174,8 @@ def valider(u, d) -> tuple[dict, list]:
         raise ErreurMetier("Assurance : choisir le type d'assurance.")
     if v["ordreId"] is not None and not une("select 1 from credit_ordre where id = %s and institution_id = %s and actif", (v["ordreId"], i)):
         raise ErreurMetier("Ordre de remboursement inconnu.")
+    if v["modeleId"] is not None and not une("select 1 from credit_modele where id = %s and institution_id = %s and actif", (v["modeleId"], i)):
+        raise ErreurMetier("Modèle inconnu.")
     # Frais (Instr. BCC 40, art. 8) : un type une fois, nature, valeur, compte du plan (T16)
     frais, vus = [], set()
     for f in d.get("frais") or []:

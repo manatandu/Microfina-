@@ -15,6 +15,7 @@ from . import localisation as lo
 from . import credit as cr
 from . import ordres as od
 from . import produits_credit as pc
+from . import modeles_credit as mc
 from . import comptes as cp
 from . import numerotation as nu
 from . import services as s
@@ -659,6 +660,32 @@ def pc_creer(request, corps: dict = Body(...)):
 @api.post("/produits-credit/{pid}")
 def pc_modifier(request, pid: int, corps: dict = Body(...)):
     return pc.enregistrer(u(request), corps, pid)
+
+
+# ---------- Produits > Crédits > Modèle pour crédit (S26) ----------
+@api.get("/modeles-credit")
+def mc_lire(request):
+    return mc.lire(u(request))
+
+
+@api.get("/modeles-credit/{mid}")
+def mc_lire_modele(request, mid: int):
+    return mc.lire_modele(u(request), mid)
+
+
+@api.post("/modeles-credit")
+def mc_creer(request, corps: dict = Body(...)):
+    return mc.enregistrer(u(request), corps)
+
+
+@api.post("/modeles-credit/{mid}")
+def mc_modifier(request, mid: int, corps: dict = Body(...)):
+    return mc.enregistrer(u(request), corps, mid)
+
+
+@api.post("/modeles-credit/{mid}/suppression")
+def mc_supprimer(request, mid: int):
+    return mc.supprimer(u(request), mid)
 
 
 # ---------- Paramétrage > Produit > Crédit > Ordre remboursement crédit (S22) ----------

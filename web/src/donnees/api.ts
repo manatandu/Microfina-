@@ -17,7 +17,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v35";
+const CLE = "likelemba-demo-v36";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -25,7 +25,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 35) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 36) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -1822,6 +1822,7 @@ const CHAMPS_PRODUIT: Record<string, [string, SorteChamp]> = {
   typeAssuranceId: ["Type assurance", "id"], assuranceNature: ["Nature de l'assurance", "texte"], assuranceValeur: ["Assurance", "nombre"],
   categorie: ["Catégorie de prêt", "texte"], tauxRegle: ["Taux réglementé ou bonifié", "oui"], penaliteRetard: ["Pénalité de retard (%)", "nombre"],
   penaliteAnticipation: ["Pénalité de remboursement anticipé (% des intérêts restant dus)", "nombre"], ordreId: ["Ordre de remboursement", "id"],
+  modeleId: ["Modèle", "id"],
 };
 const OBLIGATOIRES_PRODUIT = ["typeProduit", "numero", "nom", "devise", "modeCalcul", "typeInteret", "tauxInteret", "tauxDiffere", "montantMin", "dureeMin", "differeMin",
   "montantMax", "dureeMax", "differeMax", "periodicite", "modeDiffere", "paiementInteret", "interetAnticipation", "ageMax", "categorie"];
@@ -1848,7 +1849,8 @@ const produitsCredit = {
     return { typesProduit: fixeCredit("types_produit").map((r) => ({ code: String(r.code), libelle: String(r.nom) })),
       periodicites: fixeCredit("periodicites").map((r) => ({ code: String(r.code), libelle: String(r.libelle) })), devises: ["USD", "CDF"],
       ...OPTIONS_PRODUIT_CREDIT, typesAssurance: stockCredit("types_assurance").filter((t) => t.actif).map((t) => ({ id: t.id, libelle: String(t.libelle) })),
-      ordres: ordresActifs().map((o) => ({ id: o.id, libelle: `${o.code} ==> ${o.libelle}` })) };
+      ordres: ordresActifs().map((o) => ({ id: o.id, libelle: `${o.code} ==> ${o.libelle}` })),
+      modeles: E.modelesCredit.filter((m) => m.actif).map((m) => ({ id: m.id, libelle: m.libelle })) };
   },
   /** La page et la liste des produits crédits (Fig. 2, p. 38 : Numero, Produit, Type de client, Taux interet, Taux différé) */
   lire() {
@@ -1910,6 +1912,7 @@ const produitsCredit = {
     if (v.typeAssuranceId !== null && !o.typesAssurance.some((x) => x.id === v.typeAssuranceId)) throw new ErreurMetier("Type assurance inconnu.");
     if ((v.assuranceValeur as number) > 0 && v.typeAssuranceId === null) throw new ErreurMetier("Assurance : choisir le type d'assurance.");
     if (v.ordreId !== null && !o.ordres.some((x) => x.id === v.ordreId)) throw new ErreurMetier("Ordre de remboursement inconnu.");
+    if (v.modeleId !== null && !o.modeles.some((x) => x.id === v.modeleId)) throw new ErreurMetier("Modèle inconnu.");
     const frais: FraisProduit[] = []; const vus = new Set<string>();
     for (const f of (d.frais as Record<string, unknown>[] | undefined) ?? []) {
       const tf = String(f.typeFrais ?? "").trim(), nat = String(f.nature ?? "").trim(), val = nombreSaisi(f.valeur), cpt = String(f.compte ?? "").trim();
@@ -1927,6 +1930,69 @@ const produitsCredit = {
     if (actuel) Object.assign(actuel, v, { frais });
     else { pid = prochain(E.produitsCredit); E.produitsCredit.push({ ...v, id: pid, actif: true, frais } as ProduitCreditVue); }
     enregistrer(); return { ...produitsCredit.lire(), produit: produitsCredit.lireProduit(pid!) };
+  },
+};
+
+// ---------- Produits > Crédits > Modèle pour crédit (S26, manuel p. 40). Degrés et termes de S21 ; comptes proposés par le PCCI (registre S26-2).
+// Règles identiques côté serveur (noyau/modeles_credit.py). ----------
+export type CompteModele = { degre: number; terme: number; compteCapital: string; compteInterne: string; compteInteret: string };
+function defautsModele(): CompteModele[] {
+  const sains: Record<number, [string, string]> = { 1: ["329", "7129"], 2: ["319", "7119"], 3: ["309", "7101"] };   // PCCI : autres crédits, intérêts, par terme
+  const retard: Record<number, [string, string]> = { 2: ["3900", "7170"], 3: ["3901", "7171"], 4: ["3902", "7172"], 5: ["3903", "7173"], 6: ["3904", "7174"], 7: ["3904", "7174"] };   // PCCI 390, 717
+  const r: CompteModele[] = [];
+  for (let d = 1; d <= fixeCredit("degres").length; d++) for (let t = 1; t <= fixeCredit("termes").length; t++) {
+    const [cap, int] = d === 1 ? sains[t]! : retard[d]!;
+    r.push({ degre: d, terme: t, compteCapital: cap, compteInterne: "", compteInteret: int });
+  }
+  return r;
+}
+const modeles = {
+  lire() {
+    exiger();
+    return { degres: fixeCredit("degres").map((x, n) => ({ rang: n + 1, ...x })), termes: fixeCredit("termes").map((x, n) => ({ rang: n + 1, ...x })), defauts: defautsModele(),
+      modeles: E.modelesCredit.filter((m) => m.actif).sort((a, b) => a.id - b.id).map((m) => ({ id: m.id, libelle: m.libelle })) };
+  },
+  lireModele(id: number) {
+    exiger();
+    const m = E.modelesCredit.find((x) => x.id === id && x.actif);
+    if (!m) throw new ErreurMetier("Modèle introuvable.");
+    return { id: m.id, libelle: m.libelle, comptes: [...m.comptes].sort((a, b) => a.degre - b.degre || a.terme - b.terme).map((c) => ({ ...c })) };
+  },
+  /** Enregistrer (nouveau modèle) ou modifier le modèle choisi : libellé et comptes de chaque degré et terme (registre S26-1) */
+  enregistrer(d: { libelle: string; comptes: CompteModele[] }, id?: number) {
+    exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
+    const libelle = d.libelle?.trim() ?? "";
+    if (!libelle) throw new ErreurMetier("À remplir : Libellé.");
+    const actuel = id === undefined ? undefined : E.modelesCredit.find((x) => x.id === id && x.actif);
+    if (id !== undefined && !actuel) throw new ErreurMetier("Modèle introuvable.");
+    const degres = fixeCredit("degres"), termes = fixeCredit("termes");
+    const comptes = new Map<string, CompteModele>();
+    for (const c of d.comptes ?? []) {
+      if (!(c.degre >= 1 && c.degre <= degres.length && c.terme >= 1 && c.terme <= termes.length)) throw new ErreurMetier("Degré ou terme inconnu.");
+      comptes.set(`${c.degre}-${c.terme}`, { degre: c.degre, terme: c.terme, compteCapital: (c.compteCapital ?? "").trim(), compteInterne: (c.compteInterne ?? "").trim(), compteInteret: (c.compteInteret ?? "").trim() });
+    }
+    const plan = numerosPlan();
+    for (let dg = 1; dg <= degres.length; dg++) for (let t = 1; t <= termes.length; t++) {
+      const x = degres[dg - 1]!, nom = `${String(x.libelle)} ${String(x.debut)}-${String(x.fin)} jours, ${String(termes[t - 1]!.libelle)}`;
+      const c = comptes.get(`${dg}-${t}`);
+      if (!c || !c.compteCapital || !c.compteInteret) throw new ErreurMetier(`${nom} : compte capital et compte intérêt à remplir.`);
+      for (const [k, lib] of [["compteCapital", "Compte capital"], ["compteInterne", "Compte interne"], ["compteInteret", "Compte interet"]] as const)
+        if (c[k] && !plan.includes(c[k])) throw new ErreurMetier(`${nom} : ${lib} ${c[k]} n'existe pas au plan de comptes.`);   // T16
+    }
+    if (E.modelesCredit.some((m) => m.actif && m.libelle.toLowerCase() === libelle.toLowerCase() && m.id !== id)) throw new ErreurMetier("Ce Libellé existe déjà.");
+    let mid = id;
+    if (actuel) Object.assign(actuel, { libelle, comptes: [...comptes.values()] });
+    else { mid = prochain(E.modelesCredit); E.modelesCredit.push({ id: mid, libelle, actif: true, comptes: [...comptes.values()] }); }
+    enregistrer(); return { ...modeles.lire(), modele: modeles.lireModele(mid!) };
+  },
+  /** Supprimer (p. 12) : logique (T02) ; un modèle choisi par un produit crédit ne se supprime pas */
+  supprimer(id: number) {
+    exiger("chef_agence");
+    const m = E.modelesCredit.find((x) => x.id === id && x.actif);
+    if (!m) throw new ErreurMetier("Modèle introuvable.");
+    if (E.produitsCredit.some((p) => p.modeleId === id)) throw new ErreurMetier("Ce modèle est choisi par un produit crédit : le changer d'abord.");
+    m.actif = false;
+    enregistrer(); return modeles.lire();
   },
 };
 
@@ -2023,6 +2089,7 @@ const apiLocal = {
   credit: asynchrone(credit),
   ordres: asynchrone(ordres),
   produitsCredit: asynchrone(produitsCredit),
+  modeles: asynchrone(modeles),
   comptes: asynchrone(comptes),
   numerotation: asynchrone(numerotation),
 };
