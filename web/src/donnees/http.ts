@@ -103,6 +103,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       parametrerAdhesion: (d: object) => post("/parametrage/frais-adhesion", d),
       modifierParametrage: (genre: string, id: number, d: object) => post(`/parametrage/frais-${genre}/${id}`, d),
       supprimerParametrage: (genre: string, id: number) => appel("DELETE", `/parametrage/frais-${genre}/${id}`),
+      modifierCategorie: (id: number, typeMembre: string) => post(`/parametrage/frais-adhesion/${id}/categorie`, { typeMembre }),
       fraisLies: (id: number) => get(`/tiers/${id}/frais`),
       modifierFraisClient: (id: number, frais: object[]) => post(`/tiers/${id}/frais`, { frais }),
     },

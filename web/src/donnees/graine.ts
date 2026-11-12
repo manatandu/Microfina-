@@ -34,7 +34,7 @@ export function graine(): Etat {
     lieuNaissance: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", liees: [] as number[],
     type: "physique" as const, formeJuridique: "", registre: "", centreActivite: "", activite: "", dirigeant: null, signataires: [], nbHommes: 0, nbFemmes: 0, membres: [], intitule: "", dateVisa: "2026-01-15", profession: "", pays: "", ville: "", quartier: "", rue: "", email: "", bp: "", telephoneFixe: "", motifDepart: "", resilieLe: "", creeLe: "2026-01-15", creePar: 4, visePar: 2, statut: "actif" as const };
   return {
-    version: 26,
+    version: 27,
     institution: { nom: "COOPEC Tujenge", sigle: "CTJ", profil: "coopec" },   // sigle fictif : élément Institution du numéro client (S15-11)
     agence: { id: 1, code: "0412", nom: "Matete" },
     guichets: [{ id: 1, code: "G1", nom: "Caisse 1", typeGuichet: "PRINCIPALE", journalId: 1, ...COMPTES_GUICHET }, { id: 2, code: "G2", nom: "Caisse 2", typeGuichet: "SECONDAIRE", journalId: 1, ...COMPTES_GUICHET }],   // type et journal fictifs (S08)
@@ -72,11 +72,12 @@ export function graine(): Etat {
     session: null,
     compteurs: { piece: 1284, tiers: 320 },
     images: {},
-    sousTypes: ["Homme", "Femme", "Entreprise", "Groupement", "Association", "ONG"],   // fictifs : S14 pas encore construit
     frais: [], paramOperations: [], paramAdhesion: [], fraisClient: [], modifications: [], groupesSolidaires: [], membresGroupes: [], typesProcuration: [], consentements: [], banques: [], comptesBancaires: [],
     // S14 : secteurs de la capture du manuel p. 23 ; S14n : types de guichet de la capture p. 19 (registre S08-1)
     listes: [...[["S1", "PRIMAIRE"], ["S2", "SECONDAIRE"], ["S3", "TERTIAIRE"], ["S4", "Transformation"], ["S5", "Autre activités"], ["S6", "Commerce"], ["S7", "Artisanat"], ["S8", "Elevage"]]
-      .map(([code, libelle]) => ({ liste: "secteur_activite", code: code!, libelle: libelle! })), { liste: "type_guichet", code: "1", libelle: "PRINCIPALE" }, { liste: "type_guichet", code: "2", libelle: "SECONDAIRE" }]
+      .map(([code, libelle]) => ({ liste: "secteur_activite", code: code!, libelle: libelle! })), { liste: "type_guichet", code: "1", libelle: "PRINCIPALE" }, { liste: "type_guichet", code: "2", libelle: "SECONDAIRE" },
+      // Sous types de client fictifs (S14h), cochés dans Paramétrage frais (S16-8)
+      ...["Homme", "Femme", "Entreprise", "Groupement", "Association", "ONG"].map((libelle, i) => ({ liste: "sous_type_client", code: String(i + 1), libelle }))]
       .map((l, i) => ({ id: i + 1, ...l, actif: true })),
     numerotation: {},
     // S10, données fictives : la caissière tient la Caisse 2 et voit les soldes

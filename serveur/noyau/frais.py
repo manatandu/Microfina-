@@ -1,19 +1,20 @@
 """S16 : frais et leur paramétrage (manuel Microfina++, p. 25 à 27). Mêmes règles que web/src/donnees/api.ts (parametrage)."""
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import exiger
+from .listes import valeurs as valeurs_liste
 
-# Types d'opération montrés par le manuel (p. 25 et 26). Liste complète à confirmer.
-TYPES_OPERATION = ["ADHESION", "DEPOT"]
+# Registre S16-1 : les opérations des menus Caisse et Banque déjà construites (ADHESION et DEPOT sont montrés p. 25 et 26)
+TYPES_OPERATION = ["ADHESION", "DEPOT", "RETRAIT", "PART_SOCIALE"]
 # Services gratuits « sans aucune condition » : Instr. BCC 37, art. 2 et 3, annexe (ouverture et clôture de compte, dépôt et retrait d'espèces,
 # virement de compte à compte dans la même institution, deux premiers relevés mensuels…)
 GRATUITS = {"DEPOT": "dépôt d'espèces", "RETRAIT": "retrait d'espèces", "OUVERTURE": "ouverture de compte", "CLOTURE": "clôture de compte",
             "VIREMENT": "virement de compte à compte"}
-NATURES = ["Montant"]                        # seule nature montrée (p. 26) ; autres à confirmer
+NATURES = {"Montant": "montant", "Taux": "taux"}   # registre S16-2 : Taux = pourcentage du montant de l'opération
 TYPES_MEMBRE = {"Physique": "physique", "Entreprise": "morale", "Groupe": "groupe"}   # les trois types de client (p. 47)
 
 
 def droit(u):
-    return exiger(u, "chef_agence")          # profil habilité au paramétrage : à confirmer (S04 à S07)
+    return exiger(u, "chef_agence")          # profil habilité : registre T07, en attendant S03 à S06
 
 
 def texte(d, k):
@@ -25,14 +26,15 @@ def lire(u) -> dict:
     exiger(u)
     i = u["institution_id"]
     return {
-        "typesOperation": TYPES_OPERATION, "natures": NATURES, "typesMembre": list(TYPES_MEMBRE),
-        "sousTypes": [r["libelle"] for r in lignes("select libelle from sous_type_client where institution_id = %s order by id", (i,))],
+        "typesOperation": TYPES_OPERATION, "natures": list(NATURES), "typesMembre": list(TYPES_MEMBRE),
+        "sousTypes": [r["libelle"] for r in valeurs_liste(u, "sous_type_client")],   # registre S16-8 : Général > Sous type de client
+        "compteAdhesion": "727",                                                       # registre S16-4 : proposé, modifiable
         "frais": lignes("select id, libelle, type_operation as \"typeOperation\" from frais where institution_id = %s order by id", (i,)),
-        "operations": lignes("""select p.id, p.frais_id as "fraisId", s.libelle as "sousType", p.valeur, p.compte, 'Montant' as nature
-                                 from parametrage_frais p join sous_type_client s on s.id = p.sous_type_id join frais f on f.id = p.frais_id
+        "operations": lignes("""select p.id, p.frais_id as "fraisId", s.libelle as "sousType", p.valeur, p.compte, initcap(p.nature) as nature
+                                 from parametrage_frais p join liste_reference s on s.id = p.sous_type_id join frais f on f.id = p.frais_id
                                  where f.institution_id = %s order by p.id""", (i,)),
         "adhesion": [{**r, "typeMembre": next(k for k, v in TYPES_MEMBRE.items() if v == r["typeMembre"])} for r in
-                     lignes("""select p.id, p.frais_id as "fraisId", p.type_membre as "typeMembre", p.valeur, p.compte, 'Montant' as nature
+                     lignes("""select p.id, p.frais_id as "fraisId", p.type_membre as "typeMembre", p.valeur, p.compte, initcap(p.nature) as nature
                                from parametrage_frais_adhesion p join frais f on f.id = p.frais_id where f.institution_id = %s order by p.id""", (i,))],
     }
 
@@ -83,15 +85,22 @@ def supprimer_frais(u, fid: int):
     executer("delete from frais where id = %s", (fid,))
 
 
-def controler_valeurs(d) -> tuple[int | None, str | None]:
-    if texte(d, "nature") not in NATURES:
+def controler_valeurs(u, d, adhesion: bool = False) -> tuple[str, int | None, str | None]:
+    n = texte(d, "nature")
+    if n not in NATURES:
         raise ErreurMetier("À remplir : nature du frais.")
+    if adhesion and n != "Montant":
+        raise ErreurMetier("Un frais d'adhésion est un Montant : il n'a pas de montant d'opération sur lequel calculer un taux.")
     v, c = d.get("valeur"), texte(d, "compte")
     if v is not None and (not isinstance(v, int) or isinstance(v, bool) or v < 0):
         raise ErreurMetier("Valeur invalide.")
+    if n == "Taux" and v is not None and v > 10000:
+        raise ErreurMetier("Taux invalide : 100 % au plus.")
     if c and not c.isdigit():
         raise ErreurMetier("Compte : chiffres seulement.")
-    return v, c or None
+    if c and not une("select 1 from compte where numero = %s and (institution_id is null or institution_id = %s)", (c, u["institution_id"])):
+        raise ErreurMetier(f"Compte : le compte {c} n'est pas dans le plan de comptes.")   # règle T16
+    return NATURES[n], v, c or None
 
 
 def parametrer_operation(u, d) -> list[dict]:
@@ -100,19 +109,19 @@ def parametrer_operation(u, d) -> list[dict]:
     f = frais_de(u, d.get("fraisId"))
     if f["type_operation"] == "ADHESION":
         raise ErreurMetier("Un frais d'adhésion se paramètre dans l'onglet Paramétrage frais Adhésion.")
-    v, c = controler_valeurs(d)
+    nat, v, c = controler_valeurs(u, d)
     sous = d.get("sousTypes") or []
     if not sous:
         raise ErreurMetier("Cocher au moins un sous type client.")
     ids = []
     for s in sous:
-        sid = valeur("select id from sous_type_client where institution_id = %s and libelle = %s", (u["institution_id"], s))
+        sid = valeur("select id from liste_reference where institution_id = %s and liste = 'sous_type_client' and libelle = %s and actif", (u["institution_id"], s))
         if not sid:
             raise ErreurMetier("Sous type client inconnu.")
         if valeur("select 1 from parametrage_frais where frais_id = %s and sous_type_id = %s", (f["id"], sid)):
             raise ErreurMetier(f"Déjà paramétré pour « {s} » : passer par Modif Paramétrage frais.")
-        ids.append(valeur("insert into parametrage_frais (frais_id, sous_type_id, nature, valeur, compte) values (%s, %s, 'montant', %s, %s) returning id",
-                          (f["id"], sid, v, c)))
+        ids.append(valeur("insert into parametrage_frais (frais_id, sous_type_id, nature, valeur, compte) values (%s, %s, %s, %s, %s) returning id",
+                          (f["id"], sid, nat, v, c)))
     return ids
 
 
@@ -122,7 +131,7 @@ def parametrer_adhesion(u, d) -> list[int]:
     f = frais_de(u, d.get("fraisId"))
     if f["type_operation"] != "ADHESION":
         raise ErreurMetier("Ce frais n'est pas un frais d'adhésion.")
-    v, c = controler_valeurs(d)
+    nat, v, c = controler_valeurs(u, d, adhesion=True)
     types = d.get("typesMembre") or []
     if not types:
         raise ErreurMetier("Cocher au moins un type client.")
@@ -132,8 +141,8 @@ def parametrer_adhesion(u, d) -> list[int]:
             raise ErreurMetier("Type client inconnu.")
         if valeur("select 1 from parametrage_frais_adhesion where frais_id = %s and type_membre = %s", (f["id"], TYPES_MEMBRE[t])):
             raise ErreurMetier(f"Déjà paramétré pour « {t} » : passer par Modif Paramétrage frais Adhésion.")
-        ids.append(valeur("""insert into parametrage_frais_adhesion (frais_id, type_membre, nature, valeur, compte) values (%s, %s, 'montant', %s, %s) returning id""",
-                          (f["id"], TYPES_MEMBRE[t], v, c)))
+        ids.append(valeur("""insert into parametrage_frais_adhesion (frais_id, type_membre, nature, valeur, compte) values (%s, %s, %s, %s, %s) returning id""",
+                          (f["id"], TYPES_MEMBRE[t], nat, v, c)))
     return ids
 
 
@@ -148,8 +157,20 @@ def modifier_parametrage(u, table: str, pid: int, d):
     """« Modif Paramétrage frais » et « … Adhésion » : Action > Modifier infos (p. 26 et 27)."""
     droit(u)
     ligne_de(u, table, pid)
-    v, c = controler_valeurs(d)
-    executer(f"update {table} set valeur = %s, compte = %s where id = %s", (v, c, pid))
+    nat, v, c = controler_valeurs(u, d, adhesion=table == "parametrage_frais_adhesion")
+    executer(f"update {table} set nature = %s, valeur = %s, compte = %s where id = %s", (nat, v, c, pid))
+
+
+def modifier_categorie(u, pid: int, d):
+    """« Modif Paramétrage frais Adhésion », Action > Modifier Catégorie (capture p. 26) : change le Type membre de la ligne (registre S16-6)"""
+    droit(u)
+    r = ligne_de(u, "parametrage_frais_adhesion", pid)
+    t = texte(d, "typeMembre")
+    if t not in TYPES_MEMBRE:
+        raise ErreurMetier("À remplir : type membre.")
+    if valeur("select 1 from parametrage_frais_adhesion where frais_id = %s and type_membre = %s and id <> %s", (r["frais_id"], TYPES_MEMBRE[t], pid)):
+        raise ErreurMetier(f"Ce frais est déjà paramétré pour « {t} ».")
+    executer("update parametrage_frais_adhesion set type_membre = %s where id = %s", (TYPES_MEMBRE[t], pid))
 
 
 def supprimer_parametrage(u, table: str, pid: int):

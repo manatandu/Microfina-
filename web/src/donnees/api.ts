@@ -8,7 +8,7 @@ import { creerApiHttp } from "./http";
 import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
   type Operation, type Role, type SessionCaisse, type Tiers, type Utilisateur,
-  type Representant, type Frais, type ParamFrais,
+  type Representant, type Frais, type ParamFrais, type ParamAdhesion,
   type RegleNumerotation,
 } from "./types";
 import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@design/montant.js";
@@ -16,7 +16,7 @@ import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@d
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v26";
+const CLE = "likelemba-demo-v27";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -24,7 +24,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 26) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 27) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -523,12 +523,12 @@ const tiers = {
 export type CompteAvecSolde = CompteDepot & { solde: number; disponible: number };
 
 // ---------- Paramétrage : frais (S16, manuel p. 25 à 27). Règles identiques côté serveur (noyau/frais.py). ----------
-/** Types d'opération montrés par le manuel (p. 25 et 26). Liste complète à confirmer. */
-export const TYPES_OPERATION = ["ADHESION", "DEPOT"];
+/** Registre S16-1 : les opérations des menus Caisse et Banque déjà construites (ADHESION et DEPOT sont montrés p. 25 et 26) */
+export const TYPES_OPERATION = ["ADHESION", "DEPOT", "RETRAIT", "PART_SOCIALE"];
 /** Services gratuits « sans aucune condition » : Instr. BCC 37, art. 2 et 3, annexe */
 const GRATUITS: Record<string, string> = { DEPOT: "dépôt d'espèces", RETRAIT: "retrait d'espèces", OUVERTURE: "ouverture de compte", CLOTURE: "clôture de compte",
   VIREMENT: "virement de compte à compte" };
-export const NATURES = ["Montant"];   // seule nature montrée (p. 26)
+export const NATURES = ["Montant", "Taux"];   // registre S16-2 : Taux = pourcentage du montant de l'opération
 const TYPES_MEMBRE: Record<string, Tiers["type"]> = { Physique: "physique", Entreprise: "morale", Groupe: "groupe" };
 export type ValeursFrais = { nature: string; valeur: number | null; compte: string };
 
@@ -546,13 +546,17 @@ function fraisDe(id: number) {
   if (!f) throw new ErreurMetier("Frais introuvable.");
   return f;
 }
-function controlerValeurs(v: ValeursFrais) {
+function controlerValeurs(v: ValeursFrais, adhesion = false) {
   if (!NATURES.includes(v.nature)) throw new ErreurMetier("À remplir : nature du frais.");
+  if (adhesion && v.nature !== "Montant") throw new ErreurMetier("Un frais d'adhésion est un Montant : il n'a pas de montant d'opération sur lequel calculer un taux.");
   if (v.valeur !== null && (!Number.isInteger(v.valeur) || v.valeur < 0)) throw new ErreurMetier("Valeur invalide.");
+  if (v.nature === "Taux" && v.valeur !== null && v.valeur > 10000) throw new ErreurMetier("Taux invalide : 100 % au plus.");
   const c = v.compte.trim();
   if (c && !/^\d+$/.test(c)) throw new ErreurMetier("Compte : chiffres seulement.");
+  if (c && !planComptable().includes(c)) throw new ErreurMetier(`Compte : le compte ${c} n'est pas dans le plan de comptes.`);   // règle T16
   return { nature: v.nature, valeur: v.valeur, compte: c || null };
 }
+const sousTypes = () => valeursListe("sous_type_client").map((v) => v.libelle);   // registre S16-8 : Général > Sous type de client
 function ligneParam(liste: ParamFrais[], id: number) {
   const r = liste.find((x) => x.id === id);
   if (!r) throw new ErreurMetier("Paramétrage introuvable.");
@@ -562,7 +566,7 @@ function ligneParam(liste: ParamFrais[], id: number) {
 const parametrage = {
   lireFrais() {
     exiger();
-    return { typesOperation: TYPES_OPERATION, natures: NATURES, typesMembre: Object.keys(TYPES_MEMBRE), sousTypes: E.sousTypes,
+    return { typesOperation: TYPES_OPERATION, natures: NATURES, typesMembre: Object.keys(TYPES_MEMBRE), sousTypes: sousTypes(), compteAdhesion: "727",   // S16-4
       frais: E.frais, operations: E.paramOperations, adhesion: E.paramAdhesion };
   },
   creerFrais(d: { typeOperation: string; libelle: string }): Frais {
@@ -592,7 +596,7 @@ const parametrage = {
     const v = controlerValeurs(d);
     if (!d.sousTypes.length) throw new ErreurMetier("Cocher au moins un sous type client.");
     for (const s of d.sousTypes) {
-      if (!E.sousTypes.includes(s)) throw new ErreurMetier("Sous type client inconnu.");
+      if (!sousTypes().includes(s)) throw new ErreurMetier("Sous type client inconnu.");
       if (E.paramOperations.some((x) => x.fraisId === f.id && x.sousType === s)) throw new ErreurMetier(`Déjà paramétré pour « ${s} » : passer par Modif Paramétrage frais.`);
     }
     const ids = d.sousTypes.map((sousType) => { const id = prochain(E.paramOperations); E.paramOperations.push({ id, fraisId: f.id, sousType, ...v }); return id; });
@@ -602,7 +606,7 @@ const parametrage = {
     droitParametrage();
     const f = fraisDe(d.fraisId);
     if (f.typeOperation !== "ADHESION") throw new ErreurMetier("Ce frais n'est pas un frais d'adhésion.");
-    const v = controlerValeurs(d);
+    const v = controlerValeurs(d, true);
     if (!d.typesMembre.length) throw new ErreurMetier("Cocher au moins un type client.");
     for (const t of d.typesMembre) {
       if (!TYPES_MEMBRE[t]) throw new ErreurMetier("Type client inconnu.");
@@ -614,8 +618,16 @@ const parametrage = {
   modifierParametrage(genre: "operation" | "adhesion", id: number, d: ValeursFrais) {
     droitParametrage();
     const r = ligneParam(genre === "operation" ? E.paramOperations : E.paramAdhesion, id);
-    const v = controlerValeurs(d);
-    r.valeur = v.valeur; r.compte = v.compte; enregistrer();
+    const v = controlerValeurs(d, genre === "adhesion");
+    r.nature = v.nature; r.valeur = v.valeur; r.compte = v.compte; enregistrer();
+  },
+  /** « Modif Paramétrage frais Adhésion », Action > Modifier Catégorie (capture p. 26) : change le Type membre (registre S16-6) */
+  modifierCategorie(id: number, typeMembre: string) {
+    droitParametrage();
+    const r = ligneParam(E.paramAdhesion, id) as ParamAdhesion;
+    if (!TYPES_MEMBRE[typeMembre]) throw new ErreurMetier("À remplir : type membre.");
+    if (E.paramAdhesion.some((x) => x.id !== id && x.fraisId === r.fraisId && x.typeMembre === typeMembre)) throw new ErreurMetier(`Ce frais est déjà paramétré pour « ${typeMembre} ».`);
+    r.typeMembre = typeMembre; enregistrer();
   },
   supprimerParametrage(genre: "operation" | "adhesion", id: number) {
     droitParametrage();
@@ -1055,7 +1067,7 @@ const guichet = {
 
 /** Comptes du plan comptable déjà chargés (PCCI) ; le plan complet viendra avec S102 */
 function planComptable() {
-  return ["570", "579", "671", "7790", "330", "334", "1030", "1031", "1032", "715", "728", ...E.comptesBancaires.map((c) => c.compte)];
+  return ["570", "579", "671", "7790", "330", "334", "1030", "1031", "1032", "715", "727", "728", ...E.comptesBancaires.map((c) => c.compte)];
 }
 /** Opérations qui font sortir des billets de la caisse */
 const SORTIES: Operation["type"][] = ["retrait", "retrait_parts"];

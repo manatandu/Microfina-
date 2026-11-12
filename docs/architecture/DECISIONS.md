@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**133 décisions.** Solidité : 51 fortes (le manuel ou un texte répond), 64 moyennes (déduites d'un écran voisin ou d'une donnée), 18 faibles (notre choix, faute de mieux). Dans le code : 71 déjà en place, 62 à appliquer.
+**133 décisions.** Solidité : 51 fortes (le manuel ou un texte répond), 64 moyennes (déduites d'un écran voisin ou d'une donnée), 18 faibles (notre choix, faute de mieux). Dans le code : 79 déjà en place, 54 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -123,16 +123,16 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S16-1 | Liste des types d'opération | Les opérations des menus Caisse et Banque qui existent : ADHESION, DEPOT, RETRAIT, puis les autres à mesure qu'elles sont construites | Donnée exigée ailleurs : Manuel p. 24 et 25 ; S73 à S78 | moyenne | à appliquer |
-| S16-2 | Natures du frais | Montant, ou Taux (pourcentage du montant de l'opération) | Écran voisin : Produit crédit, page Frais (S23) : à vérifier à sa construction | faible | à appliquer |
+| S16-1 | Liste des types d'opération | Les opérations des menus Caisse et Banque qui existent : ADHESION, DEPOT, RETRAIT, puis les autres à mesure qu'elles sont construites | Donnée exigée ailleurs : Manuel p. 24 et 25 ; S73 à S78 | moyenne | en place |
+| S16-2 | Natures du frais | Montant, ou Taux (pourcentage du montant de l'opération) | Écran voisin : Produit crédit, page Frais (S23) : à vérifier à sa construction | faible | en place |
 | S16-3 | Devise des frais | CDF, monnaie de tenue | Texte réglementaire : PCCI § 3.2 (cité dans ARCHITECTURE § 2) | moyenne | en place |
-| S16-4 | Compte du droit d'adhésion | Saisi dans S16, contrôlé sur le plan de comptes (T16). Proposé : 727 « Autres Commissions ». Le PCCI ne nomme pas le droit d'adhésion | Texte réglementaire : PCCI, compte 72 (commissions fixes rendues à la clientèle) : 727 | moyenne | à appliquer |
+| S16-4 | Compte du droit d'adhésion | Saisi dans S16, contrôlé sur le plan de comptes (T16). Proposé : 727 « Autres Commissions ». Le PCCI ne nomme pas le droit d'adhésion | Texte réglementaire : PCCI, compte 72 (commissions fixes rendues à la clientèle) : 727 | moyenne | en place |
 | S16-5 | Onglet Paramétrage frais Adhésion | Frais, Nature du frais, Valeur, Compte, Type client à cocher ; même disposition que Paramétrage frais | Manuel : Texte p. 25 ; colonnes de la capture p. 26 (ID, Montant, Compte, Type opération) | forte | en place |
-| S16-6 | « Modifier Catégorie » | Change le Type membre de la ligne cochée | Manuel : Menu Action de la capture p. 26 | moyenne | à appliquer |
-| S16-7 | Fenêtre de modification | « Modifier infos » recharge la ligne dans le formulaire de l'onglet de saisie (T01) | Règle générale du manuel : Manuel p. 12 et 24 | moyenne | à appliquer |
-| S16-8 | Sous types de client | Liste S14h | Donnée exigée ailleurs : Capture p. 25 (cadre Sous type client) | forte | à appliquer |
-| S16-9 | Frais interdits | S16 refuse un frais sur un service gratuit : ouverture de compte, dépôt, retrait, changement d'éléments du dossier du client, clôture de compte, virement de compte à compte interne, domiciliation de salaire | Texte réglementaire : Instr. BCC 37, annexe (liste des services gratuits) | forte | à appliquer |
-| S16-10 | Frais de livret | Reste paramétrable : l'annexe de l'Instr. BCC 37 ne cite pas le livret. À retirer si la BCC l'assimile à l'ouverture de compte | Texte réglementaire : Instr. BCC 37, annexe | faible | à appliquer |
+| S16-6 | « Modifier Catégorie » | Change le Type membre de la ligne cochée | Manuel : Menu Action de la capture p. 26 | moyenne | en place |
+| S16-7 | Fenêtre de modification | « Modifier infos » recharge la ligne dans le formulaire de l'onglet de saisie (T01) | Règle générale du manuel : Manuel p. 12 et 24 | moyenne | en place |
+| S16-8 | Sous types de client | Liste S14h | Donnée exigée ailleurs : Capture p. 25 (cadre Sous type client) | forte | en place |
+| S16-9 | Frais interdits | S16 refuse un frais sur un service gratuit : ouverture de compte, dépôt, retrait, changement d'éléments du dossier du client, clôture de compte, virement de compte à compte interne, domiciliation de salaire | Texte réglementaire : Instr. BCC 37, annexe (liste des services gratuits) | forte | en place |
+| S16-10 | Frais de livret | Reste paramétrable : l'annexe de l'Instr. BCC 37 ne cite pas le livret. À retirer si la BCC l'assimile à l'ouverture de compte | Texte réglementaire : Instr. BCC 37, annexe | faible | en place |
 
 ## S16 Frais, S73, S77
 

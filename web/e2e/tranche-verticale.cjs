@@ -139,7 +139,7 @@ const OUT = process.argv[2];
   await p.getByRole('cell', { name: "Droit d'entrée" }).waitFor(); await etape('06e-frais');
   await p.getByRole('tab', { name: 'Paramétrage frais Adhésion', exact: true }).click();
   await p.getByLabel('Frais: *').selectOption({ label: "Droit d'entrée" }); await p.getByLabel('Nature du frais *').selectOption('Montant');
-  await p.getByLabel('Valeur (CDF)').fill('5 000'); await p.getByLabel('Compte').fill('728'); await p.getByRole('checkbox', { name: 'Physique' }).check();   // 728 : donnée de test, compte à confirmer
+  await p.getByLabel('Valeur (CDF)').fill('5 000'); await p.getByRole('checkbox', { name: 'Physique' }).check();   // compte 727 proposé (registre S16-4)
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok(); await etape('06f-frais-adhesion');
   await p.getByRole('tab', { name: 'Modif Paramétrage frais Adhésion' }).click();
   await p.getByLabel('Frais: *').selectOption({ label: "Droit d'entrée" }); await p.getByLabel('Type membre *').selectOption('Physique');

@@ -237,12 +237,9 @@ def test_adhesion_apres_visa(clients, journee):
     assert "visa" in caisse.post("/api/guichet/adhesions", corps, **H).json()["message"]
     assert agent.post(f"/api/tiers/{t['id']}/visa", **H).status_code == 403                 # l'agent n'est pas chef
     assert chef.post(f"/api/tiers/{t['id']}/visa", **H).status_code == 200
-    # Frais d'adhésion paramétrés (S16) : compte absent du plan, puis compte du plan
+    # Frais d'adhésion paramétrés (S16) : le compte est contrôlé sur le plan dès le paramétrage (règle T16)
     f = chef.post("/api/parametrage/frais", {"typeOperation": "ADHESION", "libelle": "Droit d'entrée"}, **H).json()
-    [pid] = chef.post("/api/parametrage/frais-adhesion", {"fraisId": f["id"], "nature": "Montant", "valeur": 200000, "compte": "70291", "typesMembre": ["Physique"]}, **H).json()
-    r = caisse.post("/api/guichet/adhesions", {**corps, "coupures": {"5000": 2, "1000": 4}}, **H)
-    assert r.status_code == 422 and "plan comptable" in r.json()["message"]
-    chef.post(f"/api/parametrage/frais-adhesion/{pid}", {"nature": "Montant", "valeur": 200000, "compte": "728"}, **H)
+    chef.post("/api/parametrage/frais-adhesion", {"fraisId": f["id"], "nature": "Montant", "valeur": 200000, "compte": "728", "typesMembre": ["Physique"]}, **H)
     assert "billetage" in caisse.post("/api/guichet/adhesions", corps, **H).json()["message"]      # 12 000 de parts + 2 000 de frais
     assert caisse.post("/api/guichet/adhesions", {**corps, "coupures": {"5000": 2, "1000": 4}}, **H).status_code == 200
     assert caisse.get(f"/api/tiers/{t['id']}/parts").json() == 3
@@ -303,13 +300,27 @@ def test_parametrage_frais(clients):
     assert "existe déjà" in refus(chef, "/api/parametrage/frais", {"typeOperation": "ADHESION", "libelle": "Droit d'entrée"})
     assert "Paramétrage frais Adhésion" in refus(chef, "/api/parametrage/frais-operation", {"fraisId": f["id"], "nature": "Montant", "sousTypes": ["Femme"]})
     assert "Compte" in refus(chef, "/api/parametrage/frais-adhesion", {"fraisId": f["id"], "nature": "Montant", "valeur": 500000, "compte": "70A", "typesMembre": ["Physique"]})
-    [pid] = chef.post("/api/parametrage/frais-adhesion", {"fraisId": f["id"], "nature": "Montant", "valeur": 500000, "compte": "70291", "typesMembre": ["Physique"]}, **H).json()
+    # Règle T16 : le compte de l'exemple du manuel (70291) n'est pas dans le plan de comptes ; S16-2 : un frais d'adhésion est un Montant
+    assert "plan de comptes" in refus(chef, "/api/parametrage/frais-adhesion", {"fraisId": f["id"], "nature": "Montant", "valeur": 500000, "compte": "70291", "typesMembre": ["Physique"]})
+    assert "Montant" in refus(chef, "/api/parametrage/frais-adhesion", {"fraisId": f["id"], "nature": "Taux", "valeur": 500, "compte": "727", "typesMembre": ["Physique"]})
+    [pid] = chef.post("/api/parametrage/frais-adhesion", {"fraisId": f["id"], "nature": "Montant", "valeur": 500000, "compte": "727", "typesMembre": ["Physique"]}, **H).json()
     assert "Déjà paramétré" in refus(chef, "/api/parametrage/frais-adhesion", {"fraisId": f["id"], "nature": "Montant", "typesMembre": ["Physique"]})
     assert "paramétré" in chef.delete(f"/api/parametrage/frais/{f['id']}", **H).json()["message"]
-    assert chef.post(f"/api/parametrage/frais-adhesion/{pid}", {"nature": "Montant", "valeur": 200000, "compte": "70291"}, **H).status_code == 200
+    assert chef.post(f"/api/parametrage/frais-adhesion/{pid}", {"nature": "Montant", "valeur": 200000, "compte": "727"}, **H).status_code == 200
     lu = chef.get("/api/parametrage/frais").json()
-    assert lu["adhesion"] == [{"id": pid, "fraisId": f["id"], "typeMembre": "Physique", "valeur": 200000, "compte": "70291", "nature": "Montant"}]
-    assert chef.get(f"/api/tiers/{T('0412-000318')}/frais").json() == [{"fraisId": f["id"], "libelle": "Droit d'entrée", "compte": "70291", "montant": 200000}]
+    assert lu["adhesion"] == [{"id": pid, "fraisId": f["id"], "typeMembre": "Physique", "valeur": 200000, "compte": "727", "nature": "Montant"}]
+    assert lu["compteAdhesion"] == "727" and "Femme" in lu["sousTypes"] and lu["natures"] == ["Montant", "Taux"]   # S16-4, S16-8, S16-2
+    assert chef.get(f"/api/tiers/{T('0412-000318')}/frais").json() == [{"fraisId": f["id"], "libelle": "Droit d'entrée", "compte": "727", "montant": 200000}]
+    # Modifier Catégorie (S16-6) : la ligne passe de Physique à Entreprise
+    assert chef.post(f"/api/parametrage/frais-adhesion/{pid}/categorie", {"typeMembre": "Entreprise"}, **H).status_code == 200
+    assert chef.get("/api/parametrage/frais").json()["adhesion"][0]["typeMembre"] == "Entreprise"
+    chef.post(f"/api/parametrage/frais-adhesion/{pid}/categorie", {"typeMembre": "Physique"}, **H)
+    # Frais d'opération au taux (S16-2) sur une part sociale (S16-1), sous type de Général (S16-8)
+    fp = chef.post("/api/parametrage/frais", {"typeOperation": "PART_SOCIALE", "libelle": "Frais de part"}, **H).json()
+    assert "Taux invalide" in refus(chef, "/api/parametrage/frais-operation", {"fraisId": fp["id"], "nature": "Taux", "valeur": 20000, "compte": "727", "sousTypes": ["Femme"]})
+    [po] = chef.post("/api/parametrage/frais-operation", {"fraisId": fp["id"], "nature": "Taux", "valeur": 150, "compte": "727", "sousTypes": ["Femme"]}, **H).json()
+    assert chef.get("/api/parametrage/frais").json()["operations"][0]["nature"] == "Taux"
+    chef.delete(f"/api/parametrage/frais-operation/{po}", **H); chef.delete(f"/api/parametrage/frais/{fp['id']}", **H)
     # S41 : montant propre au client
     k = T("0412-000318")
     assert "Réservé" in refus(agent, f"/api/tiers/{k}/frais", {"frais": [{"fraisId": f["id"], "montant": 0}]})

@@ -379,6 +379,12 @@ def parametrage_modifier(request, genre: str, pid: int, corps: dict = Body(...))
     return None
 
 
+@api.post("/parametrage/frais-adhesion/{pid}/categorie")
+def parametrage_categorie(request, pid: int, corps: dict = Body(...)):
+    fr.modifier_categorie(u(request), pid, corps)
+    return {"ok": True}
+
+
 @api.delete("/parametrage/frais-{genre}/{pid}")
 def parametrage_supprimer(request, genre: str, pid: int):
     if genre not in TABLES:

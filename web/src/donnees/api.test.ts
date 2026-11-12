@@ -188,11 +188,24 @@ describe("journée de guichet", () => {
     await expect(p.creerFrais({ typeOperation: "ADHESION", libelle: "Droit d'entrée" })).rejects.toThrow("existe déjà");
     await expect(p.parametrerOperation({ fraisId: f.id, nature: "Montant", valeur: null, compte: "", sousTypes: ["Femme"] })).rejects.toThrow("Paramétrage frais Adhésion");
     await expect(p.parametrerAdhesion({ fraisId: f.id, nature: "Montant", valeur: 500000, compte: "70A", typesMembre: ["Physique"] })).rejects.toThrow("Compte");
-    const pid = (await p.parametrerAdhesion({ fraisId: f.id, nature: "Montant", valeur: 500000, compte: "70291", typesMembre: ["Physique"] }))[0]!;
+    // Règle T16 : 70291 (exemple du manuel) n'est pas dans le plan de comptes ; S16-2 : un frais d'adhésion est un Montant
+    await expect(p.parametrerAdhesion({ fraisId: f.id, nature: "Montant", valeur: 500000, compte: "70291", typesMembre: ["Physique"] })).rejects.toThrow("plan de comptes");
+    await expect(p.parametrerAdhesion({ fraisId: f.id, nature: "Taux", valeur: 500, compte: "727", typesMembre: ["Physique"] })).rejects.toThrow("Montant");
+    const pid = (await p.parametrerAdhesion({ fraisId: f.id, nature: "Montant", valeur: 500000, compte: "727", typesMembre: ["Physique"] }))[0]!;
     await expect(p.parametrerAdhesion({ fraisId: f.id, nature: "Montant", valeur: null, compte: "", typesMembre: ["Physique"] })).rejects.toThrow("Déjà paramétré");
     await expect(p.supprimerFrais(f.id)).rejects.toThrow("paramétré");
-    await p.modifierParametrage("adhesion", pid, { nature: "Montant", valeur: 200000, compte: "70291" });
-    expect(await p.fraisLies(1)).toEqual([{ fraisId: f.id, libelle: "Droit d'entrée", compte: "70291", montant: 200000 }]);
+    await p.modifierParametrage("adhesion", pid, { nature: "Montant", valeur: 200000, compte: "727" });
+    expect(await p.fraisLies(1)).toEqual([{ fraisId: f.id, libelle: "Droit d'entrée", compte: "727", montant: 200000 }]);
+    const lu = await p.lireFrais();
+    expect([lu.compteAdhesion, lu.sousTypes.includes("Femme"), lu.natures]).toEqual(["727", true, ["Montant", "Taux"]]);   // S16-4, S16-8, S16-2
+    await p.modifierCategorie(pid, "Entreprise");                                                                         // S16-6
+    expect((await p.lireFrais()).adhesion[0]!.typeMembre).toBe("Entreprise");
+    await p.modifierCategorie(pid, "Physique");
+    const fp = await p.creerFrais({ typeOperation: "PART_SOCIALE", libelle: "Frais de part" });                             // S16-1
+    await expect(p.parametrerOperation({ fraisId: fp.id, nature: "Taux", valeur: 20000, compte: "727", sousTypes: ["Femme"] })).rejects.toThrow("Taux invalide");
+    const [po] = await p.parametrerOperation({ fraisId: fp.id, nature: "Taux", valeur: 150, compte: "727", sousTypes: ["Femme"] });
+    expect((await p.lireFrais()).operations[0]!.nature).toBe("Taux");
+    await p.supprimerParametrage("operation", po!); await p.supprimerFrais(fp.id);
     // S41 : montant propre au client
     await expect(p.modifierFraisClient(1, [{ fraisId: f.id, montant: -1 }])).rejects.toThrow("Montant");
     await expect(p.modifierFraisClient(1, [{ fraisId: 999, montant: 0 }])).rejects.toThrow("pas lié");
@@ -359,10 +372,8 @@ describe("journée de guichet", () => {
     // Frais d'adhésion (S16) : compte absent du plan, puis compte du plan
     await connecter("jpmukendi");
     const f = await api.parametrage.creerFrais({ typeOperation: "ADHESION", libelle: "Droit d'entrée" });
-    const pid = (await api.parametrage.parametrerAdhesion({ fraisId: f.id, nature: "Montant", valeur: 200000, compte: "70291", typesMembre: ["Physique"] }))[0]!;
+    await api.parametrage.parametrerAdhesion({ fraisId: f.id, nature: "Montant", valeur: 200000, compte: "728", typesMembre: ["Physique"] });   // compte contrôlé dès le paramétrage (T16)
     await connecter("engalula");
-    await expect(api.guichet.adhesion({ cle: cle(), tiersId: t.id, parts: 3, depot: 0, coupures: { 5000: 2, 1000: 4 } })).rejects.toThrow("plan comptable");
-    await connecter("jpmukendi"); await api.parametrage.modifierParametrage("adhesion", pid, { nature: "Montant", valeur: 200000, compte: "728" }); await connecter("engalula");
     await expect(api.guichet.adhesion({ cle: cle(), tiersId: t.id, parts: 3, depot: 0, coupures: { 5000: 2, 1000: 2 } })).rejects.toThrow("billetage");
     await api.guichet.adhesion({ cle: cle(), tiersId: t.id, parts: 3, depot: 0, coupures: { 5000: 2, 1000: 4 } });
     expect(await api.tiers.parts(t.id)).toBe(3);
