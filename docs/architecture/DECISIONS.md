@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**187 décisions.** Solidité : 67 fortes (le manuel ou un texte répond), 94 moyennes (déduites d'un écran voisin ou d'une donnée), 26 faibles (notre choix, faute de mieux). Dans le code : 133 déjà en place, 54 à appliquer.
+**188 décisions.** Solidité : 68 fortes (le manuel ou un texte répond), 94 moyennes (déduites d'un écran voisin ou d'une donnée), 26 faibles (notre choix, faute de mieux). Dans le code : 134 déjà en place, 54 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -377,6 +377,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S23-6 | Frais | Lignes de frais : type parmi ceux de l'Instr. BCC 40 (dossier, hypothèque, mise en place, inscription des gages, suivi du crédit), Montant ou Taux, valeur, compte du plan (T16) ; un type une fois. Encaissés au déblocage | Texte réglementaire : Instr. BCC 40, art. 8 ; manuel p. 86 (Encaisser frais) ; Instr. BCC 38, art. 2 et 6 (frais dans le TEG) | moyenne | en place |
 | S23-7 | Autres informations | Catégorie de prêt (consommation, commercial, trésorerie, investissement) ; taux réglementé ou bonifié (pas de TEG) ; pénalité de retard (%) ; pénalité de remboursement anticipé, au plus 50 % des intérêts restant dus ; ordre de remboursement (S22) | Texte réglementaire : Instr. BCC 38, art. 5, 6, 10, 14, 16 ; S22 | faible | en place |
 | S23-8 | Navigation | Bouton + (nouveau produit) et Produits credit (liste en fenêtre : Numero, Produit, Type de client, Taux interet, Taux différé, filtres) ; cinq onglets, Précédent et Suivant, Enregistrer sur la dernière page ; un clic sur un produit de la liste le recharge pour le modifier. L'ébauche de table du schéma de départ est remplacée | Écran voisin : Captures p. 37 et 38 ; COMPLEMENTS § 4.2 | moyenne | en place |
+
+## S24 Produits crédit : liste
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S24-1 | Écran de la liste | La liste des produits crédits est la fenêtre de S23 (Fig. 2) : Numero, Produit, Type de client, Taux interet, Taux différé, filtres sur Numero et Produit. Le menu S24 ouvre S23 avec la fenêtre ouverte ; un clic sur un produit le charge dans la fiche | Manuel : Manuel p. 37 (« [Produits credit] pour obtenir la liste des Produits crédit (Fig.2) et sélectionner une ligne ») ; capture p. 38 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

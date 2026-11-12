@@ -95,6 +95,9 @@ const OUT = process.argv[2];
   await p.getByLabel('Catégorie de prêt *').selectOption('Prêt commercial'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('button', { name: 'Produits credit' }).click(); await p.getByRole('cell', { name: 'Crédit commerce' }).waitFor(); await etape('02f13-produits-credit');
   await p.getByRole('button', { name: 'Fermer' }).click();
+  // Chef : liste des produits crédits (S24, p. 38) : la fenêtre s'ouvre d'emblée ; un clic charge le produit
+  await aller('/parametrage/s24'); await p.getByRole('cell', { name: 'Crédit commerce' }).click(); await p.getByRole('tabpanel').getByLabel('Num Produit *', { exact: true }).waitFor();
+  await etape('02f14-liste-produits-credit');
   // Chef : paramétrages liés aux clients (S15, p. 23 et 24)
   await aller('/parametrage/s15'); await p.getByLabel('Institution *').selectOption({ label: 'COOPEC Tujenge' });
   await p.getByLabel('Choisir : Préfixe').check(); await p.getByLabel('Valeur : Préfixe').fill('TJ'); await p.getByLabel('Choisir : Agence').check();

@@ -17,12 +17,12 @@ const IDS = ["typeAssuranceId", "ordreId"];
 const LIGNE_FRAIS = { typeFrais: "", nature: "", valeur: "", compte: "" };
 
 /** S23 : Paramétrage > Produit > Crédit > Produit crédit : création/modification (manuel Microfina++, p. 37 et 38) */
-export default function ProduitCredit() {
+export default function ProduitCredit({ listeOuverte = false }: { listeOuverte?: boolean }) {
   const [f, setF] = useState<Saisie>(VIDE);
   const [frais, setFrais] = useState<Record<string, string>[]>([]);
   const [onglet, setOnglet] = useState(0);
   const [choisi, setChoisi] = useState<number | null>(null);
-  const [liste, setListe] = useState(false);
+  const [liste, setListe] = useState(listeOuverte);
   const [filtres, setFiltres] = useState({ numero: "", nom: "" });
   const [boite, setBoite] = useState<Boite | null>(null);
   const [relu, setRelu] = useState(0);
@@ -161,4 +161,10 @@ export default function ProduitCredit() {
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );
+}
+
+/** S24 : la liste des produits crédits (manuel p. 37 : « [Produits credit] pour obtenir la liste des Produits crédit (Fig.2) » ; capture p. 38).
+ * C'est la fenêtre de S23, ouverte d'emblée ; un clic sur un produit le charge dans la fiche (registre S24-1). */
+export function ListeProduitsCredit() {
+  return <ProduitCredit listeOuverte />;
 }
