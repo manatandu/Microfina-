@@ -217,3 +217,20 @@ def enregistrer(u, d, pid: int | None = None) -> dict:
     for t, nat, val, cpt in frais:
         executer("insert into produit_credit_frais (produit_id, type_frais, nature, valeur, compte) values (%s, %s, %s, %s, %s)", (pid, t, nat, val, cpt))
     return {**lire(u), "produit": lire_produit(u, pid)}
+
+
+def activer(u, d) -> dict:
+    """S25 : Activer ou Désactiver les produits cochés (capture p. 39). Un produit désactivé n'est plus proposé aux nouvelles demandes ;
+    les crédits déjà accordés suivent leur cours (registre S25-1)."""
+    exiger(u, "chef_agence")
+    d = d if isinstance(d, dict) else {}
+    ids, actif = d.get("ids"), d.get("actif")
+    if not isinstance(actif, bool):
+        raise ErreurMetier("Activer ou Désactiver ?")
+    if not isinstance(ids, list) or not ids or not all(isinstance(x, int) and not isinstance(x, bool) for x in ids):
+        raise ErreurMetier("Cocher au moins un produit.")
+    trouves = lignes("select id from produit_credit where institution_id = %s and id = any(%s) for update", (u["institution_id"], ids))
+    if len(trouves) != len(set(ids)):
+        raise ErreurMetier("Produit introuvable.")
+    executer("update produit_credit set actif = %s where institution_id = %s and id = any(%s)", (actif, u["institution_id"], ids))
+    return lire(u)

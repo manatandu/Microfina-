@@ -942,3 +942,17 @@ def test_produit_credit(clients):
     assert "existe déjà" in refus({**PRODUIT, "numero": "l001"})
     m = chef.post(f"/api/produits-credit/{p['id']}", {**PRODUIT, "nom": "Crédit commerce AGR", "clientGroupe": True, "frais": []}, **H).json()["produit"]
     assert (m["nom"], m["clientGroupe"], m["frais"]) == ("Crédit commerce AGR", True, [])
+
+
+def test_activation_produits_credit(clients):
+    """S25 (p. 39) : Activer et Désactiver les produits cochés (registre S25-1)"""
+    chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    p = chef.post("/api/produits-credit", PRODUIT, **H).json()["produit"]
+    def refus(corps):
+        r = chef.post("/api/produits-credit/activation", corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    assert agent.post("/api/produits-credit/activation", {"ids": [p["id"]], "actif": False}, **H).status_code == 403
+    assert "Cocher" in refus({"ids": [], "actif": False})
+    assert "introuvable" in refus({"ids": [p["id"], 999999], "actif": False})
+    l = chef.post("/api/produits-credit/activation", {"ids": [p["id"]], "actif": False}, **H).json()
+    assert l["produits"][0]["actif"] is False
+    assert chef.post("/api/produits-credit/activation", {"ids": [p["id"]], "actif": True}, **H).json()["produits"][0]["actif"] is True

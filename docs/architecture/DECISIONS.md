@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**188 décisions.** Solidité : 68 fortes (le manuel ou un texte répond), 94 moyennes (déduites d'un écran voisin ou d'une donnée), 26 faibles (notre choix, faute de mieux). Dans le code : 134 déjà en place, 54 à appliquer.
+**189 décisions.** Solidité : 68 fortes (le manuel ou un texte répond), 95 moyennes (déduites d'un écran voisin ou d'une donnée), 26 faibles (notre choix, faute de mieux). Dans le code : 135 déjà en place, 54 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -383,6 +383,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S24-1 | Écran de la liste | La liste des produits crédits est la fenêtre de S23 (Fig. 2) : Numero, Produit, Type de client, Taux interet, Taux différé, filtres sur Numero et Produit. Le menu S24 ouvre S23 avec la fenêtre ouverte ; un clic sur un produit le charge dans la fiche | Manuel : Manuel p. 37 (« [Produits credit] pour obtenir la liste des Produits crédit (Fig.2) et sélectionner une ligne ») ; capture p. 38 | forte | en place |
+
+## S25 Activation des produits crédit
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S25-1 | Effet d'une désactivation | Activer ou Désactiver les produits cochés, après confirmation Oui/Non. Un produit désactivé reste dans la liste et ses données sont gardées ; il n'est plus proposé aux nouvelles demandes de crédit (S86), les crédits déjà accordés suivent leur cours. La colonne Actif se lit, ne se coche pas | Écran voisin : Capture p. 39 (Activer, Désactiver, cases, colonne Actif) ; manuel p. 10 et 11 ; T02 | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

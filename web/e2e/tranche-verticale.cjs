@@ -98,6 +98,11 @@ const OUT = process.argv[2];
   // Chef : liste des produits crédits (S24, p. 38) : la fenêtre s'ouvre d'emblée ; un clic charge le produit
   await aller('/parametrage/s24'); await p.getByRole('cell', { name: 'Crédit commerce' }).click(); await p.getByRole('tabpanel').getByLabel('Num Produit *', { exact: true }).waitFor();
   await etape('02f14-liste-produits-credit');
+  // Chef : activation et désactivation des produits crédits (S25, p. 39)
+  await aller('/parametrage/s25'); await p.getByLabel('Choisir L001').check(); await p.getByRole('button', { name: 'Désactiver' }).click(); await oui();
+  await p.waitForFunction(() => !document.querySelector('input[aria-label="Actif : L001"]')?.checked); await etape('02f15-activation-produits');
+  await p.getByLabel('Choisir L001').check(); await p.getByRole('button', { name: 'Activer', exact: true }).click(); await oui();
+  await p.waitForFunction(() => document.querySelector('input[aria-label="Actif : L001"]')?.checked);
   // Chef : paramétrages liés aux clients (S15, p. 23 et 24)
   await aller('/parametrage/s15'); await p.getByLabel('Institution *').selectOption({ label: 'COOPEC Tujenge' });
   await p.getByLabel('Choisir : Préfixe').check(); await p.getByLabel('Valeur : Préfixe').fill('TJ'); await p.getByLabel('Choisir : Agence').check();

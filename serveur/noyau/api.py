@@ -641,6 +641,11 @@ def pc_lire(request):
     return pc.lire(u(request))
 
 
+@api.post("/produits-credit/activation")
+def pc_activer(request, corps: dict = Body(...)):
+    return pc.activer(u(request), corps)
+
+
 @api.get("/produits-credit/{pid}")
 def pc_lire_produit(request, pid: int):
     return pc.lire_produit(u(request), pid)

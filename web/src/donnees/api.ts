@@ -1834,6 +1834,16 @@ function nombreSaisi(x: unknown): number | null {
   return n;
 }
 const produitsCredit = {
+  /** S25 : Activer ou Désactiver les produits cochés (capture p. 39) ; un produit désactivé n'est plus proposé aux nouvelles demandes (registre S25-1) */
+  activer(d: { ids: number[]; actif: boolean }) {
+    exiger("chef_agence");
+    if (typeof d.actif !== "boolean") throw new ErreurMetier("Activer ou Désactiver ?");
+    if (!Array.isArray(d.ids) || d.ids.length === 0) throw new ErreurMetier("Cocher au moins un produit.");
+    const choisis = E.produitsCredit.filter((p) => d.ids.includes(p.id));
+    if (choisis.length !== new Set(d.ids).size) throw new ErreurMetier("Produit introuvable.");
+    for (const p of choisis) p.actif = d.actif;
+    enregistrer(); return produitsCredit.lire();
+  },
   options() {
     return { typesProduit: fixeCredit("types_produit").map((r) => ({ code: String(r.code), libelle: String(r.nom) })),
       periodicites: fixeCredit("periodicites").map((r) => ({ code: String(r.code), libelle: String(r.libelle) })), devises: ["USD", "CDF"],

@@ -529,6 +529,11 @@ describe("journée de guichet", () => {
     await expect(api.produitsCredit.enregistrer({ ...P, numero: "l001" })).rejects.toThrow("existe déjà");
     const m = (await api.produitsCredit.enregistrer({ ...P, nom: "Crédit commerce AGR", clientGroupe: true, frais: [] }, r.produit.id)).produit;
     expect([m.nom, m.clientGroupe, m.frais]).toEqual(["Crédit commerce AGR", true, []]);
+    // S25 (p. 39) : Activer, Désactiver les produits cochés
+    await expect(api.produitsCredit.activer({ ids: [], actif: false })).rejects.toThrow("Cocher");
+    await expect(api.produitsCredit.activer({ ids: [m.id, 999], actif: false })).rejects.toThrow("introuvable");
+    expect((await api.produitsCredit.activer({ ids: [m.id], actif: false })).produits[0]!.actif).toBe(false);
+    expect((await api.produitsCredit.activer({ ids: [m.id], actif: true })).produits[0]!.actif).toBe(true);
   });
 
   it("ordre de remboursement (S22, p. 37) : cinq éléments une fois chacun, code des initiales, ordre de chaque degré (S21)", async () => {

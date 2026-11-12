@@ -144,6 +144,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
     produitsCredit: {
       lire: () => get("/produits-credit"),
       lireProduit: (id: number) => get(`/produits-credit/${id}`),
+      activer: (d: object) => post("/produits-credit/activation", d),
       enregistrer: (d: object, id?: number) => post(id === undefined ? "/produits-credit" : `/produits-credit/${id}`, d),
     },
     ordres: {
