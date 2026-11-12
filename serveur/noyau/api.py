@@ -14,6 +14,7 @@ from . import budget as bu
 from . import localisation as lo
 from . import credit as cr
 from . import ordres as od
+from . import produits_credit as pc
 from . import comptes as cp
 from . import numerotation as nu
 from . import services as s
@@ -632,6 +633,27 @@ def cr_supprimer(request, page: str, lid: int):
 @api.post("/credit-degres/ordres")
 def cr_degres_ordres(request, corps: dict = Body(...)):
     return cr.enregistrer_ordres(u(request), corps)
+
+
+# ---------- Paramétrage > Produit > Crédit > Produit crédit : création/modification (S23) ----------
+@api.get("/produits-credit")
+def pc_lire(request):
+    return pc.lire(u(request))
+
+
+@api.get("/produits-credit/{pid}")
+def pc_lire_produit(request, pid: int):
+    return pc.lire_produit(u(request), pid)
+
+
+@api.post("/produits-credit")
+def pc_creer(request, corps: dict = Body(...)):
+    return pc.enregistrer(u(request), corps)
+
+
+@api.post("/produits-credit/{pid}")
+def pc_modifier(request, pid: int, corps: dict = Body(...)):
+    return pc.enregistrer(u(request), corps, pid)
 
 
 # ---------- Paramétrage > Produit > Crédit > Ordre remboursement crédit (S22) ----------

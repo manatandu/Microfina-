@@ -17,7 +17,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v34";
+const CLE = "likelemba-demo-v35";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -25,7 +25,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 34) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 35) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -1798,6 +1798,128 @@ const ordres = {
   },
 };
 
+// ---------- Paramétrage > Produit > Crédit > Produit crédit : création/modification (S23, manuel p. 37 et 38). Mode de calcul : Instr. BCC 38, art. 11 ;
+// pages complétées d'après le manuel p. 86 et 114 et les Instr. BCC 38 et 40 (registre S23-*). Règles identiques côté serveur (noyau/produits_credit.py). ----------
+const fixeCredit = (page: string) => CATALOGUE_CREDIT.find((c) => c.page === page)!.fixe!;
+export const OPTIONS_PRODUIT_CREDIT = {
+  modesCalcul: ["Dégressif"],                     // Instr. BCC 38, art. 11 (la capture montre « Linéaire »)
+  typesInteret: ["Fixe"], modesDiffere: ["Réparti"], paiementsInteret: ["Normal"],   // capture p. 38
+  natures: ["Montant", "Taux"],
+  categories: ["Prêt à la consommation", "Prêt commercial", "Crédit de trésorerie", "Prêt d'investissement"],   // Instr. BCC 38, art. 6
+  typesFrais: ["Frais de dossier", "Frais d'hypothèque", "Frais de mise en place", "Frais d'inscription des gages", "Frais de supervision/suivi/gestion du crédit"],   // Instr. BCC 40, art. 8
+};
+type SorteChamp = "texte" | "nombre" | "entier" | "oui" | "id";
+const CHAMPS_PRODUIT: Record<string, [string, SorteChamp]> = {
+  numero: ["Num Produit", "texte"], nom: ["Nom du produit", "texte"], typeProduit: ["Type Produit", "texte"], cyclique: ["Cyclique", "oui"], devise: ["Devise", "texte"],
+  modeCalcul: ["Mode calcul int", "texte"], typeInteret: ["Type", "texte"], tauxInteret: ["Taux int. (%)", "nombre"], tauxDiffere: ["Taux diff. (%)", "nombre"],
+  montantMin: ["Montant minimum", "nombre"], montantMax: ["Montant maximum", "nombre"], dureeMin: ["Durée minimum", "entier"], dureeMax: ["Durée maximum", "entier"],
+  differeMin: ["Différé minimum", "entier"], differeMax: ["Différé maximum", "entier"], interetMin: ["Intérêt minimum", "nombre"], interetMax: ["Intérêt maximum", "nombre"],
+  clientPhysique: ["Physique", "oui"], clientGroupe: ["Groupe", "oui"], clientEntreprise: ["Entreprise", "oui"], maxParMembre: ["Appliquer montant max. prêt par mbre du groupe", "oui"],
+  periodicite: ["Périodicité", "texte"], modeDiffere: ["Mode différé", "texte"], paiementInteret: ["Paiement intérêt", "texte"],
+  interetAnticipation: ["Percevoir int. par anticipation", "oui"], ageMax: ["Age max", "entier"],
+  epargneNature: ["Nature de l'épargne obligatoire", "texte"], epargneValeur: ["Épargne obligatoire", "nombre"],
+  solidariteNature: ["Nature du fonds de solidarité", "texte"], solidariteValeur: ["Fonds de solidarité", "nombre"],
+  typeAssuranceId: ["Type assurance", "id"], assuranceNature: ["Nature de l'assurance", "texte"], assuranceValeur: ["Assurance", "nombre"],
+  categorie: ["Catégorie de prêt", "texte"], tauxRegle: ["Taux réglementé ou bonifié", "oui"], penaliteRetard: ["Pénalité de retard (%)", "nombre"],
+  penaliteAnticipation: ["Pénalité de remboursement anticipé (% des intérêts restant dus)", "nombre"], ordreId: ["Ordre de remboursement", "id"],
+};
+const OBLIGATOIRES_PRODUIT = ["typeProduit", "numero", "nom", "devise", "modeCalcul", "typeInteret", "tauxInteret", "tauxDiffere", "montantMin", "dureeMin", "differeMin",
+  "montantMax", "dureeMax", "differeMax", "periodicite", "modeDiffere", "paiementInteret", "interetAnticipation", "ageMax", "categorie"];
+export type FraisProduit = { typeFrais: string; nature: string; valeur: number; compte: string };
+export type ProduitCreditVue = Record<string, unknown> & { id: number; frais: FraisProduit[] };
+function nombreSaisi(x: unknown): number | null {
+  if (typeof x === "boolean" || x === null || x === undefined || x === "") return null;
+  const n = Number(String(x).trim().replace(/\s/g, "").replace(",", "."));
+  if (!Number.isFinite(n)) throw new ErreurMetier(`« ${String(x)} » n'est pas un nombre.`);
+  return n;
+}
+const produitsCredit = {
+  options() {
+    return { typesProduit: fixeCredit("types_produit").map((r) => ({ code: String(r.code), libelle: String(r.nom) })),
+      periodicites: fixeCredit("periodicites").map((r) => ({ code: String(r.code), libelle: String(r.libelle) })), devises: ["USD", "CDF"],
+      ...OPTIONS_PRODUIT_CREDIT, typesAssurance: stockCredit("types_assurance").filter((t) => t.actif).map((t) => ({ id: t.id, libelle: String(t.libelle) })),
+      ordres: ordresActifs().map((o) => ({ id: o.id, libelle: `${o.code} ==> ${o.libelle}` })) };
+  },
+  /** La page et la liste des produits crédits (Fig. 2, p. 38 : Numero, Produit, Type de client, Taux interet, Taux différé) */
+  lire() {
+    exiger();
+    const tc = (p: ProduitCreditVue) => [["clientPhysique", "Physique"], ["clientGroupe", "Groupe"], ["clientEntreprise", "Entreprise"]].filter(([k]) => p[k!]).map(([, n]) => n).join(", ");
+    return { options: produitsCredit.options(), produits: [...E.produitsCredit].sort((a, b) => String(a.numero).localeCompare(String(b.numero)))
+      .map((p) => ({ id: p.id, numero: String(p.numero), nom: String(p.nom), typeClient: tc(p), tauxInteret: p.tauxInteret as number, tauxDiffere: p.tauxDiffere as number, actif: p.actif !== false })) };
+  },
+  lireProduit(id: number): ProduitCreditVue {
+    exiger();
+    const p = E.produitsCredit.find((x) => x.id === id);
+    if (!p) throw new ErreurMetier("Produit introuvable.");
+    return structuredClone(p);
+  },
+  /** Enregistrer (nouveau produit, bouton +) ou modifier le produit choisi dans la liste. Tous les contrôles avant d'écrire. */
+  enregistrer(d: Record<string, unknown>, id?: number) {
+    exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
+    const actuel = id === undefined ? undefined : E.produitsCredit.find((x) => x.id === id);
+    if (id !== undefined && !actuel) throw new ErreurMetier("Produit introuvable.");
+    const v: Record<string, unknown> = {}; const manque: string[] = [];
+    for (const [k, [lib, sorte]] of Object.entries(CHAMPS_PRODUIT)) {
+      let x: unknown = d[k];
+      if (sorte === "texte") x = typeof x === "string" && x.trim() ? x.trim() : null;
+      else if (sorte === "oui") x = typeof x === "boolean" ? x : null;
+      else if (sorte === "id") x = typeof x === "number" && Number.isInteger(x) && x > 0 ? x : null;
+      else {
+        x = nombreSaisi(x);
+        if (x !== null && (x as number) < 0) throw new ErreurMetier(`${lib} : nombre positif ou nul.`);
+        if (sorte === "entier" && x !== null && !Number.isInteger(x)) throw new ErreurMetier(`${lib} : nombre entier.`);
+      }
+      if (x === null && OBLIGATOIRES_PRODUIT.includes(k)) manque.push(lib);
+      v[k] = x;
+    }
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    for (const k of ["cyclique", "clientPhysique", "clientGroupe", "clientEntreprise", "maxParMembre", "tauxRegle"]) v[k] = !!v[k];
+    for (const k of ["epargneValeur", "solidariteValeur", "assuranceValeur", "penaliteRetard", "penaliteAnticipation"]) v[k] = v[k] ?? 0;
+    const o = produitsCredit.options();
+    const listes: [string, string[]][] = [["typeProduit", o.typesProduit.map((t) => t.code)], ["periodicite", o.periodicites.map((t) => t.code)], ["modeCalcul", o.modesCalcul],
+      ["typeInteret", o.typesInteret], ["modeDiffere", o.modesDiffere], ["paiementInteret", o.paiementsInteret], ["categorie", o.categories],
+      ["epargneNature", o.natures], ["solidariteNature", o.natures], ["assuranceNature", o.natures]];
+    for (const [k, l] of listes) if (v[k] !== null && !l.includes(v[k] as string))
+      throw new ErreurMetier(`${CHAMPS_PRODUIT[k]![0]} inconnu.` + (k === "modeCalcul" ? " L'Instr. BCC 38, art. 11, impose la méthode dégressive." : ""));
+    if (!o.devises.includes(v.devise as string)) throw new ErreurMetier("Devise inconnue.");
+    if (!(v.clientPhysique || v.clientGroupe || v.clientEntreprise)) throw new ErreurMetier("Types de client : cocher au moins un type.");   // S23-3
+    if ((v.dureeMin as number) < 1) throw new ErreurMetier("Durée minimum : au moins 1 mois.");
+    for (const [a, b, nom] of [["montantMin", "montantMax", "Montant"], ["dureeMin", "dureeMax", "Durée"], ["differeMin", "differeMax", "Différé"], ["interetMin", "interetMax", "Intérêt"]] as const)
+      if (v[a] !== null && v[b] !== null && (v[b] as number) < (v[a] as number)) throw new ErreurMetier(`${nom} : le maximum est inférieur au minimum.`);
+    if ((v.differeMax as number) >= (v.dureeMax as number)) throw new ErreurMetier("Le différé maximum doit être inférieur à la durée maximum.");
+    const t = v.tauxInteret as number;
+    if ((v.interetMin !== null && t < (v.interetMin as number)) || (v.interetMax !== null && t > (v.interetMax as number))) throw new ErreurMetier("Taux int. (%) hors des bornes Intérêt minimum et maximum.");
+    if ((v.ageMax as number) < 18 || (v.ageMax as number) > 120) throw new ErreurMetier("Age max : entre 18 et 120 ans.");
+    for (const [nat, val, nom] of [["epargneNature", "epargneValeur", "Épargne obligatoire"], ["solidariteNature", "solidariteValeur", "Fonds de solidarité"], ["assuranceNature", "assuranceValeur", "Assurance"]] as const) {
+      if ((v[val] as number) > 0 && v[nat] === null) throw new ErreurMetier(`${nom} : choisir Montant ou Taux.`);
+      if (v[nat] === "Taux" && (v[val] as number) > 100) throw new ErreurMetier(`${nom} : un taux ne dépasse pas 100 %.`);
+      if (v[val] === 0) v[nat] = null;
+    }
+    for (const k of ["tauxInteret", "tauxDiffere", "penaliteRetard"]) if ((v[k] as number) > 100) throw new ErreurMetier(`${CHAMPS_PRODUIT[k]![0]} : un taux ne dépasse pas 100 %.`);
+    if ((v.penaliteAnticipation as number) > 50) throw new ErreurMetier("Pénalité de remboursement anticipé : au plus 50 % des intérêts restant dus (Instr. BCC 38, art. 14).");
+    if (v.typeAssuranceId !== null && !o.typesAssurance.some((x) => x.id === v.typeAssuranceId)) throw new ErreurMetier("Type assurance inconnu.");
+    if ((v.assuranceValeur as number) > 0 && v.typeAssuranceId === null) throw new ErreurMetier("Assurance : choisir le type d'assurance.");
+    if (v.ordreId !== null && !o.ordres.some((x) => x.id === v.ordreId)) throw new ErreurMetier("Ordre de remboursement inconnu.");
+    const frais: FraisProduit[] = []; const vus = new Set<string>();
+    for (const f of (d.frais as Record<string, unknown>[] | undefined) ?? []) {
+      const tf = String(f.typeFrais ?? "").trim(), nat = String(f.nature ?? "").trim(), val = nombreSaisi(f.valeur), cpt = String(f.compte ?? "").trim();
+      const m = ([["type de frais", tf], ["nature", nat], ["valeur", val], ["compte", cpt]] as const).filter(([, x]) => x === "" || x === null).map(([n]) => n);
+      if (m.length) throw new ErreurMetier(`Frais : à remplir : ${m.join(", ")}.`);
+      if (!o.typesFrais.includes(tf)) throw new ErreurMetier("Frais : type inconnu.");
+      if (vus.has(tf)) throw new ErreurMetier(`Frais : ${tf} figure deux fois.`);
+      if (!o.natures.includes(nat)) throw new ErreurMetier("Frais : nature inconnue.");
+      if (val! <= 0 || (nat === "Taux" && val! > 100)) throw new ErreurMetier(`Frais : ${tf} : valeur positive, et un taux ne dépasse pas 100 %.`);
+      if (!/^\d+$/.test(cpt) || !numerosPlan().includes(cpt)) throw new ErreurMetier(`Frais : le compte ${cpt} n'existe pas au plan de comptes.`);
+      vus.add(tf); frais.push({ typeFrais: tf, nature: nat, valeur: val!, compte: cpt });
+    }
+    if (E.produitsCredit.some((x) => String(x.numero).toLowerCase() === String(v.numero).toLowerCase() && x.id !== id)) throw new ErreurMetier("Ce Num Produit existe déjà.");
+    let pid = id;
+    if (actuel) Object.assign(actuel, v, { frais });
+    else { pid = prochain(E.produitsCredit); E.produitsCredit.push({ ...v, id: pid, actif: true, frais } as ProduitCreditVue); }
+    enregistrer(); return { ...produitsCredit.lire(), produit: produitsCredit.lireProduit(pid!) };
+  },
+};
+
 // ---------- Info de base > Localisation (S20, manuel p. 30 à 32), adaptée au découpage de la RDC (demande du porteur, registre S20-1) :
 // Constitution, art. 2 et 3 ; Décret 22/07 du 02/03/2022, art. 9, point 26. Règles identiques côté serveur (noyau/localisation.py). ----------
 const NIVEAUX: NiveauLieu[] = ["pays", "province", "ville", "commune", "quartier"];
@@ -1890,6 +2012,7 @@ const apiLocal = {
   localisation: asynchrone(localisation),
   credit: asynchrone(credit),
   ordres: asynchrone(ordres),
+  produitsCredit: asynchrone(produitsCredit),
   comptes: asynchrone(comptes),
   numerotation: asynchrone(numerotation),
 };

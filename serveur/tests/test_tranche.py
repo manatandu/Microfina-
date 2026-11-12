@@ -906,3 +906,39 @@ def test_ordre_remboursement(clients):
     assert d["lignes"][6]["affichage"]["ordre"].startswith("IPCES") and d["lignes"][6]["taux"] == 100
     assert "inconnu" in chef.post("/api/credit-degres/ordres", {"ordres": {"9": m["id"]}}, **H).json()["message"]
     assert chef.post(f"/api/ordres-remboursement/{next(x for x in l['lignes'] if x['code'] == 'CPIES')['id']}/suppression", {}, **H).status_code == 200
+
+
+PRODUIT = {"typeProduit": "CNO", "numero": "L001", "nom": "Crédit commerce", "devise": "CDF", "modeCalcul": "Dégressif", "typeInteret": "Fixe",
+           "tauxInteret": "2,5", "tauxDiffere": 2, "montantMin": 100000, "montantMax": 5000000, "dureeMin": 3, "dureeMax": 12, "differeMin": 0, "differeMax": 2,
+           "interetMin": 1, "interetMax": 4, "clientPhysique": True, "periodicite": "M", "modeDiffere": "Réparti", "paiementInteret": "Normal",
+           "interetAnticipation": False, "ageMax": 65, "epargneNature": "Taux", "epargneValeur": 10, "categorie": "Prêt commercial",
+           "penaliteAnticipation": 50, "frais": [{"typeFrais": "Frais de dossier", "nature": "Taux", "valeur": 1, "compte": "7152"}]}
+
+
+def test_produit_credit(clients):
+    """S23 (p. 37 et 38) : Information de base de la capture ; méthode dégressive (Instr. BCC 38, art. 11) ; garanties, assurance, frais
+    (Instr. BCC 38 art. 6, Instr. BCC 40 art. 8) ; pénalité d'anticipation au plus 50 % (Instr. BCC 38, art. 14) ; registre S23-1 à S23-7"""
+    chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    l = chef.get("/api/produits-credit", **H).json()
+    assert l["options"]["modesCalcul"] == ["Dégressif"] and "CNO" in [t["code"] for t in l["options"]["typesProduit"]]
+    def refus(corps, pid=None):
+        r = chef.post("/api/produits-credit" + (f"/{pid}" if pid else ""), corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    assert agent.post("/api/produits-credit", PRODUIT, **H).status_code == 403
+    assert "Num Produit, Nom du produit" in refus({**PRODUIT, "numero": "", "nom": ""})
+    assert "dégressive" in refus({**PRODUIT, "modeCalcul": "Linéaire"})
+    assert "au moins un type" in refus({**PRODUIT, "clientPhysique": False})
+    assert "Montant : le maximum" in refus({**PRODUIT, "montantMax": 1000})
+    assert "différé maximum" in refus({**PRODUIT, "differeMax": 12})
+    assert "hors des bornes" in refus({**PRODUIT, "tauxInteret": 5})
+    assert "50 %" in refus({**PRODUIT, "penaliteAnticipation": 60})
+    assert "choisir Montant ou Taux" in refus({**PRODUIT, "epargneNature": None})
+    assert "type d'assurance" in refus({**PRODUIT, "assuranceNature": "Taux", "assuranceValeur": 2})
+    assert "n'existe pas" in refus({**PRODUIT, "frais": [{"typeFrais": "Frais de dossier", "nature": "Taux", "valeur": 1, "compte": "99999"}]})
+    assert "deux fois" in refus({**PRODUIT, "frais": PRODUIT["frais"] * 2})
+    r = chef.post("/api/produits-credit", PRODUIT, **H); assert r.status_code == 200, r.content
+    p = r.json()["produit"]
+    assert (p["tauxInteret"], p["frais"][0]["compte"], p["assuranceNature"]) == (2.5, "7152", None)
+    assert r.json()["produits"][0]["typeClient"] == "Physique"
+    assert "existe déjà" in refus({**PRODUIT, "numero": "l001"})
+    m = chef.post(f"/api/produits-credit/{p['id']}", {**PRODUIT, "nom": "Crédit commerce AGR", "clientGroupe": True, "frais": []}, **H).json()["produit"]
+    assert (m["nom"], m["clientGroupe"], m["frais"]) == ("Crédit commerce AGR", True, [])

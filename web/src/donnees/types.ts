@@ -172,7 +172,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 34;
+  version: 35;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];
@@ -200,7 +200,8 @@ export interface Etat {
   budget: Record<string, LigneBudget[]>;
   credit: Record<string, LigneBudget[]>;
   ordres: { id: number; code: string; libelle: string; actif: boolean }[];   // S22
-  degreOrdres: Record<number, number>;   // S21 Degré Crédit : rang du degré -> ordre de remboursement (S22)   // S21 : référentiel crédit, par onglet (Zone Credit : zones de la fiche client)   // S19 : huit référentiels du budget, par page
+  degreOrdres: Record<number, number>;
+  produitsCredit: (Record<string, unknown> & { id: number; frais: { typeFrais: string; nature: string; valeur: number; compte: string }[] })[];   // S23   // S21 Degré Crédit : rang du degré -> ordre de remboursement (S22)   // S21 : référentiel crédit, par onglet (Zone Credit : zones de la fiche client)   // S19 : huit référentiels du budget, par page
   listes: LigneListe[];   // moteur des listes simples : S14, S14a à S14n
   numerotation: Record<string, RegleNumerotation>;   // S15, par institution
   affectations: AffectationGuichet[];   // S10

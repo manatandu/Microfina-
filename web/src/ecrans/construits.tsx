@@ -13,6 +13,7 @@ import ReferentielsBudget from "./Budget";
 import Localisation from "./Localisation";
 import CreditGeneral from "./Credit";
 import OrdreRemboursement from "./Ordres";
+import ProduitCredit from "./ProduitCredit";
 import ParametragesClients, { ParametrageCompteClient } from "./Numerotation";
 import { EcranJournee, EcranValidation, FermetureJournee } from "./Journee";
 import { Consentement, InformationsClient, ModificationFrais, PhotosSignatures, ResiliationClient, ValidationClientModifie, VisaClient } from "./Visa";
@@ -42,6 +43,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S20: Localisation,
   S21: CreditGeneral,
   S22: OrdreRemboursement,
+  S23: ProduitCredit,
   S16: FraisOperations,
   S37: EnrolementPhysique,
   S38: EnrolementEntreprise,

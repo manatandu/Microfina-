@@ -505,6 +505,32 @@ describe("journée de guichet", () => {
     expect(await api.credit.portefeuille(g.id)).toEqual([]);
   });
 
+  it("produit crédit (S23, p. 37 et 38) : méthode dégressive (Instr. BCC 38 art. 11), bornes, garanties, assurance, frais (Instr. BCC 40 art. 8)", async () => {
+    await connecter("jpmukendi");
+    const P = { typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: "2,5", tauxDiffere: 2,
+      montantMin: 100000, montantMax: 5000000, dureeMin: 3, dureeMax: 12, differeMin: 0, differeMax: 2, interetMin: 1, interetMax: 4, clientPhysique: true, periodicite: "M",
+      modeDiffere: "Réparti", paiementInteret: "Normal", interetAnticipation: false, ageMax: 65, epargneNature: "Taux", epargneValeur: 10, categorie: "Prêt commercial",
+      penaliteAnticipation: 50, frais: [{ typeFrais: "Frais de dossier", nature: "Taux", valeur: 1, compte: "7152" }] };
+    expect((await api.produitsCredit.lire()).options.modesCalcul).toEqual(["Dégressif"]);
+    await expect(api.produitsCredit.enregistrer({ ...P, numero: "", nom: "" })).rejects.toThrow("Num Produit, Nom du produit");
+    await expect(api.produitsCredit.enregistrer({ ...P, modeCalcul: "Linéaire" })).rejects.toThrow("dégressive");
+    await expect(api.produitsCredit.enregistrer({ ...P, clientPhysique: false })).rejects.toThrow("au moins un type");
+    await expect(api.produitsCredit.enregistrer({ ...P, montantMax: 1000 })).rejects.toThrow("Montant : le maximum");
+    await expect(api.produitsCredit.enregistrer({ ...P, differeMax: 12 })).rejects.toThrow("différé maximum");
+    await expect(api.produitsCredit.enregistrer({ ...P, tauxInteret: 5 })).rejects.toThrow("hors des bornes");
+    await expect(api.produitsCredit.enregistrer({ ...P, penaliteAnticipation: 60 })).rejects.toThrow("50 %");
+    await expect(api.produitsCredit.enregistrer({ ...P, epargneNature: null })).rejects.toThrow("choisir Montant ou Taux");
+    await expect(api.produitsCredit.enregistrer({ ...P, assuranceNature: "Taux", assuranceValeur: 2 })).rejects.toThrow("type d'assurance");
+    await expect(api.produitsCredit.enregistrer({ ...P, frais: [{ typeFrais: "Frais de dossier", nature: "Taux", valeur: 1, compte: "99999" }] })).rejects.toThrow("n'existe pas");
+    await expect(api.produitsCredit.enregistrer({ ...P, frais: [...P.frais, ...P.frais] })).rejects.toThrow("deux fois");
+    const r = await api.produitsCredit.enregistrer(P);
+    expect([r.produit.tauxInteret, r.produit.frais[0]!.compte, r.produit.assuranceNature]).toEqual([2.5, "7152", null]);
+    expect(r.produits[0]!.typeClient).toBe("Physique");
+    await expect(api.produitsCredit.enregistrer({ ...P, numero: "l001" })).rejects.toThrow("existe déjà");
+    const m = (await api.produitsCredit.enregistrer({ ...P, nom: "Crédit commerce AGR", clientGroupe: true, frais: [] }, r.produit.id)).produit;
+    expect([m.nom, m.clientGroupe, m.frais]).toEqual(["Crédit commerce AGR", true, []]);
+  });
+
   it("ordre de remboursement (S22, p. 37) : cinq éléments une fois chacun, code des initiales, ordre de chaque degré (S21)", async () => {
     await connecter("jpmukendi");
     const l = await api.ordres.lire();

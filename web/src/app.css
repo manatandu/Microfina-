@@ -287,3 +287,6 @@ textarea.saisie.montant { resize: none; text-align: end; }
 .champs-a-gauche .champ .ligne-champ { flex-wrap: nowrap; align-items: center; }
 /* S17 (p. 26) : numéro d'exemple à côté de la Position */
 .apercu-numero { font-family: var(--police-chiffres); font-weight: 600; color: var(--tampon); }
+
+/* S23 : deux cadres côte à côte, comme la capture p. 38 */
+.grille-deux { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--espace-4); align-items: start; }

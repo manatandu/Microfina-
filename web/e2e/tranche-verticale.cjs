@@ -82,6 +82,19 @@ const OUT = process.argv[2];
   await aller('/parametrage/s22'); await p.getByRole('cell', { name: 'Capital Pénalité Intérêt Epargne Solidarité' }).waitFor();
   await p.getByRole('cell', { name: 'Intérêt', exact: true }).click(); await p.getByRole('button', { name: 'Tout en haut' }).click();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'ICPES' }).waitFor(); await etape('02f11-ordre-remboursement');
+  // Chef : produit crédit (S23, p. 37 et 38) : Information de base, puis Suivant jusqu'à Autres informations et Enregistrer
+  await aller('/parametrage/s23'); await p.getByRole('tab', { name: 'Information de base' }).waitFor();
+  const pc = async (l, v) => p.getByRole('tabpanel').getByLabel(l, { exact: true }).fill(v);
+  const blocs = p.getByRole('tabpanel').locator('fieldset');
+  await blocs.nth(0).getByLabel('Montant *').fill('100000'); await blocs.nth(0).getByLabel('Durée (mois) *').fill('3'); await blocs.nth(0).getByLabel('Différé (mois) *').fill('0');
+  await blocs.nth(1).getByLabel('Montant *').fill('5000000'); await blocs.nth(1).getByLabel('Durée (mois) *').fill('12'); await blocs.nth(1).getByLabel('Différé (mois) *').fill('2');
+  await pc('Num Produit *', 'L001'); await pc('Nom du produit *', 'Crédit commerce'); await p.getByLabel('Devise *').selectOption('CDF');
+  await pc('Taux int. (%) *', '2,5'); await pc('Taux diff. (%) *', '2'); await p.getByText('Physique', { exact: true }).click();
+  await p.getByLabel('Périodicité *').selectOption({ label: 'Mensuel' }); await pc('Age max *', '65'); await etape('02f12-produit-credit');
+  for (let i = 0; i < 4; i++) await p.getByRole('button', { name: 'Suivant' }).click();
+  await p.getByLabel('Catégorie de prêt *').selectOption('Prêt commercial'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByRole('button', { name: 'Produits credit' }).click(); await p.getByRole('cell', { name: 'Crédit commerce' }).waitFor(); await etape('02f13-produits-credit');
+  await p.getByRole('button', { name: 'Fermer' }).click();
   // Chef : paramétrages liés aux clients (S15, p. 23 et 24)
   await aller('/parametrage/s15'); await p.getByLabel('Institution *').selectOption({ label: 'COOPEC Tujenge' });
   await p.getByLabel('Choisir : Préfixe').check(); await p.getByLabel('Valeur : Préfixe').fill('TJ'); await p.getByLabel('Choisir : Agence').check();

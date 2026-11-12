@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**179 décisions.** Solidité : 66 fortes (le manuel ou un texte répond), 89 moyennes (déduites d'un écran voisin ou d'une donnée), 24 faibles (notre choix, faute de mieux). Dans le code : 125 déjà en place, 54 à appliquer.
+**187 décisions.** Solidité : 67 fortes (le manuel ou un texte répond), 94 moyennes (déduites d'un écran voisin ou d'une donnée), 26 faibles (notre choix, faute de mieux). Dans le code : 133 déjà en place, 54 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -365,6 +365,19 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S22-2 | Modifier, Supprimer | Clic sur une ligne : l'ordre revient dans Ordonner ; Enregistrer le modifie après confirmation. Supprimer logique ; un ordre attaché à un degré de crédit ne se supprime pas | Règle générale du manuel : Manuel p. 12 (T01, T02) ; capture p. 37 (Supprimer grisé) | moyenne | en place |
 | S22-3 | Lien avec Degré Crédit | Chaque degré de Produits > Crédits > Général reçoit son ordre dans la colonne Ordre de remboursement crédit, enregistré par le bouton Enregistrement. Les taux restent ceux de l'Instr. BCC 003. Graine : Sains et Impayés en PICES, les autres en CIPES, comme sur la capture | Écran voisin : Capture p. 34 (colonne Ordre de remboursement crédit, bouton Enregistrement) ; S21-1 | moyenne | en place |
 
+## S23 Produit crédit
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S23-1 | Mode calcul int | Écart imposé par l'Instr. BCC 38 : seul « Dégressif » est proposé. La capture montre « Linéaire », que l'article 11 interdit | Texte réglementaire : Instr. BCC n°38 du 03/01/2019, art. 11 (« méthode dégressive pour le calcul des intérêts de tout prêt ») | forte | en place |
+| S23-2 | Listes de la page Information de base | Type Produit : liste de S21 ; Périodicité : liste de S21 ; Type d'intérêt, Mode différé, Paiement intérêt : la seule valeur montrée par la capture (Fixe, Réparti, Normal), en attendant d'autres valeurs du porteur ; Percevoir int. par anticipation : OUI, NON | Écran voisin : Capture p. 38 ; S21 | faible | en place |
+| S23-3 | Contrôles de la page Information de base | Champs à astérisque obligatoires ; au moins un type de client ; minimum pas au-dessus du maximum (montant, durée, différé, intérêt) ; différé maximum sous la durée maximum ; taux d'intérêt dans les bornes Intérêt ; durée d'au moins 1 mois ; âge max entre 18 et 120 ans ; un taux ne dépasse pas 100 % | Donnée exigée ailleurs : Capture p. 38 (paires Minimum et Maximum) ; T05 | moyenne | en place |
+| S23-4 | Devise | Champ Devise ajouté à Identification (CDF, USD) : le déblocage et les remboursements en caisse se font dans une devise | Donnée exigée ailleurs : S75, S76 (guichet) ; T12 ; produits d'épargne (S27) portent une devise | moyenne | en place |
+| S23-5 | Garanties financières, Assurance | Garanties financières : épargne obligatoire et fonds de solidarité, chacun en Montant ou Taux. Assurance : type d'assurance (S21), Montant ou Taux ; l'assureur se choisit au dossier | Manuel : Manuel p. 114 (comptes d'épargne obligatoire et de fonds de solidarité ; assureur, montant « suivant le paramétrage ») ; Instr. BCC 38, art. 6 et 9 ; Instr. BCC 40, art. 9 | moyenne | en place |
+| S23-6 | Frais | Lignes de frais : type parmi ceux de l'Instr. BCC 40 (dossier, hypothèque, mise en place, inscription des gages, suivi du crédit), Montant ou Taux, valeur, compte du plan (T16) ; un type une fois. Encaissés au déblocage | Texte réglementaire : Instr. BCC 40, art. 8 ; manuel p. 86 (Encaisser frais) ; Instr. BCC 38, art. 2 et 6 (frais dans le TEG) | moyenne | en place |
+| S23-7 | Autres informations | Catégorie de prêt (consommation, commercial, trésorerie, investissement) ; taux réglementé ou bonifié (pas de TEG) ; pénalité de retard (%) ; pénalité de remboursement anticipé, au plus 50 % des intérêts restant dus ; ordre de remboursement (S22) | Texte réglementaire : Instr. BCC 38, art. 5, 6, 10, 14, 16 ; S22 | faible | en place |
+| S23-8 | Navigation | Bouton + (nouveau produit) et Produits credit (liste en fenêtre : Numero, Produit, Type de client, Taux interet, Taux différé, filtres) ; cinq onglets, Précédent et Suivant, Enregistrer sur la dernière page ; un clic sur un produit de la liste le recharge pour le modifier. L'ébauche de table du schéma de départ est remplacée | Écran voisin : Captures p. 37 et 38 ; COMPLEMENTS § 4.2 | moyenne | en place |
+
 ## Les décisions faibles, à regarder en premier
 
 | N° | Écran | Question | Réponse retenue |
@@ -393,3 +406,5 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S19-4 | S19 Référentiels du budget | Champs sans astérisque | Refusés vides : Code et Libellé des types de budget ; N° de ligne, Libellé, Plan budgétaire et Centre de coût d'une ligne de plan. L'écran garde les libellés de la capture, sans astérisque. Le N° est unique dans son plan |
 | S20-3 | S20 Localisation | Zone d'un pays | Liste : Afrique, Amérique, Asie, Europe, Océanie |
 | S21-6 | S21 Référentiel crédit | Gestionnaire de portefeuille | Utilisateur choisi parmi les utilisateurs de l'institution. Portefeuille : les clients dont la fiche porte cet utilisateur comme gestionnaire. Montants en CDF, durées en mois |
+| S23-2 | S23 Produit crédit | Listes de la page Information de base | Type Produit : liste de S21 ; Périodicité : liste de S21 ; Type d'intérêt, Mode différé, Paiement intérêt : la seule valeur montrée par la capture (Fixe, Réparti, Normal), en attendant d'autres valeurs du porteur ; Percevoir int. par anticipation : OUI, NON |
+| S23-7 | S23 Produit crédit | Autres informations | Catégorie de prêt (consommation, commercial, trésorerie, investissement) ; taux réglementé ou bonifié (pas de TEG) ; pénalité de retard (%) ; pénalité de remboursement anticipé, au plus 50 % des intérêts restant dus ; ordre de remboursement (S22) |
