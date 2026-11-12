@@ -9,7 +9,7 @@ import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
   type Operation, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
-  type RegleNumerotation, type RegleNumeroCompte, type Produit,
+  type RegleNumerotation, type RegleNumeroCompte, type Produit, type LigneLieu, type NiveauLieu,
 } from "./types";
 import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 import PCCI from "@pcci";
@@ -17,7 +17,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v31";
+const CLE = "likelemba-demo-v32";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -25,7 +25,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 31) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 32) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -65,7 +65,7 @@ const session = {
 };
 
 function contexte() {
-  return { institution: E.institution, agence: E.agence, guichets: E.guichets.filter((g) => g.actif !== false), produits: E.produits, zones: E.zones, typesClient: TYPES_CLIENT, typesEntreprise: TYPES_ENTREPRISE, typesGroupe: Object.keys(TYPES_GROUPE), pieces: PIECES, professions: E.professions, localites: E.localites, motifsDepart: valeursListe("motif_depart").map((l) => l.libelle), cours: E.cours, valeurPart: E.valeurPart, utilisateurs: E.utilisateurs };
+  return { institution: E.institution, agence: E.agence, guichets: E.guichets.filter((g) => g.actif !== false), produits: E.produits, zones: E.zones, typesClient: TYPES_CLIENT, typesEntreprise: TYPES_ENTREPRISE, typesGroupe: Object.keys(TYPES_GROUPE), pieces: PIECES, professions: E.professions, localites: localites(), motifsDepart: valeursListe("motif_depart").map((l) => l.libelle), cours: E.cours, valeurPart: E.valeurPart, utilisateurs: E.utilisateurs };
 }
 export const nomUtilisateur = (id?: number) => E.utilisateurs.find((u) => u.id === id)?.nom ?? "";
 
@@ -330,7 +330,7 @@ function controlerProspect(d: Prospect): Prospect {
   if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
   if (v.sexe !== "F" && v.sexe !== "M") throw new ErreurMetier("Sexe inconnu.");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(v.naissance) || v.naissance > new Date().toISOString().slice(0, 10)) throw new ErreurMetier("Date de naissance invalide.");
-  if (!E.localites.some((p) => p.pays === v.pays && p.villes.some((x) => x.ville === v.ville && x.quartiers.includes(v.quartier)))) throw new ErreurMetier("Pays, ville ou quartier inconnu.");
+  if (!localites().some((p) => p.pays === v.pays && p.villes.some((x) => x.ville === v.ville && x.quartiers.includes(v.quartier)))) throw new ErreurMetier("Pays, ville ou quartier inconnu.");
   if (v.profession && !E.professions.includes(v.profession)) throw new ErreurMetier("Profession inconnue.");
   if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) throw new ErreurMetier("Email invalide.");
   return v;
@@ -1637,6 +1637,77 @@ const budget = {
   },
 };
 
+// ---------- Info de base > Localisation (S20, manuel p. 30 à 32), adaptée au découpage de la RDC (demande du porteur, registre S20-1) :
+// Constitution, art. 2 et 3 ; Décret 22/07 du 02/03/2022, art. 9, point 26. Règles identiques côté serveur (noyau/localisation.py). ----------
+const NIVEAUX: NiveauLieu[] = ["pays", "province", "ville", "commune", "quartier"];
+export const ONGLETS_LIEUX: { niveau: NiveauLieu; onglet: string; libelle: string; colonne: string }[] = [
+  { niveau: "pays", onglet: "Pays", libelle: "Pays", colonne: "Pays" },
+  { niveau: "province", onglet: "Province", libelle: "Province", colonne: "Province" },
+  { niveau: "ville", onglet: "Ville / Territoire", libelle: "Ville ou territoire", colonne: "Ville ou territoire" },
+  { niveau: "commune", onglet: "Commune / Secteur / Chefferie", libelle: "Commune, secteur ou chefferie", colonne: "Commune, secteur ou chefferie" },
+  { niveau: "quartier", onglet: "Quartier / Groupement", libelle: "Quartier ou groupement", colonne: "Quartier ou groupement" },
+];
+const ZONES_PAYS = ["Afrique", "Amérique", "Asie", "Europe", "Océanie"];   // registre S20-3
+const ongletLieu = (n: string) => { const o = ONGLETS_LIEUX.find((x) => x.niveau === n); if (!o) throw new ErreurMetier("Onglet inconnu."); return o; };
+/** Pays > Ville > Quartier pour l'enrôlement et les prospects : la ville à travers sa province, le quartier à travers sa commune (registre S20-4) */
+function localites() {
+  const a = E.lieux.filter((l) => l.actif);
+  const enfants = (ids: Set<number>, n: NiveauLieu) => a.filter((l) => l.parentId !== null && ids.has(l.parentId) && l.niveau === n);
+  const ids = (l: LigneLieu[]) => new Set(l.map((x) => x.id));
+  return a.filter((p) => p.niveau === "pays").sort((x, y) => x.nom.localeCompare(y.nom)).map((p) => ({
+    pays: p.nom,
+    villes: enfants(ids(enfants(new Set([p.id]), "province")), "ville").sort((x, y) => x.nom.localeCompare(y.nom)).map((v) => ({
+      ville: v.nom, quartiers: enfants(ids(enfants(new Set([v.id]), "commune")), "quartier").map((q) => q.nom).sort((x, y) => x.localeCompare(y)) })),
+  }));
+}
+export type LieuVue = Omit<LigneLieu, "actif"> & { ascendants: Partial<Record<NiveauLieu, { id: number; nom: string }>> };
+const localisation = {
+  lire(niveau: string) {
+    exiger();
+    ongletLieu(niveau);
+    const tous = E.lieux.filter((l) => l.actif);
+    const parId = new Map(tous.map((l) => [l.id, l]));
+    const lignes: LieuVue[] = tous.filter((l) => l.niveau === niveau).map(({ actif: _a, ...l }) => {
+      const ascendants: LieuVue["ascendants"] = {};
+      for (let r = l.parentId === null ? undefined : parId.get(l.parentId); r; r = r.parentId === null ? undefined : parId.get(r.parentId)) ascendants[r.niveau] = { id: r.id, nom: r.nom };
+      return { ...l, ascendants };
+    });
+    return { onglets: ONGLETS_LIEUX, niveau, zones: ZONES_PAYS, lignes, lieux: tous.map(({ actif: _a, ...l }) => l) };
+  },
+  /** Enregistrer (sans id) ou Modifier (id). Tous les parents obligatoires ; un nom une seule fois sous le même parent (registre S20-2) */
+  enregistrer(niveau: string, d: { parentId?: number | null; nom: string; nationalite?: string; code?: string; zone?: string }, id?: number) {
+    exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
+    const o = ongletLieu(niveau); const rang = NIVEAUX.indexOf(o.niveau);
+    const nom = d.nom?.trim() ?? ""; const t = (x?: string) => x?.trim() ?? "";
+    const parentId = rang ? (typeof d.parentId === "number" ? d.parentId : null) : null;
+    const manque: string[] = [];
+    if (rang && parentId === null) manque.push(ONGLETS_LIEUX[rang - 1]!.libelle);
+    if (!nom) manque.push(o.libelle);
+    if (niveau === "pays") for (const [n, v] of [["Nationalite", d.nationalite], ["Code", d.code], ["Zone", d.zone]] as const) if (!t(v)) manque.push(n);
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    const actuel = id === undefined ? undefined : E.lieux.find((l) => l.id === id && l.niveau === niveau && l.actif);
+    if (id !== undefined && !actuel) throw new ErreurMetier("Ligne introuvable.");
+    if (rang && !E.lieux.some((l) => l.id === parentId && l.niveau === NIVEAUX[rang - 1] && l.actif)) throw new ErreurMetier(`${ONGLETS_LIEUX[rang - 1]!.libelle} inconnu.`);
+    if (niveau === "pays" && !ZONES_PAYS.includes(t(d.zone))) throw new ErreurMetier("Zone inconnue.");
+    if (E.lieux.some((l) => l.actif && l.niveau === niveau && l.parentId === parentId && l.nom.toLowerCase() === nom.toLowerCase() && l.id !== id))
+      throw new ErreurMetier(`Ce ${o.libelle.toLowerCase()} existe déjà.`);
+    if (niveau === "pays" && E.lieux.some((l) => l.actif && l.niveau === "pays" && l.code.toUpperCase() === t(d.code).toUpperCase() && l.id !== id)) throw new ErreurMetier("Ce code existe déjà.");
+    const v = { parentId, nom, nationalite: niveau === "pays" ? t(d.nationalite) : "", code: niveau === "pays" ? t(d.code).toUpperCase() : "", zone: niveau === "pays" ? t(d.zone) : "" };
+    if (actuel) Object.assign(actuel, v); else E.lieux.push({ id: prochain(E.lieux), niveau: o.niveau, actif: true, ...v });
+    enregistrer(); return localisation.lire(niveau);
+  },
+  /** Supprimer (p. 12) : suppression logique (T02) ; un lieu qui a des lieux actifs en dessous ne se supprime pas */
+  supprimer(niveau: string, id: number) {
+    exiger("chef_agence");
+    ongletLieu(niveau);
+    const l = E.lieux.find((x) => x.id === id && x.niveau === niveau && x.actif);
+    if (!l) throw new ErreurMetier("Ligne introuvable.");
+    if (E.lieux.some((x) => x.actif && x.parentId === id)) throw new ErreurMetier("Ce lieu a des lieux rattachés : les retirer d'abord.");
+    l.actif = false;
+    enregistrer(); return localisation.lire(niveau);
+  },
+};
+
 const apiLocal = {
   referentiel: asynchrone({ contexte }),
   session: asynchrone(session),
@@ -1655,6 +1726,7 @@ const apiLocal = {
   exercices: asynchrone(exercices),
   listes: asynchrone(listes),
   budget: asynchrone(budget),
+  localisation: asynchrone(localisation),
   comptes: asynchrone(comptes),
   numerotation: asynchrone(numerotation),
 };

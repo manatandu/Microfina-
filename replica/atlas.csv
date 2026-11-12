@@ -34,7 +34,7 @@ S16,Opération : frais (cinq onglets),24 à 26 (cinq captures),A,liste,,,2 Param
 S17,Numéro de compte client,26,A,composition,,A:S15,2 Paramétrage,oui
 S18,Motif de départ d'un client,26,A,liste,,G:p.12,2 Paramétrage,oui
 S19,Budget : huit référentiels,27 à 30 (huit captures),A,liste,,G:p.12,2 Paramétrage,oui
-S20,"Localisation : pays, département, commune, arrondissement, quartier",30 à 32 (cinq captures),A,liste,découpage de la RDC à la place de celui du manuel,R:découpage administratif de la RDC ; P,2 Paramétrage,non
+S20,"Localisation : pays, département, commune, arrondissement, quartier",30 à 32 (cinq captures),A,liste,découpage de la RDC à la place de celui du manuel,R:découpage administratif de la RDC ; P,2 Paramétrage,oui
 S21,"Crédit, général : onze listes",32 à 36 (onze captures),A,liste,,G:p.12,2 Paramétrage,non
 S22,Ordre de remboursement,37,A,composition,,,2 Paramétrage,non
 S23,Produit crédit : création (cinq pages),37 à 39 (trois captures),B,onglets,deux pages sur cinq (à repérer à l'ouverture),"M:texte p. 37 ; D:S89, S75 ; R:Instr. BCC sur le crédit et le TEG",2 Paramétrage,non

@@ -272,14 +272,18 @@ describe("journée de guichet", () => {
     await expect(api.tiers.creerProspect({ ...p, profession: "Astronaute" })).rejects.toThrow("Profession");
     const t = await api.tiers.creerProspect(p);
     expect(t).toMatchObject({ statut: "prospect", quartier: "Kinsaku", profession: "Commerçant" });
-    expect((await api.tiers.modifierProspect(t.id, { ...p, quartier: "Lemba" })).quartier).toBe("Lemba");
+    await connecter("jpmukendi");                                     // un quartier ajouté dans Localisation (S20) est proposé aussitôt
+    const lemba = (await api.localisation.lire("commune")).lignes.find((x) => x.nom === "Lemba")!;
+    await api.localisation.enregistrer("quartier", { parentId: lemba.id, nom: "Quartier d'essai" });
+    await connecter("bkasongo");
+    expect((await api.tiers.modifierProspect(t.id, { ...p, quartier: "Quartier d'essai" })).quartier).toBe("Quartier d'essai");
     expect((await api.tiers.prospects()).map((x) => x.id)).toEqual([t.id]);
     await expect(api.tiers.modifierProspect(1, p)).rejects.toThrow("introuvable");
     // « Choisir prospect » à l'enrôlement (S37, p. 49) : le prospect devient le client, même numéro
     const fiche = { ...enrolementVide("2026-11-07"), produitCode: "EAV-CDF", nom: "Tshibangu", prenom: "Anne", sexe: "F" as const, pieceType: "Passeport", pieceNumero: "OP7" };
     await expect(api.tiers.creer(fiche, {}, 1)).rejects.toThrow("Prospect introuvable");
     const c = await api.tiers.creer(fiche, {}, t.id);
-    expect([c.id, c.numero, c.statut, c.quartier, c.profession]).toEqual([t.id, t.numero, "a_viser", "Lemba", "Commerçant"]);
+    expect([c.id, c.numero, c.statut, c.quartier, c.profession]).toEqual([t.id, t.numero, "a_viser", "Quartier d'essai", "Commerçant"]);
     expect(await api.tiers.prospects()).toEqual([]);
   });
 
@@ -467,6 +471,28 @@ describe("journée de guichet", () => {
     await api.budget.supprimer("lignes", li.id);
     await api.budget.enregistrer("lignes", { numero: "1", libelle: "Salaires", planId: p.id, centreId: agm.id });   // numéro d'une ligne retirée : réutilisable
     expect((await api.budget.enregistrer("plans", { annee: 2026, code: "2026-PL", libelle: "PLAN 2026" }, p.id)).lignes[0]!.libelle).toBe("PLAN 2026");
+  });
+
+  it("localisation (S20, p. 30 à 32), découpage de la RDC : parents obligatoires, nom unique sous un parent, Zone, Supprimer logique", async () => {
+    await connecter("jpmukendi");
+    const pr = await api.localisation.lire("province");
+    expect(pr.lignes).toHaveLength(26);
+    const rdc = (await api.localisation.lire("pays")).lignes[0]!;
+    expect([rdc.nationalite, rdc.code, rdc.zone]).toEqual(["Congolaise", "CD", "Afrique"]);
+    await expect(api.localisation.enregistrer("pays", { nom: "Angola" })).rejects.toThrow("Nationalite, Code, Zone");
+    await expect(api.localisation.enregistrer("pays", { nom: "Angola", nationalite: "Angolaise", code: "AO", zone: "Lune" })).rejects.toThrow("Zone inconnue");
+    await expect(api.localisation.enregistrer("pays", { nom: "Congo", nationalite: "Congolaise", code: "cd", zone: "Afrique" })).rejects.toThrow("code existe");
+    await expect(api.localisation.enregistrer("province", { nom: "Nouvelle" })).rejects.toThrow("Pays");
+    await expect(api.localisation.enregistrer("province", { parentId: rdc.id, nom: "nord-kivu" })).rejects.toThrow("existe déjà");
+    const nk = pr.lignes.find((x) => x.nom === "Nord-Kivu")!;
+    await expect(api.localisation.enregistrer("commune", { parentId: nk.id, nom: "Goma" })).rejects.toThrow("Ville ou territoire inconnu");
+    const goma = (await api.localisation.enregistrer("ville", { parentId: nk.id, nom: "Goma" })).lignes.find((x) => x.nom === "Goma")!;
+    expect([goma.ascendants.province?.nom, goma.ascendants.pays?.nom]).toEqual(["Nord-Kivu", "République démocratique du Congo"]);
+    const c = (await api.localisation.enregistrer("commune", { parentId: goma.id, nom: "Karisimbi" })).lignes.find((x) => x.nom === "Karisimbi")!;
+    await expect(api.localisation.supprimer("ville", goma.id)).rejects.toThrow("rattachés");
+    await api.localisation.enregistrer("commune", { parentId: goma.id, nom: "Karisimbi-Centre" }, c.id);
+    await api.localisation.supprimer("commune", c.id);
+    expect((await api.localisation.supprimer("ville", goma.id)).lignes.some((x) => x.nom === "Goma")).toBe(false);
   });
 
   it("motif de départ d'un client (S18, p. 26) : Libelle Motif seul, unique, ordre de saisie, lu par la résiliation", async () => {

@@ -11,6 +11,7 @@ from . import guichets as gu
 from . import exercices as ex
 from . import listes as li
 from . import budget as bu
+from . import localisation as lo
 from . import comptes as cp
 from . import numerotation as nu
 from . import services as s
@@ -582,6 +583,27 @@ def bu_modifier(request, page: str, lid: int, corps: dict = Body(...)):
 @api.post("/budget-referentiels/{page}/{lid}/suppression")
 def bu_supprimer(request, page: str, lid: int):
     return bu.supprimer(u(request), page, lid)
+
+
+# ---------- Info de base > Localisation (S20) ----------
+@api.get("/localisation/{niveau}")
+def lo_lire(request, niveau: str):
+    return lo.lire(u(request), niveau)
+
+
+@api.post("/localisation/{niveau}")
+def lo_creer(request, niveau: str, corps: dict = Body(...)):
+    return lo.enregistrer(u(request), niveau, corps)
+
+
+@api.post("/localisation/{niveau}/{lid}")
+def lo_modifier(request, niveau: str, lid: int, corps: dict = Body(...)):
+    return lo.enregistrer(u(request), niveau, corps, lid)
+
+
+@api.post("/localisation/{niveau}/{lid}/suppression")
+def lo_supprimer(request, niveau: str, lid: int):
+    return lo.supprimer(u(request), niveau, lid)
 
 
 # ---------- Info de base : numérotation des clients (S15) ----------

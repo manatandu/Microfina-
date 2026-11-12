@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**163 décisions.** Solidité : 62 fortes (le manuel ou un texte répond), 79 moyennes (déduites d'un écran voisin ou d'une donnée), 22 faibles (notre choix, faute de mieux). Dans le code : 109 déjà en place, 54 à appliquer.
+**168 décisions.** Solidité : 63 fortes (le manuel ou un texte répond), 82 moyennes (déduites d'un écran voisin ou d'une donnée), 23 faibles (notre choix, faute de mieux). Dans le code : 114 déjà en place, 54 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -334,6 +334,16 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S19-8 | Types d'opération | Ceux de S16-1 (ADHESION, DEPOT, RETRAIT, PART SOCIALE), puis les opérations de crédit à leur construction. Un seul type de budget par type d'opération | Donnée exigée ailleurs : Capture p. 30 (DEBOURSEMENT CREDIT, REMB. CREDIT) ; S16-1 | moyenne | en place |
 | S19-9 | Durées d'un type de période | Nombres entiers positifs ou nuls, 0 par défaut | Écran voisin : Capture p. 28 (0 affiché dans les zones vides ; Quinzaine 0 mois 14 jours) | forte | en place |
 
+## S20 Localisation
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S20-1 | Découpage | Les cinq onglets de Microfina++ prennent le découpage de la RDC : Pays ; Province (au lieu de Département) ; Ville / Territoire (Commune) ; Commune / Secteur / Chefferie (Arrondissement) ; Quartier / Groupement (Quartier). Le village s'écrit dans l'adresse du client. Graine : la ville de Kinshasa et les 25 provinces | Choix du porteur : Demande du porteur du 12/11/2026 (choix : 5 onglets) ; Constitution, art. 2 et 3 ; Décret 22/07 du 02/03/2022, art. 9, point 26 | forte | en place |
+| S20-2 | Parents et doublons | Tous les niveaux au-dessus sont obligatoires, choisis en cascade (astérisque partout, la capture Commune ne l'a pas sur Département). Un nom ne figure qu'une fois sous le même parent ; le code d'un pays est unique | Donnée exigée ailleurs : Captures p. 31 et 32 ; T08 ; la fiche client lit pays, ville, quartier (S37, S45) | moyenne | en place |
+| S20-3 | Zone d'un pays | Liste : Afrique, Amérique, Asie, Europe, Océanie | Manuel : Capture p. 30 (Zone*, liste déroulante, sans valeurs montrées) | faible | en place |
+| S20-4 | Lien avec la fiche client | L'enrôlement et les prospects lisent Pays, Ville, Quartier dans S20 : la ville ou le territoire à travers sa province, le quartier ou le groupement à travers sa commune. Un lieu retiré n'est plus proposé ; un client qui l'a garde son adresse | Donnée exigée ailleurs : Capture p. 55 (Pays, Ville, Quartier) ; COMPLEMENTS § 7.1 | moyenne | en place |
+| S20-5 | Barre d'outils et boutons | Nouveau, Modifier, Supprimer dans la barre du haut (Modifier et Supprimer grisés sans ligne choisie) ; Enregistrer, Annuler sous le formulaire ; Exporter au-dessus de la grille ; filtres sur chaque colonne ; Rafraichir à côté de Pays sur l'onglet Province. Les icônes Enregistrer et Annuler de la barre, en double, ne sont pas reprises | Écran voisin : Captures p. 30 à 32 ; manuel p. 9 et 12 (T01, T02, T17) | moyenne | en place |
+
 ## Les décisions faibles, à regarder en premier
 
 | N° | Écran | Question | Réponse retenue |
@@ -360,3 +370,4 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S102-7 | S102 Plan des comptes | Type de suivi | Liste vide, à remplir avec le plan des tiers (S103) |
 | S111-3 | S111 Comptabilisation | Case « Recherche avancée » | Affiche les filtres de la grille (N°Pièce, N° Compte) |
 | S19-4 | S19 Référentiels du budget | Champs sans astérisque | Refusés vides : Code et Libellé des types de budget ; N° de ligne, Libellé, Plan budgétaire et Centre de coût d'une ligne de plan. L'écran garde les libellés de la capture, sans astérisque. Le N° est unique dans son plan |
+| S20-3 | S20 Localisation | Zone d'un pays | Liste : Afrique, Amérique, Asie, Europe, Océanie |

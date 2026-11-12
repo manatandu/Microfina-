@@ -829,10 +829,13 @@ def modifications_tiers(u: dict, tid: int) -> list[dict]:
 
 
 def localites() -> list[dict]:
-    """Pays > Ville > Quartier (table localite ; paramétrage Localisation, p. 30, pas encore construit)"""
-    rows = lignes("select id, parent_id, niveau, nom from localite order by nom")
-    enfants = lambda pid, niveau: [r for r in rows if r["parent_id"] == pid and r["niveau"] == niveau]
-    return [{"pays": p["nom"], "villes": [{"ville": v["nom"], "quartiers": [q["nom"] for q in enfants(v["id"], "quartier")]} for v in enfants(p["id"], "ville")]}
+    """Pays > Ville > Quartier, lus dans Localisation (S20) : la ville (ou le territoire) à travers sa province, le quartier (ou le groupement)
+    à travers sa commune (secteur ou chefferie). Lieux actifs seulement (registre S20-4)."""
+    rows = lignes("select id, parent_id, niveau, nom from localite where actif order by nom")
+    enfants = lambda pids, niveau: [r for r in rows if r["parent_id"] in pids and r["niveau"] == niveau]
+    ids = lambda l: {r["id"] for r in l}
+    return [{"pays": p["nom"], "villes": [{"ville": v["nom"], "quartiers": sorted(q["nom"] for q in enfants(ids(enfants({v["id"]}, "commune")), "quartier"))}
+                                          for v in enfants(ids(enfants({p["id"]}, "province")), "ville")]}
             for p in rows if p["niveau"] == "pays" and p["parent_id"] is None]
 
 

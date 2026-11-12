@@ -367,14 +367,17 @@ def test_prospect(clients):
     assert "Profession" in refus({**p, "profession": "Astronaute"})
     t = agent.post("/api/prospects", p, **H).json()
     assert (t["statut"], t["quartier"], t["profession"]) == ("prospect", "Kinsaku", "Commerçant")
-    assert agent.post(f"/api/prospects/{t['id']}", {**p, "quartier": "Lemba"}, **H).json()["quartier"] == "Lemba"
+    chef = clients["chef"]; connecter(chef, "jpmukendi")               # un quartier ajouté dans Localisation (S20) est proposé aussitôt
+    lemba = next(c for c in chef.get("/api/localisation/commune", **H).json()["lignes"] if c["nom"] == "Lemba")
+    assert chef.post("/api/localisation/quartier", {"parentId": lemba["id"], "nom": "Quartier d'essai"}, **H).status_code == 200
+    assert agent.post(f"/api/prospects/{t['id']}", {**p, "quartier": "Quartier d'essai"}, **H).json()["quartier"] == "Quartier d'essai"
     assert [x["id"] for x in agent.get("/api/prospects").json()] == [t["id"]]
     assert "introuvable" in refus(p, f"/api/prospects/{T('0412-000318')}")
     # « Choisir prospect » à l'enrôlement (S37, p. 49) : le prospect devient le client, même numéro
     fiche = {**FICHE, "dateDemande": "2026-11-07", "nom": "Tshibangu", "prenom": "Anne", "sexe": "F", "pieceType": "Passeport", "pieceNumero": "OP7"}
     assert "Prospect introuvable" in refus({**fiche, "prospectId": T("0412-000318")}, "/api/tiers")
     c = agent.post("/api/tiers", {**fiche, "prospectId": t["id"]}, **H).json()
-    assert (c["id"], c["numero"], c["statut"], c["quartier"], c["profession"]) == (t["id"], t["numero"], "a_viser", "Lemba", "Commerçant")
+    assert (c["id"], c["numero"], c["statut"], c["quartier"], c["profession"]) == (t["id"], t["numero"], "a_viser", "Quartier d'essai", "Commerçant")
     assert agent.get("/api/prospects").json() == []
 
 
@@ -807,3 +810,32 @@ def test_budget_referentiels(clients):
     ok("lignes", {"numero": "1", "libelle": "Salaires", "planId": p["id"], "centreId": agm["id"]})      # numéro d'une ligne retirée : réutilisable
     m = ok("plans", {"annee": 2026, "code": "2026-PL", "libelle": "PLAN 2026"}, p["id"])
     assert m["lignes"][0]["libelle"] == "PLAN 2026"
+
+
+def test_localisation(clients):
+    """S20 (p. 30 à 32), découpage de la RDC (registre S20-1 à S20-4) : parents obligatoires, nom unique sous un parent, Zone, Supprimer logique"""
+    chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    L = "/api/localisation"
+    def refus(niveau, corps, lid=None):
+        r = chef.post(f"{L}/{niveau}" + (f"/{lid}" if lid else ""), corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    pr = chef.get(f"{L}/province", **H).json()
+    assert len(pr["lignes"]) == 26 and [o["onglet"] for o in pr["onglets"]][1] == "Province"
+    rdc = chef.get(f"{L}/pays", **H).json()["lignes"][0]
+    assert (rdc["nationalite"], rdc["code"], rdc["zone"]) == ("Congolaise", "CD", "Afrique")
+    assert agent.post(f"{L}/province", {"parentId": rdc["id"], "nom": "X"}, **H).status_code == 403
+    assert "Nationalite, Code, Zone" in refus("pays", {"nom": "Angola"})
+    assert "Zone inconnue" in refus("pays", {"nom": "Angola", "nationalite": "Angolaise", "code": "AO", "zone": "Lune"})
+    assert "code existe" in refus("pays", {"nom": "Congo", "nationalite": "Congolaise", "code": "cd", "zone": "Afrique"})
+    assert "Pays" in refus("province", {"nom": "Nouvelle"})
+    assert "existe déjà" in refus("province", {"parentId": rdc["id"], "nom": "nord-kivu"})
+    nk = next(x for x in pr["lignes"] if x["nom"] == "Nord-Kivu")
+    assert "Ville ou territoire inconnu" in refus("commune", {"parentId": nk["id"], "nom": "Goma"})           # une commune se rattache à une ville ou un territoire
+    v = chef.post(f"{L}/ville", {"parentId": nk["id"], "nom": "Goma"}, **H).json()["lignes"]
+    goma = next(x for x in v if x["nom"] == "Goma")
+    assert goma["ascendants"]["province"]["nom"] == "Nord-Kivu" and goma["ascendants"]["pays"]["nom"] == "République démocratique du Congo"
+    c = next(x for x in chef.post(f"{L}/commune", {"parentId": goma["id"], "nom": "Karisimbi"}, **H).json()["lignes"] if x["nom"] == "Karisimbi")
+    r = chef.post(f"{L}/ville/{goma['id']}/suppression", {}, **H); assert r.status_code == 422 and "rattachés" in r.json()["message"]
+    assert chef.post(f"{L}/commune/{c['id']}", {"parentId": goma["id"], "nom": "Karisimbi-Centre"}, **H).status_code == 200
+    assert chef.post(f"{L}/commune/{c['id']}/suppression", {}, **H).status_code == 200
+    assert chef.post(f"{L}/ville/{goma['id']}/suppression", {}, **H).status_code == 200
+    assert all(x["nom"] != "Goma" for x in chef.get(f"{L}/ville", **H).json()["lignes"])

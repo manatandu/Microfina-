@@ -20,6 +20,12 @@ FONDS_G2 = {"USD": {100: 140, 50: 12, 20: 8, 10: 3, 5: 2, 1: 6}, "CDF": {20000: 
 SECTEURS = [("S1", "PRIMAIRE"), ("S2", "SECONDAIRE"), ("S3", "TERTIAIRE"), ("S4", "Transformation"), ("S5", "Autre activités"),
             ("S6", "Commerce"), ("S7", "Artisanat"), ("S8", "Elevage")]
 
+# Constitution, art. 2 : la ville de Kinshasa (statut de province) et les 25 provinces
+PROVINCES_RDC = ["Kinshasa", "Bas-Uele", "Equateur", "Haut-Lomami", "Haut-Katanga", "Haut-Uele", "Ituri", "Kasaï", "Kasaï Oriental", "Kongo central", "Kwango",
+                 "Kwilu", "Lomami", "Lualaba", "Kasaï Central", "Mai-Ndombe", "Maniema", "Mongala", "Nord-Kivu", "Nord-Ubangi", "Sankuru", "Sud-Kivu",
+                 "Sud-Ubangi", "Tanganyika", "Tshopo", "Tshuapa"]
+
+
 class Command(BaseCommand):
     help = "Charge les données fictives de démonstration dans une base vide."
 
@@ -30,11 +36,14 @@ class Command(BaseCommand):
             return
         ins = valeur("insert into institution (nom, sigle, profil) values ('COOPEC Tujenge', 'CTJ', 'coopec') returning id")
         executer("insert into zone (institution_id, nom) values (%s, 'Matete')", (ins,))
-        # Localisation et professions fictives (paramétrage S14 et Localisation pas encore construits)
-        pays = valeur("insert into localite (niveau, nom) values ('pays', 'République démocratique du Congo') returning id")
-        ville = valeur("insert into localite (parent_id, niveau, nom) values (%s, 'ville', 'Kinshasa') returning id", (pays,))
-        for q in ("Kinsaku", "Matete", "Lemba"):
-            executer("insert into localite (parent_id, niveau, nom) values (%s, 'quartier', %s)", (ville, q))
+        # Professions fictives
+        # Localisation (S20) : la ville de Kinshasa et les 25 provinces (Constitution, art. 2) ; communes et quartier de démonstration
+        pays = valeur("insert into localite (niveau, nom, nationalite, code, zone) values ('pays', 'République démocratique du Congo', 'Congolaise', 'CD', 'Afrique') returning id")
+        provinces = {pr: valeur("insert into localite (parent_id, niveau, nom) values (%s, 'province', %s) returning id", (pays, pr)) for pr in PROVINCES_RDC}
+        ville = valeur("insert into localite (parent_id, niveau, nom) values (%s, 'ville', 'Kinshasa') returning id", (provinces["Kinshasa"],))
+        matete = valeur("insert into localite (parent_id, niveau, nom) values (%s, 'commune', 'Matete') returning id", (ville,))
+        executer("insert into localite (parent_id, niveau, nom) values (%s, 'commune', 'Lemba')", (ville,))
+        executer("insert into localite (parent_id, niveau, nom) values (%s, 'quartier', 'Kinsaku')", (matete,))
         for pr in ("Commerçant", "Enseignant", "Agriculteur"):
             executer("insert into profession (institution_id, libelle) values (%s, %s)", (ins, pr))
         # Motifs de départ : exemples de la capture du manuel (p. 26), dans le moteur des listes (S18, registre S18-1)

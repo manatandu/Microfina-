@@ -67,6 +67,12 @@ const OUT = process.argv[2];
   await budget('Plan budgétaire'); await p.getByLabel('Année *').selectOption({ label: '2026' }); await p.getByLabel('Code *').fill('2026-PL');
   await p.getByLabel('Libellé Plan *').fill('PLAN BUDGETAIRE ANNEE 2026'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: 'PLAN BUDGETAIRE ANNEE 2026' }).waitFor(); await etape('02f6-budget-plan');
+  // Chef : localisation (S20, p. 30 à 32), découpage de la RDC : une ville sous sa province
+  await aller('/parametrage/s20'); await p.getByRole('tab', { name: 'Ville / Territoire' }).click(); await p.getByLabel('Ville ou territoire : *').waitFor();
+  await p.getByLabel('Pays : *').selectOption({ label: 'République démocratique du Congo' }); await p.getByLabel('Province : *').selectOption({ label: 'Nord-Kivu' });
+  await p.getByLabel('Ville ou territoire : *').fill('Goma'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByRole('cell', { name: 'Goma' }).waitFor(); await etape('02f7-localisation-ville');
+  await p.getByRole('tab', { name: 'Quartier / Groupement' }).click(); await p.getByRole('cell', { name: 'Kinsaku' }).waitFor(); await etape('02f8-localisation-quartier');
   // Chef : paramétrages liés aux clients (S15, p. 23 et 24)
   await aller('/parametrage/s15'); await p.getByLabel('Institution *').selectOption({ label: 'COOPEC Tujenge' });
   await p.getByLabel('Choisir : Préfixe').check(); await p.getByLabel('Valeur : Préfixe').fill('TJ'); await p.getByLabel('Choisir : Agence').check();

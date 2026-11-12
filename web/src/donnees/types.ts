@@ -172,7 +172,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 31;
+  version: 32;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];
@@ -208,7 +208,7 @@ export interface Etat {
   consentements: { id: number; tiersId: number; code: string; dateDebut: string; dateFin: string; commentaire: string }[];   // S50
   typesProcuration: { id: number; libelle: string }[];   // S47
   professions: string[];
-  localites: { pays: string; villes: { ville: string; quartiers: string[] }[] }[];
+  lieux: LigneLieu[];   // S20 : Localisation, découpage de la RDC
   groupesSolidaires: { id: number; code: string; nom: string }[];      // S44
   membresGroupes: { groupeId: number; tiersId: number }[];
   fraisClient: { tiersId: number; fraisId: number; montant: number }[];   // S41 : montant propre à un client
@@ -252,3 +252,7 @@ export interface RegleNumeroCompte { prefixe: boolean; suffixe: boolean; positio
 
 /** S19 : une ligne d'un référentiel du budget (champs décrits par CATALOGUE_BUDGET) */
 export type LigneBudget = Record<string, unknown> & { id: number; actif: boolean };
+
+/** S20 : un lieu de Localisation (pays, province, ville ou territoire, commune / secteur / chefferie, quartier ou groupement) */
+export type NiveauLieu = "pays" | "province" | "ville" | "commune" | "quartier";
+export interface LigneLieu { id: number; parentId: number | null; niveau: NiveauLieu; nom: string; nationalite: string; code: string; zone: string; actif: boolean }

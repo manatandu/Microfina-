@@ -1,4 +1,4 @@
-import type { Etat, Ligne } from "./types";
+import type { Etat, Ligne, LigneLieu, NiveauLieu } from "./types";
 import { totalComptage, type Comptage } from "@design/montant.js";
 
 // Données fictives, reprises des maquettes. Aucune donnée d'une institution réelle (CLAUDE.md § 4).
@@ -34,7 +34,7 @@ export function graine(): Etat {
     lieuNaissance: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", liees: [] as number[],
     type: "physique" as const, formeJuridique: "", registre: "", centreActivite: "", activite: "", dirigeant: null, signataires: [], nbHommes: 0, nbFemmes: 0, membres: [], intitule: "", dateVisa: "2026-01-15", profession: "", pays: "", ville: "", quartier: "", rue: "", email: "", bp: "", telephoneFixe: "", motifDepart: "", resilieLe: "", creeLe: "2026-01-15", creePar: 4, visePar: 2, statut: "actif" as const };
   return {
-    version: 31,
+    version: 32,
     institution: { nom: "COOPEC Tujenge", sigle: "CTJ", profil: "coopec" },   // sigle fictif : élément Institution du numéro client (S15-11)
     agence: { id: 1, code: "0412", nom: "Matete" },
     guichets: [{ id: 1, code: "G1", nom: "Caisse 1", typeGuichet: "PRINCIPALE", journalId: 1, ...COMPTES_GUICHET }, { id: 2, code: "G2", nom: "Caisse 2", typeGuichet: "SECONDAIRE", journalId: 1, ...COMPTES_GUICHET }],   // type et journal fictifs (S08)
@@ -105,6 +105,15 @@ export function graine(): Etat {
     affectations: [{ id: 1, utilisateurId: 1, guichetId: 2, voirSolde: true, voirSoldeVip: false, debut: "2026-11-04T07:00:00Z", ajoutePar: 2 }],
     // Localisation et professions fictives (paramétrage S14 et Localisation pas encore construits)
     professions: ["Agriculteur", "Commerçant", "Enseignant"],
-    localites: [{ pays: "République démocratique du Congo", villes: [{ ville: "Kinshasa", quartiers: ["Kinsaku", "Lemba", "Matete"] }] }],
+    // Localisation (S20) : la ville de Kinshasa et les 25 provinces (Constitution, art. 2) ; communes et quartier de démonstration
+    lieux: (() => {
+      const l = (id: number, parentId: number | null, niveau: NiveauLieu, nom: string, x: Partial<LigneLieu> = {}): LigneLieu =>
+        ({ id, parentId, niveau, nom, nationalite: "", code: "", zone: "", actif: true, ...x });
+      const provinces = ["Kinshasa", "Bas-Uele", "Equateur", "Haut-Lomami", "Haut-Katanga", "Haut-Uele", "Ituri", "Kasaï", "Kasaï Oriental", "Kongo central", "Kwango",
+        "Kwilu", "Lomami", "Lualaba", "Kasaï Central", "Mai-Ndombe", "Maniema", "Mongala", "Nord-Kivu", "Nord-Ubangi", "Sankuru", "Sud-Kivu", "Sud-Ubangi",
+        "Tanganyika", "Tshopo", "Tshuapa"].map((nom, i) => l(i + 2, 1, "province", nom));
+      return [l(1, null, "pays", "République démocratique du Congo", { nationalite: "Congolaise", code: "CD", zone: "Afrique" }), ...provinces,
+        l(28, 2, "ville", "Kinshasa"), l(29, 28, "commune", "Matete"), l(30, 28, "commune", "Lemba"), l(31, 29, "quartier", "Kinsaku")];
+    })(),
   };
 }
