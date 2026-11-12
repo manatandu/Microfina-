@@ -34,11 +34,14 @@ export function graine(): Etat {
     lieuNaissance: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", liees: [] as number[],
     type: "physique" as const, formeJuridique: "", registre: "", centreActivite: "", activite: "", dirigeant: null, signataires: [], nbHommes: 0, nbFemmes: 0, membres: [], intitule: "", dateVisa: "2026-01-15", profession: "", pays: "", ville: "", quartier: "", rue: "", email: "", bp: "", telephoneFixe: "", motifDepart: "", resilieLe: "", creeLe: "2026-01-15", creePar: 4, visePar: 2, statut: "actif" as const };
   return {
-    version: 36,
+    version: 37,
     institution: { nom: "COOPEC Tujenge", sigle: "CTJ", profil: "coopec" },   // sigle fictif : élément Institution du numéro client (S15-11)
     agence: { id: 1, code: "0412", nom: "Matete" },
     guichets: [{ id: 1, code: "G1", nom: "Caisse 1", typeGuichet: "PRINCIPALE", journalId: 1, ...COMPTES_GUICHET }, { id: 2, code: "G2", nom: "Caisse 2", typeGuichet: "SECONDAIRE", journalId: 1, ...COMPTES_GUICHET }],   // type et journal fictifs (S08)
-    produits: [{ code: "EAV-CDF", libelle: "Épargne à vue", devise: "CDF", numero: 2 }, { code: "EAV-USD", libelle: "Épargne à vue", devise: "USD", numero: 1 }],   // numero : S17-2
+    // numero : S17-2 ; famille et options : S27 (valeurs par défaut de la migration 0039)
+    produits: ([["EAV-CDF", "CDF", 2], ["EAV-USD", "USD", 1]] as const).map(([code, devise, numero], i) => ({ id: i + 1, code, libelle: "Épargne à vue", devise, numero,
+      famille: "EPARGNE" as const, soldeMinimum: 0, retraitMaxJour: null, nbMaxComptes: 1, afficherAdhesion: false, actif: true, virementPrelevement: false, operer: true,
+      depotCheque: false, caution: false, nantissement: false, tenueCompte: null, calculerInteret: false, soldeNegatif: false, repartitionGroupe: false, supprime: false })),
     utilisateurs: [
       { id: 1, login: "engalula", nom: "Esther Ngalula", roles: ["caissier"] },
       { id: 2, login: "jpmukendi", nom: "J.-P. Mukendi", roles: ["chef_agence"] },

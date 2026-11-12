@@ -505,6 +505,25 @@ describe("journée de guichet", () => {
     expect(await api.credit.portefeuille(g.id)).toEqual([]);
   });
 
+  it("produit épargne (S27, p. 40) : champs et options de la capture, codes et numéros uniques, produit avec comptes figé", async () => {
+    await connecter("jpmukendi");
+    const l = await api.produitsEpargne.lire();
+    expect([l.familles, l.produits.map((p) => p.code).sort()]).toEqual([["EPARGNE", "BLOQUE", "TONTINE"], ["EAV-CDF", "EAV-USD"]]);
+    const P = { numero: 5, code: "G", famille: "BLOQUE", libelle: "Epargne De Garantie", devise: "CDF", soldeMinimum: 0, nbMaxComptes: 1, operer: true, depotCheque: false,
+      caution: false, nantissement: true, calculerInteret: false, soldeNegatif: false, repartitionGroupe: false };
+    await expect(api.produitsEpargne.enregistrer({ ...P, depotCheque: null })).rejects.toThrow("Dépôt de chèque");
+    await expect(api.produitsEpargne.enregistrer({ ...P, famille: "DAT" })).rejects.toThrow("Famille produit inconnue");
+    await expect(api.produitsEpargne.enregistrer({ ...P, numero: 120 })).rejects.toThrow("de 1 à 99");
+    await expect(api.produitsEpargne.enregistrer({ ...P, code: "eav-cdf" })).rejects.toThrow("Code produit existe");
+    await expect(api.produitsEpargne.enregistrer({ ...P, numero: 2 })).rejects.toThrow("N° Produit existe");
+    const g = (await api.produitsEpargne.enregistrer(P)).produits.find((p) => p.code === "G")!;
+    expect([g.famille, g.nantissement, g.tenueCompte, g.actif]).toEqual(["BLOQUE", true, null, false]);
+    expect((await api.referentiel.contexte()).produits.some((p) => p.code === "G")).toBe(false);          // pas actif : pas proposé
+    await api.produitsEpargne.enregistrer({ ...P, actif: true }, g.id);
+    expect((await api.referentiel.contexte()).produits.some((p) => p.code === "G")).toBe(true);
+    await api.produitsEpargne.supprimer(g.id);
+  });
+
   it("modèle pour crédit (S26, p. 40) : libellé, comptes capital et intérêt par degré et terme, au plan (T16) ; comptes proposés par le PCCI", async () => {
     await connecter("jpmukendi");
     const l = await api.modeles.lire();

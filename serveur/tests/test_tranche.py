@@ -978,3 +978,28 @@ def test_modele_credit(clients):
     p = chef.post("/api/produits-credit", {**PRODUIT, "modeleId": m["id"]}, **H).json()["produit"]
     assert p["modeleId"] == m["id"]
     assert "produit crédit" in chef.post(f"/api/modeles-credit/{m['id']}/suppression", {}, **H).json()["message"]
+
+
+def test_produit_epargne(clients):
+    """S27 (p. 40) : champs et options de la capture ; Devise ; codes et numéros uniques ; produit avec comptes : devise, famille, numéro figés,
+    pas de suppression (registre S27-1 à S27-4)"""
+    chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    l = chef.get("/api/produits-epargne", **H).json()
+    assert l["familles"] == ["EPARGNE", "BLOQUE", "TONTINE"] and {p["code"] for p in l["produits"]} == {"EAV-CDF", "EAV-USD"}
+    P = {"numero": 5, "code": "G", "famille": "BLOQUE", "libelle": "Epargne De Garantie", "devise": "CDF", "soldeMinimum": 0, "nbMaxComptes": 1,
+         "operer": True, "depotCheque": False, "caution": False, "nantissement": True, "calculerInteret": False, "soldeNegatif": False, "repartitionGroupe": False}
+    def refus(corps, pid=None, route="/api/produits-epargne"):
+        r = chef.post(route + (f"/{pid}" if pid else ""), corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    assert agent.post("/api/produits-epargne", P, **H).status_code == 403
+    assert "Dépôt de chèque" in refus({**P, "depotCheque": None})
+    assert "Famille produit inconnue" in refus({**P, "famille": "DAT"})
+    assert "de 1 à 99" in refus({**P, "numero": 120})
+    assert "Code produit existe" in refus({**P, "code": "eav-cdf"})
+    assert "N° Produit existe" in refus({**P, "numero": 2})
+    g = next(p for p in chef.post("/api/produits-epargne", P, **H).json()["produits"] if p["code"] == "G")
+    assert (g["famille"], g["nantissement"], g["tenueCompte"], g["actif"]) == ("BLOQUE", True, None, False)
+    assert chef.post(f"/api/produits-epargne/{g['id']}", {**P, "actif": True, "libelle": "Epargne de garantie"}, **H).status_code == 200
+    eav = next(p for p in l["produits"] if p["code"] == "EAV-CDF")
+    assert "ne se change plus" in refus({**{k: eav[k] for k in P}, "devise": "USD"}, eav["id"])
+    r = chef.post(f"/api/produits-epargne/{eav['id']}/suppression", {}, **H); assert r.status_code == 422 and "décocher Actif" in r.json()["message"]
+    assert chef.post(f"/api/produits-epargne/{g['id']}/suppression", {}, **H).status_code == 200

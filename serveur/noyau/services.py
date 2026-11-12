@@ -103,7 +103,7 @@ def contexte(u: dict) -> dict:
         "institution": {"nom": i["nom"], "profil": "coopec" if i["profil"] == "coopec" else "imf"},
         "agence": a,
         "guichets": lignes("select id, code, nom from guichet where agence_id = %s and actif order by code", (u["agence_id"],)),
-        "produits": lignes("select code, libelle, devise from produit_epargne where institution_id = %s order by code", (u["institution_id"],)),
+        "produits": lignes("select code, libelle, devise from produit_epargne where institution_id = %s and actif and not supprime order by code", (u["institution_id"],)),
         "zones": [z["nom"] for z in lignes("select nom from zone where institution_id = %s and actif order by nom", (u["institution_id"],))],
         "typesClient": TYPES_CLIENT,
         "typesEntreprise": TYPES_ENTREPRISE,
@@ -944,7 +944,7 @@ def comptes_du_tiers(tid: int) -> list[dict]:
                     where compte_id = %s and (fin is null or fin > now())""", (c["id"],))
         solde = solde_contrat(f"depot:{c['id']}", c["devise"], "C")
         bloque = int(bl["montant"])
-        res.append({"id": c["id"], "tiersId": tid, "numero": c["numero"], "intitule": c["libelle"], "pcci": "334" if c["famille"] == "obligatoire" else "330",
+        res.append({"id": c["id"], "tiersId": tid, "numero": c["numero"], "intitule": c["libelle"], "pcci": "334" if c["famille"] == "BLOQUE" else "330",
                     "devise": c["devise"].strip(), "bloque": bloque, "motifBlocage": bl["motif"], "solde": solde, "disponible": solde - bloque})
     return res
 
@@ -1079,7 +1079,7 @@ def compte_actif(compte_id: int, verrou: bool = False) -> dict:
     t = une("select statut from tiers where id = %s", (c["tiers_id"],))
     controler_statut_actif(t["statut"])
     c["devise"] = c["devise"].strip()
-    c["pcci"] = "334" if c["famille"] == "obligatoire" else "330"
+    c["pcci"] = "334" if c["famille"] == "BLOQUE" else "330"      # PCCI 334 Epargnes obligatoires ; 330 Epargnes (registre S27-2)
     return c
 
 
@@ -1153,7 +1153,7 @@ def adhesion(u: dict, p: dict) -> dict:
     if une("select 1 from compte_depot where tiers_id = %s", (tid,)):
         raise ErreurMetier("Ce membre a déjà adhéré.")
     produit = une("select * from produit_epargne where id = %s", (t["produit_id"],)) if t["produit_id"] else \
-        une("select * from produit_epargne where institution_id = %s and famille = 'a_vue' and devise = 'CDF' and actif order by version desc limit 1", (u["institution_id"],))
+        une("select * from produit_epargne where institution_id = %s and famille = 'EPARGNE' and devise = 'CDF' and actif and not supprime order by version desc limit 1", (u["institution_id"],))
     if produit["devise"].strip() != "CDF":
         raise ErreurMetier("Compte à créer en USD : l'adhésion en deux devises (frais et parts en CDF) est à confirmer avec le porteur.")
     nb = p.get("parts")

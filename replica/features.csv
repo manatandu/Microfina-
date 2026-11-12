@@ -24,7 +24,7 @@ Activation et désactivation des produits crédit,paramétrage,must,yes,yes,"S25
 Modèle crédit : comptes,paramétrage,must,yes,yes,"S26 ; manuel p. 40 | Construit le 12/11/2026 : libellé, comptes capital, interne et intérêt par degré et terme, au plan ; comptes proposés par le PCCI ; choisi par le produit crédit. Registre S26-1 à S26-3."
 Modèle crédit : degrés de classement et taux de provision,paramétrage,must,yes,yes,"S26 et S21 | Construit le 12/11/2026 : les degrés de l'Instr. BCC 003 (1-30 jours 5 %, 31-60 jours 25 %, 61-90 jours 50 %, 91-180 jours 75 %, plus de 180 jours 100 %, irrécupérables au-delà de 12 mois), à la place de ceux de la capture. Registre S21-1, S26-1."
 Modèle crédit : termes par durée,paramétrage,must,yes,yes,"S26 et S21 | Construit le 12/11/2026 : court terme jusqu'à 12 mois (32), moyen terme 13 à 60 mois (31), long terme au-delà (30), selon le PCCI classe 3. Registre S21-2, S26-1."
-Produit épargne : définition et options,paramétrage,must,yes,no,S27 ; option solde négatif à retirer : aucun compte d'épargne débiteur (constats U17 C50 ; Instr. BCC 003 art. 7)
+Produit épargne : définition et options,paramétrage,must,yes,yes,"S27 ; manuel p. 40 | Construit le 12/11/2026 : champs, options Oui/Non et boutons de la capture, Devise ajoutée ; familles EPARGNE, BLOQUE, TONTINE (PCCI 330, 334) ; option Solde négatif gardée, aucun texte ne l'interdisant (Instr. BCC 003 art. 7). Contrôles au guichet et à l'ouverture : S37-9. Registre S27-1 à S27-4."
 Produit épargne : comptes comptables,paramétrage,must,yes,no,S28 ; comptes du PCCI 330 à 335
 Numérotation des pièces,paramétrage,must,yes,no,S29 ; séquence sans trou (PCCI § 3.2 et 3.4)
 Journaux,paramétrage,must,yes,no,S30

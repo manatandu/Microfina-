@@ -172,11 +172,11 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 36;
+  version: 37;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];
-  produits: Produit[];
+  produits: ProduitEpargne[];   // S27
   utilisateurs: Utilisateur[];
   cours: { USD: number };      // CDF pour 1 USD
   valeurPart: number;          // unités mineures, CDF
@@ -260,3 +260,10 @@ export type LigneBudget = Record<string, unknown> & { id: number; actif: boolean
 /** S20 : un lieu de Localisation (pays, province, ville ou territoire, commune / secteur / chefferie, quartier ou groupement) */
 export type NiveauLieu = "pays" | "province" | "ville" | "commune" | "quartier";
 export interface LigneLieu { id: number; parentId: number | null; niveau: NiveauLieu; nom: string; nationalite: string; code: string; zone: string; actif: boolean }
+
+/** S27 : produit d'épargne (manuel p. 40) ; montants en unités mineures */
+export interface ProduitEpargne extends Produit {
+  id: number; numero: number; famille: "EPARGNE" | "BLOQUE" | "TONTINE"; soldeMinimum: number; retraitMaxJour: number | null; nbMaxComptes: number;
+  afficherAdhesion: boolean; actif: boolean; virementPrelevement: boolean; operer: boolean; depotCheque: boolean; caution: boolean; nantissement: boolean;
+  tenueCompte: boolean | null; calculerInteret: boolean; soldeNegatif: boolean; repartitionGroupe: boolean; supprime: boolean;
+}

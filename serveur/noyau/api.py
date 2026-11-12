@@ -16,6 +16,7 @@ from . import credit as cr
 from . import ordres as od
 from . import produits_credit as pc
 from . import modeles_credit as mc
+from . import produits_epargne as pe
 from . import comptes as cp
 from . import numerotation as nu
 from . import services as s
@@ -660,6 +661,27 @@ def pc_creer(request, corps: dict = Body(...)):
 @api.post("/produits-credit/{pid}")
 def pc_modifier(request, pid: int, corps: dict = Body(...)):
     return pc.enregistrer(u(request), corps, pid)
+
+
+# ---------- Paramétrage > Produit > Epargne : gestion des produits épargnes (S27) ----------
+@api.get("/produits-epargne")
+def pe_lire(request):
+    return pe.lire(u(request))
+
+
+@api.post("/produits-epargne")
+def pe_creer(request, corps: dict = Body(...)):
+    return pe.enregistrer(u(request), corps)
+
+
+@api.post("/produits-epargne/{pid}")
+def pe_modifier(request, pid: int, corps: dict = Body(...)):
+    return pe.enregistrer(u(request), corps, pid)
+
+
+@api.post("/produits-epargne/{pid}/suppression")
+def pe_supprimer(request, pid: int):
+    return pe.supprimer(u(request), pid)
 
 
 # ---------- Produits > Crédits > Modèle pour crédit (S26) ----------

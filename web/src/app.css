@@ -290,3 +290,7 @@ textarea.saisie.montant { resize: none; text-align: end; }
 
 /* S23 : deux cadres côte à côte, comme la capture p. 38 */
 .grille-deux { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--espace-4); align-items: start; }
+/* S27 : options Oui/Non, une par ligne comme la capture p. 40 */
+.oui-non { display: flex; flex-wrap: wrap; align-items: center; gap: var(--espace-3); border: 0; padding: 0; margin: 0; }
+.oui-non > legend { float: left; min-inline-size: 16rem; padding: 0; font-weight: 600; font-size: var(--taille-dense); }
+.oui-non > label { display: inline-flex; gap: var(--espace-1); align-items: center; }

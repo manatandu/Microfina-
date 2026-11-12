@@ -9,7 +9,7 @@ import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
   type Operation, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
-  type RegleNumerotation, type RegleNumeroCompte, type Produit, type LigneLieu, type NiveauLieu, type LigneBudget,
+  type RegleNumerotation, type RegleNumeroCompte, type Produit, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget,
 } from "./types";
 import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 import PCCI from "@pcci";
@@ -17,7 +17,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v36";
+const CLE = "likelemba-demo-v37";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -25,7 +25,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 36) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 37) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -65,7 +65,7 @@ const session = {
 };
 
 function contexte() {
-  return { institution: E.institution, agence: E.agence, guichets: E.guichets.filter((g) => g.actif !== false), produits: E.produits, zones: zonesActives(), typesClient: TYPES_CLIENT, typesEntreprise: TYPES_ENTREPRISE, typesGroupe: Object.keys(TYPES_GROUPE), pieces: PIECES, professions: E.professions, localites: localites(), motifsDepart: valeursListe("motif_depart").map((l) => l.libelle), cours: E.cours, valeurPart: E.valeurPart, utilisateurs: E.utilisateurs };
+  return { institution: E.institution, agence: E.agence, guichets: E.guichets.filter((g) => g.actif !== false), produits: produitsProposes(), zones: zonesActives(), typesClient: TYPES_CLIENT, typesEntreprise: TYPES_ENTREPRISE, typesGroupe: Object.keys(TYPES_GROUPE), pieces: PIECES, professions: E.professions, localites: localites(), motifsDepart: valeursListe("motif_depart").map((l) => l.libelle), cours: E.cours, valeurPart: E.valeurPart, utilisateurs: E.utilisateurs };
 }
 export const nomUtilisateur = (id?: number) => E.utilisateurs.find((u) => u.id === id)?.nom ?? "";
 
@@ -336,7 +336,7 @@ function controlerProspect(d: Prospect): Prospect {
   return v;
 }
 function ctxControle() {
-  return { produits: E.produits, zones: zonesActives(), jour: journees.courante()?.date ?? "", existe: (id: number) => E.tiers.some((t) => t.id === id) };
+  return { produits: produitsProposes(), zones: zonesActives(), jour: journees.courante()?.date ?? "", existe: (id: number) => E.tiers.some((t) => t.id === id) };
 }
 function nouveauTiers(d: NouveauTiers, creePar: number, reste: Pick<Tiers, "type" | "dirigeant" | "signataires" | "membres" | "photo" | "specimen">): Tiers {
   const t: Tiers = { ...d, ...reste, intitule: "", dateVisa: "", motifDepart: "", resilieLe: "", creeLe: new Date().toISOString().slice(0, 10), id: prochain(E.tiers), numero: numeroClient(), statut: "a_viser", creePar };
@@ -1045,7 +1045,7 @@ const guichet = {
     controlerCoupures(p.coupures, total, "CDF");
     if (enUsd(total, "CDF") + especesDuJourUsd(t.id, "depot") >= SEUIL_ESPECES_USD)
       throw new ErreurMetier("Examen renforcé requis (10 000 USD ou plus en espèces dans la journée). Le circuit de conformité n'est pas encore construit : opération bloquée.", "Instr. BCC 15 bis, art. 1, 6 et 7");
-    const cCdf: CompteDepot = { id: E.comptes.length + 1, tiersId: t.id, numero: numeroCompte(t.numero, produit), intitule: produit.libelle, pcci: "330", devise: "CDF", bloque: 0 };
+    const cCdf: CompteDepot = { id: E.comptes.length + 1, tiersId: t.id, numero: numeroCompte(t.numero, produit), intitule: produit.libelle, pcci: produit.famille === "BLOQUE" ? "334" : "330", devise: "CDF", bloque: 0 };   // PCCI 334, 330 (S27-2)
     E.comptes.push(cCdf);
     const lignes: Ligne[] = [
       { compte: "570", contrat: guichetDe(s), sens: "D", devise: "CDF", montant: total, montantCdf: total },
@@ -1996,6 +1996,65 @@ const modeles = {
   },
 };
 
+// ---------- Paramétrage > Produit > Epargne : gestion des produits épargnes (S27, manuel p. 40). Règles identiques côté serveur (noyau/produits_epargne.py). ----------
+export const FAMILLES_EPARGNE = ["EPARGNE", "BLOQUE", "TONTINE"] as const;   // capture p. 40
+/** Produits proposés à l'enrôlement et à l'adhésion : actifs, non supprimés */
+const produitsProposes = () => E.produits.filter((p) => p.actif && !p.supprime);
+const CHAMPS_EPARGNE: Record<string, [string, "texte" | "entier" | "montant" | "oui" | "ouiNon"]> = {
+  numero: ["N° Produit", "entier"], code: ["Code produit", "texte"], famille: ["Famille produit", "texte"], libelle: ["Libellé produit", "texte"], devise: ["Devise", "texte"],
+  soldeMinimum: ["Solde minimum", "montant"], retraitMaxJour: ["Max retrait/jour", "montant"], nbMaxComptes: ["Max compte à créer", "entier"],
+  afficherAdhesion: ["Afficher à l'adhésion", "oui"], actif: ["Actif", "oui"], virementPrelevement: ["Virement prélèvement", "oui"],
+  operer: ["Opérer sur compte", "ouiNon"], depotCheque: ["Dépôt de chèque", "ouiNon"], caution: ["Caution", "ouiNon"], nantissement: ["Nantissement", "ouiNon"],
+  tenueCompte: ["Tenu de compte", "ouiNon"], calculerInteret: ["Calculer interêt", "ouiNon"], soldeNegatif: ["Solde négatif", "ouiNon"],
+  repartitionGroupe: ["Repartition groupe obligatoire", "ouiNon"],
+};
+const OBLIGATOIRES_EPARGNE = ["numero", "code", "famille", "libelle", "devise", "soldeMinimum", "nbMaxComptes", "operer", "depotCheque", "caution", "nantissement",
+  "calculerInteret", "soldeNegatif", "repartitionGroupe"];
+const produitsEpargne = {
+  lire() {
+    exiger();
+    return { familles: [...FAMILLES_EPARGNE], devises: ["USD", "CDF"],
+      produits: E.produits.filter((p) => !p.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ supprime: _x, ...p }) => ({ ...p })) };
+  },
+  /** Enregistrer (nouveau produit) ou Modifier (produit choisi dans la grille), après confirmation (p. 10 à 12) */
+  enregistrer(d: Record<string, unknown>, id?: number) {
+    exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
+    const actuel = id === undefined ? undefined : E.produits.find((p) => p.id === id && !p.supprime);
+    if (id !== undefined && !actuel) throw new ErreurMetier("Produit introuvable.");
+    const v: Record<string, unknown> = {}; const manque: string[] = [];
+    for (const [k, [lib, sorte]] of Object.entries(CHAMPS_EPARGNE)) {
+      let x: unknown = d[k];
+      if (sorte === "texte") x = typeof x === "string" && x.trim() ? x.trim() : null;
+      else if (sorte === "oui" || sorte === "ouiNon") x = typeof x === "boolean" ? x : sorte === "oui" ? false : null;
+      else if (x === null || x === undefined || x === "") x = null;
+      else if (typeof x !== "number" || !Number.isInteger(x) || x < 0) throw new ErreurMetier(`${lib} : nombre entier positif ou nul.`);
+      if (x === null && OBLIGATOIRES_EPARGNE.includes(k)) manque.push(lib);
+      v[k] = x;
+    }
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    if (!(FAMILLES_EPARGNE as readonly string[]).includes(v.famille as string)) throw new ErreurMetier("Famille produit inconnue.");
+    if (!["USD", "CDF"].includes(v.devise as string)) throw new ErreurMetier("Devise inconnue.");
+    if ((v.numero as number) < 1 || (v.numero as number) > 99) throw new ErreurMetier("N° Produit : de 1 à 99 (il sert de suffixe au numéro de compte, S17).");
+    if ((v.nbMaxComptes as number) < 1) throw new ErreurMetier("Max compte à créer : au moins 1.");
+    const autres = E.produits.filter((p) => !p.supprime && p.id !== id);
+    if (autres.some((p) => p.code.toLowerCase() === (v.code as string).toLowerCase())) throw new ErreurMetier("Ce Code produit existe déjà.");
+    if (autres.some((p) => p.numero === v.numero)) throw new ErreurMetier("Ce N° Produit existe déjà.");
+    if (actuel && E.tiers.some((t) => t.produitCode === actuel.code))          // registre S27-3
+      for (const k of ["devise", "famille", "numero"] as const) if (v[k] !== actuel[k]) throw new ErreurMetier(`Des comptes sont ouverts sur ce produit : ${CHAMPS_EPARGNE[k]![0]} ne se change plus.`);
+    if (actuel) Object.assign(actuel, v); else E.produits.push({ ...(v as unknown as ProduitEpargne), id: prochain(E.produits), supprime: false });
+    enregistrer(); return produitsEpargne.lire();
+  },
+  /** Supprimer (p. 12) : logique (T02) ; un produit qui a des comptes ne se supprime pas : décocher Actif (registre S27-3) */
+  supprimer(id: number) {
+    exiger("chef_agence");
+    const p = E.produits.find((x) => x.id === id && !x.supprime);
+    if (!p) throw new ErreurMetier("Produit introuvable.");
+    if (E.tiers.some((t) => t.produitCode === p.code)) throw new ErreurMetier("Des comptes sont ouverts sur ce produit : décocher Actif pour ne plus le proposer.");
+    p.supprime = true;
+    enregistrer(); return produitsEpargne.lire();
+  },
+};
+
 // ---------- Info de base > Localisation (S20, manuel p. 30 à 32), adaptée au découpage de la RDC (demande du porteur, registre S20-1) :
 // Constitution, art. 2 et 3 ; Décret 22/07 du 02/03/2022, art. 9, point 26. Règles identiques côté serveur (noyau/localisation.py). ----------
 const NIVEAUX: NiveauLieu[] = ["pays", "province", "ville", "commune", "quartier"];
@@ -2090,6 +2149,7 @@ const apiLocal = {
   ordres: asynchrone(ordres),
   produitsCredit: asynchrone(produitsCredit),
   modeles: asynchrone(modeles),
+  produitsEpargne: asynchrone(produitsEpargne),
   comptes: asynchrone(comptes),
   numerotation: asynchrone(numerotation),
 };

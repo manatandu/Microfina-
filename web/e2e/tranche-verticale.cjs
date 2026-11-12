@@ -118,6 +118,13 @@ const OUT = process.argv[2];
   await aller('/parametrage/s17'); await p.getByLabel('Prefixe').check(); await p.getByLabel('Position').fill('3');
   await p.getByRole('button', { name: 'Générer' }).click(); await p.getByText('0412-0412-000318-002').waitFor(); await etape('02h-numero-compte');
   await p.getByRole('button', { name: 'Annuler' }).click();
+  // Chef : produit épargne (S27, p. 40) : un produit de garantie, famille BLOQUE
+  await aller('/parametrage/s27'); await p.getByLabel('N° Produit : *').fill('5'); await p.getByLabel('Code produit : *').fill('G');
+  await p.getByLabel('Famille produit : *').selectOption('BLOQUE'); await p.getByLabel('Libellé produit : *').fill('Epargne De Garantie');
+  await p.getByLabel('Devise : *').selectOption('CDF'); await p.getByLabel('Solde minimum : *').fill('0'); await p.getByLabel('Max compte à créer *').fill('1');
+  for (const [nom, rep] of [['Opérer sur compte : *', 'Oui'], ['Dépôt de chèque : *', 'Non'], ['Caution : *', 'Non'], ['Nantissement : *', 'Oui'], ['Calculer interêt: *', 'Non']])
+    await p.getByRole('group', { name: nom }).getByLabel(rep).check();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Epargne De Garantie' }).waitFor(); await etape('02f17-produit-epargne');
   // Caissière : ouvrir la caisse (sans comptage : Microfina++ ne compte qu'à l'arrêté, p. 90 et 91)
   await login('Esther Ngalula');
   await aller('/principal'); await etape('01c-menu-general');
