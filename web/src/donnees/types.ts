@@ -172,7 +172,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise }
 
 export interface Etat {
-  version: 27;
+  version: 28;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];
@@ -201,6 +201,7 @@ export interface Etat {
   listes: LigneListe[];   // moteur des listes simples : S14, S14a à S14n
   numerotation: Record<string, RegleNumerotation>;   // S15, par institution
   affectations: AffectationGuichet[];   // S10
+  comptesInstitution: CompteInstitution[];   // S102 : comptes divisionnaires ouverts par l'institution (PCCI § 9)
   comptesBancaires: { id: number; banqueId: number; compte: string; libelle: string; numeroBancaire: string; devise: Devise; journalId: number; contactNom: string; contactNomComplet: string; contactTelephone: string }[];
   consentements: { id: number; tiersId: number; code: string; dateDebut: string; dateFin: string; commentaire: string }[];   // S50
   typesProcuration: { id: number; libelle: string }[];   // S47
@@ -237,3 +238,10 @@ export interface AffectationGuichet {
 
 /** Moteur des listes simples (COMPLEMENTS § 7.2) : une valeur d'une page de Info de base > Client > Général (manuel p. 23) ; actif à false = supprimée (p. 12) */
 export interface LigneListe { id: number; liste: string; code: string; libelle: string; parentId?: number; actif: boolean }
+
+/** S102 (manuel p. 122 et 146) : options d'un compte du plan */
+export interface OptionsCompte {
+  ouvert: boolean; saisissable: boolean; saisieAnalytique: boolean; saisieEcheance: boolean; lettrageAuto: boolean; saisieTiers: boolean;
+  immobilisation: boolean; compteTaxe: boolean; compteTaxable: boolean; typeSuivi: string;
+}
+export type CompteInstitution = OptionsCompte & { numero: string; libelle: string; classe: number };

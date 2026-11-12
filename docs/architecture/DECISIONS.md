@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**134 décisions.** Solidité : 52 fortes (le manuel ou un texte répond), 64 moyennes (déduites d'un écran voisin ou d'une donnée), 18 faibles (notre choix, faute de mieux). Dans le code : 80 déjà en place, 54 à appliquer.
+**144 décisions.** Solidité : 56 fortes (le manuel ou un texte répond), 68 moyennes (déduites d'un écran voisin ou d'une donnée), 20 faibles (notre choix, faute de mieux). Dans le code : 90 déjà en place, 54 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -26,7 +26,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | T14 | Combien de journées ouvertes (S09, S12, S79, S111) | Une seule journée reçoit des opérations dans l'agence : la dernière ouverte. Plusieurs journées peuvent attendre leur comptabilisation ; le comptable les comptabilise dans l'ordre des dates | Manuel : Manuel p. 22 (journées sans date de fermeture), p. 130 (liste « Journée non comptabilisée »), p. 14 (une journée ouverte en pied de page) | moyenne | à appliquer |
 | T15 | Date de l'opération (tous les écrans) | Toujours la journée ouverte du guichet, affichée et non modifiable. L'heure réelle est celle du serveur | Texte réglementaire : PCCI § 3.4 (chronologie sans insertion intercalaire) ; ARCHITECTURE P3 | forte | en place |
 | T16 | Compte comptable saisi dans un écran (tous les écrans à compte) | Le compte saisi doit exister dans le plan de comptes (S102). Quand le PCCI nomme le compte, il est proposé par défaut et reste modifiable | Texte réglementaire : PCCI, liste des comptes | forte | en place |
-| T17 | Format de l'export (toutes les grilles) | Fichier Excel | Règle générale du manuel : Manuel p. 9 : « Une grille peut être exportée vers Excel » | forte | à appliquer |
+| T17 | Format de l'export (toutes les grilles) | Fichier Excel | Règle générale du manuel : Manuel p. 9 : « Une grille peut être exportée vers Excel » | forte | en place |
 | T18 | Validation des compléments (méthode) | Le porteur valide en fin de lot, sur écran, à partir de ce registre. Les lignes de solidité faible sont à regarder en premier | Choix du porteur : Demande du porteur du 12/11/2026 : trouver les réponses et les garder | forte | en place |
 | T19 | Caisse mobile, Gestion de réunion (S129, S130) | Restent écartés : le manuel n'en donne que les noms de menu et ils ne servent pas le but (reproduire le cœur de Microfina++) | Manuel : Manuel p. 164 et 165 (menus seuls) | moyenne | en place |
 | T20 | Plan comptable (tout le logiciel) | Le PCCI complet (604 comptes du § 13) est chargé dans le logiciel, dans un seul fichier (replica/pcci.json) lu par le serveur et par la démo. Coquille du texte corrigée : « 6851 Cadres conventionnés », entre 6580 et 6582, est 6581. Les comptes des classes 3 à 5 qui peuvent être débiteurs ou créditeurs ont la nature « mixte » | Texte réglementaire : PCCI § 13 « Liste des comptes » ; Instr. BCC n° 006 (PCCI obligatoire) | forte | en place |
@@ -95,7 +95,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S13-2 | Ce qui compte comme annulation | Une opération annulée (S142, et rapport des annulations S118). Reste à 0 tant que S142 n'est pas construit | Donnée exigée ailleurs : S142 (p. 158), S118 (p. 137) | moyenne | en place |
 | S13-3 | Transactions | Opérations moins annulations | Manuel : Chiffres de la capture p. 22 | forte | en place |
 | S13-4 | Utilisateurs sans opération | Non listés | Écran voisin : Capture p. 22 | faible | en place |
-| S13-5 | Format du fichier d'Export | Fichier Excel, comme toute grille (règle T17). Aujourd'hui l'Export sort un fichier CSV, que Excel ouvre | Règle générale du manuel : Manuel p. 9 : « Une grille peut être exportée vers Excel » | forte | à appliquer |
+| S13-5 | Format du fichier d'Export | Fichier Excel, comme toute grille (règle T17). Aujourd'hui l'Export sort un fichier CSV, que Excel ouvre | Règle générale du manuel : Manuel p. 9 : « Une grille peut être exportée vers Excel » | forte | en place |
 
 ## S14 Secteur d'activité
 
@@ -277,6 +277,21 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S80-5 | Écriture de l'écart | À la validation : un excédent va au crédit du compte surplus du guichet (7790), un manquant au débit de son compte manquant (671), par le compte du guichet. Le solde informatique rejoint alors le solde réel | Texte réglementaire : PCCI : 671 Déficits de caisse non récupérés, 7790 Excédents de caisse ; comptes du guichet (S08, p. 95) | forte | à appliquer |
 | S80-6 | Liste Journées | Les journées ouvertes du guichet, comme à S79 | Manuel : Capture p. 92 | forte | à appliquer |
 
+## S102 Plan des comptes
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S102-1 | Comptes du PCCI | Ils ne se modifient ni ne se suppriment : le PCCI est imposé. L'institution ouvre ses comptes divisionnaires sous un compte du plan, en codification décimale (le numéro commence par celui du parent) | Texte réglementaire : PCCI § 9 (codification décimale ; « elle peut procéder à l'ouverture de tout autre compte divisionnaire ») ; Instr. BCC n° 006 | forte | en place |
+| S102-2 | Modèle de plan comptable (Classe, Poste, Compte général, Compte, Sous-compte) | Les niveaux du PCCI, en lecture : on n'y saisit rien ; un compte divisionnaire s'ouvre dans Création | Texte réglementaire : PCCI § 9 et § 13 ; manuel p. 123 et 145 | moyenne | en place |
+| S102-3 | Groupe de compte des classes | Bilan (classes 1 à 5), Gestion (6 à 8), Hors bilan (0) | Texte réglementaire : PCCI § 9 : classes de bilan, de gestion, hors bilan | forte | en place |
+| S102-4 | Supprimer un compte qui a servi | Refusé : il se ferme (Statut Fermé). Un compte avec des comptes divisionnaires ne se supprime pas non plus | Texte réglementaire : PCCI § 3.4 (irréversibilité) ; manuel p. 12 | forte | en place |
+| S102-5 | Colonnes de la liste après SA (coupées sur la capture p. 146) | Les autres options du formulaire, OUI ou NON : SE, LA, ST, IMMO, CT, CTX | Écran voisin : Capture p. 146 (une colonne OUI/NON par option) ; formulaire p. 122 | faible | en place |
+| S102-6 | Clé de répartition analytique | Case recopiée, grisée comme sur la capture p. 122, jusqu'au module analytique | Manuel : Capture p. 122 (case grisée) | moyenne | en place |
+| S102-7 | Type de suivi | Liste vide, à remplir avec le plan des tiers (S103) | Donnée exigée ailleurs : S103 Plan des tiers (p. 123) | faible | à appliquer |
+| S102-8 | Recherche par N°compte | Montre le compte cherché, ses parents et ses comptes divisionnaires | Écran voisin : Arbre de la consultation (p. 122 et 147) | moyenne | en place |
+| S102-9 | Concordance des comptes (p. 156) | Non reprise : Likelemba n'a qu'un plan, le PCCI ; la concordance servait à passer d'un référentiel à un autre | Texte réglementaire : Instr. BCC n° 006 (PCCI seul plan) ; recon : référentiel des SFD de l'UEMOA non repris | forte | en place |
+| S102-10 | Statut Fermé, Nature Non saisible | Un compte fermé ou non saisissable ne reçoit pas d'écriture | Donnée exigée ailleurs : Saisie d'écritures (S109) | moyenne | à appliquer |
+
 ## S111 Comptabilisation
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
@@ -306,4 +321,6 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S77-2 | S77 Part sociale | Nombre minimum de parts | Une part. Pas d'autre contrôle : Microfina++ n'en montre pas |
 | S79-1 | S79 Enregistrer billetage | Bouton Terminer | Ferme la fenêtre sans rien enregistrer de plus |
 | S80-4 | S80 Validation billetage | Imprimer, Terminer | Imprimer sort l'arrêté (T11). Terminer ferme la fenêtre |
+| S102-5 | S102 Plan des comptes | Colonnes de la liste après SA (coupées sur la capture p. 146) | Les autres options du formulaire, OUI ou NON : SE, LA, ST, IMMO, CT, CTX |
+| S102-7 | S102 Plan des comptes | Type de suivi | Liste vide, à remplir avec le plan des tiers (S103) |
 | S111-3 | S111 Comptabilisation | Case « Recherche avancée » | Affiche les filtres de la grille (N°Pièce, N° Compte) |

@@ -10,6 +10,7 @@ from . import banques as bq
 from . import guichets as gu
 from . import exercices as ex
 from . import listes as li
+from . import comptes as cp
 from . import numerotation as nu
 from . import services as s
 from .bd import ErreurMetier
@@ -570,3 +571,24 @@ def nu_lire(request):
 @api.post("/numerotation-clients")
 def nu_enregistrer(request, corps: dict = Body(...)):
     return nu.enregistrer(u(request), corps)
+
+
+# ---------- Comptabilité > Plan des comptes (S102) ----------
+@api.get("/plan-comptes")
+def cp_lire(request):
+    return cp.lire(u(request))
+
+
+@api.post("/plan-comptes")
+def cp_creer(request, corps: dict = Body(...)):
+    return cp.enregistrer(u(request), corps)
+
+
+@api.post("/plan-comptes/{numero}")
+def cp_modifier(request, numero: str, corps: dict = Body(...)):
+    return cp.enregistrer(u(request), corps, numero)
+
+
+@api.post("/plan-comptes/{numero}/suppression")
+def cp_supprimer(request, numero: str):
+    return cp.supprimer(u(request), numero)

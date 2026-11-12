@@ -34,7 +34,7 @@ export function graine(): Etat {
     lieuNaissance: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", liees: [] as number[],
     type: "physique" as const, formeJuridique: "", registre: "", centreActivite: "", activite: "", dirigeant: null, signataires: [], nbHommes: 0, nbFemmes: 0, membres: [], intitule: "", dateVisa: "2026-01-15", profession: "", pays: "", ville: "", quartier: "", rue: "", email: "", bp: "", telephoneFixe: "", motifDepart: "", resilieLe: "", creeLe: "2026-01-15", creePar: 4, visePar: 2, statut: "actif" as const };
   return {
-    version: 27,
+    version: 28,
     institution: { nom: "COOPEC Tujenge", sigle: "CTJ", profil: "coopec" },   // sigle fictif : élément Institution du numéro client (S15-11)
     agence: { id: 1, code: "0412", nom: "Matete" },
     guichets: [{ id: 1, code: "G1", nom: "Caisse 1", typeGuichet: "PRINCIPALE", journalId: 1, ...COMPTES_GUICHET }, { id: 2, code: "G2", nom: "Caisse 2", typeGuichet: "SECONDAIRE", journalId: 1, ...COMPTES_GUICHET }],   // type et journal fictifs (S08)
@@ -80,6 +80,7 @@ export function graine(): Etat {
       ...["Homme", "Femme", "Entreprise", "Groupement", "Association", "ONG"].map((libelle, i) => ({ liste: "sous_type_client", code: String(i + 1), libelle }))]
       .map((l, i) => ({ id: i + 1, ...l, actif: true })),
     numerotation: {},
+    comptesInstitution: [],
     // S10, données fictives : la caissière tient la Caisse 2 et voit les soldes
     affectations: [{ id: 1, utilisateurId: 1, guichetId: 2, voirSolde: true, voirSoldeVip: false, debut: "2026-11-04T07:00:00Z", ajoutePar: 2 }],
     // Localisation et professions fictives (paramétrage S14 et Localisation pas encore construits)

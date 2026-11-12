@@ -275,3 +275,11 @@ textarea.saisie.montant { resize: none; text-align: end; }
 
 /* S10 (p. 96) : boutons ✎ et ✖ de la colonne Action */
 .bouton.icone { min-inline-size: 2.25rem; padding-inline: var(--espace-2); }
+
+/* S102 (p. 122 et 147) : arbre du plan des comptes */
+.arbre-plan, .arbre-plan ul { list-style: none; margin: 0; padding-inline-start: var(--espace-4); }
+.arbre-plan { padding: var(--espace-2) 0; max-block-size: 36rem; overflow: auto; font-size: var(--taille-dense); }
+.arbre-plan summary { cursor: pointer; padding: 2px 0; font-weight: 600; }
+.arbre-plan li.feuille { padding: 2px 0 2px var(--espace-4); }
+.plan-consultation .saisie { inline-size: 14rem; }
+.champs-a-gauche .champ .ligne-champ { flex-wrap: nowrap; align-items: center; }

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api } from "../donnees/api";
 import { message } from "../lib/useDonnees";
+import { exporterExcel } from "../lib/excel";
 import { ChampDate, Dialogue, Textes, type Boite } from "../composants";
 
 type Ligne = { utilisateur: string; operations: number; annulations: number; transactions: number };
@@ -17,13 +18,10 @@ export default function RapportTransactions() {
     try { setLignes(await api.rapports.transactions(du, au)); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   }
+  /** Export vers Excel (manuel p. 9 ; registre T17 et S13-5) */
   function exporter() {
-    const t = [["Utilisateur", "Nbres Opérations", "Nbres Annulations", "Nbres Tansactions"],
-      ...lignes.map((l) => [l.utilisateur, l.operations, l.annulations, l.transactions]),
-      ["TOTAL", total("operations"), total("annulations"), total("transactions")]].map((r) => r.join(";")).join("\r\n");
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob(["﻿" + t], { type: "text/csv;charset=utf-8" }));
-    a.download = `rapport-transactions-${du}-${au}.csv`; a.click(); URL.revokeObjectURL(a.href);
+    exporterExcel("Rapport des transactions", ["Utilisateur", "Nbres Opérations", "Nbres Annulations", "Nbres Tansactions"],
+      [...lignes.map((l) => [l.utilisateur, l.operations, l.annulations, l.transactions]), ["TOTAL", total("operations"), total("annulations"), total("transactions")]]);
   }
   return (
     <>
@@ -48,7 +46,7 @@ export default function RapportTransactions() {
         <div className="actions-onglets">
           <button className="bouton" type="button" onClick={exporter}>Export</button>
         </div>
-        <p className="a-confirmer">À confirmer : ce que Microfina++ compte comme opération et comme transaction (ici : toute opération de guichet saisie, comptée à son auteur, dans les journées de l'agence de la période ; transactions = opérations moins annulations, comme sur la capture) ; Nbres Annulations reste à 0 tant que l'annulation d'opération n'est pas construite ; format du fichier d'Export (ici CSV) ; utilisateurs sans opération (ici non listés) ; barre de pages (non construite) ; bouton calendrier à côté des dates ; profil habilité.</p>
+        <p className="a-confirmer">À confirmer : ce que Microfina++ compte comme opération et comme transaction (ici : toute opération de guichet saisie, comptée à son auteur, dans les journées de l'agence de la période ; transactions = opérations moins annulations, comme sur la capture) ; Nbres Annulations reste à 0 tant que l'annulation d'opération n'est pas construite ; utilisateurs sans opération (ici non listés) ; barre de pages (non construite) ; bouton calendrier à côté des dates ; profil habilité.</p>
         <Textes sources={["Manuel Microfina++, p. 22 : Rapport des transactions, « Préciser la période du rapport des opérations correspondantes à afficher avant d'exporter », DU, AU, Afficher, Utilisateur, Nbres Opérations, Nbres Annulations, Nbres Tansactions, TOTAL, Export"]} />
       </section>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />

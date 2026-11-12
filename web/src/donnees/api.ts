@@ -8,7 +8,7 @@ import { creerApiHttp } from "./http";
 import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
   type Operation, type Role, type SessionCaisse, type Tiers, type Utilisateur,
-  type Representant, type Frais, type ParamFrais, type ParamAdhesion,
+  type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation,
 } from "./types";
 import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@design/montant.js";
@@ -17,7 +17,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v27";
+const CLE = "likelemba-demo-v28";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -25,7 +25,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 27) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 28) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -1069,8 +1069,64 @@ const guichet = {
 /** Plan comptable : le PCCI complet (replica/pcci.json, 604 comptes ; Instruction BCC n° 006), plus les comptes bancaires de l'institution (S58) */
 const NUMEROS_PCCI = PCCI.comptes.map((c) => c.numero);
 function planComptable() {
-  return [...NUMEROS_PCCI, ...E.comptesBancaires.map((c) => c.compte)];
+  return [...NUMEROS_PCCI, ...E.comptesInstitution.map((c) => c.numero), ...E.comptesBancaires.map((c) => c.compte)];
 }
+
+// ---------- Comptabilité > Plan des comptes (S102, manuel p. 122, 123, 145 à 147). Règles identiques côté serveur (noyau/comptes.py).
+// Le PCCI ne se modifie pas ; l'institution y ouvre ses comptes divisionnaires (PCCI § 9), en codification décimale. ----------
+const OPTIONS_COMPTE = ["saisieAnalytique", "saisieEcheance", "lettrageAuto", "saisieTiers", "immobilisation", "compteTaxe", "compteTaxable"] as const;
+/** Registre S102-3 : groupes de compte des classes (PCCI § 9 : bilan, gestion, hors bilan) */
+const GROUPES_COMPTE: Record<string, string> = { 0: "Hors bilan", 1: "Bilan", 2: "Bilan", 3: "Bilan", 4: "Bilan", 5: "Bilan", 6: "Gestion", 7: "Gestion", 8: "Gestion" };
+const OPTIONS_PCCI: OptionsCompte = { ouvert: true, saisissable: true, saisieAnalytique: false, saisieEcheance: false, lettrageAuto: false, saisieTiers: false,
+  immobilisation: false, compteTaxe: false, compteTaxable: false, typeSuivi: "" };
+export type LigneCompte = CompteInstitution & { pcci: boolean };
+export type SaisieCompte = Partial<Omit<OptionsCompte, "ouvert" | "saisissable">> & { parent: string; suite: string; libelle: string; ouvert?: boolean | null; saisissable?: boolean | null };
+const comptes = {
+  lire() {
+    exiger();
+    // Les classes du PCCI (§ 13) : tête de l'arbre et premier niveau du Modèle ; elles ne reçoivent pas d'écriture
+    const classes = Object.entries(PCCI.classes).map(([k, v]) => ({ ...OPTIONS_PCCI, saisissable: false, numero: k, libelle: v, classe: Number(k), pcci: true }));
+    const tous: LigneCompte[] = [...classes, ...PCCI.comptes.map((c) => ({ ...OPTIONS_PCCI, numero: c.numero, libelle: c.libelle, classe: c.classe, pcci: true })),
+      ...E.comptesInstitution.map((c) => ({ ...c, pcci: false }))];
+    return { comptes: tous.sort((a, b) => a.numero.localeCompare(b.numero)), groupes: GROUPES_COMPTE };
+  },
+  /** Formulaire « Plan général » (p. 122 et 146) : sans numeroActuel, Enregistrer un compte divisionnaire ; avec, le modifier */
+  enregistrer(d: SaisieCompte, numeroActuel?: string) {
+    exiger("comptable");   // profil habilité : registre T07, en attendant S03 à S06
+    const parent = d.parent.trim(), suite = d.suite.trim(), libelle = d.libelle.trim();
+    const manque = manquants([["Parent", parent], ["Numero", suite], ["Libelle", libelle]]);
+    if (d.ouvert === null || d.ouvert === undefined) manque.push("Statut");
+    if (d.saisissable === null || d.saisissable === undefined) manque.push("Nature");
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    if (!/^\d+$/.test(suite)) throw new ErreurMetier("Numero : chiffres seulement.");
+    const p = comptes.lire().comptes.find((c) => c.numero === parent && c.numero.length > 1);
+    if (!p) throw new ErreurMetier("Parent : ce compte n'est pas dans le plan." + (parent in PCCI.classes ? " Une classe n'a pas de compte divisionnaire direct : choisir un compte." : ""));
+    const numero = parent + suite;
+    const v: CompteInstitution = { numero, libelle, classe: p.classe, ouvert: !!d.ouvert, saisissable: !!d.saisissable, typeSuivi: d.typeSuivi?.trim() ?? "",
+      ...Object.fromEntries(OPTIONS_COMPTE.map((k) => [k, !!d[k]])) as Pick<OptionsCompte, (typeof OPTIONS_COMPTE)[number]> };
+    if (numeroActuel === undefined) {
+      if (planComptable().includes(numero)) throw new ErreurMetier(`Le compte ${numero} existe déjà.`);
+      E.comptesInstitution.push(v);
+    } else {
+      const c = E.comptesInstitution.find((x) => x.numero === numeroActuel);
+      // Registre S102-1 : les comptes du PCCI ne se modifient pas (Instr. BCC n° 006)
+      if (!c) throw new ErreurMetier("Ce compte est un compte du PCCI : il ne se modifie pas. Ouvrez un compte divisionnaire.");
+      if (numero !== numeroActuel) throw new ErreurMetier("Le numéro d'un compte ne change pas : créez un nouveau compte.");
+      Object.assign(c, v);
+    }
+    enregistrer(); return comptes.lire();
+  },
+  /** Supprimer (p. 122) : un compte de l'institution, sans écriture ni compte divisionnaire ; sinon, le fermer */
+  supprimer(numero: string) {
+    exiger("comptable");
+    const c = E.comptesInstitution.find((x) => x.numero === numero);
+    if (!c) throw new ErreurMetier("Ce compte est un compte du PCCI : il ne se supprime pas.");
+    if (E.ecritures.some((e) => e.lignes.some((l) => l.compte === numero)) || E.comptesBancaires.some((b) => b.compte === numero))
+      throw new ErreurMetier("Ce compte a servi : il ne se supprime pas. Mettez son Statut à Fermé.");
+    if (planComptable().some((n) => n !== numero && n.startsWith(numero))) throw new ErreurMetier("Ce compte a des comptes divisionnaires : les supprimer d'abord.");
+    E.comptesInstitution = E.comptesInstitution.filter((x) => x.numero !== numero); enregistrer(); return comptes.lire();
+  },
+};
 /** Opérations qui font sortir des billets de la caisse */
 const SORTIES: Operation["type"][] = ["retrait", "retrait_parts"];
 /** PCCI, compte 103 : 1030 personnes physiques, 1031 groupements solidaires, 1032 personnes morales.
@@ -1120,12 +1176,13 @@ const operations = {
 // ---------- États ----------
 export interface LigneBalance { compte: string; libelle: string; devise: Devise; debit: number; credit: number; debitCdf: number; creditCdf: number }
 export const LIBELLES_PCCI: Record<string, string> = Object.fromEntries(PCCI.comptes.map((c) => [c.numero, c.libelle]));
+const libelleCompte = (n: string) => LIBELLES_PCCI[n] ?? E.comptesInstitution.find((c) => c.numero === n)?.libelle ?? "";
 const etats = {
   balance(): LigneBalance[] {
     const m = new Map<string, LigneBalance>();
     for (const l of E.ecritures.flatMap((e) => e.lignes)) {
       const k = `${l.compte}|${l.devise}`;
-      const b = m.get(k) ?? { compte: l.compte, libelle: LIBELLES_PCCI[l.compte] ?? "", devise: l.devise, debit: 0, credit: 0, debitCdf: 0, creditCdf: 0 };
+      const b = m.get(k) ?? { compte: l.compte, libelle: libelleCompte(l.compte), devise: l.devise, debit: 0, credit: 0, debitCdf: 0, creditCdf: 0 };
       if (l.sens === "D") { b.debit += l.montant; b.debitCdf += l.montantCdf; } else { b.credit += l.montant; b.creditCdf += l.montantCdf; }
       m.set(k, b);
     }
@@ -1436,6 +1493,7 @@ const apiLocal = {
   guichets: asynchrone(guichets),
   exercices: asynchrone(exercices),
   listes: asynchrone(listes),
+  comptes: asynchrone(comptes),
   numerotation: asynchrone(numerotation),
 };
 

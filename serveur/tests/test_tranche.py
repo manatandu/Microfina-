@@ -693,3 +693,31 @@ def test_journee_suivante_refusee_guichet_ouvert(clients, journee):
     """S12, registre S12-4 : pas de journée suivante tant qu'un guichet est ouvert ; le message nomme le guichet"""
     r = clients["chef"].post("/api/journees", {"date": "2026-11-06"}, **H)
     assert r.status_code == 422 and "Guichet encore ouvert : Caisse 2 (05/11/2026)" in r.json()["message"]
+
+
+def test_plan_des_comptes(clients):
+    """S102 (p. 122, 146) et T20 : le PCCI complet ; compte divisionnaire (PCCI § 9) ; comptes du PCCI non modifiables ; suppression"""
+    compta, chef = clients["compta"], clients["chef"]
+    connecter(compta, "plumbala"); connecter(chef, "jpmukendi")
+    l = compta.get("/api/plan-comptes", **H).json()
+    pcci = [c for c in l["comptes"] if c["pcci"]]
+    assert len(pcci) == 604 + 9 and l["groupes"]["6"] == "Gestion"                   # 604 comptes et 9 classes
+    assert next(c for c in pcci if c["numero"] == "6581")["libelle"] == "Cadres conventionnés"
+    corps = {"parent": "5701", "suite": "1", "libelle": "Caisse Matete CDF", "ouvert": True, "saisissable": True}
+    def refus(c, route="/api/plan-comptes"):
+        r = compta.post(route, c, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    assert "Parent" in refus({**corps, "parent": "5799"})
+    assert "chiffres" in refus({**corps, "suite": "1A"})
+    assert "Statut" in refus({**corps, "ouvert": None})
+    assert chef.post("/api/plan-comptes", corps, **H).status_code == 403
+    assert "existe déjà" in refus({**corps, "parent": "57", "suite": "0"})         # 570 est déjà au PCCI
+    l = compta.post("/api/plan-comptes", {**corps, "parent": "570", "suite": "1"}, **H).json()
+    c = next(x for x in l["comptes"] if x["numero"] == "5701")
+    assert (c["pcci"], c["libelle"], c["ouvert"]) == (False, "Caisse Matete CDF", True)
+    l = compta.post("/api/plan-comptes/5701", {**corps, "parent": "570", "suite": "1", "libelle": "Caisse Matete", "ouvert": False, "lettrageAuto": True}, **H).json()
+    c = next(x for x in l["comptes"] if x["numero"] == "5701")
+    assert (c["libelle"], c["ouvert"], c["lettrageAuto"]) == ("Caisse Matete", False, True)
+    assert "PCCI" in refus({**corps, "parent": "57", "suite": "0"}, "/api/plan-comptes/570")              # S102-1
+    assert "PCCI" in refus({}, "/api/plan-comptes/570/suppression")
+    l = compta.post("/api/plan-comptes/5701/suppression", **H).json()
+    assert not [x for x in l["comptes"] if x["numero"] == "5701"]

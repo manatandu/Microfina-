@@ -8,6 +8,7 @@ import { CompleterJournalDetail, NouvelExercice, OuvertureExercice } from "./Exe
 import { EnrolementEntreprise, EnrolementGroupe, EnrolementPhysique, MiseAJourClient } from "./Membres";
 import RapportTransactions from "./Transactions";
 import ListesGenerales from "./Secteurs";
+import PlanComptes from "./PlanComptes";
 import ParametragesClients from "./Numerotation";
 import { EcranJournee, EcranValidation, FermetureJournee } from "./Journee";
 import { Consentement, InformationsClient, ModificationFrais, PhotosSignatures, ResiliationClient, ValidationClientModifie, VisaClient } from "./Visa";
@@ -53,6 +54,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S77: PartsSociales,
   S79: BilletageCaisse,
   S80: ValidationBilletage,
+  S102: PlanComptes,
   S111: FermetureJournee,
   S113: () => <EcranValidation titre="Visas" seulement="operations" />,
   S121: Balance,

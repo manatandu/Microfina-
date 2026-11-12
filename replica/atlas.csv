@@ -117,7 +117,7 @@ S98,Génération de balance âgée,120,A,traitement,résultat,R:Instr. BCC sur l
 S99,Déclassement provision et crédit,121 (sans texte),B,traitement,règles,R:Instr. BCC sur le classement et les provisions,7 Crédit,non
 S100,Engagement par signature,121,A,liste,document imprimé,document,7 Crédit,non
 S101,Rapports crédit (huit),121 (menu seul),D,rapport,"les huit rapports : Journal, Rapports de base, Multicritère, Synthèse de la balance âgée, Taux de remboursements, Encours prévisionnel, Exigibles, Indicateur de gestion","A:S72, S93 ; R:Instr. BCC sur les indicateurs",7 Crédit,non
-S102,"Plan des comptes : référentiel, consultation, modèle, création, concordance",122 et 123 ; 145 à 147 ; 156,A,liste,,R:PCCI,8 Comptabilité,non
+S102,"Plan des comptes : référentiel, consultation, modèle, création, concordance",122 et 123 ; 145 à 147 ; 156,A,liste,,R:PCCI,8 Comptabilité,oui
 S103,Plan des tiers,123 ; texte 156,A,liste,,,8 Comptabilité,non
 S104,Taxes,"123 (texte), 124 ; 155",A,liste,,R:fiscalité RDC ; P,8 Comptabilité,non
 S105,Déblocage crédit sur compte d'épargne,124 ; 157,A,guichet,reconnaissance de dette,document,8 Comptabilité,non

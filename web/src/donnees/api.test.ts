@@ -468,6 +468,25 @@ describe("journée de guichet", () => {
     await expect(api.journees.ouvrir("2026-11-06")).rejects.toThrow("Guichet encore ouvert : Caisse 2 (05/11/2026)");
   });
 
+  it("plan des comptes (S102, T20) : PCCI complet, compte divisionnaire, PCCI non modifiable, suppression", async () => {
+    await connecter("plumbala");
+    let l = await api.comptes.lire();
+    expect(l.comptes.filter((c) => c.pcci).length).toBe(604 + 9);   // 604 comptes et 9 classes
+    const corps = { parent: "570", suite: "1", libelle: "Caisse Matete CDF", ouvert: true, saisissable: true };
+    await expect(api.comptes.enregistrer({ ...corps, parent: "5799" })).rejects.toThrow("Parent");
+    await expect(api.comptes.enregistrer({ ...corps, parent: "57", suite: "0" })).rejects.toThrow("existe déjà");
+    l = await api.comptes.enregistrer(corps);
+    expect(l.comptes.find((c) => c.numero === "5701")).toMatchObject({ pcci: false, libelle: "Caisse Matete CDF" });
+    l = await api.comptes.enregistrer({ ...corps, libelle: "Caisse Matete", ouvert: false }, "5701");
+    expect(l.comptes.find((c) => c.numero === "5701")).toMatchObject({ libelle: "Caisse Matete", ouvert: false });
+    await expect(api.comptes.enregistrer({ ...corps, parent: "57", suite: "0" }, "570")).rejects.toThrow("PCCI");
+    await expect(api.comptes.supprimer("570")).rejects.toThrow("PCCI");
+    l = await api.comptes.supprimer("5701");
+    expect(l.comptes.some((c) => c.numero === "5701")).toBe(false);
+    await connecter("jpmukendi");
+    await expect(api.comptes.enregistrer(corps)).rejects.toThrow("comptable");
+  });
+
   it("quatre yeux sur le billetage", async () => {
     await connecter("jpmukendi"); await api.journees.ouvrir("2026-11-05");
     await connecter("engalula");

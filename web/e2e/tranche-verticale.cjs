@@ -311,6 +311,15 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Fermer la journée' }).click(); await p.getByText('Aucune journée ouverte.').waitFor();
   await etape('17-journee-fermee');
   await login('Patrick Lumbala'); await p.goto(B + '/comptabilite/s121'); await p.getByText(/Équilibrée/).waitFor(); await etape('18-balance');
+  // Comptable : plan des comptes (S102, p. 122, 146, 147) ; ouvrir un compte divisionnaire du PCCI (PCCI § 9)
+  await aller('/comptabilite/s102');
+  await p.getByLabel('Parent *').fill('570'); await p.getByRole('textbox', { name: 'Libellé du parent' }).waitFor();
+  await p.locator('#cp-suite').fill('1'); await p.getByLabel('Libelle *').fill('Caisse Matete CDF');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByRole('cell', { name: 'Caisse Matete CDF' }).waitFor(); await etape('18a-plan-creation');
+  await p.getByRole('tab', { name: 'Consultation' }).click(); await p.getByLabel('Recherche par N°compte').fill('5701');
+  await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByText('5701 - Caisse Matete CDF').waitFor(); await etape('18b-plan-consultation');
+  await p.getByRole('tab', { name: 'Modèle de plan comptable' }).click(); await p.getByRole('cell', { name: 'COMPTES DE TRESORERIE' }).waitFor(); await etape('18c-plan-modele');
   // Résiliation (S48), par le chef
   await login('J.-P. Mukendi'); await aller('/clients/s48');
   await p.getByRole('button', { name: 'Rechercher un client' }).click();
