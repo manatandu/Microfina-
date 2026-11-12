@@ -111,7 +111,7 @@ Règles d'emploi :
 - Le barreau 6 passe devant tous les autres dès qu'un texte **impose** ou **interdit** quelque chose. Dans ce cas l'écart est signalé au porteur avec la référence (règle de `CLAUDE.md` § 0, inchangée).
 - Un complément de barreau 4 reprend l'écran voisin **tel quel** : mêmes libellés, mêmes boutons, même ordre. On n'améliore pas en passant.
 - Si aucun barreau de 1 à 6 ne répond, on ne construit pas. On pose la question (barreau 7).
-- Chaque complément porte son étiquette, dans le code (commentaire), sur l'écran (bloc « Complété par nous ») et au registre.
+- Chaque complément porte son étiquette, dans le code (commentaire) et au registre. Rien ne s'affiche sur l'écran (décision du porteur du 12/11/2026).
 
 ---
 
@@ -341,8 +341,8 @@ Le 12/11/2026, le porteur a demandé de trouver les réponses aux questions ouve
 
 Fonctionnement :
 
-- Une décision retenue se construit sans redemander. Sur l'écran, le bloc jaune « À confirmer » devient « Complété par nous » et cite les numéros du registre.
-- À la fin d'un lot, le porteur passe le registre en revue, sur écran, en commençant par les décisions **faibles**. Validé : le bloc disparaît. Refusé : on corrige, et la ligne n'est jamais reconstruite pareil.
+- Une décision retenue se construit sans redemander. L'écran ne porte aucun bloc de commentaire : le registre seul garde les décisions (décision du porteur du 12/11/2026).
+- À la fin d'un lot, le porteur passe le registre en revue, en commençant par les décisions **faibles**. Validé : la ligne passe à « validé ». Refusé : on corrige, et la ligne n'est jamais reconstruite pareil.
 - Une question nouvelle, rencontrée en construisant, reçoit sa ligne de la même façon : échelle des preuves, puis registre.
 
 ---

@@ -164,7 +164,6 @@ fieldset.formulaire { padding-bottom: var(--espace-2); }
 .entete-ecran { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--espace-2) var(--espace-4); }
 .entete-ecran p { margin: 0; color: var(--encre-2); }
 .libelle-vide { display: block; }
-.a-confirmer { margin: 0; padding: var(--espace-2) var(--espace-3); border-left: 3px solid var(--etoile); background: var(--ligne); font-size: var(--taille-dense); }
 .actions-onglets { display: flex; justify-content: flex-end; gap: var(--espace-2); }
 .apercu { margin: 0; display: grid; gap: var(--espace-1); }
 .apercu figcaption { font-size: var(--taille-dense); color: var(--encre-2); }

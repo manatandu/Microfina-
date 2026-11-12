@@ -65,7 +65,7 @@ function InformationsDeBase({ genre, f, maj, ctx, numero, depot, setDepot, chois
           : <div className="ligne-champ">
               <ChampDate libelle="Date demande : *" valeur={f.dateDemande} onChange={(v) => maj({ dateDemande: v })} requis />
               <button className="bouton secondaire" type="button" disabled={!choisirProspect} onClick={choisirProspect}
-                title={choisirProspect ? undefined : "À confirmer : le prospect (S45) est une personne physique"}>Choisir prospect</button>
+                title={choisirProspect ? undefined : "Un prospect (S45) est une personne physique"}>Choisir prospect</button>
             </div>}
         <Champ libelle={entreprise ? "N° de l'entreprise :" : groupe ? "N° du groupe :" : "N° du Client :"}>{(p) => <input {...p} className="saisie code" readOnly value={numero} />}</Champ>
         <Champ libelle="N° Manuel :">{(p) => <input {...p} className="saisie code" autoComplete="off" value={f.numeroManuel} onChange={(e) => maj({ numeroManuel: e.target.value })} />}</Champ>
@@ -189,8 +189,8 @@ function ChampsRepresentant({ r, maj, pieces }: { r: RepresentantSaisi; maj: (p:
 const REPRESENTANT_VIDE: RepresentantSaisi = { nom: "", postnom: "", prenom: "", pieceType: "", pieceNumero: "", pieceExpire: "" };
 
 /** Liste avec fiche ouverte par un bouton : signataires d'une entreprise (p. 50), membres d'un groupe (p. 51) */
-function ListeRepresentants({ fiche: titre, ajouter, page, liste, onChange, pieces, erreur }: {
-  fiche: string; ajouter: string; page: string; liste: RepresentantSaisi[]; onChange: (l: RepresentantSaisi[]) => void; pieces: string[]; erreur: (m: string) => void;
+function ListeRepresentants({ fiche: titre, ajouter, liste, onChange, pieces, erreur }: {
+  fiche: string; ajouter: string; liste: RepresentantSaisi[]; onChange: (l: RepresentantSaisi[]) => void; pieces: string[]; erreur: (m: string) => void;
 }) {
   const [fiche, setFiche] = useState<RepresentantSaisi | null>(null);
   return (
@@ -208,7 +208,6 @@ function ListeRepresentants({ fiche: titre, ajouter, page, liste, onChange, piec
       <Fiche titre={titre} ouverte={!!fiche} fermer={() => setFiche(null)}>
         {fiche && (
           <div className="pile">
-            <p className="a-confirmer">À confirmer : le manuel ne montre pas les champs de la fiche ({page}). Identité selon l'Instr. BCC 15, art. 13 et 14.</p>
             <ChampsRepresentant r={fiche} maj={(p) => setFiche({ ...fiche, ...p })} pieces={pieces} />
             <ChargementImages key={liste.length} images={{ photo: fiche.photo, signature: fiche.signature }} onChange={(i) => setFiche({ ...fiche, ...i })} erreur={erreur} />
             <div className="actions-onglets">
@@ -313,14 +312,12 @@ export function EnrolementPhysique() {
 
       {c.onglet === 1 && (
         <>
-          <p className="a-confirmer">À confirmer : le manuel ne montre pas les champs de cet onglet (p. 49). Identité et pièce : Instr. BCC 15, art. 12 à 14. Sexe et téléphone : demandés par le porteur.</p>
           <IdentitePhysique f={f} maj={maj} pieces={ctx.pieces} />
         </>
       )}
 
       {c.onglet === 2 && (
         <>
-          <p className="a-confirmer">À confirmer : le manuel ne montre pas les champs de cet onglet (p. 49). Celui-ci est exigé par l'Instr. BCC 15, art. 60.</p>
           <label className="case"><input type="checkbox" checked={f.personneExposee} onChange={(e) => maj({ personneExposee: e.target.checked })} /><span>Personne politiquement exposée</span></label>
         </>
       )}
@@ -329,7 +326,6 @@ export function EnrolementPhysique() {
 
       {c.onglet === 4 && (
         <>
-          <p className="a-confirmer">À confirmer : le manuel ne montre pas la fiche d'un bénéficiaire (p. 49). Bouton désactivé jusqu'à ce que ses champs soient connus.</p>
           <div><button className="bouton secondaire" type="button" disabled>+Ajouter</button></div>
         </>
       )}
@@ -369,7 +365,6 @@ export function EnrolementEntreprise() {
 
       {c.onglet === 1 && (
         <>
-          <p className="a-confirmer">À confirmer : le manuel ne montre pas les champs de cet onglet (p. 50). Ceux-ci sont exigés par l'Instr. BCC 15, art. 17.</p>
           <div className="formulaire">
             <Champ libelle="Dénomination : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("nom")} />}</Champ>
             <Champ libelle="Forme juridique : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("formeJuridique")} />}</Champ>
@@ -383,7 +378,6 @@ export function EnrolementEntreprise() {
 
       {c.onglet === 2 && (
         <>
-          <p className="a-confirmer">À confirmer : le manuel ne montre pas les champs de cet onglet (p. 50). Celui-ci est exigé par l'Instr. BCC 15, art. 60.</p>
           <label className="case"><input type="checkbox" checked={f.personneExposee} onChange={(e) => maj({ personneExposee: e.target.checked })} /><span>Personne politiquement exposée</span></label>
         </>
       )}
@@ -393,7 +387,6 @@ export function EnrolementEntreprise() {
           <label className="case"><input type="checkbox" checked={avecDirigeant} onChange={(e) => setAvecDirigeant(e.target.checked)} /><span>Renseigner Dirigeant</span></label>
           {avecDirigeant && (
             <>
-              <p className="a-confirmer">À confirmer : le manuel ne montre pas les champs du dirigeant (p. 50). Identité selon l'Instr. BCC 15, art. 13, 14 et 17.</p>
               <ChampsRepresentant r={dirigeant} maj={(p) => setDirigeant({ ...dirigeant, ...p })} pieces={ctx.pieces} />
             </>
           )}
@@ -402,7 +395,7 @@ export function EnrolementEntreprise() {
 
       {c.onglet === 4 && <PersonnesLiees key={c.generation} liees={c.liees} onChange={c.setLiees} />}
 
-      {c.onglet === 5 && <ListeRepresentants fiche="Signataire" ajouter="+Ajouter" page="p. 50" liste={signataires} onChange={setSignataires} pieces={ctx.pieces} erreur={c.erreur} />}
+      {c.onglet === 5 && <ListeRepresentants fiche="Signataire" ajouter="+Ajouter" liste={signataires} onChange={setSignataires} pieces={ctx.pieces} erreur={c.erreur} />}
     </Enrolement>
   );
 }
@@ -436,7 +429,6 @@ export function EnrolementGroupe() {
 
       {c.onglet === 1 && (
         <>
-          <p className="a-confirmer">À confirmer : le manuel ne montre pas les champs de cet onglet (p. 51). Dénomination et adresse : Instr. BCC 15, art. 17. Forme juridique et registre : facultatifs, un groupement de fait n'en a pas.</p>
           <div className="formulaire">
             <Champ libelle="Dénomination : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("nom")} />}</Champ>
             <Champ libelle="Adresse : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("adresse")} />}</Champ>
@@ -447,11 +439,10 @@ export function EnrolementGroupe() {
         </>
       )}
 
-      {c.onglet === 2 && <ListeRepresentants fiche="Membre du groupe" ajouter="Ajouter" page="p. 51" liste={membres} onChange={setMembres} pieces={ctx.pieces} erreur={c.erreur} />}
+      {c.onglet === 2 && <ListeRepresentants fiche="Membre du groupe" ajouter="Ajouter" liste={membres} onChange={setMembres} pieces={ctx.pieces} erreur={c.erreur} />}
 
       {c.onglet === 3 && (
         <>
-          <p className="a-confirmer">À confirmer : le manuel ne montre pas les champs de cet onglet (p. 51). Celui-ci est exigé par l'Instr. BCC 15, art. 60.</p>
           <label className="case"><input type="checkbox" checked={f.personneExposee} onChange={(e) => maj({ personneExposee: e.target.checked })} /><span>Personne politiquement exposée</span></label>
         </>
       )}
@@ -531,11 +522,9 @@ export function MiseAJourClient() {
               </div>
             )}
             {onglet === 1 && <>
-              <p className="a-confirmer">À confirmer : le manuel ne montre pas les champs de cet onglet (p. 56). Mêmes champs qu'à l'enrôlement.</p>
               <IdentitePhysique f={f} maj={maj} pieces={ctx.pieces} />
             </>}
             {onglet === 2 && <>
-              <p className="a-confirmer">À confirmer : le manuel ne montre pas les champs de cet onglet (p. 56). Celui-ci est exigé par l'Instr. BCC 15, art. 60.</p>
               <label className="case"><input type="checkbox" checked={f.personneExposee} onChange={(e) => maj({ personneExposee: e.target.checked })} /><span>Personne politiquement exposée</span></label>
             </>}
             {onglet === 3 && (edition

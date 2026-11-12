@@ -164,7 +164,6 @@ export default function GuichetDepotRetrait() {
           </div>
           <p className="montant-lettres">{m ? montantEnLettres(m, devise) : ""}</p>
         </div>
-        <p className="a-confirmer">À confirmer : bouton Detail (le manuel ne dit pas ce qu'il montre) ; bouton à côté de la recherche du client (ici : photo et signature) ; libellé du cadre « Retrait espèce » (seul l'onglet Dépôt est montré) ; Date Opération modifiable. Frais d'opération : la capture montre « FRAIS VERSEMENT » sur un dépôt ; aucun frais n'est perçu ici (Instr. BCC 37).</p>
         <Textes sources={["Manuel Microfina++, p. 86 : Info client, Info compte, Info guichet, Dépôt en espèce / Retrait en espèce, Montant*, Total frais, Mandataire, Motif, Frais d'opération, Enregistrer, Imprimer, Effacer, Billetage, Detail, montant en lettres",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "Instr. BCC 37, art. 2 et 3, annexe : dépôt et retrait sans frais", "PCCI, comptes 570 (caisse), 330 et 334 (épargnes)",

@@ -80,11 +80,6 @@ function PageListe({ liste, changer }: { liste: string; changer: (l: string) => 
               ))}
             </tbody>
           </table>
-          <p className="a-confirmer">Complété par nous (registre <code>docs/architecture/DECISIONS.md</code>) : {liste === "secteur_activite"
-            ? "S14-1 le secteur servira dans la fiche client, le rapport client et les types d'activité et d'objet de crédit"
-            : `S14-2 page non montrée par le manuel : même forme que Secteur d'activité, un code et un libellé${parent ? `, et son ${parent.libelle.toLowerCase()}` : ""}`} ;
-            T01 et T02 Modifier et Supprimer après un clic sur une ligne (suppression logique ; une valeur qui sert ailleurs ne se supprime pas) ; T08 code unique ; T07 profil habilité.
-            {liste === "type_guichet" && " Les types de guichet proposés dans Gestion des guichets viennent de cette page (S08-1)."}</p>
           <Textes sources={["Manuel Microfina++, p. 23 : Information de base: Secteur d'activité, liste de gauche (Secteur d'activité, Type d'activité, Profession, Catégorie, Type de pièce, Civilité, Type de groupe, Type client, Sous type de client, Forme juridique, Catégorie de groupe, Filiation, Situation matrimoniale, Motif de départ, Type Guichet), N° secteur*, Secteur d'activite*, Enregistrer, Effacer, liste Numero, Secteur ; « Les champs sont obligatoires à remplir : Numéro secteur et secteur d'activité »",
             "Manuel Microfina++, p. 12 : modifier, supprimer ; « Les suppressions sont généralement logiques »",
             "Manuel Microfina++, p. 32 : le Type objet de crédit lit le Secteur Activité",

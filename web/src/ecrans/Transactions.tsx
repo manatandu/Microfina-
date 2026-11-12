@@ -46,7 +46,6 @@ export default function RapportTransactions() {
         <div className="actions-onglets">
           <button className="bouton" type="button" onClick={exporter}>Export</button>
         </div>
-        <p className="a-confirmer">À confirmer : ce que Microfina++ compte comme opération et comme transaction (ici : toute opération de guichet saisie, comptée à son auteur, dans les journées de l'agence de la période ; transactions = opérations moins annulations, comme sur la capture) ; Nbres Annulations reste à 0 tant que l'annulation d'opération n'est pas construite ; utilisateurs sans opération (ici non listés) ; barre de pages (non construite) ; bouton calendrier à côté des dates ; profil habilité.</p>
         <Textes sources={["Manuel Microfina++, p. 22 : Rapport des transactions, « Préciser la période du rapport des opérations correspondantes à afficher avant d'exporter », DU, AU, Afficher, Utilisateur, Nbres Opérations, Nbres Annulations, Nbres Tansactions, TOTAL, Export"]} />
       </section>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />

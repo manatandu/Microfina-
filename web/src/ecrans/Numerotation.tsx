@@ -114,7 +114,6 @@ export default function ParametragesClients() {
             <button className="bouton" type="button" onClick={enregistrerRegle}>Enregistrer</button>
           </div>
         </div>
-        <p className="a-confirmer">Complété par nous (registre <code>docs/architecture/DECISIONS.md</code>) : S15-1, S15-2 et S15-5 une Position est le rang de l'élément dans l'Ordre des éléments (1 = premier) ; S15-3 Compteur est la première valeur du compteur ; S15-4 compteur sur six chiffres ; S15-10 éléments séparés par un tiret ; S15-6 Générer affiche un numéro d'exemple ; S15-7 un compteur par agence ; S15-8 Categorie est la catégorie du client (Général), sautée tant qu'elle n'est pas saisie à l'enrôlement ; S15-11 Institution est le sigle de l'institution ; S15-9 la règle vaut pour les clients créés après son enregistrement, sans règle le numéro reste code agence et compteur ; T07 profil habilité.</p>
         <Textes sources={["Manuel Microfina++, p. 23 : « dans 1-2 [Numérotation], dans la liste des menus de la page ouverte, choisir [Paramétrages liés aux clients] puis remplir le champ institution qui est obligatoire »",
           "Manuel Microfina++, capture p. 24 : Paramétrages liés aux clients, Institution*, Elément / Valeur (Préfixe, Suffixe), Elément / Position (Institution, Agence, Categorie), Position, Compteur, flèches, Ordre des éléments (COMPTEUR), Générer, Aperçu, Enregistrer, Défintion des compteurs",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
@@ -183,7 +182,6 @@ export function ParametrageCompteClient() {
             </tbody>
           </table>
         </fieldset>
-        <p className="a-confirmer">Complété par nous (registre <code>docs/architecture/DECISIONS.md</code>) : S17-1 le N° Client est toujours présent ; S17-2 le Suffixe est le numéro du produit d'épargne du compte ; S17-3 Position est le nombre de chiffres du suffixe ; S17-4 le Préfixe est le code de l'agence ; S17-5 la liste montre la règle en vigueur ; S17-6 la règle vaut pour les comptes ouverts après son enregistrement, sans règle le numéro reste N° Client et suffixe sur deux chiffres ; S17-7 Générer affiche un numéro d'exemple ; T07 profil habilité.</p>
         <Textes sources={["Manuel Microfina++, p. 26 : « cocher les cases utilitaires et la position correspondante puis Générer le Numéro de compte client et Enregistrer » ; capture : Parametrage du Compte Client, Configuration du N° des Compte Client (Prefixe, N° Client, Suffixe, Position, exemple « 25121200-INS000SA000001-E-05 »), Enregistrer, Annuler, Générer, Pamamétrage du N° des Compte Client (Position du N°, N° Client?, Préfixe ?, Suffixe?)",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
       </section>

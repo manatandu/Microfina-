@@ -93,7 +93,6 @@ export function FraisOperations() {
         {onglet === 2 && <OngletParamAdhesion {...props} />}
         {onglet === 3 && <OngletModif {...props} genre="operation" />}
         {onglet === 4 && <OngletModif {...props} genre="adhesion" />}
-        <p className="a-confirmer">Complété par nous (registre <code>docs/architecture/DECISIONS.md</code>) : S16-1 types d'opération : ceux déjà construits (ADHESION, DEPOT, RETRAIT, PART_SOCIALE) ; S16-2 nature Montant ou Taux (pourcentage du montant de l'opération ; un frais d'adhésion reste un Montant) ; S16-4 compte 727 proposé pour l'adhésion ; T16 compte contrôlé sur le plan de comptes ; S16-5 onglet Paramétrage frais Adhésion de même forme que Paramétrage frais ; S16-6 Modifier Catégorie change le Type membre ; S16-7 Modifier infos recharge la ligne dans l'onglet ; S16-8 sous types lus dans Général ; S16-9 aucun frais sur un service gratuit (Instr. BCC 37) ; S16-10 frais de livret paramétrable ; T07 profil habilité. À appliquer avec l'adhésion (S73) : S16-11 la valeur de la part sociale.</p>
         <Textes sources={["Manuel Microfina++, p. 25 à 27 : onglets Frais, Paramétrage frais, Paramétrage frais Adhésion, Modif Paramétrage frais, Modif Paramétrage frais Adhésion ; menu Action",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "Instr. BCC 37, art. 2 et 3, annexe : ouverture et clôture de compte, dépôt et retrait d'espèces, virement de compte à compte : gratuits sans condition",

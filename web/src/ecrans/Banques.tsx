@@ -64,7 +64,6 @@ function BanqueClient({ d, confirmer }: Props) {
           colonnes={[{ titre: "Code Banque", valeur: (b) => b.code, classe: "chiffres" }, { titre: "Compte Liaison", valeur: (b) => b.compteLiaison, classe: "chiffres" },
             { titre: "Désignation", valeur: (b) => b.libelle }, { titre: "Adresse", valeur: (b) => b.adresse }]} />
       </fieldset>
-      <p className="a-confirmer">À confirmer : compte liaison d'une banque client (l'exemple du manuel, 114101, n'est pas un compte du PCCI).</p>
     </>
   );
 }
@@ -110,7 +109,6 @@ function BanqueInstitution({ d, confirmer }: Props) {
         <button className="bouton secondaire" type="button" disabled={choisi === null} onClick={() => setImpression("un")}>Imprimer</button>
         <button className="bouton secondaire" type="button" disabled={d.comptes.length === 0} onClick={() => setImpression("tous")}>Imprimer tous les comptes</button>
       </div>
-      <p className="a-confirmer">À confirmer : la liste des comptes n'est pas montrée par la capture (p. 67) ; la devise est ajoutée (PCCI § 10) ; validation des comptes « à valider » non décrite ; compte de pénalité et gestionnaire cités par le texte, absents de la capture.</p>
       <TableFiltree lignes={d.comptes} cle={(c) => c.id} choisi={choisi}
         choisir={(c) => { setChoisi(c.id); setF({ banqueId: c.banqueId, compte: c.compte, numeroBancaire: c.numeroBancaire, devise: c.devise, journalId: c.journalId,
           contactNom: c.contactNom, contactNomComplet: c.contactNomComplet, contactTelephone: c.contactTelephone }); }}

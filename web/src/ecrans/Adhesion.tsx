@@ -110,7 +110,6 @@ export default function Adhesion() {
           <button className="bouton secondaire" type="button" disabled={!t || !!fait || total <= 0} onClick={() => setBilletage(true)}>Billetage</button>
         </div>
         <p className="montant-lettres">{total > 0 ? montantEnLettres(total, "CDF") : ""}</p>
-        <p className="a-confirmer">À confirmer : Date Operation modifiable dans Microfina (ici : la journée ouverte) ; parts dans la Liste des Frais avec leur compte du PCCI (1030, 1031, 1032), pas comme un frais ; compte en USD (adhésion en deux devises) non traité ; valeur de la part : exemple, à prendre dans les statuts.</p>
         <Textes sources={["Manuel Microfina++, p. 85 : Adhésion (N° Client, Intitulé*, Catégorie*, N° compte épargne*, Premier dépôt*, Total, Info guichet) ; p. 89 : Liste des Frais, Enregistrer, Imprimer, Effacer, Billetage, montant en lettres",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "Loi 002/2002, art. 21 et 22 : au moins une part, intégralement libérée ; PCCI, comptes 103 (parts) et 330 (épargne)",

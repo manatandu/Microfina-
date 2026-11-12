@@ -44,7 +44,6 @@ export function EcranJournee() {
           { titre: "Date fermeture", valeur: (j) => jour(j.fermeeLe), classe: "chiffres" },
           { titre: "Fermée par", valeur: (j) => nom(j.fermeePar) },
         ]} />
-        <p className="a-confirmer">Complété par nous (registre <code>docs/architecture/DECISIONS.md</code>) : S12-1 et S11-2 la date suit la dernière journée, dans un exercice ouvert ; S12-3 Date fermeture et Fermée par viennent de la comptabilisation de la journée (Comptabilité, S111) ; S12-4 pas de journée suivante tant qu'un guichet est ouvert ; T07 profil habilité. À appliquer avec S111 : S12-2 et T14 (plusieurs journées en attente de comptabilisation ; pour l'instant, une seule journée non fermée à la fois).</p>
         <Textes sources={["Manuel Microfina++, p. 21 : Ouverture de journée, Dernière journée ouverte, Date à ouvrir, Enregistrer, Annuler, liste Journée, Ouverte par, Heure ouverture, Date fermeture, Fermée par ; « Renseigner le champ de la date à ouvrir avant d'enregistrer »",
           "Manuel Microfina++, chapitre Comptabilité : « la comptabilisation ou clôture des journées »",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
@@ -62,7 +61,6 @@ export function FermetureJournee() {
     <>
       <h1>Comptabilisation</h1>
       {u?.roles.includes("chef_agence") ? <Fermeture /> : <p>Réservé au chef d'agence.</p>}
-      <p className="a-confirmer">Écran à réaligner sur le manuel (brouillard des opérations de la journée, bouton Comptabiliser). En attendant, il garde la fermeture de journée de l'ancien écran S12.</p>
     </>
   );
 }

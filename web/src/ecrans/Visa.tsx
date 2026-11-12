@@ -69,7 +69,6 @@ export function VisaClient() {
                 {t && frais.map((f, i) => <tr key={i}><td>{f.libelle}</td><td className="chiffres">{f.compte}</td><td></td><td className="chiffres">{f.montant === null ? "" : montant(f.montant, "CDF")}</td></tr>)}
               </tbody>
             </table>
-            <p className="a-confirmer">Frais d'adhésion paramétrés pour le type du client (S16). Colonne « Nbre » : à confirmer. Droit d'adhésion : loi 002/2002, art. 22, 5°.</p>
           </fieldset>
         </div>
         <div className="actions-onglets">
@@ -192,7 +191,6 @@ export function ModificationFrais() {
                 ))}
               </tbody>
             </table>
-            <p className="a-confirmer">Colonne « Nombre » : à confirmer. Frais en CDF comme leur paramétrage (S16).</p>
           </fieldset>
         </div>
         <div className="actions-onglets">
@@ -290,7 +288,6 @@ function Contrat({ t, ctx }: { t: Tiers; ctx: Ctx }) {
       <h4>HÉRITIER DÉSIGNÉ</h4>
       <p>En cas de décès, j'autorise {inst} à déduire de mes avoirs ce que je lui dois.</p>
       <p>Par ailleurs, je lui ordonne de verser le reste de mes avoirs à</p>
-      <p className="a-confirmer sans-impression">À confirmer : la suite du contrat n'est pas visible dans le manuel (p. 52). Profession et filiation ne sont pas encore saisies à l'enrôlement.</p>
     </article>
   );
 }
@@ -413,7 +410,6 @@ export function InformationsClient() {
             </>}
           </div>
           <h2>Informations initiales et actuelles</h2>
-          <p className="a-confirmer">À confirmer : le manuel annonce cette comparaison (p. 54) sans montrer où elle s'affiche.</p>
           {ecarts.length === 0 ? <p>Aucune modification.</p> : (
             <table className="grille">
               <thead><tr><th scope="col">Champ</th><th scope="col">Initial</th><th scope="col">Actuel</th></tr></thead>
@@ -508,7 +504,6 @@ export function ResiliationClient() {
           <fieldset className="pile cadre-champs">
             <legend>Frais de résiliation de contrat</legend>
             <table className="grille"><thead><tr><th scope="col">Libelle Frais</th><th scope="col">Frais</th></tr></thead><tbody><tr><td colSpan={2}>Liste vide</td></tr></tbody></table>
-            <p className="a-confirmer">Aucun frais de fermeture de compte : clôture de compte gratuite sans condition (Instr. BCC 37, art. 2 et 3, annexe). La capture du manuel en montre un.</p>
           </fieldset>
         </div>
         <div className="actions-onglets sans-impression">
@@ -530,7 +525,6 @@ export function ResiliationClient() {
           </tbody>
         </table>
         {t && devises.map((d) => <p key={d}>Solde Créditeur {d} : <strong className="chiffres">{montant(comptes!.filter((c) => c.devise === d).reduce((s, c) => s + c.solde, 0), d)}</strong></p>)}
-        {resilie && <p className="a-confirmer sans-impression">Apurement des créances et engagements du membre à faire (loi 002/2002, art. 27) : l'écran d'apurement n'est pas montré par le manuel.</p>}
         <Textes sources={["Manuel Microfina++, p. 57 : écran Résiliation du contrat client (N° Client, Informations générales, Résilié le, Motif*, Frais de résiliation, Résilier, Imprimer, soldes)",
           "Loi 002/2002, art. 24 : un membre emprunteur ou endosseur d'un prêt ne peut pas se retirer ; art. 27 : apurement à la perte de la qualité de membre",
           "Instr. BCC 37, annexe : clôture de compte gratuite",

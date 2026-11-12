@@ -59,7 +59,6 @@ export function NouvelExercice() {
             })}
           </tbody>
         </table>
-        <p className="a-confirmer">Complété par nous (registre <code>docs/architecture/DECISIONS.md</code>) : S11-1 un seul exercice actif, c'est l'exercice en cours ; S11-2 une journée ne s'ouvre que dans un exercice ouvert ; S11-3 Validé clôture l'exercice pour de bon (la case ne se décoche plus ; refusé tant qu'une journée de l'année est ouverte) ; S11-4 exercice du 1er janvier au 31 décembre ; T07 profil habilité.</p>
         <Textes sources={SOURCES_P20} />
       </section>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
@@ -125,7 +124,6 @@ export function OuvertureExercice() {
           <button className="bouton" type="button" onClick={ouvrir}>Ouvrir</button>
           <button className="bouton secondaire" type="button" onClick={() => { setSaisie(""); setChoisi(""); }}>Annuler</button>
         </div>
-        <p className="a-confirmer">Complété par nous (registre <code>docs/architecture/DECISIONS.md</code>) : S11-5 « Exercice à ouvrir » affiche les journaux de l'exercice saisi ; S11-6 Ouvrir crée une ligne par journal, compteur à 0 ; S11-7 le compteur numérotera les pièces (à appliquer avec S29) ; T06 message après Oui ; T07 profil habilité.</p>
         <Textes sources={["Manuel Microfina++, p. 21 : Ouverture d'un Exercice, Exerice à ouvrir, Liste Détails Journal (Libellé, ID, Exercice, Actif?, Ouvert?, Compteur, N° Journal, Type Journal), Ouvrir, Annuler ; « Cliquer sur Exercice à ouvrir »"]} />
       </section>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
@@ -161,7 +159,6 @@ export function CompleterJournalDetail() {
         <div className="actions-onglets">
           <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
         </div>
-        <p className="a-confirmer">Complété par nous (registre <code>docs/architecture/DECISIONS.md</code>) : S11-8 le bas de l'écran est coupé sur la capture p. 21 ; un bouton Enregistrer ajoute les journaux cochés à l'exercice en cours, avec confirmation (manuel p. 11) ; S11-1 l'exercice en cours est l'exercice actif.</p>
         <Textes sources={["Manuel Microfina++, p. 21 : Completer journal detail de l'exercice encours, Exerice encours, liste (case, Libellé, ID, Exercice, Actif?, Ouvert?, Compteur, N° Journal, Type Journal), « Liste vide »",
           "Manuel Microfina++, p. 10 et 11 : enregistrer une information, boîtes de confirmation, de succès et d'erreur"]} />
       </section>

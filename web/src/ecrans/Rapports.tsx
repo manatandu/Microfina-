@@ -98,7 +98,6 @@ function Multicritere({ ctx, clients }: { ctx: Ctx; clients: Tiers[] }) {
         <button className="bouton" type="button" onClick={() => setLignes(multicritere(clients, c))}>Rechercher</button>
         <button className="bouton secondaire" type="button" onClick={() => { setC(MULTI_VIDE()); setLignes(null); }}>Reint champs</button>
       </div>
-      {lignes && <p className="a-confirmer">À confirmer : forme du résultat (non montrée, p. 59). Période appliquée à la date d'adhésion, sinon de demande. « Ordonner suivant » : la capture ne montre que « Secteur d'activité », non saisi ; Nom, Numéro et Date d'adhésion en attendant. Nationalité, Gestionnaire, Commercial, Sensibilisateur et Secteur d'activité ne filtrent pas encore : ces données ne sont pas saisies.</p>}
       {lignes && resultat === "detaille" && (
         <table className="grille">
           <thead><tr><th scope="col">N° Client</th><th scope="col">Nom</th><th scope="col">Catégorie</th><th scope="col">TypeClient</th><th scope="col">Zone</th><th scope="col">Genre</th><th scope="col">Date d'adhésion</th><th scope="col">Statut</th></tr></thead>
@@ -177,7 +176,6 @@ function Modifies({ clients, modifs, utilisateurs }: { clients: Tiers[]; modifs:
     && JSON.stringify((m.avant as unknown as Record<string, unknown>)[k]) !== JSON.stringify((m.apres as unknown as Record<string, unknown>)[k]));
   return (
     <>
-      <p className="a-confirmer">À confirmer : le manuel cite ce rapport (p. 59) sans le montrer.</p>
       <fieldset className="cadre-champs formulaire">
         <legend className="sr-only">Période</legend>
         <ChampDate libelle="Du" valeur={du} onChange={setDu} />

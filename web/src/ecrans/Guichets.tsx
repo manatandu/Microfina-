@@ -81,7 +81,6 @@ export function GestionGuichets() {
           { titre: "Compte guichet", valeur: (g) => g.compteGuichet, classe: "chiffres" }, { titre: "Compte liaison", valeur: (g) => g.compteLiaison, classe: "chiffres" },
           { titre: "Compte surplus", valeur: (g) => g.compteSurplus, classe: "chiffres" }, { titre: "Compte manquant", valeur: (g) => g.compteManquant, classe: "chiffres" },
         ]} apres={{ titre: "Opérations", cellule: () => <Link to="/administration/s10">Droits</Link> }} />
-        <p className="a-confirmer">Complété par nous (registre <code>docs/architecture/DECISIONS.md</code>) : S08-2 journaux de caisse seulement ; S08-3 maximum et plafond par devise ; S08-6 billetage toujours autorisé ; S08-7 comptes proposés 570, 579, 7790 et 671 (PCCI), contrôlés sur le plan de comptes ; S08-8 liste et Modifier ; S08-9 « Droits » ouvre l'affectation des guichets ; T07 profil habilité. Restent à appliquer ailleurs : S08-1 (liste Type Guichet, avec S14n), S08-4 (avertissement au guichet), S08-5 (visa du retrait plafonné, avec S113).</p>
         <Textes sources={["Manuel Microfina++, p. 18 et 95 : Gestion des guichets, Informations sur le guichet (Agence*, Code guichet*, Désignation*, Type de guichet*, Journal*, Maximum autorisé en caisse*, Retrait plafonné*), Compte (guichet, liaison, surplus, manquant), Billetage autorisé, Guichet Actif, Enregistrer, Effacer ; liste Code guichet, Type guichet, Designation, Compte guichet, Compte liaison, Compte surplus, Compte manquant, Opérations (Droits)",
           "Manuel Microfina++, p. 12 : modifier une donnée enregistrée",
           "PCCI, liste des comptes : 570 Monnaies nationale et étrangère, 579 Mouvements de fonds inter caisses, 671 Déficits de caisse non récupérés, 7790 Excédents de caisse ; compte 57 subdivisé selon la devise",
@@ -141,7 +140,6 @@ export function OuvertureFermetureGuichets() {
             <button className="bouton secondaire" type="button" onClick={() => setChoisi(0)}>Annuler</button>
           </div>
         </fieldset>
-        <p className="a-confirmer">Complété par nous (registre <code>docs/architecture/DECISIONS.md</code>) : S09-1 dernière journée ouverte de l'agence ; S09-2 journée ouverte à associer (registre T14 : seule la dernière ouverte reçoit des opérations) ; S09-3 en-tête « Ouvert » ; S09-4 un guichet ne s'ouvre que pour l'utilisateur à qui il est affecté (S10) ; S09-5 pas de Fermeture sans billetage enregistré dans chaque devise (S79) ; S09-6 réouverture le même jour tant que le billetage n'est pas validé ; T07 profil habilité.</p>
         <Textes sources={["Manuel Microfina++, p. 19 : Ouverture/Fermeture de guichets, Liste des guichets (Code guichet, Type guichet, Designation, Actif, Ouvert, Date ouverture), double-clic sur la ligne, Ouverture, Fermeture, Annuler, « Voulez-vous effectuer cette operation? » Oui/Non",
           "Manuel Microfina++, p. 18 : « Guichet Actif » ; p. 96 : en-tête « Ouvert »",
           "Manuel Microfina++, p. 19 : « Dernière journée ouverte », « Journée ouverte à associer » ; p. 91 : liste des journées de l'arrêté"]} />
@@ -190,7 +188,6 @@ export function AffectationGuichets() {
               onClick={() => fini("Voulez-vous retirer le guichet à cet utilisateur", () => api.guichets.retirer(l.id))}>✖</button>
           </span>
         ) }} />
-        <p className="a-confirmer">Complété par nous (registre <code>docs/architecture/DECISIONS.md</code>) : S10-1 « Voir solde client » commandera l'affichage des soldes au guichet (S74, à appliquer à sa reprise) ; S10-2 « Voir solde client VIP » est enregistrée sans effet ; S10-3 un guichet à la fois ; S10-4 la fenêtre propose les guichets de l'agence de l'utilisateur ; S09-4 un guichet ne s'ouvre que pour l'utilisateur à qui il est affecté ; T07 profil habilité (ici le chef d'agence, en attendant les droits S03 à S06).</p>
         <Textes sources={["Manuel Microfina++, p. 96 et 110 : Ajout et Retrait de Guichet à un utilisateur, Login utilisateur, Nom utilisateur, Guichet, Agence, Action (✎, ✖), filtre par colonne",
           "Manuel Microfina++, p. 20 : fenêtre « Ajout de Guichet à un utilisateur » (Code Guichet, Nom Guichet, Voir solde client, Voir solde client VIP, Ajouter, Fermer), « Voulez-vous attribuer ce guichet à l'utilisateur ? », « Voulez-vous retirer le guichet à cet utilisateur »",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />

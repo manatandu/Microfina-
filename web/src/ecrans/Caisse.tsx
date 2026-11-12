@@ -73,7 +73,6 @@ export function BilletageCaisse() {
           <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
           <button className="bouton secondaire" type="button" disabled>Terminer</button>
         </div>
-        <p className="a-confirmer">À confirmer : bouton Terminer (le manuel ne dit pas ce qu'il fait) ; deux devises dans un même arrêté (la capture n'en montre qu'une) ; devise et sens du Bon de Caisse (ici : en CDF, ajouté au Total Caisse) ; billets et pièces (les coupures du CDF et de l'USD sont toutes des billets) ; case « billetage » du guichet (p. 18), qui rendrait le billetage facultatif.</p>
         <Textes sources={["Manuel Microfina++, p. 90 et 91 : Arretée de, Solde Caisse, Journées, Bon de Caisse, Total Caisse, Libelle, Nombre, Total, Total Montant, Enregistrer, Terminer",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "Manuel Microfina++, p. 18 et 19 : ouverture du guichet sans comptage ; Solde Caisse : dernier arrêté validé et opérations de la journée"]} />
@@ -141,7 +140,6 @@ export function ValidationBilletage() {
           <button className="bouton secondaire" type="button" disabled>Imprimer</button>
           <button className="bouton secondaire" type="button" disabled>Terminer</button>
         </div>
-        <p className="a-confirmer">À confirmer : qui valide (ici le chef d'agence, autre que le caissier qui a compté) ; contenu du champ Compte Comptable ; Solde Reel avec ou sans le Bon de Caisse (ici : avec) ; liste des journées (ici : la journée ouverte) ; boutons Imprimer et Terminer ; écriture de l'écart entre solde informatique et réel.</p>
         <Textes sources={["Manuel Microfina++, p. 91 et 92 : Validation Arretée Temporaire, Solde Informatique, Solde Reel, Compte Comptable, Guichet, Journées, Libelle, Nombre, Montant, Bon Caisse, Total Billetage, Valider, Imprimer, Terminer",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
       </section>

@@ -128,7 +128,6 @@ function Creation({ comptes, relire }: { comptes: LigneCompte[]; relire: () => v
           </tbody>
         </table>
       </fieldset>
-      <p className="a-confirmer">Complété par nous (registre <code>docs/architecture/DECISIONS.md</code>) : T20 le plan de référence est le PCCI complet ; S102-1 ses comptes ne se modifient ni ne se suppriment, l'institution y ouvre ses comptes divisionnaires (PCCI § 9) ; S102-4 un compte qui a servi ne se supprime pas, il se ferme ; S102-5 colonnes de la liste après SA (coupées sur la capture) : les options du formulaire ; S102-6 Clé de répartition analytique attend le module analytique ; S102-7 Type de suivi : liste vide, à remplir avec le plan des tiers (S103) ; T07 profil habilité (ici le comptable).</p>
       <Textes sources={SOURCES} />
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </section>
@@ -165,7 +164,6 @@ function Consultation({ comptes }: { comptes: LigneCompte[] }) {
         <button className="bouton" type="button" onClick={() => { setCherche(""); setSaisie(""); setCharge(true); }}>Charger comptes</button>
       </div>
       {charge && <ul className="arbre-plan">{arbre(visibles).map((n) => <Branche key={n.compte.numero} n={n} />)}</ul>}
-      <p className="a-confirmer">Complété par nous (registre <code>docs/architecture/DECISIONS.md</code>) : S102-8 la recherche montre le compte cherché, ses parents et ses comptes divisionnaires ; T17 Exporter donne un fichier Excel.</p>
       <Textes sources={SOURCES} />
     </section>
   );
@@ -192,7 +190,6 @@ function Modele({ comptes, groupes }: { comptes: LigneCompte[]; groupes: Record<
           </tbody>
         </table>
       </fieldset>
-      <p className="a-confirmer">Complété par nous (registre <code>docs/architecture/DECISIONS.md</code>) : S102-2 les niveaux sont ceux du PCCI, imposé par la BCC : la page les montre, on n'y saisit rien (un compte divisionnaire s'ouvre dans Création) ; S102-3 groupe de compte des classes : bilan, gestion, hors bilan (PCCI § 9) ; S102-9 Concordance des comptes (p. 156) n'est pas reprise : Likelemba n'a qu'un plan, le PCCI.</p>
       <Textes sources={SOURCES} />
     </section>
   );
