@@ -25,7 +25,8 @@ Le porteur n'a pas de capture pour ce qui manque. Ces manques se complètent par
 - Ce que le manuel montre se recopie toujours exactement.
 - Un manque se complète en descendant l'échelle des preuves (COMPLEMENTS § 3) : capture, texte du manuel, règle générale du manuel (p. 7 à 12), écran voisin de la même famille, donnée exigée par un autre écran, texte réglementaire lu, puis seulement le porteur.
 - L'écran complété prend le gabarit de sa famille (COMPLEMENTS § 4) et tient dans sa chaîne d'états (§ 6).
-- Chaque choix fait par nous est noté dans `replica/decisions.csv` avec son origine, et affiché sur l'écran dans le bloc « Complété par nous ». Le porteur valide en fin de lot.
+- Avant de compléter un point : chercher sa réponse dans `replica/decisions.csv` (page lisible : `docs/architecture/DECISIONS.md`). Une décision « retenue » se construit sans redemander.
+- Chaque choix fait par nous est noté dans `replica/decisions.csv` avec son origine, et affiché sur l'écran dans le bloc « Complété par nous ». Le porteur valide en fin de lot. Après toute modification du registre : `python replica/decisions.py`.
 - Toujours interdit : ajouter ce que l'atlas ne nomme pas comme manque, améliorer en passant, écrire une règle métier sans l'avoir lue.
 
 Après chaque fonction construite : mettre à jour `replica/features.csv`, `replica/atlas.csv` (colonne construit), `replica/decisions.csv`, relancer `python replica/couverture.py`, régénérer la page des travaux (`python replica/travaux.py <fichier>`) et la republier sur l'artefact « Travaux Likelemba ».

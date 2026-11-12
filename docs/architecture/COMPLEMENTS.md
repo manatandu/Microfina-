@@ -1,6 +1,6 @@
 # Likelemba : architecture des compléments
 
-Version 1, 12/11/2026. Ce document dit comment on construit ce que le manuel de Microfina++ ne montre pas, sans casser ce qu'il montre.
+Version 2, 12/11/2026. Ce document dit comment on construit ce que le manuel de Microfina++ ne montre pas, sans casser ce qu'il montre.
 
 Il ne remplace pas [`ARCHITECTURE.md`](ARCHITECTURE.md), qui fixe le socle (grand livre, modules, règles PCCI). Il s'y ajoute.
 
@@ -8,7 +8,7 @@ Il ne remplace pas [`ARCHITECTURE.md`](ARCHITECTURE.md), qui fixe le socle (gran
 |---|---|
 | [`replica/atlas.csv`](../../replica/atlas.csv) | Les 159 écrans : pages du manuel, niveau de source, gabarit, manque, complément |
 | [`replica/couverture.csv`](../../replica/couverture.csv) | Les **146 travaux** de la page Travaux, chacun avec ses écrans, son étape et son complément (annexe, § 11) |
-| [`replica/decisions.csv`](../../replica/decisions.csv) | Les choix faits par nous, avec leur origine et leur statut |
+| [`replica/decisions.csv`](../../replica/decisions.csv) | Les choix faits par nous, avec leur origine, leur solidité et leur statut. Page lisible : [`DECISIONS.md`](DECISIONS.md) |
 
 ---
 
@@ -167,7 +167,7 @@ Modèle : consulter prêt (p. 119). Recherche du client, puis boutons Situation,
 
 ## 5. Les règles fixées une fois
 
-Ces points revenaient en « à confirmer » sur presque chaque écran. Ils se règlent ici, une fois. Détail et statut au registre (T01 à T12).
+Ces points revenaient en « à confirmer » sur presque chaque écran. Ils se règlent ici, une fois. Détail au registre (T01 à T19).
 
 ### 5.1 Ce que le manuel dit lui-même (p. 7 à 12)
 
@@ -230,11 +230,12 @@ Un onglet complété doit tenir dans sa chaîne. Les états ci-dessous viennent 
 | Bien | créé (S137) → affecté → transféré ou libéré (S138) → amorti → inventorié → sorti (S139) |
 | Retenue sur salaire | mise en place → visée (S135) → prélevée |
 
-### Un point à trancher : le brouillard
+### Le brouillard et les journées (tranché le 12/11/2026)
 
-Microfina++ passe les opérations de la journée dans un **brouillard**, puis le comptable clique sur **Comptabiliser** (p. 130 et 155). Aujourd'hui Likelemba écrit au grand livre à chaque opération, et S111 n'est pas aligné.
+Microfina++ passe les opérations de la journée dans un **brouillard**, puis le comptable clique sur **Comptabiliser** (p. 130 et 155). Le PCCI l'exige aussi : « Toute donnée entrée doit faire l'objet d'une validation, afin de garantir le caractère définitif de l'enregistrement comptable » (§ 3.4).
 
-Proposition, à valider (registre, T13) : l'écriture naît à l'opération avec l'état « brouillard ». Elle compte tout de suite dans le solde du membre et de la caisse. Comptabiliser la rend définitive, après les contrôles de `ARCHITECTURE.md` P8. Les états officiels ne lisent que le définitif. On garde un seul grand livre (P1), et l'étape de Microfina++ existe.
+- **T13.** L'écriture naît à l'opération à l'état « brouillard », avec sa pièce. Elle compte tout de suite dans le solde du membre et de la caisse. Comptabiliser la rend définitive, après les contrôles de `ARCHITECTURE.md` P8. Les états officiels ne lisent que le définitif. On garde un seul grand livre (P1).
+- **T14.** Une seule journée reçoit des opérations dans l'agence : la dernière ouverte. Plusieurs journées peuvent attendre leur comptabilisation (la capture p. 130 propose une liste « Journée non comptabilisée »). Le comptable les comptabilise dans l'ordre.
 
 ---
 
@@ -324,32 +325,35 @@ Une fonction par requête. L'atlas donne, pour chacune, les pages à ouvrir et l
 
 ## 9. Le registre des décisions
 
-Fichier : [`replica/decisions.csv`](../../replica/decisions.csv). Une ligne par choix qui ne vient pas d'une capture.
+Fichier : [`replica/decisions.csv`](../../replica/decisions.csv). Page lisible : [`DECISIONS.md`](DECISIONS.md), réécrite par `python replica/decisions.py`. Une ligne par choix qui ne vient pas d'une capture.
 
 | Colonne | Contenu |
 |---|---|
-| `id` | T01… pour les règles transverses, puis l'écran et un rang (S14a-1) |
-| `ecran`, `element` | Où, quoi |
-| `choix` | Ce qui est construit |
-| `origine` | L'étiquette du § 3 et sa référence |
-| `statut` | proposé, validé, refusé |
-| `date` | Date de la décision du porteur |
+| `id` | T01… pour les règles transverses, puis l'écran et un rang (S08-1) |
+| `ecran`, `question` | Où, quoi |
+| `choix` | La réponse retenue, donc ce qui se construit |
+| `origine`, `reference` | L'étiquette du § 3 et sa référence |
+| `solidite` | forte (le manuel ou un texte répond), moyenne (déduit d'un écran voisin ou d'une donnée), faible (notre choix, faute de mieux) |
+| `application` | en place, ou à appliquer dans le code |
+| `statut`, `date` | retenu, validé ou refusé par le porteur |
+
+Le 12/11/2026, le porteur a demandé de trouver les réponses aux questions ouvertes des fonctions partielles et de les garder. Le registre contient donc **129 décisions retenues** : 19 règles transverses et 110 réponses, écran par écran, à tout ce qui était « à confirmer ».
 
 Fonctionnement :
 
-- Sur l'écran, le bloc jaune « À confirmer » devient « Complété par nous » et liste les choix de cet écran avec leur étiquette.
-- À la fin d'un lot, le porteur passe les lignes « proposé » en revue, sur écran. Validé : le bloc disparaît. Refusé : on corrige.
-- Une ligne « refusé » n'est jamais reconstruite pareil.
-
-Le registre part avec les treize règles transverses de ce document, toutes « proposé ».
+- Une décision retenue se construit sans redemander. Sur l'écran, le bloc jaune « À confirmer » devient « Complété par nous » et cite les numéros du registre.
+- À la fin d'un lot, le porteur passe le registre en revue, sur écran, en commençant par les décisions **faibles**. Validé : le bloc disparaît. Refusé : on corrige, et la ligne n'est jamais reconstruite pareil.
+- Une question nouvelle, rencontrée en construisant, reçoit sa ligne de la même façon : échelle des preuves, puis registre.
 
 ---
 
-## 10. Ce que je vous demande de trancher
+## 10. Les trois questions de la version 1 : tranchées
 
-1. **Le brouillard** (§ 6) : d'accord pour l'écriture en brouillard à l'opération, définitive au clic sur Comptabiliser ?
-2. **Caisse mobile et Gestion de réunion** (S129, S130) : le manuel ne donne que les noms des menus. Ils étaient écartés. On les garde écartés, ou on les conçoit nous-mêmes plus tard ?
-3. **La validation par lot** (§ 9) : d'accord pour valider les compléments en fin de lot, plutôt qu'une question à chaque écran ?
+Le porteur a demandé de retenir les réponses les plus cohérentes (12/11/2026).
+
+1. **Le brouillard** : retenu (T13). Le PCCI § 3.4 l'exige.
+2. **Caisse mobile et Gestion de réunion** : ils restent écartés (T19). Le manuel n'en donne que les noms, et ils ne servent pas le but.
+3. **La validation par lot** : retenue (T18).
 
 ---
 
