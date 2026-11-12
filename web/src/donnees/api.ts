@@ -17,7 +17,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v29";
+const CLE = "likelemba-demo-v30";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -25,7 +25,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 29) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 30) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -65,7 +65,7 @@ const session = {
 };
 
 function contexte() {
-  return { institution: E.institution, agence: E.agence, guichets: E.guichets.filter((g) => g.actif !== false), produits: E.produits, zones: E.zones, typesClient: TYPES_CLIENT, typesEntreprise: TYPES_ENTREPRISE, typesGroupe: Object.keys(TYPES_GROUPE), pieces: PIECES, professions: E.professions, localites: E.localites, motifsDepart: E.motifsDepart, cours: E.cours, valeurPart: E.valeurPart, utilisateurs: E.utilisateurs };
+  return { institution: E.institution, agence: E.agence, guichets: E.guichets.filter((g) => g.actif !== false), produits: E.produits, zones: E.zones, typesClient: TYPES_CLIENT, typesEntreprise: TYPES_ENTREPRISE, typesGroupe: Object.keys(TYPES_GROUPE), pieces: PIECES, professions: E.professions, localites: E.localites, motifsDepart: valeursListe("motif_depart").map((l) => l.libelle), cours: E.cours, valeurPart: E.valeurPart, utilisateurs: E.utilisateurs };
 }
 export const nomUtilisateur = (id?: number) => E.utilisateurs.find((u) => u.id === id)?.nom ?? "";
 
@@ -482,7 +482,7 @@ const tiers = {
     if (t.statut !== "actif") throw new ErreurMetier("Seul un client actif se résilie.");
     const motif = d.motif.trim();
     if (!motif) throw new ErreurMetier("À remplir : motif.");
-    if (!E.motifsDepart.includes(motif)) throw new ErreurMetier("Motif inconnu.");
+    if (!valeursListe("motif_depart").some((l) => l.libelle === motif)) throw new ErreurMetier("Motif inconnu.");
     const j = journees.courante();
     Object.assign(t, { statut: "resilie", motifDepart: motif, resilieLe: j && j.statut === "ouverte" ? j.date : new Date().toISOString().slice(0, 10) });
     enregistrer(); return t;
@@ -781,7 +781,8 @@ export type SaisieBanque = { code: string; libelle: string; compteLiaison: strin
 export type SaisieCompteBancaire = { banqueId: number; compte: string; numeroBancaire: string; devise: string; journalId: number; contactNom: string; contactNomComplet: string; contactTelephone: string };
 // ---------- Info de base > Client > Général : moteur des listes simples (S14, S14a à S14n ; COMPLEMENTS § 7.2).
 // Règles identiques côté serveur (noyau/listes.py). ----------
-export interface FicheListe { liste: string; ecran: string; titre: string; code: string; libelle: string; colonne: string; parent?: string }
+export interface FicheListe { liste: string; ecran: string; titre: string; code: string; libelle: string; colonne: string; parent?: string;
+  entete?: string; sansCode?: boolean; effacer?: string }
 /** Ordre de la liste de gauche de la capture p. 23 ; les pages autres que Secteur d'activité prennent sa forme (registre S14-2) */
 export const CATALOGUE_LISTES: FicheListe[] = ([
   { liste: "secteur_activite", ecran: "S14", titre: "Secteur d'activité", code: "N° secteur", libelle: "Secteur d'activite", colonne: "Secteur" },
@@ -791,13 +792,16 @@ export const CATALOGUE_LISTES: FicheListe[] = ([
   { liste: "type_groupe", ecran: "S14f", titre: "Type de groupe" }, { liste: "type_client", ecran: "S14g", titre: "Type client" },
   { liste: "sous_type_client", ecran: "S14h", titre: "Sous type de client" }, { liste: "forme_juridique", ecran: "S14i", titre: "Forme juridique" },
   { liste: "categorie_groupe", ecran: "S14j", titre: "Catégorie de groupe" }, { liste: "filiation", ecran: "S14k", titre: "Filiation" },
-  { liste: "situation_matrimoniale", ecran: "S14l", titre: "Situation matrimoniale" }, { liste: "motif_depart", ecran: "S14m", titre: "Motif de départ" },
+  { liste: "situation_matrimoniale", ecran: "S14l", titre: "Situation matrimoniale" }, 
+  // S18 (p. 26) : même liste que S14m (registre S18-1), avec la forme de sa capture : Libelle Motif seul, Reinitialiser
+  { liste: "motif_depart", ecran: "S14m", titre: "Motif de départ", entete: "Motif de départ d'un client", libelle: "Libelle Motif", colonne: "Libelle Motif", sansCode: true, effacer: "Reinitialiser" },
   { liste: "type_guichet", ecran: "S14n", titre: "Type Guichet" },
 ] as (Partial<FicheListe> & { liste: string; ecran: string; titre: string })[]).map((c) => ({ code: "Code", libelle: c.titre, colonne: c.titre, ...c }) as FicheListe);
 const ficheListe = (liste: string) => { const c = CATALOGUE_LISTES.find((x) => x.liste === liste); if (!c) throw new ErreurMetier("Liste inconnue."); return c; };
-/** Valeurs actives d'une liste, pour les écrans qui la lisent */
+/** Valeurs actives d'une liste, pour les écrans qui la lisent. Sans code : ordre de saisie (registre S18-2). */
 function valeursListe(liste: string) {
-  return E.listes.filter((l) => l.liste === liste && l.actif).sort((a, b) => a.code.localeCompare(b.code))
+  const sansCode = CATALOGUE_LISTES.find((x) => x.liste === liste)?.sansCode;
+  return E.listes.filter((l) => l.liste === liste && l.actif).sort((a, b) => (sansCode ? a.id - b.id : a.code.localeCompare(b.code)))
     .map((l) => ({ id: l.id, code: l.code, libelle: l.libelle, parentId: l.parentId ?? null, parent: E.listes.find((p) => p.id === l.parentId)?.libelle ?? "" }));
 }
 const listes = {
@@ -811,12 +815,16 @@ const listes = {
     exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
     const c = ficheListe(liste);
     const v = { code: d.code.trim(), libelle: d.libelle.trim() };
-    const manque = manquants([[c.code, v.code], [c.libelle, v.libelle]]);
+    if (c.sansCode)   // registre S18-2 : numéro interne, gardé en modification, donné dans l'ordre de saisie à la création
+      v.code = id !== undefined ? E.listes.find((l) => l.id === id)?.code ?? "" : String(1 + E.listes.filter((l) => l.liste === liste).length);
+    const manque = manquants([[c.code, v.code || (c.sansCode ? "-" : "")], [c.libelle, v.libelle]]);
     if (c.parent && !d.parentId) manque.push(ficheListe(c.parent).libelle);
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
     if (c.parent && !E.listes.some((l) => l.id === d.parentId && l.liste === c.parent && l.actif)) throw new ErreurMetier(`${ficheListe(c.parent).libelle} inconnu.`);
     const actuel = id === undefined ? undefined : E.listes.find((l) => l.id === id && l.liste === liste && l.actif);
     if (id !== undefined && !actuel) throw new ErreurMetier("Ligne introuvable.");
+    if (c.sansCode && E.listes.some((l) => l.liste === liste && l.actif && l.libelle.toLowerCase() === v.libelle.toLowerCase() && l.id !== id))
+      throw new ErreurMetier(`Ce ${c.libelle} existe déjà.`);   // registre S18-2
     if (E.listes.some((l) => l.liste === liste && l.code === v.code && l.id !== id)) throw new ErreurMetier(`Ce ${c.code} existe déjà.`);
     const parentId = c.parent ? d.parentId ?? undefined : undefined;
     if (actuel) Object.assign(actuel, v, { parentId }); else E.listes.push({ id: prochain(E.listes), liste, ...v, parentId, actif: true });

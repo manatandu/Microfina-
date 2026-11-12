@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**151 décisions.** Solidité : 58 fortes (le manuel ou un texte répond), 72 moyennes (déduites d'un écran voisin ou d'une donnée), 21 faibles (notre choix, faute de mieux). Dans le code : 97 déjà en place, 54 à appliquer.
+**154 décisions.** Solidité : 60 fortes (le manuel ou un texte répond), 73 moyennes (déduites d'un écran voisin ou d'une donnée), 21 faibles (notre choix, faute de mieux). Dans le code : 100 déjà en place, 54 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -311,6 +311,14 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S111-1 | Forme de l'écran | « Comptabilisation d'écriture comptable » : liste « Journée non comptabilisée », grille Date opération, N°Pièce, N° Compte, Débit, Crédit, Référence écriture, Intitulé, bouton Comptabiliser, confirmation | Manuel : Manuel p. 130 et 155 | forte | à appliquer |
 | S111-2 | Contrôles avant de comptabiliser | Guichets fermés et billetages validés pour la journée. Sinon refus, avec la liste de ce qui bloque | Choix du porteur : ARCHITECTURE P8 | forte | en place |
 | S111-3 | Case « Recherche avancée » | Affiche les filtres de la grille (N°Pièce, N° Compte) | Écran voisin : Filtres en tête de colonne de la capture p. 155 | faible | à appliquer |
+
+## S18 Motif de départ d'un client
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S18-1 | Une liste ou deux ? | La page Motif de départ de la liste de gauche (S14m) et S18 sont une seule liste, dans le moteur des listes ; elle prend la forme de la capture p. 26 (Libelle Motif seul, Enregistrer, Reinitialiser) ; la résiliation (S48) lit cette liste | Écran voisin : Manuel p. 26 : « dans la liste des menus de la page ouverte, choisir [Motif de départ d'un client] » ; capture p. 23 (Motif de départ dans la liste de gauche) ; S48 p. 57 (Motif*) | forte | en place |
+| S18-2 | Sans code : numéro et unicité | Numéro interne donné dans l'ordre de saisie, gardé en modification, jamais affiché ; liste dans l'ordre de saisie (celui de la capture) ; un libellé ne peut figurer deux fois (sans tenir compte des majuscules) | Donnée exigée ailleurs : Capture p. 26 (pas de colonne Numero, ordre non alphabétique) ; T08 (une seule valeur désignée par S48) | moyenne | en place |
+| S18-3 | Modifier, Supprimer | Clic sur la ligne puis Modifier ou Supprimer ; suppression logique : le motif n'est plus proposé à la résiliation, les clients déjà résiliés gardent le leur | Règle générale du manuel : Manuel p. 12 (T01, T02) | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

@@ -111,7 +111,7 @@ def contexte(u: dict) -> dict:
         "pieces": PIECES,
         "professions": [r["libelle"] for r in lignes("select libelle from profession where institution_id = %s order by libelle", (u["institution_id"],))],
         "localites": localites(),
-        "motifsDepart": [r["libelle"] for r in lignes("select libelle from motif_depart where institution_id = %s order by id", (u["institution_id"],))],
+        "motifsDepart": [r["libelle"] for r in lignes("select libelle from liste_reference where institution_id = %s and liste = 'motif_depart' and actif order by id", (u["institution_id"],))],
         "cours": {"USD": cours_usd()},
         "valeurPart": valeur_part(),
         "utilisateurs": utilisateurs(),
@@ -919,7 +919,7 @@ def resilier_tiers(u: dict, tid: int, d: dict) -> dict:
     motif = texte_de(d or {})("motif")
     if not motif:
         raise ErreurMetier("À remplir : motif.")
-    if not valeur("select 1 from motif_depart where institution_id = %s and libelle = %s", (u["institution_id"], motif)):
+    if not valeur("select 1 from liste_reference where institution_id = %s and liste = 'motif_depart' and libelle = %s and actif", (u["institution_id"], motif)):
         raise ErreurMetier("Motif inconnu.")
     engagements_credit(tid)
     j = journee_courante(u)

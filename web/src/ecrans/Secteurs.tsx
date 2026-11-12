@@ -8,11 +8,17 @@ type Ligne = { id: number; code: string; libelle: string; parentId: number | nul
 const VIDE = { code: "", libelle: "", parentId: 0 };
 
 /** S14 et S14a à S14n : Info de base > Client > Général (manuel Microfina++, p. 23). La page Secteur d'activité est montrée par le manuel ;
- * les autres pages de la liste de gauche prennent sa forme (registre S14-2). Modifier et Supprimer : manuel p. 12 (registre T01, T02). */
-export default function ListesGenerales() {
+ * les autres pages de la liste de gauche prennent sa forme (registre S14-2), sauf Motif de départ, montrée par S18 (p. 26 ; registre S18-1).
+ * Modifier et Supprimer : manuel p. 12 (registre T01, T02). */
+export default function ListesGenerales({ initiale = "secteur_activite" }: { initiale?: string }) {
   const [params, setParams] = useSearchParams();
-  const liste = CATALOGUE_LISTES.some((c) => c.liste === params.get("page")) ? params.get("page")! : "secteur_activite";
-  return <PageListe key={liste} liste={liste} changer={(l) => setParams(l === "secteur_activite" ? {} : { page: l })} />;
+  const liste = CATALOGUE_LISTES.some((c) => c.liste === params.get("page")) ? params.get("page")! : initiale;
+  return <PageListe key={liste} liste={liste} changer={(l) => setParams(l === initiale ? {} : { page: l })} />;
+}
+
+/** S18 : Info de base > Client > Motif Départ (manuel p. 26) ouvre la même page, sur Motif de départ d'un client (registre S18-1) */
+export function MotifsDepart() {
+  return <ListesGenerales initiale="motif_depart" />;
 }
 
 function PageListe({ liste, changer }: { liste: string; changer: (l: string) => void }) {
@@ -36,7 +42,7 @@ function PageListe({ liste, changer }: { liste: string; changer: (l: string) => 
   const saisie = { code: f.code, libelle: f.libelle, parentId: f.parentId || null };
   return (
     <>
-      <h1>Information de base: {c.titre}</h1>
+      <h1>{c.entete ?? `Information de base: ${c.titre}`}</h1>
       <div className="page-liste-gauche">
         <nav className="liste-gauche" aria-label="Général">
           <ul>
@@ -51,7 +57,7 @@ function PageListe({ liste, changer }: { liste: string; changer: (l: string) => 
           <fieldset className="pile cadre-champs champs-a-gauche">
             {parent && <Champ libelle={`${parent.libelle} : *`}>{(p) => <select {...p} className="saisie" value={f.parentId || ""} onChange={(e) => setF({ ...f, parentId: Number(e.target.value) })}>
               <option value=""></option>{donnees.parents.map((x) => <option key={x.id} value={x.id}>{x.libelle}</option>)}</select>}</Champ>}
-            <Champ libelle={`${c.code} : *`}>{(p) => <input {...p} className="saisie code" value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} />}</Champ>
+            {!c.sansCode && <Champ libelle={`${c.code} : *`}>{(p) => <input {...p} className="saisie code" value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} />}</Champ>}
             <Champ libelle={`${c.libelle} : *`}>{(p) => <input {...p} className="saisie" value={f.libelle} onChange={(e) => setF({ ...f, libelle: e.target.value })} />}</Champ>
             <div className="actions-onglets">
               {choisi === null
@@ -60,28 +66,29 @@ function PageListe({ liste, changer }: { liste: string; changer: (l: string) => 
                     <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment modifier ?", () => api.listes.enregistrer(liste, saisie, choisi))}>Modifier</button>
                     <button className="bouton secondaire" type="button" onClick={() => confirmer("Voulez-vous vraiment supprimer ?", () => api.listes.supprimer(liste, choisi))}>Supprimer</button>
                   </>}
-              <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
+              <button className="bouton secondaire" type="button" onClick={effacer}>{c.effacer ?? "Effacer"}</button>
             </div>
           </fieldset>
           <table className="grille">
             <thead>
-              <tr><th scope="col">Numero</th>{parent && <th scope="col">{parent.colonne}</th>}
+              <tr>{!c.sansCode && <th scope="col">Numero</th>}{parent && <th scope="col">{parent.colonne}</th>}
                 <th scope="col" aria-sort={tri}><button type="button" onClick={() => setTri(tri === "ascending" ? "descending" : "ascending")}>{c.colonne}</button></th></tr>
-              <tr className="filtres"><td />{parent && <td />}<td><input className="saisie" type="search" aria-label={`Filtrer ${c.colonne}`} value={filtre} onChange={(e) => setFiltre(e.target.value)} /></td></tr>
+              <tr className="filtres">{!c.sansCode && <td />}{parent && <td />}<td><input className="saisie" type="search" aria-label={`Filtrer ${c.colonne}`} value={filtre} onChange={(e) => setFiltre(e.target.value)} /></td></tr>
             </thead>
             <tbody>
-              {lignes.length === 0 && <tr><td colSpan={parent ? 3 : 2}>Liste vide</td></tr>}
+              {lignes.length === 0 && <tr><td colSpan={(parent ? 2 : 1) + (c.sansCode ? 0 : 1)}>Liste vide</td></tr>}
               {lignes.map((l) => (
                 <tr key={l.id} className="ligne-choix" tabIndex={0} aria-selected={l.id === choisi}
                   onClick={() => { setChoisi(l.id); setF({ code: l.code, libelle: l.libelle, parentId: l.parentId ?? 0 }); }}
                   onKeyDown={(e) => { if (e.key === "Enter") { setChoisi(l.id); setF({ code: l.code, libelle: l.libelle, parentId: l.parentId ?? 0 }); } }}>
-                  <td>{l.code}</td>{parent && <td>{l.parent}</td>}<td>{l.libelle}</td>
+                  {!c.sansCode && <td>{l.code}</td>}{parent && <td>{l.parent}</td>}<td>{l.libelle}</td>
                 </tr>
               ))}
             </tbody>
           </table>
           <Textes sources={["Manuel Microfina++, p. 23 : Information de base: Secteur d'activité, liste de gauche (Secteur d'activité, Type d'activité, Profession, Catégorie, Type de pièce, Civilité, Type de groupe, Type client, Sous type de client, Forme juridique, Catégorie de groupe, Filiation, Situation matrimoniale, Motif de départ, Type Guichet), N° secteur*, Secteur d'activite*, Enregistrer, Effacer, liste Numero, Secteur ; « Les champs sont obligatoires à remplir : Numéro secteur et secteur d'activité »",
             "Manuel Microfina++, p. 12 : modifier, supprimer ; « Les suppressions sont généralement logiques »",
+            "Manuel Microfina++, p. 26 : Motif de départ d'un client, Libelle Motif*, Enregistrer, Reinitialiser, liste Libelle Motif ; « Remplir obligatoirement le champ : libelle Motif »",
             "Manuel Microfina++, p. 32 : le Type objet de crédit lit le Secteur Activité",
             "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
         </section>

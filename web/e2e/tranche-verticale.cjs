@@ -53,6 +53,10 @@ const OUT = process.argv[2];
   await p.getByRole('heading', { name: "Information de base: Type d'activité" }).waitFor();
   await p.getByLabel("Secteur d'activite : *").selectOption({ label: 'Pêche' }); await p.getByLabel('Code : *').fill('A1'); await p.getByLabel("Type d'activité : *").fill('Pisciculture');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Pisciculture' }).waitFor(); await etape('02f1-type-activite');
+  // Chef : motif de départ d'un client (S18, p. 26) : même page, Libelle Motif seul
+  await aller('/parametrage/s18'); await p.getByRole('heading', { name: "Motif de départ d'un client" }).waitFor();
+  await p.getByLabel('Libelle Motif : *').fill('Mutation professionnelle'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByRole('cell', { name: 'Mutation professionnelle' }).waitFor(); await etape('02f2-motifs-depart');
   // Chef : paramétrages liés aux clients (S15, p. 23 et 24)
   await aller('/parametrage/s15'); await p.getByLabel('Institution *').selectOption({ label: 'COOPEC Tujenge' });
   await p.getByLabel('Choisir : Préfixe').check(); await p.getByLabel('Valeur : Préfixe').fill('TJ'); await p.getByLabel('Choisir : Agence').check();

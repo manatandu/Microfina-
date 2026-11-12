@@ -430,6 +430,21 @@ describe("journée de guichet", () => {
     expect((await api.guichets.lire()).types).toContain("MOBILE");
   });
 
+  it("motif de départ d'un client (S18, p. 26) : Libelle Motif seul, unique, ordre de saisie, lu par la résiliation", async () => {
+    await connecter("jpmukendi");
+    let l = await api.listes.lire("motif_depart");
+    expect(l.lignes.map((x) => x.libelle)[0]).toBe("DEPART DU PAYS");
+    await expect(api.listes.enregistrer("motif_depart", { code: "", libelle: "" })).rejects.toThrow("Libelle Motif");
+    await expect(api.listes.enregistrer("motif_depart", { code: "", libelle: "autres" })).rejects.toThrow("existe déjà");
+    l = await api.listes.enregistrer("motif_depart", { code: "", libelle: "Mutation professionnelle" });
+    const m = l.lignes.at(-1)!; expect(m.libelle).toBe("Mutation professionnelle");
+    l = await api.listes.enregistrer("motif_depart", { code: "", libelle: "Mutation" }, m.id);                    // Modifier (T01)
+    expect(l.lignes.at(-1)!).toMatchObject({ id: m.id, code: m.code, libelle: "Mutation" });
+    expect((await api.referentiel.contexte()).motifsDepart).toContain("Mutation");
+    await api.listes.supprimer("motif_depart", m.id);                                                              // Supprimer (T02)
+    expect((await api.referentiel.contexte()).motifsDepart).not.toContain("Mutation");
+  });
+
   it("paramétrages liés aux clients (S15, p. 23 et 24) : institution obligatoire, ordre des éléments cochés", async () => {
     await connecter("jpmukendi");
     const l = await api.numerotation.lire(); const i = l.institutions[0]!.id;

@@ -390,6 +390,25 @@ def test_type_procuration(clients):
     assert agent.get("/api/types-procuration").json() == []
 
 
+def test_motif_depart(clients):
+    """S18 (p. 26) : Libelle Motif seul, unique, ordre de saisie ; la résiliation (S48) lit la même liste (registre S18-1, S18-2)"""
+    chef = clients["chef"]; connecter(chef, "jpmukendi")
+    l = chef.get("/api/listes/motif_depart", **H).json()
+    assert l["lignes"][0]["libelle"] == "DEPART DU PAYS" and l["liste"]["sansCode"]
+    def refus(corps):
+        r = chef.post("/api/listes/motif_depart", corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    assert "Libelle Motif" in refus({"code": "", "libelle": ""})
+    assert "existe déjà" in refus({"code": "", "libelle": "autres"})
+    m = chef.post("/api/listes/motif_depart", {"code": "", "libelle": "Mutation professionnelle"}, **H).json()["lignes"][-1]
+    r = chef.post(f"/api/listes/motif_depart/{m['id']}", {"code": "", "libelle": "Mutation"}, **H)
+    assert r.status_code == 200, r.content
+    assert r.json()["lignes"][-1] == {**m, "libelle": "Mutation"}
+    assert "Mutation" in chef.get("/api/referentiel", **H).json()["motifsDepart"]
+    assert chef.post(f"/api/listes/motif_depart/{m['id']}/suppression", {}, **H).status_code == 200
+    assert "Mutation" not in chef.get("/api/referentiel", **H).json()["motifsDepart"]
+
+
+
 def test_resiliation(clients, journee):
     chef, agent, caisse = clients["chef"], clients["agent"], clients["caisse"]
     k = T("0412-000320")

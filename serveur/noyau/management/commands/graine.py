@@ -37,10 +37,10 @@ class Command(BaseCommand):
             executer("insert into localite (parent_id, niveau, nom) values (%s, 'quartier', %s)", (ville, q))
         for pr in ("Commerçant", "Enseignant", "Agriculteur"):
             executer("insert into profession (institution_id, libelle) values (%s, %s)", (ins, pr))
-        # Motifs de départ : exemples de la capture du manuel (p. 26) ; paramétrage S18 pas encore construit
-        for mo in ("DEPART DU PAYS", "Raisons personnelles", "DEMENAGEMENT", "DECISION DU CLIENT", "NE VEUT PLUS PRENDRE DE CREDIT", "AUTRES",
-                   "TRANSFERT SUR UNE AUTRE AGENCE"):
-            executer("insert into motif_depart (institution_id, libelle) values (%s, %s)", (ins, mo))
+        # Motifs de départ : exemples de la capture du manuel (p. 26), dans le moteur des listes (S18, registre S18-1)
+        for n, mo in enumerate(("DEPART DU PAYS", "Raisons personnelles", "DEMENAGEMENT", "DECISION DU CLIENT", "NE VEUT PLUS PRENDRE DE CREDIT", "AUTRES",
+                                "TRANSFERT SUR UNE AUTRE AGENCE"), 1):
+            executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'motif_depart', %s, %s)", (ins, str(n), mo))
         for n, st in enumerate(("Homme", "Femme", "Entreprise", "Groupement", "Association", "ONG"), 1):   # sous types de client fictifs (S14h)
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'sous_type_client', %s, %s)", (ins, str(n), st))
         ag = valeur("insert into agence (institution_id, code, nom) values (%s, '0412', 'Matete') returning id", (ins,))

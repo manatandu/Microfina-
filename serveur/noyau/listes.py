@@ -18,7 +18,9 @@ CATALOGUE = [
     {"liste": "categorie_groupe", "ecran": "S14j", "titre": "Catégorie de groupe"},
     {"liste": "filiation", "ecran": "S14k", "titre": "Filiation"},
     {"liste": "situation_matrimoniale", "ecran": "S14l", "titre": "Situation matrimoniale"},
-    {"liste": "motif_depart", "ecran": "S14m", "titre": "Motif de départ"},
+    # S18 (p. 26) : même liste que S14m (registre S18-1), avec la forme de sa capture : Libelle Motif seul, Reinitialiser
+    {"liste": "motif_depart", "ecran": "S14m", "titre": "Motif de départ", "entete": "Motif de départ d'un client", "libelle": "Libelle Motif",
+     "colonne": "Libelle Motif", "sansCode": True, "effacer": "Reinitialiser"},
     {"liste": "type_guichet", "ecran": "S14n", "titre": "Type Guichet"},
 ]
 for c in CATALOGUE:      # registre S14-2 : un code et un libellé, comme Secteur d'activité
@@ -40,10 +42,11 @@ def fiche(liste: str) -> dict:
 
 
 def valeurs(u, liste: str) -> list[dict]:
-    """Valeurs actives d'une liste, pour les écrans qui la lisent (ex. Type de guichet de S08)"""
-    return lignes("""select l.id, l.code, l.libelle, l.parent_id as "parentId", coalesce(p.libelle, '') as parent
-                     from liste_reference l left join liste_reference p on p.id = l.parent_id
-                     where l.institution_id = %s and l.liste = %s and l.actif order by l.code""", (u["institution_id"], liste))
+    """Valeurs actives d'une liste, pour les écrans qui la lisent (ex. Type de guichet de S08). Sans code : ordre de saisie (registre S18-2)."""
+    ordre = "l.id" if PAR_LISTE.get(liste, {}).get("sansCode") else "l.code"
+    return lignes(f"""select l.id, l.code, l.libelle, l.parent_id as "parentId", coalesce(p.libelle, '') as parent
+                      from liste_reference l left join liste_reference p on p.id = l.parent_id
+                      where l.institution_id = %s and l.liste = %s and l.actif order by {ordre}""", (u["institution_id"], liste))
 
 
 def lire(u, liste: str) -> dict:
@@ -61,7 +64,10 @@ def enregistrer(u, liste: str, d, lid: int | None = None) -> dict:
     d = d if isinstance(d, dict) else {}
     texte = lambda k: d.get(k).strip() if isinstance(d.get(k), str) else ""
     code, libelle, parent = texte("code"), texte("libelle"), d.get("parentId")
-    manque = [n for n, v in ((c["code"], code), (c["libelle"], libelle)) if not v]
+    if c.get("sansCode"):       # registre S18-2 : numéro interne, gardé en modification, donné dans l'ordre de saisie à la création
+        code = (une("select code from liste_reference where id = %s", (lid,)) or {"code": ""})["code"] if lid is not None else \
+            str(1 + (une("select count(*) as n from liste_reference where institution_id = %s and liste = %s", (i, liste))["n"]))
+    manque = [n for n, v in ((c["code"], code or c.get("sansCode")), (c["libelle"], libelle)) if not v]
     if c.get("parent") and not parent:
         manque.append(PAR_LISTE[c["parent"]]["libelle"])
     if manque:
@@ -70,6 +76,9 @@ def enregistrer(u, liste: str, d, lid: int | None = None) -> dict:
         raise ErreurMetier(f"{PAR_LISTE[c['parent']]['libelle']} inconnu.")
     if lid is not None and not une("select 1 from liste_reference where id = %s and institution_id = %s and liste = %s and actif", (lid, i, liste)):
         raise ErreurMetier("Ligne introuvable.")
+    if c.get("sansCode") and une("select 1 from liste_reference where institution_id = %s and liste = %s and lower(libelle) = lower(%s) and actif and id is distinct from %s",
+                                 (i, liste, libelle, lid)):
+        raise ErreurMetier(f"Ce {c['libelle']} existe déjà.")      # registre S18-2
     if une("select 1 from liste_reference where institution_id = %s and liste = %s and code = %s and id is distinct from %s", (i, liste, code, lid)):
         raise ErreurMetier(f"Ce {c['code']} existe déjà.")
     if lid is None:

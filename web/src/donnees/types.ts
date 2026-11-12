@@ -172,7 +172,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 29;
+  version: 30;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];
@@ -207,7 +207,6 @@ export interface Etat {
   consentements: { id: number; tiersId: number; code: string; dateDebut: string; dateFin: string; commentaire: string }[];   // S50
   typesProcuration: { id: number; libelle: string }[];   // S47
   professions: string[];
-  motifsDepart: string[];   // S18, exemples de la capture p. 26
   localites: { pays: string; villes: { ville: string; quartiers: string[] }[] }[];
   groupesSolidaires: { id: number; code: string; nom: string }[];      // S44
   membresGroupes: { groupeId: number; tiersId: number }[];
