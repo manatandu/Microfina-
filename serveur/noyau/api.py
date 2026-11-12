@@ -480,12 +480,17 @@ def gu_lire(request):
 
 @api.post("/guichets")
 def gu_creer(request, corps: dict = Body(...)):
-    return gu.creer(u(request), corps)
+    return gu.enregistrer(u(request), corps)
 
 
 @api.post("/guichets/{gid}/ouverture")
 def gu_ouvrir(request, gid: int):
     return gu.ouvrir(u(request), gid)
+
+
+@api.post("/guichets/{gid}")
+def gu_modifier(request, gid: int, corps: dict = Body(...)):
+    return gu.enregistrer(u(request), corps, gid)
 
 
 @api.get("/affectations-guichets")

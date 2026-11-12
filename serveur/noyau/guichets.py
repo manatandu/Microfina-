@@ -2,7 +2,9 @@
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import exiger, journee_courante, ouvrir_caisse
 
-TYPES_GUICHET = ["PRINCIPALE", "SECONDAIRE"]   # valeurs lues sur la capture p. 19 ; liste complète à confirmer
+TYPES_GUICHET = ["PRINCIPALE", "SECONDAIRE"]   # capture p. 19 ; la liste viendra de Général > Type Guichet (S14n, registre S08-1)
+# Registre S08-7 : comptes du PCCI proposés par défaut (570, 579, 7790, 671), modifiables, contrôlés sur le plan de comptes (règle T16)
+COMPTES_DEFAUT = {"compteGuichet": "570", "compteLiaison": "579", "compteSurplus": "7790", "compteManquant": "671"}
 
 
 def droit(u):
@@ -20,9 +22,14 @@ def lire(u) -> dict:
     j = journee_courante(u)
     return {
         "agences": lignes("select id, code, nom from agence where institution_id = %s order by code", (i,)),
-        "journaux": lignes("select id, code, libelle from journal where institution_id = %s order by code", (i,)),
+        "journaux": lignes("select id, code, libelle from journal where institution_id = %s and type = 'caisse' order by code", (i,)),   # registre S08-2
+        "comptesDefaut": COMPTES_DEFAUT,
         "types": TYPES_GUICHET,
-        "guichets": lignes("""select g.id, g.code, g.nom, coalesce(g.type_guichet, '') as "typeGuichet", g.actif,
+        "guichets": lignes("""select g.id, g.code, g.nom, coalesce(g.type_guichet, '') as "typeGuichet", g.actif, g.agence_id as "agenceId",
+                                     g.journal_id as "journalId", g.maximum_caisse as "maximumCaisse", g.retrait_plafonne as "retraitPlafonne",
+                                     g.maximum_caisse_usd as "maximumCaisseUsd", g.retrait_plafonne_usd as "retraitPlafonneUsd",
+                                     coalesce(g.compte_guichet, '') as "compteGuichet", coalesce(g.compte_liaison, '') as "compteLiaison",
+                                     coalesce(g.compte_surplus, '') as "compteSurplus", coalesce(g.compte_manquant, '') as "compteManquant", g.billetage,
                                      s.id is not null and s.fermee_le is null and s.statut = 'ouverte' as ouvert,
                                      case when s.id is not null then j.date_comptable::text else '' end as "dateOuverture"
                               from guichet g join agence a on a.id = g.agence_id
@@ -45,37 +52,48 @@ def entier(d, k, nom):
     return n
 
 
-def creer(u, d) -> dict:
-    """« Gestion des guichets » (p. 18) : Agence*, Code guichet*, Désignation*, Type de guichet*, Journal*, Maximum autorisé en caisse*,
-    Retrait plafonné*, comptes guichet, liaison, surplus et manquant, Billetage autorisé, Guichet Actif."""
+def enregistrer(u, d, gid: int | None = None) -> dict:
+    """« Gestion des guichets » (p. 18 et 95) : Agence*, Code guichet*, Désignation*, Type de guichet*, Journal*, Maximum autorisé en caisse*,
+    Retrait plafonné* (une valeur par devise, registre S08-3), comptes guichet, liaison, surplus et manquant, Billetage autorisé, Guichet Actif.
+    Sans gid : Enregistrer. Avec gid : Modifier, après un clic sur la ligne de la liste (manuel p. 12, registre S08-8)."""
     droit(u)
     i = u["institution_id"]
+    if gid is not None and not une("select 1 from guichet g join agence a on a.id = g.agence_id where g.id = %s and a.institution_id = %s", (gid, i)):
+        raise ErreurMetier("Guichet introuvable.")
     code, nom, type_ = texte(d, "code"), texte(d, "designation"), texte(d, "typeGuichet")
     agence, journal = d.get("agenceId"), d.get("journalId")
     manque = [n for n, v in (("agence", agence), ("code guichet", code), ("désignation", nom), ("type de guichet", type_), ("journal", journal)) if not v]
     if manque:
         raise ErreurMetier("À remplir : " + ", ".join(manque) + ".")
-    maximum = entier(d, "maximumCaisse", "maximum autorisé en caisse")
-    plafond = entier(d, "retraitPlafonne", "retrait plafonné")
+    montants = [entier(d, k, n) for k, n in (("maximumCaisse", "maximum autorisé en caisse (CDF)"), ("maximumCaisseUsd", "maximum autorisé en caisse (USD)"),
+                                              ("retraitPlafonne", "retrait plafonné (CDF)"), ("retraitPlafonneUsd", "retrait plafonné (USD)"))]
     if type_ not in TYPES_GUICHET:
         raise ErreurMetier("Type de guichet inconnu.")
     if not une("select 1 from agence where id = %s and institution_id = %s", (agence, i)):
         raise ErreurMetier("Agence inconnue.")
-    if not une("select 1 from journal where id = %s and institution_id = %s", (journal, i)):
+    if not une("select 1 from journal where id = %s and institution_id = %s and type = 'caisse'", (journal, i)):
         raise ErreurMetier("Journal inconnu.")
     comptes = {}
     for k, n in (("compteGuichet", "Compte guichet"), ("compteLiaison", "Compte liaison"), ("compteSurplus", "Compte surplus"), ("compteManquant", "Compte manquant")):
         v = texte(d, k)
         if v and not v.isdigit():
             raise ErreurMetier(f"{n} : chiffres seulement.")
+        if v and not une("select 1 from compte where numero = %s and (institution_id is null or institution_id = %s)", (v, i)):
+            raise ErreurMetier(f"{n} : le compte {v} n'est pas dans le plan de comptes.")   # règle T16
         comptes[k] = v or None
-    if une("select 1 from guichet where agence_id = %s and code = %s", (agence, code)):
+    if une("select 1 from guichet where agence_id = %s and code = %s and id is distinct from %s", (agence, code, gid)):
         raise ErreurMetier("Ce code guichet existe déjà.")
-    valeur("""insert into guichet (agence_id, code, nom, type_guichet, journal_id, maximum_caisse, retrait_plafonne,
-                                  compte_guichet, compte_liaison, compte_surplus, compte_manquant, billetage, actif)
-              values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
-           (agence, code, nom, type_, journal, maximum, plafond, comptes["compteGuichet"], comptes["compteLiaison"], comptes["compteSurplus"],
-            comptes["compteManquant"], bool(d.get("billetage")), bool(d.get("actif"))))
+    valeurs = (agence, code, nom, type_, journal, *montants, comptes["compteGuichet"], comptes["compteLiaison"], comptes["compteSurplus"],
+               comptes["compteManquant"], bool(d.get("actif")))
+    # Billetage autorisé : toujours vrai (registre S08-6, ARCHITECTURE P8)
+    if gid is None:
+        executer("""insert into guichet (agence_id, code, nom, type_guichet, journal_id, maximum_caisse, maximum_caisse_usd, retrait_plafonne,
+                                        retrait_plafonne_usd, compte_guichet, compte_liaison, compte_surplus, compte_manquant, actif, billetage)
+                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, true)""", valeurs)
+    else:
+        executer("""update guichet set agence_id = %s, code = %s, nom = %s, type_guichet = %s, journal_id = %s, maximum_caisse = %s, maximum_caisse_usd = %s,
+                                       retrait_plafonne = %s, retrait_plafonne_usd = %s, compte_guichet = %s, compte_liaison = %s, compte_surplus = %s,
+                                       compte_manquant = %s, actif = %s, billetage = true where id = %s""", (*valeurs, gid))
     return lire(u)
 
 

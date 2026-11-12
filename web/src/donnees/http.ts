@@ -139,7 +139,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
     },
     guichets: {
       lire: () => get("/guichets"),
-      creer: (d: object) => post("/guichets", d),
+      enregistrer: (d: object, id?: number) => post(id === undefined ? "/guichets" : `/guichets/${id}`, d),
       ouvrir: (id: number) => post(`/guichets/${id}/ouverture`),
       fermer: (id: number) => post(`/guichets/${id}/fermeture`),
       affectations: () => get("/affectations-guichets"),

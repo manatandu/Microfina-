@@ -29,7 +29,7 @@ const OUT = process.argv[2];
   await aller('/administration/s08');
   await p.getByLabel('Agence *').selectOption({ label: 'Matete' }); await p.getByLabel('Code guichet *').fill('G3'); await p.getByLabel('Désignation *').fill('Caisse 3');
   await p.getByLabel('Type de guichet *').selectOption('SECONDAIRE'); await p.getByLabel('Journal *').selectOption({ label: 'Caisse' });
-  await p.getByLabel('Compte guichet').fill('5701'); await p.getByLabel('Billetage autorisé').check(); await p.getByLabel('Guichet Actif').check();
+  await p.getByLabel('Guichet Actif').check();
   await etape('02a-gestion-guichets'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   // Chef : affecter la Caisse 3 à Bijou Kasongo, puis la retirer (S10, p. 20 et 96)
   await aller('/administration/s10'); await p.getByRole('button', { name: 'Ajouter un guichet : bkasongo' }).click();

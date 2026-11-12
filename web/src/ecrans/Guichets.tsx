@@ -1,29 +1,48 @@
 import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
+import { Link } from "react-router-dom";
 import { fr } from "../lib/dates";
 import { lireMontant } from "@design/montant.js";
 import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
 import { TableFiltree } from "./Groupes";
 
-const VIDE = { agenceId: 0, code: "", designation: "", typeGuichet: "", journalId: 0, maximumCaisse: "0", retraitPlafonne: "0",
-  compteGuichet: "", compteLiaison: "", compteSurplus: "", compteManquant: "", billetage: false, actif: false };
+const VIDE = { agenceId: 0, code: "", designation: "", typeGuichet: "", journalId: 0, maximumCaisse: "0", maximumCaisseUsd: "0", retraitPlafonne: "0", retraitPlafonneUsd: "0",
+  compteGuichet: "", compteLiaison: "", compteSurplus: "", compteManquant: "", actif: false };
+type Formulaire = typeof VIDE;
+const enTexte = (c: number) => String(c / 100).replace(".", ",");
+const COMPTES = [["compteGuichet", "Compte guichet"], ["compteLiaison", "Compte liaison"], ["compteSurplus", "Compte surplus"], ["compteManquant", "Compte manquant"]] as const;
+const MONTANTS = [["maximumCaisse", "Maximum autorisé en caisse (CDF) *"], ["maximumCaisseUsd", "Maximum autorisé en caisse (USD) *"],
+  ["retraitPlafonne", "Retrait plafonné (CDF) *"], ["retraitPlafonneUsd", "Retrait plafonné (USD) *"]] as const;
 
-/** S08 : Administration > Guichet > Gestion des guichets (manuel Microfina++, p. 18) */
+/** S08 : Administration > Guichet > Gestion des guichets (manuel Microfina++, p. 18 ; formulaire rempli et liste p. 95) */
 export function GestionGuichets() {
-  const [f, setF] = useState(VIDE);
+  const [f, setF] = useState<Formulaire | null>(null);
+  const [choisi, setChoisi] = useState<number | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
-  const { donnees } = useDonnees(() => api.guichets.lire());
+  const [relu, setRelu] = useState(0);
+  const { donnees } = useDonnees(() => api.guichets.lire(), [relu]);
   if (!donnees) return <Chargement />;
-  const { agences, journaux, types } = donnees;
-  const champ = (k: keyof typeof VIDE) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value });
+  const { agences, journaux, types, comptesDefaut, guichets } = donnees;
+  const neuf = (): Formulaire => ({ ...VIDE, ...comptesDefaut });
+  const v = f ?? neuf();
+  const champ = (k: keyof Formulaire) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...v, [k]: e.target.value });
   const montantSaisi = (x: string) => (x.trim() ? lireMontant(x) : null);
+  const effacer = () => { setF(null); setChoisi(null); };
+  /** Clic sur une ligne de la liste : le guichet revient dans le formulaire, le bouton devient Modifier (manuel p. 12) */
+  function charger(g: (typeof guichets)[number]) {
+    setChoisi(g.id);
+    setF({ agenceId: g.agenceId, code: g.code, designation: g.nom, typeGuichet: g.typeGuichet, journalId: g.journalId,
+      maximumCaisse: enTexte(g.maximumCaisse), maximumCaisseUsd: enTexte(g.maximumCaisseUsd), retraitPlafonne: enTexte(g.retraitPlafonne), retraitPlafonneUsd: enTexte(g.retraitPlafonneUsd),
+      compteGuichet: g.compteGuichet, compteLiaison: g.compteLiaison, compteSurplus: g.compteSurplus, compteManquant: g.compteManquant, actif: g.actif });
+  }
   function enregistrer() {
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try {
-        await api.guichets.creer({ ...f, agenceId: Number(f.agenceId), journalId: Number(f.journalId),
-          maximumCaisse: montantSaisi(f.maximumCaisse), retraitPlafonne: montantSaisi(f.retraitPlafonne) });
-        setF(VIDE); setBoite({ type: "succes", message: "Enregistré avec succès !" });
+        await api.guichets.enregistrer({ ...v, agenceId: Number(v.agenceId), journalId: Number(v.journalId),
+          maximumCaisse: montantSaisi(v.maximumCaisse), maximumCaisseUsd: montantSaisi(v.maximumCaisseUsd),
+          retraitPlafonne: montantSaisi(v.retraitPlafonne), retraitPlafonneUsd: montantSaisi(v.retraitPlafonneUsd) }, choisi ?? undefined);
+        effacer(); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" });
       } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
     } });
   }
@@ -34,35 +53,39 @@ export function GestionGuichets() {
         <div className="deux-colonnes">
           <fieldset className="pile cadre-champs">
             <legend>Informations sur le guichet</legend>
-            <Champ libelle="Agence *">{(p) => <select {...p} className="saisie" value={f.agenceId || ""} onChange={champ("agenceId")}>
+            <Champ libelle="Agence *">{(p) => <select {...p} className="saisie" value={v.agenceId || ""} onChange={champ("agenceId")}>
               <option value=""></option>{agences.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
-            <Champ libelle="Code guichet *">{(p) => <input {...p} className="saisie code" value={f.code} onChange={champ("code")} />}</Champ>
-            <Champ libelle="Désignation *">{(p) => <input {...p} className="saisie" value={f.designation} onChange={champ("designation")} />}</Champ>
-            <Champ libelle="Type de guichet *">{(p) => <select {...p} className="saisie" value={f.typeGuichet} onChange={champ("typeGuichet")}>
+            <Champ libelle="Code guichet *">{(p) => <input {...p} className="saisie code" value={v.code} onChange={champ("code")} />}</Champ>
+            <Champ libelle="Désignation *">{(p) => <input {...p} className="saisie" value={v.designation} onChange={champ("designation")} />}</Champ>
+            <Champ libelle="Type de guichet *">{(p) => <select {...p} className="saisie" value={v.typeGuichet} onChange={champ("typeGuichet")}>
               <option value=""></option>{types.map((t) => <option key={t}>{t}</option>)}</select>}</Champ>
-            <Champ libelle="Journal *">{(p) => <select {...p} className="saisie" value={f.journalId || ""} onChange={champ("journalId")}>
+            <Champ libelle="Journal *">{(p) => <select {...p} className="saisie" value={v.journalId || ""} onChange={champ("journalId")}>
               <option value=""></option>{journaux.map((j) => <option key={j.id} value={j.id}>{j.libelle}</option>)}</select>}</Champ>
-            <Champ libelle="Maximum autorisé en caisse *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={f.maximumCaisse} onChange={champ("maximumCaisse")} />}</Champ>
-            <Champ libelle="Retrait plafonné *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={f.retraitPlafonne} onChange={champ("retraitPlafonne")} />}</Champ>
+            {MONTANTS.map(([k, l]) => <Champ key={k} libelle={l}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={v[k]} onChange={champ(k)} />}</Champ>)}
           </fieldset>
           <div className="pile">
             <fieldset className="pile cadre-champs">
               <legend>Compte</legend>
-              <Champ libelle="Compte guichet">{(p) => <input {...p} className="saisie code" value={f.compteGuichet} onChange={champ("compteGuichet")} />}</Champ>
-              <Champ libelle="Compte liaison">{(p) => <input {...p} className="saisie code" value={f.compteLiaison} onChange={champ("compteLiaison")} />}</Champ>
-              <Champ libelle="Compte surplus">{(p) => <input {...p} className="saisie code" value={f.compteSurplus} onChange={champ("compteSurplus")} />}</Champ>
-              <Champ libelle="Compte manquant">{(p) => <input {...p} className="saisie code" value={f.compteManquant} onChange={champ("compteManquant")} />}</Champ>
+              {COMPTES.map(([k, l]) => <Champ key={k} libelle={l}>{(p) => <input {...p} className="saisie code" value={v[k]} onChange={champ(k)} />}</Champ>)}
             </fieldset>
-            <label className="case"><input type="checkbox" checked={f.billetage} onChange={(e) => setF({ ...f, billetage: e.target.checked })} /><span>Billetage autorisé</span></label>
-            <label className="case"><input type="checkbox" checked={f.actif} onChange={(e) => setF({ ...f, actif: e.target.checked })} /><span>Guichet Actif</span></label>
+            <label className="case"><input type="checkbox" checked disabled /><span>Billetage autorisé</span></label>
+            <label className="case"><input type="checkbox" checked={v.actif} onChange={(e) => setF({ ...v, actif: e.target.checked })} /><span>Guichet Actif</span></label>
           </div>
         </div>
         <div className="actions-onglets">
-          <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
-          <button className="bouton secondaire" type="button" onClick={() => setF(VIDE)}>Effacer</button>
+          <button className="bouton" type="button" onClick={enregistrer}>{choisi ? "Modifier" : "Enregistrer"}</button>
+          <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
         </div>
-        <p className="a-confirmer">À confirmer : liste des types de guichet (seuls PRINCIPALE et SECONDAIRE se lisent p. 19) ; liste des journaux proposés ; devise du maximum en caisse et du retrait plafonné, et leur effet au guichet ; effet de « Billetage autorisé » ; comptes (les écritures de caisse vont encore au compte 570) ; profil habilité ; modification d'un guichet existant (le manuel ne la montre pas).</p>
-        <Textes sources={["Manuel Microfina++, p. 18 : Gestion des guichets, Informations sur le guichet (Agence*, Code guichet*, Désignation*, Type de guichet*, Journal*, Maximum autorisé en caisse*, Retrait plafonné*), Compte (guichet, liaison, surplus, manquant), Billetage autorisé, Guichet Actif, Enregistrer, Effacer",
+        <TableFiltree sansFiltres lignes={guichets} cle={(g) => g.id} choisir={charger} choisi={choisi} colonnes={[
+          { titre: "Code guichet", valeur: (g) => g.code }, { titre: "Type guichet", valeur: (g) => g.typeGuichet }, { titre: "Designation", valeur: (g) => g.nom },
+          { titre: "Compte guichet", valeur: (g) => g.compteGuichet, classe: "chiffres" }, { titre: "Compte liaison", valeur: (g) => g.compteLiaison, classe: "chiffres" },
+          { titre: "Compte surplus", valeur: (g) => g.compteSurplus, classe: "chiffres" }, { titre: "Compte manquant", valeur: (g) => g.compteManquant, classe: "chiffres" },
+        ]} apres={{ titre: "Opérations", cellule: () => <Link to="/administration/s10">Droits</Link> }} />
+        <p className="a-confirmer">Complété par nous (registre <code>docs/architecture/DECISIONS.md</code>) : S08-2 journaux de caisse seulement ; S08-3 maximum et plafond par devise ; S08-6 billetage toujours autorisé ; S08-7 comptes proposés 570, 579, 7790 et 671 (PCCI), contrôlés sur le plan de comptes ; S08-8 liste et Modifier ; S08-9 « Droits » ouvre l'affectation des guichets ; T07 profil habilité. Restent à appliquer ailleurs : S08-1 (liste Type Guichet, avec S14n), S08-4 (avertissement au guichet), S08-5 (visa du retrait plafonné, avec S113).</p>
+        <Textes sources={["Manuel Microfina++, p. 18 et 95 : Gestion des guichets, Informations sur le guichet (Agence*, Code guichet*, Désignation*, Type de guichet*, Journal*, Maximum autorisé en caisse*, Retrait plafonné*), Compte (guichet, liaison, surplus, manquant), Billetage autorisé, Guichet Actif, Enregistrer, Effacer ; liste Code guichet, Type guichet, Designation, Compte guichet, Compte liaison, Compte surplus, Compte manquant, Opérations (Droits)",
+          "Manuel Microfina++, p. 12 : modifier une donnée enregistrée",
+          "PCCI, liste des comptes : 570 Monnaies nationale et étrangère, 579 Mouvements de fonds inter caisses, 671 Déficits de caisse non récupérés, 7790 Excédents de caisse ; compte 57 subdivisé selon la devise",
+          "ARCHITECTURE P8 : le billetage n'est pas une option",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
       </section>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />

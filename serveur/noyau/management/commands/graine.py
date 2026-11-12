@@ -83,8 +83,10 @@ class Command(BaseCommand):
         for code, libelle, d in (("EAV-CDF", "Épargne à vue", "CDF"), ("EAV-USD", "Épargne à vue", "USD")):
             executer("insert into produit_epargne (institution_id, code, libelle, famille, devise) values (%s, %s, %s, 'a_vue', %s)", (ins, code, libelle, d))
         jca = valeur("select id from journal where code = 'CA' and institution_id = %s", (ins,))   # données fictives (S08)
-        g1 = valeur("insert into guichet (agence_id, code, nom, type_guichet, journal_id) values (%s, 'G1', 'Caisse 1', 'PRINCIPALE', %s) returning id", (ag, jca))
-        g2 = valeur("insert into guichet (agence_id, code, nom, type_guichet, journal_id) values (%s, 'G2', 'Caisse 2', 'SECONDAIRE', %s) returning id", (ag, jca))
+        g1 = valeur("""insert into guichet (agence_id, code, nom, type_guichet, journal_id, compte_guichet, compte_liaison, compte_surplus, compte_manquant)
+                     values (%s, 'G1', 'Caisse 1', 'PRINCIPALE', %s, '570', '579', '7790', '671') returning id""", (ag, jca))
+        g2 = valeur("""insert into guichet (agence_id, code, nom, type_guichet, journal_id, compte_guichet, compte_liaison, compte_surplus, compte_manquant)
+                     values (%s, 'G2', 'Caisse 2', 'SECONDAIRE', %s, '570', '579', '7790', '671') returning id""", (ag, jca))
         # Affectation des guichets (S10), données fictives : la caissière tient la Caisse 2 et voit les soldes
         executer("insert into affectation_guichet (guichet_id, utilisateur_id, voir_solde, ajoute_par) values (%s, %s, true, %s)", (g2, caissiere, chef))
         del g1

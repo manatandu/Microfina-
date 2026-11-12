@@ -16,7 +16,7 @@ import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@d
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v22";
+const CLE = "likelemba-demo-v23";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -24,7 +24,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 22) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 23) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -976,7 +976,7 @@ const guichet = {
 
 /** Comptes du plan comptable déjà chargés (PCCI) ; le plan complet viendra avec S102 */
 function planComptable() {
-  return ["570", "330", "334", "1030", "1031", "1032", "715", "728", ...E.comptesBancaires.map((c) => c.compte)];
+  return ["570", "579", "671", "7790", "330", "334", "1030", "1031", "1032", "715", "728", ...E.comptesBancaires.map((c) => c.compte)];
 }
 /** Opérations qui font sortir des billets de la caisse */
 const SORTIES: Operation["type"][] = ["retrait", "retrait_parts"];
@@ -1060,42 +1060,57 @@ function asynchrone<T extends object>(o: T): Asynchrone<T> {
 export const TYPES_GUICHET = ["PRINCIPALE", "SECONDAIRE"];
 const JOURNAUX = [{ id: 2, code: "AN", libelle: "À-nouveaux", type: "a_nouveaux" }, { id: 3, code: "BQ", libelle: "Journal Banque", type: "banque" }, { id: 1, code: "CA", libelle: "Caisse", type: "caisse" }];
 export interface SaisieGuichet {
-  agenceId: number; code: string; designation: string; typeGuichet: string; journalId: number; maximumCaisse: number | null; retraitPlafonne: number | null;
-  compteGuichet: string; compteLiaison: string; compteSurplus: string; compteManquant: string; billetage: boolean; actif: boolean;
+  agenceId: number; code: string; designation: string; typeGuichet: string; journalId: number;
+  maximumCaisse: number | null; maximumCaisseUsd: number | null; retraitPlafonne: number | null; retraitPlafonneUsd: number | null;   // une valeur par devise (registre S08-3)
+  compteGuichet: string; compteLiaison: string; compteSurplus: string; compteManquant: string; billetage?: boolean; actif: boolean;
 }
+/** Registre S08-7 : comptes du PCCI proposés par défaut, modifiables, contrôlés sur le plan de comptes (règle T16) */
+export const COMPTES_DEFAUT = { compteGuichet: "570", compteLiaison: "579", compteSurplus: "7790", compteManquant: "671" };
 const guichets = {
   lire() {
     exiger();
     const j = journees.courante();
     return {
-      agences: [E.agence], journaux: JOURNAUX, types: TYPES_GUICHET,
+      agences: [E.agence], journaux: JOURNAUX.filter((j) => j.type === "caisse"), types: TYPES_GUICHET, comptesDefaut: COMPTES_DEFAUT,   // registre S08-2
       guichets: [...E.guichets].sort((a, b) => a.code.localeCompare(b.code)).map((g) => {
         const s = E.sessions.find((x) => x.guichetId === g.id && x.journeeId === j?.id);
-        return { id: g.id, code: g.code, nom: g.nom, typeGuichet: g.typeGuichet ?? "", actif: g.actif !== false, ouvert: s?.statut === "ouverte", dateOuverture: s && j ? j.date : "" };
+        return { id: g.id, code: g.code, nom: g.nom, typeGuichet: g.typeGuichet ?? "", actif: g.actif !== false, ouvert: s?.statut === "ouverte", dateOuverture: s && j ? j.date : "",
+          agenceId: E.agence.id, journalId: g.journalId ?? 0, maximumCaisse: g.maximumCaisse ?? 0, retraitPlafonne: g.retraitPlafonne ?? 0,
+          maximumCaisseUsd: g.maximumCaisseUsd ?? 0, retraitPlafonneUsd: g.retraitPlafonneUsd ?? 0, compteGuichet: g.compteGuichet ?? "", compteLiaison: g.compteLiaison ?? "",
+          compteSurplus: g.compteSurplus ?? "", compteManquant: g.compteManquant ?? "", billetage: true };
       }),
     };
   },
-  /** « Gestion des guichets » (p. 18) */
-  creer(d: SaisieGuichet) {
-    exiger("chef_agence");   // profil habilité : à confirmer
+  /** « Gestion des guichets » (p. 18 et 95). Sans id : Enregistrer ; avec id : Modifier après un clic sur la ligne (p. 12, registre S08-8). */
+  enregistrer(d: SaisieGuichet, id?: number) {
+    exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
+    const actuel = id === undefined ? undefined : E.guichets.find((g) => g.id === id);
+    if (id !== undefined && !actuel) throw new ErreurMetier("Guichet introuvable.");
     const v = { code: d.code.trim(), nom: d.designation.trim(), typeGuichet: d.typeGuichet.trim() };
     const manque = manquants([["agence", d.agenceId ? "x" : ""], ["code guichet", v.code], ["désignation", v.nom], ["type de guichet", v.typeGuichet], ["journal", d.journalId ? "x" : ""]]);
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
-    if (d.maximumCaisse === null) throw new ErreurMetier("À remplir : maximum autorisé en caisse.");
-    if (d.retraitPlafonne === null) throw new ErreurMetier("À remplir : retrait plafonné.");
-    if (!Number.isInteger(d.maximumCaisse) || d.maximumCaisse < 0) throw new ErreurMetier("Maximum autorisé en caisse : montant invalide.");
-    if (!Number.isInteger(d.retraitPlafonne) || d.retraitPlafonne < 0) throw new ErreurMetier("Retrait plafonné : montant invalide.");
+    const montants = ([["maximumCaisse", "maximum autorisé en caisse (CDF)"], ["maximumCaisseUsd", "maximum autorisé en caisse (USD)"],
+      ["retraitPlafonne", "retrait plafonné (CDF)"], ["retraitPlafonneUsd", "retrait plafonné (USD)"]] as const).map(([k, n]) => {
+      const x = d[k];
+      if (x === null) throw new ErreurMetier(`À remplir : ${n}.`);
+      if (!Number.isInteger(x) || x < 0) throw new ErreurMetier(`${n[0]!.toUpperCase() + n.slice(1)} : montant invalide.`);
+      return x;
+    });
     if (!TYPES_GUICHET.includes(v.typeGuichet)) throw new ErreurMetier("Type de guichet inconnu.");
     if (d.agenceId !== E.agence.id) throw new ErreurMetier("Agence inconnue.");
-    if (!JOURNAUX.some((j) => j.id === d.journalId)) throw new ErreurMetier("Journal inconnu.");
+    if (!JOURNAUX.some((j) => j.id === d.journalId && j.type === "caisse")) throw new ErreurMetier("Journal inconnu.");
     const comptes: Record<string, string | undefined> = {};
     for (const [k, n] of [["compteGuichet", "Compte guichet"], ["compteLiaison", "Compte liaison"], ["compteSurplus", "Compte surplus"], ["compteManquant", "Compte manquant"]] as const) {
       const x = d[k].trim();
       if (x && !/^\d+$/.test(x)) throw new ErreurMetier(`${n} : chiffres seulement.`);
+      if (x && !planComptable().includes(x)) throw new ErreurMetier(`${n} : le compte ${x} n'est pas dans le plan de comptes.`);   // règle T16
       comptes[k] = x || undefined;
     }
-    if (E.guichets.some((g) => g.code === v.code)) throw new ErreurMetier("Ce code guichet existe déjà.");
-    E.guichets.push({ id: prochain(E.guichets), ...v, journalId: d.journalId, maximumCaisse: d.maximumCaisse, retraitPlafonne: d.retraitPlafonne, ...comptes, billetage: d.billetage, actif: d.actif });
+    if (E.guichets.some((g) => g.code === v.code && g.id !== id)) throw new ErreurMetier("Ce code guichet existe déjà.");
+    const [maximumCaisse, maximumCaisseUsd, retraitPlafonne, retraitPlafonneUsd] = montants;
+    // Billetage autorisé : toujours vrai (registre S08-6, ARCHITECTURE P8)
+    const g = { ...v, journalId: d.journalId, maximumCaisse, maximumCaisseUsd, retraitPlafonne, retraitPlafonneUsd, ...comptes, billetage: true, actif: d.actif };
+    if (actuel) Object.assign(actuel, g); else E.guichets.push({ id: prochain(E.guichets), ...g });
     enregistrer(); return guichets.lire();
   },
   /** S10 « Ajout et Retrait de Guichet à un utilisateur » (p. 96) et fenêtre d'ajout (p. 20). Mêmes règles côté serveur (noyau/guichets.py). */

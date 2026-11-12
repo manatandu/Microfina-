@@ -77,13 +77,19 @@ describe("journée de guichet", () => {
 
   it("guichets (S08 p. 18, S09 p. 19) : champs obligatoires, code unique, ouverture d'un guichet actif, fermeture", async () => {
     await connecter("jpmukendi"); await api.journees.ouvrir("2026-11-05");
-    const d = { agenceId: 1, code: "G3", designation: "Caisse 3", typeGuichet: "SECONDAIRE", journalId: 1, maximumCaisse: 0, retraitPlafonne: 0,
-      compteGuichet: "5701", compteLiaison: "", compteSurplus: "", compteManquant: "", billetage: true, actif: false };
-    await expect(api.guichets.creer({ ...d, designation: "" })).rejects.toThrow("désignation");
-    await expect(api.guichets.creer({ ...d, compteSurplus: "57A" })).rejects.toThrow("chiffres");
-    const g3 = (await api.guichets.creer(d)).guichets.find((g) => g.code === "G3")!;
-    expect([g3.typeGuichet, g3.actif, g3.ouvert]).toEqual(["SECONDAIRE", false, false]);
-    await expect(api.guichets.creer(d)).rejects.toThrow("existe déjà");
+    const d = { agenceId: 1, code: "G3", designation: "Caisse 3", typeGuichet: "SECONDAIRE", journalId: 1, maximumCaisse: 0, maximumCaisseUsd: 0, retraitPlafonne: 0, retraitPlafonneUsd: 0,
+      compteGuichet: "570", compteLiaison: "579", compteSurplus: "", compteManquant: "", actif: false };
+    await expect(api.guichets.enregistrer({ ...d, designation: "" })).rejects.toThrow("désignation");
+    await expect(api.guichets.enregistrer({ ...d, compteSurplus: "57A" })).rejects.toThrow("chiffres");
+    await expect(api.guichets.enregistrer({ ...d, compteSurplus: "5799" })).rejects.toThrow("plan de comptes");   // règle T16
+    await expect(api.guichets.enregistrer({ ...d, maximumCaisseUsd: null })).rejects.toThrow("(USD)");          // registre S08-3
+    await expect(api.guichets.enregistrer({ ...d, journalId: 3 })).rejects.toThrow("Journal inconnu");          // registre S08-2
+    const g3 = (await api.guichets.enregistrer(d)).guichets.find((g) => g.code === "G3")!;
+    expect([g3.typeGuichet, g3.actif, g3.ouvert, g3.billetage]).toEqual(["SECONDAIRE", false, false, true]);
+    await expect(api.guichets.enregistrer(d)).rejects.toThrow("existe déjà");
+    // Modifier (p. 12, registre S08-8) : même code accepté pour le même guichet
+    const m = (await api.guichets.enregistrer({ ...d, designation: "Caisse trois", maximumCaisseUsd: 500000 }, g3.id)).guichets.find((g) => g.id === g3.id)!;
+    expect([m.nom, m.maximumCaisseUsd]).toEqual(["Caisse trois", 500000]);
     await connecter("engalula");
     await expect(api.guichets.ouvrir(g3.id)).rejects.toThrow("inactif");
     const g2 = (await api.guichets.ouvrir(2)).guichets.find((g) => g.id === 2)!;

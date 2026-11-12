@@ -8,7 +8,7 @@ export interface Agence { id: number; code: string; nom: string }
 /** Guichet ; champs de « Gestion des guichets » (S08, manuel p. 18) */
 export interface Guichet {
   id: number; code: string; nom: string;
-  typeGuichet?: string; journalId?: number; maximumCaisse?: number; retraitPlafonne?: number;
+  typeGuichet?: string; journalId?: number; maximumCaisse?: number; retraitPlafonne?: number; maximumCaisseUsd?: number; retraitPlafonneUsd?: number;
   compteGuichet?: string; compteLiaison?: string; compteSurplus?: string; compteManquant?: string; billetage?: boolean; actif?: boolean;
 }
 
@@ -172,7 +172,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise }
 
 export interface Etat {
-  version: 22;
+  version: 23;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];

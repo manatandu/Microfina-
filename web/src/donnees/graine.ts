@@ -3,6 +3,9 @@ import { totalComptage, type Comptage } from "@design/montant.js";
 
 // Données fictives, reprises des maquettes. Aucune donnée d'une institution réelle (CLAUDE.md § 4).
 // Cours et valeur de la part : exemples, à remplacer par le cours du jour et les statuts.
+/** Registre S08-7 : comptes du PCCI d'un guichet (570, 579, 7790, 671) */
+const COMPTES_GUICHET = { compteGuichet: "570", compteLiaison: "579", compteSurplus: "7790", compteManquant: "671" };
+
 export const COURS_EXEMPLE = 2850;            // CDF pour 1 USD, fictif
 export const VALEUR_PART_EXEMPLE = 400000;    // 4 000 CDF : exemple du manuel Microfina++ ; la vraie valeur vient des statuts (loi 002/2002, art. 20)
 
@@ -31,10 +34,10 @@ export function graine(): Etat {
     lieuNaissance: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", liees: [] as number[],
     type: "physique" as const, formeJuridique: "", registre: "", centreActivite: "", activite: "", dirigeant: null, signataires: [], nbHommes: 0, nbFemmes: 0, membres: [], intitule: "", dateVisa: "2026-01-15", profession: "", pays: "", ville: "", quartier: "", rue: "", email: "", bp: "", telephoneFixe: "", motifDepart: "", resilieLe: "", creeLe: "2026-01-15", creePar: 4, visePar: 2, statut: "actif" as const };
   return {
-    version: 22,
+    version: 23,
     institution: { nom: "COOPEC Tujenge", profil: "coopec" },
     agence: { id: 1, code: "0412", nom: "Matete" },
-    guichets: [{ id: 1, code: "G1", nom: "Caisse 1", typeGuichet: "PRINCIPALE", journalId: 1 }, { id: 2, code: "G2", nom: "Caisse 2", typeGuichet: "SECONDAIRE", journalId: 1 }],   // type et journal fictifs (S08)
+    guichets: [{ id: 1, code: "G1", nom: "Caisse 1", typeGuichet: "PRINCIPALE", journalId: 1, ...COMPTES_GUICHET }, { id: 2, code: "G2", nom: "Caisse 2", typeGuichet: "SECONDAIRE", journalId: 1, ...COMPTES_GUICHET }],   // type et journal fictifs (S08)
     produits: [{ code: "EAV-CDF", libelle: "Épargne à vue", devise: "CDF" }, { code: "EAV-USD", libelle: "Épargne à vue", devise: "USD" }],
     zones: ["Matete"],   // zone fictive : le paramétrage S32 n'est pas encore construit
     utilisateurs: [
