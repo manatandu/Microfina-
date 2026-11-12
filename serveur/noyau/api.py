@@ -9,7 +9,7 @@ from . import procurations as pr
 from . import banques as bq
 from . import guichets as gu
 from . import exercices as ex
-from . import secteurs as se
+from . import listes as li
 from . import numerotation as nu
 from . import services as s
 from .bd import ErreurMetier
@@ -534,15 +534,25 @@ def ex_ouvrir(request, annee: int):
     return ex.ouvrir(u(request), annee)
 
 
-# ---------- Info de base : secteur d'activité (S14) ----------
-@api.get("/secteurs")
-def se_lire(request):
-    return se.lire(u(request))
+# ---------- Info de base > Client > Général : moteur des listes (S14, S14a à S14n) ----------
+@api.get("/listes/{liste}")
+def li_lire(request, liste: str):
+    return li.lire(u(request), liste)
 
 
-@api.post("/secteurs")
-def se_creer(request, corps: dict = Body(...)):
-    return se.creer(u(request), corps)
+@api.post("/listes/{liste}")
+def li_creer(request, liste: str, corps: dict = Body(...)):
+    return li.enregistrer(u(request), liste, corps)
+
+
+@api.post("/listes/{liste}/{lid}")
+def li_modifier(request, liste: str, lid: int, corps: dict = Body(...)):
+    return li.enregistrer(u(request), liste, corps, lid)
+
+
+@api.post("/listes/{liste}/{lid}/suppression")
+def li_supprimer(request, liste: str, lid: int):
+    return li.supprimer(u(request), liste, lid)
 
 
 # ---------- Info de base : numérotation des clients (S15) ----------

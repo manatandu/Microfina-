@@ -74,7 +74,10 @@ class Command(BaseCommand):
         executer("insert into journal_detail (institution_id, annee, journal_id) select %s, 2026, id from journal where institution_id = %s", (ins, ins))
         # Secteurs d'activité de démonstration, ceux de la capture du manuel p. 23 (S14)
         for c, l in SECTEURS:
-            executer("insert into secteur_activite (institution_id, code, libelle) values (%s, %s, %s)", (ins, c, l))
+            executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'secteur_activite', %s, %s)", (ins, c, l))
+        # Types de guichet (S14n), ceux de la capture p. 19 (registre S08-1)
+        for c, l in (("1", "PRINCIPALE"), ("2", "SECONDAIRE")):
+            executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'type_guichet', %s, %s)", (ins, c, l))
         for ev in ("depot", "retrait", "adhesion", "achat_parts", "retrait_parts", "a_nouveaux"):
             executer("""insert into schema_comptable (institution_id, type_evenement, version, date_effet, lignes, propose_par, valide_par)
                         values (%s, %s, 1, '2026-01-01', '[]', %s, %s)""", (ins, ev, compta, chef))

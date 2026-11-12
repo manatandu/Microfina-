@@ -599,21 +599,32 @@ def test_rapport_des_transactions(clients, journee):
     r = chef.get("/api/rapports/transactions?du=&au=2026-11-05", **H); assert r.status_code == 422 and "DU et AU" in r.json()["message"]
 
 
-def test_secteurs_activite(clients):
-    """S14 (p. 23) : N° secteur et Secteur d'activite obligatoires ; liste Numero, Secteur"""
+def test_listes_general(clients):
+    """S14, S14a à S14n (p. 23) : obligatoires, code unique, Modifier et Supprimer logique (p. 12), parent ; Type Guichet alimente S08 (S08-1)"""
     chef, agent = clients["chef"], clients["agent"]
     connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
-    l = chef.get("/api/secteurs", **H).json()
-    assert [s["code"] for s in l][:3] == ["S1", "S2", "S3"] and l[0]["libelle"] == "PRIMAIRE"
-    def refus(c):
-        r = chef.post("/api/secteurs", c, **H); assert r.status_code == 422, r.content; return r.json()["message"]
-    assert "N° secteur" in refus({"code": "", "libelle": "Pêche"})
-    assert "Secteur d'activite" in refus({"code": "S9", "libelle": " "})
-    assert "existe déjà" in refus({"code": "S1", "libelle": "Pêche"})
-    assert agent.post("/api/secteurs", {"code": "S9", "libelle": "Pêche"}, **H).status_code == 403
-    l = chef.post("/api/secteurs", {"code": "S9", "libelle": "Pêche"}, **H).json()
-    assert {"code": "S9", "libelle": "Pêche"} in [{"code": s["code"], "libelle": s["libelle"]} for s in l]
-
+    l = chef.get("/api/listes/secteur_activite", **H).json()
+    assert [x["code"] for x in l["lignes"]][:3] == ["S1", "S2", "S3"] and l["lignes"][0]["libelle"] == "PRIMAIRE" and len(l["catalogue"]) == 15
+    def refus(chemin, c):
+        r = chef.post(chemin, c, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    assert "N° secteur" in refus("/api/listes/secteur_activite", {"code": "", "libelle": "Pêche"})
+    assert "existe déjà" in refus("/api/listes/secteur_activite", {"code": "S1", "libelle": "Pêche"})
+    assert agent.post("/api/listes/secteur_activite", {"code": "S9", "libelle": "Pêche"}, **H).status_code == 403
+    assert chef.get("/api/listes/inconnue", **H).status_code == 404
+    l = chef.post("/api/listes/secteur_activite", {"code": "S9", "libelle": "Peche"}, **H).json()
+    s9 = next(x["id"] for x in l["lignes"] if x["code"] == "S9")
+    l = chef.post(f"/api/listes/secteur_activite/{s9}", {"code": "S9", "libelle": "Pêche"}, **H).json()
+    assert next(x for x in l["lignes"] if x["id"] == s9)["libelle"] == "Pêche"
+    assert "Secteur d'activite" in refus("/api/listes/type_activite", {"code": "A1", "libelle": "Pisciculture"})
+    l = chef.post("/api/listes/type_activite", {"code": "A1", "libelle": "Pisciculture", "parentId": s9}, **H).json()
+    assert (l["lignes"][0]["code"], l["lignes"][0]["parent"]) == ("A1", "Pêche")
+    assert "Type d'activité" in refus(f"/api/listes/secteur_activite/{s9}/suppression", {})
+    chef.post(f"/api/listes/type_activite/{l['lignes'][0]['id']}/suppression", **H)
+    l = chef.post(f"/api/listes/secteur_activite/{s9}/suppression", **H).json()
+    assert not [x for x in l["lignes"] if x["code"] == "S9"]
+    assert "existe déjà" in refus("/api/listes/secteur_activite", {"code": "S9", "libelle": "Pêche"})
+    chef.post("/api/listes/type_guichet", {"code": "3", "libelle": "MOBILE"}, **H)
+    assert "MOBILE" in chef.get("/api/guichets", **H).json()["types"]
 
 def test_parametrages_lies_aux_clients(clients):
     """S15 (p. 23, capture p. 24) : Institution obligatoire ; l'ordre reprend les éléments cochés et le compteur"""

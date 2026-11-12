@@ -392,15 +392,31 @@ describe("journée de guichet", () => {
     await expect(api.rapports.transactions("", "2026-11-05")).rejects.toThrow("DU et AU");
   });
 
-  it("secteurs d'activité (S14, p. 23) : champs obligatoires, numéro unique", async () => {
+  it("listes de Général (S14, S14a à S14n, p. 23 et 12) : obligatoires, code unique, Modifier, Supprimer logique, parent", async () => {
     await connecter("jpmukendi");
-    expect((await api.secteurs.lire()).map((x) => x.code).slice(0, 3)).toEqual(["S1", "S2", "S3"]);
-    await expect(api.secteurs.creer({ code: "", libelle: "Pêche" })).rejects.toThrow("N° secteur");
-    await expect(api.secteurs.creer({ code: "S1", libelle: "Pêche" })).rejects.toThrow("existe déjà");
+    let l = await api.listes.lire("secteur_activite");
+    expect(l.lignes.map((x) => x.code).slice(0, 3)).toEqual(["S1", "S2", "S3"]);
+    await expect(api.listes.enregistrer("secteur_activite", { code: "", libelle: "Pêche" })).rejects.toThrow("N° secteur");
+    await expect(api.listes.enregistrer("secteur_activite", { code: "S1", libelle: "Pêche" })).rejects.toThrow("existe déjà");
     await connecter("bkasongo");
-    await expect(api.secteurs.creer({ code: "S9", libelle: "Pêche" })).rejects.toThrow();
+    await expect(api.listes.enregistrer("secteur_activite", { code: "S9", libelle: "Pêche" })).rejects.toThrow();
     await connecter("jpmukendi");
-    expect((await api.secteurs.creer({ code: "S9", libelle: "Pêche" })).at(-1)).toMatchObject({ code: "S9", libelle: "Pêche" });
+    l = await api.listes.enregistrer("secteur_activite", { code: "S9", libelle: "Peche" });
+    const s9 = l.lignes.find((x) => x.code === "S9")!;
+    l = await api.listes.enregistrer("secteur_activite", { code: "S9", libelle: "Pêche" }, s9.id);                 // Modifier (T01)
+    expect(l.lignes.find((x) => x.id === s9.id)!.libelle).toBe("Pêche");
+    // Type d'activité : le secteur est obligatoire ; un secteur utilisé ne se supprime pas (T02)
+    await expect(api.listes.enregistrer("type_activite", { code: "A1", libelle: "Pisciculture" })).rejects.toThrow("Secteur d'activite");
+    l = await api.listes.enregistrer("type_activite", { code: "A1", libelle: "Pisciculture", parentId: s9.id });
+    expect(l.lignes[0]).toMatchObject({ code: "A1", parent: "Pêche" });
+    await expect(api.listes.supprimer("secteur_activite", s9.id)).rejects.toThrow("Type d'activité");
+    await api.listes.supprimer("type_activite", l.lignes[0]!.id);
+    l = await api.listes.supprimer("secteur_activite", s9.id);
+    expect(l.lignes.some((x) => x.code === "S9")).toBe(false);
+    await expect(api.listes.enregistrer("secteur_activite", { code: "S9", libelle: "Pêche" })).rejects.toThrow("existe déjà");   // supprimé logiquement
+    // Type Guichet (S14n) : il alimente Gestion des guichets (S08-1)
+    await api.listes.enregistrer("type_guichet", { code: "3", libelle: "MOBILE" });
+    expect((await api.guichets.lire()).types).toContain("MOBILE");
   });
 
   it("paramétrages liés aux clients (S15, p. 23 et 24) : institution obligatoire, ordre des éléments cochés", async () => {

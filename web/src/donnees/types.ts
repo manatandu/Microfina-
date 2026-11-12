@@ -172,7 +172,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise }
 
 export interface Etat {
-  version: 24;
+  version: 25;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];
@@ -199,7 +199,7 @@ export interface Etat {
   paramAdhesion: ParamAdhesion[];
   modifications: { id: number; tiersId: number; avant: Tiers; apres: Tiers; modifiePar: number; modifieLe: string; validePar?: number }[];   // S46, S42, S43
   banques: { id: number; code: string; libelle: string; compteLiaison: string; adresse: string }[];   // S58
-  secteurs: { id: number; code: string; libelle: string }[];   // S14
+  listes: LigneListe[];   // moteur des listes simples : S14, S14a à S14n
   numerotation: Record<string, RegleNumerotation>;   // S15, par institution
   affectations: AffectationGuichet[];   // S10
   comptesBancaires: { id: number; banqueId: number; compte: string; libelle: string; numeroBancaire: string; devise: Devise; journalId: number; contactNom: string; contactNomComplet: string; contactTelephone: string }[];
@@ -235,3 +235,6 @@ export interface AffectationGuichet {
   id: number; utilisateurId: number; guichetId: number; voirSolde: boolean; voirSoldeVip: boolean;
   debut: string; fin?: string; ajoutePar: number; retirePar?: number;
 }
+
+/** Moteur des listes simples (COMPLEMENTS § 7.2) : une valeur d'une page de Info de base > Client > Général (manuel p. 23) ; actif à false = supprimée (p. 12) */
+export interface LigneListe { id: number; liste: string; code: string; libelle: string; parentId?: number; actif: boolean }

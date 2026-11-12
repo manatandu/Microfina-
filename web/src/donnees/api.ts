@@ -16,7 +16,7 @@ import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@d
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v24";
+const CLE = "likelemba-demo-v25";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -24,7 +24,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 24) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 25) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -767,16 +767,58 @@ const NOSTRI: Record<string, string> = { "5600": "Organe faîtier", "5601": "Ban
 const JOURNAUX_BANQUE = [{ id: 3, code: "BQ", libelle: "Journal Banque" }];
 export type SaisieBanque = { code: string; libelle: string; compteLiaison: string; adresse: string };
 export type SaisieCompteBancaire = { banqueId: number; compte: string; numeroBancaire: string; devise: string; journalId: number; contactNom: string; contactNomComplet: string; contactTelephone: string };
-// ---------- Info de base : secteur d'activité (S14, manuel p. 23). Règles identiques côté serveur (noyau/secteurs.py). ----------
-const secteurs = {
-  lire() { exiger(); return [...E.secteurs].sort((a, b) => a.code.localeCompare(b.code)); },
-  creer(d: { code: string; libelle: string }) {
-    exiger("chef_agence");   // profil habilité : à confirmer
+// ---------- Info de base > Client > Général : moteur des listes simples (S14, S14a à S14n ; COMPLEMENTS § 7.2).
+// Règles identiques côté serveur (noyau/listes.py). ----------
+export interface FicheListe { liste: string; ecran: string; titre: string; code: string; libelle: string; colonne: string; parent?: string }
+/** Ordre de la liste de gauche de la capture p. 23 ; les pages autres que Secteur d'activité prennent sa forme (registre S14-2) */
+export const CATALOGUE_LISTES: FicheListe[] = ([
+  { liste: "secteur_activite", ecran: "S14", titre: "Secteur d'activité", code: "N° secteur", libelle: "Secteur d'activite", colonne: "Secteur" },
+  { liste: "type_activite", ecran: "S14a", titre: "Type d'activité", parent: "secteur_activite" },
+  { liste: "profession", ecran: "S14b", titre: "Profession" }, { liste: "categorie", ecran: "S14c", titre: "Catégorie" },
+  { liste: "type_piece", ecran: "S14d", titre: "Type de pièce" }, { liste: "civilite", ecran: "S14e", titre: "Civilité" },
+  { liste: "type_groupe", ecran: "S14f", titre: "Type de groupe" }, { liste: "type_client", ecran: "S14g", titre: "Type client" },
+  { liste: "sous_type_client", ecran: "S14h", titre: "Sous type de client" }, { liste: "forme_juridique", ecran: "S14i", titre: "Forme juridique" },
+  { liste: "categorie_groupe", ecran: "S14j", titre: "Catégorie de groupe" }, { liste: "filiation", ecran: "S14k", titre: "Filiation" },
+  { liste: "situation_matrimoniale", ecran: "S14l", titre: "Situation matrimoniale" }, { liste: "motif_depart", ecran: "S14m", titre: "Motif de départ" },
+  { liste: "type_guichet", ecran: "S14n", titre: "Type Guichet" },
+] as (Partial<FicheListe> & { liste: string; ecran: string; titre: string })[]).map((c) => ({ code: "Code", libelle: c.titre, colonne: c.titre, ...c }) as FicheListe);
+const ficheListe = (liste: string) => { const c = CATALOGUE_LISTES.find((x) => x.liste === liste); if (!c) throw new ErreurMetier("Liste inconnue."); return c; };
+/** Valeurs actives d'une liste, pour les écrans qui la lisent */
+function valeursListe(liste: string) {
+  return E.listes.filter((l) => l.liste === liste && l.actif).sort((a, b) => a.code.localeCompare(b.code))
+    .map((l) => ({ id: l.id, code: l.code, libelle: l.libelle, parentId: l.parentId ?? null, parent: E.listes.find((p) => p.id === l.parentId)?.libelle ?? "" }));
+}
+const listes = {
+  lire(liste: string) {
+    exiger();
+    const c = ficheListe(liste);
+    return { catalogue: CATALOGUE_LISTES, liste: c, lignes: valeursListe(liste), parents: c.parent ? valeursListe(c.parent) : [] };
+  },
+  /** Enregistrer (sans id) ou Modifier (avec id, après un clic sur la ligne : manuel p. 12, registre T01) */
+  enregistrer(liste: string, d: { code: string; libelle: string; parentId?: number | null }, id?: number) {
+    exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
+    const c = ficheListe(liste);
     const v = { code: d.code.trim(), libelle: d.libelle.trim() };
-    const manque = manquants([["N° secteur", v.code], ["Secteur d'activite", v.libelle]]);
+    const manque = manquants([[c.code, v.code], [c.libelle, v.libelle]]);
+    if (c.parent && !d.parentId) manque.push(ficheListe(c.parent).libelle);
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
-    if (E.secteurs.some((x) => x.code === v.code)) throw new ErreurMetier("Ce N° secteur existe déjà.");
-    E.secteurs.push({ id: prochain(E.secteurs), ...v }); enregistrer(); return secteurs.lire();
+    if (c.parent && !E.listes.some((l) => l.id === d.parentId && l.liste === c.parent && l.actif)) throw new ErreurMetier(`${ficheListe(c.parent).libelle} inconnu.`);
+    const actuel = id === undefined ? undefined : E.listes.find((l) => l.id === id && l.liste === liste && l.actif);
+    if (id !== undefined && !actuel) throw new ErreurMetier("Ligne introuvable.");
+    if (E.listes.some((l) => l.liste === liste && l.code === v.code && l.id !== id)) throw new ErreurMetier(`Ce ${c.code} existe déjà.`);
+    const parentId = c.parent ? d.parentId ?? undefined : undefined;
+    if (actuel) Object.assign(actuel, v, { parentId }); else E.listes.push({ id: prochain(E.listes), liste, ...v, parentId, actif: true });
+    enregistrer(); return listes.lire(liste);
+  },
+  /** Supprimer (p. 12) : suppression logique (registre T02) ; une valeur parente d'une ligne active ne se supprime pas */
+  supprimer(liste: string, id: number) {
+    exiger("chef_agence");
+    ficheListe(liste);
+    const l = E.listes.find((x) => x.id === id && x.liste === liste && x.actif);
+    if (!l) throw new ErreurMetier("Ligne introuvable.");
+    const enfant = E.listes.find((x) => x.parentId === id && x.actif);
+    if (enfant) throw new ErreurMetier(`Cette valeur est utilisée par la liste ${ficheListe(enfant.liste).titre} : la retirer d'abord.`);
+    l.actif = false; enregistrer(); return listes.lire(liste);
   },
 };
 
@@ -1072,7 +1114,8 @@ function asynchrone<T extends object>(o: T): Asynchrone<T> {
 }
 // ---------- Administration : guichets (S08 et S09, manuel p. 18 et 19). Règles identiques côté serveur (noyau/guichets.py). ----------
 /** Types de guichet lus sur la capture p. 19 ; liste complète à confirmer */
-export const TYPES_GUICHET = ["PRINCIPALE", "SECONDAIRE"];
+/** Registre S08-1 : les types de guichet viennent de Général > Type Guichet (S14n) */
+const typesGuichet = () => valeursListe("type_guichet").map((v) => v.libelle);
 const JOURNAUX = [{ id: 2, code: "AN", libelle: "À-nouveaux", type: "a_nouveaux" }, { id: 3, code: "BQ", libelle: "Journal Banque", type: "banque" }, { id: 1, code: "CA", libelle: "Caisse", type: "caisse" }];
 export interface SaisieGuichet {
   agenceId: number; code: string; designation: string; typeGuichet: string; journalId: number;
@@ -1086,7 +1129,7 @@ const guichets = {
     exiger();
     const j = journees.courante();
     return {
-      agences: [E.agence], journaux: JOURNAUX.filter((j) => j.type === "caisse"), types: TYPES_GUICHET, comptesDefaut: COMPTES_DEFAUT,   // registre S08-2
+      agences: [E.agence], journaux: JOURNAUX.filter((j) => j.type === "caisse"), types: typesGuichet(), comptesDefaut: COMPTES_DEFAUT,   // registre S08-2
       // Registre S09-1 et S09-2 (p. 19) : « Dernière journée ouverte », « Journée ouverte à associer »
       derniereJournee: j?.date ?? "",
       journeesOuvertes: E.journees.filter((x) => x.statut === "ouverte").sort((a, b) => b.date.localeCompare(a.date)).map((x) => ({ id: x.id, date: x.date })),
@@ -1114,7 +1157,7 @@ const guichets = {
       if (!Number.isInteger(x) || x < 0) throw new ErreurMetier(`${n[0]!.toUpperCase() + n.slice(1)} : montant invalide.`);
       return x;
     });
-    if (!TYPES_GUICHET.includes(v.typeGuichet)) throw new ErreurMetier("Type de guichet inconnu.");
+    if (!typesGuichet().includes(v.typeGuichet)) throw new ErreurMetier("Type de guichet inconnu.");
     if (d.agenceId !== E.agence.id) throw new ErreurMetier("Agence inconnue.");
     if (!JOURNAUX.some((j) => j.id === d.journalId && j.type === "caisse")) throw new ErreurMetier("Journal inconnu.");
     const comptes: Record<string, string | undefined> = {};
@@ -1361,7 +1404,7 @@ const apiLocal = {
   banques: asynchrone(banques),
   guichets: asynchrone(guichets),
   exercices: asynchrone(exercices),
-  secteurs: asynchrone(secteurs),
+  listes: asynchrone(listes),
   numerotation: asynchrone(numerotation),
 };
 

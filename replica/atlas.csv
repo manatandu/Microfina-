@@ -15,20 +15,20 @@ S11c,Exercice : compléter journal détail,21,B,traitement,bas de l'écran coup�
 S12,Ouverture de journée,"21 (texte), 22",A,traitement,,,1 Administration,oui
 S13,Rapport des transactions,22,A,rapport,définition d'une opération et d'une annulation,D:S118 rapport des annulations,1 Administration,oui
 S14,Général : secteur d'activité,23,A,liste,Modifier et Supprimer,G:p.12,2 Paramétrage,oui
-S14a,Général : Type d'activité,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S14 (secteur parent), S37 à S39",2 Paramétrage,non
-S14b,Général : Profession,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37",2 Paramétrage,non
-S14c,Général : Catégorie,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37 à S39, S15 (élément Categorie)",2 Paramétrage,non
-S14d,Général : Type de pièce,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37 à S39, S59 (pièce du déposant)",2 Paramétrage,non
-S14e,Général : Civilité,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37",2 Paramétrage,non
-S14f,Général : Type de groupe,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S39",2 Paramétrage,non
-S14g,Général : Type client,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S16, S23, S37 à S39",2 Paramétrage,non
-S14h,Général : Sous type de client,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S16 (frais par sous type)",2 Paramétrage,non
-S14i,Général : Forme juridique,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S38",2 Paramétrage,non
-S14j,Général : Catégorie de groupe,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S39",2 Paramétrage,non
-S14k,Général : Filiation,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37 (personnes liées, bénéficiaires)",2 Paramétrage,non
-S14l,Général : Situation matrimoniale,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37",2 Paramétrage,non
-S14m,Général : Motif de départ,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S48 ; page propre S18 (p. 26)",2 Paramétrage,non
-S14n,Général : Type Guichet,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S08",2 Paramétrage,non
+S14a,Général : Type d'activité,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S14 (secteur parent), S37 à S39",2 Paramétrage,oui
+S14b,Général : Profession,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37",2 Paramétrage,oui
+S14c,Général : Catégorie,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37 à S39, S15 (élément Categorie)",2 Paramétrage,oui
+S14d,Général : Type de pièce,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37 à S39, S59 (pièce du déposant)",2 Paramétrage,oui
+S14e,Général : Civilité,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37",2 Paramétrage,oui
+S14f,Général : Type de groupe,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S39",2 Paramétrage,oui
+S14g,Général : Type client,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S16, S23, S37 à S39",2 Paramétrage,oui
+S14h,Général : Sous type de client,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S16 (frais par sous type)",2 Paramétrage,oui
+S14i,Général : Forme juridique,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S38",2 Paramétrage,oui
+S14j,Général : Catégorie de groupe,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S39",2 Paramétrage,oui
+S14k,Général : Filiation,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37 (personnes liées, bénéficiaires)",2 Paramétrage,oui
+S14l,Général : Situation matrimoniale,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37",2 Paramétrage,oui
+S14m,Général : Motif de départ,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S48 ; page propre S18 (p. 26)",2 Paramétrage,oui
+S14n,Général : Type Guichet,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S08",2 Paramétrage,oui
 S15,Numérotation : paramétrages liés aux clients,"23 (texte), 24",B,composition,sens des Positions et du Compteur ; « Défintion des compteurs » ; Aperçu,"A:S17 (même mécanisme, mieux montré) ; D:S37 (numéro du client)",2 Paramétrage,oui
 S16,Opération : frais (cinq onglets),24 à 26 (cinq captures),A,liste,,,2 Paramétrage,oui
 S17,Numéro de compte client,26,A,composition,,A:S15,2 Paramétrage,non

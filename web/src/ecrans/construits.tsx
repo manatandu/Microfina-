@@ -7,7 +7,7 @@ import { AffectationGuichets, GestionGuichets, OuvertureFermetureGuichets } from
 import { CompleterJournalDetail, NouvelExercice, OuvertureExercice } from "./Exercices";
 import { EnrolementEntreprise, EnrolementGroupe, EnrolementPhysique, MiseAJourClient } from "./Membres";
 import RapportTransactions from "./Transactions";
-import SecteursActivite from "./Secteurs";
+import ListesGenerales from "./Secteurs";
 import ParametragesClients from "./Numerotation";
 import { EcranJournee, EcranValidation, FermetureJournee } from "./Journee";
 import { Consentement, InformationsClient, ModificationFrais, PhotosSignatures, ResiliationClient, ValidationClientModifie, VisaClient } from "./Visa";
@@ -29,7 +29,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S11c: CompleterJournalDetail,
   S12: EcranJournee,
   S13: RapportTransactions,
-  S14: SecteursActivite,
+  S14: ListesGenerales,
   S15: ParametragesClients,
   S16: FraisOperations,
   S37: EnrolementPhysique,
@@ -56,4 +56,22 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S111: FermetureJournee,
   S113: () => <EcranValidation titre="Visas" seulement="operations" />,
   S121: Balance,
+};
+
+/** Pages de la liste de gauche de S14 (Info de base > Client > Général, manuel p. 23), ouvertes dans le même écran (?page=…) */
+export const SOUS_PAGES_S14 = {
+  S14a: "type_activite",
+  S14b: "profession",
+  S14c: "categorie",
+  S14d: "type_piece",
+  S14e: "civilite",
+  S14f: "type_groupe",
+  S14g: "type_client",
+  S14h: "sous_type_client",
+  S14i: "forme_juridique",
+  S14j: "categorie_groupe",
+  S14k: "filiation",
+  S14l: "situation_matrimoniale",
+  S14m: "motif_depart",
+  S14n: "type_guichet",
 };

@@ -48,6 +48,11 @@ const OUT = process.argv[2];
   // Chef : secteur d'activité (S14, p. 23)
   await aller('/parametrage/s14'); await p.getByLabel('N° secteur : *').fill('S9'); await p.getByLabel("Secteur d'activite : *").fill('Pêche');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Pêche' }).waitFor(); await etape('02f-secteurs-activite');
+  // Page Type d'activité de la liste de gauche (S14a, registre S14-2) : rattachée à un secteur
+  await p.getByRole('navigation', { name: 'Général' }).getByRole('button', { name: "Type d'activité" }).click();
+  await p.getByRole('heading', { name: "Information de base: Type d'activité" }).waitFor();
+  await p.getByLabel("Secteur d'activite : *").selectOption({ label: 'Pêche' }); await p.getByLabel('Code : *').fill('A1'); await p.getByLabel("Type d'activité : *").fill('Pisciculture');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Pisciculture' }).waitFor(); await etape('02f1-type-activite');
   // Chef : paramétrages liés aux clients (S15, p. 23 et 24)
   await aller('/parametrage/s15'); await p.getByLabel('Institution *').selectOption({ label: 'COOPEC Tujenge' });
   await p.getByLabel('Choisir : Préfixe').check(); await p.getByLabel('Valeur : Préfixe').fill('TJ'); await p.getByLabel('Choisir : Agence').check();

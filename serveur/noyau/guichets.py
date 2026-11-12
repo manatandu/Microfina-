@@ -1,8 +1,13 @@
 """S08, S09 et S10 : Administration > Guichet (manuel Microfina++, p. 18 à 20, 95 et 96). Mêmes règles que web/src/donnees/api.ts (guichets)."""
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import DEVISES, exiger, journee_courante, ouvrir_caisse
+from .listes import valeurs
 
-TYPES_GUICHET = ["PRINCIPALE", "SECONDAIRE"]   # capture p. 19 ; la liste viendra de Général > Type Guichet (S14n, registre S08-1)
+
+def types_guichet(u) -> list[str]:
+    """Registre S08-1 : les types viennent de Général > Type Guichet (S14n)"""
+    return [v["libelle"] for v in valeurs(u, "type_guichet")]
+
 # Registre S08-7 : comptes du PCCI proposés par défaut (570, 579, 7790, 671), modifiables, contrôlés sur le plan de comptes (règle T16)
 COMPTES_DEFAUT = {"compteGuichet": "570", "compteLiaison": "579", "compteSurplus": "7790", "compteManquant": "671"}
 
@@ -29,7 +34,7 @@ def lire(u) -> dict:
         "journeesOuvertes": [{"id": x["id"], "date": x["date_comptable"].isoformat()} for x in
                              lignes("select id, date_comptable from journee_comptable where agence_id = %s and statut = 'ouverte' order by date_comptable desc",
                                     (u["agence_id"],))],
-        "types": TYPES_GUICHET,
+        "types": types_guichet(u),
         "guichets": lignes("""select g.id, g.code, g.nom, coalesce(g.type_guichet, '') as "typeGuichet", g.actif, g.agence_id as "agenceId",
                                      g.journal_id as "journalId", g.maximum_caisse as "maximumCaisse", g.retrait_plafonne as "retraitPlafonne",
                                      g.maximum_caisse_usd as "maximumCaisseUsd", g.retrait_plafonne_usd as "retraitPlafonneUsd",
@@ -72,7 +77,7 @@ def enregistrer(u, d, gid: int | None = None) -> dict:
         raise ErreurMetier("À remplir : " + ", ".join(manque) + ".")
     montants = [entier(d, k, n) for k, n in (("maximumCaisse", "maximum autorisé en caisse (CDF)"), ("maximumCaisseUsd", "maximum autorisé en caisse (USD)"),
                                               ("retraitPlafonne", "retrait plafonné (CDF)"), ("retraitPlafonneUsd", "retrait plafonné (USD)"))]
-    if type_ not in TYPES_GUICHET:
+    if type_ not in types_guichet(u):
         raise ErreurMetier("Type de guichet inconnu.")
     if not une("select 1 from agence where id = %s and institution_id = %s", (agence, i)):
         raise ErreurMetier("Agence inconnue.")
