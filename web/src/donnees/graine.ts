@@ -34,7 +34,7 @@ export function graine(): Etat {
     lieuNaissance: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", liees: [] as number[],
     type: "physique" as const, formeJuridique: "", registre: "", centreActivite: "", activite: "", dirigeant: null, signataires: [], nbHommes: 0, nbFemmes: 0, membres: [], intitule: "", dateVisa: "2026-01-15", profession: "", pays: "", ville: "", quartier: "", rue: "", email: "", bp: "", telephoneFixe: "", motifDepart: "", resilieLe: "", creeLe: "2026-01-15", creePar: 4, visePar: 2, statut: "actif" as const };
   return {
-    version: 30,
+    version: 31,
     institution: { nom: "COOPEC Tujenge", sigle: "CTJ", profil: "coopec" },   // sigle fictif : élément Institution du numéro client (S15-11)
     agence: { id: 1, code: "0412", nom: "Matete" },
     guichets: [{ id: 1, code: "G1", nom: "Caisse 1", typeGuichet: "PRINCIPALE", journalId: 1, ...COMPTES_GUICHET }, { id: 2, code: "G2", nom: "Caisse 2", typeGuichet: "SECONDAIRE", journalId: 1, ...COMPTES_GUICHET }],   // type et journal fictifs (S08)
@@ -74,6 +74,22 @@ export function graine(): Etat {
     images: {},
     frais: [], paramOperations: [], paramAdhesion: [], fraisClient: [], modifications: [], groupesSolidaires: [], membresGroupes: [], typesProcuration: [], consentements: [], banques: [], comptesBancaires: [],
     // S14 : secteurs de la capture du manuel p. 23 ; S14n : types de guichet de la capture p. 19 (registre S08-1)
+    // Référentiels du budget (S19) : exemples des captures p. 27 à 29
+    budget: (() => {
+      const tc = [["INST", "Institution", 0], ["DIR_GENE", "Direction Générale", 1], ["DIR", "Direction", 2], ["AG", "Agence", 3], ["DEP", "Département", 4], ["SER", "Service", 5]]
+        .map(([code, libelle, p], i) => ({ id: i + 1, actif: true, code, libelle, parentId: p || null }));
+      const centres = [{ id: 1, actif: true, code: "DIR_GENE", libelle: "Direction Générale", typeId: 2, parentId: null },
+        ...[["SARH", "Service Administratif et RH"], ["CI", "Cellule Informatique"], ["SA", "Service Audit"], ["SCOMFI", "Service Comptabilité & Finances"], ["SOP", "Service des opérations"]]
+          .map(([code, libelle], i) => ({ id: i + 2, actif: true, code, libelle, typeId: 3, parentId: 1 }))];
+      const tb = [["BR", "BUDGET DES RESSOURCES", "1*,2*,5*,7*"], ["BF", "BUDGET DE FONCTIONNEMENT", "6*"], ["BO", "BUDGET DES OPERATIONS", "2*"], ["BI", "BUDGET DES INVESTISSEMENTS", "4*"]]
+        .map(([code, libelle, paramCompte], i) => ({ id: i + 1, actif: true, code, libelle, paramCompte }));
+      const tp = ([["M", "Mensuel", 1, 30], ["TRIM", "Trimestriel", 3, 0], ["SEM", "Semestriel", 6, 0], ["15J", "Quinzaine", 0, 14], ["AN", "Annuel", 12, 360]] as const)
+        .map(([code, libelle, dureeMois, dureeJours], i) => ({ id: i + 1, actif: true, code, libelle, dureeMois, dureeJours }));
+      const pe = ([["TR1", "1er Trimestre", 2, "01/01", "31/03"], ["1", "JANVIER", 1, "01/01", "31/01"], ["2", "FEVRIER", 1, "01/02", "28/02"],
+        ["14", "1ère Quinzaine de Janvier", 4, "01/01", "14/01"], ["3", "MARS", 1, "01/03", "31/03"], ["4", "AVRIL", 1, "01/04", "30/04"]] as const)
+        .map(([code, libelle, typeId, debut, fin], i) => ({ id: i + 1, actif: true, code, libelle, typeId, debut, fin }));
+      return { types_centre: tc, centres, types_budget: tb, types_periode: tp, periodes: pe, plans: [], lignes: [], operations: [] };
+    })(),
     listes: [...[["S1", "PRIMAIRE"], ["S2", "SECONDAIRE"], ["S3", "TERTIAIRE"], ["S4", "Transformation"], ["S5", "Autre activités"], ["S6", "Commerce"], ["S7", "Artisanat"], ["S8", "Elevage"]]
       .map(([code, libelle]) => ({ liste: "secteur_activite", code: code!, libelle: libelle! })), { liste: "type_guichet", code: "1", libelle: "PRINCIPALE" }, { liste: "type_guichet", code: "2", libelle: "SECONDAIRE" },
       // Sous types de client fictifs (S14h), cochés dans Paramétrage frais (S16-8)

@@ -757,3 +757,53 @@ def test_numero_de_compte(clients):
     assert agent.post("/api/numerotation-comptes", {"prefixe": True, "suffixe": True, "position": 3}, **H).status_code == 403
     l = chef.post("/api/numerotation-comptes", {"prefixe": True, "suffixe": True, "position": 3}, **H).json()
     assert l["regle"] == {"prefixe": True, "suffixe": True, "position": 3}
+
+
+def test_budget_referentiels(clients):
+    """S19 (p. 27 à 30) : huit référentiels du budget ; obligatoires, code unique, JJ/MM, Param Compte au plan, parents sans boucle,
+    Supprimer logique refusé quand la valeur sert ailleurs (registre S19-1 à S19-8)"""
+    chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    B = "/api/budget-referentiels"
+    def ok(page, corps, lid=None):
+        r = chef.post(f"{B}/{page}" + (f"/{lid}" if lid else ""), corps, **H); assert r.status_code == 200, r.content; return r.json()
+    def refus(page, corps, lid=None):
+        r = chef.post(f"{B}/{page}" + (f"/{lid}" if lid else ""), corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    l = chef.get(f"{B}/types_centre", **H).json()
+    assert [x["menu"] for x in l["catalogue"]][:2] == ["Types de centre de coût", "Centres de coût"] and l["fiche"]["rafraichir"]
+    tc = {x["code"]: x for x in l["lignes"]}
+    assert tc["DIR"]["affichage"]["parentId"] == "Direction Générale"
+    assert agent.post(f"{B}/types_centre", {"code": "X", "libelle": "X"}, **H).status_code == 403
+    assert "Code, Libellé" in refus("types_centre", {"code": "", "libelle": ""})
+    assert "existe déjà" in refus("types_centre", {"code": "AG", "libelle": "Autre"})
+    assert "ne peut pas" in refus("types_centre", {"code": "INST", "libelle": "Institution", "parentId": tc["SER"]["id"]}, tc["INST"]["id"])
+    assert "Type" in refus("centres", {"code": "AGM", "libelle": "Agence de Matete"})
+    c = ok("centres", {"code": "AGM", "libelle": "Agence de Matete", "typeId": tc["SER"]["id"]})
+    agm = next(x for x in c["lignes"] if x["code"] == "AGM")
+    assert agm["affichage"]["typeId"] == "Service"
+    assert "Centres de coût" in chef.post(f"{B}/types_centre/{tc['SER']['id']}/suppression", {}, **H).json()["message"]
+    assert "Param Compte" in refus("types_budget", {"code": "BX", "libelle": "X", "paramCompte": "6x"})
+    assert "aucun compte" in refus("types_budget", {"code": "BX", "libelle": "X", "paramCompte": "6*,99999*"})
+    tb = ok("types_budget", {"code": "BX", "libelle": "BUDGET X", "paramCompte": " 6* , 70* "})
+    assert next(x for x in tb["lignes"] if x["code"] == "BX")["paramCompte"] == "6*,70*"
+    assert "nombre entier" in refus("types_periode", {"code": "BIM", "libelle": "Bimestriel", "dureeMois": "-2"})
+    tp = ok("types_periode", {"code": "BIM", "libelle": "Bimestriel", "dureeMois": 2})
+    bim = next(x for x in tp["lignes"] if x["code"] == "BIM"); assert (bim["dureeMois"], bim["dureeJours"]) == (2, 0)
+    assert "Date Début, Date Fin" in refus("periodes", {"code": "B1", "libelle": "1er bimestre", "typeId": bim["id"]})
+    assert "JJ/MM" in refus("periodes", {"code": "B1", "libelle": "1er bimestre", "typeId": bim["id"], "debut": "30/02", "fin": "28/02"})
+    assert "précède" in refus("periodes", {"code": "B1", "libelle": "1er bimestre", "typeId": bim["id"], "debut": "01/03", "fin": "28/02"})
+    ok("periodes", {"code": "B1", "libelle": "1er bimestre", "typeId": bim["id"], "debut": "01/01", "fin": "28/02"})
+    assert "Année inconnu" in refus("plans", {"annee": 1990, "code": "1990-PL", "libelle": "Plan 1990"})
+    p = ok("plans", {"annee": 2026, "code": "2026-PL", "libelle": "PLAN BUDGETAIRE ANNEE 2026"})["lignes"][0]
+    assert p["affichage"]["annee"] == "2026"
+    assert "Centre de coût" in refus("lignes", {"numero": "1", "libelle": "Salaires", "planId": p["id"]})
+    li = ok("lignes", {"numero": "1", "libelle": "Salaires", "planId": p["id"], "centreId": agm["id"]})["lignes"][0]
+    assert li["affichage"] == {"numero": "1", "libelle": "Salaires", "planId": "PLAN BUDGETAIRE ANNEE 2026", "centreId": "Agence de Matete", "bailleurId": ""}
+    assert "existe déjà" in refus("lignes", {"numero": "1", "libelle": "Autre", "planId": p["id"], "centreId": agm["id"]})
+    o = ok("operations", {"typeOperation": "DEPOT", "typeBudgetId": next(x for x in tb["lignes"] if x["code"] == "BO")["id"]})["lignes"][0]
+    assert o["affichage"]["typeOperation"] == "DEPOT" and o["affichage"]["typeBudgetId"] == "BUDGET DES OPERATIONS"
+    assert "existe déjà" in refus("operations", {"typeOperation": "DEPOT", "typeBudgetId": o["typeBudgetId"]})
+    assert "inconnu" in refus("operations", {"typeOperation": "PRET", "typeBudgetId": o["typeBudgetId"]})
+    assert chef.post(f"{B}/lignes/{li['id']}/suppression", {}, **H).status_code == 200
+    ok("lignes", {"numero": "1", "libelle": "Salaires", "planId": p["id"], "centreId": agm["id"]})      # numéro d'une ligne retirée : réutilisable
+    m = ok("plans", {"annee": 2026, "code": "2026-PL", "libelle": "PLAN 2026"}, p["id"])
+    assert m["lignes"][0]["libelle"] == "PLAN 2026"

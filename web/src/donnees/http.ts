@@ -136,6 +136,11 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       enregistrer: (d: object, numero?: string) => post(numero === undefined ? "/plan-comptes" : `/plan-comptes/${numero}`, d),
       supprimer: (numero: string) => post(`/plan-comptes/${numero}/suppression`),
     },
+    budget: {
+      lire: (page: string) => get(`/budget-referentiels/${page}`),
+      enregistrer: (page: string, d: object, id?: number) => post(id === undefined ? `/budget-referentiels/${page}` : `/budget-referentiels/${page}/${id}`, d),
+      supprimer: (page: string, id: number) => post(`/budget-referentiels/${page}/${id}/suppression`),
+    },
     listes: {
       lire: (liste: string) => get(`/listes/${liste}`),
       enregistrer: (liste: string, d: object, id?: number) => post(id === undefined ? `/listes/${liste}` : `/listes/${liste}/${id}`, d),

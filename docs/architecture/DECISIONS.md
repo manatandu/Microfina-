@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**154 décisions.** Solidité : 60 fortes (le manuel ou un texte répond), 73 moyennes (déduites d'un écran voisin ou d'une donnée), 21 faibles (notre choix, faute de mieux). Dans le code : 100 déjà en place, 54 à appliquer.
+**163 décisions.** Solidité : 62 fortes (le manuel ou un texte répond), 79 moyennes (déduites d'un écran voisin ou d'une donnée), 22 faibles (notre choix, faute de mieux). Dans le code : 109 déjà en place, 54 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -320,6 +320,20 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S18-2 | Sans code : numéro et unicité | Numéro interne donné dans l'ordre de saisie, gardé en modification, jamais affiché ; liste dans l'ordre de saisie (celui de la capture) ; un libellé ne peut figurer deux fois (sans tenir compte des majuscules) | Donnée exigée ailleurs : Capture p. 26 (pas de colonne Numero, ordre non alphabétique) ; T08 (une seule valeur désignée par S48) | moyenne | en place |
 | S18-3 | Modifier, Supprimer | Clic sur la ligne puis Modifier ou Supprimer ; suppression logique : le motif n'est plus proposé à la résiliation, les clients déjà résiliés gardent le leur | Règle générale du manuel : Manuel p. 12 (T01, T02) | forte | en place |
 
+## S19 Référentiels du budget
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S19-1 | Parent | Types de centre : parent pris dans les types ; centres : parent pris dans les centres. Facultatif. Une ligne ne peut avoir pour parent ni elle-même ni une de ses filles. Une valeur qui sert de parent ou de type ne se supprime pas | Écran voisin : Captures p. 27 (Parent, colonnes Parent et Type) ; manuel p. 12 (T02) | moyenne | en place |
+| S19-2 | Boutons et ordre de la grille | Enregistrer, Effacer, Supprimer (grisé tant qu'aucune ligne n'est choisie), comme sur les captures. Un clic sur une ligne la charge ; Enregistrer la modifie après confirmation. Rafraichir sur la seule page Types de centre. Grille dans l'ordre de saisie | Écran voisin : Captures p. 27 à 30 ; manuel p. 12 (T01) | forte | en place |
+| S19-3 | Param Compte | Comptes ou racines suivies d'une étoile, séparés par des virgules ; chacun doit exister au plan de comptes. Facultatif | Écran voisin : Capture p. 28 (« Ex1 : 6*,712* Ex2 : 5*,3327258 ») ; T16 | moyenne | en place |
+| S19-4 | Champs sans astérisque | Refusés vides : Code et Libellé des types de budget ; N° de ligne, Libellé, Plan budgétaire et Centre de coût d'une ligne de plan. L'écran garde les libellés de la capture, sans astérisque. Le N° est unique dans son plan | Donnée exigée ailleurs : T08 ; une ligne de plan se suit par centre de coût (S125, p. 143) | faible | en place |
+| S19-5 | Dates d'une période | Date Début et Date Fin obligatoires, au format JJ/MM, jour valide pour le mois ; la fin ne précède pas le début | Règle générale du manuel : Texte p. 29 (« champs obligatoires : … Date début et Date fin ») ; capture p. 29 (JJ/MM) | moyenne | en place |
+| S19-6 | Navigation | Une page Budget avec, à gauche, la liste des huit pages du menu 2-1 à 2-8 | Écran voisin : Texte p. 27 : « dans la liste des menus de la page ouverte, choisir … » | moyenne | en place |
+| S19-7 | Bailleur | Liste des bailleurs de Financement (S126). Facultatif. Vide tant que S126 n'est pas construit | Donnée exigée ailleurs : Capture p. 29 (Bailleur) ; atlas S126 (Financement : bailleur) | moyenne | en place |
+| S19-8 | Types d'opération | Ceux de S16-1 (ADHESION, DEPOT, RETRAIT, PART SOCIALE), puis les opérations de crédit à leur construction. Un seul type de budget par type d'opération | Donnée exigée ailleurs : Capture p. 30 (DEBOURSEMENT CREDIT, REMB. CREDIT) ; S16-1 | moyenne | en place |
+| S19-9 | Durées d'un type de période | Nombres entiers positifs ou nuls, 0 par défaut | Écran voisin : Capture p. 28 (0 affiché dans les zones vides ; Quinzaine 0 mois 14 jours) | forte | en place |
+
 ## Les décisions faibles, à regarder en premier
 
 | N° | Écran | Question | Réponse retenue |
@@ -345,3 +359,4 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S102-5 | S102 Plan des comptes | Colonnes de la liste après SA (coupées sur la capture p. 146) | Les autres options du formulaire, OUI ou NON : SE, LA, ST, IMMO, CT, CTX |
 | S102-7 | S102 Plan des comptes | Type de suivi | Liste vide, à remplir avec le plan des tiers (S103) |
 | S111-3 | S111 Comptabilisation | Case « Recherche avancée » | Affiche les filtres de la grille (N°Pièce, N° Compte) |
+| S19-4 | S19 Référentiels du budget | Champs sans astérisque | Refusés vides : Code et Libellé des types de budget ; N° de ligne, Libellé, Plan budgétaire et Centre de coût d'une ligne de plan. L'écran garde les libellés de la capture, sans astérisque. Le N° est unique dans son plan |

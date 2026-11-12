@@ -10,6 +10,7 @@ from . import banques as bq
 from . import guichets as gu
 from . import exercices as ex
 from . import listes as li
+from . import budget as bu
 from . import comptes as cp
 from . import numerotation as nu
 from . import services as s
@@ -560,6 +561,27 @@ def li_modifier(request, liste: str, lid: int, corps: dict = Body(...)):
 @api.post("/listes/{liste}/{lid}/suppression")
 def li_supprimer(request, liste: str, lid: int):
     return li.supprimer(u(request), liste, lid)
+
+
+# ---------- Info de base > Budget : huit référentiels (S19) ----------
+@api.get("/budget-referentiels/{page}")
+def bu_lire(request, page: str):
+    return bu.lire(u(request), page)
+
+
+@api.post("/budget-referentiels/{page}")
+def bu_creer(request, page: str, corps: dict = Body(...)):
+    return bu.enregistrer(u(request), page, corps)
+
+
+@api.post("/budget-referentiels/{page}/{lid}")
+def bu_modifier(request, page: str, lid: int, corps: dict = Body(...)):
+    return bu.enregistrer(u(request), page, corps, lid)
+
+
+@api.post("/budget-referentiels/{page}/{lid}/suppression")
+def bu_supprimer(request, page: str, lid: int):
+    return bu.supprimer(u(request), page, lid)
 
 
 # ---------- Info de base : numérotation des clients (S15) ----------

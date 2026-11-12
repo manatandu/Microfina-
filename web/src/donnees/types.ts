@@ -172,7 +172,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 30;
+  version: 31;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];
@@ -198,6 +198,7 @@ export interface Etat {
   paramAdhesion: ParamAdhesion[];
   modifications: { id: number; tiersId: number; avant: Tiers; apres: Tiers; modifiePar: number; modifieLe: string; validePar?: number }[];   // S46, S42, S43
   banques: { id: number; code: string; libelle: string; compteLiaison: string; adresse: string }[];   // S58
+  budget: Record<string, LigneBudget[]>;   // S19 : huit référentiels du budget, par page
   listes: LigneListe[];   // moteur des listes simples : S14, S14a à S14n
   numerotation: Record<string, RegleNumerotation>;   // S15, par institution
   affectations: AffectationGuichet[];   // S10
@@ -248,3 +249,6 @@ export type CompteInstitution = OptionsCompte & { numero: string; libelle: strin
 
 /** S17 (manuel p. 26) : Prefixe, Suffixe, Position ; le N° Client est toujours présent */
 export interface RegleNumeroCompte { prefixe: boolean; suffixe: boolean; position: number }
+
+/** S19 : une ligne d'un référentiel du budget (champs décrits par CATALOGUE_BUDGET) */
+export type LigneBudget = Record<string, unknown> & { id: number; actif: boolean };

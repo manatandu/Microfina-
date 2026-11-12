@@ -430,6 +430,45 @@ describe("journée de guichet", () => {
     expect((await api.guichets.lire()).types).toContain("MOBILE");
   });
 
+  it("référentiels du budget (S19, p. 27 à 30) : obligatoires, code unique, JJ/MM, Param Compte au plan, parents sans boucle, Supprimer", async () => {
+    await connecter("jpmukendi");
+    const tc = Object.fromEntries((await api.budget.lire("types_centre")).lignes.map((x) => [x.code as string, x]));
+    expect(tc.DIR!.affichage.parentId).toBe("Direction Générale");
+    await expect(api.budget.enregistrer("types_centre", { code: "", libelle: "" })).rejects.toThrow("Code, Libellé");
+    await expect(api.budget.enregistrer("types_centre", { code: "AG", libelle: "Autre" })).rejects.toThrow("existe déjà");
+    await expect(api.budget.enregistrer("types_centre", { code: "INST", libelle: "Institution", parentId: tc.SER!.id }, tc.INST!.id)).rejects.toThrow("ne peut pas");
+    await expect(api.budget.enregistrer("centres", { code: "AGM", libelle: "Agence de Matete" })).rejects.toThrow("Type");
+    const agm = (await api.budget.enregistrer("centres", { code: "AGM", libelle: "Agence de Matete", typeId: tc.SER!.id })).lignes.find((x) => x.code === "AGM")!;
+    expect(agm.affichage.typeId).toBe("Service");
+    await expect(api.budget.supprimer("types_centre", tc.SER!.id)).rejects.toThrow("Centres de coût");
+    await expect(api.budget.enregistrer("types_budget", { code: "BX", libelle: "X", paramCompte: "6x" })).rejects.toThrow("Param Compte");
+    await expect(api.budget.enregistrer("types_budget", { code: "BX", libelle: "X", paramCompte: "6*,99999*" })).rejects.toThrow("aucun compte");
+    const tb = (await api.budget.enregistrer("types_budget", { code: "BX", libelle: "BUDGET X", paramCompte: " 6* , 70* " })).lignes;
+    expect(tb.find((x) => x.code === "BX")!.paramCompte).toBe("6*,70*");
+    await expect(api.budget.enregistrer("types_periode", { code: "BIM", libelle: "Bimestriel", dureeMois: "-2" })).rejects.toThrow("nombre entier");
+    const bim = (await api.budget.enregistrer("types_periode", { code: "BIM", libelle: "Bimestriel", dureeMois: 2 })).lignes.find((x) => x.code === "BIM")!;
+    expect([bim.dureeMois, bim.dureeJours]).toEqual([2, 0]);
+    await expect(api.budget.enregistrer("periodes", { code: "B1", libelle: "1er bimestre", typeId: bim.id })).rejects.toThrow("Date Début, Date Fin");
+    await expect(api.budget.enregistrer("periodes", { code: "B1", libelle: "1er bimestre", typeId: bim.id, debut: "30/02", fin: "28/02" })).rejects.toThrow("JJ/MM");
+    await expect(api.budget.enregistrer("periodes", { code: "B1", libelle: "1er bimestre", typeId: bim.id, debut: "01/03", fin: "28/02" })).rejects.toThrow("précède");
+    await api.budget.enregistrer("periodes", { code: "B1", libelle: "1er bimestre", typeId: bim.id, debut: "01/01", fin: "28/02" });
+    await expect(api.budget.enregistrer("plans", { annee: 1990, code: "1990-PL", libelle: "Plan 1990" })).rejects.toThrow("Année inconnu");
+    const p = (await api.budget.enregistrer("plans", { annee: 2026, code: "2026-PL", libelle: "PLAN BUDGETAIRE ANNEE 2026" })).lignes[0]!;
+    expect(p.affichage.annee).toBe("2026");
+    await expect(api.budget.enregistrer("lignes", { numero: "1", libelle: "Salaires", planId: p.id })).rejects.toThrow("Centre de coût");
+    const li = (await api.budget.enregistrer("lignes", { numero: "1", libelle: "Salaires", planId: p.id, centreId: agm.id })).lignes[0]!;
+    expect(li.affichage).toEqual({ numero: "1", libelle: "Salaires", planId: "PLAN BUDGETAIRE ANNEE 2026", centreId: "Agence de Matete", bailleurId: "" });
+    await expect(api.budget.enregistrer("lignes", { numero: "1", libelle: "Autre", planId: p.id, centreId: agm.id })).rejects.toThrow("existe déjà");
+    const bo = tb.find((x) => x.code === "BO")!.id;
+    const o = (await api.budget.enregistrer("operations", { typeOperation: "DEPOT", typeBudgetId: bo })).lignes[0]!;
+    expect([o.affichage.typeOperation, o.affichage.typeBudgetId]).toEqual(["DEPOT", "BUDGET DES OPERATIONS"]);
+    await expect(api.budget.enregistrer("operations", { typeOperation: "DEPOT", typeBudgetId: bo })).rejects.toThrow("existe déjà");
+    await expect(api.budget.enregistrer("operations", { typeOperation: "PRET", typeBudgetId: bo })).rejects.toThrow("inconnu");
+    await api.budget.supprimer("lignes", li.id);
+    await api.budget.enregistrer("lignes", { numero: "1", libelle: "Salaires", planId: p.id, centreId: agm.id });   // numéro d'une ligne retirée : réutilisable
+    expect((await api.budget.enregistrer("plans", { annee: 2026, code: "2026-PL", libelle: "PLAN 2026" }, p.id)).lignes[0]!.libelle).toBe("PLAN 2026");
+  });
+
   it("motif de départ d'un client (S18, p. 26) : Libelle Motif seul, unique, ordre de saisie, lu par la résiliation", async () => {
     await connecter("jpmukendi");
     let l = await api.listes.lire("motif_depart");

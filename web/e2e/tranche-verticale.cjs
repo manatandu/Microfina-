@@ -57,6 +57,16 @@ const OUT = process.argv[2];
   await aller('/parametrage/s18'); await p.getByRole('heading', { name: "Motif de départ d'un client" }).waitFor();
   await p.getByLabel('Libelle Motif : *').fill('Mutation professionnelle'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: 'Mutation professionnelle' }).waitFor(); await etape('02f2-motifs-depart');
+  // Chef : référentiels du budget (S19, p. 27 à 30) : types de centre de coût, centres, périodes, plan
+  await aller('/parametrage/s19'); await p.getByRole('heading', { name: 'Création et mise à jour des types de centre de coût' }).waitFor(); await etape('02f3-budget-types-centre');
+  const budget = (nom) => p.getByRole('navigation', { name: 'Budget' }).getByRole('button', { name: nom, exact: true }).click();
+  await budget('Centres de coût'); await p.getByRole('heading', { name: 'Création et mise à jour des centres de coût' }).waitFor();
+  await p.getByLabel('Code : *').fill('AGM'); await p.getByLabel('Libellé: *').fill('Agence de Matete'); await p.getByLabel('Type : *').selectOption({ label: 'Service' });
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Agence de Matete' }).waitFor(); await etape('02f4-budget-centres');
+  await budget('Périodes'); await p.getByRole('cell', { name: '1er Trimestre' }).waitFor(); await etape('02f5-budget-periodes');
+  await budget('Plan budgétaire'); await p.getByLabel('Année *').selectOption({ label: '2026' }); await p.getByLabel('Code *').fill('2026-PL');
+  await p.getByLabel('Libellé Plan *').fill('PLAN BUDGETAIRE ANNEE 2026'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByRole('cell', { name: 'PLAN BUDGETAIRE ANNEE 2026' }).waitFor(); await etape('02f6-budget-plan');
   // Chef : paramétrages liés aux clients (S15, p. 23 et 24)
   await aller('/parametrage/s15'); await p.getByLabel('Institution *').selectOption({ label: 'COOPEC Tujenge' });
   await p.getByLabel('Choisir : Préfixe').check(); await p.getByLabel('Valeur : Préfixe').fill('TJ'); await p.getByLabel('Choisir : Agence').check();

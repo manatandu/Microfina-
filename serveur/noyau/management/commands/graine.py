@@ -43,6 +43,24 @@ class Command(BaseCommand):
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'motif_depart', %s, %s)", (ins, str(n), mo))
         for n, st in enumerate(("Homme", "Femme", "Entreprise", "Groupement", "Association", "ONG"), 1):   # sous types de client fictifs (S14h)
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'sous_type_client', %s, %s)", (ins, str(n), st))
+        # Référentiels du budget (S19) : exemples des captures p. 27 à 29
+        tc = {}
+        for c, l, p in (("INST", "Institution", None), ("DIR_GENE", "Direction Générale", "INST"), ("DIR", "Direction", "DIR_GENE"), ("AG", "Agence", "DIR"),
+                        ("DEP", "Département", "AG"), ("SER", "Service", "DEP")):
+            tc[c] = valeur("insert into budget_type_centre (institution_id, code, libelle, parent_id) values (%s, %s, %s, %s) returning id", (ins, c, l, tc.get(p)))
+        dg = valeur("insert into budget_centre (institution_id, code, libelle, type_id) values (%s, 'DIR_GENE', 'Direction Générale', %s) returning id", (ins, tc["DIR_GENE"]))
+        for c, l in (("SARH", "Service Administratif et RH"), ("CI", "Cellule Informatique"), ("SA", "Service Audit"), ("SCOMFI", "Service Comptabilité & Finances"),
+                     ("SOP", "Service des opérations")):
+            executer("insert into budget_centre (institution_id, code, libelle, type_id, parent_id) values (%s, %s, %s, %s, %s)", (ins, c, l, tc["DIR"], dg))
+        for c, l, pc in (("BR", "BUDGET DES RESSOURCES", "1*,2*,5*,7*"), ("BF", "BUDGET DE FONCTIONNEMENT", "6*"), ("BO", "BUDGET DES OPERATIONS", "2*"),
+                         ("BI", "BUDGET DES INVESTISSEMENTS", "4*")):
+            executer("insert into budget_type (institution_id, code, libelle, param_compte) values (%s, %s, %s, %s)", (ins, c, l, pc))
+        tp = {}
+        for c, l, m, j in (("M", "Mensuel", 1, 30), ("TRIM", "Trimestriel", 3, 0), ("SEM", "Semestriel", 6, 0), ("15J", "Quinzaine", 0, 14), ("AN", "Annuel", 12, 360)):
+            tp[c] = valeur("insert into budget_type_periode (institution_id, code, libelle, duree_mois, duree_jours) values (%s, %s, %s, %s, %s) returning id", (ins, c, l, m, j))
+        for c, l, t, d, f in (("TR1", "1er Trimestre", "TRIM", "01/01", "31/03"), ("1", "JANVIER", "M", "01/01", "31/01"), ("2", "FEVRIER", "M", "01/02", "28/02"),
+                              ("14", "1ère Quinzaine de Janvier", "15J", "01/01", "14/01"), ("3", "MARS", "M", "01/03", "31/03"), ("4", "AVRIL", "M", "01/04", "30/04")):
+            executer("insert into budget_periode (institution_id, code, libelle, type_id, debut, fin) values (%s, %s, %s, %s, %s, %s)", (ins, c, l, tp[t], d, f))
         ag = valeur("insert into agence (institution_id, code, nom) values (%s, '0412', 'Matete') returning id", (ins,))
         executer("insert into devise values ('CDF', 'Franc congolais'), ('USD', 'Dollar américain')")
         for d, vs in COUPURES.items():

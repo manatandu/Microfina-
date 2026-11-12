@@ -17,7 +17,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v30";
+const CLE = "likelemba-demo-v31";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -25,7 +25,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 30) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 31) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -1503,6 +1503,140 @@ export function preparerDemo() {
   } finally { E.session = avant; enregistrer(); }
 }
 
+// ---------- Info de base > Budget : huit référentiels (S19, manuel p. 27 à 30). Un catalogue, un moteur (COMPLEMENTS § 7.2).
+// Règles identiques côté serveur (noyau/budget.py). ----------
+export type TypeChampBudget = "texte" | "entier" | "jjmm" | "choix" | "annee" | "compte" | "operation";
+export interface ChampBudget { cle: string; libelle: string; type: TypeChampBudget; obligatoire: boolean; ref?: string; aide?: string; colonne: string; defaut?: number;
+  sansEtoile?: boolean }   // sansEtoile : la capture ne montre pas l'astérisque
+export interface FicheBudget { page: string; menu: string; entete: string; grille?: string; cadre?: string; rafraichir?: boolean; filtres?: boolean; unique?: string[]; champs: ChampBudget[] }
+const ch = (cle: string, libelle: string, colonne: string, type: TypeChampBudget = "texte", obligatoire = true, x: Partial<ChampBudget> = {}): ChampBudget =>
+  ({ cle, libelle, colonne, type, obligatoire, ...x });
+/** Ordre du menu Info de base > Budget (2-1 à 2-8) ; titres, champs et colonnes des captures p. 27 à 30 */
+export const CATALOGUE_BUDGET: FicheBudget[] = [
+  { page: "types_centre", menu: "Types de centre de coût", entete: "Création et mise à jour des types de centre de coût", grille: "Liste des types de centres de coût", rafraichir: true,
+    champs: [ch("code", "Code :", "Code"), ch("libelle", "Libellé :", "Libelle"), ch("parentId", "Parent", "Parent", "choix", false, { ref: "types_centre" })] },
+  { page: "centres", menu: "Centres de coût", entete: "Création et mise à jour des centres de coût", grille: "Liste des centres de coût", filtres: true,
+    champs: [ch("code", "Code :", "Code"), ch("libelle", "Libellé:", "Libelle"), ch("typeId", "Type :", "Type", "choix", true, { ref: "types_centre" }),
+      ch("parentId", "Parent", "Parent", "choix", false, { ref: "centres" })] },
+  { page: "types_budget", menu: "Types de budget", entete: "Type de budget",
+    champs: [ch("code", "Code :", "Code", "texte", true, { sansEtoile: true }), ch("libelle", "Libellé :", "Libelle", "texte", true, { sansEtoile: true }), ch("paramCompte", "Param Compte:", "Param Compte", "compte", false, { aide: "( Ex1 : 6*,712* Ex2 : 5*,3327258 )" })] },
+  { page: "types_periode", menu: "Types de période", entete: "Types de période", cadre: "Type de période", grille: "Liste des Types de Périodes Budgétaires",
+    champs: [ch("code", "Code :", "Code"), ch("libelle", "Libellé :", "Libellé"), ch("dureeMois", "Durée (Mois) :", "Durée (Mois)", "entier", false, { defaut: 0 }),
+      ch("dureeJours", "Durée (Jours) :", "Durée (Jours)", "entier", false, { defaut: 0 })] },
+  { page: "periodes", menu: "Périodes", entete: "Périodes Budgétaires", cadre: "Période budgétaire", grille: "Liste des Périodes Budgétaires",
+    champs: [ch("code", "Code :", "Code"), ch("typeId", "Type :", "Type", "choix", true, { ref: "types_periode" }), ch("libelle", "Libellé :", "Libellé"),
+      ch("debut", "Date Début :", "Date Début", "jjmm", true, { aide: "(JJ/MM)", sansEtoile: true }), ch("fin", "Date Fin :", "Date Fin", "jjmm", true, { aide: "(JJ/MM)", sansEtoile: true })] },
+  { page: "plans", menu: "Plan budgétaire", entete: "Création de Plan Budgétaire",
+    champs: [ch("annee", "Année", "Année", "annee"), ch("code", "Code", "Code"), ch("libelle", "Libellé Plan", "Libellé")] },
+  { page: "lignes", menu: "Ligne de plan budgétaire", entete: "Création de ligne de Plan Budgétaire", filtres: true, unique: ["planId", "numero"],
+    champs: [ch("numero", "N° de ligne", "N°", "texte", true, { sansEtoile: true }), ch("libelle", "Libellé Ligne", "Libellé", "texte", true, { sansEtoile: true }),
+      ch("planId", "Plan Budgétaire", "Plan BudGetaire", "choix", true, { ref: "plans", sansEtoile: true }),
+      ch("centreId", "Centre de coût", "Centre de coût", "choix", true, { ref: "centres", sansEtoile: true }), ch("bailleurId", "Bailleur", "Bailleur", "choix", false, { ref: "bailleurs" })] },
+  { page: "operations", menu: "Operations", entete: "Liaison des éléments du budget aux opérations", grille: "Liste des types de budgets paramétrés sur les types d'opération",
+    unique: ["typeOperation"], champs: [ch("typeOperation", "Type opération :", "Type opération", "operation"), ch("typeBudgetId", "Type budget :", "Type budget", "choix", true, { ref: "types_budget" })] },
+];
+export type OptionBudget = { id: number | string; libelle: string };
+export type LigneBudgetVue = Record<string, unknown> & { id: number; affichage: Record<string, string> };
+const ficheBudget = (page: string) => { const c = CATALOGUE_BUDGET.find((x) => x.page === page); if (!c) throw new ErreurMetier("Page inconnue."); return c; };
+const lignesBudget = (page: string) => (E.budget[page] ??= []);
+const sansDeux = (t: string) => t.replace(/ ?:$/, "").replace(/\*$/, "").trim();
+const refDe = (f: ChampBudget) => (f.type === "choix" ? f.ref : f.type === "annee" ? "annees" : f.type === "operation" ? "operations" : undefined);
+function choixBudget(ref: string): OptionBudget[] {
+  if (ref === "bailleurs") return [];                                   // liste des bailleurs : S126 (registre S19-7)
+  if (ref === "annees") return [...E.exercices].sort((a, b) => a.annee - b.annee).map((e) => ({ id: e.annee, libelle: String(e.annee) }));
+  if (ref === "operations") return TYPES_OPERATION.map((t) => ({ id: t, libelle: t.replace(/_/g, " ") }));
+  return lignesBudget(ref).filter((l) => l.actif).sort((a, b) => a.id - b.id).map((l) => ({ id: l.id, libelle: String(l.libelle) }));
+}
+const JOURS_MOIS = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+function jourMois(t: string): number | null {
+  const m = /^(\d\d)\/(\d\d)$/.exec(t); if (!m) return null;
+  const j = Number(m[1]), mo = Number(m[2]);
+  return mo >= 1 && mo <= 12 && j >= 1 && j <= JOURS_MOIS[mo - 1]! ? mo * 100 + j : null;
+}
+/** Param Compte (p. 28) : comptes ou racines suivies d'une étoile, séparés par des virgules ; chacun existe au plan (T16, registre S19-3) */
+function paramCompte(t: string): string {
+  if (!t) return "";
+  const numeros = [...Object.keys(PCCI.classes), ...PCCI.comptes.map((c) => c.numero), ...E.comptesInstitution.map((c) => c.numero)];
+  const el = t.split(",").map((e) => e.trim());
+  for (const e of el) {
+    if (!/^\d+\*?$/.test(e)) throw new ErreurMetier(`Param Compte : « ${e} » n'est pas un compte ni une racine suivie de * (Ex1 : 6*,712*).`);
+    const ok = e.endsWith("*") ? numeros.some((n) => n.startsWith(e.slice(0, -1))) : numeros.includes(e);
+    if (!ok) throw new ErreurMetier(`Param Compte : ${e} ne correspond à aucun compte du plan de comptes.`);
+  }
+  return el.join(",");
+}
+const UTILISE_PAR: Record<string, [string, string, string][]> = {
+  types_centre: [["types_centre", "parentId", "Types de centre de coût"], ["centres", "typeId", "Centres de coût"]],
+  centres: [["centres", "parentId", "Centres de coût"], ["lignes", "centreId", "Ligne de plan budgétaire"]],
+  types_budget: [["operations", "typeBudgetId", "Operations"]], types_periode: [["periodes", "typeId", "Périodes"]], plans: [["lignes", "planId", "Ligne de plan budgétaire"]],
+};
+const budget = {
+  lire(page: string) {
+    exiger();
+    const c = ficheBudget(page);
+    const options: Record<string, OptionBudget[]> = {};
+    for (const f of c.champs) { const r = refDe(f); if (r) options[f.cle] = choixBudget(r); }
+    const noms: Record<string, Map<unknown, string>> = Object.fromEntries(Object.entries(options).map(([k, v]) => [k, new Map(v.map((o) => [o.id, o.libelle]))]));
+    if (page === "types_centre" || page === "centres") noms.parentId = new Map(lignesBudget(page).map((l) => [l.id, String(l.libelle)]));   // registre S19-1
+    const lignes: LigneBudgetVue[] = lignesBudget(page).filter((l) => l.actif).sort((a, b) => a.id - b.id)   // ordre de saisie, celui des captures (S19-2)
+      .map((l) => {
+        const v: LigneBudgetVue = { id: l.id, affichage: {} };
+        for (const f of c.champs) { v[f.cle] = l[f.cle] ?? null; v.affichage[f.cle] = noms[f.cle] ? noms[f.cle]!.get(l[f.cle]) ?? "" : l[f.cle] == null ? "" : String(l[f.cle]); }
+        return v;
+      });
+    return { catalogue: CATALOGUE_BUDGET.map((x) => ({ page: x.page, menu: x.menu })), fiche: c, options, lignes };
+  },
+  /** Enregistrer (sans id) ou modifier la ligne choisie (registre S19-2 ; manuel p. 12, T01). Tous les contrôles avant d'écrire. */
+  enregistrer(page: string, d: Record<string, unknown>, id?: number) {
+    exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
+    const c = ficheBudget(page);
+    const tous = lignesBudget(page);
+    const actuel = id === undefined ? undefined : tous.find((l) => l.id === id && l.actif);
+    if (id !== undefined && !actuel) throw new ErreurMetier("Ligne introuvable.");
+    const v: Record<string, unknown> = {}; const manque: string[] = [];
+    for (const f of c.champs) {
+      const x = d[f.cle]; let vide: boolean;
+      if (["texte", "jjmm", "compte", "operation"].includes(f.type)) { v[f.cle] = typeof x === "string" ? x.trim() : ""; vide = !v[f.cle]; }
+      else if (f.type === "entier") {
+        vide = x === undefined || x === null || x === "";
+        if (vide) v[f.cle] = f.defaut;
+        else if (!((typeof x === "number" && Number.isInteger(x)) || (typeof x === "string" && /^\d+$/.test(x.trim()))) || Number(x) < 0) throw new ErreurMetier(`${sansDeux(f.libelle)} : nombre entier positif ou nul.`);
+        else v[f.cle] = Number(x);
+      } else { v[f.cle] = typeof x === "number" && Number.isInteger(x) && x > 0 ? x : null; vide = v[f.cle] === null; }
+      if (vide && f.obligatoire) manque.push(sansDeux(f.libelle));
+    }
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    for (const f of c.champs) {
+      const x = v[f.cle];
+      if (x === null || x === "" || x === undefined || f.type === "texte" || f.type === "entier") continue;
+      if (f.type === "jjmm" && jourMois(x as string) === null) throw new ErreurMetier(`${sansDeux(f.libelle)} : date au format JJ/MM.`);
+      if (f.type === "compte") v[f.cle] = paramCompte(x as string);
+      const r = refDe(f);
+      if (r && !choixBudget(r).some((o) => o.id === x)) throw new ErreurMetier(`${sansDeux(f.libelle)} inconnu.`);
+    }
+    if (page === "periodes" && jourMois(v.fin as string)! < jourMois(v.debut as string)!) throw new ErreurMetier("La date de fin précède la date de début.");   // S19-5
+    if ((page === "types_centre" || page === "centres") && id !== undefined && v.parentId) {        // pas de boucle de parents (S19-1)
+      let p = v.parentId as number | null | undefined;
+      while (p) { if (p === id) throw new ErreurMetier("Le parent ne peut pas être la ligne elle-même ni une de ses filles."); p = tous.find((l) => l.id === p)?.parentId as number | null | undefined; }
+    }
+    const uniques = c.unique ?? ["code"];
+    const doublon = tous.some((l) => l.id !== id && (uniques.length === 1 && uniques[0] === "code" ? true : l.actif) && uniques.every((k) => l[k] === v[k]));
+    if (doublon) throw new ErreurMetier(`Ce ${sansDeux(c.champs.find((f) => f.cle === uniques.at(-1))!.libelle)} existe déjà.`);   // T08
+    if (actuel) Object.assign(actuel, v); else tous.push({ id: prochain(tous), actif: true, ...v });
+    enregistrer(); return budget.lire(page);
+  },
+  /** Supprimer (manuel p. 12) : suppression logique (registre T02) ; une valeur qui sert ailleurs ne se supprime pas */
+  supprimer(page: string, id: number) {
+    exiger("chef_agence");
+    ficheBudget(page);
+    const l = lignesBudget(page).find((x) => x.id === id && x.actif);
+    if (!l) throw new ErreurMetier("Ligne introuvable.");
+    for (const [p, k, nom] of UTILISE_PAR[page] ?? []) if (lignesBudget(p).some((x) => x.actif && x[k] === id)) throw new ErreurMetier(`Cette valeur est utilisée par la page ${nom} : la retirer d'abord.`);
+    l.actif = false;
+    enregistrer(); return budget.lire(page);
+  },
+};
+
 const apiLocal = {
   referentiel: asynchrone({ contexte }),
   session: asynchrone(session),
@@ -1520,6 +1654,7 @@ const apiLocal = {
   guichets: asynchrone(guichets),
   exercices: asynchrone(exercices),
   listes: asynchrone(listes),
+  budget: asynchrone(budget),
   comptes: asynchrone(comptes),
   numerotation: asynchrone(numerotation),
 };
