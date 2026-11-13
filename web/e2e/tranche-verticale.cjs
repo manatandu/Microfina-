@@ -460,6 +460,18 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('button', { name: 'Imprimer' }).click(); await p.getByText('Retrait enregistré').waitFor(); await etape('12-retrait-recu');
   await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
+  // Chef : retirer à la caissière la case « Voir solde client » (S10) ; au guichet, les soldes sont masqués (registre S10-1)
+  await login('J.-P. Mukendi'); await aller('/administration/s10');
+  await p.getByRole('button', { name: 'Retirer le guichet : engalula' }).click(); await oui();
+  await p.getByRole('button', { name: 'Ajouter un guichet : engalula' }).click(); await p.getByRole('cell', { name: 'Caisse 2' }).click();
+  await p.getByRole('button', { name: 'Ajouter', exact: true }).click(); await oui();
+  await login('Esther Ngalula'); await aller('/caisse/s74?op=depot'); await client('Kalala');
+  await p.getByTitle(/Solde masqué/).first().waitFor(); await etape('12b-soldes-masques');
+  await login('J.-P. Mukendi'); await aller('/administration/s10');
+  await p.getByRole('button', { name: 'Retirer le guichet : engalula' }).click(); await oui();
+  await p.getByRole('button', { name: 'Ajouter un guichet : engalula' }).click(); await p.getByRole('cell', { name: 'Caisse 2' }).click();
+  await p.getByLabel('Voir solde client', { exact: true }).check(); await p.getByRole('button', { name: 'Ajouter', exact: true }).click(); await oui();
+  await login('Esther Ngalula');
   // Parts sociales (S77) : achat d'une part par Kalala
   await aller('/caisse/s77'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
   const rps = p.getByRole('dialog', { name: "Recherche d'un client" });

@@ -115,6 +115,21 @@ def test_retrait_plafond_et_maximum(clients, journee):
     assert balance_equilibree(caisse)
 
 
+def test_voir_solde_client(clients, journee):
+    """S10 : sans « Voir solde client », le caissier ne reçoit pas les soldes au guichet (registre S10-1) ; les autres écrans ne sont pas touchés"""
+    from noyau.bd import executer
+    caisse, chef = clients["caisse"], clients["chef"]
+    tid = T("0412-000318")
+    assert all(c["solde"] is not None for c in caisse.get(f"/api/tiers/{tid}/comptes").json())          # case cochée dans la graine
+    executer("update affectation_guichet set voir_solde = false where fin is null")
+    l = caisse.get(f"/api/tiers/{tid}/comptes").json()
+    assert all(c["masque"] and c["solde"] is None and c["disponible"] is None for c in l) and l[0]["numero"]
+    assert all(c["solde"] is not None for c in chef.get(f"/api/tiers/{tid}/comptes").json())
+    r = caisse.post("/api/guichet/retraits", {"cle": cle(), "compteId": C("0412-000319-01"), "montant": 60000, "coupures": {"100": 6}}, **H)
+    assert r.status_code == 422 and "solde disponible" in r.json()["message"]                          # le contrôle reste au serveur
+    executer("update affectation_guichet set voir_solde = true where fin is null")
+
+
 def test_meme_cle_ne_paie_pas_deux_fois(clients, journee):
     caisse = clients["caisse"]
     p = {"cle": cle(), "compteId": C("0412-000318-01"), "montant": 10000, "coupures": {"100": 1}}

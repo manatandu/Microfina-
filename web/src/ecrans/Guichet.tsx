@@ -33,6 +33,8 @@ export function OngletsGuichet() {
 const nomComplet = (t: Tiers) => t.intitule || titulaireDe(t);
 
 /** S74 : Caisse > Opération > Dépôt / Retrait (manuel Microfina++, p. 86) */
+export const MASQUE = "Solde masqué : « Voir solde client » n'est pas coché pour vous (Administration > Guichet > Affectation)";
+
 export default function GuichetDepotRetrait() {
   const [q, setQ] = useSearchParams();
   const op: "depot" | "retrait" = q.get("op") === "retrait" ? "retrait" : "depot";
@@ -124,9 +126,10 @@ export default function GuichetDepotRetrait() {
           <fieldset className="pile cadre-champs">
             <legend>Info compte</legend>
             <dl className="infos">
-              <div className="info-ligne"><dt>Solde client</dt><dd className="chiffres">{c ? montant(c.solde, c.devise) : ""}</dd></div>
-              <div className="info-ligne"><dt>Montant bloqué</dt><dd className="chiffres">{c ? montant(c.bloque, c.devise) : ""}</dd></div>
-              <div className="info-ligne"><dt>Montant libre</dt><dd className="chiffres">{c ? montant(c.disponible, c.devise) : ""}</dd></div>
+              {/* Registre S10-1 : sans « Voir solde client » (S10), les soldes sont masqués */}
+              {([["Solde client", "solde"], ["Montant bloqué", "bloque"], ["Montant libre", "disponible"]] as const).map(([libelle, k]) => (
+                <div key={k} className="info-ligne"><dt>{libelle}</dt>
+                  <dd className="chiffres">{!c ? "" : c.masque ? <span className="muet" title={MASQUE}>•••••</span> : montant(c[k], c.devise)}</dd></div>))}
             </dl>
           </fieldset>
           <fieldset className="pile cadre-champs">
@@ -173,7 +176,8 @@ export default function GuichetDepotRetrait() {
         <Textes sources={["Manuel Microfina++, p. 86 : Info client, Info compte, Info guichet, Dépôt en espèce / Retrait en espèce, Montant*, Total frais, Mandataire, Motif, Frais d'opération, Enregistrer, Imprimer, Effacer, Billetage, Detail, montant en lettres",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "Instr. BCC 37, art. 2 et 3, annexe : dépôt et retrait sans frais", "PCCI, comptes 570 (caisse), 330 et 334 (épargnes)",
-          "Instr. BCC 15 bis, art. 1 : examen renforcé dès 10 000 USD en espèces"]} />
+          "Instr. BCC 15 bis, art. 1 : examen renforcé dès 10 000 USD en espèces",
+          "Manuel Microfina++, p. 20 : case « Voir solde client » de l'affectation du guichet (S10) ; loi 22/069, titre III, chapitre II : secret professionnel"]} />
       </section>
       <Fiche titre="Billetage" ouverte={billetage} fermer={() => setBilletage(false)}>
         <div className="pile">

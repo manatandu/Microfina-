@@ -1177,6 +1177,19 @@ def solde_contrat(contrat: str, devise: str, sens_normal: str) -> int:
                           from ligne_ecriture l where l.contrat_ref = %s and l.devise = %s""", (sens_normal, contrat, devise)))
 
 
+def soldes_masques(u: dict) -> bool:
+    """Registre S10-1 : au guichet, le caissier dont la case « Voir solde client » n'est pas cochée (S10, p. 20) ne voit pas les soldes des clients.
+    Vaut pour qui tient une caisse ouverte ce jour ; les autres écrans (visa, consultation) ne sont pas touchés."""
+    sess = session_du_caissier(u)
+    if not sess or sess["statut"] != "ouverte":
+        return False
+    return not valeur("select voir_solde from affectation_guichet where utilisateur_id = %s and fin is null order by id desc limit 1", (u["id"],))
+
+
+def masquer_soldes(comptes: list[dict]) -> list[dict]:
+    return [{**c, "solde": None, "bloque": None, "disponible": None, "motifBlocage": None, "masque": True} for c in comptes]
+
+
 def comptes_du_tiers(tid: int) -> list[dict]:
     res = []
     for c in lignes("""select c.*, p.libelle, p.famille, p.compte_lie from compte_depot c join produit_epargne p on p.id = c.produit_id

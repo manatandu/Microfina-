@@ -9,6 +9,7 @@ import { montant, totalComptage, type Comptage } from "@design/montant.js";
 import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
 import { OngletsGuichet, Recu } from "./Guichet";
 import { RechercheClient } from "./Visa";
+import { MASQUE } from "./Guichet";
 
 const fr = (iso: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "");
 const nomComplet = (t: Tiers) => t.intitule || [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
@@ -76,7 +77,7 @@ export function PartsSociales() {
           <fieldset className="pile cadre-champs">
             <legend>Info compte</legend>
             <p>Solde du compte</p>
-            <p className="chiffres"><strong>{c ? montant(c.solde, c.devise) : ""}</strong></p>
+            <p className="chiffres"><strong>{!c ? "" : c.masque ? <span className="muet" title={MASQUE}>•••••</span> : montant(c.solde, c.devise)}</strong></p>
           </fieldset>
           <fieldset className="pile cadre-champs">
             <legend>Info guichet</legend>

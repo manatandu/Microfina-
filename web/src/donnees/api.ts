@@ -636,9 +636,10 @@ const tiers = {
     t.statut = "actif"; enregistrer(); return t;
   },
   comptes(tiersId: number) {
+    const masque = soldesMasques();   // registre S10-1
     return E.comptes.filter((c) => c.tiersId === tiersId).map((c) => {
       const solde = soldeContrat(`depot:${c.id}`, c.devise, "C");
-      return { ...c, solde, disponible: solde - c.bloque };
+      return masque ? { ...c, solde: 0, bloque: 0, disponible: 0, masque: true } : { ...c, solde, disponible: solde - c.bloque, masque: false };
     });
   },
   parts: (tiersId: number) => soldeContrat(`parts:${tiersId}`, "CDF", "C") / E.valeurPart,
@@ -1116,6 +1117,13 @@ function dejaFaite(cle: string) { return E.operations.find((o) => o.cle === cle 
 function controlerCoupures(coupures: Comptage, montant: number, devise: Devise) {
   if (Object.keys(coupures).some((v) => !coupuresDe(devise).includes(Number(v)))) throw new ErreurMetier("Coupure inconnue.");
   if (totalComptage(coupures) !== montant) throw new ErreurMetier("Le billetage ne fait pas le montant.");
+}
+/** Registre S10-1 : au guichet, sans la case « Voir solde client » (S10, p. 20), le caissier ne voit pas les soldes des clients.
+ *  Vaut pour qui tient une caisse ouverte ce jour. Règle identique côté serveur (services.soldes_masques). */
+function soldesMasques() {
+  const s = caisses.duCaissier();
+  if (!s || s.statut !== "ouverte") return false;
+  return !E.affectations.find((x) => x.utilisateurId === E.session && !x.fin)?.voirSolde;
 }
 function guichetDe(s: SessionCaisse) { return `guichet:${s.guichetId}`; }
 /** Maximum autorisé en caisse et retrait plafonné du guichet pour la devise (S08, registre S08-3). 0 : aucun plafond (registre S08-10). */

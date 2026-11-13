@@ -71,6 +71,18 @@ describe("journée de guichet", () => {
     expect(await soldeCdfGrandLivre()).toBe(0);
   });
 
+  it("Voir solde client (S10) : soldes masqués au guichet sans la case (registre S10-1), visibles pour le chef", async () => {
+    await journeeOuverte();
+    expect((await api.tiers.comptes(1)).every((c) => !c.masque && c.solde > 0)).toBe(true);
+    await connecter("jpmukendi");
+    const a = (await api.guichets.affectations()).utilisateurs.find((x) => x.login === "engalula")!;
+    await api.guichets.retirer(a.id);
+    await api.guichets.affecter({ utilisateurId: a.id, guichetId: 2, voirSolde: false, voirSoldeVip: false });
+    expect((await api.tiers.comptes(1)).every((c) => !c.masque)).toBe(true);
+    await connecter("engalula");
+    expect((await api.tiers.comptes(1)).every((c) => c.masque)).toBe(true);
+  });
+
   it("la même clé ne paie pas deux fois", async () => {
     await journeeOuverte();
     const k = cle(), p = { cle: k, compteId: 1, montant: 10000, coupures: { 100: 1 } };

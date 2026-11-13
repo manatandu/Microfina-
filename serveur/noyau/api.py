@@ -245,8 +245,9 @@ def tiers_viser(request, tid: int, corps: dict | None = Body(None)):
 
 @api.get("/tiers/{tid}/comptes")
 def tiers_comptes(request, tid: int):
-    u(request)
-    return s.comptes_du_tiers(tid)
+    usager = u(request)
+    comptes = s.comptes_du_tiers(tid)
+    return s.masquer_soldes(comptes) if s.soldes_masques(usager) else comptes   # registre S10-1
 
 
 @api.post("/tiers/{tid}/modification")

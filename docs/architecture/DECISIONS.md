@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**262 décisions.** Solidité : 81 fortes (le manuel ou un texte répond), 147 moyennes (déduites d'un écran voisin ou d'une donnée), 34 faibles (notre choix, faute de mieux). Dans le code : 214 déjà en place, 48 à appliquer.
+**262 décisions.** Solidité : 81 fortes (le manuel ou un texte répond), 147 moyennes (déduites d'un écran voisin ou d'une donnée), 34 faibles (notre choix, faute de mieux). Dans le code : 215 déjà en place, 47 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -100,7 +100,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S10-1 | Case « Voir solde client » | À S74, le cadre Info compte n'affiche les soldes que si la case est cochée pour l'utilisateur | Donnée exigée ailleurs : S74 (p. 86), cadre Info compte | moyenne | à appliquer |
+| S10-1 | Case « Voir solde client » | À S74, le cadre Info compte n'affiche les soldes que si la case est cochée pour l'utilisateur — Construit : sans la case, le serveur n'envoie pas les soldes (solde, bloqué, libre) au caissier qui tient une caisse ouverte ; S74 et S77, qui affichent le solde du compte, montrent « ••••• ». Le contrôle du solde disponible reste fait par le serveur. Les autres écrans (visa, consultation) ne sont pas touchés | Donnée exigée ailleurs : S74 (p. 86), cadre Info compte ; loi 22/069, titre III, chapitre II (secret professionnel) | moyenne | en place |
 | S10-2 | Case « Voir solde client VIP » | Case recopiée et enregistrée, sans effet : Likelemba n'a pas de client VIP | Manuel : Manuel p. 20 (case montrée, non expliquée) | faible | en place |
 | S10-3 | Nombre de guichets par utilisateur | Un seul à la fois : ✎ n'est actif que sans guichet, ✖ qu'avec un guichet | Manuel : Manuel p. 96 et 110 | forte | en place |
 | S10-4 | Guichets proposés dans la fenêtre d'ajout | Les guichets de l'agence de l'utilisateur | Donnée exigée ailleurs : Colonne Agence de la page p. 96 ; un guichet appartient à une agence (S08) | moyenne | en place |
