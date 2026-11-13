@@ -66,7 +66,7 @@ function InformationSociete() {
             <Champ libelle="Journée Maxi ouvert : *">{(p) => <input {...p} className="saisie code" inputMode="numeric" value={String(v.journeeMax ?? "")}
               onChange={(e) => setF({ ...v, journeeMax: e.target.value as unknown as number })} />}</Champ>
             {texte("compteHorsBilan1", "Compte Hors Bilan 1", "saisie code")}
-            {texte("ifu", "I.F.U")}
+            {texte("ifu", "NIF")}
           </div>
           <div className="pile champs-a-gauche">
             <Champ libelle="Pays">{(p) => <select {...p} className="saisie" value={v.pays} onChange={(e) => maj({ pays: e.target.value, ville: "", commune: "", quartier: "" })}>
@@ -93,7 +93,7 @@ function InformationSociete() {
         </fieldset>
       </fieldset>
       <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button></div>
-      <Textes sources={["Manuel Microfina++, p. 42 : « Information société, Agence et zone, puis renseigner successivement sans omettre les champs obligatoires avec la possibilité d'intégrer le logo de l'institution » ; capture : Code Institution*, Dénomination*, Type base*, Description, Directeur, N° Agrément, Journée Maxi ouvert*, Compte Hors Bilan 1, I.F.U, Pays, Ville, Quartier*, Rue / Maison (Commune entre Ville et Quartier : demande du porteur du 13/11/2026, découpage de S20), email, BP, Telephone fixe, Adresse, Hors Bilan 2, Logo (Choisir, APERCU LOGO), Liste institution",
+      <Textes sources={["Manuel Microfina++, p. 42 : « Information société, Agence et zone, puis renseigner successivement sans omettre les champs obligatoires avec la possibilité d'intégrer le logo de l'institution » ; capture : Code Institution*, Dénomination*, Type base*, Description, Directeur, N° Agrément, Journée Maxi ouvert*, Compte Hors Bilan 1, I.F.U (NIF en RDC, demande du porteur du 13/11/2026), Pays, Ville, Quartier*, Rue / Maison (Commune entre Ville et Quartier : demande du porteur du 13/11/2026, découpage de S20), email, BP, Telephone fixe, Adresse, Hors Bilan 2, Logo (Choisir, APERCU LOGO), Liste institution",
         "Loi 002/2002 (COOPEC, structures faîtières) ; loi 11/020, art. 11 (sociétés de microfinance, entreprises de micro-crédit) : Type base",
         "PCCI § 9 : classe 0, comptes de hors bilan"]} />
       <Fiche titre="Liste institution" ouverte={liste} fermer={() => setListe(false)}>

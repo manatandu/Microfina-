@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**216 décisions.** Solidité : 69 fortes (le manuel ou un texte répond), 118 moyennes (déduites d'un écran voisin ou d'une donnée), 29 faibles (notre choix, faute de mieux). Dans le code : 160 déjà en place, 56 à appliquer.
+**217 décisions.** Solidité : 70 fortes (le manuel ou un texte répond), 118 moyennes (déduites d'un écran voisin ou d'une donnée), 29 faibles (notre choix, faute de mieux). Dans le code : 161 déjà en place, 56 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -455,6 +455,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S32-5 | Page Zone (non montrée) | La page Zone Credit de S21 : la même liste (Code Zone, Nom Zone, Description, Agence) | Donnée exigée ailleurs : Texte p. 42 ; S21-4 | moyenne | en place |
 | S32-6 | Onglet Autres Info et cadre Info sécurité | La capture n'en montre que le titre : contenu à demander au porteur | Choix du porteur : Capture p. 42 | faible | à appliquer |
 | S32-7 | Commune | Champ Commune entre Ville et Quartier, choisi dans les communes (secteurs, chefferies) de la ville ; le quartier se choisit dans la commune ; Pays, Ville, Commune et Quartier forment un lieu de Localisation | Choix du porteur : Demande du porteur du 13/11/2026 ; découpage de la RDC de S20 (S20-1) | forte | en place |
+| S32-8 | I.F.U | Libellé NIF (numéro d'identification fiscale de la RDC) au lieu de I.F.U, sigle béninois de la capture | Choix du porteur : Demande du porteur du 13/11/2026 ; capture p. 42 (I.F.U) | forte | en place |
 
 ## S12, S32 Journées
 
