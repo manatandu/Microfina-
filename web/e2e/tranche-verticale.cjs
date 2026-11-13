@@ -125,6 +125,10 @@ const OUT = process.argv[2];
   for (const [nom, rep] of [['Opérer sur compte : *', 'Oui'], ['Dépôt de chèque : *', 'Non'], ['Caution : *', 'Non'], ['Nantissement : *', 'Oui'], ['Calculer interêt: *', 'Non']])
     await p.getByRole('group', { name: nom }).getByLabel(rep).check();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Epargne De Garantie' }).waitFor(); await etape('02f17-produit-epargne');
+  // Chef : paramétrage des produits épargne (S28, p. 41) : l'épargne de garantie dans l'onglet Bloqué, compte 334 proposé
+  await aller('/parametrage/s28'); await p.getByRole('tab', { name: 'Bloqué' }).click(); await p.getByLabel('Compte lié').and(p.locator('[value="334"]')).waitFor();
+  await p.getByLabel('Produit: *').selectOption({ label: 'Epargne De Garantie (G)' }); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByRole('cell', { name: 'Epargne De Garantie' }).waitFor(); await etape('02f18-parametrage-epargne');
   // Caissière : ouvrir la caisse (sans comptage : Microfina++ ne compte qu'à l'arrêté, p. 90 et 91)
   await login('Esther Ngalula');
   await aller('/principal'); await etape('01c-menu-general');

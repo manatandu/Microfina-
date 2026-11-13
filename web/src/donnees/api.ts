@@ -17,7 +17,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v37";
+const CLE = "likelemba-demo-v38";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -25,7 +25,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 37) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 38) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -1045,13 +1045,13 @@ const guichet = {
     controlerCoupures(p.coupures, total, "CDF");
     if (enUsd(total, "CDF") + especesDuJourUsd(t.id, "depot") >= SEUIL_ESPECES_USD)
       throw new ErreurMetier("Examen renforcé requis (10 000 USD ou plus en espèces dans la journée). Le circuit de conformité n'est pas encore construit : opération bloquée.", "Instr. BCC 15 bis, art. 1, 6 et 7");
-    const cCdf: CompteDepot = { id: E.comptes.length + 1, tiersId: t.id, numero: numeroCompte(t.numero, produit), intitule: produit.libelle, pcci: produit.famille === "BLOQUE" ? "334" : "330", devise: "CDF", bloque: 0 };   // PCCI 334, 330 (S27-2)
+    const cCdf: CompteDepot = { id: E.comptes.length + 1, tiersId: t.id, numero: numeroCompte(t.numero, produit), intitule: produit.libelle, pcci: compteDuProduit(produit), devise: "CDF", bloque: 0 };   // S27-2, S28-2
     E.comptes.push(cCdf);
     const lignes: Ligne[] = [
       { compte: "570", contrat: guichetDe(s), sens: "D", devise: "CDF", montant: total, montantCdf: total },
       { compte: compteParts(t), contrat: `parts:${t.id}`, sens: "C", devise: "CDF", montant: mParts, montantCdf: mParts },
     ];
-    if (p.depot > 0) lignes.push({ compte: "330", contrat: `depot:${cCdf.id}`, sens: "C", devise: "CDF", montant: p.depot, montantCdf: p.depot });
+    if (p.depot > 0) lignes.push({ compte: cCdf.pcci, contrat: `depot:${cCdf.id}`, sens: "C", devise: "CDF", montant: p.depot, montantCdf: p.depot });
     for (const f of frais) lignes.push({ compte: f.compte!, contrat: `frais:${f.fraisId}`, sens: "C", devise: "CDF", montant: f.montant!, montantCdf: f.montant! });
     const e = poster({ journal: "CA", journeeId: s.journeeId, libelle: `Adhésion ${t.numero}`, piece: piece(), saisiPar: u.id, validePar: u.id, lignes });
     const o: Operation = { id: prochain(E.operations), cle: p.cle, type: "adhesion", statut: "validee", sessionId: s.id, tiersId: t.id, compteId: cCdf.id, montant: total, devise: "CDF", parts: p.parts, coupures: nettoyer(p.coupures), remisPar: titulaire(t), saisiPar: u.id, ecritureId: e.id, heure: heure() };
@@ -2055,6 +2055,40 @@ const produitsEpargne = {
   },
 };
 
+// ---------- Produits > Epargne > Paramétrage des produits (S28, manuel p. 41). Règles identiques côté serveur (noyau/parametrage_epargne.py). ----------
+/** Compte du PCCI d'un compte de dépôt : le compte lié (S28), sinon 334 pour BLOQUE et 330 pour les autres familles (registre S27-2, S28-2) */
+function compteDuProduit(p: ProduitEpargne): string { return p.compteLie || (p.famille === "BLOQUE" ? "334" : "330"); }
+const ONGLETS_EPARGNE = { Epargne: "330", Courant: "331", DAT: "340", "Bloqué": "334" } as const;   // PCCI 330, 331, 340, 334
+const parametrageEpargne = {
+  lire() {
+    exiger();
+    return { onglets: Object.entries(ONGLETS_EPARGNE).map(([onglet, compte]) => ({ onglet, compte })),
+      produits: E.produits.filter((p) => !p.supprime).sort((a, b) => a.code.localeCompare(b.code))
+        .map((p) => ({ id: p.id, code: p.code, famille: p.famille, libelle: p.libelle, categorie: p.categorie ?? null, compteLie: p.compteLie ?? null, typesClient: p.typesClient ?? [] })),
+      typesClient: valeursListe("type_client").map((l) => ({ id: l.id, libelle: l.libelle })) };
+  },
+  /** Enregistrer le paramétrage d'un produit dans un onglet (registre S28-1 à S28-3) */
+  enregistrer(d: { onglet: string; produitId?: number | null; compteLie?: string; typesClient?: number[] }) {
+    exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
+    if (!(d.onglet in ONGLETS_EPARGNE)) throw new ErreurMetier("Onglet inconnu.");
+    if (typeof d.produitId !== "number") throw new ErreurMetier("À remplir : Produit.");
+    const p = E.produits.find((x) => x.id === d.produitId && !x.supprime);
+    if (!p) throw new ErreurMetier("Produit inconnu.");
+    const compte = (d.compteLie ?? "").trim();
+    if (compte) {
+      if (!(["33", "34", "35"].includes(compte.slice(0, 2)) && numerosPlan().includes(compte)))
+        throw new ErreurMetier(`Compte lié : ${compte} n'est pas un compte de dépôts de la clientèle du plan (PCCI, comptes 33 à 35).`);
+      const ouverts = E.comptes.some((c) => c.devise === p.devise && c.intitule === p.libelle);
+      if (ouverts && compte !== compteDuProduit(p)) throw new ErreurMetier(`Des comptes sont ouverts sur ce produit et tenus au ${compteDuProduit(p)} : le compte lié ne se change plus.`);
+    }
+    const types = d.typesClient ?? [];
+    const connus = new Set(valeursListe("type_client").map((l) => l.id));
+    if (types.some((x) => !connus.has(x))) throw new ErreurMetier("Type client inconnu.");
+    Object.assign(p, { categorie: d.onglet as ProduitEpargne["categorie"], compteLie: compte || null, typesClient: [...new Set(types)].sort((a, b) => a - b) });
+    enregistrer(); return parametrageEpargne.lire();
+  },
+};
+
 // ---------- Info de base > Localisation (S20, manuel p. 30 à 32), adaptée au découpage de la RDC (demande du porteur, registre S20-1) :
 // Constitution, art. 2 et 3 ; Décret 22/07 du 02/03/2022, art. 9, point 26. Règles identiques côté serveur (noyau/localisation.py). ----------
 const NIVEAUX: NiveauLieu[] = ["pays", "province", "ville", "commune", "quartier"];
@@ -2150,6 +2184,7 @@ const apiLocal = {
   produitsCredit: asynchrone(produitsCredit),
   modeles: asynchrone(modeles),
   produitsEpargne: asynchrone(produitsEpargne),
+  parametrageEpargne: asynchrone(parametrageEpargne),
   comptes: asynchrone(comptes),
   numerotation: asynchrone(numerotation),
 };

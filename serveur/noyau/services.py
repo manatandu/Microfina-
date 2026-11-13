@@ -828,6 +828,12 @@ def modifications_tiers(u: dict, tid: int) -> list[dict]:
                                order by m.id""", (tid, u["institution_id"]))]
 
 
+def compte_du_produit(p) -> str:
+    """Compte du PCCI d'un compte de dépôt : le compte lié du produit (S28), sinon celui de sa famille, 334 Epargnes obligatoires pour BLOQUE et
+    330 Epargnes pour les autres (registre S27-2, S28-2)"""
+    return p.get("compte_lie") or ("334" if p["famille"] == "BLOQUE" else "330")
+
+
 def localites() -> list[dict]:
     """Pays > Ville > Quartier, lus dans Localisation (S20) : la ville (ou le territoire) à travers sa province, le quartier (ou le groupement)
     à travers sa commune (secteur ou chefferie). Lieux actifs seulement (registre S20-4)."""
@@ -938,13 +944,13 @@ def solde_contrat(contrat: str, devise: str, sens_normal: str) -> int:
 
 def comptes_du_tiers(tid: int) -> list[dict]:
     res = []
-    for c in lignes("""select c.*, p.libelle, p.famille from compte_depot c join produit_epargne p on p.id = c.produit_id
+    for c in lignes("""select c.*, p.libelle, p.famille, p.compte_lie from compte_depot c join produit_epargne p on p.id = c.produit_id
                        where c.tiers_id = %s and c.statut = 'ouvert' order by c.id""", (tid,)):
         bl = une("""select coalesce(sum(montant), 0) as montant, string_agg(motif, ' ; ') as motif from blocage
                     where compte_id = %s and (fin is null or fin > now())""", (c["id"],))
         solde = solde_contrat(f"depot:{c['id']}", c["devise"], "C")
         bloque = int(bl["montant"])
-        res.append({"id": c["id"], "tiersId": tid, "numero": c["numero"], "intitule": c["libelle"], "pcci": "334" if c["famille"] == "BLOQUE" else "330",
+        res.append({"id": c["id"], "tiersId": tid, "numero": c["numero"], "intitule": c["libelle"], "pcci": compte_du_produit(c),
                     "devise": c["devise"].strip(), "bloque": bloque, "motifBlocage": bl["motif"], "solde": solde, "disponible": solde - bloque})
     return res
 
@@ -1073,13 +1079,13 @@ def controler_montant_coupures(coupures: dict, montant: int, devise: str):
 
 
 def compte_actif(compte_id: int, verrou: bool = False) -> dict:
-    c = une("select c.*, p.famille from compte_depot c join produit_epargne p on p.id = c.produit_id where c.id = %s" + (" for update of c" if verrou else ""), (compte_id,))
+    c = une("select c.*, p.famille, p.compte_lie from compte_depot c join produit_epargne p on p.id = c.produit_id where c.id = %s" + (" for update of c" if verrou else ""), (compte_id,))
     if not c:
         raise ErreurMetier("Compte introuvable.")
     t = une("select statut from tiers where id = %s", (c["tiers_id"],))
     controler_statut_actif(t["statut"])
     c["devise"] = c["devise"].strip()
-    c["pcci"] = "334" if c["famille"] == "BLOQUE" else "330"      # PCCI 334 Epargnes obligatoires ; 330 Epargnes (registre S27-2)
+    c["pcci"] = compte_du_produit(c)
     return c
 
 
@@ -1179,7 +1185,7 @@ def adhesion(u: dict, p: dict) -> dict:
     l = [{"compte": "570", "contrat": f"guichet:{s['guichetId']}", "sens": "D", "devise": "CDF", "montant": total},
          {"compte": compte_parts(t), "contrat": f"parts:{tid}", "sens": "C", "devise": "CDF", "montant": m_parts}]
     if m_depot > 0:
-        l.append({"compte": "330", "contrat": f"depot:{c}", "sens": "C", "devise": "CDF", "montant": m_depot})
+        l.append({"compte": compte_du_produit(produit), "contrat": f"depot:{c}", "sens": "C", "devise": "CDF", "montant": m_depot})
     for f in frais:
         l.append({"compte": f["compte"], "contrat": f"frais:{f['fraisId']}", "sens": "C", "devise": "CDF", "montant": f["montant"]})
     eid = poster(u, journal="CA", journee_id=s["journeeId"], libelle=f"Adhésion {t['numero']}", piece=nouvelle_piece(j["date_comptable"]),

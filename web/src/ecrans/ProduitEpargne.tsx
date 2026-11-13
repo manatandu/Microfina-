@@ -27,7 +27,7 @@ export default function GestionProduitsEpargne() {
   const effacer = () => { setF(VIDE); setChoisi(null); };
   const choisir = (p: ProduitEpargne) => {
     setChoisi(p.id);
-    const { id: _id, supprime: _s, ...reste } = p;
+    const { id: _id, supprime: _s, categorie: _c, compteLie: _l, typesClient: _t, ...reste } = p;
     setF({ ...reste, numero: String(p.numero), soldeMinimum: enUnites(p.soldeMinimum), retraitMaxJour: enUnites(p.retraitMaxJour), nbMaxComptes: String(p.nbMaxComptes) });
   };
   function envoi() {

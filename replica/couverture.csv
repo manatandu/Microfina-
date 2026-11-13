@@ -25,7 +25,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 24,Modèle crédit : degrés de classement et taux de provision,paramétrage,must,yes,S21 S26,A,liste,2 Paramétrage,,G:p.12 ; R:Instr. BCC sur le classement et les provisions,,,
 25,Modèle crédit : termes par durée,paramétrage,must,yes,S21 S26,A,liste,2 Paramétrage,,G:p.12 ; R:Instr. BCC sur le classement et les provisions,,,
 26,Produit épargne : définition et options,paramétrage,must,yes,S27,A,liste,2 Paramétrage,,,,,
-27,Produit épargne : comptes comptables,paramétrage,must,no,S28,A,liste,2 Paramétrage,,R:PCCI (comptes de dépôts),,S28,
+27,Produit épargne : comptes comptables,paramétrage,must,yes,S28,A,liste,2 Paramétrage,,R:PCCI (comptes de dépôts),,,
 28,Numérotation des pièces,paramétrage,must,no,S29,A,composition,2 Paramétrage,,"A:S15, S17",,S29,
 29,Journaux,paramétrage,must,no,S30,A,liste,2 Paramétrage,,,,S30,
 30,Encaissements et décaissements divers autorisés,paramétrage,must,no,S31,A,liste,2 Paramétrage,,R:PCCI (comptes),,S31,

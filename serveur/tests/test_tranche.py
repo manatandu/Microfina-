@@ -1003,3 +1003,24 @@ def test_produit_epargne(clients):
     assert "ne se change plus" in refus({**{k: eav[k] for k in P}, "devise": "USD"}, eav["id"])
     r = chef.post(f"/api/produits-epargne/{eav['id']}/suppression", {}, **H); assert r.status_code == 422 and "décocher Actif" in r.json()["message"]
     assert chef.post(f"/api/produits-epargne/{g['id']}/suppression", {}, **H).status_code == 200
+
+
+def test_parametrage_epargne(clients):
+    """S28 (p. 41) : onglets Epargne, Courant, DAT, Bloqué ; compte lié de dépôts (PCCI 33 à 35) ; types clients de S14g ; compte figé quand
+    des comptes sont ouverts ; le compte lié sert aux écritures (registre S28-1 à S28-3)"""
+    chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    l = chef.get("/api/parametrage-epargne", **H).json()
+    assert [(o["onglet"], o["compte"]) for o in l["onglets"]] == [("Epargne", "330"), ("Courant", "331"), ("DAT", "340"), ("Bloqué", "334")]
+    assert l["typesClient"] == []
+    tc = chef.post("/api/listes/type_client", {"code": "1", "libelle": "Membre"}, **H).json()["lignes"][0]
+    eav = next(p for p in l["produits"] if p["code"] == "EAV-CDF")
+    def refus(corps):
+        r = chef.post("/api/parametrage-epargne", corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    assert agent.post("/api/parametrage-epargne", {"onglet": "Epargne", "produitId": eav["id"]}, **H).status_code == 403
+    assert "Produit" in refus({"onglet": "Epargne"})
+    assert "comptes 33 à 35" in refus({"onglet": "Epargne", "produitId": eav["id"], "compteLie": "570"})
+    assert "ne se change plus" in refus({"onglet": "Courant", "produitId": eav["id"], "compteLie": "331"})
+    assert "Type client inconnu" in refus({"onglet": "Epargne", "produitId": eav["id"], "compteLie": "330", "typesClient": [999999]})
+    r = chef.post("/api/parametrage-epargne", {"onglet": "Epargne", "produitId": eav["id"], "compteLie": "330", "typesClient": [tc["id"]]}, **H).json()
+    p = next(x for x in r["produits"] if x["code"] == "EAV-CDF")
+    assert (p["categorie"], p["compteLie"], p["typesClient"]) == ("Epargne", "330", [tc["id"]])

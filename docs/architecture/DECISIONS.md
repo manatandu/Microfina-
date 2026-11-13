@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**197 décisions.** Solidité : 68 fortes (le manuel ou un texte répond), 102 moyennes (déduites d'un écran voisin ou d'une donnée), 27 faibles (notre choix, faute de mieux). Dans le code : 142 déjà en place, 55 à appliquer.
+**200 décisions.** Solidité : 68 fortes (le manuel ou un texte répond), 105 moyennes (déduites d'un écran voisin ou d'une donnée), 27 faibles (notre choix, faute de mieux). Dans le code : 145 déjà en place, 55 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -403,7 +403,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S27-1 | Champs et boutons | Ceux de la capture : N° Produit, Code, Famille, Libellé, Solde minimum, Max retrait/jour, Max compte à créer, cases Afficher à l'adhésion, Actif, Virement prélèvement, huit options Oui/Non ; Enregistrer, Modifier, Supprimer, Effacer ; grille Code Produit, Famille, Produit. Devise ajoutée : chaque compte est tenu dans une devise. N° Produit de 1 à 99 (suffixe du numéro de compte, S17) | Donnée exigée ailleurs : Capture p. 40 ; T12 ; S17-2 ; S23-4 | moyenne | en place |
-| S27-2 | Familles et compte du PCCI | Familles de la capture : EPARGNE, BLOQUE, TONTINE (les produits en place passent en EPARGNE). Compte du PCCI des comptes ouverts : 334 Epargnes obligatoires pour BLOQUE (garanties liées au crédit), 330 Epargnes pour les autres | Texte réglementaire : Capture p. 40 (grille Famille) ; PCCI classe 3 (garanties liées à l'octroi de crédits, comptes 330 et 334) | moyenne | en place |
+| S27-2 | Familles et compte du PCCI | Familles de la capture : EPARGNE, BLOQUE, TONTINE (les produits en place passent en EPARGNE). Compte du PCCI des comptes ouverts : 334 Epargnes obligatoires pour BLOQUE (garanties liées au crédit), 330 Epargnes pour les autres ; remplacé par le compte lié du produit dès qu'il est paramétré (S28-2) | Texte réglementaire : Capture p. 40 (grille Famille) ; PCCI classe 3 (garanties liées à l'octroi de crédits, comptes 330 et 334) | moyenne | en place |
 | S27-3 | Produit qui a des comptes | Devise, famille et N° Produit ne se changent plus ; Supprimer est refusé : décocher Actif. Un produit inactif ou supprimé n'est plus proposé à l'enrôlement | Donnée exigée ailleurs : T02 ; T08 | moyenne | en place |
 | S27-4 | Option Solde négatif | Gardée comme dans Microfina++ : aucun texte lu ne l'interdit, l'Instr. BCC 003 (art. 7) classe en douteux les comptes courants débiteurs sans mouvement créditeur de plus de 30 jours. La note de la fonction qui proposait de la retirer venait d'observations de terrain, pas d'un texte | Texte réglementaire : Instr. BCC 003, art. 7 | moyenne | en place |
 
@@ -412,6 +412,14 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S37-9 | Options du produit d'épargne | Max compte à créer contrôlé à l'ouverture de compte ; Solde minimum, Max retrait/jour et Solde négatif contrôlés au retrait ; Opérer sur compte et Dépôt de chèque au guichet | Donnée exigée ailleurs : S27 (p. 40) | moyenne | à appliquer |
+
+## S28 Paramétrage des produits épargne
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S28-1 | Compte lié proposé par onglet | Epargne 330, Courant 331, DAT 340, Bloqué 334, modifiable ; le compte saisi doit être un compte de dépôts de la clientèle du plan (comptes 33 à 35). Un produit est rangé dans l'onglet où il est enregistré | Texte réglementaire : Capture et texte p. 41 ; PCCI classe 3 (330 Epargnes, 331 Comptes ordinaires, 334 Epargnes obligatoires, 340 Dépôts à terme) ; T16 | moyenne | en place |
+| S28-2 | Effet du compte lié | Les comptes ouverts sur le produit et leurs écritures (adhésion, dépôts, retraits) prennent le compte lié ; sans compte lié, celui de la famille (S27-2). Quand des comptes sont ouverts, le compte lié ne peut plus différer du compte où ils sont tenus | Texte réglementaire : PCCI classe 3 ; T16 | moyenne | en place |
+| S28-3 | Types clients à associer | La liste Type client de Général (S14g), vide au départ comme sur la capture ; la fiche client lira la même liste (S37-2) | Donnée exigée ailleurs : Capture p. 41 (« Liste vide ») ; S14g ; S37-2 | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

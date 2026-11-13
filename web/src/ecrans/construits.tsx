@@ -17,6 +17,7 @@ import ProduitCredit, { ListeProduitsCredit } from "./ProduitCredit";
 import ActivationProduitsCredit from "./ActivationProduits";
 import ModeleCredit from "./ModeleCredit";
 import GestionProduitsEpargne from "./ProduitEpargne";
+import ParametrageProduitsEpargne from "./ParametrageEpargne";
 import ParametragesClients, { ParametrageCompteClient } from "./Numerotation";
 import { EcranJournee, EcranValidation, FermetureJournee } from "./Journee";
 import { Consentement, InformationsClient, ModificationFrais, PhotosSignatures, ResiliationClient, ValidationClientModifie, VisaClient } from "./Visa";
@@ -51,6 +52,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S25: ActivationProduitsCredit,
   S26: ModeleCredit,
   S27: GestionProduitsEpargne,
+  S28: ParametrageProduitsEpargne,
   S16: FraisOperations,
   S37: EnrolementPhysique,
   S38: EnrolementEntreprise,

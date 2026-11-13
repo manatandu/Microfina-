@@ -505,6 +505,20 @@ describe("journée de guichet", () => {
     expect(await api.credit.portefeuille(g.id)).toEqual([]);
   });
 
+  it("paramétrage des produits épargne (S28, p. 41) : compte lié de dépôts, types clients de S14g, compte figé quand des comptes sont ouverts", async () => {
+    await connecter("jpmukendi");
+    const l = await api.parametrageEpargne.lire();
+    expect(l.onglets.map((o) => [o.onglet, o.compte])).toEqual([["Epargne", "330"], ["Courant", "331"], ["DAT", "340"], ["Bloqué", "334"]]);
+    expect(l.typesClient).toEqual([]);
+    const tc = (await api.listes.enregistrer("type_client", { code: "1", libelle: "Membre" })).lignes[0]!;
+    const eav = l.produits.find((p) => p.code === "EAV-CDF")!;
+    await expect(api.parametrageEpargne.enregistrer({ onglet: "Epargne" })).rejects.toThrow("Produit");
+    await expect(api.parametrageEpargne.enregistrer({ onglet: "Epargne", produitId: eav.id, compteLie: "570" })).rejects.toThrow("comptes 33 à 35");
+    await expect(api.parametrageEpargne.enregistrer({ onglet: "Epargne", produitId: eav.id, compteLie: "330", typesClient: [999] })).rejects.toThrow("Type client inconnu");
+    const p = (await api.parametrageEpargne.enregistrer({ onglet: "Epargne", produitId: eav.id, compteLie: "330", typesClient: [tc.id] })).produits.find((x) => x.code === "EAV-CDF")!;
+    expect([p.categorie, p.compteLie, p.typesClient]).toEqual(["Epargne", "330", [tc.id]]);
+  });
+
   it("produit épargne (S27, p. 40) : champs et options de la capture, codes et numéros uniques, produit avec comptes figé", async () => {
     await connecter("jpmukendi");
     const l = await api.produitsEpargne.lire();
