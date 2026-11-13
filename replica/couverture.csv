@@ -3,7 +3,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 2,Page des modules,administration,must,no,S02,A,menu,1 Administration,,,,,
 3,Profils et droits par tâche,administration,must,yes,S03 S04,A,"liste, composition",1 Administration,"S03 : Modifier et Supprimer (boutons non visibles, formulaire vide) ; S04 : contenu de chaque branche de l'arbre des droits",G:p.12 ; D:menus du logiciel (une tâche par entrée de menu),,,
 4,Gestion des utilisateurs et rattachement à une agence,administration,must,yes,S05 S06,A,"liste, composition",1 Administration,S06 : fenêtres de recherche Agence et Profil,G:p.12 ; A:recherche client S40,,,
-5,Liste des connectés et déconnexion forcée,administration,should,no,S07,A,liste,1 Administration,,,,S07,
+5,Liste des connectés et déconnexion forcée,administration,should,yes,S07,A,liste,1 Administration,,,,,
 6,Guichets : création comptes et option billetage,administration,must,partial,S08,A,liste,1 Administration,"S08 : liste des guichets existants, Modifier",G:p.12 ; D:S14n Type Guichet,,,S08-4 Effet du maximum autorisé en caisse ; S08-5 Effet du retrait plafonné
 7,Ouverture et fermeture des guichets,administration,must,yes,S09,B,traitement,1 Administration,"S09 : bas de l'écran (valeurs de « Dernière journée ouverte », ligne suivante)",D:S12 (journées) ; P,,,
 8,Affectation des guichets aux utilisateurs,administration,must,partial,S10,A,liste,1 Administration,,,,,S10-1 Case « Voir solde client »

@@ -2,6 +2,7 @@
 Chaque fonction s'exécute dans la transaction de la requête (ATOMIC_REQUESTS) : tout ou rien.
 Les montants sont des entiers en unités mineures (ARCHITECTURE P4) ; les coupures arrivent en unités."""
 import json
+import secrets
 import re
 import uuid
 
@@ -61,13 +62,30 @@ def exiger(u: dict | None, role: str | None = None) -> dict:
     return u
 
 
-def ouvrir_session(login: str, mot_de_passe: str | None) -> dict:
-    u = une("select id from utilisateur where login = %s and actif", (login.strip(),))
+def ouvrir_session(login: str, mot_de_passe: str | None, machine: str = "") -> dict:
+    u = une("select id, controle_connecte, jeton_session, machine from utilisateur where login = %s and actif", (login.strip(),))
     if not u:
         raise ErreurMetier("Identifiant inconnu.")
     if not settings.SANS_MOT_DE_PASSE:
         raise ErreurMetier("Vérification du mot de passe pas encore branchée.")   # à faire avec la décision du porteur
-    return charger_utilisateur(u["id"])
+    # Registre S07-3 : « Control utilisateur connecté » (S05) : pas de seconde connexion tant que la première n'est pas fermée
+    if u["controle_connecte"] and u["jeton_session"]:
+        raise ErreurMetier(f"Déjà connecté ({u['machine'] or 'machine inconnue'}). Demander la déconnexion (Administration > Utilisateur > Déconnecter utilisateurs).")
+    jeton = u["jeton_session"] or secrets.token_urlsafe(24)
+    executer("update utilisateur set jeton_session = %s, machine = %s, connecte_le = now() where id = %s", (jeton, machine[:100], u["id"]))
+    return {**charger_utilisateur(u["id"]), "jeton": jeton}
+
+
+def utilisateur_de_session(uid, jeton) -> dict | None:
+    """La session vaut tant que son jeton est celui de l'utilisateur (registre S07-2)"""
+    if not uid or not jeton or valeur("select jeton_session from utilisateur where id = %s", (uid,)) != jeton:
+        return None
+    return charger_utilisateur(uid)
+
+
+def fermer_session(uid, jeton) -> None:
+    if uid and jeton:
+        executer("update utilisateur set jeton_session = null where id = %s and jeton_session = %s", (uid, jeton))
 
 
 def utilisateurs() -> list[dict]:

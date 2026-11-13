@@ -73,6 +73,7 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/profils.*", ["S03"]),
     (r"/gestion-utilisateurs.*", ["S05"]),
     (r"/profils-utilisateurs", ["S06"]),
+    (r"/connexions/\d+/deconnexion", ["S07"]),
     (r"/droits/.*", ["S04"]),
     (r"/facture/.*", ["S36"]),
     (r"/societe.*", ["S32"]),

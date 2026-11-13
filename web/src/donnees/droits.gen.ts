@@ -42,6 +42,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "comptesUtilisateurs.enregistrer": [
 "S05"
 ],
+"connexions.deconnecter": [
+"S07"
+],
 "credit.enregistrer": [
 "S21"
 ],

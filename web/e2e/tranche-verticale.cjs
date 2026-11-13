@@ -183,6 +183,11 @@ const OUT = process.argv[2];
   await p.getByRole('dialog', { name: "Recherche d'un utilisateur" }).getByRole('cell', { name: 'jmbala' }).click();
   await p.getByRole('button', { name: 'Rechercher un profil' }).click(); await p.getByRole('dialog', { name: "Recherche d'un profil" }).getByRole('cell', { name: 'AUDITEUR', exact: true }).click();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('02f34-profils-utilisateur');
+  // Chef : utilisateurs connectés et déconnexion (S07, p. 18)
+  await aller('/administration/s07'); await p.getByRole('cell', { name: 'jpmukendi' }).waitFor(); await etape('02f35-connexions');
+  await p.getByRole('tab', { name: 'Déconnecter utilisateurs' }).click(); await p.getByRole('button', { name: 'Déconnecter jpmukendi' }).click();
+  await p.getByRole('dialog', { name: 'Confirmation' }).getByText('Voulez-vous déconnecter cet utilisateur').waitFor(); await etape('02f36-deconnexion');
+  await p.getByRole('button', { name: 'Oui' }).click(); await p.getByText('bouton de sortie').waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
   // Chef : droits du profil AUDITEUR (S04, p. 15 et 16) : le menu Client lui est octroyé
   await aller('/administration/s04'); await p.getByLabel('Libellé du Profil *').selectOption({ label: 'AUDITEUR' });
   await p.getByRole('checkbox', { name: 'LISTE DES DROITS RESTANTS : Client' }).check(); await p.getByRole('button', { name: 'Octroyer les droits cochés' }).click();

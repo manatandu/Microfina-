@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**247 décisions.** Solidité : 77 fortes (le manuel ou un texte répond), 138 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 193 déjà en place, 54 à appliquer.
+**250 décisions.** Solidité : 78 fortes (le manuel ou un texte répond), 139 moyennes (déduites d'un écran voisin ou d'une donnée), 33 faibles (notre choix, faute de mieux). Dans le code : 196 déjà en place, 54 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -50,7 +50,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S05-1 | Champs et boutons | Ceux de la capture : Informations (Nom et prénom(s)*, Agence*, Control utilisateur connecté), Authentification (Nom utilisateur*, Mot de passe*, Confirmation*), Info Adresse (Rue / Maison, Adresse, BP, Tél fix, Portable*, Email), Enregistrer, Effacer. Clic sur une ligne pour modifier (p. 12, T01) ; en modification le mot de passe vide reste inchangé. Nom utilisateur unique, sans espace (il sert à la connexion) ; Confirmation égale au mot de passe ; email valide. L'effet de « Control utilisateur connecté » n'est pas décrit : enregistré seulement, à voir avec S07 | Donnée exigée ailleurs : Capture p. 17 ; texte p. 16 ; T01, T08 | moyenne | en place |
+| S05-1 | Champs et boutons | Ceux de la capture : Informations (Nom et prénom(s)*, Agence*, Control utilisateur connecté), Authentification (Nom utilisateur*, Mot de passe*, Confirmation*), Info Adresse (Rue / Maison, Adresse, BP, Tél fix, Portable*, Email), Enregistrer, Effacer. Clic sur une ligne pour modifier (p. 12, T01) ; en modification le mot de passe vide reste inchangé. Nom utilisateur unique, sans espace (il sert à la connexion) ; Confirmation égale au mot de passe ; email valide. « Control utilisateur connecté » : voir S07-3 | Donnée exigée ailleurs : Capture p. 17 ; texte p. 16 ; T01, T08 | moyenne | en place |
 | S05-2 | Grille | Nom user, Prenoms user, Agence, Telephone : le champ unique « Nom et prénom(s) » se coupe au premier espace (nom, puis prénoms) ; Telephone = Portable. Les utilisateurs de démonstration sont écrits prénom d'abord, d'où l'inversion visible sur eux | Donnée exigée ailleurs : Capture p. 17 | faible | en place |
 | S05-3 | Mot de passe | Chiffré par le serveur (empreinte, jamais en clair), aucune règle de longueur inventée : l'institution édicte ses règles internes de sécurité. La démo dans le navigateur ne garde pas le mot de passe. La page de connexion reste sans mot de passe jusqu'à votre décision (demande du porteur) | Texte réglementaire : Instr. BCC 008, art. 15 et 16 (gestion des accès et authentification maîtrisées, règles internes) ; demande du porteur (connexion sans mot de passe pour l'instant) | moyenne | en place |
 
@@ -61,6 +61,14 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S06-1 | Écran et profil de l'utilisateur | Ceux de la capture : Nom et prénom(s)* et Choix du profil*, chacun avec son bouton de recherche ; Agence et Description affichées ; Liste des modules liés (Nom Module : Likelemba, Paie, Immobilisations, selon les droits du profil) ; Enregistrer, Effacer, Historique profil. Fenêtres de recherche (non montrées) sur le modèle de la recherche de S40 : grille où l'on clique. Un profil par utilisateur ; le profil choisi remplace le précédent ; l'agence est celle de l'utilisateur (S05) | Écran voisin : Capture et texte p. 17 ; atlas (A : recherche S40) ; T07 | moyenne | en place |
 | S06-2 | Historique profil | Fenêtre : Profil, Début, Fin, Attribué par ; chaque changement ferme la ligne précédente | Donnée exigée ailleurs : Bouton Historique profil de la capture p. 17 | moyenne | en place |
 | S06-3 | Pas de profil pour soi-même | Un utilisateur ne change pas son propre profil : un autre utilisateur habilité le fait | Texte réglementaire : Instr. BCC 008, art. 66 (séparation des tâches incompatibles) et art. 16 (gestion des accès maîtrisée) ; ARCHITECTURE P7 | forte | en place |
+
+## S07 Utilisateurs : autres fonctions et déconnexion
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S07-1 | Les deux pages | Ce que montrent les captures : Gestion des utilisateurs autres fonctionnalités (filtres Nom et prénom(s), Nom utilisateur, Agence ; colonnes Connecté, Machine, Actif) et Déconnexion d'un utilisateur (utilisateurs connectés ; filtres Login utilisateur, Nom utilisateur, Machine, Agence ; bouton × et confirmation « Voulez-vous déconnecter cet utilisateur »). Machine = adresse réseau de la connexion. La démo dans le navigateur ne connaît que la session ouverte, sur « ce navigateur » | Écran voisin : Captures et texte p. 18 | forte | en place |
+| S07-2 | Déconnexion forcée | Chaque connexion porte un jeton ; Déconnecter l'efface et la session de l'utilisateur tombe à sa prochaine action. On ne se déconnecte pas soi-même ici (bouton de sortie). La sortie normale efface aussi le jeton | Donnée exigée ailleurs : Texte p. 18 ; Instr. BCC 008, art. 16 (gestion des accès maîtrisée) | moyenne | en place |
+| S07-3 | Control utilisateur connecté (S05) | Case cochée : pas de seconde connexion de cet utilisateur tant que la première n'est pas fermée ou déconnectée ; le message nomme la machine et renvoie à Déconnecter utilisateurs. Sens déduit de la colonne Connecté et de la page de déconnexion | Donnée exigée ailleurs : Captures p. 17 et 18 | faible | en place |
 
 ## S08 Gestion des guichets
 
@@ -543,6 +551,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Écran | Question | Réponse retenue |
 |---|---|---|---|
 | S05-2 | S05 Utilisateurs : création | Grille | Nom user, Prenoms user, Agence, Telephone : le champ unique « Nom et prénom(s) » se coupe au premier espace (nom, puis prénoms) ; Telephone = Portable. Les utilisateurs de démonstration sont écrits prénom d'abord, d'où l'inversion visible sur eux |
+| S07-3 | S07 Utilisateurs : autres fonctions et déconnexion | Control utilisateur connecté (S05) | Case cochée : pas de seconde connexion de cet utilisateur tant que la première n'est pas fermée ou déconnectée ; le message nomme la machine et renvoie à Déconnecter utilisateurs. Sens déduit de la colonne Connecté et de la page de déconnexion |
 | S08-4 | S08 Gestion des guichets | Effet du maximum autorisé en caisse | Avertissement au caissier quand le solde de sa caisse dépasse le maximum : il transfère l'excédent à la caisse principale (S81). Un dépôt n'est jamais refusé pour cette raison |
 | S08-9 | S08 Gestion des guichets | Lien « Droits » de la colonne Opérations | Ouvre l'affectation des guichets (S10) filtrée sur ce guichet |
 | S10-2 | S10 Affectation des guichets | Case « Voir solde client VIP » | Case recopiée et enregistrée, sans effet : Likelemba n'a pas de client VIP |

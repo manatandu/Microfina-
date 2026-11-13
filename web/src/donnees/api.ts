@@ -2702,6 +2702,23 @@ const profilsUtilisateurs = {
   },
 };
 
+// ---------- Administration > Utilisateur > Autres fonctions ; Déconnecter utilisateurs (S07, manuel p. 18). Règles identiques côté serveur (noyau/connexions.py). ----------
+// La démo tourne dans un seul navigateur : seul l'utilisateur de la session est connecté, sur « ce navigateur » (registre S07-1)
+const connexions = {
+  lire() {
+    exiger();
+    return { utilisateurs: [...E.utilisateurs].sort((a, b) => a.nom.localeCompare(b.nom)).map((x) => ({ id: x.id, nom: x.nom, login: x.login,
+      agence: E.agences.find((a) => a.id === x.agenceId)?.nom ?? "", connecte: E.session === x.id, machine: E.session === x.id ? "ce navigateur" : "", actif: true })) };
+  },
+  /** Déconnecter (registre S07-2) ; pas soi-même : bouton de sortie */
+  deconnecter(id: number) {
+    const moi = exiger("chef_agence");
+    if (!E.utilisateurs.some((x) => x.id === id)) throw new ErreurMetier("Utilisateur introuvable.");
+    if (id === moi.id) throw new ErreurMetier("Pour vous déconnecter vous-même, utilisez le bouton de sortie.");
+    throw new ErreurMetier("Cet utilisateur n'est pas connecté.");
+  },
+};
+
 // ---------- Info de base > Localisation (S20, manuel p. 30 à 32), adaptée au découpage de la RDC (demande du porteur, registre S20-1) :
 // Constitution, art. 2 et 3 ; Décret 22/07 du 02/03/2022, art. 9, point 26. Règles identiques côté serveur (noyau/localisation.py). ----------
 const NIVEAUX: NiveauLieu[] = ["pays", "province", "ville", "commune", "quartier"];
@@ -2811,6 +2828,7 @@ const apiLocal = {
   droits: asynchrone(droits, "droits"),
   comptesUtilisateurs: asynchrone(comptesUtilisateurs, "comptesUtilisateurs"),
   profilsUtilisateurs: asynchrone(profilsUtilisateurs, "profilsUtilisateurs"),
+  connexions: asynchrone(connexions, "connexions"),
   comptes: asynchrone(comptes, "comptes"),
   numerotation: asynchrone(numerotation, "numerotation"),
 };

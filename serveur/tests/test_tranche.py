@@ -1340,3 +1340,26 @@ def test_profils_utilisateurs(clients):
     j = clients["compta"]; connecter(j, "jmbala")
     s = j.get("/api/session", **H).json()
     assert s["roles"] == ["caissier"] and "S74" in s["droits"]
+
+
+def test_connexions(clients):
+    """S07 (p. 18) : Connecté, Machine, Actif ; Déconnecter un utilisateur : sa session tombe ; « Control utilisateur connecté » (S05)
+    empêche une seconde connexion (registre S07-1 à S07-3)"""
+    chef, caisse = clients["chef"], clients["caisse"]; connecter(chef, "jpmukendi"); connecter(caisse, "engalula")
+    l = chef.get("/api/connexions", **H).json()["utilisateurs"]
+    e = next(x for x in l if x["login"] == "engalula")
+    assert e["connecte"] and e["machine"] == "127.0.0.1" and e["actif"]
+    moi = next(x for x in l if x["login"] == "jpmukendi")
+    assert "bouton de sortie" in chef.post(f"/api/connexions/{moi['id']}/deconnexion", **H).json()["message"]
+    assert "Droit manquant" in caisse.post(f"/api/connexions/{moi['id']}/deconnexion", **H).json()["message"]
+    assert not next(x for x in chef.post(f"/api/connexions/{e['id']}/deconnexion", **H).json()["utilisateurs"] if x["login"] == "engalula")["connecte"]
+    assert caisse.get("/api/session", **H).json() is None                                  # sa session est tombée
+    assert caisse.get("/api/guichets", **H).status_code == 401
+    ag = chef.get("/api/gestion-utilisateurs", **H).json()["agences"][0]["id"]
+    chef.post("/api/gestion-utilisateurs", {"nom": "Mbala Joseph", "agenceId": ag, "login": "jmbala", "motDePasse": "s", "confirmation": "s", "portable": "1",
+                                            "controleConnecte": True}, **H)
+    connecter(caisse, "jmbala")
+    r = clients["agent"].post("/api/session", {"login": "jmbala"}, **H)
+    assert r.status_code == 422 and "Déjà connecté" in r.json()["message"]
+    caisse.delete("/api/session", **H)
+    connecter(clients["agent"], "jmbala")

@@ -36,5 +36,6 @@ Chaque ligne dit ce qui a été constaté, où, et ce que Likelemba fait déjà 
 | S04 Droits | Rien ne signale qu'un profil cumule des tâches incompatibles (saisir et valider, tenir la caisse et la contrôler) ; deux pages pour la même chose (assigner, modifier) | Alerte de séparation des tâches (Instr. BCC 008, art. 66) ; une seule page |
 | S05 Utilisateurs | « Nom et prénom(s) » en un seul champ, mais deux colonnes dans la grille ; aucune règle de mot de passe ni d'expiration ; « Control utilisateur connecté » non expliqué | Nom et prénoms séparés ; règles de mot de passe paramétrables (Instr. BCC 008, art. 16) |
 | S06 Profils utilisateur | Le bouton de recherche du nom est appelé « Agence » ; rien n'empêche dans le manuel de se donner un profil à soi-même | Libellés justes ; changement de profil validé par un second utilisateur |
+| S07 Connexions | « Autres fonctions » n'offre aucune fonction (une liste seulement) ; pas d'historique des connexions ni de verrouillage après inactivité | Journal des connexions ; fermeture automatique de session (Instr. BCC 008, art. 16) |
 | Grilles | Pages de 10 lignes et filtres par colonne, sans recherche globale ni tri multiple | Recherche et tri |
 | Messages | Boîtes de confirmation Oui/Non à chaque enregistrement, même sans risque | Confirmer seulement ce qui engage (écritures, suppressions) |

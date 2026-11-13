@@ -30,6 +30,7 @@ import GestionProfils from "./Profils";
 import DroitsProfil from "./Droits";
 import EnregistrementUtilisateurs from "./Utilisateurs";
 import GestionProfilsUtilisateur from "./ProfilsUtilisateurs";
+import Connexions from "./Connexions";
 import ParametragesClients, { ParametrageCompteClient } from "./Numerotation";
 import { EcranJournee, EcranValidation, FermetureJournee } from "./Journee";
 import { Consentement, InformationsClient, ModificationFrais, PhotosSignatures, ResiliationClient, ValidationClientModifie, VisaClient } from "./Visa";
@@ -77,6 +78,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S04: DroitsProfil,
   S05: EnregistrementUtilisateurs,
   S06: GestionProfilsUtilisateur,
+  S07: Connexions,
   S16: FraisOperations,
   S37: EnrolementPhysique,
   S38: EnrolementEntreprise,

@@ -656,6 +656,17 @@ describe("journée de guichet", () => {
     expect([s.roles, s.droits.includes("S74")]).toEqual([["caissier"], true]);
   });
 
+  it("connexions (S07, p. 18) : connecté et machine, déconnexion d'un autre utilisateur seulement", async () => {
+    await connecter("jpmukendi");
+    const l = (await api.connexions.lire()).utilisateurs;
+    const moi = l.find((x) => x.login === "jpmukendi")!, e = l.find((x) => x.login === "engalula")!;
+    expect([moi.connecte, moi.machine, e.connecte]).toEqual([true, "ce navigateur", false]);
+    await expect(api.connexions.deconnecter(moi.id)).rejects.toThrow("bouton de sortie");
+    await expect(api.connexions.deconnecter(e.id)).rejects.toThrow("pas connecté");
+    await connecter("engalula");
+    await expect(api.connexions.deconnecter(moi.id)).rejects.toThrow("Droit manquant");
+  });
+
   it("info société (S32, p. 42) : obligatoires, Type base, localisation, hors bilan classe 0, logo ; agences", async () => {
     await connecter("jpmukendi");
     const l = await api.societe.lire();

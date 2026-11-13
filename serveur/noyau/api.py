@@ -29,6 +29,7 @@ from . import profils as pf
 from . import droits as dr
 from . import comptes_utilisateurs as cu
 from . import profils_utilisateurs as pu
+from . import connexions as cx
 from . import comptes as cp
 from . import numerotation as nu
 from . import services as s
@@ -48,7 +49,7 @@ def u(request: HttpRequest) -> dict:
     # Protection contre les requêtes forgées depuis un autre site : en-tête propre à l'application sur toute écriture
     if request.method not in METHODES_SURES and request.headers.get("X-Likelemba") != "1":
         raise ErreurMetier("Requête refusée.", 403)
-    util = s.exiger(s.charger_utilisateur(request.session.get("utilisateur")))
+    util = s.exiger(s.utilisateur_de_session(request.session.get("utilisateur"), request.session.get("jeton")))
     dr.verifier_route(util, request.method, request.path)      # droit de la tâche (registre S04-3)
     return util
 
@@ -58,21 +59,23 @@ def u(request: HttpRequest) -> dict:
 def session_ouvrir(request, corps: dict = Body(...)):
     if request.headers.get("X-Likelemba") != "1":
         raise ErreurMetier("Requête refusée.", 403)
-    util = s.ouvrir_session(corps.get("login", ""), corps.get("motDePasse"))
+    util = s.ouvrir_session(corps.get("login", ""), corps.get("motDePasse"), request.META.get("REMOTE_ADDR", ""))
     request.session.cycle_key()
     request.session["utilisateur"] = util["id"]
+    request.session["jeton"] = util.pop("jeton")
     return s.vue_utilisateur(util)
 
 
 @api.delete("/session")
 def session_fermer(request):
+    s.fermer_session(request.session.get("utilisateur"), request.session.get("jeton"))
     request.session.flush()
     return None
 
 
 @api.get("/session")
 def session_courante(request):
-    util = s.charger_utilisateur(request.session.get("utilisateur"))
+    util = s.utilisateur_de_session(request.session.get("utilisateur"), request.session.get("jeton"))
     return s.vue_utilisateur(util) if util else None
 
 
@@ -822,6 +825,17 @@ def pu_lire(request, utilisateur: int | None = None):
 @api.post("/profils-utilisateurs")
 def pu_enregistrer(request, corps: dict = Body(...)):
     return pu.enregistrer(u(request), corps)
+
+
+# ---------- Administration > Utilisateur > Autres fonctions ; Déconnecter utilisateurs (S07) ----------
+@api.get("/connexions")
+def cx_lire(request):
+    return cx.lire(u(request))
+
+
+@api.post("/connexions/{uid}/deconnexion")
+def cx_deconnecter(request, uid: int):
+    return cx.deconnecter(u(request), uid)
 
 
 # ---------- Administration > Profil > Assigner droit ; Modifier droit d'un profil (S04) ----------
