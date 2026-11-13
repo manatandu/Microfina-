@@ -178,7 +178,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 47;
+  version: 48;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)
@@ -219,6 +219,8 @@ export interface Etat {
   feries: { date: string; description: string; exercice: number }[];   // S34, jours fériés variables
   devises: { code: string; libelle: string; unite: string; subdivision: number }[];   // S35
   typesMonnaie: { id: number; libelle: string }[];   // S35
+  elementsFacture: { id: number; libelle: string; compte: string; taux: number; tauxA: number; tauxNA: number; retenue: boolean; actif: boolean; supprime: boolean }[];   // S36
+  typesCommande: { id: number; code: string; libelle: string; supprime: boolean }[];   // S36, Référence Commande
   monnaies: { devise: string; valeur: number; typeId: number }[];   // S35 : coupures, valeur en unités
   operationsDiverses: { id: number; sens: "PRODUIT" | "CHARGE"; compte: string; libelle: string; statut: "ACTIF" | "INACTIF" }[];   // S31
   journaux: { id: number; code: string; libelle: string; type: string; actif: boolean; supprime: boolean }[];   // S30

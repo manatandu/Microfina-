@@ -25,6 +25,7 @@ import InfoSocietePage from "./Societe";
 import InformationsAgences from "./Agents";
 import JoursTravail from "./JoursTravail";
 import Devises from "./Devises";
+import Facture from "./Facture";
 import ParametragesClients, { ParametrageCompteClient } from "./Numerotation";
 import { EcranJournee, EcranValidation, FermetureJournee } from "./Journee";
 import { Consentement, InformationsClient, ModificationFrais, PhotosSignatures, ResiliationClient, ValidationClientModifie, VisaClient } from "./Visa";
@@ -67,6 +68,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S33: InformationsAgences,
   S34: JoursTravail,
   S35: Devises,
+  S36: Facture,
   S16: FraisOperations,
   S37: EnrolementPhysique,
   S38: EnrolementEntreprise,

@@ -582,6 +582,22 @@ describe("journée de guichet", () => {
     expect((await api.banques.lire()).devises).toContain("EUR");
   });
 
+  it("facture (S36, p. 46) : éléments (compte au plan, taux de 0 à 100, Désactiver, Supprimer) ; types de commande", async () => {
+    await connecter("jpmukendi");
+    const E = { libelle: "TVA", compte: "432", taux: "16", tauxA: "", tauxNA: "", retenue: false };
+    await expect(api.facture.enregistrerElement({})).rejects.toThrow("Libellé, Compte");
+    await expect(api.facture.enregistrerElement({ ...E, compte: "4329999" })).rejects.toThrow("plan de comptes");
+    await expect(api.facture.enregistrerElement({ ...E, taux: "120" })).rejects.toThrow("0 à 100");
+    const e = (await api.facture.enregistrerElement(E)).elements[0]!;
+    expect([e.libelle, e.taux, e.tauxA, e.retenue, e.actif]).toEqual(["TVA", 16, 0, false, true]);
+    await expect(api.facture.enregistrerElement({ ...E, libelle: "tva" })).rejects.toThrow("existe déjà");
+    expect((await api.facture.activerElement(e.id, false)).elements[0]!.actif).toBe(false);
+    expect((await api.facture.supprimerElement(e.id)).elements).toEqual([]);
+    const t = (await api.facture.enregistrerType({ code: "acha_m", libelle: "Achat de matériel" })).types[0]!;
+    expect([t.code, t.libelle]).toEqual(["ACHA_M", "Achat de matériel"]);
+    await expect(api.facture.enregistrerType({ code: "ACHA_M", libelle: "Autre" })).rejects.toThrow("existe déjà");
+  });
+
   it("info société (S32, p. 42) : obligatoires, Type base, localisation, hors bilan classe 0, logo ; agences", async () => {
     await connecter("jpmukendi");
     const l = await api.societe.lire();

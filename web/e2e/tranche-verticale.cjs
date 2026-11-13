@@ -170,6 +170,11 @@ const OUT = process.argv[2];
   await p.getByRole('tab', { name: 'Cours', exact: true }).click(); await p.getByLabel('Cours (CDF pour une unité) :').waitFor(); await p.getByLabel('Devise :').selectOption('USD'); await p.getByLabel('Date :').fill('05/11/2026');
   await p.getByLabel('Cours (CDF pour une unité) :').fill('2850'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: '05/11/2026' }).waitFor(); await etape('02f28-cours');
+  // Chef : facture (S36, p. 46) : un élément TVA au compte 432 (PCCI), puis un type de commande (p. 125)
+  await aller('/parametrage/s36'); await p.getByLabel('Libellé', { exact: true }).fill('TVA'); await p.getByLabel('Compte :').fill('432'); await p.getByLabel('Taux(%)').fill('16');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'TVA', exact: true }).waitFor(); await etape('02f29-element-facture');
+  await p.getByRole('tab', { name: 'Référence Commande' }).click(); await p.getByLabel('Code : *').fill('ACHA_M'); await p.getByLabel('Type Commande : *').fill('Achat de matériel');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Achat de matériel' }).waitFor(); await etape('02f30-reference-commande');
   // Chef : paramétrage des produits épargne (S28, p. 41) : l'épargne de garantie dans l'onglet Bloqué, compte 334 proposé
   await aller('/parametrage/s28'); await p.getByRole('tab', { name: 'Bloqué' }).click(); await p.getByLabel('Compte lié').and(p.locator('[value="334"]')).waitFor();
   await p.getByLabel('Produit: *').selectOption({ label: 'Epargne De Garantie (G)' }); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();

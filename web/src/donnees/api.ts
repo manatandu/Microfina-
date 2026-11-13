@@ -17,7 +17,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v47";
+const CLE = "likelemba-demo-v48";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -25,7 +25,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 47) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 48) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -2491,6 +2491,70 @@ const devises = {
   },
 };
 
+// ---------- Facture : Elément Facture, Référence Commande (S36, manuel p. 46). Règles identiques côté serveur (noyau/facture.py). ----------
+export type SaisieElementFacture = { libelle?: string; compte?: string; taux?: string | number; tauxA?: string | number; tauxNA?: string | number; retenue?: boolean };
+function tauxFacture(x: string | number | undefined, nom: string): number {
+  const t = x === undefined || x === null ? "" : String(x).trim().replace(",", ".");
+  if (!t) return 0;
+  if (!/^\d+(\.\d{1,2})?$/.test(t) || Number(t) > 100) throw new ErreurMetier(`${nom} : nombre de 0 à 100, deux décimales au plus.`);
+  return Number(t);
+}
+const facture = {
+  lire() {
+    exiger();
+    return { elements: E.elementsFacture.filter((e) => !e.supprime).map(({ supprime: _s, ...e }) => e),
+      types: E.typesCommande.filter((t) => !t.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ supprime: _s, ...t }) => t) };
+  },
+  /** Elément Facture : Enregistrer, ou modifier l'élément choisi (T01) ; registre S36-1 */
+  enregistrerElement(d: SaisieElementFacture, id?: number) {
+    exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
+    const libelle = txt(d.libelle), compte = txt(d.compte);
+    const manque = manquants([["Libellé", libelle], ["Compte", compte]]);
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    const taux = tauxFacture(d.taux, "Taux(%)"), tauxA = tauxFacture(d.tauxA, "Taux A.(%)"), tauxNA = tauxFacture(d.tauxNA, "Taux N.A.(%)");
+    if (!/^\d+$/.test(compte) || !planComptable().includes(compte)) throw new ErreurMetier(`Compte : ${compte} n'est pas dans le plan de comptes.`);   // règle T16
+    const e = id === undefined ? undefined : E.elementsFacture.find((x) => x.id === id && !x.supprime);
+    if (id !== undefined && !e) throw new ErreurMetier("Elément introuvable.");
+    if (E.elementsFacture.some((x) => !x.supprime && x.id !== id && x.libelle.toLowerCase() === libelle.toLowerCase())) throw new ErreurMetier("Ce Libellé existe déjà.");
+    const v = { libelle, compte, taux, tauxA, tauxNA, retenue: !!d.retenue };
+    if (e) Object.assign(e, v); else E.elementsFacture.push({ id: prochain(E.elementsFacture), ...v, actif: true, supprime: false });
+    enregistrer(); return facture.lire();
+  },
+  /** Colonne Désactiver (registre S36-1) */
+  activerElement(id: number, actif: boolean) {
+    exiger("chef_agence");
+    const e = E.elementsFacture.find((x) => x.id === id && !x.supprime);
+    if (!e) throw new ErreurMetier("Elément introuvable.");
+    e.actif = actif; enregistrer(); return facture.lire();
+  },
+  /** Supprimer : suppression logique (T02) */
+  supprimerElement(id: number) {
+    exiger("chef_agence");
+    const e = E.elementsFacture.find((x) => x.id === id && !x.supprime);
+    if (!e) throw new ErreurMetier("Elément introuvable.");
+    e.supprime = true; enregistrer(); return facture.lire();
+  },
+  /** Référence Commande : Code et Type Commande (registre S36-2) */
+  enregistrerType(d: { code?: string; libelle?: string }, id?: number) {
+    exiger("chef_agence");
+    const code = txt(d.code).toUpperCase(), libelle = txt(d.libelle);
+    const manque = manquants([["Code", code], ["Type Commande", libelle]]);
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    const t = id === undefined ? undefined : E.typesCommande.find((x) => x.id === id && !x.supprime);
+    if (id !== undefined && !t) throw new ErreurMetier("Type de commande introuvable.");
+    if (E.typesCommande.some((x) => x.id !== id && x.code === code)) throw new ErreurMetier("Ce Code existe déjà.");
+    if (E.typesCommande.some((x) => !x.supprime && x.id !== id && x.libelle.toLowerCase() === libelle.toLowerCase())) throw new ErreurMetier("Ce Type Commande existe déjà.");
+    if (t) Object.assign(t, { code, libelle }); else E.typesCommande.push({ id: prochain(E.typesCommande), code, libelle, supprime: false });
+    enregistrer(); return facture.lire();
+  },
+  supprimerType(id: number) {
+    exiger("chef_agence");
+    const t = E.typesCommande.find((x) => x.id === id && !x.supprime);
+    if (!t) throw new ErreurMetier("Type de commande introuvable.");
+    t.supprime = true; enregistrer(); return facture.lire();
+  },
+};
+
 // ---------- Info de base > Localisation (S20, manuel p. 30 à 32), adaptée au découpage de la RDC (demande du porteur, registre S20-1) :
 // Constitution, art. 2 et 3 ; Décret 22/07 du 02/03/2022, art. 9, point 26. Règles identiques côté serveur (noyau/localisation.py). ----------
 const NIVEAUX: NiveauLieu[] = ["pays", "province", "ville", "commune", "quartier"];
@@ -2595,6 +2659,7 @@ const apiLocal = {
   agents: asynchrone(agents),
   jours: asynchrone(jours),
   devises: asynchrone(devises),
+  facture: asynchrone(facture),
   comptes: asynchrone(comptes),
   numerotation: asynchrone(numerotation),
 };

@@ -153,6 +153,14 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       enregistrerJournees: (d: object) => post("/jours/journees", d),
       enregistrerFeries: (d: object) => post("/jours/feries", d),
     },
+    facture: {
+      lire: () => get("/facture"),
+      enregistrerElement: (d: object, id?: number) => post(id === undefined ? "/facture/elements" : `/facture/elements/${id}`, d),
+      activerElement: (id: number, actif: boolean) => post(`/facture/elements/${id}/actif`, { actif }),
+      supprimerElement: (id: number) => post(`/facture/elements/${id}/suppression`),
+      enregistrerType: (d: object, id?: number) => post(id === undefined ? "/facture/types" : `/facture/types/${id}`, d),
+      supprimerType: (id: number) => post(`/facture/types/${id}/suppression`),
+    },
     devises: {
       lire: () => get("/devises"),
       enregistrerDevise: (d: object, code?: string) => post(code === undefined ? "/devises" : `/devises/${code}`, d),

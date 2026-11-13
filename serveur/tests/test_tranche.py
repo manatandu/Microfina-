@@ -1230,3 +1230,28 @@ def test_devise_partout(clients):
     corps = {"agenceId": x["agenceId"], "code": x["code"], "designation": x["nom"], "typeGuichet": x["typeGuichet"], "journalId": x["journalId"],
              "plafonds": {"CDF": {"maximum": 0, "retrait": 0}, "USD": {"maximum": 0, "retrait": 0}}, "actif": x["actif"]}
     assert "(EUR)" in refus(f"/api/guichets/{x['id']}", corps)
+
+
+def test_facture_elements_types(clients):
+    """S36 (p. 46) : Elément Facture (Libellé, Compte, Taux, Taux A., Taux N.A., Retenue Taux, Désactiver, Supprimer) ;
+    Référence Commande (Code, Type Commande) ; registre S36-1 et S36-2"""
+    chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    assert chef.get("/api/facture", **H).json() == {"elements": [], "types": []}
+    def refus(url, corps):
+        r = chef.post(url, corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    E = {"libelle": "TVA", "compte": "432", "taux": "16", "tauxA": "", "tauxNA": "", "retenue": False}
+    assert agent.post("/api/facture/elements", E, **H).status_code == 403
+    assert "Libellé, Compte" in refus("/api/facture/elements", {})
+    assert "plan de comptes" in refus("/api/facture/elements", {**E, "compte": "4329999"})
+    assert "0 à 100" in refus("/api/facture/elements", {**E, "taux": "120"})
+    e = chef.post("/api/facture/elements", E, **H).json()["elements"][0]
+    assert (e["libelle"], e["taux"], e["tauxA"], e["retenue"], e["actif"]) == ("TVA", 16.0, 0.0, False, True)
+    assert "existe déjà" in refus("/api/facture/elements", {**E, "libelle": "tva"})
+    assert chef.post(f"/api/facture/elements/{e['id']}", {**E, "retenue": True}, **H).json()["elements"][0]["retenue"] is True
+    assert chef.post(f"/api/facture/elements/{e['id']}/actif", {"actif": False}, **H).json()["elements"][0]["actif"] is False
+    assert chef.post(f"/api/facture/elements/{e['id']}/suppression", {}, **H).json()["elements"] == []
+    assert "Code, Type Commande" in refus("/api/facture/types", {})
+    t = chef.post("/api/facture/types", {"code": "acha_m", "libelle": "Achat de matériel"}, **H).json()["types"][0]
+    assert (t["code"], t["libelle"]) == ("ACHA_M", "Achat de matériel")
+    assert "existe déjà" in refus("/api/facture/types", {"code": "ACHA_M", "libelle": "Autre"})
+    assert chef.post(f"/api/facture/types/{t['id']}/suppression", {}, **H).json()["types"] == []

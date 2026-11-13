@@ -50,7 +50,7 @@ S32,Information société,42,B,liste,pages agences et zones (« afficher les pag
 S33,"Agence : gestionnaire, sensibilisateur, commercial",43 et 44 (trois captures),A,liste,,,2 Paramétrage,oui
 S34,"Agence : journée de travail, jours fériés",44 (deux captures),A,composition,,,2 Paramétrage,oui
 S35,"Préférences : devise, type sous, sous",45 et 46 (trois captures),A,liste,,,2 Paramétrage,oui
-S36,"Facture : élément, référence commande",46 et 47,A,liste,,,2 Paramétrage,non
+S36,"Facture : élément, référence commande",46 et 47,A,liste,,,2 Paramétrage,oui
 S37,Enrôlement physique (six onglets),48,B,onglets,cinq onglets sur six ; fiches Personne liée et Bénéficiaire,M:texte p. 48 ; D:S14a à S14n ; R:identification du client (Instr. BCC LBC),3 Client,oui
 S38,Enrôlement entreprise (six onglets),49,B,onglets,cinq onglets sur six ; fiche Signataire,M:texte p. 49 ; A:S37 ; R:idem,3 Client,oui
 S39,Enrôlement groupe (six onglets),50,B,onglets,cinq onglets sur six ; fiche Membre,M:texte p. 50 ; A:S37,3 Client,oui

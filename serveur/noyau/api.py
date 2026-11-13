@@ -24,6 +24,7 @@ from . import societe as so
 from . import agents as ag
 from . import jours as jt
 from . import devises as dv
+from . import facture as fa
 from . import comptes as cp
 from . import numerotation as nu
 from . import services as s
@@ -767,6 +768,47 @@ def dv_monnaie(request, corps: dict = Body(...)):
 @api.post("/monnaies/{devise}/{centiemes}")
 def dv_monnaie_modifier(request, devise: str, centiemes: int, corps: dict = Body(...)):
     return dv.enregistrer_monnaie(u(request), corps, (devise, centiemes))
+
+
+# ---------- Facture : Elément Facture, Référence Commande (S36) ----------
+@api.get("/facture")
+def fa_lire(request):
+    return fa.lire(u(request))
+
+
+@api.post("/facture/elements")
+def fa_element(request, corps: dict = Body(...)):
+    return fa.enregistrer_element(u(request), corps)
+
+
+@api.post("/facture/elements/{eid}")
+def fa_element_modifier(request, eid: int, corps: dict = Body(...)):
+    return fa.enregistrer_element(u(request), corps, eid)
+
+
+@api.post("/facture/elements/{eid}/actif")
+def fa_element_actif(request, eid: int, corps: dict = Body(...)):
+    return fa.activer_element(u(request), eid, corps.get("actif"))
+
+
+@api.post("/facture/elements/{eid}/suppression")
+def fa_element_supprimer(request, eid: int):
+    return fa.supprimer_element(u(request), eid)
+
+
+@api.post("/facture/types")
+def fa_type(request, corps: dict = Body(...)):
+    return fa.enregistrer_type(u(request), corps)
+
+
+@api.post("/facture/types/{tid}")
+def fa_type_modifier(request, tid: int, corps: dict = Body(...)):
+    return fa.enregistrer_type(u(request), corps, tid)
+
+
+@api.post("/facture/types/{tid}/suppression")
+def fa_type_supprimer(request, tid: int):
+    return fa.supprimer_type(u(request), tid)
 
 
 # ---------- Paramétrage > Info société (S32) ----------

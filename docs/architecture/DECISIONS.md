@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**233 décisions.** Solidité : 75 fortes (le manuel ou un texte répond), 128 moyennes (déduites d'un écran voisin ou d'une donnée), 30 faibles (notre choix, faute de mieux). Dans le code : 178 déjà en place, 55 à appliquer.
+**236 décisions.** Solidité : 75 fortes (le manuel ou un texte répond), 130 moyennes (déduites d'un écran voisin ou d'une donnée), 31 faibles (notre choix, faute de mieux). Dans le code : 181 déjà en place, 55 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -493,6 +493,14 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S35-5 | Une devise créée sert partout | Les devises créées en S35 sont proposées aux produits (S23, S27), aux comptes bancaires (S58), aux guichets (plafonds S08, billetage S79) et aux cours. Montant en lettres d'une devise sans nom connu : son libellé, les centièmes en « centièmes » | Choix du porteur : Demande du porteur, 13/11/2026 ; PCCI § 7.1 (opérations en devises) ; Instr. BCC 002, art. 40 à 43 (positions de change par devise) | moyenne | en place |
 | S35-6 | Page Cours | Page ajoutée à Préférences > Devise : Devise, Date, Cours (francs congolais pour une unité) ; grille Date, Devise, Cours. CDF refusé (monnaie de tenue). Un cours déjà saisi pour la même devise et la même date se remplace tant qu'aucune écriture ne l'a utilisé. Chaque ligne d'écriture en devise prend le dernier cours de sa devise à la date de la journée. Microfina++ ne montre pas de saisie des cours : écart à la demande du porteur | Choix du porteur : Demande du porteur, 13/11/2026 ; PCCI § 3.2 (comptabilité en monnaie nationale) et § 7.1 (conversion au cours du jour de la transaction) ; Instr. BCC 57 vise les banques et bureaux de change, pas les COOPEC | moyenne | en place |
 
+## S36 Facture : élément, référence commande
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S36-1 | Elément Facture | Champs et boutons de la capture : Libellé, Compte, Taux(%), Taux A.(%), Taux N.A.(%), Retenue Taux ; Enregistrer, Supprimer (grisé sans élément choisi, suppression logique T02), Annuler ; cadre Liste éléments : Libelle, Compte, Taux (%), Taux A. (%), Taux N.A. (%), Retenue, Désactiver (case par ligne, confirmation Oui/Non). Clic sur une ligne pour modifier (T01). Libellé et Compte refusés vides (la facture comptabilise chaque charge à son compte), compte du plan (T16), libellé unique (T08), taux de 0 à 100 avec deux décimales, vide = 0. « Liste vide » au lieu de « No records found. », comme les autres captures (p. 44). Aucun élément chargé d'avance | Donnée exigée ailleurs : Capture p. 46 ; p. 125 (TVA, AIB et Taux au bon de commande) et p. 150 (Liste des charges : Libellé, Taux (%), Montant) ; T01, T02, T08, T16 | moyenne | en place |
+| S36-2 | Référence Commande | Page non montrée. Le bon de commande (p. 125) a un cadre « Référence Commande » avec un « Type Commande » (« Achat de matériel ») et la facture (p. 150) un « Type Facture » (« ACHA_M ») : la page tient la liste des types de commande, Code et Type Commande, gabarit liste (Enregistrer ou Modifier, Supprimer, Effacer ; grille Code, Type Commande). Code en majuscules, unique | Donnée exigée ailleurs : Manuel p. 46 (texte), p. 125 et 150 (captures du bon de commande et de la facture) ; COMPLEMENTS § 4.1 | moyenne | en place |
+| S36-3 | Sens de Taux A. et Taux N.A. | Repris tels quels. Sur la facture (p. 150), Microfina++ coche « Fournisseur à jour » et « IFU », et le bon de commande montre l'AIB béninoise : deux taux selon la situation du fournisseur. Leur usage en RDC (retenues à la source sur fournisseurs) est à confirmer avec le porteur avant S107 | Choix du porteur : Captures p. 125 et 150 | faible | en place |
+
 ## S75 Déblocage de crédit
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
@@ -533,3 +541,4 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S32-2 | S32 Information société | Adresse et comptes hors bilan | Pays, Ville, Commune (S32-7), Quartier (obligatoire) pris dans Localisation (S20). Compte Hors Bilan 1 et Hors Bilan 2 : des comptes de la classe 0 du plan ; leur usage n'est pas décrit par le manuel |
 | S32-6 | S32 Information société | Onglet Autres Info et cadre Info sécurité | La capture n'en montre que le titre : contenu à demander au porteur |
 | S35-4 | S35 Préférences : devise, type sous, sous | Monnaies de démonstration | CDF 50 à 20 000 et USD 1 à 100, tous billets, chacun avec son type « Billet de … » : données de démonstration reprises de l'existant, pas lues dans un texte de la BCC ; l'institution saisit ses propres monnaies |
+| S36-3 | S36 Facture : élément, référence commande | Sens de Taux A. et Taux N.A. | Repris tels quels. Sur la facture (p. 150), Microfina++ coche « Fournisseur à jour » et « IFU », et le bon de commande montre l'AIB béninoise : deux taux selon la situation du fournisseur. Leur usage en RDC (retenues à la source sur fournisseurs) est à confirmer avec le porteur avant S107 |
