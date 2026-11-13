@@ -10,6 +10,8 @@ from django.db import transaction
 
 from noyau.bd import executer, valeur
 
+# Quatre profils de départ (registre T07, S03-1) : code du rôle, nom en majuscules comme la capture p. 15
+NOMS_PROFILS = {"caissier": "CAISSIER", "chef_agence": "CHEF D'AGENCE", "comptable": "COMPTABLE", "agent_credit": "AGENT DE CRÉDIT"}
 COURS = 2850                 # CDF pour 1 USD, fictif
 VALEUR_PART = 400000         # 4 000 CDF : exemple du manuel Microfina++ ; la vraie valeur vient des statuts (loi 002/2002, art. 20)
 COUPURES = {"USD": [100, 50, 20, 10, 5, 1], "CDF": [20000, 10000, 5000, 1000, 500, 200, 100, 50]}
@@ -88,7 +90,7 @@ class Command(BaseCommand):
         uid = {}
         for login, nom, profil in (("engalula", "Esther Ngalula", "caissier"), ("jpmukendi", "J.-P. Mukendi", "chef_agence"),
                                    ("plumbala", "Patrick Lumbala", "comptable"), ("bkasongo", "Bijou Kasongo", "agent_credit")):
-            pid = valeur("insert into profil (institution_id, nom) values (%s, %s) returning id", (ins, profil))
+            pid = valeur("insert into profil (institution_id, code, nom) values (%s, %s, %s) returning id", (ins, profil, NOMS_PROFILS[profil]))
             uid[login] = valeur("insert into utilisateur (institution_id, agence_id, login, nom, mot_de_passe_hash) values (%s, %s, %s, %s, '!') returning id", (ins, ag, login, nom))
             executer("insert into utilisateur_profil values (%s, %s)", (uid[login], pid))
         chef, compta, caissiere = uid["jpmukendi"], uid["plumbala"], uid["engalula"]

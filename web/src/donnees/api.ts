@@ -17,7 +17,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v48";
+const CLE = "likelemba-demo-v49";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -25,7 +25,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 48) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 49) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -2555,6 +2555,33 @@ const facture = {
   },
 };
 
+// ---------- Administration > Profil > Création modification (S03, manuel p. 15). Règles identiques côté serveur (noyau/profils.py). ----------
+const profils = {
+  lire() {
+    exiger();
+    return { profils: E.profils.filter((p) => !p.supprime).sort((a, b) => a.nom.localeCompare(b.nom)).map(({ id, nom, description }) => ({ id, nom, description })) };
+  },
+  /** Enregistrer, ou modifier le profil choisi (p. 12, T01) ; registre S03-2 */
+  enregistrer(d: { nom?: string; description?: string }, id?: number) {
+    exiger("chef_agence");   // profil habilité : registre T07, en attendant S04 à S06
+    const nom = txt(d.nom), description = txt(d.description);
+    if (!nom) throw new ErreurMetier("À remplir : Nom Droit.");
+    const p = id === undefined ? undefined : E.profils.find((x) => x.id === id && !x.supprime);
+    if (id !== undefined && !p) throw new ErreurMetier("Profil introuvable.");
+    if (E.profils.some((x) => !x.supprime && x.id !== id && x.nom.toLowerCase() === nom.toLowerCase())) throw new ErreurMetier("Ce profil existe déjà.");
+    if (p) Object.assign(p, { nom, description }); else E.profils.push({ id: prochain(E.profils), nom, description, supprime: false });
+    enregistrer(); return profils.lire();
+  },
+  /** Suppression logique (T02), refusée tant qu'un utilisateur porte le profil (registre S03-2) */
+  supprimer(id: number) {
+    exiger("chef_agence");
+    const p = E.profils.find((x) => x.id === id && !x.supprime);
+    if (!p) throw new ErreurMetier("Profil introuvable.");
+    if (p.code && E.utilisateurs.some((u) => u.roles.includes(p.code!))) throw new ErreurMetier("Des utilisateurs portent ce profil : il ne se supprime pas.");
+    p.supprime = true; enregistrer(); return profils.lire();
+  },
+};
+
 // ---------- Info de base > Localisation (S20, manuel p. 30 à 32), adaptée au découpage de la RDC (demande du porteur, registre S20-1) :
 // Constitution, art. 2 et 3 ; Décret 22/07 du 02/03/2022, art. 9, point 26. Règles identiques côté serveur (noyau/localisation.py). ----------
 const NIVEAUX: NiveauLieu[] = ["pays", "province", "ville", "commune", "quartier"];
@@ -2660,6 +2687,7 @@ const apiLocal = {
   jours: asynchrone(jours),
   devises: asynchrone(devises),
   facture: asynchrone(facture),
+  profils: asynchrone(profils),
   comptes: asynchrone(comptes),
   numerotation: asynchrone(numerotation),
 };

@@ -42,8 +42,9 @@ def charger_utilisateur(uid: int | None) -> dict | None:
     u = une("select id, login, nom, institution_id, agence_id from utilisateur where id = %s and actif", (uid,))
     if not u:
         return None
-    u["roles"] = [r["nom"] for r in lignes(
-        "select p.nom from utilisateur_profil up join profil p on p.id = up.profil_id where up.utilisateur_id = %s order by p.nom", (uid,))]
+    u["roles"] = [r["code"] for r in lignes(
+        """select p.code from utilisateur_profil up join profil p on p.id = up.profil_id
+           where up.utilisateur_id = %s and p.code is not null and not p.supprime order by p.code""", (uid,))]
     return u
 
 

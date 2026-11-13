@@ -170,6 +170,9 @@ const OUT = process.argv[2];
   await p.getByRole('tab', { name: 'Cours', exact: true }).click(); await p.getByLabel('Cours (CDF pour une unité) :').waitFor(); await p.getByLabel('Devise :').selectOption('USD'); await p.getByLabel('Date :').fill('05/11/2026');
   await p.getByLabel('Cours (CDF pour une unité) :').fill('2850'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: '05/11/2026' }).waitFor(); await etape('02f28-cours');
+  // Chef : profils (S03, p. 15) : le profil AUDITEUR de la capture
+  await aller('/administration/s03'); await p.getByLabel('Nom Droit *').fill('AUDITEUR'); await p.getByLabel('Description').fill('PROFIL DES AUDITEURS');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'AUDITEUR', exact: true }).waitFor(); await etape('02f31-profils');
   // Chef : facture (S36, p. 46) : un élément TVA au compte 432 (PCCI), puis un type de commande (p. 125)
   await aller('/parametrage/s36'); await p.getByLabel('Libellé', { exact: true }).fill('TVA'); await p.getByLabel('Compte :').fill('432'); await p.getByLabel('Taux(%)').fill('16');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'TVA', exact: true }).waitFor(); await etape('02f29-element-facture');

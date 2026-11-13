@@ -598,6 +598,18 @@ describe("journée de guichet", () => {
     await expect(api.facture.enregistrerType({ code: "ACHA_M", libelle: "Autre" })).rejects.toThrow("existe déjà");
   });
 
+  it("profils (S03, p. 15) : Nom Droit obligatoire, unique ; Modifier, Supprimer refusé tant qu'un utilisateur le porte", async () => {
+    await connecter("jpmukendi");
+    const l = (await api.profils.lire()).profils;
+    expect(l.map((p) => p.nom)).toEqual(["AGENT DE CRÉDIT", "CAISSIER", "CHEF D'AGENCE", "COMPTABLE"]);
+    await expect(api.profils.enregistrer({ nom: " " })).rejects.toThrow("Nom Droit");
+    await expect(api.profils.enregistrer({ nom: "caissier" })).rejects.toThrow("existe déjà");
+    const a = (await api.profils.enregistrer({ nom: "AUDITEUR", description: "PROFIL DES AUDITEURS" })).profils.find((p) => p.nom === "AUDITEUR")!;
+    await expect(api.profils.supprimer(l.find((p) => p.nom === "CAISSIER")!.id)).rejects.toThrow("Des utilisateurs");
+    expect((await api.profils.enregistrer({ nom: "AUDITEURS", description: "" }, a.id)).profils.some((p) => p.nom === "AUDITEURS")).toBe(true);
+    expect((await api.profils.supprimer(a.id)).profils.some((p) => p.id === a.id)).toBe(false);
+  });
+
   it("info société (S32, p. 42) : obligatoires, Type base, localisation, hors bilan classe 0, logo ; agences", async () => {
     await connecter("jpmukendi");
     const l = await api.societe.lire();

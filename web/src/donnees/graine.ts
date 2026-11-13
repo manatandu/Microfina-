@@ -38,7 +38,7 @@ export function graine(): Etat {
     lieuNaissance: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", liees: [] as number[],
     type: "physique" as const, formeJuridique: "", registre: "", centreActivite: "", activite: "", dirigeant: null, signataires: [], nbHommes: 0, nbFemmes: 0, membres: [], intitule: "", dateVisa: "2026-01-15", profession: "", pays: "", ville: "", quartier: "", rue: "", email: "", bp: "", telephoneFixe: "", motifDepart: "", resilieLe: "", creeLe: "2026-01-15", creePar: 4, visePar: 2, statut: "actif" as const };
   return {
-    version: 48,
+    version: 49,
     institution: { nom: "COOPEC Tujenge", sigle: "CTJ", profil: "coopec", pays: "République démocratique du Congo", ville: "Kinshasa", commune: "Matete", quartier: "Kinsaku", journeeMax: 1 },   // sigle fictif : élément Institution du numéro client (S15-11)
     agence: { id: 1, code: "0412", nom: "Matete" },
     agences: [{ id: 1, code: "0412", nom: "Matete", supprime: false }],
@@ -136,6 +136,9 @@ export function graine(): Etat {
     feries: [],
     elementsFacture: [],
     typesCommande: [],
+    // S03 : quatre profils de départ (registre T07, S03-1), nom en majuscules comme la capture p. 15
+    profils: ([["caissier", "CAISSIER"], ["chef_agence", "CHEF D'AGENCE"], ["comptable", "COMPTABLE"], ["agent_credit", "AGENT DE CRÉDIT"]] as const)
+      .map(([code, nom], i) => ({ id: i + 1, code, nom, description: "", supprime: false })),
     // S35 : CDF, symbole FC et cent centimes (D.-L. 080/1998, art. 1 et 2) ; USD : données de démonstration
     devises: [{ code: "CDF", libelle: "Franc congolais", unite: "FC", subdivision: 100 }, { code: "USD", libelle: "Dollar américain", unite: "$", subdivision: 100 }],
     typesMonnaie: VALEURS.map((v, i) => ({ id: i + 1, libelle: `Billet de ${v}` })),

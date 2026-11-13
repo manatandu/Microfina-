@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**236 décisions.** Solidité : 75 fortes (le manuel ou un texte répond), 130 moyennes (déduites d'un écran voisin ou d'une donnée), 31 faibles (notre choix, faute de mieux). Dans le code : 181 déjà en place, 55 à appliquer.
+**238 décisions.** Solidité : 76 fortes (le manuel ou un texte répond), 131 moyennes (déduites d'un écran voisin ou d'une donnée), 31 faibles (notre choix, faute de mieux). Dans le code : 183 déjà en place, 55 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -30,6 +30,13 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | T18 | Validation des compléments (méthode) | Le porteur valide en fin de lot, sur écran, à partir de ce registre. Les lignes de solidité faible sont à regarder en premier | Choix du porteur : Demande du porteur du 12/11/2026 : trouver les réponses et les garder | forte | en place |
 | T19 | Caisse mobile, Gestion de réunion (S129, S130) | Restent écartés : le manuel n'en donne que les noms de menu et ils ne servent pas le but (reproduire le cœur de Microfina++) | Manuel : Manuel p. 164 et 165 (menus seuls) | moyenne | en place |
 | T20 | Plan comptable (tout le logiciel) | Le PCCI complet (604 comptes du § 13) est chargé dans le logiciel, dans un seul fichier (replica/pcci.json) lu par le serveur et par la démo. Coquille du texte corrigée : « 6851 Cadres conventionnés », entre 6580 et 6582, est 6581. Les comptes des classes 3 à 5 qui peuvent être débiteurs ou créditeurs ont la nature « mixte » | Texte réglementaire : PCCI § 13 « Liste des comptes » ; Instr. BCC n° 006 (PCCI obligatoire) | forte | en place |
+
+## S03 Profils : création et modification
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S03-1 | Profils de départ | Les quatre rôles du code deviennent quatre profils : CAISSIER, CHEF D'AGENCE, COMPTABLE, AGENT DE CRÉDIT (majuscules, comme AUDITEUR sur la capture). Chacun garde un code caché (caissier, chef_agence, comptable, agent_credit) qui porte les contrôles actuels jusqu'à S04 ; renommer un profil ne change pas ses droits. Un profil créé en S03 n'a pas encore de droits (S04) | Donnée exigée ailleurs : Capture p. 15 ; T07 ; COMPLEMENTS § 5.2 | moyenne | en place |
+| S03-2 | Modifier et Supprimer | Boutons absents de la capture (formulaire vide) : clic sur une ligne de la grille, le formulaire se remplit, Modifier et Supprimer remplacent Enregistrer (règle générale p. 12, T01, T02). Nom Droit obligatoire et unique (T08). Suppression logique, refusée tant qu'un utilisateur actif porte le profil | Règle générale du manuel : Manuel p. 12 ; T01, T02, T08 | forte | en place |
 
 ## S08 Gestion des guichets
 

@@ -1255,3 +1255,25 @@ def test_facture_elements_types(clients):
     assert (t["code"], t["libelle"]) == ("ACHA_M", "Achat de matériel")
     assert "existe déjà" in refus("/api/facture/types", {"code": "ACHA_M", "libelle": "Autre"})
     assert chef.post(f"/api/facture/types/{t['id']}/suppression", {}, **H).json()["types"] == []
+
+
+def test_profils(clients):
+    """S03 (p. 15) : Nom Droit* et Description ; grille Libellé profil, Description profil ; Modifier et Supprimer (p. 12) ;
+    les quatre profils de départ gardent leur code (registre T07, S03-1, S03-2)"""
+    chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    l = chef.get("/api/profils", **H).json()["profils"]
+    assert [p["nom"] for p in l] == ["AGENT DE CRÉDIT", "CAISSIER", "CHEF D'AGENCE", "COMPTABLE"]
+    def refus(url, corps):
+        r = chef.post(url, corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    assert agent.post("/api/profils", {"nom": "AUDITEUR"}, **H).status_code == 403
+    assert "Nom Droit" in refus("/api/profils", {"nom": " "})
+    assert "existe déjà" in refus("/api/profils", {"nom": "caissier"})
+    a = next(p for p in chef.post("/api/profils", {"nom": "AUDITEUR", "description": "PROFIL DES AUDITEURS"}, **H).json()["profils"] if p["nom"] == "AUDITEUR")
+    assert a["description"] == "PROFIL DES AUDITEURS"
+    caissier = next(p for p in l if p["nom"] == "CAISSIER")
+    assert "Des utilisateurs" in refus(f"/api/profils/{caissier['id']}/suppression", {})
+    chef.post(f"/api/profils/{caissier['id']}", {"nom": "CAISSIÈRE", "description": ""}, **H)
+    assert chef.get("/api/session", **H).status_code == 200
+    connecter(clients["caisse"], "engalula")
+    assert "caissier" in clients["caisse"].get("/api/session", **H).json()["roles"]          # le code reste, le nom change
+    assert all(p["nom"] != "AUDITEUR" for p in chef.post(f"/api/profils/{a['id']}/suppression", {}, **H).json()["profils"])

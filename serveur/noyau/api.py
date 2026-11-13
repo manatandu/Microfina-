@@ -25,6 +25,7 @@ from . import agents as ag
 from . import jours as jt
 from . import devises as dv
 from . import facture as fa
+from . import profils as pf
 from . import comptes as cp
 from . import numerotation as nu
 from . import services as s
@@ -768,6 +769,27 @@ def dv_monnaie(request, corps: dict = Body(...)):
 @api.post("/monnaies/{devise}/{centiemes}")
 def dv_monnaie_modifier(request, devise: str, centiemes: int, corps: dict = Body(...)):
     return dv.enregistrer_monnaie(u(request), corps, (devise, centiemes))
+
+
+# ---------- Administration > Profil > Création modification (S03) ----------
+@api.get("/profils")
+def pf_lire(request):
+    return pf.lire(u(request))
+
+
+@api.post("/profils")
+def pf_creer(request, corps: dict = Body(...)):
+    return pf.enregistrer(u(request), corps)
+
+
+@api.post("/profils/{pid}")
+def pf_modifier(request, pid: int, corps: dict = Body(...)):
+    return pf.enregistrer(u(request), corps, pid)
+
+
+@api.post("/profils/{pid}/suppression")
+def pf_supprimer(request, pid: int):
+    return pf.supprimer(u(request), pid)
 
 
 # ---------- Facture : Elément Facture, Référence Commande (S36) ----------
