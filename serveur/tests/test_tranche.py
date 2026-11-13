@@ -1099,13 +1099,14 @@ def test_info_societe(clients):
     chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
     l = chef.get("/api/societe", **H).json()
     i = l["institution"]
-    assert (i["code"], i["denomination"], i["typeBase"], i["journeeMax"], i["quartier"]) == ("CTJ", "COOPEC Tujenge", "coopec", 1, "Kinsaku")
+    assert (i["code"], i["denomination"], i["typeBase"], i["journeeMax"], i["commune"], i["quartier"]) == ("CTJ", "COOPEC Tujenge", "coopec", 1, "Matete", "Kinsaku")
     assert [t["libelle"] for t in l["types"]] == ["COOPEC", "Société de microfinance", "Entreprise de micro-crédit", "Structure faîtière"]
     def refus(corps, route="/api/societe"):
         r = chef.post(route, corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
     assert agent.post("/api/societe", i, **H).status_code == 403
     assert "Code Institution, Dénomination" in refus({**i, "code": "", "denomination": ""})
     assert "inconnu" in refus({**i, "quartier": "Gombe"})
+    assert "commune" in refus({**i, "commune": "Lemba"})                     # Kinsaku est un quartier de Matete, pas de Lemba
     assert "classe 0" in refus({**i, "compteHorsBilan1": "570"})
     assert "PNG ou JPEG" in refus({**i, "logo": "data:text/html;base64,AAAA"})
     r = chef.post("/api/societe", {**i, "directeur": "J.-P. Mukendi", "journeeMax": 2, "logo": "data:image/png;base64,iVBORw0KGgo="}, **H)

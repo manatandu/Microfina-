@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**215 décisions.** Solidité : 68 fortes (le manuel ou un texte répond), 118 moyennes (déduites d'un écran voisin ou d'une donnée), 29 faibles (notre choix, faute de mieux). Dans le code : 159 déjà en place, 56 à appliquer.
+**216 décisions.** Solidité : 69 fortes (le manuel ou un texte répond), 118 moyennes (déduites d'un écran voisin ou d'une donnée), 29 faibles (notre choix, faute de mieux). Dans le code : 160 déjà en place, 56 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -449,11 +449,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S32-1 | Identité et Type base | Code Institution : le sigle, déjà lu par les numéros de client et de pièce (S15-11, S29) ; Dénomination : le nom. Type base : COOPEC, Société de microfinance, Entreprise de micro-crédit, Structure faîtière. Le vocabulaire suit : membres pour COOPEC et faîtière, clients pour les IMF | Texte réglementaire : Capture p. 42 ; loi 002/2002 (COOPEC, structures faîtières) ; loi 11/020, art. 11 (deux catégories d'IMF) ; DESIGN § 2.10 | moyenne | en place |
-| S32-2 | Adresse et comptes hors bilan | Pays, Ville, Quartier (obligatoire) pris dans Localisation (S20). Compte Hors Bilan 1 et Hors Bilan 2 : des comptes de la classe 0 du plan ; leur usage n'est pas décrit par le manuel | Texte réglementaire : Capture p. 42 ; S20 ; PCCI § 9 (classe 0, hors bilan) ; T16 | faible | en place |
+| S32-2 | Adresse et comptes hors bilan | Pays, Ville, Commune (S32-7), Quartier (obligatoire) pris dans Localisation (S20). Compte Hors Bilan 1 et Hors Bilan 2 : des comptes de la classe 0 du plan ; leur usage n'est pas décrit par le manuel | Texte réglementaire : Capture p. 42 ; S20 ; PCCI § 9 (classe 0, hors bilan) ; T16 | faible | en place |
 | S32-3 | Logo | Image PNG ou JPEG de 200 Ko au plus, avec son aperçu ; elle servira aux documents imprimés | Manuel : Texte p. 42 (« intégrer le logo de l'institution ») ; capture (Choisir, APERCU LOGO) ; T11 | moyenne | en place |
 | S32-4 | Page Agence (non montrée) | Code et Nom, Enregistrer, Effacer, Supprimer, grille Code, Nom. Le code d'une agence qui a des clients ne change plus (il entre dans leurs numéros) ; une agence qui a des clients, des guichets, des utilisateurs ou des zones ne se supprime pas | Donnée exigée ailleurs : Texte p. 42 (pages Agence et zone) ; COMPLEMENTS § 4.1 ; S15 ; S05, S08 | moyenne | en place |
 | S32-5 | Page Zone (non montrée) | La page Zone Credit de S21 : la même liste (Code Zone, Nom Zone, Description, Agence) | Donnée exigée ailleurs : Texte p. 42 ; S21-4 | moyenne | en place |
 | S32-6 | Onglet Autres Info et cadre Info sécurité | La capture n'en montre que le titre : contenu à demander au porteur | Choix du porteur : Capture p. 42 | faible | à appliquer |
+| S32-7 | Commune | Champ Commune entre Ville et Quartier, choisi dans les communes (secteurs, chefferies) de la ville ; le quartier se choisit dans la commune ; Pays, Ville, Commune et Quartier forment un lieu de Localisation | Choix du porteur : Demande du porteur du 13/11/2026 ; découpage de la RDC de S20 (S20-1) | forte | en place |
 
 ## S12, S32 Journées
 
@@ -492,5 +493,5 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S23-2 | S23 Produit crédit | Listes de la page Information de base | Type Produit : liste de S21 ; Périodicité : liste de S21 ; Type d'intérêt, Mode différé, Paiement intérêt : la seule valeur montrée par la capture (Fixe, Réparti, Normal), en attendant d'autres valeurs du porteur ; Percevoir int. par anticipation : OUI, NON |
 | S23-7 | S23 Produit crédit | Autres informations | Catégorie de prêt (consommation, commercial, trésorerie, investissement) ; taux réglementé ou bonifié (pas de TEG) ; pénalité de retard (%) ; pénalité de remboursement anticipé, au plus 50 % des intérêts restant dus ; ordre de remboursement (S22) |
 | S26-2 | S26 Modèle pour crédit | Comptes proposés | Nouveau modèle et « Model normal » de départ : crédit sain, capital 329, 319, 309 et intérêts 7129, 7119, 7101 selon le terme ; crédit en retard, capital 3900 à 3904 et intérêts 7170 à 7174 selon la tranche (irrécupérables sur 3904 et 7174 jusqu'au passage en perte). Compte interne laissé vide, son usage dans Microfina++ n'étant pas montré |
-| S32-2 | S32 Information société | Adresse et comptes hors bilan | Pays, Ville, Quartier (obligatoire) pris dans Localisation (S20). Compte Hors Bilan 1 et Hors Bilan 2 : des comptes de la classe 0 du plan ; leur usage n'est pas décrit par le manuel |
+| S32-2 | S32 Information société | Adresse et comptes hors bilan | Pays, Ville, Commune (S32-7), Quartier (obligatoire) pris dans Localisation (S20). Compte Hors Bilan 1 et Hors Bilan 2 : des comptes de la classe 0 du plan ; leur usage n'est pas décrit par le manuel |
 | S32-6 | S32 Information société | Onglet Autres Info et cadre Info sécurité | La capture n'en montre que le titre : contenu à demander au porteur |

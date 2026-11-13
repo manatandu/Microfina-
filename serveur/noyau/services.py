@@ -840,7 +840,10 @@ def localites() -> list[dict]:
     rows = lignes("select id, parent_id, niveau, nom from localite where actif order by nom")
     enfants = lambda pids, niveau: [r for r in rows if r["parent_id"] in pids and r["niveau"] == niveau]
     ids = lambda l: {r["id"] for r in l}
-    return [{"pays": p["nom"], "villes": [{"ville": v["nom"], "quartiers": sorted(q["nom"] for q in enfants(ids(enfants({v["id"]}, "commune")), "quartier"))}
+    # communes : la ville, puis ses communes (secteurs ou chefferies) et leurs quartiers (demande du porteur du 13/11/2026 pour Information société)
+    return [{"pays": p["nom"], "villes": [{"ville": v["nom"], "quartiers": sorted(q["nom"] for q in enfants(ids(enfants({v["id"]}, "commune")), "quartier")),
+                                           "communes": [{"commune": c["nom"], "quartiers": sorted(q["nom"] for q in enfants({c["id"]}, "quartier"))}
+                                                        for c in enfants({v["id"]}, "commune")]}
                                           for v in enfants(ids(enfants({p["id"]}, "province")), "ville")]}
             for p in rows if p["niveau"] == "pays" and p["parent_id"] is None]
 

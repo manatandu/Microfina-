@@ -34,7 +34,7 @@ class Command(BaseCommand):
         if valeur("select count(*) from institution"):
             self.stdout.write("Base déjà remplie : rien à faire.")
             return
-        ins = valeur("insert into institution (nom, sigle, profil, pays, ville, quartier) values ('COOPEC Tujenge', 'CTJ', 'coopec', 'République démocratique du Congo', 'Kinshasa', 'Kinsaku') returning id")
+        ins = valeur("insert into institution (nom, sigle, profil, pays, ville, commune, quartier) values ('COOPEC Tujenge', 'CTJ', 'coopec', 'République démocratique du Congo', 'Kinshasa', 'Matete', 'Kinsaku') returning id")
         # Professions fictives
         # Localisation (S20) : la ville de Kinshasa et les 25 provinces (Constitution, art. 2) ; communes et quartier de démonstration
         pays = valeur("insert into localite (niveau, nom, nationalite, code, zone) values ('pays', 'République démocratique du Congo', 'Congolaise', 'CD', 'Afrique') returning id")

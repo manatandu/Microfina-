@@ -10,7 +10,7 @@ PROFILS = {"coopec": "COOPEC", "societe_microfinance": "Société de microfinanc
            "faitiere": "Structure faîtière"}       # loi 002/2002 (COOPEC, faîtières) ; loi 11/020, art. 11 (IMF)
 CHAMPS = {"code": "sigle", "denomination": "nom", "typeBase": "profil", "description": "description", "directeur": "directeur",
           "agrement": "numero_agrement", "journeeMax": "journee_max", "compteHorsBilan1": "compte_hors_bilan_1", "compteHorsBilan2": "compte_hors_bilan_2",
-          "ifu": "ifu", "pays": "pays", "ville": "ville", "quartier": "quartier", "rue": "rue", "email": "email", "bp": "bp",
+          "ifu": "ifu", "pays": "pays", "ville": "ville", "commune": "commune", "quartier": "quartier", "rue": "rue", "email": "email", "bp": "bp",
           "telephoneFixe": "telephone_fixe", "adresse": "adresse", "logo": "logo"}
 LOGO_MAX = 300_000      # caractères de l'image encodée (registre S32-4)
 
@@ -41,9 +41,9 @@ def enregistrer(u, d) -> dict:
         raise ErreurMetier("Type base inconnu.")
     if not isinstance(jm, int) or isinstance(jm, bool) or jm < 1:
         raise ErreurMetier("Journée Maxi ouvert : nombre entier, 1 au moins.")
-    lieux = {(p["pays"], vi["ville"], q) for p in localites() for vi in p["villes"] for q in vi["quartiers"]}
-    if (v["pays"], v["ville"], v["quartier"]) not in lieux:
-        raise ErreurMetier("Pays, ville ou quartier inconnu (Localisation, S20).")
+    lieux = {(p["pays"], vi["ville"], c["commune"], q) for p in localites() for vi in p["villes"] for c in vi["communes"] for q in c["quartiers"]}
+    if (v["pays"], v["ville"], v["commune"], v["quartier"]) not in lieux:
+        raise ErreurMetier("Pays, ville, commune ou quartier inconnu (Localisation, S20).")      # registre S32-7
     for k, nom in (("compteHorsBilan1", "Compte Hors Bilan 1"), ("compteHorsBilan2", "Hors Bilan 2")):
         if v[k] and not (v[k].startswith("0") and valeur("select 1 from compte where numero = %s and (institution_id is null or institution_id = %s)", (v[k], i))):
             raise ErreurMetier(f"{nom} : {v[k]} n'est pas un compte de hors bilan du plan (classe 0).")       # PCCI § 9, T16

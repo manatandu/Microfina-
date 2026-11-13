@@ -36,6 +36,7 @@ function InformationSociete() {
   const maj = (x: Partial<InfoSociete>) => setF({ ...v, ...x });
   const pays = donnees.localites.find((p: { pays: string }) => p.pays === v.pays);
   const ville = pays?.villes.find((x: { ville: string }) => x.ville === v.ville);
+  const commune = ville?.communes.find((x: { commune: string }) => x.commune === v.commune);
   const texte = (k: keyof InfoSociete, libelle: string, classe = "saisie") => (
     <Champ libelle={libelle}>{(p) => <input {...p} className={classe} value={String(v[k] ?? "")} onChange={(e) => maj({ [k]: e.target.value })} />}</Champ>);
   function choisirLogo(fichier: File | undefined) {
@@ -68,12 +69,14 @@ function InformationSociete() {
             {texte("ifu", "I.F.U")}
           </div>
           <div className="pile champs-a-gauche">
-            <Champ libelle="Pays">{(p) => <select {...p} className="saisie" value={v.pays} onChange={(e) => maj({ pays: e.target.value, ville: "", quartier: "" })}>
+            <Champ libelle="Pays">{(p) => <select {...p} className="saisie" value={v.pays} onChange={(e) => maj({ pays: e.target.value, ville: "", commune: "", quartier: "" })}>
               <option value=""></option>{donnees.localites.map((x: { pays: string }) => <option key={x.pays}>{x.pays}</option>)}</select>}</Champ>
-            <Champ libelle="Ville:">{(p) => <select {...p} className="saisie" value={v.ville} onChange={(e) => maj({ ville: e.target.value, quartier: "" })}>
+            <Champ libelle="Ville:">{(p) => <select {...p} className="saisie" value={v.ville} onChange={(e) => maj({ ville: e.target.value, commune: "", quartier: "" })}>
               <option value=""></option>{pays?.villes.map((x: { ville: string }) => <option key={x.ville}>{x.ville}</option>)}</select>}</Champ>
+            <Champ libelle="Commune">{(p) => <select {...p} className="saisie" value={v.commune} onChange={(e) => maj({ commune: e.target.value, quartier: "" })}>
+              <option value=""></option>{ville?.communes.map((x: { commune: string }) => <option key={x.commune}>{x.commune}</option>)}</select>}</Champ>
             <Champ libelle="Quartier *">{(p) => <select {...p} className="saisie" value={v.quartier} onChange={(e) => maj({ quartier: e.target.value })}>
-              <option value=""></option>{ville?.quartiers.map((q: string) => <option key={q}>{q}</option>)}</select>}</Champ>
+              <option value=""></option>{commune?.quartiers.map((q: string) => <option key={q}>{q}</option>)}</select>}</Champ>
             {texte("rue", "Rue / Maison")}
             {texte("email", "email :")}
             {texte("bp", "BP", "saisie code")}
@@ -90,7 +93,7 @@ function InformationSociete() {
         </fieldset>
       </fieldset>
       <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button></div>
-      <Textes sources={["Manuel Microfina++, p. 42 : « Information société, Agence et zone, puis renseigner successivement sans omettre les champs obligatoires avec la possibilité d'intégrer le logo de l'institution » ; capture : Code Institution*, Dénomination*, Type base*, Description, Directeur, N° Agrément, Journée Maxi ouvert*, Compte Hors Bilan 1, I.F.U, Pays, Ville, Quartier*, Rue / Maison, email, BP, Telephone fixe, Adresse, Hors Bilan 2, Logo (Choisir, APERCU LOGO), Liste institution",
+      <Textes sources={["Manuel Microfina++, p. 42 : « Information société, Agence et zone, puis renseigner successivement sans omettre les champs obligatoires avec la possibilité d'intégrer le logo de l'institution » ; capture : Code Institution*, Dénomination*, Type base*, Description, Directeur, N° Agrément, Journée Maxi ouvert*, Compte Hors Bilan 1, I.F.U, Pays, Ville, Quartier*, Rue / Maison (Commune entre Ville et Quartier : demande du porteur du 13/11/2026, découpage de S20), email, BP, Telephone fixe, Adresse, Hors Bilan 2, Logo (Choisir, APERCU LOGO), Liste institution",
         "Loi 002/2002 (COOPEC, structures faîtières) ; loi 11/020, art. 11 (sociétés de microfinance, entreprises de micro-crédit) : Type base",
         "PCCI § 9 : classe 0, comptes de hors bilan"]} />
       <Fiche titre="Liste institution" ouverte={liste} fermer={() => setListe(false)}>

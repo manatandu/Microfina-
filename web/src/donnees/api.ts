@@ -17,7 +17,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v42";
+const CLE = "likelemba-demo-v43";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -25,7 +25,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 42) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 43) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -2218,7 +2218,7 @@ const edDivers = {
 // Règles identiques côté serveur (noyau/societe.py). ----------
 export const PROFILS_INSTITUTION: Record<string, string> = { coopec: "COOPEC", societe_microfinance: "Société de microfinance", entreprise_microcredit: "Entreprise de micro-crédit", faitiere: "Structure faîtière" };
 export type InfoSociete = { code: string; denomination: string; typeBase: string; description: string; directeur: string; agrement: string; journeeMax: number;
-  compteHorsBilan1: string | null; compteHorsBilan2: string | null; ifu: string; pays: string; ville: string; quartier: string; rue: string; email: string; bp: string;
+  compteHorsBilan1: string | null; compteHorsBilan2: string | null; ifu: string; pays: string; ville: string; commune: string; quartier: string; rue: string; email: string; bp: string;
   telephoneFixe: string; adresse: string; logo: string | null };
 const societe = {
   lire() {
@@ -2226,7 +2226,7 @@ const societe = {
     const i = E.institution;
     const institution: InfoSociete = { code: i.sigle ?? "", denomination: i.nom, typeBase: i.profil, description: i.description ?? "", directeur: i.directeur ?? "",
       agrement: i.numeroAgrement ?? "", journeeMax: i.journeeMax ?? 1, compteHorsBilan1: i.compteHorsBilan1 ?? null, compteHorsBilan2: i.compteHorsBilan2 ?? null,
-      ifu: i.ifu ?? "", pays: i.pays ?? "", ville: i.ville ?? "", quartier: i.quartier ?? "", rue: i.rue ?? "", email: i.email ?? "", bp: i.bp ?? "",
+      ifu: i.ifu ?? "", pays: i.pays ?? "", ville: i.ville ?? "", commune: i.commune ?? "", quartier: i.quartier ?? "", rue: i.rue ?? "", email: i.email ?? "", bp: i.bp ?? "",
       telephoneFixe: i.telephoneFixe ?? "", adresse: i.adresse ?? "", logo: i.logo ?? null };
     return { institution, types: Object.entries(PROFILS_INSTITUTION).map(([code, libelle]) => ({ code, libelle })), localites: localites(),
       agences: E.agences.filter((a) => !a.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ id, code, nom }) => ({ id, code, nom })) };
@@ -2235,14 +2235,15 @@ const societe = {
   enregistrer(d: Partial<Omit<InfoSociete, "journeeMax">> & { journeeMax?: number | null }) {
     exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
     const t = (x: unknown) => (typeof x === "string" ? x.trim() : "");
-    const v = { code: t(d.code), denomination: t(d.denomination), typeBase: t(d.typeBase), quartier: t(d.quartier), pays: t(d.pays), ville: t(d.ville),
+    const v = { code: t(d.code), denomination: t(d.denomination), typeBase: t(d.typeBase), quartier: t(d.quartier), pays: t(d.pays), ville: t(d.ville), commune: t(d.commune),
       compteHorsBilan1: t(d.compteHorsBilan1), compteHorsBilan2: t(d.compteHorsBilan2), email: t(d.email) };
     const manque = manquants([["Code Institution", v.code], ["Dénomination", v.denomination], ["Type base", v.typeBase], ["Quartier", v.quartier]]);
     if (d.journeeMax === undefined || d.journeeMax === null) manque.push("Journée Maxi ouvert");
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
     if (!(v.typeBase in PROFILS_INSTITUTION)) throw new ErreurMetier("Type base inconnu.");
     if (!Number.isInteger(d.journeeMax) || d.journeeMax! < 1) throw new ErreurMetier("Journée Maxi ouvert : nombre entier, 1 au moins.");
-    if (!localites().some((p) => p.pays === v.pays && p.villes.some((x) => x.ville === v.ville && x.quartiers.includes(v.quartier)))) throw new ErreurMetier("Pays, ville ou quartier inconnu (Localisation, S20).");
+    if (!localites().some((p) => p.pays === v.pays && p.villes.some((x) => x.ville === v.ville && x.communes.some((c) => c.commune === v.commune && c.quartiers.includes(v.quartier)))))
+      throw new ErreurMetier("Pays, ville, commune ou quartier inconnu (Localisation, S20).");   // registre S32-7
     for (const [k, nom] of [["compteHorsBilan1", "Compte Hors Bilan 1"], ["compteHorsBilan2", "Hors Bilan 2"]] as const)
       if (v[k] && !(v[k].startsWith("0") && PCCI.comptes.some((c) => c.numero === v[k]))) throw new ErreurMetier(`${nom} : ${v[k]} n'est pas un compte de hors bilan du plan (classe 0).`);
     if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) throw new ErreurMetier("email invalide.");
@@ -2252,7 +2253,7 @@ const societe = {
       if (logo.length > 300_000) throw new ErreurMetier("Logo : image trop lourde (200 Ko au plus).");
     }
     Object.assign(E.institution, { sigle: v.code, nom: v.denomination, profil: v.typeBase, description: t(d.description), directeur: t(d.directeur), numeroAgrement: t(d.agrement),
-      journeeMax: d.journeeMax, compteHorsBilan1: v.compteHorsBilan1 || null, compteHorsBilan2: v.compteHorsBilan2 || null, ifu: t(d.ifu), pays: v.pays, ville: v.ville,
+      journeeMax: d.journeeMax, compteHorsBilan1: v.compteHorsBilan1 || null, compteHorsBilan2: v.compteHorsBilan2 || null, ifu: t(d.ifu), pays: v.pays, ville: v.ville, commune: v.commune,
       quartier: v.quartier, rue: t(d.rue), email: v.email, bp: t(d.bp), telephoneFixe: t(d.telephoneFixe), adresse: t(d.adresse), logo });
     enregistrer(); return societe.lire();
   },
@@ -2302,7 +2303,9 @@ function localites() {
   return a.filter((p) => p.niveau === "pays").sort((x, y) => x.nom.localeCompare(y.nom)).map((p) => ({
     pays: p.nom,
     villes: enfants(ids(enfants(new Set([p.id]), "province")), "ville").sort((x, y) => x.nom.localeCompare(y.nom)).map((v) => ({
-      ville: v.nom, quartiers: enfants(ids(enfants(new Set([v.id]), "commune")), "quartier").map((q) => q.nom).sort((x, y) => x.localeCompare(y)) })),
+      ville: v.nom, quartiers: enfants(ids(enfants(new Set([v.id]), "commune")), "quartier").map((q) => q.nom).sort((x, y) => x.localeCompare(y)),
+      // communes de la ville et leurs quartiers (demande du porteur du 13/11/2026 pour Information société)
+      communes: enfants(new Set([v.id]), "commune").map((c) => ({ commune: c.nom, quartiers: enfants(new Set([c.id]), "quartier").map((q) => q.nom).sort((x, y) => x.localeCompare(y)) })) })),
   }));
 }
 export type LieuVue = Omit<LigneLieu, "actif"> & { ascendants: Partial<Record<NiveauLieu, { id: number; nom: string }>> };

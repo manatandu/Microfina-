@@ -509,7 +509,8 @@ describe("journée de guichet", () => {
     await connecter("jpmukendi");
     const l = await api.societe.lire();
     const i = l.institution;
-    expect([i.code, i.denomination, i.typeBase, i.journeeMax, i.quartier]).toEqual(["CTJ", "COOPEC Tujenge", "coopec", 1, "Kinsaku"]);
+    expect([i.code, i.denomination, i.typeBase, i.journeeMax, i.commune, i.quartier]).toEqual(["CTJ", "COOPEC Tujenge", "coopec", 1, "Matete", "Kinsaku"]);
+    await expect(api.societe.enregistrer({ ...i, commune: "Lemba" })).rejects.toThrow("commune");   // Kinsaku est un quartier de Matete
     await expect(api.societe.enregistrer({ ...i, code: "", denomination: "" })).rejects.toThrow("Code Institution, Dénomination");
     await expect(api.societe.enregistrer({ ...i, quartier: "Gombe" })).rejects.toThrow("inconnu");
     await expect(api.societe.enregistrer({ ...i, compteHorsBilan1: "570" })).rejects.toThrow("classe 0");
