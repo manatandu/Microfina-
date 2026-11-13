@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**225 décisions.** Solidité : 73 fortes (le manuel ou un texte répond), 122 moyennes (déduites d'un écran voisin ou d'une donnée), 30 faibles (notre choix, faute de mieux). Dans le code : 168 déjà en place, 57 à appliquer.
+**226 décisions.** Solidité : 74 fortes (le manuel ou un texte répond), 122 moyennes (déduites d'un écran voisin ou d'une donnée), 30 faibles (notre choix, faute de mieux). Dans le code : 169 déjà en place, 57 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -480,6 +480,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S34-2 | Jours fériés variables | Institution, Annuler, Enregistrer en haut ; cadre Jours fériés variables : Date* (calendrier), Description*, Exercice, Ajouter ; Ajouter met la ligne dans la grille, Supprimer (colonne Actions) l'en retire, Enregistrer garde la liste de l'institution. Exercice sans astérisque sur la capture : vide, il prend l'année de la date. La date doit tomber dans l'exercice choisi et ne figurer qu'une fois. Aucun jour férié chargé d'avance : l'institution les saisit | Donnée exigée ailleurs : Capture p. 44 ; T05 ; S11 (exercices) | moyenne | en place |
 | S34-3 | Second cadre de la page Jours fériés | La capture est coupée sous le cadre Jours fériés variables : un second cadre commence, sans titre lisible. Non construit, à la demande du porteur : la page s'arrête au cadre Jours fériés variables | Choix du porteur : Capture p. 44 ; réponse du porteur du 13/11/2026 (« Laisse donc ainsi ») | forte | en place |
 | S34-4 | Effet des journées de travail et des jours fériés | Le manuel ne dit pas où servent ces jours (ouverture de journée, échéances de crédit, intérêts). Enregistrés seulement ; l'effet est à demander au porteur avant les écrans qui en dépendent | Choix du porteur : Manuel p. 44 (silence) | faible | à appliquer |
+| S34-5 | Jours fériés reportés | Pas de report calculé par le logiciel. En pratique (porteur) : un férié qui tombe un samedi est chômé le samedi, puis le lundi ; un férié qui tombe un dimanche est chômé le lundi ; le report est fixé chaque fois par communiqué du ministre de l'Emploi, valable sur tout le territoire, même pour qui n'est pas concerné. L'Ordonnance 23/042, art. 2, dit autre chose (dimanche : la veille ; rien pour le samedi). Le jour reporté se saisit donc dans les Jours fériés variables, à la date du communiqué | Choix du porteur : Porteur, 13/11/2026 ; Ordonnance 23/042 du 30/03/2023, art. 1 et 2 ; loi 22/069, art. 186 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 
