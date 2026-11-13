@@ -30,7 +30,9 @@ Le porteur n'a pas de capture pour ce qui manque. Ces manques se complètent par
 - Chaque choix fait par nous est noté dans `replica/decisions.csv` avec son origine, et seulement là : aucun bloc de commentaire sur les écrans (décision du porteur, 12/11/2026 ; Microfina++ n'en a pas). Le porteur valide en fin de lot, à partir du registre. Après toute modification du registre : `python replica/decisions.py`.
 - Toujours interdit : ajouter ce que l'atlas ne nomme pas comme manque, améliorer en passant, écrire une règle métier sans l'avoir lue.
 
-Chaque réponse au porteur affiche l'état des travaux : fait, partiel, à faire, par lot (demande du porteur, 13/11/2026 ; chiffres de `replica/couverture.csv`).
+Le travail suivant se choisit dans l'ordre des étapes de `docs/architecture/COMPLEMENTS.md` § 8 : la première étape qui a encore une fonction partielle ou à faire (`replica/couverture.csv`, colonne etape), puis l'ordre de l'atlas dans cette étape. Jamais « l'écran qui suit le dernier construit » : la colonne construit de l'atlas dit qu'un écran existe, pas qu'il est complet (demande du porteur, 13/11/2026).
+
+Chaque réponse au porteur affiche l'état des travaux en une phrase, sans tableau : faites, partielles, à faire (demande du porteur, 13/11/2026 ; chiffres de `replica/couverture.csv`).
 
 Suivi des travaux (demande du porteur, 12/11/2026) : à chaque avancée, chaque travail dit ce qui est fait et ce qui reste. `python replica/couverture.py` calcule l'état : « Fait » quand tous ses écrans sont construits et qu'aucune décision du registre ne reste à appliquer pour eux, sinon « Partiel » ; la page des travaux écrit sous chaque travail ce qui reste. Une décision appliquée passe à « en place » dans `replica/decisions.csv` au moment où elle l'est.
 
