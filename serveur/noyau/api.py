@@ -20,6 +20,7 @@ from . import produits_epargne as pe
 from . import parametrage_epargne as pp
 from . import journaux as jo
 from . import ed_divers as ed
+from . import societe as so
 from . import comptes as cp
 from . import numerotation as nu
 from . import services as s
@@ -685,6 +686,32 @@ def pe_modifier(request, pid: int, corps: dict = Body(...)):
 @api.post("/produits-epargne/{pid}/suppression")
 def pe_supprimer(request, pid: int):
     return pe.supprimer(u(request), pid)
+
+
+# ---------- Paramétrage > Info société (S32) ----------
+@api.get("/societe")
+def so_lire(request):
+    return so.lire(u(request))
+
+
+@api.post("/societe")
+def so_enregistrer(request, corps: dict = Body(...)):
+    return so.enregistrer(u(request), corps)
+
+
+@api.post("/societe/agences")
+def so_creer_agence(request, corps: dict = Body(...)):
+    return so.enregistrer_agence(u(request), corps)
+
+
+@api.post("/societe/agences/{aid}")
+def so_modifier_agence(request, aid: int, corps: dict = Body(...)):
+    return so.enregistrer_agence(u(request), corps, aid)
+
+
+@api.post("/societe/agences/{aid}/suppression")
+def so_supprimer_agence(request, aid: int):
+    return so.supprimer_agence(u(request), aid)
 
 
 # ---------- Comptabilité > ED DIVERS : paramétrage autres opérations (S31) ----------

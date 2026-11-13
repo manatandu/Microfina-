@@ -46,7 +46,7 @@ S28,Paramétrage des produits épargne (comptes),41,A,liste,,R:PCCI (comptes de 
 S29,Numéro de pièce,41,A,composition,,"A:S15, S17",2 Paramétrage,oui
 S30,Journal,"41 (texte), 42",A,liste,,,2 Paramétrage,oui
 S31,ED divers : référentiel,42,A,liste,,R:PCCI (comptes),2 Paramétrage,oui
-S32,Information société,42,B,liste,pages agences et zones (« afficher les pages »),"D:S05, S08, S21 zone ; A:S33",2 Paramétrage,non
+S32,Information société,42,B,liste,pages agences et zones (« afficher les pages »),"D:S05, S08, S21 zone ; A:S33",2 Paramétrage,oui
 S33,"Agence : gestionnaire, sensibilisateur, commercial",43 et 44 (trois captures),A,liste,,,2 Paramétrage,non
 S34,"Agence : journée de travail, jours fériés",44 (deux captures),A,composition,,,2 Paramétrage,non
 S35,"Préférences : devise, type sous, sous",45 et 46 (trois captures),A,liste,,,2 Paramétrage,non

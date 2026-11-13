@@ -39,7 +39,7 @@ export default function CreditGeneral() {
 
 type Saisie = Record<string, string>;
 
-function Onglet({ page }: { page: string }) {
+export function Onglet({ page }: { page: string }) {
   const fiche = CATALOGUE_CREDIT.find((c) => c.page === page)!;
   const vide = (): Saisie => Object.fromEntries(fiche.champs.map((f) => [f.cle, f.type === "ouiNon" ? (f.defaut === false ? "NON" : "OUI") : ""]));
   const [f, setF] = useState<Saisie>(vide);

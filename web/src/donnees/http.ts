@@ -143,6 +143,12 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       enregistrer: (niveau: string, d: object, id?: number) => post(id === undefined ? `/localisation/${niveau}` : `/localisation/${niveau}/${id}`, d),
       supprimer: (niveau: string, id: number) => post(`/localisation/${niveau}/${id}/suppression`),
     },
+    societe: {
+      lire: () => get("/societe"),
+      enregistrer: (d: object) => post("/societe", d),
+      enregistrerAgence: (d: object, id?: number) => post(id === undefined ? "/societe/agences" : `/societe/agences/${id}`, d),
+      supprimerAgence: (id: number) => post(`/societe/agences/${id}/suppression`),
+    },
     edDivers: {
       lire: () => get("/operations-diverses"),
       enregistrer: (d: object, id?: number) => post(id === undefined ? "/operations-diverses" : `/operations-diverses/${id}`, d),

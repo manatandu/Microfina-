@@ -505,6 +505,23 @@ describe("journée de guichet", () => {
     expect(await api.credit.portefeuille(g.id)).toEqual([]);
   });
 
+  it("info société (S32, p. 42) : obligatoires, Type base, localisation, hors bilan classe 0, logo ; agences", async () => {
+    await connecter("jpmukendi");
+    const l = await api.societe.lire();
+    const i = l.institution;
+    expect([i.code, i.denomination, i.typeBase, i.journeeMax, i.quartier]).toEqual(["CTJ", "COOPEC Tujenge", "coopec", 1, "Kinsaku"]);
+    await expect(api.societe.enregistrer({ ...i, code: "", denomination: "" })).rejects.toThrow("Code Institution, Dénomination");
+    await expect(api.societe.enregistrer({ ...i, quartier: "Gombe" })).rejects.toThrow("inconnu");
+    await expect(api.societe.enregistrer({ ...i, compteHorsBilan1: "570" })).rejects.toThrow("classe 0");
+    await expect(api.societe.enregistrer({ ...i, logo: "data:text/html;base64,AAAA" })).rejects.toThrow("PNG ou JPEG");
+    const r = await api.societe.enregistrer({ ...i, directeur: "J.-P. Mukendi", journeeMax: 2, logo: "data:image/png;base64,iVBORw0KGgo=" });
+    expect([r.institution.directeur, r.institution.journeeMax]).toEqual(["J.-P. Mukendi", 2]);
+    await expect(api.societe.enregistrerAgence({ code: "0412", nom: "Autre" })).rejects.toThrow("existe déjà");
+    const n = (await api.societe.enregistrerAgence({ code: "0413", nom: "Lemba" })).agences.find((a) => a.code === "0413")!;
+    await expect(api.societe.supprimerAgence(1)).rejects.toThrow("clients");
+    expect((await api.societe.supprimerAgence(n.id)).agences.some((a) => a.code === "0413")).toBe(false);
+  });
+
   it("opérations diverses (S31, p. 42) : obligatoires, compte du plan ouvert et saisissable hors caisse, INACTIF au lieu de supprimer", async () => {
     await connecter("jpmukendi");
     expect((await api.edDivers.lire()).operations).toEqual([]);

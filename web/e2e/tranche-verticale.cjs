@@ -141,6 +141,10 @@ const OUT = process.argv[2];
   await aller('/parametrage/s31'); await p.getByLabel('Type Opération: *').selectOption('PRODUIT'); await p.getByLabel('Compte *').fill('7790');
   await p.getByLabel('Statut *').selectOption('ACTIF'); await p.getByLabel('Libellé opération *').fill("Vente de livret d'épargne");
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: "Vente de livret d'épargne" }).waitFor(); await etape('02f21-ed-divers');
+  // Chef : info société (S32, p. 42) : le directeur, Enregistrer ; la page Agence
+  await aller('/parametrage/s32'); await p.getByLabel('Directeur :').fill('J.-P. Mukendi'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await etape('02f22-info-societe');
+  await p.getByRole('tab', { name: 'Agence' }).click(); await p.getByRole('cell', { name: '0412' }).waitFor();
   // Chef : paramétrage des produits épargne (S28, p. 41) : l'épargne de garantie dans l'onglet Bloqué, compte 334 proposé
   await aller('/parametrage/s28'); await p.getByRole('tab', { name: 'Bloqué' }).click(); await p.getByLabel('Compte lié').and(p.locator('[value="334"]')).waitFor();
   await p.getByLabel('Produit: *').selectOption({ label: 'Epargne De Garantie (G)' }); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();

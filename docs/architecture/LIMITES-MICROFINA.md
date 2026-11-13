@@ -26,5 +26,6 @@ Chaque ligne dit ce qui a été constaté, où, et ce que Likelemba fait déjà 
 | S13, S15, S21, S29 | Fautes dans l'interface : « Tansactions », « Défintion », « Dégré », « Contante », « vous vous le mettre à jour » | Relecture des libellés |
 | S30 Journal | Code sans astérisque alors qu'il sert de numéro de journal et entre dans le numéro de pièce ; « Détail journal » sans explication | Code obligatoire affiché comme tel ; libellé explicite |
 | S31 ED divers | Une classe entière (« 6 COMPTES DE CHARGES ») acceptée comme compte d'une opération ; lignes sans compte ; pas de suppression ni de bouton Modifier visible | Compte saisissable seulement ; bouton Modifier explicite |
+| S32 Info société | Pas de sigle distinct du code ; comptes hors bilan 1 et 2 sans explication ; « Journée Maxi ouvert » sans aide ; « I.F.U » est un sigle béninois (en RDC : numéro d'impôt) | Libellés et aides adaptés à la RDC |
 | Grilles | Pages de 10 lignes et filtres par colonne, sans recherche globale ni tri multiple | Recherche et tri |
 | Messages | Boîtes de confirmation Oui/Non à chaque enregistrement, même sans risque | Confirmer seulement ce qui engage (écritures, suppressions) |

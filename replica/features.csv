@@ -29,7 +29,7 @@ Produit épargne : comptes comptables,paramétrage,must,yes,yes,"S28 ; manuel p.
 Numérotation des pièces,paramétrage,must,yes,yes,"S29 ; manuel p. 41 | Construit le 13/11/2026 : Institution, cases et positions, Générer, Enregistrer ; numéro = exercice puis éléments par position ; compteur du journal dans l'exercice, sans trou (PCCI § 3.3 et 3.4). Registre S29-1, S29-2, S11-7."
 Journaux,paramétrage,must,yes,yes,"S30 ; manuel p. 41 et 42 | Construit le 13/11/2026 : Info Journal (Type, Libelle, Code, Actif, Détail journal), Enregistrer, Effacer, Supprimer, liste et Exporter ; journal inactif sans écriture ; détail dans l'exercice en cours. Registre S30-1 à S30-3."
 Encaissements et décaissements divers autorisés,paramétrage,must,yes,yes,"S31 ; manuel p. 42 | Construit le 13/11/2026 : Type Opération (PRODUIT, CHARGE), Compte, Statut, Libellé, Enregistrer, Annuler, grille ; compte du plan ouvert et saisissable, hors caisse. Registre S31-1 à S31-3."
-Société agences zones logo,paramétrage,must,yes,no,S32
+Société agences zones logo,paramétrage,must,yes,partial,"S32 ; manuel p. 42 | Construit le 13/11/2026 : Information Societe (Info générale de la capture, logo), Agence, Zone (celle de S21). Reste : onglet Autres Info et cadre Info sécurité, à demander au porteur (S32-6). Registre S32-1 à S32-6."
 Gestionnaires sensibilisateurs commerciaux,paramétrage,should,yes,no,S33
 Jours de travail et jours fériés,paramétrage,should,yes,no,S34
 Devises types de monnaie et coupures,paramétrage,must,yes,no,S35 ; CDF et USD ; pas d'opération de change (PCCI § 7.1)

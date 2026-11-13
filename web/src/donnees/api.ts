@@ -17,7 +17,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v41";
+const CLE = "likelemba-demo-v42";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -25,7 +25,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 41) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 42) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -1757,7 +1757,7 @@ const moteurCredit = referentiel({
     etiquette: { zones: "nom", assureurs: "nom", gestionnaires: "nom" },
     choix: {
       secteurs: () => valeursListe("secteur_activite").map((l) => ({ id: l.id, libelle: l.libelle })),
-      agences: () => [{ id: E.agence.id, libelle: E.agence.nom }],
+      agences: () => E.agences.filter((a) => !a.supprime).map((a) => ({ id: a.id, libelle: a.nom })),
       utilisateurs: () => E.utilisateurs.map((u) => ({ id: u.id, libelle: u.nom })).sort((a, b) => a.libelle.localeCompare(b.libelle)),
     },
     verifier(c, v, id, tous) {
@@ -2214,6 +2214,74 @@ const edDivers = {
   },
 };
 
+// ---------- Paramétrage > Info société (S32, manuel p. 42). Code Institution = sigle ; Type base = profil (loi 002/2002 ; loi 11/020, art. 11).
+// Règles identiques côté serveur (noyau/societe.py). ----------
+export const PROFILS_INSTITUTION: Record<string, string> = { coopec: "COOPEC", societe_microfinance: "Société de microfinance", entreprise_microcredit: "Entreprise de micro-crédit", faitiere: "Structure faîtière" };
+export type InfoSociete = { code: string; denomination: string; typeBase: string; description: string; directeur: string; agrement: string; journeeMax: number;
+  compteHorsBilan1: string | null; compteHorsBilan2: string | null; ifu: string; pays: string; ville: string; quartier: string; rue: string; email: string; bp: string;
+  telephoneFixe: string; adresse: string; logo: string | null };
+const societe = {
+  lire() {
+    exiger();
+    const i = E.institution;
+    const institution: InfoSociete = { code: i.sigle ?? "", denomination: i.nom, typeBase: i.profil, description: i.description ?? "", directeur: i.directeur ?? "",
+      agrement: i.numeroAgrement ?? "", journeeMax: i.journeeMax ?? 1, compteHorsBilan1: i.compteHorsBilan1 ?? null, compteHorsBilan2: i.compteHorsBilan2 ?? null,
+      ifu: i.ifu ?? "", pays: i.pays ?? "", ville: i.ville ?? "", quartier: i.quartier ?? "", rue: i.rue ?? "", email: i.email ?? "", bp: i.bp ?? "",
+      telephoneFixe: i.telephoneFixe ?? "", adresse: i.adresse ?? "", logo: i.logo ?? null };
+    return { institution, types: Object.entries(PROFILS_INSTITUTION).map(([code, libelle]) => ({ code, libelle })), localites: localites(),
+      agences: E.agences.filter((a) => !a.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ id, code, nom }) => ({ id, code, nom })) };
+  },
+  /** Enregistrer la page Information Societe (registre S32-1 à S32-4) */
+  enregistrer(d: Partial<Omit<InfoSociete, "journeeMax">> & { journeeMax?: number | null }) {
+    exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
+    const t = (x: unknown) => (typeof x === "string" ? x.trim() : "");
+    const v = { code: t(d.code), denomination: t(d.denomination), typeBase: t(d.typeBase), quartier: t(d.quartier), pays: t(d.pays), ville: t(d.ville),
+      compteHorsBilan1: t(d.compteHorsBilan1), compteHorsBilan2: t(d.compteHorsBilan2), email: t(d.email) };
+    const manque = manquants([["Code Institution", v.code], ["Dénomination", v.denomination], ["Type base", v.typeBase], ["Quartier", v.quartier]]);
+    if (d.journeeMax === undefined || d.journeeMax === null) manque.push("Journée Maxi ouvert");
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    if (!(v.typeBase in PROFILS_INSTITUTION)) throw new ErreurMetier("Type base inconnu.");
+    if (!Number.isInteger(d.journeeMax) || d.journeeMax! < 1) throw new ErreurMetier("Journée Maxi ouvert : nombre entier, 1 au moins.");
+    if (!localites().some((p) => p.pays === v.pays && p.villes.some((x) => x.ville === v.ville && x.quartiers.includes(v.quartier)))) throw new ErreurMetier("Pays, ville ou quartier inconnu (Localisation, S20).");
+    for (const [k, nom] of [["compteHorsBilan1", "Compte Hors Bilan 1"], ["compteHorsBilan2", "Hors Bilan 2"]] as const)
+      if (v[k] && !(v[k].startsWith("0") && PCCI.comptes.some((c) => c.numero === v[k]))) throw new ErreurMetier(`${nom} : ${v[k]} n'est pas un compte de hors bilan du plan (classe 0).`);
+    if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) throw new ErreurMetier("email invalide.");
+    const logo = d.logo ?? null;
+    if (logo) {
+      if (!/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(logo)) throw new ErreurMetier("Logo : une image PNG ou JPEG.");
+      if (logo.length > 300_000) throw new ErreurMetier("Logo : image trop lourde (200 Ko au plus).");
+    }
+    Object.assign(E.institution, { sigle: v.code, nom: v.denomination, profil: v.typeBase, description: t(d.description), directeur: t(d.directeur), numeroAgrement: t(d.agrement),
+      journeeMax: d.journeeMax, compteHorsBilan1: v.compteHorsBilan1 || null, compteHorsBilan2: v.compteHorsBilan2 || null, ifu: t(d.ifu), pays: v.pays, ville: v.ville,
+      quartier: v.quartier, rue: t(d.rue), email: v.email, bp: t(d.bp), telephoneFixe: t(d.telephoneFixe), adresse: t(d.adresse), logo });
+    enregistrer(); return societe.lire();
+  },
+  /** Page Agence : Code et Nom (registre S32-5) ; le code d'une agence qui a des clients ne change plus (il entre dans leurs numéros, S15) */
+  enregistrerAgence(d: { code?: string; nom?: string }, id?: number) {
+    exiger("chef_agence");
+    const code = d.code?.trim() ?? "", nom = d.nom?.trim() ?? "";
+    const manque = manquants([["Code", code], ["Nom", nom]]);
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    const actuel = id === undefined ? undefined : E.agences.find((a) => a.id === id && !a.supprime);
+    if (id !== undefined && !actuel) throw new ErreurMetier("Agence introuvable.");
+    if (actuel && code !== actuel.code && E.tiers.length && actuel.id === E.agence.id) throw new ErreurMetier("Des clients sont rattachés à cette agence : son code entre dans leurs numéros et ne change plus.");
+    if (E.agences.some((a) => a.code === code && a.id !== id)) throw new ErreurMetier("Ce Code existe déjà.");
+    if (actuel) { Object.assign(actuel, { code, nom }); if (actuel.id === E.agence.id) Object.assign(E.agence, { code, nom }); }
+    else E.agences.push({ id: prochain(E.agences), code, nom, supprime: false });
+    enregistrer(); return societe.lire();
+  },
+  /** Supprimer (p. 12) : logique (T02) ; une agence qui sert ne se supprime pas */
+  supprimerAgence(id: number) {
+    exiger("chef_agence");
+    const a = E.agences.find((x) => x.id === id && !x.supprime);
+    if (!a) throw new ErreurMetier("Agence introuvable.");
+    if (a.id === E.agence.id && E.tiers.length) throw new ErreurMetier("Cette agence a des clients : elle ne se supprime pas.");
+    if (stockCredit("zones").some((z) => z.actif && z.agenceId === id)) throw new ErreurMetier("Cette agence a des zones (page Zone) : les retirer d'abord.");
+    a.supprime = true;
+    enregistrer(); return societe.lire();
+  },
+};
+
 // ---------- Info de base > Localisation (S20, manuel p. 30 à 32), adaptée au découpage de la RDC (demande du porteur, registre S20-1) :
 // Constitution, art. 2 et 3 ; Décret 22/07 du 02/03/2022, art. 9, point 26. Règles identiques côté serveur (noyau/localisation.py). ----------
 const NIVEAUX: NiveauLieu[] = ["pays", "province", "ville", "commune", "quartier"];
@@ -2312,6 +2380,7 @@ const apiLocal = {
   parametrageEpargne: asynchrone(parametrageEpargne),
   journaux: asynchrone(journaux),
   edDivers: asynchrone(edDivers),
+  societe: asynchrone(societe),
   comptes: asynchrone(comptes),
   numerotation: asynchrone(numerotation),
 };

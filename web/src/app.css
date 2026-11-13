@@ -294,3 +294,6 @@ textarea.saisie.montant { resize: none; text-align: end; }
 .oui-non { display: flex; flex-wrap: wrap; align-items: center; gap: var(--espace-3); border: 0; padding: 0; margin: 0; }
 .oui-non > legend { float: left; min-inline-size: 16rem; padding: 0; font-weight: 600; font-size: var(--taille-dense); }
 .oui-non > label { display: inline-flex; gap: var(--espace-1); align-items: center; }
+/* S32 : aperçu du logo (capture p. 42) */
+.apercu-logo { inline-size: 10rem; block-size: 8rem; object-fit: contain; border: 1px solid var(--trait); border-radius: var(--rayon-petit); background: var(--feuille); }
+.choisir-fichier { align-self: start; justify-self: start; inline-size: max-content; cursor: pointer; }

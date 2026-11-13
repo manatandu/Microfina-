@@ -21,6 +21,7 @@ import ParametrageProduitsEpargne from "./ParametrageEpargne";
 import NumeroPiece from "./NumeroPiece";
 import Journaux from "./Journaux";
 import ParametrageAutresOperations from "./OperationsDiverses";
+import InfoSocietePage from "./Societe";
 import ParametragesClients, { ParametrageCompteClient } from "./Numerotation";
 import { EcranJournee, EcranValidation, FermetureJournee } from "./Journee";
 import { Consentement, InformationsClient, ModificationFrais, PhotosSignatures, ResiliationClient, ValidationClientModifie, VisaClient } from "./Visa";
@@ -59,6 +60,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S29: NumeroPiece,
   S30: Journaux,
   S31: ParametrageAutresOperations,
+  S32: InfoSocietePage,
   S16: FraisOperations,
   S37: EnrolementPhysique,
   S38: EnrolementEntreprise,

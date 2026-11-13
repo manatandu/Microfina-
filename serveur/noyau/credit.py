@@ -71,7 +71,7 @@ CATALOGUE = [
 
 CHOIX = {
     "secteurs": lambda u: lignes("select id, libelle from liste_reference where institution_id = %s and liste = 'secteur_activite' and actif order by code", (u["institution_id"],)),
-    "agences": lambda u: lignes("select id, nom as libelle from agence where institution_id = %s order by code", (u["institution_id"],)),
+    "agences": lambda u: lignes("select id, nom as libelle from agence where institution_id = %s and not supprime order by code", (u["institution_id"],)),
     "utilisateurs": lambda u: lignes("select id, nom as libelle from utilisateur where institution_id = %s and actif order by nom", (u["institution_id"],)),
 }
 

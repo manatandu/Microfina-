@@ -1091,3 +1091,29 @@ def test_operations_diverses(clients):
     assert chef.post("/api/operations-diverses", {**O, "sens": "CHARGE", "compte": "671"}, **H).status_code == 200    # même libellé, autre sens
     m = chef.post(f"/api/operations-diverses/{o['id']}", {**O, "statut": "INACTIF"}, **H).json()["operations"][0]
     assert m["statut"] == "INACTIF"
+
+
+def test_info_societe(clients):
+    """S32 (p. 42) : Info générale (obligatoires, Type base, localisation S20, comptes hors bilan classe 0, logo) ; page Agence (code figé quand des
+    clients existent, suppression refusée si l'agence sert) ; registre S32-1 à S32-5"""
+    chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    l = chef.get("/api/societe", **H).json()
+    i = l["institution"]
+    assert (i["code"], i["denomination"], i["typeBase"], i["journeeMax"], i["quartier"]) == ("CTJ", "COOPEC Tujenge", "coopec", 1, "Kinsaku")
+    assert [t["libelle"] for t in l["types"]] == ["COOPEC", "Société de microfinance", "Entreprise de micro-crédit", "Structure faîtière"]
+    def refus(corps, route="/api/societe"):
+        r = chef.post(route, corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    assert agent.post("/api/societe", i, **H).status_code == 403
+    assert "Code Institution, Dénomination" in refus({**i, "code": "", "denomination": ""})
+    assert "inconnu" in refus({**i, "quartier": "Gombe"})
+    assert "classe 0" in refus({**i, "compteHorsBilan1": "570"})
+    assert "PNG ou JPEG" in refus({**i, "logo": "data:text/html;base64,AAAA"})
+    r = chef.post("/api/societe", {**i, "directeur": "J.-P. Mukendi", "journeeMax": 2, "logo": "data:image/png;base64,iVBORw0KGgo="}, **H)
+    assert r.status_code == 200, r.content
+    assert (r.json()["institution"]["directeur"], r.json()["institution"]["journeeMax"]) == ("J.-P. Mukendi", 2)
+    ag = l["agences"][0]
+    assert "ne change plus" in refus({"code": "0413", "nom": "Matete"}, f"/api/societe/agences/{ag['id']}")
+    assert "existe déjà" in refus({"code": "0412", "nom": "Autre"}, "/api/societe/agences")
+    n = next(a for a in chef.post("/api/societe/agences", {"code": "0413", "nom": "Lemba"}, **H).json()["agences"] if a["code"] == "0413")
+    assert "des clients" in refus({}, f"/api/societe/agences/{ag['id']}/suppression")
+    assert chef.post(f"/api/societe/agences/{n['id']}/suppression", {}, **H).status_code == 200

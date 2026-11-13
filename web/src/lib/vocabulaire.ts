@@ -7,4 +7,5 @@ const MOTS = {
   imf: { membre: "client", membres: "Clients", Membre: "Client" },
 } as const;
 
-export function mots(i: Pick<Institution, "profil">) { return MOTS[i.profil]; }
+/** COOPEC et structures faîtières (loi 002/2002) : membres ; sociétés de microfinance et entreprises de micro-crédit (loi 11/020, art. 11) : clients */
+export function mots(i: Pick<Institution, "profil">) { return MOTS[i.profil === "coopec" || i.profil === "faitiere" ? "coopec" : "imf"]; }
