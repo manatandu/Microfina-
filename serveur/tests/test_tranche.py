@@ -206,6 +206,28 @@ def test_enrolement_groupe(clients, journee):
     assert ident("select agent_economique from tiers where id = %s", (t["id"],)) == "Institutions sans but lucratif"
 
 
+def test_fiche_groupe(clients, journee):
+    """S39 : listes comme pour S37 et S38 (registre S39-1), type de groupe de S14f (S39-2), Catégorie de groupe de S14j"""
+    from noyau.bd import executer
+    agent = clients["agent"]
+    ins = ident("select institution_id from agence order by id limit 1")
+    executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'categorie_groupe', 'G1', 'Groupe de femmes')", (ins,))
+    executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'type_groupe', '9', 'Tontine')", (ins,))
+    base = {**FICHE, "typeClient": "Tontine", "nom": "Tontine Kinsaku", "adresse": "Matete", "membres": [], "secteurActivite": "PRIMAIRE",
+            "categorie": "Groupe de femmes", "email": "tontine@exemple.cd"}
+    def refus(corps):
+        r = agent.post("/api/tiers/groupes", corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    assert "Forme juridique : valeur inconnue" in refus({**base, "formeJuridique": "ASBL de fait"})
+    assert "Catégorie : valeur inconnue" in refus({**base, "categorie": "Catégorie A"})
+    assert "Email invalide" in refus({**base, "email": "tontine"})
+    assert "Sensibilisateur inconnu" in refus({**base, "sensibilisateurId": 999999})
+    r = agent.post("/api/tiers/groupes", base, **H); assert r.status_code == 200, r.content
+    t = r.json()
+    assert (t["typeClient"], t["categorie"], t["secteurActivite"], t["email"]) == ("Tontine", "Groupe de femmes", "PRIMAIRE", "tontine@exemple.cd")
+    assert ident("select agent_economique from tiers where id = %s", (t["id"],)) is None   # autre libellé que ceux de la p. 47 : à confirmer
+    assert "Tontine" in agent.get("/api/referentiel", **H).json()["typesGroupe"]
+
+
 def test_visa_client(clients, journee):
     agent, chef = clients["agent"], clients["chef"]
     t = agent.post("/api/tiers", {**FICHE, "nom": "Tshala", "pieceType": "Passeport", "pieceNumero": "OP2", "premierDepot": 200000}, **H).json()

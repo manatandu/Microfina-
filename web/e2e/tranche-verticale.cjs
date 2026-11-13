@@ -241,12 +241,15 @@ const OUT = process.argv[2];
   await p.getByLabel('Type de compte à créer *').selectOption('EAV-CDF'); await etape('05g-groupe');
   await p.getByRole('button', { name: 'Suivant' }).click();
   await p.getByLabel('Dénomination : *').fill('Mamans de Kinsaku'); await p.getByLabel('Adresse : *').fill('Matete, quartier Kinsaku');
+  await p.getByLabel('Forme juridique :').waitFor(); await etape('05g2-groupe-renseignements');
   await p.getByRole('button', { name: 'Suivant' }).click(); await p.getByRole('button', { name: 'Ajouter', exact: true }).click();
   const mb = p.getByRole('dialog', { name: 'Membre du groupe' });
   await mb.getByLabel('Nom : *').fill('Mbuyi'); await mb.getByLabel('Type de pièce : *').selectOption("Carte d'électeur"); await mb.getByLabel('N° de pièce : *').fill('1-0412-7777');
   await etape('05h-fiche-membre');
   await mb.getByRole('button', { name: 'Enregistrer' }).click(); await mb.getByRole('button', { name: 'Fermer' }).click();
   await p.getByRole('cell', { name: 'Mbuyi' }).waitFor(); await etape('05i-membres-groupe');
+  await p.getByRole('button', { name: 'Suivant' }).click();
+  await p.getByLabel("Secteur d'activité :").selectOption('PRIMAIRE'); await etape('05i2-groupe-autres');   // registre S39-1
   await p.getByRole('tab', { name: 'Photo' }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
   // Entreprise (S38)

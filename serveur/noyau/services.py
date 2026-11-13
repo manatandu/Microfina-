@@ -21,8 +21,8 @@ SORTIES = ("retrait", "retrait_parts")      # opérations qui font sortir des bi
 TYPES_ENTREPRISE = ["Banques commerciales et autres intermédiaires financiers", "Organes faîtiers et autres institutions de microfinance",
                     "Autres COOPEC et IMF", "Institutions financières non bancaires", "Administration centrale", "Administrations provinciales ou locales",
                     "Entreprises publiques", "Entreprises privées", "Institutions sans but lucratif"]
-# Type de groupe : « les groupements, les associations ou les ONG » (manuel p. 47). Agent économique (PCCI § 10.2) : associations et ONG
-# sont des institutions sans but lucratif ; pour un groupement, à confirmer.
+# Type de groupe : liste S14f (registre S39-2) ; en démonstration, « les groupements, les associations ou les ONG » (manuel p. 47).
+# Agent économique (PCCI § 10.2) : associations et ONG sont des institutions sans but lucratif ; groupement ou autre libellé : à confirmer.
 TYPES_GROUPE = {"Groupement": None, "Association": "Institutions sans but lucratif", "ONG": "Institutions sans but lucratif"}
 # Pièces d'identité admises : Instr. BCC 15, art. 14
 PIECES = ["Passeport", "Carte d'identité nationale", "Permis de conduire", "Carte d'étudiant", "Carte de l'armée ou de la police", "Carte d'électeur",
@@ -157,13 +157,14 @@ def contexte(u: dict) -> dict:
         "zones": [z["nom"] for z in lignes("select nom from zone where institution_id = %s and actif order by nom", (u["institution_id"],))],
         "typesClient": libelles_liste(u, "type_client"),   # S14g (registre S37-2)
         # S37 : listes lues par la fiche du client (registre S37-2)
-        "listesFiche": {k: libelles_liste(u, liste) for k, (liste, _) in LISTES_FICHE.items()} | {"filiation": libelles_liste(u, "filiation"), "formeJuridique": libelles_liste(u, "forme_juridique")},
+        "listesFiche": {k: libelles_liste(u, liste) for k, (liste, _) in LISTES_FICHE.items()} | {"filiation": libelles_liste(u, "filiation"), "formeJuridique": libelles_liste(u, "forme_juridique"),
+                        "categorieGroupe": libelles_liste(u, "categorie_groupe")},
         "typesActivite": lignes("""select t.libelle, s.libelle as secteur from liste_reference t join liste_reference s on s.id = t.parent_id
                                    where t.institution_id = %s and t.liste = 'type_activite' and t.actif order by t.code""", (u["institution_id"],)),
         "gestionnaires": lignes("""select id, trim(nom || ' ' || prenom) as nom from agent_agence where institution_id = %s and role = 'gestionnaire' and actif
                                    order by nom, prenom""", (u["institution_id"],)),
         "typesEntreprise": TYPES_ENTREPRISE,
-        "typesGroupe": list(TYPES_GROUPE),
+        "typesGroupe": libelles_liste(u, "type_groupe"),
         "pieces": PIECES,
         "professions": [r["libelle"] for r in lignes("select libelle from profession where institution_id = %s order by libelle", (u["institution_id"],))],
         # S33 : sensibilisateurs et commerciaux proposés au prospect et à la fiche client (registre S33-4)
@@ -642,7 +643,7 @@ def controler_lieu(texte, quoi: str = "Pays, ville, commune ou quartier"):
         raise ErreurMetier(f"{quoi} inconnu.")
 
 
-def controler_fiche_physique(u: dict, d: dict, texte, j: dict | None, identite: bool = True) -> dict:
+def controler_fiche_physique(u: dict, d: dict, texte, j: dict | None, identite: bool = True, categorie: str = "categorie") -> dict:
     """Onglets Renseignements généraux et Autres renseignements (registre S37-1, S37-2) ; bénéficiaires (S37-3). Mêmes règles que api.ts.
     identite=False : mise à jour (S46), où l'obligation des mentions viendra avec S46-1."""
     jour = date.today().isoformat()
@@ -656,6 +657,7 @@ def controler_fiche_physique(u: dict, d: dict, texte, j: dict | None, identite: 
         if texte(k) and (not re.match(r"^\d{4}-\d{2}-\d{2}$", texte(k)) or texte(k) > jour):
             raise ErreurMetier(f"{n} : date invalide.")
     for k, (liste, nom) in LISTES_FICHE.items():
+        liste = categorie if k == "categorie" else liste   # groupe : Catégorie de groupe, S14j (registre S39-1)
         if texte(k) and texte(k) not in libelles_liste(u, liste):
             raise ErreurMetier(f"{nom} : valeur inconnue (Paramétrage > Info de base > Client > Général).")
     if texte("typeActivite") and not une("""select 1 from liste_reference t join liste_reference s on s.id = t.parent_id
@@ -814,8 +816,11 @@ def creer_groupe(u: dict, d: dict) -> dict:
     """S39 : Client > Enrôlement > Groupe (manuel p. 47 et 51). Mêmes contrôles que controlerGroupe (web/src/donnees/api.ts)."""
     exiger(u)
     b = controler_base(u, d, [("date demande", "dateDemande"), ("type de groupe", "typeClient"), ("type de compte à créer", "produitCode"),
-                              ("dénomination", "nom"), ("adresse", "adresse")], list(TYPES_GROUPE), False)
+                              ("dénomination", "nom"), ("adresse", "adresse")], libelles_liste(u, "type_groupe"), False)
     texte = b["texte"]
+    if texte("formeJuridique") and texte("formeJuridique") not in libelles_liste(u, "forme_juridique"):
+        raise ErreurMetier("Forme juridique : valeur inconnue (Paramétrage > Info de base > Client > Général).")
+    fiche = controler_fiche_physique(u, d, texte, None, identite=False, categorie="categorie_groupe")   # registre S39-1
     nombres = [d.get("nbHommes", 0), d.get("nbFemmes", 0)]
     if any(not isinstance(n, int) or isinstance(n, bool) or n < 0 for n in nombres):
         raise ErreurMetier("Nombre d'hommes ou de femmes invalide.")
@@ -827,10 +832,11 @@ def creer_groupe(u: dict, d: dict) -> dict:
         controler_representant(r, f"Membre {i}", j)
     images = d.get("images") or {}
     controler_image(images.get("photo"), "Photo"); controler_image(images.get("signature"), "Signature")
-    tid = inserer_tiers(u, d, b, "groupe", TYPES_GROUPE[texte("typeClient")])
+    tid = inserer_tiers(u, d, b, "groupe", TYPES_GROUPE.get(texte("typeClient")))
     executer("""insert into tiers_morale (tiers_id, raison_sociale, forme, rccm, adresse_siege, activite, nb_hommes, nb_femmes)
                 values (%s, %s, %s, %s, %s, %s, %s, %s)""",
-             (tid, texte("nom"), texte("formeJuridique") or None, texte("registre") or None, texte("adresse"), texte("activite") or None, *nombres))
+             (tid, texte("nom"), texte("formeJuridique") or None, texte("registre") or None, texte("adresse"), texte("typeActivite") or None, *nombres))
+    ecrire_fiche_morale(tid, texte, fiche)
     inserer_representants(tid, [("membre", r) for r in membres])
     if images.get("photo") or images.get("signature"):
         executer("insert into specimen (tiers_id, photo, signature, depose_le) values (%s, %s, %s, current_date)", (tid, images.get("photo"), images.get("signature")))

@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v54";
+const CLE = "likelemba-demo-v55";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -27,7 +27,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 54) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 55) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -81,10 +81,11 @@ const session = {
 };
 
 function contexte() {
-  return { institution: E.institution, agence: E.agence, guichets: E.guichets.filter((g) => g.actif !== false), produits: produitsProposes(), zones: zonesActives(), typesClient: valeursListe("type_client").map((l) => l.libelle), typesEntreprise: TYPES_ENTREPRISE, typesGroupe: Object.keys(TYPES_GROUPE), pieces: PIECES, professions: E.professions, localites: localites(),
+  return { institution: E.institution, agence: E.agence, guichets: E.guichets.filter((g) => g.actif !== false), produits: produitsProposes(), zones: zonesActives(), typesClient: valeursListe("type_client").map((l) => l.libelle), typesEntreprise: TYPES_ENTREPRISE, typesGroupe: valeursListe("type_groupe").map((l) => l.libelle), pieces: PIECES, professions: E.professions, localites: localites(),
     // S37 : listes lues par la fiche du client (registre S37-2)
     listesFiche: { ...Object.fromEntries(Object.entries(LISTES_FICHE).map(([k, [liste]]) => [k, valeursListe(liste).map((l) => l.libelle)])) as Record<string, string[]>,
-      filiation: valeursListe("filiation").map((l) => l.libelle), formeJuridique: valeursListe("forme_juridique").map((l) => l.libelle) } as Record<string, string[]>,
+      filiation: valeursListe("filiation").map((l) => l.libelle), formeJuridique: valeursListe("forme_juridique").map((l) => l.libelle),
+      categorieGroupe: valeursListe("categorie_groupe").map((l) => l.libelle) } as Record<string, string[]>,
     typesActivite: valeursListe("type_activite").map((l) => ({ libelle: l.libelle, secteur: l.parent })),
     gestionnaires: E.agents.filter((a) => a.role === "gestionnaire" && a.actif).map((a) => ({ id: a.id, nom: `${a.nom} ${a.prenom}`.trim() })),
     // S35 : devises et monnaies, lues par les guichets (registre S79-5)
@@ -285,7 +286,7 @@ export interface Images { photo?: string; signature?: string }
 export const TYPES_ENTREPRISE = ["Banques commerciales et autres intermédiaires financiers", "Organes faîtiers et autres institutions de microfinance",
   "Autres COOPEC et IMF", "Institutions financières non bancaires", "Administration centrale", "Administrations provinciales ou locales",
   "Entreprises publiques", "Entreprises privées", "Institutions sans but lucratif"];
-/** Type de groupe : « les groupements, les associations ou les ONG » (manuel p. 47), avec l'agent économique du PCCI § 10.2 (groupement : à confirmer) */
+/** Agent économique (PCCI § 10.2) des types de groupe nommés p. 47 ; le type se choisit dans S14f (registre S39-2) ; groupement ou autre libellé : à confirmer */
 export const TYPES_GROUPE: Record<string, string | null> = { Groupement: null, Association: "Institutions sans but lucratif", ONG: "Institutions sans but lucratif" };
 /** Pièces d'identité admises : Instr. BCC 15, art. 14 */
 export const PIECES = ["Passeport", "Carte d'identité nationale", "Permis de conduire", "Carte d'étudiant", "Carte de l'armée ou de la police", "Carte d'électeur",
@@ -350,7 +351,7 @@ function controlerLieu(d: { pays?: string; ville?: string; commune?: string; qua
   if (!ok) throw new ErreurMetier("Pays, ville, commune ou quartier inconnu.");
 }
 /** identite = false : mise à jour (S46), où l'obligation des mentions viendra avec S46-1 */
-export function controlerFichePhysique(d: NouveauTiers, jour: string, identite = true) {
+export function controlerFichePhysique(d: NouveauTiers, jour: string, identite = true, categorie = "categorie") {
   const txt = (k: keyof NouveauTiers) => (typeof d[k] === "string" ? (d[k] as string).trim() : "");
   const aujourdhui = new Date().toISOString().slice(0, 10);
   if (identite) {
@@ -359,7 +360,8 @@ export function controlerFichePhysique(d: NouveauTiers, jour: string, identite =
     if (!DATE.test(txt("pieceExpire")) || txt("pieceExpire") < jour) throw new ErreurMetier("Pièce expirée : une pièce en cours de validité (Instr. BCC 15, art. 12).");
   }
   for (const [k, n] of [["naissance", "Date de naissance"], ["pieceDelivreeLe", "Délivrée le"]] as const) if (txt(k) && (!DATE.test(txt(k)) || txt(k) > aujourdhui)) throw new ErreurMetier(`${n} : date invalide.`);
-  for (const [k, [liste, nom]] of Object.entries(LISTES_FICHE)) {
+  for (const [k, [l, nom]] of Object.entries(LISTES_FICHE)) {
+    const liste = k === "categorie" ? categorie : l;   // groupe : Catégorie de groupe, S14j (registre S39-1)
     const v = txt(k as keyof NouveauTiers);
     if (v && !valeursListe(liste).some((l) => l.libelle === v)) throw new ErreurMetier(`${nom} : valeur inconnue (Paramétrage > Info de base > Client > Général).`);
   }
@@ -390,7 +392,10 @@ function controlerRepresentant(r: RepresentantSaisi, qui: string, jour: string) 
 /** S39. Contrôles identiques côté serveur (services.creer_groupe) */
 export function controlerGroupe(d: NouveauTiers, membres: RepresentantSaisi[], images: Images, ctx: CtxControle) {
   controlerBase(d, [["date demande", d.dateDemande], ["type de groupe", d.typeClient], ["type de compte à créer", d.produitCode],
-    ["dénomination", d.nom], ["adresse", d.adresse]], Object.keys(TYPES_GROUPE), false, ctx);
+    ["dénomination", d.nom], ["adresse", d.adresse]], valeursListe("type_groupe").map((l) => l.libelle), false, ctx);
+  if (d.formeJuridique.trim() && !valeursListe("forme_juridique").some((l) => l.libelle === d.formeJuridique.trim()))
+    throw new ErreurMetier("Forme juridique : valeur inconnue (Paramétrage > Info de base > Client > Général).");
+  controlerFichePhysique(d, ctx.jour, false, "categorie_groupe");   // registre S39-1
   if ([d.nbHommes, d.nbFemmes].some((n) => !Number.isInteger(n) || n < 0)) throw new ErreurMetier("Nombre d'hommes ou de femmes invalide.");
   membres.forEach((r, i) => controlerRepresentant(r, `Membre ${i + 1}`, ctx.jour));
   controlerImage(images.photo, "Photo"); controlerImage(images.signature, "Signature");
@@ -492,7 +497,7 @@ const tiers = {
     const u = utilisateur();
     if (!u) throw new ErreurMetier("Session fermée.");
     controlerGroupe(d, membres, images, ctxControle());
-    const t = nouveauTiers({ ...d, ...SANS_IDENTITE, centreActivite: "" }, u.id,
+    const t = nouveauTiers({ ...d, ...SANS_IDENTITE, centreActivite: "", activite: d.typeActivite ?? "", beneficiaires: [] }, u.id,   // registre S39-1
       { type: "groupe", dirigeant: null, signataires: [], membres: membres.map(versRepresentant), photo: !!images.photo, specimen: !!images.signature });
     if (images.photo || images.signature) E.images[t.id] = images;
     enregistrer(); return t;

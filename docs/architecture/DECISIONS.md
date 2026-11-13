@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**255 décisions.** Solidité : 79 fortes (le manuel ou un texte répond), 143 moyennes (déduites d'un écran voisin ou d'une donnée), 33 faibles (notre choix, faute de mieux). Dans le code : 204 déjà en place, 51 à appliquer.
+**256 décisions.** Solidité : 79 fortes (le manuel ou un texte répond), 144 moyennes (déduites d'un écran voisin ou d'une donnée), 33 faibles (notre choix, faute de mieux). Dans le code : 206 déjà en place, 50 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -574,7 +574,8 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S39-1 | Fiche complétée comme S37 (reste de S38-1) | Sensibilisateur, Gestionnaire, Commercial pris dans S33 au lieu de INCONNU seul ; Autres renseignements comme le client physique ; saisies libres remplacées par les listes de paramétrage | Donnée exigée ailleurs : S37-1, S37-2, S38-1 | moyenne | à appliquer |
+| S39-1 | Fiche complétée comme S37 (reste de S38-1) | Sensibilisateur, Gestionnaire, Commercial pris dans S33 au lieu de INCONNU seul ; Autres renseignements comme le client physique ; saisies libres remplacées par les listes de paramétrage — Construit pour S39 : Sensibilisateur, Gestionnaire, Commercial de S33 ; Forme juridique de S14i (facultative) ; onglet Autres renseignements du client physique, Catégorie prise dans Catégorie de groupe (S14j) ; la saisie libre « Nature de l'activité » est remplacée par Secteur et Type d'activité | Donnée exigée ailleurs : S37-1, S37-2, S38-1 | moyenne | en place |
+| S39-2 | Liste du Type de groupe | Lue dans Type de groupe (S14f), la page de paramétrage qui la tient (atlas : S14f sert S39). En démonstration : Groupement, Association, ONG, les trois nommés p. 47. Agent économique (PCCI § 10.2) gardé pour ces libellés (S37-8) : Association et ONG en institutions sans but lucratif ; un groupement ou un autre libellé reste sans agent, à confirmer | Donnée exigée ailleurs : Manuel p. 47 ; atlas S14f ; PCCI § 10.2 | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

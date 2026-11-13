@@ -92,6 +92,9 @@ class Command(BaseCommand):
 
         # S14g : type client « Client », valeur de la capture p. 49 (registre S37-2)
         executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'type_client', '1', 'Client')", (ins,))
+        # S14f : types de groupe nommés par le manuel, p. 47 (registre S39-2)
+        for n, tg in enumerate(("Groupement", "Association", "ONG"), 1):
+            executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'type_groupe', %s, %s)", (ins, str(n), tg))
         # S14i : formes de société de l'AUSCGIE, art. 6, en démonstration (registre S38-4)
         for n, fj in enumerate(FORMES_JURIDIQUES, 1):
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'forme_juridique', %s, %s)", (ins, str(n), fj))

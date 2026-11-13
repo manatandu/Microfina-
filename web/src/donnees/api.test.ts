@@ -185,6 +185,18 @@ describe("journée de guichet", () => {
     expect(t).toMatchObject({ type: "groupe", nom: "Mamans de Kinsaku", nbFemmes: 12, statut: "a_viser", membres: [{ nom: "Mbuyi", specimen: true }] });
   });
 
+  it("fiche du groupe (S39) : type de groupe de S14f, forme juridique et listes de S14, catégorie de groupe de S14j", async () => {
+    await connecter("bkasongo");
+    const base = { ...enrolementVide("2026-11-05"), ...IDENTITE, typeClient: "ONG", produitCode: "EAV-CDF", nom: "ONG Kinsaku", adresse: "Matete", secteurActivite: "PRIMAIRE",
+      email: "ong@exemple.cd" };
+    expect((await api.referentiel.contexte()).typesGroupe).toEqual(["Groupement", "Association", "ONG"]);
+    await expect(api.tiers.creerGroupe({ ...base, formeJuridique: "ASBL de fait" }, [])).rejects.toThrow("Forme juridique : valeur inconnue");
+    await expect(api.tiers.creerGroupe({ ...base, categorie: "Catégorie A" }, [])).rejects.toThrow("Catégorie : valeur inconnue");
+    await expect(api.tiers.creerGroupe({ ...base, email: "ong" }, [])).rejects.toThrow("Email invalide");
+    const t = await api.tiers.creerGroupe(base, []);
+    expect(t).toMatchObject({ typeClient: "ONG", secteurActivite: "PRIMAIRE", email: "ong@exemple.cd" });
+  });
+
   it("visa du client (S40) : date de visa, intitulé, premier dépôt, une seule fois", async () => {
     await connecter("bkasongo");
     await journeeOuverte(); await connecter("bkasongo");

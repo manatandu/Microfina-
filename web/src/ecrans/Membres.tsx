@@ -6,7 +6,7 @@ import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite } fro
 import { lireMontant } from "@design/montant.js";
 import { RechercheClient } from "./Visa";
 
-const INCONNU = "INCONNU";   // seule valeur montrée pour Sensibilisateur, Gestionnaire et Commercial (p. 49 et 50) ; la liste vient de S33
+const INCONNU = "INCONNU";   // valeur montrée pour Sensibilisateur, Gestionnaire et Commercial (p. 49 et 50) : aucun agent ; la liste vient de S33
 type Ctx = Awaited<ReturnType<typeof api.referentiel.contexte>>;
 const nomComplet = (t: { nom: string; postnom: string; prenom: string }) => [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
 
@@ -44,7 +44,7 @@ function Enrolement({ titre, onglets, numero, onglet, setOnglet, enregistrer, bo
   );
 }
 
-/** Onglet « Informations de base » : physique p. 49, entreprise p. 50, groupe p. 51 (mêmes champs pour l'essentiel, colonnes différentes) */
+/** Onglet « Informations de base » : physique p. 48, entreprise p. 49, groupe p. 50 (mêmes champs pour l'essentiel, colonnes différentes) */
 function InformationsDeBase({ genre, f, maj, ctx, numero, depot, setDepot, choisirProspect }: {
   genre: "physique" | "entreprise" | "groupe"; f: NouveauTiers; maj: (p: Partial<NouveauTiers>) => void; ctx: Ctx; numero: string; depot: string; setDepot: (v: string) => void;
   choisirProspect?: () => void;
@@ -54,7 +54,6 @@ function InformationsDeBase({ genre, f, maj, ctx, numero, depot, setDepot, chois
     const v = e.target.value.trim(); if (/^\d{0,6}$/.test(v)) maj({ [k]: Number(v) });   // chiffres seulement
   } });
   const produit = ctx.produits.find((p) => p.code === f.produitCode);
-  const inconnu = (libelle: string) => <Champ libelle={libelle}>{(p) => <select {...p} className="saisie"><option>{INCONNU}</option></select>}</Champ>;
   const physique = genre === "physique", entreprise = genre === "entreprise", groupe = genre === "groupe";
   const types = physique ? ctx.typesClient : entreprise ? ctx.typesEntreprise : ctx.typesGroupe;
   return (
@@ -83,8 +82,7 @@ function InformationsDeBase({ genre, f, maj, ctx, numero, depot, setDepot, chois
           {ctx.sensibilisateurs.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>}
       </div>
       <div className="pile">
-        {entreprise && <AgentsClient f={f} maj={maj} ctx={ctx} />}
-        {groupe && inconnu("Sensibilisateur :")}
+        {!physique && <AgentsClient f={f} maj={maj} ctx={ctx} />}
         {physique ? <>
           <Champ libelle="Gestionnaire :">{(p) => <select {...p} className="saisie" value={f.gestionnaireId ?? ""}
             onChange={(e) => maj({ gestionnaireId: e.target.value ? Number(e.target.value) : null })}><option value="">{INCONNU}</option>
@@ -92,7 +90,7 @@ function InformationsDeBase({ genre, f, maj, ctx, numero, depot, setDepot, chois
           <Champ libelle="Commercial :">{(p) => <select {...p} className="saisie" value={f.commercialId ?? ""}
             onChange={(e) => maj({ commercialId: e.target.value ? Number(e.target.value) : null })}><option value="">{INCONNU}</option>
             {ctx.commerciaux.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
-        </> : groupe && <>{inconnu("Gestionnaire :")}{inconnu("Commercial :")}</>}
+        </> : null}
         <Champ libelle="Type de compte à créer *">{(p) => <select {...p} className="saisie" required {...sel("produitCode")}><option value=""></option>
           {ctx.produits.map((x) => <option key={x.code} value={x.code}>{x.libelle} {x.devise}</option>)}</select>}</Champ>
         <Champ libelle={`Premier dépôt :${produit ? ` (${produit.devise})` : ""}`}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={depot} onChange={(e) => setDepot(e.target.value)} />}</Champ>
@@ -327,8 +325,9 @@ function IdentitePhysique({ f, maj, ctx }: { f: NouveauTiers; maj: (p: Partial<N
   );
 }
 
-/** Onglet Autres renseignements (Autre Info en S46) : domicile (S20), coordonnées, activité (S14, S14a, S14c, S14h), personne exposée (registre S37-1, S37-2) */
-function AutresRenseignements({ f, maj, ctx }: { f: NouveauTiers; maj: (p: Partial<NouveauTiers>) => void; ctx: Ctx }) {
+/** Onglet Autres renseignements (Autre Info en S46) : domicile (S20), coordonnées, activité (S14, S14a, S14c, S14h), personne exposée (registre S37-1, S37-2).
+ * Groupe : Catégorie de groupe, S14j (registre S39-1) */
+function AutresRenseignements({ f, maj, ctx, categories }: { f: NouveauTiers; maj: (p: Partial<NouveauTiers>) => void; ctx: Ctx; categories?: string[] }) {
   const texte = (k: CleTexte, libelle: string, classe = "saisie") => (
     <Champ libelle={libelle}>{(p) => <input {...p} className={classe} autoComplete="off" value={f[k] ?? ""} onChange={(e) => maj({ [k]: e.target.value })} />}</Champ>);
   const pays = ctx.localites.find((x) => x.pays === f.pays);
@@ -350,7 +349,7 @@ function AutresRenseignements({ f, maj, ctx }: { f: NouveauTiers; maj: (p: Parti
       <div className="pile">
         <ChoixListe libelle="Secteur d'activité :" k="secteurActivite" valeurs={ctx.listesFiche.secteurActivite ?? []} f={f} maj={maj} apres={{ typeActivite: "" }} />
         <ChoixListe libelle="Type d'activité :" k="typeActivite" valeurs={types} f={f} maj={maj} />
-        <ChoixListe libelle="Catégorie :" k="categorie" valeurs={ctx.listesFiche.categorie ?? []} f={f} maj={maj} />
+        <ChoixListe libelle="Catégorie :" k="categorie" valeurs={categories ?? ctx.listesFiche.categorie ?? []} f={f} maj={maj} />
         <ChoixListe libelle="Sous type client :" k="sousTypeClient" valeurs={ctx.listesFiche.sousTypeClient ?? []} f={f} maj={maj} />
         <label className="case"><input type="checkbox" checked={f.personneExposee} onChange={(e) => maj({ personneExposee: e.target.checked })} /><span>Personne politiquement exposée</span></label>
       </div>
@@ -516,7 +515,7 @@ export function EnrolementEntreprise() {
   );
 }
 
-// ---------- S39 : Client > Enrôlement > Groupe (manuel p. 47 et 51) ----------
+// ---------- S39 : Client > Enrôlement > Groupe (manuel p. 47 et 50) ----------
 
 const ONGLETS_GROUPE = ["Informations de base", "Renseignements généraux", "Membres Groupe", "Autres renseignements", "Personnes Liées", "Photo"] as const;
 
@@ -533,7 +532,8 @@ export function EnrolementGroupe() {
       boite={c.boite} setBoite={c.setBoite}
       enregistrer={() => c.confirmer((m) => api.tiers.creerGroupe({ ...f, premierDepot: m, liees: c.liees.map((t) => t.id) }, membres, images),
         () => { setMembres([]); setImages({}); })}
-      textes={["Manuel Microfina++, p. 47 : groupements, associations, ONG ; p. 51 : onglets, champs de l'onglet Informations de base, membres du groupe, photo",
+      textes={["Manuel Microfina++, p. 47 : groupements, associations, ONG ; p. 50 : onglets, champs de l'onglet Informations de base, membres du groupe (Ajouter, Enregistrer), personnes liées, photo",
+        "Onglet Autres renseignements et listes : comme le client physique (S37) ; Type de groupe (S14f), Catégorie de groupe (S14j), Forme juridique (S14i) : Paramétrage > Info de base > Client > Général ; Sensibilisateur, Gestionnaire, Commercial : Agence > Paramètre (S33)",
         "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
         "PCCI § 10.1 : lieu de résidence ; § 10.2 : agents économiques (associations et ONG : institutions sans but lucratif)",
         "Instr. BCC 15, art. 11 et 17 : identification d'une personne morale ou d'une autre entité juridique",
@@ -548,20 +548,16 @@ export function EnrolementGroupe() {
           <div className="formulaire">
             <Champ libelle="Dénomination : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("nom")} />}</Champ>
             <Champ libelle="Adresse : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("adresse")} />}</Champ>
-            <Champ libelle="Forme juridique :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("formeJuridique")} />}</Champ>
+            <Champ libelle="Forme juridique :">{(p) => <select {...p} className="saisie" value={f.formeJuridique} onChange={(e) => maj({ formeJuridique: e.target.value })}>
+              <option value=""></option>{(ctx.listesFiche.formeJuridique ?? []).map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
             <Champ libelle="N° du registre ou de l'acte :">{(p) => <input {...p} className="saisie code" autoComplete="off" {...texte("registre")} />}</Champ>
-            <Champ libelle="Nature de l'activité :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("activite")} />}</Champ>
           </div>
         </>
       )}
 
       {c.onglet === 2 && <ListeRepresentants fiche="Membre du groupe" ajouter="Ajouter" liste={membres} onChange={setMembres} pieces={ctx.pieces} erreur={c.erreur} />}
 
-      {c.onglet === 3 && (
-        <>
-          <label className="case"><input type="checkbox" checked={f.personneExposee} onChange={(e) => maj({ personneExposee: e.target.checked })} /><span>Personne politiquement exposée</span></label>
-        </>
-      )}
+      {c.onglet === 3 && <AutresRenseignements f={f} maj={maj} ctx={ctx} categories={ctx.listesFiche.categorieGroupe ?? []} />}
 
       {c.onglet === 4 && <PersonnesLiees key={c.generation} liees={c.liees} onChange={c.setLiees} />}
 

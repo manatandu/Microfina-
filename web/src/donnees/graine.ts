@@ -42,7 +42,7 @@ export function graine(): Etat {
     lieuNaissance: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", liees: [] as number[],
     type: "physique" as const, formeJuridique: "", registre: "", centreActivite: "", activite: "", dirigeant: null, signataires: [], nbHommes: 0, nbFemmes: 0, membres: [], intitule: "", dateVisa: "2026-01-15", profession: "", pays: "", ville: "", quartier: "", rue: "", email: "", bp: "", telephoneFixe: "", motifDepart: "", resilieLe: "", creeLe: "2026-01-15", creePar: 4, visePar: 2, statut: "actif" as const };
   return {
-    version: 54,
+    version: 55,
     institution: { nom: "COOPEC Tujenge", sigle: "CTJ", profil: "coopec", pays: "République démocratique du Congo", ville: "Kinshasa", commune: "Matete", quartier: "Kinsaku", journeeMax: 1 },   // sigle fictif : élément Institution du numéro client (S15-11)
     agence: { id: 1, code: "0412", nom: "Matete" },
     agences: [{ id: 1, code: "0412", nom: "Matete", supprime: false }],
@@ -129,6 +129,8 @@ export function graine(): Etat {
       ...["Homme", "Femme", "Entreprise", "Groupement", "Association", "ONG"].map((libelle, i) => ({ liste: "sous_type_client", code: String(i + 1), libelle })),
       // S14g : type client « Client », valeur de la capture p. 49 (registre S37-2)
       { liste: "type_client", code: "1", libelle: "Client" },
+      // S14f : types de groupe nommés par le manuel, p. 47 (registre S39-2)
+      ...["Groupement", "Association", "ONG"].map((libelle, i) => ({ liste: "type_groupe", code: String(i + 1), libelle })),
       // S14i : formes de société de l'AUSCGIE, art. 6, en démonstration (registre S38-4)
       ...FORMES_JURIDIQUES.map((libelle, i) => ({ liste: "forme_juridique", code: String(i + 1), libelle })),
       // S18 : motifs de départ de la capture p. 26 (registre S18-1)
