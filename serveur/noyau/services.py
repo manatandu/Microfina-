@@ -1007,8 +1007,33 @@ def poster(u: dict, *, journal: str, journee_id: int, libelle: str, piece: str, 
     return eid
 
 
-def nouvelle_piece(journee_date) -> str:
-    return f"BR-{journee_date.year}-{valeur('select nextval(%s)', ('numero_piece',)):06d}"
+ELEMENTS_PIECE = ["INSTITUTION", "AGENCE", "JOURNAL", "COMPTEUR"]
+
+
+def composer_piece(regle: dict | None, valeurs: dict) -> str:
+    """S29 (p. 41) : l'exercice en tête, puis les éléments dans l'ordre de leur Position, séparés par un tiret ; compteur sur six chiffres.
+    Sans règle : Exercice, Agence, Journal, compteur (registre S29-2). L'Institution ne figure que si sa case est cochée."""
+    if regle:
+        presents = [e for e in ELEMENTS_PIECE if e != "INSTITUTION" or regle["institution"]]
+        ordre = sorted(presents, key=lambda e: regle["positions"][e])
+    else:
+        ordre = ["AGENCE", "JOURNAL", "COMPTEUR"]
+    morceaux = [str(valeurs["EXERCICE"])] + [f"{valeurs['COMPTEUR']:06d}" if e == "COMPTEUR" else valeurs.get(e, "") for e in ordre]
+    return "-".join(m for m in morceaux if m)
+
+
+def nouvelle_piece(u: dict, journal: str, journee_date) -> str:
+    """Numéro de la pièce suivante du journal dans l'exercice de la journée : le compteur de Compléter journal détail (S11c) avance dans la même
+    transaction que l'écriture, donc sans trou ni doublon (PCCI § 3.3 et 3.4 ; registre S11-7, S29-1)"""
+    i = u["institution_id"]
+    n = valeur("""update journal_detail d set compteur = compteur + 1 from journal j
+                  where j.id = d.journal_id and d.institution_id = %s and d.annee = %s and j.code = %s returning d.compteur""", (i, journee_date.year, journal))
+    if n is None:
+        raise ErreurMetier(f"Le journal {journal} n'est pas ouvert sur l'exercice {journee_date.year} (Administration > Exercice, Compléter journal détail).")
+    r = une("select regle from numerotation_piece where institution_id = %s", (i,))
+    ag = une("select a.code, i.sigle from agence a join institution i on i.id = a.institution_id where a.id = %s", (u["agence_id"],))
+    return composer_piece(json_lu(r["regle"]) if r else None,
+                          {"EXERCICE": journee_date.year, "INSTITUTION": (ag["sigle"] or "") if ag else "", "AGENCE": ag["code"] if ag else "", "JOURNAL": journal, "COMPTEUR": n})
 
 
 # ---------- Guichet ----------
@@ -1103,7 +1128,7 @@ def depot(u: dict, p: dict) -> dict:
     if en_usd(m, c["devise"]) + especes_du_jour_usd(c["tiers_id"], s["journeeId"], "depot") >= SEUIL_ESPECES_USD:
         raise ErreurMetier(MSG_RENFORCE)
     j = une("select date_comptable from journee_comptable where id = %s", (s["journeeId"],))
-    eid = poster(u, journal="CA", journee_id=s["journeeId"], libelle=f"Dépôt espèces {c['numero']}", piece=nouvelle_piece(j["date_comptable"]),
+    eid = poster(u, journal="CA", journee_id=s["journeeId"], libelle=f"Dépôt espèces {c['numero']}", piece=nouvelle_piece(u, "CA", j["date_comptable"]),
                  evenement="depot", cle=p["cle"], valide_par=u["id"], lignes_ecr=[
                      {"compte": "570", "contrat": f"guichet:{s['guichetId']}", "sens": "D", "devise": c["devise"], "montant": m},
                      {"compte": c["pcci"], "contrat": f"depot:{c['id']}", "sens": "C", "devise": c["devise"], "montant": m}])
@@ -1133,7 +1158,7 @@ def retrait(u: dict, p: dict) -> dict:
     if en_usd(m, c["devise"]) + especes_du_jour_usd(c["tiers_id"], s["journeeId"], "retrait") >= SEUIL_ESPECES_USD:
         raise ErreurMetier(MSG_RENFORCE)
     j = une("select date_comptable from journee_comptable where id = %s", (s["journeeId"],))
-    eid = poster(u, journal="CA", journee_id=s["journeeId"], libelle=f"Retrait espèces {c['numero']}", piece=nouvelle_piece(j["date_comptable"]),
+    eid = poster(u, journal="CA", journee_id=s["journeeId"], libelle=f"Retrait espèces {c['numero']}", piece=nouvelle_piece(u, "CA", j["date_comptable"]),
                  evenement="retrait", cle=p["cle"], valide_par=u["id"], lignes_ecr=[
                      {"compte": c["pcci"], "contrat": f"depot:{c['id']}", "sens": "D", "devise": c["devise"], "montant": m},
                      {"compte": "570", "contrat": f"guichet:{s['guichetId']}", "sens": "C", "devise": c["devise"], "montant": m}])
@@ -1188,7 +1213,7 @@ def adhesion(u: dict, p: dict) -> dict:
         l.append({"compte": compte_du_produit(produit), "contrat": f"depot:{c}", "sens": "C", "devise": "CDF", "montant": m_depot})
     for f in frais:
         l.append({"compte": f["compte"], "contrat": f"frais:{f['fraisId']}", "sens": "C", "devise": "CDF", "montant": f["montant"]})
-    eid = poster(u, journal="CA", journee_id=s["journeeId"], libelle=f"Adhésion {t['numero']}", piece=nouvelle_piece(j["date_comptable"]),
+    eid = poster(u, journal="CA", journee_id=s["journeeId"], libelle=f"Adhésion {t['numero']}", piece=nouvelle_piece(u, "CA", j["date_comptable"]),
                  evenement="adhesion", cle=p["cle"], valide_par=u["id"], lignes_ecr=l)
     executer("insert into mouvement_parts (tiers_id, sens, nombre, valeur_unitaire, devise, ecriture_id) values (%s, 'achat', %s, %s, 'CDF', %s)", (tid, nb, valeur_part(), eid))
     oid = creer_operation(u, s, cle=p["cle"], type_="adhesion", statut="validee", tiers_id=tid, contrat=f"depot:{c}", montant=total,
@@ -1242,7 +1267,7 @@ def operation_parts(u: dict, p: dict) -> dict:
     parts = {"compte": compte_parts(t), "contrat": f"parts:{tid}", "sens": "C" if sens == "achat" else "D", "devise": "CDF", "montant": montant}
     type_ = "achat_parts" if sens == "achat" else "retrait_parts"
     eid = poster(u, journal="CA", journee_id=s["journeeId"], libelle=f"{'Achat' if sens == 'achat' else 'Retrait'} de parts sociales {t['numero']}",
-                 piece=nouvelle_piece(j["date_comptable"]), evenement=type_, cle=p["cle"], valide_par=u["id"], lignes_ecr=[caisse, parts])
+                 piece=nouvelle_piece(u, "CA", j["date_comptable"]), evenement=type_, cle=p["cle"], valide_par=u["id"], lignes_ecr=[caisse, parts])
     executer("insert into mouvement_parts (tiers_id, sens, nombre, valeur_unitaire, devise, ecriture_id) values (%s, %s, %s, %s, 'CDF', %s)",
              (tid, sens, nb, valeur_part(), eid))
     oid = creer_operation(u, s, cle=p["cle"], type_=type_, statut="validee", tiers_id=tid, contrat=f"parts:{tid}", montant=montant, devise="CDF",

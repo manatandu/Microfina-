@@ -172,7 +172,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 38;
+  version: 39;
   institution: Institution;
   agence: Agence;
   guichets: Guichet[];
@@ -207,6 +207,7 @@ export interface Etat {
   numerotation: Record<string, RegleNumerotation>;   // S15, par institution
   affectations: AffectationGuichet[];   // S10
   numerotationCompte: RegleNumeroCompte | null;   // S17
+  numerotationPiece: ReglePieceEtat | null;   // S29
   comptesInstitution: CompteInstitution[];   // S102 : comptes divisionnaires ouverts par l'institution (PCCI § 9)
   comptesBancaires: { id: number; banqueId: number; compte: string; libelle: string; numeroBancaire: string; devise: Devise; journalId: number; contactNom: string; contactNomComplet: string; contactTelephone: string }[];
   consentements: { id: number; tiersId: number; code: string; dateDebut: string; dateFin: string; commentaire: string }[];   // S50
@@ -268,3 +269,6 @@ export interface ProduitEpargne extends Produit {
   tenueCompte: boolean | null; calculerInteret: boolean; soldeNegatif: boolean; repartitionGroupe: boolean; supprime: boolean;
   categorie?: "Epargne" | "Courant" | "DAT" | "Bloqué" | null; compteLie?: string | null; typesClient?: number[];   // S28
 }
+
+/** S29 : règle du numéro de pièce ; positions des éléments (Institution à 0 quand sa case n'est pas cochée) */
+export type ReglePieceEtat = { institution: boolean; positions: Record<"INSTITUTION" | "AGENCE" | "JOURNAL" | "COMPTEUR", number> };

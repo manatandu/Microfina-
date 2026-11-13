@@ -781,6 +781,16 @@ def cp_supprimer(request, numero: str):
 
 
 # ---------- Info de base : numéro de compte client (S17) ----------
+@api.get("/numerotation-pieces")
+def nu_lire_piece(request):
+    return nu.lire_piece(u(request))
+
+
+@api.post("/numerotation-pieces")
+def nu_enregistrer_piece(request, corps: dict = Body(...)):
+    return nu.enregistrer_piece(u(request), corps)
+
+
 @api.get("/numerotation-comptes")
 def nu_lire_compte(request):
     return nu.lire_compte(u(request))

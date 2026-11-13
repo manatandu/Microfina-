@@ -1024,3 +1024,25 @@ def test_parametrage_epargne(clients):
     r = chef.post("/api/parametrage-epargne", {"onglet": "Epargne", "produitId": eav["id"], "compteLie": "330", "typesClient": [tc["id"]]}, **H).json()
     p = next(x for x in r["produits"] if x["code"] == "EAV-CDF")
     assert (p["categorie"], p["compteLie"], p["typesClient"]) == ("Epargne", "330", [tc["id"]])
+
+
+def test_numero_piece(clients, journee):
+    """S29 (p. 41) : numéro de pièce = exercice, puis Agence, Journal, compteur (sans règle) ou dans l'ordre des positions ; Institution si cochée ;
+    compteur du journal dans l'exercice, sans trou (PCCI § 3.3 et 3.4 ; registre S11-7, S29-1, S29-2)"""
+    from noyau.bd import lignes as lire_bd
+    chef, caisse = clients["chef"], clients["caisse"]
+    l = chef.get("/api/numerotation-pieces", **H).json()
+    assert l["regle"] is None and l["exercice"] == 2026 and l["exemple"]["JOURNAL"] == "CA"
+    depot = lambda: caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 500000, "coupures": {"5000": 1}, "mandataire": ""}, **H)
+    assert depot().status_code == 200
+    def refus(corps):
+        r = chef.post("/api/numerotation-pieces", corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    i = l["institutions"][0]["id"]
+    assert "Institution" in refus({"positions": {}})
+    assert "même position" in refus({"institutionId": i, "institution": False, "positions": {"AGENCE": 1, "JOURNAL": 1, "COMPTEUR": 2}})
+    assert "Position compteur" in refus({"institutionId": i, "institution": False, "positions": {"AGENCE": 1, "JOURNAL": 2}})
+    r = chef.post("/api/numerotation-pieces", {"institutionId": i, "institution": True, "positions": {"INSTITUTION": 1, "AGENCE": 2, "JOURNAL": 4, "COMPTEUR": 3}}, **H)
+    assert r.status_code == 200, r.content
+    assert depot().status_code == 200
+    nums = [x["numero"] for x in lire_bd("select numero from piece order by id")]
+    assert nums[-2:] == ["2026-0412-CA-000001", "2026-CTJ-0412-000002-CA"], nums

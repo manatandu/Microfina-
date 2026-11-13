@@ -17,7 +17,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v38";
+const CLE = "likelemba-demo-v39";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -25,7 +25,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 38) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 39) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -894,6 +894,26 @@ const numerotation = {
     for (const [k, nom] of [["prefixe", "Préfixe"], ["suffixe", "Suffixe"]] as const) if (r[k].actif && !r[k].valeur) throw new ErreurMetier(`À remplir : valeur du ${nom}.`);
     E.numerotation[String(ID_INSTITUTION)] = r; enregistrer(); return numerotation.lire();
   },
+  /** S29 (p. 41) : la règle, l'exercice en cours (S11-1) et les valeurs d'exemple pour Générer */
+  lirePiece() {
+    exiger();
+    const ex = E.exercices.find((e) => e.actif);
+    const d = ex ? E.journauxDetail.find((x) => x.annee === ex.annee && x.journalId === 1) : undefined;
+    return { institutions: [{ id: ID_INSTITUTION, nom: E.institution.nom }], regle: E.numerotationPiece, exercice: ex?.annee ?? null,
+      exemple: { EXERCICE: ex?.annee ?? "", INSTITUTION: E.institution.sigle ?? "", AGENCE: E.agence.code, JOURNAL: "CA", COMPTEUR: (d?.compteur ?? 0) + 1 } };
+  },
+  /** Enregistrer : la case Institution et les positions (registre S29-1) ; s'applique aux pièces suivantes */
+  enregistrerPiece(d: { institutionId?: number | null; institution?: boolean; positions?: Partial<Record<string, number | null>> }) {
+    exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
+    if (d.institutionId !== ID_INSTITUTION) throw new ErreurMetier("À remplir : Institution.");
+    const inst = !!d.institution, pos = d.positions ?? {};
+    const noms = { INSTITUTION: "Position Institution", AGENCE: "Position Agence", JOURNAL: "Position Journal", COMPTEUR: "Position compteur" } as const;
+    const presents = (["INSTITUTION", "AGENCE", "JOURNAL", "COMPTEUR"] as const).filter((e) => e !== "INSTITUTION" || inst);
+    const positions = { INSTITUTION: 0, AGENCE: 0, JOURNAL: 0, COMPTEUR: 0 };
+    for (const e of presents) { const v = pos[e]; if (!Number.isInteger(v) || v! < 1) throw new ErreurMetier(`${noms[e]} : nombre entier, 1 au moins.`); positions[e] = v!; }
+    if (new Set(presents.map((e) => positions[e])).size !== presents.length) throw new ErreurMetier("Deux éléments ont la même position.");
+    E.numerotationPiece = { institution: inst, positions }; enregistrer(); return numerotation.lirePiece();
+  },
   /** S17 (p. 26) : la règle enregistrée et un exemple pour Générer (S17-7) */
   lireCompte() {
     exiger();
@@ -975,7 +995,23 @@ function controlerCoupures(coupures: Comptage, montant: number, devise: Devise) 
   if (totalComptage(coupures) !== montant) throw new ErreurMetier("Le billetage ne fait pas le montant.");
 }
 function guichetDe(s: SessionCaisse) { return `guichet:${s.guichetId}`; }
-function piece() { E.compteurs.piece += 1; return `BR-${journees.courante()!.date.slice(0, 4)}-${String(E.compteurs.piece).padStart(6, "0")}`; }
+/** S29 : l'exercice en tête, puis les éléments dans l'ordre de leur Position, séparés par un tiret ; compteur sur six chiffres ;
+ *  sans règle : Exercice, Agence, Journal, compteur (registre S29-2). Règles identiques côté serveur (services.composer_piece). */
+export type ReglePiece = { institution: boolean; positions: Record<"INSTITUTION" | "AGENCE" | "JOURNAL" | "COMPTEUR", number> };
+export function composerPiece(regle: ReglePiece | null, v: { EXERCICE: number | string; INSTITUTION: string; AGENCE: string; JOURNAL: string; COMPTEUR: number }): string {
+  const ordre = regle ? (["INSTITUTION", "AGENCE", "JOURNAL", "COMPTEUR"] as const).filter((e) => e !== "INSTITUTION" || regle.institution).sort((a, b) => regle.positions[a] - regle.positions[b])
+    : (["AGENCE", "JOURNAL", "COMPTEUR"] as const);
+  return [String(v.EXERCICE), ...ordre.map((e) => (e === "COMPTEUR" ? String(v.COMPTEUR).padStart(6, "0") : v[e]))].filter(Boolean).join("-");
+}
+/** Pièce suivante du journal dans l'exercice de la journée : compteur de Compléter journal détail (S11c), sans trou (PCCI § 3.3, 3.4 ; S11-7, S29-1) */
+function piece(journal = "CA") {
+  const annee = Number(journees.courante()!.date.slice(0, 4));
+  const j = JOURNAUX.find((x) => x.code === journal)!;
+  const d = E.journauxDetail.find((x) => x.annee === annee && x.journalId === j.id);
+  if (!d) throw new ErreurMetier(`Le journal ${journal} n'est pas ouvert sur l'exercice ${annee} (Administration > Exercice, Compléter journal détail).`);
+  d.compteur += 1;
+  return composerPiece(E.numerotationPiece, { EXERCICE: annee, INSTITUTION: E.institution.sigle ?? "", AGENCE: E.agence.code, JOURNAL: journal, COMPTEUR: d.compteur });
+}
 const titulaire = (t: Tiers) => [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
 
 const guichet = {

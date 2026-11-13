@@ -125,6 +125,13 @@ const OUT = process.argv[2];
   for (const [nom, rep] of [['Opérer sur compte : *', 'Oui'], ['Dépôt de chèque : *', 'Non'], ['Caution : *', 'Non'], ['Nantissement : *', 'Oui'], ['Calculer interêt: *', 'Non']])
     await p.getByRole('group', { name: nom }).getByLabel(rep).check();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Epargne De Garantie' }).waitFor(); await etape('02f17-produit-epargne');
+  // Chef : numéro de pièce (S29, p. 41) : Institution cochée en tête, Générer, Enregistrer
+  await aller('/parametrage/s29'); await p.getByLabel('Institution *').selectOption({ label: 'COOPEC Tujenge' });
+  await p.getByText('Position Institution', { exact: true }).click(); await p.getByLabel('Position Institution').and(p.locator('input.saisie')).fill('1');
+  await p.getByLabel('Position Agence').and(p.locator('input.saisie')).fill('2'); await p.getByLabel('Position Journal').and(p.locator('input.saisie')).fill('3');
+  await p.getByLabel('Position compteur').and(p.locator('input.saisie')).fill('4');
+  await p.getByRole('button', { name: 'Générer' }).click(); await p.getByText('2026-CTJ-0412-CA-').waitFor();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('02f19-numero-piece');
   // Chef : paramétrage des produits épargne (S28, p. 41) : l'épargne de garantie dans l'onglet Bloqué, compte 334 proposé
   await aller('/parametrage/s28'); await p.getByRole('tab', { name: 'Bloqué' }).click(); await p.getByLabel('Compte lié').and(p.locator('[value="334"]')).waitFor();
   await p.getByLabel('Produit: *').selectOption({ label: 'Epargne De Garantie (G)' }); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();

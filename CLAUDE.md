@@ -16,6 +16,7 @@ Deux phases, dans cet ordre (décision du porteur, 05/11/2026) :
 
 1. **Reproduire exactement.** Les 146 fonctions de `replica/features.csv`, module par module, dans l'ordre des menus de Microfina++, avec ses schémas de fonctionnement tels quels : confirmations Oui/Non, étape « Comptabiliser » séparée, boutons Modifier et Supprimer, enchaînement des fenêtres. Ce que j'avais ajouté aux écrans déjà faits est retiré. Seule exception : un comportement qu'un texte interdit (Instructions BCC, PCCI, lois). Il est signalé au porteur avec la référence, jamais corrigé en silence.
 2. **Ensuite seulement, alléger ou améliorer** là où Microfina++ est limité, point par point, avec l'accord du porteur.
+   Les limites constatées sont notées au fil des écrans dans `docs/architecture/LIMITES-MICROFINA.md` ; à la fin de la phase 1, une analyse approfondie en part pour moderniser (demande du porteur, 13/11/2026).
 
 ### Ce que le manuel ne montre pas : complété par nous (décision du porteur, 12/11/2026)
 

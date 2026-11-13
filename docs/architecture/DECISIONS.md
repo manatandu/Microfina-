@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**200 décisions.** Solidité : 68 fortes (le manuel ou un texte répond), 105 moyennes (déduites d'un écran voisin ou d'une donnée), 27 faibles (notre choix, faute de mieux). Dans le code : 145 déjà en place, 55 à appliquer.
+**202 décisions.** Solidité : 68 fortes (le manuel ou un texte répond), 107 moyennes (déduites d'un écran voisin ou d'une donnée), 27 faibles (notre choix, faute de mieux). Dans le code : 148 déjà en place, 54 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -75,7 +75,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S11-4 | Durée de l'exercice | Du 1er janvier au 31 décembre | Texte réglementaire : PCCI § 4.3.1 | forte | en place |
 | S11-5 | Bouton « Exercice à ouvrir » | Affiche les journaux de l'exercice saisi | Écran voisin : Capture p. 21 | faible | en place |
 | S11-6 | Ce que crée Ouvrir | Une ligne par journal de l'institution, compteur à 0 | Manuel : Capture p. 21 (Liste Détails Journal) | moyenne | en place |
-| S11-7 | Usage du compteur | Dernier numéro de pièce du journal dans l'exercice. La numérotation des pièces (S29) s'en sert et repart à chaque exercice | Manuel : Manuel p. 41 (« Position compteur »), p. 130 (numéros de pièce) | moyenne | à appliquer |
+| S11-7 | Usage du compteur | Dernier numéro de pièce du journal dans l'exercice. La numérotation des pièces (S29) s'en sert et repart à chaque exercice | Manuel : Manuel p. 41 (« Position compteur »), p. 130 (numéros de pièce) | moyenne | en place |
 | S11-8 | Bouton de « Compléter journal détail » (bas coupé) | Bouton Enregistrer sous la liste : ajoute les journaux cochés à l'exercice en cours, avec confirmation | Règle générale du manuel : Manuel p. 11 (Enregistrer une information) | moyenne | en place |
 
 ## S12 Ouverture de journée
@@ -420,6 +420,13 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S28-1 | Compte lié proposé par onglet | Epargne 330, Courant 331, DAT 340, Bloqué 334, modifiable ; le compte saisi doit être un compte de dépôts de la clientèle du plan (comptes 33 à 35). Un produit est rangé dans l'onglet où il est enregistré | Texte réglementaire : Capture et texte p. 41 ; PCCI classe 3 (330 Epargnes, 331 Comptes ordinaires, 334 Epargnes obligatoires, 340 Dépôts à terme) ; T16 | moyenne | en place |
 | S28-2 | Effet du compte lié | Les comptes ouverts sur le produit et leurs écritures (adhésion, dépôts, retraits) prennent le compte lié ; sans compte lié, celui de la famille (S27-2). Quand des comptes sont ouverts, le compte lié ne peut plus différer du compte où ils sont tenus | Texte réglementaire : PCCI classe 3 ; T16 | moyenne | en place |
 | S28-3 | Types clients à associer | La liste Type client de Général (S14g), vide au départ comme sur la capture ; la fiche client lira la même liste (S37-2) | Donnée exigée ailleurs : Capture p. 41 (« Liste vide ») ; S14g ; S37-2 | moyenne | en place |
+
+## S29 Numéro de pièce
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S29-1 | Composition et compteur | L'exercice en tête (case grisée, exercice en cours), puis Institution (si cochée, sigle), Agence (code), Journal (code) et compteur dans l'ordre de leurs positions, séparés par un tiret ; compteur sur six chiffres. Le compteur est celui du journal dans l'exercice (Compléter journal détail) ; il avance dans la même transaction que l'écriture, donc sans trou ni doublon, et repart à chaque exercice. La règle vaut pour les pièces suivantes | Texte réglementaire : Capture et texte p. 41 ; S11-7 ; PCCI § 3.3 et 3.4 ; S15-4, S15-10 | moyenne | en place |
+| S29-2 | Sans règle enregistrée | Exercice, Agence, Journal, compteur (ex. 2026-0412-CA-000001), à la place de l'ancien compteur global | Donnée exigée ailleurs : Capture p. 41 (cases Agence, Journal, compteur cochées et grisées) | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { composerNumeroCompte, api, _remplacer, compteParts, enrolementVide } from "./api";
+import { composerNumeroCompte, composerPiece, api, _remplacer, compteParts, enrolementVide } from "./api";
 import { graine } from "./graine";
 import { totalComptage, type Comptage } from "@design/montant.js";
 
@@ -503,6 +503,18 @@ describe("journée de guichet", () => {
     const g = (await api.credit.enregistrer("gestionnaires", { code: "1-AA", nom: "Agent A", utilisateurId: us[0]!.id, montantDe: 100, montantA: 500, enActivite: true })).lignes[0]!;
     expect(g.affichage.enActivite).toBe("OUI");
     expect(await api.credit.portefeuille(g.id)).toEqual([]);
+  });
+
+  it("numéro de pièce (S29, p. 41) : exercice puis positions, Institution si cochée, compteur du journal dans l'exercice sans trou", async () => {
+    await connecter("jpmukendi");
+    const l = await api.numerotation.lirePiece();
+    expect([l.regle, l.exercice, l.exemple.JOURNAL]).toEqual([null, 2026, "CA"]);
+    expect(composerPiece(null, { EXERCICE: 2026, INSTITUTION: "CTJ", AGENCE: "0412", JOURNAL: "CA", COMPTEUR: 1 })).toBe("2026-0412-CA-000001");
+    await expect(api.numerotation.enregistrerPiece({ positions: {} })).rejects.toThrow("Institution");
+    await expect(api.numerotation.enregistrerPiece({ institutionId: 1, institution: false, positions: { AGENCE: 1, JOURNAL: 1, COMPTEUR: 2 } })).rejects.toThrow("même position");
+    await expect(api.numerotation.enregistrerPiece({ institutionId: 1, institution: false, positions: { AGENCE: 1, JOURNAL: 2 } })).rejects.toThrow("Position compteur");
+    const r = await api.numerotation.enregistrerPiece({ institutionId: 1, institution: true, positions: { INSTITUTION: 1, AGENCE: 2, JOURNAL: 4, COMPTEUR: 3 } });
+    expect(composerPiece(r.regle, { ...r.exemple, COMPTEUR: 2 })).toBe("2026-CTJ-0412-000002-CA");
   });
 
   it("paramétrage des produits épargne (S28, p. 41) : compte lié de dépôts, types clients de S14g, compte figé quand des comptes sont ouverts", async () => {

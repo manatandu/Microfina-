@@ -82,3 +82,42 @@ def enregistrer_compte(u, d) -> dict:
                 on conflict (institution_id) do update set prefixe = excluded.prefixe, suffixe = excluded.suffixe, position = excluded.position,
                 modifie_par = excluded.modifie_par, modifie_le = now()""", (u["institution_id"], bool(d.get("prefixe")), bool(d.get("suffixe")), p, u["id"]))
     return lire_compte(u)
+
+
+# ---------- S29 : Paramétrage du numéro de pièce (manuel Microfina++, p. 41) ----------
+
+def lire_piece(u) -> dict:
+    """La règle, l'exercice en cours (case Exercice, S11-1) et les valeurs d'exemple pour Générer"""
+    exiger(u)
+    i = u["institution_id"]
+    r = une("select regle from numerotation_piece where institution_id = %s", (i,))
+    ex = une("select annee from exercice where institution_id = %s and actif", (i,))
+    ag = une("select a.code, i.sigle from agence a join institution i on i.id = a.institution_id where a.id = %s", (u["agence_id"],))
+    n = une("""select d.compteur from journal_detail d join journal j on j.id = d.journal_id where d.institution_id = %s and d.annee = %s and j.code = 'CA'""",
+            (i, ex["annee"] if ex else 0))
+    return {"institutions": lignes("select id, nom from institution where id = %s", (i,)), "regle": json_lu(r["regle"]) if r else None,
+            "exercice": ex["annee"] if ex else None,
+            "exemple": {"EXERCICE": ex["annee"] if ex else "", "INSTITUTION": ag["sigle"] or "", "AGENCE": ag["code"], "JOURNAL": "CA", "COMPTEUR": (n["compteur"] if n else 0) + 1}}
+
+
+def enregistrer_piece(u, d) -> dict:
+    """Enregistrer : la case Institution et les positions (registre S29-1) ; s'applique aux pièces suivantes"""
+    exiger(u, "chef_agence")          # profil habilité : registre T07, en attendant S03 à S06
+    d = d if isinstance(d, dict) else {}
+    if d.get("institutionId") != u["institution_id"]:
+        raise ErreurMetier("À remplir : Institution.")
+    inst = bool(d.get("institution"))
+    pos = d.get("positions") if isinstance(d.get("positions"), dict) else {}
+    noms = {"INSTITUTION": "Position Institution", "AGENCE": "Position Agence", "JOURNAL": "Position Journal", "COMPTEUR": "Position compteur"}
+    presents = [e for e in ("INSTITUTION", "AGENCE", "JOURNAL", "COMPTEUR") if e != "INSTITUTION" or inst]
+    positions = {}
+    for e in presents:
+        positions[e] = entier(pos.get(e), noms[e])
+    if len(set(positions.values())) != len(positions):
+        raise ErreurMetier("Deux éléments ont la même position.")
+    if not inst:
+        positions["INSTITUTION"] = 0
+    executer("""insert into numerotation_piece (institution_id, regle, modifie_par) values (%s, %s, %s)
+                on conflict (institution_id) do update set regle = excluded.regle, modifie_par = excluded.modifie_par, modifie_le = now()""",
+             (u["institution_id"], Jsonb({"institution": inst, "positions": positions}), u["id"]))
+    return lire_piece(u)
