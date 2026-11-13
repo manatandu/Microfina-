@@ -7,13 +7,11 @@ import { lireMontant } from "@design/montant.js";
 import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
 import { TableFiltree } from "./Groupes";
 
-const VIDE = { agenceId: 0, code: "", designation: "", typeGuichet: "", journalId: 0, maximumCaisse: "0", maximumCaisseUsd: "0", retraitPlafonne: "0", retraitPlafonneUsd: "0",
+const VIDE = { agenceId: 0, code: "", designation: "", typeGuichet: "", journalId: 0, plafonds: {} as Record<string, { maximum: string; retrait: string }>,
   compteGuichet: "", compteLiaison: "", compteSurplus: "", compteManquant: "", actif: false };
 type Formulaire = typeof VIDE;
 const enTexte = (c: number) => String(c / 100).replace(".", ",");
 const COMPTES = [["compteGuichet", "Compte guichet"], ["compteLiaison", "Compte liaison"], ["compteSurplus", "Compte surplus"], ["compteManquant", "Compte manquant"]] as const;
-const MONTANTS = [["maximumCaisse", "Maximum autorisé en caisse (CDF) *"], ["maximumCaisseUsd", "Maximum autorisé en caisse (USD) *"],
-  ["retraitPlafonne", "Retrait plafonné (CDF) *"], ["retraitPlafonneUsd", "Retrait plafonné (USD) *"]] as const;
 
 /** S08 : Administration > Guichet > Gestion des guichets (manuel Microfina++, p. 18 ; formulaire rempli et liste p. 95) */
 export function GestionGuichets() {
@@ -23,9 +21,10 @@ export function GestionGuichets() {
   const [relu, setRelu] = useState(0);
   const { donnees } = useDonnees(() => api.guichets.lire(), [relu]);
   if (!donnees) return <Chargement />;
-  const { agences, journaux, types, comptesDefaut, guichets } = donnees;
+  const { agences, journaux, types, comptesDefaut, guichets, devises } = donnees;   // une valeur par devise tenue (registre S08-3, S79-5)
   const neuf = (): Formulaire => ({ ...VIDE, ...comptesDefaut });
   const v = f ?? neuf();
+  const plafond = (d: string) => v.plafonds[d] ?? { maximum: "0", retrait: "0" };
   const champ = (k: keyof Formulaire) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...v, [k]: e.target.value });
   const montantSaisi = (x: string) => (x.trim() ? lireMontant(x) : null);
   const effacer = () => { setF(null); setChoisi(null); };
@@ -33,15 +32,14 @@ export function GestionGuichets() {
   function charger(g: (typeof guichets)[number]) {
     setChoisi(g.id);
     setF({ agenceId: g.agenceId, code: g.code, designation: g.nom, typeGuichet: g.typeGuichet, journalId: g.journalId,
-      maximumCaisse: enTexte(g.maximumCaisse), maximumCaisseUsd: enTexte(g.maximumCaisseUsd), retraitPlafonne: enTexte(g.retraitPlafonne), retraitPlafonneUsd: enTexte(g.retraitPlafonneUsd),
+      plafonds: Object.fromEntries(devises.map((d) => [d, { maximum: enTexte(g.plafonds[d]?.maximum ?? 0), retrait: enTexte(g.plafonds[d]?.retrait ?? 0) }])),
       compteGuichet: g.compteGuichet, compteLiaison: g.compteLiaison, compteSurplus: g.compteSurplus, compteManquant: g.compteManquant, actif: g.actif });
   }
   function enregistrer() {
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try {
         await api.guichets.enregistrer({ ...v, agenceId: Number(v.agenceId), journalId: Number(v.journalId),
-          maximumCaisse: montantSaisi(v.maximumCaisse), maximumCaisseUsd: montantSaisi(v.maximumCaisseUsd),
-          retraitPlafonne: montantSaisi(v.retraitPlafonne), retraitPlafonneUsd: montantSaisi(v.retraitPlafonneUsd) }, choisi ?? undefined);
+          plafonds: Object.fromEntries(devises.map((d) => [d, { maximum: montantSaisi(plafond(d).maximum), retrait: montantSaisi(plafond(d).retrait) }])) }, choisi ?? undefined);
         effacer(); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" });
       } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
     } });
@@ -61,7 +59,9 @@ export function GestionGuichets() {
               <option value=""></option>{types.map((t) => <option key={t}>{t}</option>)}</select>}</Champ>
             <Champ libelle="Journal *">{(p) => <select {...p} className="saisie" value={v.journalId || ""} onChange={champ("journalId")}>
               <option value=""></option>{journaux.map((j) => <option key={j.id} value={j.id}>{j.libelle}</option>)}</select>}</Champ>
-            {MONTANTS.map(([k, l]) => <Champ key={k} libelle={l}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={v[k]} onChange={champ(k)} />}</Champ>)}
+            {(["maximum", "retrait"] as const).flatMap((k) => devises.map((d) => (
+              <Champ key={`${k}-${d}`} libelle={`${k === "maximum" ? "Maximum autorisé en caisse" : "Retrait plafonné"} (${d}) *`}>{(p) => <input {...p} className="saisie montant" inputMode="decimal"
+                value={plafond(d)[k]} onChange={(e) => setF({ ...v, plafonds: { ...v.plafonds, [d]: { ...plafond(d), [k]: e.target.value } } })} />}</Champ>)))}
           </fieldset>
           <div className="pile">
             <fieldset className="pile cadre-champs">

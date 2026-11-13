@@ -156,6 +156,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
     devises: {
       lire: () => get("/devises"),
       enregistrerDevise: (d: object, code?: string) => post(code === undefined ? "/devises" : `/devises/${code}`, d),
+      enregistrerCours: (d: object) => post("/cours", d),
       enregistrerType: (d: object, id?: number) => post(id === undefined ? "/types-monnaie" : `/types-monnaie/${id}`, d),
       enregistrerMonnaie: (d: object, m?: { devise: string; valeur: number }) => post(m === undefined ? "/monnaies" : `/monnaies/${m.devise}/${Math.round(m.valeur * 100)}`, d),
     },

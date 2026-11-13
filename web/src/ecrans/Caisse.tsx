@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { COUPURES, DEVISES, lireMontant, montant, totalComptage, type Comptage, type Devise } from "@design/montant.js";
+import { coupuresDe, DEVISES, libelleCoupure, lireMontant, montant, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 import { Attention, Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
 import { fr } from "../lib/dates";
 
@@ -18,18 +18,18 @@ export function BilletageCaisse() {
   const { donnees } = useDonnees(async () => {
     const [s, ctx, j] = await Promise.all([api.caisses.duCaissier(), api.referentiel.contexte(), api.journees.courante()]);
     if (!s) return { s, ctx, j };
-    const [billetages, CDF, USD] = await Promise.all([api.caisses.billetages(s.id), api.caisses.theorique(s.id, "CDF"), api.caisses.theorique(s.id, "USD")]);
-    return { s, ctx, j, billetages: billetages.filter((b) => b.moment === "arret"), theorique: { CDF, USD } };
+    const [billetages, ...th] = await Promise.all([api.caisses.billetages(s.id), ...DEVISES.map((d) => api.caisses.theorique(s.id, d))]);
+    return { s, ctx, j, billetages: billetages.filter((b) => b.moment === "arret"), theorique: Object.fromEntries(DEVISES.map((d, i) => [d, th[i] ?? {}])) as Record<Devise, Comptage> };
   }, [relu]);
   if (!donnees) return <Chargement />;
   if (!donnees.s) return <><h1>Billetage</h1><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>;
   const { s, ctx, j, billetages, theorique } = donnees as Required<typeof donnees>;
   const saisis = nombres ?? Object.fromEntries(DEVISES.map((d) => {
     const b = billetages.find((x) => x.devise === d);
-    return [d, Object.fromEntries(COUPURES[d].map((v) => [v, String(b?.compte[v] ?? 0)]))];
+    return [d, Object.fromEntries(coupuresDe(d).map((v) => [v, String(b?.compte[v] ?? 0)]))];
   })) as Record<Devise, Record<number, string>>;
   const bonSaisi = nombres ? bon : enSaisie(billetages.find((x) => x.devise === "CDF")?.bonCaisse ?? 0);
-  const compte = (d: Devise): Comptage => Object.fromEntries(COUPURES[d].map((v) => [v, /^\d+$/.test(saisis[d][v] ?? "") ? Number(saisis[d][v]) : 0]));
+  const compte = (d: Devise): Comptage => Object.fromEntries(coupuresDe(d).map((v) => [v, /^\d+$/.test(saisis[d]?.[v] ?? "") ? Number(saisis[d]?.[v]) : 0]));
   const mBon = bonSaisi.trim() ? lireMontant(bonSaisi) : 0;
   const changer = (d: Devise, v: number, x: string) => { if (/^\d{0,6}$/.test(x)) { setBon(bonSaisi); setNombres({ ...saisis, [d]: { ...saisis[d], [v]: x } }); } };
   const deux = (f: (d: Devise) => number) => DEVISES.map((d) => montant(f(d), d)).join("\n");
@@ -47,7 +47,7 @@ export function BilletageCaisse() {
       <h1>Arretée de : {ctx.guichets.find((g) => g.id === s.guichetId)?.nom}</h1>
       <section className="bloc pile" aria-label="Billetage">
         <div className="grille-cadres quatre">
-          <Champ libelle="Solde Caisse :">{(p) => <textarea {...p} className="saisie montant" rows={2} readOnly value={deux((d) => totalComptage(theorique[d]))} />}</Champ>
+          <Champ libelle="Solde Caisse :">{(p) => <textarea {...p} className="saisie montant" rows={2} readOnly value={deux((d) => totalComptage(theorique[d] ?? {}))} />}</Champ>
           <Champ libelle="Journées:">{(p) => <select {...p} className="saisie code" disabled value={j?.date ?? ""}><option value={j?.date ?? ""}>{j ? fr(j.date) : ""}</option></select>}</Champ>
           <Champ libelle="Bon de Caisse">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={bonSaisi}
             onChange={(e) => { setNombres(saisis); setBon(e.target.value); }} />}</Champ>
@@ -56,12 +56,12 @@ export function BilletageCaisse() {
         <table className="grille">
           <thead><tr><th scope="col">Libelle</th><th scope="col">Nombre</th><th scope="col" className="num">Total</th></tr></thead>
           <tbody>
-            {DEVISES.flatMap((d) => COUPURES[d].map((v) => {
-              const libelle = `Billet de ${v} ${d}`;
+            {DEVISES.flatMap((d) => coupuresDe(d).map((v) => {
+              const libelle = `${libelleCoupure(d, v)} ${d}`;   // registre S79-4 : libellé du type de monnaie (S35)
               return (
                 <tr key={`${d}-${v}`}>
                   <td>{libelle}</td>
-                  <td><input className="saisie code court" inputMode="numeric" aria-label={`Nombre : ${libelle}`} value={saisis[d][v]} onChange={(e) => changer(d, v, e.target.value)} /></td>
+                  <td><input className="saisie code court" inputMode="numeric" aria-label={`Nombre : ${libelle}`} value={saisis[d]?.[v] ?? ""} onChange={(e) => changer(d, v, e.target.value)} /></td>
                   <td className="num chiffres">{montant((compte(d)[v] ?? 0) * v * 100, d)}</td>
                 </tr>
               );
@@ -99,7 +99,7 @@ export function ValidationBilletage() {
   const parDevise = (f: (d: Devise) => number) => DEVISES.map((d) => montant(f(d), d)).join("\n");
   const de = (d: Devise) => billetages.find((b) => b.devise === d);
   const bon = de("CDF")?.bonCaisse ?? 0;
-  const lignes = DEVISES.flatMap((d) => COUPURES[d].filter((v) => (de(d)?.compte[v] ?? 0) > 0).map((v) => ({ d, v, n: de(d)!.compte[v]! })));
+  const lignes = DEVISES.flatMap((d) => coupuresDe(d).filter((v) => (de(d)?.compte[v] ?? 0) > 0).map((v) => ({ d, v, n: de(d)!.compte[v]! })));
   const guichet = ctx.guichets.find((g) => g.id === guichetId);
   function valider() {
     const a = billetages.filter((b) => !b.validePar);

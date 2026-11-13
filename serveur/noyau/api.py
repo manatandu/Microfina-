@@ -744,6 +744,11 @@ def dv_devise_modifier(request, code: str, corps: dict = Body(...)):
     return dv.enregistrer_devise(u(request), corps, code)
 
 
+@api.post("/cours")
+def dv_cours(request, corps: dict = Body(...)):
+    return dv.enregistrer_cours(u(request), corps)
+
+
 @api.post("/types-monnaie")
 def dv_type(request, corps: dict = Body(...)):
     return dv.enregistrer_type(u(request), corps)

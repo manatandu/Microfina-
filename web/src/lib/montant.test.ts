@@ -21,5 +21,5 @@ describe("lecture et affichage", () => {
     expect(lireMontant("abc")).toBeNull();
   });
   it("écrit la devise après une espace fine", () => { expect(montant(285000000, "CDF")).toBe("2 850 000,00 CDF"); });
-  it("totalise un billetage", () => { expect(totalComptage({ 100: 4, 50: 1 })).toBe(45000); expect(COUPURES.USD[0]).toBe(100); });
+  it("totalise un billetage", () => { expect(totalComptage({ 100: 4, 50: 1 })).toBe(45000); expect(COUPURES.USD?.[0]).toBe(100); });
 });

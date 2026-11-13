@@ -79,7 +79,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 78,Situation plan réel mémo du prêt au guichet,caisse,should,no,S76,B,guichet,6 Caisse,"S76 : Plan, Réel, Memo, MP (seule Situation est montrée)",A:S95 (p. 119) ; D:S22,,S76,
 79,Achat et retrait de parts sociales,caisse,must,partial,S77,A,guichet,6 Caisse,,R:loi 002/2002 (parts sociales),,,S16-11 Valeur de la part sociale
 80,Encaissements et décaissements divers,caisse,must,no,S78,A,guichet,6 Caisse,,D:S31,,S78,
-81,Billetage : saisie par coupure,caisse,must,partial,S79,A,guichet,6 Caisse,,,,,S79-1 Bouton Terminer ; S79-2 Deux devises ; S79-4 Billets et pièces ; S79-5 Devises et monnaies des guichets
+81,Billetage : saisie par coupure,caisse,must,partial,S79,A,guichet,6 Caisse,,,,,S79-1 Bouton Terminer ; S79-2 Deux devises
 82,Billetage : validation solde informatique et réel,caisse,must,partial,S80,A,visa,6 Caisse,,,,,"S80-2 Champ Compte Comptable ; S80-4 Imprimer, Terminer ; S80-5 Écriture de l'écart ; S80-6 Liste Journées"
 83,Transfert caisse vers caisse et caisse vers banque,caisse,must,no,S81,A,guichet,6 Caisse,,R:PCCI (mouvements de fonds),,S81,
 84,Opérations diverses et déplacées validées en caisse,caisse,must,no,S82,A,visa,6 Caisse,,,,S82,

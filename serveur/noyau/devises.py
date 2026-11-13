@@ -17,6 +17,8 @@ def texte(d, k) -> str:
 def lire(u) -> dict:
     exiger(u)
     return {"devises": lignes("select code, libelle, unite, subdivision from devise order by code"),
+            "cours": [{"devise": r["devise"].strip(), "jour": r["jour"].isoformat(), "cours": float(r["cours"])}
+                      for r in lignes("select devise, jour, cours from cours_change where institution_id = %s order by jour desc, devise", (u["institution_id"],))],
             "types": lignes("select id, libelle from type_monnaie order by id"),
             "monnaies": [{**r, "valeur": r["valeur"] / 100 if r["valeur"] % 100 else r["valeur"] // 100}
                          for r in lignes("""select c.devise, c.valeur, c.type_id as "typeId", coalesce(t.libelle, '') as libelle
@@ -120,4 +122,38 @@ def enregistrer_monnaie(u, d, actuelle: tuple[str, int] | None = None) -> dict:
         executer("insert into coupure (devise, valeur, nature, type_id) values (%s, %s, %s, %s)", (*cle, nature, tid))
     else:
         executer("update coupure set devise = %s, valeur = %s, nature = %s, type_id = %s where devise = %s and valeur = %s", (*cle, nature, tid, *actuelle))
+    return lire(u)
+
+
+def enregistrer_cours(u, d) -> dict:
+    """Page Cours : Devise, Date, Cours (francs congolais pour une unité de la devise). La comptabilité est tenue en monnaie nationale et
+    chaque opération en devise est convertie au cours du jour de la transaction (PCCI § 3.2 et § 7.1) ; registre S35-6.
+    Un cours déjà saisi pour cette devise et cette date est remplacé, tant qu'aucune écriture ne l'a utilisé."""
+    exiger(u, "chef_agence")
+    d = d if isinstance(d, dict) else {}
+    devise, jour, brut = texte(d, "devise"), texte(d, "jour"), d.get("cours")
+    brut = str(brut).strip().replace(",", ".") if brut not in (None, "") and not isinstance(brut, bool) else ""
+    manque = [n for n, v in (("Devise", devise), ("Date", jour), ("Cours", brut)) if not v]
+    if manque:
+        raise ErreurMetier("À remplir : " + ", ".join(manque) + ".")
+    if devise == "CDF":
+        raise ErreurMetier("Le franc congolais est la monnaie de tenue : il n'a pas de cours.")
+    if not une("select 1 from devise where code = %s", (devise,)):
+        raise ErreurMetier("Devise inconnue.")
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", jour):
+        raise ErreurMetier("Date invalide.")
+    try:
+        c = Decimal(brut)
+    except InvalidOperation:
+        c = Decimal(0)
+    if c <= 0 or c != round(c, 6):
+        raise ErreurMetier("Cours : nombre positif, six décimales au plus.")
+    i = u["institution_id"]
+    deja = une("select id from cours_change where institution_id = %s and devise = %s and jour = %s for update", (i, devise, jour))
+    if deja and valeur("select 1 from ligne_ecriture where cours_id = %s limit 1", (deja["id"],)):
+        raise ErreurMetier("Ce cours a servi à des écritures : il ne se modifie plus.")
+    if deja:
+        executer("update cours_change set cours = %s where id = %s", (c, deja["id"]))
+    else:
+        executer("insert into cours_change (institution_id, devise, jour, cours) values (%s, %s, %s, %s)", (i, devise, jour, c))
     return lire(u)

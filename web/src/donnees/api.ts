@@ -11,13 +11,13 @@ import {
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget,
 } from "./types";
-import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@design/montant.js";
+import { coupuresDe, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 import PCCI from "@pcci";
 
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v46";
+const CLE = "likelemba-demo-v47";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -25,7 +25,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 46) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 47) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -66,7 +66,11 @@ const session = {
 
 function contexte() {
   return { institution: E.institution, agence: E.agence, guichets: E.guichets.filter((g) => g.actif !== false), produits: produitsProposes(), zones: zonesActives(), typesClient: TYPES_CLIENT, typesEntreprise: TYPES_ENTREPRISE, typesGroupe: Object.keys(TYPES_GROUPE), pieces: PIECES, professions: E.professions, localites: localites(),
-    sensibilisateurs: agentsActifs("sensibilisateur"), commerciaux: agentsActifs("commercial"), motifsDepart: valeursListe("motif_depart").map((l) => l.libelle), cours: E.cours, valeurPart: E.valeurPart, utilisateurs: E.utilisateurs };
+    // S35 : devises et monnaies, lues par les guichets (registre S79-5)
+    devises: E.devises.map(({ code, libelle, unite }) => ({ code, libelle, unite })),
+    monnaies: Object.fromEntries([...new Set(E.monnaies.map((m) => m.devise))].sort().map((d) => [d, E.monnaies.filter((m) => m.devise === d).sort((a, b) => b.valeur - a.valeur)
+      .map((m) => ({ valeur: m.valeur, libelle: E.typesMonnaie.find((t) => t.id === m.typeId)?.libelle ?? "" }))])),
+    sensibilisateurs: agentsActifs("sensibilisateur"), commerciaux: agentsActifs("commercial"), motifsDepart: valeursListe("motif_depart").map((l) => l.libelle), cours: coursCourants(), valeurPart: E.valeurPart, utilisateurs: E.utilisateurs };
 }
 export const nomUtilisateur = (id?: number) => E.utilisateurs.find((u) => u.id === id)?.nom ?? "";
 
@@ -78,7 +82,7 @@ function poster(e: Omit<Ecriture, "id" | "numero">): Ecriture {
   const ecart = (f: (x: Ligne) => boolean, champ: "montant" | "montantCdf") =>
     l.filter(f).reduce((s, x) => s + (x.sens === "D" ? x[champ] : -x[champ]), 0);
   if (ecart(() => true, "montantCdf") !== 0) throw new ErreurMetier("Écriture déséquilibrée en CDF (PCCI § 3.2).");
-  for (const d of DEVISES) if (ecart((x) => x.devise === d, "montant") !== 0) throw new ErreurMetier(`Écriture déséquilibrée en ${d}.`);
+  for (const d of new Set(l.map((x) => x.devise))) if (ecart((x) => x.devise === d, "montant") !== 0) throw new ErreurMetier(`Écriture déséquilibrée en ${d}.`);
   const j = E.journees.find((x) => x.id === e.journeeId);
   if (!j || j.statut !== "ouverte") throw new ErreurMetier("Journée fermée : aucune écriture possible.");
   const id = prochain(E.ecritures);
@@ -86,8 +90,20 @@ function poster(e: Omit<Ecriture, "id" | "numero">): Ecriture {
   E.ecritures.push(ecr);
   return ecr;
 }
-const cdf = (m: number, d: Devise) => (d === "CDF" ? m : Math.round(m * E.cours.USD));   // règle d'arrondi à confirmer
-const enUsd = (m: number, d: Devise) => (d === "USD" ? m / 100 : m / 100 / E.cours.USD);
+/** CDF pour une unité de la devise : dernier cours saisi à la date de la journée (PCCI § 7.1 : cours du jour de la transaction) */
+function coursDe(d: Devise, jour = E.journees.at(-1)?.date ?? "9999-12-31"): number {
+  if (d === "CDF") return 1;
+  const c = E.coursListe.filter((x) => x.devise === d && x.jour <= jour).sort((a, b) => b.jour.localeCompare(a.jour))[0];
+  if (!c) throw new ErreurMetier(`Aucun cours du ${d} saisi (Préférences > Devise, page Cours).`);
+  return c.cours;
+}
+/** Devises qui ont des monnaies (S35) : celles que comptent les guichets (registre S79-5) */
+const devisesTenues = () => [...new Set(E.monnaies.map((m) => m.devise))].sort();
+function coursCourants(): Record<string, number> {
+  return Object.fromEntries([...new Set(E.coursListe.map((x) => x.devise))].flatMap((d) => { try { return [[d, coursDe(d)]]; } catch { return []; } }));
+}
+const cdf = (m: number, d: Devise) => (d === "CDF" ? m : Math.round(m * coursDe(d)));   // règle d'arrondi à confirmer
+const enUsd = (m: number, d: Devise) => (d === "USD" ? m / 100 : m / 100 * coursDe(d) / coursDe("USD"));
 
 /** Solde d'un contrat (compte de dépôt, parts, guichet) lu dans le grand livre : la vue auxiliaire n'a pas de solde à elle */
 function soldeContrat(contrat: string, devise: Devise, sensNormal: "D" | "C"): number {
@@ -206,7 +222,7 @@ const caisses = {
     if (s.statut === "arretee") throw new ErreurMetier("Caisse déjà arrêtée.");
     if (E.operations.some((o) => o.sessionId === sessionId && o.statut === "visa_requis"))
       throw new ErreurMetier("Une opération attend un visa : la faire viser ou refuser avant l'arrêté.");
-    if (Object.keys(compte).some((v) => !COUPURES[devise].includes(Number(v)))) throw new ErreurMetier("Coupure inconnue.");
+    if (Object.keys(compte).some((v) => !coupuresDe(devise).includes(Number(v)))) throw new ErreurMetier("Coupure inconnue.");
     if (!Number.isInteger(bonCaisse) || bonCaisse < 0) throw new ErreurMetier("Bon de Caisse invalide.");
     const theorique = caisses.theorique(sessionId, devise);
     const deja = E.billetages.find((b) => b.sessionId === sessionId && b.moment === "arret" && b.devise === devise);
@@ -225,7 +241,7 @@ const caisses = {
     if (b.moment === "arret") {
       const s = E.sessions.find((x) => x.id === b.sessionId)!;
       const arrets = E.billetages.filter((x) => x.sessionId === s.id && x.moment === "arret" && x.validePar);
-      if (DEVISES.every((d) => arrets.some((x) => x.devise === d))) {
+      if (devisesTenues().every((d) => arrets.some((x) => x.devise === d))) {
         s.statut = "arretee";
         E.fondsVeille[s.guichetId] = { CDF: arrets.find((x) => x.devise === "CDF")!.compte, USD: arrets.find((x) => x.devise === "USD")!.compte };
       }
@@ -950,7 +966,7 @@ const numerotation = {
 const banques = {
   lire() {
     exiger();
-    return { banques: [...E.banques].sort((a, b) => a.code.localeCompare(b.code)), journaux: journauxActifs("banque").map(({ id, code, libelle }) => ({ id, code, libelle })),
+    return { devises: E.devises.map((x) => x.code).sort(), banques: [...E.banques].sort((a, b) => a.code.localeCompare(b.code)), journaux: journauxActifs("banque").map(({ id, code, libelle }) => ({ id, code, libelle })),
       comptes: [...E.comptesBancaires].sort((a, b) => a.compte.localeCompare(b.compte)).map((c) => ({ ...c, intitule: NOSTRI[c.compte.slice(0, 4)] ?? "" })) };
   },
   enregistrerBanque(d: SaisieBanque, id?: number) {
@@ -980,7 +996,7 @@ const banques = {
       .filter(([, x]) => !x).map(([k]) => k);
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
     if (!/^560[0-3]\d*$/.test(v.compte)) throw new ErreurMetier("Compte : sous-compte de 560 « Comptes NOSTRI disponible » (PCCI, compte 56), par exemple 5601….");
-    if (!["CDF", "USD"].includes(v.devise)) throw new ErreurMetier("Devise inconnue.");
+    if (!E.devises.some((x) => x.code === v.devise)) throw new ErreurMetier("Devise inconnue.");   // S35
     if (!journauxActifs("banque").some((j) => j.id === d.journalId)) throw new ErreurMetier("Journal de banque inconnu.");
     if (E.comptesBancaires.some((c) => c.banqueId === banque!.id && c.numeroBancaire === v.numeroBancaire && c.id !== id)) throw new ErreurMetier("Ce numéro de compte existe déjà dans cette banque.");
     if (E.comptesBancaires.some((c) => c.compte === v.compte && c.id !== id)) throw new ErreurMetier("Ce compte comptable est déjà attribué à un compte bancaire.");
@@ -1010,7 +1026,7 @@ function sessionOuverte(_devise: Devise) {
 }
 function dejaFaite(cle: string) { return E.operations.find((o) => o.cle === cle && o.statut === "validee"); }
 function controlerCoupures(coupures: Comptage, montant: number, devise: Devise) {
-  if (Object.keys(coupures).some((v) => !COUPURES[devise].includes(Number(v)))) throw new ErreurMetier("Coupure inconnue.");
+  if (Object.keys(coupures).some((v) => !coupuresDe(devise).includes(Number(v)))) throw new ErreurMetier("Coupure inconnue.");
   if (totalComptage(coupures) !== montant) throw new ErreurMetier("Le billetage ne fait pas le montant.");
 }
 function guichetDe(s: SessionCaisse) { return `guichet:${s.guichetId}`; }
@@ -1292,7 +1308,7 @@ const tousJournaux = () => E.journaux.filter((j) => !j.supprime).sort((a, b) => 
 const journauxActifs = (type?: string) => tousJournaux().filter((j) => j.actif && (!type || j.type === type));
 export interface SaisieGuichet {
   agenceId: number; code: string; designation: string; typeGuichet: string; journalId: number;
-  maximumCaisse: number | null; maximumCaisseUsd: number | null; retraitPlafonne: number | null; retraitPlafonneUsd: number | null;   // une valeur par devise (registre S08-3)
+  plafonds: Record<string, { maximum: number | null; retrait: number | null }>;   // une valeur par devise tenue (registre S08-3, S79-5)
   compteGuichet: string; compteLiaison: string; compteSurplus: string; compteManquant: string; billetage?: boolean; actif: boolean;
 }
 /** Registre S08-7 : comptes du PCCI proposés par défaut, modifiables, contrôlés sur le plan de comptes (règle T16) */
@@ -1309,10 +1325,10 @@ const guichets = {
       guichets: [...E.guichets].sort((a, b) => a.code.localeCompare(b.code)).map((g) => {
         const s = E.sessions.find((x) => x.guichetId === g.id && x.journeeId === j?.id);
         return { id: g.id, code: g.code, nom: g.nom, typeGuichet: g.typeGuichet ?? "", actif: g.actif !== false, ouvert: s?.statut === "ouverte", dateOuverture: s && j ? j.date : "",
-          agenceId: E.agence.id, journalId: g.journalId ?? 0, maximumCaisse: g.maximumCaisse ?? 0, retraitPlafonne: g.retraitPlafonne ?? 0,
-          maximumCaisseUsd: g.maximumCaisseUsd ?? 0, retraitPlafonneUsd: g.retraitPlafonneUsd ?? 0, compteGuichet: g.compteGuichet ?? "", compteLiaison: g.compteLiaison ?? "",
+          agenceId: E.agence.id, journalId: g.journalId ?? 0, plafonds: g.plafonds ?? {}, compteGuichet: g.compteGuichet ?? "", compteLiaison: g.compteLiaison ?? "",
           compteSurplus: g.compteSurplus ?? "", compteManquant: g.compteManquant ?? "", billetage: true };
       }),
+      devises: devisesTenues(),
     };
   },
   /** « Gestion des guichets » (p. 18 et 95). Sans id : Enregistrer ; avec id : Modifier après un clic sur la ligne (p. 12, registre S08-8). */
@@ -1323,13 +1339,13 @@ const guichets = {
     const v = { code: d.code.trim(), nom: d.designation.trim(), typeGuichet: d.typeGuichet.trim() };
     const manque = manquants([["agence", d.agenceId ? "x" : ""], ["code guichet", v.code], ["désignation", v.nom], ["type de guichet", v.typeGuichet], ["journal", d.journalId ? "x" : ""]]);
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
-    const montants = ([["maximumCaisse", "maximum autorisé en caisse (CDF)"], ["maximumCaisseUsd", "maximum autorisé en caisse (USD)"],
-      ["retraitPlafonne", "retrait plafonné (CDF)"], ["retraitPlafonneUsd", "retrait plafonné (USD)"]] as const).map(([k, n]) => {
-      const x = d[k];
-      if (x === null) throw new ErreurMetier(`À remplir : ${n}.`);
+    const montant = (x: number | null | undefined, n: string) => {
+      if (x === null || x === undefined) throw new ErreurMetier(`À remplir : ${n}.`);
       if (!Number.isInteger(x) || x < 0) throw new ErreurMetier(`${n[0]!.toUpperCase() + n.slice(1)} : montant invalide.`);
       return x;
-    });
+    };
+    const plafonds = Object.fromEntries(devisesTenues().map((dv) => [dv, { maximum: montant(d.plafonds?.[dv]?.maximum, `maximum autorisé en caisse (${dv})`),
+      retrait: montant(d.plafonds?.[dv]?.retrait, `retrait plafonné (${dv})`) }]));
     if (!typesGuichet().includes(v.typeGuichet)) throw new ErreurMetier("Type de guichet inconnu.");
     if (d.agenceId !== E.agence.id) throw new ErreurMetier("Agence inconnue.");
     if (!journauxActifs("caisse").some((j) => j.id === d.journalId)) throw new ErreurMetier("Journal inconnu.");
@@ -1341,9 +1357,8 @@ const guichets = {
       comptes[k] = x || undefined;
     }
     if (E.guichets.some((g) => g.code === v.code && g.id !== id)) throw new ErreurMetier("Ce code guichet existe déjà.");
-    const [maximumCaisse, maximumCaisseUsd, retraitPlafonne, retraitPlafonneUsd] = montants;
     // Billetage autorisé : toujours vrai (registre S08-6, ARCHITECTURE P8)
-    const g = { ...v, journalId: d.journalId, maximumCaisse, maximumCaisseUsd, retraitPlafonne, retraitPlafonneUsd, ...comptes, billetage: true, actif: d.actif };
+    const g = { ...v, journalId: d.journalId, plafonds, ...comptes, billetage: true, actif: d.actif };
     if (actuel) Object.assign(actuel, g); else E.guichets.push({ id: prochain(E.guichets), ...g });
     enregistrer(); return guichets.lire();
   },
@@ -1394,7 +1409,7 @@ const guichets = {
     if (!s || s.statut !== "ouverte") throw new ErreurMetier("Ce guichet n'est pas ouvert.");
     if (s.caissierId !== u.id) throw new ErreurMetier("Cette caisse n'est pas la vôtre.");
     // Registre S09-5 : pas de Fermeture sans billetage du jour enregistré (S79), dans chaque devise (T12)
-    const manque = DEVISES.filter((d) => !E.billetages.some((b) => b.sessionId === s.id && b.moment === "arret" && b.devise === d));
+    const manque = devisesTenues().filter((d) => !E.billetages.some((b) => b.sessionId === s.id && b.moment === "arret" && b.devise === d));
     if (manque.length) throw new ErreurMetier(`Enregistrez d'abord le billetage de la caisse (Caisse > Billetage) : ${manque.join(", ")}.`);
     s.statut = "fermee"; enregistrer(); return guichets.lire();
   },
@@ -1474,7 +1489,7 @@ export function preparerDemo() {
   // Billetage : les plus grosses coupures d'abord, sans dépasser le stock de la caisse pour une sortie
   const billets = (montant: number, devise: Devise, stock?: Comptage): Comptage => {
     let reste = montant / 100; const c: Comptage = {};
-    for (const v of COUPURES[devise]) {
+    for (const v of coupuresDe(devise)) {
       const n = Math.min(Math.floor(reste / v), stock ? stock[v] ?? 0 : Infinity);
       if (n > 0) { c[v] = n; reste -= n * v; }
     }
@@ -2397,6 +2412,7 @@ const devises = {
   lire() {
     exiger();
     return { devises: [...E.devises].sort((a, b) => a.code.localeCompare(b.code)), types: [...E.typesMonnaie].sort((a, b) => a.id - b.id),
+      cours: [...E.coursListe].sort((a, b) => b.jour.localeCompare(a.jour) || a.devise.localeCompare(b.devise)),
       monnaies: [...E.monnaies].sort((a, b) => a.devise.localeCompare(b.devise) || a.valeur - b.valeur)
         .map((m) => ({ ...m, libelle: E.typesMonnaie.find((t) => t.id === m.typeId)?.libelle ?? "" })) };
   },
@@ -2419,6 +2435,21 @@ const devises = {
     } else if (E.devises.some((x) => x.code === code)) throw new ErreurMetier("Ce Code existe déjà.");
     if (E.devises.some((x) => x.libelle.toLowerCase() === libelle.toLowerCase() && x.code !== codeActuel)) throw new ErreurMetier("Cette Devise existe déjà.");
     if (actuelle) Object.assign(actuelle, { libelle, unite, subdivision: s }); else E.devises.push({ code, libelle, unite, subdivision: s });
+    enregistrer(); return devises.lire();
+  },
+  /** Page Cours : Devise, Date, Cours (CDF pour une unité). Comptabilité en monnaie nationale, conversion au cours du jour (PCCI § 3.2 et § 7.1) ; registre S35-6 */
+  enregistrerCours(d: { devise?: string; jour?: string; cours?: number | string }) {
+    exiger("chef_agence");
+    const devise = txt(d.devise), jour = txt(d.jour);
+    const brut = d.cours === undefined || d.cours === null ? "" : String(d.cours).trim().replace(",", ".");
+    const manque = manquants([["Devise", devise], ["Date", jour], ["Cours", brut]]);
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    if (devise === "CDF") throw new ErreurMetier("Le franc congolais est la monnaie de tenue : il n'a pas de cours.");
+    if (!E.devises.some((x) => x.code === devise)) throw new ErreurMetier("Devise inconnue.");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(jour)) throw new ErreurMetier("Date invalide.");
+    if (!/^\d+(\.\d{1,6})?$/.test(brut) || Number(brut) <= 0) throw new ErreurMetier("Cours : nombre positif, six décimales au plus.");
+    const deja = E.coursListe.find((x) => x.devise === devise && x.jour === jour);
+    if (deja) deja.cours = Number(brut); else E.coursListe.push({ devise, jour, cours: Number(brut) });
     enregistrer(); return devises.lire();
   },
   /** Enregistrer un type de monnaies : Type de Monnaie (registre S35-2) */

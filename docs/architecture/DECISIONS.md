@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**231 décisions.** Solidité : 75 fortes (le manuel ou un texte répond), 126 moyennes (déduites d'un écran voisin ou d'une donnée), 30 faibles (notre choix, faute de mieux). Dans le code : 174 déjà en place, 57 à appliquer.
+**233 décisions.** Solidité : 75 fortes (le manuel ou un texte répond), 128 moyennes (déduites d'un écran voisin ou d'une donnée), 30 faibles (notre choix, faute de mieux). Dans le code : 178 déjà en place, 55 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -37,7 +37,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | S08-1 | Liste des types de guichet | Elle vient de la page « Type Guichet » de Général (S14n). Valeurs de départ : PRINCIPALE, SECONDAIRE | Manuel : Manuel p. 19 et 95 ; liste de gauche p. 23 | forte | en place |
 | S08-2 | Journaux proposés | Les journaux de type caisse de l'institution (S30) | Manuel : Manuel p. 95 (Journal : « Caisse principale ») | forte | en place |
-| S08-3 | Devise du maximum en caisse et du retrait plafonné | Une valeur par devise tenue (règle T12) | Texte réglementaire : PCCI, compte 57 ; capture p. 95 (une seule monnaie dans l'exemple) | moyenne | en place |
+| S08-3 | Devise du maximum en caisse et du retrait plafonné | Maximum autorisé en caisse et Retrait plafonné : une valeur par devise tenue (devises qui ont des monnaies en S35), règle T12 | Texte réglementaire : PCCI, compte 57 ; capture p. 95 (une seule monnaie dans l'exemple) ; demande du porteur, 13/11/2026 (une devise créée sert partout) | moyenne | en place |
 | S08-4 | Effet du maximum autorisé en caisse | Avertissement au caissier quand le solde de sa caisse dépasse le maximum : il transfère l'excédent à la caisse principale (S81). Un dépôt n'est jamais refusé pour cette raison | Écran voisin : S81 Transfert entre caisses (p. 92) | faible | à appliquer |
 | S08-5 | Effet du retrait plafonné | Au-delà du plafond, le retrait attend le visa « Retrait plafond » (S113) avant d'être payé | Manuel : Manuel p. 131 (Visa > Retrait plafond) | forte | à appliquer |
 | S08-6 | Effet de « Billetage autorisé » | Case affichée, cochée et verrouillée : le billetage n'est pas une option | Choix du porteur : ARCHITECTURE P8 (décision du 05/11/2026) | forte | en place |
@@ -275,8 +275,8 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S79-1 | Bouton Terminer | Ferme la fenêtre sans rien enregistrer de plus | Écran voisin : Fenêtre d'ajout de S10 (Ajouter, Fermer), p. 20 | faible | à appliquer |
 | S79-2 | Deux devises | Un tableau par devise, chacun comme la capture (T12) | Texte réglementaire : T12 | forte | à appliquer |
 | S79-3 | Bon de Caisse | Dans la devise de son tableau. Total Caisse = Total Montant + Bon de Caisse | Manuel : Manuel p. 91 (Total Caisse à part du Total Montant), p. 92 (« Bon Caisse » à côté du Total Billetage) | moyenne | en place |
-| S79-4 | Billets et pièces | Le libellé « Billet de » ou « Pièce de » vient du type de monnaie de chaque coupure (S35) | Manuel : Capture p. 91 ; S35 (p. 45 et 46) | forte | à appliquer |
-| S79-5 | Devises et monnaies des guichets | Les guichets (billetage, dépôts, retraits, arrêté de caisse) lisent encore la liste fixe CDF et USD ; ils passeront aux devises et monnaies de S35 avec S79, avec le libellé « Billet de » ou « Pièce de » (S79-4). Le serveur contrôle déjà les coupures dans la liste de S35 | Donnée exigée ailleurs : S35 ; S79-4 | moyenne | à appliquer |
+| S79-4 | Billets et pièces | Le libellé « Billet de » ou « Pièce de » vient du type de monnaie de chaque coupure (S35) | Manuel : Capture p. 91 ; S35 (p. 45 et 46) | forte | en place |
+| S79-5 | Devises et monnaies des guichets | Les guichets (billetage, dépôts, retraits, arrêté et fermeture de caisse) lisent les devises et monnaies de S35 : une devise tenue est une devise qui a des monnaies ; libellé « Billet de » ou « Pièce de » du type de monnaie (S79-4) ; coupures en centimes acceptées | Choix du porteur : Demande du porteur, 13/11/2026 ; S35 ; S79-4 | moyenne | en place |
 
 ## S80 Validation billetage
 
@@ -490,6 +490,8 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S35-2 | Franc congolais | CDF : unité « FC » et subdivision 100, imposées ; tout autre réglage est refusé | Texte réglementaire : D.-L. 080/1998 du 17/06/1998, art. 1 (symbole « FC ») et art. 2 (cent centimes) | forte | en place |
 | S35-3 | Types de monnaie et monnaies | Type de Monnaie : un libellé, unique. Monnaie : Valeur fiduciaire, Type de Monnaie, Devise ; unique dans sa devise ; deux décimales au plus, entière pour une devise sans subdivision, multiple de la plus petite subdivision ; Libellé complète = libellé du type (identiques sur la capture). Une monnaie qui a servi aux guichets garde sa valeur et sa devise, son type se change. Pièce ou billet se déduit du libellé du type (« Pièce de… ») | Donnée exigée ailleurs : Captures p. 45 et 46 ; S79-4 | moyenne | en place |
 | S35-4 | Monnaies de démonstration | CDF 50 à 20 000 et USD 1 à 100, tous billets, chacun avec son type « Billet de … » : données de démonstration reprises de l'existant, pas lues dans un texte de la BCC ; l'institution saisit ses propres monnaies | Manuel : Graine ; aucun texte lu ne donne la liste des coupures en circulation | faible | en place |
+| S35-5 | Une devise créée sert partout | Les devises créées en S35 sont proposées aux produits (S23, S27), aux comptes bancaires (S58), aux guichets (plafonds S08, billetage S79) et aux cours. Montant en lettres d'une devise sans nom connu : son libellé, les centièmes en « centièmes » | Choix du porteur : Demande du porteur, 13/11/2026 ; PCCI § 7.1 (opérations en devises) ; Instr. BCC 002, art. 40 à 43 (positions de change par devise) | moyenne | en place |
+| S35-6 | Page Cours | Page ajoutée à Préférences > Devise : Devise, Date, Cours (francs congolais pour une unité) ; grille Date, Devise, Cours. CDF refusé (monnaie de tenue). Un cours déjà saisi pour la même devise et la même date se remplace tant qu'aucune écriture ne l'a utilisé. Chaque ligne d'écriture en devise prend le dernier cours de sa devise à la date de la journée. Microfina++ ne montre pas de saisie des cours : écart à la demande du porteur | Choix du porteur : Demande du porteur, 13/11/2026 ; PCCI § 3.2 (comptabilité en monnaie nationale) et § 7.1 (conversion au cours du jour de la transaction) ; Instr. BCC 57 vise les banques et bureaux de change, pas les COOPEC | moyenne | en place |
 
 ## S75 Déblocage de crédit
 

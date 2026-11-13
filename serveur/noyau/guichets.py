@@ -1,6 +1,6 @@
 """S08, S09 et S10 : Administration > Guichet (manuel Microfina++, p. 18 à 20, 95 et 96). Mêmes règles que web/src/donnees/api.ts (guichets)."""
 from .bd import ErreurMetier, executer, lignes, une, valeur
-from .services import DEVISES, exiger, journee_courante, ouvrir_caisse
+from .services import devises_tenues, exiger, journee_courante, ouvrir_caisse
 from .listes import valeurs
 
 
@@ -21,6 +21,14 @@ def texte(d, k):
     return v.strip() if isinstance(v, str) else ""
 
 
+def avec_plafonds(gs: list[dict]) -> list[dict]:
+    """Maximum autorisé en caisse et Retrait plafonné, par devise (registre S08-3)"""
+    for g in gs:
+        g["plafonds"] = {r["devise"].strip(): {"maximum": r["maximum"], "retrait": r["retrait"]}
+                         for r in lignes("select devise, maximum, retrait from guichet_plafond where guichet_id = %s", (g["id"],))}
+    return gs
+
+
 def lire(u) -> dict:
     exiger(u)
     i = u["institution_id"]
@@ -35,9 +43,8 @@ def lire(u) -> dict:
                              lignes("select id, date_comptable from journee_comptable where agence_id = %s and statut = 'ouverte' order by date_comptable desc",
                                     (u["agence_id"],))],
         "types": types_guichet(u),
-        "guichets": lignes("""select g.id, g.code, g.nom, coalesce(g.type_guichet, '') as "typeGuichet", g.actif, g.agence_id as "agenceId",
-                                     g.journal_id as "journalId", g.maximum_caisse as "maximumCaisse", g.retrait_plafonne as "retraitPlafonne",
-                                     g.maximum_caisse_usd as "maximumCaisseUsd", g.retrait_plafonne_usd as "retraitPlafonneUsd",
+        "guichets": avec_plafonds(lignes("""select g.id, g.code, g.nom, coalesce(g.type_guichet, '') as "typeGuichet", g.actif, g.agence_id as "agenceId",
+                                     g.journal_id as "journalId",
                                      coalesce(g.compte_guichet, '') as "compteGuichet", coalesce(g.compte_liaison, '') as "compteLiaison",
                                      coalesce(g.compte_surplus, '') as "compteSurplus", coalesce(g.compte_manquant, '') as "compteManquant", g.billetage,
                                      s.id is not null and s.fermee_le is null and s.statut = 'ouverte' as ouvert,
@@ -45,7 +52,8 @@ def lire(u) -> dict:
                               from guichet g join agence a on a.id = g.agence_id
                               left join session_caisse s on s.guichet_id = g.id and s.journee_id = %s
                               left join journee_comptable j on j.id = s.journee_id
-                              where a.institution_id = %s and g.agence_id = %s order by g.code""", (j["id"] if j else None, i, u["agence_id"])),
+                              where a.institution_id = %s and g.agence_id = %s order by g.code""", (j["id"] if j else None, i, u["agence_id"]))),
+        "devises": devises_tenues(),
     }
 
 
@@ -75,8 +83,9 @@ def enregistrer(u, d, gid: int | None = None) -> dict:
     manque = [n for n, v in (("agence", agence), ("code guichet", code), ("désignation", nom), ("type de guichet", type_), ("journal", journal)) if not v]
     if manque:
         raise ErreurMetier("À remplir : " + ", ".join(manque) + ".")
-    montants = [entier(d, k, n) for k, n in (("maximumCaisse", "maximum autorisé en caisse (CDF)"), ("maximumCaisseUsd", "maximum autorisé en caisse (USD)"),
-                                              ("retraitPlafonne", "retrait plafonné (CDF)"), ("retraitPlafonneUsd", "retrait plafonné (USD)"))]
+    p = d.get("plafonds") if isinstance(d.get("plafonds"), dict) else {}
+    plafonds = {dv: (entier(p.get(dv) if isinstance(p.get(dv), dict) else {}, "maximum", f"maximum autorisé en caisse ({dv})"),
+                     entier(p.get(dv) if isinstance(p.get(dv), dict) else {}, "retrait", f"retrait plafonné ({dv})")) for dv in devises_tenues()}
     if type_ not in types_guichet(u):
         raise ErreurMetier("Type de guichet inconnu.")
     if not une("select 1 from agence where id = %s and institution_id = %s", (agence, i)):
@@ -93,17 +102,18 @@ def enregistrer(u, d, gid: int | None = None) -> dict:
         comptes[k] = v or None
     if une("select 1 from guichet where agence_id = %s and code = %s and id is distinct from %s", (agence, code, gid)):
         raise ErreurMetier("Ce code guichet existe déjà.")
-    valeurs = (agence, code, nom, type_, journal, *montants, comptes["compteGuichet"], comptes["compteLiaison"], comptes["compteSurplus"],
+    valeurs = (agence, code, nom, type_, journal, comptes["compteGuichet"], comptes["compteLiaison"], comptes["compteSurplus"],
                comptes["compteManquant"], bool(d.get("actif")))
     # Billetage autorisé : toujours vrai (registre S08-6, ARCHITECTURE P8)
     if gid is None:
-        executer("""insert into guichet (agence_id, code, nom, type_guichet, journal_id, maximum_caisse, maximum_caisse_usd, retrait_plafonne,
-                                        retrait_plafonne_usd, compte_guichet, compte_liaison, compte_surplus, compte_manquant, actif, billetage)
-                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, true)""", valeurs)
+        gid = valeur("""insert into guichet (agence_id, code, nom, type_guichet, journal_id, compte_guichet, compte_liaison, compte_surplus, compte_manquant, actif, billetage)
+                         values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, true) returning id""", valeurs)
     else:
-        executer("""update guichet set agence_id = %s, code = %s, nom = %s, type_guichet = %s, journal_id = %s, maximum_caisse = %s, maximum_caisse_usd = %s,
-                                       retrait_plafonne = %s, retrait_plafonne_usd = %s, compte_guichet = %s, compte_liaison = %s, compte_surplus = %s,
+        executer("""update guichet set agence_id = %s, code = %s, nom = %s, type_guichet = %s, journal_id = %s, compte_guichet = %s, compte_liaison = %s, compte_surplus = %s,
                                        compte_manquant = %s, actif = %s, billetage = true where id = %s""", (*valeurs, gid))
+    executer("delete from guichet_plafond where guichet_id = %s", (gid,))
+    for dv, (maximum, retrait) in plafonds.items():
+        executer("insert into guichet_plafond (guichet_id, devise, maximum, retrait) values (%s, %s, %s, %s)", (gid, dv, maximum, retrait))
     return lire(u)
 
 
@@ -129,7 +139,7 @@ def fermer(u, gid: int) -> dict:
         raise ErreurMetier("Cette caisse n'est pas la vôtre.")
     # Registre S09-5 : pas de Fermeture sans billetage du jour enregistré (S79), dans chaque devise (T12)
     faites = {r["devise"].strip() for r in lignes("select devise from billetage where session_caisse_id = %s and moment = 'arret'", (s["id"],))}
-    manque = [d for d in DEVISES if d not in faites]
+    manque = [d for d in devises_tenues() if d not in faites]
     if manque:
         raise ErreurMetier("Enregistrez d'abord le billetage de la caisse (Caisse > Billetage) : " + ", ".join(manque) + ".")
     executer("update session_caisse set fermee_le = now(), fermee_par = %s where id = %s", (u["id"], s["id"]))

@@ -1,6 +1,6 @@
 // Primitives de replica/design/components.md, en React. Les classes viennent de composants.css.
 import { useEffect, useId, useState, type ReactNode } from "react";
-import { COUPURES, entier, lireMontant, montant, montantEnLettres, totalComptage, type Comptage, type Devise } from "@design/montant.js";
+import { coupuresDe, entier, lireMontant, montant, montantEnLettres, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 
 export function Puce({ etat, children }: { etat?: "ouverte" | "en_cloture" | "fermee"; children: ReactNode }) {
   return <span className="puce" data-etat={etat}>{children}</span>;
@@ -61,13 +61,16 @@ export function ChampMontant({ valeur, onChange, devise, erreur, libelle = "Mont
   );
 }
 
+/** Valeur d'une coupure, centimes compris (« 0,5 ») : S35 accepte les pièces de centimes */
+const valeurCoupure = (v: number) => new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(v);
+
 /** Billetage : coupures, stock en caisse, nombre, montant, écart avec la cible */
 export function Billetage({ devise, comptage, onChange, stock, cible, sens = "remise", idPremier, libelleStock = "En caisse", lectureSeule = false }: {
   devise: Devise; comptage: Comptage; onChange: (c: Comptage) => void; stock?: Comptage; cible?: number | null;
   sens?: "remise" | "recue" | "comptage"; idPremier?: string; libelleStock?: string; lectureSeule?: boolean;
 }) {
   const total = totalComptage(comptage);
-  const trop = sens === "remise" && stock ? COUPURES[devise].some((v) => (comptage[v] ?? 0) > (stock[v] ?? 0)) : false;
+  const trop = sens === "remise" && stock ? coupuresDe(devise).some((v) => (comptage[v] ?? 0) > (stock[v] ?? 0)) : false;
   const ecart = cible == null ? null : cible - total;
   const ok = cible != null && cible > 0 && ecart === 0 && !trop;
   return (
@@ -75,19 +78,19 @@ export function Billetage({ devise, comptage, onChange, stock, cible, sens = "re
       <table className="billetage" aria-describedby={`ecart-${devise}`}>
         <thead><tr><th scope="col">Coupure</th>{stock && <th scope="col">{libelleStock}</th>}<th scope="col">Nombre</th><th scope="col">Montant</th></tr></thead>
         <tbody>
-          {COUPURES[devise].map((v, i) => {
+          {coupuresDe(devise).map((v, i) => {
             const nb = comptage[v] ?? 0;
             const depasse = sens === "remise" && stock && nb > (stock[v] ?? 0);
             return (
               <tr key={v}>
-                <td>{entier.format(v)}</td>
+                <td>{valeurCoupure(v)}</td>
                 {stock && <td>{entier.format(stock[v] ?? 0)}</td>}
                 <td>
                   <input id={i === 0 ? idPremier : undefined} inputMode="numeric" readOnly={lectureSeule} className={depasse ? "trop" : undefined}
-                    aria-label={`Nombre de coupures de ${entier.format(v)} ${devise}`} value={nb || ""}
+                    aria-label={`Nombre de coupures de ${valeurCoupure(v)} ${devise}`} value={nb || ""}
                     onChange={(e) => { const n = parseInt(e.target.value.replace(/\D/g, ""), 10); onChange({ ...comptage, [v]: Number.isFinite(n) && n > 0 ? n : 0 }); }} />
                 </td>
-                <td>{nb ? entier.format(v * nb) : ""}</td>
+                <td>{nb ? valeurCoupure(v * nb) : ""}</td>
               </tr>
             );
           })}

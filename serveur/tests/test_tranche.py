@@ -542,8 +542,8 @@ def test_guichets(clients):
     chef.post("/api/journees", {"date": "2026-11-05"}, **H)
     l = chef.get("/api/guichets", **H).json()
     ag, jca = l["agences"][0]["id"], next(x["id"] for x in l["journaux"] if x["code"] == "CA")
-    corps = {"agenceId": ag, "code": "G3", "designation": "Caisse 3", "typeGuichet": "SECONDAIRE", "journalId": jca, "maximumCaisse": 0, "maximumCaisseUsd": 0,
-             "retraitPlafonne": 0, "retraitPlafonneUsd": 0, "compteGuichet": "570", "compteLiaison": "579", "billetage": False, "actif": False}
+    corps = {"agenceId": ag, "code": "G3", "designation": "Caisse 3", "typeGuichet": "SECONDAIRE", "journalId": jca,
+             "plafonds": {"CDF": {"maximum": 0, "retrait": 0}, "USD": {"maximum": 0, "retrait": 0}}, "compteGuichet": "570", "compteLiaison": "579", "billetage": False, "actif": False}
     assert [j["code"] for j in l["journaux"]] == ["CA"]                                     # registre S08-2
     assert "plan de comptes" in (lambda r: r.json()["message"])(chef.post("/api/guichets", {**corps, "compteSurplus": "5799"}, **H))   # règle T16
     def refus(c):
@@ -554,10 +554,10 @@ def test_guichets(clients):
     g3 = next(g for g in chef.post("/api/guichets", corps, **H).json()["guichets"] if g["code"] == "G3")
     assert (g3["typeGuichet"], g3["actif"], g3["ouvert"], g3["billetage"]) == ("SECONDAIRE", False, False, True)   # registre S08-6
     assert "existe déjà" in refus(corps)
-    assert "(USD)" in refus({**corps, "code": "G4", "maximumCaisseUsd": None})                # registre S08-3
-    m = next(g for g in chef.post(f"/api/guichets/{g3['id']}", {**corps, "designation": "Caisse trois", "maximumCaisseUsd": 500000}, **H).json()["guichets"]
-             if g["id"] == g3["id"])
-    assert (m["nom"], m["maximumCaisseUsd"]) == ("Caisse trois", 500000)                      # Modifier, registre S08-8
+    assert "(USD)" in refus({**corps, "code": "G4", "plafonds": {"CDF": {"maximum": 0, "retrait": 0}}})   # registre S08-3 : une valeur par devise tenue
+    m = next(g for g in chef.post(f"/api/guichets/{g3['id']}", {**corps, "designation": "Caisse trois",
+             "plafonds": {**corps["plafonds"], "USD": {"maximum": 500000, "retrait": 0}}}, **H).json()["guichets"] if g["id"] == g3["id"])
+    assert (m["nom"], m["plafonds"]["USD"]["maximum"]) == ("Caisse trois", 500000)          # Modifier, registre S08-8
     assert "inactif" in caisse.post(f"/api/guichets/{g3['id']}/ouverture", **H).json()["message"]
     g2 = caisse.post(f"/api/guichets/{G2()}/ouverture", **H).json()
     g2 = next(g for g in g2["guichets"] if g["id"] == G2())
@@ -1208,3 +1208,25 @@ def test_devises_monnaies(clients):
     m = chef.post("/api/monnaies", {"valeur": "0,50", "typeId": t["id"], "devise": "CDF"}, **H).json()["monnaies"]
     assert {"devise": "CDF", "valeur": 0.5, "typeId": t["id"], "libelle": "Pièce de 50 centimes"} in m
     assert chef.post("/api/monnaies/CDF/50", {"valeur": "0.5", "typeId": t["id"], "devise": "EUR"}, **H).status_code == 200
+
+
+def test_devise_partout(clients):
+    """Une devise créée en S35 sert partout (demande du porteur, 13/11/2026) : guichets, billetage, cours du jour (PCCI § 7.1) ; registre S35-6, S08-3, S79-5"""
+    chef = clients["chef"]; connecter(chef, "jpmukendi")
+    chef.post("/api/devises", {"libelle": "Euro", "code": "EUR", "unite": "€", "subdivision": 100}, **H)
+    t = chef.post("/api/types-monnaie", {"libelle": "Billet de 50 euros"}, **H).json()["types"][-1]
+    chef.post("/api/monnaies", {"valeur": 50, "typeId": t["id"], "devise": "EUR"}, **H)
+    def refus(url, corps):
+        r = chef.post(url, corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    assert "Devise, Date, Cours" in refus("/api/cours", {})
+    assert "monnaie de tenue" in refus("/api/cours", {"devise": "CDF", "jour": "2026-11-05", "cours": 1})
+    l = chef.post("/api/cours", {"devise": "EUR", "jour": "2026-11-05", "cours": "3100,5"}, **H).json()
+    assert {"devise": "EUR", "jour": "2026-11-05", "cours": 3100.5} in l["cours"]
+    ctx = chef.get("/api/referentiel", **H).json()
+    assert ctx["cours"]["EUR"] == 3100.5 and ctx["monnaies"]["EUR"] == [{"valeur": 50.0, "libelle": "Billet de 50 euros"}]
+    g = chef.get("/api/guichets", **H).json()
+    assert g["devises"] == ["CDF", "EUR", "USD"]
+    x = g["guichets"][0]
+    corps = {"agenceId": x["agenceId"], "code": x["code"], "designation": x["nom"], "typeGuichet": x["typeGuichet"], "journalId": x["journalId"],
+             "plafonds": {"CDF": {"maximum": 0, "retrait": 0}, "USD": {"maximum": 0, "retrait": 0}}, "actif": x["actif"]}
+    assert "(EUR)" in refus(f"/api/guichets/{x['id']}", corps)

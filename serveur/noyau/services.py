@@ -7,6 +7,7 @@ import uuid
 
 from psycopg.types.json import Jsonb
 from datetime import date
+from decimal import Decimal
 
 from django.conf import settings
 
@@ -14,7 +15,6 @@ from .bd import ErreurMetier, executer, lignes, une, valeur
 
 # Seuils, valeurs des maquettes
 SEUIL_ESPECES_USD = 10000    # examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
-DEVISES = ("CDF", "USD")
 SORTIES = ("retrait", "retrait_parts")      # opérations qui font sortir des billets de la caisse
 TYPES_CLIENT = ["Client"]
 # Type entreprise (p. 50) : la liste de Microfina++ n'est pas montrée. À confirmer ; en attendant, les agents économiques du PCCI § 10.2 (hors ménages)
@@ -82,11 +82,37 @@ def institution_de(u: dict) -> dict:
     return une("select * from institution where id = %s", (u["institution_id"],))
 
 
-def cours_usd(jour: date | None = None) -> float:
-    c = valeur("select cours from cours_change where devise = 'USD' and jour <= coalesce(%s, current_date) order by jour desc limit 1", (jour,))
+def devises_tenues() -> list[str]:
+    """Devises qui ont des monnaies (S35) : celles que comptent les guichets (registre S79-5)"""
+    return [r["devise"].strip() for r in lignes("select distinct devise from coupure order by devise")]
+
+
+def cours_ligne(devise: str, jour: date | None = None) -> dict | None:
+    return une("select id, cours from cours_change where devise = %s and jour <= coalesce(%s, current_date) order by jour desc limit 1", (devise, jour))
+
+
+def cours(devise: str, jour: date | None = None) -> float:
+    """CDF pour une unité de la devise, au dernier cours saisi à cette date (PCCI § 7.1 : cours du jour de la transaction)"""
+    if devise.strip() == "CDF":
+        return 1.0
+    c = cours_ligne(devise.strip(), jour)
     if c is None:
-        raise ErreurMetier("Aucun cours du dollar saisi.")
-    return float(c)
+        raise ErreurMetier(f"Aucun cours du {devise.strip()} saisi (Préférences > Devise, page Cours).")
+    return float(c["cours"])
+
+
+def cours_usd(jour: date | None = None) -> float:
+    return cours("USD", jour)
+
+
+def centiemes(v) -> int:
+    """Valeur d'une coupure, en unités (500, 0.5), vers les centièmes"""
+    return int((Decimal(str(v)) * 100).to_integral_value())
+
+
+def unites(c: int) -> str:
+    """Centièmes vers la clé d'un comptage : « 500 », « 0.5 »"""
+    return str(c // 100) if c % 100 == 0 else str((Decimal(c) / 100).normalize())
 
 
 def valeur_part() -> int:
@@ -115,7 +141,12 @@ def contexte(u: dict) -> dict:
                        (u["institution_id"], role)) for cle, role in (("sensibilisateurs", "sensibilisateur"), ("commerciaux", "commercial"))},
         "localites": localites(),
         "motifsDepart": [r["libelle"] for r in lignes("select libelle from liste_reference where institution_id = %s and liste = 'motif_depart' and actif order by id", (u["institution_id"],))],
-        "cours": {"USD": cours_usd()},
+        "cours": {r["devise"].strip(): float(cours(r["devise"])) for r in lignes("select distinct devise from cours_change")},
+        # S35 : devises et monnaies, lues par les guichets (registre S79-5)
+        "devises": lignes("select code, libelle, unite from devise order by code"),
+        "monnaies": {d: [{"valeur": float(unites(r["valeur"])), "libelle": r["libelle"]}
+                         for r in lignes("""select c.valeur, coalesce(t.libelle, '') as libelle from coupure c left join type_monnaie t on t.id = c.type_id
+                                            where c.devise = %s order by c.valeur desc""", (d,))] for d in devises_tenues()},
         "valeurPart": valeur_part(),
         "utilisateurs": utilisateurs(),
     }
@@ -218,7 +249,7 @@ def json_lu(v):
 
 def total_comptage(c: dict) -> int:
     c = json_lu(c)
-    return sum(int(v) * 100 * int(n or 0) for v, n in (c or {}).items())
+    return sum(centiemes(v) * int(n or 0) for v, n in (c or {}).items())
 
 
 def total_lignes(bid: int) -> int:
@@ -226,11 +257,11 @@ def total_lignes(bid: int) -> int:
 
 
 def comptage_billetage(bid: int) -> dict:
-    return {str(r["valeur"] // 100): r["nombre"] for r in lignes("select valeur, nombre from billetage_ligne where billetage_id = %s and nombre > 0", (bid,))}
+    return {unites(r["valeur"]): r["nombre"] for r in lignes("select valeur, nombre from billetage_ligne where billetage_id = %s and nombre > 0", (bid,))}
 
 
 def nettoyer(c: dict) -> dict:
-    return {str(int(v)): int(n) for v, n in (c or {}).items() if int(n or 0) > 0}
+    return {unites(centiemes(v)): int(n) for v, n in (c or {}).items() if int(n or 0) > 0}
 
 
 def vue_session(s: dict | None) -> dict | None:
@@ -284,12 +315,12 @@ def theorique(session_id: int, devise: str) -> dict:
     veille = une("""select b.id from billetage b join session_caisse s on s.id = b.session_caisse_id
                     where s.guichet_id = %s and b.moment = 'arret' and b.devise = %s and b.valide_par is not null and s.id <> %s
                     order by b.valide_le desc nulls last, b.id desc limit 1""", (s["guichet_id"], devise, session_id))
-    base = {int(k): v for k, v in (comptage_billetage(veille["id"]) if veille else {}).items()}
+    base = {centiemes(k): v for k, v in (comptage_billetage(veille["id"]) if veille else {}).items()}
     for r in lignes("""select o.type, c.valeur, c.nombre from operation o join operation_coupure c on c.operation_id = o.id
                        where o.session_caisse_id = %s and o.statut = 'validee' and o.devise = %s""", (session_id, devise)):
         signe = -1 if r["type"] in SORTIES else 1
-        base[r["valeur"] // 100] = base.get(r["valeur"] // 100, 0) + signe * r["nombre"]
-    return {str(k): v for k, v in base.items() if v}
+        base[r["valeur"]] = base.get(r["valeur"], 0) + signe * r["nombre"]
+    return {unites(k): v for k, v in base.items() if v}
 
 
 def vue_billetage(b: dict) -> dict:
@@ -304,7 +335,7 @@ def billetages(session_id: int) -> list[dict]:
 
 def controler_coupures(c: dict, devise: str):
     for v in c:
-        if not une("select 1 from coupure where devise = %s and valeur = %s", (devise, int(v) * 100)):
+        if not une("select 1 from coupure where devise = %s and valeur = %s", (devise, centiemes(v))):
             raise ErreurMetier("Coupure inconnue.")
 
 
@@ -335,7 +366,7 @@ def saisir_billetage(u: dict, session_id: int, devise: str, compte: dict, bon_ca
         bid = valeur("""insert into billetage (session_caisse_id, moment, devise, saisi_par, theorique, bon_caisse)
                         values (%s, 'arret', %s, %s, %s, %s) returning id""", (session_id, devise, u["id"], Jsonb(th), bon))
     for v, n in compte.items():
-        executer("insert into billetage_ligne (billetage_id, devise, valeur, nombre) values (%s, %s, %s, %s)", (bid, devise, int(v) * 100, n))
+        executer("insert into billetage_ligne (billetage_id, devise, valeur, nombre) values (%s, %s, %s, %s)", (bid, devise, centiemes(v), n))
     return vue_billetage(une("select * from billetage where id = %s", (bid,)))
 
 
@@ -351,7 +382,7 @@ def valider_billetage(u: dict, bid: int) -> dict:
     executer("update billetage set valide_par = %s, valide_le = now() where id = %s", (u["id"], bid))
     if b["moment"] == "arret":
         n = valeur("select count(distinct devise) from billetage where session_caisse_id = %s and moment = 'arret' and valide_par is not null", (b["session_caisse_id"],))
-        if n == len(DEVISES):
+        if n >= len(devises_tenues()):
             executer("update session_caisse set statut = 'arretee', arretee_le = now() where id = %s", (b["session_caisse_id"],))
     return vue_billetage(une("select * from billetage where id = %s", (bid,)))
 
@@ -1034,13 +1065,13 @@ def poster(u: dict, *, journal: str, journee_id: int, libelle: str, piece: str, 
     eid = valeur("""insert into ecriture (institution_id, numero, journal_id, journee_id, date_valeur, libelle, piece_id, evenement_id, schema_id, saisi_par, valide_par)
                     values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
                  (u["institution_id"], numero, jid, journee_id, j["date_comptable"], libelle, pid, cle, schema_valide(u, evenement), u["id"], valide_par))
-    cours = cours_usd(j["date_comptable"])
-    cours_id = valeur("select id from cours_change where devise = 'USD' and jour <= %s order by jour desc limit 1", (j["date_comptable"],))
     for rang, l in enumerate(lignes_ecr, start=1):
-        cdf = l["montant"] if l["devise"] == "CDF" else round(l["montant"] * cours)   # règle d'arrondi à confirmer
+        # contre-valeur au cours du jour de la devise de la ligne (PCCI § 7.1)
+        cdf = l["montant"] if l["devise"] == "CDF" else round(l["montant"] * cours(l["devise"], j["date_comptable"]))   # règle d'arrondi à confirmer
+        cours_id = None if l["devise"] == "CDF" else cours_ligne(l["devise"], j["date_comptable"])["id"]
         executer("""insert into ligne_ecriture (ecriture_id, rang, compte_id, contrat_ref, sens, devise, montant_devise, montant_cdf, cours_id)
                     values (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-                 (eid, rang, id_compte(l["compte"]), l.get("contrat"), l["sens"], l["devise"], l["montant"], cdf, cours_id if l["devise"] != "CDF" else None))
+                 (eid, rang, id_compte(l["compte"]), l.get("contrat"), l["sens"], l["devise"], l["montant"], cdf, cours_id))
     return eid
 
 
@@ -1078,7 +1109,7 @@ def nouvelle_piece(u: dict, journal: str, journee_date) -> str:
 # ---------- Guichet ----------
 
 def en_usd(m: int, devise: str) -> float:
-    return m / 100 if devise == "USD" else m / 100 / cours_usd()
+    return m / 100 if devise.strip() == "USD" else m / 100 * cours(devise) / cours_usd()
 
 
 def especes_du_jour_usd(tid: int, journee_id: int, sens: str) -> float:
@@ -1108,7 +1139,7 @@ def vue_operation(o: dict) -> dict:
     compte_id = int(o["contrat_ref"].split(":")[1]) if (o["contrat_ref"] or "").startswith("depot:") else None
     return {"id": o["id"], "cle": str(o["cle_idempotence"]), "type": o["type"], "statut": statut, "sessionId": o["session_caisse_id"], "tiersId": o["tiers_id"],
             "compteId": compte_id, "montant": o["montant"], "devise": o["devise"].strip(), "parts": o["parts"],
-            "coupures": {str(r["valeur"] // 100): r["nombre"] for r in lignes("select valeur, nombre from operation_coupure where operation_id = %s", (o["id"],))},
+            "coupures": {unites(r["valeur"]): r["nombre"] for r in lignes("select valeur, nombre from operation_coupure where operation_id = %s", (o["id"],))},
             "remisPar": o["remis_par"] or "", "motif": o.get("motif") or "", "saisiPar": o["saisi_par"], "visePar": o["vise_par"], "ecritureId": o["ecriture_id"],
             "heure": o["cree_le"].astimezone().strftime("%H:%M")}
 
@@ -1116,7 +1147,7 @@ def vue_operation(o: dict) -> dict:
 def enregistrer_coupures(oid: int, devise: str, coupures: dict):
     executer("delete from operation_coupure where operation_id = %s", (oid,))
     for v, n in coupures.items():
-        executer("insert into operation_coupure (operation_id, devise, valeur, nombre) values (%s, %s, %s, %s)", (oid, devise, int(v) * 100, n))
+        executer("insert into operation_coupure (operation_id, devise, valeur, nombre) values (%s, %s, %s, %s)", (oid, devise, centiemes(v), n))
 
 
 def creer_operation(u, s, *, cle, type_, statut, tiers_id, contrat, montant, devise, coupures, remis_par, parts=None, ecriture_id=None, motif=None) -> int:

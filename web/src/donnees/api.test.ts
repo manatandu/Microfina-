@@ -85,19 +85,19 @@ describe("journée de guichet", () => {
 
   it("guichets (S08 p. 18, S09 p. 19) : champs obligatoires, code unique, ouverture d'un guichet actif, fermeture", async () => {
     await connecter("jpmukendi"); await api.journees.ouvrir("2026-11-05");
-    const d = { agenceId: 1, code: "G3", designation: "Caisse 3", typeGuichet: "SECONDAIRE", journalId: 1, maximumCaisse: 0, maximumCaisseUsd: 0, retraitPlafonne: 0, retraitPlafonneUsd: 0,
-      compteGuichet: "570", compteLiaison: "579", compteSurplus: "", compteManquant: "", actif: false };
+    const d = { agenceId: 1, code: "G3", designation: "Caisse 3", typeGuichet: "SECONDAIRE", journalId: 1,
+      plafonds: { CDF: { maximum: 0, retrait: 0 }, USD: { maximum: 0, retrait: 0 } } as Record<string, { maximum: number | null; retrait: number | null }>, compteGuichet: "570", compteLiaison: "579", compteSurplus: "", compteManquant: "", actif: false };
     await expect(api.guichets.enregistrer({ ...d, designation: "" })).rejects.toThrow("désignation");
     await expect(api.guichets.enregistrer({ ...d, compteSurplus: "57A" })).rejects.toThrow("chiffres");
     await expect(api.guichets.enregistrer({ ...d, compteSurplus: "5799" })).rejects.toThrow("plan de comptes");   // règle T16
-    await expect(api.guichets.enregistrer({ ...d, maximumCaisseUsd: null })).rejects.toThrow("(USD)");          // registre S08-3
+    await expect(api.guichets.enregistrer({ ...d, plafonds: { CDF: { maximum: 0, retrait: 0 } } })).rejects.toThrow("(USD)");   // registre S08-3 : une valeur par devise tenue
     await expect(api.guichets.enregistrer({ ...d, journalId: 3 })).rejects.toThrow("Journal inconnu");          // registre S08-2
     const g3 = (await api.guichets.enregistrer(d)).guichets.find((g) => g.code === "G3")!;
     expect([g3.typeGuichet, g3.actif, g3.ouvert, g3.billetage]).toEqual(["SECONDAIRE", false, false, true]);
     await expect(api.guichets.enregistrer(d)).rejects.toThrow("existe déjà");
     // Modifier (p. 12, registre S08-8) : même code accepté pour le même guichet
-    const m = (await api.guichets.enregistrer({ ...d, designation: "Caisse trois", maximumCaisseUsd: 500000 }, g3.id)).guichets.find((g) => g.id === g3.id)!;
-    expect([m.nom, m.maximumCaisseUsd]).toEqual(["Caisse trois", 500000]);
+    const m = (await api.guichets.enregistrer({ ...d, designation: "Caisse trois", plafonds: { ...d.plafonds, USD: { maximum: 500000, retrait: 0 } } }, g3.id)).guichets.find((g) => g.id === g3.id)!;
+    expect([m.nom, m.plafonds.USD?.maximum]).toEqual(["Caisse trois", 500000]);
     await connecter("engalula");
     await expect(api.guichets.ouvrir(g3.id)).rejects.toThrow("inactif");
     const g2 = (await api.guichets.ouvrir(2)).guichets.find((g) => g.id === 2)!;
@@ -565,6 +565,21 @@ describe("journée de guichet", () => {
     await expect(api.devises.enregistrerMonnaie({ valeur: "0.505", typeId: t.id, devise: "CDF" })).rejects.toThrow("deux décimales");
     await expect(api.devises.enregistrerMonnaie({ valeur: 500, typeId: t.id, devise: "CDF" })).rejects.toThrow("existe déjà");
     expect((await api.devises.enregistrerMonnaie({ valeur: "0,50", typeId: t.id, devise: "CDF" })).monnaies).toContainEqual({ devise: "CDF", valeur: 0.5, typeId: t.id, libelle: "Pièce de 50 centimes" });
+  });
+
+  it("une devise créée sert partout (S35, demande du porteur) : guichets, comptes bancaires, cours du jour (PCCI § 7.1)", async () => {
+    await connecter("jpmukendi");
+    await api.devises.enregistrerDevise({ libelle: "Euro", code: "EUR", unite: "€", subdivision: 100 });
+    const t = (await api.devises.enregistrerType({ libelle: "Billet de 50 euros" })).types.at(-1)!;
+    await api.devises.enregistrerMonnaie({ valeur: 50, typeId: t.id, devise: "EUR" });
+    await expect(api.devises.enregistrerCours({})).rejects.toThrow("Devise, Date, Cours");
+    await expect(api.devises.enregistrerCours({ devise: "CDF", jour: "2026-11-05", cours: 1 })).rejects.toThrow("monnaie de tenue");
+    expect((await api.devises.enregistrerCours({ devise: "EUR", jour: "2026-11-04", cours: "3100,5" })).cours).toContainEqual({ devise: "EUR", jour: "2026-11-04", cours: 3100.5 });
+    const ctx = await api.referentiel.contexte();
+    expect([ctx.cours.EUR, ctx.monnaies.EUR]).toEqual([3100.5, [{ valeur: 50, libelle: "Billet de 50 euros" }]]);
+    const g = await api.guichets.lire();
+    expect(g.devises).toEqual(["CDF", "EUR", "USD"]);
+    expect((await api.banques.lire()).devises).toContain("EUR");
   });
 
   it("info société (S32, p. 42) : obligatoires, Type base, localisation, hors bilan classe 0, logo ; agences", async () => {

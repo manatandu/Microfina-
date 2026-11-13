@@ -167,6 +167,9 @@ const OUT = process.argv[2];
   await p.getByRole('tab', { name: 'Sous', exact: true }).click(); await p.getByLabel('Valeur fiduciaire:').fill('0,50');
   await p.getByLabel('Type de Monnaie :').selectOption({ label: 'Pièce de 50 centimes' }); await p.getByLabel('Devise :').selectOption('CDF');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: '0,5', exact: true }).waitFor(); await etape('02f27-monnaies');
+  await p.getByRole('tab', { name: 'Cours', exact: true }).click(); await p.getByLabel('Cours (CDF pour une unité) :').waitFor(); await p.getByLabel('Devise :').selectOption('USD'); await p.getByLabel('Date :').fill('05/11/2026');
+  await p.getByLabel('Cours (CDF pour une unité) :').fill('2850'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByRole('cell', { name: '05/11/2026' }).waitFor(); await etape('02f28-cours');
   // Chef : paramétrage des produits épargne (S28, p. 41) : l'épargne de garantie dans l'onglet Bloqué, compte 334 proposé
   await aller('/parametrage/s28'); await p.getByRole('tab', { name: 'Bloqué' }).click(); await p.getByLabel('Compte lié').and(p.locator('[value="334"]')).waitFor();
   await p.getByLabel('Produit: *').selectOption({ label: 'Epargne De Garantie (G)' }); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
@@ -406,7 +409,7 @@ const OUT = process.argv[2];
     await fen.getByRole('button', { name: 'Fermer' }).click();
   }
   await aller('/caisse/s79'); await p.getByRole('heading', { name: /Arretée de : Caisse 2/ }).waitFor();
-  for (const dev of ['CDF', 'USD']) for (const [v, n] of stock[dev]) await p.getByLabel(`Nombre : Billet de ${v} ${dev}`).fill(n);
+  for (const dev of ['CDF', 'USD']) for (const [v, n] of stock[dev]) if (n !== '0') await p.getByLabel(`Nombre : Billet de ${v} ${dev}`).fill(n);
   await p.getByLabel('Bon de Caisse').fill('5 000');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await etape('15-arrete');

@@ -2,7 +2,7 @@
 import re
 
 from .bd import ErreurMetier, executer, lignes, une, valeur
-from .services import exiger, DEVISES
+from .services import exiger
 
 # PCCI, compte 560 « Comptes NOSTRI disponible » : le compte d'une banque de l'institution en est un sous-compte
 NOSTRI = {"5600": "Organe faîtier", "5601": "Banque et autres intermédiaires financiers", "5602": "Coopérative d'Epargne et de Crédit",
@@ -26,6 +26,7 @@ def lire(u) -> dict:
     exiger(u)
     i = u["institution_id"]
     return {
+        "devises": [r["code"] for r in lignes("select code from devise order by code")],   # S35 : toutes les devises créées
         "banques": lignes("""select id, code, nom as libelle, compte_liaison as "compteLiaison", coalesce(adresse, '') as adresse
                              from banque where institution_id = %s order by code""", (i,)),
         "comptes": [{**r, "intitule": intitule_pcci(r["compte"])} for r in
@@ -90,7 +91,7 @@ def enregistrer_compte(u, d, cid: int | None = None) -> dict:
         raise ErreurMetier("À remplir : " + ", ".join(manque) + ".")
     if not re.match(r"^560[0-3][0-9]*$", compte):
         raise ErreurMetier("Compte : sous-compte de 560 « Comptes NOSTRI disponible » (PCCI, compte 56), par exemple 5601….")
-    if devise not in DEVISES:
+    if not une("select 1 from devise where code = %s", (devise,)):
         raise ErreurMetier("Devise inconnue.")
     if not valeur("select 1 from journal where id = %s and institution_id = %s and type = 'banque' and actif and not supprime", (journal, i)):
         raise ErreurMetier("Journal de banque inconnu.")

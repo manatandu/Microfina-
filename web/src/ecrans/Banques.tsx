@@ -91,7 +91,7 @@ function BanqueInstitution({ d, confirmer }: Props) {
         <Champ libelle="Libelle : *">{(p) => <input {...p} className="saisie" readOnly value={banque && f.devise ? `${banque.libelle} ${f.devise}` : ""} />}</Champ>
         <Champ libelle="N° Compte Bancaire : *">{(p) => <input {...p} className="saisie code" required autoComplete="off" {...t("numeroBancaire")} />}</Champ>
         <Champ libelle="Devise *">{(p) => <select {...p} className="saisie" required value={f.devise} onChange={(e) => setF({ ...f, devise: e.target.value })}>
-          <option value=""></option><option>CDF</option><option>USD</option></select>}</Champ>
+          <option value=""></option>{d.devises.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
         <Champ libelle="journal *">{(p) => <select {...p} className="saisie" required value={f.journalId} onChange={(e) => setF({ ...f, journalId: Number(e.target.value) })}>
           {d.journaux.map((j) => <option key={j.id} value={j.id}>{j.libelle}</option>)}</select>}</Champ>
         <Champ libelle="Intitulé">{(p) => <input {...p} className="saisie" readOnly value={NOSTRI[f.compte.trim().slice(0, 4)] ?? ""} />}</Champ>

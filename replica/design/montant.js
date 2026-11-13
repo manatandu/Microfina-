@@ -2,18 +2,54 @@
 // Les montants sont des entiers en unités mineures, toujours avec leur devise (ARCHITECTURE P4). Jamais de float.
 // Types en JSDoc : TypeScript les vérifie en mode strict (web/tsconfig.json, checkJs).
 
-/** @typedef {"CDF" | "USD"} Devise */
+/** @typedef {string} Devise */
 /** @typedef {Partial<Record<number, number>>} Comptage  nombre de billets par coupure */
 
-/** @type {readonly Devise[]} */
+/** Devises tenues par les guichets : celles qui ont des monnaies (S35). Remplies par definirMonnaies à l'ouverture de session.
+ * @type {Devise[]} */
 export const DEVISES = ["CDF", "USD"];
 
-/** Coupures en circulation, en unités (pas en centimes). À confirmer avec la BCC.
- * @type {Record<Devise, readonly number[]>} */
+/** Coupures par devise, en unités (500, 0.5), de la plus grande à la plus petite ; valeurs de départ remplacées par celles de S35.
+ * @type {Record<Devise, number[]>} */
 export const COUPURES = {
   USD: [100, 50, 20, 10, 5, 1],
   CDF: [20000, 10000, 5000, 1000, 500, 200, 100, 50],
 };
+
+/** Libellé de chaque coupure : celui de son type de monnaie (« Billet de 500 », « Pièce de 50 centimes ») ; registre S79-4
+ * @type {Record<Devise, Record<string, string>>} */
+export const LIBELLES = {};
+
+/** Libellés des devises (S35), pour les montants en lettres d'une devise sans nom connu
+ * @type {Record<Devise, string>} */
+const NOMS_DEVISES = {};
+
+/** Coupures d'une devise ; aucune si la devise n'a pas de monnaies
+ * @param {Devise} d @returns {number[]} */
+export function coupuresDe(d) {
+  return COUPURES[d] ?? [];
+}
+
+/** Libellé d'une coupure : celui de S35, sinon « Billet de 500 »
+ * @param {Devise} d @param {number} v @returns {string} */
+export function libelleCoupure(d, v) {
+  return LIBELLES[d]?.[String(v)] || `Billet de ${v}`;
+}
+
+/** Remplace devises et coupures par celles de S35 (contexte de la session)
+ * @param {{ code: string; libelle: string }[]} devises @param {Record<string, { valeur: number; libelle: string }[]>} monnaies */
+export function definirMonnaies(devises, monnaies) {
+  for (const d of devises) NOMS_DEVISES[d.code] = d.libelle;
+  const tenues = Object.keys(monnaies).filter((d) => (monnaies[d] ?? []).length > 0).sort();
+  DEVISES.splice(0, DEVISES.length, ...tenues);
+  for (const k of Object.keys(COUPURES)) delete COUPURES[k];
+  for (const k of Object.keys(LIBELLES)) delete LIBELLES[k];
+  for (const d of tenues) {
+    const m = [...(monnaies[d] ?? [])].sort((a, b) => b.valeur - a.valeur);
+    COUPURES[d] = m.map((x) => x.valeur);
+    LIBELLES[d] = Object.fromEntries(m.map((x) => [String(x.valeur), x.libelle]));
+  }
+}
 
 /** Deux décimales, séparateurs français, sans devise : pour une case de saisie */
 export const decimal = new Intl.NumberFormat("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -38,7 +74,7 @@ export function lireMontant(txt) {
 /** Total d'un comptage, en unités mineures
  * @param {Comptage} c @returns {number} */
 export function totalComptage(c) {
-  return Object.entries(c).reduce((s, [v, n]) => s + Number(v) * 100 * (n ?? 0), 0);
+  return Object.entries(c).reduce((s, [v, n]) => s + Math.round(Number(v) * 100) * (n ?? 0), 0);
 }
 
 const U = ["zéro","un","deux","trois","quatre","cinq","six","sept","huit","neuf","dix","onze","douze","treize","quatorze","quinze","seize"];
@@ -85,7 +121,7 @@ export function enLettres(n) {
   return p.join(" ");
 }
 
-/** @type {Record<Devise, { u: [string, string]; c: [string, string] }>} */
+/** @type {Record<Devise, { u: [string, string]; c: [string, string] } | undefined>} */
 const NOMS = {
   USD: { u: ["dollar américain", "dollars américains"], c: ["cent", "cents"] },
   CDF: { u: ["franc congolais", "francs congolais"], c: ["centime", "centimes"] },
@@ -94,7 +130,10 @@ const NOMS = {
 /** 128450000000, "CDF" -> « un milliard deux cent quatre-vingt-quatre millions cinq cent mille francs congolais »
  * @param {number} c unités mineures @param {Devise} d @returns {string} */
 export function montantEnLettres(c, d) {
-  const e = Math.floor(c / 100), ct = c % 100, n = NOMS[d];
+  const nom = NOMS_DEVISES[d] ?? d;
+  // devise créée en S35 sans nom au pluriel : son libellé, et les centièmes en chiffres
+  const n = NOMS[d] ?? { u: [nom, nom], c: ["centième", "centièmes"] };
+  const e = Math.floor(c / 100), ct = c % 100;
   const rond = e >= 1e6 && e % 1e6 === 0;
   let s = enLettres(e) + (rond ? " de " : " ") + n.u[e > 1 ? 1 : 0];
   if (ct) s += " et " + enLettres(ct) + " " + n.c[ct > 1 ? 1 : 0];

@@ -8,6 +8,7 @@ import { useDonnees } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { menus, applicationDe, APPLICATIONS, type Menu } from "../ecrans/registre";
 import { CONSTRUITS } from "../ecrans/construits";
+import { definirMonnaies } from "@design/montant.js";
 import { mots } from "../lib/vocabulaire";
 import { Etoile, ICONES } from "./icones";
 
@@ -16,6 +17,7 @@ export function Coquille() {
   const lieu = useLocation();
   const { donnees } = useDonnees(async () => {
     const [u, ctx, j] = await Promise.all([api.session.courante(), api.referentiel.contexte(), api.journees.courante()]);
+    if (u) definirMonnaies(ctx.devises, ctx.monnaies);   // devises et monnaies de S35 pour les guichets (registre S79-5)
     return { u, ctx, j };
   });
   if (!donnees) return null;
