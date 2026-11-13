@@ -137,6 +137,10 @@ const OUT = process.argv[2];
   await p.getByLabel('Libelle : *').fill('Opérations diverses'); await p.getByLabel('Code :').fill('OD');
   await p.getByRole('checkbox', { name: 'Actif', exact: true }).check(); await p.getByRole('checkbox', { name: 'Détail journal' }).check();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'OD', exact: true }).waitFor(); await etape('02f20-journaux');
+  // Chef : ED divers (S31, p. 42) : une opération de produit, au compte 7790
+  await aller('/parametrage/s31'); await p.getByLabel('Type Opération: *').selectOption('PRODUIT'); await p.getByLabel('Compte *').fill('7790');
+  await p.getByLabel('Statut *').selectOption('ACTIF'); await p.getByLabel('Libellé opération *').fill("Vente de livret d'épargne");
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: "Vente de livret d'épargne" }).waitFor(); await etape('02f21-ed-divers');
   // Chef : paramétrage des produits épargne (S28, p. 41) : l'épargne de garantie dans l'onglet Bloqué, compte 334 proposé
   await aller('/parametrage/s28'); await p.getByRole('tab', { name: 'Bloqué' }).click(); await p.getByLabel('Compte lié').and(p.locator('[value="334"]')).waitFor();
   await p.getByLabel('Produit: *').selectOption({ label: 'Epargne De Garantie (G)' }); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();

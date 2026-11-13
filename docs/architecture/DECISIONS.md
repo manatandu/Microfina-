@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**205 décisions.** Solidité : 68 fortes (le manuel ou un texte répond), 110 moyennes (déduites d'un écran voisin ou d'une donnée), 27 faibles (notre choix, faute de mieux). Dans le code : 151 déjà en place, 54 à appliquer.
+**208 décisions.** Solidité : 68 fortes (le manuel ou un texte répond), 113 moyennes (déduites d'un écran voisin ou d'une donnée), 27 faibles (notre choix, faute de mieux). Dans le code : 154 déjà en place, 54 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -435,6 +435,14 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S30-1 | Types et champs | Types du schéma de départ, nommés « Journal de … » comme la capture (Caisse, Banque, Opérations diverses, Crédit, Epargne, Provisions, Paie, Immobilisations, À-nouveaux). Type Journal et Libelle obligatoires ; Code refusé vide bien que la capture ne montre pas d'astérisque : il sert de N° Journal et entre dans le numéro de pièce (S29). Code unique, en majuscules | Donnée exigée ailleurs : Capture p. 42 ; PCCI § 3.3 (journaux auxiliaires au choix) ; T08 ; S29-1 | moyenne | en place |
 | S30-2 | Actif et Détail journal | Actif : un journal inactif ne reçoit plus d'écriture et n'est plus proposé aux guichets ni aux banques ; le refus vient avant le compteur de pièce, donc sans trou. Détail journal : crée la ligne du journal dans l'exercice en cours (Compléter journal détail) ; elle ne s'enlève plus quand des pièces y sont numérotées | Donnée exigée ailleurs : Capture p. 42 ; S11c (p. 21) ; S29-1 ; PCCI § 3.4 | moyenne | en place |
 | S30-3 | Journal qui a servi | Écritures passées, guichet ou compte bancaire rattaché : code et type figés, Supprimer refusé (décocher Actif). Sinon Supprimer est logique | Donnée exigée ailleurs : T02 ; PCCI § 3.4 (piste d'audit) | moyenne | en place |
+
+## S31 ED divers : référentiel
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S31-1 | Type Opération et usage | PRODUIT ou CHARGE, comme la colonne Sens de la capture : ce sont les opérations que le guichet propose en encaissement (PRODUIT) ou décaissement (CHARGE) divers (S78) ; seules les ACTIF y figurent. Une opération ne se supprime pas : elle passe INACTIF | Écran voisin : Capture p. 42 ; manuel p. 89 et 90 (S78) ; T02 | moyenne | en place |
+| S31-2 | Compte | Un compte du plan, ouvert et saisissable ; une classe (« 6 » sur la capture) est refusée, elle ne reçoit pas d'écriture ; un compte de caisse (57) est refusé, la caisse est l'autre côté de l'écriture | Texte réglementaire : T16 ; S102-10 ; PCCI classe 5 (57 caisse) | moyenne | en place |
+| S31-3 | Modification | Clic sur une ligne : elle revient dans le formulaire ; Enregistrer la modifie après confirmation. Un libellé une seule fois par type d'opération | Règle générale du manuel : Manuel p. 12 (T01) ; capture p. 42 (même libellé en PRODUIT et en CHARGE) | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

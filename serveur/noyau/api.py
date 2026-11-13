@@ -19,6 +19,7 @@ from . import modeles_credit as mc
 from . import produits_epargne as pe
 from . import parametrage_epargne as pp
 from . import journaux as jo
+from . import ed_divers as ed
 from . import comptes as cp
 from . import numerotation as nu
 from . import services as s
@@ -684,6 +685,22 @@ def pe_modifier(request, pid: int, corps: dict = Body(...)):
 @api.post("/produits-epargne/{pid}/suppression")
 def pe_supprimer(request, pid: int):
     return pe.supprimer(u(request), pid)
+
+
+# ---------- Comptabilité > ED DIVERS : paramétrage autres opérations (S31) ----------
+@api.get("/operations-diverses")
+def ed_lire(request):
+    return ed.lire(u(request))
+
+
+@api.post("/operations-diverses")
+def ed_creer(request, corps: dict = Body(...)):
+    return ed.enregistrer(u(request), corps)
+
+
+@api.post("/operations-diverses/{oid}")
+def ed_modifier(request, oid: int, corps: dict = Body(...)):
+    return ed.enregistrer(u(request), corps, oid)
 
 
 # ---------- Comptabilité > Journal (S30) ----------

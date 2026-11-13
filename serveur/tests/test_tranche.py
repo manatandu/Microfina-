@@ -1071,3 +1071,23 @@ def test_journaux(clients, journee):
     assert "ne se supprime pas" in refus({}, ca["id"], "/suppression")
     assert chef.post(f"/api/journaux/{ca['id']}", {"type": "caisse", "libelle": "Caisse", "code": "CA", "actif": False, "detail": True}, **H).status_code == 200
     r = depot(); assert r.status_code == 422 and "pas actif" in r.json()["message"]
+
+
+def test_operations_diverses(clients):
+    """S31 (p. 42) : Type Opération, Compte, Statut, Libellé obligatoires ; compte du plan, ouvert et saisissable, hors caisse ; modification par la
+    grille ; INACTIF au lieu de supprimer (registre S31-1 à S31-3)"""
+    chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    l = chef.get("/api/operations-diverses", **H).json()
+    assert (l["sens"], l["statuts"], l["operations"]) == (["PRODUIT", "CHARGE"], ["ACTIF", "INACTIF"], [])
+    def refus(corps, oid=None):
+        r = chef.post("/api/operations-diverses" + (f"/{oid}" if oid else ""), corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    O = {"sens": "PRODUIT", "compte": "7790", "statut": "ACTIF", "libelle": "Vente de livret d'épargne"}
+    assert agent.post("/api/operations-diverses", O, **H).status_code == 403
+    assert "Type Opération, Compte, Statut, Libellé opération" in refus({})
+    assert "classe" in refus({**O, "compte": "6"})
+    assert "caisse" in refus({**O, "compte": "570"})
+    o = chef.post("/api/operations-diverses", O, **H).json()["operations"][0]
+    assert "existe déjà" in refus({**O, "libelle": "vente de livret d'épargne"})
+    assert chef.post("/api/operations-diverses", {**O, "sens": "CHARGE", "compte": "671"}, **H).status_code == 200    # même libellé, autre sens
+    m = chef.post(f"/api/operations-diverses/{o['id']}", {**O, "statut": "INACTIF"}, **H).json()["operations"][0]
+    assert m["statut"] == "INACTIF"

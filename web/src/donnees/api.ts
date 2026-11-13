@@ -17,7 +17,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v40";
+const CLE = "likelemba-demo-v41";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -25,7 +25,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 40) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 41) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -2186,6 +2186,34 @@ const journaux = {
   },
 };
 
+// ---------- Comptabilité > ED DIVERS : paramétrage autres opérations (S31, manuel p. 42). Règles identiques côté serveur (noyau/ed_divers.py). ----------
+export type OperationDiverse = { id: number; sens: "PRODUIT" | "CHARGE"; compte: string; libelle: string; statut: "ACTIF" | "INACTIF" };
+const edDivers = {
+  lire() {
+    exiger();
+    return { sens: ["PRODUIT", "CHARGE"], statuts: ["ACTIF", "INACTIF"], operations: [...E.operationsDiverses].sort((a, b) => a.id - b.id).map((o) => ({ ...o })) };
+  },
+  /** Enregistrer (nouvelle opération) ou modifier celle choisie dans la grille ; INACTIF la retire du guichet (registre S31-1 à S31-3) */
+  enregistrer(d: { sens?: string; compte?: string; statut?: string; libelle?: string }, id?: number) {
+    exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
+    const sens = d.sens?.trim() ?? "", compte = d.compte?.trim() ?? "", statut = d.statut?.trim() ?? "", libelle = d.libelle?.trim() ?? "";
+    const manque = manquants([["Type Opération", sens], ["Compte", compte], ["Statut", statut], ["Libellé opération", libelle]]);
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    if (!["PRODUIT", "CHARGE"].includes(sens)) throw new ErreurMetier("Type Opération inconnu.");
+    if (!["ACTIF", "INACTIF"].includes(statut)) throw new ErreurMetier("Statut inconnu.");
+    const c = [...PCCI.comptes.map((x) => ({ numero: x.numero, ouvert: true, saisissable: true })), ...E.comptesInstitution].find((x) => x.numero === compte);
+    if (!c) throw new ErreurMetier(`Compte : ${compte} n'est pas un compte du plan (une classe ne reçoit pas d'écriture).`);   // T16
+    if (!(c.saisissable && c.ouvert)) throw new ErreurMetier(`Compte : ${compte} est fermé ou non saisissable, il ne reçoit pas d'écriture.`);   // S102-10
+    if (compte.startsWith("57")) throw new ErreurMetier("Compte : un compte de caisse (57) ne peut pas être la contrepartie d'une opération de caisse.");   // S31-2
+    const actuel = id === undefined ? undefined : E.operationsDiverses.find((o) => o.id === id);
+    if (id !== undefined && !actuel) throw new ErreurMetier("Opération introuvable.");
+    if (E.operationsDiverses.some((o) => o.sens === sens && o.libelle.toLowerCase() === libelle.toLowerCase() && o.id !== id)) throw new ErreurMetier("Ce libellé existe déjà pour ce type d'opération.");
+    const v = { sens: sens as OperationDiverse["sens"], compte, libelle, statut: statut as OperationDiverse["statut"] };
+    if (actuel) Object.assign(actuel, v); else E.operationsDiverses.push({ id: prochain(E.operationsDiverses), ...v });
+    enregistrer(); return edDivers.lire();
+  },
+};
+
 // ---------- Info de base > Localisation (S20, manuel p. 30 à 32), adaptée au découpage de la RDC (demande du porteur, registre S20-1) :
 // Constitution, art. 2 et 3 ; Décret 22/07 du 02/03/2022, art. 9, point 26. Règles identiques côté serveur (noyau/localisation.py). ----------
 const NIVEAUX: NiveauLieu[] = ["pays", "province", "ville", "commune", "quartier"];
@@ -2283,6 +2311,7 @@ const apiLocal = {
   produitsEpargne: asynchrone(produitsEpargne),
   parametrageEpargne: asynchrone(parametrageEpargne),
   journaux: asynchrone(journaux),
+  edDivers: asynchrone(edDivers),
   comptes: asynchrone(comptes),
   numerotation: asynchrone(numerotation),
 };

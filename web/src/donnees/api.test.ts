@@ -505,6 +505,19 @@ describe("journée de guichet", () => {
     expect(await api.credit.portefeuille(g.id)).toEqual([]);
   });
 
+  it("opérations diverses (S31, p. 42) : obligatoires, compte du plan ouvert et saisissable hors caisse, INACTIF au lieu de supprimer", async () => {
+    await connecter("jpmukendi");
+    expect((await api.edDivers.lire()).operations).toEqual([]);
+    const O = { sens: "PRODUIT", compte: "7790", statut: "ACTIF", libelle: "Vente de livret d'épargne" };
+    await expect(api.edDivers.enregistrer({})).rejects.toThrow("Type Opération, Compte, Statut, Libellé opération");
+    await expect(api.edDivers.enregistrer({ ...O, compte: "6" })).rejects.toThrow("classe");
+    await expect(api.edDivers.enregistrer({ ...O, compte: "570" })).rejects.toThrow("caisse");
+    const o = (await api.edDivers.enregistrer(O)).operations[0]!;
+    await expect(api.edDivers.enregistrer({ ...O, libelle: "vente de livret d'épargne" })).rejects.toThrow("existe déjà");
+    await api.edDivers.enregistrer({ ...O, sens: "CHARGE", compte: "671" });
+    expect((await api.edDivers.enregistrer({ ...O, statut: "INACTIF" }, o.id)).operations[0]!.statut).toBe("INACTIF");
+  });
+
   it("journaux (S30, p. 41 et 42) : obligatoires, Détail journal dans l'exercice, journal qui a servi figé, journal inactif sans écriture", async () => {
     await connecter("jpmukendi");
     const l = await api.journaux.lire();
