@@ -187,12 +187,14 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "S29"
 ],
 "operations.refuser": [
+"S113",
 "S73",
 "S74",
 "S77",
 "S82"
 ],
 "operations.viser": [
+"S113",
 "S73",
 "S74",
 "S77",

@@ -339,6 +339,11 @@ def operation_recu(request, oid: int):
     return s.recu(oid)
 
 
+@api.get("/visas/retraits-plafond")
+def visas_retraits_plafond(request):
+    return s.retraits_plafond(u(request))
+
+
 @api.post("/operations/{oid}/visa")
 def operation_viser(request, oid: int):
     return s.viser_operation(u(request), oid)

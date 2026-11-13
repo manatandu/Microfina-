@@ -47,6 +47,30 @@ describe("journée de guichet", () => {
     expect(await soldeCdfGrandLivre()).toBe(0);
   });
 
+  it("guichet (S08) : retrait au-delà du plafond en attente du visa puis payé (S08-5), avertissement au-delà du maximum (S08-4)", async () => {
+    await journeeOuverte();
+    await connecter("jpmukendi");
+    const g = (await api.guichets.lire()).guichets.find((x) => x.id === 2)!;
+    const plafonds = Object.fromEntries(Object.entries({ CDF: { maximum: 0, retrait: 0 }, USD: { maximum: 0, retrait: 0 }, ...g.plafonds }).map(([d, v]) => [d, { maximum: v.maximum ?? 0, retrait: v.retrait ?? 0 }]));
+    await api.guichets.enregistrer({ ...g, designation: g.nom, plafonds: { ...plafonds, USD: { maximum: 100000, retrait: 30000 } } }, 2);
+    await connecter("engalula");
+    const p = { cle: cle(), compteId: 1, montant: 45000, coupures: { 100: 4, 50: 1 } };
+    const r = await api.guichet.retrait(p);
+    expect([r.statut, r.ecritureId]).toEqual(["visa_requis", undefined]);
+    expect((await api.guichet.retrait(p)).id).toBe(r.id);
+    await expect(api.guichet.retrait({ ...p, cle: cle() })).rejects.toThrow("déjà en attente");
+    await connecter("plumbala");
+    expect((await api.operations.retraitsPlafond()).map((x) => [x.montant, x.devise])).toEqual([[45000, "USD"]]);
+    await connecter("jpmukendi");
+    await api.operations.viser(r.id);
+    await connecter("engalula");
+    const paye = await api.guichet.retrait({ ...p, cle: cle() });
+    expect([paye.id, paye.statut, !!paye.ecritureId]).toEqual([r.id, "validee", true]);
+    const v = await api.guichet.depot({ cle: cle(), compteId: 1, montant: 10000, coupures: { 100: 1 } });
+    expect(v.avertissement).toContain("maximum autorisé (1 000 USD)");
+    expect(await soldeCdfGrandLivre()).toBe(0);
+  });
+
   it("la même clé ne paie pas deux fois", async () => {
     await journeeOuverte();
     const k = cle(), p = { cle: k, compteId: 1, montant: 10000, coupures: { 100: 1 } };

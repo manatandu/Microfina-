@@ -1304,7 +1304,7 @@ def operation_par_cle(cle: str) -> dict | None:
 
 
 def vue_operation(o: dict) -> dict:
-    statut = "validee" if o["statut"] == "validee" else "refusee" if o["statut"] == "refusee" else "visa_requis"
+    statut = {"validee": "validee", "refusee": "refusee", "visee": "visee"}.get(o["statut"], "visa_requis")
     compte_id = int(o["contrat_ref"].split(":")[1]) if (o["contrat_ref"] or "").startswith("depot:") else None
     return {"id": o["id"], "cle": str(o["cle_idempotence"]), "type": o["type"], "statut": statut, "sessionId": o["session_caisse_id"], "tiersId": o["tiers_id"],
             "compteId": compte_id, "montant": o["montant"], "devise": o["devise"].strip(), "parts": o["parts"],
@@ -1353,6 +1353,28 @@ def compte_actif(compte_id: int, verrou: bool = False) -> dict:
     return c
 
 
+def plafonds_guichet(guichet_id: int, devise: str) -> tuple[int, int]:
+    """Maximum autorisé en caisse et retrait plafonné du guichet pour la devise (S08, registre S08-3). 0 : aucun plafond (registre S08-10)."""
+    r = une("select maximum, retrait from guichet_plafond where guichet_id = %s and devise = %s", (guichet_id, devise))
+    return (r["maximum"] or 0, r["retrait"] or 0) if r else (0, 0)
+
+
+def avec_avertissement(v: dict, s: dict, devise: str) -> dict:
+    """Registre S08-4 : après une entrée d'espèces, avertir le caissier si l'encaisse dépasse le maximum autorisé du guichet.
+    L'opération n'est jamais refusée pour cette raison ; l'excédent se transfère à la caisse principale (S81)."""
+    maximum = plafonds_guichet(s["guichetId"], devise)[0]
+    encaisse = total_comptage(theorique(s["id"], devise))
+    if maximum and encaisse > maximum:
+        v["avertissement"] = (f"Encaisse de la caisse au-dessus du maximum autorisé ({montant_lisible(maximum, devise)}) : "
+                              "transférer l'excédent à la caisse principale (Caisse > Transfert).")
+    return v
+
+
+def montant_lisible(m: int, devise: str) -> str:
+    entiers, cts = divmod(abs(m), 100)
+    return f"{entiers:,}".replace(",", " ") + (f",{cts:02d}" if cts else "") + f" {devise}"
+
+
 def depot(u: dict, p: dict) -> dict:
     """S74 : Caisse > Opération > Dépôt / Retrait, onglet Dépôt en espèce (manuel p. 86) : Montant*, Mandataire, Motif. Sans frais (Instr. BCC 37)."""
     prec = operation_par_cle(p["cle"])
@@ -1374,13 +1396,15 @@ def depot(u: dict, p: dict) -> dict:
     oid = creer_operation(u, s, cle=p["cle"], type_="depot", statut="validee", tiers_id=c["tiers_id"], contrat=f"depot:{c['id']}", montant=m,
                           devise=c["devise"], coupures=coupures, remis_par=(p.get("mandataire") or "").strip() or titulaire(c["tiers_id"]), ecriture_id=eid,
                           motif=(p.get("motif") or "").strip() or None)
-    return vue_operation(une("select * from operation where id = %s", (oid,)))
+    return avec_avertissement(vue_operation(une("select * from operation where id = %s", (oid,))), s, c["devise"])
 
 
 def retrait(u: dict, p: dict) -> dict:
-    """S74 : Caisse > Opération > Dépôt / Retrait, onglet Retrait en espèce (manuel p. 86). Sans frais (Instr. BCC 37)."""
+    """S74 : Caisse > Opération > Dépôt / Retrait, onglet Retrait en espèce (manuel p. 86). Sans frais (Instr. BCC 37).
+    Au-delà du retrait plafonné du guichet, le retrait attend le visa « Retrait plafond » (S113) avant d'être payé (registre S08-5) :
+    la première saisie le met en attente, sans écriture ; après le visa, le même retrait refait au guichet est payé."""
     prec = operation_par_cle(p["cle"])
-    if prec and prec["statut"] == "validee":
+    if prec and prec["statut"] in ("validee", "saisie"):
         return vue_operation(prec)
     c = compte_actif(p["compteId"], verrou=True)   # deux retraits sur le même compte ne passent pas en même temps
     s = session_ouverte(u, c["devise"])
@@ -1396,11 +1420,28 @@ def retrait(u: dict, p: dict) -> dict:
         raise ErreurMetier("Pas assez de coupures en caisse.")
     if en_usd(m, c["devise"]) + especes_du_jour_usd(c["tiers_id"], s["journeeId"], "retrait") >= SEUIL_ESPECES_USD:
         raise ErreurMetier(MSG_RENFORCE)
+    plafond = plafonds_guichet(s["guichetId"], c["devise"])[1]
+    vise = None
+    if plafond and m > plafond:
+        attente = lambda st: une("""select * from operation where type = 'retrait' and contrat_ref = %s and montant = %s and journee_id = %s and statut = %s
+                                    order by id limit 1 for update""", (f"depot:{c['id']}", m, s["journeeId"], st))
+        vise = attente("visee")
+        if not vise:
+            if attente("saisie"):
+                raise ErreurMetier("Retrait déjà en attente du visa « Retrait plafond » (Visa > Retrait plafond).")
+            oid = creer_operation(u, s, cle=p["cle"], type_="retrait", statut="saisie", tiers_id=c["tiers_id"], contrat=f"depot:{c['id']}",
+                                  montant=m, devise=c["devise"], coupures=coupures, remis_par=(p.get("mandataire") or "").strip() or titulaire(c["tiers_id"]),
+                                  motif=(p.get("motif") or "").strip() or None)
+            return vue_operation(une("select * from operation where id = %s", (oid,)))
     j = une("select date_comptable from journee_comptable where id = %s", (s["journeeId"],))
     eid = poster(u, journal="CA", journee_id=s["journeeId"], libelle=f"Retrait espèces {c['numero']}", piece=nouvelle_piece(u, "CA", j["date_comptable"]),
                  evenement="retrait", cle=p["cle"], valide_par=u["id"], lignes_ecr=[
                      {"compte": c["pcci"], "contrat": f"depot:{c['id']}", "sens": "D", "devise": c["devise"], "montant": m},
                      {"compte": "570", "contrat": f"guichet:{s['guichetId']}", "sens": "C", "devise": c["devise"], "montant": m}])
+    if vise:   # paiement du retrait visé : l'opération en attente devient le retrait payé, par ce caissier, dans sa caisse
+        executer("update operation set statut = 'validee', ecriture_id = %s, session_caisse_id = %s, valide_par = %s where id = %s", (eid, s["id"], u["id"], vise["id"]))
+        enregistrer_coupures(vise["id"], c["devise"], coupures)
+        return vue_operation(une("select * from operation where id = %s", (vise["id"],)))
     oid = creer_operation(u, s, cle=p["cle"], type_="retrait", statut="validee", tiers_id=c["tiers_id"], contrat=f"depot:{c['id']}",
                           montant=m, devise=c["devise"], coupures=coupures, remis_par=(p.get("mandataire") or "").strip() or titulaire(c["tiers_id"]),
                           ecriture_id=eid, motif=(p.get("motif") or "").strip() or None)
@@ -1457,7 +1498,7 @@ def adhesion(u: dict, p: dict) -> dict:
     executer("insert into mouvement_parts (tiers_id, sens, nombre, valeur_unitaire, devise, ecriture_id) values (%s, 'achat', %s, %s, 'CDF', %s)", (tid, nb, valeur_part(), eid))
     oid = creer_operation(u, s, cle=p["cle"], type_="adhesion", statut="validee", tiers_id=tid, contrat=f"depot:{c}", montant=total,
                           devise="CDF", coupures=coupures, remis_par=titulaire(tid), parts=nb, ecriture_id=eid)
-    return vue_operation(une("select * from operation where id = %s", (oid,)))
+    return avec_avertissement(vue_operation(une("select * from operation where id = %s", (oid,))), s, "CDF")   # registre S08-4
 
 
 def operation_parts(u: dict, p: dict) -> dict:
@@ -1511,13 +1552,24 @@ def operation_parts(u: dict, p: dict) -> dict:
              (tid, sens, nb, valeur_part(), eid))
     oid = creer_operation(u, s, cle=p["cle"], type_=type_, statut="validee", tiers_id=tid, contrat=f"parts:{tid}", montant=montant, devise="CDF",
                           coupures=coupures, remis_par=titulaire(tid), parts=nb, ecriture_id=eid)
-    return vue_operation(une("select * from operation where id = %s", (oid,)))
+    return avec_avertissement(vue_operation(une("select * from operation where id = %s", (oid,))), s, "CDF")   # registre S08-4
 
 
 # ---------- Visas des opérations ----------
 
 def operations_en_attente(u: dict) -> list[dict]:
-    return [vue_operation(o) for o in lignes("select * from operation where institution_id = %s and statut in ('saisie', 'visee') order by id", (u["institution_id"],))]
+    return [vue_operation(o) for o in lignes("select * from operation where institution_id = %s and statut = 'saisie' order by id", (u["institution_id"],))]
+
+
+def retraits_plafond(u: dict) -> list[dict]:
+    """S113 : Visa > Retrait plafond, grille « Viser Retrait plafonné » (manuel p. 131) : Date operation, Libelle de l'operation, montant, Membre, Compte
+    (registre S08-5)."""
+    exiger(u)
+    return [{"id": r["id"], "date": r["date_comptable"].isoformat(), "libelle": f"Retrait espèces {r['compte']}", "montant": r["montant"],
+             "devise": r["devise"].strip(), "membre": titulaire(r["tiers_id"]), "numeroMembre": r["numero"], "compte": r["compte"], "saisiPar": r["saisi_par"]}
+            for r in lignes("""select o.*, j.date_comptable, c.numero as compte, t.numero from operation o join journee_comptable j on j.id = o.journee_id
+                               join compte_depot c on 'depot:' || c.id = o.contrat_ref join tiers t on t.id = o.tiers_id
+                               where o.institution_id = %s and o.type = 'retrait' and o.statut = 'saisie' order by o.id""", (u["institution_id"],))]
 
 
 def lire_operation(oid: int) -> dict | None:
@@ -1532,7 +1584,7 @@ def operations_du_jour(jid: int) -> list[dict]:
 def viser_operation(u: dict, oid: int) -> dict:
     exiger(u, "chef_agence")
     o = une("select * from operation where id = %s for update", (oid,))
-    if not o or o["statut"] not in ("saisie", "visee"):
+    if not o or o["statut"] != "saisie":
         raise ErreurMetier("Rien à viser.")
     if o["saisi_par"] == u["id"]:
         raise ErreurMetier("Quatre yeux : pas de visa sur sa propre saisie.")

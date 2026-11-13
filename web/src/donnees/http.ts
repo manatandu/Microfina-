@@ -84,6 +84,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
     },
     operations: {
       enAttente: () => get("/operations/en-attente"),
+      retraitsPlafond: () => get("/visas/retraits-plafond"),
       lire: (id: number) => get(`/operations/${id}`),
       recu: (id: number) => get(`/operations/${id}/recu`),
       duJour: (jid: number) => get(`/journees/${jid}/operations`),

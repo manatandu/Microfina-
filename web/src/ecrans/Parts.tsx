@@ -47,7 +47,7 @@ export function PartsSociales() {
   function enregistrer() {
     if (!t || !c) { setBoite({ type: "erreur", message: "À remplir : numéro client, N° Compte." }); return; }
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
-      try { setFait(await api.guichet.parts({ cle, tiersId: t.id, sens, nombre: n, coupures })); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+      try { const o = await api.guichet.parts({ cle, tiersId: t.id, sens, nombre: n, coupures }); setFait(o); setBoite({ type: "succes", message: ["Enregistré avec succès !", o.avertissement].filter(Boolean).join(" ") }); }
       catch (x) { setBoite({ type: "erreur", message: message(x) }); }
     } });
   }

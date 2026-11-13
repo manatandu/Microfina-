@@ -84,8 +84,14 @@ export default function GuichetDepotRetrait() {
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try {
         const corps = { cle, compteId: c!.id, montant: m!, coupures, mandataire, motif };
-        setFait(op === "depot" ? await api.guichet.depot(corps) : await api.guichet.retrait(corps));
-        setBoite({ type: "succes", message: "Enregistré avec succès !" });
+        const o = op === "depot" ? await api.guichet.depot(corps) : await api.guichet.retrait(corps);
+        if (o.statut === "visa_requis") {   // registre S08-5 : le retrait est enregistré en attente, pas payé ; le refaire après le visa
+          setCle(nouvelleCle());
+          setBoite({ type: "succes", message: "Enregistré avec succès ! Retrait au-delà du plafond du guichet : il attend le visa « Retrait plafond » (Visa > Retrait plafond). Après le visa, enregistrer de nouveau ce retrait pour le payer." });
+          return;
+        }
+        setFait(o);
+        setBoite({ type: "succes", message: ["Enregistré avec succès !", o.avertissement].filter(Boolean).join(" ") });
       } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
     } });
   }

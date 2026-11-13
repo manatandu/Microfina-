@@ -164,7 +164,7 @@ export interface Operation {
   id: number;
   cle: string;                 // clé d'idempotence tirée par le poste
   type: TypeOperation;
-  statut: "visa_requis" | "validee";
+  statut: "visa_requis" | "visee" | "validee";   // visa_requis : retrait au-delà du plafond, en attente du visa (registre S08-5)
   sessionId: number;
   tiersId: number;
   compteId?: number;
@@ -178,6 +178,7 @@ export interface Operation {
   visePar?: number;
   ecritureId?: number;
   heure: string;
+  avertissement?: string;      // encaisse au-dessus du maximum autorisé du guichet (registre S08-4), dans la réponse seulement
 }
 
 /** S16 (manuel p. 25 à 27) : frais, et leur valeur par sous type de client (opérations) ou par type de membre (adhésion) */

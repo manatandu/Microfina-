@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**260 décisions.** Solidité : 81 fortes (le manuel ou un texte répond), 146 moyennes (déduites d'un écran voisin ou d'une donnée), 33 faibles (notre choix, faute de mieux). Dans le code : 210 déjà en place, 50 à appliquer.
+**262 décisions.** Solidité : 81 fortes (le manuel ou un texte répond), 147 moyennes (déduites d'un écran voisin ou d'une donnée), 34 faibles (notre choix, faute de mieux). Dans le code : 214 déjà en place, 48 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -78,8 +78,8 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S08-1 | Liste des types de guichet | Elle vient de la page « Type Guichet » de Général (S14n). Valeurs de départ : PRINCIPALE, SECONDAIRE | Manuel : Manuel p. 19 et 95 ; liste de gauche p. 23 | forte | en place |
 | S08-2 | Journaux proposés | Les journaux de type caisse de l'institution (S30) | Manuel : Manuel p. 95 (Journal : « Caisse principale ») | forte | en place |
 | S08-3 | Devise du maximum en caisse et du retrait plafonné | Maximum autorisé en caisse et Retrait plafonné : une valeur par devise tenue (devises qui ont des monnaies en S35), règle T12 | Texte réglementaire : PCCI, compte 57 ; capture p. 95 (une seule monnaie dans l'exemple) ; demande du porteur, 13/11/2026 (une devise créée sert partout) | moyenne | en place |
-| S08-4 | Effet du maximum autorisé en caisse | Avertissement au caissier quand le solde de sa caisse dépasse le maximum : il transfère l'excédent à la caisse principale (S81). Un dépôt n'est jamais refusé pour cette raison | Écran voisin : S81 Transfert entre caisses (p. 92) | faible | à appliquer |
-| S08-5 | Effet du retrait plafonné | Au-delà du plafond, le retrait attend le visa « Retrait plafond » (S113) avant d'être payé | Manuel : Manuel p. 131 (Visa > Retrait plafond) | forte | à appliquer |
+| S08-4 | Effet du maximum autorisé en caisse | Avertissement au caissier quand le solde de sa caisse dépasse le maximum : il transfère l'excédent à la caisse principale (S81). Un dépôt n'est jamais refusé pour cette raison — Construit : après un dépôt, une adhésion ou une opération sur parts, la boîte de succès ajoute l'avertissement si l'encaisse de la caisse dépasse le maximum de sa devise. Le transfert (S81) reste à construire | Écran voisin : S81 Transfert entre caisses (p. 92) | faible | en place |
+| S08-5 | Effet du retrait plafonné | Au-delà du plafond, le retrait attend le visa « Retrait plafond » (S113) avant d'être payé — Construit : le retrait est enregistré en attente, sans écriture ni sortie de caisse ; la grille « Viser Retrait plafonné » de S113 (p. 131) le vise ; voir S08-11 pour le paiement | Manuel : Manuel p. 131 (Visa > Retrait plafond) | forte | en place |
 | S08-6 | Effet de « Billetage autorisé » | Case affichée, cochée et verrouillée : le billetage n'est pas une option | Choix du porteur : ARCHITECTURE P8 (décision du 05/11/2026) | forte | en place |
 | S08-7 | Comptes du guichet | Compte guichet : un sous-compte de 570 par guichet et par devise. Compte liaison : 579. Compte surplus : 7790. Compte manquant : 671. Proposés par défaut, modifiables (règle T16) | Texte réglementaire : PCCI : 570 Monnaies nationale et étrangère, 579 Mouvements de fonds inter caisses, 671 Déficits de caisse non récupérés, 7790 Excédents de caisse | forte | en place |
 | S08-8 | Liste des guichets et modification | Grille sous le formulaire : Code guichet, Type guichet, Designation, Compte guichet, Compte liaison, Compte surplus, Compte manquant, Opérations. Clic sur une ligne : Modifier (T01) | Manuel : Manuel p. 95 (doublon, plus complet que p. 19) ; p. 12 | forte | en place |
@@ -591,13 +591,25 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S02-1 | Module ouvert ou fermé | Une boule s'ouvre quand le profil de l'utilisateur tient au moins un droit dans ce module (Likelemba au centre, Paie, Immo) ; sinon elle reste visible et grisée. Même calcul que la « Liste des modules liés » de S06 | Donnée exigée ailleurs : Manuel p. 6 (« ces différents modules sont gérés grâce au module [Administration] ») ; S06-1 | moyenne | en place |
 | S02-2 | Boules sans module repris | Les huit boules de la capture restent à leur place. Grh et Stock (hors périmètre, décision du porteur), Performance sociale, Tontine, Sauvegarde et Spy (montrés sur la capture, jamais décrits par le manuel) sont grisés | Manuel : Capture p. 6 ; ARCHITECTURE (hors périmètre) | forte | en place |
 
+## S08 Guichets
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S08-10 | Plafond à zéro | Un maximum autorisé ou un retrait plafonné égal à 0 veut dire « aucun plafond » : les guichets créés avant S08-3 ont 0, la capture p. 95 montre des valeurs positives (5 000 000 et 3 000 000) | Donnée exigée ailleurs : Capture p. 95 ; S08-3 | faible | en place |
+
+## S08, S74, S113 Retrait plafonné
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S08-11 | Paiement du retrait visé | Après le visa, le caissier refait le même retrait (même compte, même montant, même journée) : il est payé à ce moment, avec le billetage du jour ; l'opération en attente devient le retrait payé. Une seconde saisie avant le visa est refusée (« déjà en attente »). Un retrait visé non payé, ou en attente, empêche l'arrêté de la caisse jusqu'au paiement ou au refus | Donnée exigée ailleurs : Manuel p. 131 (Visa > Retrait plafond) ; S08-5 ; chaîne de la caisse (S79) | moyenne | en place |
+
 ## Les décisions faibles, à regarder en premier
 
 | N° | Écran | Question | Réponse retenue |
 |---|---|---|---|
 | S05-2 | S05 Utilisateurs : création | Grille | Nom user, Prenoms user, Agence, Telephone : le champ unique « Nom et prénom(s) » se coupe au premier espace (nom, puis prénoms) ; Telephone = Portable. Les utilisateurs de démonstration sont écrits prénom d'abord, d'où l'inversion visible sur eux |
 | S07-3 | S07 Utilisateurs : autres fonctions et déconnexion | Control utilisateur connecté (S05) | Case cochée : pas de seconde connexion de cet utilisateur tant que la première n'est pas fermée ou déconnectée ; le message nomme la machine et renvoie à Déconnecter utilisateurs. Sens déduit de la colonne Connecté et de la page de déconnexion |
-| S08-4 | S08 Gestion des guichets | Effet du maximum autorisé en caisse | Avertissement au caissier quand le solde de sa caisse dépasse le maximum : il transfère l'excédent à la caisse principale (S81). Un dépôt n'est jamais refusé pour cette raison |
+| S08-4 | S08 Gestion des guichets | Effet du maximum autorisé en caisse | Avertissement au caissier quand le solde de sa caisse dépasse le maximum : il transfère l'excédent à la caisse principale (S81). Un dépôt n'est jamais refusé pour cette raison — Construit : après un dépôt, une adhésion ou une opération sur parts, la boîte de succès ajoute l'avertissement si l'encaisse de la caisse dépasse le maximum de sa devise. Le transfert (S81) reste à construire |
 | S08-9 | S08 Gestion des guichets | Lien « Droits » de la colonne Opérations | Ouvre l'affectation des guichets (S10) filtrée sur ce guichet |
 | S10-2 | S10 Affectation des guichets | Case « Voir solde client VIP » | Case recopiée et enregistrée, sans effet : Likelemba n'a pas de client VIP |
 | S11-5 | S11 Exercices | Bouton « Exercice à ouvrir » | Affiche les journaux de l'exercice saisi |
@@ -628,3 +640,4 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S32-6 | S32 Information société | Onglet Autres Info et cadre Info sécurité | La capture n'en montre que le titre : contenu à demander au porteur |
 | S35-4 | S35 Préférences : devise, type sous, sous | Monnaies de démonstration | CDF 50 à 20 000 et USD 1 à 100, tous billets, chacun avec son type « Billet de … » : données de démonstration reprises de l'existant, pas lues dans un texte de la BCC ; l'institution saisit ses propres monnaies |
 | S36-3 | S36 Facture : élément, référence commande | Sens de Taux A. et Taux N.A. | Repris tels quels. Sur la facture (p. 150), Microfina++ coche « Fournisseur à jour » et « IFU », et le bon de commande montre l'AIB béninoise : deux taux selon la situation du fournisseur. Leur usage en RDC (retenues à la source sur fournisseurs) est à confirmer avec le porteur avant S107 |
+| S08-10 | S08 Guichets | Plafond à zéro | Un maximum autorisé ou un retrait plafonné égal à 0 veut dire « aucun plafond » : les guichets créés avant S08-3 ont 0, la capture p. 95 montre des valeurs positives (5 000 000 et 3 000 000) |

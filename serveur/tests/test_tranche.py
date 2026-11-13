@@ -88,6 +88,33 @@ def test_depot_retrait(clients, journee):
     assert balance_equilibree(caisse)
 
 
+def test_retrait_plafond_et_maximum(clients, journee):
+    """S08 : retrait au-delà du plafond en attente du visa « Retrait plafond » puis payé (registre S08-5) ; avertissement au-delà du maximum (S08-4)"""
+    from noyau.bd import executer
+    caisse, chef, compta = clients["caisse"], clients["chef"], clients["compta"]
+    executer("delete from guichet_plafond where guichet_id = %s", (G2(),))
+    executer("insert into guichet_plafond (guichet_id, devise, maximum, retrait) values (%s, 'USD', 100000, 30000)", (G2(),))
+    p = {"cle": cle(), "compteId": C("0412-000318-01"), "montant": 45000, "coupures": {"100": 4, "50": 1}}
+    r = caisse.post("/api/guichet/retraits", p, **H).json()
+    assert (r["statut"], r["ecritureId"]) == ("visa_requis", None), r
+    assert caisse.post("/api/guichet/retraits", p, **H).json()["id"] == r["id"]                      # même clé : la même attente
+    d = caisse.post("/api/guichet/retraits", {**p, "cle": cle()}, **H)
+    assert d.status_code == 422 and "déjà en attente" in d.json()["message"]
+    l = compta.get("/api/visas/retraits-plafond").json()
+    assert [(x["montant"], x["compte"], x["devise"]) for x in l] == [(45000, "0412-000318-01", "USD")]
+    assert caisse.post(f"/api/operations/{r['id']}/visa", **H).status_code in (403, 422)                # le caissier ne vise pas
+    assert chef.post(f"/api/operations/{r['id']}/visa", **H).json()["statut"] == "visee"
+    assert compta.get("/api/visas/retraits-plafond").json() == []
+    paye = caisse.post("/api/guichet/retraits", {**p, "cle": cle()}, **H).json()
+    assert (paye["id"], paye["statut"]) == (r["id"], "validee") and paye["ecritureId"]
+    assert caisse.post("/api/guichet/retraits", {"cle": cle(), "compteId": C("0412-000318-01"), "montant": 20000, "coupures": {"100": 2}}, **H).json()["statut"] == "validee"
+    # maximum autorisé : 1 000 USD ; l'encaisse USD du guichet est bien au-dessus : avertissement, jamais de refus
+    v = caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-01"), "montant": 10000, "coupures": {"100": 1}, "mandataire": ""}, **H).json()
+    assert v["statut"] == "validee" and "maximum autorisé (1 000 USD)" in v["avertissement"]
+    assert "avertissement" not in caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 20000, "coupures": {"20000": 1}, "mandataire": ""}, **H).json()
+    assert balance_equilibree(caisse)
+
+
 def test_meme_cle_ne_paie_pas_deux_fois(clients, journee):
     caisse = clients["caisse"]
     p = {"cle": cle(), "compteId": C("0412-000318-01"), "montant": 10000, "coupures": {"100": 1}}

@@ -47,7 +47,7 @@ export default function Adhesion() {
   function enregistrer() {
     if (!t || mDepot === null) { setBoite({ type: "erreur", message: !t ? "À remplir : N° Client." : "Premier dépôt invalide." }); return; }
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
-      try { setFait(await api.guichet.adhesion({ cle, tiersId: t.id, parts: nParts, depot: mDepot, coupures })); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+      try { const o = await api.guichet.adhesion({ cle, tiersId: t.id, parts: nParts, depot: mDepot, coupures }); setFait(o); setBoite({ type: "succes", message: ["Enregistré avec succès !", o.avertissement].filter(Boolean).join(" ") }); }
       catch (x) { setBoite({ type: "erreur", message: message(x) }); }
     } });
   }

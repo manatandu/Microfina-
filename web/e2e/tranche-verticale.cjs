@@ -33,6 +33,10 @@ const OUT = process.argv[2];
   await p.getByLabel('Type de guichet *').selectOption('SECONDAIRE'); await p.getByLabel('Journal *').selectOption({ label: 'Caisse' });
   await p.getByLabel('Guichet Actif').check();
   await etape('02a-gestion-guichets'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  // Plafonds de la Caisse 2 : retrait plafonné 1 000 USD (registre S08-5), maximum 1 000 CDF (S08-4)
+  await p.getByRole('cell', { name: 'Caisse 2' }).click();
+  await p.getByLabel('Retrait plafonné (USD) *').fill('1 000'); await p.getByLabel('Maximum autorisé en caisse (CDF) *').fill('1 000');
+  await p.getByRole('button', { name: 'Modifier' }).click(); await oui();
   // Chef : affecter la Caisse 3 à Bijou Kasongo, puis la retirer (S10, p. 20 et 96)
   await aller('/administration/s10'); await p.getByRole('button', { name: 'Ajouter un guichet : bkasongo' }).click();
   await p.getByRole('cell', { name: 'Caisse 3' }).click(); await p.getByLabel('Voir solde client', { exact: true }).check(); await etape('02a1-ajout-guichet');
@@ -433,13 +437,26 @@ const OUT = process.argv[2];
   await p.getByLabel('Montant *').fill('150 000'); await p.getByLabel('Mandataire').fill('Moi même'); await p.getByLabel('Motif:').fill('ECOLAGE');
   await p.getByRole('button', { name: 'Billetage' }).click(); await p.getByRole('dialog', { name: 'Billetage' }).getByLabel('Nombre de coupures de 10 000 CDF').fill('15');
   await p.getByRole('dialog', { name: 'Billetage' }).getByRole('button', { name: 'Fermer' }).click(); await etape('09-depot');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('dialog', { name: 'Succès' }).getByText(/au-dessus du maximum autorisé/).waitFor(); await etape('09b-depot-avertissement-maximum');   // registre S08-4
+  await p.getByRole('button', { name: 'Ok' }).click();
   await p.getByRole('button', { name: 'Imprimer' }).click(); await p.getByText('Dépôt enregistré').waitFor(); await etape('10-depot-recu');
   await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
   await p.getByRole('tab', { name: 'Retrait en espèce' }).click(); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-01' });
   await p.getByLabel('Montant *').fill('1 500'); await p.getByLabel('Motif:').fill('Loyer');
   await p.getByRole('button', { name: 'Billetage' }).click(); await p.getByRole('dialog', { name: 'Billetage' }).getByLabel('Nombre de coupures de 100 USD').fill('15');
   await p.getByRole('dialog', { name: 'Billetage' }).getByRole('button', { name: 'Fermer' }).click(); await etape('11-retrait');
+  // 1 500 USD dépasse le retrait plafonné : en attente du visa « Retrait plafond » (registre S08-5)
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('dialog', { name: 'Succès' }).getByText(/attend le visa/).waitFor(); await etape('11a-retrait-en-attente'); await p.getByRole('button', { name: 'Ok' }).click();
+  await login('Patrick Lumbala'); await aller('/comptabilite/s113');
+  await p.getByRole('cell', { name: '0412-000318-01', exact: true }).waitFor(); await etape('11b-viser-retrait-plafonne');
+  await p.getByRole('button', { name: /^Viser Retrait espèces/ }).click(); await ok();
+  await p.getByRole('cell', { name: 'Aucune information' }).waitFor();
+  await login('Esther Ngalula'); await aller('/caisse/s74?op=retrait'); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-01' });
+  await p.getByLabel('Montant *').fill('1 500'); await p.getByLabel('Motif:').fill('Loyer');
+  await p.getByRole('button', { name: 'Billetage' }).click(); await p.getByRole('dialog', { name: 'Billetage' }).getByLabel('Nombre de coupures de 100 USD').fill('15');
+  await p.getByRole('dialog', { name: 'Billetage' }).getByRole('button', { name: 'Fermer' }).click();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('button', { name: 'Imprimer' }).click(); await p.getByText('Retrait enregistré').waitFor(); await etape('12-retrait-recu');
   await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');

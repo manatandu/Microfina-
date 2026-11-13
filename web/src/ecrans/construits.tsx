@@ -1,3 +1,4 @@
+import VisaRetraitPlafond from "./Visas";
 import type { ComponentType } from "react";
 import GuichetDepotRetrait from "./Guichet";
 import Adhesion from "./Adhesion";
@@ -32,7 +33,7 @@ import EnregistrementUtilisateurs from "./Utilisateurs";
 import GestionProfilsUtilisateur from "./ProfilsUtilisateurs";
 import Connexions from "./Connexions";
 import ParametragesClients, { ParametrageCompteClient } from "./Numerotation";
-import { EcranJournee, EcranValidation, FermetureJournee } from "./Journee";
+import { EcranJournee, FermetureJournee } from "./Journee";
 import { Consentement, InformationsClient, ModificationFrais, PhotosSignatures, ResiliationClient, ValidationClientModifie, VisaClient } from "./Visa";
 import { FraisOperations } from "./Parametrage";
 import { GroupeSolidaire } from "./Groupes";
@@ -103,7 +104,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S80: ValidationBilletage,
   S102: PlanComptes,
   S111: FermetureJournee,
-  S113: () => <EcranValidation titre="Visas" seulement="operations" />,
+  S113: VisaRetraitPlafond,
   S121: Balance,
 };
 

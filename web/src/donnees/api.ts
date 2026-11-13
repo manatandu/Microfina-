@@ -176,7 +176,7 @@ function controlesJournee(id: number): Controle[] {
   const arrets = E.billetages.filter((b) => b.moment === "arret" && ses.some((s) => s.id === b.sessionId));
   const nonValides = arrets.filter((b) => !b.validePar);
   const ecarts = arrets.filter((b) => totalComptage(b.compte) !== totalComptage(b.theorique));
-  const enAttente = E.operations.filter((o) => o.statut === "visa_requis" && ses.some((s) => s.id === o.sessionId));
+  const enAttente = E.operations.filter((o) => (o.statut === "visa_requis" || o.statut === "visee") && ses.some((s) => s.id === o.sessionId));
   const jour = E.ecritures.filter((e) => e.journeeId === id);
   const desequilibre = jour.filter((e) => e.lignes.reduce((s, x) => s + (x.sens === "D" ? x.montantCdf : -x.montantCdf), 0) !== 0);
   const nom = (s: SessionCaisse) => E.guichets.find((g) => g.id === s.guichetId)?.nom ?? "";
@@ -242,7 +242,7 @@ const caisses = {
     const s = E.sessions.find((x) => x.id === sessionId);
     if (!s || s.caissierId !== u.id) throw new ErreurMetier("Cette caisse n'est pas la vôtre.");
     if (s.statut === "arretee") throw new ErreurMetier("Caisse déjà arrêtée.");
-    if (E.operations.some((o) => o.sessionId === sessionId && o.statut === "visa_requis"))
+    if (E.operations.some((o) => o.sessionId === sessionId && (o.statut === "visa_requis" || o.statut === "visee")))
       throw new ErreurMetier("Une opération attend un visa : la faire viser ou refuser avant l'arrêté.");
     if (Object.keys(compte).some((v) => !coupuresDe(devise).includes(Number(v)))) throw new ErreurMetier("Coupure inconnue.");
     if (!Number.isInteger(bonCaisse) || bonCaisse < 0) throw new ErreurMetier("Bon de Caisse invalide.");
@@ -1118,6 +1118,22 @@ function controlerCoupures(coupures: Comptage, montant: number, devise: Devise) 
   if (totalComptage(coupures) !== montant) throw new ErreurMetier("Le billetage ne fait pas le montant.");
 }
 function guichetDe(s: SessionCaisse) { return `guichet:${s.guichetId}`; }
+/** Maximum autorisé en caisse et retrait plafonné du guichet pour la devise (S08, registre S08-3). 0 : aucun plafond (registre S08-10). */
+function plafondsGuichet(guichetId: number, devise: Devise) {
+  const p = E.guichets.find((g) => g.id === guichetId)?.plafonds?.[devise];
+  return { maximum: p?.maximum ?? 0, retrait: p?.retrait ?? 0 };
+}
+/** Registre S08-4 : après une entrée d'espèces, avertir si l'encaisse dépasse le maximum autorisé ; l'opération n'est jamais refusée pour cela */
+function avecAvertissement(o: Operation, s: SessionCaisse, devise: Devise): Operation {
+  const { maximum } = plafondsGuichet(s.guichetId, devise);
+  if (maximum && totalComptage(caisses.theorique(s.id, devise)) > maximum)
+    return { ...o, avertissement: `Encaisse de la caisse au-dessus du maximum autorisé (${montantTexte(maximum, devise)}) : transférer l'excédent à la caisse principale (Caisse > Transfert).` };
+  return o;
+}
+function montantTexte(m: number, devise: Devise) {
+  const e = Math.floor(Math.abs(m) / 100), c = Math.abs(m) % 100;
+  return `${String(e).replace(/\B(?=(\d{3})+(?!\d))/g, " ")}${c ? `,${String(c).padStart(2, "0")}` : ""} ${devise}`;
+}
 /** S29 : l'exercice en tête, puis les éléments dans l'ordre de leur Position, séparés par un tiret ; compteur sur six chiffres ;
  *  sans règle : Exercice, Agence, Journal, compteur (registre S29-2). Règles identiques côté serveur (services.composer_piece). */
 export type ReglePiece = { institution: boolean; positions: Record<"INSTITUTION" | "AGENCE" | "JOURNAL" | "COMPTEUR", number> };
@@ -1157,12 +1173,12 @@ const guichet = {
       { compte: c.pcci, contrat: `depot:${c.id}`, sens: "C", devise: c.devise, montant: p.montant, montantCdf: cdf(p.montant, c.devise) },
     ] });
     const o: Operation = { id: prochain(E.operations), cle: p.cle, type: "depot", statut: "validee", sessionId: s.id, tiersId: t.id, compteId: c.id, montant: p.montant, devise: c.devise, coupures: nettoyer(p.coupures), remisPar: p.mandataire?.trim() || titulaire(t), motif: p.motif?.trim() ?? "", saisiPar: u.id, ecritureId: e.id, heure: heure() };
-    E.operations.push(o); enregistrer(); return o;
+    E.operations.push(o); enregistrer(); return avecAvertissement(o, s, c.devise);
   },
 
   /** S74 : onglet Retrait en espèce (manuel p. 86). Sans frais (Instr. BCC 37). */
   retrait(p: Commun & { compteId: number; montant: number; mandataire?: string; motif?: string }) {
-    const prec = dejaFaite(p.cle); if (prec) return prec;
+    const prec = E.operations.find((o) => o.cle === p.cle && (o.statut === "validee" || o.statut === "visa_requis")); if (prec) return prec;
     const c = E.comptes.find((x) => x.id === p.compteId);
     if (!c) throw new ErreurMetier("Compte introuvable.");
     const { u, s } = sessionOuverte(c.devise);
@@ -1176,11 +1192,26 @@ const guichet = {
     if (Object.entries(p.coupures).some(([v, n]) => (n ?? 0) > (th[Number(v)] ?? 0))) throw new ErreurMetier("Pas assez de coupures en caisse.");
     if (enUsd(p.montant, c.devise) + especesDuJourUsd(t.id, "retrait") >= SEUIL_ESPECES_USD)
       throw new ErreurMetier("Examen renforcé requis (10 000 USD ou plus en espèces dans la journée). Le circuit de conformité n'est pas encore construit : opération bloquée.", "Instr. BCC 15 bis, art. 1, 6 et 7");
+    // Registre S08-5 : au-delà du retrait plafonné du guichet, le retrait attend le visa « Retrait plafond » (S113) avant d'être payé
+    const plafond = plafondsGuichet(s.guichetId, c.devise).retrait;
+    let vise: Operation | undefined;
+    if (plafond && p.montant > plafond) {
+      const attente = (st: Operation["statut"]) => E.operations.find((o) => o.type === "retrait" && o.compteId === c.id && o.montant === p.montant && o.statut === st
+        && E.sessions.some((x) => x.id === o.sessionId && x.journeeId === s.journeeId));
+      vise = attente("visee");
+      if (!vise) {
+        if (attente("visa_requis")) throw new ErreurMetier("Retrait déjà en attente du visa « Retrait plafond » (Visa > Retrait plafond).");
+        const o: Operation = { id: prochain(E.operations), cle: p.cle, type: "retrait", statut: "visa_requis", sessionId: s.id, tiersId: t.id, compteId: c.id, montant: p.montant,
+          devise: c.devise, coupures: nettoyer(p.coupures), remisPar: p.mandataire?.trim() || titulaire(t), motif: p.motif?.trim() ?? "", saisiPar: u.id, heure: heure() };
+        E.operations.push(o); enregistrer(); return o;
+      }
+    }
     const pc = piece();
     const e = poster({ journal: "CA", journeeId: s.journeeId, libelle: `Retrait espèces ${c.numero}`, piece: pc, saisiPar: u.id, validePar: u.id, lignes: [
       { compte: c.pcci, contrat: `depot:${c.id}`, sens: "D", devise: c.devise, montant: p.montant, montantCdf: cdf(p.montant, c.devise) },
       { compte: "570", contrat: guichetDe(s), sens: "C", devise: c.devise, montant: p.montant, montantCdf: cdf(p.montant, c.devise) },
     ] });
+    if (vise) { Object.assign(vise, { statut: "validee", ecritureId: e.id, sessionId: s.id, coupures: nettoyer(p.coupures) }); enregistrer(); return vise; }
     const o: Operation = { id: prochain(E.operations), cle: p.cle, type: "retrait", statut: "validee", sessionId: s.id, tiersId: t.id, compteId: c.id, montant: p.montant, devise: c.devise,
       coupures: nettoyer(p.coupures), remisPar: p.mandataire?.trim() || titulaire(t), motif: p.motif?.trim() ?? "", saisiPar: u.id, ecritureId: e.id, heure: heure() };
     E.operations.push(o); enregistrer(); return o;
@@ -1215,7 +1246,7 @@ const guichet = {
     for (const f of frais) lignes.push({ compte: f.compte!, contrat: `frais:${f.fraisId}`, sens: "C", devise: "CDF", montant: f.montant!, montantCdf: f.montant! });
     const e = poster({ journal: "CA", journeeId: s.journeeId, libelle: `Adhésion ${t.numero}`, piece: piece(), saisiPar: u.id, validePar: u.id, lignes });
     const o: Operation = { id: prochain(E.operations), cle: p.cle, type: "adhesion", statut: "validee", sessionId: s.id, tiersId: t.id, compteId: cCdf.id, montant: total, devise: "CDF", parts: p.parts, coupures: nettoyer(p.coupures), remisPar: titulaire(t), saisiPar: u.id, ecritureId: e.id, heure: heure() };
-    E.operations.push(o); enregistrer(); return o;
+    E.operations.push(o); enregistrer(); return avecAvertissement(o, s, "CDF");   // registre S08-4
   },
   /** S77 : Part sociale (Achat/Retrait) (p. 88 et 89). Loi 002/2002, art. 21, 22 et 27 ; PCCI, compte 103.
    *  Règles identiques côté serveur (services.operation_parts). */
@@ -1249,7 +1280,7 @@ const guichet = {
     const e = poster({ journal: "CA", journeeId: s.journeeId, libelle: `${achat ? "Achat" : "Retrait"} de parts sociales ${t.numero}`, piece: piece(), saisiPar: u.id, validePar: u.id, lignes });
     const o: Operation = { id: prochain(E.operations), cle: p.cle, type: achat ? "achat_parts" : "retrait_parts", statut: "validee", sessionId: s.id, tiersId: t.id, montant, devise: "CDF",
       parts: p.nombre, coupures: nettoyer(p.coupures), remisPar: titulaire(t), saisiPar: u.id, ecritureId: e.id, heure: heure() };
-    E.operations.push(o); enregistrer(); return o;
+    E.operations.push(o); enregistrer(); return avecAvertissement(o, s, "CDF");   // registre S08-4
   },
 };
 
@@ -1333,6 +1364,15 @@ function especesDuJourUsd(tiersId: number, sens: "depot" | "retrait") {
 // ---------- Visas ----------
 const operations = {
   enAttente: () => E.operations.filter((o) => o.statut === "visa_requis"),
+  /** S113 : Visa > Retrait plafond, grille « Viser Retrait plafonné » (manuel p. 131) ; registre S08-5 */
+  retraitsPlafond() {
+    exiger();
+    return E.operations.filter((o) => o.type === "retrait" && o.statut === "visa_requis").map((o) => {
+      const c = E.comptes.find((x) => x.id === o.compteId)!, t = E.tiers.find((x) => x.id === o.tiersId)!;
+      const j = E.journees.find((x) => E.sessions.some((s) => s.id === o.sessionId && s.journeeId === x.id));
+      return { id: o.id, date: j?.date ?? "", libelle: `Retrait espèces ${c.numero}`, montant: o.montant, devise: o.devise, membre: titulaire(t), numeroMembre: t.numero, compte: c.numero, saisiPar: o.saisiPar };
+    });
+  },
   /** Ce que le reçu imprime : l'opération, sa pièce, le membre, le compte */
   recu(id: number) {
     const o = E.operations.find((x) => x.id === id);
@@ -1350,11 +1390,11 @@ const operations = {
     const o = E.operations.find((x) => x.id === id);
     if (!o || o.statut !== "visa_requis") throw new ErreurMetier("Rien à viser.");
     if (o.saisiPar === u.id) throw new ErreurMetier("Quatre yeux : pas de visa sur sa propre saisie.");
-    o.visePar = u.id; enregistrer(); return o;
+    o.visePar = u.id; o.statut = "visee"; enregistrer(); return o;
   },
   refuser(id: number) {
     exiger("chef_agence");
-    const i = E.operations.findIndex((x) => x.id === id && x.statut === "visa_requis");
+    const i = E.operations.findIndex((x) => x.id === id && (x.statut === "visa_requis" || x.statut === "visee"));
     if (i < 0) throw new ErreurMetier("Rien à refuser.");
     E.operations.splice(i, 1); enregistrer(); return undefined;
   },
