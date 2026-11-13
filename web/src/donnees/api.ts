@@ -1920,7 +1920,7 @@ const produitsCredit = {
   },
   options() {
     return { typesProduit: fixeCredit("types_produit").map((r) => ({ code: String(r.code), libelle: String(r.nom) })),
-      periodicites: fixeCredit("periodicites").map((r) => ({ code: String(r.code), libelle: String(r.libelle) })), devises: ["USD", "CDF"],
+      periodicites: fixeCredit("periodicites").map((r) => ({ code: String(r.code), libelle: String(r.libelle) })), devises: E.devises.map((x) => x.code).sort().reverse(),
       ...OPTIONS_PRODUIT_CREDIT, typesAssurance: stockCredit("types_assurance").filter((t) => t.actif).map((t) => ({ id: t.id, libelle: String(t.libelle) })),
       ordres: ordresActifs().map((o) => ({ id: o.id, libelle: `${o.code} ==> ${o.libelle}` })),
       modeles: E.modelesCredit.filter((m) => m.actif).map((m) => ({ id: m.id, libelle: m.libelle })) };
@@ -2086,7 +2086,7 @@ const OBLIGATOIRES_EPARGNE = ["numero", "code", "famille", "libelle", "devise", 
 const produitsEpargne = {
   lire() {
     exiger();
-    return { familles: [...FAMILLES_EPARGNE], devises: ["USD", "CDF"],
+    return { familles: [...FAMILLES_EPARGNE], devises: E.devises.map((x) => x.code).sort().reverse(),
       produits: E.produits.filter((p) => !p.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ supprime: _x, ...p }) => ({ ...p })) };
   },
   /** Enregistrer (nouveau produit) ou Modifier (produit choisi dans la grille), après confirmation (p. 10 à 12) */
@@ -2106,7 +2106,7 @@ const produitsEpargne = {
     }
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
     if (!(FAMILLES_EPARGNE as readonly string[]).includes(v.famille as string)) throw new ErreurMetier("Famille produit inconnue.");
-    if (!["USD", "CDF"].includes(v.devise as string)) throw new ErreurMetier("Devise inconnue.");
+    if (!E.devises.some((x) => x.code === v.devise)) throw new ErreurMetier("Devise inconnue.");
     if ((v.numero as number) < 1 || (v.numero as number) > 99) throw new ErreurMetier("N° Produit : de 1 à 99 (il sert de suffixe au numéro de compte, S17).");
     if ((v.nbMaxComptes as number) < 1) throw new ErreurMetier("Max compte à créer : au moins 1.");
     const autres = E.produits.filter((p) => !p.supprime && p.id !== id);
