@@ -67,6 +67,17 @@ Un écran de guichet montre l'opération courante, pas toutes les règles possib
 
 Le guichet valide des centaines d'opérations par jour, au clavier. Rien ne s'anime après F9 : le résultat s'affiche d'un coup. Source : skill `emil-kowalski`, fiche `emil-design-eng`, « Never animate keyboard-initiated actions ». Les boutons n'ont pas d'effet à la pression (décision du porteur du projet, 05/11/2026).
 
+
+### 2.7 ter Une exception : la page des modules
+
+Demande du porteur du projet (13/11/2026) : « un bon design et l'animation immersive » pour la page des modules (S02). Elle s'ouvre une fois par connexion, c'est le seul écran où le mouvement sert le plaisir (fiche `animate` de `emil-kowalski` : budget de plaisir réservé au rare).
+
+- Scène de nuit (`--nuit`), planète bleue (`--tampon`) qui porte l'étoile du drapeau (`--etoile`), huit modules en orbite à la place de la capture p. 6.
+- Entrée, à la première visite de la session seulement : la planète paraît (600 ms), l'étoile pivote en place, l'orbite se dessine, les modules sortent du centre vers leur place, 50 ms l'un après l'autre. Courbe `--mouvement-courbe-sortie`, `transform` et `opacity` seulement. Aux retours suivants : un fondu de 200 ms.
+- L'orbite pointillée tourne d'un tour en 140 s ; c'est le seul mouvement continu de l'application.
+- Survol, à la souris seulement : le module s'éclaire et grossit de 6 % en 160 ms.
+- Mouvement réduit demandé par le système : plus de déplacement ni de rotation, un fondu seulement.
+- Ailleurs, la règle 2.7 bis reste entière.
 ### 2.8 Le papier est un écran comme un autre
 
 Reçu, bordereau, échéancier, fiche membre, états BCC : chaque sortie papier a son gabarit dessiné, testé sur une vraie imprimante. Jamais « Imprimer la page » du navigateur.

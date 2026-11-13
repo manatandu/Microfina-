@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees } from "../lib/useDonnees";
-import { ICONES } from "../mise-en-page/icones";
+import { Etoile, ICONES } from "../mise-en-page/icones";
 import { ECRANS } from "./registre";
 
 // S02 : page des modules, comme dans Microfina++ (manuel, p. 6, figure 2) :
@@ -27,21 +28,34 @@ export function applicationsLiees(droits: string[]): Set<string> {
   return a;
 }
 
+/** Première visite de la session : entrée complète ; retours : simple fondu (DESIGN § 2.7 ter) */
+function premiereVisite(): boolean {
+  try { if (sessionStorage.getItem("likelemba-modules-vus")) return false; sessionStorage.setItem("likelemba-modules-vus", "1"); } catch { /* stockage indisponible */ }
+  return true;
+}
+
 export function PageModules() {
+  const [entree] = useState(premiereVisite);
   const { donnees } = useDonnees(() => api.session.courante());
   if (donnees === null) return <Navigate to="/connexion" replace />;
   const liees = applicationsLiees((donnees as { droits?: string[] } | undefined)?.droits ?? []);
   const ferme = (libelle: string, style: React.CSSProperties, icone: React.ReactNode, motif: string, classe = "boule inactive") =>
     <span key={libelle} className={classe} style={style} aria-disabled="true" title={motif}>{icone}<span>{libelle}</span></span>;
   return (
-    <main className="page-modules">
+    <main className="page-modules" data-entree={entree ? "complete" : "retour"}>
       <h1 className="sr-only">Modules</h1>
       <div className="orbite">
+        <svg className="anneaux" viewBox="0 0 100 100" aria-hidden="true">
+          <circle className="anneau-interieur" cx="50" cy="50" r="27" />
+          <circle className="anneau" cx="50" cy="50" r="38" />
+        </svg>
         {liees.has("principal")
-          ? <Link to="/principal" className="boule centre">{ICONES.budget}<span>LIKELEMBA</span></Link>
-          : ferme("LIKELEMBA", {}, ICONES.budget, "Module non lié à votre profil", "boule centre inactive")}
+          ? <Link to="/principal" className="boule centre"><Etoile taille={56} /><span>LIKELEMBA</span></Link>
+          : ferme("LIKELEMBA", {}, <Etoile taille={56} />, "Module non lié à votre profil", "boule centre inactive")}
         {AUTOUR.map((m, i) => {
-          const style = { "--angle": `${i * 45}deg` } as React.CSSProperties;
+          // Grh en haut, puis dans le sens des aiguilles d'une montre, comme la capture p. 6
+          const a = (i * Math.PI) / 4;
+          const style = { "--x": Math.sin(a).toFixed(4), "--y": (-Math.cos(a)).toFixed(4), "--rang": i } as React.CSSProperties;
           if (!m.application) return ferme(m.libelle, style, m.icone, "Non repris");
           return liees.has(m.application)
             ? <Link key={m.libelle} to={m.chemin!} className="boule" style={style}>{m.icone}<span>{m.libelle}</span></Link>
