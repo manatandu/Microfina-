@@ -34,5 +34,6 @@ Chaque ligne dit ce qui a été constaté, où, et ce que Likelemba fait déjà 
 | S36 Facture | Référence Commande non montrée ; « Taux A. » et « Taux N.A. » sans explication, pensés pour l'AIB béninoise ; grille vide en anglais (« No records found. ») ; aucun champ marqué obligatoire | Libellés explicites ; retenues de la RDC ; champs obligatoires marqués |
 | S03 Profils | Le nom du profil s'appelle « Nom Droit » ; Modifier et Supprimer ne sont pas visibles | « Nom du profil » ; boutons visibles |
 | S04 Droits | Rien ne signale qu'un profil cumule des tâches incompatibles (saisir et valider, tenir la caisse et la contrôler) ; deux pages pour la même chose (assigner, modifier) | Alerte de séparation des tâches (Instr. BCC 008, art. 66) ; une seule page |
+| S05 Utilisateurs | « Nom et prénom(s) » en un seul champ, mais deux colonnes dans la grille ; aucune règle de mot de passe ni d'expiration ; « Control utilisateur connecté » non expliqué | Nom et prénoms séparés ; règles de mot de passe paramétrables (Instr. BCC 008, art. 16) |
 | Grilles | Pages de 10 lignes et filtres par colonne, sans recherche globale ni tri multiple | Recherche et tri |
 | Messages | Boîtes de confirmation Oui/Non à chaque enregistrement, même sans risque | Confirmer seulement ce qui engage (écritures, suppressions) |

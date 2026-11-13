@@ -39,6 +39,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "comptes.supprimer": [
 "S102"
 ],
+"comptesUtilisateurs.enregistrer": [
+"S05"
+],
 "credit.enregistrer": [
 "S21"
 ],

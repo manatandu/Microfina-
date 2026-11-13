@@ -39,7 +39,7 @@ export function graine(): Etat {
     lieuNaissance: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", liees: [] as number[],
     type: "physique" as const, formeJuridique: "", registre: "", centreActivite: "", activite: "", dirigeant: null, signataires: [], nbHommes: 0, nbFemmes: 0, membres: [], intitule: "", dateVisa: "2026-01-15", profession: "", pays: "", ville: "", quartier: "", rue: "", email: "", bp: "", telephoneFixe: "", motifDepart: "", resilieLe: "", creeLe: "2026-01-15", creePar: 4, visePar: 2, statut: "actif" as const };
   return {
-    version: 50,
+    version: 51,
     institution: { nom: "COOPEC Tujenge", sigle: "CTJ", profil: "coopec", pays: "République démocratique du Congo", ville: "Kinshasa", commune: "Matete", quartier: "Kinsaku", journeeMax: 1 },   // sigle fictif : élément Institution du numéro client (S15-11)
     agence: { id: 1, code: "0412", nom: "Matete" },
     agences: [{ id: 1, code: "0412", nom: "Matete", supprime: false }],
@@ -49,10 +49,10 @@ export function graine(): Etat {
       famille: "EPARGNE" as const, soldeMinimum: 0, retraitMaxJour: null, nbMaxComptes: 1, afficherAdhesion: false, actif: true, virementPrelevement: false, operer: true,
       depotCheque: false, caution: false, nantissement: false, tenueCompte: null, calculerInteret: false, soldeNegatif: false, repartitionGroupe: false, supprime: false })),
     utilisateurs: [
-      { id: 1, login: "engalula", nom: "Esther Ngalula", roles: ["caissier"] },
-      { id: 2, login: "jpmukendi", nom: "J.-P. Mukendi", roles: ["chef_agence"] },
-      { id: 3, login: "plumbala", nom: "Patrick Lumbala", roles: ["comptable"] },
-      { id: 4, login: "bkasongo", nom: "Bijou Kasongo", roles: ["agent_credit"] },
+      { id: 1, login: "engalula", nom: "Esther Ngalula", roles: ["caissier"], agenceId: 1 },
+      { id: 2, login: "jpmukendi", nom: "J.-P. Mukendi", roles: ["chef_agence"], agenceId: 1 },
+      { id: 3, login: "plumbala", nom: "Patrick Lumbala", roles: ["comptable"], agenceId: 1 },
+      { id: 4, login: "bkasongo", nom: "Bijou Kasongo", roles: ["agent_credit"], agenceId: 1 },
     ],
     coursListe: [{ devise: "USD", jour: "2026-11-04", cours: COURS_EXEMPLE }],
     valeurPart: VALEUR_PART_EXEMPLE,

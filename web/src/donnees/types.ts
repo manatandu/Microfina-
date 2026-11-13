@@ -2,7 +2,9 @@ import type { Comptage, Devise } from "@design/montant.js";
 
 export type Role = "caissier" | "chef_agence" | "agent_credit" | "comptable";
 
-export interface Utilisateur { id: number; login: string; nom: string; roles: Role[] }
+export interface Utilisateur { id: number; login: string; nom: string; roles: Role[];
+  // S05 : Informations et Info Adresse (le mot de passe n'est pas gardé par la démo, registre S05-3)
+  agenceId?: number; controleConnecte?: boolean; rue?: string; adresse?: string; bp?: string; telephoneFixe?: string; portable?: string; email?: string }
 export interface Institution { nom: string; sigle?: string; profil: string;
   // S32 Info générale
   description?: string; directeur?: string; numeroAgrement?: string; journeeMax?: number; compteHorsBilan1?: string | null; compteHorsBilan2?: string | null;
@@ -178,7 +180,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 50;
+  version: 51;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)

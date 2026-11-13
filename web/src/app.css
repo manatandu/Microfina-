@@ -309,3 +309,5 @@ textarea.saisie.montant { resize: none; text-align: end; }
 .droits-arbre summary, .droits-arbre li { padding-block: 2px; }
 .droits-fleches { gap: var(--espace-2); }
 @media (max-width: 700px) { .droits-deux-listes { grid-template-columns: 1fr; } .droits-fleches { flex-direction: row; justify-content: center; } }
+.grille-trois-champs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--espace-3); }
+@media (max-width: 700px) { .grille-trois-champs { grid-template-columns: 1fr; } }

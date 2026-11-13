@@ -28,6 +28,7 @@ import Devises from "./Devises";
 import Facture from "./Facture";
 import GestionProfils from "./Profils";
 import DroitsProfil from "./Droits";
+import EnregistrementUtilisateurs from "./Utilisateurs";
 import ParametragesClients, { ParametrageCompteClient } from "./Numerotation";
 import { EcranJournee, EcranValidation, FermetureJournee } from "./Journee";
 import { Consentement, InformationsClient, ModificationFrais, PhotosSignatures, ResiliationClient, ValidationClientModifie, VisaClient } from "./Visa";
@@ -73,6 +74,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S36: Facture,
   S03: GestionProfils,
   S04: DroitsProfil,
+  S05: EnregistrementUtilisateurs,
   S16: FraisOperations,
   S37: EnrolementPhysique,
   S38: EnrolementEntreprise,

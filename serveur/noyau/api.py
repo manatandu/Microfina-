@@ -27,6 +27,7 @@ from . import devises as dv
 from . import facture as fa
 from . import profils as pf
 from . import droits as dr
+from . import comptes_utilisateurs as cu
 from . import comptes as cp
 from . import numerotation as nu
 from . import services as s
@@ -793,6 +794,22 @@ def pf_modifier(request, pid: int, corps: dict = Body(...)):
 @api.post("/profils/{pid}/suppression")
 def pf_supprimer(request, pid: int):
     return pf.supprimer(u(request), pid)
+
+
+# ---------- Administration > Utilisateur > Création (S05) ----------
+@api.get("/gestion-utilisateurs")
+def cu_lire(request):
+    return cu.lire(u(request))
+
+
+@api.post("/gestion-utilisateurs")
+def cu_creer(request, corps: dict = Body(...)):
+    return cu.enregistrer(u(request), corps)
+
+
+@api.post("/gestion-utilisateurs/{uid}")
+def cu_modifier(request, uid: int, corps: dict = Body(...)):
+    return cu.enregistrer(u(request), corps, uid)
 
 
 # ---------- Administration > Profil > Assigner droit ; Modifier droit d'un profil (S04) ----------

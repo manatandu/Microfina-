@@ -1295,3 +1295,24 @@ def test_droits_profils(clients):
     assert r.status_code == 403 and "Frais et opérations" in r.json()["message"]
     chef.post(f"/api/droits/{pr[CHEF]}", {"droits": l["octroyes"]}, **H)
     assert chef.post("/api/parametrage/frais", {"typeOperation": "DEPOT", "libelle": "X"}, **H).status_code != 403
+
+
+def test_utilisateurs_creation(clients):
+    """S05 (p. 16 et 17) : champs marqués *, mot de passe confirmé et chiffré, nom utilisateur unique ; grille Nom user, Prenoms user,
+    Agence, Telephone ; modifier sans retaper le mot de passe (registre S05-1 à S05-3)"""
+    chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    l = chef.get("/api/gestion-utilisateurs", **H).json()
+    ag = l["agences"][0]["id"]
+    def refus(url, corps):
+        r = chef.post(url, corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    U = {"nom": "Mbala Joseph", "agenceId": ag, "login": "jmbala", "motDePasse": "secret-1", "confirmation": "secret-1", "portable": "+243 810 000 444"}
+    assert agent.post("/api/gestion-utilisateurs", U, **H).status_code == 403
+    assert "Nom et prénom(s), Agence, Nom utilisateur, Mot de passe, Confirmation, Portable" in refus("/api/gestion-utilisateurs", {})
+    assert "différente" in refus("/api/gestion-utilisateurs", {**U, "confirmation": "x"})
+    assert "existe déjà" in refus("/api/gestion-utilisateurs", {**U, "login": "JPMUKENDI"})
+    x = next(v for v in chef.post("/api/gestion-utilisateurs", U, **H).json()["utilisateurs"] if v["login"] == "jmbala")
+    assert (x["nom"], x["agence"], x["portable"]) == ("Mbala Joseph", "Matete", "+243 810 000 444")
+    h = ident("select mot_de_passe_hash from utilisateur where login = 'jmbala'")
+    assert h != "secret-1" and h.startswith(("pbkdf2", "argon2", "bcrypt", "scrypt"))
+    chef.post(f"/api/gestion-utilisateurs/{x['id']}", {**U, "motDePasse": "", "confirmation": "", "portable": "+243 810 000 555"}, **H)
+    assert ident("select mot_de_passe_hash from utilisateur where login = 'jmbala'") == h

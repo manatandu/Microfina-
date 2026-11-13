@@ -173,6 +173,11 @@ const OUT = process.argv[2];
   // Chef : profils (S03, p. 15) : le profil AUDITEUR de la capture
   await aller('/administration/s03'); await p.getByLabel('Nom Droit *').fill('AUDITEUR'); await p.getByLabel('Description').fill('PROFIL DES AUDITEURS');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'AUDITEUR', exact: true }).waitFor(); await etape('02f31-profils');
+  // Chef : un utilisateur (S05, p. 17)
+  await aller('/administration/s05'); await p.getByLabel('Nom et prénom(s) *').fill('Mbala Joseph'); await p.getByLabel('Agence *').selectOption({ label: 'Matete' });
+  await p.getByLabel('Nom utilisateur *').fill('jmbala'); await p.getByLabel('Mot de passe *').fill('secret-1'); await p.getByLabel('Confirmation *').fill('secret-1');
+  await p.getByLabel('Portable : *').fill('+243 810 000 444'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByRole('cell', { name: 'Mbala', exact: true }).waitFor(); await etape('02f33-utilisateurs');
   // Chef : droits du profil AUDITEUR (S04, p. 15 et 16) : le menu Client lui est octroyé
   await aller('/administration/s04'); await p.getByLabel('Libellé du Profil *').selectOption({ label: 'AUDITEUR' });
   await p.getByRole('checkbox', { name: 'LISTE DES DROITS RESTANTS : Client' }).check(); await p.getByRole('button', { name: 'Octroyer les droits cochés' }).click();

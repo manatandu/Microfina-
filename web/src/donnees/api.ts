@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v50";
+const CLE = "likelemba-demo-v51";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -27,7 +27,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 50) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 51) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -2626,6 +2626,41 @@ const droits = {
   },
 };
 
+// ---------- Administration > Utilisateur > Création (S05, manuel p. 16 et 17). Règles identiques côté serveur (noyau/comptes_utilisateurs.py). ----------
+export type SaisieUtilisateur = { nom?: string; agenceId?: number | null; login?: string; motDePasse?: string; confirmation?: string; controleConnecte?: boolean;
+  rue?: string; adresse?: string; bp?: string; telephoneFixe?: string; portable?: string; email?: string };
+const comptesUtilisateurs = {
+  lire() {
+    exiger();
+    return { agences: E.agences.filter((a) => !a.supprime).map(({ id, nom }) => ({ id, nom })),
+      utilisateurs: [...E.utilisateurs].sort((a, b) => a.nom.localeCompare(b.nom)).map((x) => ({ id: x.id, nom: x.nom, login: x.login, agenceId: x.agenceId ?? null,
+        controleConnecte: !!x.controleConnecte, rue: x.rue ?? "", adresse: x.adresse ?? "", bp: x.bp ?? "", telephoneFixe: x.telephoneFixe ?? "", portable: x.portable ?? "",
+        email: x.email ?? "", agence: E.agences.find((a) => a.id === x.agenceId)?.nom ?? "" })) };
+  },
+  /** Enregistrer ou modifier l'utilisateur choisi (p. 12, T01) ; registre S05-1 à S05-3 ; la démo ne garde pas le mot de passe */
+  enregistrer(d: SaisieUtilisateur, id?: number) {
+    exiger("chef_agence");
+    const v = { nom: txt(d.nom), login: txt(d.login), rue: txt(d.rue), adresse: txt(d.adresse), bp: txt(d.bp), telephoneFixe: txt(d.telephoneFixe), portable: txt(d.portable), email: txt(d.email) };
+    const mdp = typeof d.motDePasse === "string" ? d.motDePasse : "", conf = typeof d.confirmation === "string" ? d.confirmation : "";
+    const agenceId = typeof d.agenceId === "number" ? d.agenceId : null;
+    const oblig: [string, string][] = [["Nom et prénom(s)", v.nom], ["Agence", agenceId ? "x" : ""], ["Nom utilisateur", v.login]];
+    if (id === undefined) oblig.push(["Mot de passe", mdp], ["Confirmation", conf]);
+    oblig.push(["Portable", v.portable]);
+    const manque = manquants(oblig);
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    if (mdp !== conf) throw new ErreurMetier("Confirmation : différente du mot de passe.");
+    if (/\s/.test(v.login)) throw new ErreurMetier("Nom utilisateur : sans espace.");
+    if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) throw new ErreurMetier("Email invalide.");
+    if (!E.agences.some((a) => a.id === agenceId && !a.supprime)) throw new ErreurMetier("Agence inconnue.");
+    const x = id === undefined ? undefined : E.utilisateurs.find((y) => y.id === id);
+    if (id !== undefined && !x) throw new ErreurMetier("Utilisateur introuvable.");
+    if (E.utilisateurs.some((y) => y.id !== id && y.login.toLowerCase() === v.login.toLowerCase())) throw new ErreurMetier("Ce Nom utilisateur existe déjà.");
+    const f = { ...v, agenceId: agenceId!, controleConnecte: !!d.controleConnecte };
+    if (x) Object.assign(x, f); else E.utilisateurs.push({ id: prochain(E.utilisateurs), roles: [], ...f });
+    enregistrer(); return comptesUtilisateurs.lire();
+  },
+};
+
 // ---------- Info de base > Localisation (S20, manuel p. 30 à 32), adaptée au découpage de la RDC (demande du porteur, registre S20-1) :
 // Constitution, art. 2 et 3 ; Décret 22/07 du 02/03/2022, art. 9, point 26. Règles identiques côté serveur (noyau/localisation.py). ----------
 const NIVEAUX: NiveauLieu[] = ["pays", "province", "ville", "commune", "quartier"];
@@ -2733,6 +2768,7 @@ const apiLocal = {
   facture: asynchrone(facture, "facture"),
   profils: asynchrone(profils, "profils"),
   droits: asynchrone(droits, "droits"),
+  comptesUtilisateurs: asynchrone(comptesUtilisateurs, "comptesUtilisateurs"),
   comptes: asynchrone(comptes, "comptes"),
   numerotation: asynchrone(numerotation, "numerotation"),
 };

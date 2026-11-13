@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**241 décisions.** Solidité : 76 fortes (le manuel ou un texte répond), 134 moyennes (déduites d'un écran voisin ou d'une donnée), 31 faibles (notre choix, faute de mieux). Dans le code : 186 déjà en place, 55 à appliquer.
+**244 décisions.** Solidité : 76 fortes (le manuel ou un texte répond), 136 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 189 déjà en place, 55 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -45,6 +45,14 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S04-1 | Écrans et arbre des droits | Deux pages comme le menu Profil : Assigner droit (« Octroyer des droits à un profils » : Libellé du Profil*) et Modifier droit d'un profil (« Modification des droits octroyés à un profil » : Profil sélectionné, Liste profils). Cases des applications (Likelemba, Paie, Immobilisations ; GRH et Stocks hors périmètre), LISTE DES DROITS RESTANTS et LISTE DES DROITS OCTROYES en arbre application > menu (case pour tout le menu) > tâche, flèches → et ←, Enregistrer. Une tâche = une entrée de menu du registre des écrans | Donnée exigée ailleurs : Captures p. 16 ; texte p. 15 et 16 ; T07 ; COMPLEMENTS § 5.2 | moyenne | en place |
 | S04-2 | Droits des profils de départ | CHEF D'AGENCE : Administration, Paramétrage, enrôlement et visa des clients, banques, validation du billetage et des opérations, rapports ; CAISSIER : guichets et caisse ; AGENT DE CRÉDIT : clients (sans visa ni résiliation) et crédit ; COMPTABLE : comptabilité, banque, budget. Ce sont les écrans que chaque rôle tenait déjà ; ils se changent dans S04 | Donnée exigée ailleurs : T07 ; contrôles en place avant S04 (tests) | moyenne | en place |
 | S04-3 | Contrôle par tâche | Chaque écriture (route du serveur, méthode de la démo) est rattachée aux écrans qui l'appellent ; l'utilisateur doit tenir le droit de l'un d'eux, sinon « Droit manquant : <écran> ». Le menu ne montre que les écrans autorisés. Les lectures ne sont pas encore filtrées par droit. La règle des quatre yeux (ARCHITECTURE P7, P8) reste dans le moteur : aucun droit ne la lève. Table générée pour la démo par replica/droits_gen.py | Donnée exigée ailleurs : COMPLEMENTS § 5.2 (points 3 et 4) ; Instr. BCC 008, art. 66 | moyenne | en place |
+
+## S05 Utilisateurs : création
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S05-1 | Champs et boutons | Ceux de la capture : Informations (Nom et prénom(s)*, Agence*, Control utilisateur connecté), Authentification (Nom utilisateur*, Mot de passe*, Confirmation*), Info Adresse (Rue / Maison, Adresse, BP, Tél fix, Portable*, Email), Enregistrer, Effacer. Clic sur une ligne pour modifier (p. 12, T01) ; en modification le mot de passe vide reste inchangé. Nom utilisateur unique, sans espace (il sert à la connexion) ; Confirmation égale au mot de passe ; email valide. L'effet de « Control utilisateur connecté » n'est pas décrit : enregistré seulement, à voir avec S07 | Donnée exigée ailleurs : Capture p. 17 ; texte p. 16 ; T01, T08 | moyenne | en place |
+| S05-2 | Grille | Nom user, Prenoms user, Agence, Telephone : le champ unique « Nom et prénom(s) » se coupe au premier espace (nom, puis prénoms) ; Telephone = Portable. Les utilisateurs de démonstration sont écrits prénom d'abord, d'où l'inversion visible sur eux | Donnée exigée ailleurs : Capture p. 17 | faible | en place |
+| S05-3 | Mot de passe | Chiffré par le serveur (empreinte, jamais en clair), aucune règle de longueur inventée : l'institution édicte ses règles internes de sécurité. La démo dans le navigateur ne garde pas le mot de passe. La page de connexion reste sans mot de passe jusqu'à votre décision (demande du porteur) | Texte réglementaire : Instr. BCC 008, art. 15 et 16 (gestion des accès et authentification maîtrisées, règles internes) ; demande du porteur (connexion sans mot de passe pour l'instant) | moyenne | en place |
 
 ## S08 Gestion des guichets
 
@@ -526,6 +534,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Écran | Question | Réponse retenue |
 |---|---|---|---|
+| S05-2 | S05 Utilisateurs : création | Grille | Nom user, Prenoms user, Agence, Telephone : le champ unique « Nom et prénom(s) » se coupe au premier espace (nom, puis prénoms) ; Telephone = Portable. Les utilisateurs de démonstration sont écrits prénom d'abord, d'où l'inversion visible sur eux |
 | S08-4 | S08 Gestion des guichets | Effet du maximum autorisé en caisse | Avertissement au caissier quand le solde de sa caisse dépasse le maximum : il transfère l'excédent à la caisse principale (S81). Un dépôt n'est jamais refusé pour cette raison |
 | S08-9 | S08 Gestion des guichets | Lien « Droits » de la colonne Opérations | Ouvre l'affectation des guichets (S10) filtrée sur ce guichet |
 | S10-2 | S10 Affectation des guichets | Case « Voir solde client VIP » | Case recopiée et enregistrée, sans effet : Likelemba n'a pas de client VIP |

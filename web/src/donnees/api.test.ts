@@ -625,6 +625,19 @@ describe("journée de guichet", () => {
     await expect(api.droits.enregistrer(chef, { droits: [] })).rejects.toThrow("Droit manquant");
   });
 
+  it("utilisateurs (S05, p. 16 et 17) : champs marqués *, confirmation, nom utilisateur unique, modification sans mot de passe", async () => {
+    await connecter("jpmukendi");
+    const U = { nom: "Mbala Joseph", agenceId: 1, login: "jmbala", motDePasse: "secret-1", confirmation: "secret-1", portable: "+243 810 000 444" };
+    await expect(api.comptesUtilisateurs.enregistrer({})).rejects.toThrow("Nom et prénom(s), Agence, Nom utilisateur, Mot de passe, Confirmation, Portable");
+    await expect(api.comptesUtilisateurs.enregistrer({ ...U, confirmation: "x" })).rejects.toThrow("différente");
+    await expect(api.comptesUtilisateurs.enregistrer({ ...U, login: "JPMUKENDI" })).rejects.toThrow("existe déjà");
+    const x = (await api.comptesUtilisateurs.enregistrer(U)).utilisateurs.find((v) => v.login === "jmbala")!;
+    expect([x.nom, x.agence, x.portable]).toEqual(["Mbala Joseph", "Matete", "+243 810 000 444"]);
+    expect((await api.comptesUtilisateurs.enregistrer({ ...U, motDePasse: "", confirmation: "", portable: "1" }, x.id)).utilisateurs.find((v) => v.id === x.id)!.portable).toBe("1");
+    await connecter("bkasongo");
+    await expect(api.comptesUtilisateurs.enregistrer(U)).rejects.toThrow("Droit manquant");
+  });
+
   it("info société (S32, p. 42) : obligatoires, Type base, localisation, hors bilan classe 0, logo ; agences", async () => {
     await connecter("jpmukendi");
     const l = await api.societe.lire();
