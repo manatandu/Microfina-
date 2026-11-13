@@ -13,6 +13,8 @@ const COMPTES_GUICHET = { compteGuichet: "570", compteLiaison: "579", compteSurp
 
 export const COURS_EXEMPLE = 2850;            // CDF pour 1 USD, fictif
 export const VALEUR_PART_EXEMPLE = 400000;    // 4 000 CDF : exemple du manuel Microfina++ ; la vraie valeur vient des statuts (loi 002/2002, art. 20)
+/** S14b : sélection de métiers du ROME/RDC (ONEM, nov. 2022), code et libellé du répertoire ; « Commerçant », que le ROME ne nomme pas, code de l'institution (registre S14b-1) */
+export const PROFESSIONS_ROME: [string, string][] = [["6330-01", "Agriculteur"], ["6113-13", "Maraîcher"], ["6320-07", "Éleveur de bovins"], ["6122-06", "Éleveur de volailles"], ["5211-01", "Marchand de fruits et légumes"], ["5211-04", "Vendeur en alimentation générale"], ["7532-09", "Tailleur"], ["7532-04", "Couturier tailleur"], ["5141-06", "Coiffeur mixte"], ["7512-02", "Boulanger"], ["7112-11", "Maçon"], ["7522-02", "Menuisier"], ["7536-01", "Cordonnier"], ["2341-06", "Enseignant des écoles"], ["2240-09", "Infirmier général"], ["3311-23", "Cambiste, Changeur de monnaie"], ["COM", "Commerçant"]];
 /** S14i : formes de société commerciales de l'AUSCGIE, art. 6 (démonstration ; la liste se tient dans le paramétrage) */
 export const FORMES_JURIDIQUES = ["Société en nom collectif", "Société en commandite simple", "Société à responsabilité limitée", "Société anonyme",
   "Société par actions simplifiée"];
@@ -42,7 +44,7 @@ export function graine(): Etat {
     lieuNaissance: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", liees: [] as number[],
     type: "physique" as const, formeJuridique: "", registre: "", centreActivite: "", activite: "", dirigeant: null, signataires: [], nbHommes: 0, nbFemmes: 0, membres: [], intitule: "", dateVisa: "2026-01-15", profession: "", pays: "", ville: "", quartier: "", rue: "", email: "", bp: "", telephoneFixe: "", motifDepart: "", resilieLe: "", creeLe: "2026-01-15", creePar: 4, visePar: 2, statut: "actif" as const };
   return {
-    version: 55,
+    version: 56,
     institution: { nom: "COOPEC Tujenge", sigle: "CTJ", profil: "coopec", pays: "République démocratique du Congo", ville: "Kinshasa", commune: "Matete", quartier: "Kinsaku", journeeMax: 1 },   // sigle fictif : élément Institution du numéro client (S15-11)
     agence: { id: 1, code: "0412", nom: "Matete" },
     agences: [{ id: 1, code: "0412", nom: "Matete", supprime: false }],
@@ -131,6 +133,7 @@ export function graine(): Etat {
       { liste: "type_client", code: "1", libelle: "Client" },
       // S14f : types de groupe nommés par le manuel, p. 47 (registre S39-2)
       ...["Groupement", "Association", "ONG"].map((libelle, i) => ({ liste: "type_groupe", code: String(i + 1), libelle })),
+      ...PROFESSIONS_ROME.map(([code, libelle]) => ({ liste: "profession", code, libelle })),   // S14b (registre S14b-1)
       // S14i : formes de société de l'AUSCGIE, art. 6, en démonstration (registre S38-4)
       ...FORMES_JURIDIQUES.map((libelle, i) => ({ liste: "forme_juridique", code: String(i + 1), libelle })),
       // S18 : motifs de départ de la capture p. 26 (registre S18-1)
@@ -159,8 +162,6 @@ export function graine(): Etat {
       { id: 3, code: "BQ", libelle: "Journal Banque", type: "banque", actif: true, supprime: false }],
     // S10, données fictives : la caissière tient la Caisse 2 et voit les soldes
     affectations: [{ id: 1, utilisateurId: 1, guichetId: 2, voirSolde: true, voirSoldeVip: false, debut: "2026-11-04T07:00:00Z", ajoutePar: 2 }],
-    // Localisation et professions fictives (paramétrage S14 et Localisation pas encore construits)
-    professions: ["Agriculteur", "Commerçant", "Enseignant"],
     // Localisation (S20) : la ville de Kinshasa et les 25 provinces (Constitution, art. 2) ; communes et quartier de démonstration
     lieux: (() => {
       const l = (id: number, parentId: number | null, niveau: NiveauLieu, nom: string, x: Partial<LigneLieu> = {}): LigneLieu =>

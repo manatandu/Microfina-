@@ -29,6 +29,10 @@ PROVINCES_RDC = ["Kinshasa", "Bas-Uele", "Equateur", "Haut-Lomami", "Haut-Katang
                  "Sud-Ubangi", "Tanganyika", "Tshopo", "Tshuapa"]
 
 
+# S14b : sélection de métiers du ROME/RDC (ONEM, nov. 2022), code et libellé du répertoire (registre S14b-1)
+PROFESSIONS = (("6330-01", "Agriculteur"), ("6113-13", "Maraîcher"), ("6320-07", "Éleveur de bovins"), ("6122-06", "Éleveur de volailles"), ("5211-01", "Marchand de fruits et légumes"), ("5211-04", "Vendeur en alimentation générale"), ("7532-09", "Tailleur"), ("7532-04", "Couturier tailleur"), ("5141-06", "Coiffeur mixte"), ("7512-02", "Boulanger"), ("7112-11", "Maçon"), ("7522-02", "Menuisier"), ("7536-01", "Cordonnier"), ("2341-06", "Enseignant des écoles"), ("2240-09", "Infirmier général"), ("3311-23", "Cambiste, Changeur de monnaie"),
+               ("COM", "Commerçant"))
+
 FORMES_JURIDIQUES = ("Société en nom collectif", "Société en commandite simple", "Société à responsabilité limitée", "Société anonyme",
                      "Société par actions simplifiée")
 
@@ -49,8 +53,9 @@ class Command(BaseCommand):
         matete = valeur("insert into localite (parent_id, niveau, nom) values (%s, 'commune', 'Matete') returning id", (ville,))
         executer("insert into localite (parent_id, niveau, nom) values (%s, 'commune', 'Lemba')", (ville,))
         executer("insert into localite (parent_id, niveau, nom) values (%s, 'quartier', 'Kinsaku')", (matete,))
-        for pr in ("Commerçant", "Enseignant", "Agriculteur"):
-            executer("insert into profession (institution_id, libelle) values (%s, %s)", (ins, pr))
+        # S14b : métiers du ROME/RDC avec leur code, et « Commerçant » que le ROME ne nomme pas, code de l'institution (registre S14b-1)
+        for c, pr in PROFESSIONS:
+            executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'profession', %s, %s)", (ins, c, pr))
         # Motifs de départ : exemples de la capture du manuel (p. 26), dans le moteur des listes (S18, registre S18-1)
         for n, mo in enumerate(("DEPART DU PAYS", "Raisons personnelles", "DEMENAGEMENT", "DECISION DU CLIENT", "NE VEUT PLUS PRENDRE DE CREDIT", "AUTRES",
                                 "TRANSFERT SUR UNE AUTRE AGENCE"), 1):

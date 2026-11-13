@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**256 décisions.** Solidité : 79 fortes (le manuel ou un texte répond), 144 moyennes (déduites d'un écran voisin ou d'une donnée), 33 faibles (notre choix, faute de mieux). Dans le code : 206 déjà en place, 50 à appliquer.
+**258 décisions.** Solidité : 80 fortes (le manuel ou un texte répond), 145 moyennes (déduites d'un écran voisin ou d'une donnée), 33 faibles (notre choix, faute de mieux). Dans le code : 208 déjà en place, 50 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -576,6 +576,13 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | S39-1 | Fiche complétée comme S37 (reste de S38-1) | Sensibilisateur, Gestionnaire, Commercial pris dans S33 au lieu de INCONNU seul ; Autres renseignements comme le client physique ; saisies libres remplacées par les listes de paramétrage — Construit pour S39 : Sensibilisateur, Gestionnaire, Commercial de S33 ; Forme juridique de S14i (facultative) ; onglet Autres renseignements du client physique, Catégorie prise dans Catégorie de groupe (S14j) ; la saisie libre « Nature de l'activité » est remplacée par Secteur et Type d'activité | Donnée exigée ailleurs : S37-1, S37-2, S38-1 | moyenne | en place |
 | S39-2 | Liste du Type de groupe | Lue dans Type de groupe (S14f), la page de paramétrage qui la tient (atlas : S14f sert S39). En démonstration : Groupement, Association, ONG, les trois nommés p. 47. Agent économique (PCCI § 10.2) gardé pour ces libellés (S37-8) : Association et ONG en institutions sans but lucratif ; un groupement ou un autre libellé reste sans agent, à confirmer | Donnée exigée ailleurs : Manuel p. 47 ; atlas S14f ; PCCI § 10.2 | moyenne | en place |
+
+## S14b Profession
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S14b-1 | Valeurs de démonstration de la liste Profession | Seize métiers du ROME/RDC avec leur code et leur libellé (agriculture, élevage, commerce de détail, couture, coiffure, bâtiment, enseignement, santé, change), plus « Commerçant » que le ROME ne nomme pas, sous un code de l'institution (COM). L'institution tient sa liste dans S14b | Texte réglementaire : ROME/RDC, ONEM, nov. 2022 (lu ; décret d'approbation non lu) ; demande du porteur | moyenne | en place |
+| S14b-2 | Source de la profession | La fiche client (S37), le prospect (S45), les agents (S33) et le rapport des prospects (S51) lisent la liste Profession de S14b. L'ancienne table des professions, que S14b n'alimentait pas, est reprise dans la liste (migration 0058) | Écran voisin : S14 (même moteur de listes) ; atlas S14b : D:S37 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

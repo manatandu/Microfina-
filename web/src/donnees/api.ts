@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v55";
+const CLE = "likelemba-demo-v56";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -27,7 +27,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 55) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 56) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -81,7 +81,7 @@ const session = {
 };
 
 function contexte() {
-  return { institution: E.institution, agence: E.agence, guichets: E.guichets.filter((g) => g.actif !== false), produits: produitsProposes(), zones: zonesActives(), typesClient: valeursListe("type_client").map((l) => l.libelle), typesEntreprise: TYPES_ENTREPRISE, typesGroupe: valeursListe("type_groupe").map((l) => l.libelle), pieces: PIECES, professions: E.professions, localites: localites(),
+  return { institution: E.institution, agence: E.agence, guichets: E.guichets.filter((g) => g.actif !== false), produits: produitsProposes(), zones: zonesActives(), typesClient: valeursListe("type_client").map((l) => l.libelle), typesEntreprise: TYPES_ENTREPRISE, typesGroupe: valeursListe("type_groupe").map((l) => l.libelle), pieces: PIECES, professions: professions(), localites: localites(),
     // S37 : listes lues par la fiche du client (registre S37-2)
     listesFiche: { ...Object.fromEntries(Object.entries(LISTES_FICHE).map(([k, [liste]]) => [k, valeursListe(liste).map((l) => l.libelle)])) as Record<string, string[]>,
       filiation: valeursListe("filiation").map((l) => l.libelle), formeJuridique: valeursListe("forme_juridique").map((l) => l.libelle),
@@ -367,7 +367,7 @@ export function controlerFichePhysique(d: NouveauTiers, jour: string, identite =
   }
   if (txt("typeActivite") && !valeursListe("type_activite").some((l) => l.libelle === txt("typeActivite") && l.parent === txt("secteurActivite")))
     throw new ErreurMetier("Type d'activité : il n'appartient pas au secteur d'activité choisi.");
-  if (txt("profession") && !E.professions.includes(txt("profession"))) throw new ErreurMetier("Profession inconnue.");
+  if (txt("profession") && !professions().includes(txt("profession"))) throw new ErreurMetier("Profession inconnue.");
   if (txt("nationalite") && !localites().some((p) => p.pays === txt("nationalite"))) throw new ErreurMetier("Nationalité : pays inconnu (Paramétrage > Localisation).");
   controlerLieu(d);
   if (txt("email") && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(txt("email"))) throw new ErreurMetier("Email invalide.");
@@ -444,7 +444,7 @@ function controlerProspect(d: Prospect): Prospect {
   if (v.sexe !== "F" && v.sexe !== "M") throw new ErreurMetier("Sexe inconnu.");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(v.naissance) || v.naissance > new Date().toISOString().slice(0, 10)) throw new ErreurMetier("Date de naissance invalide.");
   if (!localites().some((p) => p.pays === v.pays && p.villes.some((x) => x.ville === v.ville && x.quartiers.includes(v.quartier)))) throw new ErreurMetier("Pays, ville ou quartier inconnu.");
-  if (v.profession && !E.professions.includes(v.profession)) throw new ErreurMetier("Profession inconnue.");
+  if (v.profession && !professions().includes(v.profession)) throw new ErreurMetier("Profession inconnue.");
   if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) throw new ErreurMetier("Email invalide.");
   return v;
 }
@@ -919,6 +919,8 @@ export const CATALOGUE_LISTES: FicheListe[] = ([
   { liste: "type_guichet", ecran: "S14n", titre: "Type Guichet" },
 ] as (Partial<FicheListe> & { liste: string; ecran: string; titre: string })[]).map((c) => ({ code: "Code", libelle: c.titre, colonne: c.titre, ...c }) as FicheListe);
 const ficheListe = (liste: string) => { const c = CATALOGUE_LISTES.find((x) => x.liste === liste); if (!c) throw new ErreurMetier("Liste inconnue."); return c; };
+/** S14b : la fiche, le prospect, les agents et le rapport lisent la liste Profession du paramétrage (registre S14b-2) */
+const professions = () => valeursListe("profession").map((l) => l.libelle);
 /** Valeurs actives d'une liste, pour les écrans qui la lisent. Sans code : ordre de saisie (registre S18-2). */
 function valeursListe(liste: string) {
   const sansCode = CATALOGUE_LISTES.find((x) => x.liste === liste)?.sansCode;
@@ -1588,21 +1590,21 @@ export function preparerDemo() {
   const MEMBRES: [string, string, string, "F" | "M", string, string, number, number][] = [
     // nom, postnom, prénom, sexe, profession, quartier, parts, premier dépôt (CDF)
     ["Tshilombo", "Kabeya", "Marie", "F", "Commerçant", "Matete", 2, 50000],
-    ["Mutombo", "Ngoy", "Jean", "M", "Enseignant", "Lemba", 1, 20000],
+    ["Mutombo", "Ngoy", "Jean", "M", "Enseignant des écoles", "Lemba", 1, 20000],
     ["Kabila", "Mwanza", "Ruth", "F", "Commerçant", "Kinsaku", 3, 120000],
     ["Lumumba", "Tshimanga", "Patrice", "M", "Agriculteur", "Matete", 1, 10000],
     ["Kasongo", "Ilunga", "Sarah", "F", "Commerçant", "Lemba", 2, 75000],
-    ["Mbala", "Kalonji", "Joseph", "M", "Enseignant", "Matete", 1, 30000],
+    ["Mbala", "Kalonji", "Joseph", "M", "Enseignant des écoles", "Matete", 1, 30000],
     ["Nsimba", "Makiese", "Esther", "F", "Agriculteur", "Kinsaku", 1, 15000],
     ["Kanku", "Mukendi", "David", "M", "Commerçant", "Lemba", 4, 200000],
-    ["Bokele", "Nzuzi", "Grâce", "F", "Enseignant", "Matete", 1, 25000],
+    ["Bokele", "Nzuzi", "Grâce", "F", "Enseignant des écoles", "Matete", 1, 25000],
     ["Muteba", "Kazadi", "Pierre", "M", "Commerçant", "Kinsaku", 2, 60000],
     ["Lunda", "Mbuyi", "Chantal", "F", "Commerçant", "Matete", 1, 40000],
     ["Kalombo", "Tshibola", "Paul", "M", "Agriculteur", "Lemba", 1, 5000],
-    ["Mayala", "Nkosi", "Rebecca", "F", "Enseignant", "Kinsaku", 2, 90000],
+    ["Mayala", "Nkosi", "Rebecca", "F", "Enseignant des écoles", "Kinsaku", 2, 90000],
     ["Ngandu", "Kayembe", "Samuel", "M", "Commerçant", "Matete", 3, 150000],
     ["Makaba", "Lukusa", "Odette", "F", "Commerçant", "Lemba", 1, 35000],
-    ["Kitenge", "Mulumba", "André", "M", "Enseignant", "Matete", 1, 20000],
+    ["Kitenge", "Mulumba", "André", "M", "Enseignant des écoles", "Matete", 1, 20000],
   ];
   try {
     comme("jpmukendi"); journees.ouvrir("2026-11-05");
@@ -2415,7 +2417,7 @@ const agents = {
   lire(role: string) {
     exiger();
     if (!ROLES_AGENT.includes(role)) throw new ErreurMetier("Onglet inconnu.");
-    return { role, agenceDefaut: E.agence.id, agences: E.agences.filter((a) => !a.supprime).map(({ id, nom }) => ({ id, nom })), professions: [...E.professions].sort(),
+    return { role, agenceDefaut: E.agence.id, agences: E.agences.filter((a) => !a.supprime).map(({ id, nom }) => ({ id, nom })), professions: professions(),
       agents: E.agents.filter((a) => a.role === role && a.actif).sort((a, b) => `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`)).map(({ role: _r, actif: _a, ...x }) => x) };
   },
   /** Enregistrer (nouvel agent) ou Modifier (agent choisi dans la liste) ; registre S33-1 à S33-3 */
@@ -2432,7 +2434,7 @@ const agents = {
     if (!["M", "F"].includes(v.sexe)) throw new ErreurMetier("Sexe inconnu.");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(v.naissance) || v.naissance > new Date().toISOString().slice(0, 10)) throw new ErreurMetier("Né(e) le : date invalide.");
     if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) throw new ErreurMetier("Email invalide.");
-    if (v.profession && !E.professions.includes(v.profession)) throw new ErreurMetier("Profession inconnue.");
+    if (v.profession && !professions().includes(v.profession)) throw new ErreurMetier("Profession inconnue.");
     const agenceId = role === "gestionnaire" ? d.agenceId ?? null : null;
     if (agenceId !== null && !E.agences.some((a) => a.id === agenceId && !a.supprime)) throw new ErreurMetier("Agence inconnue.");
     const actuel = id === undefined ? undefined : E.agents.find((a) => a.id === id && a.role === role && a.actif);

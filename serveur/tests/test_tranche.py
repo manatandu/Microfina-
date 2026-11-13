@@ -680,6 +680,21 @@ def test_rapport_des_transactions(clients, journee):
     r = chef.get("/api/rapports/transactions?du=&au=2026-11-05", **H); assert r.status_code == 422 and "DU et AU" in r.json()["message"]
 
 
+def test_professions_s14b(clients):
+    """S14b : la liste Profession du paramétrage alimente fiche, prospect et agents (registre S14b-2) ; démonstration tirée du ROME/RDC (S14b-1)"""
+    chef, agent = clients["chef"], clients["agent"]
+    connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    l = chef.get("/api/listes/profession", **H).json()["lignes"]
+    assert {"code": "6330-01", "libelle": "Agriculteur"}.items() <= next(x for x in l if x["libelle"] == "Agriculteur").items()
+    assert any(x["code"] == "COM" and x["libelle"] == "Commerçant" for x in l)
+    p = {"nom": "Lukaku", "prenom": "Rose", "naissance": "1992-02-02", "lieuNaissance": "Kinshasa", "sexe": "F", "profession": "Vulcanisateur",
+         "pays": "République démocratique du Congo", "ville": "Kinshasa", "quartier": "Kinsaku", "telephone": "+243 810 000 222"}
+    r = agent.post("/api/prospects", p, **H); assert r.status_code == 422 and "Profession inconnue" in r.json()["message"]
+    chef.post("/api/listes/profession", {"code": "7213-90", "libelle": "Vulcanisateur"}, **H)
+    assert "Vulcanisateur" in agent.get("/api/referentiel", **H).json()["professions"]
+    assert agent.post("/api/prospects", p, **H).status_code == 200
+
+
 def test_listes_general(clients):
     """S14, S14a à S14n (p. 23) : obligatoires, code unique, Modifier et Supprimer logique (p. 12), parent ; Type Guichet alimente S08 (S08-1)"""
     chef, agent = clients["chef"], clients["agent"]

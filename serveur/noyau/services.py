@@ -166,7 +166,7 @@ def contexte(u: dict) -> dict:
         "typesEntreprise": TYPES_ENTREPRISE,
         "typesGroupe": libelles_liste(u, "type_groupe"),
         "pieces": PIECES,
-        "professions": [r["libelle"] for r in lignes("select libelle from profession where institution_id = %s order by libelle", (u["institution_id"],))],
+        "professions": libelles_liste(u, "profession"),   # S14b (registre S14b-2)
         # S33 : sensibilisateurs et commerciaux proposés au prospect et à la fiche client (registre S33-4)
         **{cle: lignes("""select id, trim(nom || ' ' || prenom) as nom from agent_agence where institution_id = %s and role = %s and actif order by nom, prenom""",
                        (u["institution_id"], role)) for cle, role in (("sensibilisateurs", "sensibilisateur"), ("commerciaux", "commercial"))},
@@ -664,7 +664,7 @@ def controler_fiche_physique(u: dict, d: dict, texte, j: dict | None, identite: 
                                            where t.institution_id = %s and t.liste = 'type_activite' and t.libelle = %s and s.libelle = %s""",
                                         (u["institution_id"], texte("typeActivite"), texte("secteurActivite"))):
         raise ErreurMetier("Type d'activité : il n'appartient pas au secteur d'activité choisi.")
-    if texte("profession") and not valeur("select 1 from profession where institution_id = %s and libelle = %s", (u["institution_id"], texte("profession"))):
+    if texte("profession") and texte("profession") not in libelles_liste(u, "profession"):
         raise ErreurMetier("Profession inconnue.")
     if texte("nationalite") and texte("nationalite") not in [p["pays"] for p in localites()]:
         raise ErreurMetier("Nationalité : pays inconnu (Paramétrage > Localisation).")
@@ -1080,7 +1080,7 @@ def controler_prospect(u: dict, d: dict):
     lieux = {(p["pays"], v["ville"], q) for p in localites() for v in p["villes"] for q in v["quartiers"]}
     if (texte("pays"), texte("ville"), texte("quartier")) not in lieux:
         raise ErreurMetier("Pays, ville ou quartier inconnu.")
-    if texte("profession") and not valeur("select 1 from profession where institution_id = %s and libelle = %s", (u["institution_id"], texte("profession"))):
+    if texte("profession") and texte("profession") not in libelles_liste(u, "profession"):
         raise ErreurMetier("Profession inconnue.")
     if texte("email") and not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", texte("email")):
         raise ErreurMetier("Email invalide.")

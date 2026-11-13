@@ -27,7 +27,7 @@ def lire(u, role: str) -> dict:
         a["naissance"] = a["naissance"].isoformat()
     return {"role": role, "agents": agents, "agenceDefaut": u["agence_id"],
             "agences": lignes("select id, nom from agence where institution_id = %s and not supprime order by code", (i,)),
-            "professions": [r["libelle"] for r in lignes("select libelle from profession where institution_id = %s order by libelle", (i,))]}
+            "professions": [r["libelle"] for r in lignes("select libelle from liste_reference where institution_id = %s and liste = 'profession' and actif order by code, id", (i,))]}
 
 
 def enregistrer(u, role: str, d, aid: int | None = None) -> dict:
@@ -49,7 +49,7 @@ def enregistrer(u, role: str, d, aid: int | None = None) -> dict:
         raise ErreurMetier("Né(e) le : date invalide.")
     if v["email"] and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", v["email"]):
         raise ErreurMetier("Email invalide.")
-    if v["profession"] and not valeur("select 1 from profession where institution_id = %s and libelle = %s", (i, v["profession"])):
+    if v["profession"] and not valeur("select 1 from liste_reference where institution_id = %s and liste = 'profession' and actif and libelle = %s", (i, v["profession"])):
         raise ErreurMetier("Profession inconnue.")
     agence = d.get("agenceId") if role == "gestionnaire" else None
     if agence is not None and not une("select 1 from agence where id = %s and institution_id = %s and not supprime", (agence, i)):

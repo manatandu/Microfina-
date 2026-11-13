@@ -437,6 +437,21 @@ describe("journée de guichet", () => {
     await expect(api.rapports.transactions("", "2026-11-05")).rejects.toThrow("DU et AU");
   });
 
+  it("Profession (S14b) : la liste du paramétrage alimente fiche et prospect ; démonstration tirée du ROME/RDC", async () => {
+    await connecter("jpmukendi");
+    const l = (await api.listes.lire("profession")).lignes;
+    expect(l.find((x) => x.libelle === "Agriculteur")?.code).toBe("6330-01");
+    await connecter("bkasongo");
+    const p = { nom: "Lukaku", prenom: "Rose", naissance: "1992-02-02", lieuNaissance: "Kinshasa", sexe: "F" as const, profession: "Vulcanisateur",
+      pays: "République démocratique du Congo", ville: "Kinshasa", quartier: "Kinsaku", rue: "", email: "", bp: "", telephoneFixe: "", telephone: "+243 810 000 222" };
+    await expect(api.tiers.creerProspect(p)).rejects.toThrow("Profession inconnue");
+    await connecter("jpmukendi");
+    await api.listes.enregistrer("profession", { code: "7213-90", libelle: "Vulcanisateur" });
+    await connecter("bkasongo");
+    expect((await api.referentiel.contexte()).professions).toContain("Vulcanisateur");
+    await api.tiers.creerProspect(p);
+  });
+
   it("listes de Général (S14, S14a à S14n, p. 23 et 12) : obligatoires, code unique, Modifier, Supprimer logique, parent", async () => {
     await connecter("jpmukendi");
     let l = await api.listes.lire("secteur_activite");
