@@ -111,6 +111,12 @@ const journees = {
     if (!ex || !ex.ouvert || ex.valide) throw new ErreurMetier(`L'exercice ${date.slice(0, 4)} n'est pas ouvert (Administration > Exercice).`);
     const derniere = E.journees.at(-1);
     if (derniere && date <= derniere.date) throw new ErreurMetier(`La date doit suivre la dernière journée (${fr(derniere.date)}).`);
+    // Registre S34-4 : pas de journée un jour férié saisi, ni un jour que l'agence n'a pas coché (loi 22/069, art. 186) ; aucun jour coché : pas de contrôle
+    const ferie = E.feries.find((f) => f.date === date);
+    if (ferie) throw new ErreurMetier(`Le ${fr(date)} est férié : ${ferie.description} (Agence > Jours fériés).`);
+    const jt = E.agences.find((a) => a.id === E.agence.id)?.jours ?? [];
+    const rang = new Date(`${date}T00:00:00Z`).getUTCDay();
+    if (jt.some(Boolean) && !jt[rang]) throw new ErreurMetier(`Le ${fr(date)} est un ${["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"][rang]} : pas une journée de travail de l'agence (Agence > Journée de travail).`);
     const j: Journee = { id: prochain(E.journees), date, statut: "ouverte", ouvertePar: E.session ?? undefined, ouverteLe: new Date().toISOString() };
     E.journees.push(j); enregistrer(); return j;
   },

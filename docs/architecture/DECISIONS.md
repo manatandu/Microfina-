@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**226 décisions.** Solidité : 74 fortes (le manuel ou un texte répond), 122 moyennes (déduites d'un écran voisin ou d'une donnée), 30 faibles (notre choix, faute de mieux). Dans le code : 169 déjà en place, 57 à appliquer.
+**227 décisions.** Solidité : 75 fortes (le manuel ou un texte répond), 123 moyennes (déduites d'un écran voisin ou d'une donnée), 29 faibles (notre choix, faute de mieux). Dans le code : 170 déjà en place, 57 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -479,8 +479,14 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S34-1 | Journées de travail | Cadre Journées de travail : Agence, puis cases Dimanche à Samedi ; choisir l'agence montre ses cases ; aucune cochée au départ (capture) ; Annuler vide l'écran ; Enregistrer avec confirmation Oui/Non (T06) | Écran voisin : Capture p. 44 ; manuel p. 44, « sélectionner le nom de l'agence pour associer les journées de travail correspondantes puis [Enregistrer] » | forte | en place |
 | S34-2 | Jours fériés variables | Institution, Annuler, Enregistrer en haut ; cadre Jours fériés variables : Date* (calendrier), Description*, Exercice, Ajouter ; Ajouter met la ligne dans la grille, Supprimer (colonne Actions) l'en retire, Enregistrer garde la liste de l'institution. Exercice sans astérisque sur la capture : vide, il prend l'année de la date. La date doit tomber dans l'exercice choisi et ne figurer qu'une fois. Aucun jour férié chargé d'avance : l'institution les saisit | Donnée exigée ailleurs : Capture p. 44 ; T05 ; S11 (exercices) | moyenne | en place |
 | S34-3 | Second cadre de la page Jours fériés | La capture est coupée sous le cadre Jours fériés variables : un second cadre commence, sans titre lisible. Non construit, à la demande du porteur : la page s'arrête au cadre Jours fériés variables | Choix du porteur : Capture p. 44 ; réponse du porteur du 13/11/2026 (« Laisse donc ainsi ») | forte | en place |
-| S34-4 | Effet des journées de travail et des jours fériés | Le manuel ne dit pas où servent ces jours (ouverture de journée, échéances de crédit, intérêts). Enregistrés seulement ; l'effet est à demander au porteur avant les écrans qui en dépendent | Choix du porteur : Manuel p. 44 (silence) | faible | à appliquer |
+| S34-4 | Effet sur l'ouverture de journée | Ouverture de journée (S12) refusée un jour férié saisi dans Jours fériés, ou un jour que l'agence n'a pas coché dans Journées de travail ; le message dit pourquoi et où corriger. Ouverture exceptionnelle : cocher d'abord le jour. Agence sans aucun jour coché : pas de contrôle (jours pas encore paramétrés) | Choix du porteur : Accord du porteur, 13/11/2026 ; loi 22/069, art. 186 (jours d'accès du public fixés par l'institution en dehors des jours fériés légaux) | forte | en place |
 | S34-5 | Jours fériés reportés | Pas de report calculé par le logiciel. En pratique (porteur) : un férié qui tombe un samedi est chômé le samedi, puis le lundi ; un férié qui tombe un dimanche est chômé le lundi ; le report est fixé chaque fois par communiqué du ministre de l'Emploi, valable sur tout le territoire, même pour qui n'est pas concerné. L'Ordonnance 23/042, art. 2, dit autre chose (dimanche : la veille ; rien pour le samedi). Le jour reporté se saisit donc dans les Jours fériés variables, à la date du communiqué | Choix du porteur : Porteur, 13/11/2026 ; Ordonnance 23/042 du 30/03/2023, art. 1 et 2 ; loi 22/069, art. 186 | forte | en place |
+
+## S75 Déblocage de crédit
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S75-1 | Échéance qui tombe un jour non ouvré | Décidée avec S34 (jours de travail et fériés). Reportée au premier jour ouvré suivant (jour coché et non férié) ; les intérêts restent ceux de l'échéancier, sans jour ajouté. À appliquer avec l'échéancier du déblocage (S75, S54) | Choix du porteur : Accord du porteur, 13/11/2026 ; par analogie : lettre de change, paiement exigible le premier jour ouvrable qui suit (Bernet-Rollande, Principes de technique bancaire) ; AUPSRVE, art. 1-15 (délai prolongé au premier jour ouvrable suivant). Aucun texte de la RDC lu ne le règle | moyenne | à appliquer |
 
 ## Les décisions faibles, à regarder en premier
 
@@ -515,4 +521,3 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S26-2 | S26 Modèle pour crédit | Comptes proposés | Nouveau modèle et « Model normal » de départ : crédit sain, capital 329, 319, 309 et intérêts 7129, 7119, 7101 selon le terme ; crédit en retard, capital 3900 à 3904 et intérêts 7170 à 7174 selon la tranche (irrécupérables sur 3904 et 7174 jusqu'au passage en perte). Compte interne laissé vide, son usage dans Microfina++ n'étant pas montré |
 | S32-2 | S32 Information société | Adresse et comptes hors bilan | Pays, Ville, Commune (S32-7), Quartier (obligatoire) pris dans Localisation (S20). Compte Hors Bilan 1 et Hors Bilan 2 : des comptes de la classe 0 du plan ; leur usage n'est pas décrit par le manuel |
 | S32-6 | S32 Information société | Onglet Autres Info et cadre Info sécurité | La capture n'en montre que le titre : contenu à demander au porteur |
-| S34-4 | S34 Agence : journée de travail, jours fériés | Effet des journées de travail et des jours fériés | Le manuel ne dit pas où servent ces jours (ouverture de journée, échéances de crédit, intérêts). Enregistrés seulement ; l'effet est à demander au porteur avant les écrans qui en dépendent |

@@ -1173,4 +1173,8 @@ def test_jours_travail_feries(clients):
     assert "deux fois" in refus({"institutionId": i, "feries": [F, F]})
     r = chef.post("/api/jours/feries", {"institutionId": i, "feries": [F]}, **H).json()
     assert r["feries"] == [F]
+    # Registre S34-4 : pas de journée un jour férié ni un jour non coché
+    chef.post("/api/jours/feries", {"institutionId": i, "feries": [{"date": "2026-12-25", "description": "Noël", "exercice": 2026}]}, **H)
+    assert "férié : Noël" in chef.post("/api/journees", {"date": "2026-12-25"}, **H).json()["message"]
+    assert "dimanche" in chef.post("/api/journees", {"date": "2026-11-08"}, **H).json()["message"]
     assert chef.post("/api/jours/feries", {"institutionId": i, "feries": []}, **H).json()["feries"] == []

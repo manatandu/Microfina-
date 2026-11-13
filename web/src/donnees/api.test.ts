@@ -542,6 +542,9 @@ describe("journée de guichet", () => {
     await expect(api.jours.enregistrerFeries({ institutionId: 1, feries: [{ ...F, date: "2025-06-30" }] })).rejects.toThrow("pas dans l'exercice 2026");
     await expect(api.jours.enregistrerFeries({ institutionId: 1, feries: [F, F] })).rejects.toThrow("deux fois");
     expect((await api.jours.enregistrerFeries({ institutionId: 1, feries: [F] })).feries).toEqual([F]);
+    await api.jours.enregistrerFeries({ institutionId: 1, feries: [F, { date: "2026-12-25", description: "Noël", exercice: 2026 }] });
+    await expect(api.journees.ouvrir("2026-12-25")).rejects.toThrow("férié : Noël");
+    await expect(api.journees.ouvrir("2026-11-08")).rejects.toThrow("dimanche");
   });
 
   it("info société (S32, p. 42) : obligatoires, Type base, localisation, hors bilan classe 0, logo ; agences", async () => {

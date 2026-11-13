@@ -159,6 +159,15 @@ def ouvrir_journee(u: dict, jour: str) -> dict:
     derniere = journee_courante(u)
     if derniere and jour <= derniere["date"]:
         raise ErreurMetier(f"La date doit suivre la dernière journée ({fr(derniere['date'])}).")
+    # Registre S34-4 : pas de journée un jour férié saisi, ni un jour que l'agence n'a pas coché (loi 22/069, art. 186) ; aucun jour coché : pas de contrôle
+    ferie = une("select description from jour_ferie where institution_id = %s and date_ferie = %s", (u["institution_id"], jour))
+    if ferie:
+        raise ErreurMetier(f"Le {fr(str(jour))} est férié : {ferie['description']} (Agence > Jours fériés).")
+    jt = valeur("select jours_travail from agence where id = %s", (u["agence_id"],)) or []
+    rang = date.fromisoformat(str(jour)).isoweekday() % 7
+    if any(jt) and not jt[rang]:
+        nom = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"][rang]
+        raise ErreurMetier(f"Le {fr(str(jour))} est un {nom} : pas une journée de travail de l'agence (Agence > Journée de travail).")
     jid = valeur("insert into journee_comptable (agence_id, date_comptable, statut, ouverte_par) values (%s, %s, 'ouverte', %s) returning id",
                  (u["agence_id"], jour, u["id"]))
     return vue_journee(une("select * from journee_comptable where id = %s", (jid,)))
