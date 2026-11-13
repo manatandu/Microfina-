@@ -138,6 +138,31 @@ a { color: var(--tampon); text-underline-offset: 3px; }
 .plongee { position: fixed; z-index: 1000; border-radius: 50%; background: var(--papier); pointer-events: none; will-change: transform; }
 .plongee-peau { position: absolute; inset: 0; border-radius: inherit; }
 
+/* Scène 3D (scene-modules.ts) : la toile occupe l'écran, les étiquettes HTML suivent les objets 3D */
+.scene-3d { display: block; padding: 0; height: 100vh; height: 100dvh; min-height: 0; background: var(--nuit); }
+.toile-3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.etiquettes { position: absolute; inset: 0; pointer-events: none; }
+.etiquette {
+  position: absolute; left: 0; top: 0; width: 120px; height: 120px; pointer-events: auto; will-change: transform;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding-bottom: 0;
+  border-radius: var(--rayon-rond); text-decoration: none; color: var(--nuit-fort); font-size: var(--taille-dense); font-weight: 600;
+  text-shadow: 0 1px 12px var(--nuit), 0 0 2px var(--nuit);
+}
+.etiquette > span { translate: 0 -62px; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: var(--rayon-rond);
+  background: color-mix(in srgb, var(--nuit) 62%, transparent); border: 1px solid color-mix(in srgb, var(--nuit-texte) 22%, transparent); backdrop-filter: blur(6px); text-shadow: none; }
+.etiquette > span svg { width: 14px; height: 14px; opacity: .9; }
+.etiquette.inactive { color: var(--nuit-texte); cursor: not-allowed; opacity: .7; }
+.etiquette:focus-visible { outline: 2px solid var(--etoile); outline-offset: 2px; }
+.etiquette.centre { width: 220px; height: 220px; font-size: var(--taille-titre); font-weight: 700; letter-spacing: .14em; }
+.etiquette.centre > span { translate: 0 150px; background: none; border: 0; backdrop-filter: none; text-shadow: 0 1px 12px var(--nuit); }
+@media (hover: hover) and (pointer: fine) { a.etiquette:not(.centre):hover > span { border-color: color-mix(in srgb, var(--etoile) 70%, transparent); color: var(--etoile); } a.etiquette.centre:hover > span { color: var(--etoile); } }
+.etiquette.inactive > span { border-style: dashed; }
+.page-modules.scene-3d[data-entree="complete"] .etiquette { animation: fondu 500ms ease-out backwards; animation-delay: calc(1200ms + var(--rang, 0) * 150ms); }
+.page-modules.scene-3d[data-entree="complete"] .etiquette.centre { animation-delay: 1800ms; }
+.page-modules.scene-3d[data-entree="retour"] .etiquettes { animation: fondu 300ms ease-out backwards; }
+.voile-plongee { position: fixed; inset: 0; z-index: 1000; background: var(--papier); pointer-events: none; }
+@media (max-width: 480px) { .etiquette { width: 84px; height: 84px; font-size: 11px; } .etiquette > span { translate: 0 -44px; padding: 3px 8px; } .etiquette.centre { width: 150px; height: 150px; font-size: var(--taille-corps); } .etiquette.centre > span { translate: 0 100px; } }
+
 /* Entrée complète, à la première visite de la session */
 .page-modules[data-entree="complete"] .boule.centre { animation: planete-entre 600ms var(--mouvement-courbe-sortie) backwards; }
 .page-modules[data-entree="complete"] .boule.centre svg { animation: etoile-entre 900ms var(--mouvement-courbe-sortie) 120ms backwards; }

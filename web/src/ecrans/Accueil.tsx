@@ -4,6 +4,7 @@ import { api } from "../donnees/api";
 import { useDonnees } from "../lib/useDonnees";
 import { Etoile, ICONES } from "../mise-en-page/icones";
 import { ECRANS } from "./registre";
+import { monterScene, type Ancre, type Scene } from "./scene-modules";
 
 // S02 : page des modules, comme dans Microfina++ (manuel, p. 6, figure 2) :
 // le module principal dans la grande boule du centre, huit modules autour, dans le même ordre.
@@ -98,8 +99,8 @@ function usePlongee() {
   };
 }
 
-export function PageModules() {
-  const [entree] = useState(premiereVisite);
+/** Version plate, en CSS : secours quand la carte graphique ne permet pas la scène 3D */
+function ScenePlate({ entree }: { entree: boolean }) {
   const { donnees } = useDonnees(() => api.session.courante());
   const ciel = useRef<HTMLDivElement>(null), planOrbite = useRef<HTMLDivElement>(null), planPlanete = useRef<HTMLDivElement>(null);
   useParallaxe([ciel, planOrbite, planPlanete], [6, 14, 26]);
@@ -141,6 +142,64 @@ export function PageModules() {
             ? <Link to="/principal" className="boule centre" onClick={(e) => plonger(e, "/principal")}><Etoile taille={56} /><span>LIKELEMBA</span></Link>
             : ferme("LIKELEMBA", <Etoile taille={56} />, "Module non lié à votre profil", "boule centre inactive")}
         </div>
+      </div>
+    </main>
+  );
+}
+
+export function PageModules() {
+  const [entree] = useState(premiereVisite);
+  const [plate, setPlate] = useState(false);
+  return plate ? <ScenePlate entree={entree} /> : <Scene3D entree={entree} secours={() => setPlate(true)} />;
+}
+
+/** Scène 3D (scene-modules.ts) : la toile dessine, les liens HTML posés par-dessus restent accessibles au clavier et au lecteur d'écran */
+function Scene3D({ entree, secours }: { entree: boolean; secours: () => void }) {
+  const { donnees } = useDonnees(() => api.session.courante());
+  const toile = useRef<HTMLCanvasElement>(null), etoile = useRef<HTMLElement>(null), socles = useRef<(HTMLElement | null)[]>([]);
+  const scene = useRef<Scene | null>(null);
+  const aller = useNavigate();
+  const liees = applicationsLiees((donnees as { droits?: string[] } | undefined)?.droits ?? []);
+  const actifs = AUTOUR.map((m) => !!m.application && liees.has(m.application));
+  const cle = donnees ? actifs.join() + liees.has("principal") : "";
+  useEffect(() => {
+    if (!donnees || !toile.current) return;
+    const poser = (el: HTMLElement | null | undefined, a: Ancre) => { if (el) el.style.transform = `translate3d(${a.x.toFixed(1)}px, ${a.y.toFixed(1)}px, 0) translate(-50%, -50%) scale(${Math.max(.55, Math.min(1.25, a.echelle)).toFixed(3)})`; };
+    const s = monterScene(toile.current, { actifs, entree, reduit: mouvementReduit(),
+      placer: (e, l) => { poser(etoile.current, e); l.forEach((a, i) => poser(socles.current[i], a)); } });
+    if (!s) { secours(); return; }
+    scene.current = s;
+    return () => { s.detruire(); scene.current = null; };
+  }, [cle]);   // eslint-disable-line react-hooks/exhaustive-deps
+  if (donnees === null) return <Navigate to="/connexion" replace />;
+  /** Plongée : souris ou doigt seulement ; au clavier, avec une touche de modification ou en mouvement réduit, ouverture directe (DESIGN § 2.7 bis) */
+  const plonger = async (e: React.MouseEvent<HTMLAnchorElement>, i: number, chemin: string) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.detail === 0 || mouvementReduit() || !scene.current) return;
+    e.preventDefault();
+    document.querySelector(".etiquettes")?.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 250, easing: "ease-out", fill: "forwards" });
+    await scene.current.plonger(i);
+    const voile = document.createElement("div"); voile.className = "voile-plongee"; document.body.appendChild(voile);
+    await voile.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 140, easing: "ease-out", fill: "forwards" }).finished;
+    aller(chemin);
+    voile.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, easing: "ease-out", fill: "forwards" }).finished.then(() => voile.remove());
+  };
+  const survol = (i: number | null) => ({ onPointerEnter: () => scene.current?.survoler(i), onPointerLeave: () => scene.current?.survoler(null),
+    onFocus: () => scene.current?.survoler(i), onBlur: () => scene.current?.survoler(null) });
+  return (
+    <main className="page-modules scene-3d" data-entree={entree ? "complete" : "retour"}>
+      <h1 className="sr-only">Modules</h1>
+      <canvas ref={toile} className="toile-3d" aria-hidden="true" />
+      <div className="etiquettes">
+        {liees.has("principal")
+          ? <Link ref={(el) => { etoile.current = el; }} to="/principal" className="etiquette centre" onClick={(e) => plonger(e, -1, "/principal")} {...survol(-1)}><span>LIKELEMBA</span></Link>
+          : <span ref={(el) => { etoile.current = el; }} className="etiquette centre inactive" aria-disabled="true" title="Module non lié à votre profil"><span>LIKELEMBA</span></span>}
+        {AUTOUR.map((m, i) => {
+          const ref = (el: HTMLElement | null) => { socles.current[i] = el; };
+          const style = { "--rang": i } as React.CSSProperties;
+          return actifs[i]
+            ? <Link key={m.libelle} ref={ref} to={m.chemin!} className="etiquette" style={style} onClick={(e) => plonger(e, i, m.chemin!)} {...survol(i)}><span>{m.icone}{m.libelle}</span></Link>
+            : <span key={m.libelle} ref={ref} className="etiquette inactive" style={style} aria-disabled="true" title={m.application ? "Module non lié à votre profil" : "Non repris"}><span>{m.icone}{m.libelle}</span></span>;
+        })}
       </div>
     </main>
   );
