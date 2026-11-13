@@ -17,7 +17,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v44";
+const CLE = "likelemba-demo-v45";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -25,7 +25,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 44) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 45) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -2343,6 +2343,47 @@ const agents = {
   },
 };
 
+// ---------- Agence > Journée de travail et Jours fériés (S34, manuel p. 44). Règles identiques côté serveur (noyau/jours.py). ----------
+export interface JourFerie { date: string; description: string; exercice: number }
+const jours = {
+  lire() {
+    exiger();
+    return { agenceDefaut: E.agence.id, institutions: [{ id: ID_INSTITUTION, nom: E.institution.nom ?? E.institution.sigle ?? "" }],
+      agences: E.agences.filter((a) => !a.supprime).sort((a, b) => a.code.localeCompare(b.code)).map((a) => ({ id: a.id, nom: a.nom, jours: [...(a.jours ?? Array(7).fill(false))] })),
+      exercices: E.exercices.map((e) => e.annee).sort((a, b) => a - b), feries: [...E.feries].sort((a, b) => a.date.localeCompare(b.date)) };
+  },
+  /** Journées de travail : Agence, puis cases Dimanche à Samedi (registre S34-1) */
+  enregistrerJournees(d: { agenceId?: number | null; jours?: boolean[] }) {
+    exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
+    if (!d.agenceId) throw new ErreurMetier("À remplir : Agence.");
+    if (!Array.isArray(d.jours) || d.jours.length !== 7 || !d.jours.every((x) => typeof x === "boolean")) throw new ErreurMetier("Journées de travail invalides.");
+    const a = E.agences.find((x) => x.id === d.agenceId && !x.supprime);
+    if (!a) throw new ErreurMetier("Agence inconnue.");
+    a.jours = [...d.jours];
+    enregistrer(); return jours.lire();
+  },
+  /** Jours fériés variables : la liste entière de l'institution, telle qu'ajoutée dans la grille (registre S34-2) */
+  enregistrerFeries(d: { institutionId?: number | null; feries?: JourFerie[] }) {
+    exiger("chef_agence");
+    if (d.institutionId !== ID_INSTITUTION) throw new ErreurMetier("À remplir : Institution.");
+    if (!Array.isArray(d.feries)) throw new ErreurMetier("Jours fériés invalides.");
+    const vus = new Set<string>(); const propres: JourFerie[] = [];
+    for (const f of d.feries) {
+      const dt = typeof f?.date === "string" ? f.date : ""; const desc = typeof f?.description === "string" ? f.description.trim() : "";
+      const manque = manquants([["Date", dt], ["Description", desc]]);
+      if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dt)) throw new ErreurMetier("date invalide.");
+      if (!E.exercices.some((e) => e.annee === f.exercice)) throw new ErreurMetier("Exercice inconnu.");
+      const jj = `${dt.slice(8)}/${dt.slice(5, 7)}/${dt.slice(0, 4)}`;
+      if (Number(dt.slice(0, 4)) !== f.exercice) throw new ErreurMetier(`Le ${jj} n'est pas dans l'exercice ${f.exercice}.`);
+      if (vus.has(dt)) throw new ErreurMetier(`Le ${jj} figure deux fois.`);
+      vus.add(dt); propres.push({ date: dt, description: desc, exercice: f.exercice });
+    }
+    E.feries = propres;
+    enregistrer(); return jours.lire();
+  },
+};
+
 // ---------- Info de base > Localisation (S20, manuel p. 30 à 32), adaptée au découpage de la RDC (demande du porteur, registre S20-1) :
 // Constitution, art. 2 et 3 ; Décret 22/07 du 02/03/2022, art. 9, point 26. Règles identiques côté serveur (noyau/localisation.py). ----------
 const NIVEAUX: NiveauLieu[] = ["pays", "province", "ville", "commune", "quartier"];
@@ -2445,6 +2486,7 @@ const apiLocal = {
   edDivers: asynchrone(edDivers),
   societe: asynchrone(societe),
   agents: asynchrone(agents),
+  jours: asynchrone(jours),
   comptes: asynchrone(comptes),
   numerotation: asynchrone(numerotation),
 };

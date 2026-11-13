@@ -1149,3 +1149,28 @@ def test_agents_agence(clients):
     assert (t["sensibilisateurId"], t["commercialId"]) == (s["id"], c["id"])
     assert "Des clients" in refus("commercial", {}, f"/{c['id']}/suppression")
     assert chef.post(f"{A}/gestionnaire/{g['id']}/suppression", {}, **H).status_code == 200
+
+
+def test_jours_travail_feries(clients):
+    """S34 (p. 44) : Journées de travail par agence (Dimanche à Samedi) ; Jours fériés variables de l'institution : date, Description, Exercice,
+    ajoutés dans la grille puis enregistrés (registre S34-1 et S34-2)"""
+    chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    l = chef.get("/api/jours", **H).json()
+    a = l["agences"][0]
+    assert a["jours"] == [False] * 7 and len(l["institutions"]) == 1 and 2026 in l["exercices"] and l["feries"] == []
+    S = [False, True, True, True, True, True, True]
+    assert agent.post("/api/jours/journees", {"agenceId": a["id"], "jours": S}, **H).status_code == 403
+    assert "Agence" in chef.post("/api/jours/journees", {"jours": S}, **H).json()["message"]
+    assert chef.post("/api/jours/journees", {"agenceId": a["id"], "jours": S}, **H).json()["agences"][0]["jours"] == S
+    i = l["institutions"][0]["id"]
+    def refus(corps):
+        r = chef.post("/api/jours/feries", corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    F = {"date": "2026-06-30", "description": "Fête de l'indépendance", "exercice": 2026}
+    assert "Institution" in refus({"feries": [F]})
+    assert "Description" in refus({"institutionId": i, "feries": [{**F, "description": " "}]})
+    assert "pas dans l'exercice 2026" in refus({"institutionId": i, "feries": [{**F, "date": "2025-06-30"}]})
+    assert "Exercice inconnu" in refus({"institutionId": i, "feries": [{**F, "exercice": 1990}]})
+    assert "deux fois" in refus({"institutionId": i, "feries": [F, F]})
+    r = chef.post("/api/jours/feries", {"institutionId": i, "feries": [F]}, **H).json()
+    assert r["feries"] == [F]
+    assert chef.post("/api/jours/feries", {"institutionId": i, "feries": []}, **H).json()["feries"] == []

@@ -31,7 +31,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 30,Encaissements et décaissements divers autorisés,paramétrage,must,yes,S31,A,liste,2 Paramétrage,,R:PCCI (comptes),,,
 31,Société agences zones logo,paramétrage,must,partial,S32,B,liste,2 Paramétrage,S32 : pages agences et zones (« afficher les pages »),"D:S05, S08, S21 zone ; A:S33",,,S32-6 Onglet Autres Info et cadre Info sécurité ; S12-5 Journée Maxi ouvert
 32,Gestionnaires sensibilisateurs commerciaux,paramétrage,should,yes,S33,A,liste,2 Paramétrage,,,,,
-33,Jours de travail et jours fériés,paramétrage,should,no,S34,A,composition,2 Paramétrage,,,,S34,
+33,Jours de travail et jours fériés,paramétrage,should,partial,S34,A,composition,2 Paramétrage,,,,,S34-3 Second cadre de la page Jours fériés ; S34-4 Effet des journées de travail et des jours fériés
 34,Devises types de monnaie et coupures,paramétrage,must,no,S35,A,liste,2 Paramétrage,,,,S35,
 35,Éléments de facture et références de commande,paramétrage,could,no,S36,A,liste,2 Paramétrage,,,,S36,
 36,Enrôlement personne physique en onglets,clients,must,partial,S37,B,onglets,3 Client,S37 : cinq onglets sur six ; fiches Personne liée et Bénéficiaire,M:texte p. 48 ; D:S14a à S14n ; R:identification du client (Instr. BCC LBC),,,"S37-1 Champs des onglets non montrés ; S37-2 Listes des fiches ; S37-3 Fiche Bénéficiaire ; S37-4 Retirer un signataire, un membre ; S37-5 Bénéficiaires effectifs d'une entreprise ; S46-1 Mise à jour : Modifier et Terminer ; S46-2 Mise à jour d'une entreprise, d'un groupe ; S37-9 Options du produit d'épargne"

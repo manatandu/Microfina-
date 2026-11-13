@@ -22,6 +22,7 @@ from . import journaux as jo
 from . import ed_divers as ed
 from . import societe as so
 from . import agents as ag
+from . import jours as jt
 from . import comptes as cp
 from . import numerotation as nu
 from . import services as s
@@ -708,6 +709,22 @@ def ag_modifier(request, role: str, aid: int, corps: dict = Body(...)):
 @api.post("/agents/{role}/{aid}/suppression")
 def ag_supprimer(request, role: str, aid: int):
     return ag.supprimer(u(request), role, aid)
+
+
+# ---------- Agence > Journée de travail et Jours fériés (S34) ----------
+@api.get("/jours")
+def jt_lire(request):
+    return jt.lire(u(request))
+
+
+@api.post("/jours/journees")
+def jt_journees(request, corps: dict = Body(...)):
+    return jt.enregistrer_journees(u(request), corps)
+
+
+@api.post("/jours/feries")
+def jt_feries(request, corps: dict = Body(...)):
+    return jt.enregistrer_feries(u(request), corps)
 
 
 # ---------- Paramétrage > Info société (S32) ----------

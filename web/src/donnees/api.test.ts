@@ -528,6 +528,22 @@ describe("journée de guichet", () => {
     await expect(api.agents.supprimer("commercial", c.id)).rejects.toThrow("Des clients");
   });
 
+  it("journées de travail et jours fériés (S34, p. 44) : cases par agence ; jours fériés variables dans leur exercice", async () => {
+    await connecter("bkasongo");
+    await expect(api.jours.enregistrerJournees({ agenceId: 1, jours: Array(7).fill(true) })).rejects.toThrow();
+    await connecter("jpmukendi");
+    const l = await api.jours.lire();
+    expect([l.agences[0]!.jours, l.feries, l.exercices.includes(2026)]).toEqual([Array(7).fill(false), [], true]);
+    const S = [false, true, true, true, true, true, true];
+    await expect(api.jours.enregistrerJournees({ jours: S })).rejects.toThrow("Agence");
+    expect((await api.jours.enregistrerJournees({ agenceId: 1, jours: S })).agences[0]!.jours).toEqual(S);
+    const F = { date: "2026-06-30", description: "Fête de l'indépendance", exercice: 2026 };
+    await expect(api.jours.enregistrerFeries({ feries: [F] })).rejects.toThrow("Institution");
+    await expect(api.jours.enregistrerFeries({ institutionId: 1, feries: [{ ...F, date: "2025-06-30" }] })).rejects.toThrow("pas dans l'exercice 2026");
+    await expect(api.jours.enregistrerFeries({ institutionId: 1, feries: [F, F] })).rejects.toThrow("deux fois");
+    expect((await api.jours.enregistrerFeries({ institutionId: 1, feries: [F] })).feries).toEqual([F]);
+  });
+
   it("info société (S32, p. 42) : obligatoires, Type base, localisation, hors bilan classe 0, logo ; agences", async () => {
     await connecter("jpmukendi");
     const l = await api.societe.lire();

@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**221 décisions.** Solidité : 71 fortes (le manuel ou un texte répond), 121 moyennes (déduites d'un écran voisin ou d'une donnée), 29 faibles (notre choix, faute de mieux). Dans le code : 165 déjà en place, 56 à appliquer.
+**225 décisions.** Solidité : 72 fortes (le manuel ou un texte répond), 122 moyennes (déduites d'un écran voisin ou d'une donnée), 31 faibles (notre choix, faute de mieux). Dans le code : 167 déjà en place, 58 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -472,6 +472,15 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S33-3 | Contrôles | Date de naissance réelle, pas dans le futur ; email valide. Supprimer est logique et refusé quand des clients portent l'agent | Donnée exigée ailleurs : T02 ; T05 | moyenne | en place |
 | S33-4 | Lien avec le prospect et la fiche client | Sensibilisateur et Commercial du prospect (S45) se choisissent dans ces listes ; INCONNU, valeur de la capture p. 55, veut dire aucun. Les colonnes du client pointent sur ces agents (elles n'avaient pas servi). La fiche client (S37) suivra avec S37-2 | Donnée exigée ailleurs : Capture p. 55 ; S37-2 (la saisie libre disparaît quand la liste existe) | moyenne | en place |
 
+## S34 Agence : journée de travail, jours fériés
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S34-1 | Journées de travail | Cadre Journées de travail : Agence, puis cases Dimanche à Samedi ; choisir l'agence montre ses cases ; aucune cochée au départ (capture) ; Annuler vide l'écran ; Enregistrer avec confirmation Oui/Non (T06) | Écran voisin : Capture p. 44 ; manuel p. 44, « sélectionner le nom de l'agence pour associer les journées de travail correspondantes puis [Enregistrer] » | forte | en place |
+| S34-2 | Jours fériés variables | Institution, Annuler, Enregistrer en haut ; cadre Jours fériés variables : Date* (calendrier), Description*, Exercice, Ajouter ; Ajouter met la ligne dans la grille, Supprimer (colonne Actions) l'en retire, Enregistrer garde la liste de l'institution. Exercice sans astérisque sur la capture : vide, il prend l'année de la date. La date doit tomber dans l'exercice choisi et ne figurer qu'une fois. Aucun jour férié chargé d'avance : l'institution les saisit | Donnée exigée ailleurs : Capture p. 44 ; T05 ; S11 (exercices) | moyenne | en place |
+| S34-3 | Second cadre de la page Jours fériés | La capture est coupée sous le cadre Jours fériés variables : un second cadre commence, sans titre lisible. Non construit : contenu à demander au porteur | Choix du porteur : Capture p. 44 | faible | à appliquer |
+| S34-4 | Effet des journées de travail et des jours fériés | Le manuel ne dit pas où servent ces jours (ouverture de journée, échéances de crédit, intérêts). Enregistrés seulement ; l'effet est à demander au porteur avant les écrans qui en dépendent | Choix du porteur : Manuel p. 44 (silence) | faible | à appliquer |
+
 ## Les décisions faibles, à regarder en premier
 
 | N° | Écran | Question | Réponse retenue |
@@ -505,3 +514,5 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S26-2 | S26 Modèle pour crédit | Comptes proposés | Nouveau modèle et « Model normal » de départ : crédit sain, capital 329, 319, 309 et intérêts 7129, 7119, 7101 selon le terme ; crédit en retard, capital 3900 à 3904 et intérêts 7170 à 7174 selon la tranche (irrécupérables sur 3904 et 7174 jusqu'au passage en perte). Compte interne laissé vide, son usage dans Microfina++ n'étant pas montré |
 | S32-2 | S32 Information société | Adresse et comptes hors bilan | Pays, Ville, Commune (S32-7), Quartier (obligatoire) pris dans Localisation (S20). Compte Hors Bilan 1 et Hors Bilan 2 : des comptes de la classe 0 du plan ; leur usage n'est pas décrit par le manuel |
 | S32-6 | S32 Information société | Onglet Autres Info et cadre Info sécurité | La capture n'en montre que le titre : contenu à demander au porteur |
+| S34-3 | S34 Agence : journée de travail, jours fériés | Second cadre de la page Jours fériés | La capture est coupée sous le cadre Jours fériés variables : un second cadre commence, sans titre lisible. Non construit : contenu à demander au porteur |
+| S34-4 | S34 Agence : journée de travail, jours fériés | Effet des journées de travail et des jours fériés | Le manuel ne dit pas où servent ces jours (ouverture de journée, échéances de crédit, intérêts). Enregistrés seulement ; l'effet est à demander au porteur avant les écrans qui en dépendent |

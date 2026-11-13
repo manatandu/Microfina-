@@ -34,7 +34,7 @@ export function graine(): Etat {
     lieuNaissance: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", liees: [] as number[],
     type: "physique" as const, formeJuridique: "", registre: "", centreActivite: "", activite: "", dirigeant: null, signataires: [], nbHommes: 0, nbFemmes: 0, membres: [], intitule: "", dateVisa: "2026-01-15", profession: "", pays: "", ville: "", quartier: "", rue: "", email: "", bp: "", telephoneFixe: "", motifDepart: "", resilieLe: "", creeLe: "2026-01-15", creePar: 4, visePar: 2, statut: "actif" as const };
   return {
-    version: 44,
+    version: 45,
     institution: { nom: "COOPEC Tujenge", sigle: "CTJ", profil: "coopec", pays: "République démocratique du Congo", ville: "Kinshasa", commune: "Matete", quartier: "Kinsaku", journeeMax: 1 },   // sigle fictif : élément Institution du numéro client (S15-11)
     agence: { id: 1, code: "0412", nom: "Matete" },
     agences: [{ id: 1, code: "0412", nom: "Matete", supprime: false }],
@@ -129,6 +129,7 @@ export function graine(): Etat {
     numerotationPiece: null,
     operationsDiverses: [],
     agents: [],
+    feries: [],
     // Journaux (S30) : ceux du schéma de départ, comme la graine du serveur
     journaux: [{ id: 1, code: "CA", libelle: "Caisse", type: "caisse", actif: true, supprime: false }, { id: 2, code: "AN", libelle: "À-nouveaux", type: "a_nouveaux", actif: true, supprime: false },
       { id: 3, code: "BQ", libelle: "Journal Banque", type: "banque", actif: true, supprime: false }],
