@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**238 décisions.** Solidité : 76 fortes (le manuel ou un texte répond), 131 moyennes (déduites d'un écran voisin ou d'une donnée), 31 faibles (notre choix, faute de mieux). Dans le code : 183 déjà en place, 55 à appliquer.
+**241 décisions.** Solidité : 76 fortes (le manuel ou un texte répond), 134 moyennes (déduites d'un écran voisin ou d'une donnée), 31 faibles (notre choix, faute de mieux). Dans le code : 186 déjà en place, 55 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -16,7 +16,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | T04 | Barre de pages, filtre, export (toutes les grilles) | Barre de pages, filtre en tête de colonne ; bouton Exporter quand la capture de l'écran le montre | Règle générale du manuel : Manuel p. 9, « Les grilles d'affichages » | forte | à appliquer |
 | T05 | Champ obligatoire (tous les formulaires) | Astérisque ; refus à l'enregistrement par la boîte d'erreur, qui nomme les champs à remplir | Règle générale du manuel : Manuel p. 10 et 11 | forte | en place |
 | T06 | Enregistrer et message (tous les écrans) | Confirmation Oui/Non, puis boîte de succès « Enregistré avec succès ! » ou boîte d'erreur avec le motif | Règle générale du manuel : Manuel p. 10 et 11, « Enregistrer une information » | forte | en place |
-| T07 | Profil habilité (tout le logiciel) | Un droit par entrée de menu, rangé par module ; un profil est un ensemble de droits ; l'utilisateur reçoit un profil pour une agence. Les quatre rôles actuels deviennent des profils de départ. Aucun profil ne lève les blocages de ARCHITECTURE P7 et P8 | Manuel : Manuel p. 15 à 17 (création de profil, octroyer des droits, gestion des profils) | forte | à appliquer |
+| T07 | Profil habilité (tout le logiciel) | Un droit par entrée de menu, rangé par module ; un profil est un ensemble de droits ; l'utilisateur reçoit un profil pour une agence. Les quatre rôles actuels deviennent des profils de départ. Aucun profil ne lève les blocages de ARCHITECTURE P7 et P8 ; en place pour les profils et les droits (S03, S04) ; reste l'utilisateur et son agence (S05, S06) | Manuel : Manuel p. 15 à 17 (création de profil, octroyer des droits, gestion des profils) | forte | à appliquer |
 | T08 | Code unique (toutes les listes) | Le code ou numéro d'une liste est unique dans l'institution | Donnée exigée ailleurs : Les écrans qui lisent la liste doivent désigner une seule valeur | moyenne | en place |
 | T09 | Date (tous les formulaires) | Bouton calendrier à côté du champ ; la saisie au clavier reste possible | Règle générale du manuel : Manuel p. 9 et 10, « Les sélectionneurs de date » | forte | à appliquer |
 | T10 | Résultat non montré (tous les rapports) | Critères, bouton de la capture (Afficher, Exécuter, Rechercher), grille, Exporter. Colonnes : celles de la liste de saisie du même objet, plus les critères | Écran voisin : S13 (manuel p. 22), rapports épargne (p. 82 à 84) | moyenne | à appliquer |
@@ -37,6 +37,14 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | S03-1 | Profils de départ | Les quatre rôles du code deviennent quatre profils : CAISSIER, CHEF D'AGENCE, COMPTABLE, AGENT DE CRÉDIT (majuscules, comme AUDITEUR sur la capture). Chacun garde un code caché (caissier, chef_agence, comptable, agent_credit) qui porte les contrôles actuels jusqu'à S04 ; renommer un profil ne change pas ses droits. Un profil créé en S03 n'a pas encore de droits (S04) | Donnée exigée ailleurs : Capture p. 15 ; T07 ; COMPLEMENTS § 5.2 | moyenne | en place |
 | S03-2 | Modifier et Supprimer | Boutons absents de la capture (formulaire vide) : clic sur une ligne de la grille, le formulaire se remplit, Modifier et Supprimer remplacent Enregistrer (règle générale p. 12, T01, T02). Nom Droit obligatoire et unique (T08). Suppression logique, refusée tant qu'un utilisateur actif porte le profil | Règle générale du manuel : Manuel p. 12 ; T01, T02, T08 | forte | en place |
+
+## S04 Profils : assigner et modifier les droits
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S04-1 | Écrans et arbre des droits | Deux pages comme le menu Profil : Assigner droit (« Octroyer des droits à un profils » : Libellé du Profil*) et Modifier droit d'un profil (« Modification des droits octroyés à un profil » : Profil sélectionné, Liste profils). Cases des applications (Likelemba, Paie, Immobilisations ; GRH et Stocks hors périmètre), LISTE DES DROITS RESTANTS et LISTE DES DROITS OCTROYES en arbre application > menu (case pour tout le menu) > tâche, flèches → et ←, Enregistrer. Une tâche = une entrée de menu du registre des écrans | Donnée exigée ailleurs : Captures p. 16 ; texte p. 15 et 16 ; T07 ; COMPLEMENTS § 5.2 | moyenne | en place |
+| S04-2 | Droits des profils de départ | CHEF D'AGENCE : Administration, Paramétrage, enrôlement et visa des clients, banques, validation du billetage et des opérations, rapports ; CAISSIER : guichets et caisse ; AGENT DE CRÉDIT : clients (sans visa ni résiliation) et crédit ; COMPTABLE : comptabilité, banque, budget. Ce sont les écrans que chaque rôle tenait déjà ; ils se changent dans S04 | Donnée exigée ailleurs : T07 ; contrôles en place avant S04 (tests) | moyenne | en place |
+| S04-3 | Contrôle par tâche | Chaque écriture (route du serveur, méthode de la démo) est rattachée aux écrans qui l'appellent ; l'utilisateur doit tenir le droit de l'un d'eux, sinon « Droit manquant : <écran> ». Le menu ne montre que les écrans autorisés. Les lectures ne sont pas encore filtrées par droit. La règle des quatre yeux (ARCHITECTURE P7, P8) reste dans le moteur : aucun droit ne la lève. Table générée pour la démo par replica/droits_gen.py | Donnée exigée ailleurs : COMPLEMENTS § 5.2 (points 3 et 4) ; Instr. BCC 008, art. 66 | moyenne | en place |
 
 ## S08 Gestion des guichets
 

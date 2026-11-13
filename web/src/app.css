@@ -298,3 +298,14 @@ textarea.saisie.montant { resize: none; text-align: end; }
 /* S32 : aperçu du logo (capture p. 42) */
 .apercu-logo { inline-size: 10rem; block-size: 8rem; object-fit: contain; border: 1px solid var(--trait); border-radius: var(--rayon-petit); background: var(--feuille); }
 .choisir-fichier { align-self: start; justify-self: start; inline-size: max-content; cursor: pointer; }
+
+/* S04 : deux listes de droits et les flèches entre elles */
+.droits-deux-listes { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: var(--espace-3); align-items: center; }
+.droits-liste { display: flex; flex-direction: column; gap: var(--espace-2); min-width: 0; align-self: stretch; }
+.titre-liste { font-size: var(--taille-dense); font-weight: 700; margin: 0; }
+.droits-arbre { border: 1px solid var(--trait); border-radius: var(--rayon-bloc); padding: var(--espace-2); block-size: 26rem; overflow: auto; }
+.droits-groupe { font-weight: 700; padding: var(--espace-1) var(--espace-2); background: var(--papier); border-radius: var(--rayon-bloc); }
+.droits-arbre ul { list-style: none; margin: 0; padding-inline-start: var(--espace-5, 1.5rem); }
+.droits-arbre summary, .droits-arbre li { padding-block: 2px; }
+.droits-fleches { gap: var(--espace-2); }
+@media (max-width: 700px) { .droits-deux-listes { grid-template-columns: 1fr; } .droits-fleches { flex-direction: row; justify-content: center; } }

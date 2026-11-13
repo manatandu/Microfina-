@@ -24,7 +24,10 @@ export function Coquille() {
   const { u, ctx, j } = donnees;
   if (!u) return <Navigate to="/connexion" replace state={{ apres: lieu.pathname }} />;
   const application = applicationDe(lieu.pathname);
-  const barre = menus(application);
+  // Registre T07 : un écran absent des droits de l'utilisateur n'apparaît pas au menu
+  const permis = new Set((u as { droits?: string[] }).droits ?? []);
+  const barre = menus(application).map((x) => ({ ...x, groupes: x.groupes.map((g) => ({ ...g, ecrans: g.ecrans.filter((e) => permis.has(e.id)) })).filter((g) => g.ecrans.length) }))
+    .filter((x) => x.groupes.length);
   const nomApplication = APPLICATIONS.find((a) => a.id === application)?.libelle ?? "";
   const m = mots(ctx.institution);
   const libelle = (x: Menu) => (x.id === "clients" ? m.Membre : x.libelle);

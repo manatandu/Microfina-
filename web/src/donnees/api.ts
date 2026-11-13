@@ -11,13 +11,15 @@ import {
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget,
 } from "./types";
+import { DROITS_METHODES } from "./droits.gen";
+import registreEcrans from "../ecrans/registre.json";
 import { coupuresDe, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 import PCCI from "@pcci";
 
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v49";
+const CLE = "likelemba-demo-v50";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -25,7 +27,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 49) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 50) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -48,14 +50,28 @@ function utilisateur(): Utilisateur | null { return E.utilisateurs.find((u) => u
 function exiger(role?: Role): Utilisateur {
   const u = utilisateur();
   if (!u) throw new ErreurMetier("Session fermée. Reconnectez-vous.");
-  if (role && !u.roles.includes(role)) throw new ErreurMetier(`Réservé au profil « ${LIBELLES_ROLES[role]} ».`);
+  if (role && !u.roles.includes(role) && !droitVerifie) throw new ErreurMetier(`Réservé au profil « ${LIBELLES_ROLES[role]} ».`);   // droit de la tâche déjà vérifié (registre S04-3)
   return u;
+}
+/** S04 : droits de l'utilisateur, ceux des profils qu'il porte (registre T07) */
+const droitsDe = (u: Utilisateur) => [...new Set(E.profils.filter((p) => !p.supprime && p.code && u.roles.includes(p.code)).flatMap((p) => p.droits))].sort();
+let droitVerifie = false;
+const NOMS_ECRANS: Record<string, string> = Object.fromEntries((registreEcrans as { id: string; nom: string }[]).map((e) => [e.id, e.nom]));
+/** Écriture : l'utilisateur tient le droit d'un des écrans de la méthode (registre S04-3) ; mêmes règles que noyau/droits.py */
+function verifierDroit(cle: string) {
+  const e = DROITS_METHODES[cle];
+  if (!e) return false;
+  const u = utilisateur();
+  if (!u) throw new ErreurMetier("Session fermée. Reconnectez-vous.");
+  const d = droitsDe(u);
+  if (!e.some((x) => d.includes(x))) throw new ErreurMetier(`Droit manquant : ${NOMS_ECRANS[e[0]!] ?? e[0]} (Administration > Profil > Assigner droit).`);
+  return true;
 }
 export const LIBELLES_ROLES: Record<Role, string> = { caissier: "caissier", chef_agence: "chef d'agence", agent_credit: "agent de crédit", comptable: "comptable" };
 
 const session = {
   utilisateurs: () => E.utilisateurs,
-  courante: () => utilisateur(),
+  courante: () => { const u = utilisateur(); return u ? { ...u, droits: droitsDe(u) } : null; },
   ouvrir(login: string) {
     const u = E.utilisateurs.find((x) => x.login === login);
     if (!u) throw new ErreurMetier("Identifiant inconnu.");
@@ -1296,8 +1312,11 @@ export { titulaire };
 // ---------- Façade : ce que les écrans appellent ----------
 // Chaque fonction rend une promesse, comme le fera le client HTTP du serveur Django.
 type Asynchrone<T> = { [K in keyof T]: T[K] extends (...a: infer A) => infer R ? (...a: A) => Promise<Awaited<R>> : T[K] };
-function asynchrone<T extends object>(o: T): Asynchrone<T> {
-  return Object.fromEntries(Object.entries(o).map(([k, f]) => [k, typeof f === "function" ? async (...a: unknown[]) => (f as (...x: unknown[]) => unknown)(...a) : f])) as Asynchrone<T>;
+function asynchrone<T extends object>(o: T, nom = ""): Asynchrone<T> {
+  return Object.fromEntries(Object.entries(o).map(([k, f]) => [k, typeof f === "function" ? async (...a: unknown[]) => {
+    droitVerifie = verifierDroit(`${nom}.${k}`);
+    try { return (f as (...x: unknown[]) => unknown)(...a); } finally { droitVerifie = false; }
+  } : f])) as Asynchrone<T>;
 }
 // ---------- Administration : guichets (S08 et S09, manuel p. 18 et 19). Règles identiques côté serveur (noyau/guichets.py). ----------
 /** Types de guichet lus sur la capture p. 19 ; liste complète à confirmer */
@@ -2569,7 +2588,7 @@ const profils = {
     const p = id === undefined ? undefined : E.profils.find((x) => x.id === id && !x.supprime);
     if (id !== undefined && !p) throw new ErreurMetier("Profil introuvable.");
     if (E.profils.some((x) => !x.supprime && x.id !== id && x.nom.toLowerCase() === nom.toLowerCase())) throw new ErreurMetier("Ce profil existe déjà.");
-    if (p) Object.assign(p, { nom, description }); else E.profils.push({ id: prochain(E.profils), nom, description, supprime: false });
+    if (p) Object.assign(p, { nom, description }); else E.profils.push({ id: prochain(E.profils), nom, description, supprime: false, droits: [] });
     enregistrer(); return profils.lire();
   },
   /** Suppression logique (T02), refusée tant qu'un utilisateur porte le profil (registre S03-2) */
@@ -2579,6 +2598,31 @@ const profils = {
     if (!p) throw new ErreurMetier("Profil introuvable.");
     if (p.code && E.utilisateurs.some((u) => u.roles.includes(p.code!))) throw new ErreurMetier("Des utilisateurs portent ce profil : il ne se supprime pas.");
     p.supprime = true; enregistrer(); return profils.lire();
+  },
+};
+
+// ---------- Administration > Profil > Assigner droit ; Modifier droit d'un profil (S04, manuel p. 15 et 16). Règles identiques côté serveur (noyau/droits.py). ----------
+const droits = {
+  lire(profil?: number) {
+    exiger();
+    let octroyes: string[] = [];
+    if (profil !== undefined) {
+      const p = E.profils.find((x) => x.id === profil && !x.supprime);
+      if (!p) throw new ErreurMetier("Profil introuvable.");
+      octroyes = [...p.droits].sort();
+    }
+    return { profils: E.profils.filter((p) => !p.supprime).sort((a, b) => a.nom.localeCompare(b.nom)).map(({ id, nom }) => ({ id, nom })), octroyes };
+  },
+  /** Enregistrer : la liste des droits octroyés remplace celle du profil (registre S04-1) */
+  enregistrer(pid: number | null, d: { droits?: string[] }) {
+    exiger("chef_agence");
+    const p = pid === null ? undefined : E.profils.find((x) => x.id === pid && !x.supprime);
+    if (!p) throw new ErreurMetier("À remplir : Libellé du Profil.");
+    if (!Array.isArray(d.droits) || !d.droits.every((x) => typeof x === "string")) throw new ErreurMetier("Droits invalides.");
+    const inconnus = d.droits.filter((x) => !(x in NOMS_ECRANS) || x === "S01" || x === "S02");
+    if (inconnus.length) throw new ErreurMetier(`Droit inconnu : ${[...new Set(inconnus)].sort().join(", ")}.`);
+    p.droits = [...new Set(d.droits)].sort();
+    enregistrer(); return droits.lire(pid!);
   },
 };
 
@@ -2657,39 +2701,40 @@ const localisation = {
 
 const apiLocal = {
   referentiel: asynchrone({ contexte }),
-  session: asynchrone(session),
-  journees: asynchrone(journees),
-  caisses: asynchrone(caisses),
-  tiers: asynchrone(tiers),
-  guichet: asynchrone(guichet),
-  operations: asynchrone(operations),
-  etats: asynchrone(etats),
-  parametrage: asynchrone(parametrage),
-  groupes: asynchrone(groupes),
-  procurations: asynchrone(procurations),
-  rapports: asynchrone(rapports),
-  banques: asynchrone(banques),
-  guichets: asynchrone(guichets),
-  exercices: asynchrone(exercices),
-  listes: asynchrone(listes),
-  budget: asynchrone(budget),
-  localisation: asynchrone(localisation),
-  credit: asynchrone(credit),
-  ordres: asynchrone(ordres),
-  produitsCredit: asynchrone(produitsCredit),
-  modeles: asynchrone(modeles),
-  produitsEpargne: asynchrone(produitsEpargne),
-  parametrageEpargne: asynchrone(parametrageEpargne),
-  journaux: asynchrone(journaux),
-  edDivers: asynchrone(edDivers),
-  societe: asynchrone(societe),
-  agents: asynchrone(agents),
-  jours: asynchrone(jours),
-  devises: asynchrone(devises),
-  facture: asynchrone(facture),
-  profils: asynchrone(profils),
-  comptes: asynchrone(comptes),
-  numerotation: asynchrone(numerotation),
+  session: asynchrone(session, "session"),
+  journees: asynchrone(journees, "journees"),
+  caisses: asynchrone(caisses, "caisses"),
+  tiers: asynchrone(tiers, "tiers"),
+  guichet: asynchrone(guichet, "guichet"),
+  operations: asynchrone(operations, "operations"),
+  etats: asynchrone(etats, "etats"),
+  parametrage: asynchrone(parametrage, "parametrage"),
+  groupes: asynchrone(groupes, "groupes"),
+  procurations: asynchrone(procurations, "procurations"),
+  rapports: asynchrone(rapports, "rapports"),
+  banques: asynchrone(banques, "banques"),
+  guichets: asynchrone(guichets, "guichets"),
+  exercices: asynchrone(exercices, "exercices"),
+  listes: asynchrone(listes, "listes"),
+  budget: asynchrone(budget, "budget"),
+  localisation: asynchrone(localisation, "localisation"),
+  credit: asynchrone(credit, "credit"),
+  ordres: asynchrone(ordres, "ordres"),
+  produitsCredit: asynchrone(produitsCredit, "produitsCredit"),
+  modeles: asynchrone(modeles, "modeles"),
+  produitsEpargne: asynchrone(produitsEpargne, "produitsEpargne"),
+  parametrageEpargne: asynchrone(parametrageEpargne, "parametrageEpargne"),
+  journaux: asynchrone(journaux, "journaux"),
+  edDivers: asynchrone(edDivers, "edDivers"),
+  societe: asynchrone(societe, "societe"),
+  agents: asynchrone(agents, "agents"),
+  jours: asynchrone(jours, "jours"),
+  devises: asynchrone(devises, "devises"),
+  facture: asynchrone(facture, "facture"),
+  profils: asynchrone(profils, "profils"),
+  droits: asynchrone(droits, "droits"),
+  comptes: asynchrone(comptes, "comptes"),
+  numerotation: asynchrone(numerotation, "numerotation"),
 };
 
 export type ApiDonnees = typeof apiLocal;

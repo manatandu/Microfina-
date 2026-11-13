@@ -80,7 +80,7 @@ describe("journée de guichet", () => {
     l = await api.exercices.completer([1]);
     expect(l.details.filter((d) => d.annee === 2028).map((d) => d.journalId)).toEqual([1]);
     await connecter("bkasongo");
-    await expect(api.exercices.enregistrer({ annee: "2029", lignes: [] })).rejects.toThrow("chef d'agence");
+    await expect(api.exercices.enregistrer({ annee: "2029", lignes: [] })).rejects.toThrow("Droit manquant");
   });
 
   it("guichets (S08 p. 18, S09 p. 19) : champs obligatoires, code unique, ouverture d'un guichet actif, fermeture", async () => {
@@ -171,7 +171,7 @@ describe("journée de guichet", () => {
     await connecter("bkasongo");
     await journeeOuverte(); await connecter("bkasongo");
     const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), produitCode: "EAV-CDF", nom: "Tshala", pieceType: "Passeport", pieceNumero: "OP2", premierDepot: 200000 });
-    await expect(api.tiers.viser(t.id)).rejects.toThrow("chef d'agence");
+    await expect(api.tiers.viser(t.id)).rejects.toThrow("Droit manquant");
     await connecter("jpmukendi");
     await expect(api.tiers.viser(t.id, { dateVisa: "2026-11-01" })).rejects.toThrow("précède");
     await expect(api.tiers.viser(t.id, { dateVisa: "2026-11-06" })).rejects.toThrow("dépasser");
@@ -212,7 +212,7 @@ describe("journée de guichet", () => {
     expect((await p.modifierFraisClient(1, [{ fraisId: f.id, montant: 100000 }]))[0]!.montant).toBe(100000);
     expect((await p.fraisLies(2))[0]!.montant).toBe(200000);
     await connecter("bkasongo");
-    await expect(p.creerFrais({ typeOperation: "ADHESION", libelle: "Frais de livret" })).rejects.toThrow("Réservé");
+    await expect(p.creerFrais({ typeOperation: "ADHESION", libelle: "Frais de livret" })).rejects.toThrow("Droit manquant");
     await connecter("jpmukendi");
     await p.supprimerParametrage("adhesion", pid); await p.supprimerFrais(f.id);
     expect((await p.lireFrais()).frais).toEqual([]);
@@ -237,7 +237,7 @@ describe("journée de guichet", () => {
     await expect(api.tiers.activer(2)).rejects.toThrow("Quatre yeux");
     expect((await api.tiers.activer(1)).statut).toBe("actif");
     await expect(api.tiers.activer(1)).rejects.toThrow("n'attend pas");
-    await connecter("bkasongo"); await expect(api.tiers.activer(2)).rejects.toThrow("Réservé");
+    await connecter("bkasongo"); await expect(api.tiers.activer(2)).rejects.toThrow("Droit manquant");
     await connecter("engalula"); expect((await depot()).statut).toBe("validee");
     // S43 : informations initiales et actuelles
     const h = await api.tiers.modifications(1);
@@ -299,7 +299,7 @@ describe("journée de guichet", () => {
   it("résiliation (S48) : chef d'agence, motif de la liste, client bloqué au guichet", async () => {
     await journeeOuverte();
     await connecter("bkasongo");
-    await expect(api.tiers.resilier(3, { motif: "AUTRES" })).rejects.toThrow("Réservé");
+    await expect(api.tiers.resilier(3, { motif: "AUTRES" })).rejects.toThrow("Droit manquant");
     await connecter("jpmukendi");
     await expect(api.tiers.resilier(3, { motif: "" })).rejects.toThrow("motif");
     await expect(api.tiers.resilier(3, { motif: "Fâché" })).rejects.toThrow("Motif inconnu");
@@ -350,7 +350,7 @@ describe("journée de guichet", () => {
   it("banques (S58) : banque client, compte de l'institution en 560 (PCCI), suppression contrôlée", async () => {
     await connecter("bkasongo");
     const b = { code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "Kinshasa, Gombe" };
-    await expect(api.banques.enregistrerBanque(b)).rejects.toThrow("Réservé");
+    await expect(api.banques.enregistrerBanque(b)).rejects.toThrow("Droit manquant");
     await connecter("jpmukendi");
     await expect(api.banques.enregistrerBanque({ ...b, compteLiaison: "" })).rejects.toThrow("compte liaison");
     let l = await api.banques.enregistrerBanque(b);
@@ -610,6 +610,21 @@ describe("journée de guichet", () => {
     expect((await api.profils.supprimer(a.id)).profils.some((p) => p.id === a.id)).toBe(false);
   });
 
+  it("droits (S04, p. 15 et 16) : droits du profil, une tâche par écran ; chaque écriture exige le droit de sa tâche", async () => {
+    await connecter("jpmukendi");
+    const pr = Object.fromEntries((await api.droits.lire()).profils.map((p) => [p.nom, p.id]));
+    const chef = pr["CHEF D'AGENCE"]!;
+    const l = await api.droits.lire(chef);
+    expect([l.octroyes.includes("S16"), l.octroyes.includes("S04"), l.octroyes.includes("S102")]).toEqual([true, true, false]);
+    expect((await api.session.courante())!.droits).toContain("S04");
+    await expect(api.droits.enregistrer(chef, { droits: ["S99X"] })).rejects.toThrow("Droit inconnu");
+    await api.droits.enregistrer(chef, { droits: l.octroyes.filter((c) => c !== "S16") });
+    await expect(api.parametrage.creerFrais({ typeOperation: "DEPOT", libelle: "X" })).rejects.toThrow("Frais et opérations");
+    await api.droits.enregistrer(chef, { droits: l.octroyes });
+    await connecter("bkasongo");
+    await expect(api.droits.enregistrer(chef, { droits: [] })).rejects.toThrow("Droit manquant");
+  });
+
   it("info société (S32, p. 42) : obligatoires, Type base, localisation, hors bilan classe 0, logo ; agences", async () => {
     await connecter("jpmukendi");
     const l = await api.societe.lire();
@@ -817,10 +832,10 @@ describe("journée de guichet", () => {
     expect([l.compteurs[0]!.dernier, l.exemple.COMPTEUR, l.exemple.INSTITUTION]).toEqual([320, 321, "CTJ"]);
     const p = { nom: "Tshibangu", prenom: "Anne", naissance: "1995-03-01", lieuNaissance: "Kinshasa", sexe: "F" as const, profession: "Commerçant",
       pays: "République démocratique du Congo", ville: "Kinshasa", quartier: "Kinsaku", rue: "", email: "", bp: "", telephoneFixe: "", telephone: "+243 810 000 111" };
-    expect((await api.tiers.creerProspect(p)).numero).toBe("0412-000321");   // sans règle (S15-9)
-    const regle = (await api.numerotation.enregistrer({ ...r, compteur: 500 })).regles[String(i)]!;
+    await connecter("bkasongo"); expect((await api.tiers.creerProspect(p)).numero).toBe("0412-000321");   // sans règle (S15-9)
+    await connecter("jpmukendi"); const regle = (await api.numerotation.enregistrer({ ...r, compteur: 500 })).regles[String(i)]!;
     expect([regle.ordre, regle.agence.position, regle.position]).toEqual([["PREFIXE", "AGENCE", "COMPTEUR"], 2, 3]);
-    expect((await api.tiers.creerProspect({ ...p, nom: "Kabeya" })).numero).toBe("TJ-0412-000500");   // S15-3, S15-9
+    await connecter("bkasongo"); expect((await api.tiers.creerProspect({ ...p, nom: "Kabeya" })).numero).toBe("TJ-0412-000500");   // S15-3, S15-9
   });
 
   it("affectation des guichets (S10, p. 20 et 96) : un guichet à la fois, ouverture réservée à l'affecté", async () => {
@@ -860,7 +875,7 @@ describe("journée de guichet", () => {
     l = await api.comptes.supprimer("5701");
     expect(l.comptes.some((c) => c.numero === "5701")).toBe(false);
     await connecter("jpmukendi");
-    await expect(api.comptes.enregistrer(corps)).rejects.toThrow("comptable");
+    await expect(api.comptes.enregistrer(corps)).rejects.toThrow("Droit manquant");
   });
 
   it("numéro de compte (S17, p. 26) : règle Prefixe, Suffixe, Position", async () => {
@@ -877,6 +892,6 @@ describe("journée de guichet", () => {
     await connecter("engalula");
     const s = await api.caisses.ouvrir(2);
     const b = await api.caisses.saisirBilletage(s.id, "CDF", await api.caisses.theorique(s.id, "CDF"));
-    await expect(api.caisses.validerBilletage(b.id)).rejects.toThrow("chef d'agence");
+    await expect(api.caisses.validerBilletage(b.id)).rejects.toThrow("Droit manquant");
   });
 });

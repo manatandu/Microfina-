@@ -296,7 +296,7 @@ def test_parametrage_frais(clients):
     def refus(c, route, corps, methode="post"):
         r = getattr(c, methode)(route, corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
     assert "Instr. BCC 37" in refus(chef, "/api/parametrage/frais", {"typeOperation": "DEPOT", "libelle": "FRAIS VERSEMENT"})
-    assert "Réservé" in refus(agent, "/api/parametrage/frais", {"typeOperation": "ADHESION", "libelle": "Droit d'entrée"})
+    assert "Droit manquant" in refus(agent, "/api/parametrage/frais", {"typeOperation": "ADHESION", "libelle": "Droit d'entrée"})
     f = chef.post("/api/parametrage/frais", {"typeOperation": "ADHESION", "libelle": "Droit d'entrée"}, **H).json()
     assert "existe déjà" in refus(chef, "/api/parametrage/frais", {"typeOperation": "ADHESION", "libelle": "Droit d'entrée"})
     assert "Paramétrage frais Adhésion" in refus(chef, "/api/parametrage/frais-operation", {"fraisId": f["id"], "nature": "Montant", "sousTypes": ["Femme"]})
@@ -324,7 +324,7 @@ def test_parametrage_frais(clients):
     chef.delete(f"/api/parametrage/frais-operation/{po}", **H); chef.delete(f"/api/parametrage/frais/{fp['id']}", **H)
     # S41 : montant propre au client
     k = T("0412-000318")
-    assert "Réservé" in refus(agent, f"/api/tiers/{k}/frais", {"frais": [{"fraisId": f["id"], "montant": 0}]})
+    assert "Droit manquant" in refus(agent, f"/api/tiers/{k}/frais", {"frais": [{"fraisId": f["id"], "montant": 0}]})
     assert "Montant" in refus(chef, f"/api/tiers/{k}/frais", {"frais": [{"fraisId": f["id"], "montant": -1}]})
     assert "pas lié" in refus(chef, f"/api/tiers/{k}/frais", {"frais": [{"fraisId": 999999, "montant": 0}]})
     assert chef.post(f"/api/tiers/{k}/frais", {"frais": [{"fraisId": f["id"], "montant": 100000}]}, **H).json()[0]["montant"] == 100000
@@ -417,7 +417,7 @@ def test_resiliation(clients, journee):
     k = T("0412-000320")
     def refus(c, corps, tid=k):
         r = c.post(f"/api/tiers/{tid}/resiliation", corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
-    assert "Réservé" in refus(agent, {"motif": "AUTRES"})
+    assert "Droit manquant" in refus(agent, {"motif": "AUTRES"})
     assert "motif" in refus(chef, {"motif": ""})
     assert "Motif inconnu" in refus(chef, {"motif": "Fâché"})
     r = chef.post(f"/api/tiers/{k}/resiliation", {"motif": "Raisons personnelles"}, **H)
@@ -500,7 +500,7 @@ def test_banques(clients):
         r = getattr(c, methode)(route, corps, **H) if corps is not None else getattr(c, methode)(route, **H)
         assert r.status_code in (403, 422), r.content; return r.json()["message"]
     b = {"code": "RAW", "libelle": "Rawbank", "compteLiaison": "5601", "adresse": "Kinshasa, Gombe"}
-    assert "Réservé" in refus(agent, "/api/banques", b)
+    assert "Droit manquant" in refus(agent, "/api/banques", b)
     assert "compte liaison" in refus(chef, "/api/banques", {**b, "compteLiaison": ""})
     l = chef.post("/api/banques", b, **H).json()
     assert "existe déjà" in refus(chef, "/api/banques", b)
@@ -1277,3 +1277,21 @@ def test_profils(clients):
     connecter(clients["caisse"], "engalula")
     assert "caissier" in clients["caisse"].get("/api/session", **H).json()["roles"]          # le code reste, le nom change
     assert all(p["nom"] != "AUDITEUR" for p in chef.post(f"/api/profils/{a['id']}/suppression", {}, **H).json()["profils"])
+
+
+def test_droits_profils(clients):
+    """S04 (p. 15 et 16) : droits restants et octroyés d'un profil, une tâche par écran ; chaque écriture exige le droit de sa tâche ;
+    les quatre profils de départ gardent ce qu'ils faisaient (registre T07, S04-1 à S04-3)"""
+    chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    pr = {p["nom"]: p["id"] for p in chef.get("/api/profils", **H).json()["profils"]}; CHEF = "CHEF D'AGENCE"
+    l = chef.get(f"/api/droits?profil={pr[CHEF]}", **H).json()
+    assert "S16" in l["octroyes"] and "S04" in l["octroyes"] and "S102" not in l["octroyes"]
+    assert "S04" in chef.get("/api/session", **H).json()["droits"]
+    assert "Droit manquant" in agent.post(f"/api/droits/{pr['AUDITEUR' if 'AUDITEUR' in pr else 'CAISSIER']}", {"droits": []}, **H).json()["message"]
+    r = chef.post(f"/api/droits/{pr[CHEF]}", {"droits": ["S99X"]}, **H); assert "Droit inconnu" in r.json()["message"]
+    sans16 = [c for c in l["octroyes"] if c != "S16"]
+    assert chef.post(f"/api/droits/{pr[CHEF]}", {"droits": sans16}, **H).json()["octroyes"] == sans16
+    r = chef.post("/api/parametrage/frais", {"typeOperation": "DEPOT", "libelle": "X"}, **H)
+    assert r.status_code == 403 and "Frais et opérations" in r.json()["message"]
+    chef.post(f"/api/droits/{pr[CHEF]}", {"droits": l["octroyes"]}, **H)
+    assert chef.post("/api/parametrage/frais", {"typeOperation": "DEPOT", "libelle": "X"}, **H).status_code != 403

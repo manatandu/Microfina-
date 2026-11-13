@@ -173,6 +173,10 @@ const OUT = process.argv[2];
   // Chef : profils (S03, p. 15) : le profil AUDITEUR de la capture
   await aller('/administration/s03'); await p.getByLabel('Nom Droit *').fill('AUDITEUR'); await p.getByLabel('Description').fill('PROFIL DES AUDITEURS');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'AUDITEUR', exact: true }).waitFor(); await etape('02f31-profils');
+  // Chef : droits du profil AUDITEUR (S04, p. 15 et 16) : le menu Client lui est octroyé
+  await aller('/administration/s04'); await p.getByLabel('Libellé du Profil *').selectOption({ label: 'AUDITEUR' });
+  await p.getByRole('checkbox', { name: 'LISTE DES DROITS RESTANTS : Client' }).check(); await p.getByRole('button', { name: 'Octroyer les droits cochés' }).click();
+  await etape('02f32-droits'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   // Chef : facture (S36, p. 46) : un élément TVA au compte 432 (PCCI), puis un type de commande (p. 125)
   await aller('/parametrage/s36'); await p.getByLabel('Libellé', { exact: true }).fill('TVA'); await p.getByLabel('Compte :').fill('432'); await p.getByLabel('Taux(%)').fill('16');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'TVA', exact: true }).waitFor(); await etape('02f29-element-facture');

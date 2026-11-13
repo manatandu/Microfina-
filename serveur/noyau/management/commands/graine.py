@@ -9,6 +9,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from noyau.bd import executer, valeur
+from noyau.droits import DROITS_DEPART
 
 # Quatre profils de départ (registre T07, S03-1) : code du rôle, nom en majuscules comme la capture p. 15
 NOMS_PROFILS = {"caissier": "CAISSIER", "chef_agence": "CHEF D'AGENCE", "comptable": "COMPTABLE", "agent_credit": "AGENT DE CRÉDIT"}
@@ -93,6 +94,8 @@ class Command(BaseCommand):
             pid = valeur("insert into profil (institution_id, code, nom) values (%s, %s, %s) returning id", (ins, profil, NOMS_PROFILS[profil]))
             uid[login] = valeur("insert into utilisateur (institution_id, agence_id, login, nom, mot_de_passe_hash) values (%s, %s, %s, %s, '!') returning id", (ins, ag, login, nom))
             executer("insert into utilisateur_profil values (%s, %s)", (uid[login], pid))
+            for c in DROITS_DEPART[profil]:                       # registre S04-2
+                executer("insert into profil_droit (profil_id, droit_code) values (%s, %s)", (pid, c))
         chef, compta, caissiere = uid["jpmukendi"], uid["plumbala"], uid["engalula"]
 
         # Plan de comptes, journaux, schémas comptables (proposés par le comptable, validés par le chef : quatre yeux)

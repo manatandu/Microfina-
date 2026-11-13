@@ -26,6 +26,7 @@ from . import jours as jt
 from . import devises as dv
 from . import facture as fa
 from . import profils as pf
+from . import droits as dr
 from . import comptes as cp
 from . import numerotation as nu
 from . import services as s
@@ -45,7 +46,9 @@ def u(request: HttpRequest) -> dict:
     # Protection contre les requêtes forgées depuis un autre site : en-tête propre à l'application sur toute écriture
     if request.method not in METHODES_SURES and request.headers.get("X-Likelemba") != "1":
         raise ErreurMetier("Requête refusée.", 403)
-    return s.exiger(s.charger_utilisateur(request.session.get("utilisateur")))
+    util = s.exiger(s.charger_utilisateur(request.session.get("utilisateur")))
+    dr.verifier_route(util, request.method, request.path)      # droit de la tâche (registre S04-3)
+    return util
 
 
 # ---------- Session ----------
@@ -790,6 +793,17 @@ def pf_modifier(request, pid: int, corps: dict = Body(...)):
 @api.post("/profils/{pid}/suppression")
 def pf_supprimer(request, pid: int):
     return pf.supprimer(u(request), pid)
+
+
+# ---------- Administration > Profil > Assigner droit ; Modifier droit d'un profil (S04) ----------
+@api.get("/droits")
+def dr_lire(request, profil: int | None = None):
+    return dr.lire(u(request), profil)
+
+
+@api.post("/droits/{pid}")
+def dr_enregistrer(request, pid: int, corps: dict = Body(...)):
+    return dr.enregistrer(u(request), pid, corps)
 
 
 # ---------- Facture : Elément Facture, Référence Commande (S36) ----------

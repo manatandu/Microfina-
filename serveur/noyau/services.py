@@ -49,13 +49,14 @@ def charger_utilisateur(uid: int | None) -> dict | None:
 
 
 def vue_utilisateur(u: dict) -> dict:
-    return {"id": u["id"], "login": u["login"], "nom": u["nom"], "roles": u["roles"]}
+    from .droits import droits_utilisateur
+    return {"id": u["id"], "login": u["login"], "nom": u["nom"], "roles": u["roles"], "droits": sorted(droits_utilisateur(u["id"]))}
 
 
 def exiger(u: dict | None, role: str | None = None) -> dict:
     if not u:
         raise ErreurMetier("Session fermée. Reconnectez-vous.", 401)
-    if role and role not in u["roles"]:
+    if role and role not in u["roles"] and not u.get("droit_route"):     # droit de la tâche déjà vérifié par la route (registre S04-3)
         raise ErreurMetier(f"Réservé au profil « {LIBELLES_ROLES[role]} ».", 403)
     return u
 
