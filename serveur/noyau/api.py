@@ -23,6 +23,7 @@ from . import ed_divers as ed
 from . import societe as so
 from . import agents as ag
 from . import jours as jt
+from . import devises as dv
 from . import comptes as cp
 from . import numerotation as nu
 from . import services as s
@@ -725,6 +726,42 @@ def jt_journees(request, corps: dict = Body(...)):
 @api.post("/jours/feries")
 def jt_feries(request, corps: dict = Body(...)):
     return jt.enregistrer_feries(u(request), corps)
+
+
+# ---------- Préférences > Devise, Type sous, Sous (S35) ----------
+@api.get("/devises")
+def dv_lire(request):
+    return dv.lire(u(request))
+
+
+@api.post("/devises")
+def dv_devise(request, corps: dict = Body(...)):
+    return dv.enregistrer_devise(u(request), corps)
+
+
+@api.post("/devises/{code}")
+def dv_devise_modifier(request, code: str, corps: dict = Body(...)):
+    return dv.enregistrer_devise(u(request), corps, code)
+
+
+@api.post("/types-monnaie")
+def dv_type(request, corps: dict = Body(...)):
+    return dv.enregistrer_type(u(request), corps)
+
+
+@api.post("/types-monnaie/{tid}")
+def dv_type_modifier(request, tid: int, corps: dict = Body(...)):
+    return dv.enregistrer_type(u(request), corps, tid)
+
+
+@api.post("/monnaies")
+def dv_monnaie(request, corps: dict = Body(...)):
+    return dv.enregistrer_monnaie(u(request), corps)
+
+
+@api.post("/monnaies/{devise}/{centiemes}")
+def dv_monnaie_modifier(request, devise: str, centiemes: int, corps: dict = Body(...)):
+    return dv.enregistrer_monnaie(u(request), corps, (devise, centiemes))
 
 
 # ---------- Paramétrage > Info société (S32) ----------

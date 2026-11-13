@@ -153,6 +153,12 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       enregistrerJournees: (d: object) => post("/jours/journees", d),
       enregistrerFeries: (d: object) => post("/jours/feries", d),
     },
+    devises: {
+      lire: () => get("/devises"),
+      enregistrerDevise: (d: object, code?: string) => post(code === undefined ? "/devises" : `/devises/${code}`, d),
+      enregistrerType: (d: object, id?: number) => post(id === undefined ? "/types-monnaie" : `/types-monnaie/${id}`, d),
+      enregistrerMonnaie: (d: object, m?: { devise: string; valeur: number }) => post(m === undefined ? "/monnaies" : `/monnaies/${m.devise}/${Math.round(m.valeur * 100)}`, d),
+    },
     societe: {
       lire: () => get("/societe"),
       enregistrer: (d: object) => post("/societe", d),

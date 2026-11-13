@@ -1178,3 +1178,33 @@ def test_jours_travail_feries(clients):
     assert "férié : Noël" in chef.post("/api/journees", {"date": "2026-12-25"}, **H).json()["message"]
     assert "dimanche" in chef.post("/api/journees", {"date": "2026-11-08"}, **H).json()["message"]
     assert chef.post("/api/jours/feries", {"institutionId": i, "feries": []}, **H).json()["feries"] == []
+
+
+def test_devises_monnaies(clients):
+    """S35 (p. 45 et 46) : Devise, Code, Unité, Subdivision ; Type de Monnaie ; Valeur fiduciaire, Type de Monnaie, Devise ;
+    franc congolais : FC et cent centimes (D.-L. 080/1998, art. 1 et 2) ; registre S35-1 à S35-4"""
+    chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    l = chef.get("/api/devises", **H).json()
+    cdf = next(x for x in l["devises"] if x["code"] == "CDF")
+    assert (cdf["unite"], cdf["subdivision"]) == ("FC", 100)
+    assert {"devise": "CDF", "valeur": 500, "typeId": next(t["id"] for t in l["types"] if t["libelle"] == "Billet de 500"), "libelle": "Billet de 500"} in l["monnaies"]
+    def refus(url, corps):
+        r = chef.post(url, corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    E = {"libelle": "Euro", "code": "eur", "unite": "€", "subdivision": 100}
+    assert agent.post("/api/devises", E, **H).status_code == 403
+    assert "Devise, Code" in refus("/api/devises", {})
+    assert "trois lettres" in refus("/api/devises", {**E, "code": "E"})
+    assert "divise 100" in refus("/api/devises", {**E, "subdivision": 3})
+    assert "D.-L. 080/1998" in refus("/api/devises/CDF", {**cdf, "unite": "F"})
+    assert "existe déjà" in refus("/api/devises", {**E, "code": "USD"})
+    assert {"code": "EUR", "libelle": "Euro", "unite": "€", "subdivision": 100} in chef.post("/api/devises", E, **H).json()["devises"]
+    assert "ne se modifie pas" in refus("/api/devises/EUR", {**E, "code": "EUA"})
+    assert "Type de Monnaie" in refus("/api/types-monnaie", {"libelle": " "})
+    assert "existe déjà" in refus("/api/types-monnaie", {"libelle": "billet de 500"})
+    t = chef.post("/api/types-monnaie", {"libelle": "Pièce de 50 centimes"}, **H).json()["types"][-1]
+    assert "Valeur fiduciaire, Type de Monnaie, Devise" in refus("/api/monnaies", {})
+    assert "deux décimales" in refus("/api/monnaies", {"valeur": "0.505", "typeId": t["id"], "devise": "CDF"})
+    assert "existe déjà" in refus("/api/monnaies", {"valeur": 500, "typeId": t["id"], "devise": "CDF"})
+    m = chef.post("/api/monnaies", {"valeur": "0,50", "typeId": t["id"], "devise": "CDF"}, **H).json()["monnaies"]
+    assert {"devise": "CDF", "valeur": 0.5, "typeId": t["id"], "libelle": "Pièce de 50 centimes"} in m
+    assert chef.post("/api/monnaies/CDF/50", {"valeur": "0.5", "typeId": t["id"], "devise": "EUR"}, **H).status_code == 200

@@ -1,5 +1,5 @@
 import type { Etat, Ligne, LigneLieu, NiveauLieu } from "./types";
-import { totalComptage, type Comptage } from "@design/montant.js";
+import { COUPURES, totalComptage, type Comptage } from "@design/montant.js";
 
 // Données fictives, reprises des maquettes. Aucune donnée d'une institution réelle (CLAUDE.md § 4).
 // Cours et valeur de la part : exemples, à remplacer par le cours du jour et les statuts.
@@ -34,7 +34,7 @@ export function graine(): Etat {
     lieuNaissance: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", liees: [] as number[],
     type: "physique" as const, formeJuridique: "", registre: "", centreActivite: "", activite: "", dirigeant: null, signataires: [], nbHommes: 0, nbFemmes: 0, membres: [], intitule: "", dateVisa: "2026-01-15", profession: "", pays: "", ville: "", quartier: "", rue: "", email: "", bp: "", telephoneFixe: "", motifDepart: "", resilieLe: "", creeLe: "2026-01-15", creePar: 4, visePar: 2, statut: "actif" as const };
   return {
-    version: 45,
+    version: 46,
     institution: { nom: "COOPEC Tujenge", sigle: "CTJ", profil: "coopec", pays: "République démocratique du Congo", ville: "Kinshasa", commune: "Matete", quartier: "Kinsaku", journeeMax: 1 },   // sigle fictif : élément Institution du numéro client (S15-11)
     agence: { id: 1, code: "0412", nom: "Matete" },
     agences: [{ id: 1, code: "0412", nom: "Matete", supprime: false }],
@@ -130,6 +130,10 @@ export function graine(): Etat {
     operationsDiverses: [],
     agents: [],
     feries: [],
+    // S35 : CDF, symbole FC et cent centimes (D.-L. 080/1998, art. 1 et 2) ; USD : données de démonstration
+    devises: [{ code: "CDF", libelle: "Franc congolais", unite: "FC", subdivision: 100 }, { code: "USD", libelle: "Dollar américain", unite: "$", subdivision: 100 }],
+    typesMonnaie: [...new Set([...COUPURES.CDF, ...COUPURES.USD])].map((v, i) => ({ id: i + 1, libelle: `Billet de ${v}` })),
+    monnaies: (["CDF", "USD"] as const).flatMap((d) => COUPURES[d].map((v) => ({ devise: d, valeur: v, typeId: [...new Set([...COUPURES.CDF, ...COUPURES.USD])].indexOf(v) + 1 }))),
     // Journaux (S30) : ceux du schéma de départ, comme la graine du serveur
     journaux: [{ id: 1, code: "CA", libelle: "Caisse", type: "caisse", actif: true, supprime: false }, { id: 2, code: "AN", libelle: "À-nouveaux", type: "a_nouveaux", actif: true, supprime: false },
       { id: 3, code: "BQ", libelle: "Journal Banque", type: "banque", actif: true, supprime: false }],

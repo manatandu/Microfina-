@@ -547,6 +547,26 @@ describe("journée de guichet", () => {
     await expect(api.journees.ouvrir("2026-11-08")).rejects.toThrow("dimanche");
   });
 
+  it("devises, types de monnaie, monnaies (S35, p. 45 et 46) : franc congolais FC et cent centimes ; code de trois lettres ; valeur dans la subdivision", async () => {
+    await connecter("jpmukendi");
+    const l = await api.devises.lire();
+    expect(l.devises.find((d) => d.code === "CDF")).toEqual({ code: "CDF", libelle: "Franc congolais", unite: "FC", subdivision: 100 });
+    expect(l.monnaies.some((m) => m.devise === "CDF" && m.valeur === 500 && m.libelle === "Billet de 500")).toBe(true);
+    const E = { libelle: "Euro", code: "eur", unite: "€", subdivision: 100 };
+    await expect(api.devises.enregistrerDevise({})).rejects.toThrow("Devise, Code");
+    await expect(api.devises.enregistrerDevise({ ...E, code: "E" })).rejects.toThrow("trois lettres");
+    await expect(api.devises.enregistrerDevise({ ...E, subdivision: 3 })).rejects.toThrow("divise 100");
+    await expect(api.devises.enregistrerDevise({ libelle: "Franc congolais", code: "CDF", unite: "F", subdivision: 100 }, "CDF")).rejects.toThrow("D.-L. 080/1998");
+    expect((await api.devises.enregistrerDevise(E)).devises.map((d) => d.code)).toContain("EUR");
+    await expect(api.devises.enregistrerDevise({ ...E, code: "EUA" }, "EUR")).rejects.toThrow("ne se modifie pas");
+    await expect(api.devises.enregistrerType({ libelle: "billet de 500" })).rejects.toThrow("existe déjà");
+    const t = (await api.devises.enregistrerType({ libelle: "Pièce de 50 centimes" })).types.at(-1)!;
+    await expect(api.devises.enregistrerMonnaie({})).rejects.toThrow("Valeur fiduciaire, Type de Monnaie, Devise");
+    await expect(api.devises.enregistrerMonnaie({ valeur: "0.505", typeId: t.id, devise: "CDF" })).rejects.toThrow("deux décimales");
+    await expect(api.devises.enregistrerMonnaie({ valeur: 500, typeId: t.id, devise: "CDF" })).rejects.toThrow("existe déjà");
+    expect((await api.devises.enregistrerMonnaie({ valeur: "0,50", typeId: t.id, devise: "CDF" })).monnaies).toContainEqual({ devise: "CDF", valeur: 0.5, typeId: t.id, libelle: "Pièce de 50 centimes" });
+  });
+
   it("info société (S32, p. 42) : obligatoires, Type base, localisation, hors bilan classe 0, logo ; agences", async () => {
     await connecter("jpmukendi");
     const l = await api.societe.lire();

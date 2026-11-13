@@ -72,10 +72,14 @@ class Command(BaseCommand):
         ag = valeur("insert into agence (institution_id, code, nom) values (%s, '0412', 'Matete') returning id", (ins,))
         # Référentiel crédit (S21) : zone de démonstration et exemples des captures p. 32 à 36
         executer("insert into zone (institution_id, code, nom, description, agence_id) values (%s, 'Z01', 'Matete', 'Commune de Matete', %s)", (ins, ag))
-        executer("insert into devise values ('CDF', 'Franc congolais'), ('USD', 'Dollar américain')")
+        # CDF : symbole FC, cent centimes (D.-L. 080/1998, art. 1 et 2) ; USD : données de démonstration
+        executer("insert into devise (code, libelle, unite, subdivision) values ('CDF', 'Franc congolais', 'FC', 100), ('USD', 'Dollar américain', '$', 100)")
+        types = {}
         for d, vs in COUPURES.items():
             for v in vs:
-                executer("insert into coupure values (%s, %s, 'billet')", (d, v * 100))
+                if v not in types:
+                    types[v] = valeur("insert into type_monnaie (libelle) values (%s) returning id", (f"Billet de {v}",))
+                executer("insert into coupure (devise, valeur, nature, type_id) values (%s, %s, 'billet', %s)", (d, v * 100, types[v]))
         executer("insert into cours_change (institution_id, devise, jour, cours) values (%s, 'USD', '2026-11-04', %s)", (ins, COURS))
         executer("""insert into parametre_reglementaire (cle, valeur, source, date_effet)
                     values ('valeur_part', %s, 'Exemple du manuel Microfina++ ; statuts de la COOPEC à fournir (loi 002/2002, art. 20)', '2026-01-01')""", (Jsonb(VALEUR_PART),))

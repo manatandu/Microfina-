@@ -32,7 +32,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 31,Société agences zones logo,paramétrage,must,partial,S32,B,liste,2 Paramétrage,S32 : pages agences et zones (« afficher les pages »),"D:S05, S08, S21 zone ; A:S33",,,S32-6 Onglet Autres Info et cadre Info sécurité ; S12-5 Journée Maxi ouvert
 32,Gestionnaires sensibilisateurs commerciaux,paramétrage,should,yes,S33,A,liste,2 Paramétrage,,,,,
 33,Jours de travail et jours fériés,paramétrage,should,yes,S34,A,composition,2 Paramétrage,,,,,
-34,Devises types de monnaie et coupures,paramétrage,must,no,S35,A,liste,2 Paramétrage,,,,S35,
+34,Devises types de monnaie et coupures,paramétrage,must,yes,S35,A,liste,2 Paramétrage,,,,,
 35,Éléments de facture et références de commande,paramétrage,could,no,S36,A,liste,2 Paramétrage,,,,S36,
 36,Enrôlement personne physique en onglets,clients,must,partial,S37,B,onglets,3 Client,S37 : cinq onglets sur six ; fiches Personne liée et Bénéficiaire,M:texte p. 48 ; D:S14a à S14n ; R:identification du client (Instr. BCC LBC),,,"S37-1 Champs des onglets non montrés ; S37-2 Listes des fiches ; S37-3 Fiche Bénéficiaire ; S37-4 Retirer un signataire, un membre ; S37-5 Bénéficiaires effectifs d'une entreprise ; S46-1 Mise à jour : Modifier et Terminer ; S46-2 Mise à jour d'une entreprise, d'un groupe ; S37-9 Options du produit d'épargne"
 37,Enrôlement entreprise avec dirigeants et signataires,clients,must,partial,S38,B,onglets,3 Client,S38 : cinq onglets sur six ; fiche Signataire,M:texte p. 49 ; A:S37 ; R:idem,,,"S37-1 Champs des onglets non montrés ; S37-2 Listes des fiches ; S37-3 Fiche Bénéficiaire ; S37-4 Retirer un signataire, un membre ; S37-5 Bénéficiaires effectifs d'une entreprise ; S46-1 Mise à jour : Modifier et Terminer ; S46-2 Mise à jour d'une entreprise, d'un groupe"
@@ -79,7 +79,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 78,Situation plan réel mémo du prêt au guichet,caisse,should,no,S76,B,guichet,6 Caisse,"S76 : Plan, Réel, Memo, MP (seule Situation est montrée)",A:S95 (p. 119) ; D:S22,,S76,
 79,Achat et retrait de parts sociales,caisse,must,partial,S77,A,guichet,6 Caisse,,R:loi 002/2002 (parts sociales),,,S16-11 Valeur de la part sociale
 80,Encaissements et décaissements divers,caisse,must,no,S78,A,guichet,6 Caisse,,D:S31,,S78,
-81,Billetage : saisie par coupure,caisse,must,partial,S79,A,guichet,6 Caisse,,,,,S79-1 Bouton Terminer ; S79-2 Deux devises ; S79-4 Billets et pièces ; S79-5 Liste Journées
+81,Billetage : saisie par coupure,caisse,must,partial,S79,A,guichet,6 Caisse,,,,,S79-1 Bouton Terminer ; S79-2 Deux devises ; S79-4 Billets et pièces ; S79-5 Devises et monnaies des guichets
 82,Billetage : validation solde informatique et réel,caisse,must,partial,S80,A,visa,6 Caisse,,,,,"S80-2 Champ Compte Comptable ; S80-4 Imprimer, Terminer ; S80-5 Écriture de l'écart ; S80-6 Liste Journées"
 83,Transfert caisse vers caisse et caisse vers banque,caisse,must,no,S81,A,guichet,6 Caisse,,R:PCCI (mouvements de fonds),,S81,
 84,Opérations diverses et déplacées validées en caisse,caisse,must,no,S82,A,visa,6 Caisse,,,,S82,

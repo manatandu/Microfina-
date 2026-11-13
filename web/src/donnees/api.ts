@@ -17,7 +17,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v45";
+const CLE = "likelemba-demo-v46";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -25,7 +25,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 45) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 46) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -2390,6 +2390,76 @@ const jours = {
   },
 };
 
+// ---------- Préférences : Devise, Type sous, Sous (S35, manuel p. 45 et 46). Règles identiques côté serveur (noyau/devises.py). ----------
+const DIVISEURS = [0, 1, 2, 4, 5, 10, 20, 25, 50, 100];   // montants tenus en centièmes (ARCHITECTURE P4) : registre S35-1
+const txt = (x: unknown) => (typeof x === "string" ? x.trim() : "");
+const devises = {
+  lire() {
+    exiger();
+    return { devises: [...E.devises].sort((a, b) => a.code.localeCompare(b.code)), types: [...E.typesMonnaie].sort((a, b) => a.id - b.id),
+      monnaies: [...E.monnaies].sort((a, b) => a.devise.localeCompare(b.devise) || a.valeur - b.valeur)
+        .map((m) => ({ ...m, libelle: E.typesMonnaie.find((t) => t.id === m.typeId)?.libelle ?? "" })) };
+  },
+  /** Enregistrement des devises : Devise, Code, Unité, Subdivision (registre S35-1) */
+  enregistrerDevise(d: { libelle?: string; code?: string; unite?: string; subdivision?: number | string }, codeActuel?: string) {
+    exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
+    const libelle = txt(d.libelle), code = txt(d.code).toUpperCase(), unite = txt(d.unite);
+    const manque = manquants([["Devise", libelle], ["Code", code]]);
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    const brut = d.subdivision === undefined || d.subdivision === "" ? "0" : String(d.subdivision).trim();
+    if (!/^\d+$/.test(brut)) throw new ErreurMetier("Subdivision : nombre entier positif ou nul.");
+    const s = Number(brut);
+    if (!DIVISEURS.includes(s)) throw new ErreurMetier("Subdivision : 0, ou un nombre qui divise 100 (100 pour les centimes).");
+    if (!/^[A-Z]{3}$/.test(code)) throw new ErreurMetier("Code : trois lettres (CDF, USD, EUR).");
+    if (code === "CDF" && (unite !== "FC" || s !== 100)) throw new ErreurMetier("Franc congolais : symbole FC et cent centimes (D.-L. 080/1998, art. 1 et 2).");
+    const actuelle = codeActuel === undefined ? undefined : E.devises.find((x) => x.code === codeActuel);
+    if (codeActuel !== undefined) {
+      if (!actuelle) throw new ErreurMetier("Devise introuvable.");
+      if (code !== codeActuel) throw new ErreurMetier("Le code d'une devise ne se modifie pas.");
+    } else if (E.devises.some((x) => x.code === code)) throw new ErreurMetier("Ce Code existe déjà.");
+    if (E.devises.some((x) => x.libelle.toLowerCase() === libelle.toLowerCase() && x.code !== codeActuel)) throw new ErreurMetier("Cette Devise existe déjà.");
+    if (actuelle) Object.assign(actuelle, { libelle, unite, subdivision: s }); else E.devises.push({ code, libelle, unite, subdivision: s });
+    enregistrer(); return devises.lire();
+  },
+  /** Enregistrer un type de monnaies : Type de Monnaie (registre S35-2) */
+  enregistrerType(d: { libelle?: string }, id?: number) {
+    exiger("chef_agence");
+    const libelle = txt(d.libelle);
+    if (!libelle) throw new ErreurMetier("À remplir : Type de Monnaie.");
+    const t = id === undefined ? undefined : E.typesMonnaie.find((x) => x.id === id);
+    if (id !== undefined && !t) throw new ErreurMetier("Type de monnaie introuvable.");
+    if (E.typesMonnaie.some((x) => x.libelle.toLowerCase() === libelle.toLowerCase() && x.id !== id)) throw new ErreurMetier("Ce Type de Monnaie existe déjà.");
+    if (t) t.libelle = libelle; else E.typesMonnaie.push({ id: prochain(E.typesMonnaie), libelle });
+    enregistrer(); return devises.lire();
+  },
+  /** Enregistrement de monnaies : Valeur fiduciaire, Type de Monnaie, Devise (registre S35-3) ; une monnaie qui a servi garde sa valeur et sa devise */
+  enregistrerMonnaie(d: { valeur?: number | string; typeId?: number | null; devise?: string }, actuelle?: { devise: string; valeur: number }) {
+    exiger("chef_agence");
+    const brut = d.valeur === undefined || d.valeur === null ? "" : String(d.valeur).trim().replace(",", ".");
+    const devise = txt(d.devise), typeId = typeof d.typeId === "number" ? d.typeId : null;
+    const manque = manquants([["Valeur fiduciaire", brut], ["Type de Monnaie", typeId ? "x" : ""], ["Devise", devise]]);
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    const dv = E.devises.find((x) => x.code === devise);
+    if (!dv) throw new ErreurMetier("Devise inconnue.");
+    const t = E.typesMonnaie.find((x) => x.id === typeId);
+    if (!t) throw new ErreurMetier("Type de Monnaie inconnu.");
+    if (!/^\d+(\.\d{1,2})?$/.test(brut) || Number(brut) <= 0) throw new ErreurMetier("Valeur fiduciaire : nombre positif, deux décimales au plus.");
+    const centiemes = Math.round(Number(brut) * 100), v = centiemes / 100;
+    if (dv.subdivision === 0 && centiemes % 100) throw new ErreurMetier(`Valeur fiduciaire : ${devise} n'a pas de subdivision, valeur entière.`);
+    if (dv.subdivision && (centiemes * dv.subdivision) % 100) throw new ErreurMetier(`Valeur fiduciaire : pas un multiple de la plus petite subdivision du ${devise}.`);
+    const memeCle = actuelle !== undefined && actuelle.devise === devise && actuelle.valeur === v;
+    const m = actuelle === undefined ? undefined : E.monnaies.find((x) => x.devise === actuelle.devise && x.valeur === actuelle.valeur);
+    if (actuelle !== undefined) {
+      if (!m) throw new ErreurMetier("Monnaie introuvable.");
+      const servie = E.operations.some((o) => o.devise === actuelle.devise && (o.coupures[actuelle.valeur] ?? 0) > 0);
+      if (!memeCle && servie) throw new ErreurMetier("Cette monnaie a servi aux guichets : sa valeur et sa devise ne se modifient pas.");
+    }
+    if (!memeCle && E.monnaies.some((x) => x.devise === devise && x.valeur === v)) throw new ErreurMetier("Cette monnaie existe déjà dans cette devise.");
+    if (m) Object.assign(m, { devise, valeur: v, typeId: t.id }); else E.monnaies.push({ devise, valeur: v, typeId: t.id });
+    enregistrer(); return devises.lire();
+  },
+};
+
 // ---------- Info de base > Localisation (S20, manuel p. 30 à 32), adaptée au découpage de la RDC (demande du porteur, registre S20-1) :
 // Constitution, art. 2 et 3 ; Décret 22/07 du 02/03/2022, art. 9, point 26. Règles identiques côté serveur (noyau/localisation.py). ----------
 const NIVEAUX: NiveauLieu[] = ["pays", "province", "ville", "commune", "quartier"];
@@ -2493,6 +2563,7 @@ const apiLocal = {
   societe: asynchrone(societe),
   agents: asynchrone(agents),
   jours: asynchrone(jours),
+  devises: asynchrone(devises),
   comptes: asynchrone(comptes),
   numerotation: asynchrone(numerotation),
 };

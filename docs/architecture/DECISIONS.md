@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**227 décisions.** Solidité : 75 fortes (le manuel ou un texte répond), 123 moyennes (déduites d'un écran voisin ou d'une donnée), 29 faibles (notre choix, faute de mieux). Dans le code : 170 déjà en place, 57 à appliquer.
+**231 décisions.** Solidité : 75 fortes (le manuel ou un texte répond), 126 moyennes (déduites d'un écran voisin ou d'une donnée), 30 faibles (notre choix, faute de mieux). Dans le code : 174 déjà en place, 57 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -276,7 +276,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S79-2 | Deux devises | Un tableau par devise, chacun comme la capture (T12) | Texte réglementaire : T12 | forte | à appliquer |
 | S79-3 | Bon de Caisse | Dans la devise de son tableau. Total Caisse = Total Montant + Bon de Caisse | Manuel : Manuel p. 91 (Total Caisse à part du Total Montant), p. 92 (« Bon Caisse » à côté du Total Billetage) | moyenne | en place |
 | S79-4 | Billets et pièces | Le libellé « Billet de » ou « Pièce de » vient du type de monnaie de chaque coupure (S35) | Manuel : Capture p. 91 ; S35 (p. 45 et 46) | forte | à appliquer |
-| S79-5 | Liste Journées | Les journées ouvertes du guichet, la dernière proposée | Manuel : Capture p. 91 | forte | à appliquer |
+| S79-5 | Devises et monnaies des guichets | Les guichets (billetage, dépôts, retraits, arrêté de caisse) lisent encore la liste fixe CDF et USD ; ils passeront aux devises et monnaies de S35 avec S79, avec le libellé « Billet de » ou « Pièce de » (S79-4). Le serveur contrôle déjà les coupures dans la liste de S35 | Donnée exigée ailleurs : S35 ; S79-4 | moyenne | à appliquer |
 
 ## S80 Validation billetage
 
@@ -482,6 +482,15 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S34-4 | Effet sur l'ouverture de journée | Ouverture de journée (S12) refusée un jour férié saisi dans Jours fériés, ou un jour que l'agence n'a pas coché dans Journées de travail ; le message dit pourquoi et où corriger. Ouverture exceptionnelle : cocher d'abord le jour. Agence sans aucun jour coché : pas de contrôle (jours pas encore paramétrés) | Choix du porteur : Accord du porteur, 13/11/2026 ; loi 22/069, art. 186 (jours d'accès du public fixés par l'institution en dehors des jours fériés légaux) | forte | en place |
 | S34-5 | Jours fériés reportés | Pas de report calculé par le logiciel. En pratique (porteur) : un férié qui tombe un samedi est chômé le samedi, puis le lundi ; un férié qui tombe un dimanche est chômé le lundi ; le report est fixé chaque fois par communiqué du ministre de l'Emploi, valable sur tout le territoire, même pour qui n'est pas concerné. L'Ordonnance 23/042, art. 2, dit autre chose (dimanche : la veille ; rien pour le samedi). Le jour reporté se saisit donc dans les Jours fériés variables, à la date du communiqué | Choix du porteur : Porteur, 13/11/2026 ; Ordonnance 23/042 du 30/03/2023, art. 1 et 2 ; loi 22/069, art. 186 | forte | en place |
 
+## S35 Préférences : devise, type sous, sous
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S35-1 | Enregistrement des devises | Champs de la capture : Devise, Code, Unité, Subdivision (0 par défaut) ; Enregistrer, Annuler ; grille Devise, Code, Subdivision (la subdivision suivie de l'unité, comme « 0 F » sur la capture) ; clic sur une ligne pour la modifier (T01) ; pas de Supprimer (capture). Devise et Code refusés vides bien que la capture n'ait pas d'astérisque (le code désigne la devise partout, comme S30-1) ; Code de trois lettres, unique, qui ne se modifie plus ; Subdivision : 0 ou un nombre qui divise 100, car les montants sont tenus en centièmes (ARCHITECTURE P4) | Donnée exigée ailleurs : Capture p. 45 ; T01, T08 ; Instr. BCC 57 (cours USD/CDF désignés par ces codes) ; ARCHITECTURE P4 | moyenne | en place |
+| S35-2 | Franc congolais | CDF : unité « FC » et subdivision 100, imposées ; tout autre réglage est refusé | Texte réglementaire : D.-L. 080/1998 du 17/06/1998, art. 1 (symbole « FC ») et art. 2 (cent centimes) | forte | en place |
+| S35-3 | Types de monnaie et monnaies | Type de Monnaie : un libellé, unique. Monnaie : Valeur fiduciaire, Type de Monnaie, Devise ; unique dans sa devise ; deux décimales au plus, entière pour une devise sans subdivision, multiple de la plus petite subdivision ; Libellé complète = libellé du type (identiques sur la capture). Une monnaie qui a servi aux guichets garde sa valeur et sa devise, son type se change. Pièce ou billet se déduit du libellé du type (« Pièce de… ») | Donnée exigée ailleurs : Captures p. 45 et 46 ; S79-4 | moyenne | en place |
+| S35-4 | Monnaies de démonstration | CDF 50 à 20 000 et USD 1 à 100, tous billets, chacun avec son type « Billet de … » : données de démonstration reprises de l'existant, pas lues dans un texte de la BCC ; l'institution saisit ses propres monnaies | Manuel : Graine ; aucun texte lu ne donne la liste des coupures en circulation | faible | en place |
+
 ## S75 Déblocage de crédit
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
@@ -521,3 +530,4 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S26-2 | S26 Modèle pour crédit | Comptes proposés | Nouveau modèle et « Model normal » de départ : crédit sain, capital 329, 319, 309 et intérêts 7129, 7119, 7101 selon le terme ; crédit en retard, capital 3900 à 3904 et intérêts 7170 à 7174 selon la tranche (irrécupérables sur 3904 et 7174 jusqu'au passage en perte). Compte interne laissé vide, son usage dans Microfina++ n'étant pas montré |
 | S32-2 | S32 Information société | Adresse et comptes hors bilan | Pays, Ville, Commune (S32-7), Quartier (obligatoire) pris dans Localisation (S20). Compte Hors Bilan 1 et Hors Bilan 2 : des comptes de la classe 0 du plan ; leur usage n'est pas décrit par le manuel |
 | S32-6 | S32 Information société | Onglet Autres Info et cadre Info sécurité | La capture n'en montre que le titre : contenu à demander au porteur |
+| S35-4 | S35 Préférences : devise, type sous, sous | Monnaies de démonstration | CDF 50 à 20 000 et USD 1 à 100, tous billets, chacun avec son type « Billet de … » : données de démonstration reprises de l'existant, pas lues dans un texte de la BCC ; l'institution saisit ses propres monnaies |

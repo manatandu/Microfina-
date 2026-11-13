@@ -160,6 +160,13 @@ const OUT = process.argv[2];
   await p.getByLabel('Exercice').selectOption('2026'); await p.getByRole('button', { name: 'Ajouter' }).click();
   await p.getByRole('cell', { name: "Fête de l'indépendance" }).waitFor();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('02f25-jours-feries');
+  // Chef : devises, types de monnaie, monnaies (S35, p. 45 et 46) : la pièce de 50 centimes du franc congolais
+  await aller('/parametrage/s35'); await p.getByRole('cell', { name: 'Franc congolais' }).waitFor(); await etape('02f26-devises');
+  await p.getByRole('tab', { name: 'Type sous' }).click(); await p.getByLabel('Type de Monnaie:').fill('Pièce de 50 centimes');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Pièce de 50 centimes' }).waitFor();
+  await p.getByRole('tab', { name: 'Sous', exact: true }).click(); await p.getByLabel('Valeur fiduciaire:').fill('0,50');
+  await p.getByLabel('Type de Monnaie :').selectOption({ label: 'Pièce de 50 centimes' }); await p.getByLabel('Devise :').selectOption('CDF');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: '0,5', exact: true }).waitFor(); await etape('02f27-monnaies');
   // Chef : paramétrage des produits épargne (S28, p. 41) : l'épargne de garantie dans l'onglet Bloqué, compte 334 proposé
   await aller('/parametrage/s28'); await p.getByRole('tab', { name: 'Bloqué' }).click(); await p.getByLabel('Compte lié').and(p.locator('[value="334"]')).waitFor();
   await p.getByLabel('Produit: *').selectOption({ label: 'Epargne De Garantie (G)' }); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
