@@ -48,7 +48,7 @@ Sources, à ouvrir dans cet ordre :
 | Acte uniforme OHADA sur les sociétés coopératives | `auscoop-acte-uniforme` |
 | Obligations, paiements, imputation | `code-civil-livre-iii-rdc` |
 
-Chaque écran et chaque règle du code est **confronté aux Instructions de la BCC** avant d'être livré. La matrice `docs/reglementaire/matrice-exigences.md` garde la trace de ce qui a été lu.
+Chaque écran et chaque règle du code est **confronté aux Instructions de la BCC et aux lois des institutions** (loi 22/069, loi 11/020, loi 002/2002, AUSCOOP, PCCI) avant d'être livré (demande du porteur, 13/11/2026). La réponse dit ce qui a été lu et ce qui en sort, même quand aucun texte ne parle de l'écran. La matrice `docs/reglementaire/matrice-exigences.md` garde la trace de ce qui a été lu.
 
 ## 2. Design
 
