@@ -529,6 +529,15 @@ const OUT = process.argv[2];
   await p.getByLabel('Motif *').selectOption('Raisons personnelles'); await etape('19-resiliation');
   await p.getByRole('button', { name: 'Résilier' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click(); await etape('20-resilie');
+  // Journées en attente de comptabilisation (registre T14, S12-2, S12-5) : Journée Maxi ouvert à 2, deux journées ouvertes, la troisième refusée
+  await aller('/parametrage/s32'); await p.getByLabel('Journée Maxi ouvert : *').fill('2'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await aller('/administration/s12');
+  for (const d of ['06112026', '09112026']) { await p.getByLabel('Date à ouvrir').fill(d); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); }
+  await p.getByLabel('Date à ouvrir').fill('10112026'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('dialog', { name: 'Erreur' }).getByText(/Journée Maxi ouvert atteinte \(2\)/).waitFor(); await etape('21-journee-maxi-atteinte'); await p.getByRole('button', { name: 'Ok' }).click();
+  await aller('/comptabilite/s111'); await p.getByLabel('Journée non comptabilisée :').waitFor();
+  if ((await p.getByLabel('Journée non comptabilisée :').locator('option').count()) !== 2) throw new Error('deux journées en attente attendues');
+  await etape('22-journees-non-comptabilisees');
   console.log(errs.length ? 'ERREURS\n' + errs.join('\n') : 'aucune erreur console');
   await b.close();
 })().catch(async e => { await globalThis.__p.screenshot({ path: OUT + '/zz-echec.png', fullPage: true }); throw e; }).catch(async e => { console.error('ÉCHEC', e.message.split('\n').slice(0,3).join(' / ')); process.exit(1); });

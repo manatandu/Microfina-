@@ -192,8 +192,7 @@ create table journee_comptable (
   fermee_par     bigint references utilisateur on delete restrict,
   unique (agence_id, date_comptable)
 );
--- Une seule journée ouverte par agence
-create unique index journee_une_ouverte on journee_comptable (agence_id) where statut = 'ouverte';
+-- Plusieurs journées peuvent attendre leur comptabilisation, au plus « Journée Maxi ouvert » ; seule la dernière reçoit des opérations (T14, migration 0059)
 
 -- Pas d'option « billetage » : le billetage est obligatoire (ARCHITECTURE P8)
 create table guichet (

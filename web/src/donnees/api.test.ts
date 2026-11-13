@@ -83,6 +83,21 @@ describe("journée de guichet", () => {
     expect((await api.tiers.comptes(1)).every((c) => c.masque)).toBe(true);
   });
 
+  it("journées en attente de comptabilisation (S12, T14) : au plus « Journée Maxi ouvert », comptabilisées dans l'ordre des dates", async () => {
+    await connecter("jpmukendi");
+    const j1 = await api.journees.ouvrir("2026-11-05");
+    await expect(api.journees.ouvrir("2026-11-06")).rejects.toThrow("Journée Maxi ouvert atteinte (1)");
+    const i = await api.societe.lire();
+    await api.societe.enregistrer({ ...i.institution, journeeMax: 2 });
+    const j2 = await api.journees.ouvrir("2026-11-06");
+    await expect(api.journees.ouvrir("2026-11-09")).rejects.toThrow("Journée Maxi ouvert atteinte (2)");
+    await connecter("engalula");
+    expect((await api.caisses.ouvrir(2)).journeeId).toBe(j2.id);
+    await connecter("jpmukendi");
+    await expect(api.journees.fermer(j2.id)).rejects.toThrow("Comptabiliser d'abord la journée du 05/11/2026");
+    expect((await api.journees.fermer(j1.id)).statut).toBe("fermee");
+  });
+
   it("la même clé ne paie pas deux fois", async () => {
     await journeeOuverte();
     const k = cle(), p = { cle: k, compteId: 1, montant: 10000, coupures: { 100: 1 } };

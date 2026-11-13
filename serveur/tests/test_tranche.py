@@ -130,6 +130,25 @@ def test_voir_solde_client(clients, journee):
     executer("update affectation_guichet set voir_solde = true where fin is null")
 
 
+def test_journees_en_attente(clients):
+    """S12 : des journées attendent leur comptabilisation, au plus « Journée Maxi ouvert » (registre T14, S12-2, S12-5) ; comptabilisées dans l'ordre"""
+    from noyau.bd import executer
+    chef, caisse = clients["chef"], clients["caisse"]
+    connecter(chef, "jpmukendi"); connecter(caisse, "engalula")
+    ouvrir = lambda d: chef.post("/api/journees", {"date": d}, **H)
+    j1 = ouvrir("2026-11-05").json()
+    r = ouvrir("2026-11-06"); assert r.status_code == 422 and "Journée Maxi ouvert atteinte (1)" in r.json()["message"] and "05/11/2026" in r.json()["message"]
+    executer("update institution set journee_max = 2")
+    j2 = ouvrir("2026-11-06").json()
+    assert ouvrir("2026-11-09").status_code == 422                                                   # deux journées en attente : le maximum
+    s = caisse.post("/api/caisses", {"guichetId": G2()}, **H).json()
+    assert s["journeeId"] == j2["id"]                                                                 # seule la dernière reçoit des opérations
+    r = chef.post(f"/api/journees/{j2['id']}/fermeture", **H)
+    assert r.status_code == 422 and "Comptabiliser d'abord la journée du 05/11/2026" in r.json()["message"]
+    assert chef.post(f"/api/journees/{j1['id']}/fermeture", **H).json()["statut"] == "fermee"
+    executer("update institution set journee_max = 1")
+
+
 def test_meme_cle_ne_paie_pas_deux_fois(clients, journee):
     caisse = clients["caisse"]
     p = {"cle": cle(), "compteId": C("0412-000318-01"), "montant": 10000, "coupures": {"100": 1}}

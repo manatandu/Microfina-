@@ -76,19 +76,26 @@ export function EcranValidation({ titre, seulement }: { titre: string; seulement
   );
 }
 
+/** S111 : comptabilisation de la journée. « Journée non comptabilisée » (manuel p. 130) : les journées en attente, la plus ancienne d'abord,
+ *  comptabilisées dans l'ordre des dates (registre T14, S12-2). */
 function Fermeture() {
+  const [choisie, setChoisie] = useState<number | null>(null);
+  const [relu, setRelu] = useState(0);
   const { donnees } = useDonnees(async () => {
-    const j = await api.journees.courante();
-    return { j, controles: j?.statut === "ouverte" ? await api.journees.controles(j.id) : [] };
-  });
+    const attente = (await api.journees.liste()).filter((x) => x.statut !== "fermee").sort((a, b) => a.date.localeCompare(b.date));
+    const j = attente.find((x) => x.id === choisie) ?? attente[0] ?? null;
+    return { attente, j, controles: j ? await api.journees.controles(j.id) : [] };
+  }, [choisie, relu]);
   const [erreur, setErreur] = useState("");
   if (!donnees) return <Chargement />;
-  const { j, controles } = donnees;
-  const act = async (f: () => Promise<unknown>) => { setErreur(""); try { await f(); } catch (x) { setErreur(message(x)); } };
-  if (!j || j.statut === "fermee") return <p>Aucune journée ouverte.</p>;
+  const { attente, j, controles } = donnees;
+  const act = async (f: () => Promise<unknown>) => { setErreur(""); try { await f(); setChoisie(null); setRelu((v) => v + 1); } catch (x) { setErreur(message(x)); } };
+  if (!j) return <p>Aucune journée ouverte.</p>;
   const bloquants = controles.filter((c) => c.etat === "ko").length;
   return (
     <section className="bloc pile" aria-labelledby="t-fermer">
+      <Champ libelle="Journée non comptabilisée :">{(p) => <select {...p} className="saisie code" value={j.id} onChange={(e) => setChoisie(Number(e.target.value))}>
+        {attente.map((x) => <option key={x.id} value={x.id}>{fr(x.date)}</option>)}</select>}</Champ>
       <h2 id="t-fermer">Fermer la journée du {fr(j.date)}</h2>
       <div role="list">
         {controles.map((c) => (

@@ -143,7 +143,11 @@ const journees = {
     // Registre S12-4 : pas de journée suivante tant qu'un guichet d'une journée précédente est ouvert ; le message nomme les guichets
     const restes = E.sessions.filter((x) => x.statut === "ouverte");
     if (restes.length) throw new ErreurMetier(`Guichet encore ouvert : ${restes.map((x) => `${E.guichets.find((g) => g.id === x.guichetId)?.nom ?? ""} (${fr(E.journees.find((j) => j.id === x.journeeId)?.date ?? "")})`).join(", ")}. Le fermer d'abord (Administration > Guichet > Ouverture/Fermeture).`);
-    if (E.journees.some((j) => j.statut !== "fermee")) throw new ErreurMetier("Une journée est déjà ouverte dans cette agence.");
+    // Registre T14, S12-2, S12-5 : des journées peuvent attendre leur comptabilisation, au plus « Journée Maxi ouvert » à la fois (Information société)
+    const ouvertes = E.journees.filter((j) => j.statut !== "fermee").sort((a, b) => a.date.localeCompare(b.date));
+    const maxi = E.institution.journeeMax ?? 1;
+    if (ouvertes.length >= maxi)
+      throw new ErreurMetier(`Journée Maxi ouvert atteinte (${maxi}) : comptabiliser d'abord la journée du ${fr(ouvertes[0]!.date)} (Comptabilité > Comptabilisation).`);
     const ex = E.exercices.find((e) => e.annee === Number(date.slice(0, 4)));
     // Registre S11-2 et S12-1 : une journée ne s'ouvre que dans un exercice ouvert et non validé (S11)
     if (!ex || !ex.ouvert || ex.valide) throw new ErreurMetier(`L'exercice ${date.slice(0, 4)} n'est pas ouvert (Administration > Exercice).`);
@@ -159,8 +163,13 @@ const journees = {
     E.journees.push(j); enregistrer(); return j;
   },
   controles(id: number) { return controlesJournee(id); },
+  /** S111 : comptabilisation de la journée (manuel p. 130, « Journée non comptabilisée »). Registre T14 : dans l'ordre des dates. */
   fermer(id: number) {
     exiger("chef_agence");
+    const cible = E.journees.find((x) => x.id === id);
+    if (!cible || cible.statut === "fermee") throw new ErreurMetier("Journée introuvable ou déjà comptabilisée.");
+    const avant = E.journees.filter((x) => x.statut !== "fermee" && x.date < cible.date).sort((a, b) => a.date.localeCompare(b.date))[0];
+    if (avant) throw new ErreurMetier(`Comptabiliser d'abord la journée du ${fr(avant.date)} : les journées se comptabilisent dans l'ordre des dates.`);
     const bloquants = controlesJournee(id).filter((c) => c.etat === "ko");
     if (bloquants.length) throw new ErreurMetier(`Fermeture impossible : ${bloquants.map((c) => c.titre.toLowerCase()).join(" ; ")}.`);
     const j = E.journees.find((x) => x.id === id)!;

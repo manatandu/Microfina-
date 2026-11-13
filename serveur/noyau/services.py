@@ -212,8 +212,12 @@ def ouvrir_journee(u: dict, jour: str) -> dict:
     if restes:
         raise ErreurMetier("Guichet encore ouvert : " + ", ".join(f"{r['nom']} ({fr(r['date_comptable'].isoformat())})" for r in restes)
                            + ". Le fermer d'abord (Administration > Guichet > Ouverture/Fermeture).")
-    if une("select 1 from journee_comptable where agence_id = %s and statut <> 'fermee'", (u["agence_id"],)):
-        raise ErreurMetier("Une journée est déjà ouverte dans cette agence.")
+    # Registre T14, S12-2, S12-5 : des journées peuvent attendre leur comptabilisation, au plus « Journée Maxi ouvert » à la fois (Information société)
+    ouvertes = lignes("select date_comptable from journee_comptable where agence_id = %s and statut <> 'fermee' order by date_comptable", (u["agence_id"],))
+    maxi = valeur("select journee_max from institution where id = %s", (u["institution_id"],)) or 1
+    if len(ouvertes) >= maxi:
+        raise ErreurMetier(f"Journée Maxi ouvert atteinte ({maxi}) : comptabiliser d'abord la journée du {fr(ouvertes[0]['date_comptable'].isoformat())} "
+                           "(Comptabilité > Comptabilisation).")
     e = une("select * from exercice where institution_id = %s and annee = %s", (u["institution_id"], int(str(jour)[:4])))
     if not e or not e["ouvert"] or e["valide"]:
         # Registre S11-2 et S12-1 : une journée ne s'ouvre que dans un exercice ouvert et non validé (S11)
@@ -263,7 +267,15 @@ def controles_journee(jid: int) -> list[dict]:
 
 
 def fermer_journee(u: dict, jid: int) -> dict:
+    """S111 : comptabilisation de la journée (manuel p. 130, « Journée non comptabilisée »). Registre T14 : dans l'ordre des dates."""
     exiger(u, "chef_agence")
+    j = une("select * from journee_comptable where id = %s and agence_id = %s", (jid, u["agence_id"]))
+    if not j or j["statut"] == "fermee":
+        raise ErreurMetier("Journée introuvable ou déjà comptabilisée.")
+    avant = une("""select date_comptable from journee_comptable where agence_id = %s and statut <> 'fermee' and date_comptable < %s
+                   order by date_comptable limit 1""", (u["agence_id"], j["date_comptable"]))
+    if avant:
+        raise ErreurMetier(f"Comptabiliser d'abord la journée du {fr(avant['date_comptable'].isoformat())} : les journées se comptabilisent dans l'ordre des dates.")
     bloquants = [c for c in controles_journee(jid) if c["etat"] == "ko"]
     if bloquants:
         raise ErreurMetier("Fermeture impossible : " + " ; ".join(c["titre"].lower() for c in bloquants) + ".")
