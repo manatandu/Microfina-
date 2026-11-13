@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**258 décisions.** Solidité : 80 fortes (le manuel ou un texte répond), 145 moyennes (déduites d'un écran voisin ou d'une donnée), 33 faibles (notre choix, faute de mieux). Dans le code : 208 déjà en place, 50 à appliquer.
+**260 décisions.** Solidité : 81 fortes (le manuel ou un texte répond), 146 moyennes (déduites d'un écran voisin ou d'une donnée), 33 faibles (notre choix, faute de mieux). Dans le code : 210 déjà en place, 50 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -583,6 +583,13 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | S14b-1 | Valeurs de démonstration de la liste Profession | Seize métiers du ROME/RDC avec leur code et leur libellé (agriculture, élevage, commerce de détail, couture, coiffure, bâtiment, enseignement, santé, change), plus « Commerçant » que le ROME ne nomme pas, sous un code de l'institution (COM). L'institution tient sa liste dans S14b | Texte réglementaire : ROME/RDC, ONEM, nov. 2022 (lu ; décret d'approbation non lu) ; demande du porteur | moyenne | en place |
 | S14b-2 | Source de la profession | La fiche client (S37), le prospect (S45), les agents (S33) et le rapport des prospects (S51) lisent la liste Profession de S14b. L'ancienne table des professions, que S14b n'alimentait pas, est reprise dans la liste (migration 0058) | Écran voisin : S14 (même moteur de listes) ; atlas S14b : D:S37 | forte | en place |
+
+## S02 Page des modules
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S02-1 | Module ouvert ou fermé | Une boule s'ouvre quand le profil de l'utilisateur tient au moins un droit dans ce module (Likelemba au centre, Paie, Immo) ; sinon elle reste visible et grisée. Même calcul que la « Liste des modules liés » de S06 | Donnée exigée ailleurs : Manuel p. 6 (« ces différents modules sont gérés grâce au module [Administration] ») ; S06-1 | moyenne | en place |
+| S02-2 | Boules sans module repris | Les huit boules de la capture restent à leur place. Grh et Stock (hors périmètre, décision du porteur), Performance sociale, Tontine, Sauvegarde et Spy (montrés sur la capture, jamais décrits par le manuel) sont grisés | Manuel : Capture p. 6 ; ARCHITECTURE (hors périmètre) | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

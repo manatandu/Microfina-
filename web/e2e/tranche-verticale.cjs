@@ -18,6 +18,8 @@ const OUT = process.argv[2];
   await etape('01-connexion');
   // Chef : ouvrir la journée
   await login('J.-P. Mukendi');
+  await p.getByRole('link', { name: 'LIKELEMBA' }).waitFor();   // module lié au profil (registre S02-1)
+  if (await p.getByRole('link', { name: 'Paie' }).count()) throw new Error('Paie ouverte sans droit');
   await etape('01b-modules');
   await aller('/administration/s12');
   const oui = async () => { await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click(); };

@@ -1,6 +1,6 @@
 n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,origine,regles,ecrans_a_construire,reste
 1,Connexion par utilisateur et mot de passe,administration,must,yes,S01,A,connexion,1 Administration,,,,,
-2,Page des modules,administration,must,no,S02,A,menu,1 Administration,,,,,
+2,Page des modules,administration,must,yes,S02,A,menu,1 Administration,,,,,
 3,Profils et droits par tâche,administration,must,yes,S03 S04,A,"liste, composition",1 Administration,"S03 : Modifier et Supprimer (boutons non visibles, formulaire vide) ; S04 : contenu de chaque branche de l'arbre des droits",G:p.12 ; D:menus du logiciel (une tâche par entrée de menu),,,
 4,Gestion des utilisateurs et rattachement à une agence,administration,must,yes,S05 S06,A,"liste, composition",1 Administration,S06 : fenêtres de recherche Agence et Profil,G:p.12 ; A:recherche client S40,,,
 5,Liste des connectés et déconnexion forcée,administration,should,yes,S07,A,liste,1 Administration,,,,,
