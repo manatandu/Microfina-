@@ -254,16 +254,27 @@ const OUT = process.argv[2];
   await p.getByLabel('Type entreprise : *').selectOption('Entreprises privées'); await p.getByLabel('Zone : *').selectOption('Matete');
   await p.getByLabel('Type de compte à créer *').selectOption('EAV-CDF'); await etape('05b-entreprise');
   await p.getByRole('button', { name: 'Suivant' }).click();
-  await p.getByLabel('Dénomination : *').fill('Boulangerie Kinsaku SARL'); await p.getByLabel('Forme juridique : *').fill('SARL');
+  await p.getByLabel('Dénomination : *').fill('Boulangerie Kinsaku SARL'); await p.getByLabel('Forme juridique : *').selectOption('Société à responsabilité limitée');
   await p.getByLabel('N° du registre : *').fill('CD/KNG/RCCM/24-B-00001'); await p.getByLabel('Adresse du siège : *').fill('Matete, avenue Kinsaku');
+  await p.getByRole('button', { name: 'Suivant' }).click();
+  await p.getByLabel("Secteur d'activité :").selectOption('PRIMAIRE'); await etape('05b2-entreprise-autres');
   await p.getByRole('tab', { name: 'Dirigeant' }).click();
   await p.getByLabel('Nom : *').fill('Ilunga'); await p.getByLabel('Type de pièce : *').selectOption('Passeport'); await p.getByLabel('N° de pièce : *').fill('OP9');
   await etape('05c-dirigeant');
+  // Personnes liées : bénéficiaire effectif (registre S38-3)
+  await p.getByRole('tab', { name: 'Personnes Liées' }).click(); await p.getByLabel('Lien :').selectOption({ label: 'Bénéficiaire effectif' });
+  await p.getByLabel('Membre :').fill('Kalala'); await p.getByRole('button', { name: 'Rechercher' }).click();
+  await p.getByRole('button', { name: '+Ajouter' }).click(); await p.getByRole('cell', { name: 'Bénéficiaire effectif' }).waitFor(); await etape('05c2-beneficiaire-effectif');
   await p.getByRole('tab', { name: 'Signataires' }).click(); await p.getByRole('button', { name: '+Ajouter' }).click();
   const sig = p.getByRole('dialog', { name: 'Signataire' });
   await sig.getByLabel('Nom : *').fill('Ilunga'); await sig.getByLabel('Type de pièce : *').selectOption('Passeport'); await sig.getByLabel('N° de pièce : *').fill('OP9');
   await etape('05d-fiche-signataire');
+  await sig.getByRole('button', { name: 'Enregistrer' }).click();
+  await sig.getByLabel('Nom : *').fill('Mbuyi'); await sig.getByLabel('Type de pièce : *').selectOption('Passeport'); await sig.getByLabel('N° de pièce : *').fill('OP10');
   await sig.getByRole('button', { name: 'Enregistrer' }).click(); await sig.getByRole('button', { name: 'Fermer' }).click();
+  await p.getByRole('cell', { name: 'Mbuyi' }).waitFor();
+  await p.getByRole('row', { name: /Mbuyi/ }).getByRole('button', { name: 'Retirer' }).click();   // registre S38-2
+  await p.getByRole('cell', { name: 'Mbuyi' }).waitFor({ state: 'detached' });
   await p.getByRole('cell', { name: 'Ilunga' }).waitFor(); await etape('05e-signataires');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await etape('05f-entreprise-enregistree'); await p.getByRole('button', { name: 'Ok' }).click();

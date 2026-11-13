@@ -149,7 +149,7 @@ def test_piece_admise(clients, journee):
 def test_enrolement_entreprise(clients, journee):
     agent = clients["agent"]
     sig = {"nom": "Ilunga", "prenom": "Paul", "pieceType": "Passeport", "pieceNumero": "OP9", "signature": "data:image/png;base64,iVBORw0KGgo="}
-    base = {**FICHE, "typeClient": "Entreprises privées", "zone": "Matete", "nom": "Boulangerie Kinsaku SARL", "formeJuridique": "SARL",
+    base = {**FICHE, "typeClient": "Entreprises privées", "zone": "Matete", "nom": "Boulangerie Kinsaku SARL", "formeJuridique": "Société à responsabilité limitée",
             "registre": "CD/KNG/RCCM/24-B-00001", "adresse": "Matete, avenue Kinsaku", "dirigeant": {**sig, "signature": None}, "signataires": [sig]}
     def refus(corps):
         r = agent.post("/api/tiers/entreprises", corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
@@ -165,6 +165,28 @@ def test_enrolement_entreprise(clients, journee):
         ("morale", "Boulangerie Kinsaku SARL", "Matete", "CD/KNG/RCCM/24-B-00001", "Ilunga", 1, True)
     assert any(x["id"] == t["id"] for x in agent.get("/api/tiers?q=boulangerie").json())
     assert ident("select agent_economique from tiers where id = %s", (t["id"],)) == "Entreprises privées"
+
+
+def test_fiche_entreprise(clients, journee):
+    """S38 : listes comme pour S37 (registre S38-1), Retirer côté écran (S38-2), bénéficiaire effectif dans Personnes liées (S38-3 ; Instr. BCC 15, art. 18)"""
+    agent = clients["agent"]
+    physique = ident("select id from tiers where type = 'physique' order by id limit 1")
+    morale = agent.post("/api/tiers/entreprises", {**FICHE, "typeClient": "Entreprises privées", "zone": "Matete", "nom": "Témoin SA",
+                        "formeJuridique": "Société anonyme", "registre": "R0", "adresse": "Matete"}, **H).json()["id"]
+    sens = ident("select id from agent_agence where role = 'sensibilisateur' and actif order by id limit 1")
+    base = {**FICHE, "typeClient": "Entreprises privées", "zone": "Matete", "nom": "Kinsaku Pain SARL", "formeJuridique": "Société à responsabilité limitée",
+            "registre": "R2", "adresse": "Matete", "secteurActivite": "PRIMAIRE", "pays": "", "email": "contact@exemple.cd", "sensibilisateurId": sens}
+    def refus(corps):
+        r = agent.post("/api/tiers/entreprises", corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    assert "Forme juridique : valeur inconnue" in refus({**base, "formeJuridique": "SARLU"})
+    assert "Secteur d'activité : valeur inconnue" in refus({**base, "secteurActivite": "Pêche industrielle"})
+    assert "Email invalide" in refus({**base, "email": "contact"})
+    assert "Bénéficiaire effectif" in refus({**base, "beneficiairesEffectifs": [morale]})
+    assert "Bénéficiaire effectif" in refus({**base, "liees": [physique], "beneficiairesEffectifs": [physique]})
+    t = agent.post("/api/tiers/entreprises", {**base, "beneficiairesEffectifs": [physique]}, **H).json()
+    assert (t["formeJuridique"], t["secteurActivite"], t["email"], t["beneficiairesEffectifs"], t["liees"]) == \
+        ("Société à responsabilité limitée", "PRIMAIRE", "contact@exemple.cd", [physique], [])
+    assert t["sensibilisateurId"] == sens or sens is None
 
 
 def test_enrolement_groupe(clients, journee):
@@ -489,7 +511,7 @@ def test_parts_sociales(clients, journee):
     assert "résilié" in refus({"tiersId": m, "sens": "achat", "nombre": 1, "coupures": {"1000": 4}})
     # Compte de parts selon le type de client (PCCI, compte 103) : une entreprise en 1032
     e = agent.post("/api/tiers/entreprises", {**FICHE, "typeClient": "Entreprises privées", "zone": "Matete", "nom": "Boulangerie Kinsaku SARL",
-        "formeJuridique": "SARL", "registre": "R1", "adresse": "Matete", "signataires": []}, **H).json()
+        "formeJuridique": "Société à responsabilité limitée", "registre": "R1", "adresse": "Matete", "signataires": []}, **H).json()
     chef.post(f"/api/tiers/{e['id']}/visa", {}, **H)
     caisse.post("/api/guichet/adhesions", {"cle": cle(), "tiersId": e["id"], "parts": 1, "depot": 0, "compteUsd": False, "coupures": {"1000": 4}}, **H)
     assert ident("""select c.numero from ligne_ecriture l join compte c on c.id = l.compte_id where l.contrat_ref = %s""", (f"parts:{e['id']}",)) == "1032"

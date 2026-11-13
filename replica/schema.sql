@@ -510,7 +510,7 @@ create table lien_tiers (
   id         bigint generated always as identity primary key,
   tiers_id   bigint not null references tiers on delete cascade,
   autre_id   bigint not null references tiers on delete restrict,
-  role       text not null check (role in ('personne_liee', 'beneficiaire', 'dirigeant', 'signataire', 'membre_groupe')),
+  role       text not null check (role in ('personne_liee', 'beneficiaire', 'beneficiaire_effectif', 'dirigeant', 'signataire', 'membre_groupe')),
   apparente  boolean not null default false,             -- Instr. BCC 002, art. 27
   check (tiers_id <> autre_id)
 );

@@ -157,7 +157,7 @@ def contexte(u: dict) -> dict:
         "zones": [z["nom"] for z in lignes("select nom from zone where institution_id = %s and actif order by nom", (u["institution_id"],))],
         "typesClient": libelles_liste(u, "type_client"),   # S14g (registre S37-2)
         # S37 : listes lues par la fiche du client (registre S37-2)
-        "listesFiche": {k: libelles_liste(u, liste) for k, (liste, _) in LISTES_FICHE.items()} | {"filiation": libelles_liste(u, "filiation")},
+        "listesFiche": {k: libelles_liste(u, liste) for k, (liste, _) in LISTES_FICHE.items()} | {"filiation": libelles_liste(u, "filiation"), "formeJuridique": libelles_liste(u, "forme_juridique")},
         "typesActivite": lignes("""select t.libelle, s.libelle as secteur from liste_reference t join liste_reference s on s.id = t.parent_id
                                    where t.institution_id = %s and t.liste = 'type_activite' and t.actif order by t.code""", (u["institution_id"],)),
         "gestionnaires": lignes("""select id, trim(nom || ' ' || prenom) as nom from agent_agence where institution_id = %s and role = 'gestionnaire' and actif
@@ -448,6 +448,8 @@ def vue_tiers(t: dict) -> dict:
             "preleverAgios": t["prelever_agios"], "calculerInteret": t["calculer_interet"],
             "lieuNaissance": t["lieu_naissance"] or "", "pieceDelivreeLe": iso(t["piece_delivree_le"]), "pieceLieu": t["piece_lieu"] or "", "pieceAutorite": t["piece_autorite"] or "",
             "liees": [r["autre_id"] for r in lignes("select autre_id from lien_tiers where tiers_id = %s and role = 'personne_liee' order by id", (t["id"],))],
+            "beneficiairesEffectifs": [r["autre_id"] for r in lignes("select autre_id from lien_tiers where tiers_id = %s and role = 'beneficiaire_effectif' order by id",
+                                                                     (t["id"],))],
             "intitule": t["intitule"] or "", "dateVisa": iso(t["date_visa"]), "creeLe": t["cree_le"].date().isoformat(), "motifDepart": t["motif_depart"] or "", "resilieLe": iso(t["resilie_le"]),
             "sensibilisateurId": t["sensibilisateur_id"], "commercialId": t["commercial_id"],
             "profession": t["profession"] or "", "pays": t["pays"] or "", "ville": t["ville"] or "", "quartier": t["quartier"] or "", "rue": t["rue"] or "",
@@ -471,8 +473,10 @@ def iso(d) -> str:
 
 
 SQL_TIERS = """select t.*, coalesce(p.nom, m.raison_sociale) as nom, p.postnom, p.prenom, p.sexe, p.date_naissance, p.lieu_naissance, p.piece_type, p.piece_numero,
-                      p.piece_delivree_le, p.piece_lieu, p.piece_autorite, p.piece_validite, p.profession, p.pays, p.ville, p.quartier, p.rue, p.email, p.bp, p.telephone_fixe,
-                      p.civilite, p.nationalite, p.situation_matrimoniale, p.pere, p.mere, p.commune, coalesce(p.adresse, m.adresse_siege) as adresse, p.telephone,
+                      p.piece_delivree_le, p.piece_lieu, p.piece_autorite, p.piece_validite, p.profession, coalesce(p.pays, m.pays) as pays, coalesce(p.ville, m.ville) as ville,
+                      coalesce(p.quartier, m.quartier) as quartier, coalesce(p.rue, m.rue) as rue, coalesce(p.email, m.email) as email, coalesce(p.bp, m.bp) as bp,
+                      coalesce(p.telephone_fixe, m.telephone_fixe) as telephone_fixe,
+                      p.civilite, p.nationalite, p.situation_matrimoniale, p.pere, p.mere, coalesce(p.commune, m.commune) as commune, coalesce(p.adresse, m.adresse_siege) as adresse, p.telephone,
                       m.forme, m.rccm, m.centre_activite, m.activite, m.nb_hommes, m.nb_femmes, z.nom as zone_nom, pe.code as produit_code
                from tiers t left join tiers_personne p on p.tiers_id = t.id left join tiers_morale m on m.tiers_id = t.id
                left join zone z on z.id = t.zone_id left join produit_epargne pe on pe.id = t.produit_id"""
@@ -531,7 +535,12 @@ def controler_base(u: dict, d: dict, obligatoires: list[tuple[str, str]], types:
     if (not isinstance(liees, list) or len(set(liees)) != len(liees) or any(not isinstance(x, int) for x in liees)
             or valeur("select count(*) from tiers where institution_id = %s and id = any(%s)", (u["institution_id"], liees)) != len(liees)):
         raise ErreurMetier("Personne liée inconnue ou en double.")
-    return {"produit": produit, "zone": zone, "depot": depot, "liees": liees, "texte": texte}
+    effectifs = d.get("beneficiairesEffectifs") or []
+    if (not isinstance(effectifs, list) or any(not isinstance(x, int) or isinstance(x, bool) for x in effectifs) or len(set(effectifs)) != len(effectifs)
+            or set(effectifs) & set(liees)
+            or valeur("select count(*) from tiers where institution_id = %s and type = 'physique' and id = any(%s)", (u["institution_id"], effectifs)) != len(effectifs)):
+        raise ErreurMetier("Bénéficiaire effectif : personne physique inconnue ou en double (Instr. BCC 15, art. 18).")
+    return {"produit": produit, "zone": zone, "depot": depot, "liees": liees, "effectifs": effectifs, "texte": texte}
 
 
 def compteur_client(agence_id: int, depart: int = 1) -> int:
@@ -598,6 +607,8 @@ def inserer_tiers(u: dict, d: dict, b: dict, type_: str, agent: str) -> int:
                   bool(d.get("preleverAgios", True)), bool(d.get("calculerInteret"))))
     for autre in b["liees"]:
         executer("insert into lien_tiers (tiers_id, autre_id, role) values (%s, %s, 'personne_liee')", (tid, autre))
+    for autre in b["effectifs"]:
+        executer("insert into lien_tiers (tiers_id, autre_id, role) values (%s, %s, 'beneficiaire_effectif')", (tid, autre))
     return tid
 
 
@@ -761,6 +772,9 @@ def creer_entreprise(u: dict, d: dict) -> dict:
                        TYPES_ENTREPRISE, True)
     texte = b["texte"]
     j = journee_courante(u)
+    if texte("formeJuridique") not in libelles_liste(u, "forme_juridique"):
+        raise ErreurMetier("Forme juridique : valeur inconnue (Paramétrage > Info de base > Client > Général).")
+    fiche = controler_fiche_physique(u, d, texte, j, identite=False)   # listes, lieu, email, agents (registre S38-1)
     dirigeant = d.get("dirigeant")
     if dirigeant is not None:
         controler_representant(dirigeant, "Dirigeant", j)
@@ -772,9 +786,19 @@ def creer_entreprise(u: dict, d: dict) -> dict:
     tid = inserer_tiers(u, d, b, "morale", texte("typeClient"))
     executer("""insert into tiers_morale (tiers_id, raison_sociale, forme, rccm, adresse_siege, centre_activite, activite)
                 values (%s, %s, %s, %s, %s, %s, %s)""",
-             (tid, texte("nom"), texte("formeJuridique"), texte("registre"), texte("adresse"), texte("centreActivite") or None, texte("activite") or None))
+             (tid, texte("nom"), texte("formeJuridique"), texte("registre"), texte("adresse"), texte("centreActivite") or None, texte("typeActivite") or None))
+    ecrire_fiche_morale(tid, texte, fiche)
     inserer_representants(tid, ([("dirigeant", dirigeant)] if dirigeant is not None else []) + [("signataire", r) for r in signataires])
     return lire_tiers(tid)
+
+
+def ecrire_fiche_morale(tid: int, texte, f: dict):
+    """Autres renseignements de l'entreprise, comme ceux du client physique (registre S38-1)"""
+    executer("""update tiers_morale set pays = %s, ville = %s, commune = %s, quartier = %s, rue = %s, email = %s, bp = %s, telephone_fixe = %s where tiers_id = %s""",
+             (*[texte(k) or None for k in ("pays", "ville", "commune", "quartier", "rue", "email", "bp", "telephoneFixe")], tid))
+    executer("""update tiers set secteur_activite = %s, type_activite = %s, categorie = %s, sous_type_client = %s, gestionnaire_agent_id = %s,
+                                 sensibilisateur_id = %s, commercial_id = %s where id = %s""",
+             (*[texte(k) or None for k in ("secteurActivite", "typeActivite", "categorie", "sousTypeClient")], f["gestionnaire"], *f["agents"], tid))
 
 
 def inserer_representants(tid: int, liste: list[tuple[str, dict]]):

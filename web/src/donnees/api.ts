@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v53";
+const CLE = "likelemba-demo-v54";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -27,7 +27,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 53) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 54) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -84,7 +84,7 @@ function contexte() {
   return { institution: E.institution, agence: E.agence, guichets: E.guichets.filter((g) => g.actif !== false), produits: produitsProposes(), zones: zonesActives(), typesClient: valeursListe("type_client").map((l) => l.libelle), typesEntreprise: TYPES_ENTREPRISE, typesGroupe: Object.keys(TYPES_GROUPE), pieces: PIECES, professions: E.professions, localites: localites(),
     // S37 : listes lues par la fiche du client (registre S37-2)
     listesFiche: { ...Object.fromEntries(Object.entries(LISTES_FICHE).map(([k, [liste]]) => [k, valeursListe(liste).map((l) => l.libelle)])) as Record<string, string[]>,
-      filiation: valeursListe("filiation").map((l) => l.libelle) } as Record<string, string[]>,
+      filiation: valeursListe("filiation").map((l) => l.libelle), formeJuridique: valeursListe("forme_juridique").map((l) => l.libelle) } as Record<string, string[]>,
     typesActivite: valeursListe("type_activite").map((l) => ({ libelle: l.libelle, secteur: l.parent })),
     gestionnaires: E.agents.filter((a) => a.role === "gestionnaire" && a.actif).map((a) => ({ id: a.id, nom: `${a.nom} ${a.prenom}`.trim() })),
     // S35 : devises et monnaies, lues par les guichets (registre S79-5)
@@ -300,7 +300,7 @@ export function enrolementVide(date: string): NouveauTiers {
     formeJuridique: "", registre: "", centreActivite: "", activite: "", nbHommes: 0, nbFemmes: 0 };
 }
 
-type CtxControle = { produits: { code: string }[]; zones: string[]; jour: string; existe: (id: number) => boolean };
+type CtxControle = { produits: { code: string }[]; zones: string[]; jour: string; existe: (id: number) => boolean; physique: (id: number) => boolean };
 const manquants = (champs: [string, string | undefined][]) => champs.filter(([, v]) => !v?.trim()).map(([k]) => k);
 function controlerImage(v: string | undefined, quoi: string) {
   if (v && (!/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(v) || v.length > IMAGE_MAX)) throw new ErreurMetier(`${quoi} : image PNG ou JPEG de 300 Ko au plus.`);
@@ -318,6 +318,9 @@ function controlerBase(d: NouveauTiers, obligatoires: [string, string | undefine
   if ((d.zone || zoneRequise) && !ctx.zones.includes(d.zone)) throw new ErreurMetier("Zone inconnue.");
   if (!Number.isInteger(d.premierDepot) || d.premierDepot < 0) throw new ErreurMetier("Premier dépôt invalide.");
   if (new Set(d.liees).size !== d.liees.length || d.liees.some((id) => !ctx.existe(id))) throw new ErreurMetier("Personne liée inconnue ou en double.");
+  const effectifs = d.beneficiairesEffectifs ?? [];
+  if (new Set(effectifs).size !== effectifs.length || effectifs.some((id) => !ctx.physique(id) || d.liees.includes(id)))
+    throw new ErreurMetier("Bénéficiaire effectif : personne physique inconnue ou en double (Instr. BCC 15, art. 18).");
 }
 
 /** S37. Contrôles identiques côté serveur (services.creer_tiers) */
@@ -397,6 +400,9 @@ export function controlerGroupe(d: NouveauTiers, membres: RepresentantSaisi[], i
 export function controlerEntreprise(d: NouveauTiers, dirigeant: RepresentantSaisi | null, signataires: RepresentantSaisi[], ctx: CtxControle) {
   controlerBase(d, [["date demande", d.dateDemande], ["type entreprise", d.typeClient], ["zone", d.zone], ["type de compte à créer", d.produitCode],
     ["dénomination", d.nom], ["forme juridique", d.formeJuridique], ["n° du registre", d.registre], ["adresse du siège", d.adresse]], TYPES_ENTREPRISE, true, ctx);
+  if (!valeursListe("forme_juridique").some((l) => l.libelle === d.formeJuridique.trim()))
+    throw new ErreurMetier("Forme juridique : valeur inconnue (Paramétrage > Info de base > Client > Général).");
+  controlerFichePhysique(d, ctx.jour, false);   // listes, lieu, email, agents (registre S38-1)
   if (dirigeant) controlerRepresentant(dirigeant, "Dirigeant", ctx.jour);
   signataires.forEach((r, i) => controlerRepresentant(r, `Signataire ${i + 1}`, ctx.jour));
 }
@@ -438,7 +444,8 @@ function controlerProspect(d: Prospect): Prospect {
   return v;
 }
 function ctxControle() {
-  return { produits: produitsProposes(), zones: zonesActives(), jour: journees.courante()?.date ?? "", existe: (id: number) => E.tiers.some((t) => t.id === id) };
+  return { produits: produitsProposes(), zones: zonesActives(), jour: journees.courante()?.date ?? "", existe: (id: number) => E.tiers.some((t) => t.id === id),
+    physique: (id: number) => E.tiers.some((t) => t.id === id && t.type === "physique") };
 }
 function nouveauTiers(d: NouveauTiers, creePar: number, reste: Pick<Tiers, "type" | "dirigeant" | "signataires" | "membres" | "photo" | "specimen">): Tiers {
   const t: Tiers = { ...d, ...reste, intitule: "", dateVisa: "", motifDepart: "", resilieLe: "", creeLe: new Date().toISOString().slice(0, 10), id: prochain(E.tiers), numero: numeroClient(), statut: "a_viser", creePar };
@@ -477,7 +484,7 @@ const tiers = {
     if (!u) throw new ErreurMetier("Session fermée.");
     controlerEntreprise(d, dirigeant, signataires, ctxControle());
     const sig = signataires.map(versRepresentant);
-    const t = nouveauTiers({ ...d, ...SANS_IDENTITE }, u.id,
+    const t = nouveauTiers({ ...d, ...SANS_IDENTITE, activite: d.typeActivite ?? "", beneficiaires: [] }, u.id,   // Nature de l'activité : le type d'activité choisi (registre S38-1)
       { type: "morale", dirigeant: dirigeant ? versRepresentant(dirigeant) : null, signataires: sig, membres: [], photo: false, specimen: sig.some((x) => x.specimen) });
     enregistrer(); return t;
   },
@@ -1605,10 +1612,10 @@ export function preparerDemo() {
     const sig = { postnom: "", pieceType: "Carte d'électeur", pieceExpire: "", signature: "data:image/png;base64,iVBORw0KGgo=" };
     const entreprises = [
       tiers.creerEntreprise({ ...enrolementVide("2026-11-05"), typeClient: "Entreprises privées", zone: "Matete", produitCode: "EAV-CDF", nom: "Pharmacie Lemba Santé SARL",
-        formeJuridique: "SARL", registre: "CD/KNG/RCCM/DEMO-B-00001", adresse: "Lemba, avenue de l'Université", premierDepot: 50000000 },
+        formeJuridique: "Société à responsabilité limitée", registre: "CD/KNG/RCCM/DEMO-B-00001", adresse: "Lemba, avenue de l'Université", premierDepot: 50000000 },
         null, [{ ...sig, nom: "Kabongo", prenom: "Alain", pieceNumero: "DEMO-S001" }]).id,
       tiers.creerEntreprise({ ...enrolementVide("2026-11-05"), typeClient: "Entreprises privées", zone: "Matete", produitCode: "EAV-CDF", nom: "Atelier Couture Matete SARLU",
-        formeJuridique: "SARLU", registre: "CD/KNG/RCCM/DEMO-B-00002", adresse: "Matete, marché central", premierDepot: 20000000 },
+        formeJuridique: "Société à responsabilité limitée", registre: "CD/KNG/RCCM/DEMO-B-00002", adresse: "Matete, marché central", premierDepot: 20000000 },
         null, [{ ...sig, nom: "Mpiana", prenom: "Josée", pieceNumero: "DEMO-S002" }]).id,
     ];
     const groupes = [

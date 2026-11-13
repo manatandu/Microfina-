@@ -35,9 +35,9 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 34,Devises types de monnaie et coupures,paramétrage,must,yes,S35,A,liste,2 Paramétrage,,,,,
 35,Éléments de facture et références de commande,paramétrage,could,yes,S36,A,liste,2 Paramétrage,,,,,
 36,Enrôlement personne physique en onglets,clients,must,yes,S37,B,onglets,3 Client,S37 : cinq onglets sur six ; fiches Personne liée et Bénéficiaire,M:texte p. 48 ; D:S14a à S14n ; R:identification du client (Instr. BCC LBC),,,
-37,Enrôlement entreprise avec dirigeants et signataires,clients,must,partial,S38,B,onglets,3 Client,S38 : cinq onglets sur six ; fiche Signataire,M:texte p. 49 ; A:S37 ; R:idem,,,"S38-2 Retirer un signataire, un membre ; S38-3 Bénéficiaires effectifs d'une entreprise ; S38-1 Fiche complétée comme S37"
-38,Enrôlement groupe avec membres,clients,must,partial,S39,B,onglets,3 Client,S39 : cinq onglets sur six ; fiche Membre,M:texte p. 50 ; A:S37,,,"S38-2 Retirer un signataire, un membre ; S38-1 Fiche complétée comme S37"
-39,Personnes liées bénéficiaires photo et signature,clients,must,partial,S37 S38 S39 S49,B,"onglets, consultation",3 Client,S37 : cinq onglets sur six ; fiches Personne liée et Bénéficiaire ; S38 : cinq onglets sur six ; fiche Signataire ; S39 : cinq onglets sur six ; fiche Membre,M:texte p. 48 ; D:S14a à S14n ; R:identification du client (Instr. BCC LBC) ; M:texte p. 49 ; A:S37 ; R:idem ; M:texte p. 50 ; A:S37,,,"S38-2 Retirer un signataire, un membre ; S38-3 Bénéficiaires effectifs d'une entreprise ; S38-1 Fiche complétée comme S37"
+37,Enrôlement entreprise avec dirigeants et signataires,clients,must,yes,S38,B,onglets,3 Client,S38 : cinq onglets sur six ; fiche Signataire,M:texte p. 49 ; A:S37 ; R:idem,,,
+38,Enrôlement groupe avec membres,clients,must,partial,S39,B,onglets,3 Client,S39 : cinq onglets sur six ; fiche Membre,M:texte p. 50 ; A:S37,,,S39-1 Fiche complétée comme S37 (reste de S38-1)
+39,Personnes liées bénéficiaires photo et signature,clients,must,partial,S37 S38 S39 S49,B,"onglets, consultation",3 Client,S37 : cinq onglets sur six ; fiches Personne liée et Bénéficiaire ; S38 : cinq onglets sur six ; fiche Signataire ; S39 : cinq onglets sur six ; fiche Membre,M:texte p. 48 ; D:S14a à S14n ; R:identification du client (Instr. BCC LBC) ; M:texte p. 49 ; A:S37 ; R:idem ; M:texte p. 50 ; A:S37,,,S39-1 Fiche complétée comme S37 (reste de S38-1)
 40,Choisir un prospect à l'enrôlement,clients,should,yes,S37 S45,B,"onglets, liste",3 Client,S37 : cinq onglets sur six ; fiches Personne liée et Bénéficiaire,M:texte p. 48 ; D:S14a à S14n ; R:identification du client (Instr. BCC LBC),,,
 41,Visa du client et contrat d'adhésion,clients,must,partial,S40,A,visa,3 Client,S40 : contrat d'adhésion imprimé,document,,,S40-1 Colonne « Nbre » ; S40-2 Contrat d'adhésion
 42,Modifier les frais d'ouverture,clients,should,partial,S41,A,consultation,3 Client,,,,,S41-1 Jusqu'à quand
@@ -45,7 +45,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 44,Consulter l'état initial et actuel d'un client,clients,must,partial,S43,B,consultation,3 Client,S43 : affichage des informations initiales et actuelles,A:S64 situation du client (p. 74),,,S43-2 Champ Date d'adhésion
 45,Groupes solidaires et affectation,clients,must,partial,S44,A,onglets,3 Client,,,,,S44-1 Un client dans plusieurs groupes ; S44-2 Code du groupe
 46,Prospects,clients,should,yes,S45,A,liste,3 Client,,,,,
-47,Mise à jour d'un client,clients,must,partial,S46,B,onglets,3 Client,S46 : onglets suivants,A:S37,,,"S46-1 Mise à jour : Modifier et Terminer ; S46-2 Mise à jour d'une entreprise, d'un groupe ; S38-1 Fiche complétée comme S37"
+47,Mise à jour d'un client,clients,must,partial,S46,B,onglets,3 Client,S46 : onglets suivants,A:S37,,,"S46-1 Mise à jour : Modifier et Terminer ; S46-2 Mise à jour d'une entreprise, d'un groupe ; S46-3 Mentions de l'identité à la mise à jour (reste de S38-1)"
 48,Procurations,clients,must,yes,S47,A,liste,3 Client,,,,,
 49,Résiliation d'un client,clients,must,partial,S48,A,traitement,3 Client,,,,,S48-1 Apurement
 50,Consentement BIC,clients,should,partial,S50,A,liste,3 Client,S50 : non repris tel quel (BIC de l'UEMOA),R:centrale des risques de la BCC ; P,,,S50-1 Suite à donner

@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**252 décisions.** Solidité : 78 fortes (le manuel ou un texte répond), 141 moyennes (déduites d'un écran voisin ou d'une donnée), 33 faibles (notre choix, faute de mieux). Dans le code : 200 déjà en place, 52 à appliquer.
+**255 décisions.** Solidité : 79 fortes (le manuel ou un texte répond), 143 moyennes (déduites d'un écran voisin ou d'une donnée), 33 faibles (notre choix, faute de mieux). Dans le code : 204 déjà en place, 51 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -205,13 +205,15 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S38-2 | Retirer un signataire, un membre | Bouton Retirer, comme pour les personnes liées (ancien numéro S37-4) | Écran voisin : Texte p. 48 | forte | à appliquer |
+| S38-2 | Retirer un signataire, un membre | Bouton Retirer, comme pour les personnes liées (ancien numéro S37-4) — Construit dans la liste commune aux signataires (S38) et aux membres du groupe (S39) | Écran voisin : Texte p. 48 | forte | en place |
 
 ## S38 Fiche de l'entreprise
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S38-3 | Bénéficiaires effectifs d'une entreprise | Saisis dans l'onglet Personnes liées, avec ce lien. Pas de nouvel onglet (ancien numéro S37-5) | Texte réglementaire : Instr. BCC 15, art. 18 (déjà lu pour S38) | moyenne | à appliquer |
+| S38-3 | Bénéficiaires effectifs d'une entreprise | Saisis dans l'onglet Personnes liées, avec ce lien. Pas de nouvel onglet (ancien numéro S37-5) — Construit : liste Lien (Personne liée, Bénéficiaire effectif) ; un bénéficiaire effectif est une personne physique (art. 18, al. 3 et 4 : personnes physiques), jamais aussi personne liée | Texte réglementaire : Instr. BCC 15, art. 18 (déjà lu pour S38) | moyenne | en place |
+| S38-1 | Fiche complétée comme S37 | Appliquer à l'entreprise ce que S37-1 et S37-2 ont mis en place pour le client physique — Construit pour S38 : Sensibilisateur, Gestionnaire, Commercial pris dans S33 (INCONNU = aucun) ; Forme juridique pris dans S14i ; onglet Autres renseignements du client physique (Pays, Ville, Commune, Quartier, Rue / Maison, BP, Téléphone fixe, Email, Secteur et Type d'activité, Catégorie, Sous type client, Personne politiquement exposée) ; la saisie libre « Nature de l'activité » est remplacée par Secteur et Type d'activité, le type choisi tenant lieu de nature de l'activité pour les écrans qui l'affichent (S40). Groupe : S39-1 ; mise à jour : S46-3 | Donnée exigée ailleurs : S37-1, S37-2 ; Instr. BCC 15, art. 17 | moyenne | en place |
+| S38-4 | Valeurs de la liste Forme juridique (S14i) en démonstration | Les cinq formes de société commerciale de l'AUSCGIE, art. 6 : société en nom collectif, en commandite simple, à responsabilité limitée, anonyme, par actions simplifiée. L'institution tient sa liste dans S14i | Texte réglementaire : AUSCGIE, art. 6 (lu) | forte | en place |
 
 ## S37 à S39, S46 Fiche du client
 
@@ -227,6 +229,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | S46-1 | Mise à jour : Modifier et Terminer | Modifier ouvre la fiche. Terminer enregistre et met le client à l'état « modifié, à revalider » (S42) | Manuel : Texte p. 56 ; chaîne du client | moyenne | à appliquer |
 | S46-2 | Mise à jour d'une entreprise, d'un groupe | Mêmes onglets que leur enrôlement | Écran voisin : S38, S39 | moyenne | à appliquer |
+| S46-3 | Mentions de l'identité à la mise à jour (reste de S38-1) | Obligation des mentions de l'Instr. BCC 15, art. 13 à la mise à jour, comme à l'enrôlement (aujourd'hui contrôlées seulement si saisies) | Texte réglementaire : Instr. BCC 15, art. 12 et 13 | moyenne | à appliquer |
 
 ## S40 Viser un client
 
@@ -473,12 +476,6 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | S74-5 | Options du produit d'épargne | Max compte à créer contrôlé à l'ouverture de compte ; Solde minimum, Max retrait/jour et Solde négatif contrôlés au retrait ; Opérer sur compte et Dépôt de chèque au guichet (ancien numéro S37-9) | Donnée exigée ailleurs : S27 (p. 40) | moyenne | à appliquer |
 
-## S38, S39, S46 Fiches entreprise, groupe et mise à jour
-
-| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
-|---|---|---|---|---|---|
-| S38-1 | Fiche complétée comme S37 | Appliquer à l'entreprise (S38), au groupe (S39) et à la mise à jour (S46) ce que S37-1 et S37-2 ont mis en place pour le client physique : listes de paramétrage au lieu de INCONNU et des saisies libres ; en S46, obligation des mentions de l'Instr. BCC 15, art. 13 (aujourd'hui seulement contrôlées si saisies) | Donnée exigée ailleurs : S37-1, S37-2 ; Instr. BCC 15, art. 12, 13, 17 | moyenne | à appliquer |
-
 ## S28 Paramétrage des produits épargne
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
@@ -572,6 +569,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S75-1 | Échéance qui tombe un jour non ouvré | Décidée avec S34 (jours de travail et fériés). Reportée au premier jour ouvré suivant (jour coché et non férié) ; les intérêts restent ceux de l'échéancier, sans jour ajouté. À appliquer avec l'échéancier du déblocage (S75, S54) | Choix du porteur : Accord du porteur, 13/11/2026 ; par analogie : lettre de change, paiement exigible le premier jour ouvrable qui suit (Bernet-Rollande, Principes de technique bancaire) ; AUPSRVE, art. 1-15 (délai prolongé au premier jour ouvrable suivant). Aucun texte de la RDC lu ne le règle | moyenne | à appliquer |
+
+## S39 Fiche du groupe
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S39-1 | Fiche complétée comme S37 (reste de S38-1) | Sensibilisateur, Gestionnaire, Commercial pris dans S33 au lieu de INCONNU seul ; Autres renseignements comme le client physique ; saisies libres remplacées par les listes de paramétrage | Donnée exigée ailleurs : S37-1, S37-2, S38-1 | moyenne | à appliquer |
 
 ## Les décisions faibles, à regarder en premier
 

@@ -150,7 +150,7 @@ describe("journée de guichet", () => {
     await connecter("bkasongo");
     const sig = { nom: "Ilunga", postnom: "", prenom: "Paul", pieceType: "Passeport", pieceNumero: "OP9", pieceExpire: "", signature: "data:image/png;base64,iVBORw0KGgo=" };
     const base = { ...enrolementVide("2026-11-05"), ...IDENTITE, typeClient: "Entreprises privées", zone: "Matete", produitCode: "EAV-CDF", nom: "Boulangerie Kinsaku SARL",
-      formeJuridique: "SARL", registre: "CD/KNG/RCCM/24-B-00001", adresse: "Matete, avenue Kinsaku" };
+      formeJuridique: "Société à responsabilité limitée", registre: "CD/KNG/RCCM/24-B-00001", adresse: "Matete, avenue Kinsaku" };
     await expect(api.tiers.creerEntreprise({ ...base, zone: "" }, null, [sig])).rejects.toThrow("zone");
     await expect(api.tiers.creerEntreprise({ ...base, typeClient: "Client" }, null, [sig])).rejects.toThrow("Type inconnu");
     await expect(api.tiers.creerEntreprise(base, { ...sig, pieceType: "Badge" }, [sig])).rejects.toThrow("Dirigeant : Type de pièce non admis");
@@ -158,6 +158,20 @@ describe("journée de guichet", () => {
     const t = await api.tiers.creerEntreprise(base, { ...sig, signature: undefined }, [sig]);
     expect(t).toMatchObject({ type: "morale", nom: "Boulangerie Kinsaku SARL", zone: "Matete", specimen: true, signataires: [{ nom: "Ilunga", specimen: true }], dirigeant: { specimen: false } });
     expect((await api.tiers.rechercher("boulangerie")).map((x) => x.id)).toContain(t.id);
+  });
+
+  it("fiche de l'entreprise (S38) : forme juridique et listes de S14, bénéficiaire effectif personne physique (Instr. BCC 15, art. 18)", async () => {
+    await connecter("bkasongo");
+    const base = { ...enrolementVide("2026-11-05"), ...IDENTITE, typeClient: "Entreprises privées", zone: "Matete", produitCode: "EAV-CDF", nom: "Kinsaku Pain SARL",
+      formeJuridique: "Société à responsabilité limitée", registre: "R2", adresse: "Matete", secteurActivite: "PRIMAIRE", email: "contact@exemple.cd" };
+    const morale = (await api.tiers.creerEntreprise({ ...base, nom: "Témoin SA", formeJuridique: "Société anonyme" }, null, [])).id;
+    await expect(api.tiers.creerEntreprise({ ...base, formeJuridique: "SARLU" }, null, [])).rejects.toThrow("Forme juridique : valeur inconnue");
+    await expect(api.tiers.creerEntreprise({ ...base, secteurActivite: "Pêche industrielle" }, null, [])).rejects.toThrow("Secteur d'activité : valeur inconnue");
+    await expect(api.tiers.creerEntreprise({ ...base, email: "contact" }, null, [])).rejects.toThrow("Email invalide");
+    await expect(api.tiers.creerEntreprise({ ...base, beneficiairesEffectifs: [morale] }, null, [])).rejects.toThrow("Bénéficiaire effectif");
+    await expect(api.tiers.creerEntreprise({ ...base, liees: [1], beneficiairesEffectifs: [1] }, null, [])).rejects.toThrow("Bénéficiaire effectif");
+    const t = await api.tiers.creerEntreprise({ ...base, beneficiairesEffectifs: [1] }, null, []);
+    expect(t).toMatchObject({ formeJuridique: "Société à responsabilité limitée", secteurActivite: "PRIMAIRE", email: "contact@exemple.cd", beneficiairesEffectifs: [1], liees: [] });
   });
 
   it("enrôlement d'un groupe (S39) : type de groupe de la p. 47, nombres d'hommes et de femmes, membres", async () => {

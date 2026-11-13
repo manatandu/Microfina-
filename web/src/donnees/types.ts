@@ -85,6 +85,7 @@ export interface Tiers {
   pieceLieu: string;
   pieceAutorite: string;
   liees: number[];             // personnes liées (onglet « Personnes Liées »)
+  beneficiairesEffectifs?: number[];   // onglet « Personnes Liées », lien Bénéficiaire effectif (registre S38-3 ; Instr. BCC 15, art. 18)
   // S38, entreprise : nom = dénomination, adresse = siège, typeClient = type entreprise (Instr. BCC 15, art. 17)
   formeJuridique: string;
   registre: string;
@@ -188,7 +189,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 53;
+  version: 54;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)

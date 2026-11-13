@@ -29,6 +29,9 @@ PROVINCES_RDC = ["Kinshasa", "Bas-Uele", "Equateur", "Haut-Lomami", "Haut-Katang
                  "Sud-Ubangi", "Tanganyika", "Tshopo", "Tshuapa"]
 
 
+FORMES_JURIDIQUES = ("Société en nom collectif", "Société en commandite simple", "Société à responsabilité limitée", "Société anonyme",
+                     "Société par actions simplifiée")
+
 class Command(BaseCommand):
     help = "Charge les données fictives de démonstration dans une base vide."
 
@@ -89,6 +92,9 @@ class Command(BaseCommand):
 
         # S14g : type client « Client », valeur de la capture p. 49 (registre S37-2)
         executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'type_client', '1', 'Client')", (ins,))
+        # S14i : formes de société de l'AUSCGIE, art. 6, en démonstration (registre S38-4)
+        for n, fj in enumerate(FORMES_JURIDIQUES, 1):
+            executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'forme_juridique', %s, %s)", (ins, str(n), fj))
         # Utilisateurs et profils
         uid = {}
         for login, nom, profil in (("engalula", "Esther Ngalula", "caissier"), ("jpmukendi", "J.-P. Mukendi", "chef_agence"),

@@ -83,7 +83,8 @@ function InformationsDeBase({ genre, f, maj, ctx, numero, depot, setDepot, chois
           {ctx.sensibilisateurs.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>}
       </div>
       <div className="pile">
-        {!physique && inconnu("Sensibilisateur :")}
+        {entreprise && <AgentsClient f={f} maj={maj} ctx={ctx} />}
+        {groupe && inconnu("Sensibilisateur :")}
         {physique ? <>
           <Champ libelle="Gestionnaire :">{(p) => <select {...p} className="saisie" value={f.gestionnaireId ?? ""}
             onChange={(e) => maj({ gestionnaireId: e.target.value ? Number(e.target.value) : null })}><option value="">{INCONNU}</option>
@@ -91,7 +92,7 @@ function InformationsDeBase({ genre, f, maj, ctx, numero, depot, setDepot, chois
           <Champ libelle="Commercial :">{(p) => <select {...p} className="saisie" value={f.commercialId ?? ""}
             onChange={(e) => maj({ commercialId: e.target.value ? Number(e.target.value) : null })}><option value="">{INCONNU}</option>
             {ctx.commerciaux.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
-        </> : <>{inconnu("Gestionnaire :")}{inconnu("Commercial :")}</>}
+        </> : groupe && <>{inconnu("Gestionnaire :")}{inconnu("Commercial :")}</>}
         <Champ libelle="Type de compte à créer *">{(p) => <select {...p} className="saisie" required {...sel("produitCode")}><option value=""></option>
           {ctx.produits.map((x) => <option key={x.code} value={x.code}>{x.libelle} {x.devise}</option>)}</select>}</Champ>
         <Champ libelle={`Premier dépôt :${produit ? ` (${produit.devise})` : ""}`}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={depot} onChange={(e) => setDepot(e.target.value)} />}</Champ>
@@ -103,42 +104,54 @@ function InformationsDeBase({ genre, f, maj, ctx, numero, depot, setDepot, chois
   );
 }
 
-/** Onglet « Personnes Liées » : rechercher un membre, +Ajouter, Retirer (p. 48 à 50) */
-function PersonnesLiees({ liees, onChange }: { liees: Tiers[]; onChange: (l: Tiers[]) => void }) {
+const LIENS = { liee: "Personne liée", effectif: "Bénéficiaire effectif" } as const;
+/** Onglet « Personnes Liées » : rechercher un membre, +Ajouter, Retirer (p. 48 à 50). Entreprise : lien Bénéficiaire effectif, une personne physique
+ * (registre S38-3 ; Instr. BCC 15, art. 18) */
+function PersonnesLiees({ liees, onChange, effectifs, onEffectifs }: { liees: Tiers[]; onChange: (l: Tiers[]) => void;
+  effectifs?: Tiers[]; onEffectifs?: (l: Tiers[]) => void }) {
   const [q, setQ] = useState("");
   const [trouves, setTrouves] = useState<Tiers[]>([]);
   const [choisi, setChoisi] = useState(0);
+  const [lien, setLien] = useState<keyof typeof LIENS>("liee");
+  const tous = [...liees, ...(effectifs ?? [])];
+  const proposes = trouves.filter((t) => lien === "liee" || t.type === "physique");
   async function chercher() {
-    const r = (await api.tiers.rechercher(q)).filter((t) => t.statut === "actif" && !liees.some((x) => x.id === t.id));
-    setTrouves(r); setChoisi(r[0]?.id ?? 0);
+    const r = (await api.tiers.rechercher(q)).filter((t) => t.statut === "actif" && !tous.some((x) => x.id === t.id));
+    setTrouves(r); setChoisi(r.find((t) => lien === "liee" || t.type === "physique")?.id ?? 0);
   }
   function ajouter() {
-    const t = trouves.find((x) => x.id === choisi);
+    const t = proposes.find((x) => x.id === choisi);
     if (!t) return;
-    onChange([...liees, t]); setTrouves(trouves.filter((x) => x.id !== t.id)); setChoisi(0);
+    if (lien === "effectif" && effectifs && onEffectifs) onEffectifs([...effectifs, t]); else onChange([...liees, t]);
+    setTrouves(trouves.filter((x) => x.id !== t.id)); setChoisi(0);
   }
+  const lignes = [...liees.map((t) => ({ t, lien: "liee" as const })), ...(effectifs ?? []).map((t) => ({ t, lien: "effectif" as const }))];
+  const retirer = (id: number, l: keyof typeof LIENS) => l === "effectif" ? onEffectifs?.((effectifs ?? []).filter((x) => x.id !== id)) : onChange(liees.filter((x) => x.id !== id));
   return (
     <>
       <div className="formulaire">
+        {onEffectifs && <Champ libelle="Lien :">{(p) => <select {...p} className="saisie" value={lien} onChange={(e) => {
+          const l = e.target.value as keyof typeof LIENS; setLien(l); setChoisi(trouves.find((t) => l === "liee" || t.type === "physique")?.id ?? 0); }}>
+          {Object.entries(LIENS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>}</Champ>}
         <Champ libelle="Membre :">{(p) => <input {...p} className="saisie" type="search" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void chercher(); } }} />}</Champ>
         <div className="champ"><span className="libelle-vide" aria-hidden="true">&nbsp;</span>
           <button className="bouton secondaire" type="button" onClick={() => void chercher()}>Rechercher</button></div>
       </div>
-      {trouves.length > 0 && (
+      {proposes.length > 0 && (
         <div className="formulaire">
           <Champ libelle="Liste des membres :">{(p) => <select {...p} className="saisie" value={choisi} onChange={(e) => setChoisi(Number(e.target.value))}>
-            {trouves.map((t) => <option key={t.id} value={t.id}>{t.numero} {nomComplet(t)}</option>)}</select>}</Champ>
+            {proposes.map((t) => <option key={t.id} value={t.id}>{t.numero} {nomComplet(t)}</option>)}</select>}</Champ>
           <div className="champ"><span className="libelle-vide" aria-hidden="true">&nbsp;</span>
             <button className="bouton secondaire" type="button" onClick={ajouter}>+Ajouter</button></div>
         </div>
       )}
-      {liees.length > 0 && (
+      {lignes.length > 0 && (
         <table className="grille">
-          <thead><tr><th scope="col">N° du Client</th><th scope="col">Nom</th><th scope="col"><span className="sr-only">Action</span></th></tr></thead>
-          <tbody>{liees.map((t) => (
-            <tr key={t.id}><td className="chiffres">{t.numero}</td><td>{nomComplet(t)}</td>
-              <td><button className="bouton secondaire" type="button" onClick={() => onChange(liees.filter((x) => x.id !== t.id))}>Retirer</button></td></tr>
+          <thead><tr><th scope="col">N° du Client</th><th scope="col">Nom</th>{onEffectifs && <th scope="col">Lien</th>}<th scope="col"><span className="sr-only">Action</span></th></tr></thead>
+          <tbody>{lignes.map(({ t, lien: l }) => (
+            <tr key={t.id}><td className="chiffres">{t.numero}</td><td>{nomComplet(t)}</td>{onEffectifs && <td>{LIENS[l]}</td>}
+              <td><button className="bouton secondaire" type="button" onClick={() => retirer(t.id, l)}>Retirer</button></td></tr>
           ))}</tbody>
         </table>
       )}
@@ -196,7 +209,7 @@ function ChampsRepresentant({ r, maj, pieces }: { r: RepresentantSaisi; maj: (p:
 }
 const REPRESENTANT_VIDE: RepresentantSaisi = { nom: "", postnom: "", prenom: "", pieceType: "", pieceNumero: "", pieceExpire: "" };
 
-/** Liste avec fiche ouverte par un bouton : signataires d'une entreprise (p. 50), membres d'un groupe (p. 51) */
+/** Liste avec fiche ouverte par un bouton : signataires d'une entreprise (p. 49), membres d'un groupe (p. 50) ; Retirer comme pour les personnes liées (registre S38-2) */
 function ListeRepresentants({ fiche: titre, ajouter, liste, onChange, pieces, erreur }: {
   fiche: string; ajouter: string; liste: RepresentantSaisi[]; onChange: (l: RepresentantSaisi[]) => void; pieces: string[]; erreur: (m: string) => void;
 }) {
@@ -206,10 +219,11 @@ function ListeRepresentants({ fiche: titre, ajouter, liste, onChange, pieces, er
       <div><button className="bouton secondaire" type="button" onClick={() => setFiche(REPRESENTANT_VIDE)}>{ajouter}</button></div>
       {liste.length > 0 && (
         <table className="grille">
-          <thead><tr><th scope="col">Nom</th><th scope="col">Pièce</th><th scope="col">Photo</th><th scope="col">Signature</th></tr></thead>
+          <thead><tr><th scope="col">Nom</th><th scope="col">Pièce</th><th scope="col">Photo</th><th scope="col">Signature</th><th scope="col"><span className="sr-only">Action</span></th></tr></thead>
           <tbody>{liste.map((r, i) => (
             <tr key={i}><td>{nomComplet(r)}</td><td>{r.pieceType} <span className="chiffres">{r.pieceNumero}</span></td>
-              <td>{r.photo ? "Oui" : "Non"}</td><td>{r.signature ? "Oui" : "Non"}</td></tr>
+              <td>{r.photo ? "Oui" : "Non"}</td><td>{r.signature ? "Oui" : "Non"}</td>
+              <td><button className="bouton secondaire" type="button" onClick={() => onChange(liste.filter((_, k) => k !== i))}>Retirer</button></td></tr>
           ))}</tbody>
         </table>
       )}
@@ -447,19 +461,22 @@ export function EnrolementEntreprise() {
   const [avecDirigeant, setAvecDirigeant] = useState(true);   // « par défaut, le champ [Renseigner Dirigeant] est coché » (p. 50)
   const [dirigeant, setDirigeant] = useState<RepresentantSaisi>(REPRESENTANT_VIDE);
   const [signataires, setSignataires] = useState<RepresentantSaisi[]>([]);
+  const [effectifs, setEffectifs] = useState<Tiers[]>([]);
   if (!c.donnees) return <Chargement />;
   const { ctx } = c.donnees;
   const { f, maj } = c;
   const texte = (k: keyof NouveauTiers) => ({ value: f[k] as string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => maj({ [k]: e.target.value }) });
-  function vider() { setAvecDirigeant(true); setDirigeant(REPRESENTANT_VIDE); setSignataires([]); }
+  function vider() { setAvecDirigeant(true); setDirigeant(REPRESENTANT_VIDE); setSignataires([]); setEffectifs([]); }
   return (
     <Enrolement titre="Enregistrement d'une entreprise" onglets={ONGLETS_ENTREPRISE} numero={c.cree?.numero} onglet={c.onglet} setOnglet={c.setOnglet}
       boite={c.boite} setBoite={c.setBoite}
-      enregistrer={() => c.confirmer((m) => api.tiers.creerEntreprise({ ...f, premierDepot: m, liees: c.liees.map((t) => t.id) }, avecDirigeant ? dirigeant : null, signataires), vider)}
-      textes={["Manuel Microfina++, p. 49 et 50 : onglets, champs de l'onglet Informations de base, Renseigner Dirigeant coché par défaut, fiche des signataires",
+      enregistrer={() => c.confirmer((m) => api.tiers.creerEntreprise({ ...f, premierDepot: m, liees: c.liees.map((t) => t.id), beneficiairesEffectifs: effectifs.map((t) => t.id) }, avecDirigeant ? dirigeant : null, signataires), vider)}
+      textes={["Manuel Microfina++, p. 49 : onglets, champs de l'onglet Informations de base, Renseigner Dirigeant coché par défaut, personnes liées (+Ajouter, Retirer), fiche des signataires",
+        "Onglet Autres renseignements et listes : comme le client physique (S37) ; Forme juridique : Paramétrage > Info de base > Client > Général (S14i) ; Sensibilisateur, Gestionnaire, Commercial : Agence > Paramètre (S33)",
         "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
         "PCCI § 10.1 : lieu de résidence ; § 10.2 : agents économiques (liste provisoire des types d'entreprise)",
-        "Instr. BCC 15, art. 17 : dénomination, forme juridique, registre, siège, activité, dirigeants",
+        "Instr. BCC 15, art. 17 : dénomination, forme juridique, registre, siège, activité, dirigeants ; art. 18 : bénéficiaire effectif",
+        "AUSCGIE, art. 6 : formes des sociétés commerciales",
         "Instr. BCC 15, art. 16 : représentants identifiés comme des clients ; art. 13 et 14 : pièces",
         "Instr. BCC 15, art. 60 : personne politiquement exposée",
         "ARCHITECTURE P7 : enrôlement et visa par deux personnes"]}>
@@ -470,20 +487,16 @@ export function EnrolementEntreprise() {
         <>
           <div className="formulaire">
             <Champ libelle="Dénomination : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("nom")} />}</Champ>
-            <Champ libelle="Forme juridique : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("formeJuridique")} />}</Champ>
+            <Champ libelle="Forme juridique : *">{(p) => <select {...p} className="saisie" required value={f.formeJuridique} onChange={(e) => maj({ formeJuridique: e.target.value })}>
+              <option value=""></option>{(ctx.listesFiche.formeJuridique ?? []).map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
             <Champ libelle="N° du registre : *">{(p) => <input {...p} className="saisie code" required autoComplete="off" {...texte("registre")} />}</Champ>
             <Champ libelle="Adresse du siège : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("adresse")} />}</Champ>
             <Champ libelle="Principal centre d'activité :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("centreActivite")} />}</Champ>
-            <Champ libelle="Nature de l'activité :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("activite")} />}</Champ>
           </div>
         </>
       )}
 
-      {c.onglet === 2 && (
-        <>
-          <label className="case"><input type="checkbox" checked={f.personneExposee} onChange={(e) => maj({ personneExposee: e.target.checked })} /><span>Personne politiquement exposée</span></label>
-        </>
-      )}
+      {c.onglet === 2 && <AutresRenseignements f={f} maj={maj} ctx={ctx} />}
 
       {c.onglet === 3 && (
         <>
@@ -496,7 +509,7 @@ export function EnrolementEntreprise() {
         </>
       )}
 
-      {c.onglet === 4 && <PersonnesLiees key={c.generation} liees={c.liees} onChange={c.setLiees} />}
+      {c.onglet === 4 && <PersonnesLiees key={c.generation} liees={c.liees} onChange={c.setLiees} effectifs={effectifs} onEffectifs={setEffectifs} />}
 
       {c.onglet === 5 && <ListeRepresentants fiche="Signataire" ajouter="+Ajouter" liste={signataires} onChange={setSignataires} pieces={ctx.pieces} erreur={c.erreur} />}
     </Enrolement>

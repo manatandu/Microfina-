@@ -13,6 +13,9 @@ const COMPTES_GUICHET = { compteGuichet: "570", compteLiaison: "579", compteSurp
 
 export const COURS_EXEMPLE = 2850;            // CDF pour 1 USD, fictif
 export const VALEUR_PART_EXEMPLE = 400000;    // 4 000 CDF : exemple du manuel Microfina++ ; la vraie valeur vient des statuts (loi 002/2002, art. 20)
+/** S14i : formes de société commerciales de l'AUSCGIE, art. 6 (démonstration ; la liste se tient dans le paramétrage) */
+export const FORMES_JURIDIQUES = ["Société en nom collectif", "Société en commandite simple", "Société à responsabilité limitée", "Société anonyme",
+  "Société par actions simplifiée"];
 
 const FONDS_G2: { CDF: Comptage; USD: Comptage } = {
   USD: { 100: 140, 50: 12, 20: 8, 10: 3, 5: 2, 1: 6 },                    // 14 806 USD
@@ -39,7 +42,7 @@ export function graine(): Etat {
     lieuNaissance: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", liees: [] as number[],
     type: "physique" as const, formeJuridique: "", registre: "", centreActivite: "", activite: "", dirigeant: null, signataires: [], nbHommes: 0, nbFemmes: 0, membres: [], intitule: "", dateVisa: "2026-01-15", profession: "", pays: "", ville: "", quartier: "", rue: "", email: "", bp: "", telephoneFixe: "", motifDepart: "", resilieLe: "", creeLe: "2026-01-15", creePar: 4, visePar: 2, statut: "actif" as const };
   return {
-    version: 53,
+    version: 54,
     institution: { nom: "COOPEC Tujenge", sigle: "CTJ", profil: "coopec", pays: "République démocratique du Congo", ville: "Kinshasa", commune: "Matete", quartier: "Kinsaku", journeeMax: 1 },   // sigle fictif : élément Institution du numéro client (S15-11)
     agence: { id: 1, code: "0412", nom: "Matete" },
     agences: [{ id: 1, code: "0412", nom: "Matete", supprime: false }],
@@ -126,6 +129,8 @@ export function graine(): Etat {
       ...["Homme", "Femme", "Entreprise", "Groupement", "Association", "ONG"].map((libelle, i) => ({ liste: "sous_type_client", code: String(i + 1), libelle })),
       // S14g : type client « Client », valeur de la capture p. 49 (registre S37-2)
       { liste: "type_client", code: "1", libelle: "Client" },
+      // S14i : formes de société de l'AUSCGIE, art. 6, en démonstration (registre S38-4)
+      ...FORMES_JURIDIQUES.map((libelle, i) => ({ liste: "forme_juridique", code: String(i + 1), libelle })),
       // S18 : motifs de départ de la capture p. 26 (registre S18-1)
       ...["DEPART DU PAYS", "Raisons personnelles", "DEMENAGEMENT", "DECISION DU CLIENT", "NE VEUT PLUS PRENDRE DE CREDIT", "AUTRES", "TRANSFERT SUR UNE AUTRE AGENCE"]
         .map((libelle, i) => ({ liste: "motif_depart", code: String(i + 1), libelle }))]
