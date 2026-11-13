@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**250 décisions.** Solidité : 78 fortes (le manuel ou un texte répond), 139 moyennes (déduites d'un écran voisin ou d'une donnée), 33 faibles (notre choix, faute de mieux). Dans le code : 196 déjà en place, 54 à appliquer.
+**251 décisions.** Solidité : 78 fortes (le manuel ou un texte répond), 140 moyennes (déduites d'un écran voisin ou d'une donnée), 33 faibles (notre choix, faute de mieux). Dans le code : 197 déjà en place, 54 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -69,6 +69,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S07-1 | Les deux pages | Ce que montrent les captures : Gestion des utilisateurs autres fonctionnalités (filtres Nom et prénom(s), Nom utilisateur, Agence ; colonnes Connecté, Machine, Actif) et Déconnexion d'un utilisateur (utilisateurs connectés ; filtres Login utilisateur, Nom utilisateur, Machine, Agence ; bouton × et confirmation « Voulez-vous déconnecter cet utilisateur »). Machine = adresse réseau de la connexion. La démo dans le navigateur ne connaît que la session ouverte, sur « ce navigateur » | Écran voisin : Captures et texte p. 18 | forte | en place |
 | S07-2 | Déconnexion forcée | Chaque connexion porte un jeton ; Déconnecter l'efface et la session de l'utilisateur tombe à sa prochaine action. On ne se déconnecte pas soi-même ici (bouton de sortie). La sortie normale efface aussi le jeton | Donnée exigée ailleurs : Texte p. 18 ; Instr. BCC 008, art. 16 (gestion des accès maîtrisée) | moyenne | en place |
 | S07-3 | Control utilisateur connecté (S05) | Case cochée : pas de seconde connexion de cet utilisateur tant que la première n'est pas fermée ou déconnectée ; le message nomme la machine et renvoie à Déconnecter utilisateurs. Sens déduit de la colonne Connecté et de la page de déconnexion | Donnée exigée ailleurs : Captures p. 17 et 18 | faible | en place |
+| S07-4 | Fin d'une connexion | Une connexion compte tant que la session vit (8 heures, durée réglée pour une journée de travail) ; après, « Connecté » repasse à Non et « Control utilisateur connecté » ne bloque plus. La déconnexion par l'administrateur sert à libérer un utilisateur avant ce délai. Durée à confirmer par les règles internes de l'institution | Donnée exigée ailleurs : Analyse du 13/11/2026 validée par le porteur (« go correction ») ; Instr. BCC 008, art. 16 | moyenne | en place |
 
 ## S08 Gestion des guichets
 

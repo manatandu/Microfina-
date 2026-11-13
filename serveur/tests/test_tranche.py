@@ -1363,3 +1363,19 @@ def test_connexions(clients):
     assert r.status_code == 422 and "Déjà connecté" in r.json()["message"]
     caisse.delete("/api/session", **H)
     connecter(clients["agent"], "jmbala")
+
+
+def test_connexion_expire(clients):
+    """S07 : la connexion tombe d'elle-même après la durée de la session ; « Control utilisateur connecté » ne bloque plus le lendemain (registre S07-4)"""
+    chef, caisse = clients["chef"], clients["caisse"]; connecter(chef, "jpmukendi")
+    ag = chef.get("/api/gestion-utilisateurs", **H).json()["agences"][0]["id"]
+    chef.post("/api/gestion-utilisateurs", {"nom": "Mbala Joseph", "agenceId": ag, "login": "jmbala", "motDePasse": "s", "confirmation": "s", "portable": "1",
+                                            "controleConnecte": True}, **H)
+    connecter(caisse, "jmbala")
+    assert "Déjà connecté" in clients["agent"].post("/api/session", {"login": "jmbala"}, **H).json()["message"]
+    from noyau.bd import executer
+    executer("update utilisateur set connecte_le = now() - interval '9 hours' where login = 'jmbala'")
+    assert not next(x for x in chef.get("/api/connexions", **H).json()["utilisateurs"] if x["login"] == "jmbala")["connecte"]
+    assert caisse.get("/api/session", **H).json() is None                                   # l'ancienne session est expirée
+    connecter(clients["agent"], "jmbala")                                                     # nouvelle connexion acceptée
+    assert next(x for x in chef.get("/api/connexions", **H).json()["utilisateurs"] if x["login"] == "jmbala")["connecte"]

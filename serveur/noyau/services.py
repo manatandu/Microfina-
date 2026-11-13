@@ -62,8 +62,13 @@ def exiger(u: dict | None, role: str | None = None) -> dict:
     return u
 
 
+# Registre S07-4 : une connexion compte tant que la session vit (SESSION_COOKIE_AGE, réglée à une journée de travail) ; après, elle tombe d'elle-même
+CONNECTE = f"jeton_session is not null and connecte_le > now() - interval '{int(settings.SESSION_COOKIE_AGE)} seconds'"
+
+
 def ouvrir_session(login: str, mot_de_passe: str | None, machine: str = "") -> dict:
-    u = une("select id, controle_connecte, jeton_session, machine from utilisateur where login = %s and actif", (login.strip(),))
+    u = une(f"""select id, controle_connecte, machine, case when {CONNECTE} then jeton_session end as jeton_session
+                 from utilisateur where login = %s and actif""", (login.strip(),))
     if not u:
         raise ErreurMetier("Identifiant inconnu.")
     if not settings.SANS_MOT_DE_PASSE:
@@ -77,8 +82,8 @@ def ouvrir_session(login: str, mot_de_passe: str | None, machine: str = "") -> d
 
 
 def utilisateur_de_session(uid, jeton) -> dict | None:
-    """La session vaut tant que son jeton est celui de l'utilisateur (registre S07-2)"""
-    if not uid or not jeton or valeur("select jeton_session from utilisateur where id = %s", (uid,)) != jeton:
+    """La session vaut tant que son jeton est celui de l'utilisateur et que la connexion n'a pas expiré (registre S07-2, S07-4)"""
+    if not uid or not jeton or valeur(f"select jeton_session from utilisateur where id = %s and {CONNECTE}", (uid,)) != jeton:
         return None
     return charger_utilisateur(uid)
 
