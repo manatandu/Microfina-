@@ -132,6 +132,11 @@ const OUT = process.argv[2];
   await p.getByLabel('Position compteur').and(p.locator('input.saisie')).fill('4');
   await p.getByRole('button', { name: 'Générer' }).click(); await p.getByText('2026-CTJ-0412-CA-').waitFor();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('02f19-numero-piece');
+  // Chef : journal (S30, p. 41 et 42) : un journal des opérations diverses, avec son détail dans l'exercice
+  await aller('/parametrage/s30'); await p.getByLabel('Type Journal *').selectOption({ label: 'Journal des Opérations diverses' });
+  await p.getByLabel('Libelle : *').fill('Opérations diverses'); await p.getByLabel('Code :').fill('OD');
+  await p.getByRole('checkbox', { name: 'Actif', exact: true }).check(); await p.getByRole('checkbox', { name: 'Détail journal' }).check();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'OD', exact: true }).waitFor(); await etape('02f20-journaux');
   // Chef : paramétrage des produits épargne (S28, p. 41) : l'épargne de garantie dans l'onglet Bloqué, compte 334 proposé
   await aller('/parametrage/s28'); await p.getByRole('tab', { name: 'Bloqué' }).click(); await p.getByLabel('Compte lié').and(p.locator('[value="334"]')).waitFor();
   await p.getByLabel('Produit: *').selectOption({ label: 'Epargne De Garantie (G)' }); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();

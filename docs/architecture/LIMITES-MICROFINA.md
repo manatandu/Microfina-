@@ -24,5 +24,6 @@ Chaque ligne dit ce qui a été constaté, où, et ce que Likelemba fait déjà 
 | S14m et S18 | La même liste (motifs de départ) existe à deux endroits du menu, sous deux formes | Une seule entrée |
 | S20, S21 | Barres d'outils en double : icônes Enregistrer et Annuler au-dessus des mêmes boutons en bas | Une seule rangée de boutons |
 | S13, S15, S21, S29 | Fautes dans l'interface : « Tansactions », « Défintion », « Dégré », « Contante », « vous vous le mettre à jour » | Relecture des libellés |
+| S30 Journal | Code sans astérisque alors qu'il sert de numéro de journal et entre dans le numéro de pièce ; « Détail journal » sans explication | Code obligatoire affiché comme tel ; libellé explicite |
 | Grilles | Pages de 10 lignes et filtres par colonne, sans recherche globale ni tri multiple | Recherche et tri |
 | Messages | Boîtes de confirmation Oui/Non à chaque enregistrement, même sans risque | Confirmer seulement ce qui engage (écritures, suppressions) |

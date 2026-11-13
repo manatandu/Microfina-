@@ -33,7 +33,7 @@ def lire(u) -> dict:
                                      cb.journal_id as "journalId", coalesce(cb.contact_nom, '') as "contactNom",
                                      coalesce(cb.contact_nom_complet, '') as "contactNomComplet", coalesce(cb.contact_telephone, '') as "contactTelephone"
                               from compte_bancaire cb join compte c on c.id = cb.compte_id where cb.institution_id = %s order by c.numero""", (i,))],
-        "journaux": lignes("select id, code, libelle from journal where institution_id = %s and type = 'banque' order by code", (i,)),
+        "journaux": lignes("select id, code, libelle from journal where institution_id = %s and type = 'banque' and actif and not supprime order by code", (i,)),
     }
 
 
@@ -92,7 +92,7 @@ def enregistrer_compte(u, d, cid: int | None = None) -> dict:
         raise ErreurMetier("Compte : sous-compte de 560 « Comptes NOSTRI disponible » (PCCI, compte 56), par exemple 5601….")
     if devise not in DEVISES:
         raise ErreurMetier("Devise inconnue.")
-    if not valeur("select 1 from journal where id = %s and institution_id = %s and type = 'banque'", (journal, i)):
+    if not valeur("select 1 from journal where id = %s and institution_id = %s and type = 'banque' and actif and not supprime", (journal, i)):
         raise ErreurMetier("Journal de banque inconnu.")
     if valeur("select 1 from compte_bancaire where banque_id = %s and numero = %s and id is distinct from %s", (banque["id"], numero, cid)):
         raise ErreurMetier("Ce numéro de compte existe déjà dans cette banque.")

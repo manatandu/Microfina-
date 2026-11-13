@@ -15,7 +15,7 @@ def lire(u) -> dict:
     return {
         "exercices": ex,
         "enCours": en_cours,
-        "journaux": lignes("select id, code, libelle, type from journal where institution_id = %s order by code", (i,)),
+        "journaux": lignes("select id, code, libelle, type from journal where institution_id = %s and not supprime order by code", (i,)),
         "details": lignes("""select d.id, d.annee, d.journal_id as "journalId", j.libelle, j.code, j.type, d.actif, d.ouvert, d.compteur
                              from journal_detail d join journal j on j.id = d.journal_id where d.institution_id = %s order by d.annee, j.code""", (i,)),
     }
@@ -97,7 +97,7 @@ def completer(u, d) -> dict:
     if not ids:
         raise ErreurMetier("À remplir : journaux à ajouter.")
     for jid in ids:
-        if not une("select 1 from journal where id = %s and institution_id = %s", (jid, i)):
+        if not une("select 1 from journal where id = %s and institution_id = %s and not supprime", (jid, i)):
             raise ErreurMetier("Journal inconnu.")
     for jid in ids:
         if not une("select 1 from journal_detail where institution_id = %s and annee = %s and journal_id = %s", (i, a, jid)):

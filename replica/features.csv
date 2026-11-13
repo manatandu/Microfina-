@@ -27,7 +27,7 @@ Modèle crédit : termes par durée,paramétrage,must,yes,yes,"S26 et S21 | Cons
 Produit épargne : définition et options,paramétrage,must,yes,yes,"S27 ; manuel p. 40 | Construit le 12/11/2026 : champs, options Oui/Non et boutons de la capture, Devise ajoutée ; familles EPARGNE, BLOQUE, TONTINE (PCCI 330, 334) ; option Solde négatif gardée, aucun texte ne l'interdisant (Instr. BCC 003 art. 7). Contrôles au guichet et à l'ouverture : S37-9. Registre S27-1 à S27-4."
 Produit épargne : comptes comptables,paramétrage,must,yes,yes,"S28 ; manuel p. 41 | Construit le 13/11/2026 : onglets Epargne, Courant, DAT, Bloqué ; Produit, Compte lié (330, 331, 340, 334 proposés, comptes 33 à 35 du PCCI), Types clients à associer (S14g) ; le compte lié sert aux écritures. Registre S28-1 à S28-3."
 Numérotation des pièces,paramétrage,must,yes,yes,"S29 ; manuel p. 41 | Construit le 13/11/2026 : Institution, cases et positions, Générer, Enregistrer ; numéro = exercice puis éléments par position ; compteur du journal dans l'exercice, sans trou (PCCI § 3.3 et 3.4). Registre S29-1, S29-2, S11-7."
-Journaux,paramétrage,must,yes,no,S30
+Journaux,paramétrage,must,yes,yes,"S30 ; manuel p. 41 et 42 | Construit le 13/11/2026 : Info Journal (Type, Libelle, Code, Actif, Détail journal), Enregistrer, Effacer, Supprimer, liste et Exporter ; journal inactif sans écriture ; détail dans l'exercice en cours. Registre S30-1 à S30-3."
 Encaissements et décaissements divers autorisés,paramétrage,must,yes,no,S31
 Société agences zones logo,paramétrage,must,yes,no,S32
 Gestionnaires sensibilisateurs commerciaux,paramétrage,should,yes,no,S33

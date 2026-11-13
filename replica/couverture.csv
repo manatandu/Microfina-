@@ -27,7 +27,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 26,Produit épargne : définition et options,paramétrage,must,yes,S27,A,liste,2 Paramétrage,,,,,
 27,Produit épargne : comptes comptables,paramétrage,must,yes,S28,A,liste,2 Paramétrage,,R:PCCI (comptes de dépôts),,,
 28,Numérotation des pièces,paramétrage,must,yes,S29,A,composition,2 Paramétrage,,"A:S15, S17",,,
-29,Journaux,paramétrage,must,no,S30,A,liste,2 Paramétrage,,,,S30,
+29,Journaux,paramétrage,must,yes,S30,A,liste,2 Paramétrage,,,,,
 30,Encaissements et décaissements divers autorisés,paramétrage,must,no,S31,A,liste,2 Paramétrage,,R:PCCI (comptes),,S31,
 31,Société agences zones logo,paramétrage,must,no,S32,B,liste,2 Paramétrage,S32 : pages agences et zones (« afficher les pages »),"D:S05, S08, S21 zone ; A:S33",,S32,
 32,Gestionnaires sensibilisateurs commerciaux,paramétrage,should,no,S33,A,liste,2 Paramétrage,,,,S33,

@@ -505,6 +505,21 @@ describe("journée de guichet", () => {
     expect(await api.credit.portefeuille(g.id)).toEqual([]);
   });
 
+  it("journaux (S30, p. 41 et 42) : obligatoires, Détail journal dans l'exercice, journal qui a servi figé, journal inactif sans écriture", async () => {
+    await connecter("jpmukendi");
+    const l = await api.journaux.lire();
+    expect([l.exercice, l.journaux.map((j) => j.code)]).toEqual([2026, ["AN", "BQ", "CA"]]);
+    const ca = l.journaux.find((j) => j.code === "CA")!;
+    expect([ca.typeLibelle, ca.actif, ca.detail]).toEqual(["Journal de Caisse", true, true]);
+    await expect(api.journaux.enregistrer({})).rejects.toThrow("Type Journal, Libelle, Code");
+    await expect(api.journaux.enregistrer({ type: "caisse", libelle: "Autre", code: "ca" })).rejects.toThrow("existe déjà");
+    const od = (await api.journaux.enregistrer({ type: "operations_diverses", libelle: "Opérations diverses", code: "OD", actif: true, detail: true })).journaux.find((j) => j.code === "OD")!;
+    expect([od.detail, od.typeLibelle]).toEqual([true, "Journal des Opérations diverses"]);
+    await api.journaux.supprimer(od.id);
+    await expect(api.journaux.enregistrer({ type: "banque", libelle: "Caisse", code: "CA", actif: true, detail: true }, ca.id)).rejects.toThrow("ne se changent plus");
+    await expect(api.journaux.supprimer(ca.id)).rejects.toThrow("ne se supprime pas");
+  });
+
   it("numéro de pièce (S29, p. 41) : exercice puis positions, Institution si cochée, compteur du journal dans l'exercice sans trou", async () => {
     await connecter("jpmukendi");
     const l = await api.numerotation.lirePiece();

@@ -1046,3 +1046,28 @@ def test_numero_piece(clients, journee):
     assert depot().status_code == 200
     nums = [x["numero"] for x in lire_bd("select numero from piece order by id")]
     assert nums[-2:] == ["2026-0412-CA-000001", "2026-CTJ-0412-000002-CA"], nums
+
+
+def test_journaux(clients, journee):
+    """S30 (p. 41 et 42) : Type Journal, Libelle, Code obligatoires ; Actif ; Détail journal dans l'exercice en cours ; un journal qui a servi
+    garde son code et son type et ne se supprime pas ; un journal inactif ne reçoit plus d'écriture (registre S30-1 à S30-3)"""
+    chef, caisse = clients["chef"], clients["caisse"]
+    l = chef.get("/api/journaux", **H).json()
+    assert l["exercice"] == 2026 and {j["code"] for j in l["journaux"]} == {"CA", "AN", "BQ"}
+    ca = next(j for j in l["journaux"] if j["code"] == "CA")
+    assert (ca["typeLibelle"], ca["actif"], ca["detail"]) == ("Journal de Caisse", True, True)
+    def refus(corps, jid=None, suffixe=""):
+        r = chef.post("/api/journaux" + (f"/{jid}" if jid else "") + suffixe, corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    assert "Type Journal, Libelle, Code" in refus({})
+    assert "existe déjà" in refus({"type": "caisse", "libelle": "Autre", "code": "ca"})
+    r = chef.post("/api/journaux", {"type": "operations_diverses", "libelle": "Opérations diverses", "code": "OD", "actif": True, "detail": True}, **H)
+    assert r.status_code == 200, r.content
+    od = next(j for j in r.json()["journaux"] if j["code"] == "OD")
+    assert od["detail"] is True and od["typeLibelle"] == "Journal des Opérations diverses"
+    assert chef.post(f"/api/journaux/{od['id']}/suppression", {}, **H).status_code == 200
+    depot = lambda: caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 500000, "coupures": {"5000": 1}, "mandataire": ""}, **H)
+    assert depot().status_code == 200
+    assert "ne se changent plus" in refus({"type": "banque", "libelle": "Caisse", "code": "CA", "actif": True, "detail": True}, ca["id"])
+    assert "ne se supprime pas" in refus({}, ca["id"], "/suppression")
+    assert chef.post(f"/api/journaux/{ca['id']}", {"type": "caisse", "libelle": "Caisse", "code": "CA", "actif": False, "detail": True}, **H).status_code == 200
+    r = depot(); assert r.status_code == 422 and "pas actif" in r.json()["message"]

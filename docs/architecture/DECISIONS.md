@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**202 décisions.** Solidité : 68 fortes (le manuel ou un texte répond), 107 moyennes (déduites d'un écran voisin ou d'une donnée), 27 faibles (notre choix, faute de mieux). Dans le code : 148 déjà en place, 54 à appliquer.
+**205 décisions.** Solidité : 68 fortes (le manuel ou un texte répond), 110 moyennes (déduites d'un écran voisin ou d'une donnée), 27 faibles (notre choix, faute de mieux). Dans le code : 151 déjà en place, 54 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -427,6 +427,14 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | S29-1 | Composition et compteur | L'exercice en tête (case grisée, exercice en cours), puis Institution (si cochée, sigle), Agence (code), Journal (code) et compteur dans l'ordre de leurs positions, séparés par un tiret ; compteur sur six chiffres. Le compteur est celui du journal dans l'exercice (Compléter journal détail) ; il avance dans la même transaction que l'écriture, donc sans trou ni doublon, et repart à chaque exercice. La règle vaut pour les pièces suivantes | Texte réglementaire : Capture et texte p. 41 ; S11-7 ; PCCI § 3.3 et 3.4 ; S15-4, S15-10 | moyenne | en place |
 | S29-2 | Sans règle enregistrée | Exercice, Agence, Journal, compteur (ex. 2026-0412-CA-000001), à la place de l'ancien compteur global | Donnée exigée ailleurs : Capture p. 41 (cases Agence, Journal, compteur cochées et grisées) | moyenne | en place |
+
+## S30 Journal
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S30-1 | Types et champs | Types du schéma de départ, nommés « Journal de … » comme la capture (Caisse, Banque, Opérations diverses, Crédit, Epargne, Provisions, Paie, Immobilisations, À-nouveaux). Type Journal et Libelle obligatoires ; Code refusé vide bien que la capture ne montre pas d'astérisque : il sert de N° Journal et entre dans le numéro de pièce (S29). Code unique, en majuscules | Donnée exigée ailleurs : Capture p. 42 ; PCCI § 3.3 (journaux auxiliaires au choix) ; T08 ; S29-1 | moyenne | en place |
+| S30-2 | Actif et Détail journal | Actif : un journal inactif ne reçoit plus d'écriture et n'est plus proposé aux guichets ni aux banques ; le refus vient avant le compteur de pièce, donc sans trou. Détail journal : crée la ligne du journal dans l'exercice en cours (Compléter journal détail) ; elle ne s'enlève plus quand des pièces y sont numérotées | Donnée exigée ailleurs : Capture p. 42 ; S11c (p. 21) ; S29-1 ; PCCI § 3.4 | moyenne | en place |
+| S30-3 | Journal qui a servi | Écritures passées, guichet ou compte bancaire rattaché : code et type figés, Supprimer refusé (décocher Actif). Sinon Supprimer est logique | Donnée exigée ailleurs : T02 ; PCCI § 3.4 (piste d'audit) | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

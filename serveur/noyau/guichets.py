@@ -27,7 +27,7 @@ def lire(u) -> dict:
     j = journee_courante(u)
     return {
         "agences": lignes("select id, code, nom from agence where institution_id = %s order by code", (i,)),
-        "journaux": lignes("select id, code, libelle from journal where institution_id = %s and type = 'caisse' order by code", (i,)),   # registre S08-2
+        "journaux": lignes("select id, code, libelle from journal where institution_id = %s and type = 'caisse' and actif and not supprime order by code", (i,)),   # registre S08-2
         "comptesDefaut": COMPTES_DEFAUT,
         # Registre S09-1 et S09-2 (p. 19) : « Dernière journée ouverte », « Journée ouverte à associer »
         "derniereJournee": j["date"] if j else "",
@@ -81,7 +81,7 @@ def enregistrer(u, d, gid: int | None = None) -> dict:
         raise ErreurMetier("Type de guichet inconnu.")
     if not une("select 1 from agence where id = %s and institution_id = %s", (agence, i)):
         raise ErreurMetier("Agence inconnue.")
-    if not une("select 1 from journal where id = %s and institution_id = %s and type = 'caisse'", (journal, i)):
+    if not une("select 1 from journal where id = %s and institution_id = %s and type = 'caisse' and actif and not supprime", (journal, i)):
         raise ErreurMetier("Journal inconnu.")
     comptes = {}
     for k, n in (("compteGuichet", "Compte guichet"), ("compteLiaison", "Compte liaison"), ("compteSurplus", "Compte surplus"), ("compteManquant", "Compte manquant")):

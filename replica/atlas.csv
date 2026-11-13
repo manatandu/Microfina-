@@ -44,7 +44,7 @@ S26,Modèle de produit crédit,40,A,liste,,R:Instr. BCC sur le classement et les
 S27,Produit épargne,40,A,liste,,,2 Paramétrage,oui
 S28,Paramétrage des produits épargne (comptes),41,A,liste,,R:PCCI (comptes de dépôts),2 Paramétrage,oui
 S29,Numéro de pièce,41,A,composition,,"A:S15, S17",2 Paramétrage,oui
-S30,Journal,"41 (texte), 42",A,liste,,,2 Paramétrage,non
+S30,Journal,"41 (texte), 42",A,liste,,,2 Paramétrage,oui
 S31,ED divers : référentiel,42,A,liste,,R:PCCI (comptes),2 Paramétrage,non
 S32,Information société,42,B,liste,pages agences et zones (« afficher les pages »),"D:S05, S08, S21 zone ; A:S33",2 Paramétrage,non
 S33,"Agence : gestionnaire, sensibilisateur, commercial",43 et 44 (trois captures),A,liste,,,2 Paramétrage,non

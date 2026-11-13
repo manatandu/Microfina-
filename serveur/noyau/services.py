@@ -991,7 +991,9 @@ def poster(u: dict, *, journal: str, journee_id: int, libelle: str, piece: str, 
     j = une("select * from journee_comptable where id = %s", (journee_id,))
     if not j or j["statut"] != "ouverte":
         raise ErreurMetier("Journée fermée : aucune écriture possible.")
-    jid = valeur("select id from journal where institution_id = %s and code = %s", (u["institution_id"], journal))
+    jid = valeur("select id from journal where institution_id = %s and code = %s and actif and not supprime", (u["institution_id"], journal))
+    if jid is None:
+        raise ErreurMetier(f"Le journal {journal} n'est pas actif (Comptabilité > Journal).")      # registre S30-2
     pid = valeur("insert into piece (institution_id, numero, type, date_piece) values (%s, %s, 'bordereau', %s) returning id", (u["institution_id"], piece, j["date_comptable"]))
     numero = f"{journal}-{j['date_comptable'].year}-{valeur('select nextval(%s)', ('numero_ecriture',)):06d}"
     eid = valeur("""insert into ecriture (institution_id, numero, journal_id, journee_id, date_valeur, libelle, piece_id, evenement_id, schema_id, saisi_par, valide_par)
@@ -1026,6 +1028,8 @@ def nouvelle_piece(u: dict, journal: str, journee_date) -> str:
     """Numéro de la pièce suivante du journal dans l'exercice de la journée : le compteur de Compléter journal détail (S11c) avance dans la même
     transaction que l'écriture, donc sans trou ni doublon (PCCI § 3.3 et 3.4 ; registre S11-7, S29-1)"""
     i = u["institution_id"]
+    if not valeur("select 1 from journal where institution_id = %s and code = %s and actif and not supprime", (i, journal)):
+        raise ErreurMetier(f"Le journal {journal} n'est pas actif (Comptabilité > Journal).")      # avant le compteur : pas de trou (S30-2)
     n = valeur("""update journal_detail d set compteur = compteur + 1 from journal j
                   where j.id = d.journal_id and d.institution_id = %s and d.annee = %s and j.code = %s returning d.compteur""", (i, journee_date.year, journal))
     if n is None:

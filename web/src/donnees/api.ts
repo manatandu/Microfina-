@@ -17,7 +17,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v39";
+const CLE = "likelemba-demo-v40";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -25,7 +25,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 39) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 40) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -776,7 +776,6 @@ const rapports = {
 /** PCCI, compte 560 « Comptes NOSTRI disponible » */
 const NOSTRI: Record<string, string> = { "5600": "Organe faîtier", "5601": "Banque et autres intermédiaires financiers", "5602": "Coopérative d'Epargne et de Crédit",
   "5603": "Institution de Micro Finance" };
-const JOURNAUX_BANQUE = [{ id: 3, code: "BQ", libelle: "Journal Banque" }];
 export type SaisieBanque = { code: string; libelle: string; compteLiaison: string; adresse: string };
 export type SaisieCompteBancaire = { banqueId: number; compte: string; numeroBancaire: string; devise: string; journalId: number; contactNom: string; contactNomComplet: string; contactTelephone: string };
 // ---------- Info de base > Client > Général : moteur des listes simples (S14, S14a à S14n ; COMPLEMENTS § 7.2).
@@ -931,7 +930,7 @@ const numerotation = {
 const banques = {
   lire() {
     exiger();
-    return { banques: [...E.banques].sort((a, b) => a.code.localeCompare(b.code)), journaux: JOURNAUX_BANQUE,
+    return { banques: [...E.banques].sort((a, b) => a.code.localeCompare(b.code)), journaux: journauxActifs("banque").map(({ id, code, libelle }) => ({ id, code, libelle })),
       comptes: [...E.comptesBancaires].sort((a, b) => a.compte.localeCompare(b.compte)).map((c) => ({ ...c, intitule: NOSTRI[c.compte.slice(0, 4)] ?? "" })) };
   },
   enregistrerBanque(d: SaisieBanque, id?: number) {
@@ -962,7 +961,7 @@ const banques = {
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
     if (!/^560[0-3]\d*$/.test(v.compte)) throw new ErreurMetier("Compte : sous-compte de 560 « Comptes NOSTRI disponible » (PCCI, compte 56), par exemple 5601….");
     if (!["CDF", "USD"].includes(v.devise)) throw new ErreurMetier("Devise inconnue.");
-    if (!JOURNAUX_BANQUE.some((j) => j.id === d.journalId)) throw new ErreurMetier("Journal de banque inconnu.");
+    if (!journauxActifs("banque").some((j) => j.id === d.journalId)) throw new ErreurMetier("Journal de banque inconnu.");
     if (E.comptesBancaires.some((c) => c.banqueId === banque!.id && c.numeroBancaire === v.numeroBancaire && c.id !== id)) throw new ErreurMetier("Ce numéro de compte existe déjà dans cette banque.");
     if (E.comptesBancaires.some((c) => c.compte === v.compte && c.id !== id)) throw new ErreurMetier("Ce compte comptable est déjà attribué à un compte bancaire.");
     if (actuel && actuel.compte !== v.compte && E.ecritures.some((e) => e.lignes.some((l) => l.compte === actuel.compte))) throw new ErreurMetier("Ce compte a des écritures : son numéro comptable ne change plus.");
@@ -1006,7 +1005,8 @@ export function composerPiece(regle: ReglePiece | null, v: { EXERCICE: number | 
 /** Pièce suivante du journal dans l'exercice de la journée : compteur de Compléter journal détail (S11c), sans trou (PCCI § 3.3, 3.4 ; S11-7, S29-1) */
 function piece(journal = "CA") {
   const annee = Number(journees.courante()!.date.slice(0, 4));
-  const j = JOURNAUX.find((x) => x.code === journal)!;
+  const j = journauxActifs().find((x) => x.code === journal);
+  if (!j) throw new ErreurMetier(`Le journal ${journal} n'est pas actif (Comptabilité > Journal).`);   // avant le compteur : pas de trou (S30-2)
   const d = E.journauxDetail.find((x) => x.annee === annee && x.journalId === j.id);
   if (!d) throw new ErreurMetier(`Le journal ${journal} n'est pas ouvert sur l'exercice ${annee} (Administration > Exercice, Compléter journal détail).`);
   d.compteur += 1;
@@ -1267,7 +1267,9 @@ function asynchrone<T extends object>(o: T): Asynchrone<T> {
 /** Types de guichet lus sur la capture p. 19 ; liste complète à confirmer */
 /** Registre S08-1 : les types de guichet viennent de Général > Type Guichet (S14n) */
 const typesGuichet = () => valeursListe("type_guichet").map((v) => v.libelle);
-const JOURNAUX = [{ id: 2, code: "AN", libelle: "À-nouveaux", type: "a_nouveaux" }, { id: 3, code: "BQ", libelle: "Journal Banque", type: "banque" }, { id: 1, code: "CA", libelle: "Caisse", type: "caisse" }];
+/** Journaux de l'institution (S30) : non supprimés, rangés par code */
+const tousJournaux = () => E.journaux.filter((j) => !j.supprime).sort((a, b) => a.code.localeCompare(b.code));
+const journauxActifs = (type?: string) => tousJournaux().filter((j) => j.actif && (!type || j.type === type));
 export interface SaisieGuichet {
   agenceId: number; code: string; designation: string; typeGuichet: string; journalId: number;
   maximumCaisse: number | null; maximumCaisseUsd: number | null; retraitPlafonne: number | null; retraitPlafonneUsd: number | null;   // une valeur par devise (registre S08-3)
@@ -1280,7 +1282,7 @@ const guichets = {
     exiger();
     const j = journees.courante();
     return {
-      agences: [E.agence], journaux: JOURNAUX.filter((j) => j.type === "caisse"), types: typesGuichet(), comptesDefaut: COMPTES_DEFAUT,   // registre S08-2
+      agences: [E.agence], journaux: journauxActifs("caisse").map(({ id, code, libelle }) => ({ id, code, libelle })), types: typesGuichet(), comptesDefaut: COMPTES_DEFAUT,   // registre S08-2
       // Registre S09-1 et S09-2 (p. 19) : « Dernière journée ouverte », « Journée ouverte à associer »
       derniereJournee: j?.date ?? "",
       journeesOuvertes: E.journees.filter((x) => x.statut === "ouverte").sort((a, b) => b.date.localeCompare(a.date)).map((x) => ({ id: x.id, date: x.date })),
@@ -1310,7 +1312,7 @@ const guichets = {
     });
     if (!typesGuichet().includes(v.typeGuichet)) throw new ErreurMetier("Type de guichet inconnu.");
     if (d.agenceId !== E.agence.id) throw new ErreurMetier("Agence inconnue.");
-    if (!JOURNAUX.some((j) => j.id === d.journalId && j.type === "caisse")) throw new ErreurMetier("Journal inconnu.");
+    if (!journauxActifs("caisse").some((j) => j.id === d.journalId)) throw new ErreurMetier("Journal inconnu.");
     const comptes: Record<string, string | undefined> = {};
     for (const [k, n] of [["compteGuichet", "Compte guichet"], ["compteLiaison", "Compte liaison"], ["compteSurplus", "Compte surplus"], ["compteManquant", "Compte manquant"]] as const) {
       const x = d[k].trim();
@@ -1390,8 +1392,8 @@ const exercices = {
     exiger();
     const ex = [...E.exercices].sort((a, b) => a.annee - b.annee);
     return {
-      exercices: ex.map((e) => ({ ...e })), enCours: ex.find((e) => e.actif)?.annee ?? null, journaux: JOURNAUX,   // registre S11-1 : l'exercice actif est en cours
-      details: E.journauxDetail.map((d) => { const j = JOURNAUX.find((x) => x.id === d.journalId)!; return { ...d, libelle: j.libelle, code: j.code, type: j.type }; })
+      exercices: ex.map((e) => ({ ...e })), enCours: ex.find((e) => e.actif)?.annee ?? null, journaux: tousJournaux().map(({ id, code, libelle, type }) => ({ id, code, libelle, type })),   // registre S11-1 : l'exercice actif est en cours
+      details: E.journauxDetail.map((d) => { const j = E.journaux.find((x) => x.id === d.journalId)!; return { ...d, libelle: j.libelle, code: j.code, type: j.type }; })
         .sort((a, b) => a.annee - b.annee || a.code.localeCompare(b.code)),
     };
   },
@@ -1425,7 +1427,7 @@ const exercices = {
     const e = E.exercices.find((x) => x.annee === a);
     if (!e) throw new ErreurMetier("Exercice introuvable.");
     if (E.journauxDetail.some((x) => x.annee === a)) throw new ErreurMetier("Cet exercice est déjà ouvert.");
-    for (const j of JOURNAUX) E.journauxDetail.push({ id: prochain(E.journauxDetail), annee: a, journalId: j.id, actif: true, ouvert: true, compteur: 0 });
+    for (const j of tousJournaux()) E.journauxDetail.push({ id: prochain(E.journauxDetail), annee: a, journalId: j.id, actif: true, ouvert: true, compteur: 0 });
     e.ouvert = true; enregistrer(); return exercices.lire();
   },
   /** « Completer journal detail de l'exercice encours » (p. 21) : bouton Enregistrer et confirmation (bas coupé ; registre S11-8) */
@@ -1434,7 +1436,7 @@ const exercices = {
     const a = exercices.lire().enCours;
     if (a === null) throw new ErreurMetier("Aucun exercice en cours.");
     if (!journalIds.length) throw new ErreurMetier("À remplir : journaux à ajouter.");
-    if (journalIds.some((id) => !JOURNAUX.some((j) => j.id === id))) throw new ErreurMetier("Journal inconnu.");
+    if (journalIds.some((id) => !tousJournaux().some((j) => j.id === id))) throw new ErreurMetier("Journal inconnu.");
     for (const id of journalIds) if (!E.journauxDetail.some((x) => x.annee === a && x.journalId === id))
       E.journauxDetail.push({ id: prochain(E.journauxDetail), annee: a, journalId: id, actif: true, ouvert: true, compteur: 0 });
     enregistrer(); return exercices.lire();
@@ -2125,6 +2127,65 @@ const parametrageEpargne = {
   },
 };
 
+// ---------- Comptabilité > Journal (S30, manuel p. 41 et 42). Journaux auxiliaires au choix de l'institution (PCCI § 3.3).
+// Règles identiques côté serveur (noyau/journaux.py). ----------
+export const TYPES_JOURNAL: Record<string, string> = { caisse: "Journal de Caisse", banque: "Journal de Banque", operations_diverses: "Journal des Opérations diverses",
+  credit: "Journal de Crédit", epargne: "Journal d'Epargne", provisions: "Journal des Provisions", paie: "Journal de Paie", immobilisations: "Journal des Immobilisations",
+  a_nouveaux: "Journal des À-nouveaux" };
+const journaux = {
+  lire() {
+    exiger();
+    const ex = E.exercices.find((e) => e.actif)?.annee ?? null;
+    return { types: Object.entries(TYPES_JOURNAL).map(([code, libelle]) => ({ code, libelle })), exercice: ex,
+      journaux: tousJournaux().map((j) => ({ id: j.id, code: j.code, libelle: j.libelle, type: j.type, actif: j.actif, typeLibelle: TYPES_JOURNAL[j.type]!,
+        detail: E.journauxDetail.some((d) => d.journalId === j.id && d.annee === ex) })) };
+  },
+  /** Raison pour laquelle un journal a servi, ou null */
+  utilise(id: number): string | null {
+    const code = E.journaux.find((j) => j.id === id)?.code;
+    if (E.ecritures.some((e) => e.journal === code)) return "des écritures y sont passées";
+    if (E.guichets.some((g) => g.journalId === id)) return "un guichet l'utilise";
+    if (E.comptesBancaires.some((c) => c.journalId === id)) return "un compte bancaire l'utilise";
+    return null;
+  },
+  /** Enregistrer (nouveau journal) ou modifier le journal choisi (registre S30-1 à S30-3) */
+  enregistrer(d: { type?: string; libelle?: string; code?: string; actif?: boolean; detail?: boolean }, id?: number) {
+    exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
+    const type = d.type?.trim() ?? "", libelle = d.libelle?.trim() ?? "", code = (d.code ?? "").trim().toUpperCase();
+    const manque = manquants([["Type Journal", type], ["Libelle", libelle], ["Code", code]]);
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    if (!(type in TYPES_JOURNAL)) throw new ErreurMetier("Type Journal inconnu.");
+    const actuel = id === undefined ? undefined : E.journaux.find((j) => j.id === id && !j.supprime);
+    if (id !== undefined && !actuel) throw new ErreurMetier("Journal introuvable.");
+    if (actuel) { const pourquoi = journaux.utilise(actuel.id); if (pourquoi && (code !== actuel.code || type !== actuel.type)) throw new ErreurMetier(`Le code et le type ne se changent plus : ${pourquoi}.`); }
+    if (E.journaux.some((j) => j.code === code && j.id !== id)) throw new ErreurMetier("Ce Code existe déjà.");
+    const ex = E.exercices.find((e) => e.actif)?.annee ?? null;
+    if (d.detail && ex === null) throw new ErreurMetier("Détail journal : aucun exercice en cours (Administration > Exercice).");
+    if (!d.detail && actuel && ex !== null && (E.journauxDetail.find((x) => x.journalId === actuel.id && x.annee === ex)?.compteur ?? 0) > 0)
+      throw new ErreurMetier(`Détail journal : des pièces sont numérotées sur l'exercice ${ex}, le détail reste.`);
+    let jid = id;
+    if (actuel) Object.assign(actuel, { code, libelle, type, actif: !!d.actif });
+    else { jid = prochain(E.journaux); E.journaux.push({ id: jid, code, libelle, type, actif: !!d.actif, supprime: false }); }
+    if (ex !== null) {
+      const det = E.journauxDetail.find((x) => x.journalId === jid && x.annee === ex);
+      if (d.detail && !det) E.journauxDetail.push({ id: prochain(E.journauxDetail), annee: ex, journalId: jid!, actif: true, ouvert: true, compteur: 0 });
+      if (!d.detail && det && det.compteur === 0) E.journauxDetail = E.journauxDetail.filter((x) => x !== det);
+    }
+    enregistrer(); return journaux.lire();
+  },
+  /** Supprimer (p. 12) : logique (T02) ; un journal qui a servi ne se supprime pas : décocher Actif (registre S30-3) */
+  supprimer(id: number) {
+    exiger("chef_agence");
+    const j = E.journaux.find((x) => x.id === id && !x.supprime);
+    if (!j) throw new ErreurMetier("Journal introuvable.");
+    const pourquoi = journaux.utilise(id) ?? (E.journauxDetail.some((x) => x.journalId === id && x.compteur > 0) ? "il a un détail dans un exercice" : null);
+    if (pourquoi) throw new ErreurMetier(`Ce journal ne se supprime pas : ${pourquoi}. Décocher Actif.`);
+    E.journauxDetail = E.journauxDetail.filter((x) => x.journalId !== id);
+    Object.assign(j, { supprime: true, actif: false });
+    enregistrer(); return journaux.lire();
+  },
+};
+
 // ---------- Info de base > Localisation (S20, manuel p. 30 à 32), adaptée au découpage de la RDC (demande du porteur, registre S20-1) :
 // Constitution, art. 2 et 3 ; Décret 22/07 du 02/03/2022, art. 9, point 26. Règles identiques côté serveur (noyau/localisation.py). ----------
 const NIVEAUX: NiveauLieu[] = ["pays", "province", "ville", "commune", "quartier"];
@@ -2221,6 +2282,7 @@ const apiLocal = {
   modeles: asynchrone(modeles),
   produitsEpargne: asynchrone(produitsEpargne),
   parametrageEpargne: asynchrone(parametrageEpargne),
+  journaux: asynchrone(journaux),
   comptes: asynchrone(comptes),
   numerotation: asynchrone(numerotation),
 };

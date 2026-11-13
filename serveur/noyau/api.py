@@ -18,6 +18,7 @@ from . import produits_credit as pc
 from . import modeles_credit as mc
 from . import produits_epargne as pe
 from . import parametrage_epargne as pp
+from . import journaux as jo
 from . import comptes as cp
 from . import numerotation as nu
 from . import services as s
@@ -683,6 +684,27 @@ def pe_modifier(request, pid: int, corps: dict = Body(...)):
 @api.post("/produits-epargne/{pid}/suppression")
 def pe_supprimer(request, pid: int):
     return pe.supprimer(u(request), pid)
+
+
+# ---------- Comptabilité > Journal (S30) ----------
+@api.get("/journaux")
+def jo_lire(request):
+    return jo.lire(u(request))
+
+
+@api.post("/journaux")
+def jo_creer(request, corps: dict = Body(...)):
+    return jo.enregistrer(u(request), corps)
+
+
+@api.post("/journaux/{jid}")
+def jo_modifier(request, jid: int, corps: dict = Body(...)):
+    return jo.enregistrer(u(request), corps, jid)
+
+
+@api.post("/journaux/{jid}/suppression")
+def jo_supprimer(request, jid: int):
+    return jo.supprimer(u(request), jid)
 
 
 # ---------- Produits > Epargne > Paramétrage des produits (S28) ----------
