@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**244 décisions.** Solidité : 76 fortes (le manuel ou un texte répond), 136 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 189 déjà en place, 55 à appliquer.
+**247 décisions.** Solidité : 77 fortes (le manuel ou un texte répond), 138 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 193 déjà en place, 54 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -16,7 +16,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | T04 | Barre de pages, filtre, export (toutes les grilles) | Barre de pages, filtre en tête de colonne ; bouton Exporter quand la capture de l'écran le montre | Règle générale du manuel : Manuel p. 9, « Les grilles d'affichages » | forte | à appliquer |
 | T05 | Champ obligatoire (tous les formulaires) | Astérisque ; refus à l'enregistrement par la boîte d'erreur, qui nomme les champs à remplir | Règle générale du manuel : Manuel p. 10 et 11 | forte | en place |
 | T06 | Enregistrer et message (tous les écrans) | Confirmation Oui/Non, puis boîte de succès « Enregistré avec succès ! » ou boîte d'erreur avec le motif | Règle générale du manuel : Manuel p. 10 et 11, « Enregistrer une information » | forte | en place |
-| T07 | Profil habilité (tout le logiciel) | Un droit par entrée de menu, rangé par module ; un profil est un ensemble de droits ; l'utilisateur reçoit un profil pour une agence. Les quatre rôles actuels deviennent des profils de départ. Aucun profil ne lève les blocages de ARCHITECTURE P7 et P8 ; en place pour les profils et les droits (S03, S04) ; reste l'utilisateur et son agence (S05, S06) | Manuel : Manuel p. 15 à 17 (création de profil, octroyer des droits, gestion des profils) | forte | à appliquer |
+| T07 | Profil habilité (tout le logiciel) | Un droit par entrée de menu, rangé par module ; un profil est un ensemble de droits ; l'utilisateur reçoit un profil pour une agence. Les quatre rôles actuels deviennent des profils de départ. Aucun profil ne lève les blocages de ARCHITECTURE P7 et P8 ; en place pour les profils et les droits (S03, S04) ; utilisateur, agence et profil en place (S05, S06) | Manuel : Manuel p. 15 à 17 (création de profil, octroyer des droits, gestion des profils) | forte | en place |
 | T08 | Code unique (toutes les listes) | Le code ou numéro d'une liste est unique dans l'institution | Donnée exigée ailleurs : Les écrans qui lisent la liste doivent désigner une seule valeur | moyenne | en place |
 | T09 | Date (tous les formulaires) | Bouton calendrier à côté du champ ; la saisie au clavier reste possible | Règle générale du manuel : Manuel p. 9 et 10, « Les sélectionneurs de date » | forte | à appliquer |
 | T10 | Résultat non montré (tous les rapports) | Critères, bouton de la capture (Afficher, Exécuter, Rechercher), grille, Exporter. Colonnes : celles de la liste de saisie du même objet, plus les critères | Écran voisin : S13 (manuel p. 22), rapports épargne (p. 82 à 84) | moyenne | à appliquer |
@@ -53,6 +53,14 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S05-1 | Champs et boutons | Ceux de la capture : Informations (Nom et prénom(s)*, Agence*, Control utilisateur connecté), Authentification (Nom utilisateur*, Mot de passe*, Confirmation*), Info Adresse (Rue / Maison, Adresse, BP, Tél fix, Portable*, Email), Enregistrer, Effacer. Clic sur une ligne pour modifier (p. 12, T01) ; en modification le mot de passe vide reste inchangé. Nom utilisateur unique, sans espace (il sert à la connexion) ; Confirmation égale au mot de passe ; email valide. L'effet de « Control utilisateur connecté » n'est pas décrit : enregistré seulement, à voir avec S07 | Donnée exigée ailleurs : Capture p. 17 ; texte p. 16 ; T01, T08 | moyenne | en place |
 | S05-2 | Grille | Nom user, Prenoms user, Agence, Telephone : le champ unique « Nom et prénom(s) » se coupe au premier espace (nom, puis prénoms) ; Telephone = Portable. Les utilisateurs de démonstration sont écrits prénom d'abord, d'où l'inversion visible sur eux | Donnée exigée ailleurs : Capture p. 17 | faible | en place |
 | S05-3 | Mot de passe | Chiffré par le serveur (empreinte, jamais en clair), aucune règle de longueur inventée : l'institution édicte ses règles internes de sécurité. La démo dans le navigateur ne garde pas le mot de passe. La page de connexion reste sans mot de passe jusqu'à votre décision (demande du porteur) | Texte réglementaire : Instr. BCC 008, art. 15 et 16 (gestion des accès et authentification maîtrisées, règles internes) ; demande du porteur (connexion sans mot de passe pour l'instant) | moyenne | en place |
+
+## S06 Utilisateurs : gestion des profils
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S06-1 | Écran et profil de l'utilisateur | Ceux de la capture : Nom et prénom(s)* et Choix du profil*, chacun avec son bouton de recherche ; Agence et Description affichées ; Liste des modules liés (Nom Module : Likelemba, Paie, Immobilisations, selon les droits du profil) ; Enregistrer, Effacer, Historique profil. Fenêtres de recherche (non montrées) sur le modèle de la recherche de S40 : grille où l'on clique. Un profil par utilisateur ; le profil choisi remplace le précédent ; l'agence est celle de l'utilisateur (S05) | Écran voisin : Capture et texte p. 17 ; atlas (A : recherche S40) ; T07 | moyenne | en place |
+| S06-2 | Historique profil | Fenêtre : Profil, Début, Fin, Attribué par ; chaque changement ferme la ligne précédente | Donnée exigée ailleurs : Bouton Historique profil de la capture p. 17 | moyenne | en place |
+| S06-3 | Pas de profil pour soi-même | Un utilisateur ne change pas son propre profil : un autre utilisateur habilité le fait | Texte réglementaire : Instr. BCC 008, art. 66 (séparation des tâches incompatibles) et art. 16 (gestion des accès maîtrisée) ; ARCHITECTURE P7 | forte | en place |
 
 ## S08 Gestion des guichets
 

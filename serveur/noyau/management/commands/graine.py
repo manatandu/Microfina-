@@ -94,6 +94,7 @@ class Command(BaseCommand):
             pid = valeur("insert into profil (institution_id, code, nom) values (%s, %s, %s) returning id", (ins, profil, NOMS_PROFILS[profil]))
             uid[login] = valeur("insert into utilisateur (institution_id, agence_id, login, nom, mot_de_passe_hash) values (%s, %s, %s, %s, '!') returning id", (ins, ag, login, nom))
             executer("insert into utilisateur_profil values (%s, %s)", (uid[login], pid))
+            executer("insert into utilisateur_profil_historique (utilisateur_id, profil_id) values (%s, %s)", (uid[login], pid))   # registre S06-2
             for c in DROITS_DEPART[profil]:                       # registre S04-2
                 executer("insert into profil_droit (profil_id, droit_code) values (%s, %s)", (pid, c))
         chef, compta, caissiere = uid["jpmukendi"], uid["plumbala"], uid["engalula"]

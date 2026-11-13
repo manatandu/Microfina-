@@ -1,0 +1,9 @@
+from pathlib import Path
+from django.db import migrations
+
+SQL = (Path(__file__).resolve().parent.parent / "sql" / "0054_profils_utilisateurs.sql").read_text(encoding="utf-8")
+
+
+class Migration(migrations.Migration):
+    dependencies = [("noyau", "0053_utilisateurs")]
+    operations = [migrations.RunSQL(SQL, reverse_sql=migrations.RunSQL.noop)]

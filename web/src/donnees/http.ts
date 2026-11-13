@@ -153,6 +153,10 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       enregistrerJournees: (d: object) => post("/jours/journees", d),
       enregistrerFeries: (d: object) => post("/jours/feries", d),
     },
+    profilsUtilisateurs: {
+      lire: (utilisateur?: number) => get(utilisateur === undefined ? "/profils-utilisateurs" : `/profils-utilisateurs?utilisateur=${utilisateur}`),
+      enregistrer: (d: object) => post("/profils-utilisateurs", d),
+    },
     comptesUtilisateurs: {
       lire: () => get("/gestion-utilisateurs"),
       enregistrer: (d: object, id?: number) => post(id === undefined ? "/gestion-utilisateurs" : `/gestion-utilisateurs/${id}`, d),

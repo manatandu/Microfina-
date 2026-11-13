@@ -255,6 +255,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "profils.supprimer": [
 "S03"
 ],
+"profilsUtilisateurs.enregistrer": [
+"S03"
+],
 "societe.enregistrer": [
 "S32"
 ],

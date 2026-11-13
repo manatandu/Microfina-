@@ -1316,3 +1316,27 @@ def test_utilisateurs_creation(clients):
     assert h != "secret-1" and h.startswith(("pbkdf2", "argon2", "bcrypt", "scrypt"))
     chef.post(f"/api/gestion-utilisateurs/{x['id']}", {**U, "motDePasse": "", "confirmation": "", "portable": "+243 810 000 555"}, **H)
     assert ident("select mot_de_passe_hash from utilisateur where login = 'jmbala'") == h
+
+
+def test_profils_utilisateurs(clients):
+    """S06 (p. 17) : un utilisateur reçoit un profil ; modules liés ; historique ; pas de profil donné à soi-même ; l'utilisateur
+    créé en S05 travaille avec les droits de son profil (registre T07, S06-1 à S06-3)"""
+    chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    ag = chef.get("/api/gestion-utilisateurs", **H).json()["agences"][0]["id"]
+    chef.post("/api/gestion-utilisateurs", {"nom": "Mbala Joseph", "agenceId": ag, "login": "jmbala", "motDePasse": "s", "confirmation": "s", "portable": "1"}, **H)
+    l = chef.get("/api/profils-utilisateurs", **H).json()
+    x = next(v for v in l["utilisateurs"] if v["login"] == "jmbala")
+    caissier = next(p for p in l["profils"] if p["nom"] == "CAISSIER")
+    assert caissier["modules"] == ["Likelemba"]
+    def refus(corps, c=chef):
+        r = c.post("/api/profils-utilisateurs", corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    assert "Nom et prénom(s), Choix du profil" in refus({})
+    assert "Droit manquant" in refus({"utilisateurId": x["id"], "profilId": caissier["id"]}, agent)
+    moi = next(v for v in l["utilisateurs"] if v["login"] == "jpmukendi")
+    assert "propre profil" in refus({"utilisateurId": moi["id"], "profilId": caissier["id"]})
+    r = chef.post("/api/profils-utilisateurs", {"utilisateurId": x["id"], "profilId": caissier["id"]}, **H).json()
+    assert r["profilId"] == caissier["id"] and r["historique"][0]["profil"] == "CAISSIER" and r["historique"][0]["attribuePar"] == "J.-P. Mukendi"
+    assert "déjà ce profil" in refus({"utilisateurId": x["id"], "profilId": caissier["id"]})
+    j = clients["compta"]; connecter(j, "jmbala")
+    s = j.get("/api/session", **H).json()
+    assert s["roles"] == ["caissier"] and "S74" in s["droits"]

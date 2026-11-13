@@ -4,7 +4,7 @@ S02,Page des modules,6,A,menu,,,1 Administration,oui
 S03,Profils : création et modification,15,A,liste,"Modifier et Supprimer (boutons non visibles, formulaire vide)",G:p.12,1 Administration,oui
 S04,Profils : assigner et modifier les droits,16 (deux captures),A,composition,contenu de chaque branche de l'arbre des droits,D:menus du logiciel (une tâche par entrée de menu),1 Administration,oui
 S05,Utilisateurs : création,17,A,liste,,G:p.12,1 Administration,oui
-S06,Utilisateurs : gestion des profils,17,A,composition,fenêtres de recherche Agence et Profil,A:recherche client S40,1 Administration,non
+S06,Utilisateurs : gestion des profils,17,A,composition,fenêtres de recherche Agence et Profil,A:recherche client S40,1 Administration,oui
 S07,Utilisateurs : autres fonctions et déconnexion,18 (deux captures),A,liste,,,1 Administration,non
 S08,Guichets : gestion,19 ; doublons 95 et 109,A,liste,"liste des guichets existants, Modifier",G:p.12 ; D:S14n Type Guichet,1 Administration,oui
 S09,Guichets : ouverture et fermeture,19 (deux captures) ; doublons 96 et 110,B,traitement,"bas de l'écran (valeurs de « Dernière journée ouverte », ligne suivante)",D:S12 (journées) ; P,1 Administration,oui

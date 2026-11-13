@@ -4,6 +4,7 @@ export type Role = "caissier" | "chef_agence" | "agent_credit" | "comptable";
 
 export interface Utilisateur { id: number; login: string; nom: string; roles: Role[];
   // S05 : Informations et Info Adresse (le mot de passe n'est pas gardé par la démo, registre S05-3)
+  profilId?: number;   // S06 : profil de l'utilisateur
   agenceId?: number; controleConnecte?: boolean; rue?: string; adresse?: string; bp?: string; telephoneFixe?: string; portable?: string; email?: string }
 export interface Institution { nom: string; sigle?: string; profil: string;
   // S32 Info générale
@@ -180,7 +181,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 51;
+  version: 52;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)
@@ -223,6 +224,7 @@ export interface Etat {
   typesMonnaie: { id: number; libelle: string }[];   // S35
   elementsFacture: { id: number; libelle: string; compte: string; taux: number; tauxA: number; tauxNA: number; retenue: boolean; actif: boolean; supprime: boolean }[];   // S36
   typesCommande: { id: number; code: string; libelle: string; supprime: boolean }[];   // S36, Référence Commande
+  historiqueProfils: { utilisateurId: number; profilId: number; debut: string; fin: string; par: number | null }[];   // S06, Historique profil
   profils: { id: number; code?: Role; nom: string; description: string; supprime: boolean; droits: string[] }[];   // S03 ; code : rôle du profil de départ (registre S03-1)
   monnaies: { devise: string; valeur: number; typeId: number }[];   // S35 : coupures, valeur en unités
   operationsDiverses: { id: number; sens: "PRODUIT" | "CHARGE"; compte: string; libelle: string; statut: "ACTIF" | "INACTIF" }[];   // S31

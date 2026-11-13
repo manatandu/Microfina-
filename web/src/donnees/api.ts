@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v51";
+const CLE = "likelemba-demo-v52";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -27,7 +27,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 51) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 52) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -54,7 +54,7 @@ function exiger(role?: Role): Utilisateur {
   return u;
 }
 /** S04 : droits de l'utilisateur, ceux des profils qu'il porte (registre T07) */
-const droitsDe = (u: Utilisateur) => [...new Set(E.profils.filter((p) => !p.supprime && p.code && u.roles.includes(p.code)).flatMap((p) => p.droits))].sort();
+const droitsDe = (u: Utilisateur) => [...(E.profils.find((p) => p.id === u.profilId && !p.supprime)?.droits ?? [])].sort();   // le profil de l'utilisateur (S06)
 let droitVerifie = false;
 const NOMS_ECRANS: Record<string, string> = Object.fromEntries((registreEcrans as { id: string; nom: string }[]).map((e) => [e.id, e.nom]));
 /** Écriture : l'utilisateur tient le droit d'un des écrans de la méthode (registre S04-3) ; mêmes règles que noyau/droits.py */
@@ -2596,7 +2596,7 @@ const profils = {
     exiger("chef_agence");
     const p = E.profils.find((x) => x.id === id && !x.supprime);
     if (!p) throw new ErreurMetier("Profil introuvable.");
-    if (p.code && E.utilisateurs.some((u) => u.roles.includes(p.code!))) throw new ErreurMetier("Des utilisateurs portent ce profil : il ne se supprime pas.");
+    if (E.utilisateurs.some((u) => u.profilId === p.id)) throw new ErreurMetier("Des utilisateurs portent ce profil : il ne se supprime pas.");
     p.supprime = true; enregistrer(); return profils.lire();
   },
 };
@@ -2658,6 +2658,47 @@ const comptesUtilisateurs = {
     const f = { ...v, agenceId: agenceId!, controleConnecte: !!d.controleConnecte };
     if (x) Object.assign(x, f); else E.utilisateurs.push({ id: prochain(E.utilisateurs), roles: [], ...f });
     enregistrer(); return comptesUtilisateurs.lire();
+  },
+};
+
+// ---------- Administration > Utilisateur > Gestion des profils (S06, manuel p. 17). Règles identiques côté serveur (noyau/profils_utilisateurs.py). ----------
+const APPLI_MODULE: Record<string, string> = { paie: "Paie", immobilisations: "Immobilisations" };
+/** Liste des modules liés : les applications où le profil a au moins un droit (registre S06-1) */
+const modulesLies = (droits: string[]) => {
+  const noms = new Set((registreEcrans as { id: string; module: string }[]).filter((e) => droits.includes(e.id)).map((e) => APPLI_MODULE[e.module] ?? "Likelemba"));
+  return ["Likelemba", "Paie", "Immobilisations"].filter((n) => noms.has(n));
+};
+const profilsUtilisateurs = {
+  lire(utilisateur?: number) {
+    exiger();
+    const r = { utilisateurs: [...E.utilisateurs].sort((a, b) => a.nom.localeCompare(b.nom)).map((x) => ({ id: x.id, nom: x.nom, login: x.login, agence: E.agences.find((a) => a.id === x.agenceId)?.nom ?? "" })),
+      profils: E.profils.filter((p) => !p.supprime).sort((a, b) => a.nom.localeCompare(b.nom)).map((p) => ({ id: p.id, nom: p.nom, description: p.description, modules: modulesLies(p.droits) })),
+      profilId: null as number | null, historique: [] as { profil: string; debut: string; fin: string; attribuePar: string }[] };
+    if (utilisateur !== undefined) {
+      const x = E.utilisateurs.find((y) => y.id === utilisateur);
+      if (!x) throw new ErreurMetier("Utilisateur introuvable.");
+      r.profilId = x.profilId ?? null;
+      r.historique = E.historiqueProfils.filter((h) => h.utilisateurId === utilisateur).sort((a, b) => b.debut.localeCompare(a.debut))
+        .map((h) => ({ profil: E.profils.find((p) => p.id === h.profilId)?.nom ?? "", debut: h.debut, fin: h.fin, attribuePar: nomUtilisateur(h.par ?? undefined) }));
+    }
+    return r;
+  },
+  /** Le profil choisi remplace celui de l'utilisateur ; on ne se donne pas un profil à soi-même (registre S06-1, S06-3) */
+  enregistrer(d: { utilisateurId?: number | null; profilId?: number | null }) {
+    const moi = exiger("chef_agence");
+    const manque = manquants([["Nom et prénom(s)", typeof d.utilisateurId === "number" ? "x" : ""], ["Choix du profil", typeof d.profilId === "number" ? "x" : ""]]);
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    const x = E.utilisateurs.find((y) => y.id === d.utilisateurId);
+    if (!x) throw new ErreurMetier("Utilisateur introuvable.");
+    const p = E.profils.find((y) => y.id === d.profilId && !y.supprime);
+    if (!p) throw new ErreurMetier("Profil introuvable.");
+    if (x.id === moi.id) throw new ErreurMetier("On ne change pas son propre profil : un autre utilisateur habilité le fait (Instr. BCC 008, art. 66).");
+    if (x.profilId === p.id) throw new ErreurMetier("Cet utilisateur a déjà ce profil.");
+    const maintenant = new Date().toISOString();
+    for (const h of E.historiqueProfils) if (h.utilisateurId === x.id && !h.fin) h.fin = maintenant;
+    E.historiqueProfils.push({ utilisateurId: x.id, profilId: p.id, debut: maintenant, fin: "", par: moi.id });
+    x.profilId = p.id; x.roles = p.code ? [p.code] : [];
+    enregistrer(); return profilsUtilisateurs.lire(x.id);
   },
 };
 
@@ -2769,6 +2810,7 @@ const apiLocal = {
   profils: asynchrone(profils, "profils"),
   droits: asynchrone(droits, "droits"),
   comptesUtilisateurs: asynchrone(comptesUtilisateurs, "comptesUtilisateurs"),
+  profilsUtilisateurs: asynchrone(profilsUtilisateurs, "profilsUtilisateurs"),
   comptes: asynchrone(comptes, "comptes"),
   numerotation: asynchrone(numerotation, "numerotation"),
 };

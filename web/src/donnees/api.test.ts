@@ -638,6 +638,24 @@ describe("journée de guichet", () => {
     await expect(api.comptesUtilisateurs.enregistrer(U)).rejects.toThrow("Droit manquant");
   });
 
+  it("profils des utilisateurs (S06, p. 17) : un profil par utilisateur, modules liés, historique, pas pour soi-même ; droits du profil", async () => {
+    await connecter("jpmukendi");
+    await api.comptesUtilisateurs.enregistrer({ nom: "Mbala Joseph", agenceId: 1, login: "jmbala", motDePasse: "s", confirmation: "s", portable: "1" });
+    const l = await api.profilsUtilisateurs.lire();
+    const x = l.utilisateurs.find((v) => v.login === "jmbala")!, moi = l.utilisateurs.find((v) => v.login === "jpmukendi")!;
+    const caissier = l.profils.find((p) => p.nom === "CAISSIER")!;
+    expect(caissier.modules).toEqual(["Likelemba"]);
+    await expect(api.profilsUtilisateurs.enregistrer({})).rejects.toThrow("Nom et prénom(s), Choix du profil");
+    await expect(api.profilsUtilisateurs.enregistrer({ utilisateurId: moi.id, profilId: caissier.id })).rejects.toThrow("propre profil");
+    const r = await api.profilsUtilisateurs.enregistrer({ utilisateurId: x.id, profilId: caissier.id });
+    expect([r.profilId, r.historique[0]!.profil, r.historique[0]!.attribuePar]).toEqual([caissier.id, "CAISSIER", "J.-P. Mukendi"]);
+    await expect(api.profilsUtilisateurs.enregistrer({ utilisateurId: x.id, profilId: caissier.id })).rejects.toThrow("déjà ce profil");
+    await expect(api.profils.supprimer(caissier.id)).rejects.toThrow("Des utilisateurs");
+    await connecter("jmbala");
+    const s = (await api.session.courante())!;
+    expect([s.roles, s.droits.includes("S74")]).toEqual([["caissier"], true]);
+  });
+
   it("info société (S32, p. 42) : obligatoires, Type base, localisation, hors bilan classe 0, logo ; agences", async () => {
     await connecter("jpmukendi");
     const l = await api.societe.lire();

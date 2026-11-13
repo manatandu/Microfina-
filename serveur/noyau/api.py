@@ -28,6 +28,7 @@ from . import facture as fa
 from . import profils as pf
 from . import droits as dr
 from . import comptes_utilisateurs as cu
+from . import profils_utilisateurs as pu
 from . import comptes as cp
 from . import numerotation as nu
 from . import services as s
@@ -810,6 +811,17 @@ def cu_creer(request, corps: dict = Body(...)):
 @api.post("/gestion-utilisateurs/{uid}")
 def cu_modifier(request, uid: int, corps: dict = Body(...)):
     return cu.enregistrer(u(request), corps, uid)
+
+
+# ---------- Administration > Utilisateur > Gestion des profils (S06) ----------
+@api.get("/profils-utilisateurs")
+def pu_lire(request, utilisateur: int | None = None):
+    return pu.lire(u(request), utilisateur)
+
+
+@api.post("/profils-utilisateurs")
+def pu_enregistrer(request, corps: dict = Body(...)):
+    return pu.enregistrer(u(request), corps)
 
 
 # ---------- Administration > Profil > Assigner droit ; Modifier droit d'un profil (S04) ----------
