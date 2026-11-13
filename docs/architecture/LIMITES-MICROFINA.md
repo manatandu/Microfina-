@@ -20,7 +20,7 @@ Chaque ligne dit ce qui a été constaté, où, et ce que Likelemba fait déjà 
 | S21 Périodicité | 48 semaines par an (Hebdomadaire), 24 quinzaines : l'année en compte 52 et 26 ; fausse le taux effectif | Valeurs exactes, contrôle du TEG (Instr. BCC 38, art. 2 et 4) |
 | S23 Produit crédit | Aucun TEG affiché ni calculé au niveau du produit ; pas de devise ; listes à une seule valeur (Fixe, Réparti, Normal) | TEG indicatif par produit, devise, valeurs complètes |
 | S26 Modèle crédit | « Compte interne » sans définition dans le manuel | Nommer le compte (provision 380 ou intérêts courus 308, 318, 328) |
-| S27 Produit épargne | Pas de devise ; options enregistrées mais leur effet aux guichets n'est pas décrit | Devise ; contrôles visibles au guichet (S37-9) |
+| S27 Produit épargne | Pas de devise ; options enregistrées mais leur effet aux guichets n'est pas décrit | Devise ; contrôles visibles au guichet (S74-5) |
 | S14m et S18 | La même liste (motifs de départ) existe à deux endroits du menu, sous deux formes | Une seule entrée |
 | S20, S21 | Barres d'outils en double : icônes Enregistrer et Annuler au-dessus des mêmes boutons en bas | Une seule rangée de boutons |
 | S13, S15, S21, S29, S34 | Fautes dans l'interface : « Tansactions », « Défintion », « Dégré », « Contante », « vous vous le mettre à jour » ; manuel : « Journal de travail » pour Journées de travail | Relecture des libellés |
@@ -37,5 +37,6 @@ Chaque ligne dit ce qui a été constaté, où, et ce que Likelemba fait déjà 
 | S05 Utilisateurs | « Nom et prénom(s) » en un seul champ, mais deux colonnes dans la grille ; aucune règle de mot de passe ni d'expiration ; « Control utilisateur connecté » non expliqué | Nom et prénoms séparés ; règles de mot de passe paramétrables (Instr. BCC 008, art. 16) |
 | S06 Profils utilisateur | Le bouton de recherche du nom est appelé « Agence » ; rien n'empêche dans le manuel de se donner un profil à soi-même | Libellés justes ; changement de profil validé par un second utilisateur |
 | S07 Connexions | « Autres fonctions » n'offre aucune fonction (une liste seulement) ; pas d'historique des connexions ni de verrouillage après inactivité | Journal des connexions ; fermeture automatique de session (Instr. BCC 008, art. 16) |
+| S37 Enrôlement | Le manuel ne montre que l'onglet Informations de base : les champs des autres onglets ne sont visibles qu'ailleurs (contrat, résiliation, rapport, situation) ; rien ne signale les mentions que l'Instr. BCC 15 exige ; « Fils de » sur le contrat sans champ visible | Fiche d'identification guidée par l'Instr. BCC 15 (art. 12 à 18), avec copie de la pièce |
 | Grilles | Pages de 10 lignes et filtres par colonne, sans recherche globale ni tri multiple | Recherche et tri |
 | Messages | Boîtes de confirmation Oui/Non à chaque enregistrement, même sans risque | Confirmer seulement ce qui engage (écritures, suppressions) |

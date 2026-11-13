@@ -87,6 +87,8 @@ class Command(BaseCommand):
         executer("""insert into parametre_reglementaire (cle, valeur, source, date_effet)
                     values ('valeur_part', %s, 'Exemple du manuel Microfina++ ; statuts de la COOPEC à fournir (loi 002/2002, art. 20)', '2026-01-01')""", (Jsonb(VALEUR_PART),))
 
+        # S14g : type client « Client », valeur de la capture p. 49 (registre S37-2)
+        executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'type_client', '1', 'Client')", (ins,))
         # Utilisateurs et profils
         uid = {}
         for login, nom, profil in (("engalula", "Esther Ngalula", "caissier"), ("jpmukendi", "J.-P. Mukendi", "chef_agence"),

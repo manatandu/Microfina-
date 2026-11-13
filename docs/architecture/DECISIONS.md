@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**251 décisions.** Solidité : 78 fortes (le manuel ou un texte répond), 140 moyennes (déduites d'un écran voisin ou d'une donnée), 33 faibles (notre choix, faute de mieux). Dans le code : 197 déjà en place, 54 à appliquer.
+**252 décisions.** Solidité : 78 fortes (le manuel ou un texte répond), 141 moyennes (déduites d'un écran voisin ou d'une donnée), 33 faibles (notre choix, faute de mieux). Dans le code : 200 déjà en place, 52 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -193,20 +193,40 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S17-6 | Application | La règle vaut pour les comptes ouverts après son enregistrement ; les numéros existants ne changent pas. Sans règle : N° Client, tiret, suffixe sur deux chiffres | Écran voisin : S15-9 | moyenne | en place |
 | S17-7 | Générer | Affiche un numéro d'exemple à côté de la Position, comme sur la capture | Manuel : Capture p. 26 (exemple en couleur) | forte | en place |
 
+## S37 Fiche du client physique
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S37-1 | Champs des onglets non montrés | Les données qu'un autre écran du manuel affiche pour le client (contrat p. 52, prospect p. 55, résiliation p. 56, critères du rapport p. 58, situation p. 74), plus celles qu'exige l'Instr. BCC 15 — Construit pour S37 : Renseignements généraux (Civilité, Nom*, Post-nom, Prénom*, Sexe, Date et lieu de naissance*, Nationalité, Situation matrimoniale, Fils / fille de, et de, Profession, pièce avec Délivrée le*, Lieu*, Autorité*, Valide jusqu'au*, Adresse*, Téléphone) ; Autres renseignements (Pays, Ville, Commune, Quartier, Rue / Maison, BP, Téléphone fixe, Email, Secteur et Type d'activité, Catégorie, Sous type client, Personne politiquement exposée). Mentions obligatoires de l'Instr. BCC 15, art. 12 et 13 ; pièce en cours de validité (art. 12) | Donnée exigée ailleurs : Pages citées ; Instr. BCC 15, art. 12 à 14, 17 et 60 (déjà lus pour ces écrans) ; Instr. BCC 15, art. 12 et 13 relus le 13/11/2026 | moyenne | en place |
+| S37-2 | Listes des fiches | Chaque liste vient de sa page de paramétrage (S14a à S14n, S20, S32, S33). La saisie libre est retirée quand la liste existe — Construit pour S37 : Type Client (S14g, « Client » de la capture en démonstration), Sensibilisateur, Gestionnaire, Commercial (S33, INCONNU = aucun), listes S14 à S14n, Localisation (S20) en cascade, Nationalité parmi les pays de S20 | Donnée exigée ailleurs : COMPLEMENTS § 7.1 | forte | en place |
+| S37-3 | Fiche Bénéficiaire | Fiche Bénéficiaire : Nom*, Post-nom, Prénom, Sexe, Date de naissance, Filiation (S14k), Téléphone ; +Ajouter ouvre la fiche, Ajouter l'inscrit, Fermer la quitte ; Retirer sur chaque ligne | Écran voisin : Personnes liées (p. 48) ; bénéficiaires du DAT (S65, p. 76) | moyenne | en place |
+
+## S38, S39 Signataires et membres
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S38-2 | Retirer un signataire, un membre | Bouton Retirer, comme pour les personnes liées (ancien numéro S37-4) | Écran voisin : Texte p. 48 | forte | à appliquer |
+
+## S38 Fiche de l'entreprise
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S38-3 | Bénéficiaires effectifs d'une entreprise | Saisis dans l'onglet Personnes liées, avec ce lien. Pas de nouvel onglet (ancien numéro S37-5) | Texte réglementaire : Instr. BCC 15, art. 18 (déjà lu pour S38) | moyenne | à appliquer |
+
 ## S37 à S39, S46 Fiche du client
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S37-1 | Champs des onglets non montrés | Les données qu'un autre écran du manuel affiche pour le client (contrat p. 52, prospect p. 55, résiliation p. 56, critères du rapport p. 58, situation p. 74), plus celles qu'exige l'Instr. BCC 15 | Donnée exigée ailleurs : Pages citées ; Instr. BCC 15, art. 12 à 14, 17 et 60 (déjà lus pour ces écrans) | moyenne | à appliquer |
-| S37-2 | Listes des fiches | Chaque liste vient de sa page de paramétrage (S14a à S14n, S20, S32, S33). La saisie libre est retirée quand la liste existe | Donnée exigée ailleurs : COMPLEMENTS § 7.1 | forte | à appliquer |
-| S37-3 | Fiche Bénéficiaire | Mêmes champs d'identité qu'une personne liée, plus la filiation (S14k). Le bouton est activé | Écran voisin : Personnes liées (p. 48) ; bénéficiaires du DAT (S65, p. 76) | moyenne | à appliquer |
-| S37-4 | Retirer un signataire, un membre | Bouton Retirer, comme pour les personnes liées | Écran voisin : Texte p. 48 | forte | à appliquer |
-| S37-5 | Bénéficiaires effectifs d'une entreprise | Saisis dans l'onglet Personnes liées, avec ce lien. Pas de nouvel onglet | Texte réglementaire : Instr. BCC 15, art. 18 (déjà lu pour S38) | moyenne | à appliquer |
-| S37-6 | Choisir un prospect | Reprend les champs du prospect dans la fiche | Manuel : Manuel p. 55 | forte | en place |
+| S37-6 | Choisir un prospect | Reprend les champs du prospect dans la fiche ; une case laissée vide garde la valeur du prospect | Manuel : Manuel p. 55 | forte | en place |
 | S37-7 | Sexe et téléphone | Gardés | Choix du porteur : Demande du porteur | forte | en place |
+| S37-8 | Type d'entreprise, agent économique d'un groupement | Gardés tels qu'ils sont | Texte réglementaire : PCCI § 10.2 (déjà lu pour S38 et S39) | moyenne | en place |
+
+## S46 Mise à jour d'un client
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
 | S46-1 | Mise à jour : Modifier et Terminer | Modifier ouvre la fiche. Terminer enregistre et met le client à l'état « modifié, à revalider » (S42) | Manuel : Texte p. 56 ; chaîne du client | moyenne | à appliquer |
 | S46-2 | Mise à jour d'une entreprise, d'un groupe | Mêmes onglets que leur enrôlement | Écran voisin : S38, S39 | moyenne | à appliquer |
-| S37-8 | Type d'entreprise, agent économique d'un groupement | Gardés tels qu'ils sont | Texte réglementaire : PCCI § 10.2 (déjà lu pour S38 et S39) | moyenne | en place |
 
 ## S40 Viser un client
 
@@ -447,11 +467,17 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S27-3 | Produit qui a des comptes | Devise, famille et N° Produit ne se changent plus ; Supprimer est refusé : décocher Actif. Un produit inactif ou supprimé n'est plus proposé à l'enrôlement | Donnée exigée ailleurs : T02 ; T08 | moyenne | en place |
 | S27-4 | Option Solde négatif | Gardée comme dans Microfina++ : aucun texte lu ne l'interdit, l'Instr. BCC 003 (art. 7) classe en douteux les comptes courants débiteurs sans mouvement créditeur de plus de 30 jours. La note de la fonction qui proposait de la retirer venait d'observations de terrain, pas d'un texte | Texte réglementaire : Instr. BCC 003, art. 7 | moyenne | en place |
 
-## S37, S74 Enrôlement et guichet
+## S63, S73, S74 Ouverture de compte et guichet
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S37-9 | Options du produit d'épargne | Max compte à créer contrôlé à l'ouverture de compte ; Solde minimum, Max retrait/jour et Solde négatif contrôlés au retrait ; Opérer sur compte et Dépôt de chèque au guichet | Donnée exigée ailleurs : S27 (p. 40) | moyenne | à appliquer |
+| S74-5 | Options du produit d'épargne | Max compte à créer contrôlé à l'ouverture de compte ; Solde minimum, Max retrait/jour et Solde négatif contrôlés au retrait ; Opérer sur compte et Dépôt de chèque au guichet (ancien numéro S37-9) | Donnée exigée ailleurs : S27 (p. 40) | moyenne | à appliquer |
+
+## S38, S39, S46 Fiches entreprise, groupe et mise à jour
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S38-1 | Fiche complétée comme S37 | Appliquer à l'entreprise (S38), au groupe (S39) et à la mise à jour (S46) ce que S37-1 et S37-2 ont mis en place pour le client physique : listes de paramétrage au lieu de INCONNU et des saisies libres ; en S46, obligation des mentions de l'Instr. BCC 15, art. 13 (aujourd'hui seulement contrôlées si saisies) | Donnée exigée ailleurs : S37-1, S37-2 ; Instr. BCC 15, art. 12, 13, 17 | moyenne | à appliquer |
 
 ## S28 Paramétrage des produits épargne
 

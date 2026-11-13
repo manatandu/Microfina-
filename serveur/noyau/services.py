@@ -17,7 +17,6 @@ from .bd import ErreurMetier, executer, lignes, une, valeur
 # Seuils, valeurs des maquettes
 SEUIL_ESPECES_USD = 10000    # examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 SORTIES = ("retrait", "retrait_parts")      # opérations qui font sortir des billets de la caisse
-TYPES_CLIENT = ["Client"]
 # Type entreprise (p. 50) : la liste de Microfina++ n'est pas montrée. À confirmer ; en attendant, les agents économiques du PCCI § 10.2 (hors ménages)
 TYPES_ENTREPRISE = ["Banques commerciales et autres intermédiaires financiers", "Organes faîtiers et autres institutions de microfinance",
                     "Autres COOPEC et IMF", "Institutions financières non bancaires", "Administration centrale", "Administrations provinciales ou locales",
@@ -156,7 +155,13 @@ def contexte(u: dict) -> dict:
         "guichets": lignes("select id, code, nom from guichet where agence_id = %s and actif order by code", (u["agence_id"],)),
         "produits": lignes("select code, libelle, devise from produit_epargne where institution_id = %s and actif and not supprime order by code", (u["institution_id"],)),
         "zones": [z["nom"] for z in lignes("select nom from zone where institution_id = %s and actif order by nom", (u["institution_id"],))],
-        "typesClient": TYPES_CLIENT,
+        "typesClient": libelles_liste(u, "type_client"),   # S14g (registre S37-2)
+        # S37 : listes lues par la fiche du client (registre S37-2)
+        "listesFiche": {k: libelles_liste(u, liste) for k, (liste, _) in LISTES_FICHE.items()} | {"filiation": libelles_liste(u, "filiation")},
+        "typesActivite": lignes("""select t.libelle, s.libelle as secteur from liste_reference t join liste_reference s on s.id = t.parent_id
+                                   where t.institution_id = %s and t.liste = 'type_activite' and t.actif order by t.code""", (u["institution_id"],)),
+        "gestionnaires": lignes("""select id, trim(nom || ' ' || prenom) as nom from agent_agence where institution_id = %s and role = 'gestionnaire' and actif
+                                   order by nom, prenom""", (u["institution_id"],)),
         "typesEntreprise": TYPES_ENTREPRISE,
         "typesGroupe": list(TYPES_GROUPE),
         "pieces": PIECES,
@@ -450,7 +455,15 @@ def vue_tiers(t: dict) -> dict:
             "type": t["type"], "formeJuridique": t["forme"] or "", "registre": t["rccm"] or "", "centreActivite": t["centre_activite"] or "", "activite": t["activite"] or "",
             "dirigeant": dirigeant, "signataires": signataires, "membres": membres, "nbHommes": t["nb_hommes"] or 0, "nbFemmes": t["nb_femmes"] or 0,
             "photo": bool(sp and sp["photo"]), "specimen": bool(sp and sp["signature"]) or any(x["specimen"] for x in signataires),
-            "creePar": t["cree_par"], "visePar": t["vise_par"]}
+            "creePar": t["cree_par"], "visePar": t["vise_par"],
+            # S37 : fiche du client (registre S37-1 à S37-3)
+            "civilite": t["civilite"] or "", "nationalite": t["nationalite"] or "", "situationMatrimoniale": t["situation_matrimoniale"] or "",
+            "pere": t["pere"] or "", "mere": t["mere"] or "", "commune": t["commune"] or "", "secteurActivite": t["secteur_activite"] or "",
+            "typeActivite": t["type_activite"] or "", "categorie": t["categorie"] or "", "sousTypeClient": t["sous_type_client"] or "",
+            "gestionnaireId": t["gestionnaire_agent_id"],
+            "beneficiaires": [{"nom": b["nom"], "postnom": b["postnom"] or "", "prenom": b["prenom"] or "", "sexe": b["sexe"] or "",
+                               "naissance": iso(b["date_naissance"]), "filiation": b["filiation"] or "", "telephone": b["telephone"] or ""}
+                              for b in lignes("select * from tiers_beneficiaire where tiers_id = %s order by id", (t["id"],))]}
 
 
 def iso(d) -> str:
@@ -458,7 +471,8 @@ def iso(d) -> str:
 
 
 SQL_TIERS = """select t.*, coalesce(p.nom, m.raison_sociale) as nom, p.postnom, p.prenom, p.sexe, p.date_naissance, p.lieu_naissance, p.piece_type, p.piece_numero,
-                      p.piece_delivree_le, p.piece_lieu, p.piece_autorite, p.piece_validite, p.profession, p.pays, p.ville, p.quartier, p.rue, p.email, p.bp, p.telephone_fixe, coalesce(p.adresse, m.adresse_siege) as adresse, p.telephone,
+                      p.piece_delivree_le, p.piece_lieu, p.piece_autorite, p.piece_validite, p.profession, p.pays, p.ville, p.quartier, p.rue, p.email, p.bp, p.telephone_fixe,
+                      p.civilite, p.nationalite, p.situation_matrimoniale, p.pere, p.mere, p.commune, coalesce(p.adresse, m.adresse_siege) as adresse, p.telephone,
                       m.forme, m.rccm, m.centre_activite, m.activite, m.nb_hommes, m.nb_femmes, z.nom as zone_nom, pe.code as produit_code
                from tiers t left join tiers_personne p on p.tiers_id = t.id left join tiers_morale m on m.tiers_id = t.id
                left join zone z on z.id = t.zone_id left join produit_epargne pe on pe.id = t.produit_id"""
@@ -587,15 +601,112 @@ def inserer_tiers(u: dict, d: dict, b: dict, type_: str, agent: str) -> int:
     return tid
 
 
+# ---------- S37 : fiche du client physique (registre S37-1 à S37-3) ----------
+# Listes que lit la fiche (S37-2) : clé du formulaire -> (liste de S14, nom affiché)
+LISTES_FICHE = {"civilite": ("civilite", "Civilité"), "situationMatrimoniale": ("situation_matrimoniale", "Situation matrimoniale"),
+                "secteurActivite": ("secteur_activite", "Secteur d'activité"), "typeActivite": ("type_activite", "Type d'activité"),
+                "categorie": ("categorie", "Catégorie"), "sousTypeClient": ("sous_type_client", "Sous type client")}
+# Mentions de la pièce et de l'identité (Instr. BCC 15, art. 12 et 13)
+OBLIGATOIRES_IDENTITE = [("prénom", "prenom"), ("date de naissance", "naissance"), ("lieu de naissance", "lieuNaissance"), ("adresse", "adresse"),
+                         ("délivrée le", "pieceDelivreeLe"), ("lieu de délivrance", "pieceLieu"), ("autorité de délivrance", "pieceAutorite"),
+                         ("valide jusqu'au", "pieceExpire")]
+
+
+def libelles_liste(u: dict, liste: str) -> list[str]:
+    return [r["libelle"] for r in lignes("select libelle from liste_reference where institution_id = %s and liste = %s and actif order by code, id",
+                                         (u["institution_id"], liste))]
+
+
+def controler_lieu(texte, quoi: str = "Pays, ville, commune ou quartier"):
+    """Pays, Ville, Commune, Quartier de Localisation (S20) : facultatifs, mais cohérents entre eux"""
+    pays, ville, commune, quartier = texte("pays"), texte("ville"), texte("commune"), texte("quartier")
+    if not (pays or ville or commune or quartier):
+        return
+    p = next((x for x in localites() if x["pays"] == pays), None)
+    v = next((x for x in (p or {}).get("villes", []) if x["ville"] == ville), None) if ville else None
+    c = next((x for x in (v or {}).get("communes", []) if x["commune"] == commune), None) if commune else None
+    ok = p is not None and (not ville or v is not None) and (not commune or c is not None) and \
+        (not quartier or quartier in (c["quartiers"] if c else (v["quartiers"] if v else [])))
+    if not ok:
+        raise ErreurMetier(f"{quoi} inconnu.")
+
+
+def controler_fiche_physique(u: dict, d: dict, texte, j: dict | None, identite: bool = True) -> dict:
+    """Onglets Renseignements généraux et Autres renseignements (registre S37-1, S37-2) ; bénéficiaires (S37-3). Mêmes règles que api.ts.
+    identite=False : mise à jour (S46), où l'obligation des mentions viendra avec S46-1."""
+    jour = date.today().isoformat()
+    if identite:
+        manque = [n for n, k in OBLIGATOIRES_IDENTITE if not texte(k)]
+        if manque:
+            raise ErreurMetier("À remplir : " + ", ".join(manque) + " (Instr. BCC 15, art. 12 et 13).")
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", texte("pieceExpire")) or (j and texte("pieceExpire") < j["date"]):
+            raise ErreurMetier("Pièce expirée : une pièce en cours de validité (Instr. BCC 15, art. 12).")
+    for k, n in (("naissance", "Date de naissance"), ("pieceDelivreeLe", "Délivrée le")):
+        if texte(k) and (not re.match(r"^\d{4}-\d{2}-\d{2}$", texte(k)) or texte(k) > jour):
+            raise ErreurMetier(f"{n} : date invalide.")
+    for k, (liste, nom) in LISTES_FICHE.items():
+        if texte(k) and texte(k) not in libelles_liste(u, liste):
+            raise ErreurMetier(f"{nom} : valeur inconnue (Paramétrage > Info de base > Client > Général).")
+    if texte("typeActivite") and not une("""select 1 from liste_reference t join liste_reference s on s.id = t.parent_id
+                                           where t.institution_id = %s and t.liste = 'type_activite' and t.libelle = %s and s.libelle = %s""",
+                                        (u["institution_id"], texte("typeActivite"), texte("secteurActivite"))):
+        raise ErreurMetier("Type d'activité : il n'appartient pas au secteur d'activité choisi.")
+    if texte("profession") and not valeur("select 1 from profession where institution_id = %s and libelle = %s", (u["institution_id"], texte("profession"))):
+        raise ErreurMetier("Profession inconnue.")
+    if texte("nationalite") and texte("nationalite") not in [p["pays"] for p in localites()]:
+        raise ErreurMetier("Nationalité : pays inconnu (Paramétrage > Localisation).")
+    controler_lieu(texte)
+    if texte("email") and not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", texte("email")):
+        raise ErreurMetier("Email invalide.")
+    g = d.get("gestionnaireId")
+    if g is not None and (not isinstance(g, int) or isinstance(g, bool) or not une(
+            "select 1 from agent_agence where id = %s and institution_id = %s and role = 'gestionnaire' and actif", (g, u["institution_id"]))):
+        raise ErreurMetier("Gestionnaire inconnu.")
+    benef = d.get("beneficiaires") or []
+    if not isinstance(benef, list):
+        raise ErreurMetier("Bénéficiaires invalides.")
+    filiations = libelles_liste(u, "filiation")
+    for i, b in enumerate(benef, start=1):
+        t = texte_de(b if isinstance(b, dict) else {})
+        if not t("nom"):
+            raise ErreurMetier(f"Bénéficiaire {i} : à remplir : nom.")
+        if t("sexe") not in ("", "F", "M"):
+            raise ErreurMetier(f"Bénéficiaire {i} : sexe inconnu.")
+        if t("naissance") and (not re.match(r"^\d{4}-\d{2}-\d{2}$", t("naissance")) or t("naissance") > jour):
+            raise ErreurMetier(f"Bénéficiaire {i} : date de naissance invalide.")
+        if t("filiation") and t("filiation") not in filiations:
+            raise ErreurMetier(f"Bénéficiaire {i} : filiation inconnue.")
+    return {"gestionnaire": g, "beneficiaires": [texte_de(b) for b in benef], "agents": agents_prospect(u, d)}
+
+
+def ecrire_fiche_physique(tid: int, texte, f: dict):
+    # un prospect choisi garde ce qu'il avait quand la fiche laisse le champ vide (registre S37-6)
+    executer("""update tiers_personne set civilite = coalesce(%s, civilite), nationalite = coalesce(%s, nationalite),
+                                          situation_matrimoniale = coalesce(%s, situation_matrimoniale), pere = coalesce(%s, pere), mere = coalesce(%s, mere),
+                                          profession = coalesce(%s, profession), pays = coalesce(%s, pays), ville = coalesce(%s, ville),
+                                          commune = coalesce(%s, commune), quartier = coalesce(%s, quartier), rue = coalesce(%s, rue), email = coalesce(%s, email),
+                                          bp = coalesce(%s, bp), telephone_fixe = coalesce(%s, telephone_fixe) where tiers_id = %s""",
+             (*[texte(k) or None for k in ("civilite", "nationalite", "situationMatrimoniale", "pere", "mere", "profession", "pays", "ville", "commune",
+                                           "quartier", "rue", "email", "bp", "telephoneFixe")], tid))
+    executer("""update tiers set secteur_activite = %s, type_activite = %s, categorie = %s, sous_type_client = %s, gestionnaire_agent_id = %s,
+                                 sensibilisateur_id = %s, commercial_id = %s where id = %s""",
+             (*[texte(k) or None for k in ("secteurActivite", "typeActivite", "categorie", "sousTypeClient")], f["gestionnaire"], *f["agents"], tid))
+    executer("delete from tiers_beneficiaire where tiers_id = %s", (tid,))
+    for t in f["beneficiaires"]:
+        executer("""insert into tiers_beneficiaire (tiers_id, nom, postnom, prenom, sexe, date_naissance, filiation, telephone) values (%s, %s, %s, %s, %s, %s, %s, %s)""",
+                 (tid, t("nom"), t("postnom") or None, t("prenom") or None, t("sexe") or None, t("naissance") or None, t("filiation") or None, t("telephone") or None))
+
+
 def creer_tiers(u: dict, d: dict) -> dict:
     """S37. Mêmes contrôles que controlerEnrolement (web/src/donnees/api.ts)."""
     exiger(u)
     b = controler_base(u, d, [("date demande", "dateDemande"), ("type client", "typeClient"), ("type de compte à créer", "produitCode"),
-                              ("nom", "nom"), ("type de pièce", "pieceType"), ("numéro de pièce", "pieceNumero")], TYPES_CLIENT, False)
+                              ("nom", "nom"), ("type de pièce", "pieceType"), ("numéro de pièce", "pieceNumero")], libelles_liste(u, "type_client"), False)
     texte = b["texte"]
     if texte("sexe") not in ("", "F", "M"):
         raise ErreurMetier("Sexe inconnu.")
     controler_piece(texte("pieceType"), texte("pieceExpire"), journee_courante(u))
+    fiche = controler_fiche_physique(u, d, texte, journee_courante(u))
     images = d.get("images") or {}
     controler_image(images.get("photo"), "Photo"); controler_image(images.get("signature"), "Signature")
     prospect = d.get("prospectId")
@@ -624,6 +735,7 @@ def creer_tiers(u: dict, d: dict) -> dict:
              (texte("nom"), texte("postnom") or None, texte("prenom") or None, texte("sexe") or None, texte("naissance") or None, texte("lieuNaissance") or None,
               texte("pieceType"), texte("pieceNumero"), texte("pieceDelivreeLe") or None, texte("pieceLieu") or None, texte("pieceAutorite") or None,
               texte("pieceExpire") or None, texte("adresse") or None, texte("telephone") or None, tid))
+    ecrire_fiche_physique(tid, texte, fiche)
     if images.get("photo") or images.get("signature"):
         executer("insert into specimen (tiers_id, photo, signature, depose_le) values (%s, %s, %s, current_date)", (tid, images.get("photo"), images.get("signature")))
     return lire_tiers(tid)
@@ -758,13 +870,14 @@ def modifier_tiers(u: dict, tid: int, d: dict) -> dict:
     b = controler_base(u, {**d, "produitCode": valeur("select code from produit_epargne where id = %s", (t["produit_id"],)) if t["produit_id"] else "EAV-CDF",
                            "premierDepot": t["premier_depot"] or 0},
                        [("date demande", "dateDemande"), ("type client", "typeClient"), ("nom", "nom"), ("type de pièce", "pieceType"),
-                        ("numéro de pièce", "pieceNumero")], TYPES_CLIENT, False)
+                        ("numéro de pièce", "pieceNumero")], libelles_liste(u, "type_client"), False)
     texte = b["texte"]
     if texte("sexe") not in ("", "F", "M"):
         raise ErreurMetier("Sexe inconnu.")
     if tid in b["liees"]:
         raise ErreurMetier("Un client ne peut pas être sa propre personne liée.")
     controler_piece(texte("pieceType"), texte("pieceExpire"), journee_courante(u))
+    fiche = controler_fiche_physique(u, d, texte, journee_courante(u), identite=False)
     avant = lire_tiers(tid)
     executer("""update tiers set date_demande = %s, type_client = %s, zone_id = %s, residence = %s, prelever_agios = %s, calculer_interet = %s,
                                  personne_exposee = %s, statut = 'modifie_a_revalider' where id = %s""",
@@ -776,6 +889,7 @@ def modifier_tiers(u: dict, tid: int, d: dict) -> dict:
              (texte("nom"), texte("postnom") or None, texte("prenom") or None, texte("sexe") or None, texte("naissance") or None, texte("lieuNaissance") or None,
               texte("pieceType"), texte("pieceNumero"), texte("pieceDelivreeLe") or None, texte("pieceLieu") or None, texte("pieceAutorite") or None,
               texte("pieceExpire") or None, texte("adresse") or None, texte("telephone") or None, tid))
+    ecrire_fiche_physique(tid, texte, fiche)
     executer("delete from lien_tiers where tiers_id = %s and role = 'personne_liee'", (tid,))
     for autre in b["liees"]:
         executer("insert into lien_tiers (tiers_id, autre_id, role) values (%s, %s, 'personne_liee')", (tid, autre))

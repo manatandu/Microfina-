@@ -49,6 +49,9 @@ export interface SessionCaisse {
 /** Dirigeant ou signataire d'une entreprise (S38), identifié comme un client : Instr. BCC 15, art. 16 */
 export interface Representant { nom: string; postnom: string; prenom: string; pieceType: string; pieceNumero: string; pieceExpire: string; photo: boolean; specimen: boolean }
 
+/** S37 : fiche Bénéficiaire (registre S37-3) */
+export interface Beneficiaire { nom: string; postnom: string; prenom: string; sexe: "F" | "M" | ""; naissance: string; filiation: string; telephone: string }
+
 export interface Tiers {
   id: number;
   type: "physique" | "morale" | "groupe";
@@ -109,6 +112,10 @@ export interface Tiers {
   // S33 : sensibilisateur et commercial (prospect S45, fiche S37)
   sensibilisateurId?: number | null;
   commercialId?: number | null;
+  // S37 : fiche du client physique (registre S37-1 à S37-3)
+  civilite?: string; nationalite?: string; situationMatrimoniale?: string; pere?: string; mere?: string; commune?: string;
+  secteurActivite?: string; typeActivite?: string; categorie?: string; sousTypeClient?: string; gestionnaireId?: number | null;
+  beneficiaires?: Beneficiaire[];
   // S48, résiliation (manuel p. 57)
   motifDepart: string;
   resilieLe: string;
@@ -181,7 +188,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 52;
+  version: 53;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)

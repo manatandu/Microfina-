@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { composerNumeroCompte, composerPiece, api, _remplacer, compteParts, enrolementVide } from "./api";
+
+/** Mentions de l'identité et de la pièce exigées à l'enrôlement (Instr. BCC 15, art. 12 et 13 ; registre S37-1) */
+const IDENTITE = { prenom: "Marie", naissance: "1990-01-15", lieuNaissance: "Kinshasa", adresse: "Matete, avenue Kinsaku 12", pieceDelivreeLe: "2024-01-10",
+  pieceLieu: "Kinshasa", pieceAutorite: "DGM", pieceExpire: "2030-01-10" };
 import { graine } from "./graine";
 import { totalComptage, type Comptage } from "@design/montant.js";
 
@@ -133,7 +137,7 @@ describe("journée de guichet", () => {
 
   it("enrôlement (S37) : champs obligatoires de la p. 49, personnes liées, photo et specimen", async () => {
     await connecter("bkasongo");
-    const base = { ...enrolementVide("2026-11-05"), nom: "Tshala", pieceType: "Passeport", pieceNumero: "OP1" };
+    const base = { ...enrolementVide("2026-11-05"), ...IDENTITE, nom: "Tshala", pieceType: "Passeport", pieceNumero: "OP1" };
     await expect(api.tiers.creer(base)).rejects.toThrow("type de compte à créer");
     await expect(api.tiers.creer({ ...base, produitCode: "EAV-CDF", liees: [999] })).rejects.toThrow("Personne liée");
     await expect(api.tiers.creer({ ...base, produitCode: "EAV-CDF" }, { photo: "data:text/html;base64,AA==" })).rejects.toThrow("PNG ou JPEG");
@@ -145,7 +149,7 @@ describe("journée de guichet", () => {
   it("enrôlement d'une entreprise (S38) : zone obligatoire (p. 50), mentions de l'art. 17, dirigeant et signataires", async () => {
     await connecter("bkasongo");
     const sig = { nom: "Ilunga", postnom: "", prenom: "Paul", pieceType: "Passeport", pieceNumero: "OP9", pieceExpire: "", signature: "data:image/png;base64,iVBORw0KGgo=" };
-    const base = { ...enrolementVide("2026-11-05"), typeClient: "Entreprises privées", zone: "Matete", produitCode: "EAV-CDF", nom: "Boulangerie Kinsaku SARL",
+    const base = { ...enrolementVide("2026-11-05"), ...IDENTITE, typeClient: "Entreprises privées", zone: "Matete", produitCode: "EAV-CDF", nom: "Boulangerie Kinsaku SARL",
       formeJuridique: "SARL", registre: "CD/KNG/RCCM/24-B-00001", adresse: "Matete, avenue Kinsaku" };
     await expect(api.tiers.creerEntreprise({ ...base, zone: "" }, null, [sig])).rejects.toThrow("zone");
     await expect(api.tiers.creerEntreprise({ ...base, typeClient: "Client" }, null, [sig])).rejects.toThrow("Type inconnu");
@@ -159,7 +163,7 @@ describe("journée de guichet", () => {
   it("enrôlement d'un groupe (S39) : type de groupe de la p. 47, nombres d'hommes et de femmes, membres", async () => {
     await connecter("bkasongo");
     const mb = { nom: "Mbuyi", postnom: "", prenom: "Anne", pieceType: "Carte d'électeur", pieceNumero: "1-0412-7777", pieceExpire: "", signature: "data:image/png;base64,iVBORw0KGgo=" };
-    const base = { ...enrolementVide("2026-11-05"), typeClient: "Association", produitCode: "EAV-CDF", nom: "Mamans de Kinsaku", adresse: "Matete", nbFemmes: 12 };
+    const base = { ...enrolementVide("2026-11-05"), ...IDENTITE, typeClient: "Association", produitCode: "EAV-CDF", nom: "Mamans de Kinsaku", adresse: "Matete", nbFemmes: 12 };
     await expect(api.tiers.creerGroupe({ ...base, typeClient: "" }, [mb])).rejects.toThrow("type de groupe");
     await expect(api.tiers.creerGroupe({ ...base, nbFemmes: -1 }, [mb])).rejects.toThrow("Nombre");
     await expect(api.tiers.creerGroupe(base, [{ ...mb, pieceType: "Badge" }])).rejects.toThrow("Membre 1 : Type de pièce non admis");
@@ -170,7 +174,7 @@ describe("journée de guichet", () => {
   it("visa du client (S40) : date de visa, intitulé, premier dépôt, une seule fois", async () => {
     await connecter("bkasongo");
     await journeeOuverte(); await connecter("bkasongo");
-    const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), produitCode: "EAV-CDF", nom: "Tshala", pieceType: "Passeport", pieceNumero: "OP2", premierDepot: 200000 });
+    const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), ...IDENTITE, produitCode: "EAV-CDF", nom: "Tshala", pieceType: "Passeport", pieceNumero: "OP2", premierDepot: 200000 });
     await expect(api.tiers.viser(t.id)).rejects.toThrow("Droit manquant");
     await connecter("jpmukendi");
     await expect(api.tiers.viser(t.id, { dateVisa: "2026-11-01" })).rejects.toThrow("précède");
@@ -280,7 +284,7 @@ describe("journée de guichet", () => {
     expect((await api.tiers.prospects()).map((x) => x.id)).toEqual([t.id]);
     await expect(api.tiers.modifierProspect(1, p)).rejects.toThrow("introuvable");
     // « Choisir prospect » à l'enrôlement (S37, p. 49) : le prospect devient le client, même numéro
-    const fiche = { ...enrolementVide("2026-11-07"), produitCode: "EAV-CDF", nom: "Tshibangu", prenom: "Anne", sexe: "F" as const, pieceType: "Passeport", pieceNumero: "OP7" };
+    const fiche = { ...enrolementVide("2026-11-07"), ...IDENTITE, produitCode: "EAV-CDF", nom: "Tshibangu", prenom: "Anne", sexe: "F" as const, pieceType: "Passeport", pieceNumero: "OP7" };
     await expect(api.tiers.creer(fiche, {}, 1)).rejects.toThrow("Prospect introuvable");
     const c = await api.tiers.creer(fiche, {}, t.id);
     expect([c.id, c.numero, c.statut, c.quartier, c.profession]).toEqual([t.id, t.numero, "a_viser", "Quartier d'essai", "Commerçant"]);
@@ -368,7 +372,7 @@ describe("journée de guichet", () => {
 
   it("adhésion : parts en 1030, premier dépôt en 330, après visa seulement", async () => {
     await connecter("bkasongo");
-    const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), produitCode: "EAV-CDF", nom: "Tshala", postnom: "Muana", prenom: "Marie", naissance: "1990-02-01", pieceType: "Carte d'électeur", pieceNumero: "1-0412-0999", pieceExpire: "2031-01-01", adresse: "Matete" });
+    const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), ...IDENTITE, produitCode: "EAV-CDF", nom: "Tshala", postnom: "Muana", prenom: "Marie", naissance: "1990-02-01", pieceType: "Carte d'électeur", pieceNumero: "1-0412-0999", pieceExpire: "2031-01-01", adresse: "Matete" });
     await journeeOuverte();
     const coupures: Comptage = { 5000: 2, 1000: 2 };
     await expect(api.guichet.adhesion({ cle: cle(), tiersId: t.id, parts: 1, depot: 800000, coupures })).rejects.toThrow("visa");
@@ -729,8 +733,8 @@ describe("journée de guichet", () => {
     await connecter("jpmukendi");
     const l = await api.parametrageEpargne.lire();
     expect(l.onglets.map((o) => [o.onglet, o.compte])).toEqual([["Epargne", "330"], ["Courant", "331"], ["DAT", "340"], ["Bloqué", "334"]]);
-    expect(l.typesClient).toEqual([]);
-    const tc = (await api.listes.enregistrer("type_client", { code: "1", libelle: "Membre" })).lignes[0]!;
+    expect(l.typesClient.map((x) => x.libelle)).toEqual(["Client"]);   // S14g de la démonstration (registre S37-2)
+    const tc = (await api.listes.enregistrer("type_client", { code: "2", libelle: "Membre" })).lignes.find((x) => x.libelle === "Membre")!;
     const eav = l.produits.find((p) => p.code === "EAV-CDF")!;
     await expect(api.parametrageEpargne.enregistrer({ onglet: "Epargne" })).rejects.toThrow("Produit");
     await expect(api.parametrageEpargne.enregistrer({ onglet: "Epargne", produitId: eav.id, compteLie: "570" })).rejects.toThrow("comptes 33 à 35");

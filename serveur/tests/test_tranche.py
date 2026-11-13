@@ -116,7 +116,10 @@ def test_depot_retrait_mandataire_motif(clients, journee):
 
 # Fiche d'enrôlement S37 avec les valeurs par défaut de la p. 49
 FICHE = {"dateDemande": "2026-11-05", "typeClient": "Client", "produitCode": "EAV-CDF", "premierDepot": 0, "resident": True, "preleverAgios": True,
-         "calculerInteret": False, "liees": [], "personneExposee": False}
+         "calculerInteret": False, "liees": [], "personneExposee": False,
+         # mentions de l'identité et de la pièce (Instr. BCC 15, art. 12 et 13 ; registre S37-1)
+         "prenom": "Marie", "naissance": "1990-01-15", "lieuNaissance": "Kinshasa", "adresse": "Matete, avenue Kinsaku 12",
+         "pieceDelivreeLe": "2024-01-10", "pieceLieu": "Kinshasa", "pieceAutorite": "DGM", "pieceExpire": "2030-01-10"}
 
 
 def test_enrolement(clients, journee):
@@ -1011,8 +1014,8 @@ def test_parametrage_epargne(clients):
     chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
     l = chef.get("/api/parametrage-epargne", **H).json()
     assert [(o["onglet"], o["compte"]) for o in l["onglets"]] == [("Epargne", "330"), ("Courant", "331"), ("DAT", "340"), ("Bloqué", "334")]
-    assert l["typesClient"] == []
-    tc = chef.post("/api/listes/type_client", {"code": "1", "libelle": "Membre"}, **H).json()["lignes"][0]
+    assert [x["libelle"] for x in l["typesClient"]] == ["Client"]                         # S14g de la démonstration (registre S37-2)
+    tc = next(x for x in chef.post("/api/listes/type_client", {"code": "2", "libelle": "Membre"}, **H).json()["lignes"] if x["libelle"] == "Membre")
     eav = next(p for p in l["produits"] if p["code"] == "EAV-CDF")
     def refus(corps):
         r = chef.post("/api/parametrage-epargne", corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
@@ -1379,3 +1382,32 @@ def test_connexion_expire(clients):
     assert caisse.get("/api/session", **H).json() is None                                   # l'ancienne session est expirée
     connecter(clients["agent"], "jmbala")                                                     # nouvelle connexion acceptée
     assert next(x for x in chef.get("/api/connexions", **H).json()["utilisateurs"] if x["login"] == "jmbala")["connecte"]
+
+
+def test_fiche_client_physique(clients, journee):
+    """S37 (p. 48 et 49) : mentions de l'Instr. BCC 15, art. 12 et 13 ; listes de paramétrage (S14, S20, S33) ; fiche Bénéficiaire
+    (registre S37-1 à S37-3)"""
+    agent, chef = clients["agent"], clients["chef"]
+    connecter(chef, "jpmukendi")
+    chef.post("/api/listes/situation_matrimoniale", {"code": "1", "libelle": "Marié(e)"}, **H)
+    chef.post("/api/listes/filiation", {"code": "1", "libelle": "Enfant"}, **H)
+    primaire = next(x for x in chef.get("/api/listes/secteur_activite", **H).json()["lignes"] if x["libelle"] == "PRIMAIRE")
+    chef.post("/api/listes/type_activite", {"code": "A1", "libelle": "Pisciculture", "parentId": primaire["id"]}, **H)
+    base = {**FICHE, "nom": "Kalonji", "pieceType": "Passeport", "pieceNumero": "OP77"}
+    def refus(corps):
+        r = agent.post("/api/tiers", corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    assert "prénom, date de naissance, lieu de naissance, adresse, délivrée le, lieu de délivrance, autorité de délivrance, valide jusqu'au (Instr. BCC 15" in refus(
+        {**base, **{k: "" for k in ("prenom", "naissance", "lieuNaissance", "adresse", "pieceDelivreeLe", "pieceLieu", "pieceAutorite", "pieceExpire")}})
+    assert "Pièce expirée" in refus({**base, "pieceExpire": "2020-01-01"})
+    assert "Situation matrimoniale" in refus({**base, "situationMatrimoniale": "Pacsé"})
+    assert "Type d'activité" in refus({**base, "secteurActivite": "SECONDAIRE", "typeActivite": "Pisciculture"})
+    assert "Nationalité" in refus({**base, "nationalite": "Atlantide"})
+    assert "Pays, ville, commune ou quartier" in refus({**base, "pays": "République démocratique du Congo", "ville": "Kinshasa", "quartier": "Nulle part"})
+    assert "Gestionnaire inconnu" in refus({**base, "gestionnaireId": 999999})
+    assert "Bénéficiaire 1 : à remplir : nom" in refus({**base, "beneficiaires": [{"nom": ""}]})
+    assert "filiation inconnue" in refus({**base, "beneficiaires": [{"nom": "Kalonji", "filiation": "Cousin"}]})
+    t = agent.post("/api/tiers", {**base, "situationMatrimoniale": "Marié(e)", "nationalite": "République démocratique du Congo", "pere": "Kalonji Pierre",
+                                  "mere": "Mbuyi Anne", "secteurActivite": "PRIMAIRE", "typeActivite": "Pisciculture",
+                                  "beneficiaires": [{"nom": "Kalonji", "prenom": "Paul", "filiation": "Enfant", "sexe": "M"}]}, **H).json()
+    assert "situationMatrimoniale" in t, t
+    assert (t["situationMatrimoniale"], t["pere"], t["typeActivite"], t["beneficiaires"][0]["filiation"]) == ("Marié(e)", "Kalonji Pierre", "Pisciculture", "Enfant")
