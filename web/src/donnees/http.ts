@@ -143,6 +143,11 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       enregistrer: (niveau: string, d: object, id?: number) => post(id === undefined ? `/localisation/${niveau}` : `/localisation/${niveau}/${id}`, d),
       supprimer: (niveau: string, id: number) => post(`/localisation/${niveau}/${id}/suppression`),
     },
+    agents: {
+      lire: (role: string) => get(`/agents/${role}`),
+      enregistrer: (role: string, d: object, id?: number) => post(id === undefined ? `/agents/${role}` : `/agents/${role}/${id}`, d),
+      supprimer: (role: string, id: number) => post(`/agents/${role}/${id}/suppression`),
+    },
     societe: {
       lire: () => get("/societe"),
       enregistrer: (d: object) => post("/societe", d),

@@ -103,6 +103,9 @@ export interface Tiers {
   email: string;
   bp: string;
   telephoneFixe: string;
+  // S33 : sensibilisateur et commercial (prospect S45, fiche S37)
+  sensibilisateurId?: number | null;
+  commercialId?: number | null;
   // S48, résiliation (manuel p. 57)
   motifDepart: string;
   resilieLe: string;
@@ -175,7 +178,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 43;
+  version: 44;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean })[];   // S32, page Agence
@@ -212,6 +215,7 @@ export interface Etat {
   affectations: AffectationGuichet[];   // S10
   numerotationCompte: RegleNumeroCompte | null;   // S17
   numerotationPiece: ReglePieceEtat | null;   // S29
+  agents: AgentAgence[];   // S33
   operationsDiverses: { id: number; sens: "PRODUIT" | "CHARGE"; compte: string; libelle: string; statut: "ACTIF" | "INACTIF" }[];   // S31
   journaux: { id: number; code: string; libelle: string; type: string; actif: boolean; supprime: boolean }[];   // S30
   comptesInstitution: CompteInstitution[];   // S102 : comptes divisionnaires ouverts par l'institution (PCCI § 9)
@@ -278,3 +282,7 @@ export interface ProduitEpargne extends Produit {
 
 /** S29 : règle du numéro de pièce ; positions des éléments (Institution à 0 quand sa case n'est pas cochée) */
 export type ReglePieceEtat = { institution: boolean; positions: Record<"INSTITUTION" | "AGENCE" | "JOURNAL" | "COMPTEUR", number> };
+
+/** S33 : gestionnaire, sensibilisateur ou commercial d'agence (manuel p. 43) */
+export interface AgentAgence { id: number; role: "gestionnaire" | "sensibilisateur" | "commercial"; agenceId: number | null; nom: string; prenom: string; naissance: string;
+  lieuNaissance: string; sexe: "M" | "F"; profession: string; rue: string; email: string; bp: string; telephoneFixe: string; portable: string; actif: boolean }

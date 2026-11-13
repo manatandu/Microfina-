@@ -9,7 +9,7 @@ import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
   type Operation, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
-  type RegleNumerotation, type RegleNumeroCompte, type Produit, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget,
+  type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget,
 } from "./types";
 import { COUPURES, DEVISES, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 import PCCI from "@pcci";
@@ -17,7 +17,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v43";
+const CLE = "likelemba-demo-v44";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -25,7 +25,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 43) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 44) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -65,7 +65,8 @@ const session = {
 };
 
 function contexte() {
-  return { institution: E.institution, agence: E.agence, guichets: E.guichets.filter((g) => g.actif !== false), produits: produitsProposes(), zones: zonesActives(), typesClient: TYPES_CLIENT, typesEntreprise: TYPES_ENTREPRISE, typesGroupe: Object.keys(TYPES_GROUPE), pieces: PIECES, professions: E.professions, localites: localites(), motifsDepart: valeursListe("motif_depart").map((l) => l.libelle), cours: E.cours, valeurPart: E.valeurPart, utilisateurs: E.utilisateurs };
+  return { institution: E.institution, agence: E.agence, guichets: E.guichets.filter((g) => g.actif !== false), produits: produitsProposes(), zones: zonesActives(), typesClient: TYPES_CLIENT, typesEntreprise: TYPES_ENTREPRISE, typesGroupe: Object.keys(TYPES_GROUPE), pieces: PIECES, professions: E.professions, localites: localites(),
+    sensibilisateurs: agentsActifs("sensibilisateur"), commerciaux: agentsActifs("commercial"), motifsDepart: valeursListe("motif_depart").map((l) => l.libelle), cours: E.cours, valeurPart: E.valeurPart, utilisateurs: E.utilisateurs };
 }
 export const nomUtilisateur = (id?: number) => E.utilisateurs.find((u) => u.id === id)?.nom ?? "";
 
@@ -321,7 +322,19 @@ function controlerStatutActif(statut: Tiers["statut"], suite = "") {
   if (statut !== "actif") throw new ErreurMetier(`Client pas encore visé${suite}.`);
 }
 /** Champs de l'écran prospect (p. 55) */
-export type Prospect = Pick<Tiers, "nom" | "prenom" | "naissance" | "lieuNaissance" | "sexe" | "profession" | "pays" | "ville" | "quartier" | "rue" | "email" | "bp" | "telephoneFixe" | "telephone">;
+export type Prospect = Pick<Tiers, "nom" | "prenom" | "naissance" | "lieuNaissance" | "sexe" | "profession" | "pays" | "ville" | "quartier" | "rue" | "email" | "bp" | "telephoneFixe" | "telephone"> &
+  { sensibilisateurId?: number | null; commercialId?: number | null };   // S33-4
+/** Sensibilisateur et Commercial du prospect : ceux de S33, ou aucun (INCONNU) ; registre S33-4 */
+function agentsProspect(d: Prospect) {
+  const r: { sensibilisateurId: number | null; commercialId: number | null } = { sensibilisateurId: null, commercialId: null };
+  for (const [k, role, nom] of [["sensibilisateurId", "sensibilisateur", "Sensibilisateur"], ["commercialId", "commercial", "Commercial"]] as const) {
+    const x = d[k];
+    if (x === null || x === undefined) continue;
+    if (!E.agents.some((a) => a.id === x && a.role === role && a.actif)) throw new ErreurMetier(`${nom} inconnu.`);
+    r[k] = x;
+  }
+  return r;
+}
 /** Champs obligatoires de la capture p. 55. Règles identiques côté serveur (services.controler_prospect). */
 function controlerProspect(d: Prospect): Prospect {
   const v = Object.fromEntries(Object.entries(d).map(([k, x]) => [k, typeof x === "string" ? x.trim() : x])) as Prospect;
@@ -491,15 +504,16 @@ const tiers = {
   prospects: () => { exiger(); return E.tiers.filter((t) => t.statut === "prospect").reverse(); },
   creerProspect(d: Prospect) {
     const u = exiger();
-    const v = controlerProspect(d);
+    const v = controlerProspect(d); const ag = agentsProspect(d);
     const t = nouveauTiers({ ...enrolementVide(""), ...v }, u.id, { type: "physique", dirigeant: null, signataires: [], membres: [], photo: false, specimen: false });
-    t.statut = "prospect"; enregistrer(); return t;
+    Object.assign(t, ag); t.statut = "prospect"; enregistrer(); return t;
   },
   modifierProspect(id: number, d: Prospect) {
     exiger();
     const t = E.tiers.find((x) => x.id === id);
     if (!t || t.statut !== "prospect") throw new ErreurMetier("Prospect introuvable.");
-    Object.assign(t, controlerProspect(d)); enregistrer(); return t;
+    const v = controlerProspect(d); const ag = agentsProspect(d);
+    Object.assign(t, v, ag); enregistrer(); return t;
   },
   aRevalider: () => { exiger(); return E.tiers.filter((t) => t.statut === "modifie_a_revalider"); },
   /** S42 : Valider client modifié (p. 54), « activer client ». Quatre yeux (ARCHITECTURE P7). Règles identiques côté serveur (services.activer_tiers). */
@@ -2283,6 +2297,52 @@ const societe = {
   },
 };
 
+// ---------- Agence > Paramètre : gestionnaire, sensibilisateur, commercial (S33, manuel p. 43). Règles identiques côté serveur (noyau/agents.py). ----------
+const agentsActifs = (role: AgentAgence["role"]) => E.agents.filter((a) => a.role === role && a.actif)
+  .sort((a, b) => `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`)).map((a) => ({ id: a.id, nom: `${a.nom} ${a.prenom}`.trim() }));
+const ROLES_AGENT = ["gestionnaire", "sensibilisateur", "commercial"];
+const agents = {
+  lire(role: string) {
+    exiger();
+    if (!ROLES_AGENT.includes(role)) throw new ErreurMetier("Onglet inconnu.");
+    return { role, agenceDefaut: E.agence.id, agences: E.agences.filter((a) => !a.supprime).map(({ id, nom }) => ({ id, nom })), professions: [...E.professions].sort(),
+      agents: E.agents.filter((a) => a.role === role && a.actif).sort((a, b) => `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`)).map(({ role: _r, actif: _a, ...x }) => x) };
+  },
+  /** Enregistrer (nouvel agent) ou Modifier (agent choisi dans la liste) ; registre S33-1 à S33-3 */
+  enregistrer(role: string, d: Partial<AgentAgence>, id?: number) {
+    exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
+    if (!ROLES_AGENT.includes(role)) throw new ErreurMetier("Onglet inconnu.");
+    const t = (x: unknown) => (typeof x === "string" ? x.trim() : "");
+    const v = { nom: t(d.nom), prenom: t(d.prenom), naissance: t(d.naissance), lieuNaissance: t(d.lieuNaissance), sexe: t(d.sexe), profession: t(d.profession),
+      rue: t(d.rue), email: t(d.email), bp: t(d.bp), telephoneFixe: t(d.telephoneFixe), portable: t(d.portable) };
+    const oblig: [string, string][] = [["Nom", v.nom], ["Prénom", v.prenom], ["Né(e) le", v.naissance], ["Sexe", v.sexe]];
+    if (role !== "gestionnaire") oblig.push(["à", v.lieuNaissance]);
+    const manque = manquants(oblig);
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    if (!["M", "F"].includes(v.sexe)) throw new ErreurMetier("Sexe inconnu.");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v.naissance) || v.naissance > new Date().toISOString().slice(0, 10)) throw new ErreurMetier("Né(e) le : date invalide.");
+    if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) throw new ErreurMetier("Email invalide.");
+    if (v.profession && !E.professions.includes(v.profession)) throw new ErreurMetier("Profession inconnue.");
+    const agenceId = role === "gestionnaire" ? d.agenceId ?? null : null;
+    if (agenceId !== null && !E.agences.some((a) => a.id === agenceId && !a.supprime)) throw new ErreurMetier("Agence inconnue.");
+    const actuel = id === undefined ? undefined : E.agents.find((a) => a.id === id && a.role === role && a.actif);
+    if (id !== undefined && !actuel) throw new ErreurMetier("Agent introuvable.");
+    const x = { ...v, sexe: v.sexe as AgentAgence["sexe"], agenceId };
+    if (actuel) Object.assign(actuel, x); else E.agents.push({ id: prochain(E.agents), role: role as AgentAgence["role"], actif: true, ...x });
+    enregistrer(); return agents.lire(role);
+  },
+  /** Supprimer (onglets Gestionnaire et Commercial) : logique (T02) ; refusé si des clients le portent (registre S33-3) */
+  supprimer(role: string, id: number) {
+    exiger("chef_agence");
+    if (role === "sensibilisateur") throw new ErreurMetier("Un sensibilisateur ne se supprime pas.");
+    const a = E.agents.find((x) => x.id === id && x.role === role && x.actif);
+    if (!a) throw new ErreurMetier("Agent introuvable.");
+    if (E.tiers.some((t) => t.sensibilisateurId === id || t.commercialId === id)) throw new ErreurMetier("Des clients portent cet agent : il ne se supprime pas.");
+    a.actif = false;
+    enregistrer(); return agents.lire(role);
+  },
+};
+
 // ---------- Info de base > Localisation (S20, manuel p. 30 à 32), adaptée au découpage de la RDC (demande du porteur, registre S20-1) :
 // Constitution, art. 2 et 3 ; Décret 22/07 du 02/03/2022, art. 9, point 26. Règles identiques côté serveur (noyau/localisation.py). ----------
 const NIVEAUX: NiveauLieu[] = ["pays", "province", "ville", "commune", "quartier"];
@@ -2384,6 +2444,7 @@ const apiLocal = {
   journaux: asynchrone(journaux),
   edDivers: asynchrone(edDivers),
   societe: asynchrone(societe),
+  agents: asynchrone(agents),
   comptes: asynchrone(comptes),
   numerotation: asynchrone(numerotation),
 };

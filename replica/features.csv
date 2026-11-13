@@ -30,7 +30,7 @@ Numérotation des pièces,paramétrage,must,yes,yes,"S29 ; manuel p. 41 | Constr
 Journaux,paramétrage,must,yes,yes,"S30 ; manuel p. 41 et 42 | Construit le 13/11/2026 : Info Journal (Type, Libelle, Code, Actif, Détail journal), Enregistrer, Effacer, Supprimer, liste et Exporter ; journal inactif sans écriture ; détail dans l'exercice en cours. Registre S30-1 à S30-3."
 Encaissements et décaissements divers autorisés,paramétrage,must,yes,yes,"S31 ; manuel p. 42 | Construit le 13/11/2026 : Type Opération (PRODUIT, CHARGE), Compte, Statut, Libellé, Enregistrer, Annuler, grille ; compte du plan ouvert et saisissable, hors caisse. Registre S31-1 à S31-3."
 Société agences zones logo,paramétrage,must,yes,partial,"S32 ; manuel p. 42 | Construit le 13/11/2026 : Information Societe (Info générale de la capture, logo), Agence, Zone (celle de S21). Reste : onglet Autres Info et cadre Info sécurité, à demander au porteur (S32-6). Registre S32-1 à S32-6."
-Gestionnaires sensibilisateurs commerciaux,paramétrage,should,yes,no,S33
+Gestionnaires sensibilisateurs commerciaux,paramétrage,should,yes,yes,"S33 ; manuel p. 43 | Construit le 13/11/2026 : onglets Gestionnaire, Sensibilisateur, Commercial, champs et boutons des captures, listes ; le prospect (S45) choisit son sensibilisateur et son commercial dans ces listes. Registre S33-1 à S33-4."
 Jours de travail et jours fériés,paramétrage,should,yes,no,S34
 Devises types de monnaie et coupures,paramétrage,must,yes,no,S35 ; CDF et USD ; pas d'opération de change (PCCI § 7.1)
 Éléments de facture et références de commande,paramétrage,could,yes,no,S36

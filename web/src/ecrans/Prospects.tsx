@@ -3,7 +3,7 @@ import { api, type Prospect } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite } from "../composants";
 
-const INCONNU = "INCONNU";   // Sensibilisateur et Commercial : liste de S33, pas encore construite
+const INCONNU = "INCONNU";   // Sensibilisateur et Commercial : aucun choisi (capture p. 55) ; sinon listes de S33 (registre S33-4)
 const VIDE: Prospect = { nom: "", prenom: "", naissance: "", lieuNaissance: "", sexe: "", profession: "", pays: "", ville: "", quartier: "", rue: "", email: "", bp: "", telephoneFixe: "", telephone: "" };
 const fr = (iso: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "");
 
@@ -16,21 +16,23 @@ export function NouveauProspect() {
   if (!donnees) return <Chargement />;
   const { ctx, liste } = donnees;
   const maj = (p: Partial<Prospect>) => setD({ ...d, ...p });
-  const texte = (k: keyof Prospect) => ({ value: d[k], onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => maj({ [k]: e.target.value }) });
+  const texte = (k: Exclude<keyof Prospect, "sensibilisateurId" | "commercialId">) => ({ value: d[k], onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => maj({ [k]: e.target.value }) });
   const pays = ctx.localites.find((p) => p.pays === d.pays);
   const ville = pays?.villes.find((v) => v.ville === d.ville);
   const annuler = () => { setD(VIDE); setChoisi(null); };
   const confirmer = (faire: () => Promise<unknown>) => setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
     try { await faire(); annuler(); setBoite({ type: "succes", message: "Enregistré avec succès !" }); } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   } });
-  const inconnu = (libelle: string) => <Champ libelle={libelle}>{(p) => <select {...p} className="saisie"><option>{INCONNU}</option></select>}</Champ>;
+  const agent = (libelle: string, k: "sensibilisateurId" | "commercialId", liste: { id: number; nom: string }[]) => (
+    <Champ libelle={libelle}>{(p) => <select {...p} className="saisie" value={d[k] ?? ""} onChange={(e) => maj({ [k]: e.target.value ? Number(e.target.value) : null })}>
+      <option value="">{INCONNU}</option>{liste.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>);
   return (
     <>
       <h1>Enregistrement d'un prospect</h1>
       <section className="bloc pile" aria-label="Prospect">
         <div className="deux-colonnes">
           <div className="pile">
-            {inconnu("Sensibilisateur")}{inconnu("Commercial")}
+            {agent("Sensibilisateur", "sensibilisateurId", ctx.sensibilisateurs)}{agent("Commercial", "commercialId", ctx.commerciaux)}
             <Champ libelle="Nom : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("nom")} />}</Champ>
             <Champ libelle="Prenoms : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("prenom")} />}</Champ>
             <ChampDate libelle="Date naissance : *" valeur={d.naissance} onChange={(v) => maj({ naissance: v })} requis />
@@ -64,7 +66,8 @@ export function NouveauProspect() {
           {liste.map((t) => (
             <tr key={t.id} className="ligne-choix" tabIndex={0} aria-selected={choisi === t.id}
               onClick={() => { setChoisi(t.id); setD({ nom: t.nom, prenom: t.prenom, naissance: t.naissance, lieuNaissance: t.lieuNaissance, sexe: t.sexe, profession: t.profession,
-                pays: t.pays, ville: t.ville, quartier: t.quartier, rue: t.rue, email: t.email, bp: t.bp, telephoneFixe: t.telephoneFixe, telephone: t.telephone }); }}
+                pays: t.pays, ville: t.ville, quartier: t.quartier, rue: t.rue, email: t.email, bp: t.bp, telephoneFixe: t.telephoneFixe, telephone: t.telephone,
+                sensibilisateurId: t.sensibilisateurId ?? null, commercialId: t.commercialId ?? null }); }}
               onKeyDown={(e) => { if (e.key === "Enter") (e.currentTarget as HTMLElement).click(); }}>
               <td>{t.nom} {t.prenom}</td><td className="chiffres">{fr(t.naissance)}</td><td>{t.profession}</td><td>{t.quartier}</td><td>{ctx.agence.nom}</td>
             </tr>

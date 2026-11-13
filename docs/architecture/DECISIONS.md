@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**217 décisions.** Solidité : 70 fortes (le manuel ou un texte répond), 118 moyennes (déduites d'un écran voisin ou d'une donnée), 29 faibles (notre choix, faute de mieux). Dans le code : 161 déjà en place, 56 à appliquer.
+**221 décisions.** Solidité : 71 fortes (le manuel ou un texte répond), 121 moyennes (déduites d'un écran voisin ou d'une donnée), 29 faibles (notre choix, faute de mieux). Dans le code : 165 déjà en place, 56 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -462,6 +462,15 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S12-5 | Journée Maxi ouvert | Saisie dans Information société (obligatoire, 1 au moins) ; à appliquer à l'ouverture des journées : nombre de journées ouvertes à la fois | Manuel : Capture p. 42 ; T14 | moyenne | à appliquer |
+
+## S33 Agence : gestionnaire, sensibilisateur, commercial
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S33-1 | Champs et obligatoires | Ceux des captures : Rue / Maison, Email, BP, Tél fix, Portable ; Agence (Gestionnaire seulement, l'agence de l'utilisateur proposée) ; Nom, Prénom, Né(e) le, Sexe obligatoires ; « à » obligatoire pour Sensibilisateur et Commercial ; Profession dans la liste des professions, comme le prospect | Écran voisin : Captures p. 43 et 44 ; S45 | forte | en place |
+| S33-2 | Barre et boutons | Nouveau, Modifier (grisé sans agent choisi), Supprimer (Gestionnaire et Commercial ; absent pour Sensibilisateur, comme sur la capture), bouton Liste qui ouvre la fenêtre des agents pour en choisir un ; Enregistrer, puis Effacer (Gestionnaire) ou Annuler. Les icônes copier et enregistrer de la barre, en double, ne sont pas reprises | Écran voisin : Captures p. 43 et 44 ; S20-5 | moyenne | en place |
+| S33-3 | Contrôles | Date de naissance réelle, pas dans le futur ; email valide. Supprimer est logique et refusé quand des clients portent l'agent | Donnée exigée ailleurs : T02 ; T05 | moyenne | en place |
+| S33-4 | Lien avec le prospect et la fiche client | Sensibilisateur et Commercial du prospect (S45) se choisissent dans ces listes ; INCONNU, valeur de la capture p. 55, veut dire aucun. Les colonnes du client pointent sur ces agents (elles n'avaient pas servi). La fiche client (S37) suivra avec S37-2 | Donnée exigée ailleurs : Capture p. 55 ; S37-2 (la saisie libre disparaît quand la liste existe) | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

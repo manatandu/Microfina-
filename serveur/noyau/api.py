@@ -21,6 +21,7 @@ from . import parametrage_epargne as pp
 from . import journaux as jo
 from . import ed_divers as ed
 from . import societe as so
+from . import agents as ag
 from . import comptes as cp
 from . import numerotation as nu
 from . import services as s
@@ -686,6 +687,27 @@ def pe_modifier(request, pid: int, corps: dict = Body(...)):
 @api.post("/produits-epargne/{pid}/suppression")
 def pe_supprimer(request, pid: int):
     return pe.supprimer(u(request), pid)
+
+
+# ---------- Agence > Paramètre : gestionnaire, sensibilisateur, commercial (S33) ----------
+@api.get("/agents/{role}")
+def ag_lire(request, role: str):
+    return ag.lire(u(request), role)
+
+
+@api.post("/agents/{role}")
+def ag_creer(request, role: str, corps: dict = Body(...)):
+    return ag.enregistrer(u(request), role, corps)
+
+
+@api.post("/agents/{role}/{aid}")
+def ag_modifier(request, role: str, aid: int, corps: dict = Body(...)):
+    return ag.enregistrer(u(request), role, corps, aid)
+
+
+@api.post("/agents/{role}/{aid}/suppression")
+def ag_supprimer(request, role: str, aid: int):
+    return ag.supprimer(u(request), role, aid)
 
 
 # ---------- Paramétrage > Info société (S32) ----------

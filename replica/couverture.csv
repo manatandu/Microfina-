@@ -30,7 +30,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 29,Journaux,paramétrage,must,yes,S30,A,liste,2 Paramétrage,,,,,
 30,Encaissements et décaissements divers autorisés,paramétrage,must,yes,S31,A,liste,2 Paramétrage,,R:PCCI (comptes),,,
 31,Société agences zones logo,paramétrage,must,partial,S32,B,liste,2 Paramétrage,S32 : pages agences et zones (« afficher les pages »),"D:S05, S08, S21 zone ; A:S33",,,S32-6 Onglet Autres Info et cadre Info sécurité ; S12-5 Journée Maxi ouvert
-32,Gestionnaires sensibilisateurs commerciaux,paramétrage,should,no,S33,A,liste,2 Paramétrage,,,,S33,
+32,Gestionnaires sensibilisateurs commerciaux,paramétrage,should,yes,S33,A,liste,2 Paramétrage,,,,,
 33,Jours de travail et jours fériés,paramétrage,should,no,S34,A,composition,2 Paramétrage,,,,S34,
 34,Devises types de monnaie et coupures,paramétrage,must,no,S35,A,liste,2 Paramétrage,,,,S35,
 35,Éléments de facture et références de commande,paramétrage,could,no,S36,A,liste,2 Paramétrage,,,,S36,

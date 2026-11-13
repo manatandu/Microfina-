@@ -505,6 +505,29 @@ describe("journée de guichet", () => {
     expect(await api.credit.portefeuille(g.id)).toEqual([]);
   });
 
+  it("agents d'agence (S33, p. 43) : obligatoires selon l'onglet, pas de suppression du sensibilisateur, choisis par le prospect (S45)", async () => {
+    await connecter("jpmukendi");
+    expect((await api.agents.lire("gestionnaire")).agents).toEqual([]);
+    const P = { nom: "Kabeya", prenom: "Sarah", naissance: "1990-04-02", sexe: "F" as const, profession: "Commerçant" };
+    await expect(api.agents.enregistrer("gestionnaire", {})).rejects.toThrow("Nom, Prénom, Né(e) le, Sexe");
+    await expect(api.agents.enregistrer("sensibilisateur", P)).rejects.toThrow("à");
+    await expect(api.agents.enregistrer("gestionnaire", { ...P, naissance: "2999-01-01" })).rejects.toThrow("date invalide");
+    await api.agents.enregistrer("gestionnaire", { ...P, agenceId: 1 });
+    const s = (await api.agents.enregistrer("sensibilisateur", { ...P, nom: "Mbuyi", lieuNaissance: "Kananga" })).agents[0]!;
+    const c = (await api.agents.enregistrer("commercial", { ...P, nom: "Tshala", lieuNaissance: "Mbuji-Mayi" })).agents[0]!;
+    await expect(api.agents.supprimer("sensibilisateur", s.id)).rejects.toThrow("ne se supprime pas");
+    const ctx = await api.referentiel.contexte();
+    expect([ctx.sensibilisateurs.map((x) => x.nom), ctx.commerciaux.map((x) => x.nom)]).toEqual([["Mbuyi Sarah"], ["Tshala Sarah"]]);
+    await connecter("bkasongo");
+    const pr = { nom: "Ilunga", prenom: "Marc", naissance: "1988-01-01", lieuNaissance: "Kinshasa", sexe: "M" as const, profession: "", pays: "République démocratique du Congo",
+      ville: "Kinshasa", quartier: "Kinsaku", rue: "", email: "", bp: "", telephoneFixe: "", telephone: "+243 810 000 333" };
+    await expect(api.tiers.creerProspect({ ...pr, commercialId: s.id })).rejects.toThrow("Commercial inconnu");
+    const t = await api.tiers.creerProspect({ ...pr, sensibilisateurId: s.id, commercialId: c.id });
+    expect([t.sensibilisateurId, t.commercialId]).toEqual([s.id, c.id]);
+    await connecter("jpmukendi");
+    await expect(api.agents.supprimer("commercial", c.id)).rejects.toThrow("Des clients");
+  });
+
   it("info société (S32, p. 42) : obligatoires, Type base, localisation, hors bilan classe 0, logo ; agences", async () => {
     await connecter("jpmukendi");
     const l = await api.societe.lire();

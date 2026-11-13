@@ -110,6 +110,9 @@ def contexte(u: dict) -> dict:
         "typesGroupe": list(TYPES_GROUPE),
         "pieces": PIECES,
         "professions": [r["libelle"] for r in lignes("select libelle from profession where institution_id = %s order by libelle", (u["institution_id"],))],
+        # S33 : sensibilisateurs et commerciaux proposés au prospect et à la fiche client (registre S33-4)
+        **{cle: lignes("""select id, trim(nom || ' ' || prenom) as nom from agent_agence where institution_id = %s and role = %s and actif order by nom, prenom""",
+                       (u["institution_id"], role)) for cle, role in (("sensibilisateurs", "sensibilisateur"), ("commerciaux", "commercial"))},
         "localites": localites(),
         "motifsDepart": [r["libelle"] for r in lignes("select libelle from liste_reference where institution_id = %s and liste = 'motif_depart' and actif order by id", (u["institution_id"],))],
         "cours": {"USD": cours_usd()},
@@ -376,6 +379,7 @@ def vue_tiers(t: dict) -> dict:
             "lieuNaissance": t["lieu_naissance"] or "", "pieceDelivreeLe": iso(t["piece_delivree_le"]), "pieceLieu": t["piece_lieu"] or "", "pieceAutorite": t["piece_autorite"] or "",
             "liees": [r["autre_id"] for r in lignes("select autre_id from lien_tiers where tiers_id = %s and role = 'personne_liee' order by id", (t["id"],))],
             "intitule": t["intitule"] or "", "dateVisa": iso(t["date_visa"]), "creeLe": t["cree_le"].date().isoformat(), "motifDepart": t["motif_depart"] or "", "resilieLe": iso(t["resilie_le"]),
+            "sensibilisateurId": t["sensibilisateur_id"], "commercialId": t["commercial_id"],
             "profession": t["profession"] or "", "pays": t["pays"] or "", "ville": t["ville"] or "", "quartier": t["quartier"] or "", "rue": t["rue"] or "",
             "email": t["email"] or "", "bp": t["bp"] or "", "telephoneFixe": t["telephone_fixe"] or "",
             "type": t["type"], "formeJuridique": t["forme"] or "", "registre": t["rccm"] or "", "centreActivite": t["centre_activite"] or "", "activite": t["activite"] or "",
@@ -884,15 +888,32 @@ def params_prospect(texte) -> tuple:
             texte("telephone") or None)
 
 
+def agents_prospect(u: dict, d: dict) -> tuple:
+    """Sensibilisateur et Commercial du prospect : ceux de S33, ou aucun (INCONNU) ; registre S33-4"""
+    r = []
+    for k, role, nom in (("sensibilisateurId", "sensibilisateur", "Sensibilisateur"), ("commercialId", "commercial", "Commercial")):
+        x = d.get(k)
+        if x is None:
+            r.append(None)
+            continue
+        if not isinstance(x, int) or isinstance(x, bool) or not une("select 1 from agent_agence where id = %s and institution_id = %s and role = %s and actif",
+                                                                      (x, u["institution_id"], role)):
+            raise ErreurMetier(f"{nom} inconnu.")
+        r.append(x)
+    return tuple(r)
+
+
 def creer_prospect(u: dict, d: dict) -> dict:
     """S45 : Client > Nouveau prospect (manuel p. 55), bouton Enregistrer"""
     exiger(u)
     texte = controler_prospect(u, d)
+    agents = agents_prospect(u, d)
     numero = numero_client(u)
     tid = valeur("""insert into tiers (institution_id, agence_id, numero, type, statut, cree_par) values (%s, %s, %s, 'physique', 'prospect', %s) returning id""",
                  (u["institution_id"], u["agence_id"], numero, u["id"]))
     executer("insert into tiers_personne (tiers_id, nom) values (%s, '')", (tid,))
     executer(f"update tiers_personne set {VALEURS_PROSPECT} where tiers_id = %s", (*params_prospect(texte), tid))
+    executer("update tiers set sensibilisateur_id = %s, commercial_id = %s where id = %s", (*agents, tid))
     return lire_tiers(tid)
 
 
@@ -903,7 +924,9 @@ def modifier_prospect(u: dict, tid: int, d: dict) -> dict:
     if not t or t["statut"] != "prospect":
         raise ErreurMetier("Prospect introuvable.")
     texte = controler_prospect(u, d)
+    agents = agents_prospect(u, d)
     executer(f"update tiers_personne set {VALEURS_PROSPECT} where tiers_id = %s", (*params_prospect(texte), tid))
+    executer("update tiers set sensibilisateur_id = %s, commercial_id = %s where id = %s", (*agents, tid))
     return lire_tiers(tid)
 
 

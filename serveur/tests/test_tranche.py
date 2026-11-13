@@ -1118,3 +1118,34 @@ def test_info_societe(clients):
     n = next(a for a in chef.post("/api/societe/agences", {"code": "0413", "nom": "Lemba"}, **H).json()["agences"] if a["code"] == "0413")
     assert "des clients" in refus({}, f"/api/societe/agences/{ag['id']}/suppression")
     assert chef.post(f"/api/societe/agences/{n['id']}/suppression", {}, **H).status_code == 200
+
+
+def test_agents_agence(clients):
+    """S33 (p. 43) : onglets Gestionnaire, Sensibilisateur, Commercial ; obligatoires selon l'onglet ; pas de Supprimer pour le sensibilisateur ;
+    le prospect (S45) choisit son sensibilisateur et son commercial dans ces listes (registre S33-1 à S33-4)"""
+    chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    A = "/api/agents"
+    l = chef.get(f"{A}/gestionnaire", **H).json()
+    assert l["agents"] == [] and l["agenceDefaut"] and "Commerçant" in l["professions"]
+    def refus(role, corps, suffixe=""):
+        r = chef.post(f"{A}/{role}{suffixe}", corps, **H); assert r.status_code in (403, 404, 422), r.content; return r.json()["message"]
+    P = {"nom": "Kabeya", "prenom": "Sarah", "naissance": "1990-04-02", "sexe": "F", "profession": "Commerçant"}
+    assert agent.post(f"{A}/gestionnaire", P, **H).status_code == 403
+    assert "Nom, Prénom, Né(e) le, Sexe" in refus("gestionnaire", {})
+    assert "à" in refus("sensibilisateur", P)                          # « à » obligatoire pour le sensibilisateur et le commercial
+    assert "date invalide" in refus("gestionnaire", {**P, "naissance": "2999-01-01"})
+    assert "Profession inconnue" in refus("gestionnaire", {**P, "profession": "Astronaute"})
+    g = chef.post(f"{A}/gestionnaire", {**P, "agenceId": l["agenceDefaut"]}, **H).json()["agents"][0]
+    assert (g["nom"], g["naissance"], g["agenceId"]) == ("Kabeya", "1990-04-02", l["agenceDefaut"])
+    s = chef.post(f"{A}/sensibilisateur", {**P, "nom": "Mbuyi", "lieuNaissance": "Kananga"}, **H).json()["agents"][0]
+    c = chef.post(f"{A}/commercial", {**P, "nom": "Tshala", "lieuNaissance": "Mbuji-Mayi"}, **H).json()["agents"][0]
+    assert "ne se supprime pas" in refus("sensibilisateur", {}, f"/{s['id']}/suppression")
+    ctx = chef.get("/api/referentiel", **H).json()
+    assert [x["nom"] for x in ctx["sensibilisateurs"]] == ["Mbuyi Sarah"] and [x["nom"] for x in ctx["commerciaux"]] == ["Tshala Sarah"]
+    pr = {"nom": "Ilunga", "prenom": "Marc", "naissance": "1988-01-01", "lieuNaissance": "Kinshasa", "sexe": "M", "pays": "République démocratique du Congo",
+          "ville": "Kinshasa", "quartier": "Kinsaku", "telephone": "+243 810 000 333"}
+    assert "Commercial inconnu" in agent.post("/api/prospects", {**pr, "commercialId": s["id"]}, **H).json()["message"]
+    t = agent.post("/api/prospects", {**pr, "sensibilisateurId": s["id"], "commercialId": c["id"]}, **H).json()
+    assert (t["sensibilisateurId"], t["commercialId"]) == (s["id"], c["id"])
+    assert "Des clients" in refus("commercial", {}, f"/{c['id']}/suppression")
+    assert chef.post(f"{A}/gestionnaire/{g['id']}/suppression", {}, **H).status_code == 200
