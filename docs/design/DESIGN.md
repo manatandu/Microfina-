@@ -70,13 +70,15 @@ Le guichet valide des centaines d'opérations par jour, au clavier. Rien ne s'an
 
 ### 2.7 ter Une exception : la page des modules
 
-Demande du porteur du projet (13/11/2026) : « un bon design et l'animation immersive » pour la page des modules (S02). Elle s'ouvre une fois par connexion, c'est le seul écran où le mouvement sert le plaisir (fiche `animate` de `emil-kowalski` : budget de plaisir réservé au rare).
+Demande du porteur du projet (13/11/2026) : « un bon design et l'animation immersive » pour la page des modules (S02). Elle s'ouvre une fois par connexion, c'est le seul écran où le mouvement sert le plaisir (fiche `animate` de `emil-kowalski` : budget de plaisir réservé au rare). La structure reste celle de la capture p. 6.
 
-- Scène de nuit (`--nuit`), planète bleue (`--tampon`) qui porte l'étoile du drapeau (`--etoile`), huit modules en orbite à la place de la capture p. 6.
-- Entrée, à la première visite de la session seulement : la planète paraît (600 ms), l'étoile pivote en place, l'orbite se dessine, les modules sortent du centre vers leur place, 50 ms l'un après l'autre. Courbe `--mouvement-courbe-sortie`, `transform` et `opacity` seulement. Aux retours suivants : un fondu de 200 ms.
-- L'orbite pointillée tourne d'un tour en 140 s ; c'est le seul mouvement continu de l'application.
-- Survol, à la souris seulement : le module s'éclaire et grossit de 6 % en 160 ms.
-- Mouvement réduit demandé par le système : plus de déplacement ni de rotation, un fondu seulement.
+- **Scène** : nuit (`--nuit`) en trois plans. Au loin, un ciel de 72 étoiles qui scintillent chacune à son rythme ; au milieu, l'orbite vue en perspective (ellipse aplatie à 0,78) avec ses huit modules, plus petits et plus voilés au fond (Grh) qu'au premier plan (Performance sociale) ; devant, la planète bleue (`--tampon`) qui porte l'étoile du drapeau (`--etoile`).
+- **Profondeur** : les trois plans suivent la souris, ou l'inclinaison du téléphone, avec inertie : 6 px pour le ciel, 14 pour l'orbite, 26 pour la planète.
+- **Vie** : les pointillés glissent le long de l'orbite ; les modules flottent de 3 px, chacun décalé dans le temps. Les modules ne tournent jamais : leur place et leur ordre sont ceux de la capture.
+- **Entrée**, à la première visite de la session : la planète paraît (600 ms), l'étoile pivote en place, l'orbite se dessine, les modules sortent du centre vers leur place, 50 ms l'un après l'autre. Aux retours : un fondu de 200 ms.
+- **Plongée** : au clic de la souris ou du doigt sur un module ouvert, la boule grandit jusqu'à couvrir l'écran (460 ms, courbe forte d'entrée et de sortie) et se fond dans le fond des écrans du module. Au clavier, avec une touche de modification, ou en mouvement réduit : ouverture directe.
+- **Survol**, à la souris seulement : le module s'éclaire et grossit de 8 % en 160 ms.
+- **Mouvement réduit** demandé par le système : ni parallaxe, ni flottement, ni scintillement, ni plongée ; un fondu seulement.
 - Ailleurs, la règle 2.7 bis reste entière.
 ### 2.8 Le papier est un écran comme un autre
 
