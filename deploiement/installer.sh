@@ -70,7 +70,7 @@ gcloud secrets add-iam-policy-binding likelemba-bd-adresse --member="$RUN" --rol
 for s in likelemba-secret likelemba-bd-mdp likelemba-mdp-initial; do
   gcloud secrets add-iam-policy-binding "$s" --member="$RUN" --role=roles/secretmanager.secretAccessor >/dev/null
 done
-for r in roles/run.admin roles/artifactregistry.writer roles/firebasehosting.admin roles/serviceusage.serviceUsageConsumer; do lier "$DEPLOY" "$r"; done
+for r in roles/run.admin roles/artifactregistry.writer roles/firebasehosting.admin roles/serviceusage.serviceUsageConsumer roles/logging.viewer; do lier "$DEPLOY" "$r"; done
 gcloud iam service-accounts add-iam-policy-binding "likelemba-run@$PROJET.iam.gserviceaccount.com" --member="$DEPLOY" --role=roles/iam.serviceAccountUser >/dev/null
 
 echo "5/6 Dépôt d'images"
