@@ -4,8 +4,7 @@ import { api, LIBELLES_ROLES } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { Bloquant } from "../composants";
-import logo from "../marque/dwac-horizontal.svg";
-import logoBlanc from "../marque/dwac-horizontal-blanc.svg";
+import { Marque } from "../mise-en-page/Marque";
 
 // S01, comme la page de connexion de Microfina++ (manuel, p. 5) : bandeau vertical au nom du logiciel,
 // nom d'utilisateur, mot de passe, journée ouverte et date système en lecture seule, serveur, Connexion.
@@ -32,11 +31,9 @@ export default function Connexion() {
   return (
     <main className="connexion">
       <form className="carte-connexion" onSubmit={entrer}>
-        <div className="bandeau-nom" aria-hidden="true">{"dwacfina".split("").map((l, i) => <span key={i}>{l}</span>)}</div>
         <h1 className="sr-only">Dwacfina, connexion</h1>
         <div className="champs-connexion">
-          <img src={logo} alt="DWAC" className="logo-connexion logo-clair" />
-          <img src={logoBlanc} alt="" aria-hidden="true" className="logo-connexion logo-sombre" />
+          <div className="marque-connexion" aria-hidden="true"><Marque taille={44} /></div>
           <div className="champ">
             <label htmlFor="login">Nom d'utilisateur :</label>
             <input id="login" className="saisie" autoComplete="username" autoFocus list={enLigne ? undefined : "utilisateurs"} value={login} onChange={(e) => setLogin(e.target.value)} />

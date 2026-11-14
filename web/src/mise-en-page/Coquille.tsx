@@ -11,7 +11,7 @@ import { CONSTRUITS } from "../ecrans/construits";
 import { definirMonnaies } from "@design/montant.js";
 import { mots } from "../lib/vocabulaire";
 import { ICONES } from "./icones";
-import logoBlanc from "../marque/dwac-horizontal-blanc.svg";
+import { Marque } from "./Marque";
 
 export function Coquille() {
   const nav = useNavigate();
@@ -36,7 +36,7 @@ export function Coquille() {
   return (
     <div className="cadre">
       <header className="barre-menus">
-        <Link to="/" className="logo" title="Page des modules"><img src={logoBlanc} alt="DWAC" className="logo-dwac" /><span>{nomApplication}</span></Link>
+        <Link to="/" className="logo" title="Page des modules"><Marque sombre taille={26} />{nomApplication !== "Dwacfina" && <span className="logo-application">{nomApplication}</span>}</Link>
         <nav aria-label="Menus" className="menus">
           {barre.map((x) => <MenuDeroulant key={x.id} menu={x} libelle={libelle(x)} />)}
         </nav>

@@ -10,14 +10,13 @@ a { color: var(--tampon); text-underline-offset: 3px; }
 }
 .logo { display: flex; align-items: center; gap: var(--espace-2); padding-right: var(--espace-4); margin-right: var(--espace-1); border-right: 1px solid var(--nuit-trait); color: var(--nuit-fort); text-decoration: none; font-weight: 700; white-space: nowrap; }
 .logo:focus-visible { outline: 2px solid var(--ciel); outline-offset: -2px; }
-/* Guide de marque DWAC : logo jamais déformé, jamais d'ombre ni de dégradé ; zone de protection X = hauteur des lettres (ici 18 px de marge au minimum) */
-.logo-dwac { display: block; height: 26px; width: auto; }
-.logo-connexion { display: block; height: 40px; width: auto; margin: 0 0 var(--espace-2); }
-/* Version bicolore sur fonds clairs, version blanche sur fonds sombres (guide de marque, p. 12) */
-.logo-sombre { display: none; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .logo-clair { display: none; } :root:not([data-theme="light"]) .logo-sombre { display: block; } }
-:root[data-theme="dark"] .logo-clair { display: none; }
-:root[data-theme="dark"] .logo-sombre { display: block; }
+/* Marque : monogramme DWAC jamais déformé, sans ombre ni dégradé (guide de marque) ; le nom du logiciel suit en Poppins Bold */
+.marque { display: inline-flex; align-items: center; gap: calc(var(--marque-taille) * .4); color: var(--encre); }
+.marque-sombre { color: var(--nuit-fort); }
+.marque-signe { display: block; height: var(--marque-taille); width: auto; }
+.marque-nom { font-weight: 700; font-size: calc(var(--marque-taille) * .62); line-height: 1; letter-spacing: .04em; }
+.logo-application { font-size: var(--taille-dense); font-weight: 600; color: var(--nuit-texte); padding-left: var(--espace-2); border-left: 1px solid var(--nuit-trait); }
+.marque-connexion { margin: 0 0 var(--espace-2); }
 .menus { display: flex; align-items: stretch; flex: 1; min-width: 0; overflow-x: auto; }
 .deroulant { position: relative; display: flex; }
 .deroulant > summary {
@@ -231,10 +230,9 @@ fieldset.formulaire { padding-bottom: var(--espace-2); }
 /* ---------- Connexion (manuel Microfina++, p. 5) : bandeau vertical au nom du logiciel, champs, bouton ---------- */
 .connexion { min-height: 100vh; display: grid; place-items: center; padding: var(--espace-6) var(--mise-gouttiere-mobile); background: var(--papier); }
 .carte-connexion {
-  width: 100%; max-width: 560px; display: grid; grid-template-columns: 56px minmax(0, 1fr);
+  width: 100%; max-width: 560px; display: grid; grid-template-columns: minmax(0, 1fr);
   background: var(--feuille); border: 1px solid var(--trait); border-radius: var(--rayon-bloc); box-shadow: var(--ombre-surface); overflow: hidden;
 }
-.bandeau-nom { background: var(--tampon); color: var(--sur-tampon); display: grid; align-content: center; justify-items: center; gap: 2px; padding: var(--espace-4) 0; font-size: var(--taille-grand); font-weight: 700; line-height: 1; }
 .champs-connexion { display: grid; gap: var(--espace-3); padding: var(--espace-5); }
 .serveur { margin: 0; font-size: var(--taille-dense); color: var(--encre-2); }
 .connexion { gap: var(--espace-5); align-content: center; }
