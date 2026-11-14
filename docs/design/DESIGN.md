@@ -157,6 +157,18 @@ Grille de 4 px. Rayons : 6 px pour les petits éléments, 8 px pour les champs e
 
 ---
 
+### Téléphone (demande du porteur, 14/11/2026 : « Corrige tout »)
+
+Audit des 66 écrans construits au téléphone (clair, sombre) et à l'ordinateur, barème des fiches emil-kowalski `mobile-native` et `break-ui`. Règles retenues :
+
+- **La page ne glisse jamais de côté.** Un tableau plus large que l'écran défile dans son cadre, une ombre au bord dit qu'il reste des colonnes, la première colonne reste en place. Même règle pour la barre des modules et les onglets : une seule ligne qui glisse.
+- **Champs à 16 px sous le doigt** (`pointer: coarse`) : en dessous, l'iPhone zoome à chaque saisie. À l'ordinateur, la taille dense reste.
+- **Cibles de 44 px sous le doigt** : boutons, champs, liens des menus, lignes de case à cocher.
+- **Menu d'accès rapide replié** derrière un bouton « Menu » sous 860 px : l'écran commence en haut. La structure de Microfina++ (menus d'accès rapide à gauche) ne change pas à l'ordinateur.
+- **Valeur en lecture seule** : elle passe à la ligne (composant `Lecture`), une adresse longue reste lisible en entier.
+- **Socle** : pas de flash au toucher, pas d'attente de double tape, hauteur `dvh`, zones sûres (encoche, barre du bas), couleur de la barre d'état accordée au jeton `--nuit` de chaque thème (`index.html`, seule couleur écrite en dur : une balise meta ne lit pas de variable).
+- **Contrôle** : le travail « Contrôle du site en ligne » mesure à chaque déploiement que la page ne déborde pas au téléphone.
+
 ## 4. Écrans clés
 
 ### Guichet : retrait

@@ -6,7 +6,7 @@ import { api } from "../donnees/api";
 import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
 import { lireMontant, montant, type Devise } from "@design/montant.js";
 import { RechercheClient } from "./Visa";
 import { ChoixBanque } from "./OperationsBanque";
@@ -28,7 +28,7 @@ export function VirementPrelevement() {
   const date = f.date || lu.date;
   const cc = (comptes ?? []).find((c) => String(c.id) === f.compteClient);
   const cb = lu.comptes.find((c) => String(c.id) === f.compte);
-  const lu_ = (libelle: string, v: string) => <Champ libelle={libelle}>{(p) => <input {...p} className="saisie" readOnly value={v} />}</Champ>;
+  const lu_ = (libelle: string, v: string) => <Champ libelle={libelle}>{(p) => <Lecture {...p} value={v} />}</Champ>;
   const vider = () => { setF(vide); setT(null); setCle(nouvelleCle()); };
 
   function enregistrer() {

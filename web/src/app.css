@@ -1,12 +1,15 @@
 /* Mise en page de l'application. Jetons seulement (tokens.css). */
 a { color: var(--tampon); text-underline-offset: 3px; }
-#racine { min-height: 100vh; }
+#racine { min-height: 100vh; min-height: 100dvh; }
+
+/* Bouton Menu de l'accès rapide : seulement sur écran étroit (voir la règle à 860 px) */
+.bouton-acces-rapide { display: none; }
 
 /* ---------- Cadre d'un module : barre de menus, accès rapide, zone de travail, bas de page (manuel Microfina++, p. 13) ---------- */
-.cadre { min-height: 100vh; display: grid; grid-template-rows: auto 1fr auto; grid-template-columns: minmax(0, 1fr); }
+.cadre { min-height: 100vh; min-height: 100dvh; display: grid; grid-template-rows: auto 1fr auto; grid-template-columns: minmax(0, 1fr); }
 .barre-menus {
   position: sticky; top: 0; z-index: 20; display: flex; align-items: stretch; gap: var(--espace-2);
-  background: var(--nuit); color: var(--nuit-texte); padding: 0 var(--espace-4); min-height: 64px;
+  background: var(--nuit); color: var(--nuit-texte); padding: env(safe-area-inset-top, 0px) max(var(--espace-4), env(safe-area-inset-right, 0px)) 0 max(var(--espace-4), env(safe-area-inset-left, 0px)); min-height: 64px;
 }
 .logo { display: flex; align-items: center; gap: var(--espace-2); padding-right: var(--espace-4); margin-right: var(--espace-1); border-right: 1px solid var(--nuit-trait); color: var(--nuit-fort); text-decoration: none; font-weight: 700; white-space: nowrap; }
 .logo:focus-visible { outline: 2px solid var(--ciel); outline-offset: -2px; }
@@ -68,7 +71,7 @@ a { color: var(--tampon); text-underline-offset: 3px; }
 
 .pied {
   display: flex; flex-wrap: wrap; gap: var(--espace-1) var(--espace-6); align-items: center;
-  padding: var(--espace-2) var(--espace-5); background: var(--feuille); border-top: 1px solid var(--trait);
+  padding: var(--espace-2) var(--espace-5) calc(var(--espace-2) + env(safe-area-inset-bottom, 0px)); background: var(--feuille); border-top: 1px solid var(--trait);
   font-size: var(--taille-dense); color: var(--encre-2);
 }
 .pied strong { color: var(--encre); font-weight: 600; }
@@ -228,7 +231,7 @@ fieldset.formulaire { padding-bottom: var(--espace-2); }
 .resultat-ok::before { content: "✓"; color: var(--sain-texte); font-weight: 700; }
 
 /* ---------- Connexion (manuel Microfina++, p. 5) : bandeau vertical au nom du logiciel, champs, bouton ---------- */
-.connexion { min-height: 100vh; display: grid; place-items: center; padding: var(--espace-6) var(--mise-gouttiere-mobile); background: var(--papier); }
+.connexion { min-height: 100vh; min-height: 100svh; display: grid; place-items: center; padding: var(--espace-6) var(--mise-gouttiere-mobile); background: var(--papier); }
 .carte-connexion {
   width: 100%; max-width: 560px; display: grid; grid-template-columns: minmax(0, 1fr);
   background: var(--feuille); border: 1px solid var(--trait); border-radius: var(--rayon-bloc); box-shadow: var(--ombre-surface); overflow: hidden;
@@ -258,10 +261,63 @@ fieldset.formulaire { padding-bottom: var(--espace-2); }
   .page { padding: var(--espace-4) var(--mise-gouttiere-mobile); }
   .deux-colonnes { grid-template-columns: minmax(0, 1fr); }
   .pied .muet { margin-left: 0; }
-  /* Un tableau plus large que l'écran défile dans son cadre ; la page, elle, ne glisse jamais de côté */
-  .grille { display: block; overflow-x: auto; max-width: 100%; }
+  /* Un tableau plus large que l'écran défile dans son cadre ; la page, elle, ne glisse jamais de côté.
+     Une ombre au bord dit qu'il reste des colonnes (fond « local » qui suit le contenu, ombre « scroll » qui reste au bord) ; la première colonne reste en place. */
+  .grille {
+    display: block; overflow-x: auto; max-width: 100%; overscroll-behavior-x: contain;
+    background:
+      linear-gradient(to right, var(--feuille) 30%, transparent) left / 32px 100% no-repeat local,
+      linear-gradient(to left, var(--feuille) 30%, transparent) right / 32px 100% no-repeat local,
+      radial-gradient(farthest-side at 0 50%, color-mix(in srgb, var(--encre) 22%, transparent), transparent) left / 12px 100% no-repeat scroll,
+      radial-gradient(farthest-side at 100% 50%, color-mix(in srgb, var(--encre) 22%, transparent), transparent) right / 12px 100% no-repeat scroll;
+  }
+  .grille th:first-child, .grille td:first-child { position: sticky; left: 0; z-index: 1; background: var(--feuille); }
+  .grille thead th:first-child { background: inherit; }
+  .grille tfoot th:first-child, .grille tfoot td:first-child { background: var(--papier); }
   .menus .liste-deroulante { width: min(320px, calc(100vw - 16px)); min-width: 0; }
+  /* Barre des modules et onglets : une seule ligne qui glisse, avec une ombre au bord tant qu'il reste des menus */
+  .menus {
+    overscroll-behavior-x: contain; scrollbar-width: none;
+    background:
+      linear-gradient(to right, var(--nuit) 30%, transparent) left / 32px 100% no-repeat local,
+      linear-gradient(to left, var(--nuit) 30%, transparent) right / 32px 100% no-repeat local,
+      radial-gradient(farthest-side at 0 50%, color-mix(in srgb, var(--nuit-fort) 35%, transparent), transparent) left / 14px 100% no-repeat scroll,
+      radial-gradient(farthest-side at 100% 50%, color-mix(in srgb, var(--nuit-fort) 35%, transparent), transparent) right / 14px 100% no-repeat scroll;
+  }
+  .menus::-webkit-scrollbar, .onglets::-webkit-scrollbar { display: none; }
+  .onglets {
+    display: flex; flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none;
+    background:
+      linear-gradient(to right, var(--ligne) 30%, transparent) left / 32px 100% no-repeat local,
+      linear-gradient(to left, var(--ligne) 30%, transparent) right / 32px 100% no-repeat local,
+      radial-gradient(farthest-side at 0 50%, color-mix(in srgb, var(--encre) 25%, transparent), transparent) left / 12px 100% no-repeat scroll,
+      radial-gradient(farthest-side at 100% 50%, color-mix(in srgb, var(--encre) 25%, transparent), transparent) right / 12px 100% no-repeat scroll,
+      var(--ligne);
+  }
+  .onglets [role="tab"], .onglets > a, .onglets > span { flex-shrink: 0; }
+  /* Accès rapide : replié derrière le bouton Menu ; ouvert, il montre seulement le module en cours */
+  .bouton-acces-rapide { display: inline-flex; justify-self: start; margin: var(--espace-3) var(--mise-gouttiere-mobile) 0; }
+  .acces-rapide { display: none; }
+  .acces-rapide.ouvert { display: grid; }
+  .acces-rapide.ouvert details:not([open]) { display: block; }
 }
+.saisie.lecture { resize: none; overflow: hidden; field-sizing: content; line-height: var(--interligne-dense, 1.4); }
+
+/* Écran tactile (fiche emil-kowalski « mobile-native ») : champs à 16 px pour que l'iPhone ne zoome pas à la saisie ;
+   cibles d'au moins 44 px sous le doigt ; pas de flash gris au toucher ni d'attente de double tape */
+@media (pointer: coarse) {
+  input, select, textarea, .saisie, .grille tr.filtres .saisie { font-size: 16px; }
+  .saisie, .bouton, .sortir { min-height: 44px; }
+  .sortir { min-width: 44px; }
+  .bouton { padding-top: 10px; padding-bottom: 10px; }
+  .acces-rapide a, .liste-deroulante a, .acces-rapide summary { min-height: 44px; display: flex; align-items: center; }
+  .onglets [role="tab"], .onglets > a { min-height: 40px; }
+  input[type="checkbox"], input[type="radio"] { width: 22px; height: 22px; }
+  label.case { min-height: 44px; display: inline-flex; align-items: center; gap: var(--espace-2); }
+}
+html { -webkit-tap-highlight-color: transparent; }
+button, a, summary, [role="button"], [role="tab"], label.case { touch-action: manipulation; }
+button, summary, [role="tab"] { -webkit-user-select: none; user-select: none; }
 
 .a-droite { text-align: right; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -277,7 +333,9 @@ fieldset.formulaire { padding-bottom: var(--espace-2); }
 .deux-colonnes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--espace-4) var(--espace-7); align-items: start; }
 @media (max-width: 720px) { .deux-colonnes { grid-template-columns: minmax(0, 1fr); } }
 .ligne-champ { display: flex; flex-wrap: wrap; gap: var(--espace-3); align-items: end; }
-.ligne-champ > .champ { flex: 0 1 auto; }
+.ligne-champ > .champ { flex: 0 1 auto; min-width: 0; max-width: 100%; }
+.ligne-champ > .saisie { flex: 1 1 8rem; width: auto; min-width: 0; }
+.champ > .ligne-champ { min-width: 0; max-width: 100%; }
 .ligne-champ > .champ .saisie.code { inline-size: 11rem; }
 .ligne-champ > .bouton { margin-bottom: 22px; }
 
@@ -359,7 +417,7 @@ textarea.saisie.montant { resize: none; text-align: end; }
 .liste-gauche li[aria-current="page"] { background: var(--tampon-pale); color: var(--tampon); font-weight: 600; }
 .liste-gauche ul { list-style: none; margin: 0; padding: 0; }
 .liste-gauche li button { font: inherit; color: inherit; background: none; border: 0; padding: 0; inline-size: 100%; text-align: start; cursor: pointer; }
-.liste-gauche li:not([aria-current]):hover { background: var(--tampon-pale); }
+@media (hover: hover) and (pointer: fine) { .liste-gauche li:not([aria-current]):hover { background: var(--tampon-pale); } }
 /* Libellé à gauche du champ, comme sur la capture p. 23 */
 .champs-a-gauche .champ { grid-template-columns: 10rem auto; align-items: center; justify-content: start; }
 .champs-a-gauche .champ .saisie { inline-size: 16rem; }
@@ -422,3 +480,7 @@ select.saisie { max-width: 100%; }
 
 /* S51 : dans une grille large, un numéro ou une date ne se coupe pas */
 .grille-cadre td.chiffres { white-space: nowrap; }
+/* Tableau plus large que la zone de travail, sur ordinateur aussi : il défile dans son cadre */
+.defile-x { overflow-x: auto; max-width: 100%; }
+/* Filtres de colonne : 16 px aussi sous le doigt (ils sont définis plus haut en taille dense) */
+@media (pointer: coarse) { .grille tr.filtres .saisie { font-size: 16px; } }

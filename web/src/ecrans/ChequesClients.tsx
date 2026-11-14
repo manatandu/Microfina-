@@ -7,7 +7,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
 import { lireMontant, montant, montantEnLettres, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
 import { RechercheClient } from "./Visa";
 import { ChoixBanque } from "./OperationsBanque";
 
@@ -53,7 +53,7 @@ export function ChequesClients() {
       catch (x) { setBoite({ type: "erreur", message: message(x) }); }
     } });
   }
-  const lu_ = (libelle: string, v: string) => <Champ libelle={libelle}>{(p) => <input {...p} className="saisie" readOnly value={v} />}</Champ>;
+  const lu_ = (libelle: string, v: string) => <Champ libelle={libelle}>{(p) => <Lecture {...p} value={v} />}</Champ>;
   const bancaire = (
     <ChoixBanque lu={lu} libelleBanque="Banque *" libelleCompte="Compte Bancaire *" banque={f.banque} compte={f.compteBanque}
       onBanque={(v) => setF((x) => ({ ...x, banque: v, compteBanque: "" }))} onCompte={(v) => setF((x) => ({ ...x, compteBanque: v }))} />

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api, IMAGE_MAX } from "../donnees/api";
 import type { Representant, Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Silhouette, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Silhouette, Textes, type Boite, Lecture } from "../composants";
 import { lireMontant, montant } from "@design/montant.js";
 import { mots } from "../lib/vocabulaire";
 
@@ -178,7 +178,7 @@ export function ModificationFrais() {
               <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
             </div>
             <Champ libelle="Date Visa *">{(p) => <input {...p} className="saisie code" readOnly value={t ? fr(t.dateVisa) : ""} />}</Champ>
-            <Champ libelle="Nom ou Raison sociale :">{(p) => <input {...p} className="saisie" readOnly value={t ? t.intitule || nomComplet(t) : ""} />}</Champ>
+            <Champ libelle="Nom ou Raison sociale :">{(p) => <Lecture {...p} value={t ? t.intitule || nomComplet(t) : ""} />}</Champ>
             <Champ libelle="Prémier dépôt:">{(p) => <input {...p} className="saisie montant" readOnly value={t ? montant(t.premierDepot, deviseDe(ctx, t)) : ""} />}</Champ>
             <Champ libelle="Date Demande *">{(p) => <input {...p} className="saisie code" readOnly value={t ? fr(t.dateDemande) : ""} />}</Champ>
           </fieldset>
@@ -221,7 +221,7 @@ function DetailClient({ t }: { t: Tiers }) {
     ...(t.type === "morale" ? ["Dirigeant", "Signataires"] : t.type === "groupe" ? ["Membres Groupe"] : [])];
   const [o, setO] = useState(0);
   const { donnees: liees } = useDonnees(() => Promise.all(t.liees.map((id) => api.tiers.lire(id))), [t.id]);
-  const lu = (libelle: string, v: string) => <Champ libelle={libelle}>{(p) => <input {...p} className="saisie" readOnly value={v} />}</Champ>;
+  const lu = (libelle: string, v: string) => <Champ libelle={libelle}>{(p) => <Lecture {...p} value={v} />}</Champ>;
   const coche = (libelle: string, v: boolean) => <label className="case"><input type="checkbox" checked={v} disabled /><span>{libelle}</span></label>;
   const reps = (l: Representant[]) => l.length === 0 ? <p>Liste vide</p> : (
     <table className="grille"><thead><tr><th scope="col">Nom</th><th scope="col">Pièce</th><th scope="col">Signature</th></tr></thead>
@@ -322,8 +322,8 @@ export function ValidationClientModifie() {
             <Champ libelle="Numéro du Client : *">{(p) => <input {...p} className="saisie code" readOnly required value={t?.numero ?? ""} />}</Champ>
             <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
           </div>
-          <Champ libelle="Intitulé :">{(p) => <input {...p} className="saisie" readOnly value={t ? t.intitule || nomComplet(t) : ""} />}</Champ>
-          <Champ libelle="Catégorie :">{(p) => <input {...p} className="saisie" readOnly value={t?.typeClient ?? ""} />}</Champ>
+          <Champ libelle="Intitulé :">{(p) => <Lecture {...p} value={t ? t.intitule || nomComplet(t) : ""} />}</Champ>
+          <Champ libelle="Catégorie :">{(p) => <Lecture {...p} value={t?.typeClient ?? ""} />}</Champ>
         </fieldset>
         <div className="actions-onglets">
           <button className="bouton" type="button" onClick={activer}>activer client</button>
@@ -370,7 +370,7 @@ export function InformationsClient() {
     : null, [t?.id]);
   if (!ctx) return <Chargement />;
   const onglets = ["Renseignements généraux", "Autres renseignements", "Dépôts", "Crédits", "Part sociale"];
-  const lu = (libelle: string, v: string) => <Champ libelle={libelle}>{(p) => <input {...p} className="saisie" readOnly value={v} />}</Champ>;
+  const lu = (libelle: string, v: string) => <Champ libelle={libelle}>{(p) => <Lecture {...p} value={v} />}</Champ>;
   const initial = detail?.modifications[0]?.avant;
   const ecarts = t && initial ? CHAMPS_SUIVIS.filter(([k]) => enTexte(initial[k]) !== enTexte(t[k])) : [];
   return (
@@ -467,7 +467,7 @@ export function ResiliationClient() {
   const { donnees: comptes } = useDonnees(() => (t ? api.tiers.comptes(t.id) : Promise.resolve([])), [t?.id]);
   const { donnees: j } = useDonnees(() => api.journees.courante());
   if (!ctx) return <Chargement />;
-  const lu = (libelle: string, v: string) => <Champ libelle={libelle}>{(p) => <input {...p} className="saisie" readOnly value={v} />}</Champ>;
+  const lu = (libelle: string, v: string) => <Champ libelle={libelle}>{(p) => <Lecture {...p} value={v} />}</Champ>;
   const resilie = t?.statut === "resilie";
   const jour = resilie ? t!.resilieLe : j?.statut === "ouverte" ? j.date : "";
   const devises = [...new Set((comptes ?? []).map((c) => c.devise))];
@@ -503,7 +503,7 @@ export function ResiliationClient() {
           <div className="formulaire">
             {lu("Resilié le", fr(jour))}
             <Champ libelle="Motif *">{(p) => resilie
-              ? <input {...p} className="saisie" readOnly value={t!.motifDepart} />
+              ? <Lecture {...p} value={t!.motifDepart} />
               : <select {...p} className="saisie" required value={motif} onChange={(e) => setMotif(e.target.value)}><option value=""></option>
                   {ctx.motifsDepart.map((m) => <option key={m}>{m}</option>)}</select>}</Champ>
           </div>
@@ -623,8 +623,8 @@ export function PhotosSignatures() {
             <Champ libelle="N° client">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
             <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
           </div>
-          <Champ libelle="Intitulé">{(p) => <input {...p} className="saisie" readOnly value={t ? t.intitule || nomComplet(t) : ""} />}</Champ>
-          <Champ libelle="Catégorie">{(p) => <input {...p} className="saisie" readOnly value={t?.typeClient ?? ""} />}</Champ>
+          <Champ libelle="Intitulé">{(p) => <Lecture {...p} value={t ? t.intitule || nomComplet(t) : ""} />}</Champ>
+          <Champ libelle="Catégorie">{(p) => <Lecture {...p} value={t?.typeClient ?? ""} />}</Champ>
         </div>
       </section>
       <section className="bloc pile" aria-label="Photo et signature">

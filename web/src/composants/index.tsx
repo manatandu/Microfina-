@@ -1,5 +1,5 @@
 // Primitives de replica/design/components.md, en React. Les classes viennent de composants.css.
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { coupuresDe, entier, lireMontant, montant, montantEnLettres, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 
 export function Puce({ etat, children }: { etat?: "ouverte" | "en_cloture" | "fermee"; children: ReactNode }) {
@@ -195,4 +195,16 @@ export function Fiche({ titre, ouverte, fermer, children }: { titre: string; ouv
       {children}
     </dialog>
   );
+}
+
+/** Valeur en lecture seule : le texte passe à la ligne au lieu d'être coupé (une adresse longue reste lisible en entier) */
+export function Lecture({ value, ...p }: { value: string; id: string; "aria-describedby"?: string; "aria-invalid"?: boolean }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current; if (!el) return;
+    const ajuster = () => { el.style.height = "auto"; el.style.height = `${el.scrollHeight + 2}px`; };
+    ajuster(); window.addEventListener("resize", ajuster);
+    return () => window.removeEventListener("resize", ajuster);
+  }, [value]);
+  return <textarea {...p} ref={ref} className="saisie lecture" readOnly rows={1} value={value} />;
 }

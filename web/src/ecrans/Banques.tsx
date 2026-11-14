@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api, type SaisieBanque, type SaisieCompteBancaire } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
 import { TableFiltree } from "./Groupes";
 
 type Donnees = Awaited<ReturnType<typeof api.banques.lire>>;
@@ -88,13 +88,13 @@ function BanqueInstitution({ d, confirmer }: Props) {
         <Champ libelle="Banque *">{(p) => <select {...p} className="saisie" required value={f.banqueId} onChange={(e) => setF({ ...f, banqueId: Number(e.target.value) })}>
           <option value={0}></option>{d.banques.map((b) => <option key={b.id} value={b.id}>{b.libelle}</option>)}</select>}</Champ>
         <Champ libelle="Compte *">{(p) => <input {...p} className="saisie code" required inputMode="numeric" autoComplete="off" {...t("compte")} />}</Champ>
-        <Champ libelle="Libelle : *">{(p) => <input {...p} className="saisie" readOnly value={banque && f.devise ? `${banque.libelle} ${f.devise}` : ""} />}</Champ>
+        <Champ libelle="Libelle : *">{(p) => <Lecture {...p} value={banque && f.devise ? `${banque.libelle} ${f.devise}` : ""} />}</Champ>
         <Champ libelle="N° Compte Bancaire : *">{(p) => <input {...p} className="saisie code" required autoComplete="off" {...t("numeroBancaire")} />}</Champ>
         <Champ libelle="Devise *">{(p) => <select {...p} className="saisie" required value={f.devise} onChange={(e) => setF({ ...f, devise: e.target.value })}>
           <option value=""></option>{d.devises.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
         <Champ libelle="journal *">{(p) => <select {...p} className="saisie" required value={f.journalId} onChange={(e) => setF({ ...f, journalId: Number(e.target.value) })}>
           {d.journaux.map((j) => <option key={j.id} value={j.id}>{j.libelle}</option>)}</select>}</Champ>
-        <Champ libelle="Intitulé">{(p) => <input {...p} className="saisie" readOnly value={NOSTRI[f.compte.trim().slice(0, 4)] ?? ""} />}</Champ>
+        <Champ libelle="Intitulé">{(p) => <Lecture {...p} value={NOSTRI[f.compte.trim().slice(0, 4)] ?? ""} />}</Champ>
       </fieldset>
       <fieldset className="cadre-champs formulaire">
         <legend>Infos Contact</legend>

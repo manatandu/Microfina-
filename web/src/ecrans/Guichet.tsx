@@ -7,7 +7,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
 import { lireMontant, montant, montantEnLettres, totalComptage, type Comptage, type Devise } from "@design/montant.js";
-import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Silhouette, Specimen, Textes, Touche, type Boite } from "../composants";
+import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Silhouette, Specimen, Textes, Touche, type Boite, Lecture } from "../composants";
 import { RechercheClient } from "./Visa";
 
 export const titulaireDe = (t: Tiers) => [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
@@ -121,7 +121,7 @@ export default function GuichetDepotRetrait() {
                 {comptes.map((x) => <option key={x.id} value={x.id}>{x.numero}</option>)}
               </select>)}</Champ>
             <Champ libelle="Intitulé">{(p) => <textarea {...p} className="saisie" rows={2} readOnly value={t ? nomComplet(t) : ""} />}</Champ>
-            <Champ libelle="Type compte">{(p) => <input {...p} className="saisie" readOnly value={c?.intitule ?? ""} />}</Champ>
+            <Champ libelle="Type compte">{(p) => <Lecture {...p} value={c?.intitule ?? ""} />}</Champ>
           </fieldset>
           <fieldset className="pile cadre-champs">
             <legend>Info compte</legend>

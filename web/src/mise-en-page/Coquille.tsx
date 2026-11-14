@@ -16,6 +16,9 @@ import { Marque } from "./Marque";
 export function Coquille() {
   const nav = useNavigate();
   const lieu = useLocation();
+  // Téléphone : le menu d'accès rapide se replie derrière un bouton, pour que l'écran commence en haut de la page
+  const [menuOuvert, setMenuOuvert] = useState(false);
+  useEffect(() => { setMenuOuvert(false); }, [lieu.pathname]);
   const { donnees } = useDonnees(async () => {
     const [u, ctx, j] = await Promise.all([api.session.courante(), api.referentiel.contexte(), api.journees.courante()]);
     if (u) definirMonnaies(ctx.devises, ctx.monnaies);   // devises et monnaies de S35 pour les guichets (registre S79-5)
@@ -55,7 +58,9 @@ export function Coquille() {
       </header>
 
       <div className="corps">
-        <aside className="acces-rapide" aria-label="Accès rapide">
+        <button type="button" className="bouton secondaire bouton-acces-rapide" aria-expanded={menuOuvert} aria-controls="acces-rapide"
+          onClick={() => setMenuOuvert((v) => !v)}>Menu</button>
+        <aside className={`acces-rapide${menuOuvert ? " ouvert" : ""}`} id="acces-rapide" aria-label="Accès rapide">
           {barre.map((x) => (
             <details key={x.id} open={x.groupes.some((g) => g.ecrans.some((e) => lieu.pathname === e.chemin))}>
               <summary>{libelle(x)}</summary>

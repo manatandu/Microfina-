@@ -6,7 +6,7 @@ import type { Operation, Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { montant, totalComptage, type Comptage } from "@design/montant.js";
-import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
+import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
 import { OngletsGuichet, Recu } from "./Guichet";
 import { RechercheClient } from "./Visa";
 import { MASQUE } from "./Guichet";
@@ -68,11 +68,11 @@ export function PartsSociales() {
               <Champ libelle="Numéro client">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
               <button className="bouton secondaire" type="button" aria-label="Rechercher un client" disabled={!!fait} onClick={() => setRecherche(true)}>Rechercher</button>
             </div>
-            <Champ libelle="Intitulé">{(p) => <input {...p} className="saisie" readOnly value={t ? nomComplet(t) : ""} />}</Champ>
+            <Champ libelle="Intitulé">{(p) => <Lecture {...p} value={t ? nomComplet(t) : ""} />}</Champ>
             <Champ libelle="N° Compte *">{(p) => <select {...p} className="saisie" required disabled={!!fait} value={compteId} onChange={(e) => setCompteId(Number(e.target.value))}>
               <option value={0}></option>{comptes.map((x) => <option key={x.id} value={x.id}>{x.numero}</option>)}</select>}</Champ>
             <Champ libelle="N° Comptable">{(p) => <input {...p} className="saisie code" readOnly value={c?.pcci ?? ""} />}</Champ>
-            <Champ libelle="Produit">{(p) => <input {...p} className="saisie" readOnly value={c ? `${c.intitule} ${c.devise}` : ""} />}</Champ>
+            <Champ libelle="Produit">{(p) => <Lecture {...p} value={c ? `${c.intitule} ${c.devise}` : ""} />}</Champ>
           </fieldset>
           <fieldset className="pile cadre-champs">
             <legend>Info compte</legend>

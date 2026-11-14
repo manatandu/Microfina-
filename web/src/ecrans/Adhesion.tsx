@@ -6,7 +6,7 @@ import type { Operation, Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { lireMontant, montant, montantEnLettres, totalComptage, type Comptage } from "@design/montant.js";
-import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
+import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
 import { OngletsGuichet, Recu } from "./Guichet";
 import { RechercheClient } from "./Visa";
 
@@ -69,8 +69,8 @@ export default function Adhesion() {
               <Champ libelle="N° Client :">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
               <button className="bouton secondaire" type="button" aria-label="Rechercher un client" disabled={!!fait} onClick={() => setRecherche(true)}>Rechercher</button>
             </div>
-            <Champ libelle="Intitulé : *">{(p) => <input {...p} className="saisie" readOnly value={t ? nomComplet(t) : ""} />}</Champ>
-            <Champ libelle="Catégorie : *">{(p) => <input {...p} className="saisie" readOnly value={t?.typeClient ?? ""} />}</Champ>
+            <Champ libelle="Intitulé : *">{(p) => <Lecture {...p} value={t ? nomComplet(t) : ""} />}</Champ>
+            <Champ libelle="Catégorie : *">{(p) => <Lecture {...p} value={t?.typeClient ?? ""} />}</Champ>
           </fieldset>
           <fieldset className="pile cadre-champs">
             <legend>Informations sur le Compte</legend>

@@ -116,7 +116,7 @@ export function OuvertureFermetureGuichets() {
       <section className="bloc pile" aria-label="Ouverture/Fermeture de guichets">
         <fieldset className="pile cadre-champs">
           <legend>Liste des guichets</legend>
-          <table className="grille">
+          <div className="defile-x"><table className="grille">
             <thead><tr><th scope="col">Code guichet</th><th scope="col">Type guichet</th><th scope="col">Designation</th><th scope="col">Actif</th><th scope="col">Ouvert</th><th scope="col">Date ouverture</th></tr></thead>
             <tbody>
               {donnees.guichets.map((x) => (
@@ -129,7 +129,7 @@ export function OuvertureFermetureGuichets() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
           <div className="grille-cadres quatre">
             <Champ libelle="Dernière journée ouverte">{(p) => <input {...p} className="saisie code" readOnly value={donnees.derniereJournee ? fr(donnees.derniereJournee) : ""} />}</Champ>
             <Champ libelle="Journée ouverte à associer">{(p) => <select {...p} className="saisie" value={journee || donnees.journeesOuvertes[0]?.id || ""} onChange={(e) => setJournee(Number(e.target.value))}>

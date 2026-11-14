@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { api, enrolementVide, IMAGE_MAX, type Images, type NouveauTiers, type RepresentantSaisi } from "../donnees/api";
 import type { Beneficiaire, Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
 import { lireMontant } from "@design/montant.js";
 import { RechercheClient } from "./Visa";
 
@@ -643,8 +643,8 @@ export function MiseAJourClient() {
             <Champ libelle="N° Client">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
             <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
           </div>
-          <Champ libelle="Intitulé">{(p) => <input {...p} className="saisie" readOnly value={t ? t.intitule || nomComplet(t) : ""} />}</Champ>
-          <Champ libelle="Catégorie">{(p) => <input {...p} className="saisie" readOnly value={t ? t.typeClient : ""} />}</Champ>
+          <Champ libelle="Intitulé">{(p) => <Lecture {...p} value={t ? t.intitule || nomComplet(t) : ""} />}</Champ>
+          <Champ libelle="Catégorie">{(p) => <Lecture {...p} value={t ? t.typeClient : ""} />}</Champ>
         </div>
       </section>
       <div className="onglets" role="tablist" aria-label={titre}>

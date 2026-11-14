@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
-import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
 
 type Utilisateur = { id: number; nom: string; login: string; agence: string };
 type Profil = { id: number; nom: string; description: string; modules: string[] };
@@ -35,12 +35,12 @@ export default function GestionProfilsUtilisateur() {
         <fieldset className="cadre-champs pile">
           <legend>Informations</legend>
           <div className="ligne-champ">
-            <Champ libelle="Nom et prénom(s) *">{(p) => <input {...p} className="saisie" readOnly value={utilisateur?.nom ?? ""} />}</Champ>
+            <Champ libelle="Nom et prénom(s) *">{(p) => <Lecture {...p} value={utilisateur?.nom ?? ""} />}</Champ>
             <button className="bouton" type="button" aria-label="Rechercher un utilisateur" onClick={() => setFenetre("utilisateur")}>⌕</button>
             <span><strong>Agence</strong> {utilisateur?.agence ?? ""}</span>
           </div>
           <div className="ligne-champ">
-            <Champ libelle="Choix du profil *">{(p) => <input {...p} className="saisie" readOnly value={profil?.nom ?? ""} />}</Champ>
+            <Champ libelle="Choix du profil *">{(p) => <Lecture {...p} value={profil?.nom ?? ""} />}</Champ>
             <button className="bouton" type="button" aria-label="Rechercher un profil" onClick={() => setFenetre("profil")}>⌕</button>
             <span><strong>Description</strong> {profil?.description ?? ""}</span>
           </div>

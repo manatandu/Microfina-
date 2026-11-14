@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { api } from "../donnees/api";
 import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
 import { RechercheClient } from "./Visa";
 
 const PAR_PAGE = 10;
@@ -27,7 +27,7 @@ export function TableFiltree<T>({ colonnes, lignes, cle, vide = "Liste vide", av
           {Array.from({ length: pages }, (_, i) => <button key={i} type="button" aria-current={i === p ? "page" : undefined} onClick={() => setPage(i)}>{i + 1}</button>)}
         </nav>
       )}
-      <table className="grille">
+      <div className="defile-x"><table className="grille">
         <thead>
           <tr>{avant && <th scope="col">{avant.titre}</th>}{colonnes.map((c) => <th key={c.titre} scope="col">{c.titre}</th>)}{apres && <th scope="col">{apres.titre}</th>}</tr>
           {!sansFiltres && <tr className="filtres">{avant && <td />}{colonnes.map((c, i) => (
@@ -42,7 +42,7 @@ export function TableFiltree<T>({ colonnes, lignes, cle, vide = "Liste vide", av
               onKeyDown: (e: React.KeyboardEvent) => { if (e.key === "Enter") choisir(l); } } : {})}>{avant && <td>{avant.cellule(l)}</td>}{colonnes.map((c) => <td key={c.titre} className={c.classe}>{c.valeur(l)}</td>)}{apres && <td>{apres.cellule(l)}</td>}</tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
     </div>
   );
 }
@@ -114,8 +114,8 @@ export function GroupeSolidaire() {
                 <Champ libelle="N° Client *">{(p) => <input {...p} className="saisie code" readOnly required value={client?.numero ?? ""} />}</Champ>
                 <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
               </div>
-              <Champ libelle="Intitulé :">{(p) => <input {...p} className="saisie" readOnly value={client ? client.intitule || nomComplet(client) : ""} />}</Champ>
-              <Champ libelle="Categorie :">{(p) => <input {...p} className="saisie" readOnly value={client?.typeClient ?? ""} />}</Champ>
+              <Champ libelle="Intitulé :">{(p) => <Lecture {...p} value={client ? client.intitule || nomComplet(client) : ""} />}</Champ>
+              <Champ libelle="Categorie :">{(p) => <Lecture {...p} value={client?.typeClient ?? ""} />}</Champ>
               <Champ libelle="Né (e) le :">{(p) => <input {...p} className="saisie code" readOnly value={client ? fr(client.naissance) : ""} />}</Champ>
               <div className="actions-onglets">
                 <button className="bouton" type="button" disabled={!client || !groupeId} onClick={() => {
