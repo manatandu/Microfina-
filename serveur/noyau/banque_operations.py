@@ -1,0 +1,127 @@
+"""S52 : Banque > Opération (manuel Microfina++, p. 60 et 61) : Encaissement / Décaissement, V. Banque vers caisse, V. Banque vers Banque.
+L'opération est saisie ici ; elle est visée puis validée en S57 et comptabilisée en S111 (COMPLEMENTS § 6). Le numéro de pièce est donné à la
+comptabilisation (registre S52-2). Mêmes règles que web/src/donnees/api.ts (banqueOperations)."""
+import re
+import uuid
+
+from .bd import ErreurMetier, executer, lignes, une, valeur
+from .services import exiger, journee_courante, solde_contrat
+
+TYPES = {"encaissement": "Encaissement divers", "decaissement": "Décaissement divers", "banque_caisse": "Virement banque vers caisse",
+         "banque_banque": "Virement banque vers banque"}
+
+
+def solde_banque(compte_id: int, devise: str) -> int:
+    """Solde du compte du plan (560x, comptes NOSTRI) lié au compte bancaire, sens normal débit"""
+    return int(valeur("""select coalesce(sum(case l.sens when 'D' then l.montant_devise else -l.montant_devise end), 0)
+                         from ligne_ecriture l where l.compte_id = %s and l.devise = %s""", (compte_id, devise)))
+
+
+def lire(u) -> dict:
+    exiger(u)
+    i = u["institution_id"]
+    j = journee_courante(u)
+    comptes = lignes("""select cb.id, cb.banque_id as "banqueId", b.code as "banqueCode", b.nom as banque, cb.numero, trim(cb.devise) as devise, c.numero as compte, cb.compte_id
+                        from compte_bancaire cb join banque b on b.id = cb.banque_id join compte c on c.id = cb.compte_id
+                        where cb.institution_id = %s order by b.code, cb.numero""", (i,))
+    guichets = lignes("select id, code, nom from guichet where agence_id = %s and actif order by code", (u["agence_id"],))
+    return {
+        "date": j["date"] if j and j["statut"] == "ouverte" else "",
+        "banques": lignes("select id, code, nom as libelle from banque where institution_id = %s order by code", (i,)),
+        "comptes": [{k: v for k, v in c.items() if k != "compte_id"} | {"solde": solde_banque(c["compte_id"], c["devise"])} for c in comptes],
+        "guichets": [{**g, "soldes": {d: solde_contrat(f"guichet:{g['id']}", d, "D") for d in ("CDF", "USD")}} for g in guichets],
+        "typesBudget": lignes("select id, code, libelle from budget_type where institution_id = %s and actif order by code", (i,)),
+        "lignesBudget": lignes("select id, numero, libelle, bailleur_id as \"bailleurId\" from budget_ligne where institution_id = %s and actif order by numero", (i,)),
+    }
+
+
+def texte(d, k):
+    v = d.get(k) if isinstance(d, dict) else None
+    return v.strip() if isinstance(v, str) else ""
+
+
+def entier(d, k):
+    v = d.get(k) if isinstance(d, dict) else None
+    return v if isinstance(v, int) and not isinstance(v, bool) else None
+
+
+def compte_bancaire(u, cid, quoi: str) -> dict:
+    c = une("select id, trim(devise) as devise from compte_bancaire where id = %s and institution_id = %s", (cid, u["institution_id"])) if cid else None
+    if not c:
+        raise ErreurMetier(f"{quoi} : compte bancaire inconnu.")
+    return c
+
+
+def enregistrer(u, d) -> dict:
+    """Bouton Enregistrer des trois onglets : l'opération est saisie, en attente du visa (S57)"""
+    exiger(u)
+    d = d if isinstance(d, dict) else {}
+    try:
+        cle = str(uuid.UUID(texte(d, "cle")))
+    except ValueError:
+        raise ErreurMetier("Clé d'opération invalide.")
+    prec = une("select * from operation_banque where cle_idempotence = %s", (cle,))
+    if prec:
+        return vue(prec)                                     # même clé : la même opération (double clic, reprise réseau)
+    i = u["institution_id"]
+    type_ = texte(d, "type")
+    if type_ not in TYPES:
+        raise ErreurMetier("Type d'opération inconnu.")
+    j = journee_courante(u)
+    if not j or j["statut"] != "ouverte":
+        raise ErreurMetier("Aucune journée ouverte (Administration > Journée).")
+    date_op = texte(d, "date")
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", date_op):
+        raise ErreurMetier("À remplir : date opération.")
+    if date_op > j["date"]:
+        raise ErreurMetier("La date de l'opération ne peut pas dépasser la journée ouverte.")
+    montant = entier(d, "montant")
+    if not montant or montant <= 0:
+        raise ErreurMetier("Montant : un montant supérieur à zéro.")
+    origine = compte_bancaire(u, entier(d, "compteBancaireId"), "Compte Banque" if type_ != "banque_banque" else "Compte Banque d'origine")
+    compte = libelle = cheque = None
+    guichet = dest = type_budget = ligne_budget = None
+    if type_ in ("encaissement", "decaissement"):
+        compte = texte(d, "compte")
+        if not compte:
+            raise ErreurMetier("À remplir : compte.")
+        c = une("select saisissable, ouvert from compte where numero = %s and (institution_id is null or institution_id = %s)", (compte, i))
+        if not c:
+            raise ErreurMetier(f"Compte : {compte} n'est pas un compte du plan (une classe ne reçoit pas d'écriture).")      # T16
+        if not (c["saisissable"] and c["ouvert"]):
+            raise ErreurMetier(f"Compte : {compte} est fermé ou non saisissable, il ne reçoit pas d'écriture.")              # S102-10
+        if compte.startswith(("56", "57")):                 # registre S52-4 : banque et caisse ont leurs onglets de virement
+            raise ErreurMetier("Compte : un compte de banque (56) ou de caisse (57) passe par les onglets de virement.")
+        libelle = texte(d, "libelle") or TYPES[type_]
+        cheque = (texte(d, "cheque") or None) if type_ == "decaissement" else None
+        type_budget, ligne_budget = entier(d, "typeBudgetId"), entier(d, "ligneBudgetId")
+        if type_budget and not une("select 1 from budget_type where id = %s and institution_id = %s and actif", (type_budget, i)):
+            raise ErreurMetier("Type budget inconnu.")
+        if ligne_budget and not une("select 1 from budget_ligne where id = %s and institution_id = %s and actif", (ligne_budget, i)):
+            raise ErreurMetier("Ligne budgétaire inconnue.")
+    elif type_ == "banque_caisse":
+        guichet = entier(d, "guichetId")
+        if not guichet or not une("select 1 from guichet where id = %s and agence_id = %s and actif", (guichet, u["agence_id"])):
+            raise ErreurMetier("À remplir : caisse.")
+        cheque = texte(d, "cheque") or None
+        libelle = TYPES[type_]
+    else:
+        dest = compte_bancaire(u, entier(d, "compteBancaireDestId"), "Compte Banque destination")
+        if dest["id"] == origine["id"]:
+            raise ErreurMetier("Compte Banque destination : un autre compte que celui d'origine.")
+        if dest["devise"] != origine["devise"]:             # registre S52-6
+            raise ErreurMetier("Virement entre deux devises : à confirmer avec le porteur (cours du jour, S35).")
+        dest = dest["id"]
+        libelle = TYPES[type_]
+    oid = valeur("""insert into operation_banque (institution_id, agence_id, type, date_operation, compte_bancaire_id, compte_bancaire_dest_id, guichet_id, compte,
+                                                  libelle, montant, devise, cheque, budget_type_id, budget_ligne_id, cle_idempotence, saisi_par)
+                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
+                 (i, u["agence_id"], type_, date_op, origine["id"], dest, guichet, compte, libelle, montant, origine["devise"], cheque,
+                  type_budget, ligne_budget, cle, u["id"]))
+    return vue(une("select * from operation_banque where id = %s", (oid,)))
+
+
+def vue(o: dict) -> dict:
+    return {"id": o["id"], "type": o["type"], "date": o["date_operation"].isoformat(), "compteBancaireId": o["compte_bancaire_id"],
+            "compteBancaireDestId": o["compte_bancaire_dest_id"], "guichetId": o["guichet_id"], "compte": o["compte"] or "", "libelle": o["libelle"] or "",
+            "montant": o["montant"], "devise": o["devise"].strip(), "cheque": o["cheque"] or "", "statut": o["statut"], "piece": o["piece"] or ""}

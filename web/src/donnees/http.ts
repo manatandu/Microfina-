@@ -29,6 +29,10 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
 
   return {
     referentiel: { contexte: () => get("/referentiel") },
+    banqueOperations: {
+      lire: () => get("/banque/operations"),
+      enregistrer: (d: object) => post("/banque/operations", d),
+    },
     session: {
       utilisateurs: () => get("/utilisateurs"),
       courante: () => get("/session"),

@@ -8,6 +8,7 @@ from . import frais as fr
 from . import groupes as gs
 from . import procurations as pr
 from . import banques as bq
+from . import banque_operations as bop
 from . import guichets as gu
 from . import exercices as ex
 from . import listes as li
@@ -486,6 +487,16 @@ def tp_supprimer(request, tid: int):
 
 
 # ---------- Banque : création banque (S58) ----------
+@api.get("/banque/operations")
+def banque_operations_lire(request):
+    return bop.lire(u(request))
+
+
+@api.post("/banque/operations")
+def banque_operations_enregistrer(request, corps: dict = Body(...)):
+    return bop.enregistrer(u(request), corps)
+
+
 @api.get("/banques")
 def bq_lire(request):
     return bq.lire(u(request))

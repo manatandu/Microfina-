@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**278 décisions.** Solidité : 92 fortes (le manuel ou un texte répond), 151 moyennes (déduites d'un écran voisin ou d'une donnée), 35 faibles (notre choix, faute de mieux). Dans le code : 248 déjà en place, 30 à appliquer.
+**286 décisions.** Solidité : 93 fortes (le manuel ou un texte répond), 156 moyennes (déduites d'un écran voisin ou d'une donnée), 37 faibles (notre choix, faute de mieux). Dans le code : 255 déjà en place, 31 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -649,6 +649,24 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S51-5 | Rapport des clients modifiés : liste Etat | L'état du membre, comme le cadre « Rechercher » du rapport multicritère : Actif (par défaut, comme la capture), Inactif, Départ, Tous | Écran voisin : Capture p. 59 (Etat : Actif) ; capture p. 58 | moyenne | en place |
 | S51-6 | Rapport des clients modifiés : liste Utilisateur | Les utilisateurs de l'institution, avec une ligne vide en tête pour « tous » (la capture montre un utilisateur choisi) | Écran voisin : Capture p. 59 | moyenne | en place |
 
+## S52 Opérations de banque
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S52-1 | Case « Type écriture Multiligne » | Montrée et inactive : aucune capture ni aucun texte ne la montre cochée (p. 60 et p. 133). À confirmer par le porteur : plusieurs lignes de contrepartie pour un même mouvement de banque ? | Manuel : Captures p. 60 et 133 | faible | en place |
+| S52-2 | Numéro de pièce | Vide à la saisie ; donné à la comptabilisation (S111), dans la même transaction que l'écriture, pour une numérotation sans trou | Texte réglementaire : PCCI § 3.3 et 3.4 ; registre S11-7 ; COMPLEMENTS § 6 (saisie, visa, validation, comptabilisation) | forte | en place |
+| S52-3 | Type operation et libellé | Deux types : Encaissement divers (capture) et Décaissement divers (texte p. 60 : « Encaissement et décaissement »). Libellé facultatif comme sur la capture ; vide, il prend le nom du type | Manuel : Capture et texte p. 60 | moyenne | en place |
+| S52-4 | Compte de contrepartie | Compte du plan, saisissable et ouvert (T16, S102-10) ; ni compte de banque (56) ni compte de caisse (57) : ils ont leurs onglets de virement | Écran voisin : Registre S31-2 (même règle au guichet) ; PCCI comptes 56 et 57 | moyenne | en place |
+| S52-6 | Virement entre deux comptes de devises différentes | Refusé pour l'instant : la conversion au cours du jour (S35) est à confirmer par le porteur | Écran voisin : S35 (cours) ; capture p. 61 sans devise | faible | en place |
+| S52-7 | Date opération | Une journée ouverte est exigée ; la date proposée est celle de la journée, elle ne peut pas la dépasser | Écran voisin : Autres opérations (guichet, S74) ; capture p. 60 | moyenne | en place |
+| S52-8 | Soldes affichés | Solde banque : solde du compte du plan lié au compte bancaire (560x, NOSTRI). Solde caisse : solde de la caisse choisie dans la devise du compte bancaire. Les opérations saisies ne les changent pas avant la comptabilisation | Écran voisin : Captures p. 60 et 61 ; PCCI compte 560 | moyenne | en place |
+
+## S60 Chéquiers et chèques
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S60-1 | Liste « N° de chèque » de S52 | Elle proposera les chèques des chéquiers de l'institution quand S60 sera construit ; vide d'ici là | Donnée exigée ailleurs : Capture p. 60 (liste N° de chèque) | moyenne | à appliquer |
+
 ## Les décisions faibles, à regarder en premier
 
 | N° | Écran | Question | Réponse retenue |
@@ -688,3 +706,5 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S36-3 | S36 Facture : élément, référence commande | Sens de Taux A. et Taux N.A. | Repris tels quels. Sur la facture (p. 150), Microfina++ coche « Fournisseur à jour » et « IFU », et le bon de commande montre l'AIB béninoise : deux taux selon la situation du fournisseur. Leur usage en RDC (retenues à la source sur fournisseurs) est à confirmer avec le porteur avant S107 |
 | S08-10 | S08 Guichets | Plafond à zéro | Un maximum autorisé ou un retrait plafonné égal à 0 veut dire « aucun plafond » : les guichets créés avant S08-3 ont 0, la capture p. 95 montre des valeurs positives (5 000 000 et 3 000 000) |
 | S01-3 | S01 Connexion | Règles de mot de passe et de blocage | À confirmer : longueur, durée de vie, nombre d'essais avant blocage, verrouillage de session. Le texte (Instr. BCC 008, art. 16) demande seulement des accès et une authentification « maîtrisés » ; l'institution édicte ses règles internes. Aucune règle inventée. Sans limite d'essais, un mot de passe se devine par essais répétés : à décider avant l'ouverture à de vrais utilisateurs |
+| S52-1 | S52 Opérations de banque | Case « Type écriture Multiligne » | Montrée et inactive : aucune capture ni aucun texte ne la montre cochée (p. 60 et p. 133). À confirmer par le porteur : plusieurs lignes de contrepartie pour un même mouvement de banque ? |
+| S52-6 | S52 Opérations de banque | Virement entre deux comptes de devises différentes | Refusé pour l'instant : la conversion au cours du jour (S35) est à confirmer par le porteur |

@@ -493,6 +493,35 @@ describe("journée de guichet", () => {
     expect(compteParts({ ...(await api.tiers.lire(1))!, type: "groupe", typeClient: "Groupement solidaire" })).toBe("1031");
   });
 
+  it("opérations de banque (S52) : saisie en attente du visa, contrôles des trois onglets (registre S52-2 à S52-6)", async () => {
+    await journeeOuverte();
+    await connecter("jpmukendi");
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    const c = { banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "" };
+    await api.banques.enregistrerCompte({ ...c, compte: "56010001", numeroBancaire: "R-USD-1", devise: "USD" });
+    await api.banques.enregistrerCompte({ ...c, compte: "56010002", numeroBancaire: "R-USD-2", devise: "USD" });
+    await api.banques.enregistrerCompte({ ...c, compte: "56010003", numeroBancaire: "R-CDF-1", devise: "CDF" });
+    await connecter("plumbala");
+    const lu = await api.banqueOperations.lire();
+    const id = (n: string) => lu.comptes.find((x) => x.numero === n)!.id;
+    expect([lu.date, lu.comptes.map((x) => x.solde)]).toEqual(["2026-11-05", [0, 0, 0]]);
+    const enc = { type: "encaissement" as const, date: "2026-11-05", compteBancaireId: id("R-USD-1"), compte: "727", libelle: "Commission reçue", montant: 50000 };
+    await expect(api.banqueOperations.enregistrer({ ...enc, cle: cle(), compte: "7" })).rejects.toThrow("n'est pas un compte du plan");
+    await expect(api.banqueOperations.enregistrer({ ...enc, cle: cle(), compte: "5601" })).rejects.toThrow("onglets de virement");
+    await expect(api.banqueOperations.enregistrer({ ...enc, cle: cle(), montant: 0 })).rejects.toThrow("Montant");
+    await expect(api.banqueOperations.enregistrer({ ...enc, cle: cle(), date: "2026-11-06" })).rejects.toThrow("dépasser la journée");
+    const k = cle(), o = await api.banqueOperations.enregistrer({ ...enc, cle: k });
+    expect([o.statut, o.piece, o.devise]).toEqual(["saisie", "", "USD"]);
+    expect((await api.banqueOperations.enregistrer({ ...enc, cle: k })).id).toBe(o.id);
+    await expect(api.banqueOperations.enregistrer({ cle: cle(), type: "banque_caisse", date: "2026-11-05", compteBancaireId: id("R-CDF-1"), montant: 100000 })).rejects.toThrow("caisse");
+    const vir = { type: "banque_banque" as const, date: "2026-11-05", compteBancaireId: id("R-USD-1"), montant: 20000 };
+    await expect(api.banqueOperations.enregistrer({ ...vir, cle: cle(), compteBancaireDestId: id("R-USD-1") })).rejects.toThrow("autre compte");
+    await expect(api.banqueOperations.enregistrer({ ...vir, cle: cle(), compteBancaireDestId: id("R-CDF-1") })).rejects.toThrow("deux devises");
+    expect((await api.banqueOperations.enregistrer({ ...vir, cle: cle(), compteBancaireDestId: id("R-USD-2") })).libelle).toBe("Virement banque vers banque");
+    await connecter("bkasongo");
+    await expect(api.banqueOperations.enregistrer({ ...enc, cle: cle() })).rejects.toThrow("Droit manquant");
+  });
+
   it("banques (S58) : banque client, compte de l'institution en 560 (PCCI), suppression contrôlée", async () => {
     await connecter("bkasongo");
     const b = { code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "Kinshasa, Gombe" };

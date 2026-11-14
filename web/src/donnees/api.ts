@@ -7,7 +7,7 @@ import { graine } from "./graine";
 import { creerApiHttp } from "./http";
 import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
-  type Operation, type Role, type SessionCaisse, type Tiers, type Utilisateur,
+  type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget,
 } from "./types";
@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v58";
+const CLE = "likelemba-demo-v59";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -27,7 +27,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 58) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 59) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -1129,6 +1129,71 @@ const numerotation = {
     exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
     if (!Number.isInteger(d.position) || d.position < 1 || d.position > 9) throw new ErreurMetier("Position : un nombre de 1 à 9.");
     E.numerotationCompte = { prefixe: !!d.prefixe, suffixe: !!d.suffixe, position: d.position }; enregistrer(); return numerotation.lireCompte();
+  },
+};
+
+// ---------- S52 : Banque > Opération (manuel p. 60 et 61). Règles identiques côté serveur (noyau/banque_operations.py). ----------
+const TYPES_OPERATION_BANQUE: Record<TypeOperationBanque, string> = { encaissement: "Encaissement divers", decaissement: "Décaissement divers",
+  banque_caisse: "Virement banque vers caisse", banque_banque: "Virement banque vers banque" };
+/** Saisie d'une opération de banque : trois onglets ; montant en centièmes, dans la devise du compte bancaire */
+export interface SaisieOperationBanque {
+  cle: string; type: TypeOperationBanque; date: string; compteBancaireId?: number; compteBancaireDestId?: number; guichetId?: number;
+  compte?: string; libelle?: string; montant: number; cheque?: string; typeBudgetId?: number | null; ligneBudgetId?: number | null;
+}
+const soldeCompteNumero = (numero: string, devise: Devise) => E.ecritures.flatMap((e) => e.lignes).filter((x) => x.compte === numero && x.devise === devise)
+  .reduce((s, x) => s + (x.sens === "D" ? x.montant : -x.montant), 0);
+const banqueOperations = {
+  lire() {
+    exiger();
+    const j = journees.courante();
+    return {
+      date: j && j.statut === "ouverte" ? j.date : "",
+      banques: [...E.banques].sort((a, b) => a.code.localeCompare(b.code)).map(({ id, code, libelle }) => ({ id, code, libelle })),
+      comptes: [...E.comptesBancaires].map((c) => { const b = E.banques.find((x) => x.id === c.banqueId);
+        return { id: c.id, banqueId: c.banqueId, banqueCode: b?.code ?? "", banque: b?.libelle ?? "", numero: c.numeroBancaire, devise: c.devise, compte: c.compte, solde: soldeCompteNumero(c.compte, c.devise) }; })
+        .sort((a, b) => a.banqueCode.localeCompare(b.banqueCode) || a.numero.localeCompare(b.numero)),
+      guichets: E.guichets.filter((g) => g.actif !== false).map((g) => ({ id: g.id, code: g.code, nom: g.nom,
+        soldes: { CDF: soldeContrat(`guichet:${g.id}`, "CDF", "D"), USD: soldeContrat(`guichet:${g.id}`, "USD", "D") } })),
+      typesBudget: (E.budget["types_budget"] ?? []).filter((x) => x.actif).map((x) => ({ id: x.id, code: String(x.code ?? ""), libelle: String(x.libelle ?? "") })),
+      lignesBudget: (E.budget["lignes"] ?? []).filter((x) => x.actif).map((x) => ({ id: x.id, numero: String(x.numero ?? ""), libelle: String(x.libelle ?? ""), bailleurId: (x.bailleurId as number | null) ?? null })),
+    };
+  },
+  enregistrer(d: SaisieOperationBanque): OperationBanque {
+    const u = exiger();
+    const prec = E.operationsBanque.find((o) => o.cle === d.cle);
+    if (prec) return prec;                                   // même clé : la même opération (double clic, reprise réseau)
+    if (!(d.type in TYPES_OPERATION_BANQUE)) throw new ErreurMetier("Type d'opération inconnu.");
+    const j = journees.courante();
+    if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d.date ?? "")) throw new ErreurMetier("À remplir : date opération.");
+    if (d.date > j.date) throw new ErreurMetier("La date de l'opération ne peut pas dépasser la journée ouverte.");
+    if (!Number.isInteger(d.montant) || d.montant <= 0) throw new ErreurMetier("Montant : un montant supérieur à zéro.");
+    const compteBancaire = (id: number | undefined, quoi: string) => { const c = E.comptesBancaires.find((x) => x.id === id); if (!c) throw new ErreurMetier(`${quoi} : compte bancaire inconnu.`); return c; };
+    const origine = compteBancaire(d.compteBancaireId, d.type === "banque_banque" ? "Compte Banque d'origine" : "Compte Banque");
+    const o: OperationBanque = { id: prochain(E.operationsBanque), cle: d.cle, type: d.type, date: d.date, compteBancaireId: origine.id, compteBancaireDestId: null, guichetId: null,
+      compte: "", libelle: TYPES_OPERATION_BANQUE[d.type], montant: d.montant, devise: origine.devise, cheque: "", typeBudgetId: null, ligneBudgetId: null,
+      statut: "saisie", piece: "", saisiPar: u.id };
+    if (d.type === "encaissement" || d.type === "decaissement") {
+      const compte = d.compte?.trim() ?? "";
+      if (!compte) throw new ErreurMetier("À remplir : compte.");
+      const c = [...PCCI.comptes.map((x) => ({ numero: x.numero, ouvert: true, saisissable: true })), ...E.comptesInstitution].find((x) => x.numero === compte);
+      if (!c) throw new ErreurMetier(`Compte : ${compte} n'est pas un compte du plan (une classe ne reçoit pas d'écriture).`);   // T16
+      if (!(c.saisissable && c.ouvert)) throw new ErreurMetier(`Compte : ${compte} est fermé ou non saisissable, il ne reçoit pas d'écriture.`);   // S102-10
+      if (compte.startsWith("56") || compte.startsWith("57")) throw new ErreurMetier("Compte : un compte de banque (56) ou de caisse (57) passe par les onglets de virement.");   // S52-4
+      const tb = d.typeBudgetId ?? null, lb = d.ligneBudgetId ?? null;
+      if (tb && !(E.budget["types_budget"] ?? []).some((x) => x.id === tb && x.actif)) throw new ErreurMetier("Type budget inconnu.");
+      if (lb && !(E.budget["lignes"] ?? []).some((x) => x.id === lb && x.actif)) throw new ErreurMetier("Ligne budgétaire inconnue.");
+      Object.assign(o, { compte, libelle: d.libelle?.trim() || TYPES_OPERATION_BANQUE[d.type], cheque: d.type === "decaissement" ? d.cheque?.trim() ?? "" : "", typeBudgetId: tb, ligneBudgetId: lb });
+    } else if (d.type === "banque_caisse") {
+      if (!E.guichets.some((g) => g.id === d.guichetId && g.actif !== false)) throw new ErreurMetier("À remplir : caisse.");
+      Object.assign(o, { guichetId: d.guichetId, cheque: d.cheque?.trim() ?? "" });
+    } else {
+      const dest = compteBancaire(d.compteBancaireDestId, "Compte Banque destination");
+      if (dest.id === origine.id) throw new ErreurMetier("Compte Banque destination : un autre compte que celui d'origine.");
+      if (dest.devise !== origine.devise) throw new ErreurMetier("Virement entre deux devises : à confirmer avec le porteur (cours du jour, S35).");   // S52-6
+      o.compteBancaireDestId = dest.id;
+    }
+    E.operationsBanque.push(o); enregistrer(); return o;
   },
 };
 
@@ -3028,6 +3093,7 @@ const apiLocal = {
   groupes: asynchrone(groupes, "groupes"),
   procurations: asynchrone(procurations, "procurations"),
   rapports: asynchrone(rapports, "rapports"),
+  banqueOperations: asynchrone(banqueOperations, "banqueOperations"),
   banques: asynchrone(banques, "banques"),
   guichets: asynchrone(guichets, "guichets"),
   exercices: asynchrone(exercices, "exercices"),

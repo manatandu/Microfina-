@@ -302,6 +302,20 @@ const OUT = process.argv[2];
   await p.getByLabel('Compte *').fill('56010001');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
   await p.getByRole('cell', { name: '56010001' }).waitFor(); await etape('06c3-banque-institution');
+  // Opérations de banque (S52), par le comptable : saisies, en attente du visa (S57)
+  await login('Patrick Lumbala'); await aller('/banque/s52');
+  await p.getByLabel('Banque *', { exact: true }).selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte Banque *').selectOption({ index: 1 });
+  await p.getByLabel('Compte *').fill('727'); await p.getByLabel('Libelle').fill('Commission reçue'); await p.getByLabel('Montant *').fill('500');
+  await etape('06c4-banque-encaissement');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
+  await p.getByRole('tab', { name: 'V. Banque vers caisse' }).click();
+  await p.getByLabel('Banque *', { exact: true }).selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte Banque *').selectOption({ index: 1 });
+  await p.getByLabel('Montant *').fill('100'); await p.getByLabel('Caisse *').selectOption({ label: 'Caisse 2' }); await etape('06c5-banque-vers-caisse');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
+  await p.getByRole('tab', { name: 'V. Banque vers Banque' }).click(); await p.getByLabel('Montant *').fill('50');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('dialog', { name: 'Erreur' }).waitFor(); await etape('06c6-banque-vers-banque-refus'); await p.getByRole('button', { name: 'Ok' }).click();
+  await login('J.-P. Mukendi');
   // Paramétrage des frais (S16)
   await aller('/parametrage/s16');
   const ok = async () => { await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click(); };

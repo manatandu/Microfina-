@@ -749,6 +749,42 @@ def test_banques(clients):
     assert chef.delete(f"/api/banques/{bid}", **H).json()["banques"] == []
 
 
+def test_operations_banque(clients, journee):
+    """S52 (manuel p. 60 et 61) : trois onglets ; opération saisie, en attente du visa (S57) ; pièce donnée à la comptabilisation (registre S52-2)"""
+    chef, compta, agent = clients["chef"], clients["compta"], clients["agent"]
+    bid = chef.post("/api/banques", {"code": "RAW", "libelle": "Rawbank", "compteLiaison": "5601", "adresse": ""}, **H).json()["banques"][0]["id"]
+    j = chef.get("/api/banques").json()["journaux"][0]["id"]
+    for compte, num, dev in (("56010001", "R-USD-1", "USD"), ("56010002", "R-USD-2", "USD"), ("56010003", "R-CDF-1", "CDF")):
+        r = chef.post("/api/banques/comptes", {"banqueId": bid, "compte": compte, "numeroBancaire": num, "devise": dev, "journalId": j, "contactNom": "Mutombo"}, **H)
+        assert r.status_code == 200, r.content
+    lu = compta.get("/api/banque/operations").json()
+    usd1, usd2, cdf1 = [next(c["id"] for c in lu["comptes"] if c["numero"] == n) for n in ("R-USD-1", "R-USD-2", "R-CDF-1")]
+    assert lu["date"] == "2026-11-05" and {c["solde"] for c in lu["comptes"]} == {0} and lu["guichets"]
+    def refus(corps, c=compta):
+        r = c.post("/api/banque/operations", {"cle": cle(), "date": "2026-11-05", **corps}, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    enc = {"type": "encaissement", "compteBancaireId": usd1, "compte": "727", "libelle": "Commission reçue", "montant": 50000}
+    assert "Droit manquant" in refus(enc, agent)
+    assert "n'est pas un compte du plan" in refus({**enc, "compte": "7"})
+    assert "onglets de virement" in refus({**enc, "compte": "5601"})
+    assert "Montant" in refus({**enc, "montant": 0})
+    assert "dépasser la journée" in refus({**enc, "date": "2026-11-06"})
+    k = cle()
+    o = compta.post("/api/banque/operations", {"cle": k, "date": "2026-11-05", **enc}, **H).json()
+    assert (o["statut"], o["piece"], o["devise"], o["montant"]) == ("saisie", "", "USD", 50000)
+    assert compta.post("/api/banque/operations", {"cle": k, "date": "2026-11-05", **enc}, **H).json()["id"] == o["id"]      # même clé : même opération
+    d = compta.post("/api/banque/operations", {"cle": cle(), "date": "2026-11-05", **enc, "type": "decaissement", "compte": "671", "cheque": "0000123"}, **H).json()
+    assert (d["type"], d["cheque"]) == ("decaissement", "0000123")
+    assert "caisse" in refus({"type": "banque_caisse", "compteBancaireId": cdf1, "montant": 100000})
+    assert compta.post("/api/banque/operations", {"cle": cle(), "date": "2026-11-05", "type": "banque_caisse", "compteBancaireId": cdf1, "montant": 100000,
+                                                  "guichetId": G2()}, **H).json()["statut"] == "saisie"
+    vir = {"type": "banque_banque", "compteBancaireId": usd1, "montant": 20000}
+    assert "autre compte" in refus({**vir, "compteBancaireDestId": usd1})
+    assert "deux devises" in refus({**vir, "compteBancaireDestId": cdf1})
+    assert compta.post("/api/banque/operations", {"cle": cle(), "date": "2026-11-05", **vir, "compteBancaireDestId": usd2}, **H).json()["libelle"] == "Virement banque vers banque"
+    assert ident("select count(*) from operation_banque where statut = 'saisie'") == 4
+    assert ident("select count(*) from ecriture e join ligne_ecriture l on l.ecriture_id = e.id join compte c on c.id = l.compte_id where c.numero like '5601%%'") == 0   # rien n'est comptabilisé à la saisie
+
+
 def test_arrete_de_caisse(clients, journee):
     """S79 (manuel p. 90 et 91) : pas de comptage à l'ouverture ; Solde Caisse = dernier arrêté validé + opérations du jour ;
     Bon de Caisse enregistré ; Enregistrer refait la saisie tant que le billetage n'est pas validé"""

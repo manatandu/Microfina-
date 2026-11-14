@@ -160,6 +160,14 @@ export interface Ecriture {
 
 export type TypeOperation = "depot" | "retrait" | "adhesion" | "achat_parts" | "retrait_parts";
 
+/** S52 : opération de banque, saisie puis visée et validée (S57), comptabilisée (S111) ; pièce donnée à la comptabilisation (registre S52-2) */
+export type TypeOperationBanque = "encaissement" | "decaissement" | "banque_caisse" | "banque_banque";
+export interface OperationBanque {
+  id: number; cle: string; type: TypeOperationBanque; date: string; compteBancaireId: number; compteBancaireDestId: number | null; guichetId: number | null;
+  compte: string; libelle: string; montant: number; devise: Devise; cheque: string; typeBudgetId: number | null; ligneBudgetId: number | null;
+  statut: "saisie" | "visee" | "validee" | "comptabilisee" | "refusee"; piece: string; saisiPar: number;
+}
+
 export interface Operation {
   id: number;
   cle: string;                 // clé d'idempotence tirée par le poste
@@ -190,7 +198,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 58;
+  version: 59;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)
@@ -240,6 +248,7 @@ export interface Etat {
   comptesInstitution: CompteInstitution[];   // S102 : comptes divisionnaires ouverts par l'institution (PCCI § 9)
   comptesBancaires: { id: number; banqueId: number; compte: string; libelle: string; numeroBancaire: string; devise: Devise; journalId: number; contactNom: string; contactNomComplet: string; contactTelephone: string }[];
   consentements: { id: number; tiersId: number; code: string; dateDebut: string; dateFin: string; commentaire: string }[];   // S50
+  operationsBanque: OperationBanque[];   // S52
   typesProcuration: { id: number; libelle: string }[];   // S47
   lieux: LigneLieu[];   // S20 : Localisation, découpage de la RDC
   groupesSolidaires: { id: number; code: string; nom: string }[];      // S44
