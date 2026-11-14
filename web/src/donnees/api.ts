@@ -1134,7 +1134,7 @@ const numerotation = {
 
 // ---------- S52 : Banque > Opération (manuel p. 60 et 61). Règles identiques côté serveur (noyau/banque_operations.py). ----------
 const TYPES_OPERATION_BANQUE: Record<TypeOperationBanque, string> = { encaissement: "Encaissement divers", decaissement: "Décaissement divers",
-  banque_caisse: "Virement banque vers caisse", banque_banque: "Virement banque vers banque", virement_client: "Virement", prelevement_client: "Prélèvement" };
+  banque_caisse: "Virement banque vers caisse", banque_banque: "Virement banque vers banque", virement_client: "Virement", prelevement_client: "Prélèvement", adhesion_banque: "Adhésion par banque" };
 const OPERATIONS_CLIENT: TypeOperationBanque[] = ["virement_client", "prelevement_client"];
 /** Saisie d'une opération de banque : trois onglets ; montant en centièmes, dans la devise du compte bancaire */
 export interface SaisieOperationBanque {
@@ -1162,12 +1162,54 @@ const banqueOperations = {
   enregistrer: (d: SaisieOperationBanque) => enregistrerOperationBanque(d, false),
   /** S53 : virement et prélèvement entre le compte d'un client et un compte bancaire ; sa route, donc son droit (registre S04-3) */
   enregistrerVirement: (d: SaisieOperationBanque) => enregistrerOperationBanque(d, true),
+  /** S56 : ce que l'écran montre avant d'enregistrer. Règles identiques côté serveur (banque_operations.apercu_adhesion). Aucune écriture. */
+  apercuAdhesion(tiersId: number, parts = 1, depot = 0) {
+    exiger();
+    const a = preparerAdhesion({ tiersId, parts, depot });
+    return { numeroCompte: numeroCompte(a.t.numero, a.produit), devise: "CDF" as const, valeurPart: valeurPart(),
+      frais: a.frais.map((f) => ({ fraisId: f.fraisId, libelle: f.libelle, compte: f.compte ?? "", montant: f.montant ?? 0 })), total: a.total };
+  },
+  /** S56 : Banque > Adhésion (p. 64). Saisie en attente du visa (S57) ; le compte épargne s'ouvre à la validation (registre S56-1). */
+  enregistrerAdhesion(d: { cle: string; date: string; tiersId: number; parts: number; depot: number; compteBancaireId?: number }): OperationBanque {
+    const u = exiger();
+    const prec = E.operationsBanque.find((o) => o.cle === d.cle);
+    if (prec) return prec;
+    const j = journees.courante();
+    if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d.date ?? "")) throw new ErreurMetier("À remplir : date opération.");
+    if (d.date > j.date) throw new ErreurMetier("La date de l'opération ne peut pas dépasser la journée ouverte.");
+    const a = preparerAdhesion(d);
+    const b = E.comptesBancaires.find((x) => x.id === d.compteBancaireId);
+    if (!b) throw new ErreurMetier("Compte Banque : compte bancaire inconnu.");
+    if (b.devise !== "CDF") throw new ErreurMetier("Le compte bancaire doit être en CDF : frais et parts de l'adhésion sont en CDF.");   // S56-3
+    if (E.operationsBanque.some((o) => o.tiersId === a.t.id && o.type === "adhesion_banque" && ["saisie", "visee", "validee", "comptabilisee"].includes(o.statut)))
+      throw new ErreurMetier("Une adhésion par banque est déjà en cours pour ce membre.");   // S56-2
+    const o: OperationBanque = { id: prochain(E.operationsBanque), cle: d.cle, type: "adhesion_banque", date: d.date, compteBancaireId: b.id, compteBancaireDestId: null, guichetId: null,
+      compte: "", libelle: TYPES_OPERATION_BANQUE.adhesion_banque, montant: a.total, devise: "CDF", cheque: "", typeBudgetId: null, ligneBudgetId: null,
+      statut: "saisie", piece: "", saisiPar: u.id, tiersId: a.t.id, parts: d.parts, premierDepot: d.depot };
+    E.operationsBanque.push(o); enregistrer(); return o;
+  },
 };
+/** Contrôles communs de l'adhésion, au guichet (S73) et par banque (S56). Identiques côté serveur (services.preparer_adhesion). */
+function preparerAdhesion(p: { tiersId: number; parts: number; depot: number }) {
+  const t = E.tiers.find((x) => x.id === p.tiersId);
+  if (!t) throw new ErreurMetier("Client introuvable.");
+  controlerStatutActif(t.statut, " : l'adhésion attend le visa");
+  if (E.comptes.some((c) => c.tiersId === t.id)) throw new ErreurMetier("Ce membre a déjà adhéré.");
+  const produit = E.produits.find((x) => x.code === t.produitCode) ?? E.produits.find((x) => x.devise === "CDF")!;
+  if (produit.devise !== "CDF") throw new ErreurMetier("Compte à créer en USD : l'adhésion en deux devises (frais et parts en CDF) est à confirmer avec le porteur.");
+  if (!Number.isInteger(p.parts) || p.parts < 1) throw new ErreurMetier("Au moins une part sociale, payée en entier (loi 002/2002, art. 21 et 22).");
+  if (!Number.isInteger(p.depot) || p.depot < 0) throw new ErreurMetier("Premier dépôt invalide.");
+  const frais = parametrage.fraisLies(t.id).filter((f) => f.montant && !f.part);   // la ligne de part se paie par nombre de parts (registre S16-11)
+  for (const f of frais) if (!f.compte || !planComptable().includes(f.compte)) throw new ErreurMetier(`Frais « ${f.libelle} » : compte absent du plan comptable, à paramétrer (Paramétrage > Frais et opérations).`);
+  const mParts = p.parts * valeurPart();
+  return { t, produit, frais, mParts, total: mParts + p.depot + frais.reduce((x, f) => x + (f.montant ?? 0), 0) };
+}
 function enregistrerOperationBanque(d: SaisieOperationBanque, client: boolean): OperationBanque {
     const u = exiger();
     const prec = E.operationsBanque.find((o) => o.cle === d.cle);
     if (prec) return prec;                                   // même clé : la même opération (double clic, reprise réseau)
-    if (!(d.type in TYPES_OPERATION_BANQUE) || OPERATIONS_CLIENT.includes(d.type) !== client) throw new ErreurMetier("Type d'opération inconnu.");
+    if (!(d.type in TYPES_OPERATION_BANQUE) || d.type === "adhesion_banque" || OPERATIONS_CLIENT.includes(d.type) !== client) throw new ErreurMetier("Type d'opération inconnu.");
     const j = journees.courante();
     if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(d.date ?? "")) throw new ErreurMetier("À remplir : date opération.");

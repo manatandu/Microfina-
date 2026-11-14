@@ -502,6 +502,16 @@ def banque_virements_enregistrer(request, corps: dict = Body(...)):
     return bop.enregistrer(u(request), corps, client=True)
 
 
+@api.get("/banque/adhesions/apercu")
+def banque_adhesion_apercu(request, tiersId: int, parts: int = 1, depot: int = 0):
+    return bop.apercu_adhesion(u(request), tiersId, parts, depot)
+
+
+@api.post("/banque/adhesions")
+def banque_adhesion_enregistrer(request, corps: dict = Body(...)):
+    return bop.enregistrer_adhesion(u(request), corps)
+
+
 @api.get("/banques")
 def bq_lire(request):
     return bq.lire(u(request))

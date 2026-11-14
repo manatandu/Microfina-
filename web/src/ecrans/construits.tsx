@@ -43,6 +43,7 @@ import { RapportsClients } from "./Rapports";
 import { PartsSociales } from "./Parts";
 import { OperationsBanque } from "./OperationsBanque";
 import { VirementPrelevement } from "./VirementPrelevement";
+import { AdhesionBanque } from "./AdhesionBanque";
 import { CreationBanque } from "./Banques";
 
 /** Écrans de l'inventaire déjà construits. Les autres affichent « pas encore construit ». */
@@ -100,6 +101,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S51: RapportsClients,
   S52: OperationsBanque,
   S53: VirementPrelevement,
+  S56: AdhesionBanque,
   S58: CreationBanque,
   S73: Adhesion,
   S74: GuichetDepotRetrait,

@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**292 décisions.** Solidité : 95 fortes (le manuel ou un texte répond), 158 moyennes (déduites d'un écran voisin ou d'une donnée), 39 faibles (notre choix, faute de mieux). Dans le code : 261 déjà en place, 31 à appliquer.
+**296 décisions.** Solidité : 96 fortes (le manuel ou un texte répond), 161 moyennes (déduites d'un écran voisin ou d'une donnée), 39 faibles (notre choix, faute de mieux). Dans le code : 265 déjà en place, 31 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -687,6 +687,15 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S55-1 | Place dans l'ordre de construction | Construit juste après le lot Crédit : il lui faut un crédit approuvé (S88, S89), que le lot Banque ne fournit pas encore | Choix du porteur : Décision du porteur, 14/11/2026 | forte | en place |
+
+## S56 Adhésion par banque
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S56-1 | Quand le compte épargne s'ouvre | À la validation de l'opération (S57, puis validation à la caisse p. 89 et 104), pas à la saisie : à la saisie, l'écran montre seulement le N° du compte qui sera ouvert. Le reçu (bouton Imprimer, inactif ici) vient avec la validation | Écran voisin : Texte p. 89 et 104 « Validation à la caisse de l'adhésion par banque » ; chaîne COMPLEMENTS § 6 | moyenne | en place |
+| S56-2 | Une seule adhésion en cours par membre | Refusée si une adhésion par banque du même membre est déjà saisie, visée, validée ou comptabilisée | Écran voisin : Même règle que S73 (un membre adhère une fois) | moyenne | en place |
+| S56-3 | Compte bancaire de l'adhésion | En CDF : frais et parts sont en CDF (registre S73-1) | Écran voisin : Registre S73-1 | moyenne | en place |
+| S56-4 | Règles reprises de S73 | Mêmes contrôles que l'adhésion au guichet : client actif, pas déjà membre avec un compte, au moins une part payée en entier, frais sur des comptes du plan, ouverture de compte gratuite. Montant total = parts + premier dépôt + frais, comme à la caisse | Texte réglementaire : Loi 002/2002, art. 21 et 22 ; PCCI comptes 103 et 330 ; Instr. BCC 37 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

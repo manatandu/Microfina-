@@ -809,6 +809,34 @@ def test_virement_prelevement(clients, journee):
     assert "disponible insuffisant" in refus({"type": "prelevement_client", "montant": 1})      # le prélèvement saisi réserve le disponible
 
 
+def test_adhesion_par_banque(clients, journee):
+    """S56 (manuel p. 64) : adhésion payée par virement sur un compte bancaire en CDF ; saisie en attente du visa (S57) ; registre S56-1 à S56-3"""
+    chef, compta, agent, caisse = clients["chef"], clients["compta"], clients["agent"], clients["caisse"]
+    bid = chef.post("/api/banques", {"code": "RAW", "libelle": "Rawbank", "compteLiaison": "5601", "adresse": ""}, **H).json()["banques"][0]["id"]
+    jn = chef.get("/api/banques").json()["journaux"][0]["id"]
+    def banque(compte, num, dev):
+        l = chef.post("/api/banques/comptes", {"banqueId": bid, "compte": compte, "numeroBancaire": num, "devise": dev, "journalId": jn, "contactNom": "Mutombo"}, **H).json()
+        return next(c["id"] for c in l["comptes"] if c["numeroBancaire"] == num)
+    cdf, usd = banque("56010001", "R-CDF-1", "CDF"), banque("56010002", "R-USD-1", "USD")
+    t = agent.post("/api/tiers", {**FICHE, "nom": "Tshala", "pieceType": "Passeport", "pieceNumero": "OP2"}, **H).json()
+    base = {"date": "2026-11-05", "tiersId": t["id"], "parts": 2, "depot": 50000, "compteBancaireId": cdf}
+    def refus(corps, c=compta):
+        r = c.post("/api/banque/adhesions", {"cle": cle(), **base, **corps}, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    assert "visa" in refus({})                                       # client pas encore visé
+    assert chef.post(f"/api/tiers/{t['id']}/visa", **H).status_code == 200
+    assert "Droit manquant" in refus({}, agent)
+    assert "Au moins une part" in refus({"parts": 0})
+    assert "Premier dépôt invalide" in refus({"depot": -1})
+    assert "en CDF" in refus({"compteBancaireId": usd})
+    ap = compta.get(f"/api/banque/adhesions/apercu?tiersId={t['id']}&parts=2&depot=50000").json()
+    assert ap["numeroCompte"].startswith(t["numero"]) and ap["total"] == 2 * ap["valeurPart"] + 50000 + sum(f["montant"] for f in ap["frais"])
+    o = compta.post("/api/banque/adhesions", {"cle": cle(), **base}, **H).json()
+    assert (o["type"], o["statut"], o["montant"], o["parts"], o["premierDepot"], o["devise"]) == ("adhesion_banque", "saisie", ap["total"], 2, 50000, "CDF")
+    assert "déjà en cours" in refus({})
+    assert ident("select count(*) from compte_depot where tiers_id = %s", (t["id"],)) == 0           # le compte s'ouvre à la validation, pas à la saisie
+    assert "Droit manquant" in refus({}, caisse)
+
+
 def test_arrete_de_caisse(clients, journee):
     """S79 (manuel p. 90 et 91) : pas de comptage à l'ouverture ; Solde Caisse = dernier arrêté validé + opérations du jour ;
     Bon de Caisse enregistré ; Enregistrer refait la saisie tant que le billetage n'est pas validé"""

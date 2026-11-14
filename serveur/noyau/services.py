@@ -1605,14 +1605,10 @@ def retrait(u: dict, p: dict) -> dict:
     return vue_operation(une("select * from operation where id = %s", (oid,)))
 
 
-def adhesion(u: dict, p: dict) -> dict:
-    """S73 : Caisse > Opération > Adhésion (manuel p. 85 et 89) : compte épargne du type choisi à l'enrôlement, premier dépôt,
-    Liste des Frais (frais d'adhésion S16/S41 et parts sociales), billetage. Loi 002/2002, art. 21 et 22 ; PCCI, comptes 103 et 330."""
+def preparer_adhesion(u: dict, p: dict) -> dict:
+    """Contrôles communs de l'adhésion, au guichet (S73) et par banque (S56) : client actif, pas déjà membre avec un compte, compte épargne en CDF,
+    au moins une part payée en entier, frais d'adhésion sur des comptes du plan. Loi 002/2002, art. 21 et 22."""
     from .frais import frais_lies
-    prec = operation_par_cle(p["cle"])
-    if prec and prec["statut"] == "validee":
-        return vue_operation(prec)
-    s = session_ouverte(u, "CDF")
     tid = int(p["tiersId"])
     t = une("select * from tiers where id = %s and institution_id = %s for update", (tid, u["institution_id"]))
     if not t:
@@ -1635,7 +1631,19 @@ def adhesion(u: dict, p: dict) -> dict:
         if not f["compte"] or not valeur("select 1 from compte where numero = %s", (f["compte"],)):
             raise ErreurMetier(f"Frais « {f['libelle']} » : compte absent du plan comptable, à paramétrer (Paramétrage > Frais et opérations).")
     m_parts = nb * valeur_part(u["institution_id"])
-    total = m_parts + m_depot + sum(f["montant"] for f in frais)
+    return {"tid": tid, "t": t, "produit": produit, "nb": nb, "m_depot": m_depot, "frais": frais, "m_parts": m_parts,
+            "total": m_parts + m_depot + sum(f["montant"] for f in frais)}
+
+
+def adhesion(u: dict, p: dict) -> dict:
+    """S73 : Caisse > Opération > Adhésion (manuel p. 85 et 89) : compte épargne du type choisi à l'enrôlement, premier dépôt,
+    Liste des Frais (frais d'adhésion S16/S41 et parts sociales), billetage. Loi 002/2002, art. 21 et 22 ; PCCI, comptes 103 et 330."""
+    prec = operation_par_cle(p["cle"])
+    if prec and prec["statut"] == "validee":
+        return vue_operation(prec)
+    s = session_ouverte(u, "CDF")
+    a = preparer_adhesion(u, p)
+    tid, t, produit, nb, m_depot, frais, m_parts, total = (a[k] for k in ("tid", "t", "produit", "nb", "m_depot", "frais", "m_parts", "total"))
     coupures = nettoyer(p["coupures"])
     controler_montant_coupures(coupures, total, "CDF")
     if en_usd(total, "CDF") + especes_du_jour_usd(tid, s["journeeId"], "depot") >= SEUIL_ESPECES_USD:

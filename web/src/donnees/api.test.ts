@@ -542,6 +542,34 @@ describe("journée de guichet", () => {
     await expect(api.banqueOperations.enregistrerVirement({ ...base, cle: cle(), type: "prelevement_client", montant: 1 })).rejects.toThrow("disponible insuffisant");
   });
 
+  it("adhésion par banque (S56) : payée sur un compte bancaire en CDF, saisie en attente du visa (registre S56-1 à S56-3)", async () => {
+    await journeeOuverte();
+    await connecter("jpmukendi");
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    const c = { banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "" };
+    await api.banques.enregistrerCompte({ ...c, compte: "56010001", numeroBancaire: "R-CDF-1", devise: "CDF" });
+    await api.banques.enregistrerCompte({ ...c, compte: "56010002", numeroBancaire: "R-USD-1", devise: "USD" });
+    await connecter("bkasongo");
+    const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), ...IDENTITE, produitCode: "EAV-CDF", nom: "Tshala", prenom: "Marie", naissance: "1990-02-01", pieceType: "Passeport", pieceNumero: "OP2", pieceExpire: "2031-01-01", adresse: "Matete" });
+    await connecter("plumbala");
+    const comptes = (await api.banqueOperations.lire()).comptes, cdf = comptes.find((x) => x.devise === "CDF")!.id, usd = comptes.find((x) => x.devise === "USD")!.id;
+    const base = { date: "2026-11-05", tiersId: t.id, parts: 2, depot: 50000, compteBancaireId: cdf };
+    await expect(api.banqueOperations.enregistrerAdhesion({ ...base, cle: cle() })).rejects.toThrow("visa");
+    await connecter("jpmukendi"); await api.tiers.viser(t.id); await connecter("plumbala");
+    await expect(api.banqueOperations.enregistrerAdhesion({ ...base, cle: cle(), parts: 0 })).rejects.toThrow("Au moins une part");
+    await expect(api.banqueOperations.enregistrerAdhesion({ ...base, cle: cle(), depot: -1 })).rejects.toThrow("Premier dépôt invalide");
+    await expect(api.banqueOperations.enregistrerAdhesion({ ...base, cle: cle(), compteBancaireId: usd })).rejects.toThrow("en CDF");
+    const ap = await api.banqueOperations.apercuAdhesion(t.id, 2, 50000);
+    expect(ap.numeroCompte.startsWith(t.numero)).toBe(true);
+    expect(ap.total).toBe(2 * ap.valeurPart + 50000 + ap.frais.reduce((x, f) => x + f.montant, 0));
+    const o = await api.banqueOperations.enregistrerAdhesion({ ...base, cle: cle() });
+    expect([o.type, o.statut, o.montant, o.parts, o.premierDepot]).toEqual(["adhesion_banque", "saisie", ap.total, 2, 50000]);
+    await expect(api.banqueOperations.enregistrerAdhesion({ ...base, cle: cle() })).rejects.toThrow("déjà en cours");
+    expect((await api.tiers.comptes(t.id)).length).toBe(0);            // le compte s'ouvre à la validation, pas à la saisie
+    await connecter("engalula");
+    await expect(api.banqueOperations.enregistrerAdhesion({ ...base, cle: cle() })).rejects.toThrow("Droit manquant");
+  });
+
   it("banques (S58) : banque client, compte de l'institution en 560 (PCCI), suppression contrôlée", async () => {
     await connecter("bkasongo");
     const b = { code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "Kinshasa, Gombe" };

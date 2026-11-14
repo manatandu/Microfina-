@@ -441,8 +441,8 @@ Lecture de la colonne « Manuel » : c'est le niveau le plus faible parmi les é
 |---|---|---|---|---|---|
 | 52 | Opérations de banque : encaissement décaissement virements | S52 | Montré en entier | 4 Banque | Rien : à recopier |
 | 53 | Virement et prélèvement client banque | S53 | Montré en entier | 4 Banque | Rien : à recopier |
-| 54 | Déblocage de crédit par banque | S54 | Montré en entier | 4 Banque | S54 : contrat de prêt, échéancier |
-| 55 | Remboursement de crédit par banque | S55 | Montré en partie | 4 Banque | S55 : onglets Répartition et Détail crédit, page après Suivant |
+| 54 | Déblocage de crédit par banque | S54 | Montré en entier | 7 Crédit | S54 : contrat de prêt, échéancier |
+| 55 | Remboursement de crédit par banque | S55 | Montré en partie | 7 Crédit | S55 : onglets Répartition et Détail crédit, page après Suivant |
 | 56 | Adhésion par banque | S56 | Montré en entier | 4 Banque | Rien : à recopier |
 | 57 | Visa puis validation des opérations de banque | S57 | Montré en partie | 4 Banque | S57 : deux listes sans capture ; colonnes complètes |
 | 58 | Banques et comptes bancaires | S58 | Montré en entier | 4 Banque | Rien : à recopier |

@@ -5,10 +5,10 @@ import re
 import uuid
 
 from .bd import ErreurMetier, executer, lignes, une, valeur
-from .services import controler_statut_actif, exiger, journee_courante, solde_contrat
+from .services import controler_statut_actif, exiger, journee_courante, numero_compte, preparer_adhesion, solde_contrat
 
 TYPES = {"encaissement": "Encaissement divers", "decaissement": "Décaissement divers", "banque_caisse": "Virement banque vers caisse",
-         "banque_banque": "Virement banque vers banque", "virement_client": "Virement", "prelevement_client": "Prélèvement"}
+         "banque_banque": "Virement banque vers banque", "virement_client": "Virement", "prelevement_client": "Prélèvement", "adhesion_banque": "Adhésion par banque"}
 
 
 def solde_banque(compte_id: int, devise: str) -> int:
@@ -55,6 +55,47 @@ def compte_bancaire(u, cid, quoi: str) -> dict:
 CLIENT = ("virement_client", "prelevement_client")
 
 
+def apercu_adhesion(u, tid: int, parts: int = 1, depot: int = 0) -> dict:
+    """S56 : ce que l'écran montre avant d'enregistrer : N° du compte épargne qui sera ouvert, parts, frais, total. Aucune écriture."""
+    exiger(u)
+    a = preparer_adhesion(u, {"tiersId": tid, "parts": parts, "depot": depot})
+    return {"numeroCompte": numero_compte(u, a["t"], a["produit"]), "devise": "CDF", "valeurPart": a["m_parts"] // a["nb"],
+            "frais": [{"fraisId": f["fraisId"], "libelle": f["libelle"], "compte": f["compte"], "montant": f["montant"]} for f in a["frais"]], "total": a["total"]}
+
+
+def enregistrer_adhesion(u, d) -> dict:
+    """Bouton Enregistrer de « Adhésion à la Banque » (p. 64) : saisie en attente du visa (S57) ; le compte épargne s'ouvre à la validation (registre S56-1).
+    Mêmes contrôles que l'adhésion au guichet (S73), le paiement se fait sur un compte bancaire de l'institution en CDF."""
+    exiger(u)
+    d = d if isinstance(d, dict) else {}
+    try:
+        cle = str(uuid.UUID(texte(d, "cle")))
+    except ValueError:
+        raise ErreurMetier("Clé d'opération invalide.")
+    prec = une("select * from operation_banque where cle_idempotence = %s", (cle,))
+    if prec:
+        return vue(prec)
+    j = journee_courante(u)
+    if not j or j["statut"] != "ouverte":
+        raise ErreurMetier("Aucune journée ouverte (Administration > Journée).")
+    date_op = texte(d, "date")
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", date_op):
+        raise ErreurMetier("À remplir : date opération.")
+    if date_op > j["date"]:
+        raise ErreurMetier("La date de l'opération ne peut pas dépasser la journée ouverte.")
+    a = preparer_adhesion(u, {"tiersId": d.get("tiersId"), "parts": d.get("parts"), "depot": d.get("depot", 0)})
+    banque = compte_bancaire(u, entier(d, "compteBancaireId"), "Compte Banque")
+    if banque["devise"] != "CDF":                         # registre S56-3 : frais et parts en CDF
+        raise ErreurMetier("Le compte bancaire doit être en CDF : frais et parts de l'adhésion sont en CDF.")
+    if une("select 1 from operation_banque where tiers_id = %s and type = 'adhesion_banque' and statut in ('saisie', 'visee', 'validee', 'comptabilisee')", (a["tid"],)):
+        raise ErreurMetier("Une adhésion par banque est déjà en cours pour ce membre.")      # registre S56-2
+    oid = valeur("""insert into operation_banque (institution_id, agence_id, type, date_operation, compte_bancaire_id, libelle, montant, devise, cle_idempotence,
+                                                  saisi_par, tiers_id, parts, premier_depot)
+                    values (%s, %s, 'adhesion_banque', %s, %s, %s, %s, 'CDF', %s, %s, %s, %s, %s) returning id""",
+                 (u["institution_id"], u["agence_id"], date_op, banque["id"], TYPES["adhesion_banque"], a["total"], cle, u["id"], a["tid"], a["nb"], a["m_depot"]))
+    return vue(une("select * from operation_banque where id = %s", (oid,)))
+
+
 def enregistrer(u, d, client: bool = False) -> dict:
     """Bouton Enregistrer : S52 (trois onglets) ou S53 (client = True, virement et prélèvement) ; l'opération est saisie, en attente du visa (S57).
     Chaque écran a sa route, donc son droit (registre S04-3)."""
@@ -69,7 +110,7 @@ def enregistrer(u, d, client: bool = False) -> dict:
         return vue(prec)                                     # même clé : la même opération (double clic, reprise réseau)
     i = u["institution_id"]
     type_ = texte(d, "type")
-    if type_ not in TYPES or (type_ in CLIENT) != client:
+    if type_ not in TYPES or type_ == "adhesion_banque" or (type_ in CLIENT) != client:
         raise ErreurMetier("Type d'opération inconnu.")
     j = journee_courante(u)
     if not j or j["statut"] != "ouverte":
@@ -149,4 +190,4 @@ def vue(o: dict) -> dict:
     return {"id": o["id"], "type": o["type"], "date": o["date_operation"].isoformat(), "compteBancaireId": o["compte_bancaire_id"],
             "compteBancaireDestId": o["compte_bancaire_dest_id"], "guichetId": o["guichet_id"], "compte": o["compte"] or "", "libelle": o["libelle"] or "",
             "montant": o["montant"], "devise": o["devise"].strip(), "cheque": o["cheque"] or "", "statut": o["statut"], "piece": o["piece"] or "",
-            "compteDepotId": o.get("compte_depot_id")}
+            "compteDepotId": o.get("compte_depot_id"), "tiersId": o.get("tiers_id"), "parts": o.get("parts"), "premierDepot": o.get("premier_depot")}

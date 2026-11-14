@@ -302,6 +302,10 @@ const OUT = process.argv[2];
   await p.getByLabel('Compte *').fill('56010001');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
   await p.getByRole('cell', { name: '56010001' }).waitFor(); await etape('06c3-banque-institution');
+  // Deuxième compte de l'institution, en CDF : celui des adhésions par banque (S56)
+  await p.getByLabel('Banque *').selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte *').fill('56010002'); await p.getByLabel('N° Compte Bancaire : *').fill('R-CDF-1');
+  await p.getByLabel('Devise *').selectOption('CDF'); await p.getByLabel('Nom *').fill('Mutombo');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
   // Opérations de banque (S52), par le comptable : saisies, en attente du visa (S57)
   await login('Patrick Lumbala'); await aller('/banque/s52');
   await p.getByLabel('Banque *', { exact: true }).selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte Banque *').selectOption({ index: 1 });
@@ -545,6 +549,15 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('button', { name: 'Imprimer' }).click(); await p.getByText('Retrait enregistré').waitFor(); await etape('12-retrait-recu');
   await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
+  // Adhésion par banque (S56) : la Boulangerie paie par virement sur le compte en CDF ; saisie en attente du visa (S57)
+  await login('Patrick Lumbala'); await aller('/banque/s56'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  const rab = p.getByRole('dialog', { name: "Recherche d'un client" });
+  await rab.getByLabel('Nom:', { exact: true }).fill('Boulangerie'); await rab.getByRole('row').filter({ hasText: 'Boulangerie' }).first().dblclick();
+  await p.getByLabel('Banque *', { exact: true }).selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte Banque *').selectOption({ label: 'R-CDF-1 (CDF)' });
+  await p.getByRole('cell', { name: /0412-00032\d-TJ-/ }).first().waitFor({ state: 'attached' }).catch(() => {});
+  await p.getByLabel('N° compte épargne : *').waitFor(); await etape('06c8-adhesion-banque');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
+  await login('Esther Ngalula');
   // Apurement avant la résiliation (registre S48-1) : Lukusa retire tout son solde (85 000 CDF)
   await aller('/caisse/s74?op=retrait'); await client('Lukusa'); await p.getByLabel('N° compte').selectOption({ label: '0412-000320-02' });
   await p.getByLabel('Montant *').fill('85 000'); await p.getByLabel('Motif:').fill('Départ');

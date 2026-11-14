@@ -9,6 +9,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "banqueOperations.enregistrer": [
 "S52"
 ],
+"banqueOperations.enregistrerAdhesion": [
+"S56"
+],
 "banqueOperations.enregistrerVirement": [
 "S53"
 ],

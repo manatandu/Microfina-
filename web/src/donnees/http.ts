@@ -33,6 +33,8 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       lire: () => get("/banque/operations"),
       enregistrer: (d: object) => post("/banque/operations", d),
       enregistrerVirement: (d: object) => post("/banque/virements", d),
+      apercuAdhesion: (tiersId: number, parts = 1, depot = 0) => get(`/banque/adhesions/apercu?tiersId=${tiersId}&parts=${parts}&depot=${depot}`),
+      enregistrerAdhesion: (d: object) => post("/banque/adhesions", d),
     },
     session: {
       utilisateurs: () => get("/utilisateurs"),
