@@ -73,9 +73,9 @@ Le guichet valide des centaines d'opérations par jour, au clavier. Rien ne s'an
 Demande du porteur du projet (13/11/2026) : « un bon design et l'animation immersive », sur le modèle des animations 3D de produit (objet héros sur podium, anneaux de lumière, profondeur, bokeh, reflets). La page des modules (S02) s'ouvre une fois par connexion : c'est le seul écran où le mouvement sert le plaisir (fiche `animate` de `emil-kowalski` : budget de plaisir réservé au rare). La structure reste celle de la capture p. 6 : le module principal au centre, huit modules autour, dans le même ordre.
 
 - **Moteur** : une scène 3D calculée par la carte graphique (WebGL 2, `web/src/ecrans/scene-modules.ts`), sans bibliothèque. Les liens restent des éléments HTML posés par-dessus : clavier, lecteur d'écran et tests les trouvent comme avant. Sans WebGL 2 : la version plate en CSS prend le relais.
-- **Scène** : l'étoile du drapeau en or poli (`--etoile`) flotte au-dessus d'un podium sombre cerclé d'anneaux or et bleu (`--tampon`), sous un faisceau de lumière. Huit socles en orbite portent chacun une sphère : bleue et lumineuse quand le module est ouvert, verre fumé quand il est fermé. Sol miroir, cercles de lumière au sol, orbite tracée en lumière qui court, bokeh bleu et or à trois profondeurs, nuit (`--nuit`). Étalonnage cinéma, vignette, grain léger.
+- **Scène** : le monogramme DWAC en rouge (`--marque-rouge`, formes du guide de marque, registre D01-6) flotte au-dessus d'un podium sombre cerclé d'anneaux rouges et blancs (`--marque-gris`), sous un faisceau de lumière. Huit socles en orbite portent chacun une sphère : bleue et lumineuse quand le module est ouvert, verre fumé quand il est fermé. Sol miroir, cercles de lumière au sol, orbite tracée en lumière qui court, bokeh bleu et or à trois profondeurs, nuit (`--nuit`). Étalonnage cinéma, vignette, grain léger.
 - **Caméra** : vue plongeante de trois quarts, qui suit la souris ou l'inclinaison du téléphone, avec inertie. Sur écran étroit, elle monte pour que l'orbite remplisse l'écran.
-- **Entrée**, à la première visite de la session (2,6 s, ease-out) : travelling depuis le lointain, l'étoile monte du podium en tournant, les anneaux des socles s'allument l'un après l'autre, les noms paraissent ensuite. Aux retours : la scène est là, les noms en fondu.
+- **Entrée**, à la première visite de la session (2,6 s, ease-out) : travelling depuis le lointain, le monogramme monte du podium en tournant, les anneaux des socles s'allument l'un après l'autre, les noms paraissent ensuite. Aux retours : la scène est là, les noms en fondu.
 - **Plongée** : au clic de la souris ou du doigt sur un module ouvert, la caméra fond sur son socle (750 ms, courbe forte d'entrée et de sortie), puis un fondu vers le fond des écrans du module. Au clavier, avec une touche de modification ou en mouvement réduit : ouverture directe.
 - **Survol** : le socle et l'orbe s'illuminent, le nom passe en or.
 - **Mouvement réduit** demandé par le système : une image fixe de la scène, sans travelling, ni parallaxe, ni plongée.
@@ -114,7 +114,7 @@ Une COOPEC a des **membres** et des **parts sociales**. Une IMF a des **clients*
 | `alerte` | `#C42B1C` | Erreur bloquante |
 | `nuit`, `nuit-2` | `#0B1526`, `#17253D` | Barre latérale, élément actif |
 | `ciel` | `#62A8FF` | Repère de l'élément actif sur la nuit |
-| `etoile` | `#F7D417` | L'étoile du drapeau, marque de Likelemba. Jamais un état. |
+| `etoile` | `#FFFFFF` | Anneau de focus sur fond sombre (ancienne étoile du drapeau, remplacée par l'identité DWAC). Jamais un état. |
 
 Rampe des statuts de crédit (Instr. 003) :
 
@@ -133,13 +133,14 @@ Les valeurs font foi dans `replica/design/tokens.json` et `tokens-sombre.json`. 
 
 ### Identité DWAC (décision du porteur, 14/11/2026)
 
-Le logiciel s'appelle **Dwacfina** et porte l'identité de DWAC, telle que le guide de marque v0.1 (juillet 2026) la fixe. Ce paragraphe prime sur la « refonte du 05/11/2026 » ci-dessus (bleu Congo, étoile jaune du drapeau), qui n'est plus en vigueur.
+Le logiciel s'appelle **Dwacfina**. DWAC l'édite et le **vend aux COOPEC et IMF** : l'interface porte l'identité de DWAC, éditeur, telle que le guide de marque v0.1 (juillet 2026) la fixe. Ce paragraphe prime sur la « refonte du 05/11/2026 » ci-dessus (bleu Congo, étoile jaune du drapeau), qui n'est plus en vigueur.
 
 - **Trois couleurs** : Rouge Écarlate `#C91B2C`, Bleu Nuit `#182232`, Gris Clair `#EDEDED` (jetons `marque-rouge`, `marque-nuit`, `marque-gris`). Les autres valeurs sont des **teintes unies** dérivées de ces trois couleurs (le guide interdit tout dégradé, ombre portée sur le logo comprise).
 - **Rôles** (registre D01-2) : le Bleu Nuit porte l'action (boutons, onglets, barre du haut), le Gris Clair le fond de page, le blanc les cartes. Le rouge reste pour le logo, les erreurs et les alertes : il garde un sens. Les rampes de statut des crédits et le vert « sain » restent des couleurs de sens (§ 2.4) et ne viennent pas de la marque.
-- **Polices** : Poppins Medium pour le texte, Poppins Bold pour les titres. Provicali (grands titres, couvertures, citations) attend le fichier de la police (registre D01-3). Les montants gardent une police à chiffres de largeur fixe (§ 2.2), écart à confirmer.
+- **Polices** : Poppins Medium pour le texte, Poppins Bold pour les titres. Provicali n'est pas reprise (décision du porteur, registre D01-3). Les montants gardent une police à chiffres de largeur fixe (§ 2.2), écart à confirmer.
 - **Dans l'interface** : le monogramme DWAC (sans retouche) suivi du mot DWACFINA en Poppins Bold, à la place du mot DWAC (demande du porteur, 14/11/2026). Ni bande verticale, ni autre habillage de la page de connexion.
 - **Logo complet** : trois déclinaisons officielles seulement, extraites du PDF du guide sans retouche (`web/src/marque/`) : bicolore sur fonds clairs, blanc sur fonds sombres, noir pour les impressions simples. On ne change ni les proportions, ni l'orientation, ni les couleurs, et on n'ajoute ni ombre ni relief ni dégradé. Zone de protection : X, la hauteur des lettres.
+- **Documents imprimés** (contrats, reçus, rapports) : ce sont ceux de l'institution cliente. Ils portent son nom et son logo (Information société, S32), jamais l'identité de DWAC (registre D01-7).
 - **Ton** (guide, p. 26) : précis, factuel, une idée par phrase, chaque constat suivi d'une recommandation. Pas de vocabulaire de « design » ou de « créativité ».
 
 ### Typographie

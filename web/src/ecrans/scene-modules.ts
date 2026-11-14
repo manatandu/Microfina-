@@ -1,10 +1,12 @@
 /**
  * S02 : page des modules en scène 3D (DESIGN § 2.7 ter, demande du porteur du 13/11/2026).
  * Un seul programme WebGL 2, sans bibliothèque : la scène est calculée pixel par pixel (champs de distance).
- * Étoile du drapeau en or sur un podium à anneaux lumineux, sol miroir, faisceau de lumière, bokeh, huit socles en orbite
+ * Monogramme DWAC en rouge (identité DWAC, registre D01-6) sur un podium à anneaux lumineux, sol miroir, faisceau de lumière, bokeh, huit socles en orbite
  * dans l'ordre de la capture p. 6 (Grh au fond, puis dans le sens des aiguilles d'une montre vu d'en haut).
  * Les liens restent des éléments HTML posés par-dessus (clavier, lecteur d'écran) : la scène donne leur position à chaque image.
  */
+
+import { FORMES_MONOGRAMME } from "./monogramme-forme";
 
 export type Ancre = { x: number; y: number; echelle: number };
 export type Scene = {
@@ -36,6 +38,26 @@ const entreeSortie = (t: number) => (t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * 
 
 export const positionSocle = (i: number): V => { const a = i * Math.PI / 4; return [Math.sin(a) * RAYON_ORBITE, 0, -Math.cos(a) * RAYON_ORBITE]; };
 
+// ---------- monogramme : champ de distance signé, calculé une fois sur une grille ----------
+const N_CHAMP = 128;
+const BOITE_CHAMP: [number, number, number, number] = [-1.05, -1.2, 2.1, 2.4];          // x0, y0, largeur, hauteur (le monogramme fait 1,41 sur 1,75)
+function champMonogramme(): Float32Array {
+  const champ = new Float32Array(N_CHAMP * N_CHAMP);
+  const [x0, y0, w, h] = BOITE_CHAMP;
+  for (let j = 0; j < N_CHAMP; j++) for (let i = 0; i < N_CHAMP; i++) {
+    const px = x0 + (i / (N_CHAMP - 1)) * w, py = y0 + (j / (N_CHAMP - 1)) * h;
+    let d = Infinity, dedans = false;
+    for (const poly of FORMES_MONOGRAMME) for (let k = 0, l = poly.length - 1; k < poly.length; l = k++) {
+      const [ax, ay] = poly[l]!, [bx, by] = poly[k]!;
+      const ex = bx - ax, ey = by - ay, t = Math.max(0, Math.min(1, ((px - ax) * ex + (py - ay) * ey) / (ex * ex + ey * ey || 1)));
+      d = Math.min(d, Math.hypot(px - ax - ex * t, py - ay - ey * t));
+      if ((ay > py) !== (by > py) && px < ax + ((py - ay) / (by - ay)) * ex) dedans = !dedans;
+    }
+    champ[j * N_CHAMP + i] = dedans ? -d : d;
+  }
+  return champ;
+}
+
 /** Couleur d'un jeton CSS (#RRGGBB) en linéaire */
 function jeton(nom: string, secours: V): V {
   const v = getComputedStyle(document.documentElement).getPropertyValue(nom).trim();
@@ -55,6 +77,8 @@ uniform vec2 uRes; uniform float uTemps, uEntree, uPlonge;
 uniform vec3 uOeil, uCible;
 uniform float uActif[8]; uniform float uSurvol;
 uniform vec3 cBleu, cOr, cNuit, cRouge;
+uniform highp sampler2D uForme;                       // champ de distance du monogramme DWAC
+const vec4 BOITE = vec4(${BOITE_CHAMP.join(", ")});
 
 const float PI = 3.14159265;
 const float R_ORB = ${RAYON_ORBITE.toFixed(2)};
@@ -62,12 +86,13 @@ const float R_ORB = ${RAYON_ORBITE.toFixed(2)};
 float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
 mat2 rot(float a) { float c = cos(a), s = sin(a); return mat2(c, -s, s, c); }
 
-// Étoile à cinq branches (Inigo Quilez), extrudée et arrondie
-float etoile2(vec2 p, float r, float rf) {
-  const vec2 k1 = vec2(0.809016994375, -0.587785252292); const vec2 k2 = vec2(-k1.x, k1.y);
-  p.x = abs(p.x); p -= 2.0 * max(dot(k1, p), 0.0) * k1; p -= 2.0 * max(dot(k2, p), 0.0) * k2; p.x = abs(p.x); p.y -= r;
-  vec2 ba = rf * vec2(-k1.y, k1.x) - vec2(0, 1); float h = clamp(dot(p, ba) / dot(ba, ba), 0.0, r);
-  return length(p - ba * h) * sign(p.y * ba.x - p.x * ba.y);
+// Monogramme DWAC (formes du guide de marque) : lecture bilinéaire du champ de distance ; hors de la grille, distance à la grille en plus
+float monogramme2(vec2 p) {
+  vec2 uv = (p - BOITE.xy) / BOITE.zw, c = clamp(uv, 0., 1.);
+  vec2 t = c * float(${N_CHAMP - 1}); ivec2 i = min(ivec2(floor(t)), ivec2(${N_CHAMP - 2})); vec2 f = t - vec2(i);
+  float a = texelFetch(uForme, i, 0).r, b = texelFetch(uForme, i + ivec2(1, 0), 0).r;
+  float d = texelFetch(uForme, i + ivec2(0, 1), 0).r, e = texelFetch(uForme, i + ivec2(1, 1), 0).r;
+  return mix(mix(a, b, f.x), mix(d, e, f.x), f.y) + length((uv - c) * BOITE.zw);
 }
 float cylindre(vec3 p, float r, float h) { vec2 d = abs(vec2(length(p.xz), p.y)) - vec2(r, h); return min(max(d.x, d.y), 0.) + length(max(d, 0.)); }
 float tore(vec3 p, float R, float r) { return length(vec2(length(p.xz) - R, p.y)) - r; }
@@ -82,9 +107,9 @@ vec3 dansEtoile(vec3 p) {
 }
 float distEtoile(vec3 p) {
   vec3 q = dansEtoile(p) / 1.0;
-  float d2 = etoile2(q.xy, 0.86, 0.46) - 0.05;
-  vec2 w = vec2(d2, abs(q.z) - 0.13);
-  return (min(max(w.x, w.y), 0.) + length(max(w, 0.))) - 0.09;
+  float d2 = monogramme2(q.xy) + 0.025;
+  vec2 w = vec2(d2, abs(q.z) - 0.11);
+  return (min(max(w.x, w.y), 0.) + length(max(w, 0.))) - 0.025;
 }
 int secteur(vec3 p) { float a = atan(p.x, -p.z); return int(mod(floor(a / (PI / 4.) + 0.5), 8.)); }
 vec3 centreSocle(int i) { float a = float(i) * PI / 4.; return vec3(sin(a) * R_ORB, 0., -cos(a) * R_ORB); }
@@ -136,7 +161,7 @@ vec3 matiere(float id, vec3 p, vec3 rd, vec3 n) {
   vec3 l = normalize(vec3(-.5, .9, .4)), l2 = normalize(vec3(.7, .3, -.6));
   vec3 rf = reflect(rd, n); float fres = pow(1. - max(dot(n, -rd), 0.), 5.);
   float dif = max(dot(n, l), 0.), spec = pow(max(dot(rf, l), 0.), 60.), spec2 = pow(max(dot(rf, l2), 0.), 24.);
-  if (id > 2.5 && id < 3.5) {          // or poli
+  if (id > 2.5 && id < 3.5) {          // métal rouge du monogramme
     vec3 f0 = cOr;
     vec3 env = ciel(rf) * .4 + vec3(1.) * 2.2 * smoothstep(.86, .99, dot(rf, normalize(vec3(-.35, 1., .45))))
              + vec3(1.) * 1.6 * smoothstep(.82, .98, dot(rf, normalize(vec3(1., .2, .5))))
@@ -251,6 +276,12 @@ export function monterScene(toile: HTMLCanvasElement, o: Options): Scene | null 
   gl.uniform3fv(U.rouge, jeton("--alerte", [.55, .025, .012]));
   gl.uniform1fv(U.actif, o.actifs.map((a) => (a ? 1 : 0)));
   gl.uniform1f(U.survol, -9);
+  // champ du monogramme : texture flottante lue par texelFetch (pas de filtrage requis)
+  const texture = gl.createTexture(); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, N_CHAMP, N_CHAMP, 0, gl.RED, gl.FLOAT, champMonogramme());
+  gl.uniform1i(u("uForme"), 0);
 
   let echelle = Math.min(devicePixelRatio || 1, 1.5) * 0.7, image = 0, arret = false, survol = -9;
   const debut = performance.now(), duree = o.entree && !o.reduit ? 2600 : 0;
@@ -328,7 +359,7 @@ export function monterScene(toile: HTMLCanvasElement, o: Options): Scene | null 
     detruire() {
       arret = true; cancelAnimationFrame(image); obs.disconnect();
       removeEventListener("pointermove", pointeur); removeEventListener("deviceorientation", inclinaison); document.removeEventListener("visibilitychange", visible);
-      gl.deleteProgram(prog); gl.deleteBuffer(tampon);
+      gl.deleteProgram(prog); gl.deleteBuffer(tampon); gl.deleteTexture(texture);
     },
   };
 }

@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**274 décisions.** Solidité : 88 fortes (le manuel ou un texte répond), 151 moyennes (déduites d'un écran voisin ou d'une donnée), 35 faibles (notre choix, faute de mieux). Dans le code : 239 déjà en place, 35 à appliquer.
+**274 décisions.** Solidité : 90 fortes (le manuel ou un texte répond), 149 moyennes (déduites d'un écran voisin ou d'une donnée), 35 faibles (notre choix, faute de mieux). Dans le code : 241 déjà en place, 33 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -629,11 +629,11 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | D01-1 | Nom affiché | Dwacfina : le monogramme DWAC (inchangé) suivi du mot DWACFINA en Poppins Bold, à la place du mot DWAC (en-tête, page de connexion), sans bande verticale sur la page de connexion. La page des modules et le titre de l'onglet disent aussi Dwacfina. Likelemba disparaît de l'interface ; l'en-tête technique X-Likelemba et le nom du dépôt ne changent pas | Choix du porteur : Demande du porteur, 14/11/2026 (précisée le même jour) | forte | en place |
 | D01-2 | Rôle de chaque couleur | Bleu Nuit pour agir ; Gris Clair pour le fond de page ; rouge pour le logo, les erreurs et les alertes. Choisi parmi deux options proposées au porteur (rouge ou bleu nuit pour agir) | Choix du porteur : Guide de marque DWAC p. 14 à 16 ; DESIGN.md § 2.4 | forte | en place |
-| D01-3 | Polices | Poppins Medium (texte) et Poppins Bold (titres) tout de suite. Provicali, réservée aux grands titres, couvertures et citations, s'ajoute quand le porteur envoie le fichier avec sa licence d'usage web | Choix du porteur : Guide de marque DWAC p. 18 | forte | à appliquer |
+| D01-3 | Polices | Poppins Medium (texte) et Poppins Bold (titres) partout. Provicali, que le guide réserve aux grands titres, n'est pas reprise : le porteur laisse les polices telles quelles | Choix du porteur : Guide de marque DWAC p. 18 ; décision du porteur, 14/11/2026 | forte | en place |
 | D01-4 | Logo | Les trois déclinaisons officielles (bicolore, blanc, noir) en trois formats (empilé, horizontal, monogramme), extraites des formes du PDF sans retouche. Bicolore sur fond clair, blanc sur fond sombre. Teintes : #C91B2C et #182232 comme écrit dans le guide (le PDF dessine #C41B2C et #161F32, écart de rendu sans effet). Pour l'interface, seul le monogramme est repris : le nom DWACFINA est écrit à côté en Poppins Bold, ce qui sort du logo complet DWAC du guide (demande du porteur) ; les fichiers du logo complet restent dans web/src/marque/ pour les documents | Choix du porteur : Guide de marque DWAC p. 9, 11 à 13 | forte | en place |
 | D01-5 | Chiffres et montants | Les montants gardent la police à chiffres de largeur fixe Atkinson Hyperlegible Mono (DESIGN.md § 2.2 : un montant n'est jamais ambigu). Le guide ne dit rien des chiffres : à confirmer | Écran voisin : DESIGN.md § 2.2 | moyenne | en place |
-| D01-6 | Page des modules | Étoile rouge sur fond Bleu Nuit, anneaux blancs, plus de jaune ni de bleu. Le monogramme DWAC en 3D à la place de l'étoile est une piste, à décider | Choix du porteur : Guide de marque DWAC p. 14 et 15 (aucun jaune dans la palette) | moyenne | en place |
-| D01-7 | Documents imprimés | Contrats, reçus et rapports aux couleurs de DWAC (papier à en-tête, bandeau rouge en pied de page, justifié pour les documents officiels) : pas encore faits | Choix du porteur : Guide de marque DWAC p. 19 et 28 | moyenne | à appliquer |
+| D01-6 | Page des modules | Le monogramme DWAC en 3D, rouge, à la place de l'étoile ; anneaux rouges et blancs sur fond Bleu Nuit. Formes reprises du PDF du guide (p. 9) sans retouche, aplaties en polygones (web/src/ecrans/monogramme-forme.ts) | Choix du porteur : Guide de marque DWAC p. 9, 14 et 15 ; décision du porteur, 14/11/2026 | forte | en place |
+| D01-7 | Documents imprimés | Dwacfina est vendu aux COOPEC et IMF : contrats, reçus et rapports sont les documents de l'institution cliente. Ils portent son nom et son logo (Information société, S32), jamais l'identité de DWAC. Rien à changer à ce titre | Choix du porteur : Précision du porteur, 14/11/2026 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 
