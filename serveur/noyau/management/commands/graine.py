@@ -92,8 +92,11 @@ class Command(BaseCommand):
                     types[v] = valeur("insert into type_monnaie (libelle) values (%s) returning id", (f"Billet de {v}",))
                 executer("insert into coupure (devise, valeur, nature, type_id) values (%s, %s, 'billet', %s)", (d, v * 100, types[v]))
         executer("insert into cours_change (institution_id, devise, jour, cours) values (%s, 'USD', '2026-11-04', %s)", (ins, COURS))
-        executer("""insert into parametre_reglementaire (cle, valeur, source, date_effet)
-                    values ('valeur_part', %s, 'Exemple du manuel Microfina++ ; statuts de la COOPEC à fournir (loi 002/2002, art. 20)', '2026-01-01')""", (Jsonb(VALEUR_PART),))
+        # S16 : la part sociale, ligne « Part sociale standard » des frais d'adhésion (capture p. 89), compte 103 selon le membre (PCCI),
+        # valeur des statuts (loi 002/2002, art. 20) ; exemple du manuel, 4 000 (registre S16-11)
+        fps = valeur("insert into frais (institution_id, type_operation, libelle) values (%s, 'ADHESION', 'Part sociale standard') returning id", (ins,))
+        for tm, cp in (("physique", "1030"), ("morale", "1032"), ("groupe", "1031")):
+            executer("insert into parametrage_frais_adhesion (frais_id, type_membre, nature, valeur, compte) values (%s, %s, 'montant', %s, %s)", (fps, tm, VALEUR_PART, cp))
 
         # S14g : type client « Client », valeur de la capture p. 49 (registre S37-2)
         executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'type_client', '1', 'Client')", (ins,))

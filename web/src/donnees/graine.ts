@@ -44,7 +44,7 @@ export function graine(): Etat {
     lieuNaissance: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", liees: [] as number[],
     type: "physique" as const, formeJuridique: "", registre: "", centreActivite: "", activite: "", dirigeant: null, signataires: [], nbHommes: 0, nbFemmes: 0, membres: [], intitule: "", dateVisa: "2026-01-15", profession: "", pays: "", ville: "", quartier: "", rue: "", email: "", bp: "", telephoneFixe: "", motifDepart: "", resilieLe: "", creeLe: "2026-01-15", creePar: 4, visePar: 2, statut: "actif" as const };
   return {
-    version: 56,
+    version: 57,
     institution: { nom: "COOPEC Tujenge", sigle: "CTJ", profil: "coopec", pays: "République démocratique du Congo", ville: "Kinshasa", commune: "Matete", quartier: "Kinsaku", journeeMax: 1 },   // sigle fictif : élément Institution du numéro client (S15-11)
     agence: { id: 1, code: "0412", nom: "Matete" },
     agences: [{ id: 1, code: "0412", nom: "Matete", supprime: false }],
@@ -60,7 +60,6 @@ export function graine(): Etat {
       { id: 4, login: "bkasongo", profilId: 4, nom: "Bijou Kasongo", roles: ["agent_credit"], agenceId: 1 },
     ],
     coursListe: [{ devise: "USD", jour: "2026-11-04", cours: COURS_EXEMPLE }],
-    valeurPart: VALEUR_PART_EXEMPLE,
     journees: [{ id: 1, date: "2026-11-04", statut: "fermee", ouvertePar: 2, fermeePar: 2 }],
     sessions: [],
     // Exercices (S11), données fictives : 2025 validé, 2026 actif et ouvert avec ses journaux
@@ -85,7 +84,10 @@ export function graine(): Etat {
     session: null,
     compteurs: { piece: 1284, tiers: 320 },
     images: {},
-    frais: [], paramOperations: [], paramAdhesion: [], fraisClient: [], modifications: [], groupesSolidaires: [], membresGroupes: [], typesProcuration: [], consentements: [], banques: [], comptesBancaires: [],
+    // S16 : la part sociale, ligne « Part sociale standard » des frais d'adhésion (capture p. 89), compte 103 selon le membre (PCCI),
+    // valeur des statuts (loi 002/2002, art. 20) ; exemple du manuel, 4 000 (registre S16-11)
+    frais: [{ id: 1, typeOperation: "ADHESION", libelle: "Part sociale standard" }], paramOperations: [],
+    paramAdhesion: ([["Physique", "1030"], ["Entreprise", "1032"], ["Groupe", "1031"]] as const).map(([typeMembre, compte], i) => ({ id: i + 1, fraisId: 1, typeMembre, nature: "Montant", valeur: VALEUR_PART_EXEMPLE, compte })), fraisClient: [], modifications: [], groupesSolidaires: [], membresGroupes: [], typesProcuration: [], consentements: [], banques: [], comptesBancaires: [],
     // S14 : secteurs de la capture du manuel p. 23 ; S14n : types de guichet de la capture p. 19 (registre S08-1)
     // Référentiel crédit (S21) : zone de démonstration et exemples des captures p. 32 à 36
     credit: {

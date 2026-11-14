@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v56";
+const CLE = "likelemba-demo-v57";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -27,7 +27,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 56) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 57) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -92,7 +92,7 @@ function contexte() {
     devises: E.devises.map(({ code, libelle, unite }) => ({ code, libelle, unite })),
     monnaies: Object.fromEntries([...new Set(E.monnaies.map((m) => m.devise))].sort().map((d) => [d, E.monnaies.filter((m) => m.devise === d).sort((a, b) => b.valeur - a.valeur)
       .map((m) => ({ valeur: m.valeur, libelle: E.typesMonnaie.find((t) => t.id === m.typeId)?.libelle ?? "" }))])),
-    sensibilisateurs: agentsActifs("sensibilisateur"), commerciaux: agentsActifs("commercial"), motifsDepart: valeursListe("motif_depart").map((l) => l.libelle), cours: coursCourants(), valeurPart: E.valeurPart, utilisateurs: E.utilisateurs };
+    sensibilisateurs: agentsActifs("sensibilisateur"), commerciaux: agentsActifs("commercial"), motifsDepart: valeursListe("motif_depart").map((l) => l.libelle), cours: coursCourants(), valeurPart: (() => { try { return valeurPart(); } catch { return null; } })(), utilisateurs: E.utilisateurs };
 }
 export const nomUtilisateur = (id?: number) => E.utilisateurs.find((u) => u.id === id)?.nom ?? "";
 
@@ -651,7 +651,7 @@ const tiers = {
       return masque ? { ...c, solde: 0, bloque: 0, disponible: 0, masque: true } : { ...c, solde, disponible: solde - c.bloque, masque: false };
     });
   },
-  parts: (tiersId: number) => soldeContrat(`parts:${tiersId}`, "CDF", "C") / E.valeurPart,
+  parts: (tiersId: number) => soldeContrat(`parts:${tiersId}`, "CDF", "C") / valeurPart(),
 };
 export type CompteAvecSolde = CompteDepot & { solde: number; disponible: number };
 
@@ -741,8 +741,9 @@ const parametrage = {
     if (f.typeOperation !== "ADHESION") throw new ErreurMetier("Ce frais n'est pas un frais d'adhésion.");
     const v = controlerValeurs(d, true);
     if (!d.typesMembre.length) throw new ErreurMetier("Cocher au moins un type client.");
+    if (d.typesMembre.some((t) => !TYPES_MEMBRE[t])) throw new ErreurMetier("Type client inconnu.");
+    controlerPart(d.typesMembre, v);
     for (const t of d.typesMembre) {
-      if (!TYPES_MEMBRE[t]) throw new ErreurMetier("Type client inconnu.");
       if (E.paramAdhesion.some((x) => x.fraisId === f.id && x.typeMembre === t)) throw new ErreurMetier(`Déjà paramétré pour « ${t} » : passer par Modif Paramétrage frais Adhésion.`);
     }
     const ids = d.typesMembre.map((typeMembre) => { const id = prochain(E.paramAdhesion); E.paramAdhesion.push({ id, fraisId: f.id, typeMembre, ...v }); return id; });
@@ -752,6 +753,7 @@ const parametrage = {
     droitParametrage();
     const r = ligneParam(genre === "operation" ? E.paramOperations : E.paramAdhesion, id);
     const v = controlerValeurs(d, genre === "adhesion");
+    if (genre === "adhesion") controlerPart([(r as ParamAdhesion).typeMembre], v, id);
     r.nature = v.nature; r.valeur = v.valeur; r.compte = v.compte; enregistrer();
   },
   /** « Modif Paramétrage frais Adhésion », Action > Modifier Catégorie (capture p. 26) : change le Type membre (registre S16-6) */
@@ -760,6 +762,7 @@ const parametrage = {
     const r = ligneParam(E.paramAdhesion, id) as ParamAdhesion;
     if (!TYPES_MEMBRE[typeMembre]) throw new ErreurMetier("À remplir : type membre.");
     if (E.paramAdhesion.some((x) => x.id !== id && x.fraisId === r.fraisId && x.typeMembre === typeMembre)) throw new ErreurMetier(`Ce frais est déjà paramétré pour « ${typeMembre} ».`);
+    controlerPart([typeMembre], r, id);
     r.typeMembre = typeMembre; enregistrer();
   },
   supprimerParametrage(genre: "operation" | "adhesion", id: number) {
@@ -776,7 +779,7 @@ const parametrage = {
     if (!t) return [];
     return E.paramAdhesion.filter((p) => TYPES_MEMBRE[p.typeMembre] === t.type).map((p) => ({
       fraisId: p.fraisId, libelle: fraisDe(p.fraisId).libelle, compte: p.compte,
-      montant: E.fraisClient.find((x) => x.tiersId === tiersId && x.fraisId === p.fraisId)?.montant ?? p.valeur,
+      montant: estPart(p.compte) ? p.valeur : E.fraisClient.find((x) => x.tiersId === tiersId && x.fraisId === p.fraisId)?.montant ?? p.valeur, part: estPart(p.compte),
     }));
   },
   /** S41 : Client > Visa > Modifier frais (p. 53). Règles identiques côté serveur (frais.modifier_frais_client). */
@@ -785,7 +788,9 @@ const parametrage = {
     const t = E.tiers.find((x) => x.id === tiersId);
     if (!t) throw new ErreurMetier("Client introuvable.");
     if (t.statut !== "actif") throw new ErreurMetier("Client non visé : viser d'abord le client.");
-    const lies = parametrage.fraisLies(tiersId).map((x) => x.fraisId);
+    const tous = parametrage.fraisLies(tiersId), lies = tous.filter((x) => !x.part).map((x) => x.fraisId);
+    if (frais.some((l) => tous.some((x) => x.part && x.fraisId === l.fraisId)))
+      throw new ErreurMetier("La part sociale garde la valeur des statuts : elle ne se modifie pas pour un client (loi 002/2002, art. 20).");
     if (!frais.length) throw new ErreurMetier("Aucun frais à modifier.");
     for (const l of frais) {
       if (!lies.includes(l.fraisId)) throw new ErreurMetier("Ce frais n'est pas lié à ce client.");
@@ -1247,9 +1252,9 @@ const guichet = {
     if (produit.devise !== "CDF") throw new ErreurMetier("Compte à créer en USD : l'adhésion en deux devises (frais et parts en CDF) est à confirmer avec le porteur.");
     if (!Number.isInteger(p.parts) || p.parts < 1) throw new ErreurMetier("Au moins une part sociale, payée en entier (loi 002/2002, art. 21 et 22).");
     if (!Number.isInteger(p.depot) || p.depot < 0) throw new ErreurMetier("Premier dépôt invalide.");
-    const frais = parametrage.fraisLies(t.id).filter((f) => f.montant);
+    const frais = parametrage.fraisLies(t.id).filter((f) => f.montant && !f.part);   // la ligne de part se paie par nombre de parts (registre S16-11)
     for (const f of frais) if (!f.compte || !planComptable().includes(f.compte)) throw new ErreurMetier(`Frais « ${f.libelle} » : compte absent du plan comptable, à paramétrer (Paramétrage > Frais et opérations).`);
-    const mParts = p.parts * E.valeurPart, total = mParts + p.depot + frais.reduce((x, f) => x + (f.montant ?? 0), 0);
+    const mParts = p.parts * valeurPart(), total = mParts + p.depot + frais.reduce((x, f) => x + (f.montant ?? 0), 0);
     controlerCoupures(p.coupures, total, "CDF");
     if (enUsd(total, "CDF") + especesDuJourUsd(t.id, "depot") >= SEUIL_ESPECES_USD)
       throw new ErreurMetier("Examen renforcé requis (10 000 USD ou plus en espèces dans la journée). Le circuit de conformité n'est pas encore construit : opération bloquée.", "Instr. BCC 15 bis, art. 1, 6 et 7");
@@ -1274,14 +1279,14 @@ const guichet = {
     const t = E.tiers.find((x) => x.id === p.tiersId);
     if (!t) throw new ErreurMetier("Client introuvable.");
     if (!Number.isInteger(p.nombre) || p.nombre < 1) throw new ErreurMetier("Nombre de parts : un nombre entier, au moins une (loi 002/2002, art. 21 : parts intégralement libérées).");
-    const detenues = Math.round(soldeContrat(`parts:${t.id}`, "CDF", "C") / E.valeurPart);
+    const detenues = Math.round(soldeContrat(`parts:${t.id}`, "CDF", "C") / valeurPart());
     if (p.sens === "achat") controlerStatutActif(t.statut);
     else {
       if (t.statut !== "resilie") controlerStatutActif(t.statut);   // résilié : toutes les parts peuvent être remboursées (apurement, art. 27)
       if (p.nombre > detenues) throw new ErreurMetier(`Le membre ne détient que ${detenues} part(s).`);
       if (t.statut !== "resilie" && detenues - p.nombre < 1) throw new ErreurMetier("Le membre garde au moins une part (loi 002/2002, art. 22) ; pour tout retirer, le résilier d'abord.");
     }
-    const montant = p.nombre * E.valeurPart;
+    const montant = p.nombre * valeurPart();
     controlerCoupures(p.coupures, montant, "CDF");
     if (p.sens === "retrait") {
       const th = caisses.theorique(s.id, "CDF");
@@ -1367,7 +1372,31 @@ const SORTIES: Operation["type"][] = ["retrait", "retrait_parts"];
 /** PCCI, compte 103 : 1030 personnes physiques, 1031 groupements solidaires, 1032 personnes morales.
  *  Groupe de type « Groupement » en 1031 ; association et ONG en 1032 (à confirmer). Identique côté serveur (services.compte_parts). */
 export function compteParts(t: Tiers) {
-  return t.type === "physique" ? "1030" : t.type === "groupe" && t.typeClient === "Groupement" ? "1031" : "1032";
+  const p = E.paramAdhesion.find((x) => TYPES_MEMBRE[x.typeMembre] === t.type && estPart(x.compte));
+  if (!p?.compte) throw new ErreurMetier(MSG_PART);
+  return p.compte;
+}
+/** Registre S16-11 : la part sociale est la ligne des frais d'adhésion portée par un compte 103 ; valeur nominale des statuts (loi 002/2002, art. 20).
+ *  Règles identiques côté serveur (services.valeur_part, frais.controler_part). */
+const estPart = (c: string | null | undefined) => !!c && c.startsWith("103");
+const MSG_PART = "Part sociale non paramétrée : Paramétrage > Frais et opérations > Paramétrage frais Adhésion, un frais au compte 1030, 1031 ou 1032 (registre S16-11).";
+function valeurPart() {
+  const v = E.paramAdhesion.find((x) => estPart(x.compte) && (x.valeur ?? 0) > 0)?.valeur;
+  if (!v) throw new ErreurMetier(MSG_PART);
+  return v;
+}
+const COMPTES_PART: Record<string, string[]> = { physique: ["1030"], morale: ["1032"], groupe: ["1031", "1032"] };
+function controlerPart(types: string[], v: { valeur: number | null; compte: string | null }, sauf?: number) {
+  if (!estPart(v.compte)) return;
+  if (!v.valeur) throw new ErreurMetier("Part sociale : la valeur de la part, celle des statuts, est obligatoire (loi 002/2002, art. 20).");
+  for (const t of types) {
+    const ok = COMPTES_PART[TYPES_MEMBRE[t]!]!;
+    if (!ok.includes(v.compte!)) throw new ErreurMetier(`Part sociale « ${t} » : compte ${ok.join(" ou ")} (PCCI, compte 103), pas ${v.compte}.`);
+    if (E.paramAdhesion.some((x) => x.id !== sauf && x.typeMembre === t && estPart(x.compte))) throw new ErreurMetier(`Une part sociale est déjà paramétrée pour « ${t} ».`);
+  }
+  const autre = E.paramAdhesion.find((x) => x.id !== sauf && estPart(x.compte));
+  if (autre && autre.valeur !== v.valeur)
+    throw new ErreurMetier("La part sociale a une seule valeur nominale, celle des statuts (loi 002/2002, art. 20) : la même pour tous les types de membre.");
 }
 
 /** Espèces déjà versées (dépôts, adhésion) ou déjà remises (retraits) à ce membre dans la journée, en USD */
@@ -1702,8 +1731,8 @@ export function preparerDemo() {
     for (const id of [...entreprises, ...groupes]) partsDe[id] = 5;
     for (const id of [...ids, ...entreprises, ...groupes]) {
       const t = E.tiers.find((x) => x.id === id)!;
-      const frais = parametrage.fraisLies(id).reduce((x, f) => x + (f.montant ?? 0), 0);
-      const total = partsDe[id]! * E.valeurPart + t.premierDepot + frais;
+      const frais = parametrage.fraisLies(id).filter((f) => !f.part).reduce((x, f) => x + (f.montant ?? 0), 0);
+      const total = partsDe[id]! * valeurPart() + t.premierDepot + frais;
       guichet.adhesion({ cle: cle(), tiersId: id, parts: partsDe[id]!, depot: t.premierDepot, coupures: billets(total, "CDF") });
     }
     const compteDe = (id: number, devise: Devise) => E.comptes.find((c) => c.tiersId === id && c.devise === devise)!;
@@ -1718,7 +1747,7 @@ export function preparerDemo() {
     for (const [r, m, motif] of RETRAITS) guichet.retrait({ cle: cle(), compteId: compteDe(ids[r]!, "CDF").id, montant: m * 100, coupures: billets(m * 100, "CDF", caisses.theorique(sid, "CDF")), motif });
     guichet.depot({ cle: cle(), compteId: 1, montant: 25000, coupures: billets(25000, "USD"), motif: "Épargne" });
     guichet.retrait({ cle: cle(), compteId: 3, montant: 5000, coupures: billets(5000, "USD", caisses.theorique(sid, "USD")), motif: "" });
-    for (const r of [0, 5]) guichet.parts({ cle: cle(), tiersId: ids[r]!, sens: "achat", nombre: 1, coupures: billets(E.valeurPart, "CDF") });
+    for (const r of [0, 5]) guichet.parts({ cle: cle(), tiersId: ids[r]!, sens: "achat", nombre: 1, coupures: billets(valeurPart(), "CDF") });
     // Un membre résilié (S48)
     comme("jpmukendi"); tiers.resilier(ids[15]!, { motif: "DEMENAGEMENT" });
   } finally { E.session = avant; enregistrer(); }

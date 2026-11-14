@@ -98,6 +98,18 @@ describe("journée de guichet", () => {
     expect((await api.journees.fermer(j1.id)).statut).toBe("fermee");
   });
 
+  it("part sociale (S16, registre S16-11) : ligne des frais d'adhésion au compte 103 du membre, une seule valeur (loi 002/2002, art. 20)", async () => {
+    await connecter("jpmukendi");
+    const p = api.parametrage;
+    const lu = (await p.lireFrais()).adhesion;
+    expect(lu.map((x) => [x.typeMembre, x.compte, x.valeur])).toEqual([["Physique", "1030", 400000], ["Entreprise", "1032", 400000], ["Groupe", "1031", 400000]]);
+    expect((await api.referentiel.contexte()).valeurPart).toBe(400000);
+    await expect(p.modifierParametrage("adhesion", 1, { nature: "Montant", valeur: 400000, compte: "1032" })).rejects.toThrow("compte 1030");
+    await expect(p.modifierParametrage("adhesion", 1, { nature: "Montant", valeur: 500000, compte: "1030" })).rejects.toThrow("seule valeur nominale");
+    const f = await p.creerFrais({ typeOperation: "ADHESION", libelle: "Autre part" });
+    await expect(p.parametrerAdhesion({ fraisId: f.id, nature: "Montant", valeur: 400000, compte: "1030", typesMembre: ["Physique"] })).rejects.toThrow("déjà paramétrée");
+  });
+
   it("la même clé ne paie pas deux fois", async () => {
     await journeeOuverte();
     const k = cle(), p = { cle: k, compteId: 1, montant: 10000, coupures: { 100: 1 } };
@@ -276,11 +288,12 @@ describe("journée de guichet", () => {
     await expect(p.parametrerAdhesion({ fraisId: f.id, nature: "Montant", valeur: null, compte: "", typesMembre: ["Physique"] })).rejects.toThrow("Déjà paramétré");
     await expect(p.supprimerFrais(f.id)).rejects.toThrow("paramétré");
     await p.modifierParametrage("adhesion", pid, { nature: "Montant", valeur: 200000, compte: "727" });
-    expect(await p.fraisLies(1)).toEqual([{ fraisId: f.id, libelle: "Droit d'entrée", compte: "727", montant: 200000 }]);
+    expect(await p.fraisLies(1)).toEqual([{ fraisId: 1, libelle: "Part sociale standard", compte: "1030", montant: 400000, part: true },
+      { fraisId: f.id, libelle: "Droit d'entrée", compte: "727", montant: 200000, part: false }]);
     const lu = await p.lireFrais();
     expect([lu.compteAdhesion, lu.sousTypes.includes("Femme"), lu.natures]).toEqual(["727", true, ["Montant", "Taux"]]);   // S16-4, S16-8, S16-2
     await p.modifierCategorie(pid, "Entreprise");                                                                         // S16-6
-    expect((await p.lireFrais()).adhesion[0]!.typeMembre).toBe("Entreprise");
+    expect((await p.lireFrais()).adhesion.find((x) => x.id === pid)!.typeMembre).toBe("Entreprise");
     await p.modifierCategorie(pid, "Physique");
     const fp = await p.creerFrais({ typeOperation: "PART_SOCIALE", libelle: "Frais de part" });                             // S16-1
     await expect(p.parametrerOperation({ fraisId: fp.id, nature: "Taux", valeur: 20000, compte: "727", sousTypes: ["Femme"] })).rejects.toThrow("Taux invalide");
@@ -290,13 +303,14 @@ describe("journée de guichet", () => {
     // S41 : montant propre au client
     await expect(p.modifierFraisClient(1, [{ fraisId: f.id, montant: -1 }])).rejects.toThrow("Montant");
     await expect(p.modifierFraisClient(1, [{ fraisId: 999, montant: 0 }])).rejects.toThrow("pas lié");
-    expect((await p.modifierFraisClient(1, [{ fraisId: f.id, montant: 100000 }]))[0]!.montant).toBe(100000);
-    expect((await p.fraisLies(2))[0]!.montant).toBe(200000);
+    expect((await p.modifierFraisClient(1, [{ fraisId: f.id, montant: 100000 }])).find((x) => x.fraisId === f.id)!.montant).toBe(100000);
+    expect((await p.fraisLies(2)).find((x) => x.fraisId === f.id)!.montant).toBe(200000);
+    await expect(p.modifierFraisClient(1, [{ fraisId: 1, montant: 1 }])).rejects.toThrow("ne se modifie pas pour un client");   // registre S16-11
     await connecter("bkasongo");
     await expect(p.creerFrais({ typeOperation: "ADHESION", libelle: "Frais de livret" })).rejects.toThrow("Droit manquant");
     await connecter("jpmukendi");
     await p.supprimerParametrage("adhesion", pid); await p.supprimerFrais(f.id);
-    expect((await p.lireFrais()).frais).toEqual([]);
+    expect((await p.lireFrais()).frais.map((x) => x.libelle)).toEqual(["Part sociale standard"]);
   });
 
   it("mise à jour d'un client (S46) : contrôles de l'enrôlement, client à revalider, bloqué au guichet", async () => {

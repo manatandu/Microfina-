@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**262 décisions.** Solidité : 81 fortes (le manuel ou un texte répond), 147 moyennes (déduites d'un écran voisin ou d'une donnée), 34 faibles (notre choix, faute de mieux). Dans le code : 219 déjà en place, 43 à appliquer.
+**263 décisions.** Solidité : 81 fortes (le manuel ou un texte répond), 148 moyennes (déduites d'un écran voisin ou d'une donnée), 34 faibles (notre choix, faute de mieux). Dans le code : 221 déjà en place, 42 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -179,7 +179,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S16-11 | Valeur de la part sociale | La part est une ligne de la liste des frais d'adhésion. Sa valeur est celle des statuts, saisie dans Paramétrage frais Adhésion. Son compte est 1030, 1031 ou 1032 selon le membre | Manuel : Manuel p. 64 et 89 (liste des frais avec la part sociale) ; loi 002/2002, art. 20 ; PCCI, compte 103 | forte | à appliquer |
+| S16-11 | Valeur de la part sociale | La part est une ligne de la liste des frais d'adhésion. Sa valeur est celle des statuts, saisie dans Paramétrage frais Adhésion. Son compte est 1030, 1031 ou 1032 selon le membre — Construit : ligne « Part sociale standard » (capture p. 89), paramétrée par type de membre dans Paramétrage frais Adhésion ; à l'adhésion elle se paie par Nombre × valeur ; la valeur est la même pour tous les types de membre ; reprise de l'ancienne valeur (migration 0060) | Manuel : Manuel p. 64 et 89 (liste des frais avec la part sociale) ; loi 002/2002, art. 20 ; PCCI, compte 103 | forte | en place |
 
 ## S17 Numéro de compte client
 
@@ -602,6 +602,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S08-11 | Paiement du retrait visé | Après le visa, le caissier refait le même retrait (même compte, même montant, même journée) : il est payé à ce moment, avec le billetage du jour ; l'opération en attente devient le retrait payé. Une seconde saisie avant le visa est refusée (« déjà en attente »). Un retrait visé non payé, ou en attente, empêche l'arrêté de la caisse jusqu'au paiement ou au refus | Donnée exigée ailleurs : Manuel p. 131 (Visa > Retrait plafond) ; S08-5 ; chaîne de la caisse (S79) | moyenne | en place |
+
+## S16, S41, S73, S77 Part sociale
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S16-12 | Reconnaître la ligne de part et ses limites | La ligne de part est le frais d'adhésion porté par un compte 103 (1030 physique, 1032 entreprise, 1031 ou 1032 groupe). Une seule par type de membre, valeur obligatoire. S41 ne la modifie pas pour un client (valeur des statuts). Le groupe a un seul compte : 1031 en démonstration ; associations et ONG, personnes morales, iraient en 1032 (à confirmer) | Donnée exigée ailleurs : PCCI, compte 103 ; loi 002/2002, art. 20 ; capture p. 89 | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

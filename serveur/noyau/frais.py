@@ -103,6 +103,31 @@ def controler_valeurs(u, d, adhesion: bool = False) -> tuple[str, int | None, st
     return NATURES[n], v, c or None
 
 
+# Registre S16-11 : la part sociale est la ligne des frais d'adhésion portée par un compte 103 (PCCI : 1030 personnes physiques,
+# 1031 groupements solidaires, 1032 personnes morales) ; une seule valeur nominale, celle des statuts (loi 002/2002, art. 20)
+COMPTES_PART = {"physique": ("1030",), "morale": ("1032",), "groupe": ("1031", "1032")}
+NOMS_MEMBRE = {v: k for k, v in TYPES_MEMBRE.items()}
+
+
+def controler_part(u, types: list[str], v, c, sauf: int | None = None):
+    """Contrôles de la ligne de part (registre S16-11), pour les types de membre donnés (physique, morale, groupe)"""
+    if not c or not c.startswith("103"):
+        return
+    if not v:
+        raise ErreurMetier("Part sociale : la valeur de la part, celle des statuts, est obligatoire (loi 002/2002, art. 20).")
+    for t in types:
+        if c not in COMPTES_PART[t]:
+            raise ErreurMetier(f"Part sociale « {NOMS_MEMBRE[t]} » : compte {' ou '.join(COMPTES_PART[t])} (PCCI, compte 103), pas {c}.")
+        if valeur("""select 1 from parametrage_frais_adhesion p join frais f on f.id = p.frais_id where f.institution_id = %s and p.type_membre = %s
+                     and p.compte like '103%%' and p.id <> coalesce(%s, 0)""", (u["institution_id"], t, sauf)):
+            raise ErreurMetier(f"Une part sociale est déjà paramétrée pour « {NOMS_MEMBRE[t]} ».")
+    autre = valeur("""select p.valeur from parametrage_frais_adhesion p join frais f on f.id = p.frais_id where f.institution_id = %s
+                      and p.compte like '103%%' and p.id <> coalesce(%s, 0) limit 1""", (u["institution_id"], sauf))
+    if autre is not None and autre != v:
+        raise ErreurMetier("La part sociale a une seule valeur nominale, celle des statuts (loi 002/2002, art. 20) : "
+                           "la même pour tous les types de membre.")
+
+
 def parametrer_operation(u, d) -> list[dict]:
     """« Paramétrage frais » : Opération*, Frais*, Nature du frais*, Valeur, Compte, Sous type client cochés (p. 26)."""
     droit(u)
@@ -135,6 +160,9 @@ def parametrer_adhesion(u, d) -> list[int]:
     types = d.get("typesMembre") or []
     if not types:
         raise ErreurMetier("Cocher au moins un type client.")
+    if any(t not in TYPES_MEMBRE for t in types):
+        raise ErreurMetier("Type client inconnu.")
+    controler_part(u, [TYPES_MEMBRE[t] for t in types], v, c)
     ids = []
     for t in types:
         if t not in TYPES_MEMBRE:
@@ -156,8 +184,10 @@ def ligne_de(u, table: str, pid: int):
 def modifier_parametrage(u, table: str, pid: int, d):
     """« Modif Paramétrage frais » et « … Adhésion » : Action > Modifier infos (p. 26 et 27)."""
     droit(u)
-    ligne_de(u, table, pid)
+    r = ligne_de(u, table, pid)
     nat, v, c = controler_valeurs(u, d, adhesion=table == "parametrage_frais_adhesion")
+    if table == "parametrage_frais_adhesion":
+        controler_part(u, [r["type_membre"]], v, c, sauf=pid)
     executer(f"update {table} set nature = %s, valeur = %s, compte = %s where id = %s", (nat, v, c, pid))
 
 
@@ -170,6 +200,7 @@ def modifier_categorie(u, pid: int, d):
         raise ErreurMetier("À remplir : type membre.")
     if valeur("select 1 from parametrage_frais_adhesion where frais_id = %s and type_membre = %s and id <> %s", (r["frais_id"], TYPES_MEMBRE[t], pid)):
         raise ErreurMetier(f"Ce frais est déjà paramétré pour « {t} ».")
+    controler_part(u, [TYPES_MEMBRE[t]], r["valeur"], r["compte"], sauf=pid)
     executer("update parametrage_frais_adhesion set type_membre = %s where id = %s", (TYPES_MEMBRE[t], pid))
 
 
@@ -182,7 +213,8 @@ def supprimer_parametrage(u, table: str, pid: int):
 def frais_lies(u, tid: int) -> list[dict]:
     """« Liste des Frais liés » (p. 52 et 53) : frais d'adhésion paramétrés pour le type du client, ou le montant modifié pour ce client (S41)."""
     exiger(u)
-    return lignes("""select f.id as "fraisId", f.libelle, p.compte, coalesce(fc.montant, p.valeur) as montant
+    return lignes("""select f.id as "fraisId", f.libelle, p.compte, case when p.compte like '103%%' then p.valeur else coalesce(fc.montant, p.valeur) end as montant,
+                            coalesce(p.compte like '103%%', false) as part
                      from parametrage_frais_adhesion p join frais f on f.id = p.frais_id
                      join tiers t on t.type = p.type_membre and t.institution_id = f.institution_id
                      left join frais_client fc on fc.tiers_id = t.id and fc.frais_id = f.id
@@ -197,7 +229,9 @@ def modifier_frais_client(u, tid: int, d) -> list[dict]:
         raise ErreurMetier("Client introuvable.")
     if t["statut"] != "actif":
         raise ErreurMetier("Client non visé : viser d'abord le client.")
-    lies = {r["fraisId"] for r in frais_lies(u, tid)}
+    lies = {r["fraisId"] for r in frais_lies(u, tid) if not r["part"]}
+    if any((l or {}).get("fraisId") in {r["fraisId"] for r in frais_lies(u, tid) if r["part"]} for l in (d.get("frais") or [] if isinstance(d, dict) else [])):
+        raise ErreurMetier("La part sociale garde la valeur des statuts : elle ne se modifie pas pour un client (loi 002/2002, art. 20).")
     lignes_ = d.get("frais") if isinstance(d, dict) else None
     if not isinstance(lignes_, list) or not lignes_:
         raise ErreurMetier("Aucun frais à modifier.")

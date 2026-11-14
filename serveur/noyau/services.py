@@ -139,11 +139,24 @@ def unites(c: int) -> str:
     return str(c // 100) if c % 100 == 0 else str((Decimal(c) / 100).normalize())
 
 
-def valeur_part() -> int:
-    v = valeur("select valeur from parametre_reglementaire where cle = 'valeur_part' and date_effet <= current_date order by date_effet desc limit 1")
-    if v is None:
-        raise ErreurMetier("Valeur de la part non paramétrée (statuts).")
-    return int(json_lu(v))
+MSG_PART = ("Part sociale non paramétrée : Paramétrage > Frais et opérations > Paramétrage frais Adhésion, "
+            "un frais au compte 1030, 1031 ou 1032 (registre S16-11).")
+
+
+def valeur_part(institution_id: int) -> int:
+    """Valeur nominale de la part, celle des statuts (loi 002/2002, art. 20) : la ligne de part des frais d'adhésion (registre S16-11, capture p. 89)"""
+    v = valeur("""select p.valeur from parametrage_frais_adhesion p join frais f on f.id = p.frais_id
+                  where f.institution_id = %s and p.compte like '103%%' and p.valeur > 0 order by p.id limit 1""", (institution_id,))
+    if not v:
+        raise ErreurMetier(MSG_PART)
+    return int(v)
+
+
+def valeur_part_ou_rien(institution_id: int) -> int | None:
+    try:
+        return valeur_part(institution_id)
+    except ErreurMetier:
+        return None
 
 
 def contexte(u: dict) -> dict:
@@ -178,7 +191,7 @@ def contexte(u: dict) -> dict:
         "monnaies": {d: [{"valeur": float(unites(r["valeur"])), "libelle": r["libelle"]}
                          for r in lignes("""select c.valeur, coalesce(t.libelle, '') as libelle from coupure c left join type_monnaie t on t.id = c.type_id
                                             where c.devise = %s order by c.valeur desc""", (d,))] for d in devises_tenues()},
-        "valeurPart": valeur_part(),
+        "valeurPart": valeur_part_ou_rien(u["institution_id"]),
         "utilisateurs": utilisateurs(),
     }
 
@@ -1217,16 +1230,17 @@ def comptes_du_tiers(tid: int) -> list[dict]:
 
 def compte_parts(t: dict) -> str:
     """PCCI, compte 103 : 1030 personnes physiques, 1031 groupements solidaires, 1032 personnes morales.
-    Groupe de type « Groupement » en 1031 ; association et ONG en 1032 (à confirmer)."""
-    if t["type"] == "physique":
-        return "1030"
-    if t["type"] == "groupe" and t["type_client"] == "Groupement":
-        return "1031"
-    return "1032"
+    Le compte vient de la ligne de part paramétrée pour le type de membre (Paramétrage frais Adhésion, registre S16-11)."""
+    c = valeur("""select p.compte from parametrage_frais_adhesion p join frais f on f.id = p.frais_id
+                  where f.institution_id = %s and p.type_membre = %s and p.compte like '103%%' order by p.id limit 1""", (t["institution_id"], t["type"]))
+    if not c:
+        raise ErreurMetier(MSG_PART)
+    return c
 
 
 def parts_du_tiers(tid: int) -> float:
-    return solde_contrat(f"parts:{tid}", "CDF", "C") / valeur_part()
+    i = valeur("select institution_id from tiers where id = %s", (tid,))
+    return solde_contrat(f"parts:{tid}", "CDF", "C") / valeur_part(i)
 
 
 # ---------- Grand livre ----------
@@ -1498,11 +1512,11 @@ def adhesion(u: dict, p: dict) -> dict:
     m_depot = p.get("depot", 0)
     if not isinstance(m_depot, int) or isinstance(m_depot, bool) or m_depot < 0:
         raise ErreurMetier("Premier dépôt invalide.")
-    frais = [f for f in frais_lies(u, tid) if f["montant"]]
+    frais = [f for f in frais_lies(u, tid) if f["montant"] and not f["part"]]   # la ligne de part se paie par nombre de parts (registre S16-11)
     for f in frais:
         if not f["compte"] or not valeur("select 1 from compte where numero = %s", (f["compte"],)):
             raise ErreurMetier(f"Frais « {f['libelle']} » : compte absent du plan comptable, à paramétrer (Paramétrage > Frais et opérations).")
-    m_parts = nb * valeur_part()
+    m_parts = nb * valeur_part(u["institution_id"])
     total = m_parts + m_depot + sum(f["montant"] for f in frais)
     coupures = nettoyer(p["coupures"])
     controler_montant_coupures(coupures, total, "CDF")
@@ -1520,7 +1534,7 @@ def adhesion(u: dict, p: dict) -> dict:
         l.append({"compte": f["compte"], "contrat": f"frais:{f['fraisId']}", "sens": "C", "devise": "CDF", "montant": f["montant"]})
     eid = poster(u, journal="CA", journee_id=s["journeeId"], libelle=f"Adhésion {t['numero']}", piece=nouvelle_piece(u, "CA", j["date_comptable"]),
                  evenement="adhesion", cle=p["cle"], valide_par=u["id"], lignes_ecr=l)
-    executer("insert into mouvement_parts (tiers_id, sens, nombre, valeur_unitaire, devise, ecriture_id) values (%s, 'achat', %s, %s, 'CDF', %s)", (tid, nb, valeur_part(), eid))
+    executer("insert into mouvement_parts (tiers_id, sens, nombre, valeur_unitaire, devise, ecriture_id) values (%s, 'achat', %s, %s, 'CDF', %s)", (tid, nb, valeur_part(u["institution_id"]), eid))
     oid = creer_operation(u, s, cle=p["cle"], type_="adhesion", statut="validee", tiers_id=tid, contrat=f"depot:{c}", montant=total,
                           devise="CDF", coupures=coupures, remis_par=titulaire(tid), parts=nb, ecriture_id=eid)
     return avec_avertissement(vue_operation(une("select * from operation where id = %s", (oid,))), s, "CDF")   # registre S08-4
@@ -1558,7 +1572,7 @@ def operation_parts(u: dict, p: dict) -> dict:
             raise ErreurMetier(f"Le membre ne détient que {detenues} part(s).")
         if t["statut"] != "resilie" and detenues - nb < 1:
             raise ErreurMetier("Le membre garde au moins une part (loi 002/2002, art. 22) ; pour tout retirer, le résilier d'abord.")
-    montant = nb * valeur_part()
+    montant = nb * valeur_part(u["institution_id"])
     coupures = nettoyer(p.get("coupures") or {})
     controler_montant_coupures(coupures, montant, "CDF")
     if sens == "retrait":
@@ -1574,7 +1588,7 @@ def operation_parts(u: dict, p: dict) -> dict:
     eid = poster(u, journal="CA", journee_id=s["journeeId"], libelle=f"{'Achat' if sens == 'achat' else 'Retrait'} de parts sociales {t['numero']}",
                  piece=nouvelle_piece(u, "CA", j["date_comptable"]), evenement=type_, cle=p["cle"], valide_par=u["id"], lignes_ecr=[caisse, parts])
     executer("insert into mouvement_parts (tiers_id, sens, nombre, valeur_unitaire, devise, ecriture_id) values (%s, %s, %s, %s, 'CDF', %s)",
-             (tid, sens, nb, valeur_part(), eid))
+             (tid, sens, nb, valeur_part(u["institution_id"]), eid))
     oid = creer_operation(u, s, cle=p["cle"], type_=type_, statut="validee", tiers_id=tid, contrat=f"parts:{tid}", montant=montant, devise="CDF",
                           coupures=coupures, remis_par=titulaire(tid), parts=nb, ecriture_id=eid)
     return avec_avertissement(vue_operation(une("select * from operation where id = %s", (oid,))), s, "CDF")   # registre S08-4

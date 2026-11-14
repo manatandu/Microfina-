@@ -155,7 +155,8 @@ export function ModificationFrais() {
   function annuler() { setT(null); setSaisies({}); }
   function modifier() {
     if (!t) { setBoite({ type: "erreur", message: "Rechercher d'abord le client." }); return; }
-    const lignes = frais.map((f) => ({ fraisId: f.fraisId, montant: saisie(f).trim() ? lireMontant(saisie(f)) : 0 }));
+    // La ligne de part garde la valeur des statuts (registre S16-11 ; loi 002/2002, art. 20) : elle ne se modifie pas ici
+    const lignes = frais.filter((f) => !f.part).map((f) => ({ fraisId: f.fraisId, montant: saisie(f).trim() ? lireMontant(saisie(f)) : 0 }));
     if (lignes.some((l) => l.montant === null || l.montant < 0)) { setBoite({ type: "erreur", message: "Montant invalide." }); return; }
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try { await api.parametrage.modifierFraisClient(t.id, lignes as { fraisId: number; montant: number }[]); setSaisies({}); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
@@ -186,7 +187,7 @@ export function ModificationFrais() {
                 {(!t || frais.length === 0) && <tr><td colSpan={4}>Liste vide</td></tr>}
                 {t && frais.map((f) => (
                   <tr key={f.fraisId}><td>{f.libelle}</td><td className="chiffres">{f.compte}</td><td></td>
-                    <td><input className="saisie montant" inputMode="decimal" autoComplete="off" aria-label={`Montant de ${f.libelle}`} value={saisie(f)}
+                    <td><input className="saisie montant" inputMode="decimal" autoComplete="off" aria-label={`Montant de ${f.libelle}`} value={saisie(f)} readOnly={f.part}
                       onChange={(e) => setSaisies({ ...saisies, [f.fraisId]: e.target.value })} /></td></tr>
                 ))}
               </tbody>
@@ -437,7 +438,7 @@ export function InformationsClient() {
         {t && onglet === 3 && <p>Liste vide</p>}
         {t && onglet === 4 && (
           <div className="formulaire">
-            {lu("Nombre de parts :", String(detail?.parts ?? 0))}{lu("Valeur des parts :", montant((detail?.parts ?? 0) * ctx.valeurPart, "CDF"))}
+            {lu("Nombre de parts :", String(detail?.parts ?? 0))}{lu("Valeur des parts :", montant((detail?.parts ?? 0) * (ctx.valeurPart ?? 0), "CDF"))}
           </div>
         )}
         {!t && <p className="muet">Rechercher d'abord le client.</p>}

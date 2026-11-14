@@ -12,7 +12,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 11,Rapport des transactions,administration,should,yes,S13,A,rapport,1 Administration,S13 : définition d'une opération et d'une annulation,D:S118 rapport des annulations,,,
 12,Secteurs d'activité,paramétrage,must,yes,S14 S14a S14b S14c S14d S14e S14f S14g S14h S14i S14j S14k S14l S14m S14n,D,liste,2 Paramétrage,S14 : Modifier et Supprimer ; S14a : tout l'écran ; S14b : tout l'écran ; S14c : tout l'écran ; S14d : tout l'écran ; S14e : tout l'écran ; S14f : tout l'écran ; S14g : tout l'écran ; S14h : tout l'écran ; S14i : tout l'écran ; S14j : tout l'écran ; S14k : tout l'écran ; S14l : tout l'écran ; S14m : tout l'écran ; S14n : tout l'écran,"G:p.12 ; A:S14 (même page, même forme) ; D:S14 (secteur parent), S37 à S39 ; A:S14 (même page, même forme) ; D:S37 ; A:S14 (même page, même forme) ; D:S37 à S39, S15 (élément Categorie) ; A:S14 (même page, même forme) ; D:S37 à S39, S59 (pièce du déposant) ; A:S14 (même page, même forme) ; D:S39 ; A:S14 (même page, même forme) ; D:S16, S23, S37 à S39 ; A:S14 (même page, même forme) ; D:S16 (frais par sous type) ; A:S14 (même page, même forme) ; D:S38 ; A:S14 (même page, même forme) ; D:S37 (personnes liées, bénéficiaires) ; A:S14 (même page, même forme) ; D:S48 ; page propre S18 (p. 26) ; A:S14 (même page, même forme) ; D:S08",,,
 13,Numérotation des clients et des comptes,paramétrage,must,yes,S15 S17,B,composition,2 Paramétrage,S15 : sens des Positions et du Compteur ; « Défintion des compteurs » ; Aperçu,"A:S17 (même mécanisme, mieux montré) ; D:S37 (numéro du client) ; A:S15",,,
-14,Frais par opération et frais d'adhésion par type de client,paramétrage,must,partial,S16,A,liste,2 Paramétrage,,,,,S16-11 Valeur de la part sociale
+14,Frais par opération et frais d'adhésion par type de client,paramétrage,must,yes,S16,A,liste,2 Paramétrage,,,,,
 15,Motifs de départ,paramétrage,should,yes,S18,A,liste,2 Paramétrage,,G:p.12,,,
 16,Référentiel budgétaire,paramétrage,should,yes,S19,A,liste,2 Paramétrage,,G:p.12,,,
 17,Localisation à plusieurs niveaux,paramétrage,must,yes,S20,A,liste,2 Paramétrage,S20 : découpage de la RDC à la place de celui du manuel,R:découpage administratif de la RDC ; P,,,
@@ -69,7 +69,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 68,Clôture d'un compte,épargne,must,no,S70,D,traitement,5 Épargne,S70 : tout l'écran (en panne dans le manuel),"A:S48 (résilier), S71 ; R:Instr. BCC sur les frais (clôture gratuite) ; P",,S70,
 69,Blocage de compte ou de montant avec motif,épargne,must,no,S71,A,liste,5 Épargne,S71 : déblocage,A:S94 (ajout et libération),,S71,
 70,Rapports épargne dont comptes inactifs et dormants,épargne,should,no,S72,B,rapport,5 Épargne,S72 : forme des résultats,A:S13,,S72,
-71,Adhésion au guichet,caisse,must,partial,S73,A,guichet,6 Caisse,,,,,S16-11 Valeur de la part sociale ; S73-1 Adhésion et compte en USD ; S74-5 Options du produit d'épargne
+71,Adhésion au guichet,caisse,must,partial,S73,A,guichet,6 Caisse,,,,,S73-1 Adhésion et compte en USD ; S74-5 Options du produit d'épargne
 72,Dépôt et retrait au guichet,caisse,must,partial,S74,B,guichet,6 Caisse,"S74 : fenêtres Billetage, Detail, photo et signature ; reçu",A:S79 (billetage) ; document,,,S74-1 Bouton Detail ; S74-3 Libellé du cadre au retrait ; S74-5 Options du produit d'épargne
 73,Montant en lettres,caisse,must,partial,S74 S81,B,guichet,6 Caisse,"S74 : fenêtres Billetage, Detail, photo et signature ; reçu",A:S79 (billetage) ; document ; R:PCCI (mouvements de fonds),,S81,S74-1 Bouton Detail ; S74-3 Libellé du cadre au retrait ; S74-5 Options du produit d'épargne
 74,Mandataire au retrait,caisse,must,partial,S74,B,guichet,6 Caisse,"S74 : fenêtres Billetage, Detail, photo et signature ; reçu",A:S79 (billetage) ; document,,,S74-1 Bouton Detail ; S74-3 Libellé du cadre au retrait ; S74-5 Options du produit d'épargne
@@ -77,7 +77,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 76,Déblocage de crédit en caisse,caisse,must,no,S75,A,guichet,6 Caisse,S75 : échéancier et contrat de prêt,document,,S75,S75-1 Échéance qui tombe un jour non ouvré
 77,Remboursement en caisse avec répartition,caisse,must,no,S76,B,guichet,6 Caisse,"S76 : Plan, Réel, Memo, MP (seule Situation est montrée)",A:S95 (p. 119) ; D:S22,,S76,
 78,Situation plan réel mémo du prêt au guichet,caisse,should,no,S76,B,guichet,6 Caisse,"S76 : Plan, Réel, Memo, MP (seule Situation est montrée)",A:S95 (p. 119) ; D:S22,,S76,
-79,Achat et retrait de parts sociales,caisse,must,partial,S77,A,guichet,6 Caisse,,R:loi 002/2002 (parts sociales),,,S16-11 Valeur de la part sociale
+79,Achat et retrait de parts sociales,caisse,must,yes,S77,A,guichet,6 Caisse,,R:loi 002/2002 (parts sociales),,,
 80,Encaissements et décaissements divers,caisse,must,no,S78,A,guichet,6 Caisse,,D:S31,,S78,
 81,Billetage : saisie par coupure,caisse,must,partial,S79,A,guichet,6 Caisse,,,,,S79-1 Bouton Terminer ; S79-2 Deux devises
 82,Billetage : validation solde informatique et réel,caisse,must,partial,S80,A,visa,6 Caisse,,,,,"S80-2 Champ Compte Comptable ; S80-4 Imprimer, Terminer ; S80-5 Écriture de l'écart ; S80-6 Liste Journées"

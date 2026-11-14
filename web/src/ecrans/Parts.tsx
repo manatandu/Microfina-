@@ -42,7 +42,7 @@ export function PartsSociales() {
   );
   const c = comptes.find((x) => x.id === compteId);
   const n = /^\d+$/.test(nombre.trim()) ? Number(nombre.trim()) : 0;
-  const aPayer = n * ctx.valeurPart;
+  const aPayer = n * (ctx.valeurPart ?? 0);   // valeur de la ligne de part des frais d'adhésion (registre S16-11)
   const achat = sens === "achat";
   const effacer = () => { setT(null); setCompteId(0); setNombre(""); setCoupures({}); setCle(nouvelleCle()); setFait(null); };
   function enregistrer() {

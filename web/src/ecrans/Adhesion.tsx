@@ -40,8 +40,10 @@ export default function Adhesion() {
   );
   const nParts = /^\d+$/.test(parts.trim()) ? Number(parts.trim()) : 0;
   const mDepot = depot.trim() ? lireMontant(depot) : 0;
-  const mFrais = frais.reduce((x, f) => x + (f.montant ?? 0), 0);
-  const total = (mDepot ?? 0) + mFrais + nParts * ctx.valeurPart;
+  // Registre S16-11 : la part est la ligne « Part sociale standard » des frais d'adhésion (capture p. 89), payée par nombre de parts
+  const ligneParts = frais.find((f) => f.part), autres = frais.filter((f) => !f.part);
+  const mFrais = autres.reduce((x, f) => x + (f.montant ?? 0), 0);
+  const total = (mDepot ?? 0) + mFrais + nParts * (ligneParts?.montant ?? 0);
   const produit = t ? ctx.produits.find((p) => p.code === t.produitCode) : undefined;
   const effacer = () => { setT(null); setDepot(""); setParts("1"); setCoupures({}); setCle(nouvelleCle()); setFait(null); };
   function enregistrer() {
@@ -92,13 +94,13 @@ export default function Adhesion() {
           <table className="grille">
             <thead><tr><th scope="col">Libellé Frais</th><th scope="col">Compte</th><th scope="col">Nombre</th><th scope="col">Montant</th></tr></thead>
             <tbody>
-              {frais.length === 0 && <tr><td colSpan={4}>Liste des Frais vide</td></tr>}
-              {frais.map((f) => <tr key={f.fraisId}><td>{f.libelle}</td><td className="chiffres">{f.compte}</td><td></td><td className="chiffres">{f.montant === null ? "" : montant(f.montant, "CDF")}</td></tr>)}
+              {autres.length === 0 && <tr><td colSpan={4}>Liste des Frais vide</td></tr>}
+              {autres.map((f) => <tr key={f.fraisId}><td>{f.libelle}</td><td className="chiffres">{f.compte}</td><td></td><td className="chiffres">{f.montant === null ? "" : montant(f.montant, "CDF")}</td></tr>)}
               <tr>
-                <td>Part sociale</td><td className="chiffres">{t ? (t.type === "physique" ? "1030" : t.type === "groupe" && t.typeClient === "Groupement" ? "1031" : "1032") : ""}</td>
+                <td>{ligneParts?.libelle ?? "Part sociale"}</td><td className="chiffres">{ligneParts?.compte ?? ""}</td>
                 <td><input className="saisie code court" inputMode="numeric" aria-label="Nombre de parts sociales" readOnly={!!fait} value={parts}
                   onChange={(e) => { if (/^\d{0,4}$/.test(e.target.value)) { setParts(e.target.value); setCle(nouvelleCle()); } }} /></td>
-                <td className="chiffres">{montant(nParts * ctx.valeurPart, "CDF")}</td>
+                <td className="chiffres">{ligneParts ? montant(nParts * (ligneParts.montant ?? 0), "CDF") : ""}</td>
               </tr>
             </tbody>
           </table>
