@@ -412,6 +412,11 @@ const OUT = process.argv[2];
   // Rapports clients (S51)
   await aller('/clients/s51'); await p.getByRole('button', { name: 'Rechercher' }).click();
   await p.getByRole('cell', { name: '0412-000318' }).waitFor(); await etape('06x-rapport-multicritere');
+  // Critère Secteur d'activité (registre S14-1) : l'entreprise et le groupe enrôlés en PRIMAIRE
+  await p.getByLabel("Secteur d'activité :").selectOption('PRIMAIRE'); await p.getByRole('button', { name: 'Rechercher' }).click();
+  await p.getByRole('cell', { name: 'Boulangerie Kinsaku SARL' }).waitFor(); await p.getByRole('cell', { name: 'Mamans de Kinsaku' }).waitFor();
+  if (await p.getByRole('cell', { name: /Kalala/ }).count()) throw new Error('secteur : Kalala ne devrait pas sortir');
+  await etape('06x2-rapport-secteur');
   await p.getByRole('tab', { name: 'Rapport prospect' }).click(); await p.getByRole('button', { name: 'Rechercher' }).click(); await etape('06y-rapport-prospect');
   await p.getByRole('tab', { name: 'Rapport des clients modifiés' }).click(); await p.getByRole('button', { name: 'Rechercher' }).click();
   await p.getByRole('cell', { name: '0412-000319' }).first().waitFor(); await etape('06z-rapport-modifies');

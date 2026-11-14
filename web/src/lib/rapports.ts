@@ -6,6 +6,7 @@ export interface CriteresMulticritere {
   mode: "periode" | "date"; du: string; au: string; date: string;
   statut: StatutRapport; tri: "nom" | "numero" | "adhesion"; ordre: "croissant" | "decroissant";
   nom: string; prenoms: string; typeClient: string; categorie: "" | Tiers["type"]; zone: string; genre: "" | "M" | "F";
+  secteur: string;   // Secteur d'activité de la fiche (registre S14-1)
 }
 
 /** Date retenue pour la période : adhésion (visa), sinon demande, sinon création de la fiche (à confirmer) */
@@ -28,6 +29,7 @@ export function multicritere(clients: Tiers[], c: CriteresMulticritere): Tiers[]
     if (c.categorie && t.type !== c.categorie) return false;
     if (c.zone && t.zone !== c.zone) return false;
     if (c.genre && t.sexe !== c.genre) return false;
+    if (c.secteur && t.secteurActivite !== c.secteur) return false;
     return true;
   });
   const cle = (t: Tiers) => (c.tri === "nom" ? [t.nom, t.postnom, t.prenom].join(" ") : c.tri === "numero" ? t.numero : dateReference(t));

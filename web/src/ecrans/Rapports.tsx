@@ -44,7 +44,7 @@ export function RapportsClients() {
 
 type Ctx = Awaited<ReturnType<typeof api.referentiel.contexte>>;
 const MULTI_VIDE = (): CriteresMulticritere => ({ mode: "periode", du: debutAnnee(), au: aujourdhui(), date: aujourdhui(), statut: "tous", tri: "nom", ordre: "croissant",
-  nom: "", prenoms: "", typeClient: "", categorie: "", zone: "", genre: "" });
+  nom: "", prenoms: "", typeClient: "", categorie: "", zone: "", genre: "", secteur: "" });
 
 /** 11-1 Rapport multicritère : Rechercher (période ou date fixe), Période, Résultat, Rechercher (statut), Ordre, Éléments de la recherche */
 function Multicritere({ ctx, clients }: { ctx: Ctx; clients: Tiers[] }) {
@@ -90,7 +90,9 @@ function Multicritere({ ctx, clients }: { ctx: Ctx; clients: Tiers[] }) {
         <Champ libelle="Catégorie :">{(p) => <select {...p} className="saisie" value={c.categorie} onChange={(e) => maj({ categorie: e.target.value as CriteresMulticritere["categorie"] })}>
           <option value=""></option>{Object.entries(CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>}</Champ>
         <Champ libelle="Zone :">{(p) => <select {...p} className="saisie" value={c.zone} onChange={(e) => maj({ zone: e.target.value })}><option value=""></option>{ctx.zones.map((z) => <option key={z}>{z}</option>)}</select>}</Champ>
-        {inconnu("Nationalité :")}{inconnu("Gestionnaire :")}{inconnu("Commercial :")}{inconnu("Sensibilisateur :")}{inconnu("Secteur d'activité :")}
+        {inconnu("Nationalité :")}{inconnu("Gestionnaire :")}{inconnu("Commercial :")}{inconnu("Sensibilisateur :")}
+        <Champ libelle="Secteur d'activité :">{(p) => <select {...p} className="saisie" value={c.secteur} onChange={(e) => maj({ secteur: e.target.value })}><option value=""></option>
+          {(ctx.listesFiche.secteurActivite ?? []).map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
         <Champ libelle="Genre :">{(p) => <select {...p} className="saisie" value={c.genre} onChange={(e) => maj({ genre: e.target.value as CriteresMulticritere["genre"] })}>
           <option value="">Tous les Client</option><option value="M">Homme</option><option value="F">Femme</option></select>}</Champ>
       </fieldset>

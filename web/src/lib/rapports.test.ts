@@ -4,7 +4,7 @@ import { graine } from "../donnees/graine";
 import type { Tiers } from "../donnees/types";
 
 const base: CriteresMulticritere = { mode: "periode", du: "", au: "", date: "", statut: "tous", tri: "numero", ordre: "croissant",
-  nom: "", prenoms: "", typeClient: "", categorie: "", zone: "", genre: "" };
+  nom: "", prenoms: "", typeClient: "", categorie: "", zone: "", genre: "", secteur: "" };
 const clients = (): Tiers[] => graine().tiers;
 
 describe("rapports clients (S51)", () => {
@@ -16,6 +16,12 @@ describe("rapports clients (S51)", () => {
     expect(multicritere(l, { ...base, statut: "actifs", genre: "F", tri: "nom", ordre: "decroissant" }).map((t) => t.nom)).toEqual(["Mwamba", "Kalala"]);
     expect(multicritere(l, { ...base, du: "2026-02-01" })).toEqual([]);
     expect(synthese(multicritere(l, base))).toEqual({ total: 3, categories: [["physique", 3]], sexes: [["F", 2], ["M", 1]] });
+  });
+  it("multicritère : secteur d'activité de la fiche (registre S14-1)", () => {
+    const l = clients();
+    l[1]!.secteurActivite = "PRIMAIRE";
+    expect(multicritere(l, { ...base, secteur: "PRIMAIRE" }).map((t) => t.nom)).toEqual(["Mwamba"]);
+    expect(multicritere(l, { ...base, secteur: "TERTIAIRE" })).toEqual([]);
   });
   it("prospects et export", () => {
     const l = clients();
