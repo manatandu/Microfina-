@@ -225,6 +225,9 @@ def frais_lies(u, tid: int) -> list[dict]:
     return [{**r, "compte": compte_parts(t)} if r["part"] else r for r in l] if t else l
 
 
+MSG_FRAIS_ENCAISSES = "Adhésion déjà encaissée : les frais ne se modifient plus (PCCI, § 3.4, irréversibilité)."
+
+
 def modifier_frais_client(u, tid: int, d) -> list[dict]:
     """S41 : Client > Visa > Modifier frais (p. 53). Modifier le montant des frais dans la Liste des frais liés."""
     exiger(u, "chef_agence")                 # profil habilité : à confirmer
@@ -233,6 +236,8 @@ def modifier_frais_client(u, tid: int, d) -> list[dict]:
         raise ErreurMetier("Client introuvable.")
     if t["statut"] != "actif":
         raise ErreurMetier("Client non visé : viser d'abord le client.")
+    if une("select 1 from operation where tiers_id = %s and type = 'adhesion' and statut = 'validee'", (tid,)):   # registre S41-1
+        raise ErreurMetier(MSG_FRAIS_ENCAISSES)
     lies = {r["fraisId"] for r in frais_lies(u, tid) if not r["part"]}
     if any((l or {}).get("fraisId") in {r["fraisId"] for r in frais_lies(u, tid) if r["part"]} for l in (d.get("frais") or [] if isinstance(d, dict) else [])):
         raise ErreurMetier("La part sociale garde la valeur des statuts : elle ne se modifie pas pour un client (loi 002/2002, art. 20).")

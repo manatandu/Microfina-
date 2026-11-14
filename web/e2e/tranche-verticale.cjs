@@ -433,6 +433,15 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('button', { name: 'Imprimer' }).click(); await p.getByText('Adhésion enregistrée').waitFor(); await etape('08-adhesion-recu');
   await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
+  // S41 après l'adhésion : frais figés (registre S41-1, PCCI § 3.4)
+  await login('J.-P. Mukendi'); await aller('/clients/s41');
+  await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  const rf2 = p.getByRole('dialog', { name: "Recherche d'un client" });
+  await rf2.getByLabel('Nom:', { exact: true }).fill('Tshala'); await rf2.getByRole('row').filter({ hasText: 'Tshala' }).dblclick();
+  await p.getByLabel("Montant de Droit d'entrée").fill('3 000');
+  await p.getByRole('button', { name: 'Modifier' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('dialog', { name: 'Erreur' }).getByText(/déjà encaissée/).waitFor(); await etape('08b-frais-figes'); await p.getByRole('button', { name: 'Ok' }).click();
+  await login('Esther Ngalula');
   // Dépôt / Retrait (S74, manuel p. 86)
   const client = async (nom) => {
     await p.getByRole('button', { name: 'Rechercher un client' }).click();

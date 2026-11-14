@@ -203,7 +203,8 @@ export function ModificationFrais() {
         </div>
         <Textes sources={["Manuel Microfina++, p. 53 : écran Modification de Frais, recherche par numéro, nom ou prénoms, montant modifié dans la Liste des frais liés, boutons Modifier et Annuler",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
-          "Loi 002/2002, art. 22, 5° : droit d'adhésion fixé, le cas échéant, par l'Assemblée générale"]} />
+          "Loi 002/2002, art. 22, 5° : droit d'adhésion fixé, le cas échéant, par l'Assemblée générale",
+          "PCCI, § 3.4 : irréversibilité des traitements, aucune modification ultérieure d'un enregistrement validé (frais figés après l'adhésion)"]} />
       </section>
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut === "actif") : [])}

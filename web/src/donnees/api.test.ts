@@ -484,6 +484,8 @@ describe("journée de guichet", () => {
     expect(await api.tiers.parts(t.id)).toBe(3);
     expect((await api.tiers.comptes(t.id)).map((c) => c.devise)).toEqual(["CDF"]);
     expect(totalComptage(coupures)).toBe(1200000);
+    await connecter("jpmukendi");   // S41 : frais figés après l'encaissement (registre S41-1, PCCI § 3.4)
+    await expect(api.parametrage.modifierFraisClient(t.id, [{ fraisId: f.id, montant: 100000 }])).rejects.toThrow("déjà encaissée");
   });
 
   it("fermeture : bloquée tant qu'une caisse est ouverte, possible après l'arrêté validé", async () => {

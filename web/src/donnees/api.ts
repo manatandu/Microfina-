@@ -788,6 +788,8 @@ const parametrage = {
     const t = E.tiers.find((x) => x.id === tiersId);
     if (!t) throw new ErreurMetier("Client introuvable.");
     if (t.statut !== "actif") throw new ErreurMetier("Client non visé : viser d'abord le client.");
+    if (E.operations.some((o) => o.tiersId === tiersId && o.type === "adhesion" && o.statut === "validee"))   // registre S41-1
+      throw new ErreurMetier("Adhésion déjà encaissée : les frais ne se modifient plus (PCCI, § 3.4, irréversibilité).");
     const tous = parametrage.fraisLies(tiersId), lies = tous.filter((x) => !x.part).map((x) => x.fraisId);
     if (frais.some((l) => tous.some((x) => x.part && x.fraisId === l.fraisId)))
       throw new ErreurMetier("La part sociale garde la valeur des statuts : elle ne se modifie pas pour un client (loi 002/2002, art. 20).");
