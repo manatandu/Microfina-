@@ -1,0 +1,136 @@
+# Tests, puis déploiement sur Google Cloud (docs/architecture/DEPLOIEMENT.md).
+# Le déploiement ne part que si les tests passent et si deploiement/config.env existe (écrit après l'installation unique).
+name: Tests et déploiement
+
+on:
+  push:
+    branches: [claude/cool-davinci-fwyyx7, main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploiement
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: essai
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Serveur
+        working-directory: serveur
+        env:
+          LIKELEMBA_DEBUG: "1"
+          LIKELEMBA_SANS_MOT_DE_PASSE: "1"
+          PG_UTILISATEUR: postgres
+          PG_MOT_DE_PASSE: essai
+          PG_HOTE: 127.0.0.1
+          PG_PORT: "5432"
+        run: |
+          pip install -r requirements.txt
+          python -m pytest -q tests
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Page web
+        working-directory: web
+        run: |
+          npm ci
+          npx tsc --noEmit -p .
+          npx vitest run
+
+  deploiement:
+    needs: tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configuration
+        id: cfg
+        run: |
+          if [ -f deploiement/config.env ]; then
+            set -a; . deploiement/config.env; set +a
+            { echo "pret=oui"; echo "projet=$PROJET"; echo "fournisseur=$FOURNISSEUR"; echo "compte=$COMPTE"; } >> "$GITHUB_OUTPUT"
+          else
+            echo "pret=non" >> "$GITHUB_OUTPUT"
+            echo "::notice::deploiement/config.env absent : tests faits, rien de publié. Lancer l'installation unique (DEPLOIEMENT.md)."
+          fi
+      - uses: google-github-actions/auth@v2
+        if: steps.cfg.outputs.pret == 'oui'
+        with:
+          workload_identity_provider: ${{ steps.cfg.outputs.fournisseur }}
+          service_account: ${{ steps.cfg.outputs.compte }}
+      - uses: google-github-actions/setup-gcloud@v2
+        if: steps.cfg.outputs.pret == 'oui'
+      - name: Image du serveur
+        if: steps.cfg.outputs.pret == 'oui'
+        env:
+          PROJET: ${{ steps.cfg.outputs.projet }}
+        run: |
+          gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
+          IMAGE="europe-west1-docker.pkg.dev/$PROJET/likelemba/api:$GITHUB_SHA"
+          docker build -f serveur/Dockerfile -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+      - name: Base de données (migrations, graine, premier mot de passe)
+        if: steps.cfg.outputs.pret == 'oui'
+        env:
+          PROJET: ${{ steps.cfg.outputs.projet }}
+        run: |
+          gcloud run jobs deploy likelemba-preparer --region europe-west1 --image "$IMAGE" \
+            --service-account "likelemba-run@$PROJET.iam.gserviceaccount.com" \
+            --set-cloudsql-instances "$PROJET:europe-west1:likelemba-bd" \
+            --set-env-vars "^@^LIKELEMBA_HOTES=.run.app@LIKELEMBA_COOKIE=__session@PG_BASE=likelemba@PG_UTILISATEUR=likelemba@PG_HOTE=/cloudsql/$PROJET:europe-west1:likelemba-bd@PG_PORT=5432" \
+            --set-secrets "LIKELEMBA_SECRET=likelemba-secret:latest,PG_MOT_DE_PASSE=likelemba-bd-mdp:latest,LIKELEMBA_MOT_DE_PASSE=likelemba-mdp-initial:latest" \
+            --command sh --args="-c,python manage.py migrate --noinput && python manage.py graine && python manage.py definir_mot_de_passe jpmukendi --si-absent" \
+            --max-retries 0 --task-timeout 600 \
+            --execute-now --wait
+      - name: Serveur (Cloud Run)
+        if: steps.cfg.outputs.pret == 'oui'
+        env:
+          PROJET: ${{ steps.cfg.outputs.projet }}
+        run: |
+          gcloud run deploy likelemba-api --region europe-west1 --image "$IMAGE" \
+            --service-account "likelemba-run@$PROJET.iam.gserviceaccount.com" \
+            --allow-unauthenticated --min-instances 0 --max-instances 3 --memory 512Mi --cpu 1 \
+            --add-cloudsql-instances "$PROJET:europe-west1:likelemba-bd" \
+            --set-env-vars "^@^LIKELEMBA_HOTES=.run.app,.web.app,.firebaseapp.com@LIKELEMBA_COOKIE=__session@PG_BASE=likelemba@PG_UTILISATEUR=likelemba@PG_HOTE=/cloudsql/$PROJET:europe-west1:likelemba-bd@PG_PORT=5432" \
+            --set-secrets "LIKELEMBA_SECRET=likelemba-secret:latest,PG_MOT_DE_PASSE=likelemba-bd-mdp:latest"
+      - uses: actions/setup-node@v4
+        if: steps.cfg.outputs.pret == 'oui'
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Page web (Firebase Hosting)
+        if: steps.cfg.outputs.pret == 'oui'
+        env:
+          PROJET: ${{ steps.cfg.outputs.projet }}
+          VITE_DONNEES: serveur
+        run: |
+          cd web && npm ci && npx vite build --outDir dist --emptyOutDir && cd ..
+          npx --yes firebase-tools@14 deploy --only hosting --project "$PROJET" --non-interactive
+      - name: Contrôle du site publié
+        if: steps.cfg.outputs.pret == 'oui'
+        env:
+          PROJET: ${{ steps.cfg.outputs.projet }}
+        run: |
+          sleep 10
+          curl -fsS "https://$PROJET.web.app/api/session/mode" | tee /dev/stderr | grep -q '"motDePasseRequis": true'

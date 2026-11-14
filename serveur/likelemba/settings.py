@@ -37,10 +37,15 @@ DATABASES = {
 
 # Sessions : cookie signé, http-only, même site uniquement. Pas de table de sessions.
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
+# Derrière Firebase Hosting, seul le cookie « __session » traverse jusqu'à Cloud Run : LIKELEMBA_COOKIE=__session (DEPLOIEMENT.md)
+SESSION_COOKIE_NAME = os.environ.get("LIKELEMBA_COOKIE", "sessionid")
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Strict"
 SESSION_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_AGE = 8 * 3600       # une journée de travail ; verrouillage plus fin : à confirmer (Instr. BCC 008, art. 16)
+
+# Cloud Run termine le HTTPS et transmet le protocole dans X-Forwarded-Proto
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 USE_TZ = True
 TIME_ZONE = "UTC"                   # horodatage en UTC ; l'heure affichée suit l'agence
