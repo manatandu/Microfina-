@@ -652,6 +652,12 @@ const tiers = {
     });
   },
   parts: (tiersId: number) => soldeContrat(`parts:${tiersId}`, "CDF", "C") / valeurPart(),
+  /** S43 : date comptable de l'adhésion encaissée (S73), registre S43-2. Règle identique côté serveur (services.date_adhesion). */
+  adhesion: (tiersId: number) => {
+    const o = E.operations.find((x) => x.tiersId === tiersId && x.type === "adhesion" && x.statut === "validee");
+    const s = o && E.sessions.find((x) => x.id === o.sessionId);
+    return (s && E.journees.find((j) => j.id === s.journeeId)?.date) || "";
+  },
 };
 export type CompteAvecSolde = CompteDepot & { solde: number; disponible: number };
 

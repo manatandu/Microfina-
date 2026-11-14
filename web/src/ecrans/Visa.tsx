@@ -366,7 +366,7 @@ export function InformationsClient() {
   const [onglet, setOnglet] = useState(0);
   const [recherche, setRecherche] = useState(false);
   const { donnees: detail } = useDonnees(async () => t
-    ? { images: await api.tiers.images(t.id), modifications: await api.tiers.modifications(t.id), comptes: await api.tiers.comptes(t.id), parts: await api.tiers.parts(t.id) }
+    ? { images: await api.tiers.images(t.id), modifications: await api.tiers.modifications(t.id), comptes: await api.tiers.comptes(t.id), parts: await api.tiers.parts(t.id), adhesion: await api.tiers.adhesion(t.id) }
     : null, [t?.id]);
   if (!ctx) return <Chargement />;
   const onglets = ["Renseignements généraux", "Autres renseignements", "Dépôts", "Crédits", "Part sociale"];
@@ -382,7 +382,7 @@ export function InformationsClient() {
             <Champ libelle="N° Client :">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
             <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
           </div>
-          {lu("Date d'adhésion : *", t ? fr(t.dateVisa) : "")}
+          {lu("Date d'adhésion : *", detail?.adhesion ? fr(detail.adhesion) : "")}
         </div>
         <div className="deux-colonnes">
           <fieldset className="cadre-champs formulaire">
@@ -447,7 +447,8 @@ export function InformationsClient() {
         )}
         {!t && <p className="muet">Rechercher d'abord le client.</p>}
         <Textes sources={["Manuel Microfina++, p. 54 : écran Informations client, recherche par le bouton du champ Numéro client, informations initiales et actuelles",
-          "Onglet Crédits : le module crédit n'est pas encore construit"]} />
+          "Onglet Crédits : le module crédit n'est pas encore construit",
+          "Loi 002/2002, art. 22, 2° et 5° : part sociale libérée et droit d'adhésion acquitté ; la Date d'adhésion est celle de l'encaissement en caisse"]} />
       </section>
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (q ? api.tiers.rechercher(q) : [])} choisir={(x) => { setT(x); setOnglet(0); setRecherche(false); }} fermer={() => setRecherche(false)} />

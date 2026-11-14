@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**265 décisions.** Solidité : 83 fortes (le manuel ou un texte répond), 148 moyennes (déduites d'un écran voisin ou d'une donnée), 34 faibles (notre choix, faute de mieux). Dans le code : 226 déjà en place, 39 à appliquer.
+**265 décisions.** Solidité : 83 fortes (le manuel ou un texte répond), 148 moyennes (déduites d'un écran voisin ou d'une donnée), 34 faibles (notre choix, faute de mieux). Dans le code : 227 déjà en place, 38 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -249,7 +249,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S43-1 | Où s'affiche la comparaison | Deux colonnes, Initial et Actuel ; les champs changés sont marqués | Manuel : Texte p. 53 (« informations initiales et actuelles ») | moyenne | en place |
-| S43-2 | Champ Date d'adhésion | Date de l'adhésion en caisse (S73) | Donnée exigée ailleurs : S73 | moyenne | à appliquer |
+| S43-2 | Champ Date d'adhésion | Date de l'adhésion en caisse (S73) | Donnée exigée ailleurs : S73 | moyenne | en place |
 | S43-3 | Onglet Crédits | Vide jusqu'au lot Crédit | Donnée exigée ailleurs : S95 Consulter prêt | moyenne | en place |
 
 ## S44 Groupe solidaire

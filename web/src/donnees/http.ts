@@ -75,6 +75,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       activer: (id: number) => post(`/tiers/${id}/activation`),
       comptes: (id: number) => get(`/tiers/${id}/comptes`),
       parts: (id: number) => get(`/tiers/${id}/parts`),
+      adhesion: (id: number) => get(`/tiers/${id}/adhesion`),
     },
     guichet: {
       depot: (p: unknown) => post("/guichet/depots", p),

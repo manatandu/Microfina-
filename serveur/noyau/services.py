@@ -1239,6 +1239,12 @@ def compte_parts(t: dict) -> str:
     return "1032"
 
 
+def date_adhesion(tid: int) -> str:
+    """S43 : Date d'adhésion = date comptable de l'adhésion encaissée en caisse (S73), registre S43-2. Vide tant qu'elle n'est pas encaissée."""
+    return iso(valeur("""select j.date_comptable from operation o join journee_comptable j on j.id = o.journee_id
+                         where o.tiers_id = %s and o.type = 'adhesion' and o.statut = 'validee' order by o.id limit 1""", (tid,)))
+
+
 def parts_du_tiers(tid: int) -> float:
     i = valeur("select institution_id from tiers where id = %s", (tid,))
     return solde_contrat(f"parts:{tid}", "CDF", "C") / valeur_part(i)

@@ -441,6 +441,13 @@ const OUT = process.argv[2];
   await p.getByLabel("Montant de Droit d'entrée").fill('3 000');
   await p.getByRole('button', { name: 'Modifier' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByRole('dialog', { name: 'Erreur' }).getByText(/déjà encaissée/).waitFor(); await etape('08b-frais-figes'); await p.getByRole('button', { name: 'Ok' }).click();
+  // S43 : Date d'adhésion = date de l'adhésion encaissée (registre S43-2)
+  await aller('/clients/s43'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  const rc2 = p.getByRole('dialog', { name: "Recherche d'un client" });
+  await rc2.getByLabel('Nom:', { exact: true }).fill('Tshala'); await rc2.getByRole('row').filter({ hasText: 'Tshala' }).dblclick();
+  const da = p.getByLabel("Date d'adhésion : *"); for (let i = 0; i < 50 && (await da.inputValue()) === ''; i++) await p.waitForTimeout(100);
+  if ((await da.inputValue()) !== '05/11/2026') throw new Error("S43 : date d'adhésion attendue 05/11/2026");
+  await p.getByRole('tab', { name: 'Part sociale' }).click(); await etape('08c-date-adhesion');
   await login('Esther Ngalula');
   // Dépôt / Retrait (S74, manuel p. 86)
   const client = async (nom) => {

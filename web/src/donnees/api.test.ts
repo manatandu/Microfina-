@@ -470,7 +470,7 @@ describe("journée de guichet", () => {
   it("adhésion : parts en 1030, premier dépôt en 330, après visa seulement", async () => {
     await connecter("bkasongo");
     const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), ...IDENTITE, produitCode: "EAV-CDF", nom: "Tshala", postnom: "Muana", prenom: "Marie", naissance: "1990-02-01", pieceType: "Carte d'électeur", pieceNumero: "1-0412-0999", pieceExpire: "2031-01-01", adresse: "Matete" });
-    await journeeOuverte();
+    const { j } = await journeeOuverte();
     const coupures: Comptage = { 5000: 2, 1000: 2 };
     await expect(api.guichet.adhesion({ cle: cle(), tiersId: t.id, parts: 1, depot: 800000, coupures })).rejects.toThrow("visa");
     await connecter("jpmukendi"); await api.tiers.viser(t.id); await connecter("engalula");
@@ -484,6 +484,7 @@ describe("journée de guichet", () => {
     expect(await api.tiers.parts(t.id)).toBe(3);
     expect((await api.tiers.comptes(t.id)).map((c) => c.devise)).toEqual(["CDF"]);
     expect(totalComptage(coupures)).toBe(1200000);
+    expect(await api.tiers.adhesion(t.id)).toBe(j.date);   // S43 : date de l'adhésion encaissée (registre S43-2)
     await connecter("jpmukendi");   // S41 : frais figés après l'encaissement (registre S41-1, PCCI § 3.4)
     await expect(api.parametrage.modifierFraisClient(t.id, [{ fraisId: f.id, montant: 100000 }])).rejects.toThrow("déjà encaissée");
   });

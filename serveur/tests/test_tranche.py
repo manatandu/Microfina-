@@ -354,6 +354,7 @@ def test_adhesion_apres_visa(clients, journee):
     assert [c["devise"] for c in caisse.get(f"/api/tiers/{t['id']}/comptes").json()] == ["CDF"]
     assert [c["numero"] for c in caisse.get(f"/api/tiers/{t['id']}/comptes").json()] == [f"{t['numero']}-02"]   # S17-6 : sans règle, suffixe du produit CDF
     assert ident("select sum(montant_devise) from ligne_ecriture l join compte c on c.id = l.compte_id where c.numero = '728'") == 200000
+    assert caisse.get(f"/api/tiers/{t['id']}/adhesion").json() == ident("select date_comptable::text from journee_comptable where statut = 'ouverte'")   # S43, registre S43-2
     # S41 : après l'encaissement de l'adhésion, les frais ne se modifient plus (registre S41-1, PCCI § 3.4)
     r = chef.post(f"/api/tiers/{t['id']}/frais", {"frais": [{"fraisId": f["id"], "montant": 100000}]}, **H)
     assert r.status_code == 422 and "déjà encaissée" in r.json()["message"]

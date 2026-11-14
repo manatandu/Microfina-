@@ -42,7 +42,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 41,Visa du client et contrat d'adhésion,clients,must,yes,S40,A,visa,3 Client,S40 : contrat d'adhésion imprimé,document,,,
 42,Modifier les frais d'ouverture,clients,should,yes,S41,A,consultation,3 Client,,,,,
 43,Valider un client modifié,clients,must,yes,S42,A,visa,3 Client,,,,,
-44,Consulter l'état initial et actuel d'un client,clients,must,partial,S43,B,consultation,3 Client,S43 : affichage des informations initiales et actuelles,A:S64 situation du client (p. 74),,,S43-2 Champ Date d'adhésion
+44,Consulter l'état initial et actuel d'un client,clients,must,yes,S43,B,consultation,3 Client,S43 : affichage des informations initiales et actuelles,A:S64 situation du client (p. 74),,,
 45,Groupes solidaires et affectation,clients,must,partial,S44,A,onglets,3 Client,,,,,S44-1 Un client dans plusieurs groupes ; S44-2 Code du groupe
 46,Prospects,clients,should,yes,S45,A,liste,3 Client,,,,,
 47,Mise à jour d'un client,clients,must,partial,S46,B,onglets,3 Client,S46 : onglets suivants,A:S37,,,"S46-1 Mise à jour : Modifier et Terminer ; S46-2 Mise à jour d'une entreprise, d'un groupe ; S46-3 Mentions de l'identité à la mise à jour (reste de S38-1)"

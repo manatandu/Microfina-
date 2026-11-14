@@ -295,6 +295,12 @@ def tiers_frais_modifier(request, tid: int, corps: dict = Body(...)):
     return fr.modifier_frais_client(u(request), tid, corps)
 
 
+@api.get("/tiers/{tid}/adhesion")
+def tiers_adhesion(request, tid: int):
+    u(request)
+    return s.date_adhesion(tid)
+
+
 @api.get("/tiers/{tid}/parts")
 def tiers_parts(request, tid: int):
     u(request)
