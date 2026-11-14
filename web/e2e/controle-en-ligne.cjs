@@ -3,7 +3,7 @@
 // Usage : BASE=https://dwacfina.web.app VERIF_LOGIN=... VERIF_MOT_DE_PASSE=... node e2e/controle-en-ligne.cjs <dossier des captures>
 const fs = require('fs');
 const path = require('path');
-const { chromium } = require('playwright');
+const { chromium, devices } = require('playwright');
 
 const BASE = (process.env.BASE || '').replace(/\/$/, '');
 const LOGIN = process.env.VERIF_LOGIN || '';
@@ -59,6 +59,15 @@ const ecrans = registre.filter((e) => construits.has(e.id));
     const ok = pannes.length === avant;
     if (!ok) await p.screenshot({ path: path.join(DOSSIER, `${e.id}.png`) });
     console.log(`${ok ? '✓' : '✗'} ${e.id} ${e.nom}`);
+  }
+  // Sur téléphone : la page ne doit jamais glisser de côté (un tableau large défile dans son cadre)
+  const t = await b.newContext({ ...devices['iPhone 14'], storageState: await p.context().storageState() });
+  const pt = await t.newPage();
+  for (const e of ecrans) {
+    courant = `${e.id} ${e.nom} (téléphone)`;
+    await pt.goto(`${BASE}${e.chemin}`, { waitUntil: 'networkidle', timeout: 30000 }).catch(() => {});
+    const d = await pt.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth).catch(() => 0);
+    if (d > 0) { pannes.push(`${courant} : la page déborde de ${d} px sur le côté`); await pt.screenshot({ path: path.join(DOSSIER, `${e.id}-telephone.png`) }); }
   }
   await b.close();
   console.log('\n--- Droits manquants (le compte n\'a pas ce droit, ce n\'est pas une panne) ---');

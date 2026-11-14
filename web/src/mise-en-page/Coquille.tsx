@@ -86,19 +86,29 @@ function MenuDeroulant({ menu, libelle }: { menu: Menu; libelle: string }) {
   const lieu = useLocation();
   const ref = useRef<HTMLDetailsElement>(null);
   const [ouvert, setOuvert] = useState(false);
+  // La barre défile de côté sur un écran étroit : la liste est placée sous le menu, par rapport à la fenêtre, pour ne pas être coupée par la barre
+  const [place, setPlace] = useState<{ top: number; left: number; maxHeight: number } | null>(null);
+  const placer = () => {
+    const r = ref.current?.querySelector("summary")?.getBoundingClientRect();
+    if (!r) return;
+    const marge = 8, largeur = Math.min(320, window.innerWidth - 2 * marge);
+    setPlace({ top: r.bottom, left: Math.max(marge, Math.min(r.left, window.innerWidth - largeur - marge)), maxHeight: window.innerHeight - r.bottom - marge });
+  };
   const actif = menu.groupes.some((g) => g.ecrans.some((e) => lieu.pathname === e.chemin));
   useEffect(() => { setOuvert(false); }, [lieu.pathname]);
   useEffect(() => {
     if (!ouvert) return;
+    placer();
+    window.addEventListener("resize", placer);
     const fermer = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOuvert(false); };
     const echap = (e: KeyboardEvent) => { if (e.key === "Escape") { setOuvert(false); ref.current?.querySelector("summary")?.focus(); } };
     document.addEventListener("mousedown", fermer); document.addEventListener("keydown", echap);
-    return () => { document.removeEventListener("mousedown", fermer); document.removeEventListener("keydown", echap); };
+    return () => { document.removeEventListener("mousedown", fermer); document.removeEventListener("keydown", echap); window.removeEventListener("resize", placer); };
   }, [ouvert]);
   return (
     <details ref={ref} className="deroulant" open={ouvert} onToggle={(e) => setOuvert((e.target as HTMLDetailsElement).open)}>
       <summary className={actif ? "actif" : ""}>{ICONES[menu.id] ?? null}<span>{libelle}</span></summary>
-      <div className="liste-deroulante" role="menu">
+      <div className="liste-deroulante" role="menu" style={place ? { position: "fixed", top: place.top, left: place.left, maxHeight: place.maxHeight } : undefined}>
         {menu.groupes.map((g) => (
           <div key={g.titre || "racine"} className="groupe-menu">
             {g.titre && <p className="titre-groupe">{g.titre}</p>}

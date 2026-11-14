@@ -258,6 +258,9 @@ fieldset.formulaire { padding-bottom: var(--espace-2); }
   .page { padding: var(--espace-4) var(--mise-gouttiere-mobile); }
   .deux-colonnes { grid-template-columns: minmax(0, 1fr); }
   .pied .muet { margin-left: 0; }
+  /* Un tableau plus large que l'écran défile dans son cadre ; la page, elle, ne glisse jamais de côté */
+  .grille { display: block; overflow-x: auto; max-width: 100%; }
+  .menus .liste-deroulante { width: min(320px, calc(100vw - 16px)); min-width: 0; }
 }
 
 .a-droite { text-align: right; }
@@ -267,7 +270,7 @@ fieldset.formulaire { padding-bottom: var(--espace-2); }
 .entete-ecran { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--espace-2) var(--espace-4); }
 .entete-ecran p { margin: 0; color: var(--encre-2); }
 .libelle-vide { display: block; }
-.actions-onglets { display: flex; justify-content: flex-end; gap: var(--espace-2); }
+.actions-onglets { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--espace-2); }
 .apercu { margin: 0; display: grid; gap: var(--espace-1); }
 .apercu figcaption { font-size: var(--taille-dense); color: var(--encre-2); }
 .apercu img { max-width: 100%; max-height: 140px; object-fit: contain; border: 1px solid var(--trait); border-radius: var(--rayon-petit); background: var(--feuille); }
@@ -393,6 +396,8 @@ textarea.saisie.montant { resize: none; text-align: end; }
 
 /* S23 : deux cadres côte à côte, comme la capture p. 38 */
 .grille-deux { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--espace-4); align-items: start; }
+.grille-deux > *, .champ { min-width: 0; }
+select.saisie { max-width: 100%; }
 /* S27 : options Oui/Non, une par ligne comme la capture p. 40 */
 .case-jour { display: inline-flex; gap: var(--espace-2); align-items: center; }
 .oui-non { display: flex; flex-wrap: wrap; align-items: center; gap: var(--espace-3); border: 0; padding: 0; margin: 0; }
