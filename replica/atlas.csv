@@ -68,8 +68,8 @@ S50,Consentement BIC,57,A,liste,non repris tel quel (BIC de l'UEMOA),R:centrale 
 S51,Rapports client (trois),58 et 59 (trois captures),B,rapport,forme des résultats,"A:S13 ; G:p.9 (grille, export)",3 Client,oui
 S52,"Opération : encaissement et décaissement, banque vers caisse, banque vers banque",60 et 61 (trois captures),A,guichet,,R:PCCI (comptes de banque et de caisse),4 Banque,oui
 S53,Virement prélèvement,61,A,guichet,,,4 Banque,oui
-S54,Déblocage crédit par banque,62,A,guichet,"contrat de prêt, échéancier",document ; A:S75,4 Banque,non
-S55,Remboursement de crédit par banque,63,B,guichet,"onglets Répartition et Détail crédit, page après Suivant",A:S76 (p. 87 et 88),4 Banque,non
+S54,Déblocage crédit par banque,62,A,guichet,"contrat de prêt, échéancier",document ; A:S75,7 Crédit,non
+S55,Remboursement de crédit par banque,63,B,guichet,"onglets Répartition et Détail crédit, page après Suivant",A:S76 (p. 87 et 88),7 Crédit,non
 S56,Adhésion par banque,64 ; validation en caisse 89 et 104,A,guichet,,A:S73,4 Banque,non
 S57,Visa et validation des opérations de banque (huit listes),65 à 67 (six bandes),B,visa,deux listes sans capture ; colonnes complètes,"A:S113, S114",4 Banque,non
 S58,"Création banque : client, institution",67 (deux captures),A,liste,,,4 Banque,oui

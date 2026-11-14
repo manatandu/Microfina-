@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**290 décisions.** Solidité : 93 fortes (le manuel ou un texte répond), 158 moyennes (déduites d'un écran voisin ou d'une donnée), 39 faibles (notre choix, faute de mieux). Dans le code : 259 déjà en place, 31 à appliquer.
+**292 décisions.** Solidité : 95 fortes (le manuel ou un texte répond), 158 moyennes (déduites d'un écran voisin ou d'une donnée), 39 faibles (notre choix, faute de mieux). Dans le code : 261 déjà en place, 31 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -675,6 +675,18 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S53-2 | Contrôle du prélèvement | Sur le solde disponible du compte (solde moins blocages), comme un retrait au guichet ; les prélèvements déjà saisis et pas encore comptabilisés sont déduits | Écran voisin : S74 (retrait sur le disponible) | moyenne | en place |
 | S53-3 | Devises | Le compte du client et le compte bancaire doivent être dans la même devise ; entre deux devises, à confirmer avec S52-6 | Écran voisin : Registre S52-6 | faible | en place |
 | S53-4 | Client et compte | Client actif (ni à viser, ni modifié à valider, ni résilié) et compte ouvert, comme pour les opérations de guichet ; route et droit propres à l'écran S53 | Écran voisin : S74 ; registre S04-3 | moyenne | en place |
+
+## S54 Déblocage crédit par banque
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S54-1 | Place dans l'ordre de construction | Construit juste après le lot Crédit : il lui faut un crédit approuvé (S88, S89), que le lot Banque ne fournit pas encore | Choix du porteur : Décision du porteur, 14/11/2026 | forte | en place |
+
+## S55 Remboursement de crédit par banque
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S55-1 | Place dans l'ordre de construction | Construit juste après le lot Crédit : il lui faut un crédit approuvé (S88, S89), que le lot Banque ne fournit pas encore | Choix du porteur : Décision du porteur, 14/11/2026 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

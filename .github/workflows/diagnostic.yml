@@ -1,0 +1,42 @@
+# Lit les erreurs récentes du serveur en ligne (Cloud Run) et les affiche dans le journal de GitHub. Lecture seule.
+name: Diagnostic du site en ligne
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configuration
+        id: cfg
+        run: |
+          set -a; . deploiement/config.env; set +a
+          { echo "projet=$PROJET"; echo "fournisseur=$FOURNISSEUR"; echo "compte=$COMPTE"; } >> "$GITHUB_OUTPUT"
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ steps.cfg.outputs.fournisseur }}
+          service_account: ${{ steps.cfg.outputs.compte }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Requêtes refusées ou en erreur (2 dernières heures)
+        env:
+          PROJET: ${{ steps.cfg.outputs.projet }}
+        run: |
+          echo "=== Requêtes HTTP en erreur (statut 400 et plus) ==="
+          gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="likelemba-api" AND httpRequest.status>=400' \
+            --project "$PROJET" --limit 60 --freshness 2h --order desc \
+            --format 'value(timestamp, httpRequest.status, httpRequest.requestMethod, httpRequest.requestUrl)' || true
+          echo "=== Messages d'erreur du serveur ==="
+          gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="likelemba-api" AND severity>=ERROR AND NOT httpRequest.status>=400' \
+            --project "$PROJET" --limit 40 --freshness 2h --order desc --format 'value(timestamp, textPayload)' || true
+          echo "=== Dernières requêtes (tous statuts) ==="
+          gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="likelemba-api" AND httpRequest.requestUrl:"/api/"' \
+            --project "$PROJET" --limit 40 --freshness 2h --order desc \
+            --format 'value(timestamp, httpRequest.status, httpRequest.requestMethod, httpRequest.requestUrl, httpRequest.latency)' || true
