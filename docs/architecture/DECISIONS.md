@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**265 décisions.** Solidité : 83 fortes (le manuel ou un texte répond), 148 moyennes (déduites d'un écran voisin ou d'une donnée), 34 faibles (notre choix, faute de mieux). Dans le code : 232 déjà en place, 33 à appliquer.
+**265 décisions.** Solidité : 83 fortes (le manuel ou un texte répond), 148 moyennes (déduites d'un écran voisin ou d'une donnée), 34 faibles (notre choix, faute de mieux). Dans le code : 233 déjà en place, 32 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -270,7 +270,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S48-1 | Apurement | Pas d'écran en plus. La résiliation est refusée tant qu'un compte a un solde ou qu'il reste des parts ; on solde par S74, S77 et S70 | Donnée exigée ailleurs : Chaîne du client ; loi 002/2002, art. 27 (déjà lu pour S48) | moyenne | à appliquer |
+| S48-1 | Apurement | Pas d'écran en plus. La résiliation est refusée tant qu'un compte a un solde ou qu'il reste des parts ; on solde par S74, S77 et S70 — Construit : refus tant qu'un compte a un solde (comptes cités). Écart imposé par la loi 002/2002, art. 22 : le membre garde au moins une part tant qu'il est membre ; les parts ne bloquent donc pas la résiliation, elles sont remboursées après par Part sociale (S77), comme S77 le permet déjà. S70 (Clôturer un compte) n'est pas construit : le retrait au guichet (S74) suffit | Donnée exigée ailleurs : Chaîne du client ; loi 002/2002, art. 27 (déjà lu pour S48) | moyenne | en place |
 | S48-2 | Frais de fermeture montré par la capture | Aucun : la clôture de compte est gratuite | Texte réglementaire : Instr. BCC 37, annexe (« Clôture de compte ») | forte | en place |
 
 ## S50 Consentement BIC

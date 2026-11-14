@@ -603,6 +603,21 @@ def test_motif_depart(clients):
 
 
 
+COUPURES = {"CDF": [20000, 10000, 5000, 1000, 500, 200, 100, 50], "USD": [100, 50, 20, 10, 5, 1]}
+
+
+def vider_comptes(chef, caisse, tid):
+    """Apurement avant la résiliation (registre S48-1) : retrait du solde de chaque compte au guichet (S74)"""
+    for c in chef.get(f"/api/tiers/{tid}/comptes").json():
+        if c["solde"]:
+            reste, coupures = c["solde"] // 100, {}
+            for v in COUPURES[c["devise"]]:
+                if reste >= v:
+                    coupures[str(v)], reste = reste // v, reste % v
+            r = caisse.post("/api/guichet/retraits", {"cle": cle(), "compteId": c["id"], "montant": c["solde"], "coupures": coupures, "mandataire": ""}, **H)
+            assert r.status_code == 200 and r.json()["statut"] == "validee", r.content
+
+
 def test_resiliation(clients, journee):
     chef, agent, caisse = clients["chef"], clients["agent"], clients["caisse"]
     k = T("0412-000320")
@@ -611,6 +626,8 @@ def test_resiliation(clients, journee):
     assert "Droit manquant" in refus(agent, {"motif": "AUTRES"})
     assert "motif" in refus(chef, {"motif": ""})
     assert "Motif inconnu" in refus(chef, {"motif": "Fâché"})
+    assert "compte à solder : 0412-000320-02" in refus(chef, {"motif": "Raisons personnelles"})   # registre S48-1 ; loi 002/2002, art. 27
+    vider_comptes(chef, caisse, k)
     r = chef.post(f"/api/tiers/{k}/resiliation", {"motif": "Raisons personnelles"}, **H)
     assert r.status_code == 200, r.content
     v = r.json()
@@ -672,7 +689,8 @@ def test_parts_sociales(clients, journee):
     assert op({"tiersId": k, "sens": "retrait", "nombre": 2, "coupures": {"5000": 1, "1000": 3}}).json()["statut"] == "validee"
     assert caisse.get(f"/api/tiers/{k}/parts").json() == 1
     # Membre résilié : toutes ses parts lui sont rendues (apurement, art. 27)
-    chef.post(f"/api/tiers/{m}/resiliation", {"motif": "AUTRES"}, **H)
+    vider_comptes(chef, caisse, m)
+    assert chef.post(f"/api/tiers/{m}/resiliation", {"motif": "AUTRES"}, **H).status_code == 200   # les parts restent, remboursées après (art. 22 et 27)
     assert op({"tiersId": m, "sens": "retrait", "nombre": 1, "coupures": {"1000": 4}}).json()["statut"] == "validee"
     assert "résilié" in refus({"tiersId": m, "sens": "achat", "nombre": 1, "coupures": {"1000": 4}})
     # Compte de parts selon le type de client (PCCI, compte 103) : une entreprise en 1032

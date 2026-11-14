@@ -532,7 +532,8 @@ export function ResiliationClient() {
         </table>
         {t && devises.map((d) => <p key={d}>Solde Créditeur {d} : <strong className="chiffres">{montant(comptes!.filter((c) => c.devise === d).reduce((s, c) => s + c.solde, 0), d)}</strong></p>)}
         <Textes sources={["Manuel Microfina++, p. 57 : écran Résiliation du contrat client (N° Client, Informations générales, Résilié le, Motif*, Frais de résiliation, Résilier, Imprimer, soldes)",
-          "Loi 002/2002, art. 24 : un membre emprunteur ou endosseur d'un prêt ne peut pas se retirer ; art. 27 : apurement à la perte de la qualité de membre",
+          "Loi 002/2002, art. 24 : un membre emprunteur ou endosseur d'un prêt ne peut pas se retirer ; art. 27 : apurement à la perte de la qualité de membre, comptes soldés avant la résiliation",
+          "Loi 002/2002, art. 22 : au moins une part pour rester membre ; les parts sont remboursées après la résiliation (Caisse > Part sociale)",
           "Instr. BCC 37, annexe : clôture de compte gratuite",
           "Motifs : exemples de la capture « Motif de départ d'un client » (p. 26), paramétrage S18 à construire"]} />
       </section>

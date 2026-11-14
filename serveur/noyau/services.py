@@ -1254,6 +1254,17 @@ def engagements_credit(tid: int) -> str | None:
     return None
 
 
+def controler_apurement(tid: int):
+    """Registre S48-1 : pas de résiliation tant qu'un compte a un solde ; apurement par Dépôt / Retrait (S74). Loi 002/2002, art. 27.
+    Les parts restent : un membre en garde au moins une (art. 22) ; elles sont remboursées après la résiliation par Part sociale (S77).
+    Mêmes règles que controlerApurement (web/src/donnees/api.ts)."""
+    comptes = [c["numero"] for c in lignes("select id, numero, devise from compte_depot where tiers_id = %s order by numero", (tid,))
+               if solde_contrat(f"depot:{c['id']}", c["devise"].strip(), "C") != 0]
+    if comptes:
+        raise ErreurMetier(f"Apurement à faire avant la résiliation (loi 002/2002, art. 27) : compte{'s' if len(comptes) > 1 else ''} à solder : "
+                           + ", ".join(comptes) + ". Solder par Caisse > Dépôt / Retrait.")
+
+
 def resilier_tiers(u: dict, tid: int, d: dict) -> dict:
     """S48 : Client > Résilier un client (manuel p. 57), bouton Résilier. Loi 002/2002, art. 24 ; apurement ensuite (art. 27).
     Aucun frais de fermeture de compte : clôture gratuite (Instr. BCC 37, annexe)."""
@@ -1271,6 +1282,7 @@ def resilier_tiers(u: dict, tid: int, d: dict) -> dict:
     if not valeur("select 1 from liste_reference where institution_id = %s and liste = 'motif_depart' and libelle = %s and actif", (u["institution_id"], motif)):
         raise ErreurMetier("Motif inconnu.")
     engagements_credit(tid)
+    controler_apurement(tid)
     j = journee_courante(u)
     jour = j["date"] if j and j["statut"] == "ouverte" else date.today().isoformat()
     executer("update tiers set statut = 'resilie', motif_depart = %s, resilie_le = %s, resilie_par = %s where id = %s", (motif, jour, u["id"], tid))

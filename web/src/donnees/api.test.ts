@@ -427,6 +427,19 @@ describe("journée de guichet", () => {
     expect(await api.procurations.lire()).toEqual([]);
   });
 
+  /** Apurement avant la résiliation (registre S48-1) : retrait du solde de chaque compte au guichet (S74), par la caissière */
+  async function viderComptes(id: number) {
+    await connecter("jpmukendi");
+    const comptes = (await api.tiers.comptes(id)).filter((c) => c.solde);
+    await connecter("engalula");
+    for (const c of comptes) {
+      let reste = c.solde / 100; const coupures: Comptage = {};
+      for (const v of c.devise === "USD" ? [100, 50, 20, 10, 5, 1] : [20000, 10000, 5000, 1000, 500, 200, 100, 50]) if (reste >= v) { coupures[v] = Math.floor(reste / v); reste %= v; }
+      expect((await api.guichet.retrait({ cle: cle(), compteId: c.id, montant: c.solde, coupures })).statut).toBe("validee");
+    }
+    await connecter("jpmukendi");
+  }
+
   it("résiliation (S48) : chef d'agence, motif de la liste, client bloqué au guichet", async () => {
     await journeeOuverte();
     await connecter("bkasongo");
@@ -434,6 +447,8 @@ describe("journée de guichet", () => {
     await connecter("jpmukendi");
     await expect(api.tiers.resilier(3, { motif: "" })).rejects.toThrow("motif");
     await expect(api.tiers.resilier(3, { motif: "Fâché" })).rejects.toThrow("Motif inconnu");
+    await expect(api.tiers.resilier(3, { motif: "Raisons personnelles" })).rejects.toThrow("compte à solder");   // registre S48-1 ; loi 002/2002, art. 27
+    await viderComptes(3);
     expect(await api.tiers.resilier(3, { motif: "Raisons personnelles" })).toMatchObject({ statut: "resilie", motifDepart: "Raisons personnelles", resilieLe: "2026-11-05" });
     await expect(api.tiers.resilier(3, { motif: "AUTRES" })).rejects.toThrow("déjà résilié");
     await connecter("engalula");
@@ -471,7 +486,7 @@ describe("journée de guichet", () => {
     await expect(op(1, "retrait", 5, { 1000: 20 })).rejects.toThrow("ne détient que");
     expect((await op(1, "retrait", 2, { 5000: 1, 1000: 3 })).statut).toBe("validee");
     expect(await api.tiers.parts(1)).toBe(1);
-    await connecter("jpmukendi"); await api.tiers.resilier(2, { motif: "AUTRES" }); await connecter("engalula");
+    await viderComptes(2); await api.tiers.resilier(2, { motif: "AUTRES" }); await connecter("engalula");   // les parts restent, remboursées après (art. 22 et 27)
     expect((await op(2, "retrait", 1, { 1000: 4 })).statut).toBe("validee");
     await expect(op(2, "achat", 1, { 1000: 4 })).rejects.toThrow("résilié");
     expect(compteParts({ ...(await api.tiers.lire(1))!, type: "morale" })).toBe("1032");

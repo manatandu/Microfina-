@@ -518,6 +518,13 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('button', { name: 'Imprimer' }).click(); await p.getByText('Retrait enregistré').waitFor(); await etape('12-retrait-recu');
   await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
+  // Apurement avant la résiliation (registre S48-1) : Lukusa retire tout son solde (85 000 CDF)
+  await aller('/caisse/s74?op=retrait'); await client('Lukusa'); await p.getByLabel('N° compte').selectOption({ label: '0412-000320-02' });
+  await p.getByLabel('Montant *').fill('85 000'); await p.getByLabel('Motif:').fill('Départ');
+  await p.getByRole('button', { name: 'Billetage' }).click(); const bl = p.getByRole('dialog', { name: 'Billetage' });
+  await bl.getByLabel('Nombre de coupures de 20 000 CDF').fill('4'); await bl.getByLabel('Nombre de coupures de 5 000 CDF').fill('1');
+  await bl.getByRole('button', { name: 'Fermer' }).click();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok(); await etape('12a-apurement-lukusa');
   // Chef : retirer à la caissière la case « Voir solde client » (S10) ; au guichet, les soldes sont masqués (registre S10-1)
   await login('J.-P. Mukendi'); await aller('/administration/s10');
   await p.getByRole('button', { name: 'Retirer le guichet : engalula' }).click(); await oui();
@@ -581,6 +588,14 @@ const OUT = process.argv[2];
   await p.getByRole('tab', { name: 'Modèle de plan comptable' }).click(); await p.getByRole('cell', { name: 'COMPTES DE TRESORERIE' }).waitFor(); await etape('18c-plan-modele');
   // Résiliation (S48), par le chef
   await login('J.-P. Mukendi'); await aller('/clients/s48');
+  // Kalala a encore des soldes : refus (registre S48-1 ; loi 002/2002, art. 27)
+  await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  const rk = p.getByRole('dialog', { name: "Recherche d'un client" });
+  await rk.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rk.getByRole('row').filter({ hasText: 'Kalala' }).first().dblclick();
+  await p.getByLabel('Motif *').selectOption('Raisons personnelles');
+  await p.getByRole('button', { name: 'Résilier' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('dialog', { name: 'Erreur' }).getByText(/comptes à solder : 0412-000318-01, 0412-000318-02/).waitFor(); await etape('19a-apurement-a-faire');
+  await p.getByRole('button', { name: 'Ok' }).click();
   await p.getByRole('button', { name: 'Rechercher un client' }).click();
   const rr = p.getByRole('dialog', { name: "Recherche d'un client" });
   await rr.getByLabel('Nom:', { exact: true }).fill('Lukusa'); await rr.getByRole('row').filter({ hasText: 'Lukusa' }).dblclick();

@@ -482,6 +482,13 @@ function nouveauTiers(d: NouveauTiers, creePar: number, reste: Pick<Tiers, "type
   E.tiers.push(t); return t;
 }
 
+/** Registre S48-1 : pas de résiliation tant qu'un compte a un solde ; apurement par Dépôt / Retrait (S74). Loi 002/2002, art. 27.
+ * Les parts restent : un membre en garde au moins une (art. 22) ; remboursées après la résiliation par Part sociale (S77). Identique au serveur (services.controler_apurement). */
+function controlerApurement(id: number) {
+  const comptes = E.comptes.filter((c) => c.tiersId === id && soldeContrat(`depot:${c.id}`, c.devise, "C") !== 0).map((c) => c.numero).sort();
+  if (comptes.length) throw new ErreurMetier(`Apurement à faire avant la résiliation (loi 002/2002, art. 27) : compte${comptes.length > 1 ? "s" : ""} à solder : ${comptes.join(", ")}. Solder par Caisse > Dépôt / Retrait.`);
+}
+
 /** S46, client physique (p. 56) : contrôles de l'enrôlement, mentions de l'identité comprises (registre S46-3). Identique au serveur (services.modifier_tiers). */
 function modifierPhysique(t: Tiers, d: NouveauTiers, ctx: CtxControle) {
   controlerBase(d, [["date demande", d.dateDemande], ["type client", d.typeClient],
@@ -652,6 +659,7 @@ const tiers = {
     const motif = d.motif.trim();
     if (!motif) throw new ErreurMetier("À remplir : motif.");
     if (!valeursListe("motif_depart").some((l) => l.libelle === motif)) throw new ErreurMetier("Motif inconnu.");
+    controlerApurement(id);
     const j = journees.courante();
     Object.assign(t, { statut: "resilie", motifDepart: motif, resilieLe: j && j.statut === "ouverte" ? j.date : new Date().toISOString().slice(0, 10) });
     enregistrer(); return t;
