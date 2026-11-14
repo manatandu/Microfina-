@@ -497,6 +497,11 @@ def banque_operations_enregistrer(request, corps: dict = Body(...)):
     return bop.enregistrer(u(request), corps)
 
 
+@api.post("/banque/virements")
+def banque_virements_enregistrer(request, corps: dict = Body(...)):
+    return bop.enregistrer(u(request), corps, client=True)
+
+
 @api.get("/banques")
 def bq_lire(request):
     return bq.lire(u(request))

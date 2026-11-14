@@ -522,6 +522,26 @@ describe("journée de guichet", () => {
     await expect(api.banqueOperations.enregistrer({ ...enc, cle: cle() })).rejects.toThrow("Droit manquant");
   });
 
+  it("virement et prélèvement (S53) : compte du client et compte bancaire, disponible, même devise (registre S53-1 à S53-4)", async () => {
+    await journeeOuverte();
+    await connecter("jpmukendi");
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    await api.banques.enregistrerCompte({ banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "",
+      compte: "56010001", numeroBancaire: "R-USD-1", devise: "USD" });
+    await connecter("plumbala");
+    const usd = (await api.banqueOperations.lire()).comptes[0]!.id;
+    const comptes = await api.tiers.comptes(1);
+    const cusd = comptes.find((c) => c.devise === "USD")!, ccdf = comptes.find((c) => c.devise === "CDF")!;
+    const base = { date: "2026-11-05", compteBancaireId: usd, compteDepotId: cusd.id, libelle: "Salaire", montant: 30000 };
+    await expect(api.banqueOperations.enregistrer({ ...base, cle: cle(), type: "virement_client" })).rejects.toThrow("Type d'opération inconnu");
+    await expect(api.banqueOperations.enregistrerVirement({ ...base, cle: cle(), type: "virement_client", libelle: "" })).rejects.toThrow("libellé opération");
+    await expect(api.banqueOperations.enregistrerVirement({ ...base, cle: cle(), type: "virement_client", compteDepotId: ccdf.id })).rejects.toThrow("même devise");
+    await expect(api.banqueOperations.enregistrerVirement({ ...base, cle: cle(), type: "prelevement_client", montant: cusd.disponible + 1 })).rejects.toThrow("disponible insuffisant");
+    expect((await api.banqueOperations.enregistrerVirement({ ...base, cle: cle(), type: "virement_client" })).statut).toBe("saisie");
+    await api.banqueOperations.enregistrerVirement({ ...base, cle: cle(), type: "prelevement_client", montant: cusd.disponible });
+    await expect(api.banqueOperations.enregistrerVirement({ ...base, cle: cle(), type: "prelevement_client", montant: 1 })).rejects.toThrow("disponible insuffisant");
+  });
+
   it("banques (S58) : banque client, compte de l'institution en 560 (PCCI), suppression contrôlée", async () => {
     await connecter("bkasongo");
     const b = { code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "Kinshasa, Gombe" };

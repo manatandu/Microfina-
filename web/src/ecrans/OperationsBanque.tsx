@@ -12,7 +12,7 @@ type Lu = Awaited<ReturnType<typeof api.banqueOperations.lire>>;
 type CompteB = Lu["comptes"][number];
 
 /** Banque puis Compte Banque, la liste des comptes suit la banque choisie */
-function ChoixBanque({ lu, libelleBanque, libelleCompte, banque, compte, onBanque, onCompte }: {
+export function ChoixBanque({ lu, libelleBanque, libelleCompte, banque, compte, onBanque, onCompte }: {
   lu: Lu; libelleBanque: string; libelleCompte: string; banque: string; compte: string; onBanque: (v: string) => void; onCompte: (v: string) => void;
 }) {
   const comptes = lu.comptes.filter((c) => String(c.banqueId) === banque);

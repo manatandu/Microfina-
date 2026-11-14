@@ -32,6 +32,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
     banqueOperations: {
       lire: () => get("/banque/operations"),
       enregistrer: (d: object) => post("/banque/operations", d),
+      enregistrerVirement: (d: object) => post("/banque/virements", d),
     },
     session: {
       utilisateurs: () => get("/utilisateurs"),

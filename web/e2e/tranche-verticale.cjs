@@ -315,6 +315,14 @@ const OUT = process.argv[2];
   await p.getByRole('tab', { name: 'V. Banque vers Banque' }).click(); await p.getByLabel('Montant *').fill('50');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByRole('dialog', { name: 'Erreur' }).waitFor(); await etape('06c6-banque-vers-banque-refus'); await p.getByRole('button', { name: 'Ok' }).click();
+  // Virement prélèvement (S53) : un virement reçu par la banque pour le compte en dollars de Kalala
+  await aller('/banque/s53'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  const rv = p.getByRole('dialog', { name: "Recherche d'un client" });
+  await rv.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rv.getByRole('row').filter({ hasText: 'Kalala' }).first().dblclick();
+  await p.getByRole('radio', { name: 'Virement' }).check(); await p.getByLabel('N° Compte *').selectOption({ label: '0412-000318-01' });
+  await p.getByLabel('Banque *', { exact: true }).selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte Banque *').selectOption({ index: 1 });
+  await p.getByLabel('Libelle operation *').fill('Salaire novembre'); await p.getByLabel('Montant *').fill('100'); await etape('06c7-virement-client');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
   await login('J.-P. Mukendi');
   // Paramétrage des frais (S16)
   await aller('/parametrage/s16');

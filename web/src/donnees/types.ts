@@ -161,11 +161,12 @@ export interface Ecriture {
 export type TypeOperation = "depot" | "retrait" | "adhesion" | "achat_parts" | "retrait_parts";
 
 /** S52 : opération de banque, saisie puis visée et validée (S57), comptabilisée (S111) ; pièce donnée à la comptabilisation (registre S52-2) */
-export type TypeOperationBanque = "encaissement" | "decaissement" | "banque_caisse" | "banque_banque";
+export type TypeOperationBanque = "encaissement" | "decaissement" | "banque_caisse" | "banque_banque" | "virement_client" | "prelevement_client";
 export interface OperationBanque {
   id: number; cle: string; type: TypeOperationBanque; date: string; compteBancaireId: number; compteBancaireDestId: number | null; guichetId: number | null;
   compte: string; libelle: string; montant: number; devise: Devise; cheque: string; typeBudgetId: number | null; ligneBudgetId: number | null;
   statut: "saisie" | "visee" | "validee" | "comptabilisee" | "refusee"; piece: string; saisiPar: number;
+  compteDepotId?: number | null;   // S53 : compte du client
 }
 
 export interface Operation {

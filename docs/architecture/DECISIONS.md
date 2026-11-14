@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**286 décisions.** Solidité : 93 fortes (le manuel ou un texte répond), 156 moyennes (déduites d'un écran voisin ou d'une donnée), 37 faibles (notre choix, faute de mieux). Dans le code : 255 déjà en place, 31 à appliquer.
+**290 décisions.** Solidité : 93 fortes (le manuel ou un texte répond), 158 moyennes (déduites d'un écran voisin ou d'une donnée), 39 faibles (notre choix, faute de mieux). Dans le code : 259 déjà en place, 31 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -667,6 +667,15 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | S60-1 | Liste « N° de chèque » de S52 | Elle proposera les chèques des chéquiers de l'institution quand S60 sera construit ; vide d'ici là | Donnée exigée ailleurs : Capture p. 60 (liste N° de chèque) | moyenne | à appliquer |
 
+## S53 Virement prélèvement
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S53-1 | Sens du virement et du prélèvement | Virement : la banque crédite le compte du client (l'argent arrive). Prélèvement : le compte du client est débité au profit de la banque (l'argent part). Sens bancaire courant ; le manuel ne le dit pas. À confirmer par le porteur | Règle générale du manuel : Manuel p. 61 (texte et capture, sans le sens) | faible | en place |
+| S53-2 | Contrôle du prélèvement | Sur le solde disponible du compte (solde moins blocages), comme un retrait au guichet ; les prélèvements déjà saisis et pas encore comptabilisés sont déduits | Écran voisin : S74 (retrait sur le disponible) | moyenne | en place |
+| S53-3 | Devises | Le compte du client et le compte bancaire doivent être dans la même devise ; entre deux devises, à confirmer avec S52-6 | Écran voisin : Registre S52-6 | faible | en place |
+| S53-4 | Client et compte | Client actif (ni à viser, ni modifié à valider, ni résilié) et compte ouvert, comme pour les opérations de guichet ; route et droit propres à l'écran S53 | Écran voisin : S74 ; registre S04-3 | moyenne | en place |
+
 ## Les décisions faibles, à regarder en premier
 
 | N° | Écran | Question | Réponse retenue |
@@ -708,3 +717,5 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S01-3 | S01 Connexion | Règles de mot de passe et de blocage | À confirmer : longueur, durée de vie, nombre d'essais avant blocage, verrouillage de session. Le texte (Instr. BCC 008, art. 16) demande seulement des accès et une authentification « maîtrisés » ; l'institution édicte ses règles internes. Aucune règle inventée. Sans limite d'essais, un mot de passe se devine par essais répétés : à décider avant l'ouverture à de vrais utilisateurs |
 | S52-1 | S52 Opérations de banque | Case « Type écriture Multiligne » | Montrée et inactive : aucune capture ni aucun texte ne la montre cochée (p. 60 et p. 133). À confirmer par le porteur : plusieurs lignes de contrepartie pour un même mouvement de banque ? |
 | S52-6 | S52 Opérations de banque | Virement entre deux comptes de devises différentes | Refusé pour l'instant : la conversion au cours du jour (S35) est à confirmer par le porteur |
+| S53-1 | S53 Virement prélèvement | Sens du virement et du prélèvement | Virement : la banque crédite le compte du client (l'argent arrive). Prélèvement : le compte du client est débité au profit de la banque (l'argent part). Sens bancaire courant ; le manuel ne le dit pas. À confirmer par le porteur |
+| S53-3 | S53 Virement prélèvement | Devises | Le compte du client et le compte bancaire doivent être dans la même devise ; entre deux devises, à confirmer avec S52-6 |

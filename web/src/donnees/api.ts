@@ -1134,11 +1134,12 @@ const numerotation = {
 
 // ---------- S52 : Banque > Opération (manuel p. 60 et 61). Règles identiques côté serveur (noyau/banque_operations.py). ----------
 const TYPES_OPERATION_BANQUE: Record<TypeOperationBanque, string> = { encaissement: "Encaissement divers", decaissement: "Décaissement divers",
-  banque_caisse: "Virement banque vers caisse", banque_banque: "Virement banque vers banque" };
+  banque_caisse: "Virement banque vers caisse", banque_banque: "Virement banque vers banque", virement_client: "Virement", prelevement_client: "Prélèvement" };
+const OPERATIONS_CLIENT: TypeOperationBanque[] = ["virement_client", "prelevement_client"];
 /** Saisie d'une opération de banque : trois onglets ; montant en centièmes, dans la devise du compte bancaire */
 export interface SaisieOperationBanque {
   cle: string; type: TypeOperationBanque; date: string; compteBancaireId?: number; compteBancaireDestId?: number; guichetId?: number;
-  compte?: string; libelle?: string; montant: number; cheque?: string; typeBudgetId?: number | null; ligneBudgetId?: number | null;
+  compte?: string; libelle?: string; montant: number; cheque?: string; typeBudgetId?: number | null; ligneBudgetId?: number | null; compteDepotId?: number;
 }
 const soldeCompteNumero = (numero: string, devise: Devise) => E.ecritures.flatMap((e) => e.lignes).filter((x) => x.compte === numero && x.devise === devise)
   .reduce((s, x) => s + (x.sens === "D" ? x.montant : -x.montant), 0);
@@ -1158,11 +1159,15 @@ const banqueOperations = {
       lignesBudget: (E.budget["lignes"] ?? []).filter((x) => x.actif).map((x) => ({ id: x.id, numero: String(x.numero ?? ""), libelle: String(x.libelle ?? ""), bailleurId: (x.bailleurId as number | null) ?? null })),
     };
   },
-  enregistrer(d: SaisieOperationBanque): OperationBanque {
+  enregistrer: (d: SaisieOperationBanque) => enregistrerOperationBanque(d, false),
+  /** S53 : virement et prélèvement entre le compte d'un client et un compte bancaire ; sa route, donc son droit (registre S04-3) */
+  enregistrerVirement: (d: SaisieOperationBanque) => enregistrerOperationBanque(d, true),
+};
+function enregistrerOperationBanque(d: SaisieOperationBanque, client: boolean): OperationBanque {
     const u = exiger();
     const prec = E.operationsBanque.find((o) => o.cle === d.cle);
     if (prec) return prec;                                   // même clé : la même opération (double clic, reprise réseau)
-    if (!(d.type in TYPES_OPERATION_BANQUE)) throw new ErreurMetier("Type d'opération inconnu.");
+    if (!(d.type in TYPES_OPERATION_BANQUE) || OPERATIONS_CLIENT.includes(d.type) !== client) throw new ErreurMetier("Type d'opération inconnu.");
     const j = journees.courante();
     if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(d.date ?? "")) throw new ErreurMetier("À remplir : date opération.");
@@ -1184,6 +1189,19 @@ const banqueOperations = {
       if (tb && !(E.budget["types_budget"] ?? []).some((x) => x.id === tb && x.actif)) throw new ErreurMetier("Type budget inconnu.");
       if (lb && !(E.budget["lignes"] ?? []).some((x) => x.id === lb && x.actif)) throw new ErreurMetier("Ligne budgétaire inconnue.");
       Object.assign(o, { compte, libelle: d.libelle?.trim() || TYPES_OPERATION_BANQUE[d.type], cheque: d.type === "decaissement" ? d.cheque?.trim() ?? "" : "", typeBudgetId: tb, ligneBudgetId: lb });
+    } else if (client) {                                     // S53 (p. 61)
+      const c = E.comptes.find((x) => x.id === d.compteDepotId);
+      if (!c) throw new ErreurMetier("À remplir : N° Compte du client.");
+      controlerStatutActif(E.tiers.find((t) => t.id === c.tiersId)!.statut);
+      if (c.devise !== origine.devise) throw new ErreurMetier("Le compte du client et le compte bancaire n'ont pas la même devise.");   // S53-3
+      const libelle = d.libelle?.trim() ?? "";
+      if (!libelle) throw new ErreurMetier("À remplir : libellé opération.");
+      if (d.type === "prelevement_client") {                 // S53-2 : comme un retrait (S74), sur le disponible
+        const attente = E.operationsBanque.filter((o) => o.compteDepotId === c.id && o.type === "prelevement_client" && ["saisie", "visee", "validee"].includes(o.statut))
+          .reduce((s, o) => s + o.montant, 0);
+        if (d.montant > soldeContrat(`depot:${c.id}`, c.devise, "C") - c.bloque - attente) throw new ErreurMetier("Solde disponible insuffisant sur le compte du client.");
+      }
+      Object.assign(o, { compteDepotId: c.id, libelle });
     } else if (d.type === "banque_caisse") {
       if (!E.guichets.some((g) => g.id === d.guichetId && g.actif !== false)) throw new ErreurMetier("À remplir : caisse.");
       Object.assign(o, { guichetId: d.guichetId, cheque: d.cheque?.trim() ?? "" });
@@ -1194,8 +1212,7 @@ const banqueOperations = {
       o.compteBancaireDestId = dest.id;
     }
     E.operationsBanque.push(o); enregistrer(); return o;
-  },
-};
+}
 
 const banques = {
   lire() {

@@ -5,10 +5,10 @@ import re
 import uuid
 
 from .bd import ErreurMetier, executer, lignes, une, valeur
-from .services import exiger, journee_courante, solde_contrat
+from .services import controler_statut_actif, exiger, journee_courante, solde_contrat
 
 TYPES = {"encaissement": "Encaissement divers", "decaissement": "Décaissement divers", "banque_caisse": "Virement banque vers caisse",
-         "banque_banque": "Virement banque vers banque"}
+         "banque_banque": "Virement banque vers banque", "virement_client": "Virement", "prelevement_client": "Prélèvement"}
 
 
 def solde_banque(compte_id: int, devise: str) -> int:
@@ -52,8 +52,12 @@ def compte_bancaire(u, cid, quoi: str) -> dict:
     return c
 
 
-def enregistrer(u, d) -> dict:
-    """Bouton Enregistrer des trois onglets : l'opération est saisie, en attente du visa (S57)"""
+CLIENT = ("virement_client", "prelevement_client")
+
+
+def enregistrer(u, d, client: bool = False) -> dict:
+    """Bouton Enregistrer : S52 (trois onglets) ou S53 (client = True, virement et prélèvement) ; l'opération est saisie, en attente du visa (S57).
+    Chaque écran a sa route, donc son droit (registre S04-3)."""
     exiger(u)
     d = d if isinstance(d, dict) else {}
     try:
@@ -65,7 +69,7 @@ def enregistrer(u, d) -> dict:
         return vue(prec)                                     # même clé : la même opération (double clic, reprise réseau)
     i = u["institution_id"]
     type_ = texte(d, "type")
-    if type_ not in TYPES:
+    if type_ not in TYPES or (type_ in CLIENT) != client:
         raise ErreurMetier("Type d'opération inconnu.")
     j = journee_courante(u)
     if not j or j["statut"] != "ouverte":
@@ -80,7 +84,7 @@ def enregistrer(u, d) -> dict:
         raise ErreurMetier("Montant : un montant supérieur à zéro.")
     origine = compte_bancaire(u, entier(d, "compteBancaireId"), "Compte Banque" if type_ != "banque_banque" else "Compte Banque d'origine")
     compte = libelle = cheque = None
-    guichet = dest = type_budget = ligne_budget = None
+    guichet = dest = type_budget = ligne_budget = compte_client = None
     if type_ in ("encaissement", "decaissement"):
         compte = texte(d, "compte")
         if not compte:
@@ -99,6 +103,26 @@ def enregistrer(u, d) -> dict:
             raise ErreurMetier("Type budget inconnu.")
         if ligne_budget and not une("select 1 from budget_ligne where id = %s and institution_id = %s and actif", (ligne_budget, i)):
             raise ErreurMetier("Ligne budgétaire inconnue.")
+    elif type_ in ("virement_client", "prelevement_client"):       # S53 (p. 61)
+        c = une("""select c.id, c.statut, trim(c.devise) as devise, t.statut as statut_client from compte_depot c join tiers t on t.id = c.tiers_id
+                   where c.id = %s and t.institution_id = %s for update of c""", (entier(d, "compteDepotId"), i)) if entier(d, "compteDepotId") else None
+        if not c:
+            raise ErreurMetier("À remplir : N° Compte du client.")
+        controler_statut_actif(c["statut_client"])
+        if c["statut"] != "ouvert":
+            raise ErreurMetier("Compte du client fermé.")
+        if c["devise"] != origine["devise"]:                 # registre S53-3
+            raise ErreurMetier("Le compte du client et le compte bancaire n'ont pas la même devise.")
+        libelle = texte(d, "libelle")
+        if not libelle:
+            raise ErreurMetier("À remplir : libellé opération.")
+        if type_ == "prelevement_client":                   # registre S53-2 : comme un retrait (S74), sur le disponible
+            bloque = int(valeur("select coalesce(sum(montant), 0) from blocage where compte_id = %s and (fin is null or fin > now())", (c["id"],)))
+            attente = int(valeur("""select coalesce(sum(montant), 0) from operation_banque where compte_depot_id = %s and type = 'prelevement_client'
+                                     and statut in ('saisie', 'visee', 'validee')""", (c["id"],)))
+            if montant > solde_contrat(f"depot:{c['id']}", c["devise"], "C") - bloque - attente:
+                raise ErreurMetier("Solde disponible insuffisant sur le compte du client.")
+        compte_client = c["id"]
     elif type_ == "banque_caisse":
         guichet = entier(d, "guichetId")
         if not guichet or not une("select 1 from guichet where id = %s and agence_id = %s and actif", (guichet, u["agence_id"])):
@@ -114,14 +138,15 @@ def enregistrer(u, d) -> dict:
         dest = dest["id"]
         libelle = TYPES[type_]
     oid = valeur("""insert into operation_banque (institution_id, agence_id, type, date_operation, compte_bancaire_id, compte_bancaire_dest_id, guichet_id, compte,
-                                                  libelle, montant, devise, cheque, budget_type_id, budget_ligne_id, cle_idempotence, saisi_par)
-                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
+                                                  libelle, montant, devise, cheque, budget_type_id, budget_ligne_id, cle_idempotence, saisi_par, compte_depot_id)
+                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
                  (i, u["agence_id"], type_, date_op, origine["id"], dest, guichet, compte, libelle, montant, origine["devise"], cheque,
-                  type_budget, ligne_budget, cle, u["id"]))
+                  type_budget, ligne_budget, cle, u["id"], compte_client))
     return vue(une("select * from operation_banque where id = %s", (oid,)))
 
 
 def vue(o: dict) -> dict:
     return {"id": o["id"], "type": o["type"], "date": o["date_operation"].isoformat(), "compteBancaireId": o["compte_bancaire_id"],
             "compteBancaireDestId": o["compte_bancaire_dest_id"], "guichetId": o["guichet_id"], "compte": o["compte"] or "", "libelle": o["libelle"] or "",
-            "montant": o["montant"], "devise": o["devise"].strip(), "cheque": o["cheque"] or "", "statut": o["statut"], "piece": o["piece"] or ""}
+            "montant": o["montant"], "devise": o["devise"].strip(), "cheque": o["cheque"] or "", "statut": o["statut"], "piece": o["piece"] or "",
+            "compteDepotId": o.get("compte_depot_id")}

@@ -785,6 +785,30 @@ def test_operations_banque(clients, journee):
     assert ident("select count(*) from ecriture e join ligne_ecriture l on l.ecriture_id = e.id join compte c on c.id = l.compte_id where c.numero like '5601%%'") == 0   # rien n'est comptabilisé à la saisie
 
 
+def test_virement_prelevement(clients, journee):
+    """S53 (manuel p. 61) : entre le compte d'un client et un compte bancaire ; saisi en attente du visa (S57) ; registre S53-1 à S53-4"""
+    chef, compta = clients["chef"], clients["compta"]
+    bid = chef.post("/api/banques", {"code": "RAW", "libelle": "Rawbank", "compteLiaison": "5601", "adresse": ""}, **H).json()["banques"][0]["id"]
+    j = chef.get("/api/banques").json()["journaux"][0]["id"]
+    usd = next(c["id"] for c in chef.post("/api/banques/comptes", {"banqueId": bid, "compte": "56010001", "numeroBancaire": "R-USD-1", "devise": "USD", "journalId": j,
+                                                                  "contactNom": "Mutombo"}, **H).json()["comptes"])
+    cusd, ccdf = C("0412-000318-01"), C("0412-000318-02")
+    dispo = next(c for c in compta.get(f"/api/tiers/{T('0412-000318')}/comptes").json() if c["id"] == cusd)["disponible"]
+    base = {"date": "2026-11-05", "compteBancaireId": usd, "compteDepotId": cusd, "libelle": "Salaire", "montant": 30000}
+    def refus(corps, route="/api/banque/virements"):
+        r = compta.post(route, {"cle": cle(), **base, **corps}, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    assert "Type d'opération inconnu" in refus({"type": "virement_client"}, "/api/banque/operations")       # chaque écran sa route, donc son droit
+    assert "Type d'opération inconnu" in refus({"type": "encaissement", "compte": "727"})
+    assert "libellé opération" in refus({"type": "virement_client", "libelle": ""})
+    assert "même devise" in refus({"type": "virement_client", "compteDepotId": ccdf})
+    assert "disponible insuffisant" in refus({"type": "prelevement_client", "montant": dispo + 1})
+    v = compta.post("/api/banque/virements", {"cle": cle(), **base, "type": "virement_client"}, **H).json()
+    assert (v["statut"], v["compteDepotId"], v["libelle"]) == ("saisie", cusd, "Salaire")
+    p = compta.post("/api/banque/virements", {"cle": cle(), **base, "type": "prelevement_client", "montant": dispo}, **H).json()
+    assert p["type"] == "prelevement_client"
+    assert "disponible insuffisant" in refus({"type": "prelevement_client", "montant": 1})      # le prélèvement saisi réserve le disponible
+
+
 def test_arrete_de_caisse(clients, journee):
     """S79 (manuel p. 90 et 91) : pas de comptage à l'ouverture ; Solde Caisse = dernier arrêté validé + opérations du jour ;
     Bon de Caisse enregistré ; Enregistrer refait la saisie tant que le billetage n'est pas validé"""

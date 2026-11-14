@@ -31,6 +31,7 @@ DROITS_DEPART = {"chef_agence": ["S03", "S04", "S05", "S06", "S07", "S08", "S09"
 ROUTES = [(re.compile(m), e) for m, e in [
     (r"/journees(/\d+/fermeture)?", ["S12"]),
     (r"/banque/operations", ["S52"]),
+    (r"/banque/virements", ["S53"]),
     (r"/caisses", ["S09"]),
     (r"/caisses/\d+/billetages", ["S79"]),
     (r"/billetages/\d+/validation", ["S80"]),
