@@ -47,5 +47,5 @@ TIME_ZONE = "UTC"                   # horodatage en UTC ; l'heure affichée suit
 LANGUAGE_CODE = "fr"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Démonstration : aucun mot de passe exigé pour l'instant (décision du porteur, 05/11/2026)
-SANS_MOT_DE_PASSE = os.environ.get("LIKELEMBA_SANS_MOT_DE_PASSE", "1") == "1"
+# Mot de passe exigé par défaut (registre S01-2 : site en ligne). Démonstration et essais : LIKELEMBA_SANS_MOT_DE_PASSE=1 (décision du porteur, 05/11/2026)
+SANS_MOT_DE_PASSE = os.environ.get("LIKELEMBA_SANS_MOT_DE_PASSE", "0") == "1"

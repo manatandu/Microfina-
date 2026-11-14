@@ -11,6 +11,7 @@ from datetime import date
 from decimal import Decimal
 
 from django.conf import settings
+from django.contrib.auth.hashers import check_password, make_password
 
 from .bd import ErreurMetier, executer, lignes, une, valeur
 
@@ -65,13 +66,27 @@ def exiger(u: dict | None, role: str | None = None) -> dict:
 CONNECTE = f"jeton_session is not null and connecte_le > now() - interval '{int(settings.SESSION_COOKIE_AGE)} seconds'"
 
 
+_FAUX_HASH: list[str] = []
+
+
+def verifier_mot_de_passe(login: str, mot_de_passe) -> bool:
+    """Registre S01-2 : mot de passe comparé à l'empreinte du compte (S05-3). Même durée et même réponse pour un identifiant inconnu,
+    un compte sans mot de passe et un mauvais mot de passe : rien ne dit quels identifiants existent."""
+    if not _FAUX_HASH:
+        _FAUX_HASH.append(make_password("inconnu"))
+    h = valeur("select mot_de_passe_hash from utilisateur where login = %s and actif", (login,))
+    ok = check_password(mot_de_passe if isinstance(mot_de_passe, str) else "", h or _FAUX_HASH[0])
+    return bool(ok and h and isinstance(mot_de_passe, str) and mot_de_passe)
+
+
 def ouvrir_session(login: str, mot_de_passe: str | None, machine: str = "") -> dict:
+    login = login.strip()
+    if not settings.SANS_MOT_DE_PASSE and not verifier_mot_de_passe(login, mot_de_passe):
+        raise ErreurMetier("Nom d'utilisateur ou mot de passe incorrect.")
     u = une(f"""select id, controle_connecte, machine, case when {CONNECTE} then jeton_session end as jeton_session
-                 from utilisateur where login = %s and actif""", (login.strip(),))
+                 from utilisateur where login = %s and actif""", (login,))
     if not u:
         raise ErreurMetier("Identifiant inconnu.")
-    if not settings.SANS_MOT_DE_PASSE:
-        raise ErreurMetier("Vérification du mot de passe pas encore branchée.")   # à faire avec la décision du porteur
     # Registre S07-3 : « Control utilisateur connecté » (S05) : pas de seconde connexion tant que la première n'est pas fermée
     if u["controle_connecte"] and u["jeton_session"]:
         raise ErreurMetier(f"Déjà connecté ({u['machine'] or 'machine inconnue'}). Demander la déconnexion (Administration > Utilisateur > Déconnecter utilisateurs).")
@@ -93,6 +108,8 @@ def fermer_session(uid, jeton) -> None:
 
 
 def utilisateurs() -> list[dict]:
+    if not settings.SANS_MOT_DE_PASSE:
+        return []                                  # site en ligne : la liste des identifiants n'est pas publique (registre S01-2)
     return [vue_utilisateur(charger_utilisateur(r["id"])) for r in lignes("select id from utilisateur where actif order by id")]
 
 

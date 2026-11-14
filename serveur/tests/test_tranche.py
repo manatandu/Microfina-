@@ -342,6 +342,25 @@ def test_mise_a_jour_client(clients, journee):
     assert chef.get(f"/api/tiers/{k}/images").json() == {"photo": None, "signature": None}   # graine : pas d'image réelle
 
 
+def test_connexion_avec_mot_de_passe(clients, settings):
+    """Site en ligne (registre S01-2) : mot de passe vérifié, même réponse pour un identifiant inconnu et un mauvais mot de passe, liste des identifiants fermée"""
+    chef, autre = clients["chef"], Client()
+    connecter(chef, "jpmukendi")                                   # le chef crée un compte avec mot de passe (S05)
+    ag = chef.get("/api/referentiel").json()["agence"]["id"]
+    r = chef.post("/api/gestion-utilisateurs", {"nom": "Essai Test", "agenceId": ag, "login": "etest", "motDePasse": "secret-1", "confirmation": "secret-1",
+                                                "portable": "+243 810 000 999"}, **H)
+    assert r.status_code == 200, r.content
+    settings.SANS_MOT_DE_PASSE = False
+    def ouvrir(login, mdp=None):
+        return autre.post("/api/session", {"login": login, **({"motDePasse": mdp} if mdp is not None else {})}, **H)
+    inconnu, faux, vide = ouvrir("personne", "secret-1"), ouvrir("etest", "mauvais"), ouvrir("etest")
+    assert {r.status_code for r in (inconnu, faux, vide)} == {422} and {r.json()["message"] for r in (inconnu, faux, vide)} == {"Nom d'utilisateur ou mot de passe incorrect."}
+    assert ouvrir("jpmukendi", "n'importe quoi").status_code == 422        # compte de la graine : aucun mot de passe, donc fermé
+    assert autre.get("/api/utilisateurs").json() == [] and autre.get("/api/session/mode").json() == {"motDePasseRequis": True}
+    assert ouvrir("etest", "secret-1").status_code == 200
+    assert autre.get("/api/session").json()["login"] == "etest"
+
+
 def test_mise_a_jour_entreprise_groupe(clients, journee):
     """S46 : entreprise et groupe, mêmes onglets que leur enrôlement (registre S46-2) ; signataires et membres gardés, retirés ou ajoutés"""
     agent, chef = clients["agent"], clients["chef"]

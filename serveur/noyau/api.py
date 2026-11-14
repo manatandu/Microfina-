@@ -1,5 +1,6 @@
 """API HTTP de Likelemba (Django Ninja). Une route par fonction de la façade web/src/donnees/api.ts, mêmes données.
 Chaque route lit l'utilisateur de la session ; les droits sont vérifiés dans les services (exiger)."""
+from django.conf import settings
 from django.http import HttpRequest
 from ninja import Body, NinjaAPI
 
@@ -77,6 +78,11 @@ def session_fermer(request):
 def session_courante(request):
     util = s.utilisateur_de_session(request.session.get("utilisateur"), request.session.get("jeton"))
     return s.vue_utilisateur(util) if util else None
+
+
+@api.get("/session/mode")
+def session_mode(request):
+    return {"motDePasseRequis": not settings.SANS_MOT_DE_PASSE}
 
 
 @api.get("/utilisateurs")

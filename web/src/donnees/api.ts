@@ -70,9 +70,11 @@ function verifierDroit(cle: string) {
 export const LIBELLES_ROLES: Record<Role, string> = { caissier: "caissier", chef_agence: "chef d'agence", agent_credit: "agent de crédit", comptable: "comptable" };
 
 const session = {
+  /** La démonstration dans le navigateur n'a pas de mot de passe ; le serveur l'exige sur le site en ligne (registre S01-2) */
+  mode: () => ({ motDePasseRequis: false }),
   utilisateurs: () => E.utilisateurs,
   courante: () => { const u = utilisateur(); return u ? { ...u, droits: droitsDe(u) } : null; },
-  ouvrir(login: string) {
+  ouvrir(login: string, _motDePasse?: string) {
     const u = E.utilisateurs.find((x) => x.login === login);
     if (!u) throw new ErreurMetier("Identifiant inconnu.");
     E.session = u.id; enregistrer(); return u;

@@ -32,7 +32,8 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
     session: {
       utilisateurs: () => get("/utilisateurs"),
       courante: () => get("/session"),
-      ouvrir: (login: string) => post("/session", { login }),
+      mode: () => get<{ motDePasseRequis: boolean }>("/session/mode"),
+      ouvrir: (login: string, motDePasse?: string) => post("/session", { login, motDePasse }),
       fermer: () => appel("DELETE", "/session"),
     },
     journees: {
