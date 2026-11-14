@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**265 décisions.** Solidité : 83 fortes (le manuel ou un texte répond), 148 moyennes (déduites d'un écran voisin ou d'une donnée), 34 faibles (notre choix, faute de mieux). Dans le code : 233 déjà en place, 32 à appliquer.
+**267 décisions.** Solidité : 84 fortes (le manuel ou un texte répond), 148 moyennes (déduites d'un écran voisin ou d'une donnée), 35 faibles (notre choix, faute de mieux). Dans le code : 234 déjà en place, 33 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -291,7 +291,9 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S01-1 | Mot de passe | Pas encore de mot de passe : le porteur a demandé d'attendre. Il sera ajouté à sa demande | Choix du porteur : Demande du porteur | forte | en place |
+| S01-1 | Mot de passe | Démonstration : pas de mot de passe (décision du 05/11/2026). Le mot de passe est ajouté pour le site en ligne : voir S01-2 | Choix du porteur : Demande du porteur | forte | en place |
+| S01-2 | Mot de passe sur le site en ligne | Le serveur exige le mot de passe par défaut : comparé à l'empreinte du compte (S05-3), même message pour un identifiant inconnu, un compte sans mot de passe et un mauvais mot de passe. Sur le site en ligne, la liste des identifiants n'est pas publique et les comptes de démonstration n'apparaissent pas (écart avec la page déjà faite, demande du porteur). La démonstration dans le navigateur reste sans mot de passe. Premier mot de passe d'un compte : commande definir_mot_de_passe, saisie à l'invite | Choix du porteur : Demande du porteur, 14/11/2026 ; Instr. BCC 008, art. 16 (authentification maîtrisée) | forte | en place |
+| S01-3 | Règles de mot de passe et de blocage | À confirmer : longueur, durée de vie, nombre d'essais avant blocage, verrouillage de session. Le texte (Instr. BCC 008, art. 16) demande seulement des accès et une authentification « maîtrisés » ; l'institution édicte ses règles internes. Aucune règle inventée. Sans limite d'essais, un mot de passe se devine par essais répétés : à décider avant l'ouverture à de vrais utilisateurs | Texte réglementaire : Instr. BCC 008, art. 16 ; S05-3 | faible | à appliquer |
 
 ## S49 Photo et signature
 
@@ -659,3 +661,4 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S35-4 | S35 Préférences : devise, type sous, sous | Monnaies de démonstration | CDF 50 à 20 000 et USD 1 à 100, tous billets, chacun avec son type « Billet de … » : données de démonstration reprises de l'existant, pas lues dans un texte de la BCC ; l'institution saisit ses propres monnaies |
 | S36-3 | S36 Facture : élément, référence commande | Sens de Taux A. et Taux N.A. | Repris tels quels. Sur la facture (p. 150), Microfina++ coche « Fournisseur à jour » et « IFU », et le bon de commande montre l'AIB béninoise : deux taux selon la situation du fournisseur. Leur usage en RDC (retenues à la source sur fournisseurs) est à confirmer avec le porteur avant S107 |
 | S08-10 | S08 Guichets | Plafond à zéro | Un maximum autorisé ou un retrait plafonné égal à 0 veut dire « aucun plafond » : les guichets créés avant S08-3 ont 0, la capture p. 95 montre des valeurs positives (5 000 000 et 3 000 000) |
+| S01-3 | S01 Connexion | Règles de mot de passe et de blocage | À confirmer : longueur, durée de vie, nombre d'essais avant blocage, verrouillage de session. Le texte (Instr. BCC 008, art. 16) demande seulement des accès et une authentification « maîtrisés » ; l'institution édicte ses règles internes. Aucune règle inventée. Sans limite d'essais, un mot de passe se devine par essais répétés : à décider avant l'ouverture à de vrais utilisateurs |
