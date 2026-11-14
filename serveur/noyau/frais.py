@@ -213,12 +213,16 @@ def supprimer_parametrage(u, table: str, pid: int):
 def frais_lies(u, tid: int) -> list[dict]:
     """« Liste des Frais liés » (p. 52 et 53) : frais d'adhésion paramétrés pour le type du client, ou le montant modifié pour ce client (S41)."""
     exiger(u)
-    return lignes("""select f.id as "fraisId", f.libelle, p.compte, case when p.compte like '103%%' then p.valeur else coalesce(fc.montant, p.valeur) end as montant,
+    from .services import compte_parts
+    t = une("select * from tiers where id = %s", (tid,))
+    l = lignes("""select f.id as "fraisId", f.libelle, p.compte, case when p.compte like '103%%' then p.valeur else coalesce(fc.montant, p.valeur) end as montant,
                             coalesce(p.compte like '103%%', false) as part
                      from parametrage_frais_adhesion p join frais f on f.id = p.frais_id
                      join tiers t on t.type = p.type_membre and t.institution_id = f.institution_id
                      left join frais_client fc on fc.tiers_id = t.id and fc.frais_id = f.id
                      where t.id = %s order by p.id""", (tid,))
+    # La ligne de part prend le compte 103 de la nature juridique du membre (registre S16-13)
+    return [{**r, "compte": compte_parts(t)} if r["part"] else r for r in l] if t else l
 
 
 def modifier_frais_client(u, tid: int, d) -> list[dict]:

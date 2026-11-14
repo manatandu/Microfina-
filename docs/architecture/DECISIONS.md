@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**263 décisions.** Solidité : 81 fortes (le manuel ou un texte répond), 148 moyennes (déduites d'un écran voisin ou d'une donnée), 34 faibles (notre choix, faute de mieux). Dans le code : 221 déjà en place, 42 à appliquer.
+**264 décisions.** Solidité : 82 fortes (le manuel ou un texte répond), 148 moyennes (déduites d'un écran voisin ou d'une donnée), 34 faibles (notre choix, faute de mieux). Dans le code : 222 déjà en place, 42 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -607,7 +607,13 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S16-12 | Reconnaître la ligne de part et ses limites | La ligne de part est le frais d'adhésion porté par un compte 103 (1030 physique, 1032 entreprise, 1031 ou 1032 groupe). Une seule par type de membre, valeur obligatoire. S41 ne la modifie pas pour un client (valeur des statuts). Le groupe a un seul compte : 1031 en démonstration ; associations et ONG, personnes morales, iraient en 1032 (à confirmer) | Donnée exigée ailleurs : PCCI, compte 103 ; loi 002/2002, art. 20 ; capture p. 89 | moyenne | en place |
+| S16-12 | Reconnaître la ligne de part et ses limites | La ligne de part est le frais d'adhésion porté par un compte 103 ; une seule par type de membre, valeur obligatoire, la même pour tous. S41 ne la modifie pas pour un client (valeur des statuts). Le compte de chaque membre suit S16-13 | Donnée exigée ailleurs : PCCI, compte 103 ; loi 002/2002, art. 20 ; capture p. 89 | moyenne | en place |
+
+## S16, S73, S77 Part sociale
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S16-13 | Compte de la part selon le membre | Selon la nature juridique, pas selon les trois types de Microfina++ : 1030 personne physique ; 1031 groupe de type « Groupement » (sans personnalité juridique) ; 1032 toute personne morale : entreprise, banque, État et administrations, entreprise publique, institution sans but lucratif, église, association, ONG. Statut juridique d'une église (ASBL ou confession religieuse) : à vérifier | Choix du porteur : Demande du porteur (14/11/2026) ; PCCI, compte 103 ; manuel p. 47 ; loi 002/2002, art. 22 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

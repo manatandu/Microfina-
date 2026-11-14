@@ -98,6 +98,12 @@ describe("journée de guichet", () => {
     expect((await api.journees.fermer(j1.id)).statut).toBe("fermee");
   });
 
+  it("compte de la part selon la nature juridique (registre S16-13 ; PCCI, compte 103)", () => {
+    const t = (type: "physique" | "morale" | "groupe", typeClient: string) => ({ type, typeClient }) as Parameters<typeof compteParts>[0];
+    expect([t("physique", "Client"), t("groupe", "Groupement"), t("groupe", "Association"), t("groupe", "ONG"), t("morale", "Administration centrale")].map(compteParts))
+      .toEqual(["1030", "1031", "1032", "1032", "1032"]);
+  });
+
   it("part sociale (S16, registre S16-11) : ligne des frais d'adhésion au compte 103 du membre, une seule valeur (loi 002/2002, art. 20)", async () => {
     await connecter("jpmukendi");
     const p = api.parametrage;

@@ -778,7 +778,7 @@ const parametrage = {
     const t = E.tiers.find((x) => x.id === tiersId);
     if (!t) return [];
     return E.paramAdhesion.filter((p) => TYPES_MEMBRE[p.typeMembre] === t.type).map((p) => ({
-      fraisId: p.fraisId, libelle: fraisDe(p.fraisId).libelle, compte: p.compte,
+      fraisId: p.fraisId, libelle: fraisDe(p.fraisId).libelle, compte: estPart(p.compte) ? compteParts(t) : p.compte,   // registre S16-13
       montant: estPart(p.compte) ? p.valeur : E.fraisClient.find((x) => x.tiersId === tiersId && x.fraisId === p.fraisId)?.montant ?? p.valeur, part: estPart(p.compte),
     }));
   },
@@ -1372,9 +1372,8 @@ const SORTIES: Operation["type"][] = ["retrait", "retrait_parts"];
 /** PCCI, compte 103 : 1030 personnes physiques, 1031 groupements solidaires, 1032 personnes morales.
  *  Groupe de type « Groupement » en 1031 ; association et ONG en 1032 (à confirmer). Identique côté serveur (services.compte_parts). */
 export function compteParts(t: Tiers) {
-  const p = E.paramAdhesion.find((x) => TYPES_MEMBRE[x.typeMembre] === t.type && estPart(x.compte));
-  if (!p?.compte) throw new ErreurMetier(MSG_PART);
-  return p.compte;
+  // PCCI, compte 103, selon la nature juridique du membre (registre S16-13) ; identique côté serveur (services.compte_parts)
+  return t.type === "physique" ? "1030" : t.type === "groupe" && t.typeClient === "Groupement" ? "1031" : "1032";
 }
 /** Registre S16-11 : la part sociale est la ligne des frais d'adhésion portée par un compte 103 ; valeur nominale des statuts (loi 002/2002, art. 20).
  *  Règles identiques côté serveur (services.valeur_part, frais.controler_part). */

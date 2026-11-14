@@ -423,6 +423,15 @@ def test_part_sociale_frais_adhesion(clients):
     assert "ne se modifie pas pour un client" in refus(f"/api/tiers/{T('0412-000318')}/frais", {"frais": [{"fraisId": fps, "montant": 1}]})
 
 
+def test_compte_part_selon_nature():
+    """PCCI, compte 103 selon la nature juridique du membre (registre S16-13) : banque, État, église, association, ONG en 1032"""
+    from noyau.services import compte_parts
+    cas = [("physique", "Client", "1030"), ("groupe", "Groupement", "1031"), ("groupe", "Association", "1032"), ("groupe", "ONG", "1032"),
+           ("morale", "Banques commerciales et autres intermédiaires financiers", "1032"), ("morale", "Administration centrale", "1032"),
+           ("morale", "Institutions sans but lucratif", "1032")]
+    assert [compte_parts({"type": t, "type_client": c}) for t, c, _ in cas] == [x for _, _, x in cas]
+
+
 def test_parametrage_frais(clients):
     chef, agent = clients["chef"], clients["agent"]
     connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")

@@ -1229,13 +1229,14 @@ def comptes_du_tiers(tid: int) -> list[dict]:
 
 
 def compte_parts(t: dict) -> str:
-    """PCCI, compte 103 : 1030 personnes physiques, 1031 groupements solidaires, 1032 personnes morales.
-    Le compte vient de la ligne de part paramétrée pour le type de membre (Paramétrage frais Adhésion, registre S16-11)."""
-    c = valeur("""select p.compte from parametrage_frais_adhesion p join frais f on f.id = p.frais_id
-                  where f.institution_id = %s and p.type_membre = %s and p.compte like '103%%' order by p.id limit 1""", (t["institution_id"], t["type"]))
-    if not c:
-        raise ErreurMetier(MSG_PART)
-    return c
+    """PCCI, compte 103, selon la nature juridique du membre (registre S16-13) : 1030 personnes physiques ; 1031 groupements solidaires
+    (type de groupe « Groupement », sans personnalité juridique) ; 1032 personnes morales (entreprise, banque, État, église, association, ONG).
+    La valeur de la part vient de la ligne des frais d'adhésion (S16-11)."""
+    if t["type"] == "physique":
+        return "1030"
+    if t["type"] == "groupe" and t["type_client"] == "Groupement":
+        return "1031"
+    return "1032"
 
 
 def parts_du_tiers(tid: int) -> float:
