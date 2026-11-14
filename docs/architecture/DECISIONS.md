@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**265 décisions.** Solidité : 83 fortes (le manuel ou un texte répond), 148 moyennes (déduites d'un écran voisin ou d'une donnée), 34 faibles (notre choix, faute de mieux). Dans le code : 223 déjà en place, 42 à appliquer.
+**265 décisions.** Solidité : 83 fortes (le manuel ou un texte répond), 148 moyennes (déduites d'un écran voisin ou d'une donnée), 34 faibles (notre choix, faute de mieux). Dans le code : 225 déjà en place, 40 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -235,8 +235,8 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S40-1 | Colonne « Nbre » | Quantité du frais : 1, ou le nombre de parts pour la part sociale. Montant = Nbre × valeur | Manuel : Manuel p. 51 ; liste des frais p. 89 | moyenne | à appliquer |
-| S40-2 | Contrat d'adhésion | Document selon T11. Un seul gabarit ; le vocabulaire suit le profil (membre pour une COOPEC, client pour une IMF) | Choix du porteur : T11 ; DESIGN § 2.10 | faible | à appliquer |
+| S40-1 | Colonne « Nbre » | Quantité du frais : 1, ou le nombre de parts pour la part sociale. Montant = Nbre × valeur — Construit : Nbre = 1 pour chaque frais, y compris la ligne de part (une part au moins à l'adhésion, loi 002/2002, art. 22, 2°) ; le nombre de parts réel se choisit au guichet (S73) | Manuel : Manuel p. 51 ; liste des frais p. 89 | moyenne | en place |
+| S40-2 | Contrat d'adhésion | Document selon T11. Un seul gabarit ; le vocabulaire suit le profil (membre pour une COOPEC, client pour une IMF) — Construit : la demande d'adhésion de la p. 52 reprend la profession, la filiation (Fils de, et de), l'adresse, le téléphone, l'institution et le vocabulaire du profil ; texte à fournir par l'institution | Choix du porteur : T11 ; DESIGN § 2.10 | faible | en place |
 
 ## S41 Modifier frais
 
@@ -637,7 +637,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S16-2 | S16 Frais | Natures du frais | Montant, ou Taux (pourcentage du montant de l'opération) |
 | S16-10 | S16 Frais | Frais de livret | Reste paramétrable : l'annexe de l'Instr. BCC 37 ne cite pas le livret. À retirer si la BCC l'assimile à l'ouverture de compte |
 | S17-4 | S17 Numéro de compte client | Valeur du Préfixe | Le code de l'agence du compte |
-| S40-2 | S40 Viser un client | Contrat d'adhésion | Document selon T11. Un seul gabarit ; le vocabulaire suit le profil (membre pour une COOPEC, client pour une IMF) |
+| S40-2 | S40 Viser un client | Contrat d'adhésion | Document selon T11. Un seul gabarit ; le vocabulaire suit le profil (membre pour une COOPEC, client pour une IMF) — Construit : la demande d'adhésion de la p. 52 reprend la profession, la filiation (Fils de, et de), l'adresse, le téléphone, l'institution et le vocabulaire du profil ; texte à fournir par l'institution |
 | S44-1 | S44 Groupe solidaire | Un client dans plusieurs groupes | Non : un seul groupe solidaire à la fois. Le retirer avant de l'affecter ailleurs |
 | S44-2 | S44 Groupe solidaire | Code du groupe | Donné par la règle de numérotation des clients (S15) |
 | S51-3 | S51 Rapports client | « Ordonner suivant » | La liste propose les critères du rapport |

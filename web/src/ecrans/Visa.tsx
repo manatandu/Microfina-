@@ -4,6 +4,7 @@ import type { Representant, Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Silhouette, Textes, type Boite } from "../composants";
 import { lireMontant, montant } from "@design/montant.js";
+import { mots } from "../lib/vocabulaire";
 
 type Ctx = Awaited<ReturnType<typeof api.referentiel.contexte>>;
 const nomComplet = (t: { nom: string; postnom: string; prenom: string }) => [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
@@ -66,7 +67,9 @@ export function VisaClient() {
               <thead><tr><th scope="col">Libellé Frais</th><th scope="col">Compte</th><th scope="col">Nbre</th><th scope="col">Montant</th></tr></thead>
               <tbody>
                 {(!t || frais.length === 0) && <tr><td colSpan={4}>Liste vide</td></tr>}
-                {t && frais.map((f, i) => <tr key={i}><td>{f.libelle}</td><td className="chiffres">{f.compte}</td><td></td><td className="chiffres">{f.montant === null ? "" : montant(f.montant, "CDF")}</td></tr>)}
+                {/* Registre S40-1 : Nbre = 1, ou le nombre de parts pour la part sociale (au moins une, loi 002/2002, art. 22, 2°) ; Montant = Nbre × valeur */}
+                {t && frais.map((f, i) => <tr key={i}><td>{f.libelle}</td><td className="chiffres">{f.compte}</td><td className="chiffres">1</td>
+                  <td className="chiffres">{f.montant === null ? "" : montant(f.montant, "CDF")}</td></tr>)}
               </tbody>
             </table>
           </fieldset>
@@ -265,15 +268,15 @@ function DetailClient({ t }: { t: Tiers }) {
 
 /** Contrat d'adhésion imprimé après le visa (p. 52). Ce que la capture coupe (fin de « Héritier désigné ») reste à confirmer. */
 function Contrat({ t, ctx }: { t: Tiers; ctx: Ctx }) {
-  const inst = ctx.institution.nom;
+  const inst = ctx.institution.nom, m = mots(ctx.institution);   // registre S40-2 : membre pour une COOPEC, client pour une IMF
   const ligne = (a: string, b: string) => <p className="contrat-ligne"><span>{a}</span><strong>{b}</strong></p>;
   return (
     <article className="contrat">
       <h3>DEMANDE D'ADHÉSION</h3>
       <div className="contrat-deux">
         {ligne("Je soussigné(e) :", t.intitule || nomComplet(t))}{ligne("N°", t.numero)}
-        {ligne("Profession :", "")}{ligne("Né(e)", fr(t.naissance))}
-        {ligne("Fils de :", "")}{ligne("et de", "")}
+        {ligne("Profession :", t.profession)}{ligne("Né(e)", fr(t.naissance))}
+        {ligne("Fils de :", t.pere ?? "")}{ligne("et de", t.mere ?? "")}
         {ligne("Adresse :", t.adresse)}{ligne("Téléphone :", t.telephone)}
       </div>
       {ligne("Sollicite mon adhésion à", inst)}
@@ -285,7 +288,7 @@ function Contrat({ t, ctx }: { t: Tiers; ctx: Ctx }) {
       <h4>DÉCISION DU CONSEIL D'ADMINISTRATION</h4>
       <p>Le Conseil d'Administration de {inst}, réuni le {fr(t.dateVisa)}, « approuve, met en instance, rejette » la présente.</p>
       <p>« Rayer les mentions inutiles et préciser les raisons de la mise en instance et du rejet sur la ligne en dessous »</p>
-      {ligne("Le nouveau membre est inscrit au registre des membres", t.numero)}
+      {ligne(`Le nouveau ${m.membre} est inscrit au registre des ${m.membres.toLowerCase()}`, t.numero)}
       <h4>HÉRITIER DÉSIGNÉ</h4>
       <p>En cas de décès, j'autorise {inst} à déduire de mes avoirs ce que je lui dois.</p>
       <p>Par ailleurs, je lui ordonne de verser le reste de mes avoirs à</p>

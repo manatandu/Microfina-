@@ -39,7 +39,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 38,Enrôlement groupe avec membres,clients,must,yes,S39,B,onglets,3 Client,S39 : cinq onglets sur six ; fiche Membre,M:texte p. 50 ; A:S37,,,
 39,Personnes liées bénéficiaires photo et signature,clients,must,yes,S37 S38 S39 S49,B,"onglets, consultation",3 Client,S37 : cinq onglets sur six ; fiches Personne liée et Bénéficiaire ; S38 : cinq onglets sur six ; fiche Signataire ; S39 : cinq onglets sur six ; fiche Membre,M:texte p. 48 ; D:S14a à S14n ; R:identification du client (Instr. BCC LBC) ; M:texte p. 49 ; A:S37 ; R:idem ; M:texte p. 50 ; A:S37,,,
 40,Choisir un prospect à l'enrôlement,clients,should,yes,S37 S45,B,"onglets, liste",3 Client,S37 : cinq onglets sur six ; fiches Personne liée et Bénéficiaire,M:texte p. 48 ; D:S14a à S14n ; R:identification du client (Instr. BCC LBC),,,
-41,Visa du client et contrat d'adhésion,clients,must,partial,S40,A,visa,3 Client,S40 : contrat d'adhésion imprimé,document,,,S40-1 Colonne « Nbre » ; S40-2 Contrat d'adhésion
+41,Visa du client et contrat d'adhésion,clients,must,yes,S40,A,visa,3 Client,S40 : contrat d'adhésion imprimé,document,,,
 42,Modifier les frais d'ouverture,clients,should,partial,S41,A,consultation,3 Client,,,,,S41-1 Jusqu'à quand
 43,Valider un client modifié,clients,must,yes,S42,A,visa,3 Client,,,,,
 44,Consulter l'état initial et actuel d'un client,clients,must,partial,S43,B,consultation,3 Client,S43 : affichage des informations initiales et actuelles,A:S64 situation du client (p. 74),,,S43-2 Champ Date d'adhésion
