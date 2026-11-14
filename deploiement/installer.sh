@@ -21,17 +21,24 @@ gcloud services enable run.googleapis.com secretmanager.googleapis.com artifactr
 echo "2/6 Base PostgreSQL (Neon, plan gratuit)"
 # Adresse de connexion copiée depuis neon.com : Connect > désactiver « Connection pooling » (adresse directe) > postgresql://utilisateur:motdepasse@hote/base?sslmode=require
 if ! gcloud secrets describe likelemba-bd-mdp >/dev/null 2>&1; then
-  read -rsp "Adresse de connexion Neon (postgresql://...) : " URL_BD; echo
-  eval "$(printf %s "$URL_BD" | python3 -c '
+  for essai in 1 2 3; do
+    read -rsp "Colle l'adresse Neon puis Entree (rien ne s'affiche, c'est normal) : " URL_BD; echo
+    echo "Recu : ${#URL_BD} caracteres"
+    [ -n "$URL_BD" ] || { echo "Rien recu : recommencer."; continue; }
+    SORTIE="$(printf %s "$URL_BD" | python3 -c '
 import sys, shlex
 from urllib.parse import urlparse, unquote
 u = urlparse(sys.stdin.read().strip())
 if u.scheme not in ("postgres", "postgresql") or not (u.hostname and u.username and u.password and u.path.strip("/")):
-    sys.exit("Adresse incomplète : postgresql://utilisateur:motdepasse@hote/base")
+    sys.exit("Adresse incomplete : elle doit ressembler a postgresql://utilisateur:motdepasse@hote/base")
 print("BD_HOTE=" + shlex.quote(u.hostname)); print("BD_UTILISATEUR=" + shlex.quote(unquote(u.username)))
 print("BD_BASE=" + shlex.quote(u.path.strip("/"))); print("BD_MDP=" + shlex.quote(unquote(u.password)))
-')"
-  case "$BD_HOTE" in *-pooler*) echo "Adresse « pooler » : reprendre l'adresse directe (Connection pooling désactivé)."; exit 1;; esac
+')" && break
+    SORTIE=""
+  done
+  [ -n "${SORTIE:-}" ] || { echo "Adresse Neon non recue apres 3 essais : relancer le script."; exit 1; }
+  eval "$SORTIE"
+  case "$BD_HOTE" in *-pooler*) echo "Adresse pooler : reprendre l'adresse directe (Connection pooling decoche)."; exit 1;; esac
   printf %s "$BD_MDP" | gcloud secrets create likelemba-bd-mdp --data-file=-
   printf 'BD_HOTE=%s\nBD_UTILISATEUR=%s\nBD_BASE=%s\n' "$BD_HOTE" "$BD_UTILISATEUR" "$BD_BASE" | gcloud secrets create likelemba-bd-adresse --data-file=-
 fi
@@ -42,9 +49,14 @@ if ! gcloud secrets describe likelemba-secret >/dev/null 2>&1; then
   openssl rand -base64 48 | tr -d '\n' | gcloud secrets create likelemba-secret --data-file=-
 fi
 if ! gcloud secrets describe likelemba-mdp-initial >/dev/null 2>&1; then
-  read -rsp "Mot de passe du premier compte (jpmukendi, chef d'agence) : " MDP1; echo
-  read -rsp "Confirmation : " MDP2; echo
-  [ -n "$MDP1" ] && [ "$MDP1" = "$MDP2" ] || { echo "Vide ou différent : recommencer."; exit 1; }
+  for essai in 1 2 3; do
+    read -rsp "Choisis le mot de passe du premier compte jpmukendi, puis Entree (rien ne s'affiche) : " MDP1; echo
+    read -rsp "Retape-le pour confirmer, puis Entree : " MDP2; echo
+    echo "Recu : ${#MDP1} caracteres"
+    [ -n "$MDP1" ] && [ "$MDP1" = "$MDP2" ] && break
+    echo "Vide ou different : recommencer."; MDP1=""
+  done
+  [ -n "$MDP1" ] || { echo "Mot de passe non defini apres 3 essais : relancer le script."; exit 1; }
   printf %s "$MDP1" | gcloud secrets create likelemba-mdp-initial --data-file=-
 fi
 
