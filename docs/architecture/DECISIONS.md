@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**274 décisions.** Solidité : 90 fortes (le manuel ou un texte répond), 149 moyennes (déduites d'un écran voisin ou d'une donnée), 35 faibles (notre choix, faute de mieux). Dans le code : 241 déjà en place, 33 à appliquer.
+**275 décisions.** Solidité : 92 fortes (le manuel ou un texte répond), 148 moyennes (déduites d'un écran voisin ou d'une donnée), 35 faibles (notre choix, faute de mieux). Dans le code : 242 déjà en place, 33 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -277,7 +277,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S50-1 | Suite à donner | Écran gelé, hors validation. Il est repris au lot Crédit, après lecture de l'Instr. BCC 5 (centrale des risques) | Texte réglementaire : Instr. BCC 5, à lire au lot Crédit | moyenne | à appliquer |
+| S50-1 | Suite à donner | Instr. BCC 5 lue (14/11/2026). Elle vise les établissements de crédit, mais l'Instr. BCC 34, propre aux COOPEC et IMF, sanctionne la non-transmission à la Centrale des risques (grille, V.2) : elle vaut pour elles. Art. 13 : consentement écrit de l'emprunteur, obtenu avant le crédit, par une clause de la demande de crédit. L'écran S50 de Microfina++ enregistre ce consentement ; il reste tel quel. Le contrôle « pas de crédit sans consentement » se pose à l'approbation du dossier (S88-1) | Texte réglementaire : Instr. BCC 5, art. 1er, 4 et 13 ; Instr. BCC 34, grille V.2 | forte | en place |
 
 ## S51 Rapports client
 
@@ -634,6 +634,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | D01-5 | Chiffres et montants | Les montants gardent la police à chiffres de largeur fixe Atkinson Hyperlegible Mono (DESIGN.md § 2.2 : un montant n'est jamais ambigu). Le guide ne dit rien des chiffres : à confirmer | Écran voisin : DESIGN.md § 2.2 | moyenne | en place |
 | D01-6 | Page des modules | Le monogramme DWAC en 3D, rouge, à la place de l'étoile ; anneaux rouges et blancs sur fond Bleu Nuit. Formes reprises du PDF du guide (p. 9) sans retouche, aplaties en polygones (web/src/ecrans/monogramme-forme.ts) | Choix du porteur : Guide de marque DWAC p. 9, 14 et 15 ; décision du porteur, 14/11/2026 | forte | en place |
 | D01-7 | Documents imprimés | Dwacfina est vendu aux COOPEC et IMF : contrats, reçus et rapports sont les documents de l'institution cliente. Ils portent son nom et son logo (Information société, S32), jamais l'identité de DWAC. Rien à changer à ce titre | Choix du porteur : Précision du porteur, 14/11/2026 | forte | en place |
+
+## S88 Dossier : approbation
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S88-1 | Consentement à la Centrale des risques | Pas d'approbation d'un crédit sans consentement écrit de l'emprunteur en cours de validité (enregistré par S50 : date début passée, date fin absente ou à venir), ni sans consultation de la Centrale des risques notée au dossier. À construire avec S88 | Texte réglementaire : Instr. BCC 5, art. 4 et 13 ; Instr. BCC 34, grille V.2 | forte | à appliquer |
 
 ## Les décisions faibles, à regarder en premier
 

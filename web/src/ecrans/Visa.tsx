@@ -734,6 +734,7 @@ export function Consentement() {
         </table>
         <Textes sources={["Manuel Microfina++, p. 58 : écran Consentement (N° Client, Info Membres, Code*, Date début*, Date Fin, Commentaire, Enregistrer, Annuler)",
           "Instr. BCC 5, art. 13 : consentement écrit de l'emprunteur avant de communiquer ses informations à la Centrale des risques (le manuel parle du BIC de l'UEMOA)",
+          "Instr. BCC 34, grille V.2 : la non-transmission à la Centrale des risques est sanctionnée pour les COOPEC et IMF",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
       </section>
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
