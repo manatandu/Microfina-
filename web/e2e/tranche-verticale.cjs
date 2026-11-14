@@ -374,6 +374,19 @@ const OUT = process.argv[2];
   }
   await etape('06p-affectation'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('cell', { name: 'Mwamba Ilunga Grâce', exact: true }).waitFor(); await etape('06q-affectation-enregistree');
+  // Un seul groupe solidaire à la fois (registre S44-1) ; code proposé selon la règle S15 (registre S44-2)
+  await p.getByRole('tab', { name: 'Groupe Solidarité', exact: true }).click();
+  const code1 = await p.getByLabel('Code groupe *').inputValue();
+  if (!/^0412-\d{6}/.test(code1)) throw new Error('S44-2 : code proposé ' + code1);
+  await p.getByLabel('nom groupe *').fill('Grp Matete'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
+  await p.getByRole('cell', { name: 'Grp Matete' }).waitFor(); await etape('06q2-code-groupe-s15');
+  await p.getByRole('tab', { name: 'Affectation Groupe Solidarité' }).click();
+  await p.getByLabel('Groupe Solidaire *').selectOption({ label: 'Grp Matete' });
+  await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  const rg2 = p.getByRole('dialog', { name: "Recherche d'un client" });
+  await rg2.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rg2.getByRole('row').filter({ hasText: 'Kalala' }).first().dblclick();
+  await p.getByRole('button', { name: 'Ajouter', exact: true }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('dialog', { name: 'Erreur' }).getByText(/déjà membre du groupe « Grp Kinsaku »/).waitFor(); await etape('06q3-un-seul-groupe'); await p.getByRole('button', { name: 'Ok' }).click();
   // Prospect (S45)
   await aller('/clients/s45');
   await p.getByLabel('Nom : *').fill('Tshibangu'); await p.getByLabel('Prenoms : *').fill('Anne'); await p.getByLabel('Date naissance : *').fill('01031995');

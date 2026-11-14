@@ -604,6 +604,17 @@ def numero_client(u: dict) -> str:
     return composer_numero(regle, {"INSTITUTION": ag["sigle"] or "", "AGENCE": ag["code"], "CATEGORIE": "", "COMPTEUR": n})
 
 
+def apercu_numero_client(u: dict) -> str:
+    """Prochain numéro de la règle S15, sans avancer le compteur (code proposé d'un groupe solidaire, registre S44-2)"""
+    r = une("select regle from numerotation_client where institution_id = %s", (u["institution_id"],))
+    regle = json_lu(r["regle"]) if r else None
+    ag = une("select a.code, i.sigle from agence a join institution i on i.id = a.institution_id where a.id = %s", (u["agence_id"],))
+    dernier = valeur("""select coalesce((select dernier from compteur_client where agence_id = %s),
+                                        (select case when is_called then last_value else last_value - 1 end from numero_tiers))""", (u["agence_id"],))
+    n = max(dernier + 1, regle["compteur"] if regle else 1)
+    return composer_numero(regle, {"INSTITUTION": ag["sigle"] or "", "AGENCE": ag["code"], "CATEGORIE": "", "COMPTEUR": n})
+
+
 def composer_numero_compte(regle: dict | None, numero_client: str, code_agence: str, numero_produit: int | None) -> str:
     """S17 (p. 26) : [Préfixe]-N° Client-[Suffixe]. Préfixe : code de l'agence (registre S17-4) ; Suffixe : numéro du produit d'épargne
     sur « Position » chiffres (S17-2, S17-3). Sans règle : N° Client et suffixe sur deux chiffres, la numérotation en place (S17-6)."""

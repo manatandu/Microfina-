@@ -115,8 +115,8 @@ S40-2,S40 Viser un client,Contrat d'adhésion,"Document selon T11. Un seul gabar
 S41-1,S41 Modifier frais,Jusqu'à quand,"Les frais se modifient jusqu'à l'encaissement de l'adhésion (S73). Après, non",R,PCCI § 3.4 (irréversibilité),moyenne,en place,retenu,12/11/2026
 S43-1,S43 Consulter client,Où s'affiche la comparaison,"Deux colonnes, Initial et Actuel ; les champs changés sont marqués",M,Texte p. 53 (« informations initiales et actuelles »),moyenne,en place,retenu,12/11/2026
 S43-2,S43 Consulter client,Champ Date d'adhésion,Date de l'adhésion en caisse (S73),D,S73,moyenne,en place,retenu,12/11/2026
-S44-1,S44 Groupe solidaire,Un client dans plusieurs groupes,Non : un seul groupe solidaire à la fois. Le retirer avant de l'affecter ailleurs,P,La caution solidaire doit rester lisible,faible,à appliquer,retenu,12/11/2026
-S44-2,S44 Groupe solidaire,Code du groupe,Donné par la règle de numérotation des clients (S15),D,S15,faible,à appliquer,retenu,12/11/2026
+S44-1,S44 Groupe solidaire,Un client dans plusieurs groupes,Non : un seul groupe solidaire à la fois. Le retirer avant de l'affecter ailleurs,P,La caution solidaire doit rester lisible,faible,en place,retenu,12/11/2026
+S44-2,S44 Groupe solidaire,Code du groupe,Donné par la règle de numérotation des clients (S15),D,S15,faible,en place,retenu,12/11/2026
 S47-1,S47 Procurations,Saisie d'une procuration,Pas d'écran en plus : le manuel ne décrit que le libellé. Les pouvoirs d'un tiers passent par Personnes liées (S37) et Signataires (S38),M,Manuel p. 56,moyenne,en place,retenu,12/11/2026
 S47-2,S47 Procurations,Lien avec le guichet,"Le Mandataire reste une saisie libre, comme sur la capture. Son identité se vérifie sur pièce",M,"Capture p. 86 ; Instr. BCC 15, art. 11 (déjà lu pour S74)",moyenne,en place,retenu,12/11/2026
 S48-1,S48 Résilier,Apurement,"Pas d'écran en plus. La résiliation est refusée tant qu'un compte a un solde ou qu'il reste des parts ; on solde par S74, S77 et S70",D,"Chaîne du client ; loi 002/2002, art. 27 (déjà lu pour S48)",moyenne,à appliquer,retenu,12/11/2026

@@ -1,6 +1,6 @@
 """S44 : groupes solidaires et affectation des clients (manuel Microfina++, p. 54 et 55). Mêmes règles que web/src/donnees/api.ts (groupes)."""
 from .bd import ErreurMetier, executer, lignes, une, valeur
-from .services import exiger, titulaire
+from .services import apercu_numero_client, exiger, numero_client, titulaire
 
 
 def texte(d, k):
@@ -11,10 +11,8 @@ def texte(d, k):
 def lire(u) -> dict:
     exiger(u)
     i = u["institution_id"]
-    code = valeur("select code from agence where id = %s", (u["agence_id"],))
-    n = valeur("select count(*) from groupe_solidaire where institution_id = %s", (i,)) + 1
     return {
-        "codeSuivant": f"GS/{code}/{n:06d}",       # forme de l'exemple « GS/AB/121811 » (p. 54) ; règle de numérotation : à confirmer (S15)
+        "codeSuivant": apercu_numero_client(u),     # code proposé selon la règle de numérotation des clients (S15), registre S44-2
         "groupes": lignes("""select g.id, g.code, g.nom, a.nom as agence from groupe_solidaire g left join agence a on a.id = g.agence_id
                              where g.institution_id = %s order by g.id""", (i,)),
         "membres": [{**r, "membre": titulaire(r["tiersId"])} for r in
@@ -44,6 +42,9 @@ def groupe_de(u, gid):
 def creer(u, d) -> dict:
     exiger(u)
     code, nom = controler(u, d)
+    if code == apercu_numero_client(u):            # code proposé gardé : le compteur de la règle S15 avance (registre S44-2)
+        code = numero_client(u)
+        controler(u, {"code": code, "nom": nom})
     gid = valeur("insert into groupe_solidaire (institution_id, agence_id, code, nom) values (%s, %s, %s, %s) returning id",
                  (u["institution_id"], u["agence_id"], code, nom))
     return {"id": gid, "code": code, "nom": nom}
@@ -84,6 +85,10 @@ def affecter(u, gid: int, d) -> dict:
             raise ErreurMetier(f"{titulaire(tid)} : client non actif (visa ou validation à faire).")
         if valeur("select 1 from groupe_solidaire_membre where groupe_id = %s and tiers_id = %s", (gid, tid)):
             raise ErreurMetier(f"{titulaire(tid)} est déjà membre de ce groupe.")
+        autre = valeur("""select g.nom from groupe_solidaire_membre m join groupe_solidaire g on g.id = m.groupe_id
+                          where m.tiers_id = %s and m.groupe_id <> %s""", (tid, gid))
+        if autre:                                   # un seul groupe solidaire à la fois (registre S44-1)
+            raise ErreurMetier(f"{titulaire(tid)} est déjà membre du groupe « {autre} » : le retirer d'abord.")
         executer("insert into groupe_solidaire_membre (groupe_id, tiers_id, affecte_par) values (%s, %s, %s)", (gid, tid, u["id"]))
     return lire(u)
 

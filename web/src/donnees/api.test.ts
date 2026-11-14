@@ -350,12 +350,16 @@ describe("journée de guichet", () => {
     await connecter("bkasongo");
     const g0 = api.groupes;
     const lu = await g0.lire();
-    expect(lu.codeSuivant).toBe("GS/0412/000001");
+    expect(lu.codeSuivant).toMatch(/^0412-\d{6}$/);   // règle S15 en place (registre S44-2)
     await expect(g0.creer({ code: lu.codeSuivant, nom: "" })).rejects.toThrow("nom groupe");
     const g = await g0.creer({ code: lu.codeSuivant, nom: "Grp Kinsaku" });
+    expect(g.code).toBe(lu.codeSuivant); expect((await g0.lire()).codeSuivant > g.code).toBe(true);   // le compteur a avancé
     await expect(g0.creer({ code: lu.codeSuivant, nom: "Autre" })).rejects.toThrow("existe déjà");
     expect((await g0.affecter(g.id, [1, 2])).membres.map((m) => m.tiersId)).toEqual([1, 2]);
     await expect(g0.affecter(g.id, [1])).rejects.toThrow("déjà membre");
+    const g2 = await g0.creer({ code: "GS-2", nom: "Grp Matete" });
+    await expect(g0.affecter(g2.id, [1])).rejects.toThrow("déjà membre du groupe « Grp Kinsaku »");   // registre S44-1
+    await g0.supprimer(g2.id);
     await expect(g0.supprimer(g.id)).rejects.toThrow("membres");
     await g0.retirer(g.id, [1, 2]);
     expect((await g0.modifier(g.id, { code: "GS/0412/000009", nom: "Grp Kinsaku 2" })).nom).toBe("Grp Kinsaku 2");

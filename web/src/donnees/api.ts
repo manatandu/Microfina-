@@ -834,14 +834,16 @@ const groupes = {
   lire() {
     exiger();
     return {
-      codeSuivant: `GS/${E.agence.code}/${String(E.groupesSolidaires.length + 1).padStart(6, "0")}`,   // forme de l'exemple (p. 54) ; règle : à confirmer (S15)
+      codeSuivant: apercuNumeroClient(),   // code proposé selon la règle de numérotation des clients (S15), registre S44-2
       groupes: E.groupesSolidaires.map((g) => ({ ...g, agence: E.agence.nom })),
       membres: E.membresGroupes.map((m) => ({ ...m, numero: E.tiers.find((t) => t.id === m.tiersId)?.numero ?? "", membre: nomTiers(m.tiersId) })),
     };
   },
   creer(d: { code: string; nom: string }) {
     exiger();
-    const g = { id: prochain(E.groupesSolidaires), ...controlerGroupeSolidaire(d) };
+    let v = controlerGroupeSolidaire(d);
+    if (v.code === apercuNumeroClient()) v = controlerGroupeSolidaire({ code: numeroClient(), nom: v.nom });   // le compteur S15 avance (registre S44-2)
+    const g = { id: prochain(E.groupesSolidaires), ...v };
     E.groupesSolidaires.push(g); enregistrer(); return g;
   },
   modifier(id: number, d: { code: string; nom: string }) {
@@ -863,6 +865,8 @@ const groupes = {
       if (!t) throw new ErreurMetier("Client introuvable.");
       if (t.statut !== "actif") throw new ErreurMetier(`${nomTiers(tid)} : client non actif (visa ou validation à faire).`);
       if (E.membresGroupes.some((m) => m.groupeId === id && m.tiersId === tid)) throw new ErreurMetier(`${nomTiers(tid)} est déjà membre de ce groupe.`);
+      const autre = E.membresGroupes.find((m) => m.tiersId === tid && m.groupeId !== id);   // un seul groupe solidaire à la fois (registre S44-1)
+      if (autre) throw new ErreurMetier(`${nomTiers(tid)} est déjà membre du groupe « ${groupeDe(autre.groupeId).nom} » : le retirer d'abord.`);
     }
     tiersIds.forEach((tiersId) => E.membresGroupes.push({ groupeId: id, tiersId }));
     enregistrer(); return groupes.lire();
@@ -1003,6 +1007,11 @@ export function composerNumeroCompte(regle: RegleNumeroCompte | null | undefined
   return [...(r.prefixe ? [codeAgence] : []), numeroClient, ...(r.suffixe ? [String(numeroProduit ?? 0).padStart(r.position, "0")] : [])].join("-");
 }
 function numeroCompte(numeroClient: string, produit: Produit) { return composerNumeroCompte(E.numerotationCompte, numeroClient, E.agence.code, produit.numero); }
+/** Prochain numéro de la règle S15 sans avancer le compteur : code proposé d'un groupe solidaire (registre S44-2) */
+function apercuNumeroClient() {
+  const regle = E.numerotation[String(ID_INSTITUTION)];
+  return composerNumero(regle, { INSTITUTION: E.institution.sigle ?? "", AGENCE: E.agence.code, CATEGORIE: "", COMPTEUR: Math.max(E.compteurs.tiers + 1, regle?.compteur ?? 1) });
+}
 function numeroClient() {
   const regle = E.numerotation[String(ID_INSTITUTION)];
   E.compteurs.tiers = Math.max(E.compteurs.tiers + 1, regle?.compteur ?? 1);   // registre S15-3 et S15-7

@@ -488,14 +488,19 @@ def test_groupe_solidaire(clients):
     def refus(route, corps, methode="post"):
         r = getattr(agent, methode)(route, corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
     lu = agent.get("/api/groupes-solidaires").json()
-    assert lu["codeSuivant"] == "GS/0412/000001" and lu["groupes"] == []
+    import re
+    assert re.fullmatch(r"0412-\d{6}", lu["codeSuivant"]) and lu["groupes"] == []          # règle S15 en place (registre S44-2)
     assert "nom groupe" in refus("/api/groupes-solidaires", {"code": lu["codeSuivant"], "nom": ""})
     g = agent.post("/api/groupes-solidaires", {"code": lu["codeSuivant"], "nom": "Grp Kinsaku"}, **H).json()
+    assert g["code"] == lu["codeSuivant"] and agent.get("/api/groupes-solidaires").json()["codeSuivant"] > g["code"]   # le compteur a avancé
     assert "existe déjà" in refus("/api/groupes-solidaires", {"code": lu["codeSuivant"], "nom": "Autre"})
     k, m = T("0412-000318"), T("0412-000319")
     lu = agent.post(f"/api/groupes-solidaires/{g['id']}/membres", {"tiersIds": [k, m]}, **H).json()
     assert [x["tiersId"] for x in lu["membres"]] == [k, m] and lu["groupes"][0]["agence"] == "Matete"
     assert "déjà membre" in refus(f"/api/groupes-solidaires/{g['id']}/membres", {"tiersIds": [k]})
+    g2 = agent.post("/api/groupes-solidaires", {"code": "GS-2", "nom": "Grp Matete"}, **H).json()
+    assert "déjà membre du groupe « Grp Kinsaku »" in refus(f"/api/groupes-solidaires/{g2['id']}/membres", {"tiersIds": [k]})   # registre S44-1
+    assert agent.delete(f"/api/groupes-solidaires/{g2['id']}", **H).status_code == 200
     r = agent.delete(f"/api/groupes-solidaires/{g['id']}", **H); assert r.status_code == 422 and "membres" in r.json()["message"]
     agent.post(f"/api/groupes-solidaires/{g['id']}/retrait", {"tiersIds": [k, m]}, **H)
     assert agent.post(f"/api/groupes-solidaires/{g['id']}", {"code": "GS/0412/000009", "nom": "Grp Kinsaku 2"}, **H).json()["nom"] == "Grp Kinsaku 2"

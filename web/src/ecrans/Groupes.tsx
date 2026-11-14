@@ -155,7 +155,8 @@ export function GroupeSolidaire() {
 
         <Textes sources={["Manuel Microfina++, p. 54 et 55 : onglets Groupe Solidarité (Code groupe*, nom groupe*, Agence*, Enregistrer, effacer) et Affectation Groupe Solidarité (Ajouter, Annuler, Enregistrer, Retirer, Action)",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
-          "PCCI, compte 1031 : parts sociales des groupements solidaires effectifs"]} />
+          "PCCI, compte 1031 : parts sociales des groupements solidaires effectifs",
+          "Loi 11/020, art. 44 : les clients d'un groupe constitué pour un crédit sont codébiteurs d'une dette solidaire"]} />
       </section>
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut === "actif") : [])}
