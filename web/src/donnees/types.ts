@@ -166,6 +166,7 @@ export interface OperationBanque {
   id: number; cle: string; type: TypeOperationBanque; date: string; compteBancaireId: number; compteBancaireDestId: number | null; guichetId: number | null;
   compte: string; libelle: string; montant: number; devise: Devise; cheque: string; typeBudgetId: number | null; ligneBudgetId: number | null;
   statut: "saisie" | "visee" | "validee" | "comptabilisee" | "refusee"; piece: string; saisiPar: number;
+  visePar?: number; validePar?: number; dateValidation?: string;   // S57
   compteDepotId?: number | null;   // S53 : compte du client
   tiersId?: number | null; parts?: number | null; premierDepot?: number | null;   // S56 : adhésion par banque
 }

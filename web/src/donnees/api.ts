@@ -1143,6 +1143,12 @@ export interface SaisieOperationBanque {
 }
 const soldeCompteNumero = (numero: string, devise: Devise) => E.ecritures.flatMap((e) => e.lignes).filter((x) => x.compte === numero && x.devise === devise)
   .reduce((s, x) => s + (x.sens === "D" ? x.montant : -x.montant), 0);
+export type EtapeVisaBanque = "visa" | "validation";
+export type ListeVisaBanque = "enc_dec" | "banque_caisse" | "banque_banque" | "virement";
+const LISTES_VISA: Record<ListeVisaBanque, TypeOperationBanque[]> = { enc_dec: ["encaissement", "decaissement", "adhesion_banque"], banque_caisse: ["banque_caisse"],
+  banque_banque: ["banque_banque"], virement: ["virement_client", "prelevement_client"] };
+export type LigneVisaBanque = Omit<OperationBanque, "saisiPar" | "visePar"> & { operation: string; banque: string; compteBanque: string; banqueDest: string; compteBanqueDest: string;
+  saisiPar: string; visePar: string; numeroComptable: string; compteEpargne?: string; debit?: number; credit?: number };
 const banqueOperations = {
   lire() {
     exiger();
@@ -1162,6 +1168,39 @@ const banqueOperations = {
   enregistrer: (d: SaisieOperationBanque) => enregistrerOperationBanque(d, false),
   /** S53 : virement et prélèvement entre le compte d'un client et un compte bancaire ; sa route, donc son droit (registre S04-3) */
   enregistrerVirement: (d: SaisieOperationBanque) => enregistrerOperationBanque(d, true),
+  /** S57 : lignes en attente du visa (saisies) ou de la validation (visées), pour l'une des quatre listes. Mêmes règles côté serveur (banque_operations.lister_visas). */
+  visas(etape: EtapeVisaBanque, liste: ListeVisaBanque): LigneVisaBanque[] {
+    exiger();
+    const nom = (id?: number) => E.utilisateurs.find((x) => x.id === id)?.nom ?? "";
+    return E.operationsBanque.filter((o) => o.statut === (etape === "visa" ? "saisie" : "visee") && LISTES_VISA[liste].includes(o.type))
+      .sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id).map((o) => {
+        const cb = E.comptesBancaires.find((x) => x.id === o.compteBancaireId)!, b = E.banques.find((x) => x.id === cb.banqueId);
+        const d = o.compteBancaireDestId ? E.comptesBancaires.find((x) => x.id === o.compteBancaireDestId) : undefined, bd = d ? E.banques.find((x) => x.id === d.banqueId) : undefined;
+        const cd = o.compteDepotId ? E.comptes.find((x) => x.id === o.compteDepotId) : undefined;
+        return { ...o, operation: TYPES_OPERATION_BANQUE[o.type], banque: `${b?.code ?? ""} => ${b?.libelle ?? ""}`, compteBanque: `${cb.numeroBancaire} => ${cb.compte}`,
+          banqueDest: bd ? `${bd.code} => ${bd.libelle}` : "", compteBanqueDest: d?.numeroBancaire ?? "", saisiPar: nom(o.saisiPar), visePar: nom(o.visePar),
+          numeroComptable: cd ? cd.pcci : o.compte, compteEpargne: cd?.numero ?? "",
+          debit: o.type === "prelevement_client" ? o.montant : 0, credit: o.type === "virement_client" ? o.montant : 0 };
+      });
+  },
+  /** S57 : visa (saisie vers visée) ou validation (visée vers validée), par une autre personne que celle qui a saisi ; la validation, aussi autre que celle qui a visé (registre S57-1) */
+  suivre(id: number, etape: EtapeVisaBanque, d: { date?: string } = {}): OperationBanque {
+    const u = exiger();
+    const o = E.operationsBanque.find((x) => x.id === id);
+    if (!o || o.statut !== (etape === "visa" ? "saisie" : "visee")) throw new ErreurMetier(etape === "visa" ? "Rien à viser." : "Rien à valider.");
+    if (o.saisiPar === u.id) throw new ErreurMetier(`Quatre yeux : ${etape === "visa" ? "pas de visa" : "pas de validation"} sur sa propre saisie.`);
+    if (etape === "validation") {
+      if (o.visePar === u.id) throw new ErreurMetier("Quatre yeux : la validation vient d'une autre personne que celle qui a visé.");
+      const j = journees.courante();
+      if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
+      const date = d.date?.trim() || j.date;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new ErreurMetier("À remplir : date opération.");
+      if (date < o.date) throw new ErreurMetier("La date de validation précède la date de l'opération.");
+      if (date > j.date) throw new ErreurMetier("La date de validation ne peut pas dépasser la journée ouverte.");
+      o.validePar = u.id; o.dateValidation = date; o.statut = "validee";
+    } else { o.visePar = u.id; o.statut = "visee"; }
+    enregistrer(); return o;
+  },
   /** S56 : ce que l'écran montre avant d'enregistrer. Règles identiques côté serveur (banque_operations.apercu_adhesion). Aucune écriture. */
   apercuAdhesion(tiersId: number, parts = 1, depot = 0) {
     exiger();

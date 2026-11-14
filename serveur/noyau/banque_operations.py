@@ -5,7 +5,7 @@ import re
 import uuid
 
 from .bd import ErreurMetier, executer, lignes, une, valeur
-from .services import controler_statut_actif, exiger, journee_courante, numero_compte, preparer_adhesion, solde_contrat
+from .services import compte_du_produit, controler_statut_actif, exiger, journee_courante, nom_utilisateur, numero_compte, preparer_adhesion, solde_contrat
 
 TYPES = {"encaissement": "Encaissement divers", "decaissement": "Décaissement divers", "banque_caisse": "Virement banque vers caisse",
          "banque_banque": "Virement banque vers banque", "virement_client": "Virement", "prelevement_client": "Prélèvement", "adhesion_banque": "Adhésion par banque"}
@@ -191,3 +191,66 @@ def vue(o: dict) -> dict:
             "compteBancaireDestId": o["compte_bancaire_dest_id"], "guichetId": o["guichet_id"], "compte": o["compte"] or "", "libelle": o["libelle"] or "",
             "montant": o["montant"], "devise": o["devise"].strip(), "cheque": o["cheque"] or "", "statut": o["statut"], "piece": o["piece"] or "",
             "compteDepotId": o.get("compte_depot_id"), "tiersId": o.get("tiers_id"), "parts": o.get("parts"), "premierDepot": o.get("premier_depot")}
+
+
+# ---------- S57 : Visa puis Validation (manuel p. 65 à 67) ----------
+# Quatre listes, vues deux fois : au visa (opérations saisies) puis à la validation (opérations visées). La liste « Virement / Prélèvement » a ses propres colonnes.
+LISTES_VISA = {"enc_dec": ("encaissement", "decaissement", "adhesion_banque"), "banque_caisse": ("banque_caisse",),
+               "banque_banque": ("banque_banque",), "virement": ("virement_client", "prelevement_client")}
+ETAPES = {"visa": "saisie", "validation": "visee"}
+
+
+def lister_visas(u, etape: str, liste: str) -> list[dict]:
+    """Lignes en attente de l'étape (visa : saisies ; validation : visées), pour une des quatre listes"""
+    exiger(u)
+    if etape not in ETAPES or liste not in LISTES_VISA:
+        raise ErreurMetier("Liste inconnue.")
+    res = []
+    for o in lignes("""select o.*, b.code as banque_code, b.nom as banque_nom, cb.numero as banque_numero, c.numero as banque_compte,
+                              bd.code as dest_code, bd.nom as dest_nom, cbd.numero as dest_numero, cd.numero as depot_numero
+                       from operation_banque o join compte_bancaire cb on cb.id = o.compte_bancaire_id join banque b on b.id = cb.banque_id join compte c on c.id = cb.compte_id
+                       left join compte_bancaire cbd on cbd.id = o.compte_bancaire_dest_id left join banque bd on bd.id = cbd.banque_id
+                       left join compte_depot cd on cd.id = o.compte_depot_id
+                       where o.institution_id = %s and o.statut = %s and o.type = any(%s) order by o.date_operation, o.id""",
+                      (u["institution_id"], ETAPES[etape], list(LISTES_VISA[liste]))):
+        ligne = vue(o) | {"operation": TYPES[o["type"]], "banque": f"{o['banque_code']} => {o['banque_nom']}", "compteBanque": f"{o['banque_numero']} => {o['banque_compte']}",
+                          "banqueDest": f"{o['dest_code']} => {o['dest_nom']}" if o["dest_code"] else "", "compteBanqueDest": o["dest_numero"] or "",
+                          "saisiPar": nom_utilisateur(o["saisi_par"]), "visePar": nom_utilisateur(o["vise_par"])}
+        if o["compte_depot_id"]:
+            c = une("select p.famille, p.compte_lie from compte_depot cd join produit_epargne p on p.id = cd.produit_id where cd.id = %s", (o["compte_depot_id"],))
+            ligne |= {"compteEpargne": o["depot_numero"], "numeroComptable": compte_du_produit(c)}
+            ligne |= {"debit": o["montant"] if o["type"] == "prelevement_client" else 0, "credit": o["montant"] if o["type"] == "virement_client" else 0}
+        else:
+            ligne["numeroComptable"] = o["compte"] or ""
+        res.append(ligne)
+    return res
+
+
+def faire_suivre(u, oid: int, etape: str, d=None) -> dict:
+    """Visa (saisie vers visée) ou validation (visée vers validée). Quatre yeux : le visa et la validation viennent d'une autre personne que celle qui a saisi ;
+    la validation, d'une autre que celle qui a visé (registre S57-1). La comptabilisation (S111) vient ensuite."""
+    exiger(u)
+    o = une("select * from operation_banque where id = %s and institution_id = %s for update", (oid, u["institution_id"]))
+    attendu = ETAPES.get(etape)
+    if not o or o["statut"] != attendu:
+        raise ErreurMetier("Rien à viser." if etape == "visa" else "Rien à valider.")
+    if o["saisi_par"] == u["id"]:
+        raise ErreurMetier("Quatre yeux : " + ("pas de visa sur sa propre saisie." if etape == "visa" else "pas de validation sur sa propre saisie."))
+    if etape == "validation":
+        if o["vise_par"] == u["id"]:
+            raise ErreurMetier("Quatre yeux : la validation vient d'une autre personne que celle qui a visé.")
+        j = journee_courante(u)
+        jour = j["date"] if j and j["statut"] == "ouverte" else ""
+        if not jour:
+            raise ErreurMetier("Aucune journée ouverte (Administration > Journée).")
+        date_val = texte(d or {}, "date") or jour
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", date_val):
+            raise ErreurMetier("À remplir : date opération.")
+        if date_val < o["date_operation"].isoformat():
+            raise ErreurMetier("La date de validation précède la date de l'opération.")
+        if date_val > jour:
+            raise ErreurMetier("La date de validation ne peut pas dépasser la journée ouverte.")
+        executer("update operation_banque set statut = 'validee', valide_par = %s, valide_le = now(), date_validation = %s where id = %s", (u["id"], date_val, oid))
+    else:
+        executer("update operation_banque set statut = 'visee', vise_par = %s, vise_le = now() where id = %s", (u["id"], oid))
+    return vue(une("select * from operation_banque where id = %s", (oid,)))

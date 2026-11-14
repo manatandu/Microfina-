@@ -557,6 +557,12 @@ const OUT = process.argv[2];
   await p.getByRole('cell', { name: /0412-00032\d-TJ-/ }).first().waitFor({ state: 'attached' }).catch(() => {});
   await p.getByLabel('N° compte épargne : *').waitFor(); await etape('06c8-adhesion-banque');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
+  // Visa et validation (S57) : l'adhésion saisie attend son visa ; sa propre saisie ne se vise pas (quatre yeux)
+  await aller('/banque/s57'); await p.getByRole('heading', { name: 'Viser Encaissement Décaissement' }).waitFor();
+  await p.getByRole('button', { name: /^Viser/ }).first().click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('dialog', { name: 'Erreur' }).getByText('Quatre yeux').waitFor(); await p.getByRole('button', { name: 'Ok' }).click(); await etape('06c9-visa-banque');
+  await p.getByRole('tab', { name: 'Validation' }).click(); await p.getByRole('heading', { name: 'Validation Encaissement Décaissement' }).waitFor();
+  await p.getByRole('tab', { name: 'Virement / Prélèvement' }).click(); await p.getByRole('heading', { name: 'Validation prélèvement virement' }).waitFor(); await etape('06c10-validation-banque');
   await login('Esther Ngalula');
   // Apurement avant la résiliation (registre S48-1) : Lukusa retire tout son solde (85 000 CDF)
   await aller('/caisse/s74?op=retrait'); await client('Lukusa'); await p.getByLabel('N° compte').selectOption({ label: '0412-000320-02' });

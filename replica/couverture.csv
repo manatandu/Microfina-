@@ -55,7 +55,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 54,Déblocage de crédit par banque,banque,must,no,S54,A,guichet,7 Crédit,"S54 : contrat de prêt, échéancier",document ; A:S75,,S54,
 55,Remboursement de crédit par banque,banque,must,no,S55,B,guichet,7 Crédit,"S55 : onglets Répartition et Détail crédit, page après Suivant",A:S76 (p. 87 et 88),,S55,
 56,Adhésion par banque,banque,should,yes,S56,A,guichet,4 Banque,,A:S73,,,
-57,Visa puis validation des opérations de banque,banque,must,no,S57,B,visa,4 Banque,S57 : deux listes sans capture ; colonnes complètes,"A:S113, S114",,S57,
+57,Visa puis validation des opérations de banque,banque,must,partial,S57,B,visa,4 Banque,S57 : deux listes sans capture ; colonnes complètes,"A:S113, S114",,,S57-6 Effet de la validation
 58,Banques et comptes bancaires,banque,must,partial,S58,A,liste,4 Banque,,,,,"S58-1 Compte liaison d'une banque client ; S58-2 Comptes « à valider » ; S58-3 Compte de pénalité, gestionnaire ; S58-4 Liste des comptes"
 59,Chèques clients : dépôt encaissement historique,banque,should,no,S59,B,guichet,4 Banque,S59 : Historique chèque (texte seul),A:S62 (rapport par banque),,S59,
 60,Chéquier et chèque pour crédit,banque,could,no,S60,B,liste,4 Banque,S60 : « Chèque pour crédit » : en panne dans le manuel,A:S54 ; P,,S60,S60-1 Liste « N° de chèque » de S52

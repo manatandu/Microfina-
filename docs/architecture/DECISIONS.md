@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**296 décisions.** Solidité : 96 fortes (le manuel ou un texte répond), 161 moyennes (déduites d'un écran voisin ou d'une donnée), 39 faibles (notre choix, faute de mieux). Dans le code : 265 déjà en place, 31 à appliquer.
+**302 décisions.** Solidité : 97 fortes (le manuel ou un texte répond), 164 moyennes (déduites d'un écran voisin ou d'une donnée), 41 faibles (notre choix, faute de mieux). Dans le code : 270 déjà en place, 32 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -697,6 +697,17 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S56-3 | Compte bancaire de l'adhésion | En CDF : frais et parts sont en CDF (registre S73-1) | Écran voisin : Registre S73-1 | moyenne | en place |
 | S56-4 | Règles reprises de S73 | Mêmes contrôles que l'adhésion au guichet : client actif, pas déjà membre avec un compte, au moins une part payée en entier, frais sur des comptes du plan, ouverture de compte gratuite. Montant total = parts + premier dépôt + frais, comme à la caisse | Texte réglementaire : Loi 002/2002, art. 21 et 22 ; PCCI comptes 103 et 330 ; Instr. BCC 37 | forte | en place |
 
+## S57 Visa et validation banque
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S57-1 | Qui peut viser et valider | Le visa vient d'une autre personne que celle qui a saisi ; la validation, d'une autre que celle qui a saisi et que celle qui a visé | Texte réglementaire : Instr. BCC 008, art. 66 (séparation des tâches) ; ARCHITECTURE P7 ; même règle que S113 | moyenne | en place |
+| S57-2 | Les huit listes | Quatre listes (Enc. Déc., Banque vers Caisse, Banque vers Banque, Virement / Prélèvement), vues au visa (opérations saisies) puis à la validation (opérations visées). Colonnes de la capture p. 65 et 66 ; une flèche par ligne, confirmation Oui/Non. En-tête Numéro de pièce et Date operation à la validation, sauf Virement / Prélèvement | Manuel : Manuel p. 65 à 67 (captures) | forte | en place |
+| S57-3 | Droit d'accès | Le droit S57 est donné au comptable au départ, comme tout le menu Banque ; pour que trois personnes distinctes passent la chaîne, l'administrateur l'ajoute à d'autres profils (Administration > Profil). À confirmer : profils habilités par défaut | Écran voisin : Registre S04-1 ; ARCHITECTURE P7 | faible | en place |
+| S57-4 | Où voir l'adhésion par banque | Dans la liste Encaissement Décaissement (le manuel ne dit pas où l'adhésion saisie en S56 se vise). À confirmer par le porteur | Règle générale du manuel : Aucune capture ; l'adhésion est un encaissement par banque | faible | en place |
+| S57-5 | Date operation de la validation | Par défaut la journée ouverte ; ni avant la date de l'opération ni après la journée ouverte. Le Numéro de pièce reste vide : il vient à la comptabilisation (S111) | Écran voisin : Registre S52-2 ; PCCI § 3.3 et 3.4 | moyenne | en place |
+| S57-6 | Effet de la validation | Le statut passe à validée, rien d'autre pour l'instant : l'ouverture du compte épargne de l'adhésion se fait à la validation à la caisse (p. 89 et 104) et l'écriture à la comptabilisation (S111) | Écran voisin : Registre S56-1 ; COMPLEMENTS § 6 | moyenne | à appliquer |
+
 ## Les décisions faibles, à regarder en premier
 
 | N° | Écran | Question | Réponse retenue |
@@ -740,3 +751,5 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S52-6 | S52 Opérations de banque | Virement entre deux comptes de devises différentes | Refusé pour l'instant : la conversion au cours du jour (S35) est à confirmer par le porteur |
 | S53-1 | S53 Virement prélèvement | Sens du virement et du prélèvement | Virement : la banque crédite le compte du client (l'argent arrive). Prélèvement : le compte du client est débité au profit de la banque (l'argent part). Sens bancaire courant ; le manuel ne le dit pas. À confirmer par le porteur |
 | S53-3 | S53 Virement prélèvement | Devises | Le compte du client et le compte bancaire doivent être dans la même devise ; entre deux devises, à confirmer avec S52-6 |
+| S57-3 | S57 Visa et validation banque | Droit d'accès | Le droit S57 est donné au comptable au départ, comme tout le menu Banque ; pour que trois personnes distinctes passent la chaîne, l'administrateur l'ajoute à d'autres profils (Administration > Profil). À confirmer : profils habilités par défaut |
+| S57-4 | S57 Visa et validation banque | Où voir l'adhésion par banque | Dans la liste Encaissement Décaissement (le manuel ne dit pas où l'adhésion saisie en S56 se vise). À confirmer par le porteur |

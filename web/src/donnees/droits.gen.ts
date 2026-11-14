@@ -15,6 +15,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "banqueOperations.enregistrerVirement": [
 "S53"
 ],
+"banqueOperations.suivre": [
+"S57"
+],
 "banques.enregistrerBanque": [
 "S58"
 ],

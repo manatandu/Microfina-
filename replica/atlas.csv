@@ -71,7 +71,7 @@ S53,Virement prélèvement,61,A,guichet,,,4 Banque,oui
 S54,Déblocage crédit par banque,62,A,guichet,"contrat de prêt, échéancier",document ; A:S75,7 Crédit,non
 S55,Remboursement de crédit par banque,63,B,guichet,"onglets Répartition et Détail crédit, page après Suivant",A:S76 (p. 87 et 88),7 Crédit,non
 S56,Adhésion par banque,64 ; validation en caisse 89 et 104,A,guichet,,A:S73,4 Banque,oui
-S57,Visa et validation des opérations de banque (huit listes),65 à 67 (six bandes),B,visa,deux listes sans capture ; colonnes complètes,"A:S113, S114",4 Banque,non
+S57,Visa et validation des opérations de banque (huit listes),65 à 67 (six bandes),B,visa,deux listes sans capture ; colonnes complètes,"A:S113, S114",4 Banque,oui
 S58,"Création banque : client, institution",67 (deux captures),A,liste,,,4 Banque,oui
 S59,"Chèque client : dépôt, encaissement, historique",68 et 69 (deux captures),B,guichet,Historique chèque (texte seul),A:S62 (rapport par banque),4 Banque,non
 S60,"Chèque institution : générer chéquier, chèque pour crédit",69,B,liste,« Chèque pour crédit » : en panne dans le manuel,A:S54 ; P,4 Banque,non

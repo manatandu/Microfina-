@@ -542,6 +542,45 @@ describe("journée de guichet", () => {
     await expect(api.banqueOperations.enregistrerVirement({ ...base, cle: cle(), type: "prelevement_client", montant: 1 })).rejects.toThrow("disponible insuffisant");
   });
 
+  it("visa puis validation des opérations de banque (S57) : quatre yeux, quatre listes (registre S57-1 à S57-3)", async () => {
+    await journeeOuverte();
+    await connecter("jpmukendi");
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    await api.banques.enregistrerCompte({ banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "",
+      compte: "56010001", numeroBancaire: "R-USD-1", devise: "USD" });
+    // le chef d'agence et le profil de bkasongo reçoivent le droit S57 (Administration > Profil), pour que trois personnes distinctes passent la chaîne
+    const profils = Object.fromEntries((await api.droits.lire()).profils.map((p) => [p.nom, p.id]));
+    for (const nom of ["CHEF D'AGENCE", "AGENT DE CRÉDIT"]) {
+      const id = profils[nom]; if (!id) continue;
+      await api.droits.enregistrer(id, { droits: [...(await api.droits.lire(id)).octroyes, "S57"] });
+    }
+    await connecter("plumbala");
+    const usd = (await api.banqueOperations.lire()).comptes[0]!.id;
+    const comptes = await api.tiers.comptes(1);
+    const cusd = comptes.find((c) => c.devise === "USD")!;
+    const enc = await api.banqueOperations.enregistrer({ cle: cle(), type: "encaissement", date: "2026-11-05", compteBancaireId: usd, compte: "727", libelle: "Commission", montant: 50000 });
+    const vir = await api.banqueOperations.enregistrerVirement({ cle: cle(), type: "virement_client", date: "2026-11-05", compteBancaireId: usd, compteDepotId: cusd.id, libelle: "Salaire", montant: 30000 });
+    expect((await api.banqueOperations.visas("visa", "enc_dec")).map((x) => x.id)).toEqual([enc.id]);
+    const v = (await api.banqueOperations.visas("visa", "virement"))[0]!;
+    expect([v.id, v.compteEpargne, v.numeroComptable, v.debit, v.credit]).toEqual([vir.id, cusd.numero, cusd.pcci, 0, 30000]);
+    expect(await api.banqueOperations.visas("visa", "banque_banque")).toEqual([]);
+    // celui qui saisit ne vise pas ; rien à valider tant que ce n'est pas visé
+    await expect(api.banqueOperations.suivre(enc.id, "visa")).rejects.toThrow("Quatre yeux");
+    await expect(api.banqueOperations.suivre(enc.id, "validation")).rejects.toThrow("Rien à valider");
+    await connecter("jpmukendi");
+    expect((await api.banqueOperations.suivre(enc.id, "visa")).statut).toBe("visee");
+    await expect(api.banqueOperations.suivre(enc.id, "visa")).rejects.toThrow("Rien à viser");
+    // celui qui a visé ne valide pas
+    expect((await api.banqueOperations.visas("validation", "enc_dec")).map((x) => x.id)).toEqual([enc.id]);
+    await expect(api.banqueOperations.suivre(enc.id, "validation")).rejects.toThrow("autre personne que celle qui a visé");
+    await connecter("bkasongo");
+    await expect(api.banqueOperations.suivre(enc.id, "validation", { date: "2026-11-04" })).rejects.toThrow("précède");
+    await expect(api.banqueOperations.suivre(enc.id, "validation", { date: "2026-11-06" })).rejects.toThrow("dépasser la journée");
+    const ok = await api.banqueOperations.suivre(enc.id, "validation");
+    expect([ok.statut, ok.piece]).toEqual(["validee", ""]);   // le numéro de pièce vient à la comptabilisation (S111)
+    expect(await api.banqueOperations.visas("validation", "enc_dec")).toEqual([]);
+  });
+
   it("adhésion par banque (S56) : payée sur un compte bancaire en CDF, saisie en attente du visa (registre S56-1 à S56-3)", async () => {
     await journeeOuverte();
     await connecter("jpmukendi");

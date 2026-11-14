@@ -1,4 +1,5 @@
 import VisaRetraitPlafond from "./Visas";
+import VisaBanque from "./VisaBanque";
 import type { ComponentType } from "react";
 import GuichetDepotRetrait from "./Guichet";
 import Adhesion from "./Adhesion";
@@ -102,6 +103,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S52: OperationsBanque,
   S53: VirementPrelevement,
   S56: AdhesionBanque,
+  S57: VisaBanque,
   S58: CreationBanque,
   S73: Adhesion,
   S74: GuichetDepotRetrait,
