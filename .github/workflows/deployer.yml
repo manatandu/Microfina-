@@ -145,3 +145,8 @@ jobs:
         run: |
           sleep 10
           curl -fsS "https://$PROJET.web.app/api/session/mode" | tee /dev/stderr | grep -q '"motDePasseRequis": true'
+
+  verification:
+    needs: deploiement
+    uses: ./.github/workflows/verifier.yml
+    secrets: inherit

@@ -40,3 +40,14 @@ Départ : près de zéro. Cloud Run, Hosting, secrets et images restent dans les
 - Le site ne contient que la graine fictive (COOPEC Tujenge). Une vraie institution demande la création de sa première équipe : étape à part.
 - Pas de limite d'essais de mot de passe (registre S01-3, à confirmer).
 - L'accès de GitHub est limité au dépôt `manatandu/Microfina-` ; toute personne qui peut pousser sur ses branches de déploiement peut publier.
+
+
+## Contrôle du site en ligne (demande du porteur, 14/11/2026)
+
+Après chaque déploiement, le travail « Contrôle du site en ligne » (`.github/workflows/verifier.yml`) se connecte au site avec un compte de vérification
+et ouvre chaque écran construit, sans rien enregistrer. Il signale les erreurs de page et les réponses 5xx du serveur ; les captures des écrans en panne
+sont jointes au travail. Il se lance aussi à la main (Actions > Contrôle du site en ligne > Run workflow).
+
+Le compte est créé par l'administrateur dans le logiciel (Administration > Utilisateur > Création). Son identifiant et son mot de passe sont rangés
+dans les secrets du dépôt GitHub (Settings > Secrets and variables > Actions) sous les noms `VERIF_LOGIN` et `VERIF_MOT_DE_PASSE`, jamais dans le dépôt
+ni dans une conversation. Sans ces secrets, le contrôle ne fait rien et le dit.

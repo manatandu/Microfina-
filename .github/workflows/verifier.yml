@@ -1,0 +1,45 @@
+# Contrôle du site publié avec le compte de vérification : ouvre chaque écran construit, sans rien enregistrer.
+# Lancé après chaque déploiement, ou à la demande. Le compte vient des secrets du dépôt VERIF_LOGIN et VERIF_MOT_DE_PASSE (jamais dans le dépôt).
+name: Contrôle du site en ligne
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  controle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Adresse du site
+        id: cfg
+        run: |
+          if [ -f deploiement/config.env ]; then set -a; . deploiement/config.env; set +a; echo "base=https://$PROJET.web.app" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Navigateur
+        working-directory: web
+        run: |
+          npm ci
+          npm i --no-save playwright@1.63.0
+          npx playwright install --with-deps chromium
+      - name: Ouvrir chaque écran
+        working-directory: web
+        env:
+          BASE: ${{ steps.cfg.outputs.base }}
+          VERIF_LOGIN: ${{ secrets.VERIF_LOGIN }}
+          VERIF_MOT_DE_PASSE: ${{ secrets.VERIF_MOT_DE_PASSE }}
+        run: node e2e/controle-en-ligne.cjs controle
+      - name: Captures des écrans en panne
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: controle-en-ligne
+          path: web/controle
+          if-no-files-found: ignore
