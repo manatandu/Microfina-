@@ -23,7 +23,7 @@ TYPES_ENTREPRISE = ["Banques commerciales et autres intermédiaires financiers",
                     "Entreprises publiques", "Entreprises privées", "Institutions sans but lucratif"]
 # Type de groupe : liste S14f (registre S39-2) ; en démonstration, « les groupements, les associations ou les ONG » (manuel p. 47).
 # Agent économique (PCCI § 10.2) : associations et ONG sont des institutions sans but lucratif ; groupement ou autre libellé : à confirmer.
-TYPES_GROUPE = {"Groupement": None, "Association": "Institutions sans but lucratif", "ONG": "Institutions sans but lucratif"}
+TYPES_GROUPE = {"Groupement solidaire": None, "Association": "Institutions sans but lucratif", "ONG": "Institutions sans but lucratif"}
 # Pièces d'identité admises : Instr. BCC 15, art. 14
 PIECES = ["Passeport", "Carte d'identité nationale", "Permis de conduire", "Carte d'étudiant", "Carte de l'armée ou de la police", "Carte d'électeur",
           "Lettre certifiée du chef de village ou de quartier", "Liste des bénéficiaires de programmes sociaux", "Carte de réfugié"]          # seul type montré par le manuel (p. 49) ; la liste viendra du paramétrage S16
@@ -1230,11 +1230,11 @@ def comptes_du_tiers(tid: int) -> list[dict]:
 
 def compte_parts(t: dict) -> str:
     """PCCI, compte 103, selon la nature juridique du membre (registre S16-13) : 1030 personnes physiques ; 1031 groupements solidaires
-    (type de groupe « Groupement », sans personnalité juridique) ; 1032 personnes morales (entreprise, banque, État, église, association, ONG).
+    (type de groupe « Groupement solidaire », sans personnalité juridique, loi 11/020, art. 1er, 7° et 19°) ; 1032 personnes morales (entreprise, banque, État, église, association, ONG).
     La valeur de la part vient de la ligne des frais d'adhésion (S16-11)."""
     if t["type"] == "physique":
         return "1030"
-    if t["type"] == "groupe" and t["type_client"] == "Groupement":
+    if t["type"] == "groupe" and t["type_client"] == "Groupement solidaire":
         return "1031"
     return "1032"
 

@@ -406,7 +406,7 @@ def test_part_sociale_frais_adhesion(clients):
         r = chef.post(chemin, c, **H); assert r.status_code == 422, r.content; return r.json()["message"]
     lu = chef.get("/api/parametrage/frais").json()["adhesion"]
     parts = {x["typeMembre"]: x for x in lu if x["compte"].startswith("103")}
-    assert {k: (v["compte"], v["valeur"]) for k, v in parts.items()} == {"Physique": ("1030", 400000), "Entreprise": ("1032", 400000), "Groupe": ("1031", 400000)}
+    assert {k: (v["compte"], v["valeur"]) for k, v in parts.items()} == {"Physique": ("1030", 400000), "Personne morale": ("1032", 400000), "Groupe": ("1031", 400000)}
     assert chef.get("/api/referentiel").json()["valeurPart"] == 400000
     pid = parts["Physique"]["id"]
     assert "compte 1030" in refus(f"/api/parametrage/frais-adhesion/{pid}", {"nature": "Montant", "valeur": 400000, "compte": "1032"})
@@ -426,7 +426,7 @@ def test_part_sociale_frais_adhesion(clients):
 def test_compte_part_selon_nature():
     """PCCI, compte 103 selon la nature juridique du membre (registre S16-13) : banque, État, église, association, ONG en 1032"""
     from noyau.services import compte_parts
-    cas = [("physique", "Client", "1030"), ("groupe", "Groupement", "1031"), ("groupe", "Association", "1032"), ("groupe", "ONG", "1032"),
+    cas = [("physique", "Client", "1030"), ("groupe", "Groupement solidaire", "1031"), ("groupe", "Association", "1032"), ("groupe", "ONG", "1032"),
            ("morale", "Banques commerciales et autres intermédiaires financiers", "1032"), ("morale", "Administration centrale", "1032"),
            ("morale", "Institutions sans but lucratif", "1032")]
     assert [compte_parts({"type": t, "type_client": c}) for t, c, _ in cas] == [x for _, _, x in cas]
@@ -457,8 +457,8 @@ def test_parametrage_frais(clients):
                                                                        "compte": "1030", "montant": 400000, "part": True},
                                                                       {"fraisId": f["id"], "libelle": "Droit d'entrée", "compte": "727", "montant": 200000, "part": False}]
     # Modifier Catégorie (S16-6) : la ligne passe de Physique à Entreprise
-    assert chef.post(f"/api/parametrage/frais-adhesion/{pid}/categorie", {"typeMembre": "Entreprise"}, **H).status_code == 200
-    assert next(x for x in chef.get("/api/parametrage/frais").json()["adhesion"] if x["id"] == pid)["typeMembre"] == "Entreprise"
+    assert chef.post(f"/api/parametrage/frais-adhesion/{pid}/categorie", {"typeMembre": "Personne morale"}, **H).status_code == 200
+    assert next(x for x in chef.get("/api/parametrage/frais").json()["adhesion"] if x["id"] == pid)["typeMembre"] == "Personne morale"
     chef.post(f"/api/parametrage/frais-adhesion/{pid}/categorie", {"typeMembre": "Physique"}, **H)
     # Frais d'opération au taux (S16-2) sur une part sociale (S16-1), sous type de Général (S16-8)
     fp = chef.post("/api/parametrage/frais", {"typeOperation": "PART_SOCIALE", "libelle": "Frais de part"}, **H).json()

@@ -32,7 +32,7 @@ CHAMPS = {   # clé -> (colonne, libellé, sorte) ; sorte : texte, nombre, entie
     "differeMin": ("differe_min", "Différé minimum", "entier"), "differeMax": ("differe_max", "Différé maximum", "entier"),
     "interetMin": ("interet_min", "Intérêt minimum", "nombre"), "interetMax": ("interet_max", "Intérêt maximum", "nombre"),
     "clientPhysique": ("client_physique", "Physique", "oui"), "clientGroupe": ("client_groupe", "Groupe", "oui"),
-    "clientEntreprise": ("client_entreprise", "Entreprise", "oui"), "maxParMembre": ("max_par_membre", "Appliquer montant max. prêt par mbre du groupe", "oui"),
+    "clientEntreprise": ("client_entreprise", "Personne morale", "oui"), "maxParMembre": ("max_par_membre", "Appliquer montant max. prêt par mbre du groupe", "oui"),
     "periodicite": ("periodicite", "Périodicité", "texte"), "modeDiffere": ("mode_differe", "Mode différé", "texte"),
     "paiementInteret": ("paiement_interet", "Paiement intérêt", "texte"), "interetAnticipation": ("interet_anticipation", "Percevoir int. par anticipation", "oui"),
     "ageMax": ("age_max", "Age max", "entier"),
@@ -85,7 +85,7 @@ def vue(r) -> dict:
 
 
 def types_client(r) -> str:
-    return ", ".join(n for k, n in (("client_physique", "Physique"), ("client_groupe", "Groupe"), ("client_entreprise", "Entreprise")) if r[k])
+    return ", ".join(n for k, n in (("client_physique", "Physique"), ("client_groupe", "Groupe"), ("client_entreprise", "Personne morale")) if r[k])
 
 
 def lire(u) -> dict:

@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**264 décisions.** Solidité : 82 fortes (le manuel ou un texte répond), 148 moyennes (déduites d'un écran voisin ou d'une donnée), 34 faibles (notre choix, faute de mieux). Dans le code : 222 déjà en place, 42 à appliquer.
+**265 décisions.** Solidité : 83 fortes (le manuel ou un texte répond), 148 moyennes (déduites d'un écran voisin ou d'une donnée), 34 faibles (notre choix, faute de mieux). Dans le code : 223 déjà en place, 42 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -613,7 +613,13 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S16-13 | Compte de la part selon le membre | Selon la nature juridique, pas selon les trois types de Microfina++ : 1030 personne physique ; 1031 groupe de type « Groupement » (sans personnalité juridique) ; 1032 toute personne morale : entreprise, banque, État et administrations, entreprise publique, institution sans but lucratif, église, association, ONG. Statut juridique d'une église (ASBL ou confession religieuse) : à vérifier | Choix du porteur : Demande du porteur (14/11/2026) ; PCCI, compte 103 ; manuel p. 47 ; loi 002/2002, art. 22 | forte | en place |
+| S16-13 | Compte de la part selon le membre | Selon la nature juridique, pas selon les trois types de Microfina++ : 1030 personne physique ; 1031 groupe de type « Groupement solidaire » (sans personnalité juridique) ; 1032 toute personne morale : entreprise, banque, État et administrations, entreprise publique, institution sans but lucratif, église, association, ONG. Statut juridique d'une église (ASBL ou confession religieuse) : à vérifier | Choix du porteur : Demande du porteur (14/11/2026) ; PCCI, compte 103 ; manuel p. 47 ; loi 002/2002, art. 22 | forte | en place |
+
+## S14f, S16, S23, S51 Libellés des types de membre
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S16-14 | Groupement solidaire et Personne morale | Le type de groupe « Groupement » devient « Groupement solidaire » (groupe sans personnalité juridique, codébiteurs solidaires) ; le type de membre « Entreprise » devient « Personne morale » (frais d'adhésion, types de client du produit crédit, rapports, visa). Les écrans d'enrôlement gardent leur nom du manuel (« Enrôlement entreprise »). Migration 0061 pour les bases existantes | Choix du porteur : Demande du porteur (14/11/2026) ; loi 11/020, art. 1er, 7° et 19° ; PCCI, comptes 1031 et 1032 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

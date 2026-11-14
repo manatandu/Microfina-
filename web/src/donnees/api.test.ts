@@ -100,7 +100,7 @@ describe("journée de guichet", () => {
 
   it("compte de la part selon la nature juridique (registre S16-13 ; PCCI, compte 103)", () => {
     const t = (type: "physique" | "morale" | "groupe", typeClient: string) => ({ type, typeClient }) as Parameters<typeof compteParts>[0];
-    expect([t("physique", "Client"), t("groupe", "Groupement"), t("groupe", "Association"), t("groupe", "ONG"), t("morale", "Administration centrale")].map(compteParts))
+    expect([t("physique", "Client"), t("groupe", "Groupement solidaire"), t("groupe", "Association"), t("groupe", "ONG"), t("morale", "Administration centrale")].map(compteParts))
       .toEqual(["1030", "1031", "1032", "1032", "1032"]);
   });
 
@@ -108,7 +108,7 @@ describe("journée de guichet", () => {
     await connecter("jpmukendi");
     const p = api.parametrage;
     const lu = (await p.lireFrais()).adhesion;
-    expect(lu.map((x) => [x.typeMembre, x.compte, x.valeur])).toEqual([["Physique", "1030", 400000], ["Entreprise", "1032", 400000], ["Groupe", "1031", 400000]]);
+    expect(lu.map((x) => [x.typeMembre, x.compte, x.valeur])).toEqual([["Physique", "1030", 400000], ["Personne morale", "1032", 400000], ["Groupe", "1031", 400000]]);
     expect((await api.referentiel.contexte()).valeurPart).toBe(400000);
     await expect(p.modifierParametrage("adhesion", 1, { nature: "Montant", valeur: 400000, compte: "1032" })).rejects.toThrow("compte 1030");
     await expect(p.modifierParametrage("adhesion", 1, { nature: "Montant", valeur: 500000, compte: "1030" })).rejects.toThrow("seule valeur nominale");
@@ -258,7 +258,7 @@ describe("journée de guichet", () => {
     await connecter("bkasongo");
     const base = { ...enrolementVide("2026-11-05"), ...IDENTITE, typeClient: "ONG", produitCode: "EAV-CDF", nom: "ONG Kinsaku", adresse: "Matete", secteurActivite: "PRIMAIRE",
       email: "ong@exemple.cd" };
-    expect((await api.referentiel.contexte()).typesGroupe).toEqual(["Groupement", "Association", "ONG"]);
+    expect((await api.referentiel.contexte()).typesGroupe).toEqual(["Groupement solidaire", "Association", "ONG"]);
     await expect(api.tiers.creerGroupe({ ...base, formeJuridique: "ASBL de fait" }, [])).rejects.toThrow("Forme juridique : valeur inconnue");
     await expect(api.tiers.creerGroupe({ ...base, categorie: "Catégorie A" }, [])).rejects.toThrow("Catégorie : valeur inconnue");
     await expect(api.tiers.creerGroupe({ ...base, email: "ong" }, [])).rejects.toThrow("Email invalide");
@@ -298,8 +298,8 @@ describe("journée de guichet", () => {
       { fraisId: f.id, libelle: "Droit d'entrée", compte: "727", montant: 200000, part: false }]);
     const lu = await p.lireFrais();
     expect([lu.compteAdhesion, lu.sousTypes.includes("Femme"), lu.natures]).toEqual(["727", true, ["Montant", "Taux"]]);   // S16-4, S16-8, S16-2
-    await p.modifierCategorie(pid, "Entreprise");                                                                         // S16-6
-    expect((await p.lireFrais()).adhesion.find((x) => x.id === pid)!.typeMembre).toBe("Entreprise");
+    await p.modifierCategorie(pid, "Personne morale");                                                                         // S16-6
+    expect((await p.lireFrais()).adhesion.find((x) => x.id === pid)!.typeMembre).toBe("Personne morale");
     await p.modifierCategorie(pid, "Physique");
     const fp = await p.creerFrais({ typeOperation: "PART_SOCIALE", libelle: "Frais de part" });                             // S16-1
     await expect(p.parametrerOperation({ fraisId: fp.id, nature: "Taux", valeur: 20000, compte: "727", sousTypes: ["Femme"] })).rejects.toThrow("Taux invalide");
@@ -445,7 +445,7 @@ describe("journée de guichet", () => {
     expect((await op(2, "retrait", 1, { 1000: 4 })).statut).toBe("validee");
     await expect(op(2, "achat", 1, { 1000: 4 })).rejects.toThrow("résilié");
     expect(compteParts({ ...(await api.tiers.lire(1))!, type: "morale" })).toBe("1032");
-    expect(compteParts({ ...(await api.tiers.lire(1))!, type: "groupe", typeClient: "Groupement" })).toBe("1031");
+    expect(compteParts({ ...(await api.tiers.lire(1))!, type: "groupe", typeClient: "Groupement solidaire" })).toBe("1031");
   });
 
   it("banques (S58) : banque client, compte de l'institution en 560 (PCCI), suppression contrôlée", async () => {

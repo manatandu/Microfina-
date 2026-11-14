@@ -71,7 +71,7 @@ export default function ProduitCredit({ listeOuverte = false }: { listeOuverte?:
         {cadre("Intérêt", <>{choix("typeInteret", "Type *", simple(o.typesInteret), false)}{texte("tauxInteret", "Taux int. (%) *", "saisie code")}{texte("tauxDiffere", "Taux diff. (%) *", "saisie code")}</>)}
       </div>
       <div className="grille-deux">
-        {cadre("Types de client", <>{case_("clientPhysique", "Physique")}{case_("clientGroupe", "Groupe")}{case_("clientEntreprise", "Entreprise")}{case_("maxParMembre", "Appliquer montant max. prêt par mbre du groupe")}</>)}
+        {cadre("Types de client", <>{case_("clientPhysique", "Physique")}{case_("clientGroupe", "Groupe")}{case_("clientEntreprise", "Personne morale")}{case_("maxParMembre", "Appliquer montant max. prêt par mbre du groupe")}</>)}
         {cadre("Divers", <>{choix("periodicite", "Périodicité *", o.periodicites.map((t: { code: string; libelle: string }) => ({ v: t.code, l: t.libelle })))}
           {choix("modeDiffere", "Mode différé: *", simple(o.modesDiffere), false)}{choix("paiementInteret", "Paiement intérêt *", simple(o.paiementsInteret), false)}
           {choix("interetAnticipation", "Percevoir int. par anticipation *", simple(["OUI", "NON"]), false)}{texte("ageMax", "Age max *", "saisie code")}</>)}

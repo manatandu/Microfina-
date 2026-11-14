@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v57";
+const CLE = "likelemba-demo-v58";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -27,7 +27,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 57) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 58) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -296,7 +296,7 @@ export const TYPES_ENTREPRISE = ["Banques commerciales et autres intermédiaires
   "Autres COOPEC et IMF", "Institutions financières non bancaires", "Administration centrale", "Administrations provinciales ou locales",
   "Entreprises publiques", "Entreprises privées", "Institutions sans but lucratif"];
 /** Agent économique (PCCI § 10.2) des types de groupe nommés p. 47 ; le type se choisit dans S14f (registre S39-2) ; groupement ou autre libellé : à confirmer */
-export const TYPES_GROUPE: Record<string, string | null> = { Groupement: null, Association: "Institutions sans but lucratif", ONG: "Institutions sans but lucratif" };
+export const TYPES_GROUPE: Record<string, string | null> = { "Groupement solidaire": null, Association: "Institutions sans but lucratif", ONG: "Institutions sans but lucratif" };
 /** Pièces d'identité admises : Instr. BCC 15, art. 14 */
 export const PIECES = ["Passeport", "Carte d'identité nationale", "Permis de conduire", "Carte d'étudiant", "Carte de l'armée ou de la police", "Carte d'électeur",
   "Lettre certifiée du chef de village ou de quartier", "Liste des bénéficiaires de programmes sociaux", "Carte de réfugié"];
@@ -662,7 +662,7 @@ export const TYPES_OPERATION = ["ADHESION", "DEPOT", "RETRAIT", "PART_SOCIALE"];
 const GRATUITS: Record<string, string> = { DEPOT: "dépôt d'espèces", RETRAIT: "retrait d'espèces", OUVERTURE: "ouverture de compte", CLOTURE: "clôture de compte",
   VIREMENT: "virement de compte à compte" };
 export const NATURES = ["Montant", "Taux"];   // registre S16-2 : Taux = pourcentage du montant de l'opération
-const TYPES_MEMBRE: Record<string, Tiers["type"]> = { Physique: "physique", Entreprise: "morale", Groupe: "groupe" };
+const TYPES_MEMBRE: Record<string, Tiers["type"]> = { Physique: "physique", "Personne morale": "morale", Groupe: "groupe" };
 export type ValeursFrais = { nature: string; valeur: number | null; compte: string };
 
 const droitParametrage = () => exiger("chef_agence");   // profil habilité : à confirmer (S04 à S07)
@@ -1373,7 +1373,7 @@ const SORTIES: Operation["type"][] = ["retrait", "retrait_parts"];
  *  Groupe de type « Groupement » en 1031 ; association et ONG en 1032 (à confirmer). Identique côté serveur (services.compte_parts). */
 export function compteParts(t: Tiers) {
   // PCCI, compte 103, selon la nature juridique du membre (registre S16-13) ; identique côté serveur (services.compte_parts)
-  return t.type === "physique" ? "1030" : t.type === "groupe" && t.typeClient === "Groupement" ? "1031" : "1032";
+  return t.type === "physique" ? "1030" : t.type === "groupe" && t.typeClient === "Groupement solidaire" ? "1031" : "1032";
 }
 /** Registre S16-11 : la part sociale est la ligne des frais d'adhésion portée par un compte 103 ; valeur nominale des statuts (loi 002/2002, art. 20).
  *  Règles identiques côté serveur (services.valeur_part, frais.controler_part). */
@@ -2063,7 +2063,7 @@ const CHAMPS_PRODUIT: Record<string, [string, SorteChamp]> = {
   modeCalcul: ["Mode calcul int", "texte"], typeInteret: ["Type", "texte"], tauxInteret: ["Taux int. (%)", "nombre"], tauxDiffere: ["Taux diff. (%)", "nombre"],
   montantMin: ["Montant minimum", "nombre"], montantMax: ["Montant maximum", "nombre"], dureeMin: ["Durée minimum", "entier"], dureeMax: ["Durée maximum", "entier"],
   differeMin: ["Différé minimum", "entier"], differeMax: ["Différé maximum", "entier"], interetMin: ["Intérêt minimum", "nombre"], interetMax: ["Intérêt maximum", "nombre"],
-  clientPhysique: ["Physique", "oui"], clientGroupe: ["Groupe", "oui"], clientEntreprise: ["Entreprise", "oui"], maxParMembre: ["Appliquer montant max. prêt par mbre du groupe", "oui"],
+  clientPhysique: ["Physique", "oui"], clientGroupe: ["Groupe", "oui"], clientEntreprise: ["Personne morale", "oui"], maxParMembre: ["Appliquer montant max. prêt par mbre du groupe", "oui"],
   periodicite: ["Périodicité", "texte"], modeDiffere: ["Mode différé", "texte"], paiementInteret: ["Paiement intérêt", "texte"],
   interetAnticipation: ["Percevoir int. par anticipation", "oui"], ageMax: ["Age max", "entier"],
   epargneNature: ["Nature de l'épargne obligatoire", "texte"], epargneValeur: ["Épargne obligatoire", "nombre"],
@@ -2104,7 +2104,7 @@ const produitsCredit = {
   /** La page et la liste des produits crédits (Fig. 2, p. 38 : Numero, Produit, Type de client, Taux interet, Taux différé) */
   lire() {
     exiger();
-    const tc = (p: ProduitCreditVue) => [["clientPhysique", "Physique"], ["clientGroupe", "Groupe"], ["clientEntreprise", "Entreprise"]].filter(([k]) => p[k!]).map(([, n]) => n).join(", ");
+    const tc = (p: ProduitCreditVue) => [["clientPhysique", "Physique"], ["clientGroupe", "Groupe"], ["clientEntreprise", "Personne morale"]].filter(([k]) => p[k!]).map(([, n]) => n).join(", ");
     return { options: produitsCredit.options(), produits: [...E.produitsCredit].sort((a, b) => String(a.numero).localeCompare(String(b.numero)))
       .map((p) => ({ id: p.id, numero: String(p.numero), nom: String(p.nom), typeClient: tc(p), tauxInteret: p.tauxInteret as number, tauxDiffere: p.tauxDiffere as number, actif: p.actif !== false })) };
   },

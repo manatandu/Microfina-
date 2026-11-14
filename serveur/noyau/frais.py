@@ -10,7 +10,7 @@ TYPES_OPERATION = ["ADHESION", "DEPOT", "RETRAIT", "PART_SOCIALE"]
 GRATUITS = {"DEPOT": "dépôt d'espèces", "RETRAIT": "retrait d'espèces", "OUVERTURE": "ouverture de compte", "CLOTURE": "clôture de compte",
             "VIREMENT": "virement de compte à compte"}
 NATURES = {"Montant": "montant", "Taux": "taux"}   # registre S16-2 : Taux = pourcentage du montant de l'opération
-TYPES_MEMBRE = {"Physique": "physique", "Entreprise": "morale", "Groupe": "groupe"}   # les trois types de client (p. 47)
+TYPES_MEMBRE = {"Physique": "physique", "Personne morale": "morale", "Groupe": "groupe"}   # les trois types de client (p. 47)
 
 
 def droit(u):

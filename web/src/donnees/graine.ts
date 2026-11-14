@@ -44,7 +44,7 @@ export function graine(): Etat {
     lieuNaissance: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", liees: [] as number[],
     type: "physique" as const, formeJuridique: "", registre: "", centreActivite: "", activite: "", dirigeant: null, signataires: [], nbHommes: 0, nbFemmes: 0, membres: [], intitule: "", dateVisa: "2026-01-15", profession: "", pays: "", ville: "", quartier: "", rue: "", email: "", bp: "", telephoneFixe: "", motifDepart: "", resilieLe: "", creeLe: "2026-01-15", creePar: 4, visePar: 2, statut: "actif" as const };
   return {
-    version: 57,
+    version: 58,
     institution: { nom: "COOPEC Tujenge", sigle: "CTJ", profil: "coopec", pays: "République démocratique du Congo", ville: "Kinshasa", commune: "Matete", quartier: "Kinsaku", journeeMax: 1 },   // sigle fictif : élément Institution du numéro client (S15-11)
     agence: { id: 1, code: "0412", nom: "Matete" },
     agences: [{ id: 1, code: "0412", nom: "Matete", supprime: false }],
@@ -87,7 +87,7 @@ export function graine(): Etat {
     // S16 : la part sociale, ligne « Part sociale standard » des frais d'adhésion (capture p. 89), compte 103 selon le membre (PCCI),
     // valeur des statuts (loi 002/2002, art. 20) ; exemple du manuel, 4 000 (registre S16-11)
     frais: [{ id: 1, typeOperation: "ADHESION", libelle: "Part sociale standard" }], paramOperations: [],
-    paramAdhesion: ([["Physique", "1030"], ["Entreprise", "1032"], ["Groupe", "1031"]] as const).map(([typeMembre, compte], i) => ({ id: i + 1, fraisId: 1, typeMembre, nature: "Montant", valeur: VALEUR_PART_EXEMPLE, compte })), fraisClient: [], modifications: [], groupesSolidaires: [], membresGroupes: [], typesProcuration: [], consentements: [], banques: [], comptesBancaires: [],
+    paramAdhesion: ([["Physique", "1030"], ["Personne morale", "1032"], ["Groupe", "1031"]] as const).map(([typeMembre, compte], i) => ({ id: i + 1, fraisId: 1, typeMembre, nature: "Montant", valeur: VALEUR_PART_EXEMPLE, compte })), fraisClient: [], modifications: [], groupesSolidaires: [], membresGroupes: [], typesProcuration: [], consentements: [], banques: [], comptesBancaires: [],
     // S14 : secteurs de la capture du manuel p. 23 ; S14n : types de guichet de la capture p. 19 (registre S08-1)
     // Référentiel crédit (S21) : zone de démonstration et exemples des captures p. 32 à 36
     credit: {
@@ -134,7 +134,7 @@ export function graine(): Etat {
       // S14g : type client « Client », valeur de la capture p. 49 (registre S37-2)
       { liste: "type_client", code: "1", libelle: "Client" },
       // S14f : types de groupe nommés par le manuel, p. 47 (registre S39-2)
-      ...["Groupement", "Association", "ONG"].map((libelle, i) => ({ liste: "type_groupe", code: String(i + 1), libelle })),
+      ...["Groupement solidaire", "Association", "ONG"].map((libelle, i) => ({ liste: "type_groupe", code: String(i + 1), libelle })),
       ...PROFESSIONS_ROME.map(([code, libelle]) => ({ liste: "profession", code, libelle })),   // S14b (registre S14b-1)
       // S14i : formes de société de l'AUSCGIE, art. 6, en démonstration (registre S38-4)
       ...FORMES_JURIDIQUES.map((libelle, i) => ({ liste: "forme_juridique", code: String(i + 1), libelle })),

@@ -9,7 +9,7 @@ const ONGLETS = ["Rapport multicritère", "Rapport prospect", "Rapport des clien
 const INCONNU = "INCONNU";
 const fr = (iso: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "");
 const nomComplet = (t: { nom: string; postnom: string; prenom: string }) => [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
-const CATEGORIES: Record<Tiers["type"], string> = { physique: "Personne physique", morale: "Entreprise", groupe: "Groupe" };
+const CATEGORIES: Record<Tiers["type"], string> = { physique: "Personne physique", morale: "Personne morale", groupe: "Groupe" };
 const STATUTS: Record<Tiers["statut"], string> = { prospect: "Prospect", a_viser: "À viser", actif: "Actif", modifie_a_revalider: "Modifié à valider", resilie: "Résilié" };
 const debutAnnee = () => `${new Date().getFullYear()}-01-01`;
 const aujourdhui = () => new Date().toISOString().slice(0, 10);

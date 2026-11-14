@@ -605,7 +605,7 @@ export function PhotosSignatures() {
     if (fichier) lireImage(fichier).then(f, erreur);
   };
   const annuler = () => { setT(null); setPhoto(null); setSignature(null); };
-  const genre = t?.type === "morale" ? "Entreprise" : t?.type === "groupe" ? "Groupe" : "Membre physique";
+  const genre = t?.type === "morale" ? "Personne morale" : t?.type === "groupe" ? "Groupe" : "Membre physique";
   const signataires = t?.type === "morale" ? t.signataires : t?.type === "groupe" ? t.membres : [];
   const apercuPhoto = photo ?? actuelles?.photo ?? null, apercuSignature = signature ?? actuelles?.signature ?? null;
   return (
