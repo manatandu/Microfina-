@@ -601,17 +601,20 @@ describe("journée de guichet", () => {
     const k = cle(), x = await api.chequesClients.deposer({ ...base, cle: k });
     expect([x.statut, x.statutLibelle]).toEqual(["depose", "Déposé"]);
     expect((await api.chequesClients.deposer({ ...base, cle: k })).id).toBe(x.id);
-    await expect(api.chequesClients.deposer({ ...base, cle: cle() })).rejects.toThrow("déjà enregistré");
+    await expect(api.chequesClients.deposer({ ...base, cle: cle(), tireur: "KABEYA J." })).rejects.toThrow("déjà enregistré");   // même numéro, même banque
+    expect((await api.chequesClients.deposer({ ...base, cle: cle(), banqueTireur: "Rawbank" })).statut).toBe("depose");   // même numéro, autre banque
     const y = await api.chequesClients.deposer({ ...base, cle: cle(), numeroCheque: "0001235" });
-    expect((await api.chequesClients.lister(usd, "depose")).map((z) => z.id)).toEqual([x.id, y.id]);
+    expect((await api.chequesClients.lister(usd, "depose")).map((z) => z.id)).toHaveLength(3);
+    await expect(api.chequesClients.traiter(x.id, "encaisser", { dateEncaissement: "2026-11-05" })).rejects.toThrow("Quatre yeux");
+    await connecter("jpmukendi");   // le chef d'agence a S59 au départ (registre S59-5)
     await expect(api.chequesClients.traiter(x.id, "encaisser", { dateEncaissement: "2026-11-04" })).rejects.toThrow("précède");
     await expect(api.chequesClients.traiter(x.id, "encaisser", { dateEncaissement: "2026-11-06" })).rejects.toThrow("dépasser la journée");
     await expect(api.chequesClients.traiter(x.id, "encaisser")).rejects.toThrow("date encaissement");
     expect((await api.chequesClients.traiter(x.id, "encaisser", { dateEncaissement: "2026-11-05" })).statut).toBe("encaisse");
     expect((await api.chequesClients.traiter(y.id, "retourner")).statut).toBe("retourne");
     await expect(api.chequesClients.traiter(x.id, "retourner")).rejects.toThrow("pas en attente");
-    expect((await api.chequesClients.lister(usd, "depose"))).toEqual([]);
-    expect((await api.chequesClients.lister(usd)).map((z) => z.statut)).toEqual(["encaisse", "retourne"]);
+    expect((await api.chequesClients.lister(usd, "depose"))).toHaveLength(1);
+    expect((await api.chequesClients.lister(usd)).map((z) => z.statut)).toEqual(["encaisse", "depose", "retourne"]);
     expect(await api.chequesClients.lister(cdf)).toEqual([]);
     await connecter("bkasongo");
     await expect(api.chequesClients.deposer({ ...base, cle: cle(), numeroCheque: "9" })).rejects.toThrow("Droit manquant");

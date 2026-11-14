@@ -1255,12 +1255,14 @@ const chequesClients = {
     if (!Number.isInteger(d.montant) || d.montant <= 0) throw new ErreurMetier("Montant : un montant supérieur à zéro.");
     const b = E.comptesBancaires.find((x) => x.id === d.compteBancaireId);
     if (!b) throw new ErreurMetier("À remplir : compte banque.");
-    if (b.devise !== c.devise) throw new ErreurMetier("Le compte du client et le compte bancaire n'ont pas la même devise.");   // S59-2
+    if (b.devise !== c.devise) throw new ErreurMetier("Le compte du client et le compte bancaire n'ont pas la même devise : la conversion n'est pas encore prévue.");   // S59-2
     if (!deposant) throw new ErreurMetier("À remplir : nom et prénoms du déposant.");
     if (d.dateExpiration && !/^\d{4}-\d{2}-\d{2}$/.test(d.dateExpiration)) throw new ErreurMetier("Date d'expiration invalide.");
     const bas = (x: string) => x.toLowerCase();
-    if (E.chequesClients.some((x) => bas(x.numeroCheque) === bas(numero) && bas(x.tireur) === bas(tireur) && bas(x.banqueTireur) === bas(banqueTireur) && x.statut !== "retourne"))
-      throw new ErreurMetier("Ce chèque est déjà enregistré.");   // S59-3
+    // S59-3 : un chèque se reconnaît à son numéro et à sa banque ; sans banque du tireur, au nom du tireur. Un chèque retourné peut revenir.
+    if (E.chequesClients.some((x) => bas(x.numeroCheque) === bas(numero) && x.statut !== "retourne"
+      && (banqueTireur ? bas(x.banqueTireur) === bas(banqueTireur) : !x.banqueTireur && bas(x.tireur) === bas(tireur))))
+      throw new ErreurMetier("Ce chèque est déjà enregistré.");
     const o: ChequeClient = { id: prochain(E.chequesClients), cle: d.cle, date: d.date, tiersId: t.id, compteDepotId: c.id, compteBancaireId: b.id, numeroCheque: numero, tireur, banqueTireur,
       montant: d.montant, devise: c.devise, deposant, pieceType: d.pieceType ?? "", pieceNumero: (d.pieceNumero ?? "").trim(), etabliA: (d.etabliA ?? "").trim(), dateExpiration: d.dateExpiration ?? "",
       statut: "depose", dateEncaissement: "", saisiPar: u.id };
@@ -1273,9 +1275,10 @@ const chequesClients = {
   },
   /** Boutons Encaisser et Retourner (p. 69) */
   traiter(id: number, action: "encaisser" | "retourner", d: { dateEncaissement?: string } = {}) {
-    exiger();
+    const u = exiger();
     const c = E.chequesClients.find((x) => x.id === id);
     if (!c || c.statut !== "depose") throw new ErreurMetier("Ce chèque n'est pas en attente d'encaissement.");
+    if (action === "encaisser" && c.saisiPar === u.id) throw new ErreurMetier("Quatre yeux : l'encaissement vient d'une autre personne que celle qui a enregistré le dépôt.");   // S59-4
     if (action === "retourner") c.statut = "retourne";
     else {
       const j = journees.courante();

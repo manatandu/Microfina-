@@ -62,17 +62,20 @@ def deposer(u, d) -> dict:
     b = une("select id, trim(devise) as devise from compte_bancaire where id = %s and institution_id = %s", (bid, i)) if isinstance(bid, int) and not isinstance(bid, bool) else None
     if not b:
         raise ErreurMetier("À remplir : compte banque.")
-    if b["devise"] != c["devise"]:                             # registre S59-2
-        raise ErreurMetier("Le compte du client et le compte bancaire n'ont pas la même devise.")
+    if b["devise"] != c["devise"]:                             # registre S59-2 : conversion en attente d'une règle unique de cours (S35)
+        raise ErreurMetier("Le compte du client et le compte bancaire n'ont pas la même devise : la conversion n'est pas encore prévue.")
     deposant = texte(d, "deposant")
     if not deposant:
         raise ErreurMetier("À remplir : nom et prénoms du déposant.")
     expire = texte(d, "dateExpiration")
     if expire and not re.match(r"^\d{4}-\d{2}-\d{2}$", expire):
         raise ErreurMetier("Date d'expiration invalide.")
-    if une("""select 1 from cheque_client where institution_id = %s and lower(numero_cheque) = lower(%s) and lower(tireur) = lower(%s)
-              and lower(coalesce(banque_tireur, '')) = lower(%s) and statut <> 'retourne'""", (i, numero, tireur, texte(d, "banqueTireur"))):
-        raise ErreurMetier("Ce chèque est déjà enregistré.")      # registre S59-3
+    # registre S59-3 : un chèque se reconnaît à son numéro et à sa banque ; sans banque du tireur, au nom du tireur. Un chèque retourné peut revenir.
+    banque_tireur = texte(d, "banqueTireur")
+    if une("""select 1 from cheque_client where institution_id = %s and lower(numero_cheque) = lower(%s) and statut <> 'retourne'
+              and (case when %s <> '' then lower(coalesce(banque_tireur, '')) = lower(%s) else banque_tireur is null and lower(tireur) = lower(%s) end)""",
+           (i, numero, banque_tireur, banque_tireur, tireur)):
+        raise ErreurMetier("Ce chèque est déjà enregistré.")
     oid = valeur("""insert into cheque_client (institution_id, agence_id, date_operation, tiers_id, compte_depot_id, compte_bancaire_id, numero_cheque, tireur, banque_tireur,
                                                montant, devise, deposant, piece_type, piece_numero, etabli_a, date_expiration, cle_idempotence, saisi_par)
                     values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
@@ -96,6 +99,8 @@ def traiter(u, cid: int, action: str, d=None) -> dict:
     c = une("select * from cheque_client where id = %s and institution_id = %s for update", (cid, u["institution_id"]))
     if not c or c["statut"] != "depose":
         raise ErreurMetier("Ce chèque n'est pas en attente d'encaissement.")
+    if action == "encaisser" and c["saisi_par"] == u["id"]:       # registre S59-4 : quatre yeux (Instr. BCC 008, art. 66)
+        raise ErreurMetier("Quatre yeux : l'encaissement vient d'une autre personne que celle qui a enregistré le dépôt.")
     if action == "retourner":
         executer("update cheque_client set statut = 'retourne', traite_par = %s where id = %s", (u["id"], cid))
     else:

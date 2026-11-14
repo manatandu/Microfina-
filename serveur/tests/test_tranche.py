@@ -1740,3 +1740,61 @@ def test_fiche_client_physique(clients, journee):
                                   "beneficiaires": [{"nom": "Kalonji", "prenom": "Paul", "filiation": "Enfant", "sexe": "M"}]}, **H).json()
     assert "situationMatrimoniale" in t, t
     assert (t["situationMatrimoniale"], t["pere"], t["typeActivite"], t["beneficiaires"][0]["filiation"]) == ("Marié(e)", "Kalonji Pierre", "Pisciculture", "Enfant")
+
+
+def banque_usd(chef):
+    bid = chef.post("/api/banques", {"code": "RAW", "libelle": "Rawbank", "compteLiaison": "5601", "adresse": ""}, **H).json()["banques"][0]["id"]
+    j = chef.get("/api/banques").json()["journaux"][0]["id"]
+    ids = {}
+    for compte, num, dev in (("56010001", "R-USD-1", "USD"), ("56010003", "R-CDF-1", "CDF")):
+        l = chef.post("/api/banques/comptes", {"banqueId": bid, "compte": compte, "numeroBancaire": num, "devise": dev, "journalId": j, "contactNom": "Mutombo"}, **H)
+        assert l.status_code == 200, l.content
+    for c in chef.get("/api/banques").json()["comptes"]:
+        ids[c["numeroBancaire"]] = c["id"]
+    return ids
+
+
+def test_visa_validation_banque(clients, journee):
+    """S57 (manuel p. 65 à 67) : visa puis validation, par d'autres personnes que celle qui a saisi (registre S57-1)"""
+    chef, compta, agent = clients["chef"], clients["compta"], clients["agent"]
+    ids = banque_usd(chef)
+    o = compta.post("/api/banque/operations", {"cle": cle(), "date": "2026-11-05", "type": "encaissement", "compteBancaireId": ids["R-USD-1"], "compte": "727",
+                                               "libelle": "Commission", "montant": 50000}, **H).json()
+    assert [x["id"] for x in compta.get("/api/banque/visas?etape=visa&liste=enc_dec").json()] == [o["id"]]
+    def refus(c, etape, corps=None):
+        r = c.post(f"/api/banque/visas/{o['id']}/{etape}", corps or {}, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    assert "Quatre yeux" in refus(compta, "visa")
+    assert "Droit manquant" in refus(agent, "visa")
+    from noyau.bd import executer
+    executer("insert into profil_droit (profil_id, droit_code) select id, 'S57' from profil where code in ('chef_agence', 'agent_credit')")
+    assert "Rien à valider" in refus(chef, "validation")
+    assert chef.post(f"/api/banque/visas/{o['id']}/visa", {}, **H).json()["statut"] == "visee"
+    assert "autre personne que celle qui a visé" in refus(chef, "validation")
+    assert "précède" in refus(agent, "validation", {"date": "2026-11-04"})
+    v = agent.post(f"/api/banque/visas/{o['id']}/validation", {}, **H).json()
+    assert (v["statut"], v["piece"]) == ("validee", "")
+
+
+def test_cheques_clients(clients, journee):
+    """S59 (manuel p. 68 et 69) : dépôt, encaissement par une autre personne, retour, historique (registre S59-1 à S59-5)"""
+    chef, compta, agent = clients["chef"], clients["compta"], clients["agent"]
+    ids = banque_usd(chef)
+    base = {"date": "2026-11-05", "compteDepotId": C("0412-000318-01"), "compteBancaireId": ids["R-USD-1"], "numeroCheque": "0001234", "tireur": "Kabeya Jean",
+            "banqueTireur": "Equity", "montant": 40000, "deposant": "Kabeya Jean"}
+    def refus(corps, c=compta):
+        r = c.post("/api/banque/cheques", {"cle": cle(), **base, **corps}, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    assert "Droit manquant" in refus({}, agent)
+    assert "même devise" in refus({"compteBancaireId": ids["R-CDF-1"]})
+    assert "déposant" in refus({"deposant": ""})
+    x = compta.post("/api/banque/cheques", {"cle": cle(), **base}, **H).json()
+    assert x["statut"] == "depose"
+    assert "déjà enregistré" in refus({"tireur": "KABEYA J."})                        # même numéro, même banque
+    y = compta.post("/api/banque/cheques", {"cle": cle(), **base, "numeroCheque": "0001235"}, **H).json()
+    def traiter(c, cid, action, corps=None):
+        return c.post(f"/api/banque/cheques/{cid}/{action}", corps or {}, **H)
+    r = traiter(compta, x["id"], "encaisser", {"dateEncaissement": "2026-11-05"})
+    assert r.status_code == 422 and "Quatre yeux" in r.json()["message"]
+    assert traiter(chef, x["id"], "encaisser", {"dateEncaissement": "2026-11-05"}).json()["statut"] == "encaisse"   # le chef a S59 au départ
+    assert traiter(chef, y["id"], "retourner").json()["statut"] == "retourne"
+    assert compta.post("/api/banque/cheques", {"cle": cle(), **base, "numeroCheque": "0001235"}, **H).status_code == 200   # un chèque retourné peut revenir
+    assert [c["statut"] for c in chef.get(f"/api/banque/cheques?compteBancaireId={ids['R-USD-1']}").json()] == ["encaisse", "retourne", "depose"]
