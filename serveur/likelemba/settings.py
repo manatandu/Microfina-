@@ -32,6 +32,8 @@ DATABASES = {
         "HOST": os.environ.get("PG_HOTE", "127.0.0.1"),
         "PORT": os.environ.get("PG_PORT", "5432"),
         "ATOMIC_REQUESTS": True,          # une requête = une transaction : rien ne reste à moitié écrit
+        # Neon (plan gratuit) : connexion chiffrée (PG_SSL=require) ; la base s'endort après 5 minutes, le premier appel la réveille
+        "OPTIONS": {"sslmode": os.environ.get("PG_SSL", "prefer"), "connect_timeout": 20},
     }
 }
 

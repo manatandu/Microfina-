@@ -67,7 +67,7 @@ jobs:
         run: |
           if [ -f deploiement/config.env ]; then
             set -a; . deploiement/config.env; set +a
-            { echo "pret=oui"; echo "projet=$PROJET"; echo "fournisseur=$FOURNISSEUR"; echo "compte=$COMPTE"; } >> "$GITHUB_OUTPUT"
+            { echo "pret=oui"; echo "projet=$PROJET"; echo "fournisseur=$FOURNISSEUR"; echo "compte=$COMPTE"; echo "bd_hote=$BD_HOTE"; echo "bd_utilisateur=$BD_UTILISATEUR"; echo "bd_base=$BD_BASE"; } >> "$GITHUB_OUTPUT"
           else
             echo "pret=non" >> "$GITHUB_OUTPUT"
             echo "::notice::deploiement/config.env absent : tests faits, rien de publié. Lancer l'installation unique (DEPLOIEMENT.md)."
@@ -93,11 +93,13 @@ jobs:
         if: steps.cfg.outputs.pret == 'oui'
         env:
           PROJET: ${{ steps.cfg.outputs.projet }}
+          BD_HOTE: ${{ steps.cfg.outputs.bd_hote }}
+          BD_UTILISATEUR: ${{ steps.cfg.outputs.bd_utilisateur }}
+          BD_BASE: ${{ steps.cfg.outputs.bd_base }}
         run: |
           gcloud run jobs deploy likelemba-preparer --region europe-west1 --image "$IMAGE" \
             --service-account "likelemba-run@$PROJET.iam.gserviceaccount.com" \
-            --set-cloudsql-instances "$PROJET:europe-west1:likelemba-bd" \
-            --set-env-vars "^@^LIKELEMBA_HOTES=.run.app@LIKELEMBA_COOKIE=__session@PG_BASE=likelemba@PG_UTILISATEUR=likelemba@PG_HOTE=/cloudsql/$PROJET:europe-west1:likelemba-bd@PG_PORT=5432" \
+            --set-env-vars "^@^LIKELEMBA_HOTES=.run.app@LIKELEMBA_COOKIE=__session@PG_BASE=$BD_BASE@PG_UTILISATEUR=$BD_UTILISATEUR@PG_HOTE=$BD_HOTE@PG_PORT=5432@PG_SSL=require" \
             --set-secrets "LIKELEMBA_SECRET=likelemba-secret:latest,PG_MOT_DE_PASSE=likelemba-bd-mdp:latest,LIKELEMBA_MOT_DE_PASSE=likelemba-mdp-initial:latest" \
             --command sh --args="-c,python manage.py migrate --noinput && python manage.py graine && python manage.py definir_mot_de_passe jpmukendi --si-absent" \
             --max-retries 0 --task-timeout 600 \
@@ -106,12 +108,14 @@ jobs:
         if: steps.cfg.outputs.pret == 'oui'
         env:
           PROJET: ${{ steps.cfg.outputs.projet }}
+          BD_HOTE: ${{ steps.cfg.outputs.bd_hote }}
+          BD_UTILISATEUR: ${{ steps.cfg.outputs.bd_utilisateur }}
+          BD_BASE: ${{ steps.cfg.outputs.bd_base }}
         run: |
           gcloud run deploy likelemba-api --region europe-west1 --image "$IMAGE" \
             --service-account "likelemba-run@$PROJET.iam.gserviceaccount.com" \
             --allow-unauthenticated --min-instances 0 --max-instances 3 --memory 512Mi --cpu 1 \
-            --add-cloudsql-instances "$PROJET:europe-west1:likelemba-bd" \
-            --set-env-vars "^@^LIKELEMBA_HOTES=.run.app,.web.app,.firebaseapp.com@LIKELEMBA_COOKIE=__session@PG_BASE=likelemba@PG_UTILISATEUR=likelemba@PG_HOTE=/cloudsql/$PROJET:europe-west1:likelemba-bd@PG_PORT=5432" \
+            --set-env-vars "^@^LIKELEMBA_HOTES=.run.app,.web.app,.firebaseapp.com@LIKELEMBA_COOKIE=__session@PG_BASE=$BD_BASE@PG_UTILISATEUR=$BD_UTILISATEUR@PG_HOTE=$BD_HOTE@PG_PORT=5432@PG_SSL=require" \
             --set-secrets "LIKELEMBA_SECRET=likelemba-secret:latest,PG_MOT_DE_PASSE=likelemba-bd-mdp:latest"
       - uses: actions/setup-node@v4
         if: steps.cfg.outputs.pret == 'oui'
