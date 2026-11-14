@@ -1,4 +1,4 @@
-# Likelemba : direction design, version 0.1
+# Dwacfina (ex-Likelemba) : direction design, version 0.1
 
 Le design d'un logiciel de microfinance ne se juge pas sur une capture d'écran de tableau de bord. Il se juge à 15 h 40, au guichet de Matete, avec douze personnes dans la file, un écran de 2014 et une coupure de courant il y a vingt minutes. Tout part de là.
 
@@ -131,11 +131,21 @@ Contraste texte sur fond vérifié AA, thème clair et thème sombre : `replica/
 
 Les valeurs font foi dans `replica/design/tokens.json` et `tokens-sombre.json`. Les maquettes chargent `replica/design/tokens.css` et n'ont plus de couleur, de taille ni d'espacement à elles.
 
+### Identité DWAC (décision du porteur, 14/11/2026)
+
+Le logiciel s'appelle **Dwacfina** et porte l'identité de DWAC, telle que le guide de marque v0.1 (juillet 2026) la fixe. Ce paragraphe prime sur la « refonte du 05/11/2026 » ci-dessus (bleu Congo, étoile jaune du drapeau), qui n'est plus en vigueur.
+
+- **Trois couleurs** : Rouge Écarlate `#C91B2C`, Bleu Nuit `#182232`, Gris Clair `#EDEDED` (jetons `marque-rouge`, `marque-nuit`, `marque-gris`). Les autres valeurs sont des **teintes unies** dérivées de ces trois couleurs (le guide interdit tout dégradé, ombre portée sur le logo comprise).
+- **Rôles** (registre D01-2) : le Bleu Nuit porte l'action (boutons, onglets, barre du haut), le Gris Clair le fond de page, le blanc les cartes. Le rouge reste pour le logo, les erreurs et les alertes : il garde un sens. Les rampes de statut des crédits et le vert « sain » restent des couleurs de sens (§ 2.4) et ne viennent pas de la marque.
+- **Polices** : Poppins Medium pour le texte, Poppins Bold pour les titres. Provicali (grands titres, couvertures, citations) attend le fichier de la police (registre D01-3). Les montants gardent une police à chiffres de largeur fixe (§ 2.2), écart à confirmer.
+- **Logo** : trois déclinaisons officielles seulement, extraites du PDF du guide sans retouche (`web/src/marque/`) : bicolore sur fonds clairs, blanc sur fonds sombres, noir pour les impressions simples. On ne change ni les proportions, ni l'orientation, ni les couleurs, et on n'ajoute ni ombre ni relief ni dégradé. Zone de protection : X, la hauteur des lettres.
+- **Ton** (guide, p. 26) : précis, factuel, une idée par phrase, chaque constat suivi d'une recommandation. Pas de vocabulaire de « design » ou de « créativité ».
+
 ### Typographie
 
-Une seule famille, choisie pour sa fonction : **Atkinson Hyperlegible**, dessinée pour distinguer les caractères qui se confondent (0 et O, 1 et l et I, 5 et S, 8 et B). Au guichet, c'est exactement le risque.
-- **Atkinson Hyperlegible Next** pour le texte.
-- **Atkinson Hyperlegible Mono** pour les montants, numéros de compte, numéros de pièce. Ici la chasse fixe a une raison : aligner les chiffres et lire un numéro caractère par caractère.
+Deux familles, chacune pour sa fonction.
+- **Poppins** pour le texte et les titres (identité DWAC, guide de marque p. 18) : Medium pour le texte courant, Bold pour les titres. Provicali, réservée aux grands titres, attend son fichier (registre D01-3).
+- **Atkinson Hyperlegible Mono** pour les montants, numéros de compte, numéros de pièce et dates saisies. Poppins distingue mal certains caractères qui se confondent (I majuscule et l minuscule, 0 et O) : au guichet, c'est exactement le risque. La chasse fixe a ici une raison : aligner les chiffres et lire un numéro caractère par caractère.
 
 Échelle : 13, 15, 18, 24, 32 px. Montant principal du guichet en 32 px. Texte courant 15 px. Back-office dense 13 px.
 

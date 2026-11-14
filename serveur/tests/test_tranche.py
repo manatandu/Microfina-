@@ -1570,7 +1570,7 @@ def test_profils_utilisateurs(clients):
     l = chef.get("/api/profils-utilisateurs", **H).json()
     x = next(v for v in l["utilisateurs"] if v["login"] == "jmbala")
     caissier = next(p for p in l["profils"] if p["nom"] == "CAISSIER")
-    assert caissier["modules"] == ["Likelemba"]
+    assert caissier["modules"] == ["Dwacfina"]
     def refus(corps, c=chef):
         r = c.post("/api/profils-utilisateurs", corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
     assert "Nom et prénom(s), Choix du profil" in refus({})

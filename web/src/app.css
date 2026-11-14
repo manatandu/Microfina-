@@ -10,6 +10,14 @@ a { color: var(--tampon); text-underline-offset: 3px; }
 }
 .logo { display: flex; align-items: center; gap: var(--espace-2); padding-right: var(--espace-4); margin-right: var(--espace-1); border-right: 1px solid var(--nuit-trait); color: var(--nuit-fort); text-decoration: none; font-weight: 700; white-space: nowrap; }
 .logo:focus-visible { outline: 2px solid var(--ciel); outline-offset: -2px; }
+/* Guide de marque DWAC : logo jamais déformé, jamais d'ombre ni de dégradé ; zone de protection X = hauteur des lettres (ici 18 px de marge au minimum) */
+.logo-dwac { display: block; height: 26px; width: auto; }
+.logo-connexion { display: block; height: 40px; width: auto; margin: 0 0 var(--espace-2); }
+/* Version bicolore sur fonds clairs, version blanche sur fonds sombres (guide de marque, p. 12) */
+.logo-sombre { display: none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .logo-clair { display: none; } :root:not([data-theme="light"]) .logo-sombre { display: block; } }
+:root[data-theme="dark"] .logo-clair { display: none; }
+:root[data-theme="dark"] .logo-sombre { display: block; }
 .menus { display: flex; align-items: stretch; flex: 1; min-width: 0; overflow-x: auto; }
 .deroulant { position: relative; display: flex; }
 .deroulant > summary {

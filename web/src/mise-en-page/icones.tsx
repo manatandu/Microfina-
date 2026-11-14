@@ -25,12 +25,3 @@ export const ICONES: Record<string, ReactNode> = {
   recherche: <T><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></T>,
   sortie: <T><path d="M9 21H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h4M16 17l5-5-5-5M21 12H9" /></T>,
 };
-
-/** L'étoile du drapeau : la marque de Likelemba */
-export function Etoile({ taille = 22 }: { taille?: number }) {
-  return (
-    <svg viewBox="0 0 24 24" width={taille} height={taille} aria-hidden="true">
-      <path d="M12 1.8l2.9 6.6 7.2.7-5.4 4.8 1.6 7-6.3-3.7-6.3 3.7 1.6-7L1.9 9.1l7.2-.7z" fill="var(--etoile)" />
-    </svg>
-  );
-}

@@ -121,14 +121,14 @@ vec3 ciel(vec3 rd) {
   float h = rd.y;
   vec3 col = mix(cBleu * .08 + cNuit, cNuit * .5, smoothstep(-.05, .5, h));
   col += cBleu * .18 * exp(-abs(h) * 14.);
-  col += vec3(1., .85, .6) * pow(max(dot(rd, normalize(vec3(-.4, .6, -.7))), 0.), 40.) * .8;
+  col += vec3(1.) * pow(max(dot(rd, normalize(vec3(-.4, .6, -.7))), 0.), 40.) * .8;
   return col;
 }
 
 vec3 studio(vec3 r) {
   vec3 c = ciel(r) * .6;
   c += vec3(1.) * 2.2 * smoothstep(.75, .95, dot(r, normalize(vec3(-.3, 1., .35))));
-  c += vec3(1., .9, .75) * 1.2 * smoothstep(.8, .97, dot(r, normalize(vec3(1., .25, .4))));
+  c += vec3(1.) * 1.2 * smoothstep(.8, .97, dot(r, normalize(vec3(1., .25, .4))));
   c += cBleu * 1.4 * smoothstep(.6, .95, dot(r, normalize(vec3(-1., .1, -.3))));
   return c;
 }
@@ -137,11 +137,11 @@ vec3 matiere(float id, vec3 p, vec3 rd, vec3 n) {
   vec3 rf = reflect(rd, n); float fres = pow(1. - max(dot(n, -rd), 0.), 5.);
   float dif = max(dot(n, l), 0.), spec = pow(max(dot(rf, l), 0.), 60.), spec2 = pow(max(dot(rf, l2), 0.), 24.);
   if (id > 2.5 && id < 3.5) {          // or poli
-    vec3 f0 = mix(cOr, vec3(1., .5, .12), .3);
-    vec3 env = ciel(rf) * .4 + vec3(1., .95, .85) * 2.2 * smoothstep(.86, .99, dot(rf, normalize(vec3(-.35, 1., .45))))
-             + vec3(1., .85, .6) * 1.6 * smoothstep(.82, .98, dot(rf, normalize(vec3(1., .2, .5))))
-             + vec3(1., .8, .55) * .9 * smoothstep(.7, .95, dot(rf, normalize(vec3(-1., .35, .2)))) + vec3(.6, .42, .22) * .3 * max(rf.y, 0.);
-    return f0 * (env * 1.6 + .03) + vec3(1., .9, .7) * fres * env * .6 + f0 * spec * 6. + cOr * .03;
+    vec3 f0 = cOr;
+    vec3 env = ciel(rf) * .4 + vec3(1.) * 2.2 * smoothstep(.86, .99, dot(rf, normalize(vec3(-.35, 1., .45))))
+             + vec3(1.) * 1.6 * smoothstep(.82, .98, dot(rf, normalize(vec3(1., .2, .5))))
+             + vec3(1.) * .9 * smoothstep(.7, .95, dot(rf, normalize(vec3(-1., .35, .2)))) + vec3(.4) * .3 * max(rf.y, 0.);
+    return f0 * (env * 1.6 + .03) + vec3(1.) * fres * env * .6 + f0 * spec * 6. + cOr * .03;
   }
   if (id > 4.5 && id < 5.5) {          // orbe ouvert : verre bleu lumineux
     bool survol = abs(uSurvol - float(secteur(p))) < .5;
@@ -174,7 +174,7 @@ vec3 faisceau(vec3 ro, vec3 rd, float tMax) {
     float rayon = mix(1.9, .25, q.y / 8.);
     s += smoothstep(rayon, rayon * .2, length(q.xz)) * (1. - q.y / 8.);
   }
-  return mix(cBleu * 2., vec3(1., .85, .55), .55) * s * pas * .022 * uEntree;
+  return mix(cBleu * 2., vec3(1.), .55) * s * pas * .022 * uEntree;
 }
 
 // Bokeh : disques flous à trois profondeurs, dérivent lentement
@@ -209,7 +209,7 @@ void main() {
       col = cNuit * .5 + (refl + l2) * f * exp(-t * .04);
       float r = length(p.xz), a = atan(p.x, -p.z);
       col += cBleu * .05 * exp(-r * .3);
-      col += vec3(1., .8, .45) * .12 * exp(-r * r * .35) * uEntree;                                   // flaque chaude sous le podium
+      col += cOr * 1.6 * .12 * exp(-r * r * .35) * uEntree;                                   // flaque rouge sous le podium
       float orbite = exp(-pow((r - R_ORB) * 28., 2.)) * (.45 + .55 * smoothstep(.2, .9, sin(a * 24. - uTemps * 1.6)));
       col += cBleu * 1.1 * orbite * smoothstep(.3, .8, uEntree);
       for (int k = 0; k < 3; k++) { float rk = 2.5 + float(k) * 3.4; col += cBleu * .35 * exp(-pow((r - rk) * 40., 2.)) * exp(-r * .12) * smoothstep(.1 * float(k), .6 + .1 * float(k), uEntree); }
@@ -245,8 +245,8 @@ export function monterScene(toile: HTMLCanvasElement, o: Options): Scene | null 
   const u = (n: string) => gl.getUniformLocation(prog, n);
   const U = { res: u("uRes"), temps: u("uTemps"), entree: u("uEntree"), plonge: u("uPlonge"), oeil: u("uOeil"), cible: u("uCible"), actif: u("uActif"), survol: u("uSurvol"),
     bleu: u("cBleu"), or: u("cOr"), nuit: u("cNuit"), rouge: u("cRouge") };
-  gl.uniform3fv(U.bleu, jeton("--tampon", [.008, .085, .63]));
-  gl.uniform3fv(U.or, jeton("--etoile", [.93, .66, .008]));
+  gl.uniform3fv(U.bleu, jeton("--marque-gris", [.85, .85, .85]));
+  gl.uniform3fv(U.or, jeton("--marque-rouge", [.58, .011, .025]));
   gl.uniform3fv(U.nuit, jeton("--nuit", [.0033, .0075, .019]));
   gl.uniform3fv(U.rouge, jeton("--alerte", [.55, .025, .012]));
   gl.uniform1fv(U.actif, o.actifs.map((a) => (a ? 1 : 0)));

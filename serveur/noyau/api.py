@@ -36,7 +36,7 @@ from . import numerotation as nu
 from . import services as s
 from .bd import ErreurMetier
 
-api = NinjaAPI(title="Likelemba", version="0.1", urls_namespace="likelemba", docs_url="/docs" )
+api = NinjaAPI(title="Dwacfina", version="0.1", urls_namespace="likelemba", docs_url="/docs" )
 
 METHODES_SURES = {"GET", "HEAD", "OPTIONS"}
 

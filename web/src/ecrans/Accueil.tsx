@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees } from "../lib/useDonnees";
-import { Etoile, ICONES } from "../mise-en-page/icones";
+import { ICONES } from "../mise-en-page/icones";
+import monogramme from "../marque/dwac-monogramme-blanc.svg";
 import { ECRANS } from "./registre";
 import { monterScene, type Ancre, type Scene } from "./scene-modules";
 
@@ -22,7 +23,7 @@ const AUTOUR: { libelle: string; application?: "paie" | "immobilisations"; chemi
   { libelle: "Spy", icone: ICONES.budget },
 ];
 
-/** Applications où l'utilisateur tient au moins un droit ; « principal » pour les modules de Likelemba (mêmes règles que modules_lies, S06-1) */
+/** Applications où l'utilisateur tient au moins un droit ; « principal » pour les modules de Dwacfina (mêmes règles que modules_lies, S06-1) */
 export function applicationsLiees(droits: string[]): Set<string> {
   const a = new Set<string>();
   for (const e of ECRANS) if (droits.includes(e.id)) a.add(e.module === "paie" || e.module === "immobilisations" ? e.module : "principal");
@@ -139,8 +140,8 @@ function ScenePlate({ entree }: { entree: boolean }) {
         <div className="plan plan-planete" ref={planPlanete}>
           <svg className="anneaux" viewBox="0 0 100 100" aria-hidden="true"><circle className="anneau-interieur" cx="50" cy="50" r="21" /></svg>
           {liees.has("principal")
-            ? <Link to="/principal" className="boule centre" onClick={(e) => plonger(e, "/principal")}><Etoile taille={56} /><span>LIKELEMBA</span></Link>
-            : ferme("LIKELEMBA", <Etoile taille={56} />, "Module non lié à votre profil", "boule centre inactive")}
+            ? <Link to="/principal" className="boule centre" onClick={(e) => plonger(e, "/principal")}><img src={monogramme} alt="" width={56} height={56} /><span>DWACFINA</span></Link>
+            : ferme("DWACFINA", <img src={monogramme} alt="" width={56} height={56} />, "Module non lié à votre profil", "boule centre inactive")}
         </div>
       </div>
     </main>
@@ -191,8 +192,8 @@ function Scene3D({ entree, secours }: { entree: boolean; secours: () => void }) 
       <canvas ref={toile} className="toile-3d" aria-hidden="true" />
       <div className="etiquettes">
         {liees.has("principal")
-          ? <Link ref={(el) => { etoile.current = el; }} to="/principal" className="etiquette centre" onClick={(e) => plonger(e, -1, "/principal")} {...survol(-1)}><span>LIKELEMBA</span></Link>
-          : <span ref={(el) => { etoile.current = el; }} className="etiquette centre inactive" aria-disabled="true" title="Module non lié à votre profil"><span>LIKELEMBA</span></span>}
+          ? <Link ref={(el) => { etoile.current = el; }} to="/principal" className="etiquette centre" onClick={(e) => plonger(e, -1, "/principal")} {...survol(-1)}><span>DWACFINA</span></Link>
+          : <span ref={(el) => { etoile.current = el; }} className="etiquette centre inactive" aria-disabled="true" title="Module non lié à votre profil"><span>DWACFINA</span></span>}
         {AUTOUR.map((m, i) => {
           const ref = (el: HTMLElement | null) => { socles.current[i] = el; };
           const style = { "--rang": i } as React.CSSProperties;

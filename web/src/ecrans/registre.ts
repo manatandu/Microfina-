@@ -66,7 +66,7 @@ export function applicationDe(chemin: string): IdApplication {
 
 /** Page des modules (manuel, p. 6). GRH et Stocks sont hors du périmètre retenu (ARCHITECTURE § 4). */
 export const APPLICATIONS: { id: IdApplication | "administration" | "grh" | "stocks"; libelle: string; but: string; chemin?: string }[] = [
-  { id: "principal", libelle: "Likelemba", but: "Clients, épargne, caisse, crédit, banque, comptabilité, budget", chemin: "/principal" },
+  { id: "principal", libelle: "Dwacfina", but: "Clients, épargne, caisse, crédit, banque, comptabilité, budget", chemin: "/principal" },
   { id: "paie", libelle: "Paie", but: "Paie du personnel et retenues sur salaire", chemin: "/paie" },
   { id: "immobilisations", libelle: "Immobilisations", but: "Biens, amortissements, inventaire", chemin: "/immobilisations" },
   { id: "administration", libelle: "Administration", but: "Utilisateurs, profils, guichets, exercices, journées", chemin: "/administration" },

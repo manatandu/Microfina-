@@ -808,7 +808,7 @@ describe("journée de guichet", () => {
     const l = await api.profilsUtilisateurs.lire();
     const x = l.utilisateurs.find((v) => v.login === "jmbala")!, moi = l.utilisateurs.find((v) => v.login === "jpmukendi")!;
     const caissier = l.profils.find((p) => p.nom === "CAISSIER")!;
-    expect(caissier.modules).toEqual(["Likelemba"]);
+    expect(caissier.modules).toEqual(["Dwacfina"]);
     await expect(api.profilsUtilisateurs.enregistrer({})).rejects.toThrow("Nom et prénom(s), Choix du profil");
     await expect(api.profilsUtilisateurs.enregistrer({ utilisateurId: moi.id, profilId: caissier.id })).rejects.toThrow("propre profil");
     const r = await api.profilsUtilisateurs.enregistrer({ utilisateurId: x.id, profilId: caissier.id });

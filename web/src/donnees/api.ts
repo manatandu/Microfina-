@@ -2888,8 +2888,8 @@ const comptesUtilisateurs = {
 const APPLI_MODULE: Record<string, string> = { paie: "Paie", immobilisations: "Immobilisations" };
 /** Liste des modules liés : les applications où le profil a au moins un droit (registre S06-1) */
 const modulesLies = (droits: string[]) => {
-  const noms = new Set((registreEcrans as { id: string; module: string }[]).filter((e) => droits.includes(e.id)).map((e) => APPLI_MODULE[e.module] ?? "Likelemba"));
-  return ["Likelemba", "Paie", "Immobilisations"].filter((n) => noms.has(n));
+  const noms = new Set((registreEcrans as { id: string; module: string }[]).filter((e) => droits.includes(e.id)).map((e) => APPLI_MODULE[e.module] ?? "Dwacfina"));
+  return ["Dwacfina", "Paie", "Immobilisations"].filter((n) => noms.has(n));
 };
 const profilsUtilisateurs = {
   lire(utilisateur?: number) {
