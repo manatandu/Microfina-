@@ -87,7 +87,7 @@ def session_mode(request):
 
 @api.get("/utilisateurs")
 def utilisateurs(request):
-    return s.utilisateurs()
+    return s.utilisateurs(public=True)
 
 
 @api.get("/referentiel")

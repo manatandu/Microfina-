@@ -107,9 +107,11 @@ def fermer_session(uid, jeton) -> None:
         executer("update utilisateur set jeton_session = null where id = %s and jeton_session = %s", (uid, jeton))
 
 
-def utilisateurs() -> list[dict]:
-    if not settings.SANS_MOT_DE_PASSE:
-        return []                                  # site en ligne : la liste des identifiants n'est pas publique (registre S01-2)
+def utilisateurs(public: bool = False) -> list[dict]:
+    """public : la page de connexion, sans session. Site en ligne : la liste des identifiants n'y est pas publique (registre S01-2).
+    Le référentiel, lu après connexion, garde la liste (noms des utilisateurs dans les rapports)."""
+    if public and not settings.SANS_MOT_DE_PASSE:
+        return []
     return [vue_utilisateur(charger_utilisateur(r["id"])) for r in lignes("select id from utilisateur where actif order by id")]
 
 

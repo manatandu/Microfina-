@@ -359,6 +359,7 @@ def test_connexion_avec_mot_de_passe(clients, settings):
     assert autre.get("/api/utilisateurs").json() == [] and autre.get("/api/session/mode").json() == {"motDePasseRequis": True}
     assert ouvrir("etest", "secret-1").status_code == 200
     assert autre.get("/api/session").json()["login"] == "etest"
+    assert any(u["login"] == "jpmukendi" for u in autre.get("/api/referentiel").json()["utilisateurs"])   # après connexion : noms des rapports
 
 
 def test_mise_a_jour_entreprise_groupe(clients, journee):

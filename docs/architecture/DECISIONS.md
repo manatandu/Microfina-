@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**275 décisions.** Solidité : 92 fortes (le manuel ou un texte répond), 148 moyennes (déduites d'un écran voisin ou d'une donnée), 35 faibles (notre choix, faute de mieux). Dans le code : 242 déjà en place, 33 à appliquer.
+**278 décisions.** Solidité : 92 fortes (le manuel ou un texte répond), 151 moyennes (déduites d'un écran voisin ou d'une donnée), 35 faibles (notre choix, faute de mieux). Dans le code : 248 déjà en place, 30 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -283,9 +283,9 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S51-1 | Forme des résultats | Règle T10 | Écran voisin : T10 | moyenne | à appliquer |
-| S51-2 | Critères non saisis (nationalité, secteur, gestionnaire…) | Ils filtrent dès que les listes et les onglets de la fiche existent — Secteur d'activité : en place le 14/11/2026 (S14-1) | Donnée exigée ailleurs : S14, S20, S33, S37 | moyenne | à appliquer |
-| S51-3 | « Ordonner suivant » | La liste propose les critères du rapport | Écran voisin : Capture p. 58 | faible | à appliquer |
+| S51-1 | Forme des résultats | Règle T10 : détaillé = colonnes de la liste des clients (Numéro, Nom prénom/raison s., Agence) puis les critères (TypeClient, Catégorie, Zone, Nationalité, Gestionnaire, Commercial, Sensibilisateur, Secteur d'activité, Genre, Date d'adhésion, Statut), bouton Exporter ; synthèse = nombre de clients par valeur du critère « Ordonner suivant », avec le total | Écran voisin : T10 | moyenne | en place |
+| S51-2 | Critères non saisis (nationalité, secteur, gestionnaire…) | Tous les critères filtrent : Nationalité (pays de Localisation, S20), Gestionnaire, Commercial, Sensibilisateur (agents de S33 ; INCONNU = aucun agent), Secteur d'activité (S14-1) ; Commercial aussi dans le rapport prospect | Donnée exigée ailleurs : S14, S20, S33, S37 | moyenne | en place |
+| S51-3 | « Ordonner suivant » | La liste propose les douze critères du rapport, dans l'ordre de la capture ; Secteur d'activité par défaut, comme sur la capture ; à valeur égale, le numéro du client départage | Écran voisin : Capture p. 58 | faible | en place |
 
 ## S01 Connexion
 
@@ -641,6 +641,14 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | S88-1 | Consentement à la Centrale des risques | Pas d'approbation d'un crédit sans consentement écrit de l'emprunteur en cours de validité (enregistré par S50 : date début passée, date fin absente ou à venir), ni sans consultation de la Centrale des risques notée au dossier. À construire avec S88 | Texte réglementaire : Instr. BCC 5, art. 4 et 13 ; Instr. BCC 34, grille V.2 | forte | à appliquer |
 
+## S51 Rapports clients
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S51-4 | Rapport des clients modifiés : lignes et date fixe | Une ligne par jour, utilisateur et membre ; « Nombre de Modification » compte les modifications de ce jour par cet utilisateur sur ce membre. « A une date fixe » : les modifications de ce jour-là. Ordre : du plus récent au plus ancien | Écran voisin : Capture p. 59 (colonnes Date Modification, Utilisateur, N°Membre, Agence, Nombre de Modification) | moyenne | en place |
+| S51-5 | Rapport des clients modifiés : liste Etat | L'état du membre, comme le cadre « Rechercher » du rapport multicritère : Actif (par défaut, comme la capture), Inactif, Départ, Tous | Écran voisin : Capture p. 59 (Etat : Actif) ; capture p. 58 | moyenne | en place |
+| S51-6 | Rapport des clients modifiés : liste Utilisateur | Les utilisateurs de l'institution, avec une ligne vide en tête pour « tous » (la capture montre un utilisateur choisi) | Écran voisin : Capture p. 59 | moyenne | en place |
+
 ## Les décisions faibles, à regarder en premier
 
 | N° | Écran | Question | Réponse retenue |
@@ -660,7 +668,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S40-2 | S40 Viser un client | Contrat d'adhésion | Document selon T11. Un seul gabarit ; le vocabulaire suit le profil (membre pour une COOPEC, client pour une IMF) — Construit : la demande d'adhésion de la p. 52 reprend la profession, la filiation (Fils de, et de), l'adresse, le téléphone, l'institution et le vocabulaire du profil ; texte à fournir par l'institution |
 | S44-1 | S44 Groupe solidaire | Un client dans plusieurs groupes | Non : un seul groupe solidaire à la fois. Le retirer avant de l'affecter ailleurs |
 | S44-2 | S44 Groupe solidaire | Code du groupe | Donné par la règle de numérotation des clients (S15) |
-| S51-3 | S51 Rapports client | « Ordonner suivant » | La liste propose les critères du rapport |
+| S51-3 | S51 Rapports client | « Ordonner suivant » | La liste propose les douze critères du rapport, dans l'ordre de la capture ; Secteur d'activité par défaut, comme sur la capture ; à valeur égale, le numéro du client départage |
 | S74-1 | S74 Dépôt et retrait | Bouton Detail | Ouvre le relevé du compte choisi (S64), en lecture seule |
 | S77-2 | S77 Part sociale | Nombre minimum de parts | Une part. Pas d'autre contrôle : Microfina++ n'en montre pas |
 | S79-1 | S79 Enregistrer billetage | Bouton Terminer | Ferme la fenêtre sans rien enregistrer de plus |

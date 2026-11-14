@@ -49,7 +49,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 48,Procurations,clients,must,yes,S47,A,liste,3 Client,,,,,
 49,Résiliation d'un client,clients,must,yes,S48,A,traitement,3 Client,,,,,
 50,Consentement BIC,clients,should,yes,S50,A,liste,3 Client,S50 : non repris tel quel (BIC de l'UEMOA),R:centrale des risques de la BCC ; P,,,
-51,Rapports clients,clients,should,partial,S51,B,rapport,3 Client,S51 : forme des résultats,"A:S13 ; G:p.9 (grille, export)",,,"S51-1 Forme des résultats ; S51-2 Critères non saisis (nationalité, secteur, gestionnaire…) ; S51-3 « Ordonner suivant »"
+51,Rapports clients,clients,should,yes,S51,B,rapport,3 Client,S51 : forme des résultats,"A:S13 ; G:p.9 (grille, export)",,,
 52,Opérations de banque : encaissement décaissement virements,banque,must,no,S52,A,guichet,4 Banque,,R:PCCI (comptes de banque et de caisse),,S52,
 53,Virement et prélèvement client banque,banque,must,no,S53,A,guichet,4 Banque,,,,S53,
 54,Déblocage de crédit par banque,banque,must,no,S54,A,guichet,4 Banque,"S54 : contrat de prêt, échéancier",document ; A:S75,,S54,

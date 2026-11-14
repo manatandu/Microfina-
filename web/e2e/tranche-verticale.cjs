@@ -454,9 +454,14 @@ const OUT = process.argv[2];
   await p.getByRole('cell', { name: 'Boulangerie Kinsaku SARL' }).waitFor(); await p.getByRole('cell', { name: 'Mamans de Kinsaku' }).waitFor();
   if (await p.getByRole('cell', { name: /Kalala/ }).count()) throw new Error('secteur : Kalala ne devrait pas sortir');
   await etape('06x2-rapport-secteur');
+  // Ordonner suivant un critère du rapport, résultat en synthèse (registre S51-1, S51-3)
+  await p.getByLabel("Secteur d'activité :").selectOption(''); await p.getByLabel('Ordonner suivant :').selectOption({ label: 'Genre' });
+  await p.getByLabel('Synthèse').check(); await p.getByRole('button', { name: 'Rechercher' }).click();
+  await p.getByRole('columnheader', { name: 'Genre' }).waitFor(); await p.getByRole('rowheader', { name: 'Total' }).waitFor(); await etape('06x3-rapport-synthese');
+  await p.getByLabel('Détaillé').check();
   await p.getByRole('tab', { name: 'Rapport prospect' }).click(); await p.getByRole('button', { name: 'Rechercher' }).click(); await etape('06y-rapport-prospect');
-  await p.getByRole('tab', { name: 'Rapport des clients modifiés' }).click(); await p.getByRole('button', { name: 'Rechercher' }).click();
-  await p.getByRole('cell', { name: '0412-000319' }).first().waitFor(); await etape('06z-rapport-modifies');
+  await p.getByRole('tab', { name: 'Rapport des clients modifiés' }).click(); await p.getByRole('button', { name: 'Afficher' }).click();
+  await p.getByRole('cell', { name: '0412-000319' }).first().waitFor(); await etape('06z-rapport-modifies');   // capture p. 59 : Afficher, Exporter
   // Caissière : adhésion, dépôt, retrait
   await login('Esther Ngalula'); await aller('/caisse/s73');
   await p.getByRole('button', { name: 'Rechercher un client' }).click();
