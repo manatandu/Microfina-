@@ -220,7 +220,7 @@ function ListeRepresentants({ fiche: titre, ajouter, liste, onChange, pieces, er
           <thead><tr><th scope="col">Nom</th><th scope="col">Pièce</th><th scope="col">Photo</th><th scope="col">Signature</th><th scope="col"><span className="sr-only">Action</span></th></tr></thead>
           <tbody>{liste.map((r, i) => (
             <tr key={i}><td>{nomComplet(r)}</td><td>{r.pieceType} <span className="chiffres">{r.pieceNumero}</span></td>
-              <td>{r.photo ? "Oui" : "Non"}</td><td>{r.signature ? "Oui" : "Non"}</td>
+              <td>{r.photo || r.existant?.photo ? "Oui" : "Non"}</td><td>{r.signature || r.existant?.specimen ? "Oui" : "Non"}</td>
               <td><button className="bouton secondaire" type="button" onClick={() => onChange(liste.filter((_, k) => k !== i))}>Retirer</button></td></tr>
           ))}</tbody>
         </table>
@@ -402,6 +402,38 @@ function Beneficiaires({ liste, onChange, filiations }: { liste: Beneficiaire[];
   );
 }
 
+type Maj = (p: Partial<NouveauTiers>) => void;
+const texteDe = (f: NouveauTiers, maj: Maj) => (k: keyof NouveauTiers) => ({ value: f[k] as string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => maj({ [k]: e.target.value }) });
+
+/** Onglet « Renseignements généraux » d'une entreprise (S38, Instr. BCC 15, art. 17), repris à la mise à jour (S46) */
+function RenseignementsEntreprise({ f, maj, ctx }: { f: NouveauTiers; maj: Maj; ctx: Ctx }) {
+  const texte = texteDe(f, maj);
+  return (
+    <div className="formulaire">
+      <Champ libelle="Dénomination : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("nom")} />}</Champ>
+      <Champ libelle="Forme juridique : *">{(p) => <select {...p} className="saisie" required value={f.formeJuridique} onChange={(e) => maj({ formeJuridique: e.target.value })}>
+        <option value=""></option>{(ctx.listesFiche.formeJuridique ?? []).map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+      <Champ libelle="N° du registre : *">{(p) => <input {...p} className="saisie code" required autoComplete="off" {...texte("registre")} />}</Champ>
+      <Champ libelle="Adresse du siège : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("adresse")} />}</Champ>
+      <Champ libelle="Principal centre d'activité :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("centreActivite")} />}</Champ>
+    </div>
+  );
+}
+
+/** Onglet « Renseignements généraux » d'un groupe (S39), repris à la mise à jour (S46) */
+function RenseignementsGroupe({ f, maj, ctx }: { f: NouveauTiers; maj: Maj; ctx: Ctx }) {
+  const texte = texteDe(f, maj);
+  return (
+    <div className="formulaire">
+      <Champ libelle="Dénomination : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("nom")} />}</Champ>
+      <Champ libelle="Adresse : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("adresse")} />}</Champ>
+      <Champ libelle="Forme juridique :">{(p) => <select {...p} className="saisie" value={f.formeJuridique} onChange={(e) => maj({ formeJuridique: e.target.value })}>
+        <option value=""></option>{(ctx.listesFiche.formeJuridique ?? []).map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+      <Champ libelle="N° du registre ou de l'acte :">{(p) => <input {...p} className="saisie code" autoComplete="off" {...texte("registre")} />}</Champ>
+    </div>
+  );
+}
+
 // ---------- S37 : Client > Enrôlement > Physique (manuel p. 48 et 49) ----------
 
 const ONGLETS_PHYSIQUE = ["Informations de base", "Renseignements généraux", "Autres renseignements", "Personnes Liées", "Bénéficiaires", "Photo"] as const;
@@ -464,7 +496,6 @@ export function EnrolementEntreprise() {
   if (!c.donnees) return <Chargement />;
   const { ctx } = c.donnees;
   const { f, maj } = c;
-  const texte = (k: keyof NouveauTiers) => ({ value: f[k] as string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => maj({ [k]: e.target.value }) });
   function vider() { setAvecDirigeant(true); setDirigeant(REPRESENTANT_VIDE); setSignataires([]); setEffectifs([]); }
   return (
     <Enrolement titre="Enregistrement d'une entreprise" onglets={ONGLETS_ENTREPRISE} numero={c.cree?.numero} onglet={c.onglet} setOnglet={c.setOnglet}
@@ -482,18 +513,7 @@ export function EnrolementEntreprise() {
 
       {c.onglet === 0 && <InformationsDeBase genre="entreprise" f={f} maj={maj} ctx={ctx} numero={c.numero} depot={c.depot} setDepot={c.setDepot} />}
 
-      {c.onglet === 1 && (
-        <>
-          <div className="formulaire">
-            <Champ libelle="Dénomination : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("nom")} />}</Champ>
-            <Champ libelle="Forme juridique : *">{(p) => <select {...p} className="saisie" required value={f.formeJuridique} onChange={(e) => maj({ formeJuridique: e.target.value })}>
-              <option value=""></option>{(ctx.listesFiche.formeJuridique ?? []).map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
-            <Champ libelle="N° du registre : *">{(p) => <input {...p} className="saisie code" required autoComplete="off" {...texte("registre")} />}</Champ>
-            <Champ libelle="Adresse du siège : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("adresse")} />}</Champ>
-            <Champ libelle="Principal centre d'activité :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("centreActivite")} />}</Champ>
-          </div>
-        </>
-      )}
+      {c.onglet === 1 && <RenseignementsEntreprise f={f} maj={maj} ctx={ctx} />}
 
       {c.onglet === 2 && <AutresRenseignements f={f} maj={maj} ctx={ctx} />}
 
@@ -526,7 +546,6 @@ export function EnrolementGroupe() {
   if (!c.donnees) return <Chargement />;
   const { ctx } = c.donnees;
   const { f, maj } = c;
-  const texte = (k: keyof NouveauTiers) => ({ value: f[k] as string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => maj({ [k]: e.target.value }) });
   return (
     <Enrolement titre="Enregistrement d'un groupe" onglets={ONGLETS_GROUPE} numero={c.cree?.numero} onglet={c.onglet} setOnglet={c.setOnglet}
       boite={c.boite} setBoite={c.setBoite}
@@ -543,17 +562,7 @@ export function EnrolementGroupe() {
 
       {c.onglet === 0 && <InformationsDeBase genre="groupe" f={f} maj={maj} ctx={ctx} numero={c.numero} depot={c.depot} setDepot={c.setDepot} />}
 
-      {c.onglet === 1 && (
-        <>
-          <div className="formulaire">
-            <Champ libelle="Dénomination : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("nom")} />}</Champ>
-            <Champ libelle="Adresse : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("adresse")} />}</Champ>
-            <Champ libelle="Forme juridique :">{(p) => <select {...p} className="saisie" value={f.formeJuridique} onChange={(e) => maj({ formeJuridique: e.target.value })}>
-              <option value=""></option>{(ctx.listesFiche.formeJuridique ?? []).map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
-            <Champ libelle="N° du registre ou de l'acte :">{(p) => <input {...p} className="saisie code" autoComplete="off" {...texte("registre")} />}</Champ>
-          </div>
-        </>
-      )}
+      {c.onglet === 1 && <RenseignementsGroupe f={f} maj={maj} ctx={ctx} />}
 
       {c.onglet === 2 && <ListeRepresentants fiche="Membre du groupe" ajouter="Ajouter" liste={membres} onChange={setMembres} pieces={ctx.pieces} erreur={c.erreur} />}
 
@@ -568,38 +577,66 @@ export function EnrolementGroupe() {
 
 // ---------- S46 : Client > Mise à jour d'un client (manuel p. 56) ----------
 
-const ONGLETS_MODIFICATION = ["Info de base", "Info Généraux", "Autre Info", "Personnes Liées", "Bénéficiaires"] as const;
+/** Onglets de la capture p. 56 (client physique) ; entreprise et groupe : ceux de leur enrôlement, sans l'onglet Photo, repris par S49 (registre S46-2) */
+const ONGLETS_MODIFICATION = {
+  physique: ["Info de base", "Info Généraux", "Autre Info", "Personnes Liées", "Bénéficiaires"],
+  morale: ["Informations de base", "Renseignements généraux", "Autres renseignements", "Dirigeant", "Personnes Liées", "Signataires"],
+  groupe: ["Informations de base", "Renseignements généraux", "Membres Groupe", "Autres renseignements", "Personnes Liées"],
+} as const;
+const TITRES_MODIFICATION = { physique: "Modification d'un client physique", morale: "Modification d'une entreprise", groupe: "Modification d'un groupe" } as const;
+/** Signataire ou membre déjà enregistré : gardé tel quel, avec ses images, ou retiré */
+const gardeRepresentant = (r: Tiers["signataires"][number]): RepresentantSaisi =>
+  ({ nom: r.nom, postnom: r.postnom, prenom: r.prenom, pieceType: r.pieceType, pieceNumero: r.pieceNumero, pieceExpire: r.pieceExpire, existant: { photo: r.photo, specimen: r.specimen } });
 
-/** Modification d'un client physique : N° Client, Intitulé, Catégorie, cinq onglets, Modifier puis Terminer. Le client passe « à revalider » (S42). */
+/** Modification d'un client : N° Client, Intitulé, Catégorie, onglets, Modifier puis Terminer (registre S46-1). Le client passe « à revalider » (S42). */
 export function MiseAJourClient() {
   const { donnees: ctx } = useDonnees(() => api.referentiel.contexte());
   const [t, setT] = useState<Tiers | null>(null);
   const [f, setF] = useState<NouveauTiers | null>(null);
   const [liees, setLiees] = useState<Tiers[]>([]);
+  const [effectifs, setEffectifs] = useState<Tiers[]>([]);
+  const [avecDirigeant, setAvecDirigeant] = useState(false);
+  const [dirigeant, setDirigeant] = useState<RepresentantSaisi>(REPRESENTANT_VIDE);
+  const [liste, setListe] = useState<RepresentantSaisi[]>([]);   // signataires ou membres
   const [edition, setEdition] = useState(false);
   const [onglet, setOnglet] = useState(0);
   const [recherche, setRecherche] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
   if (!ctx) return <Chargement />;
+  const genre = t?.type ?? "physique";
+  const onglets = ONGLETS_MODIFICATION[genre], nom = onglets[onglet] ?? onglets[0];
+  const titre = TITRES_MODIFICATION[genre];
   const maj = (p: Partial<NouveauTiers>) => f && setF({ ...f, ...p });
   const sel = (k: "typeClient" | "zone") => ({ value: f?.[k] ?? "", onChange: (e: React.ChangeEvent<HTMLSelectElement>) => maj({ [k]: e.target.value }) });
+  const nombre = (k: "nbHommes" | "nbFemmes") => ({ value: String(f?.[k] || ""), onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value.trim(); if (/^\d{0,6}$/.test(v)) maj({ [k]: Number(v) });
+  } });
+  const lire = async (ids: number[]) => (await Promise.all(ids.map((id) => api.tiers.lire(id)))).filter((y): y is Tiers => !!y);
 
   async function choisir(x: Tiers) {
     setT(x); setF({ ...x }); setEdition(false); setOnglet(0); setRecherche(false);
-    setLiees((await Promise.all(x.liees.map((id) => api.tiers.lire(id)))).filter((y): y is Tiers => !!y));
+    setAvecDirigeant(!!x.dirigeant);
+    setDirigeant(x.dirigeant ? { nom: x.dirigeant.nom, postnom: x.dirigeant.postnom, prenom: x.dirigeant.prenom, pieceType: x.dirigeant.pieceType,
+      pieceNumero: x.dirigeant.pieceNumero, pieceExpire: x.dirigeant.pieceExpire } : REPRESENTANT_VIDE);
+    setListe((x.type === "groupe" ? x.membres : x.signataires).map(gardeRepresentant));
+    setLiees(await lire(x.liees)); setEffectifs(await lire(x.beneficiairesEffectifs ?? []));
   }
-  function vider() { setT(null); setF(null); setLiees([]); setEdition(false); setOnglet(0); }
+  function vider() { setT(null); setF(null); setLiees([]); setEffectifs([]); setListe([]); setEdition(false); setOnglet(0); }
   function terminer() {
     if (!t || !f || !edition) { vider(); return; }
+    const d = { ...f, liees: liees.map((x) => x.id), ...(t.type === "morale" ? { beneficiairesEffectifs: effectifs.map((x) => x.id) } : {}) };
+    const r = t.type === "morale" ? { dirigeant: avecDirigeant ? dirigeant : null, signataires: liste } : t.type === "groupe" ? { membres: liste } : {};
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
-      try { await api.tiers.modifier(t.id, { ...f, liees: liees.map((x) => x.id) }); vider(); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+      try { await api.tiers.modifier(t.id, d, r); vider(); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
       catch (x) { setBoite({ type: "erreur", message: message(x) }); }
     } });
   }
+  const erreur = (m: string) => setBoite({ type: "erreur", message: m });
+  const types = genre === "morale" ? ctx.typesEntreprise : genre === "groupe" ? ctx.typesGroupe : ctx.typesClient;
 
   return (
     <>
-      <h1>Modification d'un client physique</h1>
+      <h1>{titre}</h1>
       <section className="bloc pile" aria-label="Client">
         <div className="formulaire">
           <div className="ligne-champ">
@@ -610,19 +647,25 @@ export function MiseAJourClient() {
           <Champ libelle="Catégorie">{(p) => <input {...p} className="saisie" readOnly value={t ? t.typeClient : ""} />}</Champ>
         </div>
       </section>
-      <div className="onglets" role="tablist" aria-label="Modification d'un client physique">
-        {ONGLETS_MODIFICATION.map((o, i) => <button key={o} type="button" role="tab" id={`onglet-${i}`} aria-controls="volet" aria-selected={i === onglet} onClick={() => setOnglet(i)}>{o}</button>)}
+      <div className="onglets" role="tablist" aria-label={titre}>
+        {onglets.map((o, i) => <button key={o} type="button" role="tab" id={`onglet-${i}`} aria-controls="volet" aria-selected={i === onglet} onClick={() => setOnglet(i)}>{o}</button>)}
       </div>
       <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${onglet}`}>
-        <h2>{onglet === 0 ? "Informations de base" : ONGLETS_MODIFICATION[onglet]}</h2>
-        {f && (
+        <h2>{nom === "Info de base" ? "Informations de base" : nom}</h2>
+        {f && t && (
           <fieldset className="sans-cadre pile" disabled={!edition}>
-            {onglet === 0 && (
+            {(nom === "Info de base" || nom === "Informations de base") && (
               <div className="deux-colonnes">
                 <div className="pile">
                   <ChampDate libelle="Date demande : *" valeur={f.dateDemande} onChange={(v) => maj({ dateDemande: v })} requis />
-                  <Champ libelle="Type Client : *">{(p) => <select {...p} className="saisie" required {...sel("typeClient")}>{ctx.typesClient.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
-                  <Champ libelle="Zone :">{(p) => <select {...p} className="saisie" {...sel("zone")}><option value=""></option>{ctx.zones.map((z) => <option key={z}>{z}</option>)}</select>}</Champ>
+                  <Champ libelle={genre === "morale" ? "Type entreprise : *" : genre === "groupe" ? "Type de groupe *" : "Type Client : *"}>{(p) =>
+                    <select {...p} className="saisie" required {...sel("typeClient")}>{genre !== "physique" && <option value=""></option>}{types.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+                  {genre === "groupe" && <>
+                    <Champ libelle="Nombre d'Homme :">{(p) => <input {...p} className="saisie code court" inputMode="numeric" autoComplete="off" {...nombre("nbHommes")} />}</Champ>
+                    <Champ libelle="Nombre de Femme :">{(p) => <input {...p} className="saisie code court" inputMode="numeric" autoComplete="off" {...nombre("nbFemmes")} />}</Champ>
+                  </>}
+                  <Champ libelle={genre === "morale" ? "Zone : *" : "Zone :"}>{(p) => <select {...p} className="saisie" required={genre === "morale"} {...sel("zone")}><option value=""></option>
+                    {ctx.zones.map((z) => <option key={z}>{z}</option>)}</select>}</Champ>
                 </div>
                 <div className="pile">
                   <AgentsClient f={f} maj={maj} ctx={ctx} />
@@ -632,17 +675,25 @@ export function MiseAJourClient() {
                 </div>
               </div>
             )}
-            {onglet === 1 && <>
-              <IdentitePhysique f={f} maj={maj} ctx={ctx} />
+            {nom === "Info Généraux" && <IdentitePhysique f={f} maj={maj} ctx={ctx} />}
+            {nom === "Renseignements généraux" && (genre === "morale" ? <RenseignementsEntreprise f={f} maj={maj} ctx={ctx} /> : <RenseignementsGroupe f={f} maj={maj} ctx={ctx} />)}
+            {(nom === "Autre Info" || nom === "Autres renseignements") &&
+              <AutresRenseignements f={f} maj={maj} ctx={ctx} categories={genre === "groupe" ? ctx.listesFiche.categorieGroupe ?? [] : undefined} />}
+            {nom === "Dirigeant" && <>
+              <label className="case"><input type="checkbox" checked={avecDirigeant} onChange={(e) => setAvecDirigeant(e.target.checked)} /><span>Renseigner Dirigeant</span></label>
+              {avecDirigeant && <ChampsRepresentant r={dirigeant} maj={(p) => setDirigeant({ ...dirigeant, ...p })} pieces={ctx.pieces} />}
             </>}
-            {onglet === 2 && <AutresRenseignements f={f} maj={maj} ctx={ctx} />}
-            {onglet === 3 && (edition
-              ? <PersonnesLiees liees={liees} onChange={setLiees} />
-              : liees.length === 0 ? <p>Liste vide</p> : (
-                <table className="grille"><thead><tr><th scope="col">N° du Client</th><th scope="col">Nom</th></tr></thead>
-                  <tbody>{liees.map((x) => <tr key={x.id}><td className="chiffres">{x.numero}</td><td>{nomComplet(x)}</td></tr>)}</tbody></table>
+            {nom === "Personnes Liées" && (edition
+              ? <PersonnesLiees liees={liees} onChange={setLiees} {...(genre === "morale" ? { effectifs, onEffectifs: setEffectifs } : {})} />
+              : liees.length + effectifs.length === 0 ? <p>Liste vide</p> : (
+                <table className="grille"><thead><tr><th scope="col">N° du Client</th><th scope="col">Nom</th><th scope="col">Lien</th></tr></thead>
+                  <tbody>{[...liees.map((x) => [x, LIENS.liee] as const), ...effectifs.map((x) => [x, LIENS.effectif] as const)].map(([x, l]) =>
+                    <tr key={x.id}><td className="chiffres">{x.numero}</td><td>{nomComplet(x)}</td><td>{l}</td></tr>)}</tbody></table>
               ))}
-            {onglet === 4 && <p>Liste vide</p>}
+            {nom === "Bénéficiaires" && <Beneficiaires liste={f.beneficiaires ?? []} onChange={(l) => maj({ beneficiaires: l })} filiations={ctx.listesFiche.filiation ?? []} />}
+            {(nom === "Signataires" || nom === "Membres Groupe") &&
+              <ListeRepresentants fiche={genre === "groupe" ? "Membre du groupe" : "Signataire"} ajouter={genre === "groupe" ? "Ajouter" : "+Ajouter"} liste={liste} onChange={setListe}
+                pieces={ctx.pieces} erreur={erreur} />}
           </fieldset>
         )}
         <div className="actions-onglets">
@@ -650,13 +701,14 @@ export function MiseAJourClient() {
           <button className="bouton" type="button" onClick={terminer}>Terminer</button>
         </div>
         <Textes sources={["Manuel Microfina++, p. 56 : écran Modification d'un client physique, onglets, boutons Modifier et Terminer",
+          "Entreprise et groupe : onglets de leur enrôlement (p. 49 et 50), sans l'onglet Photo repris par Photos et signatures (p. 58)",
           "Manuel Microfina++, p. 54 : le client modifié est validé puis réactivé (S42)",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
-          "Instr. BCC 15, art. 10 : identification à refaire quand les éléments du client changent ; art. 12 à 14 et 60",
+          "Instr. BCC 15, art. 10 : identification à refaire quand les éléments du client changent ; art. 12 et 13 : mentions de l'identité, exigées à la mise à jour ; art. 14, 16 à 18 et 60",
           "Instr. BCC 37, annexe : changement d'éléments du dossier du client, gratuit"]} />
       </section>
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
-        <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.type === "physique" && x.statut !== "a_viser") : [])}
+        <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut === "actif" || x.statut === "modifie_a_revalider") : [])}
           choisir={(x) => void choisir(x)} fermer={() => setRecherche(false)} />
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />

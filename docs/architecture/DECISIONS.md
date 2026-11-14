@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**265 décisions.** Solidité : 83 fortes (le manuel ou un texte répond), 148 moyennes (déduites d'un écran voisin ou d'une donnée), 34 faibles (notre choix, faute de mieux). Dans le code : 229 déjà en place, 36 à appliquer.
+**265 décisions.** Solidité : 83 fortes (le manuel ou un texte répond), 148 moyennes (déduites d'un écran voisin ou d'une donnée), 34 faibles (notre choix, faute de mieux). Dans le code : 232 déjà en place, 33 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -227,9 +227,9 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S46-1 | Mise à jour : Modifier et Terminer | Modifier ouvre la fiche. Terminer enregistre et met le client à l'état « modifié, à revalider » (S42) | Manuel : Texte p. 56 ; chaîne du client | moyenne | à appliquer |
-| S46-2 | Mise à jour d'une entreprise, d'un groupe | Mêmes onglets que leur enrôlement | Écran voisin : S38, S39 | moyenne | à appliquer |
-| S46-3 | Mentions de l'identité à la mise à jour (reste de S38-1) | Obligation des mentions de l'Instr. BCC 15, art. 13 à la mise à jour, comme à l'enrôlement (aujourd'hui contrôlées seulement si saisies) | Texte réglementaire : Instr. BCC 15, art. 12 et 13 | moyenne | à appliquer |
+| S46-1 | Mise à jour : Modifier et Terminer | Modifier ouvre la fiche. Terminer enregistre et met le client à l'état « modifié, à revalider » (S42) | Manuel : Texte p. 56 ; chaîne du client | moyenne | en place |
+| S46-2 | Mise à jour d'une entreprise, d'un groupe | Mêmes onglets que leur enrôlement — Construit : titres « Modification d'une entreprise », « Modification d'un groupe » (sur le modèle de « Modification d'un client physique », p. 56) ; onglet Informations de base comme la capture p. 56 (plus Nombre d'Homme et de Femme pour le groupe) ; sans l'onglet Photo, repris par Photos et signatures (S49) ; signataires et membres déjà enregistrés gardés avec leurs images ou retirés, nouveaux ajoutés et contrôlés comme à l'enrôlement | Écran voisin : S38, S39 | moyenne | en place |
+| S46-3 | Mentions de l'identité à la mise à jour (reste de S38-1) | Obligation des mentions de l'Instr. BCC 15, art. 13 à la mise à jour, comme à l'enrôlement (aujourd'hui contrôlées seulement si saisies) | Texte réglementaire : Instr. BCC 15, art. 12 et 13 | moyenne | en place |
 
 ## S40 Viser un client
 

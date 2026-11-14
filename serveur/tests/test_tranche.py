@@ -307,10 +307,13 @@ def test_visa_client(clients, journee):
 def test_mise_a_jour_client(clients, journee):
     agent, caisse = clients["agent"], clients["caisse"]
     k = T("0412-000318")
-    t = agent.get(f"/api/tiers/{k}").json()
+    ident_ = {c: FICHE[c] for c in ("naissance", "lieuNaissance", "adresse", "pieceDelivreeLe", "pieceLieu", "pieceAutorite", "pieceExpire")}
+    t0 = agent.get(f"/api/tiers/{k}").json()
+    t = {**t0, **{c: v for c, v in ident_.items() if not t0.get(c)}, "prenom": t0["prenom"] or "Josée"}
     def refus(corps, tid=k):
         r = agent.post(f"/api/tiers/{tid}/modification", corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
     assert "nom" in refus({**t, "nom": ""})
+    assert "art. 12 et 13" in refus({**t, "lieuNaissance": ""})            # mentions de l'identité obligatoires à la mise à jour (registre S46-3)
     assert "art. 14" in refus({**t, "pieceType": "Badge"})
     assert "propre personne liée" in refus({**t, "liees": [k]})
     r = agent.post(f"/api/tiers/{k}/modification", {**t, "telephone": "+243 990 000 001", "liees": [T("0412-000319")]}, **H)
@@ -325,7 +328,9 @@ def test_mise_a_jour_client(clients, journee):
     chef = clients["chef"]
     assert [x["id"] for x in chef.get("/api/tiers/a-revalider").json()] == [k]
     assert agent.post(f"/api/tiers/{k}/activation", **H).status_code == 403
-    chef.post(f"/api/tiers/{T('0412-000319')}/modification", {**chef.get(f"/api/tiers/{T('0412-000319')}").json(), "telephone": "1"}, **H)
+    t9 = chef.get(f"/api/tiers/{T('0412-000319')}").json()
+    assert chef.post(f"/api/tiers/{T('0412-000319')}/modification", {**t9, **{c: v for c, v in ident_.items() if not t9.get(c)}, "prenom": t9["prenom"] or "Grâce",
+                                                                     "telephone": "1"}, **H).status_code == 200
     r = chef.post(f"/api/tiers/{T('0412-000319')}/activation", **H)
     assert r.status_code == 422 and "Quatre yeux" in r.json()["message"]
     assert chef.post(f"/api/tiers/{k}/activation", **H).json()["statut"] == "actif"
@@ -335,6 +340,39 @@ def test_mise_a_jour_client(clients, journee):
     h = chef.get(f"/api/tiers/{k}/modifications").json()
     assert (h[0]["avant"]["telephone"], h[0]["apres"]["telephone"], h[0]["validePar"] is not None) == ("", "+243 990 000 001", True)
     assert chef.get(f"/api/tiers/{k}/images").json() == {"photo": None, "signature": None}   # graine : pas d'image réelle
+
+
+def test_mise_a_jour_entreprise_groupe(clients, journee):
+    """S46 : entreprise et groupe, mêmes onglets que leur enrôlement (registre S46-2) ; signataires et membres gardés, retirés ou ajoutés"""
+    agent, chef = clients["agent"], clients["chef"]
+    sig = {"nom": "Ilunga", "prenom": "Paul", "pieceType": "Passeport", "pieceNumero": "OP9", "signature": "data:image/png;base64,iVBORw0KGgo="}
+    e = agent.post("/api/tiers/entreprises", {**FICHE, "typeClient": "Entreprises privées", "zone": "Matete", "nom": "Boulangerie Kinsaku SARL",
+                   "formeJuridique": "Société à responsabilité limitée", "registre": "CD/KNG/RCCM/24-B-00001", "adresse": "Matete, avenue Kinsaku",
+                   "dirigeant": {**sig, "signature": None}, "signataires": [sig]}, **H).json()["id"]
+    g = agent.post("/api/tiers/groupes", {**FICHE, "typeClient": "Association", "nom": "Mamans de Kinsaku", "adresse": "Matete", "nbHommes": 0, "nbFemmes": 12,
+                   "membres": [{**sig, "pieceNumero": "OP8"}, {**sig, "nom": "Mbuyi", "pieceNumero": "OP7"}]}, **H).json()["id"]
+    for x in (e, g):
+        assert chef.post(f"/api/tiers/{x}/visa", **H).status_code == 200
+    def corps(tid):
+        t = agent.get(f"/api/tiers/{tid}").json()
+        sans = lambda r: {k: v for k, v in r.items() if k not in ("photo", "specimen")}
+        return t, {**t, "dirigeant": sans(t["dirigeant"]) if t["dirigeant"] else None,
+                   "signataires": [{**r, "existant": True} for r in t["signataires"]], "membres": [{**r, "existant": True} for r in t["membres"]]}
+    t, c = corps(e)
+    nouveau = {"nom": "Kabila", "postnom": "", "prenom": "Rose", "pieceType": "Carte d'électeur", "pieceNumero": "9-0412-0001", "pieceExpire": "2031-01-01"}
+    r = agent.post(f"/api/tiers/{e}/modification", {**c, "signataires": c["signataires"] + [{**nouveau, "existant": True}]}, **H)
+    assert r.status_code == 422 and "Signataire" in r.json()["message"] and "inconnu" in r.json()["message"]
+    r = agent.post(f"/api/tiers/{e}/modification", {**c, "registre": "", "signataires": c["signataires"] + [nouveau]}, **H)
+    assert r.status_code == 422 and "registre" in r.json()["message"]
+    r = agent.post(f"/api/tiers/{e}/modification", {**c, "centreActivite": "Lemba", "signataires": c["signataires"] + [nouveau]}, **H)
+    assert r.status_code == 200, r.content
+    m = r.json()
+    assert (m["statut"], m["centreActivite"], len(m["signataires"])) == ("modifie_a_revalider", "Lemba", len(t["signataires"]) + 1)
+    assert [x["specimen"] for x in m["signataires"][:len(t["signataires"])]] == [x["specimen"] for x in t["signataires"]]   # images gardées
+    t, c = corps(g)
+    r = agent.post(f"/api/tiers/{g}/modification", {**c, "nbFemmes": 20, "membres": c["membres"][1:]}, **H)
+    assert r.status_code == 200, r.content
+    assert (r.json()["nbFemmes"], len(r.json()["membres"]), r.json()["statut"]) == (20, len(t["membres"]) - 1, "modifie_a_revalider")
 
 
 def test_adhesion_apres_visa(clients, journee):

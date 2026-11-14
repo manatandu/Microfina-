@@ -288,7 +288,11 @@ export type NouveauTiers = Omit<Tiers, "id" | "numero" | "statut" | "creePar" | 
 /** Saisie du visa (S40, p. 52) */
 export interface Visa { dateVisa?: string; intitule?: string; premierDepot?: number }
 /** Dirigeant ou signataire tel que saisi, avec photo et signature chargées */
-export type RepresentantSaisi = Omit<Representant, "photo" | "specimen"> & Images;
+export type RepresentantSaisi = Omit<Representant, "photo" | "specimen"> & Images & {
+  /** Ligne déjà enregistrée, gardée telle quelle à la mise à jour (S46), avec ses images */
+  existant?: { photo: boolean; specimen: boolean } };
+/** Représentants envoyés à la mise à jour d'une entreprise ou d'un groupe (S46, registre S46-2) */
+export interface RepresentantsMaj { dirigeant?: RepresentantSaisi | null; signataires?: RepresentantSaisi[]; membres?: RepresentantSaisi[] }
 /** Photo et specimen chargés à l'onglet « Photo » (p. 49), en image PNG ou JPEG */
 export interface Images { photo?: string; signature?: string }
 /** Type entreprise (p. 50) : liste de Microfina++ non montrée, à confirmer. En attendant : agents économiques du PCCI § 10.2, hors ménages. */
@@ -359,7 +363,7 @@ function controlerLieu(d: { pays?: string; ville?: string; commune?: string; qua
   const ok = !!p && (!ville || !!v) && (!commune || !!c) && (!quartier || (c ? c.quartiers : v ? v.quartiers : []).includes(quartier));
   if (!ok) throw new ErreurMetier("Pays, ville, commune ou quartier inconnu.");
 }
-/** identite = false : mise à jour (S46), où l'obligation des mentions viendra avec S46-1 */
+/** identite = false : entreprise et groupe, sans mentions d'une personne physique */
 export function controlerFichePhysique(d: NouveauTiers, jour: string, identite = true, categorie = "categorie") {
   const txt = (k: keyof NouveauTiers) => (typeof d[k] === "string" ? (d[k] as string).trim() : "");
   const aujourdhui = new Date().toISOString().slice(0, 10);
@@ -398,30 +402,42 @@ function controlerRepresentant(r: RepresentantSaisi, qui: string, jour: string) 
   controlerImage(r.photo, `${qui} : photo`); controlerImage(r.signature, `${qui} : signature`);
 }
 
-/** S39. Contrôles identiques côté serveur (services.creer_groupe) */
-export function controlerGroupe(d: NouveauTiers, membres: RepresentantSaisi[], images: Images, ctx: CtxControle) {
+/** Une ligne « existant » (déjà enregistrée, gardée à la mise à jour S46) doit exister ; une nouvelle est contrôlée. Identique au serveur (controler_representants). */
+function controlerRepresentants(l: RepresentantSaisi[], qui: string, jour: string, anciens?: Representant[]) {
+  l.forEach((r, i) => {
+    if (r.existant) { if (!anciens?.some((a) => a.pieceType === r.pieceType.trim() && a.pieceNumero === r.pieceNumero.trim())) throw new ErreurMetier(`${qui} ${i + 1} : inconnu.`); }
+    else controlerRepresentant(r, `${qui} ${i + 1}`, jour);
+  });
+}
+
+/** S39, et S46 pour la mise à jour (anciens). Contrôles identiques côté serveur (services.controler_groupe) */
+export function controlerGroupe(d: NouveauTiers, membres: RepresentantSaisi[], images: Images, ctx: CtxControle, anciens?: Representant[]) {
   controlerBase(d, [["date demande", d.dateDemande], ["type de groupe", d.typeClient], ["type de compte à créer", d.produitCode],
     ["dénomination", d.nom], ["adresse", d.adresse]], valeursListe("type_groupe").map((l) => l.libelle), false, ctx);
   if (d.formeJuridique.trim() && !valeursListe("forme_juridique").some((l) => l.libelle === d.formeJuridique.trim()))
     throw new ErreurMetier("Forme juridique : valeur inconnue (Paramétrage > Info de base > Client > Général).");
   controlerFichePhysique(d, ctx.jour, false, "categorie_groupe");   // registre S39-1
   if ([d.nbHommes, d.nbFemmes].some((n) => !Number.isInteger(n) || n < 0)) throw new ErreurMetier("Nombre d'hommes ou de femmes invalide.");
-  membres.forEach((r, i) => controlerRepresentant(r, `Membre ${i + 1}`, ctx.jour));
+  controlerRepresentants(membres, "Membre", ctx.jour, anciens);
   controlerImage(images.photo, "Photo"); controlerImage(images.signature, "Signature");
 }
 
-/** S38. Contrôles identiques côté serveur (services.creer_entreprise) */
-export function controlerEntreprise(d: NouveauTiers, dirigeant: RepresentantSaisi | null, signataires: RepresentantSaisi[], ctx: CtxControle) {
+/** S38, et S46 pour la mise à jour (anciens). Contrôles identiques côté serveur (services.controler_entreprise) */
+export function controlerEntreprise(d: NouveauTiers, dirigeant: RepresentantSaisi | null, signataires: RepresentantSaisi[], ctx: CtxControle, anciens?: Representant[]) {
   controlerBase(d, [["date demande", d.dateDemande], ["type entreprise", d.typeClient], ["zone", d.zone], ["type de compte à créer", d.produitCode],
     ["dénomination", d.nom], ["forme juridique", d.formeJuridique], ["n° du registre", d.registre], ["adresse du siège", d.adresse]], TYPES_ENTREPRISE, true, ctx);
   if (!valeursListe("forme_juridique").some((l) => l.libelle === d.formeJuridique.trim()))
     throw new ErreurMetier("Forme juridique : valeur inconnue (Paramétrage > Info de base > Client > Général).");
   controlerFichePhysique(d, ctx.jour, false);   // listes, lieu, email, agents (registre S38-1)
   if (dirigeant) controlerRepresentant(dirigeant, "Dirigeant", ctx.jour);
-  signataires.forEach((r, i) => controlerRepresentant(r, `Signataire ${i + 1}`, ctx.jour));
+  controlerRepresentants(signataires, "Signataire", ctx.jour, anciens);
 }
 
-const versRepresentant = ({ photo, signature, ...r }: RepresentantSaisi): Representant => ({ ...r, photo: !!photo, specimen: !!signature });
+const versRepresentant = ({ photo, signature, existant: _e, ...r }: RepresentantSaisi): Representant => ({ ...r, photo: !!photo, specimen: !!signature });
+/** Mise à jour (S46) : les lignes gardées restent avec leurs images, les retirées partent, les nouvelles s'ajoutent. Identique au serveur (remplacer_representants). */
+const remplacerRepresentants = (anciens: Representant[], l: RepresentantSaisi[]) => [
+  ...anciens.filter((a) => l.some((r) => r.existant && r.pieceType.trim() === a.pieceType && r.pieceNumero.trim() === a.pieceNumero)),
+  ...l.filter((r) => !r.existant).map(versRepresentant)];
 /** Mentions propres à une personne physique, vides pour une entreprise ou un groupe */
 const SANS_IDENTITE = { postnom: "", prenom: "", sexe: "" as const, naissance: "", lieuNaissance: "", pieceType: "", pieceNumero: "", pieceDelivreeLe: "",
   pieceLieu: "", pieceAutorite: "", pieceExpire: "", telephone: "" };
@@ -464,6 +480,23 @@ function ctxControle() {
 function nouveauTiers(d: NouveauTiers, creePar: number, reste: Pick<Tiers, "type" | "dirigeant" | "signataires" | "membres" | "photo" | "specimen">): Tiers {
   const t: Tiers = { ...d, ...reste, intitule: "", dateVisa: "", motifDepart: "", resilieLe: "", creeLe: new Date().toISOString().slice(0, 10), id: prochain(E.tiers), numero: numeroClient(), statut: "a_viser", creePar };
   E.tiers.push(t); return t;
+}
+
+/** S46, client physique (p. 56) : contrôles de l'enrôlement, mentions de l'identité comprises (registre S46-3). Identique au serveur (services.modifier_tiers). */
+function modifierPhysique(t: Tiers, d: NouveauTiers, ctx: CtxControle) {
+  controlerBase(d, [["date demande", d.dateDemande], ["type client", d.typeClient],
+    ["nom", d.nom], ["type de pièce", d.pieceType], ["numéro de pièce", d.pieceNumero]], valeursListe("type_client").map((l) => l.libelle), false, ctx);
+  if (!["", "F", "M"].includes(d.sexe)) throw new ErreurMetier("Sexe inconnu.");
+  controlerPiece(d.pieceType, d.pieceExpire, ctx.jour);
+  controlerFichePhysique(d, ctx.jour);
+  const champs = ["dateDemande", "typeClient", "zone", "resident", "preleverAgios", "calculerInteret", "personneExposee", "nom", "postnom", "prenom", "sexe",
+    "naissance", "lieuNaissance", "pieceType", "pieceNumero", "pieceDelivreeLe", "pieceLieu", "pieceAutorite", "pieceExpire", "adresse", "telephone", "liees",
+    // S37 : fiche du client (registre S37-1 à S37-3)
+    "civilite", "nationalite", "situationMatrimoniale", "pere", "mere", "profession", "pays", "ville", "commune", "quartier", "rue", "email", "bp", "telephoneFixe",
+    "secteurActivite", "typeActivite", "categorie", "sousTypeClient", "gestionnaireId", "sensibilisateurId", "commercialId", "beneficiaires"] as const;
+  // comme le serveur (ecrire_fiche_physique) : une case vide de la fiche garde la valeur en place (registre S37-6)
+  const gardes = new Set(["civilite", "nationalite", "situationMatrimoniale", "pere", "mere", "profession", "pays", "ville", "commune", "quartier", "rue", "email", "bp", "telephoneFixe"]);
+  for (const k of champs) (t as unknown as Record<string, unknown>)[k] = gardes.has(k) && !d[k] ? t[k] : d[k];
 }
 
 const tiers = {
@@ -531,29 +564,35 @@ const tiers = {
     Object.assign(t, { statut: "actif", visePar: u.id, dateVisa, intitule, premierDepot: depot });
     enregistrer(); return t;
   },
-  /** S46 : Modification d'un client physique (p. 56). Le client passe « modifié à revalider » (S42). Règles identiques côté serveur (services.modifier_tiers). */
-  modifier(id: number, d: NouveauTiers) {
+  /** S46 : Modification d'un client (p. 56) ; entreprise et groupe : les onglets de leur enrôlement (registre S46-2). Le client passe « modifié à revalider »
+   * (S42, registre S46-1). Mentions de l'identité obligatoires (registre S46-3). Règles identiques côté serveur (services.modifier_tiers). */
+  modifier(id: number, d: NouveauTiers, r: RepresentantsMaj = {}) {
     const u = exiger();
     const t = E.tiers.find((x) => x.id === id);
     if (!t) throw new ErreurMetier("Client introuvable.");
-    if (t.type !== "physique") throw new ErreurMetier("Seule la modification d'un client physique est décrite par le manuel (p. 56).");
     if (t.statut !== "actif" && t.statut !== "modifie_a_revalider") throw new ErreurMetier("Client pas encore visé : le modifier depuis l'enrôlement.");
-    const ctx = ctxControle();
-    controlerBase({ ...d, produitCode: t.produitCode || "EAV-CDF", premierDepot: t.premierDepot }, [["date demande", d.dateDemande], ["type client", d.typeClient],
-      ["nom", d.nom], ["type de pièce", d.pieceType], ["numéro de pièce", d.pieceNumero]], valeursListe("type_client").map((l) => l.libelle), false, ctx);
-    if (!["", "F", "M"].includes(d.sexe)) throw new ErreurMetier("Sexe inconnu.");
     if (d.liees.includes(id)) throw new ErreurMetier("Un client ne peut pas être sa propre personne liée.");
-    controlerPiece(d.pieceType, d.pieceExpire, ctx.jour);
-    controlerFichePhysique(d, ctx.jour, false);
+    const ctx = ctxControle();
     const avant = structuredClone(t);
-    const champs = ["dateDemande", "typeClient", "zone", "resident", "preleverAgios", "calculerInteret", "personneExposee", "nom", "postnom", "prenom", "sexe",
-      "naissance", "lieuNaissance", "pieceType", "pieceNumero", "pieceDelivreeLe", "pieceLieu", "pieceAutorite", "pieceExpire", "adresse", "telephone", "liees",
-      // S37 : fiche du client (registre S37-1 à S37-3)
-      "civilite", "nationalite", "situationMatrimoniale", "pere", "mere", "profession", "pays", "ville", "commune", "quartier", "rue", "email", "bp", "telephoneFixe",
-      "secteurActivite", "typeActivite", "categorie", "sousTypeClient", "gestionnaireId", "sensibilisateurId", "commercialId", "beneficiaires"] as const;
-    // comme le serveur (ecrire_fiche_physique) : une case vide de la fiche garde la valeur en place (registre S37-6)
-    const gardes = new Set(["civilite", "nationalite", "situationMatrimoniale", "pere", "mere", "profession", "pays", "ville", "commune", "quartier", "rue", "email", "bp", "telephoneFixe"]);
-    for (const k of champs) (t as unknown as Record<string, unknown>)[k] = gardes.has(k) && !d[k] ? t[k] : d[k];
+    const dd = { ...d, produitCode: t.produitCode || "EAV-CDF", premierDepot: t.premierDepot };
+    const fiche = ["dateDemande", "typeClient", "zone", "resident", "preleverAgios", "calculerInteret", "personneExposee", "nom", "adresse", "formeJuridique", "registre",
+      "liees", "pays", "ville", "commune", "quartier", "rue", "email", "bp", "telephoneFixe", "secteurActivite", "typeActivite", "categorie", "sousTypeClient",
+      "gestionnaireId", "sensibilisateurId", "commercialId"] as const;
+    const ecrire = (champs: readonly (keyof NouveauTiers)[]) => { for (const k of champs) (t as unknown as Record<string, unknown>)[k] = d[k]; };
+    if (t.type === "morale") {
+      const sig = r.signataires ?? [];
+      controlerEntreprise(dd, r.dirigeant ?? null, sig, ctx, t.signataires);
+      ecrire([...fiche, "centreActivite", "beneficiairesEffectifs"]);
+      Object.assign(t, { activite: d.typeActivite ?? "", dirigeant: r.dirigeant ? versRepresentant(r.dirigeant) : null, signataires: remplacerRepresentants(t.signataires, sig) });
+      t.specimen = t.signataires.some((x) => x.specimen);
+    } else if (t.type === "groupe") {
+      const mb = r.membres ?? [];
+      controlerGroupe(dd, mb, {}, ctx, t.membres);
+      ecrire([...fiche, "nbHommes", "nbFemmes"]);
+      Object.assign(t, { activite: d.typeActivite ?? "", membres: remplacerRepresentants(t.membres, mb) });
+    } else {
+      modifierPhysique(t, dd, ctx);
+    }
     t.statut = "modifie_a_revalider";
     E.modifications.push({ id: prochain(E.modifications), tiersId: id, avant, apres: structuredClone(t), modifiePar: u.id, modifieLe: new Date().toISOString() });
     enregistrer(); return t;

@@ -61,7 +61,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       creerGroupe: (d: object, membres: object[], images: object = {}) => post("/tiers/groupes", { ...d, membres, images }),
       aViser: () => get("/tiers/a-viser"),
       viser: (id: number, v: object = {}) => post(`/tiers/${id}/visa`, v),
-      modifier: (id: number, d: object) => post(`/tiers/${id}/modification`, d),
+      modifier: (id: number, d: object, r: object = {}) => post(`/tiers/${id}/modification`, { ...d, ...r }),
       aRevalider: () => get("/tiers/a-revalider"),
       prospects: () => get("/prospects"),
       resilier: (id: number, d: object) => post(`/tiers/${id}/resiliation`, d),

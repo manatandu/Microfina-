@@ -681,7 +681,7 @@ def controler_lieu(texte, quoi: str = "Pays, ville, commune ou quartier"):
 
 def controler_fiche_physique(u: dict, d: dict, texte, j: dict | None, identite: bool = True, categorie: str = "categorie") -> dict:
     """Onglets Renseignements généraux et Autres renseignements (registre S37-1, S37-2) ; bénéficiaires (S37-3). Mêmes règles que api.ts.
-    identite=False : mise à jour (S46), où l'obligation des mentions viendra avec S46-1."""
+    identite=False : entreprise et groupe, sans mentions d'une personne physique."""
     jour = date.today().isoformat()
     if identite:
         manque = [n for n, k in OBLIGATOIRES_IDENTITE if not texte(k)]
@@ -802,9 +802,38 @@ def controler_representant(r, qui: str, j: dict | None) -> dict:
     return r
 
 
-def creer_entreprise(u: dict, d: dict) -> dict:
-    """S38 : Client > Enrôlement > Entreprise (manuel p. 49 et 50). Mêmes contrôles que controlerEntreprise (web/src/donnees/api.ts)."""
-    exiger(u)
+def cle_representant(r) -> tuple[str, str]:
+    t = texte_de(r if isinstance(r, dict) else {})
+    return (t("pieceType"), t("pieceNumero"))
+
+
+def controler_representants(liste, qui: str, j: dict | None, anciens: set | None = None):
+    """Signataires, membres : une ligne « existant » (déjà enregistrée, gardée telle quelle à la mise à jour S46) doit exister ; une nouvelle est contrôlée"""
+    if not isinstance(liste, list):
+        raise ErreurMetier(f"{qui}s invalides.")
+    for i, r in enumerate(liste, start=1):
+        if isinstance(r, dict) and r.get("existant"):
+            if anciens is None or cle_representant(r) not in anciens:
+                raise ErreurMetier(f"{qui} {i} : inconnu.")
+        else:
+            controler_representant(r, f"{qui} {i}", j)
+
+
+def anciens_representants(tid: int, role: str) -> set:
+    return {(r["piece_type"], r["piece_numero"]) for r in lignes("select piece_type, piece_numero from representant where tiers_id = %s and role = %s", (tid, role))}
+
+
+def remplacer_representants(tid: int, role: str, liste: list):
+    """Mise à jour (S46) : les lignes gardées restent avec leurs images, les retirées partent, les nouvelles s'ajoutent"""
+    garde = {cle_representant(r) for r in liste if r.get("existant")}
+    for r in lignes("select id, piece_type, piece_numero from representant where tiers_id = %s and role = %s", (tid, role)):
+        if (r["piece_type"], r["piece_numero"]) not in garde:
+            executer("delete from representant where id = %s", (r["id"],))
+    inserer_representants(tid, [(role, r) for r in liste if not r.get("existant")])
+
+
+def controler_entreprise(u: dict, d: dict, tid: int | None = None):
+    """S38, et S46 pour la mise à jour (tid) : mêmes contrôles que controlerEntreprise (web/src/donnees/api.ts)"""
     b = controler_base(u, d, [("date demande", "dateDemande"), ("type entreprise", "typeClient"), ("zone", "zone"), ("type de compte à créer", "produitCode"),
                               ("dénomination", "nom"), ("forme juridique", "formeJuridique"), ("n° du registre", "registre"), ("adresse du siège", "adresse")],
                        TYPES_ENTREPRISE, True)
@@ -817,10 +846,14 @@ def creer_entreprise(u: dict, d: dict) -> dict:
     if dirigeant is not None:
         controler_representant(dirigeant, "Dirigeant", j)
     signataires = d.get("signataires") or []
-    if not isinstance(signataires, list):
-        raise ErreurMetier("Signataires invalides.")
-    for i, r in enumerate(signataires, start=1):
-        controler_representant(r, f"Signataire {i}", j)
+    controler_representants(signataires, "Signataire", j, anciens_representants(tid, "signataire") if tid else None)
+    return b, texte, fiche, dirigeant, signataires
+
+
+def creer_entreprise(u: dict, d: dict) -> dict:
+    """S38 : Client > Enrôlement > Entreprise (manuel p. 49 et 50). Mêmes contrôles que controlerEntreprise (web/src/donnees/api.ts)."""
+    exiger(u)
+    b, texte, fiche, dirigeant, signataires = controler_entreprise(u, d)
     tid = inserer_tiers(u, d, b, "morale", texte("typeClient"))
     executer("""insert into tiers_morale (tiers_id, raison_sociale, forme, rccm, adresse_siege, centre_activite, activite)
                 values (%s, %s, %s, %s, %s, %s, %s)""",
@@ -848,9 +881,8 @@ def inserer_representants(tid: int, liste: list[tuple[str, dict]]):
                   r.get("photo") or None, r.get("signature") or None))
 
 
-def creer_groupe(u: dict, d: dict) -> dict:
-    """S39 : Client > Enrôlement > Groupe (manuel p. 47 et 51). Mêmes contrôles que controlerGroupe (web/src/donnees/api.ts)."""
-    exiger(u)
+def controler_groupe(u: dict, d: dict, tid: int | None = None):
+    """S39, et S46 pour la mise à jour (tid) : mêmes contrôles que controlerGroupe (web/src/donnees/api.ts)"""
     b = controler_base(u, d, [("date demande", "dateDemande"), ("type de groupe", "typeClient"), ("type de compte à créer", "produitCode"),
                               ("dénomination", "nom"), ("adresse", "adresse")], libelles_liste(u, "type_groupe"), False)
     texte = b["texte"]
@@ -862,10 +894,14 @@ def creer_groupe(u: dict, d: dict) -> dict:
         raise ErreurMetier("Nombre d'hommes ou de femmes invalide.")
     j = journee_courante(u)
     membres = d.get("membres") or []
-    if not isinstance(membres, list):
-        raise ErreurMetier("Membres invalides.")
-    for i, r in enumerate(membres, start=1):
-        controler_representant(r, f"Membre {i}", j)
+    controler_representants(membres, "Membre", j, anciens_representants(tid, "membre") if tid else None)
+    return b, texte, fiche, nombres, membres
+
+
+def creer_groupe(u: dict, d: dict) -> dict:
+    """S39 : Client > Enrôlement > Groupe (manuel p. 47 et 51). Mêmes contrôles que controlerGroupe (web/src/donnees/api.ts)."""
+    exiger(u)
+    b, texte, fiche, nombres, membres = controler_groupe(u, d)
     images = d.get("images") or {}
     controler_image(images.get("photo"), "Photo"); controler_image(images.get("signature"), "Signature")
     tid = inserer_tiers(u, d, b, "groupe", TYPES_GROUPE.get(texte("typeClient")))
@@ -923,28 +959,52 @@ def controler_statut_actif(statut: str, suite: str = ""):
 
 
 def modifier_tiers(u: dict, tid: int, d: dict) -> dict:
-    """S46 : Modification d'un client physique (manuel p. 56) : Info de base, Info Généraux, Autre Info, Personnes Liées.
-    Le client passe « modifié à revalider » (S42). Contrôles identiques à l'enrôlement (Instr. BCC 15, art. 12 à 14, 60)."""
+    """S46 : Modification d'un client (manuel p. 56). Physique : Info de base, Info Généraux, Autre Info, Personnes Liées, Bénéficiaires ;
+    entreprise et groupe : les onglets de leur enrôlement (registre S46-2). Le client passe « modifié à revalider » (S42, registre S46-1).
+    Contrôles identiques à l'enrôlement, mentions de l'identité comprises (Instr. BCC 15, art. 10, 12 à 14, 60 ; registre S46-3)."""
     exiger(u)
     t = une("select * from tiers where id = %s and institution_id = %s for update", (tid, u["institution_id"]))
     if not t:
         raise ErreurMetier("Client introuvable.")
-    if t["type"] != "physique":
-        raise ErreurMetier("Seule la modification d'un client physique est décrite par le manuel (p. 56).")
     if t["statut"] not in ("actif", "modifie_a_revalider"):
         raise ErreurMetier("Client pas encore visé : le modifier depuis l'enrôlement.")
-    b = controler_base(u, {**d, "produitCode": valeur("select code from produit_epargne where id = %s", (t["produit_id"],)) if t["produit_id"] else "EAV-CDF",
-                           "premierDepot": t["premier_depot"] or 0},
+    d = {**(d if isinstance(d, dict) else {}), "produitCode": valeur("select code from produit_epargne where id = %s", (t["produit_id"],)) if t["produit_id"] else "EAV-CDF",
+         "premierDepot": t["premier_depot"] or 0}
+    if tid in (d.get("liees") or []):
+        raise ErreurMetier("Un client ne peut pas être sa propre personne liée.")
+    avant = lire_tiers(tid)
+    if t["type"] == "morale":
+        b, texte, fiche, dirigeant, signataires = controler_entreprise(u, d, tid)
+        executer("""update tiers set date_demande = %s, type_client = %s, agent_economique = %s, zone_id = %s, residence = %s, prelever_agios = %s,
+                                     calculer_interet = %s, personne_exposee = %s, statut = 'modifie_a_revalider' where id = %s""",
+                 (texte("dateDemande"), texte("typeClient"), texte("typeClient"), b["zone"], "resident" if d.get("resident", True) else "non_resident",
+                  bool(d.get("preleverAgios", True)), bool(d.get("calculerInteret")), bool(d.get("personneExposee")), tid))
+        executer("""update tiers_morale set raison_sociale = %s, forme = %s, rccm = %s, adresse_siege = %s, centre_activite = %s, activite = %s where tiers_id = %s""",
+                 (texte("nom"), texte("formeJuridique"), texte("registre"), texte("adresse"), texte("centreActivite") or None, texte("typeActivite") or None, tid))
+        ecrire_fiche_morale(tid, texte, fiche)
+        executer("delete from representant where tiers_id = %s and role = 'dirigeant'", (tid,))
+        inserer_representants(tid, [("dirigeant", dirigeant)] if dirigeant is not None else [])
+        remplacer_representants(tid, "signataire", signataires)
+        return terminer_modification(u, tid, b, avant, effectifs=True)
+    if t["type"] == "groupe":
+        b, texte, fiche, nombres, membres = controler_groupe(u, d, tid)
+        executer("""update tiers set date_demande = %s, type_client = %s, agent_economique = %s, zone_id = %s, residence = %s, prelever_agios = %s,
+                                     calculer_interet = %s, personne_exposee = %s, statut = 'modifie_a_revalider' where id = %s""",
+                 (texte("dateDemande"), texte("typeClient"), TYPES_GROUPE.get(texte("typeClient")), b["zone"], "resident" if d.get("resident", True) else "non_resident",
+                  bool(d.get("preleverAgios", True)), bool(d.get("calculerInteret")), bool(d.get("personneExposee")), tid))
+        executer("""update tiers_morale set raison_sociale = %s, forme = %s, rccm = %s, adresse_siege = %s, activite = %s, nb_hommes = %s, nb_femmes = %s where tiers_id = %s""",
+                 (texte("nom"), texte("formeJuridique") or None, texte("registre") or None, texte("adresse"), texte("typeActivite") or None, *nombres, tid))
+        ecrire_fiche_morale(tid, texte, fiche)
+        remplacer_representants(tid, "membre", membres)
+        return terminer_modification(u, tid, b, avant)
+    b = controler_base(u, d,
                        [("date demande", "dateDemande"), ("type client", "typeClient"), ("nom", "nom"), ("type de pièce", "pieceType"),
                         ("numéro de pièce", "pieceNumero")], libelles_liste(u, "type_client"), False)
     texte = b["texte"]
     if texte("sexe") not in ("", "F", "M"):
         raise ErreurMetier("Sexe inconnu.")
-    if tid in b["liees"]:
-        raise ErreurMetier("Un client ne peut pas être sa propre personne liée.")
     controler_piece(texte("pieceType"), texte("pieceExpire"), journee_courante(u))
-    fiche = controler_fiche_physique(u, d, texte, journee_courante(u), identite=False)
-    avant = lire_tiers(tid)
+    fiche = controler_fiche_physique(u, d, texte, journee_courante(u))   # mentions de l'identité obligatoires (registre S46-3)
     executer("""update tiers set date_demande = %s, type_client = %s, zone_id = %s, residence = %s, prelever_agios = %s, calculer_interet = %s,
                                  personne_exposee = %s, statut = 'modifie_a_revalider' where id = %s""",
              (texte("dateDemande"), texte("typeClient"), b["zone"], "resident" if d.get("resident", True) else "non_resident",
@@ -956,9 +1016,18 @@ def modifier_tiers(u: dict, tid: int, d: dict) -> dict:
               texte("pieceType"), texte("pieceNumero"), texte("pieceDelivreeLe") or None, texte("pieceLieu") or None, texte("pieceAutorite") or None,
               texte("pieceExpire") or None, texte("adresse") or None, texte("telephone") or None, tid))
     ecrire_fiche_physique(tid, texte, fiche)
+    return terminer_modification(u, tid, b, avant)
+
+
+def terminer_modification(u: dict, tid: int, b: dict, avant: dict, effectifs: bool = False) -> dict:
+    """Personnes liées (et bénéficiaires effectifs d'une entreprise), puis état avant et après gardé pour S43"""
     executer("delete from lien_tiers where tiers_id = %s and role = 'personne_liee'", (tid,))
     for autre in b["liees"]:
         executer("insert into lien_tiers (tiers_id, autre_id, role) values (%s, %s, 'personne_liee')", (tid, autre))
+    if effectifs:
+        executer("delete from lien_tiers where tiers_id = %s and role = 'beneficiaire_effectif'", (tid,))
+        for autre in b["effectifs"]:
+            executer("insert into lien_tiers (tiers_id, autre_id, role) values (%s, %s, 'beneficiaire_effectif')", (tid, autre))
     apres = lire_tiers(tid)
     executer("insert into tiers_modification (tiers_id, avant, apres, modifie_par) values (%s, %s, %s, %s)", (tid, Jsonb(avant), Jsonb(apres), u["id"]))
     return apres

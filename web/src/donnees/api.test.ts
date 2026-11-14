@@ -5,6 +5,7 @@ import { composerNumeroCompte, composerPiece, api, _remplacer, compteParts, enro
 const IDENTITE = { prenom: "Marie", naissance: "1990-01-15", lieuNaissance: "Kinshasa", adresse: "Matete, avenue Kinsaku 12", pieceDelivreeLe: "2024-01-10",
   pieceLieu: "Kinshasa", pieceAutorite: "DGM", pieceExpire: "2030-01-10" };
 import { graine } from "./graine";
+import type { Representant, Tiers } from "./types";
 import { totalComptage, type Comptage } from "@design/montant.js";
 
 const connecter = (login: string) => api.session.ouvrir(login);
@@ -229,6 +230,28 @@ describe("journée de guichet", () => {
     expect((await api.tiers.rechercher("boulangerie")).map((x) => x.id)).toContain(t.id);
   });
 
+  it("mise à jour d'une entreprise et d'un groupe (S46, registre S46-2) : onglets de l'enrôlement, signataires et membres gardés, retirés, ajoutés", async () => {
+    await journeeOuverte();
+    await connecter("bkasongo");
+    const sig = { nom: "Ilunga", postnom: "", prenom: "Paul", pieceType: "Passeport", pieceNumero: "OP9", pieceExpire: "", signature: "data:image/png;base64,iVBORw0KGgo=" };
+    const base = { ...enrolementVide("2026-11-05"), ...IDENTITE, typeClient: "Entreprises privées", zone: "Matete", produitCode: "EAV-CDF", nom: "Boulangerie Kinsaku SARL",
+      formeJuridique: "Société à responsabilité limitée", registre: "CD/KNG/RCCM/24-B-00001", adresse: "Matete, avenue Kinsaku" };
+    const e = await api.tiers.creerEntreprise(base, null, [sig]);
+    const g = await api.tiers.creerGroupe({ ...enrolementVide("2026-11-05"), typeClient: "Association", produitCode: "EAV-CDF", nom: "Mamans de Kinsaku", adresse: "Matete", nbFemmes: 12 },
+      [{ ...sig, pieceNumero: "OP8" }, { ...sig, nom: "Mbuyi", pieceNumero: "OP7" }]);
+    await connecter("jpmukendi"); await api.tiers.viser(e.id); await api.tiers.viser(g.id); await connecter("bkasongo");
+    const garde = (r: Representant) => ({ ...r, photo: undefined, signature: undefined, existant: { photo: r.photo, specimen: r.specimen } });
+    const nouveau = { nom: "Kabila", postnom: "", prenom: "Rose", pieceType: "Carte d'électeur", pieceNumero: "9-0412-0001", pieceExpire: "2031-01-01" };
+    const te = (await api.tiers.lire(e.id))!;
+    await expect(api.tiers.modifier(e.id, te, { signataires: [...te.signataires.map(garde), garde({ ...nouveau, photo: false, specimen: false })] })).rejects.toThrow("Signataire 2 : inconnu");
+    await expect(api.tiers.modifier(e.id, { ...te, registre: "" }, { signataires: te.signataires.map(garde) })).rejects.toThrow("registre");
+    const m = await api.tiers.modifier(e.id, { ...te, centreActivite: "Lemba" }, { signataires: [...te.signataires.map(garde), nouveau] });
+    expect(m).toMatchObject({ statut: "modifie_a_revalider", centreActivite: "Lemba", signataires: [{ nom: "Ilunga", specimen: true }, { nom: "Kabila", specimen: false }] });
+    const tg = (await api.tiers.lire(g.id))!;
+    const mg = await api.tiers.modifier(g.id, { ...tg, nbFemmes: 20 }, { membres: tg.membres.slice(1).map(garde) });
+    expect([mg.nbFemmes, mg.membres.map((x) => x.nom), mg.statut]).toEqual([20, ["Mbuyi"], "modifie_a_revalider"]);
+  });
+
   it("fiche de l'entreprise (S38) : forme juridique et listes de S14, bénéficiaire effectif personne physique (Instr. BCC 15, art. 18)", async () => {
     await connecter("bkasongo");
     const base = { ...enrolementVide("2026-11-05"), ...IDENTITE, typeClient: "Entreprises privées", zone: "Matete", produitCode: "EAV-CDF", nom: "Kinsaku Pain SARL",
@@ -322,7 +345,10 @@ describe("journée de guichet", () => {
   it("mise à jour d'un client (S46) : contrôles de l'enrôlement, client à revalider, bloqué au guichet", async () => {
     await journeeOuverte();
     await connecter("bkasongo");
-    const t = (await api.tiers.lire(1))!;
+    const complet = (x: Tiers) => ({ ...x, ...Object.fromEntries(Object.entries(IDENTITE).filter(([k]) => !x[k as keyof Tiers])) });
+    const t0 = (await api.tiers.lire(1))!, t = complet(t0);
+    if ((Object.keys(IDENTITE) as (keyof Tiers)[]).some((k) => !t0[k])) await expect(api.tiers.modifier(1, t0)).rejects.toThrow("art. 12 et 13");   // registre S46-3
+    await expect(api.tiers.modifier(1, { ...t, lieuNaissance: "" })).rejects.toThrow("art. 12 et 13");
     await expect(api.tiers.modifier(1, { ...t, nom: "" })).rejects.toThrow("nom");
     await expect(api.tiers.modifier(1, { ...t, pieceType: "Badge" })).rejects.toThrow("art. 14");
     await expect(api.tiers.modifier(1, { ...t, liees: [1] })).rejects.toThrow("propre personne liée");
@@ -334,7 +360,7 @@ describe("journée de guichet", () => {
     // S42 : validation par le chef, autre que celui qui a modifié
     await connecter("jpmukendi");
     expect((await api.tiers.aRevalider()).map((x) => x.id)).toEqual([1]);
-    await api.tiers.modifier(2, { ...(await api.tiers.lire(2))!, telephone: "1" });
+    await api.tiers.modifier(2, { ...complet((await api.tiers.lire(2))!), telephone: "1" });
     await expect(api.tiers.activer(2)).rejects.toThrow("Quatre yeux");
     expect((await api.tiers.activer(1)).statut).toBe("actif");
     await expect(api.tiers.activer(1)).rejects.toThrow("n'attend pas");

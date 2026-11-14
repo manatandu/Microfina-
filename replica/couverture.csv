@@ -45,7 +45,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 44,Consulter l'état initial et actuel d'un client,clients,must,yes,S43,B,consultation,3 Client,S43 : affichage des informations initiales et actuelles,A:S64 situation du client (p. 74),,,
 45,Groupes solidaires et affectation,clients,must,yes,S44,A,onglets,3 Client,,,,,
 46,Prospects,clients,should,yes,S45,A,liste,3 Client,,,,,
-47,Mise à jour d'un client,clients,must,partial,S46,B,onglets,3 Client,S46 : onglets suivants,A:S37,,,"S46-1 Mise à jour : Modifier et Terminer ; S46-2 Mise à jour d'une entreprise, d'un groupe ; S46-3 Mentions de l'identité à la mise à jour (reste de S38-1)"
+47,Mise à jour d'un client,clients,must,yes,S46,B,onglets,3 Client,S46 : onglets suivants,A:S37,,,
 48,Procurations,clients,must,yes,S47,A,liste,3 Client,,,,,
 49,Résiliation d'un client,clients,must,partial,S48,A,traitement,3 Client,,,,,S48-1 Apurement
 50,Consentement BIC,clients,should,partial,S50,A,liste,3 Client,S50 : non repris tel quel (BIC de l'UEMOA),R:centrale des risques de la BCC ; P,,,S50-1 Suite à donner

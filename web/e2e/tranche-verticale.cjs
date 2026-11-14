@@ -347,12 +347,35 @@ const OUT = process.argv[2];
   await etape('06j-mise-a-jour');
   await p.getByRole('button', { name: 'Modifier' }).click(); await p.getByRole('tab', { name: 'Info Généraux' }).click();
   await p.getByLabel('Téléphone :').fill('+243 990 000 001'); await etape('06k-mise-a-jour-saisie');
+  // Mentions de l'identité exigées à la mise à jour (registre S46-3 ; Instr. BCC 15, art. 12 et 13)
+  await p.getByRole('button', { name: 'Terminer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('dialog', { name: 'Erreur' }).getByText(/art\. 12 et 13/).waitFor(); await etape('06k2-mentions-exigees'); await p.getByRole('button', { name: 'Ok' }).click();
+  await p.getByLabel('Date de naissance : *').fill('12041988'); await p.getByLabel('Lieu de naissance : *').fill('Kinshasa');
+  await p.getByLabel('Délivrée le : *').fill('10012024'); await p.getByLabel('Lieu de délivrance : *').fill('Kinshasa'); await p.getByLabel('Autorité de délivrance : *').fill('DGM');
   await p.getByRole('button', { name: 'Terminer' }).click(); await ok();
   // Validation du client modifié (S42) : par le chef, autre que l'agent qui a modifié
   await login('J.-P. Mukendi'); await aller('/clients/s42');
   await p.getByRole('button', { name: 'Rechercher un client' }).click();
   await p.getByRole('dialog', { name: "Recherche d'un client" }).getByRole('row').filter({ hasText: 'Mwamba' }).dblclick();
   await p.getByRole('cell', { name: '0412-000319-01' }).waitFor(); await etape('06l-validation-client-modifie');
+  await p.getByRole('button', { name: 'activer client' }).click(); await ok();
+  // Mise à jour d'une entreprise (S46, registre S46-2) : onglets de son enrôlement, signataire ajouté, puis validation (S42)
+  await login('Bijou Kasongo'); await aller('/clients/s46');
+  await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  const rme = p.getByRole('dialog', { name: "Recherche d'un client" });
+  await rme.getByLabel('Nom:', { exact: true }).fill('Boulangerie'); await rme.getByRole('row').filter({ hasText: 'Boulangerie' }).dblclick();
+  await p.getByRole('heading', { name: "Modification d'une entreprise" }).waitFor();
+  await p.getByRole('button', { name: 'Modifier' }).click(); await p.getByRole('tab', { name: 'Renseignements généraux' }).click();
+  await p.getByLabel("Principal centre d'activité :").fill('Lemba');
+  await p.getByRole('tab', { name: 'Signataires' }).click(); await p.getByRole('button', { name: '+Ajouter' }).click();
+  const sig2 = p.getByRole('dialog', { name: 'Signataire' });
+  await sig2.getByLabel('Nom : *').fill('Kabila'); await sig2.getByLabel('Type de pièce : *').selectOption('Passeport'); await sig2.getByLabel('N° de pièce : *').fill('OP11');
+  await sig2.getByRole('button', { name: 'Enregistrer' }).click(); await sig2.getByRole('button', { name: 'Fermer' }).click();
+  await p.getByRole('cell', { name: 'Kabila' }).waitFor(); await etape('06l2-mise-a-jour-entreprise');
+  await p.getByRole('button', { name: 'Terminer' }).click(); await ok();
+  await login('J.-P. Mukendi'); await aller('/clients/s42');
+  await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  await p.getByRole('dialog', { name: "Recherche d'un client" }).getByRole('row').filter({ hasText: 'Boulangerie' }).dblclick();
   await p.getByRole('button', { name: 'activer client' }).click(); await ok();
   // Consulter un client (S43)
   await aller('/clients/s43'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
