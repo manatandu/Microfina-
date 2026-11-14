@@ -38,6 +38,11 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       visas: (etape: string, liste: string) => get(`/banque/visas?etape=${etape}&liste=${liste}`),
       suivre: (id: number, etape: string, d: object = {}) => post(`/banque/visas/${id}/${etape}`, d),
     },
+    chequesClients: {
+      deposer: (d: object) => post("/banque/cheques", d),
+      lister: (compteBancaireId: number, statut = "") => get(`/banque/cheques?compteBancaireId=${compteBancaireId}&statut=${statut}`),
+      traiter: (id: number, action: string, d: object = {}) => post(`/banque/cheques/${id}/${action}`, d),
+    },
     session: {
       utilisateurs: () => get("/utilisateurs"),
       courante: () => get("/session"),

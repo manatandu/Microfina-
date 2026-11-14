@@ -581,6 +581,42 @@ describe("journée de guichet", () => {
     expect(await api.banqueOperations.visas("validation", "enc_dec")).toEqual([]);
   });
 
+  it("chèques clients (S59) : dépôt, encaissement, retour, historique (registre S59-1 à S59-4)", async () => {
+    await journeeOuverte();
+    await connecter("jpmukendi");
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    const c = { banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "" };
+    await api.banques.enregistrerCompte({ ...c, compte: "56010001", numeroBancaire: "R-USD-1", devise: "USD" });
+    await api.banques.enregistrerCompte({ ...c, compte: "56010003", numeroBancaire: "R-CDF-1", devise: "CDF" });
+    await connecter("plumbala");
+    const cbs = (await api.banqueOperations.lire()).comptes, usd = cbs.find((x) => x.devise === "USD")!.id, cdf = cbs.find((x) => x.devise === "CDF")!.id;
+    const comptes = await api.tiers.comptes(1), cusd = comptes.find((x) => x.devise === "USD")!;
+    const base = { date: "2026-11-05", compteDepotId: cusd.id, compteBancaireId: usd, numeroCheque: "0001234", tireur: "Kabeya Jean", banqueTireur: "Equity", montant: 40000,
+      deposant: "Kabeya Jean", pieceType: "", pieceNumero: "", etabliA: "", dateExpiration: "" };
+    await expect(api.chequesClients.deposer({ ...base, cle: cle(), numeroCheque: "" })).rejects.toThrow("N° chèque");
+    await expect(api.chequesClients.deposer({ ...base, cle: cle(), montant: 0 })).rejects.toThrow("Montant");
+    await expect(api.chequesClients.deposer({ ...base, cle: cle(), compteBancaireId: cdf })).rejects.toThrow("même devise");
+    await expect(api.chequesClients.deposer({ ...base, cle: cle(), deposant: "" })).rejects.toThrow("déposant");
+    await expect(api.chequesClients.deposer({ ...base, cle: cle(), date: "2026-11-06" })).rejects.toThrow("dépasser la journée");
+    const k = cle(), x = await api.chequesClients.deposer({ ...base, cle: k });
+    expect([x.statut, x.statutLibelle]).toEqual(["depose", "Déposé"]);
+    expect((await api.chequesClients.deposer({ ...base, cle: k })).id).toBe(x.id);
+    await expect(api.chequesClients.deposer({ ...base, cle: cle() })).rejects.toThrow("déjà enregistré");
+    const y = await api.chequesClients.deposer({ ...base, cle: cle(), numeroCheque: "0001235" });
+    expect((await api.chequesClients.lister(usd, "depose")).map((z) => z.id)).toEqual([x.id, y.id]);
+    await expect(api.chequesClients.traiter(x.id, "encaisser", { dateEncaissement: "2026-11-04" })).rejects.toThrow("précède");
+    await expect(api.chequesClients.traiter(x.id, "encaisser", { dateEncaissement: "2026-11-06" })).rejects.toThrow("dépasser la journée");
+    await expect(api.chequesClients.traiter(x.id, "encaisser")).rejects.toThrow("date encaissement");
+    expect((await api.chequesClients.traiter(x.id, "encaisser", { dateEncaissement: "2026-11-05" })).statut).toBe("encaisse");
+    expect((await api.chequesClients.traiter(y.id, "retourner")).statut).toBe("retourne");
+    await expect(api.chequesClients.traiter(x.id, "retourner")).rejects.toThrow("pas en attente");
+    expect((await api.chequesClients.lister(usd, "depose"))).toEqual([]);
+    expect((await api.chequesClients.lister(usd)).map((z) => z.statut)).toEqual(["encaisse", "retourne"]);
+    expect(await api.chequesClients.lister(cdf)).toEqual([]);
+    await connecter("bkasongo");
+    await expect(api.chequesClients.deposer({ ...base, cle: cle(), numeroCheque: "9" })).rejects.toThrow("Droit manquant");
+  });
+
   it("adhésion par banque (S56) : payée sur un compte bancaire en CDF, saisie en attente du visa (registre S56-1 à S56-3)", async () => {
     await journeeOuverte();
     await connecter("jpmukendi");

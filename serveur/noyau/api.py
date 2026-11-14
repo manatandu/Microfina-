@@ -9,6 +9,7 @@ from . import groupes as gs
 from . import procurations as pr
 from . import banques as bq
 from . import banque_operations as bop
+from . import cheques_clients as chq
 from . import guichets as gu
 from . import exercices as ex
 from . import listes as li
@@ -510,6 +511,23 @@ def banque_visas(request, etape: str, liste: str):
 @api.post("/banque/visas/{oid}/{etape}")
 def banque_visa_faire(request, oid: int, etape: str, corps: dict = Body(default={})):
     return bop.faire_suivre(u(request), oid, etape, corps)
+
+
+@api.get("/banque/cheques")
+def banque_cheques(request, compteBancaireId: int, statut: str = ""):
+    return chq.lister(u(request), compteBancaireId, statut)
+
+
+@api.post("/banque/cheques")
+def banque_cheque_deposer(request, corps: dict = Body(...)):
+    return chq.deposer(u(request), corps)
+
+
+@api.post("/banque/cheques/{cid}/{action}")
+def banque_cheque_traiter(request, cid: int, action: str, corps: dict = Body(default={})):
+    if action not in ("encaisser", "retourner"):
+        raise ErreurMetier("Action inconnue.")
+    return chq.traiter(u(request), cid, action, corps)
 
 
 @api.get("/banque/adhesions/apercu")

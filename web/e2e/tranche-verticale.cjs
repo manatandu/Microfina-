@@ -563,6 +563,18 @@ const OUT = process.argv[2];
   await p.getByRole('dialog', { name: 'Erreur' }).getByText('Quatre yeux').waitFor(); await p.getByRole('button', { name: 'Ok' }).click(); await etape('06c9-visa-banque');
   await p.getByRole('tab', { name: 'Validation' }).click(); await p.getByRole('heading', { name: 'Validation Encaissement Décaissement' }).waitFor();
   await p.getByRole('tab', { name: 'Virement / Prélèvement' }).click(); await p.getByRole('heading', { name: 'Validation prélèvement virement' }).waitFor(); await etape('06c10-validation-banque');
+  // Chèque client (S59) : dépôt de Kalala, encaissement, historique
+  await aller('/banque/s59'); await p.getByRole('heading', { name: 'Enregistrement Dépôt de Chèque' }).waitFor();
+  await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  const rch = p.getByRole('dialog', { name: "Recherche d'un client" });
+  await rch.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rch.getByRole('row').filter({ hasText: 'Kalala' }).first().dblclick();
+  await p.getByLabel('Compte *', { exact: true }).selectOption({ index: 1 });
+  await p.getByLabel('N° Chèque *').fill('0001234'); await p.getByLabel('Nom et prénoms Tireur *').fill('Kabeya Jean'); await p.getByLabel('Montant *').fill('400');
+  await p.getByLabel('Nom et Prénoms Déposant *').fill('Kabeya Jean');
+  await p.getByLabel('Banque', { exact: true }).selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte Banque *').selectOption({ label: '05100-01234567-89 (USD)' });
+  await etape('06c11-depot-cheque');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await etape('06c12-depot-cheque-resultat'); await p.getByRole('button', { name: 'Ok' }).click();
   await login('Esther Ngalula');
   // Apurement avant la résiliation (registre S48-1) : Lukusa retire tout son solde (85 000 CDF)
   await aller('/caisse/s74?op=retrait'); await client('Lukusa'); await p.getByLabel('N° compte').selectOption({ label: '0412-000320-02' });

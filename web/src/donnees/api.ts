@@ -7,7 +7,7 @@ import { graine } from "./graine";
 import { creerApiHttp } from "./http";
 import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
-  type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
+  type ChequeClient, type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget,
 } from "./types";
@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v59";
+const CLE = "likelemba-demo-v60";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -1227,6 +1227,66 @@ const banqueOperations = {
       compte: "", libelle: TYPES_OPERATION_BANQUE.adhesion_banque, montant: a.total, devise: "CDF", cheque: "", typeBudgetId: null, ligneBudgetId: null,
       statut: "saisie", piece: "", saisiPar: u.id, tiersId: a.t.id, parts: d.parts, premierDepot: d.depot };
     E.operationsBanque.push(o); enregistrer(); return o;
+  },
+};
+// ---------- Banque > Gestion Chèque Client (S59, manuel p. 68 et 69). Règles identiques côté serveur (noyau/cheques_clients.py). ----------
+export type SaisieCheque = { cle: string; date: string; compteDepotId?: number; compteBancaireId?: number; numeroCheque: string; tireur: string; banqueTireur: string;
+  montant: number; deposant: string; pieceType: string; pieceNumero: string; etabliA: string; dateExpiration: string };
+const LIBELLES_CHEQUE = { depose: "Déposé", encaisse: "Encaissé", retourne: "Retourné" } as const;
+const vueCheque = (c: ChequeClient) => { const t = E.tiers.find((x) => x.id === c.tiersId);
+  return { ...c, client: t ? (t.intitule || titulaire(t)) : "", statutLibelle: LIBELLES_CHEQUE[c.statut], saisiPar: E.utilisateurs.find((x) => x.id === c.saisiPar)?.nom ?? "" }; };
+const chequesClients = {
+  /** Enregistrement Dépôt de Chèque (p. 68) */
+  deposer(d: SaisieCheque) {
+    const u = exiger();
+    const prec = E.chequesClients.find((c) => c.cle === d.cle);
+    if (prec) return vueCheque(prec);
+    const j = journees.courante();
+    if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d.date ?? "")) throw new ErreurMetier("À remplir : date opération.");
+    if (d.date > j.date) throw new ErreurMetier("La date de l'opération ne peut pas dépasser la journée ouverte.");
+    const c = E.comptes.find((x) => x.id === d.compteDepotId);
+    if (!c) throw new ErreurMetier("À remplir : compte.");
+    const t = E.tiers.find((x) => x.id === c.tiersId)!;
+    controlerStatutActif(t.statut);
+    const numero = (d.numeroCheque ?? "").trim(), tireur = (d.tireur ?? "").trim(), banqueTireur = (d.banqueTireur ?? "").trim(), deposant = (d.deposant ?? "").trim();
+    if (!numero) throw new ErreurMetier("À remplir : N° chèque.");
+    if (!tireur) throw new ErreurMetier("À remplir : nom et prénoms du tireur.");
+    if (!Number.isInteger(d.montant) || d.montant <= 0) throw new ErreurMetier("Montant : un montant supérieur à zéro.");
+    const b = E.comptesBancaires.find((x) => x.id === d.compteBancaireId);
+    if (!b) throw new ErreurMetier("À remplir : compte banque.");
+    if (b.devise !== c.devise) throw new ErreurMetier("Le compte du client et le compte bancaire n'ont pas la même devise.");   // S59-2
+    if (!deposant) throw new ErreurMetier("À remplir : nom et prénoms du déposant.");
+    if (d.dateExpiration && !/^\d{4}-\d{2}-\d{2}$/.test(d.dateExpiration)) throw new ErreurMetier("Date d'expiration invalide.");
+    const bas = (x: string) => x.toLowerCase();
+    if (E.chequesClients.some((x) => bas(x.numeroCheque) === bas(numero) && bas(x.tireur) === bas(tireur) && bas(x.banqueTireur) === bas(banqueTireur) && x.statut !== "retourne"))
+      throw new ErreurMetier("Ce chèque est déjà enregistré.");   // S59-3
+    const o: ChequeClient = { id: prochain(E.chequesClients), cle: d.cle, date: d.date, tiersId: t.id, compteDepotId: c.id, compteBancaireId: b.id, numeroCheque: numero, tireur, banqueTireur,
+      montant: d.montant, devise: c.devise, deposant, pieceType: d.pieceType ?? "", pieceNumero: (d.pieceNumero ?? "").trim(), etabliA: (d.etabliA ?? "").trim(), dateExpiration: d.dateExpiration ?? "",
+      statut: "depose", dateEncaissement: "", saisiPar: u.id };
+    E.chequesClients.push(o); enregistrer(); return vueCheque(o);
+  },
+  /** Encaisser chèque : les chèques en attente du compte bancaire ; Historique chèque : tous (texte p. 68 et 69) */
+  lister(compteBancaireId: number, statut: "" | ChequeClient["statut"] = "") {
+    exiger();
+    return E.chequesClients.filter((c) => c.compteBancaireId === compteBancaireId && (!statut || c.statut === statut)).sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id).map(vueCheque);
+  },
+  /** Boutons Encaisser et Retourner (p. 69) */
+  traiter(id: number, action: "encaisser" | "retourner", d: { dateEncaissement?: string } = {}) {
+    exiger();
+    const c = E.chequesClients.find((x) => x.id === id);
+    if (!c || c.statut !== "depose") throw new ErreurMetier("Ce chèque n'est pas en attente d'encaissement.");
+    if (action === "retourner") c.statut = "retourne";
+    else {
+      const j = journees.courante();
+      if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
+      const date = (d.dateEncaissement ?? "").trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new ErreurMetier("À remplir : date encaissement.");
+      if (date < c.date) throw new ErreurMetier("La date d'encaissement précède la date du dépôt.");
+      if (date > j.date) throw new ErreurMetier("La date d'encaissement ne peut pas dépasser la journée ouverte.");
+      c.statut = "encaisse"; c.dateEncaissement = date;
+    }
+    enregistrer(); return vueCheque(c);
   },
 };
 /** Contrôles communs de l'adhésion, au guichet (S73) et par banque (S56). Identiques côté serveur (services.preparer_adhesion). */
@@ -3192,6 +3252,7 @@ const apiLocal = {
   procurations: asynchrone(procurations, "procurations"),
   rapports: asynchrone(rapports, "rapports"),
   banqueOperations: asynchrone(banqueOperations, "banqueOperations"),
+  chequesClients: asynchrone(chequesClients, "chequesClients"),
   banques: asynchrone(banques, "banques"),
   guichets: asynchrone(guichets, "guichets"),
   exercices: asynchrone(exercices, "exercices"),

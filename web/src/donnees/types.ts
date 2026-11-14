@@ -171,6 +171,12 @@ export interface OperationBanque {
   tiersId?: number | null; parts?: number | null; premierDepot?: number | null;   // S56 : adhésion par banque
 }
 
+export interface ChequeClient {   // S59
+  id: number; cle: string; date: string; tiersId: number; compteDepotId: number; compteBancaireId: number; numeroCheque: string; tireur: string; banqueTireur: string;
+  montant: number; devise: Devise; deposant: string; pieceType: string; pieceNumero: string; etabliA: string; dateExpiration: string;
+  statut: "depose" | "encaisse" | "retourne"; dateEncaissement: string; saisiPar: number;
+}
+
 export interface Operation {
   id: number;
   cle: string;                 // clé d'idempotence tirée par le poste
@@ -252,6 +258,7 @@ export interface Etat {
   comptesBancaires: { id: number; banqueId: number; compte: string; libelle: string; numeroBancaire: string; devise: Devise; journalId: number; contactNom: string; contactNomComplet: string; contactTelephone: string }[];
   consentements: { id: number; tiersId: number; code: string; dateDebut: string; dateFin: string; commentaire: string }[];   // S50
   operationsBanque: OperationBanque[];   // S52
+  chequesClients: ChequeClient[];   // S59
   typesProcuration: { id: number; libelle: string }[];   // S47
   lieux: LigneLieu[];   // S20 : Localisation, découpage de la RDC
   groupesSolidaires: { id: number; code: string; nom: string }[];      // S44

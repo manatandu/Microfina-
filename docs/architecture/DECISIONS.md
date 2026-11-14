@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**302 décisions.** Solidité : 97 fortes (le manuel ou un texte répond), 164 moyennes (déduites d'un écran voisin ou d'une donnée), 41 faibles (notre choix, faute de mieux). Dans le code : 270 déjà en place, 32 à appliquer.
+**307 décisions.** Solidité : 97 fortes (le manuel ou un texte répond), 166 moyennes (déduites d'un écran voisin ou d'une donnée), 44 faibles (notre choix, faute de mieux). Dans le code : 274 déjà en place, 33 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -708,6 +708,16 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S57-5 | Date operation de la validation | Par défaut la journée ouverte ; ni avant la date de l'opération ni après la journée ouverte. Le Numéro de pièce reste vide : il vient à la comptabilisation (S111) | Écran voisin : Registre S52-2 ; PCCI § 3.3 et 3.4 | moyenne | en place |
 | S57-6 | Effet de la validation | Le statut passe à validée, rien d'autre pour l'instant : l'ouverture du compte épargne de l'adhésion se fait à la validation à la caisse (p. 89 et 104) et l'écriture à la comptabilisation (S111) | Écran voisin : Registre S56-1 ; COMPLEMENTS § 6 | moyenne | à appliquer |
 
+## S59 Chèque client
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S59-1 | Historique chèque | Aucune capture : Banque et Compte choisis, puis la liste de tous les chèques du compte (date, client, N° chèque, tireur, banque tireur, montant, statut, date d'encaissement), dans le gabarit des listes. Le même écran que l'encaissement, sans boutons | Écran voisin : Manuel p. 69 (texte « s'affichent les opérations enregistrées sur cette banque ») ; COMPLEMENTS § 4 | moyenne | en place |
+| S59-2 | Devise du dépôt | Le compte du client et le compte bancaire de l'institution ont la même devise | Écran voisin : Registre S53-3 | moyenne | en place |
+| S59-3 | Chèque déjà enregistré | Refusé si le même N° de chèque, du même tireur et de la même banque tireur est déjà déposé et non retourné (un chèque retourné peut être présenté de nouveau) | Écran voisin : Écran voisin : règle des doublons de S56-2 ; aucun texte lu ne fixe de délai de présentation | faible | en place |
+| S59-4 | Effet de l'encaissement | L'encaissement ne change que le statut (Encaissé, avec sa date) ; le crédit du compte du client et l'écriture de banque viennent à la comptabilisation (S111). Bouton Imprimer inactif jusque-là. Le retour (bouton Retourner) note le chèque impayé, sans écriture. Pas de visa ni de validation en S57 : le manuel n'en parle pas | Écran voisin : COMPLEMENTS § 6 ; manuel p. 69 ; Instr. BCC 52 (l'incident de paiement relève du banquier tiré) | faible | à appliquer |
+| S59-5 | Droit d'accès | Un seul écran, donc un seul droit S59 (trois onglets), donné au comptable au départ comme le menu Banque | Écran voisin : Registre S04-1, S57-3 | faible | en place |
+
 ## Les décisions faibles, à regarder en premier
 
 | N° | Écran | Question | Réponse retenue |
@@ -753,3 +763,6 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S53-3 | S53 Virement prélèvement | Devises | Le compte du client et le compte bancaire doivent être dans la même devise ; entre deux devises, à confirmer avec S52-6 |
 | S57-3 | S57 Visa et validation banque | Droit d'accès | Le droit S57 est donné au comptable au départ, comme tout le menu Banque ; pour que trois personnes distinctes passent la chaîne, l'administrateur l'ajoute à d'autres profils (Administration > Profil). À confirmer : profils habilités par défaut |
 | S57-4 | S57 Visa et validation banque | Où voir l'adhésion par banque | Dans la liste Encaissement Décaissement (le manuel ne dit pas où l'adhésion saisie en S56 se vise). À confirmer par le porteur |
+| S59-3 | S59 Chèque client | Chèque déjà enregistré | Refusé si le même N° de chèque, du même tireur et de la même banque tireur est déjà déposé et non retourné (un chèque retourné peut être présenté de nouveau) |
+| S59-4 | S59 Chèque client | Effet de l'encaissement | L'encaissement ne change que le statut (Encaissé, avec sa date) ; le crédit du compte du client et l'écriture de banque viennent à la comptabilisation (S111). Bouton Imprimer inactif jusque-là. Le retour (bouton Retourner) note le chèque impayé, sans écriture. Pas de visa ni de validation en S57 : le manuel n'en parle pas |
+| S59-5 | S59 Chèque client | Droit d'accès | Un seul écran, donc un seul droit S59 (trois onglets), donné au comptable au départ comme le menu Banque |

@@ -45,6 +45,12 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "caisses.validerBilletage": [
 "S80"
 ],
+"chequesClients.deposer": [
+"S59"
+],
+"chequesClients.traiter": [
+"S59"
+],
 "comptes.enregistrer": [
 "S102"
 ],
