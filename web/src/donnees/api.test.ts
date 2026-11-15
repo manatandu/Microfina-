@@ -679,6 +679,26 @@ describe("journée de guichet", () => {
     await expect(api.emprunts.mettreEnPlace({ ...base, cle: cle() })).rejects.toThrow("Droit manquant");
   });
 
+  it("rapport banque (S62) : journal des opérations de la banque sur la période, hors refusées (registre S62-1 à S62-3)", async () => {
+    await journeeOuverte();
+    await connecter("jpmukendi");
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    const c = { banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "" };
+    await api.banques.enregistrerCompte({ ...c, compte: "56010001", numeroBancaire: "R-USD-1", devise: "USD" });
+    await api.banques.enregistrerCompte({ ...c, compte: "56010002", numeroBancaire: "R-USD-2", devise: "USD" });
+    await connecter("plumbala");
+    const lu = await api.banqueOperations.lire(), b = lu.banques[0]!.id, [c1, c2] = lu.comptes.map((x) => x.id) as [number, number];
+    await api.banqueOperations.enregistrer({ cle: cle(), type: "encaissement", date: "2026-11-05", compteBancaireId: c1, compte: "727", libelle: "Commission", montant: 50000 });
+    await api.banqueOperations.enregistrer({ cle: cle(), type: "banque_banque", date: "2026-11-05", compteBancaireId: c1, compteBancaireDestId: c2, montant: 20000 });
+    const cx = await api.banqueOperations.rapportContexte();
+    expect(cx.agences.length).toBeGreaterThan(0);
+    const r = await api.banqueOperations.rapport("2026-01-01", "2026-11-05", b);
+    expect(r.map((x) => [x.operation, x.numeroComptable, x.agence])).toEqual([["Encaissement divers", "727", "Matete"], ["Virement banque vers banque", "", "Matete"]]);
+    expect((await api.banqueOperations.rapport("2026-01-01", "2026-11-05", b, c2)).map((x) => x.operation)).toEqual(["Virement banque vers banque"]);
+    expect(await api.banqueOperations.rapport("2026-11-06", "2026-11-30", b)).toEqual([]);
+    await expect(api.banqueOperations.rapport("2026-11-06", "2026-11-01", b)).rejects.toThrow("début dépasse");
+  });
+
   it("adhésion par banque (S56) : payée sur un compte bancaire en CDF, saisie en attente du visa (registre S56-1 à S56-3)", async () => {
     await journeeOuverte();
     await connecter("jpmukendi");

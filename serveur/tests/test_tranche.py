@@ -1843,3 +1843,17 @@ def test_emprunts_bancaires(clients, journee):
     assert "Rien à rembourser" in refus(f"/api/banque/emprunts/{e['id']}/remboursements", {**r, "amortissement": 0, "interet": 0})
     assert compta.post(f"/api/banque/emprunts/{e['id']}/remboursements", {"cle": cle(), **r}, **H).json()["capitalRestant"] == 600000
     assert "capital restant" in refus(f"/api/banque/emprunts/{e['id']}/remboursements", {**r, "amortissement": 600001})
+
+
+def test_rapport_banque(clients, journee):
+    """S62 (manuel p. 71) : journal des opérations de la banque sur la période, hors refusées"""
+    chef, compta = clients["chef"], clients["compta"]
+    ids = banque_usd(chef)
+    b = chef.get("/api/banques").json()["banques"][0]["id"]
+    compta.post("/api/banque/operations", {"cle": cle(), "type": "encaissement", "date": "2026-11-05", "compteBancaireId": ids["R-USD-1"], "compte": "727",
+                                           "libelle": "Commission", "montant": 50000}, **H)
+    assert compta.get("/api/banque/rapport/contexte").json()["agences"]
+    r = compta.get(f"/api/banque/rapport?du=2026-01-01&au=2026-11-05&banqueId={b}").json()
+    assert [(x["operation"], x["numeroComptable"]) for x in r] == [("Encaissement divers", "727")]
+    assert compta.get(f"/api/banque/rapport?du=2026-11-06&au=2026-11-30&banqueId={b}").json() == []
+    assert compta.get(f"/api/banque/rapport?du=2026-11-06&au=2026-11-01&banqueId={b}").status_code == 422

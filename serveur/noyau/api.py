@@ -556,6 +556,16 @@ def banque_emprunt_rembourser(request, eid: int, corps: dict = Body(...)):
     return emp.rembourser(u(request), eid, corps)
 
 
+@api.get("/banque/rapport/contexte")
+def banque_rapport_contexte(request):
+    return bop.rapport_contexte(u(request))
+
+
+@api.get("/banque/rapport")
+def banque_rapport(request, du: str, au: str, banqueId: int, compteBancaireId: int | None = None, agenceId: int | None = None):
+    return bop.rapport(u(request), du, au, banqueId, compteBancaireId, agenceId)
+
+
 @api.get("/banque/adhesions/apercu")
 def banque_adhesion_apercu(request, tiersId: int, parts: int = 1, depot: int = 0):
     return bop.apercu_adhesion(u(request), tiersId, parts, depot)

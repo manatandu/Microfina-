@@ -1148,7 +1148,18 @@ export type ListeVisaBanque = "enc_dec" | "banque_caisse" | "banque_banque" | "v
 const LISTES_VISA: Record<ListeVisaBanque, TypeOperationBanque[]> = { enc_dec: ["encaissement", "decaissement", "adhesion_banque"], banque_caisse: ["banque_caisse"],
   banque_banque: ["banque_banque"], virement: ["virement_client", "prelevement_client"] };
 export type LigneVisaBanque = Omit<OperationBanque, "saisiPar" | "visePar"> & { operation: string; banque: string; compteBanque: string; banqueDest: string; compteBanqueDest: string;
-  saisiPar: string; visePar: string; numeroComptable: string; compteEpargne?: string; debit?: number; credit?: number };
+  saisiPar: string; visePar: string; numeroComptable: string; compteEpargne?: string; debit?: number; credit?: number; agence?: string };
+/** Une ligne des listes de S57 et du rapport S62 : les mêmes colonnes (COMPLEMENTS § 4.5) ; identique côté serveur (banque_operations.ligne_liste) */
+function ligneListe(o: OperationBanque): LigneVisaBanque {
+  const nom = (id?: number) => E.utilisateurs.find((x) => x.id === id)?.nom ?? "";
+  const cb = E.comptesBancaires.find((x) => x.id === o.compteBancaireId)!, b = E.banques.find((x) => x.id === cb.banqueId);
+  const d = o.compteBancaireDestId ? E.comptesBancaires.find((x) => x.id === o.compteBancaireDestId) : undefined, bd = d ? E.banques.find((x) => x.id === d.banqueId) : undefined;
+  const cd = o.compteDepotId ? E.comptes.find((x) => x.id === o.compteDepotId) : undefined;
+  return { ...o, operation: TYPES_OPERATION_BANQUE[o.type], banque: `${b?.code ?? ""} => ${b?.libelle ?? ""}`, compteBanque: `${cb.numeroBancaire} => ${cb.compte}`,
+    banqueDest: bd ? `${bd.code} => ${bd.libelle}` : "", compteBanqueDest: d?.numeroBancaire ?? "", saisiPar: nom(o.saisiPar), visePar: nom(o.visePar),
+    numeroComptable: cd ? cd.pcci : o.compte, compteEpargne: cd?.numero ?? "", agence: E.agence.nom,
+    debit: o.type === "prelevement_client" ? o.montant : 0, credit: o.type === "virement_client" ? o.montant : 0 };
+}
 const banqueOperations = {
   lire() {
     exiger();
@@ -1173,17 +1184,24 @@ const banqueOperations = {
   /** S57 : lignes en attente du visa (saisies) ou de la validation (visées), pour l'une des quatre listes. Mêmes règles côté serveur (banque_operations.lister_visas). */
   visas(etape: EtapeVisaBanque, liste: ListeVisaBanque): LigneVisaBanque[] {
     exiger();
-    const nom = (id?: number) => E.utilisateurs.find((x) => x.id === id)?.nom ?? "";
     return E.operationsBanque.filter((o) => o.statut === (etape === "visa" ? "saisie" : "visee") && LISTES_VISA[liste].includes(o.type))
-      .sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id).map((o) => {
-        const cb = E.comptesBancaires.find((x) => x.id === o.compteBancaireId)!, b = E.banques.find((x) => x.id === cb.banqueId);
-        const d = o.compteBancaireDestId ? E.comptesBancaires.find((x) => x.id === o.compteBancaireDestId) : undefined, bd = d ? E.banques.find((x) => x.id === d.banqueId) : undefined;
-        const cd = o.compteDepotId ? E.comptes.find((x) => x.id === o.compteDepotId) : undefined;
-        return { ...o, operation: TYPES_OPERATION_BANQUE[o.type], banque: `${b?.code ?? ""} => ${b?.libelle ?? ""}`, compteBanque: `${cb.numeroBancaire} => ${cb.compte}`,
-          banqueDest: bd ? `${bd.code} => ${bd.libelle}` : "", compteBanqueDest: d?.numeroBancaire ?? "", saisiPar: nom(o.saisiPar), visePar: nom(o.visePar),
-          numeroComptable: cd ? cd.pcci : o.compte, compteEpargne: cd?.numero ?? "",
-          debit: o.type === "prelevement_client" ? o.montant : 0, credit: o.type === "virement_client" ? o.montant : 0 };
-      });
+      .sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id).map(ligneListe);
+  },
+  /** S62 : Banque > Rapport, « Édition du journal des opérations de banque » (p. 71). Mêmes règles côté serveur (banque_operations.rapport). */
+  rapportContexte() {
+    exiger();
+    return { exercices: [...E.exercices].sort((a, b) => a.annee - b.annee).map((e) => e.annee), enCours: E.exercices.find((e) => e.actif)?.annee ?? null,
+      agences: E.agences.filter((a) => !a.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ id, nom }) => ({ id, nom })) };
+  },
+  rapport(du: string, au: string, banqueId: number, compteBancaireId?: number | null, agenceId?: number | null): LigneVisaBanque[] {
+    exiger();
+    if (![du, au].every((d) => /^\d{4}-\d{2}-\d{2}$/.test(d ?? ""))) throw new ErreurMetier("À remplir : période.");
+    if (du > au) throw new ErreurMetier("La date de début dépasse la date de fin.");
+    if (!E.banques.some((b) => b.id === banqueId)) throw new ErreurMetier("À remplir : banque.");
+    const deLaBanque = (id: number | null) => id !== null && E.comptesBancaires.find((c) => c.id === id)?.banqueId === banqueId;
+    return E.operationsBanque.filter((o) => o.statut !== "refusee" && o.date >= du && o.date <= au && (deLaBanque(o.compteBancaireId) || deLaBanque(o.compteBancaireDestId))
+      && (!compteBancaireId || o.compteBancaireId === compteBancaireId || o.compteBancaireDestId === compteBancaireId) && (!agenceId || agenceId === E.agence.id))
+      .sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id).map(ligneListe);
   },
   /** S57 : visa (saisie vers visée) ou validation (visée vers validée), par une autre personne que celle qui a saisi ; la validation, aussi autre que celle qui a visé (registre S57-1) */
   suivre(id: number, etape: EtapeVisaBanque, d: { date?: string } = {}): OperationBanque {

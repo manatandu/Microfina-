@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**320 décisions.** Solidité : 106 fortes (le manuel ou un texte répond), 168 moyennes (déduites d'un écran voisin ou d'une donnée), 46 faibles (notre choix, faute de mieux). Dans le code : 286 déjà en place, 34 à appliquer.
+**323 décisions.** Solidité : 106 fortes (le manuel ou un texte répond), 171 moyennes (déduites d'un écran voisin ou d'une donnée), 46 faibles (notre choix, faute de mieux). Dans le code : 289 déjà en place, 34 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -735,6 +735,14 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S61-5 | Remboursement | Au moins un montant (amortissement, intérêt ou commission) ; l'amortissement ne dépasse pas le capital restant ; date entre la date de l'emprunt et la journée ouverte | Écran voisin : Écran voisin : retrait sur le disponible (S74) ; capture p. 70 (Capital Restant) | moyenne | en place |
 | S61-6 | Bouton de recherche et case à côté du N°Piece (mise en place) | Montrés inactifs : la capture ne dit pas ce qu'ils cherchent ni ce que la case coche. À confirmer par le porteur | Manuel : Capture p. 70 | faible | en place |
 | S61-7 | Champ N°Compte du remboursement et liste Banque | N°Compte reçoit le N°Emprunt donné à la mise en place, qui retrouve la banque et le capital restant. La liste Banque de la mise en place montre les comptes bancaires de l'institution (banque, numéro, devise) : l'emprunt prend la devise du compte | Règle générale du manuel : Captures p. 70 (N°Emprunt, N°Compte, Banque) ; écran S58 (Banque Institution) | faible | en place |
+
+## S62 Rapports banque
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S62-1 | Contenu du journal | Les opérations de banque (Banque > Opération, Virement prélèvement, Adhésion) de la période, par date d'opération, sur un compte de la banque choisie (compte d'origine ou de destination), hors opérations refusées | Écran voisin : Texte p. 71 (exercice, période, banque, agence) ; COMPLEMENTS § 4.5 | moyenne | en place |
+| S62-2 | Colonnes du résultat | Celles des listes des opérations de banque de Banque > Visa (Date operation, Operation, Montant, Banque, Compte Banque, Numero comptable, Libelle), plus l'Agence ; Export vers Excel. Chèques clients et emprunts n'y sont pas : ce sont d'autres objets | Écran voisin : COMPLEMENTS § 4.5 ; captures p. 65 et 66 ; manuel p. 9 (export Excel) | moyenne | en place |
+| S62-3 | Rechercher par et Option | Rechercher par : une des colonnes du résultat ; Option : « Commencant par », seule valeur de la capture ; la recherche filtre le résultat affiché. Fermer ramène à la page du module Banque | Manuel : Capture p. 71 | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

@@ -206,30 +206,34 @@ LISTES_VISA = {"enc_dec": ("encaissement", "decaissement", "adhesion_banque"), "
 ETAPES = {"visa": "saisie", "validation": "visee"}
 
 
+SELECT_LIGNES = """select o.*, b.code as banque_code, b.nom as banque_nom, cb.numero as banque_numero, c.numero as banque_compte,
+                          bd.code as dest_code, bd.nom as dest_nom, cbd.numero as dest_numero, cd.numero as depot_numero, a.nom as agence_nom
+                   from operation_banque o join compte_bancaire cb on cb.id = o.compte_bancaire_id join banque b on b.id = cb.banque_id join compte c on c.id = cb.compte_id
+                   left join compte_bancaire cbd on cbd.id = o.compte_bancaire_dest_id left join banque bd on bd.id = cbd.banque_id
+                   left join compte_depot cd on cd.id = o.compte_depot_id join agence a on a.id = o.agence_id"""
+
+
+def ligne_liste(o: dict) -> dict:
+    """Une ligne des listes de S57 et du rapport S62 : les mêmes colonnes (COMPLEMENTS § 4.5)"""
+    ligne = vue(o) | {"operation": TYPES[o["type"]], "banque": f"{o['banque_code']} => {o['banque_nom']}", "compteBanque": f"{o['banque_numero']} => {o['banque_compte']}",
+                      "banqueDest": f"{o['dest_code']} => {o['dest_nom']}" if o["dest_code"] else "", "compteBanqueDest": o["dest_numero"] or "",
+                      "saisiPar": nom_utilisateur(o["saisi_par"]), "visePar": nom_utilisateur(o["vise_par"]), "agence": o["agence_nom"]}
+    if o["compte_depot_id"]:
+        c = une("select p.famille, p.compte_lie from compte_depot cd join produit_epargne p on p.id = cd.produit_id where cd.id = %s", (o["compte_depot_id"],))
+        ligne |= {"compteEpargne": o["depot_numero"], "numeroComptable": compte_du_produit(c)}
+        ligne |= {"debit": o["montant"] if o["type"] == "prelevement_client" else 0, "credit": o["montant"] if o["type"] == "virement_client" else 0}
+    else:
+        ligne["numeroComptable"] = o["compte"] or ""
+    return ligne
+
+
 def lister_visas(u, etape: str, liste: str) -> list[dict]:
     """Lignes en attente de l'étape (visa : saisies ; validation : visées), pour une des quatre listes"""
     exiger(u)
     if etape not in ETAPES or liste not in LISTES_VISA:
         raise ErreurMetier("Liste inconnue.")
-    res = []
-    for o in lignes("""select o.*, b.code as banque_code, b.nom as banque_nom, cb.numero as banque_numero, c.numero as banque_compte,
-                              bd.code as dest_code, bd.nom as dest_nom, cbd.numero as dest_numero, cd.numero as depot_numero
-                       from operation_banque o join compte_bancaire cb on cb.id = o.compte_bancaire_id join banque b on b.id = cb.banque_id join compte c on c.id = cb.compte_id
-                       left join compte_bancaire cbd on cbd.id = o.compte_bancaire_dest_id left join banque bd on bd.id = cbd.banque_id
-                       left join compte_depot cd on cd.id = o.compte_depot_id
-                       where o.institution_id = %s and o.statut = %s and o.type = any(%s) order by o.date_operation, o.id""",
-                      (u["institution_id"], ETAPES[etape], list(LISTES_VISA[liste]))):
-        ligne = vue(o) | {"operation": TYPES[o["type"]], "banque": f"{o['banque_code']} => {o['banque_nom']}", "compteBanque": f"{o['banque_numero']} => {o['banque_compte']}",
-                          "banqueDest": f"{o['dest_code']} => {o['dest_nom']}" if o["dest_code"] else "", "compteBanqueDest": o["dest_numero"] or "",
-                          "saisiPar": nom_utilisateur(o["saisi_par"]), "visePar": nom_utilisateur(o["vise_par"])}
-        if o["compte_depot_id"]:
-            c = une("select p.famille, p.compte_lie from compte_depot cd join produit_epargne p on p.id = cd.produit_id where cd.id = %s", (o["compte_depot_id"],))
-            ligne |= {"compteEpargne": o["depot_numero"], "numeroComptable": compte_du_produit(c)}
-            ligne |= {"debit": o["montant"] if o["type"] == "prelevement_client" else 0, "credit": o["montant"] if o["type"] == "virement_client" else 0}
-        else:
-            ligne["numeroComptable"] = o["compte"] or ""
-        res.append(ligne)
-    return res
+    return [ligne_liste(o) for o in lignes(SELECT_LIGNES + """ where o.institution_id = %s and o.statut = %s and o.type = any(%s) order by o.date_operation, o.id""",
+                                           (u["institution_id"], ETAPES[etape], list(LISTES_VISA[liste])))]
 
 
 def faire_suivre(u, oid: int, etape: str, d=None) -> dict:
@@ -260,3 +264,31 @@ def faire_suivre(u, oid: int, etape: str, d=None) -> dict:
     else:
         executer("update operation_banque set statut = 'visee', vise_par = %s, vise_le = now() where id = %s", (u["id"], oid))
     return vue(une("select * from operation_banque where id = %s", (oid,)))
+
+
+# ---------- S62 : Banque > Rapport, « Édition du journal des opérations de banque » (manuel p. 71) ----------
+def rapport_contexte(u) -> dict:
+    exiger(u)
+    i = u["institution_id"]
+    return {"exercices": [r["annee"] for r in lignes("select annee from exercice where institution_id = %s order by annee", (i,))],
+            "enCours": valeur("select annee from exercice where institution_id = %s and actif order by annee desc limit 1", (i,)),
+            "agences": lignes("select id, nom from agence where institution_id = %s order by code", (i,))}
+
+
+def rapport(u, du: str, au: str, banque_id: int, compte_bancaire_id: int | None = None, agence_id: int | None = None) -> list[dict]:
+    """Opérations de banque de la période (date de l'opération), de la banque choisie (compte d'origine ou de destination), hors refusées
+    (registre S62-1). Critères Rechercher par / Option / Valeur appliqués à l'écran."""
+    exiger(u)
+    for d in (du, au):
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", d or ""):
+            raise ErreurMetier("À remplir : période.")
+    if du > au:
+        raise ErreurMetier("La date de début dépasse la date de fin.")
+    if not une("select 1 from banque where id = %s and institution_id = %s", (banque_id, u["institution_id"])):
+        raise ErreurMetier("À remplir : banque.")
+    return [ligne_liste(o) for o in lignes(SELECT_LIGNES + """ where o.institution_id = %s and o.statut <> 'refusee' and o.date_operation between %s and %s
+                                                and (cb.banque_id = %s or cbd.banque_id = %s)
+                                                and (%s::bigint is null or o.compte_bancaire_id = %s or o.compte_bancaire_dest_id = %s)
+                                                and (%s::bigint is null or o.agence_id = %s)
+                                              order by o.date_operation, o.id""",
+                                           (u["institution_id"], du, au, banque_id, banque_id, compte_bancaire_id, compte_bancaire_id, compte_bancaire_id, agence_id, agence_id))]

@@ -595,6 +595,10 @@ const OUT = process.argv[2];
   await p.getByLabel('Amortissement').fill('4 000'); await p.getByLabel('Intérêt', { exact: true }).fill('100');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
   await p.getByLabel('Capital Restant').and(p.locator('[value*="6"]')).waitFor(); await etape('06c16-remboursement-emprunt');
+  // Rapport banque (S62) : journal des opérations de Rawbank depuis le début de l'exercice
+  await aller('/banque/s62'); await p.getByRole('heading', { name: 'Édition du journal des opérations de banque' }).waitFor();
+  await p.getByLabel('Banque *').selectOption({ label: 'Rawbank' }); await p.getByRole('button', { name: 'Valider' }).click();
+  await p.getByRole('cell', { name: 'Encaissement divers' }).first().waitFor(); await etape('06c17-rapport-banque');
   await login('Esther Ngalula');
   // Apurement avant la résiliation (registre S48-1) : Lukusa retire tout son solde (85 000 CDF)
   await aller('/caisse/s74?op=retrait'); await client('Lukusa'); await p.getByLabel('N° compte').selectOption({ label: '0412-000320-02' });

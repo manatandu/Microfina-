@@ -36,6 +36,9 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       apercuAdhesion: (tiersId: number, parts = 1, depot = 0) => get(`/banque/adhesions/apercu?tiersId=${tiersId}&parts=${parts}&depot=${depot}`),
       enregistrerAdhesion: (d: object) => post("/banque/adhesions", d),
       visas: (etape: string, liste: string) => get(`/banque/visas?etape=${etape}&liste=${liste}`),
+      rapportContexte: () => get("/banque/rapport/contexte"),
+      rapport: (du: string, au: string, banqueId: number, compteBancaireId?: number | null, agenceId?: number | null) =>
+        get(`/banque/rapport?du=${du}&au=${au}&banqueId=${banqueId}${compteBancaireId ? `&compteBancaireId=${compteBancaireId}` : ""}${agenceId ? `&agenceId=${agenceId}` : ""}`),
       suivre: (id: number, etape: string, d: object = {}) => post(`/banque/visas/${id}/${etape}`, d),
     },
     emprunts: {
