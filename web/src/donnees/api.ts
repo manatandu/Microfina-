@@ -2238,6 +2238,20 @@ const profilsRisque = {
     enregistrer(); return vueProfil(t, jour);
   },
 };
+// Écart E12 : registre des membres (AUSCOOP, art. 9 ; loi 002/2002, art. 67). Mêmes règles que noyau/registre_membres.py.
+const registreMembres = {
+  membres() {
+    lectureAdmin(["SC04"]);
+    if (!estCoopec()) throw new ErreurMetier("Registre des membres : propre aux coopératives (AUSCOOP, art. 9 ; loi 002/2002, art. 67).");
+    const admis = E.tiers.filter((t) => t.dateVisa).sort((a, b) => (a.admissionLe || a.dateVisa).localeCompare(b.admissionLe || b.dateVisa) || a.numero.localeCompare(b.numero));
+    return { entete: enteteDocument(), membres: admis.map((t, i) => {
+      const c = ficheClient(t.id), parts = Math.round(soldeContrat(`parts:${t.id}`, "CDF", "C") / valeurPart());
+      return { rang: i + 1, tiersId: t.id, numero: c.numero, nom: c.type === "physique" ? [c.nom, c.postnom].filter(Boolean).join(" ") : c.intitule || c.nom, prenom: c.type === "physique" ? c.prenom : "",
+        piece: [c.pieceType, c.pieceNumero].filter(Boolean).join(" n° "), adresse: c.adresse, profession: c.profession, partsSouscrites: parts, partsLiberees: parts,
+        admissionLe: t.admissionLe || t.dateVisa, sortieLe: t.resilieLe || "" };
+    }) };
+  },
+};
 // Écart E11 : comptes inactifs (loi 22/069, titre III, chap. Ier : dix ans sans opération ni réclamation ; lettre six mois avant ; fonds versés à la BCC). Mêmes règles que noyau/inactifs.py.
 const STATUTS_INACTIF = { lettre: "Lettre à envoyer", lettre_envoyee: "Lettre envoyée", a_cloturer: "À clôturer, fonds à verser à la BCC" } as const;
 const inactifs = {
@@ -4153,6 +4167,7 @@ const apiLocal = {
   depotsTerme: asynchrone(depotsTerme, "depotsTerme"),
   conformite: asynchrone(conformite, "conformite"),
   inactifs: asynchrone(inactifs, "inactifs"),
+  registreMembres: asynchrone(registreMembres, "registreMembres"),
   plaintes: asynchrone(plaintes, "plaintes"),
   banques: asynchrone(banques, "banques"),
   guichets: asynchrone(guichets, "guichets"),

@@ -259,6 +259,15 @@ describe("journée de guichet", () => {
     await expect(api.inactifs.comptes()).rejects.toThrow("Droit manquant");
   });
 
+  it("registre des membres (écart E12) : ordre chronologique, pièce, profession, parts souscrites et libérées", async () => {
+    await connecter("jpmukendi");
+    const m = (await api.registreMembres.membres()).membres;
+    expect(m.slice(0, 3).map((x) => [x.rang, x.numero])).toEqual([[1, "0412-000318"], [2, "0412-000319"], [3, "0412-000320"]]);
+    expect([m[0]!.nom, m[0]!.prenom, m[0]!.partsSouscrites, m[0]!.partsLiberees]).toEqual(["Kalala Mbuyi", "Josée", 2, 2]);
+    await connecter("bkasongo"); expect((await api.registreMembres.membres()).membres.length).toBe(m.length);
+    await connecter("engalula"); await expect(api.registreMembres.membres()).rejects.toThrow("Droit manquant");
+  });
+
   it("convention de compte (écart E04) et admission par le Conseil d'Administration (écart E05)", async () => {
     await connecter("bkasongo");
     const cv = await api.comptesEpargne.convention(2);

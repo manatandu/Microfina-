@@ -2185,6 +2185,20 @@ def test_comptes_inactifs(clients, journee):
     assert all(x["compte"] != "0412-000320-02" for x in chef.get("/api/epargne/inactifs", **H).json())
 
 
+def test_registre_des_membres(clients, journee):
+    """Écart E12 : AUSCOOP, art. 9 ; loi 002/2002, art. 67"""
+    from noyau.bd import executer
+    chef, agent, caisse = clients["chef"], clients["agent"], clients["caisse"]
+    m = chef.get("/api/clients/registre-membres", **H).json()["membres"]
+    assert [(x["rang"], x["numero"]) for x in m[:3]] == [(1, "0412-000318"), (2, "0412-000319"), (3, "0412-000320")]
+    k = m[0]
+    assert (k["nom"], k["prenom"], k["piece"], k["partsSouscrites"], k["partsLiberees"], k["admissionLe"]) == ("Kalala Mbuyi", "Josée", "Carte d'électeur n° 1-0412-0089", 2, 2, "2026-01-15")
+    assert agent.get("/api/clients/registre-membres", **H).status_code == 200
+    assert caisse.get("/api/clients/registre-membres", **H).status_code == 403
+    executer("update institution set profil = 'societe_microfinance'")
+    assert "propre aux coopératives" in chef.get("/api/clients/registre-membres", **H).json()["message"]
+
+
 def test_convention_et_admission(clients, journee):
     """Écart E04 : convention de compte (loi 22/069, titre III) ; écart E05 : admission par le Conseil d'Administration (loi 002/2002, art. 22, 6°)"""
     from noyau.bd import executer

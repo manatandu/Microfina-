@@ -591,6 +591,8 @@ const OUT = process.argv[2];
   await fd.getByText(/Levé le/).waitFor(); await fd.getByRole('button', { name: 'Fermer' }).click();
   // Comptes inactifs (écart E11 ; loi 22/069, titre III, chap. Ier) : aucun compte n'approche des dix ans dans la graine
   await aller('/epargne/se01'); await p.getByRole('heading', { name: 'Comptes inactifs' }).waitFor(); await p.getByRole('cell', { name: 'No records found.' }).waitFor(); await etape('10o-comptes-inactifs');
+  // Registre des membres (écart E12 ; AUSCOOP, art. 9) : ordre chronologique, parts souscrites et libérées
+  await aller('/clients/sc04'); await p.getByRole('heading', { name: 'Registre des membres' }).waitFor(); await p.getByRole('cell', { name: '0412-000318', exact: true }).waitFor(); await etape('10p-registre-membres');
   // Centrale des incidents de paiement (écart E06) : les ouvertures et nouveaux clients du jour à déclarer, avec leur échéance
   await aller('/clients/sc02'); await p.getByRole('heading', { name: 'Centrale des incidents de paiement' }).waitFor(); await p.getByRole('cell', { name: 'Nouveau client' }).first().waitFor();
   await etape('10f-centrale-incidents');

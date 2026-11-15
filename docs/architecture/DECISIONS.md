@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**393 décisions.** Solidité : 154 fortes (le manuel ou un texte répond), 207 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 362 déjà en place, 29 à appliquer.
+**396 décisions.** Solidité : 156 fortes (le manuel ou un texte répond), 208 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 365 déjà en place, 29 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -903,6 +903,14 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | E11-1 | Où et pour qui | Écran Épargne > Comptes inactifs (SE01, chef d'agence). Il liste les comptes ouverts dont la dernière opération remonte à neuf ans et six mois ou plus : lettre à envoyer, lettre envoyée, à clôturer | Texte réglementaire : Loi 22/069, titre Ier (s'applique aux COOPEC et sociétés de microfinance) et titre III, chap. Ier (dix ans ; lettre six mois avant) | forte | en place |
 | E11-2 | Dernière opération | La plus récente de : dernier mouvement du compte hors reprise des soldes, dernière plainte du client (réclamation), date d'ouverture du compte. Une lettre vise une date de dernière opération : une opération plus récente la rend caduque | Texte réglementaire : Loi 22/069, titre III, chap. Ier (« aucune opération ou réclamation » des titulaires ou ayants droit) ; registre E09-4 (reprise des soldes) | forte | en place |
 | E11-3 | Lettre, clôture et versement | La lettre s'imprime (titulaire, compte, solde, date des dix ans, texte de la loi) ; son envoi se note avec la référence de l'accusé de réception. La clôture et le versement des fonds à la BCC ne s'écrivent pas encore : l'écran les signale. Ils viendront avec la clôture de compte (S70) et le schéma comptable de la remise à la BCC, à lire dans le PCCI | Texte réglementaire : Loi 22/069, titre III, chap. Ier ; PCCI, compte 36 (avoirs en cours de prescription) | moyenne | à faire |
+
+## E12 Registre des membres
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E12-1 | Où et pour qui | Écran Client > Registre des membres (SC04 : chef d'agence et agent, qui tiennent déjà les rapports clients S51). Réservé aux COOPEC et faîtières ; une IMF reçoit un refus qui cite le texte. Imprimable et exportable | Texte réglementaire : AUSCOOP, art. 9 (registre tenu au siège) ; loi 002/2002, art. 67 et 68 (registres, consultation par les membres) ; loi 11/020, art. 60 (données personnelles : écran à droit) | forte | en place |
+| E12-2 | Ordre et membres inscrits | Tout client visé, y compris ceux partis (date de sortie montrée), par ordre de la date d'admission (décision du Conseil, E05) ou, à défaut, de la date du visa | Texte réglementaire : AUSCOOP, art. 9 (ordre chronologique) et art. 10 (adhésion constatée par l'organe d'administration) ; registre E05-1 | forte | en place |
+| E12-3 | Parts souscrites et libérées | Dans le logiciel, une part s'achète payée (adhésion S73, achat S77) : parts souscrites et parts libérées sont égales, au nombre de parts détenues | Donnée exigée ailleurs : AUSCOOP, art. 9 (deux mentions) ; schéma des parts du logiciel (S73, S77) | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

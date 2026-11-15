@@ -18,6 +18,7 @@ from . import releves as rel
 from . import atypiques as aty
 from . import gel
 from . import inactifs as ina
+from . import registre_membres as rmb
 from . import depots_terme as dat
 from . import conformite as conf
 from . import cip
@@ -1378,6 +1379,11 @@ def inactifs_lettre(request, cid: int, corps: dict = Body(...)):
 @api.get("/epargne/inactifs/{cid}/lettre")
 def inactifs_lettre_imprimer(request, cid: int):
     return ina.lettre(u(request), cid)
+
+
+@api.get("/clients/registre-membres")
+def registre_membres(request):
+    return rmb.membres(u(request))
 
 
 @api.get("/conformite/profils")

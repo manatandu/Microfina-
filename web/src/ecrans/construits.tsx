@@ -10,6 +10,7 @@ import ExamenRenforce from "./ExamenRenforce";
 import CentraleIncidents from "./CentraleIncidents";
 import Plaintes from "./Plaintes";
 import ComptesInactifs from "./ComptesInactifs";
+import RegistreMembres from "./RegistreMembres";
 import { MiseEnPlaceDat, RechercheDat, RuptureDat, ValidationDat } from "./DepotsTerme";
 import type { ComponentType } from "react";
 import GuichetDepotRetrait from "./Guichet";
@@ -129,6 +130,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   SC01: ExamenRenforce,
   SC02: CentraleIncidents,
   SC03: Plaintes,
+  SC04: RegistreMembres,
   SE01: ComptesInactifs,
   S73: Adhesion,
   S74: GuichetDepotRetrait,
