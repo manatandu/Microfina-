@@ -195,6 +195,9 @@ function ContratDat({ c }: { c: Contrat }) {
     ["Date d'échéance", fr(x.dateEcheance)], ["Taux d'intérêt annuel", `${x.tauxInteret} %`], ["Intérêt à l'échéance", montant(x.montantInteret, dev)],
     ["Montant à verser à l'échéance", montant(x.montantAVerser, dev)], ["Taux de pénalité en cas de rupture anticipée", `${x.tauxPenalite} %`],
     ["Reconduction automatique", x.reconduction ? "Oui, aux mêmes conditions" : "Non"],
+    ["Calcul de l'intérêt", "Intérêt simple : montant × taux annuel × nombre de mois / 12, payé à l'échéance"],   // Code civil, art. 480 ; Instr. BCC 40, art. 4 (S65-3)
+    ["Rupture avant l'échéance", "Intérêt au prorata des jours courus (année de 365 jours), moins une pénalité égale au taux de pénalité appliqué au montant déposé"],   // S67-2
+    ["Retenue d'impôt", "20 % de l'intérêt pour une personne physique (loi 23/053, art. 120)"],   // S67-3
   ];
   return (
     <article className="releve-std contrat-dat a-imprimer" aria-label="Contrat de dépôt à terme">
