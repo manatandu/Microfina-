@@ -266,3 +266,27 @@ def rompre(u, did: int, d: dict) -> dict:
                 taux_irc = %s, irc = %s, montant_verse = %s, rompu_par = %s, rompu_le = now(), ecriture_rupture_id = %s where id = %s""",
              (date_r, date_d, r["jours"], r["interet"], r["penalite"], Decimal(r["tauxIrc"].replace(",", ".")), r["irc"], r["montantAVerser"], u["id"], eid, did))
     return vue(une("select * from depot_terme where id = %s", (did,)))
+
+
+def terme(mois: int) -> str:
+    """Terme selon la durée, comme le classement des crédits du PCCI (comptes 30 à 32) : un an au plus court terme, 1 à 5 ans moyen terme, au-delà long terme (registre S68-3)"""
+    return "Court terme" if mois <= 12 else "Moyen terme" if mois <= 60 else "Long terme"
+
+
+def recherche(u, choix: str, du: str, au: str) -> list[dict]:
+    """S68 : Recherche multicritères DAT (manuel p. 77). Mise en place : déposés dans la période ; Échus : échéance dans la période ;
+    Encours : mis en place dans la période et encore en cours à la date de fin. Registre S68-1 à S68-4."""
+    exiger(u)
+    if choix not in ("mise_en_place", "echus", "encours"):
+        raise ErreurMetier("Choix : Mise en place, Échus ou Encours.")
+    for v, nom in ((du, "Du"), (au, "Au")):
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", v or ""):
+            raise ErreurMetier(f"À remplir : {nom}.")
+    if du > au:
+        raise ErreurMetier("La date de début dépasse la date de fin.")
+    filtre = {"mise_en_place": "date_depot between %(du)s and %(au)s",
+              "echus": "date_echeance between %(du)s and %(au)s and statut in ('valide', 'echu')",
+              "encours": "date_depot between %(du)s and %(au)s and date_echeance > %(au)s and (statut = 'valide' or (statut = 'rompu' and date_rupture > %(au)s))"}[choix]
+    rows = lignes(f"select * from depot_terme where institution_id = %(i)s and {filtre} order by certificat", {"i": u["institution_id"], "du": du, "au": au})
+    return [{**vue(x), "agence": valeur("select nom from agence where id = %s", (x["agence_id"],)),
+             "agent": valeur("select nom from utilisateur where id = %s", (x["saisi_par"],)), "terme": terme(x["duree_mois"])} for x in rows]

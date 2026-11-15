@@ -10,6 +10,7 @@ import { imprimer } from "../lib/imprimer";
 import { lireMontant, montant, montantEnLettres, type Devise } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
 import { RechercheClient } from "./Visa";
+import { valeur as valeurCritere } from "../lib/rapports";
 
 type Dat = Awaited<ReturnType<typeof api.depotsTerme.liste>>[number];
 type Contrat = Awaited<ReturnType<typeof api.depotsTerme.contrat>>;
@@ -350,5 +351,87 @@ function AvisRupture({ c }: { c: Contrat }) {
         <span>{[e.agrement && `Agrément BCC n° ${e.agrement}`, e.ifu && `N° impôt : ${e.ifu}`, e.bp && `B.P. ${e.bp}`].filter(Boolean).join(" · ")}</span>
       </footer>
     </article>
+  );
+}
+
+type LigneRecherche = Awaited<ReturnType<typeof api.depotsTerme.recherche>>[number];
+const CRITERES_DAT = [["agence", "Agence"], ["agent", "Agent de crédit"], ["genre", "Genre"], ["produit", "Produit"], ["objet", "Objet du crédit"], ["terme", "Terme du crédit"],
+  ["profession", "Profession"], ["categorie", "Catégorie"], ["zone", "Zone"], ["nationalite", "Nationalité"], ["gestionnaire", "Gestionnaire"], ["secteur", "Secteur"], ["montant", "Montant"]] as const;
+type CritereDat = (typeof CRITERES_DAT)[number][0];
+
+/** S68 : Épargne > Dépôt à terme > Recherche multicritères DAT (manuel p. 77). Registre S68-1 à S68-4. */
+export function RechercheDat() {
+  const { donnees } = useDonnees(async () => ({ ctx: await api.referentiel.contexte(), clients: await api.rapports.clients(), j: await api.journees.courante() }));
+  const [choix, setChoix] = useState<"mise_en_place" | "echus" | "encours">("mise_en_place");
+  const [coches, setCoches] = useState<Set<CritereDat>>(() => new Set(CRITERES_DAT.map(([k]) => k)));
+  const [du, setDu] = useState(""); const [au, setAu] = useState("");
+  const [lignes, setLignes] = useState<LigneRecherche[] | null>(null);
+  const [boite, setBoite] = useState<Boite | null>(null);
+  if (!donnees) return <Chargement />;
+  const { ctx, clients } = donnees;
+  const agents = Object.fromEntries([...ctx.gestionnaires, ...ctx.commerciaux, ...ctx.sensibilisateurs].map((a) => [a.id, a.nom]));
+  const cx = { agence: ctx.agence.nom, agents };
+  const fin = au || donnees.j?.date || "", debut = du || (fin ? `${fin.slice(0, 4)}-01-01` : "");
+  const cols = CRITERES_DAT.filter(([k]) => coches.has(k));
+  const cellule = (x: LigneRecherche, k: CritereDat) => {
+    const t = clients.find((c) => c.id === x.tiersId);
+    switch (k) {
+      case "agence": return x.agence; case "agent": return x.agent; case "produit": return x.produit; case "terme": return x.terme;
+      case "objet": return "";   // pas d'objet pour un dépôt (registre S68-2)
+      case "montant": return montant(x.montant, x.devise as Devise);
+      case "profession": return t?.profession ?? "";
+      default: return t ? valeurCritere(t, k, cx) : "";
+    }
+  };
+  async function valider() {
+    try { setLignes(await api.depotsTerme.recherche(choix, debut, fin)); }
+    catch (e) { setBoite({ type: "erreur", message: message(e) }); }
+  }
+  const basculer = (k: CritereDat) => setCoches((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
+  const totaux = lignes && coches.has("montant") ? Object.entries(lignes.reduce<Record<string, number>>((m, x) => ({ ...m, [x.devise]: (m[x.devise] ?? 0) + x.montant }), {})) : [];
+  return (
+    <>
+      <h1>Recherche multicritères DAT</h1>
+      <section className="bloc pile" aria-label="Recherche multicritères DAT">
+        <div className="grille-deux">
+          <fieldset className="pile cadre-champs">
+            <legend>Recherche par</legend>
+            <fieldset className="pile cadre-champs">
+              <legend>Choix</legend>
+              {([["mise_en_place", "Mise en place"], ["echus", "Echûs"], ["encours", "Encours"]] as const).map(([v, l]) =>
+                <label key={v} className="case"><input type="radio" name="choix-dat" checked={choix === v} onChange={() => { setChoix(v); setLignes(null); }} /><span>{l}</span></label>)}
+            </fieldset>
+            {CRITERES_DAT.map(([k, l]) => <label key={k} className="case"><input type="checkbox" checked={coches.has(k)} onChange={() => basculer(k)} /><span>{l}</span></label>)}
+          </fieldset>
+          <div className="pile">
+            <fieldset className="pile cadre-champs">
+              <legend>Date de recherche</legend>
+              <div className="ligne-champ">
+                <ChampDate libelle="Du" valeur={debut} onChange={(v) => { setDu(v); setLignes(null); }} />
+                <ChampDate libelle="Au" valeur={fin} onChange={(v) => { setAu(v); setLignes(null); }} />
+                <button className="bouton" type="button" onClick={valider}>Valider</button>
+              </div>
+            </fieldset>
+            <fieldset className="pile cadre-champs">
+              <legend>Element de recherche</legend>
+              {lignes && <div className="defile-x"><table className="grille">
+                <thead><tr><th scope="col">Certificat</th><th scope="col">Date dépôt</th><th scope="col">Date échéance</th><th scope="col">N° compte DAT</th><th scope="col">Client</th>
+                  {cols.map(([k, l]) => <th key={k} scope="col" className={k === "montant" ? "montant" : undefined}>{l}</th>)}</tr></thead>
+                <tbody>
+                  {lignes.length === 0 && <tr><td colSpan={5 + cols.length}>No records found.</td></tr>}
+                  {lignes.map((x) => <tr key={x.id}><td className="chiffres">{String(x.certificat).padStart(6, "0")}</td><td className="chiffres">{fr(x.dateDepot)}</td>
+                    <td className="chiffres">{fr(x.dateEcheance)}</td><td className="chiffres">{x.compteDat}</td><td>{x.client}</td>
+                    {cols.map(([k]) => <td key={k} className={k === "montant" ? "montant chiffres" : undefined}>{cellule(x, k)}</td>)}</tr>)}
+                </tbody>
+                {totaux.length > 0 && <tfoot>{totaux.map(([d, m]) => <tr key={d}><th scope="row" colSpan={4 + cols.length}>Total {d}</th><td className="montant chiffres">{montant(m, d as Devise)}</td></tr>)}</tfoot>}
+              </table></div>}
+            </fieldset>
+          </div>
+        </div>
+        <Textes sources={["Manuel Microfina++, p. 77 (texte : date de début et de fin, cocher les éléments recherchés, Valider ; capture « Recherche par » : Mise en place, Echûs, Encours et treize cases)",
+          "Terme selon la durée, comme le classement des crédits du PCCI (comptes 30 à 32) : un an au plus court terme, 1 à 5 ans moyen terme, au-delà long terme"]} />
+      </section>
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </>
   );
 }

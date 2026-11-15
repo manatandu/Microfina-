@@ -1989,6 +1989,8 @@ def test_depot_terme(clients, journee):
     assert avant - apres == 1000000
     assert ident("select sum(montant_devise) from ligne_ecriture l join compte c on c.id = l.compte_id where c.numero = '340' and l.contrat_ref = %s", (f"depot:{cdat}",)) == 1000000
     assert chef.get(f"/api/epargne/dat/{x['id']}/contrat").json()["dat"]["certificat"] == 1
+    rch = lambda c: [(y["certificat"], y["terme"]) for y in chef.get(f"/api/epargne/dat/recherche?choix={c}&du=2026-01-01&au=2026-11-05", **H).json()]
+    assert (rch("mise_en_place"), rch("encours"), rch("echus")) == ([(1, "Court terme")], [(1, "Court terme")], [])   # S68
     # S67 : 90 jours sur 1 000 000 à 7,5 % = 18 493 ; pénalité 2 % ; retenue 20 % sur l'intérêt brut (loi 23/053, art. 120)
     from datetime import date as D
     from decimal import Decimal as Dec
@@ -2008,6 +2010,7 @@ def test_depot_terme(clients, journee):
     assert ident("select coalesce(sum(case sens when 'C' then montant_devise else -montant_devise end), 0) from ligne_ecriture where contrat_ref = %s", (f"depot:{cdat}",)) == 0
     assert ident("select sum(montant_devise) from ligne_ecriture l join compte c on c.id = l.compte_id where c.numero = '7791'") == 20000
     assert chef.post(f"/api/epargne/dat/{x['id']}/rupture", {}, **H).status_code == 422
+    assert rch("encours") == []
 
 
 def test_profil_imf(clients, journee):

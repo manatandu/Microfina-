@@ -627,6 +627,11 @@ def epargne_dat_mettre_en_place(request, corps: dict = Body(...)):
     return dat.mettre_en_place(u(request), corps)
 
 
+@api.get("/epargne/dat/recherche")
+def epargne_dat_recherche(request, choix: str = "", du: str = "", au: str = ""):
+    return dat.recherche(u(request), choix, du, au)
+
+
 @api.get("/epargne/dat/{did}/contrat")
 def epargne_dat_contrat(request, did: int):
     return dat.contrat(u(request), did)

@@ -1626,6 +1626,8 @@ const vueDat = (x: DepotTerme) => { const t = E.tiers.find((y) => y.id === x.tie
     compteEmetteur: num(x.compteEmetteurId), compteDat: num(x.compteDatId), montantAVerser: x.montant + x.montantInteret, compteInteret: compteInteretDat(x.duree),
     piece: x.ecritureId ? E.ecritures.find((e) => e.id === x.ecritureId)?.piece ?? "" : "",
     rupture: x.rupture ? { ...x.rupture, piece: E.ecritures.find((e) => e.id === x.rupture!.ecritureId)?.piece ?? "" } : null }; };
+/** Terme selon la durée, comme le classement des crédits du PCCI (comptes 30 à 32) (registre S68-3) */
+const termeDat = (mois: number) => (mois <= 12 ? "Court terme" : mois <= 60 ? "Moyen terme" : "Long terme");
 const joursEntre = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000);
 /** Rupture avant l'échéance (S67) : intérêt couru au prorata des jours (base 365), pénalité sur le montant du DAT, retenue de 20 %
  *  sur l'intérêt brut des personnes physiques (loi 23/053, art. 78, 81 et 120). Registre S67-1 à S67-3. */
@@ -1705,6 +1707,19 @@ const depotsTerme = {
       { compte: p.compteLie!, contrat: `depot:${x.compteDatId}`, sens: "C", devise: x.devise, montant: x.montant, montantCdf: cdf(x.montant, x.devise) },
     ] });
     x.statut = "valide"; x.validePar = u.id; x.ecritureId = e.id; enregistrer(); return vueDat(x);
+  },
+  /** S68 : Recherche multicritères DAT (p. 77). Mise en place : déposés dans la période ; Échus : échéance dans la période ;
+   *  Encours : mis en place dans la période et encore en cours à la date de fin (registre S68-1 à S68-4) */
+  recherche(choix: string, du: string, au: string) {
+    exiger();
+    if (!["mise_en_place", "echus", "encours"].includes(choix)) throw new ErreurMetier("Choix : Mise en place, Échus ou Encours.");
+    for (const [v, nom] of [[du, "Du"], [au, "Au"]] as const) if (!/^\d{4}-\d{2}-\d{2}$/.test(v ?? "")) throw new ErreurMetier(`À remplir : ${nom}.`);
+    if (du > au) throw new ErreurMetier("La date de début dépasse la date de fin.");
+    const garde = (x: DepotTerme) => choix === "mise_en_place" ? x.dateDepot >= du && x.dateDepot <= au
+      : choix === "echus" ? x.dateEcheance >= du && x.dateEcheance <= au && (x.statut === "valide" || x.statut === "echu")
+      : x.dateDepot >= du && x.dateDepot <= au && x.dateEcheance > au && (x.statut === "valide" || (x.statut === "rompu" && (x.rupture?.dateRupture ?? "") > au));
+    return E.depotsTerme.filter(garde).sort((a, b) => a.certificat - b.certificat)
+      .map((x) => ({ ...vueDat(x), agence: E.agence.nom, agent: E.utilisateurs.find((y) => y.id === x.saisiPar)?.nom ?? "", terme: termeDat(x.duree) }));
   },
   /** Fenêtre Rupture DAT (p. 77) après le choix du DAT : intérêt, pénalité, IRC, montant à verser */
   apercuRupture(id: number, date: string) {

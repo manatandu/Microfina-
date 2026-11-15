@@ -49,6 +49,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       contrat: (id: number) => get(`/epargne/dat/${id}/contrat`),
       apercuRupture: (id: number, date: string) => get(`/epargne/dat/${id}/rupture?date=${date}`),
       rompre: (id: number, d: object) => post(`/epargne/dat/${id}/rupture`, d),
+      recherche: (choix: string, du: string, au: string) => get(`/epargne/dat/recherche?choix=${choix}&du=${du}&au=${au}`),
     },
     releves: {
       releve: (compteId: number, du: string, au: string) => get(`/epargne/releve?compteId=${compteId}&du=${du}&au=${au}`),

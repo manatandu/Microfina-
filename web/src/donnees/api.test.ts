@@ -805,6 +805,10 @@ describe("journée de guichet", () => {
     expect(apres.find((c) => c.id === cdat.id)!.solde).toBe(1000000);
     const ct = await api.depotsTerme.contrat(x.id);
     expect([ct.dat.certificat, ct.client.numero, ct.entete.nom]).toEqual([1, "0412-000318", "COOPEC Tujenge"]);
+    // S68 : recherche multicritères (registre S68-1)
+    const rch = async (c: string) => (await api.depotsTerme.recherche(c, "2026-01-01", "2026-11-05")).map((y) => [y.certificat, y.terme, y.agent]);
+    expect([await rch("mise_en_place"), await rch("encours"), await rch("echus")]).toEqual([[[1, "Court terme", "Bijou Kasongo"]], [[1, "Court terme", "Bijou Kasongo"]], []]);
+    await expect(api.depotsTerme.recherche("autre", "2026-01-01", "2026-11-05")).rejects.toThrow("Choix");
     // S67 : 90 jours sur 1 000 000 à 7,5 % = 18 493 ; pénalité 2 % du montant ; retenue de 20 % sur l'intérêt brut (loi 23/053, art. 120)
     const dat = { montant: 1000000, tauxInteret: "7,5", tauxPenalite: "2", dateDepot: "2026-08-07", dateEcheance: "2027-08-07" };
     expect(calculRuptureDat(dat, "2026-11-05", true)).toEqual({ jours: 90, interet: 18493, penalite: 20000, tauxIrc: "20", irc: 3699, montantAVerser: 994794 });
@@ -821,6 +825,7 @@ describe("journée de guichet", () => {
     const fin = await api.tiers.comptes(1);
     expect([fin.find((c) => c.id === em.id)!.solde, fin.find((c) => c.id === cdat.id)!.solde]).toEqual([em.solde - 20000, 0]);
     await expect(api.depotsTerme.rompre(x.id, {})).rejects.toThrow("pas en cours");
+    expect(await api.depotsTerme.recherche("encours", "2026-01-01", "2026-11-05")).toEqual([]);   // rompu : plus en cours
   });
 
   it("adhésion par banque (S56) : payée sur un compte bancaire en CDF, saisie en attente du visa (registre S56-1 à S56-3)", async () => {

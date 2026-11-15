@@ -658,6 +658,9 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Rompre le DAT' }).click(); await oui(); await p.getByText(/Numéro de pièce : \S+/).waitFor();
   await p.getByRole('button', { name: 'Imprimer' }).click(); await p.getByRole('article', { name: 'Avis de rupture de DAT' }).waitFor(); await etape('06c27-avis-rupture-dat');
   await p.getByRole('dialog', { name: 'Avis de rupture de DAT' }).getByRole('button', { name: 'Fermer' }).click();
+  // Recherche multicritères DAT (S68) : mis en place depuis le début de l'année
+  await aller('/epargne/s68'); await p.getByRole('heading', { name: 'Recherche multicritères DAT' }).waitFor();
+  await p.getByRole('button', { name: 'Valider' }).click(); await p.getByRole('cell', { name: '000001' }).waitFor(); await etape('06c28-recherche-dat');
   await login('Esther Ngalula');
   // Apurement avant la résiliation (registre S48-1) : Lukusa retire tout son solde (85 000 CDF)
   await aller('/caisse/s74?op=retrait'); await client('Lukusa'); await p.getByLabel('N° compte').selectOption({ label: '0412-000320-02' });

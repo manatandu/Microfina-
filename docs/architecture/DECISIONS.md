@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**360 décisions.** Solidité : 129 fortes (le manuel ou un texte répond), 183 moyennes (déduites d'un écran voisin ou d'une donnée), 48 faibles (notre choix, faute de mieux). Dans le code : 331 déjà en place, 29 à appliquer.
+**364 décisions.** Solidité : 129 fortes (le manuel ou un texte répond), 186 moyennes (déduites d'un écran voisin ou d'une donnée), 49 faibles (notre choix, faute de mieux). Dans le code : 335 déjà en place, 29 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -811,6 +811,15 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S32-9 | Ouverture de compte et départ | IMF : un compte s'ouvre (S63) sans adhésion préalable ; la règle du membre emprunteur ou endosseur (loi 002/2002, art. 24) ne s'applique qu'aux COOPEC ; l'apurement des comptes avant la résiliation reste pour tous (registre S48-1) | Texte réglementaire : Loi 002/2002, art. 1er, 24, 27 ; loi 11/020, art. 13 | moyenne | en place |
 | S32-10 | Entreprise de micro-crédit | Pas d'épargne du public (loi 11/020, art. 12) : pas d'adhésion avec compte épargne, pas de produit épargne autre que BLOQUE (dépôt de garantie, art. 5, point 13), pas de dépôt sur un autre compte, pas de DAT | Texte réglementaire : Loi 11/020, art. 5 point 13, art. 12 | forte | en place |
 
+## S68 Recherche multicritères DAT
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S68-1 | Sens des trois choix | Mise en place : DAT déposés dans la période ; Echûs : échéance dans la période, DAT validés ; Encours : mis en place dans la période et encore en cours à la date de fin (ni échu ni rompu). Le manuel dit seulement « recherche par type d'opération » | Règle générale du manuel : Texte et capture p. 77 | moyenne | en place |
+| S68-2 | Effet des cases cochées | Chaque case cochée ajoute sa colonne au résultat (Élément de recherche) ; toutes cochées au départ, comme sur la capture ; Montant ajoute le total par devise. « Objet du crédit » n'a pas de sens pour un dépôt : colonne vide | Règle générale du manuel : Texte p. 77 (« cocher les cases des éléments recherchés ») | faible | en place |
+| S68-3 | Terme du crédit | Court terme un an au plus, moyen terme de 1 à 5 ans, long terme au-delà, selon la durée du DAT : le classement des crédits du PCCI | Texte réglementaire : PCCI, comptes 30 à 32 | moyenne | en place |
+| S68-4 | Qui y accède | Agent de crédit et chef d'agence (droit S68), comme la mise en place et la validation | Écran voisin : Registre S66-1 | moyenne | en place |
+
 ## Les décisions faibles, à regarder en premier
 
 | N° | Écran | Question | Réponse retenue |
@@ -863,3 +872,4 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S65-2 | S65 Mise en place DAT | Calcul de la date d'échéance | Date de dépôt plus la durée en mois, même jour du mois (dernier jour du mois quand ce jour manque). À confirmer : le manuel dit seulement que l'échéance est calculée |
 | S65-6 | S65 Mise en place DAT | Boutons Annuler (⊘) et Bénéficiaire | Montrés comme sur la capture, inactifs : le manuel ne dit pas ce qu'ils font |
 | S67-7 | S67 Rupture DAT | Retenue pour un groupe | Groupe sans personnalité juridique : 0 pour l'instant. La loi 23/053 vise les personnes physiques (IRPP) et les sociétés (IS) ; le groupe n'est nommé ni dans l'une ni dans l'autre. Question au porteur (ou à la DGI) |
+| S68-2 | S68 Recherche multicritères DAT | Effet des cases cochées | Chaque case cochée ajoute sa colonne au résultat (Élément de recherche) ; toutes cochées au départ, comme sur la capture ; Montant ajoute le total par devise. « Objet du crédit » n'a pas de sens pour un dépôt : colonne vide |
