@@ -586,8 +586,10 @@ const tiers = {
     if (!Number.isInteger(depot) || depot < 0) throw new ErreurMetier("Premier dépôt invalide.");
     exigerAutorisationPpe(t.id);   // écart E02 : Instr. BCC 15, art. 64
     // Écart E03 (décision du porteur, 15/11/2026) : pas de visa d'une personne physique sans copie de sa pièce d'identité (Instr. BCC 15, art. 12 et 29)
-    if (t.type === "physique" && !E.images[t.id]?.copiePiece)
-      throw new ErreurMetier("Copie de la pièce d'identité manquante : la déposer avant le visa (Client > Photos et signatures ; Instr. BCC 15, art. 12 et 29).");
+    if (t.type === "physique") {   // art. 12 al. 2 et 3 : pièce et preuve de l'adresse ; art. 10 : avant d'entrer en relation ; art. 29 : copies gardées
+      const manque = ([["copiePiece", "copie de la pièce d'identité"], ["justificatifAdresse", "justificatif d'adresse"]] as const).filter(([k]) => !E.images[t.id]?.[k]).map(([, n]) => n);
+      if (manque.length) throw new ErreurMetier(`Manquant : ${manque.join(", ")}. À déposer avant le visa (Client > Photos et signatures ; Instr. BCC 15, art. 10, 12 et 29).`);
+    }
     // Écart E05 : COOPEC, admission par le Conseil d'Administration (loi 002/2002, art. 22, 6° ; AUSCOOP, art. 10), ou par sa délégation (Info société)
     let admissionLe = v.admissionLe?.trim() || "", admissionReference = v.admissionReference?.trim() || "";
     if (estCoopec()) {

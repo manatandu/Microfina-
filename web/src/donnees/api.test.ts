@@ -28,7 +28,7 @@ beforeEach(() => { _remplacer(graine()); });
 // Écart E03 (décision du porteur, 15/11/2026) : pas de visa d'une personne physique sans copie de sa pièce. Les enrôlements des tests la déposent par défaut.
 const COPIE_PIECE = "data:image/png;base64,iVBORw0KGgo=";
 const creerOrigine = api.tiers.creer;
-api.tiers.creer = ((d, images = {}, prospectId) => creerOrigine(d, { copiePiece: COPIE_PIECE, ...images }, prospectId)) as typeof api.tiers.creer;
+api.tiers.creer = ((d, images = {}, prospectId) => creerOrigine(d, { copiePiece: COPIE_PIECE, justificatifAdresse: COPIE_PIECE, ...images }, prospectId)) as typeof api.tiers.creer;
 
 describe("graine", () => {
   it("la caisse contient exactement l'épargne et les parts reprises", async () => {
@@ -221,8 +221,10 @@ describe("journée de guichet", () => {
     const t = await creerOrigine({ ...enrolementVide("2026-11-05"), ...IDENTITE, produitCode: "EAV-CDF", nom: "Lusamba", postnom: "Kitenge", prenom: "Paul", naissance: "1985-02-03",
       pieceType: "Carte d'électeur", pieceNumero: "1-0412-0555", pieceExpire: "2031-01-01", adresse: "Matete" });
     await connecter("jpmukendi");
-    await expect(api.tiers.viser(t.id)).rejects.toThrow("Copie de la pièce d'identité manquante");
+    await expect(api.tiers.viser(t.id)).rejects.toThrow("copie de la pièce d'identité, justificatif d'adresse");
     await api.tiers.changerSpecimen(t.id, { copiePiece: COPIE_PIECE });
+    await expect(api.tiers.viser(t.id)).rejects.toThrow("Manquant : justificatif d'adresse");
+    await api.tiers.changerSpecimen(t.id, { justificatifAdresse: COPIE_PIECE });
     expect((await api.tiers.viser(t.id)).statut).toBe("actif");
   });
 

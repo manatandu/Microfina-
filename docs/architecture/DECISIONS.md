@@ -841,7 +841,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | E03-1 | Où et comment | Copie de la pièce d'identité et justificatif d'adresse déposés comme la photo et la signature (Client > Photos et signatures, S49), gardés à chaque dépôt avec leur auteur et leur date | Texte réglementaire : Instr. BCC 15, art. 12 al. 2 et 3, art. 29 et 48 | forte | en place |
-| E03-2 | Visa sans les copies | Pas de visa d'une personne physique sans copie de sa pièce d'identité : le visa (S40) est refusé et renvoie à Photos et signatures. La copie peut se déposer dès l'enrôlement ou en S49. Le justificatif d'adresse reste signalé au visa, sans bloquer | Choix du porteur : Instr. BCC 15, art. 12 et 29 ; décision du porteur 15/11/2026 (« l'identité est indispensable ») | forte | en place |
+| E03-2 | Visa sans les copies | Pas de visa d'une personne physique sans copie de sa pièce d'identité ni justificatif d'adresse : le visa (S40) est refusé, nomme ce qui manque et renvoie à Photos et signatures. Les deux se déposent dès l'enrôlement ou en S49 | Texte réglementaire : Instr. BCC 15, art. 10 (vérification avant d'entrer en relation), art. 12 al. 2 et 3 (pièce, preuve de l'adresse), art. 29 (copies gardées) ; décisions du porteur 15/11/2026 (pièce : « l'identité est indispensable » ; adresse : appliquer la BCC) | forte | en place |
 
 ## E04 Convention de compte
 

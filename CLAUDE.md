@@ -40,6 +40,8 @@ Après chaque fonction construite : mettre à jour `replica/features.csv`, `repl
 
 ## 1. Rien de mémoire
 
+Quand la réponse se trouve dans les Instructions de la BCC ou dans la loi, elle s'applique telle quelle, sans poser la question au porteur (demande du porteur, 15/11/2026). La question ne se pose que si les textes lus sont muets ou se contredisent.
+
 Toute règle métier, tout article, tout compte, tout taux, tout seuil ou délai est **lu dans le texte avant d'être écrit**, puis cité avec sa référence exacte (« Instr. BCC 15 bis, art. 7 », « PCCI, compte 3900 »). Ce qui n'a pas été lu ne s'écrit pas : on le marque « à confirmer » et on le pose comme question au porteur.
 
 Sources, à ouvrir dans cet ordre :

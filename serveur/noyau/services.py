@@ -990,8 +990,11 @@ def viser_tiers(u: dict, tid: int, d: dict | None = None) -> dict:
     from .conformite import exiger_autorisation_ppe
     exiger_autorisation_ppe(tid)                                     # écart E02 : Instr. BCC 15, art. 64
     # Écart E03 (décision du porteur, 15/11/2026) : pas de visa d'une personne physique sans copie de sa pièce d'identité (Instr. BCC 15, art. 12 et 29)
-    if t["type"] == "physique" and not valeur("select copie_piece from specimen where tiers_id = %s order by id desc limit 1", (tid,)):
-        raise ErreurMetier("Copie de la pièce d'identité manquante : la déposer avant le visa (Client > Photos et signatures ; Instr. BCC 15, art. 12 et 29).")
+    if t["type"] == "physique":
+        sp = une("select copie_piece, justificatif_adresse from specimen where tiers_id = %s order by id desc limit 1", (tid,)) or {}
+        manque = [n for k, n in (("copie_piece", "copie de la pièce d'identité"), ("justificatif_adresse", "justificatif d'adresse")) if not sp.get(k)]
+        if manque:   # art. 12 al. 2 et 3 : pièce et preuve de l'adresse ; art. 10 : avant d'entrer en relation ; art. 29 : copies gardées
+            raise ErreurMetier(f"Manquant : {', '.join(manque)}. À déposer avant le visa (Client > Photos et signatures ; Instr. BCC 15, art. 10, 12 et 29).")
     # Écart E05 : COOPEC, admission par le Conseil d'Administration (loi 002/2002, art. 22, 6° ; AUSCOOP, art. 10), ou par sa délégation (Info société)
     adm_le, adm_ref = texte("admissionLe") or None, texte("admissionReference") or None
     if est_coopec(u):

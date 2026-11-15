@@ -350,7 +350,8 @@ const OUT = process.argv[2];
   await rcp.getByLabel('Nom:', { exact: true }).fill('Tshala'); await rcp.getByRole('row').filter({ hasText: 'Tshala' }).first().dblclick();
   const copie = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
   await p.locator('fieldset', { hasText: "Copie de la pièce d'identité" }).locator('input[type=file]').setInputFiles({ name: 'piece.png', mimeType: 'image/png', buffer: copie });
-  await p.getByRole('img', { name: "Aperçu : Copie de la pièce d'identité" }).waitFor(); await etape('06a2-copie-piece');
+  await p.locator('fieldset', { hasText: "Justificatif d'adresse" }).locator('input[type=file]').setInputFiles({ name: 'adresse.png', mimeType: 'image/png', buffer: copie });
+  await p.getByRole('img', { name: "Aperçu : Copie de la pièce d'identité" }).waitFor(); await p.getByRole('img', { name: "Aperçu : Justificatif d'adresse" }).waitFor(); await etape('06a2-copie-piece');
   await p.getByRole('button', { name: 'Valider les Modifications' }).click(); await ok();
   await aller('/clients/s40');
   for (const [i, nom] of ['Tshala', 'Mamans', 'Boulangerie'].entries()) {

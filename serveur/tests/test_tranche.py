@@ -186,7 +186,7 @@ def test_depot_retrait_mandataire_motif(clients, journee):
 
 
 # Fiche d'enrôlement S37 avec les valeurs par défaut de la p. 49
-FICHE = {"images": {"copiePiece": "data:image/png;base64,iVBORw0KGgo="}, "dateDemande": "2026-11-05", "typeClient": "Client", "produitCode": "EAV-CDF", "premierDepot": 0, "resident": True, "preleverAgios": True,
+FICHE = {"images": {"copiePiece": "data:image/png;base64,iVBORw0KGgo=", "justificatifAdresse": "data:image/png;base64,iVBORw0KGgo="}, "dateDemande": "2026-11-05", "typeClient": "Client", "produitCode": "EAV-CDF", "premierDepot": 0, "resident": True, "preleverAgios": True,
          "calculerInteret": False, "liees": [], "personneExposee": False,
          # mentions de l'identité et de la pièce (Instr. BCC 15, art. 12 et 13 ; registre S37-1)
          "prenom": "Marie", "naissance": "1990-01-15", "lieuNaissance": "Kinshasa", "adresse": "Matete, avenue Kinsaku 12",
@@ -2143,8 +2143,11 @@ def test_visa_sans_copie_piece(clients, journee):
     t = agent.post("/api/tiers", {**fiche, "nom": "Lusamba", "postnom": "Kitenge", "prenom": "Paul", "naissance": "1985-02-03", "pieceType": "Carte d'électeur",
                                   "pieceNumero": "1-0412-0555", "pieceExpire": "2031-01-01", "adresse": "Matete"}, **H).json()
     r = chef.post(f"/api/tiers/{t['id']}/visa", **H)
-    assert r.status_code == 422 and "Copie de la pièce d'identité manquante" in r.json()["message"]
+    assert r.status_code == 422 and "copie de la pièce d'identité, justificatif d'adresse" in r.json()["message"]
     assert agent.post(f"/api/tiers/{t['id']}/specimen", {"copiePiece": "data:image/png;base64,iVBORw0KGgo="}, **H).status_code == 200
+    r = chef.post(f"/api/tiers/{t['id']}/visa", **H)
+    assert r.status_code == 422 and "Manquant : justificatif d'adresse" in r.json()["message"]
+    assert agent.post(f"/api/tiers/{t['id']}/specimen", {"justificatifAdresse": "data:image/png;base64,iVBORw0KGgo="}, **H).status_code == 200
     assert chef.post(f"/api/tiers/{t['id']}/visa", **H).json()["statut"] == "actif"
 
 
