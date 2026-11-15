@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v72";
+const CLE = "likelemba-demo-v73";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -2238,6 +2238,40 @@ const profilsRisque = {
     enregistrer(); return vueProfil(t, jour);
   },
 };
+// Écart E11 : comptes inactifs (loi 22/069, titre III, chap. Ier : dix ans sans opération ni réclamation ; lettre six mois avant ; fonds versés à la BCC). Mêmes règles que noyau/inactifs.py.
+const STATUTS_INACTIF = { lettre: "Lettre à envoyer", lettre_envoyee: "Lettre envoyée", a_cloturer: "À clôturer, fonds à verser à la BCC" } as const;
+const inactifs = {
+  comptes(statut = "") {
+    lectureAdmin(["SE01"]); const jour = jourConformite();
+    return E.comptes.flatMap((c) => {
+      const t = E.tiers.find((x) => x.id === c.tiersId); if (!t) return [];
+      const dates = [...E.ecritures.filter((e) => e.journal !== "AN" && e.lignes.some((l) => l.contrat === `depot:${c.id}`)).map((e) => dateJournee(e.journeeId)),
+        ...E.plaintes.filter((p) => p.tiersId === t.id).map((p) => p.recueLe), c.ouvertLe ?? ""].filter(Boolean).sort();
+      const derniere = dates.at(-1); if (!derniere) return [];
+      const echeance = ajouterMois(derniere, 120), lettreDue = ajouterMois(derniere, 114);
+      if (jour < lettreDue) return [];
+      const lt = E.lettresInactivite.find((x) => x.compteId === c.id && x.derniereOperation === derniere);
+      const st: keyof typeof STATUTS_INACTIF = jour >= echeance ? "a_cloturer" : lt ? "lettre_envoyee" : "lettre";
+      const v = { compteId: c.id, compte: c.numero, membre: t.numero, client: titulaire(t), devise: c.devise, solde: soldeContrat(`depot:${c.id}`, c.devise, "C"),
+        derniereOperation: derniere, lettreDue, echeance, statut: st, statutLibelle: STATUTS_INACTIF[st], lettreEnvoyeeLe: lt?.envoyeeLe ?? "", referenceLettre: lt?.reference ?? "" };
+      return !statut || statut === st ? [v] : [];
+    }).sort((a, b) => a.compte.localeCompare(b.compte));
+  },
+  noterLettre(cid: number, d: { date: string; reference: string }) {
+    const u = exiger();
+    const x = inactifs.comptes().find((v) => v.compteId === cid);
+    if (!x) throw new ErreurMetier("Ce compte n'approche pas des dix ans sans opération.");
+    if (x.lettreEnvoyeeLe) throw new ErreurMetier("Lettre déjà notée.");
+    if (!DATE_ISO.test(d.date ?? "") || !(d.reference ?? "").trim()) throw new ErreurMetier("À remplir : date d'envoi et référence de l'accusé de réception.");
+    E.lettresInactivite.push({ id: Math.max(0, ...E.lettresInactivite.map((y) => y.id)) + 1, compteId: cid, derniereOperation: x.derniereOperation, envoyeeLe: d.date, reference: d.reference.trim(), noteePar: u.id });
+    enregistrer(); return inactifs.comptes().find((v) => v.compteId === cid)!;
+  },
+  lettre(cid: number) {
+    const x = inactifs.comptes().find((v) => v.compteId === cid);
+    if (!x) throw new ErreurMetier("Ce compte n'approche pas des dix ans sans opération.");
+    return { entete: enteteDocument(), client: ficheClient(E.comptes.find((c) => c.id === cid)!.tiersId), compte: x };
+  },
+};
 // Écart E10 : gel des avoirs (loi 22/068 modifiée, art. 121, 158, 158 bis, 162 ; loi 22/069, art. 71 à 77 ; Instr. BCC 15, art. 42). Mêmes règles que noyau/gel.py.
 const SOURCES_GEL: Record<GelAvoirs["source"], string> = { onu: "Conseil de sécurité des Nations Unies", conasafic: "Liste nationale (CONASAFIC)", bcc: "Banque Centrale du Congo", judiciaire: "Ministère public ou CENAREF" };
 const DATE_ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -4118,6 +4152,7 @@ const apiLocal = {
   releves: asynchrone(releves, "releves"),
   depotsTerme: asynchrone(depotsTerme, "depotsTerme"),
   conformite: asynchrone(conformite, "conformite"),
+  inactifs: asynchrone(inactifs, "inactifs"),
   plaintes: asynchrone(plaintes, "plaintes"),
   banques: asynchrone(banques, "banques"),
   guichets: asynchrone(guichets, "guichets"),

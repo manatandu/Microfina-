@@ -2165,6 +2165,26 @@ def test_gel_des_avoirs(clients, journee):
     assert caisse.post("/api/guichet/retraits", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}}, **H).status_code == 200
 
 
+def test_comptes_inactifs(clients, journee):
+    """Écart E11 : loi 22/069, titre III, chap. Ier (dix ans ; lettre six mois avant)"""
+    from noyau.bd import executer
+    chef, agent = clients["chef"], clients["agent"]
+    assert chef.get("/api/epargne/inactifs", **H).json() == []                         # comptes ouverts le 15/01/2026
+    executer("update compte_depot set ouvert_le = '2016-12-01' where numero = '0412-000320-02'")   # sans opération depuis, hors reprise des soldes
+    k = next(x for x in chef.get("/api/epargne/inactifs", **H).json() if x["compte"] == "0412-000320-02")
+    assert (k["derniereOperation"], k["lettreDue"], k["echeance"], k["statut"]) == ("2016-12-01", "2026-06-01", "2026-12-01", "lettre")
+    assert agent.get("/api/epargne/inactifs", **H).status_code == 403
+    assert "accusé de réception" in chef.post(f"/api/epargne/inactifs/{k['compteId']}/lettre", {"date": "2026-11-05"}, **H).json()["message"]
+    v = chef.post(f"/api/epargne/inactifs/{k['compteId']}/lettre", {"date": "2026-11-05", "reference": "AR-0001"}, **H).json()
+    assert (v["statut"], v["referenceLettre"]) == ("lettre_envoyee", "AR-0001")
+    assert chef.get(f"/api/epargne/inactifs/{k['compteId']}/lettre", **H).json()["compte"]["echeance"] == "2026-12-01"
+    executer("update compte_depot set ouvert_le = '2016-04-01' where numero = '0412-000320-02'")
+    assert next(x for x in chef.get("/api/epargne/inactifs", **H).json() if x["compte"] == "0412-000320-02")["statut"] == "a_cloturer"
+    # une opération du titulaire fait sortir le compte de la liste
+    assert clients["caisse"].post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000320-02"), "montant": 1000000, "coupures": {"10000": 1}, "mandataire": ""}, **H).status_code == 200
+    assert all(x["compte"] != "0412-000320-02" for x in chef.get("/api/epargne/inactifs", **H).json())
+
+
 def test_convention_et_admission(clients, journee):
     """Écart E04 : convention de compte (loi 22/069, titre III) ; écart E05 : admission par le Conseil d'Administration (loi 002/2002, art. 22, 6°)"""
     from noyau.bd import executer

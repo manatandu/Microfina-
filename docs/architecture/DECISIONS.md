@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**390 décisions.** Solidité : 151 fortes (le manuel ou un texte répond), 207 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 361 déjà en place, 29 à appliquer.
+**393 décisions.** Solidité : 154 fortes (le manuel ou un texte répond), 207 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 362 déjà en place, 29 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -894,7 +894,15 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | E10-1 | Où et pour qui | Onglet « Gel des avoirs » de Client > Conformité > Examen renforcé (droit SC01). Le gel se saisit sur une décision : autorité (Conseil de sécurité, liste nationale CONASAFIC, BCC, Ministère public ou CENAREF), référence, date, motif. Il prend effet à l'enregistrement, sans attendre un second visa ni prévenir le client | Texte réglementaire : Loi 22/068 modifiée par la loi 25/048, art. 121, 158 et 158 bis (sans délai, sans notification préalable) ; loi 22/069, art. 71 et 73 ; Instr. BCC 15, art. 42 | forte | en place |
 | E10-2 | Effet | Tant que le gel n'est pas levé, aucune somme ne sort des comptes de dépôt ni des parts du client : le refus est posé au grand livre (toute écriture débitrice), et dès la saisie au retrait et au DAT. Les sommes reçues (dépôts, intérêts) entrent et restent gelées | Texte réglementaire : Loi 22/068 modifiée, art. 158 bis, 1° à 3° (fonds possédés, et ceux qui en proviennent) ; loi 22/069, art. 71, al. 2 (intérêts gelés) et art. 73 (fonds détenus ou reçus) | forte | en place |
 | E10-3 | Information et levée | L'information des autorités se note (date, référence). La levée exige la date et la référence de la décision qui la fonde ; elle est gardée avec son auteur | Texte réglementaire : Loi 22/068 modifiée, art. 162 (information sans délai du CONASAFIC et de la CENAREF), art. 121 (mainlevée), art. 169 (déblocage autorisé par le Ministre) ; loi 22/069, art. 76 (information de la BCC) | forte | en place |
-| E10-4 | Mise à l'index | Pas de mise à l'index dans le logiciel : l'Instr. BCC 13 et la loi 22/069, art. 70, visent les établissements de crédit ; pour les COOPEC et IMF, la loi 11/020 ne cite la mise à l'index que comme empêchement d'un dirigeant. Ses effets portent sur le crédit, module à construire | Texte réglementaire : Instr. BCC 13, art. 1er et 7 ; loi 22/069, art. 70 ; loi 11/020 (conditions des dirigeants, mis à l'index) | moyenne | en place |
+| E10-4 | Mise à l'index | La mise à l'index vaut aussi pour les COOPEC et les sociétés de microfinance, établissements de crédit au sens de la loi 22/069. Ses effets (suspension ou interdiction des services et facilités, art. 70 ; plus de crédit, Instr. 13, art. 7) s'appliqueront dans le module crédit, avec la liste rouge (S97) | Texte réglementaire : Loi 22/069, titre Ier (la loi s'applique aux coopératives d'épargne et de crédit et aux sociétés de microfinance) et art. 70 ; Instr. BCC 13, art. 1er, 6 et 7 | forte | à faire |
+
+## E11 Comptes inactifs
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E11-1 | Où et pour qui | Écran Épargne > Comptes inactifs (SE01, chef d'agence). Il liste les comptes ouverts dont la dernière opération remonte à neuf ans et six mois ou plus : lettre à envoyer, lettre envoyée, à clôturer | Texte réglementaire : Loi 22/069, titre Ier (s'applique aux COOPEC et sociétés de microfinance) et titre III, chap. Ier (dix ans ; lettre six mois avant) | forte | en place |
+| E11-2 | Dernière opération | La plus récente de : dernier mouvement du compte hors reprise des soldes, dernière plainte du client (réclamation), date d'ouverture du compte. Une lettre vise une date de dernière opération : une opération plus récente la rend caduque | Texte réglementaire : Loi 22/069, titre III, chap. Ier (« aucune opération ou réclamation » des titulaires ou ayants droit) ; registre E09-4 (reprise des soldes) | forte | en place |
+| E11-3 | Lettre, clôture et versement | La lettre s'imprime (titulaire, compte, solde, date des dix ans, texte de la loi) ; son envoi se note avec la référence de l'accusé de réception. La clôture et le versement des fonds à la BCC ne s'écrivent pas encore : l'écran les signale. Ils viendront avec la clôture de compte (S70) et le schéma comptable de la remise à la BCC, à lire dans le PCCI | Texte réglementaire : Loi 22/069, titre III, chap. Ier ; PCCI, compte 36 (avoirs en cours de prescription) | moyenne | à faire |
 
 ## Les décisions faibles, à regarder en premier
 

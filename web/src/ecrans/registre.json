@@ -693,6 +693,15 @@
   "chemin": "/epargne/s72"
  },
  {
+  "id": "SE01",
+  "nom": "Comptes inactifs",
+  "acces": "Épargne > Comptes inactifs",
+  "but": "Lister les comptes sans opération ni réclamation depuis près de dix ans, noter la lettre avec accusé de réception, signaler ceux à clôturer et à verser à la BCC (écart E11 ; loi 22/069, titre III, chap. Ier)",
+  "module": "epargne",
+  "priorite": "must",
+  "chemin": "/epargne/se01"
+ },
+ {
   "id": "S73",
   "nom": "Guichet : adhésion",
   "acces": "Caisse > Opération > Adhésion",

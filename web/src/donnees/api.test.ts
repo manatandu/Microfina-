@@ -240,6 +240,25 @@ describe("journée de guichet", () => {
     expect((await api.guichet.retrait({ cle: cle(), compteId: 2, montant: 1000000, coupures: { 10000: 1 } })).statut).toBe("validee");
   });
 
+  it("comptes inactifs (écart E11) : dix ans sans opération, lettre six mois avant", async () => {
+    await journeeOuverte(); await connecter("jpmukendi");
+    expect(await api.inactifs.comptes()).toEqual([]);
+    const g = graine(); _remplacer({ ...g, comptes: g.comptes.map((c) => c.numero === "0412-000320-02" ? { ...c, ouvertLe: "2016-12-01" } : c) });
+    await journeeOuverte(); await connecter("jpmukendi");
+    const k = (await api.inactifs.comptes()).find((x) => x.compte === "0412-000320-02")!;
+    expect([k.derniereOperation, k.lettreDue, k.echeance, k.statut]).toEqual(["2016-12-01", "2026-06-01", "2026-12-01", "lettre"]);
+    await expect(api.inactifs.noterLettre(k.compteId, { date: "2026-11-05", reference: "" })).rejects.toThrow("accusé de réception");
+    const v = await api.inactifs.noterLettre(k.compteId, { date: "2026-11-05", reference: "AR-0001" });
+    expect([v.statut, v.referenceLettre]).toEqual(["lettre_envoyee", "AR-0001"]);
+    expect((await api.inactifs.lettre(k.compteId)).compte.echeance).toBe("2026-12-01");
+    await connecter("engalula");
+    await api.guichet.depot({ cle: cle(), compteId: 5, montant: 1000000, coupures: { 10000: 1 } });
+    await connecter("jpmukendi");
+    expect((await api.inactifs.comptes()).some((x) => x.compte === "0412-000320-02")).toBe(false);
+    await connecter("bkasongo");
+    await expect(api.inactifs.comptes()).rejects.toThrow("Droit manquant");
+  });
+
   it("convention de compte (écart E04) et admission par le Conseil d'Administration (écart E05)", async () => {
     await connecter("bkasongo");
     const cv = await api.comptesEpargne.convention(2);

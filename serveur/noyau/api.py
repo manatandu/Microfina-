@@ -17,6 +17,7 @@ from . import comptes_epargne as cep
 from . import releves as rel
 from . import atypiques as aty
 from . import gel
+from . import inactifs as ina
 from . import depots_terme as dat
 from . import conformite as conf
 from . import cip
@@ -1362,6 +1363,21 @@ def gels_informer(request, gid: int, corps: dict = Body(...)):
 @api.post("/conformite/gels/{gid}/levee")
 def gels_lever(request, gid: int, corps: dict = Body(...)):
     return gel.lever(u(request), gid, corps)
+
+
+@api.get("/epargne/inactifs")
+def inactifs_lister(request, statut: str = ""):
+    return ina.comptes(u(request), statut)
+
+
+@api.post("/epargne/inactifs/{cid}/lettre")
+def inactifs_lettre(request, cid: int, corps: dict = Body(...)):
+    return ina.noter_lettre(u(request), cid, corps)
+
+
+@api.get("/epargne/inactifs/{cid}/lettre")
+def inactifs_lettre_imprimer(request, cid: int):
+    return ina.lettre(u(request), cid)
 
 
 @api.get("/conformite/profils")

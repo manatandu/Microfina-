@@ -194,6 +194,8 @@ export interface Examen {
 }
 /** Écart E02 : dossier d'une personne politiquement exposée (Instr. BCC 15, art. 41, 64, 65) */
 export interface DossierPpe { tiersId: number; fonction: string; finFonction: string; originePatrimoine: string; saisiPar: number; autorisePar: number | null; autoriseLe: string; informeLe: string; referenceCenaref: string }
+/** Écart E11 : lettre avant clôture d'un compte inactif (loi 22/069, titre III, chap. Ier) */
+export interface LettreInactivite { id: number; compteId: number; derniereOperation: string; envoyeeLe: string; reference: string; noteePar: number }
 /** Écart E10 : gel des avoirs (loi 22/068, art. 158 bis ; loi 22/069, art. 71 à 77) */
 export interface GelAvoirs { id: number; tiersId: number; source: "onu" | "conasafic" | "bcc" | "judiciaire"; decisionReference: string; decisionLe: string; motif: string;
   gelePar: number; geleLe: string; informeLe: string; referenceInformation: string; leveLe: string; referenceLevee: string; levePar: number | null }
@@ -284,6 +286,7 @@ export interface Etat {
   profilsRisque: ProfilRisque[];   // écart E08
   analysesAtypiques: AnalyseAtypique[];   // écart E09
   gels: GelAvoirs[];   // écart E10
+  lettresInactivite: LettreInactivite[];   // écart E11
   declarationsCip: { type: string; objetId: number; dateEvenement: string; declareLe: string; reference: string; declarePar: number }[];   // écart E06   // S46, S42, S43
   banques: { id: number; code: string; libelle: string; compteLiaison: string; adresse: string }[];   // S58
   budget: Record<string, LigneBudget[]>;
