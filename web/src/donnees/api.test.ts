@@ -735,6 +735,26 @@ describe("journée de guichet", () => {
     await expect(api.comptesEpargne.ouvrir({ cle: cle(), tiersId: 2, produitId: g.id })).rejects.toThrow("Droit manquant");
   });
 
+  it("relevé de compte et situation du client (S64) : report, mouvements, totaux, solde comptable, soldes par compte (registre S64-1 à S64-6)", async () => {
+    await journeeOuverte();
+    await connecter("bkasongo");
+    const c = (await api.tiers.comptes(1)).find((x) => x.devise === "CDF")!;
+    const r = await api.releves.releve(c.id, "2020-01-01", "2026-11-05");
+    expect(r.report).toBe(0);
+    expect(r.lignes.length).toBeGreaterThan(0);
+    expect(r.report + r.totalCredit - r.totalDebit).toBe(r.soldeFin);
+    expect(r.soldeFin).toBe(r.soldeComptable);
+    expect(r.soldeIndicatif).toBe(r.soldeComptable);   // aucune opération de banque en attente sur ce compte
+    expect([r.compte.numero, r.client.numero, r.entete.nom]).toEqual([c.numero, "0412-000318", "COOPEC Tujenge"]);
+    const tard = await api.releves.releve(c.id, "2026-11-06", "2026-11-30");
+    expect([tard.report, tard.lignes.length, tard.soldeFin]).toEqual([r.soldeFin, 0, r.soldeFin]);
+    await expect(api.releves.releve(c.id, "2026-11-06", "2026-11-01")).rejects.toThrow("début dépasse");
+    const s = await api.releves.situation(1, "2026-11-05");
+    expect(s.comptes.map((x) => x.compte)).toEqual(expect.arrayContaining([c.numero]));
+    expect(s.comptes.find((x) => x.compte === c.numero)!.credit).toBe(r.soldeComptable);
+    expect((await api.releves.situation(1, "2020-01-01")).comptes.every((x) => x.debit === 0 && x.credit === 0)).toBe(true);
+  });
+
   it("adhésion par banque (S56) : payée sur un compte bancaire en CDF, saisie en attente du visa (registre S56-1 à S56-3)", async () => {
     await journeeOuverte();
     await connecter("jpmukendi");

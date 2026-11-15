@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**329 décisions.** Solidité : 109 fortes (le manuel ou un texte répond), 174 moyennes (déduites d'un écran voisin ou d'une donnée), 46 faibles (notre choix, faute de mieux). Dans le code : 299 déjà en place, 30 à appliquer.
+**335 décisions.** Solidité : 111 fortes (le manuel ou un texte répond), 176 moyennes (déduites d'un écran voisin ou d'une donnée), 48 faibles (notre choix, faute de mieux). Dans le code : 305 déjà en place, 30 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -755,6 +755,17 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S63-4 | Deux comptes du même produit | La numérotation des comptes (S17) donne un seul numéro par client et par produit : un deuxième compte du même produit est refusé, même si Max compte à créer le permettrait. À confirmer : faut-il un compteur dans le numéro ? | Donnée exigée ailleurs : S17 (p. 26) ; registre S17-2, S17-3 | moyenne | en place |
 | S63-5 | Liste Produit Epargne et liste des comptes du membre | Produits actifs, présentés « Libellé (Code) » comme au paramétrage (deux produits peuvent porter le même libellé dans deux devises). Liste des Comptes du membre : N° du compte, Produit, Devise, Solde, comme la consultation du client | Écran voisin : Capture p. 73 (colonnes cachées) ; S28 (liste « Produit ») ; COMPLEMENTS § 4 | moyenne | en place |
 
+## S64 Relevé de compte
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S64-1 | Contenu du relevé | Les écritures du compte (dépôts, retraits, adhésion) de la période, par date de la journée comptable : report au début, Date, N° Pièce, Libellé, Débit, Crédit, Solde, Total, Montant bloqué, comme la capture | Manuel : Captures p. 73 et 74 | forte | en place |
+| S64-2 | Solde comptable et solde indicatif | Solde comptable : le solde des écritures du compte. Solde indicatif : le solde comptable plus les virements et moins les prélèvements de banque encore en attente (saisis, visés ou validés, pas comptabilisés). À confirmer : le manuel ne définit pas le solde indicatif | Règle générale du manuel : Capture p. 73 (deux champs, sans texte) | faible | en place |
+| S64-3 | En-tête des documents | Le nom, l'adresse, la boîte postale, le téléphone et le logo de l'institution cliente (Information société), jamais l'identité de DWAC | Donnée exigée ailleurs : Registre D01 ; S32 ; capture p. 74 (en-tête de l'institution) | forte | en place |
+| S64-4 | Comptes de la situation du client | Les comptes d'épargne du client et ses parts sociales, avec le solde à la date de fin, au débit ou au crédit. Les crédits viendront avec le lot Crédit | Écran voisin : Capture p. 74 (Compte, Intitulé, Solde Débit/Crédit) ; PCCI, compte 103 | moyenne | en place |
+| S64-5 | Soldes masqués | Au guichet, le caissier sans la case « Voir solde client » ne voit ni le relevé ni la situation (même règle que S74) | Donnée exigée ailleurs : Registre S10-1 | moyenne | en place |
+| S64-6 | Bouton « Membres du Groupes » et bouton de la situation | « Membres du Groupes » montré inactif : le manuel ne montre pas sa fenêtre. La situation s'ouvre par un bouton « Situation du client » : la capture est coupée sous les champs du client | Manuel : Capture p. 73 ; texte p. 74 | faible | en place |
+
 ## Les décisions faibles, à regarder en premier
 
 | N° | Écran | Question | Réponse retenue |
@@ -805,3 +816,5 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S61-3 | S61 Emprunts bancaires | Unité et calculs | Durée en mois ; Total Intérêt, Total Commis. et Total Frais saisis, pas calculés : la capture montre de simples champs et aucun échéancier, aucun texte ne donne de formule. Taux annuel en pourcentage, quatre décimales au plus |
 | S61-6 | S61 Emprunts bancaires | Bouton de recherche et case à côté du N°Piece (mise en place) | Montrés inactifs : la capture ne dit pas ce qu'ils cherchent ni ce que la case coche. À confirmer par le porteur |
 | S61-7 | S61 Emprunts bancaires | Champ N°Compte du remboursement et liste Banque | N°Compte reçoit le N°Emprunt donné à la mise en place, qui retrouve la banque et le capital restant. La liste Banque de la mise en place montre les comptes bancaires de l'institution (banque, numéro, devise) : l'emprunt prend la devise du compte |
+| S64-2 | S64 Relevé de compte | Solde comptable et solde indicatif | Solde comptable : le solde des écritures du compte. Solde indicatif : le solde comptable plus les virements et moins les prélèvements de banque encore en attente (saisis, visés ou validés, pas comptabilisés). À confirmer : le manuel ne définit pas le solde indicatif |
+| S64-6 | S64 Relevé de compte | Bouton « Membres du Groupes » et bouton de la situation | « Membres du Groupes » montré inactif : le manuel ne montre pas sa fenêtre. La situation s'ouvre par un bouton « Situation du client » : la capture est coupée sous les champs du client |

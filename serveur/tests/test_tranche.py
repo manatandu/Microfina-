@@ -1891,3 +1891,19 @@ def test_nouveau_compte(clients, journee):
     assert r.status_code == 422 and "Max compte à créer" in r.json()["message"]
     assert ident("select count(*) from ligne_ecriture l join compte_depot d on 'depot:' || d.id = l.contrat_ref where d.id = %s", (c["id"],)) == 0   # gratuite, sans écriture
     assert caisse.post("/api/epargne/comptes", {"cle": cle(), "tiersId": kalala, "produitId": g["id"]}, **H).status_code == 403
+
+
+def test_releve_situation(clients, journee):
+    """S64 (manuel p. 73 et 74) : relevé (report, mouvements, totaux, solde comptable) et situation du client"""
+    agent, caisse = clients["agent"], clients["caisse"]
+    cid = C("0412-000318-02")
+    r = agent.get(f"/api/epargne/releve?compteId={cid}&du=2020-01-01&au=2026-11-05").json()
+    assert r["report"] == 0 and r["lignes"]
+    assert r["report"] + r["totalCredit"] - r["totalDebit"] == r["soldeFin"] == r["soldeComptable"]
+    assert r["client"]["numero"] == "0412-000318" and r["entete"]["nom"]
+    tard = agent.get(f"/api/epargne/releve?compteId={cid}&du=2026-11-06&au=2026-11-30").json()
+    assert (tard["report"], tard["lignes"], tard["soldeFin"]) == (r["soldeFin"], [], r["soldeFin"])
+    assert agent.get(f"/api/epargne/releve?compteId={cid}&du=2026-11-06&au=2026-11-01").status_code == 422
+    s = agent.get(f"/api/epargne/situation?tiersId={T('0412-000318')}&date=2026-11-05").json()
+    ligne = next(x for x in s["comptes"] if x["compte"] == "0412-000318-02")
+    assert ligne["credit"] == r["soldeComptable"]

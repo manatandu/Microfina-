@@ -1532,6 +1532,58 @@ const comptesEpargne = {
   },
 };
 
+// ---------- Épargne > Relevé de compte (S64, manuel p. 73 et 74). Règles identiques côté serveur (noyau/releves.py). ----------
+const CHAMPS_CLIENT = ["numero", "type", "intitule", "nom", "postnom", "prenom", "sexe", "naissance", "lieuNaissance", "profession", "nationalite", "zone", "quartier",
+  "adresse", "telephone", "email", "bp"] as const;
+type FicheClient = Record<(typeof CHAMPS_CLIENT)[number], string>;
+const enteteDocument = () => { const i = E.institution;
+  return { nom: i.nom, sigle: i.sigle ?? "", adresse: i.adresse ?? "", telephone: i.telephoneFixe ?? "", bp: i.bp ?? "", ville: i.ville ?? "", logo: i.logo ?? null }; };
+const ficheClient = (tid: number): FicheClient => { const t = E.tiers.find((x) => x.id === tid) as unknown as Record<string, unknown> | undefined;
+  return Object.fromEntries(CHAMPS_CLIENT.map((k) => [k, String(t?.[k] ?? "")])) as FicheClient; };
+const dateJournee = (jid: number) => E.journees.find((j) => j.id === jid)?.date ?? "";
+function controlerMasques() {
+  if (soldesMasques()) throw new ErreurMetier("Soldes des clients masqués pour vous au guichet (Administration > Guichets : case « Voir solde client »).");   // S10-1
+}
+const releves = {
+  releve(compteId: number, du: string, au: string) {
+    exiger(); controlerMasques();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(du ?? "")) throw new ErreurMetier("À remplir : date début.");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(au ?? "")) throw new ErreurMetier("À remplir : date fin.");
+    if (du > au) throw new ErreurMetier("La date de début dépasse la date de fin.");
+    const c = E.comptes.find((x) => x.id === compteId);
+    if (!c) throw new ErreurMetier("À remplir : numéro de compte.");
+    const contrat = `depot:${c.id}`;
+    const mouvements = E.ecritures.flatMap((e) => e.lignes.filter((l) => l.contrat === contrat && l.devise === c.devise).map((l) => ({ date: dateJournee(e.journeeId), piece: e.piece, libelle: e.libelle, sens: l.sens, montant: l.montant, id: e.id })))
+      .sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
+    const report = mouvements.filter((m) => m.date < du).reduce((s, m) => s + (m.sens === "C" ? m.montant : -m.montant), 0);
+    let solde = report, td = 0, tc = 0;
+    const lignes = mouvements.filter((m) => m.date >= du && m.date <= au).map((m) => {
+      const debit = m.sens === "D" ? m.montant : 0, credit = m.sens === "C" ? m.montant : 0;
+      solde += credit - debit; td += debit; tc += credit;
+      return { date: m.date, piece: m.piece, libelle: m.libelle, debit, credit, solde };
+    });
+    const comptable = soldeContrat(contrat, c.devise, "C");
+    const attente = E.operationsBanque.filter((o) => o.compteDepotId === c.id && ["saisie", "visee", "validee"].includes(o.statut))
+      .reduce((s, o) => s + (o.type === "virement_client" ? o.montant : o.type === "prelevement_client" ? -o.montant : 0), 0);
+    return { entete: enteteDocument(), client: ficheClient(c.tiersId), compte: { id: c.id, numero: c.numero, produit: c.intitule, devise: c.devise, agence: E.agence.nom },
+      du, au, report, lignes, totalDebit: td, totalCredit: tc, soldeFin: solde, montantBloque: c.bloque ?? 0, soldeComptable: comptable, soldeIndicatif: comptable + attente };
+  },
+  situation(tiersId: number, date: string) {
+    exiger(); controlerMasques();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date ?? "")) throw new ErreurMetier("À remplir : date.");
+    if (!E.tiers.some((t) => t.id === tiersId)) throw new ErreurMetier("À remplir : Numéro Client.");
+    const soldeAu = (contrat: string, devise: Devise) => E.ecritures.filter((e) => dateJournee(e.journeeId) <= date)
+      .flatMap((e) => e.lignes).filter((l) => l.contrat === contrat && l.devise === devise).reduce((s, l) => s + (l.sens === "C" ? l.montant : -l.montant), 0);
+    const comptes = E.comptes.filter((c) => c.tiersId === tiersId).sort((a, b) => a.numero.localeCompare(b.numero)).map((c) => {
+      const s = soldeAu(`depot:${c.id}`, c.devise);
+      return { compte: c.numero, intitule: `${c.intitule} ${c.devise}`, devise: c.devise as string, debit: s < 0 ? -s : 0, credit: s > 0 ? s : 0 };
+    });
+    const parts = soldeAu(`parts:${tiersId}`, "CDF");
+    if (parts) comptes.push({ compte: "Parts sociales", intitule: "Parts sociales CDF", devise: "CDF", debit: parts < 0 ? -parts : 0, credit: parts > 0 ? parts : 0 });   // S64-4
+    return { entete: enteteDocument(), client: ficheClient(tiersId), date, comptes };
+  },
+};
+
 const banques = {
   lire() {
     exiger();
@@ -3437,6 +3489,7 @@ const apiLocal = {
   chequiers: asynchrone(chequiers, "chequiers"),
   emprunts: asynchrone(emprunts, "emprunts"),
   comptesEpargne: asynchrone(comptesEpargne, "comptesEpargne"),
+  releves: asynchrone(releves, "releves"),
   banques: asynchrone(banques, "banques"),
   guichets: asynchrone(guichets, "guichets"),
   exercices: asynchrone(exercices, "exercices"),

@@ -39,6 +39,7 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/banque/emprunts.*", ["S61"]),
     (r"/banque/rapport.*", ["S62"]),
     (r"/epargne/comptes.*", ["S63"]),
+    (r"/epargne/(releve|situation).*", ["S64"]),
     (r"/caisses", ["S09"]),
     (r"/caisses/\d+/billetages", ["S79"]),
     (r"/billetages/\d+/validation", ["S80"]),

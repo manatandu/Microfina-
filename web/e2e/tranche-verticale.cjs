@@ -610,6 +610,17 @@ const OUT = process.argv[2];
   await p.getByLabel('N° du compte : *').and(p.locator('[value$="-05"]')).waitFor(); await etape('06c18-nouveau-compte');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
   await p.getByRole('cell', { name: /-05$/ }).waitFor(); await etape('06c19-nouveau-compte-liste');
+  // Relevé de compte (S64) : le compte CDF de Kalala, puis sa situation
+  await aller('/epargne/s64'); await p.getByRole('heading', { name: 'Relevé de compte' }).waitFor();
+  await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  const rrc = p.getByRole('dialog', { name: "Recherche d'un client" });
+  await rrc.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rrc.getByRole('row').filter({ hasText: 'Kalala' }).first().dblclick();
+  await p.getByLabel('Numéro de compte :').selectOption({ label: '0412-000318-02' });
+  await p.getByLabel('Solde comptable :').and(p.locator('[value*="CDF"]')).waitFor(); await etape('06c20-releve-criteres');
+  await p.getByRole('button', { name: 'Relever Compte' }).click(); await p.getByRole('dialog', { name: 'Relevé de COMPTE EPARGNE' }).getByText('Montant bloqué').waitFor();
+  await etape('06c21-releve'); await p.getByRole('dialog', { name: 'Relevé de COMPTE EPARGNE' }).getByRole('button', { name: 'Fermer' }).click();
+  await p.getByRole('button', { name: 'Situation du client' }).click(); await p.getByRole('dialog', { name: 'Situation du client' }).getByText('N° SFD').waitFor();
+  await etape('06c22-situation-client'); await p.getByRole('dialog', { name: 'Situation du client' }).getByRole('button', { name: 'Fermer' }).click();
   await login('Esther Ngalula');
   // Apurement avant la résiliation (registre S48-1) : Lukusa retire tout son solde (85 000 CDF)
   await aller('/caisse/s74?op=retrait'); await client('Lukusa'); await p.getByLabel('N° compte').selectOption({ label: '0412-000320-02' });

@@ -78,7 +78,7 @@ S60,"Chèque institution : générer chéquier, chèque pour crédit",69,B,liste
 S61,"Emprunts bancaires : mise en place, remboursement","70 et 71 (deux captures, sans texte)",B,guichet,"règles (échéances, intérêts, écritures)",R:PCCI (emprunts) ; P,4 Banque,oui
 S62,Rapports banque,71,B,rapport,forme du résultat,A:S13,4 Banque,oui
 S63,Nouveau compte,"72 (texte), 73",A,liste,,,5 Épargne,oui
-S64,"Relevé de compte, situation du client",73 et 74 (trois captures),A,rapport,,,5 Épargne,non
+S64,"Relevé de compte, situation du client",73 et 74 (trois captures),A,rapport,,,5 Épargne,oui
 S65,DAT : mise en place,75 et 76,A,guichet,,R:PCCI (dépôts à terme),5 Épargne,non
 S66,DAT : validation,76,A,visa,contrat imprimé,document,5 Épargne,non
 S67,DAT : rupture,"76 (texte), 77",A,traitement,calcul de la pénalité,M:taux de pénalité de S65 ; P,5 Épargne,non

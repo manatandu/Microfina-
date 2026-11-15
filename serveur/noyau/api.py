@@ -14,6 +14,7 @@ from . import cheques_clients as chq
 from . import chequiers as chqr
 from . import emprunts as emp
 from . import comptes_epargne as cep
+from . import releves as rel
 from . import guichets as gu
 from . import exercices as ex
 from . import listes as li
@@ -580,6 +581,16 @@ def epargne_compte_apercu(request, tiersId: int, produitId: int):
 @api.post("/epargne/comptes")
 def epargne_compte_ouvrir(request, corps: dict = Body(...)):
     return cep.ouvrir(u(request), corps)
+
+
+@api.get("/epargne/releve")
+def epargne_releve(request, compteId: int, du: str, au: str):
+    return rel.releve(u(request), compteId, du, au)
+
+
+@api.get("/epargne/situation")
+def epargne_situation(request, tiersId: int, date: str):
+    return rel.situation(u(request), tiersId, date)
 
 
 @api.get("/banque/adhesions/apercu")
