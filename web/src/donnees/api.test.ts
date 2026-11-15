@@ -193,6 +193,25 @@ describe("journée de guichet", () => {
     expect([v.statut, v.admissionLe, v.admissionReference]).toEqual(["actif", "2026-11-04", "PV CA n° 12/2026"]);
   });
 
+  it("centrale des incidents de paiement (écart E06) : ouvertures et nouveaux clients à déclarer sous deux jours ouvrables, déclaration, ICU", async () => {
+    await journeeOuverte();
+    await connecter("bkasongo");
+    const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), ...IDENTITE, produitCode: "EAV-CDF", nom: "Kasa", postnom: "Lufu", prenom: "Rita", naissance: "1993-07-01",
+      pieceType: "Carte d'électeur", pieceNumero: "1-0412-0666", pieceExpire: "2031-01-01", adresse: "Matete" });
+    await expect(api.conformite.cip("2026-01-01", "2026-12-31")).rejects.toThrow("Droit manquant");
+    await connecter("jpmukendi");
+    await api.tiers.viser(t.id);
+    const l = await api.conformite.cip("2026-11-01", "2026-11-30", "a_declarer");
+    const nc = l.find((e) => e.type === "nouveau_client" && e.tiersId === t.id)!;
+    expect([nc.date, nc.echeance, nc.icu]).toEqual(["2026-11-05", "2026-11-09", ""]);   // jeudi 5 novembre : échéance le lundi 9
+    await expect(api.conformite.declarerCip({ evenements: [{ type: nc.type, objetId: nc.objetId }], date: "2026-11-04", reference: "CIP-1" })).rejects.toThrow("précède");
+    await api.conformite.declarerCip({ evenements: [{ type: nc.type, objetId: nc.objetId }], date: "2026-11-05", reference: "CIP-1" });
+    await expect(api.conformite.declarerCip({ evenements: [{ type: nc.type, objetId: nc.objetId }], date: "2026-11-05", reference: "CIP-2" })).rejects.toThrow("déjà déclaré");
+    expect((await api.conformite.cip("2026-11-01", "2026-11-30", "declare")).map((e) => [e.membre, e.reference])).toEqual([[t.numero, "CIP-1"]]);
+    await api.conformite.noterIcu(t.id, { icu: "ICU-0001" });
+    await expect(api.conformite.noterIcu(1, { icu: "ICU-0001" })).rejects.toThrow("déjà noté");
+  });
+
   it("refuse ce qui doit l'être", async () => {
     await journeeOuverte();
     await expect(api.guichet.retrait({ cle: cle(), compteId: 3, montant: 60000, coupures: { 100: 6 } })).rejects.toThrow("solde disponible");

@@ -486,6 +486,15 @@
   "chemin": "/clients/sc01"
  },
  {
+  "id": "SC02",
+  "nom": "Centrale des incidents de paiement",
+  "acces": "Client > Conformité > Centrale des incidents",
+  "but": "Lister ce qui se déclare à la Centrale des incidents de paiement dans les deux jours ouvrables, noter la déclaration et l'identifiant client unique (écart E06 ; Instr. BCC 52, art. 10 à 15)",
+  "module": "clients",
+  "priorite": "must",
+  "chemin": "/clients/sc02"
+ },
+ {
   "id": "S52",
   "nom": "Opérations de banque",
   "acces": "Banque > Opération",

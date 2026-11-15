@@ -17,6 +17,7 @@ from . import comptes_epargne as cep
 from . import releves as rel
 from . import depots_terme as dat
 from . import conformite as conf
+from . import cip
 from . import guichets as gu
 from . import exercices as ex
 from . import listes as li
@@ -1313,3 +1314,19 @@ def conformite_ppe_informer(request, tid: int, corps: dict = Body(...)):
 @api.get("/conformite/examens/{eid}/rapport")
 def conformite_rapport(request, eid: int):
     return conf.rapport(u(request), eid)
+
+
+# ---------- Écart E06 : Centrale des incidents de paiement (Instr. BCC 52, art. 10 à 15) ----------
+@api.get("/conformite/cip")
+def cip_evenements(request, du: str = "", au: str = "", statut: str = ""):
+    return cip.evenements(u(request), du, au, statut)
+
+
+@api.post("/conformite/cip/declarations")
+def cip_declarer(request, corps: dict = Body(...)):
+    return cip.declarer(u(request), corps)
+
+
+@api.post("/conformite/cip/icu/{tid}")
+def cip_icu(request, tid: int, corps: dict = Body(...)):
+    return cip.noter_icu(u(request), tid, corps)

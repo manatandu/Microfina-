@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**375 décisions.** Solidité : 139 fortes (le manuel ou un texte répond), 204 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 347 déjà en place, 28 à appliquer.
+**377 décisions.** Solidité : 140 fortes (le manuel ou un texte répond), 205 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 348 déjà en place, 29 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -855,6 +855,13 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | E05-1 | Au visa | COOPEC et faîtière : le visa (S40) note la date et la référence de la décision du Conseil d'Administration ; si le Conseil a délégué l'admission, sa décision est notée une fois dans Info société (S32) et le visa la reprend. La demande d'adhésion imprimée montre la décision. IMF : sans objet | Texte réglementaire : Loi 002/2002, art. 22, 6° ; AUSCOOP, art. 10 | forte | en place |
+
+## E06 Centrale des incidents de paiement
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E06-1 | Déclarations et ICU | Client > Conformité > Centrale des incidents : ouvertures et clôtures de comptes, nouveaux clients (date du visa), clients modifiés (date de la validation), avec l'échéance de deux jours ouvrables (lundi à vendredi) et le retard ; date et référence de la déclaration notées ; ICU noté par client ; export. Droit SC02 au chef d'agence, lecture réservée | Texte réglementaire : Instr. BCC 52, art. 10, 13, 14 et 15 | forte | en place |
+| E06-2 | Reste à faire | Consultation préalable du sous-registre clients et comptes avant l'ouverture d'un compte (art. 13) ; jours fériés retirés de l'échéance ; incidents de paiement sur chèques émis par les clients (art. 18, 29 à 33, avec l'écart E13). Sans interface de la BCC connue, la consultation se noterait à la main | Texte réglementaire : Instr. BCC 52, art. 13, 18, 29 à 33 | moyenne | à appliquer |
 
 ## Les décisions faibles, à regarder en premier
 

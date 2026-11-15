@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v67";
+const CLE = "likelemba-demo-v68";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -713,7 +713,7 @@ const tiers = {
     const ouvertes = E.modifications.filter((m) => m.tiersId === id && !m.validePar);
     if (ouvertes.some((m) => m.modifiePar === u.id)) throw new ErreurMetier("Quatre yeux : la validation vient d'une autre personne que celle qui a modifié.");
     exigerAutorisationPpe(t.id);   // écart E02 : Instr. BCC 15, art. 64
-    ouvertes.forEach((m) => { m.validePar = u.id; });
+    const jv = journees.courante(); ouvertes.forEach((m) => { m.validePar = u.id; m.valideLe = jv?.statut === "ouverte" ? jv.date : new Date().toISOString().slice(0, 10); });
     t.statut = "actif"; enregistrer(); return t;
   },
   comptes(tiersId: number) {
@@ -1982,7 +1982,7 @@ const guichet = {
     const mParts = p.parts * valeurPart(), total = mParts + p.depot + frais.reduce((x, f) => x + (f.montant ?? 0), 0);
     controlerCoupures(p.coupures, total, "CDF");
     const examen = autorisationExamen(t.id, s.journeeId, "adhesion", total, "CDF");   // écart E01 : examen renforcé
-    const cCdf: CompteDepot = { id: E.comptes.length + 1, tiersId: t.id, numero: numeroCompte(t.numero, produit), intitule: produit.libelle, pcci: compteDuProduit(produit), devise: "CDF", bloque: 0, produitId: produit.id };   // S27-2, S28-2
+    const cCdf: CompteDepot = { id: E.comptes.length + 1, tiersId: t.id, numero: numeroCompte(t.numero, produit), intitule: produit.libelle, pcci: compteDuProduit(produit), devise: "CDF", bloque: 0, produitId: produit.id, ouvertLe: dateJournee(s.journeeId) };   // S27-2, S28-2
     E.comptes.push(cCdf);
     const lignes: Ligne[] = [{ compte: "570", contrat: guichetDe(s), sens: "D", devise: "CDF", montant: total, montantCdf: total }];
     if (mParts) lignes.push({ compte: compteParts(t), contrat: `parts:${t.id}`, sens: "C", devise: "CDF", montant: mParts, montantCdf: mParts });   // COOPEC seulement
@@ -2194,6 +2194,54 @@ const ppe = {
     x.informeLe = d.date; x.referenceCenaref = d.reference.trim(); enregistrer(); return vuePpe(t);
   },
 };
+// Écart E06 : Centrale des incidents de paiement (Instr. BCC 52, art. 10 à 15). Mêmes règles que noyau/cip.py.
+const TYPES_CIP: Record<string, string> = { ouverture_compte: "Ouverture de compte", cloture_compte: "Clôture de compte", nouveau_client: "Nouveau client", modification_client: "Client modifié" };
+/** Deux jours ouvrables après l'événement, du lundi au vendredi */
+function echeanceCip(iso: string) { const d = new Date(`${iso}T00:00:00Z`); let n = 0; while (n < 2) { d.setUTCDate(d.getUTCDate() + 1); if (d.getUTCDay() % 6 !== 0) n++; } return d.toISOString().slice(0, 10); }
+function evenementsCip() {
+  const ev: { type: string; objetId: number; date: string; tiersId: number; compte: string; produit: string; devise: string }[] = [];
+  for (const c of E.comptes) if (c.ouvertLe) { const p = E.produits.find((x) => x.id === c.produitId); ev.push({ type: "ouverture_compte", objetId: c.id, date: c.ouvertLe, tiersId: c.tiersId, compte: c.numero, produit: p?.libelle ?? c.intitule, devise: c.devise }); }
+  for (const t of E.tiers) if (t.dateVisa) ev.push({ type: "nouveau_client", objetId: t.id, date: t.dateVisa, tiersId: t.id, compte: "", produit: "", devise: "" });
+  for (const m of E.modifications) if (m.valideLe) ev.push({ type: "modification_client", objetId: m.id, date: m.valideLe, tiersId: m.tiersId, compte: "", produit: "", devise: "" });
+  return ev.sort((a, b) => a.date.localeCompare(b.date) || a.type.localeCompare(b.type) || a.objetId - b.objetId);
+}
+const CATEGORIES_CIP: Record<string, string> = { physique: "Personne physique", morale: "Personne morale", groupe: "Groupe" };
+const cip = {
+  evenements(du: string, au: string, statut = "") {
+    lectureAdmin(["SC02"]);
+    for (const [v, nom] of [[du, "Du"], [au, "Au"]] as const) if (!/^\d{4}-\d{2}-\d{2}$/.test(v ?? "")) throw new ErreurMetier(`À remplir : ${nom}.`);
+    if (!["", "a_declarer", "declare"].includes(statut)) throw new ErreurMetier("Statut inconnu.");
+    const j = journees.courante(); const jour = j?.date ?? new Date().toISOString().slice(0, 10);
+    return evenementsCip().filter((e) => e.date >= du && e.date <= au).flatMap((e) => {
+      const dc = E.declarationsCip.find((x) => x.type === e.type && x.objetId === e.objetId);
+      if ((statut === "declare" && !dc) || (statut === "a_declarer" && dc)) return [];
+      const t = E.tiers.find((x) => x.id === e.tiersId)!; const ech = echeanceCip(e.date);
+      return [{ type: e.type, typeLibelle: TYPES_CIP[e.type]!, objetId: e.objetId, date: e.date, echeance: ech, enRetard: !dc && jour > ech, tiersId: t.id, membre: t.numero,
+        client: titulaire(t), categorie: CATEGORIES_CIP[t.type]!, compte: e.compte, produit: e.produit, devise: e.devise, icu: t.icu ?? "", declareLe: dc?.declareLe ?? "", reference: dc?.reference ?? "" }];
+    });
+  },
+  declarer(d: { evenements: { type: string; objetId: number }[]; date: string; reference: string }) {
+    const u = exiger();
+    if (!Array.isArray(d.evenements) || !d.evenements.length) throw new ErreurMetier("Choisir au moins un événement à déclarer.");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d.date ?? "") || !(d.reference ?? "").trim()) throw new ErreurMetier("À remplir : date et référence de la déclaration.");
+    const j = journees.courante(); if (j && d.date > j.date) throw new ErreurMetier("La date de la déclaration ne peut pas dépasser la journée ouverte.");
+    const tous = evenementsCip();
+    for (const x of d.evenements) {
+      const e = tous.find((y) => y.type === x.type && y.objetId === x.objetId); if (!e) throw new ErreurMetier("Événement inconnu.");
+      if (d.date < e.date) throw new ErreurMetier("La déclaration précède l'événement.");
+      if (E.declarationsCip.some((y) => y.type === x.type && y.objetId === x.objetId)) throw new ErreurMetier("Événement déjà déclaré.");
+      E.declarationsCip.push({ type: x.type, objetId: x.objetId, dateEvenement: e.date, declareLe: d.date, reference: d.reference.trim(), declarePar: u.id });
+    }
+    enregistrer(); return d.evenements.map(({ type, objetId }) => ({ type, objetId }));
+  },
+  noterIcu(tid: number, d: { icu: string }) {
+    exiger();
+    const icu = (d.icu ?? "").trim(); if (!icu) throw new ErreurMetier("À remplir : ICU.");
+    const t = E.tiers.find((x) => x.id === tid); if (!t) throw new ErreurMetier("Client introuvable.");
+    if (E.tiers.some((x) => x.icu === icu && x.id !== tid)) throw new ErreurMetier("Cet ICU est déjà noté pour un autre client.");
+    t.icu = icu; enregistrer(); return { tiersId: tid, icu };
+  },
+};
 const conformite = {
   /** Le caissier transmet l'opération à la conformité : elle attend l'examen */
   demander(d: { cle: string; type: Examen["type"]; tiersId: number; compteId?: number | null; montant: number; devise: string; motif?: string }) {
@@ -2248,6 +2296,9 @@ const conformite = {
   },
   /** Instr. BCC 15, art. 62 : rapport écrit, strictement confidentiel */
   ppe: () => ppe.lister(),
+  cip: (du: string, au: string, statut = "") => cip.evenements(du, au, statut),
+  declarerCip: (d: Parameters<typeof cip.declarer>[0]) => cip.declarer(d),
+  noterIcu: (tid: number, d: { icu: string }) => cip.noterIcu(tid, d),
   enregistrerPpe: (tid: number, d: Parameters<typeof ppe.enregistrer>[1]) => ppe.enregistrer(tid, d),
   informerPpe: (tid: number, d: { date: string; reference: string }) => ppe.informer(tid, d),
   rapport(id: number) {

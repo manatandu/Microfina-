@@ -2115,3 +2115,22 @@ def test_convention_et_admission(clients, journee):
     assert r.status_code == 422 and "décision du Conseil d'Administration" in r.json()["message"]
     v = chef.post(f"/api/tiers/{t['id']}/visa", {"admissionLe": "2026-11-04", "admissionReference": "PV CA n° 12/2026"}, **H).json()
     assert (v["statut"], v["admissionLe"], v["admissionReference"]) == ("actif", "2026-11-04", "PV CA n° 12/2026")
+
+
+def test_centrale_incidents(clients, journee):
+    """Écart E06 : Instr. BCC 52, art. 10, 13, 15"""
+    agent, chef = clients["agent"], clients["chef"]
+    t = agent.post("/api/tiers", {**FICHE, "nom": "Kasa", "postnom": "Lufu", "prenom": "Rita", "naissance": "1993-07-01", "pieceType": "Carte d'électeur",
+                                  "pieceNumero": "1-0412-0666", "pieceExpire": "2031-01-01", "adresse": "Matete"}, **H).json()
+    assert agent.get("/api/conformite/cip?du=2026-01-01&au=2026-12-31", **H).status_code == 403
+    assert chef.post(f"/api/tiers/{t['id']}/visa", **H).status_code == 200
+    l = chef.get("/api/conformite/cip?du=2026-11-01&au=2026-11-30&statut=a_declarer", **H).json()
+    nc = next(e for e in l if e["type"] == "nouveau_client" and e["tiersId"] == t["id"])
+    assert (nc["date"], nc["echeance"], nc["icu"]) == ("2026-11-05", "2026-11-09", "")
+    ev = [{"type": nc["type"], "objetId": nc["objetId"]}]
+    assert "précède" in chef.post("/api/conformite/cip/declarations", {"evenements": ev, "date": "2026-11-04", "reference": "CIP-1"}, **H).json()["message"]
+    assert chef.post("/api/conformite/cip/declarations", {"evenements": ev, "date": "2026-11-05", "reference": "CIP-1"}, **H).status_code == 200
+    assert "déjà déclaré" in chef.post("/api/conformite/cip/declarations", {"evenements": ev, "date": "2026-11-05", "reference": "CIP-2"}, **H).json()["message"]
+    assert [(e["membre"], e["reference"]) for e in chef.get("/api/conformite/cip?du=2026-11-01&au=2026-11-30&statut=declare", **H).json()] == [(t["numero"], "CIP-1")]
+    assert chef.post(f"/api/conformite/cip/icu/{t['id']}", {"icu": "ICU-0001"}, **H).status_code == 200
+    assert "déjà noté" in chef.post(f"/api/conformite/cip/icu/{T('0412-000318')}", {"icu": "ICU-0001"}, **H).json()["message"]

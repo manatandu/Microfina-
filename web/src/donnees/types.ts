@@ -125,7 +125,8 @@ export interface Tiers {
   // S40, visa (manuel p. 52)
   intitule: string;
   dateVisa: string;
-  admissionLe?: string; admissionReference?: string;   // écart E05 : décision d'admission (loi 002/2002, art. 22, 6°)
+  admissionLe?: string; admissionReference?: string;
+  icu?: string;   // écart E06 : identifiant client unique de la BCC (Instr. BCC 52, art. 13)   // écart E05 : décision d'admission (loi 002/2002, art. 22, 6°)
 }
 
 export interface CompteDepot {
@@ -263,7 +264,8 @@ export interface Etat {
   frais: Frais[];
   paramOperations: ParamOperation[];
   paramAdhesion: ParamAdhesion[];
-  modifications: { id: number; tiersId: number; avant: Tiers; apres: Tiers; modifiePar: number; modifieLe: string; validePar?: number }[];   // S46, S42, S43
+  modifications: { id: number; tiersId: number; avant: Tiers; apres: Tiers; modifiePar: number; modifieLe: string; validePar?: number; valideLe?: string }[];
+  declarationsCip: { type: string; objetId: number; dateEvenement: string; declareLe: string; reference: string; declarePar: number }[];   // écart E06   // S46, S42, S43
   banques: { id: number; code: string; libelle: string; compteLiaison: string; adresse: string }[];   // S58
   budget: Record<string, LigneBudget[]>;
   credit: Record<string, LigneBudget[]>;

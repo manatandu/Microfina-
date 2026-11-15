@@ -551,6 +551,9 @@ const OUT = process.argv[2];
   await etape('10c-examen-renforce'); await fx.getByRole('button', { name: 'Autoriser' }).click(); await oui();
   await fx.getByRole('button', { name: 'Rapport' }).click(); await p.getByRole('article', { name: "Rapport d'examen renforcé" }).waitFor(); await etape('10d-rapport-examen');
   await p.getByRole('dialog', { name: "Rapport d'examen renforcé" }).getByRole('button', { name: 'Fermer' }).click(); await fx.getByRole('button', { name: 'Fermer' }).click();
+  // Centrale des incidents de paiement (écart E06) : les ouvertures et nouveaux clients du jour à déclarer, avec leur échéance
+  await aller('/clients/sc02'); await p.getByRole('heading', { name: 'Centrale des incidents de paiement' }).waitFor(); await p.getByRole('cell', { name: 'Nouveau client' }).first().waitFor();
+  await etape('10f-centrale-incidents');
   await login('Esther Ngalula'); await depotRenforce(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click(); await etape('10e-depot-autorise');
   await p.getByRole('tab', { name: 'Retrait en espèce' }).click(); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-01' });
   await p.getByLabel('Montant *').fill('1 500'); await p.getByLabel('Motif:').fill('Loyer');
