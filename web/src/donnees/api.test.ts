@@ -792,7 +792,7 @@ describe("journée de guichet", () => {
     await expect(api.depotsTerme.mettreEnPlace({ ...base, cle: cle(), tauxInteret: "abc" })).rejects.toThrow("Taux intérêt");
     await expect(api.depotsTerme.mettreEnPlace({ ...base, cle: cle(), montant: em.solde + 1 })).rejects.toThrow("disponible insuffisant");
     const k = cle(), x = await api.depotsTerme.mettreEnPlace({ ...base, cle: k });
-    expect([x.certificat, x.statut, x.montantInteret, x.montantAVerser, x.dateEcheance, x.compteInteret]).toEqual([1, "saisie", 75000, 1075000, "2027-11-05", "6121"]);
+    expect([x.certificat, x.statut, x.montantInteret, x.montantAVerser, x.dateEcheance, x.compteInteret]).toEqual([1, "saisie", 75000, 1075000, "2027-11-05", "6122"]);
     expect((await api.depotsTerme.mettreEnPlace({ ...base, cle: k })).id).toBe(x.id);
     expect((await api.depotsTerme.liste("saisie")).map((y) => y.id)).toEqual([x.id]);
     await expect(api.depotsTerme.valider(x.id)).rejects.toThrow("Droit manquant");   // l'agent n'a pas S66

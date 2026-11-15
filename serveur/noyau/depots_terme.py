@@ -34,8 +34,8 @@ def interet(montant: int, t: Decimal, mois: int) -> int:
 
 
 def compte_interet(mois: int) -> str:
-    """PCCI, compte 612 : 6121 plus de 12 mois, 6122 neuf mois au plus, 6124 six mois au plus (registre S65-4)"""
-    return "6124" if mois <= 6 else "6122" if mois <= 9 else "6121"
+    """PCCI, compte 612 : 6124 six mois au plus, 6122 neuf mois au plus, 6121 plus de 12 mois ; 10 à 12 mois en 6122, court terme comme les crédits d'un an au plus (PCCI, comptes 30 à 32 ; registre S65-4)"""
+    return "6124" if mois <= 6 else "6122" if mois <= 12 else "6121"
 
 
 def produits(u) -> list[dict]:
@@ -97,8 +97,8 @@ def mettre_en_place(u, d) -> dict:
     if not isinstance(montant, int) or isinstance(montant, bool) or montant <= 0:
         raise ErreurMetier("Montant : un montant supérieur à zéro.")
     mois = d.get("duree")
-    if not isinstance(mois, int) or isinstance(mois, bool) or not 1 <= mois <= 120:
-        raise ErreurMetier("Durée (Mois) : de 1 à 120 mois.")
+    if not isinstance(mois, int) or isinstance(mois, bool) or mois < 1:
+        raise ErreurMetier("Durée (Mois) : au moins 1 mois.")      # aucune durée maximale dans les textes (registre S65-8)
     ti, tp = taux(d, "tauxInteret", "Taux intérêt", 100), taux(d, "tauxPenalite", "Taux pénalité", 101)
     depot = texte(d, "dateDepot") or j["date"]
     if not re.match(r"^\d{4}-\d{2}-\d{2}$", depot):
@@ -107,7 +107,10 @@ def mettre_en_place(u, d) -> dict:
         raise ErreurMetier("La date de dépôt ne peut pas dépasser la journée ouverte.")
     if montant > disponible(em["id"], dev):
         raise ErreurMetier("Solde disponible insuffisant sur le compte émetteur.")
-    echeance = ajouter_mois(date.fromisoformat(depot), mois)
+    try:
+        echeance = ajouter_mois(date.fromisoformat(depot), mois)
+    except (ValueError, OverflowError):
+        raise ErreurMetier("Durée (Mois) : l'échéance tombe hors du calendrier.")
     certificat = int(valeur("select coalesce(max(certificat), 0) + 1 from depot_terme where institution_id = %s", (i,)))
     did = valeur("""insert into depot_terme (institution_id, agence_id, certificat, produit_id, tiers_id, compte_emetteur_id, compte_dat_id, montant, devise, duree_mois,
                                              taux_interet, taux_penalite, montant_interet, a_echeance, date_depot, date_echeance, observation, reconduction,

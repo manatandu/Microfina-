@@ -1603,7 +1603,7 @@ export const ajouterMois = (iso: string, n: number) => { const [a, m, j] = iso.s
   return `${an}-${String(mo).padStart(2, "0")}-${String(Math.min(j, der)).padStart(2, "0")}`; };
 /** Intérêt simple : montant × taux annuel × mois / 12, arrondi au centime (registre S65-3) */
 export const interetDat = (montant: number, taux: string, mois: number) => Math.round(montant * Number(taux.replace(",", ".")) / 100 * mois / 12);
-const compteInteretDat = (mois: number) => (mois <= 6 ? "6124" : mois <= 9 ? "6122" : "6121");   // PCCI, compte 612 (S65-4)
+const compteInteretDat = (mois: number) => (mois <= 6 ? "6124" : mois <= 12 ? "6122" : "6121");   // PCCI, compte 612 ; 10 à 12 mois en 6122, court terme (S65-4)
 const disponibleDat = (c: CompteDepot) => soldeContrat(`depot:${c.id}`, c.devise, "C") - (c.bloque ?? 0)
   - E.depotsTerme.filter((x) => x.compteEmetteurId === c.id && x.statut === "saisie").reduce((s, x) => s + x.montant, 0);
 const vueDat = (x: DepotTerme) => { const t = E.tiers.find((y) => y.id === x.tiersId); const num = (id: number) => E.comptes.find((c) => c.id === id)?.numero ?? "";
@@ -1638,7 +1638,7 @@ const depotsTerme = {
     if (duProduit(em, p) || em.id === dat.id) throw new ErreurMetier("N° Compte : le compte émetteur est un autre compte que le compte DAT.");
     if (em.devise !== p.devise) throw new ErreurMetier(`N° Compte : le compte émetteur doit être en ${p.devise}, comme le produit.`);
     if (!Number.isInteger(d.montant) || d.montant <= 0) throw new ErreurMetier("Montant : un montant supérieur à zéro.");
-    if (!Number.isInteger(d.duree) || d.duree < 1 || d.duree > 120) throw new ErreurMetier("Durée (Mois) : de 1 à 120 mois.");
+    if (!Number.isInteger(d.duree) || d.duree < 1) throw new ErreurMetier("Durée (Mois) : au moins 1 mois.");   // aucune durée maximale dans les textes (S65-8)
     const ti = lireTaux(d.tauxInteret, "Taux intérêt", 100), tp = lireTaux(d.tauxPenalite, "Taux pénalité", 101);
     const depot = d.dateDepot?.trim() || j.date;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(depot)) throw new ErreurMetier("À remplir : Date de dépôt.");

@@ -1971,10 +1971,14 @@ def test_depot_terme(clients, journee):
     cdat = agent.post("/api/epargne/comptes", {"cle": cle(), "tiersId": kalala, "produitId": pid}, **H).json()["id"]
     base = {"produitId": pid, "tiersId": kalala, "compteEmetteurId": em, "compteDatId": cdat, "montant": 1000000, "duree": 12, "tauxInteret": "7,5",
             "tauxPenalite": "2", "aEcheance": True, "dateDepot": "2026-11-05", "observation": "", "reconduction": False}
+    from noyau.depots_terme import compte_interet
+    assert [compte_interet(m) for m in (6, 7, 9, 10, 12, 13)] == ["6124", "6122", "6122", "6122", "6122", "6121"]   # registre S65-4
+    r = agent.post("/api/epargne/dat", {"cle": cle(), **base, "duree": 0}, **H)
+    assert r.status_code == 422 and "au moins 1 mois" in r.json()["message"]
     r = agent.post("/api/epargne/dat", {"cle": cle(), **base, "compteDatId": em}, **H)
     assert r.status_code == 422 and "Compte DAT" in r.json()["message"]
     x = agent.post("/api/epargne/dat", {"cle": cle(), **base}, **H).json()
-    assert (x["certificat"], x["statut"], x["montantInteret"], x["montantAVerser"], x["dateEcheance"], x["compteInteret"]) == (1, "saisie", 75000, 1075000, "2027-11-05", "6121")
+    assert (x["certificat"], x["statut"], x["montantInteret"], x["montantAVerser"], x["dateEcheance"], x["compteInteret"]) == (1, "saisie", 75000, 1075000, "2027-11-05", "6122")
     assert agent.post(f"/api/epargne/dat/{x['id']}/validation", **H).status_code == 403
     avant = ident("select coalesce(sum(case sens when 'C' then montant_devise else -montant_devise end), 0) from ligne_ecriture where contrat_ref = %s", (f"depot:{em}",))
     rv = chef.post(f"/api/epargne/dat/{x['id']}/validation", **H)
