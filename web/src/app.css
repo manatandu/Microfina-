@@ -517,6 +517,8 @@ select.saisie { max-width: 100%; }
   /* Instr. BCC 40, art. 5 : police d'au moins 12 sur les documents remis au client */
   .releve-std { padding: 0; font-size: 12pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .releve-detail th, .releve-pied, .releve-pied strong, .releve-num, .releve-client strong, .releve-logo span { font-size: 12pt; } .releve-titre { font-size: 14pt; } .releve-logo strong { font-size: 18pt; }
+  .releve-detail col.c-date, .releve-detail col.c-valeur { width: 14.5%; } .releve-detail col.c-desc { width: 16%; } .releve-detail col.c-ref { width: 9%; } .releve-detail col.c-montant { width: 15.33%; }
+  .releve-detail th, .releve-detail td { padding: 3px 4px; } .releve-detail td:nth-child(1), .releve-detail td:nth-child(4) { white-space: nowrap; }
   .releve-detail thead { display: table-header-group; }
   .releve-detail tr { break-inside: avoid; }
   @page { margin: 12mm 10mm 14mm; @bottom-center { content: counter(page); font-family: system-ui, Arial, sans-serif; font-size: 12pt; } }
