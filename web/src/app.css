@@ -485,34 +485,40 @@ select.saisie { max-width: 100%; }
 /* Filtres de colonne : 16 px aussi sous le doigt (ils sont définis plus haut en taille dense) */
 @media (pointer: coarse) { .grille tr.filtres .saisie { font-size: 16px; } }
 
-/* ---------- S64 : relevé de compte au modèle standard (registre S64-7) : forme d'un relevé bancaire, identité de l'institution cliente ---------- */
-.releve-std { display: grid; gap: var(--espace-4); background: var(--feuille); color: var(--encre); padding: var(--espace-5); font-size: var(--taille-dense); }
-.releve-tete { display: grid; grid-template-columns: auto 1fr auto; gap: var(--espace-4); align-items: center; }
-.releve-num { margin: 0; font-weight: 600; }
-.releve-titre { margin: 0; justify-self: center; padding: var(--espace-2) var(--espace-6); border: 1px solid var(--encre); font-size: var(--taille-titre); letter-spacing: .04em; }
-.releve-logo { display: grid; justify-items: end; gap: 2px; text-align: right; }
-.releve-logo img { max-height: 56px; max-width: 180px; object-fit: contain; }
-.releve-logo strong { font-size: 1.5rem; color: var(--tampon); }
-.releve-logo span { color: var(--encre-2); }
-.releve-haut { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--espace-6); align-items: start; }
+/* ---------- S64 : relevé de compte au modèle standard (registre S64-7) : forme d'un relevé bancaire, identité de l'institution cliente ----------
+   Typographie d'un relevé bancaire (demande du porteur, 15/11/2026) : police de bureau sans empattement, petite et serrée, chiffres dans la même police. */
+.releve-std { --releve-police: Arial, "Helvetica Neue", Helvetica, "Liberation Sans", sans-serif;
+  display: grid; gap: 10px; background: var(--feuille); color: var(--encre); padding: 18px; font-family: var(--releve-police); font-size: 11px; line-height: 1.3; }
+.releve-std .chiffres, .releve-std .montant { font-family: var(--releve-police); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.releve-tete { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; }
+.releve-num { margin: 0; font-size: 12px; }
+.releve-titre { margin: 0; justify-self: center; padding: 4px 28px; border: 1px solid var(--encre); font-family: var(--releve-police); font-size: 14px; font-weight: 400; letter-spacing: .03em; }
+.releve-logo { display: grid; justify-items: end; gap: 1px; text-align: right; }
+.releve-logo img { max-height: 44px; max-width: 160px; object-fit: contain; }
+.releve-logo strong { font-size: 20px; color: var(--tampon); }
+.releve-logo span { color: var(--encre-2); font-size: 10px; }
+.releve-haut { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
 .releve-synthese { border-collapse: collapse; width: 100%; }
-.releve-synthese th { text-align: left; font-weight: 600; background: var(--nuit); color: var(--nuit-fort); padding: 4px var(--espace-3); border-bottom: 1px solid var(--nuit-trait); white-space: nowrap; }
-.releve-synthese td { text-align: right; padding: 4px var(--espace-3); border-bottom: 1px solid var(--ligne); }
-.releve-client { font-style: normal; display: grid; gap: 2px; padding-top: var(--espace-4); }
-.releve-client strong { font-size: 1.05rem; margin-bottom: var(--espace-2); }
-.releve-detail { border-collapse: collapse; width: 100%; }
-.releve-detail th { background: var(--nuit); color: var(--nuit-fort); font-weight: 600; padding: var(--espace-2); text-align: left; }
-.releve-detail th.montant, .releve-detail td.montant { text-align: right; }
-.releve-detail td { padding: var(--espace-2); border-bottom: 1px solid var(--ligne); vertical-align: top; }
-.releve-detail td:nth-child(2) { overflow-wrap: anywhere; }
-.releve-pied { display: grid; gap: 2px; border-top: 2px solid var(--nuit); padding-top: var(--espace-2); color: var(--encre-2); font-size: 11px; }
-.releve-pied strong { color: var(--encre); }
+.releve-synthese th { text-align: left; font-weight: 700; background: var(--nuit); color: var(--nuit-fort); padding: 2px 6px; border-bottom: 1px solid var(--nuit-trait); white-space: nowrap; width: 42%; }
+.releve-synthese td { text-align: right; padding: 2px 6px; border-bottom: 1px solid var(--ligne); }
+.releve-client { font-style: normal; display: grid; gap: 1px; padding-top: 10px; font-weight: 700; }
+.releve-client strong { font-size: 12px; margin-bottom: 6px; }
+.releve-detail { border-collapse: collapse; width: 100%; table-layout: fixed; }
+.releve-detail col.c-date { width: 13%; } .releve-detail col.c-desc { width: 27%; } .releve-detail col.c-ref { width: 12%; } .releve-detail col.c-valeur { width: 12%; }
+.releve-detail col.c-montant { width: 12%; }
+.releve-detail th { background: var(--nuit); color: var(--nuit-fort); font-weight: 700; padding: 4px; text-align: center; font-size: 10.5px; line-height: 1.2; }
+.releve-detail td { padding: 3px 4px; border-bottom: 1px solid var(--ligne); vertical-align: middle; text-align: center; }
+.releve-detail td.montant { text-align: right; }
+.releve-detail td:nth-child(2) { text-align: left; overflow-wrap: anywhere; }
+.releve-pied { display: grid; gap: 1px; border-top: 1px solid var(--nuit); padding-top: 4px; color: var(--encre-2); font-size: 9px; }
+.releve-pied strong { color: var(--tampon); font-size: 9.5px; }
 @media (max-width: 720px) { .releve-tete, .releve-haut { grid-template-columns: minmax(0, 1fr); } .releve-titre { justify-self: start; } .releve-logo { justify-items: start; text-align: left; } }
 @media print {
-  .releve-std { padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .releve-std { padding: 0; font-size: 8.5pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .releve-detail th { font-size: 8pt; } .releve-pied { font-size: 7pt; } .releve-titre { font-size: 11pt; }
   .releve-detail thead { display: table-header-group; }
   .releve-detail tr { break-inside: avoid; }
-  @page { margin: 14mm 12mm 16mm; @bottom-center { content: counter(page); font-size: 10px; } }
+  @page { margin: 12mm 10mm 14mm; @bottom-center { content: counter(page); font-family: Arial, sans-serif; font-size: 8pt; } }
 }
 /* Cadre d'impression (lib/imprimer.ts) : le document seul, dans le flux, pour qu'il se répartisse sur plusieurs pages */
 .impression { background: var(--feuille); margin: 0; }

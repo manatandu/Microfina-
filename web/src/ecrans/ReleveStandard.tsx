@@ -38,6 +38,7 @@ export function ReleveStandard({ r }: { r: ReleveEdite }) {
         </address>
       </div>
       <table className="releve-detail">
+        <colgroup><col className="c-date" /><col className="c-desc" /><col className="c-ref" /><col className="c-valeur" /><col className="c-montant" /><col className="c-montant" /><col className="c-montant" /></colgroup>
         <thead><tr><th scope="col">Date de transaction</th><th scope="col">Description</th><th scope="col">Référence</th><th scope="col">Date de valeur</th>
           <th scope="col" className="montant">Débit</th><th scope="col" className="montant">Crédit</th><th scope="col" className="montant">Solde</th></tr></thead>
         <tbody>
