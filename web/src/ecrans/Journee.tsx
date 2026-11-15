@@ -30,7 +30,7 @@ export function EcranJournee() {
       <h1>Ouverture de journée</h1>
       <section className="bloc pile" aria-label="Ouverture de journée">
         <div className="grille-cadres quatre">
-          <Champ libelle="Dernière journée ouverte">{(p) => <input {...p} className="saisie code" readOnly value={liste[0] ? fr(liste[0].date) : ""} />}</Champ>
+          <Champ libelle="Dernière journée ouverte">{(p) => <input {...p} className="saisie date" readOnly value={liste[0] ? fr(liste[0].date) : ""} />}</Champ>
           <ChampDate libelle="Date à ouvrir" valeur={date} onChange={setDate} aide="" />
         </div>
         <div className="actions-onglets">

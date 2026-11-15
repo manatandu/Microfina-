@@ -131,7 +131,7 @@ export function OuvertureFermetureGuichets() {
             </tbody>
           </table></div>
           <div className="grille-cadres quatre">
-            <Champ libelle="Dernière journée ouverte">{(p) => <input {...p} className="saisie code" readOnly value={donnees.derniereJournee ? fr(donnees.derniereJournee) : ""} />}</Champ>
+            <Champ libelle="Dernière journée ouverte">{(p) => <input {...p} className="saisie date" readOnly value={donnees.derniereJournee ? fr(donnees.derniereJournee) : ""} />}</Champ>
             <Champ libelle="Journée ouverte à associer">{(p) => <select {...p} className="saisie" value={journee || donnees.journeesOuvertes[0]?.id || ""} onChange={(e) => setJournee(Number(e.target.value))}>
               {donnees.journeesOuvertes.map((j) => <option key={j.id} value={j.id}>{fr(j.date)}</option>)}</select>}</Champ>
           </div>

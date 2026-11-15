@@ -58,7 +58,7 @@ export function VisaClient() {
             </div>
             <Champ libelle="Intitulé : *">{(p) => <input {...p} className="saisie" required readOnly={!t || vise} autoComplete="off" value={intitule} onChange={(e) => setIntitule(e.target.value)} />}</Champ>
             <Champ libelle={`Prémier dépôt :${t ? ` (${deviseDe(ctx, t)})` : ""}`}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" readOnly={!t || vise} autoComplete="off" value={depot} onChange={(e) => setDepot(e.target.value)} />}</Champ>
-            <Champ libelle="Date Demande *">{(p) => <input {...p} className="saisie code" readOnly value={t ? fr(t.dateDemande) : ""} />}</Champ>
+            <Champ libelle="Date Demande *">{(p) => <input {...p} className="saisie date" readOnly value={t ? fr(t.dateDemande) : ""} />}</Champ>
             <ChampDate libelle="Date Visa *" valeur={dateVisa} onChange={setDateVisa} requis />
           </fieldset>
           <fieldset className="pile cadre-champs">
@@ -177,10 +177,10 @@ export function ModificationFrais() {
               <Champ libelle="Numéro du Client :">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
               <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
             </div>
-            <Champ libelle="Date Visa *">{(p) => <input {...p} className="saisie code" readOnly value={t ? fr(t.dateVisa) : ""} />}</Champ>
+            <Champ libelle="Date Visa *">{(p) => <input {...p} className="saisie date" readOnly value={t ? fr(t.dateVisa) : ""} />}</Champ>
             <Champ libelle="Nom ou Raison sociale :">{(p) => <Lecture {...p} value={t ? t.intitule || nomComplet(t) : ""} />}</Champ>
             <Champ libelle="Prémier dépôt:">{(p) => <input {...p} className="saisie montant" readOnly value={t ? montant(t.premierDepot, deviseDe(ctx, t)) : ""} />}</Champ>
-            <Champ libelle="Date Demande *">{(p) => <input {...p} className="saisie code" readOnly value={t ? fr(t.dateDemande) : ""} />}</Champ>
+            <Champ libelle="Date Demande *">{(p) => <input {...p} className="saisie date" readOnly value={t ? fr(t.dateDemande) : ""} />}</Champ>
           </fieldset>
           <fieldset className="pile cadre-champs">
             <legend>Liste des Frais liés</legend>

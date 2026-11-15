@@ -116,7 +116,7 @@ export function GroupeSolidaire() {
               </div>
               <Champ libelle="Intitulé :">{(p) => <Lecture {...p} value={client ? client.intitule || nomComplet(client) : ""} />}</Champ>
               <Champ libelle="Categorie :">{(p) => <Lecture {...p} value={client?.typeClient ?? ""} />}</Champ>
-              <Champ libelle="Né (e) le :">{(p) => <input {...p} className="saisie code" readOnly value={client ? fr(client.naissance) : ""} />}</Champ>
+              <Champ libelle="Né (e) le :">{(p) => <input {...p} className="saisie date" readOnly value={client ? fr(client.naissance) : ""} />}</Champ>
               <div className="actions-onglets">
                 <button className="bouton" type="button" disabled={!client || !groupeId} onClick={() => {
                   if (!client) return;

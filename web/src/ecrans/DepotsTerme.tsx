@@ -101,7 +101,7 @@ export function MiseEnPlaceDat() {
             <p>Montant intérêt : <strong className="chiffres">{montant(interet, dev)}</strong></p>
             <p>Montant à verser : <strong className="chiffres">{montant((m ?? 0) + interet, dev)}</strong></p>
             <ChampDate libelle="Date de dépôt : *" valeur={depot} onChange={(v) => maj({ depot: v })} requis />
-            <Champ libelle="Date échéance :">{(pp) => <input {...pp} className="saisie code" readOnly value={echeance ? fr(echeance) : ""} />}</Champ>
+            <Champ libelle="Date échéance :">{(pp) => <input {...pp} className="saisie date" readOnly value={echeance ? fr(echeance) : ""} />}</Champ>
           </fieldset>
           <fieldset className="pile cadre-champs">
             <legend>Autres infos</legend>
@@ -299,7 +299,7 @@ export function RuptureDat() {
             </div>
             <ChampDate libelle="Date demande :" valeur={demande || dr} onChange={setDemande} />
             <p>Durée prêt : <strong className="chiffres">{x ? `${x.duree} Mois` : "Mois"}</strong></p>
-            <Champ libelle="Date échéance :">{(pp) => <input {...pp} className="saisie code" readOnly value={x ? fr(x.dateEcheance) : ""} />}</Champ>
+            <Champ libelle="Date échéance :">{(pp) => <input {...pp} className="saisie date" readOnly value={x ? fr(x.dateEcheance) : ""} />}</Champ>
             <p>Montant du DAT : <strong className="chiffres">{mt(x?.montant)}</strong></p>
             <p>Produit : <strong>{x?.produit ?? ""}</strong></p>
           </fieldset>
