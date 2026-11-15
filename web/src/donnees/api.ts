@@ -975,7 +975,8 @@ const rapports = {
 const NOSTRI: Record<string, string> = { "5600": "Organe faîtier", "5601": "Banque et autres intermédiaires financiers", "5602": "Coopérative d'Epargne et de Crédit",
   "5603": "Institution de Micro Finance" };
 export type SaisieBanque = { code: string; libelle: string; compteLiaison: string; adresse: string };
-export type SaisieCompteBancaire = { banqueId: number; compte: string; numeroBancaire: string; devise: string; journalId: number; contactNom: string; contactNomComplet: string; contactTelephone: string };
+export type SaisieCompteBancaire = { banqueId: number; compte: string; numeroBancaire: string; devise: string; journalId: number; contactNom: string; contactNomComplet: string; contactTelephone: string;
+  comptePenalite?: string; contactAdresse?: string };   // registre S58-3
 // ---------- Info de base > Client > Général : moteur des listes simples (S14, S14a à S14n ; COMPLEMENTS § 7.2).
 // Règles identiques côté serveur (noyau/listes.py). ----------
 export interface FicheListe { liste: string; ecran: string; titre: string; code: string; libelle: string; colonne: string; parent?: string;
@@ -1480,6 +1481,13 @@ const emprunts = {
   },
 };
 
+/** T16 : un compte saisi existe dans le plan de comptes (S102), saisissable et ouvert ; identique côté serveur (banques.compte_du_plan) */
+function controlerCompteDuPlan(numero: string, quoi: string) {
+  const c = [...PCCI.comptes.map((x) => ({ numero: x.numero, ouvert: true, saisissable: true })), ...E.comptesInstitution,
+    ...E.comptesBancaires.map((x) => ({ numero: x.compte, ouvert: true, saisissable: true }))].find((x) => x.numero === numero);
+  if (!c) throw new ErreurMetier(`${quoi} : ${numero} n'est pas un compte du plan (Comptabilité > Plan des comptes).`);
+  if (!(c.saisissable && c.ouvert)) throw new ErreurMetier(`${quoi} : ${numero} est fermé ou non saisissable.`);
+}
 const banques = {
   lire() {
     exiger();
@@ -1493,6 +1501,7 @@ const banques = {
     const manque = manquants([["code banque", v.code], ["libellé", v.libelle], ["compte liaison", v.compteLiaison]]);
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
     if (!/^\d+$/.test(v.compteLiaison)) throw new ErreurMetier("Compte liaison : chiffres seulement.");
+    controlerCompteDuPlan(v.compteLiaison, "Compte liaison");   // registre S58-1 (T16)
     if (E.banques.some((b) => b.code === v.code && b.id !== id)) throw new ErreurMetier("Ce code banque existe déjà.");
     if (id === undefined) E.banques.push({ id: prochain(E.banques), ...v }); else Object.assign(E.banques.find((b) => b.id === id)!, v);
     enregistrer(); return banques.lire();
@@ -1514,12 +1523,14 @@ const banques = {
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
     if (!/^560[0-3]\d*$/.test(v.compte)) throw new ErreurMetier("Compte : sous-compte de 560 « Comptes NOSTRI disponible » (PCCI, compte 56), par exemple 5601….");
     if (!E.devises.some((x) => x.code === v.devise)) throw new ErreurMetier("Devise inconnue.");   // S35
+    const comptePenalite = (d.comptePenalite ?? "").trim();   // registre S58-3 : texte p. 67
+    if (comptePenalite) controlerCompteDuPlan(comptePenalite, "Compte de pénalité");
     if (!journauxActifs("banque").some((j) => j.id === d.journalId)) throw new ErreurMetier("Journal de banque inconnu.");
     if (E.comptesBancaires.some((c) => c.banqueId === banque!.id && c.numeroBancaire === v.numeroBancaire && c.id !== id)) throw new ErreurMetier("Ce numéro de compte existe déjà dans cette banque.");
     if (E.comptesBancaires.some((c) => c.compte === v.compte && c.id !== id)) throw new ErreurMetier("Ce compte comptable est déjà attribué à un compte bancaire.");
     if (actuel && actuel.compte !== v.compte && E.ecritures.some((e) => e.lignes.some((l) => l.compte === actuel.compte))) throw new ErreurMetier("Ce compte a des écritures : son numéro comptable ne change plus.");
     const c = { banqueId: banque!.id, ...v, devise: v.devise as Devise, libelle: `${banque!.libelle} ${v.devise}`, journalId: d.journalId,
-      contactNomComplet: d.contactNomComplet.trim(), contactTelephone: d.contactTelephone.trim() };
+      contactNomComplet: d.contactNomComplet.trim(), contactTelephone: d.contactTelephone.trim(), comptePenalite, contactAdresse: (d.contactAdresse ?? "").trim() };
     if (actuel) Object.assign(actuel, c); else E.comptesBancaires.push({ id: prochain(E.comptesBancaires), ...c });
     enregistrer(); return banques.lire();
   },

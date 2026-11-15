@@ -22,6 +22,15 @@ def intitule_pcci(compte: str) -> str:
     return NOSTRI.get(compte[:4], "")
 
 
+def compte_du_plan(u, numero: str, quoi: str):
+    """T16 : un compte saisi existe dans le plan de comptes (S102), saisissable et ouvert"""
+    c = une("select saisissable, ouvert from compte where numero = %s and (institution_id is null or institution_id = %s)", (numero, u["institution_id"]))
+    if not c:
+        raise ErreurMetier(f"{quoi} : {numero} n'est pas un compte du plan (Comptabilité > Plan des comptes).")
+    if not (c["saisissable"] and c["ouvert"]):
+        raise ErreurMetier(f"{quoi} : {numero} est fermé ou non saisissable.")
+
+
 def lire(u) -> dict:
     exiger(u)
     i = u["institution_id"]
@@ -32,7 +41,8 @@ def lire(u) -> dict:
         "comptes": [{**r, "intitule": intitule_pcci(r["compte"])} for r in
                     lignes("""select cb.id, cb.banque_id as "banqueId", c.numero as compte, c.libelle, cb.numero as "numeroBancaire", trim(cb.devise) as devise,
                                      cb.journal_id as "journalId", coalesce(cb.contact_nom, '') as "contactNom",
-                                     coalesce(cb.contact_nom_complet, '') as "contactNomComplet", coalesce(cb.contact_telephone, '') as "contactTelephone"
+                                     coalesce(cb.contact_nom_complet, '') as "contactNomComplet", coalesce(cb.contact_telephone, '') as "contactTelephone",
+                                     coalesce(cb.compte_penalite, '') as "comptePenalite", coalesce(cb.contact_adresse, '') as "contactAdresse"
                               from compte_bancaire cb join compte c on c.id = cb.compte_id where cb.institution_id = %s order by c.numero""", (i,))],
         "journaux": lignes("select id, code, libelle from journal where institution_id = %s and type = 'banque' and actif and not supprime order by code", (i,)),
     }
@@ -45,6 +55,7 @@ def controler_banque(u, d, bid=None):
         raise ErreurMetier("À remplir : " + ", ".join(manque) + ".")
     if not liaison.isdigit():
         raise ErreurMetier("Compte liaison : chiffres seulement.")
+    compte_du_plan(u, liaison, "Compte liaison")              # registre S58-1 (T16) ; le PCCI ne nomme pas de compte pour cela
     if valeur("select 1 from banque where institution_id = %s and code = %s and id is distinct from %s", (u["institution_id"], code, bid)):
         raise ErreurMetier("Ce code banque existe déjà.")
     return code, libelle, liaison, texte(d, "adresse") or None
@@ -93,6 +104,9 @@ def enregistrer_compte(u, d, cid: int | None = None) -> dict:
         raise ErreurMetier("Compte : sous-compte de 560 « Comptes NOSTRI disponible » (PCCI, compte 56), par exemple 5601….")
     if not une("select 1 from devise where code = %s", (devise,)):
         raise ErreurMetier("Devise inconnue.")
+    penalite = texte(d, "comptePenalite") or None              # registre S58-3 : texte p. 67 « Saisir le compte de pénalité »
+    if penalite:
+        compte_du_plan(u, penalite, "Compte de pénalité")
     if not valeur("select 1 from journal where id = %s and institution_id = %s and type = 'banque' and actif and not supprime", (journal, i)):
         raise ErreurMetier("Journal de banque inconnu.")
     if valeur("select 1 from compte_bancaire where banque_id = %s and numero = %s and id is distinct from %s", (banque["id"], numero, cid)):
@@ -104,13 +118,15 @@ def enregistrer_compte(u, d, cid: int | None = None) -> dict:
     libelle = f"{banque['nom']} {devise}"
     compte_id = valeur("select id from compte where numero = %s", (compte,)) or \
         valeur("insert into compte (numero, libelle, classe, nature) values (%s, %s, 5, 'actif') returning id", (compte, libelle))
-    contact = (nom, texte(d, "contactNomComplet") or None, texte(d, "contactTelephone") or None)
+    contact = (nom, texte(d, "contactNomComplet") or None, texte(d, "contactTelephone") or None, texte(d, "contactAdresse") or None, penalite)
     if cid is None:
-        executer("""insert into compte_bancaire (institution_id, banque_id, numero, devise, compte_id, journal_id, contact_nom, contact_nom_complet, contact_telephone)
-                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s)""", (i, banque["id"], numero, devise, compte_id, journal, *contact))
+        executer("""insert into compte_bancaire (institution_id, banque_id, numero, devise, compte_id, journal_id, contact_nom, contact_nom_complet, contact_telephone,
+                                                 contact_adresse, compte_penalite)
+                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", (i, banque["id"], numero, devise, compte_id, journal, *contact))
     else:
         executer("""update compte_bancaire set banque_id = %s, numero = %s, devise = %s, compte_id = %s, journal_id = %s, contact_nom = %s,
-                    contact_nom_complet = %s, contact_telephone = %s where id = %s""", (banque["id"], numero, devise, compte_id, journal, *contact, cid))
+                    contact_nom_complet = %s, contact_telephone = %s, contact_adresse = %s, compte_penalite = %s where id = %s""",
+                 (banque["id"], numero, devise, compte_id, journal, *contact, cid))
     return lire(u)
 
 

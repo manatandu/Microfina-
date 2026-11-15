@@ -25,7 +25,7 @@ export function CreationBanque() {
       </div>
       <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${onglet}`}>
         {onglet === 0 ? <BanqueClient d={donnees} confirmer={confirmer} /> : <BanqueInstitution d={donnees} confirmer={confirmer} />}
-        <Textes sources={["Manuel Microfina++, p. 67 : 8.1 Banque Client (Code Banque*, Libellé*, Compte Liaison*, Adresse) ; 8.2 Banque Institution (Banque*, Compte*, Libellé, N° Compte Bancaire*, journal*, Intitulé, Infos Contact)",
+        <Textes sources={["Manuel Microfina++, p. 67 : 8.1 Banque Client (Code Banque*, Libellé*, Compte Liaison*, Adresse) ; 8.2 Banque Institution (Banque*, Compte*, Libellé, N° Compte Bancaire*, journal*, Intitulé, Infos Contact) ; texte 8.2 : compte de pénalité, nom du gestionnaire et son adresse",
           "PCCI, compte 56 : 560 « Comptes NOSTRI disponible », 5601 « Banque et autres intermédiaires financiers »",
           "PCCI § 10 : monnaie utilisée, d'où la devise du compte",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
@@ -68,7 +68,8 @@ function BanqueClient({ d, confirmer }: Props) {
   );
 }
 
-const COMPTE_VIDE: SaisieCompteBancaire = { banqueId: 0, compte: "", numeroBancaire: "", devise: "", journalId: 0, contactNom: "", contactNomComplet: "", contactTelephone: "" };
+const COMPTE_VIDE: SaisieCompteBancaire = { banqueId: 0, compte: "", numeroBancaire: "", devise: "", journalId: 0, contactNom: "", contactNomComplet: "", contactTelephone: "",
+  comptePenalite: "", contactAdresse: "" };
 
 /** 8.2 Banque Institution : Infos Banques Institutions à valider, Infos Contact, Enregistrer, Supprimer, Annuler, Imprimer, Imprimer tous les comptes */
 function BanqueInstitution({ d, confirmer }: Props) {
@@ -76,7 +77,8 @@ function BanqueInstitution({ d, confirmer }: Props) {
   const [choisi, setChoisi] = useState<number | null>(null);
   const [impression, setImpression] = useState<"un" | "tous" | null>(null);
   const annuler = () => { setF({ ...COMPTE_VIDE, journalId: d.journaux[0]?.id ?? 0 }); setChoisi(null); };
-  const t = (k: "compte" | "numeroBancaire" | "contactNom" | "contactNomComplet" | "contactTelephone") => ({ value: f[k], onChange: (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value }) });
+  const t = (k: "compte" | "numeroBancaire" | "contactNom" | "contactNomComplet" | "contactTelephone" | "comptePenalite" | "contactAdresse") =>
+    ({ value: f[k] ?? "", onChange: (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value }) });
   const banque = d.banques.find((b) => b.id === f.banqueId);
   const nomBanque = (id: number) => d.banques.find((b) => b.id === id)?.libelle ?? "";
   const nomJournal = (id: number) => d.journaux.find((j) => j.id === id)?.libelle ?? "";
@@ -95,12 +97,14 @@ function BanqueInstitution({ d, confirmer }: Props) {
         <Champ libelle="journal *">{(p) => <select {...p} className="saisie" required value={f.journalId} onChange={(e) => setF({ ...f, journalId: Number(e.target.value) })}>
           {d.journaux.map((j) => <option key={j.id} value={j.id}>{j.libelle}</option>)}</select>}</Champ>
         <Champ libelle="Intitulé">{(p) => <Lecture {...p} value={NOSTRI[f.compte.trim().slice(0, 4)] ?? ""} />}</Champ>
+        <Champ libelle="Compte de pénalité">{(p) => <input {...p} className="saisie code" inputMode="numeric" autoComplete="off" {...t("comptePenalite")} />}</Champ>
       </fieldset>
       <fieldset className="cadre-champs formulaire">
         <legend>Infos Contact</legend>
         <Champ libelle="Nom *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...t("contactNom")} />}</Champ>
         <Champ libelle="Nom Complet :">{(p) => <input {...p} className="saisie" autoComplete="off" {...t("contactNomComplet")} />}</Champ>
         <Champ libelle="Téléphone :">{(p) => <input {...p} className="saisie code" type="tel" inputMode="tel" autoComplete="off" {...t("contactTelephone")} />}</Champ>
+        <Champ libelle="Adresse :">{(p) => <input {...p} className="saisie" autoComplete="off" {...t("contactAdresse")} />}</Champ>
       </fieldset>
       <div className="actions-onglets">
         <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment enregistrer ?", () => api.banques.enregistrerCompte(f, choisi ?? undefined), annuler)}>Enregistrer</button>
@@ -111,7 +115,7 @@ function BanqueInstitution({ d, confirmer }: Props) {
       </div>
       <TableFiltree lignes={d.comptes} cle={(c) => c.id} choisi={choisi}
         choisir={(c) => { setChoisi(c.id); setF({ banqueId: c.banqueId, compte: c.compte, numeroBancaire: c.numeroBancaire, devise: c.devise, journalId: c.journalId,
-          contactNom: c.contactNom, contactNomComplet: c.contactNomComplet, contactTelephone: c.contactTelephone }); }}
+          contactNom: c.contactNom, contactNomComplet: c.contactNomComplet, contactTelephone: c.contactTelephone, comptePenalite: c.comptePenalite ?? "", contactAdresse: c.contactAdresse ?? "" }); }}
         colonnes={[{ titre: "Banque", valeur: (c) => nomBanque(c.banqueId) }, { titre: "Compte", valeur: (c) => c.compte, classe: "chiffres" },
           { titre: "N° Compte Bancaire", valeur: (c) => c.numeroBancaire, classe: "chiffres" }, { titre: "Devise", valeur: (c) => c.devise },
           { titre: "Journal", valeur: (c) => nomJournal(c.journalId) }, { titre: "Contact", valeur: (c) => c.contactNom }]} />

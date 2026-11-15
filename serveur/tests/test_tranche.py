@@ -1857,3 +1857,17 @@ def test_rapport_banque(clients, journee):
     assert [(x["operation"], x["numeroComptable"]) for x in r] == [("Encaissement divers", "727")]
     assert compta.get(f"/api/banque/rapport?du=2026-11-06&au=2026-11-30&banqueId={b}").json() == []
     assert compta.get(f"/api/banque/rapport?du=2026-11-06&au=2026-11-01&banqueId={b}").status_code == 422
+
+
+def test_banques_complements(clients, journee):
+    """S58 (manuel p. 67) : compte de liaison et compte de pénalité contrôlés sur le plan (T16), adresse du gestionnaire"""
+    chef = clients["chef"]
+    r = chef.post("/api/banques", {"code": "RAW", "libelle": "Rawbank", "compteLiaison": "99999", "adresse": ""}, **H)
+    assert r.status_code == 422 and "pas un compte du plan" in r.json()["message"]
+    bid = chef.post("/api/banques", {"code": "RAW", "libelle": "Rawbank", "compteLiaison": "5601", "adresse": ""}, **H).json()["banques"][0]["id"]
+    j = chef.get("/api/banques").json()["journaux"][0]["id"]
+    c = {"banqueId": bid, "compte": "56010001", "numeroBancaire": "R-1", "devise": "USD", "journalId": j, "contactNom": "Mutombo"}
+    r = chef.post("/api/banques/comptes", {**c, "comptePenalite": "88888"}, **H)
+    assert r.status_code == 422 and "Compte de pénalité" in r.json()["message"]
+    l = chef.post("/api/banques/comptes", {**c, "comptePenalite": "6070", "contactAdresse": "Boulevard du 30 Juin, Gombe"}, **H).json()
+    assert (l["comptes"][0]["comptePenalite"], l["comptes"][0]["contactAdresse"]) == ("6070", "Boulevard du 30 Juin, Gombe")

@@ -266,7 +266,7 @@ export interface Etat {
   operationsDiverses: { id: number; sens: "PRODUIT" | "CHARGE"; compte: string; libelle: string; statut: "ACTIF" | "INACTIF" }[];   // S31
   journaux: { id: number; code: string; libelle: string; type: string; actif: boolean; supprime: boolean }[];   // S30
   comptesInstitution: CompteInstitution[];   // S102 : comptes divisionnaires ouverts par l'institution (PCCI § 9)
-  comptesBancaires: { id: number; banqueId: number; compte: string; libelle: string; numeroBancaire: string; devise: Devise; journalId: number; contactNom: string; contactNomComplet: string; contactTelephone: string }[];
+  comptesBancaires: { id: number; banqueId: number; compte: string; libelle: string; numeroBancaire: string; devise: Devise; journalId: number; contactNom: string; contactNomComplet: string; contactTelephone: string; comptePenalite?: string; contactAdresse?: string }[];
   consentements: { id: number; tiersId: number; code: string; dateDebut: string; dateFin: string; commentaire: string }[];   // S50
   operationsBanque: OperationBanque[];   // S52
   chequesClients: ChequeClient[];   // S59

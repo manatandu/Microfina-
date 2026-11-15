@@ -699,6 +699,16 @@ describe("journée de guichet", () => {
     await expect(api.banqueOperations.rapport("2026-11-06", "2026-11-01", b)).rejects.toThrow("début dépasse");
   });
 
+  it("banques (S58) : compte de liaison et compte de pénalité contrôlés sur le plan, adresse du gestionnaire (registre S58-1, S58-3)", async () => {
+    await connecter("jpmukendi");
+    await expect(api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "99999", adresse: "" })).rejects.toThrow("n'est pas un compte du plan");
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    const c = { banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "", compte: "56010001", numeroBancaire: "R-1", devise: "USD" };
+    await expect(api.banques.enregistrerCompte({ ...c, comptePenalite: "88888" })).rejects.toThrow("Compte de pénalité");
+    const r = await api.banques.enregistrerCompte({ ...c, comptePenalite: "6070", contactAdresse: "Boulevard du 30 Juin, Gombe" });
+    expect([r.comptes[0]!.comptePenalite, r.comptes[0]!.contactAdresse]).toEqual(["6070", "Boulevard du 30 Juin, Gombe"]);
+  });
+
   it("adhésion par banque (S56) : payée sur un compte bancaire en CDF, saisie en attente du visa (registre S56-1 à S56-3)", async () => {
     await journeeOuverte();
     await connecter("jpmukendi");

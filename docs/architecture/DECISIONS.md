@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**323 décisions.** Solidité : 106 fortes (le manuel ou un texte répond), 171 moyennes (déduites d'un écran voisin ou d'une donnée), 46 faibles (notre choix, faute de mieux). Dans le code : 289 déjà en place, 34 à appliquer.
+**324 décisions.** Solidité : 106 fortes (le manuel ou un texte répond), 171 moyennes (déduites d'un écran voisin ou d'une donnée), 47 faibles (notre choix, faute de mieux). Dans le code : 294 déjà en place, 30 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -306,11 +306,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S58-1 | Compte liaison d'une banque client | Saisi et contrôlé sur le plan de comptes (T16). Pas de valeur par défaut : le PCCI ne nomme pas de compte pour cela | Texte réglementaire : PCCI, liste des comptes (aucun compte dédié trouvé) | moyenne | à appliquer |
-| S58-2 | Comptes « à valider » | Pas d'étape de validation : le manuel n'en montre pas. Le compte sert dès l'enregistrement | Manuel : Manuel p. 67 | moyenne | à appliquer |
-| S58-3 | Compte de pénalité, gestionnaire | Champs ajoutés d'après le texte : compte de pénalité, nom du gestionnaire, adresse | Manuel : Texte p. 67 | forte | à appliquer |
-| S58-4 | Liste des comptes | Grille sous le formulaire (T01, T04) | Règle générale du manuel : Manuel p. 9 et 12 ; même forme que S08 p. 95 | forte | à appliquer |
+| S58-1 | Compte liaison d'une banque client | Saisi et contrôlé sur le plan de comptes (T16). Pas de valeur par défaut : le PCCI ne nomme pas de compte pour cela | Texte réglementaire : PCCI, liste des comptes (aucun compte dédié trouvé) | moyenne | en place |
+| S58-2 | Comptes « à valider » | Pas d'étape de validation : le manuel n'en montre pas. Le compte sert dès l'enregistrement | Manuel : Manuel p. 67 | moyenne | en place |
+| S58-3 | Compte de pénalité, gestionnaire | Champs ajoutés d'après le texte : compte de pénalité (facultatif, contrôlé sur le plan de comptes, T16), adresse du gestionnaire dans Infos Contact. Le nom du gestionnaire est le champ Nom de la capture | Manuel : Texte p. 67 | forte | en place |
+| S58-4 | Liste des comptes | Grille sous le formulaire (T01, T04) | Règle générale du manuel : Manuel p. 9 et 12 ; même forme que S08 p. 95 | forte | en place |
 | S58-5 | Devise du compte bancaire | Gardée | Texte réglementaire : PCCI § 10 (attribut monnaie) | forte | en place |
+| S58-6 | Classe du compte de pénalité | Tout compte du plan saisissable et ouvert : le PCCI ne nomme pas de compte de pénalités bancaires, et le texte ne dit pas lequel | Écran voisin : Texte p. 67 ; PCCI, liste des comptes (aucun compte dédié) | faible | en place |
 
 ## S73 Adhésion
 
@@ -794,3 +795,4 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S61-3 | S61 Emprunts bancaires | Unité et calculs | Durée en mois ; Total Intérêt, Total Commis. et Total Frais saisis, pas calculés : la capture montre de simples champs et aucun échéancier, aucun texte ne donne de formule. Taux annuel en pourcentage, quatre décimales au plus |
 | S61-6 | S61 Emprunts bancaires | Bouton de recherche et case à côté du N°Piece (mise en place) | Montrés inactifs : la capture ne dit pas ce qu'ils cherchent ni ce que la case coche. À confirmer par le porteur |
 | S61-7 | S61 Emprunts bancaires | Champ N°Compte du remboursement et liste Banque | N°Compte reçoit le N°Emprunt donné à la mise en place, qui retrouve la banque et le capital restant. La liste Banque de la mise en place montre les comptes bancaires de l'institution (banque, numéro, devise) : l'emprunt prend la devise du compte |
+| S58-6 | S58 Création banque | Classe du compte de pénalité | Tout compte du plan saisissable et ouvert : le PCCI ne nomme pas de compte de pénalités bancaires, et le texte ne dit pas lequel |
