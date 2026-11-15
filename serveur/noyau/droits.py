@@ -46,6 +46,7 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/conformite/ppe/\d+(/information)?", ["SC01"]),
     (r"/conformite/profils/\d+", ["SC01"]),
     (r"/conformite/atypiques/(criteres|analyses|declarations)", ["SC01"]),
+    (r"/conformite/gels(/\d+/(information|levee))?", ["SC01"]),
     (r"/conformite/cip/(declarations|icu/\d+)", ["SC02"]),
     (r"/plaintes(/\d+/reponse)?", ["SC03"]),
     (r"/epargne/dat/\d+/annulation", ["S65"]),
@@ -130,7 +131,7 @@ LECTURES_ADMIN = [(re.compile(m), e) for m, e in [
     (r"/profils-utilisateurs", ["S06"]),
     (r"/connexions", ["S07"]),
     (r"/droits", ["S04"]),
-    (r"/conformite/(examens|ppe|profils|atypiques).*", ["SC01"]),    # confidentiel : Instr. BCC 15, art. 62
+    (r"/conformite/(examens|ppe|profils|atypiques|gels).*", ["SC01"]),    # confidentiel : Instr. BCC 15, art. 62
     (r"/conformite/cip.*", ["SC02"]),
     (r"/plaintes.*", ["SC03"]),                    # données personnelles : loi 11/020, art. 60
 ]]

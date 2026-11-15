@@ -95,7 +95,16 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "conformite.fixerCriteresAtypiques": [
 "SC01"
 ],
+"conformite.geler": [
+"SC01"
+],
+"conformite.informerGel": [
+"SC01"
+],
 "conformite.informerPpe": [
+"SC01"
+],
+"conformite.leverGel": [
 "SC01"
 ],
 "conformite.noterIcu": [

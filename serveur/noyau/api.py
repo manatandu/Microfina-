@@ -16,6 +16,7 @@ from . import emprunts as emp
 from . import comptes_epargne as cep
 from . import releves as rel
 from . import atypiques as aty
+from . import gel
 from . import depots_terme as dat
 from . import conformite as conf
 from . import cip
@@ -1341,6 +1342,26 @@ def atypiques_declarer(request, corps: dict = Body(...)):
 @api.get("/conformite/atypiques/rapport")
 def atypiques_rapport(request, du: str = "", au: str = ""):
     return aty.rapport(u(request), du, au)
+
+
+@api.get("/conformite/gels")
+def gels_lister(request, statut: str = "actifs"):
+    return gel.lister(u(request), statut)
+
+
+@api.post("/conformite/gels")
+def gels_geler(request, corps: dict = Body(...)):
+    return gel.geler(u(request), corps)
+
+
+@api.post("/conformite/gels/{gid}/information")
+def gels_informer(request, gid: int, corps: dict = Body(...)):
+    return gel.informer(u(request), gid, corps)
+
+
+@api.post("/conformite/gels/{gid}/levee")
+def gels_lever(request, gid: int, corps: dict = Body(...)):
+    return gel.lever(u(request), gid, corps)
 
 
 @api.get("/conformite/profils")

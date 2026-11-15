@@ -2146,6 +2146,25 @@ def test_operations_atypiques(clients, journee):
     assert all(x["statut"] != "a_analyser" for x in chef.get("/api/conformite/atypiques" + P + "&statut=analysee", **H).json())
 
 
+def test_gel_des_avoirs(clients, journee):
+    """Écart E10 : loi 22/068 modifiée, art. 158 bis et 162 ; loi 22/069, art. 71 à 77"""
+    agent, chef, caisse = clients["agent"], clients["chef"], clients["caisse"]
+    d = {"membre": "0412-000318", "source": "conasafic", "decisionReference": "CONASAFIC/2026/014", "decisionLe": "2026-11-05", "motif": "Inscription sur la liste nationale"}
+    assert agent.post("/api/conformite/gels", d, **H).status_code == 403
+    assert "Référence de la décision" in chef.post("/api/conformite/gels", {**d, "decisionReference": ""}, **H).json()["message"]
+    g = chef.post("/api/conformite/gels", d, **H).json()
+    assert (g["client"], g["sourceLibelle"]) == ("Kalala Mbuyi Josée", "Liste nationale (CONASAFIC)")
+    assert "déjà gelés" in chef.post("/api/conformite/gels", d, **H).json()["message"]
+    r = caisse.post("/api/guichet/retraits", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}}, **H)
+    assert r.status_code == 422 and "Avoirs gelés" in r.json()["message"]
+    assert caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}, "mandataire": ""}, **H).status_code == 200
+    assert chef.post(f"/api/conformite/gels/{g['id']}/information", {"date": "2026-11-05", "reference": "CENAREF-GEL-02"}, **H).json()["informeLe"] == "2026-11-05"
+    assert [x["id"] for x in chef.get("/api/conformite/gels", **H).json()] == [g["id"]]
+    assert chef.post(f"/api/conformite/gels/{g['id']}/levee", {"date": "2026-11-05", "reference": "CONASAFIC/2026/020"}, **H).json()["levePar"] == "J.-P. Mukendi"
+    assert chef.get("/api/conformite/gels", **H).json() == []
+    assert caisse.post("/api/guichet/retraits", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}}, **H).status_code == 200
+
+
 def test_convention_et_admission(clients, journee):
     """Écart E04 : convention de compte (loi 22/069, titre III) ; écart E05 : admission par le Conseil d'Administration (loi 002/2002, art. 22, 6°)"""
     from noyau.bd import executer

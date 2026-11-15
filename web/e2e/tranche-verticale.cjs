@@ -579,6 +579,16 @@ const OUT = process.argv[2];
   await fa.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await fa.getByText(/Justifiée/).first().waitFor(); await fa.getByRole('button', { name: 'Fermer' }).click();
   await ra.getByRole('button', { name: 'Rapport' }).click(); await p.getByRole('article', { name: 'Rapport des opérations atypiques' }).waitFor(); await etape('10l-rapport-atypiques');
   await p.getByRole('dialog', { name: 'Rapport des opérations atypiques' }).getByRole('button', { name: 'Fermer' }).click();
+  // Gel des avoirs (écart E10 ; loi 22/068 modifiée, art. 158 bis) : le chef gèle sur décision, note l'information des autorités, puis lève le gel
+  await p.getByRole('tab', { name: 'Gel des avoirs' }).click(); const rg = p.getByRole('region', { name: 'Gel des avoirs' });
+  await rg.getByRole('button', { name: 'Nouveau gel' }).click(); const fg = p.getByRole('dialog', { name: 'Nouveau gel des avoirs' });
+  await fg.getByLabel('N° client : *').fill('0412-000319'); await fg.getByLabel('Autorité : *').selectOption('conasafic');
+  await fg.getByLabel('Référence de la décision : *').fill('CONASAFIC/2026/014'); await fg.getByLabel('Motif : *').fill('Inscription sur la liste nationale des personnes désignées');
+  await etape('10m-nouveau-gel'); await fg.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  const fd = p.getByRole('dialog', { name: /^Gel des avoirs : / }); await fd.getByLabel('Référence : *').fill('CENAREF-GEL-02');
+  await fd.getByRole('button', { name: "Noter l'information" }).click(); await oui(); await fd.getByText(/Informées le/).waitFor(); await etape('10n-gel-avoirs');
+  await fd.getByLabel('Référence de la décision de levée : *').fill('CONASAFIC/2026/020'); await fd.getByRole('button', { name: 'Lever le gel' }).click(); await oui();
+  await fd.getByText(/Levé le/).waitFor(); await fd.getByRole('button', { name: 'Fermer' }).click();
   // Centrale des incidents de paiement (écart E06) : les ouvertures et nouveaux clients du jour à déclarer, avec leur échéance
   await aller('/clients/sc02'); await p.getByRole('heading', { name: 'Centrale des incidents de paiement' }).waitFor(); await p.getByRole('cell', { name: 'Nouveau client' }).first().waitFor();
   await etape('10f-centrale-incidents');

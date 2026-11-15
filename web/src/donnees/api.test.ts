@@ -220,6 +220,26 @@ describe("journée de guichet", () => {
     await expect(api.conformite.fixerCriteresAtypiques({ montantUsd: 1 })).rejects.toThrow("Droit manquant");
   });
 
+  it("gel des avoirs (écart E10) : rien ne sort des comptes d'un client gelé, les dépôts passent, levée sur décision", async () => {
+    await journeeOuverte(); await connecter("jpmukendi");
+    const d = { membre: "0412-000318", source: "conasafic", decisionReference: "CONASAFIC/2026/014", decisionLe: "2026-11-05", motif: "Inscription sur la liste nationale" };
+    await expect(api.conformite.geler({ ...d, decisionReference: "" })).rejects.toThrow("Référence de la décision");
+    const g = await api.conformite.geler(d);
+    expect([g.client, g.sourceLibelle]).toEqual(["Kalala Mbuyi Josée", "Liste nationale (CONASAFIC)"]);
+    await expect(api.conformite.geler(d)).rejects.toThrow("déjà gelés");
+    await connecter("engalula");
+    await expect(api.guichet.retrait({ cle: cle(), compteId: 2, montant: 1000000, coupures: { 10000: 1 } })).rejects.toThrow("Avoirs gelés");
+    await api.guichet.depot({ cle: cle(), compteId: 2, montant: 1000000, coupures: { 10000: 1 } });
+    await connecter("bkasongo");
+    await expect(api.conformite.geler(d)).rejects.toThrow("Droit manquant");
+    await connecter("jpmukendi");
+    expect((await api.conformite.informerGel(g.id, { date: "2026-11-05", reference: "CENAREF-GEL-02" })).informeLe).toBe("2026-11-05");
+    expect((await api.conformite.leverGel(g.id, { date: "2026-11-05", reference: "CONASAFIC/2026/020" })).levePar).toBe("J.-P. Mukendi");
+    expect(await api.conformite.gels()).toEqual([]);
+    await connecter("engalula");
+    expect((await api.guichet.retrait({ cle: cle(), compteId: 2, montant: 1000000, coupures: { 10000: 1 } })).statut).toBe("validee");
+  });
+
   it("convention de compte (écart E04) et admission par le Conseil d'Administration (écart E05)", async () => {
     await connecter("bkasongo");
     const cv = await api.comptesEpargne.convention(2);

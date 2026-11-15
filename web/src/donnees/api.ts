@@ -9,7 +9,7 @@ import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
   type ChequeClient, type Chequier, type DepotTerme, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
-  type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget, type CriteresAtypiques,
+  type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget, type CriteresAtypiques, type GelAvoirs,
 } from "./types";
 import { DROITS_METHODES } from "./droits.gen";
 import registreEcrans from "../ecrans/registre.json";
@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v71";
+const CLE = "likelemba-demo-v72";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -109,6 +109,12 @@ function poster(e: Omit<Ecriture, "id" | "numero">): Ecriture {
   for (const d of new Set(l.map((x) => x.devise))) if (ecart((x) => x.devise === d, "montant") !== 0) throw new ErreurMetier(`Écriture déséquilibrée en ${d}.`);
   const j = E.journees.find((x) => x.id === e.journeeId);
   if (!j || j.statut !== "ouverte") throw new ErreurMetier("Journée fermée : aucune écriture possible.");
+  for (const x of l) {   // écart E10 : rien ne sort des comptes d'un client gelé
+    if (x.sens !== "D") continue;
+    const dep = /^depot:(\d+)$/.exec(x.contrat ?? "")?.[1], parts = /^parts:(\d+)$/.exec(x.contrat ?? "")?.[1];
+    const tid = dep ? E.comptes.find((c) => c.id === Number(dep))?.tiersId : parts ? Number(parts) : undefined;
+    if (tid !== undefined) controlerGel(tid);
+  }
   const id = prochain(E.ecritures);
   const ecr: Ecriture = Object.freeze({ ...e, id, numero: `${e.journal}-${j.date.slice(0, 4)}-${String(id).padStart(6, "0")}`, lignes: Object.freeze(l.map((x) => Object.freeze({ ...x }))) });
   E.ecritures.push(ecr);
@@ -1694,6 +1700,7 @@ const depotsTerme = {
     const t = E.tiers.find((x) => x.id === d.tiersId);
     if (!t) throw new ErreurMetier("À remplir : N° du Client.");
     controlerStatutActif(t.statut);
+    controlerGel(t.id);   // écart E10
     const compte = (id: number | undefined, nom: string) => { const c = E.comptes.find((x) => x.id === id && x.tiersId === t.id); if (!c) throw new ErreurMetier(`À remplir : ${nom}.`); return c; };
     const em = compte(d.compteEmetteurId, "N° Compte (compte émetteur)"), dat = compte(d.compteDatId, "Compte DAT");
     if (!duProduit(dat, p)) throw new ErreurMetier("Compte DAT : un compte du produit choisi (Épargne > Nouveau compte).");
@@ -1934,6 +1941,7 @@ const guichet = {
     const prec = E.operations.find((o) => o.cle === p.cle && (o.statut === "validee" || o.statut === "visa_requis")); if (prec) return prec;
     const c = E.comptes.find((x) => x.id === p.compteId);
     if (!c) throw new ErreurMetier("Compte introuvable.");
+    controlerGel(c.tiersId);   // écart E10
     const { u, s } = sessionOuverte(c.devise);
     const t = E.tiers.find((x) => x.id === c.tiersId)!;
     controlerStatutActif(t.statut);
@@ -2230,6 +2238,46 @@ const profilsRisque = {
     enregistrer(); return vueProfil(t, jour);
   },
 };
+// Écart E10 : gel des avoirs (loi 22/068 modifiée, art. 121, 158, 158 bis, 162 ; loi 22/069, art. 71 à 77 ; Instr. BCC 15, art. 42). Mêmes règles que noyau/gel.py.
+const SOURCES_GEL: Record<GelAvoirs["source"], string> = { onu: "Conseil de sécurité des Nations Unies", conasafic: "Liste nationale (CONASAFIC)", bcc: "Banque Centrale du Congo", judiciaire: "Ministère public ou CENAREF" };
+const DATE_ISO = /^\d{4}-\d{2}-\d{2}$/;
+function controlerGel(tid: number) {
+  const g = E.gels.find((x) => x.tiersId === tid && !x.leveLe);
+  if (g) throw new ErreurMetier(`Avoirs gelés : aucune somme ne sort des comptes de ce client (décision ${g.decisionReference} du ${fr(g.decisionLe)}). Loi 22/068, art. 158 bis ; loi 22/069, art. 73.`);
+}
+const vueGel = (g: GelAvoirs) => { const t = E.tiers.find((x) => x.id === g.tiersId)!; return { ...g, membre: t.numero, client: titulaire(t), sourceLibelle: SOURCES_GEL[g.source],
+  gelePar: nomUtilisateur(g.gelePar), levePar: nomUtilisateur(g.levePar ?? undefined) }; };
+const gels = {
+  lister(statut = "actifs") { lectureAdmin(["SC01"]); return E.gels.filter((g) => statut === "actifs" ? !g.leveLe : statut === "leves" ? !!g.leveLe : true).sort((a, b) => b.geleLe.localeCompare(a.geleLe) || b.id - a.id).map(vueGel); },
+  /** Sans délai ni notification préalable au client (art. 158 bis) */
+  geler(d: { membre?: string; source?: string; decisionReference?: string; decisionLe?: string; motif?: string }) {
+    const u = exiger();
+    const numero = (d.membre ?? "").trim(), source = d.source ?? "", ref = (d.decisionReference ?? "").trim(), date = (d.decisionLe ?? "").trim(), motif = (d.motif ?? "").trim();
+    const manque = ([[numero, "N° client"], [source in SOURCES_GEL, "Autorité"], [ref, "Référence de la décision"], [DATE_ISO.test(date), "Date de la décision"], [motif, "Motif"]] as const).filter(([v]) => !v).map(([, n]) => n);
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    const t = E.tiers.find((x) => x.numero === numero); if (!t) throw new ErreurMetier("Client introuvable.");
+    if (E.gels.some((x) => x.tiersId === t.id && !x.leveLe)) throw new ErreurMetier("Les avoirs de ce client sont déjà gelés.");
+    const g: GelAvoirs = { id: Math.max(0, ...E.gels.map((x) => x.id)) + 1, tiersId: t.id, source: source as GelAvoirs["source"], decisionReference: ref, decisionLe: date, motif,
+      gelePar: u.id, geleLe: jourConformite(), informeLe: "", referenceInformation: "", leveLe: "", referenceLevee: "", levePar: null };
+    E.gels.push(g); enregistrer(); return vueGel(g);
+  },
+  /** Art. 162 : information du CONASAFIC et de la CENAREF ; loi 22/069, art. 76 : information de la BCC */
+  informer(id: number, d: { date: string; reference: string }) {
+    exiger();
+    const g = E.gels.find((x) => x.id === id); if (!g) throw new ErreurMetier("Gel introuvable.");
+    if (g.informeLe) throw new ErreurMetier("Information déjà notée.");
+    if (!DATE_ISO.test(d.date ?? "") || !(d.reference ?? "").trim()) throw new ErreurMetier("À remplir : date et référence de l'information.");
+    g.informeLe = d.date; g.referenceInformation = d.reference.trim(); enregistrer(); return vueGel(g);
+  },
+  /** La levée suit une décision de l'autorité (art. 121, 169) */
+  lever(id: number, d: { date: string; reference: string }) {
+    const u = exiger();
+    const g = E.gels.find((x) => x.id === id); if (!g) throw new ErreurMetier("Gel introuvable.");
+    if (g.leveLe) throw new ErreurMetier("Gel déjà levé.");
+    if (!DATE_ISO.test(d.date ?? "") || !(d.reference ?? "").trim()) throw new ErreurMetier("À remplir : date et référence de la décision de levée.");
+    g.leveLe = d.date; g.referenceLevee = d.reference.trim(); g.levePar = u.id; enregistrer(); return vueGel(g);
+  },
+};
 // Écart E09 : opérations atypiques (Instr. BCC 15, art. 30, 31, 34 à 36). Mêmes règles que noyau/atypiques.py.
 const SANS_CRITERE: CriteresAtypiques = { montantUsd: null, montantEleveUsd: null, nombreJour: null, reveilMois: null };
 const usdTexte = (v: number) => `${v.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/\u202f/g, " ")} USD`;
@@ -2470,6 +2518,10 @@ const conformite = {
   },
   /** Instr. BCC 15, art. 62 : rapport écrit, strictement confidentiel */
   ppe: () => ppe.lister(),
+  gels: (statut = "actifs") => gels.lister(statut),
+  geler: (d: Parameters<typeof gels.geler>[0]) => gels.geler(d),
+  informerGel: (id: number, d: { date: string; reference: string }) => gels.informer(id, d),
+  leverGel: (id: number, d: { date: string; reference: string }) => gels.lever(id, d),
   criteresAtypiques: () => atypiques.criteres(),
   fixerCriteresAtypiques: (d: Parameters<typeof atypiques.fixerCriteres>[0]) => atypiques.fixerCriteres(d),
   atypiques: (du: string, au: string, statut = "a_analyser") => atypiques.alertes(du, au, statut),

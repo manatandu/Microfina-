@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**386 décisions.** Solidité : 148 fortes (le manuel ou un texte répond), 206 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 357 déjà en place, 29 à appliquer.
+**390 décisions.** Solidité : 151 fortes (le manuel ou un texte répond), 207 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 361 déjà en place, 29 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -886,6 +886,15 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | E09-2 | Critères | Quatre critères, fixés par l'institution et vides au départ (vide : non appliqué) : montant d'un mouvement en USD ; montant plus bas pour un client à risque élevé (profil E08) ; nombre de mouvements d'un compte dans la journée ; compte sans mouvement depuis un nombre de mois. Aucune valeur n'est proposée par le logiciel | Texte réglementaire : Instr. BCC 15, art. 36, 2e tiret (critères fixés par chaque assujetti, selon ses produits et sa clientèle) ; art. 31, al. 2 (adapté au niveau de risque) ; art. 33 (types de transactions) ; critères de l'écart E09 | forte | en place |
 | E09-3 | Analyse, rapport, déclaration | Chaque alerte s'analyse une fois : justification économique et légitimité apparente, conclusion Justifiée ou Atypique, gardées avec les critères, l'auteur et la date. Le rapport imprimable liste les opérations conclues atypiques sur la période. Une opération atypique peut recevoir la date et la référence de la déclaration de soupçon à la CENAREF | Texte réglementaire : Instr. BCC 15, art. 35 (justification économique, légitimité apparente), art. 36, 3e et 4e tirets (rapports écrits, déclaration à la CENAREF), art. 48 (conservation dix ans) | forte | en place |
 | E09-4 | Reprise des soldes | Les écritures du journal des à-nouveaux (reprise des soldes) ne sont pas surveillées : elles ne sont pas une opération du client | Texte réglementaire : Instr. BCC 15, art. 30 et 36 visent les opérations et transactions des clients ; la reprise des soldes est une écriture d'ouverture du logiciel | moyenne | en place |
+
+## E10 Gel des avoirs
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E10-1 | Où et pour qui | Onglet « Gel des avoirs » de Client > Conformité > Examen renforcé (droit SC01). Le gel se saisit sur une décision : autorité (Conseil de sécurité, liste nationale CONASAFIC, BCC, Ministère public ou CENAREF), référence, date, motif. Il prend effet à l'enregistrement, sans attendre un second visa ni prévenir le client | Texte réglementaire : Loi 22/068 modifiée par la loi 25/048, art. 121, 158 et 158 bis (sans délai, sans notification préalable) ; loi 22/069, art. 71 et 73 ; Instr. BCC 15, art. 42 | forte | en place |
+| E10-2 | Effet | Tant que le gel n'est pas levé, aucune somme ne sort des comptes de dépôt ni des parts du client : le refus est posé au grand livre (toute écriture débitrice), et dès la saisie au retrait et au DAT. Les sommes reçues (dépôts, intérêts) entrent et restent gelées | Texte réglementaire : Loi 22/068 modifiée, art. 158 bis, 1° à 3° (fonds possédés, et ceux qui en proviennent) ; loi 22/069, art. 71, al. 2 (intérêts gelés) et art. 73 (fonds détenus ou reçus) | forte | en place |
+| E10-3 | Information et levée | L'information des autorités se note (date, référence). La levée exige la date et la référence de la décision qui la fonde ; elle est gardée avec son auteur | Texte réglementaire : Loi 22/068 modifiée, art. 162 (information sans délai du CONASAFIC et de la CENAREF), art. 121 (mainlevée), art. 169 (déblocage autorisé par le Ministre) ; loi 22/069, art. 76 (information de la BCC) | forte | en place |
+| E10-4 | Mise à l'index | Pas de mise à l'index dans le logiciel : l'Instr. BCC 13 et la loi 22/069, art. 70, visent les établissements de crédit ; pour les COOPEC et IMF, la loi 11/020 ne cite la mise à l'index que comme empêchement d'un dirigeant. Ses effets portent sur le crédit, module à construire | Texte réglementaire : Instr. BCC 13, art. 1er et 7 ; loi 22/069, art. 70 ; loi 11/020 (conditions des dirigeants, mis à l'index) | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

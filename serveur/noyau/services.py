@@ -1435,6 +1435,8 @@ def poster(u: dict, *, journal: str, journee_id: int, libelle: str, piece: str, 
     j = une("select * from journee_comptable where id = %s", (journee_id,))
     if not j or j["statut"] != "ouverte":
         raise ErreurMetier("Journée fermée : aucune écriture possible.")
+    from .gel import controler_lignes
+    controler_lignes(lignes_ecr)       # écart E10 : rien ne sort des comptes d'un client gelé
     jid = valeur("select id from journal where institution_id = %s and code = %s and actif and not supprime", (u["institution_id"], journal))
     if jid is None:
         raise ErreurMetier(f"Le journal {journal} n'est pas actif (Comptabilité > Journal).")      # registre S30-2
@@ -1620,6 +1622,8 @@ def retrait(u: dict, p: dict) -> dict:
     if prec and prec["statut"] in ("validee", "saisie"):
         return vue_operation(prec)
     c = compte_actif(p["compteId"], verrou=True)   # deux retraits sur le même compte ne passent pas en même temps
+    from .gel import controler_gel
+    controler_gel(c["tiers_id"])                    # écart E10
     s = session_ouverte(u, c["devise"])
     m, coupures = int(p["montant"]), nettoyer(p["coupures"])
     if m <= 0:
