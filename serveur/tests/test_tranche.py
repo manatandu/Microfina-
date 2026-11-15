@@ -2162,4 +2162,5 @@ def test_plaintes(clients, journee):
     assert (rp["statut"], rp["fondee"]) == ("repondue", True)
     rap = chef.get("/api/plaintes/rapport?du=2026-10-01&au=2026-12-31", **H).json()
     assert (rap["total"], rap["suites"]["fondee"]) == (1, 1)
+    assert [x["reference"] for x in chef.get("/api/plaintes?statut=repondue&du=&au=", **H).json()] == ["PL-2026-000001"]   # sans dates : toute la liste
     assert compta.get("/api/plaintes", **H).status_code == 403

@@ -74,7 +74,7 @@ def lister(u: dict, statut: str = "", du: str = "", au: str = "") -> list[dict]:
         raise ErreurMetier("Statut inconnu.")
     jour = _jour(u)
     return [vue(x, jour) for x in lignes("""select * from plainte where institution_id = %(i)s and (%(s)s = '' or statut = %(s)s)
-                                            and (%(du)s = '' or recue_le >= %(du)s::date) and (%(au)s = '' or recue_le <= %(au)s::date) order by recue_le desc, id desc""",
+                                            and recue_le >= coalesce(nullif(%(du)s, '')::date, recue_le) and recue_le <= coalesce(nullif(%(au)s, '')::date, recue_le) order by recue_le desc, id desc""",
                                          {"i": u["institution_id"], "s": statut, "du": du, "au": au})]
 
 
