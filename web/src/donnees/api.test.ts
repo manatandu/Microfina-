@@ -125,6 +125,60 @@ describe("journée de guichet", () => {
     expect((await api.etats.journal()).length).toBe(2);
   });
 
+  it("examen renforcé (écart E01) : 10 000 USD en espèces attendent la conformité, quatre yeux, autorisation, opération faite, déclaration", async () => {
+    await journeeOuverte();
+    const op = { compteId: 1, montant: 1000000, coupures: { 100: 100 } };   // 10 000 USD
+    await expect(api.guichet.depot({ cle: cle(), ...op })).rejects.toThrow("Examen renforcé requis");
+    const d = { type: "depot" as const, tiersId: 1, compteId: 1, montant: 1000000, devise: "USD" };
+    await expect(api.conformite.demander({ ...d, cle: cle(), montant: 500000 })).rejects.toThrow("Sous le seuil");
+    const e = await api.conformite.demander({ ...d, cle: cle() });
+    expect([e.numero, e.statut, e.cumulUsd]).toEqual([1, "a_examiner", 10000]);
+    await expect(api.guichet.depot({ cle: cle(), ...op })).rejects.toThrow("attend la conformité");
+    await expect(api.conformite.lister()).rejects.toThrow("Droit manquant");          // confidentiel : la caissière ne lit pas les examens
+    await expect(api.conformite.examiner(e.id, { decision: "autorise" })).rejects.toThrow("Droit manquant");
+    await connecter("jpmukendi");
+    await expect(api.conformite.examiner(e.id, { decision: "autorise", origineFonds: "Vente de stock" })).rejects.toThrow("Destination des fonds, Objet");
+    await expect(api.conformite.declarer(e.id, { date: "2026-11-05", reference: "X" })).rejects.toThrow("Examiner d'abord");
+    const a = await api.conformite.examiner(e.id, { decision: "autorise", origineFonds: "Vente de stock", destinationFonds: "Épargne", objet: "Dépôt de la recette" });
+    expect([a.statut, a.examinePar]).toEqual(["autorise", "J.-P. Mukendi"]);
+    expect((await api.conformite.lister("a_declarer")).map((x) => x.numero)).toEqual([1]);
+    await connecter("engalula");
+    const o = await api.guichet.depot({ cle: cle(), ...op });
+    expect(o.statut).toBe("validee");
+    await expect(api.guichet.depot({ cle: cle(), ...op })).rejects.toThrow("Examen renforcé requis");   // l'autorisation sert une fois
+    await connecter("jpmukendi");
+    expect((await api.conformite.lister("autorise"))[0]!.operationFaite).toBe(true);
+    const dc = await api.conformite.declarer(e.id, { date: "2026-11-05", reference: "CENAREF-2026-118" });
+    expect([dc.declareLe, (await api.conformite.lister("a_declarer")).length]).toEqual(["2026-11-05", 0]);
+    expect((await api.conformite.rapport(e.id)).examen.objet).toBe("Dépôt de la recette");
+  });
+
+  it("personne politiquement exposée (écart E02) : dossier, autorisation de la conformité avant le visa, quatre yeux, information de la CENAREF", async () => {
+    await connecter("bkasongo");
+    const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), ...IDENTITE, produitCode: "EAV-CDF", nom: "Mbala", postnom: "Kanku", prenom: "Pierre", naissance: "1970-04-02",
+      pieceType: "Passeport", pieceNumero: "OP-778899", pieceExpire: "2031-01-01", adresse: "Gombe", personneExposee: true });
+    await connecter("jpmukendi");
+    await expect(api.tiers.viser(t.id)).rejects.toThrow("autorisation de la conformité");
+    expect((await api.conformite.ppe()).map((x) => [x.client, x.fonction])).toEqual([["Mbala Kanku Pierre", ""]]);
+    await expect(api.conformite.enregistrerPpe(t.id, { fonction: "Député provincial" })).rejects.toThrow("Origine du patrimoine");
+    await api.conformite.enregistrerPpe(t.id, { fonction: "Député provincial", originePatrimoine: "Indemnités parlementaires, ferme à Kasangulu" });
+    await expect(api.conformite.enregistrerPpe(t.id, { autoriser: true })).rejects.toThrow("Quatre yeux");
+    await connecter("bkasongo");
+    await expect(api.conformite.ppe()).rejects.toThrow("Droit manquant");
+    await connecter("plumbala");
+    await expect(api.conformite.enregistrerPpe(t.id, { autoriser: true })).rejects.toThrow("Droit manquant");
+    // un second chef d'agence autorise : le profil de plumbala reçoit le droit SC01
+    await connecter("jpmukendi");
+    const profils = Object.fromEntries((await api.droits.lire()).profils.map((p) => [p.nom, p.id]));
+    const id = Object.entries(profils).find(([n]) => n.includes("COMPTABLE"))![1]!;
+    await api.droits.enregistrer(id, { droits: [...(await api.droits.lire(id)).octroyes, "SC01"] });
+    await connecter("plumbala");
+    expect((await api.conformite.enregistrerPpe(t.id, { autoriser: true })).autorisePar).toBe("Patrick Lumbala");
+    expect((await api.conformite.informerPpe(t.id, { date: "2026-11-05", reference: "CENAREF-PPE-07" })).informeLe).toBe("2026-11-05");
+    await connecter("jpmukendi");
+    expect((await api.tiers.viser(t.id)).statut).toBe("actif");
+  });
+
   it("refuse ce qui doit l'être", async () => {
     await journeeOuverte();
     await expect(api.guichet.retrait({ cle: cle(), compteId: 3, montant: 60000, coupures: { 100: 6 } })).rejects.toThrow("solde disponible");
@@ -369,7 +423,7 @@ describe("journée de guichet", () => {
     // S43 : informations initiales et actuelles
     const h = await api.tiers.modifications(1);
     expect([h[0]!.avant.telephone, h[0]!.apres.telephone, h[0]!.validePar !== null]).toEqual(["", "+243 990 000 001", true]);
-    expect(await api.tiers.images(1)).toEqual({ photo: null, signature: null });
+    expect(await api.tiers.images(1)).toEqual({ photo: null, signature: null, copiePiece: null, justificatifAdresse: null });
   });
 
   it("groupe solidaire (S44) : code et nom obligatoires, affectation de clients actifs, retrait, suppression", async () => {
@@ -462,7 +516,11 @@ describe("journée de guichet", () => {
     await expect(api.tiers.changerSpecimen(3, { signature: "data:text/html;base64,AA==" })).rejects.toThrow("PNG ou JPEG");
     expect(await api.tiers.changerSpecimen(3, { signature: png })).toMatchObject({ specimen: true, photo: false });
     await api.tiers.changerSpecimen(3, { photo: png });
-    expect(await api.tiers.images(3)).toEqual({ photo: png, signature: png });
+    expect(await api.tiers.images(3)).toEqual({ photo: png, signature: png, copiePiece: null, justificatifAdresse: null });
+    // écart E03 : copie de la pièce et justificatif d'adresse (Instr. BCC 15, art. 12 et 29)
+    await expect(api.tiers.changerSpecimen(3, { copiePiece: "data:text/html;base64,AA==" })).rejects.toThrow("PNG ou JPEG");
+    await api.tiers.changerSpecimen(3, { copiePiece: png, justificatifAdresse: png });
+    expect(await api.tiers.images(3)).toEqual({ photo: png, signature: png, copiePiece: png, justificatifAdresse: png });
   });
 
   it("consentement (S50) : code et date début obligatoires, dates cohérentes", async () => {

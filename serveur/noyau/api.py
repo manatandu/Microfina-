@@ -16,6 +16,7 @@ from . import emprunts as emp
 from . import comptes_epargne as cep
 from . import releves as rel
 from . import depots_terme as dat
+from . import conformite as conf
 from . import guichets as gu
 from . import exercices as ex
 from . import listes as li
@@ -1266,3 +1267,44 @@ def nu_lire_compte(request):
 @api.post("/numerotation-comptes")
 def nu_enregistrer_compte(request, corps: dict = Body(...)):
     return nu.enregistrer_compte(u(request), corps)
+
+
+# ---------- Écart E01 : examen renforcé (loi 22/068, art. 23 ; Instr. BCC 15, art. 61 et 62 ; Instr. BCC 15 bis) ----------
+@api.post("/conformite/examens")
+def conformite_demander(request, corps: dict = Body(...)):
+    return conf.demander(u(request), corps)
+
+
+@api.get("/conformite/examens")
+def conformite_lister(request, statut: str = ""):
+    return conf.lister(u(request), statut)
+
+
+@api.post("/conformite/examens/{eid}/examen")
+def conformite_examiner(request, eid: int, corps: dict = Body(...)):
+    return conf.examiner(u(request), eid, corps)
+
+
+@api.post("/conformite/examens/{eid}/declaration")
+def conformite_declarer(request, eid: int, corps: dict = Body(...)):
+    return conf.declarer(u(request), eid, corps)
+
+
+@api.get("/conformite/ppe")
+def conformite_ppe(request):
+    return conf.ppe_lister(u(request))
+
+
+@api.post("/conformite/ppe/{tid}")
+def conformite_ppe_enregistrer(request, tid: int, corps: dict = Body(...)):
+    return conf.ppe_enregistrer(u(request), tid, corps)
+
+
+@api.post("/conformite/ppe/{tid}/information")
+def conformite_ppe_informer(request, tid: int, corps: dict = Body(...)):
+    return conf.ppe_informer(u(request), tid, corps)
+
+
+@api.get("/conformite/examens/{eid}/rapport")
+def conformite_rapport(request, eid: int):
+    return conf.rapport(u(request), eid)

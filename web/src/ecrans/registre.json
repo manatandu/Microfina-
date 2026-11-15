@@ -477,6 +477,15 @@
   "chemin": "/clients/s51"
  },
  {
+  "id": "SC01",
+  "nom": "Examen renforcé",
+  "acces": "Client > Conformité > Examen renforcé",
+  "but": "Examiner les opérations en espèces de 10 000 USD ou plus, les autoriser ou les refuser, noter la déclaration à la CENAREF (écart E01 ; loi 22/068, art. 23 ; Instr. BCC 15, art. 61 et 62)",
+  "module": "clients",
+  "priorite": "must",
+  "chemin": "/clients/sc01"
+ },
+ {
   "id": "S52",
   "nom": "Opérations de banque",
   "acces": "Banque > Opération",

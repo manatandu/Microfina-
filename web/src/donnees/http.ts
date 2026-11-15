@@ -52,6 +52,16 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       rompre: (id: number, d: object) => post(`/epargne/dat/${id}/rupture`, d),
       recherche: (choix: string, du: string, au: string) => get(`/epargne/dat/recherche?choix=${choix}&du=${du}&au=${au}`),
     },
+    conformite: {
+      demander: (d: object) => post("/conformite/examens", d),
+      lister: (statut = "") => get(`/conformite/examens?statut=${statut}`),
+      examiner: (id: number, d: object) => post(`/conformite/examens/${id}/examen`, d),
+      declarer: (id: number, d: object) => post(`/conformite/examens/${id}/declaration`, d),
+      rapport: (id: number) => get(`/conformite/examens/${id}/rapport`),
+      ppe: () => get("/conformite/ppe"),
+      enregistrerPpe: (tid: number, d: object) => post(`/conformite/ppe/${tid}`, d),
+      informerPpe: (tid: number, d: object) => post(`/conformite/ppe/${tid}/information`, d),
+    },
     releves: {
       releve: (compteId: number, du: string, au: string) => get(`/epargne/releve?compteId=${compteId}&du=${du}&au=${au}`),
       situation: (tiersId: number, date: string) => get(`/epargne/situation?tiersId=${tiersId}&date=${date}`),

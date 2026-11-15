@@ -24,7 +24,7 @@ def codes() -> set[str]:
 
 
 # Droits des quatre profils de départ (registre S04-2) : les écrans que chaque rôle tenait déjà
-DROITS_DEPART = {"chef_agence": ["S03", "S04", "S05", "S06", "S07", "S08", "S09", "S10", "S11", "S11b", "S11c", "S12", "S121", "S13", "S14", "S15", "S16", "S17", "S18", "S19", "S20", "S21", "S22", "S23", "S24", "S25", "S26", "S27", "S28", "S29", "S30", "S31", "S32", "S33", "S34", "S35", "S36", "S37", "S38", "S39", "S40", "S41", "S42", "S43", "S44", "S45", "S46", "S47", "S48", "S49", "S50", "S51", "S57", "S58", "S59", "S66", "S67", "S68", "S80", "S82", "S83"], "caissier": ["S09", "S43", "S64", "S73", "S74", "S75", "S76", "S77", "S78", "S79", "S81", "S83"], "agent_credit": ["S100", "S101", "S37", "S38", "S39", "S43", "S44", "S45", "S46", "S47", "S49", "S50", "S51", "S63", "S64", "S65", "S68", "S84", "S85", "S86", "S87", "S88", "S89", "S90", "S91", "S92", "S93", "S94", "S95", "S96", "S97", "S98", "S99"], "comptable": ["S102", "S103", "S104", "S105", "S106", "S107", "S108", "S109", "S110", "S111", "S112", "S113", "S114", "S115", "S116", "S117", "S118", "S119", "S120", "S121", "S122", "S123", "S124", "S125", "S126", "S127", "S128", "S52", "S53", "S54", "S55", "S56", "S57", "S58", "S59", "S60", "S61", "S62"]}
+DROITS_DEPART = {"chef_agence": ["S03", "S04", "S05", "S06", "S07", "S08", "S09", "S10", "S11", "S11b", "S11c", "S12", "S121", "S13", "S14", "S15", "S16", "S17", "S18", "S19", "S20", "S21", "S22", "S23", "S24", "S25", "S26", "S27", "S28", "S29", "S30", "S31", "S32", "S33", "S34", "S35", "S36", "S37", "S38", "S39", "S40", "S41", "S42", "S43", "S44", "S45", "S46", "S47", "S48", "S49", "S50", "S51", "S57", "S58", "S59", "S66", "S67", "S68", "S80", "SC01", "S82", "S83"], "caissier": ["S09", "S43", "S64", "S73", "S74", "S75", "S76", "S77", "S78", "S79", "S81", "S83"], "agent_credit": ["S100", "S101", "S37", "S38", "S39", "S43", "S44", "S45", "S46", "S47", "S49", "S50", "S51", "S63", "S64", "S65", "S68", "S84", "S85", "S86", "S87", "S88", "S89", "S90", "S91", "S92", "S93", "S94", "S95", "S96", "S97", "S98", "S99"], "comptable": ["S102", "S103", "S104", "S105", "S106", "S107", "S108", "S109", "S110", "S111", "S112", "S113", "S114", "S115", "S116", "S117", "S118", "S119", "S120", "S121", "S122", "S123", "S124", "S125", "S126", "S127", "S128", "S52", "S53", "S54", "S55", "S56", "S57", "S58", "S59", "S60", "S61", "S62"]}
 
 
 # Route d'écriture -> écrans qui l'appellent (registre S04-3)
@@ -41,6 +41,9 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/epargne/comptes.*", ["S63"]),
     (r"/epargne/(releve|situation).*", ["S64"]),
     (r"/epargne/dat/\d+/validation", ["S66"]),
+    (r"/conformite/examens", ["S73", "S74", "S77"]),
+    (r"/conformite/examens/\d+/(examen|declaration)", ["SC01"]),
+    (r"/conformite/ppe/\d+(/information)?", ["SC01"]),
     (r"/epargne/dat/\d+/annulation", ["S65"]),
     (r"/epargne/dat/\d+/rupture", ["S67"]),
     (r"/epargne/dat", ["S65"]),
@@ -123,6 +126,7 @@ LECTURES_ADMIN = [(re.compile(m), e) for m, e in [
     (r"/profils-utilisateurs", ["S06"]),
     (r"/connexions", ["S07"]),
     (r"/droits", ["S04"]),
+    (r"/conformite/(examens|ppe).*", ["SC01"]),    # confidentiel : Instr. BCC 15, art. 62
 ]]
 
 

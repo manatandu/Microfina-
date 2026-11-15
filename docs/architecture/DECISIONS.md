@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**364 décisions.** Solidité : 131 fortes (le manuel ou un texte répond), 201 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 336 déjà en place, 28 à appliquer.
+**372 décisions.** Solidité : 137 fortes (le manuel ou un texte répond), 203 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 344 déjà en place, 28 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -819,6 +819,29 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S68-2 | Effet des cases cochées | Chaque case cochée ajoute sa colonne au résultat (Élément de recherche) ; toutes cochées au départ, comme sur la capture ; Montant ajoute le total par devise. « Objet du crédit » n'a pas de sens pour un dépôt : colonne vide Décidé par délégation du porteur (15/11/2026). | Règle générale du manuel : Texte p. 77 (« cocher les cases des éléments recherchés ») | moyenne | en place |
 | S68-3 | Terme du crédit | Court terme un an au plus, moyen terme de 1 à 5 ans, long terme au-delà, selon la durée du DAT : le classement des crédits du PCCI | Texte réglementaire : PCCI, comptes 30 à 32 | moyenne | en place |
 | S68-4 | Qui y accède | Agent de crédit et chef d'agence (droit S68), comme la mise en place et la validation | Écran voisin : Registre S66-1 | moyenne | en place |
+
+## E01 Examen renforcé
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E01-1 | Seuil et cumul | Espèces de 10 000 USD ou plus pour un client dans la journée, dans un même sens (entrées ou sorties), contre-valeur au cours du jour. Une opération déjà passée par un examen sort du cumul : les opérations suivantes se cumulent de nouveau à partir de zéro | Texte réglementaire : Loi 22/068, art. 23 ; Instr. BCC 15, art. 10 et 61 | forte | en place |
+| E01-2 | Circuit | Le caissier transmet l'opération refusée à la conformité (Client > Conformité > Examen renforcé). Une autre personne l'examine : origine et destination des fonds, objet de l'opération (obligatoires), acteurs économiques ; elle autorise ou refuse avec motif. L'autorisation sert une seule fois, pour la même opération (client, journée, type, montant, devise) : le caissier la refait | Texte réglementaire : Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 5 à 7 et 9 ; Instr. BCC 008, art. 66 | forte | en place |
+| E01-3 | Rapport et déclaration | Rapport écrit confidentiel, imprimable (police 12) ; date et référence de la déclaration à la CENAREF notées ; liste « À déclarer » des examens autorisés pas encore déclarés | Texte réglementaire : Instr. BCC 15, art. 48 et 62 ; loi 25/048, art. 92 bis ; Instr. BCC 15 bis, art. 7 | forte | en place |
+| E01-4 | Qui examine, qui lit | Droit SC01 au chef d'agence au départ, en attendant un profil Conformité (Instr. BCC 15, art. 82). Lecture des examens réservée à ce droit : le caissier ne lit pas les examens | Écran voisin : Instr. BCC 15, art. 62 et 82 ; registre T27 | moyenne | en place |
+
+## E02 Personnes politiquement exposées
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E02-1 | Dossier et autorisation | La case de la fiche (S37) inscrit la personne ; le dossier se saisit dans Client > Conformité > Examen renforcé, onglet Personnes exposées : fonction exercée et origine du patrimoine et des fonds (obligatoires), fin de la fonction. Une autre personne autorise ; sans cette autorisation, le visa (S40) et la validation d'un client modifié (S42) sont refusés. 36 mois après la fin de la fonction, la personne n'est plus exposée | Texte réglementaire : Instr. BCC 15, art. 41, 60 et 64 ; Instr. BCC 008, art. 66 | forte | en place |
+| E02-2 | Information de la CENAREF | Date et référence de l'information notées, après l'autorisation, même sans soupçon | Texte réglementaire : Instr. BCC 15, art. 65 ; Instr. BCC 52, art. 26 | forte | en place |
+
+## E03 Copies des documents d'identification
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E03-1 | Où et comment | Copie de la pièce d'identité et justificatif d'adresse déposés comme la photo et la signature (Client > Photos et signatures, S49), gardés à chaque dépôt avec leur auteur et leur date | Texte réglementaire : Instr. BCC 15, art. 12 al. 2 et 3, art. 29 et 48 | forte | en place |
+| E03-2 | Visa sans les copies | Le visa (S40) signale ce qui manque, sans bloquer. Bloquer le visa d'une personne physique sans copie de la pièce est la lecture stricte de l'art. 29 ; elle reste à décider par le porteur, parce qu'elle change les habitudes de toutes les agences | Choix du porteur : Instr. BCC 15, art. 15 (vérification après l'entrée en relation si le risque est faible) et 29 | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

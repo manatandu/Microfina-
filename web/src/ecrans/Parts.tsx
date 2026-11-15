@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { vers } from "./registre";
 import { api } from "../donnees/api";
+import { boiteOperation } from "../lib/examen";
 import type { Operation, Tiers } from "../donnees/types";
-import { useDonnees, message } from "../lib/useDonnees";
+import { useDonnees } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { montant, totalComptage, type Comptage } from "@design/montant.js";
 import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
@@ -49,7 +50,7 @@ export function PartsSociales() {
     if (!t || !c) { setBoite({ type: "erreur", message: "À remplir : numéro client, N° Compte." }); return; }
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try { const o = await api.guichet.parts({ cle, tiersId: t.id, sens, nombre: n, coupures }); setFait(o); setBoite({ type: "succes", message: ["Enregistré avec succès !", o.avertissement].filter(Boolean).join(" ") }); }
-      catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+      catch (x) { setBoite(boiteOperation(x, { type: sens === "retrait" ? "retrait_parts" : "achat_parts", tiersId: t.id, montant: aPayer, devise: "CDF" }, setBoite)); }
     } });
   }
   return (

@@ -31,8 +31,6 @@ PIECES = ["Passeport", "Carte d'identité nationale", "Permis de conduire", "Car
 IMAGE_MAX = 400_000                # caractères de l'image encodée, environ 300 Ko
 IMAGE_OK = re.compile(r"^data:image/(png|jpeg);base64,[A-Za-z0-9+/=]+$")
 LIBELLES_ROLES = {"caissier": "caissier", "chef_agence": "chef d'agence", "agent_credit": "agent de crédit", "comptable": "comptable"}
-MSG_RENFORCE = ("Examen renforcé requis (10 000 USD ou plus en espèces dans la journée). "
-                "Le circuit de conformité n'est pas encore construit : opération bloquée.")
 
 
 # ---------- Session et utilisateur ----------
@@ -985,6 +983,8 @@ def viser_tiers(u: dict, tid: int, d: dict | None = None) -> dict:
     depot = d.get("premierDepot", t["premier_depot"] or 0)
     if not isinstance(depot, int) or isinstance(depot, bool) or depot < 0:
         raise ErreurMetier("Premier dépôt invalide.")
+    from .conformite import exiger_autorisation_ppe
+    exiger_autorisation_ppe(tid)                                     # écart E02 : Instr. BCC 15, art. 64
     executer("""update tiers set statut = 'actif', vise_par = %s, vise_le = now(), date_visa = %s, intitule = %s, premier_depot = %s where id = %s""",
              (u["id"], date_visa, intitule, depot, tid))
     return lire_tiers(tid)
@@ -1089,6 +1089,8 @@ def activer_tiers(u: dict, tid: int) -> dict:
         raise ErreurMetier("Ce client n'attend pas de validation.")
     if valeur("select 1 from tiers_modification where tiers_id = %s and valide_par is null and modifie_par = %s", (tid, u["id"])):
         raise ErreurMetier("Quatre yeux : la validation vient d'une autre personne que celle qui a modifié.")
+    from .conformite import exiger_autorisation_ppe
+    exiger_autorisation_ppe(tid)                                     # écart E02 : Instr. BCC 15, art. 64
     executer("update tiers_modification set valide_par = %s, valide_le = now() where tiers_id = %s and valide_par is null", (u["id"], tid))
     executer("update tiers set statut = 'actif' where id = %s", (tid,))
     return lire_tiers(tid)
@@ -1097,10 +1099,11 @@ def activer_tiers(u: dict, tid: int) -> dict:
 def images_tiers(u: dict, tid: int) -> dict:
     """Photo et signature déposées (cadre « Photo / Signature » de S43, p. 54)"""
     exiger(u)
-    sp = une("""select s.photo, s.signature from specimen s join tiers t on t.id = s.tiers_id
+    sp = une("""select s.photo, s.signature, s.copie_piece, s.justificatif_adresse from specimen s join tiers t on t.id = s.tiers_id
                 where s.tiers_id = %s and t.institution_id = %s order by s.id desc limit 1""", (tid, u["institution_id"]))
     image = lambda v: v if isinstance(v, str) and IMAGE_OK.match(v) else None
-    return {"photo": image(sp and sp["photo"]), "signature": image(sp and sp["signature"])}
+    return {"photo": image(sp and sp["photo"]), "signature": image(sp and sp["signature"]),
+            "copiePiece": image(sp and sp["copie_piece"]), "justificatifAdresse": image(sp and sp["justificatif_adresse"])}   # écart E03
 
 
 def changer_specimen(u: dict, tid: int, d: dict) -> dict:
@@ -1112,13 +1115,17 @@ def changer_specimen(u: dict, tid: int, d: dict) -> dict:
         raise ErreurMetier("Client introuvable.")
     if t["statut"] in ("prospect", "resilie"):
         raise ErreurMetier("Client prospect ou résilié : pas de photo ni de signature à mettre à jour.")
-    photo, signature = (d or {}).get("photo"), (d or {}).get("signature")
-    if not photo and not signature:
-        raise ErreurMetier("Aucune photo ni signature choisie.")
+    d = d or {}
+    photo, signature, piece, adresse = d.get("photo"), d.get("signature"), d.get("copiePiece"), d.get("justificatifAdresse")
+    if not (photo or signature or piece or adresse):
+        raise ErreurMetier("Aucune image choisie.")
     controler_image(photo, "Photo"); controler_image(signature, "Signature")
-    avant = une("select photo, signature from specimen where tiers_id = %s order by id desc limit 1", (tid,)) or {}
-    executer("insert into specimen (tiers_id, photo, signature, depose_le, depose_par) values (%s, %s, %s, current_date, %s)",
-             (tid, photo or avant.get("photo"), signature or avant.get("signature"), u["id"]))
+    controler_image(piece, "Copie de la pièce d'identité"); controler_image(adresse, "Justificatif d'adresse")      # écart E03 : Instr. BCC 15, art. 12 et 29
+    avant = une("select photo, signature, copie_piece, justificatif_adresse from specimen where tiers_id = %s order by id desc limit 1", (tid,)) or {}
+    executer("""insert into specimen (tiers_id, photo, signature, copie_piece, justificatif_adresse, depose_le, depose_par)
+                values (%s, %s, %s, %s, %s, current_date, %s)""",
+             (tid, photo or avant.get("photo"), signature or avant.get("signature"), piece or avant.get("copie_piece"),
+              adresse or avant.get("justificatif_adresse"), u["id"]))
     return lire_tiers(tid)
 
 
@@ -1462,9 +1469,11 @@ def en_usd(m: int, devise: str) -> float:
 
 
 def especes_du_jour_usd(tid: int, journee_id: int, sens: str) -> float:
+    """Espèces du jour du client, dans un sens ; les opérations déjà passées par un examen renforcé n'entrent plus dans le cumul (écart E01, registre E01-1)"""
     total = 0.0
     for o in lignes("""select o.type, o.montant, o.devise from operation o join session_caisse s on s.id = o.session_caisse_id
-                       where o.tiers_id = %s and o.statut = 'validee' and s.journee_id = %s""", (tid, journee_id)):
+                       where o.tiers_id = %s and o.statut = 'validee' and s.journee_id = %s
+                       and not exists (select 1 from examen_renforce x where x.operation_id = o.id)""", (tid, journee_id)):
         if (o["type"] in SORTIES) == (sens == "retrait"):
             total += en_usd(o["montant"], o["devise"].strip())
     return total
@@ -1567,8 +1576,8 @@ def depot(u: dict, p: dict) -> dict:
     if m <= 0:
         raise ErreurMetier("Montant nul.")
     controler_montant_coupures(coupures, m, c["devise"])
-    if en_usd(m, c["devise"]) + especes_du_jour_usd(c["tiers_id"], s["journeeId"], "depot") >= SEUIL_ESPECES_USD:
-        raise ErreurMetier(MSG_RENFORCE)
+    from . import conformite
+    examen = conformite.autorisation(u, c["tiers_id"], s["journeeId"], "depot", m, c["devise"])   # écart E01 : examen renforcé
     j = une("select date_comptable from journee_comptable where id = %s", (s["journeeId"],))
     eid = poster(u, journal="CA", journee_id=s["journeeId"], libelle=f"Dépôt espèces {c['numero']}", piece=nouvelle_piece(u, "CA", j["date_comptable"]),
                  evenement="depot", cle=p["cle"], valide_par=u["id"], lignes_ecr=[
@@ -1577,6 +1586,7 @@ def depot(u: dict, p: dict) -> dict:
     oid = creer_operation(u, s, cle=p["cle"], type_="depot", statut="validee", tiers_id=c["tiers_id"], contrat=f"depot:{c['id']}", montant=m,
                           devise=c["devise"], coupures=coupures, remis_par=(p.get("mandataire") or "").strip() or titulaire(c["tiers_id"]), ecriture_id=eid,
                           motif=(p.get("motif") or "").strip() or None)
+    conformite.lier(examen, oid)
     return avec_avertissement(vue_operation(une("select * from operation where id = %s", (oid,))), s, c["devise"])
 
 
@@ -1599,8 +1609,8 @@ def retrait(u: dict, p: dict) -> dict:
     th = theorique(s["id"], c["devise"])
     if any(n > th.get(v_, 0) for v_, n in coupures.items()):
         raise ErreurMetier("Pas assez de coupures en caisse.")
-    if en_usd(m, c["devise"]) + especes_du_jour_usd(c["tiers_id"], s["journeeId"], "retrait") >= SEUIL_ESPECES_USD:
-        raise ErreurMetier(MSG_RENFORCE)
+    from . import conformite
+    examen = conformite.autorisation(u, c["tiers_id"], s["journeeId"], "retrait", m, c["devise"])   # écart E01 : examen renforcé
     plafond = plafonds_guichet(s["guichetId"], c["devise"])[1]
     vise = None
     if plafond and m > plafond:
@@ -1622,10 +1632,12 @@ def retrait(u: dict, p: dict) -> dict:
     if vise:   # paiement du retrait visé : l'opération en attente devient le retrait payé, par ce caissier, dans sa caisse
         executer("update operation set statut = 'validee', ecriture_id = %s, session_caisse_id = %s, valide_par = %s where id = %s", (eid, s["id"], u["id"], vise["id"]))
         enregistrer_coupures(vise["id"], c["devise"], coupures)
+        conformite.lier(examen, vise["id"])
         return vue_operation(une("select * from operation where id = %s", (vise["id"],)))
     oid = creer_operation(u, s, cle=p["cle"], type_="retrait", statut="validee", tiers_id=c["tiers_id"], contrat=f"depot:{c['id']}",
                           montant=m, devise=c["devise"], coupures=coupures, remis_par=(p.get("mandataire") or "").strip() or titulaire(c["tiers_id"]),
                           ecriture_id=eid, motif=(p.get("motif") or "").strip() or None)
+    conformite.lier(examen, oid)
     return vue_operation(une("select * from operation where id = %s", (oid,)))
 
 
@@ -1676,8 +1688,8 @@ def adhesion(u: dict, p: dict) -> dict:
     tid, t, produit, nb, m_depot, frais, m_parts, total = (a[k] for k in ("tid", "t", "produit", "nb", "m_depot", "frais", "m_parts", "total"))
     coupures = nettoyer(p["coupures"])
     controler_montant_coupures(coupures, total, "CDF")
-    if en_usd(total, "CDF") + especes_du_jour_usd(tid, s["journeeId"], "depot") >= SEUIL_ESPECES_USD:
-        raise ErreurMetier(MSG_RENFORCE)
+    from . import conformite
+    examen = conformite.autorisation(u, tid, s["journeeId"], "adhesion", total, "CDF")   # écart E01 : examen renforcé
     j = une("select date_comptable from journee_comptable where id = %s", (s["journeeId"],))
     c = valeur("""insert into compte_depot (institution_id, agence_id, tiers_id, produit_id, numero, devise, statut, ouvert_le)
                   values (%s, %s, %s, %s, %s, 'CDF', 'ouvert', %s) returning id""",
@@ -1695,6 +1707,7 @@ def adhesion(u: dict, p: dict) -> dict:
         executer("insert into mouvement_parts (tiers_id, sens, nombre, valeur_unitaire, devise, ecriture_id) values (%s, 'achat', %s, %s, 'CDF', %s)", (tid, nb, valeur_part(u["institution_id"]), eid))
     oid = creer_operation(u, s, cle=p["cle"], type_="adhesion", statut="validee", tiers_id=tid, contrat=f"depot:{c}", montant=total,
                           devise="CDF", coupures=coupures, remis_par=titulaire(tid), parts=nb or None, ecriture_id=eid)
+    conformite.lier(examen, oid)
     return avec_avertissement(vue_operation(une("select * from operation where id = %s", (oid,))), s, "CDF")   # registre S08-4
 
 
@@ -1738,8 +1751,8 @@ def operation_parts(u: dict, p: dict) -> dict:
         th = theorique(s["id"], "CDF")
         if any(n > th.get(v_, 0) for v_, n in coupures.items()):
             raise ErreurMetier("Pas assez de coupures en caisse.")
-    if en_usd(montant, "CDF") + especes_du_jour_usd(tid, s["journeeId"], "retrait" if sens == "retrait" else "depot") >= SEUIL_ESPECES_USD:
-        raise ErreurMetier(MSG_RENFORCE)
+    from . import conformite
+    examen = conformite.autorisation(u, tid, s["journeeId"], "retrait_parts" if sens == "retrait" else "achat_parts", montant, "CDF")   # écart E01
     j = une("select date_comptable from journee_comptable where id = %s", (s["journeeId"],))
     caisse = {"compte": "570", "contrat": f"guichet:{s['guichetId']}", "sens": "D" if sens == "achat" else "C", "devise": "CDF", "montant": montant}
     parts = {"compte": compte_parts(t), "contrat": f"parts:{tid}", "sens": "C" if sens == "achat" else "D", "devise": "CDF", "montant": montant}
@@ -1750,6 +1763,7 @@ def operation_parts(u: dict, p: dict) -> dict:
              (tid, sens, nb, valeur_part(u["institution_id"]), eid))
     oid = creer_operation(u, s, cle=p["cle"], type_=type_, statut="validee", tiers_id=tid, contrat=f"parts:{tid}", montant=montant, devise="CDF",
                           coupures=coupures, remis_par=titulaire(tid), parts=nb, ecriture_id=eid)
+    conformite.lier(examen, oid)
     return avec_avertissement(vue_operation(une("select * from operation where id = %s", (oid,))), s, "CDF")   # registre S08-4
 
 

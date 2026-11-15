@@ -6,7 +6,7 @@ from .bd import ErreurMetier, lignes, une, valeur
 from .services import exiger, lire_tiers, soldes_masques, solde_contrat
 
 CHAMPS_CLIENT = ("numero", "type", "intitule", "nom", "postnom", "prenom", "sexe", "naissance", "lieuNaissance", "profession", "nationalite", "zone", "quartier",
-                 "adresse", "telephone", "email", "bp", "commune", "ville", "pays")
+                 "adresse", "telephone", "email", "bp", "commune", "ville", "pays", "pieceType", "pieceNumero")
 
 
 def entete(i: int) -> dict:

@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { vers } from "./registre";
 import { api } from "../donnees/api";
+import { boiteOperation } from "../lib/examen";
 import { aDesParts } from "../lib/vocabulaire";
 import type { Operation, Tiers } from "../donnees/types";
-import { useDonnees, message } from "../lib/useDonnees";
+import { useDonnees } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { lireMontant, montant, montantEnLettres, totalComptage, type Comptage } from "@design/montant.js";
 import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
@@ -52,7 +53,7 @@ export default function Adhesion() {
     if (!t || mDepot === null) { setBoite({ type: "erreur", message: !t ? "À remplir : N° Client." : "Premier dépôt invalide." }); return; }
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try { const o = await api.guichet.adhesion({ cle, tiersId: t.id, parts: nParts, depot: mDepot, coupures }); setFait(o); setBoite({ type: "succes", message: ["Enregistré avec succès !", o.avertissement].filter(Boolean).join(" ") }); }
-      catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+      catch (x) { setBoite(boiteOperation(x, { type: "adhesion", tiersId: t.id, montant: total, devise: "CDF" }, setBoite)); }
     } });
   }
   return (

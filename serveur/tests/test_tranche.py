@@ -349,7 +349,7 @@ def test_mise_a_jour_client(clients, journee):
     # S43 : informations initiales et actuelles
     h = chef.get(f"/api/tiers/{k}/modifications").json()
     assert (h[0]["avant"]["telephone"], h[0]["apres"]["telephone"], h[0]["validePar"] is not None) == ("", "+243 990 000 001", True)
-    assert chef.get(f"/api/tiers/{k}/images").json() == {"photo": None, "signature": None}   # graine : pas d'image réelle
+    assert chef.get(f"/api/tiers/{k}/images").json() == {"photo": None, "signature": None, "copiePiece": None, "justificatifAdresse": None}   # graine : pas d'image réelle
 
 
 def test_connexion_avec_mot_de_passe(clients, settings):
@@ -679,7 +679,10 @@ def test_photo_signature(clients):
     t = agent.post(f"/api/tiers/{k}/specimen", {"signature": png}, **H).json()
     assert (t["specimen"], t["photo"]) == (True, False)
     agent.post(f"/api/tiers/{k}/specimen", {"photo": png}, **H)
-    assert agent.get(f"/api/tiers/{k}/images").json() == {"photo": png, "signature": png}
+    assert agent.get(f"/api/tiers/{k}/images").json() == {"photo": png, "signature": png, "copiePiece": None, "justificatifAdresse": None}
+    # écart E03 : copie de la pièce et justificatif d'adresse (Instr. BCC 15, art. 12 et 29)
+    assert agent.post(f"/api/tiers/{k}/specimen", {"copiePiece": png, "justificatifAdresse": png}, **H).status_code == 200
+    assert agent.get(f"/api/tiers/{k}/images").json() == {"photo": png, "signature": png, "copiePiece": png, "justificatifAdresse": png}
     assert ident("select depose_par from specimen where tiers_id = %s order by id desc limit 1", (k,)) == ident("select id from utilisateur where login = 'bkasongo'")
 
 
@@ -2048,3 +2051,52 @@ def test_profil_imf(clients, journee):
     assert chef.post("/api/produits-epargne", {**P, "famille": "BLOQUE", "libelle": "Garantie"}, **H).status_code == 200
     r = caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 500000, "coupures": {"5000": 1}}, **H)
     assert r.status_code == 422 and "micro-crédit ne collecte pas" in r.json()["message"]
+
+
+def test_examen_renforce(clients, journee):
+    """Écart E01 : espèces de 10 000 USD ou plus (loi 22/068, art. 23 ; Instr. BCC 15, art. 61 et 62 ; Instr. BCC 15 bis, art. 5 à 7)"""
+    caisse, chef = clients["caisse"], clients["chef"]
+    op = {"compteId": C("0412-000318-01"), "montant": 1000000, "coupures": {"100": 100}, "mandataire": ""}
+    r = caisse.post("/api/guichet/depots", {"cle": cle(), **op}, **H)
+    assert r.status_code == 422 and "Examen renforcé requis" in r.json()["message"]
+    d = {"type": "depot", "tiersId": T("0412-000318"), "compteId": op["compteId"], "montant": 1000000, "devise": "USD"}
+    assert "Sous le seuil" in caisse.post("/api/conformite/examens", {**d, "cle": cle(), "montant": 500000}, **H).json()["message"]
+    e = caisse.post("/api/conformite/examens", {**d, "cle": cle()}, **H).json()
+    assert (e["numero"], e["statut"], e["cumulUsd"]) == (1, "a_examiner", 10000.0)
+    assert "attend la conformité" in caisse.post("/api/guichet/depots", {"cle": cle(), **op}, **H).json()["message"]
+    assert caisse.get("/api/conformite/examens", **H).status_code == 403                          # confidentiel
+    assert caisse.post(f"/api/conformite/examens/{e['id']}/examen", {"decision": "autorise"}, **H).status_code == 403
+    r = chef.post(f"/api/conformite/examens/{e['id']}/examen", {"decision": "autorise", "origineFonds": "Vente de stock"}, **H)
+    assert r.status_code == 422 and "Destination des fonds, Objet" in r.json()["message"]
+    a = chef.post(f"/api/conformite/examens/{e['id']}/examen", {"decision": "autorise", "origineFonds": "Vente de stock", "destinationFonds": "Épargne",
+                                                                "objet": "Dépôt de la recette"}, **H).json()
+    assert a["statut"] == "autorise"
+    assert caisse.post("/api/guichet/depots", {"cle": cle(), **op}, **H).json()["statut"] == "validee"
+    assert "Examen renforcé requis" in caisse.post("/api/guichet/depots", {"cle": cle(), **op}, **H).json()["message"]   # l'autorisation sert une fois
+    assert chef.get("/api/conformite/examens?statut=autorise", **H).json()[0]["operationFaite"] is True
+    dc = chef.post(f"/api/conformite/examens/{e['id']}/declaration", {"date": "2026-11-05", "reference": "CENAREF-2026-118"}, **H).json()
+    assert dc["declareLe"] == "2026-11-05" and chef.get("/api/conformite/examens?statut=a_declarer", **H).json() == []
+    assert chef.get(f"/api/conformite/examens/{e['id']}/rapport", **H).json()["examen"]["objet"] == "Dépôt de la recette"
+    # quatre yeux : celui qui demande n'examine pas
+    e2 = chef.post("/api/conformite/examens", {**d, "cle": cle(), "type": "retrait"}, **H)
+    assert e2.status_code == 403                                                                      # le chef n'a pas le guichet
+
+
+def test_personne_exposee(clients, journee):
+    """Écart E02 : Instr. BCC 15, art. 41, 64, 65 ; Instr. BCC 52, art. 26"""
+    from noyau.bd import executer
+    agent, chef, compta = clients["agent"], clients["chef"], clients["compta"]
+    t = agent.post("/api/tiers", {**FICHE, "nom": "Mbala", "postnom": "Kanku", "prenom": "Pierre", "naissance": "1970-04-02", "pieceType": "Passeport",
+                                  "pieceNumero": "OP-778899", "pieceExpire": "2031-01-01", "adresse": "Gombe", "personneExposee": True}, **H).json()
+    r = chef.post(f"/api/tiers/{t['id']}/visa", **H)
+    assert r.status_code == 422 and "autorisation de la conformité" in r.json()["message"]
+    assert [x["client"] for x in chef.get("/api/conformite/ppe", **H).json()] == ["Mbala Kanku Pierre"]
+    assert "Origine du patrimoine" in chef.post(f"/api/conformite/ppe/{t['id']}", {"fonction": "Député provincial"}, **H).json()["message"]
+    assert chef.post(f"/api/conformite/ppe/{t['id']}", {"fonction": "Député provincial", "originePatrimoine": "Indemnités, ferme"}, **H).status_code == 200
+    assert "Quatre yeux" in chef.post(f"/api/conformite/ppe/{t['id']}", {"autoriser": True}, **H).json()["message"]
+    assert agent.get("/api/conformite/ppe", **H).status_code == 403
+    assert compta.post(f"/api/conformite/ppe/{t['id']}", {"autoriser": True}, **H).status_code == 403
+    executer("insert into profil_droit (profil_id, droit_code) select id, 'SC01' from profil where code = 'comptable'")
+    assert compta.post(f"/api/conformite/ppe/{t['id']}", {"autoriser": True}, **H).json()["autorisePar"]
+    assert compta.post(f"/api/conformite/ppe/{t['id']}/information", {"date": "2026-11-05", "reference": "CENAREF-PPE-07"}, **H).json()["informeLe"] == "2026-11-05"
+    assert chef.post(f"/api/tiers/{t['id']}/visa", **H).json()["statut"] == "actif"

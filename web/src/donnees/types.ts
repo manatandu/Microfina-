@@ -180,6 +180,15 @@ export interface DepotTerme {   // S65, S66
   reconduction: boolean; statut: "saisie" | "valide" | "rompu" | "echu" | "annule"; saisiPar: number; validePar: number | null; ecritureId: number | null;
   rupture?: RuptureDat & { dateRupture: string; dateDemande: string; ecritureId: number; rompuPar: number };   // S67
 }
+/** Écart E01 : examen renforcé des espèces de 10 000 USD ou plus (loi 22/068, art. 23 ; Instr. BCC 15, art. 61 et 62) */
+export interface Examen {
+  id: number; numero: number; cle: string; tiersId: number; journeeId: number; type: "depot" | "retrait" | "adhesion" | "achat_parts" | "retrait_parts";
+  compteId: number | null; montant: number; devise: Devise; montantUsd: number; cumulUsd: number; motifDemande: string; demandePar: number;
+  statut: "a_examiner" | "autorise" | "refuse"; origineFonds: string; destinationFonds: string; objet: string; acteurs: string; observations: string;
+  examinePar: number | null; examineLe: string; operationId: number | null; declareLe: string; referenceDeclaration: string;
+}
+/** Écart E02 : dossier d'une personne politiquement exposée (Instr. BCC 15, art. 41, 64, 65) */
+export interface DossierPpe { tiersId: number; fonction: string; finFonction: string; originePatrimoine: string; saisiPar: number; autorisePar: number | null; autoriseLe: string; informeLe: string; referenceCenaref: string }
 export interface RuptureDat { jours: number; interet: number; penalite: number; tauxIrc: string; irc: number; montantAVerser: number }
 
 export interface Emprunt {   // S61
@@ -284,6 +293,8 @@ export interface Etat {
   chequiers: Chequier[];   // S60
   emprunts: Emprunt[];   // S61
   depotsTerme: DepotTerme[];   // S65
+  examens: Examen[];   // écart E01, examen renforcé
+  dossiersPpe: DossierPpe[];   // écart E02, personnes politiquement exposées
   relevesEdites: { numero: number; compteId: number; du: string; au: string; editePar: number }[];   // S64 : trace des relevés remis
   remboursementsEmprunt: RemboursementEmprunt[];
   chequesInstitution: ChequeInstitution[];
@@ -292,7 +303,7 @@ export interface Etat {
   groupesSolidaires: { id: number; code: string; nom: string }[];      // S44
   membresGroupes: { groupeId: number; tiersId: number }[];
   fraisClient: { tiersId: number; fraisId: number; montant: number }[];   // S41 : montant propre à un client
-  images: Record<number, { photo?: string; signature?: string }>;   // photo et specimen chargés à l'enrôlement
+  images: Record<number, { photo?: string; signature?: string; copiePiece?: string; justificatifAdresse?: string }>;   // photo et specimen chargés à l'enrôlement
 }
 
 export class ErreurMetier extends Error {

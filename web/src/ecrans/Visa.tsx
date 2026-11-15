@@ -23,9 +23,12 @@ export function VisaClient() {
   const [boite, setBoite] = useState<Boite | null>(null);
   const { donnees: lies } = useDonnees(() => (t ? api.parametrage.fraisLies(t.id) : Promise.resolve([])), [t?.id]);
   const frais = lies ?? [];
+  const { donnees: copies } = useDonnees(() => (t ? api.tiers.images(t.id) : Promise.resolve(null)), [t?.id]);
   if (!donnees) return <Chargement />;
   const { ctx, attente } = donnees;
   const vise = t?.statut === "actif";
+  // Écart E03 : le visa montre si la copie de la pièce et le justificatif d'adresse sont déposés (Instr. BCC 15, art. 12 et 29)
+  const manquantes = copies ? [!copies.copiePiece && "copie de la pièce d'identité", !copies.justificatifAdresse && "justificatif d'adresse"].filter(Boolean) : [];
 
   async function choisir(x: Tiers) {
     const j = await api.journees.courante();
@@ -60,6 +63,7 @@ export function VisaClient() {
             <Champ libelle={`Prémier dépôt :${t ? ` (${deviseDe(ctx, t)})` : ""}`}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" readOnly={!t || vise} autoComplete="off" value={depot} onChange={(e) => setDepot(e.target.value)} />}</Champ>
             <Champ libelle="Date Demande *">{(p) => <input {...p} className="saisie date" readOnly value={t ? fr(t.dateDemande) : ""} />}</Champ>
             <ChampDate libelle="Date Visa *" valeur={dateVisa} onChange={setDateVisa} requis />
+            {t && !vise && manquantes.length > 0 && <p className="aide" role="status">Pas encore déposé : {manquantes.join(", ")} (Client &gt; Photos et signatures ; Instr. BCC 15, art. 12 et 29).</p>}
           </fieldset>
           <fieldset className="pile cadre-champs">
             <legend>Liste des Frais liés</legend>
@@ -601,19 +605,31 @@ export function PhotosSignatures() {
   const [t, setT] = useState<Tiers | null>(null);
   const [photo, setPhoto] = useState<string | null>(null);
   const [signature, setSignature] = useState<string | null>(null);
+  const [piece, setPiece] = useState<string | null>(null);
+  const [adresse, setAdresse] = useState<string | null>(null);
   const [recherche, setRecherche] = useState(false);
   const [capture, setCapture] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
-  const { donnees: actuelles } = useDonnees(() => (t ? api.tiers.images(t.id) : Promise.resolve({ photo: null, signature: null })), [t?.id]);
+  const { donnees: actuelles } = useDonnees(() => (t ? api.tiers.images(t.id) : Promise.resolve({ photo: null, signature: null, copiePiece: null, justificatifAdresse: null })), [t?.id]);
   const erreur = (x: unknown) => setBoite({ type: "erreur", message: message(x) });
   const choisir = (f: (v: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const fichier = e.target.files?.[0]; e.target.value = "";
     if (fichier) lireImage(fichier).then(f, erreur);
   };
-  const annuler = () => { setT(null); setPhoto(null); setSignature(null); };
+  const annuler = () => { setT(null); setPhoto(null); setSignature(null); setPiece(null); setAdresse(null); };
   const genre = t?.type === "morale" ? "Personne morale" : t?.type === "groupe" ? "Groupe" : "Membre physique";
   const signataires = t?.type === "morale" ? t.signataires : t?.type === "groupe" ? t.membres : [];
   const apercuPhoto = photo ?? actuelles?.photo ?? null, apercuSignature = signature ?? actuelles?.signature ?? null;
+  const apercuPiece = piece ?? actuelles?.copiePiece ?? null, apercuAdresse = adresse ?? actuelles?.justificatifAdresse ?? null;
+  /** Écart E03 : copie de la pièce d'identité et justificatif d'adresse (Instr. BCC 15, art. 12 et 29), sur le modèle du cadre Signature */
+  const cadreImage = (titre: string, apercu: string | null, poser: (v: string) => void) => (
+    <fieldset className="pile cadre-champs">
+      <legend>{titre}</legend>
+      <div className="actions-ligne">
+        <label className={`bouton secondaire${t ? "" : " inactif"}`}>Choisir<input className="sr-only" type="file" accept="image/png,image/jpeg" aria-label={`Choisir : ${titre}`} disabled={!t} onChange={choisir(poser)} /></label>
+      </div>
+      <div className="cadre-signature apercu-grand">{apercu ? <img src={apercu} alt={`Aperçu : ${titre}`} /> : t && <p className="muet">Aucune image déposée</p>}</div>
+    </fieldset>);
   return (
     <>
       <h1>Modification ou Ajout (Photo/Signature) : {genre}</h1>
@@ -647,6 +663,8 @@ export function PhotosSignatures() {
               <p className="muet">APERCU SIGNATURE</p>
               <div className="cadre-signature apercu-grand">{apercuSignature && <img src={apercuSignature} alt="Aperçu de la signature" />}</div>
             </fieldset>
+            {cadreImage("Copie de la pièce d'identité", apercuPiece, setPiece)}
+            {cadreImage("Justificatif d'adresse", apercuAdresse, setAdresse)}
           </div>
           <div className="pile">
             <fieldset className="pile cadre-champs">
@@ -660,8 +678,8 @@ export function PhotosSignatures() {
               </table>
             </fieldset>
             <div className="actions-onglets">
-              <button className="bouton" type="button" disabled={!t || (!photo && !signature)} onClick={() => t && setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
-                try { await api.tiers.changerSpecimen(t.id, { ...(photo ? { photo } : {}), ...(signature ? { signature } : {}) }); annuler(); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+              <button className="bouton" type="button" disabled={!t || (!photo && !signature && !piece && !adresse)} onClick={() => t && setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
+                try { await api.tiers.changerSpecimen(t.id, { ...(photo ? { photo } : {}), ...(signature ? { signature } : {}), ...(piece ? { copiePiece: piece } : {}), ...(adresse ? { justificatifAdresse: adresse } : {}) }); annuler(); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
                 catch (x) { erreur(x); }
               } })}>Valider les Modifications</button>
               <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
@@ -670,12 +688,13 @@ export function PhotosSignatures() {
         </div>
         <Textes sources={["Manuel Microfina++, p. 58 : écran Modification ou Ajout (Photo/Signature), Capturer, Choisir, aperçus, Liste des Signataires, Valider les Modifications, Annuler",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
-          "Chaque dépôt garde son auteur et sa date ; le dernier dépôt fait foi au guichet"]} />
+          "Chaque dépôt garde son auteur et sa date ; le dernier dépôt fait foi au guichet",
+          "Instr. BCC 15, art. 12 et 29 : copie de la pièce d'identité et document prouvant l'adresse, gardés dix ans (art. 48)"]} />
       </section>
       <Capture ouverte={capture} fermer={() => setCapture(false)} prise={(v) => (v.length > IMAGE_MAX ? erreur(new Error("Image trop lourde : 300 Ko au plus.")) : setPhoto(v))} />
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut !== "prospect" && x.statut !== "resilie") : [])}
-          choisir={(x) => { setT(x); setPhoto(null); setSignature(null); setRecherche(false); }} fermer={() => setRecherche(false)} />
+          choisir={(x) => { setT(x); setPhoto(null); setSignature(null); setPiece(null); setAdresse(null); setRecherche(false); }} fermer={() => setRecherche(false)} />
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>

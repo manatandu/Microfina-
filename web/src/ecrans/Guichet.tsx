@@ -2,8 +2,9 @@ import { vers } from "./registre";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
+import { boiteOperation } from "../lib/examen";
 import type { Operation, Tiers } from "../donnees/types";
-import { useDonnees, message } from "../lib/useDonnees";
+import { useDonnees } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
 import { lireMontant, montant, montantEnLettres, totalComptage, type Comptage, type Devise } from "@design/montant.js";
@@ -94,7 +95,7 @@ export default function GuichetDepotRetrait() {
         }
         setFait(o);
         setBoite({ type: "succes", message: ["Enregistré avec succès !", o.avertissement].filter(Boolean).join(" ") });
-      } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+      } catch (x) { setBoite(boiteOperation(x, { type: op === "depot" ? "depot" : "retrait", tiersId: t!.id, compteId: c!.id, montant: m!, devise: c!.devise, motif }, setBoite)); }
     } });
   }
 

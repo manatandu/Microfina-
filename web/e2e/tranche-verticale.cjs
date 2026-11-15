@@ -531,6 +531,27 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Ok' }).click();
   await p.getByRole('button', { name: 'Imprimer' }).click(); await p.getByText('Dépôt enregistré').waitFor(); await etape('10-depot-recu');
   await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
+  // Examen renforcé (écart E01) : 28 500 000 CDF en espèces, soit 10 000 USD ; la caissière transmet à la conformité, le chef autorise, la caissière refait le dépôt
+  const depotRenforce = async () => {
+    await aller('/caisse/s74?op=depot'); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-02' });
+    await p.getByLabel('Montant *').fill('28 500 000');
+    await p.getByRole('button', { name: 'Billetage' }).click(); await p.getByRole('dialog', { name: 'Billetage' }).getByLabel('Nombre de coupures de 20 000 CDF').fill('1425');
+    await p.getByRole('dialog', { name: 'Billetage' }).getByRole('button', { name: 'Fermer' }).click();
+    await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  };
+  await depotRenforce(); await p.getByRole('dialog', { name: 'Confirmation' }).getByText(/Transmettre l'opération à la conformité/).waitFor(); await etape('10b-examen-requis');
+  await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).getByText(/Examen renforcé n° 1 demandé/).waitFor();
+  await p.getByRole('button', { name: 'Ok' }).click();
+  await login('J.-P. Mukendi'); await aller('/clients/sc01'); await p.getByRole('heading', { name: 'Examen renforcé' }).waitFor();
+  await p.getByRole('row').filter({ hasText: 'Kalala' }).first().click();
+  const fx = p.getByRole('dialog', { name: 'Examen renforcé n° 1' });
+  await fx.getByLabel('Origine des fonds : *').fill('Recette du commerce de pagnes, semaine du 2 novembre');
+  await fx.getByLabel('Destination des fonds : *').fill('Épargne, puis achat de stock');
+  await fx.getByLabel("Objet de l'opération : *").fill('Dépôt de la recette');
+  await etape('10c-examen-renforce'); await fx.getByRole('button', { name: 'Autoriser' }).click(); await oui();
+  await fx.getByRole('button', { name: 'Rapport' }).click(); await p.getByRole('article', { name: "Rapport d'examen renforcé" }).waitFor(); await etape('10d-rapport-examen');
+  await p.getByRole('dialog', { name: "Rapport d'examen renforcé" }).getByRole('button', { name: 'Fermer' }).click(); await fx.getByRole('button', { name: 'Fermer' }).click();
+  await login('Esther Ngalula'); await depotRenforce(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click(); await etape('10e-depot-autorise');
   await p.getByRole('tab', { name: 'Retrait en espèce' }).click(); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-01' });
   await p.getByLabel('Montant *').fill('1 500'); await p.getByLabel('Motif:').fill('Loyer');
   await p.getByRole('button', { name: 'Billetage' }).click(); await p.getByRole('dialog', { name: 'Billetage' }).getByLabel('Nombre de coupures de 100 USD').fill('15');

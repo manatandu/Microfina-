@@ -109,7 +109,7 @@ Note : l'art. 14 associe les pondérations à des niveaux de risque dans l'ordre
 | Instr. 40, art. 4, 5, 13 | Document remis au client, clair, en français, police d'au moins 12 | Contrat DAT (S66) en 12 ; relevé (S64) compact à la demande du porteur, écart signalé (registre S64-7) | lu |
 | Instr. 5 | Déclaration à la centrale des risques sans délai, modifications, radiation après 3 ans sans engagement | Centrale des risques | survolé, à lire |
 | Instr. 15 et annexes | LBC/FT : identification, vigilance, déclarations | LBC/FT | à lire, avec la loi 22/068 mod. 25/048 |
-| Instr. 15 bis | Paiements en espèces ≥ USD 10 000 | LBC/FT, Caisse | survolé, à lire |
+| Instr. 15 bis ; Instr. 15, art. 61 et 62 ; loi 22/068, art. 23 | Espèces ≥ USD 10 000 : examen renforcé, autorisation par l'institution, rapport confidentiel, déclaration à la CENAREF | Caisse, Client > Conformité (SC01) | lu |
 | Instr. 24 | Monnaie électronique | Extensions | à lire |
 | Instr. 29 | Agents bancaires | Extensions | à lire |
 | Instr. 36 | Continuité d'activité | Exploitation | survolé, à lire |

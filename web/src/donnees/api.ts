@@ -7,7 +7,7 @@ import { graine } from "./graine";
 import { creerApiHttp } from "./http";
 import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
-  type ChequeClient, type Chequier, type DepotTerme, type RuptureDat, type Emprunt, type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
+  type ChequeClient, type Chequier, type DepotTerme, type RuptureDat, type Examen, type Emprunt, type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget,
 } from "./types";
@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v65";
+const CLE = "likelemba-demo-v66";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -296,7 +296,7 @@ export type RepresentantSaisi = Omit<Representant, "photo" | "specimen"> & Image
 /** Représentants envoyés à la mise à jour d'une entreprise ou d'un groupe (S46, registre S46-2) */
 export interface RepresentantsMaj { dirigeant?: RepresentantSaisi | null; signataires?: RepresentantSaisi[]; membres?: RepresentantSaisi[] }
 /** Photo et specimen chargés à l'onglet « Photo » (p. 49), en image PNG ou JPEG */
-export interface Images { photo?: string; signature?: string }
+export interface Images { photo?: string; signature?: string; copiePiece?: string; justificatifAdresse?: string }   // écart E03 : copie de la pièce, justificatif d'adresse
 /** Type entreprise (p. 50) : liste de Microfina++ non montrée, à confirmer. En attendant : agents économiques du PCCI § 10.2, hors ménages. */
 export const TYPES_ENTREPRISE = ["Banques commerciales et autres intermédiaires financiers", "Organes faîtiers et autres institutions de microfinance",
   "Autres COOPEC et IMF", "Institutions financières non bancaires", "Administration centrale", "Administrations provinciales ou locales",
@@ -582,6 +582,7 @@ const tiers = {
     if (!intitule) throw new ErreurMetier("À remplir : intitulé.");
     const depot = v.premierDepot ?? t.premierDepot;
     if (!Number.isInteger(depot) || depot < 0) throw new ErreurMetier("Premier dépôt invalide.");
+    exigerAutorisationPpe(t.id);   // écart E02 : Instr. BCC 15, art. 64
     Object.assign(t, { statut: "actif", visePar: u.id, dateVisa, intitule, premierDepot: depot });
     enregistrer(); return t;
   },
@@ -624,9 +625,10 @@ const tiers = {
     const t = E.tiers.find((x) => x.id === id);
     if (!t) throw new ErreurMetier("Client introuvable.");
     if (t.statut === "prospect" || t.statut === "resilie") throw new ErreurMetier("Client prospect ou résilié : pas de photo ni de signature à mettre à jour.");
-    if (!d.photo && !d.signature) throw new ErreurMetier("Aucune photo ni signature choisie.");
+    if (!d.photo && !d.signature && !d.copiePiece && !d.justificatifAdresse) throw new ErreurMetier("Aucune image choisie.");
     controlerImage(d.photo, "Photo"); controlerImage(d.signature, "Signature");
-    const i = { ...(E.images[id] ?? {}), ...(d.photo ? { photo: d.photo } : {}), ...(d.signature ? { signature: d.signature } : {}) };
+    controlerImage(d.copiePiece, "Copie de la pièce d'identité"); controlerImage(d.justificatifAdresse, "Justificatif d'adresse");   // écart E03 : Instr. BCC 15, art. 12 et 29
+    const i = { ...(E.images[id] ?? {}), ...Object.fromEntries(Object.entries(d).filter(([, v]) => v)) };
     E.images[id] = i;
     t.photo = t.photo || !!i.photo; t.specimen = t.specimen || !!i.signature;
     enregistrer(); return t;
@@ -652,10 +654,10 @@ const tiers = {
     enregistrer(); return tiers.consentements(id);
   },
   /** Cadre « Photo / Signature » de S43 (p. 54) */
-  images(id: number): { photo: string | null; signature: string | null } {
+  images(id: number): { photo: string | null; signature: string | null; copiePiece: string | null; justificatifAdresse: string | null } {
     exiger();
     const i = E.images[id] ?? {};
-    return { photo: i.photo ?? null, signature: i.signature ?? null };
+    return { photo: i.photo ?? null, signature: i.signature ?? null, copiePiece: i.copiePiece ?? null, justificatifAdresse: i.justificatifAdresse ?? null };
   },
   /** « Informations initiales et actuelles » (S43, p. 54) */
   modifications(id: number) {
@@ -702,6 +704,7 @@ const tiers = {
     if (t.statut !== "modifie_a_revalider") throw new ErreurMetier("Ce client n'attend pas de validation.");
     const ouvertes = E.modifications.filter((m) => m.tiersId === id && !m.validePar);
     if (ouvertes.some((m) => m.modifiePar === u.id)) throw new ErreurMetier("Quatre yeux : la validation vient d'une autre personne que celle qui a modifié.");
+    exigerAutorisationPpe(t.id);   // écart E02 : Instr. BCC 15, art. 64
     ouvertes.forEach((m) => { m.validePar = u.id; });
     t.statut = "actif"; enregistrer(); return t;
   },
@@ -1549,7 +1552,7 @@ const comptesEpargne = {
 
 // ---------- Épargne > Relevé de compte (S64, manuel p. 73 et 74). Règles identiques côté serveur (noyau/releves.py). ----------
 const CHAMPS_CLIENT = ["numero", "type", "intitule", "nom", "postnom", "prenom", "sexe", "naissance", "lieuNaissance", "profession", "nationalite", "zone", "quartier",
-  "adresse", "telephone", "email", "bp", "commune", "ville", "pays"] as const;
+  "adresse", "telephone", "email", "bp", "commune", "ville", "pays", "pieceType", "pieceNumero"] as const;
 type FicheClient = Record<(typeof CHAMPS_CLIENT)[number], string>;
 const enteteDocument = () => { const i = E.institution;
   return { nom: i.nom, sigle: i.sigle ?? "", adresse: i.adresse ?? "", telephone: i.telephoneFixe ?? "", bp: i.bp ?? "", ville: i.ville ?? "", commune: i.commune ?? "",
@@ -1892,15 +1895,14 @@ const guichet = {
     controlerStatutActif(t.statut);
     if (p.montant <= 0) throw new ErreurMetier("Montant nul.");
     controlerCoupures(p.coupures, p.montant, c.devise);
-    if (enUsd(p.montant, c.devise) + especesDuJourUsd(t.id, "depot") >= SEUIL_ESPECES_USD)
-      throw new ErreurMetier("Examen renforcé requis (10 000 USD ou plus en espèces dans la journée). Le circuit de conformité n'est pas encore construit : opération bloquée.", "Instr. BCC 15 bis, art. 1, 6 et 7");
+    const examen = autorisationExamen(t.id, s.journeeId, "depot", p.montant, c.devise);   // écart E01 : examen renforcé
     const pc = piece();
     const e = poster({ journal: "CA", journeeId: s.journeeId, libelle: `Dépôt espèces ${c.numero}`, piece: pc, saisiPar: u.id, validePar: u.id, lignes: [
       { compte: "570", contrat: guichetDe(s), sens: "D", devise: c.devise, montant: p.montant, montantCdf: cdf(p.montant, c.devise) },
       { compte: c.pcci, contrat: `depot:${c.id}`, sens: "C", devise: c.devise, montant: p.montant, montantCdf: cdf(p.montant, c.devise) },
     ] });
     const o: Operation = { id: prochain(E.operations), cle: p.cle, type: "depot", statut: "validee", sessionId: s.id, tiersId: t.id, compteId: c.id, montant: p.montant, devise: c.devise, coupures: nettoyer(p.coupures), remisPar: p.mandataire?.trim() || titulaire(t), motif: p.motif?.trim() ?? "", saisiPar: u.id, ecritureId: e.id, heure: heure() };
-    E.operations.push(o); enregistrer(); return avecAvertissement(o, s, c.devise);
+    E.operations.push(o); lierExamen(examen, o.id); enregistrer(); return avecAvertissement(o, s, c.devise);
   },
 
   /** S74 : onglet Retrait en espèce (manuel p. 86). Sans frais (Instr. BCC 37). */
@@ -1917,8 +1919,7 @@ const guichet = {
     controlerCoupures(p.coupures, p.montant, c.devise);
     const th = caisses.theorique(s.id, c.devise);
     if (Object.entries(p.coupures).some(([v, n]) => (n ?? 0) > (th[Number(v)] ?? 0))) throw new ErreurMetier("Pas assez de coupures en caisse.");
-    if (enUsd(p.montant, c.devise) + especesDuJourUsd(t.id, "retrait") >= SEUIL_ESPECES_USD)
-      throw new ErreurMetier("Examen renforcé requis (10 000 USD ou plus en espèces dans la journée). Le circuit de conformité n'est pas encore construit : opération bloquée.", "Instr. BCC 15 bis, art. 1, 6 et 7");
+    const examen = autorisationExamen(t.id, s.journeeId, "retrait", p.montant, c.devise);   // écart E01 : examen renforcé
     // Registre S08-5 : au-delà du retrait plafonné du guichet, le retrait attend le visa « Retrait plafond » (S113) avant d'être payé
     const plafond = plafondsGuichet(s.guichetId, c.devise).retrait;
     let vise: Operation | undefined;
@@ -1938,10 +1939,10 @@ const guichet = {
       { compte: c.pcci, contrat: `depot:${c.id}`, sens: "D", devise: c.devise, montant: p.montant, montantCdf: cdf(p.montant, c.devise) },
       { compte: "570", contrat: guichetDe(s), sens: "C", devise: c.devise, montant: p.montant, montantCdf: cdf(p.montant, c.devise) },
     ] });
-    if (vise) { Object.assign(vise, { statut: "validee", ecritureId: e.id, sessionId: s.id, coupures: nettoyer(p.coupures) }); enregistrer(); return vise; }
+    if (vise) { Object.assign(vise, { statut: "validee", ecritureId: e.id, sessionId: s.id, coupures: nettoyer(p.coupures) }); lierExamen(examen, vise.id); enregistrer(); return vise; }
     const o: Operation = { id: prochain(E.operations), cle: p.cle, type: "retrait", statut: "validee", sessionId: s.id, tiersId: t.id, compteId: c.id, montant: p.montant, devise: c.devise,
       coupures: nettoyer(p.coupures), remisPar: p.mandataire?.trim() || titulaire(t), motif: p.motif?.trim() ?? "", saisiPar: u.id, ecritureId: e.id, heure: heure() };
-    E.operations.push(o); enregistrer(); return o;
+    E.operations.push(o); lierExamen(examen, o.id); enregistrer(); return o;
   },
 
   /** S73 : Caisse > Opération > Adhésion (p. 85 et 89) : compte du type choisi à l'enrôlement, premier dépôt, frais d'adhésion (S16/S41), parts.
@@ -1963,8 +1964,7 @@ const guichet = {
     for (const f of frais) if (!f.compte || !planComptable().includes(f.compte)) throw new ErreurMetier(`Frais « ${f.libelle} » : compte absent du plan comptable, à paramétrer (Paramétrage > Frais et opérations).`);
     const mParts = p.parts * valeurPart(), total = mParts + p.depot + frais.reduce((x, f) => x + (f.montant ?? 0), 0);
     controlerCoupures(p.coupures, total, "CDF");
-    if (enUsd(total, "CDF") + especesDuJourUsd(t.id, "depot") >= SEUIL_ESPECES_USD)
-      throw new ErreurMetier("Examen renforcé requis (10 000 USD ou plus en espèces dans la journée). Le circuit de conformité n'est pas encore construit : opération bloquée.", "Instr. BCC 15 bis, art. 1, 6 et 7");
+    const examen = autorisationExamen(t.id, s.journeeId, "adhesion", total, "CDF");   // écart E01 : examen renforcé
     const cCdf: CompteDepot = { id: E.comptes.length + 1, tiersId: t.id, numero: numeroCompte(t.numero, produit), intitule: produit.libelle, pcci: compteDuProduit(produit), devise: "CDF", bloque: 0, produitId: produit.id };   // S27-2, S28-2
     E.comptes.push(cCdf);
     const lignes: Ligne[] = [{ compte: "570", contrat: guichetDe(s), sens: "D", devise: "CDF", montant: total, montantCdf: total }];
@@ -1973,7 +1973,7 @@ const guichet = {
     for (const f of frais) lignes.push({ compte: f.compte!, contrat: `frais:${f.fraisId}`, sens: "C", devise: "CDF", montant: f.montant!, montantCdf: f.montant! });
     const e = poster({ journal: "CA", journeeId: s.journeeId, libelle: `Adhésion ${t.numero}`, piece: piece(), saisiPar: u.id, validePar: u.id, lignes });
     const o: Operation = { id: prochain(E.operations), cle: p.cle, type: "adhesion", statut: "validee", sessionId: s.id, tiersId: t.id, compteId: cCdf.id, montant: total, devise: "CDF", ...(p.parts ? { parts: p.parts } : {}), coupures: nettoyer(p.coupures), remisPar: titulaire(t), saisiPar: u.id, ecritureId: e.id, heure: heure() };
-    E.operations.push(o); enregistrer(); return avecAvertissement(o, s, "CDF");   // registre S08-4
+    E.operations.push(o); lierExamen(examen, o.id); enregistrer(); return avecAvertissement(o, s, "CDF");   // registre S08-4
   },
   /** S77 : Part sociale (Achat/Retrait) (p. 88 et 89). Loi 002/2002, art. 21, 22 et 27 ; PCCI, compte 103.
    *  Règles identiques côté serveur (services.operation_parts). */
@@ -1998,8 +1998,7 @@ const guichet = {
       const th = caisses.theorique(s.id, "CDF");
       if (Object.entries(nettoyer(p.coupures)).some(([v, n]) => (n ?? 0) > (th[Number(v)] ?? 0))) throw new ErreurMetier("Pas assez de coupures en caisse.");
     }
-    if (enUsd(montant, "CDF") + especesDuJourUsd(t.id, p.sens === "retrait" ? "retrait" : "depot") >= SEUIL_ESPECES_USD)
-      throw new ErreurMetier("Examen renforcé requis (10 000 USD ou plus en espèces dans la journée). Le circuit de conformité n'est pas encore construit : opération bloquée.", "Instr. BCC 15 bis, art. 1, 6 et 7");
+    const examen = autorisationExamen(t.id, s.journeeId, p.sens === "retrait" ? "retrait_parts" : "achat_parts", montant, "CDF");   // écart E01 : examen renforcé
     const achat = p.sens === "achat";
     const lignes: Ligne[] = [
       { compte: "570", contrat: guichetDe(s), sens: achat ? "D" : "C", devise: "CDF", montant, montantCdf: montant },
@@ -2008,7 +2007,7 @@ const guichet = {
     const e = poster({ journal: "CA", journeeId: s.journeeId, libelle: `${achat ? "Achat" : "Retrait"} de parts sociales ${t.numero}`, piece: piece(), saisiPar: u.id, validePar: u.id, lignes });
     const o: Operation = { id: prochain(E.operations), cle: p.cle, type: achat ? "achat_parts" : "retrait_parts", statut: "validee", sessionId: s.id, tiersId: t.id, montant, devise: "CDF",
       parts: p.nombre, coupures: nettoyer(p.coupures), remisPar: titulaire(t), saisiPar: u.id, ecritureId: e.id, heure: heure() };
-    E.operations.push(o); enregistrer(); return avecAvertissement(o, s, "CDF");   // registre S08-4
+    E.operations.push(o); lierExamen(examen, o.id); enregistrer(); return avecAvertissement(o, s, "CDF");   // registre S08-4
   },
 };
 
@@ -2108,9 +2107,138 @@ function controlerPart(types: string[], v: { valeur: number | null; compte: stri
 function especesDuJourUsd(tiersId: number, sens: "depot" | "retrait") {
   const j = journees.courante();
   const meme = (o: Operation) => SORTIES.includes(o.type) === (sens === "retrait");
-  return E.operations.filter((o) => o.tiersId === tiersId && o.statut === "validee" && meme(o) && E.sessions.some((s) => s.id === o.sessionId && s.journeeId === j?.id))
+  return E.operations.filter((o) => o.tiersId === tiersId && o.statut === "validee" && meme(o) && E.sessions.some((s) => s.id === o.sessionId && s.journeeId === j?.id)
+      && !E.examens.some((x) => x.operationId === o.id))   // déjà examinée : hors du cumul (écart E01, registre E01-1)
     .reduce((s, o) => s + enUsd(o.montant, o.devise), 0);
 }
+
+// ---------- Écart E01 : examen renforcé (loi 22/068, art. 23 ; loi 25/048, art. 92 bis ; Instr. BCC 15, art. 61 et 62 ; Instr. BCC 15 bis, art. 5 à 7) ----------
+// Mêmes règles que noyau/conformite.py.
+const TYPES_EXAMEN: Record<Examen["type"], string> = { depot: "Dépôt en espèces", retrait: "Retrait en espèces", adhesion: "Adhésion", achat_parts: "Achat de parts", retrait_parts: "Retrait de parts" };
+const sensExamen = (t: Examen["type"]) => (t === "retrait" || t === "retrait_parts" ? "retrait" : "depot");
+const MSG_EXAMEN = "Examen renforcé requis : 10 000 USD ou plus en espèces dans la journée pour ce client (loi 22/068, art. 23 ; Instr. BCC 15, art. 61). L'opération attend l'autorisation de la conformité.";
+function autorisationExamen(tiersId: number, journeeId: number, type: Examen["type"], montant: number, devise: Devise): number | null {
+  if (enUsd(montant, devise) + especesDuJourUsd(tiersId, sensExamen(type)) < SEUIL_ESPECES_USD) return null;
+  const e = [...E.examens].reverse().find((x) => x.tiersId === tiersId && x.journeeId === journeeId && x.type === type && x.montant === montant && x.devise === devise && x.operationId === null);
+  if (e?.statut === "autorise") return e.id;
+  if (e?.statut === "a_examiner") throw new ErreurMetier(`L'examen renforcé n° ${e.numero} attend la conformité (Client > Conformité > Examen renforcé).`);
+  if (e?.statut === "refuse") throw new ErreurMetier(`Opération refusée par la conformité (examen renforcé n° ${e.numero}).`);
+  throw new ErreurMetier(MSG_EXAMEN);
+}
+function lierExamen(id: number | null, operationId: number) { const e = E.examens.find((x) => x.id === id); if (e) e.operationId = operationId; }
+const vueExamen = (x: Examen) => { const t = E.tiers.find((y) => y.id === x.tiersId); const nom = (id: number | null) => E.utilisateurs.find((u) => u.id === id)?.nom ?? "";
+  return { id: x.id, numero: x.numero, tiersId: x.tiersId, client: t ? titulaire(t) : "", membre: t?.numero ?? "", type: x.type, typeLibelle: TYPES_EXAMEN[x.type],
+    compte: E.comptes.find((c) => c.id === x.compteId)?.numero ?? "", montant: x.montant, devise: x.devise, montantUsd: x.montantUsd, cumulUsd: x.cumulUsd,
+    date: E.journees.find((j) => j.id === x.journeeId)?.date ?? "", motifDemande: x.motifDemande, demandePar: nom(x.demandePar), statut: x.statut,
+    origineFonds: x.origineFonds, destinationFonds: x.destinationFonds, objet: x.objet, acteurs: x.acteurs, observations: x.observations,
+    examinePar: nom(x.examinePar), examineLe: x.examineLe, operationFaite: x.operationId !== null, declareLe: x.declareLe, referenceDeclaration: x.referenceDeclaration }; };
+// Écart E02 : personnes politiquement exposées (Instr. BCC 15, art. 41, 60, 64, 65 ; Instr. BCC 52, art. 26). Mêmes règles que noyau/conformite.py.
+const ppeActive = (tid: number) => { const t = E.tiers.find((x) => x.id === tid); if (!t?.personneExposee) return false;
+  const fin = E.dossiersPpe.find((x) => x.tiersId === tid)?.finFonction; if (!fin) return true;
+  const [a, m, j] = fin.split("-").map(Number) as [number, number, number]; const limite = new Date(Date.UTC(a, m - 1 + 36, j)).toISOString().slice(0, 10);
+  return limite >= new Date().toISOString().slice(0, 10); };   // 36 mois après la fin de la fonction, plus exposée (art. 64)
+function exigerAutorisationPpe(tid: number) {
+  if (ppeActive(tid) && !E.dossiersPpe.find((x) => x.tiersId === tid)?.autorisePar)
+    throw new ErreurMetier("Personne politiquement exposée : l'autorisation de la conformité vient avant le visa (Instr. BCC 15, art. 64). Client > Conformité > Examen renforcé, onglet Personnes exposées.");
+}
+const vuePpe = (t: Tiers) => { const d = E.dossiersPpe.find((x) => x.tiersId === t.id); const nom = (id: number | null | undefined) => E.utilisateurs.find((u) => u.id === id)?.nom ?? "";
+  return { tiersId: t.id, membre: t.numero, client: titulaire(t), statutClient: t.statut, exposee: ppeActive(t.id), fonction: d?.fonction ?? "", finFonction: d?.finFonction ?? "",
+    originePatrimoine: d?.originePatrimoine ?? "", saisiPar: nom(d?.saisiPar), autorisePar: nom(d?.autorisePar), autoriseLe: d?.autoriseLe ?? "",
+    informeLe: d?.informeLe ?? "", referenceCenaref: d?.referenceCenaref ?? "" }; };
+const ppe = {
+  lister() { lectureAdmin(["SC01"]); return E.tiers.filter((t) => t.personneExposee).sort((a, b) => a.numero.localeCompare(b.numero)).map(vuePpe); },
+  /** Fonction, fin de fonction, origine du patrimoine (art. 41, 64) ; « autoriser » : accord de la conformité, par une autre personne (Instr. BCC 008, art. 66) */
+  enregistrer(tid: number, d: { fonction?: string; finFonction?: string; originePatrimoine?: string; autoriser?: boolean }) {
+    const u = exiger();
+    const t = E.tiers.find((x) => x.id === tid);
+    if (!t?.personneExposee) throw new ErreurMetier("Ce client n'est pas inscrit comme personne politiquement exposée (case de sa fiche).");
+    const x = E.dossiersPpe.find((y) => y.tiersId === tid);
+    if (d.autoriser) {
+      if (!x) throw new ErreurMetier("Saisir d'abord le dossier : fonction et origine du patrimoine.");
+      if (x.autorisePar) throw new ErreurMetier("Autorisation déjà donnée.");
+      if (x.saisiPar === u.id) throw new ErreurMetier("Quatre yeux : l'autorisation vient d'une autre personne que celle qui a saisi le dossier.");
+      x.autorisePar = u.id; x.autoriseLe = new Date().toISOString().slice(0, 10); enregistrer(); return vuePpe(t);
+    }
+    const f = (d.fonction ?? "").trim(), o = (d.originePatrimoine ?? "").trim(), fin = (d.finFonction ?? "").trim();
+    const manque = ([[f, "Fonction exercée"], [o, "Origine du patrimoine et des fonds"]] as const).filter(([v]) => !v).map(([, n]) => n);
+    if (manque.length) throw new ErreurMetier(`À remplir (Instr. BCC 15, art. 41 et 64) : ${manque.join(", ")}.`);
+    if (fin && !/^\d{4}-\d{2}-\d{2}$/.test(fin)) throw new ErreurMetier("Fin de la fonction : date invalide.");
+    if (x?.autorisePar) throw new ErreurMetier("Dossier autorisé : il ne se modifie plus.");
+    if (x) Object.assign(x, { fonction: f, finFonction: fin, originePatrimoine: o, saisiPar: u.id });
+    else E.dossiersPpe.push({ tiersId: tid, fonction: f, finFonction: fin, originePatrimoine: o, saisiPar: u.id, autorisePar: null, autoriseLe: "", informeLe: "", referenceCenaref: "" });
+    enregistrer(); return vuePpe(t);
+  },
+  /** Art. 65 : information de la CENAREF, même sans soupçon */
+  informer(tid: number, d: { date: string; reference: string }) {
+    exiger();
+    const t = E.tiers.find((x) => x.id === tid), x = E.dossiersPpe.find((y) => y.tiersId === tid);
+    if (!t || !x) throw new ErreurMetier("Saisir d'abord le dossier.");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d.date ?? "") || !(d.reference ?? "").trim()) throw new ErreurMetier("À remplir : date et référence de l'information à la CENAREF.");
+    x.informeLe = d.date; x.referenceCenaref = d.reference.trim(); enregistrer(); return vuePpe(t);
+  },
+};
+const conformite = {
+  /** Le caissier transmet l'opération à la conformité : elle attend l'examen */
+  demander(d: { cle: string; type: Examen["type"]; tiersId: number; compteId?: number | null; montant: number; devise: string; motif?: string }) {
+    const u = exiger();
+    const prec = E.examens.find((x) => x.cle === d.cle); if (prec) return vueExamen(prec);
+    if (!(d.type in TYPES_EXAMEN)) throw new ErreurMetier("Type d'opération inconnu.");
+    const t = E.tiers.find((x) => x.id === d.tiersId); if (!t) throw new ErreurMetier("Client introuvable.");
+    if (!Number.isInteger(d.montant) || d.montant <= 0 || !E.devises.some((x) => x.code === d.devise)) throw new ErreurMetier("Montant ou devise invalide.");
+    if (d.compteId != null && !E.comptes.some((c) => c.id === d.compteId && c.tiersId === t.id)) throw new ErreurMetier("Compte introuvable.");
+    const j = journees.courante(); if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
+    const usd = enUsd(d.montant, d.devise as Devise), cumul = usd + especesDuJourUsd(t.id, sensExamen(d.type));
+    if (cumul < SEUIL_ESPECES_USD) throw new ErreurMetier("Sous le seuil de 10 000 USD : pas d'examen renforcé, l'opération se fait directement.");
+    if (E.examens.some((x) => x.tiersId === t.id && x.journeeId === j.id && x.type === d.type && x.montant === d.montant && x.devise === d.devise && x.operationId === null && x.statut === "a_examiner"))
+      throw new ErreurMetier("Cette opération attend déjà l'examen de la conformité.");
+    const x: Examen = { id: prochain(E.examens), numero: E.examens.reduce((m, y) => Math.max(m, y.numero), 0) + 1, cle: d.cle, tiersId: t.id, journeeId: j.id, type: d.type,
+      compteId: d.compteId ?? null, montant: d.montant, devise: d.devise as Devise, montantUsd: Math.round(usd * 100) / 100, cumulUsd: Math.round(cumul * 100) / 100,
+      motifDemande: (d.motif ?? "").trim(), demandePar: u.id, statut: "a_examiner", origineFonds: "", destinationFonds: "", objet: "", acteurs: "", observations: "",
+      examinePar: null, examineLe: "", operationId: null, declareLe: "", referenceDeclaration: "" };
+    E.examens.push(x); enregistrer(); return vueExamen(x);
+  },
+  lister(statut = "") {
+    lectureAdmin(["SC01"]);
+    if (statut && !["a_examiner", "autorise", "refuse", "a_declarer"].includes(statut)) throw new ErreurMetier("Statut inconnu.");
+    return E.examens.filter((x) => !statut || (statut === "a_declarer" ? x.statut === "autorise" && !x.declareLe : x.statut === statut))
+      .sort((a, b) => b.numero - a.numero).map(vueExamen);
+  },
+  /** Instr. BCC 15, art. 61 : origine et destination des fonds, objet, acteurs ; une autre personne que le demandeur (Instr. BCC 008, art. 66) */
+  examiner(id: number, d: { decision: string; origineFonds?: string; destinationFonds?: string; objet?: string; acteurs?: string; observations?: string }) {
+    const u = exiger();
+    const x = E.examens.find((y) => y.id === id);
+    if (!x || x.statut !== "a_examiner") throw new ErreurMetier("Cet examen n'est plus en attente.");
+    if (x.demandePar === u.id) throw new ErreurMetier("Quatre yeux : l'examen vient d'une autre personne que celle qui l'a demandé.");
+    if (d.decision !== "autorise" && d.decision !== "refuse") throw new ErreurMetier("Décision : autoriser ou refuser.");
+    const t = (v?: string) => (v ?? "").trim();
+    const manque = ([[d.origineFonds, "Origine des fonds"], [d.destinationFonds, "Destination des fonds"], [d.objet, "Objet de l'opération"]] as const).filter(([v]) => !t(v)).map(([, n]) => n);
+    if (manque.length) throw new ErreurMetier(`À remplir (Instr. BCC 15, art. 61) : ${manque.join(", ")}.`);
+    if (d.decision === "refuse" && !t(d.observations)) throw new ErreurMetier("À remplir : observations (motif du refus).");
+    Object.assign(x, { statut: d.decision, origineFonds: t(d.origineFonds), destinationFonds: t(d.destinationFonds), objet: t(d.objet), acteurs: t(d.acteurs), observations: t(d.observations),
+      examinePar: u.id, examineLe: new Date().toISOString().slice(0, 10) });
+    enregistrer(); return vueExamen(x);
+  },
+  /** Loi 25/048, art. 92 bis ; Instr. BCC 15 bis, art. 7 : date et référence du rapport transmis à la CENAREF */
+  declarer(id: number, d: { date: string; reference: string }) {
+    exiger();
+    const x = E.examens.find((y) => y.id === id);
+    if (!x || x.statut === "a_examiner") throw new ErreurMetier("Examiner d'abord l'opération.");
+    if (x.declareLe) throw new ErreurMetier("Déclaration déjà notée.");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d.date ?? "")) throw new ErreurMetier("À remplir : date de la déclaration.");
+    const j = journees.courante(); if (j && d.date > j.date) throw new ErreurMetier("La date de la déclaration ne peut pas dépasser la journée ouverte.");
+    if (!(d.reference ?? "").trim()) throw new ErreurMetier("À remplir : référence de la déclaration (accusé de la CENAREF).");
+    x.declareLe = d.date; x.referenceDeclaration = d.reference.trim(); enregistrer(); return vueExamen(x);
+  },
+  /** Instr. BCC 15, art. 62 : rapport écrit, strictement confidentiel */
+  ppe: () => ppe.lister(),
+  enregistrerPpe: (tid: number, d: Parameters<typeof ppe.enregistrer>[1]) => ppe.enregistrer(tid, d),
+  informerPpe: (tid: number, d: { date: string; reference: string }) => ppe.informer(tid, d),
+  rapport(id: number) {
+    lectureAdmin(["SC01"]);
+    const x = E.examens.find((y) => y.id === id); if (!x) throw new ErreurMetier("Examen introuvable.");
+    return { entete: enteteDocument(), client: ficheClient(x.tiersId), examen: vueExamen(x) };
+  },
+};
 
 // ---------- Visas ----------
 const operations = {
@@ -3686,6 +3814,7 @@ const apiLocal = {
   comptesEpargne: asynchrone(comptesEpargne, "comptesEpargne"),
   releves: asynchrone(releves, "releves"),
   depotsTerme: asynchrone(depotsTerme, "depotsTerme"),
+  conformite: asynchrone(conformite, "conformite"),
   banques: asynchrone(banques, "banques"),
   guichets: asynchrone(guichets, "guichets"),
   exercices: asynchrone(exercices, "exercices"),
