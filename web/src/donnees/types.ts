@@ -135,6 +135,9 @@ export interface CompteDepot {
   devise: Devise;
   bloque: number;
   motifBlocage?: string;
+  produitId?: number;   // S63 : produit du compte (les comptes de la graine se reconnaissent à l'intitulé et à la devise)
+  ouvertLe?: string;
+  cle?: string;
 }
 
 export interface Ligne {

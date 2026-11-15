@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v62";
+const CLE = "likelemba-demo-v63";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -1488,6 +1488,50 @@ function controlerCompteDuPlan(numero: string, quoi: string) {
   if (!c) throw new ErreurMetier(`${quoi} : ${numero} n'est pas un compte du plan (Comptabilité > Plan des comptes).`);
   if (!(c.saisissable && c.ouvert)) throw new ErreurMetier(`${quoi} : ${numero} est fermé ou non saisissable.`);
 }
+// ---------- Épargne > Nouveau compte (S63, manuel p. 72 et 73). Règles identiques côté serveur (noyau/comptes_epargne.py). ----------
+// Ouverture gratuite, sans écriture (Instr. BCC 37, annexe) ; un compte de plus pour un membre (loi 002/2002, art. 1er).
+const duProduit = (c: CompteDepot, p: ProduitEpargne) => c.produitId !== undefined ? c.produitId === p.id : c.intitule === p.libelle && c.devise === p.devise;
+function preparerOuverture(tiersId?: number, produitId?: number) {
+  const t = E.tiers.find((x) => x.id === tiersId);
+  if (!t) throw new ErreurMetier("À remplir : Numéro du Client.");
+  controlerStatutActif(t.statut);
+  if (!E.comptes.some((c) => c.tiersId === t.id)) throw new ErreurMetier("Ce client n'a pas encore adhéré : l'adhésion (Caisse > Adhésion) ouvre son premier compte.");   // S63-2
+  const p = E.produits.find((x) => x.id === produitId && x.actif && !x.supprime);
+  if (!p) throw new ErreurMetier("À remplir : Produit Epargne.");
+  const deja = E.comptes.filter((c) => c.tiersId === t.id && duProduit(c, p)).length;
+  if (p.nbMaxComptes && deja >= p.nbMaxComptes) throw new ErreurMetier(`Max compte à créer atteint : ${deja} compte(s) ${p.libelle} pour ce client (Paramétrage > Produit épargne).`);   // S74-5
+  const numero = numeroCompte(t.numero, p);
+  if (E.comptes.some((c) => c.numero === numero)) throw new ErreurMetier(`Le numéro ${numero} existe déjà : la numérotation des comptes (Paramétrage > Numéro de compte client) ne distingue pas deux comptes du même produit pour un client.`);   // S63-4
+  return { t, p, numero };
+}
+const comptesEpargne = {
+  produits() {
+    exiger();
+    return produitsProposes().sort((a, b) => a.code.localeCompare(b.code)).map(({ id, numero, code, libelle, famille, devise, nbMaxComptes }) => ({ id, numero, code, libelle, famille, devise, nbMaxComptes }));
+  },
+  apercu(tiersId: number, produitId: number) {
+    exiger();
+    const a = preparerOuverture(tiersId, produitId);
+    return { numero: a.numero, devise: a.p.devise };
+  },
+  ouvrir(d: { cle: string; tiersId?: number; produitId?: number; date?: string }) {
+    exiger();
+    const prec = E.comptes.find((c) => c.cle && c.cle === d.cle);
+    if (prec) return { id: prec.id, numero: prec.numero, tiersId: prec.tiersId, produitId: prec.produitId, devise: prec.devise, ouvertLe: prec.ouvertLe ?? "" };
+    const j = journees.courante();
+    if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
+    const date = d.date?.trim() || j.date;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new ErreurMetier("À remplir : Date création.");
+    if (date > j.date) throw new ErreurMetier("La date de création ne peut pas dépasser la journée ouverte.");
+    const a = preparerOuverture(d.tiersId, d.produitId);
+    if (a.t.dateVisa && date < a.t.dateVisa) throw new ErreurMetier("La date de création précède la date de visa du client.");
+    const c: CompteDepot = { id: prochain(E.comptes), tiersId: a.t.id, numero: a.numero, intitule: a.p.libelle, pcci: compteDuProduit(a.p), devise: a.p.devise, bloque: 0,
+      produitId: a.p.id, ouvertLe: date, cle: d.cle };
+    E.comptes.push(c); enregistrer();
+    return { id: c.id, numero: c.numero, tiersId: c.tiersId, produitId: c.produitId, devise: c.devise, ouvertLe: date };
+  },
+};
+
 const banques = {
   lire() {
     exiger();
@@ -1683,7 +1727,7 @@ const guichet = {
     controlerCoupures(p.coupures, total, "CDF");
     if (enUsd(total, "CDF") + especesDuJourUsd(t.id, "depot") >= SEUIL_ESPECES_USD)
       throw new ErreurMetier("Examen renforcé requis (10 000 USD ou plus en espèces dans la journée). Le circuit de conformité n'est pas encore construit : opération bloquée.", "Instr. BCC 15 bis, art. 1, 6 et 7");
-    const cCdf: CompteDepot = { id: E.comptes.length + 1, tiersId: t.id, numero: numeroCompte(t.numero, produit), intitule: produit.libelle, pcci: compteDuProduit(produit), devise: "CDF", bloque: 0 };   // S27-2, S28-2
+    const cCdf: CompteDepot = { id: E.comptes.length + 1, tiersId: t.id, numero: numeroCompte(t.numero, produit), intitule: produit.libelle, pcci: compteDuProduit(produit), devise: "CDF", bloque: 0, produitId: produit.id };   // S27-2, S28-2
     E.comptes.push(cCdf);
     const lignes: Ligne[] = [
       { compte: "570", contrat: guichetDe(s), sens: "D", devise: "CDF", montant: total, montantCdf: total },
@@ -3391,6 +3435,7 @@ const apiLocal = {
   chequesClients: asynchrone(chequesClients, "chequesClients"),
   chequiers: asynchrone(chequiers, "chequiers"),
   emprunts: asynchrone(emprunts, "emprunts"),
+  comptesEpargne: asynchrone(comptesEpargne, "comptesEpargne"),
   banques: asynchrone(banques, "banques"),
   guichets: asynchrone(guichets, "guichets"),
   exercices: asynchrone(exercices, "exercices"),

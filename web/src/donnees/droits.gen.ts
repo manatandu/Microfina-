@@ -60,6 +60,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "comptes.supprimer": [
 "S102"
 ],
+"comptesEpargne.ouvrir": [
+"S63"
+],
 "comptesUtilisateurs.enregistrer": [
 "S05"
 ],

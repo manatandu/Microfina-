@@ -709,6 +709,30 @@ describe("journée de guichet", () => {
     expect([r.comptes[0]!.comptePenalite, r.comptes[0]!.contactAdresse]).toEqual(["6070", "Boulevard du 30 Juin, Gombe"]);
   });
 
+  it("nouveau compte (S63) : un compte de plus pour un membre, Max compte à créer, N° selon la numérotation (registre S63-1 à S63-5)", async () => {
+    await journeeOuverte();
+    await connecter("jpmukendi");
+    await api.produitsEpargne.enregistrer({ numero: 5, code: "G", famille: "BLOQUE", libelle: "Epargne De Garantie", devise: "CDF", soldeMinimum: 0, nbMaxComptes: 1,
+      operer: true, depotCheque: false, caution: false, nantissement: true, calculerInteret: false, soldeNegatif: false, repartitionGroupe: false, actif: true });
+    const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), ...IDENTITE, produitCode: "EAV-CDF", nom: "Tshala", prenom: "Marie", naissance: "1990-02-01", pieceType: "Passeport", pieceNumero: "OC1", pieceExpire: "2031-01-01", adresse: "Matete" });
+    await connecter("bkasongo");
+    await api.tiers.viser(t.id).catch(() => undefined);
+    const g = (await api.comptesEpargne.produits()).find((x) => x.code === "G")!;
+    await expect(api.comptesEpargne.ouvrir({ cle: cle(), tiersId: 1 })).rejects.toThrow("Produit Epargne");
+    await expect(api.comptesEpargne.apercu(t.id, g.id)).rejects.toThrow(/visé|adhéré/);
+    expect((await api.comptesEpargne.apercu(1, g.id)).numero).toBe("0412-000318-05");
+    await expect(api.comptesEpargne.ouvrir({ cle: cle(), tiersId: 1, produitId: g.id, date: "2026-11-06" })).rejects.toThrow("dépasser la journée");
+    const k = cle(), c = await api.comptesEpargne.ouvrir({ cle: k, tiersId: 1, produitId: g.id });
+    expect([c.numero, c.devise, c.ouvertLe]).toEqual(["0412-000318-05", "CDF", "2026-11-05"]);
+    expect((await api.comptesEpargne.ouvrir({ cle: k, tiersId: 1, produitId: g.id })).id).toBe(c.id);
+    await expect(api.comptesEpargne.ouvrir({ cle: cle(), tiersId: 1, produitId: g.id })).rejects.toThrow("Max compte à créer");
+    const eav = (await api.comptesEpargne.produits()).find((x) => x.code === "EAV-CDF")!;
+    await expect(api.comptesEpargne.ouvrir({ cle: cle(), tiersId: 1, produitId: eav.id })).rejects.toThrow("Max compte à créer");
+    expect((await api.tiers.comptes(1)).map((x) => x.numero)).toContain("0412-000318-05");
+    await connecter("engalula");
+    await expect(api.comptesEpargne.ouvrir({ cle: cle(), tiersId: 2, produitId: g.id })).rejects.toThrow("Droit manquant");
+  });
+
   it("adhésion par banque (S56) : payée sur un compte bancaire en CDF, saisie en attente du visa (registre S56-1 à S56-3)", async () => {
     await journeeOuverte();
     await connecter("jpmukendi");

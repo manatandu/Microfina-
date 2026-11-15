@@ -61,7 +61,7 @@ Chèques clients : dépôt encaissement historique,banque,should,yes,partial,"S5
 Chéquier et chèque pour crédit,banque,could,yes,partial,"S60 ; signalé non fonctionnel par le manuel | Construit le 14/11/2026 : écran « Numéro Chequier » conforme à la capture p. 69 (Banque, Compte, Nb.Feuillet, Début, Fin, Barré, Visé, Certifié, Generer) ; les chèques alimentent la liste N° de chèque de S52 (registre S60-1 à S60-5). Reste : Chèque pour crédit, avec S54."
 Emprunts bancaires,banque,should,yes,partial,"S61 ; non décrit | Construit le 15/11/2026 : « Mise en place d'emprunt » et « Remboursement emprunt » conformes aux captures p. 70 ; comptes du PCCI 533, 6020/6021, 60702 (registre S61-1 à S61-7). Reste : écritures à la comptabilisation (S111)."
 Rapports banque,banque,should,yes,yes,"S62 | Construit le 15/11/2026 : « Édition du journal des opérations de banque » conforme à la capture p. 71 ; résultat complété (colonnes des listes de S57 plus l'agence, Export Excel ; registre S62-1 à S62-3)."
-Ouverture d'un compte d'épargne,épargne,must,yes,no,S63 ; gratuite (Instr. BCC 37)
+Ouverture d'un compte d'épargne,épargne,must,yes,partial,"S63 ; gratuite (Instr. BCC 37) | Construit le 15/11/2026 : « Création d'un compte Epargne » conforme à la capture p. 73 (Produit, client, N° du compte, Date création, Enregistrer, Annuler, Liste des Comptes du membre) ; membre seulement, Max compte à créer, ouverture gratuite (registre S63-1 à S63-5)."
 Relevé de compte et situation du client,épargne,must,yes,no,S64 ; deux premiers relevés mensuels gratuits (Instr. BCC 37)
 Dépôt à terme : mise en place validation rupture recherche,épargne,must,yes,no,S65 à S68 ; intérêts courus à chaque arrêté (constat U18)
 Reconduction automatique des DAT,épargne,must,yes,no,S65

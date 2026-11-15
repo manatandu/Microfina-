@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**324 décisions.** Solidité : 106 fortes (le manuel ou un texte répond), 171 moyennes (déduites d'un écran voisin ou d'une donnée), 47 faibles (notre choix, faute de mieux). Dans le code : 294 déjà en place, 30 à appliquer.
+**329 décisions.** Solidité : 108 fortes (le manuel ou un texte répond), 174 moyennes (déduites d'un écran voisin ou d'une donnée), 47 faibles (notre choix, faute de mieux). Dans le code : 299 déjà en place, 30 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -478,7 +478,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S74-5 | Options du produit d'épargne | Max compte à créer contrôlé à l'ouverture de compte ; Solde minimum, Max retrait/jour et Solde négatif contrôlés au retrait ; Opérer sur compte et Dépôt de chèque au guichet (ancien numéro S37-9) | Donnée exigée ailleurs : S27 (p. 40) | moyenne | à appliquer |
+| S74-5 | Options du produit d'épargne | Max compte à créer contrôlé à l'ouverture de compte (S63, en place) ; Solde minimum, Max retrait/jour et Solde négatif contrôlés au retrait ; Opérer sur compte et Dépôt de chèque au guichet (ancien numéro S37-9) | Donnée exigée ailleurs : S27 (p. 40) | moyenne | à appliquer |
 
 ## S28 Paramétrage des produits épargne
 
@@ -744,6 +744,16 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S62-1 | Contenu du journal | Les opérations de banque (Banque > Opération, Virement prélèvement, Adhésion) de la période, par date d'opération, sur un compte de la banque choisie (compte d'origine ou de destination), hors opérations refusées | Écran voisin : Texte p. 71 (exercice, période, banque, agence) ; COMPLEMENTS § 4.5 | moyenne | en place |
 | S62-2 | Colonnes du résultat | Celles des listes des opérations de banque de Banque > Visa (Date operation, Operation, Montant, Banque, Compte Banque, Numero comptable, Libelle), plus l'Agence ; Export vers Excel. Chèques clients et emprunts n'y sont pas : ce sont d'autres objets | Écran voisin : COMPLEMENTS § 4.5 ; captures p. 65 et 66 ; manuel p. 9 (export Excel) | moyenne | en place |
 | S62-3 | Rechercher par et Option | Rechercher par : une des colonnes du résultat ; Option : « Commencant par », seule valeur de la capture ; la recherche filtre le résultat affiché. Fermer ramène à la page du module Banque | Manuel : Capture p. 71 | moyenne | en place |
+
+## S63 Nouveau compte
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S63-1 | Effet de l'ouverture | Le compte s'ouvre à l'enregistrement, sans écriture ni frais ; le premier dépôt se fait ensuite au guichet. Le N° du compte est montré avant Enregistrer | Texte réglementaire : Instr. BCC 37, annexe (ouverture de compte gratuite) ; texte p. 72 | forte | en place |
+| S63-2 | Qui peut ouvrir un compte | Un client visé et déjà membre (il a au moins un compte, ouvert par son adhésion) ; sinon l'écran renvoie à l'adhésion | Texte réglementaire : Loi 002/2002, art. 1er (la COOPEC collecte l'épargne de ses membres) ; texte p. 72 (« sous comptes pour les clients ») | forte | en place |
+| S63-3 | Date création | La journée ouverte par défaut ; ni après la journée ouverte, ni avant la date de visa du client | Écran voisin : Capture p. 73 (Date création*) ; écrans voisins (S56, S74) | moyenne | en place |
+| S63-4 | Deux comptes du même produit | La numérotation des comptes (S17) donne un seul numéro par client et par produit : un deuxième compte du même produit est refusé, même si Max compte à créer le permettrait. À confirmer : faut-il un compteur dans le numéro ? | Donnée exigée ailleurs : S17 (p. 26) ; registre S17-2, S17-3 | moyenne | en place |
+| S63-5 | Liste Produit Epargne et liste des comptes du membre | Produits actifs, présentés « Libellé (Code) » comme au paramétrage (deux produits peuvent porter le même libellé dans deux devises). Liste des Comptes du membre : N° du compte, Produit, Devise, Solde, comme la consultation du client | Écran voisin : Capture p. 73 (colonnes cachées) ; S28 (liste « Produit ») ; COMPLEMENTS § 4 | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

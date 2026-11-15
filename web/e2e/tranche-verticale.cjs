@@ -599,6 +599,17 @@ const OUT = process.argv[2];
   await aller('/banque/s62'); await p.getByRole('heading', { name: 'Édition du journal des opérations de banque' }).waitFor();
   await p.getByLabel('Banque *').selectOption({ label: 'Rawbank' }); await p.getByRole('button', { name: 'Valider' }).click();
   await p.getByRole('cell', { name: 'Encaissement divers' }).first().waitFor(); await etape('06c17-rapport-banque');
+  // Nouveau compte (S63) : le chef active le produit Epargne De Garantie (S27), puis l'agent de crédit ouvre ce compte pour Kalala
+  await login('J.-P. Mukendi'); await aller('/parametrage/s27'); await p.getByRole('row').filter({ hasText: 'Epargne De Garantie' }).first().click();
+  await p.getByLabel('Actif', { exact: true }).check(); await p.getByRole('button', { name: 'Modifier' }).click(); await oui();
+  await login('Bijou Kasongo'); await aller('/epargne/s63'); await p.getByRole('heading', { name: "Création d'un compte Epargne" }).waitFor();
+  await p.getByLabel('Produit Epargne *').selectOption({ label: 'Epargne De Garantie (G)' });
+  await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  const rnc = p.getByRole('dialog', { name: "Recherche d'un client" });
+  await rnc.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rnc.getByRole('row').filter({ hasText: 'Kalala' }).first().dblclick();
+  await p.getByLabel('N° du compte : *').and(p.locator('[value$="-05"]')).waitFor(); await etape('06c18-nouveau-compte');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
+  await p.getByRole('cell', { name: /-05$/ }).waitFor(); await etape('06c19-nouveau-compte-liste');
   await login('Esther Ngalula');
   // Apurement avant la résiliation (registre S48-1) : Lukusa retire tout son solde (85 000 CDF)
   await aller('/caisse/s74?op=retrait'); await client('Lukusa'); await p.getByLabel('N° compte').selectOption({ label: '0412-000320-02' });

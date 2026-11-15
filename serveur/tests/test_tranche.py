@@ -1871,3 +1871,22 @@ def test_banques_complements(clients, journee):
     assert r.status_code == 422 and "Compte de pénalité" in r.json()["message"]
     l = chef.post("/api/banques/comptes", {**c, "comptePenalite": "6070", "contactAdresse": "Boulevard du 30 Juin, Gombe"}, **H).json()
     assert (l["comptes"][0]["comptePenalite"], l["comptes"][0]["contactAdresse"]) == ("6070", "Boulevard du 30 Juin, Gombe")
+
+
+def test_nouveau_compte(clients, journee):
+    """S63 (manuel p. 72 et 73) : un compte de plus pour un membre, Max compte à créer, N° selon la numérotation, ouverture gratuite"""
+    chef, agent, caisse = clients["chef"], clients["agent"], clients["caisse"]
+    P = {"numero": 5, "code": "G", "famille": "BLOQUE", "libelle": "Epargne De Garantie", "devise": "CDF", "soldeMinimum": 0, "nbMaxComptes": 1,
+         "operer": True, "depotCheque": False, "caution": False, "nantissement": True, "calculerInteret": False, "soldeNegatif": False, "repartitionGroupe": False, "actif": True}
+    assert chef.post("/api/produits-epargne", P, **H).status_code == 200
+    g = next(x for x in agent.get("/api/epargne/comptes/produits").json() if x["code"] == "G")
+    kalala = T("0412-000318")
+    assert agent.get(f"/api/epargne/comptes/apercu?tiersId={kalala}&produitId={g['id']}").json()["numero"] == "0412-000318-05"
+    k = cle()
+    c = agent.post("/api/epargne/comptes", {"cle": k, "tiersId": kalala, "produitId": g["id"]}, **H).json()
+    assert (c["numero"], c["devise"], c["ouvertLe"]) == ("0412-000318-05", "CDF", "2026-11-05")
+    assert agent.post("/api/epargne/comptes", {"cle": k, "tiersId": kalala, "produitId": g["id"]}, **H).json()["id"] == c["id"]
+    r = agent.post("/api/epargne/comptes", {"cle": cle(), "tiersId": kalala, "produitId": g["id"]}, **H)
+    assert r.status_code == 422 and "Max compte à créer" in r.json()["message"]
+    assert ident("select count(*) from ligne_ecriture l join compte_depot d on 'depot:' || d.id = l.contrat_ref where d.id = %s", (c["id"],)) == 0   # gratuite, sans écriture
+    assert caisse.post("/api/epargne/comptes", {"cle": cle(), "tiersId": kalala, "produitId": g["id"]}, **H).status_code == 403

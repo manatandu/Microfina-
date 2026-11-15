@@ -13,6 +13,7 @@ from . import banque_operations as bop
 from . import cheques_clients as chq
 from . import chequiers as chqr
 from . import emprunts as emp
+from . import comptes_epargne as cep
 from . import guichets as gu
 from . import exercices as ex
 from . import listes as li
@@ -564,6 +565,21 @@ def banque_rapport_contexte(request):
 @api.get("/banque/rapport")
 def banque_rapport(request, du: str, au: str, banqueId: int, compteBancaireId: int | None = None, agenceId: int | None = None):
     return bop.rapport(u(request), du, au, banqueId, compteBancaireId, agenceId)
+
+
+@api.get("/epargne/comptes/produits")
+def epargne_produits(request):
+    return cep.produits(u(request))
+
+
+@api.get("/epargne/comptes/apercu")
+def epargne_compte_apercu(request, tiersId: int, produitId: int):
+    return cep.apercu(u(request), tiersId, produitId)
+
+
+@api.post("/epargne/comptes")
+def epargne_compte_ouvrir(request, corps: dict = Body(...)):
+    return cep.ouvrir(u(request), corps)
 
 
 @api.get("/banque/adhesions/apercu")

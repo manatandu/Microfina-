@@ -4,6 +4,7 @@ import { ChequesClients } from "./ChequesClients";
 import { Chequiers } from "./Chequiers";
 import { Emprunts } from "./Emprunts";
 import { RapportsBanque } from "./RapportsBanque";
+import { NouveauCompte } from "./NouveauCompte";
 import type { ComponentType } from "react";
 import GuichetDepotRetrait from "./Guichet";
 import Adhesion from "./Adhesion";
@@ -113,6 +114,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S60: Chequiers,
   S61: Emprunts,
   S62: RapportsBanque,
+  S63: NouveauCompte,
   S73: Adhesion,
   S74: GuichetDepotRetrait,
   S77: PartsSociales,
