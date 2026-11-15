@@ -178,7 +178,9 @@ export interface DepotTerme {   // S65, S66
   id: number; cle: string; certificat: number; produitId: number; tiersId: number; compteEmetteurId: number; compteDatId: number; montant: number; devise: Devise;
   duree: number; tauxInteret: string; tauxPenalite: string; montantInteret: number; aEcheance: boolean; dateDepot: string; dateEcheance: string; observation: string;
   reconduction: boolean; statut: "saisie" | "valide" | "rompu" | "echu"; saisiPar: number; validePar: number | null; ecritureId: number | null;
+  rupture?: RuptureDat & { dateRupture: string; dateDemande: string; ecritureId: number; rompuPar: number };   // S67
 }
+export interface RuptureDat { jours: number; interet: number; penalite: number; tauxIrc: string; irc: number; montantAVerser: number }
 
 export interface Emprunt {   // S61
   id: number; cle: string; numero: number; compteBancaireId: number; reference: string; montant: number; devise: Devise; duree: number; dateEmprunt: string; taux: string;

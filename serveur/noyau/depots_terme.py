@@ -1,5 +1,5 @@
-"""S65, S66 : Épargne > Dépôt à terme (manuel Microfina++, p. 75 et 76) : mise en place, validation, contrat.
-Mêmes règles que web/src/donnees/api.ts (depotsTerme). PCCI, compte 340 « Dépôts à terme ». Registre S65-1 à S65-8."""
+"""S65, S66, S67 : Épargne > Dépôt à terme (manuel Microfina++, p. 75 à 77) : mise en place, validation, contrat, rupture.
+Mêmes règles que web/src/donnees/api.ts (depotsTerme). PCCI, compte 340 « Dépôts à terme ». Registre S65-1 à S65-8, S67-1 à S67-6."""
 import calendar
 import re
 import uuid
@@ -20,6 +20,11 @@ def taux(d, k, nom, maxi):
     if not re.match(r"^\d+(\.\d{1,4})?$", t) or Decimal(t) >= maxi:
         raise ErreurMetier(f"{nom} : un pourcentage, par exemple 7,5.")
     return Decimal(t)
+
+
+def pct(t: Decimal) -> str:
+    """7.5000 → « 7,5 » ; 20.00 → « 20 » (sans notation 2E+1)"""
+    return format(t.normalize(), "f").replace(".", ",")
 
 
 def ajouter_mois(d: date, n: int) -> date:
@@ -126,11 +131,15 @@ def vue(x: dict) -> dict:
     return {"id": x["id"], "certificat": x["certificat"], "produitId": x["produit_id"], "produit": valeur("select libelle from produit_epargne where id = %s", (x["produit_id"],)),
             "tiersId": x["tiers_id"], "membre": valeur("select numero from tiers where id = %s", (x["tiers_id"],)), "client": titulaire(x["tiers_id"]),
             "compteEmetteur": c(x["compte_emetteur_id"]), "compteDat": c(x["compte_dat_id"]), "montant": x["montant"], "devise": x["devise"].strip(),
-            "duree": x["duree_mois"], "tauxInteret": str(x["taux_interet"].normalize()).replace(".", ","), "tauxPenalite": str(x["taux_penalite"].normalize()).replace(".", ","),
+            "duree": x["duree_mois"], "tauxInteret": pct(x["taux_interet"]), "tauxPenalite": pct(x["taux_penalite"]),
             "montantInteret": x["montant_interet"], "montantAVerser": x["montant"] + x["montant_interet"], "aEcheance": x["a_echeance"],
             "dateDepot": x["date_depot"].isoformat(), "dateEcheance": x["date_echeance"].isoformat(), "observation": x["observation"] or "",
             "reconduction": x["reconduction"], "statut": x["statut"], "compteInteret": compte_interet(x["duree_mois"]),
-            "piece": valeur("select p.numero from ecriture e join piece p on p.id = e.piece_id where e.id = %s", (x["ecriture_id"],)) if x["ecriture_id"] else ""}
+            "piece": valeur("select p.numero from ecriture e join piece p on p.id = e.piece_id where e.id = %s", (x["ecriture_id"],)) if x["ecriture_id"] else "",
+            "rupture": None if not x.get("date_rupture") else {
+                "dateRupture": x["date_rupture"].isoformat(), "dateDemande": x["date_demande"].isoformat(), "jours": x["jours_courus"], "interet": x["interet_rupture"],
+                "penalite": x["penalite"], "tauxIrc": pct(x["taux_irc"]), "irc": x["irc"], "montantAVerser": x["montant_verse"],
+                "piece": valeur("select p.numero from ecriture e join piece p on p.id = e.piece_id where e.id = %s", (x["ecriture_rupture_id"],))}}
 
 
 def liste(u, statut: str = "") -> list[dict]:
@@ -178,3 +187,81 @@ def contrat(u, did: int) -> dict:
     if not x:
         raise ErreurMetier("DAT introuvable.")
     return {"entete": entete(u["institution_id"]), "client": client(x["tiers_id"]), "dat": vue(x)}
+
+
+TAUX_IRC_PHYSIQUE = Decimal("20")   # loi 23/053, art. 120 : retenue à la source de 20 % (registre S67-3)
+COMPTE_IRC = "433"                   # PCCI 433 « Impôts et taxes collectés » : taxes retenues à la source sur les comptes des clients (compte 43)
+COMPTE_PENALITE = "7791"             # PCCI 7791 « Dédits (…) pénalités (…) » : produits exceptionnels (compte 77)
+
+
+def calcul_rupture(x: dict, date_r: date) -> dict:
+    """Rupture avant l'échéance (S67) : intérêt couru au prorata des jours (base 365), pénalité sur le montant du DAT,
+    retenue de 20 % sur l'intérêt brut des personnes physiques (loi 23/053, art. 78, 81 et 120). Registre S67-1 à S67-3."""
+    if date_r < x["date_depot"]:
+        raise ErreurMetier("Date rupture : au plus tôt la date de dépôt du DAT.")
+    if date_r >= x["date_echeance"]:
+        raise ErreurMetier("Date rupture : le DAT est échu à cette date ; ce n'est plus une rupture.")
+    jours = (date_r - x["date_depot"]).days
+    interet = int((Decimal(x["montant"]) * x["taux_interet"] / 100 * jours / 365).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+    penalite = int((Decimal(x["montant"]) * x["taux_penalite"] / 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+    physique = valeur("select type from tiers where id = %s", (x["tiers_id"],)) == "physique"
+    t_irc = TAUX_IRC_PHYSIQUE if physique else Decimal("0")       # personne morale ou groupe : 0, à confirmer (registre S67-3)
+    irc = int((Decimal(interet) * t_irc / 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+    verser = x["montant"] + interet - penalite - irc
+    if verser < 0:
+        raise ErreurMetier("La pénalité dépasse le montant du DAT et l'intérêt couru.")
+    return {"jours": jours, "interet": interet, "penalite": penalite, "tauxIrc": pct(t_irc), "irc": irc, "montantAVerser": verser}
+
+
+def _date(d, k, nom, defaut: str) -> date:
+    v = texte(d, k) or defaut
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", v):
+        raise ErreurMetier(f"À remplir : {nom}.")
+    return date.fromisoformat(v)
+
+
+def apercu_rupture(u, did: int, date_r: str) -> dict:
+    """Infos de la fenêtre Rupture DAT (p. 77) après le choix du DAT : intérêt, pénalité, IRC, montant à verser"""
+    exiger(u)
+    x = une("select * from depot_terme where id = %s and institution_id = %s", (did, u["institution_id"]))
+    if not x or x["statut"] != "valide":
+        raise ErreurMetier("Ce DAT n'est pas en cours (validé et pas encore rompu).")
+    j = journee_courante(u)
+    return {"dat": vue(x), **calcul_rupture(x, _date({"d": date_r}, "d", "Date rupture", j["date"] if j else ""))}
+
+
+def rompre(u, did: int, d: dict) -> dict:
+    """Bouton Rompre le DAT (S67, p. 76) : le compte DAT est soldé, le montant à verser revient au compte émetteur ;
+    intérêt couru en charge (612), retenue au 433, pénalité au 7791. Registre S67-1 à S67-6."""
+    exiger(u)
+    x = une("select * from depot_terme where id = %s and institution_id = %s for update", (did, u["institution_id"]))
+    if not x or x["statut"] != "valide":
+        raise ErreurMetier("Ce DAT n'est pas en cours (validé et pas encore rompu).")
+    j = journee_courante(u)
+    if not j or j["statut"] != "ouverte":
+        raise ErreurMetier("Aucune journée ouverte (Administration > Journée).")
+    date_r = _date(d, "dateRupture", "Date rupture", j["date"])
+    if date_r > date.fromisoformat(j["date"]):
+        raise ErreurMetier("La date de rupture ne peut pas dépasser la journée ouverte.")
+    date_d = _date(d, "dateDemande", "Date demande", date_r.isoformat())
+    if date_d < x["date_depot"] or date_d > date_r:
+        raise ErreurMetier("Date demande : entre la date de dépôt et la date de rupture.")
+    r = calcul_rupture(x, date_r)
+    dev = x["devise"].strip()
+    p = une("select * from produit_epargne where id = %s", (x["produit_id"],))
+    em = une("select c.*, p.famille, p.compte_lie from compte_depot c join produit_epargne p on p.id = c.produit_id where c.id = %s", (x["compte_emetteur_id"],))
+    l = [{"compte": p["compte_lie"], "contrat": f"depot:{x['compte_dat_id']}", "sens": "D", "devise": dev, "montant": x["montant"]}]
+    if r["interet"]:
+        l.append({"compte": compte_interet(x["duree_mois"]), "sens": "D", "devise": dev, "montant": r["interet"]})
+    if r["montantAVerser"]:
+        l.append({"compte": compte_du_produit(em), "contrat": f"depot:{em['id']}", "sens": "C", "devise": dev, "montant": r["montantAVerser"]})
+    if r["irc"]:
+        l.append({"compte": COMPTE_IRC, "sens": "C", "devise": dev, "montant": r["irc"]})
+    if r["penalite"]:
+        l.append({"compte": COMPTE_PENALITE, "sens": "C", "devise": dev, "montant": r["penalite"]})
+    eid = poster(u, journal="OD", journee_id=j["id"], libelle=f"Rupture DAT n° {x['certificat']}", piece=nouvelle_piece(u, "OD", date.fromisoformat(j["date"])),
+                 evenement="dat_rupture", cle=str(uuid.uuid4()), valide_par=u["id"], lignes_ecr=l)
+    executer("""update depot_terme set statut = 'rompu', date_rupture = %s, date_demande = %s, jours_courus = %s, interet_rupture = %s, penalite = %s,
+                taux_irc = %s, irc = %s, montant_verse = %s, rompu_par = %s, rompu_le = now(), ecriture_rupture_id = %s where id = %s""",
+             (date_r, date_d, r["jours"], r["interet"], r["penalite"], Decimal(r["tauxIrc"].replace(",", ".")), r["irc"], r["montantAVerser"], u["id"], eid, did))
+    return vue(une("select * from depot_terme where id = %s", (did,)))

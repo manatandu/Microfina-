@@ -651,6 +651,13 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Valider' }).click(); await oui(); await p.getByText(/Numéro de pièce : \S+/).waitFor();
   await p.getByRole('button', { name: 'Contrat' }).click(); await p.getByRole('article', { name: 'Contrat de dépôt à terme' }).waitFor(); await etape('06c25-contrat-dat');
   await p.getByRole('dialog', { name: 'Contrat de dépôt à terme' }).getByRole('button', { name: 'Fermer' }).click();
+  // Rupture DAT (S67) : le chef choisit le DAT, voit intérêt, pénalité, IRC et montant à verser, rompt puis imprime l'avis
+  await aller('/epargne/s67'); await p.getByRole('heading', { name: 'Rupture DAT' }).waitFor();
+  await p.getByRole('button', { name: 'Rechercher un DAT' }).click(); await p.getByRole('dialog', { name: 'Liste DAT à rompre' }).getByRole('row').filter({ hasText: '000001' }).click();
+  await p.getByText('Montant à verser : 98 000').waitFor(); await etape('06c26-rupture-dat');
+  await p.getByRole('button', { name: 'Rompre le DAT' }).click(); await oui(); await p.getByText(/Numéro de pièce : \S+/).waitFor();
+  await p.getByRole('button', { name: 'Imprimer' }).click(); await p.getByRole('article', { name: 'Avis de rupture de DAT' }).waitFor(); await etape('06c27-avis-rupture-dat');
+  await p.getByRole('dialog', { name: 'Avis de rupture de DAT' }).getByRole('button', { name: 'Fermer' }).click();
   await login('Esther Ngalula');
   // Apurement avant la résiliation (registre S48-1) : Lukusa retire tout son solde (85 000 CDF)
   await aller('/caisse/s74?op=retrait'); await client('Lukusa'); await p.getByLabel('N° compte').selectOption({ label: '0412-000320-02' });

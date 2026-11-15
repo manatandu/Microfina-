@@ -637,6 +637,16 @@ def epargne_dat_valider(request, did: int):
     return dat.valider(u(request), did)
 
 
+@api.get("/epargne/dat/{did}/rupture")
+def epargne_dat_apercu_rupture(request, did: int, date: str = ""):
+    return dat.apercu_rupture(u(request), did, date)
+
+
+@api.post("/epargne/dat/{did}/rupture")
+def epargne_dat_rompre(request, did: int, corps: dict = Body(...)):
+    return dat.rompre(u(request), did, corps)
+
+
 @api.get("/banque/adhesions/apercu")
 def banque_adhesion_apercu(request, tiersId: int, parts: int = 1, depot: int = 0):
     return bop.apercu_adhesion(u(request), tiersId, parts, depot)

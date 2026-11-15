@@ -99,6 +99,7 @@ Note : l'art. 14 associe les pondérations à des niveaux de risque dans l'ordre
 
 | Réf. | Exigence | Module | Statut |
 |---|---|---|---|
+| Loi 23/053, art. 78, 81, 115, 120 ; AM 008/2025 | Retenue de 20 % sur l'intérêt brut des dépôts à échéance fixe des personnes physiques, à la mise à disposition ; reversement le 15 du mois suivant | Épargne (S67 rupture ; échéance et arrêtés à venir) | lu |
 | Instr. 40, art. 2, 3 | Taux applicables à la clientèle publiés chaque trimestre et affichés | Épargne (taux du DAT) | lu |
 | Instr. 40, art. 4, 5, 13 | Document remis au client, clair, en français, police d'au moins 12 | Contrat DAT (S66) en 12 ; relevé (S64) compact à la demande du porteur, écart signalé (registre S64-7) | lu |
 | Instr. 5 | Déclaration à la centrale des risques sans délai, modifications, radiation après 3 ans sans engagement | Centrale des risques | survolé, à lire |

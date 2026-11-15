@@ -217,3 +217,135 @@ function ContratDat({ c }: { c: Contrat }) {
     </article>
   );
 }
+
+type Apercu = Awaited<ReturnType<typeof api.depotsTerme.apercuRupture>>;
+/** S67 : Épargne > Dépôt à terme > Rupture de DAT (manuel p. 76 texte, p. 77 capture). Registre S67-1 à S67-6. */
+export function RuptureDat() {
+  const { donnees: j } = useDonnees(() => api.journees.courante());
+  const [date, setDate] = useState("");
+  const [demande, setDemande] = useState("");
+  const [choix, setChoix] = useState<Dat | null>(null);
+  const [calc, setCalc] = useState<Apercu | null>(null);
+  const [liste, setListe] = useState<Dat[] | null>(null);
+  const [fait, setFait] = useState<Dat | null>(null);
+  const [avis, setAvis] = useState<Contrat | null>(null);
+  const [boite, setBoite] = useState<Boite | null>(null);
+  if (j === undefined) return <Chargement />;
+  const jour = j && j.statut === "ouverte" ? j.date : "";
+  const dr = date || jour;
+  async function calculer(x: Dat, d: string) {
+    setChoix(x); setFait(null);
+    try { setCalc(await api.depotsTerme.apercuRupture(x.id, d)); }
+    catch (e) { setCalc(null); setBoite({ type: "erreur", message: message(e) }); }
+  }
+  async function ouvrirListe() { setListe((await api.depotsTerme.liste("valide")).filter((x) => !dr || x.dateEcheance > dr)); }
+  function rompre() {
+    if (!choix) { setBoite({ type: "erreur", message: "À remplir : Certificat N° (choisir le DAT dans la liste)." }); return; }
+    setBoite({ type: "confirmation", message: "Voulez-vous vraiment rompre ce DAT ?", oui: async () => {
+      try { setFait(await api.depotsTerme.rompre(choix.id, { dateRupture: dr, dateDemande: demande || dr })); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+      catch (e) { setBoite({ type: "erreur", message: message(e) }); }
+    } });
+  }
+  const x = fait ?? calc?.dat ?? choix;
+  const r = fait?.rupture ?? calc;
+  const dev = (x?.devise ?? "CDF") as Devise;
+  const mt = (v: number | undefined) => (x && v !== undefined ? montant(v, dev) : "");
+  return (
+    <>
+      <h1>Rupture DAT</h1>
+      <section className="bloc pile" aria-label="Rupture DAT">
+        <div className="grille-deux">
+          <p>Numéro de pièce : <strong className="chiffres">{fait?.rupture?.piece ?? ""}</strong></p>
+          <ChampDate libelle="Date rupture : *" valeur={dr} onChange={(v) => { setDate(v); if (choix && !fait) void calculer(choix, v); }} requis />
+        </div>
+        <div className="grille-deux">
+          <fieldset className="pile cadre-champs">
+            <legend>Infos du DAT</legend>
+            <div className="ligne-champ">
+              <Champ libelle="Certificat N° :">{(pp) => <input {...pp} className="saisie code" readOnly value={x ? String(x.certificat).padStart(6, "0") : ""} />}</Champ>
+              <button className="bouton secondaire" type="button" aria-label="Rechercher un DAT" onClick={ouvrirListe}>Rechercher</button>
+            </div>
+            <ChampDate libelle="Date demande :" valeur={demande || dr} onChange={setDemande} />
+            <p>Durée prêt : <strong className="chiffres">{x ? `${x.duree} Mois` : "Mois"}</strong></p>
+            <Champ libelle="Date échéance :">{(pp) => <input {...pp} className="saisie code" readOnly value={x ? fr(x.dateEcheance) : ""} />}</Champ>
+            <p>Montant du DAT : <strong className="chiffres">{mt(x?.montant)}</strong></p>
+            <p>Produit : <strong>{x?.produit ?? ""}</strong></p>
+          </fieldset>
+          <fieldset className="pile cadre-champs">
+            <legend>Infos client</legend>
+            <Champ libelle="N° Client :">{(pp) => <input {...pp} className="saisie code" readOnly value={x?.membre ?? ""} />}</Champ>
+            <Champ libelle="Intitulé du compte :">{(pp) => <Lecture {...pp} value={x?.client ?? ""} />}</Champ>
+            <Champ libelle="N° compte :">{(pp) => <input {...pp} className="saisie code" readOnly value={x?.compteEmetteur ?? ""} />}</Champ>
+            <Champ libelle="N° compte DAT :">{(pp) => <input {...pp} className="saisie code" readOnly value={x?.compteDat ?? ""} />}</Champ>
+          </fieldset>
+          <fieldset className="pile cadre-champs">
+            <legend>Intérêt / pénalité</legend>
+            <p>Taux intérêt : <strong className="chiffres">{x ? `${x.tauxInteret} %` : "%"}</strong> · Taux pénalité : <strong className="chiffres">{x ? `${x.tauxPenalite} %` : "%"}</strong> · Taux IRC : <strong className="chiffres">{r ? `${r.tauxIrc} %` : "%"}</strong></p>
+            <p>Montant intérêt : <strong className="chiffres">{mt(r?.interet)}</strong></p>
+            <p>Montant pénalité : <strong className="chiffres">{mt(r?.penalite)}</strong></p>
+            <p>Montant IRC : <strong className="chiffres">{mt(r?.irc)}</strong></p>
+            <p>Montant à verser : <strong className="chiffres">{mt(r?.montantAVerser)}</strong></p>
+          </fieldset>
+          <fieldset className="pile cadre-champs">
+            <legend>Autres infos</legend>
+            <Champ libelle="Observation :">{(pp) => <Lecture {...pp} value={x?.observation ?? ""} />}</Champ>
+            <label className="case"><input type="checkbox" checked={!!x?.reconduction} readOnly disabled /><span>Reconduction automatique</span></label>
+            <button className="bouton secondaire" type="button" disabled title="À confirmer : le manuel ne montre pas cette fenêtre (registre S65-6)">Bénéficiaire</button>
+          </fieldset>
+        </div>
+        <div className="actions-onglets">
+          <button className="bouton" type="button" disabled={!choix || !!fait} onClick={rompre}>Rompre le DAT</button>
+          <button className="bouton secondaire" type="button" disabled={!fait} onClick={async () => fait && setAvis(await api.depotsTerme.contrat(fait.id))}>Imprimer</button>
+        </div>
+        <Textes sources={["Manuel Microfina++, p. 76 (texte : la liste des DAT en attente de rupture, choisir le DAT par un double clic puis Rompre le DAT) et p. 77 (capture « Rupture DAT »)",
+          "Intérêt couru au prorata des jours, pénalité sur le montant du DAT (décisions du porteur, 15/11/2026)",
+          "Retenue de 20 % sur l'intérêt brut des dépôts à échéance fixe des personnes physiques (loi 23/053, art. 78, 81 et 120), au compte 433 ; pénalité au compte 7791 ; intérêt au compte 612 de la durée du DAT (PCCI)"]} />
+      </section>
+      <Fiche titre="Liste DAT à rompre" ouverte={!!liste} fermer={() => setListe(null)}>
+        {liste && <ListeDat lignes={liste} choisi={choix?.id ?? null} choisir={(y) => { setListe(null); void calculer(y, dr); }} />}
+        <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setListe(null)}>Fermer</button></div>
+      </Fiche>
+      <Fiche titre="Avis de rupture de DAT" ouverte={!!avis} fermer={() => setAvis(null)}>
+        {avis && <AvisRupture c={avis} />}
+        <div className="actions-onglets sans-impression">
+          <button className="bouton secondaire" type="button" onClick={() => setAvis(null)}>Fermer</button>
+          <button className="bouton" type="button" onClick={() => imprimer(".fiche .a-imprimer")}>Imprimer</button>
+        </div>
+      </Fiche>
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </>
+  );
+}
+
+/** Document remis au client à la rupture (Instr. BCC 40, art. 13), même gabarit que le contrat (registre S67-6) */
+function AvisRupture({ c }: { c: Contrat }) {
+  const x = c.dat, e = c.entete, cl = c.client, dev = x.devise as Devise, r = x.rupture!;
+  const nom = cl.intitule || [cl.nom, cl.postnom, cl.prenom].filter(Boolean).join(" ");
+  const lignes: [string, string][] = [
+    ["Certificat n°", String(x.certificat).padStart(6, "0")], ["Client", `${nom} (n° ${x.membre})`], ["Compte DAT", x.compteDat], ["Compte crédité", x.compteEmetteur],
+    ["Montant du DAT", montant(x.montant, dev)], ["Date de dépôt", fr(x.dateDepot)], ["Date d'échéance prévue", fr(x.dateEcheance)],
+    ["Date de la demande", fr(r.dateDemande)], ["Date de rupture", fr(r.dateRupture)], ["Jours courus", String(r.jours)],
+    ["Intérêt couru", `${montant(r.interet, dev)} (taux ${x.tauxInteret} %)`], ["Pénalité de rupture", `${montant(r.penalite, dev)} (taux ${x.tauxPenalite} %)`],
+    ["Retenue d'impôt (IRC)", `${montant(r.irc, dev)} (taux ${r.tauxIrc} %)`], ["Montant versé", `${montant(r.montantAVerser, dev)} (${montantEnLettres(r.montantAVerser, dev)})`],
+    ["N° de pièce", r.piece],
+  ];
+  return (
+    <article className="releve-std contrat-dat a-imprimer" aria-label="Avis de rupture de DAT">
+      <header className="releve-tete">
+        <p className="releve-num">N° <span className="chiffres">{String(x.certificat).padStart(6, "0")}</span></p>
+        <h2 className="releve-titre">RUPTURE DE DÉPÔT À TERME</h2>
+        <div className="releve-logo">{e.logo ? <img src={e.logo} alt={e.nom} /> : <strong>{e.sigle || e.nom}</strong>}<span>{e.nom}</span></div>
+      </header>
+      <table className="releve-synthese"><tbody>{lignes.map(([k, v]) => <tr key={k}><th scope="row">{k}</th><td style={{ textAlign: "left" }}>{v}</td></tr>)}</tbody></table>
+      <div className="releve-haut">
+        <div><strong>Le client</strong><br /><br /><br />{nom}</div>
+        <div style={{ textAlign: "right" }}><strong>Pour {e.nom}</strong><br /><br /><br />Fait le {fr(r.dateRupture)}</div>
+      </div>
+      <footer className="releve-pied">
+        <strong>{e.nom.toUpperCase()}</strong>
+        <span>{[e.adresse, e.commune, e.ville, e.pays].filter(Boolean).join(", ")}</span>
+        <span>{[e.agrement && `Agrément BCC n° ${e.agrement}`, e.ifu && `N° impôt : ${e.ifu}`, e.bp && `B.P. ${e.bp}`].filter(Boolean).join(" · ")}</span>
+      </footer>
+    </article>
+  );
+}

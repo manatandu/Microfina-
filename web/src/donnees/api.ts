@@ -7,7 +7,7 @@ import { graine } from "./graine";
 import { creerApiHttp } from "./http";
 import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
-  type ChequeClient, type Chequier, type DepotTerme, type Emprunt, type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
+  type ChequeClient, type Chequier, type DepotTerme, type RuptureDat, type Emprunt, type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget,
 } from "./types";
@@ -1595,13 +1595,13 @@ const releves = {
   },
 };
 
-// ---------- Épargne > Dépôt à terme (S65, S66, manuel p. 75 et 76). Règles identiques côté serveur (noyau/depots_terme.py). ----------
+// ---------- Épargne > Dépôt à terme (S65, S66, S67, manuel p. 75 à 77). Règles identiques côté serveur (noyau/depots_terme.py). ----------
 const lireTaux = (v: string | undefined, nom: string, maxi: number) => { const t = (v ?? "").trim().replace(",", ".") || "0";
   if (!/^\d+(\.\d{1,4})?$/.test(t) || Number(t) >= maxi) throw new ErreurMetier(`${nom} : un pourcentage, par exemple 7,5.`); return t; };
 export const ajouterMois = (iso: string, n: number) => { const [a, m, j] = iso.split("-").map(Number) as [number, number, number]; const t = m - 1 + n;
   const an = a + Math.floor(t / 12), mo = (t % 12) + 1, der = new Date(Date.UTC(an, mo, 0)).getUTCDate();
   return `${an}-${String(mo).padStart(2, "0")}-${String(Math.min(j, der)).padStart(2, "0")}`; };
-/** Intérêt simple : montant × taux annuel × mois / 12, arrondi au centime (registre S65-3) */
+/** Intérêt simple : montant × taux annuel × mois / 12, arrondi à l'unité (registre S65-3) */
 export const interetDat = (montant: number, taux: string, mois: number) => Math.round(montant * Number(taux.replace(",", ".")) / 100 * mois / 12);
 const compteInteretDat = (mois: number) => (mois <= 6 ? "6124" : mois <= 12 ? "6122" : "6121");   // PCCI, compte 612 ; 10 à 12 mois en 6122, court terme (S65-4)
 const disponibleDat = (c: CompteDepot) => soldeContrat(`depot:${c.id}`, c.devise, "C") - (c.bloque ?? 0)
@@ -1609,7 +1609,21 @@ const disponibleDat = (c: CompteDepot) => soldeContrat(`depot:${c.id}`, c.devise
 const vueDat = (x: DepotTerme) => { const t = E.tiers.find((y) => y.id === x.tiersId); const num = (id: number) => E.comptes.find((c) => c.id === id)?.numero ?? "";
   return { ...x, produit: E.produits.find((p) => p.id === x.produitId)?.libelle ?? "", membre: t?.numero ?? "", client: t ? titulaire(t) : "",
     compteEmetteur: num(x.compteEmetteurId), compteDat: num(x.compteDatId), montantAVerser: x.montant + x.montantInteret, compteInteret: compteInteretDat(x.duree),
-    piece: x.ecritureId ? E.ecritures.find((e) => e.id === x.ecritureId)?.piece ?? "" : "" }; };
+    piece: x.ecritureId ? E.ecritures.find((e) => e.id === x.ecritureId)?.piece ?? "" : "",
+    rupture: x.rupture ? { ...x.rupture, piece: E.ecritures.find((e) => e.id === x.rupture!.ecritureId)?.piece ?? "" } : null }; };
+const joursEntre = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000);
+/** Rupture avant l'échéance (S67) : intérêt couru au prorata des jours (base 365), pénalité sur le montant du DAT, retenue de 20 %
+ *  sur l'intérêt brut des personnes physiques (loi 23/053, art. 78, 81 et 120). Registre S67-1 à S67-3. */
+export function calculRuptureDat(x: Pick<DepotTerme, "montant" | "tauxInteret" | "tauxPenalite" | "dateDepot" | "dateEcheance">, date: string, physique: boolean): RuptureDat {
+  if (date < x.dateDepot) throw new ErreurMetier("Date rupture : au plus tôt la date de dépôt du DAT.");
+  if (date >= x.dateEcheance) throw new ErreurMetier("Date rupture : le DAT est échu à cette date ; ce n'est plus une rupture.");
+  const jours = joursEntre(x.dateDepot, date), nb = (t: string) => Number(t.replace(",", "."));
+  const interet = Math.round(x.montant * nb(x.tauxInteret) / 100 * jours / 365), penalite = Math.round(x.montant * nb(x.tauxPenalite) / 100);
+  const tIrc = physique ? 20 : 0;   // personne morale ou groupe : 0, à confirmer (S67-3)
+  const irc = Math.round(interet * tIrc / 100), montantAVerser = x.montant + interet - penalite - irc;
+  if (montantAVerser < 0) throw new ErreurMetier("La pénalité dépasse le montant du DAT et l'intérêt couru.");
+  return { jours, interet, penalite, tauxIrc: String(tIrc), irc, montantAVerser };
+}
 const depotsTerme = {
   produits() {
     exiger();
@@ -1675,6 +1689,39 @@ const depotsTerme = {
       { compte: p.compteLie!, contrat: `depot:${x.compteDatId}`, sens: "C", devise: x.devise, montant: x.montant, montantCdf: cdf(x.montant, x.devise) },
     ] });
     x.statut = "valide"; x.validePar = u.id; x.ecritureId = e.id; enregistrer(); return vueDat(x);
+  },
+  /** Fenêtre Rupture DAT (p. 77) après le choix du DAT : intérêt, pénalité, IRC, montant à verser */
+  apercuRupture(id: number, date: string) {
+    exiger();
+    const x = E.depotsTerme.find((y) => y.id === id);
+    if (!x || x.statut !== "valide") throw new ErreurMetier("Ce DAT n'est pas en cours (validé et pas encore rompu).");
+    const d = date || journees.courante()?.date || "";
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) throw new ErreurMetier("À remplir : Date rupture.");
+    return { dat: vueDat(x), ...calculRuptureDat(x, d, E.tiers.find((t) => t.id === x.tiersId)?.type === "physique") };
+  },
+  /** Bouton Rompre le DAT (S67, p. 76) : compte DAT soldé, montant à verser au compte émetteur ; intérêt en charge (612), retenue au 433, pénalité au 7791 */
+  rompre(id: number, d: { dateRupture?: string; dateDemande?: string }) {
+    const u = exiger();
+    const x = E.depotsTerme.find((y) => y.id === id);
+    if (!x || x.statut !== "valide") throw new ErreurMetier("Ce DAT n'est pas en cours (validé et pas encore rompu).");
+    const j = journees.courante();
+    if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
+    const dr = d.dateRupture?.trim() || j.date;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dr)) throw new ErreurMetier("À remplir : Date rupture.");
+    if (dr > j.date) throw new ErreurMetier("La date de rupture ne peut pas dépasser la journée ouverte.");
+    const dd = d.dateDemande?.trim() || dr;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dd)) throw new ErreurMetier("À remplir : Date demande.");
+    if (dd < x.dateDepot || dd > dr) throw new ErreurMetier("Date demande : entre la date de dépôt et la date de rupture.");
+    const r = calculRuptureDat(x, dr, E.tiers.find((t) => t.id === x.tiersId)?.type === "physique");
+    const p = E.produits.find((y) => y.id === x.produitId)!, em = E.comptes.find((c) => c.id === x.compteEmetteurId)!;
+    const ligne = (compte: string, sens: "D" | "C", montant: number, contrat?: string) => ({ compte, ...(contrat ? { contrat } : {}), sens, devise: x.devise, montant, montantCdf: cdf(montant, x.devise) });
+    const lignes = [ligne(p.compteLie!, "D", x.montant, `depot:${x.compteDatId}`)];
+    if (r.interet) lignes.push(ligne(compteInteretDat(x.duree), "D", r.interet));
+    if (r.montantAVerser) lignes.push(ligne(em.pcci, "C", r.montantAVerser, `depot:${em.id}`));
+    if (r.irc) lignes.push(ligne("433", "C", r.irc));          // PCCI 433 « Impôts et taxes collectés »
+    if (r.penalite) lignes.push(ligne("7791", "C", r.penalite));   // PCCI 7791 (produits exceptionnels : dédits, pénalités)
+    const e = poster({ journal: "OD", journeeId: j.id, libelle: `Rupture DAT n° ${x.certificat}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes });
+    x.statut = "rompu"; x.rupture = { ...r, dateRupture: dr, dateDemande: dd, ecritureId: e.id, rompuPar: u.id }; enregistrer(); return vueDat(x);
   },
 };
 

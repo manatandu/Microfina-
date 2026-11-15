@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**351 décisions.** Solidité : 122 fortes (le manuel ou un texte répond), 177 moyennes (déduites d'un écran voisin ou d'une donnée), 52 faibles (notre choix, faute de mieux). Dans le code : 322 déjà en place, 29 à appliquer.
+**357 décisions.** Solidité : 124 fortes (le manuel ou un texte répond), 180 moyennes (déduites d'un écran voisin ou d'une donnée), 53 faibles (notre choix, faute de mieux). Dans le code : 328 déjà en place, 29 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -792,6 +792,17 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S65-7 | Contrat imprimé | Document de l'institution cliente (en-tête S32), même gabarit que le relevé standard : client, compte, montant, durée, taux, intérêt, échéance, reconduction, taux de pénalité, signatures du client et de l'institution. À confirmer : le manuel ne montre pas le contrat | Écran voisin : Bouton Contrat p. 76 ; gabarit S64 ; registre S64-3 | faible | en place |
 | S66-1 | Qui valide | Une autre personne que celle qui a saisi (quatre yeux, comme les visas de banque S57) ; droit S65 à l'agent de crédit, S66 au chef d'agence | Écran voisin : Texte p. 76 ; registre S57 | moyenne | en place |
 
+## S67 Rupture DAT
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S67-1 | Champs de la fenêtre | Numéro de pièce, Date rupture ; Infos du DAT (Certificat N° avec recherche, Date demande, Durée prêt, Date échéance, Montant du DAT, Produit) ; Infos client (N° Client, Intitulé, N° compte, N° compte DAT) ; Intérêt / pénalité (taux intérêt, pénalité, IRC ; montants intérêt, pénalité, IRC, à verser) ; Autres infos (Observation, Reconduction automatique, Bénéficiaire) ; Rompre le DAT, Imprimer | Manuel : Capture p. 77 ; texte p. 76 | forte | en place |
+| S67-2 | Intérêt et pénalité à la rupture | Intérêt couru au taux du contrat pour les jours réellement courus (date de dépôt à date de rupture, base 365 jours) ; pénalité = taux de pénalité × montant du DAT ; montant à verser = montant + intérêt − pénalité − IRC, au compte émetteur. Base 365 à confirmer | Choix du porteur : Décisions du porteur 15/11/2026 | moyenne | en place |
+| S67-3 | Retenue d'impôt (Taux IRC) | 20 % de l'intérêt brut pour une personne physique (loi 23/053, art. 78 point 2, 81 point 4, 120 ; AM 008/2025, en vigueur au 01/01/2026) ; personne morale ou groupe : 0, à confirmer | Texte réglementaire : Loi 23/053, art. 78, 81, 120 ; décision du porteur 15/11/2026 | moyenne | en place |
+| S67-4 | Écriture de rupture | Journal OD : débit compte DAT (340) du montant, débit 612 de la durée du DAT (S65-4) de l'intérêt ; crédit compte émetteur du montant à verser, crédit 433 « Impôts et taxes collectés » de la retenue, crédit 7791 (produits exceptionnels : dédits, pénalités) de la pénalité. Comptes 433 et 7791 à confirmer | Texte réglementaire : PCCI, comptes 340, 612, 43 (taxes retenues à la source sur les comptes des clients), 77 et 7791 | moyenne | en place |
+| S67-5 | Qui rompt, quand | Le chef d'agence (droit S67) ; DAT validé et pas encore échu ; date de rupture au plus la journée ouverte ; date de demande entre la date de dépôt et la date de rupture | Choix du porteur : Décision du porteur 15/11/2026 ; texte p. 76 | forte | en place |
+| S67-6 | Bouton Imprimer | Avis de rupture remis au client (Instr. BCC 40, art. 13), même gabarit que le contrat, police 12 : dates, jours courus, intérêt, pénalité, retenue, montant versé, pièce, signatures. À confirmer : le manuel ne montre pas le document | Écran voisin : Bouton Imprimer p. 77 ; registre S65-7 | faible | en place |
+
 ## Les décisions faibles, à regarder en premier
 
 | N° | Écran | Question | Réponse retenue |
@@ -848,3 +859,4 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S65-3 | S65 Mise en place DAT | Calcul de l'intérêt | Intérêt simple sur la durée : montant × taux annuel × mois / 12, arrondi à l'unité ; montant à verser = montant + intérêt. À confirmer : le manuel ne donne pas la formule |
 | S65-6 | S65 Mise en place DAT | Boutons Annuler (⊘) et Bénéficiaire | Montrés comme sur la capture, inactifs : le manuel ne dit pas ce qu'ils font |
 | S65-7 | S66 Validation DAT | Contrat imprimé | Document de l'institution cliente (en-tête S32), même gabarit que le relevé standard : client, compte, montant, durée, taux, intérêt, échéance, reconduction, taux de pénalité, signatures du client et de l'institution. À confirmer : le manuel ne montre pas le contrat |
+| S67-6 | S67 Rupture DAT | Bouton Imprimer | Avis de rupture remis au client (Instr. BCC 40, art. 13), même gabarit que le contrat, police 12 : dates, jours courus, intérêt, pénalité, retenue, montant versé, pièce, signatures. À confirmer : le manuel ne montre pas le document |

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { composerNumeroCompte, composerPiece, api, _remplacer, compteParts, enrolementVide } from "./api";
+import { composerNumeroCompte, composerPiece, api, _remplacer, compteParts, enrolementVide, calculRuptureDat } from "./api";
 
 /** Mentions de l'identité et de la pièce exigées à l'enrôlement (Instr. BCC 15, art. 12 et 13 ; registre S37-1) */
 const IDENTITE = { prenom: "Marie", naissance: "1990-01-15", lieuNaissance: "Kinshasa", adresse: "Matete, avenue Kinsaku 12", pieceDelivreeLe: "2024-01-10",
@@ -805,6 +805,22 @@ describe("journée de guichet", () => {
     expect(apres.find((c) => c.id === cdat.id)!.solde).toBe(1000000);
     const ct = await api.depotsTerme.contrat(x.id);
     expect([ct.dat.certificat, ct.client.numero, ct.entete.nom]).toEqual([1, "0412-000318", "COOPEC Tujenge"]);
+    // S67 : 90 jours sur 1 000 000 à 7,5 % = 18 493 ; pénalité 2 % du montant ; retenue de 20 % sur l'intérêt brut (loi 23/053, art. 120)
+    const dat = { montant: 1000000, tauxInteret: "7,5", tauxPenalite: "2", dateDepot: "2026-08-07", dateEcheance: "2027-08-07" };
+    expect(calculRuptureDat(dat, "2026-11-05", true)).toEqual({ jours: 90, interet: 18493, penalite: 20000, tauxIrc: "20", irc: 3699, montantAVerser: 994794 });
+    expect(calculRuptureDat(dat, "2026-11-05", false).irc).toBe(0);
+    expect(() => calculRuptureDat(dat, "2027-08-07", true)).toThrow("échu");
+    expect(() => calculRuptureDat(dat, "2026-08-06", true)).toThrow("date de dépôt");
+    await connecter("bkasongo");
+    await expect(api.depotsTerme.rompre(x.id, {})).rejects.toThrow("Droit manquant");   // la rupture est au chef d'agence (S67-5)
+    await connecter("jpmukendi");
+    expect((await api.depotsTerme.apercuRupture(x.id, "")).tauxIrc).toBe("20");
+    await expect(api.depotsTerme.rompre(x.id, { dateRupture: "2026-11-06" })).rejects.toThrow("journée ouverte");
+    const rp = await api.depotsTerme.rompre(x.id, {});
+    expect([rp.statut, rp.rupture!.interet, rp.rupture!.penalite, rp.rupture!.montantAVerser, rp.rupture!.piece !== ""]).toEqual(["rompu", 0, 20000, 980000, true]);
+    const fin = await api.tiers.comptes(1);
+    expect([fin.find((c) => c.id === em.id)!.solde, fin.find((c) => c.id === cdat.id)!.solde]).toEqual([em.solde - 20000, 0]);
+    await expect(api.depotsTerme.rompre(x.id, {})).rejects.toThrow("pas en cours");
   });
 
   it("adhésion par banque (S56) : payée sur un compte bancaire en CDF, saisie en attente du visa (registre S56-1 à S56-3)", async () => {

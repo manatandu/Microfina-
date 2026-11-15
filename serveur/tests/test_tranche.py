@@ -1989,3 +1989,22 @@ def test_depot_terme(clients, journee):
     assert avant - apres == 1000000
     assert ident("select sum(montant_devise) from ligne_ecriture l join compte c on c.id = l.compte_id where c.numero = '340' and l.contrat_ref = %s", (f"depot:{cdat}",)) == 1000000
     assert chef.get(f"/api/epargne/dat/{x['id']}/contrat").json()["dat"]["certificat"] == 1
+    # S67 : 90 jours sur 1 000 000 à 7,5 % = 18 493 ; pénalité 2 % ; retenue 20 % sur l'intérêt brut (loi 23/053, art. 120)
+    from datetime import date as D
+    from decimal import Decimal as Dec
+    from noyau.depots_terme import calcul_rupture
+    dat = {"montant": 1000000, "taux_interet": Dec("7.5"), "taux_penalite": Dec("2"), "date_depot": D(2026, 8, 7), "date_echeance": D(2027, 8, 7), "tiers_id": kalala}
+    assert calcul_rupture(dat, D(2026, 11, 5)) == {"jours": 90, "interet": 18493, "penalite": 20000, "tauxIrc": "20", "irc": 3699, "montantAVerser": 994794}
+    assert agent.post(f"/api/epargne/dat/{x['id']}/rupture", {}, **H).status_code == 403
+    assert chef.get(f"/api/epargne/dat/{x['id']}/rupture", **H).json()["tauxIrc"] == "20"
+    r = chef.post(f"/api/epargne/dat/{x['id']}/rupture", {"dateRupture": "2026-11-06"}, **H)
+    assert r.status_code == 422 and "journée ouverte" in r.json()["message"]
+    rp = chef.post(f"/api/epargne/dat/{x['id']}/rupture", {}, **H)
+    assert rp.status_code == 200, rp.json()
+    rr = rp.json()["rupture"]
+    assert (rp.json()["statut"], rr["interet"], rr["penalite"], rr["montantAVerser"], bool(rr["piece"])) == ("rompu", 0, 20000, 980000, True)
+    fin = ident("select coalesce(sum(case sens when 'C' then montant_devise else -montant_devise end), 0) from ligne_ecriture where contrat_ref = %s", (f"depot:{em}",))
+    assert apres - fin == -980000
+    assert ident("select coalesce(sum(case sens when 'C' then montant_devise else -montant_devise end), 0) from ligne_ecriture where contrat_ref = %s", (f"depot:{cdat}",)) == 0
+    assert ident("select sum(montant_devise) from ligne_ecriture l join compte c on c.id = l.compte_id where c.numero = '7791'") == 20000
+    assert chef.post(f"/api/epargne/dat/{x['id']}/rupture", {}, **H).status_code == 422
