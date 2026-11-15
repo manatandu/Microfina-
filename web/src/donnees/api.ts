@@ -9,7 +9,7 @@ import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
   type ChequeClient, type Chequier, type DepotTerme, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
-  type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget,
+  type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget, type CriteresAtypiques,
 } from "./types";
 import { DROITS_METHODES } from "./droits.gen";
 import registreEcrans from "../ecrans/registre.json";
@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v70";
+const CLE = "likelemba-demo-v71";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -2230,6 +2230,83 @@ const profilsRisque = {
     enregistrer(); return vueProfil(t, jour);
   },
 };
+// Écart E09 : opérations atypiques (Instr. BCC 15, art. 30, 31, 34 à 36). Mêmes règles que noyau/atypiques.py.
+const SANS_CRITERE: CriteresAtypiques = { montantUsd: null, montantEleveUsd: null, nombreJour: null, reveilMois: null };
+const usdTexte = (v: number) => `${v.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/\u202f/g, " ")} USD`;
+const atypiques = {
+  criteres(): CriteresAtypiques { lectureAdmin(["SC01"]); return { ...SANS_CRITERE, ...E.institution.criteresAtypiques }; },
+  fixerCriteres(d: Partial<Record<keyof CriteresAtypiques, number | string | null>>) {
+    exiger();
+    const c: CriteresAtypiques = { ...SANS_CRITERE };
+    for (const k of Object.keys(SANS_CRITERE) as (keyof CriteresAtypiques)[]) {
+      const v = d[k]; if (v === null || v === undefined || v === "") continue;
+      const n = Number(v); if (!Number.isFinite(n)) throw new ErreurMetier("Critère : nombre invalide.");
+      const entier = k === "nombreJour" || k === "reveilMois";
+      if (n <= 0 || (entier && !Number.isInteger(n)) || (k === "nombreJour" && n < 2)) throw new ErreurMetier("Critère : nombre invalide (montant positif ; au moins 2 mouvements ; mois entier positif).");
+      c[k] = entier ? n : Math.round(n * 100) / 100;
+    }
+    E.institution.criteresAtypiques = c; enregistrer(); return { ...c };
+  },
+  alertes(du: string, au: string, statut = "a_analyser") {
+    lectureAdmin(["SC01"]);
+    if (![du, au].every((x) => /^\d{4}-\d{2}-\d{2}$/.test(x ?? ""))) throw new ErreurMetier("À remplir : période.");
+    const c = { ...SANS_CRITERE, ...E.institution.criteresAtypiques };
+    if (Object.values(c).every((v) => v === null)) return [];
+    // la reprise des soldes (journal AN) n'est pas une opération (registre E09-4)
+    const mvts = E.ecritures.filter((e) => e.journal !== "AN").flatMap((e) => e.lignes.map((l, i) => ({ e, l, rang: i + 1 }))).flatMap(({ e, l, rang }) => {
+      const id = /^depot:(\d+)$/.exec(l.contrat ?? "")?.[1]; const cpt = id ? E.comptes.find((x) => x.id === Number(id)) : undefined;
+      const date = dateJournee(e.journeeId);
+      return cpt && date <= au ? [{ ecritureId: e.id, rang, sens: l.sens, montant: l.montant, devise: l.devise, date, libelle: e.libelle, piece: e.piece, cpt }] : [];
+    }).sort((a, b) => a.cpt.id - b.cpt.id || a.date.localeCompare(b.date) || a.ecritureId - b.ecritureId || a.rang - b.rang);
+    const eleves = new Set(E.tiers.filter((t) => E.profilsRisque.filter((x) => x.tiersId === t.id).sort((a, b) => b.evalueLe.localeCompare(a.evalueLe) || b.id - a.id)[0]?.niveau === "eleve").map((t) => t.id));
+    const parJour = new Map<string, number>(); for (const m of mvts) parJour.set(`${m.cpt.id}|${m.date}`, (parJour.get(`${m.cpt.id}|${m.date}`) ?? 0) + 1);
+    const precedent = new Map<number, string>(); const sortie = [];
+    for (const m of mvts) {
+      const avant = precedent.get(m.cpt.id); precedent.set(m.cpt.id, m.date);
+      if (m.date < du) continue;
+      const usd = enUsd(m.montant, m.devise), motifs: string[] = [];
+      if (c.montantUsd !== null && usd >= c.montantUsd) motifs.push(`Montant de ${usdTexte(c.montantUsd)} ou plus`);
+      if (c.montantEleveUsd !== null && eleves.has(m.cpt.tiersId) && usd >= c.montantEleveUsd) motifs.push(`Client à risque élevé : ${usdTexte(c.montantEleveUsd)} ou plus`);
+      if (c.nombreJour !== null && (parJour.get(`${m.cpt.id}|${m.date}`) ?? 0) >= c.nombreJour) motifs.push(`${c.nombreJour} mouvements ou plus sur le compte dans la journée`);
+      if (c.reveilMois !== null && avant && ajouterMois(avant, c.reveilMois) <= m.date) motifs.push(`Compte sans mouvement depuis ${c.reveilMois} mois ou plus`);
+      if (!motifs.length) continue;
+      const cle = `${m.ecritureId}:${m.rang}`, a = E.analysesAtypiques.find((x) => x.cle === cle), t = E.tiers.find((x) => x.id === m.cpt.tiersId)!;
+      const v = { cle, date: m.date, piece: m.piece, libelle: m.libelle, membre: t.numero, client: titulaire(t), compte: m.cpt.numero, devise: m.devise, sens: m.sens, montant: m.montant,
+        montantUsd: Math.round(usd * 100) / 100, criteres: a ? a.criteres : motifs, statut: (a?.conclusion ?? "a_analyser") as "a_analyser" | "justifiee" | "atypique", analyse: a?.analyse ?? "",
+        analysePar: E.utilisateurs.find((u) => u.id === a?.analysePar)?.nom ?? "", analyseLe: a?.analyseLe ?? "", declareLe: a?.declareLe ?? "", reference: a?.reference ?? "" };
+      if (statut === "" || v.statut === statut || (statut === "analysee" && v.statut !== "a_analyser")) sortie.push(v);
+    }
+    return sortie;
+  },
+  alerte(cle: string) {
+    const x = atypiques.alertes("1900-01-01", jourConformite(), "").find((a) => a.cle === cle);
+    if (!x) throw new ErreurMetier("Alerte introuvable : le mouvement ne répond plus à aucun critère.");
+    return x;
+  },
+  /** Art. 35 et 36 : justification économique, légitimité apparente ; la conclusion se garde avec les critères */
+  analyser(d: { cle: string; conclusion?: string; analyse?: string }) {
+    const u = exiger();
+    const conclusion = d.conclusion ?? "", analyse = (d.analyse ?? "").trim();
+    const manque = ([[conclusion === "justifiee" || conclusion === "atypique", "Conclusion"], [analyse, "Analyse"]] as const).filter(([v]) => !v).map(([, n]) => n);
+    if (manque.length) throw new ErreurMetier(`À remplir (Instr. BCC 15, art. 35 et 36) : ${manque.join(", ")}.`);
+    const x = atypiques.alerte(d.cle);
+    if (x.statut !== "a_analyser") throw new ErreurMetier("Alerte déjà analysée.");
+    E.analysesAtypiques.push({ cle: x.cle, criteres: x.criteres, conclusion: conclusion as "justifiee" | "atypique", analyse, analysePar: u.id, analyseLe: jourConformite(), declareLe: "", reference: "" });
+    enregistrer(); return atypiques.alerte(x.cle);
+  },
+  /** Art. 36, 4e tiret : déclaration de soupçon à la CENAREF */
+  declarer(d: { cle: string; date: string; reference: string }) {
+    exiger();
+    const x = atypiques.alerte(d.cle);
+    if (x.statut !== "atypique") throw new ErreurMetier("Seule une opération conclue atypique se déclare.");
+    if (x.declareLe) throw new ErreurMetier("Déclaration déjà notée.");
+    const date = (d.date ?? "").trim(), ref = (d.reference ?? "").trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !ref) throw new ErreurMetier("À remplir : date et référence de la déclaration à la CENAREF.");
+    if (date > jourConformite()) throw new ErreurMetier("La date de la déclaration ne peut pas dépasser la journée ouverte.");
+    const a = E.analysesAtypiques.find((y) => y.cle === x.cle)!; a.declareLe = date; a.reference = ref; enregistrer(); return atypiques.alerte(x.cle);
+  },
+  rapport(du: string, au: string) { return { entete: enteteDocument(), du, au, operations: atypiques.alertes(du, au, "atypique") }; },
+};
 // Écart E06 : Centrale des incidents de paiement (Instr. BCC 52, art. 10 à 15). Mêmes règles que noyau/cip.py.
 const TYPES_CIP: Record<string, string> = { ouverture_compte: "Ouverture de compte", cloture_compte: "Clôture de compte", nouveau_client: "Nouveau client", modification_client: "Client modifié" };
 /** Deux jours ouvrables après l'événement, du lundi au vendredi */
@@ -2393,6 +2470,12 @@ const conformite = {
   },
   /** Instr. BCC 15, art. 62 : rapport écrit, strictement confidentiel */
   ppe: () => ppe.lister(),
+  criteresAtypiques: () => atypiques.criteres(),
+  fixerCriteresAtypiques: (d: Parameters<typeof atypiques.fixerCriteres>[0]) => atypiques.fixerCriteres(d),
+  atypiques: (du: string, au: string, statut = "a_analyser") => atypiques.alertes(du, au, statut),
+  analyserAtypique: (d: Parameters<typeof atypiques.analyser>[0]) => atypiques.analyser(d),
+  declarerAtypique: (d: Parameters<typeof atypiques.declarer>[0]) => atypiques.declarer(d),
+  rapportAtypiques: (du: string, au: string) => { lectureAdmin(["SC01"]); return atypiques.rapport(du, au); },
   profils: (filtre = "echues") => profilsRisque.lister(filtre),
   evaluerProfil: (tid: number, d: Parameters<typeof profilsRisque.evaluer>[1]) => profilsRisque.evaluer(tid, d),
   cip: (du: string, au: string, statut = "") => cip.evenements(du, au, statut),

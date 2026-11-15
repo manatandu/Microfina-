@@ -2121,6 +2121,31 @@ def test_profil_risque(clients, journee):
     assert "niveau Élevé" in chef.post(f"/api/conformite/profils/{k['tiersId']}", {"niveau": "faible", "motif": "x", "donneesRevues": True}, **H).json()["message"]
 
 
+def test_operations_atypiques(clients, journee):
+    """Écart E09 : Instr. BCC 15, art. 31, 35, 36"""
+    agent, chef, caisse = clients["agent"], clients["chef"], clients["caisse"]
+    P = "?du=2026-01-01&au=2026-11-05"
+    assert chef.get("/api/conformite/atypiques" + P, **H).json() == []                      # aucun critère fixé : rien n'est surveillé
+    assert "au moins 2" in chef.post("/api/conformite/atypiques/criteres", {"nombreJour": 1}, **H).json()["message"]
+    assert agent.post("/api/conformite/atypiques/criteres", {"montantUsd": 100}, **H).status_code == 403
+    assert chef.post("/api/conformite/atypiques/criteres", {"montantUsd": "300", "nombreJour": 2}, **H).json() == {"montantUsd": 300.0, "montantEleveUsd": None, "nombreJour": 2, "reveilMois": None}
+    for _ in range(2):    # 10 000 CDF, deux fois : petits montants, deux mouvements du compte dans la journée
+        assert caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}, "mandataire": ""}, **H).status_code == 200
+    al = [x for x in chef.get("/api/conformite/atypiques" + P, **H).json() if x["compte"] == "0412-000318-02" and x["date"] == "2026-11-05"]
+    assert len(al) == 2 and all("2 mouvements ou plus" in " ".join(x["criteres"]) for x in al)
+    assert agent.get("/api/conformite/atypiques" + P, **H).status_code == 403
+    assert "Analyse" in chef.post("/api/conformite/atypiques/analyses", {"cle": al[0]["cle"], "conclusion": "atypique"}, **H).json()["message"]
+    assert "Seule une opération conclue atypique" in chef.post("/api/conformite/atypiques/declarations", {"cle": al[0]["cle"], "date": "2026-11-05", "reference": "R"}, **H).json()["message"]
+    v = chef.post("/api/conformite/atypiques/analyses", {"cle": al[0]["cle"], "conclusion": "atypique", "analyse": "Dépôts fractionnés sans motif"}, **H).json()
+    assert (v["statut"], v["analysePar"]) == ("atypique", "J.-P. Mukendi")
+    assert "déjà analysée" in chef.post("/api/conformite/atypiques/analyses", {"cle": al[0]["cle"], "conclusion": "justifiee", "analyse": "x"}, **H).json()["message"]
+    d = chef.post("/api/conformite/atypiques/declarations", {"cle": al[0]["cle"], "date": "2026-11-05", "reference": "CENAREF-DOS-03"}, **H).json()
+    assert d["declareLe"] == "2026-11-05"
+    r = chef.get("/api/conformite/atypiques/rapport" + P, **H).json()
+    assert [x["reference"] for x in r["operations"]] == ["CENAREF-DOS-03"]
+    assert all(x["statut"] != "a_analyser" for x in chef.get("/api/conformite/atypiques" + P + "&statut=analysee", **H).json())
+
+
 def test_convention_et_admission(clients, journee):
     """Écart E04 : convention de compte (loi 22/069, titre III) ; écart E05 : admission par le Conseil d'Administration (loi 002/2002, art. 22, 6°)"""
     from noyau.bd import executer

@@ -158,6 +158,7 @@ export function graine(): Etat {
     declarationsCip: [],
     plaintes: [],
     profilsRisque: [],
+    analysesAtypiques: [],
     remboursementsEmprunt: [],
     chequesInstitution: [],
     agents: [],

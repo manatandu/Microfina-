@@ -15,6 +15,7 @@ from . import chequiers as chqr
 from . import emprunts as emp
 from . import comptes_epargne as cep
 from . import releves as rel
+from . import atypiques as aty
 from . import depots_terme as dat
 from . import conformite as conf
 from . import cip
@@ -1310,6 +1311,36 @@ def conformite_ppe_enregistrer(request, tid: int, corps: dict = Body(...)):
 @api.post("/conformite/ppe/{tid}/information")
 def conformite_ppe_informer(request, tid: int, corps: dict = Body(...)):
     return conf.ppe_informer(u(request), tid, corps)
+
+
+@api.get("/conformite/atypiques/criteres")
+def atypiques_criteres(request):
+    return aty.criteres(u(request))
+
+
+@api.post("/conformite/atypiques/criteres")
+def atypiques_fixer(request, corps: dict = Body(...)):
+    return aty.fixer_criteres(u(request), corps)
+
+
+@api.get("/conformite/atypiques")
+def atypiques_alertes(request, du: str = "", au: str = "", statut: str = "a_analyser"):
+    return aty.alertes(u(request), du, au, statut)
+
+
+@api.post("/conformite/atypiques/analyses")
+def atypiques_analyser(request, corps: dict = Body(...)):
+    return aty.analyser(u(request), corps)
+
+
+@api.post("/conformite/atypiques/declarations")
+def atypiques_declarer(request, corps: dict = Body(...)):
+    return aty.declarer(u(request), corps)
+
+
+@api.get("/conformite/atypiques/rapport")
+def atypiques_rapport(request, du: str = "", au: str = ""):
+    return aty.rapport(u(request), du, au)
 
 
 @api.get("/conformite/profils")

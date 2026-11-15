@@ -10,7 +10,9 @@ export interface Institution { nom: string; sigle?: string; profil: string;
   // S32 Info générale
   description?: string; directeur?: string; numeroAgrement?: string; journeeMax?: number; compteHorsBilan1?: string | null; compteHorsBilan2?: string | null;
   ifu?: string; pays?: string; ville?: string; commune?: string; quartier?: string; rue?: string; email?: string; bp?: string; telephoneFixe?: string; adresse?: string; logo?: string | null;
-  delegationAdmission?: string }   // écart E05 : décision du Conseil qui délègue l'admission des membres
+  delegationAdmission?: string;
+  criteresAtypiques?: CriteresAtypiques }   // écart E09 : critères fixés par l'institution (Instr. BCC 15, art. 36)
+export interface CriteresAtypiques { montantUsd: number | null; montantEleveUsd: number | null; nombreJour: number | null; reveilMois: number | null }   // écart E05 : décision du Conseil qui délègue l'admission des membres
 export interface Agence { id: number; code: string; nom: string }
 /** Guichet ; champs de « Gestion des guichets » (S08, manuel p. 18) */
 export interface Guichet {
@@ -192,6 +194,8 @@ export interface Examen {
 }
 /** Écart E02 : dossier d'une personne politiquement exposée (Instr. BCC 15, art. 41, 64, 65) */
 export interface DossierPpe { tiersId: number; fonction: string; finFonction: string; originePatrimoine: string; saisiPar: number; autorisePar: number | null; autoriseLe: string; informeLe: string; referenceCenaref: string }
+/** Écart E09 : analyse d'une alerte (Instr. BCC 15, art. 36) ; cle = « écriture:rang » */
+export interface AnalyseAtypique { cle: string; criteres: string[]; conclusion: "justifiee" | "atypique"; analyse: string; analysePar: number; analyseLe: string; declareLe: string; reference: string }
 /** Écart E08 : évaluation du profil de risque (Instr. BCC 15, art. 28) */
 export interface ProfilRisque { id: number; tiersId: number; niveau: "faible" | "moyen" | "eleve"; motif: string; evalueLe: string; evaluePar: number }
 /** Écart E07 : plainte (Instr. BCC 39) */
@@ -275,6 +279,7 @@ export interface Etat {
   modifications: { id: number; tiersId: number; avant: Tiers; apres: Tiers; modifiePar: number; modifieLe: string; validePar?: number; valideLe?: string }[];
   plaintes: Plainte[];   // écart E07
   profilsRisque: ProfilRisque[];   // écart E08
+  analysesAtypiques: AnalyseAtypique[];   // écart E09
   declarationsCip: { type: string; objetId: number; dateEvenement: string; declareLe: string; reference: string; declarePar: number }[];   // écart E06   // S46, S42, S43
   banques: { id: number; code: string; libelle: string; compteLiaison: string; adresse: string }[];   // S58
   budget: Record<string, LigneBudget[]>;

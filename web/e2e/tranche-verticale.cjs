@@ -567,6 +567,18 @@ const OUT = process.argv[2];
   await fr2.getByLabel("Données d'identification revues (art. 27 et 51)").check(); await etape('10i-profil-risque');
   await fr2.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await fr2.getByText(/Niveau en cours : Moyen/).waitFor();
   await fr2.getByRole('button', { name: 'Fermer' }).click();
+  // Opérations atypiques (écart E09 ; Instr. BCC 15, art. 31 et 36) : le chef fixe les critères, analyse une alerte, ouvre le rapport
+  await p.getByRole('tab', { name: 'Opérations atypiques' }).click(); const ra = p.getByRole('region', { name: 'Opérations atypiques' });
+  await ra.getByText(/Aucun critère fixé/).waitFor(); await ra.getByRole('button', { name: 'Critères' }).click();
+  const fc = p.getByRole('dialog', { name: 'Critères des opérations atypiques' });
+  await fc.getByLabel("Montant d'un mouvement égal ou supérieur à (USD) :").fill('10'); await fc.getByLabel("Nombre de mouvements d'un compte dans la journée, au moins :").fill('3');
+  await etape('10j-criteres-atypiques'); await fc.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await ra.locator('tbody tr.ligne-choix').first().click(); const fa = p.getByRole('dialog', { name: /^Alerte du / });
+  await fa.getByLabel('Justification économique et légitimité apparente : *').fill('Versement de la recette hebdomadaire, conforme à l\'activité déclarée');
+  await fa.getByLabel('Conclusion : *').selectOption('justifiee'); await etape('10k-analyse-atypique');
+  await fa.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await fa.getByText(/Justifiée/).first().waitFor(); await fa.getByRole('button', { name: 'Fermer' }).click();
+  await ra.getByRole('button', { name: 'Rapport' }).click(); await p.getByRole('article', { name: 'Rapport des opérations atypiques' }).waitFor(); await etape('10l-rapport-atypiques');
+  await p.getByRole('dialog', { name: 'Rapport des opérations atypiques' }).getByRole('button', { name: 'Fermer' }).click();
   // Centrale des incidents de paiement (écart E06) : les ouvertures et nouveaux clients du jour à déclarer, avec leur échéance
   await aller('/clients/sc02'); await p.getByRole('heading', { name: 'Centrale des incidents de paiement' }).waitFor(); await p.getByRole('cell', { name: 'Nouveau client' }).first().waitFor();
   await etape('10f-centrale-incidents');

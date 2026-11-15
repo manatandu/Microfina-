@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**382 décisions.** Solidité : 145 fortes (le manuel ou un texte répond), 205 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 353 déjà en place, 29 à appliquer.
+**386 décisions.** Solidité : 148 fortes (le manuel ou un texte répond), 206 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 357 déjà en place, 29 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -877,6 +877,15 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | E08-2 | Niveaux et contenu | Trois niveaux : Faible, Moyen, Élevé ; motif obligatoire ; la case « Données d'identification revues » doit être cochée pour enregistrer ; prochaine revue six mois après l'évaluation (date de la journée ouverte) | Texte réglementaire : Instr. BCC 15, art. 6 (risques moindres, plus élevés), art. 32 (risque supérieur à la moyenne), art. 28 (semestre), art. 27 et 51 (révision et mise à jour des données d'identification) | forte | en place |
 | E08-3 | Personne politiquement exposée | Une personne politiquement exposée encore active ne peut recevoir que le niveau Élevé | Texte réglementaire : Instr. BCC 15, art. 41 al. 3 (vigilance renforcée vis-à-vis des PPE) et art. 64 (fin du statut 36 mois après la fonction) | forte | en place |
 | E08-4 | Visa sans profil | Le visa n'attend pas le profil : le client visé apparaît aussitôt dans les revues échues. Le texte demande le profilage au regard de l'identification, sans dire qu'il précède l'entrée en relation | Texte réglementaire : Instr. BCC 15, art. 28 (aucun délai avant l'entrée en relation) ; art. 10 ne cite que la vérification de l'identité | moyenne | en place |
+
+## E09 Opérations atypiques
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E09-1 | Où et pour qui | Onglet « Opérations atypiques » de Client > Conformité > Examen renforcé (droit SC01). Il couvre chaque mouvement de chaque compte de dépôt, quelle que soit son origine (guichet, banque, DAT, opérations diverses) | Texte réglementaire : Instr. BCC 15, art. 31 et 36, 1er tiret (couvrir l'intégralité des comptes et de leurs opérations) | forte | en place |
+| E09-2 | Critères | Quatre critères, fixés par l'institution et vides au départ (vide : non appliqué) : montant d'un mouvement en USD ; montant plus bas pour un client à risque élevé (profil E08) ; nombre de mouvements d'un compte dans la journée ; compte sans mouvement depuis un nombre de mois. Aucune valeur n'est proposée par le logiciel | Texte réglementaire : Instr. BCC 15, art. 36, 2e tiret (critères fixés par chaque assujetti, selon ses produits et sa clientèle) ; art. 31, al. 2 (adapté au niveau de risque) ; art. 33 (types de transactions) ; critères de l'écart E09 | forte | en place |
+| E09-3 | Analyse, rapport, déclaration | Chaque alerte s'analyse une fois : justification économique et légitimité apparente, conclusion Justifiée ou Atypique, gardées avec les critères, l'auteur et la date. Le rapport imprimable liste les opérations conclues atypiques sur la période. Une opération atypique peut recevoir la date et la référence de la déclaration de soupçon à la CENAREF | Texte réglementaire : Instr. BCC 15, art. 35 (justification économique, légitimité apparente), art. 36, 3e et 4e tirets (rapports écrits, déclaration à la CENAREF), art. 48 (conservation dix ans) | forte | en place |
+| E09-4 | Reprise des soldes | Les écritures du journal des à-nouveaux (reprise des soldes) ne sont pas surveillées : elles ne sont pas une opération du client | Texte réglementaire : Instr. BCC 15, art. 30 et 36 visent les opérations et transactions des clients ; la reprise des soldes est une écriture d'ouverture du logiciel | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

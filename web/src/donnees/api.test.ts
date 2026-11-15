@@ -198,6 +198,28 @@ describe("journée de guichet", () => {
     await expect(api.conformite.evaluerProfil(k.tiersId, { niveau: "faible", motif: "x", donneesRevues: true })).rejects.toThrow("Droit manquant");
   });
 
+  it("opérations atypiques (écart E09) : critères de l'institution, analyse, déclaration à la CENAREF, rapport", async () => {
+    await journeeOuverte(); await connecter("jpmukendi");
+    expect(await api.conformite.atypiques("2026-01-01", "2026-11-05")).toEqual([]);   // aucun critère : rien n'est surveillé
+    await expect(api.conformite.fixerCriteresAtypiques({ nombreJour: 1 })).rejects.toThrow("au moins 2");
+    expect(await api.conformite.fixerCriteresAtypiques({ montantUsd: "300", nombreJour: 2 })).toEqual({ montantUsd: 300, montantEleveUsd: null, nombreJour: 2, reveilMois: null });
+    await connecter("engalula");
+    for (let i = 0; i < 2; i++) await api.guichet.depot({ cle: cle(), compteId: 2, montant: 1000000, coupures: { 10000: 1 } });
+    await connecter("jpmukendi");
+    const al = (await api.conformite.atypiques("2026-01-01", "2026-11-05")).filter((x) => x.compte === "0412-000318-02" && x.date === "2026-11-05");
+    expect(al.length).toBe(2); expect(al.every((x) => x.criteres.join(" ").includes("2 mouvements ou plus"))).toBe(true);
+    await expect(api.conformite.analyserAtypique({ cle: al[0]!.cle, conclusion: "atypique" })).rejects.toThrow("Analyse");
+    await expect(api.conformite.declarerAtypique({ cle: al[0]!.cle, date: "2026-11-05", reference: "R" })).rejects.toThrow("Seule une opération conclue atypique");
+    const v = await api.conformite.analyserAtypique({ cle: al[0]!.cle, conclusion: "atypique", analyse: "Dépôts fractionnés sans motif" });
+    expect([v.statut, v.analysePar]).toEqual(["atypique", "J.-P. Mukendi"]);
+    await expect(api.conformite.analyserAtypique({ cle: al[0]!.cle, conclusion: "justifiee", analyse: "x" })).rejects.toThrow("déjà analysée");
+    expect((await api.conformite.declarerAtypique({ cle: al[0]!.cle, date: "2026-11-05", reference: "CENAREF-DOS-03" })).declareLe).toBe("2026-11-05");
+    expect((await api.conformite.rapportAtypiques("2026-01-01", "2026-11-05")).operations.map((x) => x.reference)).toEqual(["CENAREF-DOS-03"]);
+    await connecter("bkasongo");
+    await expect(api.conformite.atypiques("2026-01-01", "2026-11-05")).rejects.toThrow("Droit manquant");
+    await expect(api.conformite.fixerCriteresAtypiques({ montantUsd: 1 })).rejects.toThrow("Droit manquant");
+  });
+
   it("convention de compte (écart E04) et admission par le Conseil d'Administration (écart E05)", async () => {
     await connecter("bkasongo");
     const cv = await api.comptesEpargne.convention(2);

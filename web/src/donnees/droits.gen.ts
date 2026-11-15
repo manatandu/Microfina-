@@ -66,7 +66,13 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "comptesUtilisateurs.enregistrer": [
 "S05"
 ],
+"conformite.analyserAtypique": [
+"SC01"
+],
 "conformite.declarer": [
+"SC01"
+],
+"conformite.declarerAtypique": [
 "SC01"
 ],
 "conformite.declarerCip": [
@@ -84,6 +90,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "SC01"
 ],
 "conformite.examiner": [
+"SC01"
+],
+"conformite.fixerCriteresAtypiques": [
 "SC01"
 ],
 "conformite.informerPpe": [
