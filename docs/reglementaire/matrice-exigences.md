@@ -100,7 +100,7 @@ Note : l'art. 14 associe les pondérations à des niveaux de risque dans l'ordre
 | Réf. | Exigence | Module | Statut |
 |---|---|---|---|
 | Instr. 40, art. 2, 3 | Taux applicables à la clientèle publiés chaque trimestre et affichés | Épargne (taux du DAT) | lu |
-| Instr. 40, art. 4, 5, 13 | Document remis au client, clair, en français, police d'au moins 12 | Relevé (S64), contrat DAT (S66) | lu |
+| Instr. 40, art. 4, 5, 13 | Document remis au client, clair, en français, police d'au moins 12 | Contrat DAT (S66) en 12 ; relevé (S64) compact à la demande du porteur, écart signalé (registre S64-7) | lu |
 | Instr. 5 | Déclaration à la centrale des risques sans délai, modifications, radiation après 3 ans sans engagement | Centrale des risques | survolé, à lire |
 | Instr. 15 et annexes | LBC/FT : identification, vigilance, déclarations | LBC/FT | à lire, avec la loi 22/068 mod. 25/048 |
 | Instr. 15 bis | Paiements en espèces ≥ USD 10 000 | LBC/FT, Caisse | survolé, à lire |

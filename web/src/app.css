@@ -514,14 +514,13 @@ select.saisie { max-width: 100%; }
 .releve-pied strong { color: var(--tampon); font-size: 9.5px; }
 @media (max-width: 720px) { .releve-tete, .releve-haut { grid-template-columns: minmax(0, 1fr); } .releve-titre { justify-self: start; } .releve-logo { justify-items: start; text-align: left; } }
 @media print {
-  /* Instr. BCC 40, art. 5 : police d'au moins 12 sur les documents remis au client */
-  .releve-std { padding: 0; font-size: 12pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .releve-detail th, .releve-pied, .releve-pied strong, .releve-num, .releve-client strong, .releve-logo span { font-size: 12pt; } .releve-titre { font-size: 14pt; } .releve-logo strong { font-size: 18pt; }
-  .releve-detail col.c-date, .releve-detail col.c-valeur { width: 14.5%; } .releve-detail col.c-desc { width: 16%; } .releve-detail col.c-ref { width: 9%; } .releve-detail col.c-montant { width: 15.33%; }
-  .releve-detail th, .releve-detail td { padding: 3px 4px; } .releve-detail td:nth-child(1), .releve-detail td:nth-child(4) { white-space: nowrap; }
+  .releve-std { padding: 0; font-size: 8.5pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .releve-detail th { font-size: 8pt; } .releve-pied { font-size: 7pt; } .releve-titre { font-size: 11pt; }
+  /* Contrat de DAT : police d'au moins 12 (Instr. BCC 40, art. 5) ; le relevé reste compact à la demande du porteur (registre S64-7) */
+  .contrat-dat { font-size: 12pt; } .contrat-dat .releve-pied, .contrat-dat .releve-pied strong, .contrat-dat .releve-num, .contrat-dat .releve-logo span { font-size: 12pt; } .contrat-dat .releve-titre { font-size: 14pt; }
   .releve-detail thead { display: table-header-group; }
   .releve-detail tr { break-inside: avoid; }
-  @page { margin: 12mm 10mm 14mm; @bottom-center { content: counter(page); font-family: system-ui, Arial, sans-serif; font-size: 12pt; } }
+  @page { margin: 12mm 10mm 14mm; @bottom-center { content: counter(page); font-family: system-ui, Arial, sans-serif; font-size: 8pt; } }
 }
 /* Cadre d'impression (lib/imprimer.ts) : le document seul, dans le flux, pour qu'il se répartisse sur plusieurs pages */
 .impression { background: var(--feuille); margin: 0; }

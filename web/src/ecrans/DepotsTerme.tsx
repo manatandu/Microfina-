@@ -197,7 +197,7 @@ function ContratDat({ c }: { c: Contrat }) {
     ["Reconduction automatique", x.reconduction ? "Oui, aux mêmes conditions" : "Non"],
   ];
   return (
-    <article className="releve-std a-imprimer" aria-label="Contrat de dépôt à terme">
+    <article className="releve-std contrat-dat a-imprimer" aria-label="Contrat de dépôt à terme">
       <header className="releve-tete">
         <p className="releve-num">N° <span className="chiffres">{String(x.certificat).padStart(6, "0")}</span></p>
         <h2 className="releve-titre">CONTRAT DE DÉPÔT À TERME</h2>
