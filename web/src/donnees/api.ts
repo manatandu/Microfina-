@@ -7,7 +7,7 @@ import { graine } from "./graine";
 import { creerApiHttp } from "./http";
 import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
-  type ChequeClient, type Chequier, type Emprunt, type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
+  type ChequeClient, type Chequier, type DepotTerme, type Emprunt, type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget,
 } from "./types";
@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v64";
+const CLE = "likelemba-demo-v65";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -1592,6 +1592,89 @@ const releves = {
     const parts = soldeAu(`parts:${tiersId}`, "CDF");
     if (parts) comptes.push({ compte: "Parts sociales", intitule: "Parts sociales CDF", devise: "CDF", debit: parts < 0 ? -parts : 0, credit: parts > 0 ? parts : 0 });   // S64-4
     return { entete: enteteDocument(), client: ficheClient(tiersId), date, comptes };
+  },
+};
+
+// ---------- Épargne > Dépôt à terme (S65, S66, manuel p. 75 et 76). Règles identiques côté serveur (noyau/depots_terme.py). ----------
+const lireTaux = (v: string | undefined, nom: string, maxi: number) => { const t = (v ?? "").trim().replace(",", ".") || "0";
+  if (!/^\d+(\.\d{1,4})?$/.test(t) || Number(t) >= maxi) throw new ErreurMetier(`${nom} : un pourcentage, par exemple 7,5.`); return t; };
+export const ajouterMois = (iso: string, n: number) => { const [a, m, j] = iso.split("-").map(Number) as [number, number, number]; const t = m - 1 + n;
+  const an = a + Math.floor(t / 12), mo = (t % 12) + 1, der = new Date(Date.UTC(an, mo, 0)).getUTCDate();
+  return `${an}-${String(mo).padStart(2, "0")}-${String(Math.min(j, der)).padStart(2, "0")}`; };
+/** Intérêt simple : montant × taux annuel × mois / 12, arrondi au centime (registre S65-3) */
+export const interetDat = (montant: number, taux: string, mois: number) => Math.round(montant * Number(taux.replace(",", ".")) / 100 * mois / 12);
+const compteInteretDat = (mois: number) => (mois <= 6 ? "6124" : mois <= 9 ? "6122" : "6121");   // PCCI, compte 612 (S65-4)
+const disponibleDat = (c: CompteDepot) => soldeContrat(`depot:${c.id}`, c.devise, "C") - (c.bloque ?? 0)
+  - E.depotsTerme.filter((x) => x.compteEmetteurId === c.id && x.statut === "saisie").reduce((s, x) => s + x.montant, 0);
+const vueDat = (x: DepotTerme) => { const t = E.tiers.find((y) => y.id === x.tiersId); const num = (id: number) => E.comptes.find((c) => c.id === id)?.numero ?? "";
+  return { ...x, produit: E.produits.find((p) => p.id === x.produitId)?.libelle ?? "", membre: t?.numero ?? "", client: t ? titulaire(t) : "",
+    compteEmetteur: num(x.compteEmetteurId), compteDat: num(x.compteDatId), montantAVerser: x.montant + x.montantInteret, compteInteret: compteInteretDat(x.duree),
+    piece: x.ecritureId ? E.ecritures.find((e) => e.id === x.ecritureId)?.piece ?? "" : "" }; };
+const depotsTerme = {
+  produits() {
+    exiger();
+    return E.produits.filter((p) => p.actif && !p.supprime && p.categorie === "DAT").sort((a, b) => a.code.localeCompare(b.code))
+      .map((p) => ({ id: p.id, code: p.code, libelle: p.libelle, devise: p.devise, compteLie: p.compteLie ?? "" }));
+  },
+  liste(statut: "" | DepotTerme["statut"] = "") {
+    exiger();
+    return E.depotsTerme.filter((x) => !statut || x.statut === statut).sort((a, b) => a.certificat - b.certificat).map(vueDat);
+  },
+  mettreEnPlace(d: { cle: string; produitId?: number; tiersId?: number; compteEmetteurId?: number; compteDatId?: number; montant: number; duree: number;
+    tauxInteret: string; tauxPenalite: string; aEcheance: boolean; dateDepot: string; observation: string; reconduction: boolean }) {
+    const u = exiger();
+    const prec = E.depotsTerme.find((x) => x.cle === d.cle);
+    if (prec) return vueDat(prec);
+    const j = journees.courante();
+    if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
+    const p = E.produits.find((x) => x.id === d.produitId && x.actif && !x.supprime && x.categorie === "DAT");
+    if (!p) throw new ErreurMetier("À remplir : Produit (un produit de l'onglet DAT, Paramétrage des produits épargne).");
+    const t = E.tiers.find((x) => x.id === d.tiersId);
+    if (!t) throw new ErreurMetier("À remplir : N° du Client.");
+    controlerStatutActif(t.statut);
+    const compte = (id: number | undefined, nom: string) => { const c = E.comptes.find((x) => x.id === id && x.tiersId === t.id); if (!c) throw new ErreurMetier(`À remplir : ${nom}.`); return c; };
+    const em = compte(d.compteEmetteurId, "N° Compte (compte émetteur)"), dat = compte(d.compteDatId, "Compte DAT");
+    if (!duProduit(dat, p)) throw new ErreurMetier("Compte DAT : un compte du produit choisi (Épargne > Nouveau compte).");
+    if (duProduit(em, p) || em.id === dat.id) throw new ErreurMetier("N° Compte : le compte émetteur est un autre compte que le compte DAT.");
+    if (em.devise !== p.devise) throw new ErreurMetier(`N° Compte : le compte émetteur doit être en ${p.devise}, comme le produit.`);
+    if (!Number.isInteger(d.montant) || d.montant <= 0) throw new ErreurMetier("Montant : un montant supérieur à zéro.");
+    if (!Number.isInteger(d.duree) || d.duree < 1 || d.duree > 120) throw new ErreurMetier("Durée (Mois) : de 1 à 120 mois.");
+    const ti = lireTaux(d.tauxInteret, "Taux intérêt", 100), tp = lireTaux(d.tauxPenalite, "Taux pénalité", 101);
+    const depot = d.dateDepot?.trim() || j.date;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(depot)) throw new ErreurMetier("À remplir : Date de dépôt.");
+    if (depot > j.date) throw new ErreurMetier("La date de dépôt ne peut pas dépasser la journée ouverte.");
+    if (d.montant > disponibleDat(em)) throw new ErreurMetier("Solde disponible insuffisant sur le compte émetteur.");
+    const x: DepotTerme = { id: prochain(E.depotsTerme), cle: d.cle, certificat: E.depotsTerme.reduce((m, y) => Math.max(m, y.certificat), 0) + 1, produitId: p.id, tiersId: t.id,
+      compteEmetteurId: em.id, compteDatId: dat.id, montant: d.montant, devise: p.devise, duree: d.duree, tauxInteret: String(Number(ti)).replace(".", ","),
+      tauxPenalite: String(Number(tp)).replace(".", ","), montantInteret: interetDat(d.montant, ti, d.duree), aEcheance: !!d.aEcheance, dateDepot: depot,
+      dateEcheance: ajouterMois(depot, d.duree), observation: (d.observation ?? "").trim(), reconduction: !!d.reconduction, statut: "saisie", saisiPar: u.id, validePar: null, ecritureId: null };
+    E.depotsTerme.push(x); enregistrer(); return vueDat(x);
+  },
+  /** Bouton Contrat (S66) : document de l'institution cliente (registre S65-7) */
+  contrat(id: number) {
+    exiger();
+    const x = E.depotsTerme.find((y) => y.id === id);
+    if (!x) throw new ErreurMetier("DAT introuvable.");
+    return { entete: enteteDocument(), client: ficheClient(x.tiersId), dat: vueDat(x) };
+  },
+  /** S66 : par une autre personne ; l'argent passe du compte émetteur au compte DAT (PCCI 340) */
+  valider(id: number) {
+    const u = exiger();
+    const x = E.depotsTerme.find((y) => y.id === id);
+    if (!x || x.statut !== "saisie") throw new ErreurMetier("Ce DAT n'est pas en attente de validation.");
+    if (x.saisiPar === u.id) throw new ErreurMetier("Quatre yeux : la validation vient d'une autre personne que celle qui a mis le DAT en place.");
+    const j = journees.courante();
+    if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
+    const p = E.produits.find((y) => y.id === x.produitId)!;
+    if (!(p.compteLie ?? "").startsWith("34")) throw new ErreurMetier("Produit DAT : compte lié 340 « Dépôts à terme » à paramétrer (Paramétrage des produits épargne, onglet DAT).");   // S65-5
+    const em = E.comptes.find((c) => c.id === x.compteEmetteurId)!;
+    if (x.montant > disponibleDat(em) + x.montant) throw new ErreurMetier("Solde disponible insuffisant sur le compte émetteur.");   // le DAT lui-même est compté « en attente »
+    const pc = piece("OD");
+    const e = poster({ journal: "OD", journeeId: j.id, libelle: `Constitution DAT n° ${x.certificat}`, piece: pc, saisiPar: u.id, validePar: u.id, lignes: [
+      { compte: em.pcci, contrat: `depot:${em.id}`, sens: "D", devise: x.devise, montant: x.montant, montantCdf: cdf(x.montant, x.devise) },
+      { compte: p.compteLie!, contrat: `depot:${x.compteDatId}`, sens: "C", devise: x.devise, montant: x.montant, montantCdf: cdf(x.montant, x.devise) },
+    ] });
+    x.statut = "valide"; x.validePar = u.id; x.ecritureId = e.id; enregistrer(); return vueDat(x);
   },
 };
 
@@ -3510,6 +3593,7 @@ const apiLocal = {
   emprunts: asynchrone(emprunts, "emprunts"),
   comptesEpargne: asynchrone(comptesEpargne, "comptesEpargne"),
   releves: asynchrone(releves, "releves"),
+  depotsTerme: asynchrone(depotsTerme, "depotsTerme"),
   banques: asynchrone(banques, "banques"),
   guichets: asynchrone(guichets, "guichets"),
   exercices: asynchrone(exercices, "exercices"),

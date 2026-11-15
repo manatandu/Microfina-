@@ -140,9 +140,9 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('02f19-numero-piece');
   // Chef : journal (S30, p. 41 et 42) : un journal des opérations diverses, avec son détail dans l'exercice
   await aller('/parametrage/s30'); await p.getByLabel('Type Journal *').selectOption({ label: 'Journal des Opérations diverses' });
-  await p.getByLabel('Libelle : *').fill('Opérations diverses'); await p.getByLabel('Code :').fill('OD');
+  await p.getByLabel('Libelle : *').fill('Opérations diverses 2'); await p.getByLabel('Code :').fill('O2');
   await p.getByRole('checkbox', { name: 'Actif', exact: true }).check(); await p.getByRole('checkbox', { name: 'Détail journal' }).check();
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'OD', exact: true }).waitFor(); await etape('02f20-journaux');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'O2', exact: true }).waitFor(); await etape('02f20-journaux');
   // Chef : ED divers (S31, p. 42) : une opération de produit, au compte 7790
   await aller('/parametrage/s31'); await p.getByLabel('Type Opération: *').selectOption('PRODUIT'); await p.getByLabel('Compte *').fill('7790');
   await p.getByLabel('Statut *').selectOption('ACTIF'); await p.getByLabel('Libellé opération *').fill("Vente de livret d'épargne");
@@ -621,6 +621,36 @@ const OUT = process.argv[2];
   await etape('06c21-releve'); await p.getByRole('dialog', { name: 'Relevé de compte' }).getByRole('button', { name: 'Fermer' }).click();
   await p.getByRole('button', { name: 'Situation du client' }).click(); await p.getByRole('dialog', { name: 'Situation du client' }).getByText('N° SFD').waitFor();
   await etape('06c22-situation-client'); await p.getByRole('dialog', { name: 'Situation du client' }).getByRole('button', { name: 'Fermer' }).click();
+  // Dépôt à terme (S65, S66) : le chef crée le produit DAT (S27) et le range dans l'onglet DAT (S28) ; l'agent ouvre le compte DAT (S63) puis met en place ; le chef valide et imprime le contrat
+  await login('J.-P. Mukendi'); await aller('/parametrage/s27'); await p.getByLabel('N° Produit : *').fill('6'); await p.getByLabel('Code produit : *').fill('DAT');
+  await p.getByLabel('Famille produit : *').selectOption('EPARGNE'); await p.getByLabel('Libellé produit : *').fill('Dépôt à terme');
+  await p.getByLabel('Devise : *').selectOption('CDF'); await p.getByLabel('Solde minimum : *').fill('0'); await p.getByLabel('Max compte à créer *').fill('1');
+  for (const [nom, rep] of [['Opérer sur compte : *', 'Oui'], ['Dépôt de chèque : *', 'Non'], ['Caution : *', 'Non'], ['Nantissement : *', 'Non'], ['Calculer interêt: *', 'Oui']])
+    await p.getByRole('group', { name: nom }).getByLabel(rep).check();
+  await p.getByLabel('Actif', { exact: true }).check();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Dépôt à terme' }).waitFor();
+  await aller('/parametrage/s28'); await p.getByRole('tab', { name: 'DAT' }).click(); await p.getByLabel('Compte lié').and(p.locator('[value="340"]')).waitFor();
+  await p.getByLabel('Produit: *').selectOption({ label: 'Dépôt à terme (DAT)' }); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await login('Bijou Kasongo'); await aller('/epargne/s63'); await p.getByLabel('Produit Epargne *').selectOption({ label: 'Dépôt à terme (DAT)' });
+  await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  const rdc = p.getByRole('dialog', { name: "Recherche d'un client" });
+  await rdc.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rdc.getByRole('row').filter({ hasText: 'Kalala' }).first().dblclick();
+  await p.getByLabel('N° du compte : *').and(p.locator('[value$="-06"]')).waitFor();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
+  await aller('/epargne/s65'); await p.getByRole('heading', { name: 'Mise en place DAT' }).waitFor();
+  await p.getByLabel('Produit : *').selectOption({ label: 'Dépôt à terme (DAT)' });
+  await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  const rdt = p.getByRole('dialog', { name: "Recherche d'un client" });
+  await rdt.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rdt.getByRole('row').filter({ hasText: 'Kalala' }).first().dblclick();
+  await p.getByLabel('N° Compte :').selectOption({ label: '0412-000318-02' }); await p.getByLabel('Compte DAT :').selectOption({ index: 1 });
+  await p.getByLabel('Montant : *').fill('100 000'); await p.getByLabel('Durée (Mois) : *').fill('6'); await p.getByLabel('Taux intérêt (%) :').fill('6'); await p.getByLabel('Taux pénalité (%) :').fill('2');
+  await p.getByText('3 000').first().waitFor(); await etape('06c23-mise-en-place-dat');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
+  await login('J.-P. Mukendi'); await aller('/epargne/s66'); await p.getByRole('heading', { name: 'Validation DAT' }).waitFor();
+  await p.getByRole('row').filter({ hasText: '000001' }).click(); await etape('06c24-validation-dat');
+  await p.getByRole('button', { name: 'Valider' }).click(); await oui(); await p.getByText(/Numéro de pièce : \S+/).waitFor();
+  await p.getByRole('button', { name: 'Contrat' }).click(); await p.getByRole('article', { name: 'Contrat de dépôt à terme' }).waitFor(); await etape('06c25-contrat-dat');
+  await p.getByRole('dialog', { name: 'Contrat de dépôt à terme' }).getByRole('button', { name: 'Fermer' }).click();
   await login('Esther Ngalula');
   // Apurement avant la résiliation (registre S48-1) : Lukusa retire tout son solde (85 000 CDF)
   await aller('/caisse/s74?op=retrait'); await client('Lukusa'); await p.getByLabel('N° compte').selectOption({ label: '0412-000320-02' });

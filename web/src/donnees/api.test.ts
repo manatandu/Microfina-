@@ -771,6 +771,42 @@ describe("journée de guichet", () => {
     await expect(api.connexions.lire()).rejects.toThrow("Droit manquant");
   });
 
+  it("dépôt à terme (S65, S66) : mise en place, calculs, validation par une autre personne, écriture du compte émetteur au compte DAT (registre S65-1 à S65-8)", async () => {
+    await journeeOuverte();
+    await connecter("jpmukendi");
+    await api.produitsEpargne.enregistrer({ numero: 6, code: "DAT", famille: "EPARGNE", libelle: "Dépôt à terme", devise: "CDF", soldeMinimum: 0, nbMaxComptes: 1,
+      operer: true, depotCheque: false, caution: false, nantissement: false, calculerInteret: true, soldeNegatif: false, repartitionGroupe: false, actif: true });
+    const pdat = (await api.produitsEpargne.lire()).produits.find((x) => x.code === "DAT")!;
+    await connecter("bkasongo");
+    await expect(api.depotsTerme.produits()).resolves.toEqual([]);   // pas encore rangé dans l'onglet DAT
+    await connecter("jpmukendi");
+    await api.parametrageEpargne.enregistrer({ onglet: "DAT", produitId: pdat.id, compteLie: "340" });
+    await connecter("bkasongo");
+    const g = (await api.depotsTerme.produits())[0]!;
+    const cdat = await api.comptesEpargne.ouvrir({ cle: cle(), tiersId: 1, produitId: g.id });
+    const em = (await api.tiers.comptes(1)).find((c) => c.devise === "CDF" && c.intitule !== "Dépôt à terme")!;
+    const base = { produitId: g.id, tiersId: 1, compteEmetteurId: em.id, compteDatId: cdat.id, montant: 1000000, duree: 12, tauxInteret: "7,5", tauxPenalite: "2",
+      aEcheance: true, dateDepot: "2026-11-05", observation: "", reconduction: false };
+    await expect(api.depotsTerme.mettreEnPlace({ ...base, cle: cle(), compteDatId: em.id })).rejects.toThrow("Compte DAT");
+    await expect(api.depotsTerme.mettreEnPlace({ ...base, cle: cle(), duree: 0 })).rejects.toThrow("Durée");
+    await expect(api.depotsTerme.mettreEnPlace({ ...base, cle: cle(), tauxInteret: "abc" })).rejects.toThrow("Taux intérêt");
+    await expect(api.depotsTerme.mettreEnPlace({ ...base, cle: cle(), montant: em.solde + 1 })).rejects.toThrow("disponible insuffisant");
+    const k = cle(), x = await api.depotsTerme.mettreEnPlace({ ...base, cle: k });
+    expect([x.certificat, x.statut, x.montantInteret, x.montantAVerser, x.dateEcheance, x.compteInteret]).toEqual([1, "saisie", 75000, 1075000, "2027-11-05", "6121"]);
+    expect((await api.depotsTerme.mettreEnPlace({ ...base, cle: k })).id).toBe(x.id);
+    expect((await api.depotsTerme.liste("saisie")).map((y) => y.id)).toEqual([x.id]);
+    await expect(api.depotsTerme.valider(x.id)).rejects.toThrow("Droit manquant");   // l'agent n'a pas S66
+    await connecter("jpmukendi");
+    const v = await api.depotsTerme.valider(x.id);
+    expect([v.statut, v.piece !== ""]).toEqual(["valide", true]);
+    await expect(api.depotsTerme.valider(x.id)).rejects.toThrow("pas en attente");
+    const apres = await api.tiers.comptes(1);
+    expect(apres.find((c) => c.id === em.id)!.solde).toBe(em.solde - 1000000);
+    expect(apres.find((c) => c.id === cdat.id)!.solde).toBe(1000000);
+    const ct = await api.depotsTerme.contrat(x.id);
+    expect([ct.dat.certificat, ct.client.numero, ct.entete.nom]).toEqual([1, "0412-000318", "COOPEC Tujenge"]);
+  });
+
   it("adhésion par banque (S56) : payée sur un compte bancaire en CDF, saisie en attente du visa (registre S56-1 à S56-3)", async () => {
     await journeeOuverte();
     await connecter("jpmukendi");
@@ -1171,12 +1207,12 @@ describe("journée de guichet", () => {
   it("journaux (S30, p. 41 et 42) : obligatoires, Détail journal dans l'exercice, journal qui a servi figé, journal inactif sans écriture", async () => {
     await connecter("jpmukendi");
     const l = await api.journaux.lire();
-    expect([l.exercice, l.journaux.map((j) => j.code)]).toEqual([2026, ["AN", "BQ", "CA"]]);
+    expect([l.exercice, l.journaux.map((j) => j.code)]).toEqual([2026, ["AN", "BQ", "CA", "OD"]]);
     const ca = l.journaux.find((j) => j.code === "CA")!;
     expect([ca.typeLibelle, ca.actif, ca.detail]).toEqual(["Journal de Caisse", true, true]);
     await expect(api.journaux.enregistrer({})).rejects.toThrow("Type Journal, Libelle, Code");
     await expect(api.journaux.enregistrer({ type: "caisse", libelle: "Autre", code: "ca" })).rejects.toThrow("existe déjà");
-    const od = (await api.journaux.enregistrer({ type: "operations_diverses", libelle: "Opérations diverses", code: "OD", actif: true, detail: true })).journaux.find((j) => j.code === "OD")!;
+    const od = (await api.journaux.enregistrer({ type: "operations_diverses", libelle: "Opérations diverses 2", code: "O2", actif: true, detail: true })).journaux.find((j) => j.code === "O2")!;
     expect([od.detail, od.typeLibelle]).toEqual([true, "Journal des Opérations diverses"]);
     await api.journaux.supprimer(od.id);
     await expect(api.journaux.enregistrer({ type: "banque", libelle: "Caisse", code: "CA", actif: true, detail: true }, ca.id)).rejects.toThrow("ne se changent plus");

@@ -15,6 +15,7 @@ from . import chequiers as chqr
 from . import emprunts as emp
 from . import comptes_epargne as cep
 from . import releves as rel
+from . import depots_terme as dat
 from . import guichets as gu
 from . import exercices as ex
 from . import listes as li
@@ -609,6 +610,31 @@ def epargne_releve_edition(request, corps: dict = Body(...)):
 @api.get("/epargne/situation")
 def epargne_situation(request, tiersId: int, date: str):
     return rel.situation(u(request), tiersId, date)
+
+
+@api.get("/epargne/dat/produits")
+def epargne_dat_produits(request):
+    return dat.produits(u(request))
+
+
+@api.get("/epargne/dat")
+def epargne_dat_liste(request, statut: str = ""):
+    return dat.liste(u(request), statut)
+
+
+@api.post("/epargne/dat")
+def epargne_dat_mettre_en_place(request, corps: dict = Body(...)):
+    return dat.mettre_en_place(u(request), corps)
+
+
+@api.get("/epargne/dat/{did}/contrat")
+def epargne_dat_contrat(request, did: int):
+    return dat.contrat(u(request), did)
+
+
+@api.post("/epargne/dat/{did}/validation")
+def epargne_dat_valider(request, did: int):
+    return dat.valider(u(request), did)
 
 
 @api.get("/banque/adhesions/apercu")

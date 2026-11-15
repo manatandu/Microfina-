@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**342 décisions.** Solidité : 118 fortes (le manuel ou un texte répond), 176 moyennes (déduites d'un écran voisin ou d'une donnée), 48 faibles (notre choix, faute de mieux). Dans le code : 313 déjà en place, 29 à appliquer.
+**351 décisions.** Solidité : 120 fortes (le manuel ou un texte répond), 179 moyennes (déduites d'un écran voisin ou d'une donnée), 52 faibles (notre choix, faute de mieux). Dans le code : 322 déjà en place, 29 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -773,6 +773,25 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S64-6 | Bouton « Membres du Groupes » et bouton de la situation | « Membres du Groupes » montré inactif : le manuel ne montre pas sa fenêtre. La situation s'ouvre par un bouton « Situation du client » : la capture est coupée sous les champs du client | Manuel : Capture p. 73 ; texte p. 74 | faible | en place |
 | S64-7 | Forme du relevé imprimé | Modèle standard d'un relevé bancaire, à la place de la forme du manuel : N° du relevé, titre « RELEVÉ DE COMPTE », logo de l'institution ; synthèse (Numéro de compte, Devise, Solde d'ouverture, Solde de clôture, Solde disponible, Effets en instance, Total débit, Total crédit, Période) ; nom et adresse du client ; détail (Date de transaction, Description, Référence, Date de valeur, Débit, Crédit, Solde) ; pied légal de l'institution (adresse, téléphone, courriel, agrément BCC, n° impôt, B.P.) ; numéro de page. Solde disponible = clôture moins montant bloqué ; effets en instance = chèques déposés pas encore encaissés (S59) ; chaque édition est numérotée et gardée (trace des relevés remis). Aucune identité de banque ni donnée du modèle fourni. Typographie d'un relevé bancaire : Arial (ou Helvetica, Liberation Sans), 8,5 points à l'impression, lignes serrées, chiffres dans la même police (demande du porteur, 15/11/2026 : « petit, lisible, prend moins d'espace ») | Choix du porteur : Demande du porteur, 15/11/2026 (modèle de relevé bancaire, à rendre standard) ; registre D01, S59 | forte | en place |
 
+## S65 Mise en place DAT
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S65-1 | Champs de la fenêtre | Produit, N° du client (Rechercher), Intitulé, N° Compte émetteur ; Infos Certificat (Certificat N°, A échéance, Montant, Durée en mois, Taux intérêt, Taux pénalité) ; Intérêt (Compte DAT, Montant intérêt, Montant à verser, Date de dépôt, Date échéance) ; Autres infos (Observation, Reconduction automatique, Bénéficiaire) ; Enregistrer, Effacer, Liste DAT | Manuel : Capture et texte p. 75 | forte | en place |
+| S65-2 | Calcul de la date d'échéance | Date de dépôt plus la durée en mois, même jour du mois (dernier jour du mois quand ce jour manque). À confirmer : le manuel dit seulement que l'échéance est calculée | Règle générale du manuel : Texte p. 75 (« automatiquement calculés ») | faible | en place |
+| S65-3 | Calcul de l'intérêt | Intérêt simple sur la durée : montant × taux annuel × mois / 12, arrondi à l'unité ; montant à verser = montant + intérêt. À confirmer : le manuel ne donne pas la formule | Règle générale du manuel : Texte p. 75 | faible | en place |
+| S65-4 | Compte de charge des intérêts | PCCI 612 : 6124 six mois au plus, 6122 neuf mois au plus, 6121 plus de douze mois. Le texte ne range pas 10 à 12 mois : rangés en 6121 en attendant. À confirmer par le porteur. Le compte sert au calcul des intérêts courus (S128), pas à la mise en place | Texte réglementaire : PCCI, comptes 6121, 6122, 6124 | moyenne | en place |
+| S65-5 | Écriture de constitution | À la validation (S66) : débit du compte émetteur, crédit du compte DAT du client (compte lié 340 « Dépôts à terme »), journal des opérations diverses OD ; refus si le compte lié du produit n'est pas un compte 34 | Texte réglementaire : PCCI, compte 340 ; S28 onglet DAT ; texte p. 76 | forte | en place |
+| S65-6 | Boutons Annuler (⊘) et Bénéficiaire | Montrés comme sur la capture, inactifs : le manuel ne dit pas ce qu'ils font | Manuel : Capture p. 75 | faible | en place |
+| S65-8 | Contrôles à l'enregistrement | Client actif ; compte émetteur différent d'un compte DAT et de même devise ; compte DAT du produit choisi ; montant au plus égal au disponible (S64) ; durée de 1 à 120 mois ; date de dépôt au plus la journée ouverte. À confirmer : la borne de 120 mois | Règle générale du manuel : Règles générales p. 7 à 12 ; S64 solde disponible | moyenne | en place |
+
+## S66 Validation DAT
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S65-7 | Contrat imprimé | Document de l'institution cliente (en-tête S32), même gabarit que le relevé standard : client, compte, montant, durée, taux, intérêt, échéance, reconduction, taux de pénalité, signatures du client et de l'institution. À confirmer : le manuel ne montre pas le contrat | Écran voisin : Bouton Contrat p. 76 ; gabarit S64 ; registre S64-3 | faible | en place |
+| S66-1 | Qui valide | Une autre personne que celle qui a saisi (quatre yeux, comme les visas de banque S57) ; droit S65 à l'agent de crédit, S66 au chef d'agence | Écran voisin : Texte p. 76 ; registre S57 | moyenne | en place |
+
 ## Les décisions faibles, à regarder en premier
 
 | N° | Écran | Question | Réponse retenue |
@@ -825,3 +844,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S61-7 | S61 Emprunts bancaires | Champ N°Compte du remboursement et liste Banque | N°Compte reçoit le N°Emprunt donné à la mise en place, qui retrouve la banque et le capital restant. La liste Banque de la mise en place montre les comptes bancaires de l'institution (banque, numéro, devise) : l'emprunt prend la devise du compte |
 | S64-2 | S64 Relevé de compte | Solde comptable et solde indicatif | Solde comptable : le solde des écritures du compte. Solde indicatif : le solde comptable plus les virements et moins les prélèvements de banque encore en attente (saisis, visés ou validés, pas comptabilisés). À confirmer : le manuel ne définit pas le solde indicatif |
 | S64-6 | S64 Relevé de compte | Bouton « Membres du Groupes » et bouton de la situation | « Membres du Groupes » montré inactif : le manuel ne montre pas sa fenêtre. La situation s'ouvre par un bouton « Situation du client » : la capture est coupée sous les champs du client |
+| S65-2 | S65 Mise en place DAT | Calcul de la date d'échéance | Date de dépôt plus la durée en mois, même jour du mois (dernier jour du mois quand ce jour manque). À confirmer : le manuel dit seulement que l'échéance est calculée |
+| S65-3 | S65 Mise en place DAT | Calcul de l'intérêt | Intérêt simple sur la durée : montant × taux annuel × mois / 12, arrondi à l'unité ; montant à verser = montant + intérêt. À confirmer : le manuel ne donne pas la formule |
+| S65-6 | S65 Mise en place DAT | Boutons Annuler (⊘) et Bénéficiaire | Montrés comme sur la capture, inactifs : le manuel ne dit pas ce qu'ils font |
+| S65-7 | S66 Validation DAT | Contrat imprimé | Document de l'institution cliente (en-tête S32), même gabarit que le relevé standard : client, compte, montant, durée, taux, intérêt, échéance, reconduction, taux de pénalité, signatures du client et de l'institution. À confirmer : le manuel ne montre pas le contrat |

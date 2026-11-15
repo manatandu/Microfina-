@@ -27,6 +27,7 @@ Statut : **lu** = article lu et reporté ici ; **à lire** = texte identifié, d
 | PCCI § 10 | Attributs : résidence, agent économique, réseau, statut des créances, support, durées initiale et résiduelle, garanties, monnaie | Tiers, Épargne, Crédit, Grand livre | Champs obligatoires, copiés sur les lignes d'écriture | lu |
 | PCCI § 10.5 | Pas d'opération en blanc ou sans support | Crédit, Épargne | Contrat et contrepartie obligatoires | lu |
 | PCCI § 11 | Contrôle interne et gouvernance | Habilitations | Voir Instr. 008 | lu |
+| PCCI, comptes 340, 6121, 6122, 6124 | Dépôts à terme au compte 340 ; intérêts en charge selon la durée (6124 six mois au plus, 6122 neuf mois au plus, 6121 plus de douze mois ; 10 à 12 mois non rangés par le texte) | Épargne (S65, S66) | Constitution débit compte émetteur, crédit compte DAT (340) ; compte d'intérêt noté sur le DAT ; registre S65-4 à confirmer | lu |
 
 ## Crédit (Instr. 003)
 
@@ -92,6 +93,7 @@ Note : l'art. 14 associe les pondérations à des niveaux de risque dans l'ordre
 | Art. 9 | Manuels de procédures à jour | Documentation produit | lu |
 | Art. 11 | Piste d'audit : reconstitution chronologique, de la pièce à la synthèse et retour, explication des soldes d'un arrêté à l'autre | Grand livre, Reporting | lu |
 | Art. 15, 16 | Sécurité informatique, RSI indépendant de l'exploitation, accès et authentification maîtrisés, détection des actions anormales | Habilitations, Audit | lu |
+| Art. 66 | Séparation des tâches incompatibles (enregistrement, autorisation, vérification) : le DAT saisi par une personne est validé par une autre | Épargne (S66), Banque (S57) | lu |
 
 ## Autres instructions
 

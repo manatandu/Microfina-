@@ -41,6 +41,13 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
         get(`/banque/rapport?du=${du}&au=${au}&banqueId=${banqueId}${compteBancaireId ? `&compteBancaireId=${compteBancaireId}` : ""}${agenceId ? `&agenceId=${agenceId}` : ""}`),
       suivre: (id: number, etape: string, d: object = {}) => post(`/banque/visas/${id}/${etape}`, d),
     },
+    depotsTerme: {
+      produits: () => get("/epargne/dat/produits"),
+      liste: (statut = "") => get(`/epargne/dat?statut=${statut}`),
+      mettreEnPlace: (d: object) => post("/epargne/dat", d),
+      valider: (id: number) => post(`/epargne/dat/${id}/validation`),
+      contrat: (id: number) => get(`/epargne/dat/${id}/contrat`),
+    },
     releves: {
       releve: (compteId: number, du: string, au: string) => get(`/epargne/releve?compteId=${compteId}&du=${du}&au=${au}`),
       situation: (tiersId: number, date: string) => get(`/epargne/situation?tiersId=${tiersId}&date=${date}`),

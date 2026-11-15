@@ -120,7 +120,7 @@ class Command(BaseCommand):
 
         # Plan de comptes, journaux, schémas comptables (proposés par le comptable, validés par le chef : quatre yeux)
         # Plan comptable : le PCCI complet est chargé par la migration 0029 (replica/pcci.json)
-        executer("insert into journal (institution_id, code, libelle, type) values (%s, 'CA', 'Caisse', 'caisse'), (%s, 'AN', 'À-nouveaux', 'a_nouveaux'), (%s, 'BQ', 'Journal Banque', 'banque')", (ins, ins, ins))
+        executer("insert into journal (institution_id, code, libelle, type) values (%s, 'CA', 'Caisse', 'caisse'), (%s, 'AN', 'À-nouveaux', 'a_nouveaux'), (%s, 'BQ', 'Journal Banque', 'banque'), (%s, 'OD', 'Opérations diverses', 'operations_diverses')", (ins, ins, ins, ins))
         # Exercices (S11), données fictives : 2025 validé, 2026 actif (un seul actif, registre S11-1) et ouvert avec ses journaux
         executer("insert into exercice (institution_id, annee, actif, ouvert, valide) values (%s, 2025, false, true, true), (%s, 2026, true, true, false)", (ins, ins))
         executer("insert into journal_detail (institution_id, annee, journal_id) select %s, 2026, id from journal where institution_id = %s", (ins, ins))
@@ -153,7 +153,7 @@ class Command(BaseCommand):
         # Types de guichet (S14n), ceux de la capture p. 19 (registre S08-1)
         for c, l in (("1", "PRINCIPALE"), ("2", "SECONDAIRE")):
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'type_guichet', %s, %s)", (ins, c, l))
-        for ev in ("depot", "retrait", "adhesion", "achat_parts", "retrait_parts", "a_nouveaux"):
+        for ev in ("depot", "retrait", "adhesion", "achat_parts", "retrait_parts", "a_nouveaux", "dat_constitution"):
             executer("""insert into schema_comptable (institution_id, type_evenement, version, date_effet, lignes, propose_par, valide_par)
                         values (%s, %s, 1, '2026-01-01', '[]', %s, %s)""", (ins, ev, compta, chef))
 

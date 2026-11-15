@@ -152,7 +152,7 @@ export interface Ligne {
 export interface Ecriture {
   id: number;
   numero: string;
-  journal: "CA" | "AN";
+  journal: "CA" | "AN" | "OD";
   journeeId: number;
   libelle: string;
   piece: string;
@@ -172,6 +172,12 @@ export interface OperationBanque {
   visePar?: number; validePar?: number; dateValidation?: string;   // S57
   compteDepotId?: number | null;   // S53 : compte du client
   tiersId?: number | null; parts?: number | null; premierDepot?: number | null;   // S56 : adhésion par banque
+}
+
+export interface DepotTerme {   // S65, S66
+  id: number; cle: string; certificat: number; produitId: number; tiersId: number; compteEmetteurId: number; compteDatId: number; montant: number; devise: Devise;
+  duree: number; tauxInteret: string; tauxPenalite: string; montantInteret: number; aEcheance: boolean; dateDepot: string; dateEcheance: string; observation: string;
+  reconduction: boolean; statut: "saisie" | "valide" | "rompu" | "echu"; saisiPar: number; validePar: number | null; ecritureId: number | null;
 }
 
 export interface Emprunt {   // S61
@@ -275,6 +281,7 @@ export interface Etat {
   chequesClients: ChequeClient[];   // S59
   chequiers: Chequier[];   // S60
   emprunts: Emprunt[];   // S61
+  depotsTerme: DepotTerme[];   // S65
   relevesEdites: { numero: number; compteId: number; du: string; au: string; editePar: number }[];   // S64 : trace des relevés remis
   remboursementsEmprunt: RemboursementEmprunt[];
   chequesInstitution: ChequeInstitution[];

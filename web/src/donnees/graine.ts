@@ -64,7 +64,7 @@ export function graine(): Etat {
     sessions: [],
     // Exercices (S11), données fictives : 2025 validé, 2026 actif et ouvert avec ses journaux
     exercices: [{ annee: 2025, actif: false, ouvert: true, valide: true }, { annee: 2026, actif: true, ouvert: true, valide: false }],   // un seul actif (registre S11-1)
-    journauxDetail: [1, 2, 3].map((journalId) => ({ id: journalId, annee: 2026, journalId, actif: true, ouvert: true, compteur: 0 })),
+    journauxDetail: [1, 2, 3, 4].map((journalId) => ({ id: journalId, annee: 2026, journalId, actif: true, ouvert: true, compteur: 0 })),
     billetages: [],
     tiers: [
       { ...personne, id: 1, numero: "0412-000318", nom: "Kalala", postnom: "Mbuyi", prenom: "Josée", pieceType: "Carte d'électeur", pieceNumero: "1-0412-0089", photo: true, specimen: true },
@@ -152,6 +152,7 @@ export function graine(): Etat {
     chequiers: [],
     emprunts: [],
     relevesEdites: [],
+    depotsTerme: [],
     remboursementsEmprunt: [],
     chequesInstitution: [],
     agents: [],
@@ -168,7 +169,8 @@ export function graine(): Etat {
     monnaies: (["CDF", "USD"] as const).flatMap((d) => BILLETS[d].map((v) => ({ devise: d, valeur: v, typeId: VALEURS.indexOf(v) + 1 }))),
     // Journaux (S30) : ceux du schéma de départ, comme la graine du serveur
     journaux: [{ id: 1, code: "CA", libelle: "Caisse", type: "caisse", actif: true, supprime: false }, { id: 2, code: "AN", libelle: "À-nouveaux", type: "a_nouveaux", actif: true, supprime: false },
-      { id: 3, code: "BQ", libelle: "Journal Banque", type: "banque", actif: true, supprime: false }],
+      { id: 3, code: "BQ", libelle: "Journal Banque", type: "banque", actif: true, supprime: false },
+      { id: 4, code: "OD", libelle: "Opérations diverses", type: "operations_diverses", actif: true, supprime: false }],   // comme la graine du serveur
     // S10, données fictives : la caissière tient la Caisse 2 et voit les soldes
     affectations: [{ id: 1, utilisateurId: 1, guichetId: 2, voirSolde: true, voirSoldeVip: false, debut: "2026-11-04T07:00:00Z", ajoutePar: 2 }],
     // Localisation (S20) : la ville de Kinshasa et les 25 provinces (Constitution, art. 2) ; communes et quartier de démonstration

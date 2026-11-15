@@ -1396,16 +1396,16 @@ def test_journaux(clients, journee):
     garde son code et son type et ne se supprime pas ; un journal inactif ne reçoit plus d'écriture (registre S30-1 à S30-3)"""
     chef, caisse = clients["chef"], clients["caisse"]
     l = chef.get("/api/journaux", **H).json()
-    assert l["exercice"] == 2026 and {j["code"] for j in l["journaux"]} == {"CA", "AN", "BQ"}
+    assert l["exercice"] == 2026 and {j["code"] for j in l["journaux"]} == {"CA", "AN", "BQ", "OD"}
     ca = next(j for j in l["journaux"] if j["code"] == "CA")
     assert (ca["typeLibelle"], ca["actif"], ca["detail"]) == ("Journal de Caisse", True, True)
     def refus(corps, jid=None, suffixe=""):
         r = chef.post("/api/journaux" + (f"/{jid}" if jid else "") + suffixe, corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
     assert "Type Journal, Libelle, Code" in refus({})
     assert "existe déjà" in refus({"type": "caisse", "libelle": "Autre", "code": "ca"})
-    r = chef.post("/api/journaux", {"type": "operations_diverses", "libelle": "Opérations diverses", "code": "OD", "actif": True, "detail": True}, **H)
+    r = chef.post("/api/journaux", {"type": "operations_diverses", "libelle": "Opérations diverses 2", "code": "O2", "actif": True, "detail": True}, **H)
     assert r.status_code == 200, r.content
-    od = next(j for j in r.json()["journaux"] if j["code"] == "OD")
+    od = next(j for j in r.json()["journaux"] if j["code"] == "O2")
     assert od["detail"] is True and od["typeLibelle"] == "Journal des Opérations diverses"
     assert chef.post(f"/api/journaux/{od['id']}/suppression", {}, **H).status_code == 200
     depot = lambda: caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 500000, "coupures": {"5000": 1}, "mandataire": ""}, **H)
@@ -1956,3 +1956,32 @@ def test_securite(clients, settings):
     for route in ("/api/gestion-utilisateurs", "/api/connexions", "/api/droits", "/api/profils-utilisateurs", "/api/profils"):
         assert agent.get(route).status_code == 403, route
     assert chef.get("/api/gestion-utilisateurs").status_code == 200
+
+
+def test_depot_terme(clients, journee):
+    """S65, S66 (manuel p. 75 et 76) : mise en place, calculs, validation par une autre personne, écriture du compte émetteur au compte DAT (PCCI 340)"""
+    chef, agent = clients["chef"], clients["agent"]
+    P = {"numero": 6, "code": "DAT", "famille": "EPARGNE", "libelle": "Dépôt à terme", "devise": "CDF", "soldeMinimum": 0, "nbMaxComptes": 1,
+         "operer": True, "depotCheque": False, "caution": False, "nantissement": False, "calculerInteret": True, "soldeNegatif": False, "repartitionGroupe": False, "actif": True}
+    assert chef.post("/api/produits-epargne", P, **H).status_code == 200
+    pid = next(x["id"] for x in chef.get("/api/produits-epargne").json()["produits"] if x["code"] == "DAT")
+    assert agent.get("/api/epargne/dat/produits").json() == []
+    assert chef.post("/api/parametrage-epargne", {"onglet": "DAT", "produitId": pid, "compteLie": "340"}, **H).status_code == 200
+    kalala = T("0412-000318"); em = C("0412-000318-02")
+    cdat = agent.post("/api/epargne/comptes", {"cle": cle(), "tiersId": kalala, "produitId": pid}, **H).json()["id"]
+    base = {"produitId": pid, "tiersId": kalala, "compteEmetteurId": em, "compteDatId": cdat, "montant": 1000000, "duree": 12, "tauxInteret": "7,5",
+            "tauxPenalite": "2", "aEcheance": True, "dateDepot": "2026-11-05", "observation": "", "reconduction": False}
+    r = agent.post("/api/epargne/dat", {"cle": cle(), **base, "compteDatId": em}, **H)
+    assert r.status_code == 422 and "Compte DAT" in r.json()["message"]
+    x = agent.post("/api/epargne/dat", {"cle": cle(), **base}, **H).json()
+    assert (x["certificat"], x["statut"], x["montantInteret"], x["montantAVerser"], x["dateEcheance"], x["compteInteret"]) == (1, "saisie", 75000, 1075000, "2027-11-05", "6121")
+    assert agent.post(f"/api/epargne/dat/{x['id']}/validation", **H).status_code == 403
+    avant = ident("select coalesce(sum(case sens when 'C' then montant_devise else -montant_devise end), 0) from ligne_ecriture where contrat_ref = %s", (f"depot:{em}",))
+    rv = chef.post(f"/api/epargne/dat/{x['id']}/validation", **H)
+    assert rv.status_code == 200, rv.json()
+    v = rv.json()
+    assert v["statut"] == "valide" and v["piece"]
+    apres = ident("select coalesce(sum(case sens when 'C' then montant_devise else -montant_devise end), 0) from ligne_ecriture where contrat_ref = %s", (f"depot:{em}",))
+    assert avant - apres == 1000000
+    assert ident("select sum(montant_devise) from ligne_ecriture l join compte c on c.id = l.compte_id where c.numero = '340' and l.contrat_ref = %s", (f"depot:{cdat}",)) == 1000000
+    assert chef.get(f"/api/epargne/dat/{x['id']}/contrat").json()["dat"]["certificat"] == 1
