@@ -6,7 +6,7 @@ import uuid
 
 from . import chequiers
 from .bd import ErreurMetier, executer, lignes, une, valeur
-from .services import compte_du_produit, controler_statut_actif, exiger, journee_courante, nom_utilisateur, numero_compte, preparer_adhesion, solde_contrat
+from .services import compte_du_produit, controler_statut_actif, est_coopec, exiger, journee_courante, nom_utilisateur, numero_compte, preparer_adhesion, solde_contrat
 
 TYPES = {"encaissement": "Encaissement divers", "decaissement": "Décaissement divers", "banque_caisse": "Virement banque vers caisse",
          "banque_banque": "Virement banque vers banque", "virement_client": "Virement", "prelevement_client": "Prélèvement", "adhesion_banque": "Adhésion par banque"}
@@ -57,11 +57,13 @@ def compte_bancaire(u, cid, quoi: str) -> dict:
 CLIENT = ("virement_client", "prelevement_client")
 
 
-def apercu_adhesion(u, tid: int, parts: int = 1, depot: int = 0) -> dict:
+def apercu_adhesion(u, tid: int, parts: int | None = None, depot: int = 0) -> dict:
     """S56 : ce que l'écran montre avant d'enregistrer : N° du compte épargne qui sera ouvert, parts, frais, total. Aucune écriture."""
     exiger(u)
+    if parts is None:
+        parts = 1 if est_coopec(u) else 0          # IMF : pas de parts sociales (loi 11/020, art. 14 et 15)
     a = preparer_adhesion(u, {"tiersId": tid, "parts": parts, "depot": depot})
-    return {"numeroCompte": numero_compte(u, a["t"], a["produit"]), "devise": "CDF", "valeurPart": a["m_parts"] // a["nb"],
+    return {"numeroCompte": numero_compte(u, a["t"], a["produit"]), "devise": "CDF", "valeurPart": a["m_parts"] // a["nb"] if a["nb"] else 0,
             "frais": [{"fraisId": f["fraisId"], "libelle": f["libelle"], "compte": f["compte"], "montant": f["montant"]} for f in a["frais"]], "total": a["total"]}
 
 

@@ -101,7 +101,7 @@ Note : l'art. 14 associe les pondérations à des niveaux de risque dans l'ordre
 |---|---|---|---|
 | Loi 23/053, art. 78, 81, 115, 120 ; AM 008/2025 | Retenue de 20 % sur l'intérêt brut des dépôts à échéance fixe des personnes physiques, à la mise à disposition ; reversement le 15 du mois suivant | Épargne (S67 rupture ; échéance et arrêtés à venir) | lu |
 | PCCI § 7.1 ; Instr. 41, art. 36 | Opérations de change interdites aux COOPEC et IMF ; change manuel possible pour une IMF autorisée par la BCC (activité connexe) | Banque (S52, S53, S59) : même devise exigée | lu |
-| Loi 11/020, art. 11 à 14 | IMF : entreprises de micro-crédit (crédit direct, pas d'épargne du public) et sociétés de microfinance (épargne et crédit), en SARL ou SA | Profil de l'institution (S32) : règles à distinguer de la COOPEC | lu, à appliquer |
+| Loi 11/020, art. 11 à 14 | IMF : entreprises de micro-crédit (crédit direct, pas d'épargne du public) et sociétés de microfinance (épargne et crédit), en SARL ou SA | Profil de l'institution (S32) : parts sociales COOPEC seulement, pas d'épargne pour l'entreprise de micro-crédit (registre S32-7 à S32-10) | lu |
 | Code civil livre III, art. 480 | Taux d'intérêt conventionnel fixé librement par les parties | Contrat de DAT : mode de calcul écrit | lu |
 | Instr. 40, art. 2, 3 | Taux applicables à la clientèle publiés chaque trimestre et affichés | Épargne (taux du DAT) | lu |
 | Instr. 40, art. 4, 5, 13 | Document remis au client, clair, en français, police d'au moins 12 | Contrat DAT (S66) en 12 ; relevé (S64) compact à la demande du porteur, écart signalé (registre S64-7) | lu |

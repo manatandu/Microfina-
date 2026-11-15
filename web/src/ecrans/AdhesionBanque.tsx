@@ -2,6 +2,7 @@
 // Info Banque (Banque, Compte Banque, Solde). Saisie en attente du visa (S57) ; le compte épargne s'ouvre à la validation (registre S56-1).
 import { useState } from "react";
 import { api } from "../donnees/api";
+import { aDesParts } from "../lib/vocabulaire";
 import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
@@ -14,7 +15,7 @@ const nomComplet = (t: Tiers) => t.intitule || [t.nom, t.postnom, t.prenom].filt
 const enSaisie = (m: number) => (m ? String(m / 100).replace(".", ",") : "0");
 
 export function AdhesionBanque() {
-  const { donnees } = useDonnees(async () => ({ lu: await api.banqueOperations.lire() }));
+  const { donnees } = useDonnees(async () => ({ lu: await api.banqueOperations.lire(), ctx: await api.referentiel.contexte() }));
   const [t, setT] = useState<Tiers | null>(null);
   const [depot, setDepot] = useState("");
   const [parts, setParts] = useState("1");
@@ -22,16 +23,17 @@ export function AdhesionBanque() {
   const [cle, setCle] = useState(nouvelleCle);
   const [recherche, setRecherche] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
-  const nParts = /^\d+$/.test(parts.trim()) ? Number(parts.trim()) : 0;
+  const parts_ = donnees ? aDesParts(donnees.ctx.institution) : true;   // IMF : pas de parts sociales (loi 11/020, art. 14 et 15)
+  const nParts = !parts_ ? 0 : /^\d+$/.test(parts.trim()) ? Number(parts.trim()) : 0;
   const mDepot = depot.trim() ? lireMontant(depot) : 0;
-  const { donnees: ap, erreur } = useDonnees(async () => (t && mDepot !== null && nParts >= 1 ? await api.banqueOperations.apercuAdhesion(t.id, nParts, mDepot) : null), [t?.id, nParts, mDepot]);
+  const { donnees: ap, erreur } = useDonnees(async () => (t && mDepot !== null && (nParts >= 1 || !parts_) ? await api.banqueOperations.apercuAdhesion(t.id, nParts, mDepot) : null), [t?.id, nParts, mDepot]);
   if (!donnees) return <Chargement />;
   const { lu } = donnees;
   const date = f.date || lu.date;
   const cb = lu.comptes.find((c) => String(c.id) === f.compte);
   const effacer = () => { setT(null); setDepot(""); setParts("1"); setF({ date: "", banque: "", compte: "" }); setCle(nouvelleCle()); };
   const total = ap?.total ?? 0;
-  const lignePart = ap ? { libelle: "Part sociale standard", montant: nParts * ap.valeurPart } : null;
+  const lignePart = ap && parts_ ? { libelle: "Part sociale standard", montant: nParts * ap.valeurPart } : null;
 
   function enregistrer() {
     if (!t || mDepot === null) { setBoite({ type: "erreur", message: !t ? "À remplir : N° Client." : "Premier dépôt invalide." }); return; }

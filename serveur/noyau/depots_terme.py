@@ -7,7 +7,7 @@ from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
 
 from .bd import ErreurMetier, executer, lignes, une, valeur
-from .services import compte_du_produit, controler_statut_actif, exiger, journee_courante, nouvelle_piece, poster, solde_contrat, titulaire
+from .services import compte_du_produit, controler_collecte_epargne, controler_statut_actif, exiger, journee_courante, nouvelle_piece, poster, solde_contrat, titulaire
 
 
 def texte(d, k):
@@ -59,6 +59,7 @@ def disponible(compte_id: int, devise: str) -> int:
 def mettre_en_place(u, d) -> dict:
     """Bouton Enregistrer de « Mise en place DAT » : le DAT est saisi, en attente de validation (S66)"""
     exiger(u)
+    controler_collecte_epargne(u, "DAT")               # loi 11/020, art. 12 : pas de DAT dans une entreprise de micro-crédit
     d = d if isinstance(d, dict) else {}
     try:
         cle = str(uuid.UUID(texte(d, "cle")))

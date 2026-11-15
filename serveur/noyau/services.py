@@ -162,6 +162,28 @@ MSG_PART = ("Part sociale non paramétrée : Paramétrage > Frais et opérations
             "un frais au compte 1030, 1031 ou 1032 (registre S16-11).")
 
 
+def profil_institution(u: dict) -> str:
+    return valeur("select profil from institution where id = %s", (u["institution_id"],)) or "coopec"
+
+
+def est_coopec(u: dict) -> bool:
+    """COOPEC et structures faîtières (loi 002/2002) : membres, parts sociales (PCCI 103) ; une IMF (loi 11/020, art. 11) a des clients et un capital social (PCCI 100)"""
+    return profil_institution(u) in ("coopec", "faitiere")
+
+
+def exiger_parts_sociales(u: dict):
+    if not est_coopec(u):
+        raise ErreurMetier("Pas de parts sociales dans une institution de microfinance : son capital est souscrit par ses associés ou actionnaires "
+                           "(loi 11/020, art. 14 et 15 ; PCCI, compte 100). Les parts sociales sont propres aux COOPEC (loi 002/2002 ; PCCI, compte 103).")
+
+
+def controler_collecte_epargne(u: dict, famille: str):
+    """Loi 11/020, art. 12 : l'entreprise de micro-crédit ne collecte pas l'épargne du public ; seul le dépôt de garantie exigé au déblocage (art. 5, point 13)"""
+    if profil_institution(u) == "entreprise_microcredit" and famille != "BLOQUE":
+        raise ErreurMetier("Une entreprise de micro-crédit ne collecte pas l'épargne du public (loi 11/020, art. 12) : "
+                           "seul le dépôt de garantie, famille BLOQUE, est permis (art. 5, point 13).")
+
+
 def valeur_part(institution_id: int) -> int:
     """Valeur nominale de la part, celle des statuts (loi 002/2002, art. 20) : la ligne de part des frais d'adhésion (registre S16-11, capture p. 89)"""
     v = valeur("""select p.valeur from parametrage_frais_adhesion p join frais f on f.id = p.frais_id
@@ -182,7 +204,7 @@ def contexte(u: dict) -> dict:
     i = institution_de(u)
     a = une("select id, code, nom from agence where id = %s", (u["agence_id"],))
     return {
-        "institution": {"nom": i["nom"], "profil": "coopec" if i["profil"] == "coopec" else "imf"},
+        "institution": {"nom": i["nom"], "profil": i["profil"]},   # coopec, faitiere, societe_microfinance, entreprise_microcredit (S32)
         "agence": a,
         "guichets": lignes("select id, code, nom from guichet where agence_id = %s and actif order by code", (u["agence_id"],)),
         "produits": lignes("select code, libelle, devise from produit_epargne where institution_id = %s and actif and not supprime order by code", (u["institution_id"],)),
@@ -1264,7 +1286,7 @@ def modifier_prospect(u: dict, tid: int, d: dict) -> dict:
 
 
 def engagements_credit(tid: int) -> str | None:
-    """Loi 002/2002, art. 24 : un membre emprunteur ou endosseur d'un prêt ne peut pas se retirer"""
+    """Loi 002/2002, art. 24 : un membre emprunteur ou endosseur d'un prêt ne peut pas se retirer (COOPEC seulement)"""
     if valeur("select 1 from credit where tiers_id = %s and statut in ('mis_en_place', 'vise', 'debloque')", (tid,)):
         raise ErreurMetier("Client emprunteur : il ne peut pas se retirer tant que son prêt court (loi 002/2002, art. 24).")
     if valeur("""select 1 from garantie g join credit c on c.id = g.credit_id
@@ -1273,14 +1295,14 @@ def engagements_credit(tid: int) -> str | None:
     return None
 
 
-def controler_apurement(tid: int):
+def controler_apurement(tid: int, coopec: bool = True):
     """Registre S48-1 : pas de résiliation tant qu'un compte a un solde ; apurement par Dépôt / Retrait (S74). Loi 002/2002, art. 27.
     Les parts restent : un membre en garde au moins une (art. 22) ; elles sont remboursées après la résiliation par Part sociale (S77).
     Mêmes règles que controlerApurement (web/src/donnees/api.ts)."""
     comptes = [c["numero"] for c in lignes("select id, numero, devise from compte_depot where tiers_id = %s order by numero", (tid,))
                if solde_contrat(f"depot:{c['id']}", c["devise"].strip(), "C") != 0]
     if comptes:
-        raise ErreurMetier(f"Apurement à faire avant la résiliation (loi 002/2002, art. 27) : compte{'s' if len(comptes) > 1 else ''} à solder : "
+        raise ErreurMetier(f"Apurement à faire avant la résiliation{' (loi 002/2002, art. 27)' if coopec else ''} : compte{'s' if len(comptes) > 1 else ''} à solder : "
                            + ", ".join(comptes) + ". Solder par Caisse > Dépôt / Retrait.")
 
 
@@ -1300,8 +1322,9 @@ def resilier_tiers(u: dict, tid: int, d: dict) -> dict:
         raise ErreurMetier("À remplir : motif.")
     if not valeur("select 1 from liste_reference where institution_id = %s and liste = 'motif_depart' and libelle = %s and actif", (u["institution_id"], motif)):
         raise ErreurMetier("Motif inconnu.")
-    engagements_credit(tid)
-    controler_apurement(tid)
+    if est_coopec(u):
+        engagements_credit(tid)
+    controler_apurement(tid, est_coopec(u))
     j = journee_courante(u)
     jour = j["date"] if j and j["statut"] == "ouverte" else date.today().isoformat()
     executer("update tiers set statut = 'resilie', motif_depart = %s, resilie_le = %s, resilie_par = %s where id = %s", (motif, jour, u["id"], tid))
@@ -1538,6 +1561,7 @@ def depot(u: dict, p: dict) -> dict:
     if prec and prec["statut"] == "validee":
         return vue_operation(prec)
     c = compte_actif(p["compteId"])
+    controler_collecte_epargne(u, c["famille"])
     s = session_ouverte(u, c["devise"])
     m, coupures = int(p["montant"]), nettoyer(p["coupures"])
     if m <= 0:
@@ -1614,6 +1638,8 @@ def preparer_adhesion(u: dict, p: dict) -> dict:
     if not t:
         raise ErreurMetier("Client introuvable.")
     controler_statut_actif(t["statut"], " : l'adhésion attend le visa")
+    if profil_institution(u) == "entreprise_microcredit":
+        raise ErreurMetier("Une entreprise de micro-crédit ne collecte pas l'épargne du public (loi 11/020, art. 12) : pas d'adhésion avec compte épargne.")
     if une("select 1 from compte_depot where tiers_id = %s", (tid,)):
         raise ErreurMetier("Ce membre a déjà adhéré.")
     produit = une("select * from produit_epargne where id = %s", (t["produit_id"],)) if t["produit_id"] else \
@@ -1621,7 +1647,11 @@ def preparer_adhesion(u: dict, p: dict) -> dict:
     if produit["devise"].strip() != "CDF":
         raise ErreurMetier("Compte à créer en USD : l'adhésion en deux devises (frais et parts en CDF) est à confirmer avec le porteur.")
     nb = p.get("parts")
-    if not isinstance(nb, int) or isinstance(nb, bool) or nb < 1:
+    if not est_coopec(u):
+        if nb not in (None, 0):
+            exiger_parts_sociales(u)
+        nb = 0
+    elif not isinstance(nb, int) or isinstance(nb, bool) or nb < 1:
         raise ErreurMetier("Au moins une part sociale, payée en entier (loi 002/2002, art. 21 et 22).")
     m_depot = p.get("depot", 0)
     if not isinstance(m_depot, int) or isinstance(m_depot, bool) or m_depot < 0:
@@ -1630,7 +1660,7 @@ def preparer_adhesion(u: dict, p: dict) -> dict:
     for f in frais:
         if not f["compte"] or not valeur("select 1 from compte where numero = %s", (f["compte"],)):
             raise ErreurMetier(f"Frais « {f['libelle']} » : compte absent du plan comptable, à paramétrer (Paramétrage > Frais et opérations).")
-    m_parts = nb * valeur_part(u["institution_id"])
+    m_parts = nb * valeur_part(u["institution_id"]) if nb else 0
     return {"tid": tid, "t": t, "produit": produit, "nb": nb, "m_depot": m_depot, "frais": frais, "m_parts": m_parts,
             "total": m_parts + m_depot + sum(f["montant"] for f in frais)}
 
@@ -1652,17 +1682,19 @@ def adhesion(u: dict, p: dict) -> dict:
     c = valeur("""insert into compte_depot (institution_id, agence_id, tiers_id, produit_id, numero, devise, statut, ouvert_le)
                   values (%s, %s, %s, %s, %s, 'CDF', 'ouvert', %s) returning id""",
                (u["institution_id"], t["agence_id"], tid, produit["id"], numero_compte(u, t, produit), j["date_comptable"]))
-    l = [{"compte": "570", "contrat": f"guichet:{s['guichetId']}", "sens": "D", "devise": "CDF", "montant": total},
-         {"compte": compte_parts(t), "contrat": f"parts:{tid}", "sens": "C", "devise": "CDF", "montant": m_parts}]
+    l = [{"compte": "570", "contrat": f"guichet:{s['guichetId']}", "sens": "D", "devise": "CDF", "montant": total}]
+    if m_parts:                       # COOPEC seulement (loi 002/2002) ; une IMF n'a pas de parts sociales (loi 11/020, art. 14 et 15)
+        l.append({"compte": compte_parts(t), "contrat": f"parts:{tid}", "sens": "C", "devise": "CDF", "montant": m_parts})
     if m_depot > 0:
         l.append({"compte": compte_du_produit(produit), "contrat": f"depot:{c}", "sens": "C", "devise": "CDF", "montant": m_depot})
     for f in frais:
         l.append({"compte": f["compte"], "contrat": f"frais:{f['fraisId']}", "sens": "C", "devise": "CDF", "montant": f["montant"]})
     eid = poster(u, journal="CA", journee_id=s["journeeId"], libelle=f"Adhésion {t['numero']}", piece=nouvelle_piece(u, "CA", j["date_comptable"]),
                  evenement="adhesion", cle=p["cle"], valide_par=u["id"], lignes_ecr=l)
-    executer("insert into mouvement_parts (tiers_id, sens, nombre, valeur_unitaire, devise, ecriture_id) values (%s, 'achat', %s, %s, 'CDF', %s)", (tid, nb, valeur_part(u["institution_id"]), eid))
+    if nb:
+        executer("insert into mouvement_parts (tiers_id, sens, nombre, valeur_unitaire, devise, ecriture_id) values (%s, 'achat', %s, %s, 'CDF', %s)", (tid, nb, valeur_part(u["institution_id"]), eid))
     oid = creer_operation(u, s, cle=p["cle"], type_="adhesion", statut="validee", tiers_id=tid, contrat=f"depot:{c}", montant=total,
-                          devise="CDF", coupures=coupures, remis_par=titulaire(tid), parts=nb, ecriture_id=eid)
+                          devise="CDF", coupures=coupures, remis_par=titulaire(tid), parts=nb or None, ecriture_id=eid)
     return avec_avertissement(vue_operation(une("select * from operation where id = %s", (oid,))), s, "CDF")   # registre S08-4
 
 
@@ -1680,6 +1712,7 @@ def operation_parts(u: dict, p: dict) -> dict:
     sens = p.get("sens")
     if sens not in ("achat", "retrait"):
         raise ErreurMetier("Choisir l'achat ou le retrait de parts.")
+    exiger_parts_sociales(u)
     s = session_ouverte(u, "CDF")
     tid = p.get("tiersId")
     t = une("select * from tiers where id = %s and institution_id = %s for update", (tid, u["institution_id"])) if isinstance(tid, int) else None

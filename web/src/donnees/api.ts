@@ -484,11 +484,23 @@ function nouveauTiers(d: NouveauTiers, creePar: number, reste: Pick<Tiers, "type
   E.tiers.push(t); return t;
 }
 
+/** Profil de l'institution (S32). COOPEC et faîtières (loi 002/2002) : membres, parts sociales (PCCI 103). IMF (loi 11/020, art. 11 à 15) : clients,
+ *  capital social souscrit par les associés (PCCI 100) ; l'entreprise de micro-crédit ne collecte pas l'épargne (art. 12). Identique au serveur (services.est_coopec). */
+const estCoopec = () => E.institution.profil === "coopec" || E.institution.profil === "faitiere";
+function exigerPartsSociales() {
+  if (!estCoopec()) throw new ErreurMetier("Pas de parts sociales dans une institution de microfinance : son capital est souscrit par ses associés ou actionnaires (loi 11/020, art. 14 et 15 ; PCCI, compte 100). Les parts sociales sont propres aux COOPEC (loi 002/2002 ; PCCI, compte 103).");
+}
+function controlerCollecteEpargne(famille: string) {
+  if (E.institution.profil === "entreprise_microcredit" && famille !== "BLOQUE")
+    throw new ErreurMetier("Une entreprise de micro-crédit ne collecte pas l'épargne du public (loi 11/020, art. 12) : seul le dépôt de garantie, famille BLOQUE, est permis (art. 5, point 13).");
+}
+const familleDuCompte = (c: CompteDepot) => E.produits.find((p) => (c.produitId !== undefined ? p.id === c.produitId : p.libelle === c.intitule && p.devise === c.devise))?.famille ?? "EPARGNE";
+
 /** Registre S48-1 : pas de résiliation tant qu'un compte a un solde ; apurement par Dépôt / Retrait (S74). Loi 002/2002, art. 27.
  * Les parts restent : un membre en garde au moins une (art. 22) ; remboursées après la résiliation par Part sociale (S77). Identique au serveur (services.controler_apurement). */
 function controlerApurement(id: number) {
   const comptes = E.comptes.filter((c) => c.tiersId === id && soldeContrat(`depot:${c.id}`, c.devise, "C") !== 0).map((c) => c.numero).sort();
-  if (comptes.length) throw new ErreurMetier(`Apurement à faire avant la résiliation (loi 002/2002, art. 27) : compte${comptes.length > 1 ? "s" : ""} à solder : ${comptes.join(", ")}. Solder par Caisse > Dépôt / Retrait.`);
+  if (comptes.length) throw new ErreurMetier(`Apurement à faire avant la résiliation${estCoopec() ? " (loi 002/2002, art. 27)" : ""} : compte${comptes.length > 1 ? "s" : ""} à solder : ${comptes.join(", ")}. Solder par Caisse > Dépôt / Retrait.`);
 }
 
 /** S46, client physique (p. 56) : contrôles de l'enrôlement, mentions de l'identité comprises (registre S46-3). Identique au serveur (services.modifier_tiers). */
@@ -1223,10 +1235,10 @@ const banqueOperations = {
     enregistrer(); return o;
   },
   /** S56 : ce que l'écran montre avant d'enregistrer. Règles identiques côté serveur (banque_operations.apercu_adhesion). Aucune écriture. */
-  apercuAdhesion(tiersId: number, parts = 1, depot = 0) {
+  apercuAdhesion(tiersId: number, parts?: number, depot = 0) {
     exiger();
-    const a = preparerAdhesion({ tiersId, parts, depot });
-    return { numeroCompte: numeroCompte(a.t.numero, a.produit), devise: "CDF" as const, valeurPart: valeurPart(),
+    const a = preparerAdhesion({ tiersId, parts: parts ?? (estCoopec() ? 1 : 0), depot });   // IMF : pas de parts sociales (loi 11/020, art. 14 et 15)
+    return { numeroCompte: numeroCompte(a.t.numero, a.produit), devise: "CDF" as const, valeurPart: a.parts ? valeurPart() : 0,
       frais: a.frais.map((f) => ({ fraisId: f.fraisId, libelle: f.libelle, compte: f.compte ?? "", montant: f.montant ?? 0 })), total: a.total };
   },
   /** S56 : Banque > Adhésion (p. 64). Saisie en attente du visa (S57) ; le compte épargne s'ouvre à la validation (registre S56-1). */
@@ -1318,15 +1330,17 @@ function preparerAdhesion(p: { tiersId: number; parts: number; depot: number }) 
   const t = E.tiers.find((x) => x.id === p.tiersId);
   if (!t) throw new ErreurMetier("Client introuvable.");
   controlerStatutActif(t.statut, " : l'adhésion attend le visa");
+  if (E.institution.profil === "entreprise_microcredit") throw new ErreurMetier("Une entreprise de micro-crédit ne collecte pas l'épargne du public (loi 11/020, art. 12) : pas d'adhésion avec compte épargne.");
   if (E.comptes.some((c) => c.tiersId === t.id)) throw new ErreurMetier("Ce membre a déjà adhéré.");
   const produit = E.produits.find((x) => x.code === t.produitCode) ?? E.produits.find((x) => x.devise === "CDF")!;
   if (produit.devise !== "CDF") throw new ErreurMetier("Compte à créer en USD : l'adhésion en deux devises (frais et parts en CDF) est à confirmer avec le porteur.");
-  if (!Number.isInteger(p.parts) || p.parts < 1) throw new ErreurMetier("Au moins une part sociale, payée en entier (loi 002/2002, art. 21 et 22).");
+  if (!estCoopec()) { if (p.parts) exigerPartsSociales(); p = { ...p, parts: 0 }; }
+  else if (!Number.isInteger(p.parts) || p.parts < 1) throw new ErreurMetier("Au moins une part sociale, payée en entier (loi 002/2002, art. 21 et 22).");
   if (!Number.isInteger(p.depot) || p.depot < 0) throw new ErreurMetier("Premier dépôt invalide.");
   const frais = parametrage.fraisLies(t.id).filter((f) => f.montant && !f.part);   // la ligne de part se paie par nombre de parts (registre S16-11)
   for (const f of frais) if (!f.compte || !planComptable().includes(f.compte)) throw new ErreurMetier(`Frais « ${f.libelle} » : compte absent du plan comptable, à paramétrer (Paramétrage > Frais et opérations).`);
-  const mParts = p.parts * valeurPart();
-  return { t, produit, frais, mParts, total: mParts + p.depot + frais.reduce((x, f) => x + (f.montant ?? 0), 0) };
+  const mParts = p.parts ? p.parts * valeurPart() : 0;
+  return { t, produit, frais, mParts, parts: p.parts, total: mParts + p.depot + frais.reduce((x, f) => x + (f.montant ?? 0), 0) };
 }
 function enregistrerOperationBanque(d: SaisieOperationBanque, client: boolean): OperationBanque {
     const u = exiger();
@@ -1495,9 +1509,10 @@ function preparerOuverture(tiersId?: number, produitId?: number) {
   const t = E.tiers.find((x) => x.id === tiersId);
   if (!t) throw new ErreurMetier("À remplir : Numéro du Client.");
   controlerStatutActif(t.statut);
-  if (!E.comptes.some((c) => c.tiersId === t.id)) throw new ErreurMetier("Ce client n'a pas encore adhéré : l'adhésion (Caisse > Adhésion) ouvre son premier compte.");   // S63-2
+  if (estCoopec() && !E.comptes.some((c) => c.tiersId === t.id)) throw new ErreurMetier("Ce client n'a pas encore adhéré : l'adhésion (Caisse > Adhésion) ouvre son premier compte.");   // S63-2
   const p = E.produits.find((x) => x.id === produitId && x.actif && !x.supprime);
   if (!p) throw new ErreurMetier("À remplir : Produit Epargne.");
+  controlerCollecteEpargne(p.famille);   // loi 11/020, art. 12
   const deja = E.comptes.filter((c) => c.tiersId === t.id && duProduit(c, p)).length;
   if (p.nbMaxComptes && deja >= p.nbMaxComptes) throw new ErreurMetier(`Max compte à créer atteint : ${deja} compte(s) ${p.libelle} pour ce client (Paramétrage > Produit épargne).`);   // S74-5
   const numero = numeroCompte(t.numero, p);
@@ -1639,6 +1654,7 @@ const depotsTerme = {
     const u = exiger();
     const prec = E.depotsTerme.find((x) => x.cle === d.cle);
     if (prec) return vueDat(prec);
+    controlerCollecteEpargne("DAT");   // loi 11/020, art. 12
     const j = journees.courante();
     if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
     const p = E.produits.find((x) => x.id === d.produitId && x.actif && !x.supprime && x.categorie === "DAT");
@@ -1845,6 +1861,7 @@ const guichet = {
     const prec = dejaFaite(p.cle); if (prec) return prec;
     const c = E.comptes.find((x) => x.id === p.compteId);
     if (!c) throw new ErreurMetier("Compte introuvable.");
+    controlerCollecteEpargne(familleDuCompte(c));   // loi 11/020, art. 12
     const { u, s } = sessionOuverte(c.devise);
     const t = E.tiers.find((x) => x.id === c.tiersId)!;
     controlerStatutActif(t.statut);
@@ -1910,10 +1927,12 @@ const guichet = {
     const t = E.tiers.find((x) => x.id === p.tiersId);
     if (!t) throw new ErreurMetier("Client introuvable.");
     controlerStatutActif(t.statut, " : l'adhésion attend le visa");
+    if (E.institution.profil === "entreprise_microcredit") throw new ErreurMetier("Une entreprise de micro-crédit ne collecte pas l'épargne du public (loi 11/020, art. 12) : pas d'adhésion avec compte épargne.");
     if (E.comptes.some((c) => c.tiersId === t.id)) throw new ErreurMetier("Ce membre a déjà adhéré.");
     const produit = E.produits.find((x) => x.code === t.produitCode) ?? E.produits.find((x) => x.devise === "CDF")!;
     if (produit.devise !== "CDF") throw new ErreurMetier("Compte à créer en USD : l'adhésion en deux devises (frais et parts en CDF) est à confirmer avec le porteur.");
-    if (!Number.isInteger(p.parts) || p.parts < 1) throw new ErreurMetier("Au moins une part sociale, payée en entier (loi 002/2002, art. 21 et 22).");
+    if (!estCoopec()) { if (p.parts) exigerPartsSociales(); p = { ...p, parts: 0 }; }
+    else if (!Number.isInteger(p.parts) || p.parts < 1) throw new ErreurMetier("Au moins une part sociale, payée en entier (loi 002/2002, art. 21 et 22).");
     if (!Number.isInteger(p.depot) || p.depot < 0) throw new ErreurMetier("Premier dépôt invalide.");
     const frais = parametrage.fraisLies(t.id).filter((f) => f.montant && !f.part);   // la ligne de part se paie par nombre de parts (registre S16-11)
     for (const f of frais) if (!f.compte || !planComptable().includes(f.compte)) throw new ErreurMetier(`Frais « ${f.libelle} » : compte absent du plan comptable, à paramétrer (Paramétrage > Frais et opérations).`);
@@ -1923,14 +1942,12 @@ const guichet = {
       throw new ErreurMetier("Examen renforcé requis (10 000 USD ou plus en espèces dans la journée). Le circuit de conformité n'est pas encore construit : opération bloquée.", "Instr. BCC 15 bis, art. 1, 6 et 7");
     const cCdf: CompteDepot = { id: E.comptes.length + 1, tiersId: t.id, numero: numeroCompte(t.numero, produit), intitule: produit.libelle, pcci: compteDuProduit(produit), devise: "CDF", bloque: 0, produitId: produit.id };   // S27-2, S28-2
     E.comptes.push(cCdf);
-    const lignes: Ligne[] = [
-      { compte: "570", contrat: guichetDe(s), sens: "D", devise: "CDF", montant: total, montantCdf: total },
-      { compte: compteParts(t), contrat: `parts:${t.id}`, sens: "C", devise: "CDF", montant: mParts, montantCdf: mParts },
-    ];
+    const lignes: Ligne[] = [{ compte: "570", contrat: guichetDe(s), sens: "D", devise: "CDF", montant: total, montantCdf: total }];
+    if (mParts) lignes.push({ compte: compteParts(t), contrat: `parts:${t.id}`, sens: "C", devise: "CDF", montant: mParts, montantCdf: mParts });   // COOPEC seulement
     if (p.depot > 0) lignes.push({ compte: cCdf.pcci, contrat: `depot:${cCdf.id}`, sens: "C", devise: "CDF", montant: p.depot, montantCdf: p.depot });
     for (const f of frais) lignes.push({ compte: f.compte!, contrat: `frais:${f.fraisId}`, sens: "C", devise: "CDF", montant: f.montant!, montantCdf: f.montant! });
     const e = poster({ journal: "CA", journeeId: s.journeeId, libelle: `Adhésion ${t.numero}`, piece: piece(), saisiPar: u.id, validePar: u.id, lignes });
-    const o: Operation = { id: prochain(E.operations), cle: p.cle, type: "adhesion", statut: "validee", sessionId: s.id, tiersId: t.id, compteId: cCdf.id, montant: total, devise: "CDF", parts: p.parts, coupures: nettoyer(p.coupures), remisPar: titulaire(t), saisiPar: u.id, ecritureId: e.id, heure: heure() };
+    const o: Operation = { id: prochain(E.operations), cle: p.cle, type: "adhesion", statut: "validee", sessionId: s.id, tiersId: t.id, compteId: cCdf.id, montant: total, devise: "CDF", ...(p.parts ? { parts: p.parts } : {}), coupures: nettoyer(p.coupures), remisPar: titulaire(t), saisiPar: u.id, ecritureId: e.id, heure: heure() };
     E.operations.push(o); enregistrer(); return avecAvertissement(o, s, "CDF");   // registre S08-4
   },
   /** S77 : Part sociale (Achat/Retrait) (p. 88 et 89). Loi 002/2002, art. 21, 22 et 27 ; PCCI, compte 103.
@@ -1938,6 +1955,7 @@ const guichet = {
   parts(p: Commun & { tiersId: number; sens: "achat" | "retrait"; nombre: number }) {
     const prec = dejaFaite(p.cle); if (prec) return prec;
     if (p.sens !== "achat" && p.sens !== "retrait") throw new ErreurMetier("Choisir l'achat ou le retrait de parts.");
+    exigerPartsSociales();
     const { u, s } = sessionOuverte("CDF");
     const t = E.tiers.find((x) => x.id === p.tiersId);
     if (!t) throw new ErreurMetier("Client introuvable.");
@@ -2945,6 +2963,7 @@ const produitsEpargne = {
     }
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
     if (!(FAMILLES_EPARGNE as readonly string[]).includes(v.famille as string)) throw new ErreurMetier("Famille produit inconnue.");
+    controlerCollecteEpargne(v.famille as string);   // loi 11/020, art. 12
     if (!E.devises.some((x) => x.code === v.devise)) throw new ErreurMetier("Devise inconnue.");
     if ((v.numero as number) < 1 || (v.numero as number) > 99) throw new ErreurMetier("N° Produit : de 1 à 99 (il sert de suffixe au numéro de compte, S17).");
     if ((v.nbMaxComptes as number) < 1) throw new ErreurMetier("Max compte à créer : au moins 1.");

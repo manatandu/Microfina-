@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { vers } from "./registre";
 import { api } from "../donnees/api";
+import { aDesParts } from "../lib/vocabulaire";
 import type { Operation, Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
@@ -38,7 +39,8 @@ export default function Adhesion() {
   if (!s || s.statut !== "ouverte") return (
     <><h1>Guichet</h1><OngletsGuichet /><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>
   );
-  const nParts = /^\d+$/.test(parts.trim()) ? Number(parts.trim()) : 0;
+  const parts_ = aDesParts(ctx.institution);   // IMF : pas de parts sociales (loi 11/020, art. 14 et 15)
+  const nParts = !parts_ ? 0 : /^\d+$/.test(parts.trim()) ? Number(parts.trim()) : 0;
   const mDepot = depot.trim() ? lireMontant(depot) : 0;
   // Registre S16-11 : la part est la ligne « Part sociale standard » des frais d'adhésion (capture p. 89), payée par nombre de parts
   const ligneParts = frais.find((f) => f.part), autres = frais.filter((f) => !f.part);
@@ -96,12 +98,12 @@ export default function Adhesion() {
             <tbody>
               {autres.length === 0 && <tr><td colSpan={4}>Liste des Frais vide</td></tr>}
               {autres.map((f) => <tr key={f.fraisId}><td>{f.libelle}</td><td className="chiffres">{f.compte}</td><td></td><td className="chiffres">{f.montant === null ? "" : montant(f.montant, "CDF")}</td></tr>)}
-              <tr>
+              {parts_ && <tr>
                 <td>{ligneParts?.libelle ?? "Part sociale"}</td><td className="chiffres">{ligneParts?.compte ?? ""}</td>
                 <td><input className="saisie code court" inputMode="numeric" aria-label="Nombre de parts sociales" readOnly={!!fait} value={parts}
                   onChange={(e) => { if (/^\d{0,4}$/.test(e.target.value)) { setParts(e.target.value); setCle(nouvelleCle()); } }} /></td>
                 <td className="chiffres">{ligneParts ? montant(nParts * (ligneParts.montant ?? 0), "CDF") : ""}</td>
-              </tr>
+              </tr>}
             </tbody>
           </table>
         </fieldset>

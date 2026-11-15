@@ -1,7 +1,7 @@
 """S27 : Paramétrage > Produit > Epargne > Gestion des produits épargnes (manuel Microfina++, p. 40). Champs, options Oui/Non et boutons de la
 capture ; Devise ajoutée (registre S27-1). Montants en unités mineures, comme les opérations. Mêmes règles que web/src/donnees/api.ts (produitsEpargne)."""
 from .bd import ErreurMetier, executer, lignes, une, valeur
-from .services import exiger
+from .services import controler_collecte_epargne, exiger
 
 FAMILLES = ["EPARGNE", "BLOQUE", "TONTINE"]            # capture p. 40 (grille Famille)
 # clé -> (colonne, libellé, sorte) ; sorte : texte, entier, montant, oui (case), ouiNon (boutons Oui/Non)
@@ -71,6 +71,7 @@ def enregistrer(u, d, pid: int | None = None) -> dict:
         if not actuel:
             raise ErreurMetier("Produit introuvable.")
     v = valider(d)
+    controler_collecte_epargne(u, v["famille"])        # loi 11/020, art. 12 : entreprise de micro-crédit
     if une("select 1 from produit_epargne where institution_id = %s and not supprime and lower(code) = lower(%s) and id is distinct from %s", (i, v["code"], pid)):
         raise ErreurMetier("Ce Code produit existe déjà.")
     if une("select 1 from produit_epargne where institution_id = %s and not supprime and numero = %s and id is distinct from %s", (i, v["numero"], pid)):

@@ -892,6 +892,29 @@ describe("journée de guichet", () => {
     await expect(api.parametrage.modifierFraisClient(t.id, [{ fraisId: f.id, montant: 100000 }])).rejects.toThrow("déjà encaissée");
   });
 
+  it("profil IMF (S32) : pas de parts sociales (loi 11/020, art. 14 et 15) ; entreprise de micro-crédit sans épargne (art. 12)", async () => {
+    await connecter("jpmukendi");
+    const i = await api.societe.lire();
+    await api.societe.enregistrer({ ...i.institution, typeBase: "societe_microfinance" });
+    await connecter("bkasongo");
+    const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), ...IDENTITE, produitCode: "EAV-CDF", nom: "Ilunga", postnom: "Kasa", prenom: "Rose", naissance: "1991-03-01", pieceType: "Carte d'électeur", pieceNumero: "1-0412-0888", pieceExpire: "2031-01-01", adresse: "Matete" });
+    await journeeOuverte();
+    await connecter("jpmukendi"); await api.tiers.viser(t.id); await connecter("engalula");
+    await expect(api.guichet.adhesion({ cle: cle(), tiersId: t.id, parts: 2, depot: 0, coupures: {} })).rejects.toThrow("Pas de parts sociales");
+    await api.guichet.adhesion({ cle: cle(), tiersId: t.id, parts: 0, depot: 500000, coupures: { 5000: 1 } });
+    expect(await api.tiers.parts(t.id)).toBe(0);
+    await expect(api.guichet.parts({ cle: cle(), tiersId: t.id, sens: "achat", nombre: 1, coupures: {} })).rejects.toThrow("Pas de parts sociales");
+    await connecter("jpmukendi");
+    await api.societe.enregistrer({ ...(await api.societe.lire()).institution, typeBase: "entreprise_microcredit" });
+    const P = { numero: 7, code: "EPX", famille: "EPARGNE", libelle: "Epargne X", devise: "CDF", soldeMinimum: 0, nbMaxComptes: 1, operer: true, depotCheque: false, caution: false,
+      nantissement: false, calculerInteret: false, soldeNegatif: false, repartitionGroupe: false, actif: true };
+    await expect(api.produitsEpargne.enregistrer(P)).rejects.toThrow("micro-crédit ne collecte pas");
+    await api.produitsEpargne.enregistrer({ ...P, famille: "BLOQUE", libelle: "Garantie" });
+    await connecter("engalula");
+    const cpt = (await api.tiers.comptes(1)).find((c) => c.devise === "CDF")!;
+    await expect(api.guichet.depot({ cle: cle(), compteId: cpt.id, montant: 500000, coupures: { 5000: 1 } })).rejects.toThrow("micro-crédit ne collecte pas");
+  });
+
   it("fermeture : bloquée tant qu'une caisse est ouverte, possible après l'arrêté validé", async () => {
     const { j, s } = await journeeOuverte();
     await api.guichet.depot({ cle: cle(), compteId: 4, montant: 2000000, coupures: { 20000: 1 } });

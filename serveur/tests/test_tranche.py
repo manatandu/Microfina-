@@ -2008,3 +2008,34 @@ def test_depot_terme(clients, journee):
     assert ident("select coalesce(sum(case sens when 'C' then montant_devise else -montant_devise end), 0) from ligne_ecriture where contrat_ref = %s", (f"depot:{cdat}",)) == 0
     assert ident("select sum(montant_devise) from ligne_ecriture l join compte c on c.id = l.compte_id where c.numero = '7791'") == 20000
     assert chef.post(f"/api/epargne/dat/{x['id']}/rupture", {}, **H).status_code == 422
+
+
+def test_profil_imf(clients, journee):
+    """Profil de l'institution (S32) : une IMF n'a pas de parts sociales (loi 11/020, art. 14 et 15 ; PCCI 100) ni de condition d'adhésion préalable ;
+    une entreprise de micro-crédit ne collecte pas l'épargne (loi 11/020, art. 12) : seul le dépôt de garantie (famille BLOQUE)"""
+    from django.db import connection
+    caisse, chef, agent = clients["caisse"], clients["chef"], clients["agent"]
+    with connection.cursor() as c:
+        c.execute("update institution set profil = 'societe_microfinance'")
+    t = agent.post("/api/tiers", {**FICHE, "nom": "Ilunga", "postnom": "Kasa", "prenom": "Rose", "naissance": "1991-03-01", "pieceType": "Carte d'électeur",
+                                  "pieceNumero": "1-0412-0888", "pieceExpire": "2031-01-01", "adresse": "Matete"}, **H).json()
+    assert chef.post(f"/api/tiers/{t['id']}/visa", **H).status_code == 200
+    r = caisse.post("/api/guichet/adhesions", {"cle": cle(), "tiersId": t["id"], "parts": 2, "depot": 0, "coupures": {}}, **H)
+    assert r.status_code == 422 and "Pas de parts sociales" in r.json()["message"]
+    a = chef.get(f"/api/banque/adhesions/apercu?tiersId={t['id']}&depot=500000", **H).json()
+    assert a["valeurPart"] == 0 and a["total"] % 100000 == 0, a       # montants en centimes
+    r = caisse.post("/api/guichet/adhesions", {"cle": cle(), "tiersId": t["id"], "parts": 0, "depot": 500000, "coupures": {"1000": a["total"] // 100000}}, **H)
+    assert r.status_code == 200, r.json()
+    assert ident("select count(*) from ligne_ecriture l join compte c on c.id = l.compte_id where c.numero like '103%%' and l.contrat_ref = %s", (f"parts:{t['id']}",)) == 0
+    assert caisse.get(f"/api/tiers/{t['id']}/parts").json() == 0
+    r = caisse.post("/api/guichet/parts", {"cle": cle(), "sens": "achat", "tiersId": t["id"], "nombre": 1, "coupures": {}}, **H)
+    assert r.status_code == 422 and "Pas de parts sociales" in r.json()["message"]
+    P = {"numero": 7, "code": "EPX", "famille": "EPARGNE", "libelle": "Epargne X", "devise": "CDF", "soldeMinimum": 0, "nbMaxComptes": 1,
+         "operer": True, "depotCheque": False, "caution": False, "nantissement": False, "calculerInteret": False, "soldeNegatif": False, "repartitionGroupe": False, "actif": True}
+    with connection.cursor() as c:
+        c.execute("update institution set profil = 'entreprise_microcredit'")
+    r = chef.post("/api/produits-epargne", P, **H)
+    assert r.status_code == 422 and "micro-crédit ne collecte pas" in r.json()["message"]
+    assert chef.post("/api/produits-epargne", {**P, "famille": "BLOQUE", "libelle": "Garantie"}, **H).status_code == 200
+    r = caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 500000, "coupures": {"5000": 1}}, **H)
+    assert r.status_code == 422 and "micro-crédit ne collecte pas" in r.json()["message"]

@@ -4,7 +4,7 @@ import re
 import uuid
 
 from .bd import ErreurMetier, lignes, une, valeur
-from .services import controler_statut_actif, exiger, journee_courante, numero_compte
+from .services import controler_collecte_epargne, controler_statut_actif, est_coopec, exiger, journee_courante, numero_compte
 
 
 def texte(d, k):
@@ -26,12 +26,13 @@ def preparer(u, tid, pid) -> dict:
     if not t:
         raise ErreurMetier("À remplir : Numéro du Client.")
     controler_statut_actif(t["statut"])
-    if not valeur("select 1 from compte_depot where tiers_id = %s and statut <> 'clos'", (t["id"],)):
+    if est_coopec(u) and not valeur("select 1 from compte_depot where tiers_id = %s and statut <> 'clos'", (t["id"],)):
         # loi 002/2002, art. 1er : la COOPEC collecte l'épargne de ses membres ; l'adhésion ouvre le premier compte (registre S63-2)
         raise ErreurMetier("Ce client n'a pas encore adhéré : l'adhésion (Caisse > Adhésion) ouvre son premier compte.")
     p = une("select * from produit_epargne where id = %s and institution_id = %s and actif and not supprime", (pid, i)) if isinstance(pid, int) and not isinstance(pid, bool) else None
     if not p:
         raise ErreurMetier("À remplir : Produit Epargne.")
+    controler_collecte_epargne(u, p["famille"])        # loi 11/020, art. 12 (entreprise de micro-crédit)
     deja = int(valeur("select count(*) from compte_depot where tiers_id = %s and produit_id = %s and statut <> 'clos'", (t["id"], p["id"])))
     if p["nb_max_comptes"] and deja >= p["nb_max_comptes"]:      # registre S74-5 : Max compte à créer (S27)
         raise ErreurMetier(f"Max compte à créer atteint : {deja} compte(s) {p['libelle']} pour ce client (Paramétrage > Produit épargne).")

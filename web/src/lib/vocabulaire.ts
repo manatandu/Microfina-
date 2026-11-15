@@ -9,3 +9,5 @@ const MOTS = {
 
 /** COOPEC et structures faîtières (loi 002/2002) : membres ; sociétés de microfinance et entreprises de micro-crédit (loi 11/020, art. 11) : clients */
 export function mots(i: Pick<Institution, "profil">) { return MOTS[i.profil === "coopec" || i.profil === "faitiere" ? "coopec" : "imf"]; }
+/** Parts sociales : COOPEC et faîtières seulement (loi 002/2002 ; PCCI 103). Une IMF n'en a pas (loi 11/020, art. 14 et 15 ; PCCI 100). */
+export const aDesParts = (i: Pick<Institution, "profil">) => i.profil === "coopec" || i.profil === "faitiere";

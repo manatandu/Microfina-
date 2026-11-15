@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**358 décisions.** Solidité : 128 fortes (le manuel ou un texte répond), 182 moyennes (déduites d'un écran voisin ou d'une donnée), 48 faibles (notre choix, faute de mieux). Dans le code : 329 déjà en place, 29 à appliquer.
+**360 décisions.** Solidité : 129 fortes (le manuel ou un texte répond), 183 moyennes (déduites d'un écran voisin ou d'une donnée), 48 faibles (notre choix, faute de mieux). Dans le code : 331 déjà en place, 29 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -803,6 +803,13 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S67-5 | Qui rompt, quand | Le chef d'agence (droit S67) ; DAT validé et pas encore échu ; date de rupture au plus la journée ouverte ; date de demande entre la date de dépôt et la date de rupture | Choix du porteur : Décision du porteur 15/11/2026 ; texte p. 76 | forte | en place |
 | S67-6 | Bouton Imprimer | Avis de rupture remis au client (Instr. BCC 40, art. 13), même gabarit que le contrat, police 12 : dates, jours courus, intérêt, pénalité, retenue, montant versé, pièce, signatures. À confirmer : le manuel ne montre pas le document | Texte réglementaire : Instr. BCC 40, art. 13 (document remis au client) ; bouton Imprimer p. 77 ; registre S65-7 | moyenne | en place |
 | S67-7 | Retenue pour un groupe | Groupe sans personnalité juridique : 0 pour l'instant. La loi 23/053 vise les personnes physiques (IRPP) et les sociétés (IS) ; le groupe n'est nommé ni dans l'une ni dans l'autre. Question au porteur (ou à la DGI) | Choix du porteur : Loi 23/053, art. 14, 72, 120 (lus, silencieux sur le groupe) | faible | en place |
+
+## S32 Profil de l'institution
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S32-9 | Ouverture de compte et départ | IMF : un compte s'ouvre (S63) sans adhésion préalable ; la règle du membre emprunteur ou endosseur (loi 002/2002, art. 24) ne s'applique qu'aux COOPEC ; l'apurement des comptes avant la résiliation reste pour tous (registre S48-1) | Texte réglementaire : Loi 002/2002, art. 1er, 24, 27 ; loi 11/020, art. 13 | moyenne | en place |
+| S32-10 | Entreprise de micro-crédit | Pas d'épargne du public (loi 11/020, art. 12) : pas d'adhésion avec compte épargne, pas de produit épargne autre que BLOQUE (dépôt de garantie, art. 5, point 13), pas de dépôt sur un autre compte, pas de DAT | Texte réglementaire : Loi 11/020, art. 5 point 13, art. 12 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

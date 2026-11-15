@@ -648,7 +648,7 @@ def epargne_dat_rompre(request, did: int, corps: dict = Body(...)):
 
 
 @api.get("/banque/adhesions/apercu")
-def banque_adhesion_apercu(request, tiersId: int, parts: int = 1, depot: int = 0):
+def banque_adhesion_apercu(request, tiersId: int, parts: int | None = None, depot: int = 0):
     return bop.apercu_adhesion(u(request), tiersId, parts, depot)
 
 
