@@ -80,7 +80,7 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/agents/.*", ["S33"]),
     (r"/jours/.*", ["S34"]),
     (r"/(devises|cours|types-monnaie|monnaies).*", ["S35"]),
-    (r"/profils.*", ["S03"]),
+    (r"/profils(/\d+(/suppression)?)?", ["S03"]),
     (r"/gestion-utilisateurs.*", ["S05"]),
     (r"/profils-utilisateurs", ["S06"]),
     (r"/connexions/\d+/deconnexion", ["S07"]),
@@ -111,10 +111,26 @@ def droits_utilisateur(uid: int) -> set[str]:
                                                 join profil_droit pd on pd.profil_id = p.id where up.utilisateur_id = %s and not p.supprime""", (uid,))}
 
 
+# Lectures des routes d'administration (registre T27) : comptes utilisateurs, profils, droits, connexions ne se lisent qu'avec le droit de l'écran.
+# Les autres lectures restent ouvertes à tout utilisateur connecté (listes partagées par plusieurs écrans).
+LECTURES_ADMIN = [(re.compile(m), e) for m, e in [
+    (r"/profils", ["S03", "S04", "S06"]),
+    (r"/gestion-utilisateurs", ["S05"]),
+    (r"/profils-utilisateurs", ["S06"]),
+    (r"/connexions", ["S07"]),
+    (r"/droits", ["S04"]),
+]]
+
+
 def verifier_route(u: dict, methode: str, chemin: str) -> None:
     """Écriture : l'utilisateur tient le droit d'un des écrans de la route (registre S04-3). Les blocages de ARCHITECTURE P7 et P8
-    (celui qui saisit ne valide pas) restent dans le moteur : aucun droit ne les lève."""
+    (celui qui saisit ne valide pas) restent dans le moteur : aucun droit ne les lève. Lecture : seulement les routes d'administration (T27)."""
     if methode in ("GET", "HEAD", "OPTIONS"):
+        c = chemin.removeprefix("/api")
+        e = next((x for m, x in LECTURES_ADMIN if m.fullmatch(c)), None)
+        if e and not droits_utilisateur(u["id"]) & set(e):
+            noms = {x["id"]: x["nom"] for x in ecrans()}
+            raise ErreurMetier(f"Droit manquant : {noms.get(e[0], e[0])} (Administration > Profil > Assigner droit).", 403)
         return
     e = ecrans_de_route(chemin.removeprefix("/api"))
     if e is None:

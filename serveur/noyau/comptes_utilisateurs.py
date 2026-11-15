@@ -5,6 +5,8 @@ import re
 
 from django.contrib.auth.hashers import make_password
 
+from .securite import controler_mot_de_passe
+
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import exiger
 
@@ -39,6 +41,8 @@ def enregistrer(u, d, uid: int | None = None) -> dict:
         raise ErreurMetier("À remplir : " + ", ".join(manque) + ".")
     if mdp != conf:
         raise ErreurMetier("Confirmation : différente du mot de passe.")
+    if mdp:
+        controler_mot_de_passe(mdp, d.get("login") if isinstance(d.get("login"), str) else "")      # registre T24
     if re.search(r"\s", v["login"]):
         raise ErreurMetier("Nom utilisateur : sans espace.")
     if v["email"] and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", v["email"]):

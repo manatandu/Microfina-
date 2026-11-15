@@ -42,8 +42,11 @@ from . import comptes as cp
 from . import numerotation as nu
 from . import services as s
 from .bd import ErreurMetier
+from .securite import adresse, controler_tentatives, noter
 
-api = NinjaAPI(title="Dwacfina", version="0.1", urls_namespace="likelemba", docs_url="/docs" )
+# Documentation technique de l'API : seulement en développement ; en ligne, elle décrirait toutes les routes à un attaquant (registre T25)
+api = NinjaAPI(title="Dwacfina", version="0.1", urls_namespace="likelemba", docs_url="/docs" if settings.DEBUG else None,
+               openapi_url="/openapi.json" if settings.DEBUG else None)
 
 METHODES_SURES = {"GET", "HEAD", "OPTIONS"}
 
@@ -53,6 +56,8 @@ def refus(request, exc: ErreurMetier):
     # Le refus est rendu comme une réponse, l'exception ne sort pas de la vue : sans ceci, ATOMIC_REQUESTS validerait
     # ce qui a été écrit avant le refus. Un refus annule toute la requête (tout ou rien).
     transaction.set_rollback(True)
+    if exc.statut == 403:                                            # refus de droit ou requête forgée : noté au journal de sécurité (registre T26)
+        noter("acces_refuse", ip=adresse(request), utilisateur_id=request.session.get("utilisateur"), detail=f"{request.method} {request.path} : {exc.message}")
     return api.create_response(request, {"message": exc.message}, status=exc.statut)
 
 
@@ -70,7 +75,15 @@ def u(request: HttpRequest) -> dict:
 def session_ouvrir(request, corps: dict = Body(...)):
     if request.headers.get("X-Likelemba") != "1":
         raise ErreurMetier("Requête refusée.", 403)
-    util = s.ouvrir_session(corps.get("login", ""), corps.get("motDePasse"), request.META.get("REMOTE_ADDR", ""))
+    login, ip = str(corps.get("login", ""))[:80].strip(), adresse(request)
+    controler_tentatives(login, ip)                                  # registre T22 : blocage après des connexions refusées
+    try:
+        util = s.ouvrir_session(login, corps.get("motDePasse"), ip)
+    except ErreurMetier as e:
+        # seul un mauvais mot de passe compte pour le blocage ; « déjà connecté » ou un compte inactif sont notés à part
+        noter("connexion_refusee" if "mot de passe incorrect" in e.message else "connexion_impossible", login, ip, detail=e.message)
+        raise
+    noter("connexion", login, ip, util["id"])
     request.session.cycle_key()
     request.session["utilisateur"] = util["id"]
     request.session["jeton"] = util.pop("jeton")

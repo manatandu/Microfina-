@@ -12,6 +12,16 @@ H = {"HTTP_X_LIKELEMBA": "1", "content_type": "application/json"}
 @pytest.fixture(autouse=True)
 def graine(django_db_setup, django_db_blocker):
     call_command("graine")
+    vider_journal_securite()
+
+
+def vider_journal_securite():
+    """Le journal de sécurité s'écrit hors de la transaction du test (connexion à part) : on le vide pour que chaque test parte de zéro"""
+    import psycopg
+    from django.db import connection
+    db = connection.settings_dict
+    with psycopg.connect(dbname=db["NAME"], user=db["USER"], password=db["PASSWORD"], host=db["HOST"], port=db["PORT"], autocommit=True) as c:
+        c.execute("delete from journal_securite")
 
 
 def connecter(c: Client, login: str):
@@ -1656,7 +1666,7 @@ def test_profils_utilisateurs(clients):
     créé en S05 travaille avec les droits de son profil (registre T07, S06-1 à S06-3)"""
     chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
     ag = chef.get("/api/gestion-utilisateurs", **H).json()["agences"][0]["id"]
-    chef.post("/api/gestion-utilisateurs", {"nom": "Mbala Joseph", "agenceId": ag, "login": "jmbala", "motDePasse": "s", "confirmation": "s", "portable": "1"}, **H)
+    chef.post("/api/gestion-utilisateurs", {"nom": "Mbala Joseph", "agenceId": ag, "login": "jmbala", "motDePasse": "secret-1", "confirmation": "secret-1", "portable": "1"}, **H)
     l = chef.get("/api/profils-utilisateurs", **H).json()
     x = next(v for v in l["utilisateurs"] if v["login"] == "jmbala")
     caissier = next(p for p in l["profils"] if p["nom"] == "CAISSIER")
@@ -1689,7 +1699,7 @@ def test_connexions(clients):
     assert caisse.get("/api/session", **H).json() is None                                  # sa session est tombée
     assert caisse.get("/api/guichets", **H).status_code == 401
     ag = chef.get("/api/gestion-utilisateurs", **H).json()["agences"][0]["id"]
-    chef.post("/api/gestion-utilisateurs", {"nom": "Mbala Joseph", "agenceId": ag, "login": "jmbala", "motDePasse": "s", "confirmation": "s", "portable": "1",
+    chef.post("/api/gestion-utilisateurs", {"nom": "Mbala Joseph", "agenceId": ag, "login": "jmbala", "motDePasse": "secret-1", "confirmation": "secret-1", "portable": "1",
                                             "controleConnecte": True}, **H)
     connecter(caisse, "jmbala")
     r = clients["agent"].post("/api/session", {"login": "jmbala"}, **H)
@@ -1702,7 +1712,7 @@ def test_connexion_expire(clients):
     """S07 : la connexion tombe d'elle-même après la durée de la session ; « Control utilisateur connecté » ne bloque plus le lendemain (registre S07-4)"""
     chef, caisse = clients["chef"], clients["caisse"]; connecter(chef, "jpmukendi")
     ag = chef.get("/api/gestion-utilisateurs", **H).json()["agences"][0]["id"]
-    chef.post("/api/gestion-utilisateurs", {"nom": "Mbala Joseph", "agenceId": ag, "login": "jmbala", "motDePasse": "s", "confirmation": "s", "portable": "1",
+    chef.post("/api/gestion-utilisateurs", {"nom": "Mbala Joseph", "agenceId": ag, "login": "jmbala", "motDePasse": "secret-1", "confirmation": "secret-1", "portable": "1",
                                             "controleConnecte": True}, **H)
     connecter(caisse, "jmbala")
     assert "Déjà connecté" in clients["agent"].post("/api/session", {"login": "jmbala"}, **H).json()["message"]
@@ -1911,3 +1921,38 @@ def test_releve_situation(clients, journee):
     s = agent.get(f"/api/epargne/situation?tiersId={T('0412-000318')}&date=2026-11-05").json()
     ligne = next(x for x in s["comptes"] if x["compte"] == "0412-000318-02")
     assert ligne["credit"] == r["soldeComptable"]
+
+
+def test_securite(clients, settings):
+    """Sécurité (registre T22 à T26) : blocage après des connexions refusées, journal de sécurité, règle des mots de passe, refus de droit noté,
+    documentation de l'API fermée, en-têtes de sécurité"""
+    from noyau.bd import valeur as v
+    settings.SANS_MOT_DE_PASSE = False
+    autre = Client()
+    def essai(login, mdp):
+        return autre.post("/api/session", {"login": login, "motDePasse": mdp}, **H)
+    for _ in range(5):
+        assert essai("jpmukendi", "faux-mot-1").status_code == 422
+    r = essai("jpmukendi", "faux-mot-1")
+    assert r.status_code == 429 and "Trop d'essais" in r.json()["message"]
+    import psycopg
+    from django.db import connection
+    db = connection.settings_dict
+    with psycopg.connect(dbname=db["NAME"], user=db["USER"], password=db["PASSWORD"], host=db["HOST"], port=db["PORT"], autocommit=True) as c:
+        n = c.execute("select count(*) from journal_securite where login = 'jpmukendi' and evenement in ('connexion_refusee', 'connexion_bloquee')").fetchone()[0]
+        c.execute("delete from journal_securite")          # la trace survit au refus ; on nettoie pour les autres essais
+    assert n >= 6
+    settings.SANS_MOT_DE_PASSE = True
+    chef = clients["chef"]; connecter(chef, "jpmukendi")
+    ag = chef.get("/api/gestion-utilisateurs", **H).json()["agences"][0]["id"]
+    U = {"nom": "Essai Mot", "agenceId": ag, "login": "emot", "portable": "1"}
+    r = chef.post("/api/gestion-utilisateurs", {**U, "motDePasse": "court1", "confirmation": "court1"}, **H)
+    assert r.status_code == 422 and "8 caractères" in r.json()["message"]
+    assert chef.post("/api/gestion-utilisateurs", {**U, "motDePasse": "Kinshasa2026", "confirmation": "Kinshasa2026"}, **H).status_code == 200
+    r = chef.post("/api/banque/operations", {"cle": cle(), "type": "encaissement"}, content_type="application/json")   # sans l'en-tête de l'application
+    assert r.status_code == 403
+    assert chef.get("/api/docs").status_code in (200, 404)    # ouverte en développement seulement (DEBUG=1 ici)
+    agent = clients["agent"]; connecter(agent, "bkasongo")      # registre T27 : lectures d'administration verrouillées
+    for route in ("/api/gestion-utilisateurs", "/api/connexions", "/api/droits", "/api/profils-utilisateurs", "/api/profils"):
+        assert agent.get(route).status_code == 403, route
+    assert chef.get("/api/gestion-utilisateurs").status_code == 200

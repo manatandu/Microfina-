@@ -3267,7 +3267,7 @@ const facture = {
 // ---------- Administration > Profil > Création modification (S03, manuel p. 15). Règles identiques côté serveur (noyau/profils.py). ----------
 const profils = {
   lire() {
-    exiger();
+    lectureAdmin(["S03", "S04", "S06"]);
     return { profils: E.profils.filter((p) => !p.supprime).sort((a, b) => a.nom.localeCompare(b.nom)).map(({ id, nom, description }) => ({ id, nom, description })) };
   },
   /** Enregistrer, ou modifier le profil choisi (p. 12, T01) ; registre S03-2 */
@@ -3294,7 +3294,7 @@ const profils = {
 // ---------- Administration > Profil > Assigner droit ; Modifier droit d'un profil (S04, manuel p. 15 et 16). Règles identiques côté serveur (noyau/droits.py). ----------
 const droits = {
   lire(profil?: number) {
-    exiger();
+    lectureAdmin(["S04"]);
     let octroyes: string[] = [];
     if (profil !== undefined) {
       const p = E.profils.find((x) => x.id === profil && !x.supprime);
@@ -3319,9 +3319,14 @@ const droits = {
 // ---------- Administration > Utilisateur > Création (S05, manuel p. 16 et 17). Règles identiques côté serveur (noyau/comptes_utilisateurs.py). ----------
 export type SaisieUtilisateur = { nom?: string; agenceId?: number | null; login?: string; motDePasse?: string; confirmation?: string; controleConnecte?: boolean;
   rue?: string; adresse?: string; bp?: string; telephoneFixe?: string; portable?: string; email?: string };
+/** Lecture d'une route d'administration (registre T27) : seulement avec le droit de l'écran ; mêmes règles que noyau/droits.py (LECTURES_ADMIN) */
+function lectureAdmin(ecrans: string[]) {
+  const u = exiger();
+  if (!ecrans.some((x) => droitsDe(u).includes(x))) throw new ErreurMetier(`Droit manquant : ${NOMS_ECRANS[ecrans[0]!] ?? ecrans[0]} (Administration > Profil > Assigner droit).`);
+}
 const comptesUtilisateurs = {
   lire() {
-    exiger();
+    lectureAdmin(["S05"]);
     return { agences: E.agences.filter((a) => !a.supprime).map(({ id, nom }) => ({ id, nom })),
       utilisateurs: [...E.utilisateurs].sort((a, b) => a.nom.localeCompare(b.nom)).map((x) => ({ id: x.id, nom: x.nom, login: x.login, agenceId: x.agenceId ?? null,
         controleConnecte: !!x.controleConnecte, rue: x.rue ?? "", adresse: x.adresse ?? "", bp: x.bp ?? "", telephoneFixe: x.telephoneFixe ?? "", portable: x.portable ?? "",
@@ -3339,6 +3344,10 @@ const comptesUtilisateurs = {
     const manque = manquants(oblig);
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
     if (mdp !== conf) throw new ErreurMetier("Confirmation : différente du mot de passe.");
+    if (mdp) {   // registre T24 : règle minimale ; identique côté serveur (securite.controler_mot_de_passe)
+      if (mdp.length < 8 || !/[A-Za-zÀ-ÿ]/.test(mdp) || !/\d/.test(mdp)) throw new ErreurMetier("Mot de passe : 8 caractères au moins, avec au moins une lettre et un chiffre.");
+      if (mdp.trim().toLowerCase() === v.login.trim().toLowerCase()) throw new ErreurMetier("Mot de passe : différent du nom d'utilisateur.");
+    }
     if (/\s/.test(v.login)) throw new ErreurMetier("Nom utilisateur : sans espace.");
     if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) throw new ErreurMetier("Email invalide.");
     if (!E.agences.some((a) => a.id === agenceId && !a.supprime)) throw new ErreurMetier("Agence inconnue.");
@@ -3360,7 +3369,7 @@ const modulesLies = (droits: string[]) => {
 };
 const profilsUtilisateurs = {
   lire(utilisateur?: number) {
-    exiger();
+    lectureAdmin(["S06"]);
     const r = { utilisateurs: [...E.utilisateurs].sort((a, b) => a.nom.localeCompare(b.nom)).map((x) => ({ id: x.id, nom: x.nom, login: x.login, agence: E.agences.find((a) => a.id === x.agenceId)?.nom ?? "" })),
       profils: E.profils.filter((p) => !p.supprime).sort((a, b) => a.nom.localeCompare(b.nom)).map((p) => ({ id: p.id, nom: p.nom, description: p.description, modules: modulesLies(p.droits) })),
       profilId: null as number | null, historique: [] as { profil: string; debut: string; fin: string; attribuePar: string }[] };
@@ -3396,7 +3405,7 @@ const profilsUtilisateurs = {
 // La démo tourne dans un seul navigateur : seul l'utilisateur de la session est connecté, sur « ce navigateur » (registre S07-1)
 const connexions = {
   lire() {
-    exiger();
+    lectureAdmin(["S07"]);
     return { utilisateurs: [...E.utilisateurs].sort((a, b) => a.nom.localeCompare(b.nom)).map((x) => ({ id: x.id, nom: x.nom, login: x.login,
       agence: E.agences.find((a) => a.id === x.agenceId)?.nom ?? "", connecte: E.session === x.id, machine: E.session === x.id ? "ce navigateur" : "", actif: true })) };
   },

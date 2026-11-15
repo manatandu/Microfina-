@@ -1,0 +1,4 @@
+# Outils de développement et de test : jamais dans l'image de production
+-r requirements.txt
+pytest==9.0.3
+pytest-django==4.11.1

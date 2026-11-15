@@ -758,6 +758,19 @@ describe("journée de guichet", () => {
     expect((await api.releves.situation(1, "2020-01-01")).comptes.every((x) => x.debit === 0 && x.credit === 0)).toBe(true);
   });
 
+  it("sécurité (registre T24) : règle minimale des mots de passe", async () => {
+    await connecter("jpmukendi");
+    const U = { nom: "Essai Mot", agenceId: 1, login: "emot", portable: "1" };
+    await expect(api.comptesUtilisateurs.enregistrer({ ...U, motDePasse: "court1", confirmation: "court1" })).rejects.toThrow("8 caractères");
+    await expect(api.comptesUtilisateurs.enregistrer({ ...U, motDePasse: "sanschiffre", confirmation: "sanschiffre" })).rejects.toThrow("un chiffre");
+    await expect(api.comptesUtilisateurs.enregistrer({ ...U, login: "emot12345", motDePasse: "emot12345", confirmation: "emot12345" })).rejects.toThrow("différent du nom");
+    expect((await api.comptesUtilisateurs.enregistrer({ ...U, motDePasse: "Kinshasa2026", confirmation: "Kinshasa2026" })).utilisateurs.some((v) => v.login === "emot")).toBe(true);
+    // registre T27 : les lectures d'administration demandent le droit de l'écran
+    await connecter("bkasongo");
+    await expect(api.comptesUtilisateurs.lire()).rejects.toThrow("Droit manquant");
+    await expect(api.connexions.lire()).rejects.toThrow("Droit manquant");
+  });
+
   it("adhésion par banque (S56) : payée sur un compte bancaire en CDF, saisie en attente du visa (registre S56-1 à S56-3)", async () => {
     await journeeOuverte();
     await connecter("jpmukendi");
@@ -1097,7 +1110,7 @@ describe("journée de guichet", () => {
 
   it("profils des utilisateurs (S06, p. 17) : un profil par utilisateur, modules liés, historique, pas pour soi-même ; droits du profil", async () => {
     await connecter("jpmukendi");
-    await api.comptesUtilisateurs.enregistrer({ nom: "Mbala Joseph", agenceId: 1, login: "jmbala", motDePasse: "s", confirmation: "s", portable: "1" });
+    await api.comptesUtilisateurs.enregistrer({ nom: "Mbala Joseph", agenceId: 1, login: "jmbala", motDePasse: "secret-1", confirmation: "secret-1", portable: "1" });
     const l = await api.profilsUtilisateurs.lire();
     const x = l.utilisateurs.find((v) => v.login === "jmbala")!, moi = l.utilisateurs.find((v) => v.login === "jpmukendi")!;
     const caissier = l.profils.find((p) => p.nom === "CAISSIER")!;

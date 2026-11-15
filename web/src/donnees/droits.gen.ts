@@ -291,7 +291,7 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "S03"
 ],
 "profilsUtilisateurs.enregistrer": [
-"S03"
+"S06"
 ],
 "releves.editer": [
 "S64"

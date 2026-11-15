@@ -12,6 +12,14 @@ if not SECRET_KEY:
         raise RuntimeError("LIKELEMBA_SECRET manquant : voir .env.example")
     SECRET_KEY = "developpement-seulement"
 ALLOWED_HOSTS = [h for h in os.environ.get("LIKELEMBA_HOTES", "127.0.0.1,localhost").split(",") if h]
+# Variables d'environnement vérifiées au démarrage en production (registre T25) : un réglage dangereux arrête le serveur au lieu de tourner
+if not DEBUG:
+    if len(SECRET_KEY) < 32:
+        raise RuntimeError("LIKELEMBA_SECRET trop court : 32 caractères au moins")
+    if os.environ.get("LIKELEMBA_SANS_MOT_DE_PASSE", "0") == "1":
+        raise RuntimeError("LIKELEMBA_SANS_MOT_DE_PASSE=1 interdit en production")
+    if not os.environ.get("PG_MOT_DE_PASSE"):
+        raise RuntimeError("PG_MOT_DE_PASSE manquant")
 
 INSTALLED_APPS = ["noyau"]
 MIDDLEWARE = [
@@ -19,6 +27,7 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "noyau.securite.LimiteRequetes",
 ]
 ROOT_URLCONF = "likelemba.urls"
 WSGI_APPLICATION = "likelemba.wsgi.application"
@@ -48,6 +57,19 @@ SESSION_COOKIE_AGE = 8 * 3600       # une journée de travail ; verrouillage plu
 
 # Cloud Run termine le HTTPS et transmet le protocole dans X-Forwarded-Proto
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+# En-têtes de sécurité et HTTPS imposé en production (registre T25)
+# HTTPS imposé par la plateforme : Firebase Hosting et Cloud Run (*.run.app) refusent le HTTP et redirigent ; HSTS fait retenir HTTPS au navigateur.
+# Pas de redirection de plus côté Django : derrière le relais, elle pourrait boucler.
+SECURE_SSL_REDIRECT = False
+SECURE_HSTS_SECONDS = 0 if DEBUG else 31536000
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
+X_FRAME_OPTIONS = "DENY"
+# Taille d'une requête : 2 Mo au plus (une photo ou un logo encodés font moins de 400 Ko)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 2_000_000
+LOGGING = {"version": 1, "disable_existing_loggers": False, "handlers": {"console": {"class": "logging.StreamHandler"}},
+           "loggers": {"dwacfina.securite": {"handlers": ["console"], "level": "WARNING", "propagate": False}}}
 
 USE_TZ = True
 TIME_ZONE = "UTC"                   # horodatage en UTC ; l'heure affichée suit l'agence

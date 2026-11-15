@@ -40,7 +40,7 @@ jobs:
           PG_HOTE: 127.0.0.1
           PG_PORT: "5432"
         run: |
-          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
           python -m pytest -q tests
       - uses: actions/setup-node@v4
         with:
