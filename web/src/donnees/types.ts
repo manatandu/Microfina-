@@ -250,7 +250,7 @@ export interface Operation {
 }
 
 /** S16 (manuel p. 25 à 27) : frais, et leur valeur par sous type de client (opérations) ou par type de membre (adhésion) */
-export interface Frais { id: number; libelle: string; typeOperation: string }
+export interface Frais { id: number; libelle: string; typeOperation: string; fondement?: string; autorisationBcc?: string }   // fondement : écart E14
 export interface ParamFrais { id: number; fraisId: number; nature: string; valeur: number | null; compte: string | null }
 export type ParamOperation = ParamFrais & { sousType: string };
 export type ParamAdhesion = ParamFrais & { typeMembre: string };

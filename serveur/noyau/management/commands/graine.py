@@ -96,7 +96,7 @@ class Command(BaseCommand):
         executer("insert into cours_change (institution_id, devise, jour, cours) values (%s, 'USD', '2026-11-04', %s)", (ins, COURS))
         # S16 : la part sociale, ligne « Part sociale standard » des frais d'adhésion (capture p. 89), compte 103 selon le membre (PCCI),
         # valeur des statuts (loi 002/2002, art. 20) ; exemple du manuel, 4 000 (registre S16-11)
-        fps = valeur("insert into frais (institution_id, type_operation, libelle) values (%s, 'ADHESION', 'Part sociale standard') returning id", (ins,))
+        fps = valeur("insert into frais (institution_id, type_operation, libelle, fondement) values (%s, 'ADHESION', 'Part sociale standard', 'part_sociale') returning id", (ins,))
         for tm, cp in (("physique", "1030"), ("morale", "1032"), ("groupe", "1031")):
             executer("insert into parametrage_frais_adhesion (frais_id, type_membre, nature, valeur, compte) values (%s, %s, 'montant', %s, %s)", (fps, tm, VALEUR_PART, cp))
 

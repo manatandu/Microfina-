@@ -334,7 +334,7 @@ const OUT = process.argv[2];
   await p.getByLabel('Type Opération: *').selectOption('DEPOT'); await p.getByLabel('Libellé du frais: *').fill('FRAIS VERSEMENT');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByRole('dialog', { name: 'Erreur' }).waitFor(); await etape('06d-frais-refus-bcc37'); await p.getByRole('button', { name: 'Ok' }).click();
-  await p.getByLabel('Type Opération: *').selectOption('ADHESION'); await p.getByLabel('Libellé du frais: *').fill("Droit d'entrée");
+  await p.getByLabel('Type Opération: *').selectOption('ADHESION'); await p.getByLabel('Libellé du frais: *').fill("Droit d'entrée"); await p.getByLabel('Fondement: *').selectOption('droit_adhesion');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('cell', { name: "Droit d'entrée" }).waitFor(); await etape('06e-frais');
   await p.getByRole('tab', { name: 'Paramétrage frais Adhésion', exact: true }).click();

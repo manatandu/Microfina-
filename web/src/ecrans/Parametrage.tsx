@@ -109,34 +109,41 @@ type Props = { d: Donnees; confirmer: (texte: string, faire: () => Promise<unkno
 function OngletFrais({ d, confirmer }: Props) {
   const [type, setType] = useState("");
   const [libelle, setLibelle] = useState("");
+  const [fondement, setFondement] = useState("");   // écart E14 : Instr. BCC 40, art. 8 et 12 ; loi 002/2002, art. 22
+  const [autorisation, setAutorisation] = useState("");
   const [choisi, setChoisi] = useState<Frais | null>(null);
   const [edition, setEdition] = useState<number | null>(null);
-  const annuler = () => { setType(""); setLibelle(""); setEdition(null); };
+  const annuler = () => { setType(""); setLibelle(""); setFondement(""); setAutorisation(""); setEdition(null); };
+  const saisie = { typeOperation: type, libelle, fondement, autorisationBcc: autorisation };
   return (
     <>
       <div className="formulaire">
         <Champ libelle="Type Opération: *">{(p) => <select {...p} className="saisie" required value={type} onChange={(e) => setType(e.target.value)}>
           <option value=""></option>{d.typesOperation.map((t) => <option key={t}>{t}</option>)}</select>}</Champ>
         <Champ libelle="Libellé du frais: *">{(p) => <input {...p} className="saisie" required autoComplete="off" value={libelle} onChange={(e) => setLibelle(e.target.value)} />}</Champ>
+        <Champ libelle="Fondement: *">{(p) => <select {...p} className="saisie" required value={fondement} onChange={(e) => setFondement(e.target.value)}>
+          <option value=""></option>{Object.entries(d.fondements).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}</Champ>
+        {fondement === "autorisation_bcc" && <Champ libelle="Référence de l'autorisation BCC: *">{(p) => <input {...p} className="saisie" required autoComplete="off" value={autorisation} onChange={(e) => setAutorisation(e.target.value)} />}</Champ>}
       </div>
       <div className="actions-onglets">
         <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment enregistrer ?",
-          () => edition ? api.parametrage.modifierFrais(edition, { typeOperation: type, libelle }) : api.parametrage.creerFrais({ typeOperation: type, libelle }), annuler)}>Enregistrer</button>
+          () => edition ? api.parametrage.modifierFrais(edition, saisie) : api.parametrage.creerFrais(saisie), annuler)}>Enregistrer</button>
         <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
       </div>
       <div className="actions-onglets">
         <Action choix={[
-          { libelle: "Modifier infos", inactif: !choisi, faire: () => { if (choisi) { setType(choisi.typeOperation); setLibelle(choisi.libelle); setEdition(choisi.id); } } },
+          { libelle: "Modifier infos", inactif: !choisi, faire: () => { if (choisi) { setType(choisi.typeOperation); setLibelle(choisi.libelle); setFondement(choisi.fondement ?? ""); setAutorisation(choisi.autorisationBcc ?? ""); setEdition(choisi.id); } } },
           { libelle: "Supprimer", inactif: !choisi, faire: () => { if (choisi) confirmer("Voulez-vous vraiment supprimer ?", () => api.parametrage.supprimerFrais(choisi.id), () => { setChoisi(null); annuler(); }); } },
         ]} />
       </div>
       <table className="grille">
-        <thead><tr><th scope="col">Frais</th><th scope="col">Type opération</th></tr></thead>
+        <thead><tr><th scope="col">Frais</th><th scope="col">Type opération</th><th scope="col">Fondement</th></tr></thead>
         <tbody>
-          {d.frais.length === 0 && <tr><td colSpan={2}>Liste vide</td></tr>}
+          {d.frais.length === 0 && <tr><td colSpan={3}>Liste vide</td></tr>}
           {d.frais.map((f) => (
             <tr key={f.id} className="ligne-choix" tabIndex={0} aria-selected={choisi?.id === f.id} onClick={() => setChoisi(f)} onKeyDown={(e) => { if (e.key === "Enter") setChoisi(f); }}>
               <td>{f.libelle}</td><td>{f.typeOperation}</td>
+              <td>{f.fondement ? `${d.fondements[f.fondement] ?? f.fondement}${f.autorisationBcc ? ` : ${f.autorisationBcc}` : ""}` : "À renseigner"}</td>
             </tr>
           ))}
         </tbody>

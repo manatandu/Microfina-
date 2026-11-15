@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**396 décisions.** Solidité : 156 fortes (le manuel ou un texte répond), 208 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 365 déjà en place, 29 à appliquer.
+**399 décisions.** Solidité : 158 fortes (le manuel ou un texte répond), 209 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 368 déjà en place, 29 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -911,6 +911,19 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | E12-1 | Où et pour qui | Écran Client > Registre des membres (SC04 : chef d'agence et agent, qui tiennent déjà les rapports clients S51). Réservé aux COOPEC et faîtières ; une IMF reçoit un refus qui cite le texte. Imprimable et exportable | Texte réglementaire : AUSCOOP, art. 9 (registre tenu au siège) ; loi 002/2002, art. 67 et 68 (registres, consultation par les membres) ; loi 11/020, art. 60 (données personnelles : écran à droit) | forte | en place |
 | E12-2 | Ordre et membres inscrits | Tout client visé, y compris ceux partis (date de sortie montrée), par ordre de la date d'admission (décision du Conseil, E05) ou, à défaut, de la date du visa | Texte réglementaire : AUSCOOP, art. 9 (ordre chronologique) et art. 10 (adhésion constatée par l'organe d'administration) ; registre E05-1 | forte | en place |
 | E12-3 | Parts souscrites et libérées | Dans le logiciel, une part s'achète payée (adhésion S73, achat S77) : parts souscrites et parts libérées sont égales, au nombre de parts détenues | Donnée exigée ailleurs : AUSCOOP, art. 9 (deux mentions) ; schéma des parts du logiciel (S73, S77) | moyenne | en place |
+
+## E13 Chèques impayés
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E13-1 | Qui doit avertir et déclarer | Pas d'écart : l'avertissement sous deux jours ouvrables, la déclaration de l'incident et la régularisation sous trente jours incombent au banquier tiré. Dans le logiciel, l'institution n'est jamais tirée : les chèques clients (S59) sont tirés sur d'autres banques et seulement déposés ; les chéquiers (S60) sont ceux de l'institution sur ses propres comptes bancaires. Aucun texte n'impose un motif de retour : rien n'est ajouté. Si l'institution délivre un jour des chéquiers à ses clients, ces règles s'appliqueront | Texte réglementaire : Instr. BCC 52, art. 3, 11, 18, 19, 29 à 33 | forte | en place |
+
+## E14 Frais hors liste
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E14-1 | Fondement de chaque frais | Chaque frais d'opération (S16) porte un fondement obligatoire : part sociale, droit d'adhésion fixé par l'Assemblée générale (coopératives, à l'adhésion seulement), ou autre frais autorisé par la BCC, avec la référence de l'autorisation, exigée. Les frais de crédit restent choisis dans la liste de l'Instr. 40, art. 8, avec le produit de crédit | Texte réglementaire : Instr. BCC 40, art. 7, 8 et 12 ; loi 002/2002, art. 22, 2° et 5° | forte | en place |
+| E14-2 | Frais déjà saisis | Les frais portés par un compte 103 reçoivent le fondement « part sociale » ; les autres frais déjà saisis montrent « À renseigner » jusqu'à leur modification | Texte réglementaire : Instr. BCC 40, art. 12 ; registre S16-11 (part = compte 103) | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

@@ -1,6 +1,6 @@
 """S16 : frais et leur paramétrage (manuel Microfina++, p. 25 à 27). Mêmes règles que web/src/donnees/api.ts (parametrage)."""
 from .bd import ErreurMetier, executer, lignes, une, valeur
-from .services import exiger
+from .services import est_coopec, exiger
 from .listes import valeurs as valeurs_liste
 
 # Registre S16-1 : les opérations des menus Caisse et Banque déjà construites (ADHESION et DEPOT sont montrés p. 25 et 26)
@@ -9,6 +9,10 @@ TYPES_OPERATION = ["ADHESION", "DEPOT", "RETRAIT", "PART_SOCIALE"]
 # virement de compte à compte dans la même institution, deux premiers relevés mensuels…)
 GRATUITS = {"DEPOT": "dépôt d'espèces", "RETRAIT": "retrait d'espèces", "OUVERTURE": "ouverture de compte", "CLOTURE": "clôture de compte",
             "VIREMENT": "virement de compte à compte"}
+# Écart E14 : fondement de chaque frais (Instr. BCC 40, art. 8 et 12 ; loi 002/2002, art. 22). Les frais de crédit de l'Instr. 40, art. 8, se paramètrent
+# avec le produit de crédit (produits_credit.py) ; ici, hors part et droit d'adhésion, un frais exige l'autorisation préalable de la BCC.
+FONDEMENTS = {"part_sociale": "Part sociale (loi 002/2002, art. 22, 2°)", "droit_adhesion": "Droit d'adhésion fixé par l'Assemblée générale (loi 002/2002, art. 22, 5°)",
+              "autorisation_bcc": "Autre frais, autorisé par la BCC (Instr. BCC 40, art. 12)"}
 NATURES = {"Montant": "montant", "Taux": "taux"}   # registre S16-2 : Taux = pourcentage du montant de l'opération
 TYPES_MEMBRE = {"Physique": "physique", "Personne morale": "morale", "Groupe": "groupe"}   # les trois types de client (p. 47)
 
@@ -26,10 +30,11 @@ def lire(u) -> dict:
     exiger(u)
     i = u["institution_id"]
     return {
-        "typesOperation": TYPES_OPERATION, "natures": list(NATURES), "typesMembre": list(TYPES_MEMBRE),
+        "typesOperation": TYPES_OPERATION, "natures": list(NATURES), "typesMembre": list(TYPES_MEMBRE), "fondements": FONDEMENTS,
         "sousTypes": [r["libelle"] for r in valeurs_liste(u, "sous_type_client")],   # registre S16-8 : Général > Sous type de client
         "compteAdhesion": "727",                                                       # registre S16-4 : proposé, modifiable
-        "frais": lignes("select id, libelle, type_operation as \"typeOperation\" from frais where institution_id = %s order by id", (i,)),
+        "frais": lignes("""select id, libelle, type_operation as "typeOperation", coalesce(fondement, '') as fondement, coalesce(autorisation_bcc, '') as "autorisationBcc"
+                           from frais where institution_id = %s order by id""", (i,)),
         "operations": lignes("""select p.id, p.frais_id as "fraisId", s.libelle as "sousType", p.valeur, p.compte, initcap(p.nature) as nature
                                  from parametrage_frais p join liste_reference s on s.id = p.sous_type_id join frais f on f.id = p.frais_id
                                  where f.institution_id = %s order by p.id""", (i,)),
@@ -39,8 +44,8 @@ def lire(u) -> dict:
     }
 
 
-def controler_frais(u, d) -> tuple[str, str]:
-    t, l = texte(d, "typeOperation"), texte(d, "libelle")
+def controler_frais(u, d) -> tuple[str, str, str, str | None]:
+    t, l, fo, au = texte(d, "typeOperation"), texte(d, "libelle"), texte(d, "fondement"), texte(d, "autorisationBcc")
     manque = [n for n, v in (("type opération", t), ("libellé du frais", l)) if not v]
     if manque:
         raise ErreurMetier("À remplir : " + ", ".join(manque) + ".")
@@ -48,16 +53,27 @@ def controler_frais(u, d) -> tuple[str, str]:
         raise ErreurMetier("Type d'opération inconnu.")
     if t in GRATUITS:
         raise ErreurMetier(f"Aucun frais sur le {GRATUITS[t]} : service gratuit sans condition (Instr. BCC 37, art. 2 et 3, annexe).")
-    return t, l
+    if not fo:
+        raise ErreurMetier("À remplir : fondement.")
+    if fo not in FONDEMENTS:
+        raise ErreurMetier("Fondement inconnu.")
+    if fo in ("part_sociale", "droit_adhesion") and not est_coopec(u):
+        raise ErreurMetier("Part sociale et droit d'adhésion : propres aux coopératives (loi 002/2002, art. 22). Sinon, autorisation de la BCC (Instr. BCC 40, art. 12).")
+    if fo == "droit_adhesion" and t != "ADHESION":
+        raise ErreurMetier("Le droit d'adhésion se perçoit à l'adhésion (loi 002/2002, art. 22, 5°).")
+    if fo == "autorisation_bcc" and not au:
+        raise ErreurMetier("Frais hors de la liste de l'Instr. BCC 40 : la référence de l'autorisation préalable de la BCC est obligatoire (art. 12).")
+    return t, l, fo, au if fo == "autorisation_bcc" else None
 
 
 def creer_frais(u, d) -> dict:
     droit(u)
-    t, l = controler_frais(u, d)
+    t, l, fo, au = controler_frais(u, d)
     if valeur("select 1 from frais where institution_id = %s and type_operation = %s and libelle = %s", (u["institution_id"], t, l)):
         raise ErreurMetier("Ce frais existe déjà.")
-    fid = valeur("insert into frais (institution_id, type_operation, libelle) values (%s, %s, %s) returning id", (u["institution_id"], t, l))
-    return {"id": fid, "libelle": l, "typeOperation": t}
+    fid = valeur("insert into frais (institution_id, type_operation, libelle, fondement, autorisation_bcc) values (%s, %s, %s, %s, %s) returning id",
+                 (u["institution_id"], t, l, fo, au))
+    return {"id": fid, "libelle": l, "typeOperation": t, "fondement": fo, "autorisationBcc": au or ""}
 
 
 def frais_de(u, fid) -> dict:
@@ -70,11 +86,11 @@ def frais_de(u, fid) -> dict:
 def modifier_frais(u, fid: int, d) -> dict:
     droit(u)
     frais_de(u, fid)
-    t, l = controler_frais(u, d)
+    t, l, fo, au = controler_frais(u, d)
     if valeur("select 1 from frais where institution_id = %s and type_operation = %s and libelle = %s and id <> %s", (u["institution_id"], t, l, fid)):
         raise ErreurMetier("Ce frais existe déjà.")
-    executer("update frais set type_operation = %s, libelle = %s where id = %s", (t, l, fid))
-    return {"id": fid, "libelle": l, "typeOperation": t}
+    executer("update frais set type_operation = %s, libelle = %s, fondement = %s, autorisation_bcc = %s where id = %s", (t, l, fo, au, fid))
+    return {"id": fid, "libelle": l, "typeOperation": t, "fondement": fo, "autorisationBcc": au or ""}
 
 
 def supprimer_frais(u, fid: int):

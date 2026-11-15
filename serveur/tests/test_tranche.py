@@ -414,7 +414,7 @@ def test_adhesion_apres_visa(clients, journee):
     assert agent.post(f"/api/tiers/{t['id']}/visa", **H).status_code == 403                 # l'agent n'est pas chef
     assert chef.post(f"/api/tiers/{t['id']}/visa", **H).status_code == 200
     # Frais d'adhésion paramétrés (S16) : le compte est contrôlé sur le plan dès le paramétrage (règle T16)
-    f = chef.post("/api/parametrage/frais", {"typeOperation": "ADHESION", "libelle": "Droit d'entrée"}, **H).json()
+    f = chef.post("/api/parametrage/frais", {"typeOperation": "ADHESION", "libelle": "Droit d'entrée", "fondement": "droit_adhesion"}, **H).json()
     chef.post("/api/parametrage/frais-adhesion", {"fraisId": f["id"], "nature": "Montant", "valeur": 200000, "compte": "728", "typesMembre": ["Physique"]}, **H)
     assert "billetage" in caisse.post("/api/guichet/adhesions", corps, **H).json()["message"]      # 12 000 de parts + 2 000 de frais
     assert caisse.post("/api/guichet/adhesions", {**corps, "coupures": {"5000": 2, "1000": 4}}, **H).status_code == 200
@@ -484,7 +484,7 @@ def test_part_sociale_frais_adhesion(clients):
     assert "compte 1030" in refus(f"/api/parametrage/frais-adhesion/{pid}", {"nature": "Montant", "valeur": 400000, "compte": "1032"})
     assert "seule valeur nominale" in refus(f"/api/parametrage/frais-adhesion/{pid}", {"nature": "Montant", "valeur": 500000, "compte": "1030"})
     assert "obligatoire" in refus(f"/api/parametrage/frais-adhesion/{pid}", {"nature": "Montant", "valeur": None, "compte": "1030"})
-    f = chef.post("/api/parametrage/frais", {"typeOperation": "ADHESION", "libelle": "Autre part"}, **H).json()
+    f = chef.post("/api/parametrage/frais", {"typeOperation": "ADHESION", "libelle": "Autre part", "fondement": "part_sociale"}, **H).json()
     assert "déjà paramétrée" in refus("/api/parametrage/frais-adhesion", {"fraisId": f["id"], "nature": "Montant", "valeur": 400000, "compte": "1030", "typesMembre": ["Physique"]})
     # Nouvelle valeur des statuts : la même sur les trois lignes
     for x in parts.values():
@@ -510,9 +510,9 @@ def test_parametrage_frais(clients):
     def refus(c, route, corps, methode="post"):
         r = getattr(c, methode)(route, corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
     assert "Instr. BCC 37" in refus(chef, "/api/parametrage/frais", {"typeOperation": "DEPOT", "libelle": "FRAIS VERSEMENT"})
-    assert "Droit manquant" in refus(agent, "/api/parametrage/frais", {"typeOperation": "ADHESION", "libelle": "Droit d'entrée"})
-    f = chef.post("/api/parametrage/frais", {"typeOperation": "ADHESION", "libelle": "Droit d'entrée"}, **H).json()
-    assert "existe déjà" in refus(chef, "/api/parametrage/frais", {"typeOperation": "ADHESION", "libelle": "Droit d'entrée"})
+    assert "Droit manquant" in refus(agent, "/api/parametrage/frais", {"typeOperation": "ADHESION", "libelle": "Droit d'entrée", "fondement": "droit_adhesion"})
+    f = chef.post("/api/parametrage/frais", {"typeOperation": "ADHESION", "libelle": "Droit d'entrée", "fondement": "droit_adhesion"}, **H).json()
+    assert "existe déjà" in refus(chef, "/api/parametrage/frais", {"typeOperation": "ADHESION", "libelle": "Droit d'entrée", "fondement": "droit_adhesion"})
     assert "Paramétrage frais Adhésion" in refus(chef, "/api/parametrage/frais-operation", {"fraisId": f["id"], "nature": "Montant", "sousTypes": ["Femme"]})
     assert "Compte" in refus(chef, "/api/parametrage/frais-adhesion", {"fraisId": f["id"], "nature": "Montant", "valeur": 500000, "compte": "70A", "typesMembre": ["Physique"]})
     # Règle T16 : le compte de l'exemple du manuel (70291) n'est pas dans le plan de comptes ; S16-2 : un frais d'adhésion est un Montant
@@ -533,7 +533,11 @@ def test_parametrage_frais(clients):
     assert next(x for x in chef.get("/api/parametrage/frais").json()["adhesion"] if x["id"] == pid)["typeMembre"] == "Personne morale"
     chef.post(f"/api/parametrage/frais-adhesion/{pid}/categorie", {"typeMembre": "Physique"}, **H)
     # Frais d'opération au taux (S16-2) sur une part sociale (S16-1), sous type de Général (S16-8)
-    fp = chef.post("/api/parametrage/frais", {"typeOperation": "PART_SOCIALE", "libelle": "Frais de part"}, **H).json()
+    assert "À remplir : fondement" in refus(chef, "/api/parametrage/frais", {"typeOperation": "PART_SOCIALE", "libelle": "Frais de part"})          # écart E14
+    assert "autorisation préalable de la BCC" in refus(chef, "/api/parametrage/frais", {"typeOperation": "PART_SOCIALE", "libelle": "Frais de part", "fondement": "autorisation_bcc"})
+    assert "droit d'adhésion se perçoit" in refus(chef, "/api/parametrage/frais", {"typeOperation": "PART_SOCIALE", "libelle": "Frais de part", "fondement": "droit_adhesion"})
+    fp = chef.post("/api/parametrage/frais", {"typeOperation": "PART_SOCIALE", "libelle": "Frais de part", "fondement": "autorisation_bcc", "autorisationBcc": "BCC/DSIF/2026/031"}, **H).json()
+    assert next(x for x in chef.get("/api/parametrage/frais").json()["frais"] if x["id"] == fp["id"])["autorisationBcc"] == "BCC/DSIF/2026/031"
     assert "Taux invalide" in refus(chef, "/api/parametrage/frais-operation", {"fraisId": fp["id"], "nature": "Taux", "valeur": 20000, "compte": "727", "sousTypes": ["Femme"]})
     [po] = chef.post("/api/parametrage/frais-operation", {"fraisId": fp["id"], "nature": "Taux", "valeur": 150, "compte": "727", "sousTypes": ["Femme"]}, **H).json()
     assert chef.get("/api/parametrage/frais").json()["operations"][0]["nature"] == "Taux"

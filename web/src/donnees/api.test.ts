@@ -117,7 +117,7 @@ describe("journée de guichet", () => {
     expect((await api.referentiel.contexte()).valeurPart).toBe(400000);
     await expect(p.modifierParametrage("adhesion", 1, { nature: "Montant", valeur: 400000, compte: "1032" })).rejects.toThrow("compte 1030");
     await expect(p.modifierParametrage("adhesion", 1, { nature: "Montant", valeur: 500000, compte: "1030" })).rejects.toThrow("seule valeur nominale");
-    const f = await p.creerFrais({ typeOperation: "ADHESION", libelle: "Autre part" });
+    const f = await p.creerFrais({ typeOperation: "ADHESION", libelle: "Autre part", fondement: "part_sociale" });
     await expect(p.parametrerAdhesion({ fraisId: f.id, nature: "Montant", valeur: 400000, compte: "1030", typesMembre: ["Physique"] })).rejects.toThrow("déjà paramétrée");
   });
 
@@ -510,8 +510,8 @@ describe("journée de guichet", () => {
     await connecter("jpmukendi");
     const p = api.parametrage;
     await expect(p.creerFrais({ typeOperation: "DEPOT", libelle: "FRAIS VERSEMENT" })).rejects.toThrow("Instr. BCC 37");
-    const f = await p.creerFrais({ typeOperation: "ADHESION", libelle: "Droit d'entrée" });
-    await expect(p.creerFrais({ typeOperation: "ADHESION", libelle: "Droit d'entrée" })).rejects.toThrow("existe déjà");
+    const f = await p.creerFrais({ typeOperation: "ADHESION", libelle: "Droit d'entrée", fondement: "droit_adhesion" });
+    await expect(p.creerFrais({ typeOperation: "ADHESION", libelle: "Droit d'entrée", fondement: "droit_adhesion" })).rejects.toThrow("existe déjà");
     await expect(p.parametrerOperation({ fraisId: f.id, nature: "Montant", valeur: null, compte: "", sousTypes: ["Femme"] })).rejects.toThrow("Paramétrage frais Adhésion");
     await expect(p.parametrerAdhesion({ fraisId: f.id, nature: "Montant", valeur: 500000, compte: "70A", typesMembre: ["Physique"] })).rejects.toThrow("Compte");
     // Règle T16 : 70291 (exemple du manuel) n'est pas dans le plan de comptes ; S16-2 : un frais d'adhésion est un Montant
@@ -528,7 +528,11 @@ describe("journée de guichet", () => {
     await p.modifierCategorie(pid, "Personne morale");                                                                         // S16-6
     expect((await p.lireFrais()).adhesion.find((x) => x.id === pid)!.typeMembre).toBe("Personne morale");
     await p.modifierCategorie(pid, "Physique");
-    const fp = await p.creerFrais({ typeOperation: "PART_SOCIALE", libelle: "Frais de part" });                             // S16-1
+    await expect(p.creerFrais({ typeOperation: "PART_SOCIALE", libelle: "Frais de part" })).rejects.toThrow("À remplir : fondement");          // écart E14
+    await expect(p.creerFrais({ typeOperation: "PART_SOCIALE", libelle: "Frais de part", fondement: "autorisation_bcc" })).rejects.toThrow("autorisation préalable de la BCC");
+    await expect(p.creerFrais({ typeOperation: "PART_SOCIALE", libelle: "Frais de part", fondement: "droit_adhesion" })).rejects.toThrow("droit d'adhésion se perçoit");
+    const fp = await p.creerFrais({ typeOperation: "PART_SOCIALE", libelle: "Frais de part", fondement: "autorisation_bcc", autorisationBcc: "BCC/DSIF/2026/031" });   // S16-1
+    expect((await p.lireFrais()).frais.find((x) => x.id === fp.id)!.autorisationBcc).toBe("BCC/DSIF/2026/031");
     await expect(p.parametrerOperation({ fraisId: fp.id, nature: "Taux", valeur: 20000, compte: "727", sousTypes: ["Femme"] })).rejects.toThrow("Taux invalide");
     const [po] = await p.parametrerOperation({ fraisId: fp.id, nature: "Taux", valeur: 150, compte: "727", sousTypes: ["Femme"] });
     expect((await p.lireFrais()).operations[0]!.nature).toBe("Taux");
@@ -1100,7 +1104,7 @@ describe("journée de guichet", () => {
     await connecter("jpmukendi"); await api.tiers.viser(t.id); await connecter("engalula");
     // Frais d'adhésion (S16) : compte absent du plan, puis compte du plan
     await connecter("jpmukendi");
-    const f = await api.parametrage.creerFrais({ typeOperation: "ADHESION", libelle: "Droit d'entrée" });
+    const f = await api.parametrage.creerFrais({ typeOperation: "ADHESION", libelle: "Droit d'entrée", fondement: "droit_adhesion" });
     await api.parametrage.parametrerAdhesion({ fraisId: f.id, nature: "Montant", valeur: 200000, compte: "728", typesMembre: ["Physique"] });   // compte contrôlé dès le paramétrage (T16)
     await connecter("engalula");
     await expect(api.guichet.adhesion({ cle: cle(), tiersId: t.id, parts: 3, depot: 0, coupures: { 5000: 2, 1000: 2 } })).rejects.toThrow("billetage");

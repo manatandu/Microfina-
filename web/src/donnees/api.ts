@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v73";
+const CLE = "likelemba-demo-v74";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -757,13 +757,23 @@ const TYPES_MEMBRE: Record<string, Tiers["type"]> = { Physique: "physique", "Per
 export type ValeursFrais = { nature: string; valeur: number | null; compte: string };
 
 const droitParametrage = () => exiger("chef_agence");   // profil habilité : à confirmer (S04 à S07)
-function controlerFrais(d: { typeOperation: string; libelle: string }) {
-  const t = d.typeOperation.trim(), l = d.libelle.trim();
+// Écart E14 : fondement de chaque frais (Instr. BCC 40, art. 8 et 12 ; loi 002/2002, art. 22). Mêmes règles que noyau/frais.py.
+export const FONDEMENTS_FRAIS: Record<string, string> = { part_sociale: "Part sociale (loi 002/2002, art. 22, 2°)",
+  droit_adhesion: "Droit d'adhésion fixé par l'Assemblée générale (loi 002/2002, art. 22, 5°)", autorisation_bcc: "Autre frais, autorisé par la BCC (Instr. BCC 40, art. 12)" };
+type SaisieFrais = { typeOperation: string; libelle: string; fondement?: string; autorisationBcc?: string };
+function controlerFrais(d: SaisieFrais) {
+  const t = d.typeOperation.trim(), l = d.libelle.trim(), fo = (d.fondement ?? "").trim(), au = (d.autorisationBcc ?? "").trim();
   const manque = manquants([["type opération", t], ["libellé du frais", l]]);
   if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
   if (!TYPES_OPERATION.includes(t)) throw new ErreurMetier("Type d'opération inconnu.");
   if (GRATUITS[t]) throw new ErreurMetier(`Aucun frais sur le ${GRATUITS[t]} : service gratuit sans condition (Instr. BCC 37, art. 2 et 3, annexe).`);
-  return { typeOperation: t, libelle: l };
+  if (!fo) throw new ErreurMetier("À remplir : fondement.");
+  if (!FONDEMENTS_FRAIS[fo]) throw new ErreurMetier("Fondement inconnu.");
+  if ((fo === "part_sociale" || fo === "droit_adhesion") && !estCoopec())
+    throw new ErreurMetier("Part sociale et droit d'adhésion : propres aux coopératives (loi 002/2002, art. 22). Sinon, autorisation de la BCC (Instr. BCC 40, art. 12).");
+  if (fo === "droit_adhesion" && t !== "ADHESION") throw new ErreurMetier("Le droit d'adhésion se perçoit à l'adhésion (loi 002/2002, art. 22, 5°).");
+  if (fo === "autorisation_bcc" && !au) throw new ErreurMetier("Frais hors de la liste de l'Instr. BCC 40 : la référence de l'autorisation préalable de la BCC est obligatoire (art. 12).");
+  return { typeOperation: t, libelle: l, fondement: fo, autorisationBcc: fo === "autorisation_bcc" ? au : "" };
 }
 function fraisDe(id: number) {
   const f = E.frais.find((x) => x.id === id);
@@ -790,17 +800,17 @@ function ligneParam(liste: ParamFrais[], id: number) {
 const parametrage = {
   lireFrais() {
     exiger();
-    return { typesOperation: TYPES_OPERATION, natures: NATURES, typesMembre: Object.keys(TYPES_MEMBRE), sousTypes: sousTypes(), compteAdhesion: "727",   // S16-4
+    return { typesOperation: TYPES_OPERATION, natures: NATURES, typesMembre: Object.keys(TYPES_MEMBRE), sousTypes: sousTypes(), compteAdhesion: "727", fondements: FONDEMENTS_FRAIS,   // S16-4
       frais: E.frais, operations: E.paramOperations, adhesion: E.paramAdhesion };
   },
-  creerFrais(d: { typeOperation: string; libelle: string }): Frais {
+  creerFrais(d: SaisieFrais): Frais {
     droitParametrage();
     const c = controlerFrais(d);
     if (E.frais.some((x) => x.typeOperation === c.typeOperation && x.libelle === c.libelle)) throw new ErreurMetier("Ce frais existe déjà.");
     const f = { id: prochain(E.frais), ...c };
     E.frais.push(f); enregistrer(); return f;
   },
-  modifierFrais(id: number, d: { typeOperation: string; libelle: string }): Frais {
+  modifierFrais(id: number, d: SaisieFrais): Frais {
     droitParametrage();
     const f = fraisDe(id);
     const c = controlerFrais(d);
