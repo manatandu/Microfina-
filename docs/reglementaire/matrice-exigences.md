@@ -114,7 +114,7 @@ Note : l'art. 14 associe les pondérations à des niveaux de risque dans l'ordre
 | Instr. 29 | Agents bancaires | Extensions | à lire |
 | Instr. 36 | Continuité d'activité | Exploitation | survolé, à lire |
 | Instr. 37, 38, 40 | Services gratuits, TEG (formule en annexe), publication des conditions | Crédit, Référentiel | survolé, à lire |
-| Instr. 39 | Plaintes : réponse sous 45 jours calendaires, référence unique | Plaintes | survolé, à lire |
+| Instr. 39 | Plaintes : référence unique, réponse sous 45 jours calendaires, réparation, rapport trimestriel | Client > Conformité > Plaintes (SC03) | lu |
 | Instr. 41 mod. 1 | Agrément, dirigeants, autorisations préalables | Référentiel (données institution) | à lire |
 | Instr. 0011 | Faîtière | Extensions | à lire |
 

@@ -192,6 +192,12 @@ export interface Examen {
 }
 /** Écart E02 : dossier d'une personne politiquement exposée (Instr. BCC 15, art. 41, 64, 65) */
 export interface DossierPpe { tiersId: number; fonction: string; finFonction: string; originePatrimoine: string; saisiPar: number; autorisePar: number | null; autoriseLe: string; informeLe: string; referenceCenaref: string }
+/** Écart E07 : plainte (Instr. BCC 39) */
+export interface Plainte {
+  id: number; agenceId: number; reference: string; cle: string; recueLe: string; tiersId: number | null; plaignant: string; contact: string;
+  canal: string; provenance: string; nature: string; objet: string; enregistreePar: number; statut: "recue" | "repondue";
+  fondee: boolean | null; reponse: string; reparation: string; repondueLe: string; repondueePar: number | null;
+}
 export interface RuptureDat { jours: number; interet: number; penalite: number; tauxIrc: string; irc: number; montantAVerser: number }
 
 export interface Emprunt {   // S61
@@ -265,6 +271,7 @@ export interface Etat {
   paramOperations: ParamOperation[];
   paramAdhesion: ParamAdhesion[];
   modifications: { id: number; tiersId: number; avant: Tiers; apres: Tiers; modifiePar: number; modifieLe: string; validePar?: number; valideLe?: string }[];
+  plaintes: Plainte[];   // écart E07
   declarationsCip: { type: string; objetId: number; dateEvenement: string; declareLe: string; reference: string; declarePar: number }[];   // écart E06   // S46, S42, S43
   banques: { id: number; code: string; libelle: string; compteLiaison: string; adresse: string }[];   // S58
   budget: Record<string, LigneBudget[]>;

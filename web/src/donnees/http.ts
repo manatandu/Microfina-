@@ -65,6 +65,12 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       enregistrerPpe: (tid: number, d: object) => post(`/conformite/ppe/${tid}`, d),
       informerPpe: (tid: number, d: object) => post(`/conformite/ppe/${tid}/information`, d),
     },
+    plaintes: {
+      enregistrer: (d: object) => post("/plaintes", d),
+      lister: (statut = "", du = "", au = "") => get(`/plaintes?statut=${statut}&du=${du}&au=${au}`),
+      repondre: (id: number, d: object) => post(`/plaintes/${id}/reponse`, d),
+      rapport: (du: string, au: string) => get(`/plaintes/rapport?du=${du}&au=${au}`),
+    },
     releves: {
       releve: (compteId: number, du: string, au: string) => get(`/epargne/releve?compteId=${compteId}&du=${du}&au=${au}`),
       situation: (tiersId: number, date: string) => get(`/epargne/situation?tiersId=${tiersId}&date=${date}`),

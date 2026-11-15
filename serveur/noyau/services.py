@@ -797,6 +797,7 @@ def creer_tiers(u: dict, d: dict) -> dict:
     fiche = controler_fiche_physique(u, d, texte, journee_courante(u))
     images = d.get("images") or {}
     controler_image(images.get("photo"), "Photo"); controler_image(images.get("signature"), "Signature")
+    controler_image(images.get("copiePiece"), "Copie de la pièce d'identité"); controler_image(images.get("justificatifAdresse"), "Justificatif d'adresse")
     prospect = d.get("prospectId")
     if prospect is not None:
         # « Choisir prospect » (p. 49) : le prospect (S45) devient le client ; il garde son numéro et ses coordonnées
@@ -824,8 +825,9 @@ def creer_tiers(u: dict, d: dict) -> dict:
               texte("pieceType"), texte("pieceNumero"), texte("pieceDelivreeLe") or None, texte("pieceLieu") or None, texte("pieceAutorite") or None,
               texte("pieceExpire") or None, texte("adresse") or None, texte("telephone") or None, tid))
     ecrire_fiche_physique(tid, texte, fiche)
-    if images.get("photo") or images.get("signature"):
-        executer("insert into specimen (tiers_id, photo, signature, depose_le) values (%s, %s, %s, current_date)", (tid, images.get("photo"), images.get("signature")))
+    if any(images.get(k) for k in ("photo", "signature", "copiePiece", "justificatifAdresse")):
+        executer("insert into specimen (tiers_id, photo, signature, copie_piece, justificatif_adresse, depose_le) values (%s, %s, %s, %s, %s, current_date)",
+                 (tid, images.get("photo"), images.get("signature"), images.get("copiePiece"), images.get("justificatifAdresse")))
     return lire_tiers(tid)
 
 
@@ -943,14 +945,16 @@ def creer_groupe(u: dict, d: dict) -> dict:
     b, texte, fiche, nombres, membres = controler_groupe(u, d)
     images = d.get("images") or {}
     controler_image(images.get("photo"), "Photo"); controler_image(images.get("signature"), "Signature")
+    controler_image(images.get("copiePiece"), "Copie de la pièce d'identité"); controler_image(images.get("justificatifAdresse"), "Justificatif d'adresse")
     tid = inserer_tiers(u, d, b, "groupe", (TYPES_GROUPE.get(texte("typeClient")) or "menages"))
     executer("""insert into tiers_morale (tiers_id, raison_sociale, forme, rccm, adresse_siege, activite, nb_hommes, nb_femmes)
                 values (%s, %s, %s, %s, %s, %s, %s, %s)""",
              (tid, texte("nom"), texte("formeJuridique") or None, texte("registre") or None, texte("adresse"), texte("typeActivite") or None, *nombres))
     ecrire_fiche_morale(tid, texte, fiche)
     inserer_representants(tid, [("membre", r) for r in membres])
-    if images.get("photo") or images.get("signature"):
-        executer("insert into specimen (tiers_id, photo, signature, depose_le) values (%s, %s, %s, current_date)", (tid, images.get("photo"), images.get("signature")))
+    if any(images.get(k) for k in ("photo", "signature", "copiePiece", "justificatifAdresse")):
+        executer("insert into specimen (tiers_id, photo, signature, copie_piece, justificatif_adresse, depose_le) values (%s, %s, %s, %s, %s, current_date)",
+                 (tid, images.get("photo"), images.get("signature"), images.get("copiePiece"), images.get("justificatifAdresse")))
     return lire_tiers(tid)
 
 
@@ -985,6 +989,9 @@ def viser_tiers(u: dict, tid: int, d: dict | None = None) -> dict:
         raise ErreurMetier("Premier dépôt invalide.")
     from .conformite import exiger_autorisation_ppe
     exiger_autorisation_ppe(tid)                                     # écart E02 : Instr. BCC 15, art. 64
+    # Écart E03 (décision du porteur, 15/11/2026) : pas de visa d'une personne physique sans copie de sa pièce d'identité (Instr. BCC 15, art. 12 et 29)
+    if t["type"] == "physique" and not valeur("select copie_piece from specimen where tiers_id = %s order by id desc limit 1", (tid,)):
+        raise ErreurMetier("Copie de la pièce d'identité manquante : la déposer avant le visa (Client > Photos et signatures ; Instr. BCC 15, art. 12 et 29).")
     # Écart E05 : COOPEC, admission par le Conseil d'Administration (loi 002/2002, art. 22, 6° ; AUSCOOP, art. 10), ou par sa délégation (Info société)
     adm_le, adm_ref = texte("admissionLe") or None, texte("admissionReference") or None
     if est_coopec(u):

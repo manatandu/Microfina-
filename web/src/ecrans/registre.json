@@ -495,6 +495,15 @@
   "chemin": "/clients/sc02"
  },
  {
+  "id": "SC03",
+  "nom": "Plaintes",
+  "acces": "Client > Conformité > Plaintes",
+  "but": "Enregistrer les plaintes avec un numéro de référence unique, y répondre dans 45 jours, rapport trimestriel (écart E07 ; Instr. BCC 39)",
+  "module": "clients",
+  "priorite": "must",
+  "chemin": "/clients/sc03"
+ },
+ {
   "id": "S52",
   "nom": "Opérations de banque",
   "acces": "Banque > Opération",

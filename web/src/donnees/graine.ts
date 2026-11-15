@@ -156,6 +156,7 @@ export function graine(): Etat {
     examens: [],
     dossiersPpe: [],
     declarationsCip: [],
+    plaintes: [],
     remboursementsEmprunt: [],
     chequesInstitution: [],
     agents: [],

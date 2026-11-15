@@ -344,6 +344,14 @@ const OUT = process.argv[2];
   await p.getByRole('tab', { name: 'Modif Paramétrage frais Adhésion' }).click();
   await p.getByLabel('Frais: *').selectOption({ label: "Droit d'entrée" }); await p.getByLabel('Type membre *').selectOption('Physique');
   await p.getByRole('cell', { name: /5 000/ }).waitFor(); await etape('06g-modif-frais-adhesion');
+  // Copie de la pièce d'identité de Tshala avant le visa (écart E03, décision du porteur ; Instr. BCC 15, art. 12 et 29)
+  await aller('/clients/s49'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  const rcp = p.getByRole('dialog', { name: "Recherche d'un client" });
+  await rcp.getByLabel('Nom:', { exact: true }).fill('Tshala'); await rcp.getByRole('row').filter({ hasText: 'Tshala' }).first().dblclick();
+  const copie = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+  await p.locator('fieldset', { hasText: "Copie de la pièce d'identité" }).locator('input[type=file]').setInputFiles({ name: 'piece.png', mimeType: 'image/png', buffer: copie });
+  await p.getByRole('img', { name: "Aperçu : Copie de la pièce d'identité" }).waitFor(); await etape('06a2-copie-piece');
+  await p.getByRole('button', { name: 'Valider les Modifications' }).click(); await ok();
   await aller('/clients/s40');
   for (const [i, nom] of ['Tshala', 'Mamans', 'Boulangerie'].entries()) {
     if (i > 0) await p.getByRole('button', { name: 'Annuler' }).click();
@@ -554,6 +562,15 @@ const OUT = process.argv[2];
   // Centrale des incidents de paiement (écart E06) : les ouvertures et nouveaux clients du jour à déclarer, avec leur échéance
   await aller('/clients/sc02'); await p.getByRole('heading', { name: 'Centrale des incidents de paiement' }).waitFor(); await p.getByRole('cell', { name: 'Nouveau client' }).first().waitFor();
   await etape('10f-centrale-incidents');
+  // Plainte (écart E07 ; Instr. BCC 39) : enregistrée avec sa référence unique, accusé de réception remis au client
+  await aller('/clients/sc03'); await p.getByRole('heading', { name: 'Plaintes' }).waitFor();
+  await p.getByRole('button', { name: 'Nouvelle plainte' }).click(); const fp = p.getByRole('dialog', { name: 'Nouvelle plainte' });
+  await fp.getByLabel('Plaignant : *').fill('Mbuyi Kalenga'); await fp.getByLabel('Nature de l\'opération : *').selectOption('retrait');
+  await fp.getByLabel('Objet de la plainte : *').fill('Attente de deux heures au guichet'); await etape('10g-nouvelle-plainte');
+  await fp.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('dialog', { name: 'Succès' }).getByText(/PL-2026-000001/).waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
+  await p.getByRole('article', { name: 'Accusé de réception de la plainte' }).waitFor(); await etape('10h-accuse-plainte');
+  await p.getByRole('dialog', { name: 'Accusé de réception' }).getByRole('button', { name: 'Fermer' }).click();
   await login('Esther Ngalula'); await depotRenforce(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click(); await etape('10e-depot-autorise');
   await p.getByRole('tab', { name: 'Retrait en espèce' }).click(); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-01' });
   await p.getByLabel('Montant *').fill('1 500'); await p.getByLabel('Motif:').fill('Loyer');

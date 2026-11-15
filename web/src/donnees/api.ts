@@ -7,7 +7,7 @@ import { graine } from "./graine";
 import { creerApiHttp } from "./http";
 import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
-  type ChequeClient, type Chequier, type DepotTerme, type RuptureDat, type Examen, type Emprunt, type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
+  type ChequeClient, type Chequier, type DepotTerme, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget,
 } from "./types";
@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v68";
+const CLE = "likelemba-demo-v69";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -347,6 +347,7 @@ export function controlerEnrolement(d: NouveauTiers, images: Images, ctx: CtxCon
   controlerPiece(d.pieceType, d.pieceExpire, ctx.jour);
   controlerFichePhysique(d, ctx.jour);
   controlerImage(images.photo, "Photo"); controlerImage(images.signature, "Signature");
+  controlerImage(images.copiePiece, "Copie de la pièce d'identité"); controlerImage(images.justificatifAdresse, "Justificatif d'adresse");
 }
 
 // ---------- S37 : fiche du client physique (registre S37-1 à S37-3). Règles identiques côté serveur (services.controler_fiche_physique). ----------
@@ -422,6 +423,7 @@ export function controlerGroupe(d: NouveauTiers, membres: RepresentantSaisi[], i
   if ([d.nbHommes, d.nbFemmes].some((n) => !Number.isInteger(n) || n < 0)) throw new ErreurMetier("Nombre d'hommes ou de femmes invalide.");
   controlerRepresentants(membres, "Membre", ctx.jour, anciens);
   controlerImage(images.photo, "Photo"); controlerImage(images.signature, "Signature");
+  controlerImage(images.copiePiece, "Copie de la pièce d'identité"); controlerImage(images.justificatifAdresse, "Justificatif d'adresse");
 }
 
 /** S38, et S46 pour la mise à jour (anciens). Contrôles identiques côté serveur (services.controler_entreprise) */
@@ -544,7 +546,7 @@ const tiers = {
       Object.assign(p, d, garde, reste, { statut: "a_viser", creePar: u.id });
       t = p;
     } else t = nouveauTiers(d, u.id, reste);
-    if (images.photo || images.signature) E.images[t.id] = images;
+    if (images.photo || images.signature || images.copiePiece || images.justificatifAdresse) E.images[t.id] = images;
     enregistrer(); return t;
   },
   creerEntreprise(d: NouveauTiers, dirigeant: RepresentantSaisi | null, signataires: RepresentantSaisi[]) {
@@ -562,7 +564,7 @@ const tiers = {
     controlerGroupe(d, membres, images, ctxControle());
     const t = nouveauTiers({ ...d, ...SANS_IDENTITE, centreActivite: "", activite: d.typeActivite ?? "", beneficiaires: [] }, u.id,   // registre S39-1
       { type: "groupe", dirigeant: null, signataires: [], membres: membres.map(versRepresentant), photo: !!images.photo, specimen: !!images.signature });
-    if (images.photo || images.signature) E.images[t.id] = images;
+    if (images.photo || images.signature || images.copiePiece || images.justificatifAdresse) E.images[t.id] = images;
     enregistrer(); return t;
   },
   aViser: () => E.tiers.filter((t) => t.statut === "a_viser"),
@@ -583,6 +585,9 @@ const tiers = {
     const depot = v.premierDepot ?? t.premierDepot;
     if (!Number.isInteger(depot) || depot < 0) throw new ErreurMetier("Premier dépôt invalide.");
     exigerAutorisationPpe(t.id);   // écart E02 : Instr. BCC 15, art. 64
+    // Écart E03 (décision du porteur, 15/11/2026) : pas de visa d'une personne physique sans copie de sa pièce d'identité (Instr. BCC 15, art. 12 et 29)
+    if (t.type === "physique" && !E.images[t.id]?.copiePiece)
+      throw new ErreurMetier("Copie de la pièce d'identité manquante : la déposer avant le visa (Client > Photos et signatures ; Instr. BCC 15, art. 12 et 29).");
     // Écart E05 : COOPEC, admission par le Conseil d'Administration (loi 002/2002, art. 22, 6° ; AUSCOOP, art. 10), ou par sa délégation (Info société)
     let admissionLe = v.admissionLe?.trim() || "", admissionReference = v.admissionReference?.trim() || "";
     if (estCoopec()) {
@@ -2242,6 +2247,67 @@ const cip = {
     t.icu = icu; enregistrer(); return { tiersId: tid, icu };
   },
 };
+// Écart E07 : plaintes (Instr. BCC 39 ; loi 11/020, art. 61). Mêmes règles que noyau/plaintes.py.
+const CANAUX_PLAINTE: Record<string, string> = { personne: "En personne", lettre: "Lettre", fax: "Fax", courriel: "Courrier électronique", formulaire: "Formulaire en ligne", telephone: "Téléphone", autre: "Autre canal" };
+const PROVENANCES_PLAINTE: Record<string, string> = { siege: "Siège", agence: "Agence", guichet: "Guichet", autre: "Autre" };
+const NATURES_PLAINTE: Record<string, string> = { depot: "Dépôt", retrait: "Retrait", credit: "Crédit", gestion_compte: "Gestion de compte", frais: "Frais et commissions", accueil: "Accueil et service", autre: "Autre" };
+const jourPlainte = () => journees.courante()?.date ?? new Date().toISOString().slice(0, 10);
+const plusJours = (iso: string, n: number) => { const d = new Date(`${iso}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const vuePlainte = (x: Plainte) => { const ech = plusJours(x.recueLe, 45); const nom = (id: number | null) => E.utilisateurs.find((u) => u.id === id)?.nom ?? "";
+  return { id: x.id, reference: x.reference, recueLe: x.recueLe, echeance: ech, enRetard: x.statut === "recue" && jourPlainte() > ech, tiersId: x.tiersId,
+    membre: E.tiers.find((t) => t.id === x.tiersId)?.numero ?? "", plaignant: x.plaignant, contact: x.contact, canal: x.canal, canalLibelle: CANAUX_PLAINTE[x.canal]!,
+    provenance: x.provenance, provenanceLibelle: PROVENANCES_PLAINTE[x.provenance]!, nature: x.nature, natureLibelle: NATURES_PLAINTE[x.nature]!, objet: x.objet,
+    agence: E.agence.nom, enregistreePar: nom(x.enregistreePar), statut: x.statut, fondee: x.fondee, reponse: x.reponse, reparation: x.reparation,
+    repondueLe: x.repondueLe, repondueePar: nom(x.repondueePar) }; };
+const plaintes = {
+  enregistrer(d: { cle: string; recueLe?: string; tiersId?: number | null; plaignant?: string; contact?: string; canal: string; provenance: string; nature: string; objet: string }) {
+    const u = exiger();
+    const prec = E.plaintes.find((x) => x.cle === d.cle); if (prec) return vuePlainte(prec);
+    const jour = jourPlainte(), recue = d.recueLe?.trim() || jour;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(recue) || recue > jour) throw new ErreurMetier("Date de réception invalide : au plus la journée en cours.");
+    const t = d.tiersId != null ? E.tiers.find((x) => x.id === d.tiersId) : undefined;
+    if (d.tiersId != null && !t) throw new ErreurMetier("Client introuvable.");
+    const plaignant = t ? titulaire(t) : (d.plaignant ?? "").trim();
+    const manque = ([[plaignant, "Plaignant"], [(d.objet ?? "").trim(), "Objet de la plainte"]] as const).filter(([v]) => !v).map(([, n]) => n);
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    if (!(d.canal in CANAUX_PLAINTE) || !(d.provenance in PROVENANCES_PLAINTE) || !(d.nature in NATURES_PLAINTE))
+      throw new ErreurMetier("Choisir le canal, la provenance et la nature de l'opération (Instr. BCC 39, art. 10 et 19).");
+    const n = E.plaintes.filter((x) => x.recueLe.slice(0, 4) === recue.slice(0, 4)).length + 1;
+    const x: Plainte = { id: prochain(E.plaintes), agenceId: E.agence.id ?? 1, reference: `PL-${recue.slice(0, 4)}-${String(n).padStart(6, "0")}`, cle: d.cle, recueLe: recue,
+      tiersId: t?.id ?? null, plaignant, contact: (d.contact ?? "").trim(), canal: d.canal, provenance: d.provenance, nature: d.nature, objet: d.objet.trim(),
+      enregistreePar: u.id, statut: "recue", fondee: null, reponse: "", reparation: "", repondueLe: "", repondueePar: null };
+    E.plaintes.push(x); enregistrer(); return vuePlainte(x);
+  },
+  lister(statut = "", du = "", au = "") {
+    lectureAdmin(["SC03"]);
+    if (!["", "recue", "repondue"].includes(statut)) throw new ErreurMetier("Statut inconnu.");
+    return E.plaintes.filter((x) => (!statut || x.statut === statut) && (!du || x.recueLe >= du) && (!au || x.recueLe <= au))
+      .sort((a, b) => b.recueLe.localeCompare(a.recueLe) || b.id - a.id).map(vuePlainte);
+  },
+  /** Art. 5 et 15 : la suite, et la réparation quand la plainte est fondée */
+  repondre(id: number, d: { fondee?: boolean; reponse?: string; reparation?: string; repondueLe?: string }) {
+    const u = exiger();
+    if (!u.roles.includes("chef_agence")) throw new ErreurMetier("Réservé au profil « chef d'agence » : la réponse engage l'institution.");   // le droit de l'écran ne suffit pas
+    const x = E.plaintes.find((y) => y.id === id);
+    if (!x || x.statut !== "recue") throw new ErreurMetier("Cette plainte n'attend plus de réponse.");
+    if (typeof d.fondee !== "boolean") throw new ErreurMetier("Dire si la plainte est fondée.");
+    if (!(d.reponse ?? "").trim()) throw new ErreurMetier("À remplir : réponse au plaignant.");
+    if (d.fondee && !(d.reparation ?? "").trim()) throw new ErreurMetier("Plainte fondée : décrire la réparation (Instr. BCC 39, art. 15).");
+    const jour = jourPlainte(), le = d.repondueLe?.trim() || jour;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(le) || le > jour || le < x.recueLe) throw new ErreurMetier("Date de réponse invalide.");
+    Object.assign(x, { statut: "repondue", fondee: d.fondee, reponse: d.reponse!.trim(), reparation: (d.reparation ?? "").trim(), repondueLe: le, repondueePar: u.id });
+    enregistrer(); return vuePlainte(x);
+  },
+  /** Art. 19 : rapport trimestriel */
+  rapport(du: string, au: string) {
+    for (const [v, nom] of [[du, "Du"], [au, "Au"]] as const) if (!/^\d{4}-\d{2}-\d{2}$/.test(v ?? "")) throw new ErreurMetier(`À remplir : ${nom}.`);
+    const l = plaintes.lister("", du, au);
+    const compte = (k: "provenance" | "canal" | "nature", lib: Record<string, string>) => Object.entries(lib).map(([cle, libelle]) => ({ cle, libelle, nombre: l.filter((x) => x[k] === cle).length }));
+    return { du, au, total: l.length, provenances: compte("provenance", PROVENANCES_PLAINTE), canaux: compte("canal", CANAUX_PLAINTE), natures: compte("nature", NATURES_PLAINTE),
+      suites: { fondee: l.filter((x) => x.fondee === true).length, nonFondee: l.filter((x) => x.fondee === false).length, enCours: l.filter((x) => x.statut === "recue").length,
+        horsDelai: l.filter((x) => x.statut === "repondue" && x.repondueLe > x.echeance).length }, plaintes: l };
+  },
+};
 const conformite = {
   /** Le caissier transmet l'opération à la conformité : elle attend l'examen */
   demander(d: { cle: string; type: Examen["type"]; tiersId: number; compteId?: number | null; montant: number; devise: string; motif?: string }) {
@@ -3884,6 +3950,7 @@ const apiLocal = {
   releves: asynchrone(releves, "releves"),
   depotsTerme: asynchrone(depotsTerme, "depotsTerme"),
   conformite: asynchrone(conformite, "conformite"),
+  plaintes: asynchrone(plaintes, "plaintes"),
   banques: asynchrone(banques, "banques"),
   guichets: asynchrone(guichets, "guichets"),
   exercices: asynchrone(exercices, "exercices"),

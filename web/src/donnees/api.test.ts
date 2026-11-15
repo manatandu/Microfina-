@@ -25,6 +25,10 @@ async function soldeCdfGrandLivre() {
 }
 
 beforeEach(() => { _remplacer(graine()); });
+// Écart E03 (décision du porteur, 15/11/2026) : pas de visa d'une personne physique sans copie de sa pièce. Les enrôlements des tests la déposent par défaut.
+const COPIE_PIECE = "data:image/png;base64,iVBORw0KGgo=";
+const creerOrigine = api.tiers.creer;
+api.tiers.creer = ((d, images = {}, prospectId) => creerOrigine(d, { copiePiece: COPIE_PIECE, ...images }, prospectId)) as typeof api.tiers.creer;
 
 describe("graine", () => {
   it("la caisse contient exactement l'épargne et les parts reprises", async () => {
@@ -210,6 +214,32 @@ describe("journée de guichet", () => {
     expect((await api.conformite.cip("2026-11-01", "2026-11-30", "declare")).map((e) => [e.membre, e.reference])).toEqual([[t.numero, "CIP-1"]]);
     await api.conformite.noterIcu(t.id, { icu: "ICU-0001" });
     await expect(api.conformite.noterIcu(1, { icu: "ICU-0001" })).rejects.toThrow("déjà noté");
+  });
+
+  it("visa refusé sans copie de la pièce d'identité (écart E03, décision du porteur ; Instr. BCC 15, art. 12 et 29)", async () => {
+    await connecter("bkasongo");
+    const t = await creerOrigine({ ...enrolementVide("2026-11-05"), ...IDENTITE, produitCode: "EAV-CDF", nom: "Lusamba", postnom: "Kitenge", prenom: "Paul", naissance: "1985-02-03",
+      pieceType: "Carte d'électeur", pieceNumero: "1-0412-0555", pieceExpire: "2031-01-01", adresse: "Matete" });
+    await connecter("jpmukendi");
+    await expect(api.tiers.viser(t.id)).rejects.toThrow("Copie de la pièce d'identité manquante");
+    await api.tiers.changerSpecimen(t.id, { copiePiece: COPIE_PIECE });
+    expect((await api.tiers.viser(t.id)).statut).toBe("actif");
+  });
+
+  it("plaintes (écart E07 ; Instr. BCC 39) : référence unique, réponse sous 45 jours, réparation si fondée, rapport trimestriel", async () => {
+    await journeeOuverte();
+    const p = await api.plaintes.enregistrer({ cle: cle(), tiersId: 1, canal: "personne", provenance: "guichet", nature: "retrait", objet: "Attente de deux heures au guichet" });
+    expect([p.reference, p.recueLe, p.echeance, p.plaignant]).toEqual(["PL-2026-000001", "2026-11-05", "2026-12-20", "Kalala Mbuyi Josée"]);
+    await expect(api.plaintes.enregistrer({ cle: cle(), canal: "fax", provenance: "agence", nature: "frais", objet: "" })).rejects.toThrow("Plaignant, Objet");
+    await expect(api.plaintes.repondre(p.id, { fondee: true, reponse: "Excuses" })).rejects.toThrow("Réservé");   // la caissière enregistre, le chef répond
+    await connecter("jpmukendi");
+    await expect(api.plaintes.repondre(p.id, { fondee: true, reponse: "Excuses" })).rejects.toThrow("réparation");
+    const rp = await api.plaintes.repondre(p.id, { fondee: true, reponse: "Excuses ; un second guichet ouvre aux heures de pointe", reparation: "Frais de la journée remboursés" });
+    expect([rp.statut, rp.fondee]).toEqual(["repondue", true]);
+    const r = await api.plaintes.rapport("2026-10-01", "2026-12-31");
+    expect([r.total, r.suites.fondee, r.provenances.find((x) => x.cle === "guichet")!.nombre]).toEqual([1, 1, 1]);
+    await connecter("plumbala");
+    await expect(api.plaintes.lister()).rejects.toThrow("Droit manquant");
   });
 
   it("refuse ce qui doit l'être", async () => {

@@ -18,6 +18,7 @@ from . import releves as rel
 from . import depots_terme as dat
 from . import conformite as conf
 from . import cip
+from . import plaintes
 from . import guichets as gu
 from . import exercices as ex
 from . import listes as li
@@ -1330,3 +1331,24 @@ def cip_declarer(request, corps: dict = Body(...)):
 @api.post("/conformite/cip/icu/{tid}")
 def cip_icu(request, tid: int, corps: dict = Body(...)):
     return cip.noter_icu(u(request), tid, corps)
+
+
+# ---------- Écart E07 : plaintes (Instr. BCC 39) ----------
+@api.post("/plaintes")
+def plaintes_enregistrer(request, corps: dict = Body(...)):
+    return plaintes.enregistrer(u(request), corps)
+
+
+@api.get("/plaintes")
+def plaintes_lister(request, statut: str = "", du: str = "", au: str = ""):
+    return plaintes.lister(u(request), statut, du, au)
+
+
+@api.post("/plaintes/{pid}/reponse")
+def plaintes_repondre(request, pid: int, corps: dict = Body(...)):
+    return plaintes.repondre(u(request), pid, corps)
+
+
+@api.get("/plaintes/rapport")
+def plaintes_rapport(request, du: str = "", au: str = ""):
+    return plaintes.rapport(u(request), du, au)

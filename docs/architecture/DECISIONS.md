@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**377 décisions.** Solidité : 140 fortes (le manuel ou un texte répond), 205 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 348 déjà en place, 29 à appliquer.
+**378 décisions.** Solidité : 142 fortes (le manuel ou un texte répond), 204 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 349 déjà en place, 29 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -841,14 +841,14 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | E03-1 | Où et comment | Copie de la pièce d'identité et justificatif d'adresse déposés comme la photo et la signature (Client > Photos et signatures, S49), gardés à chaque dépôt avec leur auteur et leur date | Texte réglementaire : Instr. BCC 15, art. 12 al. 2 et 3, art. 29 et 48 | forte | en place |
-| E03-2 | Visa sans les copies | Le visa (S40) signale ce qui manque, sans bloquer. Bloquer le visa d'une personne physique sans copie de la pièce est la lecture stricte de l'art. 29 ; elle reste à décider par le porteur, parce qu'elle change les habitudes de toutes les agences | Choix du porteur : Instr. BCC 15, art. 15 (vérification après l'entrée en relation si le risque est faible) et 29 | moyenne | en place |
+| E03-2 | Visa sans les copies | Pas de visa d'une personne physique sans copie de sa pièce d'identité : le visa (S40) est refusé et renvoie à Photos et signatures. La copie peut se déposer dès l'enrôlement ou en S49. Le justificatif d'adresse reste signalé au visa, sans bloquer | Choix du porteur : Instr. BCC 15, art. 12 et 29 ; décision du porteur 15/11/2026 (« l'identité est indispensable ») | forte | en place |
 
 ## E04 Convention de compte
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | E04-1 | Où et quand | Un bouton par compte dans la liste des comptes du membre (Épargne > Nouveau compte, S63), donc aussi pour le compte ouvert à l'adhésion. Document de l'institution, en deux exemplaires, police 12 | Texte réglementaire : Loi 22/069, titre III, chap. Ier ; Instr. BCC 40, art. 5 et 13 | forte | en place |
-| E04-2 | Clauses | Titulaire, pièce, adresse, compte, produit, devise, agence, date, solde minimum, retrait maximum par jour ; gratuités (Instr. BCC 37, annexe) ; conditions publiées et affichées (Instr. BCC 40, art. 3 et 12) ; secret et données personnelles (loi 002/2002, art. 79 ; loi 11/020, art. 60) ; plaintes (Instr. BCC 39, art. 5 et 7) ; mise à jour du dossier (Instr. BCC 15, art. 51). La convention-type de la BCC annoncée par la loi n'a pas été lue : ses clauses minimales s'ajouteront quand le texte sera trouvé | Texte réglementaire : Textes cités | moyenne | en place |
+| E04-2 | Clauses | Titulaire, pièce, adresse, compte, produit, devise, agence, date, solde minimum, retrait maximum par jour ; gratuités (Instr. BCC 37, annexe) ; conditions publiées et affichées (Instr. BCC 40, art. 3 et 12) ; secret et données personnelles (loi 002/2002, art. 79 ; loi 11/020, art. 60) ; plaintes (Instr. BCC 39, art. 5 et 7) ; mise à jour du dossier (Instr. BCC 15, art. 51). La loi 22/069 (titre III, chap. Ier) renvoie à une convention-type « fixée par voie d'instruction », sans numéro ; aucune des Instructions BCC disponibles (49 pour les établissements de crédit, 12 pour la microfinance) ne la fixe. Ses clauses s'ajouteront quand le texte sera publié ou fourni | Texte réglementaire : Textes cités | moyenne | en place |
 
 ## E05 Admission par le Conseil d'Administration
 
@@ -862,6 +862,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | E06-1 | Déclarations et ICU | Client > Conformité > Centrale des incidents : ouvertures et clôtures de comptes, nouveaux clients (date du visa), clients modifiés (date de la validation), avec l'échéance de deux jours ouvrables (lundi à vendredi) et le retard ; date et référence de la déclaration notées ; ICU noté par client ; export. Droit SC02 au chef d'agence, lecture réservée | Texte réglementaire : Instr. BCC 52, art. 10, 13, 14 et 15 | forte | en place |
 | E06-2 | Reste à faire | Consultation préalable du sous-registre clients et comptes avant l'ouverture d'un compte (art. 13) ; jours fériés retirés de l'échéance ; incidents de paiement sur chèques émis par les clients (art. 18, 29 à 33, avec l'écart E13). Sans interface de la BCC connue, la consultation se noterait à la main | Texte réglementaire : Instr. BCC 52, art. 13, 18, 29 à 33 | moyenne | à appliquer |
+
+## E07 Plaintes
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E07-1 | Circuit | Client > Conformité > Plaintes : enregistrées dans tout point d'exploitation (droit SC03 au caissier, à l'agent de crédit et au chef d'agence), client ou non ; canal, provenance et nature de l'opération ; référence unique PL-année-numéro et accusé de réception imprimable ; réponse due sous 45 jours calendaires, en retard signalé ; réponse réservée au chef d'agence, réparation obligatoire si la plainte est fondée ; rapport trimestriel par provenance, canal, nature et suite, exportable | Texte réglementaire : Instr. BCC 39, art. 3, 4, 5, 7, 10, 15, 17 et 19 ; loi 11/020, art. 61 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

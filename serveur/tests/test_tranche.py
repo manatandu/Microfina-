@@ -186,7 +186,7 @@ def test_depot_retrait_mandataire_motif(clients, journee):
 
 
 # Fiche d'enrôlement S37 avec les valeurs par défaut de la p. 49
-FICHE = {"dateDemande": "2026-11-05", "typeClient": "Client", "produitCode": "EAV-CDF", "premierDepot": 0, "resident": True, "preleverAgios": True,
+FICHE = {"images": {"copiePiece": "data:image/png;base64,iVBORw0KGgo="}, "dateDemande": "2026-11-05", "typeClient": "Client", "produitCode": "EAV-CDF", "premierDepot": 0, "resident": True, "preleverAgios": True,
          "calculerInteret": False, "liees": [], "personneExposee": False,
          # mentions de l'identité et de la pièce (Instr. BCC 15, art. 12 et 13 ; registre S37-1)
          "prenom": "Marie", "naissance": "1990-01-15", "lieuNaissance": "Kinshasa", "adresse": "Matete, avenue Kinsaku 12",
@@ -2134,3 +2134,32 @@ def test_centrale_incidents(clients, journee):
     assert [(e["membre"], e["reference"]) for e in chef.get("/api/conformite/cip?du=2026-11-01&au=2026-11-30&statut=declare", **H).json()] == [(t["numero"], "CIP-1")]
     assert chef.post(f"/api/conformite/cip/icu/{t['id']}", {"icu": "ICU-0001"}, **H).status_code == 200
     assert "déjà noté" in chef.post(f"/api/conformite/cip/icu/{T('0412-000318')}", {"icu": "ICU-0001"}, **H).json()["message"]
+
+
+def test_visa_sans_copie_piece(clients, journee):
+    """Écart E03, décision du porteur (15/11/2026) : pas de visa d'une personne physique sans copie de sa pièce (Instr. BCC 15, art. 12 et 29)"""
+    agent, chef = clients["agent"], clients["chef"]
+    fiche = {k: v for k, v in FICHE.items() if k != "images"}
+    t = agent.post("/api/tiers", {**fiche, "nom": "Lusamba", "postnom": "Kitenge", "prenom": "Paul", "naissance": "1985-02-03", "pieceType": "Carte d'électeur",
+                                  "pieceNumero": "1-0412-0555", "pieceExpire": "2031-01-01", "adresse": "Matete"}, **H).json()
+    r = chef.post(f"/api/tiers/{t['id']}/visa", **H)
+    assert r.status_code == 422 and "Copie de la pièce d'identité manquante" in r.json()["message"]
+    assert agent.post(f"/api/tiers/{t['id']}/specimen", {"copiePiece": "data:image/png;base64,iVBORw0KGgo="}, **H).status_code == 200
+    assert chef.post(f"/api/tiers/{t['id']}/visa", **H).json()["statut"] == "actif"
+
+
+def test_plaintes(clients, journee):
+    """Écart E07 : Instr. BCC 39, art. 5, 7, 10, 15, 19"""
+    caisse, chef, compta = clients["caisse"], clients["chef"], clients["compta"]
+    p = caisse.post("/api/plaintes", {"cle": cle(), "tiersId": T("0412-000318"), "canal": "personne", "provenance": "guichet", "nature": "retrait",
+                                      "objet": "Attente de deux heures au guichet"}, **H).json()
+    assert (p["reference"], p["recueLe"], p["echeance"]) == ("PL-2026-000001", "2026-11-05", "2026-12-20")
+    r = caisse.post("/api/plaintes", {"cle": cle(), "canal": "fax", "provenance": "agence", "nature": "frais", "objet": ""}, **H)
+    assert r.status_code == 422 and "Plaignant, Objet" in r.json()["message"]
+    assert caisse.post(f"/api/plaintes/{p['id']}/reponse", {"fondee": True, "reponse": "Excuses"}, **H).status_code == 403
+    assert "réparation" in chef.post(f"/api/plaintes/{p['id']}/reponse", {"fondee": True, "reponse": "Excuses"}, **H).json()["message"]
+    rp = chef.post(f"/api/plaintes/{p['id']}/reponse", {"fondee": True, "reponse": "Excuses", "reparation": "Frais remboursés"}, **H).json()
+    assert (rp["statut"], rp["fondee"]) == ("repondue", True)
+    rap = chef.get("/api/plaintes/rapport?du=2026-10-01&au=2026-12-31", **H).json()
+    assert (rap["total"], rap["suites"]["fondee"]) == (1, 1)
+    assert compta.get("/api/plaintes", **H).status_code == 403
