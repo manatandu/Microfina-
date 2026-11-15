@@ -15,13 +15,20 @@ CHAMPS = {"code": "sigle", "denomination": "nom", "typeBase": "profil", "descrip
 LOGO_MAX = 300_000      # caractères de l'image encodée (registre S32-4)
 
 
+def regles_securite() -> dict:
+    """Cadre « Info sécurité » (capture p. 42, titre seul) : les règles en vigueur, en lecture (registre S32-6 ; Instr. BCC 008, art. 16)"""
+    from .securite import ESSAIS_PAR_LOGIN, FENETRE_MINUTES
+    return {"motDePasseMin": 8, "essais": ESSAIS_PAR_LOGIN, "fenetreMinutes": FENETRE_MINUTES}
+
+
 def lire(u) -> dict:
     exiger(u)
     i = u["institution_id"]
     r = une(f"select {', '.join(f'{c} as \"{k}\"' for k, c in CHAMPS.items())} from institution where id = %s", (i,))
     r["code"] = r["code"] or ""
     return {"institution": r, "types": [{"code": k, "libelle": v} for k, v in PROFILS.items()], "localites": localites(),
-            "agences": lignes("select id, code, nom from agence where institution_id = %s and not supprime order by code", (i,))}
+            "agences": lignes("select id, code, nom from agence where institution_id = %s and not supprime order by code", (i,)),
+            "securite": regles_securite()}
 
 
 def enregistrer(u, d) -> dict:

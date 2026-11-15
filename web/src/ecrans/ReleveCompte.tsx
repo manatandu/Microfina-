@@ -35,6 +35,7 @@ export function ReleveCompte() {
   const [recherche, setRecherche] = useState(false);
   const [releve, setReleve] = useState<ReleveEdite | null>(null);
   const [situation, setSituation] = useState<Situation | null>(null);
+  const [membres, setMembres] = useState<Tiers["membres"] | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   const jour = j && j.statut === "ouverte" ? j.date : new Date().toISOString().slice(0, 10);
   const debut = du || `${jour.slice(0, 4)}-01-01`, fin = au || jour;
@@ -58,7 +59,7 @@ export function ReleveCompte() {
       <h1>Relevé de compte</h1>
       <section className="bloc pile" aria-label="Relevé de compte">
         <div className="actions-onglets">
-          <button className="bouton secondaire" type="button" disabled title="À confirmer : le manuel ne montre pas cette fenêtre (registre S64-6)">Membres du Groupes</button>
+          <button className="bouton secondaire" type="button" disabled={t?.type !== "groupe"} onClick={async () => { if (t) setMembres((await api.tiers.lire(t.id))?.membres ?? []); }}>Membres du Groupes</button>
         </div>
         <div className="grille-cadres">
           <div className="pile cadre-champs">
@@ -146,6 +147,16 @@ export function ReleveCompte() {
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (q ? await api.tiers.rechercher(q) : [])}
           choisir={(x) => { setT(x); setCompte(""); setRecherche(false); }} fermer={() => setRecherche(false)} />
+      </Fiche>
+      <Fiche titre="Membres du Groupes" ouverte={!!membres} fermer={() => setMembres(null)}>
+        <div className="defile-x"><table className="grille">
+          <thead><tr><th scope="col">Nom</th><th scope="col">Post-nom</th><th scope="col">Prénom</th><th scope="col">Pièce</th><th scope="col">N° pièce</th></tr></thead>
+          <tbody>
+            {(membres ?? []).length === 0 && <tr><td colSpan={5}>No records found.</td></tr>}
+            {(membres ?? []).map((m, i) => <tr key={i}><td>{m.nom}</td><td>{m.postnom}</td><td>{m.prenom}</td><td>{m.pieceType}</td><td className="chiffres">{m.pieceNumero}</td></tr>)}
+          </tbody>
+        </table></div>
+        <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setMembres(null)}>Fermer</button></div>
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>

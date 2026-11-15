@@ -4,6 +4,8 @@ Chaque ligne relie un texte à une exigence et à l'endroit du logiciel qui la p
 
 Textes lus pour cette version : PCCI (BCC, juillet 2009, rendu obligatoire par l'Instr. 006 du 14/04/2012), Loi 11/020, Instructions BCC 002, 003, 004, 008 (mod. 1), 009, et survol des n° 5, 15 bis, 36, 38, 39. Versions vérifiées dans l'index des Instructions BCC en vigueur.
 
+Écarts constatés entre le logiciel et les textes : `ECARTS-2026-11-15.md` (inspection du 15/11/2026).
+
 Statut : **lu** = article lu et reporté ici ; **à lire** = texte identifié, détail à reprendre avant le développement du module.
 
 ## Comptabilité (PCCI)

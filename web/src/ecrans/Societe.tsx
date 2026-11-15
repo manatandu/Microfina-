@@ -52,6 +52,10 @@ function InformationSociete() {
   return (
     <section className="bloc pile" id="volet-societe" role="tabpanel" aria-labelledby="onglet-societe">
       <div className="actions-onglets"><button className="bouton" type="button" onClick={() => setListe(true)}>Liste institution</button></div>
+      <div className="onglets" role="tablist" aria-label="Information société">
+        <button type="button" role="tab" aria-selected="true">Info générale</button>
+        <button type="button" role="tab" aria-selected="false" disabled title="Le manuel ne montre pas le contenu de cet onglet (registre S32-6)">Autres Info</button>
+      </div>
       <fieldset className="cadre-champs">
         <legend>Info générale</legend>
         <div className="grille-deux">
@@ -91,6 +95,13 @@ function InformationSociete() {
           <span>APERCU LOGO</span>
           {v.logo ? <img src={v.logo} alt="Logo de l'institution" className="apercu-logo" /> : <div className="apercu-logo" aria-hidden="true" />}
         </fieldset>
+      </fieldset>
+      <fieldset className="cadre-champs">
+        <legend>Info sécurité</legend>
+        <div className="grille-deux">
+          <Champ libelle="Longueur minimale du mot de passe :">{(p) => <input {...p} className="saisie code" readOnly value={String(donnees.securite.motDePasseMin)} />}</Champ>
+          <Champ libelle="Essais de connexion refusés avant blocage :">{(p) => <input {...p} className="saisie code" readOnly value={`${donnees.securite.essais} en ${donnees.securite.fenetreMinutes} minutes`} />}</Champ>
+        </div>
       </fieldset>
       <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button></div>
       <Textes sources={["Manuel Microfina++, p. 42 : « Information société, Agence et zone, puis renseigner successivement sans omettre les champs obligatoires avec la possibilité d'intégrer le logo de l'institution » ; capture : Code Institution*, Dénomination*, Type base*, Description, Directeur, N° Agrément, Journée Maxi ouvert*, Compte Hors Bilan 1, I.F.U (NIF en RDC, demande du porteur du 13/11/2026), Pays, Ville, Quartier*, Rue / Maison (Commune entre Ville et Quartier : demande du porteur du 13/11/2026, découpage de S20), email, BP, Telephone fixe, Adresse, Hors Bilan 2, Logo (Choisir, APERCU LOGO), Liste institution",

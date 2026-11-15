@@ -805,6 +805,14 @@ describe("journée de guichet", () => {
     expect(apres.find((c) => c.id === cdat.id)!.solde).toBe(1000000);
     const ct = await api.depotsTerme.contrat(x.id);
     expect([ct.dat.certificat, ct.client.numero, ct.entete.nom]).toEqual([1, "0412-000318", "COOPEC Tujenge"]);
+    // Annuler (S65-6) : seul un DAT en attente de validation s'annule
+    await connecter("bkasongo");
+    const cdat2 = (await api.tiers.comptes(1)).find((c) => c.id === cdat.id)!;
+    const y = await api.depotsTerme.mettreEnPlace({ ...base, cle: cle(), montant: 50000, compteDatId: cdat2.id });
+    expect((await api.releves.releve(em.id, "2026-01-01", "2026-11-05")).soldeIndicatif).toBe(em.solde - 1000000 - 50000);   // S64-2 : DAT en attente compris
+    expect((await api.depotsTerme.annuler(y.id)).statut).toBe("annule");
+    await expect(api.depotsTerme.annuler(x.id)).rejects.toThrow("se rompt");
+    await connecter("jpmukendi");
     // S68 : recherche multicritères (registre S68-1)
     const rch = async (c: string) => (await api.depotsTerme.recherche(c, "2026-01-01", "2026-11-05")).map((y) => [y.certificat, y.terme, y.agent]);
     expect([await rch("mise_en_place"), await rch("encours"), await rch("echus")]).toEqual([[[1, "Court terme", "Bijou Kasongo"]], [[1, "Court terme", "Bijou Kasongo"]], []]);

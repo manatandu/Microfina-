@@ -642,6 +642,11 @@ def epargne_dat_valider(request, did: int):
     return dat.valider(u(request), did)
 
 
+@api.post("/epargne/dat/{did}/annulation")
+def epargne_dat_annuler(request, did: int):
+    return dat.annuler(u(request), did)
+
+
 @api.get("/epargne/dat/{did}/rupture")
 def epargne_dat_apercu_rupture(request, did: int, date: str = ""):
     return dat.apercu_rupture(u(request), did, date)

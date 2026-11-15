@@ -146,7 +146,7 @@ def vue(x: dict) -> dict:
 def liste(u, statut: str = "") -> list[dict]:
     """Liste DAT (mise en place) et Liste DAT à valider (S66)"""
     exiger(u)
-    if statut and statut not in ("saisie", "valide", "rompu", "echu"):
+    if statut and statut not in ("saisie", "valide", "rompu", "echu", "annule"):
         raise ErreurMetier("Statut inconnu.")
     return [vue(x) for x in lignes("select * from depot_terme where institution_id = %s and (%s = '' or statut = %s) order by certificat",
                                      (u["institution_id"], statut, statut))]
@@ -180,6 +180,16 @@ def valider(u, did: int) -> dict:
     return vue(une("select * from depot_terme where id = %s", (did,)))
 
 
+def annuler(u, did: int) -> dict:
+    """Bouton Annuler de « Mise en place DAT » (capture p. 75) : un DAT saisi et pas encore validé s'annule ; aucune écriture n'existe encore (registre S65-6)"""
+    exiger(u)
+    x = une("select * from depot_terme where id = %s and institution_id = %s for update", (did, u["institution_id"]))
+    if not x or x["statut"] != "saisie":
+        raise ErreurMetier("Seul un DAT en attente de validation s'annule ; un DAT validé se rompt (Rupture de DAT).")
+    executer("update depot_terme set statut = 'annule' where id = %s", (did,))
+    return vue(une("select * from depot_terme where id = %s", (did,)))
+
+
 def contrat(u, did: int) -> dict:
     """Bouton Contrat (S66) : les données du contrat de DAT, document de l'institution cliente (registre S65-7)"""
     from .releves import client, entete
@@ -205,8 +215,11 @@ def calcul_rupture(x: dict, date_r: date) -> dict:
     jours = (date_r - x["date_depot"]).days
     interet = int((Decimal(x["montant"]) * x["taux_interet"] / 100 * jours / 365).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
     penalite = int((Decimal(x["montant"]) * x["taux_penalite"] / 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
-    physique = valeur("select type from tiers where id = %s", (x["tiers_id"],)) == "physique"
-    t_irc = TAUX_IRC_PHYSIQUE if physique else Decimal("0")       # personne morale ou groupe : 0, à confirmer (registre S67-3)
+    from .services import TYPES_GROUPE
+    t = une("select type, type_client from tiers where id = %s", (x["tiers_id"],))
+    # personne physique, ou groupe sans personnalité juridique (ses membres sont des personnes physiques) : 20 % ; personne morale, association, ONG : 0 (registre S67-3, S67-7)
+    physique = t["type"] == "physique" or (t["type"] == "groupe" and TYPES_GROUPE.get(t["type_client"]) is None)
+    t_irc = TAUX_IRC_PHYSIQUE if physique else Decimal("0")
     irc = int((Decimal(interet) * t_irc / 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
     verser = x["montant"] + interet - penalite - irc
     if verser < 0:
@@ -284,7 +297,7 @@ def recherche(u, choix: str, du: str, au: str) -> list[dict]:
             raise ErreurMetier(f"À remplir : {nom}.")
     if du > au:
         raise ErreurMetier("La date de début dépasse la date de fin.")
-    filtre = {"mise_en_place": "date_depot between %(du)s and %(au)s",
+    filtre = {"mise_en_place": "date_depot between %(du)s and %(au)s and statut <> 'annule'",
               "echus": "date_echeance between %(du)s and %(au)s and statut in ('valide', 'echu')",
               "encours": "date_depot between %(du)s and %(au)s and date_echeance > %(au)s and (statut = 'valide' or (statut = 'rompu' and date_rupture > %(au)s))"}[choix]
     rows = lignes(f"select * from depot_terme where institution_id = %(i)s and {filtre} order by certificat", {"i": u["institution_id"], "du": du, "au": au})

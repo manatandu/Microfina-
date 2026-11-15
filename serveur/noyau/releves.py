@@ -59,6 +59,7 @@ def releve(u, compte_id: int, du: str, au: str) -> dict:
     comptable = solde_contrat(f"depot:{c['id']}", c["dv"], "C")
     attente = int(valeur("""select coalesce(sum(case type when 'virement_client' then montant else -montant end), 0) from operation_banque
                             where compte_depot_id = %s and type in ('virement_client', 'prelevement_client') and statut in ('saisie', 'visee', 'validee')""", (c["id"],)))
+    attente -= int(valeur("select coalesce(sum(montant), 0) from depot_terme where compte_emetteur_id = %s and statut = 'saisie'", (c["id"],)))   # DAT en attente de validation (S64-2)
     effets = int(valeur("select coalesce(sum(montant), 0) from cheque_client where compte_depot_id = %s and statut = 'depose'", (c["id"],)))   # registre S64-7
     return {"entete": entete(u["institution_id"]), "client": client(c["tiers_id"]), "compte": {"id": c["id"], "numero": c["numero"], "produit": c["produit"],
             "devise": c["dv"], "agence": c["agence"]}, "du": du, "au": au, "report": report, "lignes": sortie, "totalDebit": td, "totalCredit": tc,

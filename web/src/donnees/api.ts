@@ -1580,7 +1580,8 @@ const releves = {
     });
     const comptable = soldeContrat(contrat, c.devise, "C");
     const attente = E.operationsBanque.filter((o) => o.compteDepotId === c.id && ["saisie", "visee", "validee"].includes(o.statut))
-      .reduce((s, o) => s + (o.type === "virement_client" ? o.montant : o.type === "prelevement_client" ? -o.montant : 0), 0);
+      .reduce((s, o) => s + (o.type === "virement_client" ? o.montant : o.type === "prelevement_client" ? -o.montant : 0), 0)
+      - E.depotsTerme.filter((x) => x.compteEmetteurId === c.id && x.statut === "saisie").reduce((s, x) => s + x.montant, 0);   // DAT en attente de validation (S64-2)
     return { entete: enteteDocument(), client: ficheClient(c.tiersId), compte: { id: c.id, numero: c.numero, produit: c.intitule, devise: c.devise, agence: E.agence.nom },
       du, au, report, lignes, totalDebit: td, totalCredit: tc, soldeFin: solde, montantBloque: c.bloque ?? 0, soldeDisponible: solde - (c.bloque ?? 0),
       effetsEnInstance: E.chequesClients.filter((q) => q.compteDepotId === c.id && q.statut === "depose").reduce((s, q) => s + q.montant, 0),   // S64-7
@@ -1628,6 +1629,8 @@ const vueDat = (x: DepotTerme) => { const t = E.tiers.find((y) => y.id === x.tie
     rupture: x.rupture ? { ...x.rupture, piece: E.ecritures.find((e) => e.id === x.rupture!.ecritureId)?.piece ?? "" } : null }; };
 /** Terme selon la durée, comme le classement des crédits du PCCI (comptes 30 à 32) (registre S68-3) */
 const termeDat = (mois: number) => (mois <= 12 ? "Court terme" : mois <= 60 ? "Moyen terme" : "Long terme");
+/** Retenue de 20 % (loi 23/053, art. 120) : personne physique, ou groupe sans personnalité juridique ; personne morale, association, ONG : 0 (S67-3, S67-7) */
+const retenueDue = (tiersId: number) => { const t = E.tiers.find((y) => y.id === tiersId); return t?.type === "physique" || (t?.type === "groupe" && !TYPES_GROUPE[t.typeClient]); };
 const joursEntre = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000);
 /** Rupture avant l'échéance (S67) : intérêt couru au prorata des jours (base 365), pénalité sur le montant du DAT, retenue de 20 %
  *  sur l'intérêt brut des personnes physiques (loi 23/053, art. 78, 81 et 120). Registre S67-1 à S67-3. */
@@ -1636,7 +1639,7 @@ export function calculRuptureDat(x: Pick<DepotTerme, "montant" | "tauxInteret" |
   if (date >= x.dateEcheance) throw new ErreurMetier("Date rupture : le DAT est échu à cette date ; ce n'est plus une rupture.");
   const jours = joursEntre(x.dateDepot, date), nb = (t: string) => Number(t.replace(",", "."));
   const interet = Math.round(x.montant * nb(x.tauxInteret) / 100 * jours / 365), penalite = Math.round(x.montant * nb(x.tauxPenalite) / 100);
-  const tIrc = physique ? 20 : 0;   // personne morale ou groupe : 0, à confirmer (S67-3)
+  const tIrc = physique ? 20 : 0;   // personne morale, association, ONG : 0 (S67-3, S67-7)
   const irc = Math.round(interet * tIrc / 100), montantAVerser = x.montant + interet - penalite - irc;
   if (montantAVerser < 0) throw new ErreurMetier("La pénalité dépasse le montant du DAT et l'intérêt couru.");
   return { jours, interet, penalite, tauxIrc: String(tIrc), irc, montantAVerser };
@@ -1682,6 +1685,13 @@ const depotsTerme = {
       dateEcheance: ajouterMois(depot, d.duree), observation: (d.observation ?? "").trim(), reconduction: !!d.reconduction, statut: "saisie", saisiPar: u.id, validePar: null, ecritureId: null };
     E.depotsTerme.push(x); enregistrer(); return vueDat(x);
   },
+  /** Bouton Annuler (capture p. 75) : un DAT saisi et pas encore validé s'annule ; aucune écriture n'existe encore (registre S65-6) */
+  annuler(id: number) {
+    exiger();
+    const x = E.depotsTerme.find((y) => y.id === id);
+    if (!x || x.statut !== "saisie") throw new ErreurMetier("Seul un DAT en attente de validation s'annule ; un DAT validé se rompt (Rupture de DAT).");
+    x.statut = "annule"; enregistrer(); return vueDat(x);
+  },
   /** Bouton Contrat (S66) : document de l'institution cliente (registre S65-7) */
   contrat(id: number) {
     exiger();
@@ -1715,7 +1725,7 @@ const depotsTerme = {
     if (!["mise_en_place", "echus", "encours"].includes(choix)) throw new ErreurMetier("Choix : Mise en place, Échus ou Encours.");
     for (const [v, nom] of [[du, "Du"], [au, "Au"]] as const) if (!/^\d{4}-\d{2}-\d{2}$/.test(v ?? "")) throw new ErreurMetier(`À remplir : ${nom}.`);
     if (du > au) throw new ErreurMetier("La date de début dépasse la date de fin.");
-    const garde = (x: DepotTerme) => choix === "mise_en_place" ? x.dateDepot >= du && x.dateDepot <= au
+    const garde = (x: DepotTerme) => choix === "mise_en_place" ? x.dateDepot >= du && x.dateDepot <= au && x.statut !== "annule"
       : choix === "echus" ? x.dateEcheance >= du && x.dateEcheance <= au && (x.statut === "valide" || x.statut === "echu")
       : x.dateDepot >= du && x.dateDepot <= au && x.dateEcheance > au && (x.statut === "valide" || (x.statut === "rompu" && (x.rupture?.dateRupture ?? "") > au));
     return E.depotsTerme.filter(garde).sort((a, b) => a.certificat - b.certificat)
@@ -1728,7 +1738,7 @@ const depotsTerme = {
     if (!x || x.statut !== "valide") throw new ErreurMetier("Ce DAT n'est pas en cours (validé et pas encore rompu).");
     const d = date || journees.courante()?.date || "";
     if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) throw new ErreurMetier("À remplir : Date rupture.");
-    return { dat: vueDat(x), ...calculRuptureDat(x, d, E.tiers.find((t) => t.id === x.tiersId)?.type === "physique") };
+    return { dat: vueDat(x), ...calculRuptureDat(x, d, retenueDue(x.tiersId)) };
   },
   /** Bouton Rompre le DAT (S67, p. 76) : compte DAT soldé, montant à verser au compte émetteur ; intérêt en charge (612), retenue au 433, pénalité au 7791 */
   rompre(id: number, d: { dateRupture?: string; dateDemande?: string }) {
@@ -1743,7 +1753,7 @@ const depotsTerme = {
     const dd = d.dateDemande?.trim() || dr;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dd)) throw new ErreurMetier("À remplir : Date demande.");
     if (dd < x.dateDepot || dd > dr) throw new ErreurMetier("Date demande : entre la date de dépôt et la date de rupture.");
-    const r = calculRuptureDat(x, dr, E.tiers.find((t) => t.id === x.tiersId)?.type === "physique");
+    const r = calculRuptureDat(x, dr, retenueDue(x.tiersId));
     const p = E.produits.find((y) => y.id === x.produitId)!, em = E.comptes.find((c) => c.id === x.compteEmetteurId)!;
     const ligne = (compte: string, sens: "D" | "C", montant: number, contrat?: string) => ({ compte, ...(contrat ? { contrat } : {}), sens, devise: x.devise, montant, montantCdf: cdf(montant, x.devise) });
     const lignes = [ligne(p.compteLie!, "D", x.montant, `depot:${x.compteDatId}`)];
@@ -3137,7 +3147,8 @@ const societe = {
       ifu: i.ifu ?? "", pays: i.pays ?? "", ville: i.ville ?? "", commune: i.commune ?? "", quartier: i.quartier ?? "", rue: i.rue ?? "", email: i.email ?? "", bp: i.bp ?? "",
       telephoneFixe: i.telephoneFixe ?? "", adresse: i.adresse ?? "", logo: i.logo ?? null };
     return { institution, types: Object.entries(PROFILS_INSTITUTION).map(([code, libelle]) => ({ code, libelle })), localites: localites(),
-      agences: E.agences.filter((a) => !a.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ id, code, nom }) => ({ id, code, nom })) };
+      agences: E.agences.filter((a) => !a.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ id, code, nom }) => ({ id, code, nom })),
+      securite: { motDePasseMin: 8, essais: 5, fenetreMinutes: 15 } };   // cadre « Info sécurité », règles en vigueur (S32-6 ; noyau/securite.py)
   },
   /** Enregistrer la page Information Societe (registre S32-1 à S32-4) */
   enregistrer(d: Partial<Omit<InfoSociete, "journeeMax">> & { journeeMax?: number | null }) {

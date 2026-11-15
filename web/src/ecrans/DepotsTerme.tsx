@@ -2,7 +2,7 @@
 // Échéance, intérêt et montant à verser calculés ; le DAT attend sa validation par une autre personne, qui passe l'écriture (PCCI 340). Registre S65-1 à S65-8.
 import { useState } from "react";
 import { ajouterMois, api, interetDat } from "../donnees/api";
-import type { Tiers } from "../donnees/types";
+import type { Beneficiaire, Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
@@ -25,6 +25,8 @@ export function MiseEnPlaceDat() {
   const [cle, setCle] = useState(nouvelleCle);
   const [recherche, setRecherche] = useState(false);
   const [liste, setListe] = useState<Dat[] | null>(null);
+  const [aAnnuler, setAAnnuler] = useState<Dat | null>(null);
+  const [benef, setBenef] = useState<Beneficiaire[] | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   const { donnees: comptes } = useDonnees(() => (t ? api.tiers.comptes(t.id) : Promise.resolve([])), [t?.id]);
   if (!donnees) return <Chargement />;
@@ -43,6 +45,14 @@ export function MiseEnPlaceDat() {
   const echeance = depot && mois ? ajouterMois(depot, mois) : "";
   const effacer = () => { setF(VIDE); setT(null); setFait(null); setCle(nouvelleCle()); };
 
+  /** Bouton Annuler (capture p. 75) : le DAT choisi dans Liste DAT, encore en attente de validation (registre S65-6) */
+  function annuler() {
+    if (!aAnnuler) return;
+    setBoite({ type: "confirmation", message: `Voulez-vous vraiment annuler le DAT n° ${String(aAnnuler.certificat).padStart(6, "0")} ?`, oui: async () => {
+      try { await api.depotsTerme.annuler(aAnnuler.id); setAAnnuler(null); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+      catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+    } });
+  }
   function enregistrer() {
     const d = { cle, produitId: p?.id, tiersId: t?.id, compteEmetteurId: f.compte ? Number(f.compte) : undefined, compteDatId: f.dat ? Number(f.dat) : undefined,
       montant: m ?? 0, duree: mois, tauxInteret: f.ti, tauxPenalite: f.tp, aEcheance: f.aEcheance, dateDepot: depot, observation: f.observation, reconduction: f.reconduction };
@@ -57,7 +67,7 @@ export function MiseEnPlaceDat() {
       <h1>Mise en place DAT</h1>
       <div className="actions-onglets">
         <button className="bouton secondaire" type="button" aria-label="Nouveau DAT" title="Nouveau" onClick={effacer}>+</button>
-        <button className="bouton secondaire" type="button" disabled aria-label="Annuler un DAT" title="À confirmer : le manuel ne dit pas ce que fait ce bouton (registre S65-6)">⊘</button>
+        <button className="bouton secondaire" type="button" disabled={!aAnnuler} aria-label="Annuler un DAT" title="Annuler le DAT choisi dans Liste DAT" onClick={annuler}>⊘</button>
         <button className="bouton secondaire" type="button" onClick={async () => setListe(await api.depotsTerme.liste())}>Liste DAT</button>
       </div>
       <section className="bloc pile" aria-label="Mise en place DAT">
@@ -97,7 +107,7 @@ export function MiseEnPlaceDat() {
             <legend>Autres infos</legend>
             <Champ libelle="Observation :">{(pp) => <textarea {...pp} className="saisie" rows={2} value={f.observation} onChange={(e) => maj({ observation: e.target.value })} />}</Champ>
             <label className="case"><input type="checkbox" checked={f.reconduction} onChange={(e) => maj({ reconduction: e.target.checked })} /><span>Reconduction automatique</span></label>
-            <button className="bouton secondaire" type="button" disabled title="À confirmer : le manuel ne montre pas cette fenêtre (registre S65-6)">Bénéficiaire</button>
+            <button className="bouton secondaire" type="button" disabled={!t} onClick={() => setBenef(t?.beneficiaires ?? [])}>Bénéficiaire</button>
           </fieldset>
         </div>
         <div className="actions-onglets">
@@ -113,8 +123,9 @@ export function MiseEnPlaceDat() {
         <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut === "actif") : [])}
           choisir={(x) => { setT(x); maj({ compte: "", dat: "" }); setRecherche(false); }} fermer={() => setRecherche(false)} />
       </Fiche>
+      <FicheBeneficiaires lignes={benef} fermer={() => setBenef(null)} />
       <Fiche titre="Liste DAT" ouverte={!!liste} fermer={() => setListe(null)}>
-        <ListeDat lignes={liste ?? []} />
+        <ListeDat lignes={liste ?? []} avecStatut choisi={aAnnuler?.id ?? null} choisir={(y) => setAAnnuler(y.statut === "saisie" ? y : null)} />
         <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setListe(null)}>Fermer</button></div>
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
@@ -122,19 +133,35 @@ export function MiseEnPlaceDat() {
   );
 }
 
-const STATUTS: Record<string, string> = { saisie: "À valider", valide: "Validé", rompu: "Rompu", echu: "Échu" };
-function ListeDat({ lignes, choisi, choisir }: { lignes: Dat[]; choisi?: number | null; choisir?: (x: Dat) => void }) {
+const STATUTS: Record<string, string> = { saisie: "À valider", valide: "Validé", rompu: "Rompu", echu: "Échu", annule: "Annulé" };
+/** Bouton Bénéficiaire (captures p. 75 et 77) : les bénéficiaires inscrits sur la fiche du client (S37, registre S37-3), en lecture (registre S65-6) */
+function FicheBeneficiaires({ lignes, fermer }: { lignes: Beneficiaire[] | null; fermer: () => void }) {
+  return (
+    <Fiche titre="Bénéficiaire" ouverte={!!lignes} fermer={fermer}>
+      <div className="defile-x"><table className="grille">
+        <thead><tr><th scope="col">Nom</th><th scope="col">Post-nom</th><th scope="col">Prénom</th><th scope="col">Sexe</th><th scope="col">Date de naissance</th><th scope="col">Filiation</th><th scope="col">Téléphone</th></tr></thead>
+        <tbody>
+          {(lignes ?? []).length === 0 && <tr><td colSpan={7}>No records found.</td></tr>}
+          {(lignes ?? []).map((b, i) => <tr key={i}><td>{b.nom}</td><td>{b.postnom}</td><td>{b.prenom}</td><td>{b.sexe}</td><td className="chiffres">{b.naissance ? fr(b.naissance) : ""}</td><td>{b.filiation}</td><td className="chiffres">{b.telephone}</td></tr>)}
+        </tbody>
+      </table></div>
+      <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={fermer}>Fermer</button></div>
+    </Fiche>
+  );
+}
+function ListeDat({ lignes, choisi, choisir, avecStatut }: { lignes: Dat[]; choisi?: number | null; choisir?: (x: Dat) => void; avecStatut?: boolean }) {
+  const statut = avecStatut ?? !choisir;
   return (
     <div className="defile-x"><table className="grille">
       <thead><tr><th scope="col">Certificat</th><th scope="col">Date opération</th><th scope="col">N° compte</th><th scope="col">N° membre</th><th scope="col" className="montant">Montant dépôt</th>
-        <th scope="col">Durée</th><th scope="col">Taux interêt</th><th scope="col" className="montant">Montant interêt</th><th scope="col">Date échéance</th>{!choisir && <th scope="col">Statut</th>}</tr></thead>
+        <th scope="col">Durée</th><th scope="col">Taux interêt</th><th scope="col" className="montant">Montant interêt</th><th scope="col">Date échéance</th>{statut && <th scope="col">Statut</th>}</tr></thead>
       <tbody>
-        {lignes.length === 0 && <tr><td colSpan={choisir ? 9 : 10}>No records found.</td></tr>}
+        {lignes.length === 0 && <tr><td colSpan={statut ? 10 : 9}>No records found.</td></tr>}
         {lignes.map((x) => (
           <tr key={x.id} {...(choisir ? { className: "ligne-choix", tabIndex: 0, "aria-selected": choisi === x.id, onClick: () => choisir(x), onKeyDown: (e: React.KeyboardEvent) => { if (e.key === "Enter") choisir(x); } } : {})}>
             <td className="chiffres">{String(x.certificat).padStart(6, "0")}</td><td className="chiffres">{fr(x.dateDepot)}</td><td className="chiffres">{x.compteDat}</td><td className="chiffres">{x.membre}</td>
             <td className="montant chiffres">{montant(x.montant, x.devise as Devise)}</td><td>{x.duree} mois</td><td className="chiffres">{x.tauxInteret} %</td>
-            <td className="montant chiffres">{montant(x.montantInteret, x.devise as Devise)}</td><td className="chiffres">{fr(x.dateEcheance)}</td>{!choisir && <td>{STATUTS[x.statut]}</td>}
+            <td className="montant chiffres">{montant(x.montantInteret, x.devise as Devise)}</td><td className="chiffres">{fr(x.dateEcheance)}</td>{statut && <td>{STATUTS[x.statut]}</td>}
           </tr>
         ))}
       </tbody>
@@ -233,6 +260,7 @@ export function RuptureDat() {
   const [liste, setListe] = useState<Dat[] | null>(null);
   const [fait, setFait] = useState<Dat | null>(null);
   const [avis, setAvis] = useState<Contrat | null>(null);
+  const [benef, setBenef] = useState<Beneficiaire[] | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   if (j === undefined) return <Chargement />;
   const jour = j && j.statut === "ouverte" ? j.date : "";
@@ -294,7 +322,7 @@ export function RuptureDat() {
             <legend>Autres infos</legend>
             <Champ libelle="Observation :">{(pp) => <Lecture {...pp} value={x?.observation ?? ""} />}</Champ>
             <label className="case"><input type="checkbox" checked={!!x?.reconduction} readOnly disabled /><span>Reconduction automatique</span></label>
-            <button className="bouton secondaire" type="button" disabled title="À confirmer : le manuel ne montre pas cette fenêtre (registre S65-6)">Bénéficiaire</button>
+            <button className="bouton secondaire" type="button" disabled={!x} onClick={async () => { if (x) setBenef((await api.tiers.lire(x.tiersId))?.beneficiaires ?? []); }}>Bénéficiaire</button>
           </fieldset>
         </div>
         <div className="actions-onglets">
@@ -305,6 +333,7 @@ export function RuptureDat() {
           "Intérêt couru au prorata des jours, pénalité sur le montant du DAT (décisions du porteur, 15/11/2026)",
           "Retenue de 20 % sur l'intérêt brut des dépôts à échéance fixe des personnes physiques (loi 23/053, art. 78, 81 et 120), au compte 433 ; pénalité au compte 7791 ; intérêt au compte 612 de la durée du DAT (PCCI)"]} />
       </section>
+      <FicheBeneficiaires lignes={benef} fermer={() => setBenef(null)} />
       <Fiche titre="Liste DAT à rompre" ouverte={!!liste} fermer={() => setListe(null)}>
         {liste && <ListeDat lignes={liste} choisi={choix?.id ?? null} choisir={(y) => { setListe(null); void calculer(y, dr); }} />}
         <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setListe(null)}>Fermer</button></div>

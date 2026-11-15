@@ -295,7 +295,7 @@ def test_fiche_groupe(clients, journee):
     r = agent.post("/api/tiers/groupes", base, **H); assert r.status_code == 200, r.content
     t = r.json()
     assert (t["typeClient"], t["categorie"], t["secteurActivite"], t["email"]) == ("Tontine", "Groupe de femmes", "PRIMAIRE", "tontine@exemple.cd")
-    assert ident("select agent_economique from tiers where id = %s", (t["id"],)) is None   # autre libellé que ceux de la p. 47 : à confirmer
+    assert ident("select agent_economique from tiers where id = %s", (t["id"],)) == "menages"   # groupement sans personnalité juridique : ses membres sont des personnes physiques (registre S39-2)
     assert "Tontine" in agent.get("/api/referentiel", **H).json()["typesGroupe"]
 
 
@@ -1777,7 +1777,7 @@ def test_visa_validation_banque(clients, journee):
     assert "Quatre yeux" in refus(compta, "visa")
     assert "Droit manquant" in refus(agent, "visa")
     from noyau.bd import executer
-    executer("insert into profil_droit (profil_id, droit_code) select id, 'S57' from profil where code in ('chef_agence', 'agent_credit')")
+    executer("insert into profil_droit (profil_id, droit_code) select id, 'S57' from profil where code = 'agent_credit'")   # le chef d'agence l'a au départ (registre S57-3)
     assert "Rien à valider" in refus(chef, "validation")
     assert chef.post(f"/api/banque/visas/{o['id']}/visa", {}, **H).json()["statut"] == "visee"
     assert "autre personne que celle qui a visé" in refus(chef, "validation")
@@ -1989,6 +1989,12 @@ def test_depot_terme(clients, journee):
     assert avant - apres == 1000000
     assert ident("select sum(montant_devise) from ligne_ecriture l join compte c on c.id = l.compte_id where c.numero = '340' and l.contrat_ref = %s", (f"depot:{cdat}",)) == 1000000
     assert chef.get(f"/api/epargne/dat/{x['id']}/contrat").json()["dat"]["certificat"] == 1
+    y = agent.post("/api/epargne/dat", {"cle": cle(), **base, "montant": 50000}, **H).json()        # Annuler (S65-6)
+    ri = agent.get(f"/api/epargne/releve?compteId={em}&du=2026-01-01&au=2026-11-05").json()
+    assert ri["soldeIndicatif"] == ri["soldeComptable"] - 50000                                      # S64-2 : DAT en attente compris
+    assert agent.post(f"/api/epargne/dat/{y['id']}/annulation", **H).json()["statut"] == "annule"
+    r = agent.post(f"/api/epargne/dat/{x['id']}/annulation", **H)
+    assert r.status_code == 422 and "se rompt" in r.json()["message"]
     rch = lambda c: [(y["certificat"], y["terme"]) for y in chef.get(f"/api/epargne/dat/recherche?choix={c}&du=2026-01-01&au=2026-11-05", **H).json()]
     assert (rch("mise_en_place"), rch("encours"), rch("echus")) == ([(1, "Court terme")], [(1, "Court terme")], [])   # S68
     # S67 : 90 jours sur 1 000 000 à 7,5 % = 18 493 ; pénalité 2 % ; retenue 20 % sur l'intérêt brut (loi 23/053, art. 120)

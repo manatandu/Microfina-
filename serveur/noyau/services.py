@@ -945,7 +945,7 @@ def creer_groupe(u: dict, d: dict) -> dict:
     b, texte, fiche, nombres, membres = controler_groupe(u, d)
     images = d.get("images") or {}
     controler_image(images.get("photo"), "Photo"); controler_image(images.get("signature"), "Signature")
-    tid = inserer_tiers(u, d, b, "groupe", TYPES_GROUPE.get(texte("typeClient")))
+    tid = inserer_tiers(u, d, b, "groupe", (TYPES_GROUPE.get(texte("typeClient")) or "menages"))
     executer("""insert into tiers_morale (tiers_id, raison_sociale, forme, rccm, adresse_siege, activite, nb_hommes, nb_femmes)
                 values (%s, %s, %s, %s, %s, %s, %s, %s)""",
              (tid, texte("nom"), texte("formeJuridique") or None, texte("registre") or None, texte("adresse"), texte("typeActivite") or None, *nombres))
@@ -1031,7 +1031,7 @@ def modifier_tiers(u: dict, tid: int, d: dict) -> dict:
         b, texte, fiche, nombres, membres = controler_groupe(u, d, tid)
         executer("""update tiers set date_demande = %s, type_client = %s, agent_economique = %s, zone_id = %s, residence = %s, prelever_agios = %s,
                                      calculer_interet = %s, personne_exposee = %s, statut = 'modifie_a_revalider' where id = %s""",
-                 (texte("dateDemande"), texte("typeClient"), TYPES_GROUPE.get(texte("typeClient")), b["zone"], "resident" if d.get("resident", True) else "non_resident",
+                 (texte("dateDemande"), texte("typeClient"), (TYPES_GROUPE.get(texte("typeClient")) or "menages"), b["zone"], "resident" if d.get("resident", True) else "non_resident",
                   bool(d.get("preleverAgios", True)), bool(d.get("calculerInteret")), bool(d.get("personneExposee")), tid))
         executer("""update tiers_morale set raison_sociale = %s, forme = %s, rccm = %s, adresse_siege = %s, activite = %s, nb_hommes = %s, nb_femmes = %s where tiers_id = %s""",
                  (texte("nom"), texte("formeJuridique") or None, texte("registre") or None, texte("adresse"), texte("typeActivite") or None, *nombres, tid))
