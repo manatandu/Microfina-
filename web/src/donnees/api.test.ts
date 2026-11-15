@@ -179,6 +179,20 @@ describe("journée de guichet", () => {
     expect((await api.tiers.viser(t.id)).statut).toBe("actif");
   });
 
+  it("convention de compte (écart E04) et admission par le Conseil d'Administration (écart E05)", async () => {
+    await connecter("bkasongo");
+    const cv = await api.comptesEpargne.convention(2);
+    expect([cv.compte.numero, cv.client.numero, cv.entete.nom, cv.coopec]).toEqual(["0412-000318-02", "0412-000318", "COOPEC Tujenge", true]);
+    const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), ...IDENTITE, produitCode: "EAV-CDF", nom: "Ngoy", postnom: "Mwamba", prenom: "Anne", naissance: "1988-06-01",
+      pieceType: "Carte d'électeur", pieceNumero: "1-0412-0777", pieceExpire: "2031-01-01", adresse: "Matete" });
+    await connecter("jpmukendi");
+    const i = await api.societe.lire();
+    await api.societe.enregistrer({ ...i.institution, delegationAdmission: "" });
+    await expect(api.tiers.viser(t.id)).rejects.toThrow("décision du Conseil d'Administration");
+    const v = await api.tiers.viser(t.id, { admissionLe: "2026-11-04", admissionReference: "PV CA n° 12/2026" });
+    expect([v.statut, v.admissionLe, v.admissionReference]).toEqual(["actif", "2026-11-04", "PV CA n° 12/2026"]);
+  });
+
   it("refuse ce qui doit l'être", async () => {
     await journeeOuverte();
     await expect(api.guichet.retrait({ cle: cle(), compteId: 3, montant: 60000, coupures: { 100: 6 } })).rejects.toThrow("solde disponible");

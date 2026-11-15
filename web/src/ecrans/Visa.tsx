@@ -4,7 +4,7 @@ import type { Representant, Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Silhouette, Textes, type Boite, Lecture } from "../composants";
 import { lireMontant, montant } from "@design/montant.js";
-import { mots } from "../lib/vocabulaire";
+import { aDesParts, mots } from "../lib/vocabulaire";
 
 type Ctx = Awaited<ReturnType<typeof api.referentiel.contexte>>;
 const nomComplet = (t: { nom: string; postnom: string; prenom: string }) => [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
@@ -18,6 +18,7 @@ export function VisaClient() {
   const [intitule, setIntitule] = useState("");
   const [depot, setDepot] = useState("");
   const [dateVisa, setDateVisa] = useState("");
+  const [admission, setAdmission] = useState({ le: "", reference: "" });   // écart E05
   const [recherche, setRecherche] = useState(false);
   const [contrat, setContrat] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
@@ -35,14 +36,14 @@ export function VisaClient() {
     setT(x); setIntitule(x.intitule || nomComplet(x)); setDepot(x.premierDepot ? String(x.premierDepot / 100).replace(".", ",") : "0");
     setDateVisa(j?.statut === "ouverte" ? j.date : ""); setRecherche(false);
   }
-  function annuler() { setT(null); setIntitule(""); setDepot(""); setDateVisa(""); }
+  function annuler() { setT(null); setIntitule(""); setDepot(""); setDateVisa(""); setAdmission({ le: "", reference: "" }); }
   function viser() {
     if (!t) { setBoite({ type: "erreur", message: "Rechercher d'abord le client." }); return; }
     const m = depot.trim() ? lireMontant(depot) : 0;
     if (m === null || m < 0) { setBoite({ type: "erreur", message: "Premier dépôt invalide." }); return; }
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try {
-        setT(await api.tiers.viser(t.id, { dateVisa, intitule, premierDepot: m }));
+        setT(await api.tiers.viser(t.id, { dateVisa, intitule, premierDepot: m, ...(admission.le || admission.reference ? { admissionLe: admission.le, admissionReference: admission.reference } : {}) }));
         setBoite({ type: "succes", message: "Enregistré avec succès !" });
       } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
     } });
@@ -63,6 +64,14 @@ export function VisaClient() {
             <Champ libelle={`Prémier dépôt :${t ? ` (${deviseDe(ctx, t)})` : ""}`}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" readOnly={!t || vise} autoComplete="off" value={depot} onChange={(e) => setDepot(e.target.value)} />}</Champ>
             <Champ libelle="Date Demande *">{(p) => <input {...p} className="saisie date" readOnly value={t ? fr(t.dateDemande) : ""} />}</Champ>
             <ChampDate libelle="Date Visa *" valeur={dateVisa} onChange={setDateVisa} requis />
+            {t && aDesParts(ctx.institution) && (vise
+              ? <p className="aide">Admis le {fr(t.admissionLe ?? "")} : {t.admissionReference}</p>
+              : ctx.institution.delegationAdmission
+                ? <p className="aide">Admission par délégation du Conseil d'Administration : {ctx.institution.delegationAdmission}</p>
+                : <div className="grille-deux">
+                    <ChampDate libelle="Décision du CA, date : *" valeur={admission.le} onChange={(x) => setAdmission({ ...admission, le: x })} />
+                    <Champ libelle="Décision du CA, référence : *">{(p) => <input {...p} className="saisie code" value={admission.reference} onChange={(e) => setAdmission({ ...admission, reference: e.target.value })} />}</Champ>
+                  </div>)}
             {t && !vise && manquantes.length > 0 && <p className="aide" role="status">Pas encore déposé : {manquantes.join(", ")} (Client &gt; Photos et signatures ; Instr. BCC 15, art. 12 et 29).</p>}
           </fieldset>
           <fieldset className="pile cadre-champs">
@@ -291,7 +300,9 @@ function Contrat({ t, ctx }: { t: Tiers; ctx: Ctx }) {
       <div className="contrat-deux">{ligne("Fait à", ctx.agence.nom)}{ligne("le", fr(t.dateVisa))}</div>
       <p className="contrat-signature">Signature</p>
       <h4>DÉCISION DU CONSEIL D'ADMINISTRATION</h4>
-      <p>Le Conseil d'Administration de {inst}, réuni le {fr(t.dateVisa)}, « approuve, met en instance, rejette » la présente.</p>
+      {t.admissionReference
+        ? <p>Admission approuvée le {fr(t.admissionLe ?? "")} : {t.admissionReference}.</p>
+        : <p>Le Conseil d'Administration de {inst}, réuni le {fr(t.dateVisa)}, « approuve, met en instance, rejette » la présente.</p>}
       <p>« Rayer les mentions inutiles et préciser les raisons de la mise en instance et du rejet sur la ligne en dessous »</p>
       {ligne(`Le nouveau ${m.membre} est inscrit au registre des ${m.membres.toLowerCase()}`, t.numero)}
       <h4>HÉRITIER DÉSIGNÉ</h4>

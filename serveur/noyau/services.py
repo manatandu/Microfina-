@@ -202,7 +202,7 @@ def contexte(u: dict) -> dict:
     i = institution_de(u)
     a = une("select id, code, nom from agence where id = %s", (u["agence_id"],))
     return {
-        "institution": {"nom": i["nom"], "profil": i["profil"]},   # coopec, faitiere, societe_microfinance, entreprise_microcredit (S32)
+        "institution": {"nom": i["nom"], "profil": i["profil"], "delegationAdmission": i.get("delegation_admission") or ""},   # coopec, faitiere, societe_microfinance, entreprise_microcredit (S32)
         "agence": a,
         "guichets": lignes("select id, code, nom from guichet where agence_id = %s and actif order by code", (u["agence_id"],)),
         "produits": lignes("select code, libelle, devise from produit_epargne where institution_id = %s and actif and not supprime order by code", (u["institution_id"],)),
@@ -515,7 +515,7 @@ def vue_tiers(t: dict) -> dict:
             "liees": [r["autre_id"] for r in lignes("select autre_id from lien_tiers where tiers_id = %s and role = 'personne_liee' order by id", (t["id"],))],
             "beneficiairesEffectifs": [r["autre_id"] for r in lignes("select autre_id from lien_tiers where tiers_id = %s and role = 'beneficiaire_effectif' order by id",
                                                                      (t["id"],))],
-            "intitule": t["intitule"] or "", "dateVisa": iso(t["date_visa"]), "creeLe": t["cree_le"].date().isoformat(), "motifDepart": t["motif_depart"] or "", "resilieLe": iso(t["resilie_le"]),
+            "intitule": t["intitule"] or "", "dateVisa": iso(t["date_visa"]), "admissionLe": iso(t.get("admission_le")), "admissionReference": t.get("admission_reference") or "", "creeLe": t["cree_le"].date().isoformat(), "motifDepart": t["motif_depart"] or "", "resilieLe": iso(t["resilie_le"]),
             "sensibilisateurId": t["sensibilisateur_id"], "commercialId": t["commercial_id"],
             "profession": t["profession"] or "", "pays": t["pays"] or "", "ville": t["ville"] or "", "quartier": t["quartier"] or "", "rue": t["rue"] or "",
             "email": t["email"] or "", "bp": t["bp"] or "", "telephoneFixe": t["telephone_fixe"] or "",
@@ -985,8 +985,20 @@ def viser_tiers(u: dict, tid: int, d: dict | None = None) -> dict:
         raise ErreurMetier("Premier dépôt invalide.")
     from .conformite import exiger_autorisation_ppe
     exiger_autorisation_ppe(tid)                                     # écart E02 : Instr. BCC 15, art. 64
-    executer("""update tiers set statut = 'actif', vise_par = %s, vise_le = now(), date_visa = %s, intitule = %s, premier_depot = %s where id = %s""",
-             (u["id"], date_visa, intitule, depot, tid))
+    # Écart E05 : COOPEC, admission par le Conseil d'Administration (loi 002/2002, art. 22, 6° ; AUSCOOP, art. 10), ou par sa délégation (Info société)
+    adm_le, adm_ref = texte("admissionLe") or None, texte("admissionReference") or None
+    if est_coopec(u):
+        delegation = valeur("select delegation_admission from institution where id = %s", (u["institution_id"],))
+        if delegation and not (adm_le or adm_ref):
+            adm_le, adm_ref = date_visa, f"Par délégation : {delegation}"
+        if not adm_le or not adm_ref:
+            raise ErreurMetier("Admission du membre : date et référence de la décision du Conseil d'Administration (loi 002/2002, art. 22, 6°), "
+                               "ou délégation notée dans Paramétrage > Info société.")
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", adm_le) or adm_le > jour:
+            raise ErreurMetier("Date de la décision d'admission invalide.")
+    executer("""update tiers set statut = 'actif', vise_par = %s, vise_le = now(), date_visa = %s, intitule = %s, premier_depot = %s,
+                admission_le = %s, admission_reference = %s where id = %s""",
+             (u["id"], date_visa, intitule, depot, adm_le, adm_ref, tid))
     return lire_tiers(tid)
 
 

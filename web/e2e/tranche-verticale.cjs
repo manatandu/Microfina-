@@ -631,6 +631,9 @@ const OUT = process.argv[2];
   await p.getByLabel('N° du compte : *').and(p.locator('[value$="-05"]')).waitFor(); await etape('06c18-nouveau-compte');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
   await p.getByRole('cell', { name: /-05$/ }).waitFor(); await etape('06c19-nouveau-compte-liste');
+  // Convention de compte (écart E04 ; loi 22/069, titre III) : remise au client à l'ouverture
+  await p.getByRole('button', { name: /^Convention du compte .*-05$/ }).click(); await p.getByRole('article', { name: 'Convention de compte' }).waitFor(); await etape('06c19b-convention-compte');
+  await p.getByRole('dialog', { name: 'Convention de compte' }).getByRole('button', { name: 'Fermer' }).click();
   // Relevé de compte (S64) : le compte CDF de Kalala, puis sa situation
   await aller('/epargne/s64'); await p.getByRole('heading', { name: 'Relevé de compte' }).waitFor();
   await p.getByRole('button', { name: 'Rechercher un client' }).click();

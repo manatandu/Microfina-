@@ -11,7 +11,8 @@ PROFILS = {"coopec": "COOPEC", "societe_microfinance": "Société de microfinanc
 CHAMPS = {"code": "sigle", "denomination": "nom", "typeBase": "profil", "description": "description", "directeur": "directeur",
           "agrement": "numero_agrement", "journeeMax": "journee_max", "compteHorsBilan1": "compte_hors_bilan_1", "compteHorsBilan2": "compte_hors_bilan_2",
           "ifu": "ifu", "pays": "pays", "ville": "ville", "commune": "commune", "quartier": "quartier", "rue": "rue", "email": "email", "bp": "bp",
-          "telephoneFixe": "telephone_fixe", "adresse": "adresse", "logo": "logo"}
+          "telephoneFixe": "telephone_fixe", "adresse": "adresse", "logo": "logo",
+          "delegationAdmission": "delegation_admission"}     # écart E05 : référence de la décision du Conseil qui délègue l'admission (loi 002/2002, art. 22)
 LOGO_MAX = 300_000      # caractères de l'image encodée (registre S32-4)
 
 

@@ -588,6 +588,11 @@ def epargne_produits(request):
     return cep.produits(u(request))
 
 
+@api.get("/epargne/comptes/{cid}/convention")
+def epargne_compte_convention(request, cid: int):
+    return cep.convention(u(request), cid)
+
+
 @api.get("/epargne/comptes/apercu")
 def epargne_compte_apercu(request, tiersId: int, produitId: int):
     return cep.apercu(u(request), tiersId, produitId)

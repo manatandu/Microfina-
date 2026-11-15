@@ -9,7 +9,8 @@ export interface Utilisateur { id: number; login: string; nom: string; roles: Ro
 export interface Institution { nom: string; sigle?: string; profil: string;
   // S32 Info générale
   description?: string; directeur?: string; numeroAgrement?: string; journeeMax?: number; compteHorsBilan1?: string | null; compteHorsBilan2?: string | null;
-  ifu?: string; pays?: string; ville?: string; commune?: string; quartier?: string; rue?: string; email?: string; bp?: string; telephoneFixe?: string; adresse?: string; logo?: string | null }
+  ifu?: string; pays?: string; ville?: string; commune?: string; quartier?: string; rue?: string; email?: string; bp?: string; telephoneFixe?: string; adresse?: string; logo?: string | null;
+  delegationAdmission?: string }   // écart E05 : décision du Conseil qui délègue l'admission des membres
 export interface Agence { id: number; code: string; nom: string }
 /** Guichet ; champs de « Gestion des guichets » (S08, manuel p. 18) */
 export interface Guichet {
@@ -124,6 +125,7 @@ export interface Tiers {
   // S40, visa (manuel p. 52)
   intitule: string;
   dateVisa: string;
+  admissionLe?: string; admissionReference?: string;   // écart E05 : décision d'admission (loi 002/2002, art. 22, 6°)
 }
 
 export interface CompteDepot {

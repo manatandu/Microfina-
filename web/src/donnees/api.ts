@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v66";
+const CLE = "likelemba-demo-v67";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -288,7 +288,7 @@ const nettoyer = (c: Comptage): Comptage => Object.fromEntries(Object.entries(c)
 // ---------- Tiers ----------
 export type NouveauTiers = Omit<Tiers, "id" | "numero" | "statut" | "creePar" | "visePar" | "photo" | "specimen" | "type" | "dirigeant" | "signataires" | "membres" | "intitule" | "dateVisa" | "motifDepart" | "resilieLe" | "creeLe">;
 /** Saisie du visa (S40, p. 52) */
-export interface Visa { dateVisa?: string; intitule?: string; premierDepot?: number }
+export interface Visa { dateVisa?: string; intitule?: string; premierDepot?: number; admissionLe?: string; admissionReference?: string }
 /** Dirigeant ou signataire tel que saisi, avec photo et signature chargées */
 export type RepresentantSaisi = Omit<Representant, "photo" | "specimen"> & Images & {
   /** Ligne déjà enregistrée, gardée telle quelle à la mise à jour (S46), avec ses images */
@@ -583,7 +583,15 @@ const tiers = {
     const depot = v.premierDepot ?? t.premierDepot;
     if (!Number.isInteger(depot) || depot < 0) throw new ErreurMetier("Premier dépôt invalide.");
     exigerAutorisationPpe(t.id);   // écart E02 : Instr. BCC 15, art. 64
-    Object.assign(t, { statut: "actif", visePar: u.id, dateVisa, intitule, premierDepot: depot });
+    // Écart E05 : COOPEC, admission par le Conseil d'Administration (loi 002/2002, art. 22, 6° ; AUSCOOP, art. 10), ou par sa délégation (Info société)
+    let admissionLe = v.admissionLe?.trim() || "", admissionReference = v.admissionReference?.trim() || "";
+    if (estCoopec()) {
+      const delegation = E.institution.delegationAdmission?.trim();
+      if (delegation && !admissionLe && !admissionReference) { admissionLe = dateVisa; admissionReference = `Par délégation : ${delegation}`; }
+      if (!admissionLe || !admissionReference) throw new ErreurMetier("Admission du membre : date et référence de la décision du Conseil d'Administration (loi 002/2002, art. 22, 6°), ou délégation notée dans Paramétrage > Info société.");
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(admissionLe) || admissionLe > jour) throw new ErreurMetier("Date de la décision d'admission invalide.");
+    }
+    Object.assign(t, { statut: "actif", visePar: u.id, dateVisa, intitule, premierDepot: depot, ...(admissionLe ? { admissionLe, admissionReference } : {}) });
     enregistrer(); return t;
   },
   /** S46 : Modification d'un client (p. 56) ; entreprise et groupe : les onglets de leur enrôlement (registre S46-2). Le client passe « modifié à revalider »
@@ -1523,6 +1531,15 @@ function preparerOuverture(tiersId?: number, produitId?: number) {
   return { t, p, numero };
 }
 const comptesEpargne = {
+  /** Écart E04 : convention écrite à l'ouverture d'un compte, copie remise au client (loi 22/069, titre III, chap. Ier). Mêmes règles que comptes_epargne.convention. */
+  convention(id: number) {
+    exiger();
+    const c = E.comptes.find((x) => x.id === id); if (!c) throw new ErreurMetier("Compte introuvable.");
+    const p = E.produits.find((x) => (c.produitId !== undefined ? x.id === c.produitId : x.libelle === c.intitule && x.devise === c.devise));
+    return { entete: enteteDocument(), client: ficheClient(c.tiersId), coopec: estCoopec(),
+      compte: { numero: c.numero, produit: p?.libelle ?? c.intitule, famille: p?.famille ?? "EPARGNE", devise: c.devise, agence: E.agence.nom,
+        ouvertLe: (c as { ouvertLe?: string }).ouvertLe ?? "", soldeMinimum: p?.soldeMinimum ?? 0, retraitMaxJour: p?.retraitMaxJour ?? null } };
+  },
   produits() {
     exiger();
     return produitsProposes().sort((a, b) => a.code.localeCompare(b.code)).map(({ id, numero, code, libelle, famille, devise, nbMaxComptes }) => ({ id, numero, code, libelle, famille, devise, nbMaxComptes }));
@@ -3265,7 +3282,7 @@ const edDivers = {
 export const PROFILS_INSTITUTION: Record<string, string> = { coopec: "COOPEC", societe_microfinance: "Société de microfinance", entreprise_microcredit: "Entreprise de micro-crédit", faitiere: "Structure faîtière" };
 export type InfoSociete = { code: string; denomination: string; typeBase: string; description: string; directeur: string; agrement: string; journeeMax: number;
   compteHorsBilan1: string | null; compteHorsBilan2: string | null; ifu: string; pays: string; ville: string; commune: string; quartier: string; rue: string; email: string; bp: string;
-  telephoneFixe: string; adresse: string; logo: string | null };
+  telephoneFixe: string; adresse: string; logo: string | null; delegationAdmission?: string };
 const societe = {
   lire() {
     exiger();
@@ -3273,7 +3290,7 @@ const societe = {
     const institution: InfoSociete = { code: i.sigle ?? "", denomination: i.nom, typeBase: i.profil, description: i.description ?? "", directeur: i.directeur ?? "",
       agrement: i.numeroAgrement ?? "", journeeMax: i.journeeMax ?? 1, compteHorsBilan1: i.compteHorsBilan1 ?? null, compteHorsBilan2: i.compteHorsBilan2 ?? null,
       ifu: i.ifu ?? "", pays: i.pays ?? "", ville: i.ville ?? "", commune: i.commune ?? "", quartier: i.quartier ?? "", rue: i.rue ?? "", email: i.email ?? "", bp: i.bp ?? "",
-      telephoneFixe: i.telephoneFixe ?? "", adresse: i.adresse ?? "", logo: i.logo ?? null };
+      telephoneFixe: i.telephoneFixe ?? "", adresse: i.adresse ?? "", logo: i.logo ?? null, delegationAdmission: i.delegationAdmission ?? "" };
     return { institution, types: Object.entries(PROFILS_INSTITUTION).map(([code, libelle]) => ({ code, libelle })), localites: localites(),
       agences: E.agences.filter((a) => !a.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ id, code, nom }) => ({ id, code, nom })),
       securite: { motDePasseMin: 8, essais: 5, fenetreMinutes: 15 } };   // cadre « Info sécurité », règles en vigueur (S32-6 ; noyau/securite.py)
@@ -3301,7 +3318,8 @@ const societe = {
     }
     Object.assign(E.institution, { sigle: v.code, nom: v.denomination, profil: v.typeBase, description: t(d.description), directeur: t(d.directeur), numeroAgrement: t(d.agrement),
       journeeMax: d.journeeMax, compteHorsBilan1: v.compteHorsBilan1 || null, compteHorsBilan2: v.compteHorsBilan2 || null, ifu: t(d.ifu), pays: v.pays, ville: v.ville, commune: v.commune,
-      quartier: v.quartier, rue: t(d.rue), email: v.email, bp: t(d.bp), telephoneFixe: t(d.telephoneFixe), adresse: t(d.adresse), logo });
+      quartier: v.quartier, rue: t(d.rue), email: v.email, bp: t(d.bp), telephoneFixe: t(d.telephoneFixe), adresse: t(d.adresse), logo,
+      delegationAdmission: t(d.delegationAdmission) });
     enregistrer(); return societe.lire();
   },
   /** Page Agence : Code et Nom (registre S32-5) ; le code d'une agence qui a des clients ne change plus (il entre dans leurs numéros, S15) */

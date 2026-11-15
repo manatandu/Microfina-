@@ -2100,3 +2100,18 @@ def test_personne_exposee(clients, journee):
     assert compta.post(f"/api/conformite/ppe/{t['id']}", {"autoriser": True}, **H).json()["autorisePar"]
     assert compta.post(f"/api/conformite/ppe/{t['id']}/information", {"date": "2026-11-05", "reference": "CENAREF-PPE-07"}, **H).json()["informeLe"] == "2026-11-05"
     assert chef.post(f"/api/tiers/{t['id']}/visa", **H).json()["statut"] == "actif"
+
+
+def test_convention_et_admission(clients, journee):
+    """Écart E04 : convention de compte (loi 22/069, titre III) ; écart E05 : admission par le Conseil d'Administration (loi 002/2002, art. 22, 6°)"""
+    from noyau.bd import executer
+    agent, chef = clients["agent"], clients["chef"]
+    cv = agent.get(f"/api/epargne/comptes/{C('0412-000318-02')}/convention", **H).json()
+    assert (cv["compte"]["numero"], cv["client"]["numero"], cv["coopec"]) == ("0412-000318-02", "0412-000318", True)
+    t = agent.post("/api/tiers", {**FICHE, "nom": "Ngoy", "postnom": "Mwamba", "prenom": "Anne", "naissance": "1988-06-01", "pieceType": "Carte d'électeur",
+                                  "pieceNumero": "1-0412-0777", "pieceExpire": "2031-01-01", "adresse": "Matete"}, **H).json()
+    executer("update institution set delegation_admission = null")
+    r = chef.post(f"/api/tiers/{t['id']}/visa", **H)
+    assert r.status_code == 422 and "décision du Conseil d'Administration" in r.json()["message"]
+    v = chef.post(f"/api/tiers/{t['id']}/visa", {"admissionLe": "2026-11-04", "admissionReference": "PV CA n° 12/2026"}, **H).json()
+    assert (v["statut"], v["admissionLe"], v["admissionReference"]) == ("actif", "2026-11-04", "PV CA n° 12/2026")

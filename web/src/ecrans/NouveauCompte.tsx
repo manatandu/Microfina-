@@ -8,6 +8,8 @@ import { nouvelleCle } from "../lib/cle";
 import { montant, type Devise } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
 import { RechercheClient } from "./Visa";
+import { ConventionCompte, type DonneesConvention } from "./Convention";
+import { imprimer } from "../lib/imprimer";
 
 const nomComplet = (t: Tiers) => t.intitule || [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
 
@@ -19,6 +21,7 @@ export function NouveauCompte() {
   const [cle, setCle] = useState(nouvelleCle);
   const [relu, setRelu] = useState(0);
   const [recherche, setRecherche] = useState(false);
+  const [convention, setConvention] = useState<DonneesConvention | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   const { donnees: ap, erreur } = useDonnees(async () => (t && produit ? await api.comptesEpargne.apercu(t.id, Number(produit)) : null), [t?.id, produit, relu]);
   const { donnees: comptes } = useDonnees(() => (t ? api.tiers.comptes(t.id) : Promise.resolve([])), [t?.id, relu]);
@@ -67,11 +70,13 @@ export function NouveauCompte() {
         <fieldset className="pile cadre-champs">
           <legend>Liste des Comptes du membre</legend>
           <div className="defile-x"><table className="grille">
-            <thead><tr><th scope="col">N° du compte</th><th scope="col">Produit</th><th scope="col">Devise</th><th scope="col" className="montant">Solde</th></tr></thead>
+            <thead><tr><th scope="col">N° du compte</th><th scope="col">Produit</th><th scope="col">Devise</th><th scope="col" className="montant">Solde</th><th scope="col">Convention</th></tr></thead>
             <tbody>
-              {(comptes ?? []).length === 0 && <tr><td colSpan={4}>Liste vide</td></tr>}
+              {(comptes ?? []).length === 0 && <tr><td colSpan={5}>Liste vide</td></tr>}
               {(comptes ?? []).map((c) => <tr key={c.id}><td className="chiffres">{c.numero}</td><td>{c.intitule}</td><td>{c.devise}</td>
-                <td className="montant chiffres">{c.solde === null || c.solde === undefined ? "" : montant(c.solde, c.devise as Devise)}</td></tr>)}
+                <td className="montant chiffres">{c.solde === null || c.solde === undefined ? "" : montant(c.solde, c.devise as Devise)}</td>
+                <td><button className="bouton secondaire" type="button" aria-label={`Convention du compte ${c.numero}`} onClick={async () => {
+                  try { setConvention(await api.comptesEpargne.convention(c.id)); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } }}>Imprimer</button></td></tr>)}
             </tbody>
           </table></div>
         </fieldset>
@@ -80,6 +85,13 @@ export function NouveauCompte() {
           "Instr. BCC 37, annexe : ouverture de compte gratuite ; Paramétrage > Produit épargne : Max compte à créer ; Paramétrage > Numéro de compte client : N° du compte",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
       </section>
+      <Fiche titre="Convention de compte" ouverte={!!convention} fermer={() => setConvention(null)}>
+        {convention && <ConventionCompte c={convention} />}
+        <div className="actions-onglets sans-impression">
+          <button className="bouton secondaire" type="button" onClick={() => setConvention(null)}>Fermer</button>
+          <button className="bouton" type="button" onClick={() => imprimer(".fiche .a-imprimer")}>Imprimer</button>
+        </div>
+      </Fiche>
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut === "actif") : [])}
           choisir={(x) => { setT(x); setCle(nouvelleCle()); setRecherche(false); }} fermer={() => setRecherche(false)} />

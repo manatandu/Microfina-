@@ -68,6 +68,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       editer: (compteId: number, du: string, au: string) => post("/epargne/releve/edition", { compteId, du, au }),
     },
     comptesEpargne: {
+      convention: (id: number) => get(`/epargne/comptes/${id}/convention`),
       produits: () => get("/epargne/comptes/produits"),
       apercu: (tiersId: number, produitId: number) => get(`/epargne/comptes/apercu?tiersId=${tiersId}&produitId=${produitId}`),
       ouvrir: (d: object) => post("/epargne/comptes", d),

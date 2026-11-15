@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**372 décisions.** Solidité : 137 fortes (le manuel ou un texte répond), 203 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 344 déjà en place, 28 à appliquer.
+**375 décisions.** Solidité : 139 fortes (le manuel ou un texte répond), 204 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 347 déjà en place, 28 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -842,6 +842,19 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | E03-1 | Où et comment | Copie de la pièce d'identité et justificatif d'adresse déposés comme la photo et la signature (Client > Photos et signatures, S49), gardés à chaque dépôt avec leur auteur et leur date | Texte réglementaire : Instr. BCC 15, art. 12 al. 2 et 3, art. 29 et 48 | forte | en place |
 | E03-2 | Visa sans les copies | Le visa (S40) signale ce qui manque, sans bloquer. Bloquer le visa d'une personne physique sans copie de la pièce est la lecture stricte de l'art. 29 ; elle reste à décider par le porteur, parce qu'elle change les habitudes de toutes les agences | Choix du porteur : Instr. BCC 15, art. 15 (vérification après l'entrée en relation si le risque est faible) et 29 | moyenne | en place |
+
+## E04 Convention de compte
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E04-1 | Où et quand | Un bouton par compte dans la liste des comptes du membre (Épargne > Nouveau compte, S63), donc aussi pour le compte ouvert à l'adhésion. Document de l'institution, en deux exemplaires, police 12 | Texte réglementaire : Loi 22/069, titre III, chap. Ier ; Instr. BCC 40, art. 5 et 13 | forte | en place |
+| E04-2 | Clauses | Titulaire, pièce, adresse, compte, produit, devise, agence, date, solde minimum, retrait maximum par jour ; gratuités (Instr. BCC 37, annexe) ; conditions publiées et affichées (Instr. BCC 40, art. 3 et 12) ; secret et données personnelles (loi 002/2002, art. 79 ; loi 11/020, art. 60) ; plaintes (Instr. BCC 39, art. 5 et 7) ; mise à jour du dossier (Instr. BCC 15, art. 51). La convention-type de la BCC annoncée par la loi n'a pas été lue : ses clauses minimales s'ajouteront quand le texte sera trouvé | Texte réglementaire : Textes cités | moyenne | en place |
+
+## E05 Admission par le Conseil d'Administration
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E05-1 | Au visa | COOPEC et faîtière : le visa (S40) note la date et la référence de la décision du Conseil d'Administration ; si le Conseil a délégué l'admission, sa décision est notée une fois dans Info société (S32) et le visa la reprend. La demande d'adhésion imprimée montre la décision. IMF : sans objet | Texte réglementaire : Loi 002/2002, art. 22, 6° ; AUSCOOP, art. 10 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

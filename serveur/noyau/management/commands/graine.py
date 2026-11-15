@@ -45,6 +45,8 @@ class Command(BaseCommand):
             self.stdout.write("Base déjà remplie : rien à faire.")
             return
         ins = valeur("insert into institution (nom, sigle, profil, pays, ville, commune, quartier) values ('COOPEC Tujenge', 'CTJ', 'coopec', 'République démocratique du Congo', 'Kinshasa', 'Matete', 'Kinsaku') returning id")
+        # Écart E05 : le Conseil d'Administration délègue l'admission des membres (décision fictive de démonstration)
+        executer("update institution set delegation_admission = %s where id = %s", ("Décision du Conseil d'Administration n° 01/2026 du 05/01/2026", ins))
         # Professions fictives
         # Localisation (S20) : la ville de Kinshasa et les 25 provinces (Constitution, art. 2) ; communes et quartier de démonstration
         pays = valeur("insert into localite (niveau, nom, nationalite, code, zone) values ('pays', 'République démocratique du Congo', 'Congolaise', 'CD', 'Afrique') returning id")

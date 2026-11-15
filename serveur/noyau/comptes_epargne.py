@@ -81,3 +81,21 @@ def ouvrir(u, d) -> dict:
 def vue(c: dict) -> dict:
     return {"id": c["id"], "numero": c["numero"], "tiersId": c["tiers_id"], "produitId": c["produit_id"], "devise": c["devise"].strip(),
             "ouvertLe": c["ouvert_le"].isoformat() if c["ouvert_le"] else ""}
+
+
+def convention(u, cid: int) -> dict:
+    """Écart E04 : convention écrite à l'ouverture de tout compte à vue ou à terme, copie remise au client (loi 22/069, titre III, chap. Ier).
+    La convention-type de la BCC n'étant pas lue, les clauses viennent des textes lus : gratuité (Instr. BCC 37, annexe), conditions publiées
+    (Instr. BCC 40, art. 3), plaintes (Instr. BCC 39, art. 5 à 7), secret et données personnelles (loi 002/2002, art. 79 ; loi 11/020, art. 60)."""
+    from .releves import client, entete
+    from .services import est_coopec
+    exiger(u)
+    c = une("""select c.*, p.libelle, p.famille, p.solde_minimum, p.retrait_max_jour, a.nom as agence from compte_depot c
+               join produit_epargne p on p.id = c.produit_id join agence a on a.id = c.agence_id
+               where c.id = %s and c.institution_id = %s""", (cid, u["institution_id"]))
+    if not c:
+        raise ErreurMetier("Compte introuvable.")
+    return {"entete": entete(u["institution_id"]), "client": client(c["tiers_id"]), "coopec": est_coopec(u),
+            "compte": {"numero": c["numero"], "produit": c["libelle"], "famille": c["famille"], "devise": c["devise"].strip(), "agence": c["agence"],
+                       "ouvertLe": c["ouvert_le"].isoformat() if c["ouvert_le"] else "", "soldeMinimum": c["solde_minimum"] or 0,
+                       "retraitMaxJour": c["retrait_max_jour"]}}
