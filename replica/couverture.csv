@@ -58,7 +58,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 57,Visa puis validation des opérations de banque,banque,must,partial,S57,B,visa,4 Banque,S57 : deux listes sans capture ; colonnes complètes,"A:S113, S114",,,S57-6 Effet de la validation
 58,Banques et comptes bancaires,banque,must,partial,S58,A,liste,4 Banque,,,,,"S58-1 Compte liaison d'une banque client ; S58-2 Comptes « à valider » ; S58-3 Compte de pénalité, gestionnaire ; S58-4 Liste des comptes"
 59,Chèques clients : dépôt encaissement historique,banque,should,partial,S59,B,guichet,4 Banque,S59 : Historique chèque (texte seul),A:S62 (rapport par banque),,,S59-4 Effet de l'encaissement
-60,Chéquier et chèque pour crédit,banque,could,no,S60,B,liste,4 Banque,S60 : « Chèque pour crédit » : en panne dans le manuel,A:S54 ; P,,S60,S60-1 Liste « N° de chèque » de S52
+60,Chéquier et chèque pour crédit,banque,could,partial,S60,B,liste,4 Banque,S60 : « Chèque pour crédit » : en panne dans le manuel,A:S54 ; P,,,S60-5 Chèque pour crédit
 61,Emprunts bancaires,banque,should,no,S61,B,guichet,4 Banque,"S61 : règles (échéances, intérêts, écritures)",R:PCCI (emprunts) ; P,,S61,
 62,Rapports banque,banque,should,no,S62,B,rapport,4 Banque,S62 : forme du résultat,A:S13,,S62,
 63,Ouverture d'un compte d'épargne,épargne,must,no,S63,A,liste,5 Épargne,,,,S63,S74-5 Options du produit d'épargne

@@ -59,9 +59,9 @@ export function OperationsBanque() {
     } });
   }
   const annuler = () => { setF(vide); setCle(nouvelleCle()); };
-  // N° de chèque : chèques des chéquiers de l'institution (S60, pas encore construit) ; la liste reste vide (registre S52-5)
+  // N° de chèque : chèques encore disponibles des chéquiers du compte bancaire choisi (S60, registre S60-1 et S60-2)
   const chequeVide = (actif: boolean) => <Champ libelle="N° de chèque">{(p) => <select {...p} className="saisie" disabled={!actif} value={f.cheque} onChange={(e) => maj({ cheque: e.target.value })}>
-    <option value=""></option></select>}</Champ>;
+    <option value=""></option>{lu.cheques.filter((q) => String(q.compteBancaireId) === f.compte).map((q) => <option key={q.id} value={q.numero}>{q.numero}</option>)}</select>}</Champ>;
 
   return (
     <>
@@ -83,7 +83,7 @@ export function OperationsBanque() {
               <Champ libelle="Type operation">{(p) => <select {...p} className="saisie" value={f.type} onChange={(e) => maj({ type: e.target.value as typeof f.type, cheque: "" })}>
                 <option value="encaissement">Encaissement divers</option><option value="decaissement">Décaissement divers</option></select>}</Champ>
               <ChoixBanque lu={lu} libelleBanque="Banque *" libelleCompte="Compte Banque *" banque={f.banque} compte={f.compte}
-                onBanque={(v) => maj({ banque: v, compte: "" })} onCompte={(v) => setF((x) => ({ ...x, compte: v }))} />
+                onBanque={(v) => maj({ banque: v, compte: "" })} onCompte={(v) => setF((x) => ({ ...x, compte: v, cheque: "" }))} />
               {chequeVide(f.type === "decaissement")}
               <Champ libelle="Solde banque">{(p) => <input {...p} className="saisie montant" readOnly value={solde(origine)} />}</Champ>
               <Champ libelle="Compte *">{(p) => <input {...p} className="saisie code" inputMode="numeric" autoComplete="off" value={f.contrepartie} onChange={(e) => maj({ contrepartie: e.target.value })} />}</Champ>

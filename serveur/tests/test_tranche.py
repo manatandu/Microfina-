@@ -772,6 +772,7 @@ def test_operations_banque(clients, journee):
     o = compta.post("/api/banque/operations", {"cle": k, "date": "2026-11-05", **enc}, **H).json()
     assert (o["statut"], o["piece"], o["devise"], o["montant"]) == ("saisie", "", "USD", 50000)
     assert compta.post("/api/banque/operations", {"cle": k, "date": "2026-11-05", **enc}, **H).json()["id"] == o["id"]      # même clé : même opération
+    compta.post("/api/banque/chequiers", {"cle": cle(), "compteBancaireId": usd1, "nbFeuillets": 25, "debut": "0000101", "barre": True}, **H)   # S60
     d = compta.post("/api/banque/operations", {"cle": cle(), "date": "2026-11-05", **enc, "type": "decaissement", "compte": "671", "cheque": "0000123"}, **H).json()
     assert (d["type"], d["cheque"]) == ("decaissement", "0000123")
     assert "caisse" in refus({"type": "banque_caisse", "compteBancaireId": cdf1, "montant": 100000})
@@ -1798,3 +1799,26 @@ def test_cheques_clients(clients, journee):
     assert traiter(chef, y["id"], "retourner").json()["statut"] == "retourne"
     assert compta.post("/api/banque/cheques", {"cle": cle(), **base, "numeroCheque": "0001235"}, **H).status_code == 200   # un chèque retourné peut revenir
     assert [c["statut"] for c in chef.get(f"/api/banque/cheques?compteBancaireId={ids['R-USD-1']}").json()] == ["encaisse", "retourne", "depose"]
+
+
+def test_chequier_institution(clients, journee):
+    """S60 (manuel p. 69) : chéquier généré, chèque utilisé une fois dans S52 ; un refus annule toute la requête"""
+    chef, compta, agent = clients["chef"], clients["compta"], clients["agent"]
+    ids = banque_usd(chef)
+    base = {"compteBancaireId": ids["R-USD-1"], "nbFeuillets": 25, "debut": "0001001", "barre": True}
+    def refus(route, corps, c=compta):
+        r = c.post(route, {"cle": cle(), **corps}, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    assert "Droit manquant" in refus("/api/banque/chequiers", base, agent)
+    assert "Nb.Feuillet" in refus("/api/banque/chequiers", {**base, "nbFeuillets": 30})
+    assert "1 à 8 chiffres" in refus("/api/banque/chequiers", {**base, "debut": "123456789"})
+    ch = compta.post("/api/banque/chequiers", {"cle": cle(), **base}, **H).json()
+    assert (ch["debut"], ch["fin"]) == ("0001001", "0001025")
+    assert "existent déjà" in refus("/api/banque/chequiers", {**base, "debut": "0001020"})
+    lu = compta.get("/api/banque/operations").json()
+    assert len([q for q in lu["cheques"] if q["compteBancaireId"] == ids["R-USD-1"]]) == 25
+    dec = {"type": "decaissement", "date": "2026-11-05", "compteBancaireId": ids["R-USD-1"], "compte": "671", "libelle": "Frais", "montant": 1000}
+    n = ident("select count(*) from operation_banque")
+    assert "aucun chéquier" in refus("/api/banque/operations", {**dec, "cheque": "0009999"})
+    assert ident("select count(*) from operation_banque") == n          # le refus a tout annulé, même l'opération déjà écrite
+    assert compta.post("/api/banque/operations", {"cle": cle(), **dec, "cheque": "0001001"}, **H).json()["cheque"] == "0001001"
+    assert "déjà servi" in refus("/api/banque/operations", {**dec, "cheque": "0001001"})

@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**308 décisions.** Solidité : 101 fortes (le manuel ou un texte répond), 165 moyennes (déduites d'un écran voisin ou d'une donnée), 42 faibles (notre choix, faute de mieux). Dans le code : 275 déjà en place, 33 à appliquer.
+**313 décisions.** Solidité : 104 fortes (le manuel ou un texte répond), 166 moyennes (déduites d'un écran voisin ou d'une donnée), 43 faibles (notre choix, faute de mieux). Dans le code : 280 déjà en place, 33 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -30,6 +30,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | T18 | Validation des compléments (méthode) | Le porteur valide en fin de lot, sur écran, à partir de ce registre. Les lignes de solidité faible sont à regarder en premier | Choix du porteur : Demande du porteur du 12/11/2026 : trouver les réponses et les garder | forte | en place |
 | T19 | Caisse mobile, Gestion de réunion (S129, S130) | Restent écartés : le manuel n'en donne que les noms de menu et ils ne servent pas le but (reproduire le cœur de Microfina++) | Manuel : Manuel p. 164 et 165 (menus seuls) | moyenne | en place |
 | T20 | Plan comptable (tout le logiciel) | Le PCCI complet (604 comptes du § 13) est chargé dans le logiciel, dans un seul fichier (replica/pcci.json) lu par le serveur et par la démo. Coquille du texte corrigée : « 6851 Cadres conventionnés », entre 6580 et 6582, est 6581. Les comptes des classes 3 à 5 qui peuvent être débiteurs ou créditeurs ont la nature « mixte » | Texte réglementaire : PCCI § 13 « Liste des comptes » ; Instr. BCC n° 006 (PCCI obligatoire) | forte | en place |
+| T21 | Refus d'une requête (toutes les écritures) | Un refus (message d'erreur) annule toute la requête, y compris ce qui avait déjà été écrit : tout ou rien | Écran voisin : ARCHITECTURE (justesse des écritures avant le débit) ; PCCI § 3.3 et 3.4 | forte | en place |
 
 ## S03 Profils : création et modification
 
@@ -665,7 +666,11 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S60-1 | Liste « N° de chèque » de S52 | Elle proposera les chèques des chéquiers de l'institution quand S60 sera construit ; vide d'ici là | Donnée exigée ailleurs : Capture p. 60 (liste N° de chèque) | moyenne | à appliquer |
+| S60-1 | Liste « N° de chèque » de S52 | La liste propose les chèques encore disponibles des chéquiers du compte bancaire choisi (décaissement, banque vers caisse) | Donnée exigée ailleurs : Capture p. 60 (liste N° de chèque) | moyenne | en place |
+| S60-2 | Chèque utilisé dans S52 | Le N° de chèque d'une opération de banque doit être un chèque disponible d'un chéquier de son compte bancaire ; il est marqué utilisé dès la saisie et ne peut resservir. Un encaissement ne prend pas de chèque | Écran voisin : Capture p. 60 (liste N° de chèque) ; Instr. BCC 25, § 3.2 (un numéro par chèque) | moyenne | en place |
+| S60-3 | Valeurs de la liste Nb.Feuillet | 25, 50 ou 100 feuillets : la capture montre une liste sans ses valeurs. À confirmer par le porteur (tailles des chéquiers remis par les banques) | Règle générale du manuel : Capture p. 69 (liste Nb.Feuillet vide) | faible | en place |
+| S60-4 | Numéros du chéquier | Début de 1 à 8 chiffres, zéros de tête gardés ; Fin = Début + Nb.Feuillet - 1, sur le même nombre de chiffres ; refus si un numéro existe déjà pour ce compte bancaire (les mêmes numéros sur un autre compte sont permis) | Texte réglementaire : Instr. BCC 25, § 3.2 : numéro du chèque sur 8 caractères (ligne CMC7, zone 4) ; capture p. 69 (Fin calculée) | forte | en place |
+| S60-5 | Chèque pour crédit | Pas construit : l'onglet ne marche pas dans le manuel (p. 70). Il viendra avec le déblocage de crédit par banque (S54), reporté après le lot Crédit | Manuel : Manuel p. 69 et 70 | forte | à appliquer |
 
 ## S53 Virement prélèvement
 
@@ -765,3 +770,4 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S57-3 | S57 Visa et validation banque | Droit d'accès | Le droit S57 est donné au comptable au départ, comme tout le menu Banque ; pour que trois personnes distinctes passent la chaîne, l'administrateur l'ajoute à d'autres profils (Administration > Profil). À confirmer : profils habilités par défaut |
 | S57-4 | S57 Visa et validation banque | Où voir l'adhésion par banque | Dans la liste Encaissement Décaissement (le manuel ne dit pas où l'adhésion saisie en S56 se vise). À confirmer par le porteur |
 | S59-4 | S59 Chèque client | Effet de l'encaissement | L'encaissement ne change que le statut (Encaissé, avec sa date) ; le crédit du compte du client et l'écriture de banque viennent à la comptabilisation (S111). Bouton Imprimer inactif jusque-là. Le retour (bouton Retourner) note le chèque impayé, sans écriture. Pas de passage par S57 : le manuel n'en parle pas |
+| S60-3 | S60 Chéquiers et chèques | Valeurs de la liste Nb.Feuillet | 25, 50 ou 100 feuillets : la capture montre une liste sans ses valeurs. À confirmer par le porteur (tailles des chéquiers remis par les banques) |

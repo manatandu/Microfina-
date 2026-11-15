@@ -1,6 +1,7 @@
 """API HTTP de Likelemba (Django Ninja). Une route par fonction de la façade web/src/donnees/api.ts, mêmes données.
 Chaque route lit l'utilisateur de la session ; les droits sont vérifiés dans les services (exiger)."""
 from django.conf import settings
+from django.db import transaction
 from django.http import HttpRequest
 from ninja import Body, NinjaAPI
 
@@ -10,6 +11,7 @@ from . import procurations as pr
 from . import banques as bq
 from . import banque_operations as bop
 from . import cheques_clients as chq
+from . import chequiers as chqr
 from . import guichets as gu
 from . import exercices as ex
 from . import listes as li
@@ -45,6 +47,9 @@ METHODES_SURES = {"GET", "HEAD", "OPTIONS"}
 
 @api.exception_handler(ErreurMetier)
 def refus(request, exc: ErreurMetier):
+    # Le refus est rendu comme une réponse, l'exception ne sort pas de la vue : sans ceci, ATOMIC_REQUESTS validerait
+    # ce qui a été écrit avant le refus. Un refus annule toute la requête (tout ou rien).
+    transaction.set_rollback(True)
     return api.create_response(request, {"message": exc.message}, status=exc.statut)
 
 
@@ -528,6 +533,11 @@ def banque_cheque_traiter(request, cid: int, action: str, corps: dict = Body(def
     if action not in ("encaisser", "retourner"):
         raise ErreurMetier("Action inconnue.")
     return chq.traiter(u(request), cid, action, corps)
+
+
+@api.post("/banque/chequiers")
+def banque_chequier_generer(request, corps: dict = Body(...)):
+    return chqr.generer(u(request), corps)
 
 
 @api.get("/banque/adhesions/apercu")

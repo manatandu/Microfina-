@@ -620,6 +620,36 @@ describe("journée de guichet", () => {
     await expect(api.chequesClients.deposer({ ...base, cle: cle(), numeroCheque: "9" })).rejects.toThrow("Droit manquant");
   });
 
+  it("chéquier de l'institution (S60) : génération, numéros sur 8 chiffres, chèque utilisé une fois dans S52 (registre S60-1 à S60-4)", async () => {
+    await journeeOuverte();
+    await connecter("jpmukendi");
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    const c = { banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "" };
+    await api.banques.enregistrerCompte({ ...c, compte: "56010001", numeroBancaire: "R-USD-1", devise: "USD" });
+    await api.banques.enregistrerCompte({ ...c, compte: "56010002", numeroBancaire: "R-USD-2", devise: "USD" });
+    await connecter("plumbala");
+    const cbs = (await api.banqueOperations.lire()).comptes, b1 = cbs[0]!.id, b2 = cbs[1]!.id;
+    const base = { compteBancaireId: b1, nbFeuillets: 25, debut: "0001001", barre: true };
+    await expect(api.chequiers.generer({ ...base, cle: cle(), nbFeuillets: 30 })).rejects.toThrow("Nb.Feuillet");
+    await expect(api.chequiers.generer({ ...base, cle: cle(), debut: "123456789" })).rejects.toThrow("1 à 8 chiffres");
+    await expect(api.chequiers.generer({ ...base, cle: cle(), debut: "99" })).rejects.toThrow("dépasse 2 chiffres");
+    await expect(api.chequiers.generer({ ...base, cle: cle(), barre: undefined })).rejects.toThrow("Barré");
+    const k = cle(), ch = await api.chequiers.generer({ ...base, cle: k });
+    expect([ch.debut, ch.fin]).toEqual(["0001001", "0001025"]);
+    expect((await api.chequiers.generer({ ...base, cle: k })).id).toBe(ch.id);
+    await expect(api.chequiers.generer({ ...base, cle: cle(), debut: "0001020" })).rejects.toThrow("existent déjà");
+    await api.chequiers.generer({ ...base, cle: cle(), compteBancaireId: b2 });          // mêmes numéros, autre compte : permis
+    const lu = await api.banqueOperations.lire();
+    expect(lu.cheques.filter((q) => q.compteBancaireId === b1)).toHaveLength(25);
+    const dec = { type: "decaissement" as const, date: "2026-11-05", compteBancaireId: b1, compte: "671", libelle: "Frais", montant: 1000 };
+    await expect(api.banqueOperations.enregistrer({ ...dec, cle: cle(), cheque: "0009999" })).rejects.toThrow("aucun chéquier");
+    expect((await api.banqueOperations.enregistrer({ ...dec, cle: cle(), cheque: "0001001" })).cheque).toBe("0001001");
+    await expect(api.banqueOperations.enregistrer({ ...dec, cle: cle(), cheque: "0001001" })).rejects.toThrow("déjà servi");
+    expect((await api.banqueOperations.lire()).cheques.filter((q) => q.compteBancaireId === b1)).toHaveLength(24);
+    await connecter("bkasongo");
+    await expect(api.chequiers.generer({ ...base, cle: cle(), debut: "5000" })).rejects.toThrow("Droit manquant");
+  });
+
   it("adhésion par banque (S56) : payée sur un compte bancaire en CDF, saisie en attente du visa (registre S56-1 à S56-3)", async () => {
     await journeeOuverte();
     await connecter("jpmukendi");

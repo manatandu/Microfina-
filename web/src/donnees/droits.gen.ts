@@ -51,6 +51,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "chequesClients.traiter": [
 "S59"
 ],
+"chequiers.generer": [
+"S60"
+],
 "comptes.enregistrer": [
 "S102"
 ],

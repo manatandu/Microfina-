@@ -7,7 +7,7 @@ import { graine } from "./graine";
 import { creerApiHttp } from "./http";
 import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
-  type ChequeClient, type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
+  type ChequeClient, type Chequier, type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget,
 } from "./types";
@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v60";
+const CLE = "likelemba-demo-v61";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -1163,6 +1163,8 @@ const banqueOperations = {
         soldes: { CDF: soldeContrat(`guichet:${g.id}`, "CDF", "D"), USD: soldeContrat(`guichet:${g.id}`, "USD", "D") } })),
       typesBudget: (E.budget["types_budget"] ?? []).filter((x) => x.actif).map((x) => ({ id: x.id, code: String(x.code ?? ""), libelle: String(x.libelle ?? "") })),
       lignesBudget: (E.budget["lignes"] ?? []).filter((x) => x.actif).map((x) => ({ id: x.id, numero: String(x.numero ?? ""), libelle: String(x.libelle ?? ""), bailleurId: (x.bailleurId as number | null) ?? null })),
+      cheques: E.chequesInstitution.filter((q) => q.statut === "disponible").sort((a, b) => a.compteBancaireId - b.compteBancaireId || a.numero.localeCompare(b.numero))
+        .map(({ id, compteBancaireId, numero }) => ({ id, compteBancaireId, numero })),   // S60 : liste « N° de chèque » (registre S60-1)
     };
   },
   enregistrer: (d: SaisieOperationBanque) => enregistrerOperationBanque(d, false),
@@ -1355,8 +1357,44 @@ function enregistrerOperationBanque(d: SaisieOperationBanque, client: boolean): 
       if (dest.devise !== origine.devise) throw new ErreurMetier("Virement entre deux devises : à confirmer avec le porteur (cours du jour, S35).");   // S52-6
       o.compteBancaireDestId = dest.id;
     }
-    E.operationsBanque.push(o); enregistrer(); return o;
+    if (d.type === "encaissement" && d.cheque?.trim()) throw new ErreurMetier("N° de chèque : seulement pour un décaissement.");
+    let q: (typeof E.chequesInstitution)[number] | undefined;
+    if (o.cheque) {   // registre S60-2 : un chèque d'un chéquier du compte, une seule fois
+      q = E.chequesInstitution.find((x) => x.compteBancaireId === origine.id && x.numero === o.cheque);
+      if (!q) throw new ErreurMetier("N° de chèque : ce chèque n'appartient à aucun chéquier de ce compte bancaire (Gestion Chèque Institution).");
+      if (q.statut !== "disponible") throw new ErreurMetier("N° de chèque : ce chèque a déjà servi.");
+    }
+    E.operationsBanque.push(o);
+    if (q) { q.statut = "utilise"; q.operationBanqueId = o.id; }
+    enregistrer(); return o;
 }
+
+// ---------- Banque > Gestion Chèque Institution > Générer chéquier (S60, manuel p. 69). Règles identiques côté serveur (noyau/chequiers.py). ----------
+export const FEUILLETS = [25, 50, 100] as const;   // registre S60-3 : à confirmer
+const chequiers = {
+  generer(d: { cle: string; compteBancaireId?: number; nbFeuillets?: number; debut: string; barre?: boolean; vise?: boolean | null; certifie?: boolean | null }) {
+    const u = exiger();
+    const prec = E.chequiers.find((c) => c.cle === d.cle);
+    if (prec) return prec;
+    const b = E.comptesBancaires.find((x) => x.id === d.compteBancaireId);
+    if (!b) throw new ErreurMetier("À remplir : compte.");
+    const nb = d.nbFeuillets;
+    if (!nb || !(FEUILLETS as readonly number[]).includes(nb)) throw new ErreurMetier("À remplir : Nb.Feuillet.");
+    const debut = (d.debut ?? "").trim();
+    if (!/^\d{1,8}$/.test(debut)) throw new ErreurMetier("Début : un numéro de 1 à 8 chiffres.");   // Instr. BCC 25, § 3.2
+    const z = debut.length, n0 = Number(debut), fin = n0 + nb - 1;
+    if (String(fin).length > z) throw new ErreurMetier(`Fin : le dernier numéro (${fin}) dépasse ${z} chiffres.`);
+    if (typeof d.barre !== "boolean") throw new ErreurMetier("À remplir : Barré.");
+    const deja = E.chequesInstitution.filter((q) => q.compteBancaireId === b.id && Number(q.numero) >= n0 && Number(q.numero) <= fin).map((q) => q.numero).sort().slice(0, 3);
+    if (deja.length) throw new ErreurMetier(`Ces numéros existent déjà pour ce compte : ${deja.join(", ")}.`);   // S60-4
+    const c: Chequier = { id: prochain(E.chequiers), cle: d.cle, compteBancaireId: b.id, nbFeuillets: nb, debut: String(n0).padStart(z, "0"), fin: String(fin).padStart(z, "0"),
+      barre: d.barre, vise: typeof d.vise === "boolean" ? d.vise : null, certifie: typeof d.certifie === "boolean" ? d.certifie : null, creePar: u.id };
+    E.chequiers.push(c);
+    let id = prochain(E.chequesInstitution);
+    for (let n = n0; n <= fin; n++) E.chequesInstitution.push({ id: id++, chequierId: c.id, compteBancaireId: b.id, numero: String(n).padStart(z, "0"), statut: "disponible", operationBanqueId: null });
+    enregistrer(); return c;
+  },
+};
 
 const banques = {
   lire() {
@@ -3256,6 +3294,7 @@ const apiLocal = {
   rapports: asynchrone(rapports, "rapports"),
   banqueOperations: asynchrone(banqueOperations, "banqueOperations"),
   chequesClients: asynchrone(chequesClients, "chequesClients"),
+  chequiers: asynchrone(chequiers, "chequiers"),
   banques: asynchrone(banques, "banques"),
   guichets: asynchrone(guichets, "guichets"),
   exercices: asynchrone(exercices, "exercices"),

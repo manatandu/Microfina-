@@ -4,6 +4,7 @@ comptabilisation (registre S52-2). Mêmes règles que web/src/donnees/api.ts (ba
 import re
 import uuid
 
+from . import chequiers
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import compte_du_produit, controler_statut_actif, exiger, journee_courante, nom_utilisateur, numero_compte, preparer_adhesion, solde_contrat
 
@@ -32,6 +33,7 @@ def lire(u) -> dict:
         "guichets": [{**g, "soldes": {d: solde_contrat(f"guichet:{g['id']}", d, "D") for d in ("CDF", "USD")}} for g in guichets],
         "typesBudget": lignes("select id, code, libelle from budget_type where institution_id = %s and actif order by code", (i,)),
         "lignesBudget": lignes("select id, numero, libelle, bailleur_id as \"bailleurId\" from budget_ligne where institution_id = %s and actif order by numero", (i,)),
+        "cheques": chequiers.disponibles(i),                  # S60 : liste « N° de chèque » (registre S60-1)
     }
 
 
@@ -139,6 +141,8 @@ def enregistrer(u, d, client: bool = False) -> dict:
             raise ErreurMetier("Compte : un compte de banque (56) ou de caisse (57) passe par les onglets de virement.")
         libelle = texte(d, "libelle") or TYPES[type_]
         cheque = (texte(d, "cheque") or None) if type_ == "decaissement" else None
+        if type_ == "encaissement" and texte(d, "cheque"):
+            raise ErreurMetier("N° de chèque : seulement pour un décaissement.")
         type_budget, ligne_budget = entier(d, "typeBudgetId"), entier(d, "ligneBudgetId")
         if type_budget and not une("select 1 from budget_type where id = %s and institution_id = %s and actif", (type_budget, i)):
             raise ErreurMetier("Type budget inconnu.")
@@ -183,6 +187,8 @@ def enregistrer(u, d, client: bool = False) -> dict:
                     values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
                  (i, u["agence_id"], type_, date_op, origine["id"], dest, guichet, compte, libelle, montant, origine["devise"], cheque,
                   type_budget, ligne_budget, cle, u["id"], compte_client))
+    if cheque:                                                # registre S60-2 : un chèque d'un chéquier du compte, une seule fois
+        chequiers.utiliser(origine["id"], cheque, oid)
     return vue(une("select * from operation_banque where id = %s", (oid,)))
 
 

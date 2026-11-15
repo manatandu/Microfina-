@@ -74,7 +74,7 @@ S56,Adhésion par banque,64 ; validation en caisse 89 et 104,A,guichet,,A:S73,4 
 S57,Visa et validation des opérations de banque (huit listes),65 à 67 (six bandes),B,visa,deux listes sans capture ; colonnes complètes,"A:S113, S114",4 Banque,oui
 S58,"Création banque : client, institution",67 (deux captures),A,liste,,,4 Banque,oui
 S59,"Chèque client : dépôt, encaissement, historique",68 et 69 (deux captures),B,guichet,Historique chèque (texte seul),A:S62 (rapport par banque),4 Banque,oui
-S60,"Chèque institution : générer chéquier, chèque pour crédit",69,B,liste,« Chèque pour crédit » : en panne dans le manuel,A:S54 ; P,4 Banque,non
+S60,"Chèque institution : générer chéquier, chèque pour crédit",69,B,liste,« Chèque pour crédit » : en panne dans le manuel,A:S54 ; P,4 Banque,oui
 S61,"Emprunts bancaires : mise en place, remboursement","70 et 71 (deux captures, sans texte)",B,guichet,"règles (échéances, intérêts, écritures)",R:PCCI (emprunts) ; P,4 Banque,non
 S62,Rapports banque,71,B,rapport,forme du résultat,A:S13,4 Banque,non
 S63,Nouveau compte,"72 (texte), 73",A,liste,,,5 Épargne,non

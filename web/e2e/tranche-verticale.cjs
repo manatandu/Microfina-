@@ -575,6 +575,15 @@ const OUT = process.argv[2];
   await etape('06c11-depot-cheque');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await etape('06c12-depot-cheque-resultat'); await p.getByRole('button', { name: 'Ok' }).click();
+  // Chéquier de l'institution (S60) : 25 chèques sur le compte en USD ; ils apparaissent dans la liste N° de chèque de S52
+  await aller('/banque/s60'); await p.getByRole('heading', { name: 'Numéro Chequier' }).waitFor();
+  await p.getByLabel('Banque *', { exact: true }).selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte *', { exact: true }).selectOption({ label: '05100-01234567-89 (USD)' });
+  await p.getByLabel('Nb.Feuillet *').selectOption('25'); await p.getByLabel('Début *').fill('0001001');
+  await p.getByRole('radiogroup', { name: 'Barré' }).getByLabel('Oui').check(); await etape('06c13-chequier');
+  await p.getByRole('button', { name: 'Generer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
+  await aller('/banque/s52'); await p.getByLabel('Type operation').selectOption('decaissement');
+  await p.getByLabel('Banque *', { exact: true }).selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte Banque *').selectOption({ label: '05100-01234567-89 (USD)' });
+  await p.getByLabel('N° de chèque').selectOption('0001001'); await etape('06c14-cheque-dans-s52');
   await login('Esther Ngalula');
   // Apurement avant la résiliation (registre S48-1) : Lukusa retire tout son solde (85 000 CDF)
   await aller('/caisse/s74?op=retrait'); await client('Lukusa'); await p.getByLabel('N° compte').selectOption({ label: '0412-000320-02' });
