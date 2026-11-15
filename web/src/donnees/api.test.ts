@@ -704,9 +704,11 @@ describe("journée de guichet", () => {
     await expect(api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "99999", adresse: "" })).rejects.toThrow("n'est pas un compte du plan");
     const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
     const c = { banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "", compte: "56010001", numeroBancaire: "R-1", devise: "USD" };
-    await expect(api.banques.enregistrerCompte({ ...c, comptePenalite: "88888" })).rejects.toThrow("Compte de pénalité");
-    const r = await api.banques.enregistrerCompte({ ...c, comptePenalite: "6070", contactAdresse: "Boulevard du 30 Juin, Gombe" });
-    expect([r.comptes[0]!.comptePenalite, r.comptes[0]!.contactAdresse]).toEqual(["6070", "Boulevard du 30 Juin, Gombe"]);
+    await expect(api.banques.enregistrerCompte({ ...c, comptePenalite: "60888" })).rejects.toThrow("pas un compte du plan");
+    await expect(api.banques.enregistrerCompte({ ...c, comptePenalite: "7791" })).rejects.toThrow("compte de charges du compte 60");
+    await expect(api.banques.enregistrerCompte({ ...c, comptePenalite: "670" })).rejects.toThrow("compte de charges du compte 60");
+    const r = await api.banques.enregistrerCompte({ ...c, comptePenalite: "607", contactAdresse: "Boulevard du 30 Juin, Gombe" });
+    expect([r.comptes[0]!.comptePenalite, r.comptes[0]!.contactAdresse]).toEqual(["607", "Boulevard du 30 Juin, Gombe"]);
   });
 
   it("nouveau compte (S63) : un compte de plus pour un membre, Max compte à créer, N° selon la numérotation (registre S63-1 à S63-5)", async () => {

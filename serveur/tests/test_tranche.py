@@ -1867,10 +1867,11 @@ def test_banques_complements(clients, journee):
     bid = chef.post("/api/banques", {"code": "RAW", "libelle": "Rawbank", "compteLiaison": "5601", "adresse": ""}, **H).json()["banques"][0]["id"]
     j = chef.get("/api/banques").json()["journaux"][0]["id"]
     c = {"banqueId": bid, "compte": "56010001", "numeroBancaire": "R-1", "devise": "USD", "journalId": j, "contactNom": "Mutombo"}
-    r = chef.post("/api/banques/comptes", {**c, "comptePenalite": "88888"}, **H)
-    assert r.status_code == 422 and "Compte de pénalité" in r.json()["message"]
-    l = chef.post("/api/banques/comptes", {**c, "comptePenalite": "6070", "contactAdresse": "Boulevard du 30 Juin, Gombe"}, **H).json()
-    assert (l["comptes"][0]["comptePenalite"], l["comptes"][0]["contactAdresse"]) == ("6070", "Boulevard du 30 Juin, Gombe")
+    for compte, motif in (("60888", "pas un compte du plan"), ("7791", "compte de charges du compte 60"), ("670", "compte de charges du compte 60")):
+        r = chef.post("/api/banques/comptes", {**c, "comptePenalite": compte}, **H)
+        assert r.status_code == 422 and motif in r.json()["message"], (compte, r.content)
+    l = chef.post("/api/banques/comptes", {**c, "comptePenalite": "607", "contactAdresse": "Boulevard du 30 Juin, Gombe"}, **H).json()
+    assert (l["comptes"][0]["comptePenalite"], l["comptes"][0]["contactAdresse"]) == ("607", "Boulevard du 30 Juin, Gombe")
 
 
 def test_nouveau_compte(clients, journee):

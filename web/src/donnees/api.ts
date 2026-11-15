@@ -1568,6 +1568,7 @@ const banques = {
     if (!/^560[0-3]\d*$/.test(v.compte)) throw new ErreurMetier("Compte : sous-compte de 560 « Comptes NOSTRI disponible » (PCCI, compte 56), par exemple 5601….");
     if (!E.devises.some((x) => x.code === v.devise)) throw new ErreurMetier("Devise inconnue.");   // S35
     const comptePenalite = (d.comptePenalite ?? "").trim();   // registre S58-3 : texte p. 67
+    if (comptePenalite && !comptePenalite.startsWith("60")) throw new ErreurMetier("Compte de pénalité : un compte de charges du compte 60 (PCCI), par exemple 607 « Autres charges financières ».");   // S58-6
     if (comptePenalite) controlerCompteDuPlan(comptePenalite, "Compte de pénalité");
     if (!journauxActifs("banque").some((j) => j.id === d.journalId)) throw new ErreurMetier("Journal de banque inconnu.");
     if (E.comptesBancaires.some((c) => c.banqueId === banque!.id && c.numeroBancaire === v.numeroBancaire && c.id !== id)) throw new ErreurMetier("Ce numéro de compte existe déjà dans cette banque.");

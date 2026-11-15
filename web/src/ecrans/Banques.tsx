@@ -69,7 +69,7 @@ function BanqueClient({ d, confirmer }: Props) {
 }
 
 const COMPTE_VIDE: SaisieCompteBancaire = { banqueId: 0, compte: "", numeroBancaire: "", devise: "", journalId: 0, contactNom: "", contactNomComplet: "", contactTelephone: "",
-  comptePenalite: "", contactAdresse: "" };
+  comptePenalite: "607", contactAdresse: "" };   // T16 : 607 « Autres charges financières » proposé, modifiable (registre S58-6)
 
 /** 8.2 Banque Institution : Infos Banques Institutions à valider, Infos Contact, Enregistrer, Supprimer, Annuler, Imprimer, Imprimer tous les comptes */
 function BanqueInstitution({ d, confirmer }: Props) {

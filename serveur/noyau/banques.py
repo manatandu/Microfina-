@@ -106,6 +106,8 @@ def enregistrer_compte(u, d, cid: int | None = None) -> dict:
         raise ErreurMetier("Devise inconnue.")
     penalite = texte(d, "comptePenalite") or None              # registre S58-3 : texte p. 67 « Saisir le compte de pénalité »
     if penalite:
+        if not penalite.startswith("60"):                    # registre S58-6 : une charge sur opérations avec les intermédiaires financiers (PCCI, compte 60)
+            raise ErreurMetier("Compte de pénalité : un compte de charges du compte 60 (PCCI), par exemple 607 « Autres charges financières ».")
         compte_du_plan(u, penalite, "Compte de pénalité")
     if not valeur("select 1 from journal where id = %s and institution_id = %s and type = 'banque' and actif and not supprime", (journal, i)):
         raise ErreurMetier("Journal de banque inconnu.")

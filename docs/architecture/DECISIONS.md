@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**329 décisions.** Solidité : 108 fortes (le manuel ou un texte répond), 174 moyennes (déduites d'un écran voisin ou d'une donnée), 47 faibles (notre choix, faute de mieux). Dans le code : 299 déjà en place, 30 à appliquer.
+**329 décisions.** Solidité : 109 fortes (le manuel ou un texte répond), 174 moyennes (déduites d'un écran voisin ou d'une donnée), 46 faibles (notre choix, faute de mieux). Dans le code : 299 déjà en place, 30 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -311,7 +311,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S58-3 | Compte de pénalité, gestionnaire | Champs ajoutés d'après le texte : compte de pénalité (facultatif, contrôlé sur le plan de comptes, T16), adresse du gestionnaire dans Infos Contact. Le nom du gestionnaire est le champ Nom de la capture | Manuel : Texte p. 67 | forte | en place |
 | S58-4 | Liste des comptes | Grille sous le formulaire (T01, T04) | Règle générale du manuel : Manuel p. 9 et 12 ; même forme que S08 p. 95 | forte | en place |
 | S58-5 | Devise du compte bancaire | Gardée | Texte réglementaire : PCCI § 10 (attribut monnaie) | forte | en place |
-| S58-6 | Classe du compte de pénalité | Tout compte du plan saisissable et ouvert : le PCCI ne nomme pas de compte de pénalités bancaires, et le texte ne dit pas lequel | Écran voisin : Texte p. 67 ; PCCI, liste des comptes (aucun compte dédié) | faible | en place |
+| S58-6 | Compte de pénalité | Une pénalité bancaire est une charge de l'institution : un compte de charges du compte 60 (opérations avec les intermédiaires financiers), 607 « Autres charges financières » proposé par défaut et modifiable. Refusés : 670 (pénalités fiscales seulement), les produits (7791) et les comptes de bilan | Choix du porteur : Décision du porteur, 15/11/2026 ; PCCI, compte 60 (« débité des intérêts et commissions versés »), 607, 670, 7791 ; T16 | forte | en place |
 
 ## S73 Adhésion
 
@@ -805,4 +805,3 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S61-3 | S61 Emprunts bancaires | Unité et calculs | Durée en mois ; Total Intérêt, Total Commis. et Total Frais saisis, pas calculés : la capture montre de simples champs et aucun échéancier, aucun texte ne donne de formule. Taux annuel en pourcentage, quatre décimales au plus |
 | S61-6 | S61 Emprunts bancaires | Bouton de recherche et case à côté du N°Piece (mise en place) | Montrés inactifs : la capture ne dit pas ce qu'ils cherchent ni ce que la case coche. À confirmer par le porteur |
 | S61-7 | S61 Emprunts bancaires | Champ N°Compte du remboursement et liste Banque | N°Compte reçoit le N°Emprunt donné à la mise en place, qui retrouve la banque et le capital restant. La liste Banque de la mise en place montre les comptes bancaires de l'institution (banque, numéro, devise) : l'emprunt prend la devise du compte |
-| S58-6 | S58 Création banque | Classe du compte de pénalité | Tout compte du plan saisissable et ouvert : le PCCI ne nomme pas de compte de pénalités bancaires, et le texte ne dit pas lequel |
