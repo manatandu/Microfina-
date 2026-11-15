@@ -293,6 +293,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "profilsUtilisateurs.enregistrer": [
 "S03"
 ],
+"releves.editer": [
+"S64"
+],
 "societe.enregistrer": [
 "S32"
 ],

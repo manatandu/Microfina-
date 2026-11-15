@@ -8,6 +8,8 @@ import { fr } from "../lib/dates";
 import { montant, type Devise } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
 import { RechercheClient } from "./Visa";
+import { ReleveStandard, type ReleveEdite } from "./ReleveStandard";
+import { imprimer } from "../lib/imprimer";
 
 type Releve = Awaited<ReturnType<typeof api.releves.releve>>;
 type Situation = Awaited<ReturnType<typeof api.releves.situation>>;
@@ -31,7 +33,7 @@ export function ReleveCompte() {
   const [du, setDu] = useState("");
   const [au, setAu] = useState("");
   const [recherche, setRecherche] = useState(false);
-  const [releve, setReleve] = useState<Releve | null>(null);
+  const [releve, setReleve] = useState<ReleveEdite | null>(null);
   const [situation, setSituation] = useState<Situation | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   const jour = j && j.statut === "ouverte" ? j.date : new Date().toISOString().slice(0, 10);
@@ -44,7 +46,7 @@ export function ReleveCompte() {
 
   async function relever() {
     if (!compte) { setBoite({ type: "erreur", message: "À remplir : Numéro de compte." }); return; }
-    try { setReleve(await api.releves.releve(Number(compte), debut, fin)); } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+    try { setReleve(await api.releves.editer(Number(compte), debut, fin)); } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   }
   async function voirSituation() {
     if (!t) { setBoite({ type: "erreur", message: "À remplir : Numéro Client." }); return; }
@@ -92,46 +94,16 @@ export function ReleveCompte() {
           <button className="bouton" type="button" onClick={relever}>Relever Compte</button>
           <button className="bouton secondaire" type="button" onClick={voirSituation}>Situation du client</button>
         </div>
-        <Textes sources={["Manuel Microfina++, p. 73 (texte : choisir le numéro client, la période, Relever Compte ; capture « Relevé de compte ») et p. 74 (captures du relevé de compte épargne et de la situation du client)",
+        <Textes sources={["Manuel Microfina++, p. 73 (texte : choisir le numéro client, la période, Relever Compte ; capture « Relevé de compte ») et p. 74 (capture de la situation du client) ; relevé au modèle standard demandé par le porteur (forme d'un relevé bancaire)",
           "Documents de l'institution cliente : en-tête de Paramétrage > Information société ; montants dans la devise du compte",
           "Registre S10-1 : au guichet, sans « Voir solde client », les soldes restent masqués"]} />
       </section>
 
-      <Fiche titre="Relevé de COMPTE EPARGNE" ouverte={!!releve} fermer={() => setReleve(null)}>
-        {releve && (
-          <div className="pile a-imprimer">
-            <EnTete e={releve.entete} />
-            <div className="ligne-champ">
-              <p>Période du <strong className="chiffres">{fr(releve.du)}</strong> au <strong className="chiffres">{fr(releve.au)}</strong></p>
-              <p>Report : <strong className="chiffres">{montant(releve.report, releve.compte.devise as Devise)}</strong></p>
-            </div>
-            <div className="cadre-champs">
-              <p><strong>Relevé de COMPTE EPARGNE</strong></p>
-              <p><strong>N° {releve.compte.numero}</strong> · {releve.compte.produit} {releve.compte.devise}</p>
-              <p>{releve.client.intitule || [releve.client.nom, releve.client.postnom, releve.client.prenom].filter(Boolean).join(" ")}</p>
-            </div>
-            <table className="grille">
-              <thead>
-                <tr><th scope="col" colSpan={5}>Report</th><th scope="col" className="montant">{montant(releve.report, releve.compte.devise as Devise)}</th></tr>
-                <tr><th scope="col">Date</th><th scope="col">N° Pièce</th><th scope="col">Libellé</th><th scope="col" className="montant">Débit</th><th scope="col" className="montant">Crédit</th><th scope="col" className="montant">Solde</th></tr>
-              </thead>
-              <tbody>
-                {releve.lignes.length === 0 && <tr><td colSpan={6}>Aucun mouvement sur la période</td></tr>}
-                {releve.lignes.map((l, i) => <tr key={i}><td className="chiffres">{fr(l.date)}</td><td className="chiffres">{l.piece}</td><td>{l.libelle}</td>
-                  <td className="montant chiffres">{montant(l.debit, releve.compte.devise as Devise)}</td><td className="montant chiffres">{montant(l.credit, releve.compte.devise as Devise)}</td>
-                  <td className="montant chiffres">{montant(l.solde, releve.compte.devise as Devise)}</td></tr>)}
-              </tbody>
-              <tfoot>
-                <tr><th scope="row" colSpan={3}>Total :</th><td className="montant chiffres">{montant(releve.totalDebit, releve.compte.devise as Devise)}</td>
-                  <td className="montant chiffres">{montant(releve.totalCredit, releve.compte.devise as Devise)}</td><td className="montant chiffres">{montant(releve.soldeFin, releve.compte.devise as Devise)}</td></tr>
-                <tr><th scope="row" colSpan={5}>Montant bloqué :</th><td className="montant chiffres">{montant(releve.montantBloque, releve.compte.devise as Devise)}</td></tr>
-              </tfoot>
-            </table>
-          </div>
-        )}
+      <Fiche titre="Relevé de compte" ouverte={!!releve} fermer={() => setReleve(null)}>
+        {releve && <ReleveStandard r={releve} />}
         <div className="actions-onglets sans-impression">
           <button className="bouton secondaire" type="button" onClick={() => setReleve(null)}>Fermer</button>
-          <button className="bouton" type="button" onClick={() => window.print()}>Imprimer</button>
+          <button className="bouton" type="button" onClick={() => imprimer(".fiche .a-imprimer")}>Imprimer</button>
         </div>
       </Fiche>
 
@@ -167,7 +139,7 @@ export function ReleveCompte() {
         )}
         <div className="actions-onglets sans-impression">
           <button className="bouton secondaire" type="button" onClick={() => setSituation(null)}>Fermer</button>
-          <button className="bouton" type="button" onClick={() => window.print()}>Imprimer</button>
+          <button className="bouton" type="button" onClick={() => imprimer(".fiche .a-imprimer")}>Imprimer</button>
         </div>
       </Fiche>
 

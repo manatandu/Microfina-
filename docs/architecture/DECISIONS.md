@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**335 décisions.** Solidité : 111 fortes (le manuel ou un texte répond), 176 moyennes (déduites d'un écran voisin ou d'une donnée), 48 faibles (notre choix, faute de mieux). Dans le code : 305 déjà en place, 30 à appliquer.
+**336 décisions.** Solidité : 112 fortes (le manuel ou un texte répond), 176 moyennes (déduites d'un écran voisin ou d'une donnée), 48 faibles (notre choix, faute de mieux). Dans le code : 306 déjà en place, 30 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -765,6 +765,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S64-4 | Comptes de la situation du client | Les comptes d'épargne du client et ses parts sociales, avec le solde à la date de fin, au débit ou au crédit. Les crédits viendront avec le lot Crédit | Écran voisin : Capture p. 74 (Compte, Intitulé, Solde Débit/Crédit) ; PCCI, compte 103 | moyenne | en place |
 | S64-5 | Soldes masqués | Au guichet, le caissier sans la case « Voir solde client » ne voit ni le relevé ni la situation (même règle que S74) | Donnée exigée ailleurs : Registre S10-1 | moyenne | en place |
 | S64-6 | Bouton « Membres du Groupes » et bouton de la situation | « Membres du Groupes » montré inactif : le manuel ne montre pas sa fenêtre. La situation s'ouvre par un bouton « Situation du client » : la capture est coupée sous les champs du client | Manuel : Capture p. 73 ; texte p. 74 | faible | en place |
+| S64-7 | Forme du relevé imprimé | Modèle standard d'un relevé bancaire, à la place de la forme du manuel : N° du relevé, titre « RELEVÉ DE COMPTE », logo de l'institution ; synthèse (Numéro de compte, Devise, Solde d'ouverture, Solde de clôture, Solde disponible, Effets en instance, Total débit, Total crédit, Période) ; nom et adresse du client ; détail (Date de transaction, Description, Référence, Date de valeur, Débit, Crédit, Solde) ; pied légal de l'institution (adresse, téléphone, courriel, agrément BCC, n° impôt, B.P.) ; numéro de page. Solde disponible = clôture moins montant bloqué ; effets en instance = chèques déposés pas encore encaissés (S59) ; chaque édition est numérotée et gardée (trace des relevés remis). Aucune identité de banque ni donnée du modèle fourni | Choix du porteur : Demande du porteur, 15/11/2026 (modèle de relevé bancaire, à rendre standard) ; registre D01, S59 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

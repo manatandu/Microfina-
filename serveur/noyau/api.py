@@ -588,6 +588,11 @@ def epargne_releve(request, compteId: int, du: str, au: str):
     return rel.releve(u(request), compteId, du, au)
 
 
+@api.post("/epargne/releve/edition")
+def epargne_releve_edition(request, corps: dict = Body(...)):
+    return rel.editer(u(request), corps.get("compteId"), corps.get("du", ""), corps.get("au", ""))
+
+
 @api.get("/epargne/situation")
 def epargne_situation(request, tiersId: int, date: str):
     return rel.situation(u(request), tiersId, date)

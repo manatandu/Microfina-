@@ -275,6 +275,7 @@ export interface Etat {
   chequesClients: ChequeClient[];   // S59
   chequiers: Chequier[];   // S60
   emprunts: Emprunt[];   // S61
+  relevesEdites: { numero: number; compteId: number; du: string; au: string; editePar: number }[];   // S64 : trace des relevés remis
   remboursementsEmprunt: RemboursementEmprunt[];
   chequesInstitution: ChequeInstitution[];
   typesProcuration: { id: number; libelle: string }[];   // S47

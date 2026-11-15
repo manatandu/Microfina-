@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v63";
+const CLE = "likelemba-demo-v64";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -1534,10 +1534,11 @@ const comptesEpargne = {
 
 // ---------- Épargne > Relevé de compte (S64, manuel p. 73 et 74). Règles identiques côté serveur (noyau/releves.py). ----------
 const CHAMPS_CLIENT = ["numero", "type", "intitule", "nom", "postnom", "prenom", "sexe", "naissance", "lieuNaissance", "profession", "nationalite", "zone", "quartier",
-  "adresse", "telephone", "email", "bp"] as const;
+  "adresse", "telephone", "email", "bp", "commune", "ville", "pays"] as const;
 type FicheClient = Record<(typeof CHAMPS_CLIENT)[number], string>;
 const enteteDocument = () => { const i = E.institution;
-  return { nom: i.nom, sigle: i.sigle ?? "", adresse: i.adresse ?? "", telephone: i.telephoneFixe ?? "", bp: i.bp ?? "", ville: i.ville ?? "", logo: i.logo ?? null }; };
+  return { nom: i.nom, sigle: i.sigle ?? "", adresse: i.adresse ?? "", telephone: i.telephoneFixe ?? "", bp: i.bp ?? "", ville: i.ville ?? "", commune: i.commune ?? "",
+    pays: i.pays ?? "", email: i.email ?? "", agrement: i.numeroAgrement ?? "", ifu: i.ifu ?? "", logo: i.logo ?? null }; };
 const ficheClient = (tid: number): FicheClient => { const t = E.tiers.find((x) => x.id === tid) as unknown as Record<string, unknown> | undefined;
   return Object.fromEntries(CHAMPS_CLIENT.map((k) => [k, String(t?.[k] ?? "")])) as FicheClient; };
 const dateJournee = (jid: number) => E.journees.find((j) => j.id === jid)?.date ?? "";
@@ -1560,13 +1561,23 @@ const releves = {
     const lignes = mouvements.filter((m) => m.date >= du && m.date <= au).map((m) => {
       const debit = m.sens === "D" ? m.montant : 0, credit = m.sens === "C" ? m.montant : 0;
       solde += credit - debit; td += debit; tc += credit;
-      return { date: m.date, piece: m.piece, libelle: m.libelle, debit, credit, solde };
+      return { date: m.date, dateValeur: m.date, piece: m.piece, libelle: m.libelle, debit, credit, solde };
     });
     const comptable = soldeContrat(contrat, c.devise, "C");
     const attente = E.operationsBanque.filter((o) => o.compteDepotId === c.id && ["saisie", "visee", "validee"].includes(o.statut))
       .reduce((s, o) => s + (o.type === "virement_client" ? o.montant : o.type === "prelevement_client" ? -o.montant : 0), 0);
     return { entete: enteteDocument(), client: ficheClient(c.tiersId), compte: { id: c.id, numero: c.numero, produit: c.intitule, devise: c.devise, agence: E.agence.nom },
-      du, au, report, lignes, totalDebit: td, totalCredit: tc, soldeFin: solde, montantBloque: c.bloque ?? 0, soldeComptable: comptable, soldeIndicatif: comptable + attente };
+      du, au, report, lignes, totalDebit: td, totalCredit: tc, soldeFin: solde, montantBloque: c.bloque ?? 0, soldeDisponible: solde - (c.bloque ?? 0),
+      effetsEnInstance: E.chequesClients.filter((q) => q.compteDepotId === c.id && q.statut === "depose").reduce((s, q) => s + q.montant, 0),   // S64-7
+      soldeComptable: comptable, soldeIndicatif: comptable + attente };
+  },
+  /** Bouton Relever Compte : le relevé au modèle standard (registre S64-7), numéroté et gardé pour la trace des relevés remis */
+  editer(compteId: number, du: string, au: string) {
+    const u = exiger();
+    const r = releves.releve(compteId, du, au);
+    const numero = E.relevesEdites.reduce((m, x) => Math.max(m, x.numero), 0) + 1;
+    E.relevesEdites.push({ numero, compteId, du, au, editePar: u.id }); enregistrer();
+    return { ...r, numeroReleve: numero };
   },
   situation(tiersId: number, date: string) {
     exiger(); controlerMasques();

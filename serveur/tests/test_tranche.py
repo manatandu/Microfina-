@@ -1904,6 +1904,10 @@ def test_releve_situation(clients, journee):
     tard = agent.get(f"/api/epargne/releve?compteId={cid}&du=2026-11-06&au=2026-11-30").json()
     assert (tard["report"], tard["lignes"], tard["soldeFin"]) == (r["soldeFin"], [], r["soldeFin"])
     assert agent.get(f"/api/epargne/releve?compteId={cid}&du=2026-11-06&au=2026-11-01").status_code == 422
+    e1 = agent.post("/api/epargne/releve/edition", {"compteId": cid, "du": "2020-01-01", "au": "2026-11-05"}, **H).json()
+    e2 = agent.post("/api/epargne/releve/edition", {"compteId": cid, "du": "2020-01-01", "au": "2026-11-05"}, **H).json()
+    assert (e1["numeroReleve"], e2["numeroReleve"], e1["soldeDisponible"], e1["effetsEnInstance"]) == (1, 2, r["soldeFin"] - r["montantBloque"], 0)
+    assert ident("select count(*) from releve_edition") == 2
     s = agent.get(f"/api/epargne/situation?tiersId={T('0412-000318')}&date=2026-11-05").json()
     ligne = next(x for x in s["comptes"] if x["compte"] == "0412-000318-02")
     assert ligne["credit"] == r["soldeComptable"]

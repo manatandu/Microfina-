@@ -484,3 +484,36 @@ select.saisie { max-width: 100%; }
 .defile-x { overflow-x: auto; max-width: 100%; }
 /* Filtres de colonne : 16 px aussi sous le doigt (ils sont définis plus haut en taille dense) */
 @media (pointer: coarse) { .grille tr.filtres .saisie { font-size: 16px; } }
+
+/* ---------- S64 : relevé de compte au modèle standard (registre S64-7) : forme d'un relevé bancaire, identité de l'institution cliente ---------- */
+.releve-std { display: grid; gap: var(--espace-4); background: var(--feuille); color: var(--encre); padding: var(--espace-5); font-size: var(--taille-dense); }
+.releve-tete { display: grid; grid-template-columns: auto 1fr auto; gap: var(--espace-4); align-items: center; }
+.releve-num { margin: 0; font-weight: 600; }
+.releve-titre { margin: 0; justify-self: center; padding: var(--espace-2) var(--espace-6); border: 1px solid var(--encre); font-size: var(--taille-titre); letter-spacing: .04em; }
+.releve-logo { display: grid; justify-items: end; gap: 2px; text-align: right; }
+.releve-logo img { max-height: 56px; max-width: 180px; object-fit: contain; }
+.releve-logo strong { font-size: 1.5rem; color: var(--tampon); }
+.releve-logo span { color: var(--encre-2); }
+.releve-haut { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--espace-6); align-items: start; }
+.releve-synthese { border-collapse: collapse; width: 100%; }
+.releve-synthese th { text-align: left; font-weight: 600; background: var(--nuit); color: var(--nuit-fort); padding: 4px var(--espace-3); border-bottom: 1px solid var(--nuit-trait); white-space: nowrap; }
+.releve-synthese td { text-align: right; padding: 4px var(--espace-3); border-bottom: 1px solid var(--ligne); }
+.releve-client { font-style: normal; display: grid; gap: 2px; padding-top: var(--espace-4); }
+.releve-client strong { font-size: 1.05rem; margin-bottom: var(--espace-2); }
+.releve-detail { border-collapse: collapse; width: 100%; }
+.releve-detail th { background: var(--nuit); color: var(--nuit-fort); font-weight: 600; padding: var(--espace-2); text-align: left; }
+.releve-detail th.montant, .releve-detail td.montant { text-align: right; }
+.releve-detail td { padding: var(--espace-2); border-bottom: 1px solid var(--ligne); vertical-align: top; }
+.releve-detail td:nth-child(2) { overflow-wrap: anywhere; }
+.releve-pied { display: grid; gap: 2px; border-top: 2px solid var(--nuit); padding-top: var(--espace-2); color: var(--encre-2); font-size: 11px; }
+.releve-pied strong { color: var(--encre); }
+@media (max-width: 720px) { .releve-tete, .releve-haut { grid-template-columns: minmax(0, 1fr); } .releve-titre { justify-self: start; } .releve-logo { justify-items: start; text-align: left; } }
+@media print {
+  .releve-std { padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .releve-detail thead { display: table-header-group; }
+  .releve-detail tr { break-inside: avoid; }
+  @page { margin: 14mm 12mm 16mm; @bottom-center { content: counter(page); font-size: 10px; } }
+}
+/* Cadre d'impression (lib/imprimer.ts) : le document seul, dans le flux, pour qu'il se répartisse sur plusieurs pages */
+.impression { background: var(--feuille); margin: 0; }
+@media print { .impression .a-imprimer, .impression .a-imprimer * { visibility: visible; } .impression .a-imprimer { position: static; inset: auto; } }

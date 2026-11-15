@@ -749,6 +749,9 @@ describe("journée de guichet", () => {
     const tard = await api.releves.releve(c.id, "2026-11-06", "2026-11-30");
     expect([tard.report, tard.lignes.length, tard.soldeFin]).toEqual([r.soldeFin, 0, r.soldeFin]);
     await expect(api.releves.releve(c.id, "2026-11-06", "2026-11-01")).rejects.toThrow("début dépasse");
+    // modèle standard (registre S64-7) : numéro d'édition, solde disponible, effets en instance (chèques déposés pas encore encaissés)
+    const e1 = await api.releves.editer(c.id, "2020-01-01", "2026-11-05"), e2 = await api.releves.editer(c.id, "2020-01-01", "2026-11-05");
+    expect([e1.numeroReleve, e2.numeroReleve, e1.soldeDisponible, e1.effetsEnInstance]).toEqual([1, 2, r.soldeFin - r.montantBloque, 0]);
     const s = await api.releves.situation(1, "2026-11-05");
     expect(s.comptes.map((x) => x.compte)).toEqual(expect.arrayContaining([c.numero]));
     expect(s.comptes.find((x) => x.compte === c.numero)!.credit).toBe(r.soldeComptable);
