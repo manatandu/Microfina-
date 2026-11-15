@@ -171,6 +171,12 @@ export interface OperationBanque {
   tiersId?: number | null; parts?: number | null; premierDepot?: number | null;   // S56 : adhésion par banque
 }
 
+export interface Emprunt {   // S61
+  id: number; cle: string; numero: number; compteBancaireId: number; reference: string; montant: number; devise: Devise; duree: number; dateEmprunt: string; taux: string;
+  totalInteret: number; totalCommission: number; totalFrais: number; commentaire: string; compteEmprunt: string; dateSaisie: string; piece: string; saisiPar: number;
+}
+export interface RemboursementEmprunt { id: number; cle: string; empruntId: number; date: string; amortissement: number; interet: number; commission: number; piece: string; saisiPar: number }
+
 export interface Chequier {   // S60
   id: number; cle: string; compteBancaireId: number; nbFeuillets: number; debut: string; fin: string; barre: boolean; vise: boolean | null; certifie: boolean | null; creePar: number;
 }
@@ -265,6 +271,8 @@ export interface Etat {
   operationsBanque: OperationBanque[];   // S52
   chequesClients: ChequeClient[];   // S59
   chequiers: Chequier[];   // S60
+  emprunts: Emprunt[];   // S61
+  remboursementsEmprunt: RemboursementEmprunt[];
   chequesInstitution: ChequeInstitution[];
   typesProcuration: { id: number; libelle: string }[];   // S47
   lieux: LigneLieu[];   // S20 : Localisation, découpage de la RDC

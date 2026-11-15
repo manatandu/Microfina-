@@ -94,6 +94,12 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "edDivers.enregistrer": [
 "S31"
 ],
+"emprunts.mettreEnPlace": [
+"S61"
+],
+"emprunts.rembourser": [
+"S61"
+],
 "exercices.completer": [
 "S11c"
 ],

@@ -12,6 +12,7 @@ from . import banques as bq
 from . import banque_operations as bop
 from . import cheques_clients as chq
 from . import chequiers as chqr
+from . import emprunts as emp
 from . import guichets as gu
 from . import exercices as ex
 from . import listes as li
@@ -538,6 +539,21 @@ def banque_cheque_traiter(request, cid: int, action: str, corps: dict = Body(def
 @api.post("/banque/chequiers")
 def banque_chequier_generer(request, corps: dict = Body(...)):
     return chqr.generer(u(request), corps)
+
+
+@api.get("/banque/emprunts")
+def banque_emprunt_lire(request, numero: int):
+    return emp.lire(u(request), numero)
+
+
+@api.post("/banque/emprunts")
+def banque_emprunt_mettre_en_place(request, corps: dict = Body(...)):
+    return emp.mettre_en_place(u(request), corps)
+
+
+@api.post("/banque/emprunts/{eid}/remboursements")
+def banque_emprunt_rembourser(request, eid: int, corps: dict = Body(...)):
+    return emp.rembourser(u(request), eid, corps)
 
 
 @api.get("/banque/adhesions/apercu")

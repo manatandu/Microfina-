@@ -7,7 +7,7 @@ import { graine } from "./graine";
 import { creerApiHttp } from "./http";
 import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
-  type ChequeClient, type Chequier, type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
+  type ChequeClient, type Chequier, type Emprunt, type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget,
 } from "./types";
@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v61";
+const CLE = "likelemba-demo-v62";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -1393,6 +1393,72 @@ const chequiers = {
     let id = prochain(E.chequesInstitution);
     for (let n = n0; n <= fin; n++) E.chequesInstitution.push({ id: id++, chequierId: c.id, compteBancaireId: b.id, numero: String(n).padStart(z, "0"), statut: "disponible", operationBanqueId: null });
     enregistrer(); return c;
+  },
+};
+
+// ---------- Banque > Emprunts bancaires (S61, manuel p. 70, deux captures sans texte). Règles identiques côté serveur (noyau/emprunts.py). ----------
+// PCCI : capital au compte 533 « Emprunts à terme », intérêts 6020 (plus d'un an) ou 6021, commissions 60702 ; écritures à la comptabilisation (S111).
+export type SaisieEmprunt = { cle: string; compteBancaireId?: number; reference: string; montant: number; duree: number; dateEmprunt: string; taux: string;
+  totalInteret: number; totalCommission: number; totalFrais: number; commentaire: string; compteEmprunt: string };
+const vueEmprunt = (e: Emprunt) => {
+  const cb = E.comptesBancaires.find((x) => x.id === e.compteBancaireId), b = E.banques.find((x) => x.id === cb?.banqueId);
+  const amorti = E.remboursementsEmprunt.filter((r) => r.empruntId === e.id).reduce((s, r) => s + r.amortissement, 0);
+  return { ...e, banque: `${b?.libelle ?? ""} ${cb?.numeroBancaire ?? ""}`, compteInteret: e.duree > 12 ? "6020" : "6021", capitalRestant: e.montant - amorti };
+};
+const emprunts = {
+  mettreEnPlace(d: SaisieEmprunt) {
+    const u = exiger();
+    const prec = E.emprunts.find((x) => x.cle === d.cle);
+    if (prec) return vueEmprunt(prec);
+    const j = journees.courante();
+    if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
+    const b = E.comptesBancaires.find((x) => x.id === d.compteBancaireId);
+    if (!b) throw new ErreurMetier("À remplir : banque.");
+    const reference = (d.reference ?? "").trim();
+    if (!reference) throw new ErreurMetier("À remplir : Réf.Emprunt.");
+    if (!Number.isInteger(d.montant) || d.montant <= 0) throw new ErreurMetier("Montant : un montant supérieur à zéro.");
+    if (!Number.isInteger(d.duree) || d.duree <= 0) throw new ErreurMetier("Durée : un nombre de mois supérieur à zéro.");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d.dateEmprunt ?? "")) throw new ErreurMetier("À remplir : Date Emprunt.");
+    if (d.dateEmprunt > j.date) throw new ErreurMetier("La date de l'emprunt ne peut pas dépasser la journée ouverte.");
+    const t = (d.taux ?? "").trim().replace(",", ".");
+    if (!/^\d+(\.\d{1,4})?$/.test(t) || Number(t) >= 1000) throw new ErreurMetier("Taux annuel : un pourcentage, par exemple 12,5.");
+    for (const [v, nom] of [[d.totalInteret, "Total Intérêt"], [d.totalCommission, "Total Commis."], [d.totalFrais, "Total Frais"]] as const)
+      if (!Number.isInteger(v) || v < 0) throw new ErreurMetier(`${nom} : un montant positif ou nul.`);
+    const compte = (d.compteEmprunt ?? "").trim() || "533";
+    const c = [...PCCI.comptes.map((x) => ({ numero: x.numero, ouvert: true, saisissable: true })), ...E.comptesInstitution].find((x) => x.numero === compte);
+    if (!compte.startsWith("533") || !c) throw new ErreurMetier("Compte Emprunt : un compte 533 « Emprunts à terme » du plan (PCCI, compte 53).");   // S61-1
+    if (!(c.saisissable && c.ouvert)) throw new ErreurMetier(`Compte Emprunt : ${compte} est fermé ou non saisissable.`);
+    const e: Emprunt = { id: prochain(E.emprunts), cle: d.cle, numero: E.emprunts.reduce((m, x) => Math.max(m, x.numero), 0) + 1, compteBancaireId: b.id, reference,
+      montant: d.montant, devise: b.devise, duree: d.duree, dateEmprunt: d.dateEmprunt, taux: String(Number(t)).replace(".", ","), totalInteret: d.totalInteret,
+      totalCommission: d.totalCommission, totalFrais: d.totalFrais, commentaire: (d.commentaire ?? "").trim(), compteEmprunt: compte, dateSaisie: j.date, piece: "", saisiPar: u.id };
+    E.emprunts.push(e); enregistrer(); return vueEmprunt(e);
+  },
+  /** Remboursement : l'emprunt par son numéro (champ N°Compte) */
+  lire(numero: number) {
+    exiger();
+    const e = E.emprunts.find((x) => x.numero === numero);
+    if (!e) throw new ErreurMetier("Emprunt introuvable.");
+    return vueEmprunt(e);
+  },
+  rembourser(id: number, d: { cle: string; date?: string; amortissement: number; interet: number; commission: number }) {
+    const u = exiger();
+    const prec = E.remboursementsEmprunt.find((x) => x.cle === d.cle);
+    if (prec) return vueEmprunt(E.emprunts.find((x) => x.id === prec.empruntId)!);
+    const j = journees.courante();
+    if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
+    const e = E.emprunts.find((x) => x.id === id);
+    if (!e) throw new ErreurMetier("Emprunt introuvable.");
+    const date = d.date?.trim() || j.date;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new ErreurMetier("À remplir : date.");
+    if (date < e.dateEmprunt) throw new ErreurMetier("La date du remboursement précède la date de l'emprunt.");
+    if (date > j.date) throw new ErreurMetier("La date du remboursement ne peut pas dépasser la journée ouverte.");
+    for (const [v, nom] of [[d.amortissement, "Amortissement"], [d.interet, "Intérêt"], [d.commission, "Commission"]] as const)
+      if (!Number.isInteger(v) || v < 0) throw new ErreurMetier(`${nom} : un montant positif ou nul.`);
+    if (!d.amortissement && !d.interet && !d.commission) throw new ErreurMetier("Rien à rembourser : amortissement, intérêt ou commission.");
+    if (d.amortissement > vueEmprunt(e).capitalRestant) throw new ErreurMetier("Amortissement : plus que le capital restant.");   // S61-5
+    E.remboursementsEmprunt.push({ id: prochain(E.remboursementsEmprunt), cle: d.cle, empruntId: e.id, date, amortissement: d.amortissement, interet: d.interet,
+      commission: d.commission, piece: "", saisiPar: u.id });
+    enregistrer(); return vueEmprunt(e);
   },
 };
 
@@ -3295,6 +3361,7 @@ const apiLocal = {
   banqueOperations: asynchrone(banqueOperations, "banqueOperations"),
   chequesClients: asynchrone(chequesClients, "chequesClients"),
   chequiers: asynchrone(chequiers, "chequiers"),
+  emprunts: asynchrone(emprunts, "emprunts"),
   banques: asynchrone(banques, "banques"),
   guichets: asynchrone(guichets, "guichets"),
   exercices: asynchrone(exercices, "exercices"),

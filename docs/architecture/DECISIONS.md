@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**313 décisions.** Solidité : 104 fortes (le manuel ou un texte répond), 166 moyennes (déduites d'un écran voisin ou d'une donnée), 43 faibles (notre choix, faute de mieux). Dans le code : 280 déjà en place, 33 à appliquer.
+**320 décisions.** Solidité : 106 fortes (le manuel ou un texte répond), 168 moyennes (déduites d'un écran voisin ou d'une donnée), 46 faibles (notre choix, faute de mieux). Dans le code : 286 déjà en place, 34 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -724,6 +724,18 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S59-5 | Droit d'accès | Un seul écran, donc un seul droit S59 (trois onglets), donné au départ au comptable et au chef d'agence : deux personnes au moins, pour la règle S59-6. Ajouté au profil chef d'agence des bases déjà en service (migration 0067). L'administrateur ajuste par profil | Choix du porteur : Décision du porteur, 14/11/2026 ; registre S04-1 | forte | en place |
 | S59-6 | Qui encaisse | Celui qui encaisse n'est pas celui qui a enregistré le dépôt (quatre yeux), sans écran de visa en plus. Le retour n'est pas soumis à cette règle : il ne fait entrer aucun argent | Choix du porteur : Décision du porteur, 14/11/2026 ; Instr. BCC 008, art. 66 (séparation des tâches) | forte | en place |
 
+## S61 Emprunts bancaires
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S61-1 | Compte Emprunt | Un compte 533 « Emprunts à terme » du plan, saisissable et ouvert (533 par défaut, ou un divisionnaire 533x). Le compte 16 est refusé : le PCCI en exclut les emprunts auprès des banques et autres intermédiaires financiers | Texte réglementaire : PCCI, compte 16 (exclusion) et compte 53, sous-compte 533 | forte | en place |
+| S61-2 | Comptes des intérêts et commissions | Intérêts au 6020 (emprunt à plus d'un an) ou au 6021 (moins d'un an), selon la durée ; commissions au 60702 « dues aux autres intermédiaires financiers ». Le compte des Total Frais n'est pas nommé par le PCCI : à confirmer | Texte réglementaire : PCCI, compte 602 (6020, 6021) et compte 607 (60702) | forte | en place |
+| S61-3 | Unité et calculs | Durée en mois ; Total Intérêt, Total Commis. et Total Frais saisis, pas calculés : la capture montre de simples champs et aucun échéancier, aucun texte ne donne de formule. Taux annuel en pourcentage, quatre décimales au plus | Règle générale du manuel : Capture p. 70 (champs sans calcul visible) ; aucun texte | faible | en place |
+| S61-4 | Écritures et N° de pièce | La mise en place et chaque remboursement sont saisis ; l'écriture (banque, 533, 602x, 60702) et le N° de pièce viennent à la comptabilisation (S111). Pas de visa en S57 : les listes de visa de Microfina++ n'ont pas d'emprunt | Écran voisin : Registre S52-2 ; COMPLEMENTS § 6 ; manuel p. 65 à 67 (listes de visa) | moyenne | à appliquer |
+| S61-5 | Remboursement | Au moins un montant (amortissement, intérêt ou commission) ; l'amortissement ne dépasse pas le capital restant ; date entre la date de l'emprunt et la journée ouverte | Écran voisin : Écran voisin : retrait sur le disponible (S74) ; capture p. 70 (Capital Restant) | moyenne | en place |
+| S61-6 | Bouton de recherche et case à côté du N°Piece (mise en place) | Montrés inactifs : la capture ne dit pas ce qu'ils cherchent ni ce que la case coche. À confirmer par le porteur | Manuel : Capture p. 70 | faible | en place |
+| S61-7 | Champ N°Compte du remboursement et liste Banque | N°Compte reçoit le N°Emprunt donné à la mise en place, qui retrouve la banque et le capital restant. La liste Banque de la mise en place montre les comptes bancaires de l'institution (banque, numéro, devise) : l'emprunt prend la devise du compte | Règle générale du manuel : Captures p. 70 (N°Emprunt, N°Compte, Banque) ; écran S58 (Banque Institution) | faible | en place |
+
 ## Les décisions faibles, à regarder en premier
 
 | N° | Écran | Question | Réponse retenue |
@@ -771,3 +783,6 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S57-4 | S57 Visa et validation banque | Où voir l'adhésion par banque | Dans la liste Encaissement Décaissement (le manuel ne dit pas où l'adhésion saisie en S56 se vise). À confirmer par le porteur |
 | S59-4 | S59 Chèque client | Effet de l'encaissement | L'encaissement ne change que le statut (Encaissé, avec sa date) ; le crédit du compte du client et l'écriture de banque viennent à la comptabilisation (S111). Bouton Imprimer inactif jusque-là. Le retour (bouton Retourner) note le chèque impayé, sans écriture. Pas de passage par S57 : le manuel n'en parle pas |
 | S60-3 | S60 Chéquiers et chèques | Valeurs de la liste Nb.Feuillet | 25, 50 ou 100 feuillets : la capture montre une liste sans ses valeurs. À confirmer par le porteur (tailles des chéquiers remis par les banques) |
+| S61-3 | S61 Emprunts bancaires | Unité et calculs | Durée en mois ; Total Intérêt, Total Commis. et Total Frais saisis, pas calculés : la capture montre de simples champs et aucun échéancier, aucun texte ne donne de formule. Taux annuel en pourcentage, quatre décimales au plus |
+| S61-6 | S61 Emprunts bancaires | Bouton de recherche et case à côté du N°Piece (mise en place) | Montrés inactifs : la capture ne dit pas ce qu'ils cherchent ni ce que la case coche. À confirmer par le porteur |
+| S61-7 | S61 Emprunts bancaires | Champ N°Compte du remboursement et liste Banque | N°Compte reçoit le N°Emprunt donné à la mise en place, qui retrouve la banque et le capital restant. La liste Banque de la mise en place montre les comptes bancaires de l'institution (banque, numéro, devise) : l'emprunt prend la devise du compte |

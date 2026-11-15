@@ -584,6 +584,17 @@ const OUT = process.argv[2];
   await aller('/banque/s52'); await p.getByLabel('Type operation').selectOption('decaissement');
   await p.getByLabel('Banque *', { exact: true }).selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte Banque *').selectOption({ label: '05100-01234567-89 (USD)' });
   await p.getByLabel('N° de chèque').selectOption('0001001'); await etape('06c14-cheque-dans-s52');
+  // Emprunt bancaire (S61) : mise en place au compte 533, puis un remboursement
+  await aller('/banque/s61'); await p.getByRole('heading', { name: "Mise en place d'emprunt" }).waitFor();
+  await p.getByLabel('Banque', { exact: true }).selectOption({ label: 'Rawbank 05100-01234567-89 (USD)' });
+  await p.getByLabel('Réf.Emprunt').fill('RAW-2026-01'); await p.getByLabel('Montant', { exact: true }).fill('10 000'); await p.getByLabel('Durée').fill('24');
+  await p.getByLabel('Date Emprunt').fill('05/11/2026'); await p.getByLabel('Taux annuel').fill('12,5'); await p.getByLabel('Total Intérêt').fill('1 250');
+  await etape('06c15-emprunt');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
+  await p.getByRole('tab', { name: 'Remboursement' }).click(); await p.getByLabel('N°Compte').fill('1'); await p.getByLabel('N°Compte').press('Enter');
+  await p.getByLabel('Amortissement').fill('4 000'); await p.getByLabel('Intérêt', { exact: true }).fill('100');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
+  await p.getByLabel('Capital Restant').and(p.locator('[value*="6"]')).waitFor(); await etape('06c16-remboursement-emprunt');
   await login('Esther Ngalula');
   // Apurement avant la résiliation (registre S48-1) : Lukusa retire tout son solde (85 000 CDF)
   await aller('/caisse/s74?op=retrait'); await client('Lukusa'); await p.getByLabel('N° compte').selectOption({ label: '0412-000320-02' });

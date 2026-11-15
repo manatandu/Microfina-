@@ -1822,3 +1822,24 @@ def test_chequier_institution(clients, journee):
     assert ident("select count(*) from operation_banque") == n          # le refus a tout annulé, même l'opération déjà écrite
     assert compta.post("/api/banque/operations", {"cle": cle(), **dec, "cheque": "0001001"}, **H).json()["cheque"] == "0001001"
     assert "déjà servi" in refus("/api/banque/operations", {**dec, "cheque": "0001001"})
+
+
+def test_emprunts_bancaires(clients, journee):
+    """S61 (manuel p. 70) : mise en place au compte 533 (PCCI, compte 53), remboursement plafonné au capital restant"""
+    chef, compta, agent = clients["chef"], clients["compta"], clients["agent"]
+    ids = banque_usd(chef)
+    base = {"compteBancaireId": ids["R-USD-1"], "reference": "RAW-2026-01", "montant": 1000000, "duree": 24, "dateEmprunt": "2026-11-05", "taux": "12,5",
+            "totalInteret": 125000, "totalCommission": 5000, "totalFrais": 0, "commentaire": "", "compteEmprunt": "533"}
+    def refus(route, corps, c=compta):
+        r = c.post(route, {"cle": cle(), **corps}, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    assert "Droit manquant" in refus("/api/banque/emprunts", base, agent)
+    assert "compte 533" in refus("/api/banque/emprunts", {**base, "compteEmprunt": "1619"})
+    assert "Taux annuel" in refus("/api/banque/emprunts", {**base, "taux": "1e2"})
+    e = compta.post("/api/banque/emprunts", {"cle": cle(), **base}, **H).json()
+    assert (e["numero"], e["devise"], e["taux"], e["compteInteret"], e["capitalRestant"]) == (1, "USD", "12,5", "6020", 1000000)
+    assert compta.post("/api/banque/emprunts", {"cle": cle(), **base, "duree": 6}, **H).json()["compteInteret"] == "6021"
+    assert compta.get("/api/banque/emprunts?numero=1").json()["reference"] == "RAW-2026-01"
+    r = {"date": "2026-11-05", "amortissement": 400000, "interet": 10000, "commission": 0}
+    assert "Rien à rembourser" in refus(f"/api/banque/emprunts/{e['id']}/remboursements", {**r, "amortissement": 0, "interet": 0})
+    assert compta.post(f"/api/banque/emprunts/{e['id']}/remboursements", {"cle": cle(), **r}, **H).json()["capitalRestant"] == 600000
+    assert "capital restant" in refus(f"/api/banque/emprunts/{e['id']}/remboursements", {**r, "amortissement": 600001})

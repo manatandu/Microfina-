@@ -150,6 +150,8 @@ export function graine(): Etat {
     operationsBanque: [],
     chequesClients: [],
     chequiers: [],
+    emprunts: [],
+    remboursementsEmprunt: [],
     chequesInstitution: [],
     agents: [],
     feries: [],

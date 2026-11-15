@@ -650,6 +650,35 @@ describe("journée de guichet", () => {
     await expect(api.chequiers.generer({ ...base, cle: cle(), debut: "5000" })).rejects.toThrow("Droit manquant");
   });
 
+  it("emprunts bancaires (S61) : mise en place au compte 533, remboursement plafonné au capital restant (registre S61-1 à S61-7)", async () => {
+    await journeeOuverte();
+    await connecter("jpmukendi");
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    await api.banques.enregistrerCompte({ banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "",
+      compte: "56010001", numeroBancaire: "R-USD-1", devise: "USD" });
+    await connecter("plumbala");
+    const cb = (await api.banqueOperations.lire()).comptes[0]!.id;
+    const base = { compteBancaireId: cb, reference: "RAW-2026-01", montant: 1000000, duree: 24, dateEmprunt: "2026-11-05", taux: "12,5", totalInteret: 125000,
+      totalCommission: 5000, totalFrais: 0, commentaire: "", compteEmprunt: "533" };
+    await expect(api.emprunts.mettreEnPlace({ ...base, cle: cle(), compteEmprunt: "1619" })).rejects.toThrow("compte 533");
+    await expect(api.emprunts.mettreEnPlace({ ...base, cle: cle(), taux: "1e2" })).rejects.toThrow("Taux annuel");
+    await expect(api.emprunts.mettreEnPlace({ ...base, cle: cle(), duree: 0 })).rejects.toThrow("Durée");
+    await expect(api.emprunts.mettreEnPlace({ ...base, cle: cle(), dateEmprunt: "2026-11-06" })).rejects.toThrow("dépasser la journée");
+    const k = cle(), e = await api.emprunts.mettreEnPlace({ ...base, cle: k });
+    expect([e.numero, e.devise, e.taux, e.compteInteret, e.capitalRestant, e.piece]).toEqual([1, "USD", "12,5", "6020", 1000000, ""]);
+    expect((await api.emprunts.mettreEnPlace({ ...base, cle: k })).id).toBe(e.id);
+    expect((await api.emprunts.mettreEnPlace({ ...base, cle: cle(), duree: 6 })).compteInteret).toBe("6021");
+    expect((await api.emprunts.lire(1)).reference).toBe("RAW-2026-01");
+    await expect(api.emprunts.lire(9)).rejects.toThrow("introuvable");
+    const r = { date: "2026-11-05", amortissement: 400000, interet: 10000, commission: 0 };
+    await expect(api.emprunts.rembourser(e.id, { ...r, cle: cle(), amortissement: 0, interet: 0 })).rejects.toThrow("Rien à rembourser");
+    await expect(api.emprunts.rembourser(e.id, { ...r, cle: cle(), date: "2026-11-04" })).rejects.toThrow("précède");
+    expect((await api.emprunts.rembourser(e.id, { ...r, cle: cle() })).capitalRestant).toBe(600000);
+    await expect(api.emprunts.rembourser(e.id, { ...r, cle: cle(), amortissement: 600001 })).rejects.toThrow("capital restant");
+    await connecter("bkasongo");
+    await expect(api.emprunts.mettreEnPlace({ ...base, cle: cle() })).rejects.toThrow("Droit manquant");
+  });
+
   it("adhésion par banque (S56) : payée sur un compte bancaire en CDF, saisie en attente du visa (registre S56-1 à S56-3)", async () => {
     await journeeOuverte();
     await connecter("jpmukendi");
