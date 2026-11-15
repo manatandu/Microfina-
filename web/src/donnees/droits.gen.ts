@@ -80,6 +80,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "conformite.enregistrerPpe": [
 "SC01"
 ],
+"conformite.evaluerProfil": [
+"SC01"
+],
 "conformite.examiner": [
 "SC01"
 ],

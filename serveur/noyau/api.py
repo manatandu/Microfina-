@@ -1312,6 +1312,16 @@ def conformite_ppe_informer(request, tid: int, corps: dict = Body(...)):
     return conf.ppe_informer(u(request), tid, corps)
 
 
+@api.get("/conformite/profils")
+def conformite_profils(request, filtre: str = "echues"):
+    return conf.profils_lister(u(request), filtre)
+
+
+@api.post("/conformite/profils/{tid}")
+def conformite_profil_evaluer(request, tid: int, corps: dict = Body(...)):
+    return conf.profil_evaluer(u(request), tid, corps)
+
+
 @api.get("/conformite/examens/{eid}/rapport")
 def conformite_rapport(request, eid: int):
     return conf.rapport(u(request), eid)

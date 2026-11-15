@@ -560,6 +560,13 @@ const OUT = process.argv[2];
   await etape('10c-examen-renforce'); await fx.getByRole('button', { name: 'Autoriser' }).click(); await oui();
   await fx.getByRole('button', { name: 'Rapport' }).click(); await p.getByRole('article', { name: "Rapport d'examen renforcé" }).waitFor(); await etape('10d-rapport-examen');
   await p.getByRole('dialog', { name: "Rapport d'examen renforcé" }).getByRole('button', { name: 'Fermer' }).click(); await fx.getByRole('button', { name: 'Fermer' }).click();
+  // Profil de risque (écart E08 ; Instr. BCC 15, art. 28) : le client visé sans évaluation est dans les revues échues ; le chef l'évalue
+  await p.getByRole('tab', { name: 'Profils de risque' }).click(); await p.getByRole('row').filter({ hasText: '0412-000318' }).first().click();
+  const fr2 = p.getByRole('dialog', { name: /^Profil de risque : / });
+  await fr2.getByLabel('Niveau de risque : *').selectOption('moyen'); await fr2.getByLabel('Motif : *').fill('Commerçante, dépôts réguliers, un examen renforcé autorisé');
+  await fr2.getByLabel("Données d'identification revues (art. 27 et 51)").check(); await etape('10i-profil-risque');
+  await fr2.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await fr2.getByText(/Niveau en cours : Moyen/).waitFor();
+  await fr2.getByRole('button', { name: 'Fermer' }).click();
   // Centrale des incidents de paiement (écart E06) : les ouvertures et nouveaux clients du jour à déclarer, avec leur échéance
   await aller('/clients/sc02'); await p.getByRole('heading', { name: 'Centrale des incidents de paiement' }).waitFor(); await p.getByRole('cell', { name: 'Nouveau client' }).first().waitFor();
   await etape('10f-centrale-incidents');

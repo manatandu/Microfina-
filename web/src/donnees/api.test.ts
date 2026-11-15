@@ -183,6 +183,21 @@ describe("journée de guichet", () => {
     expect((await api.tiers.viser(t.id)).statut).toBe("actif");
   });
 
+  it("profil de risque (écart E08) : chaque client visé, revu chaque semestre, données revues, PPE en niveau Élevé", async () => {
+    await journeeOuverte(); await connecter("jpmukendi");
+    const k = (await api.conformite.profils()).find((x) => x.membre === "0412-000318")!;
+    expect([k.niveau, k.echue]).toEqual(["", true]);
+    await expect(api.conformite.evaluerProfil(k.tiersId, { niveau: "faible" })).rejects.toThrow("Motif");
+    await expect(api.conformite.evaluerProfil(k.tiersId, { niveau: "faible", motif: "Commerçante, opérations régulières" })).rejects.toThrow("données d'identification");
+    const v = await api.conformite.evaluerProfil(k.tiersId, { niveau: "moyen", motif: "Commerçante, opérations régulières", donneesRevues: true });
+    expect([v.niveauLibelle, v.evalueLe, v.prochaineRevue, v.echue]).toEqual(["Moyen", "2026-11-05", "2027-05-05", false]);
+    expect((await api.conformite.profils()).some((x) => x.membre === "0412-000318")).toBe(false);
+    expect((await api.conformite.profils("tous")).some((x) => x.membre === "0412-000318")).toBe(true);
+    await connecter("bkasongo");
+    await expect(api.conformite.profils()).rejects.toThrow("Droit manquant");
+    await expect(api.conformite.evaluerProfil(k.tiersId, { niveau: "faible", motif: "x", donneesRevues: true })).rejects.toThrow("Droit manquant");
+  });
+
   it("convention de compte (écart E04) et admission par le Conseil d'Administration (écart E05)", async () => {
     await connecter("bkasongo");
     const cv = await api.comptesEpargne.convention(2);

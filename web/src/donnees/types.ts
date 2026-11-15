@@ -192,6 +192,8 @@ export interface Examen {
 }
 /** Écart E02 : dossier d'une personne politiquement exposée (Instr. BCC 15, art. 41, 64, 65) */
 export interface DossierPpe { tiersId: number; fonction: string; finFonction: string; originePatrimoine: string; saisiPar: number; autorisePar: number | null; autoriseLe: string; informeLe: string; referenceCenaref: string }
+/** Écart E08 : évaluation du profil de risque (Instr. BCC 15, art. 28) */
+export interface ProfilRisque { id: number; tiersId: number; niveau: "faible" | "moyen" | "eleve"; motif: string; evalueLe: string; evaluePar: number }
 /** Écart E07 : plainte (Instr. BCC 39) */
 export interface Plainte {
   id: number; agenceId: number; reference: string; cle: string; recueLe: string; tiersId: number | null; plaignant: string; contact: string;
@@ -272,6 +274,7 @@ export interface Etat {
   paramAdhesion: ParamAdhesion[];
   modifications: { id: number; tiersId: number; avant: Tiers; apres: Tiers; modifiePar: number; modifieLe: string; validePar?: number; valideLe?: string }[];
   plaintes: Plainte[];   // écart E07
+  profilsRisque: ProfilRisque[];   // écart E08
   declarationsCip: { type: string; objetId: number; dateEvenement: string; declareLe: string; reference: string; declarePar: number }[];   // écart E06   // S46, S42, S43
   banques: { id: number; code: string; libelle: string; compteLiaison: string; adresse: string }[];   // S58
   budget: Record<string, LigneBudget[]>;

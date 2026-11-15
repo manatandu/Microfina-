@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**378 décisions.** Solidité : 142 fortes (le manuel ou un texte répond), 204 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 349 déjà en place, 29 à appliquer.
+**382 décisions.** Solidité : 145 fortes (le manuel ou un texte répond), 205 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 353 déjà en place, 29 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -868,6 +868,15 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | E07-1 | Circuit | Client > Conformité > Plaintes : enregistrées dans tout point d'exploitation (droit SC03 au caissier, à l'agent de crédit et au chef d'agence), client ou non ; canal, provenance et nature de l'opération ; référence unique PL-année-numéro et accusé de réception imprimable ; réponse due sous 45 jours calendaires, en retard signalé ; réponse réservée au chef d'agence, réparation obligatoire si la plainte est fondée ; rapport trimestriel par provenance, canal, nature et suite, exportable | Texte réglementaire : Instr. BCC 39, art. 3, 4, 5, 7, 10, 15, 17 et 19 ; loi 11/020, art. 61 | forte | en place |
+
+## E08 Profil de risque
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E08-1 | Où et pour qui | Onglet « Profils de risque » de Client > Conformité > Examen renforcé (droit SC01, la conformité). Chaque client visé y figure ; « Revues échues » montre ceux jamais évalués ou évalués il y a six mois ou plus. Chaque évaluation est gardée avec sa date et son auteur | Texte réglementaire : Instr. BCC 15, art. 28 (profilage de chaque client, évalué semestriellement) ; même gabarit que l'onglet Personnes exposées (registre E02-1) | forte | en place |
+| E08-2 | Niveaux et contenu | Trois niveaux : Faible, Moyen, Élevé ; motif obligatoire ; la case « Données d'identification revues » doit être cochée pour enregistrer ; prochaine revue six mois après l'évaluation (date de la journée ouverte) | Texte réglementaire : Instr. BCC 15, art. 6 (risques moindres, plus élevés), art. 32 (risque supérieur à la moyenne), art. 28 (semestre), art. 27 et 51 (révision et mise à jour des données d'identification) | forte | en place |
+| E08-3 | Personne politiquement exposée | Une personne politiquement exposée encore active ne peut recevoir que le niveau Élevé | Texte réglementaire : Instr. BCC 15, art. 41 al. 3 (vigilance renforcée vis-à-vis des PPE) et art. 64 (fin du statut 36 mois après la fonction) | forte | en place |
+| E08-4 | Visa sans profil | Le visa n'attend pas le profil : le client visé apparaît aussitôt dans les revues échues. Le texte demande le profilage au regard de l'identification, sans dire qu'il précède l'entrée en relation | Texte réglementaire : Instr. BCC 15, art. 28 (aucun délai avant l'entrée en relation) ; art. 10 ne cite que la vérification de l'identité | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

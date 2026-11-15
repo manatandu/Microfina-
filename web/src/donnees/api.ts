@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v69";
+const CLE = "likelemba-demo-v70";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -2201,6 +2201,35 @@ const ppe = {
     x.informeLe = d.date; x.referenceCenaref = d.reference.trim(); enregistrer(); return vuePpe(t);
   },
 };
+// Écart E08 : profil de risque (Instr. BCC 15, art. 28 : évalué chaque semestre ; art. 27 et 51 : données revues ; art. 41 : PPE). Mêmes règles que noyau/conformite.py.
+const NIVEAUX_RISQUE: Record<string, string> = { faible: "Faible", moyen: "Moyen", eleve: "Élevé" };
+const jourConformite = () => journees.courante()?.date ?? new Date().toISOString().slice(0, 10);
+const vueProfil = (t: Tiers, jour: string) => {
+  const p = E.profilsRisque.filter((x) => x.tiersId === t.id).sort((a, b) => b.evalueLe.localeCompare(a.evalueLe) || b.id - a.id)[0];
+  const prochaine = p ? ajouterMois(p.evalueLe, 6) : "";
+  return { tiersId: t.id, membre: t.numero, client: titulaire(t), exposee: ppeActive(t.id), niveau: p?.niveau ?? "", niveauLibelle: NIVEAUX_RISQUE[p?.niveau ?? ""] ?? "",
+    motif: p?.motif ?? "", evalueLe: p?.evalueLe ?? "", evaluePar: E.utilisateurs.find((u) => u.id === p?.evaluePar)?.nom ?? "", prochaineRevue: prochaine, echue: !p || prochaine <= jour };
+};
+const profilsRisque = {
+  lister(filtre = "echues") {
+    lectureAdmin(["SC01"]); const jour = jourConformite();
+    const vues = E.tiers.filter((t) => t.statut === "actif" || t.statut === "modifie_a_revalider").sort((a, b) => a.numero.localeCompare(b.numero)).map((t) => vueProfil(t, jour));
+    return filtre === "echues" ? vues.filter((v) => v.echue) : vues;
+  },
+  evaluer(tid: number, d: { niveau?: string; motif?: string; donneesRevues?: boolean }) {
+    const u = exiger();
+    const t = E.tiers.find((x) => x.id === tid);
+    if (!t || (t.statut !== "actif" && t.statut !== "modifie_a_revalider")) throw new ErreurMetier("Client introuvable ou pas encore visé.");
+    const niveau = d.niveau ?? "", motif = (d.motif ?? "").trim();
+    const manque = ([[niveau in NIVEAUX_RISQUE, "Niveau de risque"], [motif, "Motif"]] as const).filter(([v]) => !v).map(([, n]) => n);
+    if (manque.length) throw new ErreurMetier(`À remplir (Instr. BCC 15, art. 28) : ${manque.join(", ")}.`);
+    if (d.donneesRevues !== true) throw new ErreurMetier("Revoir d'abord les données d'identification du client (Instr. BCC 15, art. 27 et 51).");
+    if (ppeActive(tid) && niveau !== "eleve") throw new ErreurMetier("Personne politiquement exposée : niveau Élevé, la vigilance est renforcée (Instr. BCC 15, art. 41).");
+    const jour = jourConformite();
+    E.profilsRisque.push({ id: Math.max(0, ...E.profilsRisque.map((x) => x.id)) + 1, tiersId: tid, niveau: niveau as "faible" | "moyen" | "eleve", motif, evalueLe: jour, evaluePar: u.id });
+    enregistrer(); return vueProfil(t, jour);
+  },
+};
 // Écart E06 : Centrale des incidents de paiement (Instr. BCC 52, art. 10 à 15). Mêmes règles que noyau/cip.py.
 const TYPES_CIP: Record<string, string> = { ouverture_compte: "Ouverture de compte", cloture_compte: "Clôture de compte", nouveau_client: "Nouveau client", modification_client: "Client modifié" };
 /** Deux jours ouvrables après l'événement, du lundi au vendredi */
@@ -2364,6 +2393,8 @@ const conformite = {
   },
   /** Instr. BCC 15, art. 62 : rapport écrit, strictement confidentiel */
   ppe: () => ppe.lister(),
+  profils: (filtre = "echues") => profilsRisque.lister(filtre),
+  evaluerProfil: (tid: number, d: Parameters<typeof profilsRisque.evaluer>[1]) => profilsRisque.evaluer(tid, d),
   cip: (du: string, au: string, statut = "") => cip.evenements(du, au, statut),
   declarerCip: (d: Parameters<typeof cip.declarer>[0]) => cip.declarer(d),
   noterIcu: (tid: number, d: { icu: string }) => cip.noterIcu(tid, d),

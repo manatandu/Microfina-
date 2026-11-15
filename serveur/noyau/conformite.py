@@ -239,3 +239,52 @@ def ppe_informer(u: dict, tid: int, d: dict) -> dict:
         raise ErreurMetier("À remplir : date et référence de l'information à la CENAREF.")
     executer("update dossier_ppe set informe_le = %s, reference_cenaref = %s where tiers_id = %s", (date_, ref, tid))
     return vue_ppe(t)
+
+
+# Écart E08 : profil de risque du client. Instr. BCC 15, art. 28 (profilage évalué chaque semestre), art. 27 et 51 (données d'identification revues),
+# art. 6 et 32 (niveaux), art. 41 al. 3 (personne politiquement exposée : vigilance renforcée). Mêmes règles que web/src/donnees/api.ts (profils).
+NIVEAUX = {"faible": "Faible", "moyen": "Moyen", "eleve": "Élevé"}
+MOIS_REVUE = 6      # art. 28 : « semestriellement »
+
+
+def _jour(u: dict) -> str:
+    j = journee_courante(u)
+    return j["date"] if j else valeur("select current_date::text")
+
+
+def vue_profil(t: dict, jour: str) -> dict:
+    p = une("select * from profil_risque where tiers_id = %s order by evalue_le desc, id desc limit 1", (t["id"],)) or {}
+    prochaine = valeur("select (%s::date + interval '6 months')::date::text", (p["evalue_le"],)) if p else ""
+    return {"tiersId": t["id"], "membre": t["numero"], "client": titulaire(t["id"]), "exposee": ppe_active(t["id"]),
+            "niveau": p.get("niveau") or "", "niveauLibelle": NIVEAUX.get(p.get("niveau") or "", ""), "motif": p.get("motif") or "",
+            "evalueLe": p["evalue_le"].isoformat() if p else "", "evaluePar": nom_utilisateur(p["evalue_par"]) if p else "",
+            "prochaineRevue": prochaine, "echue": not p or prochaine <= jour}
+
+
+def profils_lister(u: dict, filtre: str = "echues") -> list[dict]:
+    """Clients en relation (visés) ; « échues » : jamais évalués, ou dernière évaluation de six mois ou plus"""
+    exiger(u)
+    jour = _jour(u)
+    vues = [vue_profil(t, jour) for t in lignes("select id, numero from tiers where institution_id = %s and statut in ('actif', 'modifie_a_revalider') order by numero",
+                                                (u["institution_id"],))]
+    return [v for v in vues if v["echue"]] if filtre == "echues" else vues
+
+
+def profil_evaluer(u: dict, tid: int, d: dict) -> dict:
+    exiger(u)
+    d = d if isinstance(d, dict) else {}
+    t = une("select id, numero, statut from tiers where id = %s and institution_id = %s for update", (tid, u["institution_id"]))
+    if not t or t["statut"] not in ("actif", "modifie_a_revalider"):
+        raise ErreurMetier("Client introuvable ou pas encore visé.")
+    niveau, motif = str(d.get("niveau") or ""), str(d.get("motif") or "").strip()
+    manque = [n for v, n in ((niveau in NIVEAUX, "Niveau de risque"), (motif, "Motif")) if not v]
+    if manque:
+        raise ErreurMetier("À remplir (Instr. BCC 15, art. 28) : " + ", ".join(manque) + ".")
+    if d.get("donneesRevues") is not True:
+        raise ErreurMetier("Revoir d'abord les données d'identification du client (Instr. BCC 15, art. 27 et 51).")
+    if ppe_active(tid) and niveau != "eleve":
+        raise ErreurMetier("Personne politiquement exposée : niveau Élevé, la vigilance est renforcée (Instr. BCC 15, art. 41).")
+    jour = _jour(u)
+    executer("insert into profil_risque (tiers_id, niveau, motif, donnees_revues, evalue_le, evalue_par) values (%s, %s, %s, true, %s, %s)",
+             (tid, niveau, motif, jour, u["id"]))
+    return vue_profil(t, jour)

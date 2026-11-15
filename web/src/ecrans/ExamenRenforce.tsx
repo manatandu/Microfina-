@@ -10,7 +10,7 @@ import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite } fro
 
 type Examen = Awaited<ReturnType<typeof api.conformite.lister>>[number];
 type Rapport = Awaited<ReturnType<typeof api.conformite.rapport>>;
-const ONGLETS = [["a_examiner", "À examiner"], ["autorise", "Autorisés"], ["refuse", "Refusés"], ["a_declarer", "À déclarer"], ["ppe", "Personnes exposées"]] as const;
+const ONGLETS = [["a_examiner", "À examiner"], ["autorise", "Autorisés"], ["refuse", "Refusés"], ["a_declarer", "À déclarer"], ["ppe", "Personnes exposées"], ["profils", "Profils de risque"]] as const;
 const STATUTS: Record<string, string> = { a_examiner: "À examiner", autorise: "Autorisé", refuse: "Refusé" };
 const usd = (v: number) => `${v.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`;
 const VIDE = { origineFonds: "", destinationFonds: "", objet: "", acteurs: "", observations: "" };
@@ -18,7 +18,7 @@ const VIDE = { origineFonds: "", destinationFonds: "", objet: "", acteurs: "", o
 export default function ExamenRenforce() {
   const [onglet, setOnglet] = useState<(typeof ONGLETS)[number][0]>("a_examiner");
   const [relu, setRelu] = useState(0);
-  const { donnees, erreur } = useDonnees(() => (onglet === "ppe" ? Promise.resolve([]) : api.conformite.lister(onglet)), [onglet, relu]);
+  const { donnees, erreur } = useDonnees(() => (onglet === "ppe" || onglet === "profils" ? Promise.resolve([]) : api.conformite.lister(onglet)), [onglet, relu]);
   const { donnees: j } = useDonnees(() => api.journees.courante());
   const [choisi, setChoisi] = useState<Examen | null>(null);
   const [f, setF] = useState(VIDE);
@@ -53,7 +53,8 @@ export default function ExamenRenforce() {
         {ONGLETS.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={k === onglet} onClick={() => { setOnglet(k); setChoisi(null); }}>{l}</button>)}
       </div>
       {onglet === "ppe" && <PersonnesExposees jour={j?.date ?? ""} />}
-      {onglet !== "ppe" && <section className="bloc pile" aria-label="Liste des examens">
+      {onglet === "profils" && <ProfilsRisque />}
+      {onglet !== "ppe" && onglet !== "profils" && <section className="bloc pile" aria-label="Liste des examens">
         <div className="defile-x"><table className="grille">
           <thead><tr><th scope="col">N°</th><th scope="col">Date</th><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Opération</th>
             <th scope="col" className="montant">Montant</th><th scope="col" className="montant">Cumul du jour</th><th scope="col">Demandé par</th><th scope="col">Statut</th></tr></thead>
@@ -206,6 +207,64 @@ function PersonnesExposees({ jour }: { jour: string }) {
             {!fige && choisi.saisiPar && <button className="bouton" type="button" onClick={() => agir("Voulez-vous vraiment autoriser la relation avec cette personne ?", () => api.conformite.enregistrerPpe(choisi.tiersId, { autoriser: true }))}>Autoriser</button>}
             {fige && !choisi.informeLe && <button className="bouton" type="button" onClick={() => agir("Voulez-vous vraiment noter cette information ?", () => api.conformite.informerPpe(choisi.tiersId, { date: info.date || jour, reference: info.reference }))}>Noter l'information</button>}
             <button className="bouton secondaire" type="button" onClick={() => { setChoisi(null); setRelu((v) => v + 1); }}>Fermer</button>
+          </div>
+        </div>}
+      </Fiche>
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </section>
+  );
+}
+
+type Profil = Awaited<ReturnType<typeof api.conformite.profils>>[number];
+const NIVEAUX = [["", ""], ["faible", "Faible"], ["moyen", "Moyen"], ["eleve", "Élevé"]] as const;
+/** Écart E08 : profil de risque de chaque client visé, évalué chaque semestre (Instr. BCC 15, art. 28), données d'identification revues (art. 27 et 51).
+ *  La personne politiquement exposée est en niveau Élevé (art. 41). Chaque évaluation est gardée. */
+function ProfilsRisque() {
+  const [filtre, setFiltre] = useState<"echues" | "tous">("echues");
+  const [relu, setRelu] = useState(0);
+  const { donnees, erreur } = useDonnees(() => api.conformite.profils(filtre), [filtre, relu]);
+  const [choisi, setChoisi] = useState<Profil | null>(null);
+  const [f, setF] = useState({ niveau: "", motif: "", donneesRevues: false });
+  const [boite, setBoite] = useState<Boite | null>(null);
+  if (erreur) return <p role="alert" className="erreur-champ">{erreur}</p>;
+  if (!donnees) return <Chargement />;
+  const ouvrir = (x: Profil) => { setChoisi(x); setF({ niveau: x.niveau, motif: "", donneesRevues: false }); };
+  const fermer = () => { setChoisi(null); setRelu((v) => v + 1); };
+  const evaluer = () => choisi && setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
+    try { setChoisi(await api.conformite.evaluerProfil(choisi.tiersId, f)); setF({ ...f, motif: "", donneesRevues: false }); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+    catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+  } });
+  return (
+    <section className="bloc pile" aria-label="Profils de risque">
+      <div className="ligne-champ" role="radiogroup" aria-label="Clients">
+        <label className="case"><input type="radio" name="filtre-profils" checked={filtre === "echues"} onChange={() => setFiltre("echues")} /><span>Revues échues</span></label>
+        <label className="case"><input type="radio" name="filtre-profils" checked={filtre === "tous"} onChange={() => setFiltre("tous")} /><span>Tous les clients</span></label>
+      </div>
+      <div className="defile-x"><table className="grille">
+        <thead><tr><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Niveau</th><th scope="col">Évalué le</th><th scope="col">Évalué par</th><th scope="col">Prochaine revue</th></tr></thead>
+        <tbody>
+          {donnees.length === 0 && <tr><td colSpan={6}>No records found.</td></tr>}
+          {donnees.map((x) => (
+            <tr key={x.tiersId} className="ligne-choix" tabIndex={0} aria-selected={choisi?.tiersId === x.tiersId} onClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
+              <td className="chiffres">{x.membre}</td><td>{x.client}{x.exposee ? " · exposée" : ""}</td><td>{x.niveauLibelle || "À évaluer"}</td>
+              <td className="chiffres">{fr(x.evalueLe)}</td><td>{x.evaluePar}</td><td className="chiffres">{x.prochaineRevue ? fr(x.prochaineRevue) : ""}{x.echue && x.evalueLe ? " · échue" : ""}</td>
+            </tr>))}
+        </tbody>
+      </table></div>
+      <Textes sources={["Instr. BCC 15, art. 28 : profil de risque de chaque client, au regard des informations de l'identification, évalué chaque semestre",
+        "Instr. BCC 15, art. 27 et 51 : données d'identification revues et mises à jour pendant toute la relation", "Instr. BCC 15, art. 41 : vigilance renforcée pour la personne politiquement exposée"]} />
+      <Fiche titre={choisi ? `Profil de risque : ${choisi.client}` : ""} ouverte={!!choisi} fermer={fermer}>
+        {choisi && <div className="pile">
+          {choisi.evalueLe && <p>Niveau en cours : <strong>{choisi.niveauLibelle}</strong>, évalué le <span className="chiffres">{fr(choisi.evalueLe)}</span> par {choisi.evaluePar}. Motif : {choisi.motif}</p>}
+          <fieldset className="pile cadre-champs">
+            <legend>Évaluation (Instr. BCC 15, art. 28)</legend>
+            <Champ libelle="Niveau de risque : *">{(p) => <select {...p} className="saisie" value={f.niveau} onChange={(e) => setF({ ...f, niveau: e.target.value })}>{NIVEAUX.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>}</Champ>
+            <Champ libelle="Motif : *">{(p) => <textarea {...p} className="saisie" rows={2} value={f.motif} onChange={(e) => setF({ ...f, motif: e.target.value })} />}</Champ>
+            <label className="case"><input type="checkbox" checked={f.donneesRevues} onChange={(e) => setF({ ...f, donneesRevues: e.target.checked })} /><span>Données d'identification revues (art. 27 et 51)</span></label>
+          </fieldset>
+          <div className="actions-onglets">
+            <button className="bouton" type="button" onClick={evaluer}>Enregistrer</button>
+            <button className="bouton secondaire" type="button" onClick={fermer}>Fermer</button>
           </div>
         </div>}
       </Fiche>

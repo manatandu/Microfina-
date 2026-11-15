@@ -1,4 +1,5 @@
 export function fr(iso: string) {
+  if (!iso) return "";
   const [a, m, j] = iso.split("-");
   return `${j}/${m}/${a}`;
 }

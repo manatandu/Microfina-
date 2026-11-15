@@ -2102,6 +2102,25 @@ def test_personne_exposee(clients, journee):
     assert chef.post(f"/api/tiers/{t['id']}/visa", **H).json()["statut"] == "actif"
 
 
+def test_profil_risque(clients, journee):
+    """Écart E08 : Instr. BCC 15, art. 27, 28, 41, 51"""
+    agent, chef = clients["agent"], clients["chef"]
+    echues = chef.get("/api/conformite/profils", **H).json()
+    k = next(x for x in echues if x["membre"] == "0412-000318")
+    assert k["niveau"] == "" and k["echue"] is True
+    assert agent.get("/api/conformite/profils", **H).status_code == 403
+    assert agent.post(f"/api/conformite/profils/{k['tiersId']}", {"niveau": "faible", "motif": "x", "donneesRevues": True}, **H).status_code == 403
+    assert "Motif" in chef.post(f"/api/conformite/profils/{k['tiersId']}", {"niveau": "faible"}, **H).json()["message"]
+    assert "données d'identification" in chef.post(f"/api/conformite/profils/{k['tiersId']}", {"niveau": "faible", "motif": "Commerçante, opérations régulières"}, **H).json()["message"]
+    v = chef.post(f"/api/conformite/profils/{k['tiersId']}", {"niveau": "moyen", "motif": "Commerçante, opérations régulières", "donneesRevues": True}, **H).json()
+    assert (v["niveauLibelle"], v["evalueLe"], v["prochaineRevue"], v["echue"]) == ("Moyen", "2026-11-05", "2027-05-05", False)
+    assert all(x["membre"] != "0412-000318" for x in chef.get("/api/conformite/profils", **H).json())
+    assert any(x["membre"] == "0412-000318" for x in chef.get("/api/conformite/profils?filtre=tous", **H).json())
+    from noyau.bd import executer
+    executer("update tiers set personne_exposee = true where id = %s", (k["tiersId"],))
+    assert "niveau Élevé" in chef.post(f"/api/conformite/profils/{k['tiersId']}", {"niveau": "faible", "motif": "x", "donneesRevues": True}, **H).json()["message"]
+
+
 def test_convention_et_admission(clients, journee):
     """Écart E04 : convention de compte (loi 22/069, titre III) ; écart E05 : admission par le Conseil d'Administration (loi 002/2002, art. 22, 6°)"""
     from noyau.bd import executer

@@ -59,6 +59,8 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       declarer: (id: number, d: object) => post(`/conformite/examens/${id}/declaration`, d),
       rapport: (id: number) => get(`/conformite/examens/${id}/rapport`),
       ppe: () => get("/conformite/ppe"),
+      profils: (filtre = "echues") => get(`/conformite/profils?filtre=${filtre}`),
+      evaluerProfil: (tid: number, d: object) => post(`/conformite/profils/${tid}`, d),
       cip: (du: string, au: string, statut = "") => get(`/conformite/cip?du=${du}&au=${au}&statut=${statut}`),
       declarerCip: (d: object) => post("/conformite/cip/declarations", d),
       noterIcu: (tid: number, d: object) => post(`/conformite/cip/icu/${tid}`, d),
