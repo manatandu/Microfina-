@@ -17,7 +17,7 @@ a { color: var(--tampon); text-underline-offset: 3px; }
 .marque { display: inline-flex; align-items: center; gap: calc(var(--marque-taille) * .4); color: var(--encre); }
 .marque-sombre { color: var(--nuit-fort); }
 .marque-signe { display: block; height: var(--marque-taille); width: auto; }
-.marque-nom { font-weight: 700; font-size: calc(var(--marque-taille) * .62); line-height: 1; letter-spacing: .04em; }
+.marque-nom { font-family: var(--police-marque); font-weight: 700; font-size: calc(var(--marque-taille) * .62); line-height: 1; letter-spacing: .04em; }
 .logo-application { font-size: var(--taille-dense); font-weight: 600; color: var(--nuit-texte); padding-left: var(--espace-2); border-left: 1px solid var(--nuit-trait); }
 .marque-connexion { margin: 0 0 var(--espace-2); }
 .menus { display: flex; align-items: stretch; flex: 1; min-width: 0; overflow-x: auto; }
@@ -487,7 +487,7 @@ select.saisie { max-width: 100%; }
 
 /* ---------- S64 : relevé de compte au modèle standard (registre S64-7) : forme d'un relevé bancaire, identité de l'institution cliente ----------
    Typographie d'un relevé bancaire (demande du porteur, 15/11/2026) : police de bureau sans empattement, petite et serrée, chiffres dans la même police. */
-.releve-std { --releve-police: Arial, "Helvetica Neue", Helvetica, "Liberation Sans", sans-serif;
+.releve-std { --releve-police: var(--police-texte);
   display: grid; gap: 10px; background: var(--feuille); color: var(--encre); padding: 18px; font-family: var(--releve-police); font-size: 11px; line-height: 1.3; }
 .releve-std .chiffres, .releve-std .montant { font-family: var(--releve-police); font-variant-numeric: tabular-nums; letter-spacing: 0; }
 .releve-tete { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; }
@@ -518,7 +518,7 @@ select.saisie { max-width: 100%; }
   .releve-detail th { font-size: 8pt; } .releve-pied { font-size: 7pt; } .releve-titre { font-size: 11pt; }
   .releve-detail thead { display: table-header-group; }
   .releve-detail tr { break-inside: avoid; }
-  @page { margin: 12mm 10mm 14mm; @bottom-center { content: counter(page); font-family: Arial, sans-serif; font-size: 8pt; } }
+  @page { margin: 12mm 10mm 14mm; @bottom-center { content: counter(page); font-family: system-ui, Arial, sans-serif; font-size: 8pt; } }
 }
 /* Cadre d'impression (lib/imprimer.ts) : le document seul, dans le flux, pour qu'il se répartisse sur plusieurs pages */
 .impression { background: var(--feuille); margin: 0; }

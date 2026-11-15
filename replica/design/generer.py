@@ -25,7 +25,7 @@ def main():
     lignes = ["/* Généré par generer.py depuis tokens.json et tokens-sombre.json. Ne pas modifier à la main. */", ""]
     lignes.append(":root {")
     lignes.append(bloc(clair["color"]))
-    for nom, val in clair["font"].items():
+    for nom, val in ((k, v) for k, v in clair["font"].items() if not k.startswith("_")):
         lignes.append(f"  --police-{nom}: {val};")
     for nom, t in clair["type"].items():
         lignes.append(f"  --taille-{nom}: {t['size']}px;")

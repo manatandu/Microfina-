@@ -147,7 +147,8 @@ Le logiciel s'appelle **Dwacfina**. DWAC l'édite et le **vend aux COOPEC et IMF
 
 Deux familles, chacune pour sa fonction.
 - **Poppins** pour le texte et les titres (identité DWAC, guide de marque p. 18) : Medium pour le texte courant, Bold pour les titres. Provicali, réservée aux grands titres, attend son fichier (registre D01-3).
-- **Exception, les relevés de compte** (demande du porteur, 15/11/2026, registre S64-7) : police de bureau Arial (Helvetica, Liberation Sans), 8,5 points à l'impression, lignes serrées, chiffres dans la même police, comme un relevé bancaire.
+- **Police système (décision du porteur, 15/11/2026)** : tout le logiciel prend la police de l'appareil, comme les logiciels internationaux (Segoe UI sur Windows, San Francisco sur iPhone et Mac, Roboto sur Android), texte courant en 14 px, graisse normale ; montants et numéros dans la même police, chiffres alignés (tabular-nums). Seul le nom DWACFINA du logo garde Poppins Bold. Elle remplace Poppins et Atkinson Hyperlegible Mono ci-dessous.
+- **Relevés de compte** (registre S64-7) : même police, 8,5 points à l'impression, lignes serrées, comme un relevé bancaire.
 - **Atkinson Hyperlegible Mono** pour les montants, numéros de compte, numéros de pièce et dates saisies. Poppins distingue mal certains caractères qui se confondent (I majuscule et l minuscule, 0 et O) : au guichet, c'est exactement le risque. La chasse fixe a ici une raison : aligner les chiffres et lire un numéro caractère par caractère.
 
 Échelle : 13, 15, 18, 24, 32 px. Montant principal du guichet en 32 px. Texte courant 15 px. Back-office dense 13 px.
