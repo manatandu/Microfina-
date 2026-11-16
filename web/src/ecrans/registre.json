@@ -270,6 +270,15 @@
   "chemin": "/parametrage/s28"
  },
  {
+  "id": "SP01",
+  "nom": "Conditions de banque",
+  "acces": "Paramétrage > Produit > Conditions de banque",
+  "but": "Imprimer les conditions de banque paramétrées (taux, prélèvements, commissions, frais, dates de valeur) pour l'affichage trimestriel et la transmission à la BCC (écart E15 ; Instr. BCC 40, art. 2 à 6)",
+  "module": "parametrage",
+  "priorite": "must",
+  "chemin": "/parametrage/sp01"
+ },
+ {
   "id": "S29",
   "nom": "Numéros de pièce",
   "acces": "Paramétrage > Comptabilité > Numéro pièce",

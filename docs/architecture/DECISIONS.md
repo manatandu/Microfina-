@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**399 décisions.** Solidité : 158 fortes (le manuel ou un texte répond), 209 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 368 déjà en place, 29 à appliquer.
+**402 décisions.** Solidité : 160 fortes (le manuel ou un texte répond), 210 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 371 déjà en place, 29 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -924,6 +924,14 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | E14-1 | Fondement de chaque frais | Chaque frais d'opération (S16) porte un fondement obligatoire : part sociale, droit d'adhésion fixé par l'Assemblée générale (coopératives, à l'adhésion seulement), ou autre frais autorisé par la BCC, avec la référence de l'autorisation, exigée. Les frais de crédit restent choisis dans la liste de l'Instr. 40, art. 8, avec le produit de crédit | Texte réglementaire : Instr. BCC 40, art. 7, 8 et 12 ; loi 002/2002, art. 22, 2° et 5° | forte | en place |
 | E14-2 | Frais déjà saisis | Les frais portés par un compte 103 reçoivent le fondement « part sociale » ; les autres frais déjà saisis montrent « À renseigner » jusqu'à leur modification | Texte réglementaire : Instr. BCC 40, art. 12 ; registre S16-11 (part = compte 103) | moyenne | en place |
+
+## E15 Conditions de banque
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E15-1 | Où et quoi | Écran Paramétrage > Produit > Conditions de banque (SP01, chef d'agence) : état imprimable, police 12, en vigueur au jour de la journée ouverte, avec son trimestre. Il reprend le paramétrage avec les libellés des écrans : produits d'épargne actifs, produits de crédit actifs (taux, périodicité, pénalités, frais, épargne obligatoire, assurance), frais d'opération avec leur tarif et leur fondement (E14) | Texte réglementaire : Instr. BCC 40, art. 2 (contenu), art. 3 et 4 (affichage, support papier, libellés, tarifs), art. 5 (police 12), art. 6 (informations à jour) | forte | en place |
+| E15-2 | Prélèvements et dates de valeur | Prélèvement au profit de l'État : la retenue de 20 % sur les intérêts des dépôts des personnes physiques. Dates de valeur : le jour de l'opération, comme le grand livre les écrit | Texte réglementaire : Instr. BCC 40, art. 2 et 4 ; loi 23/053, art. 120 (registre S67-3) ; écritures datées de la journée comptable (ARCHITECTURE) | forte | en place |
+| E15-3 | Taux de l'épargne à vue | Le paramétrage d'un produit d'épargne (S27, comme Microfina++) ne porte pas de taux : l'état montre seulement si l'intérêt est calculé. Le taux du DAT est fixé au contrat, selon la durée. L'affichage en agence et la copie à la BCC restent des gestes de l'institution | Texte réglementaire : Instr. BCC 40, art. 3 ; manuel Microfina++ (S27) ; registre S65 | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

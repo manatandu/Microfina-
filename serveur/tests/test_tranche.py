@@ -2203,6 +2203,15 @@ def test_registre_des_membres(clients, journee):
     assert "propre aux coopératives" in chef.get("/api/clients/registre-membres", **H).json()["message"]
 
 
+def test_conditions_de_banque(clients, journee):
+    """Écart E15 : Instr. BCC 40, art. 2 à 6"""
+    e = clients["chef"].get("/api/parametrage/conditions-banque", **H).json()
+    assert e["date"] == "2026-11-05" and e["retenueInterets"] == 20
+    assert {"EAV-CDF", "EAV-USD"} <= {p["code"] for p in e["epargne"]}
+    f = next(x for x in e["frais"] if x["libelle"] == "Part sociale standard")
+    assert (f["operation"], f["nature"], f["fondement"]) == ("ADHESION", "Montant", "Part sociale (loi 002/2002, art. 22, 2°)")
+
+
 def test_convention_et_admission(clients, journee):
     """Écart E04 : convention de compte (loi 22/069, titre III) ; écart E05 : admission par le Conseil d'Administration (loi 002/2002, art. 22, 6°)"""
     from noyau.bd import executer

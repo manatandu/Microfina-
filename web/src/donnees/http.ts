@@ -88,6 +88,9 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       situation: (tiersId: number, date: string) => get(`/epargne/situation?tiersId=${tiersId}&date=${date}`),
       editer: (compteId: number, du: string, au: string) => post("/epargne/releve/edition", { compteId, du, au }),
     },
+    conditionsBanque: {
+      etat: () => get("/parametrage/conditions-banque"),
+    },
     registreMembres: {
       membres: () => get("/clients/registre-membres"),
     },

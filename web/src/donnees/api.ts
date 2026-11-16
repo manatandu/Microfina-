@@ -2248,6 +2248,24 @@ const profilsRisque = {
     enregistrer(); return vueProfil(t, jour);
   },
 };
+// Écart E15 : conditions de banque (Instr. BCC 40, art. 2 à 6). Mêmes règles que noyau/conditions_banque.py.
+const nb = (v: unknown) => (v === null || v === undefined || v === "" ? null : Number(v));
+const conditionsBanque = {
+  etat() {
+    exiger();
+    const per = Object.fromEntries(fixeCredit("periodicites").map((r) => [String(r.code), String(r.libelle)]));
+    const epargne = E.produits.filter((p) => p.actif && !p.supprime).sort((a, b) => a.code.localeCompare(b.code)).map((p) => ({ code: p.code, libelle: p.libelle, devise: p.devise,
+      categorie: p.categorie ?? "", soldeMinimum: p.soldeMinimum, retraitMaxJour: p.retraitMaxJour, calculInteret: p.calculerInteret, tenueCompte: p.tenueCompte }));
+    const credit = E.produitsCredit.filter((p) => p.actif !== false).sort((a, b) => String(a.numero).localeCompare(String(b.numero))).map((p) => ({ numero: String(p.numero ?? ""), nom: String(p.nom ?? ""),
+      devise: String(p.devise ?? ""), tauxInteret: nb(p.tauxInteret), typeInteret: String(p.typeInteret ?? ""), modeCalcul: String(p.modeCalcul ?? ""),
+      periodicite: per[String(p.periodicite ?? "")] ?? String(p.periodicite ?? ""), tauxDiffere: nb(p.tauxDiffere), penaliteRetard: nb(p.penaliteRetard), penaliteAnticipation: nb(p.penaliteAnticipation),
+      epargne: { nature: String(p.epargneNature ?? ""), valeur: nb(p.epargneValeur) }, assurance: { nature: String(p.assuranceNature ?? ""), valeur: nb(p.assuranceValeur) },
+      frais: p.frais.map((f) => ({ type: f.typeFrais, nature: f.nature, valeur: f.valeur })) }));
+    const frais = E.frais.flatMap((f) => [...E.paramOperations.filter((x) => x.fraisId === f.id).map((x) => ({ x, pour: x.sousType })), ...E.paramAdhesion.filter((x) => x.fraisId === f.id).map((x) => ({ x, pour: x.typeMembre }))]
+      .map(({ x, pour }) => ({ libelle: f.libelle, operation: f.typeOperation, pour, nature: x.nature, valeur: x.valeur, fondement: FONDEMENTS_FRAIS[f.fondement ?? ""] ?? "À renseigner", autorisationBcc: f.autorisationBcc ?? "" })));
+    return { entete: enteteDocument(), date: journees.courante()?.date ?? "", epargne, credit, frais, retenueInterets: 20 };   // loi 23/053, art. 120 (registre S67-3)
+  },
+};
 // Écart E12 : registre des membres (AUSCOOP, art. 9 ; loi 002/2002, art. 67). Mêmes règles que noyau/registre_membres.py.
 const registreMembres = {
   membres() {
@@ -4178,6 +4196,7 @@ const apiLocal = {
   conformite: asynchrone(conformite, "conformite"),
   inactifs: asynchrone(inactifs, "inactifs"),
   registreMembres: asynchrone(registreMembres, "registreMembres"),
+  conditionsBanque: asynchrone(conditionsBanque, "conditionsBanque"),
   plaintes: asynchrone(plaintes, "plaintes"),
   banques: asynchrone(banques, "banques"),
   guichets: asynchrone(guichets, "guichets"),

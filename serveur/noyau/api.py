@@ -19,6 +19,7 @@ from . import atypiques as aty
 from . import gel
 from . import inactifs as ina
 from . import registre_membres as rmb
+from . import conditions_banque as cdb
 from . import depots_terme as dat
 from . import conformite as conf
 from . import cip
@@ -1384,6 +1385,11 @@ def inactifs_lettre_imprimer(request, cid: int):
 @api.get("/clients/registre-membres")
 def registre_membres(request):
     return rmb.membres(u(request))
+
+
+@api.get("/parametrage/conditions-banque")
+def conditions_banque(request):
+    return cdb.etat(u(request))
 
 
 @api.get("/conformite/profils")

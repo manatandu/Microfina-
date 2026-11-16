@@ -268,6 +268,15 @@ describe("journée de guichet", () => {
     await connecter("engalula"); await expect(api.registreMembres.membres()).rejects.toThrow("Droit manquant");
   });
 
+  it("conditions de banque (écart E15) : produits, frais avec leur fondement, retenue sur les intérêts", async () => {
+    await journeeOuverte(); await connecter("jpmukendi");
+    const e = await api.conditionsBanque.etat();
+    expect([e.date, e.retenueInterets]).toEqual(["2026-11-05", 20]);
+    expect(e.epargne.map((p) => p.code)).toContain("EAV-CDF");
+    const f = e.frais.find((x) => x.libelle === "Part sociale standard")!;
+    expect([f.operation, f.nature, f.fondement]).toEqual(["ADHESION", "Montant", "Part sociale (loi 002/2002, art. 22, 2°)"]);
+  });
+
   it("convention de compte (écart E04) et admission par le Conseil d'Administration (écart E05)", async () => {
     await connecter("bkasongo");
     const cv = await api.comptesEpargne.convention(2);
