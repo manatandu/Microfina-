@@ -354,6 +354,22 @@ describe("journée de guichet", () => {
     expect((await api.registreMembres.membres()).membres.find((x) => x.numero === v.numero)!.categorie).toBe("Auxiliaire");
   });
 
+  it("options du produit au guichet (registre S74-5) : solde minimum, retrait maximum par jour, Opérer sur compte", async () => {
+    const avec = (o: Partial<ReturnType<typeof graine>["produits"][number]>) => { const g = graine(); _remplacer({ ...g, produits: g.produits.map((p) => p.code === "EAV-CDF" ? { ...p, ...o } : p) }); };
+    const dep = () => api.guichet.depot({ cle: cle(), compteId: 2, montant: 1000000, coupures: { 10000: 1 } });
+    const ret = () => api.guichet.retrait({ cle: cle(), compteId: 2, montant: 1000000, coupures: { 10000: 1 } });
+    avec({ retraitMaxJour: 1500000 }); await journeeOuverte();
+    for (let i = 0; i < 3; i++) await dep();
+    await ret();
+    await expect(ret()).rejects.toThrow("Retrait maximum par jour du produit : 15 000 CDF ; déjà retiré ce jour : 10 000 CDF");
+    const solde = (await api.tiers.comptes(1)).find((c) => c.id === 2)!.solde;
+    avec({ soldeMinimum: solde - 500000 }); await journeeOuverte();
+    await expect(ret()).rejects.toThrow("solde minimum du produit compris");
+    avec({ operer: false }); await journeeOuverte();
+    await expect(dep()).rejects.toThrow("Opérer sur compte = Non");
+    await expect(ret()).rejects.toThrow("Opérer sur compte = Non");
+  });
+
   it("convention de compte (écart E04) et admission par le Conseil d'Administration (écart E05)", async () => {
     await connecter("bkasongo");
     const cv = await api.comptesEpargne.convention(2);
@@ -891,6 +907,12 @@ describe("journée de guichet", () => {
     const comptes = await api.tiers.comptes(1), cusd = comptes.find((x) => x.devise === "USD")!;
     const base = { date: "2026-11-05", compteDepotId: cusd.id, compteBancaireId: usd, numeroCheque: "0001234", tireur: "Kabeya Jean", banqueTireur: "Equity", montant: 40000,
       deposant: "Kabeya Jean", pieceType: "", pieceNumero: "", etabliA: "", dateExpiration: "" };
+    await connecter("jpmukendi");   // registre S74-5 : produit sans « Dépôt de chèque »
+    const pusd = (await api.produitsEpargne.lire()).produits.find((p) => p.code === "EAV-USD")!;
+    await api.produitsEpargne.enregistrer({ ...pusd, depotCheque: false }, pusd.id);
+    await connecter("plumbala");
+    await expect(api.chequesClients.deposer({ ...base, cle: cle() })).rejects.toThrow("Dépôt de chèque = Non");
+    await connecter("jpmukendi"); await api.produitsEpargne.enregistrer({ ...pusd, depotCheque: true }, pusd.id); await connecter("plumbala");
     await expect(api.chequesClients.deposer({ ...base, cle: cle(), numeroCheque: "" })).rejects.toThrow("N° chèque");
     await expect(api.chequesClients.deposer({ ...base, cle: cle(), montant: 0 })).rejects.toThrow("Montant");
     await expect(api.chequesClients.deposer({ ...base, cle: cle(), compteBancaireId: cdf })).rejects.toThrow("même devise");

@@ -49,6 +49,9 @@ def deposer(u, d) -> dict:
     controler_statut_actif(c["statut_client"])
     if c["statut"] != "ouvert":
         raise ErreurMetier("Compte du client fermé.")
+    o = une("select p.libelle, p.depot_cheque from compte_depot c join produit_epargne p on p.id = c.produit_id where c.id = %s", (c["id"],))
+    if o["depot_cheque"] is False:                       # registre S74-5 : option « Dépôt de chèque » du produit (S27, p. 40)
+        raise ErreurMetier(f"Pas de dépôt de chèque sur un compte « {o['libelle']} » : Dépôt de chèque = Non (Paramétrage > Produit épargne).")
     numero = texte(d, "numeroCheque")
     if not numero:
         raise ErreurMetier("À remplir : N° chèque.")

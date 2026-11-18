@@ -165,7 +165,8 @@ class Command(BaseCommand):
         # Produits, guichets
         # Numéro du produit (S27) : suffixe des numéros de compte, 01 pour l'USD et 02 pour le CDF comme les comptes de démonstration (S17-2)
         for code, libelle, d, n in (("EAV-CDF", "Épargne à vue", "CDF", 2), ("EAV-USD", "Épargne à vue", "USD", 1)):
-            executer("insert into produit_epargne (institution_id, code, libelle, famille, devise, numero, nb_max_comptes) values (%s, %s, %s, 'EPARGNE', %s, %s, 1)", (ins, code, libelle, d, n))
+            # Dépôt de chèque = Oui : l'épargne à vue reçoit les chèques déposés (S59) ; donnée de démonstration (registre S74-5)
+            executer("insert into produit_epargne (institution_id, code, libelle, famille, devise, numero, nb_max_comptes, depot_cheque) values (%s, %s, %s, 'EPARGNE', %s, %s, 1, true)", (ins, code, libelle, d, n))
         jca = valeur("select id from journal where code = 'CA' and institution_id = %s", (ins,))   # données fictives (S08)
         g1 = valeur("""insert into guichet (agence_id, code, nom, type_guichet, journal_id, compte_guichet, compte_liaison, compte_surplus, compte_manquant)
                      values (%s, 'G1', 'Caisse 1', 'PRINCIPALE', %s, '570', '579', '7790', '671') returning id""", (ag, jca))

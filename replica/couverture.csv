@@ -61,7 +61,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 60,Chéquier et chèque pour crédit,banque,could,partial,S60,B,liste,4 Banque,S60 : « Chèque pour crédit » : en panne dans le manuel,A:S54 ; P,,,S60-5 Chèque pour crédit
 61,Emprunts bancaires,banque,should,partial,S61,B,guichet,4 Banque,"S61 : règles (échéances, intérêts, écritures)",R:PCCI (emprunts) ; P,,,S61-4 Écritures et N° de pièce
 62,Rapports banque,banque,should,yes,S62,B,rapport,4 Banque,S62 : forme du résultat,A:S13,,,
-63,Ouverture d'un compte d'épargne,épargne,must,partial,S63,A,liste,5 Épargne,,,,,S74-5 Options du produit d'épargne
+63,Ouverture d'un compte d'épargne,épargne,must,yes,S63,A,liste,5 Épargne,,,,,
 64,Relevé de compte et situation du client,épargne,must,yes,S64,A,rapport,5 Épargne,,,,,
 65,Dépôt à terme : mise en place validation rupture recherche,épargne,must,yes,S65 S66 S67 S68,A,"guichet, visa, traitement, rapport",5 Épargne,S66 : contrat imprimé ; S67 : calcul de la pénalité,R:PCCI (dépôts à terme) ; document ; M:taux de pénalité de S65 ; P,,,
 66,Reconduction automatique des DAT,épargne,must,no,S65,A,guichet,5 Épargne,,R:PCCI (dépôts à terme),,,
@@ -69,11 +69,11 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 68,Clôture d'un compte,épargne,must,no,S70,D,traitement,5 Épargne,S70 : tout l'écran (en panne dans le manuel),"A:S48 (résilier), S71 ; R:Instr. BCC sur les frais (clôture gratuite) ; P",,S70,
 69,Blocage de compte ou de montant avec motif,épargne,must,no,S71,A,liste,5 Épargne,S71 : déblocage,A:S94 (ajout et libération),,S71,
 70,Rapports épargne dont comptes inactifs et dormants,épargne,should,no,S72,B,rapport,5 Épargne,S72 : forme des résultats,A:S13,,S72,
-71,Adhésion au guichet,caisse,must,partial,S73,A,guichet,6 Caisse,,,,,S73-1 Adhésion et compte en USD ; S74-5 Options du produit d'épargne
-72,Dépôt et retrait au guichet,caisse,must,partial,S74,B,guichet,6 Caisse,"S74 : fenêtres Billetage, Detail, photo et signature ; reçu",A:S79 (billetage) ; document,,,S74-1 Bouton Detail ; S74-3 Libellé du cadre au retrait ; S74-5 Options du produit d'épargne
-73,Montant en lettres,caisse,must,partial,S74 S81,B,guichet,6 Caisse,"S74 : fenêtres Billetage, Detail, photo et signature ; reçu",A:S79 (billetage) ; document ; R:PCCI (mouvements de fonds),,S81,S74-1 Bouton Detail ; S74-3 Libellé du cadre au retrait ; S74-5 Options du produit d'épargne
-74,Mandataire au retrait,caisse,must,partial,S74,B,guichet,6 Caisse,"S74 : fenêtres Billetage, Detail, photo et signature ; reçu",A:S79 (billetage) ; document,,,S74-1 Bouton Detail ; S74-3 Libellé du cadre au retrait ; S74-5 Options du produit d'épargne
-75,Frais d'opération au guichet,caisse,must,partial,S74,B,guichet,6 Caisse,"S74 : fenêtres Billetage, Detail, photo et signature ; reçu",A:S79 (billetage) ; document,,,S74-1 Bouton Detail ; S74-3 Libellé du cadre au retrait ; S74-5 Options du produit d'épargne
+71,Adhésion au guichet,caisse,must,partial,S73,A,guichet,6 Caisse,,,,,S73-1 Adhésion et compte en USD
+72,Dépôt et retrait au guichet,caisse,must,yes,S74,B,guichet,6 Caisse,"S74 : fenêtres Billetage, Detail, photo et signature ; reçu",A:S79 (billetage) ; document,,,
+73,Montant en lettres,caisse,must,partial,S74 S81,B,guichet,6 Caisse,"S74 : fenêtres Billetage, Detail, photo et signature ; reçu",A:S79 (billetage) ; document ; R:PCCI (mouvements de fonds),,S81,
+74,Mandataire au retrait,caisse,must,yes,S74,B,guichet,6 Caisse,"S74 : fenêtres Billetage, Detail, photo et signature ; reçu",A:S79 (billetage) ; document,,,
+75,Frais d'opération au guichet,caisse,must,yes,S74,B,guichet,6 Caisse,"S74 : fenêtres Billetage, Detail, photo et signature ; reçu",A:S79 (billetage) ; document,,,
 76,Déblocage de crédit en caisse,caisse,must,no,S75,A,guichet,6 Caisse,S75 : échéancier et contrat de prêt,document,,S75,S75-1 Échéance qui tombe un jour non ouvré
 77,Remboursement en caisse avec répartition,caisse,must,no,S76,B,guichet,6 Caisse,"S76 : Plan, Réel, Memo, MP (seule Situation est montrée)",A:S95 (p. 119) ; D:S22,,S76,
 78,Situation plan réel mémo du prêt au guichet,caisse,should,no,S76,B,guichet,6 Caisse,"S76 : Plan, Réel, Memo, MP (seule Situation est montrée)",A:S95 (p. 119) ; D:S22,,S76,

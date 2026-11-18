@@ -52,7 +52,8 @@ export function graine(): Etat {
     // numero : S17-2 ; famille et options : S27 (valeurs par défaut de la migration 0039)
     produits: ([["EAV-CDF", "CDF", 2], ["EAV-USD", "USD", 1]] as const).map(([code, devise, numero], i) => ({ id: i + 1, code, libelle: "Épargne à vue", devise, numero,
       famille: "EPARGNE" as const, soldeMinimum: 0, retraitMaxJour: null, nbMaxComptes: 1, afficherAdhesion: false, actif: true, virementPrelevement: false, operer: true,
-      depotCheque: false, caution: false, nantissement: false, tenueCompte: null, calculerInteret: false, soldeNegatif: false, repartitionGroupe: false, supprime: false })),
+      // depotCheque : Oui, l'épargne à vue reçoit les chèques déposés (S59 ; registre S74-5)
+      depotCheque: true, caution: false, nantissement: false, tenueCompte: null, calculerInteret: false, soldeNegatif: false, repartitionGroupe: false, supprime: false })),
     utilisateurs: [
       { id: 1, login: "engalula", profilId: 1, nom: "Esther Ngalula", roles: ["caissier"], agenceId: 1 },
       { id: 2, login: "jpmukendi", profilId: 2, nom: "J.-P. Mukendi", roles: ["chef_agence"], agenceId: 1 },

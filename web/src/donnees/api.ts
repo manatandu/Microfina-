@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v77";
+const CLE = "likelemba-demo-v78";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -510,6 +510,27 @@ function exigerPartsSociales() {
 function controlerCollecteEpargne(famille: string) {
   if (E.institution.profil === "entreprise_microcredit" && famille !== "BLOQUE")
     throw new ErreurMetier("Une entreprise de micro-crédit ne collecte pas l'épargne du public (loi 11/020, art. 12) : seul le dépôt de garantie, famille BLOQUE, est permis (art. 5, point 13).");
+}
+/** « 1 000,50 CDF » : comme services.montant_lisible côté serveur */
+const montantLisible = (m: number, devise: string) => { const a = Math.abs(m), e = Math.floor(a / 100), c = a % 100;
+  return `${String(e).replace(/\B(?=(\d{3})+(?!\d))/g, " ")}${c ? `,${String(c).padStart(2, "0")}` : ""} ${devise}`; };
+const produitDuCompte = (c: CompteDepot) => E.produits.find((p) => (c.produitId !== undefined ? p.id === c.produitId : p.libelle === c.intitule && p.devise === c.devise));
+/** Registre S74-5 : « Opérer sur compte = Non » ferme le guichet à ce compte (S27, p. 40). Identique au serveur (services.controler_operer). */
+function controlerOperer(c: CompteDepot) {
+  const p = produitDuCompte(c);
+  if (p && p.operer === false) throw new ErreurMetier(`Pas d'opération au guichet sur un compte « ${p.libelle} » : Opérer sur compte = Non (Paramétrage > Produit épargne).`);
+  return p;
+}
+/** Registre S74-5 : solde minimum laissé sur le compte ; total des retraits du jour sous le maximum par jour (S27). Identique au serveur (services.controler_retrait_produit). */
+function controlerRetraitProduit(c: CompteDepot, m: number, dispo: number, journeeId: number) {
+  const p = controlerOperer(c), mini = p?.soldeMinimum ?? 0;
+  if (m > dispo - mini) throw new ErreurMetier(`Dépasse le solde disponible${mini ? `, solde minimum du produit compris (${montantLisible(mini, c.devise)}).` : "."}`);
+  const maxi = p?.retraitMaxJour ?? 0;
+  if (maxi) {
+    const deja = E.operations.filter((o) => o.type === "retrait" && o.statut === "validee" && o.compteId === c.id && E.sessions.some((s) => s.id === o.sessionId && s.journeeId === journeeId))
+      .reduce((x, o) => x + o.montant, 0);
+    if (deja + m > maxi) throw new ErreurMetier(`Retrait maximum par jour du produit : ${montantLisible(maxi, c.devise)} ; déjà retiré ce jour : ${montantLisible(deja, c.devise)}.`);
+  }
 }
 const familleDuCompte = (c: CompteDepot) => E.produits.find((p) => (c.produitId !== undefined ? p.id === c.produitId : p.libelle === c.intitule && p.devise === c.devise))?.famille ?? "EPARGNE";
 
@@ -1336,6 +1357,8 @@ const chequesClients = {
     if (!c) throw new ErreurMetier("À remplir : compte.");
     const t = E.tiers.find((x) => x.id === c.tiersId)!;
     controlerStatutActif(t.statut);
+    const pc = produitDuCompte(c);   // registre S74-5 : option « Dépôt de chèque » du produit (S27, p. 40)
+    if (pc && pc.depotCheque === false) throw new ErreurMetier(`Pas de dépôt de chèque sur un compte « ${pc.libelle} » : Dépôt de chèque = Non (Paramétrage > Produit épargne).`);
     const numero = (d.numeroCheque ?? "").trim(), tireur = (d.tireur ?? "").trim(), banqueTireur = (d.banqueTireur ?? "").trim(), deposant = (d.deposant ?? "").trim();
     if (!numero) throw new ErreurMetier("À remplir : N° chèque.");
     if (!tireur) throw new ErreurMetier("À remplir : nom et prénoms du tireur.");
@@ -1951,6 +1974,7 @@ const guichet = {
     const c = E.comptes.find((x) => x.id === p.compteId);
     if (!c) throw new ErreurMetier("Compte introuvable.");
     controlerCollecteEpargne(familleDuCompte(c));   // loi 11/020, art. 12
+    controlerOperer(c);   // registre S74-5
     const { u, s } = sessionOuverte(c.devise);
     const t = E.tiers.find((x) => x.id === c.tiersId)!;
     controlerStatutActif(t.statut);
@@ -1977,7 +2001,7 @@ const guichet = {
     controlerStatutActif(t.statut);
     const solde = soldeContrat(`depot:${c.id}`, c.devise, "C");
     if (p.montant <= 0) throw new ErreurMetier("Montant nul.");
-    if (p.montant > solde - c.bloque) throw new ErreurMetier("Dépasse le solde disponible.");
+    controlerRetraitProduit(c, p.montant, solde - c.bloque, s.journeeId);   // registre S74-5
     controlerCoupures(p.coupures, p.montant, c.devise);
     const th = caisses.theorique(s.id, c.devise);
     if (Object.entries(p.coupures).some(([v, n]) => (n ?? 0) > (th[Number(v)] ?? 0))) throw new ErreurMetier("Pas assez de coupures en caisse.");

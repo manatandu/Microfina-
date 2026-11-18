@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**419 décisions.** Solidité : 176 fortes (le manuel ou un texte répond), 211 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 387 déjà en place, 29 à appliquer.
+**420 décisions.** Solidité : 176 fortes (le manuel ou un texte répond), 211 moyennes (déduites d'un écran voisin ou d'une donnée), 33 faibles (notre choix, faute de mieux). Dans le code : 391 déjà en place, 26 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -331,9 +331,9 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S74-1 | Bouton Detail | Ouvre le relevé du compte choisi (S64), en lecture seule | Écran voisin : S64 Relevé de compte (p. 73) | faible | à appliquer |
+| S74-1 | Bouton Detail | Ouvre le relevé du compte choisi (S64), en lecture seule, du 1er janvier à la journée ouverte : report, mouvements en grille paginée (Date, Pièce, Libellé, Débit, Crédit, Solde), solde final. Aucune édition n'est numérotée. Sans « Voir solde client » (S10-1), le relevé reste masqué | Écran voisin : S64 Relevé de compte (p. 73) | faible | en place |
 | S74-2 | Bouton à côté de la recherche du client | Photo et signature du client | Donnée exigée ailleurs : S49 (p. 57) ; DESIGN § 2.3 | moyenne | en place |
-| S74-3 | Libellé du cadre au retrait | « Retrait en espèces » | Manuel : Texte p. 86 | forte | à appliquer |
+| S74-3 | Libellé du cadre au retrait | « Retrait en espèces » | Manuel : Texte p. 86 | forte | en place |
 | S74-4 | Frais d'opération (« FRAIS VERSEMENT » sur la capture) | Aucun frais sur un dépôt ou un retrait | Texte réglementaire : Instr. BCC 37, art. 2 et 3, annexe | forte | en place |
 
 ## S77 Part sociale
@@ -486,7 +486,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S74-5 | Options du produit d'épargne | Max compte à créer contrôlé à l'ouverture de compte (S63, en place) ; Solde minimum, Max retrait/jour et Solde négatif contrôlés au retrait ; Opérer sur compte et Dépôt de chèque au guichet (ancien numéro S37-9) | Donnée exigée ailleurs : S27 (p. 40) | moyenne | à appliquer |
+| S74-5 | Options du produit d'épargne | Max compte à créer contrôlé à l'ouverture de compte (S63) ; au retrait, le solde minimum du produit reste sur le compte et le total des retraits validés du jour ne dépasse pas le Max retrait/jour ; Opérer sur compte = Non ferme le dépôt et le retrait au guichet sur le compte ; Dépôt de chèque = Non refuse le dépôt de chèque (S59). Les produits d'épargne à vue de démonstration ont Dépôt de chèque = Oui. Solde négatif : registre S74-6 | Donnée exigée ailleurs : S27 (p. 40) | moyenne | en place |
 
 ## S28 Paramétrage des produits épargne
 
@@ -995,6 +995,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | E25-1 | Clôture | Pas un écart : l'Instr. 45 ouvre une option (compte spécial à identification allégée et plafonds) que l'institution peut offrir ; Microfina++ ne la propose pas. Rien n'est ajouté ; l'option se reprendra en phase 2 si le porteur le demande | Texte réglementaire : Instr. BCC 45, art. 1er à 4 ; CLAUDE.md § 0 (rien d'ajouté en phase 1) | forte | en place |
 
+## S74 Dépôt / Retrait
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S74-6 | Option Solde négatif au retrait | En attendant la réponse du porteur : le retrait ne dépasse jamais le solde disponible, même si le produit porte Solde négatif = Oui. Un compte d'épargne débiteur est un découvert, donc un crédit ; ni le manuel (p. 40, case seule) ni les textes lus ne disent jusqu'où il peut aller. Question posée au porteur : faut-il permettre le découvert, et dans quelle limite ? | Choix du porteur : Manuel p. 40 (case Solde négatif) ; registre S27-4 ; Instr. BCC 003, art. 7 (comptes courants débiteurs) | faible | en place |
+
 ## Les décisions faibles, à regarder en premier
 
 | N° | Écran | Question | Réponse retenue |
@@ -1014,7 +1020,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S44-1 | S44 Groupe solidaire | Un client dans plusieurs groupes | Non : un seul groupe solidaire à la fois. Le retirer avant de l'affecter ailleurs |
 | S44-2 | S44 Groupe solidaire | Code du groupe | Donné par la règle de numérotation des clients (S15) |
 | S51-3 | S51 Rapports client | « Ordonner suivant » | La liste propose les douze critères du rapport, dans l'ordre de la capture ; Secteur d'activité par défaut, comme sur la capture ; à valeur égale, le numéro du client départage |
-| S74-1 | S74 Dépôt et retrait | Bouton Detail | Ouvre le relevé du compte choisi (S64), en lecture seule |
+| S74-1 | S74 Dépôt et retrait | Bouton Detail | Ouvre le relevé du compte choisi (S64), en lecture seule, du 1er janvier à la journée ouverte : report, mouvements en grille paginée (Date, Pièce, Libellé, Débit, Crédit, Solde), solde final. Aucune édition n'est numérotée. Sans « Voir solde client » (S10-1), le relevé reste masqué |
 | S77-2 | S77 Part sociale | Nombre minimum de parts | Une part. Pas d'autre contrôle : Microfina++ n'en montre pas |
 | S79-1 | S79 Enregistrer billetage | Bouton Terminer | Ferme la fenêtre sans rien enregistrer de plus |
 | S80-4 | S80 Validation billetage | Imprimer, Terminer | Imprimer sort l'arrêté (T11). Terminer ferme la fenêtre |
@@ -1031,3 +1037,4 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S35-4 | S35 Préférences : devise, type sous, sous | Monnaies de démonstration | CDF 50 à 20 000 et USD 1 à 100, tous billets, chacun avec son type « Billet de … » : données de démonstration reprises de l'existant, pas lues dans un texte de la BCC ; l'institution saisit ses propres monnaies |
 | S01-3 | S01 Connexion | Règles de mot de passe et de blocage | Règle des mots de passe (T24) et blocage après 5 refus en 15 minutes (T22), demandés par le porteur le 15/11/2026 |
 | S59-4 | S59 Chèque client | Effet de l'encaissement | L'encaissement ne change que le statut (Encaissé, avec sa date) ; le crédit du compte du client et l'écriture de banque viennent à la comptabilisation (S111). Bouton Imprimer inactif jusque-là. Le retour (bouton Retourner) note le chèque impayé, sans écriture. Pas de passage par S57 : le manuel n'en parle pas |
+| S74-6 | S74 Dépôt / Retrait | Option Solde négatif au retrait | En attendant la réponse du porteur : le retrait ne dépasse jamais le solde disponible, même si le produit porte Solde négatif = Oui. Un compte d'épargne débiteur est un découvert, donc un crédit ; ni le manuel (p. 40, case seule) ni les textes lus ne disent jusqu'où il peut aller. Question posée au porteur : faut-il permettre le découvert, et dans quelle limite ? |

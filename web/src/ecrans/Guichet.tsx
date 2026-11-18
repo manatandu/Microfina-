@@ -8,7 +8,7 @@ import { useDonnees } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
 import { lireMontant, montant, montantEnLettres, totalComptage, type Comptage, type Devise } from "@design/montant.js";
-import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Silhouette, Specimen, Textes, Touche, type Boite, Lecture } from "../composants";
+import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Paginee, Silhouette, Specimen, Textes, Touche, type Boite, Lecture } from "../composants";
 import { RechercheClient } from "./Visa";
 
 export const titulaireDe = (t: Tiers) => [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
@@ -51,6 +51,7 @@ export default function GuichetDepotRetrait() {
   const [images, setImages] = useState(false);
   const [billetage, setBilletage] = useState(false);
   const [recu, setRecu] = useState(false);
+  const [detail, setDetail] = useState<Awaited<ReturnType<typeof api.releves.releve>> | null>(null);   // registre S74-1
   const [boite, setBoite] = useState<Boite | null>(null);
 
   const { donnees } = useDonnees(async () => {
@@ -79,7 +80,7 @@ export default function GuichetDepotRetrait() {
   const devise: Devise = c?.devise ?? "CDF";
   const m = saisie.trim() ? lireMontant(saisie) : null;
   const nouvelle = () => setCle(nouvelleCle());
-  const cadre = op === "depot" ? "Dépôt espèce" : "Retrait espèce";
+  const cadre = op === "depot" ? "Dépôt espèce" : "Retrait en espèces";   // registre S74-3 : texte p. 86
 
   function enregistrer() {
     const manque = !t ? "N° client" : !c ? "N° compte" : !m ? "Montant" : "";
@@ -170,7 +171,10 @@ export default function GuichetDepotRetrait() {
             <button className="bouton secondaire" type="button" disabled={!fait} onClick={() => setRecu(true)}>Imprimer</button>
             <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
             <button className="bouton secondaire" type="button" disabled={!c || !!fait || !m} onClick={() => setBilletage(true)}>Billetage</button>
-            <button className="bouton secondaire" type="button" disabled>Detail</button>
+            <button className="bouton secondaire" type="button" disabled={!c} onClick={async () => {
+              if (!c) return; const jour = j?.date ?? new Date().toISOString().slice(0, 10);
+              try { setDetail(await api.releves.releve(c.id, `${jour.slice(0, 4)}-01-01`, jour)); } catch (x) { setBoite({ type: "erreur", message: x instanceof Error ? x.message : String(x) }); }
+            }}>Detail</button>
           </div>
           <p className="montant-lettres">{m ? montantEnLettres(m, devise) : ""}</p>
         </div>
@@ -199,6 +203,22 @@ export default function GuichetDepotRetrait() {
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (x) => (x ? (await api.tiers.rechercher(x)).filter((y) => y.statut === "actif") : [])}
           choisir={(x) => { setT(x); setCompteId(0); setCoupures({}); nouvelle(); setRecherche(false); }} fermer={() => setRecherche(false)} />
+      </Fiche>
+      <Fiche titre={detail ? `Détail du compte ${detail.compte.numero}` : ""} ouverte={!!detail} fermer={() => setDetail(null)}>
+        {detail && <div className="pile">
+          <p>Du <span className="chiffres">{fr(detail.du)}</span> au <span className="chiffres">{fr(detail.au)}</span> · report <span className="chiffres">{montant(detail.report, detail.compte.devise as Devise)}</span></p>
+          <Paginee lignes={detail.lignes}>{(visibles) => (<div className="defile-x"><table className="grille">
+            <thead><tr><th scope="col">Date</th><th scope="col">Pièce</th><th scope="col">Libellé</th><th scope="col" className="montant">Débit</th><th scope="col" className="montant">Crédit</th><th scope="col" className="montant">Solde</th></tr></thead>
+            <tbody>
+              {detail.lignes.length === 0 && <tr><td colSpan={6}>No records found.</td></tr>}
+              {visibles.map((l, i) => <tr key={`${l.piece}-${i}`}><td className="chiffres">{fr(l.date)}</td><td className="chiffres">{l.piece}</td><td>{l.libelle}</td>
+                <td className="montant chiffres">{l.debit ? montant(l.debit, detail.compte.devise as Devise) : ""}</td><td className="montant chiffres">{l.credit ? montant(l.credit, detail.compte.devise as Devise) : ""}</td>
+                <td className="montant chiffres">{montant(l.solde, detail.compte.devise as Devise)}</td></tr>)}
+            </tbody>
+          </table></div>)}</Paginee>
+          <p>Solde au <span className="chiffres">{fr(detail.au)}</span> : <strong className="chiffres">{montant(detail.soldeFin, detail.compte.devise as Devise)}</strong></p>
+          <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setDetail(null)}>Fermer</button></div>
+        </div>}
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>

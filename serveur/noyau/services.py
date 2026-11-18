@@ -1613,6 +1613,31 @@ def montant_lisible(m: int, devise: str) -> str:
     return f"{entiers:,}".replace(",", " ") + (f",{cts:02d}" if cts else "") + f" {devise}"
 
 
+def options_produit(c: dict) -> dict:
+    return une("select libelle, solde_minimum, retrait_max_jour, operer_compte, depot_cheque from produit_epargne where id = %s", (c["produit_id"],))
+
+
+def controler_operer(c: dict) -> dict:
+    """Registre S74-5 : « Opérer sur compte = Non » ferme le guichet à ce compte (S27, p. 40)"""
+    o = options_produit(c)
+    if o["operer_compte"] is False:
+        raise ErreurMetier(f"Pas d'opération au guichet sur un compte « {o['libelle']} » : Opérer sur compte = Non (Paramétrage > Produit épargne).")
+    return o
+
+
+def controler_retrait_produit(c: dict, o: dict, m: int, dispo: int, journee_id: int) -> None:
+    """Registre S74-5 : le solde minimum du produit reste sur le compte ; le total des retraits du jour ne dépasse pas le maximum par jour (S27, p. 40)"""
+    mini = int(o["solde_minimum"] or 0)
+    if m > dispo - mini:
+        raise ErreurMetier("Dépasse le solde disponible" + (f", solde minimum du produit compris ({montant_lisible(mini, c['devise'])})." if mini else "."))
+    maxi = int(o["retrait_max_jour"] or 0)
+    if maxi:
+        deja = int(valeur("""select coalesce(sum(montant), 0) from operation where contrat_ref = %s and type = 'retrait' and statut = 'validee'
+                              and journee_id = %s""", (f"depot:{c['id']}", journee_id)))
+        if deja + m > maxi:
+            raise ErreurMetier(f"Retrait maximum par jour du produit : {montant_lisible(maxi, c['devise'])} ; déjà retiré ce jour : {montant_lisible(deja, c['devise'])}.")
+
+
 def depot(u: dict, p: dict) -> dict:
     """S74 : Caisse > Opération > Dépôt / Retrait, onglet Dépôt en espèce (manuel p. 86) : Montant*, Mandataire, Motif. Sans frais (Instr. BCC 37)."""
     prec = operation_par_cle(p["cle"])
@@ -1620,6 +1645,7 @@ def depot(u: dict, p: dict) -> dict:
         return vue_operation(prec)
     c = compte_actif(p["compteId"])
     controler_collecte_epargne(u, c["famille"])
+    controler_operer(c)                               # registre S74-5
     s = session_ouverte(u, c["devise"])
     m, coupures = int(p["montant"]), nettoyer(p["coupures"])
     if m <= 0:
@@ -1654,8 +1680,7 @@ def retrait(u: dict, p: dict) -> dict:
     if m <= 0:
         raise ErreurMetier("Montant nul.")
     dispo = next(x for x in comptes_du_tiers(c["tiers_id"]) if x["id"] == c["id"])["disponible"]
-    if m > dispo:
-        raise ErreurMetier("Dépasse le solde disponible.")
+    controler_retrait_produit(c, controler_operer(c), m, dispo, s["journeeId"])      # registre S74-5
     controler_montant_coupures(coupures, m, c["devise"])
     th = theorique(s["id"], c["devise"])
     if any(n > th.get(v_, 0) for v_, n in coupures.items()):

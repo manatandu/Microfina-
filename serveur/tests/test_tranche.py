@@ -1807,6 +1807,10 @@ def test_cheques_clients(clients, journee):
     x = compta.post("/api/banque/cheques", {"cle": cle(), **base}, **H).json()
     assert x["statut"] == "depose"
     assert "déjà enregistré" in refus({"tireur": "KABEYA J."})                        # même numéro, même banque
+    from noyau.bd import executer
+    executer("update produit_epargne set depot_cheque = false where id = (select produit_id from compte_depot where id = %s)", (base["compteDepotId"],))
+    assert "Dépôt de chèque = Non" in refus({"numeroCheque": "0009999"})                 # registre S74-5
+    executer("update produit_epargne set depot_cheque = true where id = (select produit_id from compte_depot where id = %s)", (base["compteDepotId"],))
     y = compta.post("/api/banque/cheques", {"cle": cle(), **base, "numeroCheque": "0001235"}, **H).json()
     def traiter(c, cid, action, corps=None):
         return c.post(f"/api/banque/cheques/{cid}/{action}", corps or {}, **H)
@@ -2296,6 +2300,30 @@ def test_parts_a_rembourser_et_auxiliaires(clients, journee):
     v = chef.post(f"/api/tiers/{m['id']}/visa", {"auxiliaire": True, "representantLegal": "Tshibola Marie, mère, carte d'électeur 1-0412-0555"}, **H).json()
     assert (v["statut"], v["auxiliaire"]) == ("actif", True)
     assert next(x for x in chef.get("/api/clients/registre-membres", **H).json()["membres"] if x["numero"] == v["numero"])["categorie"] == "Auxiliaire"
+
+
+def test_options_du_produit_au_guichet(clients, journee):
+    """Registre S74-5 : solde minimum, retrait maximum par jour, Opérer sur compte, Dépôt de chèque (S27, p. 40)"""
+    from noyau.bd import executer
+    caisse = clients["caisse"]
+    cpt = C("0412-000318-02")
+    dep = lambda: caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": cpt, "montant": 1000000, "coupures": {"10000": 1}, "mandataire": ""}, **H)
+    ret = lambda: caisse.post("/api/guichet/retraits", {"cle": cle(), "compteId": cpt, "montant": 1000000, "coupures": {"10000": 1}}, **H)
+    for _ in range(3):
+        assert dep().status_code == 200
+    executer("update produit_epargne set retrait_max_jour = 1500000 where code = 'EAV-CDF'")
+    assert ret().status_code == 200
+    r = ret()
+    assert r.status_code == 422 and "Retrait maximum par jour du produit : 15 000 CDF ; déjà retiré ce jour : 10 000 CDF" in r.json()["message"]
+    executer("update produit_epargne set retrait_max_jour = null where code = 'EAV-CDF'")
+    solde = ident("select sum(case sens when 'C' then montant_devise else -montant_devise end) from ligne_ecriture where contrat_ref = %s", (f"depot:{cpt}",))
+    executer("update produit_epargne set solde_minimum = %s where code = 'EAV-CDF'", (solde - 500000,))
+    r = ret()
+    assert r.status_code == 422 and "solde minimum du produit compris" in r.json()["message"]
+    executer("update produit_epargne set solde_minimum = 0, operer_compte = false where code = 'EAV-CDF'")
+    r = dep()
+    assert r.status_code == 422 and "Opérer sur compte = Non" in r.json()["message"]
+    assert "Opérer sur compte = Non" in ret().json()["message"]
 
 
 def test_convention_et_admission(clients, journee):
