@@ -277,6 +277,31 @@ describe("journée de guichet", () => {
     expect([f.operation, f.nature, f.fondement]).toEqual(["ADHESION", "Montant", "Part sociale (loi 002/2002, art. 22, 2°)"]);
   });
 
+  it("retenues à reverser (écart E16) : état du mois, échéance du 15 du mois suivant, reversement noté", async () => {
+    await journeeOuverte(); await connecter("jpmukendi");
+    await api.produitsEpargne.enregistrer({ numero: 6, code: "DAT", famille: "EPARGNE", libelle: "Dépôt à terme", devise: "CDF", soldeMinimum: 0, nbMaxComptes: 1,
+      operer: true, depotCheque: false, caution: false, nantissement: false, calculerInteret: true, soldeNegatif: false, repartitionGroupe: false, actif: true });
+    const pdat = (await api.produitsEpargne.lire()).produits.find((x) => x.code === "DAT")!;
+    await api.parametrageEpargne.enregistrer({ onglet: "DAT", produitId: pdat.id, compteLie: "340" });
+    await connecter("bkasongo");
+    const g = (await api.depotsTerme.produits())[0]!;
+    const cdat = await api.comptesEpargne.ouvrir({ cle: cle(), tiersId: 1, produitId: g.id });
+    const em = (await api.tiers.comptes(1)).find((c) => c.devise === "CDF" && c.intitule !== "Dépôt à terme")!;
+    const x = await api.depotsTerme.mettreEnPlace({ cle: cle(), produitId: g.id, tiersId: 1, compteEmetteurId: em.id, compteDatId: cdat.id, montant: 1000000, duree: 12, tauxInteret: "7,5",
+      tauxPenalite: "2", aEcheance: true, dateDepot: "2026-08-07", observation: "", reconduction: false });
+    await connecter("jpmukendi"); await api.depotsTerme.valider(x.id); await api.depotsTerme.rompre(x.id, {});
+    await expect(api.retenues.etat(2026, 11)).rejects.toThrow("Droit manquant");
+    await connecter("plumbala");
+    const e = await api.retenues.etat(2026, 11);
+    expect([e.echeance, e.statut, e.totaux]).toEqual(["2026-12-15", "a_reverser", [{ devise: "CDF", montant: 3699 }]]);
+    expect([e.retenues[0]!.client, e.retenues[0]!.base, e.retenues[0]!.taux, e.retenues[0]!.retenue]).toEqual(["Kalala Mbuyi Josée", 18493, 20, 3699]);
+    expect((await api.retenues.etat(2026, 10)).statut).toBe("aucune");
+    await expect(api.retenues.reverser({ annee: 2026, mois: 11, date: "2026-11-05", reference: "" })).rejects.toThrow("quittance");
+    const v = await api.retenues.reverser({ annee: 2026, mois: 11, date: "2026-11-05", reference: "DGI-Q-0042" });
+    expect([v.statut, v.reference]).toEqual(["reverse", "DGI-Q-0042"]);
+    await expect(api.retenues.reverser({ annee: 2026, mois: 11, date: "2026-11-05", reference: "X" })).rejects.toThrow("déjà noté");
+  });
+
   it("convention de compte (écart E04) et admission par le Conseil d'Administration (écart E05)", async () => {
     await connecter("bkasongo");
     const cv = await api.comptesEpargne.convention(2);

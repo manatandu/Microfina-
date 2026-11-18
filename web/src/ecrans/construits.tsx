@@ -12,6 +12,7 @@ import Plaintes from "./Plaintes";
 import ComptesInactifs from "./ComptesInactifs";
 import RegistreMembres from "./RegistreMembres";
 import ConditionsBanque from "./ConditionsBanque";
+import RetenuesReverser from "./RetenuesReverser";
 import { MiseEnPlaceDat, RechercheDat, RuptureDat, ValidationDat } from "./DepotsTerme";
 import type { ComponentType } from "react";
 import GuichetDepotRetrait from "./Guichet";
@@ -133,6 +134,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   SC03: Plaintes,
   SC04: RegistreMembres,
   SP01: ConditionsBanque,
+  SF01: RetenuesReverser,
   SE01: ComptesInactifs,
   S73: Adhesion,
   S74: GuichetDepotRetrait,

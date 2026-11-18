@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**402 décisions.** Solidité : 160 fortes (le manuel ou un texte répond), 210 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 371 déjà en place, 29 à appliquer.
+**405 décisions.** Solidité : 162 fortes (le manuel ou un texte répond), 211 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 374 déjà en place, 29 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -932,6 +932,14 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | E15-1 | Où et quoi | Écran Paramétrage > Produit > Conditions de banque (SP01, chef d'agence) : état imprimable, police 12, en vigueur au jour de la journée ouverte, avec son trimestre. Il reprend le paramétrage avec les libellés des écrans : produits d'épargne actifs, produits de crédit actifs (taux, périodicité, pénalités, frais, épargne obligatoire, assurance), frais d'opération avec leur tarif et leur fondement (E14) | Texte réglementaire : Instr. BCC 40, art. 2 (contenu), art. 3 et 4 (affichage, support papier, libellés, tarifs), art. 5 (police 12), art. 6 (informations à jour) | forte | en place |
 | E15-2 | Prélèvements et dates de valeur | Prélèvement au profit de l'État : la retenue de 20 % sur les intérêts des dépôts des personnes physiques. Dates de valeur : le jour de l'opération, comme le grand livre les écrit | Texte réglementaire : Instr. BCC 40, art. 2 et 4 ; loi 23/053, art. 120 (registre S67-3) ; écritures datées de la journée comptable (ARCHITECTURE) | forte | en place |
 | E15-3 | Taux de l'épargne à vue | Le paramétrage d'un produit d'épargne (S27, comme Microfina++) ne porte pas de taux : l'état montre seulement si l'intérêt est calculé. Le taux du DAT est fixé au contrat, selon la durée. L'affichage en agence et la copie à la BCC restent des gestes de l'institution | Texte réglementaire : Instr. BCC 40, art. 3 ; manuel Microfina++ (S27) ; registre S65 | moyenne | en place |
+
+## E16 Retenues à reverser
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E16-1 | Où et pour qui | Écran Comptabilité > Retenues à reverser (SF01, comptable) : pour un mois choisi, toutes les retenues portées au crédit du compte 433, avec date, pièce, opération, bénéficiaire, intérêt, taux et retenue, total par devise ; échéance au 15 du mois suivant ; statut À reverser, En retard, Reversé ou Aucune retenue ; état imprimable | Texte réglementaire : Arrêté ministériel 008/CAB/MIN/FINANCES/2025, art. 2 (reversement au plus tard le 15 du mois qui suit le versement), en vigueur le 1er janvier 2026 ; loi 23/053, art. 120 (20 %) ; PCCI, compte 433 | forte | en place |
+| E16-2 | Reversement | Le reversement d'un mois se note une fois, avec sa date (pas au-delà de la journée ouverte) et la référence de la déclaration ou de la quittance. Le paiement lui-même se passe en opération de banque ou de caisse (débit du 433) ; le formulaire de déclaration est celui de l'Administration des Impôts, non joint à l'arrêté | Texte réglementaire : Arrêté 008/2025, art. 2 (modèle de déclaration fourni par l'Administration des Impôts) | forte | en place |
+| E16-3 | Assiette | La retenue porte sur l'intérêt couru calculé à la rupture du DAT (registre S67-3). L'arrêté parle du revenu net imposable sans énumérer de déduction : aucune n'est appliquée | Texte réglementaire : Arrêté 008/2025, art. 3 ; loi 23/053, art. 120 | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

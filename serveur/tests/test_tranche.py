@@ -2212,6 +2212,34 @@ def test_conditions_de_banque(clients, journee):
     assert (f["operation"], f["nature"], f["fondement"]) == ("ADHESION", "Montant", "Part sociale (loi 002/2002, art. 22, 2°)")
 
 
+def test_retenues_a_reverser(clients, journee):
+    """Écart E16 : arrêté 008/2025, art. 2 (reversement au plus tard le 15 du mois suivant) ; loi 23/053, art. 120"""
+    from noyau.bd import executer
+    chef, agent, compta = clients["chef"], clients["agent"], clients["compta"]
+    P = {"numero": 6, "code": "DAT", "famille": "EPARGNE", "libelle": "Dépôt à terme", "devise": "CDF", "soldeMinimum": 0, "nbMaxComptes": 1,
+         "operer": True, "depotCheque": False, "caution": False, "nantissement": False, "calculerInteret": True, "soldeNegatif": False, "repartitionGroupe": False, "actif": True}
+    chef.post("/api/produits-epargne", P, **H)
+    pid = next(x["id"] for x in chef.get("/api/produits-epargne").json()["produits"] if x["code"] == "DAT")
+    chef.post("/api/parametrage-epargne", {"onglet": "DAT", "produitId": pid, "compteLie": "340"}, **H)
+    kalala = T("0412-000318"); em = C("0412-000318-02")
+    cdat = agent.post("/api/epargne/comptes", {"cle": cle(), "tiersId": kalala, "produitId": pid}, **H).json()["id"]
+    x = agent.post("/api/epargne/dat", {"cle": cle(), "produitId": pid, "tiersId": kalala, "compteEmetteurId": em, "compteDatId": cdat, "montant": 1000000, "duree": 12,
+                                         "tauxInteret": "7,5", "tauxPenalite": "2", "aEcheance": True, "dateDepot": "2026-08-07", "observation": "", "reconduction": False}, **H).json()
+    chef.post(f"/api/epargne/dat/{x['id']}/validation", **H)
+    assert chef.post(f"/api/epargne/dat/{x['id']}/rupture", {}, **H).json()["statut"] == "rompu"
+    assert chef.get("/api/comptabilite/retenues?annee=2026&mois=11", **H).status_code == 403           # le chef n'a pas SF01
+    e = compta.get("/api/comptabilite/retenues?annee=2026&mois=11", **H).json()
+    assert (e["echeance"], e["statut"], e["totaux"]) == ("2026-12-15", "a_reverser", [{"devise": "CDF", "montant": 3699}])
+    r = e["retenues"][0]
+    assert (r["client"], r["certificat"], r["base"], r["taux"], r["retenue"]) == ("Kalala Mbuyi Josée", 1, 18493, 20.0, 3699)
+    assert compta.get("/api/comptabilite/retenues?annee=2026&mois=10", **H).json()["statut"] == "aucune"
+    assert "quittance" in compta.post("/api/comptabilite/retenues/reversements", {"annee": 2026, "mois": 11, "date": "2026-11-05"}, **H).json()["message"]
+    v = compta.post("/api/comptabilite/retenues/reversements", {"annee": 2026, "mois": 11, "date": "2026-11-05", "reference": "DGI-Q-0042"}, **H).json()
+    assert (v["statut"], v["reference"]) == ("reverse", "DGI-Q-0042")
+    assert "déjà noté" in compta.post("/api/comptabilite/retenues/reversements", {"annee": 2026, "mois": 11, "date": "2026-11-05", "reference": "X"}, **H).json()["message"]
+    assert agent.post("/api/comptabilite/retenues/reversements", {"annee": 2026, "mois": 11, "date": "2026-11-05", "reference": "X"}, **H).status_code == 403
+
+
 def test_convention_et_admission(clients, journee):
     """Écart E04 : convention de compte (loi 22/069, titre III) ; écart E05 : admission par le Conseil d'Administration (loi 002/2002, art. 22, 6°)"""
     from noyau.bd import executer

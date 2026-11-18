@@ -20,6 +20,7 @@ from . import gel
 from . import inactifs as ina
 from . import registre_membres as rmb
 from . import conditions_banque as cdb
+from . import retenues as ret
 from . import depots_terme as dat
 from . import conformite as conf
 from . import cip
@@ -1390,6 +1391,16 @@ def registre_membres(request):
 @api.get("/parametrage/conditions-banque")
 def conditions_banque(request):
     return cdb.etat(u(request))
+
+
+@api.get("/comptabilite/retenues")
+def retenues_etat(request, annee: str = "", mois: str = ""):
+    return ret.etat(u(request), annee, mois)
+
+
+@api.post("/comptabilite/retenues/reversements")
+def retenues_reverser(request, corps: dict = Body(...)):
+    return ret.reverser(u(request), corps)
 
 
 @api.get("/conformite/profils")

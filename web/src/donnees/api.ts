@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v74";
+const CLE = "likelemba-demo-v75";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -2248,6 +2248,36 @@ const profilsRisque = {
     enregistrer(); return vueProfil(t, jour);
   },
 };
+// Écart E16 : retenues à reverser (arrêté 008/2025, art. 2 : au plus tard le 15 du mois suivant ; loi 23/053, art. 120). Mêmes règles que noyau/retenues.py.
+const moisValide = (annee: unknown, mois: unknown) => { const a = Number(annee), m = Number(mois);
+  if (!annee || !mois || !Number.isInteger(a) || !Number.isInteger(m)) throw new ErreurMetier("À remplir : mois et année.");
+  if (a < 2000 || a > 2100 || m < 1 || m > 12) throw new ErreurMetier("Mois ou année invalide."); return [a, m] as const; };
+const echeanceRetenue = (a: number, m: number) => `${m === 12 ? a + 1 : a}-${String(m % 12 + 1).padStart(2, "0")}-15`;
+const retenues = {
+  etat(annee: number | string, mois: number | string) {
+    lectureAdmin(["SF01"]);
+    const [a, m] = moisValide(annee, mois), prefixe = `${a}-${String(m).padStart(2, "0")}`;
+    const liste = E.ecritures.flatMap((e) => { const date = dateJournee(e.journeeId); if (!date.startsWith(prefixe)) return [];
+      const d = E.depotsTerme.find((x) => x.rupture?.ecritureId === e.id);
+      return e.lignes.filter((l) => l.compte.startsWith("433") && l.sens === "C").map((l) => ({ date, piece: e.piece, libelle: e.libelle, client: d ? titulaire(E.tiers.find((t) => t.id === d.tiersId)!) : "",
+        certificat: d?.certificat ?? "", devise: l.devise, base: d?.rupture?.interet ?? null, taux: d?.rupture ? Number(String(d.rupture.tauxIrc).replace(",", ".")) : null, retenue: l.montant })); });
+    const totaux = new Map<string, number>(); for (const x of liste) totaux.set(x.devise, (totaux.get(x.devise) ?? 0) + x.retenue);
+    const rv = E.reversementsRetenues.find((x) => x.annee === a && x.mois === m), ech = echeanceRetenue(a, m), jour = jourConformite();
+    const statut = rv ? "reverse" : !liste.length ? "aucune" : jour > ech ? "en_retard" : "a_reverser";
+    return { entete: enteteDocument(), annee: a, mois: m, echeance: ech, retenues: liste, totaux: [...totaux.entries()].sort().map(([devise, montant]) => ({ devise, montant })), statut,
+      reverseLe: rv?.reverseLe ?? "", reference: rv?.reference ?? "", notePar: nomUtilisateur(rv?.notePar) };
+  },
+  reverser(d: { annee: number | string; mois: number | string; date: string; reference: string }) {
+    const u = exiger();
+    const [a, m] = moisValide(d.annee, d.mois), e = retenues.etat(a, m);
+    if (e.statut === "aucune") throw new ErreurMetier("Aucune retenue ce mois-là.");
+    if (e.statut === "reverse") throw new ErreurMetier("Reversement déjà noté.");
+    if (!DATE_ISO.test(d.date ?? "") || !(d.reference ?? "").trim()) throw new ErreurMetier("À remplir : date du reversement et référence de la déclaration ou de la quittance.");
+    const j = journees.courante(); if (j && d.date > j.date) throw new ErreurMetier("La date du reversement ne peut pas dépasser la journée ouverte.");
+    E.reversementsRetenues.push({ id: Math.max(0, ...E.reversementsRetenues.map((x) => x.id)) + 1, annee: a, mois: m, reverseLe: d.date, reference: d.reference.trim(), notePar: u.id });
+    enregistrer(); return retenues.etat(a, m);
+  },
+};
 // Écart E15 : conditions de banque (Instr. BCC 40, art. 2 à 6). Mêmes règles que noyau/conditions_banque.py.
 const nb = (v: unknown) => (v === null || v === undefined || v === "" ? null : Number(v));
 const conditionsBanque = {
@@ -4197,6 +4227,7 @@ const apiLocal = {
   inactifs: asynchrone(inactifs, "inactifs"),
   registreMembres: asynchrone(registreMembres, "registreMembres"),
   conditionsBanque: asynchrone(conditionsBanque, "conditionsBanque"),
+  retenues: asynchrone(retenues, "retenues"),
   plaintes: asynchrone(plaintes, "plaintes"),
   banques: asynchrone(banques, "banques"),
   guichets: asynchrone(guichets, "guichets"),

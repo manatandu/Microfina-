@@ -1179,6 +1179,15 @@
   "chemin": "/comptabilite/s123"
  },
  {
+  "id": "SF01",
+  "nom": "Retenues à reverser",
+  "acces": "Comptabilité > Retenues à reverser",
+  "but": "État mensuel des retenues à la source sur les intérêts (compte 433), échéance du 15 du mois suivant, reversement noté avec sa quittance (écart E16 ; arrêté 008/2025, art. 2 ; loi 23/053, art. 120)",
+  "module": "comptabilite",
+  "priorite": "must",
+  "chemin": "/comptabilite/sf01"
+ },
+ {
   "id": "S124",
   "nom": "Nouveau budget",
   "acces": "Budget > Nouveau",
