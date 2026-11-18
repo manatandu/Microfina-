@@ -272,7 +272,7 @@ fieldset.formulaire { padding-bottom: var(--espace-2); }
       radial-gradient(farthest-side at 100% 50%, color-mix(in srgb, var(--encre) 22%, transparent), transparent) right / 12px 100% no-repeat scroll;
   }
   .grille th:first-child, .grille td:first-child { position: sticky; left: 0; z-index: 1; background: var(--feuille); }
-  .grille thead th:first-child { background: var(--bandeau); }
+  .grille thead th:first-child { background: var(--tete-grille); }
   .grille tbody tr:nth-child(even) td:first-child { background: var(--zebre); }
   .grille tfoot th:first-child, .grille tfoot td:first-child { background: var(--bandeau); }
   .menus .liste-deroulante { width: min(320px, calc(100vw - 16px)); min-width: 0; }

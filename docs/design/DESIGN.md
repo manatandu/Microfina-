@@ -164,7 +164,14 @@ Grille de 4 px. Rayons : 6 px pour les petits éléments, 8 px pour les champs e
 - le titre d'un cadre (CDF, USD, Minimum…) en devient l'en-tête, sur le même bandeau que les cartes ;
 - menu d'accès rapide : groupe ouvert sur le bandeau, page courante marquée d'un filet à gauche ;
 - ombre des cartes un peu plus marquée, pour les détacher du fond.
-Les trois couleurs de la marque ne changent pas. La hauteur des champs ne change pas : le guichet respire, seul le back-office est dense (§ 2.9), et 44 px restent la cible au doigt. Ombre très légère sur les cartes pour les détacher du fond ; ombre marquée seulement pour ce qui flotte (menu, liste de suggestions). Titres de carte en casse normale, jamais en petites capitales. Les onglets du guichet sont un contrôle segmenté. Survol : changement de couleur en 120 ms, à la souris seulement ; rien ne bouge après une touche (§ 2.7 bis).
+Les trois couleurs de la marque ne changent pas. La hauteur des champs ne change pas : le guichet respire, seul le back-office est dense (§ 2.9), et 44 px restent la cible au doigt.
+
+**Registre de nuit (demande du porteur, 18/11/2026 : « propre, distinctif et précis » ; « je ne sais pas si la forme blanc gris est adaptée »).** Le gris neutre et le blanc n'avaient ni température ni hiérarchie. Désormais :
+- tous les neutres sont teintés du Bleu Nuit de la marque : fond de page `papier` #E4E8EE (au lieu du Gris Clair #EDEDED), bandeaux #D8DEE7, traits #BAC2CE, texte secondaire #4E5767 (5,4:1 sur bandeau, 7,3:1 sur blanc) ;
+- coins resserrés : 3 px, 4 px pour les champs et boutons, 6 px pour les cartes ;
+- signature : l'en-tête des tableaux est la tête du registre, en Bleu Nuit plein, texte blanc ; la ligne de total porte un trait au-dessus et un double trait au-dessous, comme un total arrêté ;
+- ombre des cartes courte et sèche.
+Écart au registre D01-2 (fond de page en Gris Clair) : le Gris Clair reste la couleur de la marque sur les supports DWAC ; dans le logiciel, le fond prend sa version teintée de nuit. À valider par le porteur. Ombre très légère sur les cartes pour les détacher du fond ; ombre marquée seulement pour ce qui flotte (menu, liste de suggestions). Titres de carte en casse normale, jamais en petites capitales. Les onglets du guichet sont un contrôle segmenté. Survol : changement de couleur en 120 ms, à la souris seulement ; rien ne bouge après une touche (§ 2.7 bis).
 
 ---
 

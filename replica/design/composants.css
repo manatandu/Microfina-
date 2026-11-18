@@ -267,6 +267,10 @@ details.textes ul { margin: var(--espace-1) 0 0; padding-left: var(--espace-4); 
   padding: var(--espace-2) var(--espace-4); border-bottom: 1px solid var(--trait); white-space: nowrap;
 }
 .grille th.num { text-align: right; font-family: var(--police-texte); }
+/* En-tête de colonnes : la tête du registre, en Bleu Nuit (demande du porteur, 18/11/2026 : « propre, distinctif et précis ») */
+.grille thead th { background: var(--tete-grille); color: var(--sur-tete-grille); border-bottom-color: var(--tete-grille); }
+.grille thead th button:focus-visible { outline: 2px solid var(--sur-tete-grille); outline-offset: 2px; }
+.grille tbody th { position: static; background: inherit; color: var(--encre); }
 .grille th button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 .grille th[aria-sort="ascending"] button::after { content: " ↑"; }
 .grille th[aria-sort="descending"] button::after { content: " ↓"; }
@@ -277,7 +281,8 @@ details.textes ul { margin: var(--espace-1) 0 0; padding-left: var(--espace-4); 
 @media (hover: hover) and (pointer: fine) { .grille tbody tr:hover td { background: var(--papier); } }
 .grille tbody tr:focus-visible { outline: 2px solid var(--tampon); outline-offset: -2px; }
 .grille tbody tr[aria-selected="true"], .grille tbody tr[aria-selected="true"] td { background: var(--tampon-pale); }
-.grille tfoot th, .grille tfoot td { background: var(--bandeau); font-weight: 700; border-top: 1px solid var(--trait); border-bottom: 0; }
+/* Ligne de total : un trait au-dessus, deux au-dessous, comme un total arrêté au registre */
+.grille tfoot th, .grille tfoot td { background: var(--bandeau); font-weight: 700; border-top: 1px solid var(--encre); border-bottom: 3px double var(--encre); }
 .grille .vide td { text-align: center; color: var(--encre-2); padding: var(--espace-7); }
 .pagination { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--espace-2); padding: var(--espace-2) var(--espace-4); font-size: var(--taille-dense); color: var(--encre-2); border-top: 1px solid var(--ligne); }
 
