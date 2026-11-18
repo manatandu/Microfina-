@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**413 décisions.** Solidité : 169 fortes (le manuel ou un texte répond), 212 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 382 déjà en place, 29 à appliquer.
+**417 décisions.** Solidité : 174 fortes (le manuel ou un texte répond), 211 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 385 déjà en place, 29 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -802,7 +802,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S67-4 | Écriture de rupture | Journal OD : débit compte DAT (340) du montant, débit 612 de la durée du DAT (S65-4) de l'intérêt ; crédit compte émetteur du montant à verser, crédit 433 « Impôts et taxes collectés » de la retenue, crédit 7791 (produits exceptionnels : dédits, pénalités) de la pénalité. Comptes 433 et 7791 à confirmer | Texte réglementaire : PCCI, compte 43 (« taxes retenues à la source sur les comptes des clients »), 433 « Impôts et taxes collectés » ; compte 77 (« les dédits, les pénalités ») et 7791 ; 340 ; 612 | forte | en place |
 | S67-5 | Qui rompt, quand | Le chef d'agence (droit S67) ; DAT validé et pas encore échu ; date de rupture au plus la journée ouverte ; date de demande entre la date de dépôt et la date de rupture | Choix du porteur : Décision du porteur 15/11/2026 ; texte p. 76 | forte | en place |
 | S67-6 | Bouton Imprimer | Avis de rupture remis au client (Instr. BCC 40, art. 13), même gabarit que le contrat, police 12 : dates, jours courus, intérêt, pénalité, retenue, montant versé, pièce, signatures. À confirmer : le manuel ne montre pas le document | Texte réglementaire : Instr. BCC 40, art. 13 (document remis au client) ; bouton Imprimer p. 77 ; registre S65-7 | moyenne | en place |
-| S67-7 | Retenue pour un groupe | Groupe sans personnalité juridique : 20 %, comme ses membres, personnes physiques. Association et ONG, personnes morales : 0. Même partage que l'agent économique (S39-2). À faire confirmer par un fiscaliste : la loi 23/053 ne nomme pas le groupe. Décidé par délégation du porteur (15/11/2026). | Texte réglementaire : Loi 23/053, art. 14, 72, 120 ; PCCI § 10.2.2 | moyenne | en place |
+| S67-7 | Retenue pour un groupe | Groupe sans personnalité juridique : 20 %, comme ses membres, personnes physiques. Association et ONG, personnes morales : 0. Même partage que l'agent économique (S39-2). La loi 23/053, art. 63, al. 2, 2°, soumet personnellement à l'IRPP les membres, personnes physiques, des sociétés de fait non passibles de l'impôt sur les sociétés : le groupe sans personnalité juridique en relève (écart E24, 18/11/2026). | Texte réglementaire : Loi 23/053, art. 14, 63 (al. 2, 2°), 72, 120 ; PCCI § 10.2 | forte | en place |
 
 ## S32 Profil de l'institution
 
@@ -968,6 +968,30 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | E20-1 | Catégorie | Une COOPEC dont les statuts prévoient des membres auxiliaires note l'article des statuts dans Info société (S32). Au visa, une case range alors le client dans cette catégorie ; le Registre des membres la montre. Un mineur peut y être admis, par son représentant légal. Les droits de vote et fonctions (exclus pour eux) relèvent des Assemblées, hors logiciel | Texte réglementaire : Loi 002/2002, art. 23 (catégorie prévue par les statuts ; personnes qui ne remplissent pas les conditions de l'art. 22 ; ni vote ni fonction) ; Code de la famille, art. 221 | forte | en place |
+
+## E21 Frais de tenue de compte
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E21-1 | Gratuité | « Ouverture, fonctionnement et suivi de compte » est le titre de la première rubrique de l'annexe de l'Instr. 37 : seuls les services énumérés dessous sont gratuits (ouverture, dépôts et retraits d'espèces, domiciliation de salaire, changement du dossier, prélèvement ou virement permanent, deux premiers relevés mensuels, clôture). La tenue de compte n'y figure pas ; elle n'est pas non plus dans la liste de l'Instr. 40, art. 8 : un frais de tenue de compte demande l'autorisation préalable de la BCC, dont la référence sera exigée comme pour tout frais hors liste (E14), quand les calculs de fin de période (S128) seront construits | Texte réglementaire : Instr. BCC 37, art. 2 et 3, annexe ; Instr. BCC 40, art. 8 et 12 ; registre E14-1 | forte | à faire |
+
+## E22 Police du relevé
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E22-1 | Clôture de l'écart | Écart accepté par le porteur : le relevé s'imprime en 8,5 points (registre S64-7). Les autres documents remis au client (contrat de DAT, convention, lettres, conditions de banque) s'impriment en 12 | Choix du porteur : Instr. BCC 40, art. 5 ; registre S64-7 | forte | en place |
+
+## E23 Sauvegardes et site de repli
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E23-1 | Part du logiciel | Script serveur/outils/verifier_sauvegarde.sh : sauvegarde de la base, restauration dans une base vide, comparaison table par table et équilibre des écritures ; procédure docs/exploitation/CONTINUITE.md (calendrier, registre des tests, reprise sur le site de repli). Le responsable de la continuité, le plan d'ensemble, le site de repli et les suppléants reviennent à l'institution | Texte réglementaire : Instr. BCC 36, art. 30 à 34 et 37 | forte | en place |
+
+## E25 Compte à identification allégée
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E25-1 | Clôture | Pas un écart : l'Instr. 45 ouvre une option (compte spécial à identification allégée et plafonds) que l'institution peut offrir ; Microfina++ ne la propose pas. Rien n'est ajouté ; l'option se reprendra en phase 2 si le porteur le demande | Texte réglementaire : Instr. BCC 45, art. 1er à 4 ; CLAUDE.md § 0 (rien d'ajouté en phase 1) | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 
