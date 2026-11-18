@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, IMAGE_MAX } from "../donnees/api";
+import { api, IMAGE_MAX, ageAu, MAJORITE } from "../donnees/api";
 import type { Representant, Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Silhouette, Textes, type Boite, Lecture } from "../composants";
@@ -19,6 +19,7 @@ export function VisaClient() {
   const [depot, setDepot] = useState("");
   const [dateVisa, setDateVisa] = useState("");
   const [admission, setAdmission] = useState({ le: "", reference: "" });   // écart E05
+  const [mineur, setMineur] = useState({ emancipationReference: "", representantLegal: "" });   // écart E18
   const [recherche, setRecherche] = useState(false);
   const [contrat, setContrat] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
@@ -36,14 +37,14 @@ export function VisaClient() {
     setT(x); setIntitule(x.intitule || nomComplet(x)); setDepot(x.premierDepot ? String(x.premierDepot / 100).replace(".", ",") : "0");
     setDateVisa(j?.statut === "ouverte" ? j.date : ""); setRecherche(false);
   }
-  function annuler() { setT(null); setIntitule(""); setDepot(""); setDateVisa(""); setAdmission({ le: "", reference: "" }); }
+  function annuler() { setT(null); setIntitule(""); setDepot(""); setDateVisa(""); setAdmission({ le: "", reference: "" }); setMineur({ emancipationReference: "", representantLegal: "" }); }
   function viser() {
     if (!t) { setBoite({ type: "erreur", message: "Rechercher d'abord le client." }); return; }
     const m = depot.trim() ? lireMontant(depot) : 0;
     if (m === null || m < 0) { setBoite({ type: "erreur", message: "Premier dépôt invalide." }); return; }
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try {
-        setT(await api.tiers.viser(t.id, { dateVisa, intitule, premierDepot: m, ...(admission.le || admission.reference ? { admissionLe: admission.le, admissionReference: admission.reference } : {}) }));
+        setT(await api.tiers.viser(t.id, { dateVisa, intitule, premierDepot: m, ...(admission.le || admission.reference ? { admissionLe: admission.le, admissionReference: admission.reference } : {}), ...mineur }));
         setBoite({ type: "succes", message: "Enregistré avec succès !" });
       } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
     } });
@@ -72,6 +73,12 @@ export function VisaClient() {
                     <ChampDate libelle="Décision du CA, date : *" valeur={admission.le} onChange={(x) => setAdmission({ ...admission, le: x })} />
                     <Champ libelle="Décision du CA, référence : *">{(p) => <input {...p} className="saisie code" value={admission.reference} onChange={(e) => setAdmission({ ...admission, reference: e.target.value })} />}</Champ>
                   </div>)}
+            {t && !vise && t.type === "physique" && t.naissance && ageAu(t.naissance, dateVisa || new Date().toISOString().slice(0, 10)) < MAJORITE && <fieldset className="pile cadre-champs">
+              <legend>Client mineur (Code de la famille, art. 219)</legend>
+              {!aDesParts(ctx.institution) && <Champ libelle="Représentant légal : nom, qualité (père, mère ou tuteur), pièce">{(p) => <input {...p} className="saisie" value={mineur.representantLegal} onChange={(e) => setMineur({ ...mineur, representantLegal: e.target.value })} />}</Champ>}
+              <Champ libelle="Émancipation : référence de la décision du Tribunal pour enfants">{(p) => <input {...p} className="saisie code" value={mineur.emancipationReference} onChange={(e) => setMineur({ ...mineur, emancipationReference: e.target.value })} />}</Champ>
+            </fieldset>}
+            {t && vise && (t.representantLegal || t.emancipationReference) && <p className="aide">{t.emancipationReference ? `Émancipé : ${t.emancipationReference}` : `Représentant légal : ${t.representantLegal}`}</p>}
             {t && !vise && manquantes.length > 0 && <p className="aide" role="status">Pas encore déposé : {manquantes.join(", ")} (Client &gt; Photos et signatures ; Instr. BCC 15, art. 12 et 29).</p>}
           </fieldset>
           <fieldset className="pile cadre-champs">

@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**408 décisions.** Solidité : 164 fortes (le manuel ou un texte répond), 212 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 377 déjà en place, 29 à appliquer.
+**411 décisions.** Solidité : 167 fortes (le manuel ou un texte répond), 212 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 380 déjà en place, 29 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -948,6 +948,14 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | E17-1 | Où et quoi | Écran Administration > Journal de sécurité (SA01) : connexions, connexions refusées ou impossibles, blocages après trop d'essais, accès refusés faute de droit, dépassements de la limite de requêtes ; filtre par période et par événement, compte des refus et blocages, export. Heure réelle de l'événement, pas la journée comptable | Texte réglementaire : Instr. BCC 008 (microfinance), art. 16 (mécanismes de détection des actions anormales ; maîtrise des accès) ; registre T22 à T26 (journal existant) | forte | en place |
 | E17-2 | Qui consulte | Le droit SA01 n'est donné à aucun profil de départ : la fonction est dédiée et indépendante de l'exploitation du système ; l'administrateur l'attribue au profil du responsable de la sécurité désigné, ou de la gestion des risques (Administration > Profil > Assigner droit) | Texte réglementaire : Instr. BCC 008, art. 16, al. 1er | forte | en place |
 | E17-3 | Événements notés hors ligne | La version de démonstration hors ligne note les connexions, les identifiants inconnus et les accès refusés ; le serveur note en plus les refus de mot de passe, les blocages et la limite de requêtes, qui n'existent qu'en ligne | Donnée exigée ailleurs : Registre T22 à T26 ; ARCHITECTURE (couche locale de démonstration) | moyenne | en place |
+
+## E18 Client mineur
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E18-1 | Majorité | Un client personne physique est mineur s'il n'a pas 18 ans accomplis à la date du visa (S40), calculée sur sa date de naissance | Texte réglementaire : Code de la famille, art. 219 (moins de dix-huit ans accomplis) et art. 220 (âge établi par l'état civil) | forte | en place |
+| E18-2 | COOPEC | Un mineur n'est pas admis comme membre d'une COOPEC, faute de capacité de contracter ; seul un mineur émancipé l'est, avec la référence de la décision du Tribunal pour enfants, gardée sur la fiche | Texte réglementaire : Loi 002/2002, art. 22 (membre capable de contracter) ; Code de la famille, art. 289 et 292 (émancipation, capacité limitée aux actes accordés) | forte | en place |
+| E18-3 | IMF | Dans une IMF, un mineur est client par son représentant légal : nom, qualité (père, mère ou tuteur) et pièce saisis au visa et gardés sur la fiche ; ou référence de l'émancipation. Les champs ne s'affichent au visa que pour un mineur | Texte réglementaire : Code de la famille, art. 221 (représentation pour les intérêts pécuniaires), art. 222 (tuteur) et art. 294 (nullité des actes irréguliers) ; Instr. BCC 15, art. 12 (identité du représentant légal) | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

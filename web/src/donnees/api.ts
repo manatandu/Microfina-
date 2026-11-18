@@ -300,7 +300,10 @@ const nettoyer = (c: Comptage): Comptage => Object.fromEntries(Object.entries(c)
 // ---------- Tiers ----------
 export type NouveauTiers = Omit<Tiers, "id" | "numero" | "statut" | "creePar" | "visePar" | "photo" | "specimen" | "type" | "dirigeant" | "signataires" | "membres" | "intitule" | "dateVisa" | "motifDepart" | "resilieLe" | "creeLe">;
 /** Saisie du visa (S40, p. 52) */
-export interface Visa { dateVisa?: string; intitule?: string; premierDepot?: number; admissionLe?: string; admissionReference?: string }
+export interface Visa { dateVisa?: string; intitule?: string; premierDepot?: number; admissionLe?: string; admissionReference?: string; emancipationReference?: string; representantLegal?: string }
+export const MAJORITE = 18;   // Code de la famille, art. 219
+/** Âge en années accomplies au jour donné (dates AAAA-MM-JJ) */
+export const ageAu = (naissance: string, jour: string) => Number(jour.slice(0, 4)) - Number(naissance.slice(0, 4)) - (jour.slice(5) < naissance.slice(5) ? 1 : 0);
 /** Dirigeant ou signataire tel que saisi, avec photo et signature chargées */
 export type RepresentantSaisi = Omit<Representant, "photo" | "specimen"> & Images & {
   /** Ligne déjà enregistrée, gardée telle quelle à la mise à jour (S46), avec ses images */
@@ -602,6 +605,12 @@ const tiers = {
       const manque = ([["copiePiece", "copie de la pièce d'identité"], ["justificatifAdresse", "justificatif d'adresse"]] as const).filter(([k]) => !E.images[t.id]?.[k]).map(([, n]) => n);
       if (manque.length) throw new ErreurMetier(`Manquant : ${manque.join(", ")}. À déposer avant le visa (Client > Photos et signatures ; Instr. BCC 15, art. 10, 12 et 29).`);
     }
+    // Écart E18 : mineur (Code de la famille, art. 219, 221, 289, 292 ; loi 002/2002, art. 22 ; Instr. BCC 15, art. 12)
+    let emancipationReference = v.emancipationReference?.trim() || "", representantLegal = v.representantLegal?.trim() || "";
+    if (t.type === "physique" && t.naissance && ageAu(t.naissance, dateVisa) < MAJORITE) {
+      if (estCoopec() && !emancipationReference) throw new ErreurMetier(`Mineur (moins de ${MAJORITE} ans le ${fr(dateVisa)}) : il n'est pas capable de contracter et ne peut être admis comme membre (loi 002/2002, art. 22 ; Code de la famille, art. 219). Émancipé : référence de la décision du Tribunal pour enfants (art. 289 et 292).`);
+      if (!emancipationReference && !representantLegal) throw new ErreurMetier("Mineur : nom, qualité (père, mère ou tuteur) et pièce du représentant légal, ou référence de l'émancipation (Code de la famille, art. 219, 221 et 289 ; Instr. BCC 15, art. 12).");
+    } else { emancipationReference = ""; representantLegal = ""; }
     // Écart E05 : COOPEC, admission par le Conseil d'Administration (loi 002/2002, art. 22, 6° ; AUSCOOP, art. 10), ou par sa délégation (Info société)
     let admissionLe = v.admissionLe?.trim() || "", admissionReference = v.admissionReference?.trim() || "";
     if (estCoopec()) {
@@ -610,7 +619,8 @@ const tiers = {
       if (!admissionLe || !admissionReference) throw new ErreurMetier("Admission du membre : date et référence de la décision du Conseil d'Administration (loi 002/2002, art. 22, 6°), ou délégation notée dans Paramétrage > Info société.");
       if (!/^\d{4}-\d{2}-\d{2}$/.test(admissionLe) || admissionLe > jour) throw new ErreurMetier("Date de la décision d'admission invalide.");
     }
-    Object.assign(t, { statut: "actif", visePar: u.id, dateVisa, intitule, premierDepot: depot, ...(admissionLe ? { admissionLe, admissionReference } : {}) });
+    Object.assign(t, { statut: "actif", visePar: u.id, dateVisa, intitule, premierDepot: depot, ...(admissionLe ? { admissionLe, admissionReference } : {}),
+      ...(emancipationReference || representantLegal ? { emancipationReference, representantLegal } : {}) });
     enregistrer(); return t;
   },
   /** S46 : Modification d'un client (p. 56) ; entreprise et groupe : les onglets de leur enrôlement (registre S46-2). Le client passe « modifié à revalider »

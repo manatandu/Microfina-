@@ -318,6 +318,25 @@ describe("journée de guichet", () => {
     await expect(api.journalSecurite.consulter(jour, jour, "x")).rejects.toThrow("Événement inconnu");
   });
 
+  it("client mineur (écart E18) : COOPEC, seulement émancipé ; IMF, avec son représentant légal", async () => {
+    await journeeOuverte();
+    const enroler = async (nom: string, naissance: string, piece: string) => { await connecter("bkasongo");
+      const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), ...IDENTITE, produitCode: "EAV-CDF", nom, prenom: "Junior", naissance, pieceType: "Passeport", pieceNumero: piece, pieceExpire: "2031-01-01", adresse: "Matete" });
+      await connecter("jpmukendi"); return t; };
+    const m = await enroler("Ilunga", "2010-03-01", "OP-100001");
+    await expect(api.tiers.viser(m.id)).rejects.toThrow("ne peut être admis comme membre");
+    const v = await api.tiers.viser(m.id, { emancipationReference: "TPE Matete RC 112/2026" });
+    expect([v.statut, v.emancipationReference]).toEqual(["actif", "TPE Matete RC 112/2026"]);
+    const d = await enroler("Kabeya", "2008-11-05", "OP-100002");
+    expect((await api.tiers.viser(d.id)).statut).toBe("actif");
+    const g = graine(); _remplacer({ ...g, institution: { ...g.institution, profil: "societe_microfinance" } });
+    await journeeOuverte();
+    const k = await enroler("Mbuyi", "2012-06-01", "OP-100003");
+    await expect(api.tiers.viser(k.id)).rejects.toThrow("représentant légal");
+    const w = await api.tiers.viser(k.id, { representantLegal: "Mbuyi Jean, père, passeport OP-200300" });
+    expect([w.statut, w.representantLegal]).toEqual(["actif", "Mbuyi Jean, père, passeport OP-200300"]);
+  });
+
   it("convention de compte (écart E04) et admission par le Conseil d'Administration (écart E05)", async () => {
     await connecter("bkasongo");
     const cv = await api.comptesEpargne.convention(2);

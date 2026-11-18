@@ -2259,6 +2259,27 @@ def test_journal_de_securite(clients, journee):
     assert "Événement inconnu" in compta.get(f"/api/securite/journal?du={jour}&au={jour}&evenement=x", **H).json()["message"]
 
 
+def test_client_mineur(clients, journee):
+    """Écart E18 : Code de la famille, art. 219, 221, 289 ; loi 002/2002, art. 22"""
+    from noyau.bd import executer
+    agent, chef = clients["agent"], clients["chef"]
+    def enroler(nom, naissance, piece):
+        return agent.post("/api/tiers", {**FICHE, "nom": nom, "prenom": "Junior", "naissance": naissance, "pieceType": "Passeport", "pieceNumero": piece,
+                                         "pieceExpire": "2031-01-01", "adresse": "Matete"}, **H).json()
+    m = enroler("Ilunga", "2010-03-01", "OP-100001")
+    r = chef.post(f"/api/tiers/{m['id']}/visa", {}, **H)
+    assert r.status_code == 422 and "ne peut être admis comme membre" in r.json()["message"]
+    v = chef.post(f"/api/tiers/{m['id']}/visa", {"emancipationReference": "TPE Matete RC 112/2026"}, **H).json()
+    assert (v["statut"], v["emancipationReference"]) == ("actif", "TPE Matete RC 112/2026")
+    d = enroler("Kabeya", "2008-11-05", "OP-100002")                       # dix-huit ans accomplis le jour du visa
+    assert chef.post(f"/api/tiers/{d['id']}/visa", {}, **H).json()["statut"] == "actif"
+    executer("update institution set profil = 'societe_microfinance'")
+    k = enroler("Mbuyi", "2012-06-01", "OP-100003")
+    assert "représentant légal" in chef.post(f"/api/tiers/{k['id']}/visa", {}, **H).json()["message"]
+    v = chef.post(f"/api/tiers/{k['id']}/visa", {"representantLegal": "Mbuyi Jean, père, passeport OP-200300"}, **H).json()
+    assert (v["statut"], v["representantLegal"]) == ("actif", "Mbuyi Jean, père, passeport OP-200300")
+
+
 def test_convention_et_admission(clients, journee):
     """Écart E04 : convention de compte (loi 22/069, titre III) ; écart E05 : admission par le Conseil d'Administration (loi 002/2002, art. 22, 6°)"""
     from noyau.bd import executer

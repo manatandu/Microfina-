@@ -128,6 +128,7 @@ export interface Tiers {
   intitule: string;
   dateVisa: string;
   admissionLe?: string; admissionReference?: string;
+  emancipationReference?: string; representantLegal?: string;   // écart E18 : mineur (Code de la famille, art. 219, 221, 289)
   icu?: string;   // écart E06 : identifiant client unique de la BCC (Instr. BCC 52, art. 13)   // écart E05 : décision d'admission (loi 002/2002, art. 22, 6°)
 }
 
