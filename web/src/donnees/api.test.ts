@@ -337,6 +337,23 @@ describe("journée de guichet", () => {
     expect([w.statut, w.representantLegal]).toEqual(["actif", "Mbuyi Jean, père, passeport OP-200300"]);
   });
 
+  it("parts à rembourser (écart E19) et membres auxiliaires (écart E20)", async () => {
+    const g = graine(); _remplacer({ ...g, tiers: g.tiers.map((t) => t.numero === "0412-000320" ? { ...t, statut: "resilie" as const, resilieLe: "2025-10-01" } : t) });
+    await journeeOuverte(); await connecter("jpmukendi");
+    const k = (await api.registreMembres.membres()).aRembourser.find((x) => x.numero === "0412-000320")!;
+    expect([k.parts, k.sortieLe, k.echeance, k.enRetard]).toEqual([1, "2025-10-01", "2026-10-01", true]);
+    await connecter("bkasongo");
+    const m = await api.tiers.creer({ ...enrolementVide("2026-11-05"), ...IDENTITE, produitCode: "EAV-CDF", nom: "Tshibola", prenom: "Junior", naissance: "2011-05-01", pieceType: "Passeport", pieceNumero: "OP-100009", pieceExpire: "2031-01-01", adresse: "Matete" });
+    await connecter("jpmukendi");
+    await expect(api.tiers.viser(m.id, { auxiliaire: true })).rejects.toThrow("statuts le prévoient");
+    const s = await api.societe.lire();
+    await api.societe.enregistrer({ ...s.institution, membresAuxiliaires: "Statuts, art. 12" });
+    await expect(api.tiers.viser(m.id, { auxiliaire: true })).rejects.toThrow("représentant légal");
+    const v = await api.tiers.viser(m.id, { auxiliaire: true, representantLegal: "Tshibola Marie, mère, carte d'électeur 1-0412-0555" });
+    expect([v.statut, v.auxiliaire]).toEqual(["actif", true]);
+    expect((await api.registreMembres.membres()).membres.find((x) => x.numero === v.numero)!.categorie).toBe("Auxiliaire");
+  });
+
   it("convention de compte (écart E04) et admission par le Conseil d'Administration (écart E05)", async () => {
     await connecter("bkasongo");
     const cv = await api.comptesEpargne.convention(2);

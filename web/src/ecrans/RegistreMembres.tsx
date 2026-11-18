@@ -6,6 +6,7 @@ import { useDonnees } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
 import { exporterExcel } from "../lib/excel";
+import { montant } from "@design/montant.js";
 import { Chargement, Fiche, Textes } from "../composants";
 
 type Registre = Awaited<ReturnType<typeof api.registreMembres.membres>>;
@@ -16,8 +17,8 @@ export default function RegistreMembres() {
   if (erreur) return <><h1>Registre des membres</h1><p role="alert" className="erreur-champ">{erreur}</p></>;
   if (!donnees) return <Chargement />;
   const m = donnees.membres;
-  const exporter = () => exporterExcel("registre-membres", ["N° d'ordre", "N° d'adhésion", "Nom", "Prénom", "Pièce d'identité", "Adresse", "Profession", "Parts souscrites", "Parts libérées", "Admis le", "Sorti le"],
-    m.map((x) => [x.rang, x.numero, x.nom, x.prenom, x.piece, x.adresse, x.profession, x.partsSouscrites, x.partsLiberees, fr(x.admissionLe), fr(x.sortieLe)]));
+  const exporter = () => exporterExcel("registre-membres", ["N° d'ordre", "N° d'adhésion", "Nom", "Prénom", "Pièce d'identité", "Adresse", "Profession", "Catégorie", "Parts souscrites", "Parts libérées", "Admis le", "Sorti le"],
+    m.map((x) => [x.rang, x.numero, x.nom, x.prenom, x.piece, x.adresse, x.profession, x.categorie, x.partsSouscrites, x.partsLiberees, fr(x.admissionLe), fr(x.sortieLe)]));
   return (
     <>
       <h1>Registre des membres</h1>
@@ -27,7 +28,20 @@ export default function RegistreMembres() {
           <button className="bouton" type="button" disabled={m.length === 0} onClick={() => setApercu(true)}>Imprimer</button>
           <button className="bouton secondaire" type="button" disabled={m.length === 0} onClick={exporter}>Exporter</button>
         </div>
-        <Textes sources={["AUSCOOP, art. 9 : registre tenu au siège, membres inscrits par ordre chronologique avec leur numéro d'adhésion, nom, prénom, pièce d'identité, adresse, profession, parts souscrites et libérées",
+        <h2>Parts à rembourser</h2>
+        <div className="defile-x"><table className="grille">
+          <thead><tr><th scope="col">N° d'adhésion</th><th scope="col">Membre parti</th><th scope="col">Sorti le</th><th scope="col" className="montant">Parts</th>
+            <th scope="col" className="montant">Montant</th><th scope="col">À rembourser au plus tard</th></tr></thead>
+          <tbody>
+            {donnees.aRembourser.length === 0 && <tr><td colSpan={6}>No records found.</td></tr>}
+            {donnees.aRembourser.map((x) => <tr key={x.tiersId}><td className="chiffres">{x.numero}</td><td>{x.nom}</td><td className="chiffres">{fr(x.sortieLe)}</td>
+              <td className="montant chiffres">{x.parts}</td><td className="montant chiffres">{montant(x.montant, "CDF")}</td>
+              <td className="chiffres">{fr(x.echeance)}{x.enRetard ? <strong> · en retard</strong> : ""}</td></tr>)}
+          </tbody>
+        </table></div>
+        <Textes sources={["AUSCOOP, art. 11 : au cours de l'année qui suit la prise d'effet du retrait, la coopérative rembourse les parts du membre qui se retire ; loi 002/2002, art. 27 : apurement à la perte de la qualité de membre. Le remboursement se fait par Part sociale (S77)",
+          "Loi 002/2002, art. 23 : membres auxiliaires, si les statuts le prévoient ; ils assistent aux Assemblées sans voter ni exercer de fonction",
+          "AUSCOOP, art. 9 : registre tenu au siège, membres inscrits par ordre chronologique avec leur numéro d'adhésion, nom, prénom, pièce d'identité, adresse, profession, parts souscrites et libérées",
           "Loi 002/2002, art. 67 et 68 : registres tenus et conservés au siège, consultables par les membres",
           "Ordre : date d'admission (décision du Conseil, registre E05-1) ou, à défaut, date du visa ; les parts s'achètent payées, souscrites et libérées sont égales"]} />
       </section>
@@ -54,13 +68,13 @@ function Tableau({ r, imprime = false }: { r: Registre; imprime?: boolean }) {
   return (
     <table className={imprime ? "releve-detail" : "grille"}>
       <thead><tr><th scope="col">N° d'ordre</th><th scope="col">N° d'adhésion</th><th scope="col">Nom</th><th scope="col">Prénom</th><th scope="col">Pièce d'identité</th>
-        <th scope="col">Adresse</th><th scope="col">Profession</th><th scope="col" className="montant">Parts souscrites</th><th scope="col" className="montant">Parts libérées</th>
+        <th scope="col">Adresse</th><th scope="col">Profession</th><th scope="col">Catégorie</th><th scope="col" className="montant">Parts souscrites</th><th scope="col" className="montant">Parts libérées</th>
         <th scope="col">Admis le</th><th scope="col">Sorti le</th></tr></thead>
       <tbody>
-        {r.membres.length === 0 && <tr><td colSpan={11}>No records found.</td></tr>}
+        {r.membres.length === 0 && <tr><td colSpan={12}>No records found.</td></tr>}
         {r.membres.map((x) => (
           <tr key={x.tiersId}><td className="chiffres">{x.rang}</td><td className="chiffres">{x.numero}</td><td>{x.nom}</td><td>{x.prenom}</td><td>{x.piece}</td><td>{x.adresse}</td>
-            <td>{x.profession}</td><td className="montant chiffres">{x.partsSouscrites}</td><td className="montant chiffres">{x.partsLiberees}</td>
+            <td>{x.profession}</td><td>{x.categorie}</td><td className="montant chiffres">{x.partsSouscrites}</td><td className="montant chiffres">{x.partsLiberees}</td>
             <td className="chiffres">{fr(x.admissionLe)}</td><td className="chiffres">{fr(x.sortieLe)}</td></tr>))}
       </tbody>
     </table>

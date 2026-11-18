@@ -202,7 +202,7 @@ def contexte(u: dict) -> dict:
     i = institution_de(u)
     a = une("select id, code, nom from agence where id = %s", (u["agence_id"],))
     return {
-        "institution": {"nom": i["nom"], "profil": i["profil"], "delegationAdmission": i.get("delegation_admission") or ""},   # coopec, faitiere, societe_microfinance, entreprise_microcredit (S32)
+        "institution": {"nom": i["nom"], "profil": i["profil"], "delegationAdmission": i.get("delegation_admission") or "", "membresAuxiliaires": i.get("membres_auxiliaires") or ""},   # coopec, faitiere, societe_microfinance, entreprise_microcredit (S32)
         "agence": a,
         "guichets": lignes("select id, code, nom from guichet where agence_id = %s and actif order by code", (u["agence_id"],)),
         "produits": lignes("select code, libelle, devise from produit_epargne where institution_id = %s and actif and not supprime order by code", (u["institution_id"],)),
@@ -515,7 +515,7 @@ def vue_tiers(t: dict) -> dict:
             "liees": [r["autre_id"] for r in lignes("select autre_id from lien_tiers where tiers_id = %s and role = 'personne_liee' order by id", (t["id"],))],
             "beneficiairesEffectifs": [r["autre_id"] for r in lignes("select autre_id from lien_tiers where tiers_id = %s and role = 'beneficiaire_effectif' order by id",
                                                                      (t["id"],))],
-            "intitule": t["intitule"] or "", "dateVisa": iso(t["date_visa"]), "admissionLe": iso(t.get("admission_le")), "admissionReference": t.get("admission_reference") or "", "emancipationReference": t.get("emancipation_reference") or "", "representantLegal": t.get("representant_legal") or "", "creeLe": t["cree_le"].date().isoformat(), "motifDepart": t["motif_depart"] or "", "resilieLe": iso(t["resilie_le"]),
+            "intitule": t["intitule"] or "", "dateVisa": iso(t["date_visa"]), "admissionLe": iso(t.get("admission_le")), "admissionReference": t.get("admission_reference") or "", "emancipationReference": t.get("emancipation_reference") or "", "representantLegal": t.get("representant_legal") or "", "auxiliaire": bool(t.get("auxiliaire")), "creeLe": t["cree_le"].date().isoformat(), "motifDepart": t["motif_depart"] or "", "resilieLe": iso(t["resilie_le"]),
             "sensibilisateurId": t["sensibilisateur_id"], "commercialId": t["commercial_id"],
             "profession": t["profession"] or "", "pays": t["pays"] or "", "ville": t["ville"] or "", "quartier": t["quartier"] or "", "rue": t["rue"] or "",
             "email": t["email"] or "", "bp": t["bp"] or "", "telephoneFixe": t["telephone_fixe"] or "",
@@ -1003,13 +1003,18 @@ def viser_tiers(u: dict, tid: int, d: dict | None = None) -> dict:
         manque = [n for k, n in (("copie_piece", "copie de la pièce d'identité"), ("justificatif_adresse", "justificatif d'adresse")) if not sp.get(k)]
         if manque:   # art. 12 al. 2 et 3 : pièce et preuve de l'adresse ; art. 10 : avant d'entrer en relation ; art. 29 : copies gardées
             raise ErreurMetier(f"Manquant : {', '.join(manque)}. À déposer avant le visa (Client > Photos et signatures ; Instr. BCC 15, art. 10, 12 et 29).")
+    # Écart E20 : membre auxiliaire, si les statuts le prévoient (loi 002/2002, art. 23)
+    auxiliaire = d.get("auxiliaire") is True
+    if auxiliaire and not (est_coopec(u) and valeur("select coalesce(membres_auxiliaires, '') <> '' from institution where id = %s", (u["institution_id"],))):
+        raise ErreurMetier("Membre auxiliaire : seulement dans une COOPEC dont les statuts le prévoient (loi 002/2002, art. 23 ; article à noter dans Paramétrage > Info société).")
     # Écart E18 : mineur (Code de la famille, art. 219, 221, 289, 292 ; loi 002/2002, art. 22 ; Instr. BCC 15, art. 12)
     eman, rep = texte("emancipationReference") or None, texte("representantLegal") or None
     nais = valeur("select date_naissance from tiers_personne where tiers_id = %s", (tid,)) if t["type"] == "physique" else None
     if nais and age_au(nais, date.fromisoformat(date_visa)) < MAJORITE:
-        if est_coopec(u) and not eman:
+        if est_coopec(u) and not eman and not auxiliaire:
             raise ErreurMetier(f"Mineur (moins de {MAJORITE} ans le {date.fromisoformat(date_visa).strftime('%d/%m/%Y')}) : il n'est pas capable de contracter et ne peut être admis "
-                               "comme membre (loi 002/2002, art. 22 ; Code de la famille, art. 219). Émancipé : référence de la décision du Tribunal pour enfants (art. 289 et 292).")
+                               "comme membre (loi 002/2002, art. 22 ; Code de la famille, art. 219). Émancipé : référence de la décision du Tribunal pour enfants (art. 289 et 292) ; "
+                               "ou membre auxiliaire, si les statuts le prévoient (loi 002/2002, art. 23).")
         if not eman and not rep:
             raise ErreurMetier("Mineur : nom, qualité (père, mère ou tuteur) et pièce du représentant légal, ou référence de l'émancipation "
                                "(Code de la famille, art. 219, 221 et 289 ; Instr. BCC 15, art. 12).")
@@ -1027,8 +1032,8 @@ def viser_tiers(u: dict, tid: int, d: dict | None = None) -> dict:
         if not re.match(r"^\d{4}-\d{2}-\d{2}$", adm_le) or adm_le > jour:
             raise ErreurMetier("Date de la décision d'admission invalide.")
     executer("""update tiers set statut = 'actif', vise_par = %s, vise_le = now(), date_visa = %s, intitule = %s, premier_depot = %s,
-                admission_le = %s, admission_reference = %s, emancipation_reference = %s, representant_legal = %s where id = %s""",
-             (u["id"], date_visa, intitule, depot, adm_le, adm_ref, eman, rep, tid))
+                admission_le = %s, admission_reference = %s, emancipation_reference = %s, representant_legal = %s, auxiliaire = %s where id = %s""",
+             (u["id"], date_visa, intitule, depot, adm_le, adm_ref, eman, rep, auxiliaire, tid))
     return lire_tiers(tid)
 
 

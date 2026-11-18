@@ -300,7 +300,7 @@ const nettoyer = (c: Comptage): Comptage => Object.fromEntries(Object.entries(c)
 // ---------- Tiers ----------
 export type NouveauTiers = Omit<Tiers, "id" | "numero" | "statut" | "creePar" | "visePar" | "photo" | "specimen" | "type" | "dirigeant" | "signataires" | "membres" | "intitule" | "dateVisa" | "motifDepart" | "resilieLe" | "creeLe">;
 /** Saisie du visa (S40, p. 52) */
-export interface Visa { dateVisa?: string; intitule?: string; premierDepot?: number; admissionLe?: string; admissionReference?: string; emancipationReference?: string; representantLegal?: string }
+export interface Visa { dateVisa?: string; intitule?: string; premierDepot?: number; admissionLe?: string; admissionReference?: string; emancipationReference?: string; representantLegal?: string; auxiliaire?: boolean }
 export const MAJORITE = 18;   // Code de la famille, art. 219
 /** Âge en années accomplies au jour donné (dates AAAA-MM-JJ) */
 export const ageAu = (naissance: string, jour: string) => Number(jour.slice(0, 4)) - Number(naissance.slice(0, 4)) - (jour.slice(5) < naissance.slice(5) ? 1 : 0);
@@ -605,10 +605,14 @@ const tiers = {
       const manque = ([["copiePiece", "copie de la pièce d'identité"], ["justificatifAdresse", "justificatif d'adresse"]] as const).filter(([k]) => !E.images[t.id]?.[k]).map(([, n]) => n);
       if (manque.length) throw new ErreurMetier(`Manquant : ${manque.join(", ")}. À déposer avant le visa (Client > Photos et signatures ; Instr. BCC 15, art. 10, 12 et 29).`);
     }
+    // Écart E20 : membre auxiliaire, si les statuts le prévoient (loi 002/2002, art. 23)
+    const auxiliaire = v.auxiliaire === true;
+    if (auxiliaire && !(estCoopec() && E.institution.membresAuxiliaires?.trim()))
+      throw new ErreurMetier("Membre auxiliaire : seulement dans une COOPEC dont les statuts le prévoient (loi 002/2002, art. 23 ; article à noter dans Paramétrage > Info société).");
     // Écart E18 : mineur (Code de la famille, art. 219, 221, 289, 292 ; loi 002/2002, art. 22 ; Instr. BCC 15, art. 12)
     let emancipationReference = v.emancipationReference?.trim() || "", representantLegal = v.representantLegal?.trim() || "";
     if (t.type === "physique" && t.naissance && ageAu(t.naissance, dateVisa) < MAJORITE) {
-      if (estCoopec() && !emancipationReference) throw new ErreurMetier(`Mineur (moins de ${MAJORITE} ans le ${fr(dateVisa)}) : il n'est pas capable de contracter et ne peut être admis comme membre (loi 002/2002, art. 22 ; Code de la famille, art. 219). Émancipé : référence de la décision du Tribunal pour enfants (art. 289 et 292).`);
+      if (estCoopec() && !emancipationReference && !auxiliaire) throw new ErreurMetier(`Mineur (moins de ${MAJORITE} ans le ${fr(dateVisa)}) : il n'est pas capable de contracter et ne peut être admis comme membre (loi 002/2002, art. 22 ; Code de la famille, art. 219). Émancipé : référence de la décision du Tribunal pour enfants (art. 289 et 292) ; ou membre auxiliaire, si les statuts le prévoient (loi 002/2002, art. 23).`);
       if (!emancipationReference && !representantLegal) throw new ErreurMetier("Mineur : nom, qualité (père, mère ou tuteur) et pièce du représentant légal, ou référence de l'émancipation (Code de la famille, art. 219, 221 et 289 ; Instr. BCC 15, art. 12).");
     } else { emancipationReference = ""; representantLegal = ""; }
     // Écart E05 : COOPEC, admission par le Conseil d'Administration (loi 002/2002, art. 22, 6° ; AUSCOOP, art. 10), ou par sa délégation (Info société)
@@ -620,7 +624,7 @@ const tiers = {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(admissionLe) || admissionLe > jour) throw new ErreurMetier("Date de la décision d'admission invalide.");
     }
     Object.assign(t, { statut: "actif", visePar: u.id, dateVisa, intitule, premierDepot: depot, ...(admissionLe ? { admissionLe, admissionReference } : {}),
-      ...(emancipationReference || representantLegal ? { emancipationReference, representantLegal } : {}) });
+      ...(emancipationReference || representantLegal ? { emancipationReference, representantLegal } : {}), ...(auxiliaire ? { auxiliaire } : {}) });
     enregistrer(); return t;
   },
   /** S46 : Modification d'un client (p. 56) ; entreprise et groupe : les onglets de leur enrôlement (registre S46-2). Le client passe « modifié à revalider »
@@ -2318,12 +2322,19 @@ const registreMembres = {
     lectureAdmin(["SC04"]);
     if (!estCoopec()) throw new ErreurMetier("Registre des membres : propre aux coopératives (AUSCOOP, art. 9 ; loi 002/2002, art. 67).");
     const admis = E.tiers.filter((t) => t.dateVisa).sort((a, b) => (a.admissionLe || a.dateVisa).localeCompare(b.admissionLe || b.dateVisa) || a.numero.localeCompare(b.numero));
-    return { entete: enteteDocument(), membres: admis.map((t, i) => {
+    const membres = admis.map((t, i) => {
       const c = ficheClient(t.id), parts = Math.round(soldeContrat(`parts:${t.id}`, "CDF", "C") / valeurPart());
       return { rang: i + 1, tiersId: t.id, numero: c.numero, nom: c.type === "physique" ? [c.nom, c.postnom].filter(Boolean).join(" ") : c.intitule || c.nom, prenom: c.type === "physique" ? c.prenom : "",
         piece: [c.pieceType, c.pieceNumero].filter(Boolean).join(" n° "), adresse: c.adresse, profession: c.profession, partsSouscrites: parts, partsLiberees: parts,
-        admissionLe: t.admissionLe || t.dateVisa, sortieLe: t.resilieLe || "" };
-    }) };
+        admissionLe: t.admissionLe || t.dateVisa, sortieLe: t.resilieLe || "", categorie: t.auxiliaire ? "Auxiliaire" : "Membre" };
+    });
+    // Écart E19 : parts à rembourser aux membres partis, dans l'année qui suit la prise d'effet du retrait (AUSCOOP, art. 11 ; loi 002/2002, art. 27)
+    const jour = jourConformite(), vp = valeurPart();
+    const aRembourser = membres.filter((x) => x.sortieLe && x.partsLiberees > 0).map((x) => {
+      const echeance = `${Number(x.sortieLe.slice(0, 4)) + 1}${x.sortieLe.slice(4) === "-02-29" ? "-02-28" : x.sortieLe.slice(4)}`;
+      return { tiersId: x.tiersId, numero: x.numero, nom: [x.nom, x.prenom].filter(Boolean).join(" "), sortieLe: x.sortieLe, parts: x.partsLiberees, montant: Math.round(x.partsLiberees * vp), echeance, enRetard: jour > echeance };
+    });
+    return { entete: enteteDocument(), membres, aRembourser };
   },
 };
 // Écart E11 : comptes inactifs (loi 22/069, titre III, chap. Ier : dix ans sans opération ni réclamation ; lettre six mois avant ; fonds versés à la BCC). Mêmes règles que noyau/inactifs.py.
@@ -3689,7 +3700,7 @@ const edDivers = {
 export const PROFILS_INSTITUTION: Record<string, string> = { coopec: "COOPEC", societe_microfinance: "Société de microfinance", entreprise_microcredit: "Entreprise de micro-crédit", faitiere: "Structure faîtière" };
 export type InfoSociete = { code: string; denomination: string; typeBase: string; description: string; directeur: string; agrement: string; journeeMax: number;
   compteHorsBilan1: string | null; compteHorsBilan2: string | null; ifu: string; pays: string; ville: string; commune: string; quartier: string; rue: string; email: string; bp: string;
-  telephoneFixe: string; adresse: string; logo: string | null; delegationAdmission?: string };
+  telephoneFixe: string; adresse: string; logo: string | null; delegationAdmission?: string; membresAuxiliaires?: string };
 const societe = {
   lire() {
     exiger();
@@ -3697,7 +3708,7 @@ const societe = {
     const institution: InfoSociete = { code: i.sigle ?? "", denomination: i.nom, typeBase: i.profil, description: i.description ?? "", directeur: i.directeur ?? "",
       agrement: i.numeroAgrement ?? "", journeeMax: i.journeeMax ?? 1, compteHorsBilan1: i.compteHorsBilan1 ?? null, compteHorsBilan2: i.compteHorsBilan2 ?? null,
       ifu: i.ifu ?? "", pays: i.pays ?? "", ville: i.ville ?? "", commune: i.commune ?? "", quartier: i.quartier ?? "", rue: i.rue ?? "", email: i.email ?? "", bp: i.bp ?? "",
-      telephoneFixe: i.telephoneFixe ?? "", adresse: i.adresse ?? "", logo: i.logo ?? null, delegationAdmission: i.delegationAdmission ?? "" };
+      telephoneFixe: i.telephoneFixe ?? "", adresse: i.adresse ?? "", logo: i.logo ?? null, delegationAdmission: i.delegationAdmission ?? "", membresAuxiliaires: i.membresAuxiliaires ?? "" };
     return { institution, types: Object.entries(PROFILS_INSTITUTION).map(([code, libelle]) => ({ code, libelle })), localites: localites(),
       agences: E.agences.filter((a) => !a.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ id, code, nom }) => ({ id, code, nom })),
       securite: { motDePasseMin: 8, essais: 5, fenetreMinutes: 15 } };   // cadre « Info sécurité », règles en vigueur (S32-6 ; noyau/securite.py)
@@ -3726,7 +3737,7 @@ const societe = {
     Object.assign(E.institution, { sigle: v.code, nom: v.denomination, profil: v.typeBase, description: t(d.description), directeur: t(d.directeur), numeroAgrement: t(d.agrement),
       journeeMax: d.journeeMax, compteHorsBilan1: v.compteHorsBilan1 || null, compteHorsBilan2: v.compteHorsBilan2 || null, ifu: t(d.ifu), pays: v.pays, ville: v.ville, commune: v.commune,
       quartier: v.quartier, rue: t(d.rue), email: v.email, bp: t(d.bp), telephoneFixe: t(d.telephoneFixe), adresse: t(d.adresse), logo,
-      delegationAdmission: t(d.delegationAdmission) });
+      delegationAdmission: t(d.delegationAdmission), membresAuxiliaires: t(d.membresAuxiliaires) });
     enregistrer(); return societe.lire();
   },
   /** Page Agence : Code et Nom (registre S32-5) ; le code d'une agence qui a des clients ne change plus (il entre dans leurs numéros, S15) */

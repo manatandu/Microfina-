@@ -11,6 +11,7 @@ export interface Institution { nom: string; sigle?: string; profil: string;
   description?: string; directeur?: string; numeroAgrement?: string; journeeMax?: number; compteHorsBilan1?: string | null; compteHorsBilan2?: string | null;
   ifu?: string; pays?: string; ville?: string; commune?: string; quartier?: string; rue?: string; email?: string; bp?: string; telephoneFixe?: string; adresse?: string; logo?: string | null;
   delegationAdmission?: string;
+  membresAuxiliaires?: string;   // écart E20 : article des statuts qui prévoit des membres auxiliaires (loi 002/2002, art. 23)
   criteresAtypiques?: CriteresAtypiques }   // écart E09 : critères fixés par l'institution (Instr. BCC 15, art. 36)
 export interface CriteresAtypiques { montantUsd: number | null; montantEleveUsd: number | null; nombreJour: number | null; reveilMois: number | null }   // écart E05 : décision du Conseil qui délègue l'admission des membres
 export interface Agence { id: number; code: string; nom: string }
@@ -128,6 +129,7 @@ export interface Tiers {
   intitule: string;
   dateVisa: string;
   admissionLe?: string; admissionReference?: string;
+  auxiliaire?: boolean;   // écart E20 : membre auxiliaire (loi 002/2002, art. 23)
   emancipationReference?: string; representantLegal?: string;   // écart E18 : mineur (Code de la famille, art. 219, 221, 289)
   icu?: string;   // écart E06 : identifiant client unique de la BCC (Instr. BCC 52, art. 13)   // écart E05 : décision d'admission (loi 002/2002, art. 22, 6°)
 }

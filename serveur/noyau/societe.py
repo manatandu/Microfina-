@@ -12,7 +12,8 @@ CHAMPS = {"code": "sigle", "denomination": "nom", "typeBase": "profil", "descrip
           "agrement": "numero_agrement", "journeeMax": "journee_max", "compteHorsBilan1": "compte_hors_bilan_1", "compteHorsBilan2": "compte_hors_bilan_2",
           "ifu": "ifu", "pays": "pays", "ville": "ville", "commune": "commune", "quartier": "quartier", "rue": "rue", "email": "email", "bp": "bp",
           "telephoneFixe": "telephone_fixe", "adresse": "adresse", "logo": "logo",
-          "delegationAdmission": "delegation_admission"}     # écart E05 : référence de la décision du Conseil qui délègue l'admission (loi 002/2002, art. 22)
+          "delegationAdmission": "delegation_admission",     # écart E05 : référence de la décision du Conseil qui délègue l'admission (loi 002/2002, art. 22)
+          "membresAuxiliaires": "membres_auxiliaires"}       # écart E20 : article des statuts qui prévoit des membres auxiliaires (loi 002/2002, art. 23)     # écart E05 : référence de la décision du Conseil qui délègue l'admission (loi 002/2002, art. 22)
 LOGO_MAX = 300_000      # caractères de l'image encodée (registre S32-4)
 
 

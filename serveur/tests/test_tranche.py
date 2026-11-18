@@ -2280,6 +2280,24 @@ def test_client_mineur(clients, journee):
     assert (v["statut"], v["representantLegal"]) == ("actif", "Mbuyi Jean, père, passeport OP-200300")
 
 
+def test_parts_a_rembourser_et_auxiliaires(clients, journee):
+    """Écarts E19 (AUSCOOP, art. 11) et E20 (loi 002/2002, art. 23)"""
+    from noyau.bd import executer
+    agent, chef = clients["agent"], clients["chef"]
+    executer("update tiers set statut = 'resilie', resilie_le = '2025-10-01' where numero = '0412-000320'")
+    r = chef.get("/api/clients/registre-membres", **H).json()["aRembourser"]
+    k = next(x for x in r if x["numero"] == "0412-000320")
+    assert (k["parts"], k["sortieLe"], k["echeance"], k["enRetard"]) == (1, "2025-10-01", "2026-10-01", True)
+    m = agent.post("/api/tiers", {**FICHE, "nom": "Tshibola", "prenom": "Junior", "naissance": "2011-05-01", "pieceType": "Passeport", "pieceNumero": "OP-100009",
+                                  "pieceExpire": "2031-01-01", "adresse": "Matete"}, **H).json()
+    assert "statuts le prévoient" in chef.post(f"/api/tiers/{m['id']}/visa", {"auxiliaire": True}, **H).json()["message"]
+    executer("update institution set membres_auxiliaires = 'Statuts, art. 12'")
+    assert "représentant légal" in chef.post(f"/api/tiers/{m['id']}/visa", {"auxiliaire": True}, **H).json()["message"]
+    v = chef.post(f"/api/tiers/{m['id']}/visa", {"auxiliaire": True, "representantLegal": "Tshibola Marie, mère, carte d'électeur 1-0412-0555"}, **H).json()
+    assert (v["statut"], v["auxiliaire"]) == ("actif", True)
+    assert next(x for x in chef.get("/api/clients/registre-membres", **H).json()["membres"] if x["numero"] == v["numero"])["categorie"] == "Auxiliaire"
+
+
 def test_convention_et_admission(clients, journee):
     """Écart E04 : convention de compte (loi 22/069, titre III) ; écart E05 : admission par le Conseil d'Administration (loi 002/2002, art. 22, 6°)"""
     from noyau.bd import executer

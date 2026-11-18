@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**411 décisions.** Solidité : 167 fortes (le manuel ou un texte répond), 212 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 380 déjà en place, 29 à appliquer.
+**413 décisions.** Solidité : 169 fortes (le manuel ou un texte répond), 212 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 382 déjà en place, 29 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -956,6 +956,18 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | E18-1 | Majorité | Un client personne physique est mineur s'il n'a pas 18 ans accomplis à la date du visa (S40), calculée sur sa date de naissance | Texte réglementaire : Code de la famille, art. 219 (moins de dix-huit ans accomplis) et art. 220 (âge établi par l'état civil) | forte | en place |
 | E18-2 | COOPEC | Un mineur n'est pas admis comme membre d'une COOPEC, faute de capacité de contracter ; seul un mineur émancipé l'est, avec la référence de la décision du Tribunal pour enfants, gardée sur la fiche | Texte réglementaire : Loi 002/2002, art. 22 (membre capable de contracter) ; Code de la famille, art. 289 et 292 (émancipation, capacité limitée aux actes accordés) | forte | en place |
 | E18-3 | IMF | Dans une IMF, un mineur est client par son représentant légal : nom, qualité (père, mère ou tuteur) et pièce saisis au visa et gardés sur la fiche ; ou référence de l'émancipation. Les champs ne s'affichent au visa que pour un mineur | Texte réglementaire : Code de la famille, art. 221 (représentation pour les intérêts pécuniaires), art. 222 (tuteur) et art. 294 (nullité des actes irréguliers) ; Instr. BCC 15, art. 12 (identité du représentant légal) | forte | en place |
+
+## E19 Parts à rembourser
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E19-1 | Où et quoi | Section « Parts à rembourser » du Registre des membres (SC04) : chaque membre parti (résilié) qui détient encore des parts, avec la date de sortie, le nombre de parts, leur montant à la valeur nominale, la date limite (un an après la sortie) et la mention « en retard » passé ce jour. Le remboursement se fait par Part sociale (S77) | Texte réglementaire : AUSCOOP, art. 11 (remboursement au cours de l'année suivant la prise d'effet du retrait) ; loi 002/2002, art. 24 et 27 (retrait, apurement ; la loi ne fixe pas de délai) ; registre S48-1 (parts remboursées après la résiliation) | forte | en place |
+
+## E20 Membres auxiliaires
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E20-1 | Catégorie | Une COOPEC dont les statuts prévoient des membres auxiliaires note l'article des statuts dans Info société (S32). Au visa, une case range alors le client dans cette catégorie ; le Registre des membres la montre. Un mineur peut y être admis, par son représentant légal. Les droits de vote et fonctions (exclus pour eux) relèvent des Assemblées, hors logiciel | Texte réglementaire : Loi 002/2002, art. 23 (catégorie prévue par les statuts ; personnes qui ne remplissent pas les conditions de l'art. 22 ; ni vote ni fonction) ; Code de la famille, art. 221 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 
