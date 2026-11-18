@@ -80,6 +80,9 @@ def enregistrer(u, d, pid: int | None = None) -> dict:
         for k in ("devise", "famille", "numero"):
             if v[k] != actuel[CHAMPS[k][0]]:
                 raise ErreurMetier(f"Des comptes sont ouverts sur ce produit : {CHAMPS[k][1]} ne se change plus.")
+    # Registre S27-4 et S74-6 : le solde négatif n'est possible que sur un compte courant (catégorie posée en S28)
+    if v["soldeNegatif"] is True and (actuel or {}).get("categorie_compte") != "Courant":
+        raise ErreurMetier("Solde négatif = Oui : seulement pour un compte courant (catégorie Courant, PCCI 331). Une épargne, un dépôt à terme ou une épargne bloquée ne devient pas débiteur ; un découvert est un crédit (PCCI, compte 33 ; Instr. BCC 003, art. 7).")
     cols = [c for c, _, _ in CHAMPS.values()]
     vals = [v[k] for k in CHAMPS]
     if pid is None:

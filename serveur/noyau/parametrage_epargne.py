@@ -32,6 +32,8 @@ def enregistrer(u, d) -> dict:
     p = une("select * from produit_epargne where id = %s and institution_id = %s and not supprime for update", (pid, i))
     if not p:
         raise ErreurMetier("Produit inconnu.")
+    if p["solde_negatif"] is True and onglet != "Courant":            # registre S27-4 et S74-6
+        raise ErreurMetier("Ce produit a Solde négatif = Oui : il se range seulement en Courant pour un compte courant (catégorie Courant, PCCI 331). Une épargne, un dépôt à terme ou une épargne bloquée ne devient pas débiteur ; un découvert est un crédit (PCCI, compte 33 ; Instr. BCC 003, art. 7).")
     if compte:
         if not (compte[:2] in ("33", "34", "35") and compte_existe(u, compte)):
             raise ErreurMetier(f"Compte lié : {compte} n'est pas un compte de dépôts de la clientèle du plan (PCCI, comptes 33 à 35).")

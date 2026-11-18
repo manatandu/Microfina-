@@ -383,6 +383,18 @@ describe("journée de guichet", () => {
     expect(await api.tiers.parts(t.id)).toBe(1);
   });
 
+  it("solde négatif seulement sur un compte courant (registre S27-4, S74-6)", async () => {
+    await connecter("jpmukendi");
+    const P = { numero: 7, code: "CC", famille: "EPARGNE", libelle: "Compte courant", devise: "CDF", soldeMinimum: 0, nbMaxComptes: 1, operer: true, depotCheque: true,
+      caution: false, nantissement: false, calculerInteret: false, soldeNegatif: false, repartitionGroupe: false, actif: true };
+    await expect(api.produitsEpargne.enregistrer({ ...P, soldeNegatif: true })).rejects.toThrow("seulement pour un compte courant");
+    await api.produitsEpargne.enregistrer(P);
+    const pid = (await api.produitsEpargne.lire()).produits.find((x) => x.code === "CC")!.id;
+    await api.parametrageEpargne.enregistrer({ onglet: "Courant", produitId: pid, compteLie: "331" });
+    await api.produitsEpargne.enregistrer({ ...P, soldeNegatif: true }, pid);
+    await expect(api.parametrageEpargne.enregistrer({ onglet: "Epargne", produitId: pid, compteLie: "330" })).rejects.toThrow("il se range seulement en Courant");
+  });
+
   it("convention de compte (écart E04) et admission par le Conseil d'Administration (écart E05)", async () => {
     await connecter("bkasongo");
     const cv = await api.comptesEpargne.convention(2);

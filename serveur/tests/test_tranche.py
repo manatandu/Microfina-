@@ -2341,6 +2341,21 @@ def test_adhesion_compte_en_usd(clients, journee):
     assert ident("select count(*) from operation where tiers_id = %s and type = 'depot' and trim(devise) = 'USD' and montant = 10000", (t["id"],)) == 1
 
 
+def test_solde_negatif_seulement_compte_courant(clients):
+    """Registre S27-4, S74-6 : PCCI, compte 33 ; Instr. BCC 003, art. 7"""
+    chef = clients["chef"]; connecter(chef, "jpmukendi")
+    P = {"numero": 7, "code": "CC", "famille": "EPARGNE", "libelle": "Compte courant", "devise": "CDF", "soldeMinimum": 0, "nbMaxComptes": 1,
+         "operer": True, "depotCheque": True, "caution": False, "nantissement": False, "calculerInteret": False, "soldeNegatif": False, "repartitionGroupe": False, "actif": True}
+    r = chef.post("/api/produits-epargne", {**P, "soldeNegatif": True}, **H)
+    assert r.status_code == 422 and "seulement pour un compte courant" in r.json()["message"]
+    assert chef.post("/api/produits-epargne", P, **H).status_code == 200
+    pid = next(x["id"] for x in chef.get("/api/produits-epargne").json()["produits"] if x["code"] == "CC")
+    assert chef.post("/api/parametrage-epargne", {"onglet": "Courant", "produitId": pid, "compteLie": "331"}, **H).status_code == 200
+    assert chef.post(f"/api/produits-epargne/{pid}", {**P, "soldeNegatif": True}, **H).status_code == 200
+    r = chef.post("/api/parametrage-epargne", {"onglet": "Epargne", "produitId": pid, "compteLie": "330"}, **H)
+    assert r.status_code == 422 and "il se range seulement en Courant" in r.json()["message"]
+
+
 def test_convention_et_admission(clients, journee):
     """Écart E04 : convention de compte (loi 22/069, titre III) ; écart E05 : admission par le Conseil d'Administration (loi 002/2002, art. 22, 6°)"""
     from noyau.bd import executer

@@ -3598,6 +3598,8 @@ const produitsEpargne = {
     if (autres.some((p) => p.numero === v.numero)) throw new ErreurMetier("Ce N° Produit existe déjà.");
     if (actuel && E.tiers.some((t) => t.produitCode === actuel.code))          // registre S27-3
       for (const k of ["devise", "famille", "numero"] as const) if (v[k] !== actuel[k]) throw new ErreurMetier(`Des comptes sont ouverts sur ce produit : ${CHAMPS_EPARGNE[k]![0]} ne se change plus.`);
+    // Registre S27-4 et S74-6 : le solde négatif n'est possible que sur un compte courant (catégorie posée en S28). Identique au serveur.
+    if (v.soldeNegatif === true && actuel?.categorie !== "Courant") throw new ErreurMetier("Solde négatif = Oui : seulement pour un compte courant (catégorie Courant, PCCI 331). Une épargne, un dépôt à terme ou une épargne bloquée ne devient pas débiteur ; un découvert est un crédit (PCCI, compte 33 ; Instr. BCC 003, art. 7).");
     if (actuel) Object.assign(actuel, v); else E.produits.push({ ...(v as unknown as ProduitEpargne), id: prochain(E.produits), supprime: false });
     enregistrer(); return produitsEpargne.lire();
   },
@@ -3631,6 +3633,7 @@ const parametrageEpargne = {
     if (typeof d.produitId !== "number") throw new ErreurMetier("À remplir : Produit.");
     const p = E.produits.find((x) => x.id === d.produitId && !x.supprime);
     if (!p) throw new ErreurMetier("Produit inconnu.");
+    if (p.soldeNegatif === true && d.onglet !== "Courant") throw new ErreurMetier("Ce produit a Solde négatif = Oui : il se range seulement en Courant pour un compte courant (catégorie Courant, PCCI 331). Une épargne, un dépôt à terme ou une épargne bloquée ne devient pas débiteur ; un découvert est un crédit (PCCI, compte 33 ; Instr. BCC 003, art. 7).");   // registre S27-4, S74-6
     const compte = (d.compteLie ?? "").trim();
     if (compte) {
       if (!(["33", "34", "35"].includes(compte.slice(0, 2)) && numerosPlan().includes(compte)))

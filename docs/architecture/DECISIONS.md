@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**420 décisions.** Solidité : 176 fortes (le manuel ou un texte répond), 211 moyennes (déduites d'un écran voisin ou d'une donnée), 33 faibles (notre choix, faute de mieux). Dans le code : 392 déjà en place, 25 à appliquer.
+**420 décisions.** Solidité : 178 fortes (le manuel ou un texte répond), 210 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 392 déjà en place, 25 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -480,7 +480,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S27-1 | Champs et boutons | Ceux de la capture : N° Produit, Code, Famille, Libellé, Solde minimum, Max retrait/jour, Max compte à créer, cases Afficher à l'adhésion, Actif, Virement prélèvement, huit options Oui/Non ; Enregistrer, Modifier, Supprimer, Effacer ; grille Code Produit, Famille, Produit. Devise ajoutée : chaque compte est tenu dans une devise. N° Produit de 1 à 99 (suffixe du numéro de compte, S17) | Donnée exigée ailleurs : Capture p. 40 ; T12 ; S17-2 ; S23-4 | moyenne | en place |
 | S27-2 | Familles et compte du PCCI | Familles de la capture : EPARGNE, BLOQUE, TONTINE (les produits en place passent en EPARGNE). Compte du PCCI des comptes ouverts : 334 Epargnes obligatoires pour BLOQUE (garanties liées au crédit), 330 Epargnes pour les autres ; remplacé par le compte lié du produit dès qu'il est paramétré (S28-2) | Texte réglementaire : Capture p. 40 (grille Famille) ; PCCI classe 3 (garanties liées à l'octroi de crédits, comptes 330 et 334) | moyenne | en place |
 | S27-3 | Produit qui a des comptes | Devise, famille et N° Produit ne se changent plus ; Supprimer est refusé : décocher Actif. Un produit inactif ou supprimé n'est plus proposé à l'enrôlement | Donnée exigée ailleurs : T02 ; T08 | moyenne | en place |
-| S27-4 | Option Solde négatif | Gardée comme dans Microfina++ : aucun texte lu ne l'interdit, l'Instr. BCC 003 (art. 7) classe en douteux les comptes courants débiteurs sans mouvement créditeur de plus de 30 jours. La note de la fonction qui proposait de la retirer venait d'observations de terrain, pas d'un texte | Texte réglementaire : Instr. BCC 003, art. 7 | moyenne | en place |
+| S27-4 | Option Solde négatif | Gardée comme dans Microfina++, mais seulement pour un compte courant : « Solde négatif = Oui » est refusé pour un produit qui n'est pas rangé en Courant (S28), et un produit qui l'a ne se range qu'en Courant. Une épargne (330), un dépôt à terme (340) ou une épargne bloquée (334) ne devient pas débiteur : le déposant prête à l'institution. Le PCCI n'admet de solde débiteur que comme créance à surveiller (passage en créances litigieuses après trois mois sans mouvement) et l'Instr. 003 ne parle que des comptes courants débiteurs, douteux après 30 jours | Texte réglementaire : PCCI, compte 33 (fonctionnement : solde débiteur des comptes sans mouvement après trois mois porté en créances litigieuses ou en retard) ; Instr. BCC 003, art. 7 ; décision du porteur 18/11/2026 | forte | en place |
 
 ## S63, S73, S74 Ouverture de compte et guichet
 
@@ -999,7 +999,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S74-6 | Option Solde négatif au retrait | En attendant la réponse du porteur : le retrait ne dépasse jamais le solde disponible, même si le produit porte Solde négatif = Oui. Un compte d'épargne débiteur est un découvert, donc un crédit ; ni le manuel (p. 40, case seule) ni les textes lus ne disent jusqu'où il peut aller. Question posée au porteur : faut-il permettre le découvert, et dans quelle limite ? | Choix du porteur : Manuel p. 40 (case Solde négatif) ; registre S27-4 ; Instr. BCC 003, art. 7 (comptes courants débiteurs) | faible | en place |
+| S74-6 | Option Solde négatif au retrait | Au guichet, aucun découvert : le retrait ne dépasse jamais le disponible. Le découvert d'un compte courant (limite accordée, classement en douteux après 30 jours sans mouvement créditeur significatif) est un crédit : il se construira avec le module Crédit | Texte réglementaire : PCCI, compte 33 ; Instr. BCC 003, art. 7 ; décision du porteur 18/11/2026 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 
@@ -1037,4 +1037,3 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S35-4 | S35 Préférences : devise, type sous, sous | Monnaies de démonstration | CDF 50 à 20 000 et USD 1 à 100, tous billets, chacun avec son type « Billet de … » : données de démonstration reprises de l'existant, pas lues dans un texte de la BCC ; l'institution saisit ses propres monnaies |
 | S01-3 | S01 Connexion | Règles de mot de passe et de blocage | Règle des mots de passe (T24) et blocage après 5 refus en 15 minutes (T22), demandés par le porteur le 15/11/2026 |
 | S59-4 | S59 Chèque client | Effet de l'encaissement | L'encaissement ne change que le statut (Encaissé, avec sa date) ; le crédit du compte du client et l'écriture de banque viennent à la comptabilisation (S111). Bouton Imprimer inactif jusque-là. Le retour (bouton Retourner) note le chèque impayé, sans écriture. Pas de passage par S57 : le manuel n'en parle pas |
-| S74-6 | S74 Dépôt / Retrait | Option Solde négatif au retrait | En attendant la réponse du porteur : le retrait ne dépasse jamais le solde disponible, même si le produit porte Solde négatif = Oui. Un compte d'épargne débiteur est un découvert, donc un crédit ; ni le manuel (p. 40, case seule) ni les textes lus ne disent jusqu'où il peut aller. Question posée au porteur : faut-il permettre le découvert, et dans quelle limite ? |
