@@ -70,6 +70,11 @@ h1, h2, h3 { letter-spacing: -0.01em; }
   font-weight: 700; color: var(--encre);
   display: flex; align-items: center; gap: var(--espace-2); flex-wrap: wrap;
 }
+/* Le titre d'une carte en est l'en-tête : un bandeau qui donne sa forme à la carte (demande du porteur, 18/11/2026) */
+.bloc > h2:first-child, .bloc > h3:first-child {
+  margin: calc(-1 * var(--espace-5)) calc(-1 * var(--espace-5)) var(--espace-5); padding: var(--espace-3) var(--espace-5);
+  background: var(--bandeau); border-bottom: 1px solid var(--trait); border-radius: calc(var(--rayon-bloc) - 1px) calc(var(--rayon-bloc) - 1px) 0 0;
+}
 
 /* ---------- Onglets : contrôle segmenté ---------- */
 .onglets {
@@ -255,9 +260,10 @@ details.textes ul { margin: var(--espace-1) 0 0; padding-left: var(--espace-4); 
 
 /* ---------- Grille dense (back-office) ---------- */
 .grille-cadre { overflow-x: auto; border: 1px solid var(--trait); border-radius: var(--rayon-bloc); background: var(--feuille); box-shadow: var(--ombre-surface); }
-.grille { width: 100%; border-collapse: collapse; font-size: var(--taille-dense); line-height: var(--interligne-dense); }
+.grille { width: 100%; border-collapse: collapse; border: 1px solid var(--trait); font-size: var(--taille-dense); line-height: var(--interligne-dense); }
+.grille-cadre > .grille { border: 0; }
 .grille th {
-  position: sticky; top: 0; background: var(--papier); text-align: left; font-weight: 600; color: var(--encre-2); font-size: var(--taille-dense);
+  position: sticky; top: 0; background: var(--bandeau); text-align: left; font-weight: 700; color: var(--encre); font-size: var(--taille-dense);
   padding: var(--espace-2) var(--espace-4); border-bottom: 1px solid var(--trait); white-space: nowrap;
 }
 .grille th.num { text-align: right; font-family: var(--police-texte); }
@@ -266,11 +272,12 @@ details.textes ul { margin: var(--espace-1) 0 0; padding-left: var(--espace-4); 
 .grille th[aria-sort="descending"] button::after { content: " ↓"; }
 .grille td { padding: var(--espace-2) var(--espace-4); border-bottom: 1px solid var(--ligne); vertical-align: top; }
 .grille tbody tr:last-child td { border-bottom: 0; }
+.grille tbody tr:nth-child(even) td { background: var(--zebre); }   /* lignes alternées : l'œil suit la ligne d'un bord à l'autre */
 .grille td.texte { min-width: 160px; overflow-wrap: anywhere; }
 @media (hover: hover) and (pointer: fine) { .grille tbody tr:hover td { background: var(--papier); } }
 .grille tbody tr:focus-visible { outline: 2px solid var(--tampon); outline-offset: -2px; }
-.grille tbody tr[aria-selected="true"] { background: var(--tampon-pale); }
-.grille tfoot th, .grille tfoot td { background: var(--papier); border-top: 1px solid var(--trait); border-bottom: 0; }
+.grille tbody tr[aria-selected="true"], .grille tbody tr[aria-selected="true"] td { background: var(--tampon-pale); }
+.grille tfoot th, .grille tfoot td { background: var(--bandeau); font-weight: 700; border-top: 1px solid var(--trait); border-bottom: 0; }
 .grille .vide td { text-align: center; color: var(--encre-2); padding: var(--espace-7); }
 .pagination { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--espace-2); padding: var(--espace-2) var(--espace-4); font-size: var(--taille-dense); color: var(--encre-2); border-top: 1px solid var(--ligne); }
 

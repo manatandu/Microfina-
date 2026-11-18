@@ -61,11 +61,11 @@ a { color: var(--tampon); text-underline-offset: 3px; }
 .acces-rapide summary::-webkit-details-marker { display: none; }
 .acces-rapide summary::after { content: "+"; color: var(--encre-2); font-weight: 400; }
 .acces-rapide details[open] summary::after { content: "−"; }
-.acces-rapide details[open] summary { border-bottom: 1px solid var(--ligne); }
+.acces-rapide details[open] summary { border-bottom: 1px solid var(--trait); background: var(--bandeau); border-radius: calc(var(--rayon-champ) - 1px) calc(var(--rayon-champ) - 1px) 0 0; }
 .acces-rapide ul { list-style: none; margin: 0; padding: var(--espace-1); display: grid; }
 .acces-rapide a { display: block; padding: 5px var(--espace-2); border-radius: var(--rayon-petit); font-size: var(--taille-dense); color: var(--encre); text-decoration: none; }
 @media (hover: hover) and (pointer: fine) { .acces-rapide a:hover { background: var(--papier); } }
-.acces-rapide a.active { background: var(--tampon-pale); color: var(--tampon); font-weight: 600; }
+.acces-rapide a.active { background: var(--tampon-pale); color: var(--tampon); font-weight: 600; box-shadow: inset 3px 0 0 var(--tampon); }
 .acces-rapide a.a-construire { color: var(--encre-2); }
 .zone-vide { min-height: 60vh; border: 1px solid var(--trait); border-radius: var(--rayon-bloc); background: var(--feuille); }
 
@@ -272,8 +272,9 @@ fieldset.formulaire { padding-bottom: var(--espace-2); }
       radial-gradient(farthest-side at 100% 50%, color-mix(in srgb, var(--encre) 22%, transparent), transparent) right / 12px 100% no-repeat scroll;
   }
   .grille th:first-child, .grille td:first-child { position: sticky; left: 0; z-index: 1; background: var(--feuille); }
-  .grille thead th:first-child { background: inherit; }
-  .grille tfoot th:first-child, .grille tfoot td:first-child { background: var(--papier); }
+  .grille thead th:first-child { background: var(--bandeau); }
+  .grille tbody tr:nth-child(even) td:first-child { background: var(--zebre); }
+  .grille tfoot th:first-child, .grille tfoot td:first-child { background: var(--bandeau); }
   .menus .liste-deroulante { width: min(320px, calc(100vw - 16px)); min-width: 0; }
   /* Barre des modules et onglets : une seule ligne qui glisse, avec une ombre au bord tant qu'il reste des menus */
   .menus {
@@ -346,10 +347,10 @@ button, summary, [role="tab"] { -webkit-user-select: none; user-select: none; }
 
 /* Visa client (S40, manuel Microfina++ p. 52) */
 .cadre-champs { border: 1px solid var(--trait); border-radius: var(--rayon-bloc); padding: var(--espace-4); margin: 0; min-width: 0; }
-.cadre-champs > legend { padding: 0 var(--espace-2); font-weight: 600; font-size: var(--taille-dense); color: var(--encre-2); }
+.cadre-champs > legend { padding: 0 var(--espace-2); font-weight: 700; font-size: var(--taille-dense); color: var(--encre); }
 .ligne-choix { cursor: pointer; }
 .ligne-choix:focus-visible { outline: 2px solid var(--tampon); outline-offset: -2px; }
-@media (hover: hover) and (pointer: fine) { .ligne-choix:hover { background: var(--tampon-pale); } }
+@media (hover: hover) and (pointer: fine) { .ligne-choix:hover, .grille tbody tr.ligne-choix:hover td { background: var(--tampon-pale); } }
 .contrat { display: grid; gap: var(--espace-2); font-size: var(--taille-dense); }
 .contrat h3 { text-align: center; margin: 0 0 var(--espace-3); }
 .contrat h4 { text-align: center; margin: var(--espace-3) 0 0; }
@@ -371,7 +372,7 @@ button, summary, [role="tab"] { -webkit-user-select: none; user-select: none; }
 .menu-action button[role="menuitem"] { width: 100%; text-align: left; font: inherit; background: none; border: 0; border-radius: var(--rayon-petit); padding: var(--espace-2) var(--espace-3); color: var(--encre); cursor: pointer; }
 .menu-action button[role="menuitem"]:disabled { color: var(--inactif); cursor: default; }
 @media (hover: hover) and (pointer: fine) { .menu-action button[role="menuitem"]:not(:disabled):hover { background: var(--tampon-pale); } }
-.ligne-choix[aria-selected="true"] { background: var(--tampon-pale); }
+.ligne-choix[aria-selected="true"], .grille tbody tr.ligne-choix[aria-selected="true"] td { background: var(--tampon-pale); }
 fieldset.sans-cadre { border: 0; padding: 0; margin: 0; min-width: 0; }
 .photo-signature { display: flex; flex-wrap: wrap; gap: var(--espace-4); align-items: center; }
 .photo-signature img { max-height: 120px; max-width: 160px; object-fit: contain; }
