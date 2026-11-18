@@ -79,10 +79,12 @@ Demande du porteur du projet (13/11/2026) : « un bon design et l'animation imme
 - **Plongée** : au clic de la souris ou du doigt sur un module ouvert, la caméra fond sur son socle (750 ms, courbe forte d'entrée et de sortie), puis un fondu vers le fond des écrans du module. Au clavier, avec une touche de modification ou en mouvement réduit : ouverture directe.
 - **Survol** : le socle et l'orbe s'illuminent, le nom passe en or.
 - **Mouvement réduit** demandé par le système : une image fixe de la scène, sans travelling, ni parallaxe, ni plongée.
-- **Charge** (fluidité, demande du porteur, 18/11/2026 ; fiche `animation-performance` d'emil-kowalski) :
-  - la résolution baisse d'elle-même si l'écart réel entre deux images dépasse 20 ms en moyenne (mesure qui compte le travail de la carte graphique) ; le calcul s'arrête quand l'onglet est caché ;
+- **Charge** (fluidité, demande du porteur, 18/11/2026 : la scène 3D reste partout, elle doit être fluide ; fiche `animation-performance` d'emil-kowalski) :
+  - chaque rayon ne fait ses pas que dans l'enveloppe des objets (cylindre de rayon 5,25, hauteur 3) ; le sol est un plan calculé d'un coup ; le reflet ne cherche pas le sol ; le faisceau n'est calculé que dans son cône ;
   - le D est décrit directement dans le programme graphique : aucun calcul au démarrage ; le programme est compilé avant que l'horloge du travelling ne parte ;
-  - sans carte graphique utilisable (rendu logiciel : vieux poste, pilote bloqué), ou si la scène reste au-delà de 34 ms par image à la plus basse résolution, la version plate en CSS prend le relais. Mesuré avec un processeur ralenti quatre fois : de 80 à 480 ms par image en 3D logicielle, 16,7 ms en version plate.
+  - étalonnage : pendant les premières images, encore noires, la machine est mesurée et la résolution fixée ; le travelling se joue ensuite sans changement de netteté ; ensuite, la résolution baisse si l'écart réel entre deux images dépasse 20 ms ; le calcul s'arrête quand l'onglet est caché ;
+  - étiquettes sans flou d'arrière-plan (la scène change à chaque image) ;
+  - mesuré sans carte graphique (le cas le plus lent) : 383 ms par image avant, 217 ms à résolution égale après, 50 ms après étalonnage.
 - Ailleurs, la règle 2.7 bis reste entière.
 ### 2.8 Le papier est un écran comme un autre
 

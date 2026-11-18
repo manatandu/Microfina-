@@ -167,7 +167,7 @@ function Scene3D({ entree, secours }: { entree: boolean; secours: () => void }) 
     if (!donnees || !toile.current) return;
     const poser = (el: HTMLElement | null | undefined, a: Ancre) => { if (el) el.style.transform = `translate3d(${a.x.toFixed(1)}px, ${a.y.toFixed(1)}px, 0) translate(-50%, -50%) scale(${Math.max(.55, Math.min(1.25, a.echelle)).toFixed(3)})`; };
     const s = monterScene(toile.current, { actifs, entree, reduit: mouvementReduit(),
-      placer: (e, l) => { poser(etoile.current, e); l.forEach((a, i) => poser(socles.current[i], a)); }, lent: secours });
+      placer: (e, l) => { poser(etoile.current, e); l.forEach((a, i) => poser(socles.current[i], a)); } });
     if (!s) { secours(); return; }
     scene.current = s;
     return () => { s.detruire(); scene.current = null; };

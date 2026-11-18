@@ -158,12 +158,12 @@ a { color: var(--tampon); text-underline-offset: 3px; }
   text-shadow: 0 1px 12px var(--nuit), 0 0 2px var(--nuit);
 }
 .etiquette > span { translate: 0 -62px; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: var(--rayon-rond);
-  background: color-mix(in srgb, var(--nuit) 62%, transparent); border: 1px solid color-mix(in srgb, var(--nuit-texte) 22%, transparent); backdrop-filter: blur(6px); text-shadow: none; }
+  background: color-mix(in srgb, var(--nuit) 80%, transparent); border: 1px solid color-mix(in srgb, var(--nuit-texte) 22%, transparent); text-shadow: none; }   /* sans flou d'arrière-plan : la scène change à chaque image, huit flous à recalculer à chaque fois */
 .etiquette > span svg { width: 14px; height: 14px; opacity: .9; }
 .etiquette.inactive { color: var(--nuit-texte); cursor: not-allowed; opacity: .7; }
 .etiquette:focus-visible { outline: 2px solid var(--etoile); outline-offset: 2px; }
 .etiquette.centre { width: 220px; height: 220px; font-size: var(--taille-titre); font-weight: 700; letter-spacing: .14em; }
-.etiquette.centre > span { translate: 0 150px; background: none; border: 0; backdrop-filter: none; text-shadow: 0 1px 12px var(--nuit); }
+.etiquette.centre > span { translate: 0 150px; background: none; border: 0; text-shadow: 0 1px 12px var(--nuit); }
 @media (hover: hover) and (pointer: fine) { a.etiquette:not(.centre):hover > span { border-color: color-mix(in srgb, var(--etoile) 70%, transparent); color: var(--etoile); } a.etiquette.centre:hover > span { color: var(--etoile); } }
 .etiquette.inactive > span { border-style: dashed; }
 .page-modules.scene-3d[data-entree="complete"] .etiquette { animation: fondu 500ms ease-out backwards; animation-delay: calc(1200ms + var(--rang, 0) * 150ms); }

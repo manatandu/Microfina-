@@ -18,7 +18,6 @@ type Options = {
   entree: boolean;                    // travelling d'entrée (première visite de la session)
   reduit: boolean;                    // mouvement réduit demandé par le système
   placer(etoile: Ancre, socles: Ancre[]): void;
-  lent(): void;                       // la scène reste trop lente même à la plus basse résolution : passer à la version plate
 };
 
 const RAYON_ORBITE = 4.4;
@@ -71,8 +70,9 @@ float boite(vec2 p, vec2 c, vec2 h) { vec2 d = abs(p - c) - h; return length(max
 float monogramme2(vec2 p) {
   const float K = 1.75 / 176.;
   vec2 q = p / K;
-  float tige = boite(q, vec2(-45., 0.), vec2(44., 88.));
-  float arc = max(length(vec2((q.x + 1.) * 88. / 90., q.y)) - 88., -1. - q.x);   // demi-disque, léger débord horizontal comme le logo
+  // tige et demi-disque se chevauchent de 6 unités : bord à bord, la jonction serait vue comme une surface (couture)
+  float tige = boite(q, vec2(-43., 0.), vec2(46., 88.));
+  float arc = max(length(vec2((q.x + 1.) * 88. / 90., q.y)) - 88., -5. - q.x);   // demi-disque, léger débord horizontal comme le logo
   float barres = min(boite(q, vec2(-4., 26.), vec2(49., 13.)), boite(q, vec2(-4., -26.), vec2(49., 13.)));
   return max(min(tige, arc), -barres) * K;
 }
@@ -99,8 +99,8 @@ float allumage(int i) { return smoothstep(0.35 + 0.06 * float(i), 0.6 + 0.06 * f
 float hauteurOrbe(int i) { return 0.78 + 0.07 * sin(uTemps * 1.3 + float(i) * 0.9); }
 
 // Scène : x = distance, y = matière (1 sol, 2 podium, 3 or, 4 socle, 5 orbe ouvert, 6 orbe fermé)
-vec2 scene(vec3 p, out float gOr, out float gBleu) {
-  vec2 r = vec2(p.y, 1.);
+vec2 scene(vec3 p, float sol, out float gOr, out float gBleu) {
+  vec2 r = vec2(sol > .5 ? p.y : 1e5, 1.);   // sans sol pour le reflet : un rayon qui remonte ne peut pas le toucher
   float pod = min(cylindre(p - vec3(0, .13, 0), 1.85, .13), cylindre(p - vec3(0, .33, 0), 1.45, .08) - .02);
   if (pod < r.x) r = vec2(pod, 2.);
   float e = distEtoile(p);
@@ -117,7 +117,7 @@ vec2 scene(vec3 p, out float gOr, out float gBleu) {
   if (uActif[i] > .5) gBleu = min(gBleu, o + .1 + (1. - allumage(i)) * 2. + survol * 2.);
   return r;
 }
-vec2 carte(vec3 p) { float a, b; return scene(p, a, b); }
+vec2 carte(vec3 p) { float a, b; return scene(p, 1., a, b); }
 vec3 normale(vec3 p) {
   const vec2 k = vec2(1, -1) * .0015;
   return normalize(k.xyy * carte(p + k.xyy).x + k.yyx * carte(p + k.yyx).x + k.yxy * carte(p + k.yxy).x + k.xxx * carte(p + k.xxx).x);
@@ -159,24 +159,42 @@ vec3 matiere(float id, vec3 p, vec3 rd, vec3 n) {
   return base * (.3 + dif) + ciel(rf) * (.15 + fres * .6) + vec3(1) * spec * .8 + cBleu * spec2 * .4;
 }
 
-void marcher(vec3 ro, vec3 rd, int pas, out float t, out float id, out vec3 lueur) {
-  t = .02; id = 0.; lueur = vec3(0);
-  for (int k = 0; k < 110; k++) {
-    if (k >= pas) break;
-    vec3 p = ro + rd * t; float gO, gB; vec2 h = scene(p, gO, gB);
-    lueur += cOr * exp(-gO * 70.) * .09 + cBleu * exp(-gB * 55.) * .1;
-    if (h.x < .001 * t) { id = h.y; return; }
-    t += h.x * .9;
-    if (t > 40.) break;
+// Enveloppe des objets : cylindre de rayon 5,25 (socles et anneaux compris) et de hauteur 3 (le D au plus haut). Hors d'elle, rien à
+// toucher et aucune lueur : on ne fait aucun pas (fiche emil-kowalski animation-performance : chaque image doit tenir dans son budget)
+bool enveloppe(vec3 ro, vec3 rd, float R, float H, out float t0, out float t1) {
+  float a = dot(rd.xz, rd.xz), b = dot(ro.xz, rd.xz), c = dot(ro.xz, ro.xz) - R * R, d = b * b - a * c;
+  if (a < 1e-6 || d < 0.) return false;
+  float s = sqrt(d); t0 = (-b - s) / a; t1 = (-b + s) / a;
+  if (abs(rd.y) > 1e-5) { float ya = -ro.y / rd.y, yb = (H - ro.y) / rd.y; t0 = max(t0, min(ya, yb)); t1 = min(t1, max(ya, yb)); }
+  else if (ro.y < 0. || ro.y > H) return false;
+  t0 = max(t0, 0.); return t1 > t0;
+}
+void marcher(vec3 ro, vec3 rd, int pas, float sol, out float t, out float id, out vec3 lueur) {
+  lueur = vec3(0); id = 0.;
+  float tSol = sol > .5 && rd.y < -1e-4 ? -ro.y / rd.y : 1e5, t0, t1;
+  if (enveloppe(ro, rd, 5.25, 3., t0, t1)) {
+    t = t0 + .02;
+    for (int k = 0; k < 110; k++) {
+      if (k >= pas) break;
+      vec3 p = ro + rd * t; float gO, gB; vec2 h = scene(p, sol, gO, gB);
+      lueur += cOr * exp(-gO * 70.) * .09 + cBleu * exp(-gB * 55.) * .1;
+      if (h.x < .001 * t) { id = h.y; return; }
+      t += h.x * .9;
+      if (t > t1 + .05) break;
+    }
   }
-  id = 0.;
+  // rien touché dans l'enveloppe : le sol, s'il est devant et pas trop loin, sinon le ciel (comme avant, au-delà de 40)
+  if (tSol < 40.) { t = tSol; id = 1.; } else { t = 1e5; id = 0.; }
 }
 
 // Faisceau : cône de lumière au-dessus de l'étoile
 vec3 faisceau(vec3 ro, vec3 rd, float tMax) {
-  vec3 s = vec3(0); float pas = min(tMax, 22.) / 20.;
-  for (int k = 0; k < 20; k++) {
-    float t = (float(k) + hash(gl_FragCoord.xy + float(k))) * pas; vec3 q = ro + rd * t;
+  vec3 s = vec3(0); float t0, t1;
+  if (!enveloppe(ro, rd, 1.9, 8., t0, t1)) return s;   // hors du cône (rayon 1,9 au pied, 8 de haut) : aucune lumière
+  t1 = min(t1, min(tMax, 22.)); if (t1 <= t0) return s;
+  float pas = (t1 - t0) / 14.;
+  for (int k = 0; k < 14; k++) {
+    float t = t0 + (float(k) + hash(gl_FragCoord.xy + float(k))) * pas; vec3 q = ro + rd * t;
     if (q.y < 0. || q.y > 8.) continue;
     float rayon = mix(1.9, .25, q.y / 8.);
     s += smoothstep(rayon, rayon * .2, length(q.xz)) * (1. - q.y / 8.);
@@ -204,13 +222,13 @@ void main() {
   vec2 uv = (gl_FragCoord.xy - .5 * uRes) / uRes.y;
   vec3 fw = normalize(uCible - uOeil), rt = normalize(cross(fw, vec3(0, 1, 0))), up = cross(rt, fw);
   vec3 rd = normalize(uv.x * rt + uv.y * up + ${FOCALE.toFixed(2)} * fw);
-  float t, id; vec3 lueur; marcher(uOeil, rd, 100, t, id, lueur);
+  float t, id; vec3 lueur; marcher(uOeil, rd, 80, 1., t, id, lueur);
   vec3 col;
   if (id < .5) col = ciel(rd);
   else {
-    vec3 p = uOeil + rd * t, n = normale(p);
+    vec3 p = uOeil + rd * t, n = id < 1.5 ? vec3(0, 1, 0) : normale(p);
     if (id < 1.5) {                    // sol miroir : reflet de la scène, atténué avec la distance
-      vec3 rr = reflect(rd, n); float t2, id2; vec3 l2; marcher(p + n * .01, rr, 60, t2, id2, l2);
+      vec3 rr = reflect(rd, n); float t2, id2; vec3 l2; marcher(p + n * .01, rr, 40, 0., t2, id2, l2);
       vec3 refl = id2 < .5 ? ciel(rr) : matiere(id2, p + rr * t2, rr, normale(p + rr * t2));
       float f = .12 + .4 * pow(1. - max(dot(n, -rd), 0.), 4.);
       col = cNuit * .5 + (refl + l2) * f * exp(-t * .04);
@@ -240,11 +258,6 @@ void main() {
 export function monterScene(toile: HTMLCanvasElement, o: Options): Scene | null {
   const gl = toile.getContext("webgl2", { antialias: false, alpha: false, powerPreference: "high-performance" });
   if (!gl) return null;
-  // Rendu logiciel (pas de carte graphique utilisable : vieux poste, pilote bloqué) : chaque image passerait par le processeur et
-  // bloquerait tout l'écran (mesuré : 80 à 480 ms par image) ; la version plate prend le relais
-  const info = gl.getExtension("WEBGL_debug_renderer_info");
-  const rendu = String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER) ?? "");
-  if (/swiftshader|llvmpipe|softpipe|software|basic render/i.test(rendu)) return null;
   const shader = (type: number, src: string) => { const s = gl.createShader(type)!; gl.shaderSource(s, src); gl.compileShader(s); return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? s : null; };
   const vs = shader(gl.VERTEX_SHADER, SOMMETS), fs = shader(gl.FRAGMENT_SHADER, FRAGMENTS);
   if (!vs || !fs) return null;
@@ -268,6 +281,9 @@ export function monterScene(toile: HTMLCanvasElement, o: Options): Scene | null 
   // L'horloge du travelling part à la première image vraiment affichée : la compilation du programme graphique, qui fige la toute
   // première image, ne mange plus le début du mouvement (fiche emil-kowalski animation-performance : ne pas jouer pendant un travail lourd)
   let debut = 0, precedente = 0;
+  // Étalonnage : avant le travelling, quelques images encore noires (l'entrée part du noir) mesurent la machine et fixent la
+  // résolution ; le travelling se joue ensuite d'une traite, sans changement de netteté en plein mouvement
+  let etalonnage = o.entree && !o.reduit, premiere = 0; const essais: number[] = [];
   const duree = o.entree && !o.reduit ? 2600 : 0;
   const souris = { x: 0, y: 0, cx: 0, cy: 0 };
   let plonge: { cible: V; t0: number; fin: () => void } | null = null;
@@ -304,6 +320,18 @@ export function monterScene(toile: HTMLCanvasElement, o: Options): Scene | null 
   const dessiner = (maintenant: number) => {
     image = 0;
     if (arret) return;
+    if (etalonnage) {
+      if (!premiere) premiere = maintenant; else essais.push(maintenant - precedente);
+      precedente = maintenant;
+      gl.uniform2f(U.res, toile.width, toile.height); gl.uniform1f(U.entree, 0); gl.uniform1f(U.plonge, 0);
+      const c = camera(0, maintenant); gl.uniform3fv(U.oeil, c.oeil); gl.uniform3fv(U.cible, c.cible); gl.drawArrays(gl.TRIANGLES, 0, 3);
+      if (essais.length >= 6 || maintenant - premiere > 600) {
+        const m = [...essais].sort((a, b) => a - b)[Math.floor(essais.length / 2)] ?? 16.7;
+        if (m > 18) { echelle = Math.max(.35, echelle * Math.sqrt(16.7 / m) * .9); dimensionner(); }   // le coût suit le nombre de points
+        etalonnage = false; precedente = 0;
+      }
+      image = requestAnimationFrame(dessiner); return;
+    }
     if (!debut) debut = maintenant;
     const ecoule = maintenant - debut, e = duree ? sortie(Math.min(1, ecoule / duree)) : 1;
     souris.cx += (souris.x - souris.cx) * .06; souris.cy += (souris.y - souris.cy) * .06;
@@ -320,8 +348,7 @@ export function monterScene(toile: HTMLCanvasElement, o: Options): Scene | null 
     // passé dans ce code ne montre pas) ; au-delà de 20 ms en moyenne (moins de 50 images par seconde), la résolution baisse
     if (precedente && ecoule > 300) temps.push(maintenant - precedente);
     precedente = maintenant;
-    if (temps.length === 12) { const m = temps.reduce((a, b) => a + b, 0) / 12; temps.length = 0; if (m > 20 && echelle > .35) { echelle *= .8; dimensionner(); }
-      else if (m > 34 && !plonge) { arret = true; o.lent(); return; } }
+    if (temps.length === 12) { const m = temps.reduce((a, b) => a + b, 0) / 12; temps.length = 0; if (m > 20 && echelle > .35) { echelle *= .8; dimensionner(); } }
     if (!o.reduit || plonge || ecoule < 50) image = requestAnimationFrame(dessiner);
   };
   gl.uniform2f(U.res, toile.width, toile.height); gl.uniform1f(U.entree, 0); gl.drawArrays(gl.TRIANGLES, 0, 3);   // compile maintenant, pas pendant le travelling
