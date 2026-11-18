@@ -161,10 +161,10 @@ Grille de 4 px. Rayons : 6 px pour les petits éléments, 8 px pour les champs e
 - trait des bordures plus soutenu (`trait` #C9CCD1, séparations de lignes `ligne` #E3E5E8) ;
 - le titre d'une carte devient son en-tête : un bandeau gris (`bandeau` #E6E8EB) séparé du contenu par un trait ;
 - tableaux encadrés, en-tête et pied sur le bandeau, texte en gras, lignes alternées (`zebre` #F7F8F9) ;
-- légende des cadres en gras, couleur du texte ;
+- le titre d'un cadre (CDF, USD, Minimum…) en devient l'en-tête, sur le même bandeau que les cartes ;
 - menu d'accès rapide : groupe ouvert sur le bandeau, page courante marquée d'un filet à gauche ;
 - ombre des cartes un peu plus marquée, pour les détacher du fond.
-Les trois couleurs de la marque ne changent pas. Ombre très légère sur les cartes pour les détacher du fond ; ombre marquée seulement pour ce qui flotte (menu, liste de suggestions). Titres de carte en casse normale, jamais en petites capitales. Les onglets du guichet sont un contrôle segmenté. Survol : changement de couleur en 120 ms, à la souris seulement ; rien ne bouge après une touche (§ 2.7 bis).
+Les trois couleurs de la marque ne changent pas. La hauteur des champs ne change pas : le guichet respire, seul le back-office est dense (§ 2.9), et 44 px restent la cible au doigt. Ombre très légère sur les cartes pour les détacher du fond ; ombre marquée seulement pour ce qui flotte (menu, liste de suggestions). Titres de carte en casse normale, jamais en petites capitales. Les onglets du guichet sont un contrôle segmenté. Survol : changement de couleur en 120 ms, à la souris seulement ; rien ne bouge après une touche (§ 2.7 bis).
 
 ---
 

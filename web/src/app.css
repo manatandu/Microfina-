@@ -347,7 +347,15 @@ button, summary, [role="tab"] { -webkit-user-select: none; user-select: none; }
 
 /* Visa client (S40, manuel Microfina++ p. 52) */
 .cadre-champs { border: 1px solid var(--trait); border-radius: var(--rayon-bloc); padding: var(--espace-4); margin: 0; min-width: 0; }
-.cadre-champs > legend { padding: 0 var(--espace-2); font-weight: 700; font-size: var(--taille-dense); color: var(--encre); }
+/* Le titre d'un cadre en est l'en-tête, comme celui d'une carte : même bandeau (demande du porteur, 18/11/2026) */
+.cadre-champs:has(> legend) { padding-top: 0; }
+.cadre-champs > legend {
+  float: left; grid-column: 1 / -1; box-sizing: border-box; width: calc(100% + 2 * var(--espace-4));
+  margin: 0 calc(-1 * var(--espace-4)) var(--espace-1); padding: var(--espace-2) var(--espace-4);
+  background: var(--bandeau); border-bottom: 1px solid var(--trait); border-radius: calc(var(--rayon-bloc) - 1px) calc(var(--rayon-bloc) - 1px) 0 0;
+  font-weight: 700; font-size: var(--taille-dense); color: var(--encre);
+}
+.cadre-champs > legend + * { clear: both; }
 .ligne-choix { cursor: pointer; }
 .ligne-choix:focus-visible { outline: 2px solid var(--tampon); outline-offset: -2px; }
 @media (hover: hover) and (pointer: fine) { .ligne-choix:hover, .grille tbody tr.ligne-choix:hover td { background: var(--tampon-pale); } }
