@@ -548,3 +548,8 @@ select.saisie { max-width: 100%; }
   /* Oui et Non restent ensemble, sous leur libellé */
   .oui-non > legend:not(.sr-only) { float: none; min-inline-size: 0; inline-size: 100%; margin-bottom: var(--espace-1); }
 }
+
+/* Billetage (S79) : un tableau par devise, colonnes alignées d'un tableau à l'autre */
+.colonnes-billetage { table-layout: fixed; width: 100%; }
+.colonnes-billetage th:nth-child(1) { width: 50%; }
+.colonnes-billetage th:nth-child(2) { width: 20%; }

@@ -1,6 +1,6 @@
 import { vers } from "./registre";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { coupuresDe, DEVISES, libelleCoupure, lireMontant, montant, totalComptage, type Comptage, type Devise } from "@design/montant.js";
@@ -11,8 +11,9 @@ const enSaisie = (m: number) => (m ? String(m / 100).replace(".", ",") : "");
 
 /** S79 : Caisse > Billetage > Enregistrer de billetage (manuel Microfina++, p. 90 et 91) */
 export function BilletageCaisse() {
+  const navigate = useNavigate();
   const [nombres, setNombres] = useState<Record<Devise, Record<number, string>> | null>(null);
-  const [bon, setBon] = useState("");
+  const [bons, setBons] = useState<Record<Devise, string> | null>(null);   // registre S79-3 : un Bon de Caisse par tableau, dans sa devise
   const [boite, setBoite] = useState<Boite | null>(null);
   const [relu, setRelu] = useState(0);
   const { donnees } = useDonnees(async () => {
@@ -28,17 +29,17 @@ export function BilletageCaisse() {
     const b = billetages.find((x) => x.devise === d);
     return [d, Object.fromEntries(coupuresDe(d).map((v) => [v, String(b?.compte[v] ?? 0)]))];
   })) as Record<Devise, Record<number, string>>;
-  const bonSaisi = nombres ? bon : enSaisie(billetages.find((x) => x.devise === "CDF")?.bonCaisse ?? 0);
+  const bonsSaisis = bons ?? Object.fromEntries(DEVISES.map((d) => [d, enSaisie(billetages.find((x) => x.devise === d)?.bonCaisse ?? 0)])) as Record<Devise, string>;
   const compte = (d: Devise): Comptage => Object.fromEntries(coupuresDe(d).map((v) => [v, /^\d+$/.test(saisis[d]?.[v] ?? "") ? Number(saisis[d]?.[v]) : 0]));
-  const mBon = bonSaisi.trim() ? lireMontant(bonSaisi) : 0;
-  const changer = (d: Devise, v: number, x: string) => { if (/^\d{0,6}$/.test(x)) { setBon(bonSaisi); setNombres({ ...saisis, [d]: { ...saisis[d], [v]: x } }); } };
-  const deux = (f: (d: Devise) => number) => DEVISES.map((d) => montant(f(d), d)).join("\n");
+  const bonDe = (d: Devise) => (bonsSaisis[d]?.trim() ? lireMontant(bonsSaisis[d]!) : 0);
+  const changer = (d: Devise, v: number, x: string) => { if (/^\d{0,6}$/.test(x)) { setBons(bonsSaisis); setNombres({ ...saisis, [d]: { ...saisis[d], [v]: x } }); } };
   function enregistrer() {
-    if (mBon === null) { setBoite({ type: "erreur", message: "Bon de Caisse invalide." }); return; }
+    const faux = DEVISES.find((d) => bonDe(d) === null);
+    if (faux) { setBoite({ type: "erreur", message: `Bon de Caisse (${faux}) invalide.` }); return; }
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try {
-        for (const d of DEVISES) await api.caisses.saisirBilletage(s.id, d, compte(d), d === "CDF" ? mBon : 0);
-        setNombres(null); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" });
+        for (const d of DEVISES) await api.caisses.saisirBilletage(s.id, d, compte(d), bonDe(d) ?? 0);
+        setNombres(null); setBons(null); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" });
       } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
     } });
   }
@@ -46,34 +47,42 @@ export function BilletageCaisse() {
     <>
       <h1>Arretée de : {ctx.guichets.find((g) => g.id === s.guichetId)?.nom}</h1>
       <section className="bloc pile" aria-label="Billetage">
-        <div className="grille-cadres quatre">
-          <Champ libelle="Solde Caisse :">{(p) => <textarea {...p} className="saisie montant" rows={2} readOnly value={deux((d) => totalComptage(theorique[d] ?? {}))} />}</Champ>
-          <Champ libelle="Journées:">{(p) => <select {...p} className="saisie code" disabled value={j?.date ?? ""}><option value={j?.date ?? ""}>{j ? fr(j.date) : ""}</option></select>}</Champ>
-          <Champ libelle="Bon de Caisse">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={bonSaisi}
-            onChange={(e) => { setNombres(saisis); setBon(e.target.value); }} />}</Champ>
-          <Champ libelle="Total Caisse">{(p) => <textarea {...p} className="saisie montant" rows={2} readOnly value={deux((d) => totalComptage(compte(d)) + (d === "CDF" ? mBon ?? 0 : 0))} />}</Champ>
-        </div>
-        <table className="grille">
-          <thead><tr><th scope="col">Libelle</th><th scope="col">Nombre</th><th scope="col" className="num">Total</th></tr></thead>
-          <tbody>
-            {DEVISES.flatMap((d) => coupuresDe(d).map((v) => {
-              const libelle = `${libelleCoupure(d, v)} ${d}`;   // registre S79-4 : libellé du type de monnaie (S35)
-              return (
-                <tr key={`${d}-${v}`}>
-                  <td>{libelle}</td>
-                  <td><input className="saisie code court" inputMode="numeric" aria-label={`Nombre : ${libelle}`} value={saisis[d]?.[v] ?? ""} onChange={(e) => changer(d, v, e.target.value)} /></td>
-                  <td className="num chiffres">{montant((compte(d)[v] ?? 0) * v * 100, d)}</td>
-                </tr>
-              );
-            }))}
-          </tbody>
-          <tfoot><tr><td colSpan={2} className="num">Total Montant :</td><td className="num chiffres multi-ligne">{deux((d) => totalComptage(compte(d)))}</td></tr></tfoot>
-        </table>
+        {/* Registre S79-2 et T12 : un tableau par devise, chacun comme la capture p. 91 */}
+        {DEVISES.map((d) => (
+          <fieldset key={d} className="pile cadre-champs" aria-label={`Billetage ${d}`}>
+            <legend>{d}</legend>
+            <div className="grille-cadres quatre">
+              <Champ libelle={`Solde Caisse (${d}) :`}>{(p) => <input {...p} className="saisie montant" readOnly value={montant(totalComptage(theorique[d] ?? {}), d)} />}</Champ>
+              <Champ libelle="Journées:">{(p) => <select {...p} className="saisie code" disabled value={j?.date ?? ""}><option value={j?.date ?? ""}>{j ? fr(j.date) : ""}</option></select>}</Champ>
+              <Champ libelle={`Bon de Caisse (${d})`}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={bonsSaisis[d] ?? ""}
+                onChange={(e) => { setNombres(saisis); setBons({ ...bonsSaisis, [d]: e.target.value }); }} />}</Champ>
+              <Champ libelle={`Total Caisse (${d})`}>{(p) => <input {...p} className="saisie montant" readOnly value={montant(totalComptage(compte(d)) + (bonDe(d) ?? 0), d)} />}</Champ>
+            </div>
+            <table className="grille colonnes-billetage">
+              <thead><tr><th scope="col">Libelle</th><th scope="col">Nombre</th><th scope="col" className="num">Total</th></tr></thead>
+              <tbody>
+                {coupuresDe(d).map((v) => {
+                  const libelle = `${libelleCoupure(d, v)} ${d}`;   // registre S79-4 : libellé du type de monnaie (S35)
+                  return (
+                    <tr key={`${d}-${v}`}>
+                      <td>{libelle}</td>
+                      <td><input className="saisie code court" inputMode="numeric" aria-label={`Nombre : ${libelle}`} value={saisis[d]?.[v] ?? ""} onChange={(e) => changer(d, v, e.target.value)} /></td>
+                      <td className="num chiffres">{montant((compte(d)[v] ?? 0) * v * 100, d)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot><tr><td colSpan={2} className="num">Total Montant :</td><td className="num chiffres">{montant(totalComptage(compte(d)), d)}</td></tr></tfoot>
+            </table>
+          </fieldset>
+        ))}
         <div className="actions-onglets">
           <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
-          <button className="bouton secondaire" type="button" disabled>Terminer</button>
+          {/* Registre S79-1 : Terminer ferme la fenêtre sans rien enregistrer de plus */}
+          <button className="bouton secondaire" type="button" onClick={() => navigate(-1)}>Terminer</button>
         </div>
         <Textes sources={["Manuel Microfina++, p. 90 et 91 : Arretée de, Solde Caisse, Journées, Bon de Caisse, Total Caisse, Libelle, Nombre, Total, Total Montant, Enregistrer, Terminer",
+          "Registre T12 : une case par devise ; le tableau de la capture est repris pour chaque devise que tient le guichet",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "Manuel Microfina++, p. 18 et 19 : ouverture du guichet sans comptage ; Solde Caisse : dernier arrêté validé et opérations de la journée"]} />
       </section>

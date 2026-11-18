@@ -798,7 +798,7 @@ const OUT = process.argv[2];
   }
   await aller('/caisse/s79'); await p.getByRole('heading', { name: /Arretée de : Caisse 2/ }).waitFor();
   for (const dev of ['CDF', 'USD']) for (const [v, n] of stock[dev]) if (n !== '0') await p.getByLabel(`Nombre : Billet de ${v} ${dev}`).fill(n);
-  await p.getByLabel('Bon de Caisse').fill('5 000');
+  await p.getByLabel('Bon de Caisse (CDF)').fill('5 000'); await etape('16a-billetage-saisie');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await etape('15-arrete');
   await aller('/administration/s09'); await p.getByRole('row').filter({ hasText: 'Caisse 2' }).dblclick();

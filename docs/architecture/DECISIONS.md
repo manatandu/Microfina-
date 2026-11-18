@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**420 décisions.** Solidité : 178 fortes (le manuel ou un texte répond), 210 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 392 déjà en place, 25 à appliquer.
+**420 décisions.** Solidité : 178 fortes (le manuel ou un texte répond), 210 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 394 déjà en place, 23 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -347,9 +347,9 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S79-1 | Bouton Terminer | Ferme la fenêtre sans rien enregistrer de plus | Écran voisin : Fenêtre d'ajout de S10 (Ajouter, Fermer), p. 20 | faible | à appliquer |
-| S79-2 | Deux devises | Un tableau par devise, chacun comme la capture (T12) | Texte réglementaire : T12 | forte | à appliquer |
-| S79-3 | Bon de Caisse | Dans la devise de son tableau. Total Caisse = Total Montant + Bon de Caisse | Manuel : Manuel p. 91 (Total Caisse à part du Total Montant), p. 92 (« Bon Caisse » à côté du Total Billetage) | moyenne | en place |
+| S79-1 | Bouton Terminer | Ferme la fenêtre (retour à l'écran précédent) sans rien enregistrer de plus | Écran voisin : Fenêtre d'ajout de S10 (Ajouter, Fermer), p. 20 | faible | en place |
+| S79-2 | Deux devises | Un tableau par devise, chacun comme la capture p. 91 : Solde Caisse, Journées, Bon de Caisse, Total Caisse, grille Libelle / Nombre / Total, Total Montant ; colonnes alignées d'un tableau à l'autre (T12) | Texte réglementaire : T12 | forte | en place |
+| S79-3 | Bon de Caisse | Dans la devise de son tableau : un Bon de Caisse par devise. Total Caisse = Total Montant + Bon de Caisse | Manuel : Manuel p. 91 (Total Caisse à part du Total Montant), p. 92 (« Bon Caisse » à côté du Total Billetage) | moyenne | en place |
 | S79-4 | Billets et pièces | Le libellé « Billet de » ou « Pièce de » vient du type de monnaie de chaque coupure (S35) | Manuel : Capture p. 91 ; S35 (p. 45 et 46) | forte | en place |
 | S79-5 | Devises et monnaies des guichets | Les guichets (billetage, dépôts, retraits, arrêté et fermeture de caisse) lisent les devises et monnaies de S35 : une devise tenue est une devise qui a des monnaies ; libellé « Billet de » ou « Pièce de » du type de monnaie (S79-4) ; coupures en centimes acceptées | Choix du porteur : Demande du porteur, 13/11/2026 ; S35 ; S79-4 | moyenne | en place |
 
@@ -1022,7 +1022,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S51-3 | S51 Rapports client | « Ordonner suivant » | La liste propose les douze critères du rapport, dans l'ordre de la capture ; Secteur d'activité par défaut, comme sur la capture ; à valeur égale, le numéro du client départage |
 | S74-1 | S74 Dépôt et retrait | Bouton Detail | Ouvre le relevé du compte choisi (S64), en lecture seule, du 1er janvier à la journée ouverte : report, mouvements en grille paginée (Date, Pièce, Libellé, Débit, Crédit, Solde), solde final. Aucune édition n'est numérotée. Sans « Voir solde client » (S10-1), le relevé reste masqué |
 | S77-2 | S77 Part sociale | Nombre minimum de parts | Une part. Pas d'autre contrôle : Microfina++ n'en montre pas |
-| S79-1 | S79 Enregistrer billetage | Bouton Terminer | Ferme la fenêtre sans rien enregistrer de plus |
+| S79-1 | S79 Enregistrer billetage | Bouton Terminer | Ferme la fenêtre (retour à l'écran précédent) sans rien enregistrer de plus |
 | S80-4 | S80 Validation billetage | Imprimer, Terminer | Imprimer sort l'arrêté (T11). Terminer ferme la fenêtre |
 | S102-5 | S102 Plan des comptes | Colonnes de la liste après SA (coupées sur la capture p. 146) | Les autres options du formulaire, OUI ou NON : SE, LA, ST, IMMO, CT, CTX |
 | S102-7 | S102 Plan des comptes | Type de suivi | Liste vide, à remplir avec le plan des tiers (S103) |
