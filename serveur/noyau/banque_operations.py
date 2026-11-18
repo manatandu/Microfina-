@@ -63,6 +63,8 @@ def apercu_adhesion(u, tid: int, parts: int | None = None, depot: int = 0) -> di
     if parts is None:
         parts = 1 if est_coopec(u) else 0          # IMF : pas de parts sociales (loi 11/020, art. 14 et 15)
     a = preparer_adhesion(u, {"tiersId": tid, "parts": parts, "depot": depot})
+    if a["produit"]["devise"].strip() != "CDF":
+        raise ErreurMetier("Compte à créer en devise : l'adhésion par banque se fait en CDF ; passer par l'adhésion au guichet.")
     return {"numeroCompte": numero_compte(u, a["t"], a["produit"]), "devise": "CDF", "valeurPart": a["m_parts"] // a["nb"] if a["nb"] else 0,
             "frais": [{"fraisId": f["fraisId"], "libelle": f["libelle"], "compte": f["compte"], "montant": f["montant"]} for f in a["frais"]], "total": a["total"]}
 
@@ -88,6 +90,8 @@ def enregistrer_adhesion(u, d) -> dict:
     if date_op > j["date"]:
         raise ErreurMetier("La date de l'opération ne peut pas dépasser la journée ouverte.")
     a = preparer_adhesion(u, {"tiersId": d.get("tiersId"), "parts": d.get("parts"), "depot": d.get("depot", 0)})
+    if a["produit"]["devise"].strip() != "CDF":          # registre S56-3 : compte bancaire en CDF ; un compte en devise s'ouvre par l'adhésion au guichet (S73-1)
+        raise ErreurMetier("Compte à créer en devise : l'adhésion par banque se fait en CDF ; passer par l'adhésion au guichet.")
     banque = compte_bancaire(u, entier(d, "compteBancaireId"), "Compte Banque")
     if banque["devise"] != "CDF":                         # registre S56-3 : frais et parts en CDF
         raise ErreurMetier("Le compte bancaire doit être en CDF : frais et parts de l'adhésion sont en CDF.")

@@ -69,7 +69,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 68,Clôture d'un compte,épargne,must,no,S70,D,traitement,5 Épargne,S70 : tout l'écran (en panne dans le manuel),"A:S48 (résilier), S71 ; R:Instr. BCC sur les frais (clôture gratuite) ; P",,S70,
 69,Blocage de compte ou de montant avec motif,épargne,must,no,S71,A,liste,5 Épargne,S71 : déblocage,A:S94 (ajout et libération),,S71,
 70,Rapports épargne dont comptes inactifs et dormants,épargne,should,no,S72,B,rapport,5 Épargne,S72 : forme des résultats,A:S13,,S72,
-71,Adhésion au guichet,caisse,must,partial,S73,A,guichet,6 Caisse,,,,,S73-1 Adhésion et compte en USD
+71,Adhésion au guichet,caisse,must,yes,S73,A,guichet,6 Caisse,,,,,
 72,Dépôt et retrait au guichet,caisse,must,yes,S74,B,guichet,6 Caisse,"S74 : fenêtres Billetage, Detail, photo et signature ; reçu",A:S79 (billetage) ; document,,,
 73,Montant en lettres,caisse,must,partial,S74 S81,B,guichet,6 Caisse,"S74 : fenêtres Billetage, Detail, photo et signature ; reçu",A:S79 (billetage) ; document ; R:PCCI (mouvements de fonds),,S81,
 74,Mandataire au retrait,caisse,must,yes,S74,B,guichet,6 Caisse,"S74 : fenêtres Billetage, Detail, photo et signature ; reçu",A:S79 (billetage) ; document,,,

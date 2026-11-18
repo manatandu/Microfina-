@@ -370,6 +370,19 @@ describe("journée de guichet", () => {
     await expect(ret()).rejects.toThrow("Opérer sur compte = Non");
   });
 
+  it("adhésion avec un compte en USD (registre S73-1) : frais et parts en CDF, premier dépôt en USD, un billetage par devise", async () => {
+    await journeeOuverte(); await connecter("bkasongo");
+    const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), ...IDENTITE, produitCode: "EAV-USD", nom: "Kabongo", prenom: "Ruth", pieceType: "Passeport", pieceNumero: "OP-300001", pieceExpire: "2031-01-01", adresse: "Matete" });
+    await connecter("jpmukendi"); await api.tiers.viser(t.id);
+    await connecter("engalula");
+    const corps = { cle: cle(), tiersId: t.id, parts: 1, depot: 10000, coupures: { 1000: 4 } };
+    await expect(api.guichet.adhesion(corps)).rejects.toThrow("billetage");
+    const o = await api.guichet.adhesion({ ...corps, coupuresDepot: { 100: 1 } });
+    expect([o.devise, o.montant]).toEqual(["CDF", 400000]);
+    expect((await api.tiers.comptes(t.id)).map((c) => [c.devise, c.solde])).toEqual([["USD", 10000]]);
+    expect(await api.tiers.parts(t.id)).toBe(1);
+  });
+
   it("convention de compte (écart E04) et admission par le Conseil d'Administration (écart E05)", async () => {
     await connecter("bkasongo");
     const cv = await api.comptesEpargne.convention(2);

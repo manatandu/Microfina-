@@ -1732,8 +1732,6 @@ def preparer_adhesion(u: dict, p: dict) -> dict:
         raise ErreurMetier("Ce membre a déjà adhéré.")
     produit = une("select * from produit_epargne where id = %s", (t["produit_id"],)) if t["produit_id"] else \
         une("select * from produit_epargne where institution_id = %s and famille = 'EPARGNE' and devise = 'CDF' and actif and not supprime order by version desc limit 1", (u["institution_id"],))
-    if produit["devise"].strip() != "CDF":
-        raise ErreurMetier("Compte à créer en USD : l'adhésion en deux devises (frais et parts en CDF) est à confirmer avec le porteur.")
     nb = p.get("parts")
     if not est_coopec(u):
         if nb not in (None, 0):
@@ -1755,36 +1753,53 @@ def preparer_adhesion(u: dict, p: dict) -> dict:
 
 def adhesion(u: dict, p: dict) -> dict:
     """S73 : Caisse > Opération > Adhésion (manuel p. 85 et 89) : compte épargne du type choisi à l'enrôlement, premier dépôt,
-    Liste des Frais (frais d'adhésion S16/S41 et parts sociales), billetage. Loi 002/2002, art. 21 et 22 ; PCCI, comptes 103 et 330."""
+    Liste des Frais (frais d'adhésion S16/S41 et parts sociales), billetage. Loi 002/2002, art. 21 et 22 ; PCCI, comptes 103 et 330.
+    Registre S73-1 : frais et parts en CDF ; le premier dépôt dans la devise du compte choisi ; un billetage par devise (T12)."""
     prec = operation_par_cle(p["cle"])
     if prec and prec["statut"] == "validee":
         return vue_operation(prec)
     s = session_ouverte(u, "CDF")
     a = preparer_adhesion(u, p)
     tid, t, produit, nb, m_depot, frais, m_parts, total = (a[k] for k in ("tid", "t", "produit", "nb", "m_depot", "frais", "m_parts", "total"))
+    dev = produit["devise"].strip()
+    m_cdf = total if dev == "CDF" else total - m_depot         # ce qui se paie en CDF : tout, ou frais et parts seulement
     coupures = nettoyer(p["coupures"])
-    controler_montant_coupures(coupures, total, "CDF")
+    if m_cdf or dev == "CDF":
+        controler_montant_coupures(coupures, m_cdf, "CDF")
+    coupures_depot = nettoyer(p.get("coupuresDepot") or {}) if dev != "CDF" else {}
+    if dev != "CDF" and m_depot:
+        controler_montant_coupures(coupures_depot, m_depot, dev)
     from . import conformite
-    examen = conformite.autorisation(u, tid, s["journeeId"], "adhesion", total, "CDF")   # écart E01 : examen renforcé
+    examen = conformite.autorisation(u, tid, s["journeeId"], "adhesion", m_cdf, "CDF") if m_cdf else None   # écart E01 : examen renforcé
+    examen_depot = conformite.autorisation(u, tid, s["journeeId"], "depot", m_depot, dev) if dev != "CDF" and m_depot else None
     j = une("select date_comptable from journee_comptable where id = %s", (s["journeeId"],))
     c = valeur("""insert into compte_depot (institution_id, agence_id, tiers_id, produit_id, numero, devise, statut, ouvert_le)
-                  values (%s, %s, %s, %s, %s, 'CDF', 'ouvert', %s) returning id""",
-               (u["institution_id"], t["agence_id"], tid, produit["id"], numero_compte(u, t, produit), j["date_comptable"]))
-    l = [{"compte": "570", "contrat": f"guichet:{s['guichetId']}", "sens": "D", "devise": "CDF", "montant": total}]
+                  values (%s, %s, %s, %s, %s, %s, 'ouvert', %s) returning id""",
+               (u["institution_id"], t["agence_id"], tid, produit["id"], numero_compte(u, t, produit), dev, j["date_comptable"]))
+    l = [{"compte": "570", "contrat": f"guichet:{s['guichetId']}", "sens": "D", "devise": "CDF", "montant": m_cdf}] if m_cdf else []
     if m_parts:                       # COOPEC seulement (loi 002/2002) ; une IMF n'a pas de parts sociales (loi 11/020, art. 14 et 15)
         l.append({"compte": compte_parts(t), "contrat": f"parts:{tid}", "sens": "C", "devise": "CDF", "montant": m_parts})
-    if m_depot > 0:
-        l.append({"compte": compte_du_produit(produit), "contrat": f"depot:{c}", "sens": "C", "devise": "CDF", "montant": m_depot})
     for f in frais:
         l.append({"compte": f["compte"], "contrat": f"frais:{f['fraisId']}", "sens": "C", "devise": "CDF", "montant": f["montant"]})
+    if m_depot > 0:
+        if dev != "CDF":
+            l.append({"compte": "570", "contrat": f"guichet:{s['guichetId']}", "sens": "D", "devise": dev, "montant": m_depot})
+        l.append({"compte": compte_du_produit(produit), "contrat": f"depot:{c}", "sens": "C", "devise": dev, "montant": m_depot})
     eid = poster(u, journal="CA", journee_id=s["journeeId"], libelle=f"Adhésion {t['numero']}", piece=nouvelle_piece(u, "CA", j["date_comptable"]),
                  evenement="adhesion", cle=p["cle"], valide_par=u["id"], lignes_ecr=l)
     if nb:
         executer("insert into mouvement_parts (tiers_id, sens, nombre, valeur_unitaire, devise, ecriture_id) values (%s, 'achat', %s, %s, 'CDF', %s)", (tid, nb, valeur_part(u["institution_id"]), eid))
-    oid = creer_operation(u, s, cle=p["cle"], type_="adhesion", statut="validee", tiers_id=tid, contrat=f"depot:{c}", montant=total,
-                          devise="CDF", coupures=coupures, remis_par=titulaire(tid), parts=nb or None, ecriture_id=eid)
-    conformite.lier(examen, oid)
-    return avec_avertissement(vue_operation(une("select * from operation where id = %s", (oid,))), s, "CDF")   # registre S08-4
+    oid = None
+    if m_cdf or dev == "CDF":
+        oid = creer_operation(u, s, cle=p["cle"], type_="adhesion", statut="validee", tiers_id=tid, contrat=f"depot:{c}", montant=m_cdf,
+                              devise="CDF", coupures=coupures, remis_par=titulaire(tid), parts=nb or None, ecriture_id=eid)
+        conformite.lier(examen, oid)
+    if dev != "CDF" and m_depot:      # le premier dépôt en devise : son propre mouvement de caisse, pour le stock de coupures de la devise
+        od = creer_operation(u, s, cle=str(uuid.uuid5(uuid.UUID(p["cle"]), "depot")), type_="depot", statut="validee", tiers_id=tid, contrat=f"depot:{c}",
+                             montant=m_depot, devise=dev, coupures=coupures_depot, remis_par=titulaire(tid), ecriture_id=eid)
+        conformite.lier(examen_depot, od)
+        oid = oid or od
+    return avec_avertissement(vue_operation(une("select * from operation where id = %s", (oid,))), s, "CDF" if m_cdf or dev == "CDF" else dev)   # registre S08-4
 
 
 def operation_parts(u: dict, p: dict) -> dict:

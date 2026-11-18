@@ -1410,7 +1410,7 @@ function preparerAdhesion(p: { tiersId: number; parts: number; depot: number }) 
   if (E.institution.profil === "entreprise_microcredit") throw new ErreurMetier("Une entreprise de micro-crédit ne collecte pas l'épargne du public (loi 11/020, art. 12) : pas d'adhésion avec compte épargne.");
   if (E.comptes.some((c) => c.tiersId === t.id)) throw new ErreurMetier("Ce membre a déjà adhéré.");
   const produit = E.produits.find((x) => x.code === t.produitCode) ?? E.produits.find((x) => x.devise === "CDF")!;
-  if (produit.devise !== "CDF") throw new ErreurMetier("Compte à créer en USD : l'adhésion en deux devises (frais et parts en CDF) est à confirmer avec le porteur.");
+  if (produit.devise !== "CDF") throw new ErreurMetier("Compte à créer en devise : l'adhésion par banque se fait en CDF ; passer par l'adhésion au guichet.");   // registre S56-3, S73-1
   if (!estCoopec()) { if (p.parts) exigerPartsSociales(); p = { ...p, parts: 0 }; }
   else if (!Number.isInteger(p.parts) || p.parts < 1) throw new ErreurMetier("Au moins une part sociale, payée en entier (loi 002/2002, art. 21 et 22).");
   if (!Number.isInteger(p.depot) || p.depot < 0) throw new ErreurMetier("Premier dépôt invalide.");
@@ -2033,7 +2033,7 @@ const guichet = {
 
   /** S73 : Caisse > Opération > Adhésion (p. 85 et 89) : compte du type choisi à l'enrôlement, premier dépôt, frais d'adhésion (S16/S41), parts.
    *  Règles identiques côté serveur (services.adhesion). */
-  adhesion(p: Commun & { tiersId: number; parts: number; depot: number }) {
+  adhesion(p: Commun & { tiersId: number; parts: number; depot: number; coupuresDepot?: Comptage }) {
     const prec = dejaFaite(p.cle); if (prec) return prec;
     const { u, s } = sessionOuverte("CDF");
     const t = E.tiers.find((x) => x.id === p.tiersId);
@@ -2042,24 +2042,38 @@ const guichet = {
     if (E.institution.profil === "entreprise_microcredit") throw new ErreurMetier("Une entreprise de micro-crédit ne collecte pas l'épargne du public (loi 11/020, art. 12) : pas d'adhésion avec compte épargne.");
     if (E.comptes.some((c) => c.tiersId === t.id)) throw new ErreurMetier("Ce membre a déjà adhéré.");
     const produit = E.produits.find((x) => x.code === t.produitCode) ?? E.produits.find((x) => x.devise === "CDF")!;
-    if (produit.devise !== "CDF") throw new ErreurMetier("Compte à créer en USD : l'adhésion en deux devises (frais et parts en CDF) est à confirmer avec le porteur.");
     if (!estCoopec()) { if (p.parts) exigerPartsSociales(); p = { ...p, parts: 0 }; }
     else if (!Number.isInteger(p.parts) || p.parts < 1) throw new ErreurMetier("Au moins une part sociale, payée en entier (loi 002/2002, art. 21 et 22).");
     if (!Number.isInteger(p.depot) || p.depot < 0) throw new ErreurMetier("Premier dépôt invalide.");
     const frais = parametrage.fraisLies(t.id).filter((f) => f.montant && !f.part);   // la ligne de part se paie par nombre de parts (registre S16-11)
     for (const f of frais) if (!f.compte || !planComptable().includes(f.compte)) throw new ErreurMetier(`Frais « ${f.libelle} » : compte absent du plan comptable, à paramétrer (Paramétrage > Frais et opérations).`);
-    const mParts = p.parts * valeurPart(), total = mParts + p.depot + frais.reduce((x, f) => x + (f.montant ?? 0), 0);
-    controlerCoupures(p.coupures, total, "CDF");
-    const examen = autorisationExamen(t.id, s.journeeId, "adhesion", total, "CDF");   // écart E01 : examen renforcé
-    const cCdf: CompteDepot = { id: E.comptes.length + 1, tiersId: t.id, numero: numeroCompte(t.numero, produit), intitule: produit.libelle, pcci: compteDuProduit(produit), devise: "CDF", bloque: 0, produitId: produit.id, ouvertLe: dateJournee(s.journeeId) };   // S27-2, S28-2
-    E.comptes.push(cCdf);
-    const lignes: Ligne[] = [{ compte: "570", contrat: guichetDe(s), sens: "D", devise: "CDF", montant: total, montantCdf: total }];
+    // Registre S73-1 : frais et parts en CDF ; premier dépôt dans la devise du compte ; un billetage par devise (T12). Identique au serveur (services.adhesion).
+    const dev = produit.devise, mParts = p.parts * valeurPart(), total = mParts + p.depot + frais.reduce((x, f) => x + (f.montant ?? 0), 0);
+    const mCdf = dev === "CDF" ? total : total - p.depot;
+    if (mCdf || dev === "CDF") controlerCoupures(p.coupures, mCdf, "CDF");
+    if (dev !== "CDF" && p.depot) controlerCoupures(p.coupuresDepot ?? {}, p.depot, dev);
+    const examen = mCdf ? autorisationExamen(t.id, s.journeeId, "adhesion", mCdf, "CDF") : null;   // écart E01 : examen renforcé
+    const examenDepot = dev !== "CDF" && p.depot ? autorisationExamen(t.id, s.journeeId, "depot", p.depot, dev) : null;
+    const cpt: CompteDepot = { id: E.comptes.length + 1, tiersId: t.id, numero: numeroCompte(t.numero, produit), intitule: produit.libelle, pcci: compteDuProduit(produit), devise: dev, bloque: 0, produitId: produit.id, ouvertLe: dateJournee(s.journeeId) };   // S27-2, S28-2
+    E.comptes.push(cpt);
+    const lignes: Ligne[] = mCdf ? [{ compte: "570", contrat: guichetDe(s), sens: "D", devise: "CDF", montant: mCdf, montantCdf: mCdf }] : [];
     if (mParts) lignes.push({ compte: compteParts(t), contrat: `parts:${t.id}`, sens: "C", devise: "CDF", montant: mParts, montantCdf: mParts });   // COOPEC seulement
-    if (p.depot > 0) lignes.push({ compte: cCdf.pcci, contrat: `depot:${cCdf.id}`, sens: "C", devise: "CDF", montant: p.depot, montantCdf: p.depot });
     for (const f of frais) lignes.push({ compte: f.compte!, contrat: `frais:${f.fraisId}`, sens: "C", devise: "CDF", montant: f.montant!, montantCdf: f.montant! });
+    if (p.depot > 0) {
+      if (dev !== "CDF") lignes.push({ compte: "570", contrat: guichetDe(s), sens: "D", devise: dev, montant: p.depot, montantCdf: cdf(p.depot, dev) });
+      lignes.push({ compte: cpt.pcci, contrat: `depot:${cpt.id}`, sens: "C", devise: dev, montant: p.depot, montantCdf: cdf(p.depot, dev) });
+    }
     const e = poster({ journal: "CA", journeeId: s.journeeId, libelle: `Adhésion ${t.numero}`, piece: piece(), saisiPar: u.id, validePar: u.id, lignes });
-    const o: Operation = { id: prochain(E.operations), cle: p.cle, type: "adhesion", statut: "validee", sessionId: s.id, tiersId: t.id, compteId: cCdf.id, montant: total, devise: "CDF", ...(p.parts ? { parts: p.parts } : {}), coupures: nettoyer(p.coupures), remisPar: titulaire(t), saisiPar: u.id, ecritureId: e.id, heure: heure() };
-    E.operations.push(o); lierExamen(examen, o.id); enregistrer(); return avecAvertissement(o, s, "CDF");   // registre S08-4
+    let o: Operation | undefined;
+    if (mCdf || dev === "CDF") {
+      o = { id: prochain(E.operations), cle: p.cle, type: "adhesion", statut: "validee", sessionId: s.id, tiersId: t.id, compteId: cpt.id, montant: mCdf, devise: "CDF", ...(p.parts ? { parts: p.parts } : {}), coupures: nettoyer(p.coupures), remisPar: titulaire(t), saisiPar: u.id, ecritureId: e.id, heure: heure() };
+      E.operations.push(o); lierExamen(examen, o.id);
+    }
+    if (dev !== "CDF" && p.depot) {   // le premier dépôt en devise : son propre mouvement de caisse, pour le stock de coupures de la devise
+      const od: Operation = { id: prochain(E.operations), cle: `${p.cle}:depot`, type: "depot", statut: "validee", sessionId: s.id, tiersId: t.id, compteId: cpt.id, montant: p.depot, devise: dev, coupures: nettoyer(p.coupuresDepot ?? {}), remisPar: titulaire(t), saisiPar: u.id, ecritureId: e.id, heure: heure() };
+      E.operations.push(od); lierExamen(examenDepot, od.id); o ??= od;
+    }
+    enregistrer(); return avecAvertissement(o!, s, o!.devise);   // registre S08-4
   },
   /** S77 : Part sociale (Achat/Retrait) (p. 88 et 89). Loi 002/2002, art. 21, 22 et 27 ; PCCI, compte 103.
    *  Règles identiques côté serveur (services.operation_parts). */

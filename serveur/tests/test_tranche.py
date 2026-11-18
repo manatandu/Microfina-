@@ -2326,6 +2326,21 @@ def test_options_du_produit_au_guichet(clients, journee):
     assert "Opérer sur compte = Non" in ret().json()["message"]
 
 
+def test_adhesion_compte_en_usd(clients, journee):
+    """Registre S73-1 : frais et parts en CDF, premier dépôt dans la devise du compte, un billetage par devise (T12)"""
+    caisse, chef, agent = clients["caisse"], clients["chef"], clients["agent"]
+    t = agent.post("/api/tiers", {**FICHE, "produitCode": "EAV-USD", "nom": "Kabongo", "prenom": "Ruth", "pieceType": "Passeport", "pieceNumero": "OP-300001",
+                                  "pieceExpire": "2031-01-01", "adresse": "Matete"}, **H).json()
+    assert chef.post(f"/api/tiers/{t['id']}/visa", **H).status_code == 200
+    corps = {"cle": cle(), "tiersId": t["id"], "parts": 1, "depot": 10000, "coupures": {"1000": 4}}
+    assert "billetage" in caisse.post("/api/guichet/adhesions", corps, **H).json()["message"]          # 100 USD sans billetage en USD
+    o = caisse.post("/api/guichet/adhesions", {**corps, "coupuresDepot": {"100": 1}}, **H).json()
+    assert (o["devise"], o["montant"]) == ("CDF", 400000)
+    assert [(c["devise"], c["solde"]) for c in caisse.get(f"/api/tiers/{t['id']}/comptes").json()] == [("USD", 10000)]
+    assert caisse.get(f"/api/tiers/{t['id']}/parts").json() == 1
+    assert ident("select count(*) from operation where tiers_id = %s and type = 'depot' and trim(devise) = 'USD' and montant = 10000", (t["id"],)) == 1
+
+
 def test_convention_et_admission(clients, journee):
     """Écart E04 : convention de compte (loi 22/069, titre III) ; écart E05 : admission par le Conseil d'Administration (loi 002/2002, art. 22, 6°)"""
     from noyau.bd import executer

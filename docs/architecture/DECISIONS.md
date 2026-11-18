@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**420 décisions.** Solidité : 176 fortes (le manuel ou un texte répond), 211 moyennes (déduites d'un écran voisin ou d'une donnée), 33 faibles (notre choix, faute de mieux). Dans le code : 391 déjà en place, 26 à appliquer.
+**420 décisions.** Solidité : 176 fortes (le manuel ou un texte répond), 211 moyennes (déduites d'un écran voisin ou d'une donnée), 33 faibles (notre choix, faute de mieux). Dans le code : 392 déjà en place, 25 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -325,7 +325,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S73-1 | Adhésion et compte en USD | Frais et parts en CDF. Le premier dépôt se fait dans la devise du compte choisi. Un billetage par devise (T12) | Texte réglementaire : T12 ; PCCI § 3.2 | moyenne | à appliquer |
+| S73-1 | Adhésion et compte en USD | Frais et parts en CDF. Le premier dépôt se fait dans la devise du compte choisi. Un billetage par devise (T12). Pour un compte en devise : une seule écriture, équilibrée dans chaque devise ; deux mouvements de caisse (l'adhésion en CDF, le premier dépôt en devise) pour que le stock de coupures de chaque devise reste juste ; l'écran montre le total CDF, le total en devise et deux billetages. L'adhésion par banque (S56) reste en CDF : un compte en devise passe par le guichet | Texte réglementaire : T12 ; PCCI § 3.2 | moyenne | en place |
 
 ## S74 Dépôt et retrait
 
