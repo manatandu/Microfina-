@@ -27,7 +27,7 @@ def generer(u, d) -> dict:
         return vue(prec)
     i = u["institution_id"]
     bid = d.get("compteBancaireId")
-    b = une("select id from compte_bancaire where id = %s and institution_id = %s", (bid, i)) if isinstance(bid, int) and not isinstance(bid, bool) else None
+    b = une("select id from compte_bancaire where id = %s and institution_id = %s and supprime_le is null", (bid, i)) if isinstance(bid, int) and not isinstance(bid, bool) else None
     if not b:
         raise ErreurMetier("À remplir : compte.")
     nb = d.get("nbFeuillets")
@@ -63,7 +63,7 @@ def vue(c: dict) -> dict:
 def disponibles(institution_id: int) -> list[dict]:
     """Chèques de l'institution pas encore utilisés, pour la liste « N° de chèque » de S52"""
     return lignes("""select q.id, q.compte_bancaire_id as "compteBancaireId", q.numero from cheque_institution q join compte_bancaire b on b.id = q.compte_bancaire_id
-                     where b.institution_id = %s and q.statut = 'disponible' order by q.compte_bancaire_id, q.numero""", (institution_id,))
+                     where b.institution_id = %s and b.supprime_le is null and q.statut = 'disponible' order by q.compte_bancaire_id, q.numero""", (institution_id,))
 
 
 def utiliser(compte_bancaire_id: int, numero: str, operation_id: int):

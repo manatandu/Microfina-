@@ -141,7 +141,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 140,Export des grilles vers Excel,général,must,yes,,A,,"0 Reprises, puis chaque liste et chaque rapport",,,T04,,
 141,Grilles paginées avec filtres par colonne,général,must,yes,,A,,"0 Reprises, puis chaque liste et chaque rapport",,,T04,,
 142,Boîtes de confirmation oui ou non,général,must,yes,,A,,Fait à chaque écran,,,T06,,
-143,Modifier et supprimer depuis une grille,général,must,partial,,A,,"0 Reprises, puis chaque liste",,,T01 T02,,T01 Modifier une ligne ; T02 Supprimer une ligne
+143,Modifier et supprimer depuis une grille,général,must,yes,,A,,"0 Reprises, puis chaque liste",,,T01 T02,,
 144,Référentiel comptable des SFD de l'UEMOA,général,skip,skip,,A,,Non repris,Remplacé par le PCCI,,,,
 145,GRH,modules,skip,skip,,A,,Non repris,Hors périmètre (manuel p. 166 à 268),,,,
 146,Stocks,modules,skip,skip,,A,,Non repris,Hors périmètre (manuel p. 289 à 305),,,,

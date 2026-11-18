@@ -625,6 +625,12 @@ def test_type_procuration(clients):
     assert [x["libelle"] for x in agent.get("/api/types-procuration").json()] == ["Procuration générale"]
     assert agent.delete(f"/api/types-procuration/{t['id']}", **H).status_code == 200
     assert agent.get("/api/types-procuration").json() == []
+    # Registre T02 (manuel p. 12) : suppression logique ; la ligne reste en base, datée et signée ; le libellé peut être repris
+    from noyau.bd import une
+    r = une("select supprime_le, supprime_par from type_procuration where id = %s", (t["id"],))
+    assert r and r["supprime_le"] is not None and r["supprime_par"] is not None
+    assert agent.post("/api/types-procuration", {"libelle": "Procuration générale"}, **H).status_code == 200
+    assert agent.delete(f"/api/types-procuration/{t['id']}", **H).status_code == 422   # une ligne supprimée ne se supprime pas deux fois
 
 
 def test_motif_depart(clients):

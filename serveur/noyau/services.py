@@ -185,7 +185,7 @@ def controler_collecte_epargne(u: dict, famille: str):
 def valeur_part(institution_id: int) -> int:
     """Valeur nominale de la part, celle des statuts (loi 002/2002, art. 20) : la ligne de part des frais d'adhésion (registre S16-11, capture p. 89)"""
     v = valeur("""select p.valeur from parametrage_frais_adhesion p join frais f on f.id = p.frais_id
-                  where f.institution_id = %s and p.compte like '103%%' and p.valeur > 0 order by p.id limit 1""", (institution_id,))
+                  where f.institution_id = %s and p.supprime_le is null and f.supprime_le is null and p.compte like '103%%' and p.valeur > 0 order by p.id limit 1""", (institution_id,))
     if not v:
         raise ErreurMetier(MSG_PART)
     return int(v)

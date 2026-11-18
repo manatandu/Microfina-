@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v78";
+const CLE = "likelemba-demo-v79";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -36,6 +36,8 @@ function enregistrer() {
   try { localStorage.setItem(CLE, JSON.stringify(E)); } catch { /* sans stockage, la démonstration reste en mémoire */ }
   abonnes.forEach((f) => f());
 }
+/** Registre T02 (manuel p. 12) : « Les suppressions sont généralement logiques » ; la ligne quitte les listes mais reste dans les données, datée et signée */
+function archiver(table: string, ligne: unknown) { E.supprimes.push({ table, ligne, le: new Date().toISOString(), par: E.session }); }
 export function abonner(f: () => void) { abonnes.add(f); return () => { abonnes.delete(f); }; }
 export function reinitialiser() { E = graine(); enregistrer(); }
 /** Pour les tests */
@@ -44,6 +46,9 @@ export function _remplacer(e: Etat) { E = e; }
 
 const heure = () => new Date().toTimeString().slice(0, 5);
 const prochain = (l: { id: number }[]) => l.reduce((m, x) => Math.max(m, x.id), 0) + 1;
+/** Numéro suivant d'une table à suppression logique : les lignes supprimées gardent leur numéro, jamais repris (comme la séquence du serveur) */
+const prochainSans = (table: string, l: { id: number }[]) =>
+  Math.max(prochain(l), ...E.supprimes.filter((s) => s.table === table).map((s) => ((s.ligne as { id?: number })?.id ?? 0) + 1));
 
 // ---------- Session ----------
 function utilisateur(): Utilisateur | null { return E.utilisateurs.find((u) => u.id === E.session) ?? null; }
@@ -854,7 +859,7 @@ const parametrage = {
     droitParametrage();
     const c = controlerFrais(d);
     if (E.frais.some((x) => x.typeOperation === c.typeOperation && x.libelle === c.libelle)) throw new ErreurMetier("Ce frais existe déjà.");
-    const f = { id: prochain(E.frais), ...c };
+    const f = { id: prochainSans("frais", E.frais), ...c };
     E.frais.push(f); enregistrer(); return f;
   },
   modifierFrais(id: number, d: SaisieFrais): Frais {
@@ -868,7 +873,7 @@ const parametrage = {
     droitParametrage();
     fraisDe(id);
     if ([...E.paramOperations, ...E.paramAdhesion].some((x) => x.fraisId === id)) throw new ErreurMetier("Ce frais est paramétré : supprimer d'abord son paramétrage.");
-    E.frais = E.frais.filter((x) => x.id !== id); E.fraisClient = E.fraisClient.filter((x) => x.fraisId !== id); enregistrer();
+    archiver("frais", fraisDe(id)); E.frais = E.frais.filter((x) => x.id !== id); enregistrer();
   },
   parametrerOperation(d: ValeursFrais & { fraisId: number; sousTypes: string[] }) {
     droitParametrage();
@@ -880,7 +885,7 @@ const parametrage = {
       if (!sousTypes().includes(s)) throw new ErreurMetier("Sous type client inconnu.");
       if (E.paramOperations.some((x) => x.fraisId === f.id && x.sousType === s)) throw new ErreurMetier(`Déjà paramétré pour « ${s} » : passer par Modif Paramétrage frais.`);
     }
-    const ids = d.sousTypes.map((sousType) => { const id = prochain(E.paramOperations); E.paramOperations.push({ id, fraisId: f.id, sousType, ...v }); return id; });
+    const ids = d.sousTypes.map((sousType) => { const id = prochainSans("parametrage_frais", E.paramOperations); E.paramOperations.push({ id, fraisId: f.id, sousType, ...v }); return id; });
     enregistrer(); return ids;
   },
   parametrerAdhesion(d: ValeursFrais & { fraisId: number; typesMembre: string[] }) {
@@ -894,7 +899,7 @@ const parametrage = {
     for (const t of d.typesMembre) {
       if (E.paramAdhesion.some((x) => x.fraisId === f.id && x.typeMembre === t)) throw new ErreurMetier(`Déjà paramétré pour « ${t} » : passer par Modif Paramétrage frais Adhésion.`);
     }
-    const ids = d.typesMembre.map((typeMembre) => { const id = prochain(E.paramAdhesion); E.paramAdhesion.push({ id, fraisId: f.id, typeMembre, ...v }); return id; });
+    const ids = d.typesMembre.map((typeMembre) => { const id = prochainSans("parametrage_frais_adhesion", E.paramAdhesion); E.paramAdhesion.push({ id, fraisId: f.id, typeMembre, ...v }); return id; });
     enregistrer(); return ids;
   },
   modifierParametrage(genre: "operation" | "adhesion", id: number, d: ValeursFrais) {
@@ -915,7 +920,7 @@ const parametrage = {
   },
   supprimerParametrage(genre: "operation" | "adhesion", id: number) {
     droitParametrage();
-    ligneParam(genre === "operation" ? E.paramOperations : E.paramAdhesion, id);
+    archiver(genre === "operation" ? "parametrage_frais" : "parametrage_frais_adhesion", ligneParam(genre === "operation" ? E.paramOperations : E.paramAdhesion, id));
     if (genre === "operation") E.paramOperations = E.paramOperations.filter((x) => x.id !== id);
     else E.paramAdhesion = E.paramAdhesion.filter((x) => x.id !== id);
     enregistrer();
@@ -985,7 +990,7 @@ const groupes = {
     exiger();
     let v = controlerGroupeSolidaire(d);
     if (v.code === apercuNumeroClient()) v = controlerGroupeSolidaire({ code: numeroClient(), nom: v.nom });   // le compteur S15 avance (registre S44-2)
-    const g = { id: prochain(E.groupesSolidaires), ...v };
+    const g = { id: prochainSans("groupe_solidaire", E.groupesSolidaires), ...v };
     E.groupesSolidaires.push(g); enregistrer(); return g;
   },
   modifier(id: number, d: { code: string; nom: string }) {
@@ -997,7 +1002,7 @@ const groupes = {
     exiger();
     groupeDe(id);
     if (E.membresGroupes.some((m) => m.groupeId === id)) throw new ErreurMetier("Ce groupe a des membres : les retirer d'abord.");
-    E.groupesSolidaires = E.groupesSolidaires.filter((g) => g.id !== id); enregistrer();
+    archiver("groupe_solidaire", groupeDe(id)); E.groupesSolidaires = E.groupesSolidaires.filter((g) => g.id !== id); enregistrer();
   },
   affecter(id: number, tiersIds: number[]) {
     exiger();
@@ -1030,13 +1035,13 @@ const procurations = {
     const l = d.libelle.trim();
     if (!l) throw new ErreurMetier("À remplir : libellé.");
     if (E.typesProcuration.some((x) => x.libelle.toLowerCase() === l.toLowerCase())) throw new ErreurMetier("Ce type de procuration existe déjà.");
-    const t = { id: prochain(E.typesProcuration), libelle: l };
+    const t = { id: prochainSans("type_procuration", E.typesProcuration), libelle: l };
     E.typesProcuration.push(t); enregistrer(); return t;
   },
   supprimer(id: number) {
     exiger();
     if (!E.typesProcuration.some((x) => x.id === id)) throw new ErreurMetier("Type de procuration introuvable.");
-    E.typesProcuration = E.typesProcuration.filter((x) => x.id !== id); enregistrer();
+    archiver("type_procuration", E.typesProcuration.find((x) => x.id === id)); E.typesProcuration = E.typesProcuration.filter((x) => x.id !== id); enregistrer();
   },
 };
 
@@ -1874,14 +1879,14 @@ const banques = {
     if (!/^\d+$/.test(v.compteLiaison)) throw new ErreurMetier("Compte liaison : chiffres seulement.");
     controlerCompteDuPlan(v.compteLiaison, "Compte liaison");   // registre S58-1 (T16)
     if (E.banques.some((b) => b.code === v.code && b.id !== id)) throw new ErreurMetier("Ce code banque existe déjà.");
-    if (id === undefined) E.banques.push({ id: prochain(E.banques), ...v }); else Object.assign(E.banques.find((b) => b.id === id)!, v);
+    if (id === undefined) E.banques.push({ id: prochainSans("banque", E.banques), ...v }); else Object.assign(E.banques.find((b) => b.id === id)!, v);
     enregistrer(); return banques.lire();
   },
   supprimerBanque(id: number) {
     exiger("chef_agence");
     if (!E.banques.some((b) => b.id === id)) throw new ErreurMetier("Banque introuvable.");
     if (E.comptesBancaires.some((c) => c.banqueId === id)) throw new ErreurMetier("Cette banque a des comptes de l'institution : les supprimer d'abord.");
-    E.banques = E.banques.filter((b) => b.id !== id); enregistrer(); return banques.lire();
+    archiver("banque", E.banques.find((b) => b.id === id)); E.banques = E.banques.filter((b) => b.id !== id); enregistrer(); return banques.lire();
   },
   enregistrerCompte(d: SaisieCompteBancaire, id?: number) {
     exiger("chef_agence");
@@ -1903,7 +1908,7 @@ const banques = {
     if (actuel && actuel.compte !== v.compte && E.ecritures.some((e) => e.lignes.some((l) => l.compte === actuel.compte))) throw new ErreurMetier("Ce compte a des écritures : son numéro comptable ne change plus.");
     const c = { banqueId: banque!.id, ...v, devise: v.devise as Devise, libelle: `${banque!.libelle} ${v.devise}`, journalId: d.journalId,
       contactNomComplet: d.contactNomComplet.trim(), contactTelephone: d.contactTelephone.trim(), comptePenalite, contactAdresse: (d.contactAdresse ?? "").trim() };
-    if (actuel) Object.assign(actuel, c); else E.comptesBancaires.push({ id: prochain(E.comptesBancaires), ...c });
+    if (actuel) Object.assign(actuel, c); else E.comptesBancaires.push({ id: prochainSans("compte_bancaire", E.comptesBancaires), ...c });
     enregistrer(); return banques.lire();
   },
   supprimerCompte(id: number) {
@@ -1911,7 +1916,7 @@ const banques = {
     const c = E.comptesBancaires.find((x) => x.id === id);
     if (!c) throw new ErreurMetier("Compte bancaire introuvable.");
     if (E.ecritures.some((e) => e.lignes.some((l) => l.compte === c.compte))) throw new ErreurMetier("Ce compte a des écritures : il ne se supprime pas.");
-    E.comptesBancaires = E.comptesBancaires.filter((x) => x.id !== id); enregistrer(); return banques.lire();
+    archiver("compte_bancaire", c); E.comptesBancaires = E.comptesBancaires.filter((x) => x.id !== id); enregistrer(); return banques.lire();
   },
 };
 

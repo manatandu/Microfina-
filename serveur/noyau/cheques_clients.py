@@ -62,7 +62,7 @@ def deposer(u, d) -> dict:
     if not isinstance(montant, int) or isinstance(montant, bool) or montant <= 0:
         raise ErreurMetier("Montant : un montant supérieur à zéro.")
     bid = d.get("compteBancaireId")
-    b = une("select id, trim(devise) as devise from compte_bancaire where id = %s and institution_id = %s", (bid, i)) if isinstance(bid, int) and not isinstance(bid, bool) else None
+    b = une("select id, trim(devise) as devise from compte_bancaire where id = %s and institution_id = %s and supprime_le is null", (bid, i)) if isinstance(bid, int) and not isinstance(bid, bool) else None
     if not b:
         raise ErreurMetier("À remplir : compte banque.")
     if b["devise"] != c["devise"]:                             # registre S59-2 : conversion en attente d'une règle unique de cours (S35)

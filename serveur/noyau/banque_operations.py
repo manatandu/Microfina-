@@ -24,11 +24,11 @@ def lire(u) -> dict:
     j = journee_courante(u)
     comptes = lignes("""select cb.id, cb.banque_id as "banqueId", b.code as "banqueCode", b.nom as banque, cb.numero, trim(cb.devise) as devise, c.numero as compte, cb.compte_id
                         from compte_bancaire cb join banque b on b.id = cb.banque_id join compte c on c.id = cb.compte_id
-                        where cb.institution_id = %s order by b.code, cb.numero""", (i,))
+                        where cb.institution_id = %s and cb.supprime_le is null and b.supprime_le is null order by b.code, cb.numero""", (i,))
     guichets = lignes("select id, code, nom from guichet where agence_id = %s and actif order by code", (u["agence_id"],))
     return {
         "date": j["date"] if j and j["statut"] == "ouverte" else "",
-        "banques": lignes("select id, code, nom as libelle from banque where institution_id = %s order by code", (i,)),
+        "banques": lignes("select id, code, nom as libelle from banque where institution_id = %s and supprime_le is null order by code", (i,)),
         "comptes": [{k: v for k, v in c.items() if k != "compte_id"} | {"solde": solde_banque(c["compte_id"], c["devise"])} for c in comptes],
         "guichets": [{**g, "soldes": {d: solde_contrat(f"guichet:{g['id']}", d, "D") for d in ("CDF", "USD")}} for g in guichets],
         "typesBudget": lignes("select id, code, libelle from budget_type where institution_id = %s and actif order by code", (i,)),
@@ -48,7 +48,7 @@ def entier(d, k):
 
 
 def compte_bancaire(u, cid, quoi: str) -> dict:
-    c = une("select id, trim(devise) as devise from compte_bancaire where id = %s and institution_id = %s", (cid, u["institution_id"])) if cid else None
+    c = une("select id, trim(devise) as devise from compte_bancaire where id = %s and institution_id = %s and supprime_le is null", (cid, u["institution_id"])) if cid else None
     if not c:
         raise ErreurMetier(f"{quoi} : compte bancaire inconnu.")
     return c
@@ -290,7 +290,7 @@ def rapport(u, du: str, au: str, banque_id: int, compte_bancaire_id: int | None 
             raise ErreurMetier("À remplir : période.")
     if du > au:
         raise ErreurMetier("La date de début dépasse la date de fin.")
-    if not une("select 1 from banque where id = %s and institution_id = %s", (banque_id, u["institution_id"])):
+    if not une("select 1 from banque where id = %s and institution_id = %s and supprime_le is null", (banque_id, u["institution_id"])):
         raise ErreurMetier("À remplir : banque.")
     return [ligne_liste(o) for o in lignes(SELECT_LIGNES + """ where o.institution_id = %s and o.statut <> 'refusee' and o.date_operation between %s and %s
                                                 and (cb.banque_id = %s or cbd.banque_id = %s)

@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**421 décisions.** Solidité : 179 fortes (le manuel ou un texte répond), 210 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 399 déjà en place, 19 à appliquer.
+**422 décisions.** Solidité : 179 fortes (le manuel ou un texte répond), 210 moyennes (déduites d'un écran voisin ou d'une donnée), 33 faibles (notre choix, faute de mieux). Dans le code : 402 déjà en place, 17 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -10,8 +10,9 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| T01 | Modifier une ligne (toutes les listes) | Clic sur la ligne de la grille, correction dans le formulaire, bouton Modifier, confirmation Oui/Non | Règle générale du manuel : Manuel p. 12, « Modifier une donnée enregistrée » | forte | à appliquer |
-| T02 | Supprimer une ligne (toutes les listes) | Clic sur la ligne, bouton Supprimer, confirmation. Suppression logique : la ligne disparaît de l'écran, pas de la base. Une valeur utilisée ailleurs se désactive, elle ne se supprime pas | Règle générale du manuel : Manuel p. 12, « Supprimer une donnée enregistrée » et note sur les suppressions logiques | forte | à appliquer |
+| T01 | Modifier une ligne (toutes les listes) | Clic sur la ligne de la grille, correction dans le formulaire, bouton Modifier, confirmation Oui/Non. En place (18/11/2026) sur toutes les listes que l'atlas désigne (S03, S05, S08, S14 et sa famille, S18, S19, S21) et sur celles dont la capture montre Modifier | Règle générale du manuel : Manuel p. 12, « Modifier une donnée enregistrée » | forte | en place |
+| T02 | Supprimer une ligne (toutes les listes) | Clic sur la ligne, bouton Supprimer, confirmation. Suppression logique : la ligne disparaît de l'écran, pas de la base. Une valeur utilisée ailleurs se désactive, elle ne se supprime pas. En place (18/11/2026) : banques, comptes bancaires, frais, paramétrages de frais (opérations et adhésion), groupes solidaires et types de procuration gardent la ligne supprimée, avec sa date et son auteur ; elle disparaît des listes et des contrôles d'unicité, son code ou son libellé peut être repris ; les autres listes le faisaient déjà (désactivation ou marque de suppression) | Règle générale du manuel : Manuel p. 12, « Supprimer une donnée enregistrée » et note sur les suppressions logiques | forte | en place |
+| T02-1 | Supprimer un compte (S29 Plan comptable) | Un compte qui a servi (écriture, compte bancaire, comptes divisionnaires) ne se supprime jamais : il se ferme (Statut Fermé, PCCI § 3.4). Seul un compte créé par l'institution et jamais utilisé s'efface vraiment : aucune donnée ne le cite, il n'y a pas d'historique à garder. Écart à la règle « généralement logique » de la p. 12, à valider | Choix du porteur : Manuel p. 12 (« généralement ») et p. 122 ; PCCI § 3.4 | faible | en place |
 | T03 | Annuler, Effacer (tous les formulaires) | Vide les zones saisies ; en modification, remet le formulaire prêt pour une nouvelle ligne | Règle générale du manuel : Manuel p. 12, « Annuler la saisie d'information en cours » | forte | en place |
 | T04 | Barre de pages, filtre, export (toutes les grilles) | Barre de pages au-dessus et au-dessous de chaque grille de liste (T04-1) ; filtre sous chaque titre de colonne et bouton Exporter selon la capture de chaque écran (T04-2). Où en est la règle (18/11/2026) : en place sur tous les écrans construits ; chaque écran construit ensuite la reprend | Règle générale du manuel : Manuel p. 9, « Les grilles d'affichages » | forte | en place |
 | T05 | Champ obligatoire (tous les formulaires) | Astérisque ; refus à l'enregistrement par la boîte d'erreur, qui nomme les champs à remplir | Règle générale du manuel : Manuel p. 10 et 11 | forte | en place |
@@ -1006,6 +1007,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Écran | Question | Réponse retenue |
 |---|---|---|---|
+| T02-1 | S29 Plan comptable | Supprimer un compte | Un compte qui a servi (écriture, compte bancaire, comptes divisionnaires) ne se supprime jamais : il se ferme (Statut Fermé, PCCI § 3.4). Seul un compte créé par l'institution et jamais utilisé s'efface vraiment : aucune donnée ne le cite, il n'y a pas d'historique à garder. Écart à la règle « généralement logique » de la p. 12, à valider |
 | S05-2 | S05 Utilisateurs : création | Grille | Nom user, Prenoms user, Agence, Telephone : le champ unique « Nom et prénom(s) » se coupe au premier espace (nom, puis prénoms) ; Telephone = Portable. Les utilisateurs de démonstration sont écrits prénom d'abord, d'où l'inversion visible sur eux |
 | S08-4 | S08 Gestion des guichets | Effet du maximum autorisé en caisse | Avertissement au caissier quand le solde de sa caisse dépasse le maximum : il transfère l'excédent à la caisse principale (S81). Un dépôt n'est jamais refusé pour cette raison — Construit : après un dépôt, une adhésion ou une opération sur parts, la boîte de succès ajoute l'avertissement si l'encaisse de la caisse dépasse le maximum de sa devise. Le transfert (S81) reste à construire |
 | S08-9 | S08 Gestion des guichets | Lien « Droits » de la colonne Opérations | Ouvre l'affectation des guichets (S10) filtrée sur ce guichet |

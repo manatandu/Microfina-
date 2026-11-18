@@ -334,6 +334,7 @@ export interface Etat {
   remboursementsEmprunt: RemboursementEmprunt[];
   chequesInstitution: ChequeInstitution[];
   typesProcuration: { id: number; libelle: string }[];   // S47
+  supprimes: { table: string; ligne: unknown; le: string; par: number | null }[];   // registre T02 : lignes supprimées, gardées pour l'historique
   lieux: LigneLieu[];   // S20 : Localisation, découpage de la RDC
   groupesSolidaires: { id: number; code: string; nom: string }[];      // S44
   membresGroupes: { groupeId: number; tiersId: number }[];

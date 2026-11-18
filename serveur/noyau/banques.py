@@ -37,13 +37,13 @@ def lire(u) -> dict:
     return {
         "devises": [r["code"] for r in lignes("select code from devise order by code")],   # S35 : toutes les devises créées
         "banques": lignes("""select id, code, nom as libelle, compte_liaison as "compteLiaison", coalesce(adresse, '') as adresse
-                             from banque where institution_id = %s order by code""", (i,)),
+                             from banque where institution_id = %s and supprime_le is null order by code""", (i,)),
         "comptes": [{**r, "intitule": intitule_pcci(r["compte"])} for r in
                     lignes("""select cb.id, cb.banque_id as "banqueId", c.numero as compte, c.libelle, cb.numero as "numeroBancaire", trim(cb.devise) as devise,
                                      cb.journal_id as "journalId", coalesce(cb.contact_nom, '') as "contactNom",
                                      coalesce(cb.contact_nom_complet, '') as "contactNomComplet", coalesce(cb.contact_telephone, '') as "contactTelephone",
                                      coalesce(cb.compte_penalite, '') as "comptePenalite", coalesce(cb.contact_adresse, '') as "contactAdresse"
-                              from compte_bancaire cb join compte c on c.id = cb.compte_id where cb.institution_id = %s order by c.numero""", (i,))],
+                              from compte_bancaire cb join compte c on c.id = cb.compte_id where cb.institution_id = %s and cb.supprime_le is null order by c.numero""", (i,))],
         "journaux": lignes("select id, code, libelle from journal where institution_id = %s and type = 'banque' and actif and not supprime order by code", (i,)),
     }
 
@@ -56,7 +56,7 @@ def controler_banque(u, d, bid=None):
     if not liaison.isdigit():
         raise ErreurMetier("Compte liaison : chiffres seulement.")
     compte_du_plan(u, liaison, "Compte liaison")              # registre S58-1 (T16) ; le PCCI ne nomme pas de compte pour cela
-    if valeur("select 1 from banque where institution_id = %s and code = %s and id is distinct from %s", (u["institution_id"], code, bid)):
+    if valeur("select 1 from banque where institution_id = %s and code = %s and id is distinct from %s and supprime_le is null", (u["institution_id"], code, bid)):
         raise ErreurMetier("Ce code banque existe déjà.")
     return code, libelle, liaison, texte(d, "adresse") or None
 
@@ -64,7 +64,7 @@ def controler_banque(u, d, bid=None):
 def enregistrer_banque(u, d, bid: int | None = None) -> dict:
     """« Banque Client » (p. 67) : Code Banque*, Libellé*, Compte Liaison*, Adresse"""
     droit(u)
-    if bid is not None and not une("select 1 from banque where id = %s and institution_id = %s for update", (bid, u["institution_id"])):
+    if bid is not None and not une("select 1 from banque where id = %s and institution_id = %s and supprime_le is null for update", (bid, u["institution_id"])):
         raise ErreurMetier("Banque introuvable.")
     code, libelle, liaison, adresse = controler_banque(u, d, bid)
     if bid is None:
@@ -77,11 +77,11 @@ def enregistrer_banque(u, d, bid: int | None = None) -> dict:
 
 def supprimer_banque(u, bid: int) -> dict:
     droit(u)
-    if not une("select 1 from banque where id = %s and institution_id = %s for update", (bid, u["institution_id"])):
+    if not une("select 1 from banque where id = %s and institution_id = %s and supprime_le is null for update", (bid, u["institution_id"])):
         raise ErreurMetier("Banque introuvable.")
-    if valeur("select 1 from compte_bancaire where banque_id = %s", (bid,)):
+    if valeur("select 1 from compte_bancaire where banque_id = %s and supprime_le is null", (bid,)):
         raise ErreurMetier("Cette banque a des comptes de l'institution : les supprimer d'abord.")
-    executer("delete from banque where id = %s", (bid,))
+    executer("update banque set supprime_le = now(), supprime_par = %s where id = %s", (u["id"], bid))   # registre T02 : suppression logique
     return lire(u)
 
 
@@ -91,11 +91,11 @@ def enregistrer_compte(u, d, cid: int | None = None) -> dict:
     i = u["institution_id"]
     actuel = None
     if cid is not None:
-        actuel = une("select cb.*, c.numero as compte from compte_bancaire cb join compte c on c.id = cb.compte_id where cb.id = %s and cb.institution_id = %s for update", (cid, i))
+        actuel = une("select cb.*, c.numero as compte from compte_bancaire cb join compte c on c.id = cb.compte_id where cb.id = %s and cb.institution_id = %s and cb.supprime_le is null for update", (cid, i))
         if not actuel:
             raise ErreurMetier("Compte bancaire introuvable.")
     compte, numero, devise, nom = texte(d, "compte"), texte(d, "numeroBancaire"), texte(d, "devise"), texte(d, "contactNom")
-    banque = une("select * from banque where id = %s and institution_id = %s", (d.get("banqueId"), i)) if isinstance(d.get("banqueId"), int) else None
+    banque = une("select * from banque where id = %s and institution_id = %s and supprime_le is null", (d.get("banqueId"), i)) if isinstance(d.get("banqueId"), int) else None
     journal = d.get("journalId")
     manque = [n for n, v in (("banque", banque), ("compte", compte), ("n° compte bancaire", numero), ("devise", devise), ("journal", journal), ("nom", nom)) if not v]
     if manque:
@@ -111,9 +111,9 @@ def enregistrer_compte(u, d, cid: int | None = None) -> dict:
         compte_du_plan(u, penalite, "Compte de pénalité")
     if not valeur("select 1 from journal where id = %s and institution_id = %s and type = 'banque' and actif and not supprime", (journal, i)):
         raise ErreurMetier("Journal de banque inconnu.")
-    if valeur("select 1 from compte_bancaire where banque_id = %s and numero = %s and id is distinct from %s", (banque["id"], numero, cid)):
+    if valeur("select 1 from compte_bancaire where banque_id = %s and numero = %s and id is distinct from %s and supprime_le is null", (banque["id"], numero, cid)):
         raise ErreurMetier("Ce numéro de compte existe déjà dans cette banque.")
-    if valeur("""select 1 from compte_bancaire cb join compte c on c.id = cb.compte_id where c.numero = %s and cb.id is distinct from %s""", (compte, cid)):
+    if valeur("""select 1 from compte_bancaire cb join compte c on c.id = cb.compte_id where c.numero = %s and cb.id is distinct from %s and cb.supprime_le is null""", (compte, cid)):
         raise ErreurMetier("Ce compte comptable est déjà attribué à un compte bancaire.")
     if actuel and actuel["compte"] != compte and valeur("select 1 from ligne_ecriture where compte_id = %s", (actuel["compte_id"],)):
         raise ErreurMetier("Ce compte a des écritures : son numéro comptable ne change plus.")
@@ -134,10 +134,10 @@ def enregistrer_compte(u, d, cid: int | None = None) -> dict:
 
 def supprimer_compte(u, cid: int) -> dict:
     droit(u)
-    cb = une("select * from compte_bancaire where id = %s and institution_id = %s for update", (cid, u["institution_id"]))
+    cb = une("select * from compte_bancaire where id = %s and institution_id = %s and supprime_le is null for update", (cid, u["institution_id"]))
     if not cb:
         raise ErreurMetier("Compte bancaire introuvable.")
     if valeur("select 1 from ligne_ecriture where compte_id = %s", (cb["compte_id"],)):
         raise ErreurMetier("Ce compte a des écritures : il ne se supprime pas.")
-    executer("delete from compte_bancaire where id = %s", (cid,))
+    executer("update compte_bancaire set supprime_le = now(), supprime_par = %s where id = %s", (u["id"], cid))   # registre T02 : suppression logique
     return lire(u)

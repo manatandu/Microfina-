@@ -31,11 +31,11 @@ def etat(u: dict) -> dict:
                        "frais": [{"type": f["type_frais"], "nature": f["nature"], "valeur": float(f["valeur"])}
                                  for f in lignes("select * from produit_credit_frais where produit_id = %s order by id", (r["id"],))]})
     frais = []
-    for f in lignes("select * from frais where institution_id = %s order by id", (i,)):
+    for f in lignes("select * from frais where institution_id = %s and supprime_le is null order by id", (i,)):
         for p in lignes("""select initcap(p.nature) as nature, p.valeur, s.libelle as pour from parametrage_frais p join liste_reference s on s.id = p.sous_type_id
-                           where p.frais_id = %s union all
+                           where p.frais_id = %s and p.supprime_le is null union all
                            select initcap(nature), valeur, case type_membre when 'physique' then 'Physique' when 'morale' then 'Personne morale' else 'Groupe' end
-                           from parametrage_frais_adhesion where frais_id = %s""", (f["id"], f["id"])):
+                           from parametrage_frais_adhesion where frais_id = %s and supprime_le is null""", (f["id"], f["id"])):
             frais.append({"libelle": f["libelle"], "operation": f["type_operation"], "pour": p["pour"], "nature": p["nature"], "valeur": p["valeur"],
                           "fondement": FONDEMENTS.get(f["fondement"] or "", "À renseigner"), "autorisationBcc": f["autorisation_bcc"] or ""})
     return {"entete": entete(i), "date": j["date"] if j else "", "epargne": epargne, "credit": credit, "frais": frais,

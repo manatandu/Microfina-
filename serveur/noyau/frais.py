@@ -34,13 +34,13 @@ def lire(u) -> dict:
         "sousTypes": [r["libelle"] for r in valeurs_liste(u, "sous_type_client")],   # registre S16-8 : Général > Sous type de client
         "compteAdhesion": "727",                                                       # registre S16-4 : proposé, modifiable
         "frais": lignes("""select id, libelle, type_operation as "typeOperation", coalesce(fondement, '') as fondement, coalesce(autorisation_bcc, '') as "autorisationBcc"
-                           from frais where institution_id = %s order by id""", (i,)),
+                           from frais where institution_id = %s and supprime_le is null order by id""", (i,)),
         "operations": lignes("""select p.id, p.frais_id as "fraisId", s.libelle as "sousType", p.valeur, p.compte, initcap(p.nature) as nature
                                  from parametrage_frais p join liste_reference s on s.id = p.sous_type_id join frais f on f.id = p.frais_id
-                                 where f.institution_id = %s order by p.id""", (i,)),
+                                 where f.institution_id = %s and p.supprime_le is null and f.supprime_le is null order by p.id""", (i,)),
         "adhesion": [{**r, "typeMembre": next(k for k, v in TYPES_MEMBRE.items() if v == r["typeMembre"])} for r in
                      lignes("""select p.id, p.frais_id as "fraisId", p.type_membre as "typeMembre", p.valeur, p.compte, initcap(p.nature) as nature
-                               from parametrage_frais_adhesion p join frais f on f.id = p.frais_id where f.institution_id = %s order by p.id""", (i,))],
+                               from parametrage_frais_adhesion p join frais f on f.id = p.frais_id where f.institution_id = %s and p.supprime_le is null and f.supprime_le is null order by p.id""", (i,))],
     }
 
 
@@ -69,7 +69,7 @@ def controler_frais(u, d) -> tuple[str, str, str, str | None]:
 def creer_frais(u, d) -> dict:
     droit(u)
     t, l, fo, au = controler_frais(u, d)
-    if valeur("select 1 from frais where institution_id = %s and type_operation = %s and libelle = %s", (u["institution_id"], t, l)):
+    if valeur("select 1 from frais where institution_id = %s and type_operation = %s and libelle = %s and supprime_le is null", (u["institution_id"], t, l)):
         raise ErreurMetier("Ce frais existe déjà.")
     fid = valeur("insert into frais (institution_id, type_operation, libelle, fondement, autorisation_bcc) values (%s, %s, %s, %s, %s) returning id",
                  (u["institution_id"], t, l, fo, au))
@@ -77,7 +77,7 @@ def creer_frais(u, d) -> dict:
 
 
 def frais_de(u, fid) -> dict:
-    f = une("select * from frais where id = %s and institution_id = %s for update", (fid, u["institution_id"]))
+    f = une("select * from frais where id = %s and institution_id = %s and supprime_le is null for update", (fid, u["institution_id"]))
     if not f:
         raise ErreurMetier("Frais introuvable.")
     return f
@@ -87,7 +87,7 @@ def modifier_frais(u, fid: int, d) -> dict:
     droit(u)
     frais_de(u, fid)
     t, l, fo, au = controler_frais(u, d)
-    if valeur("select 1 from frais where institution_id = %s and type_operation = %s and libelle = %s and id <> %s", (u["institution_id"], t, l, fid)):
+    if valeur("select 1 from frais where institution_id = %s and type_operation = %s and libelle = %s and id <> %s and supprime_le is null", (u["institution_id"], t, l, fid)):
         raise ErreurMetier("Ce frais existe déjà.")
     executer("update frais set type_operation = %s, libelle = %s, fondement = %s, autorisation_bcc = %s where id = %s", (t, l, fo, au, fid))
     return {"id": fid, "libelle": l, "typeOperation": t, "fondement": fo, "autorisationBcc": au or ""}
@@ -96,9 +96,9 @@ def modifier_frais(u, fid: int, d) -> dict:
 def supprimer_frais(u, fid: int):
     droit(u)
     frais_de(u, fid)
-    if valeur("select 1 from parametrage_frais where frais_id = %s union select 1 from parametrage_frais_adhesion where frais_id = %s", (fid, fid)):
+    if valeur("select 1 from parametrage_frais where frais_id = %s and supprime_le is null union select 1 from parametrage_frais_adhesion where frais_id = %s and supprime_le is null", (fid, fid)):
         raise ErreurMetier("Ce frais est paramétré : supprimer d'abord son paramétrage.")
-    executer("delete from frais where id = %s", (fid,))
+    executer("update frais set supprime_le = now(), supprime_par = %s where id = %s", (u["id"], fid))   # registre T02 : suppression logique
 
 
 def controler_valeurs(u, d, adhesion: bool = False) -> tuple[str, int | None, str | None]:
@@ -134,10 +134,10 @@ def controler_part(u, types: list[str], v, c, sauf: int | None = None):
     for t in types:
         if c not in COMPTES_PART[t]:
             raise ErreurMetier(f"Part sociale « {NOMS_MEMBRE[t]} » : compte {' ou '.join(COMPTES_PART[t])} (PCCI, compte 103), pas {c}.")
-        if valeur("""select 1 from parametrage_frais_adhesion p join frais f on f.id = p.frais_id where f.institution_id = %s and p.type_membre = %s
+        if valeur("""select 1 from parametrage_frais_adhesion p join frais f on f.id = p.frais_id where f.institution_id = %s and p.type_membre = %s and p.supprime_le is null
                      and p.compte like '103%%' and p.id <> coalesce(%s, 0)""", (u["institution_id"], t, sauf)):
             raise ErreurMetier(f"Une part sociale est déjà paramétrée pour « {NOMS_MEMBRE[t]} ».")
-    autre = valeur("""select p.valeur from parametrage_frais_adhesion p join frais f on f.id = p.frais_id where f.institution_id = %s
+    autre = valeur("""select p.valeur from parametrage_frais_adhesion p join frais f on f.id = p.frais_id where f.institution_id = %s and p.supprime_le is null
                       and p.compte like '103%%' and p.id <> coalesce(%s, 0) limit 1""", (u["institution_id"], sauf))
     if autre is not None and autre != v:
         raise ErreurMetier("La part sociale a une seule valeur nominale, celle des statuts (loi 002/2002, art. 20) : "
@@ -159,7 +159,7 @@ def parametrer_operation(u, d) -> list[dict]:
         sid = valeur("select id from liste_reference where institution_id = %s and liste = 'sous_type_client' and libelle = %s and actif", (u["institution_id"], s))
         if not sid:
             raise ErreurMetier("Sous type client inconnu.")
-        if valeur("select 1 from parametrage_frais where frais_id = %s and sous_type_id = %s", (f["id"], sid)):
+        if valeur("select 1 from parametrage_frais where frais_id = %s and sous_type_id = %s and supprime_le is null", (f["id"], sid)):
             raise ErreurMetier(f"Déjà paramétré pour « {s} » : passer par Modif Paramétrage frais.")
         ids.append(valeur("insert into parametrage_frais (frais_id, sous_type_id, nature, valeur, compte) values (%s, %s, %s, %s, %s) returning id",
                           (f["id"], sid, nat, v, c)))
@@ -183,7 +183,7 @@ def parametrer_adhesion(u, d) -> list[int]:
     for t in types:
         if t not in TYPES_MEMBRE:
             raise ErreurMetier("Type client inconnu.")
-        if valeur("select 1 from parametrage_frais_adhesion where frais_id = %s and type_membre = %s", (f["id"], TYPES_MEMBRE[t])):
+        if valeur("select 1 from parametrage_frais_adhesion where frais_id = %s and type_membre = %s and supprime_le is null", (f["id"], TYPES_MEMBRE[t])):
             raise ErreurMetier(f"Déjà paramétré pour « {t} » : passer par Modif Paramétrage frais Adhésion.")
         ids.append(valeur("""insert into parametrage_frais_adhesion (frais_id, type_membre, nature, valeur, compte) values (%s, %s, %s, %s, %s) returning id""",
                           (f["id"], TYPES_MEMBRE[t], nat, v, c)))
@@ -191,7 +191,7 @@ def parametrer_adhesion(u, d) -> list[int]:
 
 
 def ligne_de(u, table: str, pid: int):
-    r = une(f"select p.* from {table} p join frais f on f.id = p.frais_id where p.id = %s and f.institution_id = %s for update", (pid, u["institution_id"]))
+    r = une(f"select p.* from {table} p join frais f on f.id = p.frais_id where p.id = %s and f.institution_id = %s and p.supprime_le is null for update", (pid, u["institution_id"]))
     if not r:
         raise ErreurMetier("Paramétrage introuvable.")
     return r
@@ -214,7 +214,7 @@ def modifier_categorie(u, pid: int, d):
     t = texte(d, "typeMembre")
     if t not in TYPES_MEMBRE:
         raise ErreurMetier("À remplir : type membre.")
-    if valeur("select 1 from parametrage_frais_adhesion where frais_id = %s and type_membre = %s and id <> %s", (r["frais_id"], TYPES_MEMBRE[t], pid)):
+    if valeur("select 1 from parametrage_frais_adhesion where frais_id = %s and type_membre = %s and id <> %s and supprime_le is null", (r["frais_id"], TYPES_MEMBRE[t], pid)):
         raise ErreurMetier(f"Ce frais est déjà paramétré pour « {t} ».")
     controler_part(u, [TYPES_MEMBRE[t]], r["valeur"], r["compte"], sauf=pid)
     executer("update parametrage_frais_adhesion set type_membre = %s where id = %s", (TYPES_MEMBRE[t], pid))
@@ -223,7 +223,7 @@ def modifier_categorie(u, pid: int, d):
 def supprimer_parametrage(u, table: str, pid: int):
     droit(u)
     ligne_de(u, table, pid)
-    executer(f"delete from {table} where id = %s", (pid,))
+    executer(f"update {table} set supprime_le = now(), supprime_par = %s where id = %s", (u["id"], pid))   # registre T02 : suppression logique
 
 
 def frais_lies(u, tid: int) -> list[dict]:
@@ -236,7 +236,7 @@ def frais_lies(u, tid: int) -> list[dict]:
                      from parametrage_frais_adhesion p join frais f on f.id = p.frais_id
                      join tiers t on t.type = p.type_membre and t.institution_id = f.institution_id
                      left join frais_client fc on fc.tiers_id = t.id and fc.frais_id = f.id
-                     where t.id = %s order by p.id""", (tid,))
+                     where t.id = %s and p.supprime_le is null and f.supprime_le is null order by p.id""", (tid,))
     # La ligne de part prend le compte 103 de la nature juridique du membre (registre S16-13)
     return [{**r, "compte": compte_parts(t)} if r["part"] else r for r in l] if t else l
 

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { composerNumeroCompte, composerPiece, api, _remplacer, compteParts, enrolementVide, calculRuptureDat } from "./api";
+import { composerNumeroCompte, composerPiece, api, _remplacer, _etat, compteParts, enrolementVide, calculRuptureDat } from "./api";
 
 /** Mentions de l'identité et de la pièce exigées à l'enrôlement (Instr. BCC 15, art. 12 et 13 ; registre S37-1) */
 const IDENTITE = { prenom: "Marie", naissance: "1990-01-15", lieuNaissance: "Kinshasa", adresse: "Matete, avenue Kinsaku 12", pieceDelivreeLe: "2024-01-10",
@@ -767,6 +767,11 @@ describe("journée de guichet", () => {
     await expect(api.procurations.creer({ libelle: "procuration générale" })).rejects.toThrow("existe déjà");
     await api.procurations.supprimer(t.id);
     expect(await api.procurations.lire()).toEqual([]);
+    // Registre T02 (manuel p. 12) : suppression logique ; la ligne reste, datée et signée ; le libellé se reprend sous un autre numéro
+    const s = _etat().supprimes.find((x) => x.table === "type_procuration");
+    expect(s && s.par !== null && (s.ligne as { id: number }).id === t.id).toBe(true);
+    const t2 = await api.procurations.creer({ libelle: "Procuration générale" });
+    expect(t2.id).not.toBe(t.id);
   });
 
   /** Apurement avant la résiliation (registre S48-1) : retrait du solde de chaque compte au guichet (S74), par la caissière */

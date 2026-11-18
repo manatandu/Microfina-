@@ -14,7 +14,7 @@ def lire(u) -> dict:
     return {
         "codeSuivant": apercu_numero_client(u),     # code proposé selon la règle de numérotation des clients (S15), registre S44-2
         "groupes": lignes("""select g.id, g.code, g.nom, a.nom as agence from groupe_solidaire g left join agence a on a.id = g.agence_id
-                             where g.institution_id = %s order by g.id""", (i,)),
+                             where g.institution_id = %s and g.supprime_le is null order by g.id""", (i,)),
         "membres": [{**r, "membre": titulaire(r["tiersId"])} for r in
                     lignes("""select m.groupe_id as "groupeId", m.tiers_id as "tiersId", t.numero from groupe_solidaire_membre m
                               join tiers t on t.id = m.tiers_id join groupe_solidaire g on g.id = m.groupe_id
@@ -27,13 +27,13 @@ def controler(u, d, gid=None) -> tuple[str, str]:
     manque = [n for n, v in (("code groupe", code), ("nom groupe", nom)) if not v]
     if manque:
         raise ErreurMetier("À remplir : " + ", ".join(manque) + ".")
-    if valeur("select 1 from groupe_solidaire where institution_id = %s and code = %s and id is distinct from %s", (u["institution_id"], code, gid)):
+    if valeur("select 1 from groupe_solidaire where institution_id = %s and code = %s and id is distinct from %s and supprime_le is null", (u["institution_id"], code, gid)):
         raise ErreurMetier("Ce code groupe existe déjà.")
     return code, nom
 
 
 def groupe_de(u, gid):
-    g = une("select * from groupe_solidaire where id = %s and institution_id = %s for update", (gid, u["institution_id"]))
+    g = une("select * from groupe_solidaire where id = %s and institution_id = %s and supprime_le is null for update", (gid, u["institution_id"]))
     if not g:
         raise ErreurMetier("Groupe introuvable.")
     return g
@@ -63,7 +63,7 @@ def supprimer(u, gid: int):
     groupe_de(u, gid)
     if valeur("select 1 from groupe_solidaire_membre where groupe_id = %s", (gid,)):
         raise ErreurMetier("Ce groupe a des membres : les retirer d'abord.")
-    executer("delete from groupe_solidaire where id = %s", (gid,))
+    executer("update groupe_solidaire set supprime_le = now(), supprime_par = %s where id = %s", (u["id"], gid))   # registre T02 : suppression logique
 
 
 def ids_de(d) -> list[int]:

@@ -49,7 +49,7 @@ def mettre_en_place(u, d) -> dict:
     jour = journee(u)
     i = u["institution_id"]
     bid = entier(d, "compteBancaireId")
-    b = une("select id, trim(devise) as devise from compte_bancaire where id = %s and institution_id = %s", (bid, i)) if bid else None
+    b = une("select id, trim(devise) as devise from compte_bancaire where id = %s and institution_id = %s and supprime_le is null", (bid, i)) if bid else None
     if not b:
         raise ErreurMetier("À remplir : banque.")
     ref = texte(d, "reference")
