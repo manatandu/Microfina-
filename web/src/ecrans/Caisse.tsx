@@ -6,6 +6,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { coupuresDe, DEVISES, libelleCoupure, lireMontant, montant, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 import { Attention, Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
 import { fr } from "../lib/dates";
+import { imprimer } from "../lib/imprimer";
 
 const enSaisie = (m: number) => (m ? String(m / 100).replace(".", ",") : "");
 
@@ -93,6 +94,7 @@ export function BilletageCaisse() {
 
 /** S80 : Caisse > Billetage > Validation de billetage à la caisse (manuel Microfina++, p. 91 et 92) */
 export function ValidationBilletage() {
+  const navigate = useNavigate();
   const [guichetId, setGuichetId] = useState(0);
   const [relu, setRelu] = useState(0);
   const [boite, setBoite] = useState<Boite | null>(null);
@@ -100,15 +102,13 @@ export function ValidationBilletage() {
     const [ctx, j] = await Promise.all([api.referentiel.contexte(), api.journees.courante()]);
     const sessions = j ? await api.caisses.delaJournee(j.id) : [];
     const s = sessions.find((x) => x.guichetId === guichetId);
-    const billetages = s ? (await api.caisses.billetages(s.id)).filter((b) => b.moment === "arret") : [];
-    return { ctx, j, sessions, billetages };
+    if (!s) return { ctx, j, sessions, billetages: [], comptable: null };
+    const [billetages, ...soldes] = await Promise.all([api.caisses.billetages(s.id), ...DEVISES.map((d) => api.caisses.soldeComptable(s.id, d))]);
+    return { ctx, j, sessions, billetages: billetages.filter((b) => b.moment === "arret"), comptable: Object.fromEntries(DEVISES.map((d, i) => [d, soldes[i] ?? 0])) as Record<Devise, number> };
   }, [guichetId, relu]);
   if (!donnees) return <Chargement />;
-  const { ctx, j, sessions, billetages } = donnees;
-  const parDevise = (f: (d: Devise) => number) => DEVISES.map((d) => montant(f(d), d)).join("\n");
+  const { ctx, j, sessions, billetages, comptable } = donnees;
   const de = (d: Devise) => billetages.find((b) => b.devise === d);
-  const bon = de("CDF")?.bonCaisse ?? 0;
-  const lignes = DEVISES.flatMap((d) => coupuresDe(d).filter((v) => (de(d)?.compte[v] ?? 0) > 0).map((v) => ({ d, v, n: de(d)!.compte[v]! })));
   const guichet = ctx.guichets.find((g) => g.id === guichetId);
   function valider() {
     const a = billetages.filter((b) => !b.validePar);
@@ -123,33 +123,49 @@ export function ValidationBilletage() {
       <h1>Validation Arretée Temporaire : {guichet?.nom ?? ""}</h1>
       <section className="bloc pile" aria-label="Validation du billetage">
         <div className="grille-cadres quatre">
-          <Champ libelle="Solde Informatique">{(p) => <textarea {...p} className="saisie montant" rows={2} readOnly value={billetages.length ? parDevise((d) => totalComptage(de(d)?.theorique ?? {})) : ""} />}</Champ>
-          <Champ libelle="Solde Reel">{(p) => <textarea {...p} className="saisie montant" rows={2} readOnly value={billetages.length ? parDevise((d) => totalComptage(de(d)?.compte ?? {}) + (d === "CDF" ? bon : 0)) : ""} />}</Champ>
-          <Champ libelle="Compte Comptable">{(p) => <input {...p} className="saisie code" readOnly value="" />}</Champ>
-        </div>
-        <div className="grille-cadres quatre">
           <Champ libelle="Guichet">{(p) => (
             <select {...p} className="saisie" value={guichetId || ""} onChange={(e) => setGuichetId(Number(e.target.value))}>
               <option value="" disabled></option>
               {ctx.guichets.filter((g) => sessions.some((x) => x.guichetId === g.id)).map((g) => <option key={g.id} value={g.id}>{g.nom}</option>)}
             </select>)}</Champ>
+          {/* Registre S80-6 : les journées ouvertes du guichet, comme à S79 */}
           <Champ libelle="Journées:">{(p) => <select {...p} className="saisie code" disabled value={j?.date ?? ""}><option value={j?.date ?? ""}>{j ? fr(j.date) : ""}</option></select>}</Champ>
         </div>
-        <table className="grille">
-          <thead><tr><th scope="col">Libelle</th><th scope="col">Nombre</th><th scope="col" className="num">Montant</th></tr></thead>
-          <tbody>
-            {lignes.length === 0 && <tr><td colSpan={3}>Aucune donnée dans la liste</td></tr>}
-            {lignes.map(({ d, v, n }) => <tr key={`${d}-${v}`}><td>Billet de {v} {d}</td><td className="chiffres">{n}</td><td className="num chiffres">{montant(n * v * 100, d)}</td></tr>)}
-          </tbody>
-          <tfoot><tr><td>Bon Caisse ====&gt; <span className="chiffres">{montant(bon, "CDF")}</span></td><td>Total Billetage</td>
-            <td className="num chiffres multi-ligne">{parDevise((d) => totalComptage(de(d)?.compte ?? {}))}</td></tr></tfoot>
-        </table>
+        <div className="pile a-imprimer">
+          {/* Registre T12 : la capture p. 92 est reprise pour chaque devise que tient le guichet */}
+          {DEVISES.map((d) => {
+            const b = de(d), bon = b?.bonCaisse ?? 0;
+            const lignes = coupuresDe(d).filter((v) => (b?.compte[v] ?? 0) > 0).map((v) => ({ v, n: b!.compte[v]! }));
+            return (
+              <fieldset key={d} className="pile cadre-champs" aria-label={`Validation ${d}`}>
+                <legend>{d}</legend>
+                <div className="grille-cadres quatre">
+                  <Champ libelle={`Solde Informatique (${d})`}>{(p) => <input {...p} className="saisie montant" readOnly value={b ? montant(totalComptage(b.theorique), d) : ""} />}</Champ>
+                  <Champ libelle={`Solde Reel (${d})`}>{(p) => <input {...p} className="saisie montant" readOnly value={b ? montant(totalComptage(b.compte) + bon, d) : ""} />}</Champ>
+                  {/* Registre S80-2 : solde du compte comptable du guichet (S08) à la journée */}
+                  <Champ libelle={`Compte Comptable (${d})`}>{(p) => <input {...p} className="saisie montant" readOnly value={comptable ? montant(comptable[d] ?? 0, d) : ""} />}</Champ>
+                </div>
+                <table className="grille">
+                  <thead><tr><th scope="col">Libelle</th><th scope="col">Nombre</th><th scope="col" className="num">Montant</th></tr></thead>
+                  <tbody>
+                    {lignes.length === 0 && <tr><td colSpan={3}>Aucune donnée dans la liste</td></tr>}
+                    {lignes.map(({ v, n }) => <tr key={v}><td>{libelleCoupure(d, v)} {d}</td><td className="chiffres">{n}</td><td className="num chiffres">{montant(n * v * 100, d)}</td></tr>)}
+                  </tbody>
+                  <tfoot><tr><td>Bon Caisse ====&gt; <span className="chiffres">{montant(bon, d)}</span></td><td>Total Billetage</td>
+                    <td className="num chiffres">{montant(totalComptage(b?.compte ?? {}), d)}</td></tr></tfoot>
+                </table>
+              </fieldset>
+            );
+          })}
+        </div>
         <div className="actions-onglets">
           <button className="bouton" type="button" disabled={!guichetId} onClick={valider}>Valider</button>
-          <button className="bouton secondaire" type="button" disabled>Imprimer</button>
-          <button className="bouton secondaire" type="button" disabled>Terminer</button>
+          {/* Registre S80-4 : Imprimer sort l'arrêté (T11), Terminer ferme la fenêtre */}
+          <button className="bouton secondaire" type="button" disabled={!billetages.length} onClick={() => imprimer(".bloc .a-imprimer")}>Imprimer</button>
+          <button className="bouton secondaire" type="button" onClick={() => navigate(-1)}>Terminer</button>
         </div>
         <Textes sources={["Manuel Microfina++, p. 91 et 92 : Validation Arretée Temporaire, Solde Informatique, Solde Reel, Compte Comptable, Guichet, Journées, Libelle, Nombre, Montant, Bon Caisse, Total Billetage, Valider, Imprimer, Terminer",
+          "Registre T12 : une case par devise ; la capture est reprise pour chaque devise que tient le guichet",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
       </section>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />

@@ -470,6 +470,15 @@ def test_billetage_valide_une_seule_fois(clients, journee):
     assert r.status_code == 422 and "déjà validé" in r.json()["message"]
 
 
+def test_validation_compte_comptable(clients, journee):
+    """S80-2 : la troisième case de la validation est le solde du compte comptable du guichet ; un dépôt l'augmente de son montant"""
+    _, s = journee
+    caisse = clients["caisse"]
+    avant = caisse.get(f"/api/caisses/{s['id']}/solde-comptable?devise=CDF").json()
+    assert caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 5000000, "coupures": {"20000": 2, "10000": 1}, "mandataire": ""}, **H).status_code == 200
+    assert caisse.get(f"/api/caisses/{s['id']}/solde-comptable?devise=CDF").json() == avant + 5000000
+
+
 def test_part_sociale_frais_adhesion(clients):
     """S16 : la part sociale est la ligne « Part sociale standard » des frais d'adhésion (capture p. 89) ; compte 103 du membre (PCCI) ;
     une seule valeur, celle des statuts (loi 002/2002, art. 20) ; registre S16-11"""

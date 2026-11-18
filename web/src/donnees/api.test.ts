@@ -52,6 +52,13 @@ describe("journée de guichet", () => {
     expect(await soldeCdfGrandLivre()).toBe(0);
   });
 
+  it("validation (S80-2) : la case Compte Comptable suit le solde du compte du guichet", async () => {
+    const { s } = await journeeOuverte();
+    const avant = await api.caisses.soldeComptable(s.id, "CDF");
+    await api.guichet.depot({ cle: cle(), compteId: 2, montant: 5000000, coupures: { 20000: 2, 10000: 1 } });
+    expect(await api.caisses.soldeComptable(s.id, "CDF")).toBe(avant + 5000000);
+  });
+
   it("guichet (S08) : retrait au-delà du plafond en attente du visa puis payé (S08-5), avertissement au-delà du maximum (S08-4)", async () => {
     await journeeOuverte();
     await connecter("jpmukendi");

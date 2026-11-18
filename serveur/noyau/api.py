@@ -184,6 +184,12 @@ def caisse_theorique(request, sid: int, devise: str):
     return s.theorique(sid, devise)
 
 
+@api.get("/caisses/{sid}/solde-comptable")
+def caisse_solde_comptable(request, sid: int, devise: str):
+    u(request)
+    return s.solde_comptable_caisse(sid, devise)
+
+
 @api.get("/caisses/{sid}/billetages")
 def caisse_billetages(request, sid: int):
     u(request)

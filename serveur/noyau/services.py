@@ -366,6 +366,14 @@ def vue_session(s: dict | None) -> dict | None:
     return {"id": s["id"], "guichetId": s["guichet_id"], "journeeId": s["journee_id"], "caissierId": s["caissier_id"], "statut": statut}
 
 
+def solde_comptable_caisse(sid: int, devise: str) -> int:
+    """Registre S80-2 : troisième case de la validation, le solde du compte comptable du guichet (S08) à la journée."""
+    gid = valeur("select guichet_id from session_caisse where id = %s", (sid,))
+    if gid is None:
+        raise ErreurMetier("Caisse introuvable.")
+    return solde_contrat(f"guichet:{gid}", devise, "D")
+
+
 def sessions_journee(jid: int) -> list[dict]:
     return [vue_session(s) for s in lignes("select * from session_caisse where journee_id = %s order by id", (jid,))]
 

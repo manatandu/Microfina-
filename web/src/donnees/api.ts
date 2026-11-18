@@ -249,6 +249,12 @@ const caisses = {
     E.sessions.push(s); enregistrer(); return s;
   },
   /** Coupures que la caisse devrait contenir (« Solde Caisse », S79) : fonds du dernier arrêté validé du guichet, plus les entrées, moins les sorties */
+  /** Registre S80-2 : solde du compte comptable du guichet (S08) à la journée. */
+  soldeComptable(sessionId: number, devise: Devise): number {
+    const s = E.sessions.find((x) => x.id === sessionId);
+    if (!s) throw new ErreurMetier("Caisse introuvable.");
+    return soldeContrat(`guichet:${s.guichetId}`, devise, "D");
+  },
   theorique(sessionId: number, devise: Devise): Comptage {
     const s = E.sessions.find((x) => x.id === sessionId)!;
     const base: Comptage = { ...(E.fondsVeille[s.guichetId]?.[devise] ?? {}) };

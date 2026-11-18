@@ -144,6 +144,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       duCaissier: () => get("/caisses/moi"),
       ouvrir: (guichetId: number) => post("/caisses", { guichetId }),
       theorique: (sid: number, devise: string) => get(`/caisses/${sid}/theorique?devise=${q(devise)}`),
+      soldeComptable: (sid: number, devise: string) => get(`/caisses/${sid}/solde-comptable?devise=${q(devise)}`),
       billetages: (sid: number) => get(`/caisses/${sid}/billetages`),
       saisirBilletage: (sid: number, devise: string, compte: unknown, bonCaisse = 0) =>
         post(`/caisses/${sid}/billetages`, { devise, compte, bonCaisse }),

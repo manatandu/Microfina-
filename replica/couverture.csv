@@ -80,7 +80,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 79,Achat et retrait de parts sociales,caisse,must,yes,S77,A,guichet,6 Caisse,,R:loi 002/2002 (parts sociales),,,
 80,Encaissements et décaissements divers,caisse,must,no,S78,A,guichet,6 Caisse,,D:S31,,S78,
 81,Billetage : saisie par coupure,caisse,must,yes,S79,A,guichet,6 Caisse,,,,,
-82,Billetage : validation solde informatique et réel,caisse,must,partial,S80,A,visa,6 Caisse,,,,,"S80-2 Champ Compte Comptable ; S80-4 Imprimer, Terminer ; S80-5 Écriture de l'écart ; S80-6 Liste Journées"
+82,Billetage : validation solde informatique et réel,caisse,must,partial,S80,A,visa,6 Caisse,,,,,S80-5 Écriture de l'écart
 83,Transfert caisse vers caisse et caisse vers banque,caisse,must,no,S81,A,guichet,6 Caisse,,R:PCCI (mouvements de fonds),,S81,
 84,Opérations diverses et déplacées validées en caisse,caisse,must,no,S82,A,visa,6 Caisse,,,,S82,
 85,Journal de caisse,caisse,must,no,S83,A,rapport,6 Caisse,,,,S83,

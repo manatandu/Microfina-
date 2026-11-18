@@ -808,7 +808,7 @@ const OUT = process.argv[2];
   await p.getByRole('cell', { name: 'Esther Ngalula' }).waitFor(); await etape('15c-rapport-transactions');
   await aller('/comptabilite/s111'); await etape('16-chef-fermeture-bloquee');
   await aller('/caisse/s80'); await p.getByLabel('Guichet').selectOption({ label: 'Caisse 2' });
-  await p.getByRole('cell', { name: 'Billet de 20000 CDF' }).waitFor(); await etape('16b-validation-billetage');
+  await p.getByRole('cell', { name: 'Billet de 20000 CDF' }).waitFor(); if (!(await p.getByLabel('Compte Comptable (CDF)').inputValue())) throw new Error('S80-2 : Compte Comptable vide'); await etape('16b-validation-billetage');
   await p.getByRole('button', { name: 'Valider' }).click(); await ok();
   await aller('/comptabilite/s111');
   await p.getByRole('button', { name: 'Fermer la journée' }).click(); await p.getByText('Aucune journée ouverte.').waitFor();
