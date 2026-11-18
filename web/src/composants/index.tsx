@@ -1,5 +1,5 @@
 // Primitives de replica/design/components.md, en React. Les classes viennent de composants.css.
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { coupuresDe, entier, lireMontant, montant, montantEnLettres, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 
 export function Puce({ etat, children }: { etat?: "ouverte" | "en_cloture" | "fermee"; children: ReactNode }) {
@@ -231,15 +231,38 @@ export function BarrePages({ page, pages, aller }: { page: number; pages: number
 }
 
 /** Grille en pages : la barre au-dessus et au-dessous du tableau (p. 9) ; le tableau reçoit les lignes de la page affichée */
-export function Paginee<T>({ lignes, children, parPage = PAR_PAGE }: { lignes: T[]; children: (visibles: T[]) => ReactNode; parPage?: number }) {
+/** Filtres en tête de colonne (registre T04, manuel p. 9, point 4) : la grille paginée les fournit, la ligne de filtres les affiche. */
+const FiltresGrille = createContext<{ valeurs: string[]; changer: (i: number, v: string) => void } | null>(null);
+const correspond = (v: unknown, f: string) => !f.trim() || String(v ?? "").toLowerCase().includes(f.trim().toLowerCase());
+
+export function Paginee<T>({ lignes, children, parPage = PAR_PAGE, colonnes }: {
+  lignes: T[]; children: (visibles: T[]) => ReactNode; parPage?: number;
+  colonnes?: (l: T) => unknown[];   // texte de chaque colonne filtrable, dans l'ordre de la ligne de filtres (null : colonne sans filtre)
+}) {
   const [page, setPage] = useState(0);
-  const pages = Math.max(1, Math.ceil(lignes.length / parPage));
+  const [valeurs, setValeurs] = useState<string[]>([]);
+  const retenues = colonnes ? lignes.filter((l) => colonnes(l).every((v, i) => v === null || correspond(v, valeurs[i] ?? ""))) : lignes;
+  const pages = Math.max(1, Math.ceil(retenues.length / parPage));
   const p = Math.min(page, pages - 1);
+  const changer = (i: number, v: string) => { const n = [...valeurs]; n[i] = v; setValeurs(n); setPage(0); };
   return (
-    <div className="pile">
-      <BarrePages page={p} pages={pages} aller={setPage} />
-      {children(lignes.slice(p * parPage, (p + 1) * parPage))}
-      <BarrePages page={p} pages={pages} aller={setPage} />
-    </div>
+    <FiltresGrille.Provider value={{ valeurs, changer }}>
+      <div className="pile">
+        <BarrePages page={p} pages={pages} aller={setPage} />
+        {children(retenues.slice(p * parPage, (p + 1) * parPage))}
+        <BarrePages page={p} pages={pages} aller={setPage} />
+      </div>
+    </FiltresGrille.Provider>
+  );
+}
+
+/** Ligne de filtres, à placer dans le thead sous les titres : une case par titre ; null laisse la colonne sans case (actions, cases à cocher). */
+export function LigneFiltres({ titres }: { titres: (string | null)[] }) {
+  const f = useContext(FiltresGrille);
+  if (!f) return null;
+  return (
+    <tr className="filtres">
+      {titres.map((t, i) => <td key={i}>{t !== null && <input className="saisie" type="search" aria-label={`Filtrer ${t}`} value={f.valeurs[i] ?? ""} onChange={(e) => f.changer(i, e.target.value)} />}</td>)}
+    </tr>
   );
 }

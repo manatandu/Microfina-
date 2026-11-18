@@ -4,7 +4,7 @@ import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee, LigneFiltres } from "../composants";
 
 type Gel = Awaited<ReturnType<typeof api.conformite.gels>>[number];
 const FILTRES = [["actifs", "En vigueur"], ["leves", "Levés"], ["", "Tous"]] as const;
@@ -33,10 +33,10 @@ export default function GelAvoirs({ jour }: { jour: string }) {
       <div className="ligne-champ" role="radiogroup" aria-label="Gels">
         {FILTRES.map(([k, l]) => <label key={k || "tous"} className="case"><input type="radio" name="filtre-gels" checked={filtre === k} onChange={() => setFiltre(k)} /><span>{l}</span></label>)}
       </div>
-      <Paginee lignes={donnees}>{(visibles) => (<div className="defile-x"><table className="grille">
-        <thead><tr><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Autorité</th><th scope="col">Décision</th><th scope="col">Gelé le</th><th scope="col">Information</th><th scope="col">Levé le</th></tr></thead>
+      <Paginee lignes={donnees} colonnes={(x) => [x.membre, x.client, x.sourceLibelle, `${x.decisionReference} du ${fr(x.decisionLe)}`, fr(x.geleLe), x.informeLe ? fr(x.informeLe) : "À faire", fr(x.leveLe)]}>{(visibles) => (<div className="defile-x"><table className="grille">
+        <thead><tr><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Autorité</th><th scope="col">Décision</th><th scope="col">Gelé le</th><th scope="col">Information</th><th scope="col">Levé le</th></tr><LigneFiltres titres={["N° client", "Client", "Autorité", "Décision", "Gelé le", "Information", "Levé le"]} /></thead>
         <tbody>
-          {donnees.length === 0 && <tr><td colSpan={7}>No records found.</td></tr>}
+          {visibles.length === 0 && <tr><td colSpan={7}>No records found.</td></tr>}
           {visibles.map((x) => (
             <tr key={x.id} className="ligne-choix" tabIndex={0} aria-selected={choisi?.id === x.id} onClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
               <td className="chiffres">{x.membre}</td><td>{x.client}</td><td>{x.sourceLibelle}</td><td className="chiffres">{x.decisionReference} du {fr(x.decisionLe)}</td>

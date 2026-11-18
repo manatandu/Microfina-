@@ -5,7 +5,7 @@ import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee, LigneFiltres } from "../composants";
 
 type Evenement = Awaited<ReturnType<typeof api.conformite.cip>>[number];
 const cleDe = (e: Evenement) => `${e.type}:${e.objetId}`;
@@ -56,11 +56,11 @@ export default function CentraleIncidents() {
           <ChampDate libelle="Du" valeur={debut} onChange={setDu} />
           <ChampDate libelle="Au" valeur={fin} onChange={setAu} />
         </div>
-        <Paginee lignes={lignes}>{(visibles) => (<div className="defile-x"><table className="grille">
+        <Paginee lignes={lignes} colonnes={(e) => [null, e.typeLibelle, fr(e.date), fr(e.echeance), e.membre, e.client, e.icu, e.compte, e.devise, fr(e.declareLe), e.reference]}>{(visibles) => (<div className="defile-x"><table className="grille">
           <thead><tr><th scope="col"><span className="sr-only">Choisir</span></th><th scope="col">Événement</th><th scope="col">Date</th><th scope="col">Échéance</th><th scope="col">N° client</th>
-            <th scope="col">Client</th><th scope="col">ICU</th><th scope="col">Compte</th><th scope="col">Devise</th><th scope="col">Déclaré le</th><th scope="col">Référence</th></tr></thead>
+            <th scope="col">Client</th><th scope="col">ICU</th><th scope="col">Compte</th><th scope="col">Devise</th><th scope="col">Déclaré le</th><th scope="col">Référence</th></tr><LigneFiltres titres={[null, "Événement", "Date", "Échéance", "N° client", "Client", "ICU", "Compte", "Devise", "Déclaré le", "Référence"]} /></thead>
           <tbody>
-            {lignes.length === 0 && <tr><td colSpan={11}>No records found.</td></tr>}
+            {visibles.length === 0 && <tr><td colSpan={11}>No records found.</td></tr>}
             {visibles.map((e) => (
               <tr key={cleDe(e)}>
                 <td>{!e.declareLe && <input type="checkbox" aria-label={`Choisir : ${e.typeLibelle} ${e.compte || e.membre}`} checked={choisis.has(cleDe(e))} onChange={() => basculer(e)} />}</td>

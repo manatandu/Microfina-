@@ -5,7 +5,7 @@ import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees } from "../lib/useDonnees";
 import { exporterExcel } from "../lib/excel";
-import { Champ, ChampDate, Chargement, Textes, Paginee } from "../composants";
+import { Champ, ChampDate, Chargement, Textes, Paginee, LigneFiltres } from "../composants";
 
 const EVENEMENTS = [["", "Tous"], ["connexion", "Connexion"], ["connexion_refusee", "Connexion refusée (mot de passe)"], ["connexion_impossible", "Connexion impossible"],
   ["connexion_bloquee", "Connexion bloquée (trop d'essais)"], ["acces_refuse", "Accès refusé (droit manquant)"], ["limite_requetes", "Limite de requêtes dépassée"]] as const;
@@ -37,10 +37,10 @@ export default function JournalSecurite() {
           <Champ libelle="Événement">{(p) => <select {...p} className="saisie" value={evenement} onChange={(e) => setEvenement(e.target.value)}>{EVENEMENTS.map(([k, l]) => <option key={k || "tous"} value={k}>{l}</option>)}</select>}</Champ>
         </div>
         <p role="status">{donnees.length} événement(s), dont {alertes} refus ou blocage(s).</p>
-        <Paginee lignes={donnees}>{(visibles) => (<div className="defile-x"><table className="grille">
-          <thead><tr><th scope="col">Date et heure</th><th scope="col">Événement</th><th scope="col">Identifiant</th><th scope="col">Utilisateur</th><th scope="col">Adresse</th><th scope="col">Détail</th></tr></thead>
+        <Paginee lignes={donnees} colonnes={(x) => [heure(x.le), x.evenementLibelle, x.login, x.utilisateur, x.ip, x.detail]}>{(visibles) => (<div className="defile-x"><table className="grille">
+          <thead><tr><th scope="col">Date et heure</th><th scope="col">Événement</th><th scope="col">Identifiant</th><th scope="col">Utilisateur</th><th scope="col">Adresse</th><th scope="col">Détail</th></tr><LigneFiltres titres={["Date et heure", "Événement", "Identifiant", "Utilisateur", "Adresse", "Détail"]} /></thead>
           <tbody>
-            {donnees.length === 0 && <tr><td colSpan={6}>No records found.</td></tr>}
+            {visibles.length === 0 && <tr><td colSpan={6}>No records found.</td></tr>}
             {visibles.map((x, i) => (
               <tr key={i}><td className="chiffres">{heure(x.le)}</td><td>{ALERTES.has(x.evenement) ? <strong>{x.evenementLibelle}</strong> : x.evenementLibelle}</td>
                 <td className="chiffres">{x.login}</td><td>{x.utilisateur}</td><td className="chiffres">{x.ip}</td><td>{x.detail}</td></tr>))}

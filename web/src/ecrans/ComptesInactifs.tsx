@@ -7,7 +7,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
 import { montant, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee, LigneFiltres } from "../composants";
 
 type Compte = Awaited<ReturnType<typeof api.inactifs.comptes>>[number];
 type Lettre = Awaited<ReturnType<typeof api.inactifs.lettre>>;
@@ -37,11 +37,11 @@ export default function ComptesInactifs() {
         <div className="ligne-champ" role="radiogroup" aria-label="Comptes">
           {FILTRES.map(([k, l]) => <label key={k || "tous"} className="case"><input type="radio" name="filtre-inactifs" checked={filtre === k} onChange={() => setFiltre(k)} /><span>{l}</span></label>)}
         </div>
-        <Paginee lignes={donnees}>{(visibles) => (<div className="defile-x"><table className="grille">
+        <Paginee lignes={donnees} colonnes={(x) => [x.compte, `${x.client} (${x.membre})`, montant(x.solde, x.devise as Devise), fr(x.derniereOperation), fr(x.lettreDue), fr(x.echeance), x.statutLibelle]}>{(visibles) => (<div className="defile-x"><table className="grille">
           <thead><tr><th scope="col">Compte</th><th scope="col">Client</th><th scope="col" className="montant">Solde</th><th scope="col">Dernière opération</th>
-            <th scope="col">Lettre au plus tard</th><th scope="col">Dix ans le</th><th scope="col">Statut</th></tr></thead>
+            <th scope="col">Lettre au plus tard</th><th scope="col">Dix ans le</th><th scope="col">Statut</th></tr><LigneFiltres titres={["Compte", "Client", "Solde", "Dernière opération", "Lettre au plus tard", "Dix ans le", "Statut"]} /></thead>
           <tbody>
-            {donnees.length === 0 && <tr><td colSpan={7}>No records found.</td></tr>}
+            {visibles.length === 0 && <tr><td colSpan={7}>No records found.</td></tr>}
             {visibles.map((x) => (
               <tr key={x.compteId} className="ligne-choix" tabIndex={0} aria-selected={choisi?.compteId === x.compteId} onClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
                 <td className="chiffres">{x.compte}</td><td>{x.client} ({x.membre})</td><td className="montant chiffres">{montant(x.solde, x.devise as Devise)}</td>

@@ -138,8 +138,8 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 137,Rapports immobilisations,immobilisations,should,no,S140,A,rapport,11 Immobilisations,,,,S140,
 138,Multilingue français et anglais,général,could,no,,A,,Plus tard,Menu des langues montré p. 14. Français seul pour l'instant (décision du porteur),,,,
 139,Aide en ligne,général,could,no,,D,,Plus tard,"Icône montrée p. 14, contenu non montré : à écrire par nous, écran par écran",,,,
-140,Export des grilles vers Excel,général,must,partial,,A,,"0 Reprises, puis chaque liste et chaque rapport",,,T04,,"T04 Barre de pages, filtre, export"
-141,Grilles paginées avec filtres par colonne,général,must,partial,,A,,"0 Reprises, puis chaque liste et chaque rapport",,,T04,,"T04 Barre de pages, filtre, export"
+140,Export des grilles vers Excel,général,must,yes,,A,,"0 Reprises, puis chaque liste et chaque rapport",,,T04,,
+141,Grilles paginées avec filtres par colonne,général,must,yes,,A,,"0 Reprises, puis chaque liste et chaque rapport",,,T04,,
 142,Boîtes de confirmation oui ou non,général,must,yes,,A,,Fait à chaque écran,,,T06,,
 143,Modifier et supprimer depuis une grille,général,must,partial,,A,,"0 Reprises, puis chaque liste",,,T01 T02,,T01 Modifier une ligne ; T02 Supprimer une ligne
 144,Référentiel comptable des SFD de l'UEMOA,général,skip,skip,,A,,Non repris,Remplacé par le PCCI,,,,

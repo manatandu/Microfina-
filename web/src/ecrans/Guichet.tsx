@@ -8,7 +8,7 @@ import { useDonnees } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
 import { lireMontant, montant, montantEnLettres, totalComptage, type Comptage, type Devise } from "@design/montant.js";
-import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Paginee, Silhouette, Specimen, Textes, Touche, type Boite, Lecture } from "../composants";
+import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Paginee, Silhouette, Specimen, Textes, Touche, type Boite, Lecture, LigneFiltres } from "../composants";
 import { RechercheClient } from "./Visa";
 
 export const titulaireDe = (t: Tiers) => [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
@@ -207,10 +207,10 @@ export default function GuichetDepotRetrait() {
       <Fiche titre={detail ? `Détail du compte ${detail.compte.numero}` : ""} ouverte={!!detail} fermer={() => setDetail(null)}>
         {detail && <div className="pile">
           <p>Du <span className="chiffres">{fr(detail.du)}</span> au <span className="chiffres">{fr(detail.au)}</span> · report <span className="chiffres">{montant(detail.report, detail.compte.devise as Devise)}</span></p>
-          <Paginee lignes={detail.lignes}>{(visibles) => (<div className="defile-x"><table className="grille">
-            <thead><tr><th scope="col">Date</th><th scope="col">Pièce</th><th scope="col">Libellé</th><th scope="col" className="montant">Débit</th><th scope="col" className="montant">Crédit</th><th scope="col" className="montant">Solde</th></tr></thead>
+          <Paginee lignes={detail.lignes} colonnes={(l) => [fr(l.date), l.piece, l.libelle, l.debit ? montant(l.debit, detail.compte.devise as Devise) : "", l.credit ? montant(l.credit, detail.compte.devise as Devise) : "", montant(l.solde, detail.compte.devise as Devise)]}>{(visibles) => (<div className="defile-x"><table className="grille">
+            <thead><tr><th scope="col">Date</th><th scope="col">Pièce</th><th scope="col">Libellé</th><th scope="col" className="montant">Débit</th><th scope="col" className="montant">Crédit</th><th scope="col" className="montant">Solde</th></tr><LigneFiltres titres={["Date", "Pièce", "Libellé", "Débit", "Crédit", "Solde"]} /></thead>
             <tbody>
-              {detail.lignes.length === 0 && <tr><td colSpan={6}>No records found.</td></tr>}
+              {visibles.length === 0 && <tr><td colSpan={6}>No records found.</td></tr>}
               {visibles.map((l, i) => <tr key={`${l.piece}-${i}`}><td className="chiffres">{fr(l.date)}</td><td className="chiffres">{l.piece}</td><td>{l.libelle}</td>
                 <td className="montant chiffres">{l.debit ? montant(l.debit, detail.compte.devise as Devise) : ""}</td><td className="montant chiffres">{l.credit ? montant(l.credit, detail.compte.devise as Devise) : ""}</td>
                 <td className="montant chiffres">{montant(l.solde, detail.compte.devise as Devise)}</td></tr>)}

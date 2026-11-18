@@ -6,7 +6,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
 import { montant, montantEnLettres, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee, LigneFiltres } from "../composants";
 import OperationsAtypiques from "./OperationsAtypiques";
 import GelAvoirs from "./GelAvoirs";
 
@@ -59,11 +59,11 @@ export default function ExamenRenforce() {
       {onglet === "atypiques" && <OperationsAtypiques jour={j?.date ?? ""} />}
       {onglet === "gels" && <GelAvoirs jour={j?.date ?? ""} />}
       {onglet !== "ppe" && onglet !== "profils" && onglet !== "atypiques" && onglet !== "gels" && <section className="bloc pile" aria-label="Liste des examens">
-        <Paginee lignes={donnees}>{(visibles) => (<div className="defile-x"><table className="grille">
+        <Paginee lignes={donnees} colonnes={(x) => [x.numero, fr(x.date), x.membre, x.client, x.typeLibelle, montant(x.montant, x.devise as Devise), usd(x.cumulUsd), x.demandePar, STATUTS[x.statut]]}>{(visibles) => (<div className="defile-x"><table className="grille">
           <thead><tr><th scope="col">N°</th><th scope="col">Date</th><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Opération</th>
-            <th scope="col" className="montant">Montant</th><th scope="col" className="montant">Cumul du jour</th><th scope="col">Demandé par</th><th scope="col">Statut</th></tr></thead>
+            <th scope="col" className="montant">Montant</th><th scope="col" className="montant">Cumul du jour</th><th scope="col">Demandé par</th><th scope="col">Statut</th></tr><LigneFiltres titres={["N°", "Date", "N° client", "Client", "Opération", "Montant", "Cumul du jour", "Demandé par", "Statut"]} /></thead>
           <tbody>
-            {donnees.length === 0 && <tr><td colSpan={9}>No records found.</td></tr>}
+            {visibles.length === 0 && <tr><td colSpan={9}>No records found.</td></tr>}
             {visibles.map((x) => (
               <tr key={x.id} className="ligne-choix" tabIndex={0} aria-selected={choisi?.id === x.id} onClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
                 <td className="chiffres">{x.numero}</td><td className="chiffres">{fr(x.date)}</td><td className="chiffres">{x.membre}</td><td>{x.client}</td><td>{x.typeLibelle}</td>
@@ -175,10 +175,10 @@ function PersonnesExposees({ jour }: { jour: string }) {
   const fige = !!choisi?.autorisePar;
   return (
     <section className="bloc pile" aria-label="Personnes exposées">
-      <Paginee lignes={donnees}>{(visibles) => (<div className="defile-x"><table className="grille">
-        <thead><tr><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Fonction</th><th scope="col">Fin de fonction</th><th scope="col">Autorisation</th><th scope="col">CENAREF</th></tr></thead>
+      <Paginee lignes={donnees} colonnes={(x) => [x.membre, x.client, x.fonction || "À saisir", fr(x.finFonction), x.autorisePar ? `${x.autorisePar}, ${fr(x.autoriseLe)}` : "À donner", x.informeLe ? fr(x.informeLe) : "À informer"]}>{(visibles) => (<div className="defile-x"><table className="grille">
+        <thead><tr><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Fonction</th><th scope="col">Fin de fonction</th><th scope="col">Autorisation</th><th scope="col">CENAREF</th></tr><LigneFiltres titres={["N° client", "Client", "Fonction", "Fin de fonction", "Autorisation", "CENAREF"]} /></thead>
         <tbody>
-          {donnees.length === 0 && <tr><td colSpan={6}>No records found.</td></tr>}
+          {visibles.length === 0 && <tr><td colSpan={6}>No records found.</td></tr>}
           {visibles.map((x) => (
             <tr key={x.tiersId} className="ligne-choix" tabIndex={0} aria-selected={choisi?.tiersId === x.tiersId} onClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
               <td className="chiffres">{x.membre}</td><td>{x.client}</td><td>{x.fonction || "À saisir"}</td><td className="chiffres">{fr(x.finFonction)}{x.finFonction && !x.exposee ? " · plus exposée" : ""}</td>
@@ -244,10 +244,10 @@ function ProfilsRisque() {
         <label className="case"><input type="radio" name="filtre-profils" checked={filtre === "echues"} onChange={() => setFiltre("echues")} /><span>Revues échues</span></label>
         <label className="case"><input type="radio" name="filtre-profils" checked={filtre === "tous"} onChange={() => setFiltre("tous")} /><span>Tous les clients</span></label>
       </div>
-      <Paginee lignes={donnees}>{(visibles) => (<div className="defile-x"><table className="grille">
-        <thead><tr><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Niveau</th><th scope="col">Évalué le</th><th scope="col">Évalué par</th><th scope="col">Prochaine revue</th></tr></thead>
+      <Paginee lignes={donnees} colonnes={(x) => [x.membre, x.client, x.niveauLibelle || "À évaluer", fr(x.evalueLe), x.evaluePar, x.prochaineRevue ? fr(x.prochaineRevue) : ""]}>{(visibles) => (<div className="defile-x"><table className="grille">
+        <thead><tr><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Niveau</th><th scope="col">Évalué le</th><th scope="col">Évalué par</th><th scope="col">Prochaine revue</th></tr><LigneFiltres titres={["N° client", "Client", "Niveau", "Évalué le", "Évalué par", "Prochaine revue"]} /></thead>
         <tbody>
-          {donnees.length === 0 && <tr><td colSpan={6}>No records found.</td></tr>}
+          {visibles.length === 0 && <tr><td colSpan={6}>No records found.</td></tr>}
           {visibles.map((x) => (
             <tr key={x.tiersId} className="ligne-choix" tabIndex={0} aria-selected={choisi?.tiersId === x.tiersId} onClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
               <td className="chiffres">{x.membre}</td><td>{x.client}{x.exposee ? " · exposée" : ""}</td><td>{x.niveauLibelle || "À évaluer"}</td>

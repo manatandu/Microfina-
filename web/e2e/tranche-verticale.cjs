@@ -603,6 +603,10 @@ const OUT = process.argv[2];
   // Retenues à reverser (écart E16 ; arrêté 008/2025, art. 2) : état du mois, échéance du 15 du mois suivant, au comptable
   await login('Patrick Lumbala'); await aller('/administration/sa01'); await p.getByRole('heading', { name: 'Journal de sécurité' }).waitFor();
   await p.getByRole('cell', { name: 'Connexion', exact: true }).first().waitFor(); await etape('10s-journal-securite');
+  // Filtre en tête de colonne (registre T04, manuel p. 9, point 4) : seules les lignes dont l'événement contient le texte saisi restent
+  await p.getByLabel('Filtrer Événement').fill('Connexion refusée');
+  if (await p.getByRole('cell', { name: 'Connexion', exact: true }).count()) throw new Error('T04 : le filtre ne retire pas les autres lignes');
+  await p.getByLabel('Filtrer Événement').fill('');
   await aller('/comptabilite/sf01'); await p.getByRole('article', { name: 'État des retenues du mois' }).waitFor(); await etape('10r-retenues');
   await login('J.-P. Mukendi');
   // Centrale des incidents de paiement (écart E06) : les ouvertures et nouveaux clients du jour à déclarer, avec leur échéance
