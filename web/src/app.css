@@ -561,3 +561,7 @@ select.saisie { max-width: 100%; }
 .colonnes-billetage { table-layout: fixed; width: 100%; }
 .colonnes-billetage th:nth-child(1) { width: 50%; }
 .colonnes-billetage th:nth-child(2) { width: 20%; }
+
+/* Chargement : invisible pendant 400 ms, puis fondu ; une page qui arrive vite ne clignote pas */
+.chargement { animation: fondu 150ms ease-out 400ms backwards; }
+@media (prefers-reduced-motion: reduce) { .chargement { animation-duration: 1ms; } }   /* le délai reste, le fondu disparaît */

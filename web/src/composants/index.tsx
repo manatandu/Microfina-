@@ -131,8 +131,9 @@ export function Specimen() {
   );
 }
 
+/** « Chargement… » ne paraît qu'au-delà de 400 ms : une lecture rapide ne fait plus clignoter l'écran (fondu en CSS, hors du fil principal). */
 export function Chargement() {
-  return <p className="muet" role="status">Chargement…</p>;
+  return <p className="muet chargement" role="status">Chargement…</p>;
 }
 
 /** Date jj/mm/aaaa au clavier (DESIGN § 2.1, composant C06). Jamais le sélecteur du navigateur :

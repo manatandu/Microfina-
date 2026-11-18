@@ -6,7 +6,6 @@
  * Les liens restent des éléments HTML posés par-dessus (clavier, lecteur d'écran) : la scène donne leur position à chaque image.
  */
 
-import { FORMES_LOGO } from "../marque/dwacfina-forme";
 
 export type Ancre = { x: number; y: number; echelle: number };
 export type Scene = {
@@ -19,6 +18,7 @@ type Options = {
   entree: boolean;                    // travelling d'entrée (première visite de la session)
   reduit: boolean;                    // mouvement réduit demandé par le système
   placer(etoile: Ancre, socles: Ancre[]): void;
+  lent(): void;                       // la scène reste trop lente même à la plus basse résolution : passer à la version plate
 };
 
 const RAYON_ORBITE = 4.4;
@@ -38,25 +38,7 @@ const entreeSortie = (t: number) => (t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * 
 
 export const positionSocle = (i: number): V => { const a = i * Math.PI / 4; return [Math.sin(a) * RAYON_ORBITE, 0, -Math.cos(a) * RAYON_ORBITE]; };
 
-// ---------- D de Dwacfina : champ de distance signé, calculé une fois sur une grille ----------
-const N_CHAMP = 128;
-const BOITE_CHAMP: [number, number, number, number] = [-1.05, -1.2, 2.1, 2.4];          // x0, y0, largeur, hauteur (le D fait 1,77 sur 1,75)
-function champMonogramme(): Float32Array {
-  const champ = new Float32Array(N_CHAMP * N_CHAMP);
-  const [x0, y0, w, h] = BOITE_CHAMP;
-  for (let j = 0; j < N_CHAMP; j++) for (let i = 0; i < N_CHAMP; i++) {
-    const px = x0 + (i / (N_CHAMP - 1)) * w, py = y0 + (j / (N_CHAMP - 1)) * h;
-    let d = Infinity, dedans = false;
-    for (const poly of FORMES_LOGO) for (let k = 0, l = poly.length - 1; k < poly.length; l = k++) {
-      const [ax, ay] = poly[l]!, [bx, by] = poly[k]!;
-      const ex = bx - ax, ey = by - ay, t = Math.max(0, Math.min(1, ((px - ax) * ex + (py - ay) * ey) / (ex * ex + ey * ey || 1)));
-      d = Math.min(d, Math.hypot(px - ax - ex * t, py - ay - ey * t));
-      if ((ay > py) !== (by > py) && px < ax + ((py - ay) / (by - ay)) * ex) dedans = !dedans;
-    }
-    champ[j * N_CHAMP + i] = dedans ? -d : d;
-  }
-  return champ;
-}
+// ---------- D de Dwacfina : décrit directement dans le programme graphique (rectangle, demi-disque, deux barres), sans calcul au démarrage ----------
 
 /** Couleur d'un jeton CSS (#RRGGBB) en linéaire */
 function jeton(nom: string, secours: V): V {
@@ -77,8 +59,6 @@ uniform vec2 uRes; uniform float uTemps, uEntree, uPlonge;
 uniform vec3 uOeil, uCible;
 uniform float uActif[8]; uniform float uSurvol;
 uniform vec3 cBleu, cOr, cNuit, cRouge;
-uniform highp sampler2D uForme;                       // champ de distance du D de Dwacfina
-const vec4 BOITE = vec4(${BOITE_CHAMP.join(", ")});
 
 const float PI = 3.14159265;
 const float R_ORB = ${RAYON_ORBITE.toFixed(2)};
@@ -86,13 +66,15 @@ const float R_ORB = ${RAYON_ORBITE.toFixed(2)};
 float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
 mat2 rot(float a) { float c = cos(a), s = sin(a); return mat2(c, -s, s, c); }
 
-// Monogramme DWAC (formes du guide de marque) : lecture bilinéaire du champ de distance ; hors de la grille, distance à la grille en plus
+// D de Dwacfina (logo « Partie double », docs/design/logo-dwacfina) : coordonnées du logo (unités de 1/176 de la hauteur du D, origine au centre)
+float boite(vec2 p, vec2 c, vec2 h) { vec2 d = abs(p - c) - h; return length(max(d, 0.)) + min(max(d.x, d.y), 0.); }
 float monogramme2(vec2 p) {
-  vec2 uv = (p - BOITE.xy) / BOITE.zw, c = clamp(uv, 0., 1.);
-  vec2 t = c * float(${N_CHAMP - 1}); ivec2 i = min(ivec2(floor(t)), ivec2(${N_CHAMP - 2})); vec2 f = t - vec2(i);
-  float a = texelFetch(uForme, i, 0).r, b = texelFetch(uForme, i + ivec2(1, 0), 0).r;
-  float d = texelFetch(uForme, i + ivec2(0, 1), 0).r, e = texelFetch(uForme, i + ivec2(1, 1), 0).r;
-  return mix(mix(a, b, f.x), mix(d, e, f.x), f.y) + length((uv - c) * BOITE.zw);
+  const float K = 1.75 / 176.;
+  vec2 q = p / K;
+  float tige = boite(q, vec2(-45., 0.), vec2(44., 88.));
+  float arc = max(length(vec2((q.x + 1.) * 88. / 90., q.y)) - 88., -1. - q.x);   // demi-disque, léger débord horizontal comme le logo
+  float barres = min(boite(q, vec2(-4., 26.), vec2(49., 13.)), boite(q, vec2(-4., -26.), vec2(49., 13.)));
+  return max(min(tige, arc), -barres) * K;
 }
 float cylindre(vec3 p, float r, float h) { vec2 d = abs(vec2(length(p.xz), p.y)) - vec2(r, h); return min(max(d.x, d.y), 0.) + length(max(d, 0.)); }
 float tore(vec3 p, float R, float r) { return length(vec2(length(p.xz) - R, p.y)) - r; }
@@ -258,6 +240,11 @@ void main() {
 export function monterScene(toile: HTMLCanvasElement, o: Options): Scene | null {
   const gl = toile.getContext("webgl2", { antialias: false, alpha: false, powerPreference: "high-performance" });
   if (!gl) return null;
+  // Rendu logiciel (pas de carte graphique utilisable : vieux poste, pilote bloqué) : chaque image passerait par le processeur et
+  // bloquerait tout l'écran (mesuré : 80 à 480 ms par image) ; la version plate prend le relais
+  const info = gl.getExtension("WEBGL_debug_renderer_info");
+  const rendu = String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER) ?? "");
+  if (/swiftshader|llvmpipe|softpipe|software|basic render/i.test(rendu)) return null;
   const shader = (type: number, src: string) => { const s = gl.createShader(type)!; gl.shaderSource(s, src); gl.compileShader(s); return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? s : null; };
   const vs = shader(gl.VERTEX_SHADER, SOMMETS), fs = shader(gl.FRAGMENT_SHADER, FRAGMENTS);
   if (!vs || !fs) return null;
@@ -276,15 +263,12 @@ export function monterScene(toile: HTMLCanvasElement, o: Options): Scene | null 
   gl.uniform3fv(U.rouge, jeton("--alerte", [.55, .025, .012]));
   gl.uniform1fv(U.actif, o.actifs.map((a) => (a ? 1 : 0)));
   gl.uniform1f(U.survol, -9);
-  // champ du monogramme : texture flottante lue par texelFetch (pas de filtrage requis)
-  const texture = gl.createTexture(); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, N_CHAMP, N_CHAMP, 0, gl.RED, gl.FLOAT, champMonogramme());
-  gl.uniform1i(u("uForme"), 0);
 
   let echelle = Math.min(devicePixelRatio || 1, 1.5) * 0.7, image = 0, arret = false, survol = -9;
-  const debut = performance.now(), duree = o.entree && !o.reduit ? 2600 : 0;
+  // L'horloge du travelling part à la première image vraiment affichée : la compilation du programme graphique, qui fige la toute
+  // première image, ne mange plus le début du mouvement (fiche emil-kowalski animation-performance : ne pas jouer pendant un travail lourd)
+  let debut = 0, precedente = 0;
+  const duree = o.entree && !o.reduit ? 2600 : 0;
   const souris = { x: 0, y: 0, cx: 0, cy: 0 };
   let plonge: { cible: V; t0: number; fin: () => void } | null = null;
   const temps: number[] = [];
@@ -320,7 +304,7 @@ export function monterScene(toile: HTMLCanvasElement, o: Options): Scene | null 
   const dessiner = (maintenant: number) => {
     image = 0;
     if (arret) return;
-    const t0 = performance.now();
+    if (!debut) debut = maintenant;
     const ecoule = maintenant - debut, e = duree ? sortie(Math.min(1, ecoule / duree)) : 1;
     souris.cx += (souris.x - souris.cx) * .06; souris.cy += (souris.y - souris.cy) * .06;
     const { oeil, cible, p } = camera(e, maintenant);
@@ -332,13 +316,17 @@ export function monterScene(toile: HTMLCanvasElement, o: Options): Scene | null 
     const hauteur = mix(.55, 1.75, Math.min(1, Math.max(0, (e - .05) / .7))) + .08 * Math.sin((o.reduit ? 4 : ecoule / 1000) * 1.1);
     o.placer(projeter([0, hauteur, 0], oeil, cible), Array.from({ length: 8 }, (_, i) => { const c = positionSocle(i); return projeter([c[0], .78, c[2]], oeil, cible); }));
     if (plonge && p >= 1) { const f = plonge.fin; plonge = null; f(); return; }
-    // Résolution adaptative : si l'image dépasse 24 ms en moyenne, on réduit la résolution de rendu
-    temps.push(performance.now() - t0);
-    if (temps.length === 20) { const m = temps.reduce((a, b) => a + b, 0) / 20; temps.length = 0; if (m > 24 && echelle > .35) { echelle *= .8; dimensionner(); } }
+    // Résolution adaptative : on mesure l'écart réel entre deux images (travail de la carte graphique compris, que le temps
+    // passé dans ce code ne montre pas) ; au-delà de 20 ms en moyenne (moins de 50 images par seconde), la résolution baisse
+    if (precedente && ecoule > 300) temps.push(maintenant - precedente);
+    precedente = maintenant;
+    if (temps.length === 12) { const m = temps.reduce((a, b) => a + b, 0) / 12; temps.length = 0; if (m > 20 && echelle > .35) { echelle *= .8; dimensionner(); }
+      else if (m > 34 && !plonge) { arret = true; o.lent(); return; } }
     if (!o.reduit || plonge || ecoule < 50) image = requestAnimationFrame(dessiner);
   };
+  gl.uniform2f(U.res, toile.width, toile.height); gl.uniform1f(U.entree, 0); gl.drawArrays(gl.TRIANGLES, 0, 3);   // compile maintenant, pas pendant le travelling
   image = requestAnimationFrame(dessiner);
-  const relancer = () => { if (!image && !arret) image = requestAnimationFrame(dessiner); };
+  const relancer = () => { if (!image && !arret) { precedente = 0; image = requestAnimationFrame(dessiner); } };   // après une pause, la mesure repart de zéro
 
   const viser = (x: number, y: number) => { souris.x = Math.max(-1, Math.min(1, x)); souris.y = Math.max(-1, Math.min(1, y)); if (o.reduit) { souris.cx = souris.x * 0; } };
   const pointeur = (ev: PointerEvent) => { if (ev.pointerType === "mouse" && !o.reduit) viser(ev.clientX / innerWidth * 2 - 1, ev.clientY / innerHeight * 2 - 1); };
@@ -359,7 +347,7 @@ export function monterScene(toile: HTMLCanvasElement, o: Options): Scene | null 
     detruire() {
       arret = true; cancelAnimationFrame(image); obs.disconnect();
       removeEventListener("pointermove", pointeur); removeEventListener("deviceorientation", inclinaison); document.removeEventListener("visibilitychange", visible);
-      gl.deleteProgram(prog); gl.deleteBuffer(tampon); gl.deleteTexture(texture);
+      gl.deleteProgram(prog); gl.deleteBuffer(tampon);
     },
   };
 }

@@ -65,7 +65,7 @@ Un écran de guichet montre l'opération courante, pas toutes les règles possib
 
 ### 2.7 bis Pas d'animation sur ce qui se répète
 
-Le guichet valide des centaines d'opérations par jour, au clavier. Rien ne s'anime après F9 : le résultat s'affiche d'un coup. Source : skill `emil-kowalski`, fiche `emil-design-eng`, « Never animate keyboard-initiated actions ». Les boutons n'ont pas d'effet à la pression (décision du porteur du projet, 05/11/2026).
+Le guichet valide des centaines d'opérations par jour, au clavier. Rien ne s'anime après F9 : le résultat s'affiche d'un coup. Une page qui charge n'affiche « Chargement… » qu'au-delà de 400 ms : une lecture rapide ne fait plus clignoter l'écran. Source : skill `emil-kowalski`, fiche `emil-design-eng`, « Never animate keyboard-initiated actions ». Les boutons n'ont pas d'effet à la pression (décision du porteur du projet, 05/11/2026).
 
 
 ### 2.7 ter Une exception : la page des modules
@@ -79,7 +79,10 @@ Demande du porteur du projet (13/11/2026) : « un bon design et l'animation imme
 - **Plongée** : au clic de la souris ou du doigt sur un module ouvert, la caméra fond sur son socle (750 ms, courbe forte d'entrée et de sortie), puis un fondu vers le fond des écrans du module. Au clavier, avec une touche de modification ou en mouvement réduit : ouverture directe.
 - **Survol** : le socle et l'orbe s'illuminent, le nom passe en or.
 - **Mouvement réduit** demandé par le système : une image fixe de la scène, sans travelling, ni parallaxe, ni plongée.
-- **Charge** : la résolution de rendu baisse d'elle-même si une image dépasse 24 ms ; le calcul s'arrête quand l'onglet est caché.
+- **Charge** (fluidité, demande du porteur, 18/11/2026 ; fiche `animation-performance` d'emil-kowalski) :
+  - la résolution baisse d'elle-même si l'écart réel entre deux images dépasse 20 ms en moyenne (mesure qui compte le travail de la carte graphique) ; le calcul s'arrête quand l'onglet est caché ;
+  - le D est décrit directement dans le programme graphique : aucun calcul au démarrage ; le programme est compilé avant que l'horloge du travelling ne parte ;
+  - sans carte graphique utilisable (rendu logiciel : vieux poste, pilote bloqué), ou si la scène reste au-delà de 34 ms par image à la plus basse résolution, la version plate en CSS prend le relais. Mesuré avec un processeur ralenti quatre fois : de 80 à 480 ms par image en 3D logicielle, 16,7 ms en version plate.
 - Ailleurs, la règle 2.7 bis reste entière.
 ### 2.8 Le papier est un écran comme un autre
 
