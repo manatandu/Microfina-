@@ -20,8 +20,9 @@ FONDS_G2 = {"USD": {100: 140, 50: 12, 20: 8, 10: 3, 5: 2, 1: 6}, "CDF": {20000: 
 
 
 
-SECTEURS = [("S1", "PRIMAIRE"), ("S2", "SECONDAIRE"), ("S3", "TERTIAIRE"), ("S4", "Transformation"), ("S5", "Autre activités"),
-            ("S6", "Commerce"), ("S7", "Artisanat"), ("S8", "Elevage")]
+SECTEURS = [("S1", "PRIMAIRE"), ("S2", "SECONDAIRE"), ("S3", "TERTIAIRE")]
+# Décision du porteur (18/11/2026, registre S14-3) : les autres lignes de la capture p. 23 sont des types d'activité (S14a), rangés sous leur secteur
+TYPES_ACTIVITE = [("T1", "Elevage", "S1"), ("T2", "Pêche", "S1"), ("T3", "Transformation", "S2"), ("T4", "Artisanat", "S2"), ("T5", "Commerce", "S3")]
 
 # Constitution, art. 2 : la ville de Kinshasa (statut de province) et les 25 provinces
 PROVINCES_RDC = ["Kinshasa", "Bas-Uele", "Equateur", "Haut-Lomami", "Haut-Katanga", "Haut-Uele", "Ituri", "Kasaï", "Kasaï Oriental", "Kongo central", "Kwango",
@@ -130,6 +131,8 @@ class Command(BaseCommand):
         for c, l in SECTEURS:
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'secteur_activite', %s, %s)", (ins, c, l))
         secteur = lambda c: valeur("select id from liste_reference where institution_id = %s and liste = 'secteur_activite' and code = %s", (ins, c))
+        for c, l, s in TYPES_ACTIVITE:
+            executer("insert into liste_reference (institution_id, liste, code, libelle, parent_id) values (%s, 'type_activite', %s, %s, %s)", (ins, c, l, secteur(s)))
         to = {}
         for l, sec in (("Agriculture, élevage, chasse, pêche, sylviculture, pisciculture et aquaculture", "S1"), ("Industries extractives", "S1"),
                        ("Industrie manufacturière", "S2"), ("Bâtiments et travaux publics", "S2"), ("Commerce, hôtels et restaurants", "S3"),

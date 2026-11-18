@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**418 décisions.** Solidité : 175 fortes (le manuel ou un texte répond), 211 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 386 déjà en place, 29 à appliquer.
+**419 décisions.** Solidité : 176 fortes (le manuel ou un texte répond), 211 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 387 déjà en place, 29 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -151,6 +151,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | S14-1 | Usage du secteur | Champ de la fiche client (onglet Autres renseignements), critère du rapport client (S51), parent du type d'activité (S14a) et du type d'objet de crédit (S21) — En place : fiche client S37 à S39 (Autres renseignements), parent du type d'activité (S14a), parent du type d'objet de crédit (S21), critère « Secteur d'activité » du rapport multicritère (S51, p. 58) | Donnée exigée ailleurs : Manuel p. 32 (Type objet lit Secteur Activité), p. 58 (critère) | moyenne | en place |
 | S14-2 | Autres pages de la liste de gauche | S14a à S14n : gabarit liste, un code et un libellé, plus le parent quand il y en a un | Écran voisin : S14 (p. 23) | moyenne | en place |
+| S14-3 | Données de démonstration | Secteurs : PRIMAIRE, SECONDAIRE, TERTIAIRE seulement. Les autres lignes de la capture p. 23 deviennent des types d'activité (S14a) sous leur secteur : Elevage et Pêche sous PRIMAIRE ; Transformation et Artisanat sous SECONDAIRE ; Commerce sous TERTIAIRE. « Autre activités » est retirée. Écart à la capture, pour les données de démonstration seulement : la structure reste celle de Microfina++ | Choix du porteur : Décision du porteur, 18/11/2026 ; manuel p. 23 | forte | en place |
 
 ## S15 Paramétrages liés aux clients
 

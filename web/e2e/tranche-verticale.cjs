@@ -52,12 +52,12 @@ const OUT = process.argv[2];
   // Remettre 2026 en cours pour la suite de la journée (un seul exercice actif, registre S11-1)
   await aller('/administration/s11'); await p.getByLabel('Actif : 2027').uncheck(); await p.getByLabel('Actif : 2026').check(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   // Chef : secteur d'activité (S14, p. 23)
-  await aller('/parametrage/s14'); await p.getByLabel('N° secteur : *').fill('S9'); await p.getByLabel("Secteur d'activite : *").fill('Pêche');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Pêche' }).waitFor(); await etape('02f-secteurs-activite');
+  // Les trois secteurs ; les activités se rangent dessous, dans Type d'activité (décision du porteur, registre S14-3)
+  await aller('/parametrage/s14'); await p.getByRole('cell', { name: 'TERTIAIRE' }).waitFor(); await etape('02f-secteurs-activite');
   // Page Type d'activité de la liste de gauche (S14a, registre S14-2) : rattachée à un secteur
   await p.getByRole('navigation', { name: 'Général' }).getByRole('button', { name: "Type d'activité" }).click();
   await p.getByRole('heading', { name: "Information de base: Type d'activité" }).waitFor();
-  await p.getByLabel("Secteur d'activite : *").selectOption({ label: 'Pêche' }); await p.getByLabel('Code : *').fill('A1'); await p.getByLabel("Type d'activité : *").fill('Pisciculture');
+  await p.getByLabel("Secteur d'activite : *").selectOption({ label: 'PRIMAIRE' }); await p.getByLabel('Code : *').fill('A1'); await p.getByLabel("Type d'activité : *").fill('Pisciculture');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Pisciculture' }).waitFor(); await etape('02f1-type-activite');
   // Chef : motif de départ d'un client (S18, p. 26) : même page, Libelle Motif seul
   await aller('/parametrage/s18'); await p.getByRole('heading', { name: "Motif de départ d'un client" }).waitFor();
@@ -229,7 +229,7 @@ const OUT = process.argv[2];
   await etape('04b-renseignements');
   await p.getByRole('tab', { name: 'Autres renseignements' }).click();
   await p.getByLabel('Pays :').selectOption('République démocratique du Congo'); await p.getByLabel('Ville :').selectOption('Kinshasa');
-  await p.getByLabel('Secteur d\'activité :').selectOption('Commerce'); await etape('04b2-autres-renseignements');
+  await p.getByLabel('Secteur d\'activité :').selectOption('TERTIAIRE'); await p.getByLabel("Type d'activité :").selectOption('Commerce'); await etape('04b2-autres-renseignements');
   await p.getByRole('tab', { name: 'Bénéficiaires' }).click(); await p.getByRole('button', { name: '+Ajouter' }).click();
   const be = p.getByRole('dialog', { name: 'Bénéficiaire' }); await be.getByLabel('Nom : *').fill('Tshala'); await be.getByLabel('Prénom :').fill('Paul');
   await be.getByRole('button', { name: 'Ajouter', exact: true }).click(); await be.getByRole('button', { name: 'Fermer' }).click();

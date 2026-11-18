@@ -127,8 +127,11 @@ export function graine(): Etat {
         .map(([code, libelle, typeId, debut, fin], i) => ({ id: i + 1, actif: true, code, libelle, typeId, debut, fin }));
       return { types_centre: tc, centres, types_budget: tb, types_periode: tp, periodes: pe, plans: [], lignes: [], operations: [] };
     })(),
-    listes: [...[["S1", "PRIMAIRE"], ["S2", "SECONDAIRE"], ["S3", "TERTIAIRE"], ["S4", "Transformation"], ["S5", "Autre activités"], ["S6", "Commerce"], ["S7", "Artisanat"], ["S8", "Elevage"]]
-      .map(([code, libelle]) => ({ liste: "secteur_activite", code: code!, libelle: libelle! })), { liste: "type_guichet", code: "1", libelle: "PRINCIPALE" }, { liste: "type_guichet", code: "2", libelle: "SECONDAIRE" },
+    listes: [...[["S1", "PRIMAIRE"], ["S2", "SECONDAIRE"], ["S3", "TERTIAIRE"]]
+      .map(([code, libelle]) => ({ liste: "secteur_activite", code: code!, libelle: libelle! })),
+      // Décision du porteur (18/11/2026, registre S14-3) : les autres lignes de la capture p. 23 sont des types d'activité (S14a), sous leur secteur (ids 1 à 3 ci-dessus)
+      ...([["T1", "Elevage", 1], ["T2", "Pêche", 1], ["T3", "Transformation", 2], ["T4", "Artisanat", 2], ["T5", "Commerce", 3]] as const)
+        .map(([code, libelle, parentId]) => ({ liste: "type_activite", code, libelle, parentId })), { liste: "type_guichet", code: "1", libelle: "PRINCIPALE" }, { liste: "type_guichet", code: "2", libelle: "SECONDAIRE" },
       // Sous types de client fictifs (S14h), cochés dans Paramétrage frais (S16-8)
       ...["Homme", "Femme", "Entreprise", "Groupement", "Association", "ONG"].map((libelle, i) => ({ liste: "sous_type_client", code: String(i + 1), libelle })),
       // S14g : type client « Client », valeur de la capture p. 49 (registre S37-2)
