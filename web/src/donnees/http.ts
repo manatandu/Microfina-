@@ -88,6 +88,9 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       situation: (tiersId: number, date: string) => get(`/epargne/situation?tiersId=${tiersId}&date=${date}`),
       editer: (compteId: number, du: string, au: string) => post("/epargne/releve/edition", { compteId, du, au }),
     },
+    journalSecurite: {
+      consulter: (du: string, au: string, evenement = "") => get(`/securite/journal?du=${du}&au=${au}&evenement=${evenement}`),
+    },
     retenues: {
       etat: (annee: number | string, mois: number | string) => get(`/comptabilite/retenues?annee=${annee}&mois=${mois}`),
       reverser: (d: object) => post("/comptabilite/retenues/reversements", d),

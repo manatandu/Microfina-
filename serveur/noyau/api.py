@@ -1403,6 +1403,12 @@ def retenues_reverser(request, corps: dict = Body(...)):
     return ret.reverser(u(request), corps)
 
 
+@api.get("/securite/journal")
+def securite_journal(request, du: str = "", au: str = "", evenement: str = ""):
+    from .securite import consulter
+    return consulter(u(request), du, au, evenement)
+
+
 @api.get("/conformite/profils")
 def conformite_profils(request, filtre: str = "echues"):
     return conf.profils_lister(u(request), filtre)

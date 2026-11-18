@@ -2240,6 +2240,25 @@ def test_retenues_a_reverser(clients, journee):
     assert agent.post("/api/comptabilite/retenues/reversements", {"annee": 2026, "mois": 11, "date": "2026-11-05", "reference": "X"}, **H).status_code == 403
 
 
+def test_journal_de_securite(clients, journee):
+    """Écart E17 : Instr. BCC 008, art. 16"""
+    from datetime import date
+    from noyau.bd import executer
+    chef, compta = clients["chef"], clients["compta"]
+    jour = date.today().isoformat()
+    assert chef.post("/api/session", {"login": "inconnu"}, **H).status_code >= 400                  # identifiant inconnu : noté
+    r = chef.get(f"/api/securite/journal?du={jour}&au={jour}", **H)
+    assert r.status_code == 403                                                                      # aucun profil de départ n'a SA01
+    connecter(chef, "jpmukendi")
+    executer("insert into profil_droit (profil_id, droit_code) select id, 'SA01' from profil where code = 'comptable'")
+    ev = compta.get(f"/api/securite/journal?du={jour}&au={jour}", **H).json()
+    types = {x["evenement"] for x in ev}
+    assert {"connexion", "connexion_impossible", "acces_refuse"} <= types
+    assert any(x["login"] == "inconnu" and x["evenementLibelle"] == "Connexion impossible" for x in ev)
+    assert all(x["evenement"] == "acces_refuse" for x in compta.get(f"/api/securite/journal?du={jour}&au={jour}&evenement=acces_refuse", **H).json())
+    assert "Événement inconnu" in compta.get(f"/api/securite/journal?du={jour}&au={jour}&evenement=x", **H).json()["message"]
+
+
 def test_convention_et_admission(clients, journee):
     """Écart E04 : convention de compte (loi 22/069, titre III) ; écart E05 : admission par le Conseil d'Administration (loi 002/2002, art. 22, 6°)"""
     from noyau.bd import executer

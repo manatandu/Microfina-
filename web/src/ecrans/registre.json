@@ -135,6 +135,15 @@
   "chemin": "/administration/s13"
  },
  {
+  "id": "SA01",
+  "nom": "Journal de sécurité",
+  "acces": "Administration > Journal de sécurité",
+  "but": "Consulter les connexions, refus, blocages et accès refusés pour détecter les actions anormales ; écran du responsable de la sécurité informatique (écart E17 ; Instr. BCC 008, art. 16)",
+  "module": "administration",
+  "priorite": "must",
+  "chemin": "/administration/sa01"
+ },
+ {
   "id": "S14",
   "nom": "Secteurs d'activité",
   "acces": "Info de base > Client > Général",

@@ -595,8 +595,15 @@ const OUT = process.argv[2];
   await aller('/clients/sc04'); await p.getByRole('heading', { name: 'Registre des membres' }).waitFor(); await p.getByRole('cell', { name: '0412-000318', exact: true }).waitFor(); await etape('10p-registre-membres');
   // Conditions de banque (écart E15 ; Instr. BCC 40, art. 2 à 6) : état à afficher chaque trimestre et à transmettre à la BCC
   await aller('/parametrage/sp01'); await p.getByRole('article', { name: 'Conditions de banque imprimées' }).waitFor(); await etape('10q-conditions-banque');
+  // Journal de sécurité (écart E17 ; Instr. BCC 008, art. 16) : le droit, donné à aucun profil de départ, est attribué au profil COMPTABLE, désigné responsable
+  await aller('/administration/s04'); await p.getByLabel('Libellé du Profil *').selectOption({ label: 'COMPTABLE' });
+  const restants = p.getByRole('group', { name: 'LISTE DES DROITS RESTANTS' }); await restants.locator('details', { hasText: 'Journal de sécurité' }).locator('summary').click();
+  await restants.getByRole('checkbox', { name: 'Journal de sécurité' }).check(); await p.getByRole('button', { name: 'Octroyer les droits cochés' }).click();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   // Retenues à reverser (écart E16 ; arrêté 008/2025, art. 2) : état du mois, échéance du 15 du mois suivant, au comptable
-  await login('Patrick Lumbala'); await aller('/comptabilite/sf01'); await p.getByRole('article', { name: 'État des retenues du mois' }).waitFor(); await etape('10r-retenues');
+  await login('Patrick Lumbala'); await aller('/administration/sa01'); await p.getByRole('heading', { name: 'Journal de sécurité' }).waitFor();
+  await p.getByRole('cell', { name: 'Connexion', exact: true }).first().waitFor(); await etape('10s-journal-securite');
+  await aller('/comptabilite/sf01'); await p.getByRole('article', { name: 'État des retenues du mois' }).waitFor(); await etape('10r-retenues');
   await login('J.-P. Mukendi');
   // Centrale des incidents de paiement (écart E06) : les ouvertures et nouveaux clients du jour à déclarer, avec leur échéance
   await aller('/clients/sc02'); await p.getByRole('heading', { name: 'Centrale des incidents de paiement' }).waitFor(); await p.getByRole('cell', { name: 'Nouveau client' }).first().waitFor();

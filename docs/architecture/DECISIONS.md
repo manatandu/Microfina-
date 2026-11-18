@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**405 décisions.** Solidité : 162 fortes (le manuel ou un texte répond), 211 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 374 déjà en place, 29 à appliquer.
+**408 décisions.** Solidité : 164 fortes (le manuel ou un texte répond), 212 moyennes (déduites d'un écran voisin ou d'une donnée), 32 faibles (notre choix, faute de mieux). Dans le code : 377 déjà en place, 29 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -940,6 +940,14 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | E16-1 | Où et pour qui | Écran Comptabilité > Retenues à reverser (SF01, comptable) : pour un mois choisi, toutes les retenues portées au crédit du compte 433, avec date, pièce, opération, bénéficiaire, intérêt, taux et retenue, total par devise ; échéance au 15 du mois suivant ; statut À reverser, En retard, Reversé ou Aucune retenue ; état imprimable | Texte réglementaire : Arrêté ministériel 008/CAB/MIN/FINANCES/2025, art. 2 (reversement au plus tard le 15 du mois qui suit le versement), en vigueur le 1er janvier 2026 ; loi 23/053, art. 120 (20 %) ; PCCI, compte 433 | forte | en place |
 | E16-2 | Reversement | Le reversement d'un mois se note une fois, avec sa date (pas au-delà de la journée ouverte) et la référence de la déclaration ou de la quittance. Le paiement lui-même se passe en opération de banque ou de caisse (débit du 433) ; le formulaire de déclaration est celui de l'Administration des Impôts, non joint à l'arrêté | Texte réglementaire : Arrêté 008/2025, art. 2 (modèle de déclaration fourni par l'Administration des Impôts) | forte | en place |
 | E16-3 | Assiette | La retenue porte sur l'intérêt couru calculé à la rupture du DAT (registre S67-3). L'arrêté parle du revenu net imposable sans énumérer de déduction : aucune n'est appliquée | Texte réglementaire : Arrêté 008/2025, art. 3 ; loi 23/053, art. 120 | moyenne | en place |
+
+## E17 Journal de sécurité
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E17-1 | Où et quoi | Écran Administration > Journal de sécurité (SA01) : connexions, connexions refusées ou impossibles, blocages après trop d'essais, accès refusés faute de droit, dépassements de la limite de requêtes ; filtre par période et par événement, compte des refus et blocages, export. Heure réelle de l'événement, pas la journée comptable | Texte réglementaire : Instr. BCC 008 (microfinance), art. 16 (mécanismes de détection des actions anormales ; maîtrise des accès) ; registre T22 à T26 (journal existant) | forte | en place |
+| E17-2 | Qui consulte | Le droit SA01 n'est donné à aucun profil de départ : la fonction est dédiée et indépendante de l'exploitation du système ; l'administrateur l'attribue au profil du responsable de la sécurité désigné, ou de la gestion des risques (Administration > Profil > Assigner droit) | Texte réglementaire : Instr. BCC 008, art. 16, al. 1er | forte | en place |
+| E17-3 | Événements notés hors ligne | La version de démonstration hors ligne note les connexions, les identifiants inconnus et les accès refusés ; le serveur note en plus les refus de mot de passe, les blocages et la limite de requêtes, qui n'existent qu'en ligne | Donnée exigée ailleurs : Registre T22 à T26 ; ARCHITECTURE (couche locale de démonstration) | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

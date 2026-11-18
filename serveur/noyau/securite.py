@@ -94,3 +94,29 @@ class LimiteRequetes:
         if request.path.startswith("/api/"):
             reponse["Cache-Control"] = "no-store"          # les réponses de l'API ne restent dans aucun cache
         return reponse
+
+
+# Écart E17 : consultation du journal (Instr. BCC 008, art. 16). Mêmes libellés que web/src/donnees/api.ts (journalSecurite).
+EVENEMENTS = {"connexion": "Connexion", "connexion_refusee": "Connexion refusée (mot de passe)", "connexion_impossible": "Connexion impossible",
+              "connexion_bloquee": "Connexion bloquée (trop d'essais)", "acces_refuse": "Accès refusé (droit manquant)", "limite_requetes": "Limite de requêtes dépassée"}
+
+
+def consulter(u: dict, du: str, au: str, evenement: str = "") -> list[dict]:
+    """Événements des utilisateurs de l'institution et tentatives anonymes (identifiant inconnu ou adresse seule), du plus récent au plus ancien"""
+    from .bd import lignes
+    from .services import exiger
+    exiger(u)
+    for v, nom in ((du, "Du"), (au, "Au")):
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", v or ""):
+            raise ErreurMetier(f"À remplir : {nom}.")
+    if du > au:
+        raise ErreurMetier("La date de début dépasse la date de fin.")
+    if evenement and evenement not in EVENEMENTS:
+        raise ErreurMetier("Événement inconnu.")
+    rows = lignes("""select j.le, j.evenement, j.login, j.ip, j.detail, coalesce(x.nom, y.nom) as nom
+                     from journal_securite j left join utilisateur x on x.id = j.utilisateur_id left join utilisateur y on y.login = j.login
+                     where j.le >= %(du)s::date and j.le < %(au)s::date + 1 and (%(ev)s = '' or j.evenement = %(ev)s)
+                       and coalesce(x.institution_id, y.institution_id, %(i)s) = %(i)s
+                     order by j.le desc, j.id desc limit 1000""", {"du": du, "au": au, "ev": evenement, "i": u["institution_id"]})
+    return [{"le": r["le"].astimezone().isoformat(timespec="seconds"), "evenement": r["evenement"], "evenementLibelle": EVENEMENTS.get(r["evenement"], r["evenement"]),
+             "login": r["login"] or "", "utilisateur": r["nom"] or "", "ip": r["ip"] or "", "detail": r["detail"] or ""} for r in rows]

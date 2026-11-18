@@ -302,6 +302,22 @@ describe("journée de guichet", () => {
     await expect(api.retenues.reverser({ annee: 2026, mois: 11, date: "2026-11-05", reference: "X" })).rejects.toThrow("déjà noté");
   });
 
+  it("journal de sécurité (écart E17) : connexions, identifiant inconnu, accès refusés ; droit à attribuer", async () => {
+    const jour = new Date().toISOString().slice(0, 10);
+    await expect(api.session.ouvrir("inconnu")).rejects.toThrow("Identifiant inconnu");
+    await connecter("jpmukendi");
+    await expect(api.journalSecurite.consulter(jour, jour)).rejects.toThrow("Droit manquant");   // aucun profil de départ n'a SA01
+    const profils = Object.fromEntries((await api.droits.lire()).profils.map((p) => [p.nom, p.id]));
+    const id = Object.entries(profils).find(([n]) => n.includes("COMPTABLE"))![1]!;
+    await api.droits.enregistrer(id, { droits: [...(await api.droits.lire(id)).octroyes, "SA01"] });
+    await connecter("plumbala");
+    const ev = await api.journalSecurite.consulter(jour, jour);
+    expect(new Set(ev.map((x) => x.evenement))).toEqual(new Set(["connexion", "connexion_impossible", "acces_refuse"]));
+    expect(ev.some((x) => x.login === "inconnu" && x.evenementLibelle === "Connexion impossible")).toBe(true);
+    expect((await api.journalSecurite.consulter(jour, jour, "acces_refuse")).every((x) => x.evenement === "acces_refuse")).toBe(true);
+    await expect(api.journalSecurite.consulter(jour, jour, "x")).rejects.toThrow("Événement inconnu");
+  });
+
   it("convention de compte (écart E04) et admission par le Conseil d'Administration (écart E05)", async () => {
     await connecter("bkasongo");
     const cv = await api.comptesEpargne.convention(2);

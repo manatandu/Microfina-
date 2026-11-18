@@ -162,6 +162,7 @@ export function graine(): Etat {
     gels: [],
     lettresInactivite: [],
     reversementsRetenues: [],
+    journalSecurite: [],
     remboursementsEmprunt: [],
     chequesInstitution: [],
     agents: [],

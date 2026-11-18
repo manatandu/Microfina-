@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v75";
+const CLE = "likelemba-demo-v76";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -64,8 +64,14 @@ function verifierDroit(cle: string) {
   const u = utilisateur();
   if (!u) throw new ErreurMetier("Session fermée. Reconnectez-vous.");
   const d = droitsDe(u);
-  if (!e.some((x) => d.includes(x))) throw new ErreurMetier(`Droit manquant : ${NOMS_ECRANS[e[0]!] ?? e[0]} (Administration > Profil > Assigner droit).`);
+  if (!e.some((x) => d.includes(x))) { noterSecurite("acces_refuse", u.login, u.id, `${cle} : droit manquant`); throw new ErreurMetier(`Droit manquant : ${NOMS_ECRANS[e[0]!] ?? e[0]} (Administration > Profil > Assigner droit).`); }
   return true;
+}
+// Écart E17 : journal de sécurité (Instr. BCC 008, art. 16). Le serveur note aussi les refus de mot de passe, les blocages et la limite de requêtes (noyau/securite.py).
+const EVENEMENTS_SECURITE: Record<string, string> = { connexion: "Connexion", connexion_refusee: "Connexion refusée (mot de passe)", connexion_impossible: "Connexion impossible",
+  connexion_bloquee: "Connexion bloquée (trop d'essais)", acces_refuse: "Accès refusé (droit manquant)", limite_requetes: "Limite de requêtes dépassée" };
+function noterSecurite(evenement: string, login: string, utilisateurId: number | null, detail = "") {
+  (E.journalSecurite ??= []).push({ id: Math.max(0, ...E.journalSecurite.map((x) => x.id)) + 1, le: new Date().toISOString(), evenement, login, utilisateurId, detail }); enregistrer();
 }
 export const LIBELLES_ROLES: Record<Role, string> = { caissier: "caissier", chef_agence: "chef d'agence", agent_credit: "agent de crédit", comptable: "comptable" };
 
@@ -76,8 +82,8 @@ const session = {
   courante: () => { const u = utilisateur(); return u ? { ...u, droits: droitsDe(u) } : null; },
   ouvrir(login: string, _motDePasse?: string) {
     const u = E.utilisateurs.find((x) => x.login === login);
-    if (!u) throw new ErreurMetier("Identifiant inconnu.");
-    E.session = u.id; enregistrer(); return u;
+    if (!u) { noterSecurite("connexion_impossible", login, null, "Identifiant inconnu."); throw new ErreurMetier("Identifiant inconnu."); }
+    E.session = u.id; noterSecurite("connexion", login, u.id); return u;
   },
   fermer() { E.session = null; enregistrer(); return undefined; },
 };
@@ -4034,8 +4040,21 @@ export type SaisieUtilisateur = { nom?: string; agenceId?: number | null; login?
 /** Lecture d'une route d'administration (registre T27) : seulement avec le droit de l'écran ; mêmes règles que noyau/droits.py (LECTURES_ADMIN) */
 function lectureAdmin(ecrans: string[]) {
   const u = exiger();
-  if (!ecrans.some((x) => droitsDe(u).includes(x))) throw new ErreurMetier(`Droit manquant : ${NOMS_ECRANS[ecrans[0]!] ?? ecrans[0]} (Administration > Profil > Assigner droit).`);
+  if (!ecrans.some((x) => droitsDe(u).includes(x))) { noterSecurite("acces_refuse", u.login, u.id, `lecture ${ecrans.join(", ")} : droit manquant`); throw new ErreurMetier(`Droit manquant : ${NOMS_ECRANS[ecrans[0]!] ?? ecrans[0]} (Administration > Profil > Assigner droit).`); }
 }
+const journalSecurite = {
+  consulter(du: string, au: string, evenement = "") {
+    lectureAdmin(["SA01"]);
+    if (!DATE_ISO.test(du ?? "")) throw new ErreurMetier("À remplir : Du.");
+    if (!DATE_ISO.test(au ?? "")) throw new ErreurMetier("À remplir : Au.");
+    if (du > au) throw new ErreurMetier("La date de début dépasse la date de fin.");
+    if (evenement && !EVENEMENTS_SECURITE[evenement]) throw new ErreurMetier("Événement inconnu.");
+    return E.journalSecurite.filter((x) => x.le.slice(0, 10) >= du && x.le.slice(0, 10) <= au && (!evenement || x.evenement === evenement))
+      .sort((a, b) => b.le.localeCompare(a.le) || b.id - a.id).slice(0, 1000)
+      .map((x) => ({ le: x.le, evenement: x.evenement, evenementLibelle: EVENEMENTS_SECURITE[x.evenement] ?? x.evenement, login: x.login,
+        utilisateur: nomUtilisateur(x.utilisateurId ?? undefined) || E.utilisateurs.find((y) => y.login === x.login)?.nom || "", ip: "", detail: x.detail }));
+  },
+};
 const comptesUtilisateurs = {
   lire() {
     lectureAdmin(["S05"]);
@@ -4228,6 +4247,7 @@ const apiLocal = {
   registreMembres: asynchrone(registreMembres, "registreMembres"),
   conditionsBanque: asynchrone(conditionsBanque, "conditionsBanque"),
   retenues: asynchrone(retenues, "retenues"),
+  journalSecurite: asynchrone(journalSecurite, "journalSecurite"),
   plaintes: asynchrone(plaintes, "plaintes"),
   banques: asynchrone(banques, "banques"),
   guichets: asynchrone(guichets, "guichets"),
