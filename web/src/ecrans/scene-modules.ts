@@ -1,12 +1,12 @@
 /**
  * S02 : page des modules en scène 3D (DESIGN § 2.7 ter, demande du porteur du 13/11/2026).
  * Un seul programme WebGL 2, sans bibliothèque : la scène est calculée pixel par pixel (champs de distance).
- * Monogramme DWAC en rouge (identité DWAC, registre D01-6) sur un podium à anneaux lumineux, sol miroir, faisceau de lumière, bokeh, huit socles en orbite
+ * Le D de Dwacfina en rouge (logo « Partie double », registre D01-6) sur un podium à anneaux lumineux, sol miroir, faisceau de lumière, bokeh, huit socles en orbite
  * dans l'ordre de la capture p. 6 (Grh au fond, puis dans le sens des aiguilles d'une montre vu d'en haut).
  * Les liens restent des éléments HTML posés par-dessus (clavier, lecteur d'écran) : la scène donne leur position à chaque image.
  */
 
-import { FORMES_MONOGRAMME } from "./monogramme-forme";
+import { FORMES_LOGO } from "../marque/dwacfina-forme";
 
 export type Ancre = { x: number; y: number; echelle: number };
 export type Scene = {
@@ -38,16 +38,16 @@ const entreeSortie = (t: number) => (t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * 
 
 export const positionSocle = (i: number): V => { const a = i * Math.PI / 4; return [Math.sin(a) * RAYON_ORBITE, 0, -Math.cos(a) * RAYON_ORBITE]; };
 
-// ---------- monogramme : champ de distance signé, calculé une fois sur une grille ----------
+// ---------- D de Dwacfina : champ de distance signé, calculé une fois sur une grille ----------
 const N_CHAMP = 128;
-const BOITE_CHAMP: [number, number, number, number] = [-1.05, -1.2, 2.1, 2.4];          // x0, y0, largeur, hauteur (le monogramme fait 1,41 sur 1,75)
+const BOITE_CHAMP: [number, number, number, number] = [-1.05, -1.2, 2.1, 2.4];          // x0, y0, largeur, hauteur (le D fait 1,77 sur 1,75)
 function champMonogramme(): Float32Array {
   const champ = new Float32Array(N_CHAMP * N_CHAMP);
   const [x0, y0, w, h] = BOITE_CHAMP;
   for (let j = 0; j < N_CHAMP; j++) for (let i = 0; i < N_CHAMP; i++) {
     const px = x0 + (i / (N_CHAMP - 1)) * w, py = y0 + (j / (N_CHAMP - 1)) * h;
     let d = Infinity, dedans = false;
-    for (const poly of FORMES_MONOGRAMME) for (let k = 0, l = poly.length - 1; k < poly.length; l = k++) {
+    for (const poly of FORMES_LOGO) for (let k = 0, l = poly.length - 1; k < poly.length; l = k++) {
       const [ax, ay] = poly[l]!, [bx, by] = poly[k]!;
       const ex = bx - ax, ey = by - ay, t = Math.max(0, Math.min(1, ((px - ax) * ex + (py - ay) * ey) / (ex * ex + ey * ey || 1)));
       d = Math.min(d, Math.hypot(px - ax - ex * t, py - ay - ey * t));
@@ -77,7 +77,7 @@ uniform vec2 uRes; uniform float uTemps, uEntree, uPlonge;
 uniform vec3 uOeil, uCible;
 uniform float uActif[8]; uniform float uSurvol;
 uniform vec3 cBleu, cOr, cNuit, cRouge;
-uniform highp sampler2D uForme;                       // champ de distance du monogramme DWAC
+uniform highp sampler2D uForme;                       // champ de distance du D de Dwacfina
 const vec4 BOITE = vec4(${BOITE_CHAMP.join(", ")});
 
 const float PI = 3.14159265;

@@ -13,11 +13,10 @@ a { color: var(--tampon); text-underline-offset: 3px; }
 }
 .logo { display: flex; align-items: center; gap: var(--espace-2); padding-right: var(--espace-4); margin-right: var(--espace-1); border-right: 1px solid var(--nuit-trait); color: var(--nuit-fort); text-decoration: none; font-weight: 700; white-space: nowrap; }
 .logo:focus-visible { outline: 2px solid var(--ciel); outline-offset: -2px; }
-/* Marque : monogramme DWAC jamais déformé, sans ombre ni dégradé (guide de marque) ; le nom du logiciel suit en Poppins Bold */
-.marque { display: inline-flex; align-items: center; gap: calc(var(--marque-taille) * .4); color: var(--encre); }
+/* Logo Dwacfina : jamais déformé, sans ombre ni dégradé (page d'usage, docs/design/logo-dwacfina) */
+.marque { display: inline-flex; align-items: center; color: var(--encre); }
 .marque-sombre { color: var(--nuit-fort); }
-.marque-signe { display: block; height: var(--marque-taille); width: auto; }
-.marque-nom { font-family: var(--police-marque); font-weight: 700; font-size: calc(var(--marque-taille) * .62); line-height: 1; letter-spacing: .04em; }
+.marque-logo { display: block; width: auto; }
 .logo-application { font-size: var(--taille-dense); font-weight: 600; color: var(--nuit-texte); padding-left: var(--espace-2); border-left: 1px solid var(--nuit-trait); }
 .marque-connexion { margin: 0 0 var(--espace-2); }
 .menus { display: flex; align-items: stretch; flex: 1; min-width: 0; overflow-x: auto; }

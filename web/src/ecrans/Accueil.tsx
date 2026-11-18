@@ -3,7 +3,7 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees } from "../lib/useDonnees";
 import { ICONES } from "../mise-en-page/icones";
-import monogramme from "../marque/dwac-monogramme-blanc.svg";
+import monogramme from "../marque/dwacfina-symbole-blanc.svg";
 import { ECRANS } from "./registre";
 import { monterScene, type Ancre, type Scene } from "./scene-modules";
 
