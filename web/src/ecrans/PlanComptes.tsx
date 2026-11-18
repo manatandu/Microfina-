@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { api, type LigneCompte, type SaisieCompte } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { exporterExcel } from "../lib/excel";
-import { Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 
 /** Pages du menu Comptabilité > Plan des comptes (manuel p. 122, 123, 145 à 147, 156) construites ici */
 const PAGES = [["creation", "Création"], ["consultation", "Consultation"], ["modele", "Modèle de plan comptable"]] as const;
@@ -106,7 +106,7 @@ function Creation({ comptes, relire }: { comptes: LigneCompte[]; relire: () => v
       </div>
       <fieldset className="pile cadre-champs">
         <legend>Liste des Comptes d'utilisation</legend>
-        <table className="grille">
+        <Paginee lignes={propres}>{(visibles) => (<table className="grille">
           <thead>
             <tr><th scope="col">Compte</th><th scope="col">Libellé</th><th scope="col">Parent</th><th scope="col">Status</th><th scope="col">Nature</th>
               {OPTIONS.map(([k, , a]) => <th key={k} scope="col">{a}</th>)}</tr>
@@ -118,7 +118,7 @@ function Creation({ comptes, relire }: { comptes: LigneCompte[]; relire: () => v
           </thead>
           <tbody>
             {propres.length === 0 && <tr><td colSpan={5 + OPTIONS.length}>Liste vide</td></tr>}
-            {propres.map((c) => (
+            {visibles.map((c) => (
               <tr key={c.numero} className="ligne-choix" tabIndex={0} aria-selected={c.numero === choisi} onClick={() => charger(c)} onKeyDown={(e) => { if (e.key === "Enter") charger(c); }}>
                 <td className="chiffres">{c.numero}</td><td>{c.libelle}</td><td className="chiffres">{parentDe(numeros, c.numero)}</td>
                 <td>{c.ouvert ? "Ouvert" : "Fermé"}</td><td>{c.saisissable ? "Saisible" : "Non saisible"}</td>
@@ -126,7 +126,7 @@ function Creation({ comptes, relire }: { comptes: LigneCompte[]; relire: () => v
               </tr>
             ))}
           </tbody>
-        </table>
+        </table>)}</Paginee>
       </fieldset>
       <Textes sources={SOURCES} />
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
@@ -182,13 +182,13 @@ function Modele({ comptes, groupes }: { comptes: LigneCompte[]; groupes: Record<
         {NIVEAUX.map(([l], i) => <button key={l} type="button" role="tab" aria-selected={i === niveau} onClick={() => setNiveau(i)}>{l}</button>)}
       </div>
       <fieldset className="pile cadre-champs"><legend>{nom} ({lg} position{lg > 1 ? "s" : ""})</legend>
-        <table className="grille">
+        <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
           <thead><tr><th scope="col">Code</th><th scope="col">Libelle</th>{lg === 1 && <th scope="col">Groupe</th>}</tr></thead>
           <tbody>
             {lignes.length === 0 && <tr><td colSpan={lg === 1 ? 3 : 2}>Liste vide</td></tr>}
-            {lignes.map((c) => <tr key={c.numero}><td className="chiffres">{c.numero}</td><td>{c.libelle}</td>{lg === 1 && <td>{groupes[c.numero] ?? ""}</td>}</tr>)}
+            {visibles.map((c) => <tr key={c.numero}><td className="chiffres">{c.numero}</td><td>{c.libelle}</td>{lg === 1 && <td>{groupes[c.numero] ?? ""}</td>}</tr>)}
           </tbody>
-        </table>
+        </table>)}</Paginee>
       </fieldset>
       <Textes sources={SOURCES} />
     </section>

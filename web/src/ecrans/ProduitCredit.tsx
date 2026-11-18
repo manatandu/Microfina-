@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { api, type FraisProduit, type ProduitCreditVue } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee } from "../composants";
 
 const ONGLETS = ["Information de base", "Garanties financières", "Assurance", "Frais", "Autres informations"];
 type Saisie = Record<string, string | boolean>;
@@ -142,7 +142,7 @@ export default function ProduitCredit({ listeOuverte = false }: { listeOuverte?:
           "Manuel Microfina++, p. 86 (Encaisser frais au déblocage) et p. 114 (épargne obligatoire, fonds de solidarité, assureur et montant suivant le paramétrage)"]} />
       </section>
       <Fiche titre="Produit Crédit" ouverte={liste} fermer={() => setListe(false)}>
-        <table className="grille">
+        <Paginee lignes={produits}>{(visibles) => (<table className="grille">
           <caption>Liste des produits crédits</caption>
           <thead>
             <tr><th scope="col">Numero</th><th scope="col">Produit</th><th scope="col">Type de client</th><th scope="col" className="num">Taux interet</th><th scope="col" className="num">Taux différé</th></tr>
@@ -151,13 +151,13 @@ export default function ProduitCredit({ listeOuverte = false }: { listeOuverte?:
           </thead>
           <tbody>
             {produits.length === 0 && <tr><td colSpan={5}>Liste vide</td></tr>}
-            {produits.map((p: { id: number; numero: string; nom: string; typeClient: string; tauxInteret: number; tauxDiffere: number }) => (
+            {visibles.map((p: { id: number; numero: string; nom: string; typeClient: string; tauxInteret: number; tauxDiffere: number }) => (
               <tr key={p.id} className="ligne-choix" tabIndex={0} onClick={() => ouvrir(p.id)} onKeyDown={(e) => { if (e.key === "Enter") void ouvrir(p.id); }}>
                 <td>{p.numero}</td><td>{p.nom}</td><td>{p.typeClient}</td><td className="num">{p.tauxInteret.toFixed(1)}</td><td className="num">{p.tauxDiffere.toFixed(1)}</td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </table>)}</Paginee>
         <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setListe(false)}>Fermer</button></div>
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />

@@ -6,7 +6,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
 import { montant, montantEnLettres, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee } from "../composants";
 import OperationsAtypiques from "./OperationsAtypiques";
 import GelAvoirs from "./GelAvoirs";
 
@@ -59,19 +59,19 @@ export default function ExamenRenforce() {
       {onglet === "atypiques" && <OperationsAtypiques jour={j?.date ?? ""} />}
       {onglet === "gels" && <GelAvoirs jour={j?.date ?? ""} />}
       {onglet !== "ppe" && onglet !== "profils" && onglet !== "atypiques" && onglet !== "gels" && <section className="bloc pile" aria-label="Liste des examens">
-        <div className="defile-x"><table className="grille">
+        <Paginee lignes={donnees}>{(visibles) => (<div className="defile-x"><table className="grille">
           <thead><tr><th scope="col">N°</th><th scope="col">Date</th><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Opération</th>
             <th scope="col" className="montant">Montant</th><th scope="col" className="montant">Cumul du jour</th><th scope="col">Demandé par</th><th scope="col">Statut</th></tr></thead>
           <tbody>
             {donnees.length === 0 && <tr><td colSpan={9}>No records found.</td></tr>}
-            {donnees.map((x) => (
+            {visibles.map((x) => (
               <tr key={x.id} className="ligne-choix" tabIndex={0} aria-selected={choisi?.id === x.id} onClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
                 <td className="chiffres">{x.numero}</td><td className="chiffres">{fr(x.date)}</td><td className="chiffres">{x.membre}</td><td>{x.client}</td><td>{x.typeLibelle}</td>
                 <td className="montant chiffres">{montant(x.montant, x.devise as Devise)}</td><td className="montant chiffres">{usd(x.cumulUsd)}</td><td>{x.demandePar}</td>
                 <td>{STATUTS[x.statut]}{x.declareLe ? " · déclaré" : ""}</td>
               </tr>))}
           </tbody>
-        </table></div>
+        </table></div>)}</Paginee>
         <Textes sources={["Loi 22/068, art. 23 : opération en espèces de 10 000 USD ou plus ; loi 25/048, art. 92 bis : déclaration systématique à la CENAREF",
           "Instr. BCC 15, art. 61 : vérification approfondie de l'origine et de la destination des fonds, objet de l'opération, identité des acteurs économiques ; art. 62 : rapport écrit strictement confidentiel ; art. 48 : conservation dix ans",
           "Instr. BCC 15 bis, art. 5 à 7 : après ses diligences, l'institution autorise elle-même l'opération, sans accord préalable de la BCC, et informe la CENAREF par un rapport confidentiel",
@@ -175,17 +175,17 @@ function PersonnesExposees({ jour }: { jour: string }) {
   const fige = !!choisi?.autorisePar;
   return (
     <section className="bloc pile" aria-label="Personnes exposées">
-      <div className="defile-x"><table className="grille">
+      <Paginee lignes={donnees}>{(visibles) => (<div className="defile-x"><table className="grille">
         <thead><tr><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Fonction</th><th scope="col">Fin de fonction</th><th scope="col">Autorisation</th><th scope="col">CENAREF</th></tr></thead>
         <tbody>
           {donnees.length === 0 && <tr><td colSpan={6}>No records found.</td></tr>}
-          {donnees.map((x) => (
+          {visibles.map((x) => (
             <tr key={x.tiersId} className="ligne-choix" tabIndex={0} aria-selected={choisi?.tiersId === x.tiersId} onClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
               <td className="chiffres">{x.membre}</td><td>{x.client}</td><td>{x.fonction || "À saisir"}</td><td className="chiffres">{fr(x.finFonction)}{x.finFonction && !x.exposee ? " · plus exposée" : ""}</td>
               <td>{x.autorisePar ? `${x.autorisePar}, ${fr(x.autoriseLe)}` : "À donner"}</td><td>{x.informeLe ? fr(x.informeLe) : "À informer"}</td>
             </tr>))}
         </tbody>
-      </table></div>
+      </table></div>)}</Paginee>
       <Textes sources={["Instr. BCC 15, art. 41 et 64 : origine du patrimoine et des fonds, autorisation de la conformité avant d'entrer en relation ; 36 mois après la fin de la fonction, la personne n'est plus exposée",
         "Instr. BCC 15, art. 65 et Instr. BCC 52, art. 26 : information de la CENAREF, même sans soupçon", "Instr. BCC 008, art. 66 : l'autorisation vient d'une autre personne que celle qui a saisi le dossier"]} />
       <Fiche titre={choisi ? `Personne exposée : ${choisi.client}` : ""} ouverte={!!choisi} fermer={() => { setChoisi(null); setRelu((v) => v + 1); }}>
@@ -244,17 +244,17 @@ function ProfilsRisque() {
         <label className="case"><input type="radio" name="filtre-profils" checked={filtre === "echues"} onChange={() => setFiltre("echues")} /><span>Revues échues</span></label>
         <label className="case"><input type="radio" name="filtre-profils" checked={filtre === "tous"} onChange={() => setFiltre("tous")} /><span>Tous les clients</span></label>
       </div>
-      <div className="defile-x"><table className="grille">
+      <Paginee lignes={donnees}>{(visibles) => (<div className="defile-x"><table className="grille">
         <thead><tr><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Niveau</th><th scope="col">Évalué le</th><th scope="col">Évalué par</th><th scope="col">Prochaine revue</th></tr></thead>
         <tbody>
           {donnees.length === 0 && <tr><td colSpan={6}>No records found.</td></tr>}
-          {donnees.map((x) => (
+          {visibles.map((x) => (
             <tr key={x.tiersId} className="ligne-choix" tabIndex={0} aria-selected={choisi?.tiersId === x.tiersId} onClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
               <td className="chiffres">{x.membre}</td><td>{x.client}{x.exposee ? " · exposée" : ""}</td><td>{x.niveauLibelle || "À évaluer"}</td>
               <td className="chiffres">{fr(x.evalueLe)}</td><td>{x.evaluePar}</td><td className="chiffres">{x.prochaineRevue ? fr(x.prochaineRevue) : ""}{x.echue && x.evalueLe ? " · échue" : ""}</td>
             </tr>))}
         </tbody>
-      </table></div>
+      </table></div>)}</Paginee>
       <Textes sources={["Instr. BCC 15, art. 28 : profil de risque de chaque client, au regard des informations de l'identification, évalué chaque semestre",
         "Instr. BCC 15, art. 27 et 51 : données d'identification revues et mises à jour pendant toute la relation", "Instr. BCC 15, art. 41 : vigilance renforcée pour la personne politiquement exposée"]} />
       <Fiche titre={choisi ? `Profil de risque : ${choisi.client}` : ""} ouverte={!!choisi} fermer={fermer}>

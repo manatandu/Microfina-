@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api, IMAGE_MAX, ageAu, MAJORITE } from "../donnees/api";
 import type { Representant, Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Silhouette, Textes, type Boite, Lecture } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Silhouette, Textes, type Boite, Lecture, Paginee } from "../composants";
 import { lireMontant, montant } from "@design/montant.js";
 import { aDesParts, mots } from "../lib/vocabulaire";
 
@@ -151,17 +151,17 @@ export function RechercheClient({ source, choisir, fermer }: { source: (q: strin
       </fieldset>
       <fieldset className="cadre-champs">
         <legend>Resultat</legend>
-        <table className="grille">
+        <Paginee lignes={liste}>{(visibles) => (<table className="grille">
           <thead><tr><th scope="col">Numéro</th><th scope="col">Nom prénom/raison s.</th><th scope="col">Agence</th></tr></thead>
           <tbody>
             {liste.length === 0 && <tr><td colSpan={3}>Liste vide</td></tr>}
-            {liste.map((t) => (
+            {visibles.map((t) => (
               <tr key={t.id} className="ligne-choix" tabIndex={0} onDoubleClick={() => choisir(t)} onKeyDown={(e) => { if (e.key === "Enter") choisir(t); }}>
                 <td className="chiffres">{t.numero}</td><td>{nomComplet(t)}</td><td>{donnees?.ctx.agence.nom ?? ""}</td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </table>)}</Paginee>
       </fieldset>
       <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={fermer}>Fermer</button></div>
     </div>

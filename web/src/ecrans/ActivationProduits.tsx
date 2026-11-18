@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 
 type Produit = { id: number; numero: string; nom: string; typeClient: string; tauxInteret: number; tauxDiffere: number; actif: boolean };
 
@@ -29,7 +29,7 @@ export default function ActivationProduitsCredit() {
           <button className="bouton" type="button" onClick={() => traiter(true)}>Activer</button>
           <button className="bouton" type="button" onClick={() => traiter(false)}>Désactiver</button>
         </div>
-        <table className="grille">
+        <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
           <caption>Liste des produits crédits</caption>
           <thead>
             <tr>
@@ -44,7 +44,7 @@ export default function ActivationProduitsCredit() {
           </thead>
           <tbody>
             {lignes.length === 0 && <tr><td colSpan={7}>Liste vide</td></tr>}
-            {lignes.map((p) => (
+            {visibles.map((p) => (
               <tr key={p.id}>
                 <td><input type="checkbox" aria-label={`Choisir ${p.numero}`} checked={coches.includes(p.id)}
                   onChange={(e) => setCoches(e.target.checked ? [...coches, p.id] : coches.filter((x) => x !== p.id))} /></td>
@@ -53,7 +53,7 @@ export default function ActivationProduitsCredit() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table>)}</Paginee>
         <Textes sources={["Manuel Microfina++, p. 39 : Activation et désactivation de produit crédit ; Activer, Désactiver ; Liste des produits crédits (case, Numero, Produit, Type de client, Taux interet, Taux différé, Actif) ; « renseigner les zones numéros et produit […] ou sélectionner une lignes dans la liste »",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
       </section>

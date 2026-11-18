@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api, type ValeursFrais } from "../donnees/api";
 import type { Frais, ParamAdhesion, ParamOperation } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 import { lireMontant, montant } from "@design/montant.js";
 
 type Donnees = Awaited<ReturnType<typeof api.parametrage.lireFrais>>;
@@ -56,15 +56,15 @@ function Coches({ titre, liste, coches, onChange }: { titre: string; liste: stri
   return (
     <fieldset className="pile cadre-champs">
       <legend>{titre}</legend>
-      <table className="grille">
+      <Paginee lignes={liste}>{(visibles) => (<table className="grille">
         <thead><tr><th scope="col"><input type="checkbox" aria-label="Tout cocher" checked={tout} onChange={() => onChange(tout ? [] : liste)} /></th><th scope="col"><span className="sr-only">{titre}</span></th></tr></thead>
         <tbody>
           {liste.length === 0 && <tr><td colSpan={2}>Liste vide</td></tr>}
-          {liste.map((x) => (
+          {visibles.map((x) => (
             <tr key={x}><td><input type="checkbox" aria-label={x} checked={coches.includes(x)} onChange={(e) => onChange(e.target.checked ? [...coches, x] : coches.filter((y) => y !== x))} /></td><td>{x}</td></tr>
           ))}
         </tbody>
-      </table>
+      </table>)}</Paginee>
     </fieldset>
   );
 }
@@ -136,18 +136,18 @@ function OngletFrais({ d, confirmer }: Props) {
           { libelle: "Supprimer", inactif: !choisi, faire: () => { if (choisi) confirmer("Voulez-vous vraiment supprimer ?", () => api.parametrage.supprimerFrais(choisi.id), () => { setChoisi(null); annuler(); }); } },
         ]} />
       </div>
-      <table className="grille">
+      <Paginee lignes={d.frais}>{(visibles) => (<table className="grille">
         <thead><tr><th scope="col">Frais</th><th scope="col">Type opération</th><th scope="col">Fondement</th></tr></thead>
         <tbody>
           {d.frais.length === 0 && <tr><td colSpan={3}>Liste vide</td></tr>}
-          {d.frais.map((f) => (
+          {visibles.map((f) => (
             <tr key={f.id} className="ligne-choix" tabIndex={0} aria-selected={choisi?.id === f.id} onClick={() => setChoisi(f)} onKeyDown={(e) => { if (e.key === "Enter") setChoisi(f); }}>
               <td>{f.libelle}</td><td>{f.typeOperation}</td>
               <td>{f.fondement ? `${d.fondements[f.fondement] ?? f.fondement}${f.autorisationBcc ? ` : ${f.autorisationBcc}` : ""}` : "À renseigner"}</td>
             </tr>
           ))}
         </tbody>
-      </table>
+      </table>)}</Paginee>
     </>
   );
 }
@@ -221,16 +221,16 @@ function OngletParamAdhesion({ d, confirmer, erreur }: Props) {
 
 function TableParam({ lignes, d, genre }: { lignes: (ParamOperation | ParamAdhesion)[]; d: Donnees; genre: "operation" | "adhesion" }) {
   return (
-    <table className="grille">
+    <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
       <thead><tr><th scope="col">Frais</th><th scope="col">Montant</th><th scope="col">Compte</th><th scope="col">{genre === "operation" ? "STM" : "Type client"}</th></tr></thead>
       <tbody>
         {lignes.length === 0 && <tr><td colSpan={4}>Liste vide</td></tr>}
-        {lignes.map((x) => (
+        {visibles.map((x) => (
           <tr key={x.id}><td>{d.frais.find((f) => f.id === x.fraisId)?.libelle}</td><td className="chiffres">{valeurLue(x.valeur, x.nature)}</td><td className="chiffres">{x.compte}</td>
             <td>{"sousType" in x ? x.sousType : x.typeMembre}</td></tr>
         ))}
       </tbody>
-    </table>
+    </table>)}</Paginee>
   );
 }
 
@@ -290,14 +290,14 @@ function OngletModif({ d, confirmer, erreur, genre }: Props & { genre: "operatio
           ...(adhesion ? [{ libelle: "Modifier Catégorie", inactif: coches.length !== 1, faire: () => { if (une) { setEdition(null); setCategorie({ id: une.id, typeMembre: "" }); } } }] : []),
         ]} />
       </div>
-      <table className="grille">
+      <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
         <thead><tr>
           <th scope="col"><input type="checkbox" aria-label="Tout cocher" checked={lignes.length > 0 && coches.length === lignes.length} onChange={(e) => setCoches(e.target.checked ? lignes.map((x) => x.id) : [])} /></th>
           <th scope="col">{adhesion ? "ID" : "STM"}</th><th scope="col">Montant</th><th scope="col">Compte</th><th scope="col">Type opération</th><th scope="col">Frais</th>
         </tr></thead>
         <tbody>
           {lignes.length === 0 && <tr><td colSpan={6}>Liste vide</td></tr>}
-          {lignes.map((x) => (
+          {visibles.map((x) => (
             <tr key={x.id}>
               <td><input type="checkbox" aria-label={`Ligne ${x.id}`} checked={coches.includes(x.id)} onChange={(e) => setCoches(e.target.checked ? [...coches, x.id] : coches.filter((y) => y !== x.id))} /></td>
               <td className={adhesion ? "chiffres" : undefined}>{adhesion ? x.id : (x as ParamOperation).sousType}</td><td className="chiffres">{valeurLue(x.valeur, x.nature)}</td>
@@ -305,7 +305,7 @@ function OngletModif({ d, confirmer, erreur, genre }: Props & { genre: "operatio
             </tr>
           ))}
         </tbody>
-      </table>
+      </table>)}</Paginee>
     </>
   );
 }

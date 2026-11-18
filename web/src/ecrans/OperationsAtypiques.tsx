@@ -7,7 +7,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
 import { montant, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee } from "../composants";
 
 type Alerte = Awaited<ReturnType<typeof api.conformite.atypiques>>[number];
 type Rapport = Awaited<ReturnType<typeof api.conformite.rapportAtypiques>>;
@@ -51,19 +51,19 @@ export default function OperationsAtypiques({ jour }: { jour: string }) {
         {FILTRES.map(([k, l]) => <label key={k || "toutes"} className="case"><input type="radio" name="filtre-atypiques" checked={filtre === k} onChange={() => setFiltre(k)} /><span>{l}</span></label>)}
       </div>
       {aucunCritere && <p role="status">Aucun critère fixé : aucune opération n'est surveillée. Les fixer avec le bouton Critères (Instr. BCC 15, art. 36).</p>}
-      <div className="defile-x"><table className="grille">
+      <Paginee lignes={donnees}>{(visibles) => (<div className="defile-x"><table className="grille">
         <thead><tr><th scope="col">Date</th><th scope="col">Pièce</th><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Compte</th><th scope="col">Sens</th>
           <th scope="col" className="montant">Montant</th><th scope="col">Critères</th><th scope="col">Statut</th></tr></thead>
         <tbody>
           {donnees.length === 0 && <tr><td colSpan={9}>No records found.</td></tr>}
-          {donnees.map((x) => (
+          {visibles.map((x) => (
             <tr key={x.cle} className="ligne-choix" tabIndex={0} aria-selected={choisi?.cle === x.cle} onClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
               <td className="chiffres">{fr(x.date)}</td><td className="chiffres">{x.piece}</td><td className="chiffres">{x.membre}</td><td>{x.client}</td><td className="chiffres">{x.compte}</td>
               <td>{x.sens === "C" ? "Crédit" : "Débit"}</td><td className="montant chiffres">{montant(x.montant, x.devise as Devise)}</td><td>{x.criteres.join(" ; ")}</td>
               <td>{STATUTS[x.statut]}{x.declareLe ? " · déclarée" : ""}</td>
             </tr>))}
         </tbody>
-      </table></div>
+      </table></div>)}</Paginee>
       <div className="actions-onglets">
         <button className="bouton secondaire" type="button" onClick={ouvrirCriteres}>Critères</button>
         <button className="bouton secondaire" type="button" onClick={async () => setRapport(await api.conformite.rapportAtypiques(debut, fin))}>Rapport</button>

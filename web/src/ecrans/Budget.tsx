@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api, CATALOGUE_BUDGET, type ChampBudget, type LigneBudgetVue } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 
 const PAGES_MANUEL: Record<string, string> = {
   types_centre: "p. 27 : 2-1 Types de centre de coût, Création et mise à jour des types de centre de coût, Code*, Libellé*, Parent, Enregistrer, Effacer, Supprimer, Liste des types de centres de coût (Code, Libelle, Parent), Rafraichir ; « Remplir les champs obligatoires code, et libelle puis préciser le parent »",
@@ -92,7 +92,7 @@ function PageBudget({ page, changer }: { page: string; changer: (p: string) => v
             {fiche.cadre && <legend>{fiche.cadre}</legend>}
             {formulaire}
           </fieldset>
-          <table className="grille">
+          <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
             {fiche.grille && <caption>{fiche.grille}</caption>}
             <thead>
               <tr>{fiche.champs.map((c) => <th key={c.cle} scope="col" className={c.type === "entier" ? "num" : undefined}>{c.colonne}</th>)}</tr>
@@ -102,14 +102,14 @@ function PageBudget({ page, changer }: { page: string; changer: (p: string) => v
             </thead>
             <tbody>
               {lignes.length === 0 && <tr><td colSpan={fiche.champs.length}>Liste vide</td></tr>}
-              {lignes.map((l) => (
+              {visibles.map((l) => (
                 <tr key={l.id} className="ligne-choix" tabIndex={0} aria-selected={l.id === choisi} onClick={() => choisir(l)}
                   onKeyDown={(e) => { if (e.key === "Enter") choisir(l); }}>
                   {fiche.champs.map((c) => <td key={c.cle} className={c.type === "entier" ? "num" : undefined}>{l.affichage[c.cle]}</td>)}
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table>)}</Paginee>
           {fiche.rafraichir && <div className="actions-onglets"><button className="bouton" type="button" onClick={() => setRelu((x) => x + 1)}>Rafraichir</button></div>}
           <Textes sources={[`Manuel Microfina++, ${PAGES_MANUEL[page]}`, "Manuel Microfina++, p. 12 : modifier, supprimer ; « Les suppressions sont généralement logiques »",
             "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />

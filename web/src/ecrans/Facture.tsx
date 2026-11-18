@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 
 const PAGES = [["element", "Elément Facture"], ["reference", "Référence Commande"]] as const;
 type Element = { id: number; libelle: string; compte: string; taux: number; tauxA: number; tauxNA: number; retenue: boolean; actif: boolean };
@@ -66,12 +66,12 @@ function Elements() {
       </div>
       <fieldset className="cadre-champs pile">
         <legend>Liste éléments</legend>
-        <table className="grille">
+        <Paginee lignes={donnees.elements}>{(visibles) => (<table className="grille">
           <thead><tr><th scope="col">Libelle</th><th scope="col">Compte</th><th scope="col">Taux (%)</th><th scope="col">Taux A. (%)</th><th scope="col">Taux N.A. (%)</th>
             <th scope="col">Retenue</th><th scope="col">Désactiver</th></tr></thead>
           <tbody>
             {donnees.elements.length === 0 && <tr><td colSpan={7}>Liste vide</td></tr>}
-            {donnees.elements.map((e) => (
+            {visibles.map((e) => (
               <tr key={e.id} className="ligne-choix" tabIndex={0} aria-selected={e.id === choisi} onClick={() => choisir(e)} onKeyDown={(x) => { if (x.key === "Enter") choisir(e); }}>
                 <td>{e.libelle}</td><td>{e.compte}</td><td className="chiffres">{taux(e.taux)}</td><td className="chiffres">{taux(e.tauxA)}</td><td className="chiffres">{taux(e.tauxNA)}</td>
                 <td><input type="checkbox" checked={e.retenue} disabled aria-label={`Retenue : ${e.libelle}`} /></td>
@@ -81,7 +81,7 @@ function Elements() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table>)}</Paginee>
       </fieldset>
       <Textes sources={["Manuel Microfina++, p. 46 : « Dans le menu [Facture], cliquez sur [Elément Facture] et renseigner les champs correspondants puis enregistrer » ; capture : Libellé, Compte, Taux(%), Taux A.(%), Taux N.A.(%), Retenue Taux, Enregistrer, Supprimer (grisé), Annuler ; cadre Liste éléments : Libelle, Compte, Taux (%), Taux A. (%), Taux N.A. (%), Retenue, Désactiver",
         "Manuel Microfina++, p. 125 et 150 : TVA, AIB et Taux au bon de commande ; Liste des charges (Libellé, Taux (%), Montant) à l'enregistrement de la facture"]} />
@@ -110,18 +110,18 @@ function References() {
           onClick={() => confirmer("Voulez-vous vraiment supprimer ?", () => api.facture.supprimerType(choisi!), effacer)}>Supprimer</button>
         <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
       </div>
-      <table className="grille">
+      <Paginee lignes={donnees.types}>{(visibles) => (<table className="grille">
         <thead><tr><th scope="col">Code</th><th scope="col">Type Commande</th></tr></thead>
         <tbody>
           {donnees.types.length === 0 && <tr><td colSpan={2}>Liste vide</td></tr>}
-          {donnees.types.map((t) => (
+          {visibles.map((t) => (
             <tr key={t.id} className="ligne-choix" tabIndex={0} aria-selected={t.id === choisi} onClick={() => { setChoisi(t.id); setF({ code: t.code, libelle: t.libelle }); }}
               onKeyDown={(x) => { if (x.key === "Enter") { setChoisi(t.id); setF({ code: t.code, libelle: t.libelle }); } }}>
               <td>{t.code}</td><td>{t.libelle}</td>
             </tr>
           ))}
         </tbody>
-      </table>
+      </table>)}</Paginee>
       <Textes sources={["Manuel Microfina++, p. 46 : « Dans le menu [Facture], cliquez sur [Référence Commande] et renseigner les champs puis enregistrer » ; page non montrée : gabarit liste (COMPLEMENTS § 4.1)",
         "Manuel Microfina++, p. 125 et 150 : cadre « Référence Commande » du bon de commande, Type Commande (« Achat de matériel ») ; Type Facture (« ACHA_M »)"]} />
       <Dialogue boite={boite} fermer={fermer} />

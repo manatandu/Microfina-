@@ -2,10 +2,9 @@ import { useState, type ReactNode } from "react";
 import { api } from "../donnees/api";
 import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
+import { BarrePages, Champ, Chargement, Dialogue, Fiche, PAR_PAGE, Textes, type Boite, Lecture } from "../composants";
 import { RechercheClient } from "./Visa";
 
-const PAR_PAGE = 10;
 const nomComplet = (t: { nom: string; postnom: string; prenom: string }) => [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
 const fr = (iso: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "");
 
@@ -22,11 +21,7 @@ export function TableFiltree<T>({ colonnes, lignes, cle, vide = "Liste vide", av
   const p = Math.min(page, pages - 1);
   return (
     <div className="pile">
-      {pages > 1 && (
-        <nav className="pagination" aria-label="Pages">
-          {Array.from({ length: pages }, (_, i) => <button key={i} type="button" aria-current={i === p ? "page" : undefined} onClick={() => setPage(i)}>{i + 1}</button>)}
-        </nav>
-      )}
+      <BarrePages page={p} pages={pages} aller={setPage} />
       <div className="defile-x"><table className="grille">
         <thead>
           <tr>{avant && <th scope="col">{avant.titre}</th>}{colonnes.map((c) => <th key={c.titre} scope="col">{c.titre}</th>)}{apres && <th scope="col">{apres.titre}</th>}</tr>
@@ -43,6 +38,7 @@ export function TableFiltree<T>({ colonnes, lignes, cle, vide = "Liste vide", av
           ))}
         </tbody>
       </table></div>
+      <BarrePages page={p} pages={pages} aller={setPage} />
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api } from "../donnees/api";
 import { message } from "../lib/useDonnees";
 import { exporterExcel } from "../lib/excel";
-import { ChampDate, Dialogue, Textes, type Boite } from "../composants";
+import { ChampDate, Dialogue, Textes, type Boite, Paginee } from "../composants";
 
 type Ligne = { utilisateur: string; operations: number; annulations: number; transactions: number };
 const nombre = (n: number) => new Intl.NumberFormat("fr-FR").format(n);
@@ -32,17 +32,17 @@ export default function RapportTransactions() {
           <ChampDate libelle="AU:" valeur={au} onChange={setAu} aide="" />
           <button className="bouton" type="button" onClick={afficher}>Afficher</button>
         </div>
-        <table className="grille">
+        <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
           <thead><tr><th scope="col">Utilisateur</th><th scope="col" className="num">Nbres Opérations</th><th scope="col" className="num">Nbres Annulations</th><th scope="col" className="num">Nbres Tansactions</th></tr></thead>
           <tbody>
-            {lignes.map((l) => (
+            {visibles.map((l) => (
               <tr key={l.utilisateur}><td>{l.utilisateur}</td><td className="num">{nombre(l.operations)}</td>
                 <td className="num">{nombre(l.annulations)}</td><td className="num">{nombre(l.transactions)}</td></tr>
             ))}
           </tbody>
           <tfoot><tr><th scope="row">TOTAL</th><td className="num">{nombre(total("operations"))}</td><td className="num">{nombre(total("annulations"))}</td>
             <td className="num">{nombre(total("transactions"))}</td></tr></tfoot>
-        </table>
+        </table>)}</Paginee>
         <div className="actions-onglets">
           <button className="bouton" type="button" onClick={exporter}>Export</button>
         </div>

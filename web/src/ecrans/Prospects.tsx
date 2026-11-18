@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api, type Prospect } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 
 const INCONNU = "INCONNU";   // Sensibilisateur et Commercial : aucun choisi (capture p. 55) ; sinon listes de S33 (registre S33-4)
 const VIDE: Prospect = { nom: "", prenom: "", naissance: "", lieuNaissance: "", sexe: "", profession: "", pays: "", ville: "", quartier: "", rue: "", email: "", bp: "", telephoneFixe: "", telephone: "" };
@@ -59,11 +59,11 @@ export function NouveauProspect() {
           <button className="bouton secondaire" type="button" disabled={choisi === null} onClick={() => choisi !== null && confirmer(() => api.tiers.modifierProspect(choisi, d))}>Modifier</button>
         </div>
       </section>
-      <table className="grille">
+      <Paginee lignes={liste}>{(visibles) => (<table className="grille">
         <thead><tr><th scope="col">Nom / Prenom</th><th scope="col">Né(e) le</th><th scope="col">Profession</th><th scope="col">Quartier</th><th scope="col">Agence</th></tr></thead>
         <tbody>
           {liste.length === 0 && <tr><td colSpan={5}>No records found.</td></tr>}
-          {liste.map((t) => (
+          {visibles.map((t) => (
             <tr key={t.id} className="ligne-choix" tabIndex={0} aria-selected={choisi === t.id}
               onClick={() => { setChoisi(t.id); setD({ nom: t.nom, prenom: t.prenom, naissance: t.naissance, lieuNaissance: t.lieuNaissance, sexe: t.sexe, profession: t.profession,
                 pays: t.pays, ville: t.ville, quartier: t.quartier, rue: t.rue, email: t.email, bp: t.bp, telephoneFixe: t.telephoneFixe, telephone: t.telephone,
@@ -73,7 +73,7 @@ export function NouveauProspect() {
             </tr>
           ))}
         </tbody>
-      </table>
+      </table>)}</Paginee>
       <Textes sources={["Manuel Microfina++, p. 55 : écran Enregistrement d'un prospect, champs obligatoires, boutons Enregistrer, Annuler, Modifier",
         "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
         "Listes Pays, Ville, Quartier et Profession : valeurs fictives tant que la Localisation et S14 ne sont pas construits"]} />

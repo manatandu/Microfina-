@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 
 const PAGES = [["autres", "Utilisateurs/Autres fonctions", "Gestion des utilisateurs autres fonctionnalités"], ["deconnexion", "Déconnecter utilisateurs", "Déconnexion d'un utilisateur"]] as const;
 type Ligne = { id: number; nom: string; login: string; agence: string; connecte: boolean; machine: string; actif: boolean };
@@ -43,7 +43,7 @@ function Volet({ deconnexion }: { deconnexion: boolean }) {
   const ouiNon = (b: boolean) => (b ? "Oui" : "Non");
   return (
     <section className="bloc pile" id={`volet-${deconnexion ? "deconnexion" : "autres"}`} role="tabpanel" aria-labelledby={`onglet-${deconnexion ? "deconnexion" : "autres"}`}>
-      <table className="grille">
+      <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
         <thead>
           <tr>{colonnes.map(([k, t]) => <th key={k} scope="col">{t}</th>)}{deconnexion ? <th scope="col">Action</th> : <><th scope="col">Connecté</th><th scope="col">Machine</th><th scope="col">Actif</th></>}</tr>
           <tr className="filtres">{colonnes.map(([k, t]) => <td key={k}><input className="saisie" type="search" aria-label={`Filtrer ${t}`} value={filtres[k] ?? ""}
@@ -51,7 +51,7 @@ function Volet({ deconnexion }: { deconnexion: boolean }) {
         </thead>
         <tbody>
           {lignes.length === 0 && <tr><td colSpan={deconnexion ? 5 : 6}>Liste vide</td></tr>}
-          {lignes.map((x) => (
+          {visibles.map((x) => (
             <tr key={x.id}>
               {colonnes.map(([k]) => <td key={k}>{String(x[k])}</td>)}
               {deconnexion
@@ -60,7 +60,7 @@ function Volet({ deconnexion }: { deconnexion: boolean }) {
             </tr>
           ))}
         </tbody>
-      </table>
+      </table>)}</Paginee>
       <Textes sources={SOURCES} />
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </section>

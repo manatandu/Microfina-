@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api, CATALOGUE_LISTES } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 
 type Ligne = { id: number; code: string; libelle: string; parentId: number | null; parent: string };
 const VIDE = { code: "", libelle: "", parentId: 0 };
@@ -69,7 +69,7 @@ function PageListe({ liste, changer }: { liste: string; changer: (l: string) => 
               <button className="bouton secondaire" type="button" onClick={effacer}>{c.effacer ?? "Effacer"}</button>
             </div>
           </fieldset>
-          <table className="grille">
+          <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
             <thead>
               <tr>{!c.sansCode && <th scope="col">Numero</th>}{parent && <th scope="col">{parent.colonne}</th>}
                 <th scope="col" aria-sort={tri}><button type="button" onClick={() => setTri(tri === "ascending" ? "descending" : "ascending")}>{c.colonne}</button></th></tr>
@@ -77,7 +77,7 @@ function PageListe({ liste, changer }: { liste: string; changer: (l: string) => 
             </thead>
             <tbody>
               {lignes.length === 0 && <tr><td colSpan={(parent ? 2 : 1) + (c.sansCode ? 0 : 1)}>Liste vide</td></tr>}
-              {lignes.map((l) => (
+              {visibles.map((l) => (
                 <tr key={l.id} className="ligne-choix" tabIndex={0} aria-selected={l.id === choisi}
                   onClick={() => { setChoisi(l.id); setF({ code: l.code, libelle: l.libelle, parentId: l.parentId ?? 0 }); }}
                   onKeyDown={(e) => { if (e.key === "Enter") { setChoisi(l.id); setF({ code: l.code, libelle: l.libelle, parentId: l.parentId ?? 0 }); } }}>
@@ -85,7 +85,7 @@ function PageListe({ liste, changer }: { liste: string; changer: (l: string) => 
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table>)}</Paginee>
           <Textes sources={["Manuel Microfina++, p. 23 : Information de base: Secteur d'activité, liste de gauche (Secteur d'activité, Type d'activité, Profession, Catégorie, Type de pièce, Civilité, Type de groupe, Type client, Sous type de client, Forme juridique, Catégorie de groupe, Filiation, Situation matrimoniale, Motif de départ, Type Guichet), N° secteur*, Secteur d'activite*, Enregistrer, Effacer, liste Numero, Secteur ; « Les champs sont obligatoires à remplir : Numéro secteur et secteur d'activité »",
             "Manuel Microfina++, p. 12 : modifier, supprimer ; « Les suppressions sont généralement logiques »",
             "Manuel Microfina++, p. 26 : Motif de départ d'un client, Libelle Motif*, Enregistrer, Reinitialiser, liste Libelle Motif ; « Remplir obligatoirement le champ : libelle Motif »",

@@ -209,3 +209,36 @@ export function Lecture({ value, ...p }: { value: string; id: string; "aria-desc
   }, [value]);
   return <textarea {...p} ref={ref} className="saisie lecture" readOnly rows={1} value={value} />;
 }
+
+// ---------- Grilles d'affichage (manuel Microfina++, p. 9, figure du point 2 ; registre T04) ----------
+/** Pages de 10 lignes, comme les grilles des captures p. 54 et 55 */
+export const PAR_PAGE = 10;
+
+/** Barre de navigation d'une grille : première page, page précédente, numéros, page suivante, dernière page (p. 9) */
+export function BarrePages({ page, pages, aller }: { page: number; pages: number; aller: (p: number) => void }) {
+  const debut = Math.max(0, Math.min(page - 2, pages - 5)), fin = Math.min(pages, debut + 5);
+  return (
+    <nav className="pagination" aria-label="Pages">
+      <button type="button" aria-label="Première page" disabled={page === 0} onClick={() => aller(0)}>|&lsaquo;</button>
+      <button type="button" aria-label="Page précédente" disabled={page === 0} onClick={() => aller(page - 1)}>&laquo;</button>
+      {Array.from({ length: fin - debut }, (_, i) => debut + i).map((i) => (
+        <button key={i} type="button" aria-current={i === page ? "page" : undefined} onClick={() => aller(i)}>{i + 1}</button>))}
+      <button type="button" aria-label="Page suivante" disabled={page >= pages - 1} onClick={() => aller(page + 1)}>&raquo;</button>
+      <button type="button" aria-label="Dernière page" disabled={page >= pages - 1} onClick={() => aller(pages - 1)}>&rsaquo;|</button>
+    </nav>
+  );
+}
+
+/** Grille en pages : la barre au-dessus et au-dessous du tableau (p. 9) ; le tableau reçoit les lignes de la page affichée */
+export function Paginee<T>({ lignes, children, parPage = PAR_PAGE }: { lignes: T[]; children: (visibles: T[]) => ReactNode; parPage?: number }) {
+  const [page, setPage] = useState(0);
+  const pages = Math.max(1, Math.ceil(lignes.length / parPage));
+  const p = Math.min(page, pages - 1);
+  return (
+    <div className="pile">
+      <BarrePages page={p} pages={pages} aller={setPage} />
+      {children(lignes.slice(p * parPage, (p + 1) * parPage))}
+      <BarrePages page={p} pages={pages} aller={setPage} />
+    </div>
+  );
+}

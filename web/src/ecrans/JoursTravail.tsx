@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { api, type JourFerie } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
-import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 
 const PAGES = [["journees", "Journées de travail"], ["feries", "Jours fériés"]] as const;
 const JOURS = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
@@ -98,18 +98,18 @@ function Feries() {
             <option value=""></option>{donnees.exercices.map((x) => <option key={x} value={x}>{x}</option>)}</select>}</Champ>
           <button className="bouton" type="button" onClick={ajouter}>Ajouter</button>
         </div>
-        <table className="grille">
+        <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
           <thead><tr><th scope="col">Date</th><th scope="col">Description</th><th scope="col">Exercice</th><th scope="col">Actions</th></tr></thead>
           <tbody>
             {lignes.length === 0 && <tr><td colSpan={4}>Liste vide</td></tr>}
-            {lignes.map((l) => (
+            {visibles.map((l) => (
               <tr key={l.date}>
                 <td>{fr(l.date)}</td><td>{l.description}</td><td>{l.exercice}</td>
                 <td><button className="bouton secondaire" type="button" aria-label={`Supprimer le ${fr(l.date)}`} onClick={() => setListe(lignes.filter((x) => x.date !== l.date))}>Supprimer</button></td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </table>)}</Paginee>
       </fieldset>
       <Textes sources={["Manuel Microfina++, p. 44 : « Dans le sous menu [Agence], allez sur [jours fériés] et sélectionner l'institution puis choisir grâce au calendrier la date fériée avec la description avant d'enregistrer » ; capture : Institution, Annuler, Enregistrer ; cadre Jours fériés variables : date*, Description*, Exercice, Ajouter ; grille Date, Description, Exercice, Actions"]} />
       <Dialogue boite={boite} fermer={() => setBoite(null)} />

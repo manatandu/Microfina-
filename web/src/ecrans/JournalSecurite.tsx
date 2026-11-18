@@ -5,7 +5,7 @@ import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees } from "../lib/useDonnees";
 import { exporterExcel } from "../lib/excel";
-import { Champ, ChampDate, Chargement, Textes } from "../composants";
+import { Champ, ChampDate, Chargement, Textes, Paginee } from "../composants";
 
 const EVENEMENTS = [["", "Tous"], ["connexion", "Connexion"], ["connexion_refusee", "Connexion refusée (mot de passe)"], ["connexion_impossible", "Connexion impossible"],
   ["connexion_bloquee", "Connexion bloquée (trop d'essais)"], ["acces_refuse", "Accès refusé (droit manquant)"], ["limite_requetes", "Limite de requêtes dépassée"]] as const;
@@ -37,15 +37,15 @@ export default function JournalSecurite() {
           <Champ libelle="Événement">{(p) => <select {...p} className="saisie" value={evenement} onChange={(e) => setEvenement(e.target.value)}>{EVENEMENTS.map(([k, l]) => <option key={k || "tous"} value={k}>{l}</option>)}</select>}</Champ>
         </div>
         <p role="status">{donnees.length} événement(s), dont {alertes} refus ou blocage(s).</p>
-        <div className="defile-x"><table className="grille">
+        <Paginee lignes={donnees}>{(visibles) => (<div className="defile-x"><table className="grille">
           <thead><tr><th scope="col">Date et heure</th><th scope="col">Événement</th><th scope="col">Identifiant</th><th scope="col">Utilisateur</th><th scope="col">Adresse</th><th scope="col">Détail</th></tr></thead>
           <tbody>
             {donnees.length === 0 && <tr><td colSpan={6}>No records found.</td></tr>}
-            {donnees.map((x, i) => (
+            {visibles.map((x, i) => (
               <tr key={i}><td className="chiffres">{heure(x.le)}</td><td>{ALERTES.has(x.evenement) ? <strong>{x.evenementLibelle}</strong> : x.evenementLibelle}</td>
                 <td className="chiffres">{x.login}</td><td>{x.utilisateur}</td><td className="chiffres">{x.ip}</td><td>{x.detail}</td></tr>))}
           </tbody>
-        </table></div>
+        </table></div>)}</Paginee>
         <div className="actions-onglets"><button className="bouton secondaire" type="button" disabled={donnees.length === 0} onClick={exporter}>Exporter</button></div>
         <Textes sources={["Instr. BCC 008, art. 16 : le responsable de la sécurité informatique, fonction indépendante de l'exploitation du système d'information, s'assure de la maîtrise des accès et de la détection des actions anormales ; à défaut, la fonction de gestion des risques",
           "Le droit de cet écran n'est donné à aucun profil de départ : l'administrateur l'attribue au profil du responsable désigné (Administration > Profil > Assigner droit)",

@@ -7,7 +7,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
 import { montant, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee } from "../composants";
 
 type Compte = Awaited<ReturnType<typeof api.inactifs.comptes>>[number];
 type Lettre = Awaited<ReturnType<typeof api.inactifs.lettre>>;
@@ -37,18 +37,18 @@ export default function ComptesInactifs() {
         <div className="ligne-champ" role="radiogroup" aria-label="Comptes">
           {FILTRES.map(([k, l]) => <label key={k || "tous"} className="case"><input type="radio" name="filtre-inactifs" checked={filtre === k} onChange={() => setFiltre(k)} /><span>{l}</span></label>)}
         </div>
-        <div className="defile-x"><table className="grille">
+        <Paginee lignes={donnees}>{(visibles) => (<div className="defile-x"><table className="grille">
           <thead><tr><th scope="col">Compte</th><th scope="col">Client</th><th scope="col" className="montant">Solde</th><th scope="col">Dernière opération</th>
             <th scope="col">Lettre au plus tard</th><th scope="col">Dix ans le</th><th scope="col">Statut</th></tr></thead>
           <tbody>
             {donnees.length === 0 && <tr><td colSpan={7}>No records found.</td></tr>}
-            {donnees.map((x) => (
+            {visibles.map((x) => (
               <tr key={x.compteId} className="ligne-choix" tabIndex={0} aria-selected={choisi?.compteId === x.compteId} onClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
                 <td className="chiffres">{x.compte}</td><td>{x.client} ({x.membre})</td><td className="montant chiffres">{montant(x.solde, x.devise as Devise)}</td>
                 <td className="chiffres">{fr(x.derniereOperation)}</td><td className="chiffres">{fr(x.lettreDue)}</td><td className="chiffres">{fr(x.echeance)}</td><td>{x.statutLibelle}</td>
               </tr>))}
           </tbody>
-        </table></div>
+        </table></div>)}</Paginee>
         <Textes sources={["Loi 22/069, titre III, chap. Ier : compte sans opération ni réclamation de son titulaire ou de ses ayants droit depuis dix ans clôturé ; fonds versés à la BCC, qui les garde cinq ans, puis au Trésor",
           "Même chapitre : lettre avec accusé de réception au titulaire ou à ses ayants droit, au plus tard six mois avant les dix ans",
           "Loi 22/069, titre Ier : la loi s'applique aux coopératives d'épargne et de crédit et aux sociétés de microfinance",

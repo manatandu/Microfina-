@@ -4,7 +4,7 @@ import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee } from "../composants";
 
 type Gel = Awaited<ReturnType<typeof api.conformite.gels>>[number];
 const FILTRES = [["actifs", "En vigueur"], ["leves", "Levés"], ["", "Tous"]] as const;
@@ -33,17 +33,17 @@ export default function GelAvoirs({ jour }: { jour: string }) {
       <div className="ligne-champ" role="radiogroup" aria-label="Gels">
         {FILTRES.map(([k, l]) => <label key={k || "tous"} className="case"><input type="radio" name="filtre-gels" checked={filtre === k} onChange={() => setFiltre(k)} /><span>{l}</span></label>)}
       </div>
-      <div className="defile-x"><table className="grille">
+      <Paginee lignes={donnees}>{(visibles) => (<div className="defile-x"><table className="grille">
         <thead><tr><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Autorité</th><th scope="col">Décision</th><th scope="col">Gelé le</th><th scope="col">Information</th><th scope="col">Levé le</th></tr></thead>
         <tbody>
           {donnees.length === 0 && <tr><td colSpan={7}>No records found.</td></tr>}
-          {donnees.map((x) => (
+          {visibles.map((x) => (
             <tr key={x.id} className="ligne-choix" tabIndex={0} aria-selected={choisi?.id === x.id} onClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
               <td className="chiffres">{x.membre}</td><td>{x.client}</td><td>{x.sourceLibelle}</td><td className="chiffres">{x.decisionReference} du {fr(x.decisionLe)}</td>
               <td className="chiffres">{fr(x.geleLe)}</td><td>{x.informeLe ? fr(x.informeLe) : "À faire"}</td><td className="chiffres">{fr(x.leveLe)}</td>
             </tr>))}
         </tbody>
-      </table></div>
+      </table></div>)}</Paginee>
       <div className="actions-onglets"><button className="bouton" type="button" onClick={() => setNouveau({ ...VIDE, decisionLe: jour })}>Nouveau gel</button></div>
       <Textes sources={["Loi 22/068 modifiée, art. 158 et 158 bis : gel sans délai et sans notification préalable des avoirs d'une personne désignée (Conseil de sécurité, liste nationale) ; art. 121 : gel par le Ministère public ou la CENAREF",
         "Loi 22/069, art. 71 à 77 : gel décidé par la BCC, intérêts compris ; les sommes reçues sont gelées aussi ; information de la BCC", "Loi 22/068 modifiée, art. 162 : information sans délai du CONASAFIC et de la CENAREF",

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 
 /** S47 : Client > Gestion des procurations (manuel Microfina++, p. 56) : écran « Nouveau type procuration » */
 export function TypesProcuration() {
@@ -26,17 +26,17 @@ export function TypesProcuration() {
           <button className="bouton secondaire" type="button" disabled={choisi === null} onClick={() => choisi !== null && confirmer("Voulez-vous vraiment supprimer ?", () => api.procurations.supprimer(choisi))}>Supprimer</button>
           <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
         </div>
-        <table className="grille">
+        <Paginee lignes={liste}>{(visibles) => (<table className="grille">
           <thead><tr><th scope="col">Nom Type procuration</th></tr></thead>
           <tbody>
             {liste.length === 0 && <tr><td>Liste vide</td></tr>}
-            {liste.map((t) => (
+            {visibles.map((t) => (
               <tr key={t.id} className="ligne-choix" tabIndex={0} aria-selected={choisi === t.id} onClick={() => setChoisi(t.id)} onKeyDown={(e) => { if (e.key === "Enter") setChoisi(t.id); }}>
                 <td>{t.libelle}</td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </table>)}</Paginee>
         <Textes sources={["Manuel Microfina++, p. 56 : « Gestion des procurations », écran Nouveau type procuration (Libellé*, Enregistrer, Supprimer, Annuler, Nom Type procuration)",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "Instr. BCC 15, art. 11 et 16 : le mandataire est identifié et habilité ; la saisie d'une procuration n'est pas montrée par le manuel"]} />

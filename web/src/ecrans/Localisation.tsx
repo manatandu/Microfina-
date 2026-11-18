@@ -4,7 +4,7 @@ import { api, ONGLETS_LIEUX, type LieuVue } from "../donnees/api";
 import type { NiveauLieu } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { exporterExcel } from "../lib/excel";
-import { Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 
 const NIVEAUX = ONGLETS_LIEUX.map((o) => o.niveau);
 type Saisie = { nom: string; nationalite: string; code: string; zone: string; parents: Partial<Record<NiveauLieu, number>> };
@@ -101,7 +101,7 @@ function Onglet({ niveau }: { niveau: NiveauLieu }) {
       <div className="actions-onglets">
         <button className="bouton" type="button" onClick={() => exporterExcel(o.onglet, colonnes.map((c) => c.titre), lignes.map((l) => colonnes.map((c) => c.valeur(l))))}>Exporter</button>
       </div>
-      <table className="grille">
+      <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
         <thead>
           <tr>{colonnes.map((c) => <th key={c.titre} scope="col">{c.titre}</th>)}</tr>
           <tr className="filtres">{colonnes.map((c) => <td key={c.titre}><input className="saisie" type="search" aria-label={`Filtrer ${c.titre}`} value={filtres[c.titre] ?? ""}
@@ -109,13 +109,13 @@ function Onglet({ niveau }: { niveau: NiveauLieu }) {
         </thead>
         <tbody>
           {lignes.length === 0 && <tr><td colSpan={colonnes.length}>Liste vide</td></tr>}
-          {lignes.map((l) => (
+          {visibles.map((l) => (
             <tr key={l.id} className="ligne-choix" tabIndex={0} aria-selected={l.id === choisi} onClick={() => choisir(l)} onKeyDown={(e) => { if (e.key === "Enter") choisir(l); }}>
               {colonnes.map((c) => <td key={c.titre}>{c.valeur(l)}</td>)}
             </tr>
           ))}
         </tbody>
-      </table>
+      </table>)}</Paginee>
       <Textes sources={["Manuel Microfina++, p. 30 à 32 : Localisation > Information de base, onglets Pays, Département, Commune, Arrondissement, Quartier ; Pays*, Nationalite*, Code*, Zone* ; Enregistrer, Annuler, Exporter, filtres des colonnes",
         "Constitution de la RDC, art. 2 (ville de Kinshasa et 25 provinces) et art. 3 (ville, commune, secteur, chefferie)",
         "Décret n° 22/07 du 02/03/2022, art. 9, point 26 : province d'origine, territoire, secteur ou chefferie, groupement, localité",

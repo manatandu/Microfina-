@@ -4,7 +4,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { Link } from "react-router-dom";
 import { fr } from "../lib/dates";
 import { lireMontant } from "@design/montant.js";
-import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee } from "../composants";
 import { TableFiltree } from "./Groupes";
 
 const VIDE = { agenceId: 0, code: "", designation: "", typeGuichet: "", journalId: 0, plafonds: {} as Record<string, { maximum: string; retrait: string }>,
@@ -116,10 +116,10 @@ export function OuvertureFermetureGuichets() {
       <section className="bloc pile" aria-label="Ouverture/Fermeture de guichets">
         <fieldset className="pile cadre-champs">
           <legend>Liste des guichets</legend>
-          <div className="defile-x"><table className="grille">
+          <Paginee lignes={donnees.guichets}>{(visibles) => (<div className="defile-x"><table className="grille">
             <thead><tr><th scope="col">Code guichet</th><th scope="col">Type guichet</th><th scope="col">Designation</th><th scope="col">Actif</th><th scope="col">Ouvert</th><th scope="col">Date ouverture</th></tr></thead>
             <tbody>
-              {donnees.guichets.map((x) => (
+              {visibles.map((x) => (
                 <tr key={x.id} className="ligne-choix" tabIndex={0} aria-selected={x.id === choisi}
                   onDoubleClick={() => setChoisi(x.id)} onKeyDown={(e) => { if (e.key === "Enter") setChoisi(x.id); }}>
                   <td className="chiffres">{x.code}</td><td>{x.typeGuichet}</td><td>{x.nom}</td>
@@ -129,7 +129,7 @@ export function OuvertureFermetureGuichets() {
                 </tr>
               ))}
             </tbody>
-          </table></div>
+          </table></div>)}</Paginee>
           <div className="grille-cadres quatre">
             <Champ libelle="Dernière journée ouverte">{(p) => <input {...p} className="saisie date" readOnly value={donnees.derniereJournee ? fr(donnees.derniereJournee) : ""} />}</Champ>
             <Champ libelle="Journée ouverte à associer">{(p) => <select {...p} className="saisie" value={journee || donnees.journeesOuvertes[0]?.id || ""} onChange={(e) => setJournee(Number(e.target.value))}>

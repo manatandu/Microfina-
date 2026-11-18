@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 
 const SOURCES_P20 = ["Manuel Microfina++, p. 20 : Nouvel Exercice, Exercice (Année*), Enregistrer, Effacer, liste Annee, Actif ?, Ouvert ?, Validé ? ; « préciser obligatoirement l'Année puis cocher la case d'activation, d'ouverture et valider avant d'enregistrer »",
   "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
@@ -43,10 +43,10 @@ export function NouvelExercice() {
           <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
           <button className="bouton secondaire" type="button" onClick={() => { setAnnee(""); setCases({}); }}>Effacer</button>
         </div>
-        <table className="grille">
+        <Paginee lignes={donnees.exercices}>{(visibles) => (<table className="grille">
           <thead><tr><th scope="col">Annee</th><th scope="col">Actif ?</th><th scope="col">Ouvert ?</th><th scope="col">Validé ?</th></tr></thead>
           <tbody>
-            {donnees.exercices.map((e) => {
+            {visibles.map((e) => {
               const c = ligne(e.annee);
               return (
                 <tr key={e.annee}>
@@ -58,7 +58,7 @@ export function NouvelExercice() {
               );
             })}
           </tbody>
-        </table>
+        </table>)}</Paginee>
         <Textes sources={SOURCES_P20} />
       </section>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />

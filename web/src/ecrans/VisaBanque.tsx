@@ -5,7 +5,7 @@ import { api, type EtapeVisaBanque, type LigneVisaBanque, type ListeVisaBanque }
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { montant } from "@design/montant.js";
-import { ChampDate, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { ChampDate, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 
 const LISTES: { id: ListeVisaBanque; libelle: string; viser: string; valider: string }[] = [
   { id: "enc_dec", libelle: "Encaissement Décaissement", viser: "Viser Encaissement Décaissement", valider: "Validation Encaissement Décaissement" },
@@ -60,18 +60,18 @@ export default function VisaBanque() {
             <ChampDate libelle="Date operation : *" valeur={dateOp} onChange={setDate} requis />
           </div>
         )}
-        <table className="grille">
+        <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
           <thead><tr><th scope="col"><span className="sr-only">{etape === "visa" ? "Viser" : "Valider"}</span></th>{colonnes.map(([c]) => <th key={c} scope="col">{c}</th>)}</tr></thead>
           <tbody>
             {lignes.length === 0 && <tr><td colSpan={colonnes.length + 1}>{l.id === "virement" && etape === "validation" ? "Liste vide" : "Aucune donnée"}</td></tr>}
-            {lignes.map((x) => (
+            {visibles.map((x) => (
               <tr key={x.id}>
                 <td><button className="bouton secondaire" type="button" aria-label={`${etape === "visa" ? "Viser" : "Valider"} ${x.libelle}`} title={etape === "visa" ? "Viser" : "Valider"} onClick={() => agir(x)}>↑</button></td>
                 {colonnes.map(([c, f]) => <td key={c} className={c === "Montant" || c === "Debit" || c === "Crédit" ? "montant chiffres" : undefined}>{f(x)}</td>)}
               </tr>
             ))}
           </tbody>
-        </table>
+        </table>)}</Paginee>
         <Textes sources={["Manuel Microfina++, p. 65 à 67 : Banque > Visa et Banque > Validation, quatre listes chacune (Encaissement Décaissement, Virement Banque vers Caisse, Virement Banque Vers Banque, Virement / Prélèvement) ; flèche de visa en première colonne",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "Chaîne de l'opération : saisie (S52, S53, S56), visée, validée ici, comptabilisée (S111) ; PCCI § 3.3 et 3.4 : le numéro de pièce vient à la comptabilisation",

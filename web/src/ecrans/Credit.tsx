@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { api, CATALOGUE_CREDIT, type ChampBudget, type LigneBudgetVue } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { exporterExcel } from "../lib/excel";
-import { Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 
 const SOURCES: Record<string, string> = {
   types_objet: "Manuel Microfina++, p. 32 : Type Objet*, Secteur Activité*, Enregistrer, Effacer, Supprimer ; grille Type Objet, Secteur Activite",
@@ -138,7 +138,7 @@ export function Onglet({ page }: { page: string }) {
       {fiche.exporter && <div className="actions-onglets">
         {fiche.ordres && <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment enregistrer ?", () => api.credit.enregistrerOrdres(ordres))}>Enregistrement</button>}
         <button className="bouton" type="button" onClick={exporter}>Exporter</button></div>}
-      <table className="grille">
+      <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
         <thead>
           <tr>{colonnes.map((c) => <th key={c.cle} scope="col" className={c.type === "entier" ? "num" : undefined}>{c.colonne}</th>)}</tr>
           {fiche.filtres && <tr className="filtres">{colonnes.map((c) => (
@@ -147,7 +147,7 @@ export function Onglet({ page }: { page: string }) {
         </thead>
         <tbody>
           {lignes.length === 0 && <tr><td colSpan={colonnes.length}>Liste vide</td></tr>}
-          {lignes.map((l) => (
+          {visibles.map((l) => (
             <tr key={l.id} className={lecture ? undefined : "ligne-choix"} tabIndex={lecture ? undefined : 0} aria-selected={lecture ? undefined : l.id === choisi}
               onClick={() => choisir(l)} onKeyDown={(e) => { if (e.key === "Enter") choisir(l); }}>
               {colonnes.map((c) => fiche.ordres && c.cle === "ordre"
@@ -159,7 +159,7 @@ export function Onglet({ page }: { page: string }) {
             </tr>
           ))}
         </tbody>
-      </table>
+      </table>)}</Paginee>
       <Textes sources={[SOURCES[page]!, "Manuel Microfina++, p. 12 : modifier, supprimer ; « Les suppressions sont généralement logiques »"]} />
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </section>

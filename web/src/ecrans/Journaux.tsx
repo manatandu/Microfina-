@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { exporterExcel } from "../lib/excel";
-import { Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 
 type Journal = { id: number; code: string; libelle: string; type: string; typeLibelle: string; actif: boolean; detail: boolean };
 const VIDE = { type: "", libelle: "", code: "", actif: false, detail: false };
@@ -47,17 +47,17 @@ export default function Journaux() {
         <fieldset className="cadre-champs pile">
           <legend>Liste des Journaux</legend>
           <div className="actions-onglets"><button className="bouton" type="button" onClick={exporter}>Exporter</button></div>
-          <table className="grille">
+          <Paginee lignes={liste}>{(visibles) => (<table className="grille">
             <thead><tr><th scope="col">N° Journal</th><th scope="col">Libellé</th><th scope="col">Type Journal</th><th scope="col">Actif</th></tr></thead>
             <tbody>
               {liste.length === 0 && <tr><td colSpan={4}>Liste vide</td></tr>}
-              {liste.map((j) => (
+              {visibles.map((j) => (
                 <tr key={j.id} className="ligne-choix" tabIndex={0} aria-selected={j.id === choisi} onClick={() => choisir(j)} onKeyDown={(e) => { if (e.key === "Enter") choisir(j); }}>
                   <td>{j.code}</td><td>{j.libelle}</td><td>{j.typeLibelle}</td><td><input type="checkbox" aria-label={`Actif : ${j.code}`} checked={j.actif} disabled /></td>
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table>)}</Paginee>
         </fieldset>
         <Textes sources={["Manuel Microfina++, p. 41 : « renseigner le type journal et le libelle et [Enregistrer] » ; capture p. 42 : Info Journal (Type Journal*, Libelle*, Code, Actif, Détail journal), Enregistrer, Effacer, Supprimer, Liste des Journaux (N° Journal, Libellé, Type Journal, Actif), Exporter",
           "PCCI § 3.3 : journaux et livres auxiliaires au choix de l'institution, centralisés au moins une fois par mois dans le livre-journal",

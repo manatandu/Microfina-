@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api, type InfoSociete } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee } from "../composants";
 import { Onglet as PageZone } from "./Credit";
 
 const PAGES = [["societe", "Information Societe"], ["agence", "Agence"], ["zone", "Zone"]] as const;
@@ -147,16 +147,16 @@ function Agences() {
         <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
         <button className="bouton secondaire" type="button" disabled={choisi === null} onClick={() => confirmer("Voulez-vous vraiment supprimer ?", () => api.societe.supprimerAgence(choisi!))}>Supprimer</button>
       </div>
-      <table className="grille">
+      <Paginee lignes={donnees.agences}>{(visibles) => (<table className="grille">
         <thead><tr><th scope="col">Code</th><th scope="col">Nom</th></tr></thead>
         <tbody>
-          {donnees.agences.map((a: { id: number; code: string; nom: string }) => (
+          {visibles.map((a: { id: number; code: string; nom: string }) => (
             <tr key={a.id} className="ligne-choix" tabIndex={0} aria-selected={a.id === choisi} onClick={() => choisir(a)} onKeyDown={(e) => { if (e.key === "Enter") choisir(a); }}>
               <td>{a.code}</td><td>{a.nom}</td>
             </tr>
           ))}
         </tbody>
-      </table>
+      </table>)}</Paginee>
       <Textes sources={["Manuel Microfina++, p. 42 : pages Information société, Agence et zone ; page Agence non montrée : gabarit liste (COMPLEMENTS § 4.1), code et nom",
         "Manuel Microfina++, p. 23 et 24 : le code de l'agence entre dans le numéro du client (S15)"]} />
       <Dialogue boite={boite} fermer={() => setBoite(null)} />

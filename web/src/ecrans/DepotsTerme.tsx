@@ -8,7 +8,7 @@ import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
 import { lireMontant, montant, montantEnLettres, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee } from "../composants";
 import { RechercheClient } from "./Visa";
 import { valeur as valeurCritere } from "../lib/rapports";
 
@@ -152,12 +152,12 @@ function FicheBeneficiaires({ lignes, fermer }: { lignes: Beneficiaire[] | null;
 function ListeDat({ lignes, choisi, choisir, avecStatut }: { lignes: Dat[]; choisi?: number | null; choisir?: (x: Dat) => void; avecStatut?: boolean }) {
   const statut = avecStatut ?? !choisir;
   return (
-    <div className="defile-x"><table className="grille">
+    <Paginee lignes={lignes}>{(visibles) => (<div className="defile-x"><table className="grille">
       <thead><tr><th scope="col">Certificat</th><th scope="col">Date opération</th><th scope="col">N° compte</th><th scope="col">N° membre</th><th scope="col" className="montant">Montant dépôt</th>
         <th scope="col">Durée</th><th scope="col">Taux interêt</th><th scope="col" className="montant">Montant interêt</th><th scope="col">Date échéance</th>{statut && <th scope="col">Statut</th>}</tr></thead>
       <tbody>
         {lignes.length === 0 && <tr><td colSpan={statut ? 10 : 9}>No records found.</td></tr>}
-        {lignes.map((x) => (
+        {visibles.map((x) => (
           <tr key={x.id} {...(choisir ? { className: "ligne-choix", tabIndex: 0, "aria-selected": choisi === x.id, onClick: () => choisir(x), onKeyDown: (e: React.KeyboardEvent) => { if (e.key === "Enter") choisir(x); } } : {})}>
             <td className="chiffres">{String(x.certificat).padStart(6, "0")}</td><td className="chiffres">{fr(x.dateDepot)}</td><td className="chiffres">{x.compteDat}</td><td className="chiffres">{x.membre}</td>
             <td className="montant chiffres">{montant(x.montant, x.devise as Devise)}</td><td>{x.duree} mois</td><td className="chiffres">{x.tauxInteret} %</td>
@@ -165,7 +165,7 @@ function ListeDat({ lignes, choisi, choisir, avecStatut }: { lignes: Dat[]; choi
           </tr>
         ))}
       </tbody>
-    </table></div>
+    </table></div>)}</Paginee>
   );
 }
 

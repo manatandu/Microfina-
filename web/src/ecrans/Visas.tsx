@@ -3,7 +3,7 @@ import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { montant } from "@design/montant.js";
-import { Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 
 type Ligne = { id: number; date: string; libelle: string; montant: number; devise: string; membre: string; numeroMembre: string; compte: string };
 
@@ -22,12 +22,12 @@ export default function VisaRetraitPlafond() {
     <>
       <h1>Viser Retrait plafonné</h1>
       <section className="bloc pile" aria-label="Viser Retrait plafonné">
-        <table className="grille">
+        <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
           <thead><tr><th scope="col"><span className="sr-only">Viser</span></th><th scope="col">Date operation</th><th scope="col">Libelle de l'operation</th>
             <th scope="col" className="montant">montant</th><th scope="col">Membre</th><th scope="col">Compte</th></tr></thead>
           <tbody>
             {lignes.length === 0 && <tr><td colSpan={6}>Aucune information</td></tr>}
-            {lignes.map((x) => (
+            {visibles.map((x) => (
               <tr key={x.id}>
                 <td><button className="bouton secondaire" type="button" aria-label={`Viser ${x.libelle}`} title="Viser" onClick={() => viser(x)}>↑</button></td>
                 <td className="chiffres">{fr(x.date)}</td><td>{x.libelle}</td><td className="montant chiffres">{montant(x.montant, x.devise)}</td>
@@ -35,7 +35,7 @@ export default function VisaRetraitPlafond() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table>)}</Paginee>
         <Textes sources={["Manuel Microfina++, p. 131 : Visa > Retrait plafond, grille « Viser Retrait plafonné » (Date operation, Libelle de l'operation, montant, Membre, Compte) ; p. 131, Viser Opérations diverses : flèche de visa en première colonne",
           "Manuel Microfina++, p. 95 : Retrait plafonné* du guichet ; p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "Instr. BCC 008, art. 8 : strict respect des limites fixées par l'organe exécutif ; art. 66 : séparation des tâches ; ARCHITECTURE P7 : celui qui saisit ne vise pas"]} />
