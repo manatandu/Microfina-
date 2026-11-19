@@ -83,7 +83,7 @@ Billetage : saisie par coupure,caisse,must,yes,yes,"S79 ; manuel p. 90 et 91 ; o
 Billetage : validation solde informatique et réel,caisse,must,yes,yes,"S80 ; manuel p. 91 et 92 ; journée non comptabilisable sans billetage validé (constats U12 C41) | Réaligné le 07/11/2026 sur Microfina : « Validation Arretée Temporaire » de la caisse, Solde Informatique, Solde Reel, Compte Comptable, Guichet, Journées, Libelle / Nombre / Montant (« Aucune donnée dans la liste »), Bon Caisse, Total Billetage, Valider, Imprimer, Terminer, Oui/Non. Valideur autre que le caissier qui a compté. À confirmer : qui valide, contenu du Compte Comptable, Solde Reel avec ou sans Bon de Caisse, liste des journées, Imprimer et Terminer, écriture de l'écart."
 Transfert caisse vers caisse et caisse vers banque,caisse,must,yes,yes,S81 ; comptes 579 et 59 soldés chaque soir (constat C42)
 Opérations diverses et déplacées validées en caisse,caisse,must,yes,no,S82 ; retrait dans une autre agence gratuit (Instr. BCC 37)
-Journal de caisse,caisse,must,yes,no,S83
+Journal de caisse,caisse,must,yes,yes,S83
 Simulation d'échéancier,crédit,must,yes,no,S84
 Analyse financière allégée et développée,crédit,should,yes,no,S85
 Demande de crédit avec effectifs hommes femmes et groupes,crédit,must,yes,no,S86

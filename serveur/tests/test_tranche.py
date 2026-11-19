@@ -810,6 +810,19 @@ def test_transferts(clients, journee):
     assert balance_equilibree(caisse)
 
 
+def test_journal_caisse(clients, journee):
+    """S83 (p. 95) : lignes du compte du guichet, débit à l'entrée d'espèces, crédit à la sortie (PCCI, compte 57), N° Client, période"""
+    caisse, agent = clients["caisse"], clients["agent"]
+    d = caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-01"), "montant": 10000, "coupures": {"100": 1}, "mandataire": ""}, **H).json()
+    assert caisse.get("/api/caisse/journal/contexte").json()["guichetId"] == G2()
+    piece = caisse.get(f"/api/operations/{d['id']}/recu").json()["piece"]
+    l = caisse.get(f"/api/caisse/journal?guichetId={G2()}&du=2026-11-05&au=2026-11-05").json()
+    x = next(x for x in l if x["piece"] == piece)
+    assert (x["date"], x["client"], x["debit"], x["credit"], x["devise"]) == ("2026-11-05", "0412-000318", 10000, 0, "USD")
+    assert caisse.get(f"/api/caisse/journal?guichetId={G2()}&du=2026-11-06&au=2026-11-06").json() == []
+    assert agent.get(f"/api/caisse/journal?guichetId={G2()}&du=2026-11-05&au=2026-11-05").status_code == 403
+
+
 def test_parts_sociales(clients, journee):
     caisse, agent, chef = clients["caisse"], clients["agent"], clients["chef"]
     k, m = T("0412-000318"), T("0412-000319")                   # Kalala : 2 parts ; Mwamba : 1 part ; 4 000 CDF la part

@@ -2572,6 +2572,34 @@ const guichet = {
   },
 };
 
+// ---------- S83 : Caisse > Rapport > Journal des opérations de caisse (manuel p. 95 ; doublon p. 109). Règles identiques côté serveur (noyau/journal_caisse.py).
+// Lignes du compte du guichet : débit à l'entrée d'espèces, crédit à la sortie (PCCI, compte 57). Registre S83-1 à S83-5. ----------
+const journalCaisse = {
+  contexte() {
+    lectureAdmin(["S83"]);
+    const u = utilisateur()!;
+    const a = [...E.affectations].reverse().find((f) => f.utilisateurId === u.id && !f.fin);
+    return { guichetId: a?.guichetId ?? null, guichets: [...E.guichets].sort((x, y) => x.code.localeCompare(y.code)).map(({ id, code, nom }) => ({ id, code, nom })),
+      rapports: ["Journal de caisse"] };
+  },
+  journal(guichetId: number, du: string, au: string) {
+    lectureAdmin(["S83"]);
+    if (!E.guichets.some((g) => g.id === guichetId)) throw new ErreurMetier("À remplir : Guichet.");
+    DATE_RAPPORT(du, "Du"); DATE_RAPPORT(au, "Au");
+    if (du > au) throw new ErreurMetier("Du : une date avant Au.");
+    const client = (e: Ecriture) => {
+      const l = e.lignes.find((x) => /^(depot|parts):/.test(x.contrat ?? "")); if (!l) return "";
+      const [k, i] = l.contrat!.split(":");
+      const tid = k === "parts" ? Number(i) : E.comptes.find((c) => c.id === Number(i))?.tiersId;
+      return E.tiers.find((t) => t.id === tid)?.numero ?? "";
+    };
+    return E.ecritures.map((e) => ({ e, d: dateJournee(e.journeeId) })).filter(({ d }) => d >= du && d <= au)
+      .sort((a, b) => a.d.localeCompare(b.d) || a.e.id - b.e.id)
+      .flatMap(({ e, d }) => e.lignes.filter((l) => l.contrat === `guichet:${guichetId}`).map((l) => ({ date: d, client: client(e), piece: e.piece, libelle: e.libelle,
+        devise: l.devise, debit: l.sens === "D" ? l.montant : 0, credit: l.sens === "C" ? l.montant : 0 })));
+  },
+};
+
 // ---------- S81 : Caisse > Transfert entre caisse (manuel p. 92 et 93 ; doublons p. 106 et 107). Règles identiques côté serveur (noyau/transferts.py).
 // Caisse vers caisse par le compte 579 (PCCI : mouvements de fonds inter caisses) ; caisse vers banque par le compte 591 (PCCI 59 : virement caisse à banque).
 // Les deux comptes d'attente sont soldés dans la même écriture. Billetage sur les deux (décision du porteur du 19/11/2026). Registre S81-1 à S81-7. ----------
@@ -4880,6 +4908,7 @@ const apiLocal = {
   journaux: asynchrone(journaux, "journaux"),
   edDivers: asynchrone(edDivers, "edDivers"),
   transferts: asynchrone(transferts, "transferts"),
+  journalCaisse: asynchrone(journalCaisse, "journalCaisse"),
   societe: asynchrone(societe, "societe"),
   agents: asynchrone(agents, "agents"),
   jours: asynchrone(jours, "jours"),

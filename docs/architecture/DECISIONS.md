@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**468 décisions.** Solidité : 196 fortes (le manuel ou un texte répond), 233 moyennes (déduites d'un écran voisin ou d'une donnée), 39 faibles (notre choix, faute de mieux). Dans le code : 450 déjà en place, 16 à appliquer.
+**474 décisions.** Solidité : 197 fortes (le manuel ou un texte répond), 236 moyennes (déduites d'un écran voisin ou d'une donnée), 41 faibles (notre choix, faute de mieux). Dans le code : 455 déjà en place, 16 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1084,6 +1084,22 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S81-6 | No de chèque | Saisi, obligatoire, sans lien avec les chéquiers de l'institution (S60) : le texte dit « saisir le numéro de chèque », et un versement d'espèces ne tire pas de chèque sur le compte (S60-2) | Manuel : Texte p. 92 ; S60-2 | moyenne | en place |
 | S81-7 | Validation | L'écriture passe à l'enregistrement, au journal de caisse, sans visa : les captures n'ont que Enregistrer. La validation des « Opérations diverses » (S82) porte sur les opérations initiées par la comptabilité | Manuel : Captures p. 92 et 93 ; texte p. 93 | moyenne | en place |
 
+## S82 Valider opérations : diverses, déplacées
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S82-1 | Ordre de construction | S82 valide les opérations saisies dans Comptabilité > Autres opérations (S116, p. 134 et 135) : il se construit avec S116, à l'étape 8, comme S75 et S76 attendent le Crédit | Choix du porteur : Décision du porteur, 19/11/2026 ; texte p. 93 et 94 | forte | à faire |
+
+## S83 Rapport : journal des opérations de caisse
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S83-1 | Lignes et sens | Les lignes du compte du guichet choisi, dans la période : Débit à l'entrée d'espèces, Crédit à la sortie ; Date (de la journée), N° pièce et Libellé de l'écriture ; montant dans sa devise | Texte réglementaire : Capture p. 95 ; PCCI, compte 57 (« débité des versements … crédité des sorties ») | moyenne | en place |
+| S83-2 | Champ Guichet | Le guichet affecté à l'utilisateur, en lecture comme sur la capture ; un utilisateur sans guichet (chef d'agence) le choisit parmi ceux de l'agence | Manuel : Capture p. 95 (champ grisé) ; S10 | moyenne | en place |
+| S83-3 | Rechercher par, Valeur | Les colonnes de texte de la grille : N° Client, N° pièce, Libellé ; la valeur filtre ce qui la contient | Écran voisin : Capture p. 95 ; S51 (même forme de recherche) | faible | en place |
+| S83-4 | Liste Rapport | Une seule valeur, « Journal de caisse », celle de la capture ; le manuel n'en montre pas d'autre | Manuel : Capture p. 95 | moyenne | en place |
+| S83-5 | N° Client et période | N° Client : le membre dont un compte (dépôt, parts) figure dans la même écriture, vide sinon (ED divers, transfert). Du : le 1er janvier de l'année de la journée ; Au : la journée | Écran voisin : S72-1 ; S51 | faible | en place |
+
 ## Les décisions faibles, à regarder en premier
 
 | N° | Écran | Question | Réponse retenue |
@@ -1127,3 +1143,5 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S72-3 | S72 Rapports épargne | Recherche multicritère épargne : résultats | Éléments de la recherche lus sur le titulaire comme au rapport client (S51). Détaillé : une ligne par compte (crédits, débits de la période, solde à la date de fin) ; Groupé : nombre et solde par valeur de « Ordonner suivant » et par devise ; Opérations : les mouvements de la période. Déposants : une ligne par client et par devise. Montant de / à : sur le solde. Date fixe : la situation à cette date |
 | S72-4 | S72 Rapports épargne | Indicateurs crédit épargne : comment compter ? | Comptes épargne par sexe : nombre de comptes ouverts à la date, par produit (Morale pour les personnes morales et groupes) ; Regroupements par sexe : membres admis et non partis à la date ; Adhésion et Départ : dans l'année de la date ; Parts sociales : solde des parts par sexe ; Nantissements, Cautions et Crédits encours : lus du module Crédit (étape 7). « Ajouter clients auxiliaires » compte aussi les membres auxiliaires |
 | S72-7 | S72 Rapports épargne | « Afficher les comptes » : que fait la case ? | Non cochée, seuls les comptes qui ont un solde sont listés ; cochée, les comptes à solde nul s'y ajoutent |
+| S83-3 | S83 Rapport : journal des opérations de caisse | Rechercher par, Valeur | Les colonnes de texte de la grille : N° Client, N° pièce, Libellé ; la valeur filtre ce qui la contient |
+| S83-5 | S83 Rapport : journal des opérations de caisse | N° Client et période | N° Client : le membre dont un compte (dépôt, parts) figure dans la même écriture, vide sinon (ED divers, transfert). Du : le 1er janvier de l'année de la journée ; Au : la journée |

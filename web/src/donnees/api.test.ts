@@ -894,6 +894,18 @@ describe("journée de guichet", () => {
     expect(await soldeCdfGrandLivre()).toBe(0);
   });
 
+  it("journal de caisse (S83, p. 95) : lignes du compte du guichet, débit à l'entrée, crédit à la sortie, N° Client, période", async () => {
+    await journeeOuverte();
+    const d = await api.guichet.depot({ cle: cle(), compteId: 1, montant: 10000, coupures: { 100: 1 } });
+    const c = await api.journalCaisse.contexte();
+    expect(c.guichetId).toBe(2);
+    const l = await api.journalCaisse.journal(2, "2026-11-05", "2026-11-05");
+    const r = await api.operations.recu(d.id);
+    expect(l.find((x) => x.piece === r.piece)).toMatchObject({ date: "2026-11-05", client: "0412-000318", debit: 10000, credit: 0, devise: "USD" });
+    expect(await api.journalCaisse.journal(2, "2026-11-06", "2026-11-06")).toEqual([]);
+    await expect(api.journalCaisse.journal(2, "2026-11-06", "2026-11-05")).rejects.toThrow("avant Au");
+  });
+
   it("opérations de banque (S52) : saisie en attente du visa, contrôles des trois onglets (registre S52-2 à S52-6)", async () => {
     await journeeOuverte();
     await connecter("jpmukendi");

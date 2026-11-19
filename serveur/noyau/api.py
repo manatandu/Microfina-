@@ -378,6 +378,18 @@ def guichet_ed_divers(request, corps: dict = Body(...)):
     return ed_guichet.enregistrer(u(request), corps)
 
 
+@api.get("/caisse/journal/contexte")
+def journal_caisse_contexte(request):
+    from . import journal_caisse
+    return journal_caisse.contexte(u(request))
+
+
+@api.get("/caisse/journal")
+def journal_caisse(request, guichetId: int, du: str, au: str):
+    from . import journal_caisse as jc
+    return jc.journal(u(request), guichetId, du, au)
+
+
 @api.get("/caisse/transferts")
 def transferts_contexte(request):
     from . import transferts
