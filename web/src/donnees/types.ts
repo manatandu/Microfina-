@@ -441,7 +441,7 @@ export interface DemandeCredit {
   id: number; numero: string; tiersId: number; produitId: number; devise: Devise; analyseId: number | null; cycleId: number | null; provinceId: number; villeId: number;
   nbHommes: number; nbFemmes: number; montantHommes: number; montantFemmes: number; nbGroupes: number; montant: number; duree: number;
   parts: { membre: string; montant: number }[]; statut: "saisie" | "controlee" | "approuvee" | "mise_en_place"; creeLe: string; saisiPar: number;
-  controlePar: number | null; approuvePar: number | null; montantApprouve: number | null; consultationCrLe: string; consultationCrRef: string;
+  controlePar: number | null; approuvePar: number | null; approuveLe?: string; montantApprouve: number | null; consultationCrLe: string; consultationCrRef: string;
   accordConseilRef: string; accordBccRef: string;
 }
 

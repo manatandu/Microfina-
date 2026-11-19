@@ -94,7 +94,7 @@ TEG affiché sur le dossier,crédit,must,yes,partial,S89 ; formule de l'Instr. B
 Visas responsable crédit comité service financier,crédit,must,yes,yes,S90 ; commission de crédit avec accès en lecture (constats U7 C38)
 Historique des visas,crédit,must,yes,yes,S91
 Crédits validés non débloqués,crédit,must,yes,partial,S92
-État de crédit,crédit,must,yes,no,S93
+État de crédit,crédit,must,yes,yes,"S93 | Situation des crédits sur une période ou à une date fixe, filtres, capital restant et retard, échéancier et contrat (registre S93-1 à S93-4)."
 Cautions dépôts de garantie nantissements,crédit,must,yes,no,S94 ; types de garantie à identifier (PCCI § 10.8)
 Consulter un prêt,crédit,must,yes,no,S95
 Affectation de portefeuille entre gestionnaires,crédit,should,yes,no,S96

@@ -279,7 +279,7 @@ def approuver(u, did: int, d) -> dict:
             raise ErreurMetier("Crédits aux personnes apparentées au-delà de 20 % des fonds propres prudentiels (Instr. BCC 002, art. 25 ; Instr. BCC 51).")
         if coopec and tot * 5 > depots_membres(u) and not bcc:
             raise ErreurMetier("Crédits aux dirigeants au-delà de 20 % des dépôts des membres (loi 002/2002, art. 59, 4°) : dérogation de la BCC à noter.")
-    executer("""update demande_credit set statut = 'approuvee', montant_approuve = %s, approuve_par = %s, approuve_le = now(), consultation_cr_le = %s,
+    executer("""update demande_credit set statut = 'approuvee', montant_approuve = %s, approuve_par = %s, approuve_le = %s, consultation_cr_le = %s,
                 consultation_cr_ref = %s, accord_conseil_ref = %s, accord_bcc_ref = %s where id = %s""",
-             (m, u["id"], cr, ref, conseil or None, bcc or None, x["id"]))
+             (m, u["id"], jour(u), cr, ref, conseil or None, bcc or None, x["id"]))
     return vue(une("select * from demande_credit where id = %s", (x["id"],)))

@@ -68,7 +68,7 @@ def payes(rb: list[dict]) -> dict:
 def etat(c: dict, d: date) -> dict:
     """Situation du crédit au jour d : échu, payé, retard, pénalité, capital restant (capture p. 87, cadres Infos crédit et Détail crédit)"""
     ech = lignes("select * from echeance where credit_id = %s order by rang", (c["id"],))
-    rb = [{**r, "repartition": json_lu(r["repartition"])} for r in lignes("select * from remboursement where credit_id = %s order by date_reglement, id", (c["id"],))]
+    rb = [{**r, "repartition": json_lu(r["repartition"])} for r in lignes("select * from remboursement where credit_id = %s and date_reglement <= %s order by date_reglement, id", (c["id"], d))]
     p = payes(rb)
     regulier = lambda r: int(r["repartition"].get("capital") or 0) - int(r["repartition"].get("capitalAnticipe") or 0) + int(r["repartition"].get("interet") or 0)
     echu = [e for e in ech if e["date_due"] <= d]

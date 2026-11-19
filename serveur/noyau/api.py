@@ -463,6 +463,16 @@ def credit_memo(request, cid: int, corps: dict = Body(...)):
     return rb.ajouter_memo(u(request), cid, corps)
 
 
+@api.get("/credit/etat")
+def credit_etat(request):
+    from . import etat_credit as ec
+    g = request.GET
+    n = lambda k: int(g[k]) if g.get(k, "").lstrip("-").isdigit() else None
+    return ec.situation(u(request), {"mode": g.get("mode"), "du": g.get("du"), "au": g.get("au"), "date": g.get("date"), "produitId": n("produitId"),
+                                      "niveau": g.get("niveau") or None, "agentId": n("agentId"), "operateur": g.get("operateur") or None, "montant": n("montant"),
+                                      "archives": g.get("archives") == "1"})
+
+
 @api.get("/credit/visas/contexte")
 def visas_contexte(request):
     from .services import est_coopec

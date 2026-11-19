@@ -2172,6 +2172,17 @@ describe("journée de guichet", () => {
     expect(await soldeCdfGrandLivre()).toBe(0);
   });
 
+  it("état de crédit (S93, p. 115 et 116) : période sur la date d'approbation, date fixe, filtres, situation du remboursement (S93-1 à S93-4)", async () => {
+    const cid = await creditDebloque();
+    await connecter("bkasongo");
+    const x = (await api.etatCredits.situation({ du: "2026-11-01", au: "2026-11-05" }))[0]!;
+    expect([x.id, x.dateApprobation, x.statut, x.capitalRestant, x.joursRetard, x.degre]).toEqual([cid, "2026-11-05", "Débloqué", 100000000, 0, "Sains"]);   // comme le serveur
+    expect(await api.etatCredits.situation({ du: "2026-11-06", au: "2026-11-30" })).toEqual([]);
+    expect((await api.etatCredits.situation({ mode: "date", date: "2026-11-05", niveau: "comite" }))[0]!.id).toBe(cid);
+    expect(await api.etatCredits.situation({ du: "2026-11-01", au: "2026-11-05", operateur: ">", montant: 100000000 })).toEqual([]);
+    await expect(api.etatCredits.situation({ du: "2026-11-06", au: "2026-11-05" })).rejects.toThrow("Date début");
+  });
+
   it("produit crédit (S23, p. 37 et 38) : méthode dégressive (Instr. BCC 38 art. 11), bornes, garanties, assurance, frais (Instr. BCC 40 art. 8)", async () => {
     await connecter("jpmukendi");
     const P = { typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: "2,5", tauxDiffere: 2,

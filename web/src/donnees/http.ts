@@ -68,6 +68,10 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       debloquerBanque: (id: number, p: unknown) => post(`/banque/deblocage/${id}`, p),
       contrat: (id: number) => get(`/credit/credits/${id}/contrat`),
     },
+    etatCredits: {
+      situation: (p: Record<string, unknown>) => get(`/credit/etat?${new URLSearchParams(Object.entries(p).filter(([, v]) => v !== null && v !== undefined && v !== "" && v !== false)
+        .map(([k, v]) => [k, v === true ? "1" : String(v)])).toString()}`),
+    },
     remboursementsCredit: {
       creditsDuClient: (tid: number) => get(`/credit/remboursement/clients/${tid}`),
       detail: (id: number, date?: string) => get(`/credit/remboursement/${id}${date ? `?date=${date}` : ""}`),

@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**574 décisions.** Solidité : 242 fortes (le manuel ou un texte répond), 282 moyennes (déduites d'un écran voisin ou d'une donnée), 50 faibles (notre choix, faute de mieux). Dans le code : 545 déjà en place, 25 à appliquer.
+**578 décisions.** Solidité : 243 fortes (le manuel ou un texte répond), 285 moyennes (déduites d'un écran voisin ou d'une donnée), 50 faibles (notre choix, faute de mieux). Dans le code : 549 déjà en place, 25 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1349,6 +1349,15 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S92-1 | Écran | Du, A (date de la demande), Agence, Agent (« aucun » : tous), Afficher les crédits archivés ; Rechercher, Exporter ; grille N° credit, Date demande, Intitulé, Montant pret, Durée (mois), Produit, Groupe solidaire | Manuel : Capture p. 115 | moyenne | en place |
 | S92-2 | Crédits archivés | Case cochée : les crédits validés déjà débloqués (ou soldés) s'y ajoutent | Donnée exigée ailleurs : Capture p. 115 (case sans texte) | faible | en place |
 | S92-3 | Crédits listés | Crédits visés par les trois niveaux, pas encore débloqués | Manuel : Titre de la capture p. 115 ; CR-5 | forte | en place |
+
+## S93 Etat de crédit
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S93-1 | Écran | Capture p. 116 « Situation des crédits » : Rechercher (Sur une Période, A une date fixe), Période (Date d'approbation : Date début, Date fin), Produit crédit, Niveau de validation, Agence, Agent, Montant prêt (comparaison et montant), Crédits archivés ; Exécuter, Export ; grille Echéancier, Contrat prêt, N° crédit, Date Approbation, N°Membre, Intitulé, Contact, Groupe | Manuel : Capture p. 116 ; texte p. 115 | forte | en place |
+| S93-2 | Colonnes après Groupe | Coupées sur la capture : Montant prêt, Produit, Agent crédit (comme S92), Statut, Capital restant, Jours retard, Degré (la situation que calcule le remboursement S76) | Écran voisin : Grille S92 (capture p. 115) ; S76-3 ; Instr. BCC 003, art. 3 à 9 | moyenne | en place |
+| S93-3 | Période et date fixe | Sur une période : crédits approuvés entre les deux dates, situation à la date fin. A une date fixe : crédits approuvés au plus tard ce jour, situation à ce jour (remboursements jusqu'à cette date). La date d'approbation est celle de la journée ouverte | Manuel : Capture p. 116 (« Période(Date d'approbation) ») ; texte p. 115 | moyenne | en place |
+| S93-4 | Niveau de validation, archivés | Niveau : crédits qui ont l'avis « accepté » de ce niveau (S90). Crédits archivés Oui : s'y ajoutent les crédits soldés, refusés et passés en perte | Écran voisin : S90 ; S92-2 | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

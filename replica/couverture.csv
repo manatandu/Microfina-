@@ -94,7 +94,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 93,Visas responsable crédit comité service financier,crédit,must,yes,S90,A,visa,7 Crédit,,,,,
 94,Historique des visas,crédit,must,yes,S91,A,rapport,7 Crédit,,,,,
 95,Crédits validés non débloqués,crédit,must,partial,S92,A,rapport,7 Crédit,,,,,CR-10 Déclarations
-96,État de crédit,crédit,must,no,S93,A,rapport,7 Crédit,,,,S93,
+96,État de crédit,crédit,must,yes,S93,A,rapport,7 Crédit,,,,,
 97,Cautions dépôts de garantie nantissements,crédit,must,no,S94,A,liste,7 Crédit,,,,S94,CR-21 Garanties sur l'épargne
 98,Consulter un prêt,crédit,must,no,S95,B,consultation,7 Crédit,"S95 : Plan, Réel, Mémo",A:S76 Situation (p. 88),,S95,
 99,Affectation de portefeuille entre gestionnaires,crédit,should,no,S96,A,composition,7 Crédit,,,,S96,

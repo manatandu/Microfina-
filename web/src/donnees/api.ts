@@ -2862,7 +2862,7 @@ const dossiers = {
       if (tot * 5 > fp.montant && !(coopec && bcc)) throw new ErreurMetier("Crédits aux personnes apparentées au-delà de 20 % des fonds propres prudentiels (Instr. BCC 002, art. 25 ; Instr. BCC 51).");
       if (coopec && tot * 5 > depotsMembres() && !bcc) throw new ErreurMetier("Crédits aux dirigeants au-delà de 20 % des dépôts des membres (loi 002/2002, art. 59, 4°) : dérogation de la BCC à noter.");
     }
-    Object.assign(x, { statut: "approuvee", montantApprouve: m, approuvePar: u.id, consultationCrLe: cr, consultationCrRef: ref, accordConseilRef: conseil, accordBccRef: bcc });
+    Object.assign(x, { statut: "approuvee", montantApprouve: m, approuvePar: u.id, approuveLe: jourDossier(), consultationCrLe: cr, consultationCrRef: ref, accordConseilRef: conseil, accordBccRef: bcc });
     enregistrer(); return vueDemande(x);
   },
 };
@@ -3004,6 +3004,33 @@ const visasCredit = {
     const statuts = archives ? ["vise", "debloque", "solde"] : ["vise"];
     return E.credits.filter((c) => statuts.includes(c.statut) && (!agentId || c.agentId === agentId)).filter((c) => { const d = E.demandes.find((x) => x.id === c.demandeId)?.creeLe ?? "";
       return d >= du && d <= au; }).map(ligneVisa);
+  },
+};
+
+// ---------- S93 : Crédit > Suivi > Etat de crédit, « Situation des crédits » (manuel p. 115, capture p. 116). Mêmes règles que serveur/noyau/etat_credit.py.
+// Sur une période (date d'approbation) ou à une date fixe ; produit, niveau de validation, agent, montant prêt, crédits archivés. Registre S93-1 à S93-4. ----------
+const STATUTS_CREDIT: Record<CreditPret["statut"], string> = { mis_en_place: "Mis en place", vise: "Visé", debloque: "Débloqué", solde: "Soldé", refuse: "Refusé", passe_en_perte: "Passé en perte" };
+const OPERATEURS_MONTANT: Record<string, (a: number, b: number) => boolean> = { "=": (a, b) => a === b, ">": (a, b) => a > b, "<": (a, b) => a < b, ">=": (a, b) => a >= b, "<=": (a, b) => a <= b };
+const etatCredits = {
+  situation(p: { mode?: string; du?: string; au?: string; date?: string; produitId?: number | null; niveau?: string | null; agentId?: number | null; operateur?: string | null;
+    montant?: number | null; archives?: boolean }) {
+    lectureAdmin(["S93"]);
+    let d1: string | null = null, d: string;
+    if (p.mode === "date") d = dateVisa(p.date ?? "", "Date");
+    else { d1 = dateVisa(p.du ?? "", "Date début"); d = dateVisa(p.au ?? "", "Date fin"); if (d1 > d) throw new ErreurMetier("Date début : avant la date fin."); }
+    if (p.niveau && !NIVEAUX_VISA.includes(p.niveau as VisaCredit["niveau"])) throw new ErreurMetier("Niveau de validation inconnu.");
+    if (p.operateur && (!OPERATEURS_MONTANT[p.operateur] || !Number.isInteger(p.montant))) throw new ErreurMetier("Montant prêt : choisir la comparaison et saisir le montant.");
+    const statuts = p.archives ? Object.keys(STATUTS_CREDIT) : ["mis_en_place", "vise", "debloque"];
+    return E.credits.filter((c) => {
+      const a = E.demandes.find((x) => x.id === c.demandeId)?.approuveLe ?? "";
+      return statuts.includes(c.statut) && a && a <= d && (!d1 || a >= d1) && (!p.produitId || c.produitId === p.produitId) && (!p.agentId || c.agentId === p.agentId)
+        && (!p.niveau || E.visasCredit.some((v) => v.creditId === c.id && v.niveau === p.niveau && v.avis === "accepte"))
+        && (!p.operateur || OPERATEURS_MONTANT[p.operateur]!(c.montant, p.montant!));
+    }).map((c) => {
+      const s = c.debloqueLe && c.debloqueLe <= d ? etatCredit(c, d) : null;
+      return { ...ligneVisa(c), dateApprobation: E.demandes.find((x) => x.id === c.demandeId)!.approuveLe!, membre: E.tiers.find((t) => t.id === c.tiersId)!.numero,
+        contact: ficheClient(c.tiersId).telephone, statut: STATUTS_CREDIT[c.statut], capitalRestant: s ? s.capitalRestant : null, joursRetard: s ? s.joursRetard : null, degre: s ? s.degreLibelle : "" };
+    });
   },
 };
 
@@ -3149,7 +3176,7 @@ function ordreRemb(c: CreditPret, degre: number) {
 }
 function etatCredit(c: CreditPret, d: string) {
   const ech = c.echeancier as EcheanceCredit[];
-  const rb = E.remboursementsCredit.filter((r) => r.creditId === c.id).sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
+  const rb = E.remboursementsCredit.filter((r) => r.creditId === c.id && r.date <= d).sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
   const p: Record<string, number> = Object.fromEntries([...CLES_REMB, "capitalAnticipe"].map((k) => [k, rb.reduce((s, r) => s + (r.repartition[k] ?? 0), 0)]));
   const regulier = (r: RemboursementCredit) => (r.repartition.capital ?? 0) - (r.repartition.capitalAnticipe ?? 0) + (r.repartition.interet ?? 0);
   const echu = ech.filter((e) => e.date <= d);
@@ -5693,6 +5720,7 @@ const apiLocal = {
   visasCredit: asynchrone(visasCredit, "visasCredit"),
   deblocage: asynchrone(deblocage, "deblocage"),
   remboursementsCredit: asynchrone(remboursementsCredit, "remboursementsCredit"),
+  etatCredits: asynchrone(etatCredits, "etatCredits"),
   societe: asynchrone(societe, "societe"),
   agents: asynchrone(agents, "agents"),
   jours: asynchrone(jours, "jours"),

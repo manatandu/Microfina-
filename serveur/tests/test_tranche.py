@@ -1692,6 +1692,22 @@ def test_remboursement_banque(clients, journee):
     assert balance_equilibree(compta)
 
 
+def test_etat_credit(clients, journee):
+    """S93 (p. 115 et 116) : situation des crédits sur une période (date d'approbation) ou à une date fixe ; filtres ; capital restant (registre S93-1 à S93-4)"""
+    agent, caisse = clients["agent"], clients["caisse"]
+    cid = credit_debloque(clients, journee)
+    q = lambda **k: agent.get("/api/credit/etat", k, **H)
+    r = q(du="2026-11-01", au="2026-11-05")
+    assert r.status_code == 200, r.content
+    x = r.json()[0]
+    assert (x["id"], x["dateApprobation"], x["statut"], x["capitalRestant"], x["joursRetard"], x["degre"]) == (cid, "2026-11-05", "Débloqué", 100000000, 0, "Sains")
+    assert q(du="2026-11-06", au="2026-11-30").json() == []
+    assert q(mode="date", date="2026-11-05", niveau="comite").json()[0]["id"] == cid
+    assert q(du="2026-11-01", au="2026-11-05", operateur=">", montant=100000000).json() == []
+    assert "Date début" in q(du="2026-11-06", au="2026-11-05").json()["message"]
+    assert caisse.get("/api/credit/etat", {"du": "2026-11-01", "au": "2026-11-05"}, **H).status_code == 403
+
+
 def test_produit_credit(clients):
     """S23 (p. 37 et 38) : Information de base de la capture ; méthode dégressive (Instr. BCC 38, art. 11) ; garanties, assurance, frais
     (Instr. BCC 38 art. 6, Instr. BCC 40 art. 8) ; pénalité d'anticipation au plus 50 % (Instr. BCC 38, art. 14) ; registre S23-1 à S23-7"""

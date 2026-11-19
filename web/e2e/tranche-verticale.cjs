@@ -717,7 +717,10 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('button', { name: 'Situation.' }).click(); await p.getByRole('dialog', { name: 'Brouillard des remboursements' }).getByText('100 000,00 CDF').first().waitFor();
   await etape('11e2-brouillard-remboursements'); await p.getByRole('dialog', { name: 'Brouillard des remboursements' }).getByRole('button', { name: 'Fermer' }).click();
-  await aller('/caisse/s74?op=depot');
+  // État de crédit (S93, p. 115 et 116), par l'agent de crédit : situation des crédits approuvés sur la période
+  await login('Bijou Kasongo'); await aller('/credit/s93'); await p.getByRole('button', { name: 'Exécuter' }).click();
+  await p.getByRole('cell', { name: '0412/L001/00001', exact: true }).waitFor(); await p.getByRole('cell', { name: '900 000,00 CDF' }).waitFor(); await etape('11f-etat-credit');
+  await login('Esther Ngalula'); await aller('/caisse/s74?op=depot');
   await p.getByRole('tab', { name: 'Retrait en espèce' }).click(); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-01' });
   // Bouton Detail (registre S74-1) : relevé du compte en lecture seule ; masqué si le guichet n'a pas « Voir solde client » (S10-1)
   await p.getByRole('button', { name: 'Detail' }).click(); const dt = p.getByRole('dialog', { name: /^(Détail du compte|Erreur)/ }); await dt.waitFor(); await etape('10t-detail-compte');

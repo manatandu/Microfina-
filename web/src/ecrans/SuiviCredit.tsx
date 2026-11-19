@@ -6,7 +6,9 @@ import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
-import { montant, type Devise } from "@design/montant.js";
+import { lireMontant, montant, type Devise } from "@design/montant.js";
+import { ContratPret } from "./ContratPret";
+import { FenetresCredit } from "./RemboursementCredit";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, LigneFiltres, Paginee, Textes, type Boite } from "../composants";
 
 type Ligne = Awaited<ReturnType<typeof api.visasCredit.aViser>>[number];
@@ -159,6 +161,77 @@ export function ValidesNonDebloques() {
         <Textes sources={["Manuel Microfina++, p. 115 : 4-5 Crédits validés non débloqués ; capture (Du, A, Agence, Agent, Afficher les crédits archivés, Rechercher, Exporter, grille)",
           "Registre S92-1 à S92-3 : crédits visés par les trois niveaux, pas encore débloqués ; « archivés » : les crédits validés déjà débloqués s'y ajoutent ; période sur la date de la demande"]} />
       </section>
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </>
+  );
+}
+
+/** S93 : 4-6 Etat de crédit, « Situation des crédits » (texte p. 115, capture p. 116) : sur une période ou à une date fixe ; Exécuter, Export.
+ *  Colonnes après « Groupe » (coupées sur la capture) : celles de S92 et la situation du remboursement (registre S93-2) */
+export function EtatCredit() {
+  const { donnees: ctx } = useDonnees(() => Promise.all([api.visasCredit.contexte(), api.referentiel.contexte(), api.produitsCredit.lire()]));
+  const [f, setF] = useState({ mode: "periode", du: debutAnnee(), au: aujourdhui(), date: aujourdhui(), produit: "", niveau: "", agent: "", operateur: "", montant: "", archives: false });
+  const [l, setL] = useState<Awaited<ReturnType<typeof api.etatCredits.situation>>>([]);
+  const [fiche, setFiche] = useState<{ id: number; devise: Devise; quoi: "plan" | "contrat" } | null>(null);
+  const [boite, setBoite] = useState<Boite | null>(null);
+  if (!ctx) return <Chargement />;
+  const COL = ["N° crédit", "Date Approbation", "N°Membre", "Intitulé", "Contact", "Groupe", "Montant prêt", "Produit", "Agent crédit", "Statut", "Capital restant", "Jours retard", "Degré"];
+  async function executer() {
+    try {
+      const m = f.montant.trim() ? lireMontant(f.montant) : null;
+      setL(await api.etatCredits.situation({ mode: f.mode, du: f.du, au: f.au, date: f.date, produitId: f.produit ? Number(f.produit) : null, niveau: f.niveau || null,
+        agentId: f.agent ? Number(f.agent) : null, operateur: f.operateur || null, montant: m, archives: f.archives }));
+    } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+  }
+  const dv = (x: (typeof l)[number]) => x.devise as Devise;
+  return (
+    <>
+      <h1>Situation des crédits</h1>
+      <section className="bloc pile" aria-label="Situation des crédits">
+        <div className="ligne-champ">
+          <fieldset className="cadre-champs"><legend>Rechercher</legend>
+            <label className="case"><input type="radio" name="mode" checked={f.mode === "periode"} onChange={() => setF({ ...f, mode: "periode" })} /><span>Sur une Période</span></label>
+            <label className="case"><input type="radio" name="mode" checked={f.mode === "date"} onChange={() => setF({ ...f, mode: "date" })} /><span>A une date fixe</span></label>
+          </fieldset>
+          <fieldset className="cadre-champs"><legend>{f.mode === "date" ? "Date" : "Période(Date d'approbation)"}</legend>
+            {f.mode === "date" ? <ChampDate libelle="Date" valeur={f.date} onChange={(v) => setF({ ...f, date: v })} />
+              : <><ChampDate libelle="Date début" valeur={f.du} onChange={(v) => setF({ ...f, du: v })} /><ChampDate libelle="Date fin" valeur={f.au} onChange={(v) => setF({ ...f, au: v })} /></>}
+          </fieldset>
+          <Champ libelle="Produit crédit">{(p) => <select {...p} className="saisie" value={f.produit} onChange={(e) => setF({ ...f, produit: e.target.value })}><option value="">Tous les produits</option>
+            {ctx[2].produits.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>
+          <Champ libelle="Niveau de validation">{(p) => <select {...p} className="saisie" value={f.niveau} onChange={(e) => setF({ ...f, niveau: e.target.value })}><option value="">Tous</option>
+            {NIVEAUX.map(([k, t]) => <option key={k} value={k}>{`Visa du ${t.toLowerCase()}`}</option>)}</select>}</Champ>
+          <Champ libelle="Agence">{(p) => <select {...p} className="saisie"><option>{ctx[1].agence.nom}</option></select>}</Champ>
+          <Champ libelle="Agent">{(p) => <select {...p} className="saisie" value={f.agent} onChange={(e) => setF({ ...f, agent: e.target.value })}><option value="">aucun</option>
+            {ctx[0].agents.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
+          <Champ libelle="Montant prêt">{(p) => <select {...p} className="saisie court" value={f.operateur} onChange={(e) => setF({ ...f, operateur: e.target.value })}>
+            {["", "=", ">", "<", ">=", "<="].map((o) => <option key={o} value={o}>{o}</option>)}</select>}</Champ>
+          <Champ libelle="Montant">{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={f.montant} onChange={(e) => setF({ ...f, montant: e.target.value })} />}</Champ>
+          <Champ libelle="Crédits archivés">{(p) => <select {...p} className="saisie court" value={f.archives ? "Oui" : "Non"} onChange={(e) => setF({ ...f, archives: e.target.value === "Oui" })}>
+            <option>Non</option><option>Oui</option></select>}</Champ>
+        </div>
+        <div className="actions-onglets">
+          <button className="bouton" type="button" onClick={executer}>Exécuter</button>
+          <button className="bouton secondaire" type="button" disabled={l.length === 0} onClick={() => exporterExcel("Situation des crédits", COL, l.map((x) => [x.numero, fr(x.dateApprobation),
+            x.membre, x.client, x.contact, x.groupe, montant(x.montant, dv(x)), x.produit, x.agent, x.statut, x.capitalRestant === null ? "" : montant(x.capitalRestant, dv(x)),
+            x.joursRetard ?? "", x.degre]))}>Export</button>
+        </div>
+        <Paginee lignes={l} colonnes={(x) => [null, null, null, null, null, x.client, null, x.groupe]}>{(v) => (<div className="defile-x"><table className="grille">
+          <thead><tr>{["Echéancier", "Contrat prêt", ...COL].map((t, i) => <th key={t} scope="col" className={[8, 12, 13].includes(i) ? "num" : undefined}>{t}</th>)}</tr>
+            <LigneFiltres titres={[null, null, null, null, null, "Intitulé", null, "Groupe", null, null, null, null, null, null, null]} /></thead>
+          <tbody>{v.length === 0 && <tr><td colSpan={15}>aucune donnée</td></tr>}
+            {v.map((x) => <tr key={x.id}>
+              <td><button className="bouton secondaire" type="button" aria-label={`Echéancier ${x.numero}`} onClick={() => setFiche({ id: x.id, devise: dv(x), quoi: "plan" })}>Echéancier</button></td>
+              <td><button className="bouton secondaire" type="button" aria-label={`Contrat prêt ${x.numero}`} onClick={() => setFiche({ id: x.id, devise: dv(x), quoi: "contrat" })}>Contrat</button></td>
+              <td className="code">{x.numero}</td><td className="chiffres">{fr(x.dateApprobation)}</td><td className="code">{x.membre}</td><td>{x.client}</td><td className="chiffres">{x.contact}</td>
+              <td>{x.groupe}</td><td className="num chiffres">{montant(x.montant, dv(x))}</td><td>{x.produit}</td><td>{x.agent}</td><td>{x.statut}</td>
+              <td className="num chiffres">{x.capitalRestant === null ? "" : montant(x.capitalRestant, dv(x))}</td><td className="num chiffres">{x.joursRetard ?? ""}</td><td>{x.degre}</td></tr>)}</tbody>
+        </table></div>)}</Paginee>
+        <Textes sources={["Manuel Microfina++, p. 115 : 4-6 Etat de crédit, sur une période ou à une date fixe, date début et date fin, Exécuter, Exporter ; capture p. 116",
+          "Registre S93-1 à S93-4 : période sur la date d'approbation ; situation (capital restant, jours de retard, degré selon l'Instr. BCC 003) à la date fixe ou à la date fin ; archivés : soldés, refusés, passés en perte"]} />
+      </section>
+      <FenetresCredit cid={fiche?.quoi === "plan" ? fiche.id : null} devise={fiche?.devise ?? "CDF"} ouverte={fiche?.quoi === "plan" ? "plan" : ""} fermer={() => setFiche(null)} />
+      <Fiche titre="Contrat de prêt" ouverte={fiche?.quoi === "contrat"} fermer={() => setFiche(null)}>{fiche?.quoi === "contrat" && <ContratPret id={fiche.id} titre="Contrat de prêt" fermer={() => setFiche(null)} />}</Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );

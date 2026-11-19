@@ -26,7 +26,7 @@ import SimulationCredit from "./SimulationCredit";
 import AnalyseFinanciere from "./AnalyseFinanciere";
 import { ApprobationDemande, ControleDemande, DemandeCredit } from "./DossierCredit";
 import MiseEnPlace from "./MiseEnPlace";
-import { HistoriqueVisas, ValidesNonDebloques, VisasCredit } from "./SuiviCredit";
+import { EtatCredit, HistoriqueVisas, ValidesNonDebloques, VisasCredit } from "./SuiviCredit";
 import { DeblocageBanque, DeblocageGuichet } from "./DeblocageCredit";
 import { RemboursementBanque, RemboursementGuichet } from "./RemboursementCredit";
 import type { ComponentType } from "react";
@@ -175,6 +175,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S90: VisasCredit,
   S91: HistoriqueVisas,
   S92: ValidesNonDebloques,
+  S93: EtatCredit,
   S79: BilletageCaisse,
   S80: ValidationBilletage,
   S102: PlanComptes,
