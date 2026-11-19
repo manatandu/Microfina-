@@ -488,12 +488,34 @@ def valider_billetage(u: dict, bid: int) -> dict:
         raise ErreurMetier("Ce billetage est déjà validé.")
     if b["saisi_par"] == u["id"]:
         raise ErreurMetier("Quatre yeux : le valideur n'est pas celui qui a compté.")
+    if b["moment"] == "arret":
+        ecriture_ecart(u, b)
     executer("update billetage set valide_par = %s, valide_le = now() where id = %s", (u["id"], bid))
     if b["moment"] == "arret":
         n = valeur("select count(distinct devise) from billetage where session_caisse_id = %s and moment = 'arret' and valide_par is not null", (b["session_caisse_id"],))
         if n >= len(devises_tenues()):
             executer("update session_caisse set statut = 'arretee', arretee_le = now() where id = %s", (b["session_caisse_id"],))
     return vue_billetage(une("select * from billetage where id = %s", (bid,)))
+
+
+def ecriture_ecart(u: dict, b: dict):
+    """Registre S80-5 : à la validation, l'écart entre le solde réel (billetage + Bon de Caisse) et le compte du guichet passe en écriture.
+    Excédent : crédit du compte surplus du guichet (PCCI 7790 Excédents de caisse) ; manquant : débit du compte manquant (PCCI 671 Déficits
+    de caisse non récupérés) ; l'autre côté est le compte du guichet. Mêmes règles que web/src/donnees/api.ts (caisses.validerBilletage)."""
+    devise = b["devise"].strip()
+    reel = total_lignes(b["id"]) + int(b["bon_caisse"] or 0)
+    ecart = reel - solde_comptable_caisse(b["session_caisse_id"], devise)
+    if ecart == 0:
+        return
+    s = une("select * from session_caisse where id = %s", (b["session_caisse_id"],))
+    g = une("select nom, compte_surplus, compte_manquant from guichet where id = %s", (s["guichet_id"],))
+    j = une("select date_comptable from journee_comptable where id = %s", (s["journee_id"],))
+    surplus, m = ecart > 0, abs(ecart)
+    eid = poster(u, journal="CA", journee_id=s["journee_id"], libelle=f"{'Excédent' if surplus else 'Manquant'} de caisse {g['nom']}",
+                 piece=nouvelle_piece(u, "CA", j["date_comptable"]), evenement="ecart_caisse", cle=str(uuid.uuid4()), valide_par=u["id"], lignes_ecr=[
+                     {"compte": "570", "contrat": f"guichet:{s['guichet_id']}", "sens": "D" if surplus else "C", "devise": devise, "montant": m},
+                     {"compte": (g["compte_surplus"] or "7790") if surplus else (g["compte_manquant"] or "671"), "sens": "C" if surplus else "D", "devise": devise, "montant": m}])
+    executer("update billetage set ecriture_ecart_id = %s where id = %s", (eid, b["id"]))
 
 
 def billetages_a_valider(u: dict) -> list[dict]:

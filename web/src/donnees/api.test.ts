@@ -2012,6 +2012,25 @@ describe("journée de guichet", () => {
     expect((await api.numerotation.enregistrerCompte({ prefixe: true, suffixe: true, position: 3 })).regle).toEqual({ prefixe: true, suffixe: true, position: 3 });
   });
 
+  it("écart de caisse (S80-5) : manquant au débit de 671, excédent au crédit de 7790, le compte du guichet rejoint le solde réel", async () => {
+    await connecter("jpmukendi"); await api.journees.ouvrir("2026-11-05");
+    await connecter("engalula");
+    const s = await api.caisses.ouvrir(2);
+    const th = await api.caisses.theorique(s.id, "CDF");
+    const v = Math.max(...Object.keys(th).map(Number));
+    const avant = await api.caisses.soldeComptable(s.id, "CDF");
+    const b = await api.caisses.saisirBilletage(s.id, "CDF", { ...th, [v]: (th[v] ?? 0) - 1 });
+    await connecter("jpmukendi"); await api.caisses.validerBilletage(b.id);
+    expect(await api.caisses.soldeComptable(s.id, "CDF")).toBe(avant - v * 100);
+    const e = (await api.caisses.billetages(s.id)).find((x) => x.id === b.id)!;
+    expect(e.ecritureEcartId).toBeTruthy();
+    await connecter("engalula");
+    const avantUsd = await api.caisses.soldeComptable(s.id, "USD");
+    const bu = await api.caisses.saisirBilletage(s.id, "USD", await api.caisses.theorique(s.id, "USD"), 1000);
+    await connecter("jpmukendi"); await api.caisses.validerBilletage(bu.id);
+    expect(await api.caisses.soldeComptable(s.id, "USD")).toBe(avantUsd + 1000);
+  });
+
   it("quatre yeux sur le billetage", async () => {
     await connecter("jpmukendi"); await api.journees.ouvrir("2026-11-05");
     await connecter("engalula");

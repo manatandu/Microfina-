@@ -479,6 +479,31 @@ def test_validation_compte_comptable(clients, journee):
     assert caisse.get(f"/api/caisses/{s['id']}/solde-comptable?devise=CDF").json() == avant + 5000000
 
 
+def test_ecart_de_caisse(clients, journee):
+    """S80-5 : à la validation, un manquant passe au débit de 671, un excédent au crédit de 7790, par le compte du guichet ;
+    le compte comptable rejoint le solde réel (billetage + Bon de Caisse) (PCCI 671 et 7790)"""
+    _, s = journee
+    chef, caisse = clients["chef"], clients["caisse"]
+    solde = lambda d: caisse.get(f"/api/caisses/{s['id']}/solde-comptable?devise={d}").json()
+    th = caisse.get(f"/api/caisses/{s['id']}/theorique?devise=CDF").json()
+    v = max(th, key=lambda k: float(k)); compte = {**th, v: th[v] - 1}      # un billet de moins que prévu : manquant
+    avant = solde("CDF")
+    b = caisse.post(f"/api/caisses/{s['id']}/billetages", {"devise": "CDF", "compte": compte}, **H).json()
+    assert chef.post(f"/api/billetages/{b['id']}/validation", **H).status_code == 200
+    manque = round(float(v) * 100)
+    assert solde("CDF") == avant - manque
+    assert ident("""select c.numero from ligne_ecriture l join compte c on c.id = l.compte_id join billetage b on b.ecriture_ecart_id = l.ecriture_id
+                    where b.id = %s and l.sens = 'D'""", (b["id"],)) == "671"
+    thu = caisse.get(f"/api/caisses/{s['id']}/theorique?devise=USD").json()
+    avant = solde("USD")
+    b = caisse.post(f"/api/caisses/{s['id']}/billetages", {"devise": "USD", "compte": thu, "bonCaisse": 1000}, **H).json()   # Bon de Caisse de 10 USD : excédent
+    assert chef.post(f"/api/billetages/{b['id']}/validation", **H).status_code == 200
+    assert solde("USD") == avant + 1000
+    assert ident("""select c.numero from ligne_ecriture l join compte c on c.id = l.compte_id join billetage b on b.ecriture_ecart_id = l.ecriture_id
+                    where b.id = %s and l.sens = 'C'""", (b["id"],)) == "7790"
+    assert balance_equilibree(caisse)
+
+
 def test_part_sociale_frais_adhesion(clients):
     """S16 : la part sociale est la ligne « Part sociale standard » des frais d'adhésion (capture p. 89) ; compte 103 du membre (PCCI) ;
     une seule valeur, celle des statuts (loi 002/2002, art. 20) ; registre S16-11"""

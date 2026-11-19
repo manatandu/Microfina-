@@ -301,9 +301,22 @@ const caisses = {
     if (!b) throw new ErreurMetier("Billetage introuvable.");
     if (b.validePar) throw new ErreurMetier("Ce billetage est déjà validé.");
     if (b.saisiPar === u.id) throw new ErreurMetier("Quatre yeux : le valideur n'est pas celui qui a compté.");
+    // Registre S80-5 : l'écart entre le solde réel (billetage + Bon de Caisse) et le compte du guichet passe en écriture ; excédent au compte surplus
+    // (PCCI 7790 Excédents de caisse), manquant au compte manquant (PCCI 671 Déficits de caisse non récupérés), par le compte du guichet
+    const sc = E.sessions.find((x) => x.id === b.sessionId)!;
+    const ecart = totalComptage(b.compte) + (b.bonCaisse ?? 0) - caisses.soldeComptable(sc.id, b.devise);
+    if (b.moment === "arret" && ecart !== 0) {
+      const g = E.guichets.find((x) => x.id === sc.guichetId);
+      const m = Math.abs(ecart), surplus = ecart > 0;
+      const e = poster({ journal: "CA", journeeId: sc.journeeId, libelle: `${surplus ? "Excédent" : "Manquant"} de caisse ${g?.nom ?? ""}`.trim(), piece: piece(), saisiPar: u.id, validePar: u.id, lignes: [
+        { compte: "570", contrat: `guichet:${sc.guichetId}`, sens: surplus ? "D" : "C", devise: b.devise, montant: m, montantCdf: cdf(m, b.devise) },
+        { compte: surplus ? g?.compteSurplus || "7790" : g?.compteManquant || "671", sens: surplus ? "C" : "D", devise: b.devise, montant: m, montantCdf: cdf(m, b.devise) },
+      ] });
+      b.ecritureEcartId = e.id;
+    }
     b.validePar = u.id;
     if (b.moment === "arret") {
-      const s = E.sessions.find((x) => x.id === b.sessionId)!;
+      const s = sc;
       const arrets = E.billetages.filter((x) => x.sessionId === s.id && x.moment === "arret" && x.validePar);
       if (devisesTenues().every((d) => arrets.some((x) => x.devise === d))) {
         s.statut = "arretee";

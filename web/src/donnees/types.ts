@@ -36,6 +36,7 @@ export interface Billetage {
   bonCaisse?: number;          // « Bon de Caisse » (S79, p. 91)
   saisiPar: number;
   validePar?: number;
+  ecritureEcartId?: number;    // registre S80-5 : écriture de l'excédent ou du manquant, à la validation
 }
 
 /** S11 (manuel p. 20 et 21) : Nouvel Exercice et Liste Détails Journal */

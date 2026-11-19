@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**461 décisions.** Solidité : 192 fortes (le manuel ou un texte répond), 230 moyennes (déduites d'un écran voisin ou d'une donnée), 39 faibles (notre choix, faute de mieux). Dans le code : 442 déjà en place, 17 à appliquer.
+**461 décisions.** Solidité : 192 fortes (le manuel ou un texte répond), 230 moyennes (déduites d'un écran voisin ou d'une donnée), 39 faibles (notre choix, faute de mieux). Dans le code : 443 déjà en place, 16 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -363,7 +363,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S80-2 | Champ Compte Comptable | Troisième case : le solde du compte comptable du guichet (S08) à la journée | Manuel : Capture p. 92 (trois cases : Solde Informatique, Solde Reel, Compte Comptable) | moyenne | en place |
 | S80-3 | Solde Reel | Total Billetage + Bon de Caisse | Manuel : Capture p. 92 | moyenne | en place |
 | S80-4 | Imprimer, Terminer | Imprimer sort l'arrêté (T11). Terminer ferme la fenêtre | Écran voisin : S79-1 | faible | en place |
-| S80-5 | Écriture de l'écart | À la validation : un excédent va au crédit du compte surplus du guichet (7790), un manquant au débit de son compte manquant (671), par le compte du guichet. Le solde informatique rejoint alors le solde réel | Texte réglementaire : PCCI : 671 Déficits de caisse non récupérés, 7790 Excédents de caisse ; comptes du guichet (S08, p. 95) | forte | à appliquer |
+| S80-5 | Écriture de l'écart | À la validation : un excédent va au crédit du compte surplus du guichet (7790), un manquant au débit de son compte manquant (671), par le compte du guichet. Le solde informatique rejoint alors le solde réel | Texte réglementaire : PCCI, comptes 671 (Déficits de caisse non récupérés) et 7790 (Excédents de caisse), lus ; comptes du guichet (S08, p. 95) | forte | en place |
 | S80-6 | Liste Journées | Les journées ouvertes du guichet, comme à S79 | Manuel : Capture p. 92 | forte | en place |
 
 ## S102 Plan des comptes
