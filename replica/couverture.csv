@@ -55,11 +55,11 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 54,Déblocage de crédit par banque,banque,must,no,S54,A,guichet,7 Crédit,"S54 : contrat de prêt, échéancier",document ; A:S75,,S54,
 55,Remboursement de crédit par banque,banque,must,no,S55,B,guichet,7 Crédit,"S55 : onglets Répartition et Détail crédit, page après Suivant",A:S76 (p. 87 et 88),,S55,
 56,Adhésion par banque,banque,should,yes,S56,A,guichet,4 Banque,,A:S73,,,
-57,Visa puis validation des opérations de banque,banque,must,partial,S57,B,visa,4 Banque,S57 : deux listes sans capture ; colonnes complètes,"A:S113, S114",,,S57-6 Effet de la validation
+57,Visa puis validation des opérations de banque,banque,must,yes,S57,B,visa,4 Banque,S57 : deux listes sans capture ; colonnes complètes,"A:S113, S114",,,
 58,Banques et comptes bancaires,banque,must,yes,S58,A,liste,4 Banque,,,,,
-59,Chèques clients : dépôt encaissement historique,banque,should,partial,S59,B,guichet,4 Banque,S59 : Historique chèque (texte seul),A:S62 (rapport par banque),,,S59-4 Effet de l'encaissement
+59,Chèques clients : dépôt encaissement historique,banque,should,yes,S59,B,guichet,4 Banque,S59 : Historique chèque (texte seul),A:S62 (rapport par banque),,,
 60,Chéquier et chèque pour crédit,banque,could,partial,S60,B,liste,4 Banque,S60 : « Chèque pour crédit » : en panne dans le manuel,A:S54 ; P,,,S60-5 Chèque pour crédit
-61,Emprunts bancaires,banque,should,partial,S61,B,guichet,4 Banque,"S61 : règles (échéances, intérêts, écritures)",R:PCCI (emprunts) ; P,,,S61-4 Écritures et N° de pièce
+61,Emprunts bancaires,banque,should,yes,S61,B,guichet,4 Banque,"S61 : règles (échéances, intérêts, écritures)",R:PCCI (emprunts) ; P,,,
 62,Rapports banque,banque,should,yes,S62,B,rapport,4 Banque,S62 : forme du résultat,A:S13,,,
 63,Ouverture d'un compte d'épargne,épargne,must,yes,S63,A,liste,5 Épargne,,,,,
 64,Relevé de compte et situation du client,épargne,must,yes,S64,A,rapport,5 Épargne,,,,,
@@ -111,7 +111,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 110,Factures fournisseurs bons de commande règlements,comptabilité,should,no,S141 S107,D,"guichet, onglets",6 Caisse,S141 : tout l'écran,"A:S107 règlement (p. 127 et 153), S78",,S141 S107,
 111,Saisie d'écritures,comptabilité,must,no,S109,A,guichet,8 Comptabilité,,R:PCCI,,S109,
 112,Rapprochement bancaire et historique,comptabilité,must,no,S110 S112,A,"composition, rapport",8 Comptabilité,S110 : état du rapprochement,document,,S110 S112,
-113,Comptabilisation de la journée,comptabilité,must,partial,S111,A,traitement,8 Comptabilité,,R:PCCI ; ARCHITECTURE P8,,,S111-1 Forme de l'écran ; S111-3 Case « Recherche avancée »
+113,Comptabilisation de la journée,comptabilité,must,partial,S111,A,traitement,8 Comptabilité,,R:PCCI ; ARCHITECTURE P8,,,S111-1 Forme de l'écran ; S111-3 Case « Recherche avancée » ; S111-4 Opérations de banque à comptabiliser
 114,Visa et validation comptables dont retrait au-delà du plafond,comptabilité,must,no,S113 S114,A,visa,8 Comptabilité,,,,S114,
 115,Journaux comptables,comptabilité,must,no,S115,A,rapport,8 Comptabilité,,,,S115,
 116,Virement de compte à compte et opérations diverses,comptabilité,must,no,S116,A,guichet,8 Comptabilité,,,,S116,
