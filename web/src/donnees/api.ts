@@ -20,7 +20,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v86";
+const CLE = "likelemba-demo-v87";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -28,7 +28,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 63) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 64) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -3007,6 +3007,127 @@ const visasCredit = {
   },
 };
 
+// ---------- S75 et S54 : déblocage du crédit, au guichet (manuel p. 86 et 87) et par banque (p. 62). Mêmes règles que serveur/noyau/deblocage.py.
+// Retenues sur le prêt (CR-6), épargne obligatoire et fonds de solidarité bloqués en garantie, échéancier recalé avec report au jour ouvré (S75-1),
+// octroi à déclarer à la Centrale des risques (CR-10), contrat de prêt (CR-12). Registre S75-1 à S75-8, S54-2 à S54-5. ----------
+const termeCredit = (duree: number) => { const t = fixeCredit("termes").findIndex((x) => Number(x.debut) <= duree && duree <= Number(x.fin)); return t < 0 ? 3 : t + 1; };
+function comptesCredit(c: CreditPret, degre = 1) {
+  const t = termeCredit(c.duree), mid = E.produitsCredit.find((p) => p.id === c.produitId)?.modeleId as number | undefined;
+  const m = E.modelesCredit.find((x) => x.id === mid)?.comptes.find((x) => x.degre === degre && x.terme === t);
+  const d = defautsModele().find((x) => x.degre === degre && x.terme === t)!;
+  return { capital: m?.compteCapital || d.compteCapital, interet: m?.compteInteret || d.compteInteret };
+}
+function jourOuvre(d: string) {
+  const jt = E.agences.find((a) => a.id === E.agence.id)?.jours ?? [];
+  let x = d;
+  for (let i = 0; i < 31; i++) {
+    const rang = new Date(`${x}T00:00:00Z`).getUTCDay();
+    if (!E.feries.some((f) => f.date === x) && !(jt.some(Boolean) && !jt[rang])) return x;
+    x = new Date(Date.parse(`${x}T00:00:00Z`) + 86400000).toISOString().slice(0, 10);
+  }
+  return x;
+}
+function creditVise(id: number) {
+  const c = E.credits.find((x) => x.id === id);
+  if (!c) throw new ErreurMetier("À remplir : N° crédit.");
+  if (c.statut !== "vise") throw new ErreurMetier("Ce crédit n'est pas prêt au déblocage : il faut les trois visas (Crédit > Visas).");
+  return c;
+}
+const fraisDuCredit = (c: CreditPret) => ((E.produitsCredit.find((p) => p.id === c.produitId)?.frais ?? []) as FraisProduit[])
+  .map((f) => ({ libelle: f.typeFrais, compte: f.compte, montant: chargeCredit(f.nature, f.valeur, c.montant) }));
+const retenuesCredit = (c: CreditPret) => { const frais = fraisDuCredit(c);
+  const total = frais.reduce((s, x) => s + x.montant, 0) + c.assurance + c.epargneObligatoire + c.fondsSolidarite;
+  return { frais, assurance: c.assurance, epargneObligatoire: c.epargneObligatoire, fondsSolidarite: c.fondsSolidarite, total, net: c.montant - total }; };
+const echeancierRecale = (c: CreditPret, d: string) => { const nd = Math.round(c.differe * Number(periodicitePlan(c.periodicite)!.denominateur) / 12);
+  return c.echeancier.map((e) => ({ ...e, date: jourOuvre(dateRangPlan(d, c.periodicite, nd + e.rang)) })); };
+const jourDeblocage = () => { const j = journees.courante(); if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée)."); return j; };
+function ecritureDeblocage(c: CreditPret, contrepartie: { compte: string; contrat?: string }, journal: "CA" | "OD", saisiPar: number) {
+  const r = retenuesCredit(c), dv = c.devise, j = jourDeblocage();
+  if (r.net <= 0) throw new ErreurMetier("Les retenues dépassent le montant du prêt.");
+  const l: Ligne[] = [{ compte: comptesCredit(c).capital, contrat: `credit:${c.id}`, sens: "D", devise: dv, montant: c.montant, montantCdf: cdf(c.montant, dv) },
+    { ...contrepartie, sens: "C", devise: dv, montant: r.net, montantCdf: cdf(r.net, dv) }];
+  for (const f of r.frais) if (f.montant) l.push({ compte: f.compte, sens: "C", devise: dv, montant: f.montant, montantCdf: cdf(f.montant, dv) });
+  if (c.assurance) {
+    const ca = String(stockCredit("assureurs").find((a) => a.id === c.assureurId)?.compte ?? "");
+    if (!ca) throw new ErreurMetier("L'assureur n'a pas de compte (Paramétrage > Crédit > Assureur crédit).");
+    l.push({ compte: ca, sens: "C", devise: dv, montant: c.assurance, montantCdf: cdf(c.assurance, dv) });
+  }
+  for (const [cid, m] of [[c.compteEpargneId, c.epargneObligatoire], [c.compteSolidariteId, c.fondsSolidarite]] as [number | null, number][]) if (m && cid) {
+    const cp = E.comptes.find((x) => x.id === cid)!;
+    l.push({ compte: cp.pcci, contrat: `depot:${cid}`, sens: "C", devise: dv, montant: m, montantCdf: cdf(m, dv) });
+  }
+  return poster({ journal, journeeId: j.id, libelle: `Déblocage du crédit ${c.numero}`, piece: piece(journal), saisiPar, validePar: saisiPar, lignes: l });
+}
+function apresDeblocage(c: CreditPret, eid: number, mode: "caisse" | "banque", u: number) {
+  const d = jourDeblocage().date;
+  for (const [cid, m, quoi] of [[c.compteEpargneId, c.epargneObligatoire, "Épargne obligatoire"], [c.compteSolidariteId, c.fondsSolidarite, "Fonds de solidarité"]] as [number | null, number, string][])
+    if (m && cid) E.blocages.push({ id: prochain(E.blocages), compteId: cid, montant: m, motif: `${quoi} du crédit ${c.numero}`, debut: d, posePar: u, fin: "", levePar: null, motifLevee: "", garantieDe: c.id });
+  c.echeancier = echeancierRecale(c, d);
+  Object.assign(c, { statut: "debloque", debloqueLe: d, dateEffet: d, dateDebut: c.echeancier[0]?.date ?? d, ecritureDeblocageId: eid, modeDeblocage: mode });
+  E.declarationsCentrale.push({ id: prochain(E.declarationsCentrale), creditId: c.id, evenement: "octroi", survenuLe: d, declareLe: "", reference: "", declarePar: null });
+}
+const deblocage = {
+  aDebloquer() {
+    lectureAdmin(["S75", "S54"]);
+    return E.credits.filter((c) => c.statut === "vise").map((c) => ({ id: c.id, numero: c.numero, client: titulaire(E.tiers.find((t) => t.id === c.tiersId)!), montant: c.montant, devise: c.devise }));
+  },
+  detail(id: number) {
+    lectureAdmin(["S75", "S54"]);
+    const c = creditVise(id);
+    const compte = c.compteEpargneId ? E.comptes.find((x) => x.id === c.compteEpargneId)?.numero : E.comptes.filter((x) => x.tiersId === c.tiersId && !x.closLe).map((x) => x.numero).sort()[0];
+    return { ...vueCredit(c), compteClient: compte ?? "", fraisEncaisses: !!c.fraisEncaissesLe, retenues: retenuesCredit(c), echeancierDeblocage: echeancierRecale(c, jourDeblocage().date) };
+  },
+  /** « Encaisser frais » (p. 86) : frais et retenues arrêtés, retenus sur le prêt au déblocage (CR-6) */
+  encaisserFrais(id: number) {
+    exiger();
+    const c = creditVise(id);
+    c.fraisEncaissesLe = jourDeblocage().date; enregistrer(); return deblocage.detail(id);
+  },
+  /** S75 : Débloquer au guichet, en espèces, billetage des coupures remises */
+  debloquerCaisse(id: number, p: { cle: string; coupures: Comptage }) {
+    const prec = dejaFaite(p.cle); if (prec) return prec;
+    const c = creditVise(id);
+    if (!c.fraisEncaissesLe) throw new ErreurMetier("Encaisser frais d'abord (texte p. 86 : « Encaisser frais » puis « Débloquer »).");
+    const { u, s } = sessionOuverte(c.devise);
+    const net = retenuesCredit(c).net, cp = nettoyer(p.coupures ?? {});
+    controlerCoupures(cp, net, c.devise);
+    const th = caisses.theorique(s.id, c.devise);
+    if (Object.entries(cp).some(([v, n]) => (n ?? 0) > (th[Number(v)] ?? 0))) throw new ErreurMetier("Pas assez de coupures en caisse.");
+    const e = ecritureDeblocage(c, { compte: "570", contrat: guichetDe(s) }, "CA", u.id);
+    const o: Operation = { id: prochain(E.operations), cle: p.cle, type: "deblocage_credit", statut: "validee", sessionId: s.id, tiersId: c.tiersId, montant: net, devise: c.devise,
+      coupures: cp, remisPar: titulaire(E.tiers.find((t) => t.id === c.tiersId)!), motif: `Déblocage ${c.numero}`, saisiPar: u.id, ecritureId: e.id, heure: heure() };
+    E.operations.push(o); apresDeblocage(c, e.id, "caisse", u.id); enregistrer(); return o;
+  },
+  /** S54 : déblocage par banque, chèque d'un chéquier du compte bancaire (S60-5) */
+  debloquerBanque(id: number, p: { compteBancaireId: number; cheque: string }) {
+    const u = exiger();
+    const c = creditVise(id);
+    if (!c.fraisEncaissesLe) throw new ErreurMetier("Prélever les frais d'abord (capture p. 62 : « Prélever les frais »).");
+    const cb = E.comptesBancaires.find((x) => x.id === p.compteBancaireId);
+    if (!cb) throw new ErreurMetier("À remplir : Banque et Compte.");
+    if (cb.devise !== c.devise) throw new ErreurMetier("Le compte bancaire n'est pas dans la devise du crédit.");
+    const cheque = typeof p.cheque === "string" ? p.cheque.trim() : "";
+    if (!cheque) throw new ErreurMetier("À remplir : N° chèque.");
+    const q = E.chequesInstitution.find((x) => x.compteBancaireId === cb.id && x.numero === cheque);
+    if (!q) throw new ErreurMetier("N° de chèque : ce chèque n'appartient à aucun chéquier de ce compte bancaire (Gestion Chèque Institution).");
+    if (q.statut !== "disponible") throw new ErreurMetier("N° de chèque : ce chèque a déjà servi.");
+    const e = ecritureDeblocage(c, { compte: cb.compte }, "OD", u.id);
+    q.statut = "utilise"; c.chequeDeblocage = cheque;
+    apresDeblocage(c, e.id, "banque", u.id); enregistrer(); return vueCredit(c);
+  },
+  /** Contrat de prêt et reconnaissance de dette (registre CR-12 ; Instr. BCC 38, art. 3, 5 et 14) */
+  contrat(id: number) {
+    exiger();
+    const c = E.credits.find((x) => x.id === id);
+    if (!c) throw new ErreurMetier("Crédit introuvable.");
+    const p = E.produitsCredit.find((x) => x.id === c.produitId)!;
+    const v = vueCredit(c);
+    return { entete: enteteDocument(), client: ficheClient(c.tiersId), coopec: estCoopec(), credit: c.statut === "vise" ? { ...v, echeancier: echeancierRecale(c, jourDeblocage().date) } : v,
+      retenues: retenuesCredit(c), penaliteRetard: Number(String(p.penaliteRetard ?? 0).replace(",", ".")), penaliteAnticipation: Number(String(p.penaliteAnticipation ?? 0).replace(",", ".")),
+      tauxRegle: !!p.tauxRegle, garanties: [] as { type: string; montant: number; caution: string }[], agence: E.agence.nom, date: journees.courante()?.date ?? "" };
+  },
+};
+
 // ---------- S83 : Caisse > Rapport > Journal des opérations de caisse (manuel p. 95 ; doublon p. 109). Règles identiques côté serveur (noyau/journal_caisse.py).
 // Lignes du compte du guichet : débit à l'entrée d'espèces, crédit à la sortie (PCCI, compte 57). Registre S83-1 à S83-5. ----------
 const journalCaisse = {
@@ -3179,7 +3300,7 @@ const comptes = {
   },
 };
 /** Opérations qui font sortir des billets de la caisse */
-const SORTIES: Operation["type"][] = ["retrait", "retrait_parts", "ed_decaissement", "transfert_sortie", "versement_banque"];
+const SORTIES: Operation["type"][] = ["retrait", "retrait_parts", "ed_decaissement", "transfert_sortie", "versement_banque", "deblocage_credit"];
 /** PCCI, compte 103 : 1030 personnes physiques, 1031 groupements solidaires, 1032 personnes morales.
  *  Groupe de type « Groupement » en 1031 ; association et ONG en 1032 (à confirmer). Identique côté serveur (services.compte_parts). */
 export function compteParts(t: Tiers) {
@@ -5349,6 +5470,7 @@ const apiLocal = {
   dossiers: asynchrone(dossiers, "dossiers"),
   miseEnPlace: asynchrone(miseEnPlace, "miseEnPlace"),
   visasCredit: asynchrone(visasCredit, "visasCredit"),
+  deblocage: asynchrone(deblocage, "deblocage"),
   societe: asynchrone(societe, "societe"),
   agents: asynchrone(agents, "agents"),
   jours: asynchrone(jours, "jours"),

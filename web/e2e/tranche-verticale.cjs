@@ -696,6 +696,20 @@ const OUT = process.argv[2];
   await p.getByRole('article', { name: 'Accusé de réception de la plainte' }).waitFor(); await etape('10h-accuse-plainte');
   await p.getByRole('dialog', { name: 'Accusé de réception' }).getByRole('button', { name: 'Fermer' }).click();
   await login('Esther Ngalula'); await depotRenforce(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click(); await etape('10e-depot-autorise');
+  // Déblocage du crédit visé (S75, p. 86 et 87) : Encaisser frais, Billetage, Débloquer ; contrat de prêt (CR-12). Produit sans frais ni épargne obligatoire : 1 000 000 CDF remis
+  await aller('/caisse/s75'); await p.getByRole('button', { name: 'Rechercher un crédit' }).click();
+  await p.getByRole('dialog', { name: 'Crédits à débloquer' }).getByRole('row').filter({ hasText: '0412/L001/00001' }).dblclick();
+  await p.getByText('Frais à encaisser.').waitFor(); await etape('11d-deblocage-credit');
+  await p.getByRole('button', { name: 'Encaisser frais' }).click(); const ff = p.getByRole('dialog', { name: 'Frais' });
+  await ff.getByText('Montant remis').waitFor(); await etape('11d2-deblocage-frais'); await ff.getByRole('button', { name: 'Encaisser frais' }).click(); await oui();
+  await p.getByText('Frais encaissés.').waitFor();
+  await p.getByRole('button', { name: 'Billetage' }).click(); const bd = p.getByRole('dialog', { name: 'Billetage' });
+  await bd.getByLabel('Nombre de coupures de 20 000 CDF').fill('50'); await bd.getByRole('button', { name: 'Fermer' }).click();
+  await p.getByRole('button', { name: 'Débloquer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByText('Crédit débloqué avec succès !').waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
+  await p.getByRole('button', { name: 'Contrat de prêt' }).click(); await p.getByRole('article', { name: 'Contrat de prêt' }).getByText('0412/L001/00001').first().waitFor(); await etape('11d3-contrat-pret');
+  await p.getByRole('dialog', { name: 'Contrat de prêt' }).getByRole('button', { name: 'Fermer' }).first().click();
+  await aller('/caisse/s74?op=depot');
   await p.getByRole('tab', { name: 'Retrait en espèce' }).click(); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-01' });
   // Bouton Detail (registre S74-1) : relevé du compte en lecture seule ; masqué si le guichet n'a pas « Voir solde client » (S10-1)
   await p.getByRole('button', { name: 'Detail' }).click(); const dt = p.getByRole('dialog', { name: /^(Détail du compte|Erreur)/ }); await dt.waitFor(); await etape('10t-detail-compte');

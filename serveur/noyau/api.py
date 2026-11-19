@@ -378,6 +378,42 @@ def guichet_ed_divers(request, corps: dict = Body(...)):
     return ed_guichet.enregistrer(u(request), corps)
 
 
+@api.get("/credit/deblocage")
+def deblocage_liste(request):
+    from . import deblocage as db
+    return db.a_debloquer(u(request))
+
+
+@api.get("/credit/deblocage/{cid}")
+def deblocage_detail(request, cid: int):
+    from . import deblocage as db
+    return db.detail(u(request), cid)
+
+
+@api.post("/credit/deblocage/{cid}/frais")
+def deblocage_frais(request, cid: int):
+    from . import deblocage as db
+    return db.encaisser_frais(u(request), cid)
+
+
+@api.post("/guichet/deblocage/{cid}")
+def deblocage_caisse(request, cid: int, corps: dict = Body(...)):
+    from . import deblocage as db
+    return db.debloquer_caisse(u(request), cid, corps)
+
+
+@api.post("/banque/deblocage/{cid}")
+def deblocage_banque(request, cid: int, corps: dict = Body(...)):
+    from . import deblocage as db
+    return db.debloquer_banque(u(request), cid, corps)
+
+
+@api.get("/credit/credits/{cid}/contrat")
+def credit_contrat(request, cid: int):
+    from . import deblocage as db
+    return db.contrat(u(request), cid)
+
+
 @api.get("/credit/visas/contexte")
 def visas_contexte(request):
     from .services import est_coopec

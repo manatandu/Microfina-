@@ -2055,6 +2055,56 @@ describe("journée de guichet", () => {
     expect([h[0]!.numero, h[0]!.referencePv, h[0]!.membres.length]).toEqual(["0412/L001/00001", "PV-12", 3]);
   });
 
+  /** Crédit mis en place puis visé aux trois niveaux (S90) : prêt au déblocage */
+  async function creditVise() {
+    const cid = await creditMisEnPlace();
+    await connecter("jpmukendi");
+    await api.visasCredit.viser(cid, "responsable_credit", { avis: "accepte" });
+    await api.visasCredit.viser(cid, "comite", { membres: ["Mbala", "Ilunga", "Kabeya"].map((nom) => ({ nom, avis: "accepte" })), referencePv: "PV-1" });
+    await connecter("plumbala");
+    await api.visasCredit.viser(cid, "service_financier", { avis: "accepte" });
+    return cid;
+  }
+
+  it("déblocage au guichet (S75, p. 86 et 87) : Encaisser frais puis Débloquer, retenues sur le prêt (CR-6), épargne bloquée (Instr. BCC 38, art. 9), octroi déclaré (CR-10)", async () => {
+    const cid = await creditVise();
+    await connecter("engalula");
+    expect((await api.deblocage.aDebloquer()).map((x) => x.id)).toEqual([cid]);
+    const d = await api.deblocage.detail(cid);
+    expect([d.fraisEncaisses, d.retenues.net, d.retenues.epargneObligatoire]).toEqual([false, 89000000, 10000000]);   // comme le serveur
+    expect(d.echeancierDeblocage[0]!.date > "2026-11-05").toBe(true);
+    await expect(api.deblocage.debloquerCaisse(cid, { cle: cle(), coupures: {} })).rejects.toThrow("Encaisser frais d'abord");
+    expect((await api.deblocage.encaisserFrais(cid)).fraisEncaisses).toBe(true);
+    const s = (await api.caisses.duCaissier())!, stock = await api.caisses.theorique(s.id, "CDF");
+    const cp: Comptage = {}; let reste = 890000;
+    for (const v of Object.keys(stock).map(Number).sort((a, b) => b - a)) { const n = Math.min(stock[v] ?? 0, Math.floor(reste / v)); if (n) { cp[v] = n; reste -= n * v; } }
+    expect(reste).toBe(0);
+    const k = cle(), o = await api.deblocage.debloquerCaisse(cid, { cle: k, coupures: cp });
+    expect([o.type, o.montant, o.statut]).toEqual(["deblocage_credit", 89000000, "validee"]);
+    expect((await api.deblocage.debloquerCaisse(cid, { cle: k, coupures: cp })).id).toBe(o.id);
+    await expect(api.deblocage.debloquerCaisse(cid, { cle: cle(), coupures: cp })).rejects.toThrow("pas prêt au déblocage");
+    const c = await api.deblocage.contrat(cid);
+    expect([c.credit.numero, c.credit.statut, c.retenues.net]).toEqual(["0412/L001/00001", "debloque", 89000000]);
+  });
+
+  it("déblocage par banque (S54, p. 62) : Prélever les frais, chèque du chéquier du compte bancaire (S54-2 à S54-5, S60-5)", async () => {
+    const cid = await creditVise();
+    await connecter("jpmukendi");
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    const b = { banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "" };
+    await api.banques.enregistrerCompte({ ...b, compte: "56010001", numeroBancaire: "R-USD-1", devise: "USD" });
+    await api.banques.enregistrerCompte({ ...b, compte: "56010003", numeroBancaire: "R-CDF-1", devise: "CDF" });
+    await connecter("plumbala");
+    const cbs = (await api.banqueOperations.lire()).comptes, usd = cbs.find((x) => x.devise === "USD")!.id, cdf = cbs.find((x) => x.devise === "CDF")!.id;
+    await expect(api.deblocage.debloquerBanque(cid, { compteBancaireId: cdf, cheque: "0000001" })).rejects.toThrow("Prélever les frais");
+    await api.deblocage.encaisserFrais(cid);
+    await expect(api.deblocage.debloquerBanque(cid, { compteBancaireId: usd, cheque: "0000001" })).rejects.toThrow("devise du crédit");
+    await expect(api.deblocage.debloquerBanque(cid, { compteBancaireId: cdf, cheque: " " })).rejects.toThrow("N° chèque");
+    await expect(api.deblocage.debloquerBanque(cid, { compteBancaireId: cdf, cheque: "0000001" })).rejects.toThrow("aucun chéquier");
+    await api.chequiers.generer({ cle: cle(), compteBancaireId: cdf, nbFeuillets: 25, debut: "0000001", barre: true });
+    expect((await api.deblocage.debloquerBanque(cid, { compteBancaireId: cdf, cheque: "0000001" })).statut).toBe("debloque");
+  });
+
   it("produit crédit (S23, p. 37 et 38) : méthode dégressive (Instr. BCC 38 art. 11), bornes, garanties, assurance, frais (Instr. BCC 40 art. 8)", async () => {
     await connecter("jpmukendi");
     const P = { typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: "2,5", tauxDiffere: 2,

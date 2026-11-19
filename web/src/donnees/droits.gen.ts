@@ -141,6 +141,16 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "credit.supprimer": [
 "S21"
 ],
+"deblocage.debloquerBanque": [
+"S54"
+],
+"deblocage.debloquerCaisse": [
+"S75"
+],
+"deblocage.encaisserFrais": [
+"S54",
+"S75"
+],
 "depotsTerme.annuler": [
 "S65"
 ],

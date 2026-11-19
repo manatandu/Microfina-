@@ -17,7 +17,7 @@ from .bd import ErreurMetier, executer, lignes, une, valeur
 
 # Seuils, valeurs des maquettes
 SEUIL_ESPECES_USD = 10000    # examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
-SORTIES = ("retrait", "retrait_parts", "ed_decaissement", "transfert_sortie", "versement_banque")      # opérations qui font sortir des billets de la caisse
+SORTIES = ("retrait", "retrait_parts", "ed_decaissement", "transfert_sortie", "versement_banque", "deblocage_credit")      # opérations qui font sortir des billets de la caisse
 # Type entreprise (p. 50) : la liste de Microfina++ n'est pas montrée. À confirmer ; en attendant, les agents économiques du PCCI § 10.2 (hors ménages)
 TYPES_ENTREPRISE = ["Banques commerciales et autres intermédiaires financiers", "Organes faîtiers et autres institutions de microfinance",
                     "Autres COOPEC et IMF", "Institutions financières non bancaires", "Administration centrale", "Administrations provinciales ou locales",

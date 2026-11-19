@@ -172,7 +172,7 @@ export interface Ecriture {
   lignes: readonly Ligne[];
 }
 
-export type TypeOperation = "depot" | "retrait" | "adhesion" | "achat_parts" | "retrait_parts" | "ed_encaissement" | "ed_decaissement" | "transfert_sortie" | "transfert_entree" | "versement_banque";
+export type TypeOperation = "depot" | "retrait" | "adhesion" | "achat_parts" | "retrait_parts" | "ed_encaissement" | "ed_decaissement" | "transfert_sortie" | "transfert_entree" | "versement_banque" | "deblocage_credit";
 
 /** S52 : opération de banque, saisie puis visée et validée (S57), comptabilisée (S111) ; pièce donnée à la comptabilisation (registre S52-2) */
 export type TypeOperationBanque = "encaissement" | "decaissement" | "banque_caisse" | "banque_banque" | "virement_client" | "prelevement_client" | "adhesion_banque";
@@ -282,7 +282,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 63;
+  version: 64;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)
@@ -318,6 +318,8 @@ export interface Etat {
   fondsPropres: { dateArrete: string; montant: number; saisiPar: number }[];   // registre CR-2
   credits: CreditPret[];   // S89 et suivants
   visasCredit: VisaCredit[];   // S90
+  declarationsCentrale: { id: number; creditId: number; evenement: "octroi" | "modification" | "remboursement_total" | "radiation"; survenuLe: string; declareLe: string;
+    reference: string; declarePar: number | null }[];   // registre CR-10
   reversementsRetenues: ReversementRetenue[];   // écart E16
   journalSecurite: EvenementSecurite[];   // écart E17
   declarationsCip: { type: string; objetId: number; dateEvenement: string; declareLe: string; reference: string; declarePar: number }[];   // écart E06   // S46, S42, S43
@@ -449,6 +451,7 @@ export interface CreditPret {
   compteSolidariteId: number | null; epargneObligatoire: number; fondsSolidarite: number; frais: number; assurance: number; assureurId: number | null;
   objetId: number; tegR: number | null; tegA: number | null; parts: { membre: string; montant: number }[];
   statut: "mis_en_place" | "vise" | "refuse" | "debloque" | "solde" | "passe_en_perte"; misEnPlacePar: number; misEnPlaceLe: string; debloqueLe: string;
+  fraisEncaissesLe?: string; ecritureDeblocageId?: number; modeDeblocage?: "caisse" | "banque"; chequeDeblocage?: string;
   echeancier: { rang: number; date: string; capital: number; interet: number }[];
 }
 

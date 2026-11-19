@@ -1537,6 +1537,78 @@ def test_commission_unanime(clients, journee):
     assert (r["avis"], r["statut"]) == ("refuse", "refuse")
 
 
+def credit_vise(clients) -> int:
+    """Crédit de Kalala mis en place (S89) et visé aux trois niveaux (S90) : prêt au déblocage"""
+    chef, compta = clients["chef"], clients["compta"]
+    cid = credit_mis_en_place(clients)
+    chef.post(f"/api/credit/visas/{cid}/responsable_credit", {"avis": "accepte"}, **H)
+    m = [{"nom": n, "avis": "accepte"} for n in ("Mbala", "Ilunga", "Kabeya")]
+    chef.post(f"/api/credit/visas/{cid}/comite", {"membres": m, "referencePv": "PV-1"}, **H)
+    assert compta.post(f"/api/credit/visas/{cid}/service_financier", {"avis": "accepte"}, **H).json()["statut"] == "vise"
+    return cid
+
+
+def test_deblocage_caisse(clients, journee):
+    """S75 (p. 86 et 87) : Encaisser frais puis Débloquer ; frais et épargne obligatoire retenus sur le prêt (CR-6) ; épargne obligatoire bloquée
+    en garantie (Instr. BCC 38, art. 9) ; échéances recalées sur la journée ; octroi à déclarer à la Centrale des risques (CR-10) ; contrat (CR-12)"""
+    chef, caisse, agent = clients["chef"], clients["caisse"], clients["agent"]
+    _, s = journee
+    assert caisse.get("/api/credit/deblocage", **H).json() == []
+    cid = credit_vise(clients)
+    assert [x["id"] for x in caisse.get("/api/credit/deblocage", **H).json()] == [cid]
+    d = caisse.get(f"/api/credit/deblocage/{cid}", **H).json()
+    assert (d["fraisEncaisses"], d["retenues"]["net"], d["retenues"]["epargneObligatoire"]) == (False, 89000000, 10000000)
+    assert d["echeancierDeblocage"][0]["date"] > "2026-11-05"
+    def refus(c, route, corps=None):
+        r = c.post(route, corps or {}, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    assert "Encaisser frais d'abord" in refus(caisse, f"/api/guichet/deblocage/{cid}", {"cle": cle(), "coupures": {}})
+    assert "Droit manquant" in refus(agent, f"/api/credit/deblocage/{cid}/frais")
+    assert caisse.post(f"/api/credit/deblocage/{cid}/frais", **H).json()["fraisEncaisses"] is True
+    stock = caisse.get(f"/api/caisses/{s['id']}/theorique?devise=CDF", **H).json()
+    cp, reste = {}, 890000                                              # coupures en unités, montants en centimes
+    for v in sorted(stock, key=int, reverse=True):
+        n = min(stock[v], reste // int(v))
+        if n:
+            cp[v], reste = n, reste - n * int(v)
+    assert reste == 0, stock
+    k = cle()
+    o = caisse.post(f"/api/guichet/deblocage/{cid}", {"cle": k, "coupures": cp}, **H)
+    assert o.status_code == 200, o.content
+    o = o.json()
+    assert (o["type"], o["montant"], o["statut"]) == ("deblocage_credit", 89000000, "validee")
+    assert caisse.post(f"/api/guichet/deblocage/{cid}", {"cle": k, "coupures": cp}, **H).json()["id"] == o["id"]       # même clé : même opération
+    assert "pas prêt au déblocage" in refus(caisse, f"/api/guichet/deblocage/{cid}", {"cle": cle(), "coupures": cp})
+    assert ident("select statut from credit where id = %s", (cid,)) == "debloque"
+    assert ident("select count(*) from blocage where garantie_de = %s", (cid,)) == 1
+    assert ident("select evenement from declaration_centrale where credit_id = %s", (cid,)) == "octroi"
+    assert ident("""select sum(case when l.sens = 'D' then l.montant_devise else -l.montant_devise end) from ligne_ecriture l join compte c on c.id = l.compte_id
+                    where l.contrat_ref = %s""", (f"credit:{cid}",)) == 100000000
+    assert balance_equilibree(caisse)
+    c = chef.get(f"/api/credit/credits/{cid}/contrat", **H).json()
+    assert c["credit"]["numero"] == "0412/L001/00001" and c["retenues"]["net"] == 89000000 and c["penaliteAnticipation"] <= 50
+
+
+def test_deblocage_banque(clients, journee):
+    """S54 (p. 62) : Prélever les frais, puis Débloquer par un chèque du chéquier du compte bancaire (registre S54-2 à S54-5, S60-5)"""
+    chef, compta = clients["chef"], clients["compta"]
+    ids = banque_usd(chef)
+    cid = credit_vise(clients)
+    def refus(corps):
+        r = compta.post(f"/api/banque/deblocage/{cid}", corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    assert "Prélever les frais" in refus({"compteBancaireId": ids["R-CDF-1"], "cheque": "0000001"})
+    compta.post(f"/api/credit/deblocage/{cid}/frais", **H)
+    assert "Banque et Compte" in refus({"cheque": "0000001"})
+    assert "devise du crédit" in refus({"compteBancaireId": ids["R-USD-1"], "cheque": "0000001"})
+    assert "N° chèque" in refus({"compteBancaireId": ids["R-CDF-1"], "cheque": " "})
+    assert "aucun chéquier" in refus({"compteBancaireId": ids["R-CDF-1"], "cheque": "0000001"})
+    compta.post("/api/banque/chequiers", {"cle": cle(), "compteBancaireId": ids["R-CDF-1"], "nbFeuillets": 25, "debut": "0000001", "barre": True}, **H)
+    r = compta.post(f"/api/banque/deblocage/{cid}", {"compteBancaireId": ids["R-CDF-1"], "cheque": "0000001"}, **H)
+    assert r.status_code == 200, r.content
+    assert r.json()["statut"] == "debloque"
+    assert ident("select (mode_deblocage, cheque_deblocage) from credit where id = %s", (cid,)) == ("banque", "0000001")
+    assert balance_equilibree(compta)
+
+
 def test_produit_credit(clients):
     """S23 (p. 37 et 38) : Information de base de la capture ; méthode dégressive (Instr. BCC 38, art. 11) ; garanties, assurance, frais
     (Instr. BCC 38 art. 6, Instr. BCC 40 art. 8) ; pénalité d'anticipation au plus 50 % (Instr. BCC 38, art. 14) ; registre S23-1 à S23-7"""

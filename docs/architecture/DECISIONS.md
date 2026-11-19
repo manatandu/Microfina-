@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**549 décisions.** Solidité : 227 fortes (le manuel ou un texte répond), 273 moyennes (déduites d'un écran voisin ou d'une donnée), 49 faibles (notre choix, faute de mieux). Dans le code : 514 déjà en place, 31 à appliquer.
+**560 décisions.** Solidité : 234 fortes (le manuel ou un texte répond), 277 moyennes (déduites d'un écran voisin ou d'une donnée), 49 faibles (notre choix, faute de mieux). Dans le code : 529 déjà en place, 27 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -584,7 +584,14 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S75-1 | Échéance qui tombe un jour non ouvré | Décidée avec S34 (jours de travail et fériés). Reportée au premier jour ouvré suivant (jour coché et non férié) ; les intérêts restent ceux de l'échéancier, sans jour ajouté. À appliquer avec l'échéancier du déblocage (S75, S54) | Choix du porteur : Accord du porteur, 13/11/2026 ; par analogie : lettre de change, paiement exigible le premier jour ouvrable qui suit (Bernet-Rollande, Principes de technique bancaire) ; AUPSRVE, art. 1-15 (délai prolongé au premier jour ouvrable suivant). Aucun texte de la RDC lu ne le règle | moyenne | à appliquer |
+| S75-1 | Échéance qui tombe un jour non ouvré | Décidée avec S34 (jours de travail et fériés). Reportée au premier jour ouvré suivant (jour coché et non férié) ; les intérêts restent ceux de l'échéancier, sans jour ajouté. À appliquer avec l'échéancier du déblocage (S75, S54) | Choix du porteur : Accord du porteur, 13/11/2026 ; par analogie : lettre de change, paiement exigible le premier jour ouvrable qui suit (Bernet-Rollande, Principes de technique bancaire) ; AUPSRVE, art. 1-15 (délai prolongé au premier jour ouvrable suivant). Aucun texte de la RDC lu ne le règle | moyenne | en place |
+| S75-2 | Choix du crédit à débloquer | Bouton Rechercher : liste des crédits qui ont les trois visas (statut visé), N° crédit, client, montant ; double-clic pour choisir. Un crédit sans les trois visas est refusé | Écran voisin : Texte p. 86 (« sélectionner le crédit à décaisser ») ; liste des crédits validés non débloqués (S92, p. 115) ; CR-5 | forte | en place |
+| S75-3 | Encaisser frais | Ouvre le détail des frais, assurance, épargne obligatoire, fonds de solidarité et du montant remis ; « Encaisser frais » les arrête, et ils sont retenus sur le prêt au déblocage (CR-6). Débloquer est refusé tant que les frais ne sont pas encaissés | Manuel : Texte p. 86 : « Encaisser frais » puis « Débloquer » ; CR-6 | forte | en place |
+| S75-4 | Écriture du déblocage | Débit du compte de crédit du produit (modèle S26, sinon 329, 319 ou 309 selon le terme), crédit du guichet (570) pour le net, des comptes de frais du produit, du compte de l'assureur, du compte d'épargne obligatoire et du fonds de solidarité ; journal de caisse | Texte réglementaire : PCCI, comptes 30 à 32 et 57 ; modèle de crédit S26 ; CR-6 | forte | en place |
+| S75-5 | Billetage | Bouton Billetage comme au dépôt et retrait (S74) : coupures remises au client, total égal au net, pas plus de coupures qu'il n'y en a en caisse | Écran voisin : Gabarit guichet (S74, p. 86) ; COMPLEMENTS § 4 | forte | en place |
+| S75-6 | Échéancier au déblocage | L'échéancier est recalé sur la date du déblocage (journée ouverte) ; date effet et date début suivent ; une échéance d'un jour non ouvré passe au premier jour ouvré (S75-1) | Manuel : Texte p. 114 (date de déblocage prévue) ; S75-1 | moyenne | en place |
+| S75-7 | Reconnaissance de dette | Document imprimable rédigé par nous (CR-12) : l'emprunteur reconnaît devoir le capital et les intérêts, avec l'échéancier | Choix du porteur : Bouton « Reconnaissance de dette », capture p. 87 ; CR-12 | moyenne | en place |
+| S75-8 | Après le déblocage | Crédit au statut débloqué ; épargne obligatoire et fonds de solidarité bloqués en garantie du crédit (S71) ; octroi inscrit dans la liste à déclarer à la Centrale des risques (CR-10) | Texte réglementaire : Instr. BCC 38, art. 9 ; Instr. BCC 05, art. 6 et 10 ; CR-6, CR-10 | forte | en place |
 
 ## S39 Fiche du groupe
 
@@ -691,7 +698,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S60-2 | Chèque utilisé dans S52 | Le N° de chèque d'une opération de banque doit être un chèque disponible d'un chéquier de son compte bancaire ; il est marqué utilisé dès la saisie et ne peut resservir. Un encaissement ne prend pas de chèque | Écran voisin : Capture p. 60 (liste N° de chèque) ; Instr. BCC 25, § 3.2 (un numéro par chèque) | moyenne | en place |
 | S60-3 | Valeurs de la liste Nb.Feuillet | 25, 50 ou 100 feuillets. L'Instr. BCC 25 (normalisation du chèque) ne fixe pas le nombre de feuillets ; ce sont les tailles d'usage. Décidé par délégation du porteur (15/11/2026). | Règle générale du manuel : Capture p. 69 ; Instr. BCC 25 (lue, silencieuse) | moyenne | en place |
 | S60-4 | Numéros du chéquier | Début de 1 à 8 chiffres, zéros de tête gardés ; Fin = Début + Nb.Feuillet - 1, sur le même nombre de chiffres ; refus si un numéro existe déjà pour ce compte bancaire (les mêmes numéros sur un autre compte sont permis) | Texte réglementaire : Instr. BCC 25, § 3.2 : numéro du chèque sur 8 caractères (ligne CMC7, zone 4) ; capture p. 69 (Fin calculée) | forte | en place |
-| S60-5 | Chèque pour crédit | Pas construit : l'onglet ne marche pas dans le manuel (p. 70). Il viendra avec le déblocage de crédit par banque (S54), reporté après le lot Crédit | Manuel : Manuel p. 69 et 70 | forte | à appliquer |
+| S60-5 | Chèque pour crédit | Pas construit : l'onglet ne marche pas dans le manuel (p. 70). Il viendra avec le déblocage de crédit par banque (S54), reporté après le lot Crédit. Fait avec S54 : le N°chèque du déblocage prend un chèque du chéquier du compte bancaire, une seule fois | Manuel : Manuel p. 69 et 70 | forte | en place |
 
 ## S53 Virement prélèvement
 
@@ -707,6 +714,10 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S54-1 | Place dans l'ordre de construction | Construit juste après le lot Crédit : il lui faut un crédit approuvé (S88, S89), que le lot Banque ne fournit pas encore | Choix du porteur : Décision du porteur, 14/11/2026 | forte | en place |
+| S54-2 | N° chèque | Chèque d'un chéquier du compte bancaire choisi (S60), utilisé une seule fois ; refusé s'il n'appartient à aucun chéquier ou a déjà servi | Écran voisin : Capture p. 62 (N°chèque) ; S60-5 | forte | en place |
+| S54-3 | Prélever les frais | Même règle que « Encaisser frais » au guichet : les frais et retenues sont arrêtés puis retenus sur le prêt ; Débloquer est refusé avant | Écran voisin : Capture p. 62 (cadre Frais, bouton Prélever les frais) ; S75-3 ; CR-6 | forte | en place |
+| S54-4 | Écriture du déblocage par banque | Comme au guichet (S75-4), le compte bancaire choisi remplaçant le guichet ; journal des opérations diverses | Texte réglementaire : PCCI, compte 56 ; S75-4 | moyenne | en place |
+| S54-5 | Compte bancaire et financement | Le compte bancaire doit être dans la devise du crédit ; le cadre Financement montre la ligne budgétaire du crédit (S89-3), en lecture | Manuel : Capture p. 62 (Infos banque, Financement) ; S89-3 | moyenne | en place |
 
 ## S55 Remboursement de crédit par banque
 
@@ -1145,7 +1156,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| CR-6 | Frais, assurance, épargne obligatoire | Retenus sur le montant débloqué : frais et assurance à leurs comptes (produit S23, assureur S21), épargne obligatoire versée au compte d'épargne du client et bloquée jusqu'à la fin du prêt (blocage lié au crédit, S71). Le client reçoit le net | Choix du porteur : Décision du porteur, 19/11/2026 ; Instr. BCC 38, art. 6 et 9 ; S84-5 | forte | à appliquer |
+| CR-6 | Frais, assurance, épargne obligatoire | Retenus sur le montant débloqué : frais et assurance à leurs comptes (produit S23, assureur S21), épargne obligatoire versée au compte d'épargne du client et bloquée jusqu'à la fin du prêt (blocage lié au crédit, S71). Le client reçoit le net | Choix du porteur : Décision du porteur, 19/11/2026 ; Instr. BCC 38, art. 6 et 9 ; S84-5 | forte | en place |
 
 ## S76, S55 Remboursement
 
@@ -1188,7 +1199,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| CR-12 | Contrat et reconnaissance de dette | Rédigés par nous à partir du dossier, avec les mentions des textes : montant, durée, taux, TEG, échéancier, frais, garanties, pénalité de retard, pénalité d'anticipation au plus 50 % des intérêts restant dus. À relire en fin d'étape | Choix du porteur : Décision du porteur, 19/11/2026 ; Instr. BCC 38, art. 3, 5 et 14 | moyenne | à appliquer |
+| CR-12 | Contrat et reconnaissance de dette | Rédigés par nous à partir du dossier, avec les mentions des textes : montant, durée, taux, TEG, échéancier, frais, garanties, pénalité de retard, pénalité d'anticipation au plus 50 % des intérêts restant dus. À relire en fin d'étape | Choix du porteur : Décision du porteur, 19/11/2026 ; Instr. BCC 38, art. 3, 5 et 14 | moyenne | en place |
 
 ## S101 Rapports crédit
 
