@@ -60,6 +60,17 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       indicateurs: (date: string, auxiliaires: boolean) => get(`/epargne/rapports/indicateurs?date=${date}&auxiliaires=${auxiliaires}`),
       inactivite: (date: string, jours: number | null, tous: boolean) => get(`/epargne/rapports/inactivite?date=${date}${jours === null ? "" : `&jours=${jours}`}&tous=${tous}`),
     },
+    dossiers: {
+      contexte: () => get("/credit/dossiers/contexte"),
+      fondsPropres: () => get("/credit/fonds-propres"),
+      enregistrerFondsPropres: (d: unknown) => post("/credit/fonds-propres", d),
+      apparentes: () => get("/conformite/apparentes"),
+      marquerApparente: (tid: number, d: unknown) => post(`/conformite/apparentes/${tid}`, d),
+      lister: (statut: string) => get(`/credit/dossiers?statut=${statut}`),
+      demander: (d: unknown) => post("/credit/dossiers", d),
+      controler: (id: number, d: unknown) => post(`/credit/dossiers/${id}/controle`, d),
+      approuver: (id: number, d: unknown) => post(`/credit/dossiers/${id}/approbation`, d),
+    },
     analyses: {
       historique: (tiersId: number) => get(`/credit/analyses?tiersId=${tiersId}`),
       lire: (id: number) => get(`/credit/analyses/${id}`),

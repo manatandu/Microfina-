@@ -2,7 +2,9 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api, type InfoSociete } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee } from "../composants";
+import { fr } from "../lib/dates";
+import { lireMontant, montant } from "@design/montant.js";
 import { Onglet as PageZone } from "./Credit";
 
 const PAGES = [["societe", "Information Societe"], ["agence", "Agence"], ["zone", "Zone"]] as const;
@@ -18,7 +20,7 @@ export default function InfoSocietePage() {
         {PAGES.map(([p, nom]) => <button key={p} type="button" role="tab" id={`onglet-${p}`} aria-controls={`volet-${p}`} aria-selected={p === page}
           onClick={() => setParams(p === "societe" ? {} : { page: p })}>{nom}</button>)}
       </div>
-      {page === "societe" && <InformationSociete />}
+      {page === "societe" && <><InformationSociete /><FondsPropres /></>}
       {page === "agence" && <Agences />}
       {page === "zone" && <div id="volet-zone" role="tabpanel" aria-labelledby="onglet-zone"><PageZone page="zones" /></div>}
     </>
@@ -159,6 +161,34 @@ function Agences() {
       </table>)}</Paginee>
       <Textes sources={["Manuel Microfina++, p. 42 : pages Information société, Agence et zone ; page Agence non montrée : gabarit liste (COMPLEMENTS § 4.1), code et nom",
         "Manuel Microfina++, p. 23 et 24 : le code de l'agence entre dans le numéro du client (S15)"]} />
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </section>
+  );
+}
+
+/** Registre CR-2 : fonds propres prudentiels du dernier arrêté mensuel, saisis par la direction ; ils servent aux plafonds du crédit (Instr. BCC 002, art. 7 à 11, 25 à 29) */
+function FondsPropres() {
+  const [relu, setRelu] = useState(0);
+  const { donnees: fp } = useDonnees(() => api.dossiers.fondsPropres(), [relu]);
+  const [f, setF] = useState({ date: "", montant: "" });
+  const [boite, setBoite] = useState<Boite | null>(null);
+  const enregistrer = () => setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
+    try { await api.dossiers.enregistrerFondsPropres({ dateArrete: f.date, montant: (f.montant.trim() ? lireMontant(f.montant) : null) ?? NaN }); setF({ date: "", montant: "" }); setRelu((v) => v + 1);
+      setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+    catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+  } });
+  return (
+    <section className="bloc pile" aria-label="Fonds propres prudentiels">
+      <fieldset className="cadre-champs pile">
+        <legend>Fonds propres prudentiels</legend>
+        <p>Dernier arrêté : <strong className="chiffres">{fp ? `${montant(fp.montant, "CDF")} au ${fr(fp.dateArrete)}` : "non saisi"}</strong></p>
+        <div className="ligne-champ">
+          <ChampDate libelle="Date de l'arrêté *" valeur={f.date} onChange={(v) => setF({ ...f, date: v })} />
+          <Champ libelle="Montant (CDF) *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={f.montant} onChange={(e) => setF({ ...f, montant: e.target.value })} />}</Champ>
+          <button className="bouton" type="button" disabled={!f.date || !f.montant.trim()} onClick={enregistrer}>Enregistrer</button>
+        </div>
+      </fieldset>
+      <Textes sources={["Registre CR-2 (décision du porteur, 19/11/2026) : montant du dernier arrêté mensuel ; Instr. BCC 002, art. 7 à 11 (composition), 25 à 29 (plafonds du crédit)"]} />
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </section>
   );

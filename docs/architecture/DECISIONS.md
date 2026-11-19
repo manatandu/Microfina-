@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**516 décisions.** Solidité : 224 fortes (le manuel ou un texte répond), 247 moyennes (déduites d'un écran voisin ou d'une donnée), 45 faibles (notre choix, faute de mieux). Dans le code : 472 déjà en place, 40 à appliquer.
+**531 décisions.** Solidité : 226 fortes (le manuel ou un texte répond), 260 moyennes (déduites d'un écran voisin ou d'une donnée), 45 faibles (notre choix, faute de mieux). Dans le code : 491 déjà en place, 36 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -653,10 +653,15 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S88-1 | Consentement à la Centrale des risques | Pas d'approbation d'un crédit sans consentement écrit de l'emprunteur en cours de validité (enregistré par S50 : date début passée, date fin absente ou à venir), ni sans consultation de la Centrale des risques notée au dossier. À construire avec S88 | Texte réglementaire : Instr. BCC 5, art. 4 et 13 ; Instr. BCC 34, grille V.2 | forte | à appliquer |
-| CR-2 | Fonds propres prudentiels des limites | Saisis chaque mois par la direction (montant de son dernier arrêté mensuel, avec la date) ; les contrôles de limites les lisent. Calcul automatique à partir de la balance plus tard, avec les indicateurs comptables (étape 8) | Choix du porteur : Décision du porteur, 19/11/2026 ; Instr. BCC 002, art. 7 à 11, 28, 29 | forte | à appliquer |
-| CR-3 | Personnes apparentées | Case « Personne apparentée » et lien (actionnaire ou fondateur, administrateur, dirigeant, personnel, famille au premier degré, société liée) sur la fiche client, tenus par le chef d'agence ou la conformité. Le dossier d'un apparenté exige la référence de l'accord préalable du Conseil d'administration et respecte le plafond de 20 % des fonds propres prudentiels (COOPEC : aussi 20 % des dépôts) | Choix du porteur : Décision du porteur, 19/11/2026 ; Instr. BCC 002, art. 25 à 27 ; Instr. BCC 51 ; loi 002/2002, art. 59, 4° | forte | à appliquer |
-| CR-25 | Mise à l'index et gel | Refus de l'approbation et de la mise en place pour une personne mise à l'index (et les dirigeants et associés d'une personne morale indexée) ou dont les avoirs sont gelés | Texte réglementaire : Instr. BCC 13, art. 7 ; E10 | forte | à appliquer |
+| S88-1 | Consentement à la Centrale des risques | Pas d'approbation d'un crédit sans consentement écrit de l'emprunteur en cours de validité (enregistré par S50 : date début passée, date fin absente ou à venir), ni sans consultation de la Centrale des risques notée au dossier. À construire avec S88 | Texte réglementaire : Instr. BCC 5, art. 4 et 13 ; Instr. BCC 34, grille V.2 | forte | en place |
+| CR-2 | Fonds propres prudentiels des limites | Saisis chaque mois par la direction (montant de son dernier arrêté mensuel, avec la date) ; les contrôles de limites les lisent. Calcul automatique à partir de la balance plus tard, avec les indicateurs comptables (étape 8) | Choix du porteur : Décision du porteur, 19/11/2026 ; Instr. BCC 002, art. 7 à 11, 28, 29 | forte | en place |
+| CR-3 | Personnes apparentées | Case « Personne apparentée » et lien (actionnaire ou fondateur, administrateur, dirigeant, personnel, famille au premier degré, société liée) sur la fiche client, tenus par le chef d'agence ou la conformité. Le dossier d'un apparenté exige la référence de l'accord préalable du Conseil d'administration et respecte le plafond de 20 % des fonds propres prudentiels (COOPEC : aussi 20 % des dépôts) | Choix du porteur : Décision du porteur, 19/11/2026 ; Instr. BCC 002, art. 25 à 27 ; Instr. BCC 51 ; loi 002/2002, art. 59, 4° | forte | en place |
+| CR-25 | Mise à l'index et gel | Refus de l'approbation et de la mise en place pour une personne mise à l'index (et les dirigeants et associés d'une personne morale indexée) ou dont les avoirs sont gelés | Texte réglementaire : Instr. BCC 13, art. 7 ; E10 | forte | en place |
+| S88-2 | Écran | Grille des demandes contrôlées ; choisir une ligne, Approuver : fenêtre Montant approuvé (ressaisi), consultation de la Centrale des risques (date, référence), accord du Conseil (apparenté), accord ou dérogation de la BCC (plafond) ; Approuver après confirmation, puis OK. Le montant des fonds propres prudentiels est rappelé | Manuel : Texte p. 113 et 114, 2.13 à 2.15 ; S88-1 ; CR-2, CR-3, CR-14 | moyenne | en place |
+| S88-3 | Montant approuvé | Pas plus que le montant demandé, pas moins que le minimum du produit | Donnée exigée ailleurs : S23 ; texte 2.15 | moyenne | en place |
+| S88-4 | Encours pour les plafonds | En CDF au cours du jour : capital des crédits en cours non remboursé et demandes approuvées pas encore mises en place, plus le montant à approuver. Dépôts des membres : soldes des comptes de dépôt | Texte réglementaire : PCCI § 7.1 ; Instr. BCC 002, art. 23 et 24 ; loi 002/2002, art. 60 | moyenne | en place |
+| S88-5 | Gel et mise à l'index | Refus pour un client dont les avoirs sont gelés ; la mise à l'index passera par la liste rouge (S97, CR-9) | Texte réglementaire : CR-25 ; E10 | forte | en place |
+| S88-6 | Qui approuve | Un autre utilisateur que celui qui a saisi la demande | Écran voisin : ARCHITECTURE P7 | moyenne | en place |
 
 ## S51 Rapports clients
 
@@ -1251,6 +1256,31 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | CR-26 | Ratios | Portefeuille à risque (< 5 %), ratio d'abandon des créances (< 2 %), efficacité opérationnelle, emprunteurs par agent de crédit, rendement du portefeuille, etc., selon les formules et normes de l'annexe | Texte réglementaire : Instr. BCC 004, art. 3 à 8 et annexe | forte | à appliquer |
+
+## S86 Dossier : analyse (demande)
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S86-1 | Pages et champs | Page 1 : Produit crédit, Numéro client (clients actifs), Intitulé, Cycle (S21), N° analyse (analyses S85 du client pour ce produit), Durée (mois), effectifs et montants hommes et femmes, nombre de groupes solidaires ; Suivant. Page 2 « Détail de la demande » : région, préfecture, effectifs et montants ressaisis ; Enregistrer après confirmation ; numéro DC000001 | Manuel : Texte p. 113, 2.1 à 2.8 | moyenne | en place |
+| S86-2 | Région et préfecture | Lues comme Province et Ville ou territoire de la localisation (S20), la seconde sous la première | Écran voisin : S20-1 (découpage de la RDC) | moyenne | en place |
+| S86-3 | Durée | Champ Durée (mois) ajouté : la demande l'exige pour les bornes du produit, l'approbation et la mise en place | Donnée exigée ailleurs : S84-7 ; S89 | moyenne | en place |
+| S86-4 | Contrôles | Client actif ; produit actif et ouvert à son type de client (S23, S25-1) ; ressaisie identique à la première page ; au moins une personne ; personne physique : une personne, de son sexe ; pas de montant sans effectif ; montant (somme hommes et femmes) et durée dans les bornes du produit ; ville sous sa province ; analyse du même client et du même produit | Donnée exigée ailleurs : Texte p. 113 (2.8, ressaisie) ; S23 ; fiche client | moyenne | en place |
+| S86-5 | Groupe | Pour un client groupe, la part de chaque membre de sa fiche (S39) ; la somme égale le montant demandé | Choix du porteur : CR-8 ; loi 11/020, art. 44 | forte | en place |
+| S86-6 | Droits | Saisie : profil qui a S86 (agent de crédit au départ) | Écran voisin : DROITS_DEPART | moyenne | en place |
+
+## S87 Dossier : contrôle
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S87-1 | Écran | Bouton Contrôle : la grille des demandes saisies (N° demande, Date, N° client, Intitulé, Produit, Montant, Durée, Saisi par) ; double clic : fenêtre où l'on ressaisit Effectif, Nombre de groupes solidaires et Montant ; Terminer après confirmation, puis OK | Manuel : Texte p. 113, 2.9 à 2.12 | moyenne | en place |
+| S87-2 | Qui contrôle | Un autre utilisateur que celui qui a saisi la demande (quatre yeux) ; S87 et S88 donnés au chef d'agence dans les profils de départ | Écran voisin : ARCHITECTURE P7 ; S80-1 | moyenne | en place |
+| S87-3 | Valeurs ressaisies | Effectif (hommes et femmes), nombre de groupes et montant doivent égaler la demande ; sinon refus, la demande reste à contrôler | Manuel : Texte p. 113, 2.12 | moyenne | en place |
+
+## SC01 Examen renforcé
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| SC01-9 | Personnes apparentées | Onglet « Personnes apparentées » : marquer un client avec son lien (art. 27) ou le retirer, après confirmation ; grille des apparentés | Choix du porteur : CR-3 ; Instr. BCC 002, art. 27 ; Instr. BCC 51 | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

@@ -1939,6 +1939,40 @@ describe("journée de guichet", () => {
     expect((await api.analyses.historique(1)).analyses[0]!.numero).toBe("AF000001");
   });
 
+  it("dossier de crédit (S86 à S88) : double saisie, contrôle par un autre, approbation avec Centrale des risques, fonds propres, plafond, apparenté", async () => {
+    await journeeOuverte();
+    await connecter("jpmukendi");
+    const P = { typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: "2,5", tauxDiffere: 2,
+      montantMin: 100000, montantMax: 5000000, dureeMin: 3, dureeMax: 12, differeMin: 0, differeMax: 2, interetMin: 1, interetMax: 4, clientPhysique: true, periodicite: "M",
+      modeDiffere: "Réparti", paiementInteret: "Normal", interetAnticipation: false, ageMax: 65, epargneNature: "Taux", epargneValeur: 10, categorie: "Prêt commercial",
+      penaliteAnticipation: 50, frais: [{ typeFrais: "Frais de dossier", nature: "Taux", valeur: 1, compte: "7152" }] };
+    const pid = (await api.produitsCredit.enregistrer(P)).produits[0]!.id;
+    await connecter("bkasongo");
+    const ctx = await api.dossiers.contexte();
+    const pr = ctx.provinces.find((x) => x.nom === "Kinshasa")!.id, vi = ctx.villes.find((x) => x.provinceId === pr)!.id;
+    const e = { nbHommes: 0, nbFemmes: 1, montantHommes: 0, montantFemmes: 100000000, nbGroupes: 0 };
+    const d = { produitId: pid, tiersId: 1, duree: 12, provinceId: pr, villeId: vi, ...e, ressaisie: e };
+    await expect(api.dossiers.demander({ ...d, ressaisie: { ...e, montantFemmes: 90000000 } })).rejects.toThrow("ressaisis");
+    const x = await api.dossiers.demander(d);
+    expect([x.numero, x.statut, x.montant]).toEqual(["DC000001", "saisie", 100000000]);
+    await expect(api.dossiers.controler(x.id, { effectif: 1, nbGroupes: 0, montant: 100000000 })).rejects.toThrow("Quatre yeux");
+    await connecter("jpmukendi");
+    await expect(api.dossiers.controler(x.id, { effectif: 1, nbGroupes: 0, montant: 90000000 })).rejects.toThrow("ne correspondent pas");
+    expect((await api.dossiers.controler(x.id, { effectif: 1, nbGroupes: 0, montant: 100000000 })).statut).toBe("controlee");
+    const a = { montantApprouve: 100000000, consultationCrLe: "2026-11-05", consultationCrRef: "CR-2026-0001" };
+    await expect(api.dossiers.approuver(x.id, a)).rejects.toThrow("consentement");
+    await api.tiers.creerConsentement(1, { code: "CR", dateDebut: "2026-01-01", dateFin: "", commentaire: "" });
+    await expect(api.dossiers.approuver(x.id, a)).rejects.toThrow("Fonds propres prudentiels non saisis");
+    await api.dossiers.enregistrerFondsPropres({ dateArrete: "2026-10-31", montant: 500000000 });
+    await expect(api.dossiers.approuver(x.id, a)).rejects.toThrow("Plafond par emprunteur");
+    await api.dossiers.marquerApparente(1, { lien: "personnel" });
+    await expect(api.dossiers.approuver(x.id, { ...a, accordBccRef: "BCC/2026/12" })).rejects.toThrow("Conseil d'administration");
+    await api.dossiers.marquerApparente(1, { lien: null });
+    await api.dossiers.enregistrerFondsPropres({ dateArrete: "2026-11-01", montant: 100000000000 });
+    const v = await api.dossiers.approuver(x.id, a);
+    expect([v.statut, v.montantApprouve, v.consultationCrRef]).toEqual(["approuvee", 100000000, "CR-2026-0001"]);
+  });
+
   it("produit crédit (S23, p. 37 et 38) : méthode dégressive (Instr. BCC 38 art. 11), bornes, garanties, assurance, frais (Instr. BCC 40 art. 8)", async () => {
     await connecter("jpmukendi");
     const P = { typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: "2,5", tauxDiffere: 2,

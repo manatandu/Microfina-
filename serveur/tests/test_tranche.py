@@ -1414,6 +1414,40 @@ def test_analyse_financiere(clients, journee):
     assert clients["caisse"].post("/api/credit/analyses", a, **H).status_code == 403
 
 
+def test_dossier_credit(clients, journee):
+    """S86 à S88 (p. 113 et 114) : demande avec double saisie, contrôle par un autre utilisateur, approbation : Centrale des risques (Instr. BCC 05),
+    fonds propres et plafond par emprunteur (Instr. BCC 002, art. 29 ; loi 002/2002, art. 59), apparenté (Instr. BCC 51) ; registre S86 à S88, CR-2, CR-3, CR-14"""
+    chef, agent = clients["chef"], clients["agent"]
+    pid = chef.post("/api/produits-credit", PRODUIT, **H).json()["produits"][0]["id"]
+    ctx = agent.get("/api/credit/dossiers/contexte", **H).json()
+    pr = next(x for x in ctx["provinces"] if x["nom"] == "Kinshasa")["id"]; vi = next(x for x in ctx["villes"] if x["provinceId"] == pr)["id"]
+    k = T("0412-000318")                                                          # Kalala, une femme
+    e = {"nbHommes": 0, "nbFemmes": 1, "montantHommes": 0, "montantFemmes": 100000000, "nbGroupes": 0}
+    d = {"produitId": pid, "tiersId": k, "duree": 12, "provinceId": pr, "villeId": vi, **e, "ressaisie": e}
+    refus = lambda c, url, x: c.post(url, x, **H).json()["message"]
+    assert "ressaisis" in refus(agent, "/api/credit/dossiers", {**d, "ressaisie": {**e, "montantFemmes": 90000000}})
+    assert "de son sexe" in refus(agent, "/api/credit/dossiers", {**d, "nbHommes": 1, "nbFemmes": 0, "montantHommes": 100000000, "montantFemmes": 0,
+                                                                  "ressaisie": {**e, "nbHommes": 1, "nbFemmes": 0, "montantHommes": 100000000, "montantFemmes": 0}})
+    x = agent.post("/api/credit/dossiers", d, **H).json()
+    assert (x["numero"], x["statut"], x["montant"]) == ("DC000001", "saisie", 100000000)
+    assert "Quatre yeux" in refus(agent, f"/api/credit/dossiers/{x['id']}/controle", {"effectif": 1, "nbGroupes": 0, "montant": 100000000})
+    assert "ne correspondent pas" in refus(chef, f"/api/credit/dossiers/{x['id']}/controle", {"effectif": 1, "nbGroupes": 0, "montant": 90000000})
+    assert chef.post(f"/api/credit/dossiers/{x['id']}/controle", {"effectif": 1, "nbGroupes": 0, "montant": 100000000}, **H).json()["statut"] == "controlee"
+    a = {"montantApprouve": 100000000, "consultationCrLe": "2026-11-05", "consultationCrRef": "CR-2026-0001"}
+    assert "consentement" in refus(chef, f"/api/credit/dossiers/{x['id']}/approbation", a)
+    agent.post(f"/api/tiers/{k}/consentements", {"code": "CR", "dateDebut": "2026-01-01", "dateFin": "", "commentaire": ""}, **H)
+    assert "Fonds propres prudentiels non saisis" in refus(chef, f"/api/credit/dossiers/{x['id']}/approbation", a)
+    chef.post("/api/credit/fonds-propres", {"dateArrete": "2026-10-31", "montant": 500000000}, **H)            # 5 000 000 CDF : 10 % = 500 000 CDF
+    assert "Plafond par emprunteur" in refus(chef, f"/api/credit/dossiers/{x['id']}/approbation", a)
+    chef.post("/api/conformite/apparentes/" + str(k), {"lien": "personnel"}, **H)
+    assert "Conseil d'administration" in refus(chef, f"/api/credit/dossiers/{x['id']}/approbation", {**a, "accordBccRef": "BCC/2026/12"})
+    chef.post("/api/conformite/apparentes/" + str(k), {"lien": None}, **H)
+    chef.post("/api/credit/fonds-propres", {"dateArrete": "2026-11-01", "montant": 100000000000}, **H)
+    v = chef.post(f"/api/credit/dossiers/{x['id']}/approbation", a, **H).json()
+    assert (v["statut"], v["montantApprouve"], v["consultationCrRef"]) == ("approuvee", 100000000, "CR-2026-0001")
+    assert agent.get("/api/credit/dossiers?statut=approuvee", **H).json()[0]["numero"] == "DC000001"
+
+
 def test_produit_credit(clients):
     """S23 (p. 37 et 38) : Information de base de la capture ; méthode dégressive (Instr. BCC 38, art. 11) ; garanties, assurance, frais
     (Instr. BCC 38 art. 6, Instr. BCC 40 art. 8) ; pénalité d'anticipation au plus 50 % (Instr. BCC 38, art. 14) ; registre S23-1 à S23-7"""

@@ -9,10 +9,11 @@ import { montant, montantEnLettres, type Devise } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee, LigneFiltres } from "../composants";
 import OperationsAtypiques from "./OperationsAtypiques";
 import GelAvoirs from "./GelAvoirs";
+import PersonnesApparentees from "./PersonnesApparentees";
 
 type Examen = Awaited<ReturnType<typeof api.conformite.lister>>[number];
 type Rapport = Awaited<ReturnType<typeof api.conformite.rapport>>;
-const ONGLETS = [["a_examiner", "À examiner"], ["autorise", "Autorisés"], ["refuse", "Refusés"], ["a_declarer", "À déclarer"], ["ppe", "Personnes exposées"], ["profils", "Profils de risque"], ["atypiques", "Opérations atypiques"], ["gels", "Gel des avoirs"]] as const;
+const ONGLETS = [["a_examiner", "À examiner"], ["autorise", "Autorisés"], ["refuse", "Refusés"], ["a_declarer", "À déclarer"], ["ppe", "Personnes exposées"], ["profils", "Profils de risque"], ["atypiques", "Opérations atypiques"], ["gels", "Gel des avoirs"], ["apparentes", "Personnes apparentées"]] as const;
 const STATUTS: Record<string, string> = { a_examiner: "À examiner", autorise: "Autorisé", refuse: "Refusé" };
 const usd = (v: number) => `${v.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`;
 const VIDE = { origineFonds: "", destinationFonds: "", objet: "", acteurs: "", observations: "" };
@@ -20,7 +21,7 @@ const VIDE = { origineFonds: "", destinationFonds: "", objet: "", acteurs: "", o
 export default function ExamenRenforce() {
   const [onglet, setOnglet] = useState<(typeof ONGLETS)[number][0]>("a_examiner");
   const [relu, setRelu] = useState(0);
-  const { donnees, erreur } = useDonnees(() => (onglet === "ppe" || onglet === "profils" || onglet === "atypiques" || onglet === "gels" ? Promise.resolve([]) : api.conformite.lister(onglet)), [onglet, relu]);
+  const { donnees, erreur } = useDonnees(() => (onglet === "ppe" || onglet === "profils" || onglet === "atypiques" || onglet === "gels" || onglet === "apparentes" ? Promise.resolve([]) : api.conformite.lister(onglet)), [onglet, relu]);
   const { donnees: j } = useDonnees(() => api.journees.courante());
   const [choisi, setChoisi] = useState<Examen | null>(null);
   const [f, setF] = useState(VIDE);
@@ -58,7 +59,8 @@ export default function ExamenRenforce() {
       {onglet === "profils" && <ProfilsRisque />}
       {onglet === "atypiques" && <OperationsAtypiques jour={j?.date ?? ""} />}
       {onglet === "gels" && <GelAvoirs jour={j?.date ?? ""} />}
-      {onglet !== "ppe" && onglet !== "profils" && onglet !== "atypiques" && onglet !== "gels" && <section className="bloc pile" aria-label="Liste des examens">
+      {onglet === "apparentes" && <PersonnesApparentees />}
+      {onglet !== "ppe" && onglet !== "profils" && onglet !== "atypiques" && onglet !== "gels" && onglet !== "apparentes" && <section className="bloc pile" aria-label="Liste des examens">
         <Paginee lignes={donnees} colonnes={(x) => [x.numero, fr(x.date), x.membre, x.client, x.typeLibelle, montant(x.montant, x.devise as Devise), usd(x.cumulUsd), x.demandePar, STATUTS[x.statut]]}>{(visibles) => (<div className="defile-x"><table className="grille">
           <thead><tr><th scope="col">N°</th><th scope="col">Date</th><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Opération</th>
             <th scope="col" className="montant">Montant</th><th scope="col" className="montant">Cumul du jour</th><th scope="col">Demandé par</th><th scope="col">Statut</th></tr><LigneFiltres titres={["N°", "Date", "N° client", "Client", "Opération", "Montant", "Cumul du jour", "Demandé par", "Statut"]} /></thead>

@@ -148,7 +148,7 @@ const OUT = process.argv[2];
   await p.getByLabel('Statut *').selectOption('ACTIF'); await p.getByLabel('Libellé opération *').fill("Vente de livret d'épargne");
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: "Vente de livret d'épargne" }).waitFor(); await etape('02f21-ed-divers');
   // Chef : info société (S32, p. 42) : le directeur, Enregistrer ; la page Agence
-  await aller('/parametrage/s32'); await p.getByLabel('Directeur :').fill('J.-P. Mukendi'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await aller('/parametrage/s32'); await p.getByLabel('Directeur :').fill('J.-P. Mukendi'); await p.getByRole('tabpanel', { name: 'Information Societe' }).getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await etape('02f22-info-societe');
   await p.getByRole('tab', { name: 'Agence' }).click(); await p.getByRole('cell', { name: '0412' }).waitFor();
   // Chef : agents d'agence (S33, p. 43) : un sensibilisateur
@@ -496,9 +496,34 @@ const OUT = process.argv[2];
   await aller('/clients/s50'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
   const rcs = p.getByRole('dialog', { name: "Recherche d'un client" });
   await rcs.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rcs.getByRole('row').filter({ hasText: 'Kalala' }).dblclick();
-  await p.getByLabel('Code *').fill('CR-1'); await p.getByLabel('Commentaire').fill('Signé à la demande de crédit');
+  await p.getByLabel('Code *').fill('CR-1'); await p.getByLabel('Date début *').fill('01/11/2026'); await p.getByLabel('Commentaire').fill('Signé à la demande de crédit');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('cell', { name: 'CR-1' }).waitFor(); await etape('06w-consentement');
+  // Dossier de crédit (S86 à S88, p. 113 et 114 ; registre S86 à S88, CR-2, CR-14) : fonds propres saisis par la direction, demande de Kalala par l'agent,
+  // contrôle et approbation par le chef d'agence, après consultation de la Centrale des risques
+  await aller('/parametrage/s32'); const fpp = p.getByRole('region', { name: 'Fonds propres prudentiels' });
+  await fpp.getByLabel("Date de l'arrêté *").fill('31/10/2026'); await fpp.getByLabel('Montant (CDF) *').fill('100 000 000');
+  await fpp.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByText('100 000 000,00 CDF au 31/10/2026').waitFor();
+  await login('Bijou Kasongo'); await aller('/credit/s86');
+  await p.getByLabel('Produit crédit *').selectOption({ label: 'Crédit commerce' }); await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  const rdm = p.getByRole('dialog', { name: "Recherche d'un client" });
+  await rdm.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rdm.getByRole('row').filter({ hasText: 'Kalala' }).first().dblclick();
+  await p.getByLabel('Durée (mois) *').fill('12'); await p.getByLabel('Effectif femmes', { exact: true }).fill('1'); await p.getByLabel('Montant femmes', { exact: true }).fill('1 000 000');
+  await p.getByRole('button', { name: 'Suivant', exact: true }).click();
+  await p.getByLabel('Région (province) *').selectOption({ label: 'Kinshasa' }); await p.getByLabel('Préfecture (ville ou territoire) *').selectOption({ label: 'Kinshasa' });
+  await p.getByLabel('Ressaisir : Effectif femmes').fill('1'); await p.getByLabel('Ressaisir : Montant femmes').fill('1 000 000'); await etape('06w1-demande-credit');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByText('Demande N° DC000001').waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
+  await login('J.-P. Mukendi'); await aller('/credit/s87'); await p.getByRole('button', { name: 'Contrôle', exact: true }).click();
+  await p.getByRole('cell', { name: 'DC000001' }).dblclick(); const ctl = p.getByRole('dialog', { name: /Contrôle de la demande/ });
+  await ctl.getByLabel('Effectif *').fill('1'); await ctl.getByLabel('Nombre de groupes solidaires *').fill('0'); await ctl.getByLabel('Montant *').fill('1 000 000');
+  await ctl.getByRole('button', { name: 'Terminer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByText('Contrôle terminé avec succès').waitFor(); await p.getByRole('button', { name: 'Ok' }).click(); await etape('06w2-controle-demande');
+  await aller('/credit/s88'); await p.getByRole('cell', { name: 'DC000001' }).click(); await p.getByRole('button', { name: 'Approuver' }).click();
+  const apv = p.getByRole('dialog', { name: /Approbation de la demande/ });
+  await apv.getByLabel('Montant approuvé *').fill('1 000 000'); await apv.getByLabel('Référence du rapport de la Centrale *').fill('CR-2026-0001'); await etape('06w3-approbation');
+  await apv.getByRole('button', { name: 'Approuver' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByText('Approuvé avec succès').waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
   // Rapports clients (S51)
   await aller('/clients/s51'); await p.getByRole('button', { name: 'Rechercher' }).click();
   await p.getByRole('cell', { name: '0412-000318' }).waitFor(); await etape('06x-rapport-multicritere');
@@ -921,7 +946,7 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Résilier' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click(); await etape('20-resilie');
   // Journées en attente de comptabilisation (registre T14, S12-2, S12-5) : Journée Maxi ouvert à 2, deux journées ouvertes, la troisième refusée
-  await aller('/parametrage/s32'); await p.getByLabel('Journée Maxi ouvert : *').fill('2'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await aller('/parametrage/s32'); await p.getByLabel('Journée Maxi ouvert : *').fill('2'); await p.getByRole('tabpanel', { name: 'Information Societe' }).getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await aller('/administration/s12');
   for (const d of ['06112026', '09112026']) { await p.getByLabel('Date à ouvrir').fill(d); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); }
   await p.getByLabel('Date à ouvrir').fill('10112026'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();

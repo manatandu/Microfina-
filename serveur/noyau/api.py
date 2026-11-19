@@ -378,6 +378,61 @@ def guichet_ed_divers(request, corps: dict = Body(...)):
     return ed_guichet.enregistrer(u(request), corps)
 
 
+@api.get("/credit/dossiers/contexte")
+def dossiers_contexte(request):
+    from . import dossiers
+    return dossiers.contexte(u(request))
+
+
+@api.get("/credit/dossiers")
+def dossiers_lister(request, statut: str):
+    from . import dossiers
+    return dossiers.lister(u(request), statut)
+
+
+@api.post("/credit/dossiers")
+def dossier_demander(request, corps: dict = Body(...)):
+    from . import dossiers
+    return dossiers.demander(u(request), corps)
+
+
+@api.post("/credit/dossiers/{did}/controle")
+def dossier_controler(request, did: int, corps: dict = Body(...)):
+    from . import dossiers
+    return dossiers.controler(u(request), did, corps)
+
+
+@api.post("/credit/dossiers/{did}/approbation")
+def dossier_approuver(request, did: int, corps: dict = Body(...)):
+    from . import dossiers
+    return dossiers.approuver(u(request), did, corps)
+
+
+@api.get("/credit/fonds-propres")
+def fonds_propres_lire(request):
+    from . import dossiers
+    u(request)
+    return dossiers.fonds_propres(u(request))
+
+
+@api.post("/credit/fonds-propres")
+def fonds_propres_enregistrer(request, corps: dict = Body(...)):
+    from . import dossiers
+    return dossiers.enregistrer_fonds_propres(u(request), corps)
+
+
+@api.get("/conformite/apparentes")
+def apparentes_lister(request):
+    from . import dossiers
+    return dossiers.apparentes(u(request))
+
+
+@api.post("/conformite/apparentes/{tid}")
+def apparente_marquer(request, tid: int, corps: dict = Body(...)):
+    from . import dossiers
+    return dossiers.marquer_apparente(u(request), tid, corps)
+
+
 @api.get("/credit/analyses")
 def analyses_historique(request, tiersId: int):
     from . import analyses

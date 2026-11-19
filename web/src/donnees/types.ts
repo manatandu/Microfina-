@@ -60,6 +60,7 @@ export interface Beneficiaire { nom: string; postnom: string; prenom: string; se
 export interface Tiers {
   id: number;
   type: "physique" | "morale" | "groupe";
+  apparente?: "actionnaire" | "administrateur" | "dirigeant" | "personnel" | "famille" | "societe_liee" | "contrat" | null;   // registre CR-3
   numero: string;
   statut: "prospect" | "a_viser" | "actif" | "modifie_a_revalider" | "resilie";
   nom: string;
@@ -281,7 +282,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 60;
+  version: 61;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)
@@ -313,6 +314,8 @@ export interface Etat {
   clotures: ClotureCompte[];   // S70
   blocages: Blocage[];   // S71
   analyses: AnalyseFinanciere[];   // S85
+  demandes: DemandeCredit[];   // S86 à S88
+  fondsPropres: { dateArrete: string; montant: number; saisiPar: number }[];   // registre CR-2
   reversementsRetenues: ReversementRetenue[];   // écart E16
   journalSecurite: EvenementSecurite[];   // écart E17
   declarationsCip: { type: string; objetId: number; dateEvenement: string; declareLe: string; reference: string; declarePar: number }[];   // écart E06   // S46, S42, S43
@@ -425,4 +428,13 @@ export interface AnalyseFinanciere {
   id: number; numero: string; type: "allegee" | "developpee"; tiersId: number; produitId: number; montant: number; duree: number; objet: string;
   donnees: Record<string, unknown>; echeanceMensuelle: number; avis: "favorable" | "reserve" | "defavorable"; montantRecommande: number | null;
   dureeRecommandee: number | null; commentaire: string; creePar: number; creeLe: string;
+}
+
+/** S86 à S88 : demande de crédit, contrôlée puis approuvée (registre S86, S87, S88, CR-8) */
+export interface DemandeCredit {
+  id: number; numero: string; tiersId: number; produitId: number; devise: Devise; analyseId: number | null; cycleId: number | null; provinceId: number; villeId: number;
+  nbHommes: number; nbFemmes: number; montantHommes: number; montantFemmes: number; nbGroupes: number; montant: number; duree: number;
+  parts: { membre: string; montant: number }[]; statut: "saisie" | "controlee" | "approuvee" | "mise_en_place"; creeLe: string; saisiPar: number;
+  controlePar: number | null; approuvePar: number | null; montantApprouve: number | null; consultationCrLe: string; consultationCrRef: string;
+  accordConseilRef: string; accordBccRef: string;
 }

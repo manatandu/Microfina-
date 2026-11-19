@@ -10,7 +10,7 @@ import {
   type ChequeClient, type Chequier, type DepotTerme, type PlanEpargne, type ClotureCompte, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget, type CriteresAtypiques, type GelAvoirs,
-  type AnalyseFinanciere,
+  type AnalyseFinanciere, type DemandeCredit,
 } from "./types";
 import { DROITS_METHODES } from "./droits.gen";
 import registreEcrans from "../ecrans/registre.json";
@@ -20,7 +20,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v83";
+const CLE = "likelemba-demo-v84";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -28,7 +28,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 60) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 61) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -2700,6 +2700,165 @@ const analyses = {
   },
 };
 
+// ---------- S86 à S88 : Crédit > Dossier de crédit : demande, contrôle, approbation (manuel p. 113 et 114). Mêmes règles que serveur/noyau/dossiers.py.
+// Registre S86, S87, S88, CR-2, CR-3, CR-8, CR-14, CR-25. ----------
+const APPARENTES = ["actionnaire", "administrateur", "dirigeant", "personnel", "famille", "societe_liee", "contrat"] as const;
+const entierDossier = (d: Record<string, unknown> | undefined, k: string, nom: string, mini = 0) => {
+  let v = d?.[k]; if (v === undefined || v === null || v === "") v = 0;
+  if (typeof v !== "number" || !Number.isInteger(v) || v < mini) throw new ErreurMetier(`${nom} : un nombre entier, ${mini} ou plus.`);
+  return v;
+};
+const jourDossier = () => journees.courante()?.date ?? new Date().toISOString().slice(0, 10);
+const fondsPropresActuels = () => { const f = [...E.fondsPropres].sort((a, b) => b.dateArrete.localeCompare(a.dateArrete))[0];
+  return f ? { dateArrete: f.dateArrete, montant: f.montant } : null; };
+/** En CDF au cours du jour : demandes approuvées pas encore mises en place (les crédits en cours s'y ajouteront avec la mise en place, S89) ; registre S88-4 */
+const encoursDossier = (tiersIds?: number[]) => E.demandes.filter((x) => x.statut === "approuvee" && (!tiersIds || tiersIds.includes(x.tiersId)))
+  .reduce((s, x) => s + Math.round((x.montantApprouve ?? 0) * coursDe(x.devise, jourDossier())), 0);
+const depotsMembres = () => E.ecritures.flatMap((e) => e.lignes).filter((l) => l.contrat?.startsWith("depot:")).reduce((s, l) => s + (l.sens === "C" ? l.montantCdf : -l.montantCdf), 0);
+const vueDemande = (x: DemandeCredit) => { const t = E.tiers.find((y) => y.id === x.tiersId)!; const p = E.produitsCredit.find((y) => y.id === x.produitId)!;
+  const lieu = (id: number) => E.lieux.find((l) => l.id === id)?.nom ?? "";
+  return { id: x.id, numero: x.numero, tiersId: x.tiersId, membre: t.numero, client: titulaire(t), produitId: x.produitId, produit: String(p.nom), devise: x.devise,
+    cycle: String(stockCredit("cycles").find((c) => c.id === x.cycleId)?.libelle ?? ""), analyse: E.analyses.find((a) => a.id === x.analyseId)?.numero ?? "",
+    nbHommes: x.nbHommes, nbFemmes: x.nbFemmes, montantHommes: x.montantHommes, montantFemmes: x.montantFemmes, nbGroupes: x.nbGroupes, montant: x.montant, duree: x.duree,
+    montantApprouve: x.montantApprouve, province: lieu(x.provinceId), ville: lieu(x.villeId), parts: x.parts, statut: x.statut, date: x.creeLe,
+    saisiPar: nomUtilisateur(x.saisiPar), controlePar: nomUtilisateur(x.controlePar ?? undefined), approuvePar: nomUtilisateur(x.approuvePar ?? undefined),
+    consultationCrLe: x.consultationCrLe, consultationCrRef: x.consultationCrRef, accordConseilRef: x.accordConseilRef, accordBccRef: x.accordBccRef }; };
+const effectifsDossier = (d: Record<string, unknown> | undefined) => ({ nbHommes: entierDossier(d, "nbHommes", "Effectif hommes"), nbFemmes: entierDossier(d, "nbFemmes", "Effectif femmes"),
+  montantHommes: entierDossier(d, "montantHommes", "Montant hommes"), montantFemmes: entierDossier(d, "montantFemmes", "Montant femmes"),
+  nbGroupes: entierDossier(d, "nbGroupes", "Nombre de groupes solidaires") });
+function demandeAuStatut(id: number, statut: DemandeCredit["statut"]) {
+  const x = E.demandes.find((y) => y.id === id);
+  if (!x) throw new ErreurMetier("Demande introuvable.");
+  if (x.statut !== statut) throw new ErreurMetier(statut === "saisie" ? "Cette demande n'est plus à contrôler." : "Cette demande n'est plus à approuver.");
+  return x;
+}
+const dossiers = {
+  contexte() {
+    lectureAdmin(["S86", "S87", "S88", "S89"]);
+    return { produits: E.produitsCredit.filter((p) => p.actif !== false).sort((a, b) => String(a.numero).localeCompare(String(b.numero))).map((p) => ({ id: p.id, nom: String(p.nom),
+        devise: String(p.devise) as Devise, physique: !!p.clientPhysique, groupe: !!p.clientGroupe, entreprise: !!p.clientEntreprise, montantMin: Number(p.montantMin) * 100,
+        montantMax: Number(p.montantMax) * 100, dureeMin: Number(p.dureeMin), dureeMax: Number(p.dureeMax) })),
+      cycles: stockCredit("cycles").filter((c) => c.actif !== false).map((c) => ({ id: c.id, code: String(c.code ?? ""), libelle: String(c.libelle ?? "") })),
+      provinces: E.lieux.filter((l) => l.niveau === "province" && l.actif).map((l) => ({ id: l.id, nom: l.nom })).sort((a, b) => a.nom.localeCompare(b.nom)),
+      villes: E.lieux.filter((l) => l.niveau === "ville" && l.actif).map((l) => ({ id: l.id, provinceId: l.parentId, nom: l.nom })).sort((a, b) => a.nom.localeCompare(b.nom)),
+      fondsPropres: fondsPropresActuels(), coopec: estCoopec() };
+  },
+  fondsPropres() { exiger(); return fondsPropresActuels(); },
+  /** Registre CR-2 : saisis chaque mois par la direction, montant du dernier arrêté (Instr. BCC 002, art. 7 à 11) */
+  enregistrerFondsPropres(d: { dateArrete: string; montant: number }) {
+    const u = exiger();
+    if (!DATE_ISO.test(d.dateArrete ?? "")) throw new ErreurMetier("À remplir : Date de l'arrêté.");
+    if (d.dateArrete > jourDossier()) throw new ErreurMetier("Date de l'arrêté : pas après la journée.");
+    const m = entierDossier(d as unknown as Record<string, unknown>, "montant", "Fonds propres prudentiels", 1);
+    E.fondsPropres = [...E.fondsPropres.filter((f) => f.dateArrete !== d.dateArrete), { dateArrete: d.dateArrete, montant: m, saisiPar: u.id }];
+    enregistrer(); return fondsPropresActuels();
+  },
+  apparentes() {
+    lectureAdmin(["SC01"]);
+    return E.tiers.filter((t) => t.apparente).sort((a, b) => a.numero.localeCompare(b.numero)).map((t) => ({ tiersId: t.id, numero: t.numero, client: titulaire(t), lien: t.apparente! }));
+  },
+  /** Registre CR-3 : case « Personne apparentée » et lien (Instr. BCC 002, art. 27) */
+  marquerApparente(tid: number, d: { lien: Tiers["apparente"] }) {
+    exiger();
+    if (d.lien != null && !APPARENTES.includes(d.lien)) throw new ErreurMetier("Lien : actionnaire ou fondateur, administrateur, dirigeant, personnel, famille, société liée ou contrat.");
+    const t = E.tiers.find((x) => x.id === tid);
+    if (!t) throw new ErreurMetier("Client introuvable.");
+    t.apparente = d.lien ?? null; enregistrer(); return dossiers.apparentes();
+  },
+  lister(statut: DemandeCredit["statut"]) {
+    lectureAdmin(["S86", "S87", "S88", "S89"]);
+    if (!["saisie", "controlee", "approuvee", "mise_en_place"].includes(statut)) throw new ErreurMetier("Statut inconnu.");
+    return E.demandes.filter((x) => x.statut === statut).map(vueDemande);
+  },
+  /** 2.1 à 2.8 (p. 113) ; registre S86-1 à S86-6 */
+  demander(d: Record<string, unknown>) {
+    const u = exiger();
+    const p = E.produitsCredit.find((x) => x.id === d.produitId);
+    if (!p) throw new ErreurMetier("À remplir : Produit.");
+    if (p.actif === false) throw new ErreurMetier("Ce produit est désactivé (Produits > Crédits > Activation) : il n'est plus proposé aux nouvelles demandes.");
+    const t = E.tiers.find((x) => x.id === d.tiersId);
+    if (!t) throw new ErreurMetier("À remplir : Numéro client.");
+    if (t.statut !== "actif") throw new ErreurMetier("Le client n'est pas actif (adhésion visée et payée).");
+    if (!({ physique: p.clientPhysique, groupe: p.clientGroupe, morale: p.clientEntreprise } as Record<string, unknown>)[t.type]) throw new ErreurMetier("Ce produit n'est pas ouvert à ce type de client (Produits > Crédits, Type de client).");
+    const e = effectifsDossier(d);
+    if (JSON.stringify(effectifsDossier((d.ressaisie ?? {}) as Record<string, unknown>)) !== JSON.stringify(e)) throw new ErreurMetier("Les effectifs et montants ressaisis ne correspondent pas à ceux de la première page.");
+    if (e.nbHommes + e.nbFemmes < 1) throw new ErreurMetier("Effectif : au moins une personne.");
+    if (t.type === "physique" && (e.nbHommes !== (t.sexe === "M" ? 1 : 0) || e.nbFemmes !== (t.sexe === "M" ? 0 : 1))) throw new ErreurMetier("Personne physique : effectif d'une personne, de son sexe (fiche client).");
+    const montant = e.montantHommes + e.montantFemmes;
+    if ((e.montantHommes && !e.nbHommes) || (e.montantFemmes && !e.nbFemmes)) throw new ErreurMetier("Un montant sans effectif.");
+    const duree = entierDossier(d, "duree", "Durée (mois)", 1);
+    if (montant < Number(p.montantMin) * 100 || montant > Number(p.montantMax) * 100)
+      throw new ErreurMetier(`Montant demandé : entre ${montantLisible(Number(p.montantMin) * 100, String(p.devise)).replace(",00", "")} et ${montantLisible(Number(p.montantMax) * 100, String(p.devise))} pour ce produit.`);
+    if (duree < Number(p.dureeMin) || duree > Number(p.dureeMax)) throw new ErreurMetier(`Durée : entre ${p.dureeMin} et ${p.dureeMax} mois pour ce produit.`);
+    const cid = (d.cycleId ?? null) as number | null;
+    if (cid !== null && !stockCredit("cycles").some((c) => c.id === cid && c.actif !== false)) throw new ErreurMetier("Cycle inconnu.");
+    const pr = E.lieux.find((l) => l.id === d.provinceId && l.niveau === "province" && l.actif);
+    const vi = pr && E.lieux.find((l) => l.id === d.villeId && l.niveau === "ville" && l.parentId === pr.id && l.actif);
+    if (!pr || !vi) throw new ErreurMetier("À remplir : Province (région), Ville ou territoire (préfecture).");
+    const aid = (d.analyseId ?? null) as number | null;
+    if (aid !== null && !E.analyses.some((a) => a.id === aid && a.tiersId === t.id && a.produitId === p.id)) throw new ErreurMetier("Cette analyse financière n'est pas celle de ce client et de ce produit.");
+    let parts: DemandeCredit["parts"] = [];
+    if (t.type === "groupe") {   // registre CR-8
+      const membres = t.membres.map((r) => [r.nom, r.prenom].filter(Boolean).join(" "));
+      const brut = d.parts;
+      if (!Array.isArray(brut) || brut.length !== membres.length) throw new ErreurMetier("Groupe : la part de chaque membre de la fiche du groupe.");
+      parts = membres.map((m, i) => ({ membre: m, montant: entierDossier(brut[i] as Record<string, unknown>, "montant", `Part de ${m}`) }));
+      if (parts.reduce((s, x) => s + x.montant, 0) !== montant) throw new ErreurMetier("Groupe : la somme des parts des membres doit égaler le montant demandé.");
+    }
+    const x: DemandeCredit = { id: prochain(E.demandes), numero: `DC${String(E.demandes.length + 1).padStart(6, "0")}`, tiersId: t.id, produitId: p.id, devise: String(p.devise) as Devise,
+      analyseId: aid, cycleId: cid, provinceId: pr.id, villeId: vi.id, ...e, montant, duree, parts, statut: "saisie", creeLe: jourDossier(), saisiPar: u.id, controlePar: null,
+      approuvePar: null, montantApprouve: null, consultationCrLe: "", consultationCrRef: "", accordConseilRef: "", accordBccRef: "" };
+    E.demandes.push(x); enregistrer(); return vueDemande(x);
+  },
+  /** 2.9 à 2.12 : effectif, nombre de groupes et montant ressaisis par un autre utilisateur (registre S87-1 à S87-3) */
+  controler(id: number, d: Record<string, unknown>) {
+    const u = exiger();
+    const x = demandeAuStatut(id, "saisie");
+    if (x.saisiPar === u.id) throw new ErreurMetier("Quatre yeux : le contrôle est fait par un autre utilisateur que celui qui a saisi la demande.");
+    if (entierDossier(d, "effectif", "Effectif") !== x.nbHommes + x.nbFemmes || entierDossier(d, "nbGroupes", "Nombre de groupes solidaires") !== x.nbGroupes
+      || entierDossier(d, "montant", "Montant") !== x.montant) throw new ErreurMetier("L'effectif, le nombre de groupes ou le montant ressaisis ne correspondent pas à la demande.");
+    x.statut = "controlee"; x.controlePar = u.id; enregistrer(); return vueDemande(x);
+  },
+  /** 2.13 à 2.15 : montant approuvé ressaisi ; registre S88-1 à S88-6, CR-3, CR-14, CR-25 */
+  approuver(id: number, d: Record<string, unknown>) {
+    const u = exiger();
+    const x = demandeAuStatut(id, "controlee");
+    if (u.id === x.saisiPar) throw new ErreurMetier("Quatre yeux : l'approbation est faite par un autre utilisateur que celui qui a saisi la demande.");
+    const m = entierDossier(d, "montantApprouve", "Montant approuvé", 1);
+    const p = E.produitsCredit.find((y) => y.id === x.produitId)!;
+    if (m > x.montant) throw new ErreurMetier("Montant approuvé : pas plus que le montant demandé.");
+    if (m < Number(p.montantMin) * 100) throw new ErreurMetier("Montant approuvé : pas moins que le minimum du produit.");
+    const j = jourDossier();
+    if (E.gels.some((g) => g.tiersId === x.tiersId && !g.leveLe)) throw new ErreurMetier("Avoirs gelés : aucun crédit à ce client (loi 22/068, art. 158 bis ; E10).");
+    if (!E.consentements.some((c) => c.tiersId === x.tiersId && c.dateDebut <= j && (!c.dateFin || c.dateFin >= j)))
+      throw new ErreurMetier("Pas de consentement écrit à la Centrale des risques en cours de validité (Client > Consentement ; Instr. BCC 05, art. 13).");
+    const cr = String(d.consultationCrLe ?? "");
+    if (!DATE_ISO.test(cr)) throw new ErreurMetier("À remplir : Date de consultation de la Centrale des risques (Instr. BCC 05, art. 4).");
+    const txt = (k: string) => (typeof d[k] === "string" ? (d[k] as string).trim() : "");
+    const ref = txt("consultationCrRef");
+    if (cr > j || !ref) throw new ErreurMetier("Consultation de la Centrale des risques : date (pas après la journée) et référence du rapport (Instr. BCC 05, art. 4 et 13).");
+    const t = E.tiers.find((y) => y.id === x.tiersId)!;
+    const conseil = txt("accordConseilRef"), bcc = txt("accordBccRef");
+    if (t.apparente && !conseil) throw new ErreurMetier("Personne apparentée : référence de l'accord préalable du Conseil d'administration (Instr. BCC 51 ; registre CR-3).");
+    const fp = fondsPropresActuels();
+    if (!fp) throw new ErreurMetier("Fonds propres prudentiels non saisis : la direction les saisit d'abord (registre CR-2 ; Instr. BCC 002).");
+    const mCdf = Math.round(m * coursDe(x.devise, j)), risque = encoursDossier([x.tiersId]) + mCdf, coopec = estCoopec();
+    const depasse: string[] = [];
+    if (coopec) {
+      if (risque * 10 > fp.montant) depasse.push("10 % des fonds propres prudentiels (Instr. BCC 002, art. 29)");
+      if (risque * 10 > depotsMembres()) depasse.push("10 % des dépôts des membres (loi 002/2002, art. 59, 6°)");
+    } else if (risque * 20 > fp.montant) depasse.push("5 % des fonds propres prudentiels (Instr. BCC 002, art. 28)");
+    if (depasse.length && !bcc) throw new ErreurMetier(`Plafond par emprunteur dépassé : ${depasse.join(" ; ")}. Il faut l'accord préalable ou la dérogation de la BCC, référence à noter.`);
+    if (t.apparente) {
+      const tot = encoursDossier(E.tiers.filter((y) => y.apparente).map((y) => y.id)) + mCdf;
+      if (tot * 5 > fp.montant && !(coopec && bcc)) throw new ErreurMetier("Crédits aux personnes apparentées au-delà de 20 % des fonds propres prudentiels (Instr. BCC 002, art. 25 ; Instr. BCC 51).");
+      if (coopec && tot * 5 > depotsMembres() && !bcc) throw new ErreurMetier("Crédits aux dirigeants au-delà de 20 % des dépôts des membres (loi 002/2002, art. 59, 4°) : dérogation de la BCC à noter.");
+    }
+    Object.assign(x, { statut: "approuvee", montantApprouve: m, approuvePar: u.id, consultationCrLe: cr, consultationCrRef: ref, accordConseilRef: conseil, accordBccRef: bcc });
+    enregistrer(); return vueDemande(x);
+  },
+};
+
 // ---------- S83 : Caisse > Rapport > Journal des opérations de caisse (manuel p. 95 ; doublon p. 109). Règles identiques côté serveur (noyau/journal_caisse.py).
 // Lignes du compte du guichet : débit à l'entrée d'espèces, crédit à la sortie (PCCI, compte 57). Registre S83-1 à S83-5. ----------
 const journalCaisse = {
@@ -5039,6 +5198,7 @@ const apiLocal = {
   journalCaisse: asynchrone(journalCaisse, "journalCaisse"),
   simulationCredit: asynchrone(simulationCredit, "simulationCredit"),
   analyses: asynchrone(analyses, "analyses"),
+  dossiers: asynchrone(dossiers, "dossiers"),
   societe: asynchrone(societe, "societe"),
   agents: asynchrone(agents, "agents"),
   jours: asynchrone(jours, "jours"),

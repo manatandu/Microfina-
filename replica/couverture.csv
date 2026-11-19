@@ -86,9 +86,9 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 85,Journal de caisse,caisse,must,yes,S83,A,rapport,6 Caisse,,,,,
 86,Simulation d'échéancier,crédit,must,yes,S84,B,onglets,7 Crédit,"S84 : pages Montant et durée, Récapitulatif, Échéancier",M:texte p. 111 ; A:S89,,,
 87,Analyse financière allégée et développée,crédit,should,yes,S85,B,onglets,7 Crédit,S85 : onglets suivants,M:noms d'onglets ; P,,,
-88,Demande de crédit avec effectifs hommes femmes et groupes,crédit,must,no,S86,B,onglets,7 Crédit,S86 : page de détail après Suivant,M:texte p. 113,,S86,CR-8 Crédit à un groupe solidaire ; CR-15 Refinancement d'un retard
-89,Contrôle de la demande,crédit,must,no,S87,C,visa,7 Crédit,S87 : tout l'écran,M:texte p. 113 ; A:S90,,S87,CR-8 Crédit à un groupe solidaire
-90,Approbation,crédit,must,no,S88,C,visa,7 Crédit,S88 : tout l'écran,M:texte p. 114 ; A:S90,,S88,S88-1 Consentement à la Centrale des risques ; CR-2 Fonds propres prudentiels des limites ; CR-3 Personnes apparentées ; CR-8 Crédit à un groupe solidaire ; CR-14 Plafonds par emprunteur ; CR-25 Mise à l'index et gel
+88,Demande de crédit avec effectifs hommes femmes et groupes,crédit,must,partial,S86,B,onglets,7 Crédit,S86 : page de détail après Suivant,M:texte p. 113,,,CR-8 Crédit à un groupe solidaire ; CR-15 Refinancement d'un retard
+89,Contrôle de la demande,crédit,must,partial,S87,C,visa,7 Crédit,S87 : tout l'écran,M:texte p. 113 ; A:S90,,,CR-8 Crédit à un groupe solidaire
+90,Approbation,crédit,must,partial,S88,C,visa,7 Crédit,S88 : tout l'écran,M:texte p. 114 ; A:S90,,,CR-8 Crédit à un groupe solidaire ; CR-14 Plafonds par emprunteur
 91,Mise en place du prêt : financement épargne obligatoire solidarité assurance objet zone agent,crédit,must,no,S89,C,onglets,7 Crédit,S89 : tout l'écran (capture p. 113 à vérifier),"M:texte p. 114 ; A:S84, S54 ; R:Instr. BCC (TEG, limites)",,S89,CR-8 Crédit à un groupe solidaire ; CR-10 Déclarations ; CR-23 Retrait du membre ; CR-24 TEG au dossier
 92,TEG affiché sur le dossier,crédit,must,no,S89,C,onglets,7 Crédit,S89 : tout l'écran (capture p. 113 à vérifier),"M:texte p. 114 ; A:S84, S54 ; R:Instr. BCC (TEG, limites)",,S89,CR-8 Crédit à un groupe solidaire ; CR-10 Déclarations ; CR-23 Retrait du membre ; CR-24 TEG au dossier
 93,Visas responsable crédit comité service financier,crédit,must,no,S90,A,visa,7 Crédit,,,,S90,CR-4 Visa comité de crédit d'une COOPEC ; CR-5 Niveaux de visa

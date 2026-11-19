@@ -101,9 +101,9 @@ S83,Rapport : journal des opérations de caisse,95 ; doublon 109,A,rapport,,,6 C
 S141,Règlement facture espèce,84 et 97 (nom dans le menu Caisse),D,guichet,tout l'écran,"A:S107 règlement (p. 127 et 153), S78",6 Caisse,non
 S84,Plan d'amortissement (simulation),111,B,onglets,"pages Montant et durée, Récapitulatif, Échéancier",M:texte p. 111 ; A:S89,7 Crédit,oui
 S85,"Analyse financière : allégée, développée",112 (deux captures),B,onglets,onglets suivants,M:noms d'onglets ; P,7 Crédit,oui
-S86,Dossier : analyse (demande),113,B,onglets,page de détail après Suivant,M:texte p. 113,7 Crédit,non
-S87,Dossier : contrôle,113 (texte),C,visa,tout l'écran,M:texte p. 113 ; A:S90,7 Crédit,non
-S88,Dossier : approbation,113 et 114 (texte),C,visa,tout l'écran,M:texte p. 114 ; A:S90,7 Crédit,non
+S86,Dossier : analyse (demande),113,B,onglets,page de détail après Suivant,M:texte p. 113,7 Crédit,oui
+S87,Dossier : contrôle,113 (texte),C,visa,tout l'écran,M:texte p. 113 ; A:S90,7 Crédit,oui
+S88,Dossier : approbation,113 et 114 (texte),C,visa,tout l'écran,M:texte p. 114 ; A:S90,7 Crédit,oui
 S89,Dossier : mise en place,114 (texte détaillé),C,onglets,tout l'écran (capture p. 113 à vérifier),"M:texte p. 114 ; A:S84, S54 ; R:Instr. BCC (TEG, limites)",7 Crédit,non
 S90,"Visas : responsable crédit, comité, service financier",114 et 115 (trois bandes),A,visa,,,7 Crédit,non
 S91,Historique suivi,115,A,rapport,,,7 Crédit,non
