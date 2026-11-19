@@ -1598,6 +1598,8 @@ def compte_actif(compte_id: int, verrou: bool = False) -> dict:
     c = une("select c.*, p.famille, p.compte_lie from compte_depot c join produit_epargne p on p.id = c.produit_id where c.id = %s" + (" for update of c" if verrou else ""), (compte_id,))
     if not c:
         raise ErreurMetier("Compte introuvable.")
+    if c["statut"] == "clos":
+        raise ErreurMetier("Ce compte est clôturé : plus aucune opération (Épargne > Clôturer un Compte).")      # registre S70-6
     t = une("select statut from tiers where id = %s", (c["tiers_id"],))
     controler_statut_actif(t["statut"])
     c["devise"] = c["devise"].strip()

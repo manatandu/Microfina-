@@ -143,6 +143,7 @@ export interface CompteDepot {
   devise: Devise;
   bloque: number;
   motifBlocage?: string;
+  closLe?: string;   // S70 : compte clôturé (registre S70-6)
   produitId?: number;   // S63 : produit du compte (les comptes de la graine se reconnaissent à l'intitulé et à la devise)
   ouvertLe?: string;
   cle?: string;
@@ -190,6 +191,9 @@ export interface DepotTerme {   // S65, S66
   echeance?: { interet: number; irc: number; montantVerse: number; ecritureId: number | null };   // S65 : traitement à l'échéance (reconduction ou versement)
   reconduitDe?: number;   // S65 : DAT dont celui-ci est la reconduction
 }
+/** S70 : clôture d'un compte (registre S70-1 à S70-6) */
+export interface ClotureCompte { id: number; compteId: number; motif: "demande" | "inactivite"; observation: string; dateCloture: string; solde: number; devise: Devise;
+  ecritureId: number | null; cloturePar: number; verseeBccLe: string; referenceBcc: string; compteBancaireId: number | null; ecritureVersementId: number | null }
 /** S69 : plan d'épargne (manuel p. 78 à 80), dépôt à régime spécial (PCCI, compte 35) ; registre S69 */
 export interface EcheancePlan { id: number; rang: number; datePrevue: string; capital: number; interetPrevu: number; dateReelle: string; interetReel: number; ecritureId: number | null }
 export interface PlanEpargne {
@@ -303,6 +307,7 @@ export interface Etat {
   analysesAtypiques: AnalyseAtypique[];   // écart E09
   gels: GelAvoirs[];   // écart E10
   lettresInactivite: LettreInactivite[];   // écart E11
+  clotures: ClotureCompte[];   // S70
   reversementsRetenues: ReversementRetenue[];   // écart E16
   journalSecurite: EvenementSecurite[];   // écart E17
   declarationsCip: { type: string; objetId: number; dateEvenement: string; declareLe: string; reference: string; declarePar: number }[];   // écart E06   // S46, S42, S43

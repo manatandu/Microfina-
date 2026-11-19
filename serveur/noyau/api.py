@@ -11,6 +11,7 @@ from . import procurations as pr
 from . import banques as bq
 from . import banque_operations as bop
 from . import plans_epargne as ple
+from . import clotures as clo
 from . import cheques_clients as chq
 from . import chequiers as chqr
 from . import emprunts as emp
@@ -717,6 +718,27 @@ def epargne_plans_apercu_rupture(request, pid: int):
 @api.post("/epargne/plans/{pid}/rupture")
 def epargne_plans_rompre(request, pid: int, corps: dict = Body(...)):
     return ple.rompre(u(request), pid, corps)
+
+
+# ---------- S70 : Épargne > Clôturer un Compte (manuel p. 80 ; écran complété) ----------
+@api.post("/epargne/clotures")
+def epargne_cloturer(request, corps: dict = Body(...)):
+    return clo.cloturer(u(request), corps)
+
+
+@api.post("/epargne/clotures/inactifs")
+def epargne_cloturer_inactif(request, corps: dict = Body(...)):
+    return clo.cloturer_inactif(u(request), corps)
+
+
+@api.get("/epargne/clotures/avoirs")
+def epargne_avoirs_prescription(request):
+    return clo.avoirs(u(request))
+
+
+@api.post("/epargne/clotures/versement-bcc")
+def epargne_verser_bcc(request, corps: dict = Body(...)):
+    return clo.verser_bcc(u(request), corps)
 
 
 @api.get("/banque/adhesions/apercu")

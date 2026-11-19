@@ -765,6 +765,13 @@ const OUT = process.argv[2];
   await p.waitForFunction(() => [...document.querySelectorAll('input')].some((i) => i.value === '100000')).catch(() => { throw new Error('S69 : simulation'); });
   await etape('06c29-plan-simulation');
   await p.getByRole('tab', { name: 'Nouveau' }).click(); await p.getByRole('heading', { name: 'Création du plan épargne' }).waitFor(); await etape('06c30-plan-nouveau');
+  // Clôturer un compte (S70) : un compte avec solde ne se clôture pas (registre S70-1)
+  await aller('/epargne/s70'); await p.getByRole('heading', { name: 'Clôturer un Compte' }).waitFor();
+  await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  const rcl = p.getByRole('dialog', { name: "Recherche d'un client" });
+  await rcl.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rcl.getByRole('row').filter({ hasText: 'Kalala' }).first().dblclick();
+  await p.getByLabel('N° compte : *').selectOption({ index: 1 }); await p.getByRole('button', { name: 'Clôturer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByText('encore un solde').waitFor(); await etape('06c31-cloture-refusee'); await p.getByRole('button', { name: 'Ok' }).click();
   await login('Esther Ngalula');
   // Apurement avant la résiliation (registre S48-1) : Lukusa retire tout son solde (85 000 CDF)
   await aller('/caisse/s74?op=retrait'); await client('Lukusa'); await p.getByLabel('N° compte').selectOption({ label: '0412-000320-02' });

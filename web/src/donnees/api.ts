@@ -7,7 +7,7 @@ import { graine } from "./graine";
 import { creerApiHttp } from "./http";
 import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
-  type ChequeClient, type Chequier, type DepotTerme, type PlanEpargne, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
+  type ChequeClient, type Chequier, type DepotTerme, type PlanEpargne, type ClotureCompte, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget, type CriteresAtypiques, type GelAvoirs,
 } from "./types";
@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v80";
+const CLE = "likelemba-demo-v81";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -786,7 +786,7 @@ const tiers = {
   },
   comptes(tiersId: number) {
     const masque = soldesMasques();   // registre S10-1
-    return E.comptes.filter((c) => c.tiersId === tiersId).map((c) => {
+    return E.comptes.filter((c) => c.tiersId === tiersId && !c.closLe).map((c) => {   // comptes ouverts, comme le serveur (comptes_du_tiers)
       const solde = soldeContrat(`depot:${c.id}`, c.devise, "C");
       return masque ? { ...c, solde: 0, bloque: 0, disponible: 0, masque: true } : { ...c, solde, disponible: solde - c.bloque, masque: false };
     });
@@ -2054,6 +2054,86 @@ const plansEpargne = {
   },
 };
 
+// ---------- S70 : Épargne > Clôturer un Compte (manuel p. 80 ; écran complété). Mêmes règles que serveur/noyau/clotures.py (registre S70). ----------
+function compteOuvertS70(id?: number) {
+  const c = E.comptes.find((x) => x.id === id);
+  if (!c) throw new ErreurMetier("À remplir : N° compte.");
+  if (c.closLe) throw new ErreurMetier("Ce compte n'est pas ouvert.");
+  return c;
+}
+/** Ce qui dépend encore du compte et empêche sa clôture (registre S70-2) */
+function attachesS70(c: CompteDepot) {
+  const r: string[] = [];
+  if (c.bloque > 0) r.push("un blocage en cours");
+  if (E.depotsTerme.some((x) => (x.compteEmetteurId === c.id || x.compteDatId === c.id) && (x.statut === "saisie" || x.statut === "valide"))) r.push("un DAT en cours");
+  if (E.plansEpargne.some((x) => (x.compteEpargneId === c.id || x.comptePlanId === c.id) && x.statut === "en_cours")) r.push("un plan d'épargne en cours");
+  if (E.chequesClients.some((x) => x.compteDepotId === c.id && x.statut === "depose")) r.push("un chèque en attente d'encaissement");
+  if (E.operationsBanque.some((x) => x.compteDepotId === c.id && ["saisie", "visee", "validee"].includes(x.statut))) r.push("une opération de banque en cours");
+  return r;
+}
+const vueCloture = (x: ClotureCompte) => { const c = E.comptes.find((y) => y.id === x.compteId)!, t = E.tiers.find((y) => y.id === c.tiersId);
+  return { id: x.id, compteId: x.compteId, compte: c.numero, membre: t?.numero ?? "", client: t ? titulaire(t) : "", motif: x.motif, observation: x.observation,
+    dateCloture: x.dateCloture, solde: x.solde, devise: x.devise, verseeBccLe: x.verseeBccLe, referenceBcc: x.referenceBcc }; };
+const clotures = {
+  /** À la demande du client : gratuite (Instr. BCC 37, annexe), solde nul, rien d'attaché (registre S70-1, S70-2) */
+  cloturer(d: { compteId?: number; observation?: string }) {
+    const u = exiger();
+    const c = compteOuvertS70(d.compteId);
+    const j = journees.courante();
+    if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
+    if (soldeContrat(`depot:${c.id}`, c.devise, "C") !== 0) throw new ErreurMetier("Le compte a encore un solde : le retirer d'abord au guichet (Caisse > Opération > Retrait), puis clôturer. La clôture est gratuite (Instr. BCC 37, annexe).");
+    const r = attachesS70(c);
+    if (r.length) throw new ErreurMetier(`Clôture impossible : ${r.join(", ")}.`);
+    c.closLe = j.date;
+    const x: ClotureCompte = { id: prochain(E.clotures), compteId: c.id, motif: "demande", observation: (d.observation ?? "").trim(), dateCloture: j.date, solde: 0, devise: c.devise,
+      ecritureId: null, cloturePar: u.id, verseeBccLe: "", referenceBcc: "", compteBancaireId: null, ecritureVersementId: null };
+    E.clotures.push(x); enregistrer(); return vueCloture(x);
+  },
+  /** Compte inactif depuis dix ans, lettre notée (loi 22/069, titre III, chap. Ier) : solde aux avoirs en cours de prescription, PCCI 369 (registre S70-3) */
+  cloturerInactif(d: { compteId?: number }) {
+    const u = exiger();
+    const c = compteOuvertS70(d.compteId);
+    const x = inactifs.comptes("a_cloturer").find((v) => v.compteId === c.id);
+    if (!x) throw new ErreurMetier("Ce compte n'a pas atteint dix ans sans opération ni réclamation (loi 22/069, titre III, chap. Ier).");
+    if (!x.lettreEnvoyeeLe) throw new ErreurMetier("La lettre avec accusé de réception n'a pas été notée : elle est exigée six mois avant la clôture (loi 22/069, titre III, chap. Ier ; Épargne > Comptes inactifs).");
+    const j = journees.courante();
+    if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
+    const r = attachesS70(c);
+    if (r.length) throw new ErreurMetier(`Clôture impossible : ${r.join(", ")}.`);
+    const solde = soldeContrat(`depot:${c.id}`, c.devise, "C");
+    const e = solde > 0 ? poster({ journal: "OD", journeeId: j.id, libelle: `Clôture compte inactif ${c.numero}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: [
+      { compte: c.pcci, contrat: `depot:${c.id}`, sens: "D", devise: c.devise, montant: solde, montantCdf: cdf(solde, c.devise) },
+      { compte: "369", contrat: `prescription:${c.id}`, sens: "C", devise: c.devise, montant: solde, montantCdf: cdf(solde, c.devise) }] }) : null;
+    c.closLe = j.date;
+    const y: ClotureCompte = { id: prochain(E.clotures), compteId: c.id, motif: "inactivite", observation: `Lettre du ${x.lettreEnvoyeeLe}, accusé ${x.referenceLettre}`, dateCloture: j.date,
+      solde: Math.max(solde, 0), devise: c.devise, ecritureId: e?.id ?? null, cloturePar: u.id, verseeBccLe: "", referenceBcc: "", compteBancaireId: null, ecritureVersementId: null };
+    E.clotures.push(y); enregistrer(); return vueCloture(y);
+  },
+  /** Avoirs en cours de prescription, versés ou à verser à la BCC (registre S70-4) */
+  avoirs() { lectureAdmin(["S70"]); return E.clotures.filter((x) => x.motif === "inactivite" && x.solde > 0).map(vueCloture); },
+  /** Versement à la BCC : débit 369, crédit du compte bancaire choisi ; une seule devise par versement (registre S70-5) */
+  verserBcc(d: { ids?: number[]; compteBancaireId?: number; reference?: string }) {
+    const u = exiger();
+    const ids = d.ids ?? [];
+    if (!ids.length) throw new ErreurMetier("Cochez les avoirs à verser.");
+    const ref = (d.reference ?? "").trim();
+    if (!ref) throw new ErreurMetier("À remplir : Référence du versement.");
+    const cb = E.comptesBancaires.find((x) => x.id === d.compteBancaireId);
+    if (!cb) throw new ErreurMetier("À remplir : Compte bancaire.");
+    const l = E.clotures.filter((x) => ids.includes(x.id) && x.motif === "inactivite" && x.solde > 0 && !x.verseeBccLe);
+    if (l.length !== new Set(ids).size) throw new ErreurMetier("Un avoir coché est déjà versé ou n'est pas à verser.");
+    if (l.some((x) => x.devise !== cb.devise)) throw new ErreurMetier(`Le compte bancaire est en ${cb.devise} : ne cocher que des avoirs en ${cb.devise}.`);
+    const j = journees.courante();
+    if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
+    const total = l.reduce((s, x) => s + x.solde, 0);
+    const e = poster({ journal: "OD", journeeId: j.id, libelle: `Versement à la BCC des avoirs en cours de prescription, réf. ${ref}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: [
+      ...l.map((x) => ({ compte: "369", contrat: `prescription:${x.compteId}`, sens: "D" as const, devise: cb.devise, montant: x.solde, montantCdf: cdf(x.solde, cb.devise) })),
+      { compte: cb.compte, sens: "C", devise: cb.devise, montant: total, montantCdf: cdf(total, cb.devise) }] });
+    for (const x of l) Object.assign(x, { verseeBccLe: j.date, referenceBcc: ref, compteBancaireId: cb.id, ecritureVersementId: e.id });
+    enregistrer(); return { total, devise: cb.devise, avoirs: clotures.avoirs() };
+  },
+};
+
 const banques = {
   lire() {
     exiger();
@@ -2174,6 +2254,7 @@ const guichet = {
     const prec = dejaFaite(p.cle); if (prec) return prec;
     const c = E.comptes.find((x) => x.id === p.compteId);
     if (!c) throw new ErreurMetier("Compte introuvable.");
+    if (c.closLe) throw new ErreurMetier("Ce compte est clôturé : plus aucune opération (Épargne > Clôturer un Compte).");   // registre S70-6
     controlerCollecteEpargne(familleDuCompte(c));   // loi 11/020, art. 12
     controlerOperer(c);   // registre S74-5
     const { u, s } = sessionOuverte(c.devise);
@@ -2196,6 +2277,7 @@ const guichet = {
     const prec = E.operations.find((o) => o.cle === p.cle && (o.statut === "validee" || o.statut === "visa_requis")); if (prec) return prec;
     const c = E.comptes.find((x) => x.id === p.compteId);
     if (!c) throw new ErreurMetier("Compte introuvable.");
+    if (c.closLe) throw new ErreurMetier("Ce compte est clôturé : plus aucune opération (Épargne > Clôturer un Compte).");   // registre S70-6
     controlerGel(c.tiersId);   // écart E10
     const { u, s } = sessionOuverte(c.devise);
     const t = E.tiers.find((x) => x.id === c.tiersId)!;
@@ -2582,7 +2664,7 @@ const inactifs = {
   comptes(statut = "") {
     lectureAdmin(["SE01"]); const jour = jourConformite();
     return E.comptes.flatMap((c) => {
-      const t = E.tiers.find((x) => x.id === c.tiersId); if (!t) return [];
+      const t = E.tiers.find((x) => x.id === c.tiersId); if (!t || c.closLe) return [];
       const dates = [...E.ecritures.filter((e) => e.journal !== "AN" && e.lignes.some((l) => l.contrat === `depot:${c.id}`)).map((e) => dateJournee(e.journeeId)),
         ...E.plaintes.filter((p) => p.tiersId === t.id).map((p) => p.recueLe), c.ouvertLe ?? ""].filter(Boolean).sort();
       const derniere = dates.at(-1); if (!derniere) return [];
@@ -4513,6 +4595,7 @@ const apiLocal = {
   releves: asynchrone(releves, "releves"),
   depotsTerme: asynchrone(depotsTerme, "depotsTerme"),
   plansEpargne: asynchrone(plansEpargne, "plansEpargne"),
+  clotures: asynchrone(clotures, "clotures"),
   conformite: asynchrone(conformite, "conformite"),
   inactifs: asynchrone(inactifs, "inactifs"),
   registreMembres: asynchrone(registreMembres, "registreMembres"),

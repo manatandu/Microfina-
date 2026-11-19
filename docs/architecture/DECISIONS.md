@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**436 décisions.** Solidité : 185 fortes (le manuel ou un texte répond), 215 moyennes (déduites d'un écran voisin ou d'une donnée), 36 faibles (notre choix, faute de mieux). Dans le code : 418 déjà en place, 15 à appliquer.
+**442 décisions.** Solidité : 188 fortes (le manuel ou un texte répond), 218 moyennes (déduites d'un écran voisin ou d'une donnée), 36 faibles (notre choix, faute de mieux). Dans le code : 425 déjà en place, 15 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -848,6 +848,17 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S69-8 | Rupture | Écran sur le modèle de la rupture de DAT (S67) : le versé et l'intérêt acquis des échéances cotisées dont la date est atteinte, moins la retenue de 20 %, reviennent au compte épargne ; sans pénalité | Choix du porteur : Titre p. 80 ; capture p. 77 ; décision du porteur, 19/11/2026 | forte | en place |
 | S69-9 | Compte des intérêts | PCCI 613 selon le compte du plan : 6132 épargne-logement (352), 6133 épargne-retraite (353), 6134 autres comptes d'épargne à régime spécial | Texte réglementaire : PCCI, compte 613 | forte | en place |
 
+## S70 Clôturer un compte
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S70-1 | Clôture à la demande | Client, N° compte (comptes ouverts), solde affiché, frais de clôture 0, observation, Clôturer avec confirmation Oui/Non. Refus tant que le compte a un solde : on le retire d'abord au guichet (S74), comme pour la résiliation | Écran voisin : Instr. BCC 37, annexe (« Clôture de compte » gratuite) ; registre S48-1 et S48-2 | moyenne | en place |
+| S70-2 | Ce qui empêche la clôture | Un blocage en cours, un DAT saisi ou validé, un plan d'épargne en cours, un chèque déposé en attente, une opération de banque en cours sur le compte | Écran voisin : Chaînes d'états des écrans S59, S65, S69, S71 (COMPLEMENTS § 6) | moyenne | en place |
+| S70-3 | Compte inactif | Depuis Épargne > Comptes inactifs, pour un compte à dix ans sans opération ni réclamation dont la lettre avec accusé de réception est notée : le compte est clos et son solde passe aux avoirs en cours de prescription (débit du compte de dépôt, crédit 369, journal OD) | Texte réglementaire : Loi 22/069, titre III, chap. Ier ; PCCI, compte 36 (avoirs en cours de prescription, 369) | forte | en place |
+| S70-4 | Avoirs en cours de prescription | Liste des comptes inactifs clôturés avec leur solde, la date et la référence du versement à la BCC ; lecture réservée au droit S70 | Texte réglementaire : Loi 22/069, titre III, chap. Ier | forte | en place |
+| S70-5 | Versement à la BCC | Avoirs cochés d'une même devise, compte bancaire de l'institution choisi, référence obligatoire : débit 369, crédit du compte bancaire, journal OD | Texte réglementaire : Loi 22/069, titre III, chap. Ier (« versés ou déposés à la Banque centrale du Congo ») ; PCCI, compte 36 | moyenne | en place |
+| S70-6 | Compte clos | Plus aucune opération : dépôt, retrait et autres opérations sur un compte clos sont refusés ; il sort des listes de comptes du client et des comptes inactifs. Droit S70 au chef d'agence | Choix du porteur : Conséquence de la clôture ; registre S04-1 | forte | en place |
+
 ## E01 Examen renforcé
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
@@ -930,7 +941,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | E11-1 | Où et pour qui | Écran Épargne > Comptes inactifs (SE01, chef d'agence). Il liste les comptes ouverts dont la dernière opération remonte à neuf ans et six mois ou plus : lettre à envoyer, lettre envoyée, à clôturer | Texte réglementaire : Loi 22/069, titre Ier (s'applique aux COOPEC et sociétés de microfinance) et titre III, chap. Ier (dix ans ; lettre six mois avant) | forte | en place |
 | E11-2 | Dernière opération | La plus récente de : dernier mouvement du compte hors reprise des soldes, dernière plainte du client (réclamation), date d'ouverture du compte. Une lettre vise une date de dernière opération : une opération plus récente la rend caduque | Texte réglementaire : Loi 22/069, titre III, chap. Ier (« aucune opération ou réclamation » des titulaires ou ayants droit) ; registre E09-4 (reprise des soldes) | forte | en place |
-| E11-3 | Lettre, clôture et versement | La lettre s'imprime (titulaire, compte, solde, date des dix ans, texte de la loi) ; son envoi se note avec la référence de l'accusé de réception. La clôture et le versement des fonds à la BCC ne s'écrivent pas encore : l'écran les signale. Ils viendront avec la clôture de compte (S70) et le schéma comptable de la remise à la BCC, à lire dans le PCCI | Texte réglementaire : Loi 22/069, titre III, chap. Ier ; PCCI, compte 36 (avoirs en cours de prescription) | moyenne | à faire |
+| E11-3 | Lettre, clôture et versement | La lettre s'imprime (titulaire, compte, solde, date des dix ans, texte de la loi) ; son envoi se note avec la référence de l'accusé de réception. La clôture et le versement des fonds à la BCC ne s'écrivent pas encore : l'écran les signale. Ils viendront avec la clôture de compte (S70) et le schéma comptable de la remise à la BCC, à lire dans le PCCI — En place (19/11/2026) : clôture depuis l'écran des comptes inactifs, solde au 369, versement à la BCC depuis S70 (registre S70-3 à S70-5) | Texte réglementaire : Loi 22/069, titre III, chap. Ier ; PCCI, compte 36 (avoirs en cours de prescription) | moyenne | en place |
 
 ## E12 Registre des membres
 

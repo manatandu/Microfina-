@@ -1128,6 +1128,36 @@ describe("journée de guichet", () => {
     await expect(api.connexions.lire()).rejects.toThrow("Droit manquant");
   });
 
+  it("clôture d'un compte (S70) : à la demande, solde nul ; inactif depuis dix ans, lettre notée, solde au 369 puis versé à la BCC (loi 22/069, titre III, chap. Ier)", async () => {
+    const { s } = await journeeOuverte();
+    await connecter("jpmukendi");
+    const kalala = _etat().comptes.find((c) => c.numero === "0412-000318-02")!;
+    await expect(api.clotures.cloturer({ compteId: kalala.id })).rejects.toThrow("encore un solde");
+    const luk = _etat().comptes.find((c) => c.numero === "0412-000320-02")!;
+    luk.ouvertLe = "2016-04-01";
+    await expect(api.clotures.cloturerInactif({ compteId: luk.id })).rejects.toThrow("lettre");
+    await api.inactifs.noterLettre(luk.id, { date: "2026-05-01", reference: "AR-0007" });
+    const solde = (ref: string) => _etat().ecritures.flatMap((e) => e.lignes).filter((l) => l.contrat === ref).reduce((x, l) => x + (l.sens === "C" ? l.montant : -l.montant), 0);
+    const s0 = solde(`depot:${luk.id}`);
+    expect(s0).toBeGreaterThan(0);
+    const v = await api.clotures.cloturerInactif({ compteId: luk.id });
+    expect([v.motif, v.solde]).toEqual(["inactivite", s0]);
+    expect([solde(`depot:${luk.id}`), solde(`prescription:${luk.id}`)]).toEqual([0, s0]);
+    await connecter("engalula");
+    await expect(api.guichet.depot({ cle: cle(), compteId: luk.id, montant: 1000000, coupures: { 10000: 1 } })).rejects.toThrow("clôturé");
+    await connecter("jpmukendi");
+    await api.banques.enregistrerBanque({ code: "BCC", libelle: "Banque Centrale du Congo", compteLiaison: "5601", adresse: "" });
+    const b = (await api.banques.lire()).banques.find((x) => x.code === "BCC")!;
+    await api.banques.enregistrerCompte({ banqueId: b.id, compte: "56010003", numeroBancaire: "BCC-CDF", devise: "CDF", journalId: (await api.banques.lire()).journaux[0]!.id, contactNom: "Service", contactNomComplet: "", contactTelephone: "", contactAdresse: "", comptePenalite: "" } as never);
+    const cb = (await api.banques.lire()).comptes.find((c) => c.numeroBancaire === "BCC-CDF")!;
+    const a = await api.clotures.avoirs();
+    await expect(api.clotures.verserBcc({ ids: [a[0]!.id], compteBancaireId: cb.id })).rejects.toThrow("Référence");
+    const w = await api.clotures.verserBcc({ ids: [a[0]!.id], compteBancaireId: cb.id, reference: "BCC-2026-114" });
+    expect([w.total, w.avoirs[0]!.verseeBccLe, solde(`prescription:${luk.id}`)]).toEqual([s0, "2026-11-05", 0]);
+    expect(await soldeCdfGrandLivre()).toBe(0);
+    void s;
+  });
+
   it("plan d'épargne (S69, p. 78 à 80) : taux du produit, intérêt par échéance sur le cumul, cotisations sur le compte épargne, rupture sans pénalité, fin à l'ouverture", async () => {
     await connecter("jpmukendi");
     await api.journees.ouvrir("2026-11-05");

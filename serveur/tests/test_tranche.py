@@ -2303,6 +2303,54 @@ def test_comptes_inactifs(clients, journee):
     assert all(x["compte"] != "0412-000320-02" for x in chef.get("/api/epargne/inactifs", **H).json())
 
 
+def test_cloture_compte(clients, journee):
+    """S70 (manuel p. 80, écran complété) : clôture à la demande, gratuite, solde nul (Instr. BCC 37, annexe ; registre S48-1) ;
+    compte inactif depuis dix ans, lettre notée : solde aux avoirs en cours de prescription (PCCI 369), puis versé à la BCC (loi 22/069, titre III, chap. Ier)"""
+    from noyau.bd import executer
+    chef, agent, caisse = clients["chef"], clients["agent"], clients["caisse"]
+    solde = lambda ref: ident("select coalesce(sum(case sens when 'C' then montant_devise else -montant_devise end), 0) from ligne_ecriture where contrat_ref = %s", (ref,))
+    cdf = C("0412-000318-02")
+    r = chef.post("/api/epargne/clotures", {"compteId": cdf}, **H); assert r.status_code == 422 and "encore un solde" in r.json()["message"]
+    assert agent.post("/api/epargne/clotures", {"compteId": cdf}, **H).status_code == 403
+    # Compte inactif : Lukusa, sans opération depuis le 01/04/2016 ; la lettre d'abord
+    luk = C("0412-000320-02")
+    executer("update compte_depot set ouvert_le = '2016-04-01' where id = %s", (luk,))
+    r = chef.post("/api/epargne/clotures/inactifs", {"compteId": luk}, **H); assert r.status_code == 422 and "lettre" in r.json()["message"]
+    assert chef.post(f"/api/epargne/inactifs/{luk}/lettre", {"date": "2026-05-01", "reference": "AR-0007"}, **H).status_code == 200
+    s0 = solde(f"depot:{luk}")
+    assert s0 > 0
+    v = chef.post("/api/epargne/clotures/inactifs", {"compteId": luk}, **H).json()
+    assert (v["motif"], v["solde"], v["verseeBccLe"]) == ("inactivite", s0, "")
+    assert (solde(f"depot:{luk}"), solde(f"prescription:{luk}")) == (0, s0)
+    assert all(x["compte"] != "0412-000320-02" for x in chef.get("/api/epargne/inactifs", **H).json())
+    r = caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": luk, "montant": 1000000, "coupures": {"10000": 1}, "mandataire": ""}, **H)
+    assert r.status_code == 422 and "clôturé" in r.json()["message"]                                # registre S70-6
+    # Versement à la BCC depuis le compte de l'institution à la BCC
+    bid = chef.post("/api/banques", {"code": "BCC", "libelle": "Banque Centrale du Congo", "compteLiaison": "5601", "adresse": ""}, **H).json()["banques"][0]["id"]
+    j = chef.get("/api/banques").json()["journaux"][0]["id"]
+    assert chef.post("/api/banques/comptes", {"banqueId": bid, "compte": "56010003", "numeroBancaire": "BCC-CDF", "devise": "CDF", "journalId": j, "contactNom": "Service"}, **H).status_code == 200
+    cb = next(c["id"] for c in chef.get("/api/banques").json()["comptes"] if c["numeroBancaire"] == "BCC-CDF")
+    a = chef.get("/api/epargne/clotures/avoirs", **H).json()
+    assert [x["compte"] for x in a] == ["0412-000320-02"]
+    r = chef.post("/api/epargne/clotures/versement-bcc", {"ids": [a[0]["id"]], "compteBancaireId": cb}, **H); assert r.status_code == 422 and "Référence" in r.json()["message"]
+    w = chef.post("/api/epargne/clotures/versement-bcc", {"ids": [a[0]["id"]], "compteBancaireId": cb, "reference": "BCC-2026-114"}, **H).json()
+    assert (w["total"], w["avoirs"][0]["verseeBccLe"], w["avoirs"][0]["referenceBcc"]) == (s0, "2026-11-05", "BCC-2026-114")
+    assert solde(f"prescription:{luk}") == 0
+    r = chef.post("/api/epargne/clotures/versement-bcc", {"ids": [a[0]["id"]], "compteBancaireId": cb, "reference": "X"}, **H); assert r.status_code == 422
+    # Clôture à la demande : un compte ouvert sans solde
+    P = {"numero": 8, "code": "EPV", "famille": "EPARGNE", "libelle": "Épargne vacances", "devise": "USD", "soldeMinimum": 0, "nbMaxComptes": 1,
+         "operer": True, "depotCheque": False, "caution": False, "nantissement": False, "calculerInteret": False, "soldeNegatif": False, "repartitionGroupe": False, "actif": True}
+    assert chef.post("/api/produits-epargne", P, **H).status_code == 200
+    pid = next(x["id"] for x in chef.get("/api/produits-epargne").json()["produits"] if x["code"] == "EPV")
+    rn = agent.post("/api/epargne/comptes", {"cle": cle(), "tiersId": T("0412-000318"), "produitId": pid}, **H)
+    assert rn.status_code == 200, rn.content
+    neuf = rn.json()["id"]
+    v = chef.post("/api/epargne/clotures", {"compteId": neuf, "observation": "Demande du client"}, **H).json()
+    assert (v["motif"], v["solde"], v["observation"]) == ("demande", 0, "Demande du client")
+    assert chef.post("/api/epargne/clotures", {"compteId": neuf}, **H).status_code == 422                 # déjà clos
+    assert balance_equilibree(clients["compta"])
+
+
 def test_registre_des_membres(clients, journee):
     """Écart E12 : AUSCOOP, art. 9 ; loi 002/2002, art. 67"""
     from noyau.bd import executer

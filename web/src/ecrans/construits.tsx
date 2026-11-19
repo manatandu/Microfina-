@@ -16,6 +16,7 @@ import RetenuesReverser from "./RetenuesReverser";
 import JournalSecurite from "./JournalSecurite";
 import { MiseEnPlaceDat, RechercheDat, RuptureDat, ValidationDat } from "./DepotsTerme";
 import PlanEpargne from "./PlanEpargne";
+import ClotureCompte from "./Clotures";
 import type { ComponentType } from "react";
 import GuichetDepotRetrait from "./Guichet";
 import Adhesion from "./Adhesion";
@@ -132,6 +133,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S67: RuptureDat,
   S68: RechercheDat,
   S69: PlanEpargne,
+  S70: ClotureCompte,
   SC01: ExamenRenforce,
   SC02: CentraleIncidents,
   SC03: Plaintes,

@@ -73,6 +73,12 @@ export default function ComptesInactifs() {
           <div className="actions-onglets">
             <button className="bouton secondaire" type="button" onClick={async () => setLettre(await api.inactifs.lettre(choisi.compteId))}>Imprimer la lettre</button>
             {!choisi.lettreEnvoyeeLe && <button className="bouton" type="button" onClick={noter}>Noter l'envoi</button>}
+            {/* S70 : clôture et passage des fonds aux avoirs en cours de prescription, une fois les dix ans atteints et la lettre notée (registre S70-3) */}
+            {choisi.statut === "a_cloturer" && choisi.lettreEnvoyeeLe && <button className="bouton" type="button" onClick={() => setBoite({ type: "confirmation",
+              message: `Voulez-vous vraiment clôturer le compte ${choisi.compte} ?`, oui: async () => {
+                try { await api.clotures.cloturerInactif({ compteId: choisi.compteId }); setChoisi(null); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+                catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+              } })}>Clôturer le compte</button>}
             <button className="bouton secondaire" type="button" onClick={() => setChoisi(null)}>Fermer</button>
           </div>
         </div>}

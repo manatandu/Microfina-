@@ -52,6 +52,12 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       rompre: (id: number, d: object) => post(`/epargne/dat/${id}/rupture`, d),
       recherche: (choix: string, du: string, au: string) => get(`/epargne/dat/recherche?choix=${choix}&du=${du}&au=${au}`),
     },
+    clotures: {
+      cloturer: (d: object) => post("/epargne/clotures", d),
+      cloturerInactif: (d: object) => post("/epargne/clotures/inactifs", d),
+      avoirs: () => get("/epargne/clotures/avoirs"),
+      verserBcc: (d: object) => post("/epargne/clotures/versement-bcc", d),
+    },
     plansEpargne: {
       contexte: () => get("/epargne/plans/contexte"),
       simuler: (d: object) => post("/epargne/plans/simulation", d),
