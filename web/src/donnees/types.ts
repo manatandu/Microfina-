@@ -282,7 +282,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 62;
+  version: 63;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)
@@ -317,6 +317,7 @@ export interface Etat {
   demandes: DemandeCredit[];   // S86 à S88
   fondsPropres: { dateArrete: string; montant: number; saisiPar: number }[];   // registre CR-2
   credits: CreditPret[];   // S89 et suivants
+  visasCredit: VisaCredit[];   // S90
   reversementsRetenues: ReversementRetenue[];   // écart E16
   journalSecurite: EvenementSecurite[];   // écart E17
   declarationsCip: { type: string; objetId: number; dateEvenement: string; declareLe: string; reference: string; declarePar: number }[];   // écart E06   // S46, S42, S43
@@ -447,6 +448,10 @@ export interface CreditPret {
   agentId: number; ligneBudgetId: number | null; ligneFinancement: string; bailleur: string; structure: string; compteEpargneId: number | null;
   compteSolidariteId: number | null; epargneObligatoire: number; fondsSolidarite: number; frais: number; assurance: number; assureurId: number | null;
   objetId: number; tegR: number | null; tegA: number | null; parts: { membre: string; montant: number }[];
-  statut: "mis_en_place" | "vise" | "debloque" | "solde" | "passe_en_perte"; misEnPlacePar: number; misEnPlaceLe: string; debloqueLe: string;
+  statut: "mis_en_place" | "vise" | "refuse" | "debloque" | "solde" | "passe_en_perte"; misEnPlacePar: number; misEnPlaceLe: string; debloqueLe: string;
   echeancier: { rang: number; date: string; capital: number; interet: number }[];
 }
+
+/** S90 : visa d'un niveau (registre S90, CR-4, CR-5) */
+export interface VisaCredit { creditId: number; niveau: "responsable_credit" | "comite" | "service_financier"; avis: "accepte" | "refuse"; par: number; le: string;
+  motif: string; referencePv: string; membres: { nom: string; avis: "accepte" | "refuse" }[] }

@@ -10,7 +10,7 @@ import {
   type ChequeClient, type Chequier, type DepotTerme, type PlanEpargne, type ClotureCompte, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget, type CriteresAtypiques, type GelAvoirs,
-  type AnalyseFinanciere, type DemandeCredit, type CreditPret,
+  type AnalyseFinanciere, type DemandeCredit, type CreditPret, type VisaCredit,
 } from "./types";
 import { DROITS_METHODES } from "./droits.gen";
 import registreEcrans from "../ecrans/registre.json";
@@ -20,7 +20,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v85";
+const CLE = "likelemba-demo-v86";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -28,7 +28,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 62) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 63) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -2944,6 +2944,69 @@ const miseEnPlace = {
   },
 };
 
+// ---------- S90 à S92 : Crédit > Suivi dossier crédit (manuel p. 114 et 115). Mêmes règles que serveur/noyau/visas_credit.py. Registre S90-1 à S92-3, CR-4, CR-5. ----------
+const NIVEAUX_VISA = ["responsable_credit", "comite", "service_financier"] as const;
+type NiveauVisa = (typeof NIVEAUX_VISA)[number];
+const ligneVisa = (c: CreditPret) => { const t = E.tiers.find((x) => x.id === c.tiersId)!;
+  const compte = c.compteEpargneId ? E.comptes.find((x) => x.id === c.compteEpargneId)?.numero : E.comptes.filter((x) => x.tiersId === c.tiersId && !x.closLe).map((x) => x.numero).sort()[0];
+  return { id: c.id, numero: c.numero, dateDemande: E.demandes.find((d) => d.id === c.demandeId)?.creeLe ?? "", compte: compte ?? "", client: titulaire(t), montant: c.montant,
+    devise: c.devise, duree: c.duree, produit: String(E.produitsCredit.find((p) => p.id === c.produitId)?.nom ?? ""), agentId: c.agentId, agent: nomUtilisateur(c.agentId),
+    groupe: t.type === "groupe" ? titulaire(t) : "" }; };
+const niveauVisa = (n: string): NiveauVisa => { if (!NIVEAUX_VISA.includes(n as NiveauVisa)) throw new ErreurMetier("Niveau hiérarchique inconnu."); return n as NiveauVisa; };
+const dateVisa = (v: string, nom: string) => { if (!DATE_ISO.test(v ?? "")) throw new ErreurMetier(`À remplir : ${nom}.`); return v; };
+const visasCredit = {
+  contexte() {
+    lectureAdmin(["S90", "S91", "S92"]);
+    return { agents: E.utilisateurs.filter((x) => (x.agenceId ?? 1) === E.agence.id).map((x) => ({ id: x.id, nom: x.nom })).sort((a, b) => a.nom.localeCompare(b.nom)), coopec: estCoopec() };
+  },
+  /** La file d'un niveau : le niveau précédent a accepté, celui-ci n'a pas visé (registre CR-5) */
+  aViser(niveau: string, agentId?: number | null) {
+    lectureAdmin(["S90", "S91", "S92"]);
+    const n = niveauVisa(niveau), i = NIVEAUX_VISA.indexOf(n);
+    return E.credits.filter((c) => c.statut === "mis_en_place" && (i === 0 || E.visasCredit.some((v) => v.creditId === c.id && v.niveau === NIVEAUX_VISA[i - 1] && v.avis === "accepte"))
+      && !E.visasCredit.some((v) => v.creditId === c.id && v.niveau === n) && (!agentId || c.agentId === agentId)).map(ligneVisa);
+  },
+  /** Viser : avis, motif d'un refus ; comité d'une COOPEC : trois membres, unanimité (registre S90-2 à S90-5, CR-4) */
+  viser(id: number, niveau: string, d: { avis?: string; motif?: string; referencePv?: string; membres?: { nom: string; avis: string }[] }) {
+    const u = exiger();
+    const n = niveauVisa(niveau);
+    const c = E.credits.find((x) => x.id === id);
+    if (!c || !visasCredit.aViser(n).some((x) => x.id === id)) throw new ErreurMetier("Ce crédit n'attend pas ce visa.");
+    if (c.misEnPlacePar === u.id) throw new ErreurMetier("Quatre yeux : le visa est donné par un autre utilisateur que celui qui a mis le crédit en place.");
+    let avis = d.avis;
+    let membres: VisaCredit["membres"] = [];
+    if (n === "comite" && estCoopec()) {
+      if (!Array.isArray(d.membres) || d.membres.length !== 3) throw new ErreurMetier("Commission de crédit : les trois membres et l'avis de chacun (loi 002/2002, art. 41).");
+      membres = d.membres.map((m) => { const nom = typeof m?.nom === "string" ? m.nom.trim() : "";
+        if (!nom || (m.avis !== "accepte" && m.avis !== "refuse")) throw new ErreurMetier("Commission de crédit : le nom et l'avis de chacun des trois membres.");
+        return { nom, avis: m.avis }; });
+      avis = membres.every((m) => m.avis === "accepte") ? "accepte" : "refuse";   // unanimité (art. 43 ; Instr. BCC 007, art. 32)
+    }
+    if (avis !== "accepte" && avis !== "refuse") throw new ErreurMetier("À remplir : Avis.");
+    const motif = d.motif?.trim() ?? "";
+    if (avis === "refuse" && !motif) throw new ErreurMetier("À remplir : motif du refus.");
+    E.visasCredit.push({ creditId: id, niveau: n, avis, par: u.id, le: jourDossier(), motif, referencePv: d.referencePv?.trim() ?? "", membres });
+    if (avis === "refuse") c.statut = "refuse"; else if (n === "service_financier") c.statut = "vise";
+    enregistrer(); return { credit: ligneVisa(c), avis, statut: c.statut };
+  },
+  historique(niveau: string, avis: string, du: string, au: string) {
+    lectureAdmin(["S91"]);
+    const n = niveauVisa(niveau);
+    if (avis !== "accepte" && avis !== "refuse") throw new ErreurMetier("À remplir : Avis.");
+    dateVisa(du, "Du"); dateVisa(au, "A");
+    return E.visasCredit.filter((v) => v.niveau === n && v.avis === avis && v.le >= du && v.le <= au).map((v) => ({ ...ligneVisa(E.credits.find((c) => c.id === v.creditId)!),
+      visaLe: v.le, visePar: nomUtilisateur(v.par), motif: v.motif, membres: v.membres, referencePv: v.referencePv }));
+  },
+  /** « Archivés » : les crédits validés déjà débloqués s'y ajoutent (registre S92-2) */
+  validesNonDebloques(du: string, au: string, agentId?: number | null, archives = false) {
+    lectureAdmin(["S92"]);
+    dateVisa(du, "Du"); dateVisa(au, "A");
+    const statuts = archives ? ["vise", "debloque", "solde"] : ["vise"];
+    return E.credits.filter((c) => statuts.includes(c.statut) && (!agentId || c.agentId === agentId)).filter((c) => { const d = E.demandes.find((x) => x.id === c.demandeId)?.creeLe ?? "";
+      return d >= du && d <= au; }).map(ligneVisa);
+  },
+};
+
 // ---------- S83 : Caisse > Rapport > Journal des opérations de caisse (manuel p. 95 ; doublon p. 109). Règles identiques côté serveur (noyau/journal_caisse.py).
 // Lignes du compte du guichet : débit à l'entrée d'espèces, crédit à la sortie (PCCI, compte 57). Registre S83-1 à S83-5. ----------
 const journalCaisse = {
@@ -5285,6 +5348,7 @@ const apiLocal = {
   analyses: asynchrone(analyses, "analyses"),
   dossiers: asynchrone(dossiers, "dossiers"),
   miseEnPlace: asynchrone(miseEnPlace, "miseEnPlace"),
+  visasCredit: asynchrone(visasCredit, "visasCredit"),
   societe: asynchrone(societe, "societe"),
   agents: asynchrone(agents, "agents"),
   jours: asynchrone(jours, "jours"),

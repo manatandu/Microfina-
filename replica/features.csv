@@ -91,9 +91,9 @@ Contrôle de la demande,crédit,must,yes,yes,S87
 Approbation,crédit,must,yes,partial,S88 ; plafond par membre ou par client et apparentés avant déblocage (Instr. BCC 002 art. 25 à 29)
 Mise en place du prêt : financement épargne obligatoire solidarité assurance objet zone agent,crédit,must,yes,partial,S89
 TEG affiché sur le dossier,crédit,must,yes,partial,S89 ; formule de l'Instr. BCC 38 à lire avant de coder
-Visas responsable crédit comité service financier,crédit,must,yes,no,S90 ; commission de crédit avec accès en lecture (constats U7 C38)
-Historique des visas,crédit,must,yes,no,S91
-Crédits validés non débloqués,crédit,must,yes,no,S92
+Visas responsable crédit comité service financier,crédit,must,yes,yes,S90 ; commission de crédit avec accès en lecture (constats U7 C38)
+Historique des visas,crédit,must,yes,yes,S91
+Crédits validés non débloqués,crédit,must,yes,partial,S92
 État de crédit,crédit,must,yes,no,S93
 Cautions dépôts de garantie nantissements,crédit,must,yes,no,S94 ; types de garantie à identifier (PCCI § 10.8)
 Consulter un prêt,crédit,must,yes,no,S95

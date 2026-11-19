@@ -1494,6 +1494,49 @@ def test_mise_en_place(clients, journee):
     assert "pas en attente" in agent.post(f"/api/credit/mise-en-place/{did}", m, **H).json()["message"]
 
 
+def credit_mis_en_place(clients) -> int:
+    """Crédit de Kalala mis en place par l'agent (S89), en attente des visas"""
+    chef, agent = clients["chef"], clients["agent"]
+    _, did, _ = credit_approuve(clients)
+    objet = objet_credit(chef)
+    a = agent.post(f"/api/credit/mise-en-place/{did}/apercu", {}, **H).json()
+    zone = agent.get("/api/credit/mise-en-place/contexte", **H).json()["zones"][0]["id"]
+    c = agent.post(f"/api/credit/mise-en-place/{did}", {"compteEpargneId": a["comptes"][0]["id"], "objetId": objet, "zoneId": zone, "agentId": a["demande"]["agentId"]}, **H)
+    assert c.status_code == 200, c.content
+    return c.json()["id"]
+
+
+def test_visas_credit(clients, journee):
+    """S90 à S92 (p. 114 et 115) : trois visas dans l'ordre (CR-5), quatre yeux, commission de crédit d'une COOPEC à l'unanimité (loi 002/2002, art. 41 à 43 ;
+    CR-4), historique, crédits validés non débloqués"""
+    chef, agent, compta = clients["chef"], clients["agent"], clients["compta"]
+    cid = credit_mis_en_place(clients)
+    file = lambda c, n: [x["id"] for x in c.get(f"/api/credit/visas?niveau={n}", **H).json()]
+    assert file(chef, "responsable_credit") == [cid] and file(chef, "comite") == []
+    assert "Quatre yeux" in agent.post(f"/api/credit/visas/{cid}/responsable_credit", {"avis": "accepte"}, **H).json()["message"]
+    assert "attend pas ce visa" in chef.post(f"/api/credit/visas/{cid}/comite", {"avis": "accepte"}, **H).json()["message"]
+    assert chef.post(f"/api/credit/visas/{cid}/responsable_credit", {"avis": "accepte"}, **H).json()["avis"] == "accepte"
+    assert "trois membres" in chef.post(f"/api/credit/visas/{cid}/comite", {"avis": "accepte"}, **H).json()["message"]
+    m = [{"nom": "Mbala", "avis": "accepte"}, {"nom": "Ilunga", "avis": "accepte"}, {"nom": "Kabeya", "avis": "accepte"}]
+    assert chef.post(f"/api/credit/visas/{cid}/comite", {"membres": m, "referencePv": "PV-12"}, **H).json()["avis"] == "accepte"
+    r = compta.post(f"/api/credit/visas/{cid}/service_financier", {"avis": "accepte"}, **H).json()
+    assert r["statut"] == "vise"
+    assert [x["id"] for x in chef.get("/api/credit/valides-non-debloques?du=2026-01-01&au=2026-12-31", **H).json()] == [cid]
+    h = chef.get("/api/credit/visas-historique?niveau=comite&avis=accepte&du=2026-01-01&au=2026-12-31", **H).json()
+    assert h[0]["numero"] == "0412/L001/00001" and h[0]["referencePv"] == "PV-12" and len(h[0]["membres"]) == 3
+
+
+def test_commission_unanime(clients, journee):
+    """Un seul avis contraire de la commission de crédit refuse le crédit (loi 002/2002, art. 43 ; Instr. BCC 007, art. 32)"""
+    chef = clients["chef"]
+    cid = credit_mis_en_place(clients)
+    chef.post(f"/api/credit/visas/{cid}/responsable_credit", {"avis": "accepte"}, **H)
+    m = [{"nom": "Mbala", "avis": "accepte"}, {"nom": "Ilunga", "avis": "refuse"}, {"nom": "Kabeya", "avis": "accepte"}]
+    assert "motif" in chef.post(f"/api/credit/visas/{cid}/comite", {"membres": m}, **H).json()["message"]
+    r = chef.post(f"/api/credit/visas/{cid}/comite", {"membres": m, "motif": "Capacité insuffisante"}, **H).json()
+    assert (r["avis"], r["statut"]) == ("refuse", "refuse")
+
+
 def test_produit_credit(clients):
     """S23 (p. 37 et 38) : Information de base de la capture ; méthode dégressive (Instr. BCC 38, art. 11) ; garanties, assurance, frais
     (Instr. BCC 38 art. 6, Instr. BCC 40 art. 8) ; pénalité d'anticipation au plus 50 % (Instr. BCC 38, art. 14) ; registre S23-1 à S23-7"""

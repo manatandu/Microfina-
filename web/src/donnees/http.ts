@@ -60,6 +60,14 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       indicateurs: (date: string, auxiliaires: boolean) => get(`/epargne/rapports/indicateurs?date=${date}&auxiliaires=${auxiliaires}`),
       inactivite: (date: string, jours: number | null, tous: boolean) => get(`/epargne/rapports/inactivite?date=${date}${jours === null ? "" : `&jours=${jours}`}&tous=${tous}`),
     },
+    visasCredit: {
+      contexte: () => get("/credit/visas/contexte"),
+      aViser: (niveau: string, agentId?: number | null) => get(`/credit/visas?niveau=${niveau}${agentId ? `&agentId=${agentId}` : ""}`),
+      viser: (id: number, niveau: string, d: unknown) => post(`/credit/visas/${id}/${niveau}`, d),
+      historique: (niveau: string, avis: string, du: string, au: string) => get(`/credit/visas-historique?niveau=${niveau}&avis=${avis}&du=${du}&au=${au}`),
+      validesNonDebloques: (du: string, au: string, agentId?: number | null, archives = false) =>
+        get(`/credit/valides-non-debloques?du=${du}&au=${au}${agentId ? `&agentId=${agentId}` : ""}&archives=${archives}`),
+    },
     miseEnPlace: {
       contexte: () => get("/credit/mise-en-place/contexte"),
       apercu: (id: number, d: unknown) => post(`/credit/mise-en-place/${id}/apercu`, d),

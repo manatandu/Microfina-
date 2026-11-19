@@ -105,9 +105,9 @@ S86,Dossier : analyse (demande),113,B,onglets,page de détail après Suivant,M:t
 S87,Dossier : contrôle,113 (texte),C,visa,tout l'écran,M:texte p. 113 ; A:S90,7 Crédit,oui
 S88,Dossier : approbation,113 et 114 (texte),C,visa,tout l'écran,M:texte p. 114 ; A:S90,7 Crédit,oui
 S89,Dossier : mise en place,114 (texte détaillé),C,onglets,tout l'écran (capture p. 113 à vérifier),"M:texte p. 114 ; A:S84, S54 ; R:Instr. BCC (TEG, limites)",7 Crédit,oui
-S90,"Visas : responsable crédit, comité, service financier",114 et 115 (trois bandes),A,visa,,,7 Crédit,non
-S91,Historique suivi,115,A,rapport,,,7 Crédit,non
-S92,Crédits validés non débloqués,115,A,rapport,,,7 Crédit,non
+S90,"Visas : responsable crédit, comité, service financier",114 et 115 (trois bandes),A,visa,,,7 Crédit,oui
+S91,Historique suivi,115,A,rapport,,,7 Crédit,oui
+S92,Crédits validés non débloqués,115,A,rapport,,,7 Crédit,oui
 S93,État de crédit,"115 (texte), 116",A,rapport,,,7 Crédit,non
 S94,"Caution et nantissement : ajout, libération, rapports",116 à 118 (six captures),A,liste,,,7 Crédit,non
 S95,Consulter prêt,"118 (texte), 119",B,consultation,"Plan, Réel, Mémo",A:S76 Situation (p. 88),7 Crédit,non

@@ -20,6 +20,33 @@ async function journeeOuverte() {
   return { j, s };
 }
 
+const PRODUIT_CREDIT = { typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: "2,5", tauxDiffere: 2,
+  montantMin: 100000, montantMax: 5000000, dureeMin: 3, dureeMax: 12, differeMin: 0, differeMax: 2, interetMin: 1, interetMax: 4, clientPhysique: true, periodicite: "M",
+  modeDiffere: "Réparti", paiementInteret: "Normal", interetAnticipation: false, ageMax: 65, epargneNature: "Taux", epargneValeur: 10, categorie: "Prêt commercial",
+  penaliteAnticipation: 50, frais: [{ typeFrais: "Frais de dossier", nature: "Taux", valeur: 1, compte: "7152" }] };
+/** Journée ouverte, crédit de Kalala (1 000 000 CDF sur 12 mois) demandé, contrôlé, approuvé et mis en place par l'agent (S86 à S89) */
+async function creditMisEnPlace() {
+  await journeeOuverte();
+  await connecter("jpmukendi");
+  const pid = (await api.produitsCredit.enregistrer(PRODUIT_CREDIT)).produits[0]!.id;
+  const to = await api.credit.enregistrer("types_objet", { libelle: "Commerce", secteurId: (await api.credit.lire("types_objet")).options.secteurId![0]!.id });
+  const objet = (await api.credit.enregistrer("objets", { libelle: "Achat de marchandises", typeObjetId: to.lignes[0]!.id })).lignes[0]!.id;
+  await api.tiers.creerConsentement(1, { code: "CR", dateDebut: "2026-01-01", dateFin: "", commentaire: "" });
+  await api.dossiers.enregistrerFondsPropres({ dateArrete: "2026-10-31", montant: 100000000000 });
+  await connecter("bkasongo");
+  const ctx = await api.dossiers.contexte();
+  const pr = ctx.provinces.find((x) => x.nom === "Kinshasa")!.id, vi = ctx.villes.find((x) => x.provinceId === pr)!.id;
+  const e = { nbHommes: 0, nbFemmes: 1, montantHommes: 0, montantFemmes: 100000000, nbGroupes: 0 };
+  const x = await api.dossiers.demander({ produitId: pid, tiersId: 1, duree: 12, provinceId: pr, villeId: vi, ...e, ressaisie: e });
+  await connecter("jpmukendi");
+  await api.dossiers.controler(x.id, { effectif: 1, nbGroupes: 0, montant: 100000000 });
+  await api.dossiers.approuver(x.id, { montantApprouve: 100000000, consultationCrLe: "2026-11-05", consultationCrRef: "CR-1" });
+  await connecter("bkasongo");
+  const a = await api.miseEnPlace.apercu(x.id, {});
+  const c = await api.miseEnPlace.mettreEnPlace(x.id, { compteEpargneId: a.comptes[0]!.id, objetId: objet, zoneId: (await api.miseEnPlace.contexte()).zones[0]!.id, agentId: a.demande.agentId });
+  return c.id;
+}
+
 async function soldeCdfGrandLivre() {
   return (await api.etats.journal()).flatMap((e) => e.lignes).reduce((s, l) => s + (l.sens === "D" ? l.montantCdf : -l.montantCdf), 0);
 }
@@ -2004,6 +2031,28 @@ describe("journée de guichet", () => {
     expect([c.numero, c.statut, c.montant, c.nombreTraites, c.tegA]).toEqual(["0412/L001/00001", "mis_en_place", 100000000, 12, 46.07]);   // comme le serveur
     expect([c.echeancier.reduce((s, l) => s + l.capital, 0), c.epargneObligatoire, c.frais]).toEqual([100000000, 10000000, 1000000]);
     await expect(api.miseEnPlace.mettreEnPlace(x.id, m)).rejects.toThrow("pas en attente");
+  });
+
+  it("visas du crédit (S90 à S92) : trois niveaux dans l'ordre, quatre yeux, commission unanime, historique, validés non débloqués (CR-4, CR-5)", async () => {
+    const cid = await creditMisEnPlace();
+    const file = async (n: string) => (await api.visasCredit.aViser(n)).map((x) => x.id);
+    await connecter("jpmukendi");
+    expect([await file("responsable_credit"), await file("comite")]).toEqual([[cid], []]);
+    await connecter("bkasongo");
+    await expect(api.visasCredit.viser(cid, "responsable_credit", { avis: "accepte" })).rejects.toThrow("Quatre yeux");
+    await connecter("jpmukendi");
+    await expect(api.visasCredit.viser(cid, "comite", { avis: "accepte" })).rejects.toThrow("attend pas ce visa");
+    expect((await api.visasCredit.viser(cid, "responsable_credit", { avis: "accepte" })).avis).toBe("accepte");
+    await expect(api.visasCredit.viser(cid, "comite", { avis: "accepte" })).rejects.toThrow("trois membres");
+    const m = [{ nom: "Mbala", avis: "accepte" }, { nom: "Ilunga", avis: "refuse" }, { nom: "Kabeya", avis: "accepte" }];
+    await expect(api.visasCredit.viser(cid, "comite", { membres: m })).rejects.toThrow("motif");
+    m[1]!.avis = "accepte";
+    expect((await api.visasCredit.viser(cid, "comite", { membres: m, referencePv: "PV-12" })).avis).toBe("accepte");
+    await connecter("plumbala");
+    expect((await api.visasCredit.viser(cid, "service_financier", { avis: "accepte" })).statut).toBe("vise");
+    expect((await api.visasCredit.validesNonDebloques("2026-01-01", "2026-12-31")).map((x) => x.id)).toEqual([cid]);
+    const h = await api.visasCredit.historique("comite", "accepte", "2026-01-01", "2026-12-31");
+    expect([h[0]!.numero, h[0]!.referencePv, h[0]!.membres.length]).toEqual(["0412/L001/00001", "PV-12", 3]);
   });
 
   it("produit crédit (S23, p. 37 et 38) : méthode dégressive (Instr. BCC 38 art. 11), bornes, garanties, assurance, frais (Instr. BCC 40 art. 8)", async () => {

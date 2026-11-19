@@ -540,6 +540,20 @@ const OUT = process.argv[2];
   await p.getByRole('dialog', { name: 'Echéancier' }).getByRole('button', { name: 'Fermer' }).click();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByText('Crédit N° 0412/L001/00001').waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
+  // Visas (S90, p. 114 et 115 ; registre CR-4, CR-5) : responsable crédit et commission de crédit (trois membres, unanimité) par le chef, service financier par le comptable
+  await login('J.-P. Mukendi');
+  const viser = async (page, remplir) => {
+    await aller(`/credit/s90?page=${page}`); await p.getByRole('cell', { name: '0412/L001/00001' }).click(); await p.getByRole('button', { name: 'Viser' }).click();
+    const fv = p.getByRole('dialog', { name: /^Visa / }); await remplir(fv); await fv.getByRole('button', { name: 'Viser' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+    await p.getByText('Visa enregistré : crédit accepté.').waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
+  };
+  await viser('responsable_credit', async (fv) => fv.getByLabel('Avis *').selectOption('accepte'));
+  await viser('comite', async (fv) => {
+    for (const [i, nom] of [[1, 'Mbala'], [2, 'Ilunga'], [3, 'Kabeya']]) { await fv.getByLabel(`Membre ${i} *`, { exact: true }).fill(nom); await fv.getByLabel(`Avis du membre ${i} *`).selectOption('accepte'); }
+    await fv.getByLabel('N° du procès-verbal').fill('PV-2026-12'); await etape('06w5-visa-commission');
+  });
+  await login('Patrick Lumbala'); await viser('service_financier', async (fv) => fv.getByLabel('Avis *').selectOption('accepte'));
+  await aller('/credit/s92'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('cell', { name: '0412/L001/00001' }).waitFor(); await etape('06w6-valides-non-debloques');
   await login('J.-P. Mukendi');
   // Rapports clients (S51)
   await aller('/clients/s51'); await p.getByRole('button', { name: 'Rechercher' }).click();

@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**540 décisions.** Solidité : 226 fortes (le manuel ou un texte répond), 268 moyennes (déduites d'un écran voisin ou d'une donnée), 46 faibles (notre choix, faute de mieux). Dans le code : 503 déjà en place, 33 à appliquer.
+**549 décisions.** Solidité : 227 fortes (le manuel ou un texte répond), 273 moyennes (déduites d'un écran voisin ou d'une donnée), 49 faibles (notre choix, faute de mieux). Dans le code : 514 déjà en place, 31 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1138,8 +1138,8 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| CR-4 | Visa comité de crédit d'une COOPEC | Le visa note les trois membres de la commission de crédit et l'avis de chacun ; un seul avis contraire refuse le crédit (unanimité). Le refus peut faire l'objet d'un recours devant le Conseil d'administration, noté au dossier. Pour une IMF, un seul visa comité | Choix du porteur : Décision du porteur, 19/11/2026 ; loi 002/2002, art. 41 à 43 ; Instr. BCC 007, art. 32 et 33 | forte | à appliquer |
-| CR-5 | Niveaux de visa | Tout crédit passe par les trois visas, dans l'ordre : responsable crédit, comité de crédit, service financier, avant le déblocage | Choix du porteur : Décision du porteur, 19/11/2026 ; captures p. 114 et 115 | forte | à appliquer |
+| CR-4 | Visa comité de crédit d'une COOPEC | Le visa note les trois membres de la commission de crédit et l'avis de chacun ; un seul avis contraire refuse le crédit (unanimité). Le refus peut faire l'objet d'un recours devant le Conseil d'administration, noté au dossier. Pour une IMF, un seul visa comité | Choix du porteur : Décision du porteur, 19/11/2026 ; loi 002/2002, art. 41 à 43 ; Instr. BCC 007, art. 32 et 33 | forte | en place |
+| CR-5 | Niveaux de visa | Tout crédit passe par les trois visas, dans l'ordre : responsable crédit, comité de crédit, service financier, avant le déblocage | Choix du porteur : Décision du porteur, 19/11/2026 ; captures p. 114 et 115 | forte | en place |
 
 ## S54, S75 Déblocage
 
@@ -1296,6 +1296,30 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S89-8 | Ce qui est enregistré | Le crédit (statut « mis en place ») avec son numéro agence/produit/rang (0412/L001/00001), son échéancier (capital et intérêt par échéance), son TEG, ses frais, son assurance, son épargne obligatoire et son fonds de solidarité ; la demande passe « mise en place ». Les dates seront recalculées au déblocage | Donnée exigée ailleurs : S84 ; S75 ; Instr. BCC 38, art. 3 et 5 | moyenne | en place |
 | S89-9 | Droits | Profil qui a S89 (agent de crédit au départ) | Écran voisin : DROITS_DEPART | moyenne | en place |
 
+## S90 Visas : responsable crédit, comité, service financier
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S90-1 | Écran | Un écran par niveau (onglets) : titre « Visa crédit - … », Agent crédit (« --Tout les agents-- »), grille N° credit, Date demande, Compte, Intitulé, Montant pret, Durée (mois), Produit, Agent crédit, filtres sur Compte, Intitulé, Produit ; choisir une ligne, Viser : avis, motif, confirmation | Manuel : Captures p. 114 et 115 ; COMPLEMENTS § 4.4 (file de visa) | moyenne | en place |
+| S90-2 | Avis | Accepté ou Refusé (les valeurs du filtre Avis de l'historique) ; motif obligatoire pour un refus ; un refus arrête le crédit (statut refusé) | Manuel : Capture p. 115 (Avis) ; CR-5 | moyenne | en place |
+| S90-3 | Compte de la grille | Le compte d'épargne obligatoire du crédit, sinon le premier compte ouvert du client | Donnée exigée ailleurs : Capture p. 114 (colonne Compte) | faible | en place |
+| S90-4 | Qui vise | Un autre utilisateur que celui qui a mis le crédit en place ; S90 à S92 donnés au chef d'agence et au comptable (service financier) dans les profils de départ | Écran voisin : ARCHITECTURE P7 ; DROITS_DEPART | moyenne | en place |
+| S90-5 | Procès-verbal du comité | N° du procès-verbal du comité, facultatif, gardé avec le visa | Donnée exigée ailleurs : Schéma de départ (reference_pv) | faible | en place |
+
+## S91 Historique suivi
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S91-1 | Écran | Niveau hiérarchique, Avis, Du, A (date du visa) ; Rechercher, Exporter ; grille N° credit, Date demande, Intitulé, Montant pret, Durée, Produit, Agent crédit, plus Visé le, Visé par, Motif | Manuel : Texte et capture p. 115 | moyenne | en place |
+
+## S92 Crédits validés non débloqués
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S92-1 | Écran | Du, A (date de la demande), Agence, Agent (« aucun » : tous), Afficher les crédits archivés ; Rechercher, Exporter ; grille N° credit, Date demande, Intitulé, Montant pret, Durée (mois), Produit, Groupe solidaire | Manuel : Capture p. 115 | moyenne | en place |
+| S92-2 | Crédits archivés | Case cochée : les crédits validés déjà débloqués (ou soldés) s'y ajoutent | Donnée exigée ailleurs : Capture p. 115 (case sans texte) | faible | en place |
+| S92-3 | Crédits listés | Crédits visés par les trois niveaux, pas encore débloqués | Manuel : Titre de la capture p. 115 ; CR-5 | forte | en place |
+
 ## Les décisions faibles, à regarder en premier
 
 | N° | Écran | Question | Réponse retenue |
@@ -1346,3 +1370,6 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S85-3 | S85 Analyse financière | Bilan simplifié (développée) | Actif : trésorerie, stocks, créances clients, immobilisations ; passif : dettes à court et à long terme ; fonds propres = actif − dettes |
 | S85-4 | S85 Analyse financière | Ratios | Capacité de remboursement = échéance mensuelle / revenu net ; endettement = dettes / fonds propres ; liquidité = (trésorerie + stocks + créances) / dettes à court terme ; couverture = valeur des garanties / montant. Deux décimales. L'échéance mensuelle est la première échéance de la simulation (S84) ramenée au mois |
 | S89-4 | S89 Dossier : mise en place | Structure de référencement | Liste à une valeur, « Part. classique », la seule montrée |
+| S90-3 | S90 Visas : responsable crédit, comité, service financier | Compte de la grille | Le compte d'épargne obligatoire du crédit, sinon le premier compte ouvert du client |
+| S90-5 | S90 Visas : responsable crédit, comité, service financier | Procès-verbal du comité | N° du procès-verbal du comité, facultatif, gardé avec le visa |
+| S92-2 | S92 Crédits validés non débloqués | Crédits archivés | Case cochée : les crédits validés déjà débloqués (ou soldés) s'y ajoutent |

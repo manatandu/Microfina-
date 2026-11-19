@@ -378,6 +378,38 @@ def guichet_ed_divers(request, corps: dict = Body(...)):
     return ed_guichet.enregistrer(u(request), corps)
 
 
+@api.get("/credit/visas/contexte")
+def visas_contexte(request):
+    from .services import est_coopec
+    from .bd import lignes as lg
+    x = u(request)
+    return {"agents": lg("select id, nom from utilisateur where agence_id = %s and actif order by nom", (x["agence_id"],)), "coopec": est_coopec(x)}
+
+
+@api.get("/credit/visas")
+def visas_file(request, niveau: str, agentId: int | None = None):
+    from . import visas_credit as vc
+    return vc.a_viser(u(request), niveau, agentId)
+
+
+@api.post("/credit/visas/{cid}/{niveau}")
+def visa_donner(request, cid: int, niveau: str, corps: dict = Body(...)):
+    from . import visas_credit as vc
+    return vc.viser(u(request), cid, niveau, corps)
+
+
+@api.get("/credit/visas-historique")
+def visas_historique(request, niveau: str, avis: str, du: str, au: str):
+    from . import visas_credit as vc
+    return vc.historique(u(request), niveau, avis, du, au)
+
+
+@api.get("/credit/valides-non-debloques")
+def valides_non_debloques(request, du: str, au: str, agentId: int | None = None, archives: bool = False):
+    from . import visas_credit as vc
+    return vc.valides_non_debloques(u(request), du, au, agentId, archives)
+
+
 @api.get("/credit/mise-en-place/contexte")
 def mise_en_place_contexte(request):
     from . import mise_en_place as mp
