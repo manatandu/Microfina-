@@ -107,16 +107,32 @@ Note : l'art. 14 associe les pondérations à des niveaux de risque dans l'ordre
 | Code civil livre III, art. 480 | Taux d'intérêt conventionnel fixé librement par les parties | Contrat de DAT : mode de calcul écrit | lu |
 | Instr. 40, art. 2, 3 | Taux applicables à la clientèle publiés chaque trimestre et affichés | Épargne (taux du DAT) | lu |
 | Instr. 40, art. 4, 5, 13 | Document remis au client, clair, en français, police d'au moins 12 | Contrat DAT (S66) en 12 ; relevé (S64) compact à la demande du porteur, écart signalé (registre S64-7) | lu |
-| Instr. 5 | Déclaration à la centrale des risques sans délai, modifications, radiation après 3 ans sans engagement | Centrale des risques | survolé, à lire |
+| Instr. 5, art. 4 à 6, 10, 13 | Consultation et consentement écrit avant tout octroi ; déclaration en temps réel ; client à encours nul déclaré trois ans | Crédit (approbation, liste à déclarer) | lu, registre S88-1, CR-10 |
 | Instr. 15 et annexes | LBC/FT : identification, vigilance, déclarations | LBC/FT | à lire, avec la loi 22/068 mod. 25/048 |
 | Instr. 15 bis ; Instr. 15, art. 61 et 62 ; loi 22/068, art. 23 | Espèces ≥ USD 10 000 : examen renforcé, autorisation par l'institution, rapport confidentiel, déclaration à la CENAREF | Caisse, Client > Conformité (SC01) | lu |
 | Instr. 24 | Monnaie électronique | Extensions | à lire |
 | Instr. 29 | Agents bancaires | Extensions | à lire |
 | Instr. 36 | Continuité d'activité | Exploitation | survolé, à lire |
-| Instr. 37, 38, 40 | Services gratuits, TEG (formule en annexe), publication des conditions | Crédit, Référentiel | survolé, à lire |
+| Instr. 38 | TEG : taux annuel actuariel, frais, assurance, épargne obligatoire ; méthode dégressive ; pénalité d'anticipation au plus 50 % | Crédit (S84, S89, contrat) | lu, registre S84, CR-12, CR-24 |
+| Instr. 37, 40 | Services gratuits, publication des conditions | Crédit, Référentiel | survolé, à lire |
 | Instr. 39 | Plaintes : référence unique, réponse sous 45 jours calendaires, réparation, rapport trimestriel | Client > Conformité > Plaintes (SC03) | lu |
 | Instr. 41 mod. 1 | Agrément, dirigeants, autorisations préalables | Référentiel (données institution) | à lire |
 | Instr. 0011 | Faîtière | Extensions | à lire |
+
+## Crédit (lu le 19/11/2026, avant l'étape 7)
+
+| Réf. | Exigence | Module | Mise en œuvre | Statut |
+|---|---|---|---|---|
+| Instr. 002, art. 25 à 29 ; loi 002/2002, art. 59 à 61 | Plafonds : un emprunteur 5 % (IMF) ou 10 % (COOPEC) des fonds propres prudentiels, 10 % des dépôts (COOPEC) ; apparentés 20 % ; ressources affectées hors plafonds (COOPEC) | Approbation, engagement par signature | registre CR-2, CR-3, CR-14 | lu |
+| Instr. 003, art. 2 à 13 | Classement sain, impayé, douteux, contentieux, irrécupérable ; contagion ; une prorogation ; pas de crédit pour rembourser un retard ; provisions mensuelles 5 à 100 % ; perte au 31/12 ; intérêts des litigieux en hors bilan | Demande, balance âgée, déclassement et provisions | registre CR-15 à CR-19 | lu |
+| Instr. 004, annexe | Ratios et normes de performance | Rapports crédit | registre CR-26 | lu |
+| Instr. 007, art. 32 et 33 ; loi 002/2002, art. 41 à 43 | Commission de crédit COOPEC : trois membres, unanimité, recours au Conseil | Visas | registre CR-4 | lu |
+| Instr. 13, art. 7 | Mise à l'index : plus de crédit, dirigeants et associés compris | Liste rouge, approbation | registre CR-9, CR-25 | lu |
+| Instr. 51 | Apparentés : accord préalable du Conseil, conditions de marché, plafond 20 % | Fiche client, approbation | registre CR-3 | lu |
+| Loi 002/2002, art. 24 | Pas de démission d'un membre emprunteur ou caution | Résiliation de membre | registre CR-23 | lu |
+| Loi 11/020, art. 43 à 48 | Sûretés : solidarité, rétention, nantissement ; compensation du dépôt nanti | Groupes, cautions et dépôts de garantie | registre CR-8, CR-21 | lu |
+| Code civil, livre III, art. 151 à 154 | Imputation des paiements : intérêts d'abord, sauf accord du créancier | Remboursement | registre CR-20 | lu |
+| PCCI, hors bilan (00, 01, 09) | Engagements donnés et reçus, sans compensation | Engagement par signature, cautions | registre CR-21, CR-22 | lu |
 
 ## Exigences issues du terrain
 

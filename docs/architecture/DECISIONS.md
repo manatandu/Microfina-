@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**485 décisions.** Solidité : 202 fortes (le manuel ou un texte répond), 241 moyennes (déduites d'un écran voisin ou d'une donnée), 42 faibles (notre choix, faute de mieux). Dans le code : 465 déjà en place, 16 à appliquer.
+**510 décisions.** Solidité : 224 fortes (le manuel ou un texte répond), 244 moyennes (déduites d'un écran voisin ou d'une donnée), 42 faibles (notre choix, faute de mieux). Dans le code : 465 déjà en place, 41 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -654,6 +654,9 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S88-1 | Consentement à la Centrale des risques | Pas d'approbation d'un crédit sans consentement écrit de l'emprunteur en cours de validité (enregistré par S50 : date début passée, date fin absente ou à venir), ni sans consultation de la Centrale des risques notée au dossier. À construire avec S88 | Texte réglementaire : Instr. BCC 5, art. 4 et 13 ; Instr. BCC 34, grille V.2 | forte | à appliquer |
+| CR-2 | Fonds propres prudentiels des limites | Saisis chaque mois par la direction (montant de son dernier arrêté mensuel, avec la date) ; les contrôles de limites les lisent. Calcul automatique à partir de la balance plus tard, avec les indicateurs comptables (étape 8) | Choix du porteur : Décision du porteur, 19/11/2026 ; Instr. BCC 002, art. 7 à 11, 28, 29 | forte | à appliquer |
+| CR-3 | Personnes apparentées | Case « Personne apparentée » et lien (actionnaire ou fondateur, administrateur, dirigeant, personnel, famille au premier degré, société liée) sur la fiche client, tenus par le chef d'agence ou la conformité. Le dossier d'un apparenté exige la référence de l'accord préalable du Conseil d'administration et respecte le plafond de 20 % des fonds propres prudentiels (COOPEC : aussi 20 % des dépôts) | Choix du porteur : Décision du porteur, 19/11/2026 ; Instr. BCC 002, art. 25 à 27 ; Instr. BCC 51 ; loi 002/2002, art. 59, 4° | forte | à appliquer |
+| CR-25 | Mise à l'index et gel | Refus de l'approbation et de la mise en place pour une personne mise à l'index (et les dirigeants et associés d'une personne morale indexée) ou dont les avoirs sont gelés | Texte réglementaire : Instr. BCC 13, art. 7 ; E10 | forte | à appliquer |
 
 ## S51 Rapports clients
 
@@ -1125,6 +1128,123 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S84-7 | Bornes | Montant, durée et différé dans les bornes du produit (S23) ; durée et différé en mois, découpés en périodes entières de la périodicité | Donnée exigée ailleurs : S23-3 ; S69-2 | moyenne | en place |
 | S84-8 | Récapitulatif et échéancier | Récapitulatif : les caractéristiques, l'échéance, les intérêts (dont ceux du différé), les frais, l'assurance, l'épargne obligatoire et les deux TEG. Échéancier : N°, Date, Capital début, Capital, Intérêt, Échéance, Capital restant, total ; Imprimer | Manuel : Texte p. 111 (« vérifier le détail des caractéristiques puis cliquez sur [Échéancier] et cliquez sur imprimer ») | moyenne | en place |
 | S84-9 | Qui simule | Le profil qui a S84 (agent de crédit au départ) ; la simulation n'enregistre rien | Écran voisin : DROITS_DEPART | moyenne | en place |
+
+## S90 Visas
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| CR-4 | Visa comité de crédit d'une COOPEC | Le visa note les trois membres de la commission de crédit et l'avis de chacun ; un seul avis contraire refuse le crédit (unanimité). Le refus peut faire l'objet d'un recours devant le Conseil d'administration, noté au dossier. Pour une IMF, un seul visa comité | Choix du porteur : Décision du porteur, 19/11/2026 ; loi 002/2002, art. 41 à 43 ; Instr. BCC 007, art. 32 et 33 | forte | à appliquer |
+| CR-5 | Niveaux de visa | Tout crédit passe par les trois visas, dans l'ordre : responsable crédit, comité de crédit, service financier, avant le déblocage | Choix du porteur : Décision du porteur, 19/11/2026 ; captures p. 114 et 115 | forte | à appliquer |
+
+## S54, S75 Déblocage
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| CR-6 | Frais, assurance, épargne obligatoire | Retenus sur le montant débloqué : frais et assurance à leurs comptes (produit S23, assureur S21), épargne obligatoire versée au compte d'épargne du client et bloquée jusqu'à la fin du prêt (blocage lié au crédit, S71). Le client reçoit le net | Choix du porteur : Décision du porteur, 19/11/2026 ; Instr. BCC 38, art. 6 et 9 ; S84-5 | forte | à appliquer |
+
+## S76, S55 Remboursement
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| CR-7 | Pénalité de retard | Montant échu impayé × taux mensuel de pénalité du produit × jours de retard / 30 | Choix du porteur : Décision du porteur, 19/11/2026 ; Instr. BCC 38, art. 10 (hors TEG) | forte | à appliquer |
+| CR-20 | Imputation d'un paiement partiel | Selon l'ordre de remboursement du produit (S22), que l'institution, créancière, fixe ; sans ordre, les intérêts d'abord, puis le capital | Texte réglementaire : Code civil, livre III, art. 152 ; S22 | forte | à appliquer |
+
+## S86 à S89 Dossier
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| CR-8 | Crédit à un groupe solidaire | Un seul crédit au nom du groupe, la part de chaque membre notée ; les membres sont codébiteurs solidaires ; une seule déclaration à la Centrale des risques | Choix du porteur : Décision du porteur, 19/11/2026 ; loi 11/020, art. 44 ; Instr. BCC 05, art. 5 | forte | à appliquer |
+
+## S97 Liste rouge
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| CR-9 | Effet | Un client inscrit ne peut ni déposer une demande, ni être approuvé, ni recevoir une mise en place. Une personne mise à l'index par la BCC y est inscrite avec la référence de la décision ; pour une personne morale, ses dirigeants et associés aussi | Choix du porteur : Décision du porteur, 19/11/2026 ; Instr. BCC 13, art. 7 ; E10-4 | forte | à appliquer |
+
+## S89, S92 Centrale des risques
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| CR-10 | Déclarations | Chaque octroi, modification, remboursement total et radiation entre dans une liste « à déclarer » ; le préposé note la date et la référence de sa déclaration. Un client à encours nul reste déclaré trois ans | Choix du porteur : Décision du porteur, 19/11/2026 ; Instr. BCC 05, art. 6 et 10 | forte | à appliquer |
+
+## S85 Analyse financière
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| CR-11 | Contenu des onglets | Grille proposée par nous : bilan et compte d'exploitation simplifiés du client, garanties, capacité de remboursement (échéance / revenu net), ratios usuels, recommandations et avis de l'agent. Indicatif, ne bloque pas. À valider en fin d'étape | Choix du porteur : Décision du porteur, 19/11/2026 ; capture p. 112 (noms des onglets) | moyenne | à appliquer |
+
+## S54, S75 Contrat de prêt
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| CR-12 | Contrat et reconnaissance de dette | Rédigés par nous à partir du dossier, avec les mentions des textes : montant, durée, taux, TEG, échéancier, frais, garanties, pénalité de retard, pénalité d'anticipation au plus 50 % des intérêts restant dus. À relire en fin d'étape | Choix du porteur : Décision du porteur, 19/11/2026 ; Instr. BCC 38, art. 3, 5 et 14 | moyenne | à appliquer |
+
+## S101 Rapports crédit
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| CR-13 | Sept rapports sans capture | Journal, Rapports de base, Multicritère, Synthèse de la balance âgée, Taux de remboursements, Encours prévisionnel, Exigibles : définis par nous sur le modèle de S72 et S93, chaque choix au registre, à valider en fin d'étape. Indicateur de gestion : les ratios de l'Instr. BCC 004 | Choix du porteur : Décision du porteur, 19/11/2026 ; Instr. BCC 004, annexe | moyenne | à appliquer |
+
+## S88, S100 Limites
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| CR-14 | Plafonds par emprunteur | Approbation refusée au-delà : IMF, crédits et engagements par signature d'un même client ou d'une même signature au plus 5 % des fonds propres prudentiels, sauf accord préalable de la BCC dont la référence est notée ; COOPEC, un même membre au plus 10 % des fonds propres prudentiels et au plus 10 % des dépôts des membres (dérogation BCC possible). Les risques sur ressources affectées des bailleurs ne comptent pas pour une COOPEC | Texte réglementaire : Instr. BCC 002, art. 28 et 29 ; loi 002/2002, art. 59, 6°, art. 60 et 61 | forte | à appliquer |
+
+## S86 Dossier : demande
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| CR-15 | Refinancement d'un retard | Refus d'une demande quand le client a un crédit en retard : il est interdit d'accorder un nouveau crédit pour rembourser un crédit en retard | Texte réglementaire : Instr. BCC 003, art. 5, al. 3 | forte | à appliquer |
+
+## S98, S99 Classement et provisions
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| CR-16 | Classement | Sain : aucune échéance en retard. Impayé : au moins une échéance en retard d'un jour ; les crédits sains d'un client qui a un crédit litigieux sont classés impayés. Douteux : à partir du 31e jour. Contentieux : dossier en recouvrement amiable ou judiciaire. Irrécupérable : plus de 12 mois. Prorogé : échéances modifiées, une seule fois, provisionné comme litigieux depuis l'échéancier initial | Texte réglementaire : Instr. BCC 003, art. 2 à 9 et 12 | forte | à appliquer |
+
+## S99 Déclassement et provisions
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| CR-17 | Provisions | Chaque mois, sur le capital restant dû des crédits litigieux : 1 à 30 jours 5 %, 31 à 60 jours 25 %, 61 à 90 jours 50 %, 91 à 180 jours 75 %, plus de 180 jours 100 % ; écritures de dotation et de reprise selon le PCCI | Texte réglementaire : Instr. BCC 003, art. 12 et 13 ; S21-1 | forte | à appliquer |
+| CR-18 | Passage en perte (« Radier par anticipation ») | Seul un crédit irrécupérable (plus de 12 mois) passe en perte, à la clôture du bilan au 31 décembre ; il est ensuite suivi en hors bilan. Le bouton de la capture est gardé dans cette limite : écart imposé par le texte, à signaler au porteur | Texte réglementaire : Instr. BCC 003, art. 9 et 10 ; capture p. 121 | forte | à appliquer |
+
+## S76, S99 Intérêts des crédits litigieux
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| CR-19 | Intérêts non réglés | Sur un crédit litigieux, les intérêts non réglés sont suivis en hors bilan et n'entrent en produits qu'à leur encaissement | Texte réglementaire : Instr. BCC 003, art. 11 | forte | à appliquer |
+
+## S94 Cautions et dépôts de garantie
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| CR-21 | Garanties sur l'épargne | Caution : le montant est bloqué sur le compte de la caution (blocage lié au crédit, S71) ; dépôt de garantie : bloqué sur le compte du client. Libération par S94 seulement. En cas de défaut, le dépôt nanti se compense de plein droit avec la dette, après déduction des frais. Cautions reçues suivies en hors bilan (engagements reçus, comptes 01) | Texte réglementaire : Loi 11/020, art. 43 et 48 ; Instr. BCC 38, art. 9 ; PCCI, comptes hors bilan 01 | forte | à appliquer |
+
+## S100 Engagement par signature
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| CR-22 | Comptabilisation et plafonds | Engagement donné en hors bilan : débit 0001 (en faveur de la clientèle), crédit du compte de contrepartie 09 ; il compte dans les plafonds par emprunteur et les risques | Texte réglementaire : PCCI, comptes hors bilan 00 et 09 ; Instr. BCC 002, art. 23, 28 et 29 | forte | à appliquer |
+
+## S89, S94 Membre emprunteur ou caution
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| CR-23 | Retrait du membre | Tant qu'un membre est emprunteur ou caution d'un crédit en cours, sa démission (résiliation de membre) est refusée | Texte réglementaire : Loi 002/2002, art. 24 | forte | à appliquer |
+
+## S89 Mise en place
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| CR-24 | TEG au dossier | Le TEG se calcule au plus tard à la signature du contrat, sur les éléments connus ; il est affiché au dossier et sur le contrat, sauf taux réglementé ou bonifié | Texte réglementaire : Instr. BCC 38, art. 3, 5 et 16 | forte | à appliquer |
+
+## S101 Indicateur de gestion
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| CR-26 | Ratios | Portefeuille à risque (< 5 %), ratio d'abandon des créances (< 2 %), efficacité opérationnelle, emprunteurs par agent de crédit, rendement du portefeuille, etc., selon les formules et normes de l'annexe | Texte réglementaire : Instr. BCC 004, art. 3 à 8 et annexe | forte | à appliquer |
 
 ## Les décisions faibles, à regarder en premier
 
