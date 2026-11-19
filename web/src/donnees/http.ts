@@ -60,6 +60,11 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       indicateurs: (date: string, auxiliaires: boolean) => get(`/epargne/rapports/indicateurs?date=${date}&auxiliaires=${auxiliaires}`),
       inactivite: (date: string, jours: number | null, tous: boolean) => get(`/epargne/rapports/inactivite?date=${date}${jours === null ? "" : `&jours=${jours}`}&tous=${tous}`),
     },
+    transferts: {
+      contexte: () => get("/caisse/transferts"),
+      caisseVersCaisse: (p: unknown) => post("/caisse/transferts/caisse", p),
+      caisseVersBanque: (p: unknown) => post("/caisse/transferts/banque", p),
+    },
     blocages: {
       etat: (compteId: number) => get(`/epargne/blocages?compteId=${compteId}`),
       bloquer: (d: object) => post("/epargne/blocages", d),

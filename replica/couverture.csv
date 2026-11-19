@@ -71,7 +71,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 70,Rapports épargne dont comptes inactifs et dormants,épargne,should,partial,S72,B,rapport,5 Épargne,S72 : forme des résultats,A:S13,,,S72-2 Rapport des garanties : d'où viennent les lignes ? ; S72-4 Indicateurs crédit épargne : comment compter ?
 71,Adhésion au guichet,caisse,must,yes,S73,A,guichet,6 Caisse,,,,,
 72,Dépôt et retrait au guichet,caisse,must,yes,S74,B,guichet,6 Caisse,"S74 : fenêtres Billetage, Detail, photo et signature ; reçu",A:S79 (billetage) ; document,,,
-73,Montant en lettres,caisse,must,partial,S74 S81,B,guichet,6 Caisse,"S74 : fenêtres Billetage, Detail, photo et signature ; reçu",A:S79 (billetage) ; document ; R:PCCI (mouvements de fonds),,S81,
+73,Montant en lettres,caisse,must,yes,S74 S81,B,guichet,6 Caisse,"S74 : fenêtres Billetage, Detail, photo et signature ; reçu",A:S79 (billetage) ; document ; R:PCCI (mouvements de fonds),,,
 74,Mandataire au retrait,caisse,must,yes,S74,B,guichet,6 Caisse,"S74 : fenêtres Billetage, Detail, photo et signature ; reçu",A:S79 (billetage) ; document,,,
 75,Frais d'opération au guichet,caisse,must,yes,S74,B,guichet,6 Caisse,"S74 : fenêtres Billetage, Detail, photo et signature ; reçu",A:S79 (billetage) ; document,,,
 76,Déblocage de crédit en caisse,caisse,must,no,S75,A,guichet,6 Caisse,S75 : échéancier et contrat de prêt,document,,S75,S75-1 Échéance qui tombe un jour non ouvré
@@ -81,7 +81,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 80,Encaissements et décaissements divers,caisse,must,yes,S78,A,guichet,6 Caisse,,D:S31,,,
 81,Billetage : saisie par coupure,caisse,must,yes,S79,A,guichet,6 Caisse,,,,,
 82,Billetage : validation solde informatique et réel,caisse,must,yes,S80,A,visa,6 Caisse,,,,,
-83,Transfert caisse vers caisse et caisse vers banque,caisse,must,no,S81,A,guichet,6 Caisse,,R:PCCI (mouvements de fonds),,S81,
+83,Transfert caisse vers caisse et caisse vers banque,caisse,must,yes,S81,A,guichet,6 Caisse,,R:PCCI (mouvements de fonds),,,
 84,Opérations diverses et déplacées validées en caisse,caisse,must,no,S82,A,visa,6 Caisse,,,,S82,
 85,Journal de caisse,caisse,must,no,S83,A,rapport,6 Caisse,,,,S83,
 86,Simulation d'échéancier,crédit,must,no,S84,B,onglets,7 Crédit,"S84 : pages Montant et durée, Récapitulatif, Échéancier",M:texte p. 111 ; A:S89,,S84,

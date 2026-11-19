@@ -95,7 +95,7 @@ S77,Part sociale : achat et retrait,88 ; doublon 103,A,guichet,,R:loi 002/2002 (
 S78,"ED divers : encaissement, décaissement",89 et 90 ; doublons 97 et 98,A,guichet,,D:S31,6 Caisse,oui
 S79,Billetage : enregistrer,91 ; doublon 105,A,guichet,,,6 Caisse,oui
 S80,Billetage : validation,92 ; doublon 106,A,visa,,,6 Caisse,oui
-S81,"Transfert : caisse vers caisse, caisse vers banque",92 et 93 ; doublons 106 et 107,A,guichet,,R:PCCI (mouvements de fonds),6 Caisse,non
+S81,"Transfert : caisse vers caisse, caisse vers banque",92 et 93 ; doublons 106 et 107,A,guichet,,R:PCCI (mouvements de fonds),6 Caisse,oui
 S82,"Valider opérations : diverses, déplacées",93 et 94 ; doublons 107 et 108,A,visa,,,6 Caisse,non
 S83,Rapport : journal des opérations de caisse,95 ; doublon 109,A,rapport,,,6 Caisse,non
 S141,Règlement facture espèce,84 et 97 (nom dans le menu Caisse),D,guichet,tout l'écran,"A:S107 règlement (p. 127 et 153), S78",6 Caisse,non

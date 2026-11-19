@@ -158,7 +158,7 @@ class Command(BaseCommand):
         # Types de guichet (S14n), ceux de la capture p. 19 (registre S08-1)
         for c, l in (("1", "PRINCIPALE"), ("2", "SECONDAIRE")):
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'type_guichet', %s, %s)", (ins, c, l))
-        for ev in ("depot", "retrait", "adhesion", "achat_parts", "retrait_parts", "a_nouveaux", "dat_constitution", "dat_rupture", "dat_echeance", "plan_cotisation", "plan_fin", "cloture_inactif", "versement_bcc", "ed_encaissement", "ed_decaissement", "ecart_caisse"):
+        for ev in ("depot", "retrait", "adhesion", "achat_parts", "retrait_parts", "a_nouveaux", "dat_constitution", "dat_rupture", "dat_echeance", "plan_cotisation", "plan_fin", "cloture_inactif", "versement_bcc", "ed_encaissement", "ed_decaissement", "ecart_caisse", "transfert_caisse", "transfert_banque"):
             executer("""insert into schema_comptable (institution_id, type_evenement, version, date_effet, lignes, propose_par, valide_par)
                         values (%s, %s, 1, '2026-01-01', '[]', %s, %s)""", (ins, ev, compta, chef))
 

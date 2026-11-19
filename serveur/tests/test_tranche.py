@@ -777,6 +777,39 @@ def test_ed_divers_guichet(clients, journee):
     assert balance_equilibree(caisse)
 
 
+def test_transferts(clients, journee):
+    """S81 (p. 92 et 93) : caisse vers caisse par 579, caisse vers banque par 591, comptes d'attente soldés, coupures déplacées (registre S81-1 à S81-7)"""
+    _, s = journee
+    chef, caisse = clients["chef"], clients["caisse"]
+    g1 = ident("select id from guichet where code = 'G1'")
+    chef_id = ident("select id from utilisateur where login = 'jpmukendi'")
+    assert chef.post("/api/affectations-guichets", {"utilisateurId": chef_id, "guichetId": g1, "voirSolde": True}, **H).status_code == 200
+    s1 = chef.post("/api/caisses", {"guichetId": g1}, **H).json()
+    l = chef.post("/api/banques", {"code": "RAW", "libelle": "Rawbank", "compteLiaison": "5601", "adresse": "Kinshasa"}, **H).json()
+    cb = chef.post("/api/banques/comptes", {"banqueId": l["banques"][0]["id"], "compte": "56010003", "numeroBancaire": "R-CDF-1", "devise": "CDF",
+                                            "journalId": l["journaux"][0]["id"], "contactNom": "Mutombo"}, **H).json()["comptes"][0]
+    n = lambda sid: caisse.get(f"/api/caisses/{sid}/theorique?devise=CDF").json().get("1000", 0)
+    a2, a1 = n(s["id"]), n(s1["id"])
+    vc = lambda corps: caisse.post("/api/caisse/transferts/caisse", {"cle": cle(), **corps}, **H)
+    vb = lambda corps: caisse.post("/api/caisse/transferts/banque", {"cle": cle(), **corps}, **H)
+    def refus(r):
+        assert r.status_code == 422, r.content; return r.json()["message"]
+    base = {"origineSessionId": s["id"], "destinationSessionId": s1["id"]}
+    assert "une autre caisse" in refus(vc({**base, "destinationSessionId": s["id"], "montants": {"CDF": 200000}, "coupures": {"CDF": {"1000": 2}}}))
+    assert "billetage" in refus(vc({**base, "montants": {"CDF": 200000}, "coupures": {"CDF": {"1000": 1}}}))
+    assert "Pas assez de coupures" in refus(vc({**base, "montants": {"CDF": 10000000000}, "coupures": {"CDF": {"1000": 100000}}}))
+    o = vc({**base, "montants": {"CDF": 200000}, "coupures": {"CDF": {"1000": 2}}}).json()
+    assert o["type"] == "transfert_sortie" and (n(s["id"]), n(s1["id"])) == (a2 - 2, a1 + 2)
+    assert ident("""select coalesce(sum(case l.sens when 'D' then l.montant_devise else -l.montant_devise end), 0) from ligne_ecriture l join compte c on c.id = l.compte_id
+                    where c.numero = '579' and l.ecriture_id = %s""", (o["ecritureId"],)) == 0
+    assert "No de chèque" in refus(vb({"sessionId": s["id"], "compteBancaireId": cb["id"], "montant": 100000, "cheque": "", "coupures": {"1000": 1}}))
+    solde = lambda: next(c for c in caisse.get("/api/caisse/transferts").json()["comptes"] if c["id"] == cb["id"])["solde"]
+    avant = solde()
+    v = vb({"sessionId": s["id"], "compteBancaireId": cb["id"], "montant": 100000, "cheque": "0001234", "coupures": {"1000": 1}}).json()
+    assert v["type"] == "versement_banque" and solde() == avant + 100000 and n(s["id"]) == a2 - 3
+    assert balance_equilibree(caisse)
+
+
 def test_parts_sociales(clients, journee):
     caisse, agent, chef = clients["caisse"], clients["agent"], clients["chef"]
     k, m = T("0412-000318"), T("0412-000319")                   # Kalala : 2 parts ; Mwamba : 1 part ; 4 000 CDF la part

@@ -864,6 +864,36 @@ describe("journée de guichet", () => {
     await expect(ed("DECAISSEMENT", c.id, { USD: 10000000 }, { USD: { 100: 1000 } })).rejects.toThrow("coupures en caisse");
   });
 
+  it("transferts (S81, p. 92 et 93) : caisse vers caisse par 579, caisse vers banque par 591, coupures déplacées", async () => {
+    const { s } = await journeeOuverte();
+    await connecter("jpmukendi");
+    await api.guichets.affecter({ utilisateurId: 2, guichetId: 1, voirSolde: true, voirSoldeVip: false });
+    const s1 = await api.caisses.ouvrir(1);
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    const cb = (await api.banques.enregistrerCompte({ banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "",
+      compte: "56010003", numeroBancaire: "R-CDF-1", devise: "CDF" })).comptes.find((c) => c.compte === "56010003")!;
+    await connecter("engalula");
+    const t = api.transferts;
+    const n = async (sid: number) => (await api.caisses.theorique(sid, "CDF"))[1000] ?? 0;
+    const [a2, a1] = [await n(s.id), await n(s1.id)];
+    await expect(t.caisseVersCaisse({ cle: cle(), origineSessionId: s.id, destinationSessionId: s.id, montants: { CDF: 200000 }, coupures: { CDF: { 1000: 2 } } })).rejects.toThrow("une autre caisse");
+    await expect(t.caisseVersCaisse({ cle: cle(), origineSessionId: s.id, destinationSessionId: s1.id, montants: { CDF: 200000 }, coupures: { CDF: { 1000: 1 } } })).rejects.toThrow("billetage");
+    await expect(t.caisseVersCaisse({ cle: cle(), origineSessionId: s.id, destinationSessionId: s1.id, montants: { CDF: 10000000000 }, coupures: { CDF: { 1000: 100000 } } })).rejects.toThrow("Pas assez de coupures");
+    const o = await t.caisseVersCaisse({ cle: cle(), origineSessionId: s.id, destinationSessionId: s1.id, montants: { CDF: 200000 }, coupures: { CDF: { 1000: 2 } } });
+    expect(o.type).toBe("transfert_sortie");
+    expect([await n(s.id), await n(s1.id)]).toEqual([a2 - 2, a1 + 2]);
+    const r = await api.operations.recu(o.id);
+    const net = (c: string) => r.lignes.filter((x) => x.compte === c).reduce((v, x) => v + (x.sens === "D" ? x.montant : -x.montant), 0);
+    expect([net("579"), net("570")]).toEqual([0, 0]);
+    await expect(t.caisseVersBanque({ cle: cle(), sessionId: s.id, compteBancaireId: cb.id, montant: 100000, cheque: "", coupures: { 1000: 1 } })).rejects.toThrow("No de chèque");
+    const avant = (await t.contexte()).comptes.find((c) => c.id === cb.id)!.solde;
+    const v = await t.caisseVersBanque({ cle: cle(), sessionId: s.id, compteBancaireId: cb.id, montant: 100000, cheque: "0001234", coupures: { 1000: 1 } });
+    expect(v.type).toBe("versement_banque");
+    expect((await t.contexte()).comptes.find((c) => c.id === cb.id)!.solde).toBe(avant + 100000);
+    expect(await n(s.id)).toBe(a2 - 3);
+    expect(await soldeCdfGrandLivre()).toBe(0);
+  });
+
   it("opérations de banque (S52) : saisie en attente du visa, contrôles des trois onglets (registre S52-2 à S52-6)", async () => {
     await journeeOuverte();
     await connecter("jpmukendi");

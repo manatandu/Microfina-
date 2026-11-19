@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**461 décisions.** Solidité : 192 fortes (le manuel ou un texte répond), 230 moyennes (déduites d'un écran voisin ou d'une donnée), 39 faibles (notre choix, faute de mieux). Dans le code : 443 déjà en place, 16 à appliquer.
+**468 décisions.** Solidité : 196 fortes (le manuel ou un texte répond), 233 moyennes (déduites d'un écran voisin ou d'une donnée), 39 faibles (notre choix, faute de mieux). Dans le code : 450 déjà en place, 16 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1071,6 +1071,18 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S78-4 | Devise du montant | Un montant par devise tenue par le guichet (règle T12) : Montant (CDF) et Montant (USD) ; une écriture, équilibrée dans chaque devise, et un mouvement de caisse par devise | Texte réglementaire : T12 ; PCCI, compte 57 | moyenne | en place |
 | S78-5 | Écriture | Journal de caisse, à l'enregistrement, sans visa : encaissement, débit du compte du guichet (570) et crédit du compte de l'opération ; décaissement, l'inverse. Comme un dépôt ou un retrait au guichet. La validation des « Opérations diverses » (S82) concerne les opérations initiées par la comptabilité, pas les ED divers | Manuel : Texte p. 89, 93 et 94 ; S08-7 (PCCI 570) | moyenne | en place |
 | S78-6 | Examen renforcé (E01) | Ne s'applique pas : il porte sur les opérations en espèces d'un client, et un ED divers n'a pas de client | Écran voisin : E01 | moyenne | en place |
+
+## S81 Transfert : caisse vers caisse, caisse vers banque
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S81-1 | Champs et boutons | Ceux des deux captures. Caisse vers Caisse : « ALIMENTATION DE GUICHET », Caisse d'origine *, Montant *, Caisse destination *, sous chaque caisse son caissier et son solde ; montant en lettres ; Enregistrer, Annuler. Caisse vers Banque : « Virement de Caisse vers Banque », Encaissement Especes (fixe), Caisse *, Montant *, Banque *, Compte Banque *, No de chèque * ; Solde de la caisse, Solde de la Banque ; montant en lettres ; Enregistrer, Annuler. Numéro de pièce après Enregistrer, date de la journée ouverte, comme aux autres écrans du guichet. Les caisses proposées sont celles ouvertes ce jour dans l'agence | Manuel : Captures p. 92 et 93 (doublons p. 106 et 107) ; texte p. 92 | forte | en place |
+| S81-2 | Écriture caisse vers caisse | Crédit du compte du guichet d'origine, débit du compte du guichet destination, par le compte liaison des guichets (579 par défaut, S08-7) ; le 579 est soldé dans la même écriture | Texte réglementaire : PCCI, compte 57 : « Le compte des mouvements de fonds (579) sert de contrepartie lors de mouvements de fonds entre les caisses … Le solde de ce compte doit être nul en fin de journée » | forte | en place |
+| S81-3 | Écriture caisse vers banque | Crédit du compte du guichet, débit du compte du plan lié au compte bancaire choisi, par le compte 591 « Virement caisse à banque », soldé dans la même écriture | Texte réglementaire : PCCI, compte 59 : virements internes, « compte d'attente qui doit être soldé en fin de période » ; 591 Virement caisse à banque | forte | en place |
+| S81-4 | Billetage | Bouton Billetage sur les deux transferts : les coupures qui sortent de la caisse d'origine, jamais plus que son stock, entrent dans la caisse destination ; vers la banque, elles sortent de la caisse | Choix du porteur : Décision du porteur, 19/11/2026 (comme S78-3) | forte | en place |
+| S81-5 | Devise du montant | Caisse vers caisse : un montant par devise tenue (règle T12). Caisse vers banque : la devise du compte bancaire choisi | Texte réglementaire : T12 ; S58-5 (devise du compte bancaire) | moyenne | en place |
+| S81-6 | No de chèque | Saisi, obligatoire, sans lien avec les chéquiers de l'institution (S60) : le texte dit « saisir le numéro de chèque », et un versement d'espèces ne tire pas de chèque sur le compte (S60-2) | Manuel : Texte p. 92 ; S60-2 | moyenne | en place |
+| S81-7 | Validation | L'écriture passe à l'enregistrement, au journal de caisse, sans visa : les captures n'ont que Enregistrer. La validation des « Opérations diverses » (S82) porte sur les opérations initiées par la comptabilité | Manuel : Captures p. 92 et 93 ; texte p. 93 | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

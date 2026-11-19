@@ -80,6 +80,7 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/guichet/(depots|retraits)", ["S74"]),
     (r"/guichet/parts", ["S77"]),
     (r"/guichet/ed-divers", ["S78"]),
+    (r"/caisse/transferts/(caisse|banque)", ["S81"]),
     (r"/guichet/adhesions", ["S73"]),
     (r"/operations/\d+/(visa|refus)", ["S82", "S74", "S73", "S77", "S113"]),
     (r"/parametrage/frais.*", ["S16"]),

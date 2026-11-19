@@ -171,7 +171,7 @@ export interface Ecriture {
   lignes: readonly Ligne[];
 }
 
-export type TypeOperation = "depot" | "retrait" | "adhesion" | "achat_parts" | "retrait_parts" | "ed_encaissement" | "ed_decaissement";
+export type TypeOperation = "depot" | "retrait" | "adhesion" | "achat_parts" | "retrait_parts" | "ed_encaissement" | "ed_decaissement" | "transfert_sortie" | "transfert_entree" | "versement_banque";
 
 /** S52 : opération de banque, saisie puis visée et validée (S57), comptabilisée (S111) ; pièce donnée à la comptabilisation (registre S52-2) */
 export type TypeOperationBanque = "encaissement" | "decaissement" | "banque_caisse" | "banque_banque" | "virement_client" | "prelevement_client" | "adhesion_banque";

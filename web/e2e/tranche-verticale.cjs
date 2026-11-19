@@ -832,6 +832,17 @@ const OUT = process.argv[2];
   await p.getByRole('dialog', { name: 'Billetage' }).getByLabel('Nombre de coupures de 1 000 CDF').fill('2');
   await p.getByRole('dialog', { name: 'Billetage' }).getByRole('button', { name: 'Fermer' }).click();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok(); await p.getByText(/Numéro de pièce : \S+/).waitFor(); await etape('14d-ed-divers');
+  // Transfert entre caisse (S81, p. 92 et 93 ; registre S81-1 à S81-7) : versement de 1 000 CDF de la caisse vers le compte CDF de Rawbank
+  await aller('/caisse/s81?page=caisse'); await p.getByRole('heading', { name: 'Caisse vers Caisse' }).waitFor(); await etape('14e-caisse-vers-caisse');
+  await p.getByRole('tab', { name: 'Caisse vers banque' }).click(); await p.getByRole('heading', { name: 'Caisse vers Banque' }).waitFor();
+  await p.getByLabel('Caisse *').selectOption({ label: 'Caisse 2' }); await p.getByLabel('Montant *').fill('1 000');
+  await p.getByLabel('Banque *', { exact: true }).selectOption({ label: 'RAW:Rawbank' });
+  await p.getByLabel('Compte Banque *').selectOption(await p.getByLabel('Compte Banque *').locator('option', { hasText: '56010002' }).getAttribute('value'));
+  await p.getByLabel('No de chèque *').fill('0001234'); await p.getByText('mille francs congolais', { exact: false }).first().waitFor();
+  await p.getByRole('button', { name: 'Billetage' }).click();
+  await p.getByRole('dialog', { name: 'Billetage' }).getByLabel('Nombre de coupures de 1 000 CDF').fill('1');
+  await p.getByRole('dialog', { name: 'Billetage' }).getByRole('button', { name: 'Fermer' }).click();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok(); await p.getByText(/Numéro de pièce : \S+/).waitFor(); await etape('14f-caisse-vers-banque');
   // Arrêté de caisse
   // Le stock de la caisse, par coupure, se lit dans la fenêtre Billetage d'un retrait (S74) ; l'arrêté compte juste
   const stock = {};

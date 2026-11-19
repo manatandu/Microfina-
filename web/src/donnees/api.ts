@@ -2572,6 +2572,88 @@ const guichet = {
   },
 };
 
+// ---------- S81 : Caisse > Transfert entre caisse (manuel p. 92 et 93 ; doublons p. 106 et 107). Règles identiques côté serveur (noyau/transferts.py).
+// Caisse vers caisse par le compte 579 (PCCI : mouvements de fonds inter caisses) ; caisse vers banque par le compte 591 (PCCI 59 : virement caisse à banque).
+// Les deux comptes d'attente sont soldés dans la même écriture. Billetage sur les deux (décision du porteur du 19/11/2026). Registre S81-1 à S81-7. ----------
+const transferts = {
+  contexte() {
+    exiger();
+    const j = journees.courante();
+    const ouvertes = !j || j.statut !== "ouverte" ? [] : E.sessions.filter((s) => s.journeeId === j.id && s.statut === "ouverte")
+      .map((s) => ({ s, g: E.guichets.find((g) => g.id === s.guichetId)! })).sort((a, b) => a.g.code.localeCompare(b.g.code))
+      .map(({ s, g }) => ({ sessionId: s.id, guichetId: g.id, nom: g.nom, caissier: nomUtilisateur(s.caissierId),
+        soldes: Object.fromEntries(devisesTenues().map((d) => [d, totalComptage(caisses.theorique(s.id, d))])) as Partial<Record<Devise, number>> }));
+    const b = banqueOperations.lire();
+    return { date: b.date, caisses: ouvertes, devises: devisesTenues(), banques: b.banques, comptes: b.comptes.map((c) => ({ ...c, intitule: libelleCompte(c.compte) })) };
+  },
+  /** 3-1 Caisse vers caisse (p. 92) : C 570 de la caisse d'origine, D 570 de la caisse destination, par le compte 579 (registre S81-2) */
+  caisseVersCaisse(p: { cle: string; origineSessionId: number; destinationSessionId: number; montants: Partial<Record<Devise, number>>; coupures: Partial<Record<Devise, Comptage>> }) {
+    const u = exiger();
+    const prec = dejaFaite(p.cle); if (prec) return prec;
+    const o = sessionTransfert(p.origineSessionId, "Caisse d'origine"), d = sessionTransfert(p.destinationSessionId, "Caisse destination");
+    if (o.s.id === d.s.id) throw new ErreurMetier("Caisse destination : une autre caisse que celle d'origine.");
+    const saisis: [Devise, number, Comptage][] = [];
+    for (const [dv, m] of Object.entries(p.montants ?? {}) as [Devise, number | undefined][]) {
+      if (!m) continue;
+      if (!devisesTenues().includes(dv)) throw new ErreurMetier(`Devise ${dv} : les guichets ne la tiennent pas.`);
+      if (!Number.isInteger(m) || m <= 0) throw new ErreurMetier(`Montant (${dv}) : un montant supérieur à zéro.`);
+      const c = nettoyer(p.coupures?.[dv] ?? {});
+      controlerCoupures(c, m, dv); sortiePossible(o.s.id, dv, c);
+      saisis.push([dv, m, c]);
+    }
+    if (saisis.length === 0) throw new ErreurMetier("À remplir : Montant.");
+    const lignes: Ligne[] = saisis.flatMap(([dv, m]) => [
+      { compte: d.g.compteLiaison || "579", sens: "D", devise: dv, montant: m, montantCdf: cdf(m, dv) },
+      { compte: "570", contrat: `guichet:${o.g.id}`, sens: "C", devise: dv, montant: m, montantCdf: cdf(m, dv) },
+      { compte: "570", contrat: `guichet:${d.g.id}`, sens: "D", devise: dv, montant: m, montantCdf: cdf(m, dv) },
+      { compte: o.g.compteLiaison || "579", sens: "C", devise: dv, montant: m, montantCdf: cdf(m, dv) },
+    ] as Ligne[]);
+    const e = poster({ journal: "CA", journeeId: o.s.journeeId, libelle: `Alimentation de guichet : ${o.g.nom} vers ${d.g.nom}`, piece: piece(), saisiPar: u.id, validePar: u.id, lignes });
+    const base = prochain(E.operations);
+    const ops: Operation[] = saisis.flatMap(([dv, m, c], i) => [
+      { id: base + 2 * i, cle: i === 0 ? p.cle : `${p.cle}:${dv}`, type: "transfert_sortie", statut: "validee", sessionId: o.s.id, tiersId: null, montant: m, devise: dv,
+        coupures: c, remisPar: "", motif: `Vers ${d.g.nom}`, saisiPar: u.id, ecritureId: e.id, heure: heure() },
+      { id: base + 2 * i + 1, cle: `${p.cle}:entree:${dv}`, type: "transfert_entree", statut: "validee", sessionId: d.s.id, tiersId: null, montant: m, devise: dv,
+        coupures: c, remisPar: "", motif: `De ${o.g.nom}`, saisiPar: u.id, ecritureId: e.id, heure: heure() },
+    ] as Operation[]);
+    E.operations.push(...ops); enregistrer(); return ops[0]!;
+  },
+  /** 3-2 Caisse vers banque (p. 92 et 93) : C 570 de la caisse, D du compte de la banque, par le compte 591 (registre S81-3) */
+  caisseVersBanque(p: { cle: string; sessionId: number; banqueId?: number; compteBancaireId: number; montant: number; cheque: string; coupures: Comptage }) {
+    const u = exiger();
+    const prec = dejaFaite(p.cle); if (prec) return prec;
+    const { s, g } = sessionTransfert(p.sessionId, "Caisse");
+    const cb = E.comptesBancaires.find((c) => c.id === p.compteBancaireId);
+    if (!cb) throw new ErreurMetier("À remplir : Compte Banque.");
+    if (p.banqueId !== undefined && p.banqueId !== cb.banqueId) throw new ErreurMetier("Ce compte n'est pas un compte de la banque choisie.");
+    const cheque = typeof p.cheque === "string" ? p.cheque.trim() : "";
+    if (!cheque) throw new ErreurMetier("À remplir : No de chèque.");
+    if (!Number.isInteger(p.montant) || p.montant <= 0) throw new ErreurMetier("Montant : un montant supérieur à zéro.");
+    const dv = cb.devise, c = nettoyer(p.coupures ?? {});
+    controlerCoupures(c, p.montant, dv); sortiePossible(s.id, dv, c);
+    const m = p.montant;
+    const e = poster({ journal: "CA", journeeId: s.journeeId, libelle: `Versement en banque, chèque ${cheque}`, piece: piece(), saisiPar: u.id, validePar: u.id, lignes: [
+      { compte: "591", sens: "D", devise: dv, montant: m, montantCdf: cdf(m, dv) },
+      { compte: "570", contrat: `guichet:${g.id}`, sens: "C", devise: dv, montant: m, montantCdf: cdf(m, dv) },
+      { compte: cb.compte, sens: "D", devise: dv, montant: m, montantCdf: cdf(m, dv) },
+      { compte: "591", sens: "C", devise: dv, montant: m, montantCdf: cdf(m, dv) },
+    ] });
+    const o: Operation = { id: prochain(E.operations), cle: p.cle, type: "versement_banque", statut: "validee", sessionId: s.id, tiersId: null, montant: m, devise: dv,
+      coupures: c, remisPar: "", motif: `Chèque ${cheque}`, saisiPar: u.id, ecritureId: e.id, heure: heure() };
+    E.operations.push(o); enregistrer(); return o;
+  },
+};
+function sessionTransfert(id: number, quoi: string) {
+  const s = E.sessions.find((x) => x.id === id);
+  if (!s) throw new ErreurMetier(`À remplir : ${quoi}.`);
+  if (s.statut !== "ouverte") throw new ErreurMetier(`${quoi} : la caisse n'est pas ouverte.`);
+  return { s, g: E.guichets.find((g) => g.id === s.guichetId)! };
+}
+function sortiePossible(sessionId: number, devise: Devise, c: Comptage) {
+  const th = caisses.theorique(sessionId, devise);
+  if (Object.entries(c).some(([v, n]) => (n ?? 0) > (th[Number(v)] ?? 0))) throw new ErreurMetier(`Pas assez de coupures dans la caisse d'origine (${devise}).`);
+}
+
 /** Plan comptable : le PCCI complet (replica/pcci.json, 604 comptes ; Instruction BCC n° 006), plus les comptes bancaires de l'institution (S58) */
 const NUMEROS_PCCI = PCCI.comptes.map((c) => c.numero);
 function planComptable() {
@@ -2634,7 +2716,7 @@ const comptes = {
   },
 };
 /** Opérations qui font sortir des billets de la caisse */
-const SORTIES: Operation["type"][] = ["retrait", "retrait_parts", "ed_decaissement"];
+const SORTIES: Operation["type"][] = ["retrait", "retrait_parts", "ed_decaissement", "transfert_sortie", "versement_banque"];
 /** PCCI, compte 103 : 1030 personnes physiques, 1031 groupements solidaires, 1032 personnes morales.
  *  Groupe de type « Groupement » en 1031 ; association et ONG en 1032 (à confirmer). Identique côté serveur (services.compte_parts). */
 export function compteParts(t: Tiers) {
@@ -4797,6 +4879,7 @@ const apiLocal = {
   parametrageEpargne: asynchrone(parametrageEpargne, "parametrageEpargne"),
   journaux: asynchrone(journaux, "journaux"),
   edDivers: asynchrone(edDivers, "edDivers"),
+  transferts: asynchrone(transferts, "transferts"),
   societe: asynchrone(societe, "societe"),
   agents: asynchrone(agents, "agents"),
   jours: asynchrone(jours, "jours"),

@@ -378,6 +378,24 @@ def guichet_ed_divers(request, corps: dict = Body(...)):
     return ed_guichet.enregistrer(u(request), corps)
 
 
+@api.get("/caisse/transferts")
+def transferts_contexte(request):
+    from . import transferts
+    return transferts.contexte(u(request))
+
+
+@api.post("/caisse/transferts/caisse")
+def transfert_caisse(request, corps: dict = Body(...)):
+    from . import transferts
+    return transferts.caisse_vers_caisse(u(request), corps)
+
+
+@api.post("/caisse/transferts/banque")
+def transfert_banque(request, corps: dict = Body(...)):
+    from . import transferts
+    return transferts.caisse_vers_banque(u(request), corps)
+
+
 @api.post("/guichet/adhesions")
 def guichet_adhesion(request, corps: dict = Body(...)):
     return s.adhesion(u(request), corps)
