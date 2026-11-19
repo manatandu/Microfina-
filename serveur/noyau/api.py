@@ -378,6 +378,12 @@ def guichet_ed_divers(request, corps: dict = Body(...)):
     return ed_guichet.enregistrer(u(request), corps)
 
 
+@api.post("/credit/simulation")
+def credit_simulation(request, corps: dict = Body(...)):
+    from . import simulation_credit
+    return simulation_credit.simuler(u(request), corps)
+
+
 @api.get("/caisse/journal/contexte")
 def journal_caisse_contexte(request):
     from . import journal_caisse

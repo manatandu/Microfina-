@@ -1901,6 +1901,25 @@ describe("journée de guichet", () => {
     await expect(api.modeles.supprimer(m.id)).rejects.toThrow("produit crédit");
   });
 
+  it("simulation d'échéancier (S84, p. 111) : échéance constante, taux mensuel, différé réparti, TEG avec frais et épargne (Instr. BCC 38)", async () => {
+    await connecter("jpmukendi");
+    const P = { typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: "2,5", tauxDiffere: 2,
+      montantMin: 100000, montantMax: 5000000, dureeMin: 3, dureeMax: 12, differeMin: 0, differeMax: 2, interetMin: 1, interetMax: 4, clientPhysique: true, periodicite: "M",
+      modeDiffere: "Réparti", paiementInteret: "Normal", interetAnticipation: false, ageMax: 65, epargneNature: "Taux", epargneValeur: 10, categorie: "Prêt commercial",
+      penaliteAnticipation: 50, frais: [{ typeFrais: "Frais de dossier", nature: "Taux", valeur: 1, compte: "7152" }] };
+    const pid = (await api.produitsCredit.enregistrer(P)).produits[0]!.id;
+    await connecter("bkasongo");
+    const sim = (x: Partial<{ montant: number; duree: number; differe: number }> = {}) => api.simulationCredit.simuler({ produitId: pid, montant: 100000000, duree: 12, ...x });
+    await expect(sim({ duree: 24 })).rejects.toThrow("entre 3 et 12 mois");
+    await expect(sim({ montant: 100 })).rejects.toThrow("Montant du prêt");
+    const r = await sim();
+    expect([r.nombreTraites, r.echeanceConstante, r.tegR, r.tegA]).toEqual([12, 9748713, 38.49, 46.07]);   // mêmes chiffres que le serveur
+    expect(r.echeancier.reduce((s, l) => s + l.capital, 0)).toBe(100000000);
+    expect([r.echeancier[0]!.interet, r.frais, r.epargneObligatoire]).toEqual([2500000, 1000000, 10000000]);
+    const d = await sim({ differe: 2 });
+    expect([d.interetDiffere, d.totalInteret]).toEqual([4000000, r.totalInteret + 4000000]);
+  });
+
   it("produit crédit (S23, p. 37 et 38) : méthode dégressive (Instr. BCC 38 art. 11), bornes, garanties, assurance, frais (Instr. BCC 40 art. 8)", async () => {
     await connecter("jpmukendi");
     const P = { typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: "2,5", tauxDiffere: 2,

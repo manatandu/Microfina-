@@ -395,6 +395,13 @@ const OUT = process.argv[2];
   await p.getByRole('cell', { name: '0412-000319-01' }).waitFor(); await etape('06l-validation-client-modifie');
   await p.getByRole('button', { name: 'activer client' }).click(); await ok();
   // Mise à jour d'une entreprise (S46, registre S46-2) : onglets de son enrôlement, signataire ajouté, puis validation (S42)
+  // Simulation d'échéancier (S84, p. 111 ; registre S84-1 à S84-9) : 1 000 000 CDF sur 12 mois à 2,5 % par mois, échéance constante, TEG (Instr. BCC 38)
+  await login('Bijou Kasongo'); await aller('/credit/s84'); await p.getByRole('heading', { name: "Simulation tableau d'amortissement pour un crédit donné" }).waitFor();
+  await p.getByLabel('Produit *').selectOption({ label: 'Crédit commerce' }); await p.waitForFunction(() => document.querySelector('select[id] option:checked') && [...document.querySelectorAll('select')].some((x) => x.value === 'M')); await p.getByLabel('Montant du prêt *').fill('1 000 000'); await p.getByLabel('Durée *').fill('12');
+  await p.getByRole('tab', { name: 'Recapitulatif' }).click(); await p.getByText('34,49 %').first().waitFor(); await etape('06c37-simulation-recapitulatif');
+  await p.getByRole('button', { name: 'Echéancier' }).click();
+  await p.getByRole('dialog', { name: 'Echéancier' }).getByRole('cell', { name: '97 487,13 CDF' }).first().waitFor(); await etape('06c38-simulation-echeancier');
+  await p.getByRole('dialog', { name: 'Echéancier' }).getByRole('button', { name: 'Fermer' }).click();
   await login('Bijou Kasongo'); await aller('/clients/s46');
   await p.getByRole('button', { name: 'Rechercher un client' }).click();
   const rme = p.getByRole('dialog', { name: "Recherche d'un client" });

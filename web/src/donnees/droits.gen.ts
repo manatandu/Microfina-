@@ -394,6 +394,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "retenues.reverser": [
 "SF01"
 ],
+"simulationCredit.simuler": [
+"S84"
+],
 "societe.enregistrer": [
 "S32"
 ],

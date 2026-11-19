@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**474 décisions.** Solidité : 197 fortes (le manuel ou un texte répond), 236 moyennes (déduites d'un écran voisin ou d'une donnée), 41 faibles (notre choix, faute de mieux). Dans le code : 455 déjà en place, 16 à appliquer.
+**485 décisions.** Solidité : 202 fortes (le manuel ou un texte répond), 241 moyennes (déduites d'un écran voisin ou d'une donnée), 42 faibles (notre choix, faute de mieux). Dans le code : 465 déjà en place, 16 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1100,6 +1100,32 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S83-4 | Liste Rapport | Une seule valeur, « Journal de caisse », celle de la capture ; le manuel n'en montre pas d'autre | Manuel : Capture p. 95 | moyenne | en place |
 | S83-5 | N° Client et période | N° Client : le membre dont un compte (dépôt, parts) figure dans la même écriture, vide sinon (ED divers, transfert). Du : le 1er janvier de l'année de la journée ; Au : la journée | Écran voisin : S72-1 ; S51 | faible | en place |
 
+## S141 Règlement facture espèce
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S141-1 | Ordre de construction | S141 règle une facture enregistrée dans Comptabilité > Factures (S107) : il se construit avec S107, à l'étape 8, comme S82 avec S116 | Choix du porteur : Décision du porteur, 19/11/2026 ; atlas (A:S107) | forte | à faire |
+
+## Étape 7 Crédit
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| CR-1 | Ordre de construction | L'ordre du prêt : S84 simulation, S85 analyse, S86 demande, S87 contrôle, S88 approbation, S89 mise en place ; ensuite les déblocages et remboursements (S54, S75, S55, S76) et le reste du module | Choix du porteur : Décision du porteur, 19/11/2026 | forte | en place |
+
+## S84 Plan d'amortissement (simulation)
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S84-1 | Champs et boutons | Ceux de la capture : Infos Clients (N° client et recherche, Intitulé, Adresse), Infos Produit (Produit, Périodicité, M. calcul, Mode différé ; Taux Int., Taux Diff., T.E.G R, T.E.G A), pages « Informations sur le montant et la durée » (Montant du prêt, Durée, Date deblocage, Date début, Date effet, Nbre de traite, Différé) et « Recapitulatif » ; Effacer, Echéancier ; l'échéancier s'imprime (texte p. 111). Produits actifs seulement (S25-1). Date début : première échéance ; Date effet : date de déblocage | Manuel : Capture et texte p. 111 | moyenne | en place |
+| S84-2 | Méthode et taux | Méthode dégressive à échéance constante : intérêt de chaque échéance sur le capital restant dû, échéance arrondie au centime, la dernière solde le capital. Taux Int. et Taux Diff. du produit : taux mensuels, ramenés à la période (× 12 / dénominateur) | Choix du porteur : Décision du porteur, 19/11/2026 ; Instr. BCC 38, art. 11 | forte | en place |
+| S84-3 | Différé « Réparti » | Pendant le différé, rien n'est payé ; ses intérêts (capital × taux différé × périodes de différé) sont répartis à parts égales sur les échéances ; la première échéance vient une période après la fin du différé | Choix du porteur : Décision du porteur, 19/11/2026 | forte | en place |
+| S84-4 | T.E.G R et T.E.G A | T.E.G R : taux de période × dénominateur (art. 2, taux proportionnel) ; T.E.G A : (1 + taux de période)^dénominateur − 1 (annexe, taux actuariel). Deux décimales. Rien pour un produit à taux réglementé ou bonifié (art. 5) | Choix du porteur : Décision du porteur, 19/11/2026 ; Instr. BCC 38, art. 2, 4, 5 et annexe | forte | en place |
+| S84-5 | Flux du TEG | Au déblocage, le client reçoit le montant moins les frais, l'assurance et l'épargne obligatoire du produit ; il verse les échéances ; l'épargne obligatoire lui revient avec la dernière échéance. Le taux de période égalise ces flux selon les intérêts composés | Texte réglementaire : Instr. BCC 38, art. 4, 6 et 9 | moyenne | en place |
+| S84-6 | Fonds de solidarité | Hors du TEG : l'article 6 nomme le taux débiteur, les frais et commissions, l'épargne obligatoire et l'assurance, pas le fonds de solidarité | Texte réglementaire : Instr. BCC 38, art. 6 | faible | en place |
+| S84-7 | Bornes | Montant, durée et différé dans les bornes du produit (S23) ; durée et différé en mois, découpés en périodes entières de la périodicité | Donnée exigée ailleurs : S23-3 ; S69-2 | moyenne | en place |
+| S84-8 | Récapitulatif et échéancier | Récapitulatif : les caractéristiques, l'échéance, les intérêts (dont ceux du différé), les frais, l'assurance, l'épargne obligatoire et les deux TEG. Échéancier : N°, Date, Capital début, Capital, Intérêt, Échéance, Capital restant, total ; Imprimer | Manuel : Texte p. 111 (« vérifier le détail des caractéristiques puis cliquez sur [Échéancier] et cliquez sur imprimer ») | moyenne | en place |
+| S84-9 | Qui simule | Le profil qui a S84 (agent de crédit au départ) ; la simulation n'enregistre rien | Écran voisin : DROITS_DEPART | moyenne | en place |
+
 ## Les décisions faibles, à regarder en premier
 
 | N° | Écran | Question | Réponse retenue |
@@ -1145,3 +1171,4 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S72-7 | S72 Rapports épargne | « Afficher les comptes » : que fait la case ? | Non cochée, seuls les comptes qui ont un solde sont listés ; cochée, les comptes à solde nul s'y ajoutent |
 | S83-3 | S83 Rapport : journal des opérations de caisse | Rechercher par, Valeur | Les colonnes de texte de la grille : N° Client, N° pièce, Libellé ; la valeur filtre ce qui la contient |
 | S83-5 | S83 Rapport : journal des opérations de caisse | N° Client et période | N° Client : le membre dont un compte (dépôt, parts) figure dans la même écriture, vide sinon (ED divers, transfert). Du : le 1er janvier de l'année de la journée ; Au : la journée |
+| S84-6 | S84 Plan d'amortissement (simulation) | Fonds de solidarité | Hors du TEG : l'article 6 nomme le taux débiteur, les frais et commissions, l'épargne obligatoire et l'assurance, pas le fonds de solidarité |

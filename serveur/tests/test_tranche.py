@@ -1377,6 +1377,25 @@ PRODUIT = {"typeProduit": "CNO", "numero": "L001", "nom": "Crédit commerce", "d
            "penaliteAnticipation": 50, "frais": [{"typeFrais": "Frais de dossier", "nature": "Taux", "valeur": 1, "compte": "7152"}]}
 
 
+def test_simulation_credit(clients, journee):
+    """S84 (p. 111) : échéance constante, méthode dégressive (Instr. BCC 38, art. 11) ; taux mensuel ; intérêts du différé répartis ; TEG proportionnel
+    et actuariel avec frais et épargne obligatoire (Instr. BCC 38, art. 2, 4, 6, 9, annexe) ; bornes du produit (registre S84-1 à S84-9)"""
+    chef, agent = clients["chef"], clients["agent"]
+    pid = chef.post("/api/produits-credit", PRODUIT, **H).json()["produits"][0]["id"]
+    sim = lambda **k: agent.post("/api/credit/simulation", {"produitId": pid, "montant": 100000000, "duree": 12, **k}, **H)
+    assert "entre 3 et 12 mois" in sim(duree=24).json()["message"]
+    assert "Montant du prêt" in sim(montant=100).json()["message"]
+    r = sim().json()
+    assert r["nombreTraites"] == 12 and r["echeanceConstante"] == 9748713                     # 1 000 000 × 2,5 % / (1 − 1,025^−12)
+    assert sum(l["capital"] for l in r["echeancier"]) == 100000000 and r["echeancier"][-1]["capitalFin"] == 0
+    assert r["echeancier"][0]["interet"] == 2500000 and r["frais"] == 1000000 and r["epargneObligatoire"] == 10000000
+    assert (r["tegR"], r["tegA"]) == (38.49, 46.07)                                          # frais 1 % et épargne 10 % compris
+    d = sim(differe=2).json()
+    assert d["interetDiffere"] == 4000000 and sum(l["interet"] for l in d["echeancier"]) == r["totalInteret"] + 4000000
+    assert d["dateDebut"] > r["dateDebut"]
+    assert chef.post("/api/credit/simulation", {"produitId": pid, "montant": 100000000, "duree": 12}, **H).status_code == 403
+
+
 def test_produit_credit(clients):
     """S23 (p. 37 et 38) : Information de base de la capture ; méthode dégressive (Instr. BCC 38, art. 11) ; garanties, assurance, frais
     (Instr. BCC 38 art. 6, Instr. BCC 40 art. 8) ; pénalité d'anticipation au plus 50 % (Instr. BCC 38, art. 14) ; registre S23-1 à S23-7"""

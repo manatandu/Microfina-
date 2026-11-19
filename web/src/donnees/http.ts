@@ -60,6 +60,9 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       indicateurs: (date: string, auxiliaires: boolean) => get(`/epargne/rapports/indicateurs?date=${date}&auxiliaires=${auxiliaires}`),
       inactivite: (date: string, jours: number | null, tous: boolean) => get(`/epargne/rapports/inactivite?date=${date}${jours === null ? "" : `&jours=${jours}`}&tous=${tous}`),
     },
+    simulationCredit: {
+      simuler: (d: unknown) => post("/credit/simulation", d),
+    },
     journalCaisse: {
       contexte: () => get("/caisse/journal/contexte"),
       journal: (guichetId: number, du: string, au: string) => get(`/caisse/journal?guichetId=${guichetId}&du=${du}&au=${au}`),

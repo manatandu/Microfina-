@@ -99,7 +99,7 @@ S81,"Transfert : caisse vers caisse, caisse vers banque",92 et 93 ; doublons 106
 S82,"Valider opérations : diverses, déplacées",93 et 94 ; doublons 107 et 108,A,visa,,,6 Caisse,non
 S83,Rapport : journal des opérations de caisse,95 ; doublon 109,A,rapport,,,6 Caisse,oui
 S141,Règlement facture espèce,84 et 97 (nom dans le menu Caisse),D,guichet,tout l'écran,"A:S107 règlement (p. 127 et 153), S78",6 Caisse,non
-S84,Plan d'amortissement (simulation),111,B,onglets,"pages Montant et durée, Récapitulatif, Échéancier",M:texte p. 111 ; A:S89,7 Crédit,non
+S84,Plan d'amortissement (simulation),111,B,onglets,"pages Montant et durée, Récapitulatif, Échéancier",M:texte p. 111 ; A:S89,7 Crédit,oui
 S85,"Analyse financière : allégée, développée",112 (deux captures),B,onglets,onglets suivants,M:noms d'onglets ; P,7 Crédit,non
 S86,Dossier : analyse (demande),113,B,onglets,page de détail après Suivant,M:texte p. 113,7 Crédit,non
 S87,Dossier : contrôle,113 (texte),C,visa,tout l'écran,M:texte p. 113 ; A:S90,7 Crédit,non

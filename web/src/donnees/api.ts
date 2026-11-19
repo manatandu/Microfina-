@@ -2572,6 +2572,68 @@ const guichet = {
   },
 };
 
+// ---------- S84 : Crédit > Plan d'amortissement (manuel p. 111). Mêmes règles que serveur/noyau/simulation_credit.py. Registre S84-1 à S84-9.
+// Dégressif à échéance constante (Instr. BCC 38, art. 11) ; taux mensuels ramenés à la périodicité ; intérêts du différé répartis sur les échéances ;
+// TEG R proportionnel (art. 2) et TEG A actuariel (annexe), frais, assurance et épargne obligatoire compris (art. 6, 9). ----------
+const chargeCredit = (nature: unknown, valeur: unknown, montant: number) => {
+  const v = Number(String(valeur ?? 0).replace(",", "."));
+  return !v ? 0 : (nature ?? "Montant") === "Montant" ? Math.round(v * 100) : Math.round(montant * v / 100);
+};
+function tauxPeriode(flux: number[]) {
+  const f = (r: number) => flux.reduce((s, x, k) => s + x / (1 + r) ** k, 0);
+  let bas = 0, haut = 10;   // un taux de période entre 0 et 1 000 %
+  if (f(bas) * f(haut) > 0) return 0;
+  for (let i = 0; i < 200; i++) { const m = (bas + haut) / 2; if (f(bas) * f(m) <= 0) haut = m; else bas = m; }
+  return (bas + haut) / 2;
+}
+const simulationCredit = {
+  simuler(d: { produitId: number; periodicite?: string; montant: number; duree: number; differe?: number; dateDeblocage?: string }) {
+    exiger();
+    const p = E.produitsCredit.find((x) => x.id === d.produitId);
+    if (!p) throw new ErreurMetier("À remplir : Produit.");
+    const nb = (k: string) => Number(String(p[k] ?? 0).replace(",", "."));
+    const code = d.periodicite || String(p.periodicite), per = periodicitePlan(code);
+    if (!per) throw new ErreurMetier("À remplir : Périodicité.");
+    if (!Number.isInteger(d.montant)) throw new ErreurMetier("À remplir : Montant du prêt.");
+    if (!Number.isInteger(d.duree)) throw new ErreurMetier("À remplir : Durée.");
+    const differe = d.differe ?? 0;
+    if (!Number.isInteger(differe) || differe < 0) throw new ErreurMetier("Différé : un nombre de mois, zéro ou plus.");
+    const dv = String(p.devise);
+    if (d.montant <= 0 || d.montant / 100 < nb("montantMin") || d.montant / 100 > nb("montantMax"))
+      throw new ErreurMetier(`Montant du prêt : entre ${montantLisible(nb("montantMin") * 100, dv).replace(",00", "")} et ${montantLisible(nb("montantMax") * 100, dv)} pour ce produit.`);
+    if (d.duree < nb("dureeMin") || d.duree > nb("dureeMax")) throw new ErreurMetier(`Durée : entre ${nb("dureeMin")} et ${nb("dureeMax")} mois pour ce produit.`);
+    if (differe < nb("differeMin") || differe > nb("differeMax")) throw new ErreurMetier(`Différé : entre ${nb("differeMin")} et ${nb("differeMax")} mois pour ce produit.`);
+    const n = d.duree * Number(per.denominateur) / 12;
+    if (n < 1 || !Number.isInteger(n)) throw new ErreurMetier(`Durée : ${d.duree} mois ne se découpe pas en échéances « ${per.libelle} ».`);
+    const nd = differe * Number(per.denominateur) / 12;
+    if (!Number.isInteger(nd)) throw new ErreurMetier(`Différé : ${differe} mois ne se découpe pas en périodes « ${per.libelle} ».`);
+    const deblocage = d.dateDeblocage || journees.courante()?.date || new Date().toISOString().slice(0, 10);
+    const den = Number(per.denominateur), r = nb("tauxInteret") * 12 / den / 100, rd = nb("tauxDiffere") * 12 / den / 100;
+    const interetDiffere = Math.round(d.montant * rd * nd);
+    const part = Array.from({ length: n }, (_, k) => Math.floor(interetDiffere / n) + (k < interetDiffere % n ? 1 : 0));
+    const a = Math.round(r === 0 ? d.montant / n : d.montant * r / (1 - (1 + r) ** -n));
+    let reste = d.montant;
+    const echeancier = Array.from({ length: n }, (_, k) => {
+      const i = Math.round(reste * r), c = k === n - 1 ? reste : Math.min(reste, a - i);
+      const l = { rang: k + 1, date: dateRangPlan(deblocage, code, nd + 1 + k), capitalDebut: reste, capital: c, interet: i + part[k]!, echeance: c + i + part[k]!, capitalFin: reste - c };
+      reste -= c; return l;
+    });
+    const frais = ((p.frais ?? []) as FraisProduit[]).reduce((s, f) => s + chargeCredit(f.nature, f.valeur, d.montant), 0);
+    const assurance = p.typeAssuranceId ? chargeCredit(p.assuranceNature, p.assuranceValeur, d.montant) : 0;
+    const epargne = chargeCredit(p.epargneNature, p.epargneValeur, d.montant);
+    const flux = [-(d.montant - frais - assurance - epargne), ...Array<number>(nd + n).fill(0)];
+    echeancier.forEach((l, k) => { flux[nd + 1 + k]! += l.echeance; });
+    flux[flux.length - 1]! -= epargne;   // l'épargne obligatoire revient au client (Instr. BCC 38, art. 9)
+    const t = p.tauxRegle ? null : tauxPeriode(flux);
+    const deux = (x: number) => Math.round(x * 100) / 100;
+    return { produit: String(p.nom), devise: dv, periodicite: code, libellePeriodicite: per.libelle, modeCalcul: String(p.modeCalcul), modeDiffere: String(p.modeDiffere),
+      tauxInteret: String(nb("tauxInteret")), tauxDiffere: String(nb("tauxDiffere")), montant: d.montant, duree: d.duree, differe, nombreTraites: n, dateDeblocage: deblocage,
+      dateEffet: deblocage, dateDebut: dateRangPlan(deblocage, code, nd + 1), dateFin: echeancier[n - 1]!.date, echeanceConstante: a,
+      totalInteret: echeancier.reduce((s, l) => s + l.interet, 0), interetDiffere, frais, assurance, epargneObligatoire: epargne,
+      tegR: t === null ? null : deux(t * den * 100), tegA: t === null ? null : deux(((1 + t) ** den - 1) * 100), tauxRegle: !!p.tauxRegle, echeancier };
+  },
+};
+
 // ---------- S83 : Caisse > Rapport > Journal des opérations de caisse (manuel p. 95 ; doublon p. 109). Règles identiques côté serveur (noyau/journal_caisse.py).
 // Lignes du compte du guichet : débit à l'entrée d'espèces, crédit à la sortie (PCCI, compte 57). Registre S83-1 à S83-5. ----------
 const journalCaisse = {
@@ -4909,6 +4971,7 @@ const apiLocal = {
   edDivers: asynchrone(edDivers, "edDivers"),
   transferts: asynchrone(transferts, "transferts"),
   journalCaisse: asynchrone(journalCaisse, "journalCaisse"),
+  simulationCredit: asynchrone(simulationCredit, "simulationCredit"),
   societe: asynchrone(societe, "societe"),
   agents: asynchrone(agents, "agents"),
   jours: asynchrone(jours, "jours"),
