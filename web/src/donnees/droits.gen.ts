@@ -425,6 +425,21 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "releves.editer": [
 "S64"
 ],
+"remboursementsCredit.ajouterMemo": [
+"S55",
+"S76",
+"S95"
+],
+"remboursementsCredit.proposer": [
+"S55",
+"S76"
+],
+"remboursementsCredit.rembourserBanque": [
+"S55"
+],
+"remboursementsCredit.rembourserCaisse": [
+"S76"
+],
 "retenues.reverser": [
 "SF01"
 ],

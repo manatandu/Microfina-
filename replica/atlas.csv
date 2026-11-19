@@ -69,7 +69,7 @@ S51,Rapports client (trois),58 et 59 (trois captures),B,rapport,forme des résul
 S52,"Opération : encaissement et décaissement, banque vers caisse, banque vers banque",60 et 61 (trois captures),A,guichet,,R:PCCI (comptes de banque et de caisse),4 Banque,oui
 S53,Virement prélèvement,61,A,guichet,,,4 Banque,oui
 S54,Déblocage crédit par banque,62,A,guichet,"contrat de prêt, échéancier",document ; A:S75,7 Crédit,oui
-S55,Remboursement de crédit par banque,63,B,guichet,"onglets Répartition et Détail crédit, page après Suivant",A:S76 (p. 87 et 88),7 Crédit,non
+S55,Remboursement de crédit par banque,63,B,guichet,"onglets Répartition et Détail crédit, page après Suivant",A:S76 (p. 87 et 88),7 Crédit,oui
 S56,Adhésion par banque,64 ; validation en caisse 89 et 104,A,guichet,,A:S73,4 Banque,oui
 S57,Visa et validation des opérations de banque (huit listes),65 à 67 (six bandes),B,visa,deux listes sans capture ; colonnes complètes,"A:S113, S114",4 Banque,oui
 S58,"Création banque : client, institution",67 (deux captures),A,liste,,,4 Banque,oui
@@ -90,7 +90,7 @@ S72,Rapports épargne (six),82 à 84 (six captures),B,rapport,forme des résulta
 S73,Adhésion,85 ; doublons 98 et 99,A,guichet,,,6 Caisse,oui
 S74,Dépôt et retrait,86 ; doublon 100,B,guichet,"fenêtres Billetage, Detail, photo et signature ; reçu",A:S79 (billetage) ; document,6 Caisse,oui
 S75,Déblocage de crédit,"86 (texte), 87 ; doublon 101",A,guichet,échéancier et contrat de prêt,document,6 Caisse,oui
-S76,Remboursement de crédit,87 et 88 ; doublon 102,B,guichet,"Plan, Réel, Memo, MP (seule Situation est montrée)",A:S95 (p. 119) ; D:S22,6 Caisse,non
+S76,Remboursement de crédit,87 et 88 ; doublon 102,B,guichet,"Plan, Réel, Memo, MP (seule Situation est montrée)",A:S95 (p. 119) ; D:S22,6 Caisse,oui
 S77,Part sociale : achat et retrait,88 ; doublon 103,A,guichet,,R:loi 002/2002 (parts sociales),6 Caisse,oui
 S78,"ED divers : encaissement, décaissement",89 et 90 ; doublons 97 et 98,A,guichet,,D:S31,6 Caisse,oui
 S79,Billetage : enregistrer,91 ; doublon 105,A,guichet,,,6 Caisse,oui

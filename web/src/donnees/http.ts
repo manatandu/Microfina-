@@ -68,6 +68,16 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       debloquerBanque: (id: number, p: unknown) => post(`/banque/deblocage/${id}`, p),
       contrat: (id: number) => get(`/credit/credits/${id}/contrat`),
     },
+    remboursementsCredit: {
+      creditsDuClient: (tid: number) => get(`/credit/remboursement/clients/${tid}`),
+      detail: (id: number, date?: string) => get(`/credit/remboursement/${id}${date ? `?date=${date}` : ""}`),
+      proposer: (id: number, p: unknown) => post(`/credit/remboursement/${id}/repartition`, p),
+      rembourserCaisse: (id: number, p: unknown) => post(`/guichet/remboursement/${id}`, p),
+      rembourserBanque: (id: number, p: unknown) => post(`/banque/remboursement/${id}`, p),
+      situation: (id: number) => get(`/credit/credits/${id}/situation`),
+      memos: (id: number) => get(`/credit/credits/${id}/memos`),
+      ajouterMemo: (id: number, p: unknown) => post(`/credit/credits/${id}/memos`, p),
+    },
     visasCredit: {
       contexte: () => get("/credit/visas/contexte"),
       aViser: (niveau: string, agentId?: number | null) => get(`/credit/visas?niveau=${niveau}${agentId ? `&agentId=${agentId}` : ""}`),

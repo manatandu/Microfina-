@@ -414,6 +414,55 @@ def credit_contrat(request, cid: int):
     return db.contrat(u(request), cid)
 
 
+# ---------- S76 et S55 : remboursement de crédit, au guichet (p. 87 et 88) et par banque (p. 63) ----------
+@api.get("/credit/remboursement/clients/{tid}")
+def remboursement_credits_client(request, tid: int):
+    from . import remboursements as rb
+    return rb.credits_du_client(u(request), tid)
+
+
+@api.get("/credit/remboursement/{cid}")
+def remboursement_detail(request, cid: int, date: str = ""):
+    from . import remboursements as rb
+    return rb.detail(u(request), cid, date or None)
+
+
+@api.post("/credit/remboursement/{cid}/repartition")
+def remboursement_repartition(request, cid: int, corps: dict = Body(...)):
+    from . import remboursements as rb
+    return rb.proposer(u(request), cid, corps)
+
+
+@api.post("/guichet/remboursement/{cid}")
+def remboursement_caisse(request, cid: int, corps: dict = Body(...)):
+    from . import remboursements as rb
+    return rb.rembourser_caisse(u(request), cid, corps)
+
+
+@api.post("/banque/remboursement/{cid}")
+def remboursement_banque(request, cid: int, corps: dict = Body(...)):
+    from . import remboursements as rb
+    return rb.rembourser_banque(u(request), cid, corps)
+
+
+@api.get("/credit/credits/{cid}/situation")
+def credit_situation(request, cid: int):
+    from . import remboursements as rb
+    return rb.situation(u(request), cid)
+
+
+@api.get("/credit/credits/{cid}/memos")
+def credit_memos(request, cid: int):
+    from . import remboursements as rb
+    return rb.memos(u(request), cid)
+
+
+@api.post("/credit/credits/{cid}/memos")
+def credit_memo(request, cid: int, corps: dict = Body(...)):
+    from . import remboursements as rb
+    return rb.ajouter_memo(u(request), cid, corps)
+
+
 @api.get("/credit/visas/contexte")
 def visas_contexte(request):
     from .services import est_coopec

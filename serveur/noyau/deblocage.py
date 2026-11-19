@@ -34,7 +34,9 @@ def comptes_credit(c: dict, degre: int = 1) -> dict:
     t = terme(c["duree_mois"])
     m = une("""select mc.compte_capital, mc.compte_interet from credit_modele_compte mc join produit_credit p on p.modele_id = mc.modele_id
                where p.id = %s and mc.degre = %s and mc.terme = %s""", (c["produit_id"], degre, t))
-    return {"capital": (m or {}).get("compte_capital") or DEFAUT_CAPITAL[t], "interet": (m or {}).get("compte_interet") or DEFAUT_INTERET[t]}
+    from .modeles_credit import RETARD
+    cap, inte = (DEFAUT_CAPITAL[t], DEFAUT_INTERET[t]) if degre == 1 else RETARD[degre]      # sans modèle : les comptes proposés par S26 (PCCI 390 et 717)
+    return {"capital": (m or {}).get("compte_capital") or cap, "interet": (m or {}).get("compte_interet") or inte}
 
 
 def jour(u) -> date:
@@ -168,11 +170,14 @@ def debloquer_caisse(u, cid: int, p) -> dict:
     th = theorique(s["id"], dv)
     if any(n > th.get(v, 0) for v, n in coupures.items()):
         raise ErreurMetier("Pas assez de coupures en caisse.")
+    from . import conformite
+    examen = conformite.autorisation(u, c["tiers_id"], s["journeeId"], "deblocage_credit", net, dv)     # écart E01 : espèces de 10 000 USD ou plus
     d = jour(u)
     eid = ecriture(u, c, d, {"compte": "570", "contrat": f"guichet:{s['guichetId']}"}, "CA", cle)
     oid = creer_operation(u, s, cle=cle, type_="deblocage_credit", statut="validee", tiers_id=c["tiers_id"], contrat=f"credit:{c['id']}", montant=net,
                           devise=dv, coupures=coupures, remis_par=titulaire(c["tiers_id"]), ecriture_id=eid, motif=f"Déblocage {c['numero']}")
     apres_deblocage(u, c, d, eid, "caisse")
+    conformite.lier(examen, oid)
     return vue_operation(une("select * from operation where id = %s", (oid,)))
 
 

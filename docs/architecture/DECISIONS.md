@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**560 décisions.** Solidité : 234 fortes (le manuel ou un texte répond), 277 moyennes (déduites d'un écran voisin ou d'une donnée), 49 faibles (notre choix, faute de mieux). Dans le code : 529 déjà en place, 27 à appliquer.
+**574 décisions.** Solidité : 242 fortes (le manuel ou un texte répond), 282 moyennes (déduites d'un écran voisin ou d'une donnée), 50 faibles (notre choix, faute de mieux). Dans le code : 545 déjà en place, 25 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -593,6 +593,21 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S75-7 | Reconnaissance de dette | Document imprimable rédigé par nous (CR-12) : l'emprunteur reconnaît devoir le capital et les intérêts, avec l'échéancier | Choix du porteur : Bouton « Reconnaissance de dette », capture p. 87 ; CR-12 | moyenne | en place |
 | S75-8 | Après le déblocage | Crédit au statut débloqué ; épargne obligatoire et fonds de solidarité bloqués en garantie du crédit (S71) ; octroi inscrit dans la liste à déclarer à la Centrale des risques (CR-10) | Texte réglementaire : Instr. BCC 38, art. 9 ; Instr. BCC 05, art. 6 et 10 ; CR-6, CR-10 | forte | en place |
 
+## S76 Remboursement de crédit
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S76-1 | Écran | Capture p. 87 : Infos client (N° du client, Intitulé, Mandataire*), Infos crédit (Credit, Débloqué le, Montant prêt, Capital restant, Rest à payer, Produit crédit, Degré crédit et Jour retard, Montant à payer*), Info guichet, Répartition (Capital, Intérêt, TVA, Epargne, Fonds solid., Pénalité, Modifier), Détail crédit (Dernier payement, Intérêt total, Int. restant, retards, Pénalité, Retard total, Tout sur le crédit) ; Situation, Plan, Réel, Memo, Billetage, Imprimer, Enregistrer, Effacer. Un client à plusieurs crédits en cours choisit dans la liste Credit | Manuel : Captures p. 87 et 102 ; texte p. 87 et 88 | forte | en place |
+| S76-2 | Répartition proposée | L'échu d'abord, élément par élément dans l'ordre (CR-20) : ordre du produit, à défaut celui du degré du crédit selon ses jours de retard (S22-3), à défaut intérêts puis capital ; le reste en remboursement anticipé | Texte réglementaire : Texte p. 87 (« répartition proposée par le système ») ; Code civil, livre III, art. 152 ; S22-3 ; CR-20 | forte | en place |
+| S76-3 | Jours de retard et degré | Jours depuis la plus ancienne échéance que les paiements de capital et d'intérêt ne couvrent pas ; degré selon S21-1 (Sains, Impayés, Douteux, Irrécupérables) | Texte réglementaire : Instr. BCC 003, art. 3 à 9 ; S21-1 ; capture p. 87 (Degré crédit, Jour retard) | forte | en place |
+| S76-4 | Modifier | La répartition proposée devient saisissable ; chaque part au plus son dû échu, somme égale au montant à payer ; pas d'anticipation dans une répartition modifiée | Manuel : Texte p. 87 (« sinon modifier la répartition proposée ») ; capture p. 87 (bouton Modifier) | moyenne | en place |
+| S76-5 | Pénalité de retard | Au jour le jour, sur l'échu impayé (capital et intérêt), au taux mensuel du produit, entre chaque échéance et chaque paiement (CR-7) ; affichée au Détail crédit ; payée selon l'ordre | Texte réglementaire : CR-7 ; Instr. BCC 38, art. 10 (hors TEG) | forte | en place |
+| S76-6 | Remboursement anticipé | Au-delà de l'échu : le capital non échu baisse ; les échéances restantes (mêmes dates, même nombre) sont recalculées en échéance constante sur le capital restant dû ; la part d'intérêt du différé reste due. Si le produit perçoit les intérêts par anticipation, pénalité = son taux × intérêts supprimés, au plus 50 %. Tout sur le crédit : tout l'échu, la pénalité et le capital non échu | Texte réglementaire : Instr. BCC 38, art. 10, 11 et 14 ; S23-2 et S23-7 | moyenne | en place |
+| S76-7 | Écriture | Débit de la caisse (570) ; crédit du compte de capital du crédit (modèle S26) ; intérêts et pénalité de retard au compte d'intérêts du degré (712 sain, 717 selon les jours de retard ; sans modèle, les comptes proposés par S26) ; pénalité d'anticipation au compte d'intérêts du crédit sain. Les intérêts entrent en produits à l'encaissement | Texte réglementaire : PCCI, classe 7 (comptes 712 et 717 ; intérêts sur créances en retard comptabilisés à leur perception) ; S26 ; CR-19 | forte | en place |
+| S76-8 | Appoint | Le client paie en coupures ; si le billetage dépasse le montant de moins que la plus petite coupure de la devise, l'excédent est versé au compte d'épargne du crédit, à défaut au premier compte ouvert du client dans la devise | Choix du porteur : Décision du porteur, 19/11/2026 ; D.-L. 080/1998, art. 2 (cent centimes) ; S35 | forte | en place |
+| S76-9 | Crédit soldé, Situation, Plan, Réel, Memo | Capital et intérêts payés : statut soldé, épargne obligatoire et fonds de solidarité libérés, remboursement total à déclarer (CR-10). Situation : brouillard des remboursements de la capture p. 88 (échéances et remboursements par date) ; Plan : échéancier en vigueur ; Réel : remboursements effectués ; Memo : notes datées. Espèces de 10 000 USD ou plus : examen renforcé (E01) | Manuel : Capture p. 88 ; texte p. 88 ; Instr. BCC 38, art. 9 ; Instr. BCC 05, art. 10 ; loi 22/068, art. 23 | moyenne | en place |
+| S76-10 | Bouton MP | Non repris : il sert aux crédits repris de LPF, au premier remboursement seulement ; aucun crédit n'est repris de LPF | Manuel : Texte p. 88 | forte | en place |
+
 ## S39 Fiche du groupe
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
@@ -724,6 +739,9 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S55-1 | Place dans l'ordre de construction | Construit juste après le lot Crédit : il lui faut un crédit approuvé (S88, S89), que le lot Banque ne fournit pas encore | Choix du porteur : Décision du porteur, 14/11/2026 | forte | en place |
+| S55-2 | Écran | Capture p. 63 : Infos Client, Infos crédit (avec Degré réel), Info banque (Agence, Banque*, Compte*, Solde banque), onglets Détail crédit (Répartition, Détail crédit) et Budget ; boutons B (brouillard), P (plan), R (réel), Memo, Suivant. Budget montre la ligne budgétaire et le bailleur du crédit (S89-3). M.P et H restent grisés : MP sert aux crédits LPF (p. 88) ; H n'est pas expliqué par le manuel | Manuel : Capture p. 63 ; texte p. 63 et 88 ; S89-3 | faible | en place |
+| S55-3 | Suivant et date de règlement | Suivant enregistre après confirmation ; date de règlement au plus la journée ouverte et pas avant le dernier remboursement ; mêmes règles de répartition que S76 | Manuel : Texte p. 63 (« cliquer sur [suivant] ») ; capture p. 63 (Date règlement *) | moyenne | en place |
+| S55-4 | Écriture | Débit du compte bancaire choisi (devise du crédit), journal des opérations diverses ; crédits comme S76-7 | Texte réglementaire : PCCI, compte 56 ; S76-7 | moyenne | en place |
 
 ## S56 Adhésion par banque
 
@@ -896,6 +914,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | E01-2 | Circuit | Le caissier transmet l'opération refusée à la conformité (Client > Conformité > Examen renforcé). Une autre personne l'examine : origine et destination des fonds, objet de l'opération (obligatoires), acteurs économiques ; elle autorise ou refuse avec motif. L'autorisation sert une seule fois, pour la même opération (client, journée, type, montant, devise) : le caissier la refait | Texte réglementaire : Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 5 à 7 et 9 ; Instr. BCC 008, art. 66 | forte | en place |
 | E01-3 | Rapport et déclaration | Rapport écrit confidentiel, imprimable (police 12) ; date et référence de la déclaration à la CENAREF notées ; liste « À déclarer » des examens autorisés pas encore déclarés | Texte réglementaire : Instr. BCC 15, art. 48 et 62 ; loi 25/048, art. 92 bis ; Instr. BCC 15 bis, art. 7 | forte | en place |
 | E01-4 | Qui examine, qui lit | Droit SC01 au chef d'agence au départ, en attendant un profil Conformité (Instr. BCC 15, art. 82). Lecture des examens réservée à ce droit : le caissier ne lit pas les examens | Écran voisin : Instr. BCC 15, art. 62 et 82 ; registre T27 | moyenne | en place |
+| E01-5 | Opérations de crédit en espèces | Le déblocage (S75) et le remboursement (S76) en espèces entrent dans le cumul du jour et passent par l'examen renforcé à 10 000 USD ou plus, comme les dépôts et retraits | Texte réglementaire : Loi 22/068, art. 23 ; Instr. BCC 15, art. 61 | forte | en place |
 
 ## E02 Personnes politiquement exposées
 
@@ -1162,8 +1181,8 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| CR-7 | Pénalité de retard | Montant échu impayé × taux mensuel de pénalité du produit × jours de retard / 30 | Choix du porteur : Décision du porteur, 19/11/2026 ; Instr. BCC 38, art. 10 (hors TEG) | forte | à appliquer |
-| CR-20 | Imputation d'un paiement partiel | Selon l'ordre de remboursement du produit (S22), que l'institution, créancière, fixe ; sans ordre, les intérêts d'abord, puis le capital | Texte réglementaire : Code civil, livre III, art. 152 ; S22 | forte | à appliquer |
+| CR-7 | Pénalité de retard | Montant échu impayé × taux mensuel de pénalité du produit × jours de retard / 30 | Choix du porteur : Décision du porteur, 19/11/2026 ; Instr. BCC 38, art. 10 (hors TEG) | forte | en place |
+| CR-20 | Imputation d'un paiement partiel | Selon l'ordre de remboursement du produit (S22), que l'institution, créancière, fixe ; sans ordre, les intérêts d'abord, puis le capital | Texte réglementaire : Code civil, livre III, art. 152 ; S22 | forte | en place |
 
 ## S86 à S89 Dossier
 
@@ -1367,6 +1386,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S32-2 | S32 Information société | Adresse et comptes hors bilan | Pays, Ville, Commune (S32-7), Quartier (obligatoire) pris dans Localisation (S20). Compte Hors Bilan 1 et Hors Bilan 2 : des comptes de la classe 0 du plan ; leur usage n'est pas décrit par le manuel |
 | S35-4 | S35 Préférences : devise, type sous, sous | Monnaies de démonstration | CDF 50 à 20 000 et USD 1 à 100, tous billets, chacun avec son type « Billet de … » : données de démonstration reprises de l'existant, pas lues dans un texte de la BCC ; l'institution saisit ses propres monnaies |
 | S01-3 | S01 Connexion | Règles de mot de passe et de blocage | Règle des mots de passe (T24) et blocage après 5 refus en 15 minutes (T22), demandés par le porteur le 15/11/2026 |
+| S55-2 | S55 Remboursement de crédit par banque | Écran | Capture p. 63 : Infos Client, Infos crédit (avec Degré réel), Info banque (Agence, Banque*, Compte*, Solde banque), onglets Détail crédit (Répartition, Détail crédit) et Budget ; boutons B (brouillard), P (plan), R (réel), Memo, Suivant. Budget montre la ligne budgétaire et le bailleur du crédit (S89-3). M.P et H restent grisés : MP sert aux crédits LPF (p. 88) ; H n'est pas expliqué par le manuel |
 | S59-4 | S59 Chèque client | Effet de l'encaissement | L'encaissement ne change que le statut (Encaissé, avec sa date) ; le crédit du compte du client et l'écriture de banque viennent à la comptabilisation (S111). Bouton Imprimer inactif jusque-là. Le retour (bouton Retourner) note le chèque impayé, sans écriture. Pas de passage par S57 : le manuel n'en parle pas |
 | S69-4 | S69 Plan d'épargne | Simulation | Le montant à terme donne le montant périodique (arrondi à l'unité supérieure), ou le montant périodique donne le montant à terme ; aucun produit choisi, donc sans intérêt |
 | S69-5 | S69 Plan d'épargne | Cotisations et mode de règlement | Enregistrer prélève les échéances cochées sur le N° Compte épargne et les verse au compte du plan (journal OD), si le disponible suffit ; date réelle = journée. Mode règlement noté au contrat : CHEQUE (capture), ESPECES, VIREMENT |

@@ -28,6 +28,7 @@ import { ApprobationDemande, ControleDemande, DemandeCredit } from "./DossierCre
 import MiseEnPlace from "./MiseEnPlace";
 import { HistoriqueVisas, ValidesNonDebloques, VisasCredit } from "./SuiviCredit";
 import { DeblocageBanque, DeblocageGuichet } from "./DeblocageCredit";
+import { RemboursementBanque, RemboursementGuichet } from "./RemboursementCredit";
 import type { ComponentType } from "react";
 import GuichetDepotRetrait from "./Guichet";
 import Adhesion from "./Adhesion";
@@ -131,6 +132,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S52: OperationsBanque,
   S53: VirementPrelevement,
   S54: DeblocageBanque,
+  S55: RemboursementBanque,
   S56: AdhesionBanque,
   S57: VisaBanque,
   S58: CreationBanque,
@@ -159,6 +161,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S73: Adhesion,
   S74: GuichetDepotRetrait,
   S75: DeblocageGuichet,
+  S76: RemboursementGuichet,
   S77: PartsSociales,
   S78: EdDivers,
   S81: Transferts,

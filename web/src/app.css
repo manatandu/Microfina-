@@ -412,6 +412,7 @@ dl.infos { display: grid; gap: var(--espace-2); margin: 0; }
 .info-ligne dd { overflow-wrap: break-word; }
 .info-ligne dt { color: var(--encre-2); font-size: var(--taille-dense); }
 .info-ligne dd { margin: 0; }
+.info-ligne dd.chiffres { white-space: nowrap; }
 
 /* Rapports clients (S51, manuel Microfina++ p. 58 et 59) */
 .grille-cadres { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr)); gap: var(--espace-4); align-items: start; }

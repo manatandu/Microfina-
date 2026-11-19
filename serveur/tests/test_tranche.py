@@ -1494,10 +1494,10 @@ def test_mise_en_place(clients, journee):
     assert "pas en attente" in agent.post(f"/api/credit/mise-en-place/{did}", m, **H).json()["message"]
 
 
-def credit_mis_en_place(clients) -> int:
+def credit_mis_en_place(clients, produit=None) -> int:
     """Crédit de Kalala mis en place par l'agent (S89), en attente des visas"""
     chef, agent = clients["chef"], clients["agent"]
-    _, did, _ = credit_approuve(clients)
+    _, did, _ = credit_approuve(clients, produit)
     objet = objet_credit(chef)
     a = agent.post(f"/api/credit/mise-en-place/{did}/apercu", {}, **H).json()
     zone = agent.get("/api/credit/mise-en-place/contexte", **H).json()["zones"][0]["id"]
@@ -1537,10 +1537,10 @@ def test_commission_unanime(clients, journee):
     assert (r["avis"], r["statut"]) == ("refuse", "refuse")
 
 
-def credit_vise(clients) -> int:
+def credit_vise(clients, produit=None) -> int:
     """Crédit de Kalala mis en place (S89) et visé aux trois niveaux (S90) : prêt au déblocage"""
     chef, compta = clients["chef"], clients["compta"]
-    cid = credit_mis_en_place(clients)
+    cid = credit_mis_en_place(clients, produit)
     chef.post(f"/api/credit/visas/{cid}/responsable_credit", {"avis": "accepte"}, **H)
     m = [{"nom": n, "avis": "accepte"} for n in ("Mbala", "Ilunga", "Kabeya")]
     chef.post(f"/api/credit/visas/{cid}/comite", {"membres": m, "referencePv": "PV-1"}, **H)
@@ -1606,6 +1606,89 @@ def test_deblocage_banque(clients, journee):
     assert r.status_code == 200, r.content
     assert r.json()["statut"] == "debloque"
     assert ident("select (mode_deblocage, cheque_deblocage) from credit where id = %s", (cid,)) == ("banque", "0000001")
+    assert balance_equilibree(compta)
+
+
+def billets(stock: dict, montant: int) -> dict:
+    """Coupures (en unités) qui font le montant en centimes, prises dans le stock ; plus la plus petite coupure s'il reste des centimes"""
+    cp, reste = {}, montant // 100
+    for v in sorted(stock, key=int, reverse=True):
+        n = min(stock[v], reste // int(v))
+        if n:
+            cp[v], reste = n, reste - n * int(v)
+    return cp, reste
+
+
+def credit_debloque(clients, journee, produit=None) -> int:
+    """Crédit visé puis débloqué en caisse (S75)"""
+    caisse = clients["caisse"]
+    cid = credit_vise(clients, produit)
+    caisse.post(f"/api/credit/deblocage/{cid}/frais", **H)
+    net = caisse.get(f"/api/credit/deblocage/{cid}", **H).json()["retenues"]["net"]
+    cp, _ = billets(caisse.get(f"/api/caisses/{journee[1]['id']}/theorique?devise=CDF", **H).json(), net)
+    assert caisse.post(f"/api/guichet/deblocage/{cid}", {"cle": cle(), "coupures": cp}, **H).status_code == 200
+    return cid
+
+
+def test_remboursement_caisse(clients, journee):
+    """S76 (p. 87 et 88) : retard, pénalité au jour le jour (CR-7), ordre du degré (S22-3, CR-20), répartition modifiée, anticipation avec intérêts
+    recalculés (Instr. BCC 38, art. 11 et 14), Tout sur le crédit, appoint au compte (S76-8), crédit soldé et garanties libérées"""
+    from django.db import connection
+    caisse, chef = clients["caisse"], clients["chef"]
+    cid = credit_debloque(clients, journee, {**PRODUIT, "penaliteRetard": 3, "interetAnticipation": True})
+    with connection.cursor() as cur:                                     # deux échéances déjà passées : la première en retard de 31 jours
+        cur.execute("update echeance set date_due = (date_due - interval '2 months')::date where credit_id = %s", (cid,))
+    assert [x["id"] for x in caisse.get(f"/api/credit/remboursement/clients/{T('0412-000318')}", **H).json()] == [cid]
+    d = caisse.get(f"/api/credit/remboursement/{cid}", **H).json()
+    e1 = d["echeancier"][0]
+    assert (d["joursRetard"], d["degre"], e1["date"]) == (31, "Douteux", "2026-10-05")
+    assert d["du"]["penalite"] == round((e1["capital"] + e1["interet"]) * 0.03 * 31 / 30)
+    assert d["ordre"][0] == "capital"                                    # Douteux : CIPES (graine, S22-3)
+    def refus(corps):
+        r = caisse.post(f"/api/guichet/remboursement/{cid}", {"cle": cle(), **corps}, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    assert "Mandataire" in refus({"montant": 5000000, "coupures": {"20000": 2, "10000": 1}})
+    base = {"mandataire": "Moi-même", "montant": 5000000, "coupures": {"20000": 2, "10000": 1}}
+    assert "billetage" in refus({**base, "coupures": {"20000": 2}})
+    assert "dû échu" in refus({**base, "repartition": {"penalite": 5000000}})
+    p = caisse.post(f"/api/credit/remboursement/{cid}/repartition", {"montant": 5000000}, **H).json()
+    assert (p["capital"], p["interet"], p["capitalAnticipe"]) == (5000000, 0, 0)
+    m = {"interet": 2500000, "capital": 2500000}
+    o = caisse.post(f"/api/guichet/remboursement/{cid}", {"cle": cle(), **base, "repartition": m}, **H)
+    assert o.status_code == 200, o.content
+    assert (o.json()["type"], o.json()["montant"]) == ("remboursement_credit", 5000000)
+    d = caisse.get(f"/api/credit/remboursement/{cid}", **H).json()
+    assert d["capitalRestant"] == 97500000 and d["dernierPaiement"] == "2026-11-05"
+    tout = d["toutSurLeCredit"]
+    stock = caisse.get(f"/api/caisses/{journee[1]['id']}/theorique?devise=CDF", **H).json()
+    cp, reste = billets(stock, tout)
+    cp["50"] = cp.get("50", 0) + (1 if tout % 5000 else 0)              # centimes : une coupure de 50 de plus, l'appoint va au compte
+    assert "au plus le reste dû" in caisse.post(f"/api/credit/remboursement/{cid}/repartition", {"montant": tout + 1}, **H).json()["message"]
+    r = caisse.post(f"/api/guichet/remboursement/{cid}", {"cle": cle(), "mandataire": "Moi-même", "montant": tout, "coupures": cp}, **H)
+    assert r.status_code == 200, r.content
+    assert ident("select statut from credit where id = %s", (cid,)) == "solde"
+    assert ident("select count(*) from blocage where garantie_de = %s and fin is null", (cid,)) == 0
+    assert ident("select count(*) from declaration_centrale where credit_id = %s and evenement = 'remboursement_total'", (cid,)) == 1
+    s = chef.get(f"/api/credit/credits/{cid}/situation", **H).json()
+    assert len(s["reel"]) == 2 and s["reel"][1]["repartition"]["anticipation"] > 0 and s["reel"][-1]["capitalRestant"] == 0
+    assert balance_equilibree(caisse)
+    assert "pas en cours" in refus(base)
+    assert chef.post(f"/api/credit/credits/{cid}/memos", {"texte": "Client prévenu par téléphone"}, **H).status_code == 403
+    assert caisse.post(f"/api/credit/credits/{cid}/memos", {"texte": "Client prévenu"}, **H).json()[0]["texte"] == "Client prévenu"
+
+
+def test_remboursement_banque(clients, journee):
+    """S55 (p. 63) : remboursement sur un compte bancaire de l'institution, date de règlement au plus la journée"""
+    chef, compta = clients["chef"], clients["compta"]
+    ids = banque_usd(chef)
+    cid = credit_debloque(clients, journee)
+    def refus(corps):
+        r = compta.post(f"/api/banque/remboursement/{cid}", corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    b = {"mandataire": "Moi-même", "compteBancaireId": ids["R-CDF-1"], "montant": 1000000}
+    assert "devise du crédit" in refus({**b, "compteBancaireId": ids["R-USD-1"]})
+    assert "pas après" in refus({**b, "dateReglement": "2026-11-06"})
+    r = compta.post(f"/api/banque/remboursement/{cid}", b, **H)
+    assert r.status_code == 200, r.content
+    assert (r.json()["mode"], r.json()["repartition"]["capitalAnticipe"]) == ("banque", 1000000)
     assert balance_equilibree(compta)
 
 

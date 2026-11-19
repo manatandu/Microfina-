@@ -25,10 +25,10 @@ const PRODUIT_CREDIT = { typeProduit: "CNO", numero: "L001", nom: "Crédit comme
   modeDiffere: "Réparti", paiementInteret: "Normal", interetAnticipation: false, ageMax: 65, epargneNature: "Taux", epargneValeur: 10, categorie: "Prêt commercial",
   penaliteAnticipation: 50, frais: [{ typeFrais: "Frais de dossier", nature: "Taux", valeur: 1, compte: "7152" }] };
 /** Journée ouverte, crédit de Kalala (1 000 000 CDF sur 12 mois) demandé, contrôlé, approuvé et mis en place par l'agent (S86 à S89) */
-async function creditMisEnPlace() {
+async function creditMisEnPlace(produit: Record<string, unknown> = PRODUIT_CREDIT) {
   await journeeOuverte();
   await connecter("jpmukendi");
-  const pid = (await api.produitsCredit.enregistrer(PRODUIT_CREDIT)).produits[0]!.id;
+  const pid = (await api.produitsCredit.enregistrer(produit)).produits[0]!.id;
   const to = await api.credit.enregistrer("types_objet", { libelle: "Commerce", secteurId: (await api.credit.lire("types_objet")).options.secteurId![0]!.id });
   const objet = (await api.credit.enregistrer("objets", { libelle: "Achat de marchandises", typeObjetId: to.lignes[0]!.id })).lignes[0]!.id;
   await api.tiers.creerConsentement(1, { code: "CR", dateDebut: "2026-01-01", dateFin: "", commentaire: "" });
@@ -2056,8 +2056,8 @@ describe("journée de guichet", () => {
   });
 
   /** Crédit mis en place puis visé aux trois niveaux (S90) : prêt au déblocage */
-  async function creditVise() {
-    const cid = await creditMisEnPlace();
+  async function creditVise(produit: Record<string, unknown> = PRODUIT_CREDIT) {
+    const cid = await creditMisEnPlace(produit);
     await connecter("jpmukendi");
     await api.visasCredit.viser(cid, "responsable_credit", { avis: "accepte" });
     await api.visasCredit.viser(cid, "comite", { membres: ["Mbala", "Ilunga", "Kabeya"].map((nom) => ({ nom, avis: "accepte" })), referencePv: "PV-1" });
@@ -2103,6 +2103,73 @@ describe("journée de guichet", () => {
     await expect(api.deblocage.debloquerBanque(cid, { compteBancaireId: cdf, cheque: "0000001" })).rejects.toThrow("aucun chéquier");
     await api.chequiers.generer({ cle: cle(), compteBancaireId: cdf, nbFeuillets: 25, debut: "0000001", barre: true });
     expect((await api.deblocage.debloquerBanque(cid, { compteBancaireId: cdf, cheque: "0000001" })).statut).toBe("debloque");
+  });
+
+  /** Coupures (en unités) prises dans le stock pour un montant en centimes */
+  function billets(stock: Comptage, montant: number) {
+    const cp: Comptage = {}; let reste = Math.floor(montant / 100);
+    for (const v of Object.keys(stock).map(Number).sort((a, b) => b - a)) { const n = Math.min(stock[v] ?? 0, Math.floor(reste / v)); if (n) { cp[v] = n; reste -= n * v; } }
+    return cp;
+  }
+  async function creditDebloque(produit: Record<string, unknown> = PRODUIT_CREDIT) {
+    const cid = await creditVise(produit);
+    await connecter("engalula");
+    await api.deblocage.encaisserFrais(cid);
+    const net = (await api.deblocage.detail(cid)).retenues.net, s = (await api.caisses.duCaissier())!;
+    await api.deblocage.debloquerCaisse(cid, { cle: cle(), coupures: billets(await api.caisses.theorique(s.id, "CDF"), net) });
+    return cid;
+  }
+
+  it("remboursement au guichet (S76, p. 87 et 88) : retard, pénalité (CR-7), ordre (CR-20), anticipation (Instr. BCC 38, art. 11 et 14), appoint (S76-8), crédit soldé", async () => {
+    const cid = await creditDebloque({ ...PRODUIT_CREDIT, penaliteRetard: 3, interetAnticipation: true });
+    const c = _etat().credits.find((x) => x.id === cid)!;
+    for (const e of c.echeancier) { const [a, m, j] = e.date.split("-").map(Number) as [number, number, number]; e.date = new Date(Date.UTC(a, m - 3, j)).toISOString().slice(0, 10); }
+    expect((await api.remboursementsCredit.creditsDuClient(1)).map((x) => x.id)).toEqual([cid]);
+    let d = await api.remboursementsCredit.detail(cid);
+    const e1 = d.echeancier[0]!;
+    expect([d.joursRetard, d.degre, e1.date]).toEqual([31, "Douteux", "2026-10-05"]);   // comme le serveur
+    expect(d.du.penalite).toBe(Math.round((e1.capital + e1.interet) * 0.03 * 31 / 30));
+    expect(d.ordre[0]).toBe("capital");
+    const base = { mandataire: "Moi-même", montant: 5000000, coupures: { 20000: 2, 10000: 1 } as Comptage };
+    await expect(api.remboursementsCredit.rembourserCaisse(cid, { ...base, cle: cle(), mandataire: " " })).rejects.toThrow("Mandataire");
+    await expect(api.remboursementsCredit.rembourserCaisse(cid, { ...base, cle: cle(), coupures: { 20000: 2 } })).rejects.toThrow("billetage");
+    await expect(api.remboursementsCredit.rembourserCaisse(cid, { ...base, cle: cle(), repartition: { penalite: 5000000 } })).rejects.toThrow("dû échu");
+    const p = await api.remboursementsCredit.proposer(cid, { montant: 5000000 });
+    expect([p.capital, p.interet, p.capitalAnticipe]).toEqual([5000000, 0, 0]);
+    const o = await api.remboursementsCredit.rembourserCaisse(cid, { ...base, cle: cle(), repartition: { interet: 2500000, capital: 2500000 } });
+    expect([o.type, o.montant]).toEqual(["remboursement_credit", 5000000]);
+    d = await api.remboursementsCredit.detail(cid);
+    expect([d.capitalRestant, d.dernierPaiement]).toEqual([97500000, "2026-11-05"]);
+    const tout = d.toutSurLeCredit, s = (await api.caisses.duCaissier())!;
+    const cp = billets(await api.caisses.theorique(s.id, "CDF"), tout);
+    if (tout % 5000) cp[50] = (cp[50] ?? 0) + 1;
+    await expect(api.remboursementsCredit.proposer(cid, { montant: tout + 1 })).rejects.toThrow("au plus le reste dû");
+    await api.remboursementsCredit.rembourserCaisse(cid, { cle: cle(), mandataire: "Moi-même", montant: tout, coupures: cp });
+    expect(c.statut).toBe("solde");
+    expect(_etat().blocages.filter((b) => b.garantieDe === cid && !b.fin)).toHaveLength(0);
+    expect(_etat().declarationsCentrale.filter((x) => x.creditId === cid && x.evenement === "remboursement_total")).toHaveLength(1);
+    const st = await api.remboursementsCredit.situation(cid);
+    expect([st.reel.length, st.reel[1]!.repartition.anticipation! > 0, st.reel[1]!.capitalRestant]).toEqual([2, true, 0]);
+    expect(await soldeCdfGrandLivre()).toBe(0);
+    await expect(api.remboursementsCredit.rembourserCaisse(cid, { ...base, cle: cle() })).rejects.toThrow("pas en cours");
+    expect((await api.remboursementsCredit.ajouterMemo(cid, { texte: "Client prévenu" }))[0]!.texte).toBe("Client prévenu");
+  });
+
+  it("remboursement par banque (S55, p. 63) : compte bancaire dans la devise, date de règlement au plus la journée", async () => {
+    const cid = await creditDebloque();
+    await connecter("jpmukendi");
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    const b = { banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "" };
+    await api.banques.enregistrerCompte({ ...b, compte: "56010001", numeroBancaire: "R-USD-1", devise: "USD" });
+    await api.banques.enregistrerCompte({ ...b, compte: "56010003", numeroBancaire: "R-CDF-1", devise: "CDF" });
+    await connecter("plumbala");
+    const cbs = (await api.banqueOperations.lire()).comptes, usd = cbs.find((x) => x.devise === "USD")!.id, cdf = cbs.find((x) => x.devise === "CDF")!.id;
+    const p = { mandataire: "Moi-même", compteBancaireId: cdf, montant: 1000000 };
+    await expect(api.remboursementsCredit.rembourserBanque(cid, { ...p, compteBancaireId: usd })).rejects.toThrow("devise du crédit");
+    await expect(api.remboursementsCredit.rembourserBanque(cid, { ...p, dateReglement: "2026-11-06" })).rejects.toThrow("pas après");
+    const r = await api.remboursementsCredit.rembourserBanque(cid, p);
+    expect([r.mode, r.repartition.capitalAnticipe]).toEqual(["banque", 1000000]);
+    expect(await soldeCdfGrandLivre()).toBe(0);
   });
 
   it("produit crédit (S23, p. 37 et 38) : méthode dégressive (Instr. BCC 38 art. 11), bornes, garanties, assurance, frais (Instr. BCC 40 art. 8)", async () => {

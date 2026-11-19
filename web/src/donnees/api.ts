@@ -10,7 +10,7 @@ import {
   type ChequeClient, type Chequier, type DepotTerme, type PlanEpargne, type ClotureCompte, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget, type CriteresAtypiques, type GelAvoirs,
-  type AnalyseFinanciere, type DemandeCredit, type CreditPret, type VisaCredit,
+  type AnalyseFinanciere, type DemandeCredit, type CreditPret, type RemboursementCredit, type VisaCredit,
 } from "./types";
 import { DROITS_METHODES } from "./droits.gen";
 import registreEcrans from "../ecrans/registre.json";
@@ -20,7 +20,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v87";
+const CLE = "likelemba-demo-v88";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -28,7 +28,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 64) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 65) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -2716,7 +2716,7 @@ const fondsPropresActuels = () => { const f = [...E.fondsPropres].sort((a, b) =>
   return f ? { dateArrete: f.dateArrete, montant: f.montant } : null; };
 /** En CDF au cours du jour : crédits en cours (capital non remboursé) et demandes approuvées pas encore mises en place ; pour une COOPEC, hors ressources
  * affectées des bailleurs (loi 002/2002, art. 60) ; registre S88-4 */
-const capitalRembourse = (_c: CreditPret) => 0;   // remboursements : S76, S55
+const capitalRembourse = (c: CreditPret) => E.remboursementsCredit.filter((r) => r.creditId === c.id).reduce((s, r) => s + (r.repartition.capital ?? 0), 0);   // S76, S55
 const encoursDossier = (tiersIds?: number[]) =>
   E.credits.filter((c) => ["mis_en_place", "vise", "debloque"].includes(c.statut) && (!tiersIds || tiersIds.includes(c.tiersId)) && !(estCoopec() && c.ligneBudgetId))
     .reduce((s, c) => s + Math.round((c.montant - capitalRembourse(c)) * coursDe(c.devise, jourDossier())), 0)
@@ -3093,10 +3093,11 @@ const deblocage = {
     controlerCoupures(cp, net, c.devise);
     const th = caisses.theorique(s.id, c.devise);
     if (Object.entries(cp).some(([v, n]) => (n ?? 0) > (th[Number(v)] ?? 0))) throw new ErreurMetier("Pas assez de coupures en caisse.");
+    const examen = autorisationExamen(c.tiersId, s.journeeId, "deblocage_credit", net, c.devise);   // écart E01 : examen renforcé
     const e = ecritureDeblocage(c, { compte: "570", contrat: guichetDe(s) }, "CA", u.id);
     const o: Operation = { id: prochain(E.operations), cle: p.cle, type: "deblocage_credit", statut: "validee", sessionId: s.id, tiersId: c.tiersId, montant: net, devise: c.devise,
       coupures: cp, remisPar: titulaire(E.tiers.find((t) => t.id === c.tiersId)!), motif: `Déblocage ${c.numero}`, saisiPar: u.id, ecritureId: e.id, heure: heure() };
-    E.operations.push(o); apresDeblocage(c, e.id, "caisse", u.id); enregistrer(); return o;
+    E.operations.push(o); apresDeblocage(c, e.id, "caisse", u.id); lierExamen(examen, o.id); enregistrer(); return o;
   },
   /** S54 : déblocage par banque, chèque d'un chéquier du compte bancaire (S60-5) */
   debloquerBanque(id: number, p: { compteBancaireId: number; cheque: string }) {
@@ -3125,6 +3126,225 @@ const deblocage = {
     return { entete: enteteDocument(), client: ficheClient(c.tiersId), coopec: estCoopec(), credit: c.statut === "vise" ? { ...v, echeancier: echeancierRecale(c, jourDeblocage().date) } : v,
       retenues: retenuesCredit(c), penaliteRetard: Number(String(p.penaliteRetard ?? 0).replace(",", ".")), penaliteAnticipation: Number(String(p.penaliteAnticipation ?? 0).replace(",", ".")),
       tauxRegle: !!p.tauxRegle, garanties: [] as { type: string; montant: number; caution: string }[], agence: E.agence.nom, date: journees.courante()?.date ?? "" };
+  },
+};
+
+// ---------- S76 et S55 : remboursement de crédit, au guichet (manuel p. 87 et 88) et par banque (p. 63). Mêmes règles que serveur/noyau/remboursements.py.
+// Répartition de l'échu dans l'ordre (CR-20), pénalité au jour le jour (CR-7), anticipation avec intérêts recalculés (Instr. BCC 38, art. 11 et 14),
+// appoint au compte du client (S76-8), crédit soldé : garanties libérées, remboursement total à déclarer (CR-6, CR-10). Registre S76, S55. ----------
+const CLES_REMB = ["capital", "interet", "tva", "epargne", "solidarite", "penalite", "anticipation"] as const;
+const ELEMENTS_REMB: Record<string, string> = { C: "capital", I: "interet", P: "penalite", E: "epargne", S: "solidarite" };
+type EcheanceCredit = CreditPret["echeancier"][number] & { epargne?: number; solidarite?: number; tva?: number };
+const joursRemb = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000);
+const champ = (e: EcheanceCredit, k: string) => Number((e as Record<string, unknown>)[k] ?? 0);
+function degreDe(j: number): [number, string] {
+  const d = fixeCredit("degres");
+  const n = d.findIndex((x) => Number(x.debut) <= j && j <= Number(x.fin));
+  return n < 0 ? [d.length, String(d[d.length - 1]!.libelle)] : [n + 1, String(d[n]!.libelle)];
+}
+function ordreRemb(c: CreditPret, degre: number) {
+  const oid = (E.produitsCredit.find((p) => p.id === c.produitId)?.ordreId as number | null | undefined) ?? E.degreOrdres[degre];
+  const code = E.ordres.find((o) => o.id === oid)?.code ?? "IC";
+  return [...code].filter((x) => ELEMENTS_REMB[x]).map((x) => ELEMENTS_REMB[x]!);
+}
+function etatCredit(c: CreditPret, d: string) {
+  const ech = c.echeancier as EcheanceCredit[];
+  const rb = E.remboursementsCredit.filter((r) => r.creditId === c.id).sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
+  const p: Record<string, number> = Object.fromEntries([...CLES_REMB, "capitalAnticipe"].map((k) => [k, rb.reduce((s, r) => s + (r.repartition[k] ?? 0), 0)]));
+  const regulier = (r: RemboursementCredit) => (r.repartition.capital ?? 0) - (r.repartition.capitalAnticipe ?? 0) + (r.repartition.interet ?? 0);
+  const echu = ech.filter((e) => e.date <= d);
+  const du: Record<string, number> = Object.fromEntries(["capital", "interet", "tva", "epargne", "solidarite"].map((k) =>
+    [k, Math.max(0, echu.reduce((s, e) => s + champ(e, k), 0) - (k === "capital" ? p.capital! - p.capitalAnticipe! : p[k]!))]));
+  const reg = p.capital! - p.capitalAnticipe! + p.interet!;
+  let cumul = 0, depuis: string | null = null;
+  for (const e of ech) { cumul += e.capital + e.interet; if (cumul > reg) { depuis = e.date < d ? e.date : null; break; } }
+  const jr = depuis ? joursRemb(depuis, d) : 0;
+  const taux = Number(String(E.produitsCredit.find((x) => x.id === c.produitId)?.penaliteRetard ?? 0).replace(",", "."));
+  const points = [...new Set([...echu.map((e) => e.date), ...rb.filter((r) => r.date <= d).map((r) => r.date), d])].sort();
+  let accrue = 0;
+  for (let k = 0; k + 1 < points.length; k++) {
+    const a = points[k]!, b = points[k + 1]!;
+    const impaye = ech.filter((e) => e.date <= a).reduce((s, e) => s + e.capital + e.interet, 0) - rb.filter((r) => r.date <= a).reduce((s, r) => s + regulier(r), 0);
+    if (impaye > 0) accrue += impaye * taux / 100 * joursRemb(a, b) / 30;
+  }
+  du.penalite = Math.max(0, Math.round(accrue) - p.penalite!);
+  const nonEchu = ech.filter((e) => e.date > d);
+  const restant = c.montant - p.capital!;
+  const [degre, degreLibelle] = degreDe(jr);
+  return { echeances: ech, remboursements: rb, payes: p, du, joursRetard: jr, degre, degreLibelle, capitalRestant: restant,
+    capitalNonEchu: nonEchu.reduce((s, e) => s + e.capital, 0), interetNonEchu: nonEchu.reduce((s, e) => s + e.interet, 0),
+    interetTotal: ech.reduce((s, e) => s + e.interet, 0), nonEchu,
+    resteAPayer: restant + ech.reduce((s, e) => s + e.interet + champ(e, "tva") + champ(e, "epargne") + champ(e, "solidarite"), 0) - p.interet! - p.tva! - p.epargne! - p.solidarite! + du.penalite,
+    dernierPaiement: rb.length ? rb[rb.length - 1]!.date : "" };
+}
+type EtatCredit = ReturnType<typeof etatCredit>;
+const tauxPeriodeCredit = (c: CreditPret) => Number(c.tauxInteret.replace(",", ".")) * 12 / Number(periodicitePlan(c.periodicite || "M")!.denominateur) / 100;
+function recalculCredit(c: CreditPret, nonEchu: EcheanceCredit[], capital: number): EcheanceCredit[] {
+  const r = tauxPeriodeCredit(c), n = nonEchu.length;
+  if (!n) return [];
+  const avant: number[] = []; let ra = nonEchu.reduce((s, e) => s + e.capital, 0);
+  for (const e of nonEchu) { avant.push(e.interet - Math.round(ra * r)); ra -= e.capital; }
+  if (capital <= 0) return nonEchu.map((e) => ({ ...e, capital: 0, interet: 0 }));
+  const a = Math.round(r === 0 ? capital / n : capital * r / (1 - (1 + r) ** -n));
+  const out: EcheanceCredit[] = []; let reste = capital;
+  nonEchu.forEach((e, k) => { const i = Math.round(reste * r); const cap = k === n - 1 ? reste : Math.min(reste, Math.max(0, a - i));
+    out.push({ ...e, capital: cap, interet: i + Math.max(0, avant[k]!) }); reste -= cap; });
+  return out;
+}
+function anticipationCredit(c: CreditPret, s: EtatCredit, x: number): [number, EcheanceCredit[]] {
+  const p = E.produitsCredit.find((y) => y.id === c.produitId)!;
+  const nouv = recalculCredit(c, s.nonEchu, s.capitalNonEchu - x);
+  const supprimes = s.interetNonEchu - nouv.reduce((t, e) => t + e.interet, 0);
+  const taux = p.interetAnticipation ? Math.min(Number(String(p.penaliteAnticipation ?? 0).replace(",", ".")), 50) : 0;
+  return [Math.round(Math.max(0, supprimes) * taux / 100), nouv];
+}
+const sommeDu = (s: EtatCredit) => Object.values(s.du).reduce((a, b) => a + b, 0);
+const toutCredit = (c: CreditPret, s: EtatCredit) => sommeDu(s) + s.capitalNonEchu + anticipationCredit(c, s, s.capitalNonEchu)[0];
+function repartirCredit(c: CreditPret, s: EtatCredit, montant: number) {
+  const r: Record<string, number> = Object.fromEntries([...CLES_REMB, "capitalAnticipe"].map((k) => [k, 0]));
+  let reste = montant;
+  for (const k of [...ordreRemb(c, s.degre), "tva"]) { const m = Math.min(reste, s.du[k] ?? 0); r[k]! += m; reste -= m; }
+  if (reste > 0) {
+    if (reste > toutCredit(c, s) - sommeDu(s)) throw new ErreurMetier("Montant à payer : au plus le reste dû, soit « Tout sur le crédit ».");
+    let bas = 0, haut = Math.min(reste, s.capitalNonEchu);
+    while (bas < haut) { const m = Math.floor((bas + haut + 1) / 2); if (m + anticipationCredit(c, s, m)[0] <= reste) bas = m; else haut = m - 1; }
+    const pen = anticipationCredit(c, s, bas)[0];
+    const x = Math.min(s.capitalNonEchu, reste - pen);
+    r.capital! += x; r.capitalAnticipe = x; r.anticipation = reste - x;
+  }
+  return r;
+}
+function controlerRepartition(c: CreditPret, s: EtatCredit, montant: unknown, rep?: Record<string, number> | null): { r: Record<string, number>; modifie: boolean } {
+  if (!Number.isInteger(montant) || (montant as number) <= 0) throw new ErreurMetier("À remplir : Montant à payer.");
+  if (!rep) return { r: repartirCredit(c, s, montant as number), modifie: false };
+  const r: Record<string, number> = Object.fromEntries(CLES_REMB.map((k) => [k, rep[k] ?? 0]));
+  if (Object.values(r).some((v) => !Number.isInteger(v) || v < 0)) throw new ErreurMetier("Répartition : des montants positifs ou nuls.");
+  if (r.anticipation) throw new ErreurMetier("Répartition modifiée : pas d'anticipation ; laisser la répartition proposée.");
+  for (const k of ["capital", "interet", "tva", "epargne", "solidarite", "penalite"]) if (r[k]! > s.du[k]!) throw new ErreurMetier(`Répartition : ${k} au plus ${s.du[k]} (dû échu).`);
+  if (Object.values(r).reduce((a, b) => a + b, 0) !== montant) throw new ErreurMetier("Répartition : la somme doit égaler le montant à payer.");
+  return { r: { ...r, capitalAnticipe: 0 }, modifie: true };
+}
+function creditEnCours(id: number) {
+  const c = E.credits.find((x) => x.id === id);
+  if (!c) throw new ErreurMetier("À remplir : Crédit.");
+  if (c.statut !== "debloque") throw new ErreurMetier("Ce crédit n'est pas en cours de remboursement.");
+  return c;
+}
+function dateReglement(d?: string) {
+  const j = jourDeblocage().date;
+  if (!d) return j;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) throw new ErreurMetier("Date règlement : une date.");
+  if (d > j) throw new ErreurMetier("Date règlement : pas après la journée ouverte.");
+  return d;
+}
+const mandataireDe = (m: unknown) => { const x = typeof m === "string" ? m.trim() : ""; if (!x) throw new ErreurMetier("À remplir : Mandataire."); return x; };
+function compteAppoint(c: CreditPret) {
+  const x = c.compteEpargneId ?? E.comptes.filter((k) => k.tiersId === c.tiersId && k.devise === c.devise && !k.closLe).sort((a, b) => a.numero.localeCompare(b.numero))[0]?.id;
+  if (!x) throw new ErreurMetier("Appoint : le client n'a pas de compte ouvert dans la devise du crédit.");
+  return x;
+}
+function enregistrerRemboursement(c: CreditPret, d: string, montant: unknown, rep: Record<string, number> | null | undefined, contrepartie: { compte: string; contrat?: string },
+  journal: "CA" | "OD", u: number, mandataire: string, extra: { mode: "caisse" | "banque"; compteBancaireId?: number; appoint?: [number, number] }) {
+  const s = etatCredit(c, d);
+  if (s.remboursements.length && d < s.remboursements[s.remboursements.length - 1]!.date) throw new ErreurMetier("Date règlement : pas avant le dernier remboursement.");
+  const { r, modifie } = controlerRepartition(c, s, montant, rep);
+  const m = montant as number, dv = c.devise, cc = comptesCredit(c, 1), ci = comptesCredit(c, s.degre), ap = extra.appoint;
+  const l: Ligne[] = [{ ...contrepartie, sens: "D", devise: dv, montant: m + (ap ? ap[1] : 0), montantCdf: cdf(m + (ap ? ap[1] : 0), dv) }];
+  if (ap) { const k = E.comptes.find((x) => x.id === ap[0])!; l.push({ compte: k.pcci, contrat: `depot:${k.id}`, sens: "C", devise: dv, montant: ap[1], montantCdf: cdf(ap[1], dv) }); }
+  const ligne = (compte: string, v: number, contrat = `credit:${c.id}`) => { if (v) l.push({ compte, contrat, sens: "C", devise: dv, montant: v, montantCdf: cdf(v, dv) }); };
+  ligne(cc.capital, r.capital!);
+  for (const k of ["interet", "penalite", "anticipation", "tva"]) ligne(k === "anticipation" ? cc.interet : ci.interet, r[k]!);
+  for (const [k, cid] of [["epargne", c.compteEpargneId], ["solidarite", c.compteSolidariteId]] as [string, number | null][])
+    if (r[k] && cid) ligne(E.comptes.find((x) => x.id === cid)!.pcci, r[k]!, `depot:${cid}`);
+  const e = poster({ journal, journeeId: jourDeblocage().id, libelle: `Remboursement du crédit ${c.numero}`, piece: piece(journal), saisiPar: u, validePar: u, lignes: l });
+  const repartition = Object.fromEntries([...CLES_REMB, "capitalAnticipe"].map((k) => [k, r[k] ?? 0]));
+  const rb: RemboursementCredit = { id: prochain(E.remboursementsCredit), creditId: c.id, ecritureId: e.id, operationId: null, date: d, montant: m, repartition,
+    modifie, mandataire, mode: extra.mode, compteBancaireId: extra.compteBancaireId ?? null, saisiPar: u };
+  E.remboursementsCredit.push(rb);
+  if (r.capitalAnticipe) for (const x of anticipationCredit(c, s, r.capitalAnticipe!)[1]) { const y = c.echeancier.find((z) => z.rang === x.rang)!; y.capital = x.capital; y.interet = x.interet; }
+  if (c.montant - s.payes.capital! - r.capital! === 0 && etatCredit(c, d).resteAPayer === 0) {
+    c.statut = "solde";
+    for (const b of E.blocages) if (b.garantieDe === c.id && !b.fin) Object.assign(b, { fin: d, levePar: u, motifLevee: `Crédit ${c.numero} remboursé` });
+    E.declarationsCentrale.push({ id: prochain(E.declarationsCentrale), creditId: c.id, evenement: "remboursement_total", survenuLe: d, declareLe: "", reference: "", declarePar: null });
+  }
+  return { e, rb };
+}
+const vueRemboursement = (r: RemboursementCredit) => ({ id: r.id, creditId: r.creditId, piece: E.ecritures.find((e) => e.id === r.ecritureId)?.piece ?? "", date: r.date,
+  montant: r.montant, repartition: r.repartition, modifie: r.modifie, mandataire: r.mandataire, mode: r.mode });
+const remboursementsCredit = {
+  creditsDuClient(tid: number) {
+    lectureAdmin(["S76", "S55"]);
+    return E.credits.filter((c) => c.tiersId === tid && c.statut === "debloque").map((c) => ({ id: c.id, numero: c.numero, montant: c.montant, devise: c.devise }));
+  },
+  detail(id: number, date?: string) {
+    lectureAdmin(["S76", "S55"]);
+    const c = creditEnCours(id), d = dateReglement(date), s = etatCredit(c, d);
+    return { ...vueCredit(c), client: titulaire(E.tiers.find((t) => t.id === c.tiersId)!), dateReglement: d, joursRetard: s.joursRetard, degre: s.degreLibelle,
+      capitalRestant: s.capitalRestant, resteAPayer: s.resteAPayer, interetTotal: s.interetTotal, interetRestant: s.interetNonEchu + s.du.interet!, dernierPaiement: s.dernierPaiement,
+      du: s.du, retardTotal: sommeDu(s), toutSurLeCredit: toutCredit(c, s), ordre: ordreRemb(c, s.degre) };
+  },
+  proposer(id: number, p: { montant: number; dateReglement?: string }) {
+    exiger();
+    const c = creditEnCours(id);
+    const x = controlerRepartition(c, etatCredit(c, dateReglement(p.dateReglement)), p.montant, null); return { ...x.r, modifie: Number(x.modifie) } as Record<string, number>;
+  },
+  /** S76 : Enregistrer au guichet ; billetage des coupures reçues ; moins que la plus petite coupure en trop : appoint au compte du client (S76-8) */
+  rembourserCaisse(id: number, p: { cle: string; mandataire: string; montant: number; coupures: Comptage; repartition?: Record<string, number> | null }) {
+    const prec = dejaFaite(p.cle); if (prec) return prec;
+    const c = creditEnCours(id), mand = mandataireDe(p.mandataire);
+    const { u, s } = sessionOuverte(c.devise);
+    if (!Number.isInteger(p.montant) || p.montant <= 0) throw new ErreurMetier("À remplir : Montant à payer.");
+    const cp = nettoyer(p.coupures ?? {});
+    if (Object.keys(cp).some((v) => !coupuresDe(c.devise).includes(Number(v)))) throw new ErreurMetier("Coupure inconnue.");
+    const recu = totalComptage(cp); let appoint: [number, number] | undefined;
+    if (recu !== p.montant) {
+      const petite = Math.round(Math.min(...coupuresDe(c.devise)) * 100);
+      if (!(recu - p.montant > 0 && recu - p.montant < petite)) throw new ErreurMetier("Le billetage ne fait pas le montant.");
+      appoint = [compteAppoint(c), recu - p.montant];
+    }
+    const examen = autorisationExamen(c.tiersId, s.journeeId, "remboursement_credit", recu, c.devise);   // écart E01 : examen renforcé
+    const { e, rb } = enregistrerRemboursement(c, jourDeblocage().date, p.montant, p.repartition, { compte: "570", contrat: guichetDe(s) }, "CA", u.id, mand, { mode: "caisse", appoint });
+    const o: Operation = { id: prochain(E.operations), cle: p.cle, type: "remboursement_credit", statut: "validee", sessionId: s.id, tiersId: c.tiersId, montant: recu, devise: c.devise,
+      coupures: cp, remisPar: mand, motif: `Remboursement ${c.numero}`, saisiPar: u.id, ecritureId: e.id, heure: heure() };
+    E.operations.push(o); rb.operationId = o.id; lierExamen(examen, o.id); enregistrer(); return o;
+  },
+  /** S55 : remboursement sur un compte bancaire de l'institution, date de règlement au plus la journée */
+  rembourserBanque(id: number, p: { mandataire: string; compteBancaireId: number; montant: number; dateReglement?: string; repartition?: Record<string, number> | null }) {
+    const u = exiger();
+    const c = creditEnCours(id), mand = mandataireDe(p.mandataire);
+    const cb = E.comptesBancaires.find((x) => x.id === p.compteBancaireId);
+    if (!cb) throw new ErreurMetier("À remplir : Banque et Compte.");
+    if (cb.devise !== c.devise) throw new ErreurMetier("Le compte bancaire n'est pas dans la devise du crédit.");
+    const { rb } = enregistrerRemboursement(c, dateReglement(p.dateReglement), p.montant, p.repartition, { compte: cb.compte }, "OD", u.id, mand, { mode: "banque", compteBancaireId: cb.id });
+    enregistrer(); return vueRemboursement(rb);
+  },
+  /** Situation (brouillard des remboursements, capture p. 88), Plan (échéancier en vigueur), Réel (remboursements effectués) */
+  situation(id: number) {
+    exiger();
+    const c = E.credits.find((x) => x.id === id);
+    if (!c) throw new ErreurMetier("Crédit introuvable.");
+    let reste = c.montant;
+    const plan = (c.echeancier as EcheanceCredit[]).map((e) => { reste -= e.capital; return { rang: e.rang, date: e.date, interet: e.interet, capital: e.capital,
+      epargne: champ(e, "epargne"), solidarite: champ(e, "solidarite"), tva: champ(e, "tva"), capitalRestant: reste }; });
+    reste = c.montant;
+    const reel = E.remboursementsCredit.filter((r) => r.creditId === id).sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id)
+      .map((r) => { reste -= r.repartition.capital ?? 0; return { ...vueRemboursement(r), capitalRestant: reste }; });
+    const brouillard = [...plan.map((x) => ({ date: x.date, echeance: x })), ...reel.map((x) => ({ date: x.date, remboursement: x }))]
+      .sort((a, b) => a.date.localeCompare(b.date) || Number("remboursement" in a) - Number("remboursement" in b));
+    return { plan, reel, brouillard };
+  },
+  memos(id: number) {
+    exiger();
+    return E.memosCredit.filter((m) => m.creditId === id).map((m) => ({ id: m.id, date: m.date, texte: m.texte, par: E.utilisateurs.find((x) => x.id === m.saisiPar)?.nom ?? "" }));
+  },
+  /** Memo : « renseigner les notifications du client pendant le remboursement » (texte p. 88) */
+  ajouterMemo(id: number, p: { texte: string }) {
+    const u = exiger();
+    if (!E.credits.some((x) => x.id === id)) throw new ErreurMetier("Crédit introuvable.");
+    const t = typeof p.texte === "string" ? p.texte.trim() : "";
+    if (!t) throw new ErreurMetier("À remplir : Memo.");
+    E.memosCredit.push({ id: prochain(E.memosCredit), creditId: id, date: jourDeblocage().date, texte: t, saisiPar: u.id });
+    enregistrer(); return remboursementsCredit.memos(id);
   },
 };
 
@@ -3341,8 +3561,9 @@ function especesDuJourUsd(tiersId: number, sens: "depot" | "retrait") {
 
 // ---------- Écart E01 : examen renforcé (loi 22/068, art. 23 ; loi 25/048, art. 92 bis ; Instr. BCC 15, art. 61 et 62 ; Instr. BCC 15 bis, art. 5 à 7) ----------
 // Mêmes règles que noyau/conformite.py.
-const TYPES_EXAMEN: Record<Examen["type"], string> = { depot: "Dépôt en espèces", retrait: "Retrait en espèces", adhesion: "Adhésion", achat_parts: "Achat de parts", retrait_parts: "Retrait de parts" };
-const sensExamen = (t: Examen["type"]) => (t === "retrait" || t === "retrait_parts" ? "retrait" : "depot");
+const TYPES_EXAMEN: Record<Examen["type"], string> = { depot: "Dépôt en espèces", retrait: "Retrait en espèces", adhesion: "Adhésion", achat_parts: "Achat de parts", retrait_parts: "Retrait de parts",
+  deblocage_credit: "Déblocage de crédit", remboursement_credit: "Remboursement de crédit" };
+const sensExamen = (t: Examen["type"]) => (t === "retrait" || t === "retrait_parts" || t === "deblocage_credit" ? "retrait" : "depot");
 const MSG_EXAMEN = "Examen renforcé requis : 10 000 USD ou plus en espèces dans la journée pour ce client (loi 22/068, art. 23 ; Instr. BCC 15, art. 61). L'opération attend l'autorisation de la conformité.";
 function autorisationExamen(tiersId: number, journeeId: number, type: Examen["type"], montant: number, devise: Devise): number | null {
   if (enUsd(montant, devise) + especesDuJourUsd(tiersId, sensExamen(type)) < SEUIL_ESPECES_USD) return null;
@@ -5471,6 +5692,7 @@ const apiLocal = {
   miseEnPlace: asynchrone(miseEnPlace, "miseEnPlace"),
   visasCredit: asynchrone(visasCredit, "visasCredit"),
   deblocage: asynchrone(deblocage, "deblocage"),
+  remboursementsCredit: asynchrone(remboursementsCredit, "remboursementsCredit"),
   societe: asynchrone(societe, "societe"),
   agents: asynchrone(agents, "agents"),
   jours: asynchrone(jours, "jours"),

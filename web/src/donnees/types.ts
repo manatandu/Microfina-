@@ -172,7 +172,7 @@ export interface Ecriture {
   lignes: readonly Ligne[];
 }
 
-export type TypeOperation = "depot" | "retrait" | "adhesion" | "achat_parts" | "retrait_parts" | "ed_encaissement" | "ed_decaissement" | "transfert_sortie" | "transfert_entree" | "versement_banque" | "deblocage_credit";
+export type TypeOperation = "depot" | "retrait" | "adhesion" | "achat_parts" | "retrait_parts" | "ed_encaissement" | "ed_decaissement" | "transfert_sortie" | "transfert_entree" | "versement_banque" | "deblocage_credit" | "remboursement_credit";
 
 /** S52 : opération de banque, saisie puis visée et validée (S57), comptabilisée (S111) ; pièce donnée à la comptabilisation (registre S52-2) */
 export type TypeOperationBanque = "encaissement" | "decaissement" | "banque_caisse" | "banque_banque" | "virement_client" | "prelevement_client" | "adhesion_banque";
@@ -207,7 +207,7 @@ export interface PlanEpargne {
 }
 /** Écart E01 : examen renforcé des espèces de 10 000 USD ou plus (loi 22/068, art. 23 ; Instr. BCC 15, art. 61 et 62) */
 export interface Examen {
-  id: number; numero: number; cle: string; tiersId: number; journeeId: number; type: "depot" | "retrait" | "adhesion" | "achat_parts" | "retrait_parts";
+  id: number; numero: number; cle: string; tiersId: number; journeeId: number; type: "depot" | "retrait" | "adhesion" | "achat_parts" | "retrait_parts" | "deblocage_credit" | "remboursement_credit";
   compteId: number | null; montant: number; devise: Devise; montantUsd: number; cumulUsd: number; motifDemande: string; demandePar: number;
   statut: "a_examiner" | "autorise" | "refuse"; origineFonds: string; destinationFonds: string; objet: string; acteurs: string; observations: string;
   examinePar: number | null; examineLe: string; operationId: number | null; declareLe: string; referenceDeclaration: string;
@@ -282,7 +282,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 64;
+  version: 65;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)
@@ -317,6 +317,8 @@ export interface Etat {
   demandes: DemandeCredit[];   // S86 à S88
   fondsPropres: { dateArrete: string; montant: number; saisiPar: number }[];   // registre CR-2
   credits: CreditPret[];   // S89 et suivants
+  remboursementsCredit: RemboursementCredit[];   // S76, S55
+  memosCredit: { id: number; creditId: number; date: string; texte: string; saisiPar: number }[];
   visasCredit: VisaCredit[];   // S90
   declarationsCentrale: { id: number; creditId: number; evenement: "octroi" | "modification" | "remboursement_total" | "radiation"; survenuLe: string; declareLe: string;
     reference: string; declarePar: number | null }[];   // registre CR-10
@@ -453,6 +455,12 @@ export interface CreditPret {
   statut: "mis_en_place" | "vise" | "refuse" | "debloque" | "solde" | "passe_en_perte"; misEnPlacePar: number; misEnPlaceLe: string; debloqueLe: string;
   fraisEncaissesLe?: string; ecritureDeblocageId?: number; modeDeblocage?: "caisse" | "banque"; chequeDeblocage?: string;
   echeancier: { rang: number; date: string; capital: number; interet: number }[];
+}
+
+/** S76, S55 : un remboursement de crédit, sa répartition (registre S76, CR-7, CR-20) */
+export interface RemboursementCredit {
+  id: number; creditId: number; ecritureId: number; operationId: number | null; date: string; montant: number; repartition: Record<string, number>;
+  modifie: boolean; mandataire: string; mode: "caisse" | "banque"; compteBancaireId: number | null; saisiPar: number;
 }
 
 /** S90 : visa d'un niveau (registre S90, CR-4, CR-5) */

@@ -7,8 +7,9 @@ import uuid
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import SEUIL_ESPECES_USD, en_usd, especes_du_jour_usd, exiger, journee_courante, nom_utilisateur, titulaire
 
-TYPES = {"depot": "Dépôt en espèces", "retrait": "Retrait en espèces", "adhesion": "Adhésion", "achat_parts": "Achat de parts", "retrait_parts": "Retrait de parts"}
-SORTIES = ("retrait", "retrait_parts")
+TYPES = {"depot": "Dépôt en espèces", "retrait": "Retrait en espèces", "adhesion": "Adhésion", "achat_parts": "Achat de parts", "retrait_parts": "Retrait de parts",
+         "deblocage_credit": "Déblocage de crédit", "remboursement_credit": "Remboursement de crédit"}
+SORTIES = ("retrait", "retrait_parts", "deblocage_credit")
 MSG = ("Examen renforcé requis : 10 000 USD ou plus en espèces dans la journée pour ce client (loi 22/068, art. 23 ; Instr. BCC 15, art. 61). "
        "L'opération attend l'autorisation de la conformité.")
 
