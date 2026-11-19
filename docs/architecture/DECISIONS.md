@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**442 décisions.** Solidité : 188 fortes (le manuel ou un texte répond), 218 moyennes (déduites d'un écran voisin ou d'une donnée), 36 faibles (notre choix, faute de mieux). Dans le code : 425 déjà en place, 15 à appliquer.
+**447 décisions.** Solidité : 188 fortes (le manuel ou un texte répond), 223 moyennes (déduites d'un écran voisin ou d'une donnée), 36 faibles (notre choix, faute de mieux). Dans le code : 430 déjà en place, 15 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -858,6 +858,16 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S70-4 | Avoirs en cours de prescription | Liste des comptes inactifs clôturés avec leur solde, la date et la référence du versement à la BCC ; lecture réservée au droit S70 | Texte réglementaire : Loi 22/069, titre III, chap. Ier | forte | en place |
 | S70-5 | Versement à la BCC | Avoirs cochés d'une même devise, compte bancaire de l'institution choisi, référence obligatoire : débit 369, crédit du compte bancaire, journal OD | Texte réglementaire : Loi 22/069, titre III, chap. Ier (« versés ou déposés à la Banque centrale du Congo ») ; PCCI, compte 36 | moyenne | en place |
 | S70-6 | Compte clos | Plus aucune opération : dépôt, retrait et autres opérations sur un compte clos sont refusés ; il sort des listes de comptes du client et des comptes inactifs. Droit S70 au chef d'agence | Choix du porteur : Conséquence de la clôture ; registre S04-1 | forte | en place |
+
+## S71 Blocage compte et montant
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S71-1 | Champs et boutons | Ceux de la capture (Infos client, Infos compte, Actions sur le compte, Motif, Enregistrer, Voir historique des actions, Annuler) ; la case « Montant à bloquer » paraît quand Bloqué Montant est coché (texte p. 81 : « mettez le montant à bloquer »). Une seule des deux cases à la fois, motif obligatoire | Manuel : Texte et capture p. 81 | moyenne | en place |
+| S71-2 | Infos compte | Solde du compte ; Montant bloqué (tout le solde quand le compte est bloqué) ; Montant débloqué : total des montants dont le blocage est levé ; Epargne libre : solde moins montant bloqué | Manuel : Capture p. 81 | moyenne | en place |
+| S71-3 | Effet d'un blocage | Bloquer compte : aucun débit (retrait, prélèvement, constitution de DAT, cotisation de plan) ; les dépôts restent acceptés. Bloqué Montant : le montant sort du disponible, au plus l'épargne libre. Un seul calcul du montant bloqué pour tout le logiciel | Écran voisin : Texte p. 81 ; PCCI, compte 36 (comptes bloqués) | moyenne | en place |
+| S71-4 | Historique des actions | Chaque blocage avec sa date, son action, son montant (ou tout le compte), son motif, son auteur ; s'il est levé, la date et le motif du déblocage | Manuel : Bouton « Voir historique des actions » de la capture p. 81 | moyenne | en place |
+| S71-5 | Déblocage | Depuis l'historique, un blocage en cours se lève avec un motif obligatoire, sur le modèle de la libération des garanties (S94) ; il reste dans l'historique. Un montant qui garantit un crédit se libère seulement par Caution et nantissement. Droit S71 au chef d'agence | Écran voisin : Atlas : manque « déblocage », complément A:S94 | moyenne | en place |
 
 ## E01 Examen renforcé
 

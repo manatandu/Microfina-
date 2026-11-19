@@ -772,6 +772,19 @@ const OUT = process.argv[2];
   await rcl.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rcl.getByRole('row').filter({ hasText: 'Kalala' }).first().dblclick();
   await p.getByLabel('N° compte : *').selectOption({ index: 1 }); await p.getByRole('button', { name: 'Clôturer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByText('encore un solde').waitFor(); await etape('06c31-cloture-refusee'); await p.getByRole('button', { name: 'Ok' }).click();
+  // Blocage d'un montant puis déblocage (S71, p. 81 ; registre S71-1 à S71-5)
+  await aller('/epargne/s71'); await p.getByRole('heading', { name: 'Blocage et déblocage de compte' }).waitFor();
+  await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  const rbl = p.getByRole('dialog', { name: "Recherche d'un client" });
+  await rbl.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rbl.getByRole('row').filter({ hasText: 'Kalala' }).first().dblclick();
+  await p.getByLabel('compte: *').selectOption({ label: '0412-000318-01' });
+  await p.getByLabel('Bloqué Montant').check(); await p.getByLabel('Montant à bloquer :').fill('100'); await p.getByLabel('Motif:').fill('Litige en cours');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByText('Montant bloqué').filter({ hasText: '100,00' }).waitFor(); await etape('06c32-blocage-montant');
+  await p.getByRole('button', { name: 'Voir historique des actions' }).click();
+  const hist = p.getByRole('dialog', { name: 'Historique des actions' }); await hist.getByRole('button', { name: 'Débloquer' }).first().click();
+  await hist.getByLabel('Motif du déblocage : *').fill('Litige réglé'); await hist.getByRole('button', { name: 'Débloquer' }).last().click(); await oui();
+  await hist.getByRole('cell', { name: 'Litige réglé' }).waitFor(); await etape('06c33-deblocage'); await hist.getByRole('button', { name: 'Fermer' }).click();
   await login('Esther Ngalula');
   // Apurement avant la résiliation (registre S48-1) : Lukusa retire tout son solde (85 000 CDF)
   await aller('/caisse/s74?op=retrait'); await client('Lukusa'); await p.getByLabel('N° compte').selectOption({ label: '0412-000320-02' });

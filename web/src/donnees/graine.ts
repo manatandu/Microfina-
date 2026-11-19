@@ -167,6 +167,7 @@ export function graine(): Etat {
     gels: [],
     lettresInactivite: [],
     clotures: [],
+    blocages: [],
     reversementsRetenues: [],
     journalSecurite: [],
     remboursementsEmprunt: [],

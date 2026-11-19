@@ -191,6 +191,8 @@ export interface DepotTerme {   // S65, S66
   echeance?: { interet: number; irc: number; montantVerse: number; ecritureId: number | null };   // S65 : traitement à l'échéance (reconduction ou versement)
   reconduitDe?: number;   // S65 : DAT dont celui-ci est la reconduction
 }
+/** S71 : blocage d'un compte (montant null : tout le compte) ou d'un montant (registre S71) */
+export interface Blocage { id: number; compteId: number; montant: number | null; motif: string; debut: string; posePar: number; fin: string; levePar: number | null; motifLevee: string; garantieDe?: number | null }
 /** S70 : clôture d'un compte (registre S70-1 à S70-6) */
 export interface ClotureCompte { id: number; compteId: number; motif: "demande" | "inactivite"; observation: string; dateCloture: string; solde: number; devise: Devise;
   ecritureId: number | null; cloturePar: number; verseeBccLe: string; referenceBcc: string; compteBancaireId: number | null; ecritureVersementId: number | null }
@@ -308,6 +310,7 @@ export interface Etat {
   gels: GelAvoirs[];   // écart E10
   lettresInactivite: LettreInactivite[];   // écart E11
   clotures: ClotureCompte[];   // S70
+  blocages: Blocage[];   // S71
   reversementsRetenues: ReversementRetenue[];   // écart E16
   journalSecurite: EvenementSecurite[];   // écart E17
   declarationsCip: { type: string; objetId: number; dateEvenement: string; declareLe: string; reference: string; declarePar: number }[];   // écart E06   // S46, S42, S43

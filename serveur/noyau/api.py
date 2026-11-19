@@ -12,6 +12,7 @@ from . import banques as bq
 from . import banque_operations as bop
 from . import plans_epargne as ple
 from . import clotures as clo
+from . import blocages as blo
 from . import cheques_clients as chq
 from . import chequiers as chqr
 from . import emprunts as emp
@@ -739,6 +740,22 @@ def epargne_avoirs_prescription(request):
 @api.post("/epargne/clotures/versement-bcc")
 def epargne_verser_bcc(request, corps: dict = Body(...)):
     return clo.verser_bcc(u(request), corps)
+
+
+# ---------- S71 : Épargne > Blocage compte et montant (manuel p. 81) ----------
+@api.get("/epargne/blocages")
+def epargne_blocage_etat(request, compteId: int):
+    return blo.etat(u(request), compteId)
+
+
+@api.post("/epargne/blocages")
+def epargne_bloquer(request, corps: dict = Body(...)):
+    return blo.bloquer(u(request), corps)
+
+
+@api.post("/epargne/blocages/{bid}/deblocage")
+def epargne_debloquer(request, bid: int, corps: dict = Body(...)):
+    return blo.debloquer(u(request), bid, corps)
 
 
 @api.get("/banque/adhesions/apercu")

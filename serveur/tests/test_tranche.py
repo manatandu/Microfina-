@@ -2351,6 +2351,37 @@ def test_cloture_compte(clients, journee):
     assert balance_equilibree(clients["compta"])
 
 
+def test_blocage_compte_et_montant(clients, journee):
+    """S71 (manuel p. 81) : bloquer un montant ou tout le compte, avec motif ; déblocage depuis l'historique (modèle S94) ; le disponible suit"""
+    chef, agent, caisse = clients["chef"], clients["agent"], clients["caisse"]
+    usd = C("0412-000318-01")
+    e = chef.get(f"/api/epargne/blocages?compteId={usd}", **H).json()
+    assert (e["montantBloque"], e["compteBloque"], e["historique"]) == (0, False, [])
+    solde = e["solde"]
+    def refus(corps):
+        r = chef.post("/api/epargne/blocages", {"compteId": usd, **corps}, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    assert "Motif" in refus({"bloquerMontant": True, "montant": 1000})
+    assert "Cocher" in refus({"motif": "x"})
+    assert "épargne libre" in refus({"bloquerMontant": True, "montant": solde + 1, "motif": "Saisie"})
+    assert agent.post("/api/epargne/blocages", {"compteId": usd, "bloquerMontant": True, "montant": 1000, "motif": "x"}, **H).status_code == 403
+    e = chef.post("/api/epargne/blocages", {"compteId": usd, "bloquerMontant": True, "montant": 100000, "motif": "Litige"}, **H).json()
+    assert (e["montantBloque"], e["epargneLibre"]) == (100000, solde - 100000)
+    assert next(c for c in caisse.get(f"/api/tiers/{T('0412-000318')}/comptes").json() if c["id"] == usd)["disponible"] == solde - 100000
+    e = chef.post("/api/epargne/blocages", {"compteId": usd, "bloquerCompte": True, "motif": "Décision de justice"}, **H).json()
+    assert (e["compteBloque"], e["montantBloque"], e["epargneLibre"]) == (True, solde, 0)
+    r = caisse.post("/api/guichet/retraits", {"cle": cle(), "compteId": usd, "montant": 100, "coupures": {"1": 1}}, **H)
+    assert r.status_code == 422 and "disponible" in r.json()["message"]
+    assert "déjà bloqué" in refus({"bloquerCompte": True, "motif": "x"})
+    tout = next(b for b in e["historique"] if b["action"] == "Bloquer compte")
+    r = chef.post(f"/api/epargne/blocages/{tout['id']}/deblocage", {}, **H); assert r.status_code == 422 and "Motif" in r.json()["message"]
+    e = chef.post(f"/api/epargne/blocages/{tout['id']}/deblocage", {"motif": "Mainlevée"}, **H).json()
+    assert (e["compteBloque"], e["montantBloque"]) == (False, 100000)
+    m = next(b for b in e["historique"] if b["action"] == "Bloqué Montant")
+    e = chef.post(f"/api/epargne/blocages/{m['id']}/deblocage", {"motif": "Litige réglé"}, **H).json()
+    assert (e["montantBloque"], e["montantDebloque"], e["epargneLibre"]) == (0, 100000, solde)
+    assert [b["enCours"] for b in e["historique"]] == [False, False]
+
+
 def test_registre_des_membres(clients, journee):
     """Écart E12 : AUSCOOP, art. 9 ; loi 002/2002, art. 67"""
     from noyau.bd import executer

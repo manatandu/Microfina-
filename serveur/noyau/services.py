@@ -1417,14 +1417,20 @@ def masquer_soldes(comptes: list[dict]) -> list[dict]:
     return [{**c, "solde": None, "bloque": None, "disponible": None, "motifBlocage": None, "masque": True} for c in comptes]
 
 
+def montant_bloque(compte_id: int, solde: int) -> int:
+    """Montant bloqué d'un compte (S71) : tout le solde quand le compte entier est bloqué (montant vide), sinon la somme des montants bloqués en cours"""
+    if valeur("select 1 from blocage where compte_id = %s and montant is null and (fin is null or fin > now())", (compte_id,)):
+        return max(solde, 0)
+    return int(valeur("select coalesce(sum(montant), 0) from blocage where compte_id = %s and (fin is null or fin > now())", (compte_id,)))
+
+
 def comptes_du_tiers(tid: int) -> list[dict]:
     res = []
     for c in lignes("""select c.*, p.libelle, p.famille, p.compte_lie from compte_depot c join produit_epargne p on p.id = c.produit_id
                        where c.tiers_id = %s and c.statut = 'ouvert' order by c.id""", (tid,)):
-        bl = une("""select coalesce(sum(montant), 0) as montant, string_agg(motif, ' ; ') as motif from blocage
-                    where compte_id = %s and (fin is null or fin > now())""", (c["id"],))
+        bl = une("""select string_agg(motif, ' ; ') as motif from blocage where compte_id = %s and (fin is null or fin > now())""", (c["id"],))
         solde = solde_contrat(f"depot:{c['id']}", c["devise"], "C")
-        bloque = int(bl["montant"])
+        bloque = montant_bloque(c["id"], solde)
         res.append({"id": c["id"], "tiersId": tid, "numero": c["numero"], "intitule": c["libelle"], "pcci": compte_du_produit(c),
                     "devise": c["devise"].strip(), "bloque": bloque, "motifBlocage": bl["motif"], "solde": solde, "disponible": solde - bloque})
     return res

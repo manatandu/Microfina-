@@ -55,8 +55,9 @@ def releve(u, compte_id: int, du: str, au: str) -> dict:
             debit, credit = (m["montant"], 0) if m["sens"] == "D" else (0, m["montant"])
             solde += credit - debit; td += debit; tc += credit
             sortie.append({"date": d, "dateValeur": m["valeur"].isoformat(), "piece": m["piece"], "libelle": m["libelle"], "debit": debit, "credit": credit, "solde": solde})
-    bloque = int(valeur("select coalesce(sum(montant), 0) from blocage where compte_id = %s and (fin is null or fin > now())", (c["id"],)))
+    from .services import montant_bloque
     comptable = solde_contrat(f"depot:{c['id']}", c["dv"], "C")
+    bloque = montant_bloque(c["id"], comptable)
     attente = int(valeur("""select coalesce(sum(case type when 'virement_client' then montant else -montant end), 0) from operation_banque
                             where compte_depot_id = %s and type in ('virement_client', 'prelevement_client') and statut in ('saisie', 'visee', 'validee')""", (c["id"],)))
     attente -= int(valeur("select coalesce(sum(montant), 0) from depot_terme where compte_emetteur_id = %s and statut = 'saisie'", (c["id"],)))   # DAT en attente de validation (S64-2)

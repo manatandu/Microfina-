@@ -168,7 +168,8 @@ def enregistrer(u, d, client: bool = False) -> dict:
         if not libelle:
             raise ErreurMetier("À remplir : libellé opération.")
         if type_ == "prelevement_client":                   # registre S53-2 : comme un retrait (S74), sur le disponible
-            bloque = int(valeur("select coalesce(sum(montant), 0) from blocage where compte_id = %s and (fin is null or fin > now())", (c["id"],)))
+            from .services import montant_bloque
+            bloque = montant_bloque(c["id"], solde_contrat(f"depot:{c['id']}", c["devise"], "C"))
             attente = int(valeur("""select coalesce(sum(montant), 0) from operation_banque where compte_depot_id = %s and type = 'prelevement_client'
                                      and statut in ('saisie', 'visee', 'validee')""", (c["id"],)))
             if montant > solde_contrat(f"depot:{c['id']}", c["devise"], "C") - bloque - attente:

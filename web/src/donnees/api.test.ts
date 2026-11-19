@@ -1128,6 +1128,32 @@ describe("journée de guichet", () => {
     await expect(api.connexions.lire()).rejects.toThrow("Droit manquant");
   });
 
+  it("blocage (S71, p. 81) : un montant ou tout le compte, avec motif ; déblocage avec motif ; le disponible suit", async () => {
+    await journeeOuverte();
+    await connecter("jpmukendi");
+    const usd = _etat().comptes.find((c) => c.numero === "0412-000318-01")!;
+    let e = await api.blocages.etat(usd.id);
+    const solde = e.solde;
+    expect([e.montantBloque, e.compteBloque, e.historique]).toEqual([0, false, []]);
+    await expect(api.blocages.bloquer({ compteId: usd.id, bloquerMontant: true, montant: 1000 })).rejects.toThrow("Motif");
+    await expect(api.blocages.bloquer({ compteId: usd.id, motif: "x" })).rejects.toThrow("Cocher");
+    await expect(api.blocages.bloquer({ compteId: usd.id, bloquerMontant: true, montant: solde + 1, motif: "Saisie" })).rejects.toThrow("épargne libre");
+    e = await api.blocages.bloquer({ compteId: usd.id, bloquerMontant: true, montant: 100000, motif: "Litige" });
+    expect([e.montantBloque, e.epargneLibre]).toEqual([100000, solde - 100000]);
+    expect((await api.tiers.comptes(1)).find((c) => c.id === usd.id)!.disponible).toBe(solde - 100000);
+    e = await api.blocages.bloquer({ compteId: usd.id, bloquerCompte: true, motif: "Décision de justice" });
+    expect([e.compteBloque, e.montantBloque, e.epargneLibre]).toEqual([true, solde, 0]);
+    await connecter("engalula");
+    await expect(api.guichet.retrait({ cle: cle(), compteId: usd.id, montant: 100, coupures: { 1: 1 } })).rejects.toThrow("disponible");
+    await connecter("jpmukendi");
+    const tout = e.historique.find((b) => b.action === "Bloquer compte")!;
+    await expect(api.blocages.debloquer(tout.id, {})).rejects.toThrow("Motif");
+    e = await api.blocages.debloquer(tout.id, { motif: "Mainlevée" });
+    expect([e.compteBloque, e.montantBloque]).toEqual([false, 100000]);
+    e = await api.blocages.debloquer(e.historique.find((b) => b.action === "Bloqué Montant")!.id, { motif: "Litige réglé" });
+    expect([e.montantBloque, e.montantDebloque, e.epargneLibre]).toEqual([0, 100000, solde]);
+  });
+
   it("clôture d'un compte (S70) : à la demande, solde nul ; inactif depuis dix ans, lettre notée, solde au 369 puis versé à la BCC (loi 22/069, titre III, chap. Ier)", async () => {
     const { s } = await journeeOuverte();
     await connecter("jpmukendi");

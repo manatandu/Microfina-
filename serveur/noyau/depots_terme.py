@@ -51,9 +51,10 @@ def produits(u) -> list[dict]:
 
 
 def disponible(compte_id: int, devise: str) -> int:
-    bloque = int(valeur("select coalesce(sum(montant), 0) from blocage where compte_id = %s and (fin is null or fin > now())", (compte_id,)))
+    from .services import montant_bloque
+    solde = solde_contrat(f"depot:{compte_id}", devise, "C")
     attente = int(valeur("select coalesce(sum(montant), 0) from depot_terme where compte_emetteur_id = %s and statut = 'saisie'", (compte_id,)))
-    return solde_contrat(f"depot:{compte_id}", devise, "C") - bloque - attente
+    return solde - montant_bloque(compte_id, solde) - attente
 
 
 def mettre_en_place(u, d) -> dict:
