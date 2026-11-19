@@ -20,7 +20,7 @@ def etat(u: dict) -> dict:
     j = journee_courante(u)
     per = dict(PERIODICITES)
     epargne = [{"code": r["code"], "libelle": r["libelle"], "devise": r["devise"].strip(), "categorie": r["categorie_compte"] or "", "soldeMinimum": r["solde_minimum"],
-                "retraitMaxJour": r["retrait_max_jour"], "calculInteret": bool(r["calcul_interet"]), "tenueCompte": r["tenue_compte"]}
+                "retraitMaxJour": r["retrait_max_jour"], "calculInteret": bool(r["calcul_interet"]), "tenueCompte": r["tenue_compte"], "tauxInteret": _n(r["taux_interet"])}
                for r in lignes("select * from produit_epargne where institution_id = %s and actif and not supprime order by code", (i,))]
     credit = []
     for r in lignes("select * from produit_credit where institution_id = %s and actif order by numero", (i,)):

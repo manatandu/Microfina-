@@ -758,6 +758,13 @@ const OUT = process.argv[2];
   // Recherche multicritères DAT (S68) : mis en place depuis le début de l'année
   await aller('/epargne/s68'); await p.getByRole('heading', { name: 'Recherche multicritères DAT' }).waitFor();
   await p.getByRole('button', { name: 'Valider' }).click(); await p.getByRole('cell', { name: '000001' }).waitFor(); await etape('06c28-recherche-dat');
+  // Plan épargne (S69, p. 78) : la simulation donne le montant périodique d'un montant à terme
+  await aller('/epargne/s69'); await p.getByRole('heading', { name: 'Simulation du Plan épargne' }).waitFor();
+  await p.getByLabel('Montant à  terme :').fill('1 200 000'); await p.getByLabel('Durée plan épargne :').fill('12');
+  await p.getByLabel('Périodicité :').selectOption({ label: 'Mensuel' }); await p.getByRole('button', { name: 'Simuler' }).click();
+  await p.waitForFunction(() => [...document.querySelectorAll('input')].some((i) => i.value === '100000')).catch(() => { throw new Error('S69 : simulation'); });
+  await etape('06c29-plan-simulation');
+  await p.getByRole('tab', { name: 'Nouveau' }).click(); await p.getByRole('heading', { name: 'Création du plan épargne' }).waitFor(); await etape('06c30-plan-nouveau');
   await login('Esther Ngalula');
   // Apurement avant la résiliation (registre S48-1) : Lukusa retire tout son solde (85 000 CDF)
   await aller('/caisse/s74?op=retrait'); await client('Lukusa'); await p.getByLabel('N° compte').selectOption({ label: '0412-000320-02' });

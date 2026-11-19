@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**426 décisions.** Solidité : 181 fortes (le manuel ou un texte répond), 212 moyennes (déduites d'un écran voisin ou d'une donnée), 33 faibles (notre choix, faute de mieux). Dans le code : 408 déjà en place, 15 à appliquer.
+**436 décisions.** Solidité : 185 fortes (le manuel ou un texte répond), 215 moyennes (déduites d'un écran voisin ou d'une donnée), 36 faibles (notre choix, faute de mieux). Dans le code : 418 déjà en place, 15 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -484,6 +484,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S27-2 | Familles et compte du PCCI | Familles de la capture : EPARGNE, BLOQUE, TONTINE (les produits en place passent en EPARGNE). Compte du PCCI des comptes ouverts : 334 Epargnes obligatoires pour BLOQUE (garanties liées au crédit), 330 Epargnes pour les autres ; remplacé par le compte lié du produit dès qu'il est paramétré (S28-2) | Texte réglementaire : Capture p. 40 (grille Famille) ; PCCI classe 3 (garanties liées à l'octroi de crédits, comptes 330 et 334) | moyenne | en place |
 | S27-3 | Produit qui a des comptes | Devise, famille et N° Produit ne se changent plus ; Supprimer est refusé : décocher Actif. Un produit inactif ou supprimé n'est plus proposé à l'enrôlement | Donnée exigée ailleurs : T02 ; T08 | moyenne | en place |
 | S27-4 | Option Solde négatif | Gardée comme dans Microfina++, mais seulement pour un compte courant : « Solde négatif = Oui » est refusé pour un produit qui n'est pas rangé en Courant (S28), et un produit qui l'a ne se range qu'en Courant. Une épargne (330), un dépôt à terme (340) ou une épargne bloquée (334) ne devient pas débiteur : le déposant prête à l'institution. Le PCCI n'admet de solde débiteur que comme créance à surveiller (passage en créances litigieuses après trois mois sans mouvement) et l'Instr. 003 ne parle que des comptes courants débiteurs, douteux après 30 jours | Texte réglementaire : PCCI, compte 33 (fonctionnement : solde débiteur des comptes sans mouvement après trois mois porté en créances litigieuses ou en retard) ; Instr. BCC 003, art. 7 ; décision du porteur 18/11/2026 | forte | en place |
+| S27-5 | Taux intérêt | Champ « Taux intérêt (%) » ajouté à la fiche produit : le plan d'épargne l'affiche (capture p. 79, « Taux intérêt : % » sans saisie) ; publié aux conditions de banque | Choix du porteur : Capture p. 79 ; Instr. BCC 40, art. 4 ; décision du porteur, 19/11/2026 | forte | en place |
 
 ## S63, S73, S74 Ouverture de compte et guichet
 
@@ -833,6 +834,20 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S68-3 | Terme du crédit | Court terme un an au plus, moyen terme de 1 à 5 ans, long terme au-delà, selon la durée du DAT : le classement des crédits du PCCI | Texte réglementaire : PCCI, comptes 30 à 32 | moyenne | en place |
 | S68-4 | Qui y accède | Agent de crédit et chef d'agence (droit S68), comme la mise en place et la validation | Écran voisin : Registre S66-1 | moyenne | en place |
 
+## S69 Plan d'épargne
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S69-1 | Produit et comptes | Produit : un produit d'épargne actif dont le compte lié est un compte 35 (dépôt à régime spécial : 352 logement, 353 retraite, 354 scolaire, 359 autres). Compte Plan épargne : un compte ouvert du client sur ce produit ; N° Compte épargne : un autre compte du client, de même devise, d'où viennent les cotisations | Texte réglementaire : PCCI, compte 35 ; capture p. 79 | moyenne | en place |
+| S69-2 | Durée et périodicité | Durée en mois (seule unité montrée) ; périodicités de S21 (Mensuel, Trimestriel, Tous les 2 semaines…). Nombre d'échéances = durée × dénominateur / 12, entier ; première échéance à la date de début, les suivantes tous les « constante » mois ou semaines ; fin = début + durée | Manuel : Captures p. 78 et 79 ; S21 Périodicité (dénominateur, constante, unité) | moyenne | en place |
+| S69-3 | Calcul de l'intérêt | Par échéance, sur le cumul versé : intérêt = cumul × taux annuel du produit / dénominateur de la périodicité. Prévu sur le cumul prévu, réel sur le cumul réellement cotisé. Cumul du tableau : capital et intérêt prévus. Les intérêts sont payés à la fin du plan, après la retenue de 20 % d'une personne physique | Choix du porteur : Capture p. 79 (colonnes Prévue, Réel, Cumul) ; loi 23/053, art. 120 ; décision du porteur, 19/11/2026 | forte | en place |
+| S69-4 | Simulation | Le montant à terme donne le montant périodique (arrondi à l'unité supérieure), ou le montant périodique donne le montant à terme ; aucun produit choisi, donc sans intérêt | Manuel : Texte et capture p. 78 | faible | en place |
+| S69-5 | Cotisations et mode de règlement | Enregistrer prélève les échéances cochées sur le N° Compte épargne et les verse au compte du plan (journal OD), si le disponible suffit ; date réelle = journée. Mode règlement noté au contrat : CHEQUE (capture), ESPECES, VIREMENT | Choix du porteur : Captures p. 79 et 80 ; décision du porteur, 19/11/2026 (pour les deux autres modes : à confirmer) | faible | en place |
+| S69-6 | Critères d'affichage | Arriérés : date prévue passée (avant la journée) ; échues : date prévue atteinte (au plus la journée) ; cotisées : date réelle remplie | Manuel : Capture p. 80 | faible | en place |
+| S69-7 | Fin du plan | À l'ouverture de journée (comme les DAT, S65-9) : un plan dont la fin est atteinte est clos ; le versé et les intérêts acquis, nets de la retenue, vont au compte épargne (débit compte du plan et 613, crédit compte épargne et 433). Titulaire aux avoirs gelés : le plan attend (E10) | Choix du porteur : Registre S65-9 ; PCCI, comptes 35 et 613 ; décision du porteur, 19/11/2026 | moyenne | en place |
+| S69-8 | Rupture | Écran sur le modèle de la rupture de DAT (S67) : le versé et l'intérêt acquis des échéances cotisées dont la date est atteinte, moins la retenue de 20 %, reviennent au compte épargne ; sans pénalité | Choix du porteur : Titre p. 80 ; capture p. 77 ; décision du porteur, 19/11/2026 | forte | en place |
+| S69-9 | Compte des intérêts | PCCI 613 selon le compte du plan : 6132 épargne-logement (352), 6133 épargne-retraite (353), 6134 autres comptes d'épargne à régime spécial | Texte réglementaire : PCCI, compte 613 | forte | en place |
+
 ## E01 Examen renforcé
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
@@ -1049,3 +1064,6 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S35-4 | S35 Préférences : devise, type sous, sous | Monnaies de démonstration | CDF 50 à 20 000 et USD 1 à 100, tous billets, chacun avec son type « Billet de … » : données de démonstration reprises de l'existant, pas lues dans un texte de la BCC ; l'institution saisit ses propres monnaies |
 | S01-3 | S01 Connexion | Règles de mot de passe et de blocage | Règle des mots de passe (T24) et blocage après 5 refus en 15 minutes (T22), demandés par le porteur le 15/11/2026 |
 | S59-4 | S59 Chèque client | Effet de l'encaissement | L'encaissement ne change que le statut (Encaissé, avec sa date) ; le crédit du compte du client et l'écriture de banque viennent à la comptabilisation (S111). Bouton Imprimer inactif jusque-là. Le retour (bouton Retourner) note le chèque impayé, sans écriture. Pas de passage par S57 : le manuel n'en parle pas |
+| S69-4 | S69 Plan d'épargne | Simulation | Le montant à terme donne le montant périodique (arrondi à l'unité supérieure), ou le montant périodique donne le montant à terme ; aucun produit choisi, donc sans intérêt |
+| S69-5 | S69 Plan d'épargne | Cotisations et mode de règlement | Enregistrer prélève les échéances cochées sur le N° Compte épargne et les verse au compte du plan (journal OD), si le disponible suffit ; date réelle = journée. Mode règlement noté au contrat : CHEQUE (capture), ESPECES, VIREMENT |
+| S69-6 | S69 Plan d'épargne | Critères d'affichage | Arriérés : date prévue passée (avant la journée) ; échues : date prévue atteinte (au plus la journée) ; cotisées : date réelle remplie |

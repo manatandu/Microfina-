@@ -135,7 +135,7 @@ export function MiseEnPlaceDat() {
 
 const STATUTS: Record<string, string> = { saisie: "À valider", valide: "Validé", rompu: "Rompu", echu: "Échu", annule: "Annulé", reconduit: "Reconduit" };
 /** Bouton Bénéficiaire (captures p. 75 et 77) : les bénéficiaires inscrits sur la fiche du client (S37, registre S37-3), en lecture (registre S65-6) */
-function FicheBeneficiaires({ lignes, fermer }: { lignes: Beneficiaire[] | null; fermer: () => void }) {
+export function FicheBeneficiaires({ lignes, fermer }: { lignes: Beneficiaire[] | null; fermer: () => void }) {
   return (
     <Fiche titre="Bénéficiaire" ouverte={!!lignes} fermer={fermer}>
       <div className="defile-x"><table className="grille">

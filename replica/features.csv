@@ -65,7 +65,7 @@ Ouverture d'un compte d'épargne,épargne,must,yes,yes,"S63 ; gratuite (Instr. B
 Relevé de compte et situation du client,épargne,must,yes,yes,"S64 ; deux premiers relevés mensuels gratuits (Instr. BCC 37) | Construit le 15/11/2026 : écran « Relevé de compte » (p. 73), relevé de compte épargne et situation du client imprimables (p. 74), en-tête de l'institution cliente (registre S64-1 à S64-6)."
 Dépôt à terme : mise en place validation rupture recherche,épargne,must,yes,yes,"S65 à S68 ; intérêts courus à chaque arrêté (constat U18) | Construit le 15/11/2026 : S65 mise en place (calculs de l'échéance et de l'intérêt, certificat), S66 validation par une autre personne (écriture compte émetteur → 340, journal OD) et contrat. S67 rupture le 15/11/2026 (intérêt au prorata des jours, pénalité sur le montant, retenue de 20 % loi 23/053, avis imprimé). S68 recherche multicritères le 15/11/2026. Registre S65-1 à S65-8, S66-1, S67-1 à S67-7, S68-1 à S68-4."
 Reconduction automatique des DAT,épargne,must,yes,yes,"S65 | À l'ouverture de journée : DAT échus versés au compte émetteur, ou reconduits aux mêmes conditions avec l'intérêt net versé (registre S65-9 à S65-11)."
-Plan d'épargne : simulation création échéancier cotisations rupture,épargne,should,yes,no,S69
+Plan d'épargne : simulation création échéancier cotisations rupture,épargne,should,yes,yes,"S69 | Simulation, création, tableau d'amortissement, cotisations, rupture et fin à l'ouverture de journée (registre S69-1 à S69-9, S27-5)."
 Clôture d'un compte,épargne,must,yes,no,S70 ; signalée non fonctionnelle par le manuel ; gratuite (Instr. BCC 37)
 Blocage de compte ou de montant avec motif,épargne,must,yes,no,S71
 Rapports épargne dont comptes inactifs et dormants,épargne,should,yes,no,S72

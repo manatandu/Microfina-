@@ -10,6 +10,7 @@ from . import groupes as gs
 from . import procurations as pr
 from . import banques as bq
 from . import banque_operations as bop
+from . import plans_epargne as ple
 from . import cheques_clients as chq
 from . import chequiers as chqr
 from . import emprunts as emp
@@ -675,6 +676,47 @@ def epargne_dat_apercu_rupture(request, did: int, date: str = ""):
 @api.post("/epargne/dat/{did}/rupture")
 def epargne_dat_rompre(request, did: int, corps: dict = Body(...)):
     return dat.rompre(u(request), did, corps)
+
+
+# ---------- S69 : Épargne > Plan Epargne (manuel p. 78 à 80) ----------
+@api.get("/epargne/plans/contexte")
+def epargne_plans_contexte(request):
+    return ple.contexte(u(request))
+
+
+@api.post("/epargne/plans/simulation")
+def epargne_plans_simuler(request, corps: dict = Body(...)):
+    return ple.simuler(u(request), corps)
+
+
+@api.get("/epargne/plans")
+def epargne_plans_liste(request, tiersId: int):
+    return ple.plans(u(request), tiersId)
+
+
+@api.post("/epargne/plans")
+def epargne_plans_creer(request, corps: dict = Body(...)):
+    return ple.creer(u(request), corps)
+
+
+@api.get("/epargne/plans/{pid}/tableau")
+def epargne_plans_tableau(request, pid: int, filtre: str = "toutes"):
+    return ple.tableau(u(request), pid, filtre)
+
+
+@api.post("/epargne/plans/{pid}/cotisations")
+def epargne_plans_cotiser(request, pid: int, corps: dict = Body(...)):
+    return ple.cotiser(u(request), pid, corps)
+
+
+@api.get("/epargne/plans/{pid}/rupture")
+def epargne_plans_apercu_rupture(request, pid: int):
+    return ple.apercu_rupture(u(request), pid)
+
+
+@api.post("/epargne/plans/{pid}/rupture")
+def epargne_plans_rompre(request, pid: int, corps: dict = Body(...)):
+    return ple.rompre(u(request), pid, corps)
 
 
 @api.get("/banque/adhesions/apercu")

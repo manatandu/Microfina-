@@ -190,6 +190,13 @@ export interface DepotTerme {   // S65, S66
   echeance?: { interet: number; irc: number; montantVerse: number; ecritureId: number | null };   // S65 : traitement à l'échéance (reconduction ou versement)
   reconduitDe?: number;   // S65 : DAT dont celui-ci est la reconduction
 }
+/** S69 : plan d'épargne (manuel p. 78 à 80), dépôt à régime spécial (PCCI, compte 35) ; registre S69 */
+export interface EcheancePlan { id: number; rang: number; datePrevue: string; capital: number; interetPrevu: number; dateReelle: string; interetReel: number; ecritureId: number | null }
+export interface PlanEpargne {
+  id: number; cle: string; numero: number; tiersId: number; produitId: number; compteEpargneId: number; comptePlanId: number; devise: Devise; duree: number;
+  periodicite: string; montant: number; taux: string; modeReglement: string; dateDebut: string; dateFin: string; statut: "en_cours" | "termine" | "rompu";
+  saisiPar: number; echeances: EcheancePlan[]; dateFinReelle: string; interetVerse: number | null; irc: number | null; montantVerse: number | null; ecritureFinId: number | null;
+}
 /** Écart E01 : examen renforcé des espèces de 10 000 USD ou plus (loi 22/068, art. 23 ; Instr. BCC 15, art. 61 et 62) */
 export interface Examen {
   id: number; numero: number; cle: string; tiersId: number; journeeId: number; type: "depot" | "retrait" | "adhesion" | "achat_parts" | "retrait_parts";
@@ -330,6 +337,7 @@ export interface Etat {
   chequiers: Chequier[];   // S60
   emprunts: Emprunt[];   // S61
   depotsTerme: DepotTerme[];   // S65
+  plansEpargne: PlanEpargne[];   // S69
   examens: Examen[];   // écart E01, examen renforcé
   dossiersPpe: DossierPpe[];   // écart E02, personnes politiquement exposées
   relevesEdites: { numero: number; compteId: number; du: string; au: string; editePar: number }[];   // S64 : trace des relevés remis
@@ -391,6 +399,7 @@ export interface ProduitEpargne extends Produit {
   id: number; numero: number; famille: "EPARGNE" | "BLOQUE" | "TONTINE"; soldeMinimum: number; retraitMaxJour: number | null; nbMaxComptes: number;
   afficherAdhesion: boolean; actif: boolean; virementPrelevement: boolean; operer: boolean; depotCheque: boolean; caution: boolean; nantissement: boolean;
   tenueCompte: boolean | null; calculerInteret: boolean; soldeNegatif: boolean; repartitionGroupe: boolean; supprime: boolean;
+  tauxInteret?: string;   // registre S27-5 : taux du produit, affiché au plan d'épargne (S69)
   categorie?: "Epargne" | "Courant" | "DAT" | "Bloqué" | null; compteLie?: string | null; typesClient?: number[];   // S28
 }
 

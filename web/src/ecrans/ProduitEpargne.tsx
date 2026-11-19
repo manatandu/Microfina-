@@ -9,7 +9,7 @@ type Saisie = Record<string, string | boolean | null>;
 const VIDE: Saisie = {
   numero: "", code: "", famille: "", libelle: "", devise: "", soldeMinimum: "", retraitMaxJour: "", nbMaxComptes: "",
   afficherAdhesion: false, actif: false, virementPrelevement: false,
-  operer: null, depotCheque: null, caution: null, nantissement: null, tenueCompte: null, calculerInteret: null, soldeNegatif: false, repartitionGroupe: false,
+  operer: null, depotCheque: null, caution: null, nantissement: null, tenueCompte: null, calculerInteret: null, soldeNegatif: false, repartitionGroupe: false, tauxInteret: "",
 };
 const OUI_NON: [string, string, boolean][] = [["operer", "Opérer sur compte :", true], ["depotCheque", "Dépôt de chèque :", true], ["caution", "Caution :", true],
   ["nantissement", "Nantissement :", true], ["tenueCompte", "Tenu de compte :", false], ["calculerInteret", "Calculer interêt:", true],
@@ -59,6 +59,7 @@ export default function GestionProduitsEpargne() {
             {texte("soldeMinimum", "Solde minimum : *")}
             {texte("retraitMaxJour", "Max retrait/jour:", "saisie code")}
             {texte("nbMaxComptes", "Max compte à créer *", "saisie code")}
+            {texte("tauxInteret", "Taux intérêt (%) :", "saisie code")}
             <div className="ligne-champ">{case_("afficherAdhesion", "Afficher à l'adhésion")}{case_("actif", "Actif")}{case_("virementPrelevement", "Virement prélèvement")}</div>
           </div>
           <div className="pile">

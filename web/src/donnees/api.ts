@@ -7,7 +7,7 @@ import { graine } from "./graine";
 import { creerApiHttp } from "./http";
 import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
-  type ChequeClient, type Chequier, type DepotTerme, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
+  type ChequeClient, type Chequier, type DepotTerme, type PlanEpargne, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget, type CriteresAtypiques, type GelAvoirs,
 } from "./types";
@@ -19,7 +19,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v79";
+const CLE = "likelemba-demo-v80";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -180,7 +180,8 @@ const journees = {
     if (jt.some(Boolean) && !jt[rang]) throw new ErreurMetier(`Le ${fr(date)} est un ${["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"][rang]} : pas une journée de travail de l'agence (Agence > Journée de travail).`);
     const j: Journee = { id: prochain(E.journees), date, statut: "ouverte", ouvertePar: E.session ?? undefined, ouverteLe: new Date().toISOString() };
     E.journees.push(j);
-    traiterEcheancesDat(j);   // S65 : les DAT échus à cette date sont reconduits ou versés au compte émetteur (manuel p. 75 ; décision du porteur, 19/11/2026)
+    traiterEcheancesDat(j);   // S65
+    traiterFinsPlans(j);      // S69 : plans d'épargne arrivés à leur fin (registre S69-7) : les DAT échus à cette date sont reconduits ou versés au compte émetteur (manuel p. 75 ; décision du porteur, 19/11/2026)
     enregistrer(); return j;
   },
   controles(id: number) { return controlesJournee(id); },
@@ -1895,6 +1896,164 @@ const depotsTerme = {
   },
 };
 
+// ---------- S69 : Épargne > Plan Epargne (manuel p. 78 à 80). Mêmes règles que serveur/noyau/plans_epargne.py (registre S69). ----------
+/** Périodicités de S21 (registre S69-2) */
+const periodicitesPlan = () => (CATALOGUE_CREDIT.find((c) => c.page === "periodicites")!.fixe as { libelle: string; code: string; denominateur: string; constante: string; unite: string }[]);
+const periodicitePlan = (code: string) => periodicitesPlan().find((p) => p.code === code);
+const MODES_PLAN = ["CHEQUE", "ESPECES", "VIREMENT"];   // capture p. 79 : CHEQUE par défaut (registre S69-5)
+function echeancesPlan(duree: number, code: string) {
+  const p = periodicitePlan(code);
+  if (!p) throw new ErreurMetier("Périodicité inconnue.");
+  const n = duree * Number(p.denominateur) / 12;
+  if (n < 1 || !Number.isInteger(n)) throw new ErreurMetier(`Durée plan épargne : ${duree} mois ne se découpe pas en échéances « ${p.libelle} ».`);
+  return n;
+}
+const dateRangPlan = (debut: string, code: string, k: number) => { const p = periodicitePlan(code)!, pas = Number(p.constante);
+  return p.unite === "MONTH" ? ajouterMois(debut, pas * k) : new Date(Date.parse(`${debut}T00:00:00Z`) + 7 * pas * k * 86400000).toISOString().slice(0, 10); };
+/** Intérêt d'une échéance : le cumul versé, au taux annuel, pour une période (registre S69-3) */
+const interetPlan = (cumul: number, taux: string, code: string) => Math.round(cumul * Number(taux.replace(",", ".")) / 100 / Number(periodicitePlan(code)!.denominateur));
+/** PCCI 613 : 6132 épargne-logement (352), 6133 épargne-retraite (353), 6134 autres */
+const compteInteretPlan = (pcci: string) => ({ "352": "6132", "353": "6133" } as Record<string, string>)[pcci.slice(0, 3)] ?? "6134";
+const produitsPlan = () => E.produits.filter((p) => p.actif && !p.supprime && (p.compteLie ?? "").startsWith("35"));
+const vuePlan = (x: PlanEpargne) => { const t = E.tiers.find((y) => y.id === x.tiersId); const num = (id: number) => E.comptes.find((c) => c.id === id)?.numero ?? "";
+  const { echeances: _e, ...reste } = x;
+  return { ...reste, membre: t?.numero ?? "", client: t ? titulaire(t) : "", produit: E.produits.find((p) => p.id === x.produitId)?.libelle ?? "",
+    compteEpargne: num(x.compteEpargneId), comptePlan: num(x.comptePlanId), periodiciteLibelle: periodicitePlan(x.periodicite)?.libelle ?? "" }; };
+function planDe(id: number) { const x = E.plansEpargne.find((y) => y.id === id); if (!x) throw new ErreurMetier("Plan épargne introuvable."); return x; }
+/** Ce que reçoit le client à la rupture ou au terme : le versé et l'intérêt acquis, moins la retenue de 20 % ; aucune pénalité (registre S69-7, S69-8) */
+function calculFinPlan(x: PlanEpargne, jour: string) {
+  const ech = x.echeances.filter((e) => e.dateReelle);
+  const verse = ech.reduce((s, e) => s + e.capital, 0), interet = ech.filter((e) => e.datePrevue <= jour).reduce((s, e) => s + e.interetReel, 0);
+  const t = retenueDue(x.tiersId) ? 20 : 0, irc = Math.round(interet * t / 100);
+  return { verse, interet, tauxIrc: String(t), irc, montantAVerser: verse + interet - irc };
+}
+function clorePlan(x: PlanEpargne, j: Journee, jour: string, statut: "termine" | "rompu") {
+  const r = calculFinPlan(x, jour);
+  const em = E.comptes.find((c) => c.id === x.compteEpargneId)!, cp = E.comptes.find((c) => c.id === x.comptePlanId)!;
+  const ligne = (compte: string, sens: "D" | "C", montant: number, contrat?: string) => ({ compte, ...(contrat ? { contrat } : {}), sens, devise: x.devise, montant, montantCdf: cdf(montant, x.devise) });
+  const lignes = [];
+  if (r.verse) lignes.push(ligne(cp.pcci, "D", r.verse, `depot:${cp.id}`));
+  if (r.interet) lignes.push(ligne(compteInteretPlan(cp.pcci), "D", r.interet));
+  if (r.montantAVerser) lignes.push(ligne(em.pcci, "C", r.montantAVerser, `depot:${em.id}`));
+  if (r.irc) lignes.push(ligne("433", "C", r.irc));
+  const e = lignes.length ? poster({ journal: "OD", journeeId: j.id, libelle: `${statut === "rompu" ? "Rupture" : "Fin"} plan épargne n° ${x.numero}`, piece: piece("OD"),
+    saisiPar: E.session ?? 0, validePar: E.session ?? 0, lignes }) : null;
+  Object.assign(x, { statut, dateFinReelle: jour, interetVerse: r.interet, irc: r.irc, montantVerse: r.montantAVerser, ecritureFinId: e?.id ?? null });
+  return r;
+}
+/** À l'ouverture de journée (comme les DAT, registre S65-9) : un plan dont la fin est atteinte est clos (registre S69-7). Titulaire gelé : il attend. */
+function traiterFinsPlans(j: Journee) {
+  for (const x of E.plansEpargne.filter((y) => y.statut === "en_cours" && y.dateFin <= j.date && !E.gels.some((g) => g.tiersId === y.tiersId && !g.leveLe)))
+    clorePlan(x, j, x.dateFin, "termine");
+}
+const FILTRES_PLAN = ["toutes", "non_cotisees", "cotisees", "arrieres_non_cotisees", "arrieres_cotisees", "echues_non_cotisees", "echues_cotisees"];
+const plansEpargne = {
+  contexte() {
+    exiger();
+    return { produits: produitsPlan().map((p) => ({ id: p.id, code: p.code, libelle: p.libelle, devise: p.devise, taux: p.tauxInteret || "0", compteLie: p.compteLie ?? "" })),
+      modes: MODES_PLAN, date: journees.courante()?.date ?? "", periodicites: periodicitesPlan().map(({ code, libelle }) => ({ code, libelle })) };
+  },
+  /** Simulation (p. 78) : le montant à terme donne le montant périodique, ou l'inverse ; sans produit, sans intérêt (registre S69-4) */
+  simuler(d: { duree?: number; periodicite?: string; montantTerme?: number | null; montantPeriodique?: number | null }) {
+    exiger();
+    if (!d.duree || d.duree < 1) throw new ErreurMetier("Durée plan épargne : au moins 1 mois.");
+    const n = echeancesPlan(d.duree, d.periodicite ?? "");
+    let periodique: number;
+    if (d.montantTerme && d.montantTerme > 0) periodique = Math.ceil(d.montantTerme / n);
+    else if (d.montantPeriodique && d.montantPeriodique > 0) periodique = d.montantPeriodique;
+    else throw new ErreurMetier("À remplir : Montant à terme ou Montant périodique.");
+    return { echeances: n, montantTerme: periodique * n, montantPeriodique: periodique };
+  },
+  plans(tiersId: number) { exiger(); return E.plansEpargne.filter((x) => x.tiersId === tiersId).sort((a, b) => a.numero - b.numero).map(vuePlan); },
+  /** Nouveau (p. 79) : registre S69-1 à S69-5 */
+  creer(d: { cle: string; tiersId?: number; produitId?: number; compteEpargneId?: number; comptePlanId?: number; duree?: number; periodicite?: string; montant?: number;
+    modeReglement?: string; dateDebut?: string }) {
+    const u = exiger();
+    const deja = E.plansEpargne.find((x) => x.cle === d.cle);
+    if (deja) return vuePlan(deja);
+    const j = journees.courante();
+    if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
+    const t = E.tiers.find((x) => x.id === d.tiersId);
+    if (!t) throw new ErreurMetier("À remplir : N°Client.");
+    if (t.statut !== "actif") throw new ErreurMetier("Ce client n'est pas actif.");
+    const p = produitsPlan().find((x) => x.id === d.produitId);
+    if (!p) throw new ErreurMetier("À remplir : Produit (un produit d'épargne à régime spécial, compte lié 35).");
+    const ep = E.comptes.find((c) => c.id === d.compteEpargneId && c.tiersId === t.id);
+    if (!ep) throw new ErreurMetier("À remplir : N° Compte épargne.");
+    const cp = E.comptes.find((c) => c.id === d.comptePlanId && c.tiersId === t.id);
+    if (!cp) throw new ErreurMetier("À remplir : Compte Plan épargne.");
+    if (cp.produitId !== p.id) throw new ErreurMetier("Compte Plan épargne : un compte du produit choisi.");
+    if (ep.id === cp.id || ep.produitId === p.id) throw new ErreurMetier("N° Compte épargne : un autre compte que le compte du plan.");
+    if (ep.devise !== p.devise) throw new ErreurMetier(`N° Compte épargne : un compte en ${p.devise}, comme le produit.`);
+    if (!d.duree || d.duree < 1) throw new ErreurMetier("Durée Plan épargne : au moins 1 mois.");
+    if (!periodicitePlan(d.periodicite ?? "")) throw new ErreurMetier("À remplir : Périodicité.");
+    if (!d.montant || d.montant <= 0) throw new ErreurMetier("Montant : un montant supérieur à zéro.");
+    const mode = d.modeReglement?.trim() || "CHEQUE";
+    if (!MODES_PLAN.includes(mode)) throw new ErreurMetier("Mode règlement inconnu.");
+    const debut = d.dateDebut?.trim() || j.date;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(debut)) throw new ErreurMetier("À remplir : Début.");
+    const n = echeancesPlan(d.duree, d.periodicite!), taux = p.tauxInteret || "0";
+    const x: PlanEpargne = { id: prochain(E.plansEpargne), cle: d.cle, numero: E.plansEpargne.reduce((m, y) => Math.max(m, y.numero), 0) + 1, tiersId: t.id, produitId: p.id,
+      compteEpargneId: ep.id, comptePlanId: cp.id, devise: p.devise, duree: d.duree, periodicite: d.periodicite!, montant: d.montant, taux, modeReglement: mode,
+      dateDebut: debut, dateFin: ajouterMois(debut, d.duree), statut: "en_cours", saisiPar: u.id, dateFinReelle: "", interetVerse: null, irc: null, montantVerse: null, ecritureFinId: null,
+      echeances: Array.from({ length: n }, (_, k) => ({ id: k + 1, rang: k + 1, datePrevue: dateRangPlan(debut, d.periodicite!, k), capital: d.montant!,
+        interetPrevu: interetPlan(d.montant! * (k + 1), taux, d.periodicite!), dateReelle: "", interetReel: 0, ecritureId: null })) };
+    E.plansEpargne.push(x); enregistrer(); return vuePlan(x);
+  },
+  /** Tableau d'amortissement (p. 79) et cotisations (p. 80) ; arriérés : date prévue passée ; échues : date prévue atteinte (registre S69-6) */
+  tableau(id: number, filtre = "toutes") {
+    exiger();
+    const x = planDe(id);
+    if (!FILTRES_PLAN.includes(filtre)) throw new ErreurMetier("Afficher uniquement : choix inconnu.");
+    const jour = journees.courante()?.date ?? new Date().toISOString().slice(0, 10);
+    const garde = (e: PlanEpargne["echeances"][number]) => ({ toutes: true, non_cotisees: !e.dateReelle, cotisees: !!e.dateReelle,
+      arrieres_non_cotisees: e.datePrevue < jour && !e.dateReelle, arrieres_cotisees: e.datePrevue < jour && !!e.dateReelle,
+      echues_non_cotisees: e.datePrevue <= jour && !e.dateReelle, echues_cotisees: e.datePrevue <= jour && !!e.dateReelle } as Record<string, boolean>)[filtre];
+    let cumul = 0;
+    const lignes = x.echeances.map((e) => { cumul += e.capital + e.interetPrevu; return { ...e, cumul }; }).filter(garde)
+      .map(({ id: i, rang, datePrevue, dateReelle, capital, interetPrevu, interetReel, cumul: c }) => ({ id: i, rang, datePrevue, dateReelle, capital, interetPrevu, interetReel, cumul: c }));
+    const somme = (k: "capital" | "interetPrevu" | "interetReel") => lignes.reduce((s, l) => s + l[k], 0);
+    return { plan: vuePlan(x), lignes, total: { capital: somme("capital"), interetPrevu: somme("interetPrevu"), interetReel: somme("interetReel"), cumul: lignes.at(-1)?.cumul ?? 0 } };
+  },
+  /** Edition des cotisations (p. 80) : prélevées sur le compte épargne, versées au compte du plan (registre S69-5) */
+  cotiser(id: number, d: { echeances?: number[] }) {
+    const u = exiger();
+    const x = planDe(id);
+    if (x.statut !== "en_cours") throw new ErreurMetier("Ce plan n'est plus en cours.");
+    const ids = d.echeances ?? [];
+    if (!ids.length) throw new ErreurMetier("Cochez les échéances à cotiser.");
+    const choisies = x.echeances.filter((e) => ids.includes(e.id) && !e.dateReelle);
+    if (choisies.length !== new Set(ids).size) throw new ErreurMetier("Une échéance cochée est déjà cotisée ou n'est pas de ce plan.");
+    const j = journees.courante();
+    if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
+    const total = choisies.reduce((s, e) => s + e.capital, 0);
+    const em = E.comptes.find((c) => c.id === x.compteEpargneId)!, cp = E.comptes.find((c) => c.id === x.comptePlanId)!;
+    if (total > disponibleDat(em)) throw new ErreurMetier("Solde disponible insuffisant sur le compte épargne.");
+    const e = poster({ journal: "OD", journeeId: j.id, libelle: `Cotisation plan épargne n° ${x.numero}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: [
+      { compte: em.pcci, contrat: `depot:${em.id}`, sens: "D", devise: x.devise, montant: total, montantCdf: cdf(total, x.devise) },
+      { compte: cp.pcci, contrat: `depot:${cp.id}`, sens: "C", devise: x.devise, montant: total, montantCdf: cdf(total, x.devise) }] });
+    for (const c of choisies) { c.dateReelle = j.date; c.ecritureId = e.id; }
+    let cumul = 0;
+    for (const c of x.echeances) if (c.dateReelle) { cumul += c.capital; c.interetReel = interetPlan(cumul, x.taux, x.periodicite); }
+    enregistrer(); return plansEpargne.tableau(id, "toutes");
+  },
+  apercuRupture(id: number) {
+    exiger();
+    const x = planDe(id);
+    if (x.statut !== "en_cours") throw new ErreurMetier("Ce plan n'est plus en cours.");
+    return { plan: vuePlan(x), ...calculFinPlan(x, journees.courante()?.date ?? "") };
+  },
+  /** Rupture (p. 80, titre seul ; modèle S67) : sans pénalité (registre S69-8) */
+  rompre(id: number, _d: object = {}) {
+    exiger();
+    const x = planDe(id);
+    if (x.statut !== "en_cours") throw new ErreurMetier("Ce plan n'est plus en cours.");
+    const j = journees.courante();
+    if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
+    clorePlan(x, j, j.date, "rompu"); enregistrer(); return vuePlan(x);
+  },
+};
+
 const banques = {
   lire() {
     exiger();
@@ -3598,13 +3757,14 @@ const modeles = {
 export const FAMILLES_EPARGNE = ["EPARGNE", "BLOQUE", "TONTINE"] as const;   // capture p. 40
 /** Produits proposés à l'enrôlement et à l'adhésion : actifs, non supprimés */
 const produitsProposes = () => E.produits.filter((p) => p.actif && !p.supprime);
-const CHAMPS_EPARGNE: Record<string, [string, "texte" | "entier" | "montant" | "oui" | "ouiNon"]> = {
+const CHAMPS_EPARGNE: Record<string, [string, "texte" | "entier" | "montant" | "oui" | "ouiNon" | "taux"]> = {
   numero: ["N° Produit", "entier"], code: ["Code produit", "texte"], famille: ["Famille produit", "texte"], libelle: ["Libellé produit", "texte"], devise: ["Devise", "texte"],
   soldeMinimum: ["Solde minimum", "montant"], retraitMaxJour: ["Max retrait/jour", "montant"], nbMaxComptes: ["Max compte à créer", "entier"],
   afficherAdhesion: ["Afficher à l'adhésion", "oui"], actif: ["Actif", "oui"], virementPrelevement: ["Virement prélèvement", "oui"],
   operer: ["Opérer sur compte", "ouiNon"], depotCheque: ["Dépôt de chèque", "ouiNon"], caution: ["Caution", "ouiNon"], nantissement: ["Nantissement", "ouiNon"],
   tenueCompte: ["Tenu de compte", "ouiNon"], calculerInteret: ["Calculer interêt", "ouiNon"], soldeNegatif: ["Solde négatif", "ouiNon"],
   repartitionGroupe: ["Repartition groupe obligatoire", "ouiNon"],
+  tauxInteret: ["Taux intérêt", "taux"],   // registre S27-5 (décision du porteur, 19/11/2026)
 };
 const OBLIGATOIRES_EPARGNE = ["numero", "code", "famille", "libelle", "devise", "soldeMinimum", "nbMaxComptes", "operer", "depotCheque", "caution", "nantissement",
   "calculerInteret", "soldeNegatif", "repartitionGroupe"];
@@ -3624,6 +3784,12 @@ const produitsEpargne = {
       let x: unknown = d[k];
       if (sorte === "texte") x = typeof x === "string" && x.trim() ? x.trim() : null;
       else if (sorte === "oui" || sorte === "ouiNon") x = typeof x === "boolean" ? x : sorte === "oui" ? false : null;
+      else if (sorte === "taux") {
+        const s = x === null || x === undefined ? "" : String(x).trim().replace(",", ".");
+        if (s && !/^\d+(\.\d+)?$/.test(s)) throw new ErreurMetier(`${lib} : un pourcentage, par exemple 4,5.`);
+        if (s && Number(s) > 100) throw new ErreurMetier(`${lib} : entre 0 et 100 %.`);
+        x = s ? String(Number(s)).replace(".", ",") : "";
+      }
       else if (x === null || x === undefined || x === "") x = null;
       else if (typeof x !== "number" || !Number.isInteger(x) || x < 0) throw new ErreurMetier(`${lib} : nombre entier positif ou nul.`);
       if (x === null && OBLIGATOIRES_EPARGNE.includes(k)) manque.push(lib);
@@ -4346,6 +4512,7 @@ const apiLocal = {
   comptesEpargne: asynchrone(comptesEpargne, "comptesEpargne"),
   releves: asynchrone(releves, "releves"),
   depotsTerme: asynchrone(depotsTerme, "depotsTerme"),
+  plansEpargne: asynchrone(plansEpargne, "plansEpargne"),
   conformite: asynchrone(conformite, "conformite"),
   inactifs: asynchrone(inactifs, "inactifs"),
   registreMembres: asynchrone(registreMembres, "registreMembres"),

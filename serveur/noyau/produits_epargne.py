@@ -1,5 +1,7 @@
 """S27 : Paramétrage > Produit > Epargne > Gestion des produits épargnes (manuel Microfina++, p. 40). Champs, options Oui/Non et boutons de la
 capture ; Devise ajoutée (registre S27-1). Montants en unités mineures, comme les opérations. Mêmes règles que web/src/donnees/api.ts (produitsEpargne)."""
+from decimal import Decimal, InvalidOperation
+
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import controler_collecte_epargne, exiger
 
@@ -16,13 +18,19 @@ CHAMPS = {
     "caution": ("caution", "Caution", "ouiNon"), "nantissement": ("nantissement", "Nantissement", "ouiNon"),
     "tenueCompte": ("tenue_compte", "Tenu de compte", "ouiNon"), "calculerInteret": ("calcul_interet", "Calculer interêt", "ouiNon"),
     "soldeNegatif": ("solde_negatif", "Solde négatif", "ouiNon"), "repartitionGroupe": ("repartition_groupe", "Repartition groupe obligatoire", "ouiNon"),
+    # Registre S27-5 (décision du porteur, 19/11/2026) : le taux du produit, affiché au plan d'épargne (S69, capture p. 79)
+    "tauxInteret": ("taux_interet", "Taux intérêt", "taux"),
 }
 OBLIGATOIRES = ["numero", "code", "famille", "libelle", "devise", "soldeMinimum", "nbMaxComptes", "operer", "depotCheque", "caution", "nantissement",
                 "calculerInteret", "soldeNegatif", "repartitionGroupe"]
 
 
+def lire_taux(t) -> str:
+    return "" if t is None else format(t.normalize(), "f").replace(".", ",")
+
+
 def vue(r) -> dict:
-    return {"id": r["id"], **{k: r[col] for k, (col, _, _) in CHAMPS.items()}}
+    return {"id": r["id"], **{k: (lire_taux(r[col]) if sorte == "taux" else r[col]) for k, (col, _, sorte) in CHAMPS.items()}}
 
 
 def lire(u) -> dict:
@@ -39,6 +47,14 @@ def valider(d) -> dict:
             x = x.strip() if isinstance(x, str) and x.strip() else None
         elif sorte in ("oui", "ouiNon"):
             x = x if isinstance(x, bool) else (False if sorte == "oui" else None)
+        elif sorte == "taux":
+            s = str(x).strip().replace(",", ".") if x not in (None, "") else ""
+            try:
+                x = Decimal(s) if s else None
+            except InvalidOperation:
+                raise ErreurMetier(f"{lib} : un pourcentage, par exemple 4,5.")
+            if x is not None and not (0 <= x <= 100):
+                raise ErreurMetier(f"{lib} : entre 0 et 100 %.")
         else:
             if x in (None, ""):
                 x = None

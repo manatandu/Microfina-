@@ -1128,6 +1128,49 @@ describe("journée de guichet", () => {
     await expect(api.connexions.lire()).rejects.toThrow("Droit manquant");
   });
 
+  it("plan d'épargne (S69, p. 78 à 80) : taux du produit, intérêt par échéance sur le cumul, cotisations sur le compte épargne, rupture sans pénalité, fin à l'ouverture", async () => {
+    await connecter("jpmukendi");
+    await api.journees.ouvrir("2026-11-05");
+    const P = { numero: 7, code: "PE", famille: "EPARGNE", libelle: "Plan épargne scolaire", devise: "CDF", soldeMinimum: 0, nbMaxComptes: 1, tauxInteret: "6",
+      operer: true, depotCheque: false, caution: false, nantissement: false, calculerInteret: true, soldeNegatif: false, repartitionGroupe: false, actif: true };
+    await expect(api.produitsEpargne.enregistrer({ ...P, tauxInteret: "abc" })).rejects.toThrow("pourcentage");
+    await api.produitsEpargne.enregistrer(P);
+    const pe = (await api.produitsEpargne.lire()).produits.find((x) => x.code === "PE")!;
+    await api.parametrageEpargne.enregistrer({ onglet: "Epargne", produitId: pe.id, compteLie: "354" });
+    await connecter("bkasongo");
+    expect((await api.plansEpargne.contexte()).produits.map((p) => p.taux)).toEqual(["6"]);
+    expect(await api.plansEpargne.simuler({ duree: 12, periodicite: "M", montantTerme: 1200000 })).toEqual({ echeances: 12, montantTerme: 1200000, montantPeriodique: 100000 });
+    await expect(api.plansEpargne.simuler({ duree: 1, periodicite: "Trim", montantPeriodique: 1 })).rejects.toThrow("ne se découpe pas");
+    const cpl = await api.comptesEpargne.ouvrir({ cle: cle(), tiersId: 1, produitId: pe.id });
+    const em = (await api.tiers.comptes(1)).find((c) => c.devise === "CDF" && c.id !== cpl.id && c.intitule !== "Dépôt à terme")!;
+    const base = { tiersId: 1, produitId: pe.id, compteEpargneId: em.id, comptePlanId: cpl.id, duree: 12, periodicite: "M", montant: 100000, modeReglement: "CHEQUE" };
+    await expect(api.plansEpargne.creer({ cle: cle(), ...base, compteEpargneId: cpl.id })).rejects.toThrow("autre compte");
+    const x = await api.plansEpargne.creer({ cle: cle(), ...base });
+    expect([x.numero, x.statut, x.dateDebut, x.dateFin, x.taux]).toEqual([1, "en_cours", "2026-11-05", "2027-11-05", "6"]);
+    const tb = await api.plansEpargne.tableau(x.id);
+    expect(tb.lignes.slice(0, 2).map((l) => [l.rang, l.datePrevue, l.interetPrevu])).toEqual([[1, "2026-11-05", 500], [2, "2026-12-05", 1000]]);
+    expect([tb.total.capital, tb.total.interetPrevu]).toEqual([1200000, 39000]);
+    const c = await api.plansEpargne.cotiser(x.id, { echeances: tb.lignes.slice(0, 2).map((l) => l.id) });
+    expect(c.lignes.slice(0, 3).map((l) => l.interetReel)).toEqual([500, 1000, 0]);
+    const solde = async (id: number) => (await api.tiers.comptes(1)).find((y) => y.id === id)!.solde;
+    expect([em.solde - await solde(em.id), await solde(cpl.id)]).toEqual([200000, 200000]);
+    const a = await api.plansEpargne.apercuRupture(x.id);
+    expect([a.verse, a.interet, a.irc, a.montantAVerser]).toEqual([200000, 500, 100, 200400]);
+    expect((await api.plansEpargne.rompre(x.id)).statut).toBe("rompu");
+    expect([await solde(cpl.id), em.solde - await solde(em.id)]).toEqual([0, -400]);
+    // Fin à l'ouverture de journée : un plan échu le 06/11/2026, toutes ses échéances cotisées
+    const y = await api.plansEpargne.creer({ cle: cle(), ...base, dateDebut: "2025-11-06" });
+    await api.plansEpargne.cotiser(y.id, { echeances: (await api.plansEpargne.tableau(y.id)).lignes.map((l) => l.id) });
+    const avant = await solde(em.id);
+    await connecter("jpmukendi");
+    _etat().institution.journeeMax = 2;
+    await api.journees.ouvrir("2026-11-06");
+    const fin = _etat().plansEpargne.find((p) => p.id === y.id)!;
+    expect([fin.statut, fin.interetVerse, fin.irc, fin.montantVerse]).toEqual(["termine", 39000, 7800, 1231200]);
+    expect(await solde(em.id) - avant).toBe(1231200);
+    expect(await soldeCdfGrandLivre()).toBe(0);
+  });
+
   it("DAT à l'échéance (S65, reconduction automatique, p. 75) : à l'ouverture de journée, versé au compte émetteur ou reconduit, intérêt net au compte émetteur", async () => {
     await connecter("jpmukendi");
     await api.journees.ouvrir("2026-11-05");

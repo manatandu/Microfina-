@@ -2085,6 +2085,61 @@ def test_dat_echeance(clients, journee):
     assert balance_equilibree(clients["compta"])
 
 
+def test_plan_epargne(clients, journee):
+    """S69 (manuel p. 78 à 80) : plan d'épargne sur un produit à régime spécial (PCCI 35), intérêt par échéance sur le cumul versé (taux du produit),
+    cotisations prélevées sur le compte épargne, rupture sans pénalité, fin à l'ouverture de journée (décisions du porteur du 19/11/2026)"""
+    from noyau.bd import une
+    from noyau.plans_epargne import traiter_fins
+    j, _ = journee
+    chef, agent = clients["chef"], clients["agent"]
+    P = {"numero": 7, "code": "PE", "famille": "EPARGNE", "libelle": "Plan épargne scolaire", "devise": "CDF", "soldeMinimum": 0, "nbMaxComptes": 1, "tauxInteret": "6",
+         "operer": True, "depotCheque": False, "caution": False, "nantissement": False, "calculerInteret": True, "soldeNegatif": False, "repartitionGroupe": False, "actif": True}
+    r = chef.post("/api/produits-epargne", {**P, "tauxInteret": "abc"}, **H); assert r.status_code == 422 and "pourcentage" in r.json()["message"]
+    assert chef.post("/api/produits-epargne", P, **H).status_code == 200
+    pid = next(x["id"] for x in chef.get("/api/produits-epargne").json()["produits"] if x["code"] == "PE")
+    assert agent.get("/api/epargne/plans/contexte").json()["produits"] == []            # pas encore au compte 35
+    assert chef.post("/api/parametrage-epargne", {"onglet": "Epargne", "produitId": pid, "compteLie": "354"}, **H).status_code == 200
+    assert [p["taux"] for p in agent.get("/api/epargne/plans/contexte").json()["produits"]] == ["6"]
+    s = agent.post("/api/epargne/plans/simulation", {"duree": 12, "periodicite": "M", "montantTerme": 1200000}, **H).json()
+    assert s == {"echeances": 12, "montantTerme": 1200000, "montantPeriodique": 100000}
+    r = agent.post("/api/epargne/plans/simulation", {"duree": 1, "periodicite": "Trim", "montantPeriodique": 1}, **H)
+    assert r.status_code == 422 and "ne se découpe pas" in r.json()["message"]
+    kalala = T("0412-000318"); em = C("0412-000318-02")
+    solde = lambda c: ident("select coalesce(sum(case sens when 'C' then montant_devise else -montant_devise end), 0) from ligne_ecriture where contrat_ref = %s", (f"depot:{c}",))
+    cpl = agent.post("/api/epargne/comptes", {"cle": cle(), "tiersId": kalala, "produitId": pid}, **H).json()["id"]
+    base = {"tiersId": kalala, "produitId": pid, "compteEpargneId": em, "comptePlanId": cpl, "duree": 12, "periodicite": "M", "montant": 100000, "modeReglement": "CHEQUE"}
+    r = agent.post("/api/epargne/plans", {"cle": cle(), **base, "compteEpargneId": cpl}, **H); assert r.status_code == 422 and "autre compte" in r.json()["message"]
+    x = agent.post("/api/epargne/plans", {"cle": cle(), **base}, **H).json()
+    assert (x["numero"], x["statut"], x["dateDebut"], x["dateFin"], x["taux"]) == (1, "en_cours", "2026-11-05", "2027-11-05", "6")
+    tb = agent.get(f"/api/epargne/plans/{x['id']}/tableau", **H).json()
+    assert [(l["rang"], l["datePrevue"], l["interetPrevu"]) for l in tb["lignes"][:2]] == [(1, "2026-11-05", 500), (2, "2026-12-05", 1000)]   # 6 % / 12 sur le cumul
+    assert tb["total"]["capital"] == 1200000 and tb["total"]["interetPrevu"] == 39000
+    avant = solde(em)
+    ids = [l["id"] for l in tb["lignes"][:2]]
+    c = agent.post(f"/api/epargne/plans/{x['id']}/cotisations", {"echeances": ids}, **H).json()
+    assert [l["interetReel"] for l in c["lignes"][:3]] == [500, 1000, 0]
+    assert (avant - solde(em), solde(cpl)) == (200000, 200000)
+    r = agent.post(f"/api/epargne/plans/{x['id']}/cotisations", {"echeances": ids[:1]}, **H); assert r.status_code == 422 and "déjà cotisée" in r.json()["message"]
+    assert len(agent.get(f"/api/epargne/plans/{x['id']}/tableau?filtre=cotisees", **H).json()["lignes"]) == 2
+    # Rupture le 05/11/2026 : seule l'échéance 1 est atteinte : intérêt 500, retenue 20 % = 100 ; versé 200 000 ; sans pénalité
+    a = agent.get(f"/api/epargne/plans/{x['id']}/rupture", **H).json()
+    assert (a["verse"], a["interet"], a["irc"], a["montantAVerser"]) == (200000, 500, 100, 200400)
+    assert agent.post(f"/api/epargne/plans/{x['id']}/rupture", {}, **H).json()["statut"] == "rompu"
+    assert (solde(cpl), avant - solde(em)) == (0, -400)
+    # Fin à l'ouverture de journée : un plan échu le 05/11/2026, ses douze échéances cotisées
+    cpl2 = cpl
+    y = agent.post("/api/epargne/plans", {"cle": cle(), **base, "comptePlanId": cpl2, "dateDebut": "2025-11-05"}, **H).json()
+    tous = [l["id"] for l in agent.get(f"/api/epargne/plans/{y['id']}/tableau", **H).json()["lignes"]]
+    assert agent.post(f"/api/epargne/plans/{y['id']}/cotisations", {"echeances": tous}, **H).status_code == 200
+    avant = solde(em)
+    assert traiter_fins(une("select * from utilisateur where login = 'jpmukendi'"), {"id": j["id"], "date": j["date"]}) == 1
+    fin = une("select * from plan_epargne where id = %s", (y["id"],))
+    assert (fin["statut"], fin["interet_verse"], fin["irc"], fin["montant_verse"]) == ("termine", 39000, 7800, 1231200)
+    assert solde(em) - avant == 1231200 and solde(cpl2) == 0
+    assert ident("select sum(montant_devise) from ligne_ecriture l join compte c on c.id = l.compte_id where c.numero = '6134'") == 39500
+    assert balance_equilibree(clients["compta"])
+
+
 def test_profil_imf(clients, journee):
     """Profil de l'institution (S32) : une IMF n'a pas de parts sociales (loi 11/020, art. 14 et 15 ; PCCI 100) ni de condition d'adhésion préalable ;
     une entreprise de micro-crédit ne collecte pas l'épargne (loi 11/020, art. 12) : seul le dépôt de garantie (famille BLOQUE)"""

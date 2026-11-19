@@ -291,6 +291,9 @@ def ouvrir_journee(u: dict, jour: str) -> dict:
     # S65 : les DAT échus à cette date sont reconduits ou versés au compte émetteur (manuel p. 75 ; décision du porteur, 19/11/2026)
     from .depots_terme import traiter_echeances
     traiter_echeances(u, {"id": jid, "date": str(jour)})
+    # S69 : les plans d'épargne arrivés à leur fin sont clos, le versé et l'intérêt acquis vont au compte épargne (registre S69-7)
+    from .plans_epargne import traiter_fins
+    traiter_fins(u, {"id": jid, "date": str(jour)})
     return vue_journee(une("select * from journee_comptable where id = %s", (jid,)))
 
 
