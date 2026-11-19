@@ -148,7 +148,7 @@ def vue(x: dict) -> dict:
 def liste(u, statut: str = "") -> list[dict]:
     """Liste DAT (mise en place) et Liste DAT à valider (S66)"""
     exiger(u)
-    if statut and statut not in ("saisie", "valide", "rompu", "echu", "annule"):
+    if statut and statut not in ("saisie", "valide", "rompu", "echu", "annule", "reconduit"):
         raise ErreurMetier("Statut inconnu.")
     return [vue(x) for x in lignes("select * from depot_terme where institution_id = %s and (%s = '' or statut = %s) order by certificat",
                                      (u["institution_id"], statut, statut))]
@@ -207,6 +207,15 @@ COMPTE_IRC = "433"                   # PCCI 433 « Impôts et taxes collectés �
 COMPTE_PENALITE = "7791"             # PCCI 7791 « Dédits (…) pénalités (…) » : produits exceptionnels (compte 77)
 
 
+def taux_irc(tiers_id: int) -> Decimal:
+    """Personne physique, ou groupe sans personnalité juridique (ses membres sont des personnes physiques) : 20 % ; personne morale, association, ONG : 0
+    (loi 23/053, art. 14 et 120 ; registre S67-3, S67-7)"""
+    from .services import TYPES_GROUPE
+    t = une("select type, type_client from tiers where id = %s", (tiers_id,))
+    physique = t["type"] == "physique" or (t["type"] == "groupe" and TYPES_GROUPE.get(t["type_client"]) is None)
+    return TAUX_IRC_PHYSIQUE if physique else Decimal("0")
+
+
 def calcul_rupture(x: dict, date_r: date) -> dict:
     """Rupture avant l'échéance (S67) : intérêt couru au prorata des jours (base 365), pénalité sur le montant du DAT,
     retenue de 20 % sur l'intérêt brut des personnes physiques (loi 23/053, art. 78, 81 et 120). Registre S67-1 à S67-3."""
@@ -217,11 +226,7 @@ def calcul_rupture(x: dict, date_r: date) -> dict:
     jours = (date_r - x["date_depot"]).days
     interet = int((Decimal(x["montant"]) * x["taux_interet"] / 100 * jours / 365).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
     penalite = int((Decimal(x["montant"]) * x["taux_penalite"] / 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
-    from .services import TYPES_GROUPE
-    t = une("select type, type_client from tiers where id = %s", (x["tiers_id"],))
-    # personne physique, ou groupe sans personnalité juridique (ses membres sont des personnes physiques) : 20 % ; personne morale, association, ONG : 0 (registre S67-3, S67-7)
-    physique = t["type"] == "physique" or (t["type"] == "groupe" and TYPES_GROUPE.get(t["type_client"]) is None)
-    t_irc = TAUX_IRC_PHYSIQUE if physique else Decimal("0")
+    t_irc = taux_irc(x["tiers_id"])
     irc = int((Decimal(interet) * t_irc / 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
     verser = x["montant"] + interet - penalite - irc
     if verser < 0:
@@ -283,6 +288,64 @@ def rompre(u, did: int, d: dict) -> dict:
     return vue(une("select * from depot_terme where id = %s", (did,)))
 
 
+def traiter_echeances(u: dict, journee: dict) -> int:
+    """S65, reconduction automatique (manuel p. 75 : « renouvellement automatique du contrat de DAT aux mêmes conditions »).
+    À l'ouverture d'une journée (décision du porteur, 19/11/2026), chaque DAT validé dont l'échéance est atteinte :
+    - l'intérêt du contrat passe en charge (612 de sa durée, registre S65-4), la retenue de 20 % des personnes physiques au 433 (registre S67-3),
+      l'intérêt net au compte émetteur (décision du porteur, 19/11/2026) ;
+    - sans reconduction, le compte DAT (340) est soldé vers le compte émetteur (PCCI, compte 34) : statut echu ;
+    - avec reconduction, le capital reste au compte DAT et repart pour la même durée, au même taux, sous un nouveau certificat :
+      l'ancien passe à reconduit, le nouveau est validé d'office (aucun argent ne bouge). Un DAT dont plusieurs échéances sont passées
+      est reconduit autant de fois qu'il le faut.
+    Un DAT dont le titulaire a ses avoirs gelés (écart E10) attend : il ne bloque pas l'ouverture. Rend le nombre de DAT traités."""
+    from .gel import gel_actif
+    jour = date.fromisoformat(str(journee["date"]))
+    n, attente = 0, [0]          # attente : DAT gelés, laissés pour une prochaine ouverture
+    while True:
+        echus = lignes("""select * from depot_terme where institution_id = %s and agence_id = %s and statut = 'valide' and date_echeance <= %s
+                          and not (id = any(%s)) order by date_echeance, id for update""", (u["institution_id"], u["agence_id"], jour, attente))
+        if not echus:
+            return n
+        for x in echus:
+            if gel_actif(x["tiers_id"]):
+                attente.append(x["id"]); continue
+            dev = x["devise"].strip()
+            interet_ = x["montant_interet"]
+            irc = int((Decimal(interet_) * taux_irc(x["tiers_id"]) / 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+            p = une("select * from produit_epargne where id = %s", (x["produit_id"],))
+            em = une("select c.*, p.famille, p.compte_lie from compte_depot c join produit_epargne p on p.id = c.produit_id where c.id = %s", (x["compte_emetteur_id"],))
+            reconduit = bool(x["reconduction"])
+            verse = interet_ - irc + (0 if reconduit else x["montant"])
+            l = []
+            if not reconduit:
+                l.append({"compte": p["compte_lie"], "contrat": f"depot:{x['compte_dat_id']}", "sens": "D", "devise": dev, "montant": x["montant"]})
+            if interet_:
+                l.append({"compte": compte_interet(x["duree_mois"]), "sens": "D", "devise": dev, "montant": interet_})
+            if verse:
+                l.append({"compte": compte_du_produit(em), "contrat": f"depot:{em['id']}", "sens": "C", "devise": dev, "montant": verse})
+            if irc:
+                l.append({"compte": COMPTE_IRC, "sens": "C", "devise": dev, "montant": irc})
+            eid = None
+            if l:
+                eid = poster(u, journal="OD", journee_id=journee["id"], libelle=f"{'Reconduction' if reconduit else 'Échéance'} DAT n° {x['certificat']}",
+                             piece=nouvelle_piece(u, "OD", jour), evenement="dat_echeance", cle=str(uuid.uuid5(uuid.NAMESPACE_URL, f"dat-echeance:{x['id']}")),
+                             valide_par=u["id"], lignes_ecr=l)
+            executer("""update depot_terme set statut = %s, echu_le = %s, interet_echeance = %s, taux_irc = %s, irc = %s, montant_verse = %s,
+                        ecriture_echeance_id = %s where id = %s""",
+                     ("reconduit" if reconduit else "echu", x["date_echeance"], interet_, taux_irc(x["tiers_id"]), irc, verse, eid, x["id"]))
+            if reconduit:
+                certificat = int(valeur("select coalesce(max(certificat), 0) + 1 from depot_terme where institution_id = %s", (x["institution_id"],)))
+                echeance = ajouter_mois(x["date_echeance"], x["duree_mois"])
+                executer("""insert into depot_terme (institution_id, agence_id, certificat, produit_id, tiers_id, compte_emetteur_id, compte_dat_id, montant, devise,
+                                                     duree_mois, taux_interet, taux_penalite, montant_interet, a_echeance, date_depot, date_echeance, observation,
+                                                     reconduction, cle_idempotence, saisi_par, statut, valide_par, valide_le, reconduit_de)
+                            values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, true, %s, %s, 'valide', %s, now(), %s)""",
+                         (x["institution_id"], x["agence_id"], certificat, x["produit_id"], x["tiers_id"], x["compte_emetteur_id"], x["compte_dat_id"], x["montant"],
+                          x["devise"], x["duree_mois"], x["taux_interet"], x["taux_penalite"], interet(x["montant"], x["taux_interet"], x["duree_mois"]),
+                          x["a_echeance"], x["date_echeance"], echeance, x["observation"], str(uuid.uuid4()), u["id"], u["id"], x["id"]))
+            n += 1
+
+
 def terme(mois: int) -> str:
     """Terme selon la durée, comme le classement des crédits du PCCI (comptes 30 à 32) : un an au plus court terme, 1 à 5 ans moyen terme, au-delà long terme (registre S68-3)"""
     return "Court terme" if mois <= 12 else "Moyen terme" if mois <= 60 else "Long terme"
@@ -300,7 +363,7 @@ def recherche(u, choix: str, du: str, au: str) -> list[dict]:
     if du > au:
         raise ErreurMetier("La date de début dépasse la date de fin.")
     filtre = {"mise_en_place": "date_depot between %(du)s and %(au)s and statut <> 'annule'",
-              "echus": "date_echeance between %(du)s and %(au)s and statut in ('valide', 'echu')",
+              "echus": "date_echeance between %(du)s and %(au)s and statut in ('valide', 'echu', 'reconduit')",
               "encours": "date_depot between %(du)s and %(au)s and date_echeance > %(au)s and (statut = 'valide' or (statut = 'rompu' and date_rupture > %(au)s))"}[choix]
     rows = lignes(f"select * from depot_terme where institution_id = %(i)s and {filtre} order by certificat", {"i": u["institution_id"], "du": du, "au": au})
     return [{**vue(x), "agence": valeur("select nom from agence where id = %s", (x["agence_id"],)),

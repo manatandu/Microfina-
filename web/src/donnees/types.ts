@@ -185,8 +185,10 @@ export interface OperationBanque {
 export interface DepotTerme {   // S65, S66
   id: number; cle: string; certificat: number; produitId: number; tiersId: number; compteEmetteurId: number; compteDatId: number; montant: number; devise: Devise;
   duree: number; tauxInteret: string; tauxPenalite: string; montantInteret: number; aEcheance: boolean; dateDepot: string; dateEcheance: string; observation: string;
-  reconduction: boolean; statut: "saisie" | "valide" | "rompu" | "echu" | "annule"; saisiPar: number; validePar: number | null; ecritureId: number | null;
+  reconduction: boolean; statut: "saisie" | "valide" | "rompu" | "echu" | "annule" | "reconduit"; saisiPar: number; validePar: number | null; ecritureId: number | null;
   rupture?: RuptureDat & { dateRupture: string; dateDemande: string; ecritureId: number; rompuPar: number };   // S67
+  echeance?: { interet: number; irc: number; montantVerse: number; ecritureId: number | null };   // S65 : traitement à l'échéance (reconduction ou versement)
+  reconduitDe?: number;   // S65 : DAT dont celui-ci est la reconduction
 }
 /** Écart E01 : examen renforcé des espèces de 10 000 USD ou plus (loi 22/068, art. 23 ; Instr. BCC 15, art. 61 et 62) */
 export interface Examen {

@@ -288,6 +288,9 @@ def ouvrir_journee(u: dict, jour: str) -> dict:
         raise ErreurMetier(f"Le {fr(str(jour))} est un {nom} : pas une journée de travail de l'agence (Agence > Journée de travail).")
     jid = valeur("insert into journee_comptable (agence_id, date_comptable, statut, ouverte_par) values (%s, %s, 'ouverte', %s) returning id",
                  (u["agence_id"], jour, u["id"]))
+    # S65 : les DAT échus à cette date sont reconduits ou versés au compte émetteur (manuel p. 75 ; décision du porteur, 19/11/2026)
+    from .depots_terme import traiter_echeances
+    traiter_echeances(u, {"id": jid, "date": str(jour)})
     return vue_journee(une("select * from journee_comptable where id = %s", (jid,)))
 
 

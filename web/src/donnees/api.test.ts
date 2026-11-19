@@ -1128,6 +1128,36 @@ describe("journée de guichet", () => {
     await expect(api.connexions.lire()).rejects.toThrow("Droit manquant");
   });
 
+  it("DAT à l'échéance (S65, reconduction automatique, p. 75) : à l'ouverture de journée, versé au compte émetteur ou reconduit, intérêt net au compte émetteur", async () => {
+    await connecter("jpmukendi");
+    await api.journees.ouvrir("2026-11-05");
+    await api.produitsEpargne.enregistrer({ numero: 6, code: "DAT", famille: "EPARGNE", libelle: "Dépôt à terme", devise: "CDF", soldeMinimum: 0, nbMaxComptes: 1,
+      operer: true, depotCheque: false, caution: false, nantissement: false, calculerInteret: true, soldeNegatif: false, repartitionGroupe: false, actif: true });
+    const pdat = (await api.produitsEpargne.lire()).produits.find((x) => x.code === "DAT")!;
+    await api.parametrageEpargne.enregistrer({ onglet: "DAT", produitId: pdat.id, compteLie: "340" });
+    await connecter("bkasongo");
+    const g = (await api.depotsTerme.produits())[0]!;
+    const cdat = await api.comptesEpargne.ouvrir({ cle: cle(), tiersId: 1, produitId: g.id });
+    const em = (await api.tiers.comptes(1)).find((c) => c.devise === "CDF" && c.intitule !== "Dépôt à terme")!;
+    const base = { produitId: g.id, tiersId: 1, compteEmetteurId: em.id, compteDatId: cdat.id, montant: 1000000, duree: 12, tauxInteret: "7,5", tauxPenalite: "2",
+      aEcheance: true, dateDepot: "2025-11-06", observation: "" };
+    const r = await api.depotsTerme.mettreEnPlace({ ...base, cle: cle(), reconduction: true });
+    const s = await api.depotsTerme.mettreEnPlace({ ...base, cle: cle(), reconduction: false });
+    await connecter("jpmukendi");
+    await api.depotsTerme.valider(r.id); await api.depotsTerme.valider(s.id);
+    const avant = (await api.tiers.comptes(1)).find((c) => c.id === em.id)!.solde;
+    _etat().institution.journeeMax = 2;
+    await api.journees.ouvrir("2026-11-06");
+    // Intérêt 75 000 ; retenue 20 % = 15 000 ; net 60 000 pour chacun ; le DAT non reconduit rend aussi son capital
+    expect((await api.tiers.comptes(1)).find((c) => c.id === em.id)!.solde - avant).toBe(60000 + 1060000);
+    expect((await api.tiers.comptes(1)).find((c) => c.id === cdat.id)!.solde).toBe(1000000);
+    const tous = _etat().depotsTerme;
+    expect([tous.find((x) => x.id === r.id)!.statut, tous.find((x) => x.id === s.id)!.statut]).toEqual(["reconduit", "echu"]);
+    const neuf = tous.find((x) => x.reconduitDe === r.id)!;
+    expect([neuf.statut, neuf.montant, neuf.duree, neuf.tauxInteret, neuf.dateDepot, neuf.dateEcheance]).toEqual(["valide", 1000000, 12, "7,5", "2026-11-06", "2027-11-06"]);
+    expect(await soldeCdfGrandLivre()).toBe(0);
+  });
+
   it("dépôt à terme (S65, S66) : mise en place, calculs, validation par une autre personne, écriture du compte émetteur au compte DAT (registre S65-1 à S65-8)", async () => {
     await journeeOuverte();
     await connecter("jpmukendi");

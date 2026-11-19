@@ -179,7 +179,9 @@ const journees = {
     const rang = new Date(`${date}T00:00:00Z`).getUTCDay();
     if (jt.some(Boolean) && !jt[rang]) throw new ErreurMetier(`Le ${fr(date)} est un ${["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"][rang]} : pas une journée de travail de l'agence (Agence > Journée de travail).`);
     const j: Journee = { id: prochain(E.journees), date, statut: "ouverte", ouvertePar: E.session ?? undefined, ouverteLe: new Date().toISOString() };
-    E.journees.push(j); enregistrer(); return j;
+    E.journees.push(j);
+    traiterEcheancesDat(j);   // S65 : les DAT échus à cette date sont reconduits ou versés au compte émetteur (manuel p. 75 ; décision du porteur, 19/11/2026)
+    enregistrer(); return j;
   },
   controles(id: number) { return controlesJournee(id); },
   /** S111 : comptabilisation de la journée (manuel p. 130, « Journée non comptabilisée »). Registre T14 : dans l'ordre des dates. */
@@ -1741,6 +1743,35 @@ export function calculRuptureDat(x: Pick<DepotTerme, "montant" | "tauxInteret" |
   if (montantAVerser < 0) throw new ErreurMetier("La pénalité dépasse le montant du DAT et l'intérêt couru.");
   return { jours, interet, penalite, tauxIrc: String(tIrc), irc, montantAVerser };
 }
+/** S65, reconduction automatique (manuel p. 75 : « renouvellement automatique du contrat de DAT aux mêmes conditions »). À l'ouverture d'une journée
+ *  (décision du porteur, 19/11/2026), chaque DAT validé dont l'échéance est atteinte : intérêt du contrat en charge (612 de sa durée), retenue de 20 %
+ *  des personnes physiques au 433, intérêt net au compte émetteur (décision du porteur, 19/11/2026) ; sans reconduction, le compte DAT (340) est soldé
+ *  vers le compte émetteur (statut echu) ; avec reconduction, le capital repart pour la même durée, au même taux, sous un nouveau certificat.
+ *  Un DAT dont le titulaire a ses avoirs gelés (écart E10) attend. Mêmes règles que serveur/noyau/depots_terme.py (traiter_echeances). */
+function traiterEcheancesDat(j: Journee) {
+  for (;;) {
+    const echus = E.depotsTerme.filter((x) => x.statut === "valide" && x.dateEcheance <= j.date && !E.gels.some((g) => g.tiersId === x.tiersId && !g.leveLe))
+      .sort((a, b) => a.dateEcheance.localeCompare(b.dateEcheance) || a.id - b.id);
+    if (!echus.length) return;
+    for (const x of echus) {
+      const p = E.produits.find((y) => y.id === x.produitId)!, em = E.comptes.find((c) => c.id === x.compteEmetteurId)!;
+      const irc = retenueDue(x.tiersId) ? Math.round(x.montantInteret * 20 / 100) : 0;
+      const verse = x.montantInteret - irc + (x.reconduction ? 0 : x.montant);
+      const ligne = (compte: string, sens: "D" | "C", montant: number, contrat?: string) => ({ compte, ...(contrat ? { contrat } : {}), sens, devise: x.devise, montant, montantCdf: cdf(montant, x.devise) });
+      const lignes = [];
+      if (!x.reconduction) lignes.push(ligne(p.compteLie!, "D", x.montant, `depot:${x.compteDatId}`));
+      if (x.montantInteret) lignes.push(ligne(compteInteretDat(x.duree), "D", x.montantInteret));
+      if (verse) lignes.push(ligne(em.pcci, "C", verse, `depot:${em.id}`));
+      if (irc) lignes.push(ligne("433", "C", irc));
+      const e = lignes.length ? poster({ journal: "OD", journeeId: j.id, libelle: `${x.reconduction ? "Reconduction" : "Échéance"} DAT n° ${x.certificat}`, piece: piece("OD"),
+        saisiPar: E.session ?? 0, validePar: E.session ?? 0, lignes }) : null;
+      x.statut = x.reconduction ? "reconduit" : "echu"; x.echeance = { interet: x.montantInteret, irc, montantVerse: verse, ecritureId: e?.id ?? null };
+      if (x.reconduction) E.depotsTerme.push({ ...x, id: prochain(E.depotsTerme), cle: `${x.cle}:reconduction`, certificat: E.depotsTerme.reduce((m, y) => Math.max(m, y.certificat), 0) + 1,
+        montantInteret: interetDat(x.montant, x.tauxInteret, x.duree), dateDepot: x.dateEcheance, dateEcheance: ajouterMois(x.dateEcheance, x.duree), statut: "valide",
+        saisiPar: E.session ?? 0, validePar: E.session ?? null, ecritureId: null, rupture: undefined, echeance: undefined, reconduitDe: x.id });
+    }
+  }
+}
 const depotsTerme = {
   produits() {
     exiger();
@@ -1824,7 +1855,7 @@ const depotsTerme = {
     for (const [v, nom] of [[du, "Du"], [au, "Au"]] as const) if (!/^\d{4}-\d{2}-\d{2}$/.test(v ?? "")) throw new ErreurMetier(`À remplir : ${nom}.`);
     if (du > au) throw new ErreurMetier("La date de début dépasse la date de fin.");
     const garde = (x: DepotTerme) => choix === "mise_en_place" ? x.dateDepot >= du && x.dateDepot <= au && x.statut !== "annule"
-      : choix === "echus" ? x.dateEcheance >= du && x.dateEcheance <= au && (x.statut === "valide" || x.statut === "echu")
+      : choix === "echus" ? x.dateEcheance >= du && x.dateEcheance <= au && (x.statut === "valide" || x.statut === "echu" || x.statut === "reconduit")
       : x.dateDepot >= du && x.dateDepot <= au && x.dateEcheance > au && (x.statut === "valide" || (x.statut === "rompu" && (x.rupture?.dateRupture ?? "") > au));
     return E.depotsTerme.filter(garde).sort((a, b) => a.certificat - b.certificat)
       .map((x) => ({ ...vueDat(x), agence: E.agence.nom, agent: E.utilisateurs.find((y) => y.id === x.saisiPar)?.nom ?? "", terme: termeDat(x.duree) }));

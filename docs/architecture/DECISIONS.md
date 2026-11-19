@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**423 décisions.** Solidité : 179 fortes (le manuel ou un texte répond), 211 moyennes (déduites d'un écran voisin ou d'une donnée), 33 faibles (notre choix, faute de mieux). Dans le code : 405 déjà en place, 15 à appliquer.
+**426 décisions.** Solidité : 181 fortes (le manuel ou un texte répond), 212 moyennes (déduites d'un écran voisin ou d'une donnée), 33 faibles (notre choix, faute de mieux). Dans le code : 408 déjà en place, 15 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -796,6 +796,14 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | S65-7 | Contrat imprimé | Document de l'institution cliente (en-tête S32), même gabarit que le relevé standard : client, compte, montant, durée, taux, intérêt, échéance, reconduction, taux de pénalité, signatures du client et de l'institution. À confirmer : le manuel ne montre pas le contrat | Texte réglementaire : Instr. BCC 40, art. 4 (clair, libellés, tarifs) et 13 (document remis au client) ; bouton Contrat p. 76 ; registre S64-3 | moyenne | en place |
 | S66-1 | Qui valide | Une autre personne que celle qui a saisi (quatre yeux, comme les visas de banque S57) ; droit S65 à l'agent de crédit, S66 au chef d'agence | Écran voisin : Texte p. 76 ; registre S57 | moyenne | en place |
+
+## S65 Reconduction automatique
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S65-9 | Quand un DAT échu est traité | À l'ouverture de journée (S12) : tous les DAT validés dont l'échéance est atteinte à cette date sont traités d'un coup, avec leurs écritures ; rien à faire à la main. Un DAT dont plusieurs échéances sont passées est reconduit autant de fois qu'il le faut | Choix du porteur : Manuel p. 75 (« renouvellement automatique ») ; décision du porteur, 19/11/2026 | forte | en place |
+| S65-10 | Effet de l'échéance | Intérêt du contrat en charge (612 de sa durée, S65-4), retenue de 20 % des personnes physiques au 433 (S67-3), intérêt net au compte émetteur. Sans reconduction : compte DAT (340) soldé vers le compte émetteur, statut Échu. Avec reconduction : le capital reste au compte DAT et repart pour la même durée, au même taux et au même taux de pénalité, sous un nouveau certificat validé d'office ; l'ancien passe à Reconduit. Journal OD, une pièce par DAT | Choix du porteur : Manuel p. 75 (« aux mêmes conditions ») ; PCCI, compte 34 ; loi 23/053, art. 120 ; décision du porteur, 19/11/2026 | forte | en place |
+| S65-11 | Titulaire aux avoirs gelés | Le DAT échu d'un titulaire aux avoirs gelés n'est ni versé ni reconduit : il attend la levée du gel et ne bloque pas l'ouverture de la journée | Texte réglementaire : Écart E10 (gel des avoirs) ; registre E10 | moyenne | en place |
 
 ## S67 Rupture DAT
 

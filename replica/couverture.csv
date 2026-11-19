@@ -64,7 +64,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 63,Ouverture d'un compte d'épargne,épargne,must,yes,S63,A,liste,5 Épargne,,,,,
 64,Relevé de compte et situation du client,épargne,must,yes,S64,A,rapport,5 Épargne,,,,,
 65,Dépôt à terme : mise en place validation rupture recherche,épargne,must,yes,S65 S66 S67 S68,A,"guichet, visa, traitement, rapport",5 Épargne,S66 : contrat imprimé ; S67 : calcul de la pénalité,R:PCCI (dépôts à terme) ; document ; M:taux de pénalité de S65 ; P,,,
-66,Reconduction automatique des DAT,épargne,must,no,S65,A,guichet,5 Épargne,,R:PCCI (dépôts à terme),,,
+66,Reconduction automatique des DAT,épargne,must,yes,S65,A,guichet,5 Épargne,,R:PCCI (dépôts à terme),,,
 67,Plan d'épargne : simulation création échéancier cotisations rupture,épargne,should,no,S69,B,onglets,5 Épargne,S69 : Rupture (titre seul),A:S67,,S69,
 68,Clôture d'un compte,épargne,must,no,S70,D,traitement,5 Épargne,S70 : tout l'écran (en panne dans le manuel),"A:S48 (résilier), S71 ; R:Instr. BCC sur les frais (clôture gratuite) ; P",,S70,
 69,Blocage de compte ou de montant avec motif,épargne,must,no,S71,A,liste,5 Épargne,S71 : déblocage,A:S94 (ajout et libération),,S71,

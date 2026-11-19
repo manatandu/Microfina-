@@ -2045,6 +2045,46 @@ def test_depot_terme(clients, journee):
     assert rch("encours") == []
 
 
+def test_dat_echeance(clients, journee):
+    """S65, reconduction automatique (manuel p. 75) : à l'ouverture de journée, un DAT échu est versé au compte émetteur, ou reconduit aux mêmes
+    conditions avec l'intérêt net versé au compte émetteur (décisions du porteur, 19/11/2026) ; retenue de 20 % (loi 23/053, art. 120)"""
+    from noyau.bd import une
+    from noyau.depots_terme import traiter_echeances
+    j, _ = journee
+    chef, agent = clients["chef"], clients["agent"]
+    P = {"numero": 6, "code": "DAT", "famille": "EPARGNE", "libelle": "Dépôt à terme", "devise": "CDF", "soldeMinimum": 0, "nbMaxComptes": 2,
+         "operer": True, "depotCheque": False, "caution": False, "nantissement": False, "calculerInteret": True, "soldeNegatif": False, "repartitionGroupe": False, "actif": True}
+    assert chef.post("/api/produits-epargne", P, **H).status_code == 200
+    pid = next(x["id"] for x in chef.get("/api/produits-epargne").json()["produits"] if x["code"] == "DAT")
+    assert chef.post("/api/parametrage-epargne", {"onglet": "DAT", "produitId": pid, "compteLie": "340"}, **H).status_code == 200
+    kalala = T("0412-000318"); em = C("0412-000318-02")
+    solde = lambda c: ident("select coalesce(sum(case sens when 'C' then montant_devise else -montant_devise end), 0) from ligne_ecriture where contrat_ref = %s", (f"depot:{c}",))
+    dats = []
+    cdat = agent.post("/api/epargne/comptes", {"cle": cle(), "tiersId": kalala, "produitId": pid}, **H).json()["id"]   # un compte DAT porte les deux contrats
+    for reconduction in (True, False):
+        x = agent.post("/api/epargne/dat", {"cle": cle(), "produitId": pid, "tiersId": kalala, "compteEmetteurId": em, "compteDatId": cdat, "montant": 1000000,
+                                            "duree": 12, "tauxInteret": "7,5", "tauxPenalite": "2", "aEcheance": True, "dateDepot": "2025-11-05",
+                                            "observation": "", "reconduction": reconduction}, **H).json()
+        assert x["dateEcheance"] == "2026-11-05", x
+        assert chef.post(f"/api/epargne/dat/{x['id']}/validation", **H).status_code == 200
+        dats.append((x, cdat))
+    avant = solde(em)
+    u = une("select * from utilisateur where login = 'jpmukendi'")
+    assert traiter_echeances(u, {"id": j["id"], "date": j["date"]}) == 2
+    (xr, cr), (xe, ce) = dats
+    # Intérêt 1 000 000 × 7,5 % sur 12 mois = 75 000 ; retenue 20 % = 15 000 ; net 60 000
+    assert solde(em) - avant == 60000 + 1060000
+    assert solde(cdat) == 1000000                                                 # le capital reconduit reste, l'autre est rendu
+    vieux = une("select * from depot_terme where id = %s", (xr["id"],))
+    neuf = une("select * from depot_terme where reconduit_de = %s", (xr["id"],))
+    assert (vieux["statut"], vieux["irc"], vieux["montant_verse"]) == ("reconduit", 15000, 60000)
+    assert (neuf["statut"], neuf["montant"], neuf["duree_mois"], float(neuf["taux_interet"]), neuf["date_depot"].isoformat(), neuf["date_echeance"].isoformat(),
+            neuf["reconduction"]) == ("valide", 1000000, 12, 7.5, "2026-11-05", "2027-11-05", True)
+    assert une("select statut from depot_terme where id = %s", (xe["id"],))["statut"] == "echu"
+    assert traiter_echeances(u, {"id": j["id"], "date": j["date"]}) == 0          # rien deux fois
+    assert balance_equilibree(clients["compta"])
+
+
 def test_profil_imf(clients, journee):
     """Profil de l'institution (S32) : une IMF n'a pas de parts sociales (loi 11/020, art. 14 et 15 ; PCCI 100) ni de condition d'adhésion préalable ;
     une entreprise de micro-crédit ne collecte pas l'épargne (loi 11/020, art. 12) : seul le dépôt de garantie (famille BLOQUE)"""
