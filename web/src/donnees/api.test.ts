@@ -1920,6 +1920,25 @@ describe("journée de guichet", () => {
     expect([d.interetDiffere, d.totalInteret]).toEqual([4000000, r.totalInteret + 4000000]);
   });
 
+  it("analyse financière (S85, p. 112) : revenu net, capacité, bilan, ratios, garanties ; avis obligatoire (registre CR-11)", async () => {
+    await connecter("jpmukendi");
+    const P = { typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: "2,5", tauxDiffere: 2,
+      montantMin: 100000, montantMax: 5000000, dureeMin: 3, dureeMax: 12, differeMin: 0, differeMax: 2, interetMin: 1, interetMax: 4, clientPhysique: true, periodicite: "M",
+      modeDiffere: "Réparti", paiementInteret: "Normal", interetAnticipation: false, ageMax: 65, epargneNature: "Taux", epargneValeur: 10, categorie: "Prêt commercial",
+      penaliteAnticipation: 50, frais: [{ typeFrais: "Frais de dossier", nature: "Taux", valeur: 1, compte: "7152" }] };
+    const pid = (await api.produitsCredit.enregistrer(P)).produits[0]!.id;
+    await connecter("bkasongo");
+    const D = { revenus: 300000000, achats: 150000000, chargesExploitation: 50000000, chargesFamiliales: 30000000, autresEcheances: 0, tresorerie: 20000000, stocks: 80000000,
+      creances: 0, immobilisations: 100000000, dettesCourtTerme: 40000000, dettesLongTerme: 0, garanties: [{ type: "Gage", description: "Moto", valeur: 150000000 }] };
+    const a = { type: "developpee" as const, tiersId: 1, produitId: pid, montant: 100000000, duree: 12, donnees: D, avis: "favorable" as const };
+    await expect(api.analyses.enregistrer({ ...a, avis: "" as "favorable" })).rejects.toThrow("Avis");
+    await expect(api.analyses.enregistrer({ ...a, duree: 24 })).rejects.toThrow("entre 3 et 12 mois");
+    const v = await api.analyses.enregistrer(a);
+    expect([v.numero, v.resultats.echeanceMensuelle, v.resultats.revenuNet]).toEqual(["AF000001", 9748713, 70000000]);
+    expect([v.resultats.capacite, v.resultats.endettement, v.resultats.liquidite, v.resultats.couverture]).toEqual([13.93, 25, 250, 150]);   // mêmes chiffres que le serveur
+    expect((await api.analyses.historique(1)).analyses[0]!.numero).toBe("AF000001");
+  });
+
   it("produit crédit (S23, p. 37 et 38) : méthode dégressive (Instr. BCC 38 art. 11), bornes, garanties, assurance, frais (Instr. BCC 40 art. 8)", async () => {
     await connecter("jpmukendi");
     const P = { typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: "2,5", tauxDiffere: 2,

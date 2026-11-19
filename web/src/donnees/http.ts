@@ -60,6 +60,11 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       indicateurs: (date: string, auxiliaires: boolean) => get(`/epargne/rapports/indicateurs?date=${date}&auxiliaires=${auxiliaires}`),
       inactivite: (date: string, jours: number | null, tous: boolean) => get(`/epargne/rapports/inactivite?date=${date}${jours === null ? "" : `&jours=${jours}`}&tous=${tous}`),
     },
+    analyses: {
+      historique: (tiersId: number) => get(`/credit/analyses?tiersId=${tiersId}`),
+      lire: (id: number) => get(`/credit/analyses/${id}`),
+      enregistrer: (d: unknown) => post("/credit/analyses", d),
+    },
     simulationCredit: {
       simuler: (d: unknown) => post("/credit/simulation", d),
     },

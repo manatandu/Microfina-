@@ -281,7 +281,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 59;
+  version: 60;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)
@@ -312,6 +312,7 @@ export interface Etat {
   lettresInactivite: LettreInactivite[];   // écart E11
   clotures: ClotureCompte[];   // S70
   blocages: Blocage[];   // S71
+  analyses: AnalyseFinanciere[];   // S85
   reversementsRetenues: ReversementRetenue[];   // écart E16
   journalSecurite: EvenementSecurite[];   // écart E17
   declarationsCip: { type: string; objetId: number; dateEvenement: string; declareLe: string; reference: string; declarePar: number }[];   // écart E06   // S46, S42, S43
@@ -418,3 +419,10 @@ export type ReglePieceEtat = { institution: boolean; positions: Record<"INSTITUT
 /** S33 : gestionnaire, sensibilisateur ou commercial d'agence (manuel p. 43) */
 export interface AgentAgence { id: number; role: "gestionnaire" | "sensibilisateur" | "commercial"; agenceId: number | null; nom: string; prenom: string; naissance: string;
   lieuNaissance: string; sexe: "M" | "F"; profession: string; rue: string; email: string; bp: string; telephoneFixe: string; portable: string; actif: boolean }
+
+/** S85 : analyse financière, allégée ou développée (registre CR-11, S85-1 à S85-6) */
+export interface AnalyseFinanciere {
+  id: number; numero: string; type: "allegee" | "developpee"; tiersId: number; produitId: number; montant: number; duree: number; objet: string;
+  donnees: Record<string, unknown>; echeanceMensuelle: number; avis: "favorable" | "reserve" | "defavorable"; montantRecommande: number | null;
+  dureeRecommandee: number | null; commentaire: string; creePar: number; creeLe: string;
+}

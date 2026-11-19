@@ -6,6 +6,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "agents.supprimer": [
 "S33"
 ],
+"analyses.enregistrer": [
+"S85"
+],
 "banqueOperations.enregistrer": [
 "S52"
 ],

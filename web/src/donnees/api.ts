@@ -10,6 +10,7 @@ import {
   type ChequeClient, type Chequier, type DepotTerme, type PlanEpargne, type ClotureCompte, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget, type CriteresAtypiques, type GelAvoirs,
+  type AnalyseFinanciere,
 } from "./types";
 import { DROITS_METHODES } from "./droits.gen";
 import registreEcrans from "../ecrans/registre.json";
@@ -19,7 +20,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v82";
+const CLE = "likelemba-demo-v83";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -27,7 +28,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 59) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 60) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -2628,9 +2629,74 @@ const simulationCredit = {
     const deux = (x: number) => Math.round(x * 100) / 100;
     return { produit: String(p.nom), devise: dv, periodicite: code, libellePeriodicite: per.libelle, modeCalcul: String(p.modeCalcul), modeDiffere: String(p.modeDiffere),
       tauxInteret: String(nb("tauxInteret")), tauxDiffere: String(nb("tauxDiffere")), montant: d.montant, duree: d.duree, differe, nombreTraites: n, dateDeblocage: deblocage,
-      dateEffet: deblocage, dateDebut: dateRangPlan(deblocage, code, nd + 1), dateFin: echeancier[n - 1]!.date, echeanceConstante: a,
+      dateEffet: deblocage, dateDebut: dateRangPlan(deblocage, code, nd + 1), dateFin: echeancier[n - 1]!.date, echeanceConstante: a, echeanceMensuelle: Math.round(echeancier[0]!.echeance * den / 12),
       totalInteret: echeancier.reduce((s, l) => s + l.interet, 0), interetDiffere, frais, assurance, epargneObligatoire: epargne,
       tegR: t === null ? null : deux(t * den * 100), tegA: t === null ? null : deux(((1 + t) ** den - 1) * 100), tauxRegle: !!p.tauxRegle, echeancier };
+  },
+};
+
+// ---------- S85 : Crédit > Analyse financière (manuel p. 112). Mêmes règles que serveur/noyau/analyses.py. Grille proposée par nous (registre CR-11, S85-1 à S85-6).
+// Revenu net = revenus − achats − charges d'exploitation − charges familiales − autres échéances ; capacité = échéance mensuelle / revenu net. Indicative. ----------
+const FLUX_ANALYSE = ["revenus", "achats", "chargesExploitation", "chargesFamiliales", "autresEcheances"] as const;
+const BILAN_ANALYSE = ["tresorerie", "stocks", "creances", "immobilisations", "dettesCourtTerme", "dettesLongTerme"] as const;
+const montantAnalyse = (d: Record<string, unknown> | undefined, k: string) => {
+  const v = d?.[k] ?? 0;
+  if (v === null || v === "") return 0;
+  if (typeof v !== "number" || !Number.isInteger(v) || v < 0) throw new ErreurMetier(`${k} : un montant, zéro ou plus.`);
+  return v;
+};
+const pctAnalyse = (n: number, d: number) => (!d ? null : Math.round(n * 10000 / d) / 100);
+export function calculerAnalyse(type: AnalyseFinanciere["type"], d: Record<string, unknown>, echeanceMensuelle: number, montantPret: number) {
+  const f = Object.fromEntries(FLUX_ANALYSE.map((k) => [k, montantAnalyse(d, k)])) as Record<(typeof FLUX_ANALYSE)[number], number>;
+  const revenuNet = f.revenus - f.achats - f.chargesExploitation - f.chargesFamiliales - f.autresEcheances;
+  const r: Record<string, number | null> = { margeBrute: f.revenus - f.achats, revenuNet, echeanceMensuelle, capacite: revenuNet > 0 ? pctAnalyse(echeanceMensuelle, revenuNet) : null };
+  if (type === "developpee") {
+    const b = Object.fromEntries(BILAN_ANALYSE.map((k) => [k, montantAnalyse(d, k)])) as Record<(typeof BILAN_ANALYSE)[number], number>;
+    const actif = b.tresorerie + b.stocks + b.creances + b.immobilisations, dettes = b.dettesCourtTerme + b.dettesLongTerme;
+    const g = d.garanties ?? [];
+    if (!Array.isArray(g)) throw new ErreurMetier("Garanties : une liste.");
+    const totalG = g.reduce((s: number, x) => s + montantAnalyse(x as Record<string, unknown>, "valeur"), 0);
+    Object.assign(r, { totalActif: actif, fondsPropres: actif - dettes, endettement: actif - dettes > 0 ? pctAnalyse(dettes, actif - dettes) : null,
+      liquidite: pctAnalyse(b.tresorerie + b.stocks + b.creances, b.dettesCourtTerme), totalGaranties: totalG, couverture: pctAnalyse(totalG, montantPret) });
+  }
+  return r;
+}
+const vueAnalyse = (a: AnalyseFinanciere) => ({ id: a.id, numero: a.numero, type: a.type, tiersId: a.tiersId, client: titulaire(E.tiers.find((t) => t.id === a.tiersId)!),
+  produitId: a.produitId, produit: String(E.produitsCredit.find((p) => p.id === a.produitId)?.nom ?? ""), montant: a.montant, duree: a.duree, objet: a.objet,
+  donnees: a.donnees, resultats: calculerAnalyse(a.type, a.donnees, a.echeanceMensuelle, a.montant), avis: a.avis, montantRecommande: a.montantRecommande,
+  dureeRecommandee: a.dureeRecommandee, commentaire: a.commentaire, date: a.creeLe });
+const analyses = {
+  historique(tiersId: number) {
+    lectureAdmin(["S85", "S86"]);
+    return { credits: [] as { numero: string; produit: string; date: string; montant: number; observation: string }[],
+      analyses: E.analyses.filter((a) => a.tiersId === tiersId).sort((a, b) => b.id - a.id).map(vueAnalyse) };
+  },
+  lire(id: number) {
+    lectureAdmin(["S85", "S86"]);
+    const a = E.analyses.find((x) => x.id === id);
+    if (!a) throw new ErreurMetier("Analyse introuvable.");
+    return vueAnalyse(a);
+  },
+  enregistrer(d: { type: AnalyseFinanciere["type"]; tiersId: number; produitId: number; montant: number; duree: number; objet?: string; donnees: Record<string, unknown>;
+    avis: AnalyseFinanciere["avis"]; montantRecommande?: number | null; dureeRecommandee?: number | null; commentaire?: string }) {
+    const u = exiger();
+    if (d.type !== "allegee" && d.type !== "developpee") throw new ErreurMetier("Analyse allégée ou développée ?");
+    if (!E.tiers.some((t) => t.id === d.tiersId)) throw new ErreurMetier("À remplir : Numéro client.");
+    if (!Number.isInteger(d.produitId)) throw new ErreurMetier("À remplir : Produit crédit.");
+    if (!Number.isInteger(d.montant) || d.montant <= 0) throw new ErreurMetier("À remplir : Montant sollicité.");
+    if (!Number.isInteger(d.duree) || d.duree <= 0) throw new ErreurMetier("À remplir : Durée.");
+    if (!["favorable", "reserve", "defavorable"].includes(d.avis)) throw new ErreurMetier("À remplir : Avis de l'agent.");
+    const donnees = d.donnees && typeof d.donnees === "object" ? d.donnees : {};
+    const s = simulationCredit.simuler({ produitId: d.produitId, montant: d.montant, duree: d.duree });   // contrôle aussi les bornes du produit
+    const em = s.echeanceMensuelle;
+    calculerAnalyse(d.type, donnees, em, d.montant);
+    if (d.montantRecommande != null && (!Number.isInteger(d.montantRecommande) || d.montantRecommande <= 0)) throw new ErreurMetier("Montant recommandé : un montant supérieur à zéro.");
+    if (d.dureeRecommandee != null && (!Number.isInteger(d.dureeRecommandee) || d.dureeRecommandee <= 0)) throw new ErreurMetier("Durée recommandée : un nombre de mois.");
+    const a: AnalyseFinanciere = { id: prochain(E.analyses), numero: `AF${String(E.analyses.length + 1).padStart(6, "0")}`, type: d.type, tiersId: d.tiersId,
+      produitId: d.produitId, montant: d.montant, duree: d.duree, objet: d.objet?.trim() ?? "", donnees, echeanceMensuelle: em, avis: d.avis,
+      montantRecommande: d.montantRecommande ?? null, dureeRecommandee: d.dureeRecommandee ?? null, commentaire: d.commentaire?.trim() ?? "", creePar: u.id,
+      creeLe: journees.courante()?.date ?? new Date().toISOString().slice(0, 10) };
+    E.analyses.push(a); enregistrer(); return vueAnalyse(a);
   },
 };
 
@@ -4972,6 +5038,7 @@ const apiLocal = {
   transferts: asynchrone(transferts, "transferts"),
   journalCaisse: asynchrone(journalCaisse, "journalCaisse"),
   simulationCredit: asynchrone(simulationCredit, "simulationCredit"),
+  analyses: asynchrone(analyses, "analyses"),
   societe: asynchrone(societe, "societe"),
   agents: asynchrone(agents, "agents"),
   jours: asynchrone(jours, "jours"),

@@ -82,6 +82,7 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/guichet/ed-divers", ["S78"]),
     (r"/caisse/transferts/(caisse|banque)", ["S81"]),
     (r"/credit/simulation", ["S84"]),
+    (r"/credit/analyses", ["S85"]),
     (r"/guichet/adhesions", ["S73"]),
     (r"/operations/\d+/(visa|refus)", ["S82", "S74", "S73", "S77", "S113"]),
     (r"/parametrage/frais.*", ["S16"]),
@@ -151,6 +152,7 @@ LECTURES_ADMIN = [(re.compile(m), e) for m, e in [
     (r"/epargne/clotures/avoirs", ["S70"]),
     (r"/epargne/rapports/.*", ["S72"]),
     (r"/caisse/journal.*", ["S83"]),
+    (r"/credit/analyses.*", ["S85", "S86"]),
     (r"/clients/registre-membres", ["SC04"]),
     (r"/comptabilite/retenues.*", ["SF01"]),
     (r"/securite/journal", ["SA01"]),                  # Instr. BCC 008, art. 16 : responsable de la sécurité informatique          # données personnelles : loi 11/020, art. 60

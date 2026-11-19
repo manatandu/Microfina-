@@ -1396,6 +1396,24 @@ def test_simulation_credit(clients, journee):
     assert chef.post("/api/credit/simulation", {"produitId": pid, "montant": 100000000, "duree": 12}, **H).status_code == 403
 
 
+def test_analyse_financiere(clients, journee):
+    """S85 (p. 112) : revenu net, capacité de remboursement (échéance mensuelle de la simulation S84), bilan, ratios, garanties ; avis obligatoire (registre CR-11, S85)"""
+    chef, agent = clients["chef"], clients["agent"]
+    pid = chef.post("/api/produits-credit", PRODUIT, **H).json()["produits"][0]["id"]
+    D = {"revenus": 300000000, "achats": 150000000, "chargesExploitation": 50000000, "chargesFamiliales": 30000000, "autresEcheances": 0,
+         "tresorerie": 20000000, "stocks": 80000000, "creances": 0, "immobilisations": 100000000, "dettesCourtTerme": 40000000, "dettesLongTerme": 0,
+         "garanties": [{"type": "Gage", "description": "Moto", "valeur": 150000000}]}
+    a = {"type": "developpee", "tiersId": T("0412-000318"), "produitId": pid, "montant": 100000000, "duree": 12, "donnees": D, "avis": "favorable"}
+    r = agent.post("/api/credit/analyses", {**a, "avis": ""}, **H)
+    assert r.status_code == 422 and "Avis" in r.json()["message"]
+    assert "entre 3 et 12 mois" in agent.post("/api/credit/analyses", {**a, "duree": 24}, **H).json()["message"]
+    v = agent.post("/api/credit/analyses", a, **H).json()
+    assert v["numero"] == "AF000001" and v["resultats"]["echeanceMensuelle"] == 9748713 and v["resultats"]["revenuNet"] == 70000000
+    assert (v["resultats"]["capacite"], v["resultats"]["endettement"], v["resultats"]["liquidite"], v["resultats"]["couverture"]) == (13.93, 25.0, 250.0, 150.0)
+    assert agent.get(f"/api/credit/analyses?tiersId={T('0412-000318')}", **H).json()["analyses"][0]["numero"] == "AF000001"
+    assert clients["caisse"].post("/api/credit/analyses", a, **H).status_code == 403
+
+
 def test_produit_credit(clients):
     """S23 (p. 37 et 38) : Information de base de la capture ; méthode dégressive (Instr. BCC 38, art. 11) ; garanties, assurance, frais
     (Instr. BCC 38 art. 6, Instr. BCC 40 art. 8) ; pénalité d'anticipation au plus 50 % (Instr. BCC 38, art. 14) ; registre S23-1 à S23-7"""

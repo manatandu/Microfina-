@@ -23,6 +23,7 @@ import EdDivers from "./EdDivers";
 import Transferts from "./Transferts";
 import JournalCaisse from "./JournalCaisse";
 import SimulationCredit from "./SimulationCredit";
+import AnalyseFinanciere from "./AnalyseFinanciere";
 import type { ComponentType } from "react";
 import GuichetDepotRetrait from "./Guichet";
 import Adhesion from "./Adhesion";
@@ -157,6 +158,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S81: Transferts,
   S83: JournalCaisse,
   S84: SimulationCredit,
+  S85: AnalyseFinanciere,
   S79: BilletageCaisse,
   S80: ValidationBilletage,
   S102: PlanComptes,

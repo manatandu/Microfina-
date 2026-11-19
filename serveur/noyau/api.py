@@ -378,6 +378,24 @@ def guichet_ed_divers(request, corps: dict = Body(...)):
     return ed_guichet.enregistrer(u(request), corps)
 
 
+@api.get("/credit/analyses")
+def analyses_historique(request, tiersId: int):
+    from . import analyses
+    return analyses.historique(u(request), tiersId)
+
+
+@api.get("/credit/analyses/{aid}")
+def analyse_lire(request, aid: int):
+    from . import analyses
+    return analyses.lire(u(request), aid)
+
+
+@api.post("/credit/analyses")
+def analyse_enregistrer(request, corps: dict = Body(...)):
+    from . import analyses
+    return analyses.enregistrer(u(request), corps)
+
+
 @api.post("/credit/simulation")
 def credit_simulation(request, corps: dict = Body(...)):
     from . import simulation_credit

@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**510 décisions.** Solidité : 224 fortes (le manuel ou un texte répond), 244 moyennes (déduites d'un écran voisin ou d'une donnée), 42 faibles (notre choix, faute de mieux). Dans le code : 465 déjà en place, 41 à appliquer.
+**516 décisions.** Solidité : 224 fortes (le manuel ou un texte répond), 247 moyennes (déduites d'un écran voisin ou d'une donnée), 45 faibles (notre choix, faute de mieux). Dans le code : 472 déjà en place, 40 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1171,7 +1171,13 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| CR-11 | Contenu des onglets | Grille proposée par nous : bilan et compte d'exploitation simplifiés du client, garanties, capacité de remboursement (échéance / revenu net), ratios usuels, recommandations et avis de l'agent. Indicatif, ne bloque pas. À valider en fin d'étape | Choix du porteur : Décision du porteur, 19/11/2026 ; capture p. 112 (noms des onglets) | moyenne | à appliquer |
+| CR-11 | Contenu des onglets | Grille proposée par nous : bilan et compte d'exploitation simplifiés du client, garanties, capacité de remboursement (échéance / revenu net), ratios usuels, recommandations et avis de l'agent. Indicatif, ne bloque pas. À valider en fin d'étape | Choix du porteur : Décision du porteur, 19/11/2026 ; capture p. 112 (noms des onglets) | moyenne | en place |
+| S85-1 | Pages et enchaînement | Deux pages, comme le menu : allégée (Identification, Crédit, Element) et développée (Identification, Bilan, Garanties, Crédit, Indicateurs, Ratios, Recommandations). Suivant passe à l'onglet suivant ; Enregistrer au dernier. Identification : Numéro client, Produit crédit, grille des crédits du client (Numéro crédit, Produit, Date, Montant, Observation) et ses analyses précédentes. Numéro d'analyse AF000001, repris par la demande (S86) | Manuel : Captures p. 112 | moyenne | en place |
+| S85-2 | Compte d'exploitation | Mensuel : revenus, achats et coût des ventes, charges d'exploitation, charges familiales, échéances d'autres dettes. Marge brute = revenus − achats ; revenu net = revenus − toutes les charges et échéances | Choix du porteur : Décision du porteur, 19/11/2026 (CR-11) | faible | en place |
+| S85-3 | Bilan simplifié (développée) | Actif : trésorerie, stocks, créances clients, immobilisations ; passif : dettes à court et à long terme ; fonds propres = actif − dettes | Choix du porteur : Décision du porteur, 19/11/2026 (CR-11) | faible | en place |
+| S85-4 | Ratios | Capacité de remboursement = échéance mensuelle / revenu net ; endettement = dettes / fonds propres ; liquidité = (trésorerie + stocks + créances) / dettes à court terme ; couverture = valeur des garanties / montant. Deux décimales. L'échéance mensuelle est la première échéance de la simulation (S84) ramenée au mois | Choix du porteur : Décision du porteur, 19/11/2026 (CR-11) ; S84 | faible | en place |
+| S85-5 | Avis | Avis de l'agent obligatoire (favorable, réservé, défavorable), montant et durée recommandés, commentaire. L'analyse est indicative : elle ne bloque pas la demande | Choix du porteur : Décision du porteur, 19/11/2026 (CR-11) | moyenne | en place |
+| S85-6 | Bornes et droits | Montant et durée dans les bornes du produit (S84-7). Saisie : profil qui a S85 (agent de crédit au départ) ; lecture aussi pour S86 | Donnée exigée ailleurs : S84-7 ; DROITS_DEPART | moyenne | en place |
 
 ## S54, S75 Contrat de prêt
 
@@ -1292,3 +1298,6 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S83-3 | S83 Rapport : journal des opérations de caisse | Rechercher par, Valeur | Les colonnes de texte de la grille : N° Client, N° pièce, Libellé ; la valeur filtre ce qui la contient |
 | S83-5 | S83 Rapport : journal des opérations de caisse | N° Client et période | N° Client : le membre dont un compte (dépôt, parts) figure dans la même écriture, vide sinon (ED divers, transfert). Du : le 1er janvier de l'année de la journée ; Au : la journée |
 | S84-6 | S84 Plan d'amortissement (simulation) | Fonds de solidarité | Hors du TEG : l'article 6 nomme le taux débiteur, les frais et commissions, l'épargne obligatoire et l'assurance, pas le fonds de solidarité |
+| S85-2 | S85 Analyse financière | Compte d'exploitation | Mensuel : revenus, achats et coût des ventes, charges d'exploitation, charges familiales, échéances d'autres dettes. Marge brute = revenus − achats ; revenu net = revenus − toutes les charges et échéances |
+| S85-3 | S85 Analyse financière | Bilan simplifié (développée) | Actif : trésorerie, stocks, créances clients, immobilisations ; passif : dettes à court et à long terme ; fonds propres = actif − dettes |
+| S85-4 | S85 Analyse financière | Ratios | Capacité de remboursement = échéance mensuelle / revenu net ; endettement = dettes / fonds propres ; liquidité = (trésorerie + stocks + créances) / dettes à court terme ; couverture = valeur des garanties / montant. Deux décimales. L'échéance mensuelle est la première échéance de la simulation (S84) ramenée au mois |

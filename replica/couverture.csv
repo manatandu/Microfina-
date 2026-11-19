@@ -85,7 +85,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 84,Opérations diverses et déplacées validées en caisse,caisse,must,no,S82,A,visa,6 Caisse,,,,S82,
 85,Journal de caisse,caisse,must,yes,S83,A,rapport,6 Caisse,,,,,
 86,Simulation d'échéancier,crédit,must,yes,S84,B,onglets,7 Crédit,"S84 : pages Montant et durée, Récapitulatif, Échéancier",M:texte p. 111 ; A:S89,,,
-87,Analyse financière allégée et développée,crédit,should,no,S85,B,onglets,7 Crédit,S85 : onglets suivants,M:noms d'onglets ; P,,S85,CR-11 Contenu des onglets
+87,Analyse financière allégée et développée,crédit,should,yes,S85,B,onglets,7 Crédit,S85 : onglets suivants,M:noms d'onglets ; P,,,
 88,Demande de crédit avec effectifs hommes femmes et groupes,crédit,must,no,S86,B,onglets,7 Crédit,S86 : page de détail après Suivant,M:texte p. 113,,S86,CR-8 Crédit à un groupe solidaire ; CR-15 Refinancement d'un retard
 89,Contrôle de la demande,crédit,must,no,S87,C,visa,7 Crédit,S87 : tout l'écran,M:texte p. 113 ; A:S90,,S87,CR-8 Crédit à un groupe solidaire
 90,Approbation,crédit,must,no,S88,C,visa,7 Crédit,S88 : tout l'écran,M:texte p. 114 ; A:S90,,S88,S88-1 Consentement à la Centrale des risques ; CR-2 Fonds propres prudentiels des limites ; CR-3 Personnes apparentées ; CR-8 Crédit à un groupe solidaire ; CR-14 Plafonds par emprunteur ; CR-25 Mise à l'index et gel

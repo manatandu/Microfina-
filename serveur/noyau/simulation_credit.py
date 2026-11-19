@@ -114,7 +114,7 @@ def simuler(u, d) -> dict:
             "modeDiffere": p["mode_differe"], "tauxInteret": str(Decimal(p["taux_interet"]).normalize()), "tauxDiffere": str(Decimal(p["taux_differe"]).normalize()),
             "montant": montant, "duree": duree, "differe": differe, "nombreTraites": n, "dateDeblocage": deblocage.isoformat(),
             "dateEffet": deblocage.isoformat(), "dateDebut": premiere.isoformat(), "dateFin": lignes[-1]["date"],
-            "echeanceConstante": a, "totalInteret": sum(l["interet"] for l in lignes), "interetDiffere": interet_differe,
+            "echeanceConstante": a, "echeanceMensuelle": arrondi(Decimal(lignes[0]["echeance"]) * den / 12), "totalInteret": sum(l["interet"] for l in lignes), "interetDiffere": interet_differe,
             "frais": frais, "assurance": assurance, "epargneObligatoire": epargne, "tegR": teg_r, "tegA": teg_a, "tauxRegle": bool(p["taux_regle"]),
             "echeancier": lignes}
 
