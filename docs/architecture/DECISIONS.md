@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**531 décisions.** Solidité : 226 fortes (le manuel ou un texte répond), 260 moyennes (déduites d'un écran voisin ou d'une donnée), 45 faibles (notre choix, faute de mieux). Dans le code : 491 déjà en place, 36 à appliquer.
+**540 décisions.** Solidité : 226 fortes (le manuel ou un texte répond), 268 moyennes (déduites d'un écran voisin ou d'une donnée), 46 faibles (notre choix, faute de mieux). Dans le code : 503 déjà en place, 33 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1158,7 +1158,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| CR-8 | Crédit à un groupe solidaire | Un seul crédit au nom du groupe, la part de chaque membre notée ; les membres sont codébiteurs solidaires ; une seule déclaration à la Centrale des risques | Choix du porteur : Décision du porteur, 19/11/2026 ; loi 11/020, art. 44 ; Instr. BCC 05, art. 5 | forte | à appliquer |
+| CR-8 | Crédit à un groupe solidaire | Un seul crédit au nom du groupe, la part de chaque membre notée ; les membres sont codébiteurs solidaires ; une seule déclaration à la Centrale des risques | Choix du porteur : Décision du porteur, 19/11/2026 ; loi 11/020, art. 44 ; Instr. BCC 05, art. 5 | forte | en place |
 
 ## S97 Liste rouge
 
@@ -1243,13 +1243,13 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| CR-23 | Retrait du membre | Tant qu'un membre est emprunteur ou caution d'un crédit en cours, sa démission (résiliation de membre) est refusée | Texte réglementaire : Loi 002/2002, art. 24 | forte | à appliquer |
+| CR-23 | Retrait du membre | Tant qu'un membre est emprunteur ou caution d'un crédit en cours, sa démission (résiliation de membre) est refusée | Texte réglementaire : Loi 002/2002, art. 24 | forte | en place |
 
 ## S89 Mise en place
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| CR-24 | TEG au dossier | Le TEG se calcule au plus tard à la signature du contrat, sur les éléments connus ; il est affiché au dossier et sur le contrat, sauf taux réglementé ou bonifié | Texte réglementaire : Instr. BCC 38, art. 3, 5 et 16 | forte | à appliquer |
+| CR-24 | TEG au dossier | Le TEG se calcule au plus tard à la signature du contrat, sur les éléments connus ; il est affiché au dossier et sur le contrat, sauf taux réglementé ou bonifié | Texte réglementaire : Instr. BCC 38, art. 3, 5 et 16 | forte | en place |
 
 ## S101 Indicateur de gestion
 
@@ -1281,6 +1281,20 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | SC01-9 | Personnes apparentées | Onglet « Personnes apparentées » : marquer un client avec son lien (art. 27) ou le retirer, après confirmation ; grille des apparentés | Choix du porteur : CR-3 ; Instr. BCC 002, art. 27 ; Instr. BCC 51 | moyenne | en place |
+
+## S89 Dossier : mise en place
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S89-1 | Écran | Titre « Information de base sur le prêt » (capture p. 113). Bouton Demande : les demandes approuvées ; double clic, ou code de la demande saisi : Infos Client, Infos Produit (taux, T.E.G R, T.E.G A) ; pages Informations sur le montant et la durée, Epargne de capitalisation, Autres informations, Recapitulatif ; Suivant ; Echéancier et Enregistrer au récapitulatif | Manuel : Capture p. 113 ; texte p. 114, 2.16 à 2.23 | moyenne | en place |
+| S89-2 | Montant, durée, différé | Montant : le montant approuvé ; durée : celle de la demande ; différé en mois, dans les bornes du produit (la capture dit « jour(s) », le produit S23 et la simulation S84 comptent en mois) ; l'échéancier se recalcule à chaque changement | Donnée exigée ailleurs : S23-3 ; S84 | moyenne | en place |
+| S89-3 | Financement | Ligne Financement : lignes du plan budgétaire (S19) ; Type Financement : « Fonds propres » sans ligne, « Ressources affectées » avec une ligne ; le bailleur suit la ligne. Pour une COOPEC, un crédit sur ressources affectées sort des plafonds (loi 002/2002, art. 60) | Texte réglementaire : Capture p. 113 ; texte 2.19 ; loi 002/2002, art. 60 | moyenne | en place |
+| S89-4 | Structure de référencement | Liste à une valeur, « Part. classique », la seule montrée | Manuel : Capture p. 113 | faible | en place |
+| S89-5 | Comptes d'épargne obligatoire et de fonds de solidarité | Comptes ouverts du client dans la devise du crédit ; obligatoires quand le produit prévoit le montant (S23-5). Montants calculés selon le produit (montant ou taux du prêt) | Manuel : Texte 2.20 ; S23-5 | moyenne | en place |
+| S89-6 | Assureur | Assureurs (S21) du type d'assurance du produit, obligatoire si le produit en a une ; montant selon le produit | Manuel : Texte 2.21 (« le montant apparaît automatiquement suivant le paramétrage ») | moyenne | en place |
+| S89-7 | Objet, zone, agent | Objet de crédit (S21) et zone (S21, proposée depuis la fiche) obligatoires ; agent de crédit parmi les utilisateurs de l'agence, proposé : celui qui a saisi la demande | Manuel : Texte 2.22 et 2.23 ; S21-4 | moyenne | en place |
+| S89-8 | Ce qui est enregistré | Le crédit (statut « mis en place ») avec son numéro agence/produit/rang (0412/L001/00001), son échéancier (capital et intérêt par échéance), son TEG, ses frais, son assurance, son épargne obligatoire et son fonds de solidarité ; la demande passe « mise en place ». Les dates seront recalculées au déblocage | Donnée exigée ailleurs : S84 ; S75 ; Instr. BCC 38, art. 3 et 5 | moyenne | en place |
+| S89-9 | Droits | Profil qui a S89 (agent de crédit au départ) | Écran voisin : DROITS_DEPART | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 
@@ -1331,3 +1345,4 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S85-2 | S85 Analyse financière | Compte d'exploitation | Mensuel : revenus, achats et coût des ventes, charges d'exploitation, charges familiales, échéances d'autres dettes. Marge brute = revenus − achats ; revenu net = revenus − toutes les charges et échéances |
 | S85-3 | S85 Analyse financière | Bilan simplifié (développée) | Actif : trésorerie, stocks, créances clients, immobilisations ; passif : dettes à court et à long terme ; fonds propres = actif − dettes |
 | S85-4 | S85 Analyse financière | Ratios | Capacité de remboursement = échéance mensuelle / revenu net ; endettement = dettes / fonds propres ; liquidité = (trésorerie + stocks + créances) / dettes à court terme ; couverture = valeur des garanties / montant. Deux décimales. L'échéance mensuelle est la première échéance de la simulation (S84) ramenée au mois |
+| S89-4 | S89 Dossier : mise en place | Structure de référencement | Liste à une valeur, « Part. classique », la seule montrée |

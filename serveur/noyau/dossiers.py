@@ -201,13 +201,14 @@ def controler(u, did: int, d) -> dict:
 
 def encours(u, tiers_ids: list[int] | None = None) -> int:
     """En CDF, au cours du jour (PCCI § 7.1) : crédits en cours (capital prêté moins capital remboursé) et demandes approuvées pas encore mises en place ;
-    tous les clients si None (registre S88-4)"""
+    pour une COOPEC, hors ressources affectées des bailleurs (loi 002/2002, art. 60) ; tous les clients si None (registre S88-4)"""
     filtre = "" if tiers_ids is None else " and c.tiers_id = any(%s)"
     args = (u["institution_id"],) + (() if tiers_ids is None else (tiers_ids,))
     j = jour(u)
     total = 0
     for r in lignes(f"""select c.devise, sum(c.montant) - coalesce(sum((select sum((r.repartition->>'capital')::bigint) from remboursement r where r.credit_id = c.id)), 0) as m
-                        from credit c where c.institution_id = %s and c.statut in ('mis_en_place', 'vise', 'debloque'){filtre} group by c.devise""", args):
+                        from credit c where c.institution_id = %s and c.statut in ('mis_en_place', 'vise', 'debloque'){filtre}
+                        and not (%s and c.ligne_budget_id is not null) group by c.devise""", args + (est_coopec(u),)):
         total += round(int(r["m"]) * cours(r["devise"], j))
     for r in lignes(f"""select c.devise, sum(c.montant_approuve) as m from demande_credit c where c.institution_id = %s and c.statut = 'approuvee'{filtre}
                         group by c.devise""", args):

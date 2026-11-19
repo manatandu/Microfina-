@@ -60,6 +60,12 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       indicateurs: (date: string, auxiliaires: boolean) => get(`/epargne/rapports/indicateurs?date=${date}&auxiliaires=${auxiliaires}`),
       inactivite: (date: string, jours: number | null, tous: boolean) => get(`/epargne/rapports/inactivite?date=${date}${jours === null ? "" : `&jours=${jours}`}&tous=${tous}`),
     },
+    miseEnPlace: {
+      contexte: () => get("/credit/mise-en-place/contexte"),
+      apercu: (id: number, d: unknown) => post(`/credit/mise-en-place/${id}/apercu`, d),
+      mettreEnPlace: (id: number, d: unknown) => post(`/credit/mise-en-place/${id}`, d),
+      lire: (id: number) => get(`/credit/credits/${id}`),
+    },
     dossiers: {
       contexte: () => get("/credit/dossiers/contexte"),
       fondsPropres: () => get("/credit/fonds-propres"),

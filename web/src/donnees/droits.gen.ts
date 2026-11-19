@@ -296,6 +296,12 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "localisation.supprimer": [
 "S20"
 ],
+"miseEnPlace.apercu": [
+"S89"
+],
+"miseEnPlace.mettreEnPlace": [
+"S89"
+],
 "modeles.enregistrer": [
 "S26"
 ],

@@ -1448,6 +1448,52 @@ def test_dossier_credit(clients, journee):
     assert agent.get("/api/credit/dossiers?statut=approuvee", **H).json()[0]["numero"] == "DC000001"
 
 
+def credit_approuve(clients, produit=None):
+    """Produit, demande de Kalala (1 000 000 CDF sur 12 mois), contrôle et approbation : la demande approuvée, prête pour la mise en place (S89)"""
+    chef, agent = clients["chef"], clients["agent"]
+    pid = chef.post("/api/produits-credit", produit or PRODUIT, **H).json()["produits"][0]["id"]
+    ctx = agent.get("/api/credit/dossiers/contexte", **H).json()
+    pr = next(x for x in ctx["provinces"] if x["nom"] == "Kinshasa")["id"]; vi = next(x for x in ctx["villes"] if x["provinceId"] == pr)["id"]
+    k = T("0412-000318")
+    e = {"nbHommes": 0, "nbFemmes": 1, "montantHommes": 0, "montantFemmes": 100000000, "nbGroupes": 0}
+    x = agent.post("/api/credit/dossiers", {"produitId": pid, "tiersId": k, "duree": 12, "provinceId": pr, "villeId": vi, **e, "ressaisie": e}, **H).json()
+    chef.post(f"/api/credit/dossiers/{x['id']}/controle", {"effectif": 1, "nbGroupes": 0, "montant": 100000000}, **H)
+    agent.post(f"/api/tiers/{k}/consentements", {"code": "CR", "dateDebut": "2026-01-01", "dateFin": "", "commentaire": ""}, **H)
+    chef.post("/api/credit/fonds-propres", {"dateArrete": "2026-10-31", "montant": 100000000000}, **H)
+    a = chef.post(f"/api/credit/dossiers/{x['id']}/approbation", {"montantApprouve": 100000000, "consultationCrLe": "2026-11-05", "consultationCrRef": "CR-1"}, **H)
+    assert a.status_code == 200, a.content
+    return pid, x["id"], k
+
+
+def objet_credit(chef) -> int:
+    t = chef.get("/api/credit-referentiels/types_objet", **H).json()
+    sid = next(iter(t["options"].values()))[0]["id"]
+    tid = chef.post("/api/credit-referentiels/types_objet", {"libelle": "Commerce", "secteurId": sid}, **H).json()["lignes"][0]["id"]
+    return chef.post("/api/credit-referentiels/objets", {"libelle": "Achat de marchandises", "typeObjetId": tid}, **H).json()["lignes"][0]["id"]
+
+
+def test_mise_en_place(clients, journee):
+    """S89 (p. 113 et 114) : crédit créé depuis la demande approuvée, échéancier et TEG (Instr. BCC 38, art. 3 et 5), comptes d'épargne obligatoire,
+    objet et zone obligatoires, numéro agence/produit/rang (registre S89-1 à S89-9, CR-6, CR-24)"""
+    chef, agent = clients["chef"], clients["agent"]
+    _, did, k = credit_approuve(clients)
+    objet = objet_credit(chef)
+    ctx = agent.get("/api/credit/mise-en-place/contexte", **H).json()
+    a = agent.post(f"/api/credit/mise-en-place/{did}/apercu", {}, **H).json()
+    assert a["simulation"]["epargneObligatoire"] == 10000000 and a["simulation"]["tegA"] == 46.07
+    ce = next(c["id"] for c in a["comptes"])
+    m = {"compteEpargneId": ce, "objetId": objet, "zoneId": ctx["zones"][0]["id"], "agentId": a["demande"]["agentId"]}
+    r = agent.post(f"/api/credit/mise-en-place/{did}", {**m, "objetId": None}, **H)
+    assert r.status_code == 422 and "Objet" in r.json()["message"]
+    r = agent.post(f"/api/credit/mise-en-place/{did}", {**m, "compteEpargneId": None}, **H)
+    assert "épargne obligatoire" in r.json()["message"]
+    c = agent.post(f"/api/credit/mise-en-place/{did}", m, **H).json()
+    assert (c["numero"], c["statut"], c["montant"], c["nombreTraites"], c["tegA"]) == ("0412/L001/00001", "mis_en_place", 100000000, 12, 46.07)
+    assert sum(e["capital"] for e in c["echeancier"]) == 100000000 and c["epargneObligatoire"] == 10000000 and c["frais"] == 1000000
+    assert agent.get("/api/credit/dossiers?statut=mise_en_place", **H).json()[0]["numero"] == "DC000001"
+    assert "pas en attente" in agent.post(f"/api/credit/mise-en-place/{did}", m, **H).json()["message"]
+
+
 def test_produit_credit(clients):
     """S23 (p. 37 et 38) : Information de base de la capture ; méthode dégressive (Instr. BCC 38, art. 11) ; garanties, assurance, frais
     (Instr. BCC 38 art. 6, Instr. BCC 40 art. 8) ; pénalité d'anticipation au plus 50 % (Instr. BCC 38, art. 14) ; registre S23-1 à S23-7"""

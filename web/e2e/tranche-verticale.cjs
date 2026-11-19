@@ -83,6 +83,11 @@ const OUT = process.argv[2];
   await aller('/parametrage/s21'); await p.getByRole('tab', { name: 'Cycle Credit' }).click(); await p.getByLabel('Libellé *').waitFor();
   await p.getByLabel('Code *').fill('C03'); await p.getByLabel('Libellé *').fill('TROISIEME CYCLE'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: 'TROISIEME CYCLE' }).waitFor(); await etape('02f9-credit-cycles');
+  // Type objet et objet de crédit (S21) : lus par la mise en place (S89)
+  await p.getByRole('tab', { name: 'Type Objet' }).click(); await p.getByLabel('Type Objet: *').fill('Commerce'); await p.getByLabel('Secteur Activité : *').selectOption({ index: 1 });
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Commerce', exact: true }).waitFor();
+  await p.getByRole('tab', { name: 'Objet Credit' }).click(); await p.getByLabel('Objet Credit: *').fill('Achat de marchandises'); await p.getByLabel('Type Objet : *').selectOption({ label: 'Commerce' });
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Achat de marchandises' }).waitFor();
   await p.getByRole('tab', { name: 'Dégré Credit' }).click(); await p.getByRole('cell', { name: 'Irrécupérables' }).waitFor(); await etape('02f10-credit-degres');
   // Chef : ordre de remboursement (S22, p. 37) : Intérêt d'abord, puis Capital
   await aller('/parametrage/s22'); await p.getByRole('cell', { name: 'Capital Pénalité Intérêt Epargne Solidarité' }).waitFor();
@@ -524,6 +529,18 @@ const OUT = process.argv[2];
   await apv.getByLabel('Montant approuvé *').fill('1 000 000'); await apv.getByLabel('Référence du rapport de la Centrale *').fill('CR-2026-0001'); await etape('06w3-approbation');
   await apv.getByRole('button', { name: 'Approuver' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByText('Approuvé avec succès').waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
+  // Mise en place (S89, p. 113 et 114 ; registre S89-1 à S89-9) : demande DC000001, objet de crédit, zone de la fiche, agent, Enregistrer
+  await login('Bijou Kasongo'); await aller('/credit/s89'); await p.getByRole('button', { name: 'Demande', exact: true }).click();
+  await p.getByRole('dialog', { name: 'Demandes en attente de mise en place' }).getByRole('cell', { name: 'DC000001' }).dblclick();
+  await p.getByRole('tab', { name: 'Informations sur le montant et la durée' }).waitFor(); await etape('06w4-mise-en-place');
+  for (let i = 0; i < 2; i++) await p.getByRole('button', { name: 'Suivant', exact: true }).click();
+  await p.getByLabel('Objet de crédit *').selectOption({ label: 'Achat de marchandises' }); await p.getByLabel('Zone *').selectOption({ label: 'Matete' });
+  await p.getByRole('button', { name: 'Suivant', exact: true }).click();
+  await p.getByRole('button', { name: 'Echéancier' }).click(); await p.getByRole('dialog', { name: 'Echéancier' }).getByRole('cell', { name: '97 487,13 CDF' }).first().waitFor();
+  await p.getByRole('dialog', { name: 'Echéancier' }).getByRole('button', { name: 'Fermer' }).click();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByText('Crédit N° 0412/L001/00001').waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
+  await login('J.-P. Mukendi');
   // Rapports clients (S51)
   await aller('/clients/s51'); await p.getByRole('button', { name: 'Rechercher' }).click();
   await p.getByRole('cell', { name: '0412-000318' }).waitFor(); await etape('06x-rapport-multicritere');
@@ -931,13 +948,13 @@ const OUT = process.argv[2];
   await p.getByRole('tab', { name: 'Modèle de plan comptable' }).click(); await p.getByRole('cell', { name: 'COMPTES DE TRESORERIE' }).waitFor(); await etape('18c-plan-modele');
   // Résiliation (S48), par le chef
   await login('J.-P. Mukendi'); await aller('/clients/s48');
-  // Kalala a encore des soldes : refus (registre S48-1 ; loi 002/2002, art. 27)
+  // Kalala a un prêt en cours (loi 002/2002, art. 24 ; registre CR-23) et encore des soldes (registre S48-1 ; art. 27) : refus
   await p.getByRole('button', { name: 'Rechercher un client' }).click();
   const rk = p.getByRole('dialog', { name: "Recherche d'un client" });
   await rk.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rk.getByRole('row').filter({ hasText: 'Kalala' }).first().dblclick();
   await p.getByLabel('Motif *').selectOption('Raisons personnelles');
   await p.getByRole('button', { name: 'Résilier' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
-  await p.getByRole('dialog', { name: 'Erreur' }).getByText(/comptes à solder : 0412-000318-01, 0412-000318-02/).waitFor(); await etape('19a-apurement-a-faire');
+  await p.getByRole('dialog', { name: 'Erreur' }).getByText(/Client emprunteur : il ne peut pas se retirer/).waitFor(); await etape('19a-apurement-a-faire');
   await p.getByRole('button', { name: 'Ok' }).click();
   await p.getByRole('button', { name: 'Rechercher un client' }).click();
   const rr = p.getByRole('dialog', { name: "Recherche d'un client" });

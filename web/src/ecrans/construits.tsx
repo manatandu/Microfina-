@@ -25,6 +25,7 @@ import JournalCaisse from "./JournalCaisse";
 import SimulationCredit from "./SimulationCredit";
 import AnalyseFinanciere from "./AnalyseFinanciere";
 import { ApprobationDemande, ControleDemande, DemandeCredit } from "./DossierCredit";
+import MiseEnPlace from "./MiseEnPlace";
 import type { ComponentType } from "react";
 import GuichetDepotRetrait from "./Guichet";
 import Adhesion from "./Adhesion";
@@ -163,6 +164,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S86: DemandeCredit,
   S87: ControleDemande,
   S88: ApprobationDemande,
+  S89: MiseEnPlace,
   S79: BilletageCaisse,
   S80: ValidationBilletage,
   S102: PlanComptes,

@@ -282,7 +282,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 61;
+  version: 62;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)
@@ -316,6 +316,7 @@ export interface Etat {
   analyses: AnalyseFinanciere[];   // S85
   demandes: DemandeCredit[];   // S86 à S88
   fondsPropres: { dateArrete: string; montant: number; saisiPar: number }[];   // registre CR-2
+  credits: CreditPret[];   // S89 et suivants
   reversementsRetenues: ReversementRetenue[];   // écart E16
   journalSecurite: EvenementSecurite[];   // écart E17
   declarationsCip: { type: string; objetId: number; dateEvenement: string; declareLe: string; reference: string; declarePar: number }[];   // écart E06   // S46, S42, S43
@@ -437,4 +438,15 @@ export interface DemandeCredit {
   parts: { membre: string; montant: number }[]; statut: "saisie" | "controlee" | "approuvee" | "mise_en_place"; creeLe: string; saisiPar: number;
   controlePar: number | null; approuvePar: number | null; montantApprouve: number | null; consultationCrLe: string; consultationCrRef: string;
   accordConseilRef: string; accordBccRef: string;
+}
+
+/** S89 : crédit mis en place, avec son échéancier et son TEG (registre S89, CR-6, CR-8, CR-24) */
+export interface CreditPret {
+  id: number; demandeId: number; numero: string; tiersId: number; produitId: number; montant: number; devise: Devise; duree: number; nombreTraites: number;
+  differe: number; periodicite: string; tauxInteret: string; tauxDiffere: string; dateEffet: string; dateDebut: string; cycleId: number | null; zoneId: number;
+  agentId: number; ligneBudgetId: number | null; ligneFinancement: string; bailleur: string; structure: string; compteEpargneId: number | null;
+  compteSolidariteId: number | null; epargneObligatoire: number; fondsSolidarite: number; frais: number; assurance: number; assureurId: number | null;
+  objetId: number; tegR: number | null; tegA: number | null; parts: { membre: string; montant: number }[];
+  statut: "mis_en_place" | "vise" | "debloque" | "solde" | "passe_en_perte"; misEnPlacePar: number; misEnPlaceLe: string; debloqueLe: string;
+  echeancier: { rang: number; date: string; capital: number; interet: number }[];
 }

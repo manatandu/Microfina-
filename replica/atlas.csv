@@ -104,7 +104,7 @@ S85,"Analyse financière : allégée, développée",112 (deux captures),B,onglet
 S86,Dossier : analyse (demande),113,B,onglets,page de détail après Suivant,M:texte p. 113,7 Crédit,oui
 S87,Dossier : contrôle,113 (texte),C,visa,tout l'écran,M:texte p. 113 ; A:S90,7 Crédit,oui
 S88,Dossier : approbation,113 et 114 (texte),C,visa,tout l'écran,M:texte p. 114 ; A:S90,7 Crédit,oui
-S89,Dossier : mise en place,114 (texte détaillé),C,onglets,tout l'écran (capture p. 113 à vérifier),"M:texte p. 114 ; A:S84, S54 ; R:Instr. BCC (TEG, limites)",7 Crédit,non
+S89,Dossier : mise en place,114 (texte détaillé),C,onglets,tout l'écran (capture p. 113 à vérifier),"M:texte p. 114 ; A:S84, S54 ; R:Instr. BCC (TEG, limites)",7 Crédit,oui
 S90,"Visas : responsable crédit, comité, service financier",114 et 115 (trois bandes),A,visa,,,7 Crédit,non
 S91,Historique suivi,115,A,rapport,,,7 Crédit,non
 S92,Crédits validés non débloqués,115,A,rapport,,,7 Crédit,non

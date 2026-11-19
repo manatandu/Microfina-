@@ -10,7 +10,7 @@ import {
   type ChequeClient, type Chequier, type DepotTerme, type PlanEpargne, type ClotureCompte, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget, type CriteresAtypiques, type GelAvoirs,
-  type AnalyseFinanciere, type DemandeCredit,
+  type AnalyseFinanciere, type DemandeCredit, type CreditPret,
 } from "./types";
 import { DROITS_METHODES } from "./droits.gen";
 import registreEcrans from "../ecrans/registre.json";
@@ -20,7 +20,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v84";
+const CLE = "likelemba-demo-v85";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -28,7 +28,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 61) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 62) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -770,6 +770,9 @@ const tiers = {
     const motif = d.motif.trim();
     if (!motif) throw new ErreurMetier("À remplir : motif.");
     if (!valeursListe("motif_depart").some((l) => l.libelle === motif)) throw new ErreurMetier("Motif inconnu.");
+    // Loi 002/2002, art. 24 : un membre emprunteur ne se retire pas tant que son prêt court (COOPEC ; registre CR-23). Mêmes règles que services.engagements_credit
+    if (estCoopec() && E.credits.some((c) => c.tiersId === id && ["mis_en_place", "vise", "debloque"].includes(c.statut)))
+      throw new ErreurMetier("Client emprunteur : il ne peut pas se retirer tant que son prêt court (loi 002/2002, art. 24).");
     controlerApurement(id);
     const j = journees.courante();
     Object.assign(t, { statut: "resilie", motifDepart: motif, resilieLe: j && j.statut === "ouverte" ? j.date : new Date().toISOString().slice(0, 10) });
@@ -2711,9 +2714,14 @@ const entierDossier = (d: Record<string, unknown> | undefined, k: string, nom: s
 const jourDossier = () => journees.courante()?.date ?? new Date().toISOString().slice(0, 10);
 const fondsPropresActuels = () => { const f = [...E.fondsPropres].sort((a, b) => b.dateArrete.localeCompare(a.dateArrete))[0];
   return f ? { dateArrete: f.dateArrete, montant: f.montant } : null; };
-/** En CDF au cours du jour : demandes approuvées pas encore mises en place (les crédits en cours s'y ajouteront avec la mise en place, S89) ; registre S88-4 */
-const encoursDossier = (tiersIds?: number[]) => E.demandes.filter((x) => x.statut === "approuvee" && (!tiersIds || tiersIds.includes(x.tiersId)))
-  .reduce((s, x) => s + Math.round((x.montantApprouve ?? 0) * coursDe(x.devise, jourDossier())), 0);
+/** En CDF au cours du jour : crédits en cours (capital non remboursé) et demandes approuvées pas encore mises en place ; pour une COOPEC, hors ressources
+ * affectées des bailleurs (loi 002/2002, art. 60) ; registre S88-4 */
+const capitalRembourse = (_c: CreditPret) => 0;   // remboursements : S76, S55
+const encoursDossier = (tiersIds?: number[]) =>
+  E.credits.filter((c) => ["mis_en_place", "vise", "debloque"].includes(c.statut) && (!tiersIds || tiersIds.includes(c.tiersId)) && !(estCoopec() && c.ligneBudgetId))
+    .reduce((s, c) => s + Math.round((c.montant - capitalRembourse(c)) * coursDe(c.devise, jourDossier())), 0)
+  + E.demandes.filter((x) => x.statut === "approuvee" && (!tiersIds || tiersIds.includes(x.tiersId)))
+    .reduce((s, x) => s + Math.round((x.montantApprouve ?? 0) * coursDe(x.devise, jourDossier())), 0);
 const depotsMembres = () => E.ecritures.flatMap((e) => e.lignes).filter((l) => l.contrat?.startsWith("depot:")).reduce((s, l) => s + (l.sens === "C" ? l.montantCdf : -l.montantCdf), 0);
 const vueDemande = (x: DemandeCredit) => { const t = E.tiers.find((y) => y.id === x.tiersId)!; const p = E.produitsCredit.find((y) => y.id === x.produitId)!;
   const lieu = (id: number) => E.lieux.find((l) => l.id === id)?.nom ?? "";
@@ -2856,6 +2864,83 @@ const dossiers = {
     }
     Object.assign(x, { statut: "approuvee", montantApprouve: m, approuvePar: u.id, consultationCrLe: cr, consultationCrRef: ref, accordConseilRef: conseil, accordBccRef: bcc });
     enregistrer(); return vueDemande(x);
+  },
+};
+
+// ---------- S89 : Crédit > Dossier de crédit > Mise en place (manuel p. 113 et 114, texte 2.16 à 2.23). Mêmes règles que serveur/noyau/mise_en_place.py.
+// Registre S89-1 à S89-9, CR-6, CR-8, CR-24. ----------
+const STRUCTURES = ["Part. classique"];   // capture p. 113 (registre S89-4)
+function demandeApprouvee(id: number) {
+  const x = E.demandes.find((y) => y.id === id);
+  if (!x) throw new ErreurMetier("Demande introuvable.");
+  if (x.statut !== "approuvee") throw new ErreurMetier("Cette demande n'est pas en attente de mise en place.");
+  return x;
+}
+const vueCredit = (c: CreditPret) => ({ id: c.id, numero: c.numero, tiersId: c.tiersId, membre: E.tiers.find((t) => t.id === c.tiersId)!.numero,
+  client: titulaire(E.tiers.find((t) => t.id === c.tiersId)!), produitId: c.produitId, produit: String(E.produitsCredit.find((p) => p.id === c.produitId)?.nom ?? ""),
+  montant: c.montant, devise: c.devise, duree: c.duree, nombreTraites: c.nombreTraites, differe: c.differe, periodicite: c.periodicite, tauxInteret: c.tauxInteret,
+  dateEffet: c.dateEffet, dateDebut: c.dateDebut, objet: String(stockCredit("objets").find((o) => o.id === c.objetId)?.libelle ?? ""),
+  zone: String(stockCredit("zones").find((z) => z.id === c.zoneId)?.nom ?? ""), agentId: c.agentId, agent: nomUtilisateur(c.agentId), ligneFinancement: c.ligneFinancement,
+  bailleur: c.bailleur, epargneObligatoire: c.epargneObligatoire, fondsSolidarite: c.fondsSolidarite, frais: c.frais, assurance: c.assurance,
+  assureur: String(stockCredit("assureurs").find((a) => a.id === c.assureurId)?.nom ?? ""), tegR: c.tegR, tegA: c.tegA, parts: c.parts, statut: c.statut,
+  demande: E.demandes.find((d) => d.id === c.demandeId)?.numero ?? "", dateDemande: E.demandes.find((d) => d.id === c.demandeId)?.creeLe ?? "",
+  misEnPlaceLe: c.misEnPlaceLe, misEnPlacePar: nomUtilisateur(c.misEnPlacePar), debloqueLe: c.debloqueLe, echeancier: c.echeancier });
+const miseEnPlace = {
+  contexte() {
+    lectureAdmin(["S89"]);
+    return { objets: stockCredit("objets").filter((o) => o.actif !== false).map((o) => ({ id: o.id, libelle: String(o.libelle ?? "") })),
+      zones: stockCredit("zones").filter((z) => z.actif !== false).map((z) => ({ id: z.id, code: String(z.code ?? ""), nom: String(z.nom ?? "") })),
+      assureurs: stockCredit("assureurs").map((a) => ({ id: a.id, nom: String(a.nom ?? ""), typeAssuranceId: Number(a.typeAssuranceId) })),
+      agents: E.utilisateurs.filter((x) => (x.agenceId ?? 1) === E.agence.id).map((x) => ({ id: x.id, nom: x.nom })).sort((a, b) => a.nom.localeCompare(b.nom)),
+      lignesBudget: (E.budget["lignes"] ?? []).filter((x) => x.actif).map((x) => ({ id: x.id, numero: String(x.numero ?? ""), libelle: String(x.libelle ?? "") })),
+      structures: STRUCTURES };
+  },
+  /** Informations sur le montant et la durée, comptes du client et échéancier de la demande (2.18, 2.23) */
+  apercu(id: number, d: { differe?: number }) {
+    exiger();
+    const x = demandeApprouvee(id);
+    const s = simulationCredit.simuler({ produitId: x.produitId, montant: x.montantApprouve!, duree: x.duree, differe: d?.differe ?? 0, dateDeblocage: jourDossier() });
+    const p = E.produitsCredit.find((y) => y.id === x.produitId)!, t = E.tiers.find((y) => y.id === x.tiersId)!;
+    return { demande: { id: x.id, numero: x.numero, tiersId: x.tiersId, client: titulaire(t), produit: String(p.nom), produitId: p.id, montant: x.montantApprouve!, duree: x.duree,
+        date: x.creeLe, zoneId: stockCredit("zones").find((z) => z.nom === t.zone)?.id ?? null, agentId: x.saisiPar, typeAssuranceId: (p.typeAssuranceId as number | null) ?? null, parts: x.parts },
+      comptes: E.comptes.filter((c) => c.tiersId === t.id && !c.closLe && c.devise === p.devise).sort((a, b) => a.numero.localeCompare(b.numero))
+        .map((c) => ({ id: c.id, numero: c.numero, produit: c.intitule })),
+      fondsSolidarite: chargeCredit(p.solidariteNature, p.solidariteValeur, x.montantApprouve!), differeMin: Number(p.differeMin), differeMax: Number(p.differeMax), simulation: s };
+  },
+  /** 2.16 à 2.23 ; registre S89-1 à S89-9 */
+  mettreEnPlace(id: number, d: { differe?: number; compteEpargneId?: number | null; compteSolidariteId?: number | null; assureurId?: number | null; objetId?: number | null;
+    zoneId?: number | null; agentId?: number | null; ligneBudgetId?: number | null; structure?: string }) {
+    const u = exiger();
+    const a = miseEnPlace.apercu(id, d);
+    const x = demandeApprouvee(id), p = E.produitsCredit.find((y) => y.id === x.produitId)!, s = a.simulation;
+    const ids = new Set(a.comptes.map((c) => c.id));
+    if (s.epargneObligatoire && !ids.has(d.compteEpargneId ?? -1)) throw new ErreurMetier("À remplir : compte d'épargne obligatoire du client, dans la devise du crédit.");
+    if (a.fondsSolidarite && !ids.has(d.compteSolidariteId ?? -1)) throw new ErreurMetier("À remplir : compte du fonds de solidarité du client, dans la devise du crédit.");
+    let assureur: number | null = d.assureurId ?? null;
+    if (p.typeAssuranceId) { if (!stockCredit("assureurs").some((y) => y.id === assureur && Number(y.typeAssuranceId) === Number(p.typeAssuranceId))) throw new ErreurMetier("À remplir : Assureur (de l'assurance du produit)."); }
+    else assureur = null;
+    if (!stockCredit("objets").some((o) => o.id === d.objetId && o.actif !== false)) throw new ErreurMetier("À remplir : Objet de crédit.");
+    if (!stockCredit("zones").some((z) => z.id === d.zoneId && z.actif !== false)) throw new ErreurMetier("À remplir : Zone.");
+    if (!E.utilisateurs.some((y) => y.id === d.agentId)) throw new ErreurMetier("À remplir : Agent de crédit.");
+    const lb = d.ligneBudgetId ? (E.budget["lignes"] ?? []).find((y) => y.id === d.ligneBudgetId && y.actif) : null;
+    if (d.ligneBudgetId && !lb) throw new ErreurMetier("Ligne de financement inconnue.");
+    const structure = d.structure || STRUCTURES[0]!;
+    if (!STRUCTURES.includes(structure)) throw new ErreurMetier("Structure de référencement inconnue.");
+    const c: CreditPret = { id: prochain(E.credits), demandeId: x.id, numero: `${E.agence.code}/${String(p.numero)}/${String(E.credits.length + 1).padStart(5, "0")}`, tiersId: x.tiersId,
+      produitId: p.id, montant: x.montantApprouve!, devise: x.devise, duree: x.duree, nombreTraites: s.nombreTraites, differe: s.differe, periodicite: s.periodicite,
+      tauxInteret: s.tauxInteret, tauxDiffere: s.tauxDiffere, dateEffet: s.dateEffet, dateDebut: s.dateDebut, cycleId: x.cycleId, zoneId: d.zoneId!, agentId: d.agentId!,
+      ligneBudgetId: lb?.id ?? null, ligneFinancement: lb ? `${String(lb.numero ?? "")} ${String(lb.libelle ?? "")}` : "", bailleur: "", structure,
+      compteEpargneId: s.epargneObligatoire ? d.compteEpargneId! : null, compteSolidariteId: a.fondsSolidarite ? d.compteSolidariteId! : null, epargneObligatoire: s.epargneObligatoire,
+      fondsSolidarite: a.fondsSolidarite, frais: s.frais, assurance: s.assurance, assureurId: assureur, objetId: d.objetId!, tegR: s.tegR, tegA: s.tegA, parts: x.parts,
+      statut: "mis_en_place", misEnPlacePar: u.id, misEnPlaceLe: jourDossier(), debloqueLe: "",
+      echeancier: s.echeancier.map((l) => ({ rang: l.rang, date: l.date, capital: l.capital, interet: l.interet })) };
+    E.credits.push(c); x.statut = "mise_en_place"; enregistrer(); return vueCredit(c);
+  },
+  lire(id: number) {
+    exiger();
+    const c = E.credits.find((y) => y.id === id);
+    if (!c) throw new ErreurMetier("Crédit introuvable.");
+    return vueCredit(c);
   },
 };
 
@@ -5199,6 +5284,7 @@ const apiLocal = {
   simulationCredit: asynchrone(simulationCredit, "simulationCredit"),
   analyses: asynchrone(analyses, "analyses"),
   dossiers: asynchrone(dossiers, "dossiers"),
+  miseEnPlace: asynchrone(miseEnPlace, "miseEnPlace"),
   societe: asynchrone(societe, "societe"),
   agents: asynchrone(agents, "agents"),
   jours: asynchrone(jours, "jours"),

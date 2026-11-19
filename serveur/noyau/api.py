@@ -378,6 +378,30 @@ def guichet_ed_divers(request, corps: dict = Body(...)):
     return ed_guichet.enregistrer(u(request), corps)
 
 
+@api.get("/credit/mise-en-place/contexte")
+def mise_en_place_contexte(request):
+    from . import mise_en_place as mp
+    return mp.contexte(u(request))
+
+
+@api.post("/credit/mise-en-place/{did}/apercu")
+def mise_en_place_apercu(request, did: int, corps: dict = Body(...)):
+    from . import mise_en_place as mp
+    return mp.apercu(u(request), did, corps)
+
+
+@api.post("/credit/mise-en-place/{did}")
+def mise_en_place_enregistrer(request, did: int, corps: dict = Body(...)):
+    from . import mise_en_place as mp
+    return mp.mettre_en_place(u(request), did, corps)
+
+
+@api.get("/credit/credits/{cid}")
+def credit_lire(request, cid: int):
+    from . import mise_en_place as mp
+    return mp.lire(u(request), cid)
+
+
 @api.get("/credit/dossiers/contexte")
 def dossiers_contexte(request):
     from . import dossiers
