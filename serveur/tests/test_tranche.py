@@ -2382,6 +2382,39 @@ def test_blocage_compte_et_montant(clients, journee):
     assert [b["enCours"] for b in e["historique"]] == [False, False]
 
 
+def test_rapports_epargne(clients, journee):
+    """S72 (manuel p. 82 à 84) : virements compte à compte, garanties, données de la recherche multicritère, indicateurs, comptes inactifs et dormants"""
+    from noyau.bd import executer
+    chef, agent, caisse = clients["chef"], clients["agent"], clients["caisse"]
+    assert caisse.get("/api/epargne/rapports/virements?du=2026-01-01&au=2026-11-05", **H).status_code == 403
+    assert agent.get("/api/epargne/rapports/virements?du=2026-01-01&au=2026-11-05", **H).json() == []
+    # Un DAT constitué : le compte émetteur et le compte DAT bougent dans la même écriture (registre S72-1)
+    P = {"numero": 6, "code": "DAT", "famille": "EPARGNE", "libelle": "Dépôt à terme", "devise": "CDF", "soldeMinimum": 0, "nbMaxComptes": 1,
+         "operer": True, "depotCheque": False, "caution": False, "nantissement": False, "calculerInteret": True, "soldeNegatif": False, "repartitionGroupe": False, "actif": True}
+    assert chef.post("/api/produits-epargne", P, **H).status_code == 200
+    pid = next(x["id"] for x in chef.get("/api/produits-epargne").json()["produits"] if x["code"] == "DAT")
+    assert chef.post("/api/parametrage-epargne", {"onglet": "DAT", "produitId": pid, "compteLie": "340"}, **H).status_code == 200
+    kalala, em = T("0412-000318"), C("0412-000318-02")
+    cdat = agent.post("/api/epargne/comptes", {"cle": cle(), "tiersId": kalala, "produitId": pid}, **H).json()["id"]
+    x = agent.post("/api/epargne/dat", {"cle": cle(), "produitId": pid, "tiersId": kalala, "compteEmetteurId": em, "compteDatId": cdat, "montant": 500000, "duree": 6,
+                                        "tauxInteret": "5", "tauxPenalite": "1", "aEcheance": True, "dateDepot": "2026-11-05", "observation": "", "reconduction": False}, **H).json()
+    assert chef.post(f"/api/epargne/dat/{x['id']}/validation", **H).status_code == 200
+    v = agent.get("/api/epargne/rapports/virements?du=2026-11-05&au=2026-11-05", **H).json()
+    assert sorted((l["compte"], l["debit"], l["credit"]) for l in v) == [("0412-000318-02", 500000, 0), (f"0412-000318-{6:02d}", 0, 500000)]
+    assert agent.get("/api/epargne/rapports/garanties?du=2026-01-01&au=2026-11-05", **H).json() == []        # aucun crédit encore
+    cs = {c["compte"]: c for c in agent.get("/api/epargne/rapports/comptes?du=2026-11-05&au=2026-11-05", **H).json()}
+    assert cs["0412-000318-02"]["debits"] == 500000 and cs["0412-000318-02"]["operations"][0]["debit"] == 500000
+    # Comptes dormants : dix ans sans opération (loi 22/069) ; inactifs : selon le nombre de jours
+    executer("update compte_depot set ouvert_le = '2016-04-01' where numero = '0412-000320-02'")
+    assert [c["compte"] for c in chef.get("/api/epargne/rapports/inactivite?date=2026-11-05", **H).json()] == ["0412-000320-02"]
+    tous = chef.get("/api/epargne/rapports/inactivite?date=2026-11-05&jours=0&tous=true", **H).json()
+    assert len(tous) >= 5 and next(c for c in tous if c["compte"] == "0412-000320-02")["jours"] == 3870
+    assert chef.get("/api/epargne/rapports/inactivite?date=2026-11-05&jours=1", **H).json() != []
+    ind = chef.get("/api/epargne/rapports/indicateurs?date=2026-11-05", **H).json()
+    assert ind["annee"] == 2026 and sum(x["total"] for x in ind["comptesParSexe"]) >= 5 and ind["regroupementParSexe"] and ind["creditsEncours"] == []
+    assert sum(x["parts"] for x in ind["partsSociales"]) > 0
+
+
 def test_registre_des_membres(clients, journee):
     """Écart E12 : AUSCOOP, art. 9 ; loi 002/2002, art. 67"""
     from noyau.bd import executer

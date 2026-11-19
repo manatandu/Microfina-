@@ -13,6 +13,7 @@ from . import banque_operations as bop
 from . import plans_epargne as ple
 from . import clotures as clo
 from . import blocages as blo
+from . import rapports_epargne as rep
 from . import cheques_clients as chq
 from . import chequiers as chqr
 from . import emprunts as emp
@@ -756,6 +757,32 @@ def epargne_bloquer(request, corps: dict = Body(...)):
 @api.post("/epargne/blocages/{bid}/deblocage")
 def epargne_debloquer(request, bid: int, corps: dict = Body(...)):
     return blo.debloquer(u(request), bid, corps)
+
+
+# ---------- S72 : Épargne > Rapport (manuel p. 82 à 84) ----------
+@api.get("/epargne/rapports/virements")
+def epargne_rapport_virements(request, du: str = "", au: str = ""):
+    return rep.virements(u(request), du, au)
+
+
+@api.get("/epargne/rapports/garanties")
+def epargne_rapport_garanties(request, du: str = "", au: str = "", produitId: int | None = None, agentId: int | None = None):
+    return rep.garanties(u(request), du, au, produitId, agentId)
+
+
+@api.get("/epargne/rapports/comptes")
+def epargne_rapport_comptes(request, du: str = "", au: str = ""):
+    return rep.comptes(u(request), du, au)
+
+
+@api.get("/epargne/rapports/indicateurs")
+def epargne_rapport_indicateurs(request, date: str = "", auxiliaires: bool = False):
+    return rep.indicateurs(u(request), date, auxiliaires)
+
+
+@api.get("/epargne/rapports/inactivite")
+def epargne_rapport_inactivite(request, date: str = "", jours: int | None = None, tous: bool = False):
+    return rep.inactivite(u(request), date, jours, tous)
 
 
 @api.get("/banque/adhesions/apercu")

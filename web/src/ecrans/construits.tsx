@@ -18,6 +18,7 @@ import { MiseEnPlaceDat, RechercheDat, RuptureDat, ValidationDat } from "./Depot
 import PlanEpargne from "./PlanEpargne";
 import ClotureCompte from "./Clotures";
 import BlocageCompte from "./Blocages";
+import RapportsEpargne from "./RapportsEpargne";
 import type { ComponentType } from "react";
 import GuichetDepotRetrait from "./Guichet";
 import Adhesion from "./Adhesion";
@@ -136,6 +137,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S69: PlanEpargne,
   S70: ClotureCompte,
   S71: BlocageCompte,
+  S72: RapportsEpargne,
   SC01: ExamenRenforce,
   SC02: CentraleIncidents,
   SC03: Plaintes,

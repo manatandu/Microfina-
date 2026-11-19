@@ -785,6 +785,14 @@ const OUT = process.argv[2];
   const hist = p.getByRole('dialog', { name: 'Historique des actions' }); await hist.getByRole('button', { name: 'Débloquer' }).first().click();
   await hist.getByLabel('Motif du déblocage : *').fill('Litige réglé'); await hist.getByRole('button', { name: 'Débloquer' }).last().click(); await oui();
   await hist.getByRole('cell', { name: 'Litige réglé' }).waitFor(); await etape('06c33-deblocage'); await hist.getByRole('button', { name: 'Fermer' }).click();
+  // Rapports épargne (S72, p. 82 à 84 ; registre S72-1 à S72-8) : recherche multicritère, indicateurs, comptes inactifs
+  await aller('/epargne/s72?page=multicritere'); await p.getByRole('heading', { name: 'Recherche multicritères épargne' }).waitFor();
+  await p.getByLabel('Nom', { exact: true }).fill('Kalala'); await p.getByRole('button', { name: 'Rechercher', exact: true }).click();
+  await p.getByRole('cell', { name: '0412-000318-01' }).waitFor(); await etape('06c34-multicritere-epargne');
+  await p.getByRole('tab', { name: 'Indicateur crédit épargne' }).click(); await p.getByRole('button', { name: 'Exécuter' }).click();
+  await p.getByRole('cell', { name: 'Aucune donnée' }).last().waitFor(); await etape('06c35-indicateurs');
+  await p.getByRole('tab', { name: 'Rapports des comptes inactifs' }).click(); await p.getByRole('button', { name: 'Exécuter' }).click();
+  await p.getByRole('cell', { name: '0412-000318-01' }).waitFor(); await etape('06c36-comptes-inactifs');
   await login('Esther Ngalula');
   // Apurement avant la résiliation (registre S48-1) : Lukusa retire tout son solde (85 000 CDF)
   await aller('/caisse/s74?op=retrait'); await client('Lukusa'); await p.getByLabel('N° compte').selectOption({ label: '0412-000320-02' });

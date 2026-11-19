@@ -1128,6 +1128,25 @@ describe("journée de guichet", () => {
     await expect(api.connexions.lire()).rejects.toThrow("Droit manquant");
   });
 
+  it("rapports épargne (S72, p. 82 à 84) : virements, comptes de la période, indicateurs, comptes inactifs et dormants", async () => {
+    await journeeOuverte();
+    await connecter("engalula");
+    await expect(api.rapportsEpargne.virements("2026-01-01", "2026-11-05")).rejects.toThrow("Droit");
+    await connecter("bkasongo");
+    expect(await api.rapportsEpargne.virements("2026-01-01", "2026-11-05")).toEqual([]);   // la reprise des soldes n'est pas un virement
+    expect(await api.rapportsEpargne.garanties("2026-01-01", "2026-11-05")).toEqual([]);
+    const cs = await api.rapportsEpargne.comptes("2026-01-01", "2026-11-05");
+    expect(cs.find((c) => c.compte === "0412-000318-02")!.solde).toBeGreaterThan(0);
+    await connecter("jpmukendi");
+    _etat().comptes.find((c) => c.numero === "0412-000320-02")!.ouvertLe = "2016-04-01";
+    expect((await api.rapportsEpargne.inactivite("2026-11-05", null, false)).map((c) => c.compte)).toEqual(["0412-000320-02"]);
+    const tous = await api.rapportsEpargne.inactivite("2026-11-05", 0, true);
+    expect(tous.find((c) => c.compte === "0412-000320-02")!.jours).toBe(3870);
+    const ind = await api.rapportsEpargne.indicateurs("2026-11-05", false);
+    expect([ind.annee, ind.comptesParSexe.reduce((s, x) => s + x.total, 0) >= 5, ind.regroupementParSexe.length > 0, ind.creditsEncours]).toEqual([2026, true, true, []]);
+    expect(ind.partsSociales.reduce((s, x) => s + x.parts, 0)).toBeGreaterThan(0);
+  });
+
   it("blocage (S71, p. 81) : un montant ou tout le compte, avec motif ; déblocage avec motif ; le disponible suit", async () => {
     await journeeOuverte();
     await connecter("jpmukendi");

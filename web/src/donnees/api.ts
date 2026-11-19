@@ -1721,7 +1721,7 @@ const releves = {
 const lireTaux = (v: string | undefined, nom: string, maxi: number) => { const t = (v ?? "").trim().replace(",", ".") || "0";
   if (!/^\d+(\.\d{1,4})?$/.test(t) || Number(t) >= maxi) throw new ErreurMetier(`${nom} : un pourcentage, par exemple 7,5.`); return t; };
 export const ajouterMois = (iso: string, n: number) => { const [a, m, j] = iso.split("-").map(Number) as [number, number, number]; const t = m - 1 + n;
-  const an = a + Math.floor(t / 12), mo = (t % 12) + 1, der = new Date(Date.UTC(an, mo, 0)).getUTCDate();
+  const an = a + Math.floor(t / 12), mo = (((t % 12) + 12) % 12) + 1, der = new Date(Date.UTC(an, mo, 0)).getUTCDate();
   return `${an}-${String(mo).padStart(2, "0")}-${String(Math.min(j, der)).padStart(2, "0")}`; };
 /** Intérêt simple : montant × taux annuel × mois / 12, arrondi à l'unité (registre S65-3) */
 export const interetDat = (montant: number, taux: string, mois: number) => Math.round(montant * Number(taux.replace(",", ".")) / 100 * mois / 12);
@@ -2184,6 +2184,83 @@ const blocages = {
     if (!motif) throw new ErreurMetier("À remplir : Motif.");
     Object.assign(b, { fin: journees.courante()?.date ?? new Date().toISOString().slice(0, 10), levePar: u.id, motifLevee: motif });
     enregistrer(); return blocages.etat(b.compteId);
+  },
+};
+
+// ---------- S72 : Épargne > Rapport (manuel p. 82 à 84). Mêmes règles que serveur/noyau/rapports_epargne.py (registre S72). ----------
+const lignesDepot = (jusqua: string, depuis = "") => E.ecritures.flatMap((e) => { const d = dateJournee(e.journeeId);
+  return d <= jusqua && d >= depuis ? e.lignes.filter((l) => l.contrat?.startsWith("depot:")).map((l) => ({ e, l, d })) : []; });
+const DATE_RAPPORT = (v: string, nom: string) => { if (!/^\d{4}-\d{2}-\d{2}$/.test(v ?? "")) throw new ErreurMetier(`À remplir : ${nom}.`); return v; };
+function derniereOperation(c: CompteDepot, jusqua: string) {
+  const dates = [...E.ecritures.filter((e) => e.journal !== "AN" && e.lignes.some((l) => l.contrat === `depot:${c.id}`)).map((e) => dateJournee(e.journeeId)),
+    ...E.plaintes.filter((p) => p.tiersId === c.tiersId).map((p) => p.recueLe), c.ouvertLe ?? ""].filter((x) => x && x <= jusqua).sort();
+  return dates.at(-1) ?? "";
+}
+const soldeAu = (c: CompteDepot, jusqua: string) => lignesDepot(jusqua).filter(({ l }) => l.contrat === `depot:${c.id}`).reduce((s, { l }) => s + (l.sens === "C" ? l.montant : -l.montant), 0);
+const rapportsEpargne = {
+  /** 7.1 Virements compte à compte (p. 82) : écritures qui mouvementent au moins deux comptes de clients, hors reprise des soldes (registre S72-1) */
+  virements(du: string, au: string) {
+    lectureAdmin(["S72"]); DATE_RAPPORT(du, "Du"); DATE_RAPPORT(au, "Au");
+    return E.ecritures.filter((e) => e.journal !== "AN" && dateJournee(e.journeeId) >= du && dateJournee(e.journeeId) <= au
+      && new Set(e.lignes.filter((l) => l.contrat?.startsWith("depot:")).map((l) => l.contrat)).size >= 2)
+      .flatMap((e) => e.lignes.filter((l) => l.contrat?.startsWith("depot:")).map((l) => { const c = E.comptes.find((x) => `depot:${x.id}` === l.contrat)!;
+        return { date: dateJournee(e.journeeId), piece: e.piece, membre: E.tiers.find((t) => t.id === c.tiersId)?.numero ?? "", compte: c.numero, libelle: e.libelle,
+          devise: l.devise, debit: l.sens === "D" ? l.montant : 0, credit: l.sens === "C" ? l.montant : 0 }; }));
+  },
+  /** 7.2 Rapport des garanties (p. 82) : crédits débloqués dans la période ; le module Crédit les fournira (registre S72-2) */
+  garanties(du: string, au: string, _produitId?: number | null, _agentId?: number | null) {
+    lectureAdmin(["S72"]); DATE_RAPPORT(du, "Date de début"); DATE_RAPPORT(au, "Date de fin");
+    return [] as { membre: string; credit: string; client: string; devise: Devise; montantPret: number; produitId: number; epargneGarantie: number; garantieEncours: number; garantieLiberee: number }[];
+  },
+  /** 7.3 Recherche multicritère (p. 83) : chaque compte, son solde à la fin de la période et ses mouvements de la période (registre S72-3) */
+  comptes(du: string, au: string) {
+    lectureAdmin(["S72"]); DATE_RAPPORT(du, "Date début"); DATE_RAPPORT(au, "Date Fin");
+    return E.comptes.filter((c) => (c.ouvertLe ?? "1900-01-01") <= au).sort((a, b) => a.numero.localeCompare(b.numero)).map((c) => {
+      const m = lignesDepot(au).filter(({ l }) => l.contrat === `depot:${c.id}`), dans = m.filter(({ d }) => d >= du);
+      return { compteId: c.id, compte: c.numero, tiersId: c.tiersId, produitId: c.produitId ?? null, produit: c.intitule, devise: c.devise, ouvertLe: c.ouvertLe ?? "",
+        statut: c.closLe ? "clos" : "ouvert", solde: m.reduce((s, { l }) => s + (l.sens === "C" ? l.montant : -l.montant), 0),
+        credits: dans.filter(({ l }) => l.sens === "C").reduce((s, { l }) => s + l.montant, 0), debits: dans.filter(({ l }) => l.sens === "D").reduce((s, { l }) => s + l.montant, 0),
+        operations: dans.map(({ e, l, d }) => ({ date: d, piece: e.piece, libelle: e.libelle, debit: l.sens === "D" ? l.montant : 0, credit: l.sens === "C" ? l.montant : 0 })) };
+    });
+  },
+  /** 7.4 Indicateurs crédit épargne (p. 83) ; « Ajouter clients auxiliaires » compte aussi les membres auxiliaires (registre S72-4) */
+  indicateurs(date: string, auxiliaires: boolean) {
+    lectureAdmin(["S72"]);
+    const d = date || (journees.courante()?.date ?? ""); DATE_RAPPORT(d, "Indicateurs au");
+    const garde = (t: Tiers) => auxiliaires || !t.auxiliaire;
+    const sexe = (t: Tiers) => (t.type !== "physique" ? "morale" : t.sexe || "");
+    const LIB: Record<string, string> = { M: "Masculin", F: "Féminin", morale: "Morale", "": "Non renseigné" };
+    const parProduit = new Map<string, { produit: string; masculin: number; feminin: number; morale: number; total: number }>();
+    for (const c of E.comptes.filter((x) => (x.ouvertLe ?? "1900-01-01") <= d && (!x.closLe || x.closLe > d))) {
+      const t = E.tiers.find((y) => y.id === c.tiersId); if (!t || !garde(t)) continue;
+      const x = parProduit.get(c.intitule) ?? { produit: c.intitule, masculin: 0, feminin: 0, morale: 0, total: 0 }; parProduit.set(c.intitule, x);
+      const s = sexe(t); x[s === "M" ? "masculin" : s === "F" ? "feminin" : "morale"] += 1; x.total += 1;
+    }
+    const membres = E.tiers.filter((t) => (t.statut === "actif" || t.statut === "resilie") && garde(t) && (t.admissionLe || t.dateVisa) && (t.admissionLe || t.dateVisa)! <= d && (!t.resilieLe || t.resilieLe > d));
+    const compte = (l: Tiers[]) => [...l.reduce((m, t) => m.set(sexe(t), (m.get(sexe(t)) ?? 0) + 1), new Map<string, number>())].sort().map(([s, n]) => ({ sexe: LIB[s] ?? s, total: n }));
+    const annee = Number(d.slice(0, 4));
+    const parts = new Map<string, number>();
+    for (const e of E.ecritures) if (dateJournee(e.journeeId) <= d) for (const l of e.lignes) if (l.contrat?.startsWith("parts:")) {
+      const t = E.tiers.find((y) => `parts:${y.id}` === l.contrat); if (!t || !garde(t)) continue;
+      parts.set(sexe(t), (parts.get(sexe(t)) ?? 0) + (l.sens === "C" ? l.montant : -l.montant));
+    }
+    return { date: d, annee, comptesParSexe: [...parProduit.values()].sort((a, b) => a.produit.localeCompare(b.produit)), regroupementParSexe: compte(membres),
+      adhesions: E.tiers.filter((t) => garde(t) && (t.admissionLe || t.dateVisa)?.startsWith(String(annee))).length,
+      departs: E.tiers.filter((t) => garde(t) && t.resilieLe?.startsWith(String(annee))).length, garantieEpargne: 0, caution: 0,
+      partsSociales: [...parts].sort().map(([s, m]) => ({ sexe: LIB[s] ?? s, parts: m })), creditsEncours: [] as { produit: string; prets: number; encours: number }[] };
+  },
+  /** 7.5 et 7.6 Comptes inactifs (nombre de jours) et dormants (dix ans, loi 22/069) ; « Afficher les comptes » ajoute les soldes nuls (registre S72-5, S72-6) */
+  inactivite(date: string, jours: number | null, tous: boolean) {
+    lectureAdmin(["S72"]);
+    const d = date || (journees.courante()?.date ?? ""); DATE_RAPPORT(d, "Date");
+    const seuil = jours ?? joursEntre(ajouterMois(d, -120), d);
+    if (seuil < 0) throw new ErreurMetier("Nombres de jours : zéro ou plus.");
+    return E.comptes.filter((c) => !c.closLe).sort((a, b) => a.numero.localeCompare(b.numero)).flatMap((c) => {
+      const der = derniereOperation(c, d); if (!der) return [];
+      const nb = joursEntre(der, d), solde = soldeAu(c, d), t = E.tiers.find((x) => x.id === c.tiersId);
+      return nb >= seuil && (tous || solde !== 0) ? [{ membre: t?.numero ?? "", compte: c.numero, client: t ? titulaire(t) : "", devise: c.devise, dateCreation: c.ouvertLe ?? "",
+        derniere: der, jours: nb, solde }] : [];
+    });
   },
 };
 
@@ -4650,6 +4727,7 @@ const apiLocal = {
   plansEpargne: asynchrone(plansEpargne, "plansEpargne"),
   clotures: asynchrone(clotures, "clotures"),
   blocages: asynchrone(blocages, "blocages"),
+  rapportsEpargne: asynchrone(rapportsEpargne, "rapportsEpargne"),
   conformite: asynchrone(conformite, "conformite"),
   inactifs: asynchrone(inactifs, "inactifs"),
   registreMembres: asynchrone(registreMembres, "registreMembres"),

@@ -86,7 +86,7 @@ S68,DAT : recherche multicritère,77,A,rapport,,,5 Épargne,oui
 S69,"Plan d'épargne : simulation, nouveau, tableau, cotisations, rupture",78 à 80 (quatre captures),B,onglets,Rupture (titre seul),A:S67,5 Épargne,oui
 S70,Clôturer un compte,80,D,traitement,tout l'écran (en panne dans le manuel),"A:S48 (résilier), S71 ; R:Instr. BCC sur les frais (clôture gratuite) ; P",5 Épargne,oui
 S71,Blocage compte et montant,81,A,liste,déblocage,A:S94 (ajout et libération),5 Épargne,oui
-S72,Rapports épargne (six),82 à 84 (six captures),B,rapport,forme des résultats,A:S13,5 Épargne,non
+S72,Rapports épargne (six),82 à 84 (six captures),B,rapport,forme des résultats,A:S13,5 Épargne,oui
 S73,Adhésion,85 ; doublons 98 et 99,A,guichet,,,6 Caisse,oui
 S74,Dépôt et retrait,86 ; doublon 100,B,guichet,"fenêtres Billetage, Detail, photo et signature ; reçu",A:S79 (billetage) ; document,6 Caisse,oui
 S75,Déblocage de crédit,"86 (texte), 87 ; doublon 101",A,guichet,échéancier et contrat de prêt,document,6 Caisse,non

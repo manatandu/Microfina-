@@ -52,6 +52,14 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       rompre: (id: number, d: object) => post(`/epargne/dat/${id}/rupture`, d),
       recherche: (choix: string, du: string, au: string) => get(`/epargne/dat/recherche?choix=${choix}&du=${du}&au=${au}`),
     },
+    rapportsEpargne: {
+      virements: (du: string, au: string) => get(`/epargne/rapports/virements?du=${du}&au=${au}`),
+      garanties: (du: string, au: string, produitId?: number | null, agentId?: number | null) =>
+        get(`/epargne/rapports/garanties?du=${du}&au=${au}${produitId ? `&produitId=${produitId}` : ""}${agentId ? `&agentId=${agentId}` : ""}`),
+      comptes: (du: string, au: string) => get(`/epargne/rapports/comptes?du=${du}&au=${au}`),
+      indicateurs: (date: string, auxiliaires: boolean) => get(`/epargne/rapports/indicateurs?date=${date}&auxiliaires=${auxiliaires}`),
+      inactivite: (date: string, jours: number | null, tous: boolean) => get(`/epargne/rapports/inactivite?date=${date}${jours === null ? "" : `&jours=${jours}`}&tous=${tous}`),
+    },
     blocages: {
       etat: (compteId: number) => get(`/epargne/blocages?compteId=${compteId}`),
       bloquer: (d: object) => post("/epargne/blocages", d),
