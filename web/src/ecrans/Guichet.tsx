@@ -230,7 +230,7 @@ export function Recu({ id, onNouveau }: { id: number; onNouveau: () => void }) {
   const { donnees: r } = useDonnees(() => api.operations.recu(id), [id]);
   const lettres = useMemo(() => (r ? montantEnLettres(r.o.montant, r.o.devise) : ""), [r]);
   if (!r) return <Chargement />;
-  const titre = { depot: "Dépôt enregistré", retrait: "Retrait enregistré", adhesion: "Adhésion enregistrée", achat_parts: "Achat de parts enregistré", retrait_parts: "Retrait de parts enregistré" }[r.o.type];
+  const titre = { depot: "Dépôt enregistré", retrait: "Retrait enregistré", adhesion: "Adhésion enregistrée", achat_parts: "Achat de parts enregistré", retrait_parts: "Retrait de parts enregistré", ed_encaissement: "Encaissement enregistré", ed_decaissement: "Décaissement enregistré" }[r.o.type];
   return (
     <div className="pile">
       <p className="resultat-ok" role="status"><strong>{titre}.</strong> Pièce <span className="chiffres">{r.piece}</span>.</p>

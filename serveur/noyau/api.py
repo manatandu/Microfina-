@@ -372,6 +372,12 @@ def guichet_parts(request, corps: dict = Body(...)):
     return s.operation_parts(u(request), corps)
 
 
+@api.post("/guichet/ed-divers")
+def guichet_ed_divers(request, corps: dict = Body(...)):
+    from . import ed_guichet
+    return ed_guichet.enregistrer(u(request), corps)
+
+
 @api.post("/guichet/adhesions")
 def guichet_adhesion(request, corps: dict = Body(...)):
     return s.adhesion(u(request), corps)

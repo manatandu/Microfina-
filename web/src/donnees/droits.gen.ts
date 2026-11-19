@@ -219,6 +219,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "guichet.depot": [
 "S74"
 ],
+"guichet.edDivers": [
+"S78"
+],
 "guichet.parts": [
 "S77"
 ],

@@ -789,9 +789,9 @@ const OUT = process.argv[2];
   await aller('/epargne/s72?page=multicritere'); await p.getByRole('heading', { name: 'Recherche multicritères épargne' }).waitFor();
   await p.getByLabel('Nom', { exact: true }).fill('Kalala'); await p.getByRole('button', { name: 'Rechercher', exact: true }).click();
   await p.getByRole('cell', { name: '0412-000318-01' }).waitFor(); await etape('06c34-multicritere-epargne');
-  await p.getByRole('tab', { name: 'Indicateur crédit épargne' }).click(); await p.getByRole('button', { name: 'Exécuter' }).click();
+  await p.getByRole('tab', { name: 'Indicateur crédit épargne' }).click(); await p.getByRole('heading', { name: 'Indicateurs crédit épargne' }).waitFor(); await p.getByRole('button', { name: 'Exécuter' }).click();
   await p.getByRole('cell', { name: 'Aucune donnée' }).last().waitFor(); await etape('06c35-indicateurs');
-  await p.getByRole('tab', { name: 'Rapports des comptes inactifs' }).click(); await p.getByRole('button', { name: 'Exécuter' }).click();
+  await p.getByRole('tab', { name: 'Rapports des comptes inactifs' }).click(); await p.getByRole('heading', { name: 'Listes des comptes inactifs' }).waitFor(); await p.getByRole('button', { name: 'Exécuter' }).click();
   await p.getByRole('cell', { name: '0412-000318-01' }).waitFor(); await etape('06c36-comptes-inactifs');
   await login('Esther Ngalula');
   // Apurement avant la résiliation (registre S48-1) : Lukusa retire tout son solde (85 000 CDF)
@@ -824,6 +824,14 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('button', { name: 'Imprimer' }).click(); await p.getByText('Achat de parts enregistré').waitFor(); await etape('14c-parts-recu');
   await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
+  // ED Divers (S78, p. 89 et 90 ; registre S78-1 à S78-6) : encaissement de la vente d'un livret, compte 7790 affiché, billetage
+  await p.getByRole('link', { name: 'ED Divers' }).click(); await p.getByLabel('Type operation').waitFor();
+  await p.getByLabel('Operations').selectOption({ label: "Vente de livret d'épargne" }); await p.waitForFunction(() => [...document.querySelectorAll('textarea')].some((t) => t.value === '7790'));
+  await p.getByLabel('Montant (CDF) *').fill('2 000');
+  await p.getByRole('button', { name: 'Billetage' }).click();
+  await p.getByRole('dialog', { name: 'Billetage' }).getByLabel('Nombre de coupures de 1 000 CDF').fill('2');
+  await p.getByRole('dialog', { name: 'Billetage' }).getByRole('button', { name: 'Fermer' }).click();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok(); await p.getByText(/Numéro de pièce : \S+/).waitFor(); await etape('14d-ed-divers');
   // Arrêté de caisse
   // Le stock de la caisse, par coupure, se lit dans la fenêtre Billetage d'un retrait (S74) ; l'arrêté compte juste
   const stock = {};

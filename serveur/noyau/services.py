@@ -17,7 +17,7 @@ from .bd import ErreurMetier, executer, lignes, une, valeur
 
 # Seuils, valeurs des maquettes
 SEUIL_ESPECES_USD = 10000    # examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
-SORTIES = ("retrait", "retrait_parts")      # opérations qui font sortir des billets de la caisse
+SORTIES = ("retrait", "retrait_parts", "ed_decaissement")      # opérations qui font sortir des billets de la caisse
 # Type entreprise (p. 50) : la liste de Microfina++ n'est pas montrée. À confirmer ; en attendant, les agents économiques du PCCI § 10.2 (hors ménages)
 TYPES_ENTREPRISE = ["Banques commerciales et autres intermédiaires financiers", "Organes faîtiers et autres institutions de microfinance",
                     "Autres COOPEC et IMF", "Institutions financières non bancaires", "Administration centrale", "Administrations provinciales ou locales",
@@ -1928,11 +1928,11 @@ def recu(oid: int) -> dict:
     if not o:
         raise ErreurMetier("Opération introuvable.")
     e = une("select e.*, p.numero as piece from ecriture e join piece p on p.id = e.piece_id where e.id = %s", (o["ecriture_id"],)) if o["ecriture_id"] else None
-    t = une("select numero from tiers where id = %s", (o["tiers_id"],))
+    t = une("select numero from tiers where id = %s", (o["tiers_id"],)) if o["tiers_id"] else None   # aucun client pour un ED divers (S78)
     j = une("select date_comptable from journee_comptable where id = %s", (o["journee_id"],))
     compte = une("select numero from compte_depot where id = %s", (int(o["contrat_ref"].split(":")[1]),)) if (o["contrat_ref"] or "").startswith("depot:") else None
-    return {"o": vue_operation(o), "piece": e["piece"] if e else "", "lignes": lignes_ecriture(e["id"]) if e else [], "titulaire": titulaire(o["tiers_id"]),
-            "numeroMembre": t["numero"], "compte": compte["numero"] if compte else "", "date": j["date_comptable"].isoformat(),
+    return {"o": vue_operation(o), "piece": e["piece"] if e else "", "lignes": lignes_ecriture(e["id"]) if e else [], "titulaire": titulaire(o["tiers_id"]) if t else "",
+            "numeroMembre": t["numero"] if t else "", "compte": compte["numero"] if compte else "", "date": j["date_comptable"].isoformat(),
             "caissier": nom_utilisateur(o["saisi_par"]), "viseur": nom_utilisateur(o["vise_par"])}
 
 

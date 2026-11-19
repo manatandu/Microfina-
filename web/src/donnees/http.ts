@@ -209,6 +209,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       retrait: (p: unknown) => post("/guichet/retraits", p),
       adhesion: (p: unknown) => post("/guichet/adhesions", p),
       parts: (p: unknown) => post("/guichet/parts", p),
+      edDivers: (p: unknown) => post("/guichet/ed-divers", p),
     },
     operations: {
       enAttente: () => get("/operations/en-attente"),

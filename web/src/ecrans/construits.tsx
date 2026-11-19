@@ -19,6 +19,7 @@ import PlanEpargne from "./PlanEpargne";
 import ClotureCompte from "./Clotures";
 import BlocageCompte from "./Blocages";
 import RapportsEpargne from "./RapportsEpargne";
+import EdDivers from "./EdDivers";
 import type { ComponentType } from "react";
 import GuichetDepotRetrait from "./Guichet";
 import Adhesion from "./Adhesion";
@@ -149,6 +150,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S73: Adhesion,
   S74: GuichetDepotRetrait,
   S77: PartsSociales,
+  S78: EdDivers,
   S79: BilletageCaisse,
   S80: ValidationBilletage,
   S102: PlanComptes,

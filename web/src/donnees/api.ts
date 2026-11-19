@@ -2522,6 +2522,41 @@ const guichet = {
       parts: p.nombre, coupures: nettoyer(p.coupures), remisPar: titulaire(t), saisiPar: u.id, ecritureId: e.id, heure: heure() };
     E.operations.push(o); lierExamen(examen, o.id); enregistrer(); return avecAvertissement(o, s, "CDF");   // registre S08-4
   },
+
+  /** S78 : Caisse > ED Divers (manuel p. 89 et 90, doublons p. 97 et 98) : Type operation, Operations (S31), Compte affiché, Libelle modifiable, Montant.
+   * Un montant par devise tenue (règle T12), avec son billetage (décision du porteur du 19/11/2026). Registre S78-1 à S78-6. Règles identiques côté serveur (noyau/ed_guichet.py). */
+  edDivers(p: { cle: string; typeOperation: "ENCAISSEMENT" | "DECAISSEMENT"; operationId: number; libelle?: string; montants: Partial<Record<Devise, number>>; coupures: Partial<Record<Devise, Comptage>> }) {
+    const prec = dejaFaite(p.cle); if (prec) return prec;
+    const SENS = { ENCAISSEMENT: "PRODUIT", DECAISSEMENT: "CHARGE" } as const;
+    if (!(p.typeOperation in SENS)) throw new ErreurMetier("À remplir : Type operation.");
+    const od = E.operationsDiverses.find((x) => x.id === p.operationId);
+    if (!od) throw new ErreurMetier("À remplir : Operations.");
+    if (od.statut !== "ACTIF" || od.sens !== SENS[p.typeOperation]) throw new ErreurMetier(`Cette opération n'est pas proposée en ${p.typeOperation.toLowerCase()} (Paramétrage > ED divers).`);
+    const libelle = p.libelle?.trim() || od.libelle;
+    const tenues = devisesTenues();
+    const saisis: [Devise, number, Comptage][] = [];
+    for (const [d, m] of Object.entries(p.montants ?? {}) as [Devise, number | undefined][]) {
+      if (!m) continue;
+      if (!tenues.includes(d)) throw new ErreurMetier(`Devise ${d} : le guichet ne la tient pas.`);
+      if (!Number.isInteger(m) || m <= 0) throw new ErreurMetier(`Montant (${d}) : un montant supérieur à zéro.`);
+      saisis.push([d, m, nettoyer(p.coupures?.[d] ?? {})]);
+    }
+    if (saisis.length === 0) throw new ErreurMetier("À remplir : Montant.");
+    const { u, s } = sessionOuverte(saisis[0]![0]);
+    const enc = p.typeOperation === "ENCAISSEMENT";
+    for (const [d, m, c] of saisis) {
+      controlerCoupures(c, m, d);
+      if (!enc) { const th = caisses.theorique(s.id, d); if (Object.entries(c).some(([v, n]) => (n ?? 0) > (th[Number(v)] ?? 0))) throw new ErreurMetier(`Pas assez de coupures en caisse (${d}).`); }
+    }
+    const lignes: Ligne[] = saisis.flatMap(([d, m]) => [
+      { compte: "570", contrat: guichetDe(s), sens: enc ? "D" : "C", devise: d, montant: m, montantCdf: cdf(m, d) },
+      { compte: od.compte, contrat: `ed:${od.id}`, sens: enc ? "C" : "D", devise: d, montant: m, montantCdf: cdf(m, d) },
+    ] as Ligne[]);
+    const e = poster({ journal: "CA", journeeId: s.journeeId, libelle, piece: piece(), saisiPar: u.id, validePar: u.id, lignes });
+    const ops: Operation[] = saisis.map(([d, m, c], i) => ({ id: prochain(E.operations) + i, cle: i === 0 ? p.cle : `${p.cle}:${d}`, type: enc ? "ed_encaissement" : "ed_decaissement",
+      statut: "validee", sessionId: s.id, tiersId: null, montant: m, devise: d, coupures: c, remisPar: "", motif: libelle, saisiPar: u.id, ecritureId: e.id, heure: heure() }));
+    E.operations.push(...ops); enregistrer(); return avecAvertissement(ops[0]!, s, saisis[0]![0]);
+  },
 };
 
 /** Plan comptable : le PCCI complet (replica/pcci.json, 604 comptes ; Instruction BCC n° 006), plus les comptes bancaires de l'institution (S58) */
@@ -2586,7 +2621,7 @@ const comptes = {
   },
 };
 /** Opérations qui font sortir des billets de la caisse */
-const SORTIES: Operation["type"][] = ["retrait", "retrait_parts"];
+const SORTIES: Operation["type"][] = ["retrait", "retrait_parts", "ed_decaissement"];
 /** PCCI, compte 103 : 1030 personnes physiques, 1031 groupements solidaires, 1032 personnes morales.
  *  Groupe de type « Groupement » en 1031 ; association et ONG en 1032 (à confirmer). Identique côté serveur (services.compte_parts). */
 export function compteParts(t: Tiers) {
@@ -3143,10 +3178,10 @@ const operations = {
     const o = E.operations.find((x) => x.id === id);
     if (!o) throw new ErreurMetier("Opération introuvable.");
     const e = E.ecritures.find((x) => x.id === o.ecritureId);
-    const t = E.tiers.find((x) => x.id === o.tiersId)!;
+    const t = E.tiers.find((x) => x.id === o.tiersId);   // aucun client pour un encaissement ou décaissement divers (S78)
     const c = E.comptes.find((x) => x.id === o.compteId);
     const j = E.journees.find((x) => E.sessions.some((s) => s.id === o.sessionId && s.journeeId === x.id))!;
-    return { o, piece: e?.piece ?? "", lignes: e?.lignes ?? [], titulaire: titulaire(t), numeroMembre: t.numero, compte: c?.numero ?? "", date: j.date, caissier: nomUtilisateur(o.saisiPar), viseur: nomUtilisateur(o.visePar) };
+    return { o, piece: e?.piece ?? "", lignes: e?.lignes ?? [], titulaire: t ? titulaire(t) : "", numeroMembre: t?.numero ?? "", compte: c?.numero ?? "", date: j.date, caissier: nomUtilisateur(o.saisiPar), viseur: nomUtilisateur(o.visePar) };
   },
   lire: (id: number) => E.operations.find((o) => o.id === id) ?? null,
   duJour(journeeId: number) { return E.operations.filter((o) => E.sessions.some((s) => s.id === o.sessionId && s.journeeId === journeeId)); },

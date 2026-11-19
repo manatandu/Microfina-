@@ -92,7 +92,7 @@ S74,Dépôt et retrait,86 ; doublon 100,B,guichet,"fenêtres Billetage, Detail, 
 S75,Déblocage de crédit,"86 (texte), 87 ; doublon 101",A,guichet,échéancier et contrat de prêt,document,6 Caisse,non
 S76,Remboursement de crédit,87 et 88 ; doublon 102,B,guichet,"Plan, Réel, Memo, MP (seule Situation est montrée)",A:S95 (p. 119) ; D:S22,6 Caisse,non
 S77,Part sociale : achat et retrait,88 ; doublon 103,A,guichet,,R:loi 002/2002 (parts sociales),6 Caisse,oui
-S78,"ED divers : encaissement, décaissement",89 et 90 ; doublons 97 et 98,A,guichet,,D:S31,6 Caisse,non
+S78,"ED divers : encaissement, décaissement",89 et 90 ; doublons 97 et 98,A,guichet,,D:S31,6 Caisse,oui
 S79,Billetage : enregistrer,91 ; doublon 105,A,guichet,,,6 Caisse,oui
 S80,Billetage : validation,92 ; doublon 106,A,visa,,,6 Caisse,oui
 S81,"Transfert : caisse vers caisse, caisse vers banque",92 et 93 ; doublons 106 et 107,A,guichet,,R:PCCI (mouvements de fonds),6 Caisse,non

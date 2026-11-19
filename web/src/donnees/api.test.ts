@@ -6,7 +6,7 @@ const IDENTITE = { prenom: "Marie", naissance: "1990-01-15", lieuNaissance: "Kin
   pieceLieu: "Kinshasa", pieceAutorite: "DGM", pieceExpire: "2030-01-10" };
 import { graine } from "./graine";
 import type { Representant, Tiers } from "./types";
-import { totalComptage, type Comptage } from "@design/montant.js";
+import { totalComptage, type Comptage, type Devise } from "@design/montant.js";
 
 const connecter = (login: string) => api.session.ouvrir(login);
 let n = 0;
@@ -842,6 +842,26 @@ describe("journée de guichet", () => {
     await expect(op(2, "achat", 1, { 1000: 4 })).rejects.toThrow("résilié");
     expect(compteParts({ ...(await api.tiers.lire(1))!, type: "morale" })).toBe("1032");
     expect(compteParts({ ...(await api.tiers.lire(1))!, type: "groupe", typeClient: "Groupement solidaire" })).toBe("1031");
+  });
+
+  it("ED Divers (S78, p. 89 et 90) : opération du référentiel selon le sens, montant par devise avec billetage, écriture 570 contre le compte", async () => {
+    await connecter("jpmukendi");
+    const p = (await api.edDivers.enregistrer({ sens: "PRODUIT", compte: "7790", statut: "ACTIF", libelle: "Vente de livret d'épargne" })).operations[0]!;
+    const c = (await api.edDivers.enregistrer({ sens: "CHARGE", compte: "671", statut: "ACTIF", libelle: "Frais de transport" })).operations.find((x) => x.sens === "CHARGE")!;
+    await journeeOuverte();
+    const ed = (typeOperation: "ENCAISSEMENT" | "DECAISSEMENT", operationId: number, montants: Partial<Record<Devise, number>>, coupures: Partial<Record<Devise, Comptage>>, libelle = "") =>
+      api.guichet.edDivers({ cle: cle(), typeOperation, operationId, montants, coupures, libelle });
+    await expect(ed("ENCAISSEMENT", c.id, { CDF: 100000 }, { CDF: { 1000: 1 } })).rejects.toThrow("pas proposée en encaissement");
+    await expect(ed("ENCAISSEMENT", p.id, {}, {})).rejects.toThrow("Montant");
+    await expect(ed("ENCAISSEMENT", p.id, { CDF: 200000 }, { CDF: { 1000: 1 } })).rejects.toThrow("billetage");
+    const o = await ed("ENCAISSEMENT", p.id, { CDF: 200000 }, { CDF: { 1000: 2 } }, "Livret Kalala");
+    expect([o.type, o.tiersId, o.statut]).toEqual(["ed_encaissement", null, "validee"]);
+    const r = await api.operations.recu(o.id);
+    expect(r.lignes.map((l) => [l.compte, l.sens, l.montant])).toEqual([["570", "D", 200000], ["7790", "C", 200000]]);
+    const avant = (await api.caisses.theorique(o.sessionId, "CDF"))[1000] ?? 0;
+    expect((await ed("DECAISSEMENT", c.id, { CDF: 100000 }, { CDF: { 1000: 1 } })).type).toBe("ed_decaissement");
+    expect((await api.caisses.theorique(o.sessionId, "CDF"))[1000]).toBe(avant - 1);
+    await expect(ed("DECAISSEMENT", c.id, { USD: 10000000 }, { USD: { 100: 1000 } })).rejects.toThrow("coupures en caisse");
   });
 
   it("opérations de banque (S52) : saisie en attente du visa, contrôles des trois onglets (registre S52-2 à S52-6)", async () => {

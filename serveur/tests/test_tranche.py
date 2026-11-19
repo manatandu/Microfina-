@@ -726,6 +726,32 @@ def test_rapports(clients):
     assert agent.get("/api/rapports/modifications").json() == []
 
 
+def test_ed_divers_guichet(clients, journee):
+    """S78 (p. 89 et 90) : opération du référentiel selon le sens, montant par devise avec billetage, écriture 570 contre le compte (registre S78-1 à S78-6)"""
+    caisse, chef = clients["caisse"], clients["chef"]
+    connecter(chef, "jpmukendi")
+    p = chef.post("/api/operations-diverses", {"sens": "PRODUIT", "compte": "7790", "statut": "ACTIF", "libelle": "Vente de livret d'épargne"}, **H).json()["operations"][0]
+    c = next(x for x in chef.post("/api/operations-diverses", {"sens": "CHARGE", "compte": "671", "statut": "ACTIF", "libelle": "Frais de transport"}, **H).json()["operations"]
+             if x["sens"] == "CHARGE")
+    op = lambda t, oid, montants, coupures, libelle="": caisse.post("/api/guichet/ed-divers", {"cle": cle(), "typeOperation": t, "operationId": oid, "montants": montants,
+                                                                                            "coupures": coupures, "libelle": libelle}, **H)
+    def refus(*a):
+        r = op(*a); assert r.status_code == 422, r.content; return r.json()["message"]
+    assert "pas proposée en encaissement" in refus("ENCAISSEMENT", c["id"], {"CDF": 100000}, {"CDF": {"1000": 1}})
+    assert "Montant" in refus("ENCAISSEMENT", p["id"], {}, {})
+    assert "billetage" in refus("ENCAISSEMENT", p["id"], {"CDF": 200000}, {"CDF": {"1000": 1}})
+    o = op("ENCAISSEMENT", p["id"], {"CDF": 200000}, {"CDF": {"1000": 2}}, "Livret Kalala").json()
+    assert [o["type"], o["tiersId"], o["statut"]] == ["ed_encaissement", None, "validee"]
+    r = caisse.get(f"/api/operations/{o['id']}/recu").json()
+    assert sorted((l["compte"], l["sens"], l["montant"]) for l in r["lignes"]) == [("570", "D", 200000), ("7790", "C", 200000)]
+    th = lambda: caisse.get(f"/api/caisses/{o['sessionId']}/theorique?devise=CDF").json().get("1000", 0)
+    avant = th()
+    assert op("DECAISSEMENT", c["id"], {"CDF": 100000}, {"CDF": {"1000": 1}}).json()["type"] == "ed_decaissement"
+    assert th() == avant - 1
+    assert "coupures en caisse" in refus("DECAISSEMENT", c["id"], {"USD": 10000000}, {"USD": {"100": 1000}})
+    assert balance_equilibree(caisse)
+
+
 def test_parts_sociales(clients, journee):
     caisse, agent, chef = clients["caisse"], clients["agent"], clients["chef"]
     k, m = T("0412-000318"), T("0412-000319")                   # Kalala : 2 parts ; Mwamba : 1 part ; 4 000 CDF la part

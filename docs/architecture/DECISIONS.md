@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**455 décisions.** Solidité : 189 fortes (le manuel ou un texte répond), 227 moyennes (déduites d'un écran voisin ou d'une donnée), 39 faibles (notre choix, faute de mieux). Dans le code : 436 déjà en place, 17 à appliquer.
+**461 décisions.** Solidité : 192 fortes (le manuel ou un texte répond), 230 moyennes (déduites d'un écran voisin ou d'une donnée), 39 faibles (notre choix, faute de mieux). Dans le code : 442 déjà en place, 17 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1060,6 +1060,17 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S72-6 | Comptes dormants : quel délai ? | Dix ans sans opération ni réclamation : délai après lequel l'établissement clôture le compte | Texte réglementaire : Loi 22/069, titre III, chap. Ier | forte | en place |
 | S72-7 | « Afficher les comptes » : que fait la case ? | Non cochée, seuls les comptes qui ont un solde sont listés ; cochée, les comptes à solde nul s'y ajoutent | Manuel : Captures p. 83 et 84 | faible | en place |
 | S72-8 | Qui voit les rapports épargne ? | Chef d'agence et agent de crédit, comme les rapports clients (S51) ; lecture réservée aux profils qui ont S72 | Écran voisin : S51 | moyenne | en place |
+
+## S78 ED divers : encaissement, décaissement
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S78-1 | Champs et boutons | Ceux des deux captures : Numéro de pièce, Date operation, Agence, Caisse, Caissier, Solde ; Type operation (ENCAISSEMENT, DECAISSEMENT), Operations, Compte *, Libelle, Montant * ; Enregistrer, Annuler. La date est celle de la journée ouverte, comme aux autres onglets du guichet | Manuel : Captures p. 89 et 90 (doublons p. 97 et 98) | forte | en place |
+| S78-2 | Liste Operations, Compte et Libelle | Les opérations ACTIF du référentiel ED divers : PRODUIT en encaissement, CHARGE en décaissement (S31-1). Le compte s'affiche seul et ne se modifie pas ; le libellé se reprend et se modifie, il devient le libellé de l'écriture | Manuel : Texte p. 97 : « le compte comptable approprié s'affiche … automatiquement ainsi que le libellé du compte. Le libellé du compte est modifiable » | forte | en place |
+| S78-3 | Billetage | Bouton Billetage, comme au Dépôt / Retrait : les coupures reçues ou remises, contrôlées sur le montant ; au décaissement, pas plus de coupures que la caisse n'en contient. Le solde en coupures de la caisse (S79, S80) suit ainsi les ED divers | Choix du porteur : Décision du porteur, 19/11/2026 | forte | en place |
+| S78-4 | Devise du montant | Un montant par devise tenue par le guichet (règle T12) : Montant (CDF) et Montant (USD) ; une écriture, équilibrée dans chaque devise, et un mouvement de caisse par devise | Texte réglementaire : T12 ; PCCI, compte 57 | moyenne | en place |
+| S78-5 | Écriture | Journal de caisse, à l'enregistrement, sans visa : encaissement, débit du compte du guichet (570) et crédit du compte de l'opération ; décaissement, l'inverse. Comme un dépôt ou un retrait au guichet. La validation des « Opérations diverses » (S82) concerne les opérations initiées par la comptabilité, pas les ED divers | Manuel : Texte p. 89, 93 et 94 ; S08-7 (PCCI 570) | moyenne | en place |
+| S78-6 | Examen renforcé (E01) | Ne s'applique pas : il porte sur les opérations en espèces d'un client, et un ED divers n'a pas de client | Écran voisin : E01 | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 
