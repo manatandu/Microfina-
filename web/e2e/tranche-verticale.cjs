@@ -772,6 +772,18 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Tout choisir' }).click(); await p.getByRole('button', { name: 'Noter la déclaration' }).click();
   await p.getByLabel('Référence : *').fill('CR-2026-0001'); await p.getByRole('dialog', { name: 'Déclaration à la Centrale des risques' }).getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('cell', { name: 'Aucune donnée dans la liste' }).waitFor();
+  // Prorogation et contentieux (écart E27, Instr. BCC 003, art. 5 et 8) : le crédit de Kalala est prorogé d'un mois, une seule fois
+  await aller('/credit/sl01'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  const rLit = p.getByRole('dialog', { name: "Recherche d'un client" }); await rLit.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rLit.getByRole('row').filter({ hasText: 'Kalala' }).first().dblclick();
+  await p.getByLabel('Report (mois): *').waitFor(); await p.getByText('1 000 000,00 CDF').first().waitFor();
+  await p.getByLabel('Demande du client le: *').fill('05/11/2026'); await p.getByLabel('Report (mois): *').fill('1'); await p.getByLabel('Motif: *').fill('Stock détruit par un incendie');
+  await etape('11r-prorogation'); await p.getByRole('button', { name: 'Proroger' }).click(); await ok();
+  await p.getByLabel('Prorogé le:').waitFor();
+  // Fin d'un engagement par signature (S100-7) : mainlevée, le hors bilan est soldé et la garantie libérée
+  await aller('/credit/s100'); await p.getByRole('cell', { name: 'ES-2026-001', exact: true }).click(); await p.getByRole('button', { name: "Fin de l'engagement" }).click();
+  const fEng = p.getByRole('dialog', { name: "Fin de l'engagement" }); await fEng.getByLabel('Motif de fin : *').selectOption({ label: 'Mainlevée' }); await etape('11s-fin-engagement');
+  await fEng.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
+  await p.getByRole('cell', { name: /^Mainlevée le/ }).waitFor();
   await login('Esther Ngalula'); await aller('/caisse/s74?op=depot');
   await p.getByRole('tab', { name: 'Retrait en espèce' }).click(); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-01' });
   // Bouton Detail (registre S74-1) : relevé du compte en lecture seule ; masqué si le guichet n'a pas « Voir solde client » (S10-1)

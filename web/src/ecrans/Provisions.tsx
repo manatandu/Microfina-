@@ -59,6 +59,7 @@ export default function Provisions() {
               <td className="num chiffres">{montant(x.provision, x.devise as Devise)}</td></tr>)}</tbody>
         </table></div>)}</Paginee>
         <Textes sources={["Manuel Microfina++, p. 121 : 10-Déclassement Provision/Crédit, capture sans texte (Provisionner tout les crédits, Date Opération, Charger crédits, Radier par anticipation, Provisionner)",
+          "Registre CR-21b, CR-19 : avant de provisionner un crédit en retard, son dépôt nanti (épargne obligatoire, dépôt de garantie) paie l'échu par compensation, la pénalité d'abord (loi 11/020, art. 48) ; les intérêts non réglés d'un crédit litigieux sont suivis en hors bilan, 0630 contre 096 (Instr. BCC 003, art. 11)",
           "Registre S99-1 à S99-6 : crédits de la balance âgée de la date (S98) ; capital déclassé au compte 390 de la tranche ; provision au taux de la tranche au compte 380, dotation 6902, reprise 7902 ; radiation d'un irrécupérable au 31 décembre seulement, perte 6910 (6911 au-delà de la provision), suivi en hors bilan 0612 contre 096",
           "Instr. BCC 003, art. 6, 9, 10 et 12 : sain assimilé impayé ; irrécupérable au-delà de 12 mois, passé en perte à la clôture du bilan au 31 décembre et suivi en hors bilan ; provisions mensuelles 5, 25, 50, 75 et 100 % du capital restant dû",
           "PCCI : comptes 38 (provisions sur crédits en retard), 39 (créances en retard), 690, 691, 790 ; hors bilan 06 et 096 (créances annulées à recouvrer)"]} />

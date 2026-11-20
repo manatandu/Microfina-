@@ -14,8 +14,10 @@ import uuid
 from datetime import date
 
 from .bd import ErreurMetier, executer, lignes, une, valeur
+from .balance_agee import rafraichir
 from .deblocage import comptes_credit
 from .modeles_credit import DEGRES
+from .remboursements import etat
 from .services import exiger, journee_courante, nouvelle_piece, poster, titulaire
 
 PROVISION = {2: "3800", 3: "3801", 4: "3802", 5: "3803", 6: "3804", 7: "3804"}      # PCCI 380, par tranche de retard
@@ -104,17 +106,69 @@ def provisionner_un(u, c: dict, l: dict | None, d: date, j: date) -> bool:
         lg += [{"compte": "6902", "contrat": k, "sens": "D", "devise": dv, "montant": p - p_av}, {"compte": cp, "contrat": k, "sens": "C", "devise": dv, "montant": p - p_av}]
     elif p < p_av:
         lg += [{"compte": cp_av, "contrat": k, "sens": "D", "devise": dv, "montant": p_av - p}, {"compte": "7902", "contrat": k, "sens": "C", "devise": dv, "montant": p_av - p}]
+    hb_av = c["interets_hors_bilan"]                                  # CR-19 : intérêts non réglés d'un crédit litigieux, suivis en 0630 contre 096
+    hb = l["interet_impaye"] if l and g > 1 else 0
+    if hb > hb_av:
+        lg += [{"compte": "0630", "contrat": k, "sens": "D", "devise": dv, "montant": hb - hb_av}, {"compte": "096", "contrat": k, "sens": "C", "devise": dv, "montant": hb - hb_av}]
+    elif hb < hb_av:
+        lg += [{"compte": "096", "contrat": k, "sens": "D", "devise": dv, "montant": hb_av - hb}, {"compte": "0630", "contrat": k, "sens": "C", "devise": dv, "montant": hb_av - hb}]
     if not lg and g == g_av and p == p_av:
         executer("update credit set provisionne_le = %s where id = %s", (d, c["id"]))
         return False
     eid = poster(u, journal="OD", journee_id=journee_courante(u)["id"], libelle=f"Déclassement et provision du crédit {c['numero']} au {d.strftime('%d/%m/%Y')}",
                  piece=nouvelle_piece(u, "OD", j), evenement="provision_credit", cle=str(uuid.uuid4()), valide_par=u["id"], lignes_ecr=lg) if lg else None
-    executer("update credit set degre_comptable = %s, provision = %s, degre_provision = %s, provisionne_le = %s where id = %s",
-             (g, p, g if p else None, d, c["id"]))
+    executer("update credit set degre_comptable = %s, provision = %s, degre_provision = %s, provisionne_le = %s, interets_hors_bilan = %s where id = %s",
+             (g, p, g if p else None, d, hb, c["id"]))
     executer("""insert into provision_credit (institution_id, credit_id, date_operation, nature, degre_avant, degre_apres, provision_avant, provision_apres,
                 capital_restant, ecriture_id, par) values (%s, %s, %s, 'provision', %s, %s, %s, %s, %s, %s, %s)""",
              (u["institution_id"], c["id"], d, g_av, g, p_av, p, capital, eid, u["id"]))
     return True
+
+
+def compenser(u, c: dict, d: date) -> int:
+    """CR-21b : compensation de plein droit entre le dépôt que le client a nanti (épargne obligatoire bloquée au déblocage, dépôts de garantie de S94)
+    et sa dette exigible, c'est-à-dire l'échu impayé ; les frais dus (pénalité de retard) sont déduits d'abord (loi 11/020, art. 45 à 48 ; Code civil,
+    livre III, art. 181 à 183). Pas de compensation sur le compte d'une caution (art. 48 vise le dépôt du client ; Code civil, art. 186), ni quand les
+    avoirs du client sont gelés (art. 46, 1° : chose qui ne fait l'objet d'aucune saisie). Rend le montant compensé."""
+    from .gel import gel_actif
+    from .remboursements import CLES, enregistrer, ordre
+    from .services import compte_du_produit, solde_contrat
+    if gel_actif(c["tiers_id"]):
+        return 0
+    total = 0
+    dv = c["devise"].strip()
+    for b in lignes("""select b.*, cd.produit_id, p.famille, p.compte_lie from blocage b join compte_depot cd on cd.id = b.compte_id
+                       join produit_epargne p on p.id = cd.produit_id
+                       where b.garantie_de = %s and b.fin is null and cd.tiers_id = %s and trim(cd.devise) = %s and cd.statut = 'ouvert' order by b.id""",
+                    (c["id"], c["tiers_id"], dv)):
+        c = une("select * from credit where id = %s", (c["id"],))
+        if c["statut"] != "debloque":
+            break
+        s = etat(c, d)
+        exigible = {k: s["du"][k] for k in ("penalite", "capital", "interet", "tva")}
+        a = min(b["montant"] or 0, sum(exigible.values()), max(0, solde_contrat(f"depot:{b['compte_id']}", dv, "C")))
+        if a <= 0:
+            continue
+        rep, reste = {k: 0 for k in CLES}, a
+        for k in ["penalite"] + [x for x in ordre(c, s["degre"]) if x in ("capital", "interet")] + ["tva"]:   # frais d'abord, puis l'ordre du crédit (CR-20)
+            m = min(reste, exigible.get(k, 0) - rep[k])
+            rep[k] += m
+            reste -= m
+        _, rid = enregistrer(u, c, d, a, rep, {"compte": compte_du_produit(b), "contrat": f"depot:{b['compte_id']}"}, "OD", str(uuid.uuid4()),
+                             "Compensation du dépôt nanti (loi 11/020, art. 48)",
+                             {"mode": "compensation", "libelle": f"Compensation du dépôt nanti, crédit {c['numero']}"})
+        executer("update blocage set fin = now(), leve_par = %s, motif_levee = %s where id = %s",
+                 (u["id"], f"Compensation avec le crédit {c['numero']} : {a / 100:.2f}", b["id"]))
+        g = une("select * from garantie where blocage_id = %s", (b["id"],))
+        solde_ = valeur("select statut from credit where id = %s", (c["id"],)) == "solde"     # crédit soldé : l'épargne obligatoire est déjà libérée (S76-9)
+        nb = valeur("insert into blocage (compte_id, montant, motif, garantie_de, pose_par) values (%s, %s, %s, %s, %s) returning id",
+                    (b["compte_id"], b["montant"] - a, b["motif"], c["id"], u["id"])) if b["montant"] - a > 0 and (g or not solde_) else None
+        if g:                                                           # dépôt de garantie de S94 : la part compensée compte comme libérée
+            executer("update garantie set libere = libere + %s, blocage_id = %s, liberee_le = %s where id = %s",
+                     (a, nb, d if g["montant"] - g["libere"] - a == 0 else None, g["id"]))
+            executer("insert into garantie_liberation (garantie_id, montant, date_op, par) values (%s, %s, %s, %s)", (g["id"], a, d, u["id"]))
+        total += a
+    return total
 
 
 def provisionner(u, p, tout: bool = False) -> dict:
@@ -137,8 +191,15 @@ def provisionner(u, p, tout: bool = False) -> dict:
     n = 0
     for i in ids:
         c = une("select * from credit where id = %s and institution_id = %s", (i, u["institution_id"]))
-        if c and c["statut"] != "passe_en_perte":
-            n += provisionner_un(u, c, par_credit.get(i), d, j)
+        if not c or c["statut"] == "passe_en_perte":
+            continue
+        l = par_credit.get(i)
+        if l and l["jours_retard"] > 0 and c["statut"] == "debloque":
+            controle_date(c, d)
+            if compenser(u, c, d):                                    # CR-21b : le dépôt nanti paie d'abord l'échu ; la ligne de balance est recalculée
+                c = une("select * from credit where id = %s", (i,))
+                l = rafraichir(b, c, d)
+        n += provisionner_un(u, c, l, d, j)
     return {"credits": len(ids), "ecritures": n, "lignes": charger(u, {"date": d.isoformat()})}
 
 

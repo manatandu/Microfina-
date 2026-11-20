@@ -20,7 +20,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v95";
+const CLE = "likelemba-demo-v96";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -28,7 +28,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 72) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 73) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -2752,8 +2752,8 @@ const encoursDossier = (tiersIds?: number[]) =>
     .reduce((s, c) => s + Math.round((c.montant - capitalRembourse(c)) * coursDe(c.devise, jourDossier())), 0)
   + E.demandes.filter((x) => x.statut === "approuvee" && (!tiersIds || tiersIds.includes(x.tiersId)))
     .reduce((s, x) => s + Math.round((x.montantApprouve ?? 0) * coursDe(x.devise, jourDossier())), 0)
-  + (E.engagementsSignature ?? []).filter((x) => x.dateFin >= jourDossier() && (!tiersIds || tiersIds.includes(x.tiersId)))   // engagements par signature en cours (S100 ; Instr. BCC 002, art. 23)
-    .reduce((s, x) => s + Math.round(x.montant * coursDe(x.devise, jourDossier())), 0);
+  + (E.engagementsSignature ?? []).filter((x) => x.dateFin >= jourDossier() && !x.clotureLe && (!tiersIds || tiersIds.includes(x.tiersId)))   // engagements par signature en cours (S100 ; Instr. BCC 002, art. 23)
+    .reduce((s, x) => s + Math.round((x.montant - (x.utilise ?? 0)) * coursDe(x.devise, jourDossier())), 0);
 /** Plafonds par client et des apparentés, crédits et engagements par signature confondus (CR-14 ; Instr. BCC 002, art. 23, 25 à 29 ; loi 002/2002, art. 59 et 60).
  * Commun à l'approbation (S88) et à l'engagement par signature (S100). Mêmes règles que serveur/noyau/dossiers.py (controler_plafonds). */
 function controlerPlafonds(tid: number, mCdf: number, apparente: boolean, bcc: string) {
@@ -3149,7 +3149,8 @@ function bloquantRouge(tid: number) {
   const i = inscriptionRouge(tid); if (i) return i;
   const piece = (E.tiers.find((t) => t.id === tid)?.pieceNumero ?? "").trim().toUpperCase();
   if (!piece) return undefined;
-  return E.listeRouge.find((x) => !x.retireLe && x.referenceBcc && (E.tiers.find((t) => t.id === x.tiersId)?.dirigeant?.pieceNumero ?? "").trim().toUpperCase() === piece);
+  return E.listeRouge.find((x) => !x.retireLe && x.referenceBcc && ((E.tiers.find((t) => t.id === x.tiersId)?.dirigeant?.pieceNumero ?? "").trim().toUpperCase() === piece
+    || (x.personnesVisees ?? []).some((y) => y.piece.trim().toUpperCase() === piece)));   // dirigeants et associés visés par la décision (registre S97-4)
 }
 /** CR-15 : pas de nouveau crédit à un client qui a un crédit en retard (Instr. BCC 003, art. 5, al. 3). Mêmes règles que serveur/noyau/dossiers.py (controler_retard) */
 function controlerRetard(tid: number) {
@@ -3163,22 +3164,25 @@ function controlerListeRouge(tid: number) {
   const i = bloquantRouge(tid);
   if (!i) return;
   const quoi = i.referenceBcc ? `mise à l'index, décision BCC ${i.referenceBcc} (Instr. BCC 13, art. 7)` : `motif : ${i.motif}`;
-  const cible = i.tiersId === tid ? "" : ` ; dirigeant de ${titulaire(E.tiers.find((t) => t.id === i.tiersId)!)}`;
+  const cible = i.tiersId === tid ? "" : ` ; dirigeant ou associé de ${titulaire(E.tiers.find((t) => t.id === i.tiersId)!)}`;
   throw new ErreurMetier(`Client sur la liste rouge (${quoi}${cible}) : aucun crédit.`);
 }
 const listeRouge = {
   lister() {
     lectureAdmin(["S97"]);
     return E.listeRouge.filter((x) => !x.retireLe).sort((a, b) => b.ajouteLe.localeCompare(a.ajouteLe) || b.id - a.id).map((x) => { const t = E.tiers.find((y) => y.id === x.tiersId)!;
-      return { id: x.id, tiersId: x.tiersId, membre: t.numero, client: titulaire(t), date: x.ajouteLe, motif: x.motif, referenceBcc: x.referenceBcc }; });
+      return { id: x.id, tiersId: x.tiersId, membre: t.numero, client: titulaire(t), date: x.ajouteLe, motif: x.motif, referenceBcc: x.referenceBcc, personnesVisees: x.personnesVisees ?? [] }; });
   },
-  ajouter(p: { tiersId?: number | null; motif?: string; referenceBcc?: string }) {
+  ajouter(p: { tiersId?: number | null; motif?: string; referenceBcc?: string; personnesVisees?: { nom?: string; piece?: string }[] }) {
     const u = exiger();
     if (!p.tiersId || !E.tiers.some((t) => t.id === p.tiersId)) throw new ErreurMetier("À remplir : N° Client.");
     const motif = (p.motif ?? "").trim();
     if (!motif) throw new ErreurMetier("À remplir : Motif.");
     if (inscriptionRouge(p.tiersId)) throw new ErreurMetier("Ce client est déjà sur la liste rouge.");
-    E.listeRouge.push({ id: prochain(E.listeRouge), tiersId: p.tiersId, motif, referenceBcc: (p.referenceBcc ?? "").trim(), ajouteLe: journees.courante()?.date ?? new Date().toISOString().slice(0, 10),
+    const visees = (p.personnesVisees ?? []).map((x) => ({ nom: (x.nom ?? "").trim(), piece: (x.piece ?? "").trim() })).filter((x) => x.nom || x.piece);
+    if (visees.some((x) => !x.nom || !x.piece)) throw new ErreurMetier("Dirigeants et associés visés : un nom et un numéro de pièce par ligne.");
+    if (visees.length && !(p.referenceBcc ?? "").trim()) throw new ErreurMetier("Dirigeants et associés visés : seulement pour une mise à l'index de la BCC (Réf. décision BCC).");
+    E.listeRouge.push({ id: prochain(E.listeRouge), tiersId: p.tiersId, motif, personnesVisees: visees, referenceBcc: (p.referenceBcc ?? "").trim(), ajouteLe: journees.courante()?.date ?? new Date().toISOString().slice(0, 10),
       ajoutePar: u.id, retireLe: "", retirePar: null, motifRetrait: "" });
     enregistrer(); return listeRouge.lister();
   },
@@ -3383,6 +3387,23 @@ const ELEMENTS_REMB: Record<string, string> = { C: "capital", I: "interet", P: "
 type EcheanceCredit = CreditPret["echeancier"][number] & { epargne?: number; solidarite?: number; tva?: number };
 // ---------- S98 : Crédit > Génération de balance âgée (manuel p. 120). Mêmes règles que serveur/noyau/balance_agee.py.
 // Crédits en cours à la date, classés selon l'Instr. BCC 003 (art. 2 à 9) ; sain d'un client qui a un crédit litigieux : impayé (art. 6, al. 2). Registre S98, CR-16. ----------
+/** La ligne de balance d'un crédit au jour d, ou null (plus de capital, ou passé en perte). Prorogé : retard compté sur l'échéancier initial ; contentieux :
+ * dossier ouvert (Instr. BCC 003, art. 3 à 9 et 12 ; registre CR-16, CR-16b). Mêmes règles que serveur/noyau/balance_agee.py (ligne_de) */
+function ligneBalance(c: CreditPret, d: string): BalanceAgee["lignes"][number] | null {
+  if (c.radieLe && c.radieLe <= d) return null;
+  const s = etatCredit(c, d);
+  if (s.capitalRestant <= 0) return null;
+  let jours = s.joursRetard, degre = s.degre, classe: BalanceAgee["lignes"][number]["classe"] = CLASSES_BALANCE[s.degreLibelle] ?? "douteux";
+  const pr = E.prorogations.find((x) => x.creditId === c.id && x.date <= d);
+  if (pr) {
+    const reg = s.payes.capital! - s.payes.capitalAnticipe! + s.payes.interet!; let cumul = 0, ji = 0;
+    for (const e of [...pr.echeancierInitial].sort((x, y) => x.rang - y.rang)) { cumul += e.capital + e.interet; if (cumul > reg) { ji = e.date < d ? joursRemb(e.date, d) : 0; break; } }
+    jours = Math.max(jours, ji); degre = Math.max(2, degreDe(jours)[0]); classe = "proroge";
+  }
+  if (E.contentieux.some((x) => x.creditId === c.id && x.ouvertLe <= d && (!x.closLe || x.closLe > d))) { degre = Math.max(2, degre); classe = "contentieux"; }
+  return { creditId: c.id, tiersId: c.tiersId, produitId: c.produitId, agentId: c.agentId ?? null, devise: c.devise, montant: c.montant, capitalRestant: s.capitalRestant,
+    capitalImpaye: s.du.capital!, interetImpaye: s.du.interet!, joursRetard: jours, degre, classe, assimile: false };
+}
 const CLASSES_BALANCE: Record<string, BalanceAgee["lignes"][number]["classe"]> = { Sains: "sain", Impayés: "impaye", Douteux: "douteux", Irrécupérables: "irrecuperable" };
 const balanceAgee = {
   lancer(p: { date?: string }) {
@@ -3393,10 +3414,7 @@ const balanceAgee = {
     if (p.date > j) throw new ErreurMetier("Date lancement : pas après la journée ouverte.");
     const d = p.date;
     const lignes = E.credits.filter((c) => ["debloque", "solde", "passe_en_perte"].includes(c.statut) && c.debloqueLe && c.debloqueLe <= d).sort((a, b) => a.id - b.id)
-      .map((c) => ({ c, s: etatCredit(c, d) })).filter((x) => x.s.capitalRestant > 0)
-      .map(({ c, s }) => ({ creditId: c.id, tiersId: c.tiersId, produitId: c.produitId, agentId: c.agentId ?? null, devise: c.devise, montant: c.montant,
-        capitalRestant: s.capitalRestant, capitalImpaye: s.du.capital!, interetImpaye: s.du.interet!, joursRetard: s.joursRetard, degre: s.degre,
-        classe: CLASSES_BALANCE[s.degreLibelle] ?? "douteux", assimile: false }));
+      .map((c) => ligneBalance(c, d)).filter((x): x is LigneBalanceAgee => x !== null);
     const litigieux = new Set(lignes.filter((x) => x.classe !== "sain").map((x) => x.tiersId));
     for (const x of lignes) if (x.classe === "sain" && litigieux.has(x.tiersId)) { x.classe = "impaye"; x.assimile = true; }
     E.balancesAgees = E.balancesAgees.filter((b) => b.date !== d);
@@ -3436,12 +3454,41 @@ function provisionnerUn(c: CreditPret, l: LigneBalanceAgee | undefined, d: strin
   if (pAv && cp && cpAv !== cp) mv(cpAv!, cp, Math.min(pAv, p));
   if (p > pAv) mv("6902", cp!, p - pAv);
   else if (p < pAv) mv(cpAv!, "7902", pAv - p);
+  const hbAv = c.interetsHorsBilan ?? 0, hb = l && g > 1 ? l.interetImpaye : 0;   // CR-19 : intérêts non réglés d'un crédit litigieux, 0630 contre 096
+  if (hb > hbAv) mv("0630", "096", hb - hbAv); else if (hb < hbAv) mv("096", "0630", hbAv - hb);
   if (!lg.length && g === gAv && p === pAv) { c.provisionneLe = d; return false; }
   const e = lg.length ? poster({ journal: "OD", journeeId: jourDeblocage().id, libelle: `Déclassement et provision du crédit ${c.numero} au ${frDate(d)}`, piece: piece("OD"), saisiPar: u, validePar: u, lignes: lg }) : null;
   E.provisionsCredit.push({ id: prochain(E.provisionsCredit), creditId: c.id, date: d, nature: "provision", degreAvant: gAv, degreApres: g, provisionAvant: pAv, provisionApres: p,
     capitalRestant: capital, ecritureId: e?.id ?? null, par: u });
-  Object.assign(c, { degreComptable: g, provision: p, degreProvision: p ? g : null, provisionneLe: d });
+  Object.assign(c, { degreComptable: g, provision: p, degreProvision: p ? g : null, provisionneLe: d, interetsHorsBilan: hb });
   return true;
+}
+/** CR-21b : compensation de plein droit entre le dépôt nanti par le client (épargne obligatoire, dépôts de garantie) et l'échu impayé, pénalité d'abord
+ * (loi 11/020, art. 45 à 48 ; Code civil, livre III, art. 181 à 183). Ni sur le compte d'une caution, ni quand les avoirs sont gelés.
+ * Mêmes règles que serveur/noyau/provisions.py (compenser) */
+function compenserCredit(c: CreditPret, d: string, u: number) {
+  if (E.gels.some((g) => g.tiersId === c.tiersId && !g.leveLe)) return 0;
+  let total = 0;
+  for (const b of E.blocages.filter((x) => x.garantieDe === c.id && !x.fin).sort((x, y) => x.id - y.id)) {
+    const k = E.comptes.find((x) => x.id === b.compteId);
+    if (!k || k.tiersId !== c.tiersId || k.devise !== c.devise || k.closLe) continue;
+    if (c.statut !== "debloque") break;
+    const s = etatCredit(c, d), ex: Record<string, number> = { penalite: s.du.penalite!, capital: s.du.capital!, interet: s.du.interet!, tva: s.du.tva! };
+    const a = Math.min(b.montant ?? 0, Object.values(ex).reduce((x, y) => x + y, 0), Math.max(0, soldeContrat(`depot:${k.id}`, k.devise, "C")));
+    if (a <= 0) continue;
+    const rep: Record<string, number> = Object.fromEntries(CLES_REMB.map((x) => [x, 0])); let reste = a;
+    for (const x of ["penalite", ...ordreRemb(c, s.degre).filter((y) => y === "capital" || y === "interet"), "tva"]) { const m = Math.min(reste, (ex[x] ?? 0) - rep[x]!); rep[x]! += m; reste -= m; }
+    enregistrerRemboursement(c, d, a, rep, { compte: k.pcci, contrat: `depot:${k.id}` }, "OD", u, "Compensation du dépôt nanti (loi 11/020, art. 48)",
+      { mode: "compensation", libelle: `Compensation du dépôt nanti, crédit ${c.numero}` });
+    Object.assign(b, { fin: d, levePar: u, motifLevee: `Compensation avec le crédit ${c.numero} : ${(a / 100).toFixed(2)}` });
+    const g = E.garanties.find((x) => x.blocageId === b.id);
+    let nb: number | null = null;
+    if ((b.montant ?? 0) - a > 0 && (g || (c.statut as string) !== "solde")) { nb = prochain(E.blocages); E.blocages.push({ ...b, id: nb, montant: (b.montant ?? 0) - a, debut: d, posePar: u, fin: "", levePar: null, motifLevee: "" }); }
+    if (g) { Object.assign(g, { libere: g.libere + a, blocageId: nb, libereeLe: g.montant - g.libere - a === 0 ? d : "" });
+      E.liberationsGarantie.push({ id: prochain(E.liberationsGarantie), garantieId: g.id, montant: a, date: d, ecritureId: null, par: u }); }
+    total += a;
+  }
+  return total;
 }
 function idsCoches(p: { credits?: unknown[] }) {
   const ids = (p.credits ?? []).filter((x): x is number => Number.isInteger(x));
@@ -3466,7 +3513,15 @@ const provisions = {
     if (tout) ids = [...new Set([...par.keys(), ...E.credits.filter((c) => ((c.provision ?? 0) > 0 || (c.degreComptable ?? 1) > 1) && c.statut !== "passe_en_perte").map((c) => c.id)])].sort((a, b2) => a - b2);
     else { ids = idsCoches(p); if (ids.some((i) => !par.has(i))) throw new ErreurMetier("Crédit absent de la balance âgée de cette date."); }
     let n = 0;
-    for (const i of ids) { const c = E.credits.find((x) => x.id === i); if (c && c.statut !== "passe_en_perte" && provisionnerUn(c, par.get(i), d, u.id)) n++; }
+    for (const i of ids) {
+      const c = E.credits.find((x) => x.id === i); if (!c || c.statut === "passe_en_perte") continue;
+      let l = par.get(i);
+      if (l && l.joursRetard > 0 && c.statut === "debloque" && !(c.provisionneLe && c.provisionneLe > d) && !E.remboursementsCredit.some((r) => r.creditId === c.id && r.date > d)
+        && compenserCredit(c, d, u.id)) {                                 // CR-21b : le dépôt nanti paie d'abord l'échu ; la ligne de balance est recalculée
+        const x = ligneBalance(c, d); b.lignes = b.lignes.filter((y) => y.creditId !== c.id); if (x) b.lignes.push(x); l = x ?? undefined;
+      }
+      if (provisionnerUn(c, l, d, u.id)) n++;
+    }
     enregistrer();
     return { credits: ids.length, ecritures: n, lignes: provisions.charger(d) };
   },
@@ -3512,7 +3567,8 @@ const vueEngagement = (e: EngagementSignature) => { const t = E.tiers.find((x) =
   return { id: e.id, reference: e.reference, tiersId: e.tiersId, membre: t.numero, client: titulaire(t), type: e.type, typeLibelle: TYPES_ENGAGEMENT[e.type]![0], description: e.description,
     dateDebut: e.dateDebut, dateFin: e.dateFin, duree: e.duree, montant: e.montant, devise: e.devise as string, pourcentage: e.pourcentage, forfait: e.forfait, frais: e.frais, garantie: e.garantie,
     compteEpargne: E.comptes.find((k) => k.id === e.compteEpargneId)!.numero, compteGaranti: E.comptes.find((k) => k.id === e.compteGarantiId)!.numero,
-    banque: cb ? `${E.banques.find((b) => b.id === cb.banqueId)?.libelle ?? ""} ${cb.numeroBancaire}` : "", observation: e.observation, piece: pieceDe(e.ecritureId) }; };
+    banque: cb ? `${E.banques.find((b) => b.id === cb.banqueId)?.libelle ?? ""} ${cb.numeroBancaire}` : "", observation: e.observation, utilise: e.utilise ?? 0, clotureLe: e.clotureLe ?? "", motifFin: MOTIFS_FIN[e.motifFin ?? ""] ?? "", piece: pieceDe(e.ecritureId) }; };
+const MOTIFS_FIN: Record<string, string> = { echeance: "Échéance", mainlevee: "Mainlevée", mise_en_jeu: "Mise en jeu de la garantie" };
 const engagements = {
   lister() { lectureAdmin(["S100"]); return [...E.engagementsSignature].sort((a, b) => b.dateDebut.localeCompare(a.dateDebut) || b.id - a.id).map(vueEngagement); },
   contexte() { lectureAdmin(["S100"]); return { types: Object.entries(TYPES_ENGAGEMENT).map(([code, [libelle]]) => ({ code, libelle })), banques: banquesEngagement(), date: journees.courante()?.date ?? "", entete: enteteDocument(), coopec: estCoopec() }; },
@@ -3565,6 +3621,41 @@ const engagements = {
       compteBancaireId: p.compteBancaireId ?? null, observation: (p.observation ?? "").trim(), blocageId: bid, ecritureId: e.id, saisiPar: u.id };
     E.engagementsSignature.push(x); enregistrer();
     return vueEngagement(x);
+  },
+  /** S100-7 : fin de l'engagement (PCCI, compte 00 : crédité de l'engagement devenu sans objet). Mêmes règles que serveur/noyau/engagements.py (finir) */
+  finir(eid: number, p: { motif?: string; montant?: number | null }) {
+    const u = exiger(), j = jourDeblocage().date;
+    const e = E.engagementsSignature.find((x) => x.id === eid); if (!e) throw new ErreurMetier("Choisir un engagement dans la liste.");
+    if (e.clotureLe) throw new ErreurMetier("Cet engagement a déjà pris fin.");
+    const motif = p.motif as "echeance" | "mainlevee" | "mise_en_jeu"; if (!MOTIFS_FIN[motif]) throw new ErreurMetier("À remplir : Motif de fin.");
+    if (motif === "echeance" && j < e.dateFin) throw new ErreurMetier("Échéance : la Date Fin de l'engagement n'est pas encore atteinte.");
+    const dv = e.devise, k = `engagement:${e.reference}`, reste = e.montant - (e.utilise ?? 0), compte = TYPES_ENGAGEMENT[e.type]![1];
+    const bl = e.blocageId ? E.blocages.find((x) => x.id === e.blocageId && !x.fin) : undefined;
+    const ln = (c: string, sens: "D" | "C", v: number, contrat?: string): Ligne => ({ compte: c, contrat, sens, devise: dv, montant: v, montantCdf: cdf(v, dv) });
+    const lg: Ligne[] = []; let paye = 0, sortie = reste;
+    if (motif === "mise_en_jeu") {
+      if (!Number.isInteger(p.montant) || p.montant! <= 0) throw new ErreurMetier("À remplir : Montant payé.");
+      paye = p.montant!;
+      if (paye > reste) throw new ErreurMetier("Montant payé : au plus ce qui reste de l'engagement.");
+      const cb = E.comptesBancaires.find((x) => x.id === e.compteBancaireId);
+      if (!cb) throw new ErreurMetier("Mise en jeu : l'engagement n'a pas de Compte Banque pour payer le bénéficiaire.");
+      const ks = comptesEngagement(e.tiersId), cg = ks.find((x) => x.id === e.compteGarantiId), ce = ks.find((x) => x.id === e.compteEpargneId);
+      const garantie = bl && cg ? Math.min(bl.montant ?? 0, paye) : 0, surEpargne = paye - garantie;
+      if (surEpargne > (ce ? ce.disponible : 0)) throw new ErreurMetier("Mise en jeu : la garantie bloquée et le compte épargne du client ne couvrent pas ce montant ; payer au plus ce qu'ils couvrent.");
+      if (garantie) lg.push(ln(cg!.pcci, "D", garantie, `depot:${cg!.id}`));
+      if (surEpargne) lg.push(ln(ce!.pcci, "D", surEpargne, `depot:${ce!.id}`));
+      lg.push(ln(cb.compte, "C", paye));
+      sortie = paye;
+      if (bl && garantie) { Object.assign(bl, { fin: j, levePar: u.id, motifLevee: `Mise en jeu de l'engagement ${e.reference}` });
+        let nb: number | null = null;
+        if ((bl.montant ?? 0) - garantie > 0 && paye < reste) { nb = prochain(E.blocages); E.blocages.push({ ...bl, id: nb, montant: (bl.montant ?? 0) - garantie, debut: j, posePar: u.id, fin: "", levePar: null, motifLevee: "" }); }
+        e.blocageId = nb; }
+    } else if (bl) { Object.assign(bl, { fin: j, levePar: u.id, motifLevee: `${MOTIFS_FIN[motif]} de l'engagement ${e.reference}` }); e.blocageId = null; }
+    lg.push(ln("090", "D", sortie, k), ln(compte, "C", sortie, k));
+    poster({ journal: "OD", journeeId: jourDeblocage().id, libelle: `${MOTIFS_FIN[motif]}, engagement ${e.reference}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: lg });
+    const fini = motif !== "mise_en_jeu" || paye === reste;
+    Object.assign(e, { utilise: (e.utilise ?? 0) + paye, ...(fini ? { clotureLe: j, motifFin: motif } : {}) });
+    enregistrer(); return vueEngagement(e);
   },
 };
 // ---------- S101 : Crédit > Rapport (manuel p. 121, menu seul : huit rapports). Mêmes règles que serveur/noyau/rapports_credit.py.
@@ -3824,7 +3915,7 @@ function compteAppoint(c: CreditPret) {
   return x;
 }
 function enregistrerRemboursement(c: CreditPret, d: string, montant: unknown, rep: Record<string, number> | null | undefined, contrepartie: { compte: string; contrat?: string },
-  journal: "CA" | "OD", u: number, mandataire: string, extra: { mode: "caisse" | "banque"; compteBancaireId?: number; appoint?: [number, number] }) {
+  journal: "CA" | "OD", u: number, mandataire: string, extra: { mode: RemboursementCredit["mode"]; compteBancaireId?: number; appoint?: [number, number]; libelle?: string }) {
   const s = etatCredit(c, d);
   if (s.remboursements.length && d < s.remboursements[s.remboursements.length - 1]!.date) throw new ErreurMetier("Date règlement : pas avant le dernier remboursement.");
   const { r, modifie } = controlerRepartition(c, s, montant, rep);
@@ -3833,10 +3924,13 @@ function enregistrerRemboursement(c: CreditPret, d: string, montant: unknown, re
   if (ap) { const k = E.comptes.find((x) => x.id === ap[0])!; l.push({ compte: k.pcci, contrat: `depot:${k.id}`, sens: "C", devise: dv, montant: ap[1], montantCdf: cdf(ap[1], dv) }); }
   const ligne = (compte: string, v: number, contrat = `credit:${c.id}`) => { if (v) l.push({ compte, contrat, sens: "C", devise: dv, montant: v, montantCdf: cdf(v, dv) }); };
   ligne(comptesCredit(c, c.degreComptable ?? 1).capital, r.capital!);   // le compte qui porte le capital : sain, ou 390 après déclassement (S99)
+  const hbRemb = Math.min(c.interetsHorsBilan ?? 0, r.interet!);   // intérêts suivis en hors bilan, perçus : sortis du hors bilan (CR-19)
+  if (hbRemb) { l.push({ compte: "096", contrat: `credit:${c.id}`, sens: "D", devise: dv, montant: hbRemb, montantCdf: cdf(hbRemb, dv) }, { compte: "0630", contrat: `credit:${c.id}`, sens: "C", devise: dv, montant: hbRemb, montantCdf: cdf(hbRemb, dv) });
+    c.interetsHorsBilan = (c.interetsHorsBilan ?? 0) - hbRemb; }
   for (const k of ["interet", "penalite", "anticipation", "tva"]) ligne(k === "anticipation" ? cc.interet : ci.interet, r[k]!);
   for (const [k, cid] of [["epargne", c.compteEpargneId], ["solidarite", c.compteSolidariteId]] as [string, number | null][])
     if (r[k] && cid) ligne(E.comptes.find((x) => x.id === cid)!.pcci, r[k]!, `depot:${cid}`);
-  const e = poster({ journal, journeeId: jourDeblocage().id, libelle: `Remboursement du crédit ${c.numero}`, piece: piece(journal), saisiPar: u, validePar: u, lignes: l });
+  const e = poster({ journal, journeeId: jourDeblocage().id, libelle: extra.libelle ?? `Remboursement du crédit ${c.numero}`, piece: piece(journal), saisiPar: u, validePar: u, lignes: l });
   const repartition = Object.fromEntries([...CLES_REMB, "capitalAnticipe"].map((k) => [k, r[k] ?? 0]));
   const rb: RemboursementCredit = { id: prochain(E.remboursementsCredit), creditId: c.id, ecritureId: e.id, operationId: null, date: d, montant: m, repartition,
     modifie, mandataire, mode: extra.mode, compteBancaireId: extra.compteBancaireId ?? null, saisiPar: u };
@@ -3844,6 +3938,7 @@ function enregistrerRemboursement(c: CreditPret, d: string, montant: unknown, re
   if (r.capitalAnticipe) for (const x of anticipationCredit(c, s, r.capitalAnticipe!)[1]) { const y = c.echeancier.find((z) => z.rang === x.rang)!; y.capital = x.capital; y.interet = x.interet; }
   if (c.montant - s.payes.capital! - r.capital! === 0 && etatCredit(c, d).resteAPayer === 0) {
     c.statut = "solde";
+    for (const x of E.contentieux) if (x.creditId === c.id && !x.closLe) Object.assign(x, { closLe: d, issue: "Crédit remboursé" });
     for (const b of E.blocages) if (b.garantieDe === c.id && !b.fin && !E.garanties.some((g) => g.blocageId === b.id)) Object.assign(b, { fin: d, levePar: u, motifLevee: `Crédit ${c.numero} remboursé` });
   }
   return { e, rb };
@@ -4517,9 +4612,58 @@ const cip = {
     t.icu = icu; enregistrer(); return { tiersId: tid, icu };
   },
 };
+// Écart E27 : Crédit > Prorogation et contentieux (Instr. BCC 003, art. 5, 8 et 12 ; registre CR-16b, E27-1 à E27-5). Mêmes règles que noyau/litigieux.py.
+const TYPES_CONTENTIEUX: Record<string, string> = { amiable: "Résolution à l'amiable", judiciaire: "Résolution en justice" };
+const creditLitigieux = (cid: number) => { const c = E.credits.find((x) => x.id === cid); if (!c || c.statut !== "debloque") throw new ErreurMetier("Choisir un crédit débloqué, en cours de remboursement."); return c; };
+function nonSoldees(c: CreditPret, d: string) {
+  const s = etatCredit(c, d), reg = s.payes.capital! - s.payes.capitalAnticipe! + s.payes.interet!; let cumul = 0;
+  return s.echeances.filter((e) => { cumul += e.capital + e.interet; return cumul > reg; });
+}
+const litigieux = {
+  creditsDuClient(tid: number) { lectureAdmin(["SL01"]); return E.credits.filter((c) => c.tiersId === tid && c.statut === "debloque").map((c) => ({ id: c.id, numero: c.numero, montant: c.montant, devise: c.devise as string })); },
+  situation(cid: number) {
+    lectureAdmin(["SL01"]);
+    const c = creditLitigieux(cid), d = jourDeblocage().date, s = etatCredit(c, d), t = E.tiers.find((x) => x.id === c.tiersId)!;
+    const pr = E.prorogations.find((x) => x.creditId === cid);
+    return { id: c.id, numero: c.numero, client: titulaire(t), membre: t.numero, montant: c.montant, devise: c.devise as string, capitalRestant: s.capitalRestant, joursRetard: s.joursRetard,
+      degre: s.degreLibelle, echeances: nonSoldees(c, d).map((e) => ({ rang: e.rang, date: e.date, capital: e.capital, interet: e.interet })),
+      prorogation: pr ? { date: pr.date, demandeLe: pr.demandeLe, mois: pr.mois, motif: pr.motif } : null,
+      contentieux: E.contentieux.filter((x) => x.creditId === cid).sort((a, b) => b.id - a.id).map((x) => ({ id: x.id, type: x.type as string, typeLibelle: TYPES_CONTENTIEUX[x.type]!, ouvertLe: x.ouvertLe,
+        reference: x.reference, observation: x.observation, closLe: x.closLe, issue: x.issue })) };
+  },
+  proroger(cid: number, p: { mois?: number | null; motif?: string; demandeLe?: string }) {
+    const u = exiger(), c = creditLitigieux(cid), d = jourDeblocage().date;
+    if (E.prorogations.some((x) => x.creditId === cid)) throw new ErreurMetier("Ce crédit a déjà été prorogé : la prorogation n'est autorisée qu'une seule fois (Instr. BCC 003, art. 5, al. 2).");
+    if (!Number.isInteger(p.mois) || p.mois! < 1 || p.mois! > 12) throw new ErreurMetier("Report (mois) : de 1 à 12.");
+    const motif = (p.motif ?? "").trim(); if (!motif) throw new ErreurMetier("À remplir : Motif.");
+    if (!DATE_ISO.test(p.demandeLe ?? "")) throw new ErreurMetier("À remplir : Demande du client le.");
+    if (p.demandeLe! > d) throw new ErreurMetier("Demande du client le : pas après la journée ouverte.");
+    const reste = nonSoldees(c, d); if (!reste.length) throw new ErreurMetier("Ce crédit n'a plus d'échéance à reporter.");
+    E.prorogations.push({ id: prochain(E.prorogations), creditId: cid, date: d, demandeLe: p.demandeLe!, mois: p.mois!, motif,
+      echeancierInitial: c.echeancier.map((e) => ({ rang: e.rang, date: e.date, capital: e.capital, interet: e.interet })), par: u.id });
+    for (const e of reste) e.date = plusMois(e.date, p.mois!);
+    enregistrer(); return litigieux.situation(cid);
+  },
+  ouvrirContentieux(cid: number, p: { type?: string; reference?: string; observation?: string }) {
+    const u = exiger(), c = creditLitigieux(cid), d = jourDeblocage().date;
+    if (!p.type || !TYPES_CONTENTIEUX[p.type]) throw new ErreurMetier("À remplir : Type de résolution.");
+    const ref = (p.reference ?? "").trim(); if (!ref) throw new ErreurMetier("À remplir : Référence du dossier.");
+    if (E.contentieux.some((x) => x.creditId === cid && !x.closLe)) throw new ErreurMetier("Ce crédit a déjà un dossier contentieux ouvert.");
+    if (etatCredit(c, d).joursRetard < 1) throw new ErreurMetier("Ce crédit n'a pas d'impayé : le contentieux porte sur une créance impayée (Instr. BCC 003, art. 8).");
+    E.contentieux.push({ id: prochain(E.contentieux), creditId: cid, type: p.type as "amiable" | "judiciaire", ouvertLe: d, reference: ref, observation: (p.observation ?? "").trim(), closLe: "", issue: "", ouvertPar: u.id });
+    enregistrer(); return litigieux.situation(cid);
+  },
+  cloreContentieux(cid: number, p: { issue?: string }) {
+    exiger(); creditLitigieux(cid);
+    const x = E.contentieux.find((y) => y.creditId === cid && !y.closLe); if (!x) throw new ErreurMetier("Ce crédit n'a pas de dossier contentieux ouvert.");
+    const issue = (p.issue ?? "").trim(); if (!issue) throw new ErreurMetier("À remplir : Issue du dossier.");
+    Object.assign(x, { closLe: jourDeblocage().date, issue }); enregistrer(); return litigieux.situation(cid);
+  },
+};
 // Écart E26 : Centrale des risques (Instr. BCC 05, annexe I, art. 1, 4 à 7 et 10 ; registre CR-10). Mêmes règles que noyau/centrale_risques.py.
 const TYPES_CR: Record<string, string> = { octroi: "Octroi de crédit", remboursement: "Remboursement", engagement: "Engagement par signature", modification: "Client modifié",
-  passage_en_perte: "Passage en perte", radiation: "Radiation (encours nul depuis trois ans)" };
+  passage_en_perte: "Passage en perte", radiation: "Radiation (encours nul depuis trois ans)", prorogation: "Crédit prorogé", contentieux: "Crédit contentieux",
+  fin_engagement: "Fin d'engagement par signature" };
 const plusTroisAns = (d: string) => { const a = Number(d.slice(0, 4)) + 3, r = `${a}${d.slice(4)}`; return Number.isNaN(Date.parse(r)) || r.slice(5) === "02-29" && new Date(`${r}T00:00:00Z`).getUTCMonth() !== 1 ? `${a}-02-28` : r; };
 function radiationsCr(au: string) {
   const parTiers = new Map<number, CreditPret[]>();
@@ -4544,6 +4688,9 @@ function evenementsCr(au: string) {
     if (E.credits.some((c) => c.tiersId === m.tiersId && c.statut === "debloque" && c.debloqueLe && c.debloqueLe <= d) || E.engagementsSignature.some((e) => e.tiersId === m.tiersId && e.dateDebut <= d && d <= e.dateFin))
       ev.push({ type: "modification", objetId: m.id, date: d, tiersId: m.tiersId, reference: "", montant: null, devise: "" }); }
   for (const p of E.provisionsCredit) if (p.nature === "radiation") { const c = E.credits.find((x) => x.id === p.creditId)!; ev.push({ type: "passage_en_perte", objetId: p.id, date: p.date, tiersId: c.tiersId, reference: c.numero, montant: p.capitalRestant, devise: c.devise }); }
+  for (const x of E.prorogations) { const c = E.credits.find((y) => y.id === x.creditId)!; ev.push({ type: "prorogation", objetId: x.id, date: x.date, tiersId: c.tiersId, reference: c.numero, montant: null, devise: c.devise }); }
+  for (const x of E.contentieux) { const c = E.credits.find((y) => y.id === x.creditId)!; ev.push({ type: "contentieux", objetId: x.id, date: x.ouvertLe, tiersId: c.tiersId, reference: c.numero, montant: null, devise: c.devise }); }
+  for (const e of E.engagementsSignature) if (e.clotureLe) ev.push({ type: "fin_engagement", objetId: e.id, date: e.clotureLe, tiersId: e.tiersId, reference: e.reference, montant: e.montant, devise: e.devise });
   ev.push(...radiationsCr(au));
   return ev.sort((a, b) => a.date.localeCompare(b.date) || a.type.localeCompare(b.type) || a.objetId - b.objetId);
 }
@@ -6360,6 +6507,7 @@ const apiLocal = {
   engagements: asynchrone(engagements, "engagements"),
   rapportsCredit: asynchrone(rapportsCreditApi, "rapportsCredit"),
   centraleRisques: asynchrone(centraleRisques, "centraleRisques"),
+  litigieux: asynchrone(litigieux, "litigieux"),
   societe: asynchrone(societe, "societe"),
   agents: asynchrone(agents, "agents"),
   jours: asynchrone(jours, "jours"),

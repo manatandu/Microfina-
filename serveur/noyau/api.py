@@ -622,6 +622,43 @@ def rapports_credit(request, nom: str):
     return rc.rapport(u(request), nom, p)
 
 
+# ---------- Écart E27 : prorogation et contentieux (Instr. BCC 003, art. 5, 8 et 12) ----------
+@api.get("/credit/litigieux/clients/{tid}")
+def litigieux_credits(request, tid: int):
+    from . import litigieux as lt
+    return lt.credits_du_client(u(request), tid)
+
+
+@api.get("/credit/litigieux/{cid}")
+def litigieux_situation(request, cid: int):
+    from . import litigieux as lt
+    return lt.situation(u(request), cid)
+
+
+@api.post("/credit/litigieux/{cid}/prorogation")
+def litigieux_proroger(request, cid: int, corps: dict = Body(...)):
+    from . import litigieux as lt
+    return lt.proroger(u(request), cid, corps)
+
+
+@api.post("/credit/litigieux/{cid}/contentieux")
+def litigieux_contentieux(request, cid: int, corps: dict = Body(...)):
+    from . import litigieux as lt
+    return lt.ouvrir_contentieux(u(request), cid, corps)
+
+
+@api.post("/credit/litigieux/{cid}/cloture")
+def litigieux_cloture(request, cid: int, corps: dict = Body(...)):
+    from . import litigieux as lt
+    return lt.clore_contentieux(u(request), cid, corps)
+
+
+@api.post("/credit/engagements/{eid}/fin")
+def engagements_finir(request, eid: int, corps: dict = Body(...)):
+    from . import engagements as en
+    return en.finir(u(request), eid, corps)
+
+
 @api.get("/credit/visas/contexte")
 def visas_contexte(request):
     from .services import est_coopec

@@ -7,7 +7,9 @@ avec la référence de la décision ; pour une personne morale, ses dirigeants s
 from datetime import date
 
 from .bd import ErreurMetier, executer, lignes, une, valeur
-from .services import exiger, journee_courante, titulaire
+from psycopg.types.json import Jsonb
+
+from .services import exiger, journee_courante, json_lu, titulaire
 
 
 def jour(u) -> date:
@@ -20,14 +22,17 @@ def inscription(tid: int) -> dict | None:
 
 
 def bloquant(tid: int) -> dict | None:
-    """L'inscription du client, ou celle de la personne morale indexée par la BCC dont il est dirigeant (même pièce d'identité ; Instr. BCC 13, art. 7 b)"""
+    """L'inscription du client, ou celle de la personne morale indexée par la BCC dont il est dirigeant (fiche de l'entreprise) ou dont la décision le vise
+    comme dirigeant ou associé (pièces notées à l'inscription, registre S97-4) : même pièce d'identité (Instr. BCC 13, art. 7 b)"""
     i = inscription(tid)
     if i:
         return i
-    return une("""select lr.* from liste_rouge lr join representant r on r.tiers_id = lr.tiers_id and r.role = 'dirigeant'
-                  join tiers_personne p on p.tiers_id = %s and p.piece_numero is not null and p.piece_numero <> ''
-                       and upper(trim(p.piece_numero)) = upper(trim(r.piece_numero))
-                  where lr.retire_le is null and lr.reference_bcc is not null limit 1""", (tid,))
+    return une("""select lr.* from liste_rouge lr join tiers_personne p on p.tiers_id = %s and p.piece_numero is not null and p.piece_numero <> ''
+                  where lr.retire_le is null and lr.reference_bcc is not null
+                  and (exists (select 1 from representant r where r.tiers_id = lr.tiers_id and r.role = 'dirigeant'
+                               and upper(trim(r.piece_numero)) = upper(trim(p.piece_numero)))
+                       or exists (select 1 from jsonb_array_elements(lr.personnes_visees) x where upper(trim(x->>'piece')) = upper(trim(p.piece_numero))))
+                  limit 1""", (tid,))
 
 
 def controler(tid: int) -> None:
@@ -35,13 +40,14 @@ def controler(tid: int) -> None:
     i = bloquant(tid)
     if i:
         quoi = f"mise à l'index, décision BCC {i['reference_bcc']} (Instr. BCC 13, art. 7)" if i["reference_bcc"] else f"motif : {i['motif']}"
-        cible = "" if i["tiers_id"] == tid else f" ; dirigeant de {titulaire(i['tiers_id'])}"
+        cible = "" if i["tiers_id"] == tid else f" ; dirigeant ou associé de {titulaire(i['tiers_id'])}"
         raise ErreurMetier(f"Client sur la liste rouge ({quoi}{cible}) : aucun crédit.")
 
 
 def vue(x: dict) -> dict:
     return {"id": x["id"], "tiersId": x["tiers_id"], "membre": valeur("select numero from tiers where id = %s", (x["tiers_id"],)), "client": titulaire(x["tiers_id"]),
-            "date": x["ajoute_le"].isoformat(), "motif": x["motif"], "referenceBcc": x["reference_bcc"] or ""}
+            "date": x["ajoute_le"].isoformat(), "motif": x["motif"], "referenceBcc": x["reference_bcc"] or "",
+            "personnesVisees": json_lu(x["personnes_visees"]) or []}
 
 
 def lister(u) -> list[dict]:
@@ -61,6 +67,19 @@ def tiers_de(u, p) -> int:
     return tid
 
 
+def personnes_visees(p) -> list[dict]:
+    """Dirigeants et associés que la décision de mise à l'index d'une personne morale vise (Instr. BCC 13, art. 7 b) : nom et numéro de pièce"""
+    out = []
+    for x in (p or {}).get("personnesVisees") or []:
+        nom, piece = str((x or {}).get("nom") or "").strip(), str((x or {}).get("piece") or "").strip()
+        if not nom and not piece:
+            continue
+        if not nom or not piece:
+            raise ErreurMetier("Dirigeants et associés visés : un nom et un numéro de pièce par ligne.")
+        out.append({"nom": nom, "piece": piece})
+    return out
+
+
 def ajouter(u, p) -> list[dict]:
     exiger(u)
     tid, motif = tiers_de(u, p), texte(p, "motif")
@@ -68,8 +87,12 @@ def ajouter(u, p) -> list[dict]:
         raise ErreurMetier("À remplir : Motif.")
     if inscription(tid):
         raise ErreurMetier("Ce client est déjà sur la liste rouge.")
-    executer("insert into liste_rouge (institution_id, tiers_id, motif, reference_bcc, ajoute_le, ajoute_par) values (%s, %s, %s, %s, %s, %s)",
-             (u["institution_id"], tid, motif, texte(p, "referenceBcc") or None, jour(u), u["id"]))
+    ref = texte(p, "referenceBcc") or None
+    visees = personnes_visees(p)
+    if visees and not ref:
+        raise ErreurMetier("Dirigeants et associés visés : seulement pour une mise à l'index de la BCC (Réf. décision BCC).")
+    executer("""insert into liste_rouge (institution_id, tiers_id, motif, reference_bcc, ajoute_le, ajoute_par, personnes_visees)
+                values (%s, %s, %s, %s, %s, %s, %s)""", (u["institution_id"], tid, motif, ref, jour(u), u["id"], Jsonb(visees)))
     return lister(u)
 
 

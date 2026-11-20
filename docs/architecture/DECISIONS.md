@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**635 décisions.** Solidité : 270 fortes (le manuel ou un texte répond), 309 moyennes (déduites d'un écran voisin ou d'une donnée), 56 faibles (notre choix, faute de mieux). Dans le code : 615 déjà en place, 17 à appliquer.
+**640 décisions.** Solidité : 272 fortes (le manuel ou un texte répond), 312 moyennes (déduites d'un écran voisin ou d'une donnée), 56 faibles (notre choix, faute de mieux). Dans le code : 625 déjà en place, 12 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1088,6 +1088,16 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | E26-2 | Événements | Lus dans les données, rien n'est saisi deux fois : déblocage, remboursements, engagements par signature, modifications validées du client pendant un crédit ou un engagement en cours, passages en perte, radiation trois ans après le dernier remboursement ou passage en perte quand le client n'a plus ni crédit ni engagement | Texte réglementaire : Instr. BCC 05, annexe I, art. 1, 4, 5, 6 et 7 | forte | en place |
 | E26-3 | Délai | Déclaration en temps réel : un événement pas déclaré le jour même est marqué « en retard » | Texte réglementaire : Instr. BCC 05, annexe I, art. 10 | forte | en place |
 
+## E27 Prorogation et contentieux
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E27-1 | Écran | Crédit > Prorogation et contentieux (droit SL01 : chef d'agence et agent de crédit), gabarit guichet : Infos client (N° Client recherché, Intitulé, N° crédit), Infos crédit en lecture, cadre Prorogation (Demande du client le *, Report (mois) *, Motif *, bouton Proroger), cadre Contentieux (Type de résolution *, Référence du dossier *, Observation ; Ouvrir le dossier, puis Issue * et Clore le dossier), grille des dossiers | Écran voisin : COMPLEMENTS § 4.3 ; S95 ; Instr. BCC 003, art. 5 et 8 | moyenne | en place |
+| E27-2 | Prorogation : effet sur l'échéancier | Report des dates des échéances non soldées, du même nombre de mois ; montants inchangés (le texte parle d'échéances modifiées, pas d'un nouveau prêt) ; refus d'une seconde prorogation | Texte réglementaire : Instr. BCC 003, art. 5, al. 1 et 2 | moyenne | en place |
+| E27-3 | Prorogation : classe et provision | Classe « prorogé » dès la prorogation ; jours de retard comptés sur l'échéancier initial ; degré au moins « Impayés » (5 %), puis selon les jours | Texte réglementaire : Instr. BCC 003, art. 4 et 12, dernier alinéa | moyenne | en place |
+| E27-4 | Contentieux | Ouvert seulement s'il y a un impayé ; un seul dossier ouvert par crédit ; clos par l'agent avec l'issue, ou d'office « Crédit remboursé » au remboursement total | Texte réglementaire : Instr. BCC 003, art. 8 | forte | en place |
+| E27-5 | Déclarations | La prorogation et l'ouverture d'un contentieux entrent dans la liste à déclarer à la Centrale des risques (E26) | Texte réglementaire : Instr. BCC 05, annexe I, art. 1 et 7 | forte | en place |
+
 ## S74 Dépôt / Retrait
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
@@ -1206,7 +1216,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S97-1 | Écran | Captures p. 119 et 120 « Gestion de la liste rouge » : Infos client (N° Client, Intitulé, Motif), Ajouter et Retirer, chacun avec sa confirmation (« Voulez-vous ajouter ce client à la liste rouge ? ») ; grille N° client, Intitulé, Date, Motif avec filtres (colonnes du milieu cachées par la fenêtre sur les captures : Intitulé et Date) | Manuel : Captures et texte p. 119 et 120 | moyenne | en place |
 | S97-2 | Motif | Obligatoire pour ajouter et pour retirer (texte : « renseigner le motif ensuite cliquer sur [Ajouter] », « … sur [Retirer] ») ; un client n'est inscrit qu'une fois ; l'historique garde la date, l'auteur et le motif du retrait | Manuel : Texte p. 119 et 120 | forte | en place |
 | S97-3 | Mise à l'index | Champ facultatif « Réf. décision BCC (mise à l'index) ». Une personne morale inscrite avec cette référence bloque aussi ses dirigeants devenus clients, reconnus par le numéro de leur pièce d'identité | Texte réglementaire : CR-9 ; Instr. BCC 13, art. 7 a et b | moyenne | en place |
-| S97-4 | Associés d'une personne morale indexée | L'article 7 b vise aussi les associés ; le logiciel n'a pas de registre des associés d'une entreprise (la fiche porte un dirigeant et des signataires) : à confirmer par le porteur (registre des associés à ajouter à la fiche entreprise S38 ?) | Texte réglementaire : Instr. BCC 13, art. 7 b | faible | à appliquer |
+| S97-4 | Associés d'une personne morale indexée | La décision de mise à l'index d'une société vise aussi ses dirigeants et associés. À l'inscription d'une société avec la référence de la BCC, l'agent note les personnes visées (nom et numéro de pièce, un par ligne) ; elles sont reconnues par leur pièce d'identité, comme les dirigeants de la fiche de l'entreprise, et n'obtiennent ni crédit ni engagement | Texte réglementaire : Instr. BCC 13, art. 7 b et art. 10 | faible | en place |
 
 ## S89, S92 Centrale des risques
 
@@ -1270,7 +1280,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| CR-16b | Prorogé et contentieux | Contentieux : dossier en recouvrement amiable ou judiciaire. Prorogé : échéances modifiées, une seule fois, provisionné comme litigieux depuis l'échéancier initial. Le manuel ne montre aucun écran pour marquer un recouvrement ni pour modifier des échéances : à poser au porteur à la revue de fin d'étape | Texte réglementaire : Instr. BCC 003, art. 5, 8 et 12 | forte | à appliquer |
+| CR-16b | Prorogé et contentieux | Écran E27, Crédit > Prorogation et contentieux. Prorogé : à la demande du client, une seule fois, les échéances pas encore soldées sont reportées de 1 à 12 mois sans changer leurs montants ; l'échéancier initial est gardé et le retard se compte sur lui pour la classe et la provision (au moins la tranche des impayés, 5 %). Contentieux : dossier ouvert sur une créance impayée (résolution à l'amiable ou en justice, référence), clos avec son issue ou d'office au remboursement total ; classe « contentieux » dans la balance âgée, provision selon les jours de retard | Texte réglementaire : Instr. BCC 003, art. 5, 8 et 12 | forte | en place |
 | CR-17 | Provisions | Chaque mois, sur le capital restant dû des crédits litigieux : 1 à 30 jours 5 %, 31 à 60 jours 25 %, 61 à 90 jours 50 %, 91 à 180 jours 75 %, plus de 180 jours 100 % ; écritures de dotation et de reprise selon le PCCI | Texte réglementaire : Instr. BCC 003, art. 12 et 13 ; S21-1 | forte | en place |
 | CR-18 | Passage en perte (« Radier par anticipation ») | Seul un crédit irrécupérable (plus de 12 mois) passe en perte, à la clôture du bilan au 31 décembre ; il est ensuite suivi en hors bilan. Le bouton de la capture est gardé dans cette limite : écart imposé par le texte, à signaler au porteur | Texte réglementaire : Instr. BCC 003, art. 9 et 10 ; capture p. 121 | forte | en place |
 
@@ -1278,7 +1288,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| CR-19 | Intérêts non réglés | Sur un crédit litigieux, les intérêts non réglés sont suivis en hors bilan et n'entrent en produits qu'à leur encaissement | Texte réglementaire : Instr. BCC 003, art. 11 | forte | à appliquer |
+| CR-19 | Intérêts non réglés | Sur un crédit litigieux, les intérêts échus non réglés sont suivis en hors bilan : débit 0630, crédit 096, ajustés à chaque provisionnement (S99) et sortis quand ils sont encaissés (S76). Les intérêts n'entrent en produits qu'à leur encaissement ; il n'y a donc rien à extourner | Texte réglementaire : Instr. BCC 003, art. 11 ; PCCI, classe 3 (compte 39) et hors bilan 063, 096 | forte | en place |
 
 ## S94 Cautions et dépôts de garantie
 
@@ -1290,7 +1300,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| CR-21b | Compensation en cas de défaut | Le dépôt nanti se compense de plein droit avec la dette, après déduction des frais : à construire avec le déclassement et le recouvrement (S99) | Texte réglementaire : Loi 11/020, art. 43 et 48 ; CR-21 | forte | à appliquer |
+| CR-21b | Compensation en cas de défaut | Avant de provisionner un crédit en retard (S99), le dépôt que le client a nanti (épargne obligatoire bloquée au déblocage, dépôts de garantie de S94) se compense de plein droit avec l'échu impayé, seul exigible : la pénalité de retard d'abord (frais dus), puis l'ordre de remboursement du crédit ; le blocage baisse d'autant. Pas de compensation sur le compte d'une caution, qui n'est pas le dépôt du client (elle paie par un remboursement après libération), ni quand les avoirs du client sont gelés | Texte réglementaire : Loi 11/020, art. 45 à 48 ; Code civil, livre III, art. 181 à 183 et 186 ; CR-21 | forte | en place |
 
 ## S100 Engagement par signature
 
@@ -1303,7 +1313,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S100-4 | Garantie | Saisie par l'agent, de 0 au disponible du Compte Garanti (même devise que le Compte Epargne), bloquée sur ce compte | Choix du porteur : Décision du porteur, 20/11/2026 ; Instr. BCC 002, art. 23 (dépôts de garantie déduits des risques) | forte | en place |
 | S100-5 | Contrôles | Référence unique ; plafonds par client et des apparentés avec les crédits (CR-14) ; liste rouge (CR-9) et gel des avoirs refusent l'engagement. Banque et Compte Banque facultatifs : les comptes bancaires de l'institution | Texte réglementaire : Instr. BCC 002, art. 25 à 29 ; Instr. BCC 13, art. 7 ; loi 22/068 | forte | en place |
 | S100-6 | Document imprimé | Acte d'engagement par signature rédigé par nous sur le modèle du contrat de prêt : institution, membre ou client, type, description, montant en chiffres et en lettres, durée, frais, garantie, signatures | Écran voisin : CR-12 ; atlas S100 (document) | moyenne | en place |
-| S100-7 | Fin de l'engagement | Le PCCI crédite le compte 00 quand l'engagement devient sans objet (échéance, mainlevée, mise en jeu de la garantie) et la garantie se libère alors ; le manuel ne montre aucun écran pour cela. L'engagement cesse de compter dans les risques à sa Date Fin. À poser au porteur à la revue de fin d'étape | Texte réglementaire : PCCI, compte 00 (crédité de l'engagement devenu sans objet) | forte | à appliquer |
+| S100-7 | Fin de l'engagement | Bouton « Fin de l'engagement » sur la ligne choisie : Échéance (à partir de la Date Fin) ou Mainlevée, l'engagement restant sort du hors bilan (débit 090, crédit 0001 ou 0012) et la garantie est libérée ; Mise en jeu de la garantie, l'institution paie le bénéficiaire par le Compte Banque de l'engagement et se rembourse sur la garantie bloquée puis sur le compte épargne du client, dans la limite de ces fonds, en une ou plusieurs fois. L'engagement clos ne compte plus dans les risques ; sa fin se déclare à la Centrale des risques | Texte réglementaire : PCCI, compte 00 (crédité de l'engagement devenu sans objet) ; loi 11/020, art. 48 ; Instr. BCC 05, annexe I, art. 7 | forte | en place |
 
 ## S89, S94 Membre emprunteur ou caution
 
@@ -1512,7 +1522,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S92-2 | S92 Crédits validés non débloqués | Crédits archivés | Case cochée : les crédits validés déjà débloqués (ou soldés) s'y ajoutent |
 | S94-3 | S94 Caution et nantissement | Garantie calculée | « Dépôt de garantie calculé » : l'épargne obligatoire du crédit (S89). « Caution calculée » : 0, le produit (S23) n'a pas de paramètre de caution |
 | S95-3 | S95 Consulter prêt | Boutons | B, P, R, Memo : les fenêtres de S76 (brouillard, plan, réel, memo) ; Tout sur le crédit : affiche la somme due ce jour ; H grisé, non expliqué par le manuel ; Percevoir int. par anticipation : la valeur du produit, en lecture |
-| S97-4 | S97 Liste rouge | Associés d'une personne morale indexée | L'article 7 b vise aussi les associés ; le logiciel n'a pas de registre des associés d'une entreprise (la fiche porte un dirigeant et des signataires) : à confirmer par le porteur (registre des associés à ajouter à la fiche entreprise S38 ?) |
+| S97-4 | S97 Liste rouge | Associés d'une personne morale indexée | La décision de mise à l'index d'une société vise aussi ses dirigeants et associés. À l'inscription d'une société avec la référence de la BCC, l'agent note les personnes visées (nom et numéro de pièce, un par ligne) ; elles sont reconnues par leur pièce d'identité, comme les dirigeants de la fiche de l'entreprise, et n'obtiennent ni crédit ni engagement |
 | S101-6 | S101 Rapports crédit | Taux de remboursements | Échéances dues dans la période, par agent et devise : montant échu, part couverte par les paiements faits au plus tard à la date de fin (dans l'ordre des échéances, comme le retard de S76), impayé, taux = remboursé / échu |
 | S101-7 | S101 Rapports crédit | Encours prévisionnel | À partir de la journée, pour chaque mois de la période : capital et intérêts attendus selon les échéanciers, encours prévu en fin de mois (l'impayé reste dans l'encours) |
 | S101-10 | S101 Rapports crédit | Indicateur de gestion : emprunteurs par agent | Le nombre d'emprunteurs actifs divisé par le nombre d'agents de crédit qui gèrent un crédit en cours, sans le « x 100 » de l'annexe : la norme (> 130) est un nombre d'emprunteurs. À confirmer par le porteur |

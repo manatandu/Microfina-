@@ -981,6 +981,15 @@
   "chemin": "/credit/s99"
  },
  {
+  "id": "SL01",
+  "nom": "Prorogation et contentieux",
+  "acces": "Crédit > Prorogation et contentieux",
+  "but": "Proroger un crédit une seule fois à la demande du client en reportant ses échéances, ouvrir et clore un dossier contentieux (résolution à l'amiable ou en justice) ; le crédit prend alors la classe « prorogé » ou « contentieux » dans la balance âgée (écart E27 ; Instr. BCC 003, art. 5, 8 et 12)",
+  "module": "credit",
+  "priorite": "must",
+  "chemin": "/credit/sl01"
+ },
+ {
   "id": "S100",
   "nom": "Engagement par signature",
   "acces": "Crédit > Engagement par signature",

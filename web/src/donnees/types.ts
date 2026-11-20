@@ -282,7 +282,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 72;
+  version: 73;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)
@@ -320,13 +320,16 @@ export interface Etat {
   remboursementsCredit: RemboursementCredit[];   // S76, S55
   memosCredit: { id: number; creditId: number; date: string; texte: string; saisiPar: number }[];
   garanties: GarantieCredit[];   // S94
-  listeRouge: { id: number; tiersId: number; motif: string; referenceBcc: string; ajouteLe: string; ajoutePar: number; retireLe: string; retirePar: number | null; motifRetrait: string }[];   // S97
+  listeRouge: { id: number; tiersId: number; motif: string; referenceBcc: string; ajouteLe: string; ajoutePar: number; retireLe: string; retirePar: number | null; motifRetrait: string ; personnesVisees?: { nom: string; piece: string }[] }[];   // S97
   balancesAgees: BalanceAgee[];   // S98
   provisionsCredit: { id: number; creditId: number; date: string; nature: "provision" | "radiation"; degreAvant: number; degreApres: number; provisionAvant: number;
     provisionApres: number; capitalRestant: number; ecritureId: number | null; par: number }[];   // S99
   engagementsSignature: { id: number; reference: string; tiersId: number; type: "financement" | "aval" | "caution"; description: string; dateDebut: string; dateFin: string;
     duree: number; montant: number; devise: Devise; pourcentage: string; forfait: number; frais: number; garantie: number; compteEpargneId: number; compteGarantiId: number;
-    compteBancaireId: number | null; observation: string; blocageId: number | null; ecritureId: number; saisiPar: number }[];   // S100
+    compteBancaireId: number | null; observation: string; blocageId: number | null; ecritureId: number; saisiPar: number;
+    utilise?: number; clotureLe?: string; motifFin?: "echeance" | "mainlevee" | "mise_en_jeu" | "" }[];   // S100
+  prorogations: { id: number; creditId: number; date: string; demandeLe: string; mois: number; motif: string; echeancierInitial: { rang: number; date: string; capital: number; interet: number }[]; par: number }[];   // E27
+  contentieux: { id: number; creditId: number; type: "amiable" | "judiciaire"; ouvertLe: string; reference: string; observation: string; closLe: string; issue: string; ouvertPar: number }[];   // E27
   affectationsCredit: { id: number; creditId: number; de: number; vers: number; le: string; par: number }[];   // S96
   liberationsGarantie: { id: number; garantieId: number; montant: number; date: string; ecritureId: number | null; par: number }[];
   visasCredit: VisaCredit[];   // S90
@@ -465,12 +468,13 @@ export interface CreditPret {
   fraisEncaissesLe?: string; ecritureDeblocageId?: number; modeDeblocage?: "caisse" | "banque"; chequeDeblocage?: string;
   echeancier: { rang: number; date: string; capital: number; interet: number }[];
   degreComptable?: number; provision?: number; degreProvision?: number | null; provisionneLe?: string; radieLe?: string;   // S99
+  interetsHorsBilan?: number;   // CR-19 : intérêts non réglés d'un crédit litigieux, suivis en 0630
 }
 
 /** S76, S55 : un remboursement de crédit, sa répartition (registre S76, CR-7, CR-20) */
 export interface RemboursementCredit {
   id: number; creditId: number; ecritureId: number; operationId: number | null; date: string; montant: number; repartition: Record<string, number>;
-  modifie: boolean; mandataire: string; mode: "caisse" | "banque"; compteBancaireId: number | null; saisiPar: number;
+  modifie: boolean; mandataire: string; mode: "caisse" | "banque" | "compensation" | "epargne"; compteBancaireId: number | null; saisiPar: number;
 }
 
 /** S94 : caution ou dépôt de garantie d'un crédit (registre S94, CR-21) */
@@ -486,4 +490,4 @@ export interface VisaCredit { creditId: number; niveau: "responsable_credit" | "
 // S98 : balance âgée générée à une date (Instr. BCC 003, art. 2 à 9)
 export type BalanceAgee = { id: number; date: string; lanceLe: string; lancePar: number; lignes: { creditId: number; tiersId: number; produitId: number; agentId: number | null;
   devise: string; montant: number; capitalRestant: number; capitalImpaye: number; interetImpaye: number; joursRetard: number; degre: number;
-  classe: "sain" | "impaye" | "douteux" | "irrecuperable"; assimile: boolean }[] };
+  classe: "sain" | "impaye" | "douteux" | "irrecuperable" | "proroge" | "contentieux"; assimile: boolean }[] };

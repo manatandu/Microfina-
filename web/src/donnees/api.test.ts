@@ -2275,7 +2275,7 @@ describe("journée de guichet", () => {
   });
 
   it("déclassement et provisions (S99, p. 121) : capital en 390, provision en 380 au taux de la tranche (Instr. BCC 003, art. 12), radiation au 31 décembre (art. 10)", async () => {
-    const cid = await creditDebloque();
+    const cid = await creditDebloque({ ...PRODUIT_CREDIT, epargneValeur: 0 });   // sans épargne obligatoire : pas de dépôt nanti à compenser (CR-21b)
     const j = (await api.journees.courante())!.date;
     const c = _etat().credits.find((x) => x.id === cid)!, cap = c.montant;
     const solde = (n: string) => _etat().ecritures.flatMap((e) => e.lignes).filter((x) => x.compte === n).reduce((t, x) => t + (x.sens === "D" ? x.montant : -x.montant), 0);
@@ -2377,6 +2377,70 @@ describe("journée de guichet", () => {
     const pr = ctx.provinces.find((x) => x.nom === "Kinshasa")!.id, vi = ctx.villes.find((x) => x.provinceId === pr)!.id;
     const e = { nbHommes: 0, nbFemmes: 1, montantHommes: 0, montantFemmes: 100000000, nbGroupes: 0 };
     await expect(api.dossiers.demander({ produitId: c.produitId, tiersId: 1, duree: 12, provinceId: pr, villeId: vi, ...e, ressaisie: e })).rejects.toThrow("en retard de 10 jours");   // comme le serveur
+  });
+
+  it("crédits litigieux : prorogation une seule fois, compensation du dépôt nanti (loi 11/020, art. 48), contentieux, intérêts en hors bilan (Instr. BCC 003, art. 5, 8, 11, 12)", async () => {
+    const cid = await creditDebloque();
+    const j = (await api.journees.courante())!.date;
+    const c = _etat().credits.find((x) => x.id === cid)!, oblig = c.epargneObligatoire;
+    const solde = (n: string) => _etat().ecritures.flatMap((e) => e.lignes).filter((x) => x.compte === n).reduce((t, x) => t + (x.sens === "D" ? x.montant : -x.montant), 0);
+    const recule = (n: number) => { for (const e of c.echeancier) e.date = new Date(Date.parse(`${e.date}T00:00:00Z`) - n * 86400000).toISOString().slice(0, 10); };
+    const ecart = () => Math.round((Date.parse(`${c.echeancier[0]!.date}T00:00:00Z`) - Date.parse(`${j}T00:00:00Z`)) / 86400000);
+    await connecter("bkasongo");
+    await expect(api.litigieux.proroger(cid, { mois: 2, motif: " ", demandeLe: j })).rejects.toThrow("Motif");
+    await expect(api.litigieux.ouvrirContentieux(cid, { type: "amiable", reference: "REC-1" })).rejects.toThrow("pas d'impayé");
+    const avant = c.echeancier[0]!.date;
+    const p = await api.litigieux.proroger(cid, { mois: 2, motif: "Marché incendié", demandeLe: j });
+    expect([p.prorogation!.mois, p.echeances[0]!.date === avant]).toEqual([2, false]);
+    await expect(api.litigieux.proroger(cid, { mois: 1, motif: "x", demandeLe: j })).rejects.toThrow("une seule fois");
+    await api.balanceAgee.lancer({ date: j });
+    const ligne = () => _etat().balancesAgees.find((x) => x.date === j)!.lignes.find((x) => x.creditId === cid)!;
+    expect([ligne().classe, ligne().degre, ligne().joursRetard]).toEqual(["proroge", 2, 0]);   // comme le serveur
+    recule(ecart() + 10);
+    await api.balanceAgee.lancer({ date: j });
+    await connecter("engalula");
+    const du = (await api.remboursementsCredit.detail(cid)).du, exigible = du.capital! + du.interet! + du.penalite! + du.tva!;
+    await connecter("bkasongo");
+    await api.provisions.provisionner({ date: j, credits: [cid] });
+    const rb = _etat().remboursementsCredit.filter((x) => x.creditId === cid);
+    expect(rb.map((x) => [x.mode, x.montant, x.repartition.penalite])).toEqual([["compensation", Math.min(oblig, exigible), du.penalite]]);
+    expect(_etat().blocages.filter((b) => b.garantieDe === cid && !b.fin).reduce((t, b) => t + (b.montant ?? 0), 0)).toBe(oblig - Math.min(oblig, exigible));
+    for (const b of _etat().blocages) if (b.garantieDe === cid && !b.fin) b.fin = j;   // plus de dépôt nanti pour la suite
+    recule(40);
+    await api.litigieux.ouvrirContentieux(cid, { type: "judiciaire", reference: "RC 1234", observation: "Tribunal de commerce" });
+    await api.balanceAgee.lancer({ date: j });
+    expect(ligne().classe).toBe("contentieux");
+    const hb = ligne().interetImpaye;
+    await api.provisions.provisionner({ date: j, credits: [cid] });
+    expect([hb > 0, solde("0630"), solde("096"), c.interetsHorsBilan]).toEqual([true, hb, -hb, hb]);
+    expect((await api.litigieux.cloreContentieux(cid, { issue: "Accord de paiement respecté" })).contentieux[0]!.closLe).toBe(j);
+    await connecter("jpmukendi");
+    const ev = (await api.centraleRisques.evenements("2026-11-01", j)).map((x) => x.type);
+    expect([ev.includes("prorogation"), ev.includes("contentieux")]).toEqual([true, true]);
+  });
+
+  it("liste rouge : associé visé par la mise à l'index d'une société (S97-4 ; Instr. BCC 13, art. 7 b) ; fin d'un engagement par signature (S100-7)", async () => {
+    await journeeOuverte();
+    await connecter("bkasongo");
+    const piece = _etat().tiers.find((t) => t.id === 2)!.pieceNumero!;
+    await expect(api.listeRouge.ajouter({ tiersId: 3, motif: "Mise à l'index", personnesVisees: [{ nom: "Mwamba", piece }] })).rejects.toThrow("Réf. décision BCC");
+    await api.listeRouge.ajouter({ tiersId: 3, motif: "Mise à l'index", referenceBcc: "BCC/MI/2026/09", personnesVisees: [{ nom: "Mwamba Ilunga", piece }] });
+    await connecter("jpmukendi");
+    await api.dossiers.enregistrerFondsPropres({ dateArrete: "2026-11-01", montant: 100000000000 });
+    await connecter("bkasongo");
+    const ce2 = (await api.engagements.beneficiaire(2)).comptes.find((x) => x.devise === "CDF")!;
+    const base = { reference: "ES-010", type: "caution", description: "Caution", montant: 1000000, duree: 6, pourcentage: "0", forfait: 0, garantie: 200000 };
+    await expect(api.engagements.enregistrer({ ...base, tiersId: 2, compteEpargneId: ce2.id, compteGarantiId: ce2.id })).rejects.toThrow("dirigeant ou associé");   // comme le serveur
+    const ce = (await api.engagements.beneficiaire(1)).comptes.find((x) => x.devise === "CDF")!;
+    const e = await api.engagements.enregistrer({ ...base, tiersId: 1, compteEpargneId: ce.id, compteGarantiId: ce.id });
+    await expect(api.engagements.finir(e.id, { motif: "echeance" })).rejects.toThrow("pas encore atteinte");
+    await expect(api.engagements.finir(e.id, { motif: "mise_en_jeu", montant: 100000 })).rejects.toThrow("Compte Banque");
+    const f = await api.engagements.finir(e.id, { motif: "mainlevee" });
+    expect([f.clotureLe, f.motifFin]).toEqual(["2026-11-05", "Mainlevée"]);
+    const solde = (n: string) => _etat().ecritures.flatMap((x) => x.lignes).filter((x) => x.compte === n).reduce((t, x) => t + (x.sens === "D" ? x.montant : -x.montant), 0);
+    expect([solde("0012"), solde("090")]).toEqual([0, 0]);
+    expect((await api.engagements.beneficiaire(1)).comptes.find((x) => x.id === ce.id)!.disponible).toBe(ce.disponible);
+    await expect(api.engagements.finir(e.id, { motif: "mainlevee" })).rejects.toThrow("déjà pris fin");
   });
 
   it("produit crédit (S23, p. 37 et 38) : méthode dégressive (Instr. BCC 38 art. 11), bornes, garanties, assurance, frais (Instr. BCC 40 art. 8)", async () => {

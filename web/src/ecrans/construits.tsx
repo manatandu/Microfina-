@@ -9,6 +9,7 @@ import { ReleveCompte } from "./ReleveCompte";
 import ExamenRenforce from "./ExamenRenforce";
 import CentraleIncidents from "./CentraleIncidents";
 import CentraleRisques from "./CentraleRisques";
+import Litigieux from "./Litigieux";
 import Plaintes from "./Plaintes";
 import ComptesInactifs from "./ComptesInactifs";
 import RegistreMembres from "./RegistreMembres";
@@ -162,6 +163,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   SC03: Plaintes,
   SC04: RegistreMembres,
   SC05: CentraleRisques,
+  SL01: Litigieux,
   SP01: ConditionsBanque,
   SF01: RetenuesReverser,
   SA01: JournalSecurite,

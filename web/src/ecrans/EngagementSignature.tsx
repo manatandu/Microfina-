@@ -30,6 +30,7 @@ export default function EngagementSignature() {
   const [f, setF] = useState(VIDE);
   const [choisi, setChoisi] = useState<Engagement | null>(null);
   const [doc, setDoc] = useState(false);
+  const [fin, setFin] = useState<{ motif: string; montant: string } | null>(null);
   const [recherche, setRecherche] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
   if (!donnees) return <Chargement />;
@@ -96,19 +97,21 @@ export default function EngagementSignature() {
           <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
           <button className="bouton secondaire" type="button" onClick={() => { setB(null); setF(VIDE); setChoisi(null); }}>Annuler</button>
           <button className="bouton secondaire" type="button" disabled={!choisi} onClick={() => setDoc(true)}>Imprimer</button>
+          <button className="bouton secondaire" type="button" disabled={!choisi || !!choisi.clotureLe} onClick={() => setFin({ motif: "", montant: "" })}>Fin de l'engagement</button>
         </div>
-        <Paginee lignes={liste} colonnes={(x) => [x.reference, x.membre, x.client, x.typeLibelle, montant(x.montant, x.devise as Devise), fr(x.dateDebut), fr(x.dateFin), montant(x.frais, x.devise as Devise), montant(x.garantie, x.devise as Devise)]}>{(v) => (<div className="defile-x"><table className="grille">
+        <Paginee lignes={liste} colonnes={(x) => [x.reference, x.membre, x.client, x.typeLibelle, null, null, null, null, null, null]}>{(v) => (<div className="defile-x"><table className="grille">
           <thead><tr><th scope="col">Référence</th><th scope="col">N° Client</th><th scope="col">Client</th><th scope="col">Type engagement</th><th scope="col" className="num">Montant</th>
-            <th scope="col">Date Début</th><th scope="col">Date Fin</th><th scope="col" className="num">Frais</th><th scope="col" className="num">Garantie</th></tr>
-            <LigneFiltres titres={["Référence", "N° Client", "Client", "Type engagement", null, null, null, null, null]} /></thead>
-          <tbody>{v.length === 0 && <tr><td colSpan={9}>Aucune donnée dans la liste</td></tr>}
+            <th scope="col">Date Début</th><th scope="col">Date Fin</th><th scope="col" className="num">Frais</th><th scope="col" className="num">Garantie</th><th scope="col">Fin</th></tr>
+            <LigneFiltres titres={["Référence", "N° Client", "Client", "Type engagement", null, null, null, null, null, null]} /></thead>
+          <tbody>{v.length === 0 && <tr><td colSpan={10}>Aucune donnée dans la liste</td></tr>}
             {v.map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} aria-selected={x.id === choisi?.id} onClick={() => setChoisi(x)}>
               <td className="code">{x.reference}</td><td className="code">{x.membre}</td><td>{x.client}</td><td>{x.typeLibelle}</td>
               <td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td><td className="chiffres">{fr(x.dateDebut)}</td><td className="chiffres">{fr(x.dateFin)}</td>
-              <td className="num chiffres">{montant(x.frais, x.devise as Devise)}</td><td className="num chiffres">{montant(x.garantie, x.devise as Devise)}</td></tr>)}</tbody>
+              <td className="num chiffres">{montant(x.frais, x.devise as Devise)}</td><td className="num chiffres">{montant(x.garantie, x.devise as Devise)}</td>
+              <td>{x.clotureLe ? `${x.motifFin} le ${fr(x.clotureLe)}` : x.utilise ? `Payé : ${montant(x.utilise, x.devise as Devise)}` : ""}</td></tr>)}</tbody>
         </table></div>)}</Paginee>
         <Textes sources={["Manuel Microfina++, p. 121 : 11-Engagement par signature, N° Client recherché, champs (*) renseignés, Enregistrer, puis Imprimer, ou Annuler en cas d'erreur ; capture",
-          "Registre S100-1 à S100-7 : hors bilan 0001 (financement) ou 0012 (aval, caution) contre 090 ; frais = montant × pourcentage + forfait, prélevés sur le compte épargne au profit du compte 727 ; garantie saisie, bloquée sur le compte garanti ; liste rouge et gel des avoirs",
+          "Registre S100-1 à S100-7 : fin de l'engagement à l'échéance, à la mainlevée ou par mise en jeu de la garantie (le hors bilan est soldé, la garantie libérée ou utilisée) ; hors bilan 0001 (financement) ou 0012 (aval, caution) contre 090 ; frais = montant × pourcentage + forfait, prélevés sur le compte épargne au profit du compte 727 ; garantie saisie, bloquée sur le compte garanti ; liste rouge et gel des avoirs",
           "Instr. BCC 002, art. 23, 25 à 29 ; loi 002/2002, art. 59 et 60 : l'engagement par signature compte dans les risques et les plafonds par client avec les crédits (CR-14, CR-22)",
           "PCCI : comptes d'engagements donnés 00 (0001, 0012) et compte général 090 ; 727 Autres commissions"]} />
       </section>
@@ -117,6 +120,22 @@ export default function EngagementSignature() {
       </Fiche>
       <Fiche titre="Engagement par signature" ouverte={doc && !!choisi} fermer={() => setDoc(false)}>
         {choisi && <ActeEngagement e={choisi} entete={ctx.entete} coopec={ctx.coopec} fermer={() => setDoc(false)} />}
+      </Fiche>
+      <Fiche titre="Fin de l'engagement" ouverte={!!fin && !!choisi} fermer={() => setFin(null)}>
+        {fin && choisi && <div className="pile">
+          <p>{choisi.typeLibelle} {choisi.reference}, {choisi.client} : {montant(choisi.montant - choisi.utilise, choisi.devise as Devise)} restant.</p>
+          <Champ libelle="Motif de fin : *">{(p) => <select {...p} className="saisie" value={fin.motif} onChange={(e) => setFin({ ...fin, motif: e.target.value })}>
+            <option value=""></option><option value="echeance">Échéance</option><option value="mainlevee">Mainlevée</option><option value="mise_en_jeu">Mise en jeu de la garantie</option></select>}</Champ>
+          {fin.motif === "mise_en_jeu" && <Champ libelle="Montant payé : *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={fin.montant} onChange={(e) => setFin({ ...fin, montant: e.target.value })} />}</Champ>}
+          <div className="actions-onglets">
+            <button className="bouton" type="button" onClick={() => setBoite({ type: "confirmation", message: "Voulez-vous vraiment mettre fin à cet engagement ?", oui: async () => {
+              try { const e = await api.engagements.finir(choisi.id, { motif: fin.motif, montant: fin.montant.trim() ? lireMontant(fin.montant) : null }); setChoisi(e); setFin(null); setRelu((x) => x + 1);
+                setBoite({ type: "succes", message: "Opération effectuée avec succès !" }); }
+              catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+            } })}>Enregistrer</button>
+            <button className="bouton secondaire" type="button" onClick={() => setFin(null)}>Fermer</button>
+          </div>
+        </div>}
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>

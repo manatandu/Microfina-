@@ -217,7 +217,8 @@ def encours(u, tiers_ids: list[int] | None = None) -> int:
     for r in lignes(f"""select c.devise, sum(c.montant_approuve) as m from demande_credit c where c.institution_id = %s and c.statut = 'approuvee'{filtre}
                         group by c.devise""", args):
         total += round(int(r["m"]) * cours(r["devise"], j))
-    for r in lignes(f"""select c.devise, sum(c.montant) as m from engagement_signature c where c.institution_id = %s and c.date_fin >= %s{filtre}
+    for r in lignes(f"""select c.devise, sum(c.montant - c.utilise) as m from engagement_signature c where c.institution_id = %s and c.date_fin >= %s
+                        and c.cloture_le is null{filtre}
                         group by c.devise""", (u["institution_id"], j) + args[1:]):   # engagements par signature en cours (Instr. BCC 002, art. 23 ; CR-22)
         total += round(int(r["m"]) * cours(r["devise"], j))
     return total

@@ -252,7 +252,12 @@ def enregistrer(u, c: dict, d: date, montant: int, rep: dict, contrepartie: dict
         if r[k]:
             pr = une("select p.famille, p.compte_lie from compte_depot cd join produit_epargne p on p.id = cd.produit_id where cd.id = %s", (cid_,))
             l.append({"compte": compte_du_produit(pr), "contrat": f"depot:{cid_}", "sens": "C", "devise": dv, "montant": r[k]})
-    eid = poster(u, journal=journal, journee_id=journee_courante(u)["id"], libelle=f"Remboursement du crédit {c['numero']}", piece=nouvelle_piece(u, journal, d),
+    hb = min(c.get("interets_hors_bilan") or 0, r["interet"])            # intérêts suivis en hors bilan, perçus : sortis du hors bilan (CR-19)
+    if hb:
+        l += [{"compte": "096", "contrat": f"credit:{c['id']}", "sens": "D", "devise": dv, "montant": hb},
+              {"compte": "0630", "contrat": f"credit:{c['id']}", "sens": "C", "devise": dv, "montant": hb}]
+        executer("update credit set interets_hors_bilan = interets_hors_bilan - %s where id = %s", (hb, c["id"]))
+    eid = poster(u, journal=journal, journee_id=journee_courante(u)["id"], libelle=(extra or {}).get("libelle") or f"Remboursement du crédit {c['numero']}", piece=nouvelle_piece(u, journal, d),
                  evenement="remboursement_credit", cle=cle, valide_par=u["id"], lignes_ecr=l)
     rep_ = {k: r[k] for k in CLES + ("capitalAnticipe",)}
     rid = valeur("""insert into remboursement (credit_id, ecriture_id, date_reglement, montant, repartition, modifie, mandataire, mode, compte_bancaire_id, saisi_par)
@@ -270,6 +275,7 @@ def enregistrer(u, c: dict, d: date, montant: int, rep: dict, contrepartie: dict
 def solder(u, c: dict, d: date):
     """Crédit soldé : garanties sur l'épargne libérées (CR-6, Instr. BCC 38, art. 9) ; remboursement total à déclarer (CR-10)"""
     executer("update credit set statut = 'solde' where id = %s", (c["id"],))
+    executer("update credit_contentieux set clos_le = %s, issue = 'Crédit remboursé', clos_par = %s where credit_id = %s and clos_le is null", (d, u["id"], c["id"]))
     executer("""update blocage set fin = %s, leve_par = %s, motif_levee = %s where garantie_de = %s and fin is null
                 and not exists (select 1 from garantie g where g.blocage_id = blocage.id)""",          # cautions et dépôts : par S94 seulement (CR-21)
              (d, u["id"], f"Crédit {c['numero']} remboursé", c["id"]))

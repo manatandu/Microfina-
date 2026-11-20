@@ -3205,7 +3205,7 @@ def test_provisions(clients, journee):
     from django.db import connection
     agent, caisse = clients["agent"], clients["caisse"]
     solde = lambda n: ident("select coalesce(sum(case when l.sens = 'D' then l.montant_devise else -l.montant_devise end), 0) from ligne_ecriture l join compte c on c.id = l.compte_id where c.numero = %s", (n,))
-    cid = credit_debloque(clients, journee)
+    cid = credit_debloque(clients, journee, {**PRODUIT, "epargneValeur": 0})    # sans épargne obligatoire : pas de dépôt nanti à compenser (CR-21b)
     cap = ident("select montant from credit where id = %s", (cid,))
     sain = solde("329")
     def recule(n):
@@ -3243,7 +3243,9 @@ def test_provisions(clients, journee):
     r = agent.post("/api/credit/provisions/radiation", {"date": "2026-12-31", "credits": [cid]}, **H)
     assert r.status_code == 200, r.content
     assert ident("select statut from credit where id = %s", (cid,)) == "passe_en_perte"
-    assert (solde("3904"), solde("3901"), solde("3801"), solde("3804"), solde("6910"), solde("0612"), solde("096")) == (0, 0, 0, 0, cap, cap, -cap)
+    hb = solde("0630")                                                   # intérêts non réglés, suivis en hors bilan (CR-19)
+    assert hb > 0 and hb == ident("select interets_hors_bilan from credit where id = %s", (cid,))
+    assert (solde("3904"), solde("3901"), solde("3801"), solde("3804"), solde("6910"), solde("0612"), solde("096")) == (0, 0, 0, 0, cap, cap, -cap - hb)
     assert balance_equilibree(agent)
     assert clients["caisse"].get("/api/credit/provisions", {"date": "2026-12-31"}, **H).status_code == 403
 
@@ -3277,6 +3279,16 @@ def test_engagement_signature(clients, journee):
     from noyau.dossiers import encours
     assert encours({"institution_id": ident("select institution_id from tiers where id = %s", (k,)), "agence_id": ident("select id from agence limit 1")}, [k]) >= 50000000
     assert caisse.get("/api/credit/engagements", **H).status_code == 403
+    # Fin de l'engagement (S100-7 ; PCCI, compte 00) : mainlevée, le hors bilan est soldé et la garantie libérée
+    fin = lambda corps: agent.post(f"/api/credit/engagements/{e['id']}/fin", corps, **H)
+    assert "pas encore atteinte" in fin({"motif": "echeance"}).json()["message"]
+    assert "Compte Banque" in fin({"motif": "mise_en_jeu", "montant": 1000000}).json()["message"]
+    f = fin({"motif": "mainlevee"})
+    assert f.status_code == 200 and (f.json()["clotureLe"], f.json()["motifFin"]) == ("2026-11-05", "Mainlevée")
+    assert (solde("0012"), solde("090")) == (0, 0)
+    c3 = next(x for x in agent.get(f"/api/credit/engagements/beneficiaire/{k}", **H).json()["comptes"] if x["id"] == ce["id"])
+    assert c3["disponible"] == ce["disponible"] - e["frais"]
+    assert "déjà pris fin" in fin({"motif": "mainlevee"}).json()["message"]
 
 
 def test_rapports_credit(clients, journee):
@@ -3377,3 +3389,68 @@ def test_centrale_risques(clients, journee):
     assert "déjà déclaré" in refus({"evenements": ev[:1], "date": "2026-11-05", "reference": "CR-2"})
     assert chef.get("/api/conformite/centrale-risques?du=2026-11-01&au=2026-11-05&statut=a_declarer", **H).json() == []
     assert caisse.get("/api/conformite/centrale-risques?du=2026-11-01&au=2026-11-05", **H).status_code == 403
+
+
+def test_credits_litigieux(clients, journee):
+    """Fin des partiels du Crédit : compensation du dépôt nanti (CR-21b ; loi 11/020, art. 48), intérêts en hors bilan (CR-19 ; Instr. BCC 003, art. 11),
+    prorogation une seule fois et contentieux (CR-16b ; art. 5, 8 et 12), dirigeants et associés d'une société indexée (S97-4 ; Instr. BCC 13, art. 7 b)"""
+    from django.db import connection
+    agent, caisse, chef = clients["agent"], clients["caisse"], clients["chef"]
+    solde = lambda n: ident("select coalesce(sum(case when l.sens = 'D' then l.montant_devise else -l.montant_devise end), 0) from ligne_ecriture l join compte c on c.id = l.compte_id where c.numero = %s", (n,))
+    cid = credit_debloque(clients, journee)
+    oblig = ident("select epargne_obligatoire from credit where id = %s", (cid,))
+    def recule(n):
+        with connection.cursor() as cur:
+            cur.execute("update echeance set date_due = (date_due - %s * interval '1 day')::date where credit_id = %s", (n, cid))
+    # Prorogation : refusée sans motif, faite une fois, refusée la seconde fois ; les échéances non soldées sont reportées
+    lt = lambda: agent.get(f"/api/credit/litigieux/{cid}", **H).json()
+    e1 = lt()["echeances"][0]["date"]
+    refus = lambda route, corps: agent.post(f"/api/credit/litigieux/{cid}/{route}", corps, **H).json()["message"]
+    assert "Motif" in refus("prorogation", {"mois": 2, "motif": " ", "demandeLe": "2026-11-04"})
+    assert "pas d'impayé" in refus("contentieux", {"type": "amiable", "reference": "REC-1"})
+    r = agent.post(f"/api/credit/litigieux/{cid}/prorogation", {"mois": 2, "motif": "Marché incendié", "demandeLe": "2026-11-04"}, **H)
+    assert r.status_code == 200, r.content
+    assert r.json()["prorogation"]["mois"] == 2 and r.json()["echeances"][0]["date"] == "2027-02-05" and e1 == "2026-12-05"
+    assert "une seule fois" in refus("prorogation", {"mois": 1, "motif": "x", "demandeLe": "2026-11-04"})
+    agent.post("/api/credit/balance-agee", {"date": "2026-11-05"}, **H)
+    assert lignes_bd("select classe, degre, jours_retard from balance_agee_ligne where credit_id = %s", (cid,)) == [("proroge", 2, 0)]
+    # Retard de 10 jours sur le nouvel échéancier : la compensation paie l'échu avec l'épargne obligatoire nantie, la pénalité d'abord
+    recule(ident("select (min(date_due) - date '2026-11-05') + 10 from echeance where credit_id = %s", (cid,)))
+    agent.post("/api/credit/balance-agee", {"date": "2026-11-05"}, **H)
+    du = caisse.get(f"/api/credit/remboursement/{cid}", **H).json()["du"]
+    exigible = du["capital"] + du["interet"] + du["penalite"] + du["tva"]
+    assert agent.post("/api/credit/provisions/provisionner", {"date": "2026-11-05", "credits": [cid]}, **H).status_code == 200
+    rb = lignes_bd("select mode, montant, (repartition->>'penalite')::bigint from remboursement where credit_id = %s", (cid,))
+    assert rb == [("compensation", min(oblig, exigible), du["penalite"])]
+    assert ident("select coalesce(sum(montant), 0) from blocage where garantie_de = %s and fin is null", (cid,)) == oblig - min(oblig, exigible)
+    assert balance_equilibree(agent)
+    # Contentieux : dossier ouvert sur un impayé, classe « contentieux », puis clos
+    with connection.cursor() as cur:
+        cur.execute("update blocage set fin = now() where garantie_de = %s and fin is null", (cid,))      # plus de dépôt nanti pour la suite
+    recule(40)
+    assert agent.post(f"/api/credit/litigieux/{cid}/contentieux", {"type": "judiciaire", "reference": "RC 1234", "observation": "Tribunal de commerce"}, **H).status_code == 200
+    agent.post("/api/credit/balance-agee", {"date": "2026-11-05"}, **H)
+    l = lignes_bd("select classe, interet_impaye from balance_agee_ligne where credit_id = %s", (cid,))[0]
+    assert l[0] == "contentieux" and l[1] > 0
+    # Intérêts non réglés suivis en hors bilan (0630 contre 096), sortis à l'encaissement
+    agent.post("/api/credit/provisions/provisionner", {"date": "2026-11-05", "credits": [cid]}, **H)
+    assert (solde("0630"), solde("096"), ident("select interets_hors_bilan from credit where id = %s", (cid,))) == (l[1], -l[1], l[1])
+    d = caisse.get(f"/api/credit/remboursement/{cid}", **H).json()
+    tout_echu = sum(d["du"].values())
+    r = caisse.post(f"/api/guichet/remboursement/{cid}", {"cle": cle(), "mandataire": "Moi-même", "montant": tout_echu, "coupures": {"50": -(-tout_echu // 5000)}}, **H)
+    assert r.status_code == 200, r.content
+    assert (solde("0630"), ident("select interets_hors_bilan from credit where id = %s", (cid,))) == (0, 0)
+    assert "Issue" in refus("cloture", {"issue": ""})
+    assert agent.post(f"/api/credit/litigieux/{cid}/cloture", {"issue": "Accord de paiement respecté"}, **H).json()["contentieux"][0]["closLe"] == "2026-11-05"
+    ev = sorted(x["type"] for x in chef.get("/api/conformite/centrale-risques?du=2026-11-01&au=2026-11-05", **H).json())
+    assert "prorogation" in ev and "contentieux" in ev
+    # Société mise à l'index : un associé visé par la décision, reconnu par sa pièce, n'obtient pas de crédit
+    piece = ident("select piece_numero from tiers_personne where tiers_id = %s", (T("0412-000319"),))
+    soc = T("0412-000320")                                               # tient lieu de société indexée
+    lr = lambda corps: agent.post("/api/credit/liste-rouge/ajout", corps, **H)
+    assert "Réf. décision BCC" in lr({"tiersId": soc, "motif": "Mise à l'index", "personnesVisees": [{"nom": "Mwamba", "piece": piece}]}).json()["message"]
+    assert lr({"tiersId": soc, "motif": "Mise à l'index", "referenceBcc": "BCC/MI/2026/09", "personnesVisees": [{"nom": "Mwamba Ilunga", "piece": piece}]}).status_code == 200
+    from noyau.liste_rouge import controler
+    from noyau.bd import ErreurMetier
+    with pytest.raises(ErreurMetier, match="dirigeant ou associé"):
+        controler(T("0412-000319"))

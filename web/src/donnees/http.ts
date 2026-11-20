@@ -87,6 +87,14 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       contexte: () => get("/credit/engagements/contexte"),
       beneficiaire: (tid: number) => get(`/credit/engagements/beneficiaire/${tid}`),
       enregistrer: (p: unknown) => post("/credit/engagements", p),
+      finir: (eid: number, p: unknown) => post(`/credit/engagements/${eid}/fin`, p),
+    },
+    litigieux: {
+      creditsDuClient: (tid: number) => get(`/credit/litigieux/clients/${tid}`),
+      situation: (cid: number) => get(`/credit/litigieux/${cid}`),
+      proroger: (cid: number, p: unknown) => post(`/credit/litigieux/${cid}/prorogation`, p),
+      ouvrirContentieux: (cid: number, p: unknown) => post(`/credit/litigieux/${cid}/contentieux`, p),
+      cloreContentieux: (cid: number, p: unknown) => post(`/credit/litigieux/${cid}/cloture`, p),
     },
     centraleRisques: {
       evenements: (du: string, au: string, statut = "") => get(`/conformite/centrale-risques?du=${du}&au=${au}&statut=${statut}`),

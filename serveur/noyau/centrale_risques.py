@@ -10,7 +10,8 @@ from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import exiger, journee_courante, titulaire
 
 TYPES = {"octroi": "Octroi de crédit", "remboursement": "Remboursement", "engagement": "Engagement par signature", "modification": "Client modifié",
-         "passage_en_perte": "Passage en perte", "radiation": "Radiation (encours nul depuis trois ans)"}
+         "passage_en_perte": "Passage en perte", "radiation": "Radiation (encours nul depuis trois ans)", "prorogation": "Crédit prorogé",
+         "contentieux": "Crédit contentieux", "fin_engagement": "Fin d'engagement par signature"}
 
 
 def plus_trois_ans(d: date) -> date:
@@ -61,6 +62,15 @@ def evenements(u: dict, du: str, au: str, statut: str = "") -> list[dict]:
       select 'passage_en_perte', pc.id, pc.date_operation, c.tiers_id, c.numero, pc.capital_restant, trim(c.devise)
         from provision_credit pc join credit c on c.id = pc.credit_id where pc.institution_id = %(i)s and pc.nature = 'radiation'
         and pc.date_operation between %(du)s and %(au)s
+      union all
+      select 'prorogation', pr.id, pr.date_prorogation, c.tiers_id, c.numero, null, trim(c.devise)
+        from credit_prorogation pr join credit c on c.id = pr.credit_id where c.institution_id = %(i)s and pr.date_prorogation between %(du)s and %(au)s
+      union all
+      select 'contentieux', ct.id, ct.ouvert_le, c.tiers_id, c.numero, null, trim(c.devise)
+        from credit_contentieux ct join credit c on c.id = ct.credit_id where c.institution_id = %(i)s and ct.ouvert_le between %(du)s and %(au)s
+      union all
+      select 'fin_engagement', e.id, e.cloture_le, e.tiers_id, e.reference, e.montant, trim(e.devise)
+        from engagement_signature e where e.institution_id = %(i)s and e.cloture_le between %(du)s and %(au)s
       order by 3, 1, 2""", p)
     rows += [x for x in radiations(i, date.fromisoformat(au)) if x["d"] >= date.fromisoformat(du)]
     j = journee_courante(u)
@@ -85,7 +95,10 @@ DATES = {"octroi": "select c.debloque_le from credit c where c.id = %s and c.ins
          "remboursement": "select r.date_reglement from remboursement r join credit c on c.id = r.credit_id where r.id = %s and c.institution_id = %s",
          "engagement": "select date_debut from engagement_signature where id = %s and institution_id = %s",
          "modification": "select m.valide_le::date from tiers_modification m join tiers t on t.id = m.tiers_id where m.id = %s and t.institution_id = %s",
-         "passage_en_perte": "select date_operation from provision_credit where id = %s and institution_id = %s and nature = 'radiation'"}
+         "passage_en_perte": "select date_operation from provision_credit where id = %s and institution_id = %s and nature = 'radiation'",
+         "prorogation": "select pr.date_prorogation from credit_prorogation pr join credit c on c.id = pr.credit_id where pr.id = %s and c.institution_id = %s",
+         "contentieux": "select ct.ouvert_le from credit_contentieux ct join credit c on c.id = ct.credit_id where ct.id = %s and c.institution_id = %s",
+         "fin_engagement": "select cloture_le from engagement_signature where id = %s and institution_id = %s"}
 
 
 def declarer(u: dict, d: dict) -> list[dict]:
