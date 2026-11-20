@@ -128,7 +128,7 @@ function Garanties({ erreur }: Proprietes) {
         </tbody>
       </table></div>)}</Paginee>
       <Textes sources={["Manuel Microfina++, p. 82 : 7.2 Rapport des garanties ; capture (Rechercher, Période (Date deblocage), Produit, Agence, Agent, Afficher, Grouper, Export)",
-        "Registre S72-2 : les crédits et leurs garanties sont lus du module Crédit (étape 7) ; Grouper range les lignes par produit"]} />
+        "Registre S72-2 : crédits débloqués dans la période ; épargne de garantie = épargne obligatoire retenue au déblocage et dépôts de garantie ; garantie encours = ce qui reste bloqué à la date de fin (cautions comprises) ; libérée = le reste ; Grouper range les lignes par produit"]} />
     </section>
   );
 }
@@ -345,11 +345,11 @@ function Indicateurs({ erreur }: Proprietes) {
         <fieldset className="cadre-champs"><legend>Crédits encours</legend>
           <div className="defile-x"><table className="grille"><thead><tr><th scope="col">Produit</th><th scope="col" className="num">Prêts</th><th scope="col" className="num">Encours</th></tr></thead>
             <tbody>{(r?.creditsEncours ?? []).length === 0 && aucune(3)}
-              {(r?.creditsEncours ?? []).map((x) => <tr key={x.produit}><td>{x.produit}</td><td className="num chiffres">{x.prets}</td><td className="num chiffres">{montant(x.encours, "CDF")}</td></tr>)}</tbody></table></div>
+              {(r?.creditsEncours ?? []).map((x) => <tr key={`${x.produit}-${x.devise}`}><td>{x.produit}</td><td className="num chiffres">{x.prets}</td><td className="num chiffres">{montant(x.encours, x.devise as Devise)}</td></tr>)}</tbody></table></div>
         </fieldset>
       </div>
       <Textes sources={["Manuel Microfina++, p. 83 : 7.4 Indicateur crédit épargne ; capture Indicateurs crédit épargne",
-        "Registre S72-4 : comptes épargne par sexe = nombre de comptes ouverts à la date ; regroupements = membres admis et non partis ; Adhésion et Départ de l'année ; crédits et garanties lus du module Crédit (étape 7)"]} />
+        "Registre S72-4 : comptes épargne par sexe = nombre de comptes ouverts à la date ; regroupements = membres admis et non partis ; Adhésion et Départ de l'année ; E. garantie = épargne obligatoire des crédits en cours et dépôts de garantie non libérés, Caution = cautions non libérées, en CDF au cours du jour ; crédits en cours : nombre et capital restant par produit et devise"]} />
     </section>
   );
 }

@@ -3,7 +3,8 @@ Virements compte à compte, garanties, recherche multicritère (données ; filtr
 from datetime import date
 
 from .bd import ErreurMetier, lignes, une, valeur
-from .services import exiger, journee_courante, titulaire
+from .remboursements import etat
+from .services import cours, exiger, journee_courante, titulaire
 
 ANS_DORMANT = 10     # loi 22/069, titre III, chap. Ier : dix ans sans opération ni réclamation (registre S72-6)
 
@@ -41,19 +42,29 @@ def virements(u, du: str, au: str) -> list[dict]:
     return sortie
 
 
+def garanties_a(credit_id: int, d: date) -> list[dict]:
+    """Garanties S94 posées au plus tard le jour d, et ce qui en reste à ce jour (dates comptables : ajout et libérations)"""
+    return [{**g, "reste": g["montant"] - int(valeur("select coalesce(sum(montant), 0) from garantie_liberation where garantie_id = %s and date_op <= %s", (g["id"], d)))}
+            for g in lignes("select * from garantie where credit_id = %s and ajoute_le <= %s", (credit_id, d))]
+
+
 def garanties(u, du: str, au: str, produit_id: int | None = None, agent_id: int | None = None) -> list[dict]:
-    """7.2 Rapport des garanties (capture p. 82) : crédits débloqués dans la période (ou à la date), épargne de garantie, garantie en cours et libérée.
-    Lit les crédits et garanties du module Crédit (registre S72-2)"""
+    """7.2 Rapport des garanties (capture p. 82) : crédits débloqués dans la période (ou à la date) (registre S72-2).
+    Épargne de garantie : épargne obligatoire retenue au déblocage (S75) et dépôts de garantie ajoutés (S94) ; garantie encours : ce qui reste bloqué
+    pour le crédit à la date de fin (épargne obligatoire, dépôts de garantie, cautions) ; garantie libérée : le reste de ce qui a été posé."""
     exiger(u)
     d1, d2 = _date(du, "Date de début"), _date(au, "Date de fin")
     sortie = []
     for c in lignes("""select * from credit where institution_id = %s and debloque_le between %s and %s and (%s::bigint is null or produit_id = %s)
                        and (%s::bigint is null or agent_id = %s) order by debloque_le, id""", (u["institution_id"], d1, d2, produit_id, produit_id, agent_id, agent_id)):
-        g = lignes("select * from garantie where credit_id = %s", (c["id"],))
+        g = garanties_a(c["id"], d2)
+        oblig = c["epargne_obligatoire"] if etat(c, d2)["capitalRestant"] > 0 else 0   # bloquée jusqu'au remboursement (S75-8, S76-9)
+        pose = c["epargne_obligatoire"] + sum(x["montant"] for x in g)
+        encours = oblig + sum(x["reste"] for x in g)
         sortie.append({"membre": valeur("select numero from tiers where id = %s", (c["tiers_id"],)), "credit": c["numero"], "client": titulaire(c["tiers_id"]),
                        "devise": c["devise"].strip(), "montantPret": c["montant"], "produitId": c["produit_id"],
-                       "epargneGarantie": sum(x["montant"] or 0 for x in g if x["compte_id"]), "garantieEncours": sum(x["montant"] or 0 for x in g if not x["liberee_le"]),
-                       "garantieLiberee": sum(x["montant"] or 0 for x in g if x["liberee_le"])})
+                       "epargneGarantie": c["epargne_obligatoire"] + sum(x["montant"] for x in g if x["type"] == "depot_garantie"),
+                       "garantieEncours": encours, "garantieLiberee": max(0, pose - encours)})
     return sortie
 
 
@@ -144,10 +155,23 @@ def indicateurs(u, date_: str, auxiliaires: bool) -> dict:
             from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join journee_comptable jc on jc.id = e.journee_id
             join tiers t on l.contrat_ref = 'parts:' || t.id left join tiers_personne p on p.tiers_id = t.id
             where t.institution_id = %s and jc.date_comptable <= %s{aux} group by 1 order by 1""", (i, d))]
-    garanties_ = lignes("select g.* from garantie g join credit c on c.id = g.credit_id where c.institution_id = %s and (g.liberee_le is null or g.liberee_le > %s)", (i, d))
-    credits = [{"produit": r["produit"], "prets": r["n"], "encours": int(r["m"])} for r in lignes(
-        """select pc.nom as produit, count(*) as n, coalesce(sum(c.montant), 0) as m from credit c join produit_credit pc on pc.id = c.produit_id
-           where c.institution_id = %s and c.debloque_le <= %s and c.statut not in ('solde', 'annule') group by 1 order by 1""", (i, d))]
+    # Nantissements / Cautions, à la date, en CDF au cours du jour (registre S72-4) : « E. garantie » = épargne obligatoire des crédits en cours (S75)
+    # et dépôts de garantie (S94) non libérés ; « Caution » = cautions (S94) non libérées. Dates comptables : déblocage, ajout, libérations.
+    garantie_epargne = caution = 0
+    credits = []
+    for r in lignes("""select c.*, pc.nom as produit from credit c join produit_credit pc on pc.id = c.produit_id
+                       where c.institution_id = %s and c.debloque_le <= %s and c.statut in ('debloque', 'solde', 'passe_en_perte') order by pc.nom, c.id""", (i, d)):
+        reste = etat(r, d)["capitalRestant"]
+        if reste <= 0 or (r["radie_le"] and r["radie_le"] <= d):
+            continue
+        k = next((x for x in credits if x["produit"] == r["produit"] and x["devise"] == r["devise"].strip()), None)
+        if not k:
+            k = {"produit": r["produit"], "devise": r["devise"].strip(), "prets": 0, "encours": 0}; credits.append(k)
+        k["prets"] += 1; k["encours"] += reste
+        dv = r["devise"].strip()
+        g = garanties_a(r["id"], d)
+        garantie_epargne += round((r["epargne_obligatoire"] + sum(x["reste"] for x in g if x["type"] == "depot_garantie")) * cours(dv, d))
+        caution += round(sum(x["reste"] for x in g if x["type"] == "caution") * cours(dv, d))
     return {"date": d.isoformat(), "annee": annee, "comptesParSexe": list(par_produit.values()), "regroupementParSexe": par_sexe, "adhesions": adhesions, "departs": departs,
-            "garantieEpargne": sum(g["montant"] or 0 for g in garanties_ if g["compte_id"]), "caution": sum(g["montant"] or 0 for g in garanties_ if g["caution_id"]),
+            "garantieEpargne": garantie_epargne, "caution": caution,
             "partsSociales": parts, "creditsEncours": credits}

@@ -2348,6 +2348,22 @@ describe("journée de guichet", () => {
     await expect(r("x", {})).rejects.toThrow("Rapport inconnu");
   });
 
+  it("rapports épargne lus du module Crédit (S72-2, S72-4) : épargne obligatoire, caution libérée en partie, crédits en cours par produit et devise", async () => {
+    const cid = await creditDebloque();
+    const c = _etat().credits.find((x) => x.id === cid)!;
+    await connecter("bkasongo");
+    const k2 = _etat().comptes.find((x) => x.numero === "0412-000319-02")!;
+    await api.garanties.ajouter(cid, { type: "caution", cautionId: k2.tiersId, compteId: k2.id, montant: 1000000 });
+    expect((await api.rapportsEpargne.garanties("2026-11-01", "2026-11-05")).map((x) => [x.montantPret, x.epargneGarantie, x.garantieEncours, x.garantieLiberee]))
+      .toEqual([[c.montant, c.epargneObligatoire, c.epargneObligatoire + 1000000, 0]]);   // comme le serveur
+    const gid = _etat().garanties[0]!.id;
+    await api.garanties.liberer(gid, { montant: 400000 });
+    const g = (await api.rapportsEpargne.garanties("2026-11-01", "2026-11-05"))[0]!;
+    expect([g.garantieEncours, g.garantieLiberee]).toEqual([c.epargneObligatoire + 600000, 400000]);
+    const ind = await api.rapportsEpargne.indicateurs("2026-11-05", false);
+    expect([ind.garantieEpargne, ind.caution, ind.creditsEncours.map((x) => [x.devise, x.prets, x.encours])]).toEqual([c.epargneObligatoire, 600000, [["CDF", 1, c.montant]]]);
+  });
+
   it("produit crédit (S23, p. 37 et 38) : méthode dégressive (Instr. BCC 38 art. 11), bornes, garanties, assurance, frais (Instr. BCC 40 art. 8)", async () => {
     await connecter("jpmukendi");
     const P = { typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: "2,5", tauxDiffere: 2,

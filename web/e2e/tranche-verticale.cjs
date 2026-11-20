@@ -936,7 +936,7 @@ const OUT = process.argv[2];
   await p.getByLabel('Nom', { exact: true }).fill('Kalala'); await p.getByRole('button', { name: 'Rechercher', exact: true }).click();
   await p.getByRole('cell', { name: '0412-000318-01' }).waitFor(); await etape('06c34-multicritere-epargne');
   await p.getByRole('tab', { name: 'Indicateur crédit épargne' }).click(); await p.getByRole('heading', { name: 'Indicateurs crédit épargne' }).waitFor(); await p.getByRole('button', { name: 'Exécuter' }).click();
-  await p.getByRole('cell', { name: 'Aucune donnée' }).last().waitFor(); await etape('06c35-indicateurs');
+  await p.getByRole('cell', { name: 'Féminin', exact: true }).first().waitFor();   // crédits et garanties lus du module Crédit (S72-4) await etape('06c35-indicateurs');
   await p.getByRole('tab', { name: 'Rapports des comptes inactifs' }).click(); await p.getByRole('heading', { name: 'Listes des comptes inactifs' }).waitFor(); await p.getByRole('button', { name: 'Exécuter' }).click();
   await p.getByRole('cell', { name: '0412-000318-01' }).waitFor(); await etape('06c36-comptes-inactifs');
   await login('Esther Ngalula');

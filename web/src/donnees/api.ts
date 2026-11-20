@@ -2216,6 +2216,26 @@ function derniereOperation(c: CompteDepot, jusqua: string) {
   return dates.at(-1) ?? "";
 }
 const soldeAu = (c: CompteDepot, jusqua: string) => lignesDepot(jusqua).filter(({ l }) => l.contrat === `depot:${c.id}`).reduce((s, { l }) => s + (l.sens === "C" ? l.montant : -l.montant), 0);
+/** Garanties S94 posées au plus tard le jour d, et ce qui en reste à ce jour (dates comptables : ajout et libérations) ; registre S72-2 */
+const garantiesA = (creditId: number, d: string) => E.garanties.filter((g) => g.creditId === creditId && g.ajouteLe <= d)
+  .map((g) => ({ ...g, reste: g.montant - E.liberationsGarantie.filter((l) => l.garantieId === g.id && l.date <= d).reduce((t, l) => t + l.montant, 0) }));
+/** Indicateurs crédit épargne lus du module Crédit (registre S72-4) : E. garantie et Caution en CDF au cours du jour ; crédits en cours par produit et devise */
+function creditsIndicateurs(d: string) {
+  let garantieEpargne = 0, caution = 0;
+  const credits: { produit: string; devise: string; prets: number; encours: number }[] = [];
+  const nom = (c: CreditPret) => String(E.produitsCredit.find((p) => p.id === c.produitId)?.nom ?? "");
+  for (const c of E.credits.filter((x) => ["debloque", "solde", "passe_en_perte"].includes(x.statut) && x.debloqueLe && x.debloqueLe <= d).sort((a, b) => nom(a).localeCompare(nom(b)) || a.id - b.id)) {
+    const reste = etatCredit(c, d).capitalRestant;
+    if (reste <= 0 || (c.radieLe && c.radieLe <= d)) continue;
+    let k = credits.find((x) => x.produit === nom(c) && x.devise === c.devise);
+    if (!k) { k = { produit: nom(c), devise: c.devise, prets: 0, encours: 0 }; credits.push(k); }
+    k.prets++; k.encours += reste;
+    const g = garantiesA(c.id, d);
+    garantieEpargne += Math.round((c.epargneObligatoire + g.filter((x) => x.type === "depot_garantie").reduce((t, x) => t + x.reste, 0)) * coursDe(c.devise, d));
+    caution += Math.round(g.filter((x) => x.type === "caution").reduce((t, x) => t + x.reste, 0) * coursDe(c.devise, d));
+  }
+  return { garantieEpargne, caution, creditsEncours: credits };
+}
 const rapportsEpargne = {
   /** 7.1 Virements compte à compte (p. 82) : écritures qui mouvementent au moins deux comptes de clients, hors reprise des soldes (registre S72-1) */
   virements(du: string, au: string) {
@@ -2226,10 +2246,18 @@ const rapportsEpargne = {
         return { date: dateJournee(e.journeeId), piece: e.piece, membre: E.tiers.find((t) => t.id === c.tiersId)?.numero ?? "", compte: c.numero, libelle: e.libelle,
           devise: l.devise, debit: l.sens === "D" ? l.montant : 0, credit: l.sens === "C" ? l.montant : 0 }; }));
   },
-  /** 7.2 Rapport des garanties (p. 82) : crédits débloqués dans la période ; le module Crédit les fournira (registre S72-2) */
-  garanties(du: string, au: string, _produitId?: number | null, _agentId?: number | null) {
+  /** 7.2 Rapport des garanties (p. 82) : crédits débloqués dans la période ; épargne obligatoire (S75) et dépôts de garantie (S94), garantie encours
+   * à la date de fin, garantie libérée (registre S72-2). Mêmes règles que serveur/noyau/rapports_epargne.py */
+  garanties(du: string, au: string, produitId?: number | null, agentId?: number | null) {
     lectureAdmin(["S72"]); DATE_RAPPORT(du, "Date de début"); DATE_RAPPORT(au, "Date de fin");
-    return [] as { membre: string; credit: string; client: string; devise: Devise; montantPret: number; produitId: number; epargneGarantie: number; garantieEncours: number; garantieLiberee: number }[];
+    return E.credits.filter((c) => c.debloqueLe && c.debloqueLe >= du && c.debloqueLe <= au && (!produitId || c.produitId === produitId) && (!agentId || c.agentId === agentId))
+      .sort((a, b) => a.debloqueLe.localeCompare(b.debloqueLe) || a.id - b.id).map((c) => {
+        const g = garantiesA(c.id, au), oblig = etatCredit(c, au).capitalRestant > 0 ? c.epargneObligatoire : 0;
+        const pose = c.epargneObligatoire + g.reduce((t, x) => t + x.montant, 0), encours = oblig + g.reduce((t, x) => t + x.reste, 0);
+        return { membre: E.tiers.find((t) => t.id === c.tiersId)?.numero ?? "", credit: c.numero, client: titulaire(E.tiers.find((t) => t.id === c.tiersId)!), devise: c.devise,
+          montantPret: c.montant, produitId: c.produitId, epargneGarantie: c.epargneObligatoire + g.filter((x) => x.type === "depot_garantie").reduce((t, x) => t + x.montant, 0),
+          garantieEncours: encours, garantieLiberee: Math.max(0, pose - encours) };
+      });
   },
   /** 7.3 Recherche multicritère (p. 83) : chaque compte, son solde à la fin de la période et ses mouvements de la période (registre S72-3) */
   comptes(du: string, au: string) {
@@ -2265,8 +2293,8 @@ const rapportsEpargne = {
     }
     return { date: d, annee, comptesParSexe: [...parProduit.values()].sort((a, b) => a.produit.localeCompare(b.produit)), regroupementParSexe: compte(membres),
       adhesions: E.tiers.filter((t) => garde(t) && (t.admissionLe || t.dateVisa)?.startsWith(String(annee))).length,
-      departs: E.tiers.filter((t) => garde(t) && t.resilieLe?.startsWith(String(annee))).length, garantieEpargne: 0, caution: 0,
-      partsSociales: [...parts].sort().map(([s, m]) => ({ sexe: LIB[s] ?? s, parts: m })), creditsEncours: [] as { produit: string; prets: number; encours: number }[] };
+      departs: E.tiers.filter((t) => garde(t) && t.resilieLe?.startsWith(String(annee))).length, ...creditsIndicateurs(d),
+      partsSociales: [...parts].sort().map(([s, m]) => ({ sexe: LIB[s] ?? s, parts: m })) };
   },
   /** 7.5 et 7.6 Comptes inactifs (nombre de jours) et dormants (dix ans, loi 22/069) ; « Afficher les comptes » ajoute les soldes nuls (registre S72-5, S72-6) */
   inactivite(date: string, jours: number | null, tous: boolean) {

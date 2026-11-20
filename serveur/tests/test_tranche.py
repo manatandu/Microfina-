@@ -3310,3 +3310,22 @@ def test_rapports_credit(clients, journee):
     assert ind["Nombre d'emprunteurs par agent de crédit"][4] == 1
     assert "Rapport inconnu" in r("x").json()["message"] and "Du" in r("base", du="2026-11-06", au="2026-11-05").json()["message"]
     assert caisse.get("/api/credit/rapports/base", {"du": "2026-11-01", "au": "2026-11-05"}, **H).status_code == 403
+
+
+def test_rapports_epargne_credit(clients, journee):
+    """S72-2 et S72-4 lus du module Crédit : épargne obligatoire (S75), dépôt de garantie et caution (S94), crédits en cours par produit et devise"""
+    agent, chef = clients["agent"], clients["chef"]
+    cid = credit_debloque(clients, journee)
+    c = lignes_bd("select montant, epargne_obligatoire from credit where id = %s", (cid,))[0]
+    mw, k2 = T("0412-000319"), C("0412-000319-02")
+    assert agent.post(f"/api/credit/garanties/{cid}/ajout", {"type": "caution", "cautionId": mw, "compteId": k2, "montant": 1000000}, **H).status_code == 200
+    g = agent.get("/api/epargne/rapports/garanties?du=2026-11-01&au=2026-11-05", **H).json()
+    assert [(x["credit"], x["montantPret"], x["epargneGarantie"], x["garantieEncours"], x["garantieLiberee"]) for x in g] == \
+        [("0412/L001/00001", c[0], c[1], c[1] + 1000000, 0)]
+    gid = agent.get(f"/api/credit/garanties/{cid}?type=caution", **H).json()["garanties"][0]["id"]
+    agent.post(f"/api/credit/garanties/liberation/{gid}", {"montant": 400000}, **H)
+    g = agent.get("/api/epargne/rapports/garanties?du=2026-11-01&au=2026-11-05", **H).json()[0]
+    assert (g["garantieEncours"], g["garantieLiberee"]) == (c[1] + 600000, 400000)
+    ind = chef.get("/api/epargne/rapports/indicateurs?date=2026-11-05", **H).json()
+    assert (ind["garantieEpargne"], ind["caution"]) == (c[1], 600000)
+    assert ind["creditsEncours"] == [{"produit": ident("select nom from produit_credit limit 1"), "devise": "CDF", "prets": 1, "encours": c[0]}]
