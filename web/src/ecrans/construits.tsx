@@ -7,6 +7,8 @@ import VirementsMensuels from "./VirementsMensuels";
 import Factures, { DeclarationTaxes } from "./Factures";
 import ReglementEspece from "./ReglementEspece";
 import { AnnulationReglement, Controles, HistoriqueRapprochement, Lettrage, Rapprochement, Tresorerie } from "./ControlesCompta";
+import { EtatsFinanciers, IndicateursFinanciers } from "./EtatsFinanciers";
+import Financement from "./Financement";
 import VisaBanque from "./VisaBanque";
 import { ChequesClients } from "./ChequesClients";
 import { Chequiers } from "./Chequiers";
@@ -221,6 +223,9 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S112: HistoriqueRapprochement,
   S118: Controles,
   S119: Lettrage,
+  S122: EtatsFinanciers,
+  S123: IndicateursFinanciers,
+  S126: Financement,
   S142: AnnulationReglement,
   S143: Tresorerie,
   S113: VisasComptables,

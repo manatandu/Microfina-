@@ -28,11 +28,13 @@ function PageReferentiel({ facade, page, sources, menu, changer }: { facade: Fac
   const [filtres, setFiltres] = useState<Saisie>({});
   const [boite, setBoite] = useState<Boite | null>(null);
   const [relu, setRelu] = useState(0);
+  const [graine, setGraine] = useState(() => Math.floor(Math.random() * 1e7));
   const { donnees } = useDonnees(() => facade.lire(page), [relu]);
   if (!donnees) return <Chargement />;
   const fiche = donnees.fiche;
-  const valeur = (c: ChampBudget) => f[c.cle] ?? (c.defaut !== undefined && c.defaut !== null ? String(c.defaut) : "");
-  const effacer = () => { setF({}); setChoisi(null); };
+  // « propose » : un code proposé d'avance, que l'on peut changer (capture « Bailleurs », p. 145 : B5393144)
+  const valeur = (c: ChampBudget) => f[c.cle] ?? (c.propose && choisi === null ? `${c.propose}${String(graine).padStart(7, "0")}` : c.defaut !== undefined && c.defaut !== null ? String(c.defaut) : "");
+  const effacer = () => { setF({}); setChoisi(null); setGraine(Math.floor(Math.random() * 1e7)); };
   const confirmer = (texte: string, faire: () => Promise<unknown>) => setBoite({ type: "confirmation", message: texte, oui: async () => {
     try { await faire(); effacer(); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }

@@ -518,8 +518,8 @@ def faire_suivre(u, oid: int, etape: str, d=None) -> dict:
 
 
 # ---------- S111 : ce que la comptabilisation passe ----------
-def L(compte, sens, devise, montant, contrat=None) -> dict:
-    return {"compte": compte, "sens": sens, "devise": devise, "montant": montant, **({"contrat": contrat} if contrat else {})}
+def L(compte, sens, devise, montant, contrat=None, budget=None) -> dict:
+    return {"compte": compte, "sens": sens, "devise": devise, "montant": montant, **({"contrat": contrat} if contrat else {}), **({"budget": budget} if budget else {})}
 
 
 def ligne_depot(cid: int, sens: str, devise: str, montant: int) -> dict:
@@ -531,7 +531,7 @@ def lignes_ecriture(o: dict) -> list[dict]:
     """Lignes au grand livre d'une opération validée"""
     t, dv, m = o["type"], o["devise"].strip(), o["montant"]
     if t == "ecriture":
-        return [L(x["compte"], x["sens"], dv, x["montant"], f"tc:{x['auxiliaireId']}" if x.get("auxiliaireId") else None) for x in lg(o)]
+        return [L(x["compte"], x["sens"], dv, x["montant"], f"tc:{x['auxiliaireId']}" if x.get("auxiliaireId") else None, x.get("ligneBudgetId")) for x in lg(o)]
     if t == "virement":
         return [L(x["compte"], "D", dv, x["montant"]) for x in lg(o)] + [ligne_depot(o["compte_depot_id"], "C", dv, m)]
     if t == "prelevement":
@@ -621,7 +621,7 @@ def payer(u, oid: int, d) -> dict:
     j = une("select date_comptable from journee_comptable where id = %s", (s["journeeId"],))
     caisse = L("570", "D" if entree else "C", dv, m, f"guichet:{s['guichetId']}")
     if o["type"] == "diverse":
-        autres = [L(x["compte"], "C" if entree else "D", dv, x["montant"]) for x in lg(o)]
+        autres = [L(x["compte"], "C" if entree else "D", dv, x["montant"], None, o["budget_ligne_id"]) for x in lg(o)]
         tiers_id, contrat = None, None
     else:
         c = compte_client(u, o["compte_depot_id"], "N° Compte", True)

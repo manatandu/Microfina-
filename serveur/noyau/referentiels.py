@@ -69,4 +69,6 @@ def valeurs(u, table: str, colonnes: str = "*") -> list[dict]:
     return lignes(f"select {colonnes} from {table} where institution_id = %s and actif order by id", (u["institution_id"],))
 
 
+UTILISE_PAR["financement"] = {"types_financement": [("financement_ligne", "type_id", "Lignes de financement")],
+                              "bailleurs": [("budget_ligne", "bailleur_id", "Ligne de plan budgétaire")]}
 TYPES_TIERS = next(f["valeurs"] for f in DESCRIPTION["tiers"]["pages"][0]["champs"] if f["cle"] == "typeTiers")

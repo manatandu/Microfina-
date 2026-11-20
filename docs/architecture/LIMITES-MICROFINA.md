@@ -78,5 +78,7 @@ Chaque ligne dit ce qui a été constaté, où, et ce que Likelemba fait déjà 
 | S119 Lettrage | Pas de délettrage ; pas de lettrage partiel ni automatique | Lettrage automatique par montant ; délettrage tracé |
 | S118 S143 Contrôle | Trésorerie sans plafond de caisse ni comparaison avec l'arrêté ; rapport des annulations sans motif ; le même état de trésorerie à deux endroits du menu | Tableau de trésorerie avec plafonds et alertes ; motif obligatoire d'une annulation |
 | S142 Annulation de règlement | Un seul règlement à la fois, choisi par son numéro de pièce ; pas de motif ; rien ne dit qui peut annuler | Motif obligatoire ; annulation soumise à un visa |
+| S122 États financiers | Le manuel ne montre aucun état, seulement les critères ; « Etat : Création » et « Période » ne sont pas expliqués ; pas de tableau de flux au menu ; annexes d'un autre référentiel | Liasse mensuelle de l'Instr. BCC 009 en un clic, au format demandé par la BCC ; notes annexes ; comparaison sur plusieurs périodes |
+| S123 Indicateurs financiers | Un mois à la fois, sans norme ni évolution | Tableau de bord avec normes de l'Instr. BCC 004, tendance sur douze mois et alertes |
 | Grilles | Pages de 10 lignes et filtres par colonne, sans recherche globale ni tri multiple | Recherche et tri |
 | Messages | Boîtes de confirmation Oui/Non à chaque enregistrement, même sans risque | Confirmer seulement ce qui engage (écritures, suppressions) |

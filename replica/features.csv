@@ -122,8 +122,8 @@ Contrôle trésorerie et rapport des annulations,comptabilité,must,yes,yes,S118
 État des revenus,comptabilité,should,yes,yes,S118
 Lettrage,comptabilité,must,yes,yes,S119
 Grand livre et balance général et analytique,comptabilité,must,yes,yes,"S120 S121 | Grand livre et balance des captures, généraux et analytiques, sur les écritures définitives, en CDF (registre S120-1 à S120-5, S121-1 à S121-4, T13)."
-Bilan hors bilan résultat annexes,comptabilité,must,yes,no,S122 ; états du PCCI ; tableau des flux de trésorerie et états de l'Instr. BCC 009 à ajouter (constats U23 C11)
-Indicateurs financiers,comptabilité,must,yes,no,S123 ; formules de l'annexe de l'Instr. BCC 004
+Bilan hors bilan résultat annexes,comptabilité,must,yes,yes,S122 ; états du PCCI ; tableau des flux de trésorerie et états de l'Instr. BCC 009 à ajouter (constats U23 C11)
+Indicateurs financiers,comptabilité,must,yes,yes,S123 ; formules de l'annexe de l'Instr. BCC 004
 Budget : création reconduction suivi consommation financement,budget,should,yes,no,S124 à S126
 Clôtures crédit dépôt comptabilité,autres,must,yes,no,S127 ; traitements automatiques de fin de journée et de mois (ARCHITECTURE.md § 6)
 Calculs : tenue de compte intérêts DAV et DAT provisions,autres,must,yes,no,S128 ; idem

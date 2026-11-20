@@ -546,6 +546,12 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "provisions.tout": [
 "S99"
 ],
+"refFinancement.enregistrer": [
+"S126"
+],
+"refFinancement.supprimer": [
+"S126"
+],
 "refTaxes.enregistrer": [
 "S104"
 ],

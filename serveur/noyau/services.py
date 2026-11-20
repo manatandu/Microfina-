@@ -1541,9 +1541,10 @@ def poster(u: dict, *, journal: str, journee_id: int, libelle: str, piece: str, 
         # contre-valeur au cours du jour de la devise de la ligne (PCCI § 7.1)
         cdf = l["montant"] if l["devise"] == "CDF" else round(l["montant"] * cours(l["devise"], j["date_comptable"]))   # règle d'arrondi à confirmer
         cours_id = None if l["devise"] == "CDF" else cours_ligne(l["devise"], j["date_comptable"])["id"]
-        executer("""insert into ligne_ecriture (ecriture_id, rang, compte_id, contrat_ref, sens, devise, montant_devise, montant_cdf, cours_id)
-                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-                 (eid, rang, id_compte(l["compte"], u["institution_id"]), l.get("contrat"), l["sens"], l["devise"], l["montant"], cdf, cours_id))
+        # « budget » : la ligne budgétaire saisie avec la ligne (S109, S116, S107), lue par le suivi budgétaire (S125)
+        executer("""insert into ligne_ecriture (ecriture_id, rang, compte_id, contrat_ref, sens, devise, montant_devise, montant_cdf, cours_id, budget_ligne_id)
+                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                 (eid, rang, id_compte(l["compte"], u["institution_id"]), l.get("contrat"), l["sens"], l["devise"], l["montant"], cdf, cours_id, l.get("budget")))
     return eid
 
 

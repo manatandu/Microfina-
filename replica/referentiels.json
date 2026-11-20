@@ -262,5 +262,158 @@
     ]
    }
   ]
+ },
+ "financement": {
+  "ecran": "S126",
+  "role": "comptable",
+  "pages": [
+   {
+    "page": "lignes_financement",
+    "table": "financement_ligne",
+    "menu": "Lignes de financement",
+    "entete": "Ligne financement",
+    "grille": "Liste des lignes de financement",
+    "rafraichir": true,
+    "unique": [],
+    "champs": [
+     {
+      "cle": "libelle",
+      "col": "libelle",
+      "libelle": "Libellé",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Libellé",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "montant",
+      "col": "montant",
+      "libelle": "Montant",
+      "type": "entier",
+      "obligatoire": false,
+      "ref": null,
+      "aide": null,
+      "colonne": "Montant",
+      "defaut": 0,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "typeId",
+      "col": "type_id",
+      "libelle": "Type",
+      "type": "choix",
+      "obligatoire": true,
+      "ref": "types_financement",
+      "aide": null,
+      "colonne": "Type",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     }
+    ]
+   },
+   {
+    "page": "types_financement",
+    "table": "financement_type",
+    "menu": "Types de financement",
+    "entete": "Types de lignes de financement",
+    "rafraichir": true,
+    "champs": [
+     {
+      "cle": "code",
+      "col": "code",
+      "libelle": "Code:",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Type de financement",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "libelle",
+      "col": "libelle",
+      "libelle": "Libellé:",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Financement",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     }
+    ]
+   },
+   {
+    "page": "bailleurs",
+    "table": "bailleur",
+    "menu": "Bailleur",
+    "entete": "Bailleurs",
+    "grille": "Liste des bailleurs",
+    "etiquette": "nom",
+    "champs": [
+     {
+      "cle": "typeBailleur",
+      "col": "type_bailleur",
+      "libelle": "Type de bailleur :",
+      "type": "texte",
+      "obligatoire": false,
+      "ref": null,
+      "aide": null,
+      "colonne": "Type de bailleur",
+      "defaut": null,
+      "cadre": null,
+      "grille": false,
+      "valeurs": [
+       "Banques commerciales et autres intermédiaires financiers",
+       "Organes faîtiers et autres Institutions de Micro Finance",
+       "Autres Coopératives d'Epargne et de Crédit et Institutions de Micro Finance",
+       "Institutions Financières non bancaires",
+       "Administration centrale",
+       "Administrations provinciales ou locales",
+       "Entreprises publiques",
+       "Entreprises privées",
+       "Institutions sans but lucratif",
+       "Ménages"
+      ]
+     },
+     {
+      "cle": "code",
+      "col": "code",
+      "libelle": "Code :",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Code bailleur",
+      "defaut": null,
+      "cadre": null,
+      "grille": true,
+      "propose": "B"
+     },
+     {
+      "cle": "nom",
+      "col": "nom",
+      "libelle": "Nom :",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Nom bailleur",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     }
+    ]
+   }
+  ]
  }
 }

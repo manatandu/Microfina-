@@ -5365,7 +5365,7 @@ export function preparerDemo() {
 // Règles identiques côté serveur (noyau/moteur.py, budget.py, credit.py). ----------
 export type TypeChampBudget = "texte" | "texteLong" | "entier" | "jjmm" | "choix" | "annee" | "compte" | "compteSimple" | "operation" | "email" | "ouiNon";
 export interface ChampBudget { cle: string; libelle: string; type: TypeChampBudget; obligatoire: boolean; ref?: string; aide?: string; colonne: string; defaut?: number | boolean;
-  sansEtoile?: boolean; cadre?: string; grille?: boolean; valeurs?: string[]; format?: "decimal" | "date"; rang?: number }   // sansEtoile : la capture ne montre pas l'astérisque ; grille false : champ absent de la grille
+  sansEtoile?: boolean; cadre?: string; grille?: boolean; valeurs?: string[]; format?: "decimal" | "date"; rang?: number; propose?: string }   // sansEtoile : la capture ne montre pas l'astérisque ; grille false : champ absent de la grille
 export interface FicheBudget { page: string; menu: string; entete?: string; grille?: string; cadre?: string; rafraichir?: boolean; filtres?: boolean; unique?: string[];
   parentMemeTable?: boolean; exporter?: boolean; outils?: boolean; portefeuille?: boolean; ordres?: boolean; fixe?: Record<string, unknown>[]; champs: ChampBudget[] }
 const ch = (cle: string, libelle: string, colonne: string, type: TypeChampBudget = "texte", obligatoire = true, x: Partial<ChampBudget> = {}): ChampBudget =>
@@ -5461,7 +5461,7 @@ function referentiel(o: OptionsReferentiel) {
       o.verifier?.(c, v, id, tous);
       const uniques = c.unique ?? ["code"];
       const egal = (a: unknown, b: unknown) => (typeof a === "string" && typeof b === "string" ? a.toLowerCase() === b.toLowerCase() : a === b);
-      const doublon = tous.some((l) => l.id !== id && (l.actif && uniques.every((k) => egal(l[k], v[k])) || (uniques.length === 1 && uniques[0] === "code" && l.code === v.code)));
+      const doublon = tous.some((l) => l.id !== id && (l.actif && uniques.length > 0 && uniques.every((k) => egal(l[k], v[k])) || (uniques.length === 1 && uniques[0] === "code" && l.code === v.code)));
       if (doublon) throw new ErreurMetier(`Ce ${sansDeux(c.champs.find((f) => f.cle === uniques.at(-1))!.libelle)} existe déjà.`);   // T08
       if (actuel) Object.assign(actuel, v); else tous.push({ id: prochain(tous), actif: true, ...v });
       enregistrer(); return moteur.lire(page);
@@ -5494,7 +5494,9 @@ function periodeEtat(p: CriteresEtat) {
   if (Number(p.du!.slice(0, 4)) !== ex || Number(p.au!.slice(0, 4)) !== ex) throw new ErreurMetier(`Les dates sont dans l'exercice ${ex}.`);
   return { du: p.du!, au: p.au!, ex };
 }
-const intitulesComptes = () => new Map<string, string>([...Object.entries(PCCI.classes), ...PCCI.comptes.map((c) => [c.numero, c.libelle] as [string, string]), ...E.comptesInstitution.map((c) => [c.numero, c.libelle] as [string, string])]);
+const intitulesComptes = () => new Map<string, string>([...Object.entries(PCCI.classes), ...PCCI.comptes.map((c) => [c.numero, c.libelle] as [string, string]),
+  ...E.comptesBancaires.map((c) => [c.compte, `${E.banques.find((b) => b.id === c.banqueId)?.libelle ?? ""} ${c.devise}`] as [string, string]),   // comme le serveur : banque et devise (S58)
+  ...E.comptesInstitution.map((c) => [c.numero, c.libelle] as [string, string])]);
 /** Lignes définitives jusqu'à la date : écritures des journées comptabilisées (T13) */
 function mouvementsDefinitifs(jusqua: string, vidage: boolean) {
   const noms = intitulesComptes(), out: { compte: string; intitule: string; date: string; journal: string; piece: string; reference: string; libelle: string; sens: "D" | "C"; montantCdf: number; auxiliaire: string }[] = [];
@@ -6739,6 +6741,14 @@ function referentielPartage(famille: string) {
 /** Lignes actives d'un référentiel partagé, pour les écrans qui s'en servent */
 export const valeursRef = (famille: string, page: string) => stockRef(famille, page).filter((l) => l.actif).sort((a, b) => a.id - b.id);
 const refTaxes = referentielPartage("taxes"), refTiers = referentielPartage("tiers");
+// S126 : Budget > Financement (p. 143 à 145) : lignes de financement, types de financement, bailleurs
+UTILISE_PAR_REF.financement = { types_financement: [["lignes_financement", "typeId", "Lignes de financement"]] };
+const moteurFinancement = referentielPartage("financement");
+const refFinancement = { ...moteurFinancement,
+  supprimer(page: string, id: number) {
+    if (page === "bailleurs" && (E.budget.lignes ?? []).some((l) => l.actif && l.bailleurId === id)) throw new ErreurMetier("Cette valeur est utilisée par la page Ligne de plan budgétaire : la retirer d'abord.");
+    return moteurFinancement.supprimer(page, id);
+  } };
 const TYPES_TIERS = DESCRIPTION_REF.tiers!.pages[0]!.champs.find((f) => f.cle === "typeTiers")!.valeurs!;
 // ---------- Info de base > Budget : huit référentiels (S19, manuel p. 27 à 30) ----------
 /** Ordre du menu Info de base > Budget (2-1 à 2-8) ; titres, champs et colonnes des captures p. 27 à 30 */
@@ -6769,7 +6779,7 @@ const budget = referentiel({
   catalogue: CATALOGUE_BUDGET,
   stock: (page) => (E.budget[page] ??= []),
   choix: {
-    bailleurs: () => [],                                                  // liste des bailleurs : S126 (registre S19-7)
+    bailleurs: () => valeursRef("financement", "bailleurs").map((l) => ({ id: l.id, libelle: String(l.nom) })),   // S126 (registre S19-7)
     annees: () => [...E.exercices].sort((a, b) => a.annee - b.annee).map((e) => ({ id: e.annee, libelle: String(e.annee) })),
     operations: () => TYPES_OPERATION.map((t) => ({ id: t, libelle: t.replace(/_/g, " ") })),
   },
@@ -7924,6 +7934,7 @@ const apiLocal = {
   controlesCompta: asynchrone(controlesCompta, "controlesCompta"),
   refTaxes: asynchrone(refTaxes, "refTaxes"),
   refTiers: asynchrone(refTiers, "refTiers"),
+  refFinancement: asynchrone(refFinancement, "refFinancement"),
   litigieux: asynchrone(litigieux, "litigieux"),
   societe: asynchrone(societe, "societe"),
   agents: asynchrone(agents, "agents"),

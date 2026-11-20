@@ -152,7 +152,7 @@ class Referentiel:
         champs = {f["cle"]: f for f in c["champs"]}
         cles = c.get("unique", ["code"])
         egal = lambda k: f"lower({champs[k]['col']}) = lower(%s)" if champs[k]["type"] in TEXTES else f"{champs[k]['col']} = %s"
-        if une(f"select 1 from {c['table']} where institution_id = %s and actif and id is distinct from %s and " + " and ".join(egal(k) for k in cles),
+        if cles and une(f"select 1 from {c['table']} where institution_id = %s and actif and id is distinct from %s and " + " and ".join(egal(k) for k in cles),
                (i, lid, *[v[k] for k in cles])) or \
                 (cles == ["code"] and une(f"select 1 from {c['table']} where institution_id = %s and code = %s and id is distinct from %s", (i, v["code"], lid))):
             raise ErreurMetier(f"Ce {sans_deux(champs[cles[-1]]['libelle'])} existe déjà.")      # T08

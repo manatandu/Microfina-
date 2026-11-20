@@ -57,7 +57,7 @@ def verifier(u, c, v, lid):
 
 
 CHOIX = {
-    "bailleurs": lambda u: [],              # liste des bailleurs : S126 (registre S19-7)
+    "bailleurs": lambda u: lignes("select id, nom as libelle from bailleur where institution_id = %s and actif order by id", (u["institution_id"],)),   # S126 (S19-7)
     "annees": lambda u: [{"id": r["annee"], "libelle": str(r["annee"])} for r in lignes("select annee from exercice where institution_id = %s order by annee", (u["institution_id"],))],
     "operations": lambda u: [{"id": t, "libelle": t.replace("_", " ")} for t in TYPES_OPERATION],
 }

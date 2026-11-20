@@ -1759,6 +1759,61 @@ def li_supprimer(request, liste: str, lid: int):
 
 
 # ---------- Info de base > Budget : huit référentiels (S19) ----------
+# ---------- S124 Nouveau budget, S125 Consultation, suivi budgétaire et consommation par centre de coût ----------
+@api.get("/budget/contexte")
+def budget_contexte(request):
+    from . import budgets
+    return budgets.contexte(u(request))
+
+
+@api.get("/budget/comptes")
+def budget_comptes(request, typeId: int):
+    from . import budgets
+    return budgets.comptes_du_type(u(request), typeId)
+
+
+@api.get("/budget/valeurs")
+def budget_valeurs(request):
+    from . import budgets
+    return budgets.valeurs(u(request), request.GET.dict())
+
+
+@api.post("/budget/valeurs")
+def budget_ajouter(request, corps: dict = Body(...)):
+    from . import budgets
+    return budgets.ajouter(u(request), corps)
+
+
+@api.post("/budget/valeurs/{vid}")
+def budget_modifier(request, vid: int, corps: dict = Body(...)):
+    from . import budgets
+    return budgets.modifier(u(request), vid, corps)
+
+
+@api.post("/budget/suppression")
+def budget_supprimer(request, corps: dict = Body(...)):
+    from . import budgets
+    return budgets.supprimer(u(request), corps)
+
+
+@api.post("/budget/reconduction")
+def budget_reconduire(request, corps: dict = Body(...)):
+    from . import budgets
+    return budgets.reconduire(u(request), corps)
+
+
+@api.get("/budget/suivi")
+def budget_suivi(request):
+    from . import budgets
+    return budgets.suivi(u(request), request.GET.dict())
+
+
+@api.get("/budget/consommation")
+def budget_consommation(request):
+    from . import budgets
+    return budgets.consommation(u(request), request.GET.dict())
+
+
 @api.get("/budget-referentiels/{page}")
 def bu_lire(request, page: str):
     return bu.lire(u(request), page)

@@ -274,7 +274,7 @@ def calculer(u, d) -> dict:
         taux = Decimal(tr[tranche - 1]["taux"])
         part = (lambda total, deja: total - deja) if derniere else (lambda total, deja: pct(total, taux))
         deja_l = [sum(json_lu(x["lignes"])[k]["montant"] for x in faites) for k in range(len(lc))]
-        imput = [{"compte": x["compte"], "montant": part(x["ht"], deja_l[k])} for k, x in enumerate(lc)]
+        imput = [{"compte": x["compte"], "montant": part(x["ht"], deja_l[k]), "ligneBudgetId": x.get("ligneBudgetId")} for k, x in enumerate(lc)]
         ht = sum(x["montant"] for x in imput)
         tva = part(c["tva"], sum(x["tva"] for x in faites))
         for k, x in enumerate(lc):                                   # retenues posées sur les lignes de la commande (taxes de S104)
@@ -487,7 +487,7 @@ def faire_suivre(u, quoi: str, oid: int, etape: str, d=None) -> dict:
 def lignes_facture(f: dict) -> list[dict]:
     """Débit des comptes d'achat (hors taxes), de la TVA déductible (432) et des charges ajoutées ; crédit du fournisseur, toutes taxes comprises"""
     fo = une("select id, compte from tiers_comptable where id = %s", (f["fournisseur_id"],))
-    l = [L(x["compte"], "D", "CDF", x["montant"]) for x in json_lu(f["lignes"]) if x["montant"]]
+    l = [L(x["compte"], "D", "CDF", x["montant"], None, x.get("ligneBudgetId")) for x in json_lu(f["lignes"]) if x["montant"]]
     if f["tva"]:
         l.append(L(TVA_DEDUCTIBLE, "D", "CDF", f["tva"]))
     l += [L(x["compte"], "D", "CDF", x["montant"]) for x in json_lu(f["charges"]) if not x["retenue"]]

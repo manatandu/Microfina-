@@ -184,6 +184,11 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       enregistrer: (page: string, d: object, id?: number) => post(id === undefined ? `/referentiels/tiers/${page}` : `/referentiels/tiers/${page}/${id}`, d),
       supprimer: (page: string, id: number) => post(`/referentiels/tiers/${page}/${id}/suppression`),
     },
+    refFinancement: {
+      lire: (page: string) => get(`/referentiels/financement/${page}`),
+      enregistrer: (page: string, d: object, id?: number) => post(id === undefined ? `/referentiels/financement/${page}` : `/referentiels/financement/${page}/${id}`, d),
+      supprimer: (page: string, id: number) => post(`/referentiels/financement/${page}/${id}/suppression`),
+    },
     centraleRisques: {
       evenements: (du: string, au: string, statut = "") => get(`/conformite/centrale-risques?du=${du}&au=${au}&statut=${statut}`),
       declarer: (d: unknown) => post("/conformite/centrale-risques/declarations", d),
