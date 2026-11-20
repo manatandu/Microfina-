@@ -3196,3 +3196,53 @@ def test_balance_agee(clients, journee):
     assert "pas après" in lancer("2026-11-06").json()["message"]
     assert lancer("2026-11-01").json()["credits"] == 0                  # aucun crédit débloqué à cette date
     assert caisse.post("/api/credit/balance-agee", {"date": "2026-11-05"}, **H).status_code == 403
+
+
+def test_provisions(clients, journee):
+    """S99 (p. 121) : Charger crédits (balance âgée de la date, S98) ; Provisionner : capital déclassé en 390 et provision au taux de la tranche en 380
+    (Instr. BCC 003, art. 12 ; PCCI 38, 39, 6902, 7902) ; remboursement porté au compte déclassé ; Radier par anticipation seulement pour un
+    irrécupérable au 31 décembre (art. 9 et 10 ; CR-18), perte 6910 et suivi hors bilan 0612/096 (registre S99-1 à S99-6)"""
+    from django.db import connection
+    agent, caisse = clients["agent"], clients["caisse"]
+    solde = lambda n: ident("select coalesce(sum(case when l.sens = 'D' then l.montant_devise else -l.montant_devise end), 0) from ligne_ecriture l join compte c on c.id = l.compte_id where c.numero = %s", (n,))
+    cid = credit_debloque(clients, journee)
+    cap = ident("select montant from credit where id = %s", (cid,))
+    sain = solde("329")
+    def recule(n):
+        with connection.cursor() as cur:
+            cur.execute("update echeance set date_due = (date_due - %s * interval '1 day')::date where credit_id = %s", (n, cid))
+    q = lambda: agent.get("/api/credit/provisions", {"date": "2026-11-05"}, **H)
+    assert "lancer d'abord" in q().json()["message"]
+    recule(40)                                                         # 10 jours de retard : impayé, 5 %
+    agent.post("/api/credit/balance-agee", {"date": "2026-11-05"}, **H)
+    x = q().json()[0]
+    assert (x["id"], x["capitalRestant"], x["joursRetard"], x["degre"], x["taux"], x["provisionRequise"], x["provision"]) == (cid, cap, 10, "Impayés", 5, cap * 5 // 100, 0)
+    assert "Cocher" in agent.post("/api/credit/provisions/provisionner", {"date": "2026-11-05", "credits": []}, **H).json()["message"]
+    r = agent.post("/api/credit/provisions/provisionner", {"date": "2026-11-05", "credits": [cid]}, **H)
+    assert r.status_code == 200, r.content
+    assert (solde("3900"), solde("329"), solde("6902"), solde("3800")) == (cap, sain - cap, cap * 5 // 100, -(cap * 5 // 100))
+    recule(21)                                                         # 31 jours : douteux, 25 %
+    agent.post("/api/credit/balance-agee", {"date": "2026-11-05"}, **H)
+    assert agent.post("/api/credit/provisions/tout", {"date": "2026-11-05"}, **H).status_code == 200
+    assert (solde("3900"), solde("3901"), solde("3800"), solde("3801"), solde("6902")) == (0, cap, 0, -(cap * 25 // 100), cap * 25 // 100)
+    assert balance_equilibree(agent)
+    # Remboursement : le capital sort du compte déclassé (3901)
+    r = caisse.post(f"/api/guichet/remboursement/{cid}", {"cle": cle(), "mandataire": "Moi-même", "montant": 5000000, "coupures": {"20000": 2, "10000": 1}}, **H)
+    assert r.status_code == 200, r.content
+    pc = ident("select (repartition->>'capital')::bigint from remboursement where credit_id = %s", (cid,))
+    assert pc > 0 and solde("3901") == cap - pc and solde("329") == sain - cap
+    cap -= pc
+    # Radiation : refusée hors du 31 décembre et pour un crédit non irrécupérable
+    assert "31 décembre" in agent.post("/api/credit/provisions/radiation", {"date": "2026-11-05", "credits": [cid]}, **H).json()["message"]
+    with connection.cursor() as cur:
+        cur.execute("update journee_comptable set date_comptable = '2026-12-31' where id = %s", (journee[0]["id"],))
+    agent.post("/api/credit/balance-agee", {"date": "2026-12-31"}, **H)
+    assert "irrécupérable" in agent.post("/api/credit/provisions/radiation", {"date": "2026-12-31", "credits": [cid]}, **H).json()["message"]
+    recule(400)
+    agent.post("/api/credit/balance-agee", {"date": "2026-12-31"}, **H)
+    r = agent.post("/api/credit/provisions/radiation", {"date": "2026-12-31", "credits": [cid]}, **H)
+    assert r.status_code == 200, r.content
+    assert ident("select statut from credit where id = %s", (cid,)) == "passe_en_perte"
+    assert (solde("3904"), solde("3901"), solde("3801"), solde("3804"), solde("6910"), solde("0612"), solde("096")) == (0, 0, 0, 0, cap, cap, -cap)
+    assert balance_equilibree(agent)
+    assert clients["caisse"].get("/api/credit/provisions", {"date": "2026-12-31"}, **H).status_code == 403

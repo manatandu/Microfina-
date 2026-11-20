@@ -747,6 +747,10 @@ const OUT = process.argv[2];
   // Génération de balance âgée (S98, p. 120) : Date lancement (la journée), Lancer la balance âgée, confirmation
   await aller('/credit/s98'); await p.getByRole('button', { name: 'Lancer la balance âgée' }).click();
   await p.getByRole('dialog', { name: 'Succès' }).getByText(/Opération effectuée avec succès en \d+ seconde/).waitFor(); await etape('11k-balance-agee'); await p.getByRole('button', { name: 'Ok' }).click();
+  // Déclassement et provisions (S99, p. 121) : Charger crédits (balance âgée du jour), cocher, Provisionner (crédit sain : rien à passer)
+  await aller('/credit/s99'); await p.getByRole('button', { name: 'Charger crédits' }).click();
+  await p.getByRole('cell', { name: '0412/L001/00001', exact: true }).waitFor(); await p.getByLabel('Cocher 0412/L001/00001').check(); await etape('11l-provisions');
+  await p.getByRole('button', { name: 'Provisionner', exact: true }).click(); await ok();
   await login('Esther Ngalula'); await aller('/caisse/s74?op=depot');
   await p.getByRole('tab', { name: 'Retrait en espèce' }).click(); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-01' });
   // Bouton Detail (registre S74-1) : relevé du compte en lecture seule ; masqué si le guichet n'a pas « Voir solde client » (S10-1)

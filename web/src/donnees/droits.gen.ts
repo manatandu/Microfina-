@@ -440,6 +440,15 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "profilsUtilisateurs.enregistrer": [
 "S06"
 ],
+"provisions.provisionner": [
+"S99"
+],
+"provisions.radier": [
+"S99"
+],
+"provisions.tout": [
+"S99"
+],
 "releves.editer": [
 "S64"
 ],

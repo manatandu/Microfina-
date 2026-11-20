@@ -20,7 +20,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v92";
+const CLE = "likelemba-demo-v93";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -28,7 +28,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 69) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 70) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -3362,6 +3362,97 @@ const balanceAgee = {
     return { id, date: d, credits: lignes.length, message: `Opération effectuée avec succès en ${Math.round((Date.now() - t0) / 1000)} seconde !` };
   },
 };
+// ---------- S99 : Crédit > Déclassement provision et crédit (manuel p. 121). Mêmes règles que serveur/noyau/provisions.py.
+// Crédits de la balance âgée de la date (S98) ; capital déclassé en 390, provision en 380 au taux de la tranche, dotation 6902, reprise 7902
+// (Instr. BCC 003, art. 12 ; PCCI 38, 39, 690, 790) ; radiation d'un irrécupérable au 31 décembre seulement (art. 9 et 10 ; CR-18). Registre S99. ----------
+const COMPTE_PROVISION: Record<number, string> = { 2: "3800", 3: "3801", 4: "3802", 5: "3803", 6: "3804", 7: "3804" };
+const tauxProvision = (g: number) => (g > 1 ? Number(fixeCredit("degres")[g - 1]!.taux) : 0);
+type LigneBalanceAgee = BalanceAgee["lignes"][number];
+const degreCible = (l: LigneBalanceAgee) => (l.assimile ? 2 : l.degre);
+const frDate = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`;
+function dateProvision(d?: string) {
+  if (!d) throw new ErreurMetier("Date Opération : obligatoire.");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || Number.isNaN(Date.parse(d))) throw new ErreurMetier("Date Opération : une date.");
+  if (d > jourDeblocage().date) throw new ErreurMetier("Date Opération : pas après la journée ouverte.");
+  return d;
+}
+function balanceDe(d: string) {
+  const b = E.balancesAgees.find((x) => x.date === d);
+  if (!b) throw new ErreurMetier(`Aucune balance âgée au ${frDate(d)} : la lancer d'abord (Génération de balance âgée).`);
+  return b;
+}
+function provisionnerUn(c: CreditPret, l: LigneBalanceAgee | undefined, d: string, u: number) {
+  if (c.provisionneLe && c.provisionneLe > d) throw new ErreurMetier(`Crédit ${c.numero} : déjà provisionné au ${frDate(c.provisionneLe)} ; choisir une date égale ou postérieure.`);
+  if (E.remboursementsCredit.some((r) => r.creditId === c.id && r.date > d)) throw new ErreurMetier(`Crédit ${c.numero} : remboursé après le ${frDate(d)} ; lancer la balance âgée à une date plus récente.`);
+  const dv = c.devise, gAv = c.degreComptable ?? 1, pAv = c.provision ?? 0, g = l ? degreCible(l) : 1, capital = l ? l.capitalRestant : 0;
+  const p = Math.floor(capital * tauxProvision(g) / 100), k = `credit:${c.id}`, lg: Ligne[] = [];
+  const mv = (de: string, vers: string, m: number) => { lg.push({ compte: de, contrat: k, sens: "D", devise: dv, montant: m, montantCdf: cdf(m, dv) }, { compte: vers, contrat: k, sens: "C", devise: dv, montant: m, montantCdf: cdf(m, dv) }); };
+  if (l && g !== gAv && capital) { const de = comptesCredit(c, gAv).capital, vers = comptesCredit(c, g).capital; if (de !== vers) mv(vers, de, capital); }
+  const cpAv = pAv ? COMPTE_PROVISION[c.degreProvision ?? 0] : undefined, cp = p ? COMPTE_PROVISION[g] : undefined;
+  if (pAv && cp && cpAv !== cp) mv(cpAv!, cp, Math.min(pAv, p));
+  if (p > pAv) mv("6902", cp!, p - pAv);
+  else if (p < pAv) mv(cpAv!, "7902", pAv - p);
+  if (!lg.length && g === gAv && p === pAv) { c.provisionneLe = d; return false; }
+  const e = lg.length ? poster({ journal: "OD", journeeId: jourDeblocage().id, libelle: `Déclassement et provision du crédit ${c.numero} au ${frDate(d)}`, piece: piece("OD"), saisiPar: u, validePar: u, lignes: lg }) : null;
+  E.provisionsCredit.push({ id: prochain(E.provisionsCredit), creditId: c.id, date: d, nature: "provision", degreAvant: gAv, degreApres: g, provisionAvant: pAv, provisionApres: p,
+    capitalRestant: capital, ecritureId: e?.id ?? null, par: u });
+  Object.assign(c, { degreComptable: g, provision: p, degreProvision: p ? g : null, provisionneLe: d });
+  return true;
+}
+function idsCoches(p: { credits?: unknown[] }) {
+  const ids = (p.credits ?? []).filter((x): x is number => Number.isInteger(x));
+  if (!ids.length) throw new ErreurMetier("Cocher au moins un crédit.");
+  return ids;
+}
+const provisions = {
+  charger(date: string) {
+    lectureAdmin(["S99"]);
+    const d = dateProvision(date), b = balanceDe(d);
+    return b.lignes.map((l) => ({ l, c: E.credits.find((x) => x.id === l.creditId)! })).sort((a, b2) => a.c.numero.localeCompare(b2.c.numero)).map(({ l, c }) => {
+      const g = degreCible(l);
+      return { id: c.id, numero: c.numero, client: titulaire(E.tiers.find((t) => t.id === c.tiersId)!), montant: c.montant, devise: c.devise, dateDeblocage: c.debloqueLe,
+        capitalRestant: l.capitalRestant, joursRetard: l.joursRetard, degre: String(fixeCredit("degres")[g - 1]!.libelle) + (l.assimile ? " (assimilé)" : ""), taux: tauxProvision(g),
+        provisionRequise: Math.floor(l.capitalRestant * tauxProvision(g) / 100), provision: c.provision ?? 0, statut: c.statut, irrecuperable: l.classe === "irrecuperable" };
+    });
+  },
+  provisionner(p: { date?: string; credits?: unknown[] }, tout = false) {
+    const u = exiger(), d = dateProvision(p.date), b = balanceDe(d);
+    const par = new Map(b.lignes.map((l) => [l.creditId, l]));
+    let ids: number[];
+    if (tout) ids = [...new Set([...par.keys(), ...E.credits.filter((c) => ((c.provision ?? 0) > 0 || (c.degreComptable ?? 1) > 1) && c.statut !== "passe_en_perte").map((c) => c.id)])].sort((a, b2) => a - b2);
+    else { ids = idsCoches(p); if (ids.some((i) => !par.has(i))) throw new ErreurMetier("Crédit absent de la balance âgée de cette date."); }
+    let n = 0;
+    for (const i of ids) { const c = E.credits.find((x) => x.id === i); if (c && c.statut !== "passe_en_perte" && provisionnerUn(c, par.get(i), d, u.id)) n++; }
+    enregistrer();
+    return { credits: ids.length, ecritures: n, lignes: provisions.charger(d) };
+  },
+  tout(p: { date?: string }) { return provisions.provisionner(p, true); },
+  radier(p: { date?: string; credits?: unknown[] }) {
+    const u = exiger(), d = dateProvision(p.date);
+    if (d.slice(5) !== "12-31") throw new ErreurMetier("Radiation : seulement à la clôture du bilan, au 31 décembre (Instr. BCC 003, art. 10).");
+    const b = balanceDe(d), ids = idsCoches(p), par = new Map(b.lignes.map((l) => [l.creditId, l]));
+    for (const i of ids) {
+      const l = par.get(i);
+      if (!l) throw new ErreurMetier("Crédit absent de la balance âgée de cette date.");
+      if (l.classe !== "irrecuperable") throw new ErreurMetier(`Crédit ${E.credits.find((x) => x.id === i)!.numero} : seul un crédit irrécupérable (plus de 12 mois de retard) passe en perte (Instr. BCC 003, art. 9 et 10).`);
+    }
+    for (const i of ids) {
+      const c = E.credits.find((x) => x.id === i)!, l = par.get(i)!;
+      provisionnerUn(c, l, d, u.id);
+      const dv = c.devise, k = `credit:${i}`, r = l.capitalRestant, pv = c.provision ?? 0, lg: Ligne[] = [];
+      const ln = (compte: string, sens: "D" | "C", m: number) => { if (m) lg.push({ compte, contrat: k, sens, devise: dv, montant: m, montantCdf: cdf(m, dv) }); };
+      ln("6910", "D", Math.min(pv, r)); ln("6911", "D", r - Math.min(pv, r)); ln(comptesCredit(c, c.degreComptable ?? 1).capital, "C", r);
+      if (pv) { ln(COMPTE_PROVISION[c.degreProvision ?? 7]!, "D", pv); ln("7902", "C", pv); }
+      ln("0612", "D", r); ln("096", "C", r);
+      const e = poster({ journal: "OD", journeeId: jourDeblocage().id, libelle: `Passage en perte du crédit ${c.numero}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: lg });
+      E.provisionsCredit.push({ id: prochain(E.provisionsCredit), creditId: i, date: d, nature: "radiation", degreAvant: c.degreComptable ?? 1, degreApres: c.degreComptable ?? 1,
+        provisionAvant: pv, provisionApres: 0, capitalRestant: r, ecritureId: e.id, par: u.id });
+      Object.assign(c, { statut: "passe_en_perte", provision: 0, degreProvision: null, radieLe: d });
+    }
+    enregistrer();
+    return { credits: ids.length, lignes: provisions.charger(d) };
+  },
+};
 const joursRemb = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000);
 const champ = (e: EcheanceCredit, k: string) => Number((e as Record<string, unknown>)[k] ?? 0);
 function degreDe(j: number): [number, string] {
@@ -3479,7 +3570,7 @@ function enregistrerRemboursement(c: CreditPret, d: string, montant: unknown, re
   const l: Ligne[] = [{ ...contrepartie, sens: "D", devise: dv, montant: m + (ap ? ap[1] : 0), montantCdf: cdf(m + (ap ? ap[1] : 0), dv) }];
   if (ap) { const k = E.comptes.find((x) => x.id === ap[0])!; l.push({ compte: k.pcci, contrat: `depot:${k.id}`, sens: "C", devise: dv, montant: ap[1], montantCdf: cdf(ap[1], dv) }); }
   const ligne = (compte: string, v: number, contrat = `credit:${c.id}`) => { if (v) l.push({ compte, contrat, sens: "C", devise: dv, montant: v, montantCdf: cdf(v, dv) }); };
-  ligne(cc.capital, r.capital!);
+  ligne(comptesCredit(c, c.degreComptable ?? 1).capital, r.capital!);   // le compte qui porte le capital : sain, ou 390 après déclassement (S99)
   for (const k of ["interet", "penalite", "anticipation", "tva"]) ligne(k === "anticipation" ? cc.interet : ci.interet, r[k]!);
   for (const [k, cid] of [["epargne", c.compteEpargneId], ["solidarite", c.compteSolidariteId]] as [string, number | null][])
     if (r[k] && cid) ligne(E.comptes.find((x) => x.id === cid)!.pcci, r[k]!, `depot:${cid}`);
@@ -5941,6 +6032,7 @@ const apiLocal = {
   affectation: asynchrone(affectation, "affectation"),
   listeRouge: asynchrone(listeRouge, "listeRouge"),
   balanceAgee: asynchrone(balanceAgee, "balanceAgee"),
+  provisions: asynchrone(provisions, "provisions"),
   societe: asynchrone(societe, "societe"),
   agents: asynchrone(agents, "agents"),
   jours: asynchrone(jours, "jours"),

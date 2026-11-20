@@ -76,6 +76,12 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
     balanceAgee: {
       lancer: (p: unknown) => post("/credit/balance-agee", p),
     },
+    provisions: {
+      charger: (date: string) => get(`/credit/provisions?date=${encodeURIComponent(date)}`),
+      provisionner: (p: unknown) => post("/credit/provisions/provisionner", p),
+      tout: (p: unknown) => post("/credit/provisions/tout", p),
+      radier: (p: unknown) => post("/credit/provisions/radiation", p),
+    },
     affectation: {
       contexte: () => get("/credit/affectation/contexte"),
       portefeuille: (agent: number) => get(`/credit/affectation/${agent}`),

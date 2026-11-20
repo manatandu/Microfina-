@@ -2272,6 +2272,30 @@ describe("journée de guichet", () => {
     expect(b()[0]!.lignes.find((x) => x.creditId === c1)!.classe).toBe("douteux");
   });
 
+  it("déclassement et provisions (S99, p. 121) : capital en 390, provision en 380 au taux de la tranche (Instr. BCC 003, art. 12), radiation au 31 décembre (art. 10)", async () => {
+    const cid = await creditDebloque();
+    const j = (await api.journees.courante())!.date;
+    const c = _etat().credits.find((x) => x.id === cid)!, cap = c.montant;
+    const solde = (n: string) => _etat().ecritures.flatMap((e) => e.lignes).filter((x) => x.compte === n).reduce((t, x) => t + (x.sens === "D" ? x.montant : -x.montant), 0);
+    const recule = (n: number) => { for (const e of c.echeancier) e.date = new Date(Date.parse(`${e.date}T00:00:00Z`) - n * 86400000).toISOString().slice(0, 10); };
+    await connecter("bkasongo");
+    await expect(api.provisions.charger(j)).rejects.toThrow("lancer d'abord");
+    const ecart = Math.round((Date.parse(`${c.echeancier[0]!.date}T00:00:00Z`) - Date.parse(`${j}T00:00:00Z`)) / 86400000);
+    recule(ecart + 10);
+    await api.balanceAgee.lancer({ date: j });
+    const x = (await api.provisions.charger(j))[0]!;
+    expect([x.id, x.capitalRestant, x.joursRetard, x.degre, x.taux, x.provisionRequise, x.provision]).toEqual([cid, cap, 10, "Impayés", 5, Math.floor(cap * 5 / 100), 0]);   // comme le serveur
+    await expect(api.provisions.provisionner({ date: j, credits: [] })).rejects.toThrow("Cocher");
+    const sain = solde("329");
+    await api.provisions.provisionner({ date: j, credits: [cid] });
+    expect([solde("3900"), solde("329"), solde("6902"), solde("3800")]).toEqual([cap, sain - cap, Math.floor(cap * 5 / 100), -Math.floor(cap * 5 / 100)]);
+    recule(21);
+    await api.balanceAgee.lancer({ date: j });
+    await api.provisions.tout({ date: j });
+    expect([solde("3900"), solde("3901"), solde("3800"), solde("3801"), solde("6902")]).toEqual([0, cap, 0, -Math.floor(cap * 25 / 100), Math.floor(cap * 25 / 100)]);
+    await expect(api.provisions.radier({ date: j, credits: [cid] })).rejects.toThrow("31 décembre");
+  });
+
   it("produit crédit (S23, p. 37 et 38) : méthode dégressive (Instr. BCC 38 art. 11), bornes, garanties, assurance, frais (Instr. BCC 40 art. 8)", async () => {
     await connecter("jpmukendi");
     const P = { typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: "2,5", tauxDiffere: 2,

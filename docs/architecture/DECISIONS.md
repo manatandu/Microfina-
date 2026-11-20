@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**608 décisions.** Solidité : 261 fortes (le manuel ou un texte répond), 294 moyennes (déduites d'un écran voisin ou d'une donnée), 53 faibles (notre choix, faute de mieux). Dans le code : 579 déjà en place, 26 à appliquer.
+**615 décisions.** Solidité : 265 fortes (le manuel ou un texte répond), 297 moyennes (déduites d'un écran voisin ou d'une donnée), 53 faibles (notre choix, faute de mieux). Dans le code : 588 déjà en place, 24 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1253,8 +1253,8 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | CR-16b | Prorogé et contentieux | Contentieux : dossier en recouvrement amiable ou judiciaire. Prorogé : échéances modifiées, une seule fois, provisionné comme litigieux depuis l'échéancier initial. Le manuel ne montre aucun écran pour marquer un recouvrement ni pour modifier des échéances : à poser au porteur à la revue de fin d'étape | Texte réglementaire : Instr. BCC 003, art. 5, 8 et 12 | forte | à appliquer |
-| CR-17 | Provisions | Chaque mois, sur le capital restant dû des crédits litigieux : 1 à 30 jours 5 %, 31 à 60 jours 25 %, 61 à 90 jours 50 %, 91 à 180 jours 75 %, plus de 180 jours 100 % ; écritures de dotation et de reprise selon le PCCI | Texte réglementaire : Instr. BCC 003, art. 12 et 13 ; S21-1 | forte | à appliquer |
-| CR-18 | Passage en perte (« Radier par anticipation ») | Seul un crédit irrécupérable (plus de 12 mois) passe en perte, à la clôture du bilan au 31 décembre ; il est ensuite suivi en hors bilan. Le bouton de la capture est gardé dans cette limite : écart imposé par le texte, à signaler au porteur | Texte réglementaire : Instr. BCC 003, art. 9 et 10 ; capture p. 121 | forte | à appliquer |
+| CR-17 | Provisions | Chaque mois, sur le capital restant dû des crédits litigieux : 1 à 30 jours 5 %, 31 à 60 jours 25 %, 61 à 90 jours 50 %, 91 à 180 jours 75 %, plus de 180 jours 100 % ; écritures de dotation et de reprise selon le PCCI | Texte réglementaire : Instr. BCC 003, art. 12 et 13 ; S21-1 | forte | en place |
+| CR-18 | Passage en perte (« Radier par anticipation ») | Seul un crédit irrécupérable (plus de 12 mois) passe en perte, à la clôture du bilan au 31 décembre ; il est ensuite suivi en hors bilan. Le bouton de la capture est gardé dans cette limite : écart imposé par le texte, à signaler au porteur | Texte réglementaire : Instr. BCC 003, art. 9 et 10 ; capture p. 121 | forte | en place |
 
 ## S76, S99 Intérêts des crédits litigieux
 
@@ -1406,6 +1406,18 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S98-2 | Ce que la balance retient | Chaque crédit débloqué à la date et dont le capital restant à cette date n'est pas nul (même soldé depuis) : capital restant, capital et intérêts échus impayés, jours de retard, degré de S21, classe (CR-16). Lue par le déclassement (S99) et la synthèse de la balance âgée (S101) | Texte réglementaire : Instr. BCC 003, art. 2 à 9 ; S21-1 ; atlas S99, S101 | moyenne | en place |
 | S98-3 | Crédit sain assimilé | Le crédit sain d'un client qui a un autre crédit litigieux à la date est classé impayé, marqué « assimilé », avec zéro jour de retard | Texte réglementaire : Instr. BCC 003, art. 6, al. 2 | forte | en place |
 | S98-4 | Date et nouvelle génération | Date pas après la journée ouverte (les retards se lisent au jour) ; une balance par date : la nouvelle génération remplace la précédente (titre de la capture « Génération de nouvelle balance »). Pas d'écriture comptable : la dotation aux provisions passe par S99 | Manuel : Capture p. 120 ; Instr. BCC 003, art. 12 et 13 | moyenne | en place |
+
+## S99 Déclassement provision et crédit
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S99-1 | Écran | Comme la capture : Provisionner tous les crédits ; Date Opération * (la journée par défaut) ; Charger crédits, Radier par anticipation, Provisionner ; grille à cocher N° crédit et Client filtrables, Montant prêt, Date déblocage, Capital Restant. Colonnes coupées sur la capture complétées par la balance : Jours de retard, Degré, Taux, Provision requise, Provision constituée. Confirmation Oui/Non avant chaque action | Règle générale du manuel : Capture p. 121 ; règle générale du manuel, p. 7 à 12 | moyenne | en place |
+| S99-2 | Crédits chargés | Les crédits de la balance âgée de la date (S98) ; sans balance à cette date, message demandant de la lancer d'abord | Donnée exigée ailleurs : S98-2 ; atlas S99 | moyenne | en place |
+| S99-3 | Déclassement | Le capital restant passe du compte du crédit sain (32, 31, 30) au compte 390 de sa tranche (3900 à 3904), d'une tranche à l'autre, ou revient au compte sain. Le crédit sain assimilé va en 3900, provisionné à 5 % comme les impayés | Texte réglementaire : PCCI, compte 39 ; Instr. BCC 003, art. 6, al. 2 et art. 12 | forte | en place |
+| S99-4 | Provisions | Capital restant × taux de la tranche (S21-1) au compte 380 de la tranche (3800 à 3804) ; hausse : dotation 6902 ; baisse : reprise 7902 ; quand la tranche change, la provision passe d'un compte 380 à l'autre. Provisionner tous les crédits reprend aussi les provisions des crédits soldés | Texte réglementaire : Instr. BCC 003, art. 12 et 13 ; PCCI, comptes 38, 6902, 7902 | forte | en place |
+| S99-5 | Date et écritures | Date pas après la journée ouverte, ni avant le dernier provisionnement du crédit ; refus si le crédit a été remboursé après la date (relancer la balance) ; écritures au journal OD de la journée ouverte | Règle générale du manuel : Règle générale du manuel, p. 7 à 12 ; S98-4 | moyenne | en place |
+| S99-6 | Radier par anticipation | Seulement au 31 décembre et seulement un crédit irrécupérable ; provision portée à 100 % d'abord ; perte 6910 (6911 pour la part non provisionnée) contre le compte 390 ; reprise de la provision en 7902 ; suivi en hors bilan, 0612 contre 096 ; statut passé en perte | Texte réglementaire : Instr. BCC 003, art. 9 et 10 ; PCCI, comptes 691, 790 et hors bilan 06, 096 ; CR-18 | forte | en place |
+| S99-7 | Remboursement après déclassement | Le capital remboursé sort du compte qui le porte : le compte sain, ou le compte 390 après déclassement (change S76-7) | Texte réglementaire : PCCI, compte 39 (crédité du montant remboursé) | forte | en place |
 
 ## D02 Refonte visuelle v1.0
 

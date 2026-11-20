@@ -39,9 +39,9 @@ Statut : **lu** = article lu et reporté ici ; **à lire** = texte identifié, d
 | Art. 6 al. 2 | Les crédits sains d'un membre ayant un litigieux sont assimilés impayés | Classement | Balance âgée (S98) : crédit sain marqué « assimilé » (registre S98-3) | en place |
 | Art. 5 | Prorogation une seule fois ; interdiction de refinancer un retard | Crédit | Blocage dans le moteur, pas dans l'écran | lu |
 | Art. 7 | Douteux à partir du 31e jour ; comptes courants débiteurs sans mouvement créditeur significatif depuis 30 jours | Classement | Règle paramétrée ; seuil « significatif » à définir avec toi | lu |
-| Art. 9 et 10 | Irrécupérable au-delà de 12 mois ; passage en perte au 31/12, suivi hors bilan | Classement, Grand livre | Traitement de clôture annuelle | lu |
+| Art. 9 et 10 | Irrécupérable au-delà de 12 mois ; passage en perte au 31/12, suivi hors bilan | Classement, Grand livre | Radier par anticipation (S99), seulement au 31/12 et pour un irrécupérable ; 6910, 6911, hors bilan 0612/096 | en place |
 | Art. 11 | Intérêts non réglés des litigieux en hors bilan, en produit seulement à l'encaissement | Classement, Schémas | Bascule automatique de la comptabilisation des intérêts | lu |
-| Art. 12 | Provisions mensuelles : 5 %, 25 %, 50 %, 75 %, 100 % du capital restant dû par tranche ; prorogés depuis l'échéancier initial | Classement | Référentiel réglementaire ; comptes 3800 à 3804 | lu |
+| Art. 12 | Provisions mensuelles : 5 %, 25 %, 50 %, 75 %, 100 % du capital restant dû par tranche ; prorogés depuis l'échéancier initial | Classement | Déclassement et provisions (S99) : comptes 3800 à 3804, dotation 6902, reprise 7902 ; prorogés en attente (CR-16b) | en place |
 | Art. 14 | Pénalité de 1 % par mois de l'insuffisance de provision | Prudentiel | Indicateur d'écart affiché au tableau de bord | lu |
 
 ## Normes prudentielles (Instr. 002)

@@ -282,7 +282,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 69;
+  version: 70;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)
@@ -322,6 +322,8 @@ export interface Etat {
   garanties: GarantieCredit[];   // S94
   listeRouge: { id: number; tiersId: number; motif: string; referenceBcc: string; ajouteLe: string; ajoutePar: number; retireLe: string; retirePar: number | null; motifRetrait: string }[];   // S97
   balancesAgees: BalanceAgee[];   // S98
+  provisionsCredit: { id: number; creditId: number; date: string; nature: "provision" | "radiation"; degreAvant: number; degreApres: number; provisionAvant: number;
+    provisionApres: number; capitalRestant: number; ecritureId: number | null; par: number }[];   // S99
   affectationsCredit: { id: number; creditId: number; de: number; vers: number; le: string; par: number }[];   // S96
   liberationsGarantie: { id: number; garantieId: number; montant: number; date: string; ecritureId: number | null; par: number }[];
   visasCredit: VisaCredit[];   // S90
@@ -460,6 +462,7 @@ export interface CreditPret {
   statut: "mis_en_place" | "vise" | "refuse" | "debloque" | "solde" | "passe_en_perte"; misEnPlacePar: number; misEnPlaceLe: string; debloqueLe: string;
   fraisEncaissesLe?: string; ecritureDeblocageId?: number; modeDeblocage?: "caisse" | "banque"; chequeDeblocage?: string;
   echeancier: { rang: number; date: string; capital: number; interet: number }[];
+  degreComptable?: number; provision?: number; degreProvision?: number | null; provisionneLe?: string; radieLe?: string;   // S99
 }
 
 /** S76, S55 : un remboursement de crédit, sa répartition (registre S76, CR-7, CR-20) */

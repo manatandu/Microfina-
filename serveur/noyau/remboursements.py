@@ -243,7 +243,8 @@ def enregistrer(u, c: dict, d: date, montant: int, rep: dict, contrepartie: dict
         pr = une("select p.famille, p.compte_lie from compte_depot cd join produit_epargne p on p.id = cd.produit_id where cd.id = %s", (ap[0],))
         l.append({"compte": compte_du_produit(pr), "contrat": f"depot:{ap[0]}", "sens": "C", "devise": dv, "montant": ap[1]})
     if r["capital"]:
-        l.append({"compte": cc["capital"], "contrat": f"credit:{c['id']}", "sens": "C", "devise": dv, "montant": r["capital"]})
+        l.append({"compte": comptes_credit(c, c.get("degre_comptable") or 1)["capital"], "contrat": f"credit:{c['id']}", "sens": "C", "devise": dv,
+                  "montant": r["capital"]})                              # le compte qui porte le capital : sain, ou 390 après déclassement (S99)
     for k in ("interet", "penalite", "anticipation", "tva"):
         if r[k]:
             l.append({"compte": ci["interet"] if k != "anticipation" else cc["interet"], "contrat": f"credit:{c['id']}", "sens": "C", "devise": dv, "montant": r[k]})

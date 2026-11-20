@@ -561,6 +561,31 @@ def balance_agee_lancer(request, corps: dict = Body(...)):
     return ba.lancer(u(request), corps)
 
 
+# ---------- S99 : déclassement provision et crédit (p. 121) ----------
+@api.get("/credit/provisions")
+def provisions_charger(request, date: str = ""):
+    from . import provisions as pv
+    return pv.charger(u(request), {"date": date})
+
+
+@api.post("/credit/provisions/provisionner")
+def provisions_provisionner(request, corps: dict = Body(...)):
+    from . import provisions as pv
+    return pv.provisionner(u(request), corps)
+
+
+@api.post("/credit/provisions/tout")
+def provisions_tout(request, corps: dict = Body(...)):
+    from . import provisions as pv
+    return pv.provisionner(u(request), corps, tout=True)
+
+
+@api.post("/credit/provisions/radiation")
+def provisions_radier(request, corps: dict = Body(...)):
+    from . import provisions as pv
+    return pv.radier(u(request), corps)
+
+
 @api.get("/credit/visas/contexte")
 def visas_contexte(request):
     from .services import est_coopec
