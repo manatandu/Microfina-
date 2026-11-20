@@ -177,6 +177,35 @@ export type TypeOperation = "depot" | "retrait" | "adhesion" | "achat_parts" | "
 
 /** S52 : opération de banque, saisie puis visée et validée (S57), comptabilisée (S111) ; pièce donnée à la comptabilisation (registre S52-2) */
 export type TypeOperationBanque = "encaissement" | "decaissement" | "banque_caisse" | "banque_banque" | "virement_client" | "prelevement_client" | "adhesion_banque";
+/** S107 : bon de commande, facture et règlement d'un fournisseur ; S141 : règlement en espèces à la caisse */
+export interface ChargeFacture { libelle: string; taux: string; montant: number; retenue: boolean; compte: string; taxeId?: number | null; elementId?: number; ligne?: number }
+export interface CommandeFournisseur {
+  id: number; cle: string; numero: string; typeCommandeId: number; fournisseurId: number; libelle: string; date: string;
+  lignes: { compte: string; intitule: string; designation: string; unite: string; quantite: string; prixUnitaire: number; ht: number; tva: number; retenueTaxeId: number | null;
+    retenueLibelle: string; retenueTaux: string; retenue: number; typeBudgetId: number | null; ligneBudgetId: number | null }[];
+  tranches: { date: string; montant: number; taux: string }[]; ht: number; tva: number; ttc: number; statut: "saisie" | "validee"; saisiPar: number; validePar?: number;
+}
+export interface FactureFournisseur {
+  id: number; cle: string; numero: string; commandeId: number | null; tranche: number | null; fournisseurId: number; typeFacture: string; reference: string; date: string; echeance: string;
+  libelle: string; ht: number; tva: number; ttc: number; charges: ChargeFacture[]; imputation: { compte: string; montant: number }[]; du: number; aPayer: number; aJour: boolean; nif: boolean;
+  statut: "saisie" | "visee" | "validee" | "comptabilisee" | "annulee"; saisiPar: number; visePar?: number; validePar?: number; dateValidation?: string; piece: string; ecritureId?: number;
+}
+export interface ReglementFournisseur {
+  id: number; cle: string; factureId: number; montant: number; date: string; mode: "CHEQUE" | "ESPECE" | "PRELEVEMENT" | "VIREMENT"; charges: ChargeFacture[]; aPayer: number;
+  observations: string; statut: "saisie" | "visee" | "validee" | "comptabilisee" | "payee"; cheque?: string; compteBancaireId?: number; dateEmission?: string;
+  saisiPar: number; visePar?: number; validePar?: number; dateValidation?: string; piece: string; ecritureId?: number; operationId?: number;
+}
+/** S109, S116, S117 : opération saisie en comptabilité, visée (S113), validée (S114), puis comptabilisée (S111) ou payée en caisse (S82) */
+export interface LigneOc { rang?: number; compte?: string; intitule?: string; libelle?: string; sens?: "D" | "C"; montant: number; auxiliaireId?: number | null;
+  typeBudgetId?: number | null; ligneBudgetId?: number | null; compteDepotId?: number; numero?: string; client?: string }
+export interface OperationCompta {
+  id: number; cle: string; type: "ecriture" | "virement" | "prelevement" | "compte_a_compte" | "tontine_dav" | "diverse" | "deplacee" | "domiciliation" | "prelevement_auto";
+  statut: "brouillon" | "saisie" | "visee" | "validee" | "comptabilisee" | "payee"; date: string; journalId: number | null; periode: string; reference: string; libelle: string;
+  montant: number; devise: Devise; sens: "" | "ENCAISSEMENT" | "DECAISSEMENT" | "DEPOT" | "RETRAIT"; lignes: LigneOc[];
+  compteDepotId: number | null; compteDepotDestId: number | null; agenceClientId: number | null; numeroClient: string; nomClient: string;
+  typeBudgetId: number | null; ligneBudgetId: number | null; saisiPar: number; visePar?: number; viseLe?: string; validePar?: number; dateValidation?: string;
+  piece: string; ecritureId?: number; operationId?: number; refletEcritureId?: number;
+}
 export interface OperationBanque {
   id: number; cle: string; type: TypeOperationBanque; date: string; compteBancaireId: number; compteBancaireDestId: number | null; guichetId: number | null;
   compte: string; libelle: string; montant: number; devise: Devise; cheque: string; typeBudgetId: number | null; ligneBudgetId: number | null;
@@ -284,7 +313,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 74;
+  version: 76;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)
@@ -367,6 +396,8 @@ export interface Etat {
   comptesBancaires: { id: number; banqueId: number; compte: string; libelle: string; numeroBancaire: string; devise: Devise; journalId: number; contactNom: string; contactNomComplet: string; contactTelephone: string; comptePenalite?: string; contactAdresse?: string }[];
   consentements: { id: number; tiersId: number; code: string; dateDebut: string; dateFin: string; commentaire: string }[];   // S50
   operationsBanque: OperationBanque[];   // S52
+  operationsCompta: OperationCompta[];   // S109, S116, S117
+  commandesFournisseurs: CommandeFournisseur[]; facturesFournisseurs: FactureFournisseur[]; reglementsFournisseurs: ReglementFournisseur[];   // S107
   chequesClients: ChequeClient[];   // S59
   chequiers: Chequier[];   // S60
   emprunts: Emprunt[];   // S61

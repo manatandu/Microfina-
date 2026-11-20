@@ -7,7 +7,7 @@ import { graine } from "./graine";
 import { creerApiHttp } from "./http";
 import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
-  type ChequeClient, type Chequier, type DepotTerme, type PlanEpargne, type ClotureCompte, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
+  type ChequeClient, type Chequier, type DepotTerme, type PlanEpargne, type ClotureCompte, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type OperationCompta, type LigneOc, type ChargeFacture, type CommandeFournisseur, type FactureFournisseur, type ReglementFournisseur, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget, type CriteresAtypiques, type GelAvoirs,
   type AnalyseFinanciere, type DemandeCredit, type CreditPret, type GarantieCredit, type RemboursementCredit, type VisaCredit, type BalanceAgee,
@@ -21,7 +21,7 @@ import REFERENTIELS from "@referentiels";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v97";
+const CLE = "likelemba-demo-v99";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -29,7 +29,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 74) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 76) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -51,6 +51,18 @@ const heure = () => new Date().toTimeString().slice(0, 5);
 function bloqueDe(c: CompteDepot, solde = soldeContrat(`depot:${c.id}`, c.devise, "C")) {
   const actifs = E.blocages.filter((b) => b.compteId === c.id && !b.fin);
   return actifs.some((b) => b.montant === null) ? Math.max(solde, 0) : actifs.reduce((s, b) => s + (b.montant ?? 0), 0);
+}
+/** Sorties saisies sur le compte et pas encore passées au grand livre : prélèvement par banque (S53), DAT saisi (S65), opérations de la comptabilité
+ *  (S116, S117). Elles réduisent le disponible partout, guichet compris (registre T21). Identique au serveur (services.sorties_en_attente). */
+function sortiesEnAttente(c: CompteDepot, sauf?: number) {
+  const enCours = (o: OperationCompta) => ["saisie", "visee", "validee"].includes(o.statut);
+  return E.operationsBanque.filter((o) => o.compteDepotId === c.id && o.type === "prelevement_client" && ["saisie", "visee", "validee"].includes(o.statut)).reduce((t, o) => t + o.montant, 0)
+    + E.depotsTerme.filter((x) => x.compteEmetteurId === c.id && x.statut === "saisie").reduce((t, x) => t + x.montant, 0)
+    + E.operationsCompta.filter((o) => o.id !== sauf && o.compteDepotId === c.id
+      && (["prelevement", "compte_a_compte", "tontine_dav", "domiciliation"].includes(o.type) || (o.type === "deplacee" && o.sens === "RETRAIT"))
+      && (enCours(o) || (o.type === "deplacee" && o.statut === "payee" && !o.refletEcritureId))).reduce((t, o) => t + o.montant, 0)
+    + E.operationsCompta.filter((o) => o.id !== sauf && o.type === "prelevement_auto" && enCours(o))
+      .reduce((t, o) => t + o.lignes.filter((l) => l.compteDepotId === c.id).reduce((x, l) => x + l.montant, 0), 0);
 }
 const prochain = (l: { id: number }[]) => l.reduce((m, x) => Math.max(m, x.id), 0) + 1;
 /** Numéro suivant d'une table à suppression logique : les lignes supprimées gardent leur numéro, jamais repris (comme la séquence du serveur) */
@@ -211,7 +223,7 @@ const journees = {
 // La comptabilisation passe les écritures en attente de la Banque (opérations validées S52, S53, S56 ; chèques encaissés S59 ; emprunts S61), puis ferme
 // la journée : ses écritures deviennent définitives (T13). Registre S111-1 à S111-5. ----------
 const VIREMENTS_INTERNES = "591";
-type EnAttente = { source: "operation_banque" | "cheque_client" | "emprunt" | "remboursement_emprunt"; id: number; type: string; libelle: string; journal: string; date: string;
+type EnAttente = { source: "operation_banque" | "cheque_client" | "emprunt" | "remboursement_emprunt" | "operation_comptable" | "facture" | "reglement"; id: number; type: string; libelle: string; journal: string; date: string;
   lignes: { compte: string; sens: "D" | "C"; devise: Devise; montant: number; contrat?: string }[]; o?: OperationBanque };
 function enAttenteBanque(j: Journee): EnAttente[] {
   const banque = (id: number) => { const cb = E.comptesBancaires.find((x) => x.id === id)!; const jr = E.journaux.find((x) => x.id === cb.journalId && x.actif && !x.supprime);
@@ -249,7 +261,7 @@ function enAttenteBanque(j: Journee): EnAttente[] {
     l.push(L(b.compte, "C", e.devise, r.amortissement + r.interet + r.commission));
     out.push({ source: "remboursement_emprunt", id: r.id, type: "remboursement_emprunt", libelle: `Remboursement de l'emprunt n° ${e.numero}`, journal: b.journal, date: r.date, lignes: l });
   }
-  return out;
+  return [...out, ...enAttenteOc(j), ...enAttenteFactures(j)];   // S109, S116, S117 : opérations validées (S114) ; S107 : factures et règlements validés
 }
 function passerEnAttente(j: Journee) {
   const u = E.session!;
@@ -268,7 +280,10 @@ function passerEnAttente(j: Journee) {
     }
     const pc = pieceJournee(x.journal, j);
     const e = poster({ journal: x.journal, journeeId: j.id, libelle: x.libelle, piece: pc, saisiPar: u, validePar: u, lignes: lg.map((l) => ({ ...l, montantCdf: l.devise === "CDF" ? l.montant : Math.round(l.montant * coursDe(l.devise, j.date)) })) });
-    if (x.source === "operation_banque") Object.assign(E.operationsBanque.find((y) => y.id === x.id)!, { statut: "comptabilisee", piece: pc });
+    if (x.source === "operation_comptable") Object.assign(E.operationsCompta.find((y) => y.id === x.id)!, { statut: "comptabilisee", piece: pc, ecritureId: e.id });
+    else if (x.source === "facture") Object.assign(E.facturesFournisseurs.find((y) => y.id === x.id)!, { statut: "comptabilisee", piece: pc, ecritureId: e.id });
+    else if (x.source === "reglement") Object.assign(E.reglementsFournisseurs.find((y) => y.id === x.id)!, { statut: "comptabilisee", piece: pc, ecritureId: e.id });
+    else if (x.source === "operation_banque") Object.assign(E.operationsBanque.find((y) => y.id === x.id)!, { statut: "comptabilisee", piece: pc });
     else if (x.source === "cheque_client") E.chequesClients.find((y) => y.id === x.id)!.ecritureId = e.id;
     else if (x.source === "emprunt") E.emprunts.find((y) => y.id === x.id)!.piece = pc;
     else E.remboursementsEmprunt.find((y) => y.id === x.id)!.piece = pc;
@@ -899,7 +914,7 @@ const tiers = {
     return E.comptes.filter((c) => c.tiersId === tiersId && !c.closLe).map((c) => {   // comptes ouverts, comme le serveur (comptes_du_tiers)
       const solde = soldeContrat(`depot:${c.id}`, c.devise, "C");
       const bloque = bloqueDe(c, solde), motifBlocage = E.blocages.filter((b) => b.compteId === c.id && !b.fin).map((b) => b.motif).join(" ; ");
-      return masque ? { ...c, solde: 0, bloque: 0, disponible: 0, masque: true } : { ...c, solde, bloque, motifBlocage, disponible: solde - bloque, masque: false };
+      return masque ? { ...c, solde: 0, bloque: 0, disponible: 0, masque: true } : { ...c, solde, bloque, motifBlocage, disponible: solde - bloque - sortiesEnAttente(c), masque: false };
     });
   },
   parts: (tiersId: number) => soldeContrat(`parts:${tiersId}`, "CDF", "C") / valeurPart(),
@@ -1578,9 +1593,7 @@ function enregistrerOperationBanque(d: SaisieOperationBanque, client: boolean): 
       const libelle = d.libelle?.trim() ?? "";
       if (!libelle) throw new ErreurMetier("À remplir : libellé opération.");
       if (d.type === "prelevement_client") {                 // S53-2 : comme un retrait (S74), sur le disponible
-        const attente = E.operationsBanque.filter((o) => o.compteDepotId === c.id && o.type === "prelevement_client" && ["saisie", "visee", "validee"].includes(o.statut))
-          .reduce((s, o) => s + o.montant, 0);
-        if (d.montant > soldeContrat(`depot:${c.id}`, c.devise, "C") - bloqueDe(c) - attente) throw new ErreurMetier("Solde disponible insuffisant sur le compte du client.");
+        if (d.montant > soldeContrat(`depot:${c.id}`, c.devise, "C") - bloqueDe(c) - sortiesEnAttente(c)) throw new ErreurMetier("Solde disponible insuffisant sur le compte du client.");
       }
       Object.assign(o, { compteDepotId: c.id, libelle });
     } else if (d.type === "banque_caisse") {
@@ -1831,8 +1844,7 @@ export const ajouterMois = (iso: string, n: number) => { const [a, m, j] = iso.s
 /** Intérêt simple : montant × taux annuel × mois / 12, arrondi à l'unité (registre S65-3) */
 export const interetDat = (montant: number, taux: string, mois: number) => Math.round(montant * Number(taux.replace(",", ".")) / 100 * mois / 12);
 const compteInteretDat = (mois: number) => (mois <= 6 ? "6124" : mois <= 12 ? "6122" : "6121");   // PCCI, compte 612 ; 10 à 12 mois en 6122, court terme (S65-4)
-const disponibleDat = (c: CompteDepot) => soldeContrat(`depot:${c.id}`, c.devise, "C") - bloqueDe(c)
-  - E.depotsTerme.filter((x) => x.compteEmetteurId === c.id && x.statut === "saisie").reduce((s, x) => s + x.montant, 0);
+const disponibleDat = (c: CompteDepot) => soldeContrat(`depot:${c.id}`, c.devise, "C") - bloqueDe(c) - sortiesEnAttente(c);
 const vueDat = (x: DepotTerme) => { const t = E.tiers.find((y) => y.id === x.tiersId); const num = (id: number) => E.comptes.find((c) => c.id === id)?.numero ?? "";
   return { ...x, produit: E.produits.find((p) => p.id === x.produitId)?.libelle ?? "", membre: t?.numero ?? "", client: t ? titulaire(t) : "",
     compteEmetteur: num(x.compteEmetteurId), compteDat: num(x.compteDatId), montantAVerser: x.montant + x.montantInteret, compteInteret: compteInteretDat(x.duree),
@@ -2557,7 +2569,7 @@ const guichet = {
     controlerStatutActif(t.statut);
     const solde = soldeContrat(`depot:${c.id}`, c.devise, "C");
     if (p.montant <= 0) throw new ErreurMetier("Montant nul.");
-    controlerRetraitProduit(c, p.montant, solde - bloqueDe(c, solde), s.journeeId);   // registre S74-5
+    controlerRetraitProduit(c, p.montant, solde - bloqueDe(c, solde) - sortiesEnAttente(c), s.journeeId);   // registre S74-5, T21
     controlerCoupures(p.coupures, p.montant, c.devise);
     const th = caisses.theorique(s.id, c.devise);
     if (Object.entries(p.coupures).some(([v, n]) => (n ?? 0) > (th[Number(v)] ?? 0))) throw new ErreurMetier("Pas assez de coupures en caisse.");
@@ -4124,7 +4136,7 @@ const remboursementsCredit = {
     lectureAdmin(["S106"]);
     if (!E.tiers.some((t) => t.id === tid)) throw new ErreurMetier("Client introuvable.");
     return E.comptes.filter((k) => k.tiersId === tid && !k.closLe).map((k) => { const solde = soldeContrat(`depot:${k.id}`, k.devise, "C");
-      return { id: k.id, numero: k.numero, intitule: k.intitule, devise: k.devise as string, solde, disponible: solde - bloqueDe(k, solde) }; });
+      return { id: k.id, numero: k.numero, intitule: k.intitule, devise: k.devise as string, solde, disponible: solde - bloqueDe(k, solde) - sortiesEnAttente(k) }; });
   },
   /** S106 : Comptabilité > Remboursement de crédit par prélèvement (p. 125 et 157) : prélevé sur le compte du client, dans la limite du disponible (registre S106-1 à S106-3) */
   rembourserEpargne(id: number, p: { mandataire: string; compteId: number; montant: number; dateReglement?: string; repartition?: Record<string, number> | null }) {
@@ -4134,7 +4146,7 @@ const remboursementsCredit = {
     if (!k) throw new ErreurMetier("À remplir : Compte Client.");
     if (k.devise !== c.devise) throw new ErreurMetier("Le compte du client n'est pas dans la devise du crédit.");
     const solde = soldeContrat(`depot:${k.id}`, k.devise, "C");
-    if (Number.isInteger(p.montant) && p.montant > solde - bloqueDe(k, solde)) throw new ErreurMetier("Montant à payer : plus que le solde disponible du compte.");
+    if (Number.isInteger(p.montant) && p.montant > solde - bloqueDe(k, solde) - sortiesEnAttente(k)) throw new ErreurMetier("Montant à payer : plus que le solde disponible du compte.");
     const { rb } = enregistrerRemboursement(c, dateReglement(p.dateReglement), p.montant, p.repartition, { compte: k.pcci, contrat: `depot:${k.id}` }, "OD", u.id, mand,
       { mode: "epargne", libelle: `Remboursement du crédit ${c.numero} par prélèvement sur le compte ${k.numero}` });
     enregistrer(); return vueRemboursement(rb);
@@ -5490,7 +5502,755 @@ function mouvementsDefinitifs(jusqua: string, vidage: boolean) {
   return out.sort((a, b) => a.compte.localeCompare(b.compte) || a.date.localeCompare(b.date));
 }
 const enOuverture = (m: { compte: string; date: string }, du: string, ex: number) => m.date < du && (!"67".includes(m.compte[0]!) || Number(m.date.slice(0, 4)) === ex);
+// ---------- S109 Saisie d'écriture comptable (p. 128 et 129), S116 Autres opérations (p. 133 à 135, 160 et 161), S117 Virements mensuels (p. 135 et 136),
+// S113 Visa et S114 Validation (p. 130 à 133), S82 validation en caisse (p. 93 et 94). Mêmes règles que serveur/noyau/operations_compta.py.
+// Chaînes (COMPLEMENTS § 6) : écriture, virement, prélèvement, compte à compte : saisie, visée (S113), validée (S114), comptabilisée (S111) ;
+// opération diverse ou déplacée : saisie (S116), visée (S113), payée en caisse (S82). ----------
+const LIAISON = "451";   // PCCI, compte 451 Comptes de liaison inter agences
+const TYPES_OC: Record<OperationCompta["type"], string> = { ecriture: "Écriture comptable", virement: "Virement", prelevement: "Prélèvement",
+  compte_a_compte: "Compte DAV vers un Autre Compte", tontine_dav: "Compte Tontine vers un Compte DAV", diverse: "Opération diverse", deplacee: "Opération déplacée",
+  domiciliation: "Virement de salaire", prelevement_auto: "Prélèvement automatique" };
+const LISTES_OC: Record<string, OperationCompta["type"][]> = { virement: ["virement", "prelevement", "domiciliation", "prelevement_auto"], ecriture: ["ecriture"],
+  compte_a_compte: ["compte_a_compte", "tontine_dav"], diverse: ["diverse"], deplacee: ["deplacee"] };
+const CAISSE_OC: OperationCompta["type"][] = ["diverse", "deplacee"];
+/** Comptes tenus par la gestion (registre S109-4) : crédits et provisions, dépôts, caisse, virements internes, parts sociales, liaison ; plus les comptes de banque */
+const GESTION_OC = ["30", "31", "32", "33", "34", "35", "38", "39", "57", "59", "103", "451"];
+const entierOc = (v: unknown) => (typeof v === "number" && Number.isInteger(v) ? v : null);
+const texteOc = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+function jourOuvertOc() { const j = journees.courante(); if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée)."); return j.date; }
+function dateOperationOc(d: unknown) {
+  const jour = jourOuvertOc(), x = texteOc(d) || jour;
+  if (!DATE_ISO.test(x)) throw new ErreurMetier("À remplir : Date opération.");
+  if (x > jour) throw new ErreurMetier("La date de l'opération ne peut pas dépasser la journée ouverte.");
+  return x;
+}
+const tenuParLaGestion = (n: string) => GESTION_OC.some((p) => n.startsWith(p)) || E.comptesBancaires.some((c) => c.compte === n);
+function compteLibre(numero: unknown, quoi: string) {
+  const n = texteOc(numero);
+  if (!n) throw new ErreurMetier(`À remplir : ${quoi}.`);
+  controlerCompteDuPlan(n, quoi);
+  if (tenuParLaGestion(n)) throw new ErreurMetier(`${quoi} : ${n} est tenu par la gestion (caisse, banque, épargne, crédit, parts, liaison) ; il se mouvemente par son écran.`);
+  return n;
+}
+function budgetOc(d: { typeBudgetId?: unknown; ligneBudgetId?: unknown }) {
+  const tb = entierOc(d.typeBudgetId), lb = entierOc(d.ligneBudgetId);
+  if (tb && !(E.budget["types_budget"] ?? []).some((x) => x.id === tb && x.actif)) throw new ErreurMetier("Type budget inconnu.");
+  if (lb && !(E.budget["lignes"] ?? []).some((x) => x.id === lb && x.actif)) throw new ErreurMetier("Ligne budgétaire inconnue.");
+  return { tb, lb };
+}
+function compteClientOc(cid: unknown, quoi: string) {
+  const c = E.comptes.find((x) => x.id === entierOc(cid));
+  if (!c) throw new ErreurMetier(`À remplir : ${quoi}.`);
+  controlerStatutActif(E.tiers.find((t) => t.id === c.tiersId)!.statut);
+  if (c.closLe) throw new ErreurMetier(`${quoi} : compte fermé.`);
+  return c;
+}
+const familleOc = (c: CompteDepot) => produitDuCompte(c)?.famille ?? "EPARGNE";
+/** Disponible du compte : solde, moins les blocages (S71), moins les sorties déjà saisies (registre T21) */
+const disponibleOc = (c: CompteDepot, sauf?: number) => { const solde = soldeContrat(`depot:${c.id}`, c.devise, "C"); return solde - bloqueDe(c, solde) - sortiesEnAttente(c, sauf); };
+const titulaireOc = (tid: number) => { const t = E.tiers.find((x) => x.id === tid); return t ? titulaire(t) : ""; };
+function vueOc(o: OperationCompta) {
+  const k = (id: number | null) => { const c = E.comptes.find((x) => x.id === id); const t = c ? E.tiers.find((x) => x.id === c.tiersId) : undefined; return c ? { c, client: `${t?.numero ?? ""} ${t ? titulaire(t) : ""}` } : null; };
+  const e = k(o.compteDepotId), r = k(o.compteDepotDestId), t = o.type;
+  const debit = t === "prelevement" || t === "domiciliation" || o.sens === "DECAISSEMENT" || o.sens === "RETRAIT";
+  const credit = t === "virement" || t === "prelevement_auto" || o.sens === "ENCAISSEMENT" || o.sens === "DEPOT";
+  return { id: o.id, transaction: String(o.id).padStart(6, "0"), type: t, operation: TYPES_OC[t], statut: o.statut, date: o.date, libelle: o.libelle, montant: o.montant, devise: o.devise as string, sens: o.sens as string, piece: o.piece,
+    reference: o.reference, lignes: o.lignes, saisiPar: nomUtilisateur(o.saisiPar), visePar: nomUtilisateur(o.visePar), dateVisa: o.viseLe ?? "", dateValidation: o.dateValidation ?? "",
+    compteEpargne: e?.c.numero ?? "", numeroComptable: e?.c.pcci ?? "", clientEmetteur: e?.client ?? "", compteEmetteur: e?.c.numero ?? "",
+    clientRecepteur: r?.client ?? "", compteRecepteur: r?.c.numero ?? "", numeroClient: o.numeroClient, nomClient: o.nomClient,
+    agenceClient: E.agences.find((a) => a.id === o.agenceClientId)?.nom ?? "", debit: debit ? o.montant : 0, credit: credit ? o.montant : 0 };
+}
+export type LigneOperationCompta = ReturnType<typeof vueOc>;
+function journalPeriodeOc(d: { journalId?: unknown; periode?: unknown }) {
+  const j = journauxActifs().find((x) => x.id === entierOc(d.journalId) && x.type !== "a_nouveaux");
+  if (!j) throw new ErreurMetier("À remplir : Journal.");
+  const m = /^(\d{2})\/(\d{4})$/.exec(texteOc(d.periode));
+  if (!m || Number(m[1]) < 1 || Number(m[1]) > 12) throw new ErreurMetier("À remplir : Période.");
+  const mois = Number(m[1]), annee = Number(m[2]);
+  if (!E.exercices.some((x) => x.annee === annee && x.ouvert && !x.valide)) throw new ErreurMetier(`Période : l'exercice ${annee} n'est pas ouvert (Administration > Exercice).`);
+  if (!E.journauxDetail.some((x) => x.annee === annee && x.journalId === j.id && x.actif && x.ouvert))
+    throw new ErreurMetier(`Le journal ${j.code} n'est pas ouvert sur l'exercice ${annee} (Administration > Exercice, Compléter journal détail).`);
+  if (`${annee}-${m[1]}` > jourOuvertOc().slice(0, 7)) throw new ErreurMetier("Période : pas après la journée ouverte.");
+  return { j, annee, mois, periode: texteOc(d.periode) };
+}
+function vueEcritureOc(o: OperationCompta | undefined, j: { id: number; libelle: string }, periode: string) {
+  const l = o?.lignes ?? [];
+  return { id: o?.id ?? null, transaction: o ? String(o.id).padStart(6, "0") : "", journalId: j.id, journal: j.libelle, periode, jour: o ? Number(o.date.slice(8, 10)) : null,
+    reference: o?.reference ?? "", libelle: o?.libelle ?? "", statut: (o?.statut ?? "") as string, lignes: l,
+    debit: l.filter((x) => x.sens === "D").reduce((t, x) => t + x.montant, 0), credit: l.filter((x) => x.sens === "C").reduce((t, x) => t + x.montant, 0) };
+}
+/** La transaction en cours de l'utilisateur dans ce journal et cette période : la dernière qui n'est pas équilibrée (registre S109-2) */
+const brouillonOc = (uid: number, jid: number, periode: string) => E.operationsCompta.filter((o) => o.type === "ecriture" && o.statut === "brouillon" && o.saisiPar === uid && o.journalId === jid && o.periode === periode)
+  .sort((a, b) => b.id - a.id)[0];
+/** Équilibrée (au moins deux lignes, débit égal au crédit) : l'écriture part au visa ; sinon elle reste à compléter */
+function rangerOc(o: OperationCompta) {
+  const debit = o.lignes.filter((x) => x.sens === "D").reduce((t, x) => t + x.montant, 0), credit = o.lignes.filter((x) => x.sens === "C").reduce((t, x) => t + x.montant, 0);
+  o.montant = debit; o.statut = o.lignes.length >= 2 && debit === credit && debit > 0 ? "saisie" : "brouillon";
+}
+function nouvelleOc(u: Utilisateur, cle: string, type: OperationCompta["type"], date: string, libelle: string, montant: number, devise: Devise, k: Partial<OperationCompta> = {}) {
+  const o: OperationCompta = { id: prochain(E.operationsCompta), cle, type, statut: "saisie", date, journalId: null, periode: "", reference: "", libelle, montant, devise, sens: "", lignes: [],
+    compteDepotId: null, compteDepotDestId: null, agenceClientId: null, numeroClient: "", nomClient: "", typeBudgetId: null, ligneBudgetId: null, saisiPar: u.id, piece: "", ...k };
+  E.operationsCompta.push(o); enregistrer(); return vueOc(o);
+}
+const dejaOc = (cle: string) => { const o = E.operationsCompta.find((x) => x.cle === cle); return o ? vueOc(o) : null; };
+function cleOc(c: unknown) { const x = texteOc(c); if (!x) throw new ErreurMetier("Clé d'opération invalide."); return x; }
+/** Cadre « Comptabilite » : Compte, Libelle, Montant ; plusieurs lignes quand la case multiligne est cochée */
+function lignesComptaOc(d: { lignes?: unknown; multiligne?: unknown }): LigneOc[] {
+  const brut = Array.isArray(d.lignes) ? (d.lignes as Record<string, unknown>[]) : [];
+  if (!brut.length) throw new ErreurMetier("À remplir : Compte, Libelle et Montant.");
+  if (brut.length > 1 && !d.multiligne) throw new ErreurMetier("Plusieurs lignes : cocher la case multiligne.");
+  return brut.map((x) => {
+    const compte = compteLibre(x.compte, "Compte"), libelle = texteOc(x.libelle), m = entierOc(x.montant);
+    if (!libelle) throw new ErreurMetier("À remplir : Libelle.");
+    if (!m || m <= 0) throw new ErreurMetier("Montant : un montant supérieur à zéro.");
+    return { compte, libelle, montant: m };
+  });
+}
+type LigneGl = { compte: string; sens: "D" | "C"; devise: Devise; montant: number; contrat?: string };
+const ligneDepotOc = (cid: number, sens: "D" | "C", devise: Devise, montant: number): LigneGl => { const k = E.comptes.find((x) => x.id === cid)!; return { compte: k.pcci, sens, devise, montant, contrat: `depot:${k.id}` }; };
+/** Lignes au grand livre d'une opération validée */
+function lignesEcritureOc(o: OperationCompta): LigneGl[] {
+  const t = o.type, dv = o.devise, m = o.montant;
+  if (t === "ecriture") return o.lignes.map((x) => ({ compte: x.compte!, sens: x.sens!, devise: dv, montant: x.montant, ...(x.auxiliaireId ? { contrat: `tc:${x.auxiliaireId}` } : {}) }));
+  if (t === "virement") return [...o.lignes.map((x) => ({ compte: x.compte!, sens: "D" as const, devise: dv, montant: x.montant })), ligneDepotOc(o.compteDepotId!, "C", dv, m)];
+  if (t === "prelevement") return [ligneDepotOc(o.compteDepotId!, "D", dv, m), ...o.lignes.map((x) => ({ compte: x.compte!, sens: "C" as const, devise: dv, montant: x.montant }))];
+  if (t === "compte_a_compte" || t === "tontine_dav") return [ligneDepotOc(o.compteDepotId!, "D", dv, m), ligneDepotOc(o.compteDepotDestId!, "C", dv, m)];
+  if (t === "domiciliation") return [ligneDepotOc(o.compteDepotId!, "D", dv, m), ...o.lignes.map((x) => ligneDepotOc(x.compteDepotId!, "C", dv, x.montant))];
+  if (t === "prelevement_auto") return [...o.lignes.map((x) => ligneDepotOc(x.compteDepotId!, "D", dv, x.montant)), ligneDepotOc(o.compteDepotId!, "C", dv, m)];
+  throw new ErreurMetier("Cette opération se paie en caisse.");
+}
+/** Reflet dans l'agence du client (PCCI, compte 45 : mouvement de montant égal et de signe contraire) */
+function lignesRefletOc(o: OperationCompta): LigneGl[] {
+  const dep = o.sens === "DEPOT", liaison: LigneGl = { compte: LIAISON, sens: dep ? "D" : "C", devise: o.devise, montant: o.montant, contrat: `liaison:${E.agence.id}` };
+  const client = ligneDepotOc(o.compteDepotId!, dep ? "C" : "D", o.devise, o.montant);
+  return dep ? [liaison, client] : [client, liaison];
+}
+/** Opérations validées (S114) à passer au plus tard à la date de la journée */
+function enAttenteOc(j: Journee): EnAttente[] {
+  return E.operationsCompta.filter((o) => o.statut === "validee" && (o.dateValidation ?? "") <= j.date).sort((a, b) => (a.dateValidation ?? "").localeCompare(b.dateValidation ?? "") || a.id - b.id)
+    .map((o) => ({ source: "operation_comptable" as const, id: o.id, type: o.type, libelle: o.libelle, journal: E.journaux.find((x) => x.id === o.journalId)?.code ?? "OD",
+      lignes: lignesEcritureOc(o), date: o.dateValidation ?? o.date }));
+}
+const operationsCompta = {
+  /** Ce que les écrans proposent : journaux et périodes (Choix du journal, p. 129), agences, budget, date de la journée */
+  lire() {
+    lectureAdmin(["S109", "S116", "S117"]);
+    const j = journees.courante(), ouverte = j && j.statut === "ouverte" ? j.date : "", fin = (ouverte || new Date().toISOString().slice(0, 10)).slice(0, 7);
+    const annees = E.exercices.filter((x) => x.ouvert && !x.valide).map((x) => x.annee).sort((a, b) => a - b);
+    return { date: ouverte,
+      journaux: journauxActifs().filter((x) => x.type !== "a_nouveaux").map(({ id, code, libelle, type }) => ({ id, code, libelle, type: type as string })),
+      periodes: annees.flatMap((a) => Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).filter((m) => `${a}-${m}` <= fin).map((m) => `${m}/${a}`)),
+      agence: { id: E.agence.id, code: E.agence.code, nom: E.agence.nom },
+      agences: E.agences.filter((a) => !a.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ id, code, nom }) => ({ id, code, nom })),
+      typesBudget: (E.budget["types_budget"] ?? []).filter((x) => x.actif).map((x) => ({ id: x.id, code: String(x.code ?? ""), libelle: String(x.libelle ?? "") })),
+      lignesBudget: (E.budget["lignes"] ?? []).filter((x) => x.actif).map((x) => ({ id: x.id, numero: String(x.numero ?? ""), libelle: String(x.libelle ?? ""), bailleur: "" })),
+      auxiliaires: valeursRef("tiers", "tiers").map((x) => ({ id: x.id, intitule: String(x.intitule ?? ""), compte: String(x.compte ?? ""), typeTiers: String(x.typeTiers ?? "") }))
+        .sort((a, b) => a.intitule.localeCompare(b.intitule)),
+      comptes: [...PCCI.comptes.map((x) => ({ numero: x.numero, libelle: x.libelle })), ...E.comptesInstitution.filter((x) => x.ouvert && x.saisissable).map((x) => ({ numero: x.numero, libelle: x.libelle }))]
+        .filter((x) => !tenuParLaGestion(x.numero)).sort((a, b) => a.numero.localeCompare(b.numero)) };
+  },
+  /** Comptes ouverts d'un client : N° Compte, N° Comptable, Produit, Solde (cadres « Compte Client » et « Compte Emetteur », p. 134) */
+  comptesDuClient(tid: number) {
+    lectureAdmin(["S116", "S117"]);
+    return E.comptes.filter((c) => c.tiersId === tid && !c.closLe).sort((a, b) => a.numero.localeCompare(b.numero))
+      .map((c) => ({ id: c.id, numero: c.numero, devise: c.devise as string, famille: familleOc(c) as string, produit: c.intitule, numeroComptable: c.pcci, solde: disponibleOc(c) }));
+  },
+  /** S117 : un compte de dépôt ouvert retrouvé par son numéro (liste de salaires importée d'un fichier) */
+  compteParNumero(numero: string) {
+    lectureAdmin(["S117"]);
+    const k = E.comptes.find((x) => x.numero === (numero ?? "").trim());
+    if (!k) throw new ErreurMetier(`Compte ${numero} introuvable.`);
+    const c = compteClientOc(k.id, `Compte ${numero}`);
+    return { id: c.id, numero: c.numero, devise: c.devise as string, client: E.tiers.find((t) => t.id === c.tiersId)?.numero ?? "", intitule: titulaireOc(c.tiersId), produit: c.intitule };
+  },
+  /** S109, bouton OK de « Choix du journal » : la transaction à compléter, sinon une transaction vide */
+  ecritureOuvrir(d: { journalId: number; periode: string }) {
+    const u = exiger(); const { j, periode } = journalPeriodeOc(d);
+    return vueEcritureOc(brouillonOc(u.id, j.id, periode), j, periode);
+  },
+  /** S109, bouton Ajouter : une ligne de plus dans la transaction. Jour, Réf. Pièce et Libellé d'en-tête sont ceux de la première ligne (registre S109-3). */
+  ecritureAjouter(d: { journalId: number; periode: string; id?: number | null; jour?: number | null; reference?: string; libelle: string; compte: string; debit?: number | null; credit?: number | null;
+    auxiliaireId?: number | null; typeBudgetId?: number | null; ligneBudgetId?: number | null }) {
+    const u = exiger(); const { j, annee, mois, periode } = journalPeriodeOc(d);
+    let o = d.id ? E.operationsCompta.find((x) => x.id === d.id && x.type === "ecriture" && x.saisiPar === u.id) : brouillonOc(u.id, j.id, periode);
+    if (o && !["brouillon", "saisie"].includes(o.statut)) throw new ErreurMetier("Cette écriture est déjà visée : elle ne se modifie plus (PCCI § 3.4).");
+    if (o && (o.journalId !== j.id || o.periode !== periode)) throw new ErreurMetier("Cette écriture appartient à un autre journal ou à une autre période.");
+    const libelle = texteOc(d.libelle);
+    if (!libelle) throw new ErreurMetier("À remplir : Libellé.");
+    const compte = compteLibre(d.compte, "Compte"), debit = entierOc(d.debit) ?? 0, credit = entierOc(d.credit) ?? 0;
+    if (debit < 0 || credit < 0 || (debit > 0) === (credit > 0)) throw new ErreurMetier("Débit ou Crédit : un seul des deux, supérieur à zéro.");
+    const aux = entierOc(d.auxiliaireId);
+    if (aux && !valeursRef("tiers", "tiers").some((x) => x.id === aux)) throw new ErreurMetier("Compte auxiliaire inconnu (Comptabilité > Plan des tiers).");
+    const { tb, lb } = budgetOc(d);
+    if (!o) {
+      const jour = entierOc(d.jour), dernier = new Date(Date.UTC(annee, mois, 0)).getUTCDate();
+      if (!jour || jour < 1 || jour > dernier) throw new ErreurMetier("À remplir : Jour.");
+      const jd = `${annee}-${String(mois).padStart(2, "0")}-${String(jour).padStart(2, "0")}`;
+      if (jd > jourOuvertOc()) throw new ErreurMetier("Jour : pas après la journée ouverte.");
+      o = { id: prochain(E.operationsCompta), cle: "", type: "ecriture", statut: "brouillon", date: jd, journalId: j.id, periode, reference: texteOc(d.reference), libelle, montant: 0, devise: "CDF", sens: "",
+        lignes: [], compteDepotId: null, compteDepotDestId: null, agenceClientId: null, numeroClient: "", nomClient: "", typeBudgetId: null, ligneBudgetId: null, saisiPar: u.id, piece: "" };
+      E.operationsCompta.push(o);
+    }
+    o.lignes.push({ rang: o.lignes.reduce((m, x) => Math.max(m, x.rang ?? 0), 0) + 1, compte, intitule: intitulesComptes().get(compte) ?? "", libelle, sens: debit ? "D" : "C", montant: debit || credit,
+      auxiliaireId: aux, typeBudgetId: tb, ligneBudgetId: lb });
+    rangerOc(o); enregistrer(); return vueEcritureOc(o, j, periode);
+  },
+  /** S109, bouton Supprimer : retire la ligne choisie, tant que l'écriture n'est pas visée (PCCI § 3.3 et 3.4 : ensuite, correction par écriture inverse) */
+  ecritureSupprimer(id: number, rang: number) {
+    const u = exiger();
+    const o = E.operationsCompta.find((x) => x.id === id && x.type === "ecriture" && x.saisiPar === u.id);
+    if (!o) throw new ErreurMetier("Écriture introuvable.");
+    if (!["brouillon", "saisie"].includes(o.statut)) throw new ErreurMetier("Cette écriture est déjà visée : elle ne se supprime plus ; elle se corrige par une écriture inverse (PCCI § 3.3 et 3.4).");
+    const l = o.lignes.filter((x) => x.rang !== rang);
+    if (l.length === o.lignes.length) throw new ErreurMetier("Sélectionner la ligne à supprimer.");
+    const j = E.journaux.find((x) => x.id === o.journalId)!;
+    if (!l.length) { E.operationsCompta.splice(E.operationsCompta.indexOf(o), 1); enregistrer(); return vueEcritureOc(undefined, j, o.periode); }
+    o.lignes = l; rangerOc(o); enregistrer(); return vueEcritureOc(o, j, o.periode);
+  },
+  /** S116, onglet Virement/Prélèvement (p. 134 ; texte p. 161) : le compte du client contre un compte du plan (registre S116-2) */
+  enregistrerVirement(d: { cle: string; type: string; date?: string; compteDepotId: number | null; multiligne?: boolean; lignes: { compte: string; libelle: string; montant: number }[] }) {
+    const u = exiger(), cle = cleOc(d.cle), prec = dejaOc(cle); if (prec) return prec;
+    if (d.type !== "virement" && d.type !== "prelevement") throw new ErreurMetier("À remplir : Type opération.");
+    const date = dateOperationOc(d.date), c = compteClientOc(d.compteDepotId, "N° Compte"), l = lignesComptaOc(d), total = l.reduce((t, x) => t + x.montant, 0);
+    if (d.type === "prelevement" && total > disponibleOc(c)) throw new ErreurMetier("Solde disponible insuffisant sur le compte du client.");
+    return nouvelleOc(u, cle, d.type, date, l[0]!.libelle!, total, c.devise, { compteDepotId: c.id, lignes: l });
+  },
+  /** S116, onglets « Compte DAV vers un Autre Compte » et « Compte Tontine vers un Compte DAV » (p. 134 ; texte p. 160) : sans frais (Instr. BCC 37 ; registre S116-3) */
+  enregistrerCompteACompte(d: { cle: string; onglet: string; emetteurId: number | null; recepteurId: number | null; montant: number | null }) {
+    const u = exiger(), cle = cleOc(d.cle), prec = dejaOc(cle); if (prec) return prec;
+    const tontine = d.onglet === "tontine", date = jourOuvertOc();
+    const e = compteClientOc(d.emetteurId, "N° Compte de l'émetteur"), r = compteClientOc(d.recepteurId, "N° Compte du récepteur");
+    if (e.id === r.id) throw new ErreurMetier("Récepteur : un autre compte que celui de l'émetteur.");
+    if (tontine && (familleOc(e) !== "TONTINE" || familleOc(r) !== "EPARGNE")) throw new ErreurMetier("Compte Tontine vers un Compte DAV : l'émetteur est un compte tontine, le récepteur un compte d'épargne à vue.");
+    if (!tontine && familleOc(e) !== "EPARGNE") throw new ErreurMetier("Compte DAV vers un Autre Compte : l'émetteur est un compte d'épargne à vue.");
+    if (e.devise !== r.devise) throw new ErreurMetier("Les deux comptes n'ont pas la même devise (pas d'opération de change : PCCI, évaluation des opérations en devises).");
+    const m = entierOc(d.montant);
+    if (!m || m <= 0) throw new ErreurMetier("Montant : un montant supérieur à zéro.");
+    if (m > disponibleOc(e)) throw new ErreurMetier("Solde disponible insuffisant sur le compte de l'émetteur.");
+    return nouvelleOc(u, cle, tontine ? "tontine_dav" : "compte_a_compte", date, `Virement du compte ${e.numero} au compte ${r.numero}`, m, e.devise, { compteDepotId: e.id, compteDepotDestId: r.id });
+  },
+  /** S116, onglet Opération diverse (p. 134 et 135 ; texte p. 161) : initiée en comptabilité, visée (S113) puis payée en caisse (S82) */
+  enregistrerDiverse(d: { cle: string; sens: string; date?: string; multiligne?: boolean; devise?: string; lignes: { compte: string; libelle: string; montant: number }[]; typeBudgetId?: number | null; ligneBudgetId?: number | null }) {
+    const u = exiger(), cle = cleOc(d.cle), prec = dejaOc(cle); if (prec) return prec;
+    if (d.sens !== "ENCAISSEMENT" && d.sens !== "DECAISSEMENT") throw new ErreurMetier("À remplir : Type opération.");
+    const date = dateOperationOc(d.date), l = lignesComptaOc(d), { tb, lb } = budgetOc(d), devise = (texteOc(d.devise) || "CDF") as Devise;
+    if (!devisesTenues().includes(devise)) throw new ErreurMetier(`Devise ${devise} : le guichet ne la tient pas.`);
+    return nouvelleOc(u, cle, "diverse", date, l[0]!.libelle!, l.reduce((t, x) => t + x.montant, 0), devise, { sens: d.sens, lignes: l, typeBudgetId: tb, ligneBudgetId: lb });
+  },
+  /** S116, onglet Opérations déplacées (p. 135 ; texte p. 94) : dépôt ou retrait d'un client d'une autre agence (registre S116-5). La démonstration locale tient
+   *  une seule agence : tous les clients sont les siens. */
+  enregistrerDeplacee(d: { cle: string; agenceId: number | null; sens: string; reference?: string; numeroClient?: string; nom: string; numeroCompte: string; montant: number | null }): LigneOperationCompta {
+    exiger(); const cle = cleOc(d.cle), prec = dejaOc(cle); if (prec) return prec;
+    if (d.sens !== "DEPOT" && d.sens !== "RETRAIT") throw new ErreurMetier("À remplir : Type operation.");
+    const ag = E.agences.find((a) => a.id === entierOc(d.agenceId) && !a.supprime);
+    if (!ag) throw new ErreurMetier("À remplir : Agence.");
+    if (ag.id === E.agence.id) throw new ErreurMetier("Agence : celle du client, autre que la vôtre ; un client de votre agence passe au guichet (Caisse > Opération).");
+    const nom = texteOc(d.nom), numero = texteOc(d.numeroCompte);
+    if (!nom) throw new ErreurMetier("À remplir : Nom et Prenoms.");
+    if (!numero) throw new ErreurMetier("À remplir : N° Compte.");
+    throw new ErreurMetier(`N° Compte : aucun compte ${numero} chez un client de l'agence ${ag.nom}.`);
+  },
+  /** S117 : domiciliation de salaire (capture « Virement de salaire », p. 136) et prélèvement automatique, même écran ; aucune commission (Instr. BCC 37) */
+  enregistrerMensuel(d: { cle: string; mode: string; compteInstitutionId: number | null; total?: number | null; lignes: { compteDepotId: number; montant: number; commission?: number | null }[] }) {
+    const u = exiger(), cle = cleOc(d.cle), prec = dejaOc(cle); if (prec) return prec;
+    const type = d.mode === "prelevement" ? "prelevement_auto" as const : "domiciliation" as const;
+    const inst = compteClientOc(d.compteInstitutionId, "Compte interne de l'institution");
+    const brut = Array.isArray(d.lignes) ? d.lignes : [];
+    if (!brut.length) throw new ErreurMetier("Liste des Client : au moins un compte.");
+    const l: LigneOc[] = [], vus = new Set<number>();
+    for (const x of brut) {
+      const c = compteClientOc(x.compteDepotId, "Compte du client"), m = entierOc(x.montant);
+      if (!m || m <= 0) throw new ErreurMetier(`Compte ${c.numero} : un montant supérieur à zéro.`);
+      if (entierOc(x.commission)) throw new ErreurMetier("Commission : aucune ; la domiciliation de salaire et le virement de compte à compte sont gratuits (Instr. BCC 37, annexe, points 1 et 2).");
+      if (c.id === inst.id || vus.has(c.id)) throw new ErreurMetier(`Compte ${c.numero} : déjà dans la liste.`);
+      if (c.devise !== inst.devise) throw new ErreurMetier(`Compte ${c.numero} : pas dans la devise du compte de l'institution.`);
+      if (type === "prelevement_auto" && m > disponibleOc(c)) throw new ErreurMetier(`Compte ${c.numero} : solde disponible insuffisant.`);
+      vus.add(c.id);
+      l.push({ compteDepotId: c.id, numero: c.numero, client: E.tiers.find((t) => t.id === c.tiersId)?.numero ?? "", intitule: titulaireOc(c.tiersId), montant: m });
+    }
+    const total = l.reduce((t, x) => t + x.montant, 0);
+    if (type === "domiciliation") {
+      if (entierOc(d.total) !== total) throw new ErreurMetier("Salaire total à verser : il ne fait pas la somme des salaires de la liste.");
+      if (total > disponibleOc(inst)) throw new ErreurMetier("Solde disponible insuffisant sur le compte de l'institution.");
+    }
+    const nom = titulaireOc(inst.tiersId);
+    return nouvelleOc(u, cle, type, jourOuvertOc(), `${type === "domiciliation" ? "Virement de salaire" : "Prélèvement automatique"} ${nom} (${l.length} comptes)`, total, inst.devise,
+      { compteDepotId: inst.id, lignes: l });
+  },
+  /** Grille sous l'onglet de saisie (p. 135) : les opérations du type, les plus récentes d'abord */
+  saisies(type: string) {
+    lectureAdmin(["S116", "S117"]);
+    if (!(type in TYPES_OC)) throw new ErreurMetier("Liste inconnue.");
+    return E.operationsCompta.filter((o) => o.type === type && o.statut !== "brouillon").sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id).slice(0, 200).map(vueOc);
+  },
+  /** S113 et S114 : lignes en attente du visa (saisies) ou de la validation (visées) */
+  visas(etape: string, liste: string) {
+    lectureAdmin(["S113", "S114"]);
+    if (!["visa", "validation"].includes(etape) || !LISTES_OC[liste] || (etape === "validation" && ["diverse", "deplacee"].includes(liste))) throw new ErreurMetier("Liste inconnue.");
+    return E.operationsCompta.filter((o) => o.statut === (etape === "visa" ? "saisie" : "visee") && LISTES_OC[liste]!.includes(o.type)).sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id).map(vueOc);
+  },
+  /** S113 : visa, par une autre personne que celle qui a saisi (Instr. BCC 008, art. 66 ; registre S57-1) */
+  viser(id: number) {
+    const u = exiger();
+    const o = E.operationsCompta.find((x) => x.id === id);
+    if (!o || o.statut !== "saisie") throw new ErreurMetier("Rien à viser.");
+    if (o.saisiPar === u.id) throw new ErreurMetier("Quatre yeux : pas de visa sur sa propre saisie.");
+    o.statut = "visee"; o.visePar = u.id; o.viseLe = new Date().toISOString().slice(0, 10); enregistrer(); return vueOc(o);
+  },
+  /** S114 : validation, par une autre personne que celles qui ont saisi et visé ; la comptabilisation (S111) vient ensuite */
+  valider(id: number, d: { date?: string } = {}) {
+    const u = exiger();
+    const o = E.operationsCompta.find((x) => x.id === id);
+    if (!o || o.statut !== "visee" || CAISSE_OC.includes(o.type)) throw new ErreurMetier("Rien à valider.");
+    if (o.saisiPar === u.id) throw new ErreurMetier("Quatre yeux : pas de validation sur sa propre saisie.");
+    if (o.visePar === u.id) throw new ErreurMetier("Quatre yeux : la validation vient d'une autre personne que celle qui a visé.");
+    const jour = jourOuvertOc(), date = texteOc(d?.date) || jour;
+    if (!DATE_ISO.test(date)) throw new ErreurMetier("À remplir : date opération.");
+    if (date < o.date) throw new ErreurMetier("La date de validation précède la date de l'opération.");
+    if (date > jour) throw new ErreurMetier("La date de validation ne peut pas dépasser la journée ouverte.");
+    o.statut = "validee"; o.validePar = u.id; o.dateValidation = date; enregistrer(); return vueOc(o);
+  },
+  /** S82 : grilles « Opération diverse » et « Validation Opération déplacée » : les opérations visées, en attente du caissier */
+  aPayer(type: string) {
+    lectureAdmin(["S82"]);
+    if (type !== "diverse" && type !== "deplacee") throw new ErreurMetier("Liste inconnue.");
+    return E.operationsCompta.filter((o) => o.type === type && o.statut === "visee").sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id).map(vueOc);
+  },
+  /** S82, bouton Valider de la caisse : l'opération passe au guichet avec son billetage, comme un encaissement ou un décaissement divers (S78) ;
+   *  le caissier n'est ni celui qui a saisi ni celui qui a visé (registre S82-2 à S82-5) */
+  payer(id: number, p: { cle: string; coupures: Comptage }) {
+    const cle = cleOc(p?.cle);
+    const o = E.operationsCompta.find((x) => x.id === id);
+    if (o && o.statut === "payee" && E.operations.some((x) => x.id === o.operationId && x.cle === cle)) return vueOc(o);
+    if (!o || !CAISSE_OC.includes(o.type) || o.statut !== "visee") throw new ErreurMetier("Rien à valider.");
+    const moi = exiger();
+    if (moi.id === o.saisiPar || moi.id === o.visePar) throw new ErreurMetier("Quatre yeux : la validation en caisse vient d'une autre personne que celles qui ont saisi et visé.");
+    const dv = o.devise, m = o.montant, { u, s } = sessionOuverte(dv), entree = o.sens === "ENCAISSEMENT" || o.sens === "DEPOT", cp = nettoyer(p.coupures ?? {});
+    controlerCoupures(cp, m, dv);
+    if (!entree) { const th = caisses.theorique(s.id, dv); if (Object.entries(cp).some(([v, n]) => (n ?? 0) > (th[Number(v)] ?? 0))) throw new ErreurMetier(`Pas assez de coupures en caisse (${dv}).`); }
+    const L = (compte: string, sens: "D" | "C", montant: number, contrat?: string): Ligne => ({ compte, sens, devise: dv, montant, montantCdf: cdf(montant, dv), ...(contrat ? { contrat } : {}) });
+    const caisse = L("570", entree ? "D" : "C", m, guichetDe(s));
+    let autres: Ligne[], tiersId: number | null = null;
+    if (o.type === "diverse") autres = o.lignes.map((x) => L(x.compte!, entree ? "C" : "D", x.montant));
+    else {
+      const c = compteClientOc(o.compteDepotId, "N° Compte");
+      if (!entree && m > disponibleOc(c, o.id)) throw new ErreurMetier("Solde disponible insuffisant sur le compte du client.");
+      autres = [L(LIAISON, entree ? "C" : "D", m, `liaison:${o.agenceClientId}`)]; tiersId = c.tiersId;
+    }
+    const pc = piece("CA");
+    const e = poster({ journal: "CA", journeeId: s.journeeId, libelle: o.libelle, piece: pc, saisiPar: u.id, validePar: u.id, lignes: entree ? [caisse, ...autres] : [...autres, caisse] });
+    const op: Operation = { id: prochain(E.operations), cle, type: entree ? "ed_encaissement" : "ed_decaissement", statut: "validee", sessionId: s.id, tiersId, montant: m, devise: dv, coupures: cp,
+      remisPar: o.nomClient, motif: o.libelle, saisiPar: u.id, ecritureId: e.id, heure: heure() };
+    E.operations.push(op);
+    Object.assign(o, { statut: "payee", validePar: u.id, dateValidation: E.journees.find((x) => x.id === s.journeeId)!.date, piece: pc, ecritureId: e.id, operationId: op.id });
+    if (o.type === "deplacee") {   // le reflet passe tout de suite : la démonstration locale tient une seule journée ouverte
+      const r = poster({ journal: "OD", journeeId: s.journeeId, libelle: o.libelle, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: lignesRefletOc(o).map((x) => ({ ...x, montantCdf: cdf(x.montant, x.devise) })) });
+      o.refletEcritureId = r.id;
+    }
+    enregistrer(); return vueOc(o);
+  },
+};
+
+// ---------- S107 : Comptabilité > Factures (manuel p. 124 à 128 ; 147 à 153) : Bon de commande, Enregistrement, Règlement, Journal, Rapport ;
+// S141 : Caisse > Règlement facture espèce ; S108 : Déclaration de taxe. Mêmes règles que serveur/noyau/factures_fournisseurs.py. ----------
+const TVA_DEDUCTIBLE = "432", TAXES_RETENUES = "433";
+const MODES_REGLEMENT: Record<ReglementFournisseur["mode"], string> = { CHEQUE: "CHEQUE", ESPECE: "Espèce", PRELEVEMENT: "Prélèvement", VIREMENT: "Virement bancaire" };
+/** Part d'un montant, arrondie au centime le plus proche (comme le serveur : arrondi au plus proche, moitié vers le haut) */
+const pctF = (montant: number, taux: number | string) => Math.floor((montant * Math.round(Number(String(taux).replace(",", ".")) * 100) + 5000) / 10000);
+const proF = (total: number, part: number, base: number) => Math.floor((total * part * 2 + base) / (base * 2));
+function dateF(v: unknown, nom: string, defaut?: string) { const x = texteOc(v); if (!x && defaut) return defaut; if (!DATE_ISO.test(x)) throw new ErreurMetier(`À remplir : ${nom}.`); return x; }
+const taxesF = () => valeursRef("taxes", "taxes").map((t) => ({ id: t.id, code: String(t.code ?? ""), designation: String(t.designation ?? ""), taux: String(t.taux ?? "0") }))
+  .sort((a, b) => a.code.localeCompare(b.code));
+function taxeTva() {
+  const t = taxesF().find((x) => x.code.trim().toUpperCase() === "TVA");
+  if (!t) throw new ErreurMetier("TVA : créer d'abord la taxe de code TVA (Comptabilité > Plan des comptes > Création des taxes).");
+  return t;
+}
+function fournisseurF(id: unknown) {
+  const f = valeursRef("tiers", "tiers").find((x) => x.id === entierOc(id) && x.typeTiers === "FOURNISSEUR");
+  if (!f) throw new ErreurMetier("À remplir : Fournisseur (Comptabilité > Plan des tiers, type FOURNISSEUR).");
+  return { id: f.id, intitule: String(f.intitule ?? ""), compte: String(f.compte ?? "") };
+}
+function compteAchat(numero: unknown, quoi = "Compte") {
+  const n = texteOc(numero);
+  if (!n) throw new ErreurMetier(`À remplir : ${quoi}.`);
+  controlerCompteDuPlan(n, quoi);
+  if (!["2", "6", "47"].some((p) => n.startsWith(p)) || tenuParLaGestion(n)) throw new ErreurMetier(`${quoi} : un compte des classes 2 ou 6, ou du compte 47 (PCCI, compte 40).`);
+  return n;
+}
+const elementsF = () => E.elementsFacture.filter((e) => e.actif && !e.supprime).sort((a, b) => a.id - b.id);
+const regleF = (fid: number, sauf?: number) => E.reglementsFournisseurs.filter((r) => r.factureId === fid && r.id !== sauf).reduce((t, r) => t + r.montant, 0);
+function vueCommande(c: CommandeFournisseur) {
+  const tc = E.typesCommande.find((x) => x.id === c.typeCommandeId), f = stockRef("tiers", "tiers").find((x) => x.id === c.fournisseurId);
+  return { id: c.id, numero: c.numero, typeCode: tc?.code ?? "", type: tc?.libelle ?? "", fournisseurId: c.fournisseurId, fournisseur: String(f?.intitule ?? ""), libelle: c.libelle, date: c.date,
+    lignes: c.lignes, tranches: c.tranches, tranchesFacturees: E.facturesFournisseurs.filter((x) => x.commandeId === c.id && x.statut !== "annulee").map((x) => x.tranche!),
+    ht: c.ht, tva: c.tva, ttc: c.ttc, statut: c.statut as string, saisiPar: nomUtilisateur(c.saisiPar), validePar: nomUtilisateur(c.validePar) };
+}
+function vueFactureF(f: FactureFournisseur) {
+  const fo = stockRef("tiers", "tiers").find((x) => x.id === f.fournisseurId), paye = regleF(f.id);
+  return { id: f.id, numero: f.numero, commandeId: f.commandeId, commande: E.commandesFournisseurs.find((c) => c.id === f.commandeId)?.numero ?? "", tranche: f.tranche, fournisseurId: f.fournisseurId,
+    fournisseur: String(fo?.intitule ?? ""), typeFacture: f.typeFacture, reference: f.reference, date: f.date, echeance: f.echeance, libelle: f.libelle, ht: f.ht, tva: f.tva, ttc: f.ttc,
+    charges: f.charges, totalCharges: f.charges.reduce((t, x) => t + x.montant, 0), du: f.du, aPayer: f.aPayer, regle: paye, reste: f.du - paye, statut: f.statut as string,
+    etat: paye >= f.du ? "soldee" : "encours", piece: f.piece, saisiPar: nomUtilisateur(f.saisiPar), visePar: nomUtilisateur(f.visePar), validePar: nomUtilisateur(f.validePar),
+    dateValidation: f.dateValidation ?? "" };
+}
+function vueReglementF(r: ReglementFournisseur) {
+  const f = E.facturesFournisseurs.find((x) => x.id === r.factureId)!, fo = stockRef("tiers", "tiers").find((x) => x.id === f.fournisseurId);
+  return { id: r.id, factureId: f.id, facture: f.numero, reference: f.reference, fournisseur: String(fo?.intitule ?? ""), ht: f.ht, montant: r.montant, charges: r.charges,
+    totalCharges: r.charges.reduce((t, x) => t + x.montant, 0), aPayer: r.aPayer, mode: r.mode as string, modeLibelle: MODES_REGLEMENT[r.mode], date: r.date, observations: r.observations,
+    statut: r.statut as string, piece: r.piece, cheque: r.cheque ?? "", saisiPar: nomUtilisateur(r.saisiPar), visePar: nomUtilisateur(r.visePar), validePar: nomUtilisateur(r.validePar) };
+}
+export type LigneCommandeF = ReturnType<typeof vueCommande>;
+export type LigneFactureF = ReturnType<typeof vueFactureF>;
+export type LigneReglementF = ReturnType<typeof vueReglementF>;
+type SaisieFacture = { fournisseurId?: number | null; directe?: boolean; commandeId?: number | null; tranche?: number | null; montantHt?: number | null; tva?: boolean; nif?: boolean; aJour?: boolean; compte?: string };
+/** Montants de la facture : hors taxes, TVA, TTC, liste des charges et des retenues fiscales, montant à payer */
+function calculerFacture(d: SaisieFacture) {
+  const f = fournisseurF(d.fournisseurId);
+  const charges: ChargeFacture[] = []; let imputation: { compte: string; montant: number }[], ht: number, tva: number, c: CommandeFournisseur | undefined, tranche: number | null = null, typeFacture = "";
+  if (d.directe) {
+    const m = entierOc(d.montantHt);
+    if (!m || m <= 0) throw new ErreurMetier("À remplir : Montant (HT).");
+    const compte = compteAchat(d.compte);
+    ht = m; tva = d.tva ? pctF(ht, taxeTva().taux) : 0; imputation = [{ compte, montant: ht }];
+  } else {
+    c = E.commandesFournisseurs.find((x) => x.id === entierOc(d.commandeId) && x.fournisseurId === f.id && x.statut === "validee");
+    if (!c) throw new ErreurMetier("À remplir : N° Commande.");
+    const cmd = c; tranche = entierOc(d.tranche);
+    if (tranche === null || tranche < 1 || tranche > cmd.tranches.length) throw new ErreurMetier("À remplir : Tranche Paiement (%).");
+    const faites = E.facturesFournisseurs.filter((x) => x.commandeId === cmd.id && x.statut !== "annulee");
+    if (faites.some((x) => x.tranche === tranche)) throw new ErreurMetier("Cette tranche est déjà facturée.");
+    const derniere = faites.length === cmd.tranches.length - 1, taux = cmd.tranches[tranche - 1]!.taux;
+    const part = (total: number, deja: number) => (derniere ? total - deja : pctF(total, taux));
+    imputation = cmd.lignes.map((x, k) => ({ compte: x.compte, montant: part(x.ht, faites.reduce((t, fa) => t + fa.imputation[k]!.montant, 0)) }));
+    ht = imputation.reduce((t, x) => t + x.montant, 0); tva = part(cmd.tva, faites.reduce((t, fa) => t + fa.tva, 0));
+    cmd.lignes.forEach((x, k) => { if (!x.retenueTaxeId) return;
+      const m = part(x.retenue, faites.reduce((t, fa) => t + fa.charges.filter((ch) => ch.ligne === k).reduce((s, ch) => s + ch.montant, 0), 0));
+      if (m) charges.push({ libelle: x.retenueLibelle, taux: x.retenueTaux, montant: m, retenue: true, compte: TAXES_RETENUES, taxeId: x.retenueTaxeId, ligne: k }); });
+    typeFacture = E.typesCommande.find((x) => x.id === cmd.typeCommandeId)?.code ?? "";
+  }
+  for (const e of elementsF()) {
+    const taux = e.tauxA || e.tauxNA ? (d.nif ? e.tauxA : e.tauxNA) : e.taux, m = pctF(ht, taux);
+    if (m) charges.push({ libelle: e.libelle, taux: String(taux), montant: m, retenue: e.retenue, compte: e.compte, elementId: e.id });
+  }
+  const ajouts = charges.filter((x) => !x.retenue).reduce((t, x) => t + x.montant, 0), retenues = charges.filter((x) => x.retenue).reduce((t, x) => t + x.montant, 0);
+  return { f, c, tranche, typeFacture, ht, tva, ttc: ht + tva, charges, imputation, du: ht + tva + ajouts, aPayer: ht + tva + ajouts - retenues };
+}
+/** Retenues fiscales du règlement : la part des retenues de la facture qui revient au montant réglé ; le dernier règlement prend le reste */
+function retenuesReglement(f: FactureFournisseur, montant: number, sauf?: number): ChargeFacture[] {
+  const ch = f.charges.filter((x) => x.retenue), deja = E.reglementsFournisseurs.filter((r) => r.factureId === f.id && r.id !== sauf);
+  const solde = deja.reduce((t, r) => t + r.montant, 0) + montant >= f.du;
+  return ch.map((x, k) => ({ ...x, montant: Math.max(solde ? x.montant - deja.reduce((t, r) => t + r.charges[k]!.montant, 0) : proF(x.montant, montant, f.du), 0) }));
+}
+type LigneGlF = { compte: string; sens: "D" | "C"; devise: Devise; montant: number; contrat?: string };
+function lignesFactureF(f: FactureFournisseur): LigneGlF[] {
+  const fo = stockRef("tiers", "tiers").find((x) => x.id === f.fournisseurId)!;
+  return [...f.imputation.filter((x) => x.montant).map((x) => ({ compte: x.compte, sens: "D" as const, devise: "CDF" as Devise, montant: x.montant })),
+    ...(f.tva ? [{ compte: TVA_DEDUCTIBLE, sens: "D" as const, devise: "CDF" as Devise, montant: f.tva }] : []),
+    ...f.charges.filter((x) => !x.retenue).map((x) => ({ compte: x.compte, sens: "D" as const, devise: "CDF" as Devise, montant: x.montant })),
+    { compte: String(fo.compte), sens: "C", devise: "CDF", montant: f.du, contrat: `tc:${fo.id}` }];
+}
+function lignesReglementF(r: ReglementFournisseur, tresorerie: LigneGlF): LigneGlF[] {
+  const f = E.facturesFournisseurs.find((x) => x.id === r.factureId)!, fo = stockRef("tiers", "tiers").find((x) => x.id === f.fournisseurId)!;
+  return [{ compte: String(fo.compte), sens: "D", devise: "CDF", montant: r.montant, contrat: `tc:${fo.id}` }, ...(r.aPayer ? [tresorerie] : []),
+    ...r.charges.filter((x) => x.montant).map((x) => ({ compte: x.compte, sens: "C" as const, devise: "CDF" as Devise, montant: x.montant }))];
+}
+/** Factures et règlements validés (hors espèces, payés en caisse : S141) à passer au plus tard à la date de la journée */
+function enAttenteFactures(j: Journee): EnAttente[] {
+  const out: EnAttente[] = [];
+  for (const f of E.facturesFournisseurs.filter((x) => x.statut === "validee" && (x.dateValidation ?? "") <= j.date).sort((a, b) => (a.dateValidation ?? "").localeCompare(b.dateValidation ?? "") || a.id - b.id))
+    out.push({ source: "facture", id: f.id, type: "facture", libelle: `Facture ${f.reference} : ${f.libelle}`, journal: "OD", lignes: lignesFactureF(f), date: f.dateValidation ?? f.date });
+  for (const r of E.reglementsFournisseurs.filter((x) => x.statut === "validee" && x.mode !== "ESPECE" && (x.dateValidation ?? "") <= j.date).sort((a, b) => (a.dateValidation ?? "").localeCompare(b.dateValidation ?? "") || a.id - b.id)) {
+    const cb = E.comptesBancaires.find((x) => x.id === r.compteBancaireId)!, jr = E.journaux.find((x) => x.id === cb.journalId && x.actif && !x.supprime);
+    const ref = E.facturesFournisseurs.find((x) => x.id === r.factureId)!.reference;
+    out.push({ source: "reglement", id: r.id, type: "reglement", libelle: `Règlement de la facture ${ref}${r.cheque ? `, chèque ${r.cheque}` : ""}`, journal: jr?.code ?? "OD",
+      lignes: lignesReglementF(r, { compte: cb.compte, sens: "C", devise: "CDF", montant: r.aPayer }), date: r.dateValidation ?? r.date });
+  }
+  return out;
+}
+const facturesFournisseurs = {
+  contexte() {
+    lectureAdmin(["S107", "S108", "S113", "S114", "S141"]);
+    const j = journees.courante();
+    return { date: j && j.statut === "ouverte" ? j.date : "",
+      fournisseurs: valeursRef("tiers", "tiers").filter((x) => x.typeTiers === "FOURNISSEUR").map((x) => ({ id: x.id, intitule: String(x.intitule ?? ""), compte: String(x.compte ?? "") }))
+        .sort((a, b) => a.intitule.localeCompare(b.intitule)),
+      typesCommande: E.typesCommande.filter((t) => !t.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ id, code, libelle }) => ({ id, code, libelle })),
+      taxes: taxesF(), elements: elementsF().map(({ id, libelle, compte, taux, tauxA, tauxNA, retenue }) => ({ id, libelle, compte, taux, tauxA, tauxNA, retenue })),
+      typesBudget: (E.budget["types_budget"] ?? []).filter((x) => x.actif).map((x) => ({ id: x.id, code: String(x.code ?? ""), libelle: String(x.libelle ?? "") })),
+      lignesBudget: (E.budget["lignes"] ?? []).filter((x) => x.actif).map((x) => ({ id: x.id, numero: String(x.numero ?? ""), libelle: String(x.libelle ?? ""), bailleur: "" })),
+      comptes: [...PCCI.comptes.map((x) => ({ numero: x.numero, libelle: x.libelle })), ...E.comptesInstitution.filter((x) => x.ouvert && x.saisissable).map((x) => ({ numero: x.numero, libelle: x.libelle }))]
+        .filter((x) => ["2", "6", "47"].some((p) => x.numero.startsWith(p)) && !tenuParLaGestion(x.numero)).sort((a, b) => a.numero.localeCompare(b.numero)),
+      banques: [...E.banques].sort((a, b) => a.code.localeCompare(b.code)).map(({ id, code, libelle }) => ({ id, code, libelle })),
+      comptesBancaires: [...E.comptesBancaires].sort((a, b) => a.numeroBancaire.localeCompare(b.numeroBancaire)).map((c) => ({ id: c.id, banqueId: c.banqueId, numero: c.numeroBancaire, devise: c.devise as string })),
+      modes: Object.entries(MODES_REGLEMENT).map(([code, libelle]) => ({ code, libelle })), exercices: [...E.exercices].map((x) => x.annee).sort((a, b) => b - a) };
+  },
+  /** Bon de commande : saisi, puis validé par une autre personne (S114, « Validation de commandes ») */
+  enregistrerCommande(d: { cle: string; typeCommandeId: number | null; fournisseurId: number | null; libelle?: string; date?: string;
+    lignes: { compte: string; designation: string; unite?: string; quantite: string | number; prixUnitaire: number | null; tva?: boolean; retenueTaxeId?: number | null; typeBudgetId?: number | null; ligneBudgetId?: number | null }[];
+    tranches?: { date: string; montant?: number | null; taux?: string | number | null }[] }) {
+    const u = exiger(), cle = cleOc(d.cle), prec = E.commandesFournisseurs.find((x) => x.cle === cle); if (prec) return vueCommande(prec);
+    const tc = E.typesCommande.find((x) => x.id === entierOc(d.typeCommandeId) && !x.supprime);
+    if (!tc) throw new ErreurMetier("À remplir : Type Commande (Paramétrage > Facture > Référence Commande).");
+    const f = fournisseurF(d.fournisseurId), jour = jourOuvertOc(), date = dateF(d.date, "Date operation", jour);
+    if (date > jour) throw new ErreurMetier("La date de l'opération ne peut pas dépasser la journée ouverte.");
+    const brut = Array.isArray(d.lignes) ? d.lignes : [];
+    if (!brut.length) throw new ErreurMetier("Enregistrement des Lignes de commandes : au moins une ligne (Ajouter).");
+    const taxes = taxesF();
+    const lignes = brut.map((x) => {
+      const compte = compteAchat(x.compte), designation = texteOc(x.designation);
+      if (!designation) throw new ErreurMetier("À remplir : Designation.");
+      const qt = String(x.quantite ?? "").trim().replace(",", "."), pu = entierOc(x.prixUnitaire);
+      if (!/^\d+(\.\d+)?$/.test(qt)) throw new ErreurMetier("Quantité : un nombre.");
+      if (Number(qt) <= 0 || !/^\d+(\.\d{1,2})?$/.test(qt)) throw new ErreurMetier("Quantité : un nombre supérieur à zéro, deux décimales au plus.");
+      if (!pu || pu <= 0) throw new ErreurMetier("Prix U. : un montant supérieur à zéro.");
+      const { tb, lb } = budgetOc(x), ht = Math.floor((Math.round(Number(qt) * 100) * pu + 50) / 100);
+      const mTva = x.tva ? pctF(ht, taxeTva().taux) : 0;
+      const ret = entierOc(x.retenueTaxeId) ? taxes.find((t) => t.id === x.retenueTaxeId) : undefined;
+      if (entierOc(x.retenueTaxeId) && (!ret || ret.code.trim().toUpperCase() === "TVA")) throw new ErreurMetier("Retenue : une taxe de la liste, autre que la TVA (Création des taxes).");
+      return { compte, intitule: intitulesComptes().get(compte) ?? "", designation, unite: texteOc(x.unite), quantite: String(Number(qt)), prixUnitaire: pu, ht, tva: mTva,
+        retenueTaxeId: ret?.id ?? null, retenueLibelle: ret ? `${ret.designation} ${ret.taux} %` : "", retenueTaux: ret?.taux ?? "", retenue: ret ? pctF(ht, ret.taux) : 0, typeBudgetId: tb, ligneBudgetId: lb };
+    });
+    const ht = lignes.reduce((t, x) => t + x.ht, 0), tva = lignes.reduce((t, x) => t + x.tva, 0);
+    const tb = Array.isArray(d.tranches) ? d.tranches : [];
+    let tranches: CommandeFournisseur["tranches"];
+    if (!tb.length) tranches = [{ date, montant: ht, taux: "100" }];
+    else {
+      let total = 0;
+      tranches = tb.map((x) => {
+        const t = x.taux === undefined || x.taux === null || x.taux === "" ? null : String(x.taux).trim().replace(",", "."), m = entierOc(x.montant);
+        if (t !== null && !/^\d+(\.\d+)?$/.test(t)) throw new ErreurMetier("Taux (%) : un nombre.");
+        if (t === null && !(m && ht)) throw new ErreurMetier("Tranches de paiement : Montant ou Taux (%).");
+        const centiemes = t !== null ? Math.round(Number(t) * 100) : Math.floor((m! * 10000 * 2 + ht) / (ht * 2));
+        if (centiemes <= 0 || centiemes > 10000) throw new ErreurMetier("Tranches de paiement : un taux entre 0 et 100.");
+        total += centiemes;
+        return { date: dateF(x.date, "Date de la tranche"), montant: pctF(ht, centiemes / 100), taux: String(centiemes / 100) };
+      });
+      if (Math.abs(total - 10000) > 1) throw new ErreurMetier("Tranches de paiement : le total des taux fait 100 %.");
+      tranches[tranches.length - 1]!.montant = ht - tranches.slice(0, -1).reduce((t, x) => t + x.montant, 0);
+    }
+    const c: CommandeFournisseur = { id: prochain(E.commandesFournisseurs), cle, numero: `CMDE_F${String(E.commandesFournisseurs.length + 1).padStart(5, "0")}`, typeCommandeId: tc.id, fournisseurId: f.id,
+      libelle: texteOc(d.libelle), date, lignes, tranches, ht, tva, ttc: ht + tva, statut: "saisie", saisiPar: u.id };
+    E.commandesFournisseurs.push(c); enregistrer(); return vueCommande(c);
+  },
+  /** S114 : « Validation de commandes » (saisies) et « Liste de commandes validées » */
+  commandes(statut: string) {
+    lectureAdmin(["S107", "S114"]);
+    if (statut !== "saisie" && statut !== "validee") throw new ErreurMetier("Liste inconnue.");
+    return E.commandesFournisseurs.filter((c) => c.statut === statut).sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id).map(vueCommande);
+  },
+  validerCommande(id: number) {
+    const u = exiger(), c = E.commandesFournisseurs.find((x) => x.id === id);
+    if (!c || c.statut !== "saisie") throw new ErreurMetier("Rien à valider.");
+    if (c.saisiPar === u.id) throw new ErreurMetier("Quatre yeux : pas de validation sur sa propre saisie.");
+    c.statut = "validee"; c.validePar = u.id; enregistrer(); return vueCommande(c);
+  },
+  /** Liste « N° Commande » de l'enregistrement : commandes validées du fournisseur qui ont encore une tranche à facturer */
+  commandesAFacturer(fid: number) {
+    lectureAdmin(["S107"]);
+    return E.commandesFournisseurs.filter((c) => c.fournisseurId === fid && c.statut === "validee").sort((a, b) => a.id - b.id).map(vueCommande).filter((c) => c.tranchesFacturees.length < c.tranches.length);
+  },
+  /** Etat de validation du bon de commande (p. 149) */
+  bonDeCommande(id: number) {
+    lectureAdmin(["S107", "S114"]);
+    const c = E.commandesFournisseurs.find((x) => x.id === id);
+    if (!c) throw new ErreurMetier("Commande introuvable.");
+    return { entete: enteteDocument(), commande: vueCommande(c) };
+  },
+  apercuFacture(d: SaisieFacture) {
+    lectureAdmin(["S107"]);
+    const x = calculerFacture(d);
+    return { typeFacture: x.typeFacture, ht: x.ht, tva: x.tva, ttc: x.ttc, charges: x.charges, aPayer: x.aPayer };
+  },
+  /** Enregistrer : la facture est saisie, en attente du visa (S113, « Visa Facture ») puis de la validation (S114) */
+  enregistrerFacture(d: SaisieFacture & { cle: string; reference: string; libelle: string; dateFacture?: string; dateEcheance?: string }) {
+    const u = exiger(), cle = cleOc(d.cle), prec = E.facturesFournisseurs.find((x) => x.cle === cle); if (prec) return vueFactureF(prec);
+    const reference = texteOc(d.reference), libelle = texteOc(d.libelle);
+    if (!reference) throw new ErreurMetier("À remplir : Réf. Facture.");
+    if (!libelle) throw new ErreurMetier("À remplir : Libellé.");
+    const jour = jourOuvertOc(), date = dateF(d.dateFacture, "Date Facture", jour);
+    if (date > jour) throw new ErreurMetier("Date Facture : pas après la journée ouverte.");
+    const echeance = dateF(d.dateEcheance, "Date Echéance", date);
+    if (echeance < date) throw new ErreurMetier("Date Echéance : pas avant la date de la facture.");
+    const x = calculerFacture(d);
+    if (E.facturesFournisseurs.some((y) => y.fournisseurId === x.f.id && y.reference.toUpperCase() === reference.toUpperCase() && y.statut !== "annulee"))
+      throw new ErreurMetier("Réf. Facture : cette facture du fournisseur est déjà enregistrée.");
+    const f: FactureFournisseur = { id: prochain(E.facturesFournisseurs), cle, numero: String(E.facturesFournisseurs.length + 1).padStart(6, "0"), commandeId: x.c?.id ?? null, tranche: x.tranche,
+      fournisseurId: x.f.id, typeFacture: x.typeFacture, reference, date, echeance, libelle, ht: x.ht, tva: x.tva, ttc: x.ttc, charges: x.charges, imputation: x.imputation, du: x.du, aPayer: x.aPayer,
+      aJour: d.aJour !== false, nif: !!d.nif, statut: "saisie", saisiPar: u.id, piece: "" };
+    E.facturesFournisseurs.push(f); enregistrer(); return vueFactureF(f);
+  },
+  /** Liste « N° Facture » du règlement : factures validées du fournisseur qui ne sont pas soldées */
+  facturesARegler(fid: number) {
+    lectureAdmin(["S107"]);
+    return E.facturesFournisseurs.filter((f) => f.fournisseurId === fid && ["validee", "comptabilisee"].includes(f.statut)).sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id)
+      .map(vueFactureF).filter((f) => f.reste > 0);
+  },
+  apercuReglement(fid: number, montant: number) {
+    lectureAdmin(["S107"]);
+    const f = E.facturesFournisseurs.find((x) => x.id === fid);
+    if (!f) throw new ErreurMetier("À remplir : N° Facture.");
+    const ch = retenuesReglement(f, montant);
+    return { charges: ch, aPayer: montant - ch.reduce((t, x) => t + x.montant, 0) };
+  },
+  /** Enregistrer : le règlement est saisi, en attente du visa (S113, « Visa Règlement ») puis de la validation (S114) */
+  enregistrerReglement(d: { cle: string; factureId: number | null; montant: number | null; mode: string; dateReglement?: string; observations?: string }) {
+    const u = exiger(), cle = cleOc(d.cle), prec = E.reglementsFournisseurs.find((x) => x.cle === cle); if (prec) return vueReglementF(prec);
+    const f = E.facturesFournisseurs.find((x) => x.id === entierOc(d.factureId) && ["validee", "comptabilisee"].includes(x.statut));
+    if (!f) throw new ErreurMetier("À remplir : N° Facture.");
+    const m = entierOc(d.montant);
+    if (!m || m <= 0) throw new ErreurMetier("À remplir : Montant.");
+    if (m > f.du - regleF(f.id)) throw new ErreurMetier("Montant : plus que le reste à régler de la facture.");
+    if (!(d.mode in MODES_REGLEMENT)) throw new ErreurMetier("À remplir : Mode Règlement.");
+    const jour = jourOuvertOc(), date = dateF(d.dateReglement, "Date Règlement", jour);
+    if (date > jour) throw new ErreurMetier("Date Règlement : pas après la journée ouverte.");
+    if (date < f.date) throw new ErreurMetier("Date Règlement : pas avant la date de la facture.");
+    const ch = retenuesReglement(f, m);
+    const r: ReglementFournisseur = { id: prochain(E.reglementsFournisseurs), cle, factureId: f.id, montant: m, date, mode: d.mode as ReglementFournisseur["mode"], charges: ch,
+      aPayer: m - ch.reduce((t, x) => t + x.montant, 0), observations: texteOc(d.observations), statut: "saisie", saisiPar: u.id, piece: "" };
+    E.reglementsFournisseurs.push(r); enregistrer(); return vueReglementF(r);
+  },
+  /** S113 et S114 : factures et règlements en attente du visa (saisis) ou de la validation (visés) */
+  visas(etape: string, quoi: string) {
+    lectureAdmin(["S113", "S114"]);
+    if (!["visa", "validation"].includes(etape) || !["facture", "reglement"].includes(quoi)) throw new ErreurMetier("Liste inconnue.");
+    const statut = etape === "visa" ? "saisie" : "visee";
+    return quoi === "facture" ? E.facturesFournisseurs.filter((x) => x.statut === statut).sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id).map(vueFactureF)
+      : E.reglementsFournisseurs.filter((x) => x.statut === statut).sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id).map(vueReglementF);
+  },
+  viser(quoi: string, id: number) { return suivreFacture(quoi, id, "visa"); },
+  /** Validation ; pour un règlement par chèque, virement ou prélèvement : « Infos Chèque » (N° Chèque, Banque, N° Compte Bancaire, Date Emission, p. 153) */
+  valider(quoi: string, id: number, d: { cheque?: string; compteBancaireId?: number | null; dateEmission?: string } = {}) { return suivreFacture(quoi, id, "validation", d); },
+  /** S141 : règlements en espèces validés (S114), en attente du caissier */
+  reglementsEspece() {
+    lectureAdmin(["S141"]);
+    return E.reglementsFournisseurs.filter((r) => r.statut === "validee" && r.mode === "ESPECE").sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id).map(vueReglementF);
+  },
+  /** S141 : le caissier paie le fournisseur, avec le billetage ; il n'a ni saisi, ni visé, ni validé le règlement (registre S141-2 à S141-4) */
+  payerReglement(id: number, p: { cle: string; coupures: Comptage }) {
+    const cle = cleOc(p?.cle), r = E.reglementsFournisseurs.find((x) => x.id === id);
+    if (r && r.statut === "payee" && E.operations.some((x) => x.id === r.operationId && x.cle === cle)) return vueReglementF(r);
+    if (!r || r.mode !== "ESPECE" || r.statut !== "validee") throw new ErreurMetier("Rien à régler.");
+    const moi = exiger();
+    if ([r.saisiPar, r.visePar, r.validePar].includes(moi.id)) throw new ErreurMetier("Quatre yeux : le paiement en caisse vient d'une autre personne que celles qui ont saisi, visé et validé.");
+    const { u, s } = sessionOuverte("CDF"), cp = nettoyer(p.coupures ?? {});
+    controlerCoupures(cp, r.aPayer, "CDF");
+    const th = caisses.theorique(s.id, "CDF");
+    if (Object.entries(cp).some(([v, n]) => (n ?? 0) > (th[Number(v)] ?? 0))) throw new ErreurMetier("Pas assez de coupures en caisse (CDF).");
+    const ref = E.facturesFournisseurs.find((x) => x.id === r.factureId)!.reference, libelle = `Règlement en espèces de la facture ${ref}`, pc = piece("CA");
+    const e = poster({ journal: "CA", journeeId: s.journeeId, libelle, piece: pc, saisiPar: u.id, validePar: u.id,
+      lignes: lignesReglementF(r, { compte: "570", sens: "C", devise: "CDF", montant: r.aPayer, contrat: guichetDe(s) }).map((x) => ({ ...x, montantCdf: x.montant })) });
+    const op: Operation = { id: prochain(E.operations), cle, type: "ed_decaissement", statut: "validee", sessionId: s.id, tiersId: null, montant: r.aPayer, devise: "CDF", coupures: cp,
+      remisPar: vueReglementF(r).fournisseur, motif: libelle, saisiPar: u.id, ecritureId: e.id, heure: heure() };
+    E.operations.push(op); Object.assign(r, { statut: "payee", piece: pc, ecritureId: e.id, operationId: op.id }); enregistrer(); return vueReglementF(r);
+  },
+  /** Rapport > Facture (p. 128) : par période ou par date ; Visa ; Etat ; détaillé ou groupé par fournisseur */
+  rapport(p: { mode?: string; du?: string; au?: string; resultat?: string; visa?: string; etat?: string; typeFacture?: string; fournisseurId?: number | string | null }) {
+    lectureAdmin(["S107"]);
+    const du = dateF(p.du, "Date Début"), au = p.mode === "date" ? du : dateF(p.au, "Date Fin");
+    if (du > au) throw new ErreurMetier("Date Début : avant la date fin.");
+    const visa = p.visa || "tout", etat = p.etat || "", fid = /^\d+$/.test(String(p.fournisseurId ?? "")) ? Number(p.fournisseurId) : null;
+    const lignes = E.facturesFournisseurs.filter((f) => f.date >= du && f.date <= au && (!fid || f.fournisseurId === fid) && (!p.typeFacture || f.typeFacture === p.typeFacture))
+      .sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id).map(vueFactureF).filter((v) => {
+        if ((visa === "visee" && v.statut !== "visee") || (visa === "validee" && !["validee", "comptabilisee"].includes(v.statut))) return false;
+        if ((etat === "annulee" && v.statut !== "annulee") || (["soldee", "encours"].includes(etat) && (v.statut === "annulee" || v.etat !== etat))) return false;
+        return true; });
+    if (p.resultat !== "groupe") return { groupe: false as const, lignes, groupes: [] };
+    const g = new Map<string, { fournisseur: string; nombre: number; ht: number; tva: number; ttc: number; du: number; regle: number; reste: number }>();
+    for (const v of lignes) { const x = g.get(v.fournisseur) ?? { fournisseur: v.fournisseur, nombre: 0, ht: 0, tva: 0, ttc: 0, du: 0, regle: 0, reste: 0 }; g.set(v.fournisseur, x);
+      x.nombre += 1; x.ht += v.ht; x.tva += v.tva; x.ttc += v.ttc; x.du += v.du; x.regle += v.regle; x.reste += v.reste; }
+    return { groupe: true as const, lignes: [], groupes: [...g.values()].sort((a, b) => a.fournisseur.localeCompare(b.fournisseur)) };
+  },
+  /** S108 : Etat de déclaration des taxes (p. 128). TVA : factures validées dans le mois ; autre taxe : retenues des règlements validés dans le mois */
+  declarationTaxes(p: { exercice?: number | string; mois?: number | string; taxeId?: number | string | null }) {
+    lectureAdmin(["S108"]);
+    const num = (v: unknown) => (/^\d+$/.test(String(v ?? "")) ? Number(v) : null), an = num(p.exercice), mois = num(p.mois);
+    if (an === null || mois === null || mois < 1 || mois > 12) throw new ErreurMetier("À remplir : Exercice et Mois.");
+    const t = taxesF().find((x) => x.id === num(p.taxeId));
+    if (!t) throw new ErreurMetier("À remplir : Taxe.");
+    const dans = (d?: string) => !!d && Number(d.slice(0, 4)) === an && Number(d.slice(5, 7)) === mois;
+    const lignes: { date: string; fournisseur: string; reference: string; base: number; taux: string; montant: number }[] = [];
+    if (t.code.trim().toUpperCase() === "TVA") {
+      for (const f of E.facturesFournisseurs.filter((x) => ["validee", "comptabilisee"].includes(x.statut) && x.tva > 0 && dans(x.dateValidation)).sort((a, b) => (a.dateValidation ?? "").localeCompare(b.dateValidation ?? "") || a.id - b.id))
+        lignes.push({ date: f.dateValidation!, fournisseur: vueFactureF(f).fournisseur, reference: f.reference, base: f.ht, taux: t.taux, montant: f.tva });
+    } else for (const r of E.reglementsFournisseurs.filter((x) => ["validee", "comptabilisee", "payee"].includes(x.statut) && dans(x.dateValidation)).sort((a, b) => (a.dateValidation ?? "").localeCompare(b.dateValidation ?? "") || a.id - b.id)) {
+      const m = r.charges.filter((x) => x.taxeId === t.id).reduce((s, x) => s + x.montant, 0), f = E.facturesFournisseurs.find((x) => x.id === r.factureId)!;
+      if (m) lignes.push({ date: r.dateValidation!, fournisseur: vueFactureF(f).fournisseur, reference: f.reference, base: proF(f.ht, r.montant, f.du), taux: t.taux, montant: m });
+    }
+    return { taxe: `${t.designation} ${t.taux} %`, lignes, totalBase: lignes.reduce((s, x) => s + x.base, 0), total: lignes.reduce((s, x) => s + x.montant, 0) };
+  },
+};
+function suivreFacture(quoi: string, id: number, etape: "visa" | "validation", d: { cheque?: string; compteBancaireId?: number | null; dateEmission?: string } = {}) {
+  const u = exiger();
+  if (quoi !== "facture" && quoi !== "reglement") throw new ErreurMetier("Liste inconnue.");
+  const o = quoi === "facture" ? E.facturesFournisseurs.find((x) => x.id === id) : E.reglementsFournisseurs.find((x) => x.id === id);
+  const vue = () => (quoi === "facture" ? vueFactureF(o as FactureFournisseur) : vueReglementF(o as ReglementFournisseur));
+  if (!o || o.statut !== (etape === "visa" ? "saisie" : "visee")) throw new ErreurMetier(etape === "visa" ? "Rien à viser." : "Rien à valider.");
+  if (o.saisiPar === u.id) throw new ErreurMetier(`Quatre yeux : ${etape === "visa" ? "pas de visa" : "pas de validation"} sur sa propre saisie.`);
+  if (etape === "visa") { o.statut = "visee"; o.visePar = u.id; enregistrer(); return vue(); }
+  if (o.visePar === u.id) throw new ErreurMetier("Quatre yeux : la validation vient d'une autre personne que celle qui a visé.");
+  const jour = jourOuvertOc();
+  if (quoi === "reglement" && (o as ReglementFournisseur).mode !== "ESPECE") {
+    const r = o as ReglementFournisseur, cb = E.comptesBancaires.find((x) => x.id === entierOc(d.compteBancaireId));
+    if (!cb) throw new ErreurMetier("À remplir : Banque et N° Compte Bancaire.");
+    if (cb.devise !== "CDF") throw new ErreurMetier("N° Compte Bancaire : un compte en francs congolais, comme la facture.");
+    const cheque = texteOc(d.cheque);
+    if (r.mode === "CHEQUE") {
+      if (!cheque) throw new ErreurMetier("À remplir : N° Chèque.");
+      const q = E.chequesInstitution.find((x) => x.compteBancaireId === cb.id && x.numero === cheque);
+      if (!q) throw new ErreurMetier("N° Chèque : ce chèque n'appartient à aucun chéquier de ce compte bancaire (Gestion Chèque Institution).");
+      if (q.statut !== "disponible") throw new ErreurMetier("N° Chèque : ce chèque a déjà servi.");
+      q.statut = "utilise";
+    }
+    Object.assign(r, { cheque: cheque || undefined, compteBancaireId: cb.id, dateEmission: dateF(d.dateEmission, "Date Emission", jour) });
+  }
+  o.statut = "validee"; o.validePar = u.id; o.dateValidation = jour; enregistrer(); return vue();
+}
+
+const MOIS_JC = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+type CriteresJournaux = { achats?: boolean | string; exercice?: number | string; mois?: number | string | null; type?: string; journalId?: number | string | null; mouvement?: string; montant?: number | string | null;
+  utilisateurId?: number | string | null; piece?: string; pieceMode?: string; libelle?: string; libelleMode?: string };
 const etatsCompta = {
+  /** S115 : critères de « Journal comptables » (p. 133) */
+  journauxContexte() {
+    lectureAdmin(["S115", "S107"]);
+    return { exercices: [...E.exercices].map((x) => x.annee).sort((a, b) => b - a), exerciceActif: E.exercices.find((x) => x.actif)?.annee ?? null,
+      mois: MOIS_JC.map((libelle, i) => ({ code: i + 1, libelle })), types: Object.entries(TYPES_JOURNAL).map(([code, libelle]) => ({ code, libelle })),
+      journaux: tousJournaux().map(({ id, code, libelle, type }) => ({ id, code, libelle, type: type as string })),
+      utilisateurs: [...E.utilisateurs].sort((a, b) => a.nom.localeCompare(b.nom)).map(({ id, nom }) => ({ id, nom })) };
+  },
+  /** S115, bouton Afficher : lignes définitives (T13) de l'exercice et du mois ; « Journal centralisé » : totaux par journal et par compte (PCCI § 3.3). Registre S115-1 à S115-4. */
+  journaux(p: CriteresJournaux) {
+    lectureAdmin(["S115", "S107"]);
+    const num = (v: unknown) => (/^\d+$/.test(String(v ?? "")) ? Number(v) : null);
+    const ex = num(p.exercice);
+    if (ex === null) throw new ErreurMetier("À remplir : Exercice.");
+    const m0 = num(p.mois), mois = m0 && m0 >= 1 && m0 <= 12 ? m0 : null, journal = num(p.journalId), sens = p.mouvement === "D" || p.mouvement === "C" ? p.mouvement : null, montant = num(p.montant), util = num(p.utilisateurId);
+    const filtre = (texte: string | undefined, mode: string | undefined) => { const t = (texte ?? "").trim().toLowerCase(); if (!t) return () => true;
+      return (v: string) => { const x = v.toLowerCase(); return mode === "contient" ? x.includes(t) : mode === "fin" ? x.endsWith(t) : x.startsWith(t); }; };
+    const fp = filtre(p.piece, p.pieceMode), fl = filtre(p.libelle, p.libelleMode), noms = intitulesComptes();
+    // S107, Journal achat : les écritures des factures et de leurs règlements
+    const achats = new Set([...E.facturesFournisseurs, ...E.reglementsFournisseurs].map((x) => x.ecritureId).filter((x): x is number => !!x));
+    const rows: { journal: string; compte: string; intitule: string; sens: "D" | "C"; montantCdf: number }[] = [];
+    for (const e of [...E.ecritures].sort((a, b) => a.id - b.id)) {
+      const j = E.journees.find((x) => x.id === e.journeeId), jr = E.journaux.find((x) => x.code === e.journal);
+      if (!j || j.statut !== "fermee" || Number(j.date.slice(0, 4)) !== ex || (mois && Number(j.date.slice(5, 7)) !== mois)) continue;
+      if ((journal && jr?.id !== journal) || (p.type && jr?.type !== p.type) || (util && e.saisiPar !== util) || !fp(e.piece) || !fl(e.libelle)) continue;
+      if (p.achats && !achats.has(e.id)) continue;
+      for (const l of e.lignes) if ((!sens || l.sens === sens) && (montant === null || l.montantCdf === montant))
+        rows.push({ journal: `${e.journal} ${jr?.libelle ?? ""}`, compte: l.compte, intitule: noms.get(l.compte) ?? "", sens: l.sens, montantCdf: l.montantCdf });
+    }
+    rows.sort((a, b) => a.journal.localeCompare(b.journal));
+    let lignes: { journal: string; compte: string; intitule: string; debit: number; credit: number }[];
+    if (journal || p.achats) lignes = rows.map((r) => ({ journal: r.journal, compte: r.compte, intitule: r.intitule, debit: r.sens === "D" ? r.montantCdf : 0, credit: r.sens === "C" ? r.montantCdf : 0 }));
+    else {
+      const tot = new Map<string, { journal: string; compte: string; intitule: string; debit: number; credit: number }>();
+      for (const r of rows) { const k = `${r.journal}\u0000${r.compte}`; const t = tot.get(k) ?? { journal: r.journal, compte: r.compte, intitule: r.intitule, debit: 0, credit: 0 }; tot.set(k, t);
+        if (r.sens === "D") t.debit += r.montantCdf; else t.credit += r.montantCdf; }
+      lignes = [...tot.values()].sort((a, b) => a.journal.localeCompare(b.journal) || a.compte.localeCompare(b.compte));
+    }
+    return { lignes, totalDebit: lignes.reduce((t, x) => t + x.debit, 0), totalCredit: lignes.reduce((t, x) => t + x.credit, 0) };
+  },
   contexte() {
     lectureAdmin(["S120", "S121", "S122", "S123"]);
     return { agences: [{ id: E.agence.id, nom: E.agence.nom }], exercices: [...E.exercices].map((x) => x.annee).sort((a, b) => b - a),
@@ -6747,6 +7507,8 @@ const apiLocal = {
   centraleRisques: asynchrone(centraleRisques, "centraleRisques"),
   comptabilisation: asynchrone(comptabilisation, "comptabilisation"),
   etatsCompta: asynchrone(etatsCompta, "etatsCompta"),
+  operationsCompta: asynchrone(operationsCompta, "operationsCompta"),
+  facturesFournisseurs: asynchrone(facturesFournisseurs, "facturesFournisseurs"),
   refTaxes: asynchrone(refTaxes, "refTaxes"),
   refTiers: asynchrone(refTiers, "refTiers"),
   litigieux: asynchrone(litigieux, "litigieux"),

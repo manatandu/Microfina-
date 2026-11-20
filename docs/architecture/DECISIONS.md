@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**662 décisions.** Solidité : 276 fortes (le manuel ou un texte répond), 326 moyennes (déduites d'un écran voisin ou d'une donnée), 60 faibles (notre choix, faute de mieux). Dans le code : 652 déjà en place, 7 à appliquer.
+**698 décisions.** Solidité : 292 fortes (le manuel ou un texte répond), 342 moyennes (déduites d'un écran voisin ou d'une donnée), 64 faibles (notre choix, faute de mieux). Dans le code : 688 déjà en place, 8 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -31,7 +31,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | T18 | Validation des compléments (méthode) | Le porteur valide en fin de lot, sur écran, à partir de ce registre. Les lignes de solidité faible sont à regarder en premier | Choix du porteur : Demande du porteur du 12/11/2026 : trouver les réponses et les garder | forte | en place |
 | T19 | Caisse mobile, Gestion de réunion (S129, S130) | Restent écartés : le manuel n'en donne que les noms de menu et ils ne servent pas le but (reproduire le cœur de Microfina++) | Manuel : Manuel p. 164 et 165 (menus seuls) | moyenne | en place |
 | T20 | Plan comptable (tout le logiciel) | Le PCCI complet (604 comptes du § 13) est chargé dans le logiciel, dans un seul fichier (replica/pcci.json) lu par le serveur et par la démo. Coquille du texte corrigée : « 6851 Cadres conventionnés », entre 6580 et 6582, est 6581. Les comptes des classes 3 à 5 qui peuvent être débiteurs ou créditeurs ont la nature « mixte » | Texte réglementaire : PCCI § 13 « Liste des comptes » ; Instr. BCC n° 006 (PCCI obligatoire) | forte | en place |
-| T21 | Refus d'une requête (toutes les écritures) | Un refus (message d'erreur) annule toute la requête, y compris ce qui avait déjà été écrit : tout ou rien | Écran voisin : ARCHITECTURE (justesse des écritures avant le débit) ; PCCI § 3.3 et 3.4 | forte | en place |
+| T21 | Sommes engagées (tout le logiciel) | Une sortie saisie sur un compte et pas encore passée au grand livre réduit son disponible partout, guichet compris : prélèvement par banque (S53), DAT saisi (S65), prélèvement, virement de compte à compte, domiciliation, retrait déplacé (S116, S117). Une somme engagée ne se dépense pas deux fois | Donnée exigée ailleurs : S53-2 ; S64-2 ; S116 ; ARCHITECTURE P1 (un seul grand livre) | moyenne | en place |
 | T22 | Essais de mot de passe (toutes les connexions) | Blocage 15 minutes après 5 mots de passe refusés pour un identifiant ou 20 pour une adresse ; un refus pour une autre raison (déjà connecté) ne compte pas | Choix du porteur : Demande du porteur, 15/11/2026 (sécurité) ; Instr. BCC 008 (contrôle des accès) ; registre S01-3 | forte | en place |
 | T23 | Limite de requêtes (tout le serveur) | 300 requêtes par minute et par adresse sur /api, sur chaque instance ; au-delà, réponse 429 notée au journal de sécurité | Choix du porteur : Demande du porteur, 15/11/2026 | forte | en place |
 | T24 | Règle des mots de passe (tous les comptes utilisateurs) | 8 caractères au moins, au moins une lettre et un chiffre, différent de l'identifiant ; vaut pour tout nouveau mot de passe | Choix du porteur : Demande du porteur, 15/11/2026 ; registre S01-3 | forte | en place |
@@ -379,7 +379,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S102-7 | Type de suivi | Les types de tiers du plan des tiers (S103) : FOURNISSEUR, CLIENT, PERSONNEL, ETAT, ASSOCIE, DIVERS | Donnée exigée ailleurs : S103 Plan des tiers (p. 123) | faible | en place |
 | S102-8 | Recherche par N°compte | Montre le compte cherché, ses parents et ses comptes divisionnaires | Écran voisin : Arbre de la consultation (p. 122 et 147) | moyenne | en place |
 | S102-9 | Concordance des comptes (p. 156) | Non reprise : Likelemba n'a qu'un plan, le PCCI ; la concordance servait à passer d'un référentiel à un autre | Texte réglementaire : Instr. BCC n° 006 (PCCI seul plan) ; recon : référentiel des SFD de l'UEMOA non repris | forte | en place |
-| S102-10 | Statut Fermé, Nature Non saisible | Un compte fermé ou non saisissable ne reçoit pas d'écriture | Donnée exigée ailleurs : Saisie d'écritures (S109) | moyenne | à appliquer |
+| S102-10 | Statut Fermé, Nature Non saisible | Un compte fermé ou non saisissable ne reçoit pas d'écriture | Donnée exigée ailleurs : Saisie d'écritures (S109) | moyenne | en place |
 
 ## S103 Plan des tiers
 
@@ -1188,7 +1188,11 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S82-1 | Ordre de construction | S82 valide les opérations saisies dans Comptabilité > Autres opérations (S116, p. 134 et 135) : il se construit avec S116, à l'étape 8, comme S75 et S76 attendent le Crédit | Choix du porteur : Décision du porteur, 19/11/2026 ; texte p. 93 et 94 | forte | à faire |
+| S82-1 | Ordre de construction | S82 valide les opérations saisies dans Comptabilité > Autres opérations (S116, p. 134 et 135) : il se construit avec S116, à l'étape 8, comme S75 et S76 attendent le Crédit | Choix du porteur : Décision du porteur, 19/11/2026 ; texte p. 93 et 94 | forte | en place |
+| S82-2 | Écran | Deux onglets. Opération diverse : Date operation, Numero de piece, Libelle de l'operation, Debit, Crédit, No Client, Nom Client. Validation Opération déplacée : Date operation, N° Membre, N° Compte, Numero de piece, Nom et Prenoms, Montant. Double-clic : fenêtre N° Piece ; Compte, Libelle Detail, Montant ; Valider, Fermer ; « Voulez-vous valider cette operation diverse? » | Manuel : Captures p. 93 et 94 ; texte p. 93 | forte | en place |
+| S82-3 | Billetage | La fenêtre porte le billetage, comme tout mouvement d'espèces (décision du porteur du 19/11/2026 pour S78) ; en sortie, pas plus de coupures qu'il n'y en a en caisse | Choix du porteur : Décision du porteur, 19/11/2026 (S78) ; S74 | forte | en place |
+| S82-4 | Qui valide | Le caissier, qui n'a ni saisi ni visé ; droit S82 au caissier dès le départ (la validation se fait « à la caisse ») | Texte réglementaire : Texte p. 93 et 94 ; Instr. BCC 008, art. 66 | forte | en place |
+| S82-5 | Écriture | Journal de caisse, dans la journée ouverte. Opération diverse : caisse (570) contre les comptes saisis. Opération déplacée : caisse contre 451, puis reflet (S116-6). L'opération figure au journal de caisse (S83) comme encaissement ou décaissement divers | Texte réglementaire : PCCI, comptes 570 et 451 ; S78-4 ; S116-6 | forte | en place |
 
 ## S83 Rapport : journal des opérations de caisse
 
@@ -1528,6 +1532,68 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S106-3 | Écriture et date de règlement | Débit du compte de dépôt du client, journal des opérations diverses ; crédits comme S76-7 ; date de règlement au plus la journée ouverte et pas avant le dernier remboursement (S55-3) ; mêmes règles de répartition que S76 | Texte réglementaire : PCCI, comptes 330 et 334 ; S76-7 ; S55-3 | moyenne | en place |
 | S106-4 | Boutons et impression | B, P, M.P, R, H, Memo (p. 125) ; Imprimer, Enregistrer, Effacer (p. 157). M.P et H grisés comme S55-2. Imprimer, après l'enregistrement : pièce, date, client, crédit, compte, mandataire, montant et répartition | Écran voisin : Captures p. 125 et 157 ; texte p. 157 ; S55-2 | moyenne | en place |
 
+## S109 Saisie d'écritures
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S109-1 | Choix du journal | Journaux actifs (S30), sauf le journal des à-nouveaux ; périodes : les mois des exercices ouverts et non validés, jusqu'au mois de la journée ouverte ; le journal doit être ouvert sur l'exercice (S11c) | Manuel : Capture p. 129 (Choix du journal) ; S11-2, S11-3, S11-6 ; PCCI § 4.3.6 (bilan d'ouverture) | moyenne | en place |
+| S109-2 | Transaction | Les lignes s'ajoutent une à une. Équilibrée (au moins deux lignes, débit égal au crédit), l'écriture part au visa et la suivante commence ; sinon elle reste à compléter et revient à la réouverture du journal et de la période | Texte réglementaire : Texte p. 129 (Ajouter) ; PCCI § 3.2 (partie double) | moyenne | en place |
+| S109-3 | Jour, Réf. Pièce, Libellé | Jour et Réf. Pièce sont ceux de la première ligne ; le libellé de la première ligne est celui de la pièce, chaque ligne garde le sien. Le jour est dans la période et au plus la journée ouverte | Écran voisin : Capture p. 129 (Jour *, Réf. Pièce, Libellé *) | moyenne | en place |
+| S109-4 | Comptes tenus par la gestion | Refusés à la saisie : crédits et leurs provisions (30 à 32, 38, 39), dépôts (33 à 35), caisse (57), virements internes (59), parts sociales (103), liaison inter agences (451), comptes de banque liés à un compte bancaire. Ils se mouvementent par leur écran : gestion et comptabilité ne peuvent pas s'écarter (le contrôle d'écart, travail 119, n'est pas repris) | Donnée exigée ailleurs : ARCHITECTURE P1 ; PCCI, classes 1, 3, 4 et 5 ; atlas S118 (contrôle de compte) | moyenne | en place |
+| S109-5 | Monnaie | Saisie en francs congolais ; les opérations en devises passent par leurs écrans (banque, guichet) | Texte réglementaire : PCCI § 3.2 (comptabilité tenue en monnaie nationale) | moyenne | en place |
+| S109-6 | Supprimer et corriger | Une ligne se supprime tant que l'écriture n'est pas visée ; ensuite elle se corrige par une écriture inverse | Texte réglementaire : Texte p. 129 (Supprimer) ; PCCI § 3.3 (correction par inscription en négatif) et § 3.4 (irréversibilité) | forte | en place |
+| S109-7 | Grille, compte auxiliaire, budget | Sous les boutons (capture coupée), la grille des lignes : Compte, Intitulé, Libellé, Débit, Crédit, Total ; clic sur une ligne pour la supprimer. Compte auxiliaire : un tiers du plan des tiers (S103), porté par la ligne (état analytique, S120-4). Budget : type et ligne du référentiel (S19), Financement : le bailleur de la ligne | Écran voisin : Capture p. 129 ; S103 ; S19 ; S120-4 | faible | en place |
+| S109-8 | Chaîne et date comptable | Saisie, visa (S113), validation (S114), puis grand livre à la comptabilisation de la journée (S111), avec le N° de pièce du journal. Si le jour saisi est déjà comptabilisé, l'écriture passe dans la première journée non clôturée | Texte réglementaire : COMPLEMENTS § 6 ; PCCI § 3.4 (validation ; date de valeur dans une période clôturée) | forte | en place |
+
+## S113 Visa (sept listes)
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S113-1 | Listes | Cinq listes : Virement et prélèvement, Retrait plafond, Opérations diverses et déplacées (deux onglets), Écritures comptables, Virement compte à compte. Facture et Règlement viennent avec les factures (S107) | Manuel : Captures p. 130 à 132 | forte | en place |
+| S113-2 | Flèche ou double-clic | Flèche de visa en première colonne quand la capture la montre (virement, diverses, déplacées) ; sinon double-clic sur la ligne. L'écriture s'ouvre avec ses lignes et un bouton Visa | Manuel : Captures p. 131 et 132 ; texte p. 150 (« Sélection l'opération puis cliquez sur le bouton [Visa] ») | moyenne | en place |
+| S113-3 | Qui vise | Une autre personne que celle qui a saisi. Droits S113 et S114 au chef d'agence dès le départ, comme pour la banque (S57-3) | Texte réglementaire : Instr. BCC 008, art. 66 ; S57-1, S57-3 | forte | en place |
+| S113-4 | Après le visa | L'opération diverse ou déplacée visée se paie en caisse (S82) ; les autres passent à la validation (S114) | Manuel : COMPLEMENTS § 6 ; texte p. 93 et 94 | forte | en place |
+
+## S114 Validation (sept listes)
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S114-1 | Listes | Trois listes : Virement et prélèvement, Écritures comptables, Virement compte à compte (« Compte DAV vers un Autre Compte »). Commande, Liste de commandes, Facture et Règlement viennent avec les factures (S107) | Manuel : Captures p. 132 et 133 | forte | à appliquer |
+| S114-2 | Qui valide, date | Une autre personne que celles qui ont saisi et visé ; date de validation : la journée ouverte (aucun champ sur les captures) | Texte réglementaire : Instr. BCC 008, art. 66 ; S57-1, S57-5 | moyenne | en place |
+| S114-3 | Effet | Statut validée ; l'écriture passe au grand livre à la comptabilisation de la journée (S111), avec son N° de pièce | Écran voisin : S57-6 ; PCCI § 3.4 | moyenne | en place |
+
+## S115 Journaux comptables
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S115-1 | Source | Lignes des journées comptabilisées seulement (T13), montants en francs congolais | Texte réglementaire : PCCI § 3.2, 3.3 et 3.4 ; T13 | forte | en place |
+| S115-2 | Journal centralisé | Sans journal choisi (« Journal centralisé ») : les totaux par journal et par compte ; avec un journal : ses lignes une à une | Texte réglementaire : Capture p. 133 (Journal : Journal centralisé) ; PCCI § 3.3 (centralisation au moins mensuelle) | faible | en place |
+| S115-3 | Critères | Exercice (l'exercice actif par défaut), Mois (vide : tout l'exercice), Type journal (types de S30), Mouvement (Débit ou Crédit), Montant (égal), Utilisateur (celui qui a saisi), Numéro de pièce et Libellé : commençant par, contenant, terminant par | Manuel : Capture p. 133 (Critères recherche) | moyenne | en place |
+| S115-4 | Exporter | Export de la grille vers Excel (T04) | Règle générale du manuel : Capture p. 133 (Exporter) ; manuel p. 9 | forte | en place |
+
+## S116 Autres opérations
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S116-1 | Onglets et chaînes | Quatre onglets : Virement/Prélèvement, Virement compte à compte, Opération diverse, Operations deplacées. Les deux premiers : visa, validation, comptabilisation ; les deux derniers : visa puis paiement en caisse (S82) | Manuel : Captures p. 134 et 135 ; texte p. 160 et 161 ; COMPLEMENTS § 6 | forte | en place |
+| S116-2 | Virement / Prélèvement | Le compte du client contre un compte du plan (plusieurs avec la case « Type écriture Multiligne », lignes ajoutées une à une). Virement : le compte du client est crédité ; prélèvement : il est débité, dans la limite du disponible. Compte de contrepartie : hors comptes tenus par la gestion (S109-4) | Manuel : Capture p. 134 ; texte p. 161 ; liste de validation p. 132 (prélèvement d'une taxe) | moyenne | en place |
+| S116-3 | Compte à compte | Emetteur, Suivant, Recepteur, Enregistrer. « Compte DAV vers un Autre Compte » : l'émetteur est un compte d'épargne à vue ; « Compte Tontine vers un Compte DAV » : émetteur tontine, récepteur à vue. Même devise ; dans le disponible de l'émetteur ; sans frais | Texte réglementaire : Capture p. 134 ; texte p. 160 ; Instr. BCC 37, annexe, point 2 ; PCCI (pas d'opération de change) | forte | en place |
+| S116-4 | Opération diverse | Type opération : Décaissement divers ou Encaissement divers ; compte hors comptes tenus par la gestion ; francs congolais ; budget facultatif ; case « Opération multiligne ». Grille des opérations saisies avec dates de visa et de validation. Une opération sur le compte d'un client se saisit dans Virement/Prélèvement : les colonnes No Client et Nom Client de la caisse restent vides | Manuel : Capture p. 135 ; texte p. 161 | moyenne | en place |
+| S116-5 | Opération déplacée | Dépôt ou retrait d'un client d'une autre agence. Agence : celle du client, autre que celle de l'utilisateur ; le N° Compte est vérifié chez un client de cette agence ; un retrait reste dans le disponible ; date : la journée ouverte | Manuel : Capture p. 135 ; texte p. 94 (« opérations effectuées par les clients d'une agence dans une autre agence ») | moyenne | en place |
+| S116-6 | Écritures de l'opération déplacée | À la caisse qui paie : caisse (570) contre le compte de liaison 451. Reflet dans l'agence du client : 451 contre son compte de dépôt, de montant égal et de signe contraire ; il passe tout de suite si cette agence a une journée ouverte, sinon à sa prochaine comptabilisation | Texte réglementaire : PCCI, compte 45 (réciprocité ; le mouvement et son reflet ne passent pas nécessairement dans la même journée) | forte | en place |
+| S116-7 | Date et double envoi | Date de l'opération au plus la journée ouverte ; une même saisie envoyée deux fois ne crée qu'une opération | Écran voisin : S52-2 ; ARCHITECTURE (clé d'idempotence) | forte | en place |
+
+## S117 Virements mensuels
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S117-1 | Onglets | Domiciliation salaire (capture « Virement de salaire ») et Prélèvement automatique (en panne dans le manuel : même écran, sens inverse). Salaire du personnel vient avec la Paie (S133 à S135) | Écran voisin : Captures p. 136 ; atlas S117 | moyenne | à appliquer |
+| S117-2 | Domiciliation | Information Institution : le client qui paie les salaires (N°institution recherché, Nom, Intitulé compte : le produit, Compte interne : son compte chez nous). Salaire total à verser : égal à la somme de la liste. Comptes de la liste dans la devise du compte de l'institution ; total dans son disponible | Écran voisin : Capture p. 136 | moyenne | en place |
+| S117-3 | Commission | Aucune : le champ reste à l'écran, à zéro et non saisissable ; le serveur refuse toute commission (écart E28) | Texte réglementaire : Instr. BCC 37, art. 2 et 3, annexe, points 1 (domiciliation de salaire) et 2 (virement de compte à compte) | forte | en place |
+| S117-4 | Choose, Upload, Cancel | Fichier texte de la liste : une ligne par compte, « N° compte ; montant » ; chaque compte est vérifié | Écran voisin : Capture p. 136 (Choose, Upload, Cancel) | faible | en place |
+| S117-5 | Enregistrer et suite | Bouton Enregistrer sous la liste (capture coupée) : le lot part au visa dans « Virement et prélèvement » (une ligne), puis à la validation ; la comptabilisation passe une seule écriture : le compte de l'institution débité du total, chaque compte crédité de son salaire | Écran voisin : Capture p. 136 ; COMPLEMENTS § 6 ; Instr. BCC 008, art. 66 | moyenne | en place |
+| S117-6 | Prélèvement automatique | Même écran : chaque compte de la liste est débité, dans son disponible, et le compte de l'institution crédité. Le lot se lance chaque mois par l'utilisateur ; pas d'exécution sans intervention | Écran voisin : Manuel p. 136 (« l'onglet ne marche pas ») ; Instr. BCC 37, annexe, point 1 (autorisation de prélèvement gratuite) | faible | en place |
+
 ## Les décisions faibles, à regarder en premier
 
 | N° | Écran | Question | Réponse retenue |
@@ -1592,3 +1658,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S101-6 | S101 Rapports crédit | Taux de remboursements | Échéances dues dans la période, par agent et devise : montant échu, part couverte par les paiements faits au plus tard à la date de fin (dans l'ordre des échéances, comme le retard de S76), impayé, taux = remboursé / échu |
 | S101-7 | S101 Rapports crédit | Encours prévisionnel | À partir de la journée, pour chaque mois de la période : capital et intérêts attendus selon les échéanciers, encours prévu en fin de mois (l'impayé reste dans l'encours) |
 | S101-10 | S101 Rapports crédit | Indicateur de gestion : emprunteurs par agent | Le nombre d'emprunteurs actifs divisé par le nombre d'agents de crédit qui gèrent un crédit en cours, sans le « x 100 » de l'annexe : la norme (> 130) est un nombre d'emprunteurs. À confirmer par le porteur |
+| S109-7 | S109 Saisie d'écritures | Grille, compte auxiliaire, budget | Sous les boutons (capture coupée), la grille des lignes : Compte, Intitulé, Libellé, Débit, Crédit, Total ; clic sur une ligne pour la supprimer. Compte auxiliaire : un tiers du plan des tiers (S103), porté par la ligne (état analytique, S120-4). Budget : type et ligne du référentiel (S19), Financement : le bailleur de la ligne |
+| S115-2 | S115 Journaux comptables | Journal centralisé | Sans journal choisi (« Journal centralisé ») : les totaux par journal et par compte ; avec un journal : ses lignes une à une |
+| S117-4 | S117 Virements mensuels | Choose, Upload, Cancel | Fichier texte de la liste : une ligne par compte, « N° compte ; montant » ; chaque compte est vérifié |
+| S117-6 | S117 Virements mensuels | Prélèvement automatique | Même écran : chaque compte de la liste est débité, dans son disponible, et le compte de l'institution crédité. Le lot se lance chaque mois par l'utilisateur ; pas d'exécution sans intervention |

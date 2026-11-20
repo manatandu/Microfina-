@@ -795,7 +795,7 @@ const OUT = process.argv[2];
   // 1 500 USD dépasse le retrait plafonné : en attente du visa « Retrait plafond » (registre S08-5)
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByRole('dialog', { name: 'Succès' }).getByText(/attend le visa/).waitFor(); await etape('11a-retrait-en-attente'); await p.getByRole('button', { name: 'Ok' }).click();
-  await login('Patrick Lumbala'); await aller('/comptabilite/s113');
+  await login('Patrick Lumbala'); await aller('/comptabilite/s113'); await p.getByRole('tab', { name: 'Retrait plafond' }).click();
   await p.getByRole('cell', { name: '0412-000318-01', exact: true }).waitFor(); await etape('11b-viser-retrait-plafonne');
   await p.getByRole('button', { name: /^Viser Retrait espèces/ }).click(); await ok();
   await p.getByRole('cell', { name: 'Aucune information' }).waitFor();
@@ -1011,6 +1011,34 @@ const OUT = process.argv[2];
   await p.getByLabel('Rechercher par :').selectOption({ label: 'Libellé' }); await p.getByLabel('Valeur :').fill('Versement en banque');
   await p.getByRole('button', { name: 'Rechercher', exact: true }).click();
   await p.getByRole('row').filter({ hasText: 'Versement en banque, chèque 0001234' }).getByRole('cell', { name: '1 000,00 CDF' }).waitFor(); await etape('14g-journal-caisse');
+  // Comptabilité : saisie d'écriture (S109, p. 128 et 129), autres opérations (S116, p. 133 à 135), virements mensuels (S117, p. 136)
+  await login('Patrick Lumbala'); await aller('/comptabilite/s109');
+  const cj = p.getByRole('dialog', { name: 'Choix du journal' });
+  await cj.getByLabel('Journal:').selectOption({ label: 'Opérations diverses' }); await cj.getByLabel('Période:').selectOption('11/2026'); await etape('14h-choix-journal');
+  await cj.getByRole('button', { name: 'OK' }).click();
+  await p.getByLabel('Jour: *').fill('5'); await p.getByLabel('Libellé: *').fill('Honoraires'); await p.getByLabel('Compte: *').fill('461'); await p.getByLabel('Crédit: *').fill('2500');
+  await p.getByRole('button', { name: 'Ajouter' }).click(); await p.getByRole('cell', { name: '461', exact: true }).waitFor();
+  await p.getByLabel('Compte: *').fill('610'); await p.getByLabel('Débit: *').fill('2500'); await p.getByRole('button', { name: 'Ajouter' }).click();
+  await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click(); await etape('14i-saisie-ecriture');
+  await aller('/comptabilite/s116'); await p.getByRole('heading', { name: 'Autres opérations' }).waitFor(); await etape('14j-virement-prelevement');
+  await p.getByRole('tab', { name: 'Virement compte à compte' }).click(); await etape('14k-compte-a-compte');
+  await p.getByRole('tab', { name: 'Operations deplacées' }).click(); await etape('14l-operations-deplacees');
+  await p.getByRole('tab', { name: 'Opération diverse' }).click();
+  await p.getByLabel('Compte *').fill('610'); await p.getByLabel('Libelle *').fill("Prime d'assurance"); await p.getByLabel('Montant *').fill('10000');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: "Prime d'assurance" }).waitFor(); await etape('14m-operation-diverse');
+  await aller('/comptabilite/s117'); await p.getByRole('heading', { name: 'Virement de salaire' }).waitFor(); await etape('14n-virement-salaire');
+  // Chef d'agence : visa de l'écriture et de l'opération diverse (S113, p. 130 à 132) ; il n'a pas saisi (Instr. BCC 008, art. 66)
+  await login('J.-P. Mukendi'); await aller('/comptabilite/s113');
+  await p.getByRole('tab', { name: 'Écritures comptables' }).click(); await p.getByRole('row').filter({ hasText: 'Honoraires' }).dblclick();
+  await p.getByRole('dialog', { name: 'Ecriture à viser' }).getByRole('button', { name: 'Visa' }).click(); await oui(); await etape('14o-visa-ecriture');
+  await p.getByRole('tab', { name: 'Opérations diverses et déplacées' }).click(); await p.getByRole('button', { name: "Visa Prime d'assurance" }).click(); await oui(); await etape('14p-visa-diverse');
+  await aller('/comptabilite/s114'); await p.getByRole('heading', { name: 'Validation', exact: true }).waitFor(); await etape('14p2-validation');
+  // Caissière : validation en caisse de l'opération diverse, avec son billetage (S82, p. 93 et 94)
+  await login('Esther Ngalula'); await aller('/caisse/s82'); await p.getByRole('row').filter({ hasText: "Prime d'assurance" }).dblclick();
+  const vd = p.getByRole('dialog', { name: 'Opération diverse' });
+  await vd.getByLabel('Nombre de coupures de 10 000 CDF').fill('1'); await etape('14q-validation-caisse');
+  await vd.getByRole('button', { name: 'Valider' }).click(); await oui(); await vd.getByRole('button', { name: 'Fermer' }).click();
+  await p.getByText('No records found.').waitFor(); await etape('14r-operation-payee');
   // Arrêté de caisse
   // Le stock de la caisse, par coupure, se lit dans la fenêtre Billetage d'un retrait (S74) ; l'arrêté compte juste
   const stock = {};
@@ -1052,6 +1080,8 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Comptabiliser' }).click(); await ok(); await p.getByText('Aucune journée à comptabiliser.').waitFor();
   await etape('17-journee-fermee');
   await login('Patrick Lumbala'); await p.goto(B + '/comptabilite/s121'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByText(/Équilibrée/).waitFor(); await etape('18-balance');
+  // Journaux comptables (S115, p. 133) : lignes définitives, journal centralisé
+  await aller('/comptabilite/s115'); await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByRole('cell', { name: /^CA / }).first().waitFor(); await etape('18e-journaux-comptables');
   // Grand livre (S120, p. 138) : écritures définitives de la journée comptabilisée ; taxes (S104, p. 124) et plan des tiers (S103, p. 123)
   await aller('/comptabilite/s120'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('rowheader', { name: 'Total général' }).waitFor(); await etape('18b-grand-livre');
   await aller('/comptabilite/s104'); await p.getByLabel('Code *').fill('TVA'); await p.getByLabel('Désignation *').fill('Taxe sur la valeur ajoutée'); await p.getByLabel('Taux *').fill('16');

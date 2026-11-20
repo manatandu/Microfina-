@@ -3581,3 +3581,395 @@ def test_comptabilisation_banque(clients, journee):
     an = compta.get(f"/api/comptabilite/balance?{q}&analytique=true&compteDe=33&compteA=37", **H).json()["lignes"]
     assert all(x["auxiliaire"].startswith("depot:") for x in an) and an
     assert caisse.get(f"/api/comptabilite/balance?{q}", **H).status_code == 403
+
+
+# ---------- Comptabilité : opérations saisies, visées, validées (S109, S113, S114, S115, S116, S117) et payées en caisse (S82) ----------
+OC = "/api/comptabilite/operations"
+
+
+def comptabiliser_journee(clients, journee):
+    """Billetages arrêtés et validés, puis Comptabiliser (S111)"""
+    chef, compta, caisse = clients["chef"], clients["compta"], clients["caisse"]
+    sid = journee[1]["id"]
+    for dv in ("CDF", "USD"):
+        th = caisse.get(f"/api/caisses/{sid}/theorique?devise={dv}").json()
+        caisse.post(f"/api/caisses/{sid}/billetages", {"devise": dv, "compte": th}, **H)
+    for b in chef.get("/api/billetages/a-valider").json():
+        chef.post(f"/api/billetages/{b['id']}/validation", **H)
+    r = compta.post(f"/api/comptabilite/comptabilisation/{journee[0]['id']}", **H)
+    assert r.status_code == 200 and r.json()["statut"] == "fermee", r.content
+
+
+def viser_valider(clients, oid):
+    """Le chef vise, l'agent valide (droit S114 donné pour l'essai) : trois personnes distinctes (Instr. BCC 008, art. 66)"""
+    from noyau.bd import executer
+    executer("""insert into profil_droit (profil_id, droit_code) select id, 'S114' from profil p where code = 'agent_credit'
+                and not exists (select 1 from profil_droit x where x.profil_id = p.id and x.droit_code = 'S114')""")
+    assert clients["chef"].post(f"{OC}/{oid}/visa", **H).json()["statut"] == "visee"
+    r = clients["agent"].post(f"{OC}/{oid}/validation", {}, **H)
+    assert r.status_code == 200 and r.json()["statut"] == "validee", r.content
+
+
+def solde_compte(n):
+    return ident("""select coalesce(sum(case when l.sens = 'D' then l.montant_devise else -l.montant_devise end), 0) from ligne_ecriture l
+                    join compte c on c.id = l.compte_id where c.numero = %s""", (n,))
+
+
+def test_saisie_ecriture(clients, journee):
+    """S109 (p. 128 et 129) : choix du journal et de la période, lignes ajoutées une à une ; l'écriture équilibrée part au visa (S113), puis à la validation
+    (S114) et passe à la comptabilisation (S111) ; journaux comptables (S115). Registre S109-1 à S109-6, S102-10."""
+    chef, compta, agent, caisse = clients["chef"], clients["compta"], clients["agent"], clients["caisse"]
+    ctx = compta.get(f"{OC}/contexte", **H).json()
+    od = next(j["id"] for j in ctx["journaux"] if j["code"] == "OD")
+    assert "11/2026" in ctx["periodes"] and "12/2026" not in ctx["periodes"] and all(j["type"] != "a_nouveaux" for j in ctx["journaux"])
+    assert caisse.get(f"{OC}/contexte", **H).status_code == 403
+    base = {"journalId": od, "periode": "11/2026"}
+    assert compta.post("/api/comptabilite/ecritures/ouverture", base, **H).json()["id"] is None
+    def refus(corps):
+        r = compta.post("/api/comptabilite/ecritures/lignes", corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    l1 = {**base, "jour": 5, "reference": "FA-12", "libelle": "Honoraires", "compte": "461", "credit": 250000}
+    assert "Jour" in refus({**l1, "jour": 31})
+    assert "pas après la journée ouverte" in refus({**l1, "jour": 6})
+    assert "tenu par la gestion" in refus({**l1, "compte": "570"})
+    assert "tenu par la gestion" in refus({**l1, "compte": "330"})
+    assert "n'est pas un compte du plan" in refus({**l1, "compte": "6"}) or "saisissable" in refus({**l1, "compte": "6"})
+    assert "Débit ou Crédit" in refus({**l1, "debit": 5})
+    assert "Période" in refus({**l1, "periode": "12/2026"})
+    assert "Libellé" in refus({**l1, "libelle": " "})
+    e = compta.post("/api/comptabilite/ecritures/lignes", l1, **H).json()
+    assert (e["statut"], e["credit"], len(e["lignes"]), e["jour"], e["reference"]) == ("brouillon", 250000, 1, 5, "FA-12")
+    assert compta.get(f"{OC}/visas/visa/ecriture", **H).json() == []                      # pas équilibrée : pas au visa
+    suite = {**base, "id": e["id"], "libelle": "Honoraires du mois"}
+    compta.post("/api/comptabilite/ecritures/lignes", {**suite, "compte": "610", "debit": 200000}, **H)
+    e = compta.post("/api/comptabilite/ecritures/lignes", {**suite, "compte": "612", "debit": 50000}, **H).json()
+    assert (e["statut"], e["debit"], e["credit"]) == ("saisie", 250000, 250000)
+    e = compta.post(f"/api/comptabilite/ecritures/{e['id']}/lignes/3/suppression", **H).json()
+    assert e["statut"] == "brouillon" and len(e["lignes"]) == 2
+    assert compta.post("/api/comptabilite/ecritures/ouverture", base, **H).json()["id"] == e["id"]      # la transaction à compléter revient
+    e = compta.post("/api/comptabilite/ecritures/lignes", {**base, "libelle": "Honoraires du mois", "compte": "612", "debit": 50000}, **H).json()
+    v = compta.get(f"{OC}/visas/visa/ecriture", **H).json()
+    assert [(x["id"], x["montant"], x["date"], x["libelle"]) for x in v] == [(e["id"], 250000, "2026-11-05", "Honoraires")]
+    assert "Quatre yeux" in compta.post(f"{OC}/{e['id']}/visa", **H).json()["message"]
+    assert agent.post(f"{OC}/{e['id']}/visa", **H).status_code == 403
+    viser_valider(clients, e["id"])
+    assert "déjà visée" in refus({**suite, "compte": "610", "debit": 1})
+    assert "déjà visée" in compta.post(f"/api/comptabilite/ecritures/{e['id']}/lignes/1/suppression", **H).json()["message"]
+    assert compta.post("/api/comptabilite/ecritures/ouverture", base, **H).json()["id"] is None        # écriture partie : nouvelle transaction
+    att = [x for x in compta.get(f"/api/comptabilite/comptabilisation/{journee[0]['id']}", **H).json()["lignes"] if not x["piece"]]
+    assert sorted((x["compte"], x["debit"], x["credit"]) for x in att) == [("461", 0, 250000), ("610", 200000, 0), ("612", 50000, 0)]
+    comptabiliser_journee(clients, journee)
+    assert (solde_compte("461"), solde_compte("610"), solde_compte("612")) == (-250000, 200000, 50000)
+    assert ident("select statut || ' ' || (piece like '%%OD%%') from operation_comptable where id = %s", (e["id"],)) == "comptabilisee true"
+    assert balance_equilibree(compta)
+    # S115 : journaux comptables, lignes définitives ; journal centralisé : totaux par journal et par compte
+    jc = compta.get("/api/comptabilite/journaux-comptables/contexte", **H).json()
+    assert jc["exerciceActif"] == 2026 and len(jc["mois"]) == 12
+    q = lambda **k: compta.get("/api/comptabilite/journaux-comptables", {"exercice": 2026, "mois": 11, **k}, **H).json()
+    j = q(journalId=od)
+    assert sorted((x["compte"], x["debit"], x["credit"]) for x in j["lignes"]) == [("461", 0, 250000), ("610", 200000, 0), ("612", 50000, 0)]
+    assert j["totalDebit"] == j["totalCredit"] == 250000
+    assert [x["compte"] for x in q(journalId=od, mouvement="C")["lignes"]] == ["461"]
+    assert [x["compte"] for x in q(journalId=od, montant=200000)["lignes"]] == ["610"]
+    assert q(journalId=od, libelle="onoraires", libelleMode="debut")["lignes"] == [] and len(q(journalId=od, libelle="onoraires", libelleMode="contient")["lignes"]) == 3
+    c = q(type="operations_diverses")
+    assert all(x["journal"].startswith("OD") for x in c["lignes"]) and c["totalDebit"] == c["totalCredit"]
+    assert q(mois=10)["lignes"] == [] and "Exercice" in compta.get("/api/comptabilite/journaux-comptables", **H).json()["message"]
+    assert caisse.get("/api/comptabilite/journaux-comptables?exercice=2026", **H).status_code == 403
+
+
+def test_autres_operations(clients, journee):
+    """S116 (p. 133 à 135 ; 160 et 161) : virement et prélèvement sur le compte d'un client, compte à compte ; visa (S113), validation (S114),
+    comptabilisation (S111). Le disponible tient compte des sorties saisies (registre T21). Sans frais (Instr. BCC 37)."""
+    compta, caisse, chef = clients["compta"], clients["caisse"], clients["chef"]
+    kalala, autre = T("0412-000318"), T("0412-000319")
+    comptes = lambda tid: compta.get(f"{OC}/comptes/{tid}", **H).json()
+    k = next(x for x in comptes(kalala) if x["devise"] == "CDF" and x["famille"] == "EPARGNE")
+    r = next(x for x in comptes(autre) if x["devise"] == "CDF")
+    usd = next(x for x in comptes(autre) if x["devise"] == "USD")
+    assert k["numeroComptable"] == "330" and k["solde"] > 0
+    def refus(chemin, corps):
+        x = compta.post(f"{OC}/{chemin}", corps, **H); assert x.status_code in (403, 422), x.content; return x.json()["message"]
+    v = {"cle": cle(), "type": "prelevement", "date": "2026-11-05", "compteDepotId": k["id"], "lignes": [{"compte": "727", "libelle": "Commission de tenue", "montant": 5000}]}
+    assert "Type opération" in refus("virement", {**v, "type": ""})
+    assert "N° Compte" in refus("virement", {**v, "compteDepotId": None})
+    assert "tenu par la gestion" in refus("virement", {**v, "lignes": [{"compte": "570", "libelle": "x", "montant": 5}]})
+    assert "multiligne" in refus("virement", {**v, "lignes": v["lignes"] * 2})
+    assert "insuffisant" in refus("virement", {**v, "lignes": [{"compte": "727", "libelle": "x", "montant": k["solde"] + 100}]})
+    assert "dépasser la journée" in refus("virement", {**v, "date": "2026-11-06"})
+    p = compta.post(f"{OC}/virement", v, **H).json()
+    assert (p["statut"], p["debit"], p["credit"], p["compteEpargne"], p["numeroComptable"]) == ("saisie", 5000, 0, k["numero"], "330")
+    assert compta.post(f"{OC}/virement", v, **H).json()["id"] == p["id"]                           # même clé : la même opération
+    assert next(x for x in comptes(kalala) if x["id"] == k["id"])["solde"] == k["solde"] - 5000   # la sortie saisie réduit le disponible (T21)
+    guichet = next(x for x in caisse.get(f"/api/tiers/{kalala}/comptes", **H).json() if x["id"] == k["id"])
+    assert guichet["disponible"] == k["solde"] - 5000 and guichet["solde"] == k["solde"] + guichet["bloque"]
+    vi = compta.post(f"{OC}/virement", {"cle": cle(), "type": "virement", "compteDepotId": k["id"], "multiligne": True,
+                                        "lignes": [{"compte": "610", "libelle": "Intérêts du mois", "montant": 300}, {"compte": "612", "libelle": "Bonus", "montant": 200}]}, **H).json()
+    assert (vi["credit"], vi["debit"], vi["montant"]) == (500, 0, 500)
+    # compte à compte : même devise, émetteur à vue, disponible
+    c = {"cle": cle(), "onglet": "dav", "emetteurId": k["id"], "recepteurId": r["id"], "montant": 20000}
+    assert "même devise" in refus("compte-a-compte", {**c, "recepteurId": usd["id"]})
+    assert "autre compte" in refus("compte-a-compte", {**c, "recepteurId": k["id"]})
+    assert "insuffisant" in refus("compte-a-compte", {**c, "montant": k["solde"]})                  # 5 000 déjà engagés
+    assert "compte tontine" in refus("compte-a-compte", {**c, "onglet": "tontine"})
+    cc = compta.post(f"{OC}/compte-a-compte", c, **H).json()
+    assert (cc["type"], cc["compteEmetteur"], cc["compteRecepteur"], cc["montant"]) == ("compte_a_compte", k["numero"], r["numero"], 20000)
+    assert [x["id"] for x in compta.get(f"{OC}/visas/visa/virement", **H).json()] == [p["id"], vi["id"]]
+    assert [x["id"] for x in compta.get(f"{OC}/visas/visa/compte_a_compte", **H).json()] == [cc["id"]]
+    assert [x["id"] for x in compta.get(f"{OC}/saisies/prelevement", **H).json()] == [p["id"]]
+    assert "Liste inconnue" in compta.get(f"{OC}/visas/validation/diverse", **H).json()["message"]
+    for o in (p, vi, cc):
+        viser_valider(clients, o["id"])
+    assert [x["id"] for x in chef.get(f"{OC}/visas/validation/virement", **H).json()] == []
+    comptabiliser_journee(clients, journee)
+    apres_k, apres_r = next(x for x in comptes(kalala) if x["id"] == k["id"]), next(x for x in comptes(autre) if x["id"] == r["id"])
+    assert (apres_k["solde"], apres_r["solde"]) == (k["solde"] - 5000 + 500 - 20000, r["solde"] + 20000)
+    assert (solde_compte("727"), solde_compte("610"), solde_compte("612")) == (-5000, 300, 200)
+    assert ident("select count(*) from operation_comptable where statut = 'comptabilisee' and piece <> ''") == 3
+    assert balance_equilibree(compta)
+
+
+def test_operations_diverses_et_deplacees(clients, journee):
+    """S116 (p. 134 et 135), S113 (visa), S82 (p. 93 et 94) : l'opération diverse et l'opération déplacée sont saisies en comptabilité, visées, puis payées
+    en caisse avec leur billetage ; l'opération déplacée passe par le compte de liaison 451 et son reflet dans l'agence du client (PCCI, compte 45)."""
+    chef, compta, caisse, agent = clients["chef"], clients["compta"], clients["caisse"], clients["agent"]
+    sid = journee[1]["id"]
+    def refus(c, chemin, corps):
+        x = c.post(chemin, corps, **H); assert x.status_code in (403, 422), x.content; return x.json()["message"]
+    d = {"cle": cle(), "sens": "DECAISSEMENT", "date": "2026-11-05", "lignes": [{"compte": "610", "libelle": "Prime d'assurance", "montant": 5000000}]}
+    assert "Type opération" in refus(compta, f"{OC}/diverse", {**d, "sens": "X"})
+    assert "tenu par la gestion" in refus(compta, f"{OC}/diverse", {**d, "lignes": [{"compte": "570", "libelle": "x", "montant": 5}]})
+    o = compta.post(f"{OC}/diverse", d, **H).json()
+    assert (o["statut"], o["debit"], o["credit"], o["dateVisa"]) == ("saisie", 5000000, 0, "")
+    e = compta.post(f"{OC}/diverse", {"cle": cle(), "sens": "ENCAISSEMENT", "lignes": [{"compte": "727", "libelle": "Vente de carnets", "montant": 1000000}]}, **H).json()
+    assert [x["id"] for x in compta.get(f"{OC}/visas/visa/diverse", **H).json()] == [o["id"], e["id"]]
+    assert caisse.get("/api/caisse/operations-compta/diverse", **H).json() == []                   # pas visées : rien à la caisse
+    for x in (o, e):
+        assert chef.post(f"{OC}/{x['id']}/visa", **H).json()["statut"] == "visee"
+    assert "Rien à valider" in refus(agent, f"{OC}/{o['id']}/validation", {}) or "Droit manquant" in refus(agent, f"{OC}/{o['id']}/validation", {})
+    file = caisse.get("/api/caisse/operations-compta/diverse", **H).json()
+    assert [(x["id"], x["debit"], x["credit"], x["lignes"][0]["compte"]) for x in file] == [(o["id"], 5000000, 0, "610"), (e["id"], 0, 1000000, "727")]
+    avant = caisse.get(f"/api/caisses/{sid}/theorique?devise=CDF").json()
+    cp, _ = billets(avant, 5000000)
+    assert "billetage" in refus(caisse, f"/api/caisse/operations-compta/{o['id']}/validation", {"cle": cle(), "coupures": {}})
+    k1 = cle()
+    r = caisse.post(f"/api/caisse/operations-compta/{o['id']}/validation", {"cle": k1, "coupures": cp}, **H)
+    assert r.status_code == 200 and (r.json()["statut"], "CA" in r.json()["piece"]) == ("payee", True), r.content
+    assert "Rien à valider" in refus(caisse, f"/api/caisse/operations-compta/{o['id']}/validation", {"cle": cle(), "coupures": cp})
+    assert caisse.post(f"/api/caisse/operations-compta/{e['id']}/validation", {"cle": cle(), "coupures": {"10000": 1}}, **H).json()["statut"] == "payee"
+    apres = caisse.get(f"/api/caisses/{sid}/theorique?devise=CDF").json()
+    assert sum(int(v) * n for v, n in apres.items()) - sum(int(v) * n for v, n in avant.items()) == (1000000 - 5000000) // 100
+    assert (solde_compte("610"), solde_compte("727")) == (5000000, -1000000)
+    # Opération déplacée : un client d'une autre agence dépose ici ; 451 ici, reflet dans son agence dès qu'elle a une journée ouverte
+    from noyau.bd import executer, valeur
+    ag2 = valeur("insert into agence (institution_id, code, nom) select institution_id, '0413', 'Limete' from agence limit 1 returning id")
+    tid = T("0412-000319")
+    executer("update tiers set agence_id = %s where id = %s", (ag2, tid))
+    num = ident("select numero from compte_depot where tiers_id = %s and trim(devise) = 'CDF' order by numero limit 1", (tid,))
+    cid = ident("select id from compte_depot where numero = %s", (num,))
+    ici = ident("select agence_id from utilisateur where login = 'plumbala'")
+    dp = {"cle": cle(), "agenceId": ag2, "sens": "DEPOT", "reference": "AV-7", "numeroClient": "0412-000319", "nom": "Mbuyi Paul", "numeroCompte": num, "montant": 3000000}
+    assert "autre que la vôtre" in refus(compta, f"{OC}/deplacee", {**dp, "agenceId": ici})
+    assert "aucun compte" in refus(compta, f"{OC}/deplacee", {**dp, "numeroCompte": "0412-000318-02"})
+    assert "Nom et Prenoms" in refus(compta, f"{OC}/deplacee", {**dp, "nom": ""})
+    dep = compta.post(f"{OC}/deplacee", dp, **H).json()
+    assert (dep["statut"], dep["sens"], dep["agenceClient"], dep["nomClient"], dep["compteEpargne"]) == ("saisie", "DEPOT", "Limete", "Mbuyi Paul", num)
+    ret = compta.post(f"{OC}/deplacee", {**dp, "cle": cle(), "sens": "RETRAIT", "montant": 1000000}, **H).json()
+    assert "insuffisant" in refus(compta, f"{OC}/deplacee", {**dp, "cle": cle(), "sens": "RETRAIT", "montant": 10**12})
+    for x in (dep, ret):
+        chef.post(f"{OC}/{x['id']}/visa", **H)
+    assert [x["id"] for x in caisse.get("/api/caisse/operations-compta/deplacee", **H).json()] == [dep["id"], ret["id"]]
+    solde_client = lambda: ident("select coalesce(sum(case sens when 'C' then montant_devise else -montant_devise end), 0) from ligne_ecriture where contrat_ref = %s", (f"depot:{cid}",))
+    s0 = solde_client()
+    assert caisse.post(f"/api/caisse/operations-compta/{dep['id']}/validation", {"cle": cle(), "coupures": {"10000": 3}}, **H).json()["statut"] == "payee"
+    assert (solde_compte("451"), solde_client() - s0) == (-3000000, 0)                                # l'agence du client n'a pas de journée ouverte : reflet en attente
+    executer("insert into journee_comptable (agence_id, date_comptable, statut, ouverte_par) select %s, '2026-11-05', 'ouverte', id from utilisateur where login = 'jpmukendi'", (ag2,))
+    assert caisse.post(f"/api/caisse/operations-compta/{ret['id']}/validation", {"cle": cle(), "coupures": {"10000": 1}}, **H).json()["statut"] == "payee"
+    assert ident("select reflet_ecriture_id is not null from operation_comptable where id = %s", (ret["id"],)) is True
+    assert solde_client() - s0 == -1000000                                                             # reflet du retrait passé tout de suite
+    # le reflet du dépôt passe à la comptabilisation de l'agence du client
+    from noyau import comptabilisation
+    u2 = {"id": ident("select id from utilisateur where login = 'jpmukendi'"), "institution_id": ident("select institution_id from agence where id = %s", (ag2,)), "agence_id": ag2}
+    j2 = __import__("noyau.bd", fromlist=["une"]).une("select * from journee_comptable where agence_id = %s", (ag2,))
+    assert comptabilisation.passer(u2, j2) == 1
+    assert (solde_compte("451"), solde_client() - s0) == (0, 2000000)
+    assert balance_equilibree(compta)
+
+
+def test_virements_mensuels(clients, journee):
+    """S117 (p. 135 et 136) : domiciliation de salaire, du compte de l'institution vers les comptes de la liste ; prélèvement automatique, l'inverse.
+    Aucune commission (Instr. BCC 37, annexe). Registre S117-1 à S117-4."""
+    compta = clients["compta"]
+    kalala, autre = T("0412-000318"), T("0412-000319")
+    comptes = lambda tid: compta.get(f"{OC}/comptes/{tid}", **H).json()
+    inst = next(x for x in comptes(kalala) if x["devise"] == "CDF" and x["famille"] == "EPARGNE")
+    emp = next(x for x in comptes(autre) if x["devise"] == "CDF")
+    usd = next(x for x in comptes(autre) if x["devise"] == "USD")
+    def refus(corps):
+        x = compta.post(f"{OC}/mensuel", corps, **H); assert x.status_code in (403, 422), x.content; return x.json()["message"]
+    d = {"cle": cle(), "mode": "domiciliation", "compteInstitutionId": inst["id"], "total": 60000, "lignes": [{"compteDepotId": emp["id"], "montant": 60000, "commission": 0}]}
+    assert "Commission : aucune" in refus({**d, "lignes": [{"compteDepotId": emp["id"], "montant": 60000, "commission": 500}]})
+    assert "Salaire total" in refus({**d, "total": 50000})
+    assert "devise" in refus({**d, "lignes": [{"compteDepotId": usd["id"], "montant": 60000}]})
+    assert "déjà dans la liste" in refus({**d, "total": 120000, "lignes": d["lignes"] * 2})
+    assert "au moins un compte" in refus({**d, "lignes": []})
+    o = compta.post(f"{OC}/mensuel", d, **H).json()
+    assert (o["type"], o["debit"], o["montant"], o["lignes"][0]["numero"]) == ("domiciliation", 60000, 60000, emp["numero"])
+    pa = compta.post(f"{OC}/mensuel", {"cle": cle(), "mode": "prelevement", "compteInstitutionId": inst["id"], "lignes": [{"compteDepotId": emp["id"], "montant": 1500}]}, **H).json()
+    assert (pa["type"], pa["credit"]) == ("prelevement_auto", 1500)
+    assert next(x for x in comptes(autre) if x["id"] == emp["id"])["solde"] == emp["solde"] - 1500     # engagé (T21)
+    assert [x["id"] for x in compta.get(f"{OC}/visas/visa/virement", **H).json()] == [o["id"], pa["id"]]
+    for x in (o, pa):
+        viser_valider(clients, x["id"])
+    comptabiliser_journee(clients, journee)
+    assert next(x for x in comptes(kalala) if x["id"] == inst["id"])["solde"] == inst["solde"] - 60000 + 1500
+    assert next(x for x in comptes(autre) if x["id"] == emp["id"])["solde"] == emp["solde"] + 60000 - 1500
+    assert balance_equilibree(compta)
+
+
+# ---------- Comptabilité : factures des fournisseurs (S107), règlement en espèces (S141), déclaration de taxe (S108) ----------
+FF = "/api/comptabilite/factures"
+
+
+def socle_factures(clients):
+    """Taxes (S104), fournisseur (S103), type de commande (S36) ; droit S114 à l'agent pour valider en troisième personne"""
+    chef, compta = clients["chef"], clients["compta"]
+    from noyau.bd import executer
+    executer("""insert into profil_droit (profil_id, droit_code) select p.id, 'S114' from profil p where p.code = 'agent_credit'
+                and not exists (select 1 from profil_droit x where x.profil_id = p.id and x.droit_code = 'S114')""")
+    for t in ({"code": "TVA", "designation": "Taxe sur la valeur ajoutée", "taux": "16"}, {"code": "PNR", "designation": "Prélèvement prestataires non-résidents", "taux": "14"}):
+        assert compta.post("/api/referentiels/taxes/taxes", t, **H).status_code == 200
+    assert compta.post("/api/referentiels/tiers/tiers", {"typeTiers": "FOURNISSEUR", "intitule": "Papeterie du Fleuve", "compte": "400"}, **H).status_code == 200
+    assert chef.post("/api/facture/types", {"code": "ACHA_M", "libelle": "Achat de matériel"}, **H).status_code == 200
+    ctx = compta.get(f"{FF}/contexte", **H).json()
+    return ctx, ctx["fournisseurs"][0]["id"], ctx["typesCommande"][0]["id"], {t["code"]: t["id"] for t in ctx["taxes"]}
+
+
+def test_factures_fournisseurs(clients, journee):
+    """S107 (p. 124 à 128, 147 à 153) : bon de commande et tranches de paiement, validation ; facture d'une tranche, visa, validation ; règlement par chèque
+    (Infos Chèque) et en espèces à la caisse (S141) ; écritures 40, 432, 433 (PCCI) ; rapport ; déclaration de taxe (S108)"""
+    chef, compta, agent, caisse = clients["chef"], clients["compta"], clients["agent"], clients["caisse"]
+    ctx, four, tc, tx = socle_factures(clients)
+    assert [m["code"] for m in ctx["modes"]] == ["CHEQUE", "ESPECE", "PRELEVEMENT", "VIREMENT"] and all(c["numero"][0] in "26" or c["numero"].startswith("47") for c in ctx["comptes"])
+    def refus(c, chemin, corps):
+        x = c.post(chemin, corps, **H); assert x.status_code in (403, 422), x.content; return x.json()["message"]
+    ligne = {"compte": "610", "designation": "Rames de papier", "unite": "Rame", "quantite": "50", "prixUnitaire": 55000, "tva": True}
+    cmd = {"cle": cle(), "typeCommandeId": tc, "fournisseurId": four, "libelle": "Fournitures du trimestre", "lignes": [ligne],
+           "tranches": [{"date": "2026-11-05", "taux": "44"}, {"date": "2026-12-05", "taux": "56"}]}
+    assert "Type Commande" in refus(compta, f"{FF}/commandes", {**cmd, "typeCommandeId": None})
+    assert "Fournisseur" in refus(compta, f"{FF}/commandes", {**cmd, "fournisseurId": None})
+    assert "classes 2 ou 6" in refus(compta, f"{FF}/commandes", {**cmd, "lignes": [{**ligne, "compte": "727"}]})
+    assert "Quantité" in refus(compta, f"{FF}/commandes", {**cmd, "lignes": [{**ligne, "quantite": "0"}]})
+    assert "100 %" in refus(compta, f"{FF}/commandes", {**cmd, "tranches": [{"date": "2026-11-05", "taux": "44"}]})
+    assert "autre que la TVA" in refus(compta, f"{FF}/commandes", {**cmd, "lignes": [{**ligne, "retenueTaxeId": tx["TVA"]}]})
+    assert caisse.post(f"{FF}/commandes", cmd, **H).status_code == 403
+    c = compta.post(f"{FF}/commandes", cmd, **H).json()
+    assert (c["numero"], c["ht"], c["tva"], c["ttc"], c["statut"]) == ("CMDE_F00001", 2750000, 440000, 3190000, "saisie")
+    assert [(t["taux"], t["montant"]) for t in c["tranches"]] == [("44", 1210000), ("56", 1540000)]
+    assert compta.post(f"{FF}/commandes", cmd, **H).json()["id"] == c["id"]                      # même clé : la même commande
+    assert compta.get(f"{FF}/fournisseurs/{four}/commandes", **H).json() == []                    # pas encore validée
+    assert "Quatre yeux" in refus(compta, f"{FF}/commandes/{c['id']}/validation", {})
+    assert chef.post(f"{FF}/commandes/{c['id']}/validation", **H).json()["statut"] == "validee"
+    assert [x["id"] for x in compta.get(f"{FF}/commandes?statut=validee", **H).json()] == [c["id"]]
+    bon = compta.get(f"{FF}/commandes/{c['id']}/bon", **H).json()
+    assert bon["commande"]["lignes"][0]["designation"] == "Rames de papier" and bon["entete"]["nom"]
+    # facture de la première tranche (44 %)
+    fa = {"cle": cle(), "fournisseurId": four, "commandeId": c["id"], "tranche": 1, "reference": "FA-2026-118", "libelle": "Premier acompte", "dateEcheance": "2026-11-20"}
+    ap = compta.post(f"{FF}/apercu", fa, **H).json()
+    assert (ap["typeFacture"], ap["ht"], ap["tva"], ap["ttc"], ap["aPayer"], ap["charges"]) == ("ACHA_M", 1210000, 193600, 1403600, 1403600, [])
+    assert "Réf. Facture" in refus(compta, f"{FF}/enregistrement", {**fa, "reference": ""})
+    assert "Tranche" in refus(compta, f"{FF}/enregistrement", {**fa, "tranche": 3})
+    assert "Date Echéance" in refus(compta, f"{FF}/enregistrement", {**fa, "dateEcheance": "2026-11-01"})
+    f1 = compta.post(f"{FF}/enregistrement", fa, **H).json()
+    assert (f1["numero"], f1["statut"], f1["du"], f1["reste"], f1["etat"]) == ("000001", "saisie", 1403600, 1403600, "encours")
+    assert "déjà facturée" in refus(compta, f"{FF}/enregistrement", {**fa, "cle": cle(), "reference": "FA-X"})
+    assert "déjà enregistrée" in refus(compta, f"{FF}/enregistrement", {**fa, "cle": cle(), "tranche": 2})
+    assert compta.get(f"{FF}/fournisseurs/{four}/factures", **H).json() == []                     # pas encore validée : pas de règlement
+    assert [x["id"] for x in chef.get(f"{FF}/visas/visa/facture", **H).json()] == [f1["id"]]
+    assert "Quatre yeux" in refus(compta, f"{FF}/facture/{f1['id']}/visa", {})
+    assert chef.post(f"{FF}/facture/{f1['id']}/visa", **H).json()["statut"] == "visee"
+    assert "autre personne que celle qui a visé" in refus(chef, f"{FF}/facture/{f1['id']}/validation", {})
+    assert agent.post(f"{FF}/facture/{f1['id']}/validation", {}, **H).json()["statut"] == "validee"
+    # facture directe, avec une retenue paramétrée (élément de facture, S36)
+    chef.post("/api/facture/elements", {"libelle": "Retenue sur loyers", "compte": "433", "taux": "20", "retenue": True}, **H)
+    fd = {"cle": cle(), "fournisseurId": four, "directe": True, "compte": "612", "montantHt": 500000, "reference": "LOY-11", "libelle": "Loyer de novembre"}
+    assert "classes 2 ou 6" in refus(compta, f"{FF}/enregistrement", {**fd, "compte": "400"})
+    f2 = compta.post(f"{FF}/enregistrement", fd, **H).json()
+    assert (f2["ht"], f2["tva"], f2["du"], f2["aPayer"], f2["charges"][0]["montant"], f2["charges"][0]["retenue"]) == (500000, 0, 500000, 400000, 100000, True)
+    chef.post(f"{FF}/facture/{f2['id']}/visa", **H); agent.post(f"{FF}/facture/{f2['id']}/validation", {}, **H)
+    assert [x["id"] for x in compta.get(f"{FF}/fournisseurs/{four}/factures", **H).json()] == [f1["id"], f2["id"]]
+    # règlements : par chèque (Infos Chèque à la validation) et en espèces (caisse)
+    ids = banque_usd(chef)
+    compta.post("/api/banque/chequiers", {"cle": cle(), "compteBancaireId": ids["R-CDF-1"], "nbFeuillets": 25, "debut": "0000001", "barre": True}, **H)
+    rg = {"cle": cle(), "factureId": f1["id"], "montant": 1403600, "mode": "CHEQUE", "observations": "Solde de l'acompte"}
+    assert "Mode Règlement" in refus(compta, f"{FF}/reglements", {**rg, "mode": ""})
+    assert "reste à régler" in refus(compta, f"{FF}/reglements", {**rg, "montant": 1403601})
+    r1 = compta.post(f"{FF}/reglements", rg, **H).json()
+    assert (r1["statut"], r1["aPayer"], r1["modeLibelle"]) == ("saisie", 1403600, "CHEQUE")
+    assert compta.get(f"{FF}/{f2['id']}/reglement-apercu?montant=250000", **H).json() == {"charges": [{**f2["charges"][0], "montant": 50000}], "aPayer": 200000}
+    r2 = compta.post(f"{FF}/reglements", {"cle": cle(), "factureId": f2["id"], "montant": 500000, "mode": "ESPECE"}, **H).json()
+    assert (r2["aPayer"], r2["totalCharges"]) == (400000, 100000)
+    for r in (r1, r2):
+        assert chef.post(f"{FF}/reglement/{r['id']}/visa", **H).json()["statut"] == "visee"
+    assert "Banque et N° Compte Bancaire" in refus(agent, f"{FF}/reglement/{r1['id']}/validation", {})
+    assert "N° Chèque" in refus(agent, f"{FF}/reglement/{r1['id']}/validation", {"compteBancaireId": ids["R-CDF-1"]})
+    assert "aucun chéquier" in refus(agent, f"{FF}/reglement/{r1['id']}/validation", {"compteBancaireId": ids["R-CDF-1"], "cheque": "9999999"})
+    assert "francs congolais" in refus(agent, f"{FF}/reglement/{r1['id']}/validation", {"compteBancaireId": ids["R-USD-1"], "cheque": "0000001"})
+    v = agent.post(f"{FF}/reglement/{r1['id']}/validation", {"compteBancaireId": ids["R-CDF-1"], "cheque": "0000001", "dateEmission": "2026-11-05"}, **H).json()
+    assert (v["statut"], v["cheque"]) == ("validee", "0000001")
+    assert agent.post(f"{FF}/reglement/{r2['id']}/validation", {}, **H).json()["statut"] == "validee"
+    # S141 : la caissière paie le règlement en espèces, avec son billetage
+    assert [x["id"] for x in caisse.get("/api/caisse/reglements-factures", **H).json()] == [r2["id"]]
+    assert "billetage" in refus(caisse, f"/api/caisse/reglements-factures/{r2['id']}/paiement", {"cle": cle(), "coupures": {}})
+    assert "Rien à régler" in refus(caisse, f"/api/caisse/reglements-factures/{r1['id']}/paiement", {"cle": cle(), "coupures": {}})
+    stock = caisse.get(f"/api/caisses/{journee[1]['id']}/theorique?devise=CDF").json()
+    cp, _ = billets(stock, 400000)
+    pay = caisse.post(f"/api/caisse/reglements-factures/{r2['id']}/paiement", {"cle": cle(), "coupures": cp}, **H)
+    assert pay.status_code == 200 and (pay.json()["statut"], "CA" in pay.json()["piece"]) == ("payee", True), pay.content
+    assert (solde_compte("433"), solde_compte("400")) == (-100000, 500000)                     # le paiement est passé ; la facture se constate à la comptabilisation
+    # S111 : la comptabilisation passe les deux factures et le règlement par chèque
+    comptabiliser_journee(clients, journee)
+    assert (solde_compte("610"), solde_compte("612"), solde_compte("432"), solde_compte("400"), solde_compte("433")) == (1210000, 500000, 193600, 0, -100000)
+    assert ident("select count(*) from facture_fournisseur where statut = 'comptabilisee' and piece <> ''") == 2
+    assert ident("select statut from reglement_fournisseur where id = %s", (r1["id"],)) == "comptabilisee"
+    assert balance_equilibree(compta)
+    # rapport et déclaration de taxe
+    q = lambda **k: compta.get(f"{FF}/rapport", {"du": "2026-11-01", "au": "2026-11-30", **k}, **H).json()
+    assert [(x["reference"], x["etat"]) for x in q()["lignes"]] == [("FA-2026-118", "soldee"), ("LOY-11", "soldee")]
+    assert q(etat="encours")["lignes"] == [] and q(visa="visee")["lignes"] == []
+    g = q(resultat="groupe")
+    assert g["groupe"] is True and (g["groupes"][0]["nombre"], g["groupes"][0]["ttc"], g["groupes"][0]["reste"]) == (2, 1903600, 0)
+    assert "Date Début" in compta.get(f"{FF}/rapport", **H).json()["message"]
+    dt = compta.get("/api/comptabilite/declaration-taxes", {"exercice": 2026, "mois": 11, "taxeId": tx["TVA"]}, **H).json()
+    assert (dt["total"], dt["totalBase"], dt["lignes"][0]["reference"]) == (193600, 1210000, "FA-2026-118")
+    assert compta.get("/api/comptabilite/declaration-taxes", {"exercice": 2026, "mois": 11, "taxeId": tx["PNR"]}, **H).json()["lignes"] == []
+    assert "Taxe" in compta.get("/api/comptabilite/declaration-taxes", {"exercice": 2026, "mois": 11}, **H).json()["message"]
+    assert caisse.get("/api/comptabilite/declaration-taxes?exercice=2026&mois=11", **H).status_code == 403
+    # journal achat : les écritures des factures et de leurs règlements
+    ja = compta.get("/api/comptabilite/journaux-comptables", {"exercice": 2026, "mois": 11, "achats": "1"}, **H).json()
+    assert {x["compte"] for x in ja["lignes"]} >= {"400", "610", "612", "432", "433"} and ja["totalDebit"] == ja["totalCredit"]
+
+
+def test_retenue_sur_commande(clients, journee):
+    """S107 : une taxe de la liste (S104) posée en retenue sur une ligne de commande est retenue au règlement et figure à la déclaration (S108) ;
+    loi 23/053, art. 142 à 144 : prélèvement sur les prestataires non-résidents, dû au paiement"""
+    chef, compta, agent = clients["chef"], clients["compta"], clients["agent"]
+    ctx, four, tc, tx = socle_factures(clients)
+    c = compta.post(f"{FF}/commandes", {"cle": cle(), "typeCommandeId": tc, "fournisseurId": four, "lignes": [
+        {"compte": "610", "designation": "Audit informatique", "quantite": "1", "prixUnitaire": 1000000, "retenueTaxeId": tx["PNR"]}]}, **H).json()
+    assert (c["ht"], c["tva"], c["lignes"][0]["retenue"], len(c["tranches"])) == (1000000, 0, 140000, 1)
+    chef.post(f"{FF}/commandes/{c['id']}/validation", **H)
+    f = compta.post(f"{FF}/enregistrement", {"cle": cle(), "fournisseurId": four, "commandeId": c["id"], "tranche": 1, "reference": "AUD-1", "libelle": "Audit"}, **H).json()
+    assert (f["du"], f["aPayer"], f["charges"][0]["taxeId"]) == (1000000, 860000, tx["PNR"])
+    chef.post(f"{FF}/facture/{f['id']}/visa", **H); agent.post(f"{FF}/facture/{f['id']}/validation", {}, **H)
+    ids = banque_usd(chef)
+    regle = lambda m: compta.post(f"{FF}/reglements", {"cle": cle(), "factureId": f["id"], "montant": m, "mode": "VIREMENT"}, **H).json()
+    r1, r2 = regle(300000), regle(700000)
+    assert (r1["totalCharges"], r1["aPayer"], r2["totalCharges"], r2["aPayer"]) == (42000, 258000, 98000, 602000)       # la retenue suit le montant ; le dernier prend le reste
+    for r in (r1, r2):
+        chef.post(f"{FF}/reglement/{r['id']}/visa", **H)
+        assert agent.post(f"{FF}/reglement/{r['id']}/validation", {"compteBancaireId": ids["R-CDF-1"]}, **H).json()["statut"] == "validee"
+    comptabiliser_journee(clients, journee)
+    assert (solde_compte("400"), solde_compte("433"), solde_compte("610")) == (0, -140000, 1000000)
+    dt = compta.get("/api/comptabilite/declaration-taxes", {"exercice": 2026, "mois": 11, "taxeId": tx["PNR"]}, **H).json()
+    assert (dt["total"], dt["totalBase"], len(dt["lignes"])) == (140000, 1000000, 2)
+    assert balance_equilibree(compta)

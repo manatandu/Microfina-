@@ -828,6 +828,15 @@
   "chemin": "/caisse/s82"
  },
  {
+  "id": "S141",
+  "nom": "Règlement facture espèce",
+  "acces": "Caisse > Règlement facture espèce",
+  "but": "Payer en espèces, à la caisse, une facture de fournisseur réglée en comptabilité",
+  "module": "caisse",
+  "priorite": "should",
+  "chemin": "/caisse/s141"
+ },
+ {
   "id": "S83",
   "nom": "Rapports caisse",
   "acces": "Caisse > Rapport",
@@ -1051,6 +1060,15 @@
   "module": "comptabilite",
   "priorite": "must",
   "chemin": "/comptabilite/s106"
+ },
+ {
+  "id": "S142",
+  "nom": "Annulation de règlement de crédit",
+  "acces": "Comptabilité > Annulation de règlement de crédit",
+  "but": "Annuler un remboursement de crédit fait par prélèvement sur compte",
+  "module": "comptabilite",
+  "priorite": "must",
+  "chemin": "/comptabilite/s142"
  },
  {
   "id": "S107",

@@ -96,9 +96,9 @@ S78,"ED divers : encaissement, décaissement",89 et 90 ; doublons 97 et 98,A,gui
 S79,Billetage : enregistrer,91 ; doublon 105,A,guichet,,,6 Caisse,oui
 S80,Billetage : validation,92 ; doublon 106,A,visa,,,6 Caisse,oui
 S81,"Transfert : caisse vers caisse, caisse vers banque",92 et 93 ; doublons 106 et 107,A,guichet,,R:PCCI (mouvements de fonds),6 Caisse,oui
-S82,"Valider opérations : diverses, déplacées",93 et 94 ; doublons 107 et 108,A,visa,,,6 Caisse,non
+S82,"Valider opérations : diverses, déplacées",93 et 94 ; doublons 107 et 108,A,visa,,,6 Caisse,oui
 S83,Rapport : journal des opérations de caisse,95 ; doublon 109,A,rapport,,,6 Caisse,oui
-S141,Règlement facture espèce,84 et 97 (nom dans le menu Caisse),D,guichet,tout l'écran,"A:S107 règlement (p. 127 et 153), S78",6 Caisse,non
+S141,Règlement facture espèce,84 et 97 (nom dans le menu Caisse),D,guichet,tout l'écran,"A:S107 règlement (p. 127 et 153), S78",6 Caisse,oui
 S84,Plan d'amortissement (simulation),111,B,onglets,"pages Montant et durée, Récapitulatif, Échéancier",M:texte p. 111 ; A:S89,7 Crédit,oui
 S85,"Analyse financière : allégée, développée",112 (deux captures),B,onglets,onglets suivants,M:noms d'onglets ; P,7 Crédit,oui
 S86,Dossier : analyse (demande),113,B,onglets,page de détail après Suivant,M:texte p. 113,7 Crédit,oui
@@ -123,17 +123,17 @@ S104,Taxes,"123 (texte), 124 ; 155",A,liste,,R:fiscalité RDC ; P,8 Comptabilit�
 S105,Déblocage crédit sur compte d'épargne,124 ; 157,A,guichet,reconnaissance de dette,document,8 Comptabilité,oui
 S106,Remboursement par prélèvement,125 ; 157,A,guichet,,A:S76,8 Comptabilité,oui
 S142,Annulation de règlement de crédit,158,A,traitement,,R:PCCI (contre-passation),8 Comptabilité,non
-S107,"Factures : bon de commande, enregistrement, règlement, journal, rapport",125 à 128 ; 147 à 154,A,onglets,,,8 Comptabilité,non
-S108,Déclaration de taxe,128,A,rapport,,,8 Comptabilité,non
-S109,Saisie d'écritures comptables,129,A,guichet,,R:PCCI,8 Comptabilité,non
+S107,"Factures : bon de commande, enregistrement, règlement, journal, rapport",125 à 128 ; 147 à 154,A,onglets,,,8 Comptabilité,oui
+S108,Déclaration de taxe,128,A,rapport,,,8 Comptabilité,oui
+S109,Saisie d'écritures comptables,129,A,guichet,,R:PCCI,8 Comptabilité,oui
 S110,Rapprochement bancaire,129 ; texte 154 et 155,A,composition,état du rapprochement,document,8 Comptabilité,non
 S111,Comptabilisation,130 ; 155,A,traitement,,R:PCCI ; ARCHITECTURE P8,8 Comptabilité,oui
 S112,Historique rapprochement bancaire,130,A,rapport,,,8 Comptabilité,non
 S113,Visa (sept listes),130 à 132 (sept bandes) ; 151,A,visa,,,8 Comptabilité,oui
-S114,Validation (sept listes),132 et 133 (sept bandes) ; 152 à 154,A,visa,,,8 Comptabilité,non
-S115,Journaux comptables,133,A,rapport,,,8 Comptabilité,non
-S116,"Autres opérations : virement et prélèvement, compte à compte, diverse, déplacée",133 à 135 ; 161 et 162,A,guichet,,,8 Comptabilité,non
-S117,"Virements mensuels : domiciliation, salaire du personnel, prélèvement automatique",135 et 136,B,traitement,salaire du personnel et prélèvement automatique : en panne dans le manuel,"A:domiciliation (p. 136), S53 ; D:paie S133 à S135 ; P",8 Comptabilité,non
+S114,Validation (sept listes),132 et 133 (sept bandes) ; 152 à 154,A,visa,,,8 Comptabilité,oui
+S115,Journaux comptables,133,A,rapport,,,8 Comptabilité,oui
+S116,"Autres opérations : virement et prélèvement, compte à compte, diverse, déplacée",133 à 135 ; 161 et 162,A,guichet,,,8 Comptabilité,oui
+S117,"Virements mensuels : domiciliation, salaire du personnel, prélèvement automatique",135 et 136,B,traitement,salaire du personnel et prélèvement automatique : en panne dans le manuel,"A:domiciliation (p. 136), S53 ; D:paie S133 à S135 ; P",8 Comptabilité,oui
 S118,"Contrôle : compte, trésorerie, rapport annulation, état des revenus",136 à 138 ; 162 et 163,A,rapport,,,8 Comptabilité,non
 S119,Lettrage,138 ; 160,A,composition,,,8 Comptabilité,non
 S120,"Grand livre : général, analytique",138 et 139,B,rapport,forme de l'état,R:PCCI (états) ; document,8 Comptabilité,oui

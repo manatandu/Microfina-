@@ -168,11 +168,9 @@ def enregistrer(u, d, client: bool = False) -> dict:
         if not libelle:
             raise ErreurMetier("À remplir : libellé opération.")
         if type_ == "prelevement_client":                   # registre S53-2 : comme un retrait (S74), sur le disponible
-            from .services import montant_bloque
+            from .services import montant_bloque, sorties_en_attente
             bloque = montant_bloque(c["id"], solde_contrat(f"depot:{c['id']}", c["devise"], "C"))
-            attente = int(valeur("""select coalesce(sum(montant), 0) from operation_banque where compte_depot_id = %s and type = 'prelevement_client'
-                                     and statut in ('saisie', 'visee', 'validee')""", (c["id"],)))
-            if montant > solde_contrat(f"depot:{c['id']}", c["devise"], "C") - bloque - attente:
+            if montant > solde_contrat(f"depot:{c['id']}", c["devise"], "C") - bloque - sorties_en_attente(c["id"]):
                 raise ErreurMetier("Solde disponible insuffisant sur le compte du client.")
         compte_client = c["id"]
     elif type_ == "banque_caisse":

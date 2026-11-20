@@ -882,6 +882,231 @@ def remboursement_epargne(request, cid: int, corps: dict = Body(...)):
     return rb.rembourser_epargne(u(request), cid, corps)
 
 
+# ---------- S109 Saisie d'écriture, S116 Autres opérations, S117 Virements mensuels, S113 Visa, S114 Validation, S82 validation en caisse ----------
+@api.get("/comptabilite/operations/contexte")
+def operations_compta_contexte(request):
+    from . import operations_compta as oc
+    return oc.lire(u(request))
+
+
+@api.get("/comptabilite/operations/comptes/{tid}")
+def operations_compta_comptes(request, tid: int):
+    from . import operations_compta as oc
+    return oc.comptes_du_client(u(request), tid)
+
+
+@api.get("/comptabilite/operations/compte")
+def operations_compta_compte(request, numero: str = ""):
+    from . import operations_compta as oc
+    return oc.compte_par_numero(u(request), numero)
+
+
+@api.post("/comptabilite/ecritures/ouverture")
+def ecriture_ouvrir(request, corps: dict = Body(...)):
+    from . import operations_compta as oc
+    return oc.ecriture_ouvrir(u(request), corps)
+
+
+@api.post("/comptabilite/ecritures/lignes")
+def ecriture_ajouter(request, corps: dict = Body(...)):
+    from . import operations_compta as oc
+    return oc.ecriture_ajouter(u(request), corps)
+
+
+@api.post("/comptabilite/ecritures/{oid}/lignes/{rang}/suppression")
+def ecriture_supprimer(request, oid: int, rang: int):
+    from . import operations_compta as oc
+    return oc.ecriture_supprimer(u(request), oid, rang)
+
+
+@api.post("/comptabilite/operations/virement")
+def operation_virement(request, corps: dict = Body(...)):
+    from . import operations_compta as oc
+    return oc.enregistrer_virement(u(request), corps)
+
+
+@api.post("/comptabilite/operations/compte-a-compte")
+def operation_compte_a_compte(request, corps: dict = Body(...)):
+    from . import operations_compta as oc
+    return oc.enregistrer_compte_a_compte(u(request), corps)
+
+
+@api.post("/comptabilite/operations/diverse")
+def operation_diverse(request, corps: dict = Body(...)):
+    from . import operations_compta as oc
+    return oc.enregistrer_diverse(u(request), corps)
+
+
+@api.post("/comptabilite/operations/deplacee")
+def operation_deplacee(request, corps: dict = Body(...)):
+    from . import operations_compta as oc
+    return oc.enregistrer_deplacee(u(request), corps)
+
+
+@api.post("/comptabilite/operations/mensuel")
+def operation_mensuel(request, corps: dict = Body(...)):
+    from . import operations_compta as oc
+    return oc.enregistrer_mensuel(u(request), corps)
+
+
+@api.get("/comptabilite/operations/saisies/{type_}")
+def operations_compta_saisies(request, type_: str):
+    from . import operations_compta as oc
+    return oc.saisies(u(request), type_)
+
+
+@api.get("/comptabilite/operations/visas/{etape}/{liste}")
+def operations_compta_visas(request, etape: str, liste: str):
+    from . import operations_compta as oc
+    return oc.lister(u(request), etape, liste)
+
+
+@api.post("/comptabilite/operations/{oid}/visa")
+def operation_compta_visa(request, oid: int):
+    from . import operations_compta as oc
+    return oc.faire_suivre(u(request), oid, "visa")
+
+
+@api.post("/comptabilite/operations/{oid}/validation")
+def operation_compta_validation(request, oid: int, corps: dict = Body(...)):
+    from . import operations_compta as oc
+    return oc.faire_suivre(u(request), oid, "validation", corps)
+
+
+@api.get("/caisse/operations-compta/{type_}")
+def caisse_operations_compta(request, type_: str):
+    from . import operations_compta as oc
+    return oc.a_payer(u(request), type_)
+
+
+@api.post("/caisse/operations-compta/{oid}/validation")
+def caisse_operation_compta_valider(request, oid: int, corps: dict = Body(...)):
+    from . import operations_compta as oc
+    return oc.payer(u(request), oid, corps)
+
+
+# ---------- S107 Factures (p. 124 à 128, 147 à 153), S108 Déclaration de taxe (p. 128), S141 Règlement facture espèce ----------
+@api.get("/comptabilite/factures/contexte")
+def factures_contexte(request):
+    from . import factures_fournisseurs as ff
+    return ff.contexte(u(request))
+
+
+@api.post("/comptabilite/factures/commandes")
+def factures_commande(request, corps: dict = Body(...)):
+    from . import factures_fournisseurs as ff
+    return ff.enregistrer_commande(u(request), corps)
+
+
+@api.get("/comptabilite/factures/commandes")
+def factures_commandes(request, statut: str = "saisie"):
+    from . import factures_fournisseurs as ff
+    return ff.commandes(u(request), statut)
+
+
+@api.post("/comptabilite/factures/commandes/{cid}/validation")
+def factures_commande_valider(request, cid: int):
+    from . import factures_fournisseurs as ff
+    return ff.valider_commande(u(request), cid)
+
+
+@api.get("/comptabilite/factures/commandes/{cid}/bon")
+def factures_bon(request, cid: int):
+    from . import factures_fournisseurs as ff
+    return ff.bon_de_commande(u(request), cid)
+
+
+@api.get("/comptabilite/factures/fournisseurs/{fid}/commandes")
+def factures_commandes_a_facturer(request, fid: int):
+    from . import factures_fournisseurs as ff
+    return ff.commandes_a_facturer(u(request), fid)
+
+
+@api.get("/comptabilite/factures/fournisseurs/{fid}/factures")
+def factures_a_regler(request, fid: int):
+    from . import factures_fournisseurs as ff
+    return ff.factures_a_regler(u(request), fid)
+
+
+@api.post("/comptabilite/factures/apercu")
+def factures_apercu(request, corps: dict = Body(...)):
+    from . import factures_fournisseurs as ff
+    return ff.apercu_facture(u(request), corps)
+
+
+@api.post("/comptabilite/factures/enregistrement")
+def factures_enregistrer(request, corps: dict = Body(...)):
+    from . import factures_fournisseurs as ff
+    return ff.enregistrer_facture(u(request), corps)
+
+
+@api.get("/comptabilite/factures/{fid}/reglement-apercu")
+def factures_reglement_apercu(request, fid: int, montant: int = 0):
+    from . import factures_fournisseurs as ff
+    return ff.apercu_reglement(u(request), fid, montant)
+
+
+@api.post("/comptabilite/factures/reglements")
+def factures_reglement(request, corps: dict = Body(...)):
+    from . import factures_fournisseurs as ff
+    return ff.enregistrer_reglement(u(request), corps)
+
+
+@api.get("/comptabilite/factures/visas/{etape}/{quoi}")
+def factures_visas(request, etape: str, quoi: str):
+    from . import factures_fournisseurs as ff
+    return ff.lister(u(request), etape, quoi)
+
+
+@api.post("/comptabilite/factures/{quoi}/{oid}/visa")
+def factures_viser(request, quoi: str, oid: int):
+    from . import factures_fournisseurs as ff
+    return ff.faire_suivre(u(request), quoi, oid, "visa")
+
+
+@api.post("/comptabilite/factures/{quoi}/{oid}/validation")
+def factures_valider(request, quoi: str, oid: int, corps: dict = Body(...)):
+    from . import factures_fournisseurs as ff
+    return ff.faire_suivre(u(request), quoi, oid, "validation", corps)
+
+
+@api.get("/comptabilite/factures/rapport")
+def factures_rapport(request):
+    from . import factures_fournisseurs as ff
+    return ff.rapport(u(request), request.GET.dict())
+
+
+@api.get("/comptabilite/declaration-taxes")
+def declaration_taxes(request):
+    from . import factures_fournisseurs as ff
+    return ff.declaration_taxes(u(request), request.GET.dict())
+
+
+@api.get("/caisse/reglements-factures")
+def caisse_reglements_factures(request):
+    from . import factures_fournisseurs as ff
+    return ff.reglements_espece(u(request))
+
+
+@api.post("/caisse/reglements-factures/{rid}/paiement")
+def caisse_reglement_facture_payer(request, rid: int, corps: dict = Body(...)):
+    from . import factures_fournisseurs as ff
+    return ff.payer_reglement(u(request), rid, corps)
+
+
+# ---------- S115 : journaux comptables (p. 133) ----------
+@api.get("/comptabilite/journaux-comptables/contexte")
+def journaux_comptables_contexte(request):
+    from . import etats_compta as ec
+    return ec.journaux_contexte(u(request))
+
+
+@api.get("/comptabilite/journaux-comptables")
+def journaux_comptables(request):
+    from . import etats_compta as ec
+    return ec.journaux(u(request), request.GET.dict())
+
+
 # ---------- S111 : comptabilisation de la journée (p. 130 et 155) ----------
 @api.get("/comptabilite/comptabilisation/{jid}")
 def comptabilisation_lire(request, jid: int):

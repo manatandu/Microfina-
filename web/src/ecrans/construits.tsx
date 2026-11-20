@@ -1,4 +1,11 @@
-import VisaRetraitPlafond from "./Visas";
+import { ValidationsComptables, VisasComptables } from "./VisasCompta";
+import SaisieEcriture from "./SaisieEcriture";
+import JournauxComptables from "./JournauxComptables";
+import AutresOperations from "./AutresOperations";
+import ValidationCaisse from "./ValidationCaisse";
+import VirementsMensuels from "./VirementsMensuels";
+import Factures, { DeclarationTaxes } from "./Factures";
+import ReglementEspece from "./ReglementEspece";
 import VisaBanque from "./VisaBanque";
 import { ChequesClients } from "./ChequesClients";
 import { Chequiers } from "./Chequiers";
@@ -204,7 +211,16 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S103: PlanTiers,
   S104: Taxes,
   S111: Comptabilisation,
-  S113: VisaRetraitPlafond,
+  S82: ValidationCaisse,
+  S107: Factures,
+  S108: DeclarationTaxes,
+  S141: ReglementEspece,
+  S109: SaisieEcriture,
+  S113: VisasComptables,
+  S114: ValidationsComptables,
+  S115: JournauxComptables,
+  S116: AutresOperations,
+  S117: VirementsMensuels,
   S120: GrandLivre,
   S121: BalanceComptes,
 };

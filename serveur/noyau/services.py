@@ -1448,6 +1448,23 @@ def montant_bloque(compte_id: int, solde: int) -> int:
     return int(valeur("select coalesce(sum(montant), 0) from blocage where compte_id = %s and (fin is null or fin > now())", (compte_id,)))
 
 
+def sorties_en_attente(compte_id: int, sauf_operation: int | None = None) -> int:
+    """Sorties saisies sur le compte et pas encore passées au grand livre : prélèvement par banque (S53), DAT saisi (S65), opérations de la comptabilité
+    (S116, S117). Elles réduisent le disponible partout, guichet compris : une somme engagée ne se dépense pas deux fois (registre T21)."""
+    banque = valeur("""select coalesce(sum(montant), 0) from operation_banque where compte_depot_id = %s and type = 'prelevement_client'
+                       and statut in ('saisie', 'visee', 'validee')""", (compte_id,))
+    dat = valeur("select coalesce(sum(montant), 0) from depot_terme where compte_emetteur_id = %s and statut = 'saisie'", (compte_id,))
+    compta = valeur("""select coalesce(sum(montant), 0) from operation_comptable
+                       where compte_depot_id = %s and (%s::bigint is null or id <> %s)
+                         and (type in ('prelevement', 'compte_a_compte', 'tontine_dav', 'domiciliation') or (type = 'deplacee' and sens = 'RETRAIT'))
+                         and (statut in ('saisie', 'visee', 'validee') or (type = 'deplacee' and statut = 'payee' and reflet_ecriture_id is null))""",
+                    (compte_id, sauf_operation, sauf_operation))
+    auto = valeur("""select coalesce(sum((l->>'montant')::bigint), 0) from operation_comptable o, jsonb_array_elements(o.lignes) l
+                     where o.type = 'prelevement_auto' and o.statut in ('saisie', 'visee', 'validee') and (l->>'compteDepotId')::bigint = %s
+                       and (%s::bigint is null or o.id <> %s)""", (compte_id, sauf_operation, sauf_operation))
+    return int(banque) + int(dat) + int(compta) + int(auto)
+
+
 def comptes_du_tiers(tid: int) -> list[dict]:
     res = []
     for c in lignes("""select c.*, p.libelle, p.famille, p.compte_lie from compte_depot c join produit_epargne p on p.id = c.produit_id
@@ -1456,7 +1473,8 @@ def comptes_du_tiers(tid: int) -> list[dict]:
         solde = solde_contrat(f"depot:{c['id']}", c["devise"], "C")
         bloque = montant_bloque(c["id"], solde)
         res.append({"id": c["id"], "tiersId": tid, "numero": c["numero"], "intitule": c["libelle"], "pcci": compte_du_produit(c),
-                    "devise": c["devise"].strip(), "bloque": bloque, "motifBlocage": bl["motif"], "solde": solde, "disponible": solde - bloque})
+                    "devise": c["devise"].strip(), "bloque": bloque, "motifBlocage": bl["motif"], "solde": solde,
+                    "disponible": solde - bloque - sorties_en_attente(c["id"])})
     return res
 
 
@@ -1484,8 +1502,10 @@ def parts_du_tiers(tid: int) -> float:
 
 # ---------- Grand livre ----------
 
-def id_compte(numero: str) -> int:
-    i = valeur("select id from compte where numero = %s and institution_id is null", (numero,))
+def id_compte(numero: str, institution_id: int | None = None) -> int:
+    """Compte du PCCI, sinon compte divisionnaire ouvert par l'institution (S102, PCCI § 9)"""
+    i = valeur("select id from compte where numero = %s and (institution_id is null or institution_id = %s) order by institution_id nulls first limit 1",
+               (numero, institution_id))
     if i is None:
         raise ErreurMetier(f"Compte {numero} absent du plan de comptes.")
     return i
@@ -1520,7 +1540,7 @@ def poster(u: dict, *, journal: str, journee_id: int, libelle: str, piece: str, 
         cours_id = None if l["devise"] == "CDF" else cours_ligne(l["devise"], j["date_comptable"])["id"]
         executer("""insert into ligne_ecriture (ecriture_id, rang, compte_id, contrat_ref, sens, devise, montant_devise, montant_cdf, cours_id)
                     values (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-                 (eid, rang, id_compte(l["compte"]), l.get("contrat"), l["sens"], l["devise"], l["montant"], cdf, cours_id))
+                 (eid, rang, id_compte(l["compte"], u["institution_id"]), l.get("contrat"), l["sens"], l["devise"], l["montant"], cdf, cours_id))
     return eid
 
 

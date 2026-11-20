@@ -84,7 +84,9 @@ def en_attente(u, j: dict) -> list[dict]:
         l.append(L(b["compte"], "C", dv, r["amortissement"] + r["interet"] + r["commission"]))
         out.append({"source": "remboursement_emprunt", "id": r["id"], "type": "remboursement_emprunt", "libelle": f"Remboursement de l'emprunt n° {r['numero']}",
                     "journal": b["journal"], "lignes": l, "date": r["date_operation"]})
-    return out
+    from . import factures_fournisseurs, operations_compta
+    # S109, S116, S117 : opérations validées (S114) et reflets des opérations déplacées ; S107 : factures et règlements validés
+    return out + operations_compta.en_attente(u, j) + factures_fournisseurs.en_attente(u, j)
 
 
 def a_comptabiliser(u, jid: int) -> dict:
@@ -126,12 +128,18 @@ def passer(u, j: dict) -> int:
             if sum(l["montant"] for l in lg[1:]) != o["montant"]:
                 raise ErreurMetier(f"Adhésion par banque de {t['numero']} : les frais ou la valeur de la part ont changé depuis la saisie ; refuser l'opération et la ressaisir.")
             apres = (a["tid"], a["nb"])
-        eid = poster(u, journal=x["journal"], journee_id=j["id"], libelle=x["libelle"], piece=piece, evenement="comptabilisation_banque", cle=cle,
+        eid = poster(u, journal=x["journal"], journee_id=j["id"], libelle=x["libelle"], piece=piece, evenement=x.get("evenement", "comptabilisation_banque"), cle=cle,
                      valide_par=u["id"], lignes_ecr=lg)
         if apres and apres[1]:
             executer("insert into mouvement_parts (tiers_id, sens, nombre, valeur_unitaire, devise, ecriture_id) values (%s, 'achat', %s, %s, 'CDF', %s)",
                      (apres[0], apres[1], valeur_part(u["institution_id"]), eid))
-        if x["source"] == "operation_banque":
+        if x["source"] in ("operation_comptable", "reflet"):
+            from . import operations_compta
+            operations_compta.marquer(x, piece, eid)
+        elif x["source"] in ("facture", "reglement"):
+            from . import factures_fournisseurs
+            factures_fournisseurs.marquer(x, piece, eid)
+        elif x["source"] == "operation_banque":
             executer("update operation_banque set statut = 'comptabilisee', piece = %s where id = %s", (piece, x["id"]))
         elif x["source"] == "cheque_client":
             executer("update cheque_client set ecriture_id = %s where id = %s", (eid, x["id"]))

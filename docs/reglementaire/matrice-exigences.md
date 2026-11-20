@@ -19,6 +19,8 @@ Statut : **lu** = article lu et reporté ici ; **à lire** = texte identifié, d
 | PCCI § 3.3 | Correction uniquement par inscription en négatif | Grand livre | Contre-passation liée (`contre_passe_id`), pas d'UPDATE | lu |
 | PCCI § 3.4 | Irréversibilité, validation au plus tard mensuelle | Grand livre | Droits base de données, trigger | lu |
 | PCCI § 3.4 | Clôture informatique mensuelle ; opération en période close passée au 1er jour ouvert avec date de valeur au libellé | Grand livre | Table `periode`, règle de report automatique | lu |
+| PCCI § 3.3 et 3.4 | Pas de suppression après validation ; date de valeur dans une période clôturée : enregistrement au premier jour non clôturé | Saisie d'écritures (S109) | Ligne supprimable avant le visa seulement ; l'écriture validée passe dans la journée comptabilisée (registre S109-6, S109-8) | lu le 20/11/2026, en place |
+| PCCI, compte 45 | Comptes de liaison : réciprocité entre l'agence donneuse d'ordre et l'agence bénéficiaire ; le reflet ne passe pas nécessairement dans la même journée | Opérations déplacées (S116, S82) | 570 contre 451 à la caisse qui paie, reflet 451 contre le dépôt dans l'agence du client (registre S116-6) | lu le 20/11/2026, en place |
 | PCCI § 3.4 | États numérotés et datés | Reporting | Registre des éditions avec numéro et empreinte | lu |
 | PCCI § 3.4 | Accès au chemin de révision et à la documentation pour contrôle | Habilitations, Audit | Profil auditeur en lecture seule | lu |
 | PCCI § 3.5 | Arrêté annuel dans les trois mois ; conservation dix ans | Grand livre, Exploitation | Partitionnement par exercice, archivage | lu |
