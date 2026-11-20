@@ -394,3 +394,20 @@ def ajouter_memo(u, cid: int, p) -> list[dict]:
         raise ErreurMetier("À remplir : Memo.")
     executer("insert into credit_memo (credit_id, date_memo, texte, saisi_par) values (%s, %s, %s, %s)", (cid, jour(u), t, u["id"]))
     return memos(u, cid)
+
+
+def consultation(u, cid: int, d: str | None = None) -> dict:
+    """S95 : Crédit > Consulter prêt (texte p. 118, capture p. 119) : la situation du remboursement (S76) et les champs de la capture : Rang, Degré réel,
+    Terme, Agent crédit, Groupe Solidaire, Percevoir int. par anticipation, Durée prêt, Taux annuel, Nbre trait, Périodicité, Différé de paiement (registre S95-1 à S95-3)"""
+    from .deblocage import terme
+    from .produits_credit import FIXES
+    exiger(u)
+    c = credit_en_cours(u, cid)
+    v = vue(u, c, date_reglement(u, d))
+    p = une("select interet_anticipation from produit_credit where id = %s", (c["produit_id"],))
+    return {**v, "rang": valeur("select count(*) from credit where tiers_id = %s and id <= %s and statut <> 'refuse'", (c["tiers_id"], c["id"])),
+            "terme": FIXES["termes"][terme(c["duree_mois"]) - 1]["libelle"], "tauxAnnuel": float(Decimal(c["taux_interet"]) * 12),
+            "periodiciteLibelle": PERIODICITES[c["periodicite"] or "M"]["libelle"], "differeJours": c["differe_jours"] or 0,
+            "interetAnticipation": bool(p["interet_anticipation"]),
+            "groupe": valeur("""select g.nom from groupe_solidaire_membre m join groupe_solidaire g on g.id = m.groupe_id where m.tiers_id = %s order by g.id limit 1""",
+                             (c["tiers_id"],)) or ""}

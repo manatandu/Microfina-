@@ -28,7 +28,7 @@ import { ApprobationDemande, ControleDemande, DemandeCredit } from "./DossierCre
 import MiseEnPlace from "./MiseEnPlace";
 import { EtatCredit, HistoriqueVisas, ValidesNonDebloques, VisasCredit } from "./SuiviCredit";
 import { DeblocageBanque, DeblocageGuichet } from "./DeblocageCredit";
-import { RemboursementBanque, RemboursementGuichet } from "./RemboursementCredit";
+import { ConsulterPret, RemboursementBanque, RemboursementGuichet } from "./RemboursementCredit";
 import Garanties from "./Garanties";
 import type { ComponentType } from "react";
 import GuichetDepotRetrait from "./Guichet";
@@ -178,6 +178,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S92: ValidesNonDebloques,
   S93: EtatCredit,
   S94: Garanties,
+  S95: ConsulterPret,
   S79: BilletageCaisse,
   S80: ValidationBilletage,
   S102: PlanComptes,

@@ -3406,6 +3406,22 @@ const remboursementsCredit = {
       capitalRestant: s.capitalRestant, resteAPayer: s.resteAPayer, interetTotal: s.interetTotal, interetRestant: s.interetNonEchu + s.du.interet!, dernierPaiement: s.dernierPaiement,
       du: s.du, retardTotal: sommeDu(s), toutSurLeCredit: toutCredit(c, s), ordre: ordreRemb(c, s.degre) };
   },
+  /** S95 : Consulter prêt (capture p. 119) : la situation du remboursement et les champs de la capture (registre S95-1 à S95-3) */
+  consultation(id: number, date?: string) {
+    lectureAdmin(["S95"]);
+    const c = creditEnCours(id), d = dateReglement(date), s = etatCredit(c, d), p = E.produitsCredit.find((x) => x.id === c.produitId)!;
+    const g = E.membresGroupes.filter((m) => m.tiersId === c.tiersId).map((m) => E.groupesSolidaires.find((x) => x.id === m.groupeId)).filter(Boolean).sort((a, b) => a!.id - b!.id)[0];
+    return { ...vueCredit(c), client: titulaire(E.tiers.find((t) => t.id === c.tiersId)!), dateReglement: d, joursRetard: s.joursRetard, degre: s.degreLibelle,
+      capitalRestant: s.capitalRestant, resteAPayer: s.resteAPayer, interetTotal: s.interetTotal, interetRestant: s.interetNonEchu + s.du.interet!, dernierPaiement: s.dernierPaiement,
+      du: s.du, retardTotal: sommeDu(s), toutSurLeCredit: toutCredit(c, s), ordre: ordreRemb(c, s.degre),
+      rang: E.credits.filter((x) => x.tiersId === c.tiersId && x.id <= c.id && x.statut !== "refuse").length, terme: String(fixeCredit("termes")[termeCredit(c.duree) - 1]!.libelle),
+      tauxAnnuel: Number(c.tauxInteret.replace(",", ".")) * 12, periodiciteLibelle: periodicitePlan(c.periodicite || "M")!.libelle, differeJours: 0,
+      interetAnticipation: !!p.interetAnticipation, groupe: g?.nom ?? "" };
+  },
+  creditsConsultation(tid: number) {
+    lectureAdmin(["S95"]);
+    return E.credits.filter((c) => c.tiersId === tid && c.statut === "debloque").map((c) => ({ id: c.id, numero: c.numero, montant: c.montant, devise: c.devise }));
+  },
   proposer(id: number, p: { montant: number; dateReglement?: string }) {
     exiger();
     const c = creditEnCours(id);

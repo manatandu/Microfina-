@@ -314,3 +314,83 @@ export function RemboursementBanque() {
     </>
   );
 }
+
+/** S95 : Crédit > Consulter prêt (texte p. 118, capture p. 119) : Infos Client, Infos crédit, Détail crédit ; B, P, R, Memo, Tout sur le crédit, H, Effacer */
+export function ConsulterPret() {
+  const [t, setT] = useState<Tiers | null>(null);
+  const [cid, setCid] = useState<number | null>(null);
+  const [date, setDate] = useState("");
+  const [fiche, setFiche] = useState<"" | "situation" | "plan" | "reel" | "memo" | "recherche">("");
+  const [boite, setBoite] = useState<Boite | null>(null);
+  const { donnees } = useDonnees(async () => {
+    const j = await api.journees.courante();
+    const credits = t ? await api.remboursementsCredit.creditsConsultation(t.id) : [];
+    const id = cid ?? credits[0]?.id ?? null;
+    return { j, credits, d: id ? await api.remboursementsCredit.consultation(id, date || undefined) : null };
+  }, [t?.id, cid, date]);
+  if (!donnees) return <Chargement />;
+  const { j, credits, d } = donnees;
+  const dv = (d?.devise ?? "CDF") as Devise;
+  const ro = (l: string, v: string) => <Champ key={l} libelle={l}>{(p) => <Lecture {...p} value={d ? v : ""} />}</Champ>;
+  const mt = (v: number | undefined) => decimal.format((v ?? 0) / 100);
+  return (
+    <>
+      <h1>Consultation de prêts</h1>
+      <section className="bloc pile" aria-label="Consultation de prêts">
+        <div className="entete-ecran"><span></span>
+          <Champ libelle="Date règlement : *">{(p) => <input {...p} type="date" className="saisie date" max={j?.date} value={date || j?.date || ""} onChange={(x) => setDate(x.target.value)} />}</Champ></div>
+        <div className="grille-deux">
+          <fieldset className="pile cadre-champs"><legend>Infos Client</legend>
+            <div className="ligne-champ"><Champ libelle="N° du Client :">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
+              <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setFiche("recherche")}>Rechercher</button></div>
+            <Champ libelle="Intitulé du compte">{(p) => <textarea {...p} className="saisie" rows={2} readOnly value={d?.client ?? (t ? [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ") : "")} />}</Champ>
+            <dl className="infos"><div className="info-ligne"><dt>Groupe Solidaire</dt><dd>{d?.groupe ?? ""}</dd></div></dl>
+          </fieldset>
+          <fieldset className="pile cadre-champs"><legend>Infos crédit</legend>
+            <Champ libelle="Credit:">{(p) => <select {...p} className="saisie code" disabled={credits.length < 2} value={d?.id ?? ""} onChange={(x) => setCid(Number(x.target.value))}>
+              {credits.length === 0 && <option value=""></option>}{credits.map((c) => <option key={c.id} value={c.id}>{c.numero}</option>)}</select>}</Champ>
+            <dl className="infos">
+              <div className="info-ligne"><dt>Débloqué le:</dt><dd className="chiffres">{d ? `${fr(d.debloqueLe)}  Rang : ${d.rang}` : ""}</dd></div>
+              <div className="info-ligne"><dt>Montant prêt:</dt><dd className="chiffres">{d ? montant(d.montant, dv) : ""}</dd></div>
+              <div className="info-ligne"><dt>Capital restant :</dt><dd className="chiffres">{d ? montant(d.capitalRestant, dv) : ""}</dd></div>
+              <div className="info-ligne"><dt>Reste à payer :</dt><dd className="chiffres">{d ? montant(d.resteAPayer, dv) : ""}</dd></div>
+              <div className="info-ligne"><dt>Produit crédit:</dt><dd>{d?.produit ?? ""}</dd></div>
+              <div className="info-ligne"><dt>Degré crédit:</dt><dd>{d ? <>{d.degre} <span className="negatif">Jour retard : {d.joursRetard}</span></> : ""}</dd></div>
+              <div className="info-ligne"><dt>Degré réel</dt><dd>{d?.degre ?? ""}</dd></div>
+              <div className="info-ligne"><dt>Terme :</dt><dd>{d?.terme ?? ""}</dd></div>
+              <div className="info-ligne"><dt>Agent crédit :</dt><dd>{d?.agent ?? ""}</dd></div>
+            </dl>
+          </fieldset>
+        </div>
+        <fieldset className="pile cadre-champs"><legend>Détail crédit</legend>
+          <div className="grille-cadres client-large">
+            <Champ libelle="Percevoir int. par anticipation *">{(p) => <select {...p} className="saisie court" disabled value={d ? (d.interetAnticipation ? "OUI" : "NON") : ""}>
+              <option value=""></option><option>OUI</option><option>NON</option></select>}</Champ>
+            {ro("Dernier payement", d?.dernierPaiement ? fr(d.dernierPaiement) : "")}{ro("Interêt total", mt(d?.interetTotal))}{ro("Int. restant", mt(d?.interetRestant))}
+            {ro("Retard capil.", mt(d?.du.capital))}{ro("Retard intérêt", mt(d?.du.interet))}{ro("Retard fond Solid.", mt(d?.du.solidarite))}{ro("Retard Epargne", mt(d?.du.epargne))}
+            {ro("Pénalité", mt(d?.du.penalite))}{ro("Retard total", d ? montant(d.retardTotal, dv) : "")}{ro("Durée prêt (mois)", String(d?.duree ?? ""))}
+            {ro("Taux annuel", d ? decimal.format(d.tauxAnnuel) : "")}{ro("Nbre trait", String(d?.nombreTraites ?? ""))}{ro("Périodicité", d?.periodiciteLibelle ?? "")}
+            {ro("Différé de paiement (jour)", String(d?.differeJours ?? ""))}
+          </div>
+        </fieldset>
+        <div className="actions-onglets">
+          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("situation")}>B</button>
+          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("plan")}>P</button>
+          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("reel")}>R</button>
+          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("memo")}>Memo</button>
+          <button className="bouton" type="button" disabled={!d} onClick={() => d && setBoite({ type: "succes", message: `Tout sur le crédit au ${fr(d.dateReglement)} : ${montant(d.toutSurLeCredit, dv)}.` })}>Tout sur le crédit</button>
+          <button className="bouton secondaire" type="button" disabled>H</button>
+          <button className="bouton secondaire" type="button" onClick={() => { setT(null); setCid(null); setDate(""); }}>Effacer</button>
+        </div>
+        <Textes sources={["Manuel Microfina++, p. 118 : 6-Consulter prêt, N° Client, Situation, Réel, Plan, Mémo ; capture p. 119",
+          "Registre S95-1 à S95-3 : même situation que le remboursement (S76) ; Tout sur le crédit affiche la somme due ; H reste grisé (non expliqué par le manuel)"]} />
+      </section>
+      <FenetresCredit cid={d?.id ?? null} devise={dv} ouverte={(["situation", "plan", "reel", "memo"] as const).find((x) => x === fiche) ?? ""} fermer={() => setFiche("")} />
+      <Fiche titre="Recherche d'un client" ouverte={fiche === "recherche"} fermer={() => setFiche("")}>
+        <RechercheClient source={async (x) => (x ? (await api.tiers.rechercher(x)).filter((y) => y.statut === "actif") : [])}
+          choisir={(x) => { setT(x); setCid(null); setFiche(""); }} fermer={() => setFiche("")} />
+      </Fiche>
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </>
+  );
+}

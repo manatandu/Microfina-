@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**586 décisions.** Solidité : 249 fortes (le manuel ou un texte répond), 286 moyennes (déduites d'un écran voisin ou d'une donnée), 51 faibles (notre choix, faute de mieux). Dans le code : 557 déjà en place, 25 à appliquer.
+**589 décisions.** Solidité : 250 fortes (le manuel ou un texte répond), 287 moyennes (déduites d'un écran voisin ou d'une donnée), 52 faibles (notre choix, faute de mieux). Dans le code : 560 déjà en place, 25 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1377,6 +1377,14 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S94-6 | Rapport | Du … au … sur la date d'ajout ; colonnes N°Membre (de la caution, ou du client), N°Compte, N°credit, Date, Client, montant ajouté, Libéré et le restant (dernière colonne coupée sur les captures) | Manuel : Captures p. 118 | moyenne | en place |
 | S94-7 | Retrait d'un membre caution | Une caution d'un prêt en cours ne peut pas démissionner (CR-23), aussi en mode local | Texte réglementaire : Loi 002/2002, art. 24 ; CR-23 | forte | en place |
 
+## S95 Consulter prêt
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S95-1 | Écran | Capture p. 119 « Consultation de prêts » : Date règlement*, Infos Client (N° du Client, Intitulé du compte, Groupe Solidaire), Infos crédit (Credit, Débloqué le et Rang, Montant prêt, Capital restant, Reste à payer, Produit crédit, Degré crédit et Jour retard, Degré réel, Terme, Agent crédit), Détail crédit, boutons B, P, R, Memo, Tout sur le crédit, H, Effacer. Crédits débloqués en cours du client | Manuel : Capture p. 119 ; texte p. 118 | forte | en place |
+| S95-2 | Calculs | Même situation que le remboursement (S76) à la date de règlement ; Rang : rang du crédit parmi ceux du client ; Terme : S21 ; Taux annuel : taux mensuel × 12 (S84-2) ; Degré réel : le degré selon les jours de retard (le déclassement S99 viendra le compléter) ; Différé de paiement (jour) : non saisi au dossier, 0 | Écran voisin : S76-3 ; S84-2 ; S21 | moyenne | en place |
+| S95-3 | Boutons | B, P, R, Memo : les fenêtres de S76 (brouillard, plan, réel, memo) ; Tout sur le crédit : affiche la somme due ce jour ; H grisé, non expliqué par le manuel ; Percevoir int. par anticipation : la valeur du produit, en lecture | Écran voisin : Texte p. 118 ; S76-9 ; S55-2 | faible | en place |
+
 ## Les décisions faibles, à regarder en premier
 
 | N° | Écran | Question | Réponse retenue |
@@ -1432,3 +1440,4 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S90-5 | S90 Visas : responsable crédit, comité, service financier | Procès-verbal du comité | N° du procès-verbal du comité, facultatif, gardé avec le visa |
 | S92-2 | S92 Crédits validés non débloqués | Crédits archivés | Case cochée : les crédits validés déjà débloqués (ou soldés) s'y ajoutent |
 | S94-3 | S94 Caution et nantissement | Garantie calculée | « Dépôt de garantie calculé » : l'épargne obligatoire du crédit (S89). « Caution calculée » : 0, le produit (S23) n'a pas de paramètre de caution |
+| S95-3 | S95 Consulter prêt | Boutons | B, P, R, Memo : les fenêtres de S76 (brouillard, plan, réel, memo) ; Tout sur le crédit : affiche la somme due ce jour ; H grisé, non expliqué par le manuel ; Percevoir int. par anticipation : la valeur du produit, en lecture |

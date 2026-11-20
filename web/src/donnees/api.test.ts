@@ -2210,6 +2210,15 @@ describe("journée de guichet", () => {
     expect(await soldeCdfGrandLivre()).toBe(0);
   });
 
+  it("consulter un prêt (S95, p. 118 et 119) : situation et champs de la capture (S95-1 à S95-3)", async () => {
+    const cid = await creditDebloque();
+    await connecter("bkasongo");
+    expect((await api.remboursementsCredit.creditsConsultation(1)).map((x) => x.id)).toEqual([cid]);
+    const d = await api.remboursementsCredit.consultation(cid);
+    expect([d.rang, d.terme, d.tauxAnnuel, d.periodiciteLibelle, d.degre, d.capitalRestant, d.interetAnticipation]).toEqual([1, "Court terme", 30, "Mensuel", "Sains", 100000000, false]);   // comme le serveur
+    expect((await api.remboursementsCredit.ajouterMemo(cid, { texte: "Visite du 05/11" }))[0]!.texte).toBe("Visite du 05/11");
+  });
+
   it("produit crédit (S23, p. 37 et 38) : méthode dégressive (Instr. BCC 38 art. 11), bornes, garanties, assurance, frais (Instr. BCC 40 art. 8)", async () => {
     await connecter("jpmukendi");
     const P = { typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: "2,5", tauxDiffere: 2,

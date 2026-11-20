@@ -445,6 +445,18 @@ def remboursement_banque(request, cid: int, corps: dict = Body(...)):
     return rb.rembourser_banque(u(request), cid, corps)
 
 
+@api.get("/credit/consultation/clients/{tid}")
+def consultation_credits(request, tid: int):
+    from . import remboursements as rb
+    return rb.credits_du_client(u(request), tid)
+
+
+@api.get("/credit/consultation/{cid}")
+def consultation_credit(request, cid: int, date: str = ""):
+    from . import remboursements as rb
+    return rb.consultation(u(request), cid, date or None)
+
+
 @api.get("/credit/credits/{cid}/situation")
 def credit_situation(request, cid: int):
     from . import remboursements as rb

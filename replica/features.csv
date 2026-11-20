@@ -96,7 +96,7 @@ Historique des visas,crédit,must,yes,yes,S91
 Crédits validés non débloqués,crédit,must,yes,partial,S92
 État de crédit,crédit,must,yes,yes,"S93 | Situation des crédits sur une période ou à une date fixe, filtres, capital restant et retard, échéancier et contrat (registre S93-1 à S93-4)."
 Cautions dépôts de garantie nantissements,crédit,must,yes,partial,"S94 | Ajout et libération de caution et de dépôt de garantie, blocage lié au crédit, hors bilan 0112/091, rapport (registre S94-1 à S94-7, CR-21)."
-Consulter un prêt,crédit,must,yes,no,S95
+Consulter un prêt,crédit,must,yes,yes,"S95 | Consultation de prêts : situation, rang, terme, retards, brouillard, plan, réel, memo, tout sur le crédit (registre S95-1 à S95-3)."
 Affectation de portefeuille entre gestionnaires,crédit,should,yes,no,S96
 Liste rouge,crédit,should,yes,no,S97
 Balance âgée,crédit,must,yes,no,S98 ; calculée chaque jour et non lancée à la main (Instr. BCC 003 art. 6 et 12)

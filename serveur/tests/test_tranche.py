@@ -1743,6 +1743,18 @@ def test_garanties(clients, journee):
     assert clients["caisse"].post(f"/api/credit/garanties/{cid}/ajout", base, **H).status_code == 403
 
 
+def test_consulter_pret(clients, journee):
+    """S95 (p. 118 et 119) : situation du crédit et champs de la capture (registre S95-1 à S95-3)"""
+    agent = clients["agent"]
+    cid = credit_debloque(clients, journee)
+    assert [x["id"] for x in agent.get(f"/api/credit/consultation/clients/{T('0412-000318')}", **H).json()] == [cid]
+    d = agent.get(f"/api/credit/consultation/{cid}", **H).json()
+    assert (d["rang"], d["terme"], d["tauxAnnuel"], d["periodiciteLibelle"], d["degre"], d["capitalRestant"], d["interetAnticipation"]) == \
+        (1, "Court terme", 30.0, "Mensuel", "Sains", 100000000, False)
+    assert clients["caisse"].get(f"/api/credit/consultation/{cid}", **H).status_code == 403
+    assert agent.post(f"/api/credit/credits/{cid}/memos", {"texte": "Visite du 05/11"}, **H).json()[0]["texte"] == "Visite du 05/11"
+
+
 def test_produit_credit(clients):
     """S23 (p. 37 et 38) : Information de base de la capture ; méthode dégressive (Instr. BCC 38, art. 11) ; garanties, assurance, frais
     (Instr. BCC 38 art. 6, Instr. BCC 40 art. 8) ; pénalité d'anticipation au plus 50 % (Instr. BCC 38, art. 14) ; registre S23-1 à S23-7"""
