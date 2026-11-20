@@ -9,11 +9,13 @@ const design = fileURLToPath(new URL("../replica/design", import.meta.url));
 const pcci = fileURLToPath(new URL("../replica/pcci.json", import.meta.url));
 // Les référentiels partagés (replica/referentiels.json) : une seule description, lue aussi par le serveur (noyau/referentiels.py)
 const referentiels = fileURLToPath(new URL("../replica/referentiels.json", import.meta.url));
+// Les modèles des états financiers du PCCI (replica/etats-pcci.json) : postes et comptes rattachés, lus aussi par le serveur (noyau/etats_financiers.py)
+const etats = fileURLToPath(new URL("../replica/etats-pcci.json", import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
-  resolve: { alias: { "@design": design, "@pcci": pcci, "@referentiels": referentiels } },
+  resolve: { alias: { "@design": design, "@pcci": pcci, "@referentiels": referentiels, "@etats": etats } },
   // VITE_DONNEES=serveur : les appels /api vont au serveur Django (python manage.py runserver 8000)
-  server: { fs: { allow: [".", design, pcci, referentiels] }, proxy: { "/api": "http://127.0.0.1:8000" } },
+  server: { fs: { allow: [".", design, pcci, referentiels, etats] }, proxy: { "/api": "http://127.0.0.1:8000" } },
   test: { environment: "node" },
 });

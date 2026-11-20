@@ -505,6 +505,38 @@ def lignes_reglement(r: dict, tresorerie: dict) -> list[dict]:
     return l + [L(x["compte"], "C", "CDF", x["montant"]) for x in json_lu(r["charges"]) if x["montant"]]
 
 
+def libelle_reglement(r: dict) -> str:
+    ref = valeur("select reference from facture_fournisseur where id = %s", (r["facture_id"],))
+    return f"Règlement de la facture {ref}" + (f", chèque {r['cheque']}" if r["cheque"] else "")
+
+
+def fiche_imputation(u, rid: int) -> dict:
+    """Etat de validation du règlement (« FICHE D'IMPUTATION », p. 154) : N° Journal, Date, N° de Pièce, Libellé, Référence ; COMPTE, INTITULE, DEBIT, CREDIT,
+    ECHEANCE ; TOTAUX ; Saisie par, Approuvée par. Éditée dès la validation : la pièce vient à la comptabilisation (T13) ou au paiement en caisse (S141)."""
+    exiger(u)
+    r = une("select * from reglement_fournisseur where id = %s and institution_id = %s and agence_id = %s", (rid, u["institution_id"], u["agence_id"]))
+    if not r or r["statut"] not in ("validee", "comptabilisee", "payee"):
+        raise ErreurMetier("Fiche d'imputation : règlement pas encore validé.")
+    f = une("select reference from facture_fournisseur where id = %s", (r["facture_id"],))
+    if r["ecriture_id"]:
+        e = une("select e.date_valeur, e.libelle, j.code from ecriture e join journal j on j.id = e.journal_id where e.id = %s", (r["ecriture_id"],))
+        journal, jour, libelle = e["code"], e["date_valeur"], e["libelle"]
+        lg = [{"compte": x["numero"], "intitule": x["libelle"], "debit": x["montant_cdf"] if x["sens"] == "D" else 0, "credit": x["montant_cdf"] if x["sens"] == "C" else 0}
+              for x in lignes("""select c.numero, c.libelle, l.sens, l.montant_cdf from ligne_ecriture l join compte c on c.id = l.compte_id
+                                 where l.ecriture_id = %s order by l.rang""", (r["ecriture_id"],))]
+    else:
+        from .comptabilisation import banque
+        b = {"journal": "CA", "compte": "570"} if r["mode"] == "ESPECE" else banque(r["compte_bancaire_id"])
+        journal, jour, libelle = b["journal"], r["date_validation"], libelle_reglement(r)
+        lg = [{"compte": x["compte"], "debit": x["montant"] if x["sens"] == "D" else 0, "credit": x["montant"] if x["sens"] == "C" else 0,
+               "intitule": valeur("""select libelle from compte where numero = %s and (institution_id is null or institution_id = %s)
+                                     order by institution_id nulls last limit 1""", (x["compte"], u["institution_id"])) or ""}
+              for x in lignes_reglement(r, L(b["compte"], "C", "CDF", r["montant_a_payer"]))]
+    from .releves import entete
+    return {"entete": entete(u["institution_id"]), "journal": journal, "date": jour.isoformat(), "piece": r["piece"] or "", "libelle": libelle, "reference": f["reference"],
+            "lignes": lg, "debit": sum(x["debit"] for x in lg), "credit": sum(x["credit"] for x in lg), "saisiPar": nom_utilisateur(r["saisi_par"])}
+
+
 def en_attente(u, j: dict) -> list[dict]:
     """Factures et règlements validés (hors espèces, payés en caisse : S141) à passer au plus tard à la date de la journée"""
     d, i, a = j["date_comptable"], u["institution_id"], u["agence_id"]
@@ -517,9 +549,7 @@ def en_attente(u, j: dict) -> list[dict]:
     for r in lignes("""select * from reglement_fournisseur where institution_id = %s and agence_id = %s and statut = 'validee' and mode <> 'ESPECE'
                        and date_validation <= %s order by date_validation, id""", (i, a, d)):
         b = banque(r["compte_bancaire_id"])
-        ref = valeur("select reference from facture_fournisseur where id = %s", (r["facture_id"],))
-        libelle = f"Règlement de la facture {ref}" + (f", chèque {r['cheque']}" if r["cheque"] else "")
-        out.append({"source": "reglement", "id": r["id"], "type": "reglement", "libelle": libelle, "journal": b["journal"],
+        out.append({"source": "reglement", "id": r["id"], "type": "reglement", "libelle": libelle_reglement(r), "journal": b["journal"],
                     "lignes": lignes_reglement(r, L(b["compte"], "C", "CDF", r["montant_a_payer"])), "date": r["date_validation"], "evenement": "reglement_facture"})
     return out
 
@@ -628,7 +658,7 @@ def declaration_taxes(u, p: dict) -> dict:
 
 
 def bon_de_commande(u, cid: int) -> dict:
-    """Etat de validation du bon de commande (p. 149) : Bon de commande, Date, Fournisseur ; Quantité, Désignation, P.U, TVA, Montant HT, Montant TTC"""
+    """Etat de validation du bon de commande (p. 150) : Bon de commande, Date, Fournisseur ; Quantité, Désignation, P.U, TVA, Montant HT, Montant TTC"""
     exiger(u)
     c = une("select * from commande_fournisseur where id = %s and institution_id = %s", (cid, u["institution_id"]))
     if not c:

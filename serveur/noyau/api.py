@@ -986,6 +986,27 @@ def caisse_operation_compta_valider(request, oid: int, corps: dict = Body(...)):
 
 
 # ---------- S107 Factures (p. 124 à 128, 147 à 153), S108 Déclaration de taxe (p. 128), S141 Règlement facture espèce ----------
+@api.get("/comptabilite/etats-financiers/contexte")
+def etats_financiers_contexte(request):
+    from . import etats_financiers as ef
+    return ef.contexte(u(request))
+
+
+@api.get("/comptabilite/etats-financiers/{etat}")
+def etats_financiers_etat(request, etat: str):
+    from . import etats_financiers as ef
+    f = {"bilan": ef.bilan, "hors-bilan": ef.hors_bilan, "resultat": ef.resultat, "annexe": ef.annexe}.get(etat)
+    if not f:
+        raise ErreurMetier("Etat inconnu.")
+    return f(u(request), request.GET.dict())
+
+
+@api.get("/comptabilite/indicateurs-financiers")
+def indicateurs_financiers(request):
+    from . import etats_financiers as ef
+    return ef.indicateurs(u(request), request.GET.dict())
+
+
 @api.get("/comptabilite/factures/contexte")
 def factures_contexte(request):
     from . import factures_fournisseurs as ff
@@ -1052,6 +1073,12 @@ def factures_reglement(request, corps: dict = Body(...)):
     return ff.enregistrer_reglement(u(request), corps)
 
 
+@api.get("/comptabilite/factures/reglements/{rid}/fiche")
+def factures_fiche_imputation(request, rid: int):
+    from . import factures_fournisseurs as ff
+    return ff.fiche_imputation(u(request), rid)
+
+
 @api.get("/comptabilite/factures/visas/{etape}/{quoi}")
 def factures_visas(request, etape: str, quoi: str):
     from . import factures_fournisseurs as ff
@@ -1092,6 +1119,92 @@ def caisse_reglements_factures(request):
 def caisse_reglement_facture_payer(request, rid: int, corps: dict = Body(...)):
     from . import factures_fournisseurs as ff
     return ff.payer_reglement(u(request), rid, corps)
+
+
+# ---------- S110 Rapprochement bancaire, S112 Historique, S119 Lettrage, S118 Contrôle, S143 Trésorerie, S142 Annulation de règlement de crédit ----------
+@api.get("/comptabilite/rapprochement/contexte")
+def rappro_contexte(request):
+    from . import controles_compta as cc
+    return cc.rappro_contexte(u(request))
+
+
+@api.get("/comptabilite/rapprochement/journal")
+def rappro_journal(request):
+    from . import controles_compta as cc
+    return cc.journal_banque(u(request), request.GET.dict())
+
+
+@api.post("/comptabilite/rapprochement/etat")
+def rappro_etat(request, corps: dict = Body(...)):
+    from . import controles_compta as cc
+    return cc.etat_rapprochement(u(request), corps)
+
+
+@api.post("/comptabilite/rapprochement")
+def rappro_enregistrer(request, corps: dict = Body(...)):
+    from . import controles_compta as cc
+    return cc.enregistrer_rapprochement(u(request), corps)
+
+
+@api.post("/comptabilite/rapprochement/operation")
+def rappro_operation(request, corps: dict = Body(...)):
+    """Bouton Nouveau : une opération du relevé absente de nos livres se saisit comme une opération de banque (S52) ; elle suit sa chaîne de visa (S57)"""
+    from . import banque_operations as bo
+    return bo.enregistrer(u(request), corps)
+
+
+@api.get("/comptabilite/rapprochement/historique")
+def rappro_historique(request):
+    from . import controles_compta as cc
+    return cc.historique(u(request), request.GET.dict())
+
+
+@api.get("/comptabilite/lettrage")
+def lettrage_lignes(request):
+    from . import controles_compta as cc
+    return cc.lettrage_lignes(u(request), request.GET.dict())
+
+
+@api.post("/comptabilite/lettrage")
+def lettrage_lettrer(request, corps: dict = Body(...)):
+    from . import controles_compta as cc
+    return cc.lettrer(u(request), corps)
+
+
+@api.get("/comptabilite/controle/tresorerie")
+def controle_tresorerie(request):
+    from . import controles_compta as cc
+    return cc.tresorerie(u(request), request.GET.dict())
+
+
+@api.get("/comptabilite/controle/annulations/contexte")
+def controle_annulations_contexte(request):
+    from . import controles_compta as cc
+    return cc.annulations_contexte(u(request))
+
+
+@api.get("/comptabilite/controle/annulations")
+def controle_annulations(request):
+    from . import controles_compta as cc
+    return cc.annulations(u(request), request.GET.dict())
+
+
+@api.get("/comptabilite/controle/revenus")
+def controle_revenus(request):
+    from . import controles_compta as cc
+    return cc.revenus(u(request), request.GET.dict())
+
+
+@api.get("/comptabilite/annulation-reglement")
+def annulation_reglements(request):
+    from . import controles_compta as cc
+    return cc.reglements_annulables(u(request))
+
+
+@api.post("/comptabilite/annulation-reglement/{rid}")
+def annulation_reglement(request, rid: int):
+    from . import controles_compta as cc
+    return cc.annuler_reglement(u(request), rid)
 
 
 # ---------- S115 : journaux comptables (p. 133) ----------

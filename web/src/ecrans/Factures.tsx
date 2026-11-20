@@ -39,7 +39,7 @@ function ChoixFournisseur({ ctx, valeur, choisir }: { ctx: Ctx; valeur: string; 
   </>;
 }
 
-/** Etat de validation du bon de commande (p. 149) */
+/** Etat de validation du bon de commande (p. 150) */
 export function BonCommande({ id, fermer }: { id: number; fermer: () => void }) {
   const { donnees: d } = useDonnees(() => api.facturesFournisseurs.bonDeCommande(id), [id]);
   if (!d) return <Chargement />;
@@ -178,6 +178,26 @@ function Charges({ charges, titre }: { charges: { libelle: string; taux: string;
     <tbody>{charges.length === 0 && <tr><td colSpan={3}>Aucune donnée dans la liste pour le moment</td></tr>}
       {charges.map((c, i) => <tr key={i}><td>{c.libelle}</td><td className="num chiffres">{c.taux}</td><td className="num chiffres">{decimal.format(c.montant / 100)}</td></tr>)}</tbody>
     <tfoot><tr><td></td><td></td><td className="num chiffres">{decimal.format(charges.reduce((t, c) => t + c.montant, 0) / 100)}</td></tr></tfoot></table>;
+}
+
+/** Etat de validation du règlement : « FICHE D'IMPUTATION » (p. 154) */
+export function FicheImputation({ id, fermer }: { id: number; fermer: () => void }) {
+  const { donnees: d } = useDonnees(() => api.facturesFournisseurs.ficheImputation(id), [id]);
+  if (!d) return <Chargement />;
+  const n = (v: number) => decimal.format(v / 100);
+  return <div className="pile">
+    <article className="releve-std a-imprimer" aria-label="Fiche d'imputation">
+      <header className="releve-tete"><h2 className="releve-titre">FICHE D'IMPUTATION</h2></header>
+      <dl className="infos"><div className="info-ligne"><dt>N° Journal</dt><dd className="code">{d.journal}</dd></div><div className="info-ligne"><dt>Date</dt><dd className="chiffres">{fr(d.date)}</dd></div>
+        <div className="info-ligne"><dt>N° de Pièce</dt><dd className="chiffres">{d.piece}</dd></div><div className="info-ligne"><dt>Libellé</dt><dd>{d.libelle}</dd></div>
+        <div className="info-ligne"><dt>Référence</dt><dd>{d.reference}</dd></div></dl>
+      <table className="grille"><thead><tr><th scope="col">COMPTE</th><th scope="col">INTITULE</th><th scope="col" className="num">DEBIT</th><th scope="col" className="num">CREDIT</th><th scope="col">ECHEANCE</th></tr></thead>
+        <tbody>{d.lignes.map((l, i) => <tr key={i}><td className="code">{l.compte}</td><td>{l.intitule}</td><td className="num chiffres">{n(l.debit)}</td><td className="num chiffres">{n(l.credit)}</td><td></td></tr>)}</tbody>
+        <tfoot><tr><th scope="row" colSpan={2}>TOTAUX</th><td className="num chiffres">{n(d.debit)}</td><td className="num chiffres">{n(d.credit)}</td><td></td></tr></tfoot></table>
+      <div className="entete-ecran"><p>Saisie par : <strong>{d.saisiPar}</strong></p><p>Approuvée par:</p></div>
+    </article>
+    <div className="actions-onglets sans-impression"><button className="bouton secondaire" type="button" onClick={fermer}>Fermer</button><button className="bouton" type="button" onClick={() => window.print()}>Imprimer</button></div>
+  </div>;
 }
 
 function Enregistrement({ ctx, poser }: { ctx: Ctx; poser: Poser }) {

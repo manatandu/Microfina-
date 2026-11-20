@@ -203,9 +203,12 @@ const OUT = process.argv[2];
   await aller('/administration/s04'); await p.getByLabel('Libellé du Profil *').selectOption({ label: 'AUDITEUR' });
   await p.getByRole('checkbox', { name: 'LISTE DES DROITS RESTANTS : Client' }).check(); await p.getByRole('button', { name: 'Octroyer les droits cochés' }).click();
   await etape('02f32-droits'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  // Chef : facture (S36, p. 46) : un élément TVA au compte 432 (PCCI), puis un type de commande (p. 125)
-  await aller('/parametrage/s36'); await p.getByLabel('Libellé', { exact: true }).fill('TVA'); await p.getByLabel('Compte :').fill('432'); await p.getByLabel('Taux(%)').fill('16');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'TVA', exact: true }).waitFor(); await etape('02f29-element-facture');
+  // Chef : facture (S36, p. 46) : un élément de facture, la retenue sur les loyers au compte 433 (O.-L. 69/009, art. 10 et 11 ; PCCI), désactivé ensuite :
+  // un élément actif s'applique à toutes les factures ; puis un type de commande (p. 125)
+  await aller('/parametrage/s36'); await p.getByLabel('Libellé', { exact: true }).fill('Retenue sur loyers'); await p.getByLabel('Compte :').fill('433'); await p.getByLabel('Taux(%)').fill('20');
+  await p.getByLabel('Retenue Taux').check();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Retenue sur loyers', exact: true }).waitFor(); await etape('02f29-element-facture');
+  await p.getByLabel('Désactiver : Retenue sur loyers').click(); await oui(); await etape('02f29b-element-desactive');
   await p.getByRole('tab', { name: 'Référence Commande' }).click(); await p.getByLabel('Code : *').fill('ACHA_M'); await p.getByLabel('Type Commande : *').fill('Achat de matériel');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Achat de matériel' }).waitFor(); await etape('02f30-reference-commande');
   // Chef : paramétrage des produits épargne (S28, p. 41) : l'épargne de garantie dans l'onglet Bloqué, compte 334 proposé
@@ -1123,6 +1126,55 @@ const OUT = process.argv[2];
   await aller('/comptabilite/s111'); await p.getByLabel('Journée non comptabilisée :').waitFor();
   if ((await p.getByLabel('Journée non comptabilisée :').locator('option').count()) !== 2) throw new Error('deux journées en attente attendues');
   await etape('22-journees-non-comptabilisees');
+  // Factures (S107, p. 125 à 127 et 148 à 153) : facture directe saisie par le comptable, avec TVA de 16 % (O.-L. 10/001, art. 35)
+  await login('Patrick Lumbala'); await aller('/comptabilite/s107'); await p.getByRole('heading', { name: 'Commandes Fournisseurs' }).waitFor(); await etape('23a-bon-de-commande');
+  await p.getByRole('tab', { name: 'Enregistrement' }).click(); await p.getByRole('button', { name: 'Rechercher un fournisseur' }).click();
+  await p.getByRole('dialog', { name: "Recherche d'un fournisseur" }).getByRole('row').filter({ hasText: 'Papeterie du Fleuve' }).dblclick();
+  await p.getByLabel('Facture directe').check(); await p.getByLabel('Compte *').fill('610'); await p.getByLabel('Réf. Facture *').fill('F-2026-001');
+  await p.getByLabel('Libellé: *').fill('Fournitures de bureau'); await p.getByLabel('Montant (HT): *').fill('100000'); await p.getByLabel('Ajouter TVA').check();
+  await p.getByText('116 000,00 CDF').first().waitFor(); await etape('23b-facture-saisie');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByRole('tab', { name: 'Règlement' }).click(); await p.getByRole('heading', { name: 'Règlement de factures' }).waitFor(); await etape('23c-reglement');
+  await p.getByRole('tab', { name: 'Journal' }).click(); await p.getByRole('button', { name: 'Afficher' }).click(); await etape('23d-journal-achats');
+  await p.getByRole('tab', { name: 'Rapport' }).click(); await p.getByLabel('Date Fin : *').fill('30112026'); await p.getByRole('radio', { name: 'Détaillé' }).check(); await p.getByRole('radio', { name: 'Tout' }).check();
+  await p.getByRole('button', { name: 'Rechercher', exact: true }).click();
+  await p.getByRole('cell', { name: 'F-2026-001' }).first().waitFor(); await etape('23e-rapport-factures');
+  await aller('/comptabilite/s108'); await p.getByRole('heading', { name: 'Etat de déclaration des taxes' }).waitFor(); await etape('23f-declaration-taxes');
+  // Chef : visa de la facture (S113) ; la validation (S114) revient à une troisième personne (Instr. BCC 008, art. 66)
+  await login('J.-P. Mukendi'); await aller('/comptabilite/s113'); await p.getByRole('tab', { name: 'Facture' }).click();
+  await p.getByRole('button', { name: 'Visa F-2026-001' }).click(); await oui(); await etape('23g-visa-facture');
+  await aller('/comptabilite/s114'); await p.getByRole('tab', { name: 'Facture' }).click(); await p.getByRole('button', { name: 'Valider F-2026-001' }).click();
+  await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Erreur' }).getByText(/Quatre yeux/).waitFor(); await etape('23h-validation-quatre-yeux');
+  await p.getByRole('button', { name: 'Ok' }).click();
+  // Un écran sans droit ne s'ouvre pas, même par son adresse (registre T07) : le chef n'a pas la caisse des factures
+  await aller('/caisse/s141'); await p.getByText(/^Droit manquant : Règlement facture espèce/).waitFor(); await etape('23i-droit-manquant');
+  // Annulation de règlement de crédit (S142, p. 158) : le règlement par prélèvement saisi par le comptable, annulé par le chef (PCCI § 3.3)
+  await aller('/comptabilite/s142'); await p.getByRole('button', { name: 'Rechercher un règlement' }).click();
+  const an = p.getByRole('dialog', { name: 'Règlements par prélèvement sur compte' });
+  await an.getByRole('row').filter({ hasText: 'Kalala' }).first().dblclick(); await etape('24a-annulation-reglement');
+  await p.getByRole('button', { name: 'Valider' }).click(); await oui(); await etape('24b-reglement-annule');
+  // Caissière : règlement des factures en espèces (S141)
+  await login('Esther Ngalula'); await aller('/caisse/s141'); await p.getByRole('heading', { name: 'Règlement de factures' }).waitFor(); await etape('24c-reglement-espece');
+  // Rapprochement bancaire (S110, p. 129, 154 et 155), historique (S112, p. 130)
+  await login('Patrick Lumbala'); await aller('/comptabilite/s110');
+  await p.getByLabel('Banque *').selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte *').selectOption({ index: 1 });
+  await p.getByLabel('Date Fin *').fill('30112026'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('button', { name: 'Exporter' }).waitFor();
+  await p.getByLabel('Solde Fin').fill('0'); await etape('25a-rapprochement');
+  await p.getByRole('button', { name: 'Exporter' }).click(); const er = p.getByRole('dialog', { name: 'Etat de rapprochement bancaire' });
+  await er.getByText('Solde attendu au relevé').waitFor(); await etape('25b-etat-rapprochement');
+  await er.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await er.getByRole('button', { name: 'Fermer' }).click();
+  await p.getByRole('button', { name: 'Nouveau' }).click(); await p.getByRole('dialog', { name: 'Nouveau' }).waitFor(); await etape('25c-rapprochement-nouveau');
+  await p.getByRole('dialog', { name: 'Nouveau' }).getByRole('button', { name: 'Annuler' }).click();
+  await aller('/comptabilite/s112'); await p.getByLabel('Date Fin : *').fill('30112026'); await p.getByRole('button', { name: 'Rechercher' }).click();
+  await p.getByRole('cell', { name: 'Rawbank' }).first().waitFor(); await etape('25d-historique-rapprochement');
+  // Lettrage (S119, p. 138 et 160) ; contrôle (S118, p. 136 à 138) ; trésorerie (S143, p. 162)
+  await aller('/comptabilite/s119'); await p.getByLabel('Compte *').fill('610'); await p.getByRole('radio', { name: 'Toutes les écritures' }).check();
+  await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByLabel('Intitulé').waitFor(); await etape('26a-lettrage');
+  await aller('/comptabilite/s118'); await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByText(/^Solde des caisses au/).waitFor(); await etape('26b-controle-tresorerie');
+  await p.getByRole('tab', { name: 'Rapport annulation' }).click(); await p.getByLabel('Du :').fill('01112026'); await p.getByLabel('Au :').fill('30112026');
+  await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('cell', { name: /Kalala/ }).first().waitFor(); await etape('26c-rapport-annulation');
+  await p.getByRole('tab', { name: 'Etat des revenus' }).click(); await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByRole('columnheader', { name: 'RECETTES' }).waitFor(); await etape('26d-etat-revenus');
+  await aller('/budget/s143'); await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByText(/^Solde des banques au/).waitFor(); await etape('26e-tresorerie');
   console.log(errs.length ? 'ERREURS\n' + errs.join('\n') : 'aucune erreur console');
   await b.close();
 })().catch(async e => { await globalThis.__p.screenshot({ path: OUT + '/zz-echec.png', fullPage: true }); throw e; }).catch(async e => { console.error('ÉCHEC', e.message.split('\n').slice(0,3).join(' / ')); process.exit(1); });

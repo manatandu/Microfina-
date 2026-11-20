@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**698 décisions.** Solidité : 292 fortes (le manuel ou un texte répond), 342 moyennes (déduites d'un écran voisin ou d'une donnée), 64 faibles (notre choix, faute de mieux). Dans le code : 688 déjà en place, 8 à appliquer.
+**738 décisions.** Solidité : 306 fortes (le manuel ou un texte répond), 365 moyennes (déduites d'un écran voisin ou d'une donnée), 67 faibles (notre choix, faute de mieux). Dans le code : 730 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1208,7 +1208,10 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S141-1 | Ordre de construction | S141 règle une facture enregistrée dans Comptabilité > Factures (S107) : il se construit avec S107, à l'étape 8, comme S82 avec S116 | Choix du porteur : Décision du porteur, 19/11/2026 ; atlas (A:S107) | forte | à faire |
+| S141-1 | Ordre de construction | S141 règle une facture enregistrée dans Comptabilité > Factures (S107) : construit avec S107, comme S82 avec S116 | Choix du porteur : Décision du porteur, 19/11/2026 ; atlas (A:S107) | forte | en place |
+| S141-2 | Écran | Liste des règlements en espèce validés ; double-clic, billetage, Valider. Modèle : validation en caisse (S82) | Écran voisin : S82 (p. 93 et 94) ; nom dans le menu Caisse, p. 84 et 97 | moyenne | en place |
+| S141-3 | Qui paie | La caissière, guichet ouvert, autre personne que celles qui ont saisi, visé et validé. Droit S141 au caissier dès le départ | Texte réglementaire : Instr. BCC 008, art. 66 ; S82-4 | forte | en place |
+| S141-4 | Écriture | Débit du compte du fournisseur (40), crédit de la caisse pour le net payé et du 433 pour les retenues ; la caisse baisse du net | Texte réglementaire : PCCI, comptes 40 et 433 | forte | en place |
 
 ## Étape 7 Crédit
 
@@ -1558,7 +1561,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S114-1 | Listes | Trois listes : Virement et prélèvement, Écritures comptables, Virement compte à compte (« Compte DAV vers un Autre Compte »). Commande, Liste de commandes, Facture et Règlement viennent avec les factures (S107) | Manuel : Captures p. 132 et 133 | forte | à appliquer |
+| S114-1 | Listes | Sept listes : Virement et prélèvement, Écritures comptables, Commande, Liste de commandes, Facture, Règlement, Virement compte à compte | Manuel : Captures p. 132 et 133 | forte | en place |
 | S114-2 | Qui valide, date | Une autre personne que celles qui ont saisi et visé ; date de validation : la journée ouverte (aucun champ sur les captures) | Texte réglementaire : Instr. BCC 008, art. 66 ; S57-1, S57-5 | moyenne | en place |
 | S114-3 | Effet | Statut validée ; l'écriture passe au grand livre à la comptabilisation de la journée (S111), avec son N° de pièce | Écran voisin : S57-6 ; PCCI § 3.4 | moyenne | en place |
 
@@ -1593,6 +1596,83 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S117-4 | Choose, Upload, Cancel | Fichier texte de la liste : une ligne par compte, « N° compte ; montant » ; chaque compte est vérifié | Écran voisin : Capture p. 136 (Choose, Upload, Cancel) | faible | en place |
 | S117-5 | Enregistrer et suite | Bouton Enregistrer sous la liste (capture coupée) : le lot part au visa dans « Virement et prélèvement » (une ligne), puis à la validation ; la comptabilisation passe une seule écriture : le compte de l'institution débité du total, chaque compte crédité de son salaire | Écran voisin : Capture p. 136 ; COMPLEMENTS § 6 ; Instr. BCC 008, art. 66 | moyenne | en place |
 | S117-6 | Prélèvement automatique | Même écran : chaque compte de la liste est débité, dans son disponible, et le compte de l'institution crédité. Le lot se lance chaque mois par l'utilisateur ; pas d'exécution sans intervention | Écran voisin : Manuel p. 136 (« l'onglet ne marche pas ») ; Instr. BCC 37, annexe, point 1 (autorisation de prélèvement gratuite) | faible | en place |
+
+## S107 Factures
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S107-1 | Onglets | Cinq onglets, dans l'ordre du manuel : Bon de commande, Enregistrement, Règlement, Journal, Rapport | Manuel : Captures p. 125 à 128 ; texte p. 147 à 153 | forte | en place |
+| S107-2 | Chaîne du bon de commande | Saisi par le comptable, validé par une autre personne dans Validation > Commande (S114) ; l'état de validation du bon de commande s'imprime depuis la liste des commandes validées | Manuel : Texte p. 147 à 150 ; captures p. 132 ; Instr. BCC 008, art. 66 | forte | en place |
+| S107-3 | Chaîne de la facture | Saisie, visa (S113), validation (S114) par trois personnes, puis comptabilisation de la journée (S111). Écriture : débit du compte de la ligne de commande ou du compte saisi, débit 432 pour la TVA, crédit du compte du fournisseur (40) | Texte réglementaire : PCCI, comptes 40 et 432 ; § 3.4 ; texte p. 150 à 152 ; Instr. BCC 008, art. 66 | forte | en place |
+| S107-4 | TVA | Aucun taux dans le logiciel : la TVA est la taxe de code TVA du plan des taxes (S104). Elle est portée au 432. La part non déductible (prorata des opérations exonérées) se reclasse en charge par une écriture (S109) : le logiciel ne calcule pas le prorata | Texte réglementaire : O.-L. 10/001, art. 35 (16 %), art. 43 (prorata), exonération point 17 (crédit des COOPEC et IMF) ; PCCI, compte 432 | faible | en place |
+| S107-5 | Retenues fiscales | Deux sources. Sur une ligne de commande : une taxe de S104 choisie dans « Taux », portée au 433. Sur toute facture : les éléments de facture (S36), au Taux A. si « NIF » est coché, au Taux N.A. sinon, à défaut au Taux. La retenue réduit le montant à payer | Manuel : Captures p. 125 et 126 (liste des retenues fiscales, cases) ; S36 ; PCCI, compte 433 ; loi 23/053, art. 142 à 144 ; O.-L. 69/009, art. 10 et 11 | moyenne | en place |
+| S107-6 | Case « IFU » | Le libellé affiché est « NIF » : c'est le numéro impôt en RDC. La case choisit le taux des éléments de facture (A. ou N.A.) | Texte réglementaire : Capture p. 126 ; S36 (Taux A., Taux N.A.) ; loi 23/053, art. 142 | moyenne | en place |
+| S107-7 | « Fournisseur à jour » | Case reprise, enregistrée avec la facture, sans effet de calcul : le manuel ne dit pas ce qu'elle change | Manuel : Capture p. 126 | faible | en place |
+| S107-8 | Champs des stocks | Produit, Besoin et Joindre des documents sont affichés grisés : la gestion des stocks n'est pas reprise. Unité se saisit en texte. Type Produit et Produit du rapport sont grisés aussi | Manuel : Capture p. 125 ; features.csv (stocks non repris) | moyenne | en place |
+| S107-9 | Tranches de paiement | Les tranches d'une commande portent sur le hors taxes et totalisent 100 %. Une facture par tranche ; la dernière prend le reste, sans centime perdu | Manuel : Capture p. 125 (Tranche Paiement) ; texte p. 149 et 150 | moyenne | en place |
+| S107-10 | Facture directe | Sans commande : case « Facture directe », compte des classes 2 ou 6 ou du compte 47, montant hors taxes, « Ajouter TVA » | Texte réglementaire : Capture p. 126 ; PCCI, compte 40 (crédité par le débit des classes 2, 6 ou du 47) | forte | en place |
+| S107-11 | Règlement | Total ou partiel, par chèque, espèce, prélèvement ou virement. Visa (S113) puis validation (S114). Chèque, prélèvement et virement : fenêtre « Infos Chèque » à la validation, écriture débit 40, crédit banque et 433. Espèce : payé en caisse (S141) | Manuel : Captures p. 127 et 153 (Infos Chèque) ; PCCI, compte 40 | forte | en place |
+| S107-12 | Journal et Rapport | Journal : le journal comptable des achats (S115). Rapport : par période ou par date, détaillé ou groupé par fournisseur, filtres Visa et Etat ; à l'ouverture, les choix de la capture la plus récente (Groupé, Facture Validée, Facture Encours) | Manuel : Captures p. 128 et 154 | moyenne | en place |
+| S107-13 | « Report au » | Non repris : le champ n'est que sur une capture plus récente ; la capture de 2017 est suivie | Manuel : Captures p. 126 et 151 | faible | en place |
+| S107-14 | État de validation du règlement | La « Fiche d'imputation » s'ouvre à la validation du règlement : N° Journal, Date, N° de Pièce, Libellé, Référence ; Compte, Intitulé, Débit, Crédit, Echéance ; Totaux ; Saisie par ; Approuvée par, laissé vide pour la signature. Le N° de pièce reste vide jusqu'à la comptabilisation ou au paiement en caisse | Manuel : Capture p. 154 (« Exemple d'un état de validation de règlement ») ; T13 | moyenne | en place |
+
+## S108 Déclaration de taxe
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S108-1 | Contenu | Par exercice, mois et taxe : la TVA des factures validées du mois et les retenues des règlements validés du mois, avec base, taux et montant | Texte réglementaire : Capture p. 128 ; O.-L. 10/001, art. 35 ; loi 23/053, art. 144 (retenue due au paiement) | moyenne | en place |
+| S108-2 | Fait générateur retenu | TVA : à la validation de la facture. Retenue à la source : à la validation du règlement | Texte réglementaire : Loi 23/053, art. 144 ; PCCI, comptes 432 et 433 | moyenne | en place |
+| S108-3 | Export | Exporter donne la liste en feuille de calcul, comme les autres rapports | Règle générale du manuel : Règle générale du manuel, p. 7 à 12 | forte | en place |
+
+## S110 Rapprochement bancaire
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S110-1 | Journal de la banque | Rechercher affiche les lignes du compte de la banque jusqu'à la date de fin qui ne sont pas encore pointées, périodes précédentes comprises | Manuel : Texte p. 154 (« apparaît le journal banque ») ; capture p. 129 | forte | en place |
+| S110-2 | Solde début | Le solde du relevé du dernier rapprochement enregistré pour ce compte ; zéro au premier | Écran voisin : Capture p. 129 (Situation) ; continuité des relevés | moyenne | en place |
+| S110-3 | État du rapprochement | Exporter ouvre l'état : solde comptable, moins les encaissements non portés par la banque, plus les paiements non débités, égale le solde attendu au relevé ; écart avec le Solde Fin saisi ; liste des suspens. Aucun texte du PCCI ou des Instructions ne fixe sa forme : pratique comptable | Écran voisin : Texte p. 155 (Exporter) ; Instr. BCC 008, art. 10 et 11 (justification des soldes) | moyenne | en place |
+| S110-4 | Enregistrement | L'état s'enregistre depuis sa fenêtre, même avec un écart, qui reste affiché à l'historique ; les lignes pointées ne reviennent plus. Une période ne recouvre pas une période déjà rapprochée | Écran voisin : Texte p. 130 (historique) ; Instr. BCC 008, art. 11 (piste d'audit) | moyenne | en place |
+| S110-5 | Bouton Nouveau | Une opération du relevé absente de nos livres (frais, agios) se saisit comme une opération de banque (S52) : elle suit sa chaîne de visa (S57) | Écran voisin : Texte p. 155 (« Nouveau ») ; S52, S57 | moyenne | en place |
+
+## S112 Historique rapprochement
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S112-1 | Recherche | Par période ou par date, sur la journée comptable de l'enregistrement ; filtres : période rapprochée, banque, compte | Manuel : Texte et capture p. 130 | moyenne | en place |
+| S112-2 | Grille | Date, banque, compte, période, solde début, solde fin, solde comptable, écart, utilisateur | Écran voisin : S110 ; Instr. BCC 008, art. 11 | moyenne | en place |
+
+## S118 Contrôle
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S118-1 | Trésorerie | Soldes des caisses et des banques à la date, lus au grand livre, brouillard compris ; un total par devise | Manuel : Texte p. 136 et 162 ; capture p. 136 | moyenne | en place |
+| S118-2 | Rapport annulation | Les écritures d'annulation de la période, avec la pièce d'origine, la nouvelle pièce, le client, le montant ; filtres Guichet, Type d'opération, Utilisateur | Manuel : Capture p. 137 ; PCCI § 3.3 | moyenne | en place |
+| S118-3 | État des revenus | Charges (classe 6) et produits (classe 7) par jour et par agence, en CDF ; Détaillé : une ligne par jour ; Synthèse : une ligne par agence | Manuel : Texte et capture p. 137 (Dépenses, Recettes, Résultats) ; PCCI, classes 6 et 7 | moyenne | en place |
+| S118-4 | Onglet « Compte » | Non repris, comme le dit déjà la liste des fonctions : il compare les soldes en gestion et en comptabilité, tenus ici dans un seul grand livre | Choix du porteur : features.csv (fonction 119, non reprise) ; ARCHITECTURE.md P1 ; texte p. 136 et 163 | forte | en place |
+
+## S119 Lettrage
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S119-1 | Lignes | Les lignes définitives du compte (journées comptabilisées), non lettrées, lettrées ou toutes | Manuel : Texte p. 138 et 160 ; capture p. 138 ; T13 | forte | en place |
+| S119-2 | Condition | Au moins deux lignes cochées, total débit égal au total crédit ; elles reçoivent le même code (A, B, … AA) | Écran voisin : Capture p. 138 (Solde sélection) ; pratique comptable ; Instr. BCC 008, art. 10 | moyenne | en place |
+| S119-3 | Délettrage | Aucun : le manuel ne montre pas de bouton pour défaire un lettrage | Manuel : Capture p. 138 | moyenne | en place |
+
+## S142 Annulation de règlement de crédit
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S142-1 | Quel règlement | Un règlement par prélèvement sur compte (S106), le dernier du crédit, crédit encore en cours | Écran voisin : Texte et capture p. 158 ; S106 | moyenne | en place |
+| S142-2 | Écriture | Écriture inverse, liée à l'écriture d'origine, sur la journée ouverte : aucune écriture n'est effacée | Texte réglementaire : PCCI § 3.3 (correction par inscription en négatif) et § 3.4 (irréversibilité) | forte | en place |
+| S142-3 | Effets | Le compte du client retrouve la somme ; capital, intérêts, pénalités et hors bilan reviennent à leur état d'avant ; après un remboursement anticipé, les échéances d'avant sont rétablies | Écran voisin : S106 ; CR-19 ; PCCI § 3.3 | moyenne | en place |
+| S142-4 | Qui annule | Une autre personne que celle qui a saisi le règlement. Droit S142 au chef d'agence et au comptable dès le départ | Texte réglementaire : Instr. BCC 008, art. 66 | forte | en place |
+| S142-5 | Trace | Le règlement annulé reste consultable (rapport des annulations, S118) avec les deux numéros de pièce | Texte réglementaire : Instr. BCC 008, art. 11 (piste d'audit) ; capture p. 137 | forte | en place |
+
+## S143 Autres : trésorerie
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S143-1 | Écran | Le même état que Contrôle > Trésorerie (S118), ouvert depuis le menu Autres | Écran voisin : Texte p. 163 (menu Autres : Clôture, Trésorerie, Calculs) ; S118 | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 
@@ -1662,3 +1742,6 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S115-2 | S115 Journaux comptables | Journal centralisé | Sans journal choisi (« Journal centralisé ») : les totaux par journal et par compte ; avec un journal : ses lignes une à une |
 | S117-4 | S117 Virements mensuels | Choose, Upload, Cancel | Fichier texte de la liste : une ligne par compte, « N° compte ; montant » ; chaque compte est vérifié |
 | S117-6 | S117 Virements mensuels | Prélèvement automatique | Même écran : chaque compte de la liste est débité, dans son disponible, et le compte de l'institution crédité. Le lot se lance chaque mois par l'utilisateur ; pas d'exécution sans intervention |
+| S107-4 | S107 Factures | TVA | Aucun taux dans le logiciel : la TVA est la taxe de code TVA du plan des taxes (S104). Elle est portée au 432. La part non déductible (prorata des opérations exonérées) se reclasse en charge par une écriture (S109) : le logiciel ne calcule pas le prorata |
+| S107-7 | S107 Factures | « Fournisseur à jour » | Case reprise, enregistrée avec la facture, sans effet de calcul : le manuel ne dit pas ce qu'elle change |
+| S107-13 | S107 Factures | « Report au » | Non repris : le champ n'est que sur une capture plus récente ; la capture de 2017 est suivie |

@@ -265,7 +265,10 @@ def enregistrer(u, c: dict, d: date, montant: int, rep: dict, contrepartie: dict
                  (c["id"], eid, d, montant, json.dumps(rep_), r["modifie"], mandataire, (extra or {}).get("mode", "caisse"),
                   (extra or {}).get("compteBancaireId"), u["id"]))
     if r["capitalAnticipe"]:
-        for e in anticipation(c, s, r["capitalAnticipe"])[1]:
+        nouvelles = anticipation(c, s, r["capitalAnticipe"])[1]
+        avant = lignes("select rang, capital, interet from echeance where credit_id = %s and rang = any(%s) order by rang", (c["id"], [e["rang"] for e in nouvelles]))
+        executer("update remboursement set echeances_avant = %s where id = %s", (json.dumps(avant), rid))      # pour une annulation du règlement (S142)
+        for e in nouvelles:
             executer("update echeance set capital = %s, interet = %s where credit_id = %s and rang = %s", (e["capital"], e["interet"], c["id"], e["rang"]))
     if c["montant"] - s["payes"]["capital"] - r["capital"] == 0 and etat(c, d)["resteAPayer"] == 0:
         solder(u, c, d)

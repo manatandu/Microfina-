@@ -1269,6 +1269,15 @@
   "chemin": "/budget/s127"
  },
  {
+  "id": "S143",
+  "nom": "Trésorerie",
+  "acces": "Autres > Trésorerie",
+  "but": "Voir les soldes des caisses et des banques à une date",
+  "module": "budget",
+  "priorite": "must",
+  "chemin": "/budget/s143"
+ },
+ {
   "id": "S128",
   "nom": "Calculs",
   "acces": "Autres > Calculs",

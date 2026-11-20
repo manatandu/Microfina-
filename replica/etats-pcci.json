@@ -1,0 +1,762 @@
+{
+ "source": "PCCI (BCC, 2009) : chap. 9 cadre des comptes ; chap. 12, classe 8 ; chap. 14 comptes annuels (14.1 bilan et hors-bilan, 14.2 compte de résultat, 14.3 tableau de flux de trésorerie). Instr. BCC 009, art. 1 : situations périodiques et états annexes. Rattachement des comptes aux postes : registre S122.",
+ "liquidites": [
+  "56",
+  "57",
+  "59"
+ ],
+ "bilan": {
+  "actif": [
+   {
+    "code": "1",
+    "libelle": "Caisse, banques, organe faîtier et autres intermédiaires financiers",
+    "comptes": [
+     "57",
+     "581",
+     "582"
+    ],
+    "debiteurs": [
+     "53",
+     "56",
+     "59"
+    ]
+   },
+   {
+    "code": "2",
+    "libelle": "Crédits à la clientèle",
+    "comptes": [
+     "30",
+     "31",
+     "32",
+     "38",
+     "39"
+    ],
+    "debiteurs": [
+     "33",
+     "34",
+     "35",
+     "36",
+     "37"
+    ]
+   },
+   {
+    "code": "3",
+    "libelle": "Obligations, actions, titres ou participations",
+    "comptes": [
+     "25",
+     "26",
+     "52",
+     "580"
+    ]
+   },
+   {
+    "code": "4",
+    "libelle": "Immobilisations incorporelles",
+    "comptes": [
+     "20",
+     "246"
+    ]
+   },
+   {
+    "code": "5",
+    "libelle": "Immobilisations corporelles",
+    "comptes": [
+     "21",
+     "22",
+     "23",
+     "24",
+     "28"
+    ]
+   },
+   {
+    "code": "6",
+    "libelle": "Actions propres détenues",
+    "comptes": []
+   },
+   {
+    "code": "7",
+    "libelle": "Autres actifs",
+    "comptes": [
+     "27",
+     "48"
+    ],
+    "debiteurs": [
+     "40",
+     "42",
+     "43",
+     "44",
+     "45",
+     "46"
+    ],
+    "reste": true
+   },
+   {
+    "code": "8",
+    "libelle": "Comptes de régularisation",
+    "debiteurs": [
+     "47"
+    ]
+   }
+  ],
+  "passif": [
+   {
+    "code": "1",
+    "libelle": "Banques, organe faîtier et autres intermédiaires financiers",
+    "crediteurs": [
+     "53",
+     "56",
+     "59"
+    ]
+   },
+   {
+    "code": "2",
+    "libelle": "Dettes envers la clientèle",
+    "crediteurs": [
+     "33",
+     "34",
+     "35",
+     "36",
+     "37"
+    ]
+   },
+   {
+    "code": "3",
+    "libelle": "Dettes représentées par un titre (Bons, obligations, …)",
+    "comptes": []
+   },
+   {
+    "code": "4",
+    "libelle": "Autres passifs",
+    "crediteurs": [
+     "40",
+     "42",
+     "43",
+     "44",
+     "45",
+     "46"
+    ],
+    "reste": true
+   },
+   {
+    "code": "5",
+    "libelle": "Comptes de régularisation",
+    "crediteurs": [
+     "47"
+    ]
+   },
+   {
+    "code": "6",
+    "libelle": "Provisions pour risques, charges et pertes",
+    "comptes": [
+     "18"
+    ]
+   },
+   {
+    "code": "7",
+    "libelle": "Fonds de financement et de garantie",
+    "comptes": [
+     "17"
+    ]
+   },
+   {
+    "code": "8",
+    "libelle": "Subventions d'équipement",
+    "comptes": [
+     "15"
+    ]
+   },
+   {
+    "code": "9",
+    "libelle": "Emprunts à long terme et moyen terme",
+    "comptes": [
+     "16"
+    ]
+   },
+   {
+    "code": "10",
+    "libelle": "Capital",
+    "comptes": [
+     "10"
+    ]
+   },
+   {
+    "code": "11",
+    "libelle": "Réserves et primes d'émission",
+    "comptes": [
+     "11"
+    ]
+   },
+   {
+    "code": "12",
+    "libelle": "Plus-value de réévaluation et provisions réglementées",
+    "comptes": [
+     "14"
+    ]
+   },
+   {
+    "code": "13",
+    "libelle": "Report à nouveau (+/-)",
+    "comptes": [
+     "12"
+    ],
+    "anterieurs": true
+   },
+   {
+    "code": "14",
+    "libelle": "Résultat de l'exercice (+/-)",
+    "comptes": [
+     "13"
+    ],
+    "resultat": true
+   }
+  ]
+ },
+ "horsBilan": [
+  {
+   "code": "00",
+   "libelle": "Engagements donnés",
+   "lignes": [
+    {
+     "libelle": "Engagements de financement",
+     "comptes": [
+      "000"
+     ]
+    },
+    {
+     "libelle": "Engagements de garanties",
+     "comptes": [
+      "001"
+     ]
+    }
+   ]
+  },
+  {
+   "code": "01",
+   "libelle": "Engagements reçus",
+   "lignes": [
+    {
+     "libelle": "Engagements de financement",
+     "comptes": [
+      "010"
+     ]
+    },
+    {
+     "libelle": "Engagements de garantie",
+     "comptes": [
+      "011"
+     ]
+    }
+   ]
+  },
+  {
+   "code": "04",
+   "libelle": "Engagements sur le Crédit - bail",
+   "lignes": [
+    {
+     "libelle": "Engagements sur le Crédit - bail",
+     "comptes": [
+      "04"
+     ]
+    }
+   ]
+  },
+  {
+   "code": "06",
+   "libelle": "Engagements internes",
+   "lignes": [
+    {
+     "libelle": "Engagements internes",
+     "comptes": [
+      "06"
+     ]
+    }
+   ]
+  }
+ ],
+ "resultat": [
+  {
+   "signe": "+",
+   "libelle": "Produits sur Opérations avec l'organe faîtier et autres intermédiaires financiers",
+   "comptes": [
+    "70"
+   ]
+  },
+  {
+   "signe": "-",
+   "libelle": "Charges sur Opérations avec l'organe faîtier et autres intermédiaires financiers",
+   "comptes": [
+    "60"
+   ]
+  },
+  {
+   "signe": "+",
+   "libelle": "Produits sur Opérations avec la clientèle ou les membres",
+   "comptes": [
+    "71"
+   ]
+  },
+  {
+   "signe": "-",
+   "libelle": "Charges sur Opérations avec la clientèle ou les membres",
+   "comptes": [
+    "61"
+   ]
+  },
+  {
+   "signe": "+",
+   "libelle": "Produits financiers divers",
+   "comptes": [
+    "72"
+   ]
+  },
+  {
+   "signe": "-",
+   "libelle": "Charges financières diverses",
+   "comptes": [
+    "62"
+   ]
+  },
+  {
+   "signe": "+",
+   "libelle": "Autres produits financiers",
+   "comptes": [
+    "73"
+   ]
+  },
+  {
+   "signe": "-",
+   "libelle": "Autres charges financières",
+   "comptes": [
+    "63"
+   ]
+  },
+  {
+   "solde": "courant",
+   "libelle": "Produit Net Financier"
+  },
+  {
+   "signe": "+",
+   "libelle": "Produits accessoires",
+   "comptes": [
+    "74"
+   ]
+  },
+  {
+   "signe": "+",
+   "libelle": "Subvention d'exploitation",
+   "comptes": [
+    "76"
+   ]
+  },
+  {
+   "signe": "-",
+   "libelle": "Charges générales d'exploitation",
+   "comptes": [
+    "64"
+   ]
+  },
+  {
+   "signe": "-",
+   "libelle": "Charges du personnel",
+   "comptes": [
+    "65"
+   ]
+  },
+  {
+   "signe": "-",
+   "libelle": "Impôts & Taxes",
+   "comptes": [
+    "66"
+   ]
+  },
+  {
+   "solde": "courant",
+   "libelle": "Résultat Brut d'exploitation"
+  },
+  {
+   "signe": "+",
+   "libelle": "Reprises sur amortissements",
+   "comptes": [
+    "78"
+   ]
+  },
+  {
+   "signe": "+",
+   "libelle": "Reprises sur provisions",
+   "comptes": [
+    "79"
+   ]
+  },
+  {
+   "signe": "-",
+   "libelle": "Dotation aux amortissements",
+   "comptes": [
+    "68"
+   ]
+  },
+  {
+   "signe": "-",
+   "libelle": "Dotations aux provisions",
+   "comptes": [
+    "69"
+   ]
+  },
+  {
+   "solde": "courant",
+   "libelle": "Résultat courant avant impôt"
+  },
+  {
+   "signe": "+",
+   "libelle": "Produits exceptionnels",
+   "comptes": [
+    "77"
+   ],
+   "exceptionnel": true
+  },
+  {
+   "signe": "-",
+   "libelle": "Pertes exceptionnelles",
+   "comptes": [
+    "67"
+   ],
+   "exceptionnel": true
+  },
+  {
+   "solde": "exceptionnel",
+   "libelle": "Résultat exceptionnel"
+  },
+  {
+   "signe": "-",
+   "libelle": "Impôt sur les bénéfices",
+   "comptes": [
+    "86"
+   ],
+   "impot": true
+  },
+  {
+   "solde": "net",
+   "libelle": "Résultat net de l'exercice"
+  }
+ ],
+ "flux": [
+  {
+   "titre": "ACTIVITES D'EXPLOITATION (Hors subventions)"
+  },
+  {
+   "libelle": "Produits d'exploitation financière encaissés (hors revenus du portefeuille d'investissement)",
+   "comptes": [
+    "70",
+    "71",
+    "72",
+    "73",
+    "74"
+   ],
+   "groupe": "exploitation"
+  },
+  {
+   "libelle": "Charges d'exploitation financière décaissées",
+   "comptes": [
+    "60",
+    "61",
+    "62",
+    "63"
+   ],
+   "groupe": "exploitation"
+  },
+  {
+   "libelle": "Dépôts \\ Retraits de dépôts auprès des banques, organe faîtier et autres intermédiaires financiers",
+   "comptes": [
+    "53"
+   ],
+   "groupe": "exploitation"
+  },
+  {
+   "libelle": "Prêts et avances \\ Remboursement prêts et avances accordées à la clientèle",
+   "comptes": [
+    "30",
+    "31",
+    "32",
+    "38",
+    "39"
+   ],
+   "groupe": "exploitation"
+  },
+  {
+   "libelle": "Dépôts \\ Retraits de dépôts de la clientèle",
+   "comptes": [
+    "33",
+    "34",
+    "35",
+    "36",
+    "37"
+   ],
+   "groupe": "exploitation"
+  },
+  {
+   "libelle": "Titres de placement",
+   "comptes": [
+    "52"
+   ],
+   "groupe": "exploitation"
+  },
+  {
+   "libelle": "Sommes versées au personnel et créditeurs divers",
+   "comptes": [
+    "40",
+    "42",
+    "46",
+    "64",
+    "65"
+   ],
+   "groupe": "exploitation"
+  },
+  {
+   "libelle": "Autres flux de trésorerie provenant des activités d'exploitation",
+   "reste": true,
+   "groupe": "exploitation"
+  },
+  {
+   "libelle": "Impôt sur les bénéfices",
+   "comptes": [
+    "86"
+   ],
+   "groupe": "exploitation"
+  },
+  {
+   "total": "exploitation",
+   "libelle": "FLUX DE TRESORERIE NET PROVENANT DES ACTIVITES D'EXPLOITATION"
+  },
+  {
+   "titre": "ACTIVITES D'INVESTISSEMENT"
+  },
+  {
+   "libelle": "Intérêts et dividendes encaissés sur portefeuille d'investissement",
+   "comptes": [
+    "730"
+   ],
+   "groupe": "investissement"
+  },
+  {
+   "libelle": "Acquisitions \\ cessions sur portefeuille d'investissement",
+   "comptes": [
+    "25",
+    "26"
+   ],
+   "groupe": "investissement"
+  },
+  {
+   "libelle": "Acquisitions \\ cession sur immobilisations",
+   "comptes": [
+    "20",
+    "21",
+    "22",
+    "23",
+    "24",
+    "27",
+    "28"
+   ],
+   "groupe": "investissement"
+  },
+  {
+   "total": "investissement",
+   "libelle": "FLUX DE TRESORERIE NET PROVENANT DES ACTIVITES D'INVESTISSEMENT"
+  },
+  {
+   "titre": "ACTIVITES DE FINANCEMENT"
+  },
+  {
+   "libelle": "Emission d'actions",
+   "comptes": [
+    "10",
+    "11"
+   ],
+   "groupe": "financement"
+  },
+  {
+   "libelle": "Emission d'emprunts",
+   "comptes": [
+    "16"
+   ],
+   "sens": "entree",
+   "groupe": "financement"
+  },
+  {
+   "libelle": "Remboursement d'emprunts",
+   "comptes": [
+    "16"
+   ],
+   "sens": "sortie",
+   "groupe": "financement"
+  },
+  {
+   "libelle": "Augmentation/ diminution ressources spéciales",
+   "comptes": [
+    "15",
+    "17",
+    "76"
+   ],
+   "groupe": "financement"
+  },
+  {
+   "libelle": "Dividendes versés",
+   "comptes": [
+    "12",
+    "13",
+    "44"
+   ],
+   "groupe": "financement"
+  },
+  {
+   "total": "financement",
+   "libelle": "FLUX DE TRESORERIE NET PROVENANT DES ACTIVITES DE FINANCEMENT"
+  },
+  {
+   "libelle": "Incidence des variations des taux de change sur les liquidités et équivalents de liquidités",
+   "change": true
+  },
+  {
+   "total": "variation",
+   "libelle": "Variation nette des liquidités et équivalents de liquidités au cours de l'exercice"
+  },
+  {
+   "total": "debut",
+   "libelle": "Liquidités et équivalents de liquidités en début d'exercice"
+  },
+  {
+   "total": "fin",
+   "libelle": "LIQUIDITES ET EQUIVALENTS DE LIQUIDITES EN FIN D'EXERCICE"
+  }
+ ],
+ "annexes": [
+  {
+   "code": "emplois",
+   "libelle": "Annexe 1 : TABLEAU DES EMPLOIS ET RESSOURCES"
+  },
+  {
+   "code": "flux",
+   "libelle": "Annexe 2 : TABLEAU DE FLUX DE TRESORERIE"
+  },
+  {
+   "code": "credits",
+   "libelle": "Annexe 3 : VENTILATION DES CREDITS A LA CLIENTELE OU AUX MEMBRES",
+   "sections": [
+    {
+     "libelle": "Crédits à long terme",
+     "comptes": [
+      "30"
+     ]
+    },
+    {
+     "libelle": "Crédits à moyen terme",
+     "comptes": [
+      "31"
+     ]
+    },
+    {
+     "libelle": "Crédits à court terme",
+     "comptes": [
+      "32"
+     ]
+    },
+    {
+     "libelle": "Créances litigieuses ou en retard",
+     "comptes": [
+      "39"
+     ]
+    },
+    {
+     "libelle": "Provisions pour dépréciation des comptes de la classe 3",
+     "comptes": [
+      "38"
+     ]
+    }
+   ],
+   "sens": "D"
+  },
+  {
+   "code": "depots",
+   "libelle": "Annexe 4 : VENTILATION DES DEPOTS DE LA CLIENTELE OU DES MEMBRES",
+   "sections": [
+    {
+     "libelle": "Epargnes et dépôts ordinaires",
+     "comptes": [
+      "33"
+     ]
+    },
+    {
+     "libelle": "Dépôts à terme",
+     "comptes": [
+      "34"
+     ]
+    },
+    {
+     "libelle": "Dépôts à régime spécial",
+     "comptes": [
+      "35"
+     ]
+    },
+    {
+     "libelle": "Autres comptes de la clientèle ou des membres",
+     "comptes": [
+      "36"
+     ]
+    },
+    {
+     "libelle": "Compte suspens de la clientèle ou des membres",
+     "comptes": [
+      "37"
+     ]
+    }
+   ],
+   "sens": "C"
+  },
+  {
+   "code": "avoirs",
+   "libelle": "Annexe 5 : VENTILATION DES AVOIRS AUPRES DE L'ORGANE FAITIER ET AUTRES INTERMEDIAIRES FINANCIERS",
+   "sections": [
+    {
+     "libelle": "Banque, organe faîtier et autres intermédiaires financiers",
+     "comptes": [
+      "56"
+     ]
+    },
+    {
+     "libelle": "Prêts et emprunts à terme",
+     "comptes": [
+      "53"
+     ]
+    },
+    {
+     "libelle": "Titres à court terme",
+     "comptes": [
+      "52"
+     ]
+    },
+    {
+     "libelle": "Provisions pour dépréciation des comptes de la classe 5",
+     "comptes": [
+      "58"
+     ]
+    }
+   ],
+   "sens": "D"
+  },
+  {
+   "code": "monnaies",
+   "libelle": "Annexe 6 : VENTILATION DES AVOIRS ET ENGAGEMENTS PAR MONNAIES"
+  },
+  {
+   "code": "emprunts",
+   "libelle": "Annexe 7 : VENTILATION DES EMPRUNTS ET DETTES A MOYEN TERME ET LONG TERME",
+   "sections": [
+    {
+     "libelle": "Emprunts et dettes à moyen et long terme",
+     "comptes": [
+      "16"
+     ]
+    }
+   ],
+   "sens": "C"
+  }
+ ]
+}

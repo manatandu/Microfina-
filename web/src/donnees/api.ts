@@ -16,12 +16,13 @@ import { DROITS_METHODES } from "./droits.gen";
 import registreEcrans from "../ecrans/registre.json";
 import { coupuresDe, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 import PCCI from "@pcci";
+import MODELE_ETATS from "@etats";
 import REFERENTIELS from "@referentiels";
 
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v99";
+const CLE = "likelemba-demo-v100";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -29,15 +30,15 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 76) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 77) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
 }
-function enregistrer() {
+function sauver() {
   try { localStorage.setItem(CLE, JSON.stringify(E)); } catch { /* sans stockage, la démonstration reste en mémoire */ }
-  abonnes.forEach((f) => f());
 }
+function enregistrer() { sauver(); abonnes.forEach((f) => f()); }
 /** Registre T02 (manuel p. 12) : « Les suppressions sont généralement logiques » ; la ligne quitte les listes mais reste dans les données, datée et signée */
 function archiver(table: string, ligne: unknown) { E.supprimes.push({ table, ligne, le: new Date().toISOString(), par: E.session }); }
 export function abonner(f: () => void) { abonnes.add(f); return () => { abonnes.delete(f); }; }
@@ -95,7 +96,9 @@ function verifierDroit(cle: string) {
 const EVENEMENTS_SECURITE: Record<string, string> = { connexion: "Connexion", connexion_refusee: "Connexion refusée (mot de passe)", connexion_impossible: "Connexion impossible",
   connexion_bloquee: "Connexion bloquée (trop d'essais)", acces_refuse: "Accès refusé (droit manquant)", limite_requetes: "Limite de requêtes dépassée" };
 function noterSecurite(evenement: string, login: string, utilisateurId: number | null, detail = "") {
-  (E.journalSecurite ??= []).push({ id: Math.max(0, ...E.journalSecurite.map((x) => x.id)) + 1, le: new Date().toISOString(), evenement, login, utilisateurId, detail }); enregistrer();
+  (E.journalSecurite ??= []).push({ id: Math.max(0, ...E.journalSecurite.map((x) => x.id)) + 1, le: new Date().toISOString(), evenement, login, utilisateurId, detail });
+  // Un accès refusé ne change aucune donnée affichée : il s'écrit sans réveiller les écrans, sinon l'écran refusé se relirait sans fin
+  if (evenement === "acces_refuse") sauver(); else enregistrer();
 }
 export const LIBELLES_ROLES: Record<Role, string> = { caissier: "caissier", chef_agence: "chef d'agence", agent_credit: "agent de crédit", comptable: "comptable" };
 
@@ -4058,7 +4061,9 @@ function enregistrerRemboursement(c: CreditPret, d: string, montant: unknown, re
   const rb: RemboursementCredit = { id: prochain(E.remboursementsCredit), creditId: c.id, ecritureId: e.id, operationId: null, date: d, montant: m, repartition,
     modifie, mandataire, mode: extra.mode, compteBancaireId: extra.compteBancaireId ?? null, saisiPar: u };
   E.remboursementsCredit.push(rb);
-  if (r.capitalAnticipe) for (const x of anticipationCredit(c, s, r.capitalAnticipe!)[1]) { const y = c.echeancier.find((z) => z.rang === x.rang)!; y.capital = x.capital; y.interet = x.interet; }
+  if (r.capitalAnticipe) { const nouvelles = anticipationCredit(c, s, r.capitalAnticipe!)[1];
+    rb.echeancesAvant = nouvelles.map((x) => { const y = c.echeancier.find((z) => z.rang === x.rang)!; return { rang: y.rang, capital: y.capital, interet: y.interet }; });   // pour une annulation (S142)
+    for (const x of nouvelles) { const y = c.echeancier.find((z) => z.rang === x.rang)!; y.capital = x.capital; y.interet = x.interet; } }
   if (c.montant - s.payes.capital! - r.capital! === 0 && etatCredit(c, d).resteAPayer === 0) {
     c.statut = "solde";
     for (const x of E.contentieux) if (x.creditId === c.id && !x.closLe) Object.assign(x, { closLe: d, issue: "Crédit remboursé" });
@@ -6051,6 +6056,25 @@ const facturesFournisseurs = {
     return E.commandesFournisseurs.filter((c) => c.fournisseurId === fid && c.statut === "validee").sort((a, b) => a.id - b.id).map(vueCommande).filter((c) => c.tranchesFacturees.length < c.tranches.length);
   },
   /** Etat de validation du bon de commande (p. 149) */
+  /** Etat de validation du règlement (« FICHE D'IMPUTATION », p. 154), édité dès la validation ; la pièce vient à la comptabilisation (T13) ou au paiement en caisse (S141) */
+  ficheImputation(id: number) {
+    lectureAdmin(["S114"]);
+    const r = E.reglementsFournisseurs.find((x) => x.id === id);
+    if (!r || !["validee", "comptabilisee", "payee"].includes(r.statut)) throw new ErreurMetier("Fiche d'imputation : règlement pas encore validé.");
+    const f = E.facturesFournisseurs.find((x) => x.id === r.factureId)!, noms = intitulesComptes(), e = r.ecritureId ? E.ecritures.find((x) => x.id === r.ecritureId) : undefined;
+    let journal: string, date: string, libelle: string, lignes: { compte: string; intitule: string; debit: number; credit: number }[];
+    if (e) {
+      journal = e.journal; date = dateEcriture(e); libelle = e.libelle;
+      lignes = e.lignes.map((l) => ({ compte: l.compte, intitule: noms.get(l.compte) ?? "", debit: l.sens === "D" ? l.montantCdf : 0, credit: l.sens === "C" ? l.montantCdf : 0 }));
+    } else {
+      const cb = r.mode === "ESPECE" ? null : E.comptesBancaires.find((x) => x.id === r.compteBancaireId)!, jr = cb && E.journaux.find((x) => x.id === cb.journalId && x.actif && !x.supprime);
+      journal = cb ? jr?.code ?? "OD" : "CA"; date = r.dateValidation ?? r.date; libelle = `Règlement de la facture ${f.reference}${r.cheque ? `, chèque ${r.cheque}` : ""}`;
+      lignes = lignesReglementF(r, { compte: cb ? cb.compte : "570", sens: "C", devise: "CDF", montant: r.aPayer })
+        .map((l) => ({ compte: l.compte, intitule: noms.get(l.compte) ?? "", debit: l.sens === "D" ? l.montant : 0, credit: l.sens === "C" ? l.montant : 0 }));
+    }
+    return { entete: enteteDocument(), journal, date, piece: r.piece ?? "", libelle, reference: f.reference, lignes, debit: lignes.reduce((t, x) => t + x.debit, 0),
+      credit: lignes.reduce((t, x) => t + x.credit, 0), saisiPar: nomUtilisateur(r.saisiPar) };
+  },
   bonDeCommande(id: number) {
     lectureAdmin(["S107", "S114"]);
     const c = E.commandesFournisseurs.find((x) => x.id === id);
@@ -6207,9 +6231,396 @@ function suivreFacture(quoi: string, id: number, etape: "visa" | "validation", d
   o.statut = "validee"; o.validePar = u.id; o.dateValidation = jour; enregistrer(); return vue();
 }
 
+// ---------- Contrôles et travaux comptables : S110 Rapprochement bancaire (p. 129, 154 et 155), S112 Historique (p. 130), S119 Lettrage (p. 138 et 160),
+// S118 Contrôle (trésorerie, annulations, revenus, p. 136 et 137), S143 Autres > Trésorerie, S142 Annulation de règlement de crédit (p. 158).
+// Mêmes règles que serveur/noyau/controles_compta.py. Instr. BCC 008, art. 10 et 11 ; PCCI § 3.3. ----------
+const dateCc = (v: unknown, nom: string) => { const x = texteOc(v); if (!DATE_ISO.test(x)) throw new ErreurMetier(`À remplir : ${nom}.`); return x; };
+const numCc = (v: unknown) => (/^-?\d+$/.test(String(v ?? "")) ? Number(v) : null);
+const dateEcriture = (e: Ecriture) => E.journees.find((j) => j.id === e.journeeId)?.date ?? "";
+function compteBancaireCc(id: unknown) {
+  const c = E.comptesBancaires.find((x) => x.id === numCc(id));
+  if (!c) throw new ErreurMetier("À remplir : Banque et Compte.");
+  return c;
+}
+const pointeesCc = () => new Set(E.rapprochements.flatMap((r) => r.lignes));
+type CriteresRappro = { compteBancaireId?: number | string | null; du?: string; au?: string; soldeFin?: number | string | null; lignes?: string[] };
+function journalBanqueCc(p: CriteresRappro) {
+  const cb = compteBancaireCc(p.compteBancaireId), du = dateCc(p.du, "Date Début"), au = dateCc(p.au, "Date Fin");
+  if (du > au) throw new ErreurMetier("Date Début : avant la date fin.");
+  const deja = pointeesCc(), lignes: { id: string; piece: string; date: string; libelle: string; debit: number; credit: number }[] = []; let comptable = 0;
+  for (const e of [...E.ecritures].sort((a, b) => dateEcriture(a).localeCompare(dateEcriture(b)) || a.id - b.id)) {
+    const d = dateEcriture(e); if (!d || d > au) continue;
+    e.lignes.forEach((l, i) => { if (l.compte !== cb.compte || l.devise !== cb.devise) return;
+      comptable += l.sens === "D" ? l.montant : -l.montant;
+      const id = `${e.id}:${i + 1}`; if (!deja.has(id)) lignes.push({ id, piece: e.piece, date: d, libelle: e.libelle, debit: l.sens === "D" ? l.montant : 0, credit: l.sens === "C" ? l.montant : 0 }); });
+  }
+  const dernier = E.rapprochements.filter((r) => r.compteBancaireId === cb.id).sort((a, b) => b.au.localeCompare(a.au) || b.id - a.id)[0];
+  return { cb, du, au, devise: cb.devise as string, soldeDebut: dernier?.soldeReleve ?? 0, soldeComptable: comptable, lignes };
+}
+function etatRapprochementCc(p: CriteresRappro) {
+  const j = journalBanqueCc(p), soldeFin = numCc(p.soldeFin);
+  if (soldeFin === null) throw new ErreurMetier("À remplir : Solde Fin.");
+  const pointees = new Set(Array.isArray(p.lignes) ? p.lignes : []), connues = new Set(j.lignes.map((x) => x.id));
+  if ([...pointees].some((x) => !connues.has(x))) throw new ErreurMetier("Une opération cochée n'est plus dans le journal de la banque : relancer Rechercher.");
+  const suspens = j.lignes.filter((x) => !pointees.has(x.id)), sd = suspens.reduce((t, x) => t + x.debit, 0), sc = suspens.reduce((t, x) => t + x.credit, 0), theorique = j.soldeComptable - sd + sc;
+  return { banque: E.banques.find((b) => b.id === j.cb.banqueId)?.libelle ?? "", compte: j.cb.numeroBancaire, devise: j.devise, du: j.du, au: j.au, soldeDebut: j.soldeDebut, soldeComptable: j.soldeComptable,
+    suspens, suspensDebit: sd, suspensCredit: sc, soldeTheorique: theorique, soldeFin, ecart: soldeFin - theorique, pointees: [...pointees].sort(), cbId: j.cb.id };
+}
+/** A, B, …, Z, AA, AB, … : le n-ième code de lettrage du compte */
+function codeLettrage(n: number) { let s = ""; while (n > 0) { const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); } return s; }
+const TYPES_ANNULATION: Record<string, string> = { remboursement_credit: "Remboursement de crédit" };
+const repartitionAnnulable = (r: RemboursementCredit) => { const c = E.credits.find((x) => x.id === r.creditId)!, t = E.tiers.find((x) => x.id === c.tiersId)!, e = E.ecritures.find((x) => x.id === r.ecritureId);
+  const dep = /^depot:(\d+)$/.exec(e?.lignes.find((l) => l.sens === "D" && (l.contrat ?? "").startsWith("depot:"))?.contrat ?? "")?.[1];
+  return { id: r.id, piece: e?.piece ?? "", date: r.date, credit: c.numero, client: `${t.numero} ${titulaire(t)}`, compteClient: E.comptes.find((k) => k.id === Number(dep))?.numero ?? "", devise: c.devise as string,
+    capital: r.repartition.capital ?? 0, interet: r.repartition.interet ?? 0, epargne: r.repartition.epargne ?? 0, solidarite: r.repartition.solidarite ?? 0,
+    penalite: (r.repartition.penalite ?? 0) + (r.repartition.anticipation ?? 0), montant: r.montant }; };
+const dernierRemboursement = (creditId: number) => E.remboursementsCredit.filter((x) => x.creditId === creditId).sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id)[0];
+const controlesCompta = {
+  rapproContexte() {
+    lectureAdmin(["S110", "S112"]);
+    return { date: journees.courante()?.date ?? "", banques: [...E.banques].sort((a, b) => a.code.localeCompare(b.code)).map(({ id, code, libelle }) => ({ id, code, libelle })),
+      comptes: [...E.comptesBancaires].sort((a, b) => a.numeroBancaire.localeCompare(b.numeroBancaire)).map((c) => ({ id: c.id, banqueId: c.banqueId, numero: c.numeroBancaire, devise: c.devise as string, compte: c.compte })) };
+  },
+  /** S110, bouton Rechercher : le journal de la banque, lignes pas encore pointées jusqu'à la date de fin */
+  journalBanque(p: CriteresRappro) {
+    lectureAdmin(["S110", "S112"]);
+    const { devise, soldeDebut, soldeComptable, lignes } = journalBanqueCc(p);
+    return { devise, soldeDebut, soldeComptable, lignes };
+  },
+  /** S110, bouton Exporter : l'état du rapprochement, du solde comptable au solde du relevé (registre S110-3) */
+  etatRapprochement(p: CriteresRappro) { exiger(); const { cbId: _c, ...e } = etatRapprochementCc(p); return e; },
+  /** Le rapprochement entre à l'historique (S112) ; ses lignes pointées ne reviennent plus */
+  enregistrerRapprochement(p: CriteresRappro) {
+    const u = exiger(), e = etatRapprochementCc(p);
+    if (E.rapprochements.some((r) => r.compteBancaireId === e.cbId && r.au >= e.du)) throw new ErreurMetier("Période : un rapprochement de ce compte couvre déjà cette date de début.");
+    const r = { id: prochain(E.rapprochements), compteBancaireId: e.cbId, du: e.du, au: e.au, soldeDebut: e.soldeDebut, soldeReleve: e.soldeFin, soldeComptable: e.soldeComptable, suspensDebit: e.suspensDebit,
+      suspensCredit: e.suspensCredit, ecart: e.ecart, preparePar: u.id, date: journees.courante()?.date ?? new Date().toISOString().slice(0, 10), lignes: e.pointees };
+    E.rapprochements.push(r); enregistrer(); const { cbId: _c, ...etat } = e; return { ...etat, id: r.id };
+  },
+  /** S110, bouton Nouveau : une opération du relevé absente de nos livres se saisit comme une opération de banque (S52) ; elle suit sa chaîne de visa (S57) */
+  nouvelleOperation(d: SaisieOperationBanque) { return enregistrerOperationBanque(d, false); },
+  /** S112 : rapprochements enregistrés, par période ou par date ; filtres : période rapprochée, banque, compte */
+  historique(p: { mode?: string; du?: string; au?: string; periodeDu?: string; periodeAu?: string; banqueId?: number | string | null; compteBancaireId?: number | string | null }) {
+    lectureAdmin(["S112"]);
+    const du = dateCc(p.du, "Date Début"), au = p.mode === "date" ? du : dateCc(p.au, "Date Fin");
+    if (du > au) throw new ErreurMetier("Date Début : avant la date fin.");
+    const pdu = p.periodeDu ? dateCc(p.periodeDu, "Date deb. période rapprochement") : "", pau = p.periodeAu ? dateCc(p.periodeAu, "Date fin période rapprochement") : "";
+    const banque = numCc(p.banqueId), compte = numCc(p.compteBancaireId);
+    return E.rapprochements.filter((r) => { const cb = E.comptesBancaires.find((c) => c.id === r.compteBancaireId)!;
+      return r.date >= du && r.date <= au && (!pdu || r.du >= pdu) && (!pau || r.au <= pau) && (!banque || cb.banqueId === banque) && (!compte || cb.id === compte); })
+      .sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id).map((r) => { const cb = E.comptesBancaires.find((c) => c.id === r.compteBancaireId)!;
+        return { id: r.id, date: r.date, banque: E.banques.find((b) => b.id === cb.banqueId)?.libelle ?? "", compte: cb.numeroBancaire, devise: cb.devise as string, du: r.du, au: r.au, soldeDebut: r.soldeDebut,
+          soldeReleve: r.soldeReleve, soldeComptable: r.soldeComptable, ecart: r.ecart, preparePar: nomUtilisateur(r.preparePar), lignes: r.lignes.length }; });
+  },
+  /** S119, bouton Afficher : les lignes définitives du compte (journées comptabilisées, T13), non lettrées, lettrées ou toutes */
+  lettrageLignes(p: { compte?: string; du?: string; au?: string; etat?: string }) {
+    lectureAdmin(["S119"]);
+    const compte = texteOc(p.compte), intitule = intitulesComptes().get(compte);
+    if (!compte || intitule === undefined) throw new ErreurMetier("À remplir : Compte.");
+    const du = dateCc(p.du, "Date début"), au = p.au ? dateCc(p.au, "Date fin") : "9999-12-31", etat = p.etat || "non";
+    const lettre = new Map(E.lettrages.filter((x) => x.compte === compte).flatMap((x) => x.lignes.map((id) => [id, x.code] as [string, string])));
+    const lignes: { id: string; date: string; piece: string; libelle: string; debit: number; credit: number; lettre: string }[] = [];
+    for (const e of [...E.ecritures].sort((a, b) => dateEcriture(a).localeCompare(dateEcriture(b)) || a.id - b.id)) {
+      const j = E.journees.find((x) => x.id === e.journeeId);
+      if (!j || j.statut !== "fermee" || j.date < du || j.date > au) continue;
+      e.lignes.forEach((l, i) => { if (l.compte === compte) lignes.push({ id: `${e.id}:${i + 1}`, date: j.date, piece: e.piece, libelle: e.libelle, debit: l.sens === "D" ? l.montantCdf : 0,
+        credit: l.sens === "C" ? l.montantCdf : 0, lettre: lettre.get(`${e.id}:${i + 1}`) ?? "" }); });
+    }
+    return { compte, intitule, lignes: lignes.filter((x) => etat === "toutes" || (etat === "lettrees") === !!x.lettre) };
+  },
+  /** S119, bouton Lettrer : les lignes cochées reçoivent le même code quand leur débit égale leur crédit (registre S119-2) */
+  lettrer(p: { compte?: string; lignes?: string[] }) {
+    const u = exiger(), compte = texteOc(p.compte);
+    if (!compte || intitulesComptes().get(compte) === undefined) throw new ErreurMetier("À remplir : Compte.");
+    const ids = Array.isArray(p.lignes) ? p.lignes : [];
+    if (ids.length < 2) throw new ErreurMetier("Cocher au moins deux écritures à lettrer.");
+    const deja = new Set(E.lettrages.flatMap((x) => x.lignes)); let td = 0, tc = 0;
+    for (const id of ids) {
+      const [eid, rang] = String(id).split(":").map(Number), e = E.ecritures.find((x) => x.id === eid), l = e?.lignes[(rang ?? 0) - 1], j = e ? E.journees.find((x) => x.id === e.journeeId) : undefined;
+      if (!e || !l || l.compte !== compte || j?.statut !== "fermee") throw new ErreurMetier("Écriture inconnue pour ce compte.");
+      if (deja.has(id)) throw new ErreurMetier("Une écriture cochée est déjà lettrée.");
+      if (l.sens === "D") td += l.montantCdf; else tc += l.montantCdf;
+    }
+    if (td !== tc || td === 0) throw new ErreurMetier("Solde sélection : le total débit doit égaler le total crédit pour lettrer.");
+    const code = codeLettrage(E.lettrages.filter((x) => x.compte === compte).length + 1);
+    E.lettrages.push({ id: prochain(E.lettrages), compte, code, montant: td, lettrePar: u.id, lignes: [...ids] }); enregistrer(); return { code, montant: td };
+  },
+  /** S118 et S143, bouton Afficher : soldes des caisses et des banques à la date, brouillard compris (texte p. 162) */
+  tresorerie(p: { date?: string }) {
+    lectureAdmin(["S118", "S143"]);
+    const d = dateCc(p.date, "Date"), jusque = E.ecritures.filter((e) => { const x = dateEcriture(e); return x && x <= d; });
+    const caisses: { compte: string; designation: string; devise: string; solde: number }[] = [];
+    for (const g of [...E.guichets].sort((a, b) => a.code.localeCompare(b.code))) {
+      const par = new Map<string, number>();
+      for (const e of jusque) for (const l of e.lignes) if (l.contrat === `guichet:${g.id}`) par.set(l.devise, (par.get(l.devise) ?? 0) + (l.sens === "D" ? l.montant : -l.montant));
+      for (const dv of [...par.keys()].sort()) caisses.push({ compte: g.compteGuichet || "570", designation: g.nom, devise: dv, solde: par.get(dv)! });
+    }
+    const banques = [...E.comptesBancaires].map((cb) => ({ cb, b: E.banques.find((x) => x.id === cb.banqueId) })).sort((a, b) => (a.b?.code ?? "").localeCompare(b.b?.code ?? "") || a.cb.numeroBancaire.localeCompare(b.cb.numeroBancaire))
+      .map(({ cb, b }) => ({ compte: cb.compte, designation: `${b?.libelle ?? ""} ${cb.numeroBancaire}`, devise: cb.devise as string,
+        solde: jusque.flatMap((e) => e.lignes).filter((l) => l.compte === cb.compte && l.devise === cb.devise).reduce((t, l) => t + (l.sens === "D" ? l.montant : -l.montant), 0) }));
+    const tot = (l: { devise: string; solde: number }[]) => Object.fromEntries([...new Set(l.map((x) => x.devise))].sort().map((dv) => [dv, l.filter((x) => x.devise === dv).reduce((t, x) => t + x.solde, 0)]));
+    return { date: d, caisses, banques, totalCaisses: tot(caisses) as Record<string, number>, totalBanques: tot(banques) as Record<string, number> };
+  },
+  annulationsContexte() {
+    lectureAdmin(["S118"]);
+    return { guichets: [...E.guichets].sort((a, b) => a.code.localeCompare(b.code)).map(({ id, nom }) => ({ id, nom })), types: Object.entries(TYPES_ANNULATION).map(([code, libelle]) => ({ code, libelle })),
+      utilisateurs: [...E.utilisateurs].sort((a, b) => a.nom.localeCompare(b.nom)).map(({ id, nom }) => ({ id, nom })) };
+  },
+  /** S118 : les écritures d'annulation de la période (PCCI § 3.3) : pièce d'origine, pièce d'annulation, client, montant */
+  annulations(p: { du?: string; au?: string; guichetId?: number | string | null; type?: string; utilisateurId?: number | string | null }) {
+    lectureAdmin(["S118"]);
+    const du = dateCc(p.du, "Du"), au = dateCc(p.au, "Au");
+    if (du > au) throw new ErreurMetier("Du : avant Au.");
+    const util = numCc(p.utilisateurId), guichet = numCc(p.guichetId);
+    return E.ecritures.filter((a) => a.contrePasseId && dateEcriture(a) >= du && dateEcriture(a) <= au && (!util || a.saisiPar === util)).sort((a, b) => dateEcriture(a).localeCompare(dateEcriture(b)) || a.id - b.id).flatMap((a) => {
+      const o = E.ecritures.find((x) => x.id === a.contrePasseId)!, ra = E.remboursementsAnnules.find((x) => x.ecritureAnnulation === a.id), type = ra ? "remboursement_credit" : "";
+      if ((p.type && p.type !== type) || (guichet && !o.lignes.some((l) => l.contrat === `guichet:${guichet}`))) return [];
+      const c = ra ? E.credits.find((x) => x.id === ra.creditId) : undefined, t = c ? E.tiers.find((x) => x.id === c.tiersId) : undefined;
+      return [{ ancienne: o.piece, nouvelle: a.piece, numeroClient: t?.numero ?? "", nom: t ? titulaire(t) : "", montant: a.lignes.filter((l) => l.sens === "D").reduce((s, l) => s + l.montantCdf, 0),
+        date: dateEcriture(a), type: TYPES_ANNULATION[type] ?? type, libelle: a.libelle, utilisateur: nomUtilisateur(a.saisiPar) }]; });
+  },
+  /** S118, Etat des revenus : par jour (Détaillé) ou pour la période (Synthèse) : dépenses (classe 6), recettes (classe 7), résultat ; en CDF */
+  revenus(p: { du?: string; au?: string; resultat?: string }) {
+    lectureAdmin(["S118"]);
+    const du = dateCc(p.du, "Du"), au = dateCc(p.au, "Au");
+    if (du > au) throw new ErreurMetier("Du : avant Au.");
+    const par = new Map<string, { date: string; agence: string; depenses: number; recettes: number; resultat: number }>();
+    for (const e of E.ecritures) { const d = dateEcriture(e); if (!d || d < du || d > au || e.type === "vidage") continue;
+      for (const l of e.lignes) { if (!"67".includes(l.compte[0]!)) continue;
+        const x = par.get(d) ?? { date: d, agence: E.agence.code, depenses: 0, recettes: 0, resultat: 0 }; par.set(d, x);
+        if (l.compte[0] === "6") x.depenses += l.sens === "D" ? l.montantCdf : -l.montantCdf; else x.recettes += l.sens === "C" ? l.montantCdf : -l.montantCdf; } }
+    let lignes = [...par.values()].sort((a, b) => a.date.localeCompare(b.date)).map((x) => ({ ...x, resultat: x.recettes - x.depenses }));
+    if (p.resultat === "synthese" && lignes.length) lignes = [{ date: "", agence: E.agence.code, depenses: lignes.reduce((t, x) => t + x.depenses, 0), recettes: lignes.reduce((t, x) => t + x.recettes, 0), resultat: lignes.reduce((t, x) => t + x.resultat, 0) }];
+    return { lignes, depenses: lignes.reduce((t, x) => t + x.depenses, 0), recettes: lignes.reduce((t, x) => t + x.recettes, 0), resultat: lignes.reduce((t, x) => t + x.resultat, 0) };
+  },
+  /** S142, recherche du « N° de pièce » : les règlements par prélèvement sur compte, le dernier de chaque crédit en cours */
+  reglementsAnnulables() {
+    lectureAdmin(["S142"]);
+    return E.remboursementsCredit.filter((r) => r.mode === "epargne" && E.credits.find((c) => c.id === r.creditId)?.statut === "debloque" && dernierRemboursement(r.creditId)?.id === r.id)
+      .sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id).map(repartitionAnnulable);
+  },
+  /** S142, bouton Valider : écriture inverse liée à l'écriture d'origine (PCCI § 3.3) ; le règlement quitte les remboursements du crédit (registre S142-1 à S142-5) */
+  annulerReglement(id: number) {
+    const u = exiger(), r = E.remboursementsCredit.find((x) => x.id === id);
+    if (!r || r.mode !== "epargne") throw new ErreurMetier("À remplir : N° de pièce d'un règlement par prélèvement sur compte.");
+    const c = E.credits.find((x) => x.id === r.creditId)!;
+    if (c.statut !== "debloque") throw new ErreurMetier("Crédit soldé : ce règlement ne s'annule plus.");
+    if (dernierRemboursement(c.id)?.id !== r.id) throw new ErreurMetier("Seul le dernier règlement du crédit s'annule.");
+    if (r.repartition.capitalAnticipe && !r.echeancesAvant) throw new ErreurMetier("Remboursement anticipé : l'échéancier d'avant ce règlement n'a pas été gardé, il ne s'annule pas.");
+    if (r.saisiPar === u.id) throw new ErreurMetier("Quatre yeux : l'annulation vient d'une autre personne que celle qui a saisi le règlement.");
+    const j = journees.courante();
+    if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
+    const orig = E.ecritures.find((x) => x.id === r.ecritureId)!, vue = repartitionAnnulable(r);
+    const e = poster({ journal: "OD", journeeId: j.id, libelle: `Annulation : ${orig.libelle}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, type: "contre_passation", contrePasseId: orig.id,
+      lignes: orig.lignes.map((l) => ({ ...l, sens: l.sens === "D" ? "C" as const : "D" as const })) });
+    const hb = orig.lignes.filter((l) => l.compte === "0630" && l.sens === "C").reduce((t, l) => t + l.montant, 0);   // intérêts sortis du hors bilan au règlement : ils y reviennent (CR-19)
+    if (hb) c.interetsHorsBilan = (c.interetsHorsBilan ?? 0) + hb;
+    for (const x of r.echeancesAvant ?? []) { const y = c.echeancier.find((z) => z.rang === x.rang); if (y) { y.capital = x.capital; y.interet = x.interet; } }
+    E.remboursementsAnnules.push({ ...r, ecritureAnnulation: e.id, annulePar: u.id, annuleLe: j.date });
+    E.remboursementsCredit.splice(E.remboursementsCredit.indexOf(r), 1);
+    enregistrer(); return { ...vue, pieceAnnulation: e.piece };
+  },
+};
+
 const MOIS_JC = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 type CriteresJournaux = { achats?: boolean | string; exercice?: number | string; mois?: number | string | null; type?: string; journalId?: number | string | null; mouvement?: string; montant?: number | string | null;
   utilisateurId?: number | string | null; piece?: string; pieceMode?: string; libelle?: string; libelleMode?: string };
+// ---------- S122 Etats financiers (p. 140 et 141) et S123 Indicateurs financiers (p. 142). Mêmes règles que serveur/noyau/etats_financiers.py :
+// modèles du PCCI (chap. 14) et comptes rattachés dans replica/etats-pcci.json ; écritures définitives (T13) ; montants en CDF. Registre S122, S123. ----------
+interface PosteBilan { code: string; libelle: string; comptes?: string[]; debiteurs?: string[]; crediteurs?: string[]; reste?: boolean; resultat?: boolean; anterieurs?: boolean }
+interface ModeleEtats { liquidites: string[]; bilan: { actif: PosteBilan[]; passif: PosteBilan[] };
+  horsBilan: { code: string; libelle: string; lignes: { libelle: string; comptes: string[] }[] }[];
+  resultat: { signe?: "+" | "-"; solde?: "courant" | "exceptionnel" | "net"; libelle: string; comptes?: string[]; exceptionnel?: boolean; impot?: boolean }[];
+  flux: { titre?: string; libelle?: string; comptes?: string[]; groupe?: string; reste?: boolean; change?: boolean; total?: string; sens?: "entree" | "sortie" }[];
+  annexes: { code: string; libelle: string; sens?: "D" | "C"; sections?: { libelle: string; comptes: string[] }[] }[] }
+const ME = MODELE_ETATS as unknown as ModeleEtats;
+const TYPES_EF: Record<string, string> = { developpe: "Version développée", modele: "Modèle PCCI" }, TYPES_HB: Record<string, string> = { developpe: "Hors bilan développé", modele: "Modèle PCCI" };
+const PERIODICITES_EF: Record<string, string> = { mensuel: "Mensuel", annuel: "Annuel" };
+type CriteresEf = CriteresEtat & { annexe?: string; indicateur?: string; mois?: number | string };
+type CoteBilan = "actif" | "passif";
+type ValeurPoste = { valeur: number; comptes: Map<string, number> };
+const commence = (n: string, ps: string[] = []) => ps.some((x) => n.startsWith(x));
+const veilleEf = (d: string) => { const x = new Date(`${d}T00:00:00Z`); x.setUTCDate(x.getUTCDate() - 1); return x.toISOString().slice(0, 10); };
+/** Même jour, un an plus tôt (le 29 février devient le 28) */
+function anDernier(d: string) {
+  const [a, m, j] = d.split("-").map(Number) as [number, number, number], fin = new Date(Date.UTC(a - 1, m, 0)).getUTCDate();
+  return `${a - 1}-${String(m).padStart(2, "0")}-${String(Math.min(j, fin)).padStart(2, "0")}`;
+}
+/** Champs « Compte … à … » : comptes compris entre les deux bornes, complétées par des zéros (comme la balance, S121) */
+function bornesEf(p: CriteresEf, defDe = "", defA = "") {
+  const de = String(p.compteDe || defDe).trim(), a = String(p.compteA || defA).trim();
+  if ((de && !/^\d+$/.test(de)) || (a && !/^\d+$/.test(a))) throw new ErreurMetier("Compte : chiffres seulement.");
+  return (n: string) => !((de && n.padEnd(8, "0") < de.padEnd(8, "0")) || (a && n.padEnd(8, "0") > a.padEnd(8, "0")));
+}
+/** Écritures définitives (journées comptabilisées) dont la date est dans l'intervalle */
+function ecrituresDefinitives(du: string | null, au: string, vidage: boolean) {
+  return E.ecritures.map((e) => ({ e, j: E.journees.find((x) => x.id === e.journeeId) }))
+    .filter(({ e, j }) => j && j.statut === "fermee" && j.date <= au && (!du || j.date >= du) && (vidage || e.type !== "vidage")).map(({ e, j }) => ({ e, date: j!.date }));
+}
+/** Soldes (débit moins crédit) par compte à la date ; comptes de gestion : résultat de l'exercice et résultats antérieurs pas encore clôturés, en solde créditeur */
+function soldesEf(au: string, ex: number, vidage: boolean) {
+  const s = new Map<string, number>(); let resultat = 0, anterieurs = 0;
+  for (const { e, date } of ecrituresDefinitives(null, au, vidage)) for (const l of e.lignes) {
+    const v = l.sens === "D" ? l.montantCdf : -l.montantCdf;
+    if ("678".includes(l.compte[0]!)) { if (Number(date.slice(0, 4)) === ex) resultat -= v; else anterieurs -= v; } else s.set(l.compte, (s.get(l.compte) ?? 0) + v);
+  }
+  for (const [k, v] of s) if (!v) s.delete(k);
+  return { s, resultat, anterieurs };
+}
+function mouvementsGestionEf(du: string, au: string, vidage: boolean) {
+  const s = new Map<string, number>();
+  for (const { e } of ecrituresDefinitives(du, au, vidage)) for (const l of e.lignes) if ("678".includes(l.compte[0]!)) s.set(l.compte, (s.get(l.compte) ?? 0) + (l.sens === "D" ? l.montantCdf : -l.montantCdf));
+  for (const [k, v] of s) if (!v) s.delete(k);
+  return s;
+}
+/** Côté et rang du poste d'un compte : le préfixe le plus long l'emporte ; un compte « débiteur ou créditeur » suit le sens de son solde */
+function posteDe(compte: string, solde: number): [CoteBilan, number] {
+  const c: [number, CoteBilan, number, string][] = [];
+  for (const cote of ["actif", "passif"] as const) ME.bilan[cote].forEach((p, i) => { for (const mode of ["comptes", "debiteurs", "crediteurs"] as const) for (const x of p[mode] ?? []) if (compte.startsWith(x)) c.push([x.length, cote, i, mode]); });
+  if (c.length) { const lg = Math.max(...c.map((x) => x[0])), voulu = solde >= 0 ? "debiteurs" : "crediteurs", t = c.find((x) => x[0] === lg && (x[3] === "comptes" || x[3] === voulu)); if (t) return [t[1], t[2]]; }
+  const cote: CoteBilan = solde >= 0 ? "actif" : "passif";
+  return [cote, ME.bilan[cote].findIndex((p) => p.reste)];
+}
+const nommeEf = (n: string) => (["actif", "passif"] as const).some((c) => ME.bilan[c].some((p) => commence(n, p.comptes) || commence(n, p.debiteurs) || commence(n, p.crediteurs)));
+function postesBilan({ s, resultat, anterieurs }: ReturnType<typeof soldesEf>, dans: (n: string) => boolean) {
+  const vide = (c: CoteBilan): ValeurPoste[] => ME.bilan[c].map(() => ({ valeur: 0, comptes: new Map() }));
+  const out = { actif: vide("actif"), passif: vide("passif"), hors: [] as string[] };
+  for (const [n, v] of s) {
+    if (!"12345".includes(n[0]!) || !dans(n)) continue;
+    const [cote, i] = posteDe(n, v), x = cote === "actif" ? v : -v, p = out[cote][i]!;
+    p.valeur += x; p.comptes.set(n, (p.comptes.get(n) ?? 0) + x);
+    if (!nommeEf(n)) out.hors.push(n);
+  }
+  ME.bilan.passif.forEach((p, i) => { for (const [ok, v, nom] of [[p.resultat, resultat, "Résultat en formation (classes 6, 7 et 8)"], [p.anterieurs, anterieurs, "Résultats antérieurs non clôturés"]] as const)
+    if (ok && v) { out.passif[i]!.valeur += v; out.passif[i]!.comptes.set(nom, v); } });
+  out.hors.sort();
+  return out;
+}
+function presenterEf(modele: PosteBilan[], n: ValeurPoste[], n1: ValeurPoste[], noms: Map<string, string>) {
+  return modele.map((p, i) => { const cles = [...new Set([...n[i]!.comptes.keys(), ...n1[i]!.comptes.keys()])].sort(), num = (k: string) => /^\d/.test(k);
+    return { code: p.code, libelle: p.libelle, n: n[i]!.valeur, n1: n1[i]!.valeur,
+      comptes: cles.map((k) => ({ compte: num(k) ? k : "", intitule: num(k) ? noms.get(k) ?? "" : k, n: n[i]!.comptes.get(k) ?? 0, n1: n1[i]!.comptes.get(k) ?? 0 })) }; });
+}
+function rubriquesEf(mv: Map<string, number>, dans: (n: string) => boolean) {
+  const out: { valeur: number; comptes: Map<string, number> }[] = [], pris = new Set<string>(); let courant = 0, exceptionnel = 0, impot = 0;
+  for (const r of ME.resultat) {
+    if (r.solde) { out.push({ valeur: { courant, exceptionnel, net: courant + exceptionnel - impot }[r.solde], comptes: new Map() }); continue; }
+    const cs = new Map([...mv].filter(([k]) => commence(k, r.comptes) && dans(k)).map(([k, v]) => [k, r.signe === "+" ? -v : v] as [string, number]));
+    cs.forEach((_, k) => pris.add(k));
+    const v = [...cs.values()].reduce((t, x) => t + x, 0), signe = r.signe === "+" ? v : -v;
+    if (r.impot) impot += v; else if (r.exceptionnel) exceptionnel += signe; else courant += signe;
+    out.push({ valeur: v, comptes: cs });
+  }
+  return { out, hors: [...mv.keys()].filter((k) => !pris.has(k) && "67".includes(k[0]!) && dans(k)).sort() };
+}
+/** Tableau de flux de trésorerie (PCCI 14.3), par les contreparties des écritures qui touchent les liquidités */
+function fluxPeriode(du: string, au: string) {
+  const lg = ME.flux, v = lg.map(() => 0), reste = lg.findIndex((l) => l.reste), change = lg.findIndex((l) => l.change), liquide = (n: string) => commence(n, ME.liquidites);
+  for (const { e } of ecrituresDefinitives(du, au, false)) {
+    const ls = e.lignes.filter((l) => l.compte[0] !== "0").map((l) => [l.compte, l.sens === "C" ? l.montantCdf : -l.montantCdf] as [string, number]);
+    const delta = -ls.filter(([n]) => liquide(n)).reduce((t, [, m]) => t + m, 0);
+    if (!delta) continue;
+    if ((e.type as string | undefined) === "reevaluation") { v[change]! += delta; continue; }
+    for (const [n, m] of ls) {
+      if (liquide(n)) continue;
+      let cible = reste, longueur = -1;
+      lg.forEach((l, i) => { for (const x of l.comptes ?? []) if (n.startsWith(x) && x.length >= longueur && (!l.sens || (l.sens === "entree") === (m >= 0))) { cible = i; longueur = x.length; } });
+      v[cible]! += m;
+    }
+  }
+  const tot: Record<string, number> = {};
+  for (const g of ["exploitation", "investissement", "financement"]) tot[g] = lg.reduce((t, l, i) => t + (l.groupe === g ? v[i]! : 0), 0);
+  tot.variation = tot.exploitation! + tot.investissement! + tot.financement! + v[change]!;
+  const liq = (d: string) => { let t = 0; for (const { e } of ecrituresDefinitives(null, d, true)) for (const l of e.lignes) if (liquide(l.compte)) t += l.sens === "D" ? l.montantCdf : -l.montantCdf; return t; };
+  tot.debut = liq(veilleEf(du)); tot.fin = liq(au);
+  return { valeurs: lg.map((l, i) => (l.total ? tot[l.total]! : l.titre ? null : v[i]!)), controle: tot.debut + tot.variation === tot.fin };
+}
+const etatsFinanciers = {
+  contexte() {
+    lectureAdmin(["S122", "S123"]);
+    const liste = (o: Record<string, string>) => Object.entries(o).map(([code, libelle]) => ({ code, libelle }));
+    return { agences: [{ id: E.agence.id, nom: E.agence.nom }], exercices: [...E.exercices].map((x) => x.annee).sort((a, b) => b - a), typesBilan: liste(TYPES_EF), typesHorsBilan: liste(TYPES_HB),
+      annexes: ME.annexes.map(({ code, libelle }) => ({ code, libelle })), periodicites: liste(PERIODICITES_EF), mois: MOIS_JC };
+  },
+  /** Bilan (PCCI 14.1) : actif, 8 postes ; passif, 14 postes ; N à la date de fin, N-1 à la fin de l'exercice précédent */
+  bilan(p: CriteresEf) {
+    lectureAdmin(["S122"]);
+    const { du, au, ex } = periodeEtat(p), type = p.type || "developpe";
+    if (!TYPES_EF[type]) throw new ErreurMetier("Type de bilan inconnu.");
+    const vid = !p.sansVidage, dans = bornesEf(p), precedent = `${ex - 1}-12-31`, noms = intitulesComptes();
+    const a = postesBilan(soldesEf(au, ex, vid), dans), b = postesBilan(soldesEf(precedent, ex - 1, vid), dans);
+    const actif = presenterEf(ME.bilan.actif, a.actif, b.actif, noms), passif = presenterEf(ME.bilan.passif, a.passif, b.passif, noms);
+    const tot = (x: typeof actif) => ({ n: x.reduce((t, y) => t + y.n, 0), n1: x.reduce((t, y) => t + y.n1, 0) }), totalActif = tot(actif), totalPassif = tot(passif);
+    return { du, au, exercice: ex, precedent, type, actif, passif, totalActif, totalPassif, equilibre: totalActif.n === totalPassif.n && totalActif.n1 === totalPassif.n1,
+      nonRattaches: a.hors.map((n) => ({ compte: n, intitule: noms.get(n) ?? "" })) };
+  },
+  /** Hors bilan (PCCI 14.1) : engagements donnés, reçus, crédit-bail, internes */
+  horsBilan(p: CriteresEf) {
+    lectureAdmin(["S122"]);
+    const { du, au, ex } = periodeEtat(p), type = p.type || "developpe";
+    if (!TYPES_HB[type]) throw new ErreurMetier("Hors bilan inconnu.");
+    const vid = !p.sansVidage, dans = bornesEf(p, "0", "09999999"), precedent = `${ex - 1}-12-31`, noms = intitulesComptes(), sn = soldesEf(au, ex, vid).s, s1 = soldesEf(precedent, ex - 1, vid).s;
+    const postes = ME.horsBilan.map((x) => { const lignes = x.lignes.map((l) => { const cs = [...new Set([...sn.keys(), ...s1.keys()])].filter((k) => commence(k, l.comptes) && dans(k)).sort();
+        return { libelle: l.libelle, n: Math.abs(cs.reduce((t, k) => t + (sn.get(k) ?? 0), 0)), n1: Math.abs(cs.reduce((t, k) => t + (s1.get(k) ?? 0), 0)),
+          comptes: cs.map((k) => ({ compte: k, intitule: noms.get(k) ?? "", n: Math.abs(sn.get(k) ?? 0), n1: Math.abs(s1.get(k) ?? 0) })) }; });
+      return { code: x.code, libelle: x.libelle, n: lignes.reduce((t, l) => t + l.n, 0), n1: lignes.reduce((t, l) => t + l.n1, 0), lignes }; });
+    return { du, au, exercice: ex, precedent, type, postes };
+  },
+  /** Compte de résultat (PCCI 14.2) : exercice sur la période, exercice précédent sur les mêmes dates un an plus tôt */
+  resultat(p: CriteresEf) {
+    lectureAdmin(["S122"]);
+    const { du, au, ex } = periodeEtat(p), type = p.type || "developpe";
+    if (!TYPES_EF[type]) throw new ErreurMetier("Type de résultat inconnu.");
+    const vid = !p.sansVidage, dans = bornesEf(p), noms = intitulesComptes(), precedentDu = anDernier(du), precedentAu = anDernier(au);
+    const n = rubriquesEf(mouvementsGestionEf(du, au, vid), dans), n1 = rubriquesEf(mouvementsGestionEf(precedentDu, precedentAu, vid), dans);
+    const lignes = ME.resultat.map((r, i) => { const cles = [...new Set([...n.out[i]!.comptes.keys(), ...n1.out[i]!.comptes.keys()])].sort();
+      return { signe: r.signe ?? "", solde: !!r.solde, libelle: r.libelle, n: n.out[i]!.valeur, n1: n1.out[i]!.valeur,
+        comptes: cles.map((k) => ({ compte: k, intitule: noms.get(k) ?? "", n: n.out[i]!.comptes.get(k) ?? 0, n1: n1.out[i]!.comptes.get(k) ?? 0 })) }; });
+    return { du, au, exercice: ex, precedentDu, precedentAu, type, lignes, nonRattaches: n.hors.map((k) => ({ compte: k, intitule: noms.get(k) ?? "" })) };
+  },
+  /** Etat annexe : emplois et ressources, flux de trésorerie (PCCI 14.3), ventilations de l'Instr. BCC 009, art. 1 */
+  annexe(p: CriteresEf) {
+    lectureAdmin(["S122"]);
+    const { du, au, ex } = periodeEtat(p), a = ME.annexes.find((x) => x.code === p.annexe);
+    if (!a) throw new ErreurMetier("À remplir : Annexe.");
+    const base = { du, au, exercice: ex, annexe: a.code, titre: a.libelle }, noms = intitulesComptes(), precedent = `${ex - 1}-12-31`;
+    if (a.code === "flux") { const n = fluxPeriode(du, au), n1 = fluxPeriode(anDernier(du), anDernier(au));
+      return { ...base, forme: "flux" as const, controle: n.controle, lignes: ME.flux.map((l, i) => ({ libelle: l.titre ?? l.libelle ?? "", titre: !!l.titre, total: !!l.total, n: n.valeurs[i]!, n1: n1.valeurs[i]! })) }; }
+    if (a.code === "emplois") {
+      const tout = () => true, deb = postesBilan(soldesEf(veilleEf(du), ex, true), tout), fin = postesBilan(soldesEf(au, ex, true), tout);
+      const lignes = (["actif", "passif"] as const).flatMap((cote) => ME.bilan[cote].map((m, i) => { const d = fin[cote][i]!.valeur - deb[cote][i]!.valeur, emploi = cote === "actif" ? d : -d;
+        return { cote, code: m.code, libelle: m.libelle, debut: deb[cote][i]!.valeur, fin: fin[cote][i]!.valeur, emploi: Math.max(emploi, 0), ressource: Math.max(-emploi, 0) }; }));
+      return { ...base, forme: "emplois" as const, lignes, emplois: lignes.reduce((t, x) => t + x.emploi, 0), ressources: lignes.reduce((t, x) => t + x.ressource, 0) };
+    }
+    if (a.code === "monnaies") {
+      const g = new Map<string, [number, number]>();
+      for (const { e } of ecrituresDefinitives(null, au, true)) for (const l of e.lignes) if ("12345".includes(l.compte[0]!)) { const k = `${l.devise}\u0000${l.compte}`, x = g.get(k) ?? [0, 0]; g.set(k, x);
+        x[0] += l.sens === "D" ? l.montant : -l.montant; x[1] += l.sens === "D" ? l.montantCdf : -l.montantCdf; }
+      const par = new Map<string, { avoirs: number; avoirsCdf: number; engagements: number; engagementsCdf: number }>();
+      for (const [k, [d, v]] of g) { const dv = k.split("\u0000")[0]!, x = par.get(dv) ?? { avoirs: 0, avoirsCdf: 0, engagements: 0, engagementsCdf: 0 }; par.set(dv, x);
+        if (v >= 0) { x.avoirs += d; x.avoirsCdf += v; } else { x.engagements -= d; x.engagementsCdf -= v; } }
+      return { ...base, forme: "monnaies" as const, lignes: [...par].sort(([x], [y]) => x.localeCompare(y)).map(([devise, x]) => ({ devise, ...x, positionCdf: x.avoirsCdf - x.engagementsCdf })) };
+    }
+    const sn = soldesEf(au, ex, true).s, s1 = soldesEf(precedent, ex - 1, true).s, signe = a.sens === "D" ? 1 : -1;
+    const sections = (a.sections ?? []).map((sec) => { const gr = new Map<string, [number, number]>();
+      [sn, s1].forEach((src, k) => { for (const [n, v] of src) if (commence(n, sec.comptes)) { const x = gr.get(n.slice(0, 3)) ?? [0, 0]; gr.set(n.slice(0, 3), x); x[k]! += signe * v; } });
+      const lignes = [...gr].sort(([x], [y]) => x.localeCompare(y)).map(([compte, v]) => ({ compte, intitule: noms.get(compte) ?? "", n: v[0], n1: v[1] }));
+      return { libelle: sec.libelle, lignes, n: lignes.reduce((t, x) => t + x.n, 0), n1: lignes.reduce((t, x) => t + x.n1, 0) }; });
+    return { ...base, forme: "ventilation" as const, precedent, sections, n: sections.reduce((t, x) => t + x.n, 0), n1: sections.reduce((t, x) => t + x.n1, 0) };
+  },
+  /** S123, fenêtre « Edition des indicateurs financiers » : Exercice, Indicateur (Mensuel ou Annuel), Mois ; les onze ratios de l'Instr. BCC 004 (S101-9) */
+  indicateurs(p: CriteresEf) {
+    lectureAdmin(["S123"]);
+    if (!/^\d+$/.test(String(p.exercice ?? ""))) throw new ErreurMetier("À remplir : Exercice.");
+    const ex = Number(p.exercice), quoi = p.indicateur || "mensuel";
+    if (!PERIODICITES_EF[quoi]) throw new ErreurMetier("Indicateur inconnu.");
+    let du = `${ex}-01-01`, au = `${ex}-12-31`;
+    if (quoi === "mensuel") { const m = Number(p.mois); if (!/^\d+$/.test(String(p.mois ?? "")) || m < 1 || m > 12) throw new ErreurMetier("À remplir : Mois.");
+      du = `${ex}-${String(m).padStart(2, "0")}-01`; au = `${ex}-${String(m).padStart(2, "0")}-${String(new Date(Date.UTC(ex, m, 0)).getUTCDate()).padStart(2, "0")}`; }
+    return { du, au, ...rapportsCredit.indicateurs!({ du, au }) };
+  },
+};
+
 const etatsCompta = {
   /** S115 : critères de « Journal comptables » (p. 133) */
   journauxContexte() {
@@ -7507,8 +7918,10 @@ const apiLocal = {
   centraleRisques: asynchrone(centraleRisques, "centraleRisques"),
   comptabilisation: asynchrone(comptabilisation, "comptabilisation"),
   etatsCompta: asynchrone(etatsCompta, "etatsCompta"),
+  etatsFinanciers: asynchrone(etatsFinanciers, "etatsFinanciers"),
   operationsCompta: asynchrone(operationsCompta, "operationsCompta"),
   facturesFournisseurs: asynchrone(facturesFournisseurs, "facturesFournisseurs"),
+  controlesCompta: asynchrone(controlesCompta, "controlesCompta"),
   refTaxes: asynchrone(refTaxes, "refTaxes"),
   refTiers: asynchrone(refTiers, "refTiers"),
   litigieux: asynchrone(litigieux, "litigieux"),

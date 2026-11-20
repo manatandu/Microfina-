@@ -3917,6 +3917,10 @@ def test_factures_fournisseurs(clients, journee):
     v = agent.post(f"{FF}/reglement/{r1['id']}/validation", {"compteBancaireId": ids["R-CDF-1"], "cheque": "0000001", "dateEmission": "2026-11-05"}, **H).json()
     assert (v["statut"], v["cheque"]) == ("validee", "0000001")
     assert agent.post(f"{FF}/reglement/{r2['id']}/validation", {}, **H).json()["statut"] == "validee"
+    # état de validation du règlement : la fiche d'imputation (p. 154), équilibrée, sans pièce avant la comptabilisation
+    fi, fe = agent.get(f"{FF}/reglements/{r1['id']}/fiche", **H).json(), agent.get(f"{FF}/reglements/{r2['id']}/fiche", **H).json()
+    assert (fi["piece"], fi["debit"], fi["lignes"][0]["compte"], fi["lignes"][0]["debit"], bool(fi["saisiPar"])) == ("", fi["credit"], "400", r1["montant"], True)
+    assert (fe["journal"], fe["debit"], [x["compte"] for x in fe["lignes"]][:2]) == ("CA", fe["credit"], ["400", "570"])
     # S141 : la caissière paie le règlement en espèces, avec son billetage
     assert [x["id"] for x in caisse.get("/api/caisse/reglements-factures", **H).json()] == [r2["id"]]
     assert "billetage" in refus(caisse, f"/api/caisse/reglements-factures/{r2['id']}/paiement", {"cle": cle(), "coupures": {}})
@@ -3931,6 +3935,8 @@ def test_factures_fournisseurs(clients, journee):
     assert (solde_compte("610"), solde_compte("612"), solde_compte("432"), solde_compte("400"), solde_compte("433")) == (1210000, 500000, 193600, 0, -100000)
     assert ident("select count(*) from facture_fournisseur where statut = 'comptabilisee' and piece <> ''") == 2
     assert ident("select statut from reglement_fournisseur where id = %s", (r1["id"],)) == "comptabilisee"
+    fi = agent.get(f"{FF}/reglements/{r1['id']}/fiche", **H).json()
+    assert fi["piece"] != "" and fi["debit"] == fi["credit"] == r1["montant"] and all(x["intitule"] for x in fi["lignes"])
     assert balance_equilibree(compta)
     # rapport et déclaration de taxe
     q = lambda **k: compta.get(f"{FF}/rapport", {"du": "2026-11-01", "au": "2026-11-30", **k}, **H).json()
@@ -3973,3 +3979,166 @@ def test_retenue_sur_commande(clients, journee):
     dt = compta.get("/api/comptabilite/declaration-taxes", {"exercice": 2026, "mois": 11, "taxeId": tx["PNR"]}, **H).json()
     assert (dt["total"], dt["totalBase"], len(dt["lignes"])) == (140000, 1000000, 2)
     assert balance_equilibree(compta)
+
+
+# ---------- Comptabilité : rapprochement (S110, S112), lettrage (S119), contrôles (S118, S143), annulation d'un règlement de crédit (S142) ----------
+def test_rapprochement_bancaire(clients, journee):
+    """S110 (p. 129, 153 et 154) : le journal de la banque, les opérations cochées, l'état du rapprochement (suspens, écart) ; enregistré, il entre à
+    l'historique (S112) et ses lignes pointées ne reviennent plus ; « Nouveau » saisit une opération de banque (S52)"""
+    chef, compta, agent, caisse = clients["chef"], clients["compta"], clients["agent"], clients["caisse"]
+    ids = banque_usd(chef)
+    from noyau.bd import executer
+    executer("insert into profil_droit (profil_id, droit_code) select id, 'S57' from profil where code = 'agent_credit'")
+    def banque(type_, compte, montant, libelle):
+        o = compta.post("/api/banque/operations", {"cle": cle(), "date": "2026-11-05", "type": type_, "compteBancaireId": ids["R-CDF-1"], "compte": compte, "libelle": libelle, "montant": montant}, **H).json()
+        chef.post(f"/api/banque/visas/{o['id']}/visa", {}, **H); agent.post(f"/api/banque/visas/{o['id']}/validation", {}, **H)
+    banque("encaissement", "727", 500000, "Commission reçue"); banque("decaissement", "610", 120000, "Frais de tenue")
+    comptabiliser_journee(clients, journee)
+    R = "/api/comptabilite/rapprochement"
+    ctx = compta.get(f"{R}/contexte", **H).json()
+    assert any(c["id"] == ids["R-CDF-1"] for c in ctx["comptes"]) and caisse.get(f"{R}/contexte", **H).status_code == 403
+    q = {"compteBancaireId": ids["R-CDF-1"], "du": "2026-11-01", "au": "2026-11-30"}
+    j = compta.get(f"{R}/journal", q, **H).json()
+    assert (j["soldeDebut"], j["soldeComptable"], [(x["libelle"], x["debit"], x["credit"]) for x in j["lignes"]]) == (0, 380000, [("Commission reçue", 500000, 0), ("Frais de tenue", 0, 120000)])
+    assert "Banque et Compte" in compta.get(f"{R}/journal", {"du": "2026-11-01", "au": "2026-11-30"}, **H).json()["message"]
+    assert "Solde Fin" in compta.post(f"{R}/etat", {**q, "lignes": []}, **H).json()["message"]
+    enc = j["lignes"][0]["id"]
+    e = compta.post(f"{R}/etat", {**q, "soldeFin": 500000, "lignes": [enc]}, **H).json()
+    assert (e["suspensDebit"], e["suspensCredit"], e["soldeTheorique"], e["ecart"]) == (0, 120000, 500000, 0)        # le décaissement n'est pas encore débité par la banque
+    assert compta.post(f"{R}/etat", {**q, "soldeFin": 480000, "lignes": [enc]}, **H).json()["ecart"] == -20000
+    assert "plus dans le journal" in compta.post(f"{R}/etat", {**q, "soldeFin": 1, "lignes": ["999:1"]}, **H).json()["message"]
+    r = compta.post(R, {**q, "soldeFin": 500000, "lignes": [enc]}, **H)
+    assert r.status_code == 200 and r.json()["id"], r.content
+    assert "couvre déjà" in compta.post(R, {**q, "soldeFin": 500000, "lignes": []}, **H).json()["message"]
+    j2 = compta.get(f"{R}/journal", {**q, "du": "2026-12-01", "au": "2026-12-31"}, **H).json()
+    assert (j2["soldeDebut"], [x["libelle"] for x in j2["lignes"]]) == (500000, ["Frais de tenue"])                 # la ligne pointée ne revient plus
+    h = compta.get(f"{R}/historique", {"du": "2026-01-01", "au": "2099-12-31"}, **H).json()
+    assert [(x["soldeReleve"], x["soldeComptable"], x["ecart"], x["lignes"]) for x in h] == [(500000, 380000, 0, 1)]
+    assert compta.get(f"{R}/historique", {"du": "2026-01-01", "au": "2099-12-31", "periodeDu": "2027-01-01"}, **H).json() == []
+
+
+def test_lettrage_et_controles(clients, journee):
+    """S119 (p. 138 et 160) : les lignes définitives d'un compte, lettrées quand le débit coché égale le crédit ; S118 (p. 136 à 138) : trésorerie
+    (caisses et banques), état des revenus ; S143 : même état de trésorerie"""
+    chef, compta, caisse = clients["chef"], clients["compta"], clients["caisse"]
+    od = next(j["id"] for j in compta.get(f"{OC}/contexte", **H).json()["journaux"] if j["code"] == "OD")
+    base = {"journalId": od, "periode": "11/2026", "jour": 5, "libelle": "Facture à recevoir"}
+    def ecriture(lignes):
+        e = None
+        for compte, sens, m in lignes:
+            e = compta.post("/api/comptabilite/ecritures/lignes", {**base, "compte": compte, sens: m}, **H).json()
+        viser_valider(clients, e["id"])
+    ecriture([("610", "debit", 300000), ("461", "credit", 300000)])
+    ecriture([("461", "debit", 300000), ("727", "credit", 300000)])
+    L = "/api/comptabilite/lettrage"
+    assert compta.get(L, {"compte": "461", "du": "2026-11-01"}, **H).json()["lignes"] == []                         # rien de définitif avant la comptabilisation
+    tr = compta.get("/api/comptabilite/controle/tresorerie", {"date": "2026-11-05"}, **H).json()
+    assert tr["caisses"] and tr["totalCaisses"]["CDF"] == sum(x["solde"] for x in tr["caisses"] if x["devise"] == "CDF")
+    assert "Date" in compta.get("/api/comptabilite/controle/tresorerie", **H).json()["message"]
+    assert caisse.get("/api/comptabilite/controle/tresorerie?date=2026-11-05", **H).status_code == 403
+    comptabiliser_journee(clients, journee)
+    l = compta.get(L, {"compte": "461", "du": "2026-11-01"}, **H).json()
+    assert (l["intitule"], [(x["debit"], x["credit"], x["lettre"]) for x in l["lignes"]]) == ("Créditeurs divers", [(0, 300000, ""), (300000, 0, "")])
+    ids_ = [x["id"] for x in l["lignes"]]
+    assert "au moins deux" in compta.post(L, {"compte": "461", "lignes": ids_[:1]}, **H).json()["message"]
+    assert "Compte" in compta.post(L, {"compte": "", "lignes": ids_}, **H).json()["message"]
+    r = compta.post(L, {"compte": "461", "lignes": ids_}, **H)
+    assert r.status_code == 200 and r.json() == {"code": "A", "montant": 300000}, r.content
+    assert "déjà lettrée" in compta.post(L, {"compte": "461", "lignes": ids_}, **H).json()["message"]
+    assert compta.get(L, {"compte": "461", "du": "2026-11-01"}, **H).json()["lignes"] == []
+    assert [x["lettre"] for x in compta.get(L, {"compte": "461", "du": "2026-11-01", "etat": "lettrees"}, **H).json()["lignes"]] == ["A", "A"]
+    l610 = compta.get(L, {"compte": "610", "du": "2026-11-01"}, **H).json()["lignes"]
+    l727 = compta.get(L, {"compte": "727", "du": "2026-11-01"}, **H).json()["lignes"]
+    assert "total débit doit égaler" in compta.post(L, {"compte": "610", "lignes": [l610[0]["id"], l610[0]["id"]]}, **H).json()["message"] and l727
+    rv = compta.get("/api/comptabilite/controle/revenus", {"du": "2026-11-01", "au": "2026-11-30"}, **H).json()
+    assert (rv["depenses"], rv["recettes"], rv["resultat"], rv["lignes"][0]["date"]) == (300000, 300000, 0, "2026-11-05")
+    sy = compta.get("/api/comptabilite/controle/revenus", {"du": "2026-11-01", "au": "2026-11-30", "resultat": "synthese"}, **H).json()
+    assert [(x["date"], x["depenses"]) for x in sy["lignes"]] == [("", 300000)]
+
+
+def test_annulation_reglement_credit(clients, journee):
+    """S142 (p. 158) : annulation d'un règlement de crédit fait par prélèvement sur compte : écriture inverse liée (PCCI § 3.3), le règlement quitte le
+    crédit ; par une autre personne que celle qui l'a saisi ; rapport des annulations (S118)"""
+    chef, compta, caisse = clients["chef"], clients["compta"], clients["caisse"]
+    cid = credit_debloque(clients, journee)
+    tid = ident("select tiers_id from credit where id = %s", (cid,))
+    k = next(x for x in compta.get(f"/api/credit/remboursement/comptes/{tid}", **H).json() if x["devise"] == "CDF" and x["disponible"] >= 1000000)
+    echeances = lambda: lignes_bd("select rang, capital, interet from echeance where credit_id = %s order by rang", (cid,))
+    ech0 = echeances()
+    compta.post(f"/api/comptabilite/remboursement/{cid}", {"mandataire": "Moi-même", "compteId": k["id"], "montant": 1000000}, **H)
+    assert echeances() != ech0                                                                       # remboursement anticipé : l'échéancier est recalculé
+    avant_cap = ident("select coalesce(sum(case sens when 'D' then montant_devise else -montant_devise end), 0) from ligne_ecriture where contrat_ref = %s", (f"credit:{cid}",))
+    A = "/api/comptabilite/annulation-reglement"
+    l = compta.get(A, **H).json()
+    assert [(x["credit"] != "", x["montant"], x["compteClient"]) for x in l] == [(True, 1000000, k["numero"])]
+    rid = l[0]["id"]
+    assert "Quatre yeux" in compta.post(f"{A}/{rid}", **H).json()["message"]
+    assert caisse.post(f"{A}/{rid}", **H).status_code == 403
+    r = chef.post(f"{A}/{rid}", **H)
+    assert r.status_code == 200 and "OD" in r.json()["pieceAnnulation"], r.content
+    assert ident("select count(*) from remboursement where credit_id = %s", (cid,)) == 0 and ident("select count(*) from remboursement_annule where credit_id = %s", (cid,)) == 1
+    apres = next(x for x in compta.get(f"/api/credit/remboursement/comptes/{tid}", **H).json() if x["id"] == k["id"])
+    assert apres["solde"] == k["solde"]                                                             # le client retrouve la somme prélevée
+    assert echeances() == ech0                                                                       # les échéances d'avant le règlement reviennent
+    assert ident("select coalesce(sum(case sens when 'D' then montant_devise else -montant_devise end), 0) from ligne_ecriture where contrat_ref = %s", (f"credit:{cid}",)) > avant_cap
+    assert ident("select type || ' ' || (contre_passe_id is not null) from ecriture order by id desc limit 1") == "contre_passation true"
+    assert chef.get(A, **H).json() == [] and "N° de pièce" in chef.post(f"{A}/{rid}", **H).json()["message"]
+    an = compta.get("/api/comptabilite/controle/annulations", {"du": "2026-11-01", "au": "2026-11-30"}, **H).json()
+    assert [(x["type"], x["montant"], x["ancienne"] != x["nouvelle"], x["nom"] != "") for x in an] == [("Remboursement de crédit", 1000000, True, True)]
+    assert compta.get("/api/comptabilite/controle/annulations", {"du": "2026-11-01", "au": "2026-11-30", "type": "depot"}, **H).json() == []
+    assert balance_equilibree(compta)
+
+
+# ---------- Comptabilité : états financiers (S122) et indicateurs financiers (S123) ----------
+def test_etats_financiers(clients, journee):
+    """S122 (p. 140 et 141) : bilan, hors bilan, compte de résultat et états annexes selon les modèles du PCCI (chap. 14) ; S123 (p. 142) : les onze
+    indicateurs de l'Instr. BCC 004. Écritures définitives seulement ; le bilan est équilibré ; le tableau de flux retombe sur les liquidités."""
+    compta, caisse = clients["compta"], clients["caisse"]
+    od = next(j["id"] for j in compta.get(f"{OC}/contexte", **H).json()["journaux"] if j["code"] == "OD")
+    base = {"journalId": od, "periode": "11/2026", "jour": 5, "libelle": "Loyer du siège"}
+    e = None
+    for compte, sens, m in (("640", "debit", 300000), ("461", "credit", 300000)):
+        e = compta.post("/api/comptabilite/ecritures/lignes", {**base, "compte": compte, sens: m}, **H).json()
+    viser_valider(clients, e["id"])
+    EF, q = "/api/comptabilite/etats-financiers", {"du": "2026-01-01", "au": "2026-11-05", "exercice": 2026}
+    ctx = compta.get(f"{EF}/contexte", **H).json()
+    assert [a["code"] for a in ctx["annexes"]] == ["emplois", "flux", "credits", "depots", "avoirs", "monnaies", "emprunts"] and ctx["typesBilan"][0]["libelle"] == "Version développée"
+    avant = compta.get(f"{EF}/bilan", q, **H).json()
+    comptabiliser_journee(clients, journee)
+    b = compta.get(f"{EF}/bilan", q, **H).json()
+    assert b["equilibre"] and b["totalActif"]["n"] == b["totalPassif"]["n"] > 0 and b["nonRattaches"] == [], (b["totalActif"], b["totalPassif"], b["nonRattaches"])
+    assert [x["code"] for x in b["actif"]] == [str(i) for i in range(1, 9)] and [x["code"] for x in b["passif"]] == [str(i) for i in range(1, 15)]
+    autres = lambda x: next(y for y in x["passif"] if y["libelle"] == "Autres passifs")
+    assert {"compte": "461", "intitule": "Créditeurs divers", "n": 300000, "n1": 0} in autres(b)["comptes"]
+    assert autres(b)["n"] - autres(avant)["n"] == 300000                                         # la journée pas encore comptabilisée ne comptait pas (T13)
+    r = compta.get(f"{EF}/resultat", {**q, "sansVidage": True}, **H).json()
+    libelles = [x["libelle"] for x in r["lignes"]]
+    assert libelles[8] == "Produit Net Financier" and libelles[-1] == "Résultat net de l'exercice" and len(libelles) == 25
+    charges = next(x for x in r["lignes"] if x["libelle"] == "Charges générales d'exploitation")
+    assert charges["n"] >= 300000 and {"compte": "640", "n": 300000} in [{"compte": c["compte"], "n": c["n"]} for c in charges["comptes"]]
+    net = r["lignes"][-1]["n"]
+    formation = next((c["n"] for c in b["passif"][-1]["comptes"] if c["intitule"].startswith("Résultat en formation")), 0)
+    assert net == formation and r["nonRattaches"] == []
+    pnf, rbe, rcai = r["lignes"][8]["n"], r["lignes"][14]["n"], r["lignes"][19]["n"]
+    signe = lambda x: x["n"] if x["signe"] == "+" else -x["n"]
+    assert pnf == sum(signe(x) for x in r["lignes"][:8]) and rbe == pnf + sum(signe(x) for x in r["lignes"][9:14]) and rcai == rbe + sum(signe(x) for x in r["lignes"][15:19])
+    h = compta.get(f"{EF}/hors-bilan", q, **H).json()
+    assert [x["code"] for x in h["postes"]] == ["00", "01", "04", "06"] and [l["libelle"] for l in h["postes"][0]["lignes"]] == ["Engagements de financement", "Engagements de garanties"]
+    fl = compta.get(f"{EF}/annexe", {**q, "annexe": "flux"}, **H).json()
+    assert fl["controle"] and fl["lignes"][0]["titre"] and fl["lignes"][-1]["libelle"].startswith("LIQUIDITES ET EQUIVALENTS")
+    assert fl["lignes"][-1]["n"] == sum(x["n"] for x in b["actif"][0]["comptes"] if x["compte"].startswith(("56", "57", "59"))) - sum(
+        x["n"] for x in b["passif"][0]["comptes"] if x["compte"].startswith(("56", "59")))
+    em = compta.get(f"{EF}/annexe", {**q, "annexe": "emplois"}, **H).json()
+    assert em["emplois"] == em["ressources"] and len(em["lignes"]) == 22
+    dep = compta.get(f"{EF}/annexe", {**q, "annexe": "depots"}, **H).json()
+    assert dep["n"] == sum(x["n"] for x in b["passif"][1]["comptes"]) - sum(x["n"] for x in b["actif"][1]["comptes"] if x["compte"][:2] in ("33", "34", "35", "36", "37"))
+    mo = compta.get(f"{EF}/annexe", {**q, "annexe": "monnaies"}, **H).json()
+    assert "CDF" in [x["devise"] for x in mo["lignes"]] and sum(x["positionCdf"] for x in mo["lignes"]) == formation + sum(
+        c["n"] for c in b["passif"][-2]["comptes"] if not c["compte"])                         # avoirs moins engagements : le résultat pas encore viré
+    assert "Annexe" in compta.get(f"{EF}/annexe", q, **H).json()["message"]
+    assert "exercice 2026" in compta.get(f"{EF}/bilan", {**q, "du": "2025-12-01"}, **H).json()["message"]
+    assert caisse.get(f"{EF}/bilan", q, **H).status_code == 403
+    ind = compta.get("/api/comptabilite/indicateurs-financiers", {"exercice": 2026, "indicateur": "mensuel", "mois": 11}, **H).json()
+    assert (ind["du"], ind["au"], len(ind["lignes"])) == ("2026-11-01", "2026-11-30", 11) and ind["lignes"][0]["v"][1] == "Portefeuille à Risque"
+    assert compta.get("/api/comptabilite/indicateurs-financiers", {"exercice": 2026, "indicateur": "annuel"}, **H).json()["du"] == "2026-01-01"
+    assert "Mois" in compta.get("/api/comptabilite/indicateurs-financiers", {"exercice": 2026}, **H).json()["message"]

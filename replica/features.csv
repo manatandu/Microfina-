@@ -105,22 +105,22 @@ Engagement par signature,crédit,should,yes,yes,"S100 | Construit : bénéficiai
 Rapports crédit dont exigibles et indicateurs,crédit,must,yes,yes,"S101 | Huit rapports en onglets : journal, rapports de base, multicritère, synthèse de la balance âgée, taux de remboursements, encours prévisionnel, exigibles, indicateur de gestion (onze ratios et normes de l'Instr. BCC 004) ; registre S101-1 à S101-10, CR-13, CR-26."
 Plan des comptes et modèle à positions,comptabilité,must,yes,yes,"S102 ; manuel p. 122, 123, 145 à 147, 156 | Construit le 12/11/2026 : PCCI complet chargé (604 comptes, T20) ; Création (formulaire Plan général : Parent, Numero, Libelle, Statut, Nature, options ; Liste des Comptes d'utilisation ; Modifier, Supprimer), Consultation (arbre, recherche par N°compte, Exporter vers Excel, Charger comptes), Modèle de plan comptable (niveaux du PCCI en lecture). Comptes du PCCI non modifiables, comptes divisionnaires de l'institution (PCCI § 9). Concordance non reprise (un seul plan)."
 Plan des tiers,comptabilité,must,yes,yes,"S103 | Liste des tiers de la capture, formulaire en trois cadres d'après le texte (registre S103-1 à S103-3)."
-Taxes et déclaration,comptabilité,should,yes,no,S104 S108
+Taxes et déclaration,comptabilité,should,yes,yes,S104 S108
 Déblocage sur compte d'épargne,comptabilité,must,yes,yes,"S105 | Capture p. 124 et 157 : le net du prêt est porté au compte d'épargne du client ; Prélever les frais, Echéancier, Contrat de prêt, Reconnaissance de dette (registre S105-1 à S105-4)."
 Remboursement par prélèvement sur l'épargne,comptabilité,must,yes,yes,"S106 ; virement interne gratuit (Instr. BCC 37) | Captures p. 125 et 157 : Compte Client, Solde, répartition, Imprimer, Enregistrer ; prélèvement dans la limite du disponible, sans frais (registre S106-1 à S106-4)."
-Factures fournisseurs bons de commande règlements,comptabilité,should,yes,no,S107
+Factures fournisseurs bons de commande règlements,comptabilité,should,yes,yes,S107
 Saisie d'écritures,comptabilité,must,yes,yes,"S109 ; suppression avant le visa seulement ; écriture validée corrigée par écriture inverse (PCCI § 3.3 et 3.4 ; constat C20) | Captures p. 129 : choix du journal, lignes ajoutées une à une, visa, validation, comptabilisation (registre S109-1 à S109-8)."
-Rapprochement bancaire et historique,comptabilité,must,yes,no,S110 S112
+Rapprochement bancaire et historique,comptabilité,must,yes,yes,S110 S112
 Comptabilisation de la journée,comptabilité,must,yes,yes,"S111 ; principe P1 et P2 de ARCHITECTURE.md ; « la comptabilisation ou clôture des journées » (manuel, Comptabilité) | Provisoire depuis le 11/11/2026 : l'écran porte la fermeture de journée retirée de S12 (contrôles et bouton Fermer la journée). À réaligner sur le manuel : brouillard des opérations de la journée, bouton Comptabiliser."
-Visa et validation comptables dont retrait au-delà du plafond,comptabilité,must,yes,partial,S113 S114
+Visa et validation comptables dont retrait au-delà du plafond,comptabilité,must,yes,yes,S113 S114
 Journaux comptables,comptabilité,must,yes,yes,S115 ; livre-journal grand livre balance livre d'inventaire (PCCI § 3.3)
 Virement de compte à compte et opérations diverses,comptabilité,must,yes,yes,S116 ; virement interne gratuit (Instr. BCC 37)
 Domiciliation de salaire,comptabilité,must,yes,partial,S117 ; gratuite (Instr. BCC 37)
 Virement des salaires et prélèvement automatique,comptabilité,should,yes,partial,S117 ; signalés non fonctionnels par le manuel
-Contrôle écart gestion et comptabilité,comptabilité,skip,yes,skip,S118 ; inutile par construction (ARCHITECTURE.md P1)
-Contrôle trésorerie et rapport des annulations,comptabilité,must,yes,no,S118
-État des revenus,comptabilité,should,yes,no,S118
-Lettrage,comptabilité,must,yes,no,S119
+Contrôle écart gestion et comptabilité,comptabilité,skip,yes,yes,S118 ; inutile par construction (ARCHITECTURE.md P1)
+Contrôle trésorerie et rapport des annulations,comptabilité,must,yes,yes,S118
+État des revenus,comptabilité,should,yes,yes,S118
+Lettrage,comptabilité,must,yes,yes,S119
 Grand livre et balance général et analytique,comptabilité,must,yes,yes,"S120 S121 | Grand livre et balance des captures, généraux et analytiques, sur les écritures définitives, en CDF (registre S120-1 à S120-5, S121-1 à S121-4, T13)."
 Bilan hors bilan résultat annexes,comptabilité,must,yes,no,S122 ; états du PCCI ; tableau des flux de trésorerie et états de l'Instr. BCC 009 à ajouter (constats U23 C11)
 Indicateurs financiers,comptabilité,must,yes,no,S123 ; formules de l'annexe de l'Instr. BCC 004

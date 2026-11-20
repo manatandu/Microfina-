@@ -367,7 +367,7 @@ Lecture de la colonne « Manuel » : c'est le niveau le plus faible parmi les é
 
 <!-- annexe:debut (écrit par replica/couverture.py, ne pas modifier à la main) -->
 
-146 travaux, dont 6 non repris. Sur les 140 à construire : 85 sont montrés en entier par le manuel, 42 en partie, 6 par le texte seul, 7 par leur nom seul.
+146 travaux, dont 5 non repris. Sur les 141 à construire : 86 sont montrés en entier par le manuel, 42 en partie, 6 par le texte seul, 7 par leur nom seul.
 
 ### Administration (11)
 
@@ -526,7 +526,7 @@ Lecture de la colonne « Manuel » : c'est le niveau le plus faible parmi les é
 | 116 | Virement de compte à compte et opérations diverses | S116 | Montré en entier | 8 Comptabilité | Rien : à recopier |
 | 117 | Domiciliation de salaire | S117 | Montré en partie | 8 Comptabilité | S117 : salaire du personnel et prélèvement automatique : en panne dans le manuel |
 | 118 | Virement des salaires et prélèvement automatique | S117 | Montré en partie | 8 Comptabilité | S117 : salaire du personnel et prélèvement automatique : en panne dans le manuel |
-| 119 | Contrôle écart gestion et comptabilité | S118 | Montré en entier | Non repris | Rien : à recopier |
+| 119 | Contrôle écart gestion et comptabilité | S118 | Montré en entier | 8 Comptabilité | Rien : à recopier |
 | 120 | Contrôle trésorerie et rapport des annulations | S142 S118 S143 | Nom seul | 8 Comptabilité | S143 : tout l'écran |
 | 121 | État des revenus | S118 | Montré en entier | 8 Comptabilité | Rien : à recopier |
 | 122 | Lettrage | S119 | Montré en entier | 8 Comptabilité | Rien : à recopier |

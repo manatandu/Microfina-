@@ -170,7 +170,8 @@ export interface Ecriture {
   saisiPar: number;
   validePar: number;
   lignes: readonly Ligne[];
-  type?: "vidage";   // écriture de clôture qui solde les comptes de gestion (S127) ; les états « sans vidage » l'écartent
+  type?: "vidage" | "contre_passation";   // vidage : écriture de clôture qui solde les comptes de gestion (S127), écartée des états « sans vidage »
+  contrePasseId?: number;   // écriture d'origine qu'une annulation contre-passe (PCCI § 3.3 ; S142)
 }
 
 export type TypeOperation = "depot" | "retrait" | "adhesion" | "achat_parts" | "retrait_parts" | "ed_encaissement" | "ed_decaissement" | "transfert_sortie" | "transfert_entree" | "versement_banque" | "deblocage_credit" | "remboursement_credit";
@@ -313,7 +314,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 76;
+  version: 77;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)
@@ -397,6 +398,7 @@ export interface Etat {
   consentements: { id: number; tiersId: number; code: string; dateDebut: string; dateFin: string; commentaire: string }[];   // S50
   operationsBanque: OperationBanque[];   // S52
   operationsCompta: OperationCompta[];   // S109, S116, S117
+  rapprochements: Rapprochement[]; lettrages: Lettrage[]; remboursementsAnnules: RemboursementAnnule[];   // S110, S119, S142
   commandesFournisseurs: CommandeFournisseur[]; facturesFournisseurs: FactureFournisseur[]; reglementsFournisseurs: ReglementFournisseur[];   // S107
   chequesClients: ChequeClient[];   // S59
   chequiers: Chequier[];   // S60
@@ -509,7 +511,13 @@ export interface CreditPret {
 export interface RemboursementCredit {
   id: number; creditId: number; ecritureId: number; operationId: number | null; date: string; montant: number; repartition: Record<string, number>;
   modifie: boolean; mandataire: string; mode: "caisse" | "banque" | "compensation" | "epargne"; compteBancaireId: number | null; saisiPar: number;
+  echeancesAvant?: { rang: number; capital: number; interet: number }[];   // échéances d'avant un remboursement anticipé : elles reviennent si le règlement est annulé (S142)
 }
+/** S110 : rapprochement bancaire enregistré (historique S112) ; S119 : lettrage ; S142 : règlement de crédit annulé */
+export interface Rapprochement { id: number; compteBancaireId: number; du: string; au: string; soldeDebut: number; soldeReleve: number; soldeComptable: number; suspensDebit: number;
+  suspensCredit: number; ecart: number; preparePar: number; date: string; lignes: string[] }
+export interface Lettrage { id: number; compte: string; code: string; montant: number; lettrePar: number; lignes: string[] }
+export interface RemboursementAnnule extends RemboursementCredit { ecritureAnnulation: number; annulePar: number; annuleLe: string }
 
 /** S94 : caution ou dépôt de garantie d'un crédit (registre S94, CR-21) */
 export interface GarantieCredit {

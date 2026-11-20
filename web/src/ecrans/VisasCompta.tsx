@@ -9,7 +9,7 @@ import { fr } from "../lib/dates";
 import { decimal, montant, type Devise } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee } from "../composants";
 import VisaRetraitPlafond from "./Visas";
-import { BonCommande } from "./Factures";
+import { BonCommande, FicheImputation } from "./Factures";
 
 type L = LigneOperationCompta;
 type Etape = "visa" | "validation";
@@ -87,13 +87,14 @@ function ListeFactures({ etape, poser }: { etape: Etape; poser: (b: Boite | null
 function ListeReglements({ etape, poser }: { etape: Etape; poser: (b: Boite | null) => void }) {
   const [relu, setRelu] = useState(0);
   const [infos, setInfos] = useState<LigneReglementF | null>(null);
+  const [fiche, setFiche] = useState<number | null>(null);
   const [c, setC] = useState({ cheque: "", banque: "", compte: "", date: "" });
   const { donnees } = useDonnees(async () => ({ lignes: await api.facturesFournisseurs.visas(etape, "reglement") as LigneReglementF[], ctx: await api.facturesFournisseurs.contexte() }), [etape, relu]);
   if (!donnees) return <Chargement />;
   const { lignes, ctx } = donnees, bouton = etape === "visa" ? "Visa" : "Valider";
   const faire = async (x: LigneReglementF, d: Record<string, unknown>) => {
     try { if (etape === "visa") await api.facturesFournisseurs.viser("reglement", x.id); else await api.facturesFournisseurs.valider("reglement", x.id, d);
-      setInfos(null); setRelu((v) => v + 1); poser({ type: "succes", message: "Enregistré avec succès !" }); }
+      setInfos(null); setRelu((v) => v + 1); poser({ type: "succes", message: "Enregistré avec succès !" }); if (etape === "validation") setFiche(x.id); }
     catch (e) { poser({ type: "erreur", message: message(e) }); }
   };
   const agir = (x: LigneReglementF) => { if (etape === "validation" && x.mode !== "ESPECE") { setC({ cheque: "", banque: "", compte: "", date: "" }); setInfos(x); return; }
@@ -108,6 +109,7 @@ function ListeReglements({ etape, poser }: { etape: Etape; poser: (b: Boite | nu
           <td>{x.reference}</td><td>{x.fournisseur}</td><td className="num chiffres">{nb(x.ht)}</td><td className="num chiffres">{nb(x.totalCharges)}</td><td className="num chiffres">{nb(x.aPayer)}</td>
           <td>{x.modeLibelle}</td><td className="chiffres">{fr(x.date)}</td></tr>)}</tbody>
     </table>)}</Paginee>
+    <Fiche titre="Fiche d'imputation" ouverte={fiche !== null} fermer={() => setFiche(null)}>{fiche !== null && <FicheImputation id={fiche} fermer={() => setFiche(null)} />}</Fiche>
     <Fiche titre="Infos Chèque" ouverte={!!infos} fermer={() => setInfos(null)}>
       {infos && <div className="pile formulaire">
         <Champ libelle={infos.mode === "CHEQUE" ? "N° Chèque: *" : "N° Chèque:"}>{(p) => <input {...p} className="saisie code" autoComplete="off" disabled={infos.mode !== "CHEQUE"} value={c.cheque} onChange={(e) => setC({ ...c, cheque: e.target.value })} />}</Champ>

@@ -1519,7 +1519,8 @@ def schema_valide(u: dict, evenement: str) -> int:
     return s
 
 
-def poster(u: dict, *, journal: str, journee_id: int, libelle: str, piece: str, evenement: str, cle: str, valide_par: int, lignes_ecr: list[dict]) -> int:
+def poster(u: dict, *, journal: str, journee_id: int, libelle: str, piece: str, evenement: str, cle: str, valide_par: int, lignes_ecr: list[dict],
+           contre_passe: int | None = None) -> int:
     """Écrit au grand livre. L'équilibre, la période et l'irréversibilité sont aussi garantis par PostgreSQL (replica/schema.sql)."""
     j = une("select * from journee_comptable where id = %s", (journee_id,))
     if not j or j["statut"] != "ouverte":
@@ -1531,9 +1532,11 @@ def poster(u: dict, *, journal: str, journee_id: int, libelle: str, piece: str, 
         raise ErreurMetier(f"Le journal {journal} n'est pas actif (Comptabilité > Journal).")      # registre S30-2
     pid = valeur("insert into piece (institution_id, numero, type, date_piece) values (%s, %s, 'bordereau', %s) returning id", (u["institution_id"], piece, j["date_comptable"]))
     numero = f"{journal}-{j['date_comptable'].year}-{valeur('select nextval(%s)', ('numero_ecriture',)):06d}"
-    eid = valeur("""insert into ecriture (institution_id, numero, journal_id, journee_id, date_valeur, libelle, piece_id, evenement_id, schema_id, saisi_par, valide_par)
-                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
-                 (u["institution_id"], numero, jid, journee_id, j["date_comptable"], libelle, pid, cle, schema_valide(u, evenement), u["id"], valide_par))
+    eid = valeur("""insert into ecriture (institution_id, numero, journal_id, journee_id, date_valeur, libelle, piece_id, evenement_id, schema_id, saisi_par, valide_par,
+                                          contre_passe_id, type)
+                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
+                 (u["institution_id"], numero, jid, journee_id, j["date_comptable"], libelle, pid, cle, schema_valide(u, evenement), u["id"], valide_par, contre_passe,
+                  "contre_passation" if contre_passe else "normale"))     # PCCI § 3.3 : correction par inscription en négatif, liée à l'écriture d'origine
     for rang, l in enumerate(lignes_ecr, start=1):
         # contre-valeur au cours du jour de la devise de la ligne (PCCI § 7.1)
         cdf = l["montant"] if l["devise"] == "CDF" else round(l["montant"] * cours(l["devise"], j["date_comptable"]))   # règle d'arrondi à confirmer
