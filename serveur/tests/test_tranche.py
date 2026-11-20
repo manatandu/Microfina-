@@ -1708,6 +1708,41 @@ def test_etat_credit(clients, journee):
     assert caisse.get("/api/credit/etat", {"du": "2026-11-01", "au": "2026-11-05"}, **H).status_code == 403
 
 
+def test_garanties(clients, journee):
+    """S94 (p. 116 à 118) : caution bloquée sur le compte d'un autre client et suivie en hors bilan (0112/091) ; dépôt de garantie sur le compte du client ;
+    libération partielle puis totale ; rapport (registre S94-1 à S94-7, CR-21)"""
+    agent = clients["agent"]
+    cid = credit_debloque(clients, journee)
+    def refus(route, corps):
+        r = agent.post(route, corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    mw, k2 = T("0412-000319"), C("0412-000319-02")
+    disp = next(x for x in agent.get(f"/api/tiers/{mw}/comptes", **H).json() if x["id"] == k2)["disponible"]
+    base = {"type": "caution", "cautionId": mw, "compteId": k2, "montant": 1000000}
+    assert "autre client" in refus(f"/api/credit/garanties/{cid}/ajout", {**base, "cautionId": T("0412-000318"), "compteId": C("0412-000318-02")})
+    assert "devise du crédit" in refus(f"/api/credit/garanties/{cid}/ajout", {**base, "compteId": C("0412-000319-01")})
+    assert "disponible" in refus(f"/api/credit/garanties/{cid}/ajout", {**base, "montant": disp + 1})
+    r = agent.post(f"/api/credit/garanties/{cid}/ajout", base, **H)
+    assert r.status_code == 200, r.content
+    s = r.json()
+    assert (s["total"], s["garanties"][0]["reste"], s["piece"] != "") == (1000000, 1000000, True)
+    assert next(x for x in agent.get(f"/api/tiers/{mw}/comptes", **H).json() if x["id"] == k2)["disponible"] == disp - 1000000
+    assert ident("select sum(case when l.sens = 'C' then l.montant_devise else -l.montant_devise end) from ligne_ecriture l join compte c on c.id = l.compte_id where c.numero = '0112'") == 1000000
+    gid = s["garanties"][0]["id"]
+    assert "au plus ce qui reste" in refus(f"/api/credit/garanties/liberation/{gid}", {"montant": 1000001})
+    s = agent.post(f"/api/credit/garanties/liberation/{gid}", {"montant": 400000}, **H).json()
+    assert (s["totalLibere"], s["garanties"][0]["reste"]) == (400000, 600000)
+    assert next(x for x in agent.get(f"/api/tiers/{mw}/comptes", **H).json() if x["id"] == k2)["disponible"] == disp - 600000
+    agent.post(f"/api/credit/garanties/liberation/{gid}", {"montant": 600000}, **H)
+    assert ident("select count(*) from blocage where garantie_de = %s and compte_id = %s and fin is null", (cid, k2)) == 0
+    assert ident("select sum(case when l.sens = 'C' then l.montant_devise else -l.montant_devise end) from ligne_ecriture l join compte c on c.id = l.compte_id where c.numero = '0112'") == 0
+    d = agent.post(f"/api/credit/garanties/{cid}/ajout", {"type": "depot_garantie", "compteId": C("0412-000318-02"), "montant": 500000}, **H).json()
+    assert (d["calcule"], d["total"], d["piece"]) == (10000000, 500000, "")       # calculé : épargne obligatoire du crédit (S94-3)
+    l = agent.get("/api/credit/garanties-rapport", {"type": "caution", "du": "2026-11-01", "au": "2026-11-05"}, **H).json()
+    assert (l[0]["numeroMembre"], l[0]["numeroCredit"], l[0]["ajoute"], l[0]["libere"], l[0]["reste"]) == ("0412-000319", "0412/L001/00001", 1000000, 1000000, 0)
+    assert balance_equilibree(agent)
+    assert clients["caisse"].post(f"/api/credit/garanties/{cid}/ajout", base, **H).status_code == 403
+
+
 def test_produit_credit(clients):
     """S23 (p. 37 et 38) : Information de base de la capture ; méthode dégressive (Instr. BCC 38, art. 11) ; garanties, assurance, frais
     (Instr. BCC 38 art. 6, Instr. BCC 40 art. 8) ; pénalité d'anticipation au plus 50 % (Instr. BCC 38, art. 14) ; registre S23-1 à S23-7"""

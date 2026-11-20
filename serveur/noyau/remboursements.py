@@ -269,7 +269,8 @@ def enregistrer(u, c: dict, d: date, montant: int, rep: dict, contrepartie: dict
 def solder(u, c: dict, d: date):
     """Crédit soldé : garanties sur l'épargne libérées (CR-6, Instr. BCC 38, art. 9) ; remboursement total à déclarer (CR-10)"""
     executer("update credit set statut = 'solde' where id = %s", (c["id"],))
-    executer("update blocage set fin = %s, leve_par = %s, motif_levee = %s where garantie_de = %s and fin is null",
+    executer("""update blocage set fin = %s, leve_par = %s, motif_levee = %s where garantie_de = %s and fin is null
+                and not exists (select 1 from garantie g where g.blocage_id = blocage.id)""",          # cautions et dépôts : par S94 seulement (CR-21)
              (d, u["id"], f"Crédit {c['numero']} remboursé", c["id"]))
     executer("insert into declaration_centrale (institution_id, credit_id, evenement, survenu_le) values (%s, %s, 'remboursement_total', %s)",
              (u["institution_id"], c["id"], d))

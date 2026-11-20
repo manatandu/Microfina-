@@ -720,6 +720,14 @@ const OUT = process.argv[2];
   // État de crédit (S93, p. 115 et 116), par l'agent de crédit : situation des crédits approuvés sur la période
   await login('Bijou Kasongo'); await aller('/credit/s93'); await p.getByRole('button', { name: 'Exécuter' }).click();
   await p.getByRole('cell', { name: '0412/L001/00001', exact: true }).waitFor(); await p.getByRole('cell', { name: '900 000,00 CDF' }).waitFor(); await etape('11f-etat-credit');
+  // Caution et nantissement (S94, p. 116 à 118) : Mwamba se porte caution du crédit de Kalala sur son compte en CDF (CR-21 ; PCCI, hors bilan 0112)
+  await aller('/credit/s94?page=ajout_caution'); await p.getByRole('heading', { name: 'Ajout caution' }).waitFor();
+  const cherche = async (bouton, nom) => { await p.getByRole('button', { name: bouton }).click(); const r = p.getByRole('dialog', { name: "Recherche d'un client" });
+    await r.getByLabel('Nom:', { exact: true }).fill(nom); await r.getByRole('row').filter({ hasText: nom }).dblclick(); };
+  await cherche('Rechercher le client du crédit', 'Kalala'); await cherche('Rechercher la caution', 'Mwamba');
+  await p.getByLabel('Compte: *').selectOption({ label: '0412-000319-02' }); await p.getByLabel('Montant caution *').fill('10 000');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByRole('cell', { name: '10 000,00 CDF' }).first().waitFor(); await etape('11g-ajout-caution');
   await login('Esther Ngalula'); await aller('/caisse/s74?op=depot');
   await p.getByRole('tab', { name: 'Retrait en espèce' }).click(); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-01' });
   // Bouton Detail (registre S74-1) : relevé du compte en lecture seule ; masqué si le guichet n'a pas « Voir solde client » (S10-1)

@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**578 décisions.** Solidité : 243 fortes (le manuel ou un texte répond), 285 moyennes (déduites d'un écran voisin ou d'une donnée), 50 faibles (notre choix, faute de mieux). Dans le code : 549 déjà en place, 25 à appliquer.
+**586 décisions.** Solidité : 249 fortes (le manuel ou un texte répond), 286 moyennes (déduites d'un écran voisin ou d'une donnée), 51 faibles (notre choix, faute de mieux). Dans le code : 557 déjà en place, 25 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1261,7 +1261,13 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| CR-21 | Garanties sur l'épargne | Caution : le montant est bloqué sur le compte de la caution (blocage lié au crédit, S71) ; dépôt de garantie : bloqué sur le compte du client. Libération par S94 seulement. En cas de défaut, le dépôt nanti se compense de plein droit avec la dette, après déduction des frais. Cautions reçues suivies en hors bilan (engagements reçus, comptes 01) | Texte réglementaire : Loi 11/020, art. 43 et 48 ; Instr. BCC 38, art. 9 ; PCCI, comptes hors bilan 01 | forte | à appliquer |
+| CR-21 | Garanties sur l'épargne | Caution : le montant est bloqué sur le compte de la caution (blocage lié au crédit, S71) ; dépôt de garantie : bloqué sur le compte du client. Libération par S94 seulement. En cas de défaut, le dépôt nanti se compense de plein droit avec la dette, après déduction des frais. Cautions reçues suivies en hors bilan (engagements reçus, comptes 01). Compensation en cas de défaut : CR-21b | Texte réglementaire : Loi 11/020, art. 43 et 48 ; Instr. BCC 38, art. 9 ; PCCI, comptes hors bilan 01 | forte | en place |
+
+## S99 Déclassement ; S94
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| CR-21b | Compensation en cas de défaut | Le dépôt nanti se compense de plein droit avec la dette, après déduction des frais : à construire avec le déclassement et le recouvrement (S99) | Texte réglementaire : Loi 11/020, art. 43 et 48 ; CR-21 | forte | à appliquer |
 
 ## S100 Engagement par signature
 
@@ -1359,6 +1365,18 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S93-3 | Période et date fixe | Sur une période : crédits approuvés entre les deux dates, situation à la date fin. A une date fixe : crédits approuvés au plus tard ce jour, situation à ce jour (remboursements jusqu'à cette date). La date d'approbation est celle de la journée ouverte | Manuel : Capture p. 116 (« Période(Date d'approbation) ») ; texte p. 115 | moyenne | en place |
 | S93-4 | Niveau de validation, archivés | Niveau : crédits qui ont l'avis « accepté » de ce niveau (S90). Crédits archivés Oui : s'y ajoutent les crédits soldés, refusés et passés en perte | Écran voisin : S90 ; S92-2 | moyenne | en place |
 
+## S94 Caution et nantissement
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S94-1 | Écrans | Quatre fenêtres des captures p. 116 à 118 (Ajout caution, Libération de caution, Ajout de dépôt de garantie, Libération de nantissement) et le Rapport à deux onglets (Nantissement, Caution), en onglets d'un même écran comme S72 ; Numéro de pièce, Date opération*, Infos crédit, Enregistrer, Effacer, liste | Manuel : Captures p. 116 à 118 ; texte p. 116 à 118 | forte | en place |
+| S94-2 | Ajout | Crédit en cours (mis en place, visé ou débloqué) du client choisi ; caution : un autre client que l'emprunteur, un de ses comptes ouverts ; dépôt de garantie : un compte du client ; compte dans la devise du crédit ; montant au plus le disponible ; le montant est bloqué sur le compte, lié au crédit (S71) | Texte réglementaire : Texte p. 116 et 117 ; CR-21 ; loi 11/020, art. 43 et 48 ; Instr. BCC 38, art. 9 | forte | en place |
+| S94-3 | Garantie calculée | « Dépôt de garantie calculé » : l'épargne obligatoire du crédit (S89). « Caution calculée » : 0, le produit (S23) n'a pas de paramètre de caution | Écran voisin : S23-5 ; S89-5 ; capture p. 116 et 117 | faible | en place |
+| S94-4 | Hors bilan | Caution reçue : crédit de 0112 « Garanties reçues de la clientèle » par le débit de 091 « Compte général des engagements reçus », journal OD ; extournée à la libération. Le dépôt de garantie, déjà au bilan, n'a pas d'écriture : pièce vide | Texte réglementaire : PCCI, comptes hors bilan 01 (« crédité du sous-compte 091 … à la réception de l'engagement ; débité … lors de l'extinction de la garantie ») et 09 | forte | en place |
+| S94-5 | Libération | Libération partielle ou totale, au plus ce qui reste engagé ; le blocage baisse d'autant ; caution : choisir la ligne de la liste (boutons Tout, Non libéré) ; nantissement : choisir le compte. Le solde d'un crédit (S76) ne lève pas ces blocages : S94 seulement | Texte réglementaire : Captures p. 116 et 118 ; CR-21 ; S71-5 | forte | en place |
+| S94-6 | Rapport | Du … au … sur la date d'ajout ; colonnes N°Membre (de la caution, ou du client), N°Compte, N°credit, Date, Client, montant ajouté, Libéré et le restant (dernière colonne coupée sur les captures) | Manuel : Captures p. 118 | moyenne | en place |
+| S94-7 | Retrait d'un membre caution | Une caution d'un prêt en cours ne peut pas démissionner (CR-23), aussi en mode local | Texte réglementaire : Loi 002/2002, art. 24 ; CR-23 | forte | en place |
+
 ## Les décisions faibles, à regarder en premier
 
 | N° | Écran | Question | Réponse retenue |
@@ -1413,3 +1431,4 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S90-3 | S90 Visas : responsable crédit, comité, service financier | Compte de la grille | Le compte d'épargne obligatoire du crédit, sinon le premier compte ouvert du client |
 | S90-5 | S90 Visas : responsable crédit, comité, service financier | Procès-verbal du comité | N° du procès-verbal du comité, facultatif, gardé avec le visa |
 | S92-2 | S92 Crédits validés non débloqués | Crédits archivés | Case cochée : les crédits validés déjà débloqués (ou soldés) s'y ajoutent |
+| S94-3 | S94 Caution et nantissement | Garantie calculée | « Dépôt de garantie calculé » : l'épargne obligatoire du crédit (S89). « Caution calculée » : 0, le produit (S23) n'a pas de paramètre de caution |

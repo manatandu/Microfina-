@@ -226,6 +226,12 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "facture.supprimerType": [
 "S36"
 ],
+"garanties.ajouter": [
+"S94"
+],
+"garanties.liberer": [
+"S94"
+],
 "groupes.affecter": [
 "S44"
 ],

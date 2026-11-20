@@ -109,7 +109,7 @@ S90,"Visas : responsable crédit, comité, service financier",114 et 115 (trois 
 S91,Historique suivi,115,A,rapport,,,7 Crédit,oui
 S92,Crédits validés non débloqués,115,A,rapport,,,7 Crédit,oui
 S93,État de crédit,"115 (texte), 116",A,rapport,,,7 Crédit,oui
-S94,"Caution et nantissement : ajout, libération, rapports",116 à 118 (six captures),A,liste,,,7 Crédit,non
+S94,"Caution et nantissement : ajout, libération, rapports",116 à 118 (six captures),A,liste,,,7 Crédit,oui
 S95,Consulter prêt,"118 (texte), 119",B,consultation,"Plan, Réel, Mémo",A:S76 Situation (p. 88),7 Crédit,non
 S96,Affectation de dossier,119,A,composition,,,7 Crédit,non
 S97,"Liste rouge : ajouter, retirer",119 et 120 (deux captures),A,liste,,,7 Crédit,non

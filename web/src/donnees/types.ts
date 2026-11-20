@@ -282,7 +282,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 65;
+  version: 66;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)
@@ -319,6 +319,8 @@ export interface Etat {
   credits: CreditPret[];   // S89 et suivants
   remboursementsCredit: RemboursementCredit[];   // S76, S55
   memosCredit: { id: number; creditId: number; date: string; texte: string; saisiPar: number }[];
+  garanties: GarantieCredit[];   // S94
+  liberationsGarantie: { id: number; garantieId: number; montant: number; date: string; ecritureId: number | null; par: number }[];
   visasCredit: VisaCredit[];   // S90
   declarationsCentrale: { id: number; creditId: number; evenement: "octroi" | "modification" | "remboursement_total" | "radiation"; survenuLe: string; declareLe: string;
     reference: string; declarePar: number | null }[];   // registre CR-10
@@ -461,6 +463,12 @@ export interface CreditPret {
 export interface RemboursementCredit {
   id: number; creditId: number; ecritureId: number; operationId: number | null; date: string; montant: number; repartition: Record<string, number>;
   modifie: boolean; mandataire: string; mode: "caisse" | "banque"; compteBancaireId: number | null; saisiPar: number;
+}
+
+/** S94 : caution ou dépôt de garantie d'un crédit (registre S94, CR-21) */
+export interface GarantieCredit {
+  id: number; creditId: number; type: "caution" | "depot_garantie"; cautionId: number | null; compteId: number; montant: number; libere: number;
+  blocageId: number | null; ajouteLe: string; ajoutePar: number; ecritureId: number | null; libereeLe: string;
 }
 
 /** S90 : visa d'un niveau (registre S90, CR-4, CR-5) */

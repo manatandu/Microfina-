@@ -2183,6 +2183,33 @@ describe("journée de guichet", () => {
     await expect(api.etatCredits.situation({ du: "2026-11-06", au: "2026-11-05" })).rejects.toThrow("Date début");
   });
 
+  it("caution et nantissement (S94, p. 116 à 118) : blocage chez la caution, hors bilan 0112/091, dépôt de garantie, libération partielle et totale, rapport", async () => {
+    const cid = await creditDebloque();
+    await connecter("bkasongo");
+    const E = _etat(), mw = E.tiers.find((t) => t.numero === "0412-000319")!.id, num = (n: string) => E.comptes.find((k) => k.numero === n)!.id;
+    const k2 = num("0412-000319-02"), dispo = async () => (await api.tiers.comptes(mw)).find((x) => x.id === k2)!.disponible;
+    const disp = await dispo(), base = { type: "caution", cautionId: mw, compteId: k2, montant: 1000000 };
+    await expect(api.garanties.ajouter(cid, { ...base, cautionId: 1, compteId: num("0412-000318-02") })).rejects.toThrow("autre client");
+    await expect(api.garanties.ajouter(cid, { ...base, compteId: num("0412-000319-01") })).rejects.toThrow("devise du crédit");
+    await expect(api.garanties.ajouter(cid, { ...base, montant: disp + 1 })).rejects.toThrow("disponible");
+    let s = await api.garanties.ajouter(cid, base);
+    expect([s.total, s.garanties[0]!.reste, s.piece !== ""]).toEqual([1000000, 1000000, true]);   // comme le serveur
+    expect(await dispo()).toBe(disp - 1000000);
+    const hb = () => E.ecritures.flatMap((e) => e.lignes).filter((l) => l.compte === "0112").reduce((t, l) => t + (l.sens === "C" ? l.montant : -l.montant), 0);
+    expect(hb()).toBe(1000000);
+    const gid = s.garanties[0]!.id;
+    await expect(api.garanties.liberer(gid, { montant: 1000001 })).rejects.toThrow("au plus ce qui reste");
+    const r = await api.garanties.liberer(gid, { montant: 400000 });
+    expect(["totalLibere" in r ? r.totalLibere : 0, await dispo()]).toEqual([400000, disp - 600000]);
+    await api.garanties.liberer(gid, { montant: 600000 });
+    expect([E.blocages.filter((b) => b.garantieDe === cid && b.compteId === k2 && !b.fin).length, hb()]).toEqual([0, 0]);
+    s = await api.garanties.ajouter(cid, { type: "depot_garantie", compteId: num("0412-000318-02"), montant: 500000 });
+    expect([s.calcule, s.total, s.piece]).toEqual([10000000, 500000, ""]);
+    const l = await api.garanties.rapport("caution", "2026-11-01", "2026-11-05");
+    expect([l[0]!.numeroMembre, l[0]!.numeroCredit, l[0]!.ajoute, l[0]!.libere, l[0]!.reste]).toEqual(["0412-000319", "0412/L001/00001", 1000000, 1000000, 0]);
+    expect(await soldeCdfGrandLivre()).toBe(0);
+  });
+
   it("produit crédit (S23, p. 37 et 38) : méthode dégressive (Instr. BCC 38 art. 11), bornes, garanties, assurance, frais (Instr. BCC 40 art. 8)", async () => {
     await connecter("jpmukendi");
     const P = { typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: "2,5", tauxDiffere: 2,

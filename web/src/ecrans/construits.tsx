@@ -29,6 +29,7 @@ import MiseEnPlace from "./MiseEnPlace";
 import { EtatCredit, HistoriqueVisas, ValidesNonDebloques, VisasCredit } from "./SuiviCredit";
 import { DeblocageBanque, DeblocageGuichet } from "./DeblocageCredit";
 import { RemboursementBanque, RemboursementGuichet } from "./RemboursementCredit";
+import Garanties from "./Garanties";
 import type { ComponentType } from "react";
 import GuichetDepotRetrait from "./Guichet";
 import Adhesion from "./Adhesion";
@@ -176,6 +177,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S91: HistoriqueVisas,
   S92: ValidesNonDebloques,
   S93: EtatCredit,
+  S94: Garanties,
   S79: BilletageCaisse,
   S80: ValidationBilletage,
   S102: PlanComptes,

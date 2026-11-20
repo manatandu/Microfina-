@@ -95,12 +95,12 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 94,Historique des visas,crédit,must,yes,S91,A,rapport,7 Crédit,,,,,
 95,Crédits validés non débloqués,crédit,must,partial,S92,A,rapport,7 Crédit,,,,,CR-10 Déclarations
 96,État de crédit,crédit,must,yes,S93,A,rapport,7 Crédit,,,,,
-97,Cautions dépôts de garantie nantissements,crédit,must,no,S94,A,liste,7 Crédit,,,,S94,CR-21 Garanties sur l'épargne
+97,Cautions dépôts de garantie nantissements,crédit,must,partial,S94,A,liste,7 Crédit,,,,,CR-21b Compensation en cas de défaut
 98,Consulter un prêt,crédit,must,no,S95,B,consultation,7 Crédit,"S95 : Plan, Réel, Mémo",A:S76 Situation (p. 88),,S95,
 99,Affectation de portefeuille entre gestionnaires,crédit,should,no,S96,A,composition,7 Crédit,,,,S96,
 100,Liste rouge,crédit,should,no,S97,A,liste,7 Crédit,,,,S97,CR-9 Effet
 101,Balance âgée,crédit,must,no,S98,A,traitement,7 Crédit,S98 : résultat,R:Instr. BCC sur le classement,,S98,CR-16 Classement
-102,Déclassement et provisions,crédit,must,no,S99,B,traitement,7 Crédit,S99 : règles,R:Instr. BCC sur le classement et les provisions,,S99,CR-16 Classement ; CR-17 Provisions ; CR-18 Passage en perte (« Radier par anticipation ») ; CR-19 Intérêts non réglés
+102,Déclassement et provisions,crédit,must,no,S99,B,traitement,7 Crédit,S99 : règles,R:Instr. BCC sur le classement et les provisions,,S99,CR-16 Classement ; CR-17 Provisions ; CR-18 Passage en perte (« Radier par anticipation ») ; CR-19 Intérêts non réglés ; CR-21b Compensation en cas de défaut
 103,Engagement par signature,crédit,should,no,S100,A,liste,7 Crédit,S100 : document imprimé,document,,S100,CR-14 Plafonds par emprunteur ; CR-22 Comptabilisation et plafonds
 104,Rapports crédit dont exigibles et indicateurs,crédit,must,no,S101,D,rapport,7 Crédit,"S101 : les huit rapports : Journal, Rapports de base, Multicritère, Synthèse de la balance âgée, Taux de remboursements, Encours prévisionnel, Exigibles, Indicateur de gestion","A:S72, S93 ; R:Instr. BCC sur les indicateurs",,S101,CR-13 Sept rapports sans capture ; CR-26 Ratios
 105,Plan des comptes et modèle à positions,comptabilité,must,partial,S102,A,liste,8 Comptabilité,,R:PCCI,,,"S102-7 Type de suivi ; S102-10 Statut Fermé, Nature Non saisible"

@@ -37,7 +37,7 @@ export function ContratPret({ id, titre, fermer }: { id: number; titre: "Contrat
             à défaut d'abord sur les intérêts (Code civil, livre III, art. 152). Une échéance impayée porte une pénalité de retard de {String(d.penaliteRetard).replace(".", ",")} % par mois, au prorata des jours.</p>
           <p><strong>Article 5 : remboursement anticipé.</strong> L'emprunteur peut rembourser par anticipation, en tout ou en partie. La pénalité est de {String(d.penaliteAnticipation).replace(".", ",")} % des intérêts
             restant dus, sans dépasser 50 % (Instr. BCC 38, art. 14).</p>
-          {d.garanties.length > 0 && <p><strong>Article 6 : garanties.</strong> {d.garanties.map((g) => `${g.type}${g.caution ? ` de ${g.caution}` : ""} : ${montant(g.montant, dv)}`).join(" ; ")}.</p>}
+          {d.garanties.length > 0 && <p><strong>Article 6 : garanties.</strong> {d.garanties.map((g) => `${({ caution: "Caution", depot_garantie: "Dépôt de garantie" } as Record<string, string>)[g.type] ?? g.type}${g.caution ? ` de ${g.caution}` : ""} : ${montant(g.montant, dv)}`).join(" ; ")}.</p>}
         </> : <>
           <p>Je soussigné(e) {emprunteur}, reconnais devoir à {e.nom} la somme de {montant(c.montant, dv)} ({montantEnLettres(c.montant, dv)}), montant du crédit n° {c.numero}
             débloqué le {fr(c.debloqueLe || d.date)}, que je m'engage à rembourser en capital et intérêts, soit {montant(total, dv)}, selon l'échéancier ci-dessous.</p>

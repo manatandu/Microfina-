@@ -473,6 +473,37 @@ def credit_etat(request):
                                       "archives": g.get("archives") == "1"})
 
 
+# ---------- S94 : caution et nantissement (p. 116 à 118) ----------
+@api.get("/credit/garanties/clients/{tid}")
+def garanties_credits(request, tid: int):
+    from . import garanties as g
+    return g.credits(u(request), tid)
+
+
+@api.get("/credit/garanties/{cid}")
+def garanties_situation(request, cid: int, type: str = ""):
+    from . import garanties as g
+    return g.situation(u(request), cid, type)
+
+
+@api.post("/credit/garanties/{cid}/ajout")
+def garanties_ajout(request, cid: int, corps: dict = Body(...)):
+    from . import garanties as g
+    return g.ajouter(u(request), cid, corps)
+
+
+@api.post("/credit/garanties/liberation/{gid}")
+def garanties_liberation(request, gid: int, corps: dict = Body(...)):
+    from . import garanties as g
+    return g.liberer(u(request), gid, corps)
+
+
+@api.get("/credit/garanties-rapport")
+def garanties_rapport(request, type: str = "", du: str = "", au: str = ""):
+    from . import garanties as g
+    return g.rapport(u(request), type, du, au)
+
+
 @api.get("/credit/visas/contexte")
 def visas_contexte(request):
     from .services import est_coopec
