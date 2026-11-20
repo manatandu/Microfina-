@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**632 décisions.** Solidité : 268 fortes (le manuel ou un texte répond), 308 moyennes (déduites d'un écran voisin ou d'une donnée), 56 faibles (notre choix, faute de mieux). Dans le code : 610 déjà en place, 19 à appliquer.
+**635 décisions.** Solidité : 270 fortes (le manuel ou un texte répond), 309 moyennes (déduites d'un écran voisin ou d'une donnée), 56 faibles (notre choix, faute de mieux). Dans le code : 615 déjà en place, 17 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1080,6 +1080,14 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | E25-1 | Clôture | Pas un écart : l'Instr. 45 ouvre une option (compte spécial à identification allégée et plafonds) que l'institution peut offrir ; Microfina++ ne la propose pas. Rien n'est ajouté ; l'option se reprendra en phase 2 si le porteur le demande | Texte réglementaire : Instr. BCC 45, art. 1er à 4 ; CLAUDE.md § 0 (rien d'ajouté en phase 1) | forte | en place |
 
+## E26 Centrale des risques
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E26-1 | Écran | Client > Conformité > Centrale des risques, sur le modèle de la Centrale des incidents (SC02) : onglets À déclarer, Déclarés, Tous ; Du, Au ; grille Événement, Date, N° client, Client, Crédit ou engagement, Montant, Déclaré le, Référence ; Noter la déclaration (date, référence), Tout choisir, Exporter. Droit SC05 : chef d'agence et agent de crédit | Écran voisin : SC02 ; Instr. BCC 05, annexe I, art. 11 (préposé) | moyenne | en place |
+| E26-2 | Événements | Lus dans les données, rien n'est saisi deux fois : déblocage, remboursements, engagements par signature, modifications validées du client pendant un crédit ou un engagement en cours, passages en perte, radiation trois ans après le dernier remboursement ou passage en perte quand le client n'a plus ni crédit ni engagement | Texte réglementaire : Instr. BCC 05, annexe I, art. 1, 4, 5, 6 et 7 | forte | en place |
+| E26-3 | Délai | Déclaration en temps réel : un événement pas déclaré le jour même est marqué « en retard » | Texte réglementaire : Instr. BCC 05, annexe I, art. 10 | forte | en place |
+
 ## S74 Dépôt / Retrait
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
@@ -1204,7 +1212,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| CR-10 | Déclarations | Chaque octroi, modification, remboursement total et radiation entre dans une liste « à déclarer » ; le préposé note la date et la référence de sa déclaration. Un client à encours nul reste déclaré trois ans | Choix du porteur : Décision du porteur, 19/11/2026 ; Instr. BCC 05, art. 6 et 10 | forte | à appliquer |
+| CR-10 | Déclarations | Liste « à déclarer » à la Centrale des risques (écran E26) : chaque octroi, chaque remboursement (le dernier d'un crédit soldé : remboursement total), chaque engagement par signature, chaque modification du client pendant un crédit ou un engagement en cours, chaque passage en perte, et la radiation d'un client à encours nul depuis trois ans ; le préposé note la date et la référence de sa déclaration. Le texte demande tout remboursement, pas seulement le total | Choix du porteur : Décision du porteur, 19/11/2026 ; Instr. BCC 05, annexe I, art. 1, 4, 5, 6, 7 et 10 | forte | en place |
 
 ## S85 Analyse financière
 
@@ -1250,7 +1258,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| CR-15 | Refinancement d'un retard | Refus d'une demande quand le client a un crédit en retard : il est interdit d'accorder un nouveau crédit pour rembourser un crédit en retard | Texte réglementaire : Instr. BCC 003, art. 5, al. 3 | forte | à appliquer |
+| CR-15 | Refinancement d'un retard | Refus de la demande (S86) et de l'approbation (S88) quand le client a un crédit débloqué en retard au jour de la journée : il est interdit d'accorder un nouveau crédit pour rembourser un crédit en retard ; le message nomme le crédit et ses jours de retard | Texte réglementaire : Instr. BCC 003, art. 5, al. 3 | forte | en place |
 
 ## S98, S99 Classement et provisions
 

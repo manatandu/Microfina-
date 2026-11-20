@@ -767,6 +767,11 @@ const OUT = process.argv[2];
   await p.getByRole('cell', { name: 'Sains', exact: true }).waitFor(); await etape('11o-synthese-balance-agee');
   await p.getByRole('tab', { name: 'Indicateur de Gestion' }).click(); await p.getByLabel('Du', { exact: true }).fill('01/11/2026'); await p.getByLabel('Au', { exact: true }).fill('05/11/2026');
   await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByRole('cell', { name: 'Portefeuille à Risque' }).waitFor(); await etape('11p-indicateur-gestion');
+  // Centrale des risques (écart E26, Instr. BCC 05, annexe I) : octroi, engagement à déclarer ; Tout choisir, Noter la déclaration
+  await aller('/clients/sc05'); await p.getByRole('cell', { name: 'Octroi de crédit' }).first().waitFor(); await etape('11q-centrale-risques');
+  await p.getByRole('button', { name: 'Tout choisir' }).click(); await p.getByRole('button', { name: 'Noter la déclaration' }).click();
+  await p.getByLabel('Référence : *').fill('CR-2026-0001'); await p.getByRole('dialog', { name: 'Déclaration à la Centrale des risques' }).getByRole('button', { name: 'Enregistrer' }).click(); await ok();
+  await p.getByRole('cell', { name: 'Aucune donnée dans la liste' }).waitFor();
   await login('Esther Ngalula'); await aller('/caisse/s74?op=depot');
   await p.getByRole('tab', { name: 'Retrait en espèce' }).click(); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-01' });
   // Bouton Detail (registre S74-1) : relevé du compte en lecture seule ; masqué si le guichet n'a pas « Voir solde client » (S10-1)

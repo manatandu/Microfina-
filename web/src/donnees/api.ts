@@ -20,7 +20,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v94";
+const CLE = "likelemba-demo-v95";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -28,7 +28,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 71) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 72) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -2837,6 +2837,7 @@ const dossiers = {
     const t = E.tiers.find((x) => x.id === d.tiersId);
     if (!t) throw new ErreurMetier("À remplir : Numéro client.");
     controlerListeRouge(t.id);   // registre CR-9
+    controlerRetard(t.id);   // registre CR-15
     if (t.statut !== "actif") throw new ErreurMetier("Le client n'est pas actif (adhésion visée et payée).");
     if (!({ physique: p.clientPhysique, groupe: p.clientGroupe, morale: p.clientEntreprise } as Record<string, unknown>)[t.type]) throw new ErreurMetier("Ce produit n'est pas ouvert à ce type de client (Produits > Crédits, Type de client).");
     const e = effectifsDossier(d);
@@ -2890,6 +2891,7 @@ const dossiers = {
     const j = jourDossier();
     if (E.gels.some((g) => g.tiersId === x.tiersId && !g.leveLe)) throw new ErreurMetier("Avoirs gelés : aucun crédit à ce client (loi 22/068, art. 158 bis ; E10).");
     controlerListeRouge(x.tiersId);   // registre CR-9
+    controlerRetard(x.tiersId);   // registre CR-15
     if (!E.consentements.some((c) => c.tiersId === x.tiersId && c.dateDebut <= j && (!c.dateFin || c.dateFin >= j)))
       throw new ErreurMetier("Pas de consentement écrit à la Centrale des risques en cours de validité (Client > Consentement ; Instr. BCC 05, art. 13).");
     const cr = String(d.consultationCrLe ?? "");
@@ -3149,6 +3151,14 @@ function bloquantRouge(tid: number) {
   if (!piece) return undefined;
   return E.listeRouge.find((x) => !x.retireLe && x.referenceBcc && (E.tiers.find((t) => t.id === x.tiersId)?.dirigeant?.pieceNumero ?? "").trim().toUpperCase() === piece);
 }
+/** CR-15 : pas de nouveau crédit à un client qui a un crédit en retard (Instr. BCC 003, art. 5, al. 3). Mêmes règles que serveur/noyau/dossiers.py (controler_retard) */
+function controlerRetard(tid: number) {
+  const j = jourDossier();
+  for (const c of E.credits.filter((x) => x.tiersId === tid && x.statut === "debloque" && x.debloqueLe && x.debloqueLe <= j)) {
+    const n = etatCredit(c, j).joursRetard;
+    if (n > 0) throw new ErreurMetier(`Le crédit ${c.numero} de ce client est en retard de ${n} jour${n > 1 ? "s" : ""} : aucun nouveau crédit ne peut servir à rembourser un crédit en retard (Instr. BCC 003, art. 5, al. 3).`);
+  }
+}
 function controlerListeRouge(tid: number) {
   const i = bloquantRouge(tid);
   if (!i) return;
@@ -3300,7 +3310,6 @@ function apresDeblocage(c: CreditPret, eid: number, mode: "caisse" | "banque", u
     if (m && cid) E.blocages.push({ id: prochain(E.blocages), compteId: cid, montant: m, motif: `${quoi} du crédit ${c.numero}`, debut: d, posePar: u, fin: "", levePar: null, motifLevee: "", garantieDe: c.id });
   c.echeancier = echeancierRecale(c, d);
   Object.assign(c, { statut: "debloque", debloqueLe: d, dateEffet: d, dateDebut: c.echeancier[0]?.date ?? d, ecritureDeblocageId: eid, modeDeblocage: mode });
-  E.declarationsCentrale.push({ id: prochain(E.declarationsCentrale), creditId: c.id, evenement: "octroi", survenuLe: d, declareLe: "", reference: "", declarePar: null });
 }
 const deblocage = {
   aDebloquer() {
@@ -3836,7 +3845,6 @@ function enregistrerRemboursement(c: CreditPret, d: string, montant: unknown, re
   if (c.montant - s.payes.capital! - r.capital! === 0 && etatCredit(c, d).resteAPayer === 0) {
     c.statut = "solde";
     for (const b of E.blocages) if (b.garantieDe === c.id && !b.fin && !E.garanties.some((g) => g.blocageId === b.id)) Object.assign(b, { fin: d, levePar: u, motifLevee: `Crédit ${c.numero} remboursé` });
-    E.declarationsCentrale.push({ id: prochain(E.declarationsCentrale), creditId: c.id, evenement: "remboursement_total", survenuLe: d, declareLe: "", reference: "", declarePar: null });
   }
   return { e, rb };
 }
@@ -4507,6 +4515,69 @@ const cip = {
     const t = E.tiers.find((x) => x.id === tid); if (!t) throw new ErreurMetier("Client introuvable.");
     if (E.tiers.some((x) => x.icu === icu && x.id !== tid)) throw new ErreurMetier("Cet ICU est déjà noté pour un autre client.");
     t.icu = icu; enregistrer(); return { tiersId: tid, icu };
+  },
+};
+// Écart E26 : Centrale des risques (Instr. BCC 05, annexe I, art. 1, 4 à 7 et 10 ; registre CR-10). Mêmes règles que noyau/centrale_risques.py.
+const TYPES_CR: Record<string, string> = { octroi: "Octroi de crédit", remboursement: "Remboursement", engagement: "Engagement par signature", modification: "Client modifié",
+  passage_en_perte: "Passage en perte", radiation: "Radiation (encours nul depuis trois ans)" };
+const plusTroisAns = (d: string) => { const a = Number(d.slice(0, 4)) + 3, r = `${a}${d.slice(4)}`; return Number.isNaN(Date.parse(r)) || r.slice(5) === "02-29" && new Date(`${r}T00:00:00Z`).getUTCMonth() !== 1 ? `${a}-02-28` : r; };
+function radiationsCr(au: string) {
+  const parTiers = new Map<number, CreditPret[]>();
+  for (const c of E.credits.filter((x) => x.debloqueLe)) parTiers.set(c.tiersId, [...(parTiers.get(c.tiersId) ?? []), c]);
+  const out: { type: string; objetId: number; date: string; tiersId: number; reference: string; montant: number | null; devise: string }[] = [];
+  for (const [tid, cs] of parTiers) {
+    if (!cs.every((c) => c.statut === "solde" || c.statut === "passe_en_perte")) continue;
+    const fins = cs.map((c) => c.radieLe || E.remboursementsCredit.filter((r) => r.creditId === c.id).map((r) => r.date).sort().at(-1) || "").filter(Boolean).sort();
+    const fin = fins.at(-1);
+    if (!fin || E.engagementsSignature.some((e) => e.tiersId === tid && e.dateFin >= au)) continue;
+    const d = plusTroisAns(fin);
+    if (d <= au) out.push({ type: "radiation", objetId: tid, date: d, tiersId: tid, reference: "", montant: null, devise: "" });
+  }
+  return out;
+}
+function evenementsCr(au: string) {
+  const ev: { type: string; objetId: number; date: string; tiersId: number; reference: string; montant: number | null; devise: string }[] = [];
+  for (const c of E.credits) if (c.debloqueLe) ev.push({ type: "octroi", objetId: c.id, date: c.debloqueLe, tiersId: c.tiersId, reference: c.numero, montant: c.montant, devise: c.devise });
+  for (const r of E.remboursementsCredit) { const c = E.credits.find((x) => x.id === r.creditId)!; ev.push({ type: "remboursement", objetId: r.id, date: r.date, tiersId: c.tiersId, reference: c.numero, montant: r.montant, devise: c.devise }); }
+  for (const e of E.engagementsSignature) ev.push({ type: "engagement", objetId: e.id, date: e.dateDebut, tiersId: e.tiersId, reference: e.reference, montant: e.montant, devise: e.devise });
+  for (const m of E.modifications) if (m.valideLe) { const d = m.valideLe.slice(0, 10);
+    if (E.credits.some((c) => c.tiersId === m.tiersId && c.statut === "debloque" && c.debloqueLe && c.debloqueLe <= d) || E.engagementsSignature.some((e) => e.tiersId === m.tiersId && e.dateDebut <= d && d <= e.dateFin))
+      ev.push({ type: "modification", objetId: m.id, date: d, tiersId: m.tiersId, reference: "", montant: null, devise: "" }); }
+  for (const p of E.provisionsCredit) if (p.nature === "radiation") { const c = E.credits.find((x) => x.id === p.creditId)!; ev.push({ type: "passage_en_perte", objetId: p.id, date: p.date, tiersId: c.tiersId, reference: c.numero, montant: p.capitalRestant, devise: c.devise }); }
+  ev.push(...radiationsCr(au));
+  return ev.sort((a, b) => a.date.localeCompare(b.date) || a.type.localeCompare(b.type) || a.objetId - b.objetId);
+}
+const centraleRisques = {
+  evenements(du: string, au: string, statut = "") {
+    lectureAdmin(["SC05"]);
+    for (const [v, nom] of [[du, "Du"], [au, "Au"]] as const) if (!/^\d{4}-\d{2}-\d{2}$/.test(v ?? "")) throw new ErreurMetier(`À remplir : ${nom}.`);
+    if (!["", "a_declarer", "declare"].includes(statut)) throw new ErreurMetier("Statut inconnu.");
+    const jour = journees.courante()?.date ?? new Date().toISOString().slice(0, 10);
+    return evenementsCr(au).filter((e) => e.date >= du && e.date <= au).flatMap((e) => {
+      const dc = E.declarationsRisque.find((x) => x.type === e.type && x.objetId === e.objetId);
+      if ((statut === "declare" && !dc) || (statut === "a_declarer" && dc)) return [];
+      const t = E.tiers.find((x) => x.id === e.tiersId)!;
+      let libelle = TYPES_CR[e.type]!;
+      if (e.type === "remboursement") { const r = E.remboursementsCredit.find((x) => x.id === e.objetId)!, c = E.credits.find((x) => x.id === r.creditId)!;
+        const apres = E.remboursementsCredit.some((x) => x.creditId === c.id && (x.date > r.date || (x.date === r.date && x.id > r.id)));
+        if (c.statut === "solde" && !apres) libelle = "Remboursement total"; }
+      return [{ type: e.type, typeLibelle: libelle, objetId: e.objetId, date: e.date, enRetard: !dc && jour > e.date, tiersId: t.id, membre: t.numero, client: titulaire(t),
+        reference: e.reference, montant: e.montant, devise: e.devise as string, declareLe: dc?.declareLe ?? "", referenceDeclaration: dc?.reference ?? "" }];
+    });
+  },
+  declarer(d: { evenements: { type: string; objetId: number }[]; date: string; reference: string }) {
+    const u = exiger();
+    if (!Array.isArray(d.evenements) || !d.evenements.length) throw new ErreurMetier("Choisir au moins un événement à déclarer.");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d.date ?? "") || !(d.reference ?? "").trim()) throw new ErreurMetier("À remplir : date et référence de la déclaration.");
+    const j = journees.courante(); if (j && d.date > j.date) throw new ErreurMetier("La date de la déclaration ne peut pas dépasser la journée ouverte.");
+    const tous = evenementsCr(d.date);
+    for (const x of d.evenements) {
+      const e = tous.find((y) => y.type === x.type && y.objetId === x.objetId); if (!e) throw new ErreurMetier("Événement inconnu.");
+      if (d.date < e.date) throw new ErreurMetier("La déclaration précède l'événement.");
+      if (E.declarationsRisque.some((y) => y.type === x.type && y.objetId === x.objetId)) throw new ErreurMetier("Événement déjà déclaré.");
+      E.declarationsRisque.push({ type: x.type, objetId: x.objetId, dateEvenement: e.date, declareLe: d.date, reference: d.reference.trim(), declarePar: u.id });
+    }
+    enregistrer(); return d.evenements.map(({ type, objetId }) => ({ type, objetId }));
   },
 };
 // Écart E07 : plaintes (Instr. BCC 39 ; loi 11/020, art. 61). Mêmes règles que noyau/plaintes.py.
@@ -6288,6 +6359,7 @@ const apiLocal = {
   provisions: asynchrone(provisions, "provisions"),
   engagements: asynchrone(engagements, "engagements"),
   rapportsCredit: asynchrone(rapportsCreditApi, "rapportsCredit"),
+  centraleRisques: asynchrone(centraleRisques, "centraleRisques"),
   societe: asynchrone(societe, "societe"),
   agents: asynchrone(agents, "agents"),
   jours: asynchrone(jours, "jours"),

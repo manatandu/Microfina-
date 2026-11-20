@@ -88,6 +88,10 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       beneficiaire: (tid: number) => get(`/credit/engagements/beneficiaire/${tid}`),
       enregistrer: (p: unknown) => post("/credit/engagements", p),
     },
+    centraleRisques: {
+      evenements: (du: string, au: string, statut = "") => get(`/conformite/centrale-risques?du=${du}&au=${au}&statut=${statut}`),
+      declarer: (d: unknown) => post("/conformite/centrale-risques/declarations", d),
+    },
     rapportsCredit: {
       rapport: (nom: string, p: Record<string, unknown>) => get(`/credit/rapports/${nom}?${new URLSearchParams(Object.entries(p).filter(([, v]) => v !== null && v !== undefined && v !== "").map(([k, v]) => [k, String(v)]))}`),
     },

@@ -1954,6 +1954,19 @@ def conformite_rapport(request, eid: int):
 
 
 # ---------- Écart E06 : Centrale des incidents de paiement (Instr. BCC 52, art. 10 à 15) ----------
+# ---------- Écart E26 : Centrale des risques (Instr. BCC 05, annexe I) ----------
+@api.get("/conformite/centrale-risques")
+def centrale_risques(request, du: str = "", au: str = "", statut: str = ""):
+    from . import centrale_risques as cr
+    return cr.evenements(u(request), du, au, statut)
+
+
+@api.post("/conformite/centrale-risques/declarations")
+def centrale_risques_declarer(request, corps: dict = Body(...)):
+    from . import centrale_risques as cr
+    return cr.declarer(u(request), corps)
+
+
 @api.get("/conformite/cip")
 def cip_evenements(request, du: str = "", au: str = "", statut: str = ""):
     return cip.evenements(u(request), du, au, statut)

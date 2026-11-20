@@ -1588,7 +1588,7 @@ def test_deblocage_caisse(clients, journee):
     assert "pas prêt au déblocage" in refus(caisse, f"/api/guichet/deblocage/{cid}", {"cle": cle(), "coupures": cp})
     assert ident("select statut from credit where id = %s", (cid,)) == "debloque"
     assert ident("select count(*) from blocage where garantie_de = %s", (cid,)) == 1
-    assert ident("select evenement from declaration_centrale where credit_id = %s", (cid,)) == "octroi"
+    assert [x["type"] for x in clients["chef"].get("/api/conformite/centrale-risques?du=2026-11-01&au=2026-11-05", **H).json()] == ["octroi"]   # CR-10
     assert ident("""select sum(case when l.sens = 'D' then l.montant_devise else -l.montant_devise end) from ligne_ecriture l join compte c on c.id = l.compte_id
                     where l.contrat_ref = %s""", (f"credit:{cid}",)) == 100000000
     assert balance_equilibree(caisse)
@@ -1675,7 +1675,7 @@ def test_remboursement_caisse(clients, journee):
     assert r.status_code == 200, r.content
     assert ident("select statut from credit where id = %s", (cid,)) == "solde"
     assert ident("select count(*) from blocage where garantie_de = %s and fin is null", (cid,)) == 0
-    assert ident("select count(*) from declaration_centrale where credit_id = %s and evenement = 'remboursement_total'", (cid,)) == 1
+    assert [x["typeLibelle"] for x in chef.get("/api/conformite/centrale-risques?du=2026-01-01&au=2026-12-31", **H).json()].count("Remboursement total") == 1   # CR-10
     s = chef.get(f"/api/credit/credits/{cid}/situation", **H).json()
     assert len(s["reel"]) == 2 and s["reel"][1]["repartition"]["anticipation"] > 0 and s["reel"][-1]["capitalRestant"] == 0
     assert balance_equilibree(caisse)
@@ -3329,3 +3329,51 @@ def test_rapports_epargne_credit(clients, journee):
     ind = chef.get("/api/epargne/rapports/indicateurs?date=2026-11-05", **H).json()
     assert (ind["garantieEpargne"], ind["caution"]) == (c[1], 600000)
     assert ind["creditsEncours"] == [{"produit": ident("select nom from produit_credit limit 1"), "devise": "CDF", "prets": 1, "encours": c[0]}]
+
+
+def test_refinancement_retard(clients, journee):
+    """CR-15 : un client dont un crédit est en retard n'obtient ni nouvelle demande ni approbation (Instr. BCC 003, art. 5, al. 3)"""
+    from django.db import connection
+    agent, chef = clients["agent"], clients["chef"]
+    cid = credit_debloque(clients, journee)
+    pid = ident("select produit_id from credit where id = %s", (cid,))
+    ctx = agent.get("/api/credit/dossiers/contexte", **H).json()
+    pr = next(x for x in ctx["provinces"] if x["nom"] == "Kinshasa")["id"]; vi = next(x for x in ctx["villes"] if x["provinceId"] == pr)["id"]
+    e = {"nbHommes": 0, "nbFemmes": 1, "montantHommes": 0, "montantFemmes": 100000000, "nbGroupes": 0}
+    corps = {"produitId": pid, "tiersId": T("0412-000318"), "duree": 12, "provinceId": pr, "villeId": vi, **e, "ressaisie": e}
+    x = agent.post("/api/credit/dossiers", corps, **H)                   # crédit à jour : la demande passe
+    assert x.status_code == 200, x.content
+    chef.post(f"/api/credit/dossiers/{x.json()['id']}/controle", {"effectif": 1, "nbGroupes": 0, "montant": 100000000}, **H)
+    with connection.cursor() as cur:
+        cur.execute("update echeance set date_due = (date_due - interval '40 days')::date where credit_id = %s", (cid,))
+    r = agent.post("/api/credit/dossiers", corps, **H)
+    assert r.status_code == 422 and "en retard de 10 jours" in r.json()["message"] and "art. 5" in r.json()["message"]
+    a = chef.post(f"/api/credit/dossiers/{x.json()['id']}/approbation", {"montantApprouve": 100000000, "consultationCrLe": "2026-11-05", "consultationCrRef": "CR-9"}, **H)
+    assert a.status_code == 422 and "en retard" in a.json()["message"]
+
+
+def test_centrale_risques(clients, journee):
+    """Écart E26, CR-10 : octroi, chaque remboursement, engagement par signature, modification du client pendant le crédit ; déclaration notée
+    (Instr. BCC 05, annexe I, art. 1, 4, 5, 7 et 10)"""
+    from django.db import connection
+    chef, caisse, agent = clients["chef"], clients["caisse"], clients["agent"]
+    cid = credit_debloque(clients, journee)
+    k = T("0412-000318")
+    r = caisse.post(f"/api/guichet/remboursement/{cid}", {"cle": cle(), "mandataire": "Moi-même", "montant": 5000000, "coupures": {"20000": 2, "10000": 1}}, **H)
+    assert r.status_code == 200, r.content
+    uid = ident("select min(id) from utilisateur")
+    with connection.cursor() as cur:
+        for t in (k, T("0412-000320")):
+            cur.execute("insert into tiers_modification (tiers_id, avant, apres, modifie_par, valide_par, valide_le) values (%s, '{}', '{}', %s, %s, '2026-11-05 10:00')", (t, uid, uid))
+    l = chef.get("/api/conformite/centrale-risques?du=2026-11-01&au=2026-11-05&statut=a_declarer", **H).json()
+    assert sorted(x["type"] for x in l) == ["modification", "octroi", "remboursement"]       # le client sans crédit n'y est pas
+    rb = next(x for x in l if x["type"] == "remboursement")
+    assert (rb["typeLibelle"], rb["montant"], rb["reference"]) == ("Remboursement", 5000000, "0412/L001/00001")
+    refus = lambda corps: chef.post("/api/conformite/centrale-risques/declarations", corps, **H).json()["message"]
+    ev = [{"type": x["type"], "objetId": x["objetId"]} for x in l]
+    assert "date et référence" in refus({"evenements": ev, "date": "2026-11-05", "reference": ""})
+    assert "précède" in refus({"evenements": ev, "date": "2026-11-04", "reference": "CR-1"})
+    assert chef.post("/api/conformite/centrale-risques/declarations", {"evenements": ev, "date": "2026-11-05", "reference": "CR-2026-11-05"}, **H).status_code == 200
+    assert "déjà déclaré" in refus({"evenements": ev[:1], "date": "2026-11-05", "reference": "CR-2"})
+    assert chef.get("/api/conformite/centrale-risques?du=2026-11-01&au=2026-11-05&statut=a_declarer", **H).json() == []
+    assert caisse.get("/api/conformite/centrale-risques?du=2026-11-01&au=2026-11-05", **H).status_code == 403

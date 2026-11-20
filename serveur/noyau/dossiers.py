@@ -130,6 +130,7 @@ def demander(u, d) -> dict:
         raise ErreurMetier("À remplir : Numéro client.")
     from .liste_rouge import controler as liste_rouge
     liste_rouge(t["id"])                                               # registre CR-9
+    controler_retard(u, t["id"])                                       # registre CR-15
     if t["statut"] != "actif":
         raise ErreurMetier("Le client n'est pas actif (adhésion visée et payée).")
     if not {"physique": p["client_physique"], "groupe": p["client_groupe"], "morale": p["client_entreprise"]}.get(t["type"]):
@@ -223,6 +224,18 @@ def encours(u, tiers_ids: list[int] | None = None) -> int:
 
 
 
+def controler_retard(u, tid: int):
+    """CR-15 : pas de nouveau crédit à un client qui a un crédit en retard, pour qu'aucun crédit ne serve à rembourser un crédit en retard
+    (Instr. BCC 003, art. 5, al. 3). Le retard se lit au jour de la journée, comme au remboursement (S76)."""
+    from .remboursements import etat
+    j = jour(u)
+    for c in lignes("select * from credit where tiers_id = %s and statut = 'debloque' and debloque_le <= %s", (tid, j)):
+        n = etat(c, j)["joursRetard"]
+        if n > 0:
+            raise ErreurMetier(f"Le crédit {c['numero']} de ce client est en retard de {n} jour{'s' if n > 1 else ''} : aucun nouveau crédit ne peut servir "
+                               "à rembourser un crédit en retard (Instr. BCC 003, art. 5, al. 3).")
+
+
 def controler_plafonds(u, tid: int, m_cdf: int, apparente, bcc: str | None):
     """Plafonds par client et des apparentés, crédits et engagements par signature confondus (CR-14 ; Instr. BCC 002, art. 23, 25 à 29 ;
     loi 002/2002, art. 59 et 60). Commun à l'approbation (S88) et à l'engagement par signature (S100)."""
@@ -278,6 +291,7 @@ def approuver(u, did: int, d) -> dict:
         raise ErreurMetier("Avoirs gelés : aucun crédit à ce client (loi 22/068, art. 158 bis ; E10).")
     from .liste_rouge import controler as liste_rouge
     liste_rouge(x["tiers_id"])                                         # registre CR-9
+    controler_retard(u, x["tiers_id"])                                 # registre CR-15
     if not une("""select 1 from consentement where tiers_id = %s and date_debut <= %s and (date_fin is null or date_fin >= %s)""", (x["tiers_id"], j, j)):
         raise ErreurMetier("Pas de consentement écrit à la Centrale des risques en cours de validité (Client > Consentement ; Instr. BCC 05, art. 13).")
     try:

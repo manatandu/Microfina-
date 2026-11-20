@@ -2147,7 +2147,9 @@ describe("journée de guichet", () => {
     await api.remboursementsCredit.rembourserCaisse(cid, { cle: cle(), mandataire: "Moi-même", montant: tout, coupures: cp });
     expect(c.statut).toBe("solde");
     expect(_etat().blocages.filter((b) => b.garantieDe === cid && !b.fin)).toHaveLength(0);
-    expect(_etat().declarationsCentrale.filter((x) => x.creditId === cid && x.evenement === "remboursement_total")).toHaveLength(1);
+    await connecter("jpmukendi");
+    expect((await api.centraleRisques.evenements("2026-01-01", "2026-12-31", "a_declarer")).filter((x) => x.typeLibelle === "Remboursement total")).toHaveLength(1);   // CR-10
+    await connecter("engalula");
     const st = await api.remboursementsCredit.situation(cid);
     expect([st.reel.length, st.reel[1]!.repartition.anticipation! > 0, st.reel[1]!.capitalRestant]).toEqual([2, true, 0]);
     expect(await soldeCdfGrandLivre()).toBe(0);
@@ -2362,6 +2364,19 @@ describe("journée de guichet", () => {
     expect([g.garantieEncours, g.garantieLiberee]).toEqual([c.epargneObligatoire + 600000, 400000]);
     const ind = await api.rapportsEpargne.indicateurs("2026-11-05", false);
     expect([ind.garantieEpargne, ind.caution, ind.creditsEncours.map((x) => [x.devise, x.prets, x.encours])]).toEqual([c.epargneObligatoire, 600000, [["CDF", 1, c.montant]]]);
+  });
+
+  it("refinancement d'un retard (CR-15) : pas de nouvelle demande pour un client dont un crédit est en retard (Instr. BCC 003, art. 5, al. 3)", async () => {
+    const cid = await creditDebloque();
+    const j = (await api.journees.courante())!.date;
+    const c = _etat().credits.find((x) => x.id === cid)!;
+    const ecart = Math.round((Date.parse(`${c.echeancier[0]!.date}T00:00:00Z`) - Date.parse(`${j}T00:00:00Z`)) / 86400000);
+    for (const e of c.echeancier) e.date = new Date(Date.parse(`${e.date}T00:00:00Z`) - (ecart + 10) * 86400000).toISOString().slice(0, 10);
+    await connecter("bkasongo");
+    const ctx = await api.dossiers.contexte();
+    const pr = ctx.provinces.find((x) => x.nom === "Kinshasa")!.id, vi = ctx.villes.find((x) => x.provinceId === pr)!.id;
+    const e = { nbHommes: 0, nbFemmes: 1, montantHommes: 0, montantFemmes: 100000000, nbGroupes: 0 };
+    await expect(api.dossiers.demander({ produitId: c.produitId, tiersId: 1, duree: 12, provinceId: pr, villeId: vi, ...e, ressaisie: e })).rejects.toThrow("en retard de 10 jours");   // comme le serveur
   });
 
   it("produit crédit (S23, p. 37 et 38) : méthode dégressive (Instr. BCC 38 art. 11), bornes, garanties, assurance, frais (Instr. BCC 40 art. 8)", async () => {

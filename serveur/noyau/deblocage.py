@@ -148,8 +148,6 @@ def apres_deblocage(u, c: dict, d: date, eid: int, mode: str):
     premiere = valeur("select min(date_due) from echeance where credit_id = %s", (c["id"],))
     executer("""update credit set statut = 'debloque', debloque_le = %s, date_effet = %s, date_debut = %s, ecriture_deblocage_id = %s, mode_deblocage = %s
                 where id = %s""", (d, d, premiere, eid, mode, c["id"]))
-    executer("insert into declaration_centrale (institution_id, credit_id, evenement, survenu_le) values (%s, %s, 'octroi', %s)",
-             (u["institution_id"], c["id"], d))
 
 
 def debloquer_caisse(u, cid: int, p) -> dict:

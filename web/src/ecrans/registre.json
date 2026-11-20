@@ -531,6 +531,15 @@
   "chemin": "/clients/sc04"
  },
  {
+  "id": "SC05",
+  "nom": "Centrale des risques",
+  "acces": "Client > Conformité > Centrale des risques",
+  "but": "Lister ce qui se déclare en temps réel à la Centrale des risques (octroi, remboursements, engagements par signature, modifications du client, passages en perte, radiations après trois ans d'encours nul), noter la déclaration (écart E26 ; Instr. BCC 05, annexe I, art. 1, 4 à 7 et 10)",
+  "module": "clients",
+  "priorite": "must",
+  "chemin": "/clients/sc05"
+ },
+ {
   "id": "S52",
   "nom": "Opérations de banque",
   "acces": "Banque > Opération",
