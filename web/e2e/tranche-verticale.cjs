@@ -737,6 +737,13 @@ const OUT = process.argv[2];
   await p.getByLabel('Cocher 0412/L001/00001').check(); await p.getByLabel('Gestionnaire dont le portefeuille sera augmenté').selectOption({ label: 'J.-P. Mukendi' });
   await p.getByRole('button', { name: 'Affecter' }).click(); await oui();
   await p.getByLabel('Cocher 0412/L001/00001').waitFor({ state: 'detached' }); await p.getByRole('cell', { name: '0412/L001/00001', exact: true }).waitFor(); await etape('11i-affectation-dossier');
+  // Liste rouge (S97, p. 119 et 120) : Mwamba ajouté puis retiré, avec motif et confirmation
+  await aller('/credit/s97'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  const rRouge = p.getByRole('dialog', { name: "Recherche d'un client" }); await rRouge.getByLabel('Nom:', { exact: true }).fill('Mwamba'); await rRouge.getByRole('row').filter({ hasText: 'Mwamba' }).dblclick();
+  await p.getByLabel('Motif: *').fill('Chèque sans provision'); await p.getByRole('button', { name: 'Ajouter' }).click(); await oui();
+  await p.getByRole('cell', { name: 'Chèque sans provision' }).waitFor(); await etape('11j-liste-rouge');
+  await p.getByLabel('Motif: *').fill('Régularisé'); await p.getByRole('button', { name: 'Retirer' }).click(); await oui();
+  await p.getByRole('cell', { name: 'Aucune donnée dans la liste' }).waitFor();
   await login('Esther Ngalula'); await aller('/caisse/s74?op=depot');
   await p.getByRole('tab', { name: 'Retrait en espèce' }).click(); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-01' });
   // Bouton Detail (registre S74-1) : relevé du compte en lecture seule ; masqué si le guichet n'a pas « Voir solde client » (S10-1)

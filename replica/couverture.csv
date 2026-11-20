@@ -98,7 +98,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 97,Cautions dépôts de garantie nantissements,crédit,must,partial,S94,A,liste,7 Crédit,,,,,CR-21b Compensation en cas de défaut
 98,Consulter un prêt,crédit,must,yes,S95,B,consultation,7 Crédit,"S95 : Plan, Réel, Mémo",A:S76 Situation (p. 88),,,
 99,Affectation de portefeuille entre gestionnaires,crédit,should,yes,S96,A,composition,7 Crédit,,,,,
-100,Liste rouge,crédit,should,no,S97,A,liste,7 Crédit,,,,S97,CR-9 Effet
+100,Liste rouge,crédit,should,partial,S97,A,liste,7 Crédit,,,,,S97-4 Associés d'une personne morale indexée
 101,Balance âgée,crédit,must,no,S98,A,traitement,7 Crédit,S98 : résultat,R:Instr. BCC sur le classement,,S98,CR-16 Classement
 102,Déclassement et provisions,crédit,must,no,S99,B,traitement,7 Crédit,S99 : règles,R:Instr. BCC sur le classement et les provisions,,S99,CR-16 Classement ; CR-17 Provisions ; CR-18 Passage en perte (« Radier par anticipation ») ; CR-19 Intérêts non réglés ; CR-21b Compensation en cas de défaut
 103,Engagement par signature,crédit,should,no,S100,A,liste,7 Crédit,S100 : document imprimé,document,,S100,CR-14 Plafonds par emprunteur ; CR-22 Comptabilisation et plafonds

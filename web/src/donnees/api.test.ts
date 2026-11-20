@@ -2233,6 +2233,23 @@ describe("journée de guichet", () => {
     expect(_etat().affectationsCredit).toHaveLength(1);
   });
 
+  it("liste rouge (S97, p. 119 et 120) : Ajouter et Retirer avec motif ; un inscrit n'obtient ni demande ni mise en place (CR-9 ; Instr. BCC 13, art. 7)", async () => {
+    const cid = await creditMisEnPlace();
+    expect(cid).toBeGreaterThan(0);
+    await connecter("bkasongo");
+    await expect(api.listeRouge.ajouter({ tiersId: 1, motif: " " })).rejects.toThrow("Motif");
+    const l = await api.listeRouge.ajouter({ tiersId: 1, motif: "Impayés répétés", referenceBcc: "BCC/MI/2026/07" });
+    expect([l[0]!.membre, l[0]!.motif, l[0]!.referenceBcc]).toEqual(["0412-000318", "Impayés répétés", "BCC/MI/2026/07"]);   // comme le serveur
+    await expect(api.listeRouge.ajouter({ tiersId: 1, motif: "x" })).rejects.toThrow("déjà");
+    const ctx = await api.dossiers.contexte();
+    const pr = ctx.provinces.find((x) => x.nom === "Kinshasa")!.id, vi = ctx.villes.find((x) => x.provinceId === pr)!.id;
+    const e = { nbHommes: 0, nbFemmes: 1, montantHommes: 0, montantFemmes: 100000000, nbGroupes: 0 };
+    const pid = _etat().produitsCredit[0]!.id;
+    await expect(api.dossiers.demander({ produitId: pid, tiersId: 1, duree: 12, provinceId: pr, villeId: vi, ...e, ressaisie: e })).rejects.toThrow("liste rouge");
+    expect(await api.listeRouge.retirer({ tiersId: 1, motif: "Régularisé" })).toEqual([]);
+    await expect(api.listeRouge.retirer({ tiersId: 1, motif: "x" })).rejects.toThrow("pas sur la liste");
+  });
+
   it("produit crédit (S23, p. 37 et 38) : méthode dégressive (Instr. BCC 38 art. 11), bornes, garanties, assurance, frais (Instr. BCC 40 art. 8)", async () => {
     await connecter("jpmukendi");
     const P = { typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: "2,5", tauxDiffere: 2,

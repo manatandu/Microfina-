@@ -20,7 +20,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v90";
+const CLE = "likelemba-demo-v91";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -28,7 +28,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 67) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 68) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -2788,6 +2788,7 @@ const dossiers = {
     if (p.actif === false) throw new ErreurMetier("Ce produit est désactivé (Produits > Crédits > Activation) : il n'est plus proposé aux nouvelles demandes.");
     const t = E.tiers.find((x) => x.id === d.tiersId);
     if (!t) throw new ErreurMetier("À remplir : Numéro client.");
+    controlerListeRouge(t.id);   // registre CR-9
     if (t.statut !== "actif") throw new ErreurMetier("Le client n'est pas actif (adhésion visée et payée).");
     if (!({ physique: p.clientPhysique, groupe: p.clientGroupe, morale: p.clientEntreprise } as Record<string, unknown>)[t.type]) throw new ErreurMetier("Ce produit n'est pas ouvert à ce type de client (Produits > Crédits, Type de client).");
     const e = effectifsDossier(d);
@@ -2840,6 +2841,7 @@ const dossiers = {
     if (m < Number(p.montantMin) * 100) throw new ErreurMetier("Montant approuvé : pas moins que le minimum du produit.");
     const j = jourDossier();
     if (E.gels.some((g) => g.tiersId === x.tiersId && !g.leveLe)) throw new ErreurMetier("Avoirs gelés : aucun crédit à ce client (loi 22/068, art. 158 bis ; E10).");
+    controlerListeRouge(x.tiersId);   // registre CR-9
     if (!E.consentements.some((c) => c.tiersId === x.tiersId && c.dateDebut <= j && (!c.dateFin || c.dateFin >= j)))
       throw new ErreurMetier("Pas de consentement écrit à la Centrale des risques en cours de validité (Client > Consentement ; Instr. BCC 05, art. 13).");
     const cr = String(d.consultationCrLe ?? "");
@@ -2915,6 +2917,7 @@ const miseEnPlace = {
     const u = exiger();
     const a = miseEnPlace.apercu(id, d);
     const x = demandeApprouvee(id), p = E.produitsCredit.find((y) => y.id === x.produitId)!, s = a.simulation;
+    controlerListeRouge(x.tiersId);   // registre CR-9
     const ids = new Set(a.comptes.map((c) => c.id));
     if (s.epargneObligatoire && !ids.has(d.compteEpargneId ?? -1)) throw new ErreurMetier("À remplir : compte d'épargne obligatoire du client, dans la devise du crédit.");
     if (a.fondsSolidarite && !ids.has(d.compteSolidariteId ?? -1)) throw new ErreurMetier("À remplir : compte du fonds de solidarité du client, dans la devise du crédit.");
@@ -3099,6 +3102,50 @@ const garanties = {
       const c = E.credits.find((x) => x.id === g.creditId)!;
       return { ...vueGarantie(g), numeroMembre: E.tiers.find((x) => x.id === (g.cautionId ?? c.tiersId))!.numero, numeroCredit: c.numero, client: titulaire(E.tiers.find((x) => x.id === c.tiersId)!), devise: c.devise };
     });
+  },
+};
+
+// ---------- S97 : Crédit > Liste rouge (manuel p. 119 et 120). Mêmes règles que serveur/noyau/liste_rouge.py.
+// Un inscrit n'obtient ni demande, ni approbation, ni mise en place (CR-9) ; mise à l'index BCC : ses dirigeants aussi (Instr. BCC 13, art. 7). Registre S97. ----------
+const inscriptionRouge = (tid: number) => E.listeRouge.find((x) => x.tiersId === tid && !x.retireLe);
+function bloquantRouge(tid: number) {
+  const i = inscriptionRouge(tid); if (i) return i;
+  const piece = (E.tiers.find((t) => t.id === tid)?.pieceNumero ?? "").trim().toUpperCase();
+  if (!piece) return undefined;
+  return E.listeRouge.find((x) => !x.retireLe && x.referenceBcc && (E.tiers.find((t) => t.id === x.tiersId)?.dirigeant?.pieceNumero ?? "").trim().toUpperCase() === piece);
+}
+function controlerListeRouge(tid: number) {
+  const i = bloquantRouge(tid);
+  if (!i) return;
+  const quoi = i.referenceBcc ? `mise à l'index, décision BCC ${i.referenceBcc} (Instr. BCC 13, art. 7)` : `motif : ${i.motif}`;
+  const cible = i.tiersId === tid ? "" : ` ; dirigeant de ${titulaire(E.tiers.find((t) => t.id === i.tiersId)!)}`;
+  throw new ErreurMetier(`Client sur la liste rouge (${quoi}${cible}) : aucun crédit.`);
+}
+const listeRouge = {
+  lister() {
+    lectureAdmin(["S97"]);
+    return E.listeRouge.filter((x) => !x.retireLe).sort((a, b) => b.ajouteLe.localeCompare(a.ajouteLe) || b.id - a.id).map((x) => { const t = E.tiers.find((y) => y.id === x.tiersId)!;
+      return { id: x.id, tiersId: x.tiersId, membre: t.numero, client: titulaire(t), date: x.ajouteLe, motif: x.motif, referenceBcc: x.referenceBcc }; });
+  },
+  ajouter(p: { tiersId?: number | null; motif?: string; referenceBcc?: string }) {
+    const u = exiger();
+    if (!p.tiersId || !E.tiers.some((t) => t.id === p.tiersId)) throw new ErreurMetier("À remplir : N° Client.");
+    const motif = (p.motif ?? "").trim();
+    if (!motif) throw new ErreurMetier("À remplir : Motif.");
+    if (inscriptionRouge(p.tiersId)) throw new ErreurMetier("Ce client est déjà sur la liste rouge.");
+    E.listeRouge.push({ id: prochain(E.listeRouge), tiersId: p.tiersId, motif, referenceBcc: (p.referenceBcc ?? "").trim(), ajouteLe: journees.courante()?.date ?? new Date().toISOString().slice(0, 10),
+      ajoutePar: u.id, retireLe: "", retirePar: null, motifRetrait: "" });
+    enregistrer(); return listeRouge.lister();
+  },
+  retirer(p: { tiersId?: number | null; motif?: string }) {
+    const u = exiger();
+    if (!p.tiersId || !E.tiers.some((t) => t.id === p.tiersId)) throw new ErreurMetier("À remplir : N° Client.");
+    const motif = (p.motif ?? "").trim();
+    if (!motif) throw new ErreurMetier("À remplir : Motif.");
+    const i = inscriptionRouge(p.tiersId);
+    if (!i) throw new ErreurMetier("Ce client n'est pas sur la liste rouge.");
+    Object.assign(i, { retireLe: journees.courante()?.date ?? new Date().toISOString().slice(0, 10), retirePar: u.id, motifRetrait: motif });
+    enregistrer(); return listeRouge.lister();
   },
 };
 
@@ -5867,6 +5914,7 @@ const apiLocal = {
   etatCredits: asynchrone(etatCredits, "etatCredits"),
   garanties: asynchrone(garanties, "garanties"),
   affectation: asynchrone(affectation, "affectation"),
+  listeRouge: asynchrone(listeRouge, "listeRouge"),
   societe: asynchrone(societe, "societe"),
   agents: asynchrone(agents, "agents"),
   jours: asynchrone(jours, "jours"),

@@ -1773,6 +1773,30 @@ def test_affectation(clients, journee):
     assert clients["caisse"].post("/api/credit/affectation", {"de": jp, "vers": bk, "credits": [cid]}, **H).status_code == 403
 
 
+def test_liste_rouge(clients, journee):
+    """S97 (p. 119 et 120) : Ajouter, Retirer avec motif ; un inscrit n'obtient ni demande, ni approbation, ni mise en place (CR-9 ; Instr. BCC 13, art. 7)"""
+    chef, agent = clients["chef"], clients["agent"]
+    k = T("0412-000318")
+    def refus(c, route, corps):
+        r = c.post(route, corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    assert "Motif" in refus(agent, "/api/credit/liste-rouge/ajout", {"tiersId": k, "motif": " "})
+    l = agent.post("/api/credit/liste-rouge/ajout", {"tiersId": k, "motif": "Impayés répétés", "referenceBcc": "BCC/MI/2026/07"}, **H).json()
+    assert (l[0]["membre"], l[0]["motif"], l[0]["referenceBcc"]) == ("0412-000318", "Impayés répétés", "BCC/MI/2026/07")
+    assert "déjà" in refus(agent, "/api/credit/liste-rouge/ajout", {"tiersId": k, "motif": "x"})
+    pid = chef.post("/api/produits-credit", {**PRODUIT, "numero": "L009"}, **H).json()["produit"]["id"]
+    ctx = agent.get("/api/credit/dossiers/contexte", **H).json()
+    pr = next(x for x in ctx["provinces"] if x["nom"] == "Kinshasa")["id"]; vi = next(x for x in ctx["villes"] if x["provinceId"] == pr)["id"]
+    e = {"nbHommes": 0, "nbFemmes": 1, "montantHommes": 0, "montantFemmes": 100000000, "nbGroupes": 0}
+    dem = {"produitId": pid, "tiersId": k, "duree": 12, "provinceId": pr, "villeId": vi, **e, "ressaisie": e}
+    assert "liste rouge" in refus(agent, "/api/credit/dossiers", dem)
+    assert agent.post("/api/credit/liste-rouge/retrait", {"tiersId": k, "motif": "Régularisé"}, **H).json() == []
+    assert "pas sur la liste" in refus(agent, "/api/credit/liste-rouge/retrait", {"tiersId": k, "motif": "x"})
+    _, did, _ = credit_approuve(clients)
+    agent.post("/api/credit/liste-rouge/ajout", {"tiersId": k, "motif": "Fraude"}, **H)
+    assert "liste rouge" in refus(agent, f"/api/credit/mise-en-place/{did}", {"compteEpargneId": None})
+    assert clients["caisse"].post("/api/credit/liste-rouge/ajout", {"tiersId": k, "motif": "x"}, **H).status_code == 403
+
+
 def test_produit_credit(clients):
     """S23 (p. 37 et 38) : Information de base de la capture ; méthode dégressive (Instr. BCC 38, art. 11) ; garanties, assurance, frais
     (Instr. BCC 38 art. 6, Instr. BCC 40 art. 8) ; pénalité d'anticipation au plus 50 % (Instr. BCC 38, art. 14) ; registre S23-1 à S23-7"""

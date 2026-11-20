@@ -535,6 +535,25 @@ def affectation_affecter(request, corps: dict = Body(...)):
     return af.affecter(u(request), corps)
 
 
+# ---------- S97 : liste rouge (p. 119 et 120) ----------
+@api.get("/credit/liste-rouge")
+def liste_rouge_lister(request):
+    from . import liste_rouge as lr
+    return lr.lister(u(request))
+
+
+@api.post("/credit/liste-rouge/ajout")
+def liste_rouge_ajouter(request, corps: dict = Body(...)):
+    from . import liste_rouge as lr
+    return lr.ajouter(u(request), corps)
+
+
+@api.post("/credit/liste-rouge/retrait")
+def liste_rouge_retirer(request, corps: dict = Body(...)):
+    from . import liste_rouge as lr
+    return lr.retirer(u(request), corps)
+
+
 @api.get("/credit/visas/contexte")
 def visas_contexte(request):
     from .services import est_coopec

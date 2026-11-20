@@ -72,6 +72,8 @@ def mettre_en_place(u, did: int, d) -> dict:
     exiger(u)
     a = apercu(u, did, d)
     x = demande(u, did)
+    from .liste_rouge import controler as liste_rouge
+    liste_rouge(x["tiers_id"])                                         # registre CR-9
     p = une("select * from produit_credit where id = %s", (x["produit_id"],))
     s = a["simulation"]
     ids = {c["id"] for c in a["comptes"]}

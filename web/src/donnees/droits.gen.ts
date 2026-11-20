@@ -301,6 +301,12 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "jours.enregistrerJournees": [
 "S34"
 ],
+"listeRouge.ajouter": [
+"S97"
+],
+"listeRouge.retirer": [
+"S97"
+],
 "listes.enregistrer": [
 "S14",
 "S18"

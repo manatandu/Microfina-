@@ -128,6 +128,8 @@ def demander(u, d) -> dict:
     t = une("select * from tiers where id = %s and institution_id = %s", (tid, u["institution_id"])) if isinstance(tid, int) and not isinstance(tid, bool) else None
     if not t:
         raise ErreurMetier("À remplir : Numéro client.")
+    from .liste_rouge import controler as liste_rouge
+    liste_rouge(t["id"])                                               # registre CR-9
     if t["statut"] != "actif":
         raise ErreurMetier("Le client n'est pas actif (adhésion visée et payée).")
     if not {"physique": p["client_physique"], "groupe": p["client_groupe"], "morale": p["client_entreprise"]}.get(t["type"]):
@@ -243,6 +245,8 @@ def approuver(u, did: int, d) -> dict:
     from .gel import gel_actif
     if gel_actif(x["tiers_id"]):                                       # registre CR-25
         raise ErreurMetier("Avoirs gelés : aucun crédit à ce client (loi 22/068, art. 158 bis ; E10).")
+    from .liste_rouge import controler as liste_rouge
+    liste_rouge(x["tiers_id"])                                         # registre CR-9
     if not une("""select 1 from consentement where tiers_id = %s and date_debut <= %s and (date_fin is null or date_fin >= %s)""", (x["tiers_id"], j, j)):
         raise ErreurMetier("Pas de consentement écrit à la Centrale des risques en cours de validité (Client > Consentement ; Instr. BCC 05, art. 13).")
     try:

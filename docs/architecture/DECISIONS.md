@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**599 décisions.** Solidité : 257 fortes (le manuel ou un texte répond), 290 moyennes (déduites d'un écran voisin ou d'une donnée), 52 faibles (notre choix, faute de mieux). Dans le code : 569 déjà en place, 26 à appliquer.
+**603 décisions.** Solidité : 258 fortes (le manuel ou un texte répond), 292 moyennes (déduites d'un écran voisin ou d'une donnée), 53 faibles (notre choix, faute de mieux). Dans le code : 574 déjà en place, 26 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -981,7 +981,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | E10-1 | Où et pour qui | Onglet « Gel des avoirs » de Client > Conformité > Examen renforcé (droit SC01). Le gel se saisit sur une décision : autorité (Conseil de sécurité, liste nationale CONASAFIC, BCC, Ministère public ou CENAREF), référence, date, motif. Il prend effet à l'enregistrement, sans attendre un second visa ni prévenir le client | Texte réglementaire : Loi 22/068 modifiée par la loi 25/048, art. 121, 158 et 158 bis (sans délai, sans notification préalable) ; loi 22/069, art. 71 et 73 ; Instr. BCC 15, art. 42 | forte | en place |
 | E10-2 | Effet | Tant que le gel n'est pas levé, aucune somme ne sort des comptes de dépôt ni des parts du client : le refus est posé au grand livre (toute écriture débitrice), et dès la saisie au retrait et au DAT. Les sommes reçues (dépôts, intérêts) entrent et restent gelées | Texte réglementaire : Loi 22/068 modifiée, art. 158 bis, 1° à 3° (fonds possédés, et ceux qui en proviennent) ; loi 22/069, art. 71, al. 2 (intérêts gelés) et art. 73 (fonds détenus ou reçus) | forte | en place |
 | E10-3 | Information et levée | L'information des autorités se note (date, référence). La levée exige la date et la référence de la décision qui la fonde ; elle est gardée avec son auteur | Texte réglementaire : Loi 22/068 modifiée, art. 162 (information sans délai du CONASAFIC et de la CENAREF), art. 121 (mainlevée), art. 169 (déblocage autorisé par le Ministre) ; loi 22/069, art. 76 (information de la BCC) | forte | en place |
-| E10-4 | Mise à l'index | La mise à l'index vaut aussi pour les COOPEC et les sociétés de microfinance, établissements de crédit au sens de la loi 22/069. Ses effets (suspension ou interdiction des services et facilités, art. 70 ; plus de crédit, Instr. 13, art. 7) s'appliqueront dans le module crédit, avec la liste rouge (S97) | Texte réglementaire : Loi 22/069, titre Ier (la loi s'applique aux coopératives d'épargne et de crédit et aux sociétés de microfinance) et art. 70 ; Instr. BCC 13, art. 1er, 6 et 7 | forte | à faire |
+| E10-4 | Mise à l'index | La mise à l'index vaut aussi pour les COOPEC et les sociétés de microfinance, établissements de crédit au sens de la loi 22/069. Ses effets (suspension ou interdiction des services et facilités, art. 70 ; plus de crédit, Instr. 13, art. 7) s'appliqueront dans le module crédit, avec la liste rouge (S97). Fait avec S97 : refus de la demande, de l'approbation et de la mise en place ; dirigeants reconnus par leur pièce ; associés : S97-4 | Texte réglementaire : Loi 22/069, titre Ier (la loi s'applique aux coopératives d'épargne et de crédit et aux sociétés de microfinance) et art. 70 ; Instr. BCC 13, art. 1er, 6 et 7 | forte | en place |
 
 ## E11 Comptes inactifs
 
@@ -1194,7 +1194,11 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| CR-9 | Effet | Un client inscrit ne peut ni déposer une demande, ni être approuvé, ni recevoir une mise en place. Une personne mise à l'index par la BCC y est inscrite avec la référence de la décision ; pour une personne morale, ses dirigeants et associés aussi | Choix du porteur : Décision du porteur, 19/11/2026 ; Instr. BCC 13, art. 7 ; E10-4 | forte | à appliquer |
+| CR-9 | Effet | Un client inscrit ne peut ni déposer une demande, ni être approuvé, ni recevoir une mise en place. Une personne mise à l'index par la BCC y est inscrite avec la référence de la décision ; pour une personne morale, ses dirigeants et associés aussi | Choix du porteur : Décision du porteur, 19/11/2026 ; Instr. BCC 13, art. 7 ; E10-4 | forte | en place |
+| S97-1 | Écran | Captures p. 119 et 120 « Gestion de la liste rouge » : Infos client (N° Client, Intitulé, Motif), Ajouter et Retirer, chacun avec sa confirmation (« Voulez-vous ajouter ce client à la liste rouge ? ») ; grille N° client, Intitulé, Date, Motif avec filtres (colonnes du milieu cachées par la fenêtre sur les captures : Intitulé et Date) | Manuel : Captures et texte p. 119 et 120 | moyenne | en place |
+| S97-2 | Motif | Obligatoire pour ajouter et pour retirer (texte : « renseigner le motif ensuite cliquer sur [Ajouter] », « … sur [Retirer] ») ; un client n'est inscrit qu'une fois ; l'historique garde la date, l'auteur et le motif du retrait | Manuel : Texte p. 119 et 120 | forte | en place |
+| S97-3 | Mise à l'index | Champ facultatif « Réf. décision BCC (mise à l'index) ». Une personne morale inscrite avec cette référence bloque aussi ses dirigeants devenus clients, reconnus par le numéro de leur pièce d'identité | Texte réglementaire : CR-9 ; Instr. BCC 13, art. 7 a et b | moyenne | en place |
+| S97-4 | Associés d'une personne morale indexée | L'article 7 b vise aussi les associés ; le logiciel n'a pas de registre des associés d'une entreprise (la fiche porte un dirigeant et des signataires) : à confirmer par le porteur (registre des associés à ajouter à la fiche entreprise S38 ?) | Texte réglementaire : Instr. BCC 13, art. 7 b | faible | à appliquer |
 
 ## S89, S92 Centrale des risques
 
@@ -1461,3 +1465,4 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S92-2 | S92 Crédits validés non débloqués | Crédits archivés | Case cochée : les crédits validés déjà débloqués (ou soldés) s'y ajoutent |
 | S94-3 | S94 Caution et nantissement | Garantie calculée | « Dépôt de garantie calculé » : l'épargne obligatoire du crédit (S89). « Caution calculée » : 0, le produit (S23) n'a pas de paramètre de caution |
 | S95-3 | S95 Consulter prêt | Boutons | B, P, R, Memo : les fenêtres de S76 (brouillard, plan, réel, memo) ; Tout sur le crédit : affiche la somme due ce jour ; H grisé, non expliqué par le manuel ; Percevoir int. par anticipation : la valeur du produit, en lecture |
+| S97-4 | S97 Liste rouge | Associés d'une personne morale indexée | L'article 7 b vise aussi les associés ; le logiciel n'a pas de registre des associés d'une entreprise (la fiche porte un dirigeant et des signataires) : à confirmer par le porteur (registre des associés à ajouter à la fiche entreprise S38 ?) |
