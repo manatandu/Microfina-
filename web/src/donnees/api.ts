@@ -3530,6 +3530,154 @@ const engagements = {
     return vueEngagement(x);
   },
 };
+// ---------- S101 : Crédit > Rapport (manuel p. 121, menu seul : huit rapports). Mêmes règles que serveur/noyau/rapports_credit.py.
+// Gabarit rapport ; colonnes des écrans du même objet (S93, S76, S98) ; indicateur de gestion selon l'annexe de l'Instr. BCC 004. Registre S101, CR-13, CR-26. ----------
+type TypeColonne = "texte" | "code" | "date" | "montant" | "nombre" | "taux";
+type Rapport = { colonnes: { titre: string; type: TypeColonne }[]; lignes: { v: (string | number | null)[]; devise: string; nombres?: boolean }[] };
+type CriteresRapport = { du?: string; au?: string; date?: string; produitId?: number | null; agentId?: number | null; sexe?: string; degre?: string; ordre?: string; mode?: string };
+const STATUTS_RAPPORT: Record<string, string> = { debloque: "Débloqué", solde: "Soldé", passe_en_perte: "Passé en perte" };
+const colRapport = (...x: [string, TypeColonne][]) => x.map(([titre, type]) => ({ titre, type }));
+const dateRapport = (v: string | undefined, nom: string) => { if (!DATE_ISO.test(v ?? "")) throw new ErreurMetier(`À remplir : ${nom}.`); return v!; };
+const periodeRapport = (p: CriteresRapport) => { const du = dateRapport(p.du, "Du"), au = dateRapport(p.au, "Au"); if (du > au) throw new ErreurMetier("Du : avant la date Au."); return [du, au] as const; };
+const membreDe = (tid: number) => E.tiers.find((t) => t.id === tid)!.numero;
+const creditsRapport = (p: CriteresRapport, d: string) => E.credits.filter((c) => ["debloque", "solde", "passe_en_perte"].includes(c.statut) && c.debloqueLe && c.debloqueLe <= d
+  && (!p.produitId || c.produitId === p.produitId) && (!p.agentId || c.agentId === p.agentId)).sort((a, b) => a.numero.localeCompare(b.numero));
+function couvertureRapport(c: CreditPret, d: string) {
+  const s = etatCredit(c, d);
+  let reg = s.payes.capital! - s.payes.capitalAnticipe! + s.payes.interet!, cumul = 0;
+  return s.echeances.map((e) => { const du = e.capital + e.interet, paye = Math.max(0, Math.min(du, reg - cumul)); cumul += du; return { e, paye }; });
+}
+const enCoursRapport = (p: CriteresRapport, d: string) => creditsRapport(p, d).map((c) => ({ c, s: etatCredit(c, d), l: ligneVisa(c) }))
+  .filter(({ c, s }) => s.capitalRestant > 0 && !(c.statut === "passe_en_perte" && (c.radieLe ?? "") <= d));
+const ORDRES_RAPPORT: Record<string, string> = { produit: "Produit", agent: "Agent crédit", degre: "Degré", sexe: "Sexe" };
+const jourRapport = () => journees.courante()?.date ?? new Date().toISOString().slice(0, 10);
+const pctRapport = (a: number, b: number) => (b ? Math.round(a * 10000 / b) / 100 : null);
+function soldesRapport(du: string | null, au: string) {
+  const r: Record<string, number> = {};
+  for (const e of E.ecritures) { const d = E.journees.find((j) => j.id === e.journeeId)?.date ?? ""; if (d > au || (du && d < du)) continue;
+    for (const l of e.lignes) r[l.compte] = (r[l.compte] ?? 0) + (l.sens === "D" ? l.montantCdf : -l.montantCdf); }
+  return r;
+}
+const classeRapport = (s: Record<string, number>, pre: string[], exclus: string[] = []) => Object.entries(s).filter(([k]) => pre.some((x) => k.startsWith(x)) && !exclus.some((x) => k.startsWith(x))).reduce((t, [, v]) => t + v, 0);
+const CONTRA = ["28", "38", "48", "58"];
+const actifRapport = (s: Record<string, number>) => Object.entries(s).filter(([k]) => "2345".includes(k[0]!) && !CONTRA.some((x) => k.startsWith(x)) && k.length > 2).reduce((t, [, v]) => t + Math.max(v, 0), 0)
+  + classeRapport(s, CONTRA);
+const fondsPropresRapport = (s: Record<string, number>) => -classeRapport(s, ["10", "11", "12", "13", "14", "15"]) - classeRapport(s, ["6", "7"]);
+function portefeuilleRapport(d: string) {
+  let brut = 0, risque = 0; const tiers = new Set<number>(), agents = new Set<number>();
+  for (const { c, s } of enCoursRapport({}, d)) { const r = Math.round(s.capitalRestant * coursDe(c.devise, d)); brut += r; if (s.joursRetard >= 1) risque += r; tiers.add(c.tiersId); if (c.agentId) agents.add(c.agentId); }
+  return { brut, risque, emprunteurs: tiers.size, agents: agents.size };
+}
+const veilleDe = (d: string) => new Date(Date.parse(`${d}T00:00:00Z`) - 86400000).toISOString().slice(0, 10);
+const rapportsCredit: Record<string, (p: CriteresRapport) => Rapport> = {
+  journal(p) {
+    const [du, au] = periodeRapport(p), ids = new Map(creditsRapport(p, au).map((c) => [c.id, c])), lignes: Rapport["lignes"] = [];
+    for (const e of E.ecritures) {
+      const d = E.journees.find((j) => j.id === e.journeeId)?.date ?? ""; if (d < du || d > au) continue;
+      for (const l of e.lignes) { if (!l.contrat?.startsWith("credit:")) continue; const c = ids.get(Number(l.contrat.split(":")[1])); if (!c) continue;
+        lignes.push({ v: [d, e.piece, c.numero, membreDe(c.tiersId), titulaire(E.tiers.find((t) => t.id === c.tiersId)!), e.libelle, l.compte, l.sens === "D" ? l.montant : null, l.sens === "C" ? l.montant : null], devise: l.devise }); }
+    }
+    return { colonnes: colRapport(["Date", "date"], ["N°Pièce", "code"], ["N° crédit", "code"], ["N°Membre", "code"], ["Intitulé", "texte"], ["Libellé", "texte"], ["Compte", "code"], ["Débit", "montant"], ["Crédit", "montant"]),
+      lignes: lignes.sort((a, b) => String(a.v[0]).localeCompare(String(b.v[0]))) };
+  },
+  base(p) {
+    const [du, au] = periodeRapport(p);
+    return { colonnes: colRapport(["N° crédit", "code"], ["N°Membre", "code"], ["Intitulé", "texte"], ["Produit", "texte"], ["Agent crédit", "texte"], ["Date déblocage", "date"], ["Durée", "nombre"],
+      ["Taux", "texte"], ["Montant prêt", "montant"], ["Capital restant", "montant"], ["Statut", "texte"]),
+      lignes: creditsRapport(p, au).filter((c) => c.debloqueLe >= du).map((c) => { const l = ligneVisa(c), s = etatCredit(c, au);
+        return { v: [c.numero, membreDe(c.tiersId), l.client, l.produit, l.agent, c.debloqueLe, c.duree, String(c.tauxInteret ?? "").replace(".", ","), c.montant, s.capitalRestant, STATUTS_RAPPORT[c.statut]!], devise: c.devise }; }) };
+  },
+  multicritere(p) {
+    const d = dateRapport(p.date, "Date"), ordre = p.ordre && ORDRES_RAPPORT[p.ordre] ? p.ordre : "produit";
+    const rows = enCoursRapport(p, d).map((x) => ({ ...x, sexe: ficheClient(x.c.tiersId).sexe || "Morale" })).filter((x) => (!p.sexe || x.sexe === p.sexe) && (!p.degre || x.s.degreLibelle === p.degre));
+    if (p.mode === "groupe") {
+      const g = new Map<string, [string, string, number, number, number]>();
+      for (const x of rows) { const k = ({ produit: x.l.produit, agent: x.l.agent, degre: x.s.degreLibelle, sexe: x.sexe } as Record<string, string>)[ordre]!, cle = `${k}\u0000${x.c.devise}`;
+        const t = g.get(cle) ?? [k, x.c.devise, 0, 0, 0]; t[2]++; t[3] += x.c.montant; t[4] += x.s.capitalRestant; g.set(cle, t); }
+      return { colonnes: colRapport([ORDRES_RAPPORT[ordre]!, "texte"], ["Nombre", "nombre"], ["Montant prêt", "montant"], ["Capital restant", "montant"]),
+        lignes: [...g.values()].sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1])).map(([k, dv, n, m, r]) => ({ v: [k, n, m, r], devise: dv })) };
+    }
+    return { colonnes: colRapport(["N° crédit", "code"], ["N°Membre", "code"], ["Intitulé", "texte"], ["Sexe", "texte"], ["Produit", "texte"], ["Agent crédit", "texte"], ["Montant prêt", "montant"],
+      ["Capital restant", "montant"], ["Jours retard", "nombre"], ["Degré", "texte"]),
+      lignes: rows.map((x) => ({ v: [x.c.numero, membreDe(x.c.tiersId), x.l.client, x.sexe, x.l.produit, x.l.agent, x.c.montant, x.s.capitalRestant, x.s.joursRetard, x.s.degreLibelle], devise: x.c.devise })) };
+  },
+  synthese(p) {
+    const d = dateRapport(p.date, "Date"), b = E.balancesAgees.find((x) => x.date === d);
+    if (!b) throw new ErreurMetier(`Aucune balance âgée au ${frDate(d)} : la lancer d'abord (Génération de balance âgée).`);
+    const g = new Map<string, [number, string, number, number, number, number]>(), tot: Record<string, number> = {}, D = fixeCredit("degres");
+    for (const x of b.lignes.filter((y) => (!p.produitId || y.produitId === p.produitId) && (!p.agentId || y.agentId === p.agentId))) {
+      const rang = x.assimile ? 2 : x.degre, cle = `${rang}\u0000${x.devise}`, t = g.get(cle) ?? [rang, x.devise, 0, 0, 0, 0];
+      t[2]++; t[3] += x.capitalRestant; t[4] += x.capitalImpaye; t[5] += x.interetImpaye; g.set(cle, t); tot[x.devise] = (tot[x.devise] ?? 0) + x.capitalRestant;
+    }
+    return { colonnes: colRapport(["Degré", "texte"], ["Nombre", "nombre"], ["Capital restant", "montant"], ["Capital impayé", "montant"], ["Intérêts impayés", "montant"], ["% de l'encours", "taux"],
+      ["Taux provision", "taux"], ["Provision requise", "montant"]),
+      lignes: [...g.values()].sort((a, b2) => a[0] - b2[0] || a[1].localeCompare(b2[1])).map(([rang, dv, n, r, ci, ii]) => { const taux = rang > 1 ? Number(D[rang - 1]!.taux) : 0;
+        const lib = String(D[rang - 1]!.libelle) + (rang > 1 && rang < D.length ? ` ${D[rang - 1]!.debut} à ${D[rang - 1]!.fin} jours` : "");
+        return { v: [lib, n, r, ci, ii, tot[dv] ? Math.round(r * 10000 / tot[dv]!) / 100 : 0, taux, Math.floor(r * taux / 100)], devise: dv }; }) };
+  },
+  taux(p) {
+    const [du, au] = periodeRapport(p), g = new Map<string, [string, string, number, number]>();
+    for (const c of creditsRapport(p, au)) { const ag = ligneVisa(c).agent;
+      for (const { e, paye } of couvertureRapport(c, au)) if (e.date >= du && e.date <= au) { const cle = `${ag}\u0000${c.devise}`, t = g.get(cle) ?? [ag, c.devise, 0, 0]; t[2] += e.capital + e.interet; t[3] += paye; g.set(cle, t); } }
+    return { colonnes: colRapport(["Agent crédit", "texte"], ["Montant échu", "montant"], ["Montant remboursé", "montant"], ["Impayé", "montant"], ["Taux de remboursement", "taux"]),
+      lignes: [...g.values()].sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1])).map(([a, dv, e, r]) => ({ v: [a, e, r, e - r, e ? Math.round(r * 10000 / e) / 100 : 0], devise: dv })) };
+  },
+  previsionnel(p) {
+    const [du, au] = periodeRapport(p), jour = jourRapport(), mois: [number, number][] = [];
+    let a = Number(du.slice(0, 4)), m = Number(du.slice(5, 7));
+    while (a * 12 + m <= Number(au.slice(0, 4)) * 12 + Number(au.slice(5, 7))) { mois.push([a, m]); if (m === 12) { a++; m = 1; } else m++; }
+    const g = new Map<string, [string, string, number, number, number]>();
+    for (const c of creditsRapport(p, jour).filter((x) => x.statut === "debloque")) {
+      const s = etatCredit(c, jour);
+      for (const [aa, mm] of mois) { const cle = `${aa}-${String(mm).padStart(2, "0")}\u0000${c.devise}`, fin = new Date(Date.UTC(aa, mm, 0)).toISOString().slice(0, 10), pre = cle.slice(0, 7);
+        const t = g.get(cle) ?? [cle.split("\u0000")[0]!, c.devise, 0, 0, 0];
+        t[2] += s.nonEchu.filter((e) => e.date.slice(0, 7) === pre).reduce((x, e) => x + e.capital, 0); t[3] += s.nonEchu.filter((e) => e.date.slice(0, 7) === pre).reduce((x, e) => x + e.interet, 0);
+        t[4] += s.capitalRestant - s.nonEchu.filter((e) => e.date <= fin).reduce((x, e) => x + e.capital, 0); g.set(cle, t); }
+    }
+    return { colonnes: colRapport(["Mois", "texte"], ["Capital attendu", "montant"], ["Intérêts attendus", "montant"], ["Encours prévu en fin de mois", "montant"]),
+      lignes: [...g.values()].sort((x, y) => x[0].localeCompare(y[0]) || x[1].localeCompare(y[1])).map(([k, dv, ca, ia, e]) => ({ v: [`${k.slice(5, 7)}/${k.slice(0, 4)}`, ca, ia, Math.max(0, e)], devise: dv })) };
+  },
+  exigibles(p) {
+    const [du, au] = periodeRapport(p), jour = jourRapport(), lignes: Rapport["lignes"] = [];
+    for (const c of creditsRapport(p, au).filter((x) => x.statut === "debloque")) { const l = ligneVisa(c);
+      for (const { e, paye } of couvertureRapport(c, jour)) { const reste = e.capital + e.interet - paye;
+        if (e.date >= du && e.date <= au && reste > 0) lignes.push({ v: [c.numero, membreDe(c.tiersId), l.client, ficheClient(c.tiersId).telephone, l.agent, e.date, e.capital, e.interet, reste, Math.max(0, joursRemb(e.date, jour))], devise: c.devise }); } }
+    return { colonnes: colRapport(["N° crédit", "code"], ["N°Membre", "code"], ["Intitulé", "texte"], ["Contact", "texte"], ["Agent crédit", "texte"], ["Date échéance", "date"], ["Capital", "montant"],
+      ["Intérêt", "montant"], ["Reste dû", "montant"], ["Jours retard", "nombre"]), lignes: lignes.sort((a, b) => String(a.v[5]).localeCompare(String(b.v[5])) || String(a.v[0]).localeCompare(String(b.v[0]))) };
+  },
+  indicateurs(p) {
+    const [du, au] = periodeRapport(p), veille = veilleDe(du), s0 = soldesRapport(null, veille), s1 = soldesRapport(null, au), mv = soldesRapport(du, au);
+    const p0 = portefeuilleRapport(veille), p1 = portefeuilleRapport(au), brutMoyen = (p0.brut + p1.brut) / 2;
+    const pertes = E.provisionsCredit.filter((x) => x.nature === "radiation" && x.date >= du && x.date <= au)
+      .reduce((t, x) => t + Math.round(x.capitalRestant * coursDe(E.credits.find((c) => c.id === x.creditId)!.devise, x.date)), 0);
+    const charges = classeRapport(mv, ["6"], ["67"]), produits = -classeRapport(mv, ["7"], ["77"]), resultat = produits + classeRapport(mv, ["76"]) - charges;
+    const fpMoyen = (fondsPropresRapport(s0) + fondsPropresRapport(s1)) / 2, actif1 = actifRapport(s1), actifMoyen = (actifRapport(s0) + actif1) / 2;
+    const interets = -classeRapport(mv, ["71"]), dispo = Object.entries(s1).filter(([k]) => (k.startsWith("56") || k.startsWith("57")) && k.length > 2).reduce((t, [, v]) => t + Math.max(v, 0), 0);
+    const immo = classeRapport(s1, ["2"]);
+    const R: [string, string, number, number, number | null, string, (v: number) => boolean][] = [
+      ["Indicateurs de qualité", "Portefeuille à Risque", p1.risque, p1.brut, pctRapport(p1.risque, p1.brut), "< 5 %", (v) => v < 5],
+      ["Indicateurs de qualité", "Ratio d'abandon des créances", pertes, brutMoyen, pctRapport(pertes, brutMoyen), "< 2 %", (v) => v < 2],
+      ["Indicateurs d'efficacité et productivité", "Efficacité opérationnelle", charges, brutMoyen, pctRapport(charges, brutMoyen), "Entre 13 et 21 %", (v) => v >= 13 && v <= 21],
+      ["Indicateurs d'efficacité et productivité", "Nombre d'emprunteurs par agent de crédit", p1.emprunteurs, p1.agents, p1.agents ? Math.round(p1.emprunteurs * 100 / p1.agents) / 100 : null, "> 130", (v) => v > 130],
+      ["Indicateurs de rentabilité", "Rentabilité des fonds propres", resultat, fpMoyen, pctRapport(resultat, fpMoyen), "> 15 %", (v) => v > 15],
+      ["Indicateurs de rentabilité", "Rendement sur actif", resultat, actifMoyen, pctRapport(resultat, actifMoyen), "> 3 %", (v) => v > 3],
+      ["Indicateurs de rentabilité", "Rendement du portefeuille", interets, brutMoyen, pctRapport(interets, brutMoyen), "> 15 %", (v) => v > 15],
+      ["Indicateurs de rentabilité", "Autosuffisance opérationnelle", produits, charges, pctRapport(produits, charges), "> 119,2 %", (v) => v > 119.2],
+      ["Indicateur de gestion du bilan", "Taux d'encaisse oisive", dispo, actif1, pctRapport(dispo, actif1), "< 20 %", (v) => v < 20],
+      ["Indicateur de gestion du bilan", "Taux d'encours de crédit", p1.brut, actif1, pctRapport(p1.brut, actif1), "> 70 %", (v) => v > 70],
+      ["Indicateur de gestion du bilan", "Taux des immobilisations", immo, actif1, pctRapport(immo, actif1), "< 10 %", (v) => v < 10]];
+    return { colonnes: colRapport(["Indicateurs", "texte"], ["Ratios", "texte"], ["Numérateur", "montant"], ["Dénominateur", "montant"], ["Valeur", "taux"], ["Norme", "texte"], ["Respectée", "texte"]),
+      lignes: R.map(([i, r, n, d, v, nm, ok]) => ({ v: [i, r, Math.round(n), d ? Math.round(d) : 0, v, nm, v === null ? "" : ok(v) ? "Oui" : "Non"], devise: "CDF", ...(r.startsWith("Nombre") ? { nombres: true } : {}) })) };
+  },
+};
+const rapportsCreditApi = {
+  rapport(nom: string, p: CriteresRapport): Rapport {
+    lectureAdmin(["S101"]);
+    const f = rapportsCredit[nom];
+    if (!f) throw new ErreurMetier("Rapport inconnu.");
+    return f(p);
+  },
+};
 const joursRemb = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000);
 const champ = (e: EcheanceCredit, k: string) => Number((e as Record<string, unknown>)[k] ?? 0);
 function degreDe(j: number): [number, string] {
@@ -6111,6 +6259,7 @@ const apiLocal = {
   balanceAgee: asynchrone(balanceAgee, "balanceAgee"),
   provisions: asynchrone(provisions, "provisions"),
   engagements: asynchrone(engagements, "engagements"),
+  rapportsCredit: asynchrone(rapportsCreditApi, "rapportsCredit"),
   societe: asynchrone(societe, "societe"),
   agents: asynchrone(agents, "agents"),
   jours: asynchrone(jours, "jours"),

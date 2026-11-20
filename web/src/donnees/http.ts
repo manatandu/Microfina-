@@ -88,6 +88,9 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       beneficiaire: (tid: number) => get(`/credit/engagements/beneficiaire/${tid}`),
       enregistrer: (p: unknown) => post("/credit/engagements", p),
     },
+    rapportsCredit: {
+      rapport: (nom: string, p: Record<string, unknown>) => get(`/credit/rapports/${nom}?${new URLSearchParams(Object.entries(p).filter(([, v]) => v !== null && v !== undefined && v !== "").map(([k, v]) => [k, String(v)]))}`),
+    },
     affectation: {
       contexte: () => get("/credit/affectation/contexte"),
       portefeuille: (agent: number) => get(`/credit/affectation/${agent}`),

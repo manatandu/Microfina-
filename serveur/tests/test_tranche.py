@@ -3277,3 +3277,36 @@ def test_engagement_signature(clients, journee):
     from noyau.dossiers import encours
     assert encours({"institution_id": ident("select institution_id from tiers where id = %s", (k,)), "agence_id": ident("select id from agence limit 1")}, [k]) >= 50000000
     assert caisse.get("/api/credit/engagements", **H).status_code == 403
+
+
+def test_rapports_credit(clients, journee):
+    """S101 (p. 121, menu seul) : huit rapports (registre S101-1 à S101-10, CR-13) ; indicateur de gestion selon l'annexe de l'Instr. BCC 004 (CR-26)"""
+    from django.db import connection
+    agent, caisse = clients["agent"], clients["caisse"]
+    cid = credit_debloque(clients, journee)
+    cap = ident("select montant from credit where id = %s", (cid,))
+    with connection.cursor() as cur:                                     # première échéance due il y a 10 jours
+        cur.execute("update echeance set date_due = (date_due - interval '40 days')::date where credit_id = %s", (cid,))
+    e1 = lignes_bd("select date_due, capital, interet from echeance where credit_id = %s order by rang limit 1", (cid,))[0]
+    r = lambda nom, **k: agent.get(f"/api/credit/rapports/{nom}", k, **H)
+    j = r("journal", du="2026-11-01", au="2026-11-05").json()
+    assert [c["titre"] for c in j["colonnes"]][:3] == ["Date", "N°Pièce", "N° crédit"] and any(x["v"][2] == "0412/L001/00001" for x in j["lignes"])
+    b = r("base", du="2026-11-01", au="2026-11-05").json()["lignes"]
+    assert (b[0]["v"][0], b[0]["v"][8], b[0]["v"][9], b[0]["v"][10]) == ("0412/L001/00001", cap, cap, "Débloqué")
+    g = r("multicritere", date="2026-11-05", mode="groupe", ordre="degre").json()["lignes"]
+    assert [x["v"][:2] for x in g] == [["Impayés", 1]]
+    assert "lancer d'abord" in r("synthese", date="2026-11-05").json()["message"]
+    agent.post("/api/credit/balance-agee", {"date": "2026-11-05"}, **H)
+    s = r("synthese", date="2026-11-05").json()["lignes"]
+    assert (s[0]["v"][1], s[0]["v"][2], s[0]["v"][5], s[0]["v"][6], s[0]["v"][7]) == (1, cap, 100, 5, cap * 5 // 100)
+    t = r("taux", du="2026-10-01", au="2026-11-05").json()["lignes"]
+    assert (t[0]["v"][1], t[0]["v"][2], t[0]["v"][4]) == (e1[1] + e1[2], 0, 0)
+    x = r("exigibles", du="2026-10-01", au="2026-11-05").json()["lignes"]
+    assert (x[0]["v"][5], x[0]["v"][8], x[0]["v"][9]) == (e1[0].isoformat(), e1[1] + e1[2], 10)
+    pv = r("previsionnel", du="2026-11-01", au="2027-12-31").json()["lignes"]
+    assert pv[-1]["v"][3] == e1[1] and sum(y["v"][1] for y in pv) == ident("select sum(capital) from echeance where credit_id = %s and date_due > '2026-11-05'", (cid,))
+    ind = {y["v"][1]: y["v"] for y in r("indicateurs", du="2026-11-01", au="2026-11-05").json()["lignes"]}
+    assert ind["Portefeuille à Risque"][4] == 100 and ind["Portefeuille à Risque"][6] == "Non"
+    assert ind["Nombre d'emprunteurs par agent de crédit"][4] == 1
+    assert "Rapport inconnu" in r("x").json()["message"] and "Du" in r("base", du="2026-11-06", au="2026-11-05").json()["message"]
+    assert caisse.get("/api/credit/rapports/base", {"du": "2026-11-01", "au": "2026-11-05"}, **H).status_code == 403

@@ -611,6 +611,17 @@ def engagements_enregistrer(request, corps: dict = Body(...)):
     return en.enregistrer(u(request), corps)
 
 
+# ---------- S101 : rapports crédit (p. 121) ----------
+@api.get("/credit/rapports/{nom}")
+def rapports_credit(request, nom: str):
+    from . import rapports_credit as rc
+    p = {k: v for k, v in request.GET.items() if v != ""}
+    for k in ("produitId", "agentId"):
+        if k in p:
+            p[k] = int(p[k]) if p[k].isdigit() else None
+    return rc.rapport(u(request), nom, p)
+
+
 @api.get("/credit/visas/contexte")
 def visas_contexte(request):
     from .services import est_coopec

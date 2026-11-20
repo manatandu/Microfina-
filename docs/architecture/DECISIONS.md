@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**622 décisions.** Solidité : 268 fortes (le manuel ou un texte répond), 301 moyennes (déduites d'un écran voisin ou d'une donnée), 53 faibles (notre choix, faute de mieux). Dans le code : 596 déjà en place, 23 à appliquer.
+**632 décisions.** Solidité : 268 fortes (le manuel ou un texte répond), 308 moyennes (déduites d'un écran voisin ou d'une donnée), 56 faibles (notre choix, faute de mieux). Dans le code : 608 déjà en place, 21 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1228,7 +1228,17 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| CR-13 | Sept rapports sans capture | Journal, Rapports de base, Multicritère, Synthèse de la balance âgée, Taux de remboursements, Encours prévisionnel, Exigibles : définis par nous sur le modèle de S72 et S93, chaque choix au registre, à valider en fin d'étape. Indicateur de gestion : les ratios de l'Instr. BCC 004 | Choix du porteur : Décision du porteur, 19/11/2026 ; Instr. BCC 004, annexe | moyenne | à appliquer |
+| CR-13 | Sept rapports sans capture | Journal, Rapports de base, Multicritère, Synthèse de la balance âgée, Taux de remboursements, Encours prévisionnel, Exigibles : définis par nous sur le modèle de S72 et S93, chaque choix au registre, à valider en fin d'étape. Indicateur de gestion : les ratios de l'Instr. BCC 004 | Choix du porteur : Décision du porteur, 19/11/2026 ; Instr. BCC 004, annexe | moyenne | en place |
+| S101-1 | Écran | Un onglet par entrée du menu, dans l'ordre et avec le nom du menu ; chaque rapport : critères, Afficher, grille paginée, Export (gabarit rapport). Filtres communs : Produit crédit, Agence, Agent, comme l'état de crédit (S93) | Écran voisin : Capture du menu p. 121 ; COMPLEMENTS § 4.5 ; S93-1 ; CR-13 | moyenne | en place |
+| S101-2 | Journal | Période (date de l'écriture) : les lignes d'écriture qui touchent un crédit (déblocage, remboursement, garanties, provisions, passage en perte) : Date, N°Pièce, N° crédit, N°Membre, Intitulé, Libellé, Compte, Débit, Crédit | Écran voisin : S72-1 (même forme) ; CR-13 | moyenne | en place |
+| S101-3 | Rapports de base | Période (date de déblocage) : les crédits débloqués, avec leur situation à la date de fin : N° crédit, N°Membre, Intitulé, Produit, Agent crédit, Date déblocage, Durée, Taux, Montant prêt, Capital restant, Statut | Écran voisin : S93-2 ; CR-13 | moyenne | en place |
+| S101-4 | Rapport multicritère | À une date : crédits en cours ; critères Sexe, Degré, Ordonner suivant (Produit, Agent crédit, Degré, Sexe) ; Détaillé une ligne par crédit, Groupé nombre, montant prêt et capital restant par valeur et devise | Écran voisin : S72-3 ; CR-13 | moyenne | en place |
+| S101-5 | Synthèse de la balance âgée | La balance générée à la date (S98), par degré de S21 et devise : nombre, capital restant, capital et intérêts impayés, part de l'encours, taux et provision requise ; sans balance à cette date, message | Texte réglementaire : S98-2 ; Instr. BCC 003, art. 12 ; S21-1 | moyenne | en place |
+| S101-6 | Taux de remboursements | Échéances dues dans la période, par agent et devise : montant échu, part couverte par les paiements faits au plus tard à la date de fin (dans l'ordre des échéances, comme le retard de S76), impayé, taux = remboursé / échu | Écran voisin : S76 (calcul du retard) ; CR-13 | faible | en place |
+| S101-7 | Encours prévisionnel | À partir de la journée, pour chaque mois de la période : capital et intérêts attendus selon les échéanciers, encours prévu en fin de mois (l'impayé reste dans l'encours) | Écran voisin : Échéanciers des crédits (S75) ; CR-13 | faible | en place |
+| S101-8 | Rapport des exigibles | Échéances dues dans la période et pas entièrement payées au jour de la journée : N° crédit, N°Membre, Intitulé, Contact, Agent crédit, Date échéance, Capital, Intérêt, Reste dû, Jours retard | Écran voisin : S76 ; CR-13 | moyenne | en place |
+| S101-9 | Indicateur de gestion : ratios | Les onze ratios de l'annexe, avec leurs formules et normes, numérateur et dénominateur affichés, en CDF. Montant moyen : moyenne du début et de la fin de la période. Portefeuille brut : capital restant dû des crédits en cours ; à risque : ceux qui ont au moins un jour de retard. Charges et produits d'exploitation : classes 6 et 7 de la période, hors 67 et 77 ; résultat hors subventions d'exploitation (76). Fonds propres : comptes 10 à 15 et résultat de l'exercice. Actif : soldes débiteurs des classes 2 à 5, moins amortissements et provisions (28, 38, 48, 58). Disponibles : 56 et 57. Immobilisations nettes : classe 2 | Texte réglementaire : Instr. BCC 004, art. 3 à 8 et annexe ; PCCI, classes 1 à 7 | moyenne | en place |
+| S101-10 | Indicateur de gestion : emprunteurs par agent | Le nombre d'emprunteurs actifs divisé par le nombre d'agents de crédit qui gèrent un crédit en cours, sans le « x 100 » de l'annexe : la norme (> 130) est un nombre d'emprunteurs. À confirmer par le porteur | Texte réglementaire : Instr. BCC 004, annexe | faible | en place |
 
 ## S88, S100 Limites
 
@@ -1303,7 +1313,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| CR-26 | Ratios | Portefeuille à risque (< 5 %), ratio d'abandon des créances (< 2 %), efficacité opérationnelle, emprunteurs par agent de crédit, rendement du portefeuille, etc., selon les formules et normes de l'annexe | Texte réglementaire : Instr. BCC 004, art. 3 à 8 et annexe | forte | à appliquer |
+| CR-26 | Ratios | Portefeuille à risque (< 5 %), ratio d'abandon des créances (< 2 %), efficacité opérationnelle, emprunteurs par agent de crédit, rendement du portefeuille, etc., selon les formules et normes de l'annexe | Texte réglementaire : Instr. BCC 004, art. 3 à 8 et annexe | forte | en place |
 
 ## S86 Dossier : analyse (demande)
 
@@ -1495,3 +1505,6 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S94-3 | S94 Caution et nantissement | Garantie calculée | « Dépôt de garantie calculé » : l'épargne obligatoire du crédit (S89). « Caution calculée » : 0, le produit (S23) n'a pas de paramètre de caution |
 | S95-3 | S95 Consulter prêt | Boutons | B, P, R, Memo : les fenêtres de S76 (brouillard, plan, réel, memo) ; Tout sur le crédit : affiche la somme due ce jour ; H grisé, non expliqué par le manuel ; Percevoir int. par anticipation : la valeur du produit, en lecture |
 | S97-4 | S97 Liste rouge | Associés d'une personne morale indexée | L'article 7 b vise aussi les associés ; le logiciel n'a pas de registre des associés d'une entreprise (la fiche porte un dirigeant et des signataires) : à confirmer par le porteur (registre des associés à ajouter à la fiche entreprise S38 ?) |
+| S101-6 | S101 Rapports crédit | Taux de remboursements | Échéances dues dans la période, par agent et devise : montant échu, part couverte par les paiements faits au plus tard à la date de fin (dans l'ordre des échéances, comme le retard de S76), impayé, taux = remboursé / échu |
+| S101-7 | S101 Rapports crédit | Encours prévisionnel | À partir de la journée, pour chaque mois de la période : capital et intérêts attendus selon les échéanciers, encours prévu en fin de mois (l'impayé reste dans l'encours) |
+| S101-10 | S101 Rapports crédit | Indicateur de gestion : emprunteurs par agent | Le nombre d'emprunteurs actifs divisé par le nombre d'agents de crédit qui gèrent un crédit en cours, sans le « x 100 » de l'annexe : la norme (> 130) est un nombre d'emprunteurs. À confirmer par le porteur |

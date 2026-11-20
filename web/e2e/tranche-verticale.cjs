@@ -762,6 +762,11 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('cell', { name: 'ES-2026-001', exact: true }).waitFor(); await p.getByRole('button', { name: 'Imprimer' }).click();
   await p.getByRole('heading', { name: 'ENGAGEMENT PAR SIGNATURE', exact: true }).waitFor(); await etape('11n-acte-engagement'); await p.getByRole('dialog', { name: 'Engagement par signature' }).getByRole('button', { name: 'Fermer' }).click();
+  // Rapports crédit (S101, p. 121) : synthèse de la balance âgée du jour, puis indicateur de gestion (Instr. BCC 004)
+  await aller('/credit/s101?page=synthese'); await p.getByLabel('Date', { exact: true }).fill('05/11/2026'); await p.getByRole('button', { name: 'Afficher' }).click();
+  await p.getByRole('cell', { name: 'Sains', exact: true }).waitFor(); await etape('11o-synthese-balance-agee');
+  await p.getByRole('tab', { name: 'Indicateur de Gestion' }).click(); await p.getByLabel('Du', { exact: true }).fill('01/11/2026'); await p.getByLabel('Au', { exact: true }).fill('05/11/2026');
+  await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByRole('cell', { name: 'Portefeuille à Risque' }).waitFor(); await etape('11p-indicateur-gestion');
   await login('Esther Ngalula'); await aller('/caisse/s74?op=depot');
   await p.getByRole('tab', { name: 'Retrait en espèce' }).click(); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-01' });
   // Bouton Detail (registre S74-1) : relevé du compte en lecture seule ; masqué si le guichet n'a pas « Voir solde client » (S10-1)

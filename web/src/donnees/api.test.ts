@@ -2320,6 +2320,34 @@ describe("journée de guichet", () => {
     await expect(api.engagements.enregistrer(base)).rejects.toThrow("déjà utilisée");
   });
 
+  it("rapports crédit (S101, p. 121) : huit rapports (CR-13) ; indicateur de gestion selon l'annexe de l'Instr. BCC 004 (CR-26)", async () => {
+    const cid = await creditDebloque();
+    const j = (await api.journees.courante())!.date;
+    const c = _etat().credits.find((x) => x.id === cid)!, cap = c.montant;
+    const ecart = Math.round((Date.parse(`${c.echeancier[0]!.date}T00:00:00Z`) - Date.parse(`${j}T00:00:00Z`)) / 86400000);
+    for (const e of c.echeancier) e.date = new Date(Date.parse(`${e.date}T00:00:00Z`) - (ecart + 10) * 86400000).toISOString().slice(0, 10);
+    const e1 = c.echeancier[0]!;
+    await connecter("bkasongo");
+    const r = (nom: string, p: Record<string, unknown>) => api.rapportsCredit.rapport(nom, p);
+    expect((await r("journal", { du: "2026-11-01", au: j })).lignes.some((x) => x.v[2] === c.numero)).toBe(true);
+    const b = (await r("base", { du: "2026-11-01", au: j })).lignes[0]!.v;
+    expect([b[0], b[8], b[9], b[10]]).toEqual([c.numero, cap, cap, "Débloqué"]);   // comme le serveur
+    expect((await r("multicritere", { date: j, mode: "groupe", ordre: "degre" })).lignes.map((x) => x.v.slice(0, 2))).toEqual([["Impayés", 1]]);
+    await expect(r("synthese", { date: j })).rejects.toThrow("lancer d'abord");
+    await api.balanceAgee.lancer({ date: j });
+    const s = (await r("synthese", { date: j })).lignes[0]!.v;
+    expect([s[1], s[2], s[5], s[6], s[7]]).toEqual([1, cap, 100, 5, Math.floor(cap * 5 / 100)]);
+    const t = (await r("taux", { du: "2026-10-01", au: j })).lignes[0]!.v;
+    expect([t[1], t[2], t[4]]).toEqual([e1.capital + e1.interet, 0, 0]);
+    const x = (await r("exigibles", { du: "2026-10-01", au: j })).lignes[0]!.v;
+    expect([x[5], x[8], x[9]]).toEqual([e1.date, e1.capital + e1.interet, 10]);
+    const pv = (await r("previsionnel", { du: "2026-11-01", au: "2027-12-31" })).lignes;
+    expect(pv.at(-1)!.v[3]).toBe(e1.capital);
+    const ind = Object.fromEntries((await r("indicateurs", { du: "2026-11-01", au: j })).lignes.map((y) => [String(y.v[1]), y.v]));
+    expect([ind["Portefeuille à Risque"]![4], ind["Portefeuille à Risque"]![6], ind["Nombre d'emprunteurs par agent de crédit"]![4]]).toEqual([100, "Non", 1]);
+    await expect(r("x", {})).rejects.toThrow("Rapport inconnu");
+  });
+
   it("produit crédit (S23, p. 37 et 38) : méthode dégressive (Instr. BCC 38 art. 11), bornes, garanties, assurance, frais (Instr. BCC 40 art. 8)", async () => {
     await connecter("jpmukendi");
     const P = { typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: "2,5", tauxDiffere: 2,

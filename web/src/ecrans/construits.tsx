@@ -34,6 +34,7 @@ import ListeRouge from "./ListeRouge";
 import BalanceAgee from "./BalanceAgee";
 import Provisions from "./Provisions";
 import EngagementSignature from "./EngagementSignature";
+import RapportsCredit from "./RapportsCredit";
 import type { ComponentType } from "react";
 import GuichetDepotRetrait from "./Guichet";
 import Adhesion from "./Adhesion";
@@ -188,6 +189,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S98: BalanceAgee,
   S99: Provisions,
   S100: EngagementSignature,
+  S101: RapportsCredit,
   S79: BilletageCaisse,
   S80: ValidationBilletage,
   S102: PlanComptes,
