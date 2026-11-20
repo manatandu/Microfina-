@@ -183,8 +183,8 @@ export function AffectationGuichets() {
           { titre: "Agence", valeur: (l) => l.agence },
         ]} apres={{ titre: "Action", cellule: (l) => (
           <span className="actions-ligne">
-            <button className="bouton icone" type="button" disabled={!!l.guichetId} aria-label={`Ajouter un guichet : ${l.login}`} onClick={() => ouvrir(l)}>✎</button>
-            <button className="bouton icone" type="button" disabled={!l.guichetId} aria-label={`Retirer le guichet : ${l.login}`}
+            <button className="bouton icone secondaire" type="button" disabled={!!l.guichetId} aria-label={`Ajouter un guichet : ${l.login}`} onClick={() => ouvrir(l)}>✎</button>
+            <button className="bouton icone secondaire" type="button" disabled={!l.guichetId} aria-label={`Retirer le guichet : ${l.login}`}
               onClick={() => fini("Voulez-vous retirer le guichet à cet utilisateur", () => api.guichets.retirer(l.id))}>✖</button>
           </span>
         ) }} />

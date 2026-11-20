@@ -222,7 +222,7 @@ export function ModificationFrais() {
           </fieldset>
         </div>
         <div className="actions-onglets">
-          <button className="bouton" type="button" onClick={modifier}>Modifier</button>
+          <button className="bouton secondaire" type="button" onClick={modifier}>Modifier</button>
           <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
         </div>
         <Textes sources={["Manuel Microfina++, p. 53 : écran Modification de Frais, recherche par numéro, nom ou prénoms, montant modifié dans la Liste des frais liés, boutons Modifier et Annuler",

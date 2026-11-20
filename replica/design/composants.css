@@ -133,6 +133,7 @@ select.saisie:disabled { background-image: none; padding-right: 0; opacity: 1; }
 .saisie[readonly]:focus-visible { outline: 2px solid var(--tampon-pale); border-bottom-color: var(--tampon); }
 /* En saisie, montants et nombres à droite, chiffres de même largeur (SAP Fiori : « Amounts are right-aligned » en édition) */
 input.saisie.montant, input.saisie.nombre { text-align: right; font-family: var(--police-chiffres); font-variant-numeric: tabular-nums; }
+input.saisie.montant[readonly] { text-align: left; }   /* en lecture dans une section : juste après le libellé (DESIGN § 3.5) */
 .saisie.num { font-family: var(--police-chiffres); }
 .saisie.code { font-family: var(--police-chiffres); text-align: left; }   /* numéros, références : lus de gauche à droite */
 .saisie.date { font-family: var(--police-chiffres); max-width: 14ch; }   /* jj/mm/aaaa, jamais le format du navigateur */

@@ -59,7 +59,7 @@ function Onglet({ role }: { role: Role }) {
           onClick={() => confirmer("Voulez-vous vraiment modifier ?", () => api.agents.enregistrer(role, envoi(), choisi!))}>Modifier</button>
         {role !== "sensibilisateur" && <button className="bouton secondaire" type="button" disabled={choisi === null}
           onClick={() => confirmer("Voulez-vous vraiment supprimer ?", () => api.agents.supprimer(role, choisi!))}>Supprimer</button>}
-        <button className="bouton" type="button" onClick={() => setListe(true)}>{titreListe}</button>
+        <button className="bouton secondaire" type="button" onClick={() => setListe(true)}>{titreListe}</button>
       </div>
       <div className="grille-deux">
         <div className="pile champs-a-gauche">

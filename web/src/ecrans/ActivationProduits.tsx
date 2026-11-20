@@ -27,7 +27,7 @@ export default function ActivationProduitsCredit() {
       <section className="bloc pile" aria-label="Activation et désactivation de produit crédit">
         <div className="actions-onglets">
           <button className="bouton" type="button" onClick={() => traiter(true)}>Activer</button>
-          <button className="bouton" type="button" onClick={() => traiter(false)}>Désactiver</button>
+          <button className="bouton secondaire" type="button" onClick={() => traiter(false)}>Désactiver</button>
         </div>
         <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
           <caption>Liste des produits crédits</caption>

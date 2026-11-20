@@ -44,7 +44,7 @@ export default function RapportTransactions() {
             <td className="num">{nombre(total("transactions"))}</td></tr></tfoot>
         </table>)}</Paginee>
         <div className="actions-onglets">
-          <button className="bouton" type="button" onClick={exporter}>Export</button>
+          <button className="bouton secondaire" type="button" onClick={exporter}>Export</button>
         </div>
         <Textes sources={["Manuel Microfina++, p. 22 : Rapport des transactions, « Préciser la période du rapport des opérations correspondantes à afficher avant d'exporter », DU, AU, Afficher, Utilisateur, Nbres Opérations, Nbres Annulations, Nbres Tansactions, TOTAL, Export"]} />
       </section>

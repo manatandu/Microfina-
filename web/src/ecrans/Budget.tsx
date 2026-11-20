@@ -110,7 +110,7 @@ function PageBudget({ page, changer }: { page: string; changer: (p: string) => v
               ))}
             </tbody>
           </table>)}</Paginee>
-          {fiche.rafraichir && <div className="actions-onglets"><button className="bouton" type="button" onClick={() => setRelu((x) => x + 1)}>Rafraichir</button></div>}
+          {fiche.rafraichir && <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setRelu((x) => x + 1)}>Rafraichir</button></div>}
           <Textes sources={[`Manuel Microfina++, ${PAGES_MANUEL[page]}`, "Manuel Microfina++, p. 12 : modifier, supprimer ; « Les suppressions sont généralement logiques »",
             "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
         </section>

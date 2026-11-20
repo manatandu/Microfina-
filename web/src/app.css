@@ -56,6 +56,8 @@ a { color: var(--tampon); text-underline-offset: 3px; }
 .corps { display: grid; grid-template-columns: var(--mise-menu) minmax(0, 1fr); min-height: 0; background: var(--feuille); }
 /* Accès rapide : une colonne de liens, sans boîtes empilées (refonte v1.0) */
 .acces-rapide { border-right: 1px solid var(--trait); background: var(--papier); padding: var(--espace-3) var(--espace-2); display: grid; gap: 0; align-content: start; }
+/* Le menu défile dans sa colonne et reste en place : la hauteur de la page est celle de l'écran de travail (refonte v1.0) */
+@media (min-width: 861px) { .acces-rapide { position: sticky; top: 64px; align-self: start; max-height: calc(100vh - 64px); max-height: calc(100dvh - 64px); overflow-y: auto; overscroll-behavior: contain; } }
 .acces-rapide details { border: 0; border-bottom: 1px solid var(--ligne); border-radius: 0; background: none; }
 .acces-rapide summary { cursor: pointer; padding: var(--espace-2) var(--espace-2); font-size: var(--taille-dense); font-weight: 700; color: var(--encre); list-style: none; display: flex; justify-content: space-between; }
 .acces-rapide summary::-webkit-details-marker { display: none; }
@@ -360,12 +362,12 @@ button, summary, [role="tab"] { -webkit-user-select: none; user-select: none; }
 :root { --col-libelle: 10.5rem; }
 .cadre-champs { container-type: inline-size; }
 .ligne-champ .cadre-champs, .ligne-champ.cadre-champs { container-type: normal; }   /* cadre de filtres dans une rangée : il garde sa largeur naturelle */
-.cadre-champs .champ:not(.ligne-champ .champ), .champs-gauche .champ:not(.ligne-champ .champ) {
+.cadre-champs .champ:not(.ligne-champ .champ):not(.barre-filtres .champ), .champs-gauche .champ:not(.ligne-champ .champ):not(.barre-filtres .champ) {
   grid-template-columns: var(--col-libelle) minmax(0, 1fr); align-items: baseline; column-gap: var(--espace-3); row-gap: 2px;
 }
-.cadre-champs .champ:not(.ligne-champ .champ) > label { font-weight: 400; }
-.cadre-champs .champ:not(.ligne-champ .champ) > .aide, .cadre-champs .champ:not(.ligne-champ .champ) > .erreur { grid-column: 2; }
-.cadre-champs .champ:not(.ligne-champ .champ) > .saisie.date, .cadre-champs .champ:not(.ligne-champ .champ) > .saisie.court { max-width: none; }
+.cadre-champs .champ:not(.ligne-champ .champ):not(.barre-filtres .champ) > label { font-weight: 400; }
+.cadre-champs .champ:not(.ligne-champ .champ):not(.barre-filtres .champ) > .aide, .cadre-champs .champ:not(.ligne-champ .champ):not(.barre-filtres .champ) > .erreur { grid-column: 2; }
+.cadre-champs .champ:not(.ligne-champ .champ):not(.barre-filtres .champ) > .saisie.date, .cadre-champs .champ:not(.ligne-champ .champ):not(.barre-filtres .champ) > .saisie.court { max-width: none; }
 .cadre-champs .champ:has(> .saisie.date), .cadre-champs .champ:has(> .saisie.court) { justify-items: stretch; }
 /* Une case suivie de son bouton (Rechercher) : libellé, case, bouton sur la même ligne */
 .cadre-champs .ligne-champ:has(> .champ:first-child:nth-last-child(2) + .bouton) {
@@ -374,24 +376,24 @@ button, summary, [role="tab"] { -webkit-user-select: none; user-select: none; }
 .cadre-champs .ligne-champ:has(> .champ:first-child:nth-last-child(2) + .bouton) > .champ { display: contents; }
 .cadre-champs .ligne-champ:has(> .champ:first-child:nth-last-child(2) + .bouton) > .champ > label { font-weight: 400; }
 .cadre-champs.formulaire, .cadre-champs .formulaire { grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr)); gap: var(--espace-2) var(--espace-6); }
-.cadre-champs .grille-cadres, .cadre-champs .grille-cadres.client-large, .cadre-champs .grille-deux { grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr)); gap: var(--espace-2) var(--espace-6); }
+.cadre-champs .grille-cadres, .cadre-champs .grille-cadres.client-large, .cadre-champs .grille-cadres.quatre, .cadre-champs .grille-deux { grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr)); gap: var(--espace-2) var(--espace-6); }
 /* Cadre étroit (colonne de 26rem ou moins) : la case à remplir passe sous son libellé ; une valeur en lecture reste sur la ligne, à droite, comme sur un reçu */
 @container (max-width: 26rem) {
-  .champ:not(.ligne-champ .champ):has(> .saisie:not([readonly]):not(:disabled)) { grid-template-columns: minmax(0, 1fr); }
-  .champ:not(.ligne-champ .champ):has(> .saisie[readonly], > .saisie:disabled) { grid-template-columns: minmax(0, 1fr) minmax(0, max-content); }
-  .champ:not(.ligne-champ .champ) > .saisie[readonly], .champ:not(.ligne-champ .champ) > .saisie:disabled { text-align: right; }
+  .cadre-champs .champ:not(.ligne-champ .champ):not(.barre-filtres .champ) { grid-template-columns: minmax(0, 1fr); }
+  .cadre-champs .champ:not(.ligne-champ .champ):not(.barre-filtres .champ) > .aide, .cadre-champs .champ:not(.ligne-champ .champ):not(.barre-filtres .champ) > .erreur { grid-column: 1; }
   .cadre-champs .info-ligne { grid-template-columns: minmax(0, 1fr) minmax(0, max-content); }
   .cadre-champs .info-ligne dd { text-align: right; }
-  .ligne-champ:has(> .champ:first-child:nth-last-child(2) + .bouton) { grid-template-columns: minmax(0, 1fr) auto; }
-  .ligne-champ:has(> .champ:first-child:nth-last-child(2) + .bouton) > .champ > label { grid-column: 1 / -1; }
+  .cadre-champs .ligne-champ:has(> .champ:first-child:nth-last-child(2) + .bouton) { grid-template-columns: minmax(0, 1fr) auto; row-gap: 2px; }
+  .cadre-champs .ligne-champ:has(> .champ:first-child:nth-last-child(2) + .bouton) > .champ > label { grid-column: 1 / -1; }
 }
 @media (max-width: 720px) {
-  .cadre-champs .champ:not(.ligne-champ .champ), .champs-gauche .champ:not(.ligne-champ .champ) { grid-template-columns: minmax(0, 1fr); }
-  .cadre-champs .champ:not(.ligne-champ .champ) > .aide, .cadre-champs .champ:not(.ligne-champ .champ) > .erreur { grid-column: 1; }
+  .cadre-champs .champ:not(.ligne-champ .champ):not(.barre-filtres .champ), .champs-gauche .champ:not(.ligne-champ .champ):not(.barre-filtres .champ) { grid-template-columns: minmax(0, 1fr); }
+  .cadre-champs .champ:not(.ligne-champ .champ):not(.barre-filtres .champ) > .aide, .cadre-champs .champ:not(.ligne-champ .champ):not(.barre-filtres .champ) > .erreur { grid-column: 1; }
   .cadre-champs .ligne-champ:has(> .champ:first-child:nth-last-child(2) + .bouton) { grid-template-columns: minmax(0, 1fr) auto; }
   .cadre-champs .ligne-champ:has(> .champ:first-child:nth-last-child(2) + .bouton) > .champ > label { grid-column: 1 / -1; }
 }
 .cadre-champs > legend + * { clear: both; }
+.cadre-champs > legend.sr-only { float: none; width: 1px; height: 1px; padding: 0; margin: 0; border: 0; }   /* légende pour lecteur d'écran : invisible, sans largeur */
 .ligne-choix { cursor: pointer; }
 .ligne-choix:focus-visible { outline: 2px solid var(--tampon); outline-offset: -2px; }
 @media (hover: hover) and (pointer: fine) { .ligne-choix:hover, .grille tbody tr.ligne-choix:hover td { background: var(--tampon-pale); } }
@@ -472,9 +474,9 @@ textarea.saisie.montant { resize: none; text-align: end; }
 .liste-gauche li button { font: inherit; color: inherit; background: none; border: 0; padding: 0; inline-size: 100%; text-align: start; cursor: pointer; }
 @media (hover: hover) and (pointer: fine) { .liste-gauche li:not([aria-current]):hover { background: var(--tampon-pale); } }
 /* Libellé à gauche du champ, comme sur la capture p. 23 */
-.champs-a-gauche .champ { grid-template-columns: 10rem auto; align-items: center; justify-content: start; }
-.champs-a-gauche .champ .saisie { inline-size: 16rem; }
-.champs-a-gauche .champ .saisie.code { inline-size: 9rem; }
+.champs-a-gauche .champ { grid-template-columns: var(--col-libelle, 10.5rem) minmax(0, 1fr); align-items: baseline; column-gap: var(--espace-3); }   /* v1.0 : une seule largeur */
+.champs-a-gauche .champ > label { font-weight: 400; }
+.champs-a-gauche .champ .saisie, .champs-a-gauche .champ .saisie.code { inline-size: 100%; }
 /* S15 (capture p. 24) : éléments à gauche, flèches, Ordre des éléments, Générer et Enregistrer à droite */
 .numerotation { display: grid; grid-template-columns: minmax(0, 22rem) auto minmax(0, 18rem) auto; gap: var(--espace-4); align-items: start; }
 @media (max-width: 900px) { .numerotation { grid-template-columns: minmax(0, 1fr); } }
@@ -582,7 +584,7 @@ select.saisie { max-width: 100%; }
    Dans les formulaires à libellé à gauche (captures de Microfina++), deux largeurs seulement : 16rem pour un texte, 9rem pour un code, une date ou un nombre. */
 .pile > .champ > .saisie.date, .pile > .champ > .saisie.court, fieldset > .champ > .saisie.date, fieldset > .champ > .saisie.court { max-width: none; }
 .pile > .champ:has(> .saisie.date), .pile > .champ:has(> .saisie.court), fieldset > .champ:has(> .saisie.date), fieldset > .champ:has(> .saisie.court) { justify-items: stretch; }
-.champs-a-gauche .champ .saisie.date, .champs-a-gauche .champ .saisie.court { inline-size: 9rem; max-width: none; }
+.champs-a-gauche .champ .saisie.date, .champs-a-gauche .champ .saisie.court { inline-size: 100%; max-width: none; }
 .champs-a-gauche .champ > .aide, .champs-a-gauche .champ > .erreur { grid-column: 2; }   /* l'aide et l'erreur sous la case, pas sous le libellé */
 /* ---------- Téléphone : largeurs égales dans une colonne (inspection du 15/11/2026) ---------- */
 @media (max-width: 720px) {
@@ -616,3 +618,21 @@ select.saisie { max-width: 100%; }
 .barre-filtres .champ:has(> .saisie.date), .barre-filtres .champ:has(> .saisie.court) { justify-items: stretch; }
 .barre-filtres .case { padding-block: 2px; }
 @media (max-width: 560px) { .barre-filtres > .cadre-champs.double { grid-column: auto; } }
+
+/* Plusieurs cases posées dans une rangée à l'intérieur d'un cadre : une grille à libellé à gauche, comme le reste du cadre (refonte v1.0, étape 6).
+   Les barres de filtres et les deux dates d'une période gardent leur libellé au-dessus. */
+.cadre-champs .ligne-champ:has(> .champ ~ .champ):not(.barre-filtres .ligne-champ):not(.double > .ligne-champ) {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr)); gap: var(--espace-2) var(--espace-6); align-items: center;
+}
+.cadre-champs .ligne-champ:has(> .champ ~ .champ):not(.barre-filtres .ligne-champ):not(.double > .ligne-champ) > .champ {
+  grid-template-columns: var(--col-libelle) minmax(0, 1fr); align-items: baseline; column-gap: var(--espace-3); max-width: none;
+}
+.cadre-champs .ligne-champ:has(> .champ ~ .champ):not(.barre-filtres .ligne-champ):not(.double > .ligne-champ) > .champ > label { font-weight: 400; }
+.cadre-champs .ligne-champ:has(> .champ ~ .champ):not(.barre-filtres .ligne-champ):not(.double > .ligne-champ) > .champ .saisie { inline-size: 100%; max-width: none; }
+.cadre-champs .ligne-champ:has(> .champ ~ .champ):not(.barre-filtres .ligne-champ):not(.double > .ligne-champ) > .bouton { justify-self: start; }
+@media (max-width: 720px) {
+  .cadre-champs .ligne-champ:has(> .champ ~ .champ):not(.barre-filtres .ligne-champ):not(.double > .ligne-champ) > .champ { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Case dans une ligne de tableau : compacte, pour garder des lignes de même hauteur (Carbon, Data table) */
+.grille td .saisie { min-height: 32px; padding-block: 4px; }

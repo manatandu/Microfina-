@@ -70,7 +70,7 @@ export default function ModeleCredit() {
           <Champ libelle="Compte capital">{(p) => <input {...p} className="saisie code" value={saisie.compteCapital} onChange={(e) => setSaisie({ ...saisie, compteCapital: e.target.value })} />}</Champ>
           <Champ libelle="Compte interne">{(p) => <input {...p} className="saisie code" value={saisie.compteInterne} onChange={(e) => setSaisie({ ...saisie, compteInterne: e.target.value })} />}</Champ>
           <Champ libelle="Compte interet">{(p) => <input {...p} className="saisie code" value={saisie.compteInteret} onChange={(e) => setSaisie({ ...saisie, compteInteret: e.target.value })} />}</Champ>
-          <button className="bouton" type="button" aria-label="Appliquer les comptes au degré et au terme choisis" onClick={appliquer}>✓</button>
+          <button className="bouton secondaire" type="button" aria-label="Appliquer les comptes au degré et au terme choisis" onClick={appliquer}>✓</button>
         </div>
         <div className="actions-onglets">
           <button className="bouton" type="button" onClick={() => confirmer(choisi === null ? "Voulez-vous vraiment enregistrer ?" : "Voulez-vous vraiment modifier ?",

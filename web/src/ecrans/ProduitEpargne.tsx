@@ -74,7 +74,7 @@ export default function GestionProduitsEpargne() {
         </div>
         <div className="actions-onglets">
           <button className="bouton" type="button" disabled={choisi !== null} onClick={() => { try { const d = envoi(); confirmer("Voulez-vous vraiment enregistrer ?", () => api.produitsEpargne.enregistrer(d)); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } }}>Enregistrer</button>
-          <button className="bouton" type="button" disabled={choisi === null} onClick={() => { try { const d = envoi(); confirmer("Voulez-vous vraiment modifier ?", () => api.produitsEpargne.enregistrer(d, choisi!)); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } }}>Modifier</button>
+          <button className="bouton secondaire" type="button" disabled={choisi === null} onClick={() => { try { const d = envoi(); confirmer("Voulez-vous vraiment modifier ?", () => api.produitsEpargne.enregistrer(d, choisi!)); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } }}>Modifier</button>
           <button className="bouton secondaire" type="button" disabled={choisi === null} onClick={() => confirmer("Voulez-vous vraiment supprimer ?", () => api.produitsEpargne.supprimer(choisi!))}>Supprimer</button>
           <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
         </div>

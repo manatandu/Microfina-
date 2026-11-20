@@ -61,7 +61,7 @@ export default function NumeroPiece() {
         </div>
         <fieldset className="cadre-champs pile">
           <legend>Aperçu numéro</legend>
-          <div className="ligne-champ"><button className="bouton" type="button" onClick={generer}>Générer</button>
+          <div className="ligne-champ"><button className="bouton secondaire" type="button" onClick={generer}>Générer</button>
             {apercu && <output aria-label="Aperçu du numéro">{apercu}</output>}</div>
         </fieldset>
         <Textes sources={["Manuel Microfina++, p. 41 : « renseigner la raison sociale de l'institution puis cocher les cases relatives et [Enregistrer] » ; capture : Institution*, Exercice, Position Institution, Position Agence, Position Journal, Position compteur, Enregistrer, Aperçu numéro, Générer",

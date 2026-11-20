@@ -32,7 +32,7 @@ export default function GestionProfils() {
           {choisi === null
             ? <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment enregistrer ?", () => api.profils.enregistrer(f))}>Enregistrer</button>
             : <>
-                <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment modifier ?", () => api.profils.enregistrer(f, choisi))}>Modifier</button>
+                <button className="bouton secondaire" type="button" onClick={() => confirmer("Voulez-vous vraiment modifier ?", () => api.profils.enregistrer(f, choisi))}>Modifier</button>
                 <button className="bouton secondaire" type="button" onClick={() => confirmer("Voulez-vous vraiment supprimer ?", () => api.profils.supprimer(choisi))}>Supprimer</button>
               </>}
           <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>

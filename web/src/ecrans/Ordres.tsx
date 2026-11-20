@@ -34,10 +34,10 @@ export default function OrdreRemboursement() {
       <section className="bloc pile" aria-label="Ordre de remboursement">
         <div className="ordonner">
           <div className="fleches-ordre">
-            <button className="bouton" type="button" aria-label="Monter" onClick={() => deplacer("monter")}>↑</button>
-            <button className="bouton" type="button" aria-label="Tout en haut" onClick={() => deplacer("haut")}>⤒</button>
-            <button className="bouton" type="button" aria-label="Descendre" onClick={() => deplacer("descendre")}>↓</button>
-            <button className="bouton" type="button" aria-label="Tout en bas" onClick={() => deplacer("bas")}>⤓</button>
+            <button className="bouton secondaire" type="button" aria-label="Monter" onClick={() => deplacer("monter")}>↑</button>
+            <button className="bouton secondaire" type="button" aria-label="Tout en haut" onClick={() => deplacer("haut")}>⤒</button>
+            <button className="bouton secondaire" type="button" aria-label="Descendre" onClick={() => deplacer("descendre")}>↓</button>
+            <button className="bouton secondaire" type="button" aria-label="Tout en bas" onClick={() => deplacer("bas")}>⤓</button>
           </div>
           <table className="grille ordre-elements">
             <thead><tr><th scope="col" colSpan={2}>Ordonner</th></tr></thead>

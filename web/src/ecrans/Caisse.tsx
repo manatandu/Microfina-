@@ -67,7 +67,7 @@ export function BilletageCaisse() {
                   return (
                     <tr key={`${d}-${v}`}>
                       <td>{libelle}</td>
-                      <td><input className="saisie code court" inputMode="numeric" aria-label={`Nombre : ${libelle}`} value={saisis[d]?.[v] ?? ""} onChange={(e) => changer(d, v, e.target.value)} /></td>
+                      <td><input className="saisie nombre court" inputMode="numeric" aria-label={`Nombre : ${libelle}`} value={saisis[d]?.[v] ?? ""} onChange={(e) => changer(d, v, e.target.value)} /></td>
                       <td className="num chiffres">{montant((compte(d)[v] ?? 0) * v * 100, d)}</td>
                     </tr>
                   );

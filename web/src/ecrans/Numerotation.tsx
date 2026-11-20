@@ -87,10 +87,10 @@ export default function ParametragesClients() {
               <input id="num-compteur" className="saisie code num" type="number" min={1} value={r.compteur} onChange={(e) => setR({ ...r, compteur: nombre(e.target.value) })} /></div>
           </div>
           <div className="fleches-ordre">
-            <button className="bouton" type="button" aria-label="Monter" onClick={() => deplacer("monter")}>↑</button>
-            <button className="bouton" type="button" aria-label="Tout en haut" onClick={() => deplacer("haut")}>⤒</button>
-            <button className="bouton" type="button" aria-label="Descendre" onClick={() => deplacer("descendre")}>↓</button>
-            <button className="bouton" type="button" aria-label="Tout en bas" onClick={() => deplacer("bas")}>⤓</button>
+            <button className="bouton secondaire" type="button" aria-label="Monter" onClick={() => deplacer("monter")}>↑</button>
+            <button className="bouton secondaire" type="button" aria-label="Tout en haut" onClick={() => deplacer("haut")}>⤒</button>
+            <button className="bouton secondaire" type="button" aria-label="Descendre" onClick={() => deplacer("descendre")}>↓</button>
+            <button className="bouton secondaire" type="button" aria-label="Tout en bas" onClick={() => deplacer("bas")}>⤓</button>
           </div>
           <div className="pile">
             <table className="grille ordre-elements">
@@ -109,7 +109,7 @@ export default function ParametragesClients() {
             </fieldset>
           </div>
           <div className="pile">
-            <button className="bouton" type="button" onClick={generer}>Générer</button>
+            <button className="bouton secondaire" type="button" onClick={generer}>Générer</button>
             <output aria-label="Aperçu">{apercu || "Aperçu"}</output>
             <button className="bouton" type="button" onClick={enregistrerRegle}>Enregistrer</button>
           </div>

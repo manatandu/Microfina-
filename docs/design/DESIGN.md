@@ -150,6 +150,13 @@ En-tête clair (`tete-grille`), texte foncé, trait dessous ; lignes de même ha
 - **Une seule action principale pleine par écran** (Enregistrer, Exécuter, Débloquer, Suivant) ; toutes les autres sont secondaires (contour). Pas d'ombre, pas d'effet à la pression (§ 2.7 bis). Les boutons d'un écran restent à droite, sous le contenu, comme sur les captures.
 - **Onglets soulignés** : texte, trait de 2 px sous l'onglet actif, filet sous la rangée (Fiori, Oracle).
 
+### 3.7 bis Rangées, menu, cases de tableau (étape 6, 20/11/2026)
+
+- Plusieurs cases posées dans une rangée à l'intérieur d'une section forment une grille à libellé à gauche, comme le reste de la section ; les barres de filtres gardent le libellé au-dessus.
+- Le menu d'accès rapide défile dans sa colonne et reste en place : la hauteur d'une page est celle de son contenu.
+- Une case dans une ligne de tableau est compacte (32 px) ; un nombre y est à droite.
+- Une légende réservée aux lecteurs d'écran ne prend aucune place.
+
 ### 3.8 Contrôles
 
 À chaque lot d'écrans : captures avant et après à 1366 × 768 ; tests et parcours complets ; contraste des jetons ; aucune page qui déborde de côté. Mesures suivies : hauteur des écrans, nombre de largeurs de case, montants sans devise.

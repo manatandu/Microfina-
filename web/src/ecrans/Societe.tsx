@@ -53,7 +53,7 @@ function InformationSociete() {
   } });
   return (
     <section className="bloc pile" id="volet-societe" role="tabpanel" aria-labelledby="onglet-societe">
-      <div className="actions-onglets"><button className="bouton" type="button" onClick={() => setListe(true)}>Liste institution</button></div>
+      <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setListe(true)}>Liste institution</button></div>
       <div className="onglets" role="tablist" aria-label="Information société">
         <button type="button" role="tab" aria-selected="true">Info générale</button>
         <button type="button" role="tab" aria-selected="false" disabled title="Le manuel ne montre pas le contenu de cet onglet (registre S32-6)">Autres Info</button>
@@ -95,7 +95,7 @@ function InformationSociete() {
         </div>
         <fieldset className="cadre-champs pile">
           <legend>Logo</legend>
-          <label className="bouton choisir-fichier">Choisir<input type="file" accept="image/png,image/jpeg" className="sr-only" onChange={(e) => choisirLogo(e.target.files?.[0])} /></label>
+          <label className="bouton secondaire choisir-fichier">Choisir<input type="file" accept="image/png,image/jpeg" className="sr-only" onChange={(e) => choisirLogo(e.target.files?.[0])} /></label>
           <span>APERCU LOGO</span>
           {v.logo ? <img src={v.logo} alt="Logo de l'institution" className="apercu-logo" /> : <div className="apercu-logo" aria-hidden="true" />}
         </fieldset>
@@ -185,7 +185,7 @@ function FondsPropres() {
         <div className="ligne-champ">
           <ChampDate libelle="Date de l'arrêté *" valeur={f.date} onChange={(v) => setF({ ...f, date: v })} />
           <Champ libelle="Montant (CDF) *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={f.montant} onChange={(e) => setF({ ...f, montant: e.target.value })} />}</Champ>
-          <button className="bouton" type="button" disabled={!f.date || !f.montant.trim()} onClick={enregistrer}>Enregistrer</button>
+          <button className="bouton secondaire" type="button" disabled={!f.date || !f.montant.trim()} onClick={enregistrer}>Enregistrer</button>
         </div>
       </fieldset>
       <Textes sources={["Registre CR-2 (décision du porteur, 19/11/2026) : montant du dernier arrêté mensuel ; Instr. BCC 002, art. 7 à 11 (composition), 25 à 29 (plafonds du crédit)"]} />

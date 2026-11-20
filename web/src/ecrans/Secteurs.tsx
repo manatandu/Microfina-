@@ -63,7 +63,7 @@ function PageListe({ liste, changer }: { liste: string; changer: (l: string) => 
               {choisi === null
                 ? <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment enregistrer ?", () => api.listes.enregistrer(liste, saisie))}>Enregistrer</button>
                 : <>
-                    <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment modifier ?", () => api.listes.enregistrer(liste, saisie, choisi))}>Modifier</button>
+                    <button className="bouton secondaire" type="button" onClick={() => confirmer("Voulez-vous vraiment modifier ?", () => api.listes.enregistrer(liste, saisie, choisi))}>Modifier</button>
                     <button className="bouton secondaire" type="button" onClick={() => confirmer("Voulez-vous vraiment supprimer ?", () => api.listes.supprimer(liste, choisi))}>Supprimer</button>
                   </>}
               <button className="bouton secondaire" type="button" onClick={effacer}>{c.effacer ?? "Effacer"}</button>

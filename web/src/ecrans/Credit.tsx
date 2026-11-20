@@ -137,7 +137,7 @@ export function Onglet({ page }: { page: string }) {
       )}
       {fiche.exporter && <div className="actions-onglets">
         {fiche.ordres && <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment enregistrer ?", () => api.credit.enregistrerOrdres(ordres))}>Enregistrement</button>}
-        <button className="bouton" type="button" onClick={exporter}>Exporter</button></div>}
+        <button className="bouton secondaire" type="button" onClick={exporter}>Exporter</button></div>}
       <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
         <thead>
           <tr>{colonnes.map((c) => <th key={c.cle} scope="col" className={c.type === "entier" ? "num" : undefined}>{c.colonne}</th>)}</tr>

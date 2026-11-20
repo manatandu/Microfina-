@@ -64,8 +64,8 @@ function Volet({ modifier }: { modifier: boolean }) {
       <div className="droits-deux-listes">
         <Arbre titre="LISTE DES DROITS RESTANTS" garder={(id) => !accordes.includes(id)} groupes={groupes} coches={cochesG} cocher={setCochesG} />
         <div className="pile droits-fleches">
-          <button className="bouton" type="button" aria-label="Octroyer les droits cochés" disabled={!profil || !cochesG.length} onClick={() => deplacer("droite")}>→</button>
-          <button className="bouton" type="button" aria-label="Retirer les droits cochés" disabled={!profil || !cochesD.length} onClick={() => deplacer("gauche")}>←</button>
+          <button className="bouton secondaire" type="button" aria-label="Octroyer les droits cochés" disabled={!profil || !cochesG.length} onClick={() => deplacer("droite")}>→</button>
+          <button className="bouton secondaire" type="button" aria-label="Retirer les droits cochés" disabled={!profil || !cochesD.length} onClick={() => deplacer("gauche")}>←</button>
         </div>
         <Arbre titre="LISTE DES DROITS OCTROYES" garder={(id) => accordes.includes(id)} groupes={groupes} coches={cochesD} cocher={setCochesD} />
       </div>

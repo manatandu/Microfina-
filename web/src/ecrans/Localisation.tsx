@@ -99,7 +99,7 @@ function Onglet({ niveau }: { niveau: NiveauLieu }) {
         </div>
       </fieldset>
       <div className="actions-onglets">
-        <button className="bouton" type="button" onClick={() => exporterExcel(o.onglet, colonnes.map((c) => c.titre), lignes.map((l) => colonnes.map((c) => c.valeur(l))))}>Exporter</button>
+        <button className="bouton secondaire" type="button" onClick={() => exporterExcel(o.onglet, colonnes.map((c) => c.titre), lignes.map((l) => colonnes.map((c) => c.valeur(l))))}>Exporter</button>
       </div>
       <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
         <thead>

@@ -103,7 +103,7 @@ export function HistoriqueVisas() {
     <>
       <h1>Historique</h1>
       <section className="bloc pile" aria-label="Historique">
-        <fieldset className="cadre-champs"><legend>Recherche</legend><div className="ligne-champ">
+        <fieldset className="cadre-champs"><legend>Recherche</legend><div className="barre-filtres">
           <Champ libelle="Niveau hiérarchique *">{(p) => <select {...p} className="saisie" value={f.niveau} onChange={(e) => setF({ ...f, niveau: e.target.value })}>
             {NIVEAUX.map(([k, x]) => <option key={k} value={k}>{x}</option>)}</select>}</Champ>
           <Champ libelle="Avis *">{(p) => <select {...p} className="saisie" value={f.avis} onChange={(e) => setF({ ...f, avis: e.target.value })}>
@@ -144,7 +144,7 @@ export function ValidesNonDebloques() {
     <>
       <h1>Crédits validés non débloqués</h1>
       <section className="bloc pile" aria-label="Crédits validés non débloqués">
-        <fieldset className="cadre-champs"><legend>Recherche</legend><div className="ligne-champ">
+        <fieldset className="cadre-champs"><legend>Recherche</legend><div className="barre-filtres">
           <ChampDate libelle="Du *" valeur={f.du} onChange={(v) => setF({ ...f, du: v })} />
           <ChampDate libelle="A *" valeur={f.au} onChange={(v) => setF({ ...f, au: v })} />
           <Champ libelle="Agence">{(p) => <select {...p} className="saisie"><option>{ctx[1].agence.nom}</option></select>}</Champ>

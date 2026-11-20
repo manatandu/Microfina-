@@ -36,12 +36,12 @@ export default function GestionProfilsUtilisateur() {
           <legend>Informations</legend>
           <div className="ligne-champ">
             <Champ libelle="Nom et prénom(s) *">{(p) => <Lecture {...p} value={utilisateur?.nom ?? ""} />}</Champ>
-            <button className="bouton" type="button" aria-label="Rechercher un utilisateur" onClick={() => setFenetre("utilisateur")}>⌕</button>
+            <button className="bouton secondaire" type="button" aria-label="Rechercher un utilisateur" onClick={() => setFenetre("utilisateur")}>⌕</button>
             <span><strong>Agence</strong> {utilisateur?.agence ?? ""}</span>
           </div>
           <div className="ligne-champ">
             <Champ libelle="Choix du profil *">{(p) => <Lecture {...p} value={profil?.nom ?? ""} />}</Champ>
-            <button className="bouton" type="button" aria-label="Rechercher un profil" onClick={() => setFenetre("profil")}>⌕</button>
+            <button className="bouton secondaire" type="button" aria-label="Rechercher un profil" onClick={() => setFenetre("profil")}>⌕</button>
             <span><strong>Description</strong> {profil?.description ?? ""}</span>
           </div>
         </fieldset>
