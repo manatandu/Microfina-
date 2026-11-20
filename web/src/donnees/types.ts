@@ -468,7 +468,7 @@ export interface CreditPret {
   compteSolidariteId: number | null; epargneObligatoire: number; fondsSolidarite: number; frais: number; assurance: number; assureurId: number | null;
   objetId: number; tegR: number | null; tegA: number | null; parts: { membre: string; montant: number }[];
   statut: "mis_en_place" | "vise" | "refuse" | "debloque" | "solde" | "passe_en_perte"; misEnPlacePar: number; misEnPlaceLe: string; debloqueLe: string;
-  fraisEncaissesLe?: string; ecritureDeblocageId?: number; modeDeblocage?: "caisse" | "banque"; chequeDeblocage?: string;
+  fraisEncaissesLe?: string; ecritureDeblocageId?: number; modeDeblocage?: "caisse" | "banque" | "epargne"; chequeDeblocage?: string;
   echeancier: { rang: number; date: string; capital: number; interet: number }[];
   degreComptable?: number; provision?: number; degreProvision?: number | null; provisionneLe?: string; radieLe?: string;   // S99
   interetsHorsBilan?: number;   // CR-19 : intérêts non réglés d'un crédit litigieux, suivis en 0630

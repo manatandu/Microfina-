@@ -114,7 +114,8 @@ Note : l'art. 14 associe les pondérations à des niveaux de risque dans l'ordre
 | Instr. 29 | Agents bancaires | Extensions | à lire |
 | Instr. 36 | Continuité d'activité | Exploitation | survolé, à lire |
 | Instr. 38 | TEG : taux annuel actuariel, frais, assurance, épargne obligatoire ; méthode dégressive ; pénalité d'anticipation au plus 50 % | Crédit (S84, S89, contrat) | lu, registre S84, CR-12, CR-24 |
-| Instr. 37, 40 | Services gratuits, publication des conditions | Crédit, Référentiel | survolé, à lire |
+| Instr. 37, art. 1er à 6 et annexe | Services gratuits sans condition : ouverture et clôture de compte, dépôt et retrait d'espèces, domiciliation de salaire, mise en place d'une autorisation de prélèvement ou de virement permanent, virement de compte à compte dans le même établissement | Remboursement par prélèvement (S106), autres opérations (S116), domiciliation de salaire (S117) | lu le 20/11/2026 ; S106 ne prélève aucun frais (registre S106-2) |
+| Instr. 40 | Publication des conditions | Crédit, Référentiel | survolé, à lire |
 | Instr. 39 | Plaintes : référence unique, réponse sous 45 jours calendaires, réparation, rapport trimestriel | Client > Conformité > Plaintes (SC03) | lu |
 | Instr. 41 mod. 1 | Agrément, dirigeants, autorisations préalables | Référentiel (données institution) | à lire |
 | Instr. 0011 | Faîtière | Extensions | à lire |

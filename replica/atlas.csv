@@ -120,8 +120,8 @@ S101,Rapports crédit (huit),121 (menu seul),D,rapport,"les huit rapports : Jour
 S102,"Plan des comptes : référentiel, consultation, modèle, création, concordance",122 et 123 ; 145 à 147 ; 156,A,liste,,R:PCCI,8 Comptabilité,oui
 S103,Plan des tiers,123 ; texte 156,A,liste,,,8 Comptabilité,oui
 S104,Taxes,"123 (texte), 124 ; 155",A,liste,,R:fiscalité RDC ; P,8 Comptabilité,oui
-S105,Déblocage crédit sur compte d'épargne,124 ; 157,A,guichet,reconnaissance de dette,document,8 Comptabilité,non
-S106,Remboursement par prélèvement,125 ; 157,A,guichet,,A:S76,8 Comptabilité,non
+S105,Déblocage crédit sur compte d'épargne,124 ; 157,A,guichet,reconnaissance de dette,document,8 Comptabilité,oui
+S106,Remboursement par prélèvement,125 ; 157,A,guichet,,A:S76,8 Comptabilité,oui
 S142,Annulation de règlement de crédit,158,A,traitement,,R:PCCI (contre-passation),8 Comptabilité,non
 S107,"Factures : bon de commande, enregistrement, règlement, journal, rapport",125 à 128 ; 147 à 154,A,onglets,,,8 Comptabilité,non
 S108,Déclaration de taxe,128,A,rapport,,,8 Comptabilité,non

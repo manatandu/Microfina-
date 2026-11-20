@@ -2174,6 +2174,30 @@ describe("journée de guichet", () => {
     expect(await soldeCdfGrandLivre()).toBe(0);
   });
 
+  it("déblocage sur compte d'épargne (S105, p. 124 et 157) et remboursement par prélèvement (S106, p. 125 et 157)", async () => {
+    const cid = await creditVise();
+    await connecter("plumbala");
+    const d = await api.deblocage.detail(cid);
+    const tid = d.tiersId, compteDe = async () => (await api.remboursementsCredit.comptesClient(tid)).find((x) => x.numero === d.comptePositionnement)!;
+    const avant = (await compteDe()).solde;
+    await expect(api.deblocage.debloquerEpargne(cid)).rejects.toThrow("Prélever les frais");
+    await api.deblocage.encaisserFrais(cid);
+    const x = await api.deblocage.debloquerEpargne(cid);
+    expect([x.statut, x.compteCredite, x.piece.includes("OD")]).toEqual(["debloque", d.comptePositionnement, true]);
+    const k = await compteDe();
+    expect(k.solde - avant).toBeGreaterThanOrEqual(d.retenues.net);
+    const p = { mandataire: "Moi-même", compteId: k.id, montant: 1000000 };
+    await expect(api.remboursementsCredit.rembourserEpargne(cid, { ...p, compteId: 0 })).rejects.toThrow("Compte Client");
+    await expect(api.remboursementsCredit.rembourserEpargne(cid, { ...p, montant: k.disponible + 100 })).rejects.toThrow("solde disponible");
+    await expect(api.remboursementsCredit.rembourserEpargne(cid, { ...p, dateReglement: "2026-11-06" })).rejects.toThrow("pas après");
+    const r = await api.remboursementsCredit.rembourserEpargne(cid, p);
+    expect([r.mode, r.piece.includes("OD"), r.montant]).toEqual(["epargne", true, 1000000]);
+    expect(k.solde - (await compteDe()).solde).toBe(1000000);
+    expect(await soldeCdfGrandLivre()).toBe(0);
+    await connecter("engalula");
+    await expect(api.deblocage.debloquerEpargne(cid)).rejects.toThrow();
+  });
+
   it("état de crédit (S93, p. 115 et 116) : période sur la date d'approbation, date fixe, filtres, situation du remboursement (S93-1 à S93-4)", async () => {
     const cid = await creditDebloque();
     await connecter("bkasongo");

@@ -1700,6 +1700,54 @@ def test_remboursement_banque(clients, journee):
     assert balance_equilibree(compta)
 
 
+def test_deblocage_epargne(clients, journee):
+    """S105 (p. 124 et 157) : Prélever les frais, puis Débloquer : le net est porté au compte d'épargne du client (registre S105-1 à S105-3)"""
+    compta, caisse = clients["compta"], clients["caisse"]
+    cid = credit_vise(clients)
+    d = compta.get(f"/api/credit/deblocage/{cid}", **H).json()
+    tid = ident("select tiers_id from credit where id = %s", (cid,))
+    solde = lambda: next(x for x in compta.get(f"/api/credit/remboursement/comptes/{tid}", **H).json() if x["numero"] == d["comptePositionnement"])
+    k, avant = solde()["id"], solde()["solde"]
+    r = compta.post(f"/api/comptabilite/deblocage/{cid}", {}, **H)
+    assert r.status_code == 422 and "Prélever les frais" in r.json()["message"]
+    assert caisse.post(f"/api/comptabilite/deblocage/{cid}", {}, **H).status_code == 403
+    compta.post(f"/api/credit/deblocage/{cid}/frais", **H)
+    r = compta.post(f"/api/comptabilite/deblocage/{cid}", {}, **H)
+    assert r.status_code == 200, r.content
+    assert (r.json()["statut"], r.json()["compteCredite"], "OD" in r.json()["piece"]) == ("debloque", d["comptePositionnement"], True)
+    assert ident("select mode_deblocage from credit where id = %s", (cid,)) == "epargne"
+    apres = solde()["solde"]
+    obligatoire = d["retenues"]["epargneObligatoire"] if ident("select compte_epargne_id from credit where id = %s", (cid,)) == k else 0
+    assert apres - avant == d["retenues"]["net"] + obligatoire
+    assert balance_equilibree(compta)
+
+
+def test_remboursement_prelevement(clients, journee):
+    """S106 (p. 125 et 157) : remboursement prélevé sur le compte du client, dans la devise du crédit et dans la limite du disponible (registre S106-1 à S106-3)"""
+    compta, caisse = clients["compta"], clients["caisse"]
+    cid = credit_debloque(clients, journee)
+    tid = ident("select tiers_id from credit where id = %s", (cid,))
+    comptes = compta.get(f"/api/credit/remboursement/comptes/{tid}", **H).json()
+    assert caisse.get(f"/api/credit/remboursement/comptes/{tid}", **H).status_code == 403
+    k = next(x for x in comptes if x["devise"] == "CDF" and x["disponible"] >= 1000000)
+    def refus(corps):
+        r = compta.post(f"/api/comptabilite/remboursement/{cid}", corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    b = {"mandataire": "Moi-même", "compteId": k["id"], "montant": 1000000}
+    assert "Compte Client" in refus({**b, "compteId": None})
+    assert "Mandataire" in refus({**b, "mandataire": " "})
+    assert "solde disponible" in refus({**b, "montant": k["disponible"] + 100})
+    assert "pas après" in refus({**b, "dateReglement": "2026-11-06"})
+    usd = next((x for x in comptes if x["devise"] == "USD"), None)
+    if usd:
+        assert "devise du crédit" in refus({**b, "compteId": usd["id"]})
+    r = compta.post(f"/api/comptabilite/remboursement/{cid}", b, **H)
+    assert r.status_code == 200, r.content
+    assert (r.json()["mode"], "OD" in r.json()["piece"], r.json()["montant"]) == ("epargne", True, 1000000)
+    apres = next(x for x in compta.get(f"/api/credit/remboursement/comptes/{tid}", **H).json() if x["id"] == k["id"])
+    assert k["solde"] - apres["solde"] == 1000000
+    assert balance_equilibree(compta)
+
+
 def test_etat_credit(clients, journee):
     """S93 (p. 115 et 116) : situation des crédits sur une période (date d'approbation) ou à une date fixe ; filtres ; capital restant (registre S93-1 à S93-4)"""
     agent, caisse = clients["agent"], clients["caisse"]

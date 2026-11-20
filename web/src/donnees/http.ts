@@ -68,6 +68,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       encaisserFrais: (id: number) => post(`/credit/deblocage/${id}/frais`),
       debloquerCaisse: (id: number, p: unknown) => post(`/guichet/deblocage/${id}`, p),
       debloquerBanque: (id: number, p: unknown) => post(`/banque/deblocage/${id}`, p),
+      debloquerEpargne: (id: number) => post(`/comptabilite/deblocage/${id}`, {}),
       contrat: (id: number) => get(`/credit/credits/${id}/contrat`),
     },
     listeRouge: {
@@ -146,6 +147,8 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       proposer: (id: number, p: unknown) => post(`/credit/remboursement/${id}/repartition`, p),
       rembourserCaisse: (id: number, p: unknown) => post(`/guichet/remboursement/${id}`, p),
       rembourserBanque: (id: number, p: unknown) => post(`/banque/remboursement/${id}`, p),
+      comptesClient: (tid: number) => get(`/credit/remboursement/comptes/${tid}`),
+      rembourserEpargne: (id: number, p: unknown) => post(`/comptabilite/remboursement/${id}`, p),
       consultation: (id: number, date?: string) => get(`/credit/consultation/${id}${date ? `?date=${date}` : ""}`),
       creditsConsultation: (tid: number) => get(`/credit/consultation/clients/${tid}`),
       situation: (id: number) => get(`/credit/credits/${id}/situation`),

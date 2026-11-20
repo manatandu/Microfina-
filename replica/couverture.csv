@@ -106,8 +106,8 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 105,Plan des comptes et modèle à positions,comptabilité,must,partial,S102,A,liste,8 Comptabilité,,R:PCCI,,,"S102-10 Statut Fermé, Nature Non saisible"
 106,Plan des tiers,comptabilité,must,yes,S103,A,liste,8 Comptabilité,,,,,
 107,Taxes et déclaration,comptabilité,should,no,S104 S108,A,"liste, rapport",8 Comptabilité,,R:fiscalité RDC ; P,,S108,
-108,Déblocage sur compte d'épargne,comptabilité,must,no,S105,A,guichet,8 Comptabilité,S105 : reconnaissance de dette,document,,S105,
-109,Remboursement par prélèvement sur l'épargne,comptabilité,must,no,S106,A,guichet,8 Comptabilité,,A:S76,,S106,
+108,Déblocage sur compte d'épargne,comptabilité,must,yes,S105,A,guichet,8 Comptabilité,S105 : reconnaissance de dette,document,,,
+109,Remboursement par prélèvement sur l'épargne,comptabilité,must,yes,S106,A,guichet,8 Comptabilité,,A:S76,,,
 110,Factures fournisseurs bons de commande règlements,comptabilité,should,no,S141 S107,D,"guichet, onglets",6 Caisse,S141 : tout l'écran,"A:S107 règlement (p. 127 et 153), S78",,S141 S107,
 111,Saisie d'écritures,comptabilité,must,no,S109,A,guichet,8 Comptabilité,,R:PCCI,,S109,
 112,Rapprochement bancaire et historique,comptabilité,must,no,S110 S112,A,"composition, rapport",8 Comptabilité,S110 : état du rapprochement,document,,S110 S112,

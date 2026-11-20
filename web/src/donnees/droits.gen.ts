@@ -159,7 +159,11 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "deblocage.debloquerCaisse": [
 "S75"
 ],
+"deblocage.debloquerEpargne": [
+"S105"
+],
 "deblocage.encaisserFrais": [
+"S105",
 "S54",
 "S75"
 ],
@@ -486,11 +490,13 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "S64"
 ],
 "remboursementsCredit.ajouterMemo": [
+"S106",
 "S55",
 "S76",
 "S95"
 ],
 "remboursementsCredit.proposer": [
+"S106",
 "S55",
 "S76"
 ],
@@ -499,6 +505,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 ],
 "remboursementsCredit.rembourserCaisse": [
 "S76"
+],
+"remboursementsCredit.rembourserEpargne": [
+"S106"
 ],
 "retenues.reverser": [
 "SF01"

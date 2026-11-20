@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**654 décisions.** Solidité : 275 fortes (le manuel ou un texte répond), 319 moyennes (déduites d'un écran voisin ou d'une donnée), 60 faibles (notre choix, faute de mieux). Dans le code : 644 déjà en place, 7 à appliquer.
+**662 décisions.** Solidité : 276 fortes (le manuel ou un texte répond), 326 moyennes (déduites d'un écran voisin ou d'une donnée), 60 faibles (notre choix, faute de mieux). Dans le code : 652 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1509,6 +1509,24 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | D02-5 | Police | Police de l'appareil confirmée, chiffres de même largeur ; quatre tailles (13, 14, 16, 22 px) | Choix du porteur : Décision du porteur, 15/11/2026 et 20/11/2026 | forte | en place |
 | D02-6 | Densité du guichet | Viser un écran de 768 px jusqu'au bouton principal ; le remboursement (S76) passe de 1 766 à 1 190 px, la cible n'est pas encore atteinte (étape 6) | Choix du porteur : Décision du porteur, 20/11/2026 ; DESIGN § 1 | moyenne | à appliquer |
 | D02-7 | Une action principale | Un seul bouton plein par écran ; les autres en contour | Choix du porteur : Décision du porteur, 20/11/2026 ; IBM Carbon, Forms (primaire et secondaire) | forte | en place |
+
+## S105 Déblocage crédit sur compte d'épargne
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S105-1 | Compte qui reçoit le prêt | Le premier compte d'épargne à vue du client ouvert dans la devise du crédit, sinon le compte d'épargne du crédit ; il est montré dans « Numero compte ». Sans compte dans la devise, le déblocage est refusé | Manuel : Titre p. 156 (« positionnement sur compte épargne ») ; capture p. 124 (Info Client, Numero compte) | moyenne | en place |
+| S105-2 | Date Opération | La journée ouverte, en lecture ; l'échéancier est recalé dessus comme au guichet (S75-6) | Écran voisin : Capture p. 124 (Date Opération *) ; S75-6 | moyenne | en place |
+| S105-3 | Écriture du déblocage | Comme au guichet (S75-4), le compte de dépôt du client remplaçant le guichet ; journal des opérations diverses ; aucune sortie d'espèces, donc ni billetage ni examen renforcé de caisse | Texte réglementaire : PCCI, comptes 330 et 334 ; S75-4 | moyenne | en place |
+| S105-4 | Frais, financement et boutons | « Prélever les frais » avant Débloquer, comme par banque (S54-3). Financement en lecture : Type budget (Fonds propres ou Ressources affectées, S89-3) et Ligne budgétaire. Boutons Echéancier, Contrat de prêt (p. 124), Reconnaissance de dette (p. 157), Débloquer, Effacer | Manuel : Captures p. 124 et 157 ; texte p. 157 ; S54-3 ; S89-3 ; CR-12 | moyenne | en place |
+
+## S106 Remboursement par prélèvement
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S106-1 | Compte Client et Solde | Liste des comptes ouverts du client dans la devise du crédit ; Solde montre le disponible du compte choisi (blocages déduits, S71) | Manuel : Capture p. 125 (Compte Client, Solde) ; S71 | moyenne | en place |
+| S106-2 | Limite et frais | Le montant ne dépasse pas le disponible du compte. Aucun frais : le virement de compte à compte dans le même établissement est gratuit | Texte réglementaire : Instr. BCC 37, art. 2 et 3, annexe, point 2 (« Virement de compte à compte dans la même banque ») | forte | en place |
+| S106-3 | Écriture et date de règlement | Débit du compte de dépôt du client, journal des opérations diverses ; crédits comme S76-7 ; date de règlement au plus la journée ouverte et pas avant le dernier remboursement (S55-3) ; mêmes règles de répartition que S76 | Texte réglementaire : PCCI, comptes 330 et 334 ; S76-7 ; S55-3 | moyenne | en place |
+| S106-4 | Boutons et impression | B, P, M.P, R, H, Memo (p. 125) ; Imprimer, Enregistrer, Effacer (p. 157). M.P et H grisés comme S55-2. Imprimer, après l'enregistrement : pièce, date, client, crédit, compte, mandataire, montant et répartition | Écran voisin : Captures p. 125 et 157 ; texte p. 157 ; S55-2 | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

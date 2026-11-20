@@ -31,8 +31,8 @@ import AnalyseFinanciere from "./AnalyseFinanciere";
 import { ApprobationDemande, ControleDemande, DemandeCredit } from "./DossierCredit";
 import MiseEnPlace from "./MiseEnPlace";
 import { AffectationDossier, EtatCredit, HistoriqueVisas, ValidesNonDebloques, VisasCredit } from "./SuiviCredit";
-import { DeblocageBanque, DeblocageGuichet } from "./DeblocageCredit";
-import { ConsulterPret, RemboursementBanque, RemboursementGuichet } from "./RemboursementCredit";
+import { DeblocageBanque, DeblocageGuichet, DeblocageEpargne } from "./DeblocageCredit";
+import { ConsulterPret, RemboursementBanque, RemboursementGuichet, RemboursementPrelevement } from "./RemboursementCredit";
 import Garanties from "./Garanties";
 import ListeRouge from "./ListeRouge";
 import BalanceAgee from "./BalanceAgee";
@@ -199,6 +199,8 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S79: BilletageCaisse,
   S80: ValidationBilletage,
   S102: PlanComptes,
+  S105: DeblocageEpargne,
+  S106: RemboursementPrelevement,
   S103: PlanTiers,
   S104: Taxes,
   S111: Comptabilisation,

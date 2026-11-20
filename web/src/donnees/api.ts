@@ -3404,23 +3404,28 @@ function ecritureDeblocage(c: CreditPret, contrepartie: { compte: string; contra
   }
   return poster({ journal, journeeId: j.id, libelle: `Déblocage du crédit ${c.numero}`, piece: piece(journal), saisiPar, validePar: saisiPar, lignes: l });
 }
-function apresDeblocage(c: CreditPret, eid: number, mode: "caisse" | "banque", u: number) {
+function apresDeblocage(c: CreditPret, eid: number, mode: "caisse" | "banque" | "epargne", u: number) {
   const d = jourDeblocage().date;
   for (const [cid, m, quoi] of [[c.compteEpargneId, c.epargneObligatoire, "Épargne obligatoire"], [c.compteSolidariteId, c.fondsSolidarite, "Fonds de solidarité"]] as [number | null, number, string][])
     if (m && cid) E.blocages.push({ id: prochain(E.blocages), compteId: cid, montant: m, motif: `${quoi} du crédit ${c.numero}`, debut: d, posePar: u, fin: "", levePar: null, motifLevee: "", garantieDe: c.id });
   c.echeancier = echeancierRecale(c, d);
   Object.assign(c, { statut: "debloque", debloqueLe: d, dateEffet: d, dateDebut: c.echeancier[0]?.date ?? d, ecritureDeblocageId: eid, modeDeblocage: mode });
 }
+/** S105 : compte où le prêt est positionné (registre S105-1), comme le serveur (deblocage.compte_positionnement) */
+const comptePositionnement = (c: CreditPret) => E.comptes.filter((k) => k.tiersId === c.tiersId && !k.closLe && k.devise === c.devise
+  && (produitDuCompte(k)?.famille === "EPARGNE" || k.id === c.compteEpargneId))
+  .sort((a, b) => Number(produitDuCompte(b)?.famille === "EPARGNE") - Number(produitDuCompte(a)?.famille === "EPARGNE") || a.numero.localeCompare(b.numero))[0];
 const deblocage = {
   aDebloquer() {
-    lectureAdmin(["S75", "S54"]);
+    lectureAdmin(["S75", "S54", "S105"]);
     return E.credits.filter((c) => c.statut === "vise").map((c) => ({ id: c.id, numero: c.numero, client: titulaire(E.tiers.find((t) => t.id === c.tiersId)!), montant: c.montant, devise: c.devise }));
   },
   detail(id: number) {
-    lectureAdmin(["S75", "S54"]);
+    lectureAdmin(["S75", "S54", "S105"]);
     const c = creditVise(id);
     const compte = c.compteEpargneId ? E.comptes.find((x) => x.id === c.compteEpargneId)?.numero : E.comptes.filter((x) => x.tiersId === c.tiersId && !x.closLe).map((x) => x.numero).sort()[0];
-    return { ...vueCredit(c), compteClient: compte ?? "", fraisEncaisses: !!c.fraisEncaissesLe, retenues: retenuesCredit(c), echeancierDeblocage: echeancierRecale(c, jourDeblocage().date) };
+    return { ...vueCredit(c), compteClient: compte ?? "", comptePositionnement: comptePositionnement(c)?.numero ?? "", fraisEncaisses: !!c.fraisEncaissesLe, retenues: retenuesCredit(c),
+      echeancierDeblocage: echeancierRecale(c, jourDeblocage().date) };
   },
   /** « Encaisser frais » (p. 86) : frais et retenues arrêtés, retenus sur le prêt au déblocage (CR-6) */
   encaisserFrais(id: number) {
@@ -3460,6 +3465,16 @@ const deblocage = {
     const e = ecritureDeblocage(c, { compte: cb.compte }, "OD", u.id);
     q.statut = "utilise"; c.chequeDeblocage = cheque;
     apresDeblocage(c, e.id, "banque", u.id); enregistrer(); return vueCredit(c);
+  },
+  /** S105 : Comptabilité > Déblocage crédit (p. 124 et 157) : le net est porté au compte d'épargne du client (registre S105-1 à S105-3) */
+  debloquerEpargne(id: number) {
+    const u = exiger();
+    const c = creditVise(id);
+    if (!c.fraisEncaissesLe) throw new ErreurMetier("Prélever les frais d'abord (capture p. 124 : « Prélever les frais »).");
+    const k = comptePositionnement(c);
+    if (!k) throw new ErreurMetier("Le client n'a pas de compte d'épargne ouvert dans la devise du crédit.");
+    const e = ecritureDeblocage(c, { compte: k.pcci, contrat: `depot:${k.id}` }, "OD", u.id);
+    apresDeblocage(c, e.id, "epargne", u.id); enregistrer(); return { ...vueCredit(c), compteCredite: k.numero, piece: e.piece };
   },
   /** Contrat de prêt et reconnaissance de dette (registre CR-12 ; Instr. BCC 38, art. 3, 5 et 14) */
   contrat(id: number) {
@@ -4043,11 +4058,11 @@ const vueRemboursement = (r: RemboursementCredit) => ({ id: r.id, creditId: r.cr
   montant: r.montant, repartition: r.repartition, modifie: r.modifie, mandataire: r.mandataire, mode: r.mode });
 const remboursementsCredit = {
   creditsDuClient(tid: number) {
-    lectureAdmin(["S76", "S55"]);
+    lectureAdmin(["S76", "S55", "S106"]);
     return E.credits.filter((c) => c.tiersId === tid && c.statut === "debloque").map((c) => ({ id: c.id, numero: c.numero, montant: c.montant, devise: c.devise }));
   },
   detail(id: number, date?: string) {
-    lectureAdmin(["S76", "S55"]);
+    lectureAdmin(["S76", "S55", "S106"]);
     const c = creditEnCours(id), d = dateReglement(date), s = etatCredit(c, d);
     return { ...vueCredit(c), client: titulaire(E.tiers.find((t) => t.id === c.tiersId)!), dateReglement: d, joursRetard: s.joursRetard, degre: s.degreLibelle,
       capitalRestant: s.capitalRestant, resteAPayer: s.resteAPayer, interetTotal: s.interetTotal, interetRestant: s.interetNonEchu + s.du.interet!, dernierPaiement: s.dernierPaiement,
@@ -4102,6 +4117,26 @@ const remboursementsCredit = {
     if (!cb) throw new ErreurMetier("À remplir : Banque et Compte.");
     if (cb.devise !== c.devise) throw new ErreurMetier("Le compte bancaire n'est pas dans la devise du crédit.");
     const { rb } = enregistrerRemboursement(c, dateReglement(p.dateReglement), p.montant, p.repartition, { compte: cb.compte }, "OD", u.id, mand, { mode: "banque", compteBancaireId: cb.id });
+    enregistrer(); return vueRemboursement(rb);
+  },
+  /** S106 : comptes ouverts du client, avec leur solde disponible (« Compte Client » et « Solde », capture p. 125) */
+  comptesClient(tid: number) {
+    lectureAdmin(["S106"]);
+    if (!E.tiers.some((t) => t.id === tid)) throw new ErreurMetier("Client introuvable.");
+    return E.comptes.filter((k) => k.tiersId === tid && !k.closLe).map((k) => { const solde = soldeContrat(`depot:${k.id}`, k.devise, "C");
+      return { id: k.id, numero: k.numero, intitule: k.intitule, devise: k.devise as string, solde, disponible: solde - bloqueDe(k, solde) }; });
+  },
+  /** S106 : Comptabilité > Remboursement de crédit par prélèvement (p. 125 et 157) : prélevé sur le compte du client, dans la limite du disponible (registre S106-1 à S106-3) */
+  rembourserEpargne(id: number, p: { mandataire: string; compteId: number; montant: number; dateReglement?: string; repartition?: Record<string, number> | null }) {
+    const u = exiger();
+    const c = creditEnCours(id), mand = mandataireDe(p.mandataire);
+    const k = E.comptes.find((x) => x.id === p.compteId && x.tiersId === c.tiersId && !x.closLe);
+    if (!k) throw new ErreurMetier("À remplir : Compte Client.");
+    if (k.devise !== c.devise) throw new ErreurMetier("Le compte du client n'est pas dans la devise du crédit.");
+    const solde = soldeContrat(`depot:${k.id}`, k.devise, "C");
+    if (Number.isInteger(p.montant) && p.montant > solde - bloqueDe(k, solde)) throw new ErreurMetier("Montant à payer : plus que le solde disponible du compte.");
+    const { rb } = enregistrerRemboursement(c, dateReglement(p.dateReglement), p.montant, p.repartition, { compte: k.pcci, contrat: `depot:${k.id}` }, "OD", u.id, mand,
+      { mode: "epargne", libelle: `Remboursement du crédit ${c.numero} par prélèvement sur le compte ${k.numero}` });
     enregistrer(); return vueRemboursement(rb);
   },
   /** Situation (brouillard des remboursements, capture p. 88), Plan (échéancier en vigueur), Réel (remboursements effectués) */

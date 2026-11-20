@@ -863,6 +863,25 @@ def operation_refuser(request, oid: int):
     return None
 
 
+# ---------- S105 : déblocage sur compte d'épargne (p. 124 et 157) ; S106 : remboursement par prélèvement (p. 125 et 157) ----------
+@api.post("/comptabilite/deblocage/{cid}")
+def deblocage_epargne(request, cid: int, corps: dict = Body(...)):
+    from . import deblocage as db
+    return db.debloquer_epargne(u(request), cid, corps)
+
+
+@api.get("/credit/remboursement/comptes/{tid}")
+def remboursement_comptes(request, tid: int):
+    from . import remboursements as rb
+    return rb.comptes_client(u(request), tid)
+
+
+@api.post("/comptabilite/remboursement/{cid}")
+def remboursement_epargne(request, cid: int, corps: dict = Body(...)):
+    from . import remboursements as rb
+    return rb.rembourser_epargne(u(request), cid, corps)
+
+
 # ---------- S111 : comptabilisation de la journée (p. 130 et 155) ----------
 @api.get("/comptabilite/comptabilisation/{jid}")
 def comptabilisation_lire(request, jid: int):

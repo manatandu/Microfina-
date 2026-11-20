@@ -94,6 +94,14 @@ def a_debloquer(u) -> list[dict]:
             for c in lignes("select * from credit where institution_id = %s and statut = 'vise' order by id", (u["institution_id"],))]
 
 
+def compte_positionnement(c) -> dict | None:
+    """S105 : compte où le prêt est positionné : le premier compte d'épargne à vue du client ouvert dans la devise du crédit, sinon le compte
+    d'épargne du crédit (registre S105-1)"""
+    return une("""select cd.id, cd.numero, p.famille, p.compte_lie from compte_depot cd join produit_epargne p on p.id = cd.produit_id
+                  where cd.tiers_id = %s and cd.statut = 'ouvert' and trim(cd.devise) = %s and (p.famille = 'EPARGNE' or cd.id = %s)
+                  order by (p.famille = 'EPARGNE') desc, cd.numero limit 1""", (c["tiers_id"], c["devise"].strip(), c["compte_epargne_id"]))
+
+
 def detail(u, cid: int) -> dict:
     """Infos crédit, Info client, frais et retenues, échéancier recalé sur la journée (captures p. 62 et 87)"""
     exiger(u)
@@ -101,7 +109,8 @@ def detail(u, cid: int) -> dict:
     c = credit_vise(u, cid)
     compte = valeur("select numero from compte_depot where id = %s", (c["compte_epargne_id"],)) if c["compte_epargne_id"] else \
         valeur("select numero from compte_depot where tiers_id = %s and statut = 'ouvert' order by numero limit 1", (c["tiers_id"],))
-    return {**vue(c), "compteClient": compte or "", "fraisEncaisses": bool(c["frais_encaisses_le"]), "retenues": retenues(c),
+    return {**vue(c), "compteClient": compte or "", "comptePositionnement": (compte_positionnement(c) or {}).get("numero", ""),
+            "fraisEncaisses": bool(c["frais_encaisses_le"]), "retenues": retenues(c),
             "echeancierDeblocage": echeancier_recale(u, c, jour(u))}
 
 
@@ -203,6 +212,25 @@ def debloquer_banque(u, cid: int, p) -> dict:
     apres_deblocage(u, c, d, eid, "banque")
     from .mise_en_place import vue
     return vue(une("select * from credit where id = %s", (c["id"],)))
+
+
+def debloquer_epargne(u, cid: int, p) -> dict:
+    """S105 : Comptabilité > Déblocage crédit (manuel p. 124 ; « Déblocage de crédit par positionnement sur compte épargne », p. 156 et 157) :
+    le net est porté au compte d'épargne du client, celui du crédit ou son premier compte ouvert dans la devise (registre S105-1 à S105-3)"""
+    exiger(u)
+    c = credit_vise(u, cid)
+    if not c["frais_encaisses_le"]:
+        raise ErreurMetier("Prélever les frais d'abord (capture p. 124 : « Prélever les frais »).")
+    from .services import compte_du_produit
+    k = compte_positionnement(c)
+    if not k:
+        raise ErreurMetier("Le client n'a pas de compte d'épargne ouvert dans la devise du crédit.")
+    d = jour(u)
+    eid = ecriture(u, c, d, {"compte": compte_du_produit(k), "contrat": f"depot:{k['id']}"}, "OD", str(uuid.uuid4()))
+    apres_deblocage(u, c, d, eid, "epargne")
+    from .mise_en_place import vue
+    return {**vue(une("select * from credit where id = %s", (c["id"],))), "compteCredite": k["numero"],
+            "piece": valeur("select pc.numero from ecriture e join piece pc on pc.id = e.piece_id where e.id = %s", (eid,))}
 
 
 def contrat(u, cid: int) -> dict:

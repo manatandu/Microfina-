@@ -1029,6 +1029,18 @@ const OUT = process.argv[2];
   await etape('15-arrete');
   await aller('/administration/s09'); await p.getByRole('row').filter({ hasText: 'Caisse 2' }).dblclick();
   await p.getByRole('button', { name: 'Fermeture' }).click(); await oui(); await etape('15b-fermeture-guichet');
+  // Comptable : remboursement par prélèvement sur compte (S106, p. 125 et 157) et déblocage sur compte d'épargne (S105, p. 124)
+  await login('Patrick Lumbala'); await aller('/comptabilite/s106');
+  await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  const rpv = p.getByRole('dialog', { name: "Recherche d'un client" });
+  await rpv.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rpv.getByRole('row').filter({ hasText: 'Kalala' }).first().dblclick();
+  await p.getByLabel('Compte Client:').locator('option').nth(1).waitFor({ state: 'attached' });
+  await p.getByLabel('Compte Client:').selectOption({ index: 1 }); await p.getByLabel('Montant à payer: *').fill('1000');
+  await etape('15d-remboursement-prelevement');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByRole('button', { name: 'Imprimer' }).click(); await p.getByRole('dialog', { name: 'Remboursement par prélèvement sur compte' }).getByRole('button', { name: 'Fermer' }).click();
+  await aller('/comptabilite/s105'); await p.getByRole('heading', { name: 'Déblocage crédit' }).waitFor(); await p.getByRole('button', { name: 'Rechercher un crédit' }).click();
+  await p.getByRole('dialog', { name: 'Crédits à débloquer' }).waitFor(); await etape('15e-deblocage-epargne');
   await login('J.-P. Mukendi'); await aller('/administration/s13');
   await p.getByLabel('DU:').fill('05112026'); await p.getByLabel('AU:').fill('05112026'); await p.getByRole('button', { name: 'Afficher' }).click();
   await p.getByRole('cell', { name: 'Esther Ngalula' }).waitFor(); await etape('15c-rapport-transactions');

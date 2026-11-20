@@ -352,6 +352,36 @@ def rembourser_banque(u, cid: int, p) -> dict:
     return remboursement(u, rid)
 
 
+def comptes_client(u, tid: int) -> list[dict]:
+    """S106 : comptes ouverts du client, avec leur solde disponible (liste « Compte Client » et « Solde » de la capture p. 125)"""
+    exiger(u)
+    from .services import comptes_du_tiers
+    if not valeur("select 1 from tiers where id = %s and institution_id = %s", (tid, u["institution_id"])):
+        raise ErreurMetier("Client introuvable.")
+    return [{k: x[k] for k in ("id", "numero", "intitule", "devise", "solde", "disponible")} for x in comptes_du_tiers(tid)]
+
+
+def rembourser_epargne(u, cid: int, p) -> dict:
+    """S106 : Comptabilité > Remboursement de crédit par prélèvement (manuel p. 124 et 125 ; p. 157) : le montant est prélevé sur le compte du client
+    choisi, dans la devise du crédit et dans la limite de son disponible ; mêmes règles de répartition que S76 (registre S106-1 à S106-3)"""
+    exiger(u)
+    c = credit_en_cours(u, cid)
+    mand = mandataire_de(p)
+    from .services import comptes_du_tiers
+    k = next((x for x in comptes_du_tiers(c["tiers_id"]) if x["id"] == (p or {}).get("compteId")), None)
+    if not k:
+        raise ErreurMetier("À remplir : Compte Client.")
+    if k["devise"] != c["devise"].strip():
+        raise ErreurMetier("Le compte du client n'est pas dans la devise du crédit.")
+    m = (p or {}).get("montant")
+    if isinstance(m, int) and not isinstance(m, bool) and m > k["disponible"]:
+        raise ErreurMetier("Montant à payer : plus que le solde disponible du compte.")
+    d = date_reglement(u, (p or {}).get("dateReglement"))
+    _, rid = enregistrer(u, c, d, m, (p or {}).get("repartition"), {"compte": k["pcci"], "contrat": f"depot:{k['id']}"}, "OD", str(uuid.uuid4()), mand,
+                         {"mode": "epargne", "libelle": f"Remboursement du crédit {c['numero']} par prélèvement sur le compte {k['numero']}"})
+    return remboursement(u, rid)
+
+
 def remboursement(u, rid: int) -> dict:
     r = une("""select r.*, pc.numero as piece from remboursement r join ecriture e on e.id = r.ecriture_id join piece pc on pc.id = e.piece_id join credit c on c.id = r.credit_id
                where r.id = %s and c.institution_id = %s""", (rid, u["institution_id"]))

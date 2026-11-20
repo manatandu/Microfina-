@@ -106,8 +106,8 @@ Rapports crédit dont exigibles et indicateurs,crédit,must,yes,yes,"S101 | Huit
 Plan des comptes et modèle à positions,comptabilité,must,yes,partial,"S102 ; manuel p. 122, 123, 145 à 147, 156 | Construit le 12/11/2026 : PCCI complet chargé (604 comptes, T20) ; Création (formulaire Plan général : Parent, Numero, Libelle, Statut, Nature, options ; Liste des Comptes d'utilisation ; Modifier, Supprimer), Consultation (arbre, recherche par N°compte, Exporter vers Excel, Charger comptes), Modèle de plan comptable (niveaux du PCCI en lecture). Comptes du PCCI non modifiables, comptes divisionnaires de l'institution (PCCI § 9). Concordance non reprise (un seul plan)."
 Plan des tiers,comptabilité,must,yes,yes,"S103 | Liste des tiers de la capture, formulaire en trois cadres d'après le texte (registre S103-1 à S103-3)."
 Taxes et déclaration,comptabilité,should,yes,no,S104 S108
-Déblocage sur compte d'épargne,comptabilité,must,yes,no,S105
-Remboursement par prélèvement sur l'épargne,comptabilité,must,yes,no,S106 ; virement interne gratuit (Instr. BCC 37)
+Déblocage sur compte d'épargne,comptabilité,must,yes,yes,"S105 | Capture p. 124 et 157 : le net du prêt est porté au compte d'épargne du client ; Prélever les frais, Echéancier, Contrat de prêt, Reconnaissance de dette (registre S105-1 à S105-4)."
+Remboursement par prélèvement sur l'épargne,comptabilité,must,yes,yes,"S106 ; virement interne gratuit (Instr. BCC 37) | Captures p. 125 et 157 : Compte Client, Solde, répartition, Imprimer, Enregistrer ; prélèvement dans la limite du disponible, sans frais (registre S106-1 à S106-4)."
 Factures fournisseurs bons de commande règlements,comptabilité,should,yes,no,S107
 Saisie d'écritures,comptabilité,must,yes,no,S109 ; suppression avant validation seulement ; écriture validée corrigée par contre-passation (PCCI § 3.3 et 3.4 ; constat C20)
 Rapprochement bancaire et historique,comptabilité,must,yes,no,S110 S112

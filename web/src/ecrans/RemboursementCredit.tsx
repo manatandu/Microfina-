@@ -1,7 +1,8 @@
-// S76 : Caisse > Opération > Remboursement de crédit (manuel Microfina++, p. 87 et 88 ; doublon p. 102) et S55 : Banque > Remboursement de crédit (p. 63).
+// S76 : Caisse > Opération > Remboursement de crédit (manuel Microfina++, p. 87 et 88 ; doublon p. 102), S55 : Banque > Remboursement de crédit (p. 63)
+// et S106 : Comptabilité > Remboursement de crédit par prélèvement sur compte (p. 124, 125 et 157).
 // Client, montant à payer, répartition proposée (Modifier), Détail crédit, Tout sur le crédit ; Situation (brouillard p. 88), Plan, Réel, Memo ; Billetage, Imprimer.
-// Registre S76-1 à S76-9, S55-2 à S55-4, CR-7, CR-20.
-import { useState } from "react";
+// Registre S76-1 à S76-9, S55-2 à S55-4, S106-1 à S106-4, CR-7, CR-20.
+import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { vers } from "./registre";
 import { api } from "../donnees/api";
@@ -110,11 +111,12 @@ function useRemboursement(date?: string) {
 }
 type Etat = ReturnType<typeof useRemboursement>;
 
-function InfosClient({ e, fige, rechercher }: { e: Etat; fige: boolean; rechercher: () => void }) {
+function InfosClient({ e, fige, rechercher, children }: { e: Etat; fige: boolean; rechercher: () => void; children?: ReactNode }) {
   return <fieldset className="pile cadre-champs"><legend>Infos client</legend>
     <div className="ligne-champ"><Champ libelle="N° du client :">{(p) => <input {...p} className="saisie code" readOnly value={e.t?.numero ?? ""} />}</Champ>
       <button className="bouton secondaire" type="button" aria-label="Rechercher un client" disabled={fige} onClick={rechercher}>Rechercher</button></div>
     <Champ libelle="Intitulé:">{(p) => <textarea {...p} className="saisie" rows={2} readOnly value={e.donnees?.d?.client ?? (e.t ? [e.t.nom, e.t.postnom, e.t.prenom].filter(Boolean).join(" ") : "")} />}</Champ>
+    {children}
     <Champ libelle="Mandataire : *">{(p) => <input {...p} className="saisie" readOnly={fige} value={e.mandataire} onChange={(x) => e.setMandataire(x.target.value)} />}</Champ>
   </fieldset>;
 }
@@ -306,6 +308,94 @@ export function RemboursementBanque() {
           "Registre S55-2 à S55-4 : compte bancaire dans la devise du crédit ; date de règlement au plus la journée ouverte ; mêmes règles de répartition que S76 (CR-7, CR-20)"]} />
       </section>
       <FenetresCredit cid={d?.id ?? null} devise={dv} ouverte={(["situation", "plan", "reel", "memo"] as const).find((x) => x === fiche) ?? ""} fermer={() => setFiche("")} />
+      <Fiche titre="Recherche d'un client" ouverte={fiche === "recherche"} fermer={() => setFiche("")}>
+        <RechercheClient source={async (x) => (x ? (await api.tiers.rechercher(x)).filter((y) => y.statut === "actif") : [])}
+          choisir={(x) => { effacer(); e.setT(x); setFiche(""); }} fermer={() => setFiche("")} />
+      </Fiche>
+      <Dialogue boite={boite} fermer={() => { setBoite(null); e.relire(); }} />
+    </>
+  );
+}
+
+/** S106 : Comptabilité > Remboursement de crédits par prélèvement sur compte (captures p. 125 et 157) : Compte Client et Solde à la place de la banque ; Imprimer, Enregistrer */
+export function RemboursementPrelevement() {
+  const { donnees: j } = useDonnees(() => api.journees.courante());
+  const [date, setDate] = useState("");
+  const e = useRemboursement(date || undefined);
+  const [compte, setCompte] = useState("");
+  const [onglet, setOnglet] = useState<"detail" | "budget">("detail");
+  const [fiche, setFiche] = useState<"" | "situation" | "plan" | "reel" | "memo" | "recherche" | "avis">("");
+  const [fait, setFait] = useState<Awaited<ReturnType<typeof api.remboursementsCredit.rembourserEpargne>> | null>(null);
+  const [boite, setBoite] = useState<Boite | null>(null);
+  const [relu, setRelu] = useState(0);
+  const { donnees: comptes } = useDonnees(() => (e.t ? api.remboursementsCredit.comptesClient(e.t.id) : Promise.resolve([])), [e.t?.id, relu]);
+  const d = e.donnees?.d ?? null, dv = (d?.devise ?? "CDF") as Devise, fige = !!fait;
+  const liste = (comptes ?? []).filter((c) => !d || c.devise === d.devise);
+  const k = liste.find((c) => String(c.id) === compte) ?? null;
+  const effacer = () => { e.effacer(); setCompte(""); setFait(null); setDate(""); };
+  function enregistrer() {
+    const manque = !d ? "N° du Client" : !k ? "Compte Client" : !e.m ? "Montant à payer" : !e.mandataire.trim() ? "Mandataire" : "";
+    if (manque) { setBoite({ type: "erreur", message: `À remplir : ${manque}.` }); return; }
+    setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
+      try {
+        const x = await api.remboursementsCredit.rembourserEpargne(d!.id, { mandataire: e.mandataire, compteId: k!.id, montant: e.m!, dateReglement: date || undefined, repartition: e.modifie });
+        setFait(x); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" });
+      } catch (y) { setBoite({ type: "erreur", message: message(y) }); }
+    } });
+  }
+  return (
+    <>
+      <h1>Remboursement de crédits par prélèvement sur compte</h1>
+      <section className="bloc pile" aria-label="Remboursement de crédits par prélèvement sur compte">
+        <div className="entete-ecran"><p>Numéro de pièce : <strong className="chiffres">{fait?.piece ?? ""}</strong></p>
+          <Champ libelle="Date règlement : *">{(p) => <input {...p} type="date" className="saisie date" readOnly={fige} max={j?.date} value={date || j?.date || ""} onChange={(x) => setDate(x.target.value)} />}</Champ></div>
+        <div className="grille-deux">
+          <InfosClient e={e} fige={fige} rechercher={() => setFiche("recherche")}>
+            <Champ libelle="Compte Client:">{(p) => <select {...p} className="saisie code" disabled={fige} value={compte} onChange={(x) => setCompte(x.target.value)}><option value=""></option>
+              {liste.map((c) => <option key={c.id} value={c.id}>{`${c.numero} ${c.intitule} (${c.devise})`}</option>)}</select>}</Champ>
+            <Champ libelle="Solde:">{(p) => <Lecture {...p} value={k ? montant(k.disponible, k.devise as Devise) : ""} />}</Champ>
+          </InfosClient>
+          <InfosCredit e={e} fige={fige} banque />
+        </div>
+        <div className="onglets" role="tablist" aria-label="Crédit">
+          <button type="button" role="tab" aria-selected={onglet === "detail"} onClick={() => setOnglet("detail")}>Détail crédit</button>
+          <button type="button" role="tab" aria-selected={onglet === "budget"} onClick={() => setOnglet("budget")}>Budget</button>
+        </div>
+        {onglet === "detail" ? <RepartitionDetail e={e} fige={fige} setBoite={setBoite} />
+          : <fieldset className="pile cadre-champs formulaire"><legend>Budget</legend>
+            <Champ libelle="Ligne budgetaire">{(p) => <Lecture {...p} value={d?.ligneFinancement ?? ""} />}</Champ>
+            <Champ libelle="Bailleur">{(p) => <Lecture {...p} value={d?.bailleur ?? ""} />}</Champ></fieldset>}
+        <div className="actions-onglets">
+          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("situation")}>B</button>
+          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("plan")}>P</button>
+          <button className="bouton secondaire" type="button" disabled>M.P</button>
+          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("reel")}>R</button>
+          <button className="bouton secondaire" type="button" disabled>H</button>
+          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("memo")}>Memo</button>
+          <button className="bouton secondaire" type="button" disabled={!fait} onClick={() => setFiche("avis")}>Imprimer</button>
+          <button className="bouton" type="button" disabled={!d || fige} onClick={enregistrer}>Enregistrer</button>
+          <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
+        </div>
+        <Textes sources={["Manuel Microfina++, p. 124 et 125 : infos client (compte client, solde, mandataire), infos crédit, répartition et détail crédit ; capture",
+          "Manuel Microfina++, p. 157 : « Remboursement de crédit par prélèvement sur compte épargne » ; Situation, Plan, Réel, Memo, Imprimer, Enregistrer ; capture",
+          "Registre S106-1 à S106-4 : compte du client dans la devise du crédit, dans la limite du disponible ; mêmes règles de répartition que S76 (CR-7, CR-20)"]} />
+      </section>
+      <FenetresCredit cid={d?.id ?? null} devise={dv} ouverte={(["situation", "plan", "reel", "memo"] as const).find((x) => x === fiche) ?? ""} fermer={() => setFiche("")} />
+      <Fiche titre="Remboursement par prélèvement sur compte" ouverte={fiche === "avis"} fermer={() => setFiche("")}>
+        {fait && d && <><div className="pile a-imprimer"><table className="grille"><tbody>
+          <tr><th scope="row">Numéro de pièce</th><td className="chiffres">{fait.piece}</td></tr>
+          <tr><th scope="row">Date règlement</th><td className="chiffres">{fr(fait.date)}</td></tr>
+          <tr><th scope="row">Client</th><td>{e.t?.numero} {d.client}</td></tr>
+          <tr><th scope="row">Crédit</th><td className="code">{d.numero}</td></tr>
+          <tr><th scope="row">Compte Client</th><td className="code">{k?.numero ?? ""}</td></tr>
+          <tr><th scope="row">Mandataire</th><td>{fait.mandataire}</td></tr>
+          <tr><th scope="row">Montant</th><td className="chiffres">{montant(fait.montant, dv)}</td></tr>
+          {REPARTITION.map(([c, l]) => { const v = (fait.repartition[c] ?? 0) + (c === "penalite" ? fait.repartition.anticipation ?? 0 : 0);
+            return v ? <tr key={c}><th scope="row">{l}</th><td className="chiffres">{montant(v, dv)}</td></tr> : null; })}
+        </tbody></table></div>
+        <div className="actions-onglets sans-impression"><button className="bouton secondaire" type="button" onClick={() => setFiche("")}>Fermer</button>
+          <button className="bouton" type="button" onClick={() => window.print()}>Imprimer</button></div></>}
+      </Fiche>
       <Fiche titre="Recherche d'un client" ouverte={fiche === "recherche"} fermer={() => setFiche("")}>
         <RechercheClient source={async (x) => (x ? (await api.tiers.rechercher(x)).filter((y) => y.statut === "actif") : [])}
           choisir={(x) => { effacer(); e.setT(x); setFiche(""); }} fermer={() => setFiche("")} />
