@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**603 décisions.** Solidité : 258 fortes (le manuel ou un texte répond), 292 moyennes (déduites d'un écran voisin ou d'une donnée), 53 faibles (notre choix, faute de mieux). Dans le code : 574 déjà en place, 26 à appliquer.
+**608 décisions.** Solidité : 261 fortes (le manuel ou un texte répond), 294 moyennes (déduites d'un écran voisin ou d'une donnée), 53 faibles (notre choix, faute de mieux). Dans le code : 579 déjà en place, 26 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1246,12 +1246,13 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| CR-16 | Classement | Sain : aucune échéance en retard. Impayé : au moins une échéance en retard d'un jour ; les crédits sains d'un client qui a un crédit litigieux sont classés impayés. Douteux : à partir du 31e jour. Contentieux : dossier en recouvrement amiable ou judiciaire. Irrécupérable : plus de 12 mois. Prorogé : échéances modifiées, une seule fois, provisionné comme litigieux depuis l'échéancier initial | Texte réglementaire : Instr. BCC 003, art. 2 à 9 et 12 | forte | à appliquer |
+| CR-16 | Classement | Sain : aucune échéance en retard. Impayé : au moins une échéance en retard d'un jour ; les crédits sains d'un client qui a un crédit litigieux sont classés impayés. Douteux : à partir du 31e jour. Irrécupérable : plus de 12 mois. Appliqué par la balance âgée (S98) ; prorogé et contentieux : CR-16b | Texte réglementaire : Instr. BCC 003, art. 2 à 9 et 12 | forte | en place |
 
 ## S99 Déclassement et provisions
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
+| CR-16b | Prorogé et contentieux | Contentieux : dossier en recouvrement amiable ou judiciaire. Prorogé : échéances modifiées, une seule fois, provisionné comme litigieux depuis l'échéancier initial. Le manuel ne montre aucun écran pour marquer un recouvrement ni pour modifier des échéances : à poser au porteur à la revue de fin d'étape | Texte réglementaire : Instr. BCC 003, art. 5, 8 et 12 | forte | à appliquer |
 | CR-17 | Provisions | Chaque mois, sur le capital restant dû des crédits litigieux : 1 à 30 jours 5 %, 31 à 60 jours 25 %, 61 à 90 jours 50 %, 91 à 180 jours 75 %, plus de 180 jours 100 % ; écritures de dotation et de reprise selon le PCCI | Texte réglementaire : Instr. BCC 003, art. 12 et 13 ; S21-1 | forte | à appliquer |
 | CR-18 | Passage en perte (« Radier par anticipation ») | Seul un crédit irrécupérable (plus de 12 mois) passe en perte, à la clôture du bilan au 31 décembre ; il est ensuite suivi en hors bilan. Le bouton de la capture est gardé dans cette limite : écart imposé par le texte, à signaler au porteur | Texte réglementaire : Instr. BCC 003, art. 9 et 10 ; capture p. 121 | forte | à appliquer |
 
@@ -1396,6 +1397,15 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S96-1 | Écran | Capture p. 119 « Affectation de crédit » : à gauche, le gestionnaire dont le portefeuille sera réduit et ses crédits à cocher, filtres Crédit N°, Montant, Client ; à droite, le gestionnaire dont le portefeuille sera augmenté et ses crédits ; Affecter, après confirmation | Manuel : Capture et texte p. 119 | forte | en place |
 | S96-2 | Qui est le gestionnaire d'un crédit | Son agent crédit (S89), choisi parmi les utilisateurs de l'agence, comme le filtre Agent de S92 ; seuls les crédits en cours (mis en place, visés, débloqués) se transfèrent | Écran voisin : S89 (Agent crédit) ; S92 (filtre Agent, capture p. 115) | moyenne | en place |
 | S96-3 | Trace | Chaque transfert est enregistré : crédit, ancien et nouveau gestionnaire, date de la journée, auteur | Donnée exigée ailleurs : Piste d'audit des opérations (ARCHITECTURE) ; S91 (historique des visas) | moyenne | en place |
+
+## S98 Génération de balance âgée
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S98-1 | Écran | Comme la capture : Date lancement * (la journée ouverte par défaut), bouton Lancer la balance âgée, message « Opération effectuée avec succès en … seconde ! » | Manuel : Capture p. 120 | forte | en place |
+| S98-2 | Ce que la balance retient | Chaque crédit débloqué à la date et dont le capital restant à cette date n'est pas nul (même soldé depuis) : capital restant, capital et intérêts échus impayés, jours de retard, degré de S21, classe (CR-16). Lue par le déclassement (S99) et la synthèse de la balance âgée (S101) | Texte réglementaire : Instr. BCC 003, art. 2 à 9 ; S21-1 ; atlas S99, S101 | moyenne | en place |
+| S98-3 | Crédit sain assimilé | Le crédit sain d'un client qui a un autre crédit litigieux à la date est classé impayé, marqué « assimilé », avec zéro jour de retard | Texte réglementaire : Instr. BCC 003, art. 6, al. 2 | forte | en place |
+| S98-4 | Date et nouvelle génération | Date pas après la journée ouverte (les retards se lisent au jour) ; une balance par date : la nouvelle génération remplace la précédente (titre de la capture « Génération de nouvelle balance »). Pas d'écriture comptable : la dotation aux provisions passe par S99 | Manuel : Capture p. 120 ; Instr. BCC 003, art. 12 et 13 | moyenne | en place |
 
 ## D02 Refonte visuelle v1.0
 

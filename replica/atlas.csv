@@ -113,7 +113,7 @@ S94,"Caution et nantissement : ajout, libération, rapports",116 à 118 (six cap
 S95,Consulter prêt,"118 (texte), 119",B,consultation,"Plan, Réel, Mémo",A:S76 Situation (p. 88),7 Crédit,oui
 S96,Affectation de dossier,119,A,composition,,,7 Crédit,oui
 S97,"Liste rouge : ajouter, retirer",119 et 120 (deux captures),A,liste,,,7 Crédit,oui
-S98,Génération de balance âgée,120,A,traitement,résultat,R:Instr. BCC sur le classement,7 Crédit,non
+S98,Génération de balance âgée,120,A,traitement,résultat,R:Instr. BCC sur le classement,7 Crédit,oui
 S99,Déclassement provision et crédit,121 (sans texte),B,traitement,règles,R:Instr. BCC sur le classement et les provisions,7 Crédit,non
 S100,Engagement par signature,121,A,liste,document imprimé,document,7 Crédit,non
 S101,Rapports crédit (huit),121 (menu seul),D,rapport,"les huit rapports : Journal, Rapports de base, Multicritère, Synthèse de la balance âgée, Taux de remboursements, Encours prévisionnel, Exigibles, Indicateur de gestion","A:S72, S93 ; R:Instr. BCC sur les indicateurs",7 Crédit,non

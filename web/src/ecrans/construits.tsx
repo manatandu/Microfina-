@@ -31,6 +31,7 @@ import { DeblocageBanque, DeblocageGuichet } from "./DeblocageCredit";
 import { ConsulterPret, RemboursementBanque, RemboursementGuichet } from "./RemboursementCredit";
 import Garanties from "./Garanties";
 import ListeRouge from "./ListeRouge";
+import BalanceAgee from "./BalanceAgee";
 import type { ComponentType } from "react";
 import GuichetDepotRetrait from "./Guichet";
 import Adhesion from "./Adhesion";
@@ -182,6 +183,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S95: ConsulterPret,
   S96: AffectationDossier,
   S97: ListeRouge,
+  S98: BalanceAgee,
   S79: BilletageCaisse,
   S80: ValidationBilletage,
   S102: PlanComptes,

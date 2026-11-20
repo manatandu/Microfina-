@@ -99,7 +99,7 @@ Cautions dépôts de garantie nantissements,crédit,must,yes,partial,"S94 | Ajou
 Consulter un prêt,crédit,must,yes,yes,"S95 | Consultation de prêts : situation, rang, terme, retards, brouillard, plan, réel, memo, tout sur le crédit (registre S95-1 à S95-3)."
 Affectation de portefeuille entre gestionnaires,crédit,should,yes,yes,"S96 | Transfert des crédits cochés d'un gestionnaire à un autre, tracé (registre S96-1 à S96-3)."
 Liste rouge,crédit,should,yes,partial,"S97 | Ajouter et retirer avec motif ; un inscrit n'obtient ni demande, ni approbation, ni mise en place ; mise à l'index BCC avec ses dirigeants (registre S97-1 à S97-4, CR-9)."
-Balance âgée,crédit,must,yes,no,S98 ; calculée chaque jour et non lancée à la main (Instr. BCC 003 art. 6 et 12)
+Balance âgée,crédit,must,yes,yes,"S98 | Date lancement et Lancer la balance âgée ; chaque crédit en cours classé à la date (sain, impayé, douteux, irrécupérable), le sain d'un client litigieux classé impayé (registre S98-1 à S98-4, CR-16 ; Instr. BCC 003, art. 2 à 9)."
 Déclassement et provisions,crédit,must,yes,no,S99 ; provisions mensuelles automatiques comptes 3800 à 3804 (Instr. BCC 003 art. 12) ; intérêts des crédits en retard en hors bilan (art. 11) ; passage en perte au 31/12 (art. 10)
 Engagement par signature,crédit,should,yes,no,S100 ; hors bilan classe 0 (PCCI)
 Rapports crédit dont exigibles et indicateurs,crédit,must,yes,no,S101 ; indicateurs de l'Instr. BCC 004

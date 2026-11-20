@@ -554,6 +554,13 @@ def liste_rouge_retirer(request, corps: dict = Body(...)):
     return lr.retirer(u(request), corps)
 
 
+# ---------- S98 : génération de balance âgée (p. 120) ----------
+@api.post("/credit/balance-agee")
+def balance_agee_lancer(request, corps: dict = Body(...)):
+    from . import balance_agee as ba
+    return ba.lancer(u(request), corps)
+
+
 @api.get("/credit/visas/contexte")
 def visas_contexte(request):
     from .services import est_coopec

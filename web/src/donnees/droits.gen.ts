@@ -12,6 +12,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "analyses.enregistrer": [
 "S85"
 ],
+"balanceAgee.lancer": [
+"S98"
+],
 "banqueOperations.enregistrer": [
 "S52"
 ],

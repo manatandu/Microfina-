@@ -35,8 +35,8 @@ Statut : **lu** = article lu et reporté ici ; **à lire** = texte identifié, d
 
 | Réf. | Exigence | Module | Mise en œuvre | Statut |
 |---|---|---|---|---|
-| Art. 3 et 6 | Sain = aucune échéance en retard ; impayé dès 1 jour | Classement | Calcul quotidien en fin de journée | lu |
-| Art. 6 al. 2 | Les crédits sains d'un membre ayant un litigieux sont assimilés impayés | Classement | Contagion au niveau du tiers | lu |
+| Art. 3 et 6 | Sain = aucune échéance en retard ; impayé dès 1 jour | Classement | Balance âgée (S98), lancée à une date comme dans Microfina++ ; le texte n'impose pas de calcul quotidien (registre S98-2, CR-16) | en place |
+| Art. 6 al. 2 | Les crédits sains d'un membre ayant un litigieux sont assimilés impayés | Classement | Balance âgée (S98) : crédit sain marqué « assimilé » (registre S98-3) | en place |
 | Art. 5 | Prorogation une seule fois ; interdiction de refinancer un retard | Crédit | Blocage dans le moteur, pas dans l'écran | lu |
 | Art. 7 | Douteux à partir du 31e jour ; comptes courants débiteurs sans mouvement créditeur significatif depuis 30 jours | Classement | Règle paramétrée ; seuil « significatif » à définir avec toi | lu |
 | Art. 9 et 10 | Irrécupérable au-delà de 12 mois ; passage en perte au 31/12, suivi hors bilan | Classement, Grand livre | Traitement de clôture annuelle | lu |

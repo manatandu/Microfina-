@@ -10,7 +10,7 @@ import {
   type ChequeClient, type Chequier, type DepotTerme, type PlanEpargne, type ClotureCompte, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget, type CriteresAtypiques, type GelAvoirs,
-  type AnalyseFinanciere, type DemandeCredit, type CreditPret, type GarantieCredit, type RemboursementCredit, type VisaCredit,
+  type AnalyseFinanciere, type DemandeCredit, type CreditPret, type GarantieCredit, type RemboursementCredit, type VisaCredit, type BalanceAgee,
 } from "./types";
 import { DROITS_METHODES } from "./droits.gen";
 import registreEcrans from "../ecrans/registre.json";
@@ -20,7 +20,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v91";
+const CLE = "likelemba-demo-v92";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -28,7 +28,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 68) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 69) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -3337,6 +3337,31 @@ const deblocage = {
 const CLES_REMB = ["capital", "interet", "tva", "epargne", "solidarite", "penalite", "anticipation"] as const;
 const ELEMENTS_REMB: Record<string, string> = { C: "capital", I: "interet", P: "penalite", E: "epargne", S: "solidarite" };
 type EcheanceCredit = CreditPret["echeancier"][number] & { epargne?: number; solidarite?: number; tva?: number };
+// ---------- S98 : Crédit > Génération de balance âgée (manuel p. 120). Mêmes règles que serveur/noyau/balance_agee.py.
+// Crédits en cours à la date, classés selon l'Instr. BCC 003 (art. 2 à 9) ; sain d'un client qui a un crédit litigieux : impayé (art. 6, al. 2). Registre S98, CR-16. ----------
+const CLASSES_BALANCE: Record<string, BalanceAgee["lignes"][number]["classe"]> = { Sains: "sain", Impayés: "impaye", Douteux: "douteux", Irrécupérables: "irrecuperable" };
+const balanceAgee = {
+  lancer(p: { date?: string }) {
+    const u = exiger(), t0 = Date.now();
+    if (!p.date) throw new ErreurMetier("Date lancement : obligatoire.");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(p.date) || Number.isNaN(Date.parse(p.date))) throw new ErreurMetier("Date lancement : une date.");
+    const j = journees.courante()?.date ?? new Date().toISOString().slice(0, 10);
+    if (p.date > j) throw new ErreurMetier("Date lancement : pas après la journée ouverte.");
+    const d = p.date;
+    const lignes = E.credits.filter((c) => ["debloque", "solde", "passe_en_perte"].includes(c.statut) && c.debloqueLe && c.debloqueLe <= d).sort((a, b) => a.id - b.id)
+      .map((c) => ({ c, s: etatCredit(c, d) })).filter((x) => x.s.capitalRestant > 0)
+      .map(({ c, s }) => ({ creditId: c.id, tiersId: c.tiersId, produitId: c.produitId, agentId: c.agentId ?? null, devise: c.devise, montant: c.montant,
+        capitalRestant: s.capitalRestant, capitalImpaye: s.du.capital!, interetImpaye: s.du.interet!, joursRetard: s.joursRetard, degre: s.degre,
+        classe: CLASSES_BALANCE[s.degreLibelle] ?? "douteux", assimile: false }));
+    const litigieux = new Set(lignes.filter((x) => x.classe !== "sain").map((x) => x.tiersId));
+    for (const x of lignes) if (x.classe === "sain" && litigieux.has(x.tiersId)) { x.classe = "impaye"; x.assimile = true; }
+    E.balancesAgees = E.balancesAgees.filter((b) => b.date !== d);
+    const id = prochain(E.balancesAgees);
+    E.balancesAgees.push({ id, date: d, lanceLe: new Date().toISOString(), lancePar: u.id, lignes });
+    enregistrer();
+    return { id, date: d, credits: lignes.length, message: `Opération effectuée avec succès en ${Math.round((Date.now() - t0) / 1000)} seconde !` };
+  },
+};
 const joursRemb = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000);
 const champ = (e: EcheanceCredit, k: string) => Number((e as Record<string, unknown>)[k] ?? 0);
 function degreDe(j: number): [number, string] {
@@ -5915,6 +5940,7 @@ const apiLocal = {
   garanties: asynchrone(garanties, "garanties"),
   affectation: asynchrone(affectation, "affectation"),
   listeRouge: asynchrone(listeRouge, "listeRouge"),
+  balanceAgee: asynchrone(balanceAgee, "balanceAgee"),
   societe: asynchrone(societe, "societe"),
   agents: asynchrone(agents, "agents"),
   jours: asynchrone(jours, "jours"),

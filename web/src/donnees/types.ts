@@ -282,7 +282,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 68;
+  version: 69;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)
@@ -321,6 +321,7 @@ export interface Etat {
   memosCredit: { id: number; creditId: number; date: string; texte: string; saisiPar: number }[];
   garanties: GarantieCredit[];   // S94
   listeRouge: { id: number; tiersId: number; motif: string; referenceBcc: string; ajouteLe: string; ajoutePar: number; retireLe: string; retirePar: number | null; motifRetrait: string }[];   // S97
+  balancesAgees: BalanceAgee[];   // S98
   affectationsCredit: { id: number; creditId: number; de: number; vers: number; le: string; par: number }[];   // S96
   liberationsGarantie: { id: number; garantieId: number; montant: number; date: string; ecritureId: number | null; par: number }[];
   visasCredit: VisaCredit[];   // S90
@@ -476,3 +477,8 @@ export interface GarantieCredit {
 /** S90 : visa d'un niveau (registre S90, CR-4, CR-5) */
 export interface VisaCredit { creditId: number; niveau: "responsable_credit" | "comite" | "service_financier"; avis: "accepte" | "refuse"; par: number; le: string;
   motif: string; referencePv: string; membres: { nom: string; avis: "accepte" | "refuse" }[] }
+
+// S98 : balance âgée générée à une date (Instr. BCC 003, art. 2 à 9)
+export type BalanceAgee = { id: number; date: string; lanceLe: string; lancePar: number; lignes: { creditId: number; tiersId: number; produitId: number; agentId: number | null;
+  devise: string; montant: number; capitalRestant: number; capitalImpaye: number; interetImpaye: number; joursRetard: number; degre: number;
+  classe: "sain" | "impaye" | "douteux" | "irrecuperable"; assimile: boolean }[] };

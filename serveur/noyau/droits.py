@@ -100,6 +100,7 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/credit/garanties/liberation/\d+", ["S94"]),
     (r"/credit/affectation", ["S96"]),
     (r"/credit/liste-rouge/(ajout|retrait)", ["S97"]),
+    (r"/credit/balance-agee", ["S98"]),
     (r"/conformite/apparentes/\d+", ["SC01"]),
     (r"/guichet/adhesions", ["S73"]),
     (r"/operations/\d+/(visa|refus)", ["S82", "S74", "S73", "S77", "S113"]),

@@ -38,6 +38,11 @@ def ident(sql, params=()):
     return valeur(sql, params)
 
 
+def lignes_bd(sql, params=()):
+    from noyau.bd import lignes
+    return [tuple(x.values()) for x in lignes(sql, params)]
+
+
 def G2():
     return ident("select id from guichet where code = 'G2'")
 
@@ -1466,6 +1471,9 @@ def credit_approuve(clients, produit=None):
 
 
 def objet_credit(chef) -> int:
+    o = ident("select id from credit_objet where libelle = 'Achat de marchandises'")
+    if o:
+        return o
     t = chef.get("/api/credit-referentiels/types_objet", **H).json()
     sid = next(iter(t["options"].values()))[0]["id"]
     tid = chef.post("/api/credit-referentiels/types_objet", {"libelle": "Commerce", "secteurId": sid}, **H).json()["lignes"][0]["id"]
@@ -3160,3 +3168,31 @@ def test_plaintes(clients, journee):
     assert (rap["total"], rap["suites"]["fondee"]) == (1, 1)
     assert [x["reference"] for x in chef.get("/api/plaintes?statut=repondue&du=&au=", **H).json()] == ["PL-2026-000001"]   # sans dates : toute la liste
     assert compta.get("/api/plaintes", **H).status_code == 403
+
+
+def test_balance_agee(clients, journee):
+    """S98 (p. 120) : Date lancement, Lancer la balance âgée ; classement à la date (Instr. BCC 003, art. 3, 6, 7) ; un crédit sain d'un client qui a un
+    crédit litigieux est classé impayé (art. 6, al. 2) ; une nouvelle génération à la même date remplace la précédente (registre S98-1 à S98-4, CR-16)"""
+    from django.db import connection
+    agent, caisse = clients["agent"], clients["caisse"]
+    c1 = credit_debloque(clients, journee)
+    lancer = lambda d: agent.post("/api/credit/balance-agee", {"date": d}, **H)
+    r = lancer("2026-11-05")
+    assert r.status_code == 200, r.content
+    assert r.json()["credits"] == 1 and r.json()["message"].startswith("Opération effectuée avec succès en ")
+    assert ident("select classe from balance_agee_ligne") == "sain"
+    c2 = credit_debloque(clients, journee, {**PRODUIT, "numero": "L009"})
+    with connection.cursor() as cur:                                     # première échéance de c1 passée depuis 10 jours, puis 31 jours
+        cur.execute("update echeance set date_due = (date_due - interval '40 days')::date where credit_id = %s", (c1,))
+    lancer("2026-11-05")
+    assert ident("select count(*) from balance_agee") == 1
+    l = {x[0]: x[1:] for x in lignes_bd("select credit_id, classe, jours_retard, assimile from balance_agee_ligne")}
+    assert l == {c1: ("impaye", 10, False), c2: ("impaye", 0, True)}
+    with connection.cursor() as cur:
+        cur.execute("update echeance set date_due = (date_due - interval '21 days')::date where credit_id = %s", (c1,))
+    lancer("2026-11-05")
+    assert ident(f"select classe || ' ' || jours_retard from balance_agee_ligne where credit_id = {c1}") == "douteux 31"
+    assert "obligatoire" in lancer("").json()["message"]
+    assert "pas après" in lancer("2026-11-06").json()["message"]
+    assert lancer("2026-11-01").json()["credits"] == 0                  # aucun crédit débloqué à cette date
+    assert caisse.post("/api/credit/balance-agee", {"date": "2026-11-05"}, **H).status_code == 403

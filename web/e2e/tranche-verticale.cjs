@@ -744,6 +744,9 @@ const OUT = process.argv[2];
   await p.getByRole('cell', { name: 'Chèque sans provision' }).waitFor(); await etape('11j-liste-rouge');
   await p.getByLabel('Motif: *').fill('Régularisé'); await p.getByRole('button', { name: 'Retirer' }).click(); await oui();
   await p.getByRole('cell', { name: 'Aucune donnée dans la liste' }).waitFor();
+  // Génération de balance âgée (S98, p. 120) : Date lancement (la journée), Lancer la balance âgée, confirmation
+  await aller('/credit/s98'); await p.getByRole('button', { name: 'Lancer la balance âgée' }).click();
+  await p.getByRole('dialog', { name: 'Succès' }).getByText(/Opération effectuée avec succès en \d+ seconde/).waitFor(); await etape('11k-balance-agee'); await p.getByRole('button', { name: 'Ok' }).click();
   await login('Esther Ngalula'); await aller('/caisse/s74?op=depot');
   await p.getByRole('tab', { name: 'Retrait en espèce' }).click(); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-01' });
   // Bouton Detail (registre S74-1) : relevé du compte en lecture seule ; masqué si le guichet n'a pas « Voir solde client » (S10-1)

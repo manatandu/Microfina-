@@ -2250,6 +2250,28 @@ describe("journée de guichet", () => {
     await expect(api.listeRouge.retirer({ tiersId: 1, motif: "x" })).rejects.toThrow("pas sur la liste");
   });
 
+  it("balance âgée (S98, p. 120) : classement à la date (Instr. BCC 003, art. 3, 6, 7) ; sain d'un client qui a un crédit litigieux classé impayé (art. 6, al. 2)", async () => {
+    const c1 = await creditDebloque();
+    const j = (await api.journees.courante())!.date;
+    await connecter("bkasongo");
+    await expect(api.balanceAgee.lancer({ date: "" })).rejects.toThrow("obligatoire");
+    await expect(api.balanceAgee.lancer({ date: "2099-01-01" })).rejects.toThrow("pas après");
+    const r = await api.balanceAgee.lancer({ date: j });
+    expect([r.credits, r.message.startsWith("Opération effectuée avec succès en ")]).toEqual([1, true]);
+    const c = _etat().credits.find((x) => x.id === c1)!;
+    const recule = (n: number) => { for (const e of c.echeancier) e.date = new Date(Date.parse(`${e.date}T00:00:00Z`) - n * 86400000).toISOString().slice(0, 10); };
+    const premiere = c.echeancier[0]!.date, ecart = Math.round((Date.parse(`${premiere}T00:00:00Z`) - Date.parse(`${j}T00:00:00Z`)) / 86400000);
+    recule(ecart + 10);                                                   // première échéance passée depuis 10 jours
+    _etat().credits.push({ ...structuredClone(c), id: 999, echeancier: structuredClone(c.echeancier).map((e) => ({ ...e, date: "2099-01-01" })) });
+    await api.balanceAgee.lancer({ date: j });
+    const b = () => _etat().balancesAgees.filter((x) => x.date === j);
+    expect(b().length).toBe(1);
+    expect(b()[0]!.lignes.map((x) => [x.creditId, x.classe, x.joursRetard, x.assimile])).toEqual([[c1, "impaye", 10, false], [999, "impaye", 0, true]]);   // comme le serveur
+    recule(21);
+    await api.balanceAgee.lancer({ date: j });
+    expect(b()[0]!.lignes.find((x) => x.creditId === c1)!.classe).toBe("douteux");
+  });
+
   it("produit crédit (S23, p. 37 et 38) : méthode dégressive (Instr. BCC 38 art. 11), bornes, garanties, assurance, frais (Instr. BCC 40 art. 8)", async () => {
     await connecter("jpmukendi");
     const P = { typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: "2,5", tauxDiffere: 2,
