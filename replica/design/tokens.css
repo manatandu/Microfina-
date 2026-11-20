@@ -1,19 +1,19 @@
 /* Généré par generer.py depuis tokens.json et tokens-sombre.json. Ne pas modifier à la main. */
 
 :root {
-  --papier: #E4E8EE;
+  --papier: #F5F6F8;
   --feuille: #FFFFFF;
   --encre: #182232;
   --encre-2: #4E5767;
-  --trait: #BAC2CE;
+  --trait: #D2D7DE;
   --trait-saisie: #6B7484;
-  --ligne: #DFE4EB;
-  --bandeau: #D8DEE7;
-  --zebre: #F4F6F9;
-  --tete-grille: #182232;
-  --sur-tete-grille: #FFFFFF;
+  --ligne: #E5E8ED;
+  --bandeau: #EEF0F3;
+  --zebre: #FAFBFC;
+  --tete-grille: #EEF0F3;
+  --sur-tete-grille: #2B3546;
   --tampon: #182232;
-  --tampon-pale: #E1E6EE;
+  --tampon-pale: #E7EBF1;
   --sur-tampon: #FFFFFF;
   --alerte: #C91B2C;
   --alerte-pale: #FAE8EA;
@@ -35,8 +35,8 @@
   --r5: #5F1D2B;
   --r5-texte: #5F1D2B;
   --r5-pale: #F1E3E6;
-  --inactif: #DCE1E8;
-  --sur-inactif: #80858E;
+  --inactif: #ECEEF1;
+  --sur-inactif: #6E7682;
   --specimen: #F5F7FA;
   --photo-fond: #E1E6ED;
   --photo-figure: #BABDC2;
@@ -53,13 +53,13 @@
   --police-texte: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
   --police-chiffres: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
   --police-marque: "Poppins", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-  --taille-dense: 12px;
-  --interligne-dense: 16px;
+  --taille-dense: 13px;
+  --interligne-dense: 18px;
   --graisse-dense: 400;
   --taille-courant: 14px;
   --interligne-courant: 20px;
   --graisse-courant: 400;
-  --taille-titre: 17px;
+  --taille-titre: 16px;
   --interligne-titre: 22px;
   --graisse-titre: 600;
   --taille-grand: 22px;
@@ -79,10 +79,10 @@
   --espace-8: 48px;
   --rayon-petit: 3px;
   --rayon-champ: 4px;
-  --rayon-bloc: 6px;
+  --rayon-bloc: 4px;
   --rayon-rond: 999px;
   --ombre-aucune: none;
-  --ombre-surface: 0 1px 0 rgba(24, 34, 50, .06), 0 1px 3px rgba(24, 34, 50, .08);
+  --ombre-surface: none;
   --ombre-flottant: 0 16px 40px rgba(14, 22, 40, .16);
   --mouvement-repete: 0ms;
   --mouvement-deroulant: 180ms;
@@ -106,19 +106,19 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --papier: #101722;
+    --papier: #121924;
     --feuille: #182232;
     --encre: #EDEDED;
     --encre-2: #B1B4B9;
-    --trait: #4A5466;
+    --trait: #354052;
     --trait-saisie: #8C9098;
-    --ligne: #303A4A;
-    --bandeau: #222C3C;
-    --zebre: #1C2637;
-    --tete-grille: #0C121C;
-    --sur-tete-grille: #EDEDED;
+    --ligne: #283244;
+    --bandeau: #1F2939;
+    --zebre: #1B2432;
+    --tete-grille: #1F2939;
+    --sur-tete-grille: #C9CED6;
     --tampon: #EDEDED;
-    --tampon-pale: #2D3644;
+    --tampon-pale: #2A3445;
     --sur-tampon: #182232;
     --alerte: #E8707B;
     --alerte-pale: #3F2031;
@@ -140,8 +140,8 @@
     --r5: #D9A0AE;
     --r5-texte: #D9A0AE;
     --r5-pale: #33202A;
-    --inactif: #343D4B;
-    --sur-inactif: #80858E;
+    --inactif: #283244;
+    --sur-inactif: #98A0AC;
     --specimen: #141C29;
     --photo-fond: #2F3846;
     --photo-figure: #59606B;
@@ -159,19 +159,19 @@
   }
 }
 :root[data-theme="dark"] {
-  --papier: #101722;
+  --papier: #121924;
   --feuille: #182232;
   --encre: #EDEDED;
   --encre-2: #B1B4B9;
-  --trait: #4A5466;
+  --trait: #354052;
   --trait-saisie: #8C9098;
-  --ligne: #303A4A;
-  --bandeau: #222C3C;
-  --zebre: #1C2637;
-  --tete-grille: #0C121C;
-  --sur-tete-grille: #EDEDED;
+  --ligne: #283244;
+  --bandeau: #1F2939;
+  --zebre: #1B2432;
+  --tete-grille: #1F2939;
+  --sur-tete-grille: #C9CED6;
   --tampon: #EDEDED;
-  --tampon-pale: #2D3644;
+  --tampon-pale: #2A3445;
   --sur-tampon: #182232;
   --alerte: #E8707B;
   --alerte-pale: #3F2031;
@@ -193,8 +193,8 @@
   --r5: #D9A0AE;
   --r5-texte: #D9A0AE;
   --r5-pale: #33202A;
-  --inactif: #343D4B;
-  --sur-inactif: #80858E;
+  --inactif: #283244;
+  --sur-inactif: #98A0AC;
   --specimen: #141C29;
   --photo-fond: #2F3846;
   --photo-figure: #59606B;

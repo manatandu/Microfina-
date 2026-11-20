@@ -188,14 +188,14 @@ export function EtatCredit() {
     <>
       <h1>Situation des crédits</h1>
       <section className="bloc pile" aria-label="Situation des crédits">
-        <div className="ligne-champ">
+        <div className="barre-filtres">
           <fieldset className="cadre-champs"><legend>Rechercher</legend>
             <label className="case"><input type="radio" name="mode" checked={f.mode === "periode"} onChange={() => setF({ ...f, mode: "periode" })} /><span>Sur une Période</span></label>
             <label className="case"><input type="radio" name="mode" checked={f.mode === "date"} onChange={() => setF({ ...f, mode: "date" })} /><span>A une date fixe</span></label>
           </fieldset>
-          <fieldset className="cadre-champs"><legend>{f.mode === "date" ? "Date" : "Période(Date d'approbation)"}</legend>
-            {f.mode === "date" ? <ChampDate libelle="Date" valeur={f.date} onChange={(v) => setF({ ...f, date: v })} />
-              : <><ChampDate libelle="Date début" valeur={f.du} onChange={(v) => setF({ ...f, du: v })} /><ChampDate libelle="Date fin" valeur={f.au} onChange={(v) => setF({ ...f, au: v })} /></>}
+          <fieldset className="cadre-champs double"><legend>{f.mode === "date" ? "Date" : "Période(Date d'approbation)"}</legend>
+            <div className="ligne-champ">{f.mode === "date" ? <ChampDate libelle="Date" valeur={f.date} onChange={(v) => setF({ ...f, date: v })} />
+              : <><ChampDate libelle="Date début" valeur={f.du} onChange={(v) => setF({ ...f, du: v })} /><ChampDate libelle="Date fin" valeur={f.au} onChange={(v) => setF({ ...f, au: v })} /></>}</div>
           </fieldset>
           <Champ libelle="Produit crédit">{(p) => <select {...p} className="saisie" value={f.produit} onChange={(e) => setF({ ...f, produit: e.target.value })}><option value="">Tous les produits</option>
             {ctx[2].produits.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>
@@ -221,8 +221,8 @@ export function EtatCredit() {
             <LigneFiltres titres={[null, null, null, null, null, "Intitulé", null, "Groupe", null, null, null, null, null, null, null]} /></thead>
           <tbody>{v.length === 0 && <tr><td colSpan={15}>aucune donnée</td></tr>}
             {v.map((x) => <tr key={x.id}>
-              <td><button className="bouton secondaire" type="button" aria-label={`Echéancier ${x.numero}`} onClick={() => setFiche({ id: x.id, devise: dv(x), quoi: "plan" })}>Echéancier</button></td>
-              <td><button className="bouton secondaire" type="button" aria-label={`Contrat prêt ${x.numero}`} onClick={() => setFiche({ id: x.id, devise: dv(x), quoi: "contrat" })}>Contrat</button></td>
+              <td><button className="bouton secondaire petit" type="button" aria-label={`Echéancier ${x.numero}`} onClick={() => setFiche({ id: x.id, devise: dv(x), quoi: "plan" })}>Echéancier</button></td>
+              <td><button className="bouton secondaire petit" type="button" aria-label={`Contrat prêt ${x.numero}`} onClick={() => setFiche({ id: x.id, devise: dv(x), quoi: "contrat" })}>Contrat</button></td>
               <td className="code">{x.numero}</td><td className="chiffres">{fr(x.dateApprobation)}</td><td className="code">{x.membre}</td><td>{x.client}</td><td className="chiffres">{x.contact}</td>
               <td>{x.groupe}</td><td className="num chiffres">{montant(x.montant, dv(x))}</td><td>{x.produit}</td><td>{x.agent}</td><td>{x.statut}</td>
               <td className="num chiffres">{x.capitalRestant === null ? "" : montant(x.capitalRestant, dv(x))}</td><td className="num chiffres">{x.joursRetard ?? ""}</td><td>{x.degre}</td></tr>)}</tbody>

@@ -59,22 +59,22 @@ export default function ProduitCredit({ listeOuverte = false }: { listeOuverte?:
   const simple = (l: string[]) => l.map((x) => ({ v: x, l: x }));
   const case_ = (k: string, libelle: string) => (
     <label className="case"><input type="checkbox" checked={!!f[k]} onChange={(e) => setF({ ...f, [k]: e.target.checked })} /><span>{libelle}</span></label>);
-  const cadre = (titre: string, enfants: ReactNode) => <fieldset className="cadre-champs"><legend>{titre}</legend><div className="ligne-champ">{enfants}</div></fieldset>;
+  const cadre = (titre: string, enfants: ReactNode) => <fieldset className="cadre-champs pile"><legend>{titre}</legend>{enfants}</fieldset>;
   const natures = simple(o.natures);
   const pages: ReactNode[] = [
     <div key="base" className="pile">
       <div className="grille-deux">
-        {cadre("Minimum", <>{texte("montantMin", "Montant *")}{texte("dureeMin", "Durée (mois) *", "saisie code")}{texte("differeMin", "Différé (mois) *", "saisie code")}{texte("interetMin", "Intérêt", "saisie code")}</>)}
-        {cadre("Maximum", <>{texte("montantMax", "Montant *")}{texte("dureeMax", "Durée (mois) *", "saisie code")}{texte("differeMax", "Différé (mois) *", "saisie code")}{texte("interetMax", "Intérêt", "saisie code")}</>)}
+        {cadre("Minimum", <>{texte("montantMin", "Montant *", "saisie montant")}{texte("dureeMin", "Durée (mois) *", "saisie nombre")}{texte("differeMin", "Différé (mois) *", "saisie nombre")}{texte("interetMin", "Intérêt", "saisie nombre")}</>)}
+        {cadre("Maximum", <>{texte("montantMax", "Montant *", "saisie montant")}{texte("dureeMax", "Durée (mois) *", "saisie nombre")}{texte("differeMax", "Différé (mois) *", "saisie nombre")}{texte("interetMax", "Intérêt", "saisie nombre")}</>)}
         {cadre("Identification", <>{choix("typeProduit", "Type Produit *", o.typesProduit.map((t: { code: string; libelle: string }) => ({ v: t.code, l: t.libelle })), false)}{case_("cyclique", "Cyclique")}
           {texte("numero", "Num Produit *", "saisie code")}{texte("nom", "Nom du produit *")}{choix("devise", "Devise *", simple(o.devises))}{choix("modeCalcul", "Mode calcul int *", simple(o.modesCalcul), false)}</>)}
-        {cadre("Intérêt", <>{choix("typeInteret", "Type *", simple(o.typesInteret), false)}{texte("tauxInteret", "Taux int. (%) *", "saisie code")}{texte("tauxDiffere", "Taux diff. (%) *", "saisie code")}</>)}
+        {cadre("Intérêt", <>{choix("typeInteret", "Type *", simple(o.typesInteret), false)}{texte("tauxInteret", "Taux int. (%) *", "saisie nombre")}{texte("tauxDiffere", "Taux diff. (%) *", "saisie nombre")}</>)}
       </div>
       <div className="grille-deux">
         {cadre("Types de client", <>{case_("clientPhysique", "Physique")}{case_("clientGroupe", "Groupe")}{case_("clientEntreprise", "Personne morale")}{case_("maxParMembre", "Appliquer montant max. prêt par mbre du groupe")}</>)}
         {cadre("Divers", <>{choix("periodicite", "Périodicité *", o.periodicites.map((t: { code: string; libelle: string }) => ({ v: t.code, l: t.libelle })))}
           {choix("modeDiffere", "Mode différé: *", simple(o.modesDiffere), false)}{choix("paiementInteret", "Paiement intérêt *", simple(o.paiementsInteret), false)}
-          {choix("interetAnticipation", "Percevoir int. par anticipation *", simple(["OUI", "NON"]), false)}{texte("ageMax", "Age max *", "saisie code")}</>)}
+          {choix("interetAnticipation", "Percevoir int. par anticipation *", simple(["OUI", "NON"]), false)}{texte("ageMax", "Age max *", "saisie nombre")}</>)}
       </div>
     </div>,
     <div key="garanties" className="grille-deux">
@@ -121,8 +121,8 @@ export default function ProduitCredit({ listeOuverte = false }: { listeOuverte?:
     <>
       <h1>Produit crédit : création/modification</h1>
       <div className="actions-onglets">
-        <button className="bouton" type="button" aria-label="Nouveau produit crédit" onClick={nouveau}>+</button>
-        <button className="bouton" type="button" onClick={() => setListe(true)}>Produits credit</button>
+        <button className="bouton secondaire" type="button" aria-label="Nouveau produit crédit" onClick={nouveau}>+</button>
+        <button className="bouton secondaire" type="button" onClick={() => setListe(true)}>Produits credit</button>
       </div>
       <div className="onglets" role="tablist" aria-label="Produit crédit">
         {ONGLETS.map((t, i) => <button key={t} type="button" role="tab" id={`onglet-${i}`} aria-controls="volet" aria-selected={i === onglet} onClick={() => setOnglet(i)}>{t}</button>)}

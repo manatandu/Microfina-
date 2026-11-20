@@ -53,18 +53,19 @@ a { color: var(--tampon); text-underline-offset: 3px; }
 @media (hover: hover) and (pointer: fine) { .sortir:hover { background: var(--nuit-2); color: var(--nuit-fort); } }
 .sortir:focus-visible { outline: 2px solid var(--ciel); }
 
-.corps { display: grid; grid-template-columns: var(--mise-menu) minmax(0, 1fr); min-height: 0; }
-.acces-rapide { border-right: 1px solid var(--trait); background: var(--feuille); padding: var(--espace-3); display: grid; gap: var(--espace-1); align-content: start; }
-.acces-rapide details { border: 1px solid var(--trait); border-radius: var(--rayon-champ); background: var(--feuille); }
-.acces-rapide summary { cursor: pointer; padding: var(--espace-2) var(--espace-3); font-size: var(--taille-dense); font-weight: 700; color: var(--encre); list-style: none; display: flex; justify-content: space-between; }
+.corps { display: grid; grid-template-columns: var(--mise-menu) minmax(0, 1fr); min-height: 0; background: var(--feuille); }
+/* Accès rapide : une colonne de liens, sans boîtes empilées (refonte v1.0) */
+.acces-rapide { border-right: 1px solid var(--trait); background: var(--papier); padding: var(--espace-3) var(--espace-2); display: grid; gap: 0; align-content: start; }
+.acces-rapide details { border: 0; border-bottom: 1px solid var(--ligne); border-radius: 0; background: none; }
+.acces-rapide summary { cursor: pointer; padding: var(--espace-2) var(--espace-2); font-size: var(--taille-dense); font-weight: 700; color: var(--encre); list-style: none; display: flex; justify-content: space-between; }
 .acces-rapide summary::-webkit-details-marker { display: none; }
 .acces-rapide summary::after { content: "+"; color: var(--encre-2); font-weight: 400; }
 .acces-rapide details[open] summary::after { content: "−"; }
-.acces-rapide details[open] summary { border-bottom: 1px solid var(--trait); background: var(--bandeau); border-radius: calc(var(--rayon-champ) - 1px) calc(var(--rayon-champ) - 1px) 0 0; }
-.acces-rapide ul { list-style: none; margin: 0; padding: var(--espace-1); display: grid; }
+.acces-rapide details[open] summary { border-bottom: 0; background: none; }
+.acces-rapide ul { list-style: none; margin: 0; padding: 0 0 var(--espace-2); display: grid; }
 .acces-rapide a { display: block; padding: 5px var(--espace-2); border-radius: var(--rayon-petit); font-size: var(--taille-dense); color: var(--encre); text-decoration: none; }
 @media (hover: hover) and (pointer: fine) { .acces-rapide a:hover { background: var(--papier); } }
-.acces-rapide a.active { background: var(--tampon-pale); color: var(--tampon); font-weight: 600; box-shadow: inset 3px 0 0 var(--tampon); }
+.acces-rapide a.active { background: var(--feuille); color: var(--tampon); font-weight: 600; box-shadow: inset 3px 0 0 var(--tampon); }
 .acces-rapide a.a-construire { color: var(--encre-2); }
 .zone-vide { min-height: 60vh; border: 1px solid var(--trait); border-radius: var(--rayon-bloc); background: var(--feuille); }
 
@@ -301,7 +302,7 @@ fieldset.formulaire { padding-bottom: var(--espace-2); }
   .acces-rapide.ouvert { display: grid; }
   .acces-rapide.ouvert details:not([open]) { display: block; }
 }
-.saisie.lecture { resize: none; overflow: hidden; field-sizing: content; line-height: var(--interligne-dense, 1.4); }
+.saisie.lecture { resize: none; overflow: hidden; field-sizing: content; line-height: var(--interligne-courant); }
 
 /* Écran tactile (fiche emil-kowalski « mobile-native ») : champs à 16 px pour que l'iPhone ne zoome pas à la saisie ;
    cibles d'au moins 44 px sous le doigt ; pas de flash gris au toucher ni d'attente de double tape */
@@ -344,15 +345,51 @@ button, summary, [role="tab"] { -webkit-user-select: none; user-select: none; }
 .ligne-champ > .champ:first-child:nth-last-child(2):has(+ .bouton) .saisie.code { inline-size: 100%; }
 .ligne-champ:has(> .champ:first-child:nth-last-child(2) + .bouton) { flex-wrap: nowrap; }
 
-/* Visa client (S40, manuel Microfina++ p. 52) */
-.cadre-champs { border: 1px solid var(--trait); border-radius: var(--rayon-bloc); padding: var(--espace-4); margin: 0; min-width: 0; }
-/* Le titre d'un cadre en est l'en-tête, comme celui d'une carte : même bandeau (demande du porteur, 18/11/2026) */
-.cadre-champs:has(> legend) { padding-top: 0; }
+/* ---------- Cadre de champs (les cadres des captures de Microfina++) : une section titrée, sans boîte (refonte v1.0, 20/11/2026) ----------
+   Comme Oracle Banking Branch : le titre du cadre et un filet dessous ; pas de bordure tout autour, pas de bandeau gris. */
+.cadre-champs { border: 0; border-radius: 0; padding: 0; margin: 0; min-width: 0; }
+.cadre-champs.pile, .cadre-champs > .pile { gap: var(--espace-2); }
 .cadre-champs > legend {
-  float: left; grid-column: 1 / -1; box-sizing: border-box; width: calc(100% + 2 * var(--espace-4));
-  margin: 0 calc(-1 * var(--espace-4)) var(--espace-1); padding: var(--espace-2) var(--espace-4);
-  background: var(--bandeau); border-bottom: 1px solid var(--trait); border-radius: calc(var(--rayon-bloc) - 1px) calc(var(--rayon-bloc) - 1px) 0 0;
-  font-weight: 700; font-size: var(--taille-dense); color: var(--encre);
+  float: left; grid-column: 1 / -1; box-sizing: border-box; width: 100%;
+  margin: 0 0 var(--espace-2); padding: 0 0 var(--espace-2);
+  background: none; border-bottom: 1px solid var(--trait); border-radius: 0;
+  font-weight: 700; font-size: var(--taille-courant); color: var(--encre);
+}
+/* Libellé à gauche dans les cadres de saisie : un tiers pour le libellé, le reste pour la case (SAP Fiori, ratio 4:8 ; captures de Microfina++).
+   Les barres de filtres (ligne-champ) gardent le libellé au-dessus. Au téléphone, le libellé repasse au-dessus. */
+:root { --col-libelle: 10.5rem; }
+.cadre-champs { container-type: inline-size; }
+.ligne-champ .cadre-champs, .ligne-champ.cadre-champs { container-type: normal; }   /* cadre de filtres dans une rangée : il garde sa largeur naturelle */
+.cadre-champs .champ:not(.ligne-champ .champ), .champs-gauche .champ:not(.ligne-champ .champ) {
+  grid-template-columns: var(--col-libelle) minmax(0, 1fr); align-items: baseline; column-gap: var(--espace-3); row-gap: 2px;
+}
+.cadre-champs .champ:not(.ligne-champ .champ) > label { font-weight: 400; }
+.cadre-champs .champ:not(.ligne-champ .champ) > .aide, .cadre-champs .champ:not(.ligne-champ .champ) > .erreur { grid-column: 2; }
+.cadre-champs .champ:not(.ligne-champ .champ) > .saisie.date, .cadre-champs .champ:not(.ligne-champ .champ) > .saisie.court { max-width: none; }
+.cadre-champs .champ:has(> .saisie.date), .cadre-champs .champ:has(> .saisie.court) { justify-items: stretch; }
+/* Une case suivie de son bouton (Rechercher) : libellé, case, bouton sur la même ligne */
+.cadre-champs .ligne-champ:has(> .champ:first-child:nth-last-child(2) + .bouton) {
+  display: grid; grid-template-columns: var(--col-libelle) minmax(0, 1fr) auto; column-gap: var(--espace-3); align-items: center;
+}
+.cadre-champs .ligne-champ:has(> .champ:first-child:nth-last-child(2) + .bouton) > .champ { display: contents; }
+.cadre-champs .ligne-champ:has(> .champ:first-child:nth-last-child(2) + .bouton) > .champ > label { font-weight: 400; }
+.cadre-champs.formulaire, .cadre-champs .formulaire { grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr)); gap: var(--espace-2) var(--espace-6); }
+.cadre-champs .grille-cadres, .cadre-champs .grille-cadres.client-large, .cadre-champs .grille-deux { grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr)); gap: var(--espace-2) var(--espace-6); }
+/* Cadre étroit (colonne de 26rem ou moins) : la case à remplir passe sous son libellé ; une valeur en lecture reste sur la ligne, à droite, comme sur un reçu */
+@container (max-width: 26rem) {
+  .champ:not(.ligne-champ .champ):has(> .saisie:not([readonly]):not(:disabled)) { grid-template-columns: minmax(0, 1fr); }
+  .champ:not(.ligne-champ .champ):has(> .saisie[readonly], > .saisie:disabled) { grid-template-columns: minmax(0, 1fr) minmax(0, max-content); }
+  .champ:not(.ligne-champ .champ) > .saisie[readonly], .champ:not(.ligne-champ .champ) > .saisie:disabled { text-align: right; }
+  .cadre-champs .info-ligne { grid-template-columns: minmax(0, 1fr) minmax(0, max-content); }
+  .cadre-champs .info-ligne dd { text-align: right; }
+  .ligne-champ:has(> .champ:first-child:nth-last-child(2) + .bouton) { grid-template-columns: minmax(0, 1fr) auto; }
+  .ligne-champ:has(> .champ:first-child:nth-last-child(2) + .bouton) > .champ > label { grid-column: 1 / -1; }
+}
+@media (max-width: 720px) {
+  .cadre-champs .champ:not(.ligne-champ .champ), .champs-gauche .champ:not(.ligne-champ .champ) { grid-template-columns: minmax(0, 1fr); }
+  .cadre-champs .champ:not(.ligne-champ .champ) > .aide, .cadre-champs .champ:not(.ligne-champ .champ) > .erreur { grid-column: 1; }
+  .cadre-champs .ligne-champ:has(> .champ:first-child:nth-last-child(2) + .bouton) { grid-template-columns: minmax(0, 1fr) auto; }
+  .cadre-champs .ligne-champ:has(> .champ:first-child:nth-last-child(2) + .bouton) > .champ > label { grid-column: 1 / -1; }
 }
 .cadre-champs > legend + * { clear: both; }
 .ligne-choix { cursor: pointer; }
@@ -407,8 +444,9 @@ fieldset.sans-cadre { border: 0; padding: 0; margin: 0; min-width: 0; }
 label.bouton { display: inline-flex; align-items: center; cursor: pointer; }
 label.bouton.inactif { opacity: 0.5; cursor: default; }
 label.bouton:focus-within { outline: 2px solid var(--tampon); outline-offset: 2px; }
-dl.infos { display: grid; gap: var(--espace-2); margin: 0; }
-.info-ligne { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--espace-3); }
+/* Libellé et valeur en lecture : même grille et même filet que les cases en lecture des cadres (refonte v1.0) */
+dl.infos { display: grid; gap: 0; margin: 0; }
+.info-ligne { display: grid; grid-template-columns: var(--col-libelle, 10.5rem) minmax(0, 1fr); gap: var(--espace-3); align-items: baseline; padding: 5px 0; border-bottom: 1px solid var(--ligne); }
 .info-ligne dd { overflow-wrap: break-word; }
 .info-ligne dt { color: var(--encre-2); font-size: var(--taille-dense); }
 .info-ligne dd { margin: 0; }
@@ -566,3 +604,15 @@ select.saisie { max-width: 100%; }
 /* Chargement : invisible pendant 400 ms, puis fondu ; une page qui arrive vite ne clignote pas */
 .chargement { animation: fondu 150ms ease-out 400ms backwards; }
 @media (prefers-reduced-motion: reduce) { .chargement { animation-duration: 1ms; } }   /* le délai reste, le fondu disparaît */
+
+/* ---------- Barre de filtres d'un rapport ou d'une liste (refonte v1.0 ; SAP Fiori « filter bar ») ----------
+   Une grille régulière : chaque filtre a la même largeur, libellé au-dessus ; un groupe de deux dates prend deux colonnes. */
+.barre-filtres { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr)); gap: var(--espace-3) var(--espace-4); align-items: end; }
+.barre-filtres > .cadre-champs { container-type: normal; align-self: stretch; }
+.barre-filtres > .cadre-champs > legend { font-size: var(--taille-dense); font-weight: 600; color: var(--encre-2); border-bottom: 0; padding-bottom: 0; margin-bottom: 6px; }
+.barre-filtres > .cadre-champs.double { grid-column: span 2; }
+.barre-filtres > .cadre-champs.double > .ligne-champ { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--espace-4); }
+.barre-filtres .champ > .saisie.date, .barre-filtres .champ > .saisie.court { max-width: none; }
+.barre-filtres .champ:has(> .saisie.date), .barre-filtres .champ:has(> .saisie.court) { justify-items: stretch; }
+.barre-filtres .case { padding-block: 2px; }
+@media (max-width: 560px) { .barre-filtres > .cadre-champs.double { grid-column: auto; } }

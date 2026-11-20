@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**589 décisions.** Solidité : 250 fortes (le manuel ou un texte répond), 287 moyennes (déduites d'un écran voisin ou d'une donnée), 52 faibles (notre choix, faute de mieux). Dans le code : 560 déjà en place, 25 à appliquer.
+**596 décisions.** Solidité : 256 fortes (le manuel ou un texte répond), 288 moyennes (déduites d'un écran voisin ou d'une donnée), 52 faibles (notre choix, faute de mieux). Dans le code : 566 déjà en place, 26 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1384,6 +1384,18 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S95-1 | Écran | Capture p. 119 « Consultation de prêts » : Date règlement*, Infos Client (N° du Client, Intitulé du compte, Groupe Solidaire), Infos crédit (Credit, Débloqué le et Rang, Montant prêt, Capital restant, Reste à payer, Produit crédit, Degré crédit et Jour retard, Degré réel, Terme, Agent crédit), Détail crédit, boutons B, P, R, Memo, Tout sur le crédit, H, Effacer. Crédits débloqués en cours du client | Manuel : Capture p. 119 ; texte p. 118 | forte | en place |
 | S95-2 | Calculs | Même situation que le remboursement (S76) à la date de règlement ; Rang : rang du crédit parmi ceux du client ; Terme : S21 ; Taux annuel : taux mensuel × 12 (S84-2) ; Degré réel : le degré selon les jours de retard (le déclassement S99 viendra le compléter) ; Différé de paiement (jour) : non saisi au dossier, 0 | Écran voisin : S76-3 ; S84-2 ; S21 | moyenne | en place |
 | S95-3 | Boutons | B, P, R, Memo : les fenêtres de S76 (brouillard, plan, réel, memo) ; Tout sur le crédit : affiche la somme due ce jour ; H grisé, non expliqué par le manuel ; Percevoir int. par anticipation : la valeur du produit, en lecture | Écran voisin : Texte p. 118 ; S76-9 ; S55-2 | faible | en place |
+
+## D02 Refonte visuelle v1.0
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| D02-1 | Libellés | À gauche dans les sections (10,5rem, Fiori 4:8) ; au-dessus dans les barres de filtres, dans une section étroite et au téléphone | Choix du porteur : Décision du porteur, 20/11/2026 ; SAP Fiori, Form ; captures de Microfina++ | forte | en place |
+| D02-2 | Valeur en lecture | Texte sur un filet, sans case ; liste bloquée sans flèche ni pointillé | Choix du porteur : Décision du porteur, 20/11/2026 ; SAP Fiori, Form (mode affichage) | forte | en place |
+| D02-3 | Fond et cadres | Page blanche ; un cadre est une section : titre et filet, sans bordure, sans bandeau, sans ombre | Choix du porteur : Décision du porteur, 20/11/2026 ; Oracle Banking Branch, Cash Deposit | forte | en place |
+| D02-4 | Tableaux | En-tête clair, trait dessous ; montants à droite ; une seule barre de pages, au-dessus, comme les captures de Microfina++ (p. 9, 116) | Choix du porteur : Décision du porteur, 20/11/2026 ; IBM Carbon, Data table ; SAP Fiori, Grid Table ; manuel p. 9 | forte | en place |
+| D02-5 | Police | Police de l'appareil confirmée, chiffres de même largeur ; quatre tailles (13, 14, 16, 22 px) | Choix du porteur : Décision du porteur, 15/11/2026 et 20/11/2026 | forte | en place |
+| D02-6 | Densité du guichet | Viser un écran de 768 px jusqu'au bouton principal ; le remboursement (S76) passe de 1 766 à 1 190 px, la cible n'est pas encore atteinte (étape 6) | Choix du porteur : Décision du porteur, 20/11/2026 ; DESIGN § 1 | moyenne | à appliquer |
+| D02-7 | Une action principale | Un seul bouton plein par écran ; les autres en contour | Choix du porteur : Décision du porteur, 20/11/2026 ; IBM Carbon, Forms (primaire et secondaire) | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

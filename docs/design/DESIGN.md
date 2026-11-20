@@ -1,4 +1,4 @@
-# Dwacfina (ex-Likelemba) : direction design, version 0.1
+# Dwacfina (ex-Likelemba) : direction design, version 1.0
 
 Le design d'un logiciel de microfinance ne se juge pas sur une capture d'écran de tableau de bord. Il se juge à 15 h 40, au guichet de Matete, avec douze personnes dans la file, un écran de 2014 et une coupure de courant il y a vingt minutes. Tout part de là.
 
@@ -100,98 +100,65 @@ Une COOPEC a des **membres** et des **parts sociales**. Une IMF a des **clients*
 
 ---
 
-## 3. Jetons (tokens)
+## 3. Système visuel, version 1.0 (20/11/2026)
 
-### Couleurs
+Décision du porteur, 20/11/2026 (« Go » sur le plan de refonte, après « inspire-toi des vrais logiciels ») : une seule règle, adossée à des logiciels en production. Elle remplace les cinq couches de la version 0 (refonte du 05/11, identité du 14/11, police du 15/11, contours et « registre de nuit » du 18/11), archivées dans [`historique/DESIGN-v0.md`](historique/DESIGN-v0.md). La structure des écrans reste celle de Microfina++ (CLAUDE.md § 0) : seule l'apparence suit cette section.
 
-**Refonte du 05/11/2026**, à la demande du porteur : la première version (fond papier, violet « tampon », petites capitales) faisait daté. L'idée devient : un outil bancaire d'aujourd'hui, calme et précis, avec une seule touche d'identité, le drapeau. Fond froid et lumineux, cartes blanches aux coins doux, une couleur d'action, le **bleu Congo**, et une barre latérale **nuit** marquée de l'**étoile jaune** du drapeau. Les noms des jetons ne changent pas ; leurs valeurs font foi dans `replica/design/tokens.json` (clair) et `tokens-sombre.json` (sombre).
+Sources lues, citées pour chaque règle :
+- **Oracle Banking Branch**, guide du guichet 14.7, écran Cash Deposit : sections titrées sans encadré, cases de même largeur, montant à droite avec sa devise, date de l'agence en haut à droite.
+- **SAP Fiori**, Form et Simple Form : libellé et case dans une grille de 12 colonnes, ratio 4:8 sur grand écran ; en lecture seule, couple libellé et valeur sans case ; montants à droite en saisie.
+- **SAP Fiori**, Grid Table et Analytical Table : nombres à droite sauf les identifiants, montants alignés sur la virgule, devise dans la cellule.
+- **IBM Carbon**, Forms et Data table : cases de 40 px, écarts de 16 à 32 px, largeur selon la donnée attendue ; hauteur de ligne fixe, en-tête à la hauteur des lignes.
 
-| Jeton | Valeur | Usage |
-|---|---|---|
-| `papier` | `#F3F5F8` | Fond de l'application |
-| `feuille` | `#FFFFFF` | Cartes, surfaces de saisie |
-| `encre` | `#0E1628` | Texte principal |
-| `encre-2` | `#4A5468` | Texte secondaire, libellés |
-| `trait` | `#E2E6ED` | Bordures, séparations |
-| `trait-saisie` | `#7F8A9D` | Bord des champs de saisie (3:1 minimum, WCAG 1.4.11) |
-| `tampon` | `#1652D0` | Bleu Congo : action principale, focus, sélection |
-| `tampon-pale` | `#EAF1FF` | Fond de sélection, halo de focus |
-| `alerte` | `#C42B1C` | Erreur bloquante |
-| `nuit`, `nuit-2` | `#0B1526`, `#17253D` | Barre latérale, élément actif |
-| `ciel` | `#62A8FF` | Repère de l'élément actif sur la nuit |
-| `etoile` | `#FFFFFF` | Anneau de focus sur fond sombre (ancienne étoile du drapeau, remplacée par l'identité DWAC). Jamais un état. |
+### 3.1 Jetons
 
-Rampe des statuts de crédit (Instr. 003) :
+Les valeurs font foi dans `replica/design/tokens.json` (clair) et `tokens-sombre.json` (sombre) ; `generer.py` écrit `tokens.css`. Aucune couleur, taille ou rayon ne s'écrit ailleurs.
 
-| Statut | Valeur (point, bordure) | Texte |
-|---|---|---|
-| Sain | `#2E7553` | `#2E7553` |
-| 1 à 30 jours | `#B58A12` | `#7A5C0B` |
-| 31 à 60 jours | `#C76B1E` | `#9A4F12` |
-| 61 à 90 jours | `#BC4A2F` | `#9E3A22` |
-| 91 à 180 jours | `#982C38` | `#982C38` |
-| Plus de 180 jours | `#5F1D2B` | `#5F1D2B` |
+- **Couleurs** : page blanche (`feuille`) ; neutres très légers teintés du Bleu Nuit de la marque (`papier` #F5F6F8 pour le menu, `trait` #D2D7DE, `ligne` #E5E8ED) ; texte `encre` #182232 et `encre-2` #4E5767 ; action `tampon` = Bleu Nuit ; rouge de la marque pour les erreurs et le logo ; rampe des statuts de crédit (§ 2.4) inchangée. Contraste mesuré à chaque changement : 4,5:1 pour le texte, 3:1 pour les bords de case, en clair et en sombre (88 paires, aucun échec le 20/11/2026).
+- **Typographie** : police de l'appareil (décision du 15/11/2026), chiffres de même largeur (`tabular-nums`). Quatre tailles : 13 px (libellés, tableaux), 14 px (texte, cases), 16 px (titres de section), 22 px (titre d'écran) ; le montant du guichet garde 28 px.
+- **Espacement** : grille de 4 px (4, 8, 12, 16, 24, 32).
+- **Formes** : rayon de 4 px pour les cases et les boutons ; aucune ombre sur la page, seulement sur ce qui flotte (fenêtre, menu déroulant).
 
-Contraste texte sur fond vérifié AA, thème clair et thème sombre : `replica/design/contraste.txt` (05/11/2026). Les trois premières tranches de retard n'atteignaient pas 4,5:1 en texte ; d'où la colonne « Texte ». La rampe reste lisible en daltonisme parce que le libellé est toujours présent.
+### 3.2 Sections
 
-Les valeurs font foi dans `replica/design/tokens.json` et `tokens-sombre.json`. Les maquettes chargent `replica/design/tokens.css` et n'ont plus de couleur, de taille ni d'espacement à elles.
+Un cadre des captures de Microfina++ (Infos client, Infos crédit, Répartition…) est une **section** : son titre, un filet dessous, sans bordure autour, sans bandeau gris, sans ombre (Oracle Banking Branch). La page est blanche ; le menu d'accès rapide est sur `papier`, une colonne de liens séparés par des filets.
 
-### Identité DWAC (décision du porteur, 14/11/2026)
+### 3.3 Cases et libellés
 
-Le logiciel s'appelle **Dwacfina**. DWAC l'édite et le **vend aux COOPEC et IMF** : l'interface porte l'identité de DWAC, éditeur, telle que le guide de marque v0.1 (juillet 2026) la fixe. Ce paragraphe prime sur la « refonte du 05/11/2026 » ci-dessus (bleu Congo, étoile jaune du drapeau), qui n'est plus en vigueur.
+- Dans une section, **libellé à gauche**, sur une colonne de 10,5rem, la case sur le reste (Fiori 4:8 ; libellé à gauche comme Microfina++). Toutes les cases d'une section ont donc la même largeur.
+- Une case et son bouton (Rechercher) tiennent sur la même ligne : libellé, case, bouton.
+- Une section étroite (26rem ou moins) : la case à remplir passe sous son libellé ; une valeur en lecture reste sur la ligne, à droite, comme sur un reçu.
+- Dans une **barre de filtres** (rapports, listes), libellé au-dessus, grille régulière de colonnes égales de 12rem au moins ; deux dates d'une même période prennent deux colonnes (Fiori, barre de filtres).
+- Au téléphone, libellé au-dessus partout.
 
-- **Trois couleurs** : Rouge Écarlate `#C91B2C`, Bleu Nuit `#182232`, Gris Clair `#EDEDED` (jetons `marque-rouge`, `marque-nuit`, `marque-gris`). Les autres valeurs sont des **teintes unies** dérivées de ces trois couleurs (le guide interdit tout dégradé, ombre portée sur le logo comprise).
-- **Rôles** (registre D01-2) : le Bleu Nuit porte l'action (boutons, onglets, barre du haut), le Gris Clair le fond de page, le blanc les cartes. Le rouge reste pour le logo, les erreurs et les alertes : il garde un sens. Les rampes de statut des crédits et le vert « sain » restent des couleurs de sens (§ 2.4) et ne viennent pas de la marque.
-- **Polices** : Poppins Medium pour le texte, Poppins Bold pour les titres. Provicali n'est pas reprise (décision du porteur, registre D01-3). Les montants gardent une police à chiffres de largeur fixe (§ 2.2), écart à confirmer.
-- **Dans l'interface** (décision du porteur, 18/11/2026) : le logo du logiciel, « Partie double », un D dont le vide est un signe égal, en Rouge Écarlate, suivi du mot dwacfina. Jeu complet et page d'usage : [`logo-dwacfina/`](logo-dwacfina/guide-usage.html). Il remplace le monogramme DWAC suivi de DWACFINA en Poppins Bold. Ni bande verticale, ni autre habillage de la page de connexion.
-- **Logo complet** : trois déclinaisons officielles seulement, extraites du PDF du guide sans retouche (`web/src/marque/`) : bicolore sur fonds clairs, blanc sur fonds sombres, noir pour les impressions simples. On ne change ni les proportions, ni l'orientation, ni les couleurs, et on n'ajoute ni ombre ni relief ni dégradé. Zone de protection : X, la hauteur des lettres.
-- **Documents imprimés** (contrats, reçus, rapports) : ce sont ceux de l'institution cliente. Ils portent son nom et son logo (Information société, S32), jamais l'identité de DWAC (registre D01-7).
-- **Ton** (guide, p. 26) : précis, factuel, une idée par phrase, chaque constat suivi d'une recommandation. Pas de vocabulaire de « design » ou de « créativité ».
+### 3.4 Valeurs en lecture
 
-### Typographie
+Une valeur qu'on ne modifie pas s'affiche en **texte sur un filet**, sans case, en couleur de texte normale (Fiori, mode affichage). Une liste bloquée n'a ni flèche ni pointillé. Les couples libellé et valeur (`dl.infos`) ont la même grille et le même filet.
 
-Deux familles, chacune pour sa fonction.
-- **Poppins** pour le texte et les titres (identité DWAC, guide de marque p. 18) : Medium pour le texte courant, Bold pour les titres. Provicali, réservée aux grands titres, attend son fichier (registre D01-3).
-- **Police système (décision du porteur, 15/11/2026)** : tout le logiciel prend la police de l'appareil, comme les logiciels internationaux (Segoe UI sur Windows, San Francisco sur iPhone et Mac, Roboto sur Android), texte courant en 14 px, graisse normale ; montants et numéros dans la même police, chiffres alignés (tabular-nums). Seul le nom DWACFINA du logo garde Poppins Bold. Elle remplace Poppins et Atkinson Hyperlegible Mono ci-dessous.
-- **Relevés de compte** (registre S64-7) : même police, 8,5 points à l'impression, lignes serrées, comme un relevé bancaire.
-- **Atkinson Hyperlegible Mono** pour les montants, numéros de compte, numéros de pièce et dates saisies. Poppins distingue mal certains caractères qui se confondent (I majuscule et l minuscule, 0 et O) : au guichet, c'est exactement le risque. La chasse fixe a ici une raison : aligner les chiffres et lire un numéro caractère par caractère.
+### 3.5 Montants et nombres
 
-Échelle : 13, 15, 18, 24, 32 px. Montant principal du guichet en 32 px. Texte courant 15 px. Back-office dense 13 px.
+- La devise est toujours écrite (`1 000 000,00 CDF`), deux décimales, espace fine, virgule (§ 2.2).
+- En saisie et dans les tableaux : à droite. En lecture dans une section : à gauche, juste après le libellé (Fiori : pas de grand vide entre libellé et valeur) ; à droite dans une section étroite.
+- Les identifiants (numéros de compte, de crédit, de pièce) restent à gauche et ne se coupent jamais.
 
-### Espacement et formes
+### 3.6 Tableaux
 
-Grille de 4 px. Rayons : 6 px pour les petits éléments, 8 px pour les champs et boutons, 12 px pour les cartes, pastilles arrondies.
+En-tête clair (`tete-grille`), texte foncé, trait dessous ; lignes de même hauteur, contenu centré verticalement ; lignes alternées très légères ; montants à droite ; total arrêté (un trait au-dessus, double trait dessous). Une seule barre de pages, au-dessus du tableau, comme les captures de Microfina++ (p. 9, 116). Une action dans une ligne est un petit bouton (28 px).
 
-**Contours nets (demande du porteur, 18/11/2026 : « trop blanc, sans forme, pas assez de contours »).** Chaque surface a un bord qu'on voit :
-- trait des bordures plus soutenu (`trait` #C9CCD1, séparations de lignes `ligne` #E3E5E8) ;
-- le titre d'une carte devient son en-tête : un bandeau gris (`bandeau` #E6E8EB) séparé du contenu par un trait ;
-- tableaux encadrés, en-tête et pied sur le bandeau, texte en gras, lignes alternées (`zebre` #F7F8F9) ;
-- le titre d'un cadre (CDF, USD, Minimum…) en devient l'en-tête, sur le même bandeau que les cartes ;
-- menu d'accès rapide : groupe ouvert sur le bandeau, page courante marquée d'un filet à gauche ;
-- ombre des cartes un peu plus marquée, pour les détacher du fond.
-Les trois couleurs de la marque ne changent pas. La hauteur des champs ne change pas : le guichet respire, seul le back-office est dense (§ 2.9), et 44 px restent la cible au doigt.
+### 3.7 Boutons et onglets
 
-**Registre de nuit (demande du porteur, 18/11/2026 : « propre, distinctif et précis » ; « je ne sais pas si la forme blanc gris est adaptée »).** Le gris neutre et le blanc n'avaient ni température ni hiérarchie. Désormais :
-- tous les neutres sont teintés du Bleu Nuit de la marque : fond de page `papier` #E4E8EE (au lieu du Gris Clair #EDEDED), bandeaux #D8DEE7, traits #BAC2CE, texte secondaire #4E5767 (5,4:1 sur bandeau, 7,3:1 sur blanc) ;
-- coins resserrés : 3 px, 4 px pour les champs et boutons, 6 px pour les cartes ;
-- signature : l'en-tête des tableaux est la tête du registre, en Bleu Nuit plein, texte blanc ; la ligne de total porte un trait au-dessus et un double trait au-dessous, comme un total arrêté ;
-- ombre des cartes courte et sèche.
-Écart au registre D01-2 (fond de page en Gris Clair) : le Gris Clair reste la couleur de la marque sur les supports DWAC ; dans le logiciel, le fond prend sa version teintée de nuit. À valider par le porteur. Ombre très légère sur les cartes pour les détacher du fond ; ombre marquée seulement pour ce qui flotte (menu, liste de suggestions). Titres de carte en casse normale, jamais en petites capitales. Les onglets du guichet sont un contrôle segmenté. Survol : changement de couleur en 120 ms, à la souris seulement ; rien ne bouge après une touche (§ 2.7 bis).
+- **Une seule action principale pleine par écran** (Enregistrer, Exécuter, Débloquer, Suivant) ; toutes les autres sont secondaires (contour). Pas d'ombre, pas d'effet à la pression (§ 2.7 bis). Les boutons d'un écran restent à droite, sous le contenu, comme sur les captures.
+- **Onglets soulignés** : texte, trait de 2 px sous l'onglet actif, filet sous la rangée (Fiori, Oracle).
+
+### 3.8 Contrôles
+
+À chaque lot d'écrans : captures avant et après à 1366 × 768 ; tests et parcours complets ; contraste des jetons ; aucune page qui déborde de côté. Mesures suivies : hauteur des écrans, nombre de largeurs de case, montants sans devise.
+
+### 3.9 Identité DWAC (inchangée)
+
+Trois couleurs (Rouge Écarlate #C91B2C, Bleu Nuit #182232, Gris Clair #EDEDED), logo « Partie double » dans la barre du haut, documents imprimés aux couleurs de l'institution cliente (registre D01). La barre du haut reste Bleu Nuit. La page des modules garde sa scène 3D (§ 2.7 ter).
 
 ---
-
-### Téléphone (demande du porteur, 14/11/2026 : « Corrige tout »)
-
-Audit des 66 écrans construits au téléphone (clair, sombre) et à l'ordinateur, barème des fiches emil-kowalski `mobile-native` et `break-ui`. Règles retenues :
-
-- **La page ne glisse jamais de côté.** Un tableau plus large que l'écran défile dans son cadre, une ombre au bord dit qu'il reste des colonnes, la première colonne reste en place. Même règle pour la barre des modules et les onglets : une seule ligne qui glisse.
-- **Largeurs égales** (inspection du 15/11/2026) : dans une colonne où chaque case est sous son libellé, toutes les cases ont la largeur de la colonne, dates et cases courtes comprises. Dans un formulaire à libellé à gauche, deux largeurs seulement : texte (16rem) et code, date ou nombre (9rem). Une case suivie d'un bouton « Rechercher » prend la place qui reste et garde son bouton à côté d'elle. Au téléphone, toutes les cases font la largeur de l'écran.
-- **Champs à 16 px sous le doigt** (`pointer: coarse`) : en dessous, l'iPhone zoome à chaque saisie. À l'ordinateur, la taille dense reste.
-- **Cibles de 44 px sous le doigt** : boutons, champs, liens des menus, lignes de case à cocher.
-- **Menu d'accès rapide replié** derrière un bouton « Menu » sous 860 px : l'écran commence en haut. La structure de Microfina++ (menus d'accès rapide à gauche) ne change pas à l'ordinateur.
-- **Valeur en lecture seule** : elle passe à la ligne (composant `Lecture`), une adresse longue reste lisible en entier.
-- **Socle** : pas de flash au toucher, pas d'attente de double tape, hauteur `dvh`, zones sûres (encoche, barre du bas), couleur de la barre d'état accordée au jeton `--nuit` de chaque thème (`index.html`, seule couleur écrite en dur : une balise meta ne lit pas de variable).
-- **Contrôle** : le travail « Contrôle du site en ligne » mesure à chaque déploiement que la page ne déborde pas au téléphone.
 
 ## 4. Écrans clés
 

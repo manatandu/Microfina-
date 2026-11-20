@@ -145,7 +145,7 @@ export function ChampDate({ libelle, valeur, onChange, aide, requis }: { libelle
   const complet = texte.length === 10, iso = lireDate(texte);
   const erreur = complet && !iso ? "Date impossible." : "";
   return (
-    <Champ libelle={libelle} aide={aide ?? "jj/mm/aaaa"} erreur={erreur}>
+    <Champ libelle={libelle} aide={aide} erreur={erreur}>
       {(p) => <input {...p} className="saisie date" inputMode="numeric" autoComplete="off" placeholder="jj/mm/aaaa" maxLength={10} required={requis} value={texte}
         onChange={(e) => { const t = masque(e.target.value); setTexte(t); onChange(lireDate(t) ?? ""); }} />}
     </Champ>
@@ -250,7 +250,6 @@ export function Paginee<T>({ lignes, children, parPage = PAR_PAGE, colonnes }: {
       <div className="pile">
         <BarrePages page={p} pages={pages} aller={setPage} />
         {children(retenues.slice(p * parPage, (p + 1) * parPage))}
-        <BarrePages page={p} pages={pages} aller={setPage} />
       </div>
     </FiltresGrille.Provider>
   );

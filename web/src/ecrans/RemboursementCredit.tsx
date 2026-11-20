@@ -140,7 +140,7 @@ function InfosCredit({ e, fige, banque }: { e: Etat; fige: boolean; banque?: boo
 
 function RepartitionDetail({ e, fige, setBoite }: { e: Etat; fige: boolean; setBoite: (b: Boite) => void }) {
   const d = e.donnees?.d ?? null, dv = (d?.devise ?? "CDF") as Devise, rep = e.modifie ?? e.donnees?.rep ?? null;
-  const ro = (l: string, v: number | undefined) => <Champ key={l} libelle={l}>{(p) => <Lecture {...p} value={d ? decimal.format((v ?? 0) / 100) : ""} />}</Champ>;
+  const ro = (l: string, v: number | undefined) => <Champ key={l} libelle={l}>{(p) => <Lecture {...p} value={d ? montant(v ?? 0, dv) : ""} />}</Champ>;
   return <div className="deux-colonnes">
     <fieldset className="pile cadre-champs"><legend>Répartition</legend>
       {d && <p>Ordre Répartition : {d.ordre.map((x) => REPARTITION.find(([k]) => k === x)?.[1] ?? x).join(", ")}</p>}
@@ -158,7 +158,7 @@ function RepartitionDetail({ e, fige, setBoite }: { e: Etat; fige: boolean; setB
         {ro("Retard fond Solid.", d?.du.solidarite)}{ro("Retard Epargne", d?.du.epargne)}{ro("Pénalité", d?.du.penalite)}
         <Champ libelle="Retard total">{(p) => <Lecture {...p} value={d ? montant(d.retardTotal, dv) : ""} />}</Champ>
       </div>
-      <div className="actions-onglets"><button className="bouton" type="button" disabled={fige || !d} onClick={() => { e.setModifie(null); e.setSaisie(d ? decimal.format(d.toutSurLeCredit / 100) : ""); }}>Tout sur le crédit</button></div>
+      <div className="actions-onglets"><button className="bouton secondaire" type="button" disabled={fige || !d} onClick={() => { e.setModifie(null); e.setSaisie(d ? decimal.format(d.toutSurLeCredit / 100) : ""); }}>Tout sur le crédit</button></div>
     </fieldset>
   </div>;
 }
@@ -332,7 +332,7 @@ export function ConsulterPret() {
   const { j, credits, d } = donnees;
   const dv = (d?.devise ?? "CDF") as Devise;
   const ro = (l: string, v: string) => <Champ key={l} libelle={l}>{(p) => <Lecture {...p} value={d ? v : ""} />}</Champ>;
-  const mt = (v: number | undefined) => decimal.format((v ?? 0) / 100);
+  const mt = (v: number | undefined) => montant(v ?? 0, dv);
   return (
     <>
       <h1>Consultation de prêts</h1>
@@ -378,7 +378,7 @@ export function ConsulterPret() {
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("plan")}>P</button>
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("reel")}>R</button>
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("memo")}>Memo</button>
-          <button className="bouton" type="button" disabled={!d} onClick={() => d && setBoite({ type: "succes", message: `Tout sur le crédit au ${fr(d.dateReglement)} : ${montant(d.toutSurLeCredit, dv)}.` })}>Tout sur le crédit</button>
+          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => d && setBoite({ type: "succes", message: `Tout sur le crédit au ${fr(d.dateReglement)} : ${montant(d.toutSurLeCredit, dv)}.` })}>Tout sur le crédit</button>
           <button className="bouton secondaire" type="button" disabled>H</button>
           <button className="bouton secondaire" type="button" onClick={() => { setT(null); setCid(null); setDate(""); }}>Effacer</button>
         </div>
