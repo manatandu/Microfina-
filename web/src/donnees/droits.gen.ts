@@ -208,6 +208,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "emprunts.rembourser": [
 "S61"
 ],
+"engagements.enregistrer": [
+"S100"
+],
 "exercices.completer": [
 "S11c"
 ],

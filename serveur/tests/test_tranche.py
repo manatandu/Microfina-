@@ -3246,3 +3246,34 @@ def test_provisions(clients, journee):
     assert (solde("3904"), solde("3901"), solde("3801"), solde("3804"), solde("6910"), solde("0612"), solde("096")) == (0, 0, 0, 0, cap, cap, -cap)
     assert balance_equilibree(agent)
     assert clients["caisse"].get("/api/credit/provisions", {"date": "2026-12-31"}, **H).status_code == 403
+
+
+def test_engagement_signature(clients, journee):
+    """S100 (p. 121) : engagement par signature en hors bilan (0012 contre 090), frais = montant × pourcentage + forfait prélevés sur le compte épargne
+    (727), garantie saisie bloquée sur le compte garanti ; plafond par client avec les crédits (Instr. BCC 002, art. 23 et 28 ; CR-14, CR-22)"""
+    agent, chef, caisse = clients["agent"], clients["chef"], clients["caisse"]
+    solde = lambda n: ident("select coalesce(sum(case when l.sens = 'D' then l.montant_devise else -l.montant_devise end), 0) from ligne_ecriture l join compte c on c.id = l.compte_id where c.numero = %s", (n,))
+    k = T("0412-000318")
+    b = agent.get(f"/api/credit/engagements/beneficiaire/{k}", **H).json()
+    ce = next(x for x in b["comptes"] if x["devise"] == "CDF")
+    base = {"tiersId": k, "reference": "ES-001", "type": "caution", "description": "Caution de marché", "montant": 50000000, "duree": 6, "pourcentage": "1,5",
+            "forfait": 100000, "garantie": 200000, "compteEpargneId": ce["id"], "compteGarantiId": ce["id"]}
+    refus = lambda corps: agent.post("/api/credit/engagements", corps, **H).json()["message"]
+    assert "Référence, Type engagement" in refus({**base, "reference": " ", "type": "x"})
+    assert "Fonds propres" in refus(base)
+    chef.post("/api/credit/fonds-propres", {"dateArrete": "2026-10-31", "montant": 100000000}, **H)
+    assert "Plafond par emprunteur" in refus(base)                      # 500 000 CDF > 5 % ou 10 % de 1 000 000 CDF
+    chef.post("/api/credit/fonds-propres", {"dateArrete": "2026-10-31", "montant": 100000000000}, **H)
+    assert "Garantie" in refus({**base, "garantie": ce["disponible"]})
+    r = agent.post("/api/credit/engagements", base, **H)
+    assert r.status_code == 200, r.content
+    e = r.json()
+    assert (e["frais"], e["dateFin"], e["typeLibelle"], e["piece"] != "") == (50000000 * 15 // 1000 + 100000, "2027-05-05", "Caution", True)
+    assert (solde("0012"), solde("090"), solde("727")) == (50000000, -50000000, -e["frais"])
+    c2 = next(x for x in agent.get(f"/api/credit/engagements/beneficiaire/{k}", **H).json()["comptes"] if x["id"] == ce["id"])
+    assert c2["disponible"] == ce["disponible"] - e["frais"] - 200000
+    assert "déjà utilisée" in refus(base)
+    assert [x["reference"] for x in agent.get("/api/credit/engagements", **H).json()] == ["ES-001"]
+    from noyau.dossiers import encours
+    assert encours({"institution_id": ident("select institution_id from tiers where id = %s", (k,)), "agence_id": ident("select id from agence limit 1")}, [k]) >= 50000000
+    assert caisse.get("/api/credit/engagements", **H).status_code == 403

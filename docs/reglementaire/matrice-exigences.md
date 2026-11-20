@@ -132,7 +132,7 @@ Note : l'art. 14 associe les pondérations à des niveaux de risque dans l'ordre
 | Loi 002/2002, art. 24 | Pas de démission d'un membre emprunteur ou caution | Résiliation de membre | registre CR-23 | lu |
 | Loi 11/020, art. 43 à 48 | Sûretés : solidarité, rétention, nantissement ; compensation du dépôt nanti | Groupes, cautions et dépôts de garantie | registre CR-8, CR-21 | lu |
 | Code civil, livre III, art. 151 à 154 | Imputation des paiements : intérêts d'abord, sauf accord du créancier | Remboursement | registre CR-20 | lu |
-| PCCI, hors bilan (00, 01, 09) | Engagements donnés et reçus, sans compensation | Engagement par signature, cautions | registre CR-21, CR-22 | lu |
+| PCCI, hors bilan (00, 01, 09) | Engagements donnés et reçus, sans compensation | Engagement par signature, cautions | Engagement par signature (S100) : 0001 ou 0012 contre 090 ; cautions reçues (S94) ; fin de l'engagement à poser (S100-7) | en place |
 
 ## Exigences issues du terrain
 

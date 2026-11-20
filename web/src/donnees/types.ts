@@ -282,7 +282,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 70;
+  version: 71;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)
@@ -324,6 +324,9 @@ export interface Etat {
   balancesAgees: BalanceAgee[];   // S98
   provisionsCredit: { id: number; creditId: number; date: string; nature: "provision" | "radiation"; degreAvant: number; degreApres: number; provisionAvant: number;
     provisionApres: number; capitalRestant: number; ecritureId: number | null; par: number }[];   // S99
+  engagementsSignature: { id: number; reference: string; tiersId: number; type: "financement" | "aval" | "caution"; description: string; dateDebut: string; dateFin: string;
+    duree: number; montant: number; devise: Devise; pourcentage: string; forfait: number; frais: number; garantie: number; compteEpargneId: number; compteGarantiId: number;
+    compteBancaireId: number | null; observation: string; blocageId: number | null; ecritureId: number; saisiPar: number }[];   // S100
   affectationsCredit: { id: number; creditId: number; de: number; vers: number; le: string; par: number }[];   // S96
   liberationsGarantie: { id: number; garantieId: number; montant: number; date: string; ecritureId: number | null; par: number }[];
   visasCredit: VisaCredit[];   // S90

@@ -82,6 +82,12 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       tout: (p: unknown) => post("/credit/provisions/tout", p),
       radier: (p: unknown) => post("/credit/provisions/radiation", p),
     },
+    engagements: {
+      lister: () => get("/credit/engagements"),
+      contexte: () => get("/credit/engagements/contexte"),
+      beneficiaire: (tid: number) => get(`/credit/engagements/beneficiaire/${tid}`),
+      enregistrer: (p: unknown) => post("/credit/engagements", p),
+    },
     affectation: {
       contexte: () => get("/credit/affectation/contexte"),
       portefeuille: (agent: number) => get(`/credit/affectation/${agent}`),

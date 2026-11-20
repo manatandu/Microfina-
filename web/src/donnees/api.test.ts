@@ -2296,6 +2296,30 @@ describe("journée de guichet", () => {
     await expect(api.provisions.radier({ date: j, credits: [cid] })).rejects.toThrow("31 décembre");
   });
 
+  it("engagement par signature (S100, p. 121) : hors bilan 0012/090, frais au compte 727, garantie bloquée, plafond par client (Instr. BCC 002, art. 23 et 28 ; CR-22)", async () => {
+    await journeeOuverte();
+    await connecter("bkasongo");
+    const b = await api.engagements.beneficiaire(1);
+    const ce = b.comptes.find((x) => x.devise === "CDF")!;
+    const base = { tiersId: 1, reference: "ES-001", type: "caution", description: "Caution de marché", montant: 50000000, duree: 6, pourcentage: "1,5", forfait: 100000, garantie: 200000,
+      compteEpargneId: ce.id, compteGarantiId: ce.id };
+    await expect(api.engagements.enregistrer({ ...base, reference: " ", type: "x" })).rejects.toThrow("Référence, Type engagement");
+    await connecter("jpmukendi");
+    await api.dossiers.enregistrerFondsPropres({ dateArrete: "2026-10-31", montant: 100000000 });
+    await connecter("bkasongo");
+    await expect(api.engagements.enregistrer(base)).rejects.toThrow("Plafond par emprunteur");
+    await connecter("jpmukendi");
+    await api.dossiers.enregistrerFondsPropres({ dateArrete: "2026-11-01", montant: 100000000000 });
+    await connecter("bkasongo");
+    await expect(api.engagements.enregistrer({ ...base, garantie: ce.disponible })).rejects.toThrow("Garantie");
+    const e = await api.engagements.enregistrer(base);
+    expect([e.frais, e.typeLibelle]).toEqual([50000000 * 15 / 1000 + 100000, "Caution"]);   // comme le serveur
+    const solde = (n: string) => _etat().ecritures.flatMap((x) => x.lignes).filter((x) => x.compte === n).reduce((t, x) => t + (x.sens === "D" ? x.montant : -x.montant), 0);
+    expect([solde("0012"), solde("090"), solde("727")]).toEqual([50000000, -50000000, -e.frais]);
+    expect((await api.engagements.beneficiaire(1)).comptes.find((x) => x.id === ce.id)!.disponible).toBe(ce.disponible - e.frais - 200000);
+    await expect(api.engagements.enregistrer(base)).rejects.toThrow("déjà utilisée");
+  });
+
   it("produit crédit (S23, p. 37 et 38) : méthode dégressive (Instr. BCC 38 art. 11), bornes, garanties, assurance, frais (Instr. BCC 40 art. 8)", async () => {
     await connecter("jpmukendi");
     const P = { typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: "2,5", tauxDiffere: 2,

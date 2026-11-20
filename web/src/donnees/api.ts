@@ -20,7 +20,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v93";
+const CLE = "likelemba-demo-v94";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -28,7 +28,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 70) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 71) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -2723,7 +2723,27 @@ const encoursDossier = (tiersIds?: number[]) =>
   E.credits.filter((c) => ["mis_en_place", "vise", "debloque"].includes(c.statut) && (!tiersIds || tiersIds.includes(c.tiersId)) && !(estCoopec() && c.ligneBudgetId))
     .reduce((s, c) => s + Math.round((c.montant - capitalRembourse(c)) * coursDe(c.devise, jourDossier())), 0)
   + E.demandes.filter((x) => x.statut === "approuvee" && (!tiersIds || tiersIds.includes(x.tiersId)))
-    .reduce((s, x) => s + Math.round((x.montantApprouve ?? 0) * coursDe(x.devise, jourDossier())), 0);
+    .reduce((s, x) => s + Math.round((x.montantApprouve ?? 0) * coursDe(x.devise, jourDossier())), 0)
+  + (E.engagementsSignature ?? []).filter((x) => x.dateFin >= jourDossier() && (!tiersIds || tiersIds.includes(x.tiersId)))   // engagements par signature en cours (S100 ; Instr. BCC 002, art. 23)
+    .reduce((s, x) => s + Math.round(x.montant * coursDe(x.devise, jourDossier())), 0);
+/** Plafonds par client et des apparentés, crédits et engagements par signature confondus (CR-14 ; Instr. BCC 002, art. 23, 25 à 29 ; loi 002/2002, art. 59 et 60).
+ * Commun à l'approbation (S88) et à l'engagement par signature (S100). Mêmes règles que serveur/noyau/dossiers.py (controler_plafonds). */
+function controlerPlafonds(tid: number, mCdf: number, apparente: boolean, bcc: string) {
+  const fp = fondsPropresActuels();
+  if (!fp) throw new ErreurMetier("Fonds propres prudentiels non saisis : la direction les saisit d'abord (registre CR-2 ; Instr. BCC 002).");
+  const risque = encoursDossier([tid]) + mCdf, coopec = estCoopec();
+  const depasse: string[] = [];
+  if (coopec) {
+    if (risque * 10 > fp.montant) depasse.push("10 % des fonds propres prudentiels (Instr. BCC 002, art. 29)");
+    if (risque * 10 > depotsMembres()) depasse.push("10 % des dépôts des membres (loi 002/2002, art. 59, 6°)");
+  } else if (risque * 20 > fp.montant) depasse.push("5 % des fonds propres prudentiels (Instr. BCC 002, art. 28)");
+  if (depasse.length && !bcc) throw new ErreurMetier(`Plafond par emprunteur dépassé : ${depasse.join(" ; ")}. Il faut l'accord préalable ou la dérogation de la BCC, référence à noter.`);
+  if (apparente) {
+    const tot = encoursDossier(E.tiers.filter((y) => y.apparente).map((y) => y.id)) + mCdf;
+    if (tot * 5 > fp.montant && !(coopec && bcc)) throw new ErreurMetier("Crédits aux personnes apparentées au-delà de 20 % des fonds propres prudentiels (Instr. BCC 002, art. 25 ; Instr. BCC 51).");
+    if (coopec && tot * 5 > depotsMembres() && !bcc) throw new ErreurMetier("Crédits aux dirigeants au-delà de 20 % des dépôts des membres (loi 002/2002, art. 59, 4°) : dérogation de la BCC à noter.");
+  }
+}
 const depotsMembres = () => E.ecritures.flatMap((e) => e.lignes).filter((l) => l.contrat?.startsWith("depot:")).reduce((s, l) => s + (l.sens === "C" ? l.montantCdf : -l.montantCdf), 0);
 const vueDemande = (x: DemandeCredit) => { const t = E.tiers.find((y) => y.id === x.tiersId)!; const p = E.produitsCredit.find((y) => y.id === x.produitId)!;
   const lieu = (id: number) => E.lieux.find((l) => l.id === id)?.nom ?? "";
@@ -2852,20 +2872,7 @@ const dossiers = {
     const t = E.tiers.find((y) => y.id === x.tiersId)!;
     const conseil = txt("accordConseilRef"), bcc = txt("accordBccRef");
     if (t.apparente && !conseil) throw new ErreurMetier("Personne apparentée : référence de l'accord préalable du Conseil d'administration (Instr. BCC 51 ; registre CR-3).");
-    const fp = fondsPropresActuels();
-    if (!fp) throw new ErreurMetier("Fonds propres prudentiels non saisis : la direction les saisit d'abord (registre CR-2 ; Instr. BCC 002).");
-    const mCdf = Math.round(m * coursDe(x.devise, j)), risque = encoursDossier([x.tiersId]) + mCdf, coopec = estCoopec();
-    const depasse: string[] = [];
-    if (coopec) {
-      if (risque * 10 > fp.montant) depasse.push("10 % des fonds propres prudentiels (Instr. BCC 002, art. 29)");
-      if (risque * 10 > depotsMembres()) depasse.push("10 % des dépôts des membres (loi 002/2002, art. 59, 6°)");
-    } else if (risque * 20 > fp.montant) depasse.push("5 % des fonds propres prudentiels (Instr. BCC 002, art. 28)");
-    if (depasse.length && !bcc) throw new ErreurMetier(`Plafond par emprunteur dépassé : ${depasse.join(" ; ")}. Il faut l'accord préalable ou la dérogation de la BCC, référence à noter.`);
-    if (t.apparente) {
-      const tot = encoursDossier(E.tiers.filter((y) => y.apparente).map((y) => y.id)) + mCdf;
-      if (tot * 5 > fp.montant && !(coopec && bcc)) throw new ErreurMetier("Crédits aux personnes apparentées au-delà de 20 % des fonds propres prudentiels (Instr. BCC 002, art. 25 ; Instr. BCC 51).");
-      if (coopec && tot * 5 > depotsMembres() && !bcc) throw new ErreurMetier("Crédits aux dirigeants au-delà de 20 % des dépôts des membres (loi 002/2002, art. 59, 4°) : dérogation de la BCC à noter.");
-    }
+    controlerPlafonds(x.tiersId, Math.round(m * coursDe(x.devise, j)), !!t.apparente, bcc);
     Object.assign(x, { statut: "approuvee", montantApprouve: m, approuvePar: u.id, approuveLe: jourDossier(), consultationCrLe: cr, consultationCrRef: ref, accordConseilRef: conseil, accordBccRef: bcc });
     enregistrer(); return vueDemande(x);
   },
@@ -3451,6 +3458,76 @@ const provisions = {
     }
     enregistrer();
     return { credits: ids.length, lignes: provisions.charger(d) };
+  },
+};
+// ---------- S100 : Crédit > Engagement par signature (manuel p. 121). Mêmes règles que serveur/noyau/engagements.py.
+// Hors bilan 0001 ou 0012 contre 090 ; frais = montant × pourcentage + forfait au compte 727 ; garantie saisie bloquée sur le compte garanti ;
+// plafonds avec les crédits (Instr. BCC 002, art. 23, 25 à 29) ; liste rouge et gel. Registre S100-1 à S100-7, CR-22, CR-14. ----------
+const TYPES_ENGAGEMENT: Record<string, [string, string]> = { financement: ["Engagement de financement", "0001"], aval: ["Aval", "0012"], caution: ["Caution", "0012"] };
+const plusMois = (d: string, n: number) => { const [a, m, j] = d.split("-").map(Number) as [number, number, number]; const t = m - 1 + n, aa = a + Math.floor(t / 12), mm = t % 12 + 1;
+  const fin = new Date(Date.UTC(aa, mm, 0)).getUTCDate(); return `${aa}-${String(mm).padStart(2, "0")}-${String(Math.min(j, fin)).padStart(2, "0")}`; };
+const comptesEngagement = (tid: number) => E.comptes.filter((k) => k.tiersId === tid && !k.closLe).map((k) => { const solde = soldeContrat(`depot:${k.id}`, k.devise, "C");
+  return { id: k.id, numero: k.numero, intitule: k.intitule, devise: k.devise as string, solde, disponible: solde - bloqueDe(k, solde), pcci: k.pcci }; });
+const banquesEngagement = () => E.comptesBancaires.map((c) => ({ id: c.id, banque: E.banques.find((b) => b.id === c.banqueId)?.libelle ?? "", numero: c.numeroBancaire, devise: c.devise as string }));
+const fraisEngagement = (m: number, pct: number, forfait: number) => Math.round(m * pct / 100) + forfait;
+type EngagementSignature = Etat["engagementsSignature"][number];
+const vueEngagement = (e: EngagementSignature) => { const t = E.tiers.find((x) => x.id === e.tiersId)!; const cb = E.comptesBancaires.find((x) => x.id === e.compteBancaireId);
+  return { id: e.id, reference: e.reference, tiersId: e.tiersId, membre: t.numero, client: titulaire(t), type: e.type, typeLibelle: TYPES_ENGAGEMENT[e.type]![0], description: e.description,
+    dateDebut: e.dateDebut, dateFin: e.dateFin, duree: e.duree, montant: e.montant, devise: e.devise as string, pourcentage: e.pourcentage, forfait: e.forfait, frais: e.frais, garantie: e.garantie,
+    compteEpargne: E.comptes.find((k) => k.id === e.compteEpargneId)!.numero, compteGaranti: E.comptes.find((k) => k.id === e.compteGarantiId)!.numero,
+    banque: cb ? `${E.banques.find((b) => b.id === cb.banqueId)?.libelle ?? ""} ${cb.numeroBancaire}` : "", observation: e.observation, piece: pieceDe(e.ecritureId) }; };
+const engagements = {
+  lister() { lectureAdmin(["S100"]); return [...E.engagementsSignature].sort((a, b) => b.dateDebut.localeCompare(a.dateDebut) || b.id - a.id).map(vueEngagement); },
+  contexte() { lectureAdmin(["S100"]); return { types: Object.entries(TYPES_ENGAGEMENT).map(([code, [libelle]]) => ({ code, libelle })), banques: banquesEngagement(), date: journees.courante()?.date ?? "", entete: enteteDocument(), coopec: estCoopec() }; },
+  beneficiaire(tid: number) {
+    lectureAdmin(["S100"]);
+    const t = E.tiers.find((x) => x.id === tid);
+    if (!t) throw new ErreurMetier("Client introuvable.");
+    const f = ficheClient(tid);
+    return { tiersId: tid, numero: t.numero, nom: titulaire(t), profession: f.profession, sexe: f.sexe, contacts: f.telephone, adresse: f.adresse,
+      comptes: comptesEngagement(tid).map(({ pcci: _p, ...k }) => k) };
+  },
+  enregistrer(p: { tiersId?: number | null; reference?: string; type?: string; description?: string; dateDebut?: string; montant?: number | null; duree?: number | null;
+    pourcentage?: string; forfait?: number | null; garantie?: number | null; compteEpargneId?: number | null; compteGarantiId?: number | null; compteBancaireId?: number | null; observation?: string }) {
+    const u = exiger(), j = jourDeblocage().date;
+    const tid = p.tiersId ?? 0;
+    if (!E.tiers.some((t) => t.id === tid)) throw new ErreurMetier("À remplir : N° Client.");
+    const ref = (p.reference ?? "").trim(), type = p.type && TYPES_ENGAGEMENT[p.type] ? p.type as EngagementSignature["type"] : null;
+    const manque = ([["Référence", ref], ["Type engagement", type], ["Description", (p.description ?? "").trim()]] as [string, unknown][]).filter(([, ok]) => !ok).map(([n]) => n);
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    if (E.engagementsSignature.some((x) => x.reference.trim().toUpperCase() === ref.toUpperCase())) throw new ErreurMetier("Référence : déjà utilisée pour un autre engagement.");
+    const entier = (v: number | null | undefined, nom: string, requis = false) => { if ((v === null || v === undefined) && !requis) return 0;
+      if (!Number.isInteger(v) || v! < 0 || (requis && v === 0)) throw new ErreurMetier(`À remplir : ${nom}.`); return v!; };
+    const m = entier(p.montant, "Montant", true), duree = entier(p.duree, "Durée(mois)", true);
+    const debut = p.dateDebut || j;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(debut)) throw new ErreurMetier("Date Début : une date.");
+    const pct = Number(String(p.pourcentage || "0").replace(",", "."));
+    if (Number.isNaN(pct)) throw new ErreurMetier("Pourcentage : un nombre.");
+    if (pct < 0 || pct > 100) throw new ErreurMetier("Pourcentage : entre 0 et 100.");
+    const forfait = entier(p.forfait, "Forfait"), garantie = entier(p.garantie, "Garantie");
+    const ks = comptesEngagement(tid), ce = ks.find((k) => k.id === p.compteEpargneId), cg = ks.find((k) => k.id === p.compteGarantiId);
+    if (!ce) throw new ErreurMetier("À remplir : Compte Epargne.");
+    if (!cg) throw new ErreurMetier("À remplir : Compte Garanti.");
+    if (cg.devise !== ce.devise) throw new ErreurMetier("Le compte garanti n'est pas dans la devise du compte épargne.");
+    if (p.compteBancaireId != null && !E.comptesBancaires.some((c) => c.id === p.compteBancaireId)) throw new ErreurMetier("Compte Banque inconnu.");
+    const frais = fraisEngagement(m, pct, forfait), dv = ce.devise as Devise;
+    if (frais > ce.disponible) throw new ErreurMetier("Frais à payer : le solde disponible du compte épargne ne suffit pas.");
+    if (garantie > cg.disponible - (cg.id === ce.id ? frais : 0)) throw new ErreurMetier("Garantie : elle dépasse le solde disponible du compte garanti.");
+    if (E.gels.some((g) => g.tiersId === tid && !g.leveLe)) throw new ErreurMetier("Avoirs gelés : aucun engagement pour ce client (loi 22/068, art. 158 bis ; E10).");
+    controlerListeRouge(tid);
+    controlerPlafonds(tid, Math.round(m * coursDe(dv, j)), !!E.tiers.find((t) => t.id === tid)!.apparente, "");
+    const [libelle, compte] = TYPES_ENGAGEMENT[type!]!, k = `engagement:${ref}`;
+    const ln = (c: string, sens: "D" | "C", v: number, contrat = k): Ligne => ({ compte: c, contrat, sens, devise: dv, montant: v, montantCdf: cdf(v, dv) });
+    const lg = [ln(compte, "D", m), ln("090", "C", m)];
+    if (frais) lg.push(ln(ce.pcci, "D", frais, `depot:${ce.id}`), ln("727", "C", frais));
+    const e = poster({ journal: "OD", journeeId: jourDeblocage().id, libelle: `${libelle} ${ref}, ${titulaire(E.tiers.find((t) => t.id === tid)!)}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: lg });
+    let bid: number | null = null;
+    if (garantie) { bid = prochain(E.blocages); E.blocages.push({ id: bid, compteId: cg.id, montant: garantie, motif: `Garantie de l'engagement par signature ${ref}`, debut: j, posePar: u.id, fin: "", levePar: null, motifLevee: "" }); }
+    const x: EngagementSignature = { id: prochain(E.engagementsSignature), reference: ref, tiersId: tid, type: type!, description: p.description!.trim(), dateDebut: debut, dateFin: plusMois(debut, duree),
+      duree, montant: m, devise: dv, pourcentage: String(p.pourcentage || "0"), forfait, frais, garantie, compteEpargneId: ce.id, compteGarantiId: cg.id,
+      compteBancaireId: p.compteBancaireId ?? null, observation: (p.observation ?? "").trim(), blocageId: bid, ecritureId: e.id, saisiPar: u.id };
+    E.engagementsSignature.push(x); enregistrer();
+    return vueEngagement(x);
   },
 };
 const joursRemb = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000);
@@ -6033,6 +6110,7 @@ const apiLocal = {
   listeRouge: asynchrone(listeRouge, "listeRouge"),
   balanceAgee: asynchrone(balanceAgee, "balanceAgee"),
   provisions: asynchrone(provisions, "provisions"),
+  engagements: asynchrone(engagements, "engagements"),
   societe: asynchrone(societe, "societe"),
   agents: asynchrone(agents, "agents"),
   jours: asynchrone(jours, "jours"),

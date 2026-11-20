@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**615 décisions.** Solidité : 265 fortes (le manuel ou un texte répond), 297 moyennes (déduites d'un écran voisin ou d'une donnée), 53 faibles (notre choix, faute de mieux). Dans le code : 588 déjà en place, 24 à appliquer.
+**622 décisions.** Solidité : 268 fortes (le manuel ou un texte répond), 301 moyennes (déduites d'un écran voisin ou d'une donnée), 53 faibles (notre choix, faute de mieux). Dans le code : 596 déjà en place, 23 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1234,7 +1234,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| CR-14 | Plafonds par emprunteur | Approbation refusée au-delà : IMF, crédits et engagements par signature d'un même client ou d'une même signature au plus 5 % des fonds propres prudentiels, sauf accord préalable de la BCC dont la référence est notée ; COOPEC, un même membre au plus 10 % des fonds propres prudentiels et au plus 10 % des dépôts des membres (dérogation BCC possible). Les risques sur ressources affectées des bailleurs ne comptent pas pour une COOPEC | Texte réglementaire : Instr. BCC 002, art. 28 et 29 ; loi 002/2002, art. 59, 6°, art. 60 et 61 | forte | à appliquer |
+| CR-14 | Plafonds par emprunteur | Approbation refusée au-delà : IMF, crédits et engagements par signature d'un même client ou d'une même signature au plus 5 % des fonds propres prudentiels, sauf accord préalable de la BCC dont la référence est notée ; COOPEC, un même membre au plus 10 % des fonds propres prudentiels et au plus 10 % des dépôts des membres (dérogation BCC possible). Les risques sur ressources affectées des bailleurs ne comptent pas pour une COOPEC | Texte réglementaire : Instr. BCC 002, art. 28 et 29 ; loi 002/2002, art. 59, 6°, art. 60 et 61 | forte | en place |
 
 ## S86 Dossier : demande
 
@@ -1278,7 +1278,14 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| CR-22 | Comptabilisation et plafonds | Engagement donné en hors bilan : débit 0001 (en faveur de la clientèle), crédit du compte de contrepartie 09 ; il compte dans les plafonds par emprunteur et les risques | Texte réglementaire : PCCI, comptes hors bilan 00 et 09 ; Instr. BCC 002, art. 23, 28 et 29 | forte | à appliquer |
+| CR-22 | Comptabilisation et plafonds | Engagement donné en hors bilan : débit 0001 (engagement de financement) ou 0012 (aval, caution : garantie donnée en faveur de la clientèle), crédit 090 ; il compte dans les plafonds par client et les risques avec les crédits | Texte réglementaire : PCCI, comptes hors bilan 00 et 090 ; Instr. BCC 002, art. 23, 28 et 29 | forte | en place |
+| S100-1 | Écran | Comme la capture : cadre Bénéficiaire (N° Client recherché, Référence *, Nom Prénoms, Profession, Solde, Sexe, Contacts, Adresse) et cadre Détails ; Enregistrer, Annuler, Imprimer. Solde : celui du Compte Epargne choisi. Date Fin et Frais à payer calculés, en lecture. Grille des engagements dessous (gabarit liste) ; un clic sur une ligne la choisit pour Imprimer ; ni Modifier ni Supprimer, l'écriture étant validée | Règle générale du manuel : Capture p. 121 ; COMPLEMENTS § 4.1 et § 5.1 | moyenne | en place |
+| S100-2 | Type engagement | Engagement de financement (compte 0001), Aval et Caution (compte 0012) | Texte réglementaire : PCCI, comptes 000 et 001 ; loi 11/020, art. 1er, 14° (aval, caution) | moyenne | en place |
+| S100-3 | Frais à payer | Montant × pourcentage, arrondi, plus le forfait ; prélevés sur le Compte Epargne (son compte de dépôts) au crédit du compte 727, autres commissions ; refus si le disponible ne suffit pas | Texte réglementaire : Capture p. 121 (Pourcentage, Forfait, Frais à payer) ; PCCI, compte 727 | moyenne | en place |
+| S100-4 | Garantie | Saisie par l'agent, de 0 au disponible du Compte Garanti (même devise que le Compte Epargne), bloquée sur ce compte | Choix du porteur : Décision du porteur, 20/11/2026 ; Instr. BCC 002, art. 23 (dépôts de garantie déduits des risques) | forte | en place |
+| S100-5 | Contrôles | Référence unique ; plafonds par client et des apparentés avec les crédits (CR-14) ; liste rouge (CR-9) et gel des avoirs refusent l'engagement. Banque et Compte Banque facultatifs : les comptes bancaires de l'institution | Texte réglementaire : Instr. BCC 002, art. 25 à 29 ; Instr. BCC 13, art. 7 ; loi 22/068 | forte | en place |
+| S100-6 | Document imprimé | Acte d'engagement par signature rédigé par nous sur le modèle du contrat de prêt : institution, membre ou client, type, description, montant en chiffres et en lettres, durée, frais, garantie, signatures | Écran voisin : CR-12 ; atlas S100 (document) | moyenne | en place |
+| S100-7 | Fin de l'engagement | Le PCCI crédite le compte 00 quand l'engagement devient sans objet (échéance, mainlevée, mise en jeu de la garantie) et la garantie se libère alors ; le manuel ne montre aucun écran pour cela. L'engagement cesse de compter dans les risques à sa Date Fin. À poser au porteur à la revue de fin d'étape | Texte réglementaire : PCCI, compte 00 (crédité de l'engagement devenu sans objet) | forte | à appliquer |
 
 ## S89, S94 Membre emprunteur ou caution
 

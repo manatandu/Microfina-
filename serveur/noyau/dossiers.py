@@ -202,7 +202,8 @@ def controler(u, did: int, d) -> dict:
 
 
 def encours(u, tiers_ids: list[int] | None = None) -> int:
-    """En CDF, au cours du jour (PCCI § 7.1) : crédits en cours (capital prêté moins capital remboursé) et demandes approuvées pas encore mises en place ;
+    """En CDF, au cours du jour (PCCI § 7.1) : crédits en cours (capital prêté moins capital remboursé), demandes approuvées pas encore mises en place
+    et engagements par signature en cours (S100) ;
     pour une COOPEC, hors ressources affectées des bailleurs (loi 002/2002, art. 60) ; tous les clients si None (registre S88-4)"""
     filtre = "" if tiers_ids is None else " and c.tiers_id = any(%s)"
     args = (u["institution_id"],) + (() if tiers_ids is None else (tiers_ids,))
@@ -215,8 +216,38 @@ def encours(u, tiers_ids: list[int] | None = None) -> int:
     for r in lignes(f"""select c.devise, sum(c.montant_approuve) as m from demande_credit c where c.institution_id = %s and c.statut = 'approuvee'{filtre}
                         group by c.devise""", args):
         total += round(int(r["m"]) * cours(r["devise"], j))
+    for r in lignes(f"""select c.devise, sum(c.montant) as m from engagement_signature c where c.institution_id = %s and c.date_fin >= %s{filtre}
+                        group by c.devise""", (u["institution_id"], j) + args[1:]):   # engagements par signature en cours (Instr. BCC 002, art. 23 ; CR-22)
+        total += round(int(r["m"]) * cours(r["devise"], j))
     return total
 
+
+
+def controler_plafonds(u, tid: int, m_cdf: int, apparente, bcc: str | None):
+    """Plafonds par client et des apparentés, crédits et engagements par signature confondus (CR-14 ; Instr. BCC 002, art. 23, 25 à 29 ;
+    loi 002/2002, art. 59 et 60). Commun à l'approbation (S88) et à l'engagement par signature (S100)."""
+    fp = fonds_propres(u)
+    if not fp:
+        raise ErreurMetier("Fonds propres prudentiels non saisis : la direction les saisit d'abord (registre CR-2 ; Instr. BCC 002).")
+    risque = encours(u, [tid]) + m_cdf
+    coopec = est_coopec(u)
+    depasse = []
+    if coopec:
+        if risque * 10 > fp["montant"]:
+            depasse.append("10 % des fonds propres prudentiels (Instr. BCC 002, art. 29)")
+        if risque * 10 > depots_membres(u):
+            depasse.append("10 % des dépôts des membres (loi 002/2002, art. 59, 6°)")
+    elif risque * 20 > fp["montant"]:
+        depasse.append("5 % des fonds propres prudentiels (Instr. BCC 002, art. 28)")
+    if depasse and not bcc:
+        raise ErreurMetier("Plafond par emprunteur dépassé : " + " ; ".join(depasse) + ". Il faut l'accord préalable ou la dérogation de la BCC, référence à noter.")
+    if apparente:
+        ids = [r["id"] for r in lignes("select id from tiers where institution_id = %s and apparente is not null", (u["institution_id"],))]
+        tot = encours(u, ids) + m_cdf
+        if tot * 5 > fp["montant"] and not (coopec and bcc):
+            raise ErreurMetier("Crédits aux personnes apparentées au-delà de 20 % des fonds propres prudentiels (Instr. BCC 002, art. 25 ; Instr. BCC 51).")
+        if coopec and tot * 5 > depots_membres(u) and not bcc:
+            raise ErreurMetier("Crédits aux dirigeants au-delà de 20 % des dépôts des membres (loi 002/2002, art. 59, 4°) : dérogation de la BCC à noter.")
 
 def depots_membres(u) -> int:
     """Ensemble des dépôts des membres (comptes 33 à 36 et 373 : loi 002/2002, art. 59 ; Instr. BCC 002, art. 24) : soldes créditeurs des comptes de dépôt, en CDF"""
@@ -260,29 +291,7 @@ def approuver(u, did: int, d) -> dict:
     conseil, bcc = texte(d, "accordConseilRef"), texte(d, "accordBccRef")
     if t["apparente"] and not conseil:
         raise ErreurMetier("Personne apparentée : référence de l'accord préalable du Conseil d'administration (Instr. BCC 51 ; registre CR-3).")
-    fp = fonds_propres(u)
-    if not fp:
-        raise ErreurMetier("Fonds propres prudentiels non saisis : la direction les saisit d'abord (registre CR-2 ; Instr. BCC 002).")
-    m_cdf = round(m * cours(x["devise"], j))
-    risque = encours(u, [x["tiers_id"]]) + m_cdf
-    coopec = est_coopec(u)
-    depasse = []
-    if coopec:
-        if risque * 10 > fp["montant"]:
-            depasse.append("10 % des fonds propres prudentiels (Instr. BCC 002, art. 29)")
-        if risque * 10 > depots_membres(u):
-            depasse.append("10 % des dépôts des membres (loi 002/2002, art. 59, 6°)")
-    elif risque * 20 > fp["montant"]:
-        depasse.append("5 % des fonds propres prudentiels (Instr. BCC 002, art. 28)")
-    if depasse and not bcc:
-        raise ErreurMetier("Plafond par emprunteur dépassé : " + " ; ".join(depasse) + ". Il faut l'accord préalable ou la dérogation de la BCC, référence à noter.")
-    if t["apparente"]:
-        ids = [r["id"] for r in lignes("select id from tiers where institution_id = %s and apparente is not null", (u["institution_id"],))]
-        tot = encours(u, ids) + m_cdf
-        if tot * 5 > fp["montant"] and not (coopec and bcc):
-            raise ErreurMetier("Crédits aux personnes apparentées au-delà de 20 % des fonds propres prudentiels (Instr. BCC 002, art. 25 ; Instr. BCC 51).")
-        if coopec and tot * 5 > depots_membres(u) and not bcc:
-            raise ErreurMetier("Crédits aux dirigeants au-delà de 20 % des dépôts des membres (loi 002/2002, art. 59, 4°) : dérogation de la BCC à noter.")
+    controler_plafonds(u, x["tiers_id"], round(m * cours(x["devise"], j)), t["apparente"], bcc)
     executer("""update demande_credit set statut = 'approuvee', montant_approuve = %s, approuve_par = %s, approuve_le = %s, consultation_cr_le = %s,
                 consultation_cr_ref = %s, accord_conseil_ref = %s, accord_bcc_ref = %s where id = %s""",
              (m, u["id"], jour(u), cr, ref, conseil or None, bcc or None, x["id"]))

@@ -88,7 +88,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 87,Analyse financière allégée et développée,crédit,should,yes,S85,B,onglets,7 Crédit,S85 : onglets suivants,M:noms d'onglets ; P,,,
 88,Demande de crédit avec effectifs hommes femmes et groupes,crédit,must,partial,S86,B,onglets,7 Crédit,S86 : page de détail après Suivant,M:texte p. 113,,,CR-15 Refinancement d'un retard
 89,Contrôle de la demande,crédit,must,yes,S87,C,visa,7 Crédit,S87 : tout l'écran,M:texte p. 113 ; A:S90,,,
-90,Approbation,crédit,must,partial,S88,C,visa,7 Crédit,S88 : tout l'écran,M:texte p. 114 ; A:S90,,,CR-14 Plafonds par emprunteur
+90,Approbation,crédit,must,yes,S88,C,visa,7 Crédit,S88 : tout l'écran,M:texte p. 114 ; A:S90,,,
 91,Mise en place du prêt : financement épargne obligatoire solidarité assurance objet zone agent,crédit,must,partial,S89,C,onglets,7 Crédit,S89 : tout l'écran (capture p. 113 à vérifier),"M:texte p. 114 ; A:S84, S54 ; R:Instr. BCC (TEG, limites)",,,CR-10 Déclarations
 92,TEG affiché sur le dossier,crédit,must,partial,S89,C,onglets,7 Crédit,S89 : tout l'écran (capture p. 113 à vérifier),"M:texte p. 114 ; A:S84, S54 ; R:Instr. BCC (TEG, limites)",,,CR-10 Déclarations
 93,Visas responsable crédit comité service financier,crédit,must,yes,S90,A,visa,7 Crédit,,,,,
@@ -101,7 +101,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 100,Liste rouge,crédit,should,partial,S97,A,liste,7 Crédit,,,,,S97-4 Associés d'une personne morale indexée
 101,Balance âgée,crédit,must,yes,S98,A,traitement,7 Crédit,S98 : résultat,R:Instr. BCC sur le classement,,,
 102,Déclassement et provisions,crédit,must,partial,S99,B,traitement,7 Crédit,S99 : règles,R:Instr. BCC sur le classement et les provisions,,,CR-16b Prorogé et contentieux ; CR-19 Intérêts non réglés ; CR-21b Compensation en cas de défaut
-103,Engagement par signature,crédit,should,no,S100,A,liste,7 Crédit,S100 : document imprimé,document,,S100,CR-14 Plafonds par emprunteur ; CR-22 Comptabilisation et plafonds
+103,Engagement par signature,crédit,should,partial,S100,A,liste,7 Crédit,S100 : document imprimé,document,,,S100-7 Fin de l'engagement
 104,Rapports crédit dont exigibles et indicateurs,crédit,must,no,S101,D,rapport,7 Crédit,"S101 : les huit rapports : Journal, Rapports de base, Multicritère, Synthèse de la balance âgée, Taux de remboursements, Encours prévisionnel, Exigibles, Indicateur de gestion","A:S72, S93 ; R:Instr. BCC sur les indicateurs",,S101,CR-13 Sept rapports sans capture ; CR-26 Ratios
 105,Plan des comptes et modèle à positions,comptabilité,must,partial,S102,A,liste,8 Comptabilité,,R:PCCI,,,"S102-7 Type de suivi ; S102-10 Statut Fermé, Nature Non saisible"
 106,Plan des tiers,comptabilité,must,no,S103,A,liste,8 Comptabilité,,,,S103,

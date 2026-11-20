@@ -751,6 +751,17 @@ const OUT = process.argv[2];
   await aller('/credit/s99'); await p.getByRole('button', { name: 'Charger crédits' }).click();
   await p.getByRole('cell', { name: '0412/L001/00001', exact: true }).waitFor(); await p.getByLabel('Cocher 0412/L001/00001').check(); await etape('11l-provisions');
   await p.getByRole('button', { name: 'Provisionner', exact: true }).click(); await ok();
+  // Engagement par signature (S100, p. 121) : caution de Mwamba, frais 1 % plus forfait, garantie bloquée ; Imprimer l'acte
+  await aller('/credit/s100'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  const rEng = p.getByRole('dialog', { name: "Recherche d'un client" }); await rEng.getByLabel('Nom:', { exact: true }).fill('Mwamba'); await rEng.getByRole('row').filter({ hasText: 'Mwamba' }).first().dblclick();
+  await p.getByLabel('Compte Epargne *').locator('option', { hasText: '0412-000319-01' }).waitFor({ state: 'attached' });
+  await p.getByLabel('Référence *').fill('ES-2026-001'); await p.getByLabel('Type engagement *').selectOption({ label: 'Caution' });
+  await p.getByLabel('Description *').fill('Caution de soumission'); await p.getByLabel('Montant *').fill('50'); await p.getByLabel('Durée(mois) *').fill('6');
+  await p.getByLabel('Pourcentage %').fill('1'); await p.getByLabel('Forfait').fill('5'); await p.getByLabel('Garantie').fill('10');
+  await p.getByLabel('Compte Epargne *').selectOption({ index: 1 }); await p.getByLabel('Compte Garanti *').selectOption({ index: 1 }); await etape('11m-engagement-signature');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
+  await p.getByRole('cell', { name: 'ES-2026-001', exact: true }).waitFor(); await p.getByRole('button', { name: 'Imprimer' }).click();
+  await p.getByRole('heading', { name: 'ENGAGEMENT PAR SIGNATURE', exact: true }).waitFor(); await etape('11n-acte-engagement'); await p.getByRole('dialog', { name: 'Engagement par signature' }).getByRole('button', { name: 'Fermer' }).click();
   await login('Esther Ngalula'); await aller('/caisse/s74?op=depot');
   await p.getByRole('tab', { name: 'Retrait en espèce' }).click(); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-01' });
   // Bouton Detail (registre S74-1) : relevé du compte en lecture seule ; masqué si le guichet n'a pas « Voir solde client » (S10-1)

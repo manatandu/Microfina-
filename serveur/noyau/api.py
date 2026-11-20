@@ -586,6 +586,31 @@ def provisions_radier(request, corps: dict = Body(...)):
     return pv.radier(u(request), corps)
 
 
+# ---------- S100 : engagement par signature (p. 121) ----------
+@api.get("/credit/engagements")
+def engagements_lister(request):
+    from . import engagements as en
+    return en.lister(u(request))
+
+
+@api.get("/credit/engagements/contexte")
+def engagements_contexte(request):
+    from . import engagements as en
+    return en.contexte(u(request))
+
+
+@api.get("/credit/engagements/beneficiaire/{tid}")
+def engagements_beneficiaire(request, tid: int):
+    from . import engagements as en
+    return en.beneficiaire(u(request), tid)
+
+
+@api.post("/credit/engagements")
+def engagements_enregistrer(request, corps: dict = Body(...)):
+    from . import engagements as en
+    return en.enregistrer(u(request), corps)
+
+
 @api.get("/credit/visas/contexte")
 def visas_contexte(request):
     from .services import est_coopec
