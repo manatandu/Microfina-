@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**640 décisions.** Solidité : 272 fortes (le manuel ou un texte répond), 312 moyennes (déduites d'un écran voisin ou d'une donnée), 56 faibles (notre choix, faute de mieux). Dans le code : 625 déjà en place, 12 à appliquer.
+**654 décisions.** Solidité : 275 fortes (le manuel ou un texte répond), 319 moyennes (déduites d'un écran voisin ou d'une donnée), 60 faibles (notre choix, faute de mieux). Dans le code : 644 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -23,7 +23,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | T10 | Résultat non montré (tous les rapports) | Critères, bouton de la capture (Afficher, Exécuter, Rechercher), grille, Exporter. Colonnes : celles de la liste de saisie du même objet, plus les critères | Écran voisin : S13 (manuel p. 22), rapports épargne (p. 82 à 84) | moyenne | à appliquer |
 | T11 | Forme et contenu (tous les documents imprimés) | Contenu : les données de l'écran d'origine. Forme : la nôtre (DESIGN § 2.8). Mentions obligatoires lues dans les textes avant d'écrire. Le texte d'un contrat est fourni par l'institution | Choix du porteur : Aucun document montré, sauf le relevé (p. 73 et 74) | moyenne | à appliquer |
 | T12 | Plusieurs devises (tous les montants) | Une case par devise, jamais deux devises dans la même case. Quand la capture montre une zone de montant sans devise, la zone est répétée pour chaque devise que tient le guichet ou l'institution (S35), avec le nom de la devise | Texte réglementaire : PCCI, compte 57 : « subdivisé selon la devise utilisée pour le dénouement des opérations » ; remarque du porteur sur S79 | forte | à appliquer |
-| T13 | Brouillard et comptabilisation (S111 et grand livre) | L'écriture naît à l'opération à l'état brouillard, avec sa pièce, et compte tout de suite dans le solde du membre et de la caisse. Comptabiliser la rend définitive, après les contrôles de ARCHITECTURE P8. Les états officiels ne lisent que le définitif | Texte réglementaire : PCCI § 3.4 : « Toute donnée entrée doit faire l'objet d'une validation, afin de garantir le caractère définitif de l'enregistrement » ; manuel p. 130 et 155 (brouillard, Comptabiliser) | forte | à appliquer |
+| T13 | Brouillard et comptabilisation (S111 et grand livre) | L'écriture naît à l'opération à l'état brouillard, avec sa pièce, et compte tout de suite dans le solde du membre et de la caisse. Comptabiliser la rend définitive, après les contrôles de ARCHITECTURE P8. Les états officiels ne lisent que le définitif Appliqué au grand livre (S120), à la balance (S121) et aux états financiers : ils ne lisent que les journées comptabilisées | Texte réglementaire : PCCI § 3.4 : « Toute donnée entrée doit faire l'objet d'une validation, afin de garantir le caractère définitif de l'enregistrement » ; manuel p. 130 et 155 (brouillard, Comptabiliser) | forte | en place |
 | T14 | Combien de journées ouvertes (S09, S12, S79, S111) | Une seule journée reçoit des opérations dans l'agence : la dernière ouverte. Plusieurs journées peuvent attendre leur comptabilisation ; le comptable les comptabilise dans l'ordre des dates | Manuel : Manuel p. 22 (journées sans date de fermeture), p. 130 (liste « Journée non comptabilisée »), p. 14 (une journée ouverte en pied de page) | moyenne | en place |
 | T15 | Date de l'opération (tous les écrans) | Toujours la journée ouverte du guichet, affichée et non modifiable. L'heure réelle est celle du serveur | Texte réglementaire : PCCI § 3.4 (chronologie sans insertion intercalaire) ; ARCHITECTURE P3 | forte | en place |
 | T16 | Compte comptable saisi dans un écran (tous les écrans à compte) | Le compte saisi doit exister dans le plan de comptes (S102). Quand le PCCI nomme le compte, il est proposé par défaut et reste modifiable | Texte réglementaire : PCCI, liste des comptes | forte | en place |
@@ -376,19 +376,63 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S102-4 | Supprimer un compte qui a servi | Refusé : il se ferme (Statut Fermé). Un compte avec des comptes divisionnaires ne se supprime pas non plus | Texte réglementaire : PCCI § 3.4 (irréversibilité) ; manuel p. 12 | forte | en place |
 | S102-5 | Colonnes de la liste après SA (coupées sur la capture p. 146) | Les autres options du formulaire, OUI ou NON : SE, LA, ST, IMMO, CT, CTX | Écran voisin : Capture p. 146 (une colonne OUI/NON par option) ; formulaire p. 122 | faible | en place |
 | S102-6 | Clé de répartition analytique | Case recopiée, grisée comme sur la capture p. 122, jusqu'au module analytique | Manuel : Capture p. 122 (case grisée) | moyenne | en place |
-| S102-7 | Type de suivi | Liste vide, à remplir avec le plan des tiers (S103) | Donnée exigée ailleurs : S103 Plan des tiers (p. 123) | faible | à appliquer |
+| S102-7 | Type de suivi | Les types de tiers du plan des tiers (S103) : FOURNISSEUR, CLIENT, PERSONNEL, ETAT, ASSOCIE, DIVERS | Donnée exigée ailleurs : S103 Plan des tiers (p. 123) | faible | en place |
 | S102-8 | Recherche par N°compte | Montre le compte cherché, ses parents et ses comptes divisionnaires | Écran voisin : Arbre de la consultation (p. 122 et 147) | moyenne | en place |
 | S102-9 | Concordance des comptes (p. 156) | Non reprise : Likelemba n'a qu'un plan, le PCCI ; la concordance servait à passer d'un référentiel à un autre | Texte réglementaire : Instr. BCC n° 006 (PCCI seul plan) ; recon : référentiel des SFD de l'UEMOA non repris | forte | en place |
 | S102-10 | Statut Fermé, Nature Non saisible | Un compte fermé ou non saisissable ne reçoit pas d'écriture | Donnée exigée ailleurs : Saisie d'écritures (S109) | moyenne | à appliquer |
+
+## S103 Plan des tiers
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S103-1 | Formulaire | La capture ne montre que la liste. Formulaire d'après le texte, en trois cadres : Entreprise (Type Tiers *, Intitulé *, Qualité, Date création, Compte *, Pays), Contact (nom, téléphone, email, adresse), Banque (banque, compte banque). Boutons Enregistrer, Effacer, Supprimer | Manuel : Texte p. 123 et p. 156 ; COMPLEMENTS § 4.1 | moyenne | en place |
+| S103-2 | Listes Type Tiers et Qualité | Type Tiers : FOURNISSEUR (seul montré), CLIENT, PERSONNEL, ETAT, ASSOCIE, DIVERS, d'après les comptes de tiers de la classe 4. Qualité : formes juridiques (Entreprise individuelle, SARL, SA, SAS, SNC, SCS, GIE, Société coopérative, ASBL, Établissement public, Personne physique) | Texte réglementaire : PCCI, classe 4 (comptes 40, 42, 43, 44, 46) ; capture p. 123 (FOURNISSEUR, SARL) | faible | en place |
+| S103-3 | Compte | Un compte du plan de comptes (T16) ; le tiers est l'auxiliaire des écritures passées sur ce compte | Écran voisin : T16 ; ARCHITECTURE P1 | moyenne | en place |
+
+## S104 Taxes
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S104-1 | Écran et taux | Comme la capture : Code *, Désignation *, Taux * ; Enregistrer, Effacer, Supprimer ; Listes de taxes (Désignation, Taux %), Rafraichir. Taux à deux décimales. Aucune taxe créée d'avance : l'institution saisit les siennes | Manuel : Capture p. 124 ; texte p. 123 | forte | en place |
 
 ## S111 Comptabilisation
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S111-1 | Forme de l'écran | « Comptabilisation d'écriture comptable » : liste « Journée non comptabilisée », grille Date opération, N°Pièce, N° Compte, Débit, Crédit, Référence écriture, Intitulé, bouton Comptabiliser, confirmation | Manuel : Manuel p. 130 et 155 | forte | à appliquer |
+| S111-5 | Qui comptabilise | Le comptable (droit S111, T14) et le chef d'agence, qui le faisait déjà dans l'ancien écran | Choix du porteur : T14 ; registre S04-3 | moyenne | en place |
+| S111-1 | Forme de l'écran | « Comptabilisation d'écriture comptable » : liste « Journée non comptabilisée », grille Date opération, N°Pièce, N° Compte, Débit, Crédit, Référence écriture, Intitulé, bouton Comptabiliser, confirmation | Manuel : Manuel p. 130 et 155 | forte | en place |
 | S111-2 | Contrôles avant de comptabiliser | Guichets fermés et billetages validés pour la journée. Sinon refus, avec la liste de ce qui bloque | Choix du porteur : ARCHITECTURE P8 | forte | en place |
-| S111-3 | Case « Recherche avancée » | Affiche les filtres de la grille (N°Pièce, N° Compte) | Écran voisin : Filtres en tête de colonne de la capture p. 155 | faible | à appliquer |
-| S111-4 | Opérations de banque à comptabiliser | La comptabilisation passe l'écriture et donne le N° de pièce des opérations que leur écran laisse en attente : opérations de banque validées (S57-6), chèques clients encaissés (S59-4), mise en place et remboursements d'emprunts bancaires (S61-4), chacune selon le schéma de son écran ; leur statut passe alors à comptabilisée | Choix du porteur : Registre S57-6, S59-4, S61-4 ; COMPLEMENTS § 6 | moyenne | à appliquer |
+| S111-3 | Case « Recherche avancée » | Affiche les filtres de la grille (N°Pièce, N° Compte) | Écran voisin : Filtres en tête de colonne de la capture p. 155 | faible | en place |
+| S111-4 | Opérations de banque à comptabiliser | La comptabilisation passe l'écriture et donne le N° de pièce des opérations que leur écran laisse en attente : opérations de banque validées (S57-6), chèques clients encaissés (S59-4), mise en place et remboursements d'emprunts bancaires (S61-4), chacune selon le schéma de son écran ; leur statut passe alors à comptabilisée Virement banque vers caisse : débit du compte 591 de virements internes, la caisse encaisse ensuite les fonds par un encaissement divers sur ce compte (S78), pour que son stock de coupures reste juste. Adhésion par banque : le compte épargne s'ouvre à la comptabilisation | Choix du porteur : Registre S57-6, S59-4, S61-4 ; COMPLEMENTS § 6 | moyenne | en place |
+
+## S120 Grand livre
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S120-1 | Écran | Comme les captures : Type de grand livre, Agence, Exercice, Date début, Date fin, case Grand livre avec vidage ; Rechercher, Annuler ; bouton Exporter ajouté comme sur les autres états. Onglets Général et Analytique | Manuel : Captures p. 138 et 139 ; T10, T17 | forte | en place |
+| S120-2 | Forme de l'état | Par compte : solde d'ouverture, lignes (date, journal, N° pièce, libellé, débit, crédit, solde progressif), total et solde du compte ; total général. Montants en CDF. Comptes de gestion (6, 7) : l'exercice choisi seulement | Texte réglementaire : PCCI § 3.2 et § 3.3 | moyenne | en place |
+| S120-5 | Type de grand livre | Global, ou une classe du plan (0 à 7) | Choix du porteur : Capture p. 138 (Global seul montré) ; PCCI, classes | faible | en place |
+
+## S120, S121 Vidage
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S120-3 | Sens de « vidage » | Les écritures de clôture qui soldent les comptes de gestion dans le résultat (clôture comptable, S127). « Avec vidage » les ajoute ; « sans VIDAGE » les écarte | Choix du porteur : Captures p. 138 à 141 (grand livre, balance, bilan, résultat) | faible | en place |
+
+## S120, S121 Analytique
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S120-4 | Contenu | Le même état, détaillé par compte auxiliaire : compte de dépôt, crédit, guichet, parts, tiers, que chaque ligne d'écriture porte | Écran voisin : ARCHITECTURE P1 | faible | en place |
+
+## S121 Balance
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S121-1 | Écran | Comme les captures : Type de balance, Balance (Groupée, Détaillée), Agence, Exercice, Date début période, Date fin période, Compte … à …, Niveau de rupture, case Balance sans VIDAGE ; Rechercher, Rein. les champs ; Exporter. Onglets Générale et Analytique (avec Plan, en lecture) | Manuel : Captures p. 139 et 140 | forte | en place |
+| S121-2 | Types de balance | 8 colonnes : solde d'ouverture, mouvements de la période, cumuls, solde, chacun en débit et crédit ; 6 colonnes : sans les cumuls ; 4 colonnes : mouvements et solde | Choix du porteur : Capture p. 139 (Balance à 8 colonnes) ; PCCI § 3.3 | moyenne | en place |
+| S121-3 | Groupée et niveau de rupture | Groupée : les comptes sont regroupés sur leurs premiers chiffres, autant que le niveau de rupture ; Détaillée : chaque compte mouvementé | Choix du porteur : Capture p. 139 (Groupée, Niveau de rupture 1) | moyenne | en place |
+| S121-4 | Ancienne balance | L'état « tous les mouvements par devise » sert encore de contrôle interne (débit égal au crédit) ; l'écran est celui de la capture | Choix du porteur : T13 | moyenne | en place |
 
 ## S18 Motif de départ d'un client
 
@@ -1491,7 +1535,11 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S79-1 | S79 Enregistrer billetage | Bouton Terminer | Ferme la fenêtre (retour à l'écran précédent) sans rien enregistrer de plus |
 | S80-4 | S80 Validation billetage | Imprimer, Terminer | Imprimer sort l'arrêté (T11). Terminer ferme la fenêtre |
 | S102-5 | S102 Plan des comptes | Colonnes de la liste après SA (coupées sur la capture p. 146) | Les autres options du formulaire, OUI ou NON : SE, LA, ST, IMMO, CT, CTX |
-| S102-7 | S102 Plan des comptes | Type de suivi | Liste vide, à remplir avec le plan des tiers (S103) |
+| S102-7 | S102 Plan des comptes | Type de suivi | Les types de tiers du plan des tiers (S103) : FOURNISSEUR, CLIENT, PERSONNEL, ETAT, ASSOCIE, DIVERS |
+| S103-2 | S103 Plan des tiers | Listes Type Tiers et Qualité | Type Tiers : FOURNISSEUR (seul montré), CLIENT, PERSONNEL, ETAT, ASSOCIE, DIVERS, d'après les comptes de tiers de la classe 4. Qualité : formes juridiques (Entreprise individuelle, SARL, SA, SAS, SNC, SCS, GIE, Société coopérative, ASBL, Établissement public, Personne physique) |
+| S120-3 | S120, S121 Vidage | Sens de « vidage » | Les écritures de clôture qui soldent les comptes de gestion dans le résultat (clôture comptable, S127). « Avec vidage » les ajoute ; « sans VIDAGE » les écarte |
+| S120-4 | S120, S121 Analytique | Contenu | Le même état, détaillé par compte auxiliaire : compte de dépôt, crédit, guichet, parts, tiers, que chaque ligne d'écriture porte |
+| S120-5 | S120 Grand livre | Type de grand livre | Global, ou une classe du plan (0 à 7) |
 | S111-3 | S111 Comptabilisation | Case « Recherche avancée » | Affiche les filtres de la grille (N°Pièce, N° Compte) |
 | S19-4 | S19 Référentiels du budget | Champs sans astérisque | Refusés vides : Code et Libellé des types de budget ; N° de ligne, Libellé, Plan budgétaire et Centre de coût d'une ligne de plan. L'écran garde les libellés de la capture, sans astérisque. Le N° est unique dans son plan |
 | S20-3 | S20 Localisation | Zone d'un pays | Liste : Afrique, Amérique, Asie, Europe, Océanie |

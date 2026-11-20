@@ -16,11 +16,12 @@ import { DROITS_METHODES } from "./droits.gen";
 import registreEcrans from "../ecrans/registre.json";
 import { coupuresDe, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 import PCCI from "@pcci";
+import REFERENTIELS from "@referentiels";
 
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v96";
+const CLE = "likelemba-demo-v97";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -28,7 +29,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 73) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 74) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -201,8 +202,93 @@ const journees = {
     const bloquants = controlesJournee(id).filter((c) => c.etat === "ko");
     if (bloquants.length) throw new ErreurMetier(`Fermeture impossible : ${bloquants.map((c) => c.titre.toLowerCase()).join(" ; ")}.`);
     const j = E.journees.find((x) => x.id === id)!;
+    passerEnAttente(j);                // écritures laissées en attente par la Banque, avec leur N° de pièce (registre S111-4)
     j.statut = "fermee"; j.fermeePar = E.session ?? undefined; j.fermeeLe = new Date().toISOString(); enregistrer(); return j;
   },
+};
+
+// ---------- S111 : Comptabilité > Comptabilisation (manuel p. 130 et 155). Mêmes règles que serveur/noyau/comptabilisation.py.
+// La comptabilisation passe les écritures en attente de la Banque (opérations validées S52, S53, S56 ; chèques encaissés S59 ; emprunts S61), puis ferme
+// la journée : ses écritures deviennent définitives (T13). Registre S111-1 à S111-5. ----------
+const VIREMENTS_INTERNES = "591";
+type EnAttente = { source: "operation_banque" | "cheque_client" | "emprunt" | "remboursement_emprunt"; id: number; type: string; libelle: string; journal: string; date: string;
+  lignes: { compte: string; sens: "D" | "C"; devise: Devise; montant: number; contrat?: string }[]; o?: OperationBanque };
+function enAttenteBanque(j: Journee): EnAttente[] {
+  const banque = (id: number) => { const cb = E.comptesBancaires.find((x) => x.id === id)!; const jr = E.journaux.find((x) => x.id === cb.journalId && x.actif && !x.supprime);
+    return { compte: cb.compte, journal: jr?.code ?? "OD" }; };
+  const L = (compte: string, sens: "D" | "C", devise: Devise, montant: number, contrat?: string) => ({ compte, sens, devise, montant, ...(contrat ? { contrat } : {}) });
+  const depot = (id: number) => { const k = E.comptes.find((x) => x.id === id)!; return { pcci: k.pcci, contrat: `depot:${k.id}` }; };
+  const out: EnAttente[] = [];
+  for (const o of E.operationsBanque.filter((x) => x.statut === "validee" && (x.dateValidation ?? "") <= j.date).sort((a, b) => (a.dateValidation ?? "").localeCompare(b.dateValidation ?? "") || a.id - b.id)) {
+    const b = banque(o.compteBancaireId), dv = o.devise, m = o.montant, t = o.type;
+    let l: EnAttente["lignes"];
+    if (t === "encaissement") l = [L(b.compte, "D", dv, m), L(o.compte, "C", dv, m)];
+    else if (t === "decaissement") l = [L(o.compte, "D", dv, m), L(b.compte, "C", dv, m)];
+    else if (t === "banque_caisse") l = [L(VIREMENTS_INTERNES, "D", dv, m), L(b.compte, "C", dv, m)];
+    else if (t === "banque_banque") l = [L(banque(o.compteBancaireDestId!).compte, "D", dv, m), L(b.compte, "C", dv, m)];
+    else if (t === "virement_client" || t === "prelevement_client") { const k = depot(o.compteDepotId!);
+      l = t === "virement_client" ? [L(b.compte, "D", dv, m), L(k.pcci, "C", dv, m, k.contrat)] : [L(k.pcci, "D", dv, m, k.contrat), L(b.compte, "C", dv, m)]; }
+    else l = [L(b.compte, "D", dv, m), L("", "C", dv, m)];             // adhésion par banque : lignes écrites à la comptabilisation
+    out.push({ source: "operation_banque", id: o.id, type: t, libelle: o.libelle, journal: b.journal, lignes: l, date: o.dateValidation ?? o.date, o });
+  }
+  for (const c of E.chequesClients.filter((x) => x.statut === "encaisse" && !x.ecritureId && x.dateEncaissement <= j.date).sort((a, b) => a.dateEncaissement.localeCompare(b.dateEncaissement) || a.id - b.id)) {
+    const b = banque(c.compteBancaireId), k = depot(c.compteDepotId);
+    out.push({ source: "cheque_client", id: c.id, type: "cheque", libelle: `Encaissement du chèque ${c.numeroCheque}`, journal: b.journal, date: c.dateEncaissement,
+      lignes: [L(b.compte, "D", c.devise, c.montant), L(k.pcci, "C", c.devise, c.montant, k.contrat)] });
+  }
+  for (const e of E.emprunts.filter((x) => !x.piece && x.dateEmprunt <= j.date).sort((a, b) => a.dateEmprunt.localeCompare(b.dateEmprunt) || a.id - b.id)) {
+    const b = banque(e.compteBancaireId);
+    out.push({ source: "emprunt", id: e.id, type: "emprunt", libelle: `Mise en place de l'emprunt n° ${e.numero}`, journal: b.journal, date: e.dateEmprunt,
+      lignes: [L(b.compte, "D", e.devise, e.montant), L(e.compteEmprunt, "C", e.devise, e.montant)] });
+  }
+  for (const r of E.remboursementsEmprunt.filter((x) => !x.piece && x.date <= j.date).sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id)) {
+    const e = E.emprunts.find((x) => x.id === r.empruntId)!;
+    if (!e.piece && e.dateEmprunt > j.date) continue;
+    const b = banque(e.compteBancaireId);
+    const l = ([[e.compteEmprunt, r.amortissement], [e.duree > 12 ? "6020" : "6021", r.interet], ["60702", r.commission]] as [string, number][]).filter(([, m]) => m).map(([c, m]) => L(c, "D", e.devise, m));
+    l.push(L(b.compte, "C", e.devise, r.amortissement + r.interet + r.commission));
+    out.push({ source: "remboursement_emprunt", id: r.id, type: "remboursement_emprunt", libelle: `Remboursement de l'emprunt n° ${e.numero}`, journal: b.journal, date: r.date, lignes: l });
+  }
+  return out;
+}
+function passerEnAttente(j: Journee) {
+  const u = E.session!;
+  for (const x of enAttenteBanque(j)) {
+    let lg = x.lignes;
+    if (x.type === "adhesion_banque") {
+      const o = x.o!, a = preparerAdhesion({ tiersId: o.tiersId!, parts: o.parts ?? 0, depot: o.premierDepot ?? 0 });
+      const cpt: CompteDepot = { id: E.comptes.length + 1, tiersId: a.t.id, numero: numeroCompte(a.t.numero, a.produit), intitule: a.produit.libelle, pcci: compteDuProduit(a.produit), devise: "CDF", bloque: 0,
+        produitId: a.produit.id, ouvertLe: j.date };
+      E.comptes.push(cpt);
+      lg = [x.lignes[0]!];
+      if (a.mParts) lg.push({ compte: compteParts(a.t), sens: "C", devise: "CDF", montant: a.mParts, contrat: `parts:${a.t.id}` });
+      for (const f of a.frais) lg.push({ compte: f.compte!, sens: "C", devise: "CDF", montant: f.montant!, contrat: `frais:${f.fraisId}` });
+      if (o.premierDepot) lg.push({ compte: cpt.pcci, sens: "C", devise: "CDF", montant: o.premierDepot, contrat: `depot:${cpt.id}` });
+      if (lg.slice(1).reduce((t, l) => t + l.montant, 0) !== o.montant) throw new ErreurMetier(`Adhésion par banque de ${a.t.numero} : les frais ou la valeur de la part ont changé depuis la saisie ; refuser l'opération et la ressaisir.`);
+    }
+    const pc = pieceJournee(x.journal, j);
+    const e = poster({ journal: x.journal, journeeId: j.id, libelle: x.libelle, piece: pc, saisiPar: u, validePar: u, lignes: lg.map((l) => ({ ...l, montantCdf: l.devise === "CDF" ? l.montant : Math.round(l.montant * coursDe(l.devise, j.date)) })) });
+    if (x.source === "operation_banque") Object.assign(E.operationsBanque.find((y) => y.id === x.id)!, { statut: "comptabilisee", piece: pc });
+    else if (x.source === "cheque_client") E.chequesClients.find((y) => y.id === x.id)!.ecritureId = e.id;
+    else if (x.source === "emprunt") E.emprunts.find((y) => y.id === x.id)!.piece = pc;
+    else E.remboursementsEmprunt.find((y) => y.id === x.id)!.piece = pc;
+  }
+}
+const comptabilisation = {
+  /** La grille de la capture : écritures de la journée (brouillard) et celles que la comptabilisation va passer (sans pièce encore) */
+  aComptabiliser(jid: number) {
+    lectureAdmin(["S111"]);
+    const j = E.journees.find((x) => x.id === jid);
+    if (!j || j.statut === "fermee") throw new ErreurMetier("Journée introuvable ou déjà comptabilisée.");
+    const lignes: { date: string; piece: string; compte: string; debit: number; credit: number; devise: string; reference: string; intitule: string }[] = [];
+    for (const e of E.ecritures.filter((x) => x.journeeId === jid).sort((a, b) => a.id - b.id)) for (const l of e.lignes)
+      lignes.push({ date: j.date, piece: e.piece, compte: l.compte, debit: l.sens === "D" ? l.montant : 0, credit: l.sens === "C" ? l.montant : 0, devise: l.devise, reference: e.numero, intitule: e.libelle });
+    for (const x of enAttenteBanque(j)) for (const l of x.lignes)
+      lignes.push({ date: x.date, piece: "", compte: l.compte, debit: l.sens === "D" ? l.montant : 0, credit: l.sens === "C" ? l.montant : 0, devise: l.devise, reference: "", intitule: x.libelle });
+    return { journee: { id: j.id, date: j.date }, controles: controlesJournee(jid), lignes };
+  },
+  /** Bouton Comptabiliser : contrôles (S111-2), écritures en attente (S111-4), puis la journée est fermée */
+  comptabiliser(jid: number) { exiger(); return journees.fermer(jid); },
 };
 
 export interface Controle { titre: string; etat: "ok" | "ko" | "info"; detail: string; source?: string }
@@ -2423,6 +2509,16 @@ function piece(journal = "CA") {
   d.compteur += 1;
   return composerPiece(E.numerotationPiece, { EXERCICE: annee, INSTITUTION: E.institution.sigle ?? "", AGENCE: E.agence.code, JOURNAL: journal, COMPTEUR: d.compteur });
 }
+/** N° de pièce d'une écriture passée dans une journée donnée (comptabilisation, S111) : même règle, l'exercice est celui de la journée */
+function pieceJournee(journal: string, j: Journee) {
+  const annee = Number(j.date.slice(0, 4));
+  const jr = journauxActifs().find((x) => x.code === journal);
+  if (!jr) throw new ErreurMetier(`Le journal ${journal} n'est pas actif (Comptabilité > Journal).`);
+  const d = E.journauxDetail.find((x) => x.annee === annee && x.journalId === jr.id);
+  if (!d) throw new ErreurMetier(`Le journal ${journal} n'est pas ouvert sur l'exercice ${annee} (Administration > Exercice, Compléter journal détail).`);
+  d.compteur += 1;
+  return composerPiece(E.numerotationPiece, { EXERCICE: annee, INSTITUTION: E.institution.sigle ?? "", AGENCE: E.agence.code, JOURNAL: journal, COMPTEUR: d.compteur });
+}
 const titulaire = (t: Tiers) => [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
 
 const guichet = {
@@ -4170,7 +4266,7 @@ const comptes = {
     const classes = Object.entries(PCCI.classes).map(([k, v]) => ({ ...OPTIONS_PCCI, saisissable: false, numero: k, libelle: v, classe: Number(k), pcci: true }));
     const tous: LigneCompte[] = [...classes, ...PCCI.comptes.map((c) => ({ ...OPTIONS_PCCI, numero: c.numero, libelle: c.libelle, classe: c.classe, pcci: true })),
       ...E.comptesInstitution.map((c) => ({ ...c, pcci: false }))];
-    return { comptes: tous.sort((a, b) => a.numero.localeCompare(b.numero)), groupes: GROUPES_COMPTE };
+    return { comptes: tous.sort((a, b) => a.numero.localeCompare(b.numero)), groupes: GROUPES_COMPTE, typesSuivi: TYPES_TIERS };   // registre S102-7
   },
   /** Formulaire « Plan général » (p. 122 et 146) : sans numeroActuel, Enregistrer un compte divisionnaire ; avec, le modifier */
   enregistrer(d: SaisieCompte, numeroActuel?: string) {
@@ -4184,6 +4280,7 @@ const comptes = {
     const p = comptes.lire().comptes.find((c) => c.numero === parent && c.numero.length > 1);
     if (!p) throw new ErreurMetier("Parent : ce compte n'est pas dans le plan." + (parent in PCCI.classes ? " Une classe n'a pas de compte divisionnaire direct : choisir un compte." : ""));
     const numero = parent + suite;
+    if (d.typeSuivi?.trim() && !TYPES_TIERS.includes(d.typeSuivi.trim())) throw new ErreurMetier("Type de suivi inconnu.");   // registre S102-7
     const v: CompteInstitution = { numero, libelle, classe: p.classe, ouvert: !!d.ouvert, saisissable: !!d.saisissable, typeSuivi: d.typeSuivi?.trim() ?? "",
       ...Object.fromEntries(OPTIONS_COMPTE.map((k) => [k, !!d[k]])) as Pick<OptionsCompte, (typeof OPTIONS_COMPTE)[number]> };
     if (numeroActuel === undefined) {
@@ -5216,7 +5313,7 @@ export function preparerDemo() {
 // Règles identiques côté serveur (noyau/moteur.py, budget.py, credit.py). ----------
 export type TypeChampBudget = "texte" | "texteLong" | "entier" | "jjmm" | "choix" | "annee" | "compte" | "compteSimple" | "operation" | "email" | "ouiNon";
 export interface ChampBudget { cle: string; libelle: string; type: TypeChampBudget; obligatoire: boolean; ref?: string; aide?: string; colonne: string; defaut?: number | boolean;
-  sansEtoile?: boolean; cadre?: string; grille?: boolean }   // sansEtoile : la capture ne montre pas l'astérisque ; grille false : champ absent de la grille
+  sansEtoile?: boolean; cadre?: string; grille?: boolean; valeurs?: string[]; format?: "decimal" | "date"; rang?: number }   // sansEtoile : la capture ne montre pas l'astérisque ; grille false : champ absent de la grille
 export interface FicheBudget { page: string; menu: string; entete?: string; grille?: string; cadre?: string; rafraichir?: boolean; filtres?: boolean; unique?: string[];
   parentMemeTable?: boolean; exporter?: boolean; outils?: boolean; portefeuille?: boolean; ordres?: boolean; fixe?: Record<string, unknown>[]; champs: ChampBudget[] }
 const ch = (cle: string, libelle: string, colonne: string, type: TypeChampBudget = "texte", obligatoire = true, x: Partial<ChampBudget> = {}): ChampBudget =>
@@ -5331,6 +5428,112 @@ function referentiel(o: OptionsReferentiel) {
   return moteur;
 }
 
+// ---------- États comptables : grand livre (S120, p. 138 et 139) et balance (S121, p. 139 et 140), généraux et analytiques.
+// Mêmes règles que serveur/noyau/etats_compta.py : écritures définitives seulement (journées comptabilisées, T13), montants en CDF, « vidage » = écritures
+// de clôture des comptes de gestion, analytique = détail par compte auxiliaire. Registre S120-1 à S120-4, S121-1 à S121-4. ----------
+const TYPES_GRAND_LIVRE: Record<string, string> = { global: "Global", ...Object.fromEntries([0, 1, 2, 3, 4, 5, 6, 7].map((n) => [`classe${n}`, `Classe ${n}`])) };
+const TYPES_BALANCE: Record<string, string> = { "8": "Balance à 8 colonnes", "6": "Balance à 6 colonnes", "4": "Balance à 4 colonnes" };
+type CriteresEtat = { du?: string; au?: string; exercice?: number | string; type?: string; agenceId?: number | null; vidage?: boolean; sansVidage?: boolean; balance?: string;
+  compteDe?: string; compteA?: string; niveau?: number | string | null };
+function periodeEtat(p: CriteresEtat) {
+  for (const [v, nom] of [[p.du, "Date début"], [p.au, "Date fin"]] as const) if (!DATE_ISO.test(v ?? "")) throw new ErreurMetier(`À remplir : ${nom}.`);
+  if (p.du! > p.au!) throw new ErreurMetier("Date début : avant la date fin.");
+  const ex = /^\d+$/.test(String(p.exercice ?? "")) ? Number(p.exercice) : Number(p.du!.slice(0, 4));
+  if (Number(p.du!.slice(0, 4)) !== ex || Number(p.au!.slice(0, 4)) !== ex) throw new ErreurMetier(`Les dates sont dans l'exercice ${ex}.`);
+  return { du: p.du!, au: p.au!, ex };
+}
+const intitulesComptes = () => new Map<string, string>([...Object.entries(PCCI.classes), ...PCCI.comptes.map((c) => [c.numero, c.libelle] as [string, string]), ...E.comptesInstitution.map((c) => [c.numero, c.libelle] as [string, string])]);
+/** Lignes définitives jusqu'à la date : écritures des journées comptabilisées (T13) */
+function mouvementsDefinitifs(jusqua: string, vidage: boolean) {
+  const noms = intitulesComptes(), out: { compte: string; intitule: string; date: string; journal: string; piece: string; reference: string; libelle: string; sens: "D" | "C"; montantCdf: number; auxiliaire: string }[] = [];
+  for (const e of [...E.ecritures].sort((a, b) => a.id - b.id)) {
+    const j = E.journees.find((x) => x.id === e.journeeId);
+    if (!j || j.statut !== "fermee" || j.date > jusqua || (!vidage && e.type === "vidage")) continue;
+    for (const l of e.lignes) out.push({ compte: l.compte, intitule: noms.get(l.compte) ?? "", date: j.date, journal: e.journal, piece: e.piece, reference: e.numero, libelle: e.libelle, sens: l.sens,
+      montantCdf: l.montantCdf, auxiliaire: l.contrat ?? "" });
+  }
+  return out.sort((a, b) => a.compte.localeCompare(b.compte) || a.date.localeCompare(b.date));
+}
+const enOuverture = (m: { compte: string; date: string }, du: string, ex: number) => m.date < du && (!"67".includes(m.compte[0]!) || Number(m.date.slice(0, 4)) === ex);
+const etatsCompta = {
+  contexte() {
+    lectureAdmin(["S120", "S121", "S122", "S123"]);
+    return { agences: [{ id: E.agence.id, nom: E.agence.nom }], exercices: [...E.exercices].map((x) => x.annee).sort((a, b) => b - a),
+      typesGrandLivre: Object.entries(TYPES_GRAND_LIVRE).map(([code, libelle]) => ({ code, libelle })), typesBalance: Object.entries(TYPES_BALANCE).map(([code, libelle]) => ({ code, libelle })) };
+  },
+  grandLivre(p: CriteresEtat, analytique = false) {
+    lectureAdmin(["S120"]);
+    const { du, au, ex } = periodeEtat(p), t = p.type || "global";
+    if (!TYPES_GRAND_LIVRE[t]) throw new ErreurMetier("Type de grand livre inconnu.");
+    type C = { compte: string; intitule: string; auxiliaire: string; soldeInitial: number; lignes: { date: string; journal: string; piece: string; reference: string; libelle: string; debit: number; credit: number; solde: number }[];
+      debit: number; credit: number; soldeFinal: number };
+    const comptes = new Map<string, C>();
+    for (const m of mouvementsDefinitifs(au, !!p.vidage)) {
+      if (t !== "global" && m.compte[0] !== t.at(-1)) continue;
+      if ("67".includes(m.compte[0]!) && Number(m.date.slice(0, 4)) !== ex) continue;
+      const aux = analytique ? m.auxiliaire : "", k = `${m.compte}\u0000${aux}`;
+      const c = comptes.get(k) ?? { compte: m.compte, intitule: m.intitule, auxiliaire: aux, soldeInitial: 0, lignes: [], debit: 0, credit: 0, soldeFinal: 0 }; comptes.set(k, c);
+      if (enOuverture(m, du, ex)) c.soldeInitial += m.sens === "D" ? m.montantCdf : -m.montantCdf;
+      else if (m.date >= du) { if (m.sens === "D") c.debit += m.montantCdf; else c.credit += m.montantCdf;
+        c.lignes.push({ date: m.date, journal: m.journal, piece: m.piece, reference: m.reference, libelle: m.libelle, debit: m.sens === "D" ? m.montantCdf : 0, credit: m.sens === "C" ? m.montantCdf : 0, solde: 0 }); }
+    }
+    const out = [...comptes.values()].filter((c) => c.lignes.length || c.soldeInitial);
+    for (const c of out) { let s = c.soldeInitial; for (const l of c.lignes) { s += l.debit - l.credit; l.solde = s; } c.soldeFinal = s; }
+    return { du, au, exercice: ex, comptes: out, totalDebit: out.reduce((x, c) => x + c.debit, 0), totalCredit: out.reduce((x, c) => x + c.credit, 0) };
+  },
+  balance(p: CriteresEtat, analytique = false) {
+    lectureAdmin(["S121"]);
+    const { du, au, ex } = periodeEtat(p), t = String(p.type || "8");
+    if (!TYPES_BALANCE[t]) throw new ErreurMetier("Type de balance inconnu.");
+    const groupee = (p.balance || "groupee") === "groupee", de = (p.compteDe ?? "").trim(), a = (p.compteA ?? "").trim();
+    if ((de && !/^\d+$/.test(de)) || (a && !/^\d+$/.test(a))) throw new ErreurMetier("Compte : chiffres seulement.");
+    const niveau = /^\d+$/.test(String(p.niveau ?? "")) && Number(p.niveau) > 0 ? Number(p.niveau) : null;
+    const noms = intitulesComptes(), g = new Map<string, [string, string, number, number, number]>();
+    for (const m of mouvementsDefinitifs(au, !p.sansVidage)) {
+      const n = m.compte;
+      if ("67".includes(n[0]!) && Number(m.date.slice(0, 4)) !== ex) continue;
+      if ((de && n.padEnd(8, "0") < de.padEnd(8, "0")) || (a && n.padEnd(8, "0").slice(0, a.padEnd(8, "0").length) > a.padEnd(8, "0"))) continue;
+      const cle = groupee && niveau ? n.slice(0, niveau) : n, aux = analytique ? m.auxiliaire : "", k = `${cle}\u0000${aux}`;
+      const x = g.get(k) ?? [cle, aux, 0, 0, 0]; g.set(k, x);
+      if (enOuverture(m, du, ex)) x[2] += m.sens === "D" ? m.montantCdf : -m.montantCdf;
+      else if (m.date >= du) x[m.sens === "D" ? 3 : 4] += m.montantCdf;
+    }
+    const lignes = [...g.values()].sort((x, y) => x[0].localeCompare(y[0]) || x[1].localeCompare(y[1])).map(([cle, aux, ouv, md, mc]) => { const fin = ouv + md - mc;
+      return { compte: cle, intitule: noms.get(cle) ?? "", auxiliaire: aux, ouvertureDebit: Math.max(ouv, 0), ouvertureCredit: Math.max(-ouv, 0), mouvementDebit: md, mouvementCredit: mc,
+        cumulDebit: Math.max(ouv, 0) + md, cumulCredit: Math.max(-ouv, 0) + mc, soldeDebit: Math.max(fin, 0), soldeCredit: Math.max(-fin, 0) }; });
+    const CLES = ["ouvertureDebit", "ouvertureCredit", "mouvementDebit", "mouvementCredit", "cumulDebit", "cumulCredit", "soldeDebit", "soldeCredit"] as const;
+    const totaux = Object.fromEntries(CLES.map((k) => [k, lignes.reduce((s, x) => s + x[k], 0)])) as Record<(typeof CLES)[number], number>;
+    return { du, au, exercice: ex, type: t, lignes, totaux, equilibree: totaux.mouvementDebit === totaux.mouvementCredit && totaux.soldeDebit === totaux.soldeCredit };
+  },
+};
+// ---------- Référentiels partagés (replica/referentiels.json) : une seule description, lue aussi par le serveur (noyau/referentiels.py).
+// Familles : taxes (S104), tiers (S103), puis la paie et les immobilisations. Champs : « valeurs » (liste fermée), « format », « rang ». ----------
+type FamilleReferentiel = { ecran: string; pages: (FicheBudget & { table?: string; etiquette?: string })[] };
+const DESCRIPTION_REF = REFERENTIELS as unknown as Record<string, FamilleReferentiel>;
+/** Contrôles communs : liste fermée, nombre décimal (virgule), date JJ/MM/AAAA ; mêmes règles que noyau/referentiels.py (formats) */
+function formatsRef(c: FicheBudget, v: Record<string, unknown>) {
+  for (const f of c.champs) {
+    const x = v[f.cle]; if (x === null || x === undefined || x === "") continue;
+    if (f.valeurs && !f.valeurs.includes(String(x))) throw new ErreurMetier(`${sansDeux(f.libelle)} inconnu.`);
+    if (f.format === "decimal") { if (!/^\d{1,9}([.,]\d{1,2})?$/.test(String(x))) throw new ErreurMetier(`${sansDeux(f.libelle)} : un nombre, deux décimales au plus.`); v[f.cle] = Number(String(x).replace(",", ".")).toFixed(2).replace(".", ","); }   // toujours deux décimales, comme la capture p. 124
+    if (f.format === "date") { const m = /^(\d\d)\/(\d\d)\/(\d{4})$/.exec(String(x)); const d = m ? new Date(Date.UTC(Number(m[3]), Number(m[2]) - 1, Number(m[1]))) : null;
+      if (!m || !d || d.getUTCDate() !== Number(m[1]) || d.getUTCMonth() !== Number(m[2]) - 1) throw new ErreurMetier(`${sansDeux(f.libelle)} : date au format JJ/MM/AAAA.`); }
+  }
+}
+const VERIFIER_REF: Record<string, NonNullable<OptionsReferentiel["verifier"]>> = {};
+const CHOIX_REF: Record<string, Record<string, () => OptionBudget[]>> = {};
+const UTILISE_PAR_REF: Record<string, Record<string, [string, string, string][]>> = {};
+const stockRef = (famille: string, page: string) => ((E.referentiels[famille] ??= {})[page] ??= []);
+function referentielPartage(famille: string) {
+  const d = DESCRIPTION_REF[famille]!;
+  return referentiel({ catalogue: d.pages, stock: (page) => stockRef(famille, page), choix: CHOIX_REF[famille], utilisePar: UTILISE_PAR_REF[famille],
+    etiquette: Object.fromEntries(d.pages.filter((p) => p.etiquette).map((p) => [p.page, p.etiquette!])),
+    verifier(c, v, id, tous) { formatsRef(c, v); VERIFIER_REF[famille]?.(c, v, id, tous); } });
+}
+/** Lignes actives d'un référentiel partagé, pour les écrans qui s'en servent */
+export const valeursRef = (famille: string, page: string) => stockRef(famille, page).filter((l) => l.actif).sort((a, b) => a.id - b.id);
+const refTaxes = referentielPartage("taxes"), refTiers = referentielPartage("tiers");
+const TYPES_TIERS = DESCRIPTION_REF.tiers!.pages[0]!.champs.find((f) => f.cle === "typeTiers")!.valeurs!;
 // ---------- Info de base > Budget : huit référentiels (S19, manuel p. 27 à 30) ----------
 /** Ordre du menu Info de base > Budget (2-1 à 2-8) ; titres, champs et colonnes des captures p. 27 à 30 */
 export const CATALOGUE_BUDGET: FicheBudget[] = [
@@ -6507,6 +6710,10 @@ const apiLocal = {
   engagements: asynchrone(engagements, "engagements"),
   rapportsCredit: asynchrone(rapportsCreditApi, "rapportsCredit"),
   centraleRisques: asynchrone(centraleRisques, "centraleRisques"),
+  comptabilisation: asynchrone(comptabilisation, "comptabilisation"),
+  etatsCompta: asynchrone(etatsCompta, "etatsCompta"),
+  refTaxes: asynchrone(refTaxes, "refTaxes"),
+  refTiers: asynchrone(refTiers, "refTiers"),
   litigieux: asynchrone(litigieux, "litigieux"),
   societe: asynchrone(societe, "societe"),
   agents: asynchrone(agents, "agents"),

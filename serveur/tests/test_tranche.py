@@ -3454,3 +3454,82 @@ def test_credits_litigieux(clients, journee):
     from noyau.bd import ErreurMetier
     with pytest.raises(ErreurMetier, match="dirigeant ou associé"):
         controler(T("0412-000319"))
+
+
+def test_referentiels_compta(clients, journee):
+    """S104 Taxes (p. 123 et 124) et S103 Plan des tiers (p. 123) : référentiels partagés (replica/referentiels.json) ; Type de suivi du plan (S102-7)"""
+    compta, caisse = clients["compta"], clients["caisse"]
+    tx = lambda corps, lid=None: compta.post("/api/referentiels/taxes/taxes" + (f"/{lid}" if lid else ""), corps, **H)
+    assert "Code, Désignation, Taux" in tx({}).json()["message"]
+    assert "deux décimales" in tx({"code": "TVA", "designation": "Taxe sur la valeur ajoutée", "taux": "seize"}).json()["message"]
+    r = tx({"code": "TVA", "designation": "Taxe sur la valeur ajoutée", "taux": "16.00"})
+    assert r.status_code == 200, r.content
+    l = r.json()["lignes"][0]
+    assert (l["affichage"]["designation"], l["taux"]) == ("Taxe sur la valeur ajoutée", "16,00")
+    assert "existe déjà" in tx({"code": "tva", "designation": "x", "taux": "1"}).json()["message"]
+    assert tx({"code": "TVA", "designation": "TVA", "taux": "16"}, l["id"]).json()["lignes"][0]["designation"] == "TVA"
+    ti = lambda corps: compta.post("/api/referentiels/tiers/tiers", corps, **H)
+    base = {"typeTiers": "FOURNISSEUR", "intitule": "Papeterie du Fleuve", "qualite": "SARL", "compte": "400", "pays": "RDC", "dateCreation": "05/11/2026", "compteBanque": "00012-34567"}
+    assert "Type Tiers inconnu" in ti({**base, "typeTiers": "AMI"}).json()["message"]
+    assert "n'existe pas au plan" in ti({**base, "compte": "999999"}).json()["message"]
+    assert "JJ/MM/AAAA" in ti({**base, "dateCreation": "2026-11-05"}).json()["message"]
+    r = ti(base)
+    assert r.status_code == 200, r.content
+    assert [f["cle"] for f in r.json()["fiche"]["champs"] if f.get("rang") == 1] == ["compteBanque"]
+    assert compta.get("/api/plan-comptes", **H).json()["typesSuivi"][0] == "FOURNISSEUR"
+    assert caisse.post("/api/referentiels/taxes/taxes", {"code": "X", "designation": "x", "taux": "1"}, **H).status_code == 403
+
+
+def test_comptabilisation_banque(clients, journee):
+    """S111 (p. 130 et 155) : la grille montre les écritures de la journée et celles en attente ; Comptabiliser passe l'opération de banque validée,
+    l'emprunt et son remboursement avec leur N° de pièce (registre S111-1 à S111-5, S52-2, S61-4), puis ferme la journée"""
+    chef, compta, agent, caisse = clients["chef"], clients["compta"], clients["agent"], clients["caisse"]
+    solde = lambda n: ident("select coalesce(sum(case when l.sens = 'D' then l.montant_devise else -l.montant_devise end), 0) from ligne_ecriture l join compte c on c.id = l.compte_id where c.numero = %s", (n,))
+    ids = banque_usd(chef)
+    from noyau.bd import executer
+    executer("insert into profil_droit (profil_id, droit_code) select id, 'S57' from profil where code = 'agent_credit'")
+    o = compta.post("/api/banque/operations", {"cle": cle(), "date": "2026-11-05", "type": "encaissement", "compteBancaireId": ids["R-USD-1"], "compte": "727",
+                                               "libelle": "Commission", "montant": 50000}, **H).json()
+    chef.post(f"/api/banque/visas/{o['id']}/visa", {}, **H)
+    agent.post(f"/api/banque/visas/{o['id']}/validation", {}, **H)
+    e = compta.post("/api/banque/emprunts", {"cle": cle(), "compteBancaireId": ids["R-USD-1"], "reference": "RAW-1", "montant": 1000000, "duree": 24,
+                                             "dateEmprunt": "2026-11-05", "taux": "12,5", "totalInteret": 125000, "totalCommission": 5000, "totalFrais": 0,
+                                             "commentaire": "", "compteEmprunt": "533"}, **H).json()
+    compta.post(f"/api/banque/emprunts/{e['id']}/remboursements", {"cle": cle(), "date": "2026-11-05", "amortissement": 400000, "interet": 10000, "commission": 0}, **H)
+    jid = journee[0]["id"]
+    g = compta.get(f"/api/comptabilite/comptabilisation/{jid}", **H).json()
+    att = [x for x in g["lignes"] if not x["piece"]]
+    assert sorted((x["compte"], x["debit"], x["credit"]) for x in att if x["intitule"] == "Commission") == sorted([("727", 0, 50000), (ident("select c.numero from compte_bancaire cb join compte c on c.id = cb.compte_id where cb.id = %s", (ids["R-USD-1"],)), 50000, 0)])
+    assert len(att) == 2 + 2 + 3
+    assert "caisses arrêtées" in compta.post(f"/api/comptabilite/comptabilisation/{jid}", **H).json()["message"]
+    q = "du=2026-11-01&au=2026-11-05&exercice=2026"
+    avant = [x["compte"] for x in compta.get(f"/api/comptabilite/grand-livre?{q}", **H).json()["comptes"]]
+    assert "727" not in avant and "533" not in avant                      # rien de la journée n'est définitif avant sa comptabilisation (T13)
+    sid = journee[1]["id"]
+    for dv in ("CDF", "USD"):
+        th = caisse.get(f"/api/caisses/{sid}/theorique?devise={dv}").json()
+        caisse.post(f"/api/caisses/{sid}/billetages", {"devise": dv, "compte": th}, **H)
+    for b in chef.get("/api/billetages/a-valider").json():
+        chef.post(f"/api/billetages/{b['id']}/validation", **H)
+    r = compta.post(f"/api/comptabilite/comptabilisation/{jid}", **H)
+    assert r.status_code == 200 and r.json()["statut"] == "fermee", r.content
+    assert (solde("727"), solde("533"), solde("6020")) == (-50000, -600000, 10000)
+    assert ident("select statut || ' ' || (piece <> '') from operation_banque where id = %s", (o["id"],)) == "comptabilisee true"
+    assert ident("select statut from emprunt where id = %s", (e["id"],)) == "comptabilisee"
+    assert ident("select count(*) from remboursement_emprunt where statut = 'comptabilisee'") == 1
+    assert balance_equilibree(compta)
+    # S120 grand livre et S121 balance : écritures définitives de la période, en CDF
+    cdf = ident("select sum(l.montant_cdf) from ligne_ecriture l join compte c on c.id = l.compte_id where c.numero = '727'")
+    gl = compta.get(f"/api/comptabilite/grand-livre?{q}", **H).json()
+    c727 = next(x for x in gl["comptes"] if x["compte"] == "727")
+    assert (c727["soldeInitial"], c727["credit"], c727["soldeFinal"], c727["lignes"][0]["libelle"]) == (0, cdf, -cdf, "Commission")
+    assert gl["totalDebit"] == gl["totalCredit"] > 0
+    assert [x["compte"] for x in compta.get(f"/api/comptabilite/grand-livre?{q}&type=classe7", **H).json()["comptes"]] == ["727"]
+    assert "exercice 2026" in compta.get("/api/comptabilite/grand-livre?du=2025-12-01&au=2026-11-05&exercice=2026", **H).json()["message"]
+    b = compta.get(f"/api/comptabilite/balance?{q}&type=8&balance=groupee&niveau=2", **H).json()
+    l72 = next(x for x in b["lignes"] if x["compte"] == "72")
+    assert (l72["intitule"], l72["mouvementCredit"], l72["soldeCredit"], b["equilibree"]) == ("Produits financiers divers", cdf, cdf, True)
+    assert [x["compte"] for x in compta.get(f"/api/comptabilite/balance?{q}&compteDe=7&compteA=79999999", **H).json()["lignes"]] == ["727"]
+    an = compta.get(f"/api/comptabilite/balance?{q}&analytique=true&compteDe=33&compteA=37", **H).json()["lignes"]
+    assert all(x["auxiliaire"].startswith("depot:") for x in an) and an
+    assert caisse.get(f"/api/comptabilite/balance?{q}", **H).status_code == 403

@@ -24,7 +24,7 @@ def codes() -> set[str]:
 
 
 # Droits des quatre profils de départ (registre S04-2) : les écrans que chaque rôle tenait déjà
-DROITS_DEPART = {"chef_agence": ["S03", "S04", "S05", "S06", "S07", "S08", "S09", "S10", "S11", "S11b", "S11c", "S12", "S121", "S13", "S14", "S15", "S16", "S17", "S18", "S19", "S20", "S21", "S22", "S23", "S24", "S25", "S26", "S27", "S28", "S29", "S30", "S31", "S32", "S33", "S34", "S35", "S36", "S37", "S38", "S39", "S40", "S41", "S42", "S43", "S44", "S45", "S46", "S47", "S48", "S49", "S50", "S51", "S57", "S58", "S59", "S66", "S67", "S68", "S69", "S70", "S71", "S72", "S80", "S87", "S88", "S90", "S91", "S92", "SC01", "SC02", "SC03", "SE01", "SC04", "SC05", "SL01", "SP01", "S82", "S83"], "caissier": ["SC03", "S09", "S43", "S64", "S73", "S74", "S75", "S76", "S77", "S78", "S79", "S81", "S83"], "agent_credit": ["SC03", "SC04", "SC05", "SL01", "S100", "S101", "S37", "S38", "S39", "S43", "S44", "S45", "S46", "S47", "S49", "S50", "S51", "S63", "S64", "S65", "S68", "S69", "S72", "S84", "S85", "S86", "S87", "S88", "S89", "S90", "S91", "S92", "S93", "S94", "S95", "S96", "S97", "S98", "S99"], "comptable": ["SF01", "S90", "S91", "S92", "S102", "S103", "S104", "S105", "S106", "S107", "S108", "S109", "S110", "S111", "S112", "S113", "S114", "S115", "S116", "S117", "S118", "S119", "S120", "S121", "S122", "S123", "S124", "S125", "S126", "S127", "S128", "S52", "S53", "S54", "S55", "S56", "S57", "S58", "S59", "S60", "S61", "S62"]}
+DROITS_DEPART = {"chef_agence": ["S03", "S04", "S05", "S06", "S07", "S08", "S09", "S10", "S11", "S11b", "S11c", "S12", "S121", "S13", "S14", "S15", "S16", "S17", "S18", "S19", "S20", "S21", "S22", "S23", "S24", "S25", "S26", "S27", "S28", "S29", "S30", "S31", "S32", "S33", "S34", "S35", "S36", "S37", "S38", "S39", "S40", "S41", "S42", "S43", "S44", "S45", "S46", "S47", "S48", "S49", "S50", "S51", "S57", "S58", "S59", "S66", "S67", "S68", "S69", "S70", "S71", "S72", "S80", "S87", "S88", "S90", "S91", "S92", "SC01", "SC02", "SC03", "SE01", "SC04", "SC05", "SL01", "SP01", "S82", "S83", "S111"], "caissier": ["SC03", "S09", "S43", "S64", "S73", "S74", "S75", "S76", "S77", "S78", "S79", "S81", "S83"], "agent_credit": ["SC03", "SC04", "SC05", "SL01", "S100", "S101", "S37", "S38", "S39", "S43", "S44", "S45", "S46", "S47", "S49", "S50", "S51", "S63", "S64", "S65", "S68", "S69", "S72", "S84", "S85", "S86", "S87", "S88", "S89", "S90", "S91", "S92", "S93", "S94", "S95", "S96", "S97", "S98", "S99"], "comptable": ["SF01", "S90", "S91", "S92", "S102", "S103", "S104", "S105", "S106", "S107", "S108", "S109", "S110", "S111", "S112", "S113", "S114", "S115", "S116", "S117", "S118", "S119", "S120", "S121", "S122", "S123", "S124", "S125", "S126", "S127", "S128", "S52", "S53", "S54", "S55", "S56", "S57", "S58", "S59", "S60", "S61", "S62"]}
 
 
 # Route d'écriture -> écrans qui l'appellent (registre S04-3)
@@ -101,6 +101,9 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/credit/garanties/liberation/\d+", ["S94"]),
     (r"/credit/affectation", ["S96"]),
     (r"/credit/liste-rouge/(ajout|retrait)", ["S97"]),
+    (r"/referentiels/taxes/.*", ["S104"]),
+    (r"/comptabilite/comptabilisation/\d+", ["S111"]),
+    (r"/referentiels/tiers/.*", ["S103"]),
     (r"/credit/balance-agee", ["S98"]),
     (r"/credit/provisions/(provisionner|tout|radiation)", ["S99"]),
     (r"/credit/engagements(/\d+/fin)?", ["S100"]),
@@ -191,6 +194,8 @@ LECTURES_ADMIN = [(re.compile(m), e) for m, e in [
     (r"/credit/affectation/(contexte|\d+)", ["S96"]),
     (r"/credit/liste-rouge", ["S97"]),
     (r"/credit/provisions", ["S99"]),
+    (r"/comptabilite/grand-livre", ["S120"]),
+    (r"/comptabilite/balance", ["S121"]),
     (r"/credit/engagements(/.*)?", ["S100"]),
     (r"/credit/litigieux/.*", ["SL01"]),
     (r"/credit/rapports/\w+", ["S101"]),

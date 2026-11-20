@@ -1037,9 +1037,16 @@ const OUT = process.argv[2];
   await p.getByRole('cell', { name: 'Billet de 20000 CDF' }).waitFor(); if (!(await p.getByLabel('Compte Comptable (CDF)').inputValue())) throw new Error('S80-2 : Compte Comptable vide'); await etape('16b-validation-billetage');
   await p.getByRole('button', { name: 'Valider' }).click(); await ok();
   await aller('/comptabilite/s111');
-  await p.getByRole('button', { name: 'Fermer la journée' }).click(); await p.getByText('Aucune journée ouverte.').waitFor();
+  await p.getByRole('button', { name: 'Comptabiliser' }).click(); await ok(); await p.getByText('Aucune journée à comptabiliser.').waitFor();
   await etape('17-journee-fermee');
-  await login('Patrick Lumbala'); await p.goto(B + '/comptabilite/s121'); await p.getByText(/Équilibrée/).waitFor(); await etape('18-balance');
+  await login('Patrick Lumbala'); await p.goto(B + '/comptabilite/s121'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByText(/Équilibrée/).waitFor(); await etape('18-balance');
+  // Grand livre (S120, p. 138) : écritures définitives de la journée comptabilisée ; taxes (S104, p. 124) et plan des tiers (S103, p. 123)
+  await aller('/comptabilite/s120'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('rowheader', { name: 'Total général' }).waitFor(); await etape('18b-grand-livre');
+  await aller('/comptabilite/s104'); await p.getByLabel('Code *').fill('TVA'); await p.getByLabel('Désignation *').fill('Taxe sur la valeur ajoutée'); await p.getByLabel('Taux *').fill('16');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok(); await p.getByRole('cell', { name: '16,00' }).waitFor(); await etape('18c-taxes');
+  await aller('/comptabilite/s103'); await p.getByLabel('Type Tiers *').selectOption('FOURNISSEUR'); await p.getByLabel('Intitulé *').fill('Papeterie du Fleuve');
+  await p.getByLabel('Compte *').fill('400'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
+  await p.getByRole('cell', { name: 'Papeterie du Fleuve' }).waitFor(); await etape('18d-plan-tiers');
   // Comptable : plan des comptes (S102, p. 122, 146, 147) ; ouvrir un compte divisionnaire du PCCI (PCCI § 9)
   await aller('/comptabilite/s102');
   await p.getByLabel('Parent *').fill('570'); await p.getByRole('textbox', { name: 'Libellé du parent' }).waitFor();

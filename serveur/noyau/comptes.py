@@ -39,7 +39,8 @@ def plan(u) -> list[dict]:
 
 def lire(u) -> dict:
     exiger(u)
-    return {"comptes": plan(u), "groupes": {str(k): v for k, v in GROUPES.items()}}
+    from .referentiels import TYPES_TIERS
+    return {"comptes": plan(u), "groupes": {str(k): v for k, v in GROUPES.items()}, "typesSuivi": TYPES_TIERS}   # registre S102-7 : les types du plan des tiers (S103)
 
 
 def parent_de(comptes: dict, numero: str) -> str:
@@ -71,6 +72,9 @@ def enregistrer(u, d, numero_actuel: str | None = None) -> dict:
     if not p:
         raise ErreurMetier("Parent : ce compte n'est pas dans le plan." + (" Une classe n'a pas de compte divisionnaire direct : choisir un compte." if parent in CLASSES else ""))
     numero = parent + suite
+    from .referentiels import TYPES_TIERS
+    if texte("typeSuivi") and texte("typeSuivi") not in TYPES_TIERS:      # registre S102-7
+        raise ErreurMetier("Type de suivi inconnu.")
     valeurs = (libelle, bool(d.get("ouvert")), bool(d.get("saisissable")), *(bool(d.get(k)) for k in OPTIONS), texte("typeSuivi") or None)
     if numero_actuel is None:
         if une("select 1 from compte where numero = %s and (institution_id is null or institution_id = %s)", (numero, i)):

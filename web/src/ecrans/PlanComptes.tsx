@@ -35,7 +35,7 @@ export default function PlanComptes() {
       <nav className="onglets" aria-label="Plan des comptes">
         {PAGES.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={k === page} onClick={() => setParams(k === "creation" ? {} : { page: k })}>{l}</button>)}
       </nav>
-      {page === "creation" && <Creation comptes={donnees.comptes} relire={() => setRelu((x) => x + 1)} />}
+      {page === "creation" && <Creation comptes={donnees.comptes} typesSuivi={donnees.typesSuivi} relire={() => setRelu((x) => x + 1)} />}
       {page === "consultation" && <Consultation comptes={donnees.comptes} />}
       {page === "modele" && <Modele comptes={donnees.comptes} groupes={donnees.groupes} />}
     </>
@@ -45,7 +45,7 @@ export default function PlanComptes() {
 const VIDE = { parent: "", suite: "", libelle: "", ouvert: "1", saisissable: "1", typeSuivi: "",
   saisieAnalytique: false, saisieEcheance: false, lettrageAuto: false, saisieTiers: false, immobilisation: false, compteTaxe: false, compteTaxable: false };
 
-function Creation({ comptes, relire }: { comptes: LigneCompte[]; relire: () => void }) {
+function Creation({ comptes, typesSuivi, relire }: { comptes: LigneCompte[]; typesSuivi: string[]; relire: () => void }) {
   const [f, setF] = useState(VIDE);
   const [choisi, setChoisi] = useState<string | null>(null);
   const [filtres, setFiltres] = useState({ compte: "", libelle: "" });
@@ -96,7 +96,8 @@ function Creation({ comptes, relire }: { comptes: LigneCompte[]; relire: () => v
           {OPTIONS.slice(0, 1).map(([k, l]) => <label key={k} className="case"><input type="checkbox" checked={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.checked })} /><span>{l}</span></label>)}
           <label className="case"><input type="checkbox" disabled /><span>Clé de répartition analytique</span></label>
           {OPTIONS.slice(1).map(([k, l]) => <label key={k} className="case"><input type="checkbox" checked={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.checked })} /><span>{l}</span></label>)}
-          <Champ libelle="Type de suivi">{(p) => <select {...p} className="saisie" value={f.typeSuivi} onChange={(e) => setF({ ...f, typeSuivi: e.target.value })}><option value=""></option></select>}</Champ>
+          <Champ libelle="Type de suivi">{(p) => <select {...p} className="saisie" value={f.typeSuivi} onChange={(e) => setF({ ...f, typeSuivi: e.target.value })}><option value=""></option>
+            {typesSuivi.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
         </fieldset>
       </div>
       <div className="actions-onglets">

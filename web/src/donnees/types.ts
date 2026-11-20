@@ -163,13 +163,14 @@ export interface Ligne {
 export interface Ecriture {
   id: number;
   numero: string;
-  journal: "CA" | "AN" | "OD";
+  journal: string;   // code du journal (S30) : CA, AN, OD, ou un journal de banque
   journeeId: number;
   libelle: string;
   piece: string;
   saisiPar: number;
   validePar: number;
   lignes: readonly Ligne[];
+  type?: "vidage";   // écriture de clôture qui solde les comptes de gestion (S127) ; les états « sans vidage » l'écartent
 }
 
 export type TypeOperation = "depot" | "retrait" | "adhesion" | "achat_parts" | "retrait_parts" | "ed_encaissement" | "ed_decaissement" | "transfert_sortie" | "transfert_entree" | "versement_banque" | "deblocage_credit" | "remboursement_credit";
@@ -250,6 +251,7 @@ export interface ChequeClient {   // S59
   id: number; cle: string; date: string; tiersId: number; compteDepotId: number; compteBancaireId: number; numeroCheque: string; tireur: string; banqueTireur: string;
   montant: number; devise: Devise; deposant: string; pieceType: string; pieceNumero: string; etabliA: string; dateExpiration: string;
   statut: "depose" | "encaisse" | "retourne"; dateEncaissement: string; saisiPar: number;
+  ecritureId?: number;   // S111 : écriture passée à la comptabilisation (registre S59-4)
 }
 
 export interface Operation {
@@ -282,7 +284,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 73;
+  version: 74;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)
@@ -339,6 +341,7 @@ export interface Etat {
   declarationsCip: { type: string; objetId: number; dateEvenement: string; declareLe: string; reference: string; declarePar: number }[];   // écart E06   // S46, S42, S43
   banques: { id: number; code: string; libelle: string; compteLiaison: string; adresse: string }[];   // S58
   budget: Record<string, LigneBudget[]>;
+  referentiels: Record<string, Record<string, LigneBudget[]>>;   // replica/referentiels.json : taxes (S104), tiers (S103), paie, immobilisations
   credit: Record<string, LigneBudget[]>;
   ordres: { id: number; code: string; libelle: string; actif: boolean }[];   // S22
   degreOrdres: Record<number, number>;

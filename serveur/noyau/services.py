@@ -337,6 +337,8 @@ def fermer_journee(u: dict, jid: int) -> dict:
     bloquants = [c for c in controles_journee(jid) if c["etat"] == "ko"]
     if bloquants:
         raise ErreurMetier("Fermeture impossible : " + " ; ".join(c["titre"].lower() for c in bloquants) + ".")
+    from .comptabilisation import passer
+    passer(u, j)                       # écritures laissées en attente par la Banque, avec leur N° de pièce (registre S111-4)
     executer("update journee_comptable set statut = 'fermee', fermee_par = %s, fermee_le = now() where id = %s", (u["id"], jid))
     return vue_journee(une("select * from journee_comptable where id = %s", (jid,)))
 

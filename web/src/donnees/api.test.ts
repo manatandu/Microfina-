@@ -2443,6 +2443,51 @@ describe("journée de guichet", () => {
     await expect(api.engagements.finir(e.id, { motif: "mainlevee" })).rejects.toThrow("déjà pris fin");
   });
 
+  it("taxes (S104, p. 123 et 124) et plan des tiers (S103, p. 123) : référentiels partagés ; type de suivi du plan (S102-7)", async () => {
+    await connecter("plumbala");
+    await expect(api.refTaxes.enregistrer("taxes", {})).rejects.toThrow("Code, Désignation, Taux");
+    await expect(api.refTaxes.enregistrer("taxes", { code: "TVA", designation: "Taxe sur la valeur ajoutée", taux: "seize" })).rejects.toThrow("deux décimales");
+    const r = await api.refTaxes.enregistrer("taxes", { code: "TVA", designation: "Taxe sur la valeur ajoutée", taux: "16.00" });
+    expect([r.lignes[0]!.affichage.designation, r.lignes[0]!.taux]).toEqual(["Taxe sur la valeur ajoutée", "16,00"]);   // comme le serveur
+    await expect(api.refTaxes.enregistrer("taxes", { code: "tva", designation: "x", taux: "1" })).rejects.toThrow("existe déjà");
+    const base = { typeTiers: "FOURNISSEUR", intitule: "Papeterie du Fleuve", qualite: "SARL", compte: "400", pays: "RDC", dateCreation: "05/11/2026", compteBanque: "00012-34567" };
+    await expect(api.refTiers.enregistrer("tiers", { ...base, typeTiers: "AMI" })).rejects.toThrow("Type Tiers inconnu");
+    await expect(api.refTiers.enregistrer("tiers", { ...base, compte: "999999" })).rejects.toThrow("n'existe pas au plan");
+    await expect(api.refTiers.enregistrer("tiers", { ...base, dateCreation: "2026-11-05" })).rejects.toThrow("JJ/MM/AAAA");
+    expect((await api.refTiers.enregistrer("tiers", base)).lignes).toHaveLength(1);
+    expect((await api.comptes.lire()).typesSuivi[0]).toBe("FOURNISSEUR");
+    await connecter("engalula");
+    await expect(api.refTaxes.enregistrer("taxes", { code: "X", designation: "x", taux: "1" })).rejects.toThrow("Droit manquant");
+  });
+
+  it("comptabilisation (S111, p. 130 et 155) : la grille montre l'écriture en attente d'une opération de banque validée ; Comptabiliser la passe avec son N° de pièce et ferme la journée (S111-4)", async () => {
+    const { j, s } = await journeeOuverte();
+    await connecter("jpmukendi");
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    await api.banques.enregistrerCompte({ banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "",
+      compte: "56010001", numeroBancaire: "R-USD-1", devise: "USD" });
+    const profils = Object.fromEntries((await api.droits.lire()).profils.map((p) => [p.nom, p.id]));
+    for (const nom of ["CHEF D'AGENCE", "AGENT DE CRÉDIT"]) { const id = profils[nom]; if (id) await api.droits.enregistrer(id, { droits: [...(await api.droits.lire(id)).octroyes, "S57"] }); }
+    await connecter("plumbala");
+    const usd = (await api.banqueOperations.lire()).comptes[0]!.id;
+    const enc = await api.banqueOperations.enregistrer({ cle: cle(), type: "encaissement", date: "2026-11-05", compteBancaireId: usd, compte: "727", libelle: "Commission", montant: 50000 });
+    await connecter("jpmukendi"); await api.banqueOperations.suivre(enc.id, "visa");
+    await connecter("bkasongo"); await api.banqueOperations.suivre(enc.id, "validation");
+    await connecter("plumbala");
+    const g = await api.comptabilisation.aComptabiliser(j.id);
+    expect(g.lignes.filter((x) => !x.piece).map((x) => [x.compte, x.debit, x.credit]).sort()).toEqual([["56010001", 50000, 0], ["727", 0, 50000]]);   // comme le serveur
+    await expect(api.comptabilisation.comptabiliser(j.id)).rejects.toThrow("caisses arrêtées");
+    await connecter("engalula");
+    for (const d of ["CDF", "USD"] as const) await api.caisses.saisirBilletage(s.id, d, await api.caisses.theorique(s.id, d));
+    await connecter("jpmukendi");
+    for (const b of await api.caisses.aValider()) await api.caisses.validerBilletage(b.id);
+    await connecter("plumbala");
+    expect((await api.comptabilisation.comptabiliser(j.id)).statut).toBe("fermee");
+    const o = _etat().operationsBanque.find((x) => x.id === enc.id)!;
+    expect([o.statut, o.piece !== ""]).toEqual(["comptabilisee", true]);
+    expect(_etat().ecritures.flatMap((e) => e.lignes).filter((x) => x.compte === "727").reduce((t, x) => t + (x.sens === "C" ? x.montant : -x.montant), 0)).toBe(50000);
+  });
+
   it("produit crédit (S23, p. 37 et 38) : méthode dégressive (Instr. BCC 38 art. 11), bornes, garanties, assurance, frais (Instr. BCC 40 art. 8)", async () => {
     await connecter("jpmukendi");
     const P = { typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: "2,5", tauxDiffere: 2,

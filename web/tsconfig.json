@@ -30,6 +30,9 @@
       ],
       "@pcci": [
         "../replica/pcci.json"
+      ],
+      "@referentiels": [
+        "../replica/referentiels.json"
       ]
     }
   },
@@ -37,6 +40,7 @@
     "src",
     "vite.config.ts",
     "../replica/design/montant.js",
-    "../replica/pcci.json"
+    "../replica/pcci.json",
+    "../replica/referentiels.json"
   ]
 }

@@ -863,6 +863,42 @@ def operation_refuser(request, oid: int):
     return None
 
 
+# ---------- S111 : comptabilisation de la journée (p. 130 et 155) ----------
+@api.get("/comptabilite/comptabilisation/{jid}")
+def comptabilisation_lire(request, jid: int):
+    from . import comptabilisation as cp
+    return cp.a_comptabiliser(u(request), jid)
+
+
+@api.post("/comptabilite/comptabilisation/{jid}")
+def comptabilisation_passer(request, jid: int):
+    from . import comptabilisation as cp
+    return cp.comptabiliser(u(request), jid)
+
+
+# ---------- S120 grand livre et S121 balance, généraux et analytiques (p. 138 à 140) ----------
+def _criteres(request) -> dict:
+    return {k: v for k, v in request.GET.items() if v != ""}
+
+
+@api.get("/comptabilite/etats/contexte")
+def etats_compta_contexte(request):
+    from . import etats_compta as ec
+    return ec.contexte(u(request))
+
+
+@api.get("/comptabilite/grand-livre")
+def etats_grand_livre(request, analytique: bool = False):
+    from . import etats_compta as ec
+    return ec.grand_livre(u(request), _criteres(request), analytique)
+
+
+@api.get("/comptabilite/balance")
+def etats_balance_periode(request, analytique: bool = False):
+    from . import etats_compta as ec
+    return ec.balance(u(request), _criteres(request), analytique)
+
+
 # ---------- États ----------
 @api.get("/etats/balance")
 def etats_balance(request):
@@ -1384,6 +1420,31 @@ def bu_modifier(request, page: str, lid: int, corps: dict = Body(...)):
 @api.post("/budget-referentiels/{page}/{lid}/suppression")
 def bu_supprimer(request, page: str, lid: int):
     return bu.supprimer(u(request), page, lid)
+
+
+# ---------- Référentiels partagés (replica/referentiels.json) : taxes (S104), tiers (S103), paie, immobilisations ----------
+@api.get("/referentiels/{famille}/{page}")
+def ref_lire(request, famille: str, page: str):
+    from . import referentiels as rf
+    return rf.lire(u(request), famille, page)
+
+
+@api.post("/referentiels/{famille}/{page}")
+def ref_creer(request, famille: str, page: str, corps: dict = Body(...)):
+    from . import referentiels as rf
+    return rf.enregistrer(u(request), famille, page, corps)
+
+
+@api.post("/referentiels/{famille}/{page}/{lid}")
+def ref_modifier(request, famille: str, page: str, lid: int, corps: dict = Body(...)):
+    from . import referentiels as rf
+    return rf.enregistrer(u(request), famille, page, corps, lid)
+
+
+@api.post("/referentiels/{famille}/{page}/{lid}/suppression")
+def ref_supprimer(request, famille: str, page: str, lid: int):
+    from . import referentiels as rf
+    return rf.supprimer(u(request), famille, page, lid)
 
 
 # ---------- Info de base > Localisation (S20) ----------

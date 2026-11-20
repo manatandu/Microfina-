@@ -24,6 +24,8 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
     return valeur;
   }
   const get = <T,>(c: string) => appel<T>("GET", c);
+  /** Critères d'un état en paramètres d'adresse ; les vides sont omis */
+  const requete = (p: Record<string, unknown>) => new URLSearchParams(Object.entries(p).filter(([, v]) => v !== null && v !== undefined && v !== "" && v !== false).map(([k, v]) => [k, String(v)])).toString();
   const post = <T,>(c: string, corps?: unknown) => appel<T>("POST", c, corps ?? {});
   const q = encodeURIComponent;
 
@@ -95,6 +97,25 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       proroger: (cid: number, p: unknown) => post(`/credit/litigieux/${cid}/prorogation`, p),
       ouvrirContentieux: (cid: number, p: unknown) => post(`/credit/litigieux/${cid}/contentieux`, p),
       cloreContentieux: (cid: number, p: unknown) => post(`/credit/litigieux/${cid}/cloture`, p),
+    },
+    etatsCompta: {
+      contexte: () => get("/comptabilite/etats/contexte"),
+      grandLivre: (p: Record<string, unknown>, analytique = false) => get(`/comptabilite/grand-livre?${requete({ ...p, analytique })}`),
+      balance: (p: Record<string, unknown>, analytique = false) => get(`/comptabilite/balance?${requete({ ...p, analytique })}`),
+    },
+    comptabilisation: {
+      aComptabiliser: (jid: number) => get(`/comptabilite/comptabilisation/${jid}`),
+      comptabiliser: (jid: number) => post(`/comptabilite/comptabilisation/${jid}`),
+    },
+    refTaxes: {
+      lire: (page: string) => get(`/referentiels/taxes/${page}`),
+      enregistrer: (page: string, d: object, id?: number) => post(id === undefined ? `/referentiels/taxes/${page}` : `/referentiels/taxes/${page}/${id}`, d),
+      supprimer: (page: string, id: number) => post(`/referentiels/taxes/${page}/${id}/suppression`),
+    },
+    refTiers: {
+      lire: (page: string) => get(`/referentiels/tiers/${page}`),
+      enregistrer: (page: string, d: object, id?: number) => post(id === undefined ? `/referentiels/tiers/${page}` : `/referentiels/tiers/${page}/${id}`, d),
+      supprimer: (page: string, id: number) => post(`/referentiels/tiers/${page}/${id}/suppression`),
     },
     centraleRisques: {
       evenements: (du: string, au: string, statut = "") => get(`/conformite/centrale-risques?du=${du}&au=${au}&statut=${statut}`),

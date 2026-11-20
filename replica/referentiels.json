@@ -1,0 +1,266 @@
+{
+ "taxes": {
+  "ecran": "S104",
+  "pages": [
+   {
+    "page": "taxes",
+    "table": "taxe",
+    "menu": "Taxes",
+    "entete": "Création et mise à jour de taxes",
+    "grille": "Listes de taxes",
+    "filtres": true,
+    "rafraichir": true,
+    "unique": [
+     "code"
+    ],
+    "etiquette": "designation",
+    "champs": [
+     {
+      "cle": "code",
+      "col": "code",
+      "libelle": "Code",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Code",
+      "defaut": null,
+      "cadre": null,
+      "grille": false
+     },
+     {
+      "cle": "designation",
+      "col": "designation",
+      "libelle": "Désignation",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Désignation",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "taux",
+      "col": "taux",
+      "libelle": "Taux",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Taux %",
+      "defaut": null,
+      "cadre": null,
+      "grille": true,
+      "format": "decimal"
+     }
+    ]
+   }
+  ]
+ },
+ "tiers": {
+  "ecran": "S103",
+  "pages": [
+   {
+    "page": "tiers",
+    "table": "tiers_comptable",
+    "menu": "Plan des tiers",
+    "entete": "Plan Tiers",
+    "grille": "Liste des tiers",
+    "filtres": true,
+    "unique": [
+     "intitule"
+    ],
+    "etiquette": "intitule",
+    "champs": [
+     {
+      "cle": "typeTiers",
+      "col": "type_tiers",
+      "libelle": "Type Tiers",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Type Tiers",
+      "defaut": null,
+      "cadre": "Entreprise",
+      "grille": true,
+      "valeurs": [
+       "FOURNISSEUR",
+       "CLIENT",
+       "PERSONNEL",
+       "ETAT",
+       "ASSOCIE",
+       "DIVERS"
+      ],
+      "rang": 2
+     },
+     {
+      "cle": "intitule",
+      "col": "intitule",
+      "libelle": "Intitulé",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Intitulé",
+      "defaut": null,
+      "cadre": "Entreprise",
+      "grille": true,
+      "rang": 3
+     },
+     {
+      "cle": "qualite",
+      "col": "qualite",
+      "libelle": "Qualité",
+      "type": "texte",
+      "obligatoire": false,
+      "ref": null,
+      "aide": null,
+      "colonne": "Qualité",
+      "defaut": null,
+      "cadre": "Entreprise",
+      "grille": true,
+      "valeurs": [
+       "Entreprise individuelle",
+       "SARL",
+       "SA",
+       "SAS",
+       "SNC",
+       "SCS",
+       "GIE",
+       "Société coopérative",
+       "ASBL",
+       "Établissement public",
+       "Personne physique"
+      ],
+      "rang": 4
+     },
+     {
+      "cle": "dateCreation",
+      "col": "date_creation",
+      "libelle": "Date création",
+      "type": "texte",
+      "obligatoire": false,
+      "ref": null,
+      "aide": "(JJ/MM/AAAA)",
+      "colonne": "Date création",
+      "defaut": null,
+      "cadre": "Entreprise",
+      "grille": true,
+      "format": "date",
+      "rang": 5
+     },
+     {
+      "cle": "compte",
+      "col": "compte",
+      "libelle": "Compte",
+      "type": "compteSimple",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Compte",
+      "defaut": null,
+      "cadre": "Entreprise",
+      "grille": true,
+      "rang": 6
+     },
+     {
+      "cle": "pays",
+      "col": "pays",
+      "libelle": "Pays",
+      "type": "texte",
+      "obligatoire": false,
+      "ref": null,
+      "aide": null,
+      "colonne": "Pays",
+      "defaut": null,
+      "cadre": "Entreprise",
+      "grille": true,
+      "rang": 7
+     },
+     {
+      "cle": "contactNom",
+      "col": "contact_nom",
+      "libelle": "Nom du contact",
+      "type": "texte",
+      "obligatoire": false,
+      "ref": null,
+      "aide": null,
+      "colonne": "Nom du contact",
+      "defaut": null,
+      "cadre": "Contact",
+      "grille": false
+     },
+     {
+      "cle": "contactTelephone",
+      "col": "contact_telephone",
+      "libelle": "Téléphone",
+      "type": "texte",
+      "obligatoire": false,
+      "ref": null,
+      "aide": null,
+      "colonne": "Téléphone",
+      "defaut": null,
+      "cadre": "Contact",
+      "grille": false
+     },
+     {
+      "cle": "contactEmail",
+      "col": "contact_email",
+      "libelle": "Email",
+      "type": "email",
+      "obligatoire": false,
+      "ref": null,
+      "aide": null,
+      "colonne": "Email",
+      "defaut": null,
+      "cadre": "Contact",
+      "grille": false
+     },
+     {
+      "cle": "adresse",
+      "col": "adresse",
+      "libelle": "Adresse",
+      "type": "texte",
+      "obligatoire": false,
+      "ref": null,
+      "aide": null,
+      "colonne": "Adresse",
+      "defaut": null,
+      "cadre": "Contact",
+      "grille": false
+     },
+     {
+      "cle": "banque",
+      "col": "banque",
+      "libelle": "Banque",
+      "type": "texte",
+      "obligatoire": false,
+      "ref": null,
+      "aide": null,
+      "colonne": "Banque",
+      "defaut": null,
+      "cadre": "Banque",
+      "grille": false
+     },
+     {
+      "cle": "compteBanque",
+      "col": "compte_banque",
+      "libelle": "Compte banque",
+      "type": "texte",
+      "obligatoire": false,
+      "ref": null,
+      "aide": null,
+      "colonne": "Compte banque",
+      "defaut": null,
+      "cadre": "Banque",
+      "grille": true,
+      "rang": 1
+     }
+    ]
+   }
+  ]
+ }
+}

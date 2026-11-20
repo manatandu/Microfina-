@@ -10,6 +10,8 @@ import ExamenRenforce from "./ExamenRenforce";
 import CentraleIncidents from "./CentraleIncidents";
 import CentraleRisques from "./CentraleRisques";
 import Litigieux from "./Litigieux";
+import Comptabilisation from "./Comptabilisation";
+import { PlanTiers, Taxes } from "./ReferentielsCompta";
 import Plaintes from "./Plaintes";
 import ComptesInactifs from "./ComptesInactifs";
 import RegistreMembres from "./RegistreMembres";
@@ -40,7 +42,7 @@ import RapportsCredit from "./RapportsCredit";
 import type { ComponentType } from "react";
 import GuichetDepotRetrait from "./Guichet";
 import Adhesion from "./Adhesion";
-import Balance from "./Comptabilite";
+import { BalanceComptes, GrandLivre } from "./EtatsCompta";
 import { BilletageCaisse, ValidationBilletage } from "./Caisse";
 import { AffectationGuichets, GestionGuichets, OuvertureFermetureGuichets } from "./Guichets";
 import { CompleterJournalDetail, NouvelExercice, OuvertureExercice } from "./Exercices";
@@ -71,7 +73,7 @@ import EnregistrementUtilisateurs from "./Utilisateurs";
 import GestionProfilsUtilisateur from "./ProfilsUtilisateurs";
 import Connexions from "./Connexions";
 import ParametragesClients, { ParametrageCompteClient } from "./Numerotation";
-import { EcranJournee, FermetureJournee } from "./Journee";
+import { EcranJournee } from "./Journee";
 import { Consentement, InformationsClient, ModificationFrais, PhotosSignatures, ResiliationClient, ValidationClientModifie, VisaClient } from "./Visa";
 import { FraisOperations } from "./Parametrage";
 import { GroupeSolidaire } from "./Groupes";
@@ -197,9 +199,12 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S79: BilletageCaisse,
   S80: ValidationBilletage,
   S102: PlanComptes,
-  S111: FermetureJournee,
+  S103: PlanTiers,
+  S104: Taxes,
+  S111: Comptabilisation,
   S113: VisaRetraitPlafond,
-  S121: Balance,
+  S120: GrandLivre,
+  S121: BalanceComptes,
 };
 
 /** Pages de la liste de gauche de S14 (Info de base > Client > Général, manuel p. 23), ouvertes dans le même écran (?page=…) */

@@ -103,15 +103,15 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 102,Déclassement et provisions,crédit,must,yes,S99,B,traitement,7 Crédit,S99 : règles,R:Instr. BCC sur le classement et les provisions,,,
 103,Engagement par signature,crédit,should,yes,S100,A,liste,7 Crédit,S100 : document imprimé,document,,,
 104,Rapports crédit dont exigibles et indicateurs,crédit,must,yes,S101,D,rapport,7 Crédit,"S101 : les huit rapports : Journal, Rapports de base, Multicritère, Synthèse de la balance âgée, Taux de remboursements, Encours prévisionnel, Exigibles, Indicateur de gestion","A:S72, S93 ; R:Instr. BCC sur les indicateurs",,,
-105,Plan des comptes et modèle à positions,comptabilité,must,partial,S102,A,liste,8 Comptabilité,,R:PCCI,,,"S102-7 Type de suivi ; S102-10 Statut Fermé, Nature Non saisible"
-106,Plan des tiers,comptabilité,must,no,S103,A,liste,8 Comptabilité,,,,S103,
-107,Taxes et déclaration,comptabilité,should,no,S104 S108,A,"liste, rapport",8 Comptabilité,,R:fiscalité RDC ; P,,S104 S108,
+105,Plan des comptes et modèle à positions,comptabilité,must,partial,S102,A,liste,8 Comptabilité,,R:PCCI,,,"S102-10 Statut Fermé, Nature Non saisible"
+106,Plan des tiers,comptabilité,must,yes,S103,A,liste,8 Comptabilité,,,,,
+107,Taxes et déclaration,comptabilité,should,no,S104 S108,A,"liste, rapport",8 Comptabilité,,R:fiscalité RDC ; P,,S108,
 108,Déblocage sur compte d'épargne,comptabilité,must,no,S105,A,guichet,8 Comptabilité,S105 : reconnaissance de dette,document,,S105,
 109,Remboursement par prélèvement sur l'épargne,comptabilité,must,no,S106,A,guichet,8 Comptabilité,,A:S76,,S106,
 110,Factures fournisseurs bons de commande règlements,comptabilité,should,no,S141 S107,D,"guichet, onglets",6 Caisse,S141 : tout l'écran,"A:S107 règlement (p. 127 et 153), S78",,S141 S107,
 111,Saisie d'écritures,comptabilité,must,no,S109,A,guichet,8 Comptabilité,,R:PCCI,,S109,
 112,Rapprochement bancaire et historique,comptabilité,must,no,S110 S112,A,"composition, rapport",8 Comptabilité,S110 : état du rapprochement,document,,S110 S112,
-113,Comptabilisation de la journée,comptabilité,must,partial,S111,A,traitement,8 Comptabilité,,R:PCCI ; ARCHITECTURE P8,,,S111-1 Forme de l'écran ; S111-3 Case « Recherche avancée » ; S111-4 Opérations de banque à comptabiliser
+113,Comptabilisation de la journée,comptabilité,must,yes,S111,A,traitement,8 Comptabilité,,R:PCCI ; ARCHITECTURE P8,,,
 114,Visa et validation comptables dont retrait au-delà du plafond,comptabilité,must,no,S113 S114,A,visa,8 Comptabilité,,,,S114,
 115,Journaux comptables,comptabilité,must,no,S115,A,rapport,8 Comptabilité,,,,S115,
 116,Virement de compte à compte et opérations diverses,comptabilité,must,no,S116,A,guichet,8 Comptabilité,,,,S116,
@@ -121,7 +121,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 120,Contrôle trésorerie et rapport des annulations,comptabilité,must,no,S142 S118 S143,D,"traitement, rapport",8 Comptabilité,S143 : tout l'écran,R:PCCI (contre-passation) ; A:S118 contrôle de trésorerie (p. 137 et 162),,S142 S118 S143,
 121,État des revenus,comptabilité,should,no,S118,A,rapport,8 Comptabilité,,,,S118,
 122,Lettrage,comptabilité,must,no,S119,A,composition,8 Comptabilité,,,,S119,
-123,Grand livre et balance général et analytique,comptabilité,must,partial,S120 S121,B,rapport,8 Comptabilité,S120 : forme de l'état ; S121 : forme de l'état,R:PCCI (états) ; document ; R:PCCI ; document,,S120,
+123,Grand livre et balance général et analytique,comptabilité,must,yes,S120 S121,B,rapport,8 Comptabilité,S120 : forme de l'état ; S121 : forme de l'état,R:PCCI (états) ; document ; R:PCCI ; document,,,
 124,Bilan hors bilan résultat annexes,comptabilité,must,no,S122,B,rapport,8 Comptabilité,S122 : forme des états,R:PCCI et Instr. BCC sur les états ; document,,S122,
 125,Indicateurs financiers,comptabilité,must,no,S123,B,rapport,8 Comptabilité,S123 : liste et calcul des indicateurs,R:Instr. BCC sur les indicateurs,,S123,
 126,Budget : création reconduction suivi consommation financement,budget,should,no,S124 S125 S126,B,"onglets, rapport, liste",9 Budget et Autres,S124 : écran de définition après le choix,A:S125 consultation (p. 143) ; D:S19,,S124 S125 S126,
