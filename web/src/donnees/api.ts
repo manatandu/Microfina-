@@ -20,7 +20,7 @@ import PCCI from "@pcci";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v89";
+const CLE = "likelemba-demo-v90";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -28,7 +28,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 66) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 67) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -3102,6 +3102,38 @@ const garanties = {
   },
 };
 
+// ---------- S96 : Crédit > Affectation de dossier (manuel p. 119). Mêmes règles que serveur/noyau/affectation.py.
+// Le gestionnaire d'un crédit est son agent crédit (S89) ; un transfert est tracé. Registre S96-1 à S96-3. ----------
+const EN_COURS_CREDIT: CreditPret["statut"][] = ["mis_en_place", "vise", "debloque"];
+const affectation = {
+  contexte() {
+    lectureAdmin(["S96"]);
+    return { gestionnaires: E.utilisateurs.filter((x) => (x.agenceId ?? 1) === E.agence.id && (x as { actif?: boolean }).actif !== false)
+      .map((x) => ({ id: x.id, nom: x.nom })).sort((a, b) => a.nom.localeCompare(b.nom)) };
+  },
+  portefeuille(agentId: number) {
+    lectureAdmin(["S96"]);
+    return E.credits.filter((c) => c.agentId === agentId && EN_COURS_CREDIT.includes(c.statut)).sort((a, b) => a.numero.localeCompare(b.numero))
+      .map((c) => ({ id: c.id, numero: c.numero, montant: c.montant, devise: c.devise, client: titulaire(E.tiers.find((t) => t.id === c.tiersId)!) }));
+  },
+  affecter(p: { de?: number | null; vers?: number | null; credits?: number[] }) {
+    const u = exiger();
+    const gest = new Set(affectation.contexte().gestionnaires.map((g) => g.id));
+    if (!p.de || !gest.has(p.de)) throw new ErreurMetier("À remplir : gestionnaire dont le portefeuille sera réduit.");
+    if (!p.vers || !gest.has(p.vers)) throw new ErreurMetier("À remplir : gestionnaire dont le portefeuille sera augmenté.");
+    if (p.de === p.vers) throw new ErreurMetier("Les deux gestionnaires doivent être différents.");
+    if (!Array.isArray(p.credits) || !p.credits.length) throw new ErreurMetier("Cocher au moins un crédit à transférer.");
+    const aLui = new Set(affectation.portefeuille(p.de).map((c) => c.id));
+    if (!p.credits.every((x) => aLui.has(x))) throw new ErreurMetier("Un crédit coché n'est plus dans le portefeuille de ce gestionnaire.");
+    const le = journees.courante()?.date ?? new Date().toISOString().slice(0, 10);
+    for (const cid of p.credits) {
+      E.credits.find((c) => c.id === cid)!.agentId = p.vers;
+      E.affectationsCredit.push({ id: prochain(E.affectationsCredit), creditId: cid, de: p.de, vers: p.vers, le, par: u.id });
+    }
+    enregistrer(); return { de: affectation.portefeuille(p.de), vers: affectation.portefeuille(p.vers) };
+  },
+};
+
 // ---------- S93 : Crédit > Suivi > Etat de crédit, « Situation des crédits » (manuel p. 115, capture p. 116). Mêmes règles que serveur/noyau/etat_credit.py.
 // Sur une période (date d'approbation) ou à une date fixe ; produit, niveau de validation, agent, montant prêt, crédits archivés. Registre S93-1 à S93-4. ----------
 const STATUTS_CREDIT: Record<CreditPret["statut"], string> = { mis_en_place: "Mis en place", vise: "Visé", debloque: "Débloqué", solde: "Soldé", refuse: "Refusé", passe_en_perte: "Passé en perte" };
@@ -5834,6 +5866,7 @@ const apiLocal = {
   remboursementsCredit: asynchrone(remboursementsCredit, "remboursementsCredit"),
   etatCredits: asynchrone(etatCredits, "etatCredits"),
   garanties: asynchrone(garanties, "garanties"),
+  affectation: asynchrone(affectation, "affectation"),
   societe: asynchrone(societe, "societe"),
   agents: asynchrone(agents, "agents"),
   jours: asynchrone(jours, "jours"),

@@ -68,6 +68,11 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       debloquerBanque: (id: number, p: unknown) => post(`/banque/deblocage/${id}`, p),
       contrat: (id: number) => get(`/credit/credits/${id}/contrat`),
     },
+    affectation: {
+      contexte: () => get("/credit/affectation/contexte"),
+      portefeuille: (agent: number) => get(`/credit/affectation/${agent}`),
+      affecter: (p: unknown) => post("/credit/affectation", p),
+    },
     garanties: {
       credits: (tid: number) => get(`/credit/garanties/clients/${tid}`),
       situation: (id: number, type: string) => get(`/credit/garanties/${id}?type=${type}`),

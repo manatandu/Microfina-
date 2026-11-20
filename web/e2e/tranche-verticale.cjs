@@ -732,6 +732,11 @@ const OUT = process.argv[2];
   await aller('/credit/s95'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
   const rConsult = p.getByRole('dialog', { name: "Recherche d'un client" }); await rConsult.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rConsult.getByRole('row').filter({ hasText: 'Kalala' }).dblclick();
   await p.getByText('Court terme').waitFor(); await etape('11h-consulter-pret');
+  // Affectation de dossier (S96, p. 119) : le crédit passe du portefeuille de Bijou Kasongo à celui de J.-P. Mukendi
+  await aller('/credit/s96'); await p.getByLabel('Gestionnaire dont le portefeuille sera réduit').selectOption({ label: 'Bijou Kasongo' });
+  await p.getByLabel('Cocher 0412/L001/00001').check(); await p.getByLabel('Gestionnaire dont le portefeuille sera augmenté').selectOption({ label: 'J.-P. Mukendi' });
+  await p.getByRole('button', { name: 'Affecter' }).click(); await oui();
+  await p.getByLabel('Cocher 0412/L001/00001').waitFor({ state: 'detached' }); await p.getByRole('cell', { name: '0412/L001/00001', exact: true }).waitFor(); await etape('11i-affectation-dossier');
   await login('Esther Ngalula'); await aller('/caisse/s74?op=depot');
   await p.getByRole('tab', { name: 'Retrait en espèce' }).click(); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-01' });
   // Bouton Detail (registre S74-1) : relevé du compte en lecture seule ; masqué si le guichet n'a pas « Voir solde client » (S10-1)

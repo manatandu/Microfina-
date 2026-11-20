@@ -2219,6 +2219,20 @@ describe("journée de guichet", () => {
     expect((await api.remboursementsCredit.ajouterMemo(cid, { texte: "Visite du 05/11" }))[0]!.texte).toBe("Visite du 05/11");
   });
 
+  it("affectation de dossier (S96, p. 119) : transfert de portefeuille entre gestionnaires, tracé (S96-1 à S96-3)", async () => {
+    const cid = await creditDebloque();
+    await connecter("bkasongo");
+    const g = Object.fromEntries((await api.affectation.contexte()).gestionnaires.map((x) => [x.nom, x.id]));
+    const bk = g["Bijou Kasongo"]!, jp = g["J.-P. Mukendi"]!;
+    expect((await api.affectation.portefeuille(bk)).map((x) => x.id)).toEqual([cid]);   // comme le serveur
+    await expect(api.affectation.affecter({ de: bk, vers: bk, credits: [cid] })).rejects.toThrow("différents");
+    await expect(api.affectation.affecter({ de: bk, vers: jp, credits: [] })).rejects.toThrow("Cocher");
+    await expect(api.affectation.affecter({ de: jp, vers: bk, credits: [cid] })).rejects.toThrow("plus dans le portefeuille");
+    const r = await api.affectation.affecter({ de: bk, vers: jp, credits: [cid] });
+    expect([r.de, r.vers.map((x) => x.id)]).toEqual([[], [cid]]);
+    expect(_etat().affectationsCredit).toHaveLength(1);
+  });
+
   it("produit crédit (S23, p. 37 et 38) : méthode dégressive (Instr. BCC 38 art. 11), bornes, garanties, assurance, frais (Instr. BCC 40 art. 8)", async () => {
     await connecter("jpmukendi");
     const P = { typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: "2,5", tauxDiffere: 2,

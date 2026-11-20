@@ -1,5 +1,8 @@
 // Généré par replica/droits_gen.py depuis serveur/noyau/droits.py et http.ts : ne pas modifier à la main (registre S04-3).
 export const DROITS_METHODES: Record<string, string[]> = {
+"affectation.affecter": [
+"S96"
+],
 "agents.enregistrer": [
 "S33"
 ],

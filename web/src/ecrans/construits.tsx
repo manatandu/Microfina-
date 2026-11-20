@@ -26,7 +26,7 @@ import SimulationCredit from "./SimulationCredit";
 import AnalyseFinanciere from "./AnalyseFinanciere";
 import { ApprobationDemande, ControleDemande, DemandeCredit } from "./DossierCredit";
 import MiseEnPlace from "./MiseEnPlace";
-import { EtatCredit, HistoriqueVisas, ValidesNonDebloques, VisasCredit } from "./SuiviCredit";
+import { AffectationDossier, EtatCredit, HistoriqueVisas, ValidesNonDebloques, VisasCredit } from "./SuiviCredit";
 import { DeblocageBanque, DeblocageGuichet } from "./DeblocageCredit";
 import { ConsulterPret, RemboursementBanque, RemboursementGuichet } from "./RemboursementCredit";
 import Garanties from "./Garanties";
@@ -179,6 +179,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S93: EtatCredit,
   S94: Garanties,
   S95: ConsulterPret,
+  S96: AffectationDossier,
   S79: BilletageCaisse,
   S80: ValidationBilletage,
   S102: PlanComptes,

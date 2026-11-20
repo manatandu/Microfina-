@@ -236,3 +236,63 @@ export function EtatCredit() {
     </>
   );
 }
+
+/** S96 : Crédit > Affectation de dossier (texte et capture p. 119, « Affectation de crédit ») : gestionnaire dont le portefeuille sera réduit, ses crédits
+ *  à cocher (filtres Crédit N°, Montant, Client), gestionnaire dont le portefeuille sera augmenté, ses crédits ; Affecter. Registre S96-1 à S96-3. */
+export function AffectationDossier() {
+  const [de, setDe] = useState("");
+  const [vers, setVers] = useState("");
+  const [coches, setCoches] = useState<number[]>([]);
+  const [relu, setRelu] = useState(0);
+  const [boite, setBoite] = useState<Boite | null>(null);
+  const { donnees } = useDonnees(async () => ({
+    g: (await api.affectation.contexte()).gestionnaires,
+    gauche: de ? await api.affectation.portefeuille(Number(de)) : [],
+    droite: vers ? await api.affectation.portefeuille(Number(vers)) : [],
+  }), [de, vers, relu]);
+  if (!donnees) return <Chargement />;
+  const { g, gauche, droite } = donnees;
+  const choix = (v: string, f: (x: string) => void, libelle: string, vider = false) => <select className="saisie" aria-label={libelle} value={v} onChange={(e) => { f(e.target.value); if (vider) setCoches([]); }}>
+    <option value=""></option>{g.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>;
+  function affecter() {
+    setBoite({ type: "confirmation", message: "Voulez-vous vraiment affecter les crédits cochés ?", oui: async () => {
+      try { await api.affectation.affecter({ de: de ? Number(de) : null, vers: vers ? Number(vers) : null, credits: coches }); setCoches([]); setRelu((x) => x + 1);
+        setBoite({ type: "succes", message: "Affectation enregistrée avec succès !" }); }
+      catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+    } });
+  }
+  const tous = gauche.length > 0 && gauche.every((x) => coches.includes(x.id));
+  return (
+    <>
+      <h1>Affectation de crédit</h1>
+      <section className="bloc pile" aria-label="Affectation de crédit">
+        <div className="grille-deux">
+          <div className="pile">
+            {choix(de, setDe, "Gestionnaire dont le portefeuille sera réduit", true)}
+            <Paginee lignes={gauche} colonnes={(x) => [null, x.numero, montant(x.montant, x.devise as Devise), x.client]}>{(v) => (<div className="defile-x"><table className="grille">
+              <thead><tr><th scope="col"><input type="checkbox" aria-label="Tout cocher" checked={tous} onChange={(e) => setCoches(e.target.checked ? gauche.map((x) => x.id) : [])} /></th>
+                <th scope="col">Crédit N°</th><th scope="col" className="num">Montant</th><th scope="col">Client</th></tr>
+                <LigneFiltres titres={[null, "Crédit N°", "Montant", "Client"]} /></thead>
+              <tbody>{v.length === 0 && <tr><td colSpan={4}>No records found.</td></tr>}
+                {v.map((x) => <tr key={x.id}><td><input type="checkbox" aria-label={`Cocher ${x.numero}`} checked={coches.includes(x.id)}
+                  onChange={(e) => setCoches(e.target.checked ? [...coches, x.id] : coches.filter((y) => y !== x.id))} /></td>
+                  <td className="code">{x.numero}</td><td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td><td>{x.client}</td></tr>)}</tbody>
+            </table></div>)}</Paginee>
+          </div>
+          <div className="pile">
+            {choix(vers, setVers, "Gestionnaire dont le portefeuille sera augmenté")}
+            <Paginee lignes={droite}>{(v) => (<div className="defile-x"><table className="grille">
+              <thead><tr><th scope="col">Crédit N°</th><th scope="col" className="num">Montant</th><th scope="col">Client</th></tr></thead>
+              <tbody>{v.length === 0 && <tr><td colSpan={3}>No records found.</td></tr>}
+                {v.map((x) => <tr key={x.id}><td className="code">{x.numero}</td><td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td><td>{x.client}</td></tr>)}</tbody>
+            </table></div>)}</Paginee>
+          </div>
+        </div>
+        <div className="actions-onglets"><button className="bouton" type="button" onClick={affecter}>Affecter</button></div>
+        <Textes sources={["Manuel Microfina++, p. 119 : 7-Affectation de dossier, gestionnaire dont le portefeuille sera réduit, liste des crédits recherchée par Crédit N°, Montant ou Client, gestionnaire dont le portefeuille sera augmenté, Affecter ; capture",
+          "Registre S96-1 à S96-3 : le gestionnaire d'un crédit est son agent crédit (S89), parmi les utilisateurs de l'agence ; crédits en cours seulement ; chaque transfert est tracé (qui, quand, de qui vers qui)"]} />
+      </section>
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </>
+  );
+}

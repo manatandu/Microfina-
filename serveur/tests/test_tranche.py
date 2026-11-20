@@ -1755,6 +1755,24 @@ def test_consulter_pret(clients, journee):
     assert agent.post(f"/api/credit/credits/{cid}/memos", {"texte": "Visite du 05/11"}, **H).json()[0]["texte"] == "Visite du 05/11"
 
 
+def test_affectation(clients, journee):
+    """S96 (p. 119) : le crédit passe du portefeuille d'un gestionnaire à un autre ; transfert tracé (registre S96-1 à S96-3)"""
+    agent, chef = clients["agent"], clients["chef"]
+    cid = credit_debloque(clients, journee)
+    g = {x["nom"]: x["id"] for x in agent.get("/api/credit/affectation/contexte", **H).json()["gestionnaires"]}
+    bk, jp = g["Bijou Kasongo"], g["J.-P. Mukendi"]
+    assert [x["id"] for x in agent.get(f"/api/credit/affectation/{bk}", **H).json()] == [cid]
+    def refus(corps):
+        r = agent.post("/api/credit/affectation", corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    assert "différents" in refus({"de": bk, "vers": bk, "credits": [cid]})
+    assert "Cocher" in refus({"de": bk, "vers": jp, "credits": []})
+    assert "plus dans le portefeuille" in refus({"de": jp, "vers": bk, "credits": [cid]})
+    r = agent.post("/api/credit/affectation", {"de": bk, "vers": jp, "credits": [cid]}, **H).json()
+    assert (r["de"], [x["id"] for x in r["vers"]]) == ([], [cid])
+    assert ident("select count(*) from credit_affectation where credit_id = %s", (cid,)) == 1
+    assert clients["caisse"].post("/api/credit/affectation", {"de": jp, "vers": bk, "credits": [cid]}, **H).status_code == 403
+
+
 def test_produit_credit(clients):
     """S23 (p. 37 et 38) : Information de base de la capture ; méthode dégressive (Instr. BCC 38, art. 11) ; garanties, assurance, frais
     (Instr. BCC 38 art. 6, Instr. BCC 40 art. 8) ; pénalité d'anticipation au plus 50 % (Instr. BCC 38, art. 14) ; registre S23-1 à S23-7"""

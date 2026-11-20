@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**596 décisions.** Solidité : 256 fortes (le manuel ou un texte répond), 288 moyennes (déduites d'un écran voisin ou d'une donnée), 52 faibles (notre choix, faute de mieux). Dans le code : 566 déjà en place, 26 à appliquer.
+**599 décisions.** Solidité : 257 fortes (le manuel ou un texte répond), 290 moyennes (déduites d'un écran voisin ou d'une donnée), 52 faibles (notre choix, faute de mieux). Dans le code : 569 déjà en place, 26 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1384,6 +1384,14 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S95-1 | Écran | Capture p. 119 « Consultation de prêts » : Date règlement*, Infos Client (N° du Client, Intitulé du compte, Groupe Solidaire), Infos crédit (Credit, Débloqué le et Rang, Montant prêt, Capital restant, Reste à payer, Produit crédit, Degré crédit et Jour retard, Degré réel, Terme, Agent crédit), Détail crédit, boutons B, P, R, Memo, Tout sur le crédit, H, Effacer. Crédits débloqués en cours du client | Manuel : Capture p. 119 ; texte p. 118 | forte | en place |
 | S95-2 | Calculs | Même situation que le remboursement (S76) à la date de règlement ; Rang : rang du crédit parmi ceux du client ; Terme : S21 ; Taux annuel : taux mensuel × 12 (S84-2) ; Degré réel : le degré selon les jours de retard (le déclassement S99 viendra le compléter) ; Différé de paiement (jour) : non saisi au dossier, 0 | Écran voisin : S76-3 ; S84-2 ; S21 | moyenne | en place |
 | S95-3 | Boutons | B, P, R, Memo : les fenêtres de S76 (brouillard, plan, réel, memo) ; Tout sur le crédit : affiche la somme due ce jour ; H grisé, non expliqué par le manuel ; Percevoir int. par anticipation : la valeur du produit, en lecture | Écran voisin : Texte p. 118 ; S76-9 ; S55-2 | faible | en place |
+
+## S96 Affectation de dossier
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S96-1 | Écran | Capture p. 119 « Affectation de crédit » : à gauche, le gestionnaire dont le portefeuille sera réduit et ses crédits à cocher, filtres Crédit N°, Montant, Client ; à droite, le gestionnaire dont le portefeuille sera augmenté et ses crédits ; Affecter, après confirmation | Manuel : Capture et texte p. 119 | forte | en place |
+| S96-2 | Qui est le gestionnaire d'un crédit | Son agent crédit (S89), choisi parmi les utilisateurs de l'agence, comme le filtre Agent de S92 ; seuls les crédits en cours (mis en place, visés, débloqués) se transfèrent | Écran voisin : S89 (Agent crédit) ; S92 (filtre Agent, capture p. 115) | moyenne | en place |
+| S96-3 | Trace | Chaque transfert est enregistré : crédit, ancien et nouveau gestionnaire, date de la journée, auteur | Donnée exigée ailleurs : Piste d'audit des opérations (ARCHITECTURE) ; S91 (historique des visas) | moyenne | en place |
 
 ## D02 Refonte visuelle v1.0
 

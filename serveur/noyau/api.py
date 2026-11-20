@@ -516,6 +516,25 @@ def garanties_rapport(request, type: str = "", du: str = "", au: str = ""):
     return g.rapport(u(request), type, du, au)
 
 
+# ---------- S96 : affectation de dossier (p. 119) ----------
+@api.get("/credit/affectation/contexte")
+def affectation_contexte(request):
+    from . import affectation as af
+    return af.contexte(u(request))
+
+
+@api.get("/credit/affectation/{agent}")
+def affectation_portefeuille(request, agent: int):
+    from . import affectation as af
+    return af.portefeuille(u(request), agent)
+
+
+@api.post("/credit/affectation")
+def affectation_affecter(request, corps: dict = Body(...)):
+    from . import affectation as af
+    return af.affecter(u(request), corps)
+
+
 @api.get("/credit/visas/contexte")
 def visas_contexte(request):
     from .services import est_coopec
