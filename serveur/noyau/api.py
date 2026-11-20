@@ -1814,6 +1814,97 @@ def budget_consommation(request):
     return budgets.consommation(u(request), request.GET.dict())
 
 
+# ---------- S128 Autres > Calculs ; S127 Autres > Clôture (crédit, dépôt, comptabilité) ----------
+@api.get("/autres/calculs/contexte")
+def fin_contexte(request):
+    from . import fin_periode
+    return fin_periode.contexte(u(request))
+
+
+@api.get("/autres/calculs/tenue")
+def fin_tenue(request):
+    from . import fin_periode
+    return fin_periode.apercu_tenue(u(request), request.GET.dict())
+
+
+@api.post("/autres/calculs/tenue")
+def fin_tenue_passer(request, corps: dict = Body(...)):
+    from . import fin_periode
+    return fin_periode.passer_tenue(u(request), corps)
+
+
+@api.get("/autres/calculs/interets-dav")
+def fin_dav(request):
+    from . import fin_periode
+    return fin_periode.apercu_interets_dav(u(request), request.GET.dict())
+
+
+@api.post("/autres/calculs/interets-dav")
+def fin_dav_passer(request, corps: dict = Body(...)):
+    from . import fin_periode
+    return fin_periode.passer_interets_dav(u(request), corps)
+
+
+@api.get("/autres/calculs/interets-dat")
+def fin_dat(request):
+    from . import fin_periode
+    return fin_periode.apercu_interets_dat(u(request), request.GET.dict())
+
+
+@api.post("/autres/calculs/interets-dat")
+def fin_dat_passer(request, corps: dict = Body(...)):
+    from . import fin_periode
+    return fin_periode.passer_interets_dat(u(request), corps)
+
+
+@api.post("/autres/calculs/interets-et-frais")
+def fin_interets_et_frais(request, corps: dict = Body(...)):
+    from . import fin_periode
+    return fin_periode.interets_et_frais(u(request), corps)
+
+
+@api.get("/autres/calculs/provisions")
+def fin_provisions(request):
+    from . import fin_periode
+    return fin_periode.etat_provisions(u(request), request.GET.dict())
+
+
+@api.get("/autres/cloture/contexte")
+def fin_cloture_contexte(request):
+    from . import fin_periode
+    return fin_periode.contexte(u(request))
+
+
+@api.get("/autres/cloture/provisions")
+def fin_cloture_provisions(request):
+    from . import fin_periode
+    return fin_periode.etat_provisions(u(request), request.GET.dict())
+
+
+@api.get("/autres/cloture/depot")
+def fin_cloture_depot(request):
+    from . import fin_periode
+    return fin_periode.apercu_interets_dat(u(request), request.GET.dict())
+
+
+@api.get("/autres/cloture/comptabilite")
+def fin_cloture(request):
+    from . import fin_periode
+    return fin_periode.apercu_cloture(u(request), request.GET.dict())
+
+
+@api.post("/autres/cloture/mois")
+def fin_cloturer_mois(request, corps: dict = Body(...)):
+    from . import fin_periode
+    return fin_periode.cloturer_mois(u(request), corps)
+
+
+@api.post("/autres/cloture/exercice")
+def fin_cloturer(request, corps: dict = Body(...)):
+    from . import fin_periode
+    return fin_periode.cloturer(u(request), corps)
+
+
 @api.get("/budget-referentiels/{page}")
 def bu_lire(request, page: str):
     return bu.lire(u(request), page)

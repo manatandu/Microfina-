@@ -4142,3 +4142,169 @@ def test_etats_financiers(clients, journee):
     assert (ind["du"], ind["au"], len(ind["lignes"])) == ("2026-11-01", "2026-11-30", 11) and ind["lignes"][0]["v"][1] == "Portefeuille à Risque"
     assert compta.get("/api/comptabilite/indicateurs-financiers", {"exercice": 2026, "indicateur": "annuel"}, **H).json()["du"] == "2026-01-01"
     assert "Mois" in compta.get("/api/comptabilite/indicateurs-financiers", {"exercice": 2026}, **H).json()["message"]
+
+
+# ---------- Budget : financement (S126), nouveau budget (S124), consultation, suivi et consommation (S125) ----------
+def test_budget_et_financement(clients, journee):
+    """S126 (p. 143 à 145) : types de financement, bailleurs, lignes de financement. S124 (p. 142) : définir un budget, le reconduire. S125 (p. 143) :
+    consultation, modification, suppression ; suivi budgétaire : le réalisé vient des écritures définitives, rattachées à leur ligne budgétaire."""
+    chef, compta, caisse = clients["chef"], clients["compta"], clients["caisse"]
+    F, B, BG = "/api/referentiels/financement", "/api/budget-referentiels", "/api/budget"
+    def ok(c, url, corps):
+        r = c.post(url, corps, **H); assert r.status_code == 200, r.content; return r.json()
+    msg = lambda c, url, corps: c.post(url, corps, **H).json()["message"]
+    # S126 : listes
+    t = ok(compta, f"{F}/types_financement", {"code": "RES_AFFECT", "libelle": "Ressources affectées"})
+    assert t["fiche"]["entete"] == "Types de lignes de financement" and [x["menu"] for x in t["catalogue"]] == ["Lignes de financement", "Types de financement", "Bailleur"]
+    ta = t["lignes"][0]["id"]
+    assert "existe déjà" in msg(compta, f"{F}/types_financement", {"code": "res_affect", "libelle": "Autre"})
+    b = ok(compta, f"{F}/bailleurs", {"typeBailleur": "Institutions sans but lucratif", "code": "B0000001", "nom": "Fonds Exemple"})
+    bid = b["lignes"][0]["id"]
+    assert "inconnu" in msg(compta, f"{F}/bailleurs", {"typeBailleur": "Autre", "code": "B2", "nom": "X"})
+    for _ in range(2):                                               # deux lignes peuvent porter le même libellé (capture p. 144)
+        lf = ok(compta, f"{F}/lignes_financement", {"libelle": "Fonds Exemple", "montant": 0, "typeId": ta})
+    assert [x["affichage"]["typeId"] for x in lf["lignes"]] == ["Ressources affectées", "Ressources affectées"]
+    assert "Type" in msg(compta, f"{F}/lignes_financement", {"libelle": "Sans type", "montant": 0})
+    assert "Lignes de financement" in msg(compta, f"{F}/types_financement/{ta}/suppression", {})
+    assert caisse.post(f"{F}/bailleurs", {"code": "B9", "nom": "X"}, **H).status_code == 403
+    # S19 : plans, types, période, centre, lignes (le bailleur vient de S126)
+    tc = {x["code"]: x["id"] for x in chef.get(f"{B}/types_centre", **H).json()["lignes"]}
+    ce = next(x["id"] for x in ok(chef, f"{B}/centres", {"code": "SIE", "libelle": "Siège", "typeId": tc["SER"]})["lignes"] if x["code"] == "SIE")
+    tb = {x["code"]: x["id"] for x in ok(chef, f"{B}/types_budget", {"code": "FONC", "libelle": "Fonctionnement", "paramCompte": "6*"})["lignes"]}
+    tp = next(x["id"] for x in ok(chef, f"{B}/types_periode", {"code": "ANN", "libelle": "Annuel", "dureeMois": 12})["lignes"] if x["code"] == "ANN")
+    pe = next(x["id"] for x in ok(chef, f"{B}/periodes", {"code": "A", "libelle": "Année", "typeId": tp, "debut": "01/01", "fin": "31/12"})["lignes"] if x["code"] == "A")
+    ok(chef, f"{B}/plans", {"annee": 2026, "code": "B26", "libelle": "Budget 2026"})
+    pl = {x["code"]: x["id"] for x in ok(chef, f"{B}/plans", {"annee": 2025, "code": "B25", "libelle": "Budget 2025"})["lignes"]}
+    ok(chef, f"{B}/lignes", {"numero": "L1", "libelle": "Loyers", "planId": pl["B26"], "centreId": ce, "bailleurId": bid})
+    lg = {x["numero"]: x["id"] for x in ok(chef, f"{B}/lignes", {"numero": "L2", "libelle": "Fournitures", "planId": pl["B26"], "centreId": ce})["lignes"] if x["planId"] == pl["B26"]}
+    assert "Ligne de plan budgétaire" in msg(compta, f"{F}/bailleurs/{bid}/suppression", {})
+    # S124 : définir le budget
+    ctx = compta.get(f"{BG}/contexte", **H).json()
+    assert next(x for x in ctx["lignes"] if x["numero"] == "L1")["financement"] == "Fonds Exemple" and ctx["plans"][0]["code"] == "B26"
+    cpt = compta.get(f"{BG}/comptes", {"typeId": tb["FONC"]}, **H).json()
+    assert cpt and all(c["numero"].startswith("6") for c in cpt)
+    base = {"planId": pl["B26"], "typeId": tb["FONC"], "periodeId": pe}
+    assert "Ligne budgétaire" in msg(compta, f"{BG}/valeurs", base)
+    assert "Compte" in msg(compta, f"{BG}/valeurs", {**base, "ligneId": lg["L1"], "valeur": 1})
+    assert "type de budget" in msg(compta, f"{BG}/valeurs", {**base, "ligneId": lg["L1"], "compte": "461", "valeur": 100})
+    assert "Valeur" in msg(compta, f"{BG}/valeurs", {**base, "ligneId": lg["L1"], "compte": "640"})
+    ok(compta, f"{BG}/valeurs", {**base, "ligneId": lg["L1"], "compte": "640", "valeur": 1000000})
+    v = ok(compta, f"{BG}/valeurs", {**base, "ligneId": lg["L2"], "compte": "640", "valeur": 500000})
+    assert (v["total"], [(x["numero"], x["financement"], x["valeur"]) for x in v["lignes"]]) == (1500000, [("L1", "Fonds Exemple", 1000000), ("L2", "", 500000)])
+    assert "déjà une valeur" in msg(compta, f"{BG}/valeurs", {**base, "ligneId": lg["L1"], "compte": "640", "valeur": 5})
+    assert caisse.post(f"{BG}/valeurs", {**base, "ligneId": lg["L1"], "compte": "641", "valeur": 5}, **H).status_code == 403
+    # S125 : modifier, puis suivi ; une écriture saisie sur la ligne L1, une autre sans ligne
+    v = ok(compta, f"{BG}/valeurs/{v['lignes'][1]['id']}", {"valeur": 600000})
+    assert v["total"] == 1600000
+    od = next(j["id"] for j in compta.get(f"{OC}/contexte", **H).json()["journaux"] if j["code"] == "OD")
+    def ecriture(libelle, montant, ligne=None):
+        e = None
+        for compte, sens in (("640", "debit"), ("461", "credit")):
+            e = compta.post("/api/comptabilite/ecritures/lignes", {"journalId": od, "periode": "11/2026", "jour": 5, "libelle": libelle, "compte": compte, sens: montant,
+                                                                 **({"typeBudgetId": tb["FONC"], "ligneBudgetId": ligne} if ligne and compte == "640" else {})}, **H).json()
+        viser_valider(clients, e["id"])
+    ecriture("Loyer", 300000, lg["L1"]); ecriture("Divers", 40000)
+    s0 = compta.get(f"{BG}/suivi", {"planId": pl["B26"], "periodeId": pe}, **H).json()
+    assert s0["realise"] == 0                                                                    # rien de définitif avant la comptabilisation (T13)
+    comptabiliser_journee(clients, journee)
+    s = compta.get(f"{BG}/suivi", {"planId": pl["B26"], "periodeId": pe}, **H).json()
+    assert [(x["numero"], x["prevu"], x["realise"], x["ecart"], x["taux"]) for x in s["lignes"]] == [("L1", 1000000, 300000, 700000, 30.0), ("L2", 600000, 0, 600000, 0.0)]
+    assert s["nonAffectes"] == [{"compte": "640", "realise": 40000}] and (s["du"], s["au"]) == ("2026-01-01", "2026-12-31")
+    fi = compta.get(f"{BG}/suivi", {"planId": pl["B26"], "periodeId": pe, "mode": "financement"}, **H).json()["groupes"]
+    assert [(g["libelle"], g["prevu"], g["realise"]) for g in fi] == [("Fonds Exemple", 1000000, 300000), ("Sans bailleur", 600000, 0)]
+    an = compta.get(f"{BG}/suivi", {"planId": pl["B26"], "periodeId": pe, "mode": "analytique"}, **H).json()["groupes"]
+    assert [(g["libelle"], g["charges"], g["resultat"]) for g in an] == [("Siège", 300000, -300000)]
+    assert "Date fin" in compta.get(f"{BG}/suivi", {"planId": pl["B26"], "periodeId": pe, "dateFin": "2027-01-15"}, **H).json()["message"]
+    assert compta.get(f"{BG}/suivi", {"planId": pl["B26"], "periodeId": pe, "dateFin": "2026-10-31"}, **H).json()["realise"] == 0
+    co = compta.get(f"{BG}/consommation", {"exercice": 2026, "periodeId": pe}, **H).json()
+    assert [(x["centre"], x["numero"], x["prevu"], x["consomme"], x["disponible"]) for x in co["lignes"]] == [("Siège", "L1", 1000000, 300000, 700000), ("Siège", "L2", 600000, 0, 600000)]
+    assert "Exercice" in compta.get(f"{BG}/consommation", {"periodeId": pe}, **H).json()["message"]
+    # S124 : reconduire dans le budget 2025 (vide) ; S125 : supprimer le budget du type et de la période
+    assert "autre budget" in msg(compta, f"{BG}/reconduction", {"ancienPlanId": pl["B26"], "nouveauPlanId": pl["B26"]})
+    r = ok(compta, f"{BG}/reconduction", {"ancienPlanId": pl["B26"], "nouveauPlanId": pl["B25"]})
+    assert (r["budget"]["code"], r["total"], [x["numero"] for x in r["lignes"]]) == ("B25", 1600000, ["L1", "L2"])
+    assert "déjà des valeurs" in msg(compta, f"{BG}/reconduction", {"ancienPlanId": pl["B26"], "nouveauPlanId": pl["B25"]})
+    assert compta.get(f"{BG}/valeurs", {"planId": pl["B25"], "tout": "true"}, **H).json()["total"] == 1600000
+    assert ok(compta, f"{BG}/suppression", {**base, "planId": pl["B25"]})["lignes"] == []
+    assert "Rien à supprimer" in msg(compta, f"{BG}/suppression", {**base, "planId": pl["B25"]})
+
+
+def test_calculs_et_clotures(clients, journee):
+    """S128 (p. 163) : frais de tenue de compte, intérêts courus des DAT. S127 : clôture du mois (PCCI § 3.4, réévaluation § 7.1) et de l'exercice
+    (classe 8, résultat au compte 13)."""
+    from noyau.bd import executer
+    chef, compta, agent = clients["chef"], clients["compta"], clients["agent"]
+    A = "/api/autres"
+    msg = lambda r: r.json()["message"]
+    executer("update produit_epargne set tenue_compte = true where code = 'EAV-CDF'")
+    executer("update tiers set sous_type_client = 'Homme' where numero = '0412-000318'")
+    q = {"exercice": 2026, "mois": 11}
+    assert "Paramétrage > Frais" in msg(compta.get(f"{A}/calculs/tenue", q, **H))
+    f = chef.post("/api/parametrage/frais", {"typeOperation": "TENUE_COMPTE", "libelle": "Tenue de compte", "fondement": "autorisation_bcc", "autorisationBcc": "BCC/2026/001"}, **H).json()
+    assert "Montant" in msg(chef.post("/api/parametrage/frais-operation", {"fraisId": f["id"], "nature": "Taux", "valeur": 100, "compte": "720", "sousTypes": ["Homme"]}, **H))
+    assert chef.post("/api/parametrage/frais-operation", {"fraisId": f["id"], "nature": "Montant", "valeur": 50000, "compte": "720", "sousTypes": ["Homme"]}, **H).status_code == 200
+    em = C("0412-000318-02")
+    a = compta.get(f"{A}/calculs/tenue", q, **H).json()
+    etats = {x["numero"]: x["etat"] for x in a["lignes"]}
+    assert etats["0412-000318-02"] == "À prélever" and etats["0412-000319-02"].startswith("Aucun frais"), etats
+    avant = solde_compte("720")
+    r = compta.post(f"{A}/calculs/tenue", q, **H)
+    assert r.status_code == 200 and r.json()["passes"] == 1, r.content
+    assert avant - solde_compte("720") == 50000
+    assert "Rien à prélever" in msg(compta.post(f"{A}/calculs/tenue", q, **H))
+    assert "pas fini" in msg(compta.get(f"{A}/calculs/interets-dav", q, **H))
+    assert clients["caisse"].post(f"{A}/calculs/tenue", q, **H).status_code == 403
+    # Intérêts courus d'un DAT : 1 000 000 à 7,5 %, 92 jours sur 365 = 18 904
+    P = {"numero": 6, "code": "DAT", "famille": "EPARGNE", "libelle": "Dépôt à terme", "devise": "CDF", "soldeMinimum": 0, "nbMaxComptes": 1,
+         "operer": True, "depotCheque": False, "caution": False, "nantissement": False, "calculerInteret": True, "soldeNegatif": False, "repartitionGroupe": False, "actif": True}
+    assert chef.post("/api/produits-epargne", P, **H).status_code == 200
+    pid = next(x["id"] for x in chef.get("/api/produits-epargne").json()["produits"] if x["code"] == "DAT")
+    chef.post("/api/parametrage-epargne", {"onglet": "DAT", "produitId": pid, "compteLie": "340"}, **H)
+    kalala = T("0412-000318")
+    cdat = agent.post("/api/epargne/comptes", {"cle": cle(), "tiersId": kalala, "produitId": pid}, **H).json()["id"]
+    x = agent.post("/api/epargne/dat", {"cle": cle(), "produitId": pid, "tiersId": kalala, "compteEmetteurId": em, "compteDatId": cdat, "montant": 1000000, "duree": 12,
+                                        "tauxInteret": "7,5", "tauxPenalite": "2", "aEcheance": True, "dateDepot": "2026-08-05", "observation": "", "reconduction": False}, **H).json()
+    assert chef.post(f"/api/epargne/dat/{x['id']}/validation", **H).status_code == 200
+    d = compta.get(f"{A}/calculs/interets-dat", **H).json()
+    assert [(l["couru"], l["aPasser"], l["compteCharge"], l["compteDette"]) for l in d["lignes"]] == [(18904, 18904, "6122", "349")], d
+    assert compta.post(f"{A}/calculs/interets-dat", {}, **H).json()["passes"] == 1 and solde_compte("349") == -18904
+    assert "Aucun intérêt couru" in msg(compta.post(f"{A}/calculs/interets-dat", {}, **H))
+    assert compta.get(f"{A}/cloture/depot", **H).json()["lignes"][0]["dejaPasse"] == 18904
+    r = chef.post(f"/api/epargne/dat/{x['id']}/rupture", {"dateRupture": "2026-11-05", "dateDemande": "2026-11-05"}, **H)
+    assert r.status_code == 200, r.content
+    assert solde_compte("349") == 0                                                          # la rupture reprend les intérêts courus
+    assert "Aucune balance âgée" in msg(compta.get(f"{A}/calculs/provisions", {"date": "2026-11-05"}, **H))
+    # Clôture du mois : novembre ne se clôture qu'une fois ses journées comptabilisées et une journée ouverte après lui
+    r = compta.post(f"{A}/cloture/mois", q, **H)
+    assert r.status_code == 422 and "Période terminée" in msg(r) and "Journées comptabilisées" in msg(r)
+    comptabiliser_journee(clients, journee)
+    j2 = chef.post("/api/journees", {"date": "2026-12-01"}, **H).json()
+    executer("insert into cours_change (institution_id, devise, jour, cours) select id, 'USD', '2026-11-30', 2900 from institution")
+    v = compta.get(f"{A}/cloture/comptabilite", q, **H).json()
+    assert all(c["ok"] for c in v["mois"]["controles"] if c["bloquant"]) and v["mois"]["reevaluation"]["lignes"], v["mois"]
+    reev = v["mois"]["reevaluation"]
+    p723, p623 = solde_compte("723"), solde_compte("623")
+    r = compta.post(f"{A}/cloture/mois", q, **H)
+    assert r.status_code == 200, r.content
+    assert [p["cloture"] for p in r.json()["periodes"]] == [True] * 11 + [False]
+    assert (p723 - solde_compte("723"), solde_compte("623") - p623) == (reev["profit"], reev["perte"])
+    assert compta.get(f"{A}/cloture/comptabilite", q, **H).json()["mois"]["reevaluation"]["lignes"] == []
+    assert "déjà clôturé" in msg(compta.post(f"{A}/cloture/mois", q, **H))
+    assert "Décembre" in msg(compta.post(f"{A}/cloture/mois", {"exercice": 2026, "mois": 12}, **H))
+    assert balance_equilibree(compta)
+    # Clôture de l'exercice : les comptes de gestion sont soldés, le résultat net va au compte 13
+    assert "Période terminée" in msg(compta.post(f"{A}/cloture/exercice", {"exercice": 2026}, **H))
+    assert compta.post(f"/api/comptabilite/comptabilisation/{j2['id']}", **H).status_code == 200
+    executer("insert into exercice (institution_id, annee, statut, ouvert) select id, 2027, 'ouvert', true from institution on conflict (institution_id, annee) do update set ouvert = true")
+    r = chef.post("/api/journees", {"date": "2027-01-04"}, **H); assert r.status_code == 200, r.content.decode()
+    net = next(s["montant"] for s in compta.get(f"{A}/cloture/comptabilite", {"exercice": 2026}, **H).json()["soldes"] if s["compte"] == "87")
+    r = compta.post(f"{A}/cloture/exercice", {"exercice": 2026}, **H)
+    assert r.status_code == 200 and r.json()["ecritures"] >= 2 and r.json()["clotureLe"], r.content
+    gestion = ident("""select coalesce(sum(case l.sens when 'D' then l.montant_cdf else -l.montant_cdf end), 0) from ligne_ecriture l join ecriture e on e.id = l.ecriture_id
+                       join compte c on c.id = l.compte_id where left(c.numero, 1) in ('6', '7', '8') and extract(year from e.date_valeur) = 2026""")
+    r13 = ident("""select coalesce(sum(case l.sens when 'C' then l.montant_cdf else -l.montant_cdf end), 0) from ligne_ecriture l join ecriture e on e.id = l.ecriture_id
+                   join compte c on c.id = l.compte_id where c.numero in ('130', '131') and e.type = 'vidage'""")
+    assert gestion == 0 and r13 == net != 0, (gestion, r13, net)
+    assert ident("select count(*) from periode where annee = 2026 and statut = 'cloturee'") == 12 and ident("select ouvert from exercice where annee = 2026") is False
+    assert "déjà clôturé" in msg(compta.post(f"{A}/cloture/exercice", {"exercice": 2026}, **H))
+    assert balance_equilibree(compta)

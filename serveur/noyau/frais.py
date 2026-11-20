@@ -4,7 +4,7 @@ from .services import est_coopec, exiger
 from .listes import valeurs as valeurs_liste
 
 # Registre S16-1 : les opérations des menus Caisse et Banque déjà construites (ADHESION et DEPOT sont montrés p. 25 et 26)
-TYPES_OPERATION = ["ADHESION", "DEPOT", "RETRAIT", "PART_SOCIALE"]
+TYPES_OPERATION = ["ADHESION", "DEPOT", "RETRAIT", "PART_SOCIALE", "TENUE_COMPTE"]   # TENUE_COMPTE : frais de tenue de compte, prélevé par Autres > Calculs (S128 ; écart E21)
 # Services gratuits « sans aucune condition » : Instr. BCC 37, art. 2 et 3, annexe (ouverture et clôture de compte, dépôt et retrait d'espèces,
 # virement de compte à compte dans la même institution, deux premiers relevés mensuels…)
 GRATUITS = {"DEPOT": "dépôt d'espèces", "RETRAIT": "retrait d'espèces", "OUVERTURE": "ouverture de compte", "CLOTURE": "clôture de compte",
@@ -144,6 +144,12 @@ def controler_part(u, types: list[str], v, c, sauf: int | None = None):
                            "la même pour tous les types de membre.")
 
 
+def controler_tenue(type_operation: str, nature: str):
+    """Le frais de tenue de compte se prélève chaque mois, hors de toute opération (S128) : c'est un Montant. Registre S128-2."""
+    if type_operation == "TENUE_COMPTE" and nature != "montant":
+        raise ErreurMetier("Un frais de tenue de compte est un Montant : il n'a pas de montant d'opération sur lequel calculer un taux.")
+
+
 def parametrer_operation(u, d) -> list[dict]:
     """« Paramétrage frais » : Opération*, Frais*, Nature du frais*, Valeur, Compte, Sous type client cochés (p. 26)."""
     droit(u)
@@ -151,6 +157,7 @@ def parametrer_operation(u, d) -> list[dict]:
     if f["type_operation"] == "ADHESION":
         raise ErreurMetier("Un frais d'adhésion se paramètre dans l'onglet Paramétrage frais Adhésion.")
     nat, v, c = controler_valeurs(u, d)
+    controler_tenue(f["type_operation"], nat)
     sous = d.get("sousTypes") or []
     if not sous:
         raise ErreurMetier("Cocher au moins un sous type client.")
@@ -204,6 +211,8 @@ def modifier_parametrage(u, table: str, pid: int, d):
     nat, v, c = controler_valeurs(u, d, adhesion=table == "parametrage_frais_adhesion")
     if table == "parametrage_frais_adhesion":
         controler_part(u, [r["type_membre"]], v, c, sauf=pid)
+    else:
+        controler_tenue(valeur("select type_operation from frais where id = %s", (r["frais_id"],)), nat)
     executer(f"update {table} set nature = %s, valeur = %s, compte = %s where id = %s", (nat, v, c, pid))
 
 

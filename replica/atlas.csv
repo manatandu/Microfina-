@@ -140,8 +140,8 @@ S120,"Grand livre : général, analytique",138 et 139,B,rapport,forme de l'état
 S121,"Balance : générale, analytique",139 et 140,B,rapport,forme de l'état,R:PCCI ; document,8 Comptabilité,oui
 S122,"États financiers : bilan, hors bilan, résultat, annexe",140 à 142,B,rapport,forme des états,R:PCCI et Instr. BCC sur les états ; document,8 Comptabilité,oui
 S123,Indicateurs financiers,142,B,rapport,liste et calcul des indicateurs,R:Instr. BCC sur les indicateurs,8 Comptabilité,oui
-S124,"Nouveau budget : définir, reconduire",142 (fenêtre de choix),B,onglets,écran de définition après le choix,A:S125 consultation (p. 143) ; D:S19,9 Budget et Autres,non
-S125,"Consultation, suivi budgétaire, consommation par centre de coût",143 (trois bandes),A,rapport,,,9 Budget et Autres,non
+S124,"Nouveau budget : définir, reconduire",142 (fenêtre de choix),B,onglets,écran de définition après le choix,A:S125 consultation (p. 143) ; D:S19,9 Budget et Autres,oui
+S125,"Consultation, suivi budgétaire, consommation par centre de coût",143 (trois bandes),A,rapport,,,9 Budget et Autres,oui
 S126,"Financement : lignes, types, bailleur",143 à 145 (trois captures),A,liste,,,9 Budget et Autres,oui
 S127,"Clôture : crédit, dépôt, comptabilité",163 (crédit seul),B,traitement,clôtures Dépôt et Comptabilité,A:clôture crédit ; R:PCCI (clôtures),9 Budget et Autres,non
 S143,Autres : trésorerie,164 (nom dans le menu),D,rapport,tout l'écran,A:S118 contrôle de trésorerie (p. 137 et 162),9 Budget et Autres,oui

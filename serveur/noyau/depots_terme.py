@@ -205,6 +205,21 @@ def contrat(u, did: int) -> dict:
 TAUX_IRC_PHYSIQUE = Decimal("20")   # loi 23/053, art. 120 : retenue à la source de 20 % (registre S67-3)
 COMPTE_IRC = "433"                   # PCCI 433 « Impôts et taxes collectés » : taxes retenues à la source sur les comptes des clients (compte 43)
 COMPTE_PENALITE = "7791"             # PCCI 7791 « Dédits (…) pénalités (…) » : produits exceptionnels (compte 77)
+COMPTE_COURUS = "349"                # PCCI 349 « Dettes rattachées (intérêts sur dépôts) » : intérêts courus passés en fin de période (S128)
+
+
+def lignes_interet(x: dict, interet_: int, dev: str) -> list[dict]:
+    """Intérêt porté en charge à l'échéance ou à la rupture. La part déjà passée en intérêts courus (Autres > Calculs, PCCI § 6.4) sort du 349 ;
+    le reste va au 612 de la durée ; un trop-passé est repris au crédit du 612. Registre S128-6."""
+    courus = x.get("interets_courus") or 0
+    l = []
+    if courus:
+        l.append({"compte": COMPTE_COURUS, "sens": "D", "devise": dev, "montant": courus})
+    if interet_ > courus:
+        l.append({"compte": compte_interet(x["duree_mois"]), "sens": "D", "devise": dev, "montant": interet_ - courus})
+    elif courus > interet_:
+        l.append({"compte": compte_interet(x["duree_mois"]), "sens": "C", "devise": dev, "montant": courus - interet_})
+    return l
 
 
 def taux_irc(tiers_id: int) -> Decimal:
@@ -272,8 +287,7 @@ def rompre(u, did: int, d: dict) -> dict:
     p = une("select * from produit_epargne where id = %s", (x["produit_id"],))
     em = une("select c.*, p.famille, p.compte_lie from compte_depot c join produit_epargne p on p.id = c.produit_id where c.id = %s", (x["compte_emetteur_id"],))
     l = [{"compte": p["compte_lie"], "contrat": f"depot:{x['compte_dat_id']}", "sens": "D", "devise": dev, "montant": x["montant"]}]
-    if r["interet"]:
-        l.append({"compte": compte_interet(x["duree_mois"]), "sens": "D", "devise": dev, "montant": r["interet"]})
+    l += lignes_interet(x, r["interet"], dev)
     if r["montantAVerser"]:
         l.append({"compte": compte_du_produit(em), "contrat": f"depot:{em['id']}", "sens": "C", "devise": dev, "montant": r["montantAVerser"]})
     if r["irc"]:
@@ -283,7 +297,7 @@ def rompre(u, did: int, d: dict) -> dict:
     eid = poster(u, journal="OD", journee_id=j["id"], libelle=f"Rupture DAT n° {x['certificat']}", piece=nouvelle_piece(u, "OD", date.fromisoformat(j["date"])),
                  evenement="dat_rupture", cle=str(uuid.uuid4()), valide_par=u["id"], lignes_ecr=l)
     executer("""update depot_terme set statut = 'rompu', date_rupture = %s, date_demande = %s, jours_courus = %s, interet_rupture = %s, penalite = %s,
-                taux_irc = %s, irc = %s, montant_verse = %s, rompu_par = %s, rompu_le = now(), ecriture_rupture_id = %s where id = %s""",
+                taux_irc = %s, irc = %s, montant_verse = %s, rompu_par = %s, rompu_le = now(), ecriture_rupture_id = %s, interets_courus = 0 where id = %s""",
              (date_r, date_d, r["jours"], r["interet"], r["penalite"], Decimal(r["tauxIrc"].replace(",", ".")), r["irc"], r["montantAVerser"], u["id"], eid, did))
     return vue(une("select * from depot_terme where id = %s", (did,)))
 
@@ -319,8 +333,7 @@ def traiter_echeances(u: dict, journee: dict) -> int:
             l = []
             if not reconduit:
                 l.append({"compte": p["compte_lie"], "contrat": f"depot:{x['compte_dat_id']}", "sens": "D", "devise": dev, "montant": x["montant"]})
-            if interet_:
-                l.append({"compte": compte_interet(x["duree_mois"]), "sens": "D", "devise": dev, "montant": interet_})
+            l += lignes_interet(x, interet_, dev)
             if verse:
                 l.append({"compte": compte_du_produit(em), "contrat": f"depot:{em['id']}", "sens": "C", "devise": dev, "montant": verse})
             if irc:
@@ -331,7 +344,7 @@ def traiter_echeances(u: dict, journee: dict) -> int:
                              piece=nouvelle_piece(u, "OD", jour), evenement="dat_echeance", cle=str(uuid.uuid5(uuid.NAMESPACE_URL, f"dat-echeance:{x['id']}")),
                              valide_par=u["id"], lignes_ecr=l)
             executer("""update depot_terme set statut = %s, echu_le = %s, interet_echeance = %s, taux_irc = %s, irc = %s, montant_verse = %s,
-                        ecriture_echeance_id = %s where id = %s""",
+                        ecriture_echeance_id = %s, interets_courus = 0 where id = %s""",
                      ("reconduit" if reconduit else "echu", x["date_echeance"], interet_, taux_irc(x["tiers_id"]), irc, verse, eid, x["id"]))
             if reconduit:
                 certificat = int(valeur("select coalesce(max(certificat), 0) + 1 from depot_terme where institution_id = %s", (x["institution_id"],)))

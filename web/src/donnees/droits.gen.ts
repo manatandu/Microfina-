@@ -51,6 +51,19 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "budget.supprimer": [
 "S19"
 ],
+"budgets.ajouter": [
+"S124",
+"S125"
+],
+"budgets.modifier": [
+"S125"
+],
+"budgets.reconduire": [
+"S124"
+],
+"budgets.supprimer": [
+"S125"
+],
 "caisses.ouvrir": [
 "S09"
 ],

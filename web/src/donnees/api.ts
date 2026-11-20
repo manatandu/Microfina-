@@ -22,7 +22,7 @@ import REFERENTIELS from "@referentiels";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v100";
+const CLE = "likelemba-demo-v101";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -30,7 +30,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 77) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 78) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -227,7 +227,7 @@ const journees = {
 // la journée : ses écritures deviennent définitives (T13). Registre S111-1 à S111-5. ----------
 const VIREMENTS_INTERNES = "591";
 type EnAttente = { source: "operation_banque" | "cheque_client" | "emprunt" | "remboursement_emprunt" | "operation_comptable" | "facture" | "reglement"; id: number; type: string; libelle: string; journal: string; date: string;
-  lignes: { compte: string; sens: "D" | "C"; devise: Devise; montant: number; contrat?: string }[]; o?: OperationBanque };
+  lignes: { compte: string; sens: "D" | "C"; devise: Devise; montant: number; contrat?: string; budget?: number }[]; o?: OperationBanque };
 function enAttenteBanque(j: Journee): EnAttente[] {
   const banque = (id: number) => { const cb = E.comptesBancaires.find((x) => x.id === id)!; const jr = E.journaux.find((x) => x.id === cb.journalId && x.actif && !x.supprime);
     return { compte: cb.compte, journal: jr?.code ?? "OD" }; };
@@ -5613,12 +5613,13 @@ function lignesComptaOc(d: { lignes?: unknown; multiligne?: unknown }): LigneOc[
     return { compte, libelle, montant: m };
   });
 }
-type LigneGl = { compte: string; sens: "D" | "C"; devise: Devise; montant: number; contrat?: string };
+type LigneGl = { compte: string; sens: "D" | "C"; devise: Devise; montant: number; contrat?: string; budget?: number };
 const ligneDepotOc = (cid: number, sens: "D" | "C", devise: Devise, montant: number): LigneGl => { const k = E.comptes.find((x) => x.id === cid)!; return { compte: k.pcci, sens, devise, montant, contrat: `depot:${k.id}` }; };
 /** Lignes au grand livre d'une opération validée */
 function lignesEcritureOc(o: OperationCompta): LigneGl[] {
   const t = o.type, dv = o.devise, m = o.montant;
-  if (t === "ecriture") return o.lignes.map((x) => ({ compte: x.compte!, sens: x.sens!, devise: dv, montant: x.montant, ...(x.auxiliaireId ? { contrat: `tc:${x.auxiliaireId}` } : {}) }));
+  if (t === "ecriture") return o.lignes.map((x) => ({ compte: x.compte!, sens: x.sens!, devise: dv, montant: x.montant, ...(x.auxiliaireId ? { contrat: `tc:${x.auxiliaireId}` } : {}),
+    ...(x.ligneBudgetId ? { budget: x.ligneBudgetId } : {}) }));
   if (t === "virement") return [...o.lignes.map((x) => ({ compte: x.compte!, sens: "D" as const, devise: dv, montant: x.montant })), ligneDepotOc(o.compteDepotId!, "C", dv, m)];
   if (t === "prelevement") return [ligneDepotOc(o.compteDepotId!, "D", dv, m), ...o.lignes.map((x) => ({ compte: x.compte!, sens: "C" as const, devise: dv, montant: x.montant }))];
   if (t === "compte_a_compte" || t === "tontine_dav") return [ligneDepotOc(o.compteDepotId!, "D", dv, m), ligneDepotOc(o.compteDepotDestId!, "C", dv, m)];
@@ -5838,7 +5839,7 @@ const operationsCompta = {
     const L = (compte: string, sens: "D" | "C", montant: number, contrat?: string): Ligne => ({ compte, sens, devise: dv, montant, montantCdf: cdf(montant, dv), ...(contrat ? { contrat } : {}) });
     const caisse = L("570", entree ? "D" : "C", m, guichetDe(s));
     let autres: Ligne[], tiersId: number | null = null;
-    if (o.type === "diverse") autres = o.lignes.map((x) => L(x.compte!, entree ? "C" : "D", x.montant));
+    if (o.type === "diverse") autres = o.lignes.map((x) => ({ ...L(x.compte!, entree ? "C" : "D", x.montant), ...(o.ligneBudgetId ? { budget: o.ligneBudgetId } : {}) }));
     else {
       const c = compteClientOc(o.compteDepotId, "N° Compte");
       if (!entree && m > disponibleOc(c, o.id)) throw new ErreurMetier("Solde disponible insuffisant sur le compte du client.");
@@ -5914,7 +5915,7 @@ type SaisieFacture = { fournisseurId?: number | null; directe?: boolean; command
 /** Montants de la facture : hors taxes, TVA, TTC, liste des charges et des retenues fiscales, montant à payer */
 function calculerFacture(d: SaisieFacture) {
   const f = fournisseurF(d.fournisseurId);
-  const charges: ChargeFacture[] = []; let imputation: { compte: string; montant: number }[], ht: number, tva: number, c: CommandeFournisseur | undefined, tranche: number | null = null, typeFacture = "";
+  const charges: ChargeFacture[] = []; let imputation: { compte: string; montant: number; ligneBudgetId?: number | null }[], ht: number, tva: number, c: CommandeFournisseur | undefined, tranche: number | null = null, typeFacture = "";
   if (d.directe) {
     const m = entierOc(d.montantHt);
     if (!m || m <= 0) throw new ErreurMetier("À remplir : Montant (HT).");
@@ -5929,7 +5930,7 @@ function calculerFacture(d: SaisieFacture) {
     if (faites.some((x) => x.tranche === tranche)) throw new ErreurMetier("Cette tranche est déjà facturée.");
     const derniere = faites.length === cmd.tranches.length - 1, taux = cmd.tranches[tranche - 1]!.taux;
     const part = (total: number, deja: number) => (derniere ? total - deja : pctF(total, taux));
-    imputation = cmd.lignes.map((x, k) => ({ compte: x.compte, montant: part(x.ht, faites.reduce((t, fa) => t + fa.imputation[k]!.montant, 0)) }));
+    imputation = cmd.lignes.map((x, k) => ({ compte: x.compte, montant: part(x.ht, faites.reduce((t, fa) => t + fa.imputation[k]!.montant, 0)), ligneBudgetId: x.ligneBudgetId ?? null }));
     ht = imputation.reduce((t, x) => t + x.montant, 0); tva = part(cmd.tva, faites.reduce((t, fa) => t + fa.tva, 0));
     cmd.lignes.forEach((x, k) => { if (!x.retenueTaxeId) return;
       const m = part(x.retenue, faites.reduce((t, fa) => t + fa.charges.filter((ch) => ch.ligne === k).reduce((s, ch) => s + ch.montant, 0), 0));
@@ -5949,10 +5950,10 @@ function retenuesReglement(f: FactureFournisseur, montant: number, sauf?: number
   const solde = deja.reduce((t, r) => t + r.montant, 0) + montant >= f.du;
   return ch.map((x, k) => ({ ...x, montant: Math.max(solde ? x.montant - deja.reduce((t, r) => t + r.charges[k]!.montant, 0) : proF(x.montant, montant, f.du), 0) }));
 }
-type LigneGlF = { compte: string; sens: "D" | "C"; devise: Devise; montant: number; contrat?: string };
+type LigneGlF = { compte: string; sens: "D" | "C"; devise: Devise; montant: number; contrat?: string; budget?: number };
 function lignesFactureF(f: FactureFournisseur): LigneGlF[] {
   const fo = stockRef("tiers", "tiers").find((x) => x.id === f.fournisseurId)!;
-  return [...f.imputation.filter((x) => x.montant).map((x) => ({ compte: x.compte, sens: "D" as const, devise: "CDF" as Devise, montant: x.montant })),
+  return [...f.imputation.filter((x) => x.montant).map((x) => ({ compte: x.compte, sens: "D" as const, devise: "CDF" as Devise, montant: x.montant, ...(x.ligneBudgetId ? { budget: x.ligneBudgetId } : {}) })),
     ...(f.tva ? [{ compte: TVA_DEDUCTIBLE, sens: "D" as const, devise: "CDF" as Devise, montant: f.tva }] : []),
     ...f.charges.filter((x) => !x.retenue).map((x) => ({ compte: x.compte, sens: "D" as const, devise: "CDF" as Devise, montant: x.montant })),
     { compte: String(fo.compte), sens: "C", devise: "CDF", montant: f.du, contrat: `tc:${fo.id}` }];
@@ -6427,6 +6428,163 @@ const controlesCompta = {
 const MOIS_JC = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 type CriteresJournaux = { achats?: boolean | string; exercice?: number | string; mois?: number | string | null; type?: string; journalId?: number | string | null; mouvement?: string; montant?: number | string | null;
   utilisateurId?: number | string | null; piece?: string; pieceMode?: string; libelle?: string; libelleMode?: string };
+// ---------- S124 Nouveau budget (p. 142), S125 Consultation, suivi budgétaire, consommation par centre de coût (p. 143).
+// Mêmes règles que serveur/noyau/budgets.py : le « Budget » est le plan budgétaire de S19 ; une valeur par plan, type, période, ligne et compte ;
+// réalisé : écritures définitives (T13) du compte sur la période, rattachées à leur ligne budgétaire. Registre S124, S125. ----------
+const entierB = (v: unknown) => (typeof v === "number" && Number.isInteger(v) ? v : typeof v === "string" && /^\d+$/.test(v.trim()) ? Number(v) : null);
+const stockB = (page: string) => (E.budget[page] ?? []).filter((x) => x.actif);
+function planB(id: unknown, nom = "Budget") { const p = stockB("plans").find((x) => x.id === entierB(id)); if (!p) throw new ErreurMetier(`À remplir : ${nom}.`);
+  return { id: p.id, code: String(p.code), libelle: String(p.libelle), annee: Number(p.annee) }; }
+function typeB(id: unknown) { const t = stockB("types_budget").find((x) => x.id === entierB(id)); if (!t) throw new ErreurMetier("À remplir : Type budget.");
+  return { id: t.id, code: String(t.code), libelle: String(t.libelle), paramCompte: String(t.paramCompte ?? "") }; }
+function periodeB(id: unknown) { const p = stockB("periodes").find((x) => x.id === entierB(id)); if (!p) throw new ErreurMetier("À remplir : Période.");
+  return { id: p.id, code: String(p.code), libelle: String(p.libelle), debut: String(p.debut), fin: String(p.fin) }; }
+/** Dates d'une période (JJ/MM) dans l'année du plan ; le 29/02 d'une année non bissextile devient le 28 */
+function datesB(p: { debut: string; fin: string }, annee: number): [string, string] {
+  const d = (t: string) => { const j = Number(t.slice(0, 2)), m = Number(t.slice(3)), max = new Date(Date.UTC(annee, m, 0)).getUTCDate();
+    return `${annee}-${String(m).padStart(2, "0")}-${String(j > max ? 28 : j).padStart(2, "0")}`; };
+  return [d(p.debut), d(p.fin)];
+}
+/** Param Compte (S19, p. 28) : « 6*,712* » ; vide : tous les comptes */
+const permisB = (param: string, compte: string) => { const m = param.split(",").map((x) => x.trim()).filter(Boolean); return !m.length || m.some((x) => (x.endsWith("*") ? compte.startsWith(x.slice(0, -1)) : compte === x)); };
+type LigneValeurB = { id: number; planId: number; typeId: number; periodeId: number; ligneId: number; compte: string; valeur: number; numero: string; ligne: string; centreId: number; centre: string;
+  financement: string; bailleurId: number | null; type: string; periode: string; debut: string; fin: string; intitule: string };
+function valeursB(planId: number): LigneValeurB[] {
+  const noms = intitulesComptes(), tous = (page: string) => E.budget[page] ?? [];
+  return E.budgetValeurs.filter((v) => v.actif && v.planId === planId).map((v) => { const l = tous("lignes").find((x) => x.id === v.ligneId)!, ce = tous("centres").find((x) => x.id === l.centreId),
+      t = tous("types_budget").find((x) => x.id === v.typeId)!, pe = tous("periodes").find((x) => x.id === v.periodeId)!, b = valeursRef("financement", "bailleurs").find((x) => x.id === l.bailleurId);
+    return { id: v.id, planId: v.planId, typeId: v.typeId, periodeId: v.periodeId, ligneId: v.ligneId, compte: v.compte, valeur: v.valeur, numero: String(l.numero), ligne: String(l.libelle),
+      centreId: Number(l.centreId), centre: String(ce?.libelle ?? ""), financement: String(b?.nom ?? ""), bailleurId: (l.bailleurId as number | null) ?? null, type: String(t.libelle), periode: String(pe.libelle),
+      debut: String(pe.debut), fin: String(pe.fin), intitule: noms.get(v.compte) ?? "", codeType: String(t.code) }; })
+    .sort((a, b) => a.codeType.localeCompare(b.codeType) || a.debut.slice(3).localeCompare(b.debut.slice(3)) || a.debut.localeCompare(b.debut) || a.numero.localeCompare(b.numero) || a.compte.localeCompare(b.compte))
+    .map(({ codeType: _c, ...x }) => x);
+}
+/** Mouvements définitifs de la période, par compte et ligne budgétaire : débit moins crédit, en CDF */
+function realiseB(du: string, au: string) {
+  const g = new Map<string, { compte: string; ligne: number | null; s: number }>();
+  for (const { e } of ecrituresDefinitives(du, au, false)) for (const l of e.lignes) { const k = `${l.compte}\u0000${l.budget ?? ""}`, x = g.get(k) ?? { compte: l.compte, ligne: l.budget ?? null, s: 0 }; g.set(k, x);
+    x.s += l.sens === "D" ? l.montantCdf : -l.montantCdf; }
+  return [...g.values()];
+}
+const sensB = (compte: string, s: number) => (compte.startsWith("7") ? -s : s);   // un produit se réalise au crédit
+/** Réalisé de chaque valeur du budget ; le compte budgété peut être un compte de regroupement : le préfixe le plus long l'emporte */
+function affecterB(rows: LigneValeurB[], mouvements: ReturnType<typeof realiseB>) {
+  const fait = new Map<number, number>(), reste = new Map<string, number>();
+  for (const m of mouvements) {
+    let c = rows.filter((r) => m.compte.startsWith(r.compte)); if (!c.length) continue;
+    const lg = Math.max(...c.map((r) => r.compte.length)); c = c.filter((r) => r.compte.length === lg);
+    const cible = m.ligne ? c.find((r) => r.ligneId === m.ligne) : c.length === 1 ? c[0] : undefined, v = sensB(m.compte, m.s);
+    if (cible) fait.set(cible.id, (fait.get(cible.id) ?? 0) + v); else reste.set(c[0]!.compte, (reste.get(c[0]!.compte) ?? 0) + v);
+  }
+  return { fait, reste: [...reste].filter(([, v]) => v).sort(([a], [b]) => a.localeCompare(b)).map(([compte, realise]) => ({ compte, realise })) };
+}
+function dateFinB(dateFin: string | undefined, du: string, au: string) {
+  if (!dateFin) return au;
+  if (!DATE_ISO.test(dateFin)) throw new ErreurMetier("Date fin : une date.");
+  if (dateFin < du || dateFin > au) throw new ErreurMetier("Date fin : dans la période choisie.");
+  return dateFin;
+}
+const tauxB = (f: number, v: number) => (v ? Math.round((f * 10000) / v) / 100 : null);
+type CriteresB = { planId?: unknown; typeId?: unknown; periodeId?: unknown; tout?: boolean; global?: boolean };
+const budgets = {
+  contexte() {
+    lectureAdmin(["S124", "S125"]);
+    const ce = new Map((E.budget.centres ?? []).map((x) => [x.id, String(x.libelle)]));
+    return { plans: stockB("plans").map((p) => ({ id: p.id, code: String(p.code), libelle: String(p.libelle), annee: Number(p.annee) })).sort((a, b) => b.annee - a.annee || a.code.localeCompare(b.code)),
+      types: stockB("types_budget").map((t) => ({ id: t.id, code: String(t.code), libelle: String(t.libelle), paramCompte: String(t.paramCompte ?? "") })).sort((a, b) => a.code.localeCompare(b.code)),
+      periodes: stockB("periodes").map((p) => ({ id: p.id, code: String(p.code), libelle: String(p.libelle), debut: String(p.debut), fin: String(p.fin) })),
+      lignes: stockB("lignes").map((l) => ({ id: l.id, numero: String(l.numero), libelle: String(l.libelle), planId: Number(l.planId), centreId: Number(l.centreId), centre: ce.get(Number(l.centreId)) ?? "",
+        financement: String(valeursRef("financement", "bailleurs").find((b) => b.id === l.bailleurId)?.nom ?? "") })).sort((a, b) => a.numero.localeCompare(b.numero)),
+      centres: stockB("centres").map((c) => ({ id: c.id, code: String(c.code), libelle: String(c.libelle) })).sort((a, b) => a.code.localeCompare(b.code)),
+      exercices: [...E.exercices].map((x) => x.annee).sort((a, b) => b - a) };
+  },
+  /** Comptes que le type de budget permet (Param Compte), saisissables et ouverts */
+  comptesDuType(typeId: number) {
+    lectureAdmin(["S124", "S125"]);
+    const t = typeB(typeId), noms = intitulesComptes();
+    return [...PCCI.comptes.map((x) => x.numero), ...E.comptesInstitution.filter((x) => x.saisissable && x.ouvert).map((x) => x.numero), ...E.comptesBancaires.map((x) => x.compte)]
+      .filter((n, i, a) => a.indexOf(n) === i && permisB(t.paramCompte, n)).sort().map((numero) => ({ numero, libelle: noms.get(numero) ?? "" }));
+  },
+  /** Détails (budget, type et période), Imprimer Global (toute la période) ou Afficher tout (le budget entier) */
+  valeurs(p: CriteresB) {
+    lectureAdmin(["S124", "S125"]);
+    const pl = planB(p.planId); let lignes = valeursB(pl.id);
+    if (!p.tout) { const pe = periodeB(p.periodeId); lignes = lignes.filter((x) => x.periodeId === pe.id); if (!p.global) { const t = typeB(p.typeId); lignes = lignes.filter((x) => x.typeId === t.id); } }
+    return { budget: pl, lignes, total: lignes.reduce((t, x) => t + x.valeur, 0) };
+  },
+  /** Bouton Ajouter : une valeur pour une ligne budgétaire et un compte ; le compte suit le Param Compte du type de budget */
+  ajouter(d: { planId?: unknown; typeId?: unknown; periodeId?: unknown; ligneId?: unknown; compte?: string; valeur?: unknown }) {
+    const u = exiger(); const pl = planB(d.planId), t = typeB(d.typeId), pe = periodeB(d.periodeId), lg = stockB("lignes").find((x) => x.id === entierB(d.ligneId));
+    if (!lg) throw new ErreurMetier("À remplir : Ligne budgétaire.");
+    if (lg.planId !== pl.id) throw new ErreurMetier("Ligne budgétaire : une ligne de ce budget (Info de base > Budget > Ligne de plan budgétaire).");
+    const compte = String(d.compte ?? "").trim();
+    if (!compte || !intitulesComptes().has(compte)) throw new ErreurMetier("À remplir : Compte.");
+    if (!permisB(t.paramCompte, compte)) throw new ErreurMetier(`Compte : ${compte} n'est pas un compte du type de budget « ${t.libelle} » (${t.paramCompte}).`);
+    const v = entierB(d.valeur);
+    if (v === null || v <= 0) throw new ErreurMetier("À remplir : Valeur.");
+    if (E.budgetValeurs.some((x) => x.actif && x.planId === pl.id && x.typeId === t.id && x.periodeId === pe.id && x.ligneId === lg.id && x.compte === compte))
+      throw new ErreurMetier("Cette ligne budgétaire a déjà une valeur pour ce compte : la choisir dans la liste puis Modifier.");
+    E.budgetValeurs.push({ id: prochain(E.budgetValeurs), actif: true, planId: pl.id, typeId: t.id, periodeId: pe.id, ligneId: lg.id, compte, valeur: v, saisiPar: u.id });
+    enregistrer(); return budgets.valeurs({ planId: pl.id, typeId: t.id, periodeId: pe.id });
+  },
+  /** Bouton Modifier : la valeur de la ligne choisie */
+  modifier(id: number, d: { valeur?: unknown }) {
+    const u = exiger(), x = E.budgetValeurs.find((y) => y.id === id && y.actif);
+    if (!x) throw new ErreurMetier("Ligne introuvable.");
+    const v = entierB(d.valeur);
+    if (v === null || v <= 0) throw new ErreurMetier("À remplir : Valeur.");
+    x.valeur = v; x.saisiPar = u.id; enregistrer(); return budgets.valeurs({ planId: x.planId, typeId: x.typeId, periodeId: x.periodeId });
+  },
+  /** Bouton Supprimer : « pour supprimer le budget » (p. 143) : les valeurs du budget, du type et de la période choisis */
+  supprimer(d: CriteresB) {
+    exiger(); const pl = planB(d.planId), t = typeB(d.typeId), pe = periodeB(d.periodeId);
+    const l = E.budgetValeurs.filter((x) => x.actif && x.planId === pl.id && x.typeId === t.id && x.periodeId === pe.id);
+    if (!l.length) throw new ErreurMetier("Rien à supprimer : ce budget n'a aucune valeur pour ce type et cette période.");
+    l.forEach((x) => { x.actif = false; }); enregistrer(); return budgets.valeurs({ planId: pl.id, typeId: t.id, periodeId: pe.id });
+  },
+  /** « Reconduire ancien budget » : les lignes et les valeurs de l'ancien budget sont recopiées dans le nouveau, qui n'en a pas encore */
+  reconduire(d: { ancienPlanId?: unknown; nouveauPlanId?: unknown }) {
+    const u = exiger(), ancien = planB(d.ancienPlanId, "Ancien budget"), nouveau = planB(d.nouveauPlanId, "Nouveau budget");
+    if (ancien.id === nouveau.id) throw new ErreurMetier("Nouveau budget : un autre budget que l'ancien.");
+    if (E.budgetValeurs.some((x) => x.actif && x.planId === nouveau.id)) throw new ErreurMetier("Nouveau budget : ce budget a déjà des valeurs.");
+    const src = E.budgetValeurs.filter((x) => x.actif && x.planId === ancien.id);
+    if (!src.length) throw new ErreurMetier("Ancien budget : aucune valeur à reconduire.");
+    const lignes = (E.budget.lignes ??= []), corr = new Map<number, number>();
+    for (const lg of lignes.filter((x) => x.actif && x.planId === ancien.id)) {
+      const e = lignes.find((x) => x.actif && x.planId === nouveau.id && x.numero === lg.numero);
+      if (e) corr.set(lg.id, e.id); else { const id = Math.max(0, ...lignes.map((x) => x.id)) + 1; lignes.push({ ...lg, id, planId: nouveau.id }); corr.set(lg.id, id); }
+    }
+    for (const v of src) E.budgetValeurs.push({ ...v, id: prochain(E.budgetValeurs), planId: nouveau.id, ligneId: corr.get(v.ligneId)!, saisiPar: u.id });
+    enregistrer(); return budgets.valeurs({ planId: nouveau.id, tout: true });
+  },
+  /** Suivi budgétaire : prévu, réalisé, écart et taux par ligne et compte ; Financement (par bailleur) et Résultat analytique (par centre de coût) */
+  suivi(p: { planId?: unknown; periodeId?: unknown; typeId?: unknown; centreId?: unknown; dateFin?: string; mode?: string }) {
+    lectureAdmin(["S125"]);
+    const pl = planB(p.planId), pe = periodeB(p.periodeId), tid = entierB(p.typeId), cid = entierB(p.centreId), [du, fin] = datesB(pe, pl.annee), au = dateFinB(p.dateFin, du, fin);
+    const rows = valeursB(pl.id).filter((r) => r.periodeId === pe.id && (!tid || r.typeId === tid) && (!cid || r.centreId === cid)), { fait, reste } = affecterB(rows, realiseB(du, au));
+    const lignes = rows.map((r) => { const f = fait.get(r.id) ?? 0; return { type: r.type, numero: r.numero, ligne: r.ligne, centre: r.centre, financement: r.financement, compte: r.compte, intitule: r.intitule,
+      prevu: r.valeur, realise: f, ecart: r.valeur - f, taux: tauxB(f, r.valeur) }; });
+    const mode = p.mode || "detail", g = new Map<string, { prevu: number; realise: number; charges: number; produits: number }>();
+    if (mode === "financement" || mode === "analytique") for (const x of lignes) { const k = (mode === "financement" ? x.financement : x.centre) || "Sans bailleur", y = g.get(k) ?? { prevu: 0, realise: 0, charges: 0, produits: 0 }; g.set(k, y);
+      y.prevu += x.prevu; y.realise += x.realise; if (x.compte.startsWith("7")) y.produits += x.realise; else y.charges += x.realise; }
+    return { budget: pl, periode: pe.libelle, du, au, mode, lignes, nonAffectes: reste, prevu: lignes.reduce((t, x) => t + x.prevu, 0), realise: lignes.reduce((t, x) => t + x.realise, 0),
+      groupes: [...g].sort(([a], [b]) => a.localeCompare(b)).map(([libelle, v]) => ({ libelle, ...v, ecart: v.prevu - v.realise, resultat: v.produits - v.charges })) };
+  },
+  /** Consommation par centre de coût : prévu, consommé et disponible par centre et ligne budgétaire */
+  consommation(p: { exercice?: unknown; periodeId?: unknown; ligneId?: unknown; centreId?: unknown; dateFin?: string }) {
+    lectureAdmin(["S125"]);
+    const ex = entierB(p.exercice);
+    if (!ex) throw new ErreurMetier("À remplir : Exercice.");
+    const pe = periodeB(p.periodeId), lid = entierB(p.ligneId), cid = entierB(p.centreId), [du, fin] = datesB(pe, ex), au = dateFinB(p.dateFin, du, fin);
+    const rows = stockB("plans").filter((x) => Number(x.annee) === ex).flatMap((x) => valeursB(x.id)).filter((r) => r.periodeId === pe.id && (!lid || r.ligneId === lid) && (!cid || r.centreId === cid));
+    const { fait } = affecterB(rows, realiseB(du, au)), g = new Map<string, { centre: string; numero: string; ligne: string; prevu: number; consomme: number }>();
+    for (const r of rows) { const k = `${r.centre}\u0000${r.numero}\u0000${r.ligne}`, x = g.get(k) ?? { centre: r.centre, numero: r.numero, ligne: r.ligne, prevu: 0, consomme: 0 }; g.set(k, x);
+      x.prevu += r.valeur; x.consomme += fait.get(r.id) ?? 0; }
+    const lignes = [...g].sort(([a], [b]) => a.localeCompare(b)).map(([, x]) => ({ ...x, disponible: x.prevu - x.consomme, taux: tauxB(x.consomme, x.prevu) }));
+    return { exercice: ex, periode: pe.libelle, du, au, lignes, prevu: lignes.reduce((t, x) => t + x.prevu, 0), consomme: lignes.reduce((t, x) => t + x.consomme, 0) };
+  },
+};
+
 // ---------- S122 Etats financiers (p. 140 et 141) et S123 Indicateurs financiers (p. 142). Mêmes règles que serveur/noyau/etats_financiers.py :
 // modèles du PCCI (chap. 14) et comptes rattachés dans replica/etats-pcci.json ; écritures définitives (T13) ; montants en CDF. Registre S122, S123. ----------
 interface PosteBilan { code: string; libelle: string; comptes?: string[]; debiteurs?: string[]; crediteurs?: string[]; reste?: boolean; resultat?: boolean; anterieurs?: boolean }
@@ -7929,6 +8087,7 @@ const apiLocal = {
   comptabilisation: asynchrone(comptabilisation, "comptabilisation"),
   etatsCompta: asynchrone(etatsCompta, "etatsCompta"),
   etatsFinanciers: asynchrone(etatsFinanciers, "etatsFinanciers"),
+  budgets: asynchrone(budgets, "budgets"),
   operationsCompta: asynchrone(operationsCompta, "operationsCompta"),
   facturesFournisseurs: asynchrone(facturesFournisseurs, "facturesFournisseurs"),
   controlesCompta: asynchrone(controlesCompta, "controlesCompta"),

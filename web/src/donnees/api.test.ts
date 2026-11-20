@@ -3107,4 +3107,79 @@ describe("journée de guichet", () => {
     await connecter("engalula");
     await expect(api.etatsFinanciers.bilan(q)).rejects.toThrow("Droit manquant");
   });
+  it("financement (S126), nouveau budget (S124), consultation, suivi et consommation (S125)", async () => {
+    const { j, s } = await journeeOuverte();
+    await connecter("jpmukendi");
+    const profils = Object.fromEntries((await api.droits.lire()).profils.map((p) => [p.nom, p.id]));
+    await api.droits.enregistrer(profils["AGENT DE CRÉDIT"]!, { droits: [...new Set([...(await api.droits.lire(profils["AGENT DE CRÉDIT"]!)).octroyes, "S114"])] });
+    // S19 : centre, type de budget, période, deux plans
+    const id = (r: { lignes: Record<string, unknown>[] }, cle: string, v: unknown) => r.lignes.find((x) => x[cle] === v)!.id as number;
+    const tcSer = id(await api.budget.lire("types_centre"), "code", "SER");
+    const ce = id(await api.budget.enregistrer("centres", { code: "SIE", libelle: "Siège", typeId: tcSer }), "code", "SIE");
+    const tb = id(await api.budget.enregistrer("types_budget", { code: "FONC", libelle: "Fonctionnement", paramCompte: "6*" }), "code", "FONC");
+    const tp = id(await api.budget.enregistrer("types_periode", { code: "ANN", libelle: "Annuel", dureeMois: 12 }), "code", "ANN");
+    const pe = id(await api.budget.enregistrer("periodes", { code: "A", libelle: "Année", typeId: tp, debut: "01/01", fin: "31/12" }), "code", "A");
+    await api.budget.enregistrer("plans", { annee: 2026, code: "B26", libelle: "Budget 2026" });
+    const plans = await api.budget.enregistrer("plans", { annee: 2025, code: "B25", libelle: "Budget 2025" }), b26 = id(plans, "code", "B26"), b25 = id(plans, "code", "B25");
+    // S126 : listes
+    await connecter("plumbala");
+    const t = await api.refFinancement.enregistrer("types_financement", { code: "RES_AFFECT", libelle: "Ressources affectées" }), ta = t.lignes[0]!.id;
+    expect([t.fiche.entete, t.catalogue.map((x) => x.menu)]).toEqual(["Types de lignes de financement", ["Lignes de financement", "Types de financement", "Bailleur"]]);
+    await expect(api.refFinancement.enregistrer("types_financement", { code: "res_affect", libelle: "Autre" })).rejects.toThrow("existe déjà");
+    const bid = (await api.refFinancement.enregistrer("bailleurs", { typeBailleur: "Institutions sans but lucratif", code: "B0000001", nom: "Fonds Exemple" })).lignes[0]!.id;
+    await expect(api.refFinancement.enregistrer("bailleurs", { typeBailleur: "Autre", code: "B2", nom: "X" })).rejects.toThrow("inconnu");
+    await api.refFinancement.enregistrer("lignes_financement", { libelle: "Fonds Exemple", montant: 0, typeId: ta });
+    const lf = await api.refFinancement.enregistrer("lignes_financement", { libelle: "Fonds Exemple", montant: 0, typeId: ta });   // même libellé permis (capture p. 144)
+    expect(lf.lignes.map((x) => x.affichage.typeId)).toEqual(["Ressources affectées", "Ressources affectées"]);
+    await expect(api.refFinancement.supprimer("types_financement", ta)).rejects.toThrow("Lignes de financement");
+    await connecter("jpmukendi");
+    await api.budget.enregistrer("lignes", { numero: "L1", libelle: "Loyers", planId: b26, centreId: ce, bailleurId: bid });
+    const lg = await api.budget.enregistrer("lignes", { numero: "L2", libelle: "Fournitures", planId: b26, centreId: ce }), l1 = id(lg, "numero", "L1"), l2 = id(lg, "numero", "L2");
+    await connecter("plumbala");
+    await expect(api.refFinancement.supprimer("bailleurs", bid)).rejects.toThrow("Ligne de plan budgétaire");
+    // S124 : définir le budget
+    const ctx = await api.budgets.contexte();
+    expect([ctx.lignes.find((x) => x.numero === "L1")!.financement, ctx.plans[0]!.code]).toEqual(["Fonds Exemple", "B26"]);
+    expect((await api.budgets.comptesDuType(tb)).every((c) => c.numero.startsWith("6"))).toBe(true);
+    const base = { planId: b26, typeId: tb, periodeId: pe };
+    await expect(api.budgets.ajouter(base)).rejects.toThrow("Ligne budgétaire");
+    await expect(api.budgets.ajouter({ ...base, ligneId: l1, compte: "461", valeur: 100 })).rejects.toThrow("type de budget");
+    await expect(api.budgets.ajouter({ ...base, ligneId: l1, compte: "640" })).rejects.toThrow("Valeur");
+    await api.budgets.ajouter({ ...base, ligneId: l1, compte: "640", valeur: 1000000 });
+    let v = await api.budgets.ajouter({ ...base, ligneId: l2, compte: "640", valeur: 500000 });
+    expect([v.total, v.lignes.map((x) => [x.numero, x.financement, x.valeur])]).toEqual([1500000, [["L1", "Fonds Exemple", 1000000], ["L2", "", 500000]]]);
+    await expect(api.budgets.ajouter({ ...base, ligneId: l1, compte: "640", valeur: 5 })).rejects.toThrow("déjà une valeur");
+    v = await api.budgets.modifier(v.lignes[1]!.id, { valeur: 600000 });
+    expect(v.total).toBe(1600000);
+    // S125 : suivi ; une écriture saisie sur la ligne L1, une autre sans ligne
+    const od = (await api.operationsCompta.lire()).journaux.find((x) => x.code === "OD")!.id;
+    const ecriture = async (libelle: string, montant: number, ligne?: number) => { await connecter("plumbala"); let e = null;
+      for (const [compte, sens] of [["640", "debit"], ["461", "credit"]] as const) e = await api.operationsCompta.ecritureAjouter({ journalId: od, periode: "11/2026", jour: 5, libelle, compte, [sens]: montant,
+        ...(ligne && compte === "640" ? { typeBudgetId: tb, ligneBudgetId: ligne } : {}) });
+      await viserValider(e!.id!); };
+    await ecriture("Loyer", 300000, l1); await ecriture("Divers", 40000);
+    await connecter("plumbala");
+    expect((await api.budgets.suivi({ planId: b26, periodeId: pe })).realise).toBe(0);   // rien de définitif avant la comptabilisation (T13)
+    await comptabiliserJournee(j.id, s.id);
+    await connecter("plumbala");
+    const su = await api.budgets.suivi({ planId: b26, periodeId: pe });
+    expect(su.lignes.map((x) => [x.numero, x.prevu, x.realise, x.ecart, x.taux])).toEqual([["L1", 1000000, 300000, 700000, 30], ["L2", 600000, 0, 600000, 0]]);
+    expect([su.nonAffectes, su.du, su.au]).toEqual([[{ compte: "640", realise: 40000 }], "2026-01-01", "2026-12-31"]);
+    expect((await api.budgets.suivi({ planId: b26, periodeId: pe, mode: "financement" })).groupes.map((g) => [g.libelle, g.prevu, g.realise])).toEqual([["Fonds Exemple", 1000000, 300000], ["Sans bailleur", 600000, 0]]);
+    expect((await api.budgets.suivi({ planId: b26, periodeId: pe, mode: "analytique" })).groupes.map((g) => [g.libelle, g.charges, g.resultat])).toEqual([["Siège", 300000, -300000]]);
+    await expect(api.budgets.suivi({ planId: b26, periodeId: pe, dateFin: "2027-01-15" })).rejects.toThrow("Date fin");
+    expect((await api.budgets.suivi({ planId: b26, periodeId: pe, dateFin: "2026-10-31" })).realise).toBe(0);
+    const co = await api.budgets.consommation({ exercice: 2026, periodeId: pe });
+    expect(co.lignes.map((x) => [x.centre, x.numero, x.prevu, x.consomme, x.disponible])).toEqual([["Siège", "L1", 1000000, 300000, 700000], ["Siège", "L2", 600000, 0, 600000]]);
+    await expect(api.budgets.consommation({ periodeId: pe })).rejects.toThrow("Exercice");
+    // S124 : reconduire ; S125 : supprimer
+    await expect(api.budgets.reconduire({ ancienPlanId: b26, nouveauPlanId: b26 })).rejects.toThrow("autre budget");
+    const r = await api.budgets.reconduire({ ancienPlanId: b26, nouveauPlanId: b25 });
+    expect([r.budget.code, r.total, r.lignes.map((x) => x.numero)]).toEqual(["B25", 1600000, ["L1", "L2"]]);
+    await expect(api.budgets.reconduire({ ancienPlanId: b26, nouveauPlanId: b25 })).rejects.toThrow("déjà des valeurs");
+    expect((await api.budgets.supprimer({ ...base, planId: b25 })).lignes).toEqual([]);
+    await expect(api.budgets.supprimer({ ...base, planId: b25 })).rejects.toThrow("Rien à supprimer");
+    await connecter("engalula");
+    await expect(api.budgets.suivi({ planId: b26, periodeId: pe })).rejects.toThrow("Droit manquant");
+  });
 });

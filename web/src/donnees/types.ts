@@ -158,8 +158,11 @@ export interface Ligne {
   devise: Devise;
   montant: number;             // unités mineures, dans la devise
   montantCdf: number;          // contre-valeur en CDF (PCCI § 3.2)
+  budget?: number;             // ligne budgétaire saisie avec la ligne (S109, S116, S107), lue par le suivi budgétaire (S125)
 }
 
+/** S124, S125 : valeur du budget (capture « Budget - Consultation/Modification », p. 143) */
+export interface BudgetValeur { id: number; actif: boolean; planId: number; typeId: number; periodeId: number; ligneId: number; compte: string; valeur: number; saisiPar: number }
 export interface Ecriture {
   id: number;
   numero: string;
@@ -188,7 +191,7 @@ export interface CommandeFournisseur {
 }
 export interface FactureFournisseur {
   id: number; cle: string; numero: string; commandeId: number | null; tranche: number | null; fournisseurId: number; typeFacture: string; reference: string; date: string; echeance: string;
-  libelle: string; ht: number; tva: number; ttc: number; charges: ChargeFacture[]; imputation: { compte: string; montant: number }[]; du: number; aPayer: number; aJour: boolean; nif: boolean;
+  libelle: string; ht: number; tva: number; ttc: number; charges: ChargeFacture[]; imputation: { compte: string; montant: number; ligneBudgetId?: number | null }[]; du: number; aPayer: number; aJour: boolean; nif: boolean;
   statut: "saisie" | "visee" | "validee" | "comptabilisee" | "annulee"; saisiPar: number; visePar?: number; validePar?: number; dateValidation?: string; piece: string; ecritureId?: number;
 }
 export interface ReglementFournisseur {
@@ -314,7 +317,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 77;
+  version: 78;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)
@@ -399,6 +402,7 @@ export interface Etat {
   operationsBanque: OperationBanque[];   // S52
   operationsCompta: OperationCompta[];   // S109, S116, S117
   rapprochements: Rapprochement[]; lettrages: Lettrage[]; remboursementsAnnules: RemboursementAnnule[];   // S110, S119, S142
+  budgetValeurs: BudgetValeur[];   // S124, S125 : une valeur par budget, type, période, ligne budgétaire et compte
   commandesFournisseurs: CommandeFournisseur[]; facturesFournisseurs: FactureFournisseur[]; reglementsFournisseurs: ReglementFournisseur[];   // S107
   chequesClients: ChequeClient[];   // S59
   chequiers: Chequier[];   // S60

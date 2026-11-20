@@ -162,6 +162,17 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       grandLivre: (p: Record<string, unknown>, analytique = false) => get(`/comptabilite/grand-livre?${requete({ ...p, analytique })}`),
       balance: (p: Record<string, unknown>, analytique = false) => get(`/comptabilite/balance?${requete({ ...p, analytique })}`),
     },
+    budgets: {
+      contexte: () => get("/budget/contexte"),
+      comptesDuType: (typeId: number) => get(`/budget/comptes?typeId=${typeId}`),
+      valeurs: (p: Record<string, unknown>) => get(`/budget/valeurs?${requete(p)}`),
+      ajouter: (d: unknown) => post("/budget/valeurs", d),
+      modifier: (id: number, d: unknown) => post(`/budget/valeurs/${id}`, d),
+      supprimer: (d: unknown) => post("/budget/suppression", d),
+      reconduire: (d: unknown) => post("/budget/reconduction", d),
+      suivi: (p: Record<string, unknown>) => get(`/budget/suivi?${requete(p)}`),
+      consommation: (p: Record<string, unknown>) => get(`/budget/consommation?${requete(p)}`),
+    },
     etatsFinanciers: {
       contexte: () => get("/comptabilite/etats-financiers/contexte"),
       bilan: (p: Record<string, unknown>) => get(`/comptabilite/etats-financiers/bilan?${requete(p)}`),
