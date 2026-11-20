@@ -22,7 +22,7 @@ import REFERENTIELS from "@referentiels";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v101";
+const CLE = "likelemba-demo-v102";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -30,7 +30,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 78) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 79) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -142,6 +142,8 @@ function poster(e: Omit<Ecriture, "id" | "numero">): Ecriture {
   for (const d of new Set(l.map((x) => x.devise))) if (ecart((x) => x.devise === d, "montant") !== 0) throw new ErreurMetier(`Écriture déséquilibrée en ${d}.`);
   const j = E.journees.find((x) => x.id === e.journeeId);
   if (!j || j.statut !== "ouverte") throw new ErreurMetier("Journée fermée : aucune écriture possible.");
+  if ((E.periodesCloturees ?? []).some((p) => p.annee === Number(j.date.slice(0, 4)) && p.mois === Number(j.date.slice(5, 7))))
+    throw new ErreurMetier("Période clôturée : passer l'opération au premier jour de la période ouverte (PCCI § 3.4).");
   for (const x of l) {   // écart E10 : rien ne sort des comptes d'un client gelé
     if (x.sens !== "D") continue;
     const dep = /^depot:(\d+)$/.exec(x.contrat ?? "")?.[1], parts = /^parts:(\d+)$/.exec(x.contrat ?? "")?.[1];
@@ -641,6 +643,10 @@ function nouveauTiers(d: NouveauTiers, creePar: number, reste: Pick<Tiers, "type
 /** Profil de l'institution (S32). COOPEC et faîtières (loi 002/2002) : membres, parts sociales (PCCI 103). IMF (loi 11/020, art. 11 à 15) : clients,
  *  capital social souscrit par les associés (PCCI 100) ; l'entreprise de micro-crédit ne collecte pas l'épargne (art. 12). Identique au serveur (services.est_coopec). */
 const estCoopec = () => E.institution.profil === "coopec" || E.institution.profil === "faitiere";
+/** Le frais de tenue de compte se prélève chaque mois, hors de toute opération (S128) : c'est un Montant. Registre S128-2. */
+function controlerTenue(typeOperation: string, nature: string) {
+  if (typeOperation === "TENUE_COMPTE" && nature !== "Montant") throw new ErreurMetier("Un frais de tenue de compte est un Montant : il n'a pas de montant d'opération sur lequel calculer un taux.");
+}
 function exigerPartsSociales() {
   if (!estCoopec()) throw new ErreurMetier("Pas de parts sociales dans une institution de microfinance : son capital est souscrit par ses associés ou actionnaires (loi 11/020, art. 14 et 15 ; PCCI, compte 100). Les parts sociales sont propres aux COOPEC (loi 002/2002 ; PCCI, compte 103).");
 }
@@ -932,7 +938,7 @@ export type CompteAvecSolde = CompteDepot & { solde: number; disponible: number 
 
 // ---------- Paramétrage : frais (S16, manuel p. 25 à 27). Règles identiques côté serveur (noyau/frais.py). ----------
 /** Registre S16-1 : les opérations des menus Caisse et Banque déjà construites (ADHESION et DEPOT sont montrés p. 25 et 26) */
-export const TYPES_OPERATION = ["ADHESION", "DEPOT", "RETRAIT", "PART_SOCIALE"];
+export const TYPES_OPERATION = ["ADHESION", "DEPOT", "RETRAIT", "PART_SOCIALE", "TENUE_COMPTE"];   // TENUE_COMPTE : prélevé par Autres > Calculs (S128 ; écart E21)
 /** Services gratuits « sans aucune condition » : Instr. BCC 37, art. 2 et 3, annexe */
 const GRATUITS: Record<string, string> = { DEPOT: "dépôt d'espèces", RETRAIT: "retrait d'espèces", OUVERTURE: "ouverture de compte", CLOTURE: "clôture de compte",
   VIREMENT: "virement de compte à compte" };
@@ -1012,6 +1018,7 @@ const parametrage = {
     const f = fraisDe(d.fraisId);
     if (f.typeOperation === "ADHESION") throw new ErreurMetier("Un frais d'adhésion se paramètre dans l'onglet Paramétrage frais Adhésion.");
     const v = controlerValeurs(d);
+    controlerTenue(f.typeOperation, v.nature);
     if (!d.sousTypes.length) throw new ErreurMetier("Cocher au moins un sous type client.");
     for (const s of d.sousTypes) {
       if (!sousTypes().includes(s)) throw new ErreurMetier("Sous type client inconnu.");
@@ -1039,6 +1046,7 @@ const parametrage = {
     const r = ligneParam(genre === "operation" ? E.paramOperations : E.paramAdhesion, id);
     const v = controlerValeurs(d, genre === "adhesion");
     if (genre === "adhesion") controlerPart([(r as ParamAdhesion).typeMembre], v, id);
+    else controlerTenue(fraisDe(r.fraisId).typeOperation, v.nature);
     r.nature = v.nature; r.valeur = v.valeur; r.compte = v.compte; enregistrer();
   },
   /** « Modif Paramétrage frais Adhésion », Action > Modifier Catégorie (capture p. 26) : change le Type membre (registre S16-6) */
@@ -1856,6 +1864,15 @@ const vueDat = (x: DepotTerme) => { const t = E.tiers.find((y) => y.id === x.tie
 /** Terme selon la durée, comme le classement des crédits du PCCI (comptes 30 à 32) (registre S68-3) */
 const termeDat = (mois: number) => (mois <= 12 ? "Court terme" : mois <= 60 ? "Moyen terme" : "Long terme");
 /** Retenue de 20 % (loi 23/053, art. 120) : personne physique, ou groupe sans personnalité juridique ; personne morale, association, ONG : 0 (S67-3, S67-7) */
+/** Intérêt du DAT à l'échéance ou à la rupture : la part déjà passée en intérêts courus (S128, PCCI § 6.4) sort du 349, le reste va au 612 de la durée,
+ *  un trop-passé est repris au crédit du 612. Comme serveur/noyau/depots_terme.py (lignes_interet). Registre S128-6. */
+function lignesInteretDat<L>(x: DepotTerme, interet: number, ligne: (compte: string, sens: "D" | "C", montant: number) => L): L[] {
+  const courus = x.interetsCourus ?? 0, out: L[] = [];
+  if (courus) out.push(ligne("349", "D", courus));
+  if (interet > courus) out.push(ligne(compteInteretDat(x.duree), "D", interet - courus));
+  else if (courus > interet) out.push(ligne(compteInteretDat(x.duree), "C", courus - interet));
+  return out;
+}
 const retenueDue = (tiersId: number) => { const t = E.tiers.find((y) => y.id === tiersId); return t?.type === "physique" || (t?.type === "groupe" && !TYPES_GROUPE[t.typeClient]); };
 const joursEntre = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000);
 /** Rupture avant l'échéance (S67) : intérêt couru au prorata des jours (base 365), pénalité sur le montant du DAT, retenue de 20 %
@@ -1887,12 +1904,12 @@ function traiterEcheancesDat(j: Journee) {
       const ligne = (compte: string, sens: "D" | "C", montant: number, contrat?: string) => ({ compte, ...(contrat ? { contrat } : {}), sens, devise: x.devise, montant, montantCdf: cdf(montant, x.devise) });
       const lignes = [];
       if (!x.reconduction) lignes.push(ligne(p.compteLie!, "D", x.montant, `depot:${x.compteDatId}`));
-      if (x.montantInteret) lignes.push(ligne(compteInteretDat(x.duree), "D", x.montantInteret));
+      lignes.push(...lignesInteretDat(x, x.montantInteret, ligne));
       if (verse) lignes.push(ligne(em.pcci, "C", verse, `depot:${em.id}`));
       if (irc) lignes.push(ligne("433", "C", irc));
       const e = lignes.length ? poster({ journal: "OD", journeeId: j.id, libelle: `${x.reconduction ? "Reconduction" : "Échéance"} DAT n° ${x.certificat}`, piece: piece("OD"),
         saisiPar: E.session ?? 0, validePar: E.session ?? 0, lignes }) : null;
-      x.statut = x.reconduction ? "reconduit" : "echu"; x.echeance = { interet: x.montantInteret, irc, montantVerse: verse, ecritureId: e?.id ?? null };
+      x.interetsCourus = 0; x.statut = x.reconduction ? "reconduit" : "echu"; x.echeance = { interet: x.montantInteret, irc, montantVerse: verse, ecritureId: e?.id ?? null };
       if (x.reconduction) E.depotsTerme.push({ ...x, id: prochain(E.depotsTerme), cle: `${x.cle}:reconduction`, certificat: E.depotsTerme.reduce((m, y) => Math.max(m, y.certificat), 0) + 1,
         montantInteret: interetDat(x.montant, x.tauxInteret, x.duree), dateDepot: x.dateEcheance, dateEcheance: ajouterMois(x.dateEcheance, x.duree), statut: "valide",
         saisiPar: E.session ?? 0, validePar: E.session ?? null, ecritureId: null, rupture: undefined, echeance: undefined, reconduitDe: x.id });
@@ -2013,12 +2030,12 @@ const depotsTerme = {
     const p = E.produits.find((y) => y.id === x.produitId)!, em = E.comptes.find((c) => c.id === x.compteEmetteurId)!;
     const ligne = (compte: string, sens: "D" | "C", montant: number, contrat?: string) => ({ compte, ...(contrat ? { contrat } : {}), sens, devise: x.devise, montant, montantCdf: cdf(montant, x.devise) });
     const lignes = [ligne(p.compteLie!, "D", x.montant, `depot:${x.compteDatId}`)];
-    if (r.interet) lignes.push(ligne(compteInteretDat(x.duree), "D", r.interet));
+    lignes.push(...lignesInteretDat(x, r.interet, ligne));
     if (r.montantAVerser) lignes.push(ligne(em.pcci, "C", r.montantAVerser, `depot:${em.id}`));
     if (r.irc) lignes.push(ligne("433", "C", r.irc));          // PCCI 433 « Impôts et taxes collectés »
     if (r.penalite) lignes.push(ligne("7791", "C", r.penalite));   // PCCI 7791 (produits exceptionnels : dédits, pénalités)
     const e = poster({ journal: "OD", journeeId: j.id, libelle: `Rupture DAT n° ${x.certificat}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes });
-    x.statut = "rompu"; x.rupture = { ...r, dateRupture: dr, dateDemande: dd, ecritureId: e.id, rompuPar: u.id }; enregistrer(); return vueDat(x);
+    x.interetsCourus = 0; x.statut = "rompu"; x.rupture = { ...r, dateRupture: dr, dateDemande: dd, ecritureId: e.id, rompuPar: u.id }; enregistrer(); return vueDat(x);
   },
 };
 
@@ -6695,6 +6712,327 @@ function fluxPeriode(du: string, au: string) {
   tot.debut = liq(veilleEf(du)); tot.fin = liq(au);
   return { valeurs: lg.map((l, i) => (l.total ? tot[l.total]! : l.titre ? null : v[i]!)), controle: tot.debut + tot.variation === tot.fin };
 }
+// ---------- S128 Autres > Calculs ; S127 Autres > Clôture (crédit, dépôt, comptabilité) ----------
+// Mêmes règles que serveur/noyau/fin_periode.py (textes lus : Instr. BCC 37, 40 art. 8 et 12, 003 art. 12 et 14 ; loi 23/053 art. 78, 80, 120 ;
+// PCCI § 3.4, § 4.3.5, § 6.4, § 7.1, classe 8, comptes 13, 349, 433, 610, 612, 623, 720, 723). Registre S127-1 à S127-12, S128-1 à S128-9.
+const MOIS_FR = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+const SOLDES_GESTION: [string, string[]][] = [["80", ["70", "71", "72", "73", "60", "61", "62", "63"]], ["82", ["80", "74", "64", "65", "66"]], ["83", ["82", "78", "79", "68", "69"]],
+  ["84", ["76", "77", "67"]], ["85", ["83", "84"]], ["87", ["85", "86"]]];
+const monetaire = (n: string) => "345".includes(n[0]!) || ["16", "17"].includes(n.slice(0, 2));   // avoirs et dettes en monnaie (PCCI § 4.3.5, § 7.1)
+const finMois = (a: number, m: number) => `${a}-${String(m).padStart(2, "0")}-${String(new Date(Date.UTC(a, m, 0)).getUTCDate()).padStart(2, "0")}`;
+const dateEcr = (e: Ecriture) => E.journees.find((j) => j.id === e.journeeId)?.date ?? "";
+function periodeFin(p: { exercice?: unknown; mois?: unknown }) {
+  if (!/^\d+$/.test(String(p.exercice ?? ""))) throw new ErreurMetier("À remplir : Exercice.");
+  const ex = Number(p.exercice), m = Number(p.mois);
+  if (!/^\d+$/.test(String(p.mois ?? "")) || m < 1 || m > 12) throw new ErreurMetier("À remplir : Mois.");
+  return { ex, m, du: `${ex}-${String(m).padStart(2, "0")}-01`, au: finMois(ex, m) };
+}
+function jourOuvertFin() {
+  const j = journees.courante();
+  if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
+  return j;
+}
+const disponibleFin = (c: CompteDepot) => soldeContrat(`depot:${c.id}`, c.devise, "C") - bloqueDe(c) - sortiesEnAttente(c);
+function comptesFin(cond: (p: ProduitEpargne, t: Tiers) => boolean) {
+  return E.comptes.filter((c) => !c.closLe).map((c) => ({ c, p: produitDuCompte(c), t: E.tiers.find((x) => x.id === c.tiersId) }))
+    .filter((x): x is { c: CompteDepot; p: ProduitEpargne; t: Tiers } => !!x.p && !!x.t && x.p.categorie !== "DAT" && cond(x.p, x.t))
+    .sort((a, b) => a.c.numero.localeCompare(b.c.numero));
+}
+const dejaFin = (type: "tenue_compte" | "interet_dav", ex: number, m: number) => new Map(E.calculsPeriodiques.filter((x) => x.type === type && x.exercice === ex && x.mois === m).map((x) => [x.compteId, x]));
+const ligneFin = (compte: string, sens: "D" | "C", devise: Devise, montant: number, contrat?: string): Ligne => ({ compte, ...(contrat ? { contrat } : {}), sens, devise, montant, montantCdf: cdf(montant, devise) });
+function soldesDuMois(c: CompteDepot, du: string, au: string) {
+  const ref = `depot:${c.id}`, mv = new Map<string, number>();
+  let solde = 0;
+  for (const e of E.ecritures) { const d = dateEcr(e); for (const l of e.lignes) if (l.contrat === ref && l.devise === c.devise) {
+    const v = l.sens === "C" ? l.montant : -l.montant;
+    if (d < du) solde += v; else if (d <= au) mv.set(d, (mv.get(d) ?? 0) + v);
+  } }
+  const out: number[] = [];
+  for (let d = du; d <= au; d = new Date(Date.parse(`${d}T00:00:00Z`) + 86400000).toISOString().slice(0, 10)) { solde += mv.get(d) ?? 0; out.push(solde); }
+  return out;
+}
+const couruDat = (x: DepotTerme, d: string) => Math.min(Math.round(x.montant * Number(x.tauxInteret.replace(",", ".")) / 100 * Math.max(joursEntre(x.dateDepot, d < x.dateEcheance ? d : x.dateEcheance), 0) / 365), x.montantInteret);
+function dateArrete(p: { date?: string }) {
+  const j = jourOuvertFin(), d = p.date || j.date;
+  if (!DATE_ISO.test(d)) throw new ErreurMetier("À remplir : Date.");
+  if (d > j.date) throw new ErreurMetier("Date : pas après la journée ouverte.");
+  return d;
+}
+/** Écriture de clôture (réévaluation ou soldes de gestion), datée de la dernière journée de la période même comptabilisée ; équilibrée en CDF */
+function ecrireCloture(journeeId: number, libelle: string, type: "reevaluation" | "vidage", lignes: Ligne[]) {
+  if (lignes.reduce((s, x) => s + (x.sens === "D" ? x.montantCdf : -x.montantCdf), 0) !== 0) throw new ErreurMetier("Écriture déséquilibrée en CDF (PCCI § 3.2).");
+  const j = E.journees.find((x) => x.id === journeeId)!, id = prochain(E.ecritures), u = exiger();
+  E.ecritures.push(Object.freeze({ id, numero: `OD-${j.date.slice(0, 4)}-${String(id).padStart(6, "0")}`, journal: "OD", journeeId, libelle, piece: piece("OD"), saisiPar: u.id, validePar: u.id,
+    type, lignes: Object.freeze(lignes.map((x) => Object.freeze({ ...x }))) }));
+}
+const derniereJournee = (a: number, m: number | null) => E.journees.filter((j) => j.date >= `${a}-${String(m ?? 1).padStart(2, "0")}-01` && j.date <= finMois(a, m ?? 12)).sort((x, y) => y.date.localeCompare(x.date))[0];
+function positionsFin(d: string) {
+  const g = new Map<string, { compte: string; contrat: string; devise: Devise; sd: number; sc: number }>();
+  for (const e of E.ecritures) { if (dateEcr(e) > d) continue; for (const l of e.lignes) {
+    if (l.devise === "CDF" || !monetaire(l.compte)) continue;
+    const k = `${l.compte}|${l.contrat ?? ""}|${l.devise}`, x = g.get(k) ?? { compte: l.compte, contrat: l.contrat ?? "", devise: l.devise, sd: 0, sc: 0 };
+    x.sd += l.sens === "D" ? l.montant : -l.montant; x.sc += l.sens === "D" ? l.montantCdf : -l.montantCdf; g.set(k, x);
+  } }
+  return [...g.values()].filter((x) => x.sd || x.sc).sort((a, b) => a.compte.localeCompare(b.compte) || a.contrat.localeCompare(b.contrat))
+    .map((x) => { const cible = Math.round(x.sd * coursDe(x.devise, d)); return { compte: x.compte, contrat: x.contrat, devise: x.devise, soldeDevise: x.sd, valeurLivre: x.sc, valeurCours: cible, ecart: cible - x.sc }; });
+}
+function vueReevaluation(pos: ReturnType<typeof positionsFin>, d: string) {
+  const g = new Map<string, { compte: string; devise: Devise; soldeDevise: number; valeurLivre: number; valeurCours: number; ecart: number }>();
+  for (const x of pos) { const k = `${x.compte}|${x.devise}`, y = g.get(k) ?? { compte: x.compte, devise: x.devise, soldeDevise: 0, valeurLivre: 0, valeurCours: 0, ecart: 0 };
+    y.soldeDevise += x.soldeDevise; y.valeurLivre += x.valeurLivre; y.valeurCours += x.valeurCours; y.ecart += x.ecart; g.set(k, y); }
+  return { date: d, lignes: [...g.values()].filter((x) => x.ecart).sort((a, b) => a.compte.localeCompare(b.compte) || a.devise.localeCompare(b.devise)),
+    profit: pos.filter((x) => x.ecart > 0).reduce((s, x) => s + x.ecart, 0), perte: -pos.filter((x) => x.ecart < 0).reduce((s, x) => s + x.ecart, 0) };
+}
+function reevaluerFin(a: number, m: number | null) {
+  const j = derniereJournee(a, m); if (!j) return 0;
+  const pos = positionsFin(finMois(a, m ?? 12)).filter((x) => x.ecart); if (!pos.length) return 0;
+  const lg: Ligne[] = pos.map((x) => ({ compte: x.compte, ...(x.contrat ? { contrat: x.contrat } : {}), sens: x.ecart > 0 ? "D" : "C", devise: x.devise, montant: 0, montantCdf: Math.abs(x.ecart) }));
+  const gains = pos.filter((x) => x.ecart > 0).reduce((s, x) => s + x.ecart, 0), pertes = -pos.filter((x) => x.ecart < 0).reduce((s, x) => s + x.ecart, 0);
+  if (gains) lg.push({ compte: "723", sens: "C", devise: "CDF", montant: gains, montantCdf: gains });
+  if (pertes) lg.push({ compte: "623", sens: "D", devise: "CDF", montant: pertes, montantCdf: pertes });
+  ecrireCloture(j.id, `Réévaluation des comptes en devises au ${frDate(finMois(a, m ?? 12))}`, "reevaluation", lg);
+  return 1;
+}
+function soldesGestionFin(ex: number) {
+  const g = new Map<string, { numero: string; devise: Devise; sd: number; sc: number }>();
+  for (const e of E.ecritures) { if (dateEcr(e).slice(0, 4) !== String(ex)) continue; for (const l of e.lignes) {
+    if (!"678".includes(l.compte[0]!)) continue;
+    const k = `${l.compte}|${l.devise}`, x = g.get(k) ?? { numero: l.compte, devise: l.devise, sd: 0, sc: 0 };
+    x.sd += l.sens === "D" ? l.montant : -l.montant; x.sc += l.sens === "D" ? l.montantCdf : -l.montantCdf; g.set(k, x);
+  } }
+  return [...g.values()].filter((x) => x.sc).sort((a, b) => a.numero.localeCompare(b.numero) || a.devise.localeCompare(b.devise));
+}
+function resultatsFin(ex: number) {
+  const s = new Map<string, number>();
+  for (const r of soldesGestionFin(ex)) s.set(r.numero.slice(0, 2), (s.get(r.numero.slice(0, 2)) ?? 0) + r.sc);
+  const somme = (...k: string[]) => -k.reduce((t, x) => t + (s.get(x) ?? 0), 0);
+  const pnf = somme("70", "71", "72", "73", "60", "61", "62", "63", "80"), rbe = pnf + somme("74", "64", "65", "66", "82"), rce = rbe + somme("78", "79", "68", "69", "83");
+  const rex = somme("76", "77", "67", "84"), impot = -somme("86"), net = rce + rex + somme("85", "87") - impot;
+  return [{ compte: "80", libelle: "Produit net financier", montant: pnf }, { compte: "82", libelle: "Résultat brut d'exploitation", montant: rbe },
+    { compte: "83", libelle: "Résultat courant d'exploitation", montant: rce }, { compte: "84", libelle: "Résultat exceptionnel", montant: rex },
+    { compte: "85", libelle: "Résultat avant impôt", montant: rce + rex }, { compte: "86", libelle: "Impôt sur le résultat", montant: impot },
+    { compte: "87", libelle: "Résultat net de l'exercice", montant: net }];
+}
+function controlesFin(a: number, m: number | null) {
+  const debut = `${a}-01-01`, fin = finMois(a, m ?? 12), quoi = m ? "du mois" : "au 31 décembre", out: { libelle: string; ok: boolean; detail: string; bloquant: boolean }[] = [];
+  const ajouter = (libelle: string, ok: boolean, detail = "", bloquant = false) => out.push({ libelle, ok, detail: ok ? "" : detail, bloquant });
+  ajouter("Période terminée", E.journees.some((j) => j.date > fin), `Aucune journée ouverte après le ${frDate(fin)}`, true);
+  const nj = E.journees.filter((j) => j.date >= debut && j.date <= fin && j.statut !== "fermee").length;
+  ajouter("Journées comptabilisées", nj === 0, `${nj} journée(s) à comptabiliser (Comptabilité > Comptabilisation)`, true);
+  const ns = E.sessions.filter((x) => x.statut === "ouverte" && (E.journees.find((j) => j.id === x.journeeId)?.date ?? "") >= debut && (E.journees.find((j) => j.id === x.journeeId)?.date ?? "") <= fin).length;
+  ajouter("Caisses arrêtées", ns === 0, `${ns} caisse(s) encore ouverte(s)`, true);
+  const sans = E.comptesBancaires.filter((cb) => !E.rapprochements.some((r) => r.compteBancaireId === cb.id && r.au >= fin)).map((cb) => cb.numeroBancaire);
+  ajouter(`Rapprochements bancaires ${quoi}`, !sans.length, `Sans rapprochement : ${sans.join(", ")}`);
+  const att = new Map<string, number>();
+  for (const e of E.ecritures) { if (dateEcr(e) > fin) continue; for (const l of e.lignes) if (l.compte.startsWith("475") || l.compte.startsWith("37")) att.set(l.compte, (att.get(l.compte) ?? 0) + (l.sens === "D" ? l.montantCdf : -l.montantCdf)); }
+  const nonSoldes = [...att].filter(([, v]) => v).map(([k]) => k).sort();
+  ajouter("Comptes d'attente (475) et de suspens (37) soldés", !nonSoldes.length, `Non soldés : ${nonSoldes.join(", ")}`);
+  const credits = E.credits.some((c) => c.statut === "debloque" && (c.debloqueLe ?? "") <= fin);
+  ajouter(`Balance âgée et provisions ${quoi}`, !credits || E.balancesAgees.some((b) => b.date === fin), `Lancer la balance âgée au ${frDate(fin)}, puis provisionner (Crédit ; Instr. BCC 003, art. 12)`);
+  const reste = E.depotsTerme.filter((x) => x.statut === "valide" && x.dateDepot <= fin).reduce((s, x) => s + Math.max(couruDat(x, fin) - (x.interetsCourus ?? 0), 0), 0);
+  ajouter("Intérêts courus des dépôts à terme", reste === 0, "À passer : Autres > Calculs > Calcul des intérêts sur DAT");
+  return out;
+}
+function bloquantsFin(l: ReturnType<typeof controlesFin>) {
+  const b = l.filter((c) => c.bloquant && !c.ok);
+  if (b.length) throw new ErreurMetier(`Clôture impossible : ${b.map((c) => `${c.libelle} (${c.detail})`).join(" ; ")}.`);
+}
+function fermerPeriodes(a: number, jusqua: number, u: number) {
+  for (let m = 1; m <= jusqua; m++) if (!E.periodesCloturees.some((p) => p.annee === a && p.mois === m)) E.periodesCloturees.push({ annee: a, mois: m, le: new Date().toISOString().slice(0, 10), par: u });
+}
+function exerciceFin(p: { exercice?: unknown }) {
+  const e = /^\d+$/.test(String(p.exercice ?? "")) ? E.exercices.find((x) => x.annee === Number(p.exercice)) : undefined;
+  if (!e) throw new ErreurMetier("À remplir : Exercice.");
+  return e;
+}
+const finPeriode = {
+  contexte() {
+    lectureAdmin(["S127", "S128"]);
+    return { date: journees.courante()?.date ?? "", mois: MOIS_FR,
+      exercices: [...E.exercices].sort((a, b) => b.annee - a.annee).map((e) => ({ annee: e.annee, ouvert: e.ouvert, valide: e.valide, cloture: !!e.clotureLe })) };
+  },
+  apercuTenue(p: { exercice?: unknown; mois?: unknown }) {
+    lectureAdmin(["S128"]);
+    const { ex, m, au } = periodeFin(p);
+    if (!E.frais.some((f) => f.typeOperation === "TENUE_COMPTE"))
+      throw new ErreurMetier("Frais de tenue de compte : le créer d'abord dans Paramétrage > Frais (opération TENUE COMPTE), avec la référence de l'autorisation de la BCC (Instr. BCC 40, art. 12).");
+    const j = jourOuvertFin(), fait = dejaFin("tenue_compte", ex, m);
+    const lignes = comptesFin((pr, t) => pr.tenueCompte === true && t.preleverAgios).filter(({ c }) => !c.ouvertLe || c.ouvertLe <= au).map(({ c, t }) => {
+      const base = { compteId: c.id, numero: c.numero, client: titulaire(t), produit: produitDuCompte(c)?.libelle ?? "", devise: c.devise, montant: 0, compteFrais: "", etat: "" };
+      const f = fait.get(c.id);
+      if (f) return { ...base, montant: f.montant, etat: "Déjà prélevé" };
+      const pf = E.paramOperations.find((x) => x.sousType === (t.sousTypeClient ?? "") && x.nature === "Montant" && (x.valeur ?? 0) > 0 && E.frais.find((y) => y.id === x.fraisId)?.typeOperation === "TENUE_COMPTE");
+      if (!pf) return { ...base, etat: "Aucun frais paramétré pour ce sous type de client" };
+      const montant = c.devise === "CDF" ? pf.valeur! : Math.round(pf.valeur! / coursDe(c.devise, j.date));
+      return { ...base, montant, compteFrais: pf.compte || "720", etat: montant > 0 && montant <= disponibleFin(c) ? "À prélever" : "Disponible insuffisant" };
+    });
+    const total: Record<string, number> = {};
+    for (const x of lignes) if (x.etat === "À prélever") total[x.devise] = (total[x.devise] ?? 0) + x.montant;
+    return { exercice: ex, mois: m, lignes, total };
+  },
+  passerTenue(p: { exercice?: unknown; mois?: unknown }) {
+    const u = exiger(), a = finPeriode.apercuTenue(p), j = jourOuvertFin();
+    let n = 0;
+    for (const x of a.lignes) {
+      if (x.etat !== "À prélever") continue;
+      const c = E.comptes.find((y) => y.id === x.compteId)!;
+      const e = poster({ journal: "OD", journeeId: j.id, libelle: `Frais de tenue de compte ${MOIS_FR[a.mois - 1]} ${a.exercice}, compte ${x.numero}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id,
+        lignes: [ligneFin(c.pcci, "D", c.devise, x.montant, `depot:${c.id}`), ligneFin(x.compteFrais, "C", c.devise, x.montant)] });
+      E.calculsPeriodiques.push({ type: "tenue_compte", exercice: a.exercice, mois: a.mois, compteId: c.id, base: 0, montant: x.montant, retenue: 0, devise: c.devise, ecritureId: e.id, par: u.id });
+      n++;
+    }
+    if (!n) throw new ErreurMetier("Rien à prélever pour ce mois.");
+    enregistrer();
+    return { ...finPeriode.apercuTenue(p), passes: n };
+  },
+  apercuInteretsDav(p: { exercice?: unknown; mois?: unknown }) {
+    lectureAdmin(["S128"]);
+    const { ex, m, du, au } = periodeFin(p);
+    if (jourOuvertFin().date < au) throw new ErreurMetier("Le mois n'est pas fini : l'intérêt se calcule une fois le dernier jour du mois atteint.");
+    const fait = dejaFin("interet_dav", ex, m);
+    const lignes = comptesFin((pr, t) => pr.calculerInteret && Number(String(pr.tauxInteret ?? "0").replace(",", ".")) > 0 && t.calculerInteret).map(({ c, p: pr, t }) => {
+      const taux = Number(String(pr.tauxInteret).replace(",", "."));
+      const base = { compteId: c.id, numero: c.numero, client: titulaire(t), produit: pr.libelle, devise: c.devise, taux: String(pr.tauxInteret).replace(".", ","), base: 0, interet: 0, retenue: 0, net: 0, etat: "" };
+      const f = fait.get(c.id);
+      if (f) return { ...base, base: f.base, interet: f.montant, retenue: f.retenue, net: f.montant - f.retenue, etat: "Déjà servi" };
+      const soldes = soldesDuMois(c, du, au).map((s) => Math.max(s, 0)), somme = soldes.reduce((s, x) => s + x, 0);
+      const interet = Math.round(somme * taux / 100 / 365), retenue = pr.categorie === "Courant" && retenueDue(t.id) ? Math.round(interet * 20 / 100) : 0;
+      return { ...base, base: Math.round(somme / soldes.length), interet, retenue, net: interet - retenue, etat: interet > 0 ? "À servir" : "Aucun intérêt" };
+    });
+    return { exercice: ex, mois: m, lignes };
+  },
+  passerInteretsDav(p: { exercice?: unknown; mois?: unknown }) {
+    const u = exiger(), a = finPeriode.apercuInteretsDav(p), j = jourOuvertFin();
+    let n = 0;
+    for (const x of a.lignes) {
+      if (x.etat !== "À servir") continue;
+      const c = E.comptes.find((y) => y.id === x.compteId)!, lg = [ligneFin("610", "D", c.devise, x.interet)];
+      if (x.net) lg.push(ligneFin(c.pcci, "C", c.devise, x.net, `depot:${c.id}`));
+      if (x.retenue) lg.push(ligneFin("433", "C", c.devise, x.retenue));
+      const e = poster({ journal: "OD", journeeId: j.id, libelle: `Intérêts ${MOIS_FR[a.mois - 1]} ${a.exercice}, compte ${x.numero}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: lg });
+      E.calculsPeriodiques.push({ type: "interet_dav", exercice: a.exercice, mois: a.mois, compteId: c.id, base: x.base, montant: x.interet, retenue: x.retenue, devise: c.devise, ecritureId: e.id, par: u.id });
+      n++;
+    }
+    if (!n) throw new ErreurMetier("Aucun intérêt à servir pour ce mois.");
+    enregistrer();
+    return { ...finPeriode.apercuInteretsDav(p), passes: n };
+  },
+  apercuInteretsDat(p: { date?: string } = {}) {
+    lectureAdmin(["S127", "S128"]);
+    const d = dateArrete(p);
+    const lignes = E.depotsTerme.filter((x) => x.statut === "valide" && x.dateDepot <= d).sort((a, b) => a.certificat - b.certificat).map((x) => {
+      const c = couruDat(x, d), deja = x.interetsCourus ?? 0, t = E.tiers.find((y) => y.id === x.tiersId);
+      return { id: x.id, certificat: x.certificat, client: t ? titulaire(t) : "", devise: x.devise, montant: x.montant, taux: x.tauxInteret, depot: x.dateDepot, echeance: x.dateEcheance,
+        terme: x.duree <= 12 ? "Court terme" : x.duree <= 60 ? "Moyen terme" : "Long terme", interetContrat: x.montantInteret, couru: c, dejaPasse: deja, aPasser: Math.max(c - deja, 0),
+        compteCharge: compteInteretDat(x.duree), compteDette: "349" };
+    });
+    const totaux: Record<string, { couru: number; aPasser: number }> = {};
+    for (const x of lignes) { const t = (totaux[x.devise] ??= { couru: 0, aPasser: 0 }); t.couru += x.couru; t.aPasser += x.aPasser; }
+    return { date: d, lignes, totaux };
+  },
+  passerInteretsDat(p: { date?: string } = {}) {
+    const u = exiger(), a = finPeriode.apercuInteretsDat(p), j = jourOuvertFin();
+    let n = 0;
+    for (const x of a.lignes) {
+      if (!x.aPasser) continue;
+      const dt = E.depotsTerme.find((y) => y.id === x.id)!;
+      poster({ journal: "OD", journeeId: j.id, libelle: `Intérêts courus au ${frDate(a.date)}, DAT n° ${x.certificat}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id,
+        lignes: [ligneFin(x.compteCharge, "D", x.devise, x.aPasser), ligneFin("349", "C", x.devise, x.aPasser)] });
+      dt.interetsCourus = (dt.interetsCourus ?? 0) + x.aPasser; n++;
+    }
+    if (!n) throw new ErreurMetier("Aucun intérêt couru à passer à cette date.");
+    enregistrer();
+    return { ...finPeriode.apercuInteretsDat(p), passes: n };
+  },
+  interetsEtFrais(p: { exercice?: unknown; mois?: unknown }) {
+    exiger();
+    let i = 0, f = 0;
+    try { i = finPeriode.passerInteretsDav(p).passes; } catch (e) { if (!String((e as Error).message).includes("Aucun intérêt")) throw e; }
+    try { f = finPeriode.passerTenue(p).passes; } catch (e) { if (!String((e as Error).message).includes("Rien à prélever")) throw e; }
+    if (!i && !f) throw new ErreurMetier("Rien à passer pour ce mois : ni intérêt, ni frais de tenue de compte.");
+    return { interets: i, frais: f };
+  },
+  etatProvisions(p: { date?: string }) {
+    lectureAdmin(["S127", "S128"]);
+    const d = p.date ?? "";
+    if (!DATE_ISO.test(d)) throw new ErreurMetier("À remplir : Balance âgée des crédits au.");
+    const b = E.balancesAgees.find((x) => x.date === d);
+    if (!b) throw new ErreurMetier(`Aucune balance âgée au ${frDate(d)} : la lancer d'abord (Crédit > Génération de balance âgée).`);
+    const degres = fixeCredit("degres"), termes = fixeCredit("termes");
+    const g = new Map<string, { rang: number; terme: number; devise: string; compte: string; encours: number; retard: number; provisions: number }>();
+    for (const l of b.lignes) {
+      const c = E.credits.find((x) => x.id === l.creditId)!, rang = degreCible(l);
+      const t = termes.findIndex((x) => Number(x.debut) <= c.duree && c.duree <= Number(x.fin)) + 1 || termes.length;
+      const compte = comptesCredit(c, rang).capital, k = `${rang}|${t}|${l.devise}|${compte}`;
+      const y = g.get(k) ?? { rang, terme: t, devise: l.devise, compte, encours: 0, retard: 0, provisions: 0 };
+      y.encours += l.capitalRestant; y.retard += l.capitalImpaye + l.interetImpaye; y.provisions += Math.floor(l.capitalRestant * tauxProvision(rang) / 100); g.set(k, y);
+    }
+    const lignes = [...g.values()].sort((a, b2) => a.rang - b2.rang || a.terme - b2.terme || a.devise.localeCompare(b2.devise) || a.compte.localeCompare(b2.compte)).map((y) => {
+      const dg = degres[y.rang - 1]!;
+      return { degre: `${dg.libelle}${y.rang > 1 && y.rang < degres.length ? ` ${dg.debut} à ${dg.fin} jours` : ""}`, terme: String(termes[y.terme - 1]!.libelle), devise: y.devise,
+        encours: y.encours, retard: y.retard, taux: tauxProvision(y.rang), provisions: y.provisions, compteCapital: y.compte,
+        compteProvisionDebit: y.rang > 1 ? "6902" : "", compteProvisionCredit: y.rang > 1 ? COMPTE_PROVISION[y.rang]! : "" };
+    });
+    return { date: d, lignes };
+  },
+  contexteCloture() { return finPeriode.contexte(); },
+  interetsCourusDepot(p: { date?: string } = {}) { return finPeriode.apercuInteretsDat(p); },
+  provisionsCloture(p: { date?: string }) { return finPeriode.etatProvisions(p); },
+  apercuCloture(p: { exercice?: unknown; mois?: unknown }) {
+    lectureAdmin(["S127"]);
+    const e = exerciceFin(p), ex = e.annee, m = /^\d+$/.test(String(p.mois ?? "")) && Number(p.mois) >= 1 && Number(p.mois) <= 12 ? Number(p.mois) : null;
+    const periodes = MOIS_FR.map((libelle, i) => { const c = E.periodesCloturees.find((x) => x.annee === ex && x.mois === i + 1);
+      return { mois: i + 1, libelle, cloture: !!c, clotureLe: c?.le ?? "", cloturePar: c ? nomUtilisateur(c.par) : "" }; });
+    let mois = null;
+    if (m) {
+      let reevaluation: ReturnType<typeof vueReevaluation> & { erreur?: string };
+      try { reevaluation = vueReevaluation(positionsFin(finMois(ex, m)), finMois(ex, m)); }
+      catch (err) { reevaluation = { date: finMois(ex, m), lignes: [], profit: 0, perte: 0, erreur: (err as Error).message }; }
+      mois = { mois: m, libelle: MOIS_FR[m - 1]!, controles: controlesFin(ex, m), reevaluation };
+    }
+    return { exercice: ex, ouvert: e.ouvert, valide: e.valide, clotureLe: e.clotureLe ?? "", cloturePar: e.cloturePar ? nomUtilisateur(e.cloturePar) : "", periodes, mois,
+      controles: controlesFin(ex, null), soldes: resultatsFin(ex) };
+  },
+  cloturerMois(p: { exercice?: unknown; mois?: unknown }) {
+    const u = exiger(), e = exerciceFin(p), { ex, m } = periodeFin(p);
+    if (e.valide) throw new ErreurMetier("Exercice validé : il ne se clôture plus.");
+    if (m === 12) throw new ErreurMetier("Décembre se clôture avec l'exercice (Clôturer l'exercice).");
+    if (E.periodesCloturees.some((x) => x.annee === ex && x.mois === m)) throw new ErreurMetier(`${MOIS_FR[m - 1]} ${ex} est déjà clôturé.`);
+    bloquantsFin(controlesFin(ex, m));
+    reevaluerFin(ex, m); fermerPeriodes(ex, m, u.id); enregistrer();
+    return finPeriode.apercuCloture(p);
+  },
+  cloturer(p: { exercice?: unknown }) {
+    const u = exiger(), e = exerciceFin(p), ex = e.annee;
+    if (e.valide) throw new ErreurMetier("Exercice validé : il ne se clôture plus.");
+    if (e.clotureLe) throw new ErreurMetier(`L'exercice ${ex} est déjà clôturé.`);
+    bloquantsFin(controlesFin(ex, null));
+    const j = derniereJournee(ex, null);
+    if (!j) throw new ErreurMetier(`Aucune journée dans l'exercice ${ex}.`);
+    let n = reevaluerFin(ex, null);
+    for (const [cible, sources] of SOLDES_GESTION) {
+      const lg: Ligne[] = []; let net = 0;
+      for (const r of soldesGestionFin(ex)) if (sources.some((x) => r.numero.startsWith(x))) {
+        const meme = r.sd !== 0 && (r.sd > 0) === (r.sc > 0);
+        lg.push({ compte: r.numero, sens: r.sc > 0 ? "C" : "D", devise: r.devise, montant: meme ? Math.abs(r.sd) : 0, montantCdf: Math.abs(r.sc) }); net += r.sc;
+      }
+      if (!lg.length) continue;
+      if (net) lg.push({ compte: cible, sens: net > 0 ? "D" : "C", devise: "CDF", montant: Math.abs(net), montantCdf: Math.abs(net) });
+      ecrireCloture(j.id, `Clôture ${ex} : solde de gestion ${cible}`, "vidage", lg); n++;
+    }
+    const net = soldesGestionFin(ex).filter((r) => r.numero.startsWith("87")).reduce((s, r) => s + r.sc, 0);
+    if (net) {
+      const benefice = net < 0, m = Math.abs(net);
+      ecrireCloture(j.id, `Clôture ${ex} : résultat net de l'exercice`, "vidage", [{ compte: "87", sens: benefice ? "D" : "C", devise: "CDF", montant: m, montantCdf: m },
+        { compte: benefice ? "130" : "131", sens: benefice ? "C" : "D", devise: "CDF", montant: m, montantCdf: m }]);
+      n++;
+    }
+    fermerPeriodes(ex, 12, u.id);
+    e.ouvert = false; e.clotureLe = new Date().toISOString().slice(0, 10); e.cloturePar = u.id; enregistrer();
+    return { ...finPeriode.apercuCloture(p), ecritures: n };
+  },
+};
+
 const etatsFinanciers = {
   contexte() {
     lectureAdmin(["S122", "S123"]);
@@ -8088,6 +8426,7 @@ const apiLocal = {
   etatsCompta: asynchrone(etatsCompta, "etatsCompta"),
   etatsFinanciers: asynchrone(etatsFinanciers, "etatsFinanciers"),
   budgets: asynchrone(budgets, "budgets"),
+  finPeriode: asynchrone(finPeriode, "finPeriode"),
   operationsCompta: asynchrone(operationsCompta, "operationsCompta"),
   facturesFournisseurs: asynchrone(facturesFournisseurs, "facturesFournisseurs"),
   controlesCompta: asynchrone(controlesCompta, "controlesCompta"),

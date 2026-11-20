@@ -40,7 +40,7 @@ export interface Billetage {
 }
 
 /** S11 (manuel p. 20 et 21) : Nouvel Exercice et Liste Détails Journal */
-export interface Exercice { annee: number; actif: boolean; ouvert: boolean; valide: boolean }
+export interface Exercice { annee: number; actif: boolean; ouvert: boolean; valide: boolean; clotureLe?: string; cloturePar?: number }   // clôture : S127
 export interface JournalDetail { id: number; annee: number; journalId: number; actif: boolean; ouvert: boolean; compteur: number }
 
 export interface SessionCaisse {
@@ -173,7 +173,7 @@ export interface Ecriture {
   saisiPar: number;
   validePar: number;
   lignes: readonly Ligne[];
-  type?: "vidage" | "contre_passation";   // vidage : écriture de clôture qui solde les comptes de gestion (S127), écartée des états « sans vidage »
+  type?: "vidage" | "contre_passation" | "reevaluation";   // reevaluation : comptes en devises au cours de clôture (S127, PCCI § 7.1)   // vidage : écriture de clôture qui solde les comptes de gestion (S127), écartée des états « sans vidage »
   contrePasseId?: number;   // écriture d'origine qu'une annulation contre-passe (PCCI § 3.3 ; S142)
 }
 
@@ -224,6 +224,7 @@ export interface DepotTerme {   // S65, S66
   duree: number; tauxInteret: string; tauxPenalite: string; montantInteret: number; aEcheance: boolean; dateDepot: string; dateEcheance: string; observation: string;
   reconduction: boolean; statut: "saisie" | "valide" | "rompu" | "echu" | "annule" | "reconduit"; saisiPar: number; validePar: number | null; ecritureId: number | null;
   rupture?: RuptureDat & { dateRupture: string; dateDemande: string; ecritureId: number; rompuPar: number };   // S67
+  interetsCourus?: number;   // S128 : intérêts courus déjà passés au 349 (PCCI § 6.4)
   echeance?: { interet: number; irc: number; montantVerse: number; ecritureId: number | null };   // S65 : traitement à l'échéance (reconduction ou versement)
   reconduitDe?: number;   // S65 : DAT dont celui-ci est la reconduction
 }
@@ -317,7 +318,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 78;
+  version: 79;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)
@@ -402,7 +403,9 @@ export interface Etat {
   operationsBanque: OperationBanque[];   // S52
   operationsCompta: OperationCompta[];   // S109, S116, S117
   rapprochements: Rapprochement[]; lettrages: Lettrage[]; remboursementsAnnules: RemboursementAnnule[];   // S110, S119, S142
-  budgetValeurs: BudgetValeur[];   // S124, S125 : une valeur par budget, type, période, ligne budgétaire et compte
+  budgetValeurs: BudgetValeur[];
+  calculsPeriodiques: { type: "tenue_compte" | "interet_dav"; exercice: number; mois: number; compteId: number; base: number; montant: number; retenue: number; devise: Devise; ecritureId: number; par: number }[];   // S128
+  periodesCloturees: { annee: number; mois: number; le: string; par: number }[];   // S127 : clôture informatique mensuelle (PCCI § 3.4)   // S124, S125 : une valeur par budget, type, période, ligne budgétaire et compte
   commandesFournisseurs: CommandeFournisseur[]; facturesFournisseurs: FactureFournisseur[]; reglementsFournisseurs: ReglementFournisseur[];   // S107
   chequesClients: ChequeClient[];   // S59
   chequiers: Chequier[];   // S60

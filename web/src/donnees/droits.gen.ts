@@ -300,6 +300,24 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "facturesFournisseurs.viser": [
 "S113"
 ],
+"finPeriode.cloturer": [
+"S127"
+],
+"finPeriode.cloturerMois": [
+"S127"
+],
+"finPeriode.interetsEtFrais": [
+"S128"
+],
+"finPeriode.passerInteretsDat": [
+"S128"
+],
+"finPeriode.passerInteretsDav": [
+"S128"
+],
+"finPeriode.passerTenue": [
+"S128"
+],
 "garanties.ajouter": [
 "S94"
 ],

@@ -10,6 +10,7 @@ import { AnnulationReglement, Controles, HistoriqueRapprochement, Lettrage, Rapp
 import { EtatsFinanciers, IndicateursFinanciers } from "./EtatsFinanciers";
 import Financement from "./Financement";
 import { ConsultationBudget, NouveauBudget } from "./Budgets";
+import { Calculs, Clotures } from "./FinPeriode";
 import VisaBanque from "./VisaBanque";
 import { ChequesClients } from "./ChequesClients";
 import { Chequiers } from "./Chequiers";
@@ -229,6 +230,8 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S124: NouveauBudget,
   S125: ConsultationBudget,
   S126: Financement,
+  S127: Clotures,
+  S128: Calculs,
   S142: AnnulationReglement,
   S143: Tresorerie,
   S113: VisasComptables,
