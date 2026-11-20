@@ -148,3 +148,22 @@ Note : l'art. 14 associe les pondérations à des niveaux de risque dans l'ordre
 ## Exigences issues du terrain
 
 Les constats d'une mission d'octobre 2026 dans une COOPEC utilisatrice de Microfina++ (26 constats d'usage, 70 constats et recommandations) ajoutent des exigences que les textes impliquent sans les détailler : arrêté de caisse bloquant, comptes de transit soldés chaque soir, interdiction des débits au-delà du disponible, journal des modifications non désactivable, sauvegardes testées, rapprochements signés. Chacune est rattachée à son constat et à son module dans [`../analyse/microfina-ecarts.md`](../analyse/microfina-ecarts.md).
+
+### Constats d'un rapport de commissariat aux comptes (exercice 2025, lu le 20/11/2026)
+
+Rapport sur les états financiers d'une COOPEC, remis par le porteur. Seuls les constats sont repris ici, sans nom ni chiffre. Le porteur a demandé que le logiciel les comble (20/11/2026).
+
+| Constat | Réponse du logiciel | État |
+|---|---|---|
+| Réserve : pas de tableau de flux de trésorerie, exigé par le PCCI (chap. 14.3) | Tableau produit à partir du grand livre, contrôlé sur les liquidités (S122) ; il entre dans la liasse exportée | en place à l'écran ; export en cours |
+| Réserve : immobilisations sans inventaire à la clôture, écarts entre la comptabilité et le fichier, inventaire non valorisé, pas de rapprochement | Rapprochement inventaire, fichier des biens et comptes, écart affiché | à construire avec les Immobilisations (S136 à S140) |
+| Indicateurs hors norme constatés une fois l'an | Onze ratios de l'Instr. BCC 004 chaque mois, norme et respect affichés (S123, S101) ; balance âgée et provisions par tranche (S98, S99) | en place |
+| Planification et suivi budgétaires peu formalisés | Budget : définition, reconduction, suivi, consommation par centre de coût (S124 à S126) | en cours |
+| Supervision des ressources humaines et des dettes sociales | Paie : calcul et suivi des retenues et cotisations (S131 à S135) | à construire |
+| Contrôle interne peu indépendant, décisions peu tracées | Séparation des tâches imposée (saisie, visa, validation par des personnes distinctes), droits par profil, journal de sécurité, rapport des annulations | en place ; procès-verbaux des organes : « Gestion de réunion » non reprise, à décider par le porteur |
+| Caisse importante, inventaires de caisse irréguliers | Arrêté quotidien avec billetage, validé par une autre personne ; plafond de caisse | en place |
+| Rapprochements bancaires non périodiques ; monnaie électronique mal suivie | Rapprochement et historique (S110, S112) ; les comptes de monnaie électronique se tiennent et se rapprochent comme des comptes de banque | en place ; pas de liaison avec les opérateurs |
+| Pas de circularisation des soldes d'épargne | Lettres de confirmation de solde à une date | proposé, attend l'accord du porteur |
+| Comptes d'attente non régularisés | Lettrage (S119) ; état des comptes d'attente non soldés, avec leur ancienneté | lettrage en place ; état à construire avec la clôture (S127) |
+| Pertes de change élevées ; produits et pertes exceptionnels gonflés | Positions par monnaie (S122, annexe 6) ; réévaluation au cours de clôture, imputée aux comptes de change | positions en place ; réévaluation à construire avec la clôture (S127) |
+| Affectation du résultat par l'Assemblée générale | Clôture comptable, puis écriture d'affectation | à construire (S127) |
