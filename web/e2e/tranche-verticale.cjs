@@ -264,7 +264,9 @@ const OUT = process.argv[2];
   await p.getByLabel("Date d'expiration : *").fill('01012031');
   await etape('04b-renseignements');
   await p.getByRole('tab', { name: 'Autres renseignements' }).click(); await adresseKinsaku('Kinsaku', '12');
-  await p.getByLabel('Secteur d\'activité :').selectOption('TERTIAIRE'); await p.getByLabel("Type d'activité :").selectOption('Commerce'); await etape('04b2-autres-renseignements');
+  await p.getByLabel('Secteur d\'activité :').selectOption('TERTIAIRE'); await p.getByLabel("Type d'activité :").selectOption('Commerce');
+  await p.getByLabel("Pièce d'habilitation professionnelle : *").fill('Patente 0412/2026');   // A7 : loi 22/068, art. 33, al. 4
+  await etape('04b2-autres-renseignements');
   await p.getByRole('tab', { name: 'Bénéficiaires' }).click(); await p.getByRole('button', { name: '+Ajouter' }).click();
   const be = p.getByRole('dialog', { name: 'Bénéficiaire' }); await be.getByLabel('Nom : *').fill('Tshala'); await be.getByLabel('Prénom :').fill('Paul');
   await be.getByRole('button', { name: 'Ajouter', exact: true }).click(); await be.getByRole('button', { name: 'Fermer' }).click();
@@ -393,6 +395,7 @@ const OUT = process.argv[2];
   const copie = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
   await p.locator('fieldset', { hasText: "Copie de la pièce d'identité" }).locator('input[type=file]').setInputFiles({ name: 'piece.png', mimeType: 'image/png', buffer: copie });
   await p.locator('fieldset', { hasText: "Justificatif d'adresse" }).locator('input[type=file]').setInputFiles({ name: 'adresse.png', mimeType: 'image/png', buffer: copie });
+  await p.locator('fieldset', { hasText: "Pièce d'habilitation professionnelle" }).locator('input[type=file]').setInputFiles({ name: 'patente.png', mimeType: 'image/png', buffer: copie });
   await p.getByRole('img', { name: "Aperçu : Copie de la pièce d'identité" }).waitFor(); await p.getByRole('img', { name: "Aperçu : Justificatif d'adresse" }).waitFor(); await etape('06a2-copie-piece');
   await p.getByRole('button', { name: 'Valider les Modifications' }).click(); await ok();
   // Copie des statuts et du registre de l'entreprise avant son visa (loi 22/068, art. 34 ; Instr. BCC 15, art. 17 et 29 ; confrontation du 21/11/2026, E1)
