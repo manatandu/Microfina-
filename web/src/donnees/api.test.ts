@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { composerNumeroCompte, composerPiece, api, _remplacer, _etat, _poster, compteParts, enrolementVide, calculRuptureDat } from "./api";
+import { composerNumeroCompte, composerPiece, api, _remplacer, _etat, _poster, compteParts, enrolementVide, calculRuptureDat, exemplesDemo } from "./api";
 
 /** Mentions de l'identité et de la pièce exigées à l'enrôlement (Instr. BCC 15, art. 12 et 13 ; registre S37-1) */
 const IDENTITE = { prenom: "Marie", naissance: "1990-01-15", lieuNaissance: "Kinshasa", adresse: "Matete, avenue Kinsaku 12", pieceDelivreeLe: "2024-01-10",
@@ -2673,6 +2673,13 @@ describe("journée de guichet", () => {
     await api.ordres.supprimer(l.lignes[1]!.id);
   });
 
+  it("exemples du site publié (registre T40) : créés par les règles des écrans, une seule fois, comme la commande « exemples » du serveur", async () => {
+    const fait = exemplesDemo();
+    expect(fait.filter((f) => f.includes("sauté"))).toEqual([]); expect(fait.length).toBe(9);
+    expect(exemplesDemo()).toEqual([]);
+    expect(_etat().comptesBancaires.length).toBe(2);
+    expect(_etat().paieEmployes!.find((e) => e.matricule === "EMP/000/26")!.salaireBase).toBe(50955 * 26);   // classe 7 du décret 25/22, annexe 2
+  });
   it("localisation (S20, p. 30 à 32), découpage de la RDC : parents obligatoires, nom unique sous un parent, Zone, Supprimer logique", async () => {
     await connecter("jpmukendi");
     const pr = await api.localisation.lire("province");

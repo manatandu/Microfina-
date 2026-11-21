@@ -5465,9 +5465,58 @@ const exercices = {
 
 /** Démonstration publiée (VITE_DEMO_PRETE=1), demande du porteur du 07/11/2026 : au premier chargement, la démo contient des membres
  * et des comptes fictifs, enregistrés comme à l'écran (S12, S37 à S40, S45, S48, S09, S73, S74, S77). Noms et chiffres inventés. */
+/** Exemples du site publié (registre T40), les mêmes que la commande « exemples » du serveur : banque et comptes (S58), produits (S23, S27, S28),
+ * type de commande (capture p. 125 et 150), fournisseur (S103), employé (S133). Chacun passe par les règles des écrans ; un exemple refusé est sauté. */
+export function exemplesDemo(): string[] {
+  const avant = E.session, fait: string[] = [];
+  const comme = (login: string) => { E.session = E.utilisateurs.find((u) => u.login === login)!.id; };
+  const essayer = (nom: string, deja: () => boolean, faire: () => void) => {
+    if (deja()) return;
+    try { faire(); fait.push(nom); } catch (e) { if (e instanceof ErreurMetier) fait.push(`${nom} : sauté (${e.message})`); else throw e; }
+  };
+  try {
+    comme("jpmukendi");
+    essayer("banque de démonstration", () => E.banques.some((b) => b.code === "DEMO"),
+      () => banques.enregistrerBanque({ code: "DEMO", libelle: "Banque de démonstration", compteLiaison: "5601", adresse: "Kinshasa, Gombe" }));
+    const banque = E.banques.find((b) => b.code === "DEMO")?.id;
+    const journal = [...E.journaux].filter((j) => j.type === "banque" && j.actif && !j.supprime).sort((x, y) => x.code.localeCompare(y.code))[0]?.id ?? 0;
+    for (const [compte, numero, devise] of [["56010011", "DEMO-USD-0001", "USD"], ["56010012", "DEMO-CDF-0001", "CDF"]] as const)
+      essayer(`compte bancaire ${compte}`, () => !banque || E.comptesBancaires.some((c) => c.compte === compte),
+        () => banques.enregistrerCompte({ banqueId: banque!, compte, numeroBancaire: numero, devise, journalId: journal, contactNom: "Service clientèle", contactNomComplet: "", contactTelephone: "" }));
+    essayer("produit de crédit L001", () => E.produitsCredit.some((x) => x.numero === "L001" || x.nom === "Crédit commerce"),
+      () => produitsCredit.enregistrer({ typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe",
+        tauxInteret: "2,5", tauxDiffere: 2, montantMin: 100000, montantMax: 5000000, dureeMin: 3, dureeMax: 12, differeMin: 0, differeMax: 2, interetMin: 1, interetMax: 4,
+        clientPhysique: true, periodicite: "M", modeDiffere: "Réparti", paiementInteret: "Normal", interetAnticipation: false, ageMax: 65, epargneNature: "Taux",
+        epargneValeur: 10, categorie: "Prêt commercial", penaliteAnticipation: 50, frais: [{ typeFrais: "Frais de dossier", nature: "Taux", valeur: 1, compte: "7152" }] }));
+    const EPARGNE = { famille: "EPARGNE", devise: "CDF", soldeMinimum: 0, nbMaxComptes: 1, operer: true, depotCheque: false, caution: false, nantissement: false,
+      calculerInteret: true, soldeNegatif: false, repartitionGroupe: false, actif: true };
+    for (const [numero, code, libelle, onglet, compte, extra] of [[6, "DAT", "Dépôt à terme", "DAT", "340", {}], [7, "PE", "Plan épargne scolaire", "Epargne", "354", { tauxInteret: "6" }]] as const)
+      essayer(`produit ${libelle}`, () => E.produits.some((x) => x.code === code), () => {
+        produitsEpargne.enregistrer({ ...EPARGNE, numero, code, libelle, ...extra });
+        parametrageEpargne.enregistrer({ onglet, produitId: E.produits.find((x) => x.code === code)!.id, compteLie: compte });
+      });
+    essayer("type de commande ACHA_M", () => E.typesCommande.some((t) => t.code === "ACHA_M"), () => facture.enregistrerType({ code: "ACHA_M", libelle: "Achat de matériel" }));
+    essayer("fournisseur", () => valeursRef("tiers", "tiers").some((t) => t.typeTiers === "FOURNISSEUR"),
+      () => refTiers.enregistrer("tiers", { typeTiers: "FOURNISSEUR", intitule: "Papeterie du Fleuve", compte: "400" }));
+    comme("plumbala");
+    essayer("employé EMP/000/26", () => (E.paieEmployes ?? []).length > 0, () => {
+      const id = (page: string, libelle: string) => valeursRef("paie", page).find((l) => l.libelle === libelle)?.id ?? null;
+      const cat = id("categories", "Travailleur qualifié"), cla = id("classes", "7"), ech = id("echelons", "1");
+      const g = valeursRef("paie", "grilles_salariales").find((x) => x.categorieId === cat && x.classeId === cla && x.echelonId === ech);
+      const grille = valeursRef("paie_structure", "grilles").find((x) => x.libelle === "salaire de base")?.id;
+      paie.enregistrer({ matricule: "EMP/000/26", sexe: "Masculin", civilite: "Monsieur", nom: "KABONGO", prenoms: "Didier", dateNaissance: "1988-03-14",
+        dateEmbauche: "2023-01-02", situationMatrimoniale: "Marié(e)", categorieId: cat, classeId: cla, echelonId: ech, salairePredefini: "Régime catégoriel",
+        salaireBase: g ? Number(g.salaire) : null, grilles: grille ? [grille] : [], poste: "Comptable", fonction: "Comptabilité",
+        typeContrat: "Contrat à durée indéterminée", dateDebutContrat: "2023-01-02", personnes: [] });
+    });
+  } finally { E.session = avant; enregistrer(); }
+  return fait;
+}
+
 export function preparerDemo() {
   if (!neuf) return;
   neuf = false;
+  exemplesDemo();
   const avant = E.session;
   const comme = (login: string) => { E.session = E.utilisateurs.find((u) => u.login === login)!.id; };
   const cle = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);

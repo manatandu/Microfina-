@@ -1322,6 +1322,19 @@ def test_graine_complete_une_base_existante():
     assert valeur("select count(*) from localite where niveau = 'ville' and nom like %s", ("%(territoire)",)) == 10
 
 
+def test_exemples_du_site_publie():
+    """Exemples du site publié (registre T40) : créés par les règles des écrans, une seule fois ; un exemple refusé est sauté sans défaire les autres"""
+    from noyau.bd import valeur
+    from noyau.management.commands.exemples import exemples
+    from noyau.management.commands.graine import completer
+    fait = exemples()
+    assert len(fait) == 9 and not any("sauté" in f for f in fait), fait
+    assert exemples() == []
+    assert valeur("select count(*) from compte_bancaire") == 2 and valeur("select nom from produit_credit") == "Crédit commerce"
+    assert valeur("select salaire_base from paie_employe where matricule = 'EMP/000/26'") == 50955 * 26        # classe 7 du décret 25/22, annexe 2
+    assert completer(valeur("select min(id) from institution")) == 0
+
+
 def test_localisation(clients):
     """S20 (p. 30 à 32), découpage de la RDC (registre S20-1 à S20-4) : parents obligatoires, nom unique sous un parent, Zone, Supprimer logique"""
     chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")

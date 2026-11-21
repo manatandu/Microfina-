@@ -89,7 +89,7 @@ jobs:
           docker build -f serveur/Dockerfile -t "$IMAGE" .
           docker push "$IMAGE"
           echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
-      - name: Base de données (migrations, graine, premier mot de passe)
+      - name: Base de données (migrations, graine, exemples, premier mot de passe)
         if: steps.cfg.outputs.pret == 'oui'
         env:
           PROJET: ${{ steps.cfg.outputs.projet }}
@@ -101,7 +101,7 @@ jobs:
             --service-account "likelemba-run@$PROJET.iam.gserviceaccount.com" \
             --set-env-vars "^@^LIKELEMBA_HOTES=.run.app@LIKELEMBA_COOKIE=__session@PG_BASE=$BD_BASE@PG_UTILISATEUR=$BD_UTILISATEUR@PG_HOTE=$BD_HOTE@PG_PORT=5432@PG_SSL=require" \
             --set-secrets "LIKELEMBA_SECRET=likelemba-secret:latest,PG_MOT_DE_PASSE=likelemba-bd-mdp:latest,LIKELEMBA_MOT_DE_PASSE=likelemba-mdp-initial:latest" \
-            --command sh --args="-c,python manage.py migrate --noinput && python manage.py graine && python manage.py definir_mot_de_passe jpmukendi --si-absent" \
+            --command sh --args="-c,python manage.py migrate --noinput && python manage.py graine && python manage.py exemples && python manage.py definir_mot_de_passe jpmukendi --si-absent" \
             --max-retries 0 --task-timeout 600 \
             --execute-now --wait
       - name: Journal de la tâche (si elle a échoué)
