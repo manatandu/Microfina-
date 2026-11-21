@@ -51,10 +51,11 @@ Sources, à ouvrir dans cet ordre :
 | Instructions de la BCC (version en vigueur, index des modifications) | `instructions-bcc-rdc` |
 | PCCI, loi 11/020, loi 002/2002 (COOPEC), loi 22/069, Instructions BCC historiques | `reglementation-microfinance-rdc` |
 | Blanchiment, CENAREF, loi 22/068 modifiée par la loi 25/048 | `cenaref-blanchiment-capitaux-rdc` |
-| Acte uniforme OHADA sur les sociétés coopératives | `auscoop-acte-uniforme` |
 | Obligations, paiements, imputation | `code-civil-livre-iii-rdc` |
 
-Chaque écran et chaque règle du code est **confronté aux Instructions de la BCC et aux lois des institutions** (loi 22/069, loi 11/020, loi 002/2002, AUSCOOP, PCCI) avant d'être livré (demande du porteur, 13/11/2026). La réponse dit ce qui a été lu et ce qui en sort, même quand aucun texte ne parle de l'écran. La matrice `docs/reglementaire/matrice-exigences.md` garde la trace de ce qui a été lu.
+Les sources sont les lois internes et les Instructions de la BCC. Les Actes uniformes OHADA ne servent pas de source (décision du porteur, 21/11/2026, registre T73).
+
+Chaque écran et chaque règle du code est **confronté aux Instructions de la BCC et aux lois des institutions** (loi 22/069, loi 11/020, loi 002/2002, PCCI) avant d'être livré (demande du porteur, 13/11/2026). La réponse dit ce qui a été lu et ce qui en sort, même quand aucun texte ne parle de l'écran. La matrice `docs/reglementaire/matrice-exigences.md` garde la trace de ce qui a été lu.
 
 ## 2. Design
 

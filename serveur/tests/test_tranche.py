@@ -3435,7 +3435,7 @@ def test_rapports_epargne(clients, journee):
 
 
 def test_registre_des_membres(clients, journee):
-    """Écart E12 : AUSCOOP, art. 9 ; loi 002/2002, art. 67"""
+    """Écart E12 : loi 002/2002, art. 67"""
     from noyau.bd import executer
     chef, agent, caisse = clients["chef"], clients["agent"], clients["caisse"]
     m = chef.get("/api/clients/registre-membres", **H).json()["membres"]
@@ -3526,18 +3526,14 @@ def test_client_mineur(clients, journee):
 
 
 def test_parts_a_rembourser_et_auxiliaires(clients, journee):
-    """Écarts E19 (AUSCOOP, art. 11) et E20 (loi 002/2002, art. 23)"""
+    """Écarts E19 (loi 002/2002, art. 27) et E20 (loi 002/2002, art. 23)"""
     from noyau.bd import executer
     agent, chef = clients["agent"], clients["chef"]
     executer("update tiers set statut = 'resilie', resilie_le = '2025-10-01' where numero = '0412-000320'")
     r = chef.get("/api/clients/registre-membres", **H).json()["aRembourser"]
     k = next(x for x in r if x["numero"] == "0412-000320")
-    assert (k["parts"], k["sortieLe"], k["echeance"], k["enRetard"]) == (1, "2025-10-01", "2026-10-01", True)
-    # P10 : report à deux ans par décision motivée du Conseil d'administration (AUSCOOP, art. 11, al. 5)
-    assert "décision motivée" in chef.post(f"/api/clients/registre-membres/{k['tiersId']}/report", {"reference": ""}, **H).json()["message"]
-    r = chef.post(f"/api/clients/registre-membres/{k['tiersId']}/report", {"reference": "CA du 20/09/2026, résolution 4 : trésorerie tendue", "date": "2026-09-20"}, **H).json()
-    k = next(x for x in r["aRembourser"] if x["numero"] == "0412-000320")
-    assert (k["echeance"], k["enRetard"], k["reportReference"]) == ("2027-10-01", False, "CA du 20/09/2026, résolution 4 : trésorerie tendue")
+    assert (k["parts"], k["sortieLe"], "echeance" in k) == (1, "2025-10-01", False)   # le délai suit les statuts (loi 002/2002, art. 22, 5°)
+    assert chef.post(f"/api/clients/registre-membres/{k['tiersId']}/report", {"reference": "x", "date": "2026-09-20"}, **H).status_code in (404, 405)
     m = agent.post("/api/tiers", {**FICHE, "nom": "Tshibola", "prenom": "Junior", "naissance": "2011-05-01", "pieceType": "Passeport", "pieceNumero": "OP-100009",
                                   "pieceExpire": "2031-01-01", "adresse": "Matete"}, **H).json()
     assert "statuts le prévoient" in chef.post(f"/api/tiers/{m['id']}/visa", {"auxiliaire": True}, **H).json()["message"]

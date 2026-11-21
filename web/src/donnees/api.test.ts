@@ -500,7 +500,7 @@ describe("journée de guichet", () => {
     const g = graine(); _remplacer({ ...g, tiers: g.tiers.map((t) => t.numero === "0412-000320" ? { ...t, statut: "resilie" as const, resilieLe: "2025-10-01" } : t) });
     await journeeOuverte(); await connecter("jpmukendi");
     const k = (await api.registreMembres.membres()).aRembourser.find((x) => x.numero === "0412-000320")!;
-    expect([k.parts, k.sortieLe, k.echeance, k.enRetard]).toEqual([1, "2025-10-01", "2026-10-01", true]);
+    expect([k.parts, k.sortieLe, "echeance" in k]).toEqual([1, "2025-10-01", false]);
     await connecter("bkasongo");
     const m = await api.tiers.creer({ ...enrolementVide("2026-11-05"), ...IDENTITE, produitCode: "EAV-CDF", nom: "Tshibola", prenom: "Junior", naissance: "2011-05-01", pieceType: "Passeport", pieceNumero: "OP-100009", pieceExpire: "2031-01-01", adresse: "Matete" });
     await connecter("jpmukendi");

@@ -2847,11 +2847,6 @@ def inactifs_lettre_imprimer(request, cid: int):
     return ina.lettre(u(request), cid)
 
 
-@api.post("/clients/registre-membres/{tid}/report")
-def registre_membres_report(request, tid: int, corps: dict = Body(...)):
-    return rmb.reporter(u(request), tid, corps)
-
-
 @api.get("/clients/registre-membres")
 def registre_membres(request):
     return rmb.membres(u(request))

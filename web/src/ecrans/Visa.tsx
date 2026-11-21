@@ -87,8 +87,6 @@ export function VisaClient() {
               <Champ libelle="Émancipation : référence de la décision du Tribunal pour enfants">{(p) => <input {...p} className="saisie code" value={mineur.emancipationReference} onChange={(e) => setMineur({ ...mineur, emancipationReference: e.target.value })} />}</Champ>
             </fieldset>}
             {t && vise && (t.representantLegal || t.emancipationReference) && <p className="aide">{t.emancipationReference ? `Émancipé : ${t.emancipationReference}` : `Représentant légal : ${t.representantLegal}`}</p>}
-            {/* A15 : l'adhésion se fixe au plus tard trois mois après la demande (AUSCOOP, art. 10, al. 2) */}
-            {t && !vise && aDesParts(ctx.institution) && t.dateDemande && (dateVisa || new Date().toISOString().slice(0, 10)) > plusTroisMois(t.dateDemande) && <p className="aide" role="status">Demande du {fr(t.dateDemande)} : plus de trois mois. L'adhésion se fixe au plus tard trois mois après la demande (AUSCOOP, art. 10, al. 2).</p>}
             {refus !== null && <fieldset className="pile cadre-champs">
               <legend>Refus de la demande</legend>
               <Champ libelle="Motif du refus : *">{(p) => <input {...p} className="saisie" value={refus} onChange={(e) => setRefus(e.target.value)} />}</Champ>
@@ -563,7 +561,7 @@ export function ResiliationClient() {
               ? <Lecture {...p} value={t!.motifDepart} />
               : <select {...p} className="saisie" required value={motif} onChange={(e) => setMotif(e.target.value)}><option value=""></option>
                   {ctx.motifsDepart.map((m) => <option key={m}>{m}</option>)}</select>}</Champ>
-            {/* P1 (confrontation du 21/11/2026) : exclusion par le Conseil d'administration (loi 002/2002, art. 25 ; AUSCOOP, art. 13 et 14) */}
+            {/* P1 (confrontation du 21/11/2026) : exclusion par le Conseil d'administration (loi 002/2002, art. 25) */}
             {resilie ? t?.exclusionReference && <p>Exclusion : décision {t.exclusionReference} du {fr(t.exclusionLe ?? "")}</p>
               : <label className="case sans-impression"><input type="checkbox" checked={!!exclusion} onChange={(e) => setExclusion(e.target.checked ? { reference: "", date: "" } : null)} /><span>Exclusion par le Conseil d'administration</span></label>}
             {!resilie && exclusion && <>
@@ -674,12 +672,6 @@ function Capture({ ouverte, fermer, prise }: { ouverte: boolean; fermer: () => v
 }
 
 /** S49 : Client > Gestion des photos et signatures (manuel Microfina++, p. 58) */
-/** Date de la demande plus trois mois (AUSCOOP, art. 10, al. 2), au format AAAA-MM-JJ */
-function plusTroisMois(d: string) {
-  const [a, m, j] = d.split("-").map(Number) as [number, number, number];
-  const x = new Date(Date.UTC(a, m - 1 + 3, 1)), fin = new Date(Date.UTC(x.getUTCFullYear(), x.getUTCMonth() + 1, 0)).getUTCDate();
-  return `${x.getUTCFullYear()}-${String(x.getUTCMonth() + 1).padStart(2, "0")}-${String(Math.min(j, fin)).padStart(2, "0")}`;
-}
 
 export function PhotosSignatures() {
   const [t, setT] = useState<Tiers | null>(null);

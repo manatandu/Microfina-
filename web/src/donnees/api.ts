@@ -927,7 +927,7 @@ const tiers = {
       if (estCoopec() && !emancipationReference && !auxiliaire) throw new ErreurMetier(`Mineur (moins de ${MAJORITE} ans le ${fr(dateVisa)}) : il n'est pas capable de contracter et ne peut être admis comme membre (loi 002/2002, art. 22 ; Code de la famille, art. 219). Émancipé : référence de la décision du Tribunal pour enfants (art. 289 et 292) ; ou membre auxiliaire, si les statuts le prévoient (loi 002/2002, art. 23).`);
       if (!emancipationReference && !representantLegal) throw new ErreurMetier("Mineur : nom, qualité (père, mère ou tuteur) et pièce du représentant légal, ou référence de l'émancipation (Code de la famille, art. 219, 221 et 289 ; Instr. BCC 15, art. 12).");
     } else { emancipationReference = ""; representantLegal = ""; }
-    // Écart E05 : COOPEC, admission par le Conseil d'Administration (loi 002/2002, art. 22, 6° ; AUSCOOP, art. 10), ou par sa délégation (Info société)
+    // Écart E05 : COOPEC, admission par le Conseil d'Administration (loi 002/2002, art. 22, 6°), ou par sa délégation (Info société)
     let admissionLe = v.admissionLe?.trim() || "", admissionReference = v.admissionReference?.trim() || "";
     if (estCoopec()) {
       const delegation = E.institution.delegationAdmission?.trim();
@@ -1053,9 +1053,9 @@ const tiers = {
     controlerApurement(id);
     const j = journees.courante();
     const jourResil = j && j.statut === "ouverte" ? j.date : new Date().toISOString().slice(0, 10);
-    // P1 : exclusion, référence et date de la décision du Conseil d'administration (loi 002/2002, art. 25 ; AUSCOOP, art. 14). Comme le serveur.
+    // P1 : exclusion, référence et date de la décision du Conseil d'administration (loi 002/2002, art. 25). Comme le serveur.
     if (d.exclusion && (!d.exclusion.reference?.trim() || !DATE.test(d.exclusion.date ?? "") || d.exclusion.date > jourResil))
-      throw new ErreurMetier("Exclusion : référence et date de la décision du Conseil d'administration (loi 002/2002, art. 25 ; AUSCOOP, art. 14).");
+      throw new ErreurMetier("Exclusion : référence et date de la décision du Conseil d'administration (loi 002/2002, art. 25).");
     Object.assign(t, { statut: "resilie", motifDepart: motif, resilieLe: jourResil, ...(d.exclusion ? { exclusionReference: d.exclusion.reference.trim(), exclusionLe: d.exclusion.date } : {}) });
     enregistrer(); return t;
   },
@@ -4929,11 +4929,11 @@ const conditionsBanque = {
     return { entete: enteteDocument(), date: journees.courante()?.date ?? "", epargne, credit, frais, retenueInterets: 20 };   // loi 23/053, art. 120 (registre S67-3)
   },
 };
-// Écart E12 : registre des membres (AUSCOOP, art. 9 ; loi 002/2002, art. 67). Mêmes règles que noyau/registre_membres.py.
+// Écart E12 : registre des membres (loi 002/2002, art. 67 et 68 ; contenu fixé par le règlement intérieur). Mêmes règles que noyau/registre_membres.py.
 const registreMembres = {
   membres() {
     lectureAdmin(["SC04"]);
-    if (!estCoopec()) throw new ErreurMetier("Registre des membres : propre aux coopératives (AUSCOOP, art. 9 ; loi 002/2002, art. 67).");
+    if (!estCoopec()) throw new ErreurMetier("Registre des membres : propre aux coopératives (loi 002/2002, art. 67).");
     const admis = E.tiers.filter((t) => t.dateVisa).sort((a, b) => (a.admissionLe || a.dateVisa).localeCompare(b.admissionLe || b.dateVisa) || a.numero.localeCompare(b.numero));
     const membres = admis.map((t, i) => {
       const c = ficheClient(t.id), parts = Math.round(soldeContrat(`parts:${t.id}`, "CDF", "C") / valeurPart());
@@ -4941,25 +4941,11 @@ const registreMembres = {
         piece: [c.pieceType, c.pieceNumero].filter(Boolean).join(" n° "), adresse: c.adresse, profession: c.profession, partsSouscrites: parts, partsLiberees: parts,
         admissionLe: t.admissionLe || t.dateVisa, sortieLe: t.resilieLe || "", categorie: t.auxiliaire ? "Auxiliaire" : "Membre" };
     });
-    // Écart E19 : parts à rembourser aux membres partis, dans l'année qui suit la prise d'effet du retrait (AUSCOOP, art. 11 ; loi 002/2002, art. 27)
-    const jour = jourConformite(), vp = valeurPart();
-    const aRembourser = membres.filter((x) => x.sortieLe && x.partsLiberees > 0).map((x) => {
-      // P10 : un an, ou deux ans sur décision motivée du Conseil d'administration (AUSCOOP, art. 11, al. 3 et 5)
-      const rep = E.tiers.find((t) => t.id === x.tiersId)?.reportPartsReference ?? "", n = rep ? 2 : 1;
-      const echeance = `${Number(x.sortieLe.slice(0, 4)) + n}${x.sortieLe.slice(4) === "-02-29" ? "-02-28" : x.sortieLe.slice(4)}`;
-      return { tiersId: x.tiersId, numero: x.numero, nom: [x.nom, x.prenom].filter(Boolean).join(" "), sortieLe: x.sortieLe, parts: x.partsLiberees, montant: Math.round(x.partsLiberees * vp), echeance,
-        enRetard: jour > echeance, reportReference: rep };
-    });
+    // Écart E19 : parts à rembourser aux membres partis (loi 002/2002, art. 27) ; le délai suit les statuts (art. 22, 5°), le logiciel n'en impose pas
+    const vp = valeurPart();
+    const aRembourser = membres.filter((x) => x.sortieLe && x.partsLiberees > 0).map((x) => ({ tiersId: x.tiersId, numero: x.numero, nom: [x.nom, x.prenom].filter(Boolean).join(" "),
+      sortieLe: x.sortieLe, parts: x.partsLiberees, montant: Math.round(x.partsLiberees * vp) }));
     return { entete: enteteDocument(), membres, aRembourser };
-  },
-  /** P10 : décision motivée qui porte le délai à deux ans (AUSCOOP, art. 11, al. 5). Comme le serveur (registre_membres.reporter). */
-  reporter(tid: number, d: { reference?: string; date?: string }) {
-    exiger();
-    const t = E.tiers.find((x) => x.id === tid);
-    if (!t || t.statut !== "resilie") throw new ErreurMetier("Seules les parts d'un membre parti se reportent.");
-    if (t.reportPartsReference) throw new ErreurMetier("Report déjà décidé.");
-    if (!(d.reference ?? "").trim() || !DATE.test(d.date ?? "")) throw new ErreurMetier("À remplir : référence et date de la décision motivée du Conseil d'administration (AUSCOOP, art. 11, al. 5).");
-    Object.assign(t, { reportPartsReference: d.reference!.trim(), reportPartsLe: d.date }); enregistrer(); return registreMembres.membres();
   },
 };
 // Écart E11 : comptes inactifs (loi 22/069, titre III, chap. Ier : dix ans sans opération ni réclamation ; lettre six mois avant ; fonds versés à la BCC). Mêmes règles que noyau/inactifs.py.

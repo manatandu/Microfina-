@@ -238,3 +238,7 @@ Rapport sur les états financiers d'une COOPEC, remis par le porteur. Seuls les 
 | Loi 22/068, art. 57, 58, 61 | Donneur d'ordre et bénéficiaire du virement | S53, S116 | Champs exigés (T58) | lu |
 | Instr. 15, art. 31, 36 | Surveillance de tous les comptes et opérations | SC01 | Crédits et parts, fractionnement (T59) | lu |
 | Loi 22/068, art. 92 | S'abstenir de l'opération soupçonnée jusqu'à la déclaration | SC01 | Mise en attente des sorties de fonds (T60) | lu |
+
+## Sources retenues (21/11/2026)
+
+Décision du porteur : les lois internes et les Instructions de la BCC seulement. Les lignes qui citent l'Acte uniforme OHADA sur les coopératives (AUSCOOP) ne sont plus des exigences ; les règles qui n'avaient que lui pour base sont retirées (registre T63, T68, T73).

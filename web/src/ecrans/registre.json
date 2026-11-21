@@ -525,7 +525,7 @@
   "id": "SC04",
   "nom": "Registre des membres",
   "acces": "Client > Registre des membres",
-  "but": "Registre des membres par ordre chronologique : numéro d'adhésion, nom, pièce, adresse, profession, parts souscrites et libérées (écart E12 ; AUSCOOP, art. 9 ; loi 002/2002, art. 67)",
+  "but": "Registre des membres par ordre chronologique : numéro d'adhésion, nom, pièce, adresse, profession, parts souscrites et libérées (écart E12 ; loi 002/2002, art. 67)",
   "module": "clients",
   "priorite": "must",
   "chemin": "/clients/sc04"

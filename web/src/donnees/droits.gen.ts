@@ -706,9 +706,6 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "refTiers.supprimer": [
 "S103"
 ],
-"registreMembres.reporter": [
-"SC04"
-],
 "releves.editer": [
 "S64"
 ],

@@ -1231,7 +1231,7 @@ def viser_tiers(u: dict, tid: int, d: dict | None = None) -> dict:
                                "(Code de la famille, art. 219, 221 et 289 ; Instr. BCC 15, art. 12).")
     else:
         eman = rep = None
-    # Écart E05 : COOPEC, admission par le Conseil d'Administration (loi 002/2002, art. 22, 6° ; AUSCOOP, art. 10), ou par sa délégation (Info société)
+    # Écart E05 : COOPEC, admission par le Conseil d'Administration (loi 002/2002, art. 22, 6°), ou par sa délégation (Info société)
     adm_le, adm_ref = texte("admissionLe") or None, texte("admissionReference") or None
     if est_coopec(u):
         delegation = valeur("select delegation_admission from institution where id = %s", (u["institution_id"],))
@@ -1600,13 +1600,13 @@ def resilier_tiers(u: dict, tid: int, d: dict) -> dict:
     controler_apurement(tid, est_coopec(u))
     j = journee_courante(u)
     jour = j["date"] if j and j["statut"] == "ouverte" else date.today().isoformat()
-    # P1 : une exclusion porte la référence et la date de la décision du Conseil d'administration (loi 002/2002, art. 25 ; AUSCOOP, art. 13 et 14)
+    # P1 : une exclusion porte la référence et la date de la décision du Conseil d'administration (loi 002/2002, art. 25)
     excl = d.get("exclusion") if isinstance(d, dict) and isinstance(d.get("exclusion"), dict) else None
     excl_ref = excl_le = None
     if excl is not None:
         excl_ref, excl_le = str(excl.get("reference") or "").strip(), str(excl.get("date") or "").strip()
         if not excl_ref or not re.match(r"^\d{4}-\d{2}-\d{2}$", excl_le) or excl_le > str(jour):
-            raise ErreurMetier("Exclusion : référence et date de la décision du Conseil d'administration (loi 002/2002, art. 25 ; AUSCOOP, art. 14).")
+            raise ErreurMetier("Exclusion : référence et date de la décision du Conseil d'administration (loi 002/2002, art. 25).")
     executer("update tiers set statut = 'resilie', motif_depart = %s, resilie_le = %s, resilie_par = %s, exclusion_reference = %s, exclusion_le = %s where id = %s",
              (motif, jour, u["id"], excl_ref, excl_le, tid))
     return lire_tiers(tid)

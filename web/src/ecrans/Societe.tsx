@@ -102,7 +102,7 @@ function InformationSociete() {
       <Textes sources={["Manuel Microfina++, p. 42 : « Information société, Agence et zone, puis renseigner successivement sans omettre les champs obligatoires avec la possibilité d'intégrer le logo de l'institution » ; capture : Code Institution*, Dénomination*, Type base*, Description, Directeur, N° Agrément, Journée Maxi ouvert*, Compte Hors Bilan 1, I.F.U (NIF en RDC, demande du porteur du 13/11/2026), Pays, Ville, Quartier*, Rue / Maison (Commune entre Ville et Quartier : demande du porteur du 13/11/2026, découpage de S20), email, BP, Telephone fixe, Adresse, Hors Bilan 2, Logo (Choisir, APERCU LOGO), Liste institution",
         "Loi 002/2002 (COOPEC, structures faîtières) ; loi 11/020, art. 11 (sociétés de microfinance, entreprises de micro-crédit) : Type base",
         "PCCI § 9 : classe 0, comptes de hors bilan",
-        "Loi 002/2002, art. 22, 6° ; AUSCOOP, art. 10 : le Conseil d'Administration admet les membres ; sa décision de déléguer l'admission au visa se note ici (écart E05)"]} />
+        "Loi 002/2002, art. 22, 6° : le Conseil d'Administration admet les membres ; sa décision de déléguer l'admission au visa se note ici (écart E05)"]} />
       <Fiche titre="Liste institution" ouverte={liste} fermer={() => setListe(false)}>
         <table className="grille">
           <thead><tr><th scope="col">Code Institution</th><th scope="col">Dénomination</th></tr></thead>

@@ -744,7 +744,7 @@ const OUT = process.argv[2];
   await fd.getByText(/Levé le/).waitFor(); await fd.getByRole('button', { name: 'Fermer' }).click();
   // Comptes inactifs (écart E11 ; loi 22/069, titre III, chap. Ier) : aucun compte n'approche des dix ans dans la graine
   await aller('/epargne/se01'); await p.getByRole('heading', { name: 'Comptes inactifs' }).waitFor(); await p.getByRole('cell', { name: 'No records found.' }).waitFor(); await etape('10o-comptes-inactifs');
-  // Registre des membres (écart E12 ; AUSCOOP, art. 9) : ordre chronologique, parts souscrites et libérées
+  // Registre des membres (écart E12 ; loi 002/2002, art. 67) : ordre chronologique, parts souscrites et libérées
   await aller('/clients/sc04'); await p.getByRole('heading', { name: 'Registre des membres' }).waitFor(); await p.getByRole('cell', { name: '0412-000318', exact: true }).waitFor(); await etape('10p-registre-membres');
   // Conditions de banque (écart E15 ; Instr. BCC 40, art. 2 à 6) : état à afficher chaque trimestre et à transmettre à la BCC
   await aller('/parametrage/sp01'); await p.getByRole('article', { name: 'Conditions de banque imprimées' }).waitFor(); await etape('10q-conditions-banque');
