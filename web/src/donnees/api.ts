@@ -1997,6 +1997,7 @@ const comptesEpargne = {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new ErreurMetier("À remplir : Date création.");
     if (date > j.date) throw new ErreurMetier("La date de création ne peut pas dépasser la journée ouverte.");
     const a = preparerOuverture(d.tiersId, d.produitId);
+    controlerOuverture(a.t.id);   // P4 : Instr. BCC 13, art. 7
     if (a.t.dateVisa && date < a.t.dateVisa) throw new ErreurMetier("La date de création précède la date de visa du client.");
     const c: CompteDepot = { id: prochain(E.comptes), tiersId: a.t.id, numero: a.numero, intitule: a.p.libelle, pcci: compteDuProduit(a.p), devise: a.p.devise, bloque: 0,
       produitId: a.p.id, ouvertLe: date, cle: d.cle };
@@ -2856,6 +2857,7 @@ const guichet = {
     if (!t) throw new ErreurMetier("Client introuvable.");
     controlerStatutActif(t.statut, " : l'adhésion attend le visa");
     if (E.institution.profil === "entreprise_microcredit") throw new ErreurMetier("Une entreprise de micro-crédit ne collecte pas l'épargne du public (loi 11/020, art. 12) : pas d'adhésion avec compte épargne.");
+    controlerOuverture(t.id);   // P4 : Instr. BCC 13, art. 7
     if (E.comptes.some((c) => c.tiersId === t.id)) throw new ErreurMetier("Ce membre a déjà adhéré.");
     const produit = E.produits.find((x) => x.code === t.produitCode) ?? E.produits.find((x) => x.devise === "CDF")!;
     if (!estCoopec()) { if (p.parts) exigerPartsSociales(); p = { ...p, parts: 0 }; }
@@ -3513,6 +3515,14 @@ function bloquantRouge(tid: number) {
   if (!piece) return undefined;
   return E.listeRouge.find((x) => !x.retireLe && x.referenceBcc && ((E.tiers.find((t) => t.id === x.tiersId)?.dirigeant?.pieceNumero ?? "").trim().toUpperCase() === piece
     || (x.personnesVisees ?? []).some((y) => y.piece.trim().toUpperCase() === piece)));   // dirigeants et associés visés par la décision (registre S97-4)
+}
+/** P4 (confrontation du 21/11/2026) : la mise à l'index de la BCC suspend les services et facilités (Instr. BCC 13, art. 7 a et b) : pas d'ouverture de compte.
+ * Comme le serveur (liste_rouge.controler_ouverture). */
+function controlerOuverture(tid: number) {
+  const direct = E.listeRouge.find((x) => x.tiersId === tid && !x.retireLe && x.referenceBcc), b = bloquantRouge(tid);
+  const i = direct ?? (b?.referenceBcc ? b : undefined);
+  if (i) { const cible = i.tiersId === tid ? "" : `, comme dirigeant ou associé de ${titulaire(E.tiers.find((t) => t.id === i.tiersId)!)}`;
+    throw new ErreurMetier(`Mise à l'index de la BCC (décision ${i.referenceBcc}${cible}) : pas d'ouverture de compte (Instr. BCC 13, art. 7).`); }
 }
 /** CR-15 : pas de nouveau crédit à un client qui a un crédit en retard (Instr. BCC 003, art. 5, al. 3). Mêmes règles que serveur/noyau/dossiers.py (controler_retard) */
 function controlerRetard(tid: number) {

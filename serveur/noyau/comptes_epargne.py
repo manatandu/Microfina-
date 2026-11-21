@@ -70,6 +70,8 @@ def ouvrir(u, d) -> dict:
     if date_c > j["date"]:
         raise ErreurMetier("La date de création ne peut pas dépasser la journée ouverte.")
     a = preparer(u, d.get("tiersId"), d.get("produitId"))
+    from .liste_rouge import controler_ouverture
+    controler_ouverture(a["t"]["id"])                                # P4 : Instr. BCC 13, art. 7
     if a["t"]["date_visa"] and date_c < a["t"]["date_visa"].isoformat():
         raise ErreurMetier("La date de création précède la date de visa du client.")
     cid = valeur("""insert into compte_depot (institution_id, agence_id, tiers_id, produit_id, numero, devise, statut, ouvert_le, cle_idempotence)

@@ -1983,6 +1983,8 @@ def preparer_adhesion(u: dict, p: dict) -> dict:
     if not t:
         raise ErreurMetier("Client introuvable.")
     controler_statut_actif(t["statut"], " : l'adhésion attend le visa")
+    from .liste_rouge import controler_ouverture
+    controler_ouverture(tid)                                         # P4 : Instr. BCC 13, art. 7
     if profil_institution(u) == "entreprise_microcredit":
         raise ErreurMetier("Une entreprise de micro-crédit ne collecte pas l'épargne du public (loi 11/020, art. 12) : pas d'adhésion avec compte épargne.")
     if une("select 1 from compte_depot where tiers_id = %s", (tid,)):

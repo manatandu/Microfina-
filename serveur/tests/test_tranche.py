@@ -2655,6 +2655,12 @@ def test_nouveau_compte(clients, journee):
     g = next(x for x in agent.get("/api/epargne/comptes/produits").json() if x["code"] == "G")
     kalala = T("0412-000318")
     assert agent.get(f"/api/epargne/comptes/apercu?tiersId={kalala}&produitId={g['id']}").json()["numero"] == "0412-000318-05"
+    # P4 : mise à l'index de la BCC, pas d'ouverture de compte (Instr. BCC 13, art. 7 a)
+    from noyau.bd import executer
+    agent.post("/api/credit/liste-rouge/ajout", {"tiersId": kalala, "motif": "Impayés", "referenceBcc": "BCC/MI/2026/09"}, **H)
+    r = agent.post("/api/epargne/comptes", {"cle": cle(), "tiersId": kalala, "produitId": g["id"]}, **H)
+    assert r.status_code == 422 and "mise à l'index" in r.json()["message"].lower(), r.content
+    agent.post("/api/credit/liste-rouge/retrait", {"tiersId": kalala, "motif": "Levée BCC"}, **H)
     k = cle()
     c = agent.post("/api/epargne/comptes", {"cle": k, "tiersId": kalala, "produitId": g["id"]}, **H).json()
     assert (c["numero"], c["devise"], c["ouvertLe"]) == ("0412-000318-05", "CDF", "2026-11-05")

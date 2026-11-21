@@ -35,6 +35,25 @@ def bloquant(tid: int) -> dict | None:
                   limit 1""", (tid,))
 
 
+def index_bcc(tid: int) -> dict | None:
+    """Mise à l'index de la BCC seulement (décision avec sa référence), du client ou de la personne morale dont il est dirigeant ou associé"""
+    i = une("select * from liste_rouge where tiers_id = %s and retire_le is null and reference_bcc is not null", (tid,))
+    if i:
+        return i
+    b = bloquant(tid)
+    return b if b and b["reference_bcc"] else None
+
+
+def controler_ouverture(tid: int) -> None:
+    """P4 (confrontation du 21/11/2026) : la mise à l'index suspend les services et facilités auprès de tous les organismes de crédit (Instr. BCC 13,
+    art. 7 a ; loi 22/069, titre III, chap. IV) : pas d'ouverture de compte pour la personne frappée, ni pour le dirigeant ou l'associé d'une personne
+    morale frappée (art. 7 b)"""
+    i = index_bcc(tid)
+    if i:
+        cible = "" if i["tiers_id"] == tid else f", comme dirigeant ou associé de {titulaire(i['tiers_id'])}"
+        raise ErreurMetier(f"Mise à l'index de la BCC (décision {i['reference_bcc']}{cible}) : pas d'ouverture de compte (Instr. BCC 13, art. 7).")
+
+
 def controler(tid: int) -> None:
     """CR-9 : refus de la demande, de l'approbation et de la mise en place"""
     i = bloquant(tid)
