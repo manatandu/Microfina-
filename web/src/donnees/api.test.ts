@@ -2390,6 +2390,24 @@ describe("journée de guichet", () => {
     await expect(api.etatCredits.situation({ du: "2026-11-06", au: "2026-11-05" })).rejects.toThrow("Date début");
   });
 
+  it("nantissement du matériel professionnel (A4, P3 ; loi 11/020, art. 49 à 51) : mentions, inscription cinq ans, renouvellement, libération", async () => {
+    const cid = await creditDebloque();
+    await connecter("bkasongo");
+    const c = _etat().credits.find((x) => x.id === cid)!, t = _etat().tiers.find((x) => x.id === c.tiersId)!;
+    Object.assign(t, { adresse: "N° 12, avenue Kasa-Vubu, Matete", profession: "Menuisier" });
+    const j = (await api.journees.courante())!.date;
+    const b = { acte: "sous_seing_prive", nonGreve: true, description: "Raboteuse électrique", emplacement: "Atelier", deplacable: false, montant: 50000000,
+      exigibilite: "Échéances mensuelles", registre: "Registre du commerce, Kinshasa", inscriptionNumero: "NM-0042", inscriptionLe: j };
+    await expect(api.garanties.ajouterMateriel(cid, { ...b, nonGreve: false })).rejects.toThrow("non grevé");
+    await expect(api.garanties.ajouterMateriel(cid, { ...b, description: " " })).rejects.toThrow("Description");
+    await expect(api.garanties.ajouterMateriel(cid, { ...b, inscriptionLe: "" })).rejects.toThrow("Date d'inscription");
+    const s = await api.garanties.ajouterMateriel(cid, b);
+    const n = s.nantissements[0]!;
+    expect([n.echeance, n.perimee, s.constituant.profession]).toEqual([`${Number(j.slice(0, 4)) + 5}${j.slice(4)}`, false, "Menuisier"]);
+    await expect(api.garanties.renouvelerMateriel(n.id, { inscriptionNumero: "NM-0043", inscriptionLe: j })).rejects.toThrow("après la dernière inscription");
+    await api.garanties.libererMateriel(n.id, {});
+    await expect(api.garanties.renouvelerMateriel(n.id, { inscriptionNumero: "NM-0043", inscriptionLe: j })).rejects.toThrow("déjà libéré");
+  });
   it("caution et nantissement (S94, p. 116 à 118) : blocage chez la caution, hors bilan 0112/091, dépôt de garantie, libération partielle et totale, rapport", async () => {
     const cid = await creditDebloque();
     await connecter("bkasongo");

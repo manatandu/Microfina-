@@ -341,6 +341,10 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       ajouter: (id: number, p: unknown) => post(`/credit/garanties/${id}/ajout`, p),
       liberer: (gid: number, p: unknown) => post(`/credit/garanties/liberation/${gid}`, p),
       rapport: (type: string, du: string, au: string) => get(`/credit/garanties-rapport?type=${type}&du=${du}&au=${au}`),
+      materiel: (id: number) => get(`/credit/garanties-materiel/${id}`),
+      ajouterMateriel: (id: number, p: unknown) => post(`/credit/garanties-materiel/${id}/ajout`, p),
+      renouvelerMateriel: (nid: number, p: unknown) => post(`/credit/garanties-materiel/renouvellement/${nid}`, p),
+      libererMateriel: (nid: number, p: unknown) => post(`/credit/garanties-materiel/liberation/${nid}`, p),
     },
     etatCredits: {
       situation: (p: Record<string, unknown>) => get(`/credit/etat?${new URLSearchParams(Object.entries(p).filter(([, v]) => v !== null && v !== undefined && v !== "" && v !== false)

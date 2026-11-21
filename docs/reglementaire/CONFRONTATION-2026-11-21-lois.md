@@ -365,5 +365,6 @@ Points non vérifiés dans le code :
 - **A10 corrigé** (Instr. BCC 15, art. 39) : boîte postale et changements d'adresse répétés signalés au profil de risque (registre T69).
 - **A3 corrigé, avec B19** (Instr. BCC 41, art. 35 et 66) : autorisation préalable de la BCC pour une agence ; une COOPEC reste dans la province de son siège (registre T70).
 - **T1 tranché par les textes** (Code civil, livre III, art. 185, 2° ; loi 11/020, art. 48) : pas de compensation contre un dépôt non nanti ; le remboursement par prélèvement exige la référence de l'ordre du client, gardée avec le règlement (registre T71).
-- Restent en gravité 3 : A2 (ratios, avec B6), A4 et P3 (nantissement du matériel), A9 (identification électronique), T2 (pénalité sur intérêts échus).
+- **A4 et P3 corrigés** (loi 11/020, art. 43, 3°, 49 à 51) : nantissement du matériel professionnel dans Caution et nantissement, avec les mentions exigées à peine de nullité, l'inscription de cinq ans et son renouvellement (registre T72). Les autres sûretés de l'art. 43 existent déjà (solidarité : groupe solidaire ; rétention : dépôt de garantie).
+- Restent en gravité 3 : A2 (ratios, avec B6), A9 (identification électronique), T2 (pénalité sur intérêts échus).
 

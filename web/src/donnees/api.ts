@@ -10,7 +10,7 @@ import {
   type ChequeClient, type Chequier, type DepotTerme, type ImmoBien, type PaieEmploye, type PlanEpargne, type ClotureCompte, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type OperationCompta, type LigneOc, type ChargeFacture, type CommandeFournisseur, type FactureFournisseur, type ReglementFournisseur, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget, type CriteresAtypiques, type GelAvoirs,
-  type AnalyseFinanciere, type DemandeCredit, type CreditPret, type GarantieCredit, type RemboursementCredit, type VisaCredit, type BalanceAgee, type Adresse, type Procuration, type DonneurOrdre, type BeneficiaireVirement,
+  type AnalyseFinanciere, type DemandeCredit, type CreditPret, type GarantieCredit, type NantissementMateriel, type RemboursementCredit, type VisaCredit, type BalanceAgee, type Adresse, type Procuration, type DonneurOrdre, type BeneficiaireVirement,
 } from "./types";
 import { DROITS_METHODES } from "./droits.gen";
 import registreEcrans from "../ecrans/registre.json";
@@ -3477,6 +3477,23 @@ function horsBilanGarantie(c: CreditPret, montant: number, sens: "ajout" | "libe
     { compte: b!, contrat: `credit:${c.id}`, sens: "C", devise: c.devise, montant, montantCdf: cdf(montant, c.devise) }] });
 }
 const pieceDe = (eid: number | null) => (eid ? E.ecritures.find((e) => e.id === eid)?.piece ?? "" : "");
+/** Loi 11/020, art. 51 : l'inscription conserve les droits du créancier cinq années à compter de sa date (comme garanties.cinq_ans) */
+const cinqAns = (d: string) => { const [a, m, j] = d.split("-"); return `${Number(a) + 5}-${m}-${m === "02" && j === "29" ? "28" : j}`; };
+const vueNantissement = (n: NantissementMateriel, j: string) => { const ins = [...n.inscriptions].sort((a, b) => a.date.localeCompare(b.date)), der = ins[ins.length - 1]!, ech = cinqAns(der.date);
+  return { id: n.id, acte: n.acte as string, requerant: n.requerant, description: n.description, emplacement: n.emplacement, deplacable: n.deplacable, montant: n.montant,
+    exigibilite: n.exigibilite, registre: n.registre, inscriptionNumero: der.numero, inscriptionLe: der.date, echeance: ech, perimee: !n.libereLe && j >= ech,
+    inscriptions: ins.map((x) => ({ numero: x.numero, date: x.date })), date: n.ajouteLe, libereLe: n.libereLe }; };
+function dateInscription(v: unknown, quoi = "Date d'inscription") {
+  if (typeof v !== "string" || !DATE_ISO.test(v)) throw new ErreurMetier(`À remplir : ${quoi} (loi 11/020, art. 51).`);
+  if (v > jourDeblocage().date) throw new ErreurMetier(`${quoi} : pas après la journée ouverte.`);
+  return v;
+}
+function nantissementDe(nid: number) {
+  const n = (E.nantissementsMateriel ?? []).find((x) => x.id === nid);
+  if (!n) throw new ErreurMetier("Choisir le nantissement dans la liste.");
+  if (n.libereLe) throw new ErreurMetier("Ce nantissement est déjà libéré.");
+  return n;
+}
 const garanties = {
   credits(tid: number) {
     lectureAdmin(["S94"]);
@@ -3530,6 +3547,55 @@ const garanties = {
     E.liberationsGarantie.push({ id: prochain(E.liberationsGarantie), garantieId: g.id, montant: p.montant!, date: d, ecritureId: e?.id ?? null, par: u.id });
     enregistrer();
     return { ...(["mis_en_place", "vise", "debloque"].includes(c.statut) ? garanties.situation(c.id, g.type) : {}), piece: pieceDe(e?.id ?? null) };
+  },
+  /** A4 et P3 (confrontation du 21/11/2026) : nantissement du matériel professionnel ; le crédit, ses parties (loi 11/020, art. 50, 1°) et ses nantissements */
+  materiel(id: number) {
+    lectureAdmin(["S94"]);
+    const c = creditGarantie(id), t = E.tiers.find((x) => x.id === c.tiersId)!, j = jourDeblocage().date;
+    return { credit: { id: c.id, numero: c.numero, montant: c.montant, devise: c.devise as string, client: titulaire(t), tiersId: c.tiersId },
+      constituant: { nom: titulaire(t), domicile: t.adresse ?? "", profession: (t.type === "morale" ? t.activite : t.profession) ?? "" },
+      creancier: { nom: E.institution.nom ?? "", domicile: E.institution.adresse ?? "" },
+      nantissements: (E.nantissementsMateriel ?? []).filter((n) => n.creditId === c.id).sort((a, b) => a.id - b.id).map((n) => vueNantissement(n, j)) };
+  },
+  /** Loi 11/020, art. 50 : mentions à peine de nullité ; art. 49 : matériel non grevé ; art. 51 : inscription au registre du commerce ou équivalent */
+  ajouterMateriel(id: number, p: { acte?: string; nonGreve?: boolean; requerant?: string; description?: string; emplacement?: string; deplacable?: boolean; montant?: number | null;
+    exigibilite?: string; registre?: string; inscriptionNumero?: string; inscriptionLe?: string }) {
+    const u = exiger();
+    const c = creditGarantie(id), s = garanties.materiel(c.id);
+    const texte = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+    const manque = ([["domicile du client", s.constituant.domicile], ["profession du client", s.constituant.profession]] as const).filter(([, ok]) => !ok).map(([n]) => n);
+    if (manque.length) throw new ErreurMetier(`Fiche du client incomplète : ${manque.join(", ")} (loi 11/020, art. 50, 1° : mentions à peine de nullité).`);
+    if (p.acte !== "authentique" && p.acte !== "sous_seing_prive") throw new ErreurMetier("À remplir : Acte (authentique ou sous seing privé ; loi 11/020, art. 50).");
+    if (p.nonGreve !== true) throw new ErreurMetier("Seul un matériel non grevé se nantit (loi 11/020, art. 49).");
+    for (const [k, n] of [["description", "Description du matériel"], ["emplacement", "Emplacement"], ["exigibilite", "Conditions d'exigibilité"],
+      ["registre", "Registre d'inscription"], ["inscriptionNumero", "N° d'inscription"]] as const)
+      if (!texte(p[k])) throw new ErreurMetier(`À remplir : ${n} (loi 11/020, art. ${k === "registre" || k === "inscriptionNumero" ? "51" : "50"}).`);
+    if (!Number.isInteger(p.montant) || p.montant! <= 0) throw new ErreurMetier("À remplir : Montant de la créance garantie (loi 11/020, art. 50).");
+    const d = dateInscription(p.inscriptionLe);
+    E.nantissementsMateriel = E.nantissementsMateriel ?? [];
+    E.nantissementsMateriel.push({ id: prochain(E.nantissementsMateriel), creditId: c.id, acte: p.acte, requerant: texte(p.requerant), description: texte(p.description),
+      emplacement: texte(p.emplacement), deplacable: p.deplacable === true, montant: p.montant!, exigibilite: texte(p.exigibilite), registre: texte(p.registre),
+      inscriptions: [{ numero: texte(p.inscriptionNumero), date: d, par: u.id }], ajouteLe: jourDeblocage().date, ajoutePar: u.id, libereLe: "", liberePar: null });
+    enregistrer(); return garanties.materiel(c.id);
+  },
+  /** Loi 11/020, art. 51 : l'effet de l'inscription cesse si elle n'a pas été renouvelée avant l'expiration des cinq ans */
+  renouvelerMateriel(nid: number, p: { inscriptionNumero?: string; inscriptionLe?: string }) {
+    const u = exiger();
+    const n = nantissementDe(nid), der = n.inscriptions[n.inscriptions.length - 1]!;
+    const numero = typeof p.inscriptionNumero === "string" ? p.inscriptionNumero.trim() : "";
+    if (!numero) throw new ErreurMetier("À remplir : N° d'inscription (loi 11/020, art. 51).");
+    const d = dateInscription(p.inscriptionLe, "Date du renouvellement");
+    if (d <= der.date) throw new ErreurMetier("Date du renouvellement : après la dernière inscription.");
+    if (d >= cinqAns(der.date)) throw new ErreurMetier("Inscription périmée : elle se renouvelle avant l'expiration des cinq ans (loi 11/020, art. 51).");
+    n.inscriptions.push({ numero, date: d, par: u.id }); enregistrer(); return garanties.materiel(n.creditId);
+  },
+  /** Libération du nantissement (mainlevée), à la date de l'opération */
+  libererMateriel(nid: number, p: { dateOperation?: string }) {
+    const u = exiger();
+    const n = nantissementDe(nid), d = dateOperation(p.dateOperation);
+    Object.assign(n, { libereLe: d, liberePar: u.id }); enregistrer();
+    const c = E.credits.find((x) => x.id === n.creditId)!;
+    return ["mis_en_place", "vise", "debloque"].includes(c.statut) ? garanties.materiel(c.id) : {};
   },
   /** 5-5 Rapport (p. 118) : Nantissement ou Caution du … au … */
   rapport(type: string, du: string, au: string) {
@@ -3799,7 +3865,10 @@ const deblocage = {
     return { entete: enteteDocument(), client: ficheClient(c.tiersId), coopec: estCoopec(), credit: c.statut === "vise" ? { ...v, echeancier: echeancierRecale(c, jourDeblocage().date) } : v,
       retenues: retenuesCredit(c), penaliteRetard: Number(String(p.penaliteRetard ?? 0).replace(",", ".")), penaliteAnticipation: Number(String(p.penaliteAnticipation ?? 0).replace(",", ".")),
       tauxRegle: !!p.tauxRegle, garanties: E.garanties.filter((g) => g.creditId === c.id && !g.libereeLe)
-        .map((g) => ({ type: g.type as string, montant: g.montant, caution: g.cautionId ? titulaire(E.tiers.find((t) => t.id === g.cautionId)!) : "" })), agence: E.agence.nom, date: journees.courante()?.date ?? "" };
+        .map((g) => ({ type: g.type as string, montant: g.montant, caution: g.cautionId ? titulaire(E.tiers.find((t) => t.id === g.cautionId)!) : "", description: "", emplacement: "" }))
+        // A4 : nantissement du matériel professionnel, avec les mentions de la loi 11/020, art. 50
+        .concat((E.nantissementsMateriel ?? []).filter((n) => n.creditId === c.id && !n.libereLe)
+          .map((n) => ({ type: "materiel", montant: n.montant, caution: "", description: n.description, emplacement: n.emplacement }))), agence: E.agence.nom, date: journees.courante()?.date ?? "" };
   },
 };
 

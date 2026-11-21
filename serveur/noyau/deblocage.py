@@ -251,5 +251,8 @@ def contrat(u, cid: int) -> dict:
     return {"entete": entete(u["institution_id"]), "client": client(c["tiers_id"]), "coopec": est_coopec(u), "credit": v, "retenues": retenues(c),
             "penaliteRetard": float(p["penalite_retard"] or 0), "penaliteAnticipation": float(p["penalite_anticipation"] or 0), "tauxRegle": bool(p["taux_regle"]),
             "garanties": [{"type": g["type"], "montant": g["montant"], "caution": titulaire(g["caution_id"]) if g["caution_id"] else ""}
-                          for g in lignes("select * from garantie where credit_id = %s and liberee_le is null order by id", (c["id"],))],
+                          for g in lignes("select * from garantie where credit_id = %s and liberee_le is null order by id", (c["id"],))]
+            # A4 : nantissement du matériel professionnel, avec les mentions de la loi 11/020, art. 50
+            + [{"type": "materiel", "montant": n["montant"], "caution": "", "description": n["description"], "emplacement": n["emplacement"]}
+               for n in lignes("select * from nantissement_materiel where credit_id = %s and libere_le is null order by id", (c["id"],))],
             "agence": valeur("select nom from agence where id = %s", (u["agence_id"],)), "date": jour(u).isoformat()}

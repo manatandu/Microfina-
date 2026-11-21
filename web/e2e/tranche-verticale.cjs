@@ -803,6 +803,16 @@ const OUT = process.argv[2];
   await p.getByLabel('Compte: *').selectOption({ label: '0412-000319-02' }); await p.getByLabel('Montant caution *').fill('10 000');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: '10 000,00 CDF' }).first().waitFor(); await etape('11g-ajout-caution');
+  // Nantissement du matériel professionnel (A4, P3 ; loi 11/020, art. 49 à 51) : la fiche de Kalala n'a pas de profession, mention exigée à peine de nullité (art. 50)
+  await p.getByRole('tab', { name: 'Nantissement du matériel' }).click(); await p.getByRole('heading', { name: 'Nantissement du matériel professionnel' }).waitFor();
+  await cherche('Rechercher le client du crédit', 'Kalala');
+  await p.getByLabel('Acte: *').selectOption({ label: 'Acte sous seing privé' }); await p.getByLabel('Description du matériel: *').fill('Machine à coudre, n° SC-118');
+  await p.getByLabel('Emplacement: *').fill('Atelier, Matete'); await p.getByText('Matériel non grevé *').click();
+  await p.getByLabel('Montant de la créance garantie: *').fill('500 000'); await p.getByLabel("Conditions d'exigibilité: *").fill('Échéances du contrat de prêt');
+  await p.getByLabel("Registre d'inscription: *").fill('Registre du commerce, Kinshasa'); await p.getByLabel("N° d'inscription: *").fill('NM-0001');
+  await etape('11g2-nantissement-materiel');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('dialog').getByText(/Fiche du client incomplète : profession du client/).waitFor(); await p.getByRole('dialog').getByRole('button').first().click();
   // Consulter un prêt (S95, p. 118 et 119)
   await aller('/credit/s95'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
   const rConsult = p.getByRole('dialog', { name: "Recherche d'un client" }); await rConsult.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rConsult.getByRole('row').filter({ hasText: 'Kalala' }).dblclick();

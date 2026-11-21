@@ -351,7 +351,16 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "garanties.ajouter": [
 "S94"
 ],
+"garanties.ajouterMateriel": [
+"S94"
+],
 "garanties.liberer": [
+"S94"
+],
+"garanties.libererMateriel": [
+"S94"
+],
+"garanties.renouvelerMateriel": [
 "S94"
 ],
 "groupes.affecter": [

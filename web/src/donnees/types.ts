@@ -409,6 +409,7 @@ export interface Etat {
   contentieux: { id: number; creditId: number; type: "amiable" | "judiciaire"; ouvertLe: string; reference: string; observation: string; closLe: string; issue: string; ouvertPar: number }[];   // E27
   affectationsCredit: { id: number; creditId: number; de: number; vers: number; le: string; par: number }[];   // S96
   liberationsGarantie: { id: number; garantieId: number; montant: number; date: string; ecritureId: number | null; par: number }[];
+  nantissementsMateriel?: NantissementMateriel[];   // A4 et P3
   visasCredit: VisaCredit[];   // S90
   declarationsRisque: { type: string; objetId: number; dateEvenement: string; declareLe: string; reference: string; declarePar: number }[];   // E26, Instr. BCC 05
   reversementsRetenues: ReversementRetenue[];   // écart E16
@@ -583,6 +584,11 @@ export interface Lettrage { id: number; compte: string; code: string; montant: n
 export interface RemboursementAnnule extends RemboursementCredit { ecritureAnnulation: number; annulePar: number; annuleLe: string }
 
 /** S94 : caution ou dépôt de garantie d'un crédit (registre S94, CR-21) */
+/** A4 et P3 (confrontation du 21/11/2026) : nantissement du matériel professionnel (loi 11/020, art. 49 à 51) ; la dernière inscription est en vigueur */
+export interface NantissementMateriel {
+  id: number; creditId: number; acte: "authentique" | "sous_seing_prive"; requerant: string; description: string; emplacement: string; deplacable: boolean; montant: number;
+  exigibilite: string; registre: string; inscriptions: { numero: string; date: string; par: number }[]; ajouteLe: string; ajoutePar: number; libereLe: string; liberePar: number | null;
+}
 export interface GarantieCredit {
   id: number; creditId: number; type: "caution" | "depot_garantie"; cautionId: number | null; compteId: number; montant: number; libere: number;
   blocageId: number | null; ajouteLe: string; ajoutePar: number; ecritureId: number | null; libereeLe: string;

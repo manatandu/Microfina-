@@ -517,6 +517,30 @@ def garanties_liberation(request, gid: int, corps: dict = Body(...)):
     return g.liberer(u(request), gid, corps)
 
 
+@api.get("/credit/garanties-materiel/{cid}")
+def garanties_materiel(request, cid: int):
+    from . import garanties as g
+    return g.materiel(u(request), cid)
+
+
+@api.post("/credit/garanties-materiel/{cid}/ajout")
+def garanties_materiel_ajout(request, cid: int, corps: dict = Body(...)):
+    from . import garanties as g
+    return g.ajouter_materiel(u(request), cid, corps)
+
+
+@api.post("/credit/garanties-materiel/renouvellement/{nid}")
+def garanties_materiel_renouvellement(request, nid: int, corps: dict = Body(...)):
+    from . import garanties as g
+    return g.renouveler_materiel(u(request), nid, corps)
+
+
+@api.post("/credit/garanties-materiel/liberation/{nid}")
+def garanties_materiel_liberation(request, nid: int, corps: dict = Body(...)):
+    from . import garanties as g
+    return g.liberer_materiel(u(request), nid, corps)
+
+
 @api.get("/credit/garanties-rapport")
 def garanties_rapport(request, type: str = "", du: str = "", au: str = ""):
     from . import garanties as g

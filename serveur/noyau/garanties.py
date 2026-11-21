@@ -165,3 +165,117 @@ def rapport(u, type_: str, du: str, au: str) -> list[dict]:
         out.append({**v, "numeroMembre": valeur("select numero from tiers where id = %s", (tid,)), "numeroCredit": c["numero"], "client": titulaire(c["tiers_id"]),
                     "devise": c["devise"].strip()})
     return out
+
+
+# ---------- A4 et P3 (confrontation du 21/11/2026) : nantissement du matériel professionnel (loi 11/020, art. 43, 3° ; art. 49 à 52) ----------
+ACTES = {"authentique": "Acte authentique", "sous_seing_prive": "Acte sous seing privé"}
+
+
+def cinq_ans(d: date) -> date:
+    """Loi 11/020, art. 51 : l'inscription conserve les droits du créancier cinq années à compter de sa date"""
+    return d.replace(year=d.year + 5) if not (d.month == 2 and d.day == 29) else date(d.year + 5, 2, 28)
+
+
+def vue_nantissement(n: dict, j: date) -> dict:
+    ins = lignes("select numero, inscrit_le from nantissement_inscription where nantissement_id = %s order by inscrit_le, id", (n["id"],))
+    der = ins[-1]
+    ech = cinq_ans(der["inscrit_le"])
+    return {"id": n["id"], "acte": n["acte"], "requerant": n["requerant"], "description": n["description"], "emplacement": n["emplacement"],
+            "deplacable": n["deplacable"], "montant": n["montant"], "exigibilite": n["exigibilite"], "registre": n["registre"],
+            "inscriptionNumero": der["numero"], "inscriptionLe": der["inscrit_le"].isoformat(), "echeance": ech.isoformat(), "perimee": n["libere_le"] is None and j >= ech,
+            "inscriptions": [{"numero": x["numero"], "date": x["inscrit_le"].isoformat()} for x in ins],
+            "date": n["ajoute_le"].isoformat(), "libereLe": n["libere_le"].isoformat() if n["libere_le"] else ""}
+
+
+def materiel(u, cid: int) -> dict:
+    """Le crédit, ses parties (art. 50, 1°) et ses nantissements du matériel"""
+    from .services import lire_tiers
+    exiger(u)
+    c = credit_de(u, cid)
+    t = lire_tiers(c["tiers_id"]) or {}
+    inst = une("select nom, adresse from institution where id = %s", (u["institution_id"],)) or {}
+    j = jour(u)
+    return {"credit": {"id": c["id"], "numero": c["numero"], "montant": c["montant"], "devise": c["devise"].strip(), "client": titulaire(c["tiers_id"]), "tiersId": c["tiers_id"]},
+            "constituant": {"nom": titulaire(c["tiers_id"]), "domicile": t.get("adresse") or "",
+                            "profession": (t.get("activite") if t.get("type") == "morale" else t.get("profession")) or ""},
+            "creancier": {"nom": inst.get("nom") or "", "domicile": inst.get("adresse") or ""},
+            "nantissements": [vue_nantissement(n, j) for n in lignes("select * from nantissement_materiel where credit_id = %s order by id", (c["id"],))]}
+
+
+def date_inscription(u, v, quoi="Date d'inscription") -> date:
+    try:
+        d = date.fromisoformat(v)
+    except (TypeError, ValueError):
+        raise ErreurMetier(f"À remplir : {quoi} (loi 11/020, art. 51).")
+    if d > jour(u):
+        raise ErreurMetier(f"{quoi} : pas après la journée ouverte.")
+    return d
+
+
+def ajouter_materiel(u, cid: int, p) -> dict:
+    """Loi 11/020, art. 50 : mentions à peine de nullité ; art. 49 : matériel non grevé ; art. 51 : inscription au registre du commerce ou équivalent"""
+    exiger(u)
+    p = p if isinstance(p, dict) else {}
+    texte = lambda k: p.get(k).strip() if isinstance(p.get(k), str) else ""
+    c = credit_de(u, cid)
+    s = materiel(u, c["id"])
+    manque = [n for n, ok in (("domicile du client", s["constituant"]["domicile"]), ("profession du client", s["constituant"]["profession"])) if not ok]
+    if manque:
+        raise ErreurMetier("Fiche du client incomplète : " + ", ".join(manque) + " (loi 11/020, art. 50, 1° : mentions à peine de nullité).")
+    if p.get("acte") not in ACTES:
+        raise ErreurMetier("À remplir : Acte (authentique ou sous seing privé ; loi 11/020, art. 50).")
+    if p.get("nonGreve") is not True:
+        raise ErreurMetier("Seul un matériel non grevé se nantit (loi 11/020, art. 49).")
+    for k, n in (("description", "Description du matériel"), ("emplacement", "Emplacement"), ("exigibilite", "Conditions d'exigibilité"),
+                 ("registre", "Registre d'inscription"), ("inscriptionNumero", "N° d'inscription")):
+        if not texte(k):
+            raise ErreurMetier(f"À remplir : {n} (loi 11/020, art. {'51' if k in ('registre', 'inscriptionNumero') else '50'}).")
+    m = p.get("montant")
+    if not isinstance(m, int) or isinstance(m, bool) or m <= 0:
+        raise ErreurMetier("À remplir : Montant de la créance garantie (loi 11/020, art. 50).")
+    d = date_inscription(u, p.get("inscriptionLe"))
+    nid = valeur("""insert into nantissement_materiel (credit_id, acte, requerant, description, emplacement, deplacable, montant, exigibilite, registre,
+                                                       ajoute_le, ajoute_par) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
+                 (c["id"], p["acte"], texte("requerant"), texte("description"), texte("emplacement"), p.get("deplacable") is True, m, texte("exigibilite"),
+                  texte("registre"), jour(u), u["id"]))
+    executer("insert into nantissement_inscription (nantissement_id, numero, inscrit_le, par) values (%s, %s, %s, %s)", (nid, texte("inscriptionNumero"), d, u["id"]))
+    return materiel(u, c["id"])
+
+
+def nantissement_de(u, nid) -> dict:
+    n = une("""select n.* from nantissement_materiel n join credit c on c.id = n.credit_id where n.id = %s and c.institution_id = %s for update of n""",
+            (nid, u["institution_id"])) if isinstance(nid, int) else None
+    if not n:
+        raise ErreurMetier("Choisir le nantissement dans la liste.")
+    if n["libere_le"]:
+        raise ErreurMetier("Ce nantissement est déjà libéré.")
+    return n
+
+
+def renouveler_materiel(u, nid: int, p) -> dict:
+    """Loi 11/020, art. 51 : l'effet de l'inscription cesse si elle n'a pas été renouvelée avant l'expiration des cinq ans"""
+    exiger(u)
+    p = p if isinstance(p, dict) else {}
+    n = nantissement_de(u, nid)
+    der = une("select inscrit_le from nantissement_inscription where nantissement_id = %s order by inscrit_le desc, id desc limit 1", (n["id"],))
+    numero = p.get("inscriptionNumero").strip() if isinstance(p.get("inscriptionNumero"), str) else ""
+    if not numero:
+        raise ErreurMetier("À remplir : N° d'inscription (loi 11/020, art. 51).")
+    d = date_inscription(u, p.get("inscriptionLe"), "Date du renouvellement")
+    if d <= der["inscrit_le"]:
+        raise ErreurMetier("Date du renouvellement : après la dernière inscription.")
+    if d >= cinq_ans(der["inscrit_le"]):
+        raise ErreurMetier("Inscription périmée : elle se renouvelle avant l'expiration des cinq ans (loi 11/020, art. 51).")
+    executer("insert into nantissement_inscription (nantissement_id, numero, inscrit_le, par) values (%s, %s, %s, %s)", (n["id"], numero, d, u["id"]))
+    return materiel(u, n["credit_id"])
+
+
+def liberer_materiel(u, nid: int, p) -> dict:
+    """Libération du nantissement (mainlevée), à la date de l'opération"""
+    exiger(u)
+    p = p if isinstance(p, dict) else {}
+    n = nantissement_de(u, nid)
+    d = date_op(u, p.get("dateOperation"))
+    executer("update nantissement_materiel set libere_le = %s, libere_par = %s where id = %s", (d, u["id"], n["id"]))
+    c = une("select statut from credit where id = %s", (n["credit_id"],))
+    return materiel(u, n["credit_id"]) if c["statut"] in ("mis_en_place", "vise", "debloque") else {}

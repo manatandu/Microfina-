@@ -1993,6 +1993,47 @@ def test_garanties(clients, journee):
     assert clients["caisse"].post(f"/api/credit/garanties/{cid}/ajout", base, **H).status_code == 403
 
 
+def test_nantissement_materiel(clients, journee):
+    """A4 et P3 (confrontation du 21/11/2026) : nantissement du matériel professionnel ; mentions de la loi 11/020, art. 50 ; inscription valable cinq ans,
+    renouvelée avant leur expiration (art. 51) ; libération"""
+    agent = clients["agent"]
+    cid = credit_debloque(clients, journee)
+    tid = ident("select tiers_id from credit where id = %s", (cid,))
+    from noyau.bd import executer
+    executer("update tiers_personne set adresse = 'N° 12, avenue Kasa-Vubu, Matete', profession = 'Menuisier' where tiers_id = %s", (tid,))
+    def refus(route, corps):
+        r = agent.post(route, corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    b = {"acte": "sous_seing_prive", "nonGreve": True, "description": "Raboteuse électrique, n° de série RB-2210", "emplacement": "Atelier, avenue Kasa-Vubu",
+         "deplacable": False, "montant": 50000000, "exigibilite": "Échéances mensuelles du contrat de prêt", "registre": "Registre du commerce, Kinshasa",
+         "inscriptionNumero": "NM-0042", "inscriptionLe": "2026-11-01"}
+    route = f"/api/credit/garanties-materiel/{cid}/ajout"
+    assert "non grevé" in refus(route, {**b, "nonGreve": False})
+    assert "Acte" in refus(route, {**b, "acte": ""})
+    assert "Description" in refus(route, {**b, "description": " "})
+    assert "N° d'inscription" in refus(route, {**b, "inscriptionNumero": ""})
+    assert "Date d'inscription" in refus(route, {**b, "inscriptionLe": ""})
+    assert "créance garantie" in refus(route, {**b, "montant": 0})
+    r = agent.post(route, b, **H)
+    assert r.status_code == 200, r.content
+    s = r.json()
+    assert (s["constituant"]["profession"], len(s["nantissements"])) == ("Menuisier", 1)
+    n = s["nantissements"][0]
+    assert (n["echeance"], n["perimee"], n["libereLe"]) == ("2031-11-01", False, "")
+    ren = f"/api/credit/garanties-materiel/renouvellement/{n['id']}"
+    assert "après la dernière inscription" in refus(ren, {"inscriptionNumero": "NM-0043", "inscriptionLe": "2026-10-31"})
+    assert "N° d'inscription" in refus(ren, {"inscriptionNumero": "", "inscriptionLe": "2026-11-03"})
+    r = agent.post(ren, {"inscriptionNumero": "NM-0043", "inscriptionLe": "2026-11-03"}, **H)
+    assert r.status_code == 200, r.content
+    assert (r.json()["nantissements"][0]["echeance"], len(r.json()["nantissements"][0]["inscriptions"])) == ("2031-11-03", 2)
+    contrat = agent.get(f"/api/credit/credits/{cid}/contrat", **H)
+    assert contrat.status_code == 200, contrat.content
+    assert any(g["type"] == "materiel" and g["description"].startswith("Raboteuse") for g in contrat.json()["garanties"])
+    r = agent.post(f"/api/credit/garanties-materiel/liberation/{n['id']}", {}, **H)
+    assert r.status_code == 200, r.content
+    assert "déjà libéré" in refus(ren, {"inscriptionNumero": "NM-0044", "inscriptionLe": "2026-11-03"})
+    assert clients["caisse"].post(route, b, **H).status_code == 403
+
+
 def test_consulter_pret(clients, journee):
     """S95 (p. 118 et 119) : situation du crédit et champs de la capture (registre S95-1 à S95-3)"""
     agent = clients["agent"]
