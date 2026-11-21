@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**845 décisions.** Solidité : 351 fortes (le manuel ou un texte répond), 417 moyennes (déduites d'un écran voisin ou d'une donnée), 77 faibles (notre choix, faute de mieux). Dans le code : 839 déjà en place, 6 à appliquer.
+**846 décisions.** Solidité : 352 fortes (le manuel ou un texte répond), 417 moyennes (déduites d'un écran voisin ou d'une donnée), 77 faibles (notre choix, faute de mieux). Dans le code : 840 déjà en place, 6 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1880,6 +1880,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S122-13 | Exporter la liasse | Bouton « Exporter la liasse », au modèle du rapport du commissaire aux comptes retenu par le porteur (replica/liasse-pcci.json, le même que le skill liasse-pcci) : garde ; bilan actif et passif en quatre masses par compte principal, TOTAL GENERAL en tête, N, N-1, variation ; hors bilan ; compte de résultat par soldes 80 à 87 ; tableau de flux (PCCI 14.3, N et N-1) ; notes (crédits, dépôts, avoirs, emprunts) ; cartouche du PCCI ; charte des liasses sycebnl et syscohada ; montants en francs. Les écrans gardent les modèles 14.1 et 14.2 du PCCI | Choix du porteur : Demandes du porteur, 20 et 21/11/2026 ; PCCI, chap. 14 et classe 8 | forte | en place |
+| S122-14 | Type de bilan « Par masses » | Troisième type de bilan à côté de « Version développée » et « Modèle PCCI » : quatre masses (trésorerie, clientèle, opérations diverses, immobilisations à l'actif ; fonds propres au passif), une ligne par compte principal, provisions retranchées, total général. Même modèle que l'export de la liasse (replica/liasse-pcci.json). Le compte de résultat garde ses deux types. | Choix du porteur : Décision du porteur, 21/11/2026 ; modèle de présentation du rapport du commissaire aux comptes (structure seulement) ; PCCI, classes 1 à 5 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

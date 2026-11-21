@@ -72,10 +72,10 @@ function EditionBilan({ ctx, jour }: { ctx: Ctx; jour: string }) {
   const [r, setR] = useState<Bilan | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   async function rechercher() { try { setR(await api.etatsFinanciers.bilan(envoi(f))); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } }
-  const detail = r?.type === "developpe";
+  const detail = r?.type === "developpe" || r?.type === "masses";
   const table = (titre: string, postes: Bilan["actif"], total: { n: number; n1: number }) => <table className="grille"><caption>{titre}</caption>
     <thead><tr><th scope="col">N°</th><th scope="col">{titre}</th><th scope="col" className="num">N</th><th scope="col" className="num">N - 1</th></tr></thead>
-    <tbody>{postes.flatMap((x) => [<tr key={x.code}><td className="chiffres">{x.code}.</td><th scope="row">{x.libelle}</th><td className="num chiffres">{n(x.n)}</td><td className="num chiffres">{n(x.n1)}</td></tr>,
+    <tbody>{postes.flatMap((x) => [<tr key={x.code || x.libelle}><td className="chiffres">{x.code ? `${x.code}.` : ""}</td><th scope="row">{x.libelle}</th><td className="num chiffres">{n(x.n)}</td><td className="num chiffres">{n(x.n1)}</td></tr>,
       ...(detail ? lignesDetail(x.comptes, x.code) : [])])}</tbody>
     <tfoot><tr><td></td><th scope="row">TOTAL {titre}</th><td className="num chiffres"><strong>{n(total.n)}</strong></td><td className="num chiffres"><strong>{n(total.n1)}</strong></td></tr></tfoot></table>;
   const exporter = () => r && exporterExcel("Bilan", ["Côté", "N°", "Poste", "Compte", "N", "N - 1"], (["actif", "passif"] as const).flatMap((c) => r[c].flatMap((x) => [
@@ -138,7 +138,7 @@ function EditionResultat({ ctx, jour }: { ctx: Ctx; jour: string }) {
   return (
     <section className="bloc pile" aria-label="Compte de résultat">
       <h2>Compte de résultat</h2>
-      <Edition ctx={ctx} f={f} setF={setF} libelleType="Type de résultat :" types={ctx.typesBilan} libelleVidage="Resultat sans VIDAGE" />
+      <Edition ctx={ctx} f={f} setF={setF} libelleType="Type de résultat :" types={ctx.typesResultat} libelleVidage="Resultat sans VIDAGE" />
       <Actions rechercher={rechercher} vider={() => { setF(vide); setR(null); }} exporter={r ? exporter : null} />
       {r && <div className="pile"><div className="defile-x"><table className="grille">
         <caption>COMPTE DE RESULTAT du {fr(r.du)} au {fr(r.au)} (Exercice), comparé à la période du {fr(r.precedentDu)} au {fr(r.precedentAu)} (Ex. préc.), en CDF</caption>

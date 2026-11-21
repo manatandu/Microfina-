@@ -4121,6 +4121,9 @@ def test_etats_financiers(clients, journee):
     autres = lambda x: next(y for y in x["passif"] if y["libelle"] == "Autres passifs")
     assert {"compte": "461", "intitule": "Créditeurs divers", "n": 300000, "n1": 0} in autres(b)["comptes"]
     assert autres(b)["n"] - autres(avant)["n"] == 300000                                         # la journée pas encore comptabilisée ne comptait pas (T13)
+    m = compta.get(f"{EF}/bilan", {**q, "type": "masses"}, **H).json()                           # Par masses (registre S122-14) : quatre masses, total identique
+    assert [len(m["actif"]), len(m["passif"]), m["equilibre"], m["totalActif"]["n"]] == [4, 4, True, b["totalActif"]["n"]], (m["totalActif"], m["totalPassif"], b["totalActif"])
+    assert compta.get(f"{EF}/resultat", {**q, "type": "masses"}, **H).status_code == 422
     r = compta.get(f"{EF}/resultat", {**q, "sansVidage": True}, **H).json()
     libelles = [x["libelle"] for x in r["lignes"]]
     assert libelles[8] == "Produit Net Financier" and libelles[-1] == "Résultat net de l'exercice" and len(libelles) == 25

@@ -21,6 +21,8 @@ from .services import exiger
 
 MODELE = json.loads((settings.RACINE_DEPOT / "replica" / "etats-pcci.json").read_text(encoding="utf-8"))
 TYPES = {"developpe": "Version développée", "modele": "Modèle PCCI"}
+TYPES_BILAN = {**TYPES, "masses": "Par masses"}      # Par masses : présentation du rapport du commissaire aux comptes (décision du porteur, 21/11/2026 ; registre S122-14)
+LIASSE = json.loads((settings.RACINE_DEPOT / "replica" / "liasse-pcci.json").read_text(encoding="utf-8"))
 TYPES_HORS_BILAN = {"developpe": "Hors bilan développé", "modele": "Modèle PCCI"}
 MOIS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
 PERIODICITES = {"mensuel": "Mensuel", "annuel": "Annuel"}
@@ -49,7 +51,7 @@ def contexte(u) -> dict:
     i = u["institution_id"]
     return {"agences": lignes("select id, nom from agence where institution_id = %s and not supprime order by code", (i,)),
             "exercices": [r["annee"] for r in lignes("select annee from exercice where institution_id = %s order by annee desc", (i,))],
-            "typesBilan": [{"code": k, "libelle": v} for k, v in TYPES.items()],
+            "typesBilan": [{"code": k, "libelle": v} for k, v in TYPES_BILAN.items()], "typesResultat": [{"code": k, "libelle": v} for k, v in TYPES.items()],
             "typesHorsBilan": [{"code": k, "libelle": v} for k, v in TYPES_HORS_BILAN.items()],
             "annexes": [{"code": a["code"], "libelle": a["libelle"]} for a in MODELE["annexes"]],
             "periodicites": [{"code": k, "libelle": v} for k, v in PERIODICITES.items()], "mois": MOIS}
@@ -147,17 +149,55 @@ def presenter(modele: list, n: list, n1: list, noms: dict) -> list:
     return out
 
 
+def masses(actif: list, passif: list) -> tuple[list, list]:
+    """Bilan par masses (replica/liasse-pcci.json, même modèle que l'export de la liasse, web/src/lib/liasse.ts bilanRapport) : quatre masses, une ligne
+    par compte principal ; nd net débiteur, nc net créditeur, d soldes débiteurs seuls, c soldes créditeurs seuls ; provisions retranchées"""
+    s, resultat, anterieurs = {}, [0, 0], [0, 0]
+    for cote, signe in ((actif, 1), (passif, -1)):
+        for p in cote:
+            for c in p["comptes"]:
+                if c["compte"]:
+                    x = s.setdefault(c["compte"], [0, 0]); x[0] += signe * c["n"]; x[1] += signe * c["n1"]
+                else:
+                    x = anterieurs if "antérieur" in c["intitule"].lower() else resultat; x[0] += c["n"]; x[1] += c["n1"]
+    def somme(sol, prefixes, mode, k):
+        t = 0
+        for c, v in sol.items():
+            if any(c.startswith(q) for q in prefixes):
+                t += {"nd": v[k], "nc": -v[k], "d": max(v[k], 0), "c": max(-v[k], 0)}[mode]
+        return t
+    tous = [q for nom in ("actif", "passif") for sec in LIASSE["bilan"][nom] for l in sec["lignes"] for q in l["comptes"]]
+    hors = {c: v for c, v in s.items() if not any(c.startswith(q) for q in tous)}
+    def cote(nom):
+        out = []
+        for sec in LIASSE["bilan"][nom]:
+            lignes = []
+            for l in sec["lignes"]:
+                v = [somme(s, l["comptes"], l["mode"], k) + (resultat[k] if l.get("plusResultat") else 0) + (anterieurs[k] if nom == "passif" and l["code"] == "12" else 0) for k in (0, 1)]
+                if not l.get("siPresent") or v[0] or v[1]:
+                    lignes.append({"compte": l["code"], "intitule": l["libelle"], "n": v[0], "n1": v[1], "retranche": bool(l.get("retranche"))})
+            if "diverses" in sec["titre"].lower():
+                v = [somme(hors, [""], "d" if nom == "actif" else "c", k) for k in (0, 1)]
+                if v[0] or v[1]:
+                    lignes.append({"compte": "", "intitule": "Autres comptes", "n": v[0], "n1": v[1], "retranche": False})
+            out.append({"code": "", "libelle": sec["titre"], "comptes": lignes, **{k: sum(-l[k] if l["retranche"] else l[k] for l in lignes) for k in ("n", "n1")}})
+        return out
+    return cote("actif"), cote("passif")
+
+
 def bilan(u, p) -> dict:
     exiger(u)
     p = p if isinstance(p, dict) else {}
     du, au, ex = periode(u, p)
-    if (p.get("type") or "developpe") not in TYPES:
+    if (p.get("type") or "developpe") not in TYPES_BILAN:
         raise ErreurMetier("Type de bilan inconnu.")
     agence, vid, dans = agence_de(p), not vrai(p.get("sansVidage")), bornes(p)
     a = postes_bilan(*soldes(u, au, ex, vidage=vid, agence=agence), dans)
     b = postes_bilan(*soldes(u, fin_precedent(ex), ex - 1, vidage=vid, agence=agence), dans)
     noms = intitules(u)
     actif, passif = presenter(MODELE["bilan"]["actif"], a["actif"], b["actif"], noms), presenter(MODELE["bilan"]["passif"], a["passif"], b["passif"], noms)
+    if p.get("type") == "masses":
+        actif, passif = masses(actif, passif)
     ta, tp = {k: sum(x[k] for x in actif) for k in ("n", "n1")}, {k: sum(x[k] for x in passif) for k in ("n", "n1")}
     return {"du": du.isoformat(), "au": au.isoformat(), "exercice": ex, "precedent": fin_precedent(ex).isoformat(), "type": p.get("type") or "developpe",
             "actif": actif, "passif": passif, "totalActif": ta, "totalPassif": tp, "equilibre": ta == tp,

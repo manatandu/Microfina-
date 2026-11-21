@@ -18,6 +18,7 @@ import { coupuresDe, totalComptage, type Comptage, type Devise } from "@design/m
 import PCCI from "@pcci";
 import MODELE_ETATS from "@etats";
 import REFERENTIELS from "@referentiels";
+import { bilanRapport } from "../lib/liasse";
 
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
@@ -6630,7 +6631,7 @@ interface ModeleEtats { liquidites: string[]; bilan: { actif: PosteBilan[]; pass
   flux: { titre?: string; libelle?: string; comptes?: string[]; groupe?: string; reste?: boolean; change?: boolean; total?: string; sens?: "entree" | "sortie" }[];
   annexes: { code: string; libelle: string; sens?: "D" | "C"; sections?: { libelle: string; comptes: string[] }[] }[] }
 const ME = MODELE_ETATS as unknown as ModeleEtats;
-const TYPES_EF: Record<string, string> = { developpe: "Version développée", modele: "Modèle PCCI" }, TYPES_HB: Record<string, string> = { developpe: "Hors bilan développé", modele: "Modèle PCCI" };
+const TYPES_EF: Record<string, string> = { developpe: "Version développée", modele: "Modèle PCCI" }, TYPES_BILAN_EF: Record<string, string> = { ...TYPES_EF, masses: "Par masses" }, TYPES_HB: Record<string, string> = { developpe: "Hors bilan développé", modele: "Modèle PCCI" };
 const PERIODICITES_EF: Record<string, string> = { mensuel: "Mensuel", annuel: "Annuel" };
 type CriteresEf = CriteresEtat & { annexe?: string; indicateur?: string; mois?: number | string };
 type CoteBilan = "actif" | "passif";
@@ -7056,17 +7057,23 @@ const etatsFinanciers = {
   contexte() {
     lectureAdmin(["S122", "S123"]);
     const liste = (o: Record<string, string>) => Object.entries(o).map(([code, libelle]) => ({ code, libelle }));
-    return { agences: [{ id: E.agence.id, nom: E.agence.nom }], exercices: [...E.exercices].map((x) => x.annee).sort((a, b) => b - a), typesBilan: liste(TYPES_EF), typesHorsBilan: liste(TYPES_HB),
+    return { agences: [{ id: E.agence.id, nom: E.agence.nom }], exercices: [...E.exercices].map((x) => x.annee).sort((a, b) => b - a), typesBilan: liste(TYPES_BILAN_EF), typesResultat: liste(TYPES_EF), typesHorsBilan: liste(TYPES_HB),
       annexes: ME.annexes.map(({ code, libelle }) => ({ code, libelle })), periodicites: liste(PERIODICITES_EF), mois: MOIS_JC };
   },
   /** Bilan (PCCI 14.1) : actif, 8 postes ; passif, 14 postes ; N à la date de fin, N-1 à la fin de l'exercice précédent */
   bilan(p: CriteresEf) {
     lectureAdmin(["S122"]);
     const { du, au, ex } = periodeEtat(p), type = p.type || "developpe";
-    if (!TYPES_EF[type]) throw new ErreurMetier("Type de bilan inconnu.");
+    if (!TYPES_BILAN_EF[type]) throw new ErreurMetier("Type de bilan inconnu.");
     const vid = !p.sansVidage, dans = bornesEf(p), precedent = `${ex - 1}-12-31`, noms = intitulesComptes();
     const a = postesBilan(soldesEf(au, ex, vid), dans), b = postesBilan(soldesEf(precedent, ex - 1, vid), dans);
-    const actif = presenterEf(ME.bilan.actif, a.actif, b.actif, noms), passif = presenterEf(ME.bilan.passif, a.passif, b.passif, noms);
+    let actif = presenterEf(ME.bilan.actif, a.actif, b.actif, noms), passif = presenterEf(ME.bilan.passif, a.passif, b.passif, noms);
+    if (type === "masses") {      // Par masses : présentation du rapport du commissaire aux comptes (décision du porteur, 21/11/2026 ; registre S122-14)
+      const m = bilanRapport({ actif, passif, totalActif: { n: 0, n1: 0 }, totalPassif: { n: 0, n1: 0 } });
+      const vers = (c: typeof m.actif) => c.sections.map((sec) => ({ code: "", libelle: sec.titre, n: sec.n, n1: sec.n1,
+        comptes: sec.lignes.map((l) => ({ compte: /^\((.+?)\)/.exec(l.libelle)?.[1] ?? "", intitule: l.libelle.replace(/^\(.+?\) /, ""), n: l.n, n1: l.n1 })) }));
+      actif = vers(m.actif); passif = vers(m.passif);
+    }
     const tot = (x: typeof actif) => ({ n: x.reduce((t, y) => t + y.n, 0), n1: x.reduce((t, y) => t + y.n1, 0) }), totalActif = tot(actif), totalPassif = tot(passif);
     return { du, au, exercice: ex, precedent, type, actif, passif, totalActif, totalPassif, equilibre: totalActif.n === totalPassif.n && totalActif.n1 === totalPassif.n1,
       nonRattaches: a.hors.map((n) => ({ compte: n, intitule: noms.get(n) ?? "" })) };
