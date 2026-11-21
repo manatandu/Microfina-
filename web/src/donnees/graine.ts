@@ -235,7 +235,7 @@ export function graine(): Etat {
         "Kwilu", "Lomami", "Lualaba", "Kasaï Central", "Mai-Ndombe", "Maniema", "Mongala", "Nord-Kivu", "Nord-Ubangi", "Sankuru", "Sud-Kivu", "Sud-Ubangi",
         "Tanganyika", "Tshopo", "Tshuapa"].map((nom, i) => l(i + 2, 1, "province", nom));
       const tous = [l(1, null, "pays", "République démocratique du Congo", { nationalite: "Congolaise", code: "CD", zone: "Afrique" }), ...provinces,
-        l(28, 2, "ville", "Kinshasa", { nature: "Ville" }), l(29, 28, "commune", "Matete"), l(30, 28, "commune", "Lemba"), l(31, 29, "quartier", "Kinsaku")];
+        l(28, 2, "ville", "Kinshasa", { nature: "Ville" }), l(29, 28, "commune", "Matete", { nature: "Commune" }), l(30, 28, "commune", "Lemba", { nature: "Commune" }), l(31, 29, "quartier", "Kinsaku")];
       // Villes, territoires et communes de Kinshasa (replica/localisation-rdc.json, registre S20-6), comme la graine du serveur : un lieu déjà là n'est pas doublé
       const lieu = (parentId: number, niveau: NiveauLieu, nom: string, nature = "") => {
         const t = tous.find((x) => x.parentId === parentId && x.niveau === niveau && x.nom.toLowerCase() === nom.toLowerCase() && (x.nature ?? "") === nature);
@@ -243,11 +243,13 @@ export function graine(): Etat {
         tous.push(l(tous.length + 1, parentId, niveau, nom, nature ? { nature } : {}));
         return tous.length;
       };
-      for (const p of LOCALISATION.provinces as { nom: string; villes: string[]; territoires: string[]; communes?: Record<string, string[]> }[]) {
+      // Sous chaque ville ou territoire, ses communes, secteurs et chefferies (nomenclature budgétaire 2015, sans ses codes ; registre S20-9)
+      type Entite = { nom: string; nature: string };
+      type VilleTerr = { nom: string; entites: Entite[] };
+      for (const p of LOCALISATION.provinces as { nom: string; villes: VilleTerr[]; territoires: VilleTerr[] }[]) {
         const pr = lieu(1, "province", p.nom);
-        for (const v of p.villes) lieu(pr, "ville", v, "Ville");
-        for (const t of p.territoires) lieu(pr, "ville", t, "Territoire");          // nature du lieu : registre S20-8
-        for (const [v, communes] of Object.entries(p.communes ?? {})) { const vi = lieu(pr, "ville", v, "Ville"); for (const c of communes) lieu(vi, "commune", c); }
+        for (const [nature, liste] of [["Ville", p.villes], ["Territoire", p.territoires]] as const)
+          for (const v of liste) { const vi = lieu(pr, "ville", v.nom, nature); for (const e of v.entites) lieu(vi, "commune", e.nom, e.nature); }
       }
       return tous;
     })(),

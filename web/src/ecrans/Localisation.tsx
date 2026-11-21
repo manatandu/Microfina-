@@ -1,138 +1,151 @@
-import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { api, ONGLETS_LIEUX, type LieuVue } from "../donnees/api";
+import { useEffect, useMemo, useState } from "react";
+import { api, type LieuVue } from "../donnees/api";
 import type { NiveauLieu } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { exporterExcel } from "../lib/excel";
-import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
+import { Champ, Chargement, Dialogue, type Boite } from "../composants";
 
-const NIVEAUX = ONGLETS_LIEUX.map((o) => o.niveau);
-type Saisie = { nom: string; nature: string; nationalite: string; code: string; zone: string; parents: Partial<Record<NiveauLieu, number>> };
-const VIDE: Saisie = { nom: "", nature: "", nationalite: "", code: "", zone: "", parents: {} };
+type Lieu = Omit<LieuVue, "ascendants">;
 
-/** S20 : Info de base > Localisation > Information de base (manuel Microfina++, p. 30 à 32). Les cinq onglets de Microfina++ prennent le
- * découpage de la RDC à la demande du porteur (registre S20-1) : Constitution, art. 2 et 3 ; Décret 22/07 du 02/03/2022, art. 9, point 26. */
+const SUIVANT: Partial<Record<NiveauLieu, NiveauLieu>> = { pays: "province", province: "ville", ville: "commune", commune: "quartier" };
+const LIBELLE: Record<NiveauLieu, string> = { pays: "Pays", province: "Province", ville: "Ville ou territoire", commune: "Commune, secteur ou chefferie",
+  quartier: "Quartier ou groupement" };
+const ORDRE_NATURE = ["Ville", "Territoire", "Commune", "Secteur", "Chefferie"];
+const sansAccent = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+type Saisie = { nom: string; nature: string; nationalite: string; code: string; zone: string };
+const VIDE: Saisie = { nom: "", nature: "", nationalite: "", code: "", zone: "" };
+
+/** S20 : Localisation sur un seul écran (décision du porteur du 21/11/2026, registre S20-10), à la place des cinq onglets de Microfina++ (p. 30 à 32).
+ * L'arbre va du pays au quartier : on choisit un lieu, puis on le modifie, on le supprime ou on ajoute un lieu en dessous.
+ * Découpage de la RDC (registre S20-1) : Constitution, art. 2 et 3 ; nature des lieux (registre S20-8, S20-9). */
 export default function Localisation() {
-  const [params, setParams] = useSearchParams();
-  const niveau = (NIVEAUX as string[]).includes(params.get("onglet") ?? "") ? params.get("onglet") as NiveauLieu : "pays";
+  const [relu, setRelu] = useState(0);
+  const { donnees } = useDonnees(() => api.localisation.lire("pays"), [relu]);
+  const [ouverts, setOuverts] = useState<Set<number>>(new Set());
+  const [choisi, setChoisi] = useState<number | null>(null);
+  const [cherche, setCherche] = useState("");
+  const [modif, setModif] = useState<Saisie>(VIDE);
+  const [ajout, setAjout] = useState<Saisie>(VIDE);
+  const [boite, setBoite] = useState<Boite | null>(null);
+
+  const lieux = (donnees?.lieux ?? []) as Lieu[];
+  const parId = useMemo(() => new Map(lieux.map((l) => [l.id, l])), [lieux]);
+  const enfants = useMemo(() => {
+    const m = new Map<number | null, Lieu[]>();
+    for (const l of lieux) m.set(l.parentId, [...(m.get(l.parentId) ?? []), l]);
+    const rang = (l: Lieu) => (l.nature ? ORDRE_NATURE.indexOf(l.nature) : 0);
+    for (const v of m.values()) v.sort((a, b) => rang(a) - rang(b) || a.nom.localeCompare(b.nom, "fr"));
+    return m;
+  }, [lieux]);
+  // Le lieu choisi reste visible dans l'arbre
+  useEffect(() => { if (choisi !== null) document.querySelector(`.arbre [data-lieu="${choisi}"] > .noeud`)?.scrollIntoView({ block: "nearest" }); }, [choisi]);
+  if (!donnees) return <Chargement />;
+
+  const chemin = (l: Lieu): Lieu[] => { const c: Lieu[] = []; for (let r: Lieu | undefined = l; r; r = r.parentId === null ? undefined : parId.get(r.parentId)) c.unshift(r); return c; };
+  const pays = enfants.get(null) ?? [];
+  // Un seul pays : il est ouvert d'office (registre S20-7)
+  const ouvert = (id: number) => ouverts.has(id) || (pays.length === 1 && pays[0]!.id === id);
+  const basculer = (id: number) => { const s = new Set(ouverts); if (ouvert(id)) s.delete(id); else s.add(id); setOuverts(s); };
+  const lieuChoisi = choisi === null ? undefined : parId.get(choisi);
+  const choisir = (l: Lieu) => {
+    setChoisi(l.id); setAjout(VIDE);
+    setModif({ nom: l.nom, nature: l.nature ?? "", nationalite: l.nationalite, code: l.code, zone: l.zone });
+    const s = new Set(ouverts); for (const a of chemin(l)) s.add(a.id); setOuverts(s);      // le lieu choisi s'ouvre avec ses parents
+  };
+  const confirmer = (texte: string, faire: () => Promise<unknown>, apres?: () => void) => setBoite({ type: "confirmation", message: texte, oui: async () => {
+    try { await faire(); apres?.(); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+    catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+  } });
+  const nomDe = (l: Lieu) => (l.nature ? `${l.nom} (${l.nature})` : l.nom);
+  const resultats = cherche.trim().length < 2 ? [] : lieux.filter((l) => sansAccent(l.nom).includes(sansAccent(cherche.trim()))).slice(0, 40);
+  const niveauEnfant = lieuChoisi ? SUIVANT[lieuChoisi.niveau] : "pays";
+  const naturesEnfant = niveauEnfant ? donnees.natures[niveauEnfant as "ville" | "commune"] : undefined;
+  const naturesChoisi = lieuChoisi ? donnees.natures[lieuChoisi.niveau as "ville" | "commune"] : undefined;
+  // Sous une commune, un quartier ; sous un secteur ou une chefferie, un groupement (Décret 22/07, art. 9, point 26)
+  const libelleEnfant = niveauEnfant === "quartier" && lieuChoisi ? (lieuChoisi.nature === "Commune" ? "Quartier" : "Groupement") : niveauEnfant ? LIBELLE[niveauEnfant] : "";
+  const champsPays = (f: Saisie, maj: (p: Partial<Saisie>) => void, suffixe: string) => <>
+    <Champ libelle={`Nationalite${suffixe} *`}>{(p) => <input {...p} className="saisie" value={f.nationalite} onChange={(e) => maj({ nationalite: e.target.value })} />}</Champ>
+    <Champ libelle={`Code${suffixe} *`}>{(p) => <input {...p} className="saisie code" value={f.code} onChange={(e) => maj({ code: e.target.value })} />}</Champ>
+    <Champ libelle={`Zone${suffixe} *`}>{(p) => <select {...p} className="saisie" value={f.zone} onChange={(e) => maj({ zone: e.target.value })}>
+      <option value=""></option>{donnees.zones.map((z) => <option key={z}>{z}</option>)}</select>}</Champ>
+  </>;
+  const exporter = () => exporterExcel("Localisation", ["Lieu", "Nature", "Niveau", "Chemin"],
+    lieux.map((l) => [l.nom, l.nature ?? "", LIBELLE[l.niveau], chemin(l).slice(0, -1).map((x) => x.nom).join(" / ")]));
+
+  const noeud = (l: Lieu, profondeur: number): React.ReactNode => {
+    const fils = enfants.get(l.id) ?? [];
+    const o = ouvert(l.id);
+    return (
+      <li key={l.id} data-lieu={l.id} role="treeitem" aria-expanded={fils.length ? o : undefined} aria-selected={l.id === choisi} aria-label={nomDe(l)}>
+        <div className="noeud" style={{ paddingInlineStart: `${profondeur * 1.1}rem` }}>
+          {fils.length ? <button type="button" className="basculer" aria-label={`${o ? "Fermer" : "Ouvrir"} ${l.nom}`} onClick={() => basculer(l.id)}>{o ? "▾" : "▸"}</button>
+            : <span className="basculer" aria-hidden="true" />}
+          <button type="button" className="nom-lieu" onClick={() => choisir(l)}>
+            {l.nom}{l.nature && <span className="muet"> {l.nature}</span>}{fils.length > 0 && <span className="muet"> · {fils.length}</span>}
+          </button>
+        </div>
+        {o && fils.length > 0 && <ul role="group">{fils.map((x) => noeud(x, profondeur + 1))}</ul>}
+      </li>
+    );
+  };
+
   return (
     <>
       <h1>Localisation</h1>
-      <div className="onglets" role="tablist" aria-label="Localisation">
-        {ONGLETS_LIEUX.map((o) => (
-          <button key={o.niveau} type="button" role="tab" id={`onglet-${o.niveau}`} aria-controls="volet" aria-selected={o.niveau === niveau}
-            onClick={() => setParams(o.niveau === "pays" ? {} : { onglet: o.niveau })}>{o.onglet}</button>
-        ))}
+      <div className="localisation">
+        <section className="bloc pile" aria-label="Arbre des lieux">
+          <div className="ligne-champ">
+            <Champ libelle="Rechercher un lieu">{(p) => <input {...p} className="saisie" type="search" value={cherche} onChange={(e) => setCherche(e.target.value)}
+              placeholder="Province, ville, territoire, commune, secteur…" />}</Champ>
+            <button className="bouton secondaire" type="button" onClick={exporter}>Exporter</button>
+          </div>
+          {resultats.length > 0 && <ul className="resultats-lieux" aria-label="Lieux trouvés">
+            {resultats.map((l) => <li key={l.id}><button type="button" onClick={() => { choisir(l); setCherche(""); }}>
+              {nomDe(l)}<span className="muet"> · {chemin(l).slice(1, -1).map((x) => x.nom).join(" / ") || LIBELLE[l.niveau]}</span></button></li>)}
+          </ul>}
+          {cherche.trim().length >= 2 && resultats.length === 0 && <p className="muet">Aucun lieu de ce nom.</p>}
+          <ul className="arbre" role="tree" aria-label="Lieux">{pays.map((l) => noeud(l, 0))}</ul>
+        </section>
+
+        <section className="bloc pile" aria-label="Lieu choisi">
+          {lieuChoisi ? <>
+            <h2>{nomDe(lieuChoisi)}</h2>
+            <p className="muet">{LIBELLE[lieuChoisi.niveau]}{chemin(lieuChoisi).length > 1 && ` · ${chemin(lieuChoisi).slice(0, -1).map((x) => x.nom).join(" / ")}`}</p>
+            <fieldset className="pile cadre-champs champs-a-gauche">
+              <legend>Modifier ce lieu</legend>
+              <Champ libelle={`${LIBELLE[lieuChoisi.niveau]} *`}>{(p) => <input {...p} className="saisie" value={modif.nom} onChange={(e) => setModif({ ...modif, nom: e.target.value })} />}</Champ>
+              {naturesChoisi && <Champ libelle="Nature *">{(p) => <select {...p} className="saisie" value={modif.nature} onChange={(e) => setModif({ ...modif, nature: e.target.value })}>
+                <option value=""></option>{naturesChoisi.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>}
+              {lieuChoisi.niveau === "pays" && champsPays(modif, (x) => setModif({ ...modif, ...x }), "")}
+              <div className="actions-onglets">
+                <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment modifier ?",
+                  () => api.localisation.enregistrer(lieuChoisi.niveau, { ...modif, parentId: lieuChoisi.parentId }, lieuChoisi.id))}>Modifier</button>
+                <button className="bouton secondaire" type="button" onClick={() => confirmer("Voulez-vous vraiment supprimer ?",
+                  () => api.localisation.supprimer(lieuChoisi.niveau, lieuChoisi.id), () => setChoisi(lieuChoisi.parentId))}>Supprimer</button>
+                <button className="bouton secondaire" type="button" onClick={() => setChoisi(null)}>Annuler</button>
+              </div>
+            </fieldset>
+          </> : <>
+            <h2>Aucun lieu choisi</h2>
+            <p className="muet">Choisissez un lieu dans l'arbre pour le modifier ou ajouter un lieu en dessous. Sans choix, on ajoute un pays.</p>
+          </>}
+          {niveauEnfant && <fieldset className="pile cadre-champs champs-a-gauche">
+            <legend>Ajouter en dessous : {libelleEnfant.toLowerCase()}</legend>
+            <Champ libelle="Nom du nouveau lieu *">{(p) => <input {...p} className="saisie" value={ajout.nom} onChange={(e) => setAjout({ ...ajout, nom: e.target.value })} />}</Champ>
+            {naturesEnfant && <Champ libelle="Nature du nouveau lieu *">{(p) => <select {...p} className="saisie" value={ajout.nature} onChange={(e) => setAjout({ ...ajout, nature: e.target.value })}>
+              <option value=""></option>{naturesEnfant.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>}
+            {niveauEnfant === "pays" && champsPays(ajout, (x) => setAjout({ ...ajout, ...x }), " du nouveau pays")}
+            <div className="actions-onglets">
+              <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment enregistrer ?",
+                () => api.localisation.enregistrer(niveauEnfant, { ...ajout, parentId: lieuChoisi?.id ?? null }),
+                () => { setAjout(VIDE); if (lieuChoisi) setOuverts(new Set([...ouverts, lieuChoisi.id])); })}>Ajouter</button>
+              <button className="bouton secondaire" type="button" onClick={() => setAjout(VIDE)}>Effacer</button>
+            </div>
+          </fieldset>}
+        </section>
       </div>
-      <Onglet key={niveau} niveau={niveau} />
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );
 }
 
-function Onglet({ niveau }: { niveau: NiveauLieu }) {
-  const rang = NIVEAUX.indexOf(niveau);
-  const o = ONGLETS_LIEUX[rang]!;
-  const [f, setF] = useState<Saisie>(VIDE);
-  const [choisi, setChoisi] = useState<number | null>(null);
-  const [filtres, setFiltres] = useState<Record<string, string>>({});
-  const [boite, setBoite] = useState<Boite | null>(null);
-  const [relu, setRelu] = useState(0);
-  const { donnees } = useDonnees(() => api.localisation.lire(niveau), [relu]);
-  if (!donnees) return <Chargement />;
-  const effacer = () => { setF(VIDE); setChoisi(null); };
-  const confirmer = (texte: string, faire: () => Promise<unknown>) => setBoite({ type: "confirmation", message: texte, oui: async () => {
-    try { await faire(); effacer(); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
-    catch (x) { setBoite({ type: "erreur", message: message(x) }); }
-  } });
-  const parentsDe = NIVEAUX.slice(0, rang);
-  // Un seul pays (la RDC) : il est choisi d'office sur chaque onglet et sa colonne ne se répète pas dans la grille (décision du porteur du 21/11/2026, registre S20-7)
-  const pays = donnees.lieux.filter((l) => l.niveau === "pays");
-  const seulPays = pays.length === 1 ? pays[0]!.id : undefined;
-  const P: Saisie["parents"] = rang && seulPays !== undefined && f.parents.pays === undefined ? { ...f.parents, pays: seulPays } : f.parents;
-  const envoi = () => ({ nom: f.nom, nature: f.nature, nationalite: f.nationalite, code: f.code, zone: f.zone, parentId: rang ? P[NIVEAUX[rang - 1]!] ?? null : null });
-  const choisir = (l: LieuVue) => {
-    setChoisi(l.id);
-    setF({ nom: l.nom, nature: l.nature ?? "", nationalite: l.nationalite, code: l.code, zone: l.zone, parents: Object.fromEntries(Object.entries(l.ascendants).map(([k, v]) => [k, v!.id])) });
-  };
-  // Colonnes : le lieu de l'onglet puis ses ascendants, du plus proche au pays (captures p. 31 et 32)
-  const colonnes: { titre: string; valeur: (l: LieuVue) => string }[] = niveau === "pays"
-    ? [{ titre: "Pays", valeur: (l) => l.nom }, { titre: "Nationalite", valeur: (l) => l.nationalite }, { titre: "Code", valeur: (l) => l.code }]
-    : [{ titre: o.colonne, valeur: (l) => l.nom }, ...(niveau === "ville" ? [{ titre: "Nature", valeur: (l: LieuVue) => l.nature ?? "" }] : []),
-      ...[...parentsDe].reverse().filter((n) => !(n === "pays" && seulPays !== undefined))
-        .map((n) => ({ titre: ONGLETS_LIEUX.find((x) => x.niveau === n)!.colonne, valeur: (l: LieuVue) => l.ascendants[n]?.nom ?? "" }))];
-  const lignes = (donnees.lignes as LieuVue[]).filter((l) => colonnes.every((c) => !filtres[c.titre]?.trim() || c.valeur(l).toLowerCase().includes(filtres[c.titre]!.trim().toLowerCase())));
-  const choixParent = (n: NiveauLieu, i: number) => {
-    const au_dessus = i ? P[NIVEAUX[i - 1]!] : undefined;
-    return donnees.lieux.filter((l) => l.niveau === n && (i === 0 || l.parentId === au_dessus)).sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
-  };
-  const changerParent = (n: NiveauLieu, i: number, v: string) => {
-    const parents: Saisie["parents"] = {};
-    for (const k of NIVEAUX.slice(0, i)) parents[k] = P[k];
-    if (v) parents[n] = Number(v);
-    setF({ ...f, parents });
-  };
-  const texte = (k: "nom" | "nationalite" | "code") => ({ value: f[k], onChange: (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value }) });
-  return (
-    <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${niveau}`}>
-      <div className="actions-onglets barre-outils">
-        <button className="bouton secondaire" type="button" onClick={effacer}>Nouveau</button>
-        <button className="bouton secondaire" type="button" disabled={choisi === null}
-          onClick={() => choisi !== null && confirmer("Voulez-vous vraiment modifier ?", () => api.localisation.enregistrer(niveau, envoi(), choisi))}>Modifier</button>
-        <button className="bouton secondaire" type="button" disabled={choisi === null}
-          onClick={() => choisi !== null && confirmer("Voulez-vous vraiment supprimer ?", () => api.localisation.supprimer(niveau, choisi))}>Supprimer</button>
-      </div>
-      <fieldset className="pile cadre-champs champs-a-gauche">
-        {parentsDe.map((n, i) => (
-          <div key={n} className="ligne-champ ligne-parent">
-            <Champ libelle={`${ONGLETS_LIEUX[i]!.libelle} : *`}>{(p) => (
-              <select {...p} className="saisie" value={P[n] ?? ""} onChange={(e) => changerParent(n, i, e.target.value)}>
-                <option value=""></option>
-                {n === "ville"     // villes et territoires séparés : une ville et un territoire peuvent porter le même nom (registre S20-8)
-                  ? donnees.natures.map((nat) => <optgroup key={nat} label={nat === "Ville" ? "Villes" : "Territoires"}>
-                    {choixParent(n, i).filter((l) => (l.nature || "Ville") === nat).map((l) => <option key={l.id} value={l.id}>{l.nom}</option>)}</optgroup>)
-                  : choixParent(n, i).map((l) => <option key={l.id} value={l.id}>{l.nom}</option>)}
-              </select>)}</Champ>
-            {niveau === "province" && <button className="bouton secondaire" type="button" onClick={() => setRelu((x) => x + 1)}>Rafraichir</button>}
-          </div>
-        ))}
-        <Champ libelle={`${o.libelle} : *`}>{(p) => <input {...p} className="saisie" {...texte("nom")} />}</Champ>
-        {niveau === "ville" && <Champ libelle="Nature : *">{(p) => <select {...p} className="saisie" value={f.nature} onChange={(e) => setF({ ...f, nature: e.target.value })}>
-          <option value=""></option>{donnees.natures.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>}
-        {niveau === "pays" && <>
-          <Champ libelle="Nationalite : *">{(p) => <input {...p} className="saisie" {...texte("nationalite")} />}</Champ>
-          <Champ libelle="Code : *">{(p) => <input {...p} className="saisie code" {...texte("code")} />}</Champ>
-          <Champ libelle="Zone : *">{(p) => <select {...p} className="saisie" value={f.zone} onChange={(e) => setF({ ...f, zone: e.target.value })}>
-            <option value=""></option>{donnees.zones.map((z) => <option key={z}>{z}</option>)}</select>}</Champ>
-        </>}
-        <div className="actions-onglets">
-          <button className="bouton" type="button" disabled={choisi !== null}
-            onClick={() => confirmer("Voulez-vous vraiment enregistrer ?", () => api.localisation.enregistrer(niveau, envoi()))}>Enregistrer</button>
-          <button className="bouton secondaire" type="button" onClick={effacer}>Annuler</button>
-        </div>
-      </fieldset>
-      <div className="actions-onglets">
-        <button className="bouton secondaire" type="button" onClick={() => exporterExcel(o.onglet, colonnes.map((c) => c.titre), lignes.map((l) => colonnes.map((c) => c.valeur(l))))}>Exporter</button>
-      </div>
-      <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
-        <thead>
-          <tr>{colonnes.map((c) => <th key={c.titre} scope="col">{c.titre}</th>)}</tr>
-          <tr className="filtres">{colonnes.map((c) => <td key={c.titre}><input className="saisie" type="search" aria-label={`Filtrer ${c.titre}`} value={filtres[c.titre] ?? ""}
-            onChange={(e) => setFiltres({ ...filtres, [c.titre]: e.target.value })} /></td>)}</tr>
-        </thead>
-        <tbody>
-          {lignes.length === 0 && <tr><td colSpan={colonnes.length}>Liste vide</td></tr>}
-          {visibles.map((l) => (
-            <tr key={l.id} className="ligne-choix" tabIndex={0} aria-selected={l.id === choisi} onClick={() => choisir(l)} onKeyDown={(e) => { if (e.key === "Enter") choisir(l); }}>
-              {colonnes.map((c) => <td key={c.titre}>{c.valeur(l)}</td>)}
-            </tr>
-          ))}
-        </tbody>
-      </table>)}</Paginee>
-      <Textes sources={["Manuel Microfina++, p. 30 à 32 : Localisation > Information de base, onglets Pays, Département, Commune, Arrondissement, Quartier ; Pays*, Nationalite*, Code*, Zone* ; Enregistrer, Annuler, Exporter, filtres des colonnes",
-        "Constitution de la RDC, art. 2 (ville de Kinshasa et 25 provinces) et art. 3 (ville, commune, secteur, chefferie)",
-        "Décret n° 22/07 du 02/03/2022, art. 9, point 26 : province d'origine, territoire, secteur ou chefferie, groupement, localité",
-        "Manuel Microfina++, p. 12 : modifier, supprimer ; « Les suppressions sont généralement logiques »"]} />
-      <Dialogue boite={boite} fermer={() => setBoite(null)} />
-    </section>
-  );
-}

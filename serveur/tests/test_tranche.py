@@ -1317,10 +1317,12 @@ def test_graine_complete_une_base_existante():
     assert completer(ins) == 2 + 1 + 5                                             # civilité, schéma comptable, types de retenue
     assert valeur("select string_agg(libelle, ',') from liste_reference where liste = 'situation_matrimoniale'") == "Union libre"   # liste remplie : intacte
     nb = lambda niveau: valeur("select count(*) from localite where niveau = %s", (niveau,))
-    assert (nb("province"), nb("commune")) == (26, 24)
-    assert valeur("""select count(*) from localite t join localite p on p.id = t.parent_id where t.niveau = 'ville' and p.niveau = 'province'""") == 175
+    assert (nb("province"), nb("ville"), nb("commune")) == (26, 97 + 145, 571 + 476 + 233)       # nomenclature budgétaire 2015, § 3.7 (registre S20-9)
+    assert valeur("""select string_agg(e.nature || ' ' || e.nom, ', ' order by e.nature, e.nom) from localite e join localite t on t.id = e.parent_id
+                     join localite p on p.id = t.parent_id where p.nom = 'Nord-Ubangi' and t.nom = 'Businga' and t.nature = 'Territoire'""") == \
+        "Commune Businga, Secteur Bodangabo, Secteur Businga, Secteur Karawa"
     assert valeur("select count(*) from localite where niveau = 'ville' and nature = 'Territoire'") == 145
-    assert valeur("select count(*) from localite where niveau = 'ville' and nom like %s", ("%(%",)) == 0
+    assert valeur("select count(*) from localite where niveau = 'ville' and nom like %s", ("%(territoire)%",)) == 0
 
 
 def test_exemples_du_site_publie():
@@ -1353,19 +1355,19 @@ def test_localisation(clients):
     assert "Pays" in refus("province", {"nom": "Nouvelle"})
     assert "existe déjà" in refus("province", {"parentId": rdc["id"], "nom": "nord-kivu"})
     nk = next(x for x in pr["lignes"] if x["nom"] == "Nord-Kivu")
-    assert "Ville ou territoire inconnu" in refus("commune", {"parentId": nk["id"], "nom": "Butembo"})           # une commune se rattache à une ville ou un territoire
-    assert "Nature" in refus("ville", {"parentId": nk["id"], "nom": "Butembo"})                              # Ville ou Territoire (registre S20-8)
-    assert "existe déjà" in refus("ville", {"parentId": nk["id"], "nom": "Beni", "nature": "Territoire"})
-    assert chef.post(f"{L}/ville", {"parentId": nk["id"], "nom": "Beni", "nature": "Ville"}, **H).status_code == 200   # la ville de Beni, à côté du territoire
-    v = chef.post(f"{L}/ville", {"parentId": nk["id"], "nom": "Butembo", "nature": "Ville"}, **H).json()["lignes"]
-    goma = next(x for x in v if x["nom"] == "Butembo")
+    assert "Ville ou territoire inconnu" in refus("commune", {"parentId": nk["id"], "nom": "Mutiri", "nature": "Commune"})           # une commune se rattache à une ville ou un territoire
+    assert "Nature" in refus("ville", {"parentId": nk["id"], "nom": "Mutiri"})                              # Ville ou Territoire (registre S20-8)
+    assert "existe déjà" in refus("ville", {"parentId": nk["id"], "nom": "Walikale", "nature": "Territoire"})
+    assert chef.post(f"{L}/ville", {"parentId": nk["id"], "nom": "Walikale", "nature": "Ville"}, **H).status_code == 200   # une ville à côté du territoire du même nom
+    v = chef.post(f"{L}/ville", {"parentId": nk["id"], "nom": "Mutiri", "nature": "Ville"}, **H).json()["lignes"]
+    goma = next(x for x in v if x["nom"] == "Mutiri")
     assert goma["ascendants"]["province"]["nom"] == "Nord-Kivu" and goma["ascendants"]["pays"]["nom"] == "République démocratique du Congo"
-    c = next(x for x in chef.post(f"{L}/commune", {"parentId": goma["id"], "nom": "Bulengera"}, **H).json()["lignes"] if x["nom"] == "Bulengera")
+    c = next(x for x in chef.post(f"{L}/commune", {"parentId": goma["id"], "nom": "Kasando", "nature": "Commune"}, **H).json()["lignes"] if x["nom"] == "Kasando")
     r = chef.post(f"{L}/ville/{goma['id']}/suppression", {}, **H); assert r.status_code == 422 and "rattachés" in r.json()["message"]
-    assert chef.post(f"{L}/commune/{c['id']}", {"parentId": goma["id"], "nom": "Bulengera-Centre"}, **H).status_code == 200
+    assert chef.post(f"{L}/commune/{c['id']}", {"parentId": goma["id"], "nom": "Kasando-Centre", "nature": "Commune"}, **H).status_code == 200
     assert chef.post(f"{L}/commune/{c['id']}/suppression", {}, **H).status_code == 200
     assert chef.post(f"{L}/ville/{goma['id']}/suppression", {}, **H).status_code == 200
-    assert all(x["nom"] != "Butembo" for x in chef.get(f"{L}/ville", **H).json()["lignes"])
+    assert all(x["nom"] != "Mutiri" for x in chef.get(f"{L}/ville", **H).json()["lignes"])
 
 
 def test_credit_general(clients):

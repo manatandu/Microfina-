@@ -694,3 +694,19 @@ select.saisie { max-width: 100%; }
 }
 @keyframes ecran-entre { from { opacity: 0; transform: translateY(4px); } }
 @keyframes carte-entre { from { opacity: 0; transform: translateY(8px) scale(.985); } }
+
+/* S20 Localisation sur un seul écran (registre S20-10) : l'arbre des lieux à gauche, le lieu choisi à droite */
+.localisation { display: grid; grid-template-columns: minmax(18rem, 2fr) minmax(0, 3fr); gap: var(--espace-4); align-items: start; }
+.localisation .ligne-champ > .champ { flex: 1 1 auto; }
+.arbre, .arbre ul, .resultats-lieux { list-style: none; margin: 0; padding: 0; }
+.arbre { max-block-size: 34rem; overflow: auto; border: 1px solid var(--trait); border-radius: var(--rayon-champ); background: var(--feuille); padding-block: var(--espace-1); }
+.arbre .noeud { display: flex; align-items: center; gap: var(--espace-1); min-block-size: 1.9rem; }
+.arbre .basculer { inline-size: 1.6rem; flex-shrink: 0; border: 0; background: none; color: var(--encre-2); cursor: pointer; font-size: var(--taille-dense); }
+.arbre .nom-lieu { flex: 1; text-align: start; border: 0; background: none; color: var(--encre); cursor: pointer; padding: var(--espace-1) var(--espace-2); border-radius: var(--rayon-petit); font: inherit; }
+.arbre .nom-lieu:hover { background: var(--tampon-pale); }
+.arbre [aria-selected="true"] > .noeud > .nom-lieu { background: var(--tampon); color: var(--feuille); }
+.arbre [aria-selected="true"] > .noeud > .nom-lieu .muet { color: inherit; opacity: .8; }
+.resultats-lieux { border: 1px solid var(--trait); border-radius: var(--rayon-champ); background: var(--feuille); max-block-size: 16rem; overflow: auto; }
+.resultats-lieux button { inline-size: 100%; text-align: start; border: 0; border-block-end: 1px solid var(--trait); background: none; padding: var(--espace-2); cursor: pointer; font: inherit; color: var(--encre); }
+.resultats-lieux button:hover { background: var(--tampon-pale); }
+@media (max-width: 860px) { .localisation { grid-template-columns: minmax(0, 1fr); } .arbre { max-block-size: 22rem; } }

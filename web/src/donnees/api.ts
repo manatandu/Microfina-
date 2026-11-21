@@ -9031,8 +9031,8 @@ function localites() {
   }));
 }
 export type LieuVue = Omit<LigneLieu, "actif"> & { ascendants: Partial<Record<NiveauLieu, { id: number; nom: string }>> };
-/** Onglet Ville / Territoire : nature du lieu (décision du porteur du 21/11/2026, registre S20-8) ; mêmes valeurs que noyau/localisation.py */
-export const NATURES_LIEU = ["Ville", "Territoire"];
+/** Nature d'un lieu (décisions du porteur du 21/11/2026, registre S20-8 et S20-9) ; mêmes valeurs que noyau/localisation.py */
+export const NATURES_LIEU: Partial<Record<NiveauLieu, string[]>> = { ville: ["Ville", "Territoire"], commune: ["Commune", "Secteur", "Chefferie"] };
 const localisation = {
   lire(niveau: string) {
     exiger();
@@ -9057,14 +9057,15 @@ const localisation = {
     if (rang && parentId === null) manque.push(ONGLETS_LIEUX[rang - 1]!.libelle);
     if (!nom) manque.push(o.libelle);
     if (niveau === "pays") for (const [n, v] of [["Nationalite", d.nationalite], ["Code", d.code], ["Zone", d.zone]] as const) if (!t(v)) manque.push(n);
-    const nature = niveau === "ville" ? t(d.nature) : "";
-    if (niveau === "ville" && !nature) manque.push("Nature");
+    const natures = NATURES_LIEU[o.niveau];
+    const nature = natures ? t(d.nature) : "";
+    if (natures && !nature) manque.push("Nature");
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
     const actuel = id === undefined ? undefined : E.lieux.find((l) => l.id === id && l.niveau === niveau && l.actif);
     if (id !== undefined && !actuel) throw new ErreurMetier("Ligne introuvable.");
     if (rang && !E.lieux.some((l) => l.id === parentId && l.niveau === NIVEAUX[rang - 1] && l.actif)) throw new ErreurMetier(`${ONGLETS_LIEUX[rang - 1]!.libelle} inconnu.`);
     if (niveau === "pays" && !ZONES_PAYS.includes(t(d.zone))) throw new ErreurMetier("Zone inconnue.");
-    if (niveau === "ville" && !NATURES_LIEU.includes(nature)) throw new ErreurMetier("Nature inconnue.");
+    if (natures && !natures.includes(nature)) throw new ErreurMetier("Nature inconnue.");
     if (E.lieux.some((l) => l.actif && l.niveau === niveau && l.parentId === parentId && l.nom.toLowerCase() === nom.toLowerCase() && (l.nature ?? "") === nature && l.id !== id))
       throw new ErreurMetier(`Ce ${o.libelle.toLowerCase()} existe déjà.`);
     if (niveau === "pays" && E.lieux.some((l) => l.actif && l.niveau === "pays" && l.code.toUpperCase() === t(d.code).toUpperCase() && l.id !== id)) throw new ErreurMetier("Ce code existe déjà.");

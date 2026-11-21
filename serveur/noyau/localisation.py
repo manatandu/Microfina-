@@ -14,7 +14,8 @@ ONGLETS = {
     "quartier": {"onglet": "Quartier / Groupement", "libelle": "Quartier ou groupement", "colonne": "Quartier ou groupement"},
 }
 ZONES = ["Afrique", "Amérique", "Asie", "Europe", "Océanie"]      # registre S20-3
-NATURES = ["Ville", "Territoire"]       # onglet Ville / Territoire : décision du porteur du 21/11/2026 (registre S20-8) ; Constitution, art. 3
+# Nature d'un lieu (décisions du porteur du 21/11/2026, registre S20-8 et S20-9) ; Constitution, art. 3 : ville, commune, secteur, chefferie
+NATURES = {"ville": ["Ville", "Territoire"], "commune": ["Commune", "Secteur", "Chefferie"]}
 
 
 def droit(u):
@@ -65,8 +66,8 @@ def enregistrer(u, niveau: str, d, lid: int | None = None) -> dict:
         manque.append(ONGLETS[niveau]["libelle"])
     if niveau == "pays":
         manque += [n for n, k in (("Nationalite", "nationalite"), ("Code", "code"), ("Zone", "zone")) if not texte(k)]
-    nature = texte("nature") if niveau == "ville" else ""
-    if niveau == "ville" and not nature:
+    nature = texte("nature") if niveau in NATURES else ""
+    if niveau in NATURES and not nature:
         manque.append("Nature")
     if manque:
         raise ErreurMetier("À remplir : " + ", ".join(manque) + ".")
@@ -76,7 +77,7 @@ def enregistrer(u, niveau: str, d, lid: int | None = None) -> dict:
         raise ErreurMetier(f"{ONGLETS[NIVEAUX[rang - 1]]['libelle']} inconnu.")
     if niveau == "pays" and texte("zone") not in ZONES:
         raise ErreurMetier("Zone inconnue.")
-    if niveau == "ville" and nature not in NATURES:
+    if niveau in NATURES and nature not in NATURES[niveau]:
         raise ErreurMetier("Nature inconnue.")
     if une("""select 1 from localite where niveau = %s and parent_id is not distinct from %s and lower(nom) = lower(%s) and nature = %s and actif
               and id is distinct from %s""", (niveau, parent, nom, nature, lid)):

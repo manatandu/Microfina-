@@ -74,13 +74,17 @@ const OUT = process.argv[2];
   await budget('Plan budgétaire'); await p.getByLabel('Année *').selectOption({ label: '2026' }); await p.getByLabel('Code *').fill('2026-PL');
   await p.getByLabel('Libellé Plan *').fill('PLAN BUDGETAIRE ANNEE 2026'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: 'PLAN BUDGETAIRE ANNEE 2026' }).waitFor(); await etape('02f6-budget-plan');
-  // Chef : localisation (S20, p. 30 à 32), découpage de la RDC : une ville sous sa province
-  await aller('/parametrage/s20'); await p.getByRole('tab', { name: 'Ville / Territoire' }).click(); await p.getByLabel('Ville ou territoire : *').waitFor();
-  await p.getByLabel('Pays : *').selectOption({ label: 'République démocratique du Congo' }); await p.getByLabel('Province : *').selectOption({ label: 'Nord-Kivu' });
-  await p.getByLabel('Ville ou territoire : *').fill('Butembo'); await p.getByLabel('Nature : *').selectOption('Ville'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  // 26 provinces, leurs villes et leurs 145 territoires (registre S20-6) : la liste est paginée, la ville se retrouve par le filtre de la colonne
-  await p.getByLabel('Filtrer Ville ou territoire').fill('Butembo'); await p.locator('tbody').getByRole('cell', { name: 'Butembo' }).waitFor(); await etape('02f7-localisation-ville');
-  await p.getByRole('tab', { name: 'Quartier / Groupement' }).click(); await p.getByRole('cell', { name: 'Kinsaku' }).waitFor(); await etape('02f8-localisation-quartier');
+  // Chef : localisation sur un seul écran (S20, registre S20-10) : l'arbre de la RDC ; Businga et ses quatre entités ; une ville ajoutée sous sa province
+  await aller('/parametrage/s20'); await p.getByRole('tree', { name: 'Lieux' }).waitFor();
+  await p.getByLabel('Rechercher un lieu').fill('Businga'); await p.getByRole('list', { name: 'Lieux trouvés' }).getByRole('button', { name: /^Businga \(Territoire\)/ }).click();
+  for (const e of ['Businga Commune', 'Bodangabo Secteur', 'Businga Secteur', 'Karawa Secteur']) await p.getByRole('tree', { name: 'Lieux' }).getByRole('button', { name: e, exact: true }).waitFor();
+  await etape('02f7-localisation-arbre');
+  await p.getByLabel('Rechercher un lieu').fill('Nord-Kivu'); await p.getByRole('list', { name: 'Lieux trouvés' }).getByRole('button', { name: /^Nord-Kivu/ }).click();
+  await p.getByLabel('Nom du nouveau lieu *').fill('Mutiri'); await p.getByLabel('Nature du nouveau lieu *').selectOption('Ville');
+  await p.getByRole('button', { name: 'Ajouter', exact: true }).click(); await oui();
+  await p.getByRole('treeitem', { name: 'Mutiri (Ville)' }).waitFor(); await etape('02f7b-localisation-ville');
+  await p.getByLabel('Rechercher un lieu').fill('Kinsaku'); await p.getByRole('list', { name: 'Lieux trouvés' }).getByRole('button', { name: /^Kinsaku/ }).click();
+  await p.getByRole('heading', { name: 'Kinsaku' }).waitFor(); await etape('02f8-localisation-quartier');
   // Chef : référentiel crédit (S21, p. 32 à 36) : un cycle, puis Degré Crédit (Instr. BCC 003)
   await aller('/parametrage/s21'); await p.getByRole('tab', { name: 'Cycle Credit' }).click(); await p.getByLabel('Libellé *').waitFor();
   await p.getByLabel('Code *').fill('C03'); await p.getByLabel('Libellé *').fill('TROISIEME CYCLE'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();

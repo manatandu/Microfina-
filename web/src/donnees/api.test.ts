@@ -2692,17 +2692,17 @@ describe("journée de guichet", () => {
     await expect(api.localisation.enregistrer("province", { nom: "Nouvelle" })).rejects.toThrow("Pays");
     await expect(api.localisation.enregistrer("province", { parentId: rdc.id, nom: "nord-kivu" })).rejects.toThrow("existe déjà");
     const nk = pr.lignes.find((x) => x.nom === "Nord-Kivu")!;
-    await expect(api.localisation.enregistrer("commune", { parentId: nk.id, nom: "Butembo" })).rejects.toThrow("Ville ou territoire inconnu");
-    await expect(api.localisation.enregistrer("ville", { parentId: nk.id, nom: "Butembo" })).rejects.toThrow("Nature");     // Ville ou Territoire (registre S20-8)
-    await expect(api.localisation.enregistrer("ville", { parentId: nk.id, nom: "Beni", nature: "Territoire" })).rejects.toThrow("existe déjà");
-    await api.localisation.enregistrer("ville", { parentId: nk.id, nom: "Beni", nature: "Ville" });                             // la ville de Beni, à côté du territoire
-    const goma = (await api.localisation.enregistrer("ville", { parentId: nk.id, nom: "Butembo", nature: "Ville" })).lignes.find((x) => x.nom === "Butembo")!;
+    await expect(api.localisation.enregistrer("commune", { parentId: nk.id, nom: "Mutiri", nature: "Commune" })).rejects.toThrow("Ville ou territoire inconnu");
+    await expect(api.localisation.enregistrer("ville", { parentId: nk.id, nom: "Mutiri" })).rejects.toThrow("Nature");     // Ville ou Territoire (registre S20-8)
+    await expect(api.localisation.enregistrer("ville", { parentId: nk.id, nom: "Walikale", nature: "Territoire" })).rejects.toThrow("existe déjà");
+    await api.localisation.enregistrer("ville", { parentId: nk.id, nom: "Walikale", nature: "Ville" });                             // la ville de Beni, à côté du territoire
+    const goma = (await api.localisation.enregistrer("ville", { parentId: nk.id, nom: "Mutiri", nature: "Ville" })).lignes.find((x) => x.nom === "Mutiri")!;
     expect([goma.ascendants.province?.nom, goma.ascendants.pays?.nom]).toEqual(["Nord-Kivu", "République démocratique du Congo"]);
-    const c = (await api.localisation.enregistrer("commune", { parentId: goma.id, nom: "Bulengera" })).lignes.find((x) => x.nom === "Bulengera")!;
+    const c = (await api.localisation.enregistrer("commune", { parentId: goma.id, nom: "Kasando", nature: "Commune" })).lignes.find((x) => x.nom === "Kasando")!;
     await expect(api.localisation.supprimer("ville", goma.id)).rejects.toThrow("rattachés");
-    await api.localisation.enregistrer("commune", { parentId: goma.id, nom: "Bulengera-Centre" }, c.id);
+    await api.localisation.enregistrer("commune", { parentId: goma.id, nom: "Kasando-Centre", nature: "Commune" }, c.id);
     await api.localisation.supprimer("commune", c.id);
-    expect((await api.localisation.supprimer("ville", goma.id)).lignes.some((x) => x.nom === "Butembo")).toBe(false);
+    expect((await api.localisation.supprimer("ville", goma.id)).lignes.some((x) => x.nom === "Mutiri")).toBe(false);
   });
 
   it("motif de départ d'un client (S18, p. 26) : Libelle Motif seul, unique, ordre de saisie, lu par la résiliation", async () => {

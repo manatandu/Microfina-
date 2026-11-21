@@ -2,9 +2,8 @@
  "pays": "République démocratique du Congo",
  "sources": [
   "Constitution du 18 février 2006, art. 2 : la ville de Kinshasa et les 25 provinces",
-  "Loi organique n° 15/006 du 25 mars 2015 portant fixation des limites des provinces et celles de la ville de Kinshasa, art. 4 à 29 : chefs-lieux",
-  "Nomenclature budgétaire, édition 2015, Tome Dépenses (Ministère du Budget), § 3.7 Classification géographique : territoires (145) et communes de Kinshasa",
-  "Arrêté ministériel n° 002/CAB/MN/PTT/K/2000 (code postal) : villes déjà villes en 2000 ; graphies vérifiées avec les ordonnances sur les tribunaux de paix",
+  "Loi organique n° 15/006 du 25 mars 2015, art. 4 à 29 : chefs-lieux",
+  "Nomenclature budgétaire, édition 2015, Tome Dépenses (Ministère du Budget), § 3.7 Classification géographique : villes, territoires, communes, secteurs et chefferies, chacun sous son parent (les codes de la comptabilité publique ne sont pas repris)",
   "Arrêté provincial de Kinshasa n° 017/CAB/MIN.PROV/FIN.ECO/2023 du 7 décembre 2023, art. 13 : les 24 communes de Kinshasa"
  ],
  "provinces": [
@@ -12,410 +11,6538 @@
    "nom": "Bas-Uele",
    "chef_lieu": "Buta",
    "villes": [
-    "Buta"
+    {
+     "nom": "Buta",
+     "entites": [
+      {
+       "nom": "Babade",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Dobea",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Firant",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Tepatondele",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Aketi",
+     "entites": [
+      {
+       "nom": "Itimbiri",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ngbongade",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Tinda",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Bondo",
+     "entites": [
+      {
+       "nom": "Bondo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Uele",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Zagili",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Dingila",
+     "entites": [
+      {
+       "nom": "Bambili",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Dingila",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Tobola",
+       "nature": "Commune"
+      }
+     ]
+    }
    ],
    "territoires": [
-    "Aketi",
-    "Ango",
-    "Bambesa",
-    "Bondo",
-    "Buta",
-    "Poko"
+    {
+     "nom": "Aketi",
+     "entites": [
+      {
+       "nom": "Likati",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kolongwandi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mabinza",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Ngbongi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Yoko",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Avaru-Duma",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Avaru-Gatanga",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Bondongola",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Mobati-Boyele",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Ango",
+     "entites": [
+      {
+       "nom": "Ango",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Dakwa",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ezo",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Mopoy",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Ngindo",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Sasa",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Bambesa",
+     "entites": [
+      {
+       "nom": "Bambesa",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Zobia",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bakete",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Bokapo",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Bokiba",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Bolungwa",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Bondongwale",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Makere I",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Makere Ii",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Makere-Bakete",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Mange",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Bondo",
+     "entites": [
+      {
+       "nom": "Baye",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bili",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Monga",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ndu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Biamange",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Boso",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Deni",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Duaru",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Gama",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Gaya",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Goa",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Kasa",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Mobenge Mondila",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Soa",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Buta",
+     "entites": [
+      {
+       "nom": "Titule",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Basiri-Mongingita",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mobati",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bayeu-Bogagia",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Bayeu-Bogbama",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Monganulu",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Nguru",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Poko",
+     "entites": [
+      {
+       "nom": "Poko",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Abarambo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bakangaie-Avuru",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Gamu",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Babena",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Kembisa",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Kipate",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Mabanga",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Madi",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Malele",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Mendeni",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Ngbaradi",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Soronga",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Zune",
+       "nature": "Chefferie"
+      }
+     ]
+    }
    ]
   },
   {
    "nom": "Equateur",
    "chef_lieu": "Mbandaka",
    "villes": [
-    "Mbandaka"
+    {
+     "nom": "Mbandaka",
+     "entites": [
+      {
+       "nom": "Mbandaka",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Wangata",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Basankusu",
+     "entites": [
+      {
+       "nom": "Baenga",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Basankusu",
+       "nature": "Commune"
+      }
+     ]
+    }
    ],
    "territoires": [
-    "Basankusu",
-    "Bikoro",
-    "Bolomba",
-    "Bomongo",
-    "Ingende",
-    "Makanza",
-    "Lukolela"
+    {
+     "nom": "Basankusu",
+     "entites": [
+      {
+       "nom": "Bokakata",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Basankusu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Gombelo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Waka-Bokeka",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Bikoro",
+     "entites": [
+      {
+       "nom": "Bikoro",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ekonda",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Elanga",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lac Ntumba",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Bolomba",
+     "entites": [
+      {
+       "nom": "Bolomba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bolomba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Busira",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Dianga",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Losanganya",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mampoko",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Bomongo",
+     "entites": [
+      {
+       "nom": "Bomongo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Djamba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Ngiri",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Ingende",
+     "entites": [
+      {
+       "nom": "Ingende",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bokatola",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Duali",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Eungu",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Makanza",
+     "entites": [
+      {
+       "nom": "Bangala",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mweko",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Ndobo",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Lukolela",
+     "entites": [
+      {
+       "nom": "Lukelela",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Banunu-Bobangi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lusakani",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mpama",
+       "nature": "Secteur"
+      }
+     ]
+    }
    ]
   },
   {
    "nom": "Haut-Katanga",
    "chef_lieu": "Lubumbashi",
    "villes": [
-    "Lubumbashi",
-    "Likasi"
+    {
+     "nom": "Lubumbashi",
+     "entites": [
+      {
+       "nom": "Annexe",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kamalondo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kampemba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Katuba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kenya",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lubumbashi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Rwashi",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Kipushi",
+     "entites": [
+      {
+       "nom": "Katapula",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kipushi",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Likasi",
+     "entites": [
+      {
+       "nom": "Kikula",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Likasi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Panda",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Shituru",
+       "nature": "Commune"
+      }
+     ]
+    }
    ],
    "territoires": [
-    "Kambove",
-    "Kasenga",
-    "Kipushi",
-    "Mitwaba",
-    "Pweto",
-    "Sakania"
+    {
+     "nom": "Kambove",
+     "entites": [
+      {
+       "nom": "Kambove",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lufira",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Source Du Fleuve Congo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Basanga",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Kasenga",
+     "entites": [
+      {
+       "nom": "Kasenga",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bakunda",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kafira",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kisamamba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Luapula",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Kipushi",
+     "entites": [
+      {
+       "nom": "Bukanda",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kaponda",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Kinyama",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Mitwaba",
+     "entites": [
+      {
+       "nom": "Mitwaba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Balomotwa",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Banweshi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kyona-Ngoy",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Pweto",
+     "entites": [
+      {
+       "nom": "Kilwa",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Pweto",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Moero",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mwenga",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kyona-Nzini",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Pweto",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Sakania",
+     "entites": [
+      {
+       "nom": "Kilwa",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mokambo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Musoshi-Kasumbalesa",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Sakania",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Balala",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Balamba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Baushi",
+       "nature": "Secteur"
+      }
+     ]
+    }
    ]
   },
   {
    "nom": "Haut-Lomami",
    "chef_lieu": "Kamina",
    "villes": [
-    "Kamina"
+    {
+     "nom": "Kamina",
+     "entites": [
+      {
+       "nom": "Dimayi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kamina",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Sobongo",
+       "nature": "Commune"
+      }
+     ]
+    }
    ],
    "territoires": [
-    "Bukama",
-    "Kabongo",
-    "Kamina",
-    "Kaniama",
-    "Malemba-Nkulu"
+    {
+     "nom": "Bukama",
+     "entites": [
+      {
+       "nom": "Bukama",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Luenga",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kapamayi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lualaba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Butumba",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Kabondo Dianda",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Kibanda",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Kikondja",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Kabongo",
+     "entites": [
+      {
+       "nom": "Kabongo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Nord Baluba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kabongo",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Kayamba",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Kamina",
+     "entites": [
+      {
+       "nom": "Kinda",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kasongo-Nyembo",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Kaniama",
+     "entites": [
+      {
+       "nom": "Kaniama",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mutombo-Mukulu",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Malemba-Nkulu",
+     "entites": [
+      {
+       "nom": "Malembe",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Badia",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Ngilima",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Dungu Uye",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Kayumba",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Mulongo",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Museka",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Mwanza",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Nkulu",
+       "nature": "Chefferie"
+      }
+     ]
+    }
    ]
   },
   {
    "nom": "Haut-Uele",
    "chef_lieu": "Isiro",
    "villes": [
-    "Isiro"
+    {
+     "nom": "Isiro",
+     "entites": [
+      {
+       "nom": "Kupa",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mambaya",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mendambo",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Aba",
+     "entites": [
+      {
+       "nom": "Laskuri",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Sambala",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Zungbi",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Dungu",
+     "entites": [
+      {
+       "nom": "Bomokadi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Dungu-Uye",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ngilima",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Wamba",
+     "entites": [
+      {
+       "nom": "Anaolite",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Nepoko",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Wamba",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Watsa",
+     "entites": [
+      {
+       "nom": "Gandza",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kibali",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mangoro",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mongali",
+       "nature": "Commune"
+      }
+     ]
+    }
    ],
    "territoires": [
-    "Dungu",
-    "Faradje",
-    "Niangara",
-    "Rungu",
-    "Wamba",
-    "Watsa"
+    {
+     "nom": "Dungu",
+     "entites": [
+      {
+       "nom": "Doruma",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ndedu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Doruma",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Malingindu",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Wando",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Faradje",
+     "entites": [
+      {
+       "nom": "Faradje",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Makoko",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Dongo",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Kakwa-Ladama",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Logo-Bagela",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Logo-Doka",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Logo-Lolia",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Logo-Obelela",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Logo-Ogambi",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Mondo",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Niangara",
+     "entites": [
+      {
+       "nom": "Niangara",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Boeme",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Kerebobe",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Kopa",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Mangbele",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Mangbetu-Nabisangi",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Manzinga",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Okondo",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Rungu",
+     "entites": [
+      {
+       "nom": "Rungu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "D'azanga",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Mayongo-Mabozo",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Mayongo-Magbale",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Mboli",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Medje-Mango",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Mongomasi",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Ndey",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Wamba",
+     "entites": [
+      {
+       "nom": "Ibambi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mabudu-Malika-Babeyru",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bafwagada",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Bafwankoy",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Balika-Tiriko",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Mahaa",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Makoda",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Malika",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Mangbele",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Timoniko",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Wadimbisa-Mabudu",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Walamba",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Watsa",
+     "entites": [
+      {
+       "nom": "Gombari",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kibali",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mangbutu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mari Minza",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Andikopa-Karikalendu",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Andobi",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Ateru-Karokalendu",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Kebo",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Mangbetu",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Wasele-D'arumbi",
+       "nature": "Chefferie"
+      }
+     ]
+    }
    ]
   },
   {
    "nom": "Ituri",
    "chef_lieu": "Bunia",
    "villes": [
-    "Bunia"
+    {
+     "nom": "Bunia",
+     "entites": [
+      {
+       "nom": "Mbunya",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Nyakasanza",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Shari",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Ariwara",
+     "entites": [
+      {
+       "nom": "Abbe Gonzalalves",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Apaa",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Djaudjau",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Raoul'aliti",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Aru",
+     "entites": [
+      {
+       "nom": "Abaa",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Autsai",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Essefe",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Ingbokolo",
+     "entites": [
+      {
+       "nom": "Pele",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Adi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Arie",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kumuru-Ezorili",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Mahagi",
+     "entites": [
+      {
+       "nom": "Kwong'a",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mamba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ridha",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Mongwalo",
+     "entites": [
+      {
+       "nom": "Mongbalu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Musaba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Plito-Yalala",
+       "nature": "Commune"
+      }
+     ]
+    }
    ],
    "territoires": [
-    "Aru",
-    "Djugu",
-    "Irumu",
-    "Mahagi",
-    "Mambasa"
+    {
+     "nom": "Aru",
+     "entites": [
+      {
+       "nom": "Des Ndo Kebo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "D'alur",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Kakwa",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Kaliko",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Lu",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Nio-Mamule",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Otso",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Zaki",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Djugu",
+     "entites": [
+      {
+       "nom": "Djugu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Fataki",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ndrele",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Baniari De Kilo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Walendu Djatsi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Walendu Pitsi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Walendu Tatsi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Babena-Badjere",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Bahena Bangyawagi",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Bahena-Nord",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Mabendi",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Mambisa",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Ndo-Akebo",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Irumu",
+     "entites": [
+      {
+       "nom": "Irumu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bahema D'irumu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bahema Itego",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bahema Sud",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Walendu Vonkutu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Andisoma",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Babelebe",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Baboa-Bokode",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Bahema-Boga",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Baniari-Tchabi",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Basiri-Basumu",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Mobala",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Walendu-Bindi",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Mahagi",
+     "entites": [
+      {
+       "nom": "Djegu Kpadruma",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Nioki",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Tadu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "War Palara",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Anghal",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Alur Djuganda",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Djukoth",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Mokambo",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Pandoro",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Walendu-Watsi",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Wangongo",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Mambasa",
+     "entites": [
+      {
+       "nom": "Biakato",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mambasa",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Niania",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Babombi",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Bakwanza",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Bandaka",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Bambo",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Mambasa",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Walese-Dese",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Walese-Karo",
+       "nature": "Chefferie"
+      }
+     ]
+    }
    ]
   },
   {
    "nom": "Kasaï",
    "chef_lieu": "Tshikapa",
    "villes": [
-    "Tshikapa"
+    {
+     "nom": "Tshikapa",
+     "entites": [
+      {
+       "nom": "Dibumba I",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Dibumba Ii",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kanzala",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mabondo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mbumba",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Ilebo",
+     "entites": [
+      {
+       "nom": "Bembe",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kasai",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lutshwadi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Puntsha",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Luebo",
+     "entites": [
+      {
+       "nom": "Bipatu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kasenga",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Luebo",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Tshimbulu",
+     "entites": [
+      {
+       "nom": "Lukula",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Tshimakaka",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Tshimayi",
+       "nature": "Commune"
+      }
+     ]
+    }
    ],
    "territoires": [
-    "Dekese",
-    "Ilebo",
-    "Kamonia",
-    "Luebo",
-    "Mweka"
+    {
+     "nom": "Dekese",
+     "entites": [
+      {
+       "nom": "Dekese",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Dekese-Ikolombe Isolu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Yaelima",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Ilebo",
+     "entites": [
+      {
+       "nom": "Mapangu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mibilayi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Basongo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Sud Banga",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Malu Malu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mapangu",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Kamonia",
+     "entites": [
+      {
+       "nom": "Kamako",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kamonia",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kamwesha",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ngombe",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Samwanda",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bakwa-Nyambi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bampende",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kasadisadi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kasai-Kabambaie",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kasai-Longatshimo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kasai-Lunyeka",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lovua-Longatshimo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lovua-Lushiku",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Tshikapa",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Luebo",
+     "entites": [
+      {
+       "nom": "Kalwebo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Luebo Kabambaie",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Luebo Lulungele",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Luebo Wedi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Ndjoko Punda",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Mweka",
+     "entites": [
+      {
+       "nom": "Mweka",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kakenge",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bakuba",
+       "nature": "Secteur"
+      }
+     ]
+    }
    ]
   },
   {
    "nom": "Kasaï Central",
    "chef_lieu": "Kananga",
    "villes": [
-    "Kananga"
+    {
+     "nom": "Kananga",
+     "entites": [
+      {
+       "nom": "Kananga",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Katoka",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lukonga",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ndesha",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Nganza",
+       "nature": "Commune"
+      }
+     ]
+    }
    ],
    "territoires": [
-    "Demba",
-    "Dibaya",
-    "Dimbelenge",
-    "Kazumba",
-    "Luiza"
+    {
+     "nom": "Demba",
+     "entites": [
+      {
+       "nom": "Demba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bena Leka",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bena Mamba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Diofwa",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lombele",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lusonge",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mwanza Ngoma",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Tshibote",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Tshibungu",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Dibaya",
+     "entites": [
+      {
+       "nom": "Dibaya",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Tshikula",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Dibanda",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Dibatayi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kamwandu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kasangi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Tshisilu",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Dimbelenge",
+     "entites": [
+      {
+       "nom": "Bana Ba Ntumba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Dimbelenge",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Katende",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lubwishi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Masuika",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Munkamba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kunduyi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lubi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lubudi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lukibu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mashala",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Kazumba",
+     "entites": [
+      {
+       "nom": "Kasumba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Luemba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bulungu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kafuba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kavula",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Matamba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mboie",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Miao",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Muswaswa",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mutefu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Tshitadi",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Luiza",
+     "entites": [
+      {
+       "nom": "Luiza",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Tulume",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Yangala",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bambaye",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kabelekese",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kalunga",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Loatshi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lueta",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lusanza",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mbushimaie",
+       "nature": "Secteur"
+      }
+     ]
+    }
    ]
   },
   {
    "nom": "Kasaï Oriental",
    "chef_lieu": "Mbuji-Mayi",
    "villes": [
-    "Mbuji-Mayi"
+    {
+     "nom": "Mbuji-Mayi",
+     "entites": [
+      {
+       "nom": "Bipemba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Dibindi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Diulu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kanshi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Muya",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Lukalaba",
+     "entites": [
+      {
+       "nom": "Katoto",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Monzo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Nsangu",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Miabi",
+     "entites": [
+      {
+       "nom": "Lukunza",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Nyanyiki",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Miabi",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Tshilenge",
+     "entites": [
+      {
+       "nom": "Inga",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kimpatshi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Tshikalenga",
+       "nature": "Commune"
+      }
+     ]
+    }
    ],
    "territoires": [
-    "Kabeya-Kamwanga",
-    "Katanda",
-    "Lupatapata",
-    "Miabi",
-    "Tshilenge"
+    {
+     "nom": "Kabeya-Kamwanga",
+     "entites": [
+      {
+       "nom": "Bena Nkuna",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lac Mukamba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kalela",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lac Mukamba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mpemba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Ndomba",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Katanda",
+     "entites": [
+      {
+       "nom": "Katanda",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Baluba-Lubilanji",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bena Tshitolo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mutuayi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Nsangu",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Lupatapata",
+     "entites": [
+      {
+       "nom": "Tshishimbi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kabala",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mudiba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mukumbi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mulenda",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Miabi",
+     "entites": [
+      {
+       "nom": "Boya",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Katende",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kangayi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Movo-Nkatshi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Tshijiba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Tshilundu",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Tshilenge",
+     "entites": [
+      {
+       "nom": "Kalenda Kashila",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kabimba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kalonji Sud",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kampatshi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lalelu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lukalaba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Tshipuka",
+       "nature": "Secteur"
+      }
+     ]
+    }
    ]
   },
   {
    "nom": "Kongo central",
    "chef_lieu": "Matadi",
    "villes": [
-    "Matadi",
-    "Boma"
+    {
+     "nom": "Matadi",
+     "entites": [
+      {
+       "nom": "Matadi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mvuzi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Nzanza",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Bangu",
+     "entites": [
+      {
+       "nom": "Kimpese",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lukala",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Vampa",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Boma",
+     "entites": [
+      {
+       "nom": "Kabondo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kalamu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Nzadi",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Inkisi",
+     "entites": [
+      {
+       "nom": "Kintanu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kisantu",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Kasangulu",
+     "entites": [
+      {
+       "nom": "Gare",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kasangulu",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Lukula",
+     "entites": [
+      {
+       "nom": "Lukula",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Nsioni",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Mbanza-Ngungu",
+     "entites": [
+      {
+       "nom": "Ngungu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Nioki",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Muanda",
+     "entites": [
+      {
+       "nom": "Mamputu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Muanda",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Tshela",
+     "entites": [
+      {
+       "nom": "Kasa-Vubu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Luvu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Tshela",
+       "nature": "Commune"
+      }
+     ]
+    }
    ],
    "territoires": [
-    "Kasangulu",
-    "Kimvula",
-    "Lukula",
-    "Luozi",
-    "Madimba",
-    "Mbanza-Ngungu",
-    "Moanda",
-    "Seke-Banza",
-    "Songololo",
-    "Tshela"
+    {
+     "nom": "Kasangulu",
+     "entites": [
+      {
+       "nom": "Kasangulu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Luila",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lukunga Mputu",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Kimvula",
+     "entites": [
+      {
+       "nom": "Kimvula",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Benga",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lubusi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lula-Lumeme",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Lukula",
+     "entites": [
+      {
+       "nom": "Lemba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Fubu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kakongo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Patu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Tsanga-Sud",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Tsundi-Sud",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Luozi",
+     "entites": [
+      {
+       "nom": "Luozi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Sele",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Balari",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kenge",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kimbanza",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kimumba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kinkenge",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kivunda",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mbanza Mona",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mbanza Mwembe",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mbanza Ngoyo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mongo Luala",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Madimba",
+     "entites": [
+      {
+       "nom": "Madimba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mfidi Malele",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mfuma Kibambi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Ngeba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Ngufu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Wungu",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Mbanza-Ngungu",
+     "entites": [
+      {
+       "nom": "Kwilu-Ngongo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Boko",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Gombe Matadi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Gombe Sud",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kivulu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kwilu Ngongo",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Moanda",
+     "entites": [
+      {
+       "nom": "Assolongo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Boma-Bungu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mer",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Seke-Banza",
+     "entites": [
+      {
+       "nom": "Kinzau-Mvuete",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Seke-Banza",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bundi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Isangila",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lufu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mbavu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Sumbi",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Songololo",
+     "entites": [
+      {
+       "nom": "Songololo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bamboma",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kimpese",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Luima",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Palabala",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Wombo",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Tshela",
+     "entites": [
+      {
+       "nom": "Bula Naku",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Loango",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lubolo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lubuzi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Maduda",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Nganda Tsundi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Nzobe Luzi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Tshela Mbanga",
+       "nature": "Secteur"
+      }
+     ]
+    }
    ]
   },
   {
    "nom": "Kwango",
    "chef_lieu": "Kenge",
    "villes": [
-    "Kenge"
+    {
+     "nom": "Kenge",
+     "entites": [
+      {
+       "nom": "5 Mai",
+       "nature": "Commune"
+      },
+      {
+       "nom": "L.d Kabila",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Manonga",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Masikita",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mavula",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Kahemba",
+     "entites": [
+      {
+       "nom": "Kwilu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lutshima",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ntshakal",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Kasongo-Lunda",
+     "entites": [
+      {
+       "nom": "Imona",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kituadi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kumbila",
+       "nature": "Commune"
+      }
+     ]
+    }
    ],
    "territoires": [
-    "Feshi",
-    "Kahemba",
-    "Kasongo-Lunda",
-    "Kenge",
-    "Popokabaka"
+    {
+     "nom": "Feshi",
+     "entites": [
+      {
+       "nom": "Feshi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ganaketi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lobo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Maziamo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mukoso",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Kahemba",
+     "entites": [
+      {
+       "nom": "Bangu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bindu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kulindji",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Kasongo-Lunda",
+     "entites": [
+      {
+       "nom": "Pelende",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kibunda",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kingulu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kizamba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mawanga",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Panzi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Swatenda",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kasa",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Kasongo Lunda",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Kenge",
+     "entites": [
+      {
+       "nom": "Kenge Ii",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Misele",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Pont Kwango",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bukanga Lonzo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Dinga",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kolokoso",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mosambo",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Popokabaka",
+     "entites": [
+      {
+       "nom": "Popokabaka",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kabama",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kisoma",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lufunia",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Popokabaka",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Yonso",
+       "nature": "Secteur"
+      }
+     ]
+    }
    ]
   },
   {
    "nom": "Kwilu",
    "chef_lieu": "Bandundu",
    "villes": [
-    "Bandundu",
-    "Kikwit"
+    {
+     "nom": "Bandundu",
+     "entites": [
+      {
+       "nom": "Basoko",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Disasi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mayoyo",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Bulungu",
+     "entites": [
+      {
+       "nom": "Buiombe Lusanga",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Djuma",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kabangu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kwilu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lukonzi",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Dibaya-Lubwe",
+     "entites": [
+      {
+       "nom": "Ipala",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ndambu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Tshenza",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Idiofa",
+     "entites": [
+      {
+       "nom": "Idiofa",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Manding",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mosanga",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Gungu",
+     "entites": [
+      {
+       "nom": "Congo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kakobola",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kwilu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lukwila",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Kikwit",
+     "entites": [
+      {
+       "nom": "Kazamba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lukemi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lukolela",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Nzinda",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Mangai",
+     "entites": [
+      {
+       "nom": "Menki",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Isabo",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Masi-Manimba",
+     "entites": [
+      {
+       "nom": "Bibembo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kangamiese",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lukuala",
+       "nature": "Commune"
+      }
+     ]
+    }
    ],
    "territoires": [
-    "Bagata",
-    "Bulungu",
-    "Idiofa",
-    "Gungu",
-    "Masimanimba"
+    {
+     "nom": "Bagata",
+     "entites": [
+      {
+       "nom": "Bagata",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Misay",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kidzweme",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kwango Kasai",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kwilu Ntober",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Manzansay",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Wamba Fatundu",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Bulungu",
+     "entites": [
+      {
+       "nom": "Mukedi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Due",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kilunda",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kimbongo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kipuka",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kwilu Kimbata",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kwenge",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Luniungu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Miadi Nkara",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mikwi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Nko Basuku",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Idiofa",
+     "entites": [
+      {
+       "nom": "Eolo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kalo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Piopio",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Banga",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Belo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bulweme",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kalanganda",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kanga",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kapia",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kipuku",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Madimbi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mateko",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Musanga",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Sedzo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Yassa Lokwa",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Gungu",
+     "entites": [
+      {
+       "nom": "Gungu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kandale",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kilamba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kilembe",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kisunzu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kobo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kondo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lozo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lukamba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mudikalunga",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mungindu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Ngudi",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Masimanimba",
+     "entites": [
+      {
+       "nom": "Bwalavula",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Masamvunga",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Pay Kongila",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bindungi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kibolo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kinzenga",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kinzenzengo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kitoy",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Masi Manimba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mokamo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mosango",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Pay Kongila",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Sungu",
+       "nature": "Secteur"
+      }
+     ]
+    }
    ]
   },
   {
    "nom": "Lomami",
    "chef_lieu": "Kabinda",
    "villes": [
-    "Kabinda"
+    {
+     "nom": "Kabinda",
+     "entites": [
+      {
+       "nom": "Kabongo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kabwela-Bwela",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kajiba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mudingayi",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Lubao",
+     "entites": [
+      {
+       "nom": "Kangoyi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lomami",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lumumba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kisampa",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Mbuy-a-Show",
+     "entites": [
+      {
+       "nom": "Lukombo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mukukuyi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mumvuyi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Tshibiayi",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Mwene-Ditu",
+     "entites": [
+      {
+       "nom": "Bondoyi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Musadi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mwene-Ditu",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Ngandajika",
+     "entites": [
+      {
+       "nom": "Kabanda",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kalumbanda Tshoji",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kalunda Musoko",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lunda",
+       "nature": "Commune"
+      }
+     ]
+    }
    ],
    "territoires": [
-    "Kabinda",
-    "Kamiji",
-    "Lubao",
-    "Mwene-Ditu",
-    "Ngandajika"
+    {
+     "nom": "Kabinda",
+     "entites": [
+      {
+       "nom": "Kakula",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kamende",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mpendje",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Munyengwe",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Baluba Lubangule",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kabinda",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Ludimbi Lukula",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lufubu Lomami",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lukashie Lualu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Vunayi",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Kamiji",
+     "entites": [
+      {
+       "nom": "Kamiji Tshisangu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Malenge",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kamiji",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Luekeshi",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Lubao",
+     "entites": [
+      {
+       "nom": "Balunga",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ebondo Kape",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kamana",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mwamwayi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bekalebwe",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kisengwa",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lubao",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Tshofa",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Mwene-Ditu",
+     "entites": [
+      {
+       "nom": "Kasekeyi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lusuku",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Tshabut",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Wikong",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kanda Kanda",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kanitshina",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Katshisungu",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Mulundu",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Ngandajika",
+     "entites": [
+      {
+       "nom": "Kalunda Musoko",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Baluba Shankadi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Ngandajika",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Tshiyamba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bakwa Mulumba",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Bena Kalambayi",
+       "nature": "Chefferie"
+      }
+     ]
+    }
    ]
   },
   {
    "nom": "Lualaba",
    "chef_lieu": "Kolwezi",
    "villes": [
-    "Kolwezi"
+    {
+     "nom": "Kolwezi",
+     "entites": [
+      {
+       "nom": "Dilala",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Manika",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Kasaji",
+     "entites": [
+      {
+       "nom": "Lueu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lukoji",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Tsimbundi",
+       "nature": "Commune"
+      }
+     ]
+    }
    ],
    "territoires": [
-    "Dilolo",
-    "Kapanga",
-    "Lubudi",
-    "Mutshatsha",
-    "Sandoa"
+    {
+     "nom": "Dilolo",
+     "entites": [
+      {
+       "nom": "Dilolo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kisenge",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Luena",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lulua Lukoshi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mutanda",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Muyeye",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Mwa-Kandal",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Mwatshisenge",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Ndumba",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Saluseke",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Tshisangama",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Kapanga",
+     "entites": [
+      {
+       "nom": "Kapanga",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mwant Yav",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Lubudi",
+     "entites": [
+      {
+       "nom": "Lubudi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lubudi",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Mutshatsha",
+     "entites": [
+      {
+       "nom": "Mutshatsha",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lufupa",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Luilu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mukuleshi",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Sandoa",
+     "entites": [
+      {
+       "nom": "Sandoa",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kayembe-Mukulu",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Lumanga",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Mbako",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Muteba",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Sakundunku",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Samutona",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Tshibamba",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Tshipao",
+       "nature": "Chefferie"
+      }
+     ]
+    }
    ]
   },
   {
    "nom": "Mai-Ndombe",
    "chef_lieu": "Inongo",
    "villes": [
-    "Inongo"
+    {
+     "nom": "Inongo",
+     "entites": [
+      {
+       "nom": "Bonse",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mpolo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mpongonzoli",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Bolobo",
+     "entites": [
+      {
+       "nom": "Bolobo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Moseno",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ngo-Bolobo",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Nioki",
+     "entites": [
+      {
+       "nom": "Nioki",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Monga-Nkolo",
+       "nature": "Commune"
+      }
+     ]
+    }
    ],
    "territoires": [
-    "Bolobo",
-    "Inongo",
-    "Kiri",
-    "Kutu",
-    "Kwamouth",
-    "Mushie",
-    "Oshwe",
-    "Yumbi"
+    {
+     "nom": "Bolobo",
+     "entites": [
+      {
+       "nom": "Bolobo",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Inongo",
+     "entites": [
+      {
+       "nom": "Ntand'embelo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Basengele",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bolia",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Inongo",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Kiri",
+     "entites": [
+      {
+       "nom": "Kiri",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Beronge",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lutoy",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Pendjwa",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Kutu",
+     "entites": [
+      {
+       "nom": "Kutu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bokoro",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ikongo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Semendwa",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Semondane",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Tolo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kemba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lwabu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mfimi",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Kwamouth",
+     "entites": [
+      {
+       "nom": "Kwamouth",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bateke Nord",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Mushie",
+     "entites": [
+      {
+       "nom": "Mushie",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Baboma Nord",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mushie",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Oshwe",
+     "entites": [
+      {
+       "nom": "Oshwe",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mbien",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lokolama",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lukenie",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kangara",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Nkaw",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Yumbi",
+     "entites": [
+      {
+       "nom": "Yumbi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mongama",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Yumbi",
+       "nature": "Secteur"
+      }
+     ]
+    }
    ]
   },
   {
    "nom": "Maniema",
    "chef_lieu": "Kindu",
    "villes": [
-    "Kindu"
+    {
+     "nom": "Kindu",
+     "entites": [
+      {
+       "nom": "Alunguli",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kasuku",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mikelenge",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Kalima",
+     "entites": [
+      {
+       "nom": "Kamisuku",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Luzelukulu",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Kasongo",
+     "entites": [
+      {
+       "nom": "Kasongo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Musukuyi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Tongoni",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Zamba",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Lubutu",
+     "entites": [
+      {
+       "nom": "Aluza",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lubilinga",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Nanoya",
+     "entites": [
+      {
+       "nom": "Kama",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Byenge",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Longwe",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Punia",
+     "entites": [
+      {
+       "nom": "Obea",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Amanyombo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Basenge",
+       "nature": "Commune"
+      }
+     ]
+    }
    ],
    "territoires": [
-    "Kabambare",
-    "Kailo",
-    "Kasongo",
-    "Kibombo",
-    "Lubutu",
-    "Pangi",
-    "Punia"
+    {
+     "nom": "Kabambare",
+     "entites": [
+      {
+       "nom": "Kabambare",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Wanaza",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Babuyu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bahemba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bahombo (bangu Bangu)",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lulindi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Salamabila",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Wamaza",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Kailo",
+     "entites": [
+      {
+       "nom": "Kailo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lubelenge",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ambwe",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Wasongola",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Balanga",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Bangengele",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Kasongo",
+     "entites": [
+      {
+       "nom": "Kipaka",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Samba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Likenge",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Basonge Ii",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mamba Kasenga",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Wazimba Wa Maringa",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Wazimba Wa Mulu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bakwangi",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Basonge I",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Basonge Ii",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Benye Samba",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Nonda",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Wagenia",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Wazula",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Kibombo",
+     "entites": [
+      {
+       "nom": "Kibondo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Likeri",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kibombo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Aluba",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Ankutshu",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Bahina",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Bakongola",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Matapa",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Lubutu",
+     "entites": [
+      {
+       "nom": "Lukachi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mungele",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Tshamaka",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bitule",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Obokote",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Pangi",
+     "entites": [
+      {
+       "nom": "Pangi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kama",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kampene",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Babene",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Beia",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Ikama",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Wakabango Ii",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Punia",
+     "entites": [
+      {
+       "nom": "Kibeleketa",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kowe",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Babira Bakwame",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Baleka",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Ulindi",
+       "nature": "Secteur"
+      }
+     ]
+    }
    ]
   },
   {
    "nom": "Mongala",
    "chef_lieu": "Lisala",
    "villes": [
-    "Lisala"
+    {
+     "nom": "Lisala",
+     "entites": [
+      {
+       "nom": "Bolikango",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mongala",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Bumba",
+     "entites": [
+      {
+       "nom": "Budja",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ebonda",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lokole",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Molua",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Monama",
+       "nature": "Commune"
+      }
+     ]
+    }
    ],
    "territoires": [
-    "Bongandanga",
-    "Bumba",
-    "Lisala"
+    {
+     "nom": "Bongandanga",
+     "entites": [
+      {
+       "nom": "Bondanganda",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bongandanga",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Busu Djanoa",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Busu Melo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Busu Simba",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Bumba",
+     "entites": [
+      {
+       "nom": "Banda Yowa",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Itimbiri",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Loeka",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Molua",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Monzamboli",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Yandongi",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Lisala",
+     "entites": [
+      {
+       "nom": "Binga",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mondongo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mongala Motima",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Ngombe Doko",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Ngombe Mombangi",
+       "nature": "Secteur"
+      }
+     ]
+    }
    ]
   },
   {
    "nom": "Nord-Kivu",
    "chef_lieu": "Goma",
    "villes": [
-    "Goma"
+    {
+     "nom": "Goma",
+     "entites": [
+      {
+       "nom": "Goma",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Karisimbi",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Beni",
+     "entites": [
+      {
+       "nom": "Beu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bungulu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mulekera",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ruwenzori",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Butembo",
+     "entites": [
+      {
+       "nom": "Bulengera",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kimeni",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mususa",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Vulamba",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Luholu",
+     "entites": [
+      {
+       "nom": "Kayna",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kirumba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Luofu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mighobwe",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Oicha",
+     "entites": [
+      {
+       "nom": "Asefu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mamundiona",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mbimbi",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Rutshuru",
+     "entites": [
+      {
+       "nom": "Buzito",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Katemba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kiringa",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mabungo",
+       "nature": "Commune"
+      }
+     ]
+    }
    ],
    "territoires": [
-    "Beni",
-    "Lubero",
-    "Masisi",
-    "Nyiragongo",
-    "Rutshuru",
-    "Walikale"
+    {
+     "nom": "Beni",
+     "entites": [
+      {
+       "nom": "Bulongo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kasindi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kyondo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mangina",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bashu",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Beni Mbau",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Ruwenzori",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Watangila",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Lubero",
+     "entites": [
+      {
+       "nom": "Kanyabayonga",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kasenghe",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kipese",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kirumbu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kitsombiro",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lubero",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lume",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Luotu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Masereka",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ndjiapanda",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bapere",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Baswaga",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Batangi",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Bomate",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Masisi",
+     "entites": [
+      {
+       "nom": "Kilambo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Masisi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ngungu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Nyamitaba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Sake",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Osso Banyungu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bahunde",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Bashali",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Nyiragongo",
+     "entites": [
+      {
+       "nom": "Kibumba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bukumu",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Rutshuru",
+     "entites": [
+      {
+       "nom": "Bambo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kibirizi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Nyamilima",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Nyanzale",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Tshengerero",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bwisha",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Bwito",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Walikale",
+     "entites": [
+      {
+       "nom": "Hombo Nord",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mubi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ndjingala",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Pinga",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Pinga Bushimoo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Rubaya",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Walikale",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bakano",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Wanyanga",
+       "nature": "Secteur"
+      }
+     ]
+    }
    ]
   },
   {
    "nom": "Nord-Ubangi",
    "chef_lieu": "Gbadolite",
    "villes": [
-    "Gbadolite"
+    {
+     "nom": "Gbadolite",
+     "entites": [
+      {
+       "nom": "Gbadolite",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Molegbe",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Nganza",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Mobayi-Mbongo",
+     "entites": [
+      {
+       "nom": "Mwange",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ngugbi",
+       "nature": "Commune"
+      }
+     ]
+    }
    ],
    "territoires": [
-    "Businga",
-    "Bosobolo",
-    "Mobayi-Mbongo",
-    "Yakoma"
+    {
+     "nom": "Businga",
+     "entites": [
+      {
+       "nom": "Businga",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bodangabo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Businga",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Karawa",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Bosobolo",
+     "entites": [
+      {
+       "nom": "Bosolobo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Banda",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bili",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bosobolo",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Mobayi-Mbongo",
+     "entites": [
+      {
+       "nom": "Otto Banza",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Karawa",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mobayi Mbongo",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Yakoma",
+     "entites": [
+      {
+       "nom": "Yakoma",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Abumombanzi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Wapinda",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Yakoma",
+       "nature": "Secteur"
+      }
+     ]
+    }
    ]
   },
   {
    "nom": "Sankuru",
    "chef_lieu": "Lusambo",
    "villes": [
-    "Lusambo"
+    {
+     "nom": "Lusambo",
+     "entites": [
+      {
+       "nom": "Kabondo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lumpema",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lusambo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Tusuanganyi",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Bena-Dibela",
+     "entites": [
+      {
+       "nom": "Bene-Dibele",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lowele",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Lodja",
+     "entites": [
+      {
+       "nom": "Lokenya",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Londa",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lumumba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Nganga",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Shapembe",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Esenge",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Okitandeke",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Lumumbaville (Wembo-Nyama)",
+     "entites": [
+      {
+       "nom": "Wembo-Nyama",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ewango",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Tshumbe",
+     "entites": [
+      {
+       "nom": "Okitongombe",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Otete",
+       "nature": "Commune"
+      }
+     ]
+    }
    ],
    "territoires": [
-    "Katako-Kombe",
-    "Kole",
-    "Lodja",
-    "Lomela",
-    "Lubefu",
-    "Lusambo"
+    {
+     "nom": "Katako-Kombe",
+     "entites": [
+      {
+       "nom": "Katakokombe",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kutshiakoyi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Basambala",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Djalo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lonya",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lukumbe",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Ngandu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Ukulungu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Watambulu Nord",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Watambulu Sud",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Batetela-Arabises",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Kole",
+     "entites": [
+      {
+       "nom": "Kole",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ankutshu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Batetela Dibele",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bankutshu Lukenie",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Ohindo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Basho",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Ankutshu Dibele",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Lodja",
+     "entites": [
+      {
+       "nom": "Kotshayi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Olemba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Hamba Mange",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kondo Tshumbe",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lufungu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lutshimba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Nambelu (luhembe)",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Vunge",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Watambulu",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Lomela",
+     "entites": [
+      {
+       "nom": "Lomela Olua",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Batetela Lomela",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bakela",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bahamba I",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bahamba Ii",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Okutu",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Lubefu",
+     "entites": [
+      {
+       "nom": "Lubefu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Panya Mutombo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Basonge",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mondja Ngandu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Ndjovu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Ngandu Wuma",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Lusambo",
+     "entites": [
+      {
+       "nom": "Basonge",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Batetela",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kashindi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lubi",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mpanyamutombo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Sankuru",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Entree Kunduye Malaba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Entree Lubi Kunduye",
+       "nature": "Secteur"
+      }
+     ]
+    }
    ]
   },
   {
    "nom": "Sud-Kivu",
    "chef_lieu": "Bukavu",
    "villes": [
-    "Bukavu"
+    {
+     "nom": "Bukavu",
+     "entites": [
+      {
+       "nom": "Bagira",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ibanda",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kadutu",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Baraka",
+     "entites": [
+      {
+       "nom": "Baraka Centre",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kalundja",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Katanga",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Kamilunga",
+     "entites": [
+      {
+       "nom": "Bitanga",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mobale",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Shabunda",
+     "entites": [
+      {
+       "nom": "Kizikibi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lupinga",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ngalubua",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Uvira",
+     "entites": [
+      {
+       "nom": "Kalundu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kavinvira",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mubongue",
+       "nature": "Commune"
+      }
+     ]
+    }
    ],
    "territoires": [
-    "Fizi",
-    "Idjwi",
-    "Kalehe",
-    "Kabare",
-    "Mwenga",
-    "Shabunda",
-    "Uvira",
-    "Walungu"
+    {
+     "nom": "Fizi",
+     "entites": [
+      {
+       "nom": "Fizi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kavinvira",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lilimba Misisi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Minembue",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lulenge",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mutambala",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Ngandja",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Tanganika",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Idjwi",
+     "entites": [
+      {
+       "nom": "Rubenga",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Ntambuka",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Kalehe",
+     "entites": [
+      {
+       "nom": "Bahavu",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Kavunu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Minova",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Nyabibwe",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Uloho",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Kabare",
+     "entites": [
+      {
+       "nom": "Kabare",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Nindja",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Mwenga",
+     "entites": [
+      {
+       "nom": "Itombwe",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Barhinyi",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Basile",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Luhwindja",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Lwindi",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Shabunda",
+     "entites": [
+      {
+       "nom": "Lulingu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bakisi",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Wakabango I",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Uvira",
+     "entites": [
+      {
+       "nom": "Kamanyola",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kiliba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Luvungi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Sange",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Swima",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bafulero",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Bavira",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Ruzizi",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Walungu",
+     "entites": [
+      {
+       "nom": "Nyangezi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kaziba",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Ngweshe",
+       "nature": "Chefferie"
+      }
+     ]
+    }
    ]
   },
   {
    "nom": "Sud-Ubangi",
    "chef_lieu": "Gemena",
    "villes": [
-    "Gemena",
-    "Zongo"
+    {
+     "nom": "Gemena",
+     "entites": [
+      {
+       "nom": "Gbazulu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Labo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mongila",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lac Ntumba",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Zongo",
+     "entites": [
+      {
+       "nom": "Nzulu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Wango",
+       "nature": "Commune"
+      }
+     ]
+    }
    ],
    "territoires": [
-    "Budjala",
-    "Gemena",
-    "Kungu",
-    "Libenge"
+    {
+     "nom": "Budjala",
+     "entites": [
+      {
+       "nom": "Budjala",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Banza",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bolingo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mongala",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Ndolo Liboko",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Ngombe Doko",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Gemena",
+     "entites": [
+      {
+       "nom": "Banga Kungu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bowasse",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mbari",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Nguya",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Kungu",
+     "entites": [
+      {
+       "nom": "Kungu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bomboma",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Dongo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lua",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mwanda",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Songo",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Libenge",
+     "entites": [
+      {
+       "nom": "Libenge",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Libenge Centre",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Libenge Nord",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Libenge Sud",
+       "nature": "Secteur"
+      }
+     ]
+    }
    ]
   },
   {
    "nom": "Tanganyika",
    "chef_lieu": "Kalemie",
    "villes": [
-    "Kalemie"
+    {
+     "nom": "Kalemie",
+     "entites": [
+      {
+       "nom": "Kalemie",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lukuga",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lac",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Kaoze",
+     "entites": [
+      {
+       "nom": "Kirungu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Moba Port",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Murumbi",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Kongolo",
+     "entites": [
+      {
+       "nom": "Kabinda",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kangoyi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lualaba",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Manono",
+     "entites": [
+      {
+       "nom": "Kanteba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kitotolo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Laulu-Minono",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lukushi",
+       "nature": "Commune"
+      }
+     ]
+    }
    ],
    "territoires": [
-    "Kabalo",
-    "Kalemie",
-    "Kongolo",
-    "Manono",
-    "Moba",
-    "Nyunzu"
+    {
+     "nom": "Kabalo",
+     "entites": [
+      {
+       "nom": "Kabalo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lukuswa",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Muela Luvunguye",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Kalemie",
+     "entites": [
+      {
+       "nom": "Kalemie",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Benze",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Rutuku",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Tumbwe",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Kongolo",
+     "entites": [
+      {
+       "nom": "Baluba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Basonge",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bayatshi",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Bena Mambwe",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Bena Muhona",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Bena Mwembo",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Bena Nkuvu",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Lubunda",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Munono",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Yambula",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Manono",
+     "entites": [
+      {
+       "nom": "Kamalondo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kyofwe",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Luvua",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Nyemba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bakongolo",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Kiluba",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Moba",
+     "entites": [
+      {
+       "nom": "Bena Kamanya",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bena Ntanga",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Kansabala",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Kayabala",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Manda",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Nganie",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Nyunzu",
+     "entites": [
+      {
+       "nom": "Nyunzu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Nord Lukunga",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Sud Lukunga",
+       "nature": "Secteur"
+      }
+     ]
+    }
    ]
   },
   {
    "nom": "Tshopo",
    "chef_lieu": "Kisangani",
    "villes": [
-    "Kisangani"
+    {
+     "nom": "Kisangani",
+     "entites": [
+      {
+       "nom": "Kabondo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kisangani",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lubunga",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Makiso",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mangobo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Tshopo",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Basoko",
+     "entites": [
+      {
+       "nom": "Bandole",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bandu-Lokutu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lokumete",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Nzombo",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Isangi",
+     "entites": [
+      {
+       "nom": "Logami",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Loolo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Isangi",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Fleuve",
+       "nature": "Commune"
+      }
+     ]
+    }
    ],
    "territoires": [
-    "Bafwasende",
-    "Banalia",
-    "Basoko",
-    "Isangi",
-    "Opala",
-    "Ubundu",
-    "Yahuma"
+    {
+     "nom": "Bafwasende",
+     "entites": [
+      {
+       "nom": "Bafwasende",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Openge",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bafwandaka",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bakumu D'angundu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bakundumu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Barumbi Opienge",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bekeni Kondolole",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bemili",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Banalia",
+     "entites": [
+      {
+       "nom": "Babwa De Kole",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bamanga",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Banalia Bangba",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Popoyi",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Basoko",
+     "entites": [
+      {
+       "nom": "Bangelema",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bomenge",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lokutu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mobango Itimbiri",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Turumbu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Wahanga",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Yaliswa",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Yamandundu",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Isangi",
+     "entites": [
+      {
+       "nom": "Lokombe",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Turumbu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Yaokandja",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Baluolambila",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Kombe",
+       "nature": "Chefferie"
+      },
+      {
+       "nom": "Yalihala",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Opala",
+     "entites": [
+      {
+       "nom": "Wanie-Rukula",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Yaleko",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Yatolema",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Opala",
+       "nature": "Commune"
+      }
+     ]
+    },
+    {
+     "nom": "Ubundu",
+     "entites": [
+      {
+       "nom": "Bakumu D'obiatuku",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bakumu Kilinga",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bakumu Mandombe",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Bakumu Mangongo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Basikate",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Mituku Bamoya",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Walengola Babira",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Walengola Baleka",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Walengola Lilo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Walengola Lowa",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Kirungu",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Yahuma",
+     "entites": [
+      {
+       "nom": "Mosite",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Yahuma",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bosoku",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Buma",
+       "nature": "Secteur"
+      }
+     ]
+    }
    ]
   },
   {
    "nom": "Tshuapa",
    "chef_lieu": "Boende",
    "villes": [
-    "Boende"
+    {
+     "nom": "Boende",
+     "entites": [
+      {
+       "nom": "Boende",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Tshuapa",
+       "nature": "Commune"
+      }
+     ]
+    }
    ],
    "territoires": [
-    "Befale",
-    "Boende",
-    "Bokungu",
-    "Djolu",
-    "Ikela",
-    "Monkoto"
+    {
+     "nom": "Befale",
+     "entites": [
+      {
+       "nom": "Befale",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Befumbo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Duale",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lomako",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Boende",
+     "entites": [
+      {
+       "nom": "Bolua",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Djera",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lofoy",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Wini",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Bokungu",
+     "entites": [
+      {
+       "nom": "Bokungu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lolaka",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Luando",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Loombo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Luay",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Nkole",
+       "nature": "Chefferie"
+      }
+     ]
+    },
+    {
+     "nom": "Djolu",
+     "entites": [
+      {
+       "nom": "Djolu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Djolu",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lingomo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Luo",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Yala",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Ikela",
+     "entites": [
+      {
+       "nom": "Ikela",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lofome",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Loile",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Lokima",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Tshuapa",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Tumbenga",
+       "nature": "Secteur"
+      }
+     ]
+    },
+    {
+     "nom": "Monkoto",
+     "entites": [
+      {
+       "nom": "Monkoto",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bianga",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Monkoto",
+       "nature": "Secteur"
+      },
+      {
+       "nom": "Nongo",
+       "nature": "Secteur"
+      }
+     ]
+    }
    ]
   },
   {
    "nom": "Kinshasa",
    "chef_lieu": "Kinshasa",
-   "villes": [],
-   "territoires": [],
-   "communes": {
-    "Kinshasa": [
-     "Bandalungwa",
-     "Barumbu",
-     "Bumbu",
-     "Gombe",
-     "Kalamu",
-     "Kasa-Vubu",
-     "Kimbanseke",
-     "Kinshasa",
-     "Kintambo",
-     "Kisenso",
-     "Lemba",
-     "Limete",
-     "Lingwala",
-     "Makala",
-     "Maluku",
-     "Masina",
-     "Matete",
-     "Mont-Ngafula",
-     "N'djili",
-     "Ngaba",
-     "Ngaliema",
-     "Ngiri-Ngiri",
-     "N'sele",
-     "Selembao"
-    ]
-   }
+   "villes": [
+    {
+     "nom": "Kinshasa",
+     "entites": [
+      {
+       "nom": "Bandalungwa",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Barumbu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Bumbu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Gombe",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kalamu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kasa-Vubu",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kimbanseke",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kinshasa",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kintambo",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Kisenso",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lemba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Limete",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Lingwala",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Makala",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Maluku",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Masina",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Matete",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Mont-Ngafula",
+       "nature": "Commune"
+      },
+      {
+       "nom": "N'djili",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ngaba",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ngaliema",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Ngiri-Ngiri",
+       "nature": "Commune"
+      },
+      {
+       "nom": "N'sele",
+       "nature": "Commune"
+      },
+      {
+       "nom": "Selembao",
+       "nature": "Commune"
+      }
+     ]
+    }
+   ],
+   "territoires": []
   }
- ],
- "nature": "Les villes ont la nature Ville, les territoires la nature Territoire (registre S20-8) : une ville et un territoire peuvent porter le même nom."
+ ]
 }

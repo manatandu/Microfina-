@@ -133,40 +133,42 @@ def completer_referentiels(ins: int) -> int:
 
 
 def completer_lieux() -> int:
-    """Localisation (S20) : les 26 provinces avec leurs villes et territoires, les 24 communes de Kinshasa (replica/localisation-rdc.json, registre S20-6).
-    N'ajoute que les lieux absents (même nom, même niveau, même parent)."""
+    """Localisation (S20) : les 26 provinces, leurs villes et territoires, et sous chacun ses communes, secteurs et chefferies
+    (replica/localisation-rdc.json, nomenclature budgétaire 2015, sans ses codes ; registre S20-6, S20-9). N'ajoute que les lieux absents
+    (même parent, nom et nature), niveau par niveau, une requête par niveau."""
     from django.conf import settings
     chemin = settings.RACINE_DEPOT / "replica" / "localisation-rdc.json"
     if not chemin.exists():
         return 0
     import json
+    from noyau.bd import lignes
     d = json.loads(chemin.read_text(encoding="utf-8"))
-    ajouts = 0
-
-    def lieu(parent, niveau, nom, nature=""):
-        nonlocal ajouts
-        i = valeur("""select id from localite where niveau = %s and lower(nom) = lower(%s) and parent_id is not distinct from %s and nature = %s""",
-                   (niveau, nom, parent, nature))
-        if i is None:
-            i = valeur("insert into localite (parent_id, niveau, nom, nature) values (%s, %s, %s, %s) returning id", (parent, niveau, nom, nature))
-            ajouts += 1
-        return i
-
     pays = valeur("select id from localite where niveau = 'pays' and code = 'CD'") or valeur("select id from localite where niveau = 'pays' and nom = %s", (d["pays"],))
     if pays is None:
         return 0
-    for p in d["provinces"]:
-        pr = lieu(pays, "province", p["nom"])
-        for v in p.get("villes", []):
-            lieu(pr, "ville", v, "Ville")
-        for t in p.get("territoires", []):
-            lieu(pr, "ville", t, "Territoire")          # nature du lieu : registre S20-8
-        for v, communes in p.get("communes", {}).items():
-            vi = lieu(pr, "ville", v, "Ville")
-            for c in communes:
-                lieu(vi, "commune", c)
-    return ajouts
+    connus = {(r["parent_id"], r["niveau"], r["nom"].lower(), r["nature"]): r["id"]
+              for r in lignes("select id, parent_id, niveau, nom, nature from localite")}
+    ajouts = 0
 
+    def lot(rangs):
+        """rangs : (parent, niveau, nom, nature) ; insère ceux qui manquent, rend les identifiants de tous"""
+        nonlocal ajouts
+        cle = lambda r: (r[0], r[1], r[2].lower(), r[3])
+        manquants = list({cle(r): r for r in rangs if cle(r) not in connus}.values())
+        if manquants:
+            for r in lignes("""insert into localite (parent_id, niveau, nom, nature)
+                               select * from unnest(%s::bigint[], %s::text[], %s::text[], %s::text[]) returning id, parent_id, niveau, nom, nature""",
+                            [list(c) for c in zip(*manquants)]):
+                connus[(r["parent_id"], r["niveau"], r["nom"].lower(), r["nature"])] = r["id"]
+            ajouts += len(manquants)
+        return [connus[cle(r)] for r in rangs]
+
+    provinces = d["provinces"]
+    ids_p = lot([(pays, "province", p["nom"], "") for p in provinces])
+    villes = [(pid, v, nat) for pid, p in zip(ids_p, provinces) for nat, cle in (("Ville", "villes"), ("Territoire", "territoires")) for v in p[cle]]
+    ids_v = lot([(pid, "ville", v["nom"], nat) for pid, v, nat in villes])
+    lot([(vid, "commune", e["nom"], e["nature"]) for vid, (_, v, _n) in zip(ids_v, villes) for e in v["entites"]])
+    return ajouts
 
 class Command(BaseCommand):
     help = "Charge les données fictives de démonstration dans une base vide."
@@ -185,8 +187,8 @@ class Command(BaseCommand):
         pays = valeur("insert into localite (niveau, nom, nationalite, code, zone) values ('pays', 'République démocratique du Congo', 'Congolaise', 'CD', 'Afrique') returning id")
         provinces = {pr: valeur("insert into localite (parent_id, niveau, nom) values (%s, 'province', %s) returning id", (pays, pr)) for pr in PROVINCES_RDC}
         ville = valeur("insert into localite (parent_id, niveau, nom, nature) values (%s, 'ville', 'Kinshasa', 'Ville') returning id", (provinces["Kinshasa"],))
-        matete = valeur("insert into localite (parent_id, niveau, nom) values (%s, 'commune', 'Matete') returning id", (ville,))
-        executer("insert into localite (parent_id, niveau, nom) values (%s, 'commune', 'Lemba')", (ville,))
+        matete = valeur("insert into localite (parent_id, niveau, nom, nature) values (%s, 'commune', 'Matete', 'Commune') returning id", (ville,))
+        executer("insert into localite (parent_id, niveau, nom, nature) values (%s, 'commune', 'Lemba', 'Commune')", (ville,))
         executer("insert into localite (parent_id, niveau, nom) values (%s, 'quartier', 'Kinsaku')", (matete,))
         # S14b : métiers du ROME/RDC avec leur code, et « Commerçant » que le ROME ne nomme pas, code de l'institution (registre S14b-1)
         for c, pr in PROFESSIONS:
