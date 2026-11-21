@@ -174,8 +174,10 @@ def _ppe_personne(tid: int) -> bool:
 def ppe_active(tid: int) -> bool:
     """Le client lui-même, ou un de ses bénéficiaires effectifs : « déterminer si le client ou un bénéficiaire effectif du client est une
     personne politiquement exposée » (loi 22/068, art. 53 ; confrontation du 21/11/2026, E3)"""
+    # E3 : le dirigeant, tenu pour bénéficiaire effectif faute d'autre (art. 34 bis, 3°), coché « personne exposée » sur sa fiche
     return _ppe_personne(tid) or any(_ppe_personne(r["autre_id"]) for r in lignes(
-        "select autre_id from lien_tiers where tiers_id = %s and role = 'beneficiaire_effectif'", (tid,)))
+        "select autre_id from lien_tiers where tiers_id = %s and role = 'beneficiaire_effectif'", (tid,))) or bool(valeur(
+        "select 1 from representant where tiers_id = %s and role = 'dirigeant' and personne_exposee and retire_le is null", (tid,)))
 
 
 def exiger_autorisation_ppe(tid: int) -> None:
@@ -200,7 +202,9 @@ def ppe_lister(u: dict) -> list[dict]:
     exiger(u)
     return [vue_ppe(t) for t in lignes("""select id, numero, statut from tiers t where institution_id = %s and (personne_exposee or exists (
                                               select 1 from lien_tiers l join tiers b on b.id = l.autre_id
-                                              where l.tiers_id = t.id and l.role = 'beneficiaire_effectif' and b.personne_exposee)) order by numero""", (u["institution_id"],))]
+                                              where l.tiers_id = t.id and l.role = 'beneficiaire_effectif' and b.personne_exposee)
+                                          or exists (select 1 from representant r where r.tiers_id = t.id and r.role = 'dirigeant' and r.personne_exposee
+                                                     and r.retire_le is null)) order by numero""", (u["institution_id"],))]
 
 
 def ppe_enregistrer(u: dict, tid: int, d: dict) -> dict:

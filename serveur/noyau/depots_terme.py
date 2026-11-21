@@ -83,7 +83,7 @@ def mettre_en_place(u, d) -> dict:
         raise ErreurMetier("À remplir : N° du Client.")
     controler_statut_actif(t["statut"])
     from .gel import controler_gel
-    controler_gel(t["id"])                             # écart E10
+    controler_gel(t["id"], u)                          # écart E10
     dev = p["devise"].strip()
 
     def compte(cle_, nom):

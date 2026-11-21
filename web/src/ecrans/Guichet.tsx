@@ -43,6 +43,7 @@ export default function GuichetDepotRetrait() {
   const [compteId, setCompteId] = useState(0);
   const [saisie, setSaisie] = useState("");
   const [mandataire, setMandataire] = useState("");
+  const [procurationId, setProcurationId] = useState<number | null>(null);   // E2 : au retrait, le mandataire vient d'une procuration en cours
   const [motif, setMotif] = useState("");
   const [coupures, setCoupures] = useState<Comptage>({});
   const [cle, setCle] = useState(nouvelleCle);
@@ -61,10 +62,11 @@ export default function GuichetDepotRetrait() {
     const stock = s && c ? await api.caisses.theorique(s.id, c.devise) : {};
     const img = t && images ? await api.tiers.images(t.id) : null;
     const piece = fait ? (await api.operations.recu(fait.id)).piece : "";
-    return { s, ctx, u, j, comptes, c, stock, img, piece };
-  }, [t?.id, compteId, fait?.id, images]);
+    const procurations = t && op === "retrait" ? await api.procurations.enCours(t.id) : [];
+    return { s, ctx, u, j, comptes, c, stock, img, piece, procurations };
+  }, [t?.id, compteId, fait?.id, images, op]);
 
-  const effacer = () => { setT(null); setCompteId(0); setSaisie(""); setMandataire(""); setMotif(""); setCoupures({}); setCle(nouvelleCle()); setFait(null); };
+  const effacer = () => { setT(null); setCompteId(0); setSaisie(""); setMandataire(""); setProcurationId(null); setMotif(""); setCoupures({}); setCle(nouvelleCle()); setFait(null); };
   useEffect(() => { effacer(); }, [op]);   // changer d'onglet repart d'une saisie vierge
   // Arrivée par la recherche globale : le client est déjà choisi
   const tiersDemande = q.get("tiers");
@@ -73,7 +75,7 @@ export default function GuichetDepotRetrait() {
   }, [tiersDemande, op]);
 
   if (!donnees) return <Chargement />;
-  const { s, ctx, u, j, comptes, c, stock, img, piece } = donnees;
+  const { s, ctx, u, j, comptes, c, stock, img, piece, procurations } = donnees;
   if (!s || s.statut !== "ouverte") return (
     <><h1>Guichet</h1><OngletsGuichet /><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>
   );
@@ -88,7 +90,7 @@ export default function GuichetDepotRetrait() {
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try {
         const corps = { cle, compteId: c!.id, montant: m!, coupures, mandataire, motif };
-        const o = op === "depot" ? await api.guichet.depot(corps) : await api.guichet.retrait(corps);
+        const o = op === "depot" ? await api.guichet.depot(corps) : await api.guichet.retrait({ ...corps, mandataire: "", procurationId });
         if (o.statut === "visa_requis") {   // registre S08-5 : le retrait est enregistré en attente, pas payé ; le refaire après le visa
           setCle(nouvelleCle());
           setBoite({ type: "succes", message: "Enregistré avec succès ! Retrait au-delà du plafond du guichet : il attend le visa « Retrait plafond » (Visa > Retrait plafond). Après le visa, enregistrer de nouveau ce retrait pour le payer." });
@@ -155,7 +157,12 @@ export default function GuichetDepotRetrait() {
               <Champ libelle="Montant *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" readOnly={!!fait} value={saisie}
                 onChange={(e) => { setSaisie(e.target.value); nouvelle(); }} />}</Champ>
               <Champ libelle="Total frais">{(p) => <input {...p} className="saisie montant" readOnly value="" />}</Champ>
-              <Champ libelle="Mandataire">{(p) => <input {...p} className="saisie" readOnly={!!fait} value={mandataire} onChange={(e) => setMandataire(e.target.value)} />}</Champ>
+              {op === "depot"
+                ? <Champ libelle="Mandataire">{(p) => <input {...p} className="saisie" readOnly={!!fait} value={mandataire} onChange={(e) => setMandataire(e.target.value)} />}</Champ>
+                /* Retrait : le titulaire, ou un mandataire d'une procuration en cours (loi 22/068, art. 31, al. 3 ; confrontation du 21/11/2026, E2) */
+                : <Champ libelle="Mandataire">{(p) => <select {...p} className="saisie" disabled={!!fait} value={procurationId ?? ""}
+                    onChange={(e) => setProcurationId(e.target.value ? Number(e.target.value) : null)}><option value="">Le titulaire</option>
+                    {procurations.map((x) => <option key={x.id} value={x.id}>{[x.nom, x.postnom, x.prenom].filter(Boolean).join(" ")} : {x.pieceType} {x.pieceNumero}</option>)}</select>}</Champ>}
               <Champ libelle="Motif:">{(p) => <input {...p} className="saisie" readOnly={!!fait} value={motif} onChange={(e) => setMotif(e.target.value)} />}</Champ>
             </fieldset>
             <fieldset className="pile cadre-champs">

@@ -95,7 +95,91 @@ export default function GelAvoirs({ jour }: { jour: string }) {
           </div>
         </div>}
       </Fiche>
+      <ListesDesignation jour={jour} gelChange={() => setRelu((v) => v + 1)} />
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </section>
+  );
+}
+
+type Correspondance = Awaited<ReturnType<typeof api.conformite.listesGel>>["correspondances"][number];
+const STATUTS_CORR = { a_examiner: "À examiner", confirmee: "Confirmée : avoirs gelés", ecartee: "Écartée" } as const;
+
+/** A13 (confrontation du 21/11/2026) : listes de désignation importées, clients rapprochés, correspondances examinées par la conformité.
+ * Loi 22/068 modifiée, art. 158 et 158 bis (gel sans délai), 161 bis (listes communiquées), 168 bis (nom identique ou similaire). */
+function ListesDesignation({ jour, gelChange }: { jour: string; gelChange: () => void }) {
+  const [relu, setRelu] = useState(0);
+  const { donnees } = useDonnees(() => api.conformite.listesGel(), [relu]);
+  const [imp, setImp] = useState({ source: "", reference: "", publieLe: "", contenu: "", fichier: "" });
+  const [choisie, setChoisie] = useState<Correspondance | null>(null);
+  const [observation, setObservation] = useState("");
+  const [boite, setBoite] = useState<Boite | null>(null);
+  if (!donnees) return <Chargement />;
+  const agir = (msg: string, appel: () => Promise<unknown>, apres: () => void, succes = "Enregistré avec succès !") => setBoite({ type: "confirmation", message: msg, oui: async () => {
+    try { const r = await appel(); apres(); setRelu((v) => v + 1); gelChange();
+      setBoite({ type: "succes", message: r && typeof r === "object" && "correspondances" in r ? `${succes} Correspondances nouvelles : ${(r as { correspondances: number }).correspondances}.` : succes }); }
+    catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+  } });
+  const lire = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]; e.target.value = "";
+    if (f) f.text().then((t) => setImp({ ...imp, contenu: t, fichier: f.name }), (x) => setBoite({ type: "erreur", message: message(x) }));
+  };
+  return (
+    <>
+      <h2>Listes de désignation</h2>
+      <fieldset className="pile cadre-champs">
+        <legend>Importer une publication</legend>
+        <div className="formulaire">
+          <Champ libelle="Source : *">{(p) => <select {...p} className="saisie" value={imp.source} onChange={(e) => setImp({ ...imp, source: e.target.value })}>
+            <option value=""></option><option value="conasafic">Liste nationale (CONASAFIC)</option><option value="onu">Conseil de sécurité des Nations Unies</option></select>}</Champ>
+          <Champ libelle="Référence de la publication : *">{(p) => <input {...p} className="saisie code" value={imp.reference} onChange={(e) => setImp({ ...imp, reference: e.target.value })} />}</Champ>
+          <ChampDate libelle="Date de publication : *" valeur={imp.publieLe || jour} onChange={(v) => setImp({ ...imp, publieLe: v })} />
+          <Champ libelle="Fichier CSV : *" aide={`Colonnes, dans cet ordre : ${donnees.colonnes.join(" ; ")}`}>{(p) => <div className="ligne-champ">
+            <label className="bouton secondaire">Choisir<input {...p} className="sr-only" type="file" accept=".csv,.txt,text/csv,text/plain" onChange={lire} /></label>
+            <span>{imp.fichier}</span></div>}</Champ>
+        </div>
+        <div className="actions-onglets">
+          <button className="bouton" type="button" onClick={() => agir("Voulez-vous vraiment importer cette liste ?", () => api.conformite.importerListeGel({ ...imp, publieLe: imp.publieLe || jour }),
+            () => setImp({ source: "", reference: "", publieLe: "", contenu: "", fichier: "" }))}>Importer</button>
+          <button className="bouton secondaire" type="button" onClick={() => agir("Voulez-vous vraiment rapprocher tous les clients de la liste en vigueur ?",
+            () => api.conformite.rapprocherListesGel(), () => undefined, "Rapprochement fait.")}>Rapprocher les clients</button>
+        </div>
+      </fieldset>
+      <table className="grille" aria-label="Publications importées">
+        <thead><tr><th scope="col">Source</th><th scope="col">Référence</th><th scope="col">Publiée le</th><th scope="col">Personnes</th><th scope="col">Importée par</th><th scope="col">En vigueur</th></tr></thead>
+        <tbody>
+          {donnees.imports.length === 0 && <tr><td colSpan={6}>Aucune liste importée</td></tr>}
+          {donnees.imports.map((x) => <tr key={x.id}><td>{x.source}</td><td className="chiffres">{x.reference}</td><td className="chiffres">{fr(x.publieLe)}</td>
+            <td className="chiffres">{x.lignes}</td><td>{x.importePar}, le {fr(x.importeLe)}</td><td>{x.enVigueur ? "Oui" : "Non"}</td></tr>)}
+        </tbody>
+      </table>
+      <h2>Correspondances</h2>
+      <Paginee lignes={donnees.correspondances}>{(visibles) => (<div className="defile-x"><table className="grille" aria-label="Correspondances">
+        <thead><tr><th scope="col">N° client</th><th scope="col">Personne</th><th scope="col">Personne désignée</th><th scope="col">Raison</th><th scope="col">Liste</th><th scope="col">État</th></tr></thead>
+        <tbody>
+          {visibles.length === 0 && <tr><td colSpan={6}>Aucune correspondance</td></tr>}
+          {visibles.map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} aria-selected={choisie?.id === x.id} onClick={() => { setChoisie(x); setObservation(""); }}
+            onKeyDown={(e) => { if (e.key === "Enter") { setChoisie(x); setObservation(""); } }}>
+            <td className="chiffres">{x.membre}</td><td>{x.personne}</td><td>{x.designe}{x.naissance ? `, né(e) le ${fr(x.naissance)}` : ""}</td><td>{x.raison}</td>
+            <td>{x.source} <span className="chiffres">{x.referenceDesignation}</span></td><td>{STATUTS_CORR[x.statut]}</td></tr>)}
+        </tbody>
+      </table></div>)}</Paginee>
+      {choisie && choisie.statut === "a_examiner" && <fieldset className="pile cadre-champs">
+        <legend>Examen : {choisie.personne} ({choisie.membre})</legend>
+        <Champ libelle="Observation :" aide="Obligatoire pour écarter : ce qui montre que ce n'est pas la personne désignée (date de naissance, pièce)">{(p) =>
+          <textarea {...p} className="saisie" rows={2} value={observation} onChange={(e) => setObservation(e.target.value)} />}</Champ>
+        <div className="actions-onglets">
+          <button className="bouton" type="button" onClick={() => agir("Voulez-vous vraiment confirmer et geler les avoirs de ce client ?",
+            () => api.conformite.examinerCorrespondance(choisie.id, { decision: "confirmee", observation }), () => setChoisie(null))}>Confirmer et geler</button>
+          <button className="bouton secondaire" type="button" onClick={() => agir("Voulez-vous vraiment écarter cette correspondance ?",
+            () => api.conformite.examinerCorrespondance(choisie.id, { decision: "ecartee", observation }), () => setChoisie(null))}>Écarter (homonyme)</button>
+          <button className="bouton secondaire" type="button" onClick={() => setChoisie(null)}>Annuler</button>
+        </div>
+      </fieldset>}
+      <Textes sources={["Loi 22/068 modifiée, art. 158 et 158 bis : gel sans délai dès la publication de la liste ; art. 161 bis : listes communiquées au secteur financier",
+        "Art. 168 bis : une personne au nom identique ou similaire peut être touchée par erreur ; la conformité examine chaque correspondance",
+        "Rapprochement : le client, son dirigeant, ses signataires, les membres du groupe et ses mandataires en cours ; même numéro de pièce, ou mêmes mots du nom",
+        "Effet dans le logiciel : un client avec une correspondance à examiner n'est pas visé ; confirmée, ses avoirs sont gelés"]} />
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </>
   );
 }

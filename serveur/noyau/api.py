@@ -1375,6 +1375,27 @@ def tp_supprimer(request, tid: int):
     return None
 
 
+# ---------- Client : procurations (S47 ; confrontation du 21/11/2026, E2) ----------
+@api.get("/procurations")
+def proc_lister(request, tiers: int):
+    return pr.lister_client(u(request), tiers)
+
+
+@api.post("/procurations")
+def proc_enregistrer(request, corps: dict = Body(...)):
+    return pr.enregistrer(u(request), corps)
+
+
+@api.post("/procurations/{pid}/fin")
+def proc_fin(request, pid: int, corps: dict = Body(...)):
+    return pr.mettre_fin(u(request), pid, corps)
+
+
+@api.get("/guichet/procurations/{tid}")
+def proc_en_cours(request, tid: int):
+    return pr.en_cours(u(request), tid)
+
+
 # ---------- Banque : création banque (S58) ----------
 @api.get("/banque/operations")
 def banque_operations_lire(request):
@@ -2697,6 +2718,29 @@ def gels_lister(request, statut: str = "actifs"):
 @api.post("/conformite/gels")
 def gels_geler(request, corps: dict = Body(...)):
     return gel.geler(u(request), corps)
+
+
+@api.get("/conformite/listes-gel")
+def listes_gel(request):
+    return gel.listes(u(request))
+
+
+@api.post("/conformite/listes-gel")
+def listes_gel_importer(request, corps: dict = Body(...)):
+    return gel.importer_liste(u(request), corps)
+
+
+@api.post("/conformite/listes-gel/rapprochement")
+def listes_gel_rapprocher(request):
+    from .services import exiger
+    usr = u(request)
+    exiger(usr)
+    return {"correspondances": gel.rapprocher(usr)}
+
+
+@api.post("/conformite/correspondances-gel/{cid}")
+def correspondance_examiner(request, cid: int, corps: dict = Body(...)):
+    return gel.examiner(u(request), cid, corps)
 
 
 @api.post("/conformite/gels/{gid}/information")

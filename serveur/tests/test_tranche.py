@@ -111,6 +111,37 @@ def test_depot_retrait(clients, journee):
     assert balance_equilibree(caisse)
 
 
+def test_procuration_mandataire(clients, journee):
+    """E2 : procuration enregistrée (Code civil, art. 526 à 548), mandataire identifié et habilité (loi 22/068, art. 31, al. 3, 33 et 44, 2° ;
+    Instr. BCC 15, art. 11, 12, 16 et 29) ; au retrait, le mandataire se choisit parmi les procurations en cours"""
+    agent, caisse = clients["agent"], clients["caisse"]
+    tid = agent.post("/api/types-procuration", {"libelle": "Retraits"}, **H).json()["id"]
+    m = T("0412-000318")
+    fiche = {**REP, "mandantId": m, "typeId": tid, "nom": "Kasongo", "prenom": "Albert", "pieceType": "Passeport", "pieceNumero": "OB77",
+             "dateDebut": "2026-11-01", "copieActe": PNG, "copiePiece": PNG}
+    def refus(corps):
+        r = agent.post("/api/procurations", corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    assert "copie de la procuration" in refus({**fiche, "copieActe": None})
+    assert "Mandataire : à remplir" in refus({**fiche, "naissance": ""})
+    assert "Type de procuration" in refus({**fiche, "typeId": None})
+    pr = agent.post("/api/procurations", fiche, **H).json()
+    assert (pr["enCours"], pr["type"], pr["copieActe"]) == (True, "Retraits", True)
+    # retrait : un nom libre ne suffit plus ; la procuration en cours, oui
+    corps = {"cle": cle(), "compteId": C("0412-000318-01"), "montant": 45000, "coupures": {"100": 4, "50": 1}, "mandataire": "Kasongo Albert"}
+    r = caisse.post("/api/guichet/retraits", corps, **H); assert r.status_code == 422 and "procuration" in r.json()["message"], r.content
+    assert [x["id"] for x in caisse.get(f"/api/guichet/procurations/{m}").json()] == [pr["id"]]
+    r = caisse.post("/api/guichet/retraits", {**corps, "cle": cle(), "mandataire": "", "procurationId": pr["id"]}, **H)
+    assert r.status_code == 200 and r.json()["remisPar"] == "Kasongo Albert (mandataire)", r.content
+    assert ident("select procuration_id from operation where id = %s", (r.json()["id"],)) == pr["id"]
+    # fin du mandat (art. 544) : la procuration ne sert plus au guichet, la fiche reste
+    assert "Motif" in agent.post(f"/api/procurations/{pr['id']}/fin", {"motif": "Lassitude", "date": "2026-11-05"}, **H).json()["message"]
+    fin = agent.post(f"/api/procurations/{pr['id']}/fin", {"motif": "Révocation par le mandant", "date": "2026-11-05"}, **H).json()
+    assert (fin["enCours"], fin["finMotif"]) == (False, "Révocation par le mandant")
+    r = caisse.post("/api/guichet/retraits", {**corps, "cle": cle(), "mandataire": "", "procurationId": pr["id"]}, **H)
+    assert r.status_code == 422 and "terminée" in r.json()["message"]
+    assert len(agent.get(f"/api/procurations?tiers={m}").json()) == 1
+
+
 def test_retrait_plafond_et_maximum(clients, journee):
     """S08 : retrait au-delà du plafond en attente du visa « Retrait plafond » puis payé (registre S08-5) ; avertissement au-delà du maximum (S08-4)"""
     from noyau.bd import executer
@@ -203,7 +234,18 @@ FICHE = {"images": {"copiePiece": "data:image/png;base64,iVBORw0KGgo=", "justifi
          "calculerInteret": False, "liees": [], "personneExposee": False,
          # mentions de l'identité et de la pièce (Instr. BCC 15, art. 12 et 13 ; registre S37-1)
          "prenom": "Marie", "naissance": "1990-01-15", "lieuNaissance": "Kinshasa", "adresse": "Matete, avenue Kinsaku 12",
-         "pieceDelivreeLe": "2024-01-10", "pieceLieu": "Kinshasa", "pieceAutorite": "DGM", "pieceExpire": "2030-01-10"}
+         "pieceDelivreeLe": "2024-01-10", "pieceLieu": "Kinshasa", "pieceAutorite": "DGM", "pieceExpire": "2030-01-10",
+         # objet de la relation et origine des fonds (loi 22/068, art. 47 ; Instr. BCC 15, art. 17 b ; confrontation du 21/11/2026, A8)
+         "objetRelation": "Épargne et crédit", "origineFonds": "Revenus du commerce"}
+# mentions d'un représentant, comme pour le client (loi 22/068, art. 33 ; Instr. BCC 15, art. 13 et 16 ; confrontation du 21/11/2026, E1)
+REP = {"naissance": "1980-05-02", "lieuNaissance": "Kinshasa", "pieceDelivreeLe": "2024-01-10", "pieceLieu": "Kinshasa", "pieceAutorite": "DGM",
+       "pieceExpire": "2030-01-10", "province": "Kinshasa", "ville": "Kinshasa", "commune": "Matete", "quartier": "Kinsaku", "qualite": "Gérant"}
+PNG = "data:image/png;base64,iVBORw0KGgo="
+
+
+def deposer_statuts(agent, tid):
+    """Copie des statuts et du registre, avant le visa d'une entreprise (loi 22/068, art. 34 ; Instr. BCC 15, art. 17 et 29)"""
+    assert agent.post(f"/api/tiers/{tid}/specimen", {"copiePiece": PNG, "justificatifAdresse": PNG}, **H).status_code == 200
 
 
 def test_enrolement(clients, journee):
@@ -228,11 +270,22 @@ def test_enrolement(clients, journee):
 def test_piece_admise(clients, journee):
     r = clients["agent"].post("/api/tiers", {**FICHE, "nom": "X", "pieceType": "Carte de membre", "pieceNumero": "1"}, **H)
     assert r.status_code == 422 and "art. 14" in r.json()["message"]
+    r = clients["agent"].post("/api/tiers", {**FICHE, "nom": "X", "pieceType": "Passeport", "pieceNumero": "1", "objetRelation": ""}, **H)
+    assert r.status_code == 422 and "objet et nature de la relation" in r.json()["message"]   # A8 : loi 22/068, art. 47
+    # A7 : une activité déclarée demande la pièce d'habilitation (loi 22/068, art. 33, al. 4 ; Instr. BCC 15, art. 13, al. 2)
+    r = clients["agent"].post("/api/tiers", {**FICHE, "nom": "X", "pieceType": "Passeport", "pieceNumero": "1", "secteurActivite": "PRIMAIRE"}, **H)
+    assert r.status_code == 422 and "habilitation" in r.json()["message"]
+    t = clients["agent"].post("/api/tiers", {**FICHE, "nom": "X", "pieceType": "Passeport", "pieceNumero": "1", "secteurActivite": "PRIMAIRE",
+                                             "habilitationReference": "Patente 0412/2026"}, **H).json()
+    assert t["habilitationReference"] == "Patente 0412/2026"
+    r = clients["chef"].post(f"/api/tiers/{t['id']}/visa", {}, **H)
+    assert r.status_code == 422 and "habilitation" in r.json()["message"], r.content
+    assert clients["agent"].post(f"/api/tiers/{t['id']}/specimen", {"copieHabilitation": PNG}, **H).status_code == 200
 
 
 def test_enrolement_entreprise(clients, journee):
     agent = clients["agent"]
-    sig = {"nom": "Ilunga", "prenom": "Paul", "pieceType": "Passeport", "pieceNumero": "OP9", "signature": "data:image/png;base64,iVBORw0KGgo="}
+    sig = {**REP, "nom": "Ilunga", "prenom": "Paul", "pieceType": "Passeport", "pieceNumero": "OP9", "signature": "data:image/png;base64,iVBORw0KGgo="}
     base = {**FICHE, "typeClient": "Entreprises privées", "zone": "Matete", "nom": "Boulangerie Kinsaku SARL", "formeJuridique": "Société à responsabilité limitée",
             "registre": "CD/KNG/RCCM/24-B-00001", "adresse": "Matete, avenue Kinsaku", "dirigeant": {**sig, "signature": None}, "signataires": [sig]}
     def refus(corps):
@@ -243,6 +296,11 @@ def test_enrolement_entreprise(clients, journee):
     assert "Signataire 1 : à remplir : nom" in refus({**base, "signataires": [{**sig, "nom": ""}]})
     assert "Dirigeant" in refus({**base, "dirigeant": {**sig, "pieceType": "Badge"}})
     assert "Dirigeant : à remplir" in refus({**base, "dirigeant": None})        # loi 22/068, art. 34, al. 4 (confrontation du 21/11/2026, E1)
+    assert "origine des fonds" in refus({**base, "origineFonds": ""})                # A8 : Instr. BCC 15, art. 17 b
+    # mentions complètes (loi 22/068, art. 31 et 33 ; Instr. BCC 15, art. 13 et 16)
+    assert "date de naissance" in refus({**base, "dirigeant": {**sig, "naissance": ""}})
+    assert "qualité ou pouvoir" in refus({**base, "signataires": [{**sig, "qualite": ""}]})
+    assert "adresse" in refus({**base, "dirigeant": {**sig, "quartier": ""}})
     r = agent.post("/api/tiers/entreprises", base, **H)
     assert r.status_code == 200, r.content
     t = r.json()
@@ -256,7 +314,7 @@ def test_fiche_entreprise(clients, journee):
     """S38 : listes comme pour S37 (registre S38-1), Retirer côté écran (S38-2), bénéficiaire effectif dans Personnes liées (S38-3 ; Instr. BCC 15, art. 18)"""
     agent = clients["agent"]
     physique = ident("select id from tiers where type = 'physique' order by id limit 1")
-    dirigeant = {"nom": "Ilunga", "prenom": "Paul", "pieceType": "Passeport", "pieceNumero": "OP9"}
+    dirigeant = {**REP, "nom": "Ilunga", "prenom": "Paul", "pieceType": "Passeport", "pieceNumero": "OP9"}
     morale = agent.post("/api/tiers/entreprises", {**FICHE, "typeClient": "Entreprises privées", "zone": "Matete", "nom": "Témoin SA",
                         "formeJuridique": "Société anonyme", "registre": "R0", "adresse": "Matete", "dirigeant": dirigeant}, **H).json()["id"]
     sens = ident("select id from agent_agence where role = 'sensibilisateur' and actif order by id limit 1")
@@ -270,9 +328,17 @@ def test_fiche_entreprise(clients, journee):
     assert "Email invalide" in refus({**base, "email": "contact"})
     assert "Bénéficiaire effectif" in refus({**base, "beneficiairesEffectifs": [morale]})
     assert "Bénéficiaire effectif" in refus({**base, "liees": [physique], "beneficiairesEffectifs": [physique]})
-    t = agent.post("/api/tiers/entreprises", {**base, "beneficiairesEffectifs": [physique]}, **H).json()
-    assert (t["formeJuridique"], t["secteurActivite"], t["email"], t["beneficiairesEffectifs"], t["liees"]) == \
-        ("Société à responsabilité limitée", "PRIMAIRE", "contact@exemple.cd", [physique], [])
+    # nature du contrôle (loi 22/068, art. 34 bis) ; participation de contrôle au-delà de 25 % (art. 39, al. 2)
+    assert "nature du contrôle" in refus({**base, "beneficiairesEffectifs": [physique]})
+    assert "25 %" in refus({**base, "beneficiairesEffectifs": [physique], "controleEffectifs": [{"nature": "Participation de contrôle", "part": "20"}]})
+    t = agent.post("/api/tiers/entreprises", {**base, "beneficiairesEffectifs": [physique],
+                                              "controleEffectifs": [{"nature": "Participation de contrôle", "part": "40,5"}]}, **H).json()
+    assert (t["formeJuridique"], t["secteurActivite"], t["email"], t["beneficiairesEffectifs"], t["liees"], t["controleEffectifs"]) == \
+        ("Société à responsabilité limitée", "PRIMAIRE", "contact@exemple.cd", [physique], [], [{"nature": "Participation de contrôle", "part": "40,50"}])
+    # copie des statuts et du registre avant le visa (loi 22/068, art. 34 ; confrontation du 21/11/2026, E1)
+    r = clients["chef"].post(f"/api/tiers/{t['id']}/visa", {}, **H)
+    assert r.status_code == 422 and "copie des statuts" in r.json()["message"], r.content
+    deposer_statuts(agent, t["id"])
     assert t["sensibilisateurId"] == sens or sens is None
     # Loi 22/068, art. 53 : « le client ou un bénéficiaire effectif du client » ; une personne exposée parmi les bénéficiaires effectifs
     # d'une entreprise exige l'autorisation de la conformité avant le visa (confrontation du 21/11/2026, E3)
@@ -283,12 +349,17 @@ def test_fiche_entreprise(clients, journee):
     assert r.status_code == 422 and "bénéficiaires effectifs" in r.json()["message"], r.content
     assert any(x["tiersId"] == t["id"] and x["exposee"] for x in chef.get("/api/conformite/ppe", **H).json())
     executer("update tiers set personne_exposee = false where id = %s", (physique,))
+    # E3 : le dirigeant coché « personne exposée » demande aussi l'autorisation de la conformité (art. 34 bis, 3° et art. 53)
+    executer("update representant set personne_exposee = true where tiers_id = %s and role = 'dirigeant'", (t["id"],))
+    r = chef.post(f"/api/tiers/{t['id']}/visa", {}, **H)
+    assert r.status_code == 422 and "conformité" in r.json()["message"], r.content
+    executer("update representant set personne_exposee = false where tiers_id = %s", (t["id"],))
     assert chef.post(f"/api/tiers/{t['id']}/visa", {}, **H).status_code == 200
 
 
 def test_enrolement_groupe(clients, journee):
     agent = clients["agent"]
-    mb = {"nom": "Mbuyi", "prenom": "Anne", "pieceType": "Carte d'électeur", "pieceNumero": "1-0412-7777", "signature": "data:image/png;base64,iVBORw0KGgo="}
+    mb = {**REP, "nom": "Mbuyi", "prenom": "Anne", "pieceType": "Carte d'électeur", "pieceNumero": "1-0412-7777", "signature": "data:image/png;base64,iVBORw0KGgo="}
     base = {**FICHE, "typeClient": "Association", "nom": "Mamans de Kinsaku", "adresse": "Matete, quartier Kinsaku", "nbHommes": 0, "nbFemmes": 12, "membres": [mb]}
     def refus(corps):
         r = agent.post("/api/tiers/groupes", corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
@@ -375,7 +446,7 @@ def test_mise_a_jour_client(clients, journee):
     # S43 : informations initiales et actuelles
     h = chef.get(f"/api/tiers/{k}/modifications").json()
     assert (h[0]["avant"]["telephone"], h[0]["apres"]["telephone"], h[0]["validePar"] is not None) == ("", "+243 990 000 001", True)
-    assert chef.get(f"/api/tiers/{k}/images").json() == {"photo": None, "signature": None, "copiePiece": None, "justificatifAdresse": None}   # graine : pas d'image réelle
+    assert chef.get(f"/api/tiers/{k}/images").json() == {"photo": None, "signature": None, "copiePiece": None, "justificatifAdresse": None, "copieHabilitation": None}   # graine : pas d'image réelle
 
 
 def test_connexion_avec_mot_de_passe(clients, settings):
@@ -401,12 +472,13 @@ def test_connexion_avec_mot_de_passe(clients, settings):
 def test_mise_a_jour_entreprise_groupe(clients, journee):
     """S46 : entreprise et groupe, mêmes onglets que leur enrôlement (registre S46-2) ; signataires et membres gardés, retirés ou ajoutés"""
     agent, chef = clients["agent"], clients["chef"]
-    sig = {"nom": "Ilunga", "prenom": "Paul", "pieceType": "Passeport", "pieceNumero": "OP9", "signature": "data:image/png;base64,iVBORw0KGgo="}
+    sig = {**REP, "nom": "Ilunga", "prenom": "Paul", "pieceType": "Passeport", "pieceNumero": "OP9", "signature": "data:image/png;base64,iVBORw0KGgo="}
     e = agent.post("/api/tiers/entreprises", {**FICHE, "typeClient": "Entreprises privées", "zone": "Matete", "nom": "Boulangerie Kinsaku SARL",
                    "formeJuridique": "Société à responsabilité limitée", "registre": "CD/KNG/RCCM/24-B-00001", "adresse": "Matete, avenue Kinsaku",
                    "dirigeant": {**sig, "signature": None}, "signataires": [sig]}, **H).json()["id"]
     g = agent.post("/api/tiers/groupes", {**FICHE, "typeClient": "Association", "nom": "Mamans de Kinsaku", "adresse": "Matete", "nbHommes": 0, "nbFemmes": 12,
                    "membres": [{**sig, "pieceNumero": "OP8"}, {**sig, "nom": "Mbuyi", "pieceNumero": "OP7"}]}, **H).json()["id"]
+    deposer_statuts(agent, e)
     for x in (e, g):
         assert chef.post(f"/api/tiers/{x}/visa", **H).status_code == 200
     def corps(tid):
@@ -415,7 +487,7 @@ def test_mise_a_jour_entreprise_groupe(clients, journee):
         return t, {**t, "dirigeant": sans(t["dirigeant"]) if t["dirigeant"] else None,
                    "signataires": [{**r, "existant": True} for r in t["signataires"]], "membres": [{**r, "existant": True} for r in t["membres"]]}
     t, c = corps(e)
-    nouveau = {"nom": "Kabila", "postnom": "", "prenom": "Rose", "pieceType": "Carte d'électeur", "pieceNumero": "9-0412-0001", "pieceExpire": "2031-01-01"}
+    nouveau = {**REP, "nom": "Kabila", "postnom": "", "prenom": "Rose", "pieceType": "Carte d'électeur", "pieceNumero": "9-0412-0001", "pieceExpire": "2031-01-01"}
     r = agent.post(f"/api/tiers/{e}/modification", {**c, "signataires": c["signataires"] + [{**nouveau, "existant": True}]}, **H)
     assert r.status_code == 422 and "Signataire" in r.json()["message"] and "inconnu" in r.json()["message"]
     r = agent.post(f"/api/tiers/{e}/modification", {**c, "registre": "", "signataires": c["signataires"] + [nouveau]}, **H)
@@ -429,6 +501,8 @@ def test_mise_a_jour_entreprise_groupe(clients, journee):
     r = agent.post(f"/api/tiers/{g}/modification", {**c, "nbFemmes": 20, "membres": c["membres"][1:]}, **H)
     assert r.status_code == 200, r.content
     assert (r.json()["nbFemmes"], len(r.json()["membres"]), r.json()["statut"]) == (20, len(t["membres"]) - 1, "modifie_a_revalider")
+    # E8 : le membre retiré reste en base, avec sa signature, sa date de retrait et son auteur (loi 22/068, art. 48)
+    assert ident("select count(*) from representant where tiers_id = %s and retire_le is not null and retire_par is not null and signature is not null", (g,)) == 1
 
 
 def test_adhesion_apres_visa(clients, journee):
@@ -749,10 +823,10 @@ def test_photo_signature(clients):
     t = agent.post(f"/api/tiers/{k}/specimen", {"signature": png}, **H).json()
     assert (t["specimen"], t["photo"]) == (True, False)
     agent.post(f"/api/tiers/{k}/specimen", {"photo": png}, **H)
-    assert agent.get(f"/api/tiers/{k}/images").json() == {"photo": png, "signature": png, "copiePiece": None, "justificatifAdresse": None}
+    assert agent.get(f"/api/tiers/{k}/images").json() == {"photo": png, "signature": png, "copiePiece": None, "justificatifAdresse": None, "copieHabilitation": None}
     # écart E03 : copie de la pièce et justificatif d'adresse (Instr. BCC 15, art. 12 et 29)
     assert agent.post(f"/api/tiers/{k}/specimen", {"copiePiece": png, "justificatifAdresse": png}, **H).status_code == 200
-    assert agent.get(f"/api/tiers/{k}/images").json() == {"photo": png, "signature": png, "copiePiece": png, "justificatifAdresse": png}
+    assert agent.get(f"/api/tiers/{k}/images").json() == {"photo": png, "signature": png, "copiePiece": png, "justificatifAdresse": png, "copieHabilitation": None}
     assert ident("select depose_par from specimen where tiers_id = %s order by id desc limit 1", (k,)) == ident("select id from utilisateur where login = 'bkasongo'")
 
 
@@ -873,7 +947,8 @@ def test_parts_sociales(clients, journee):
     # Compte de parts selon le type de client (PCCI, compte 103) : une entreprise en 1032
     e = agent.post("/api/tiers/entreprises", {**FICHE, "typeClient": "Entreprises privées", "zone": "Matete", "nom": "Boulangerie Kinsaku SARL",
         "formeJuridique": "Société à responsabilité limitée", "registre": "R1", "adresse": "Matete", "signataires": [],
-        "dirigeant": {"nom": "Ilunga", "prenom": "Paul", "pieceType": "Passeport", "pieceNumero": "OP9"}}, **H).json()
+        "dirigeant": {**REP, "nom": "Ilunga", "prenom": "Paul", "pieceType": "Passeport", "pieceNumero": "OP9"}}, **H).json()
+    deposer_statuts(agent, e["id"])
     chef.post(f"/api/tiers/{e['id']}/visa", {}, **H)
     caisse.post("/api/guichet/adhesions", {"cle": cle(), "tiersId": e["id"], "parts": 1, "depot": 0, "compteUsd": False, "coupures": {"1000": 4}}, **H)
     assert ident("""select c.numero from ligne_ecriture l join compte c on c.id = l.compte_id where l.contrat_ref = %s""", (f"parts:{e['id']}",)) == "1032"
@@ -2409,7 +2484,7 @@ def test_fiche_client_physique(clients, journee):
     assert "Bénéficiaire 1 : à remplir : nom" in refus({**base, "beneficiaires": [{"nom": ""}]})
     assert "filiation inconnue" in refus({**base, "beneficiaires": [{"nom": "Kalonji", "filiation": "Cousin"}]})
     t = agent.post("/api/tiers", {**base, "situationMatrimoniale": "Marié(e)", "nationalite": "République démocratique du Congo", "pere": "Kalonji Pierre",
-                                  "mere": "Mbuyi Anne", "secteurActivite": "PRIMAIRE", "typeActivite": "Pisciculture",
+                                  "mere": "Mbuyi Anne", "secteurActivite": "PRIMAIRE", "typeActivite": "Pisciculture", "habilitationReference": "Autorisation de pêche 12",
                                   "beneficiaires": [{"nom": "Kalonji", "prenom": "Paul", "filiation": "Enfant", "sexe": "M"}]}, **H).json()
     assert "situationMatrimoniale" in t, t
     assert (t["situationMatrimoniale"], t["pere"], t["typeActivite"], t["beneficiaires"][0]["filiation"]) == ("Marié(e)", "Kalonji Pierre", "Pisciculture", "Enfant")
@@ -3003,6 +3078,35 @@ def test_gel_des_avoirs(clients, journee):
     assert chef.post(f"/api/conformite/gels/{g['id']}/levee", {"date": "2026-11-05", "reference": "CONASAFIC/2026/020"}, **H).json()["levePar"] == "J.-P. Mukendi"
     assert chef.get("/api/conformite/gels", **H).json() == []
     assert caisse.post("/api/guichet/retraits", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}}, **H).status_code == 200
+    # A14 : la tentative sur des fonds gelés reste au journal de sécurité (loi 22/068, art. 162, al. 2)
+    assert ident("select count(*) from journal_securite where evenement = 'fonds_geles' and utilisateur_id is not null") >= 1
+
+
+def test_listes_de_gel(clients, journee):
+    """A13 : liste de désignation importée, clients rapprochés, correspondance examinée (loi 22/068 modifiée, art. 158 bis, 161 bis, 168 bis)"""
+    agent, chef = clients["agent"], clients["chef"]
+    entete = "Nom;Autres noms;Date de naissance;N° de pièce;Référence de désignation;Date de désignation"
+    csv = entete + "\nKALALA Josée Mbuyi;;15/01/1970;;CDi.001;01/11/2026\nPersonne Inconnue;;;;CDi.002;01/11/2026\n"
+    d = {"source": "conasafic", "reference": "CONASAFIC/LN/2026/03", "publieLe": "2026-11-02", "contenu": csv}
+    assert agent.post("/api/conformite/listes-gel", d, **H).status_code == 403
+    assert "Colonnes attendues" in chef.post("/api/conformite/listes-gel", {**d, "contenu": "Nom,Prénom\nA,B"}, **H).json()["message"]
+    r = chef.post("/api/conformite/listes-gel", d, **H).json()
+    assert (r["lignes"], r["correspondances"]) == (2, 1), r
+    l = chef.get("/api/conformite/listes-gel", **H).json()
+    c = l["correspondances"][0]
+    assert (c["membre"], c["statut"], c["designe"]) == ("0412-000318", "a_examiner", "KALALA Josée Mbuyi")
+    # un nouvel enrôlement au même nom est rapproché tout de suite, et son visa attend l'examen
+    t = agent.post("/api/tiers", {**FICHE, "nom": "Personne", "prenom": "Inconnue", "pieceType": "Passeport", "pieceNumero": "ZZ1"}, **H).json()
+    r = chef.post(f"/api/tiers/{t['id']}/visa", {}, **H)
+    assert r.status_code == 422 and "liste de gel" in r.json()["message"], r.content
+    autre = next(x for x in chef.get("/api/conformite/listes-gel", **H).json()["correspondances"] if x["tiersId"] == t["id"])
+    assert "Observation" in chef.post(f"/api/conformite/correspondances-gel/{autre['id']}", {"decision": "ecartee"}, **H).json()["message"]
+    assert chef.post(f"/api/conformite/correspondances-gel/{autre['id']}", {"decision": "ecartee", "observation": "Homonyme : autre date de naissance"},
+                     **H).json()["statut"] == "ecartee"
+    # confirmer : les avoirs sont gelés sans délai (art. 158 bis)
+    assert chef.post(f"/api/conformite/correspondances-gel/{c['id']}", {"decision": "confirmee"}, **H).json()["statut"] == "confirmee"
+    g = chef.get("/api/conformite/gels", **H).json()
+    assert [(x["membre"], x["decisionReference"]) for x in g] == [("0412-000318", "CDi.001")]
 
 
 def test_arrondi_des_contre_valeurs(clients, journee):

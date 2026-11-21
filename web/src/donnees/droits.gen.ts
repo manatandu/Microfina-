@@ -595,6 +595,12 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "procurations.creer": [
 "S47"
 ],
+"procurations.enregistrer": [
+"S47"
+],
+"procurations.mettreFin": [
+"S47"
+],
 "procurations.supprimer": [
 "S47"
 ],

@@ -54,8 +54,18 @@ export interface SessionCaisse {
   statut: "ouverte" | "arretee" | "fermee";   // « fermee » : bouton Fermeture de S09 (p. 19), avant l'arrêté validé
 }
 
-/** Dirigeant ou signataire d'une entreprise (S38), identifié comme un client : Instr. BCC 15, art. 16 */
-export interface Representant { nom: string; postnom: string; prenom: string; pieceType: string; pieceNumero: string; pieceExpire: string; photo: boolean; specimen: boolean }
+/** Dirigeant ou signataire d'une entreprise (S38), membre d'un groupe (S39), identifié comme un client : loi 22/068, art. 33 ; Instr. BCC 15, art. 13 et 16
+ * (confrontation du 21/11/2026, E1). Qualité ou pouvoir : art. 31, al. 3. Adresse unique (registre T41). */
+export interface Representant extends Adresse { nom: string; postnom: string; prenom: string; pieceType: string; pieceNumero: string; pieceExpire: string; photo: boolean; specimen: boolean;
+  naissance?: string; lieuNaissance?: string; pieceDelivreeLe?: string; pieceLieu?: string; pieceAutorite?: string; piecePays?: string; qualite?: string;
+  personneExposee?: boolean; adresse?: string }
+/** Procuration (Code civil, art. 526 à 548) : le mandataire identifié comme un client (loi 22/068, art. 33 ; Instr. BCC 15, art. 13 et 16), copies du pouvoir
+ * et de la pièce (art. 33, al. 2 ; Instr. BCC 15, art. 12 et 29). Confrontation du 21/11/2026, E2. */
+export interface Procuration extends Adresse { id: number; mandantId: number; typeId: number; type: string; reference: string; nom: string; postnom: string; prenom: string;
+  naissance: string; lieuNaissance: string; pieceType: string; pieceNumero: string; pieceDelivreeLe: string; pieceLieu: string; pieceAutorite: string; pieceExpire: string;
+  piecePays: string; telephone: string; adresse: string; dateDebut: string; dateFin: string; copieActe: boolean; copiePiece: boolean; finLe: string; finMotif: string; enCours: boolean }
+/** Nature du contrôle du bénéficiaire effectif (loi 22/068, art. 34 bis, 1° à 3°) et part du capital ou des droits de vote (art. 39, al. 2) */
+export interface ControleEffectif { nature: string; part: string }
 
 /** S37 : fiche Bénéficiaire (registre S37-3) */
 export interface Beneficiaire { nom: string; postnom: string; prenom: string; sexe: "F" | "M" | ""; naissance: string; filiation: string; telephone: string }
@@ -95,6 +105,10 @@ export interface Tiers {
   pieceAutorite: string;
   piecePays?: string;          // pays de délivrance (registre T42)
   liees: number[];             // personnes liées (onglet « Personnes Liées »)
+  controleEffectifs?: ControleEffectif[];   // aligné sur beneficiairesEffectifs (confrontation du 21/11/2026, E1)
+  representantsRetires?: (Representant & { retireLe: string })[];   // E8 : retirés, gardés avec leurs images (loi 22/068, art. 48)
+  habilitationReference?: string;   // A7 : pièce qui habilite à exercer l'activité déclarée (loi 22/068, art. 33, al. 4)
+  objetRelation?: string; origineFonds?: string;   // A8 : loi 22/068, art. 34, al. 3 et art. 47 ; Instr. BCC 15, art. 17 b
   beneficiairesEffectifs?: number[];   // onglet « Personnes Liées », lien Bénéficiaire effectif (registre S38-3 ; Instr. BCC 15, art. 18)
   // S38, entreprise : nom = dénomination, adresse = siège, typeClient = type entreprise (Instr. BCC 15, art. 17)
   formeJuridique: string;
@@ -306,6 +320,7 @@ export interface Operation {
   parts?: number;
   coupures: Comptage;
   remisPar: string;            // Mandataire (S74), le titulaire s'il est vide
+  procurationId?: number;      // retrait fait par un mandataire (confrontation du 21/11/2026, E2)
   motif?: string;              // Motif (S74, manuel p. 86)
   saisiPar: number;
   visePar?: number;
@@ -351,6 +366,11 @@ export interface Etat {
   profilsRisque: ProfilRisque[];   // écart E08
   analysesAtypiques: AnalyseAtypique[];   // écart E09
   gels: GelAvoirs[];   // écart E10
+  // A13 : listes de désignation importées et correspondances avec les clients (loi 22/068, art. 158 bis, 161 bis, 168 bis)
+  listesGel?: { imports: { id: number; source: "onu" | "conasafic"; reference: string; publieLe: string; lignes: number; importePar: number; importeLe: string }[];
+    entrees: { id: number; importId: number; source: "onu" | "conasafic"; nom: string; autresNoms: string; naissance: string; piece: string; reference: string; designeLe: string; actif: boolean }[];
+    correspondances: { id: number; tiersId: number; listeId: number; personne: string; raison: string; statut: "a_examiner" | "confirmee" | "ecartee"; observation: string;
+      traitePar: number | null; traiteLe: string; creeLe: string }[] };
   lettresInactivite: LettreInactivite[];   // écart E11
   clotures: ClotureCompte[];   // S70
   blocages: Blocage[];   // S71
@@ -436,12 +456,13 @@ export interface Etat {
   remboursementsEmprunt: RemboursementEmprunt[];
   chequesInstitution: ChequeInstitution[];
   typesProcuration: { id: number; libelle: string }[];   // S47
+  procurations?: (Procuration & { copieActeImage: string; copiePieceImage: string; creePar: number })[];   // S47, confrontation du 21/11/2026, E2
   supprimes: { table: string; ligne: unknown; le: string; par: number | null }[];   // registre T02 : lignes supprimées, gardées pour l'historique
   lieux: LigneLieu[];   // S20 : Localisation, découpage de la RDC
   groupesSolidaires: { id: number; code: string; nom: string }[];      // S44
   membresGroupes: { groupeId: number; tiersId: number }[];
   fraisClient: { tiersId: number; fraisId: number; montant: number }[];   // S41 : montant propre à un client
-  images: Record<number, { photo?: string; signature?: string; copiePiece?: string; justificatifAdresse?: string }>;   // photo et specimen chargés à l'enrôlement
+  images: Record<number, { photo?: string; signature?: string; copiePiece?: string; justificatifAdresse?: string; copieHabilitation?: string }>;   // photo et specimen chargés à l'enrôlement
 }
 
 export class ErreurMetier extends Error {

@@ -3,7 +3,11 @@ import { composerNumeroCompte, composerPiece, api, _remplacer, _etat, _poster, c
 
 /** Mentions de l'identité et de la pièce exigées à l'enrôlement (Instr. BCC 15, art. 12 et 13 ; registre S37-1) */
 const IDENTITE = { prenom: "Marie", naissance: "1990-01-15", lieuNaissance: "Kinshasa", adresse: "Matete, avenue Kinsaku 12", pieceDelivreeLe: "2024-01-10",
-  pieceLieu: "Kinshasa", pieceAutorite: "DGM", pieceExpire: "2030-01-10" };
+  pieceLieu: "Kinshasa", pieceAutorite: "DGM", pieceExpire: "2030-01-10", objetRelation: "Épargne et crédit", origineFonds: "Revenus du commerce" };   // A8
+// mentions d'un représentant, comme pour le client (loi 22/068, art. 33 ; Instr. BCC 15, art. 13 et 16 ; confrontation du 21/11/2026, E1)
+const REP = { naissance: "1980-05-02", lieuNaissance: "Kinshasa", pieceDelivreeLe: "2024-01-10", pieceLieu: "Kinshasa", pieceAutorite: "DGM", pieceExpire: "2030-01-10",
+  province: "Kinshasa", ville: "Kinshasa", commune: "Matete", quartier: "Kinsaku", qualite: "Gérant" };
+const PNG = "data:image/png;base64,iVBORw0KGgo=";
 import { graine } from "./graine";
 import type { Representant, Tiers } from "./types";
 import { totalComptage, type Comptage, type Devise } from "@design/montant.js";
@@ -347,6 +351,29 @@ describe("journée de guichet", () => {
     expect((await api.guichet.retrait({ cle: cle(), compteId: 2, montant: 1000000, coupures: { 10000: 1 } })).statut).toBe("validee");
   });
 
+  it("listes de gel (A13) : import, rapprochement, visa retenu, correspondance écartée ou confirmée ; tentative au journal (A14)", async () => {
+    await journeeOuverte(); await connecter("jpmukendi");
+    const csv = "Nom;Autres noms;Date de naissance;N° de pièce;Référence de désignation;Date de désignation\nKALALA Josée Mbuyi;;15/01/1970;;CDi.001;01/11/2026\nPersonne Inconnue;;;;CDi.002;01/11/2026\n";
+    const d = { source: "conasafic", reference: "CONASAFIC/LN/2026/03", publieLe: "2026-11-02", contenu: csv };
+    await expect(api.conformite.importerListeGel({ ...d, contenu: "Nom,Prénom\nA,B" })).rejects.toThrow("Colonnes attendues");
+    expect(await api.conformite.importerListeGel(d)).toMatchObject({ lignes: 2, correspondances: 1 });
+    const c = (await api.conformite.listesGel()).correspondances[0]!;
+    expect([c.membre, c.statut]).toEqual(["0412-000318", "a_examiner"]);
+    await connecter("bkasongo");
+    const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), ...IDENTITE, produitCode: "EAV-CDF", nom: "Personne", prenom: "Inconnue", pieceType: "Passeport", pieceNumero: "ZZ1" },
+      { copiePiece: PNG, justificatifAdresse: PNG });
+    await connecter("jpmukendi");
+    await expect(api.tiers.viser(t.id)).rejects.toThrow("liste de gel");
+    const autre = (await api.conformite.listesGel()).correspondances.find((x) => x.tiersId === t.id)!;
+    await expect(api.conformite.examinerCorrespondance(autre.id, { decision: "ecartee" })).rejects.toThrow("Observation");
+    expect((await api.conformite.examinerCorrespondance(autre.id, { decision: "ecartee", observation: "Homonyme" })).statut).toBe("ecartee");
+    expect((await api.conformite.examinerCorrespondance(c.id, { decision: "confirmee" })).statut).toBe("confirmee");
+    expect((await api.conformite.gels()).map((g) => [g.membre, g.decisionReference])).toEqual([["0412-000318", "CDi.001"]]);
+    await connecter("engalula");
+    await expect(api.guichet.retrait({ cle: cle(), compteId: 2, montant: 1000000, coupures: { 10000: 1 } })).rejects.toThrow("Avoirs gelés");
+    expect(_etat().journalSecurite?.some((x) => x.evenement === "fonds_geles")).toBe(true);
+  });
+
   it("arrondi des contre-valeurs : le centime d'écart d'une écriture en devise va au compte 474 (PCCI § 7.1 ; registre T37)", async () => {
     await journeeOuverte();
     const j = _etat().journees.at(-1)!;
@@ -676,13 +703,17 @@ describe("journée de guichet", () => {
 
   it("enrôlement d'une entreprise (S38) : zone obligatoire (p. 50), mentions de l'art. 17, dirigeant et signataires", async () => {
     await connecter("bkasongo");
-    const sig = { nom: "Ilunga", postnom: "", prenom: "Paul", pieceType: "Passeport", pieceNumero: "OP9", pieceExpire: "", signature: "data:image/png;base64,iVBORw0KGgo=" };
+    const sig = { ...REP, nom: "Ilunga", postnom: "", prenom: "Paul", pieceType: "Passeport", pieceNumero: "OP9", signature: "data:image/png;base64,iVBORw0KGgo=" };
     const base = { ...enrolementVide("2026-11-05"), ...IDENTITE, typeClient: "Entreprises privées", zone: "Matete", produitCode: "EAV-CDF", nom: "Boulangerie Kinsaku SARL",
       formeJuridique: "Société à responsabilité limitée", registre: "CD/KNG/RCCM/24-B-00001", adresse: "Matete, avenue Kinsaku" };
     await expect(api.tiers.creerEntreprise({ ...base, zone: "" }, null, [sig])).rejects.toThrow("zone");
     await expect(api.tiers.creerEntreprise({ ...base, typeClient: "Client" }, null, [sig])).rejects.toThrow("Type inconnu");
     await expect(api.tiers.creerEntreprise(base, { ...sig, pieceType: "Badge" }, [sig])).rejects.toThrow("Dirigeant : Type de pièce non admis");
     await expect(api.tiers.creerEntreprise(base, null, [{ ...sig, nom: "" }])).rejects.toThrow("Signataire 1 : à remplir : nom");
+    // mentions complètes (loi 22/068, art. 31 et 33 ; Instr. BCC 15, art. 13 et 16 ; confrontation du 21/11/2026, E1)
+    await expect(api.tiers.creerEntreprise(base, { ...sig, naissance: "" }, [sig])).rejects.toThrow("date de naissance");
+    await expect(api.tiers.creerEntreprise(base, sig, [{ ...sig, qualite: "" }])).rejects.toThrow("qualité ou pouvoir");
+    await expect(api.tiers.creerEntreprise(base, { ...sig, quartier: "" }, [sig])).rejects.toThrow("adresse");
     const t = await api.tiers.creerEntreprise(base, { ...sig, signature: undefined }, [sig]);
     expect(t).toMatchObject({ type: "morale", nom: "Boulangerie Kinsaku SARL", zone: "Matete", specimen: true, signataires: [{ nom: "Ilunga", specimen: true }], dirigeant: { specimen: false } });
     expect((await api.tiers.rechercher("boulangerie")).map((x) => x.id)).toContain(t.id);
@@ -691,15 +722,16 @@ describe("journée de guichet", () => {
   it("mise à jour d'une entreprise et d'un groupe (S46, registre S46-2) : onglets de l'enrôlement, signataires et membres gardés, retirés, ajoutés", async () => {
     await journeeOuverte();
     await connecter("bkasongo");
-    const sig = { nom: "Ilunga", postnom: "", prenom: "Paul", pieceType: "Passeport", pieceNumero: "OP9", pieceExpire: "", signature: "data:image/png;base64,iVBORw0KGgo=" };
+    const sig = { ...REP, nom: "Ilunga", postnom: "", prenom: "Paul", pieceType: "Passeport", pieceNumero: "OP9", signature: "data:image/png;base64,iVBORw0KGgo=" };
     const base = { ...enrolementVide("2026-11-05"), ...IDENTITE, typeClient: "Entreprises privées", zone: "Matete", produitCode: "EAV-CDF", nom: "Boulangerie Kinsaku SARL",
       formeJuridique: "Société à responsabilité limitée", registre: "CD/KNG/RCCM/24-B-00001", adresse: "Matete, avenue Kinsaku" };
     const e = await api.tiers.creerEntreprise(base, { ...sig, pieceNumero: "OP1", signature: undefined }, [sig]);
-    const g = await api.tiers.creerGroupe({ ...enrolementVide("2026-11-05"), typeClient: "Association", produitCode: "EAV-CDF", nom: "Mamans de Kinsaku", adresse: "Matete", nbFemmes: 12 },
+    const g = await api.tiers.creerGroupe({ ...enrolementVide("2026-11-05"), typeClient: "Association", produitCode: "EAV-CDF", nom: "Mamans de Kinsaku", adresse: "Matete", nbFemmes: 12, objetRelation: "Épargne du groupe" },
       [{ ...sig, pieceNumero: "OP8" }, { ...sig, nom: "Mbuyi", pieceNumero: "OP7" }]);
+    await api.tiers.changerSpecimen(e.id, { copiePiece: PNG, justificatifAdresse: PNG });   // statuts et registre (loi 22/068, art. 34)
     await connecter("jpmukendi"); await api.tiers.viser(e.id); await api.tiers.viser(g.id); await connecter("bkasongo");
     const garde = (r: Representant) => ({ ...r, photo: undefined, signature: undefined, existant: { photo: r.photo, specimen: r.specimen } });
-    const nouveau = { nom: "Kabila", postnom: "", prenom: "Rose", pieceType: "Carte d'électeur", pieceNumero: "9-0412-0001", pieceExpire: "2031-01-01" };
+    const nouveau = { ...REP, nom: "Kabila", postnom: "", prenom: "Rose", pieceType: "Carte d'électeur", pieceNumero: "9-0412-0001", pieceExpire: "2031-01-01" };
     const te = (await api.tiers.lire(e.id))!;
     const dirigeant = garde(te.dirigeant!);
     await expect(api.tiers.modifier(e.id, te, { dirigeant, signataires: [...te.signataires.map(garde), garde({ ...nouveau, photo: false, specimen: false })] })).rejects.toThrow("Signataire 2 : inconnu");
@@ -710,13 +742,14 @@ describe("journée de guichet", () => {
     const tg = (await api.tiers.lire(g.id))!;
     const mg = await api.tiers.modifier(g.id, { ...tg, nbFemmes: 20 }, { membres: tg.membres.slice(1).map(garde) });
     expect([mg.nbFemmes, mg.membres.map((x) => x.nom), mg.statut]).toEqual([20, ["Mbuyi"], "modifie_a_revalider"]);
+    expect(mg.representantsRetires?.map((x) => [x.nom, x.specimen])).toEqual([["Ilunga", true]]);   // E8 : retiré, gardé avec sa signature (loi 22/068, art. 48)
   });
 
   it("fiche de l'entreprise (S38) : forme juridique et listes de S14, bénéficiaire effectif personne physique (Instr. BCC 15, art. 18)", async () => {
     await connecter("bkasongo");
     const base = { ...enrolementVide("2026-11-05"), ...IDENTITE, typeClient: "Entreprises privées", zone: "Matete", produitCode: "EAV-CDF", nom: "Kinsaku Pain SARL",
       formeJuridique: "Société à responsabilité limitée", registre: "R2", adresse: "Matete", secteurActivite: "PRIMAIRE", email: "contact@exemple.cd" };
-    const dir = { nom: "Ilunga", postnom: "", prenom: "Paul", pieceType: "Passeport", pieceNumero: "OP9", pieceExpire: "" };
+    const dir = { ...REP, nom: "Ilunga", postnom: "", prenom: "Paul", pieceType: "Passeport", pieceNumero: "OP9" };
     await expect(api.tiers.creerEntreprise(base, null, [])).rejects.toThrow("Dirigeant : à remplir");   // loi 22/068, art. 34, al. 4 (confrontation du 21/11/2026, E1)
     const morale = (await api.tiers.creerEntreprise({ ...base, nom: "Témoin SA", formeJuridique: "Société anonyme" }, dir, [])).id;
     await expect(api.tiers.creerEntreprise({ ...base, formeJuridique: "SARLU" }, null, [])).rejects.toThrow("Forme juridique : valeur inconnue");
@@ -724,21 +757,30 @@ describe("journée de guichet", () => {
     await expect(api.tiers.creerEntreprise({ ...base, email: "contact" }, null, [])).rejects.toThrow("Email invalide");
     await expect(api.tiers.creerEntreprise({ ...base, beneficiairesEffectifs: [morale] }, null, [])).rejects.toThrow("Bénéficiaire effectif");
     await expect(api.tiers.creerEntreprise({ ...base, liees: [1], beneficiairesEffectifs: [1] }, null, [])).rejects.toThrow("Bénéficiaire effectif");
-    const t = await api.tiers.creerEntreprise({ ...base, beneficiairesEffectifs: [1] }, dir, []);
-    expect(t).toMatchObject({ formeJuridique: "Société à responsabilité limitée", secteurActivite: "PRIMAIRE", email: "contact@exemple.cd", beneficiairesEffectifs: [1], liees: [] });
+    // nature du contrôle (loi 22/068, art. 34 bis) ; participation de contrôle au-delà de 25 % (art. 39, al. 2)
+    await expect(api.tiers.creerEntreprise({ ...base, beneficiairesEffectifs: [1] }, dir, [])).rejects.toThrow("nature du contrôle");
+    await expect(api.tiers.creerEntreprise({ ...base, beneficiairesEffectifs: [1], controleEffectifs: [{ nature: "Participation de contrôle", part: "20" }] }, dir, [])).rejects.toThrow("25 %");
+    const t = await api.tiers.creerEntreprise({ ...base, beneficiairesEffectifs: [1], controleEffectifs: [{ nature: "Participation de contrôle", part: "40,5" }] }, dir, []);
+    expect(t).toMatchObject({ formeJuridique: "Société à responsabilité limitée", secteurActivite: "PRIMAIRE", email: "contact@exemple.cd", beneficiairesEffectifs: [1], liees: [],
+      controleEffectifs: [{ nature: "Participation de contrôle", part: "40,50" }] });
     // Loi 22/068, art. 53 : « le client ou un bénéficiaire effectif du client » ; une personne exposée parmi les bénéficiaires effectifs
     // d'une entreprise exige l'autorisation de la conformité avant le visa (confrontation du 21/11/2026, E3)
     await journeeOuverte(); await connecter("jpmukendi");
+    await expect(api.tiers.viser(t.id)).rejects.toThrow("copie des statuts");   // loi 22/068, art. 34 (E1)
+    await api.tiers.changerSpecimen(t.id, { copiePiece: PNG, justificatifAdresse: PNG });
     _etat().tiers.find((x) => x.id === 1)!.personneExposee = true;
     await expect(api.tiers.viser(t.id)).rejects.toThrow("bénéficiaires effectifs");
     expect((await api.conformite.ppe()).some((x) => x.tiersId === t.id && x.exposee)).toBe(true);
     _etat().tiers.find((x) => x.id === 1)!.personneExposee = false;
+    _etat().tiers.find((x) => x.id === t.id)!.dirigeant!.personneExposee = true;   // E3 : le dirigeant exposé (art. 34 bis, 3° et art. 53)
+    await expect(api.tiers.viser(t.id)).rejects.toThrow("conformité");
+    _etat().tiers.find((x) => x.id === t.id)!.dirigeant!.personneExposee = false;
     expect((await api.tiers.viser(t.id)).statut).not.toBe("a_viser");
   });
 
   it("enrôlement d'un groupe (S39) : type de groupe de la p. 47, nombres d'hommes et de femmes, membres", async () => {
     await connecter("bkasongo");
-    const mb = { nom: "Mbuyi", postnom: "", prenom: "Anne", pieceType: "Carte d'électeur", pieceNumero: "1-0412-7777", pieceExpire: "", signature: "data:image/png;base64,iVBORw0KGgo=" };
+    const mb = { ...REP, nom: "Mbuyi", postnom: "", prenom: "Anne", pieceType: "Carte d'électeur", pieceNumero: "1-0412-7777", signature: "data:image/png;base64,iVBORw0KGgo=" };
     const base = { ...enrolementVide("2026-11-05"), ...IDENTITE, typeClient: "Association", produitCode: "EAV-CDF", nom: "Mamans de Kinsaku", adresse: "Matete", nbFemmes: 12 };
     await expect(api.tiers.creerGroupe({ ...base, typeClient: "" }, [mb])).rejects.toThrow("type de groupe");
     await expect(api.tiers.creerGroupe({ ...base, nbFemmes: -1 }, [mb])).rejects.toThrow("Nombre");
@@ -843,7 +885,7 @@ describe("journée de guichet", () => {
     // S43 : informations initiales et actuelles
     const h = await api.tiers.modifications(1);
     expect([h[0]!.avant.telephone, h[0]!.apres.telephone, h[0]!.validePar !== null]).toEqual(["", "+243 990 000 001", true]);
-    expect(await api.tiers.images(1)).toEqual({ photo: null, signature: null, copiePiece: null, justificatifAdresse: null });
+    expect(await api.tiers.images(1)).toEqual({ photo: null, signature: null, copiePiece: null, justificatifAdresse: null, copieHabilitation: null });
   });
 
   it("groupe solidaire (S44) : code et nom obligatoires, affectation de clients actifs, retrait, suppression", async () => {
@@ -906,6 +948,26 @@ describe("journée de guichet", () => {
     expect(t2.id).not.toBe(t.id);
   });
 
+  it("procuration (E2) : mandataire identifié, copies, fin du mandat ; au retrait, la procuration en cours (loi 22/068, art. 31, 33 et 44 ; Code civil, art. 544)", async () => {
+    await journeeOuverte(); await connecter("bkasongo");
+    const tp = await api.procurations.creer({ libelle: "Retraits" });
+    const fiche = { ...REP, mandantId: 1, typeId: tp.id, nom: "Kasongo", postnom: "", prenom: "Albert", pieceType: "Passeport", pieceNumero: "OB77", dateDebut: "2026-11-01",
+      copieActe: PNG, copiePiece: PNG };
+    await expect(api.procurations.enregistrer({ ...fiche, copieActe: undefined })).rejects.toThrow("copie de la procuration");
+    await expect(api.procurations.enregistrer({ ...fiche, naissance: "" })).rejects.toThrow("Mandataire : à remplir");
+    const pr = await api.procurations.enregistrer(fiche);
+    expect([pr.enCours, pr.type]).toEqual([true, "Retraits"]);
+    await connecter("engalula");
+    await expect(api.guichet.retrait({ cle: cle(), compteId: 1, montant: 45000, coupures: { 100: 4, 50: 1 }, mandataire: "Kasongo Albert" })).rejects.toThrow("procuration");
+    const o = await api.guichet.retrait({ cle: cle(), compteId: 1, montant: 45000, coupures: { 100: 4, 50: 1 }, procurationId: pr.id });
+    expect([o.remisPar, o.procurationId]).toEqual(["Kasongo Albert (mandataire)", pr.id]);
+    await connecter("bkasongo");
+    await expect(api.procurations.mettreFin(pr.id, { motif: "Lassitude", date: "2026-11-05" })).rejects.toThrow("Motif");
+    expect((await api.procurations.mettreFin(pr.id, { motif: "Révocation par le mandant", date: "2026-11-05" })).enCours).toBe(false);
+    await connecter("engalula");
+    await expect(api.guichet.retrait({ cle: cle(), compteId: 1, montant: 45000, coupures: { 100: 4, 50: 1 }, procurationId: pr.id })).rejects.toThrow("terminée");
+  });
+
   /** Apurement avant la résiliation (registre S48-1) : retrait du solde de chaque compte au guichet (S74), par la caissière */
   async function viderComptes(id: number) {
     await connecter("jpmukendi");
@@ -941,11 +1003,11 @@ describe("journée de guichet", () => {
     await expect(api.tiers.changerSpecimen(3, { signature: "data:text/html;base64,AA==" })).rejects.toThrow("PNG ou JPEG");
     expect(await api.tiers.changerSpecimen(3, { signature: png })).toMatchObject({ specimen: true, photo: false });
     await api.tiers.changerSpecimen(3, { photo: png });
-    expect(await api.tiers.images(3)).toEqual({ photo: png, signature: png, copiePiece: null, justificatifAdresse: null });
+    expect(await api.tiers.images(3)).toEqual({ photo: png, signature: png, copiePiece: null, justificatifAdresse: null, copieHabilitation: null });
     // écart E03 : copie de la pièce et justificatif d'adresse (Instr. BCC 15, art. 12 et 29)
     await expect(api.tiers.changerSpecimen(3, { copiePiece: "data:text/html;base64,AA==" })).rejects.toThrow("PNG ou JPEG");
     await api.tiers.changerSpecimen(3, { copiePiece: png, justificatifAdresse: png });
-    expect(await api.tiers.images(3)).toEqual({ photo: png, signature: png, copiePiece: png, justificatifAdresse: png });
+    expect(await api.tiers.images(3)).toEqual({ photo: png, signature: png, copiePiece: png, justificatifAdresse: png, copieHabilitation: null });
   });
 
   it("consentement (S50) : code et date début obligatoires, dates cohérentes", async () => {

@@ -98,7 +98,8 @@ class LimiteRequetes:
 
 # Écart E17 : consultation du journal (Instr. BCC 008, art. 16). Mêmes libellés que web/src/donnees/api.ts (journalSecurite).
 EVENEMENTS = {"connexion": "Connexion", "connexion_refusee": "Connexion refusée (mot de passe)", "connexion_impossible": "Connexion impossible",
-              "connexion_bloquee": "Connexion bloquée (trop d'essais)", "acces_refuse": "Accès refusé (droit manquant)", "limite_requetes": "Limite de requêtes dépassée"}
+              "connexion_bloquee": "Connexion bloquée (trop d'essais)", "acces_refuse": "Accès refusé (droit manquant)", "limite_requetes": "Limite de requêtes dépassée",
+              "fonds_geles": "Opération refusée sur des fonds gelés"}   # A14 : loi 22/068, art. 162, al. 2
 
 
 def consulter(u: dict, du: str, au: str, evenement: str = "") -> list[dict]:

@@ -172,7 +172,7 @@ def demander(u, d) -> dict:
         raise ErreurMetier("Cette analyse financière n'est pas celle de ce client et de ce produit.")
     parts = []
     if t["type"] == "groupe":                                         # registre CR-8 : un crédit au nom du groupe, la part de chaque membre notée
-        membres = [r["nom"] + (" " + r["prenom"] if r["prenom"] else "") for r in lignes("select nom, prenom from representant where tiers_id = %s and role = 'membre' order by id", (t["id"],))]
+        membres = [r["nom"] + (" " + r["prenom"] if r["prenom"] else "") for r in lignes("select nom, prenom from representant where tiers_id = %s and role = 'membre' and retire_le is null order by id", (t["id"],))]
         brut = d.get("parts") or []
         if not isinstance(brut, list) or len(brut) != len(membres):
             raise ErreurMetier("Groupe : la part de chaque membre de la fiche du groupe.")

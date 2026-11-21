@@ -29,7 +29,7 @@ def bloquant(tid: int) -> dict | None:
         return i
     return une("""select lr.* from liste_rouge lr join tiers_personne p on p.tiers_id = %s and p.piece_numero is not null and p.piece_numero <> ''
                   where lr.retire_le is null and lr.reference_bcc is not null
-                  and (exists (select 1 from representant r where r.tiers_id = lr.tiers_id and r.role = 'dirigeant'
+                  and (exists (select 1 from representant r where r.tiers_id = lr.tiers_id and r.role = 'dirigeant' and r.retire_le is null
                                and upper(trim(r.piece_numero)) = upper(trim(p.piece_numero)))
                        or exists (select 1 from jsonb_array_elements(lr.personnes_visees) x where upper(trim(x->>'piece')) = upper(trim(p.piece_numero))))
                   limit 1""", (tid,))

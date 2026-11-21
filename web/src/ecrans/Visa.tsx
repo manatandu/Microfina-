@@ -31,7 +31,10 @@ export function VisaClient() {
   const { ctx, attente } = donnees;
   const vise = t?.statut === "actif";
   // Écart E03 : le visa montre si la copie de la pièce et le justificatif d'adresse sont déposés (Instr. BCC 15, art. 12 et 29)
-  const manquantes = copies ? [!copies.copiePiece && "copie de la pièce d'identité", !copies.justificatifAdresse && "justificatif d'adresse"].filter(Boolean) : [];
+  // E1 : pour une personne morale, copie des statuts et du registre aux mêmes emplacements (loi 22/068, art. 34 ; Instr. BCC 15, art. 17 et 29 ; registre T43)
+  const libellesCopies = t?.type === "morale" ? ["copie des statuts", "copie du registre (acte de constitution)"] : ["copie de la pièce d'identité", "justificatif d'adresse"];
+  const manquantes = copies ? [!copies.copiePiece && libellesCopies[0], !copies.justificatifAdresse && libellesCopies[1],
+    t?.type === "physique" && t.secteurActivite && !copies.copieHabilitation && "pièce d'habilitation professionnelle"].filter(Boolean) : [];   // A7
 
   async function choisir(x: Tiers) {
     const j = await api.journees.courante();
@@ -583,7 +586,7 @@ export function ResiliationClient() {
 }
 
 /** Choisir une image (PNG ou JPEG, 300 Ko au plus) et la lire en données */
-function lireImage(f: File): Promise<string> {
+export function lireImage(f: File): Promise<string> {
   return new Promise((ok, ko) => {
     if (!/^image\/(png|jpeg)$/.test(f.type)) { ko(new Error("Image PNG ou JPEG seulement.")); return; }
     const l = new FileReader();
@@ -639,16 +642,17 @@ export function PhotosSignatures() {
   const [signature, setSignature] = useState<string | null>(null);
   const [piece, setPiece] = useState<string | null>(null);
   const [adresse, setAdresse] = useState<string | null>(null);
+  const [habilitation, setHabilitation] = useState<string | null>(null);   // A7
   const [recherche, setRecherche] = useState(false);
   const [capture, setCapture] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
-  const { donnees: actuelles } = useDonnees(() => (t ? api.tiers.images(t.id) : Promise.resolve({ photo: null, signature: null, copiePiece: null, justificatifAdresse: null })), [t?.id]);
+  const { donnees: actuelles } = useDonnees(() => (t ? api.tiers.images(t.id) : Promise.resolve({ photo: null, signature: null, copiePiece: null, justificatifAdresse: null, copieHabilitation: null })), [t?.id]);
   const erreur = (x: unknown) => setBoite({ type: "erreur", message: message(x) });
   const choisir = (f: (v: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const fichier = e.target.files?.[0]; e.target.value = "";
     if (fichier) lireImage(fichier).then(f, erreur);
   };
-  const annuler = () => { setT(null); setPhoto(null); setSignature(null); setPiece(null); setAdresse(null); };
+  const annuler = () => { setT(null); setPhoto(null); setSignature(null); setPiece(null); setAdresse(null); setHabilitation(null); };
   const genre = t?.type === "morale" ? "Personne morale" : t?.type === "groupe" ? "Groupe" : "Membre physique";
   const signataires = t?.type === "morale" ? t.signataires : t?.type === "groupe" ? t.membres : [];
   const apercuPhoto = photo ?? actuelles?.photo ?? null, apercuSignature = signature ?? actuelles?.signature ?? null;
@@ -695,8 +699,10 @@ export function PhotosSignatures() {
               <p className="muet">APERCU SIGNATURE</p>
               <div className="cadre-signature apercu-grand">{apercuSignature && <img src={apercuSignature} alt="Aperçu de la signature" />}</div>
             </fieldset>
-            {cadreImage("Copie de la pièce d'identité", apercuPiece, setPiece)}
-            {cadreImage("Justificatif d'adresse", apercuAdresse, setAdresse)}
+            {cadreImage(t?.type === "morale" ? "Copie des statuts" : "Copie de la pièce d'identité", apercuPiece, setPiece)}
+            {cadreImage(t?.type === "morale" ? "Copie du registre (acte de constitution)" : "Justificatif d'adresse", apercuAdresse, setAdresse)}
+            {/* A7 : loi 22/068, art. 33, al. 4 ; Instr. BCC 15, art. 13, al. 2 et 29 */}
+            {t?.type === "physique" && cadreImage("Pièce d'habilitation professionnelle", habilitation ?? actuelles?.copieHabilitation ?? null, setHabilitation)}
           </div>
           <div className="pile">
             <fieldset className="pile cadre-champs">
@@ -705,13 +711,13 @@ export function PhotosSignatures() {
                 <thead><tr><th scope="col">Nom</th><th scope="col">Prénom</th><th scope="col">Actif</th><th scope="col">Adresse</th><th scope="col">Action</th></tr></thead>
                 <tbody>
                   {signataires.length === 0 && <tr><td colSpan={5}>Aucun Signataire Renseigné</td></tr>}
-                  {signataires.map((r, i) => <tr key={i}><td>{r.nom}</td><td>{r.prenom}</td><td>Oui</td><td></td><td></td></tr>)}
+                  {signataires.map((r, i) => <tr key={i}><td>{r.nom}</td><td>{r.prenom}</td><td>Oui</td><td>{r.adresse}</td><td></td></tr>)}
                 </tbody>
               </table>
             </fieldset>
             <div className="actions-onglets">
-              <button className="bouton" type="button" disabled={!t || (!photo && !signature && !piece && !adresse)} onClick={() => t && setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
-                try { await api.tiers.changerSpecimen(t.id, { ...(photo ? { photo } : {}), ...(signature ? { signature } : {}), ...(piece ? { copiePiece: piece } : {}), ...(adresse ? { justificatifAdresse: adresse } : {}) }); annuler(); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+              <button className="bouton" type="button" disabled={!t || (!photo && !signature && !piece && !adresse && !habilitation)} onClick={() => t && setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
+                try { await api.tiers.changerSpecimen(t.id, { ...(photo ? { photo } : {}), ...(signature ? { signature } : {}), ...(piece ? { copiePiece: piece } : {}), ...(adresse ? { justificatifAdresse: adresse } : {}), ...(habilitation ? { copieHabilitation: habilitation } : {}) }); annuler(); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
                 catch (x) { erreur(x); }
               } })}>Valider les Modifications</button>
               <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
@@ -721,12 +727,13 @@ export function PhotosSignatures() {
         <Textes sources={["Manuel Microfina++, p. 58 : écran Modification ou Ajout (Photo/Signature), Capturer, Choisir, aperçus, Liste des Signataires, Valider les Modifications, Annuler",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "Chaque dépôt garde son auteur et sa date ; le dernier dépôt fait foi au guichet",
-          "Instr. BCC 15, art. 12 et 29 : copie de la pièce d'identité et document prouvant l'adresse, gardés dix ans (art. 48)"]} />
+          "Instr. BCC 15, art. 12 et 29 : copie de la pièce d'identité et document prouvant l'adresse, gardés dix ans (art. 48)",
+          "Personne morale : loi 22/068, art. 34 ; Instr. BCC 15, art. 17 a et 29 : copie des statuts et du registre"]} />
       </section>
       <Capture ouverte={capture} fermer={() => setCapture(false)} prise={(v) => (v.length > IMAGE_MAX ? erreur(new Error("Image trop lourde : 300 Ko au plus.")) : setPhoto(v))} />
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut !== "prospect" && x.statut !== "resilie") : [])}
-          choisir={(x) => { setT(x); setPhoto(null); setSignature(null); setPiece(null); setAdresse(null); setRecherche(false); }} fermer={() => setRecherche(false)} />
+          choisir={(x) => { setT(x); setPhoto(null); setSignature(null); setPiece(null); setAdresse(null); setHabilitation(null); setRecherche(false); }} fermer={() => setRecherche(false)} />
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>

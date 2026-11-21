@@ -437,6 +437,10 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       geler: (d: object) => post("/conformite/gels", d),
       informerGel: (id: number, d: object) => post(`/conformite/gels/${id}/information`, d),
       leverGel: (id: number, d: object) => post(`/conformite/gels/${id}/levee`, d),
+      listesGel: () => get("/conformite/listes-gel"),
+      importerListeGel: (d: object) => post("/conformite/listes-gel", d),
+      rapprocherListesGel: () => post("/conformite/listes-gel/rapprochement", {}),
+      examinerCorrespondance: (id: number, d: object) => post(`/conformite/correspondances-gel/${id}`, d),
       criteresAtypiques: () => get("/conformite/atypiques/criteres"),
       fixerCriteresAtypiques: (d: object) => post("/conformite/atypiques/criteres", d),
       atypiques: (du: string, au: string, statut = "a_analyser") => get(`/conformite/atypiques?du=${du}&au=${au}&statut=${statut}`),
@@ -594,6 +598,11 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       lire: () => get("/types-procuration"),
       creer: (d: object) => post("/types-procuration", d),
       supprimer: (id: number) => appel("DELETE", `/types-procuration/${id}`),
+      // E2 : procurations données par un client ; au guichet, celles en cours
+      duClient: (tiersId: number) => get(`/procurations?tiers=${tiersId}`),
+      enregistrer: (d: object) => post("/procurations", d),
+      mettreFin: (id: number, d: object) => post(`/procurations/${id}/fin`, d),
+      enCours: (tiersId: number) => get(`/guichet/procurations/${tiersId}`),
     },
     rapports: {
       clients: () => get("/rapports/clients"),

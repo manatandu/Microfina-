@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
-import { api, enrolementVide, IMAGE_MAX, type Images, type NouveauTiers, type RepresentantSaisi } from "../donnees/api";
-import type { Beneficiaire, Tiers } from "../donnees/types";
+import { api, enrolementVide, IMAGE_MAX, NATURES_EFFECTIF, type Images, type NouveauTiers, type RepresentantSaisi } from "../donnees/api";
+import type { Beneficiaire, ControleEffectif, Tiers } from "../donnees/types";
 import { BlocAdresse } from "../composants/Adresse";
 import { useDonnees, message } from "../lib/useDonnees";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
@@ -46,6 +46,15 @@ function Enrolement({ titre, onglets, numero, onglet, setOnglet, enregistrer, bo
 }
 
 /** Onglet « Informations de base » : physique p. 48, entreprise p. 49, groupe p. 50 (mêmes champs pour l'essentiel, colonnes différentes) */
+/** A8 (confrontation du 21/11/2026) : objet et nature de la relation, avant d'entrer en relation (loi 22/068, art. 34, al. 3 et art. 47) ;
+ * provenance des fonds, exigée pour une personne morale (Instr. BCC 15, art. 17 b) */
+function ChampsRelation({ f, maj, morale }: { f: NouveauTiers; maj: (p: Partial<NouveauTiers>) => void; morale: boolean }) {
+  return <>
+    <Champ libelle="Objet et nature de la relation : *">{(p) => <input {...p} className="saisie" required autoComplete="off" value={f.objetRelation ?? ""} onChange={(e) => maj({ objetRelation: e.target.value })} />}</Champ>
+    <Champ libelle={morale ? "Origine des fonds : *" : "Origine des fonds :"}>{(p) => <input {...p} className="saisie" required={morale} autoComplete="off" value={f.origineFonds ?? ""} onChange={(e) => maj({ origineFonds: e.target.value })} />}</Champ>
+  </>;
+}
+
 function InformationsDeBase({ genre, f, maj, ctx, numero, depot, setDepot, choisirProspect }: {
   genre: "physique" | "entreprise" | "groupe"; f: NouveauTiers; maj: (p: Partial<NouveauTiers>) => void; ctx: Ctx; numero: string; depot: string; setDepot: (v: string) => void;
   choisirProspect?: () => void;
@@ -95,6 +104,7 @@ function InformationsDeBase({ genre, f, maj, ctx, numero, depot, setDepot, chois
         <Champ libelle="Type de compte à créer *">{(p) => <select {...p} className="saisie" required {...sel("produitCode")}><option value=""></option>
           {ctx.produits.map((x) => <option key={x.code} value={x.code}>{x.libelle} {x.devise}</option>)}</select>}</Champ>
         <Champ libelle={`Premier dépôt :${produit ? ` (${produit.devise})` : ""}`}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={depot} onChange={(e) => setDepot(e.target.value)} />}</Champ>
+        <ChampsRelation f={f} maj={maj} morale={genre === "entreprise"} />
         <label className="case"><input type="checkbox" checked={f.resident} onChange={(e) => maj({ resident: e.target.checked })} /><span>Résident</span></label>
         <label className="case"><input type="checkbox" checked={f.preleverAgios} onChange={(e) => maj({ preleverAgios: e.target.checked })} /><span>Prelever Agios</span></label>
         <label className="case"><input type="checkbox" checked={f.calculerInteret} onChange={(e) => maj({ calculerInteret: e.target.checked })} /><span>Calculer intéret</span></label>
@@ -104,10 +114,15 @@ function InformationsDeBase({ genre, f, maj, ctx, numero, depot, setDepot, chois
 }
 
 const LIENS = { liee: "Personne liée", effectif: "Bénéficiaire effectif" } as const;
+type Controles = Record<number, ControleEffectif>;
+const CONTROLE_VIDE: ControleEffectif = { nature: "", part: "" };
+/** Nature et part de chaque bénéficiaire effectif, dans l'ordre de la liste (confrontation du 21/11/2026, E1) */
+const versControles = (effectifs: Tiers[], c: Controles) => effectifs.map((t) => c[t.id] ?? CONTROLE_VIDE);
 /** Onglet « Personnes Liées » : rechercher un membre, +Ajouter, Retirer (p. 48 à 50). Entreprise : lien Bénéficiaire effectif, une personne physique
  * (registre S38-3 ; Instr. BCC 15, art. 18) */
-function PersonnesLiees({ liees, onChange, effectifs, onEffectifs }: { liees: Tiers[]; onChange: (l: Tiers[]) => void;
-  effectifs?: Tiers[]; onEffectifs?: (l: Tiers[]) => void }) {
+function PersonnesLiees({ liees, onChange, effectifs, onEffectifs, controles = {}, onControles }: { liees: Tiers[]; onChange: (l: Tiers[]) => void;
+  effectifs?: Tiers[]; onEffectifs?: (l: Tiers[]) => void; controles?: Controles; onControles?: (c: Controles) => void }) {
+  const ctl = (id: number, p: Partial<ControleEffectif>) => onControles?.({ ...controles, [id]: { ...(controles[id] ?? CONTROLE_VIDE), ...p } });
   const [q, setQ] = useState("");
   const [trouves, setTrouves] = useState<Tiers[]>([]);
   const [choisi, setChoisi] = useState(0);
@@ -147,9 +162,15 @@ function PersonnesLiees({ liees, onChange, effectifs, onEffectifs }: { liees: Ti
       )}
       {lignes.length > 0 && (
         <table className="grille">
-          <thead><tr><th scope="col">N° du Client</th><th scope="col">Nom</th>{onEffectifs && <th scope="col">Lien</th>}<th scope="col"><span className="sr-only">Action</span></th></tr></thead>
+          <thead><tr><th scope="col">N° du Client</th><th scope="col">Nom</th>{onEffectifs && <><th scope="col">Lien</th><th scope="col">Nature du contrôle</th>
+            <th scope="col">Part (%)</th></>}<th scope="col"><span className="sr-only">Action</span></th></tr></thead>
           <tbody>{lignes.map(({ t, lien: l }) => (
-            <tr key={t.id}><td className="chiffres">{t.numero}</td><td>{nomComplet(t)}</td>{onEffectifs && <td>{LIENS[l]}</td>}
+            <tr key={t.id}><td className="chiffres">{t.numero}</td><td>{nomComplet(t)}</td>{onEffectifs && <><td>{LIENS[l]}</td>
+              {/* loi 22/068, art. 34 bis, 1° à 3° ; participation de contrôle : plus de 25 % (art. 39, al. 2) */}
+              <td>{l === "effectif" && <select className="saisie" aria-label={`Nature du contrôle : ${nomComplet(t)}`} value={controles[t.id]?.nature ?? ""}
+                onChange={(e) => ctl(t.id, { nature: e.target.value })}><option value=""></option>{NATURES_EFFECTIF.map((n) => <option key={n}>{n}</option>)}</select>}</td>
+              <td>{l === "effectif" && <input className="saisie montant court" inputMode="decimal" autoComplete="off" aria-label={`Part (%) : ${nomComplet(t)}`}
+                value={controles[t.id]?.part ?? ""} onChange={(e) => ctl(t.id, { part: e.target.value })} />}</td></>}
               <td><button className="bouton secondaire" type="button" onClick={() => retirer(t.id, l)}>Retirer</button></td></tr>
           ))}</tbody>
         </table>
@@ -191,26 +212,42 @@ function ChargementImages({ images, onChange, erreur }: { images: Images; onChan
   );
 }
 
-/** Champs d'identité d'un dirigeant ou d'un signataire. Le manuel ne les montre pas : Instr. BCC 15, art. 13, 14 et 16. */
-function ChampsRepresentant({ r, maj, pieces }: { r: RepresentantSaisi; maj: (p: Partial<RepresentantSaisi>) => void; pieces: string[] }) {
-  const t = (k: "nom" | "postnom" | "prenom" | "pieceNumero") => ({ value: r[k], onChange: (e: React.ChangeEvent<HTMLInputElement>) => maj({ [k]: e.target.value }) });
+/** Champs d'identité d'un dirigeant, d'un signataire ou d'un membre de groupe, identifié comme un client (loi 22/068, art. 33 ; Instr. BCC 15, art. 13, 14 et 16 ;
+ * confrontation du 21/11/2026, E1). Qualité ou pouvoir pour une entreprise (art. 31, al. 3). Personne exposée pour le dirigeant (E3). Adresse unique (registre T41). */
+export function ChampsRepresentant({ r, maj, ctx, qualite, exposee }: { r: RepresentantSaisi; maj: (p: Partial<RepresentantSaisi>) => void; ctx: Ctx; qualite?: boolean; exposee?: boolean }) {
+  type Cle = "nom" | "postnom" | "prenom" | "pieceNumero" | "lieuNaissance" | "pieceLieu" | "pieceAutorite" | "qualite";
+  const t = (k: Cle) => ({ value: r[k] ?? "", onChange: (e: React.ChangeEvent<HTMLInputElement>) => maj({ [k]: e.target.value }) });
   return (
-    <div className="formulaire">
-      <Champ libelle="Nom : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...t("nom")} />}</Champ>
-      <Champ libelle="Post-nom :">{(p) => <input {...p} className="saisie" autoComplete="off" {...t("postnom")} />}</Champ>
-      <Champ libelle="Prénom :">{(p) => <input {...p} className="saisie" autoComplete="off" {...t("prenom")} />}</Champ>
-      <Champ libelle="Type de pièce : *">{(p) => <select {...p} className="saisie" required value={r.pieceType} onChange={(e) => maj({ pieceType: e.target.value })}>
-        <option value=""></option>{pieces.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
-      <Champ libelle="N° de pièce : *">{(p) => <input {...p} className="saisie code" required autoComplete="off" {...t("pieceNumero")} />}</Champ>
-      <ChampDate libelle="Valide jusqu'au :" valeur={r.pieceExpire} onChange={(v) => maj({ pieceExpire: v })} />
+    <div className="deux-colonnes">
+      <div className="pile">
+        <Champ libelle="Nom : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...t("nom")} />}</Champ>
+        <Champ libelle="Post-nom :">{(p) => <input {...p} className="saisie" autoComplete="off" {...t("postnom")} />}</Champ>
+        <Champ libelle="Prénom : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...t("prenom")} />}</Champ>
+        {qualite && <Champ libelle="Qualité ou pouvoir : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...t("qualite")} />}</Champ>}
+        <ChampDate libelle="Date de naissance : *" valeur={r.naissance ?? ""} onChange={(v) => maj({ naissance: v })} requis />
+        <Champ libelle="Lieu de naissance : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...t("lieuNaissance")} />}</Champ>
+        <Champ libelle="Type de pièce : *">{(p) => <select {...p} className="saisie" required value={r.pieceType} onChange={(e) => maj({ pieceType: e.target.value })}>
+          <option value=""></option>{ctx.pieces.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+        <Champ libelle="N° de pièce : *">{(p) => <input {...p} className="saisie code" required autoComplete="off" {...t("pieceNumero")} />}</Champ>
+        <Champ libelle="Pays de délivrance :">{(p) => <select {...p} className="saisie" value={r.piecePays ?? ""} onChange={(e) => maj({ piecePays: e.target.value })}>
+          <option value=""></option>{ctx.localites.map((x) => <option key={x.pays}>{x.pays}</option>)}</select>}</Champ>
+        <Champ libelle="Lieu de délivrance : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...t("pieceLieu")} />}</Champ>
+        <ChampDate libelle="Date de délivrance : *" valeur={r.pieceDelivreeLe ?? ""} onChange={(v) => maj({ pieceDelivreeLe: v })} requis />
+        <ChampDate libelle="Date d'expiration : *" valeur={r.pieceExpire} onChange={(v) => maj({ pieceExpire: v })} requis />
+        <Champ libelle="Autorité de délivrance : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...t("pieceAutorite")} />}</Champ>
+        {exposee && <label className="case"><input type="checkbox" checked={!!r.personneExposee} onChange={(e) => maj({ personneExposee: e.target.checked })} /><span>Personne politiquement exposée</span></label>}
+      </div>
+      <div className="pile">
+        <BlocAdresse valeur={r} maj={(a) => { const { adresse: _ecrite, ...reste } = a; maj(reste); }} arbre={ctx.arbreLieux} requis ajouterQuartier={api.adresse.ajouterQuartier} />
+      </div>
     </div>
   );
 }
 const REPRESENTANT_VIDE: RepresentantSaisi = { nom: "", postnom: "", prenom: "", pieceType: "", pieceNumero: "", pieceExpire: "" };
 
 /** Liste avec fiche ouverte par un bouton : signataires d'une entreprise (p. 49), membres d'un groupe (p. 50) ; Retirer comme pour les personnes liées (registre S38-2) */
-function ListeRepresentants({ fiche: titre, ajouter, liste, onChange, pieces, erreur }: {
-  fiche: string; ajouter: string; liste: RepresentantSaisi[]; onChange: (l: RepresentantSaisi[]) => void; pieces: string[]; erreur: (m: string) => void;
+function ListeRepresentants({ fiche: titre, ajouter, liste, onChange, ctx, qualite, erreur }: {
+  fiche: string; ajouter: string; liste: RepresentantSaisi[]; onChange: (l: RepresentantSaisi[]) => void; ctx: Ctx; qualite?: boolean; erreur: (m: string) => void;
 }) {
   const [fiche, setFiche] = useState<RepresentantSaisi | null>(null);
   return (
@@ -218,9 +255,9 @@ function ListeRepresentants({ fiche: titre, ajouter, liste, onChange, pieces, er
       <div><button className="bouton secondaire" type="button" onClick={() => setFiche(REPRESENTANT_VIDE)}>{ajouter}</button></div>
       {liste.length > 0 && (
         <table className="grille">
-          <thead><tr><th scope="col">Nom</th><th scope="col">Pièce</th><th scope="col">Photo</th><th scope="col">Signature</th><th scope="col"><span className="sr-only">Action</span></th></tr></thead>
+          <thead><tr><th scope="col">Nom</th>{qualite && <th scope="col">Qualité</th>}<th scope="col">Pièce</th><th scope="col">Photo</th><th scope="col">Signature</th><th scope="col"><span className="sr-only">Action</span></th></tr></thead>
           <tbody>{liste.map((r, i) => (
-            <tr key={i}><td>{nomComplet(r)}</td><td>{r.pieceType} <span className="chiffres">{r.pieceNumero}</span></td>
+            <tr key={i}><td>{nomComplet(r)}</td>{qualite && <td>{r.qualite}</td>}<td>{r.pieceType} <span className="chiffres">{r.pieceNumero}</span></td>
               <td>{r.photo || r.existant?.photo ? "Oui" : "Non"}</td><td>{r.signature || r.existant?.specimen ? "Oui" : "Non"}</td>
               <td><button className="bouton secondaire" type="button" onClick={() => onChange(liste.filter((_, k) => k !== i))}>Retirer</button></td></tr>
           ))}</tbody>
@@ -229,12 +266,12 @@ function ListeRepresentants({ fiche: titre, ajouter, liste, onChange, pieces, er
       <Fiche titre={titre} ouverte={!!fiche} fermer={() => setFiche(null)}>
         {fiche && (
           <div className="pile">
-            <ChampsRepresentant r={fiche} maj={(p) => setFiche({ ...fiche, ...p })} pieces={pieces} />
+            <ChampsRepresentant r={fiche} maj={(p) => setFiche({ ...fiche, ...p })} ctx={ctx} qualite={qualite} />
             <ChargementImages key={liste.length} images={{ photo: fiche.photo, signature: fiche.signature }} onChange={(i) => setFiche({ ...fiche, ...i })} erreur={erreur} />
             <div className="actions-onglets">
               <button className="bouton secondaire" type="button" onClick={() => setFiche(null)}>Fermer</button>
               <button className="bouton" type="button" onClick={() => {
-                if (!fiche.nom.trim() || !fiche.pieceType || !fiche.pieceNumero.trim()) { erreur("À remplir : nom, type de pièce, numéro de pièce."); return; }
+                if (!fiche.nom.trim() || !fiche.prenom.trim() || !fiche.pieceType || !fiche.pieceNumero.trim()) { erreur("À remplir : nom, prénom, type de pièce, numéro de pièce."); return; }
                 onChange([...liste, fiche]); setFiche(REPRESENTANT_VIDE);
               }}>Enregistrer</button>
             </div>
@@ -361,6 +398,9 @@ function AutresRenseignements({ f, maj, ctx, categories, physique }: { f: Nouvea
       <div className="pile">
         <ChoixListe libelle="Secteur d'activité :" k="secteurActivite" valeurs={ctx.listesFiche.secteurActivite ?? []} f={f} maj={maj} apres={{ typeActivite: "" }} />
         <ChoixListe libelle="Type d'activité :" k="typeActivite" valeurs={types} f={f} maj={maj} />
+        {/* A7 : activité déclarée, pièce qui habilite à l'exercer (loi 22/068, art. 33, al. 4 ; Instr. BCC 15, art. 13, al. 2) ; sa copie se dépose dans Photos et signatures */}
+        {physique && <Champ libelle={f.secteurActivite ? "Pièce d'habilitation professionnelle : *" : "Pièce d'habilitation professionnelle :"}>{(p) =>
+          <input {...p} className="saisie" required={!!f.secteurActivite} autoComplete="off" value={f.habilitationReference ?? ""} onChange={(e) => maj({ habilitationReference: e.target.value })} />}</Champ>}
         <ChoixListe libelle="Catégorie :" k="categorie" valeurs={categories ?? ctx.listesFiche.categorie ?? []} f={f} maj={maj} />
         <ChoixListe libelle="Sous type client :" k="sousTypeClient" valeurs={ctx.listesFiche.sousTypeClient ?? []} f={f} maj={maj} />
         <label className="case"><input type="checkbox" checked={f.personneExposee} onChange={(e) => maj({ personneExposee: e.target.checked })} /><span>Personne politiquement exposée</span></label>
@@ -503,14 +543,15 @@ export function EnrolementEntreprise() {
   const [dirigeant, setDirigeant] = useState<RepresentantSaisi>(REPRESENTANT_VIDE);
   const [signataires, setSignataires] = useState<RepresentantSaisi[]>([]);
   const [effectifs, setEffectifs] = useState<Tiers[]>([]);
+  const [controles, setControles] = useState<Controles>({});
   if (!c.donnees) return <Chargement />;
   const { ctx } = c.donnees;
   const { f, maj } = c;
-  function vider() { setAvecDirigeant(true); setDirigeant(REPRESENTANT_VIDE); setSignataires([]); setEffectifs([]); }
+  function vider() { setAvecDirigeant(true); setDirigeant(REPRESENTANT_VIDE); setSignataires([]); setEffectifs([]); setControles({}); }
   return (
     <Enrolement titre="Enregistrement d'une entreprise" onglets={ONGLETS_ENTREPRISE} numero={c.cree?.numero} onglet={c.onglet} setOnglet={c.setOnglet}
       boite={c.boite} setBoite={c.setBoite}
-      enregistrer={() => c.confirmer((m) => api.tiers.creerEntreprise({ ...f, premierDepot: m, liees: c.liees.map((t) => t.id), beneficiairesEffectifs: effectifs.map((t) => t.id) }, avecDirigeant ? dirigeant : null, signataires), vider)}
+      enregistrer={() => c.confirmer((m) => api.tiers.creerEntreprise({ ...f, premierDepot: m, liees: c.liees.map((t) => t.id), beneficiairesEffectifs: effectifs.map((t) => t.id), controleEffectifs: versControles(effectifs, controles) }, avecDirigeant ? dirigeant : null, signataires), vider)}
       textes={["Manuel Microfina++, p. 49 : onglets, champs de l'onglet Informations de base, Renseigner Dirigeant coché par défaut, personnes liées (+Ajouter, Retirer), fiche des signataires",
         "Onglet Autres renseignements et listes : comme le client physique (S37) ; Forme juridique : Paramétrage > Info de base > Client > Général (S14i) ; Sensibilisateur, Gestionnaire, Commercial : Agence > Paramètre (S33)",
         "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
@@ -532,15 +573,15 @@ export function EnrolementEntreprise() {
           <label className="case"><input type="checkbox" checked={avecDirigeant} onChange={(e) => setAvecDirigeant(e.target.checked)} /><span>Renseigner Dirigeant</span></label>
           {avecDirigeant && (
             <>
-              <ChampsRepresentant r={dirigeant} maj={(p) => setDirigeant({ ...dirigeant, ...p })} pieces={ctx.pieces} />
+              <ChampsRepresentant r={dirigeant} maj={(p) => setDirigeant({ ...dirigeant, ...p })} ctx={ctx} qualite exposee />
             </>
           )}
         </>
       )}
 
-      {c.onglet === 4 && <PersonnesLiees key={c.generation} liees={c.liees} onChange={c.setLiees} effectifs={effectifs} onEffectifs={setEffectifs} />}
+      {c.onglet === 4 && <PersonnesLiees key={c.generation} liees={c.liees} onChange={c.setLiees} effectifs={effectifs} onEffectifs={setEffectifs} controles={controles} onControles={setControles} />}
 
-      {c.onglet === 5 && <ListeRepresentants fiche="Signataire" ajouter="+Ajouter" liste={signataires} onChange={setSignataires} pieces={ctx.pieces} erreur={c.erreur} />}
+      {c.onglet === 5 && <ListeRepresentants fiche="Signataire" ajouter="+Ajouter" liste={signataires} onChange={setSignataires} ctx={ctx} qualite erreur={c.erreur} />}
     </Enrolement>
   );
 }
@@ -574,7 +615,7 @@ export function EnrolementGroupe() {
 
       {c.onglet === 1 && <RenseignementsGroupe f={f} maj={maj} ctx={ctx} />}
 
-      {c.onglet === 2 && <ListeRepresentants fiche="Membre du groupe" ajouter="Ajouter" liste={membres} onChange={setMembres} pieces={ctx.pieces} erreur={c.erreur} />}
+      {c.onglet === 2 && <ListeRepresentants fiche="Membre du groupe" ajouter="Ajouter" liste={membres} onChange={setMembres} ctx={ctx} erreur={c.erreur} />}
 
       {c.onglet === 3 && <AutresRenseignements f={f} maj={maj} ctx={ctx} categories={ctx.listesFiche.categorieGroupe ?? []} />}
 
@@ -595,8 +636,7 @@ const ONGLETS_MODIFICATION = {
 } as const;
 const TITRES_MODIFICATION = { physique: "Modification d'un client physique", morale: "Modification d'une entreprise", groupe: "Modification d'un groupe" } as const;
 /** Signataire ou membre déjà enregistré : gardé tel quel, avec ses images, ou retiré */
-const gardeRepresentant = (r: Tiers["signataires"][number]): RepresentantSaisi =>
-  ({ nom: r.nom, postnom: r.postnom, prenom: r.prenom, pieceType: r.pieceType, pieceNumero: r.pieceNumero, pieceExpire: r.pieceExpire, existant: { photo: r.photo, specimen: r.specimen } });
+const gardeRepresentant = ({ photo, specimen, ...r }: Tiers["signataires"][number]): RepresentantSaisi => ({ ...r, existant: { photo, specimen } });
 
 /** Modification d'un client : N° Client, Intitulé, Catégorie, onglets, Modifier puis Terminer (registre S46-1). Le client passe « à revalider » (S42). */
 export function MiseAJourClient() {
@@ -605,6 +645,7 @@ export function MiseAJourClient() {
   const [f, setF] = useState<NouveauTiers | null>(null);
   const [liees, setLiees] = useState<Tiers[]>([]);
   const [effectifs, setEffectifs] = useState<Tiers[]>([]);
+  const [controles, setControles] = useState<Controles>({});
   const [avecDirigeant, setAvecDirigeant] = useState(false);
   const [dirigeant, setDirigeant] = useState<RepresentantSaisi>(REPRESENTANT_VIDE);
   const [liste, setListe] = useState<RepresentantSaisi[]>([]);   // signataires ou membres
@@ -626,15 +667,15 @@ export function MiseAJourClient() {
   async function choisir(x: Tiers) {
     setT(x); setF({ ...x }); setEdition(false); setOnglet(0); setRecherche(false);
     setAvecDirigeant(!!x.dirigeant);
-    setDirigeant(x.dirigeant ? { nom: x.dirigeant.nom, postnom: x.dirigeant.postnom, prenom: x.dirigeant.prenom, pieceType: x.dirigeant.pieceType,
-      pieceNumero: x.dirigeant.pieceNumero, pieceExpire: x.dirigeant.pieceExpire } : REPRESENTANT_VIDE);
+    setDirigeant(x.dirigeant ? (({ photo: _p, specimen: _s, ...r }) => r)(x.dirigeant) : REPRESENTANT_VIDE);
     setListe((x.type === "groupe" ? x.membres : x.signataires).map(gardeRepresentant));
     setLiees(await lire(x.liees)); setEffectifs(await lire(x.beneficiairesEffectifs ?? []));
+    setControles(Object.fromEntries((x.beneficiairesEffectifs ?? []).map((id, i) => [id, x.controleEffectifs?.[i] ?? CONTROLE_VIDE])));
   }
-  function vider() { setT(null); setF(null); setLiees([]); setEffectifs([]); setListe([]); setEdition(false); setOnglet(0); }
+  function vider() { setT(null); setF(null); setLiees([]); setEffectifs([]); setControles({}); setListe([]); setEdition(false); setOnglet(0); }
   function terminer() {
     if (!t || !f || !edition) { vider(); return; }
-    const d = { ...f, liees: liees.map((x) => x.id), ...(t.type === "morale" ? { beneficiairesEffectifs: effectifs.map((x) => x.id) } : {}) };
+    const d = { ...f, liees: liees.map((x) => x.id), ...(t.type === "morale" ? { beneficiairesEffectifs: effectifs.map((x) => x.id), controleEffectifs: versControles(effectifs, controles) } : {}) };
     const r = t.type === "morale" ? { dirigeant: avecDirigeant ? dirigeant : null, signataires: liste } : t.type === "groupe" ? { membres: liste } : {};
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try { await api.tiers.modifier(t.id, d, r); vider(); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
@@ -676,6 +717,7 @@ export function MiseAJourClient() {
                   </>}
                   <Champ libelle={genre === "morale" ? "Zone : *" : "Zone :"}>{(p) => <select {...p} className="saisie" required={genre === "morale"} {...sel("zone")}><option value=""></option>
                     {ctx.zones.map((z) => <option key={z}>{z}</option>)}</select>}</Champ>
+                  <ChampsRelation f={f} maj={maj} morale={genre === "morale"} />
                 </div>
                 <div className="pile">
                   <AgentsClient f={f} maj={maj} ctx={ctx} />
@@ -691,19 +733,21 @@ export function MiseAJourClient() {
               <AutresRenseignements f={f} maj={maj} ctx={ctx} categories={genre === "groupe" ? ctx.listesFiche.categorieGroupe ?? [] : undefined} physique={genre === "physique"} />}
             {nom === "Dirigeant" && <>
               <label className="case"><input type="checkbox" checked={avecDirigeant} onChange={(e) => setAvecDirigeant(e.target.checked)} /><span>Renseigner Dirigeant</span></label>
-              {avecDirigeant && <ChampsRepresentant r={dirigeant} maj={(p) => setDirigeant({ ...dirigeant, ...p })} pieces={ctx.pieces} />}
+              {avecDirigeant && <ChampsRepresentant r={dirigeant} maj={(p) => setDirigeant({ ...dirigeant, ...p })} ctx={ctx} qualite exposee />}
             </>}
             {nom === "Personnes Liées" && (edition
-              ? <PersonnesLiees liees={liees} onChange={setLiees} {...(genre === "morale" ? { effectifs, onEffectifs: setEffectifs } : {})} />
+              ? <PersonnesLiees liees={liees} onChange={setLiees} {...(genre === "morale" ? { effectifs, onEffectifs: setEffectifs, controles, onControles: setControles } : {})} />
               : liees.length + effectifs.length === 0 ? <p>Liste vide</p> : (
-                <table className="grille"><thead><tr><th scope="col">N° du Client</th><th scope="col">Nom</th><th scope="col">Lien</th></tr></thead>
+                <table className="grille"><thead><tr><th scope="col">N° du Client</th><th scope="col">Nom</th><th scope="col">Lien</th><th scope="col">Nature du contrôle</th>
+                  <th scope="col">Part (%)</th></tr></thead>
                   <tbody>{[...liees.map((x) => [x, LIENS.liee] as const), ...effectifs.map((x) => [x, LIENS.effectif] as const)].map(([x, l]) =>
-                    <tr key={x.id}><td className="chiffres">{x.numero}</td><td>{nomComplet(x)}</td><td>{l}</td></tr>)}</tbody></table>
+                    <tr key={x.id}><td className="chiffres">{x.numero}</td><td>{nomComplet(x)}</td><td>{l}</td><td>{l === LIENS.effectif ? controles[x.id]?.nature : ""}</td>
+                      <td className="chiffres">{l === LIENS.effectif ? controles[x.id]?.part : ""}</td></tr>)}</tbody></table>
               ))}
             {nom === "Bénéficiaires" && <Beneficiaires liste={f.beneficiaires ?? []} onChange={(l) => maj({ beneficiaires: l })} filiations={ctx.listesFiche.filiation ?? []} />}
             {(nom === "Signataires" || nom === "Membres Groupe") &&
               <ListeRepresentants fiche={genre === "groupe" ? "Membre du groupe" : "Signataire"} ajouter={genre === "groupe" ? "Ajouter" : "+Ajouter"} liste={liste} onChange={setListe}
-                pieces={ctx.pieces} erreur={erreur} />}
+                ctx={ctx} qualite={genre === "morale"} erreur={erreur} />}
           </fieldset>
         )}
         <div className="actions-onglets">

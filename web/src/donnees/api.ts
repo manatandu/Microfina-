@@ -10,7 +10,7 @@ import {
   type ChequeClient, type Chequier, type DepotTerme, type ImmoBien, type PaieEmploye, type PlanEpargne, type ClotureCompte, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type OperationCompta, type LigneOc, type ChargeFacture, type CommandeFournisseur, type FactureFournisseur, type ReglementFournisseur, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget, type CriteresAtypiques, type GelAvoirs,
-  type AnalyseFinanciere, type DemandeCredit, type CreditPret, type GarantieCredit, type RemboursementCredit, type VisaCredit, type BalanceAgee, type Adresse,
+  type AnalyseFinanciere, type DemandeCredit, type CreditPret, type GarantieCredit, type RemboursementCredit, type VisaCredit, type BalanceAgee, type Adresse, type Procuration,
 } from "./types";
 import { DROITS_METHODES } from "./droits.gen";
 import registreEcrans from "../ecrans/registre.json";
@@ -96,7 +96,8 @@ function verifierDroit(cle: string) {
 }
 // Écart E17 : journal de sécurité (Instr. BCC 008, art. 16). Le serveur note aussi les refus de mot de passe, les blocages et la limite de requêtes (noyau/securite.py).
 const EVENEMENTS_SECURITE: Record<string, string> = { connexion: "Connexion", connexion_refusee: "Connexion refusée (mot de passe)", connexion_impossible: "Connexion impossible",
-  connexion_bloquee: "Connexion bloquée (trop d'essais)", acces_refuse: "Accès refusé (droit manquant)", limite_requetes: "Limite de requêtes dépassée" };
+  connexion_bloquee: "Connexion bloquée (trop d'essais)", acces_refuse: "Accès refusé (droit manquant)", limite_requetes: "Limite de requêtes dépassée",
+  fonds_geles: "Opération refusée sur des fonds gelés" };   // A14 : loi 22/068, art. 162, al. 2
 function noterSecurite(evenement: string, login: string, utilisateurId: number | null, detail = "") {
   (E.journalSecurite ??= []).push({ id: Math.max(0, ...E.journalSecurite.map((x) => x.id)) + 1, le: new Date().toISOString(), evenement, login, utilisateurId, detail });
   // Un accès refusé ne change aucune donnée affichée : il s'écrit sans réveiller les écrans, sinon l'écran refusé se relirait sans fin
@@ -465,7 +466,7 @@ export type RepresentantSaisi = Omit<Representant, "photo" | "specimen"> & Image
 /** Représentants envoyés à la mise à jour d'une entreprise ou d'un groupe (S46, registre S46-2) */
 export interface RepresentantsMaj { dirigeant?: RepresentantSaisi | null; signataires?: RepresentantSaisi[]; membres?: RepresentantSaisi[] }
 /** Photo et specimen chargés à l'onglet « Photo » (p. 49), en image PNG ou JPEG */
-export interface Images { photo?: string; signature?: string; copiePiece?: string; justificatifAdresse?: string }   // écart E03 : copie de la pièce, justificatif d'adresse
+export interface Images { photo?: string; signature?: string; copiePiece?: string; justificatifAdresse?: string; copieHabilitation?: string }   // A7 : pièce d'habilitation   // écart E03 : copie de la pièce, justificatif d'adresse
 /** Type entreprise (p. 50) : liste de Microfina++ non montrée, à confirmer. En attendant : agents économiques du PCCI § 10.2, hors ménages. */
 export const TYPES_ENTREPRISE = ["Banques commerciales et autres intermédiaires financiers", "Organes faîtiers et autres institutions de microfinance",
   "Autres COOPEC et IMF", "Institutions financières non bancaires", "Administration centrale", "Administrations provinciales ou locales",
@@ -506,9 +507,30 @@ function controlerBase(d: NouveauTiers, obligatoires: [string, string | undefine
   const effectifs = d.beneficiairesEffectifs ?? [];
   if (new Set(effectifs).size !== effectifs.length || effectifs.some((id) => !ctx.physique(id) || d.liees.includes(id)))
     throw new ErreurMetier("Bénéficiaire effectif : personne physique inconnue ou en double (Instr. BCC 15, art. 18).");
+  controlerEffectifs(d);
+}
+/** Nature du contrôle exercé par le bénéficiaire effectif (loi 22/068, art. 34 bis, 1° à 3°) */
+export const NATURES_EFFECTIF = ["Participation de contrôle", "Contrôle par d'autres moyens", "Dirigeant principal"] as const;
+/** Une nature par bénéficiaire effectif ; une participation de contrôle dépasse 25 % (art. 39, al. 2). Comme le serveur (controler_effectifs). */
+function controlerEffectifs(d: NouveauTiers) {
+  return (d.beneficiairesEffectifs ?? []).map((_, i) => {
+    const c = d.controleEffectifs?.[i], nature = c?.nature?.trim() ?? "", brut = (c?.part ?? "").trim().replace(",", ".").replace(/%$/, "").trim();
+    if (!(NATURES_EFFECTIF as readonly string[]).includes(nature)) throw new ErreurMetier(`Bénéficiaire effectif ${i + 1} : nature du contrôle à choisir (loi 22/068, art. 34 bis).`);
+    const part = brut ? Number(brut) : null;
+    if (brut && (!/^\d+(\.\d{1,2})?$/.test(brut) || part! <= 0 || part! > 100)) throw new ErreurMetier(`Bénéficiaire effectif ${i + 1} : part invalide (pourcentage de 0,01 à 100).`);
+    if (nature === NATURES_EFFECTIF[0] && (part === null || part <= 25))
+      throw new ErreurMetier(`Bénéficiaire effectif ${i + 1} : une participation de contrôle dépasse 25 % du capital ou des droits de vote (loi 22/068, art. 39, al. 2).`);
+    return { nature, part: part === null ? "" : part.toFixed(2).replace(".", ",") };
+  });
 }
 
 /** S37. Contrôles identiques côté serveur (services.creer_tiers) */
+/** A8 : objet et nature de la relation, avant d'entrer en relation (loi 22/068, art. 34, al. 3 et art. 47) ; provenance des fonds d'une personne morale
+ * (Instr. BCC 15, art. 17 b). Exigés à l'enrôlement. Comme le serveur (controler_relation). */
+function controlerRelation(d: NouveauTiers, morale: boolean) {
+  const manque = ([["objet et nature de la relation", d.objetRelation, true], ["origine des fonds", d.origineFonds, morale]] as const).filter(([, v, r]) => r && !v?.trim()).map(([n]) => n);
+  if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")} (loi 22/068, art. 47 ; Instr. BCC 15, art. 17).`);
+}
 export function controlerEnrolement(d: NouveauTiers, images: Images, ctx: CtxControle) {
   controlerBase(d, [["date demande", d.dateDemande], ["type client", d.typeClient], ["type de compte à créer", d.produitCode],
     ["nom", d.nom], ["type de pièce", d.pieceType], ["numéro de pièce", d.pieceNumero]], valeursListe("type_client").map((l) => l.libelle), false, ctx);
@@ -604,6 +626,9 @@ export function controlerFichePhysique(d: NouveauTiers, jour: string, identite =
   }
   if (txt("typeActivite") && !valeursListe("type_activite").some((l) => l.libelle === txt("typeActivite") && l.parent === txt("secteurActivite")))
     throw new ErreurMetier("Type d'activité : il n'appartient pas au secteur d'activité choisi.");
+  // A7 : une activité déclarée demande la pièce qui habilite à l'exercer (loi 22/068, art. 33, al. 4 ; Instr. BCC 15, art. 13, al. 2). Comme le serveur.
+  if (identite && txt("secteurActivite") && !txt("habilitationReference"))
+    throw new ErreurMetier("À remplir : pièce d'habilitation professionnelle (référence), pour une activité déclarée (loi 22/068, art. 33, al. 4 ; Instr. BCC 15, art. 13, al. 2).");
   // profession : champ libre (décision du porteur du 21/11/2026, registre T42)
   if (txt("nationalite") && !localites().some((p) => p.pays === txt("nationalite"))) throw new ErreurMetier("Nationalité : pays inconnu (Paramétrage > Localisation).");
   if (txt("piecePays") && !localites().some((p) => p.pays === txt("piecePays"))) throw new ErreurMetier("Pays de délivrance : pays inconnu (Paramétrage > Localisation).");
@@ -620,18 +645,27 @@ export function controlerFichePhysique(d: NouveauTiers, jour: string, identite =
   });
 }
 
-function controlerRepresentant(r: RepresentantSaisi, qui: string, jour: string) {
-  const manque = manquants([["nom", r.nom], ["type de pièce", r.pieceType], ["numéro de pièce", r.pieceNumero]]);
-  if (manque.length) throw new ErreurMetier(`${qui} : à remplir : ${manque.join(", ")}.`);
+/** Mentions d'un représentant, comme pour le client (loi 22/068, art. 33 ; Instr. BCC 15, art. 12, 13 et 16 ; confrontation du 21/11/2026, E1) ;
+ * qualite : dirigeant et signataires d'une entreprise, habilités à agir pour elle (art. 31, al. 3 ; Instr. BCC 15, art. 11). Comme le serveur (controler_representant). */
+function controlerRepresentant(r: RepresentantSaisi, qui: string, jour: string, qualite = false) {
+  const manque = manquants([["nom", r.nom], ["prénom", r.prenom], ["date de naissance", r.naissance], ["lieu de naissance", r.lieuNaissance],
+    ["type de pièce", r.pieceType], ["numéro de pièce", r.pieceNumero], ["délivrée le", r.pieceDelivreeLe], ["lieu de délivrance", r.pieceLieu],
+    ["autorité de délivrance", r.pieceAutorite], ["valide jusqu'au", r.pieceExpire], ...(qualite ? [["qualité ou pouvoir", r.qualite] as [string, string | undefined]] : [])]);
+  if (manque.length) throw new ErreurMetier(`${qui} : à remplir : ${manque.join(", ")} (loi 22/068, art. 31 et 33 ; Instr. BCC 15, art. 13 et 16).`);
   controlerPiece(r.pieceType, r.pieceExpire, jour, `${qui} : `);
+  const aujourdhui = new Date().toISOString().slice(0, 10);
+  for (const [v, n, futur] of [[r.naissance, "date de naissance", false], [r.pieceDelivreeLe, "délivrée le", false], [r.pieceExpire, "valide jusqu'au", true]] as const)
+    if (!DATE.test(v ?? "") || (!futur && (v ?? "") > aujourdhui)) throw new ErreurMetier(`${qui} : ${n} : date invalide.`);
+  if (r.piecePays?.trim() && !localites().some((p) => p.pays === r.piecePays!.trim())) throw new ErreurMetier(`${qui} : pays de délivrance inconnu (Paramétrage > Localisation).`);
+  controlerAdresse(r, true, `${qui} : adresse`);
   controlerImage(r.photo, `${qui} : photo`); controlerImage(r.signature, `${qui} : signature`);
 }
 
 /** Une ligne « existant » (déjà enregistrée, gardée à la mise à jour S46) doit exister ; une nouvelle est contrôlée. Identique au serveur (controler_representants). */
-function controlerRepresentants(l: RepresentantSaisi[], qui: string, jour: string, anciens?: Representant[]) {
+function controlerRepresentants(l: RepresentantSaisi[], qui: string, jour: string, anciens?: Representant[], qualite = false) {
   l.forEach((r, i) => {
     if (r.existant) { if (!anciens?.some((a) => a.pieceType === r.pieceType.trim() && a.pieceNumero === r.pieceNumero.trim())) throw new ErreurMetier(`${qui} ${i + 1} : inconnu.`); }
-    else controlerRepresentant(r, `${qui} ${i + 1}`, jour);
+    else controlerRepresentant(r, `${qui} ${i + 1}`, jour, qualite);
   });
 }
 
@@ -655,18 +689,34 @@ export function controlerEntreprise(d: NouveauTiers, dirigeant: RepresentantSais
   if (!valeursListe("forme_juridique").some((l) => l.libelle === d.formeJuridique.trim()))
     throw new ErreurMetier("Forme juridique : valeur inconnue (Paramétrage > Info de base > Client > Général).");
   controlerFichePhysique(d, ctx.jour, false);   // listes, lieu, email, agents (registre S38-1)
-  if (dirigeant) controlerRepresentant(dirigeant, "Dirigeant", ctx.jour);
-  controlerRepresentants(signataires, "Signataire", ctx.jour, anciens);
+  if (dirigeant) controlerRepresentant(dirigeant, "Dirigeant", ctx.jour, true);
+  controlerRepresentants(signataires, "Signataire", ctx.jour, anciens, true);
   // Loi 22/068, art. 34, al. 4 : noms des personnes exerçant des fonctions de direction ; art. 34 bis, 3° : faute d'autre bénéficiaire effectif,
   // le dirigeant est tenu pour tel (confrontation du 21/11/2026, E1). Comme le serveur (controler_entreprise).
   if (!dirigeant) throw new ErreurMetier("Dirigeant : à remplir. Le dirigeant d'une personne morale est identifié à l'entrée en relation (loi 22/068, art. 34).");
 }
 
-const versRepresentant = ({ photo, signature, existant: _e, ...r }: RepresentantSaisi): Representant => ({ ...r, photo: !!photo, specimen: !!signature });
-/** Mise à jour (S46) : les lignes gardées restent avec leurs images, les retirées partent, les nouvelles s'ajoutent. Identique au serveur (remplacer_representants). */
-const remplacerRepresentants = (anciens: Representant[], l: RepresentantSaisi[]) => [
-  ...anciens.filter((a) => l.some((r) => r.existant && r.pieceType.trim() === a.pieceType && r.pieceNumero.trim() === a.pieceNumero)),
-  ...l.filter((r) => !r.existant).map(versRepresentant)];
+const versRepresentant = ({ photo, signature, existant: _e, ...r }: RepresentantSaisi): Representant =>
+  ({ ...r, personneExposee: r.personneExposee === true, adresse: composerAdresseEcrite(r), photo: !!photo, specimen: !!signature });
+/** L'adresse écrite (mêmes règles que noyau/adresse.composer) */
+const composerAdresseEcrite = (a: Adresse) => [a.numeroRue?.trim() ? `N° ${a.numeroRue.trim()}` : "", a.rue?.trim() ? `avenue ${a.rue.trim()}` : "",
+  a.quartier?.trim() ? `quartier ${a.quartier.trim()}` : "", a.commune?.trim() ?? "", a.ville?.trim() && a.ville.trim() !== a.commune?.trim() ? a.ville.trim() : ""].filter(Boolean).join(", ");
+const garde = (a: Representant, l: RepresentantSaisi[]) => l.some((r) => r.existant && r.pieceType.trim() === a.pieceType && r.pieceNumero.trim() === a.pieceNumero);
+/** Mise à jour (S46) : les lignes gardées restent avec leurs images, les retirées sont gardées comme retirées (E8), les nouvelles s'ajoutent.
+ * Identique au serveur (remplacer_representants). */
+function remplacerRepresentants(t: Tiers, anciens: Representant[], l: RepresentantSaisi[]) {
+  const retireLe = new Date().toISOString();
+  t.representantsRetires = [...(t.representantsRetires ?? []), ...anciens.filter((a) => !garde(a, l)).map((a) => ({ ...a, retireLe }))];
+  return [...anciens.filter((a) => garde(a, l)), ...l.filter((r) => !r.existant).map(versRepresentant)];
+}
+/** Mise à jour du dirigeant (S46) : même pièce, ses images restent si aucune nouvelle n'est chargée ; l'ancienne fiche est gardée comme retirée (E8).
+ * Identique au serveur (remplacer_dirigeant). */
+function remplacerDirigeant(t: Tiers, d: RepresentantSaisi) {
+  const a = t.dirigeant, nouveau = versRepresentant(d);
+  if (a && a.pieceType === nouveau.pieceType && a.pieceNumero === nouveau.pieceNumero) Object.assign(nouveau, { photo: nouveau.photo || a.photo, specimen: nouveau.specimen || a.specimen });
+  if (a) t.representantsRetires = [...(t.representantsRetires ?? []), { ...a, retireLe: new Date().toISOString() }];
+  t.dirigeant = nouveau;
+}
 /** Mentions propres à une personne physique, vides pour une entreprise ou un groupe */
 const SANS_IDENTITE = { postnom: "", prenom: "", sexe: "" as const, naissance: "", lieuNaissance: "", pieceType: "", pieceNumero: "", pieceDelivreeLe: "",
   pieceLieu: "", pieceAutorite: "", pieceExpire: "", telephone: "" };
@@ -766,9 +816,9 @@ function modifierPhysique(t: Tiers, d: NouveauTiers, ctx: CtxControle) {
     "naissance", "lieuNaissance", "pieceType", "pieceNumero", "pieceDelivreeLe", "pieceLieu", "pieceAutorite", "pieceExpire", "piecePays", "adresse", "telephone", "liees",
     // S37 : fiche du client (registre S37-1 à S37-3)
     "civilite", "nationalite", "situationMatrimoniale", "pere", "mere", "profession", "pays", "province", "ville", "commune", "quartier", "rue", "numeroRue", "email", "bp", "telephoneFixe",
-    "secteurActivite", "typeActivite", "categorie", "sousTypeClient", "gestionnaireId", "sensibilisateurId", "commercialId", "beneficiaires"] as const;
-  // comme le serveur (ecrire_fiche_physique) : une case vide de la fiche garde la valeur en place (registre S37-6)
-  const gardes = new Set(["civilite", "nationalite", "situationMatrimoniale", "pere", "mere", "profession", "pays", "province", "ville", "commune", "quartier", "rue", "numeroRue", "email", "bp", "telephoneFixe"]);
+    "secteurActivite", "typeActivite", "categorie", "sousTypeClient", "gestionnaireId", "sensibilisateurId", "commercialId", "beneficiaires", "objetRelation", "origineFonds", "habilitationReference"] as const;
+  // comme le serveur (ecrire_fiche_physique, ecrire_relation) : une case vide de la fiche garde la valeur en place (registre S37-6)
+  const gardes = new Set(["objetRelation", "origineFonds", "habilitationReference", "civilite", "nationalite", "situationMatrimoniale", "pere", "mere", "profession", "pays", "province", "ville", "commune", "quartier", "rue", "numeroRue", "email", "bp", "telephoneFixe"]);
   for (const k of champs) (t as unknown as Record<string, unknown>)[k] = gardes.has(k) && !d[k] ? t[k] : d[k];
 }
 
@@ -784,6 +834,7 @@ const tiers = {
     const u = utilisateur();
     if (!u) throw new ErreurMetier("Session fermée.");
     controlerEnrolement(d, images, ctxControle());
+    controlerRelation(d, false);   // A8
     const reste = { type: "physique" as const, dirigeant: null, signataires: [], membres: [], photo: !!images.photo, specimen: !!images.signature };
     let t: Tiers;
     if (prospectId !== undefined) {
@@ -797,24 +848,29 @@ const tiers = {
       t = p;
     } else t = nouveauTiers(d, u.id, reste);
     if (images.photo || images.signature || images.copiePiece || images.justificatifAdresse) E.images[t.id] = images;
+    rapprocherGel([t.id]);   // A13
     enregistrer(); return t;
   },
   creerEntreprise(d: NouveauTiers, dirigeant: RepresentantSaisi | null, signataires: RepresentantSaisi[]) {
     const u = utilisateur();
     if (!u) throw new ErreurMetier("Session fermée.");
     controlerEntreprise(d, dirigeant, signataires, ctxControle());
+    controlerRelation(d, true);   // A8 : provenance des fonds (Instr. BCC 15, art. 17 b)
     const sig = signataires.map(versRepresentant);
-    const t = nouveauTiers({ ...d, ...SANS_IDENTITE, activite: d.typeActivite ?? "", beneficiaires: [] }, u.id,   // Nature de l'activité : le type d'activité choisi (registre S38-1)
+    const t = nouveauTiers({ ...d, ...SANS_IDENTITE, activite: d.typeActivite ?? "", beneficiaires: [], controleEffectifs: controlerEffectifs(d) }, u.id,   // Nature de l'activité : le type d'activité choisi (registre S38-1)
       { type: "morale", dirigeant: dirigeant ? versRepresentant(dirigeant) : null, signataires: sig, membres: [], photo: false, specimen: sig.some((x) => x.specimen) });
+    rapprocherGel([t.id]);   // A13
     enregistrer(); return t;
   },
   creerGroupe(d: NouveauTiers, membres: RepresentantSaisi[], images: Images = {}) {
     const u = utilisateur();
     if (!u) throw new ErreurMetier("Session fermée.");
     controlerGroupe(d, membres, images, ctxControle());
+    controlerRelation(d, false);   // A8
     const t = nouveauTiers({ ...d, ...SANS_IDENTITE, centreActivite: "", activite: d.typeActivite ?? "", beneficiaires: [] }, u.id,   // registre S39-1
       { type: "groupe", dirigeant: null, signataires: [], membres: membres.map(versRepresentant), photo: !!images.photo, specimen: !!images.signature });
     if (images.photo || images.signature || images.copiePiece || images.justificatifAdresse) E.images[t.id] = images;
+    rapprocherGel([t.id]);   // A13
     enregistrer(); return t;
   },
   aViser: () => E.tiers.filter((t) => t.statut === "a_viser"),
@@ -835,10 +891,17 @@ const tiers = {
     const depot = v.premierDepot ?? t.premierDepot;
     if (!Number.isInteger(depot) || depot < 0) throw new ErreurMetier("Premier dépôt invalide.");
     exigerAutorisationPpe(t.id);   // écart E02 : Instr. BCC 15, art. 64
+    exigerCorrespondancesExaminees(t.id);   // A13 : listes de gel (loi 22/068, art. 158 bis)
     // Écart E03 (décision du porteur, 15/11/2026) : pas de visa d'une personne physique sans copie de sa pièce d'identité (Instr. BCC 15, art. 12 et 29)
     if (t.type === "physique") {   // art. 12 al. 2 et 3 : pièce et preuve de l'adresse ; art. 10 : avant d'entrer en relation ; art. 29 : copies gardées
-      const manque = ([["copiePiece", "copie de la pièce d'identité"], ["justificatifAdresse", "justificatif d'adresse"]] as const).filter(([k]) => !E.images[t.id]?.[k]).map(([, n]) => n);
+      const manque: string[] = ([["copiePiece", "copie de la pièce d'identité"], ["justificatifAdresse", "justificatif d'adresse"]] as const).filter(([k]) => !E.images[t.id]?.[k]).map(([, n]) => n);
+      if (t.secteurActivite && !E.images[t.id]?.copieHabilitation) manque.push("copie de la pièce d'habilitation professionnelle");   // A7
       if (manque.length) throw new ErreurMetier(`Manquant : ${manque.join(", ")}. À déposer avant le visa (Client > Photos et signatures ; Instr. BCC 15, art. 10, 12 et 29).`);
+    }
+    // E1 : personne morale, copie des statuts et du registre (loi 22/068, art. 34 ; Instr. BCC 15, art. 17 a et 29), aux mêmes emplacements (registre T43)
+    if (t.type === "morale") {
+      const manque = ([["copiePiece", "copie des statuts"], ["justificatifAdresse", "copie du registre (acte de constitution)"]] as const).filter(([k]) => !E.images[t.id]?.[k]).map(([, n]) => n);
+      if (manque.length) throw new ErreurMetier(`Manquant : ${manque.join(", ")}. À déposer avant le visa (Client > Photos et signatures ; loi 22/068, art. 34 ; Instr. BCC 15, art. 17 et 29).`);
     }
     // Écart E20 : membre auxiliaire, si les statuts le prévoient (loi 002/2002, art. 23)
     const auxiliaire = v.auxiliaire === true;
@@ -873,7 +936,7 @@ const tiers = {
     const ctx = ctxControle();
     const avant = structuredClone(t);
     const dd = { ...d, produitCode: t.produitCode || "EAV-CDF", premierDepot: t.premierDepot };
-    const fiche = ["dateDemande", "typeClient", "zone", "resident", "preleverAgios", "calculerInteret", "personneExposee", "nom", "adresse", "formeJuridique", "registre",
+    const fiche = ["dateDemande", "typeClient", "zone", "resident", "preleverAgios", "calculerInteret", "personneExposee", "nom", "adresse", "formeJuridique", "registre", "objetRelation", "origineFonds",
       "liees", "pays", "province", "ville", "commune", "quartier", "rue", "numeroRue", "email", "bp", "telephoneFixe", "secteurActivite", "typeActivite", "categorie", "sousTypeClient",
       "gestionnaireId", "sensibilisateurId", "commercialId"] as const;
     const ecrire = (champs: readonly (keyof NouveauTiers)[]) => { for (const k of champs) (t as unknown as Record<string, unknown>)[k] = d[k]; };
@@ -881,17 +944,20 @@ const tiers = {
       const sig = r.signataires ?? [];
       controlerEntreprise(dd, r.dirigeant ?? null, sig, ctx, t.signataires);
       ecrire([...fiche, "centreActivite", "beneficiairesEffectifs"]);
-      Object.assign(t, { activite: d.typeActivite ?? "", dirigeant: r.dirigeant ? versRepresentant(r.dirigeant) : null, signataires: remplacerRepresentants(t.signataires, sig) });
+      t.controleEffectifs = controlerEffectifs(d);
+      if (r.dirigeant) remplacerDirigeant(t, r.dirigeant);
+      Object.assign(t, { activite: d.typeActivite ?? "", signataires: remplacerRepresentants(t, t.signataires, sig) });
       t.specimen = t.signataires.some((x) => x.specimen);
     } else if (t.type === "groupe") {
       const mb = r.membres ?? [];
       controlerGroupe(dd, mb, {}, ctx, t.membres);
       ecrire([...fiche, "nbHommes", "nbFemmes"]);
-      Object.assign(t, { activite: d.typeActivite ?? "", membres: remplacerRepresentants(t.membres, mb) });
+      Object.assign(t, { activite: d.typeActivite ?? "", membres: remplacerRepresentants(t, t.membres, mb) });
     } else {
       modifierPhysique(t, dd, ctx);
     }
     t.statut = "modifie_a_revalider";
+    rapprocherGel([t.id]);   // A13
     E.modifications.push({ id: prochain(E.modifications), tiersId: id, avant, apres: structuredClone(t), modifiePar: u.id, modifieLe: new Date().toISOString() });
     enregistrer(); return t;
   },
@@ -901,7 +967,8 @@ const tiers = {
     const t = E.tiers.find((x) => x.id === id);
     if (!t) throw new ErreurMetier("Client introuvable.");
     if (t.statut === "prospect" || t.statut === "resilie") throw new ErreurMetier("Client prospect ou résilié : pas de photo ni de signature à mettre à jour.");
-    if (!d.photo && !d.signature && !d.copiePiece && !d.justificatifAdresse) throw new ErreurMetier("Aucune image choisie.");
+    if (!d.photo && !d.signature && !d.copiePiece && !d.justificatifAdresse && !d.copieHabilitation) throw new ErreurMetier("Aucune image choisie.");
+    controlerImage(d.copieHabilitation, "Pièce d'habilitation professionnelle");   // A7
     controlerImage(d.photo, "Photo"); controlerImage(d.signature, "Signature");
     controlerImage(d.copiePiece, "Copie de la pièce d'identité"); controlerImage(d.justificatifAdresse, "Justificatif d'adresse");   // écart E03 : Instr. BCC 15, art. 12 et 29
     const i = { ...(E.images[id] ?? {}), ...Object.fromEntries(Object.entries(d).filter(([, v]) => v)) };
@@ -930,10 +997,11 @@ const tiers = {
     enregistrer(); return tiers.consentements(id);
   },
   /** Cadre « Photo / Signature » de S43 (p. 54) */
-  images(id: number): { photo: string | null; signature: string | null; copiePiece: string | null; justificatifAdresse: string | null } {
+  images(id: number): { photo: string | null; signature: string | null; copiePiece: string | null; justificatifAdresse: string | null; copieHabilitation: string | null } {
     exiger();
     const i = E.images[id] ?? {};
-    return { photo: i.photo ?? null, signature: i.signature ?? null, copiePiece: i.copiePiece ?? null, justificatifAdresse: i.justificatifAdresse ?? null };
+    return { photo: i.photo ?? null, signature: i.signature ?? null, copiePiece: i.copiePiece ?? null, justificatifAdresse: i.justificatifAdresse ?? null,
+      copieHabilitation: i.copieHabilitation ?? null };
   },
   /** « Informations initiales et actuelles » (S43, p. 54) */
   modifications(id: number) {
@@ -986,6 +1054,7 @@ const tiers = {
     const ouvertes = E.modifications.filter((m) => m.tiersId === id && !m.validePar);
     if (ouvertes.some((m) => m.modifiePar === u.id)) throw new ErreurMetier("Quatre yeux : la validation vient d'une autre personne que celle qui a modifié.");
     exigerAutorisationPpe(t.id);   // écart E02 : Instr. BCC 15, art. 64
+    exigerCorrespondancesExaminees(t.id);   // A13 : listes de gel (loi 22/068, art. 158 bis)
     const jv = journees.courante(); ouvertes.forEach((m) => { m.validePar = u.id; m.valideLe = jv?.statut === "ouverte" ? jv.date : new Date().toISOString().slice(0, 10); });
     t.statut = "actif"; enregistrer(); return t;
   },
@@ -1252,9 +1321,71 @@ const procurations = {
   supprimer(id: number) {
     exiger();
     if (!E.typesProcuration.some((x) => x.id === id)) throw new ErreurMetier("Type de procuration introuvable.");
+    if ((E.procurations ?? []).some((p) => p.typeId === id)) throw new ErreurMetier("Ce type est utilisé par une procuration.");
     archiver("type_procuration", E.typesProcuration.find((x) => x.id === id)); E.typesProcuration = E.typesProcuration.filter((x) => x.id !== id); enregistrer();
   },
+  // ---------- Procurations (confrontation du 21/11/2026, E2). Règles identiques côté serveur (noyau/procurations.py). ----------
+  duClient(tiersId: number): Procuration[] {
+    exiger();
+    if (!E.tiers.some((t) => t.id === tiersId)) throw new ErreurMetier("Client introuvable.");
+    return (E.procurations ?? []).filter((p) => p.mandantId === tiersId).map(vueProcuration)
+      .sort((a, b) => Number(!!a.finLe) - Number(!!b.finLe) || b.dateDebut.localeCompare(a.dateDebut) || b.id - a.id);
+  },
+  enCours(tiersId: number) { return procurations.duClient(tiersId).filter((p) => p.enCours); },
+  enregistrer(d: SaisieProcuration) {
+    const u = exiger();
+    const t = E.tiers.find((x) => x.id === d.mandantId);
+    if (!t) throw new ErreurMetier("Mandant : client introuvable.");
+    if (t.statut === "prospect" || t.statut === "resilie") throw new ErreurMetier("Mandant prospect ou résilié : pas de procuration.");
+    const type = E.typesProcuration.find((x) => x.id === d.typeId);
+    if (!type) throw new ErreurMetier("Type de procuration : à choisir (Gestion des procurations, Nouveau type procuration).");
+    const j = journees.courante();
+    controlerRepresentant(d as unknown as RepresentantSaisi, "Mandataire", j?.date ?? "");
+    if (!DATE.test(d.dateDebut ?? "")) throw new ErreurMetier("Date de début : à remplir.");
+    if (d.dateFin && (!DATE.test(d.dateFin) || d.dateFin < d.dateDebut)) throw new ErreurMetier("Date de fin : date invalide ou avant le début.");
+    for (const [k, n] of [["copieActe", "copie de la procuration"], ["copiePiece", "copie de la pièce du mandataire"]] as const) {
+      if (!d[k]) throw new ErreurMetier(`À déposer : ${n} (loi 22/068, art. 33, al. 2 ; Instr. BCC 15, art. 12 et 29).`);
+      controlerImage(d[k], n[0]!.toUpperCase() + n.slice(1));
+    }
+    const v = (k: keyof SaisieProcuration) => String(d[k] ?? "").trim();
+    const p = { id: prochain(E.procurations ?? []), mandantId: t.id, typeId: type.id, type: type.libelle, reference: v("reference"), nom: v("nom"), postnom: v("postnom"),
+      prenom: v("prenom"), naissance: v("naissance"), lieuNaissance: v("lieuNaissance"), pieceType: v("pieceType"), pieceNumero: v("pieceNumero"),
+      pieceDelivreeLe: v("pieceDelivreeLe"), pieceLieu: v("pieceLieu"), pieceAutorite: v("pieceAutorite"), pieceExpire: v("pieceExpire"), piecePays: v("piecePays"),
+      telephone: v("telephone"), ...Object.fromEntries(CHAMPS_ADRESSE.map((k) => [k, v(k as keyof SaisieProcuration)])), adresse: composerAdresseEcrite(d),
+      dateDebut: d.dateDebut, dateFin: d.dateFin ?? "", copieActe: true, copiePiece: true, finLe: "", finMotif: "", enCours: false,
+      copieActeImage: d.copieActe!, copiePieceImage: d.copiePiece!, creePar: u.id };
+    (E.procurations ??= []).push(p); rapprocherGel([t.id]); enregistrer(); return vueProcuration(p);   // A13 : le mandataire aussi
+  },
+  /** Fin du mandat (Code civil, art. 544 à 548) : la fiche reste, avec la date et le motif */
+  mettreFin(id: number, d: { motif: string; date: string }) {
+    exiger();
+    const p = (E.procurations ?? []).find((x) => x.id === id && E.tiers.some((t) => t.id === x.mandantId));
+    if (!p) throw new ErreurMetier("Procuration introuvable.");
+    if (p.finLe) throw new ErreurMetier("Cette procuration a déjà pris fin.");
+    if (!(MOTIFS_FIN_PROCURATION as readonly string[]).includes(d.motif?.trim())) throw new ErreurMetier("Motif de fin : à choisir (Code civil, art. 544).");
+    if (!DATE.test(d.date ?? "") || d.date < p.dateDebut) throw new ErreurMetier("Date de fin : date invalide ou avant le début.");
+    Object.assign(p, { finLe: d.date, finMotif: d.motif.trim() }); enregistrer(); return vueProcuration(p);
+  },
 };
+/** Fin du mandat : Code civil, art. 544 */
+export const MOTIFS_FIN_PROCURATION = ["Révocation par le mandant", "Renonciation du mandataire", "Décès du mandant", "Décès du mandataire", "Déconfiture"] as const;
+export type SaisieProcuration = Partial<Omit<Procuration, "id" | "type" | "copieActe" | "copiePiece" | "finLe" | "finMotif" | "enCours" | "adresse">> & {
+  mandantId: number; typeId: number; dateDebut: string; copieActe?: string; copiePiece?: string };
+function vueProcuration(p: NonNullable<Etat["procurations"]>[number]): Procuration {
+  const { copieActeImage: _a, copiePieceImage: _p, creePar: _c, ...v } = p;
+  const jour = new Date().toISOString().slice(0, 10);
+  return { ...v, enCours: !p.finLe && p.dateDebut <= jour && (!p.dateFin || p.dateFin >= jour) };
+}
+/** Retrait (S74) : le titulaire, ou un mandataire choisi parmi ses procurations en cours (loi 22/068, art. 31, al. 3). Comme le serveur (mandataire_du_retrait). */
+function mandataireDuRetrait(tiersId: number, p: { mandataire?: string; procurationId?: number | null }) {
+  if (p.procurationId == null) {
+    if (p.mandataire?.trim()) throw new ErreurMetier("Retrait par un mandataire : choisir sa procuration en cours (Client > Gestion des procurations ; loi 22/068, art. 31, al. 3).");
+    return null;
+  }
+  const x = procurations.enCours(tiersId).find((y) => y.id === p.procurationId);
+  if (!x) throw new ErreurMetier("Procuration inconnue, terminée ou pas encore en vigueur pour ce titulaire.");
+  return { nom: `${[x.nom, x.postnom, x.prenom].filter(Boolean).join(" ")} (mandataire)`, id: x.id };
+}
 
 // ---------- Client : rapports (S51, manuel p. 58 et 59) ----------
 const rapports = {
@@ -2652,14 +2783,16 @@ const guichet = {
   },
 
   /** S74 : onglet Retrait en espèce (manuel p. 86). Sans frais (Instr. BCC 37). */
-  retrait(p: Commun & { compteId: number; montant: number; mandataire?: string; motif?: string }) {
+  retrait(p: Commun & { compteId: number; montant: number; mandataire?: string; procurationId?: number | null; motif?: string }) {
     const prec = E.operations.find((o) => o.cle === p.cle && (o.statut === "validee" || o.statut === "visa_requis")); if (prec) return prec;
     const c = E.comptes.find((x) => x.id === p.compteId);
     if (!c) throw new ErreurMetier("Compte introuvable.");
     if (c.closLe) throw new ErreurMetier("Ce compte est clôturé : plus aucune opération (Épargne > Clôturer un Compte).");   // registre S70-6
     controlerGel(c.tiersId);   // écart E10
+    const mand = mandataireDuRetrait(c.tiersId, p);   // E2 : le mandataire choisi parmi les procurations en cours
     const { u, s } = sessionOuverte(c.devise);
     const t = E.tiers.find((x) => x.id === c.tiersId)!;
+    const remis = mand?.nom ?? titulaire(t);
     controlerStatutActif(t.statut);
     const solde = soldeContrat(`depot:${c.id}`, c.devise, "C");
     if (p.montant <= 0) throw new ErreurMetier("Montant nul.");
@@ -2678,7 +2811,7 @@ const guichet = {
       if (!vise) {
         if (attente("visa_requis")) throw new ErreurMetier("Retrait déjà en attente du visa « Retrait plafond » (Visa > Retrait plafond).");
         const o: Operation = { id: prochain(E.operations), cle: p.cle, type: "retrait", statut: "visa_requis", sessionId: s.id, tiersId: t.id, compteId: c.id, montant: p.montant,
-          devise: c.devise, coupures: nettoyer(p.coupures), remisPar: p.mandataire?.trim() || titulaire(t), motif: p.motif?.trim() ?? "", saisiPar: u.id, heure: heure() };
+          devise: c.devise, coupures: nettoyer(p.coupures), remisPar: remis, procurationId: mand?.id, motif: p.motif?.trim() ?? "", saisiPar: u.id, heure: heure() };
         E.operations.push(o); enregistrer(); return o;
       }
     }
@@ -2687,9 +2820,9 @@ const guichet = {
       { compte: c.pcci, contrat: `depot:${c.id}`, sens: "D", devise: c.devise, montant: p.montant, montantCdf: cdf(p.montant, c.devise) },
       { compte: "570", contrat: guichetDe(s), sens: "C", devise: c.devise, montant: p.montant, montantCdf: cdf(p.montant, c.devise) },
     ] });
-    if (vise) { Object.assign(vise, { statut: "validee", ecritureId: e.id, sessionId: s.id, coupures: nettoyer(p.coupures) }); lierExamen(examen, vise.id); enregistrer(); return vise; }
+    if (vise) { Object.assign(vise, { statut: "validee", ecritureId: e.id, sessionId: s.id, coupures: nettoyer(p.coupures), remisPar: remis, procurationId: mand?.id }); lierExamen(examen, vise.id); enregistrer(); return vise; }
     const o: Operation = { id: prochain(E.operations), cle: p.cle, type: "retrait", statut: "validee", sessionId: s.id, tiersId: t.id, compteId: c.id, montant: p.montant, devise: c.devise,
-      coupures: nettoyer(p.coupures), remisPar: p.mandataire?.trim() || titulaire(t), motif: p.motif?.trim() ?? "", saisiPar: u.id, ecritureId: e.id, heure: heure() };
+      coupures: nettoyer(p.coupures), remisPar: remis, procurationId: mand?.id, motif: p.motif?.trim() ?? "", saisiPar: u.id, ecritureId: e.id, heure: heure() };
     E.operations.push(o); lierExamen(examen, o.id); enregistrer(); return o;
   },
 
@@ -4522,7 +4655,8 @@ const ppePersonne = (tid: number) => { const t = E.tiers.find((x) => x.id === ti
   const [a, m, j] = fin.split("-").map(Number) as [number, number, number]; const limite = new Date(Date.UTC(a, m - 1 + 36, j)).toISOString().slice(0, 10);
   return limite >= new Date().toISOString().slice(0, 10); };   // 36 mois après la fin de la fonction, plus exposée (art. 64)
 /** Le client lui-même, ou un de ses bénéficiaires effectifs (loi 22/068, art. 53 ; confrontation du 21/11/2026, E3). Comme le serveur (ppe_active). */
-const ppeActive = (tid: number) => ppePersonne(tid) || (E.tiers.find((x) => x.id === tid)?.beneficiairesEffectifs ?? []).some(ppePersonne);
+const ppeActive = (tid: number) => { const t = E.tiers.find((x) => x.id === tid);   // E3 : et le dirigeant coché « personne exposée » (art. 34 bis, 3°)
+  return ppePersonne(tid) || (t?.beneficiairesEffectifs ?? []).some(ppePersonne) || !!t?.dirigeant?.personneExposee; };
 function exigerAutorisationPpe(tid: number) {
   if (ppeActive(tid) && !E.dossiersPpe.find((x) => x.tiersId === tid)?.autorisePar)
     throw new ErreurMetier("Personne politiquement exposée, le client ou un de ses bénéficiaires effectifs (loi 22/068, art. 53) : l'autorisation de la conformité vient avant le visa (Instr. BCC 15, art. 64). Client > Conformité > Examen renforcé, onglet Personnes exposées.");
@@ -4533,7 +4667,7 @@ const vuePpe = (t: Tiers) => { const d = E.dossiersPpe.find((x) => x.tiersId ===
     informeLe: d?.informeLe ?? "", referenceCenaref: d?.referenceCenaref ?? "" }; };
 const ppe = {
   lister() { lectureAdmin(["SC01"]); const expose = (id: number) => !!E.tiers.find((x) => x.id === id)?.personneExposee;
-    return E.tiers.filter((t) => t.personneExposee || (t.beneficiairesEffectifs ?? []).some(expose)).sort((a, b) => a.numero.localeCompare(b.numero)).map(vuePpe); },
+    return E.tiers.filter((t) => t.personneExposee || (t.beneficiairesEffectifs ?? []).some(expose) || !!t.dirigeant?.personneExposee).sort((a, b) => a.numero.localeCompare(b.numero)).map(vuePpe); },
   /** Fonction, fin de fonction, origine du patrimoine (art. 41, 64) ; « autoriser » : accord de la conformité, par une autre personne (Instr. BCC 008, art. 66) */
   enregistrer(tid: number, d: { fonction?: string; finFonction?: string; originePatrimoine?: string; autoriser?: boolean }) {
     const u = exiger();
@@ -4701,6 +4835,9 @@ const SOURCES_GEL: Record<GelAvoirs["source"], string> = { onu: "Conseil de séc
 const DATE_ISO = /^\d{4}-\d{2}-\d{2}$/;
 function controlerGel(tid: number) {
   const g = E.gels.find((x) => x.tiersId === tid && !x.leveLe);
+  // A14 : la tentative reste au journal de sécurité (loi 22/068, art. 162, al. 2). Comme le serveur (gel.controler_gel).
+  if (g) { const u = E.utilisateurs.find((x) => x.id === E.session); noterSecurite("fonds_geles", u?.login ?? "", u?.id ?? null,
+    `Client ${E.tiers.find((x) => x.id === tid)?.numero ?? ""} ; décision ${g.decisionReference} du ${fr(g.decisionLe)}`); }
   if (g) throw new ErreurMetier(`Avoirs gelés : aucune somme ne sort des comptes de ce client (décision ${g.decisionReference} du ${fr(g.decisionLe)}). Loi 22/068, art. 158 bis ; loi 22/069, art. 73.`);
 }
 const vueGel = (g: GelAvoirs) => { const t = E.tiers.find((x) => x.id === g.tiersId)!; return { ...g, membre: t.numero, client: titulaire(t), sourceLibelle: SOURCES_GEL[g.source],
@@ -4736,6 +4873,107 @@ const gels = {
     g.leveLe = d.date; g.referenceLevee = d.reference.trim(); g.levePar = u.id; enregistrer(); return vueGel(g);
   },
 };
+// ---------- A13 : listes de désignation et rapprochement (confrontation du 21/11/2026). Mêmes règles que noyau/gel.py. ----------
+const SOURCES_LISTE_GEL = { onu: "Conseil de sécurité des Nations Unies", conasafic: "Liste nationale (CONASAFIC)" } as const;
+export const COLONNES_LISTE_GEL = ["Nom", "Autres noms", "Date de naissance", "N° de pièce", "Référence de désignation", "Date de désignation"];
+const motsNom = (t: string) => (t ?? "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);
+const etatListes = () => (E.listesGel ??= { imports: [], entrees: [], correspondances: [] });
+const dateFr = (v: string) => { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(v.trim()); return m ? `${m[3]}-${m[2]}-${m[1]}` : DATE_ISO.test(v.trim()) ? v.trim() : null; };
+/** Le client et ceux qui agissent pour lui (art. 158 bis, 4°) : dirigeant, signataires, membres du groupe, mandataires en cours */
+function personnesGel(t: Tiers): [string, string, string][] {
+  const nom = (r: { nom: string; postnom?: string; prenom?: string }) => [r.nom, r.postnom, r.prenom].filter(Boolean).join(" ");
+  const jour = new Date().toISOString().slice(0, 10);
+  return [["Client", titulaire(t), t.pieceNumero ?? ""], ...(t.dirigeant ? [["Dirigeant", nom(t.dirigeant), t.dirigeant.pieceNumero] as [string, string, string]] : []),
+    ...t.signataires.map((r) => ["Signataire", nom(r), r.pieceNumero] as [string, string, string]), ...t.membres.map((r) => ["Membre du groupe", nom(r), r.pieceNumero] as [string, string, string]),
+    ...(E.procurations ?? []).filter((p) => p.mandantId === t.id && !p.finLe && p.dateDebut <= jour && (!p.dateFin || p.dateFin >= jour))
+      .map((p) => ["Mandataire", nom(p), p.pieceNumero] as [string, string, string])];
+}
+function correspondGel(nom: string, piece: string, e: NonNullable<Etat["listesGel"]>["entrees"][number]) {
+  if (piece && e.piece && motsNom(piece).join("") === motsNom(e.piece).join("")) return "Même numéro de pièce";
+  const mots = new Set(motsNom(nom));
+  for (const designe of [e.nom, ...e.autresNoms.split(/[|/]/).filter((x) => x.trim())]) {
+    const d = new Set(motsNom(designe)), dans = (a: Set<string>, b: Set<string>) => [...a].every((x) => b.has(x));
+    if (d.size && mots.size && (dans(d, mots) || dans(mots, d)) && (Math.min(d.size, mots.size) >= 2 || (d.size === mots.size && dans(d, mots)))) return `Nom : ${designe.trim()}`;
+  }
+  return null;
+}
+/** Rapproche les clients (tous, ou ceux donnés) de la liste en vigueur ; rend le nombre de correspondances nouvelles */
+function rapprocherGel(ids?: number[]) {
+  const l = etatListes(), entrees = l.entrees.filter((e) => e.actif);
+  if (!entrees.length) return 0;
+  let n = 0;
+  for (const t of E.tiers.filter((x) => (ids ? ids.includes(x.id) : x.statut !== "resilie"))) for (const [qui, nom, piece] of personnesGel(t)) for (const e of entrees) {
+    const raison = correspondGel(nom, piece, e), personne = `${qui} : ${nom}`;
+    if (raison && !l.correspondances.some((c) => c.tiersId === t.id && c.listeId === e.id && c.personne === personne)) {
+      l.correspondances.push({ id: prochain(l.correspondances), tiersId: t.id, listeId: e.id, personne, raison, statut: "a_examiner", observation: "", traitePar: null, traiteLe: "",
+        creeLe: new Date().toISOString() }); n++;
+    }
+  }
+  return n;
+}
+/** Pas de visa tant qu'une correspondance attend l'examen (art. 158 bis : sans délai). Comme le serveur (exiger_correspondances_examinees). */
+function exigerCorrespondancesExaminees(tid: number) {
+  if (etatListes().correspondances.some((c) => c.tiersId === tid && c.statut === "a_examiner"))
+    throw new ErreurMetier("Correspondance avec une liste de gel à examiner d'abord (Client > Conformité > Examen renforcé, onglet Gel des avoirs ; loi 22/068, art. 158 bis).");
+}
+const listesGel = {
+  lire() {
+    lectureAdmin(["SC01"]);
+    const l = etatListes();
+    const vue = (c: (typeof l.correspondances)[number]) => { const e = l.entrees.find((x) => x.id === c.listeId)!, t = E.tiers.find((x) => x.id === c.tiersId)!;
+      return { id: c.id, tiersId: c.tiersId, membre: t.numero, client: titulaire(t), personne: c.personne, raison: c.raison, source: SOURCES_LISTE_GEL[e.source], designe: e.nom,
+        autresNoms: e.autresNoms, naissance: e.naissance, piece: e.piece, referenceDesignation: e.reference, statut: c.statut, observation: c.observation,
+        traitePar: nomUtilisateur(c.traitePar ?? undefined), traiteLe: c.traiteLe.slice(0, 10) }; };
+    return { imports: [...l.imports].reverse().map((i) => ({ id: i.id, source: SOURCES_LISTE_GEL[i.source], reference: i.reference, publieLe: i.publieLe, lignes: i.lignes,
+      importePar: nomUtilisateur(i.importePar), importeLe: i.importeLe.slice(0, 10), enVigueur: l.entrees.some((e) => e.importId === i.id && e.actif) })),
+      correspondances: [...l.correspondances].sort((a, b) => Number(a.statut !== "a_examiner") - Number(b.statut !== "a_examiner") || b.id - a.id).map(vue), colonnes: COLONNES_LISTE_GEL };
+  },
+  /** Une nouvelle publication remplace la précédente de la même source */
+  importer(d: { source?: string; reference?: string; publieLe?: string; contenu?: string }) {
+    const u = exiger();
+    const source = d.source ?? "", ref = (d.reference ?? "").trim(), le = (d.publieLe ?? "").trim(), contenu = d.contenu ?? "";
+    const manque = ([[source in SOURCES_LISTE_GEL, "Source"], [ref, "Référence de la publication"], [DATE_ISO.test(le), "Date de publication"], [contenu.trim(), "Fichier"]] as const).filter(([v]) => !v).map(([, n]) => n);
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    const lignes = contenu.replace(/\r\n/g, "\n").split("\n").filter((x) => x.trim());
+    const sep = lignes[0]!.includes(";") ? ";" : ",";
+    const cell = (l: string) => l.split(sep).map((c) => c.trim().replace(/^"|"$/g, ""));
+    if (cell(lignes[0]!).slice(0, COLONNES_LISTE_GEL.length).map((c) => motsNom(c).join(" ")).join("|") !== COLONNES_LISTE_GEL.map((c) => motsNom(c).join(" ")).join("|"))
+      throw new ErreurMetier(`Colonnes attendues, dans cet ordre : ${COLONNES_LISTE_GEL.join(" ; ")}.`);
+    const l = etatListes(), id = prochain(l.imports);
+    const entrees = lignes.slice(1).map((x, i) => {
+      const v = [...cell(x), "", "", "", "", "", ""];
+      if (!v[0]) throw new ErreurMetier(`Ligne ${i + 2} : nom manquant.`);
+      const nais = v[2] ? dateFr(v[2]) : "", designe = v[5] ? dateFr(v[5]) : "";
+      if (nais === null || designe === null) throw new ErreurMetier(`Ligne ${i + 2} : date invalide (JJ/MM/AAAA).`);
+      return { importId: id, source: source as "onu" | "conasafic", nom: v[0]!, autresNoms: v[1]!, naissance: nais, piece: v[3]!, reference: v[4]!, designeLe: designe, actif: true };
+    });
+    if (!entrees.length) throw new ErreurMetier("Le fichier ne contient aucune personne.");
+    l.imports.push({ id, source: source as "onu" | "conasafic", reference: ref, publieLe: le, lignes: entrees.length, importePar: u.id, importeLe: new Date().toISOString() });
+    for (const e of l.entrees) if (e.source === source) e.actif = false;
+    for (const e of entrees) l.entrees.push({ id: prochain(l.entrees), ...e });
+    const n = rapprocherGel(); enregistrer();
+    return { importId: id, lignes: entrees.length, correspondances: n };
+  },
+  /** Confirmer : gel sans délai (art. 158 bis). Écarter : homonyme, avec l'observation qui le montre (art. 168 bis). */
+  examiner(id: number, d: { decision: string; observation?: string }) {
+    const u = exiger();
+    const l = etatListes(), c = l.correspondances.find((x) => x.id === id);
+    if (!c) throw new ErreurMetier("Correspondance introuvable.");
+    if (c.statut !== "a_examiner") throw new ErreurMetier("Correspondance déjà examinée.");
+    const obs = (d.observation ?? "").trim();
+    if (d.decision !== "confirmee" && d.decision !== "ecartee") throw new ErreurMetier("Décision : confirmer ou écarter.");
+    if (d.decision === "ecartee" && !obs) throw new ErreurMetier("Observation : ce qui montre que ce n'est pas la personne désignée (loi 22/068, art. 168 bis).");
+    Object.assign(c, { statut: d.decision, observation: obs, traitePar: u.id, traiteLe: new Date().toISOString() });
+    if (d.decision === "confirmee" && !E.gels.some((g) => g.tiersId === c.tiersId && !g.leveLe)) {
+      const e = l.entrees.find((x) => x.id === c.listeId)!, imp = l.imports.find((x) => x.id === e.importId)!;
+      E.gels.push({ id: Math.max(0, ...E.gels.map((x) => x.id)) + 1, tiersId: c.tiersId, source: e.source, decisionReference: e.reference || imp.reference,
+        decisionLe: e.designeLe || imp.publieLe, motif: `Personne désignée (${c.personne}) : liste ${SOURCES_LISTE_GEL[e.source]}, publication ${imp.reference}`,
+        gelePar: u.id, geleLe: jourConformite(), informeLe: "", referenceInformation: "", leveLe: "", referenceLevee: "", levePar: null });
+    }
+    enregistrer(); return listesGel.lire().correspondances.find((x) => x.id === id)!;
+  },
+};
+
 // Écart E09 : opérations atypiques (Instr. BCC 15, art. 30, 31, 34 à 36). Mêmes règles que noyau/atypiques.py.
 const SANS_CRITERE: CriteresAtypiques = { montantUsd: null, montantEleveUsd: null, nombreJour: null, reveilMois: null };
 const usdTexte = (v: number) => `${v.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/\u202f/g, " ")} USD`;
@@ -5253,6 +5491,10 @@ const conformite = {
   geler: (d: Parameters<typeof gels.geler>[0]) => gels.geler(d),
   informerGel: (id: number, d: { date: string; reference: string }) => gels.informer(id, d),
   leverGel: (id: number, d: { date: string; reference: string }) => gels.lever(id, d),
+  listesGel: () => listesGel.lire(),
+  importerListeGel: (d: Parameters<typeof listesGel.importer>[0]) => listesGel.importer(d),
+  rapprocherListesGel: () => { exiger(); return { correspondances: rapprocherGel() }; },
+  examinerCorrespondance: (id: number, d: { decision: string; observation?: string }) => listesGel.examiner(id, d),
   criteresAtypiques: () => atypiques.criteres(),
   fixerCriteresAtypiques: (d: Parameters<typeof atypiques.fixerCriteres>[0]) => atypiques.fixerCriteres(d),
   atypiques: (du: string, au: string, statut = "a_analyser") => atypiques.alertes(du, au, statut),

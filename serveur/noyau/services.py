@@ -550,13 +550,25 @@ def billetages_a_valider(u: dict) -> list[dict]:
 # ---------- Tiers ----------
 
 def vue_representant(r: dict) -> dict:
+    """Représentant identifié comme un client (loi 22/068, art. 33 ; Instr. BCC 15, art. 13 et 16 ; confrontation du 21/11/2026, E1)"""
     return {"nom": r["nom"], "postnom": r["postnom"] or "", "prenom": r["prenom"] or "", "pieceType": r["piece_type"], "pieceNumero": r["piece_numero"],
-            "pieceExpire": iso(r["piece_validite"]), "photo": bool(r["photo"]), "specimen": bool(r["signature"])}
+            "pieceExpire": iso(r["piece_validite"]), "photo": bool(r["photo"]), "specimen": bool(r["signature"]),
+            "naissance": iso(r.get("date_naissance")), "lieuNaissance": r.get("lieu_naissance") or "", "pieceDelivreeLe": iso(r.get("piece_delivree_le")),
+            "pieceLieu": r.get("piece_lieu") or "", "pieceAutorite": r.get("piece_autorite") or "", "piecePays": r.get("piece_pays") or "",
+            "qualite": r.get("qualite") or "", "personneExposee": bool(r.get("personne_exposee")), "adresse": r.get("adresse") or "",
+            **{k: r.get(c) or "" for k, c in ADRESSE_REP.items()}}
+
+
+# Adresse unique (registre T41) : clés de l'écran et colonnes de la table representant
+ADRESSE_REP = {"pays": "pays", "province": "province", "ville": "ville", "commune": "commune", "quartier": "quartier", "rue": "rue", "numeroRue": "numero_rue"}
+# Nature du contrôle exercé par le bénéficiaire effectif (loi 22/068, art. 34 bis, 1° à 3°)
+NATURES_EFFECTIF = ("Participation de contrôle", "Contrôle par d'autres moyens", "Dirigeant principal")
 
 
 def vue_tiers(t: dict) -> dict:
+    effectifs = lignes("select autre_id, nature, part from lien_tiers where tiers_id = %s and role = 'beneficiaire_effectif' order by id", (t["id"],))
     sp = une("select photo, signature from specimen where tiers_id = %s order by id desc limit 1", (t["id"],))
-    reps = lignes("select * from representant where tiers_id = %s order by id", (t["id"],))
+    reps = lignes("select * from representant where tiers_id = %s and retire_le is null order by id", (t["id"],))   # E8 : les retirés restent en base
     signataires = [vue_representant(r) for r in reps if r["role"] == "signataire"]
     dirigeant = next((vue_representant(r) for r in reps if r["role"] == "dirigeant"), None)
     membres = [vue_representant(r) for r in reps if r["role"] == "membre"]
@@ -570,8 +582,10 @@ def vue_tiers(t: dict) -> dict:
             "preleverAgios": t["prelever_agios"], "calculerInteret": t["calculer_interet"],
             "lieuNaissance": t["lieu_naissance"] or "", "pieceDelivreeLe": iso(t["piece_delivree_le"]), "pieceLieu": t["piece_lieu"] or "", "pieceAutorite": t["piece_autorite"] or "", "piecePays": t.get("piece_pays") or "",
             "liees": [r["autre_id"] for r in lignes("select autre_id from lien_tiers where tiers_id = %s and role = 'personne_liee' order by id", (t["id"],))],
-            "beneficiairesEffectifs": [r["autre_id"] for r in lignes("select autre_id from lien_tiers where tiers_id = %s and role = 'beneficiaire_effectif' order by id",
-                                                                     (t["id"],))],
+            "beneficiairesEffectifs": [r["autre_id"] for r in effectifs],
+            "controleEffectifs": [{"nature": r["nature"] or "", "part": str(r["part"]).replace(".", ",") if r["part"] is not None else ""} for r in effectifs],
+            "objetRelation": t.get("objet_relation") or "", "origineFonds": t.get("origine_fonds") or "",   # A8
+            "habilitationReference": t.get("habilitation_reference") or "",   # A7
             "intitule": t["intitule"] or "", "dateVisa": iso(t["date_visa"]), "admissionLe": iso(t.get("admission_le")), "admissionReference": t.get("admission_reference") or "", "emancipationReference": t.get("emancipation_reference") or "", "representantLegal": t.get("representant_legal") or "", "auxiliaire": bool(t.get("auxiliaire")), "creeLe": t["cree_le"].date().isoformat(), "motifDepart": t["motif_depart"] or "", "resilieLe": iso(t["resilie_le"]),
             "sensibilisateurId": t["sensibilisateur_id"], "commercialId": t["commercial_id"],
             "profession": t["profession"] or "", "pays": t["pays"] or "", "ville": t["ville"] or "", "quartier": t["quartier"] or "", "rue": t["rue"] or "",
@@ -596,7 +610,7 @@ def iso(d) -> str:
 
 
 SQL_TIERS = """select t.*, coalesce(p.nom, m.raison_sociale) as nom, p.postnom, p.prenom, p.sexe, p.date_naissance, p.lieu_naissance, p.piece_type, p.piece_numero,
-                      p.piece_delivree_le, p.piece_lieu, p.piece_autorite, p.piece_validite, p.piece_pays, p.profession, coalesce(p.pays, m.pays) as pays, coalesce(p.ville, m.ville) as ville,
+                      p.piece_delivree_le, p.piece_lieu, p.piece_autorite, p.piece_validite, p.piece_pays, p.habilitation_reference, p.profession, coalesce(p.pays, m.pays) as pays, coalesce(p.ville, m.ville) as ville,
                       coalesce(p.quartier, m.quartier) as quartier, coalesce(p.rue, m.rue) as rue,
                       coalesce(p.province, m.province) as province, coalesce(p.numero_rue, m.numero_rue) as numero_rue, coalesce(p.email, m.email) as email, coalesce(p.bp, m.bp) as bp,
                       coalesce(p.telephone_fixe, m.telephone_fixe) as telephone_fixe,
@@ -664,7 +678,36 @@ def controler_base(u: dict, d: dict, obligatoires: list[tuple[str, str]], types:
             or set(effectifs) & set(liees)
             or valeur("select count(*) from tiers where institution_id = %s and type = 'physique' and id = any(%s)", (u["institution_id"], effectifs)) != len(effectifs)):
         raise ErreurMetier("Bénéficiaire effectif : personne physique inconnue ou en double (Instr. BCC 15, art. 18).")
-    return {"produit": produit, "zone": zone, "depot": depot, "liees": liees, "effectifs": effectifs, "texte": texte}
+    controles = controler_effectifs(d, effectifs)
+    return {"produit": produit, "zone": zone, "depot": depot, "liees": liees, "effectifs": effectifs, "controles": controles, "texte": texte}
+
+
+def controler_effectifs(d: dict, effectifs: list) -> list[tuple]:
+    """Nature du contrôle de chaque bénéficiaire effectif (loi 22/068, art. 34 bis, 1° à 3°) ; une participation de contrôle dépasse 25 % du capital
+    ou des droits de vote (art. 39, al. 2, 1° et 8°). Confrontation du 21/11/2026, E1."""
+    from decimal import Decimal, InvalidOperation
+    controles = d.get("controleEffectifs") or []
+    if not isinstance(controles, list):
+        raise ErreurMetier("Bénéficiaires effectifs : nature du contrôle invalide.")
+    sortie = []
+    for i, autre in enumerate(effectifs):
+        c = controles[i] if i < len(controles) and isinstance(controles[i], dict) else {}
+        nature = str(c.get("nature") or "").strip()
+        brut = str(c.get("part") or "").strip().replace(",", ".").rstrip("%").strip()
+        if nature not in NATURES_EFFECTIF:
+            raise ErreurMetier(f"Bénéficiaire effectif {i + 1} : nature du contrôle à choisir (loi 22/068, art. 34 bis).")
+        part = None
+        if brut:
+            try:
+                part = Decimal(brut)
+            except InvalidOperation:
+                part = Decimal(-1)
+            if not Decimal(0) < part <= Decimal(100) or part != part.quantize(Decimal("0.01")):
+                raise ErreurMetier(f"Bénéficiaire effectif {i + 1} : part invalide (pourcentage de 0,01 à 100).")
+        if nature == NATURES_EFFECTIF[0] and (part is None or part <= 25):
+            raise ErreurMetier(f"Bénéficiaire effectif {i + 1} : une participation de contrôle dépasse 25 % du capital ou des droits de vote (loi 22/068, art. 39, al. 2).")
+        sortie.append((autre, nature, part))
+    return sortie
 
 
 def compteur_client(agence_id: int, depart: int = 1) -> int:
@@ -731,6 +774,19 @@ def numero_compte(u: dict, t: dict, produit: dict) -> str:
     return composer_numero_compte(regle, t["numero"], ag["code"], produit.get("numero"))
 
 
+def controler_relation(texte, morale: bool):
+    """A8 : objet et nature de la relation d'affaires, avant d'entrer en relation (loi 22/068, art. 34, al. 3 et art. 47) ; provenance des fonds
+    d'une personne morale (Instr. BCC 15, art. 17 b). Exigés à l'enrôlement ; les clients d'avant le 21/11/2026 les reçoivent à leur mise à jour."""
+    manque = [n for k, n in (("objetRelation", "objet et nature de la relation"), ("origineFonds", "origine des fonds")) if not texte(k) and (k == "objetRelation" or morale)]
+    if manque:
+        raise ErreurMetier("À remplir : " + ", ".join(manque) + " (loi 22/068, art. 47 ; Instr. BCC 15, art. 17).")
+
+
+def ecrire_relation(tid: int, texte):
+    executer("update tiers set objet_relation = coalesce(%s, objet_relation), origine_fonds = coalesce(%s, origine_fonds) where id = %s",
+             (texte("objetRelation") or None, texte("origineFonds") or None, tid))
+
+
 def inserer_tiers(u: dict, d: dict, b: dict, type_: str, agent: str) -> int:
     texte = b["texte"]
     numero = numero_client(u)
@@ -742,8 +798,8 @@ def inserer_tiers(u: dict, d: dict, b: dict, type_: str, agent: str) -> int:
                   bool(d.get("preleverAgios", True)), bool(d.get("calculerInteret"))))
     for autre in b["liees"]:
         executer("insert into lien_tiers (tiers_id, autre_id, role) values (%s, %s, 'personne_liee')", (tid, autre))
-    for autre in b["effectifs"]:
-        executer("insert into lien_tiers (tiers_id, autre_id, role) values (%s, %s, 'beneficiaire_effectif')", (tid, autre))
+    for autre, nature, part in b["controles"]:
+        executer("insert into lien_tiers (tiers_id, autre_id, role, nature, part) values (%s, %s, 'beneficiaire_effectif', %s, %s)", (tid, autre, nature, part))
     return tid
 
 
@@ -790,6 +846,11 @@ def controler_fiche_physique(u: dict, d: dict, texte, j: dict | None, identite: 
                                            where t.institution_id = %s and t.liste = 'type_activite' and t.libelle = %s and s.libelle = %s""",
                                         (u["institution_id"], texte("typeActivite"), texte("secteurActivite"))):
         raise ErreurMetier("Type d'activité : il n'appartient pas au secteur d'activité choisi.")
+    # A7 : une activité professionnelle déclarée (secteur d'activité) demande la pièce qui habilite à l'exercer (loi 22/068, art. 33, al. 4 ;
+    # Instr. BCC 15, art. 13, al. 2) : registre de commerce, patente, autorisation d'exercer
+    if identite and texte("secteurActivite") and not texte("habilitationReference"):
+        raise ErreurMetier("À remplir : pièce d'habilitation professionnelle (référence), pour une activité déclarée (loi 22/068, art. 33, al. 4 ; "
+                           "Instr. BCC 15, art. 13, al. 2).")
     if texte("nationalite") and texte("nationalite") not in [p["pays"] for p in localites()]:
         raise ErreurMetier("Nationalité : pays inconnu (Paramétrage > Localisation).")
     if texte("piecePays") and texte("piecePays") not in [p["pays"] for p in localites()]:
@@ -825,9 +886,9 @@ def ecrire_fiche_physique(tid: int, texte, f: dict):
                                           profession = coalesce(%s, profession), pays = coalesce(%s, pays), ville = coalesce(%s, ville),
                                           commune = coalesce(%s, commune), quartier = coalesce(%s, quartier), rue = coalesce(%s, rue), email = coalesce(%s, email),
                                           bp = coalesce(%s, bp), telephone_fixe = coalesce(%s, telephone_fixe), province = coalesce(%s, province),
-                                          numero_rue = coalesce(%s, numero_rue) where tiers_id = %s""",
+                                          numero_rue = coalesce(%s, numero_rue), habilitation_reference = coalesce(%s, habilitation_reference) where tiers_id = %s""",
              (*[texte(k) or None for k in ("civilite", "nationalite", "situationMatrimoniale", "pere", "mere", "profession", "pays", "ville", "commune",
-                                           "quartier", "rue", "email", "bp", "telephoneFixe", "province", "numeroRue")], tid))
+                                           "quartier", "rue", "email", "bp", "telephoneFixe", "province", "numeroRue", "habilitationReference")], tid))
     executer("""update tiers set secteur_activite = %s, type_activite = %s, categorie = %s, sous_type_client = %s, gestionnaire_agent_id = %s,
                                  sensibilisateur_id = %s, commercial_id = %s where id = %s""",
              (*[texte(k) or None for k in ("secteurActivite", "typeActivite", "categorie", "sousTypeClient")], f["gestionnaire"], *f["agents"], tid))
@@ -846,10 +907,12 @@ def creer_tiers(u: dict, d: dict) -> dict:
     if texte("sexe") not in ("", "F", "M"):
         raise ErreurMetier("Sexe inconnu.")
     controler_piece(texte("pieceType"), texte("pieceExpire"), journee_courante(u))
+    controler_relation(texte, False)                                 # A8
     fiche = controler_fiche_physique(u, d, texte, journee_courante(u))
     images = d.get("images") or {}
     controler_image(images.get("photo"), "Photo"); controler_image(images.get("signature"), "Signature")
     controler_image(images.get("copiePiece"), "Copie de la pièce d'identité"); controler_image(images.get("justificatifAdresse"), "Justificatif d'adresse")
+    controler_image(images.get("copieHabilitation"), "Pièce d'habilitation professionnelle")   # A7
     prospect = d.get("prospectId")
     if prospect is not None:
         # « Choisir prospect » (p. 49) : le prospect (S45) devient le client ; il garde son numéro et ses coordonnées
@@ -878,20 +941,42 @@ def creer_tiers(u: dict, d: dict) -> dict:
               texte("pieceType"), texte("pieceNumero"), texte("pieceDelivreeLe") or None, texte("pieceLieu") or None, texte("pieceAutorite") or None,
               texte("pieceExpire") or None, texte("adresse") or None, texte("telephone") or None, texte("piecePays") or None, tid))
     ecrire_fiche_physique(tid, texte, fiche)
-    if any(images.get(k) for k in ("photo", "signature", "copiePiece", "justificatifAdresse")):
-        executer("insert into specimen (tiers_id, photo, signature, copie_piece, justificatif_adresse, depose_le) values (%s, %s, %s, %s, %s, current_date)",
-                 (tid, images.get("photo"), images.get("signature"), images.get("copiePiece"), images.get("justificatifAdresse")))
+    if any(images.get(k) for k in ("photo", "signature", "copiePiece", "justificatifAdresse", "copieHabilitation")):
+        executer("""insert into specimen (tiers_id, photo, signature, copie_piece, justificatif_adresse, copie_habilitation, depose_le)
+                    values (%s, %s, %s, %s, %s, %s, current_date)""",
+                 (tid, images.get("photo"), images.get("signature"), images.get("copiePiece"), images.get("justificatifAdresse"), images.get("copieHabilitation")))
+    ecrire_relation(tid, texte)                                      # A8
+    from .gel import rapprocher
+    rapprocher(u, [tid])                                             # A13 : rapprochement avec les listes de gel en vigueur
     return lire_tiers(tid)
 
 
-def controler_representant(r, qui: str, j: dict | None) -> dict:
+# Mentions d'un représentant, comme pour le client (loi 22/068, art. 33 ; Instr. BCC 15, art. 12, 13 et 16 ; confrontation du 21/11/2026, E1)
+OBLIGATOIRES_REPRESENTANT = [("nom", "nom"), ("prénom", "prenom"), ("date de naissance", "naissance"), ("lieu de naissance", "lieuNaissance"),
+                             ("type de pièce", "pieceType"), ("numéro de pièce", "pieceNumero"), ("délivrée le", "pieceDelivreeLe"),
+                             ("lieu de délivrance", "pieceLieu"), ("autorité de délivrance", "pieceAutorite"), ("valide jusqu'au", "pieceExpire")]
+
+
+def controler_representant(r, qui: str, j: dict | None, qualite: bool = False) -> dict:
+    """qualite : dirigeant et signataires d'une entreprise, dont on vérifie qu'ils sont habilités à agir pour elle (loi 22/068, art. 31, al. 3 ;
+    Instr. BCC 15, art. 11 et 16)"""
     if not isinstance(r, dict):
         raise ErreurMetier(f"{qui} invalide.")
     t = texte_de(r)
-    manque = [n for n, k in (("nom", "nom"), ("type de pièce", "pieceType"), ("numéro de pièce", "pieceNumero")) if not t(k)]
+    manque = [n for n, k in OBLIGATOIRES_REPRESENTANT + ([("qualité ou pouvoir", "qualite")] if qualite else []) if not t(k)]
     if manque:
-        raise ErreurMetier(f"{qui} : à remplir : " + ", ".join(manque) + ".")
+        raise ErreurMetier(f"{qui} : à remplir : " + ", ".join(manque) + " (loi 22/068, art. 31 et 33 ; Instr. BCC 15, art. 13 et 16).")
     controler_piece(t("pieceType"), t("pieceExpire"), j, f"{qui} : ")
+    jour = date.today().isoformat()
+    for k, n in (("naissance", "date de naissance"), ("pieceDelivreeLe", "délivrée le"), ("pieceExpire", "valide jusqu'au")):
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", t(k)) or k != "pieceExpire" and t(k) > jour:
+            raise ErreurMetier(f"{qui} : {n} : date invalide.")
+    if t("piecePays") and t("piecePays") not in [p["pays"] for p in localites()]:
+        raise ErreurMetier(f"{qui} : pays de délivrance inconnu (Paramétrage > Localisation).")
+    if "personneExposee" in r and not isinstance(r["personneExposee"], bool):
+        raise ErreurMetier(f"{qui} : personne exposée invalide.")
+    from . import adresse
+    adresse.controler(t, requis=True, quoi=f"{qui} : adresse")
     controler_image(r.get("photo"), f"{qui} : photo"); controler_image(r.get("signature"), f"{qui} : signature")
     return r
 
@@ -901,7 +986,7 @@ def cle_representant(r) -> tuple[str, str]:
     return (t("pieceType"), t("pieceNumero"))
 
 
-def controler_representants(liste, qui: str, j: dict | None, anciens: set | None = None):
+def controler_representants(liste, qui: str, j: dict | None, anciens: set | None = None, qualite: bool = False):
     """Signataires, membres : une ligne « existant » (déjà enregistrée, gardée telle quelle à la mise à jour S46) doit exister ; une nouvelle est contrôlée"""
     if not isinstance(liste, list):
         raise ErreurMetier(f"{qui}s invalides.")
@@ -910,20 +995,40 @@ def controler_representants(liste, qui: str, j: dict | None, anciens: set | None
             if anciens is None or cle_representant(r) not in anciens:
                 raise ErreurMetier(f"{qui} {i} : inconnu.")
         else:
-            controler_representant(r, f"{qui} {i}", j)
+            controler_representant(r, f"{qui} {i}", j, qualite)
 
 
 def anciens_representants(tid: int, role: str) -> set:
-    return {(r["piece_type"], r["piece_numero"]) for r in lignes("select piece_type, piece_numero from representant where tiers_id = %s and role = %s", (tid, role))}
+    return {(r["piece_type"], r["piece_numero"]) for r in lignes("select piece_type, piece_numero from representant where tiers_id = %s and role = %s and retire_le is null",
+                                                                 (tid, role))}
 
 
-def remplacer_representants(tid: int, role: str, liste: list):
-    """Mise à jour (S46) : les lignes gardées restent avec leurs images, les retirées partent, les nouvelles s'ajoutent"""
+def retirer_representant(u: dict, rid: int):
+    """E8 : un représentant retiré reste en base, avec ses images, sa date de retrait et son auteur (loi 22/068, art. 48 : dix ans ; Instr. BCC 15, art. 29)"""
+    executer("update representant set retire_le = now(), retire_par = %s where id = %s and retire_le is null", (u["id"], rid))
+
+
+def remplacer_representants(u: dict, tid: int, role: str, liste: list):
+    """Mise à jour (S46) : les lignes gardées restent avec leurs images, les retirées sont marquées retirées (E8), les nouvelles s'ajoutent"""
     garde = {cle_representant(r) for r in liste if r.get("existant")}
-    for r in lignes("select id, piece_type, piece_numero from representant where tiers_id = %s and role = %s", (tid, role)):
+    for r in lignes("select id, piece_type, piece_numero from representant where tiers_id = %s and role = %s and retire_le is null", (tid, role)):
         if (r["piece_type"], r["piece_numero"]) not in garde:
-            executer("delete from representant where id = %s", (r["id"],))
+            retirer_representant(u, r["id"])
     inserer_representants(tid, [(role, r) for r in liste if not r.get("existant")])
+
+
+def remplacer_dirigeant(u: dict, tid: int, dirigeant: dict):
+    """Mise à jour du dirigeant (S46) : même pièce, la fiche est mise à jour et garde ses images si aucune nouvelle n'est chargée ;
+    autre pièce, l'ancien est marqué retiré (E8) et le nouveau s'ajoute"""
+    actuel = une("select * from representant where tiers_id = %s and role = 'dirigeant' and retire_le is null order by id desc limit 1", (tid,))
+    if actuel and (actuel["piece_type"], actuel["piece_numero"]) == cle_representant(dirigeant):
+        r = {**dirigeant, "photo": dirigeant.get("photo") or actuel["photo"], "signature": dirigeant.get("signature") or actuel["signature"]}
+        retirer_representant(u, actuel["id"])
+        inserer_representants(tid, [("dirigeant", r)])
+        return
+    if actuel:
+        retirer_representant(u, actuel["id"])
+    inserer_representants(tid, [("dirigeant", dirigeant)])
 
 
 def controler_entreprise(u: dict, d: dict, tid: int | None = None):
@@ -938,9 +1043,9 @@ def controler_entreprise(u: dict, d: dict, tid: int | None = None):
     fiche = controler_fiche_physique(u, d, texte, j, identite=False)   # listes, lieu, email, agents (registre S38-1)
     dirigeant = d.get("dirigeant")
     if dirigeant is not None:
-        controler_representant(dirigeant, "Dirigeant", j)
+        controler_representant(dirigeant, "Dirigeant", j, qualite=True)
     signataires = d.get("signataires") or []
-    controler_representants(signataires, "Signataire", j, anciens_representants(tid, "signataire") if tid else None)
+    controler_representants(signataires, "Signataire", j, anciens_representants(tid, "signataire") if tid else None, qualite=True)
     if dirigeant is None:
         # Loi 22/068, art. 34, al. 4 : « obtenir et vérifier les noms des personnes exerçant des fonctions de direction au sein des personnes
         # morales ». Faute d'autre bénéficiaire effectif, le dirigeant est tenu pour tel (art. 34 bis, 3°). Confrontation du 21/11/2026, E1.
@@ -952,12 +1057,16 @@ def creer_entreprise(u: dict, d: dict) -> dict:
     """S38 : Client > Enrôlement > Entreprise (manuel p. 49 et 50). Mêmes contrôles que controlerEntreprise (web/src/donnees/api.ts)."""
     exiger(u)
     b, texte, fiche, dirigeant, signataires = controler_entreprise(u, d)
+    controler_relation(texte, True)                                  # A8 : provenance des fonds (Instr. BCC 15, art. 17 b)
     tid = inserer_tiers(u, d, b, "morale", texte("typeClient"))
     executer("""insert into tiers_morale (tiers_id, raison_sociale, forme, rccm, adresse_siege, centre_activite, activite)
                 values (%s, %s, %s, %s, %s, %s, %s)""",
              (tid, texte("nom"), texte("formeJuridique"), texte("registre"), texte("adresse"), texte("centreActivite") or None, texte("typeActivite") or None))
     ecrire_fiche_morale(tid, texte, fiche)
     inserer_representants(tid, ([("dirigeant", dirigeant)] if dirigeant is not None else []) + [("signataire", r) for r in signataires])
+    ecrire_relation(tid, texte)                                      # A8
+    from .gel import rapprocher
+    rapprocher(u, [tid])                                             # A13 : rapprochement avec les listes de gel en vigueur
     return lire_tiers(tid)
 
 
@@ -972,12 +1081,17 @@ def ecrire_fiche_morale(tid: int, texte, f: dict):
 
 
 def inserer_representants(tid: int, liste: list[tuple[str, dict]]):
+    from . import adresse
     for role, r in liste:
         t = texte_de(r)
-        executer("""insert into representant (tiers_id, role, nom, postnom, prenom, piece_type, piece_numero, piece_validite, photo, signature)
-                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+        executer("""insert into representant (tiers_id, role, nom, postnom, prenom, piece_type, piece_numero, piece_validite, photo, signature,
+                                              date_naissance, lieu_naissance, piece_delivree_le, piece_lieu, piece_autorite, piece_pays, qualite, personne_exposee,
+                                              pays, province, ville, commune, quartier, rue, numero_rue, adresse)
+                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
                  (tid, role, t("nom"), t("postnom") or None, t("prenom") or None, t("pieceType"), t("pieceNumero"), t("pieceExpire") or None,
-                  r.get("photo") or None, r.get("signature") or None))
+                  r.get("photo") or None, r.get("signature") or None, t("naissance") or None, t("lieuNaissance") or None, t("pieceDelivreeLe") or None,
+                  t("pieceLieu") or None, t("pieceAutorite") or None, t("piecePays") or None, t("qualite") or None, r.get("personneExposee") is True,
+                  *[t(k) or None for k in ADRESSE_REP], adresse.composer(t) or None))
 
 
 def controler_groupe(u: dict, d: dict, tid: int | None = None):
@@ -1001,6 +1115,7 @@ def creer_groupe(u: dict, d: dict) -> dict:
     """S39 : Client > Enrôlement > Groupe (manuel p. 47 et 51). Mêmes contrôles que controlerGroupe (web/src/donnees/api.ts)."""
     exiger(u)
     b, texte, fiche, nombres, membres = controler_groupe(u, d)
+    controler_relation(texte, False)                                 # A8
     images = d.get("images") or {}
     controler_image(images.get("photo"), "Photo"); controler_image(images.get("signature"), "Signature")
     controler_image(images.get("copiePiece"), "Copie de la pièce d'identité"); controler_image(images.get("justificatifAdresse"), "Justificatif d'adresse")
@@ -1013,6 +1128,9 @@ def creer_groupe(u: dict, d: dict) -> dict:
     if any(images.get(k) for k in ("photo", "signature", "copiePiece", "justificatifAdresse")):
         executer("insert into specimen (tiers_id, photo, signature, copie_piece, justificatif_adresse, depose_le) values (%s, %s, %s, %s, %s, current_date)",
                  (tid, images.get("photo"), images.get("signature"), images.get("copiePiece"), images.get("justificatifAdresse")))
+    ecrire_relation(tid, texte)                                      # A8
+    from .gel import rapprocher
+    rapprocher(u, [tid])                                             # A13 : rapprochement avec les listes de gel en vigueur
     return lire_tiers(tid)
 
 
@@ -1055,12 +1173,24 @@ def viser_tiers(u: dict, tid: int, d: dict | None = None) -> dict:
         raise ErreurMetier("Premier dépôt invalide.")
     from .conformite import exiger_autorisation_ppe
     exiger_autorisation_ppe(tid)                                     # écart E02 : Instr. BCC 15, art. 64
+    from .gel import exiger_correspondances_examinees
+    exiger_correspondances_examinees(tid)                            # A13 : listes de gel (loi 22/068, art. 158 bis)
     # Écart E03 (décision du porteur, 15/11/2026) : pas de visa d'une personne physique sans copie de sa pièce d'identité (Instr. BCC 15, art. 12 et 29)
     if t["type"] == "physique":
-        sp = une("select copie_piece, justificatif_adresse from specimen where tiers_id = %s order by id desc limit 1", (tid,)) or {}
+        sp = une("select copie_piece, justificatif_adresse, copie_habilitation from specimen where tiers_id = %s order by id desc limit 1", (tid,)) or {}
         manque = [n for k, n in (("copie_piece", "copie de la pièce d'identité"), ("justificatif_adresse", "justificatif d'adresse")) if not sp.get(k)]
+        # A7 : activité déclarée, copie de la pièce d'habilitation (loi 22/068, art. 33, al. 4 ; Instr. BCC 15, art. 13, al. 2 et 29)
+        if t.get("secteur_activite") and not sp.get("copie_habilitation"):
+            manque.append("copie de la pièce d'habilitation professionnelle")
         if manque:   # art. 12 al. 2 et 3 : pièce et preuve de l'adresse ; art. 10 : avant d'entrer en relation ; art. 29 : copies gardées
             raise ErreurMetier(f"Manquant : {', '.join(manque)}. À déposer avant le visa (Client > Photos et signatures ; Instr. BCC 15, art. 10, 12 et 29).")
+    # E1 : personne morale, copie des statuts et du registre (loi 22/068, art. 34, al. 1 : « Il en est pris photocopie » ; Instr. BCC 15, art. 17 a et 29).
+    # Mêmes emplacements que la copie de la pièce et le justificatif d'adresse d'une personne physique (registre T43).
+    if t["type"] == "morale":
+        sp = une("select copie_piece, justificatif_adresse from specimen where tiers_id = %s order by id desc limit 1", (tid,)) or {}
+        manque = [n for k, n in (("copie_piece", "copie des statuts"), ("justificatif_adresse", "copie du registre (acte de constitution)")) if not sp.get(k)]
+        if manque:
+            raise ErreurMetier(f"Manquant : {', '.join(manque)}. À déposer avant le visa (Client > Photos et signatures ; loi 22/068, art. 34 ; Instr. BCC 15, art. 17 et 29).")
     # Écart E20 : membre auxiliaire, si les statuts le prévoient (loi 002/2002, art. 23)
     auxiliaire = d.get("auxiliaire") is True
     if auxiliaire and not (est_coopec(u) and valeur("select coalesce(membres_auxiliaires, '') <> '' from institution where id = %s", (u["institution_id"],))):
@@ -1128,9 +1258,8 @@ def modifier_tiers(u: dict, tid: int, d: dict) -> dict:
         executer("""update tiers_morale set raison_sociale = %s, forme = %s, rccm = %s, adresse_siege = %s, centre_activite = %s, activite = %s where tiers_id = %s""",
                  (texte("nom"), texte("formeJuridique"), texte("registre"), texte("adresse"), texte("centreActivite") or None, texte("typeActivite") or None, tid))
         ecrire_fiche_morale(tid, texte, fiche)
-        executer("delete from representant where tiers_id = %s and role = 'dirigeant'", (tid,))
-        inserer_representants(tid, [("dirigeant", dirigeant)] if dirigeant is not None else [])
-        remplacer_representants(tid, "signataire", signataires)
+        remplacer_dirigeant(u, tid, dirigeant)
+        remplacer_representants(u, tid, "signataire", signataires)
         return terminer_modification(u, tid, b, avant, effectifs=True)
     if t["type"] == "groupe":
         b, texte, fiche, nombres, membres = controler_groupe(u, d, tid)
@@ -1141,7 +1270,7 @@ def modifier_tiers(u: dict, tid: int, d: dict) -> dict:
         executer("""update tiers_morale set raison_sociale = %s, forme = %s, rccm = %s, adresse_siege = %s, activite = %s, nb_hommes = %s, nb_femmes = %s where tiers_id = %s""",
                  (texte("nom"), texte("formeJuridique") or None, texte("registre") or None, texte("adresse"), texte("typeActivite") or None, *nombres, tid))
         ecrire_fiche_morale(tid, texte, fiche)
-        remplacer_representants(tid, "membre", membres)
+        remplacer_representants(u, tid, "membre", membres)
         return terminer_modification(u, tid, b, avant)
     b = controler_base(u, d,
                        [("date demande", "dateDemande"), ("type client", "typeClient"), ("nom", "nom"), ("type de pièce", "pieceType"),
@@ -1173,10 +1302,13 @@ def terminer_modification(u: dict, tid: int, b: dict, avant: dict, effectifs: bo
         executer("insert into lien_tiers (tiers_id, autre_id, role) values (%s, %s, 'personne_liee')", (tid, autre))
     if effectifs:
         executer("delete from lien_tiers where tiers_id = %s and role = 'beneficiaire_effectif'", (tid,))
-        for autre in b["effectifs"]:
-            executer("insert into lien_tiers (tiers_id, autre_id, role) values (%s, %s, 'beneficiaire_effectif')", (tid, autre))
+        for autre, nature, part in b["controles"]:
+            executer("insert into lien_tiers (tiers_id, autre_id, role, nature, part) values (%s, %s, 'beneficiaire_effectif', %s, %s)", (tid, autre, nature, part))
     apres = lire_tiers(tid)
     executer("insert into tiers_modification (tiers_id, avant, apres, modifie_par) values (%s, %s, %s, %s)", (tid, Jsonb(avant), Jsonb(apres), u["id"]))
+    ecrire_relation(tid, b["texte"])                                 # A8
+    from .gel import rapprocher
+    rapprocher(u, [tid])                                             # A13 : rapprochement avec les listes de gel en vigueur
     return apres
 
 
@@ -1197,6 +1329,8 @@ def activer_tiers(u: dict, tid: int) -> dict:
         raise ErreurMetier("Quatre yeux : la validation vient d'une autre personne que celle qui a modifié.")
     from .conformite import exiger_autorisation_ppe
     exiger_autorisation_ppe(tid)                                     # écart E02 : Instr. BCC 15, art. 64
+    from .gel import exiger_correspondances_examinees
+    exiger_correspondances_examinees(tid)                            # A13 : listes de gel (loi 22/068, art. 158 bis)
     executer("update tiers_modification set valide_par = %s, valide_le = now() where tiers_id = %s and valide_par is null", (u["id"], tid))
     executer("update tiers set statut = 'actif' where id = %s", (tid,))
     return lire_tiers(tid)
@@ -1205,11 +1339,12 @@ def activer_tiers(u: dict, tid: int) -> dict:
 def images_tiers(u: dict, tid: int) -> dict:
     """Photo et signature déposées (cadre « Photo / Signature » de S43, p. 54)"""
     exiger(u)
-    sp = une("""select s.photo, s.signature, s.copie_piece, s.justificatif_adresse from specimen s join tiers t on t.id = s.tiers_id
+    sp = une("""select s.photo, s.signature, s.copie_piece, s.justificatif_adresse, s.copie_habilitation from specimen s join tiers t on t.id = s.tiers_id
                 where s.tiers_id = %s and t.institution_id = %s order by s.id desc limit 1""", (tid, u["institution_id"]))
     image = lambda v: v if isinstance(v, str) and IMAGE_OK.match(v) else None
     return {"photo": image(sp and sp["photo"]), "signature": image(sp and sp["signature"]),
-            "copiePiece": image(sp and sp["copie_piece"]), "justificatifAdresse": image(sp and sp["justificatif_adresse"])}   # écart E03
+            "copiePiece": image(sp and sp["copie_piece"]), "justificatifAdresse": image(sp and sp["justificatif_adresse"]),   # écart E03
+            "copieHabilitation": image(sp and sp["copie_habilitation"])}   # A7
 
 
 def changer_specimen(u: dict, tid: int, d: dict) -> dict:
@@ -1223,15 +1358,17 @@ def changer_specimen(u: dict, tid: int, d: dict) -> dict:
         raise ErreurMetier("Client prospect ou résilié : pas de photo ni de signature à mettre à jour.")
     d = d or {}
     photo, signature, piece, adresse = d.get("photo"), d.get("signature"), d.get("copiePiece"), d.get("justificatifAdresse")
-    if not (photo or signature or piece or adresse):
+    habilitation = d.get("copieHabilitation")   # A7
+    if not (photo or signature or piece or adresse or habilitation):
         raise ErreurMetier("Aucune image choisie.")
     controler_image(photo, "Photo"); controler_image(signature, "Signature")
     controler_image(piece, "Copie de la pièce d'identité"); controler_image(adresse, "Justificatif d'adresse")      # écart E03 : Instr. BCC 15, art. 12 et 29
-    avant = une("select photo, signature, copie_piece, justificatif_adresse from specimen where tiers_id = %s order by id desc limit 1", (tid,)) or {}
-    executer("""insert into specimen (tiers_id, photo, signature, copie_piece, justificatif_adresse, depose_le, depose_par)
-                values (%s, %s, %s, %s, %s, current_date, %s)""",
+    controler_image(habilitation, "Pièce d'habilitation professionnelle")
+    avant = une("select photo, signature, copie_piece, justificatif_adresse, copie_habilitation from specimen where tiers_id = %s order by id desc limit 1", (tid,)) or {}
+    executer("""insert into specimen (tiers_id, photo, signature, copie_piece, justificatif_adresse, copie_habilitation, depose_le, depose_par)
+                values (%s, %s, %s, %s, %s, %s, current_date, %s)""",
              (tid, photo or avant.get("photo"), signature or avant.get("signature"), piece or avant.get("copie_piece"),
-              adresse or avant.get("justificatif_adresse"), u["id"]))
+              adresse or avant.get("justificatif_adresse"), habilitation or avant.get("copie_habilitation"), u["id"]))
     return lire_tiers(tid)
 
 
@@ -1547,7 +1684,7 @@ def poster(u: dict, *, journal: str, journee_id: int, libelle: str, piece: str, 
     if not j or j["statut"] != "ouverte":
         raise ErreurMetier("Journée fermée : aucune écriture possible.")
     from .gel import controler_lignes
-    controler_lignes(lignes_ecr)       # écart E10 : rien ne sort des comptes d'un client gelé
+    controler_lignes(lignes_ecr, u)    # écart E10 : rien ne sort des comptes d'un client gelé
     jid = valeur("select id from journal where institution_id = %s and code = %s and actif and not supprime", (u["institution_id"], journal))
     if jid is None:
         raise ErreurMetier(f"Le journal {journal} n'est pas actif (Comptabilité > Journal).")      # registre S30-2
@@ -1789,7 +1926,10 @@ def retrait(u: dict, p: dict) -> dict:
         return vue_operation(prec)
     c = compte_actif(p["compteId"], verrou=True)   # deux retraits sur le même compte ne passent pas en même temps
     from .gel import controler_gel
-    controler_gel(c["tiers_id"])                    # écart E10
+    controler_gel(c["tiers_id"], u)                 # écart E10
+    from .procurations import mandataire_du_retrait
+    mandataire, procuration = mandataire_du_retrait(u, c["tiers_id"], p)   # E2 : le mandataire choisi parmi les procurations en cours
+    remis = mandataire or titulaire(c["tiers_id"])
     s = session_ouverte(u, c["devise"])
     m, coupures = int(p["montant"]), nettoyer(p["coupures"])
     if m <= 0:
@@ -1812,8 +1952,8 @@ def retrait(u: dict, p: dict) -> dict:
             if attente("saisie"):
                 raise ErreurMetier("Retrait déjà en attente du visa « Retrait plafond » (Visa > Retrait plafond).")
             oid = creer_operation(u, s, cle=p["cle"], type_="retrait", statut="saisie", tiers_id=c["tiers_id"], contrat=f"depot:{c['id']}",
-                                  montant=m, devise=c["devise"], coupures=coupures, remis_par=(p.get("mandataire") or "").strip() or titulaire(c["tiers_id"]),
-                                  motif=(p.get("motif") or "").strip() or None)
+                                  montant=m, devise=c["devise"], coupures=coupures, remis_par=remis, motif=(p.get("motif") or "").strip() or None)
+            executer("update operation set procuration_id = %s where id = %s", (procuration, oid))
             return vue_operation(une("select * from operation where id = %s", (oid,)))
     j = une("select date_comptable from journee_comptable where id = %s", (s["journeeId"],))
     eid = poster(u, journal="CA", journee_id=s["journeeId"], libelle=f"Retrait espèces {c['numero']}", piece=nouvelle_piece(u, "CA", j["date_comptable"]),
@@ -1821,13 +1961,14 @@ def retrait(u: dict, p: dict) -> dict:
                      {"compte": c["pcci"], "contrat": f"depot:{c['id']}", "sens": "D", "devise": c["devise"], "montant": m},
                      {"compte": "570", "contrat": f"guichet:{s['guichetId']}", "sens": "C", "devise": c["devise"], "montant": m}])
     if vise:   # paiement du retrait visé : l'opération en attente devient le retrait payé, par ce caissier, dans sa caisse
-        executer("update operation set statut = 'validee', ecriture_id = %s, session_caisse_id = %s, valide_par = %s where id = %s", (eid, s["id"], u["id"], vise["id"]))
+        executer("update operation set statut = 'validee', ecriture_id = %s, session_caisse_id = %s, valide_par = %s, remis_par = %s, procuration_id = %s where id = %s",
+                 (eid, s["id"], u["id"], remis, procuration, vise["id"]))
         enregistrer_coupures(vise["id"], c["devise"], coupures)
         conformite.lier(examen, vise["id"])
         return vue_operation(une("select * from operation where id = %s", (vise["id"],)))
     oid = creer_operation(u, s, cle=p["cle"], type_="retrait", statut="validee", tiers_id=c["tiers_id"], contrat=f"depot:{c['id']}",
-                          montant=m, devise=c["devise"], coupures=coupures, remis_par=(p.get("mandataire") or "").strip() or titulaire(c["tiers_id"]),
-                          ecriture_id=eid, motif=(p.get("motif") or "").strip() or None)
+                          montant=m, devise=c["devise"], coupures=coupures, remis_par=remis, ecriture_id=eid, motif=(p.get("motif") or "").strip() or None)
+    executer("update operation set procuration_id = %s where id = %s", (procuration, oid))
     conformite.lier(examen, oid)
     return vue_operation(une("select * from operation where id = %s", (oid,)))
 

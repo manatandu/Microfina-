@@ -216,3 +216,18 @@ Rapport sur les états financiers d'une COOPEC, remis par le porteur. Seuls les 
 | Code général des impôts (loi 23/053), art. 68 et 69 | Avantages en nature imposables ; logement (30 % au plus), transport, allocations familiales immunisés | S131 grandes rubriques | lu |
 | O.-L. 10/001, art. 35, modifié par la LF 25/060, art. 46 | TVA : taux normal 16 %, taux réduits 1 % et 5 % | S104, S136 utilisations (registre S104-2, S136-4) | lu |
 | Loi 23/053, art. 142 à 144 | Prélèvement de 14 % sur les prestations des non-résidents | S104 | lu |
+
+## Clientèle et blanchiment (lu le 21/11/2026, corrections de la confrontation)
+
+| Réf. | Exigence | Module | Mise en œuvre | Statut |
+|---|---|---|---|---|
+| Loi 22/068, art. 31, al. 3 et 33 ; Instr. 15, art. 11 à 13, 16 | Représentant identifié comme un client, habilité | S38, S39, S46 | Naissance, pièce complète, adresse ; qualité ou pouvoir pour une entreprise (T45) | lu |
+| Loi 22/068, art. 34 ; Instr. 15, art. 17 a, 29 | Statuts et registre de la personne morale, copie gardée | S49, S40 | Deux copies exigées avant le visa (T43) | lu |
+| Loi 22/068, art. 34 bis, 39 | Bénéficiaire effectif : nature du contrôle, plus de 25 % | S38 Personnes liées | Nature et part (T46) | lu |
+| Loi 22/068, art. 53 | Dirigeant personne exposée | S38, SC01 | Case sur la fiche du dirigeant, autorisation avant le visa (T47) | lu |
+| Loi 22/068, art. 48 | Conservation des pièces dix ans | S46 | Représentant retiré gardé avec ses images (T48) | lu |
+| Code civil, art. 526 à 548 ; loi 22/068, art. 31, 33, 44, 2° | Procuration, mandataire identifié | S47, S74 | Onglet Procurations, retrait sur procuration en cours (T49) | lu |
+| Loi 22/068, art. 158, 158 bis, 161 bis, 168 bis | Gel sans délai des personnes désignées | SC01 | Import des listes, rapprochement, examen, gel (T44, T50) | lu |
+| Loi 22/068, art. 162, al. 2 | Tentative sur fonds gelés | Journal de sécurité | Événement « fonds gelés » (T51) | lu |
+| Loi 22/068, art. 47 ; Instr. 15, art. 17 b | Objet de la relation, origine des fonds | S37, S38, S39 | Deux champs à l'enrôlement (T52) | lu |
+| Loi 22/068, art. 33, al. 4 ; Instr. 15, art. 13, al. 2 | Pièce d'habilitation du professionnel | S37, S49, S40 | Référence et copie si une activité est déclarée (T53) | lu |
