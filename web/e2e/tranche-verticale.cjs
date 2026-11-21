@@ -647,6 +647,20 @@ const OUT = process.argv[2];
   await fr2.getByLabel("Données d'identification revues (art. 27 et 51)").check(); await etape('10i-profil-risque');
   await fr2.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await fr2.getByText(/Niveau en cours : Moyen/).waitFor();
   await fr2.getByRole('button', { name: 'Fermer' }).click();
+  // Déclarations systématiques (loi 22/068, art. 92 bis, al. 3 ; registre T38) : l'état du mois s'ouvre, sans erreur
+  await p.getByRole('tab', { name: 'Déclarations systématiques' }).click();
+  await p.getByRole('region', { name: 'Déclarations systématiques' }).getByText(/Entrées et sorties de fonds de/).waitFor(); await etape('15z-declarations-systematiques');
+  // Registre des déclarations de soupçon (loi 22/068, art. 92 à 94) : une tentative est déclarée, puis son accusé de réception est noté
+  await p.getByRole('tab', { name: 'Déclarations de soupçon' }).click(); const rs = p.getByRole('region', { name: 'Déclarations de soupçon' });
+  await rs.getByRole('button', { name: 'Nouvelle déclaration' }).click(); const fs = p.getByRole('dialog', { name: 'Nouvelle déclaration de soupçon' });
+  await fs.getByLabel('Nature : *').selectOption('tentative'); await fs.getByLabel("Description de l'opération : *").fill('Retrait de 9 500 USD demandé trois jours de suite');
+  await fs.getByLabel('Personnes qui y participent : *').fill('Le titulaire, seul'); await fs.getByLabel('Raisons : *').fill('Montants juste sous le seuil');
+  await fs.getByLabel('Moyen : *').selectOption('ecrit'); await etape('15y-soupcon-nouveau');
+  await fs.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  const ds = p.getByRole('dialog', { name: /^Déclaration de soupçon n° 1/ }); await ds.getByLabel('Référence : *').fill('AR-2026-17');
+  await ds.getByRole('button', { name: "Noter l'accusé" }).click(); await oui();
+  await ds.getByText('AR-2026-17').first().waitFor(); await etape('15y2-soupcon-accuse'); await ds.getByRole('button', { name: 'Fermer' }).click();
+  await rs.getByRole('cell', { name: 'Accusé AR-2026-17' }).waitFor();
   // Opérations atypiques (écart E09 ; Instr. BCC 15, art. 31 et 36) : le chef fixe les critères, analyse une alerte, ouvre le rapport
   await p.getByRole('tab', { name: 'Opérations atypiques' }).click(); const ra = p.getByRole('region', { name: 'Opérations atypiques' });
   await ra.getByText(/Aucun critère fixé/).waitFor(); await ra.getByRole('button', { name: 'Critères' }).click();

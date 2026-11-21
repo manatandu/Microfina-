@@ -421,6 +421,11 @@ export interface Etat {
   depotsTerme: DepotTerme[];   // S65
   plansEpargne: PlanEpargne[];   // S69
   examens: Examen[];   // écart E01, examen renforcé
+  /** Registre des déclarations de soupçon (loi 22/068, art. 92 à 94) */
+  declarationsSoupcon?: { id: number; numero: number; tiersId: number | null; nature: "operation" | "tentative"; description: string; personnes: string; raisons: string; delai: string;
+    transmiseLe: string; moyen: "ecrit" | "numerique" | "electronique" | "telephone"; confirmeeLe: string; accuseReference: string; accuseLe: string; saisiPar: number }[];
+  /** Déclarations systématiques notées (loi 22/068, art. 92 bis, al. 3 ; registre T38) */
+  declarationsSystematiques?: { tiersId: number; annee: number; mois: number; sens: "entree" | "sortie"; totalUsd: number; operations: number; declareLe: string; reference: string; declarePar: number }[];
   dossiersPpe: DossierPpe[];   // écart E02, personnes politiquement exposées
   relevesEdites: { numero: number; compteId: number; du: string; au: string; editePar: number }[];   // S64 : trace des relevés remis
   remboursementsEmprunt: RemboursementEmprunt[];

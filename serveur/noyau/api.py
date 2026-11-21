@@ -27,6 +27,8 @@ from . import conditions_banque as cdb
 from . import retenues as ret
 from . import depots_terme as dat
 from . import conformite as conf
+from . import declarations_systematiques as dsy
+from . import soupcons as sou
 from . import cip
 from . import plaintes
 from . import guichets as gu
@@ -2607,6 +2609,33 @@ def conformite_examiner(request, eid: int, corps: dict = Body(...)):
 @api.post("/conformite/examens/{eid}/declaration")
 def conformite_declarer(request, eid: int, corps: dict = Body(...)):
     return conf.declarer(u(request), eid, corps)
+
+
+# ---------- Déclarations systématiques à la CENAREF (loi 22/068, art. 92 bis, al. 3 ; confrontation du 21/11/2026, E5) ----------
+@api.get("/conformite/systematiques")
+def conformite_systematiques(request, annee: int, mois: int):
+    return dsy.etat(u(request), annee, mois)
+
+
+@api.post("/conformite/systematiques/declarations")
+def conformite_systematiques_declarer(request, corps: dict = Body(...)):
+    return dsy.declarer(u(request), corps)
+
+
+# ---------- Registre des déclarations de soupçon (loi 22/068, art. 92 à 94 ; confrontation du 21/11/2026, E6) ----------
+@api.get("/conformite/soupcons")
+def conformite_soupcons(request):
+    return sou.lister(u(request))
+
+
+@api.post("/conformite/soupcons")
+def conformite_soupcon_enregistrer(request, corps: dict = Body(...)):
+    return sou.enregistrer(u(request), corps)
+
+
+@api.post("/conformite/soupcons/{sid}/suivi")
+def conformite_soupcon_suivre(request, sid: int, corps: dict = Body(...)):
+    return sou.suivre(u(request), sid, corps)
 
 
 @api.get("/conformite/ppe")

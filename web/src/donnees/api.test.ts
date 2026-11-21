@@ -203,6 +203,64 @@ describe("journée de guichet", () => {
     expect((await api.conformite.lister("a_declarer")).length).toBe(0);
   });
 
+  it("déclarations systématiques (loi 22/068, art. 92 bis ; registre T38) : cumul du mois par client et par sens, déclaration notée, complément", async () => {
+    await journeeOuverte(); await connecter("engalula");
+    const depot = (m: number) => api.guichet.depot({ cle: cle(), compteId: 5, montant: m, coupures: { 10000: m / 1000000 } });
+    await depot(2000000); await depot(1000000);   // 20 000 et 10 000 CDF
+    const tid = _etat().comptes.find((c) => c.id === 5)!.tiersId;
+    await expect(api.conformite.systematiques(2026, 11)).rejects.toThrow("Droit manquant");   // confidentiel
+    await connecter("jpmukendi");
+    const ligne = async () => (await api.conformite.systematiques(2026, 11)).lignes.find((x) => x.tiersId === tid && x.sens === "entree");
+    expect(await ligne()).toBeUndefined();   // très loin de 10 000 USD
+    // essai : avec un dollar à 0,30 CDF, 30 000 CDF valent 100 000 USD
+    const Ec = _etat(), coursAvant = Ec.coursListe, bas = () => { Ec.coursListe = coursAvant.map((x) => (x.devise === "USD" ? { ...x, cours: 0.3 } : x)); }, haut = () => { Ec.coursListe = coursAvant; };
+    bas();
+    const l = (await ligne())!;
+    // le client avait déjà une entrée de 89 000 CDF dans le mois (graine) : trois opérations, 119 000 CDF
+    expect([l.operations, l.totalUsd, l.plusGrosseUsd, l.modes, l.statut, l.declarations]).toEqual([3, 396666.67, 296666.67, "Espèces", "a_declarer", []]);
+    const d = { tiersId: tid, annee: 2026, mois: 11, sens: "entree", date: "2026-11-05", reference: "CENAREF-S-1" };
+    await expect(api.conformite.declarerSystematique({ ...d, reference: "" })).rejects.toThrow("référence");
+    await expect(api.conformite.declarerSystematique({ ...d, sens: "autre" })).rejects.toThrow("Ligne inconnue");
+    await expect(api.conformite.declarerSystematique({ ...d, sens: "sortie" })).rejects.toThrow("Sous le seuil");
+    await api.conformite.declarerSystematique(d);
+    expect([(await ligne())!.statut, (await ligne())!.declarations[0]!.reference]).toEqual(["declaree", "CENAREF-S-1"]);
+    await expect(api.conformite.declarerSystematique(d)).rejects.toThrow("déjà notée");
+    // un nouveau versement dans le même mois : la déclaration est à compléter
+    haut(); await connecter("engalula"); await depot(1000000); await connecter("jpmukendi"); bas();
+    expect([(await ligne())!.operations, (await ligne())!.statut]).toEqual([4, "a_completer"]);
+    await api.conformite.declarerSystematique({ ...d, reference: "CENAREF-S-2" });
+    expect([(await ligne())!.declarations.map((x) => x.reference), (await ligne())!.statut]).toEqual([["CENAREF-S-1", "CENAREF-S-2"], "declaree"]);
+    haut();
+  });
+
+  it("déclarations de soupçon (loi 22/068, art. 92 à 94) : registre, rubriques de l'art. 94, confirmation écrite, accusé de réception, confidentiel", async () => {
+    await journeeOuverte(); await connecter("bkasongo");
+    await expect(api.conformite.soupcons()).rejects.toThrow("Droit manquant");
+    await connecter("jpmukendi");
+    expect(await api.conformite.soupcons()).toEqual([]);
+    const d = { membre: "0412-000318", nature: "tentative", description: "Retrait de 9 500 USD demandé trois jours de suite", personnes: "Le titulaire, seul",
+      raisons: "Montants juste sous le seuil, sans rapport avec l'activité connue", delai: "", transmiseLe: "2026-11-05", moyen: "telephone" };
+    await expect(api.conformite.declarerSoupcon({ ...d, nature: "" })).rejects.toThrow("nature");
+    await expect(api.conformite.declarerSoupcon({ ...d, description: "", raisons: "" })).rejects.toThrow("Description de l'opération, Raisons");
+    await expect(api.conformite.declarerSoupcon({ ...d, membre: "9999-999999" })).rejects.toThrow("N° client inconnu");
+    await expect(api.conformite.declarerSoupcon({ ...d, transmiseLe: "2026-12-01" })).rejects.toThrow("journée ouverte");
+    await expect(api.conformite.declarerSoupcon({ ...d, moyen: "fax" })).rejects.toThrow("moyen");
+    const x = await api.conformite.declarerSoupcon(d);
+    expect([x.numero, x.origine, x.natureLibelle, x.client !== "", x.moyenLibelle, x.accuseLe]).toEqual([1, "Registre", "Tentative", true, "Téléphone", ""]);
+    const sansClient = await api.conformite.declarerSoupcon({ ...d, membre: "", nature: "operation", moyen: "ecrit" });   // une personne qui n'est pas cliente
+    expect([sansClient.numero, sansClient.client]).toEqual([2, ""]);
+    await expect(api.conformite.suivreSoupcon(x.id!, {})).rejects.toThrow("Rien à noter");
+    await expect(api.conformite.suivreSoupcon(sansClient.id!, { confirmeeLe: "2026-11-05" })).rejects.toThrow("par téléphone");
+    expect((await api.conformite.suivreSoupcon(x.id!, { confirmeeLe: "2026-11-05" })).confirmeeLe).toBe("2026-11-05");
+    await expect(api.conformite.suivreSoupcon(x.id!, { confirmeeLe: "2026-11-05" })).rejects.toThrow("déjà notée");
+    await expect(api.conformite.suivreSoupcon(x.id!, { accuseLe: "2026-11-05" })).rejects.toThrow("référence");
+    await expect(api.conformite.suivreSoupcon(x.id!, { accuseLe: "2026-11-01", accuseReference: "AR-1" })).rejects.toThrow("pas avant la transmission");
+    const a = await api.conformite.suivreSoupcon(x.id!, { accuseLe: "2026-11-05", accuseReference: "AR-2026-17" });
+    expect([a.accuseReference, a.accuseLe]).toEqual(["AR-2026-17", "2026-11-05"]);
+    await expect(api.conformite.suivreSoupcon(x.id!, { accuseLe: "2026-11-05", accuseReference: "AR-2" })).rejects.toThrow("déjà noté");
+    expect((await api.conformite.soupcons()).map((r) => r.numero)).toEqual([2, 1]);
+  });
+
   it("personne politiquement exposée (écart E02) : dossier, autorisation de la conformité avant le visa, quatre yeux, information de la CENAREF", async () => {
     await connecter("bkasongo");
     const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), ...IDENTITE, produitCode: "EAV-CDF", nom: "Mbala", postnom: "Kanku", prenom: "Pierre", naissance: "1970-04-02",

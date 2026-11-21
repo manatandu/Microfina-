@@ -121,6 +121,12 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "conformite.declarerCip": [
 "SC02"
 ],
+"conformite.declarerSoupcon": [
+"SC01"
+],
+"conformite.declarerSystematique": [
+"SC01"
+],
 "conformite.demander": [
 "S73",
 "S74",
@@ -152,6 +158,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 ],
 "conformite.noterIcu": [
 "SC02"
+],
+"conformite.suivreSoupcon": [
+"SC01"
 ],
 "connexions.deconnecter": [
 "S07"

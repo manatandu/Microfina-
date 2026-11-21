@@ -4979,6 +4979,158 @@ const plaintes = {
         horsDelai: l.filter((x) => x.statut === "repondue" && x.repondueLe > x.echeance).length }, plaintes: l };
   },
 };
+// ---------- Déclarations systématiques à la CENAREF (loi 22/068, art. 92 bis, al. 3, inséré par la loi 25/048 ; confrontation du 21/11/2026, E5) ----------
+// Toute entrée ou sortie de fonds d'un client, en espèces ou par la banque : une écriture qui mouvemente la caisse (57) ou une banque (56) et un contrat
+// du client (épargne, crédit, parts). « Opérations liées » : cumul par client et par sens sur le mois civil (registre T38 ; pratique française,
+// Code monétaire et financier, art. R. 561-31-2). Une écriture contre-passée et sa contre-passation ne comptent pas. Comme le serveur
+// (declarations_systematiques.py).
+const SENS_SYSTEMATIQUE = { entree: "Entrées de fonds", sortie: "Sorties de fonds" } as const;
+function periodeSystematique(annee: unknown, mois: unknown) {
+  const a = Number(annee), m = Number(mois);
+  if (!Number.isInteger(a) || !Number.isInteger(m) || m < 1 || m > 12 || a < 1900) throw new ErreurMetier("À remplir : mois et année.");
+  const z = (n: number) => String(n).padStart(2, "0");
+  return { a, m, du: `${a}-${z(m)}-01`, au: m === 12 ? `${a + 1}-01-01` : `${a}-${z(m + 1)}-01` };
+}
+function mouvementsSystematiques(du: string, au: string) {
+  const cumul = new Map<string, { tiersId: number; sens: "entree" | "sortie"; operations: number; total: number; max: number; especes: boolean; banque: boolean }>();
+  const contrePassees = new Set(E.ecritures.flatMap((e) => (e.contrePasseId ? [e.contrePasseId] : [])));
+  for (const e of E.ecritures) {
+    const jour = dateJournee(e.journeeId);
+    if (jour < du || jour >= au || e.type || contrePassees.has(e.id)) continue;
+    const treso = e.lignes.filter((l) => l.compte.startsWith("57") || l.compte.startsWith("56"));
+    const solde = treso.reduce((t, l) => t + (l.sens === "D" ? l.montantCdf : -l.montantCdf), 0);
+    if (solde === 0) continue;
+    const sens = solde > 0 ? "entree" as const : "sortie" as const, taux = coursDe("USD", jour);
+    const parClient = new Map<number, number>();
+    for (const l of e.lignes) {
+      const c = /^(depot|credit|parts):(\d+)$/.exec(l.contrat ?? "");
+      if (!c || l.sens !== (sens === "entree" ? "C" : "D")) continue;
+      const n = Number(c[2]), tid = c[1] === "parts" ? n : c[1] === "depot" ? E.comptes.find((x) => x.id === n)?.tiersId : E.credits.find((x) => x.id === n)?.tiersId;
+      if (tid !== undefined) parClient.set(tid, (parClient.get(tid) ?? 0) + l.montantCdf / 100 / taux);
+    }
+    for (const [tid, usd] of parClient) {
+      const cle = `${tid}:${sens}`, x = cumul.get(cle) ?? { tiersId: tid, sens, operations: 0, total: 0, max: 0, especes: false, banque: false };
+      x.operations += 1; x.total += usd; x.max = Math.max(x.max, usd);
+      x.especes ||= treso.some((l) => l.compte.startsWith("57")); x.banque ||= treso.some((l) => l.compte.startsWith("56"));
+      cumul.set(cle, x);
+    }
+  }
+  return cumul;
+}
+const arrondi2 = (v: number) => Math.round(v * 100) / 100;
+const declarationsSystematiques = {
+  /** Clients dont les entrées ou les sorties de fonds du mois atteignent 10 000 USD, avec les déclarations déjà notées */
+  etat(annee: number, mois: number) {
+    lectureAdmin(["SC01"]);
+    const { a, m, du, au } = periodeSystematique(annee, mois), cumul = mouvementsSystematiques(du, au);
+    const notees = (E.declarationsSystematiques ?? []).filter((d) => d.annee === a && d.mois === m);
+    const cles = new Set([...[...cumul].filter(([, c]) => c.total >= SEUIL_ESPECES_USD).map(([k]) => k), ...notees.map((d) => `${d.tiersId}:${d.sens}`)]);
+    const lignes = [...cles].map((cle) => {
+      const [t0, sens] = cle.split(":") as [string, "entree" | "sortie"], tiersId = Number(t0), t = E.tiers.find((x) => x.id === tiersId)!;
+      const c = cumul.get(cle) ?? { operations: 0, total: 0, max: 0, especes: false, banque: false };
+      const ds = notees.filter((d) => d.tiersId === tiersId && d.sens === sens), total = arrondi2(c.total);
+      return { tiersId, membre: t.numero, client: titulaire(t), sens, sensLibelle: SENS_SYSTEMATIQUE[sens], operations: c.operations, totalUsd: total, plusGrosseUsd: arrondi2(c.max),
+        modes: [c.especes && "Espèces", c.banque && "Banque"].filter(Boolean).join(", "),
+        statut: !ds.length ? "a_declarer" as const : ds.at(-1)!.totalUsd >= total ? "declaree" as const : "a_completer" as const,
+        declarations: ds.map((d) => ({ date: d.declareLe, reference: d.reference, totalUsd: d.totalUsd, par: E.utilisateurs.find((u) => u.id === d.declarePar)?.nom ?? "" })) };
+    }).sort((x, y) => x.membre.localeCompare(y.membre) || x.sens.localeCompare(y.sens));
+    return { annee: a, mois: m, seuilUsd: SEUIL_ESPECES_USD, lignes };
+  },
+  /** La déclaration part à la CENAREF hors du logiciel ; on note sa date et sa référence, avec le total déclaré */
+  declarer(d: { tiersId: number; annee: number; mois: number; sens: string; date: string; reference: string }) {
+    const u = exiger();
+    const { a, m, du, au } = periodeSystematique(d?.annee, d?.mois);
+    if ((d.sens !== "entree" && d.sens !== "sortie") || !E.tiers.some((t) => t.id === d.tiersId)) throw new ErreurMetier("Ligne inconnue.");
+    const c = mouvementsSystematiques(du, au).get(`${d.tiersId}:${d.sens}`);
+    if (!c || c.total < SEUIL_ESPECES_USD) throw new ErreurMetier("Sous le seuil de 10 000 USD : rien à déclarer pour ce client ce mois-là.");
+    const total = arrondi2(c.total), notees = (E.declarationsSystematiques ??= []);
+    const derniere = notees.filter((x) => x.tiersId === d.tiersId && x.annee === a && x.mois === m && x.sens === d.sens).at(-1);
+    if (derniere && derniere.totalUsd >= total) throw new ErreurMetier("Déclaration déjà notée pour ce total.");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d.date ?? "")) throw new ErreurMetier("À remplir : date de la déclaration.");
+    const j = journees.courante(); if (j && d.date > j.date) throw new ErreurMetier("La date de la déclaration ne peut pas dépasser la journée ouverte.");
+    if (d.date < du) throw new ErreurMetier("La date de la déclaration ne peut pas précéder le mois déclaré.");
+    if (!(d.reference ?? "").trim()) throw new ErreurMetier("À remplir : référence de la déclaration (accusé de la CENAREF).");
+    notees.push({ tiersId: d.tiersId, annee: a, mois: m, sens: d.sens, totalUsd: total, operations: c.operations, declareLe: d.date, reference: d.reference.trim(), declarePar: u.id });
+    enregistrer(); return declarationsSystematiques.etat(a, m);
+  },
+};
+
+// ---------- Registre des déclarations de soupçon (loi 22/068, art. 92 à 94 ; confrontation du 21/11/2026, E6) ----------
+// Art. 94 : description de l'opération, personnes qui y participent, raisons, délai ; par téléphone, confirmation écrite ; accusé de réception de la
+// CENAREF. Art. 93 : confidentiel. Le registre réunit les déclarations saisies ici et celles déjà notées sur un examen renforcé ou une opération
+// atypique. Comme le serveur (soupcons.py).
+const NATURES_SOUPCON = { operation: "Opération exécutée", tentative: "Tentative" } as const;
+const MOYENS_SOUPCON = { ecrit: "Écrit", numerique: "Numérique", electronique: "Électronique", telephone: "Téléphone" } as const;
+const soupcons = {
+  vue(x: NonNullable<Etat["declarationsSoupcon"]>[number]) {
+    const t = x.tiersId ? E.tiers.find((y) => y.id === x.tiersId) : undefined;
+    return { cle: `registre:${x.id}`, id: x.id as number | null, numero: x.numero as number | null, origine: "Registre", date: x.transmiseLe, nature: x.nature as string, natureLibelle: NATURES_SOUPCON[x.nature] as string,
+      membre: t?.numero ?? "", client: t ? titulaire(t) : "", description: x.description, personnes: x.personnes, raisons: x.raisons, delai: x.delai, moyen: x.moyen as string,
+      moyenLibelle: MOYENS_SOUPCON[x.moyen] as string, confirmeeLe: x.confirmeeLe, accuseReference: x.accuseReference, accuseLe: x.accuseLe,
+      saisiPar: E.utilisateurs.find((u) => u.id === x.saisiPar)?.nom ?? "" };
+  },
+  lister() {
+    lectureAdmin(["SC01"]);
+    const nom = (id: number | null | undefined) => E.utilisateurs.find((u) => u.id === id)?.nom ?? "";
+    const client = (tid: number | null | undefined) => { const t = tid ? E.tiers.find((y) => y.id === tid) : undefined; return { membre: t?.numero ?? "", client: t ? titulaire(t) : "" }; };
+    const vide = { id: null as number | null, numero: null as number | null, description: "", personnes: "", raisons: "", delai: "", moyen: "", moyenLibelle: "", confirmeeLe: "", accuseLe: "" };
+    const sortie = (E.declarationsSoupcon ?? []).map(soupcons.vue);
+    for (const x of E.examens.filter((y) => y.declareLe)) {
+      const nature = x.statut === "refuse" ? "tentative" : "operation";
+      sortie.push({ ...vide, cle: `examen:${x.id}`, origine: `Examen renforcé n° ${x.numero}`, date: x.declareLe!, nature, natureLibelle: NATURES_SOUPCON[nature], ...client(x.tiersId),
+        accuseReference: x.referenceDeclaration ?? "", saisiPar: nom((x as { declarePar?: number }).declarePar) });
+    }
+    for (const a of E.analysesAtypiques.filter((y) => y.declareLe)) {
+      const [eid, rang] = a.cle.split(":").map(Number) as [number, number];
+      const contrat = E.ecritures.find((e) => e.id === eid)?.lignes[rang - 1]?.contrat ?? "", dep = /^depot:(\d+)$/.exec(contrat)?.[1];
+      sortie.push({ ...vide, cle: `atypique:${a.cle}`, origine: "Opération atypique", date: a.declareLe, nature: "operation", natureLibelle: NATURES_SOUPCON.operation,
+        ...client(dep ? E.comptes.find((c) => c.id === Number(dep))?.tiersId : null), accuseReference: a.reference ?? "", saisiPar: nom(a.analysePar) });
+    }
+    return sortie.sort((x, y) => y.date.localeCompare(x.date) || y.cle.localeCompare(x.cle));
+  },
+  /** Nouvelle déclaration : les rubriques de l'art. 94 ; le client est facultatif (une tentative peut venir d'une personne qui n'est pas cliente) */
+  enregistrer(d: { membre?: string; nature?: string; description?: string; personnes?: string; raisons?: string; delai?: string; transmiseLe?: string; moyen?: string }) {
+    const u = exiger(), t = (v: unknown) => String(v ?? "").trim();
+    if (!(t(d?.nature) in NATURES_SOUPCON)) throw new ErreurMetier("À remplir : nature (opération exécutée ou tentative).");
+    const manque = ([["description", "Description de l'opération"], ["personnes", "Personnes qui y participent"], ["raisons", "Raisons"]] as const).filter(([k]) => !t(d[k])).map(([, n]) => n);
+    if (manque.length) throw new ErreurMetier(`À remplir (loi 22/068, art. 94) : ${manque.join(", ")}.`);
+    let tiersId: number | null = null;
+    if (t(d.membre)) { const c = E.tiers.find((x) => x.numero === t(d.membre)); if (!c) throw new ErreurMetier("N° client inconnu."); tiersId = c.id; }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(t(d.transmiseLe))) throw new ErreurMetier("À remplir : date de transmission à la CENAREF.");
+    const j = journees.courante(); if (j && t(d.transmiseLe) > j.date) throw new ErreurMetier("La date de transmission ne peut pas dépasser la journée ouverte.");
+    if (!(t(d.moyen) in MOYENS_SOUPCON)) throw new ErreurMetier("À remplir : moyen de transmission (écrit, numérique, électronique ou téléphone).");
+    const liste = (E.declarationsSoupcon ??= []);
+    const x = { id: prochain(liste), numero: liste.reduce((m, y) => Math.max(m, y.numero), 0) + 1, tiersId, nature: t(d.nature) as "operation" | "tentative", description: t(d.description),
+      personnes: t(d.personnes), raisons: t(d.raisons), delai: t(d.delai), transmiseLe: t(d.transmiseLe), moyen: t(d.moyen) as keyof typeof MOYENS_SOUPCON, confirmeeLe: "", accuseReference: "", accuseLe: "",
+      saisiPar: u.id };
+    liste.push(x); enregistrer(); return soupcons.vue(x);
+  },
+  /** Après la transmission : confirmation écrite d'une déclaration faite par téléphone, puis accusé de réception de la CENAREF (art. 94) */
+  suivre(id: number, d: { confirmeeLe?: string; accuseLe?: string; accuseReference?: string }) {
+    exiger();
+    const x = (E.declarationsSoupcon ?? []).find((y) => y.id === id);
+    if (!x) throw new ErreurMetier("Déclaration introuvable.");
+    const t = (v: unknown) => String(v ?? "").trim(), j = journees.courante();
+    const jour = (v: string, nom: string) => {
+      const N = nom[0]!.toUpperCase() + nom.slice(1);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) throw new ErreurMetier(`À remplir : ${nom}.`);
+      if (v < x.transmiseLe) throw new ErreurMetier(`${N} : pas avant la transmission.`);
+      if (j && v > j.date) throw new ErreurMetier(`${N} : pas après la journée ouverte.`);
+      return v;
+    };
+    if (t(d?.confirmeeLe)) {
+      if (x.moyen !== "telephone") throw new ErreurMetier("Seule une déclaration faite par téléphone se confirme par écrit.");
+      if (x.confirmeeLe) throw new ErreurMetier("Confirmation écrite déjà notée.");
+      x.confirmeeLe = jour(t(d.confirmeeLe), "date de la confirmation écrite");
+    } else if (t(d?.accuseLe) || t(d?.accuseReference)) {
+      if (x.accuseLe) throw new ErreurMetier("Accusé de réception déjà noté.");
+      if (!t(d.accuseReference)) throw new ErreurMetier("À remplir : référence de l'accusé de réception.");
+      x.accuseLe = jour(t(d.accuseLe), "date de l'accusé de réception"); x.accuseReference = t(d.accuseReference);
+    } else throw new ErreurMetier("Rien à noter.");
+    enregistrer(); return soupcons.vue(x);
+  },
+};
+
 const conformite = {
   /** Le caissier transmet l'opération à la conformité : elle attend l'examen */
   demander(d: { cle: string; type: Examen["type"]; tiersId: number; compteId?: number | null; montant: number; devise: string; motif?: string }) {
@@ -5034,6 +5186,11 @@ const conformite = {
   },
   /** Instr. BCC 15, art. 62 : rapport écrit, strictement confidentiel */
   ppe: () => ppe.lister(),
+  soupcons: () => soupcons.lister(),
+  declarerSoupcon: (d: Parameters<typeof soupcons.enregistrer>[0]) => soupcons.enregistrer(d),
+  suivreSoupcon: (id: number, d: Parameters<typeof soupcons.suivre>[1]) => soupcons.suivre(id, d),
+  systematiques: (annee: number, mois: number) => declarationsSystematiques.etat(annee, mois),
+  declarerSystematique: (d: { tiersId: number; annee: number; mois: number; sens: string; date: string; reference: string }) => declarationsSystematiques.declarer(d),
   gels: (statut = "actifs") => gels.lister(statut),
   geler: (d: Parameters<typeof gels.geler>[0]) => gels.geler(d),
   informerGel: (id: number, d: { date: string; reference: string }) => gels.informer(id, d),

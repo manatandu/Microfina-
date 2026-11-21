@@ -2799,6 +2799,80 @@ def test_examen_renforce(clients, journee):
     assert e2.status_code == 403                                                                      # le chef n'a pas le guichet
 
 
+def test_declarations_systematiques(clients, journee):
+    """Loi 22/068, art. 92 bis, al. 3 (loi 25/048) ; confrontation du 21/11/2026, E5 ; registre T38 : entrées et sorties de fonds d'un client cumulées sur le
+    mois civil, espèces et banque ; au seuil de 10 000 USD, la ligne est à déclarer ; déclaration notée ; complément quand le total augmente"""
+    from noyau.bd import executer, lignes
+    caisse, chef, agent = clients["caisse"], clients["chef"], clients["agent"]
+    S, compte = "/api/conformite/systematiques", C("0412-000320-02")
+    tid = ident("select tiers_id from compte_depot where id = %s", (compte,))
+    ligne = lambda: next((x for x in chef.get(f"{S}?annee=2026&mois=11", **H).json()["lignes"] if x["tiersId"] == tid and x["sens"] == "entree"), None)
+    depot = lambda m: caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": compte, "montant": m, "coupures": {"10000": m // 1000000}, "mandataire": ""}, **H)
+    assert depot(2000000).status_code == 200 and depot(1000000).status_code == 200            # 20 000 et 10 000 CDF
+    assert ligne() is None                                                                      # très loin de 10 000 USD
+    assert agent.get(f"{S}?annee=2026&mois=11", **H).status_code == 403                         # confidentiel : droit de l'écran de conformité
+    cours_usd = lignes("select id, cours from cours_change where devise = 'USD'")
+    def cours(bas: bool):                         # essai : avec un dollar à 0,30 CDF, 30 000 CDF valent 100 000 USD
+        if bas:
+            executer("update cours_change set cours = 0.3 where devise = 'USD'")
+        else:
+            for x in cours_usd:
+                executer("update cours_change set cours = %s where id = %s", (x["cours"], x["id"]))
+    cours(True)
+    l = ligne()
+    # le client avait déjà une entrée de 89 000 CDF dans le mois (graine) : trois opérations, 119 000 CDF
+    assert (l["operations"], l["totalUsd"], l["plusGrosseUsd"], l["modes"], l["statut"], l["declarations"]) == (3, 396666.67, 296666.67, "Espèces", "a_declarer", [])
+    d = {"tiersId": tid, "annee": 2026, "mois": 11, "sens": "entree", "date": "2026-11-05", "reference": "CENAREF-S-1"}
+    assert "référence" in chef.post(f"{S}/declarations", {**d, "reference": ""}, **H).json()["message"]
+    assert "Ligne inconnue" in chef.post(f"{S}/declarations", {**d, "sens": "autre"}, **H).json()["message"]
+    assert "Sous le seuil" in chef.post(f"{S}/declarations", {**d, "sens": "sortie"}, **H).json()["message"]
+    assert chef.post(f"{S}/declarations", d, **H).status_code == 200
+    l = ligne()
+    assert (l["statut"], l["declarations"][0]["reference"], l["declarations"][0]["totalUsd"]) == ("declaree", "CENAREF-S-1", 396666.67)
+    assert "déjà notée" in chef.post(f"{S}/declarations", d, **H).json()["message"]
+    # un nouveau versement dans le même mois : la déclaration est à compléter
+    cours(False)
+    assert depot(1000000).status_code == 200
+    cours(True)
+    l = ligne()
+    assert (l["operations"], l["statut"]) == (4, "a_completer")
+    assert chef.post(f"{S}/declarations", {**d, "reference": "CENAREF-S-2"}, **H).status_code == 200
+    assert [x["reference"] for x in ligne()["declarations"]] == ["CENAREF-S-1", "CENAREF-S-2"] and ligne()["statut"] == "declaree"
+    cours(False)
+
+
+def test_declarations_de_soupcon(clients, journee):
+    """Loi 22/068, art. 92 à 94 ; confrontation du 21/11/2026, E6 : registre des déclarations de soupçon, rubriques de l'art. 94, tentative ou opération,
+    confirmation écrite d'une déclaration faite par téléphone, accusé de réception ; confidentiel"""
+    chef, agent = clients["chef"], clients["agent"]
+    S = "/api/conformite/soupcons"
+    assert chef.get(S, **H).json() == [] and agent.get(S, **H).status_code == 403
+    d = {"membre": "0412-000318", "nature": "tentative", "description": "Retrait de 9 500 USD demandé trois jours de suite", "personnes": "Le titulaire, seul",
+         "raisons": "Montants juste sous le seuil, sans rapport avec l'activité connue", "delai": "", "transmiseLe": "2026-11-05", "moyen": "telephone"}
+    refus = lambda corps, chemin=S: chef.post(chemin, corps, **H).json()["message"]
+    assert "nature" in refus({**d, "nature": ""})
+    assert "Description de l'opération, Raisons" in refus({**d, "description": "", "raisons": ""})
+    assert "N° client inconnu" in refus({**d, "membre": "9999-999999"})
+    assert "journée ouverte" in refus({**d, "transmiseLe": "2026-12-01"})
+    assert "moyen" in refus({**d, "moyen": "fax"})
+    x = chef.post(S, d, **H).json()
+    assert (x["numero"], x["origine"], x["natureLibelle"], x["client"] != "", x["moyenLibelle"], x["accuseLe"]) == (1, "Registre", "Tentative", True, "Téléphone", "")
+    sans_client = chef.post(S, {**d, "membre": "", "nature": "operation", "moyen": "ecrit"}, **H).json()         # une personne qui n'est pas cliente
+    assert (sans_client["numero"], sans_client["client"]) == (2, "")
+    suivi = f"{S}/{x['id']}/suivi"
+    assert "Rien à noter" in refus({}, suivi)
+    assert "par téléphone" in refus({"confirmeeLe": "2026-11-05"}, f"{S}/{sans_client['id']}/suivi")
+    assert chef.post(suivi, {"confirmeeLe": "2026-11-05"}, **H).json()["confirmeeLe"] == "2026-11-05"
+    assert "déjà notée" in refus({"confirmeeLe": "2026-11-05"}, suivi)
+    assert "référence" in refus({"accuseLe": "2026-11-05"}, suivi)
+    assert "pas avant la transmission" in refus({"accuseLe": "2026-11-01", "accuseReference": "AR-1"}, suivi)
+    a = chef.post(suivi, {"accuseLe": "2026-11-05", "accuseReference": "AR-2026-17"}, **H).json()
+    assert (a["accuseReference"], a["accuseLe"]) == ("AR-2026-17", "2026-11-05")
+    assert "déjà noté" in refus({"accuseLe": "2026-11-05", "accuseReference": "AR-2"}, suivi)
+    assert [r["numero"] for r in chef.get(S, **H).json()] == [2, 1]
+    assert agent.post(S, d, **H).status_code == 403
+
+
 def test_personne_exposee(clients, journee):
     """Écart E02 : Instr. BCC 15, art. 41, 64, 65 ; Instr. BCC 52, art. 26"""
     from noyau.bd import executer
