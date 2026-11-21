@@ -242,6 +242,8 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       apercuCloture: (p: Record<string, unknown>) => get(`/autres/cloture/comptabilite?${requete(p)}`),
       cloturerMois: (d: unknown) => post("/autres/cloture/mois", d),
       cloturer: (d: unknown) => post("/autres/cloture/exercice", d),
+      apercuAffectation: (p: Record<string, unknown>) => get(`/autres/cloture/affectation?${requete(p)}`),
+      affecter: (d: unknown) => post("/autres/cloture/affectation", d),
     },
     etatsFinanciers: {
       contexte: () => get("/comptabilite/etats-financiers/contexte"),

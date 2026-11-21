@@ -4639,6 +4639,26 @@ def test_calculs_et_clotures(clients, journee):
     assert ident("select count(*) from periode where annee = 2026 and statut = 'cloturee'") == 12 and ident("select ouvert from exercice where annee = 2026") is False
     assert "déjà clôturé" in msg(compta.post(f"{A}/cloture/exercice", {"exercice": 2026}, **H))
     assert balance_equilibree(compta)
+    # Affectation du résultat 2026, en 2027, sur décision de l'assemblée générale (loi 002/2002, art. 59, 1° ; Instr. BCC 002, art. 19 à 21 ; A1, B14)
+    executer("insert into journal_detail (institution_id, annee, journal_id) select institution_id, 2027, id from journal where code = 'OD' on conflict do nothing")
+    a = compta.get(f"{A}/cloture/affectation", {"exercice": 2026}, **H).json()
+    assert a["resultat"] == r13 and a["cloture"] and not a["affectee"], a
+    total = abs(a["resultat"]) - a["imputation"]
+    corps = {"exercice": 2026, "decisionReference": "AG ordinaire du 15/03/2027, résolution 3", "decisionLe": "2027-01-04"}
+    if a["resultat"] > 0:
+        assert a["reserveMinimum"] == -(-a["base"] * 15 // 100)
+        if a["reserveMinimum"]:
+            assert "au moins 15 %" in msg(compta.post(f"{A}/cloture/affectation", {**corps, "montants": {"reportANouveau": total}}, **H))
+        montants = {"reserveGenerale": a["reserveMinimum"], "reportANouveau": total - a["reserveMinimum"]}
+    else:
+        montants = {"reportANouveau": total}
+    assert "assemblée générale" in msg(compta.post(f"{A}/cloture/affectation", {**corps, "decisionReference": "", "montants": montants}, **H))
+    assert "doit faire le résultat" in msg(compta.post(f"{A}/cloture/affectation", {**corps, "montants": {"reportANouveau": total + 100}}, **H))
+    r = compta.post(f"{A}/cloture/affectation", {**corps, "montants": montants}, **H)
+    assert r.status_code == 200 and r.json()["affectee"], r.content
+    assert solde_compte("130") + solde_compte("131") == 0
+    assert "déjà affecté" in msg(compta.post(f"{A}/cloture/affectation", {**corps, "montants": montants}, **H))
+    assert balance_equilibree(compta)
 
 
 def test_paie(clients, journee):

@@ -7,7 +7,7 @@ import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
-import { decimal } from "@design/montant.js";
+import { decimal, lireMontant } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, type Boite } from "../composants";
 
 const n = (v: number) => decimal.format(v / 100);
@@ -17,6 +17,7 @@ type Dav = Awaited<ReturnType<typeof api.finPeriode.apercuInteretsDav>>;
 type Dat = Awaited<ReturnType<typeof api.finPeriode.apercuInteretsDat>>;
 type Provisions = Awaited<ReturnType<typeof api.finPeriode.etatProvisions>>;
 type Cloture = Awaited<ReturnType<typeof api.finPeriode.apercuCloture>>;
+type Affectation = Awaited<ReturnType<typeof api.finPeriode.apercuAffectation>>;
 
 function Onglets({ pages, titre, defaut }: { pages: readonly (readonly [string, string])[]; titre: string; defaut: string }) {
   const [params, setParams] = useSearchParams();
@@ -179,6 +180,50 @@ function ClotureComptable({ ctx, jour }: { ctx: Ctx; jour: string }) {
     {t.dialogue}</section>;
 }
 
+/** A1 et B14 (confrontation du 21/11/2026) : affectation du résultat de l'exercice clôturé, sur décision de l'assemblée générale. Réserve générale d'au moins
+ * 15 % des excédents nets, après imputation du report à nouveau déficitaire (loi 002/2002, art. 9, 6° et 59, 1° ; Instr. BCC 002, art. 19 à 21 ; registre S127-13). */
+function AffectationResultat({ jour }: { jour: string }) {
+  const [exercice, setExercice] = useState(String(Number(jour.slice(0, 4)) - 1));
+  const [a, setA] = useState<Affectation | null>(null);
+  const [saisie, setSaisie] = useState<Record<string, string>>({});
+  const [decision, setDecision] = useState({ reference: "", le: jour });
+  const t = useTraitement();
+  const afficher = async () => { try { const x = await api.finPeriode.apercuAffectation({ exercice }); setA(x); setSaisie(x.resultat > 0 && x.reserveMinimum ? { reserveGenerale: n(x.reserveMinimum) } : {}); } catch (e) { t.erreur(e); } };
+  const montants = Object.fromEntries(Object.entries(saisie).map(([k, v]) => [k, v.trim() ? lireMontant(v) ?? -1 : 0]));
+  const reparti = Object.values(montants).reduce((s, v) => s + Math.max(0, v), 0);
+  return <section className="bloc pile" aria-label="Affectation du résultat"><h2>Affectation du résultat</h2>
+    <div className="formulaire">
+      <Champ libelle="Exercice :">{(p) => <input {...p} className="saisie code court" inputMode="numeric" value={exercice} onChange={(e) => { setExercice(e.target.value); setA(null); }} />}</Champ>
+    </div>
+    <div className="actions-onglets"><button className="bouton" type="button" onClick={afficher}>Afficher</button></div>
+    {a && <>
+      <dl className="info-ligne-liste">
+        <div className="info-ligne"><dt>Résultat de l'exercice {a.exercice} (compte 13)</dt><dd className="chiffres">{n(a.resultat)} CDF {a.resultat >= 0 ? "(excédent)" : "(déficit)"}</dd></div>
+        {a.resultat > 0 && <>
+          <div className="info-ligne"><dt>Report à nouveau déficitaire imputé (121)</dt><dd className="chiffres">{n(a.imputation)} CDF</dd></div>
+          <div className="info-ligne"><dt>Base de la réserve générale</dt><dd className="chiffres">{n(a.base)} CDF</dd></div>
+          <div className="info-ligne"><dt>Réserve générale, au moins 15 %</dt><dd className="chiffres">{n(a.reserveMinimum)} CDF</dd></div></>}
+        <div className="info-ligne"><dt>À répartir</dt><dd className="chiffres">{n(Math.abs(a.resultat) - a.imputation)} CDF ; réparti : {n(reparti)} CDF</dd></div>
+      </dl>
+      {!a.cloture ? <p className="aide" role="status">Clôturer d'abord l'exercice {a.exercice}.</p>
+        : a.affectee ? <p>Affecté sur décision {a.decisionReference} du {fr(a.decisionLe)}.</p>
+        : <>
+          <table className="grille"><caption>Répartition décidée par l'assemblée générale</caption>
+            <thead><tr><th scope="col">Compte</th><th scope="col">Emploi</th><th scope="col" className="num">Montant (CDF)</th></tr></thead>
+            <tbody>{a.emplois.map((x) => <tr key={x.cle}><td className="code">{x.compte}</td><th scope="row">{x.libelle}</th>
+              <td className="num"><input className="saisie montant" aria-label={x.libelle} inputMode="decimal" value={saisie[x.cle] ?? ""} onChange={(e) => setSaisie({ ...saisie, [x.cle]: e.target.value })} /></td></tr>)}</tbody>
+          </table>
+          <div className="formulaire">
+            <Champ libelle="Référence de la décision de l'assemblée générale : *">{(p) => <input {...p} className="saisie" value={decision.reference} onChange={(e) => setDecision({ ...decision, reference: e.target.value })} />}</Champ>
+            <ChampDate libelle="Date de la décision : *" valeur={decision.le} onChange={(v) => setDecision({ ...decision, le: v })} requis />
+          </div>
+          <div className="actions-onglets"><button className="bouton" type="button" onClick={() => t.confirmer(`Voulez-vous vraiment affecter le résultat de l'exercice ${a.exercice} ?`,
+            async () => setA(await api.finPeriode.affecter({ exercice: a.exercice, decisionReference: decision.reference, decisionLe: decision.le, montants })))}>Affecter</button></div>
+        </>}
+    </>}
+    {t.dialogue}</section>;
+}
+
 function useCadre() {
   const { donnees } = useDonnees(async () => ({ ctx: await api.finPeriode.contexte(), j: await api.journees.courante() }));
   return donnees;
@@ -209,5 +254,5 @@ export function Clotures() {
   const jour = cadre.j?.date ?? new Date().toISOString().slice(0, 10);
   return <><h1>Clôture</h1>{o.barre}
     {o.page === "credit" && <EtatProvisions jour={jour} cloture />}{o.page === "depot" && <InteretsDat jour={jour} passer={false} />}
-    {o.page === "comptabilite" && <ClotureComptable ctx={cadre.ctx} jour={jour} />}</>;
+    {o.page === "comptabilite" && <><ClotureComptable ctx={cadre.ctx} jour={jour} /><AffectationResultat jour={jour} /></>}</>;
 }

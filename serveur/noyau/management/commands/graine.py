@@ -39,7 +39,7 @@ FORMES_JURIDIQUES = ("Société en nom collectif", "Société en commandite simp
                      "Société par actions simplifiée")
 
 # Schémas comptables de départ, un par événement (vides : le comptable les propose, le chef les valide)
-EVENEMENTS = ("depot", "retrait", "adhesion", "achat_parts", "retrait_parts", "a_nouveaux", "dat_constitution", "dat_rupture", "dat_echeance", "frais_tenue", "interet_dav", "interet_dat_couru", "reevaluation", "cloture_exercice", "immo_dotation", "immo_sortie", "plan_cotisation", "plan_fin", "cloture_inactif", "versement_bcc", "ed_encaissement", "ed_decaissement", "ecart_caisse", "transfert_caisse", "transfert_banque", "deblocage_credit", "remboursement_credit", "garantie_caution", "provision_credit", "radiation_credit", "engagement_signature", "fin_engagement", "comptabilisation_banque", "ecriture_manuelle", "operation_comptable", "facture", "reglement_facture", "annulation")
+EVENEMENTS = ("depot", "retrait", "adhesion", "achat_parts", "retrait_parts", "a_nouveaux", "dat_constitution", "dat_rupture", "dat_echeance", "frais_tenue", "interet_dav", "interet_dat_couru", "reevaluation", "cloture_exercice", "immo_dotation", "immo_sortie", "plan_cotisation", "plan_fin", "cloture_inactif", "versement_bcc", "ed_encaissement", "ed_decaissement", "ecart_caisse", "transfert_caisse", "transfert_banque", "deblocage_credit", "remboursement_credit", "garantie_caution", "provision_credit", "radiation_credit", "engagement_signature", "fin_engagement", "comptabilisation_banque", "ecriture_manuelle", "operation_comptable", "facture", "reglement_facture", "annulation", "affectation_resultat")
 
 # Listes de base du client (Paramétrage > Info de base > Client > Général), complétées le 21/11/2026 (registre S14-4)
 LISTES_CLIENT = {

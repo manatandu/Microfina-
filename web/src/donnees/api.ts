@@ -7664,7 +7664,60 @@ const finPeriode = {
     e.ouvert = false; e.clotureLe = new Date().toISOString().slice(0, 10); e.cloturePar = u.id; enregistrer();
     return { ...finPeriode.apercuCloture(p), ecritures: n };
   },
+  // ---------- A1 et B14 : affectation du résultat (loi 002/2002, art. 9, 6° et 59, 1° ; Instr. BCC 002, art. 19 à 21 ; PCCI, comptes 11, 12, 13, 44).
+  // Mêmes règles que noyau/affectation.py. ----------
+  apercuAffectation(p: { exercice?: unknown }) {
+    lectureAdmin(["S127"]);
+    const ex = Number(p.exercice), e = E.exercices.find((x) => x.annee === ex);
+    if (!e) throw new ErreurMetier("Exercice inconnu.");
+    const credit = (pref: string) => E.ecritures.flatMap((x) => x.lignes).filter((l) => l.compte.startsWith(pref)).reduce((s, l) => s + (l.sens === "C" ? l.montantCdf : -l.montantCdf), 0);
+    const resultat = credit("130") + credit("131"), ranDeficit = Math.max(0, -credit("121"));
+    const imputation = resultat > 0 ? Math.min(ranDeficit, resultat) : 0, base = resultat > 0 ? resultat - imputation : 0;
+    const deja = (E.affectationsResultat ?? []).find((x) => x.exercice === ex);
+    return { exercice: ex, cloture: !!e.clotureLe, resultat, reportDeficitaire: ranDeficit, imputation, base, reserveMinimum: base > 0 ? Math.ceil(base * 15 / 100) : 0,
+      affectee: !!deja, decisionReference: deja?.decisionReference ?? "", decisionLe: deja?.decisionLe ?? "", lignesAffectees: deja?.lignes ?? [],
+      emplois: Object.entries(resultat >= 0 ? EMPLOIS_RESULTAT : IMPUTATIONS_RESULTAT).map(([cle, [compte, libelle]]) => ({ cle, compte, libelle })) };
+  },
+  affecter(p: { exercice?: unknown; decisionReference?: string; decisionLe?: string; montants?: Record<string, number> }) {
+    const u = exiger(), a = finPeriode.apercuAffectation(p);
+    if (!a.cloture) throw new ErreurMetier(`Clôturer d'abord l'exercice ${a.exercice} : le résultat n'est pas encore au compte 13.`);
+    if (a.affectee) throw new ErreurMetier(`Le résultat de l'exercice ${a.exercice} est déjà affecté.`);
+    if (!a.resultat) throw new ErreurMetier("Aucun résultat à affecter au compte 13.");
+    const ref = (p.decisionReference ?? "").trim(), le = (p.decisionLe ?? "").trim();
+    if (!ref || !DATE.test(le)) throw new ErreurMetier("À remplir : référence et date de la décision de l'assemblée générale.");
+    const j = journees.courante();
+    if (!j || j.statut !== "ouverte") throw new ErreurMetier("Ouvrir d'abord une journée : l'affectation s'écrit dans la journée en cours.");
+    const table = a.resultat > 0 ? EMPLOIS_RESULTAT : IMPUTATIONS_RESULTAT, vus: [string, number][] = [];
+    for (const [k, v] of Object.entries(p.montants ?? {})) {
+      if (!(k in table)) throw new ErreurMetier(`Emploi inconnu : ${k}.`);
+      if (!Number.isInteger(v) || v < 0) throw new ErreurMetier(`${table[k]![1]} : montant invalide.`);
+      if (v) vus.push([k, v]);
+    }
+    const total = Math.abs(a.resultat) - a.imputation, somme = vus.reduce((s, [, v]) => s + v, 0);
+    const cdfTexte = (v: number) => (v / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/\u202f/g, " ");
+    if (somme !== total) throw new ErreurMetier(`La répartition (${cdfTexte(somme)} CDF) doit faire le résultat à répartir (${cdfTexte(total)} CDF).`);
+    if (a.resultat > 0 && (vus.find(([k]) => k === "reserveGenerale")?.[1] ?? 0) < a.reserveMinimum)
+      throw new ErreurMetier(`Réserve générale : au moins 15 % de la base, soit ${cdfTexte(a.reserveMinimum)} CDF (loi 002/2002, art. 59, 1° ; Instr. BCC 002, art. 19 à 21).`);
+    const lg: Ligne[] = [];
+    const ligne = (compte: string, sens: "D" | "C", m: number): Ligne => ({ compte, sens, devise: "CDF", montant: m, montantCdf: m });
+    if (a.resultat > 0) {
+      lg.push(ligne("130", "D", a.resultat)); if (a.imputation) lg.push(ligne("121", "C", a.imputation));
+      for (const [k, v] of vus) lg.push(ligne(table[k]![0], "C", v));
+    } else {
+      for (const [k, v] of vus) lg.push(ligne(table[k]![0], "D", v)); lg.push(ligne("131", "C", -a.resultat));
+    }
+    E.ecritures.push(Object.freeze({ id: prochain(E.ecritures), numero: `OD-${j.date.slice(0, 4)}-${String(prochain(E.ecritures)).padStart(6, "0")}`, journal: "OD", journeeId: j.id,
+      libelle: `Affectation du résultat ${a.exercice} : ${ref}`, piece: pieceJournee("OD", j), saisiPar: u.id, validePar: u.id,
+      lignes: Object.freeze(lg.map((x) => Object.freeze({ ...x }))) }));
+    (E.affectationsResultat ??= []).push({ exercice: a.exercice, resultat: a.resultat, decisionReference: ref, decisionLe: le, lignes: lg.map((x) => ({ compte: x.compte, sens: x.sens, montant: x.montant })), saisiPar: u.id });
+    enregistrer(); return finPeriode.apercuAffectation(p);
+  },
 };
+const EMPLOIS_RESULTAT: Record<string, [string, string]> = { reserveGenerale: ["1110", "Réserve générale (réserve légale)"], reservesStatutaires: ["1111", "Réserves statutaires et contractuelles"],
+  reservesFacultatives: ["1112", "Réserves facultatives"], distribution: ["440", "Distribution aux membres ou associés (ristournes, dividendes)"],
+  reportANouveau: ["120", "Report à nouveau (excédents non affectés)"] };
+const IMPUTATIONS_RESULTAT: Record<string, [string, string]> = { reservesFacultatives: ["1112", "Prélèvement sur les réserves facultatives"],
+  reservesStatutaires: ["1111", "Prélèvement sur les réserves statutaires"], reportANouveau: ["121", "Report à nouveau déficitaire"] };
 
 const etatsFinanciers = {
   contexte() {
