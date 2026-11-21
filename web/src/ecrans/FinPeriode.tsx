@@ -183,7 +183,7 @@ function ClotureComptable({ ctx, jour }: { ctx: Ctx; jour: string }) {
 /** A1 et B14 (confrontation du 21/11/2026) : affectation du résultat de l'exercice clôturé, sur décision de l'assemblée générale. Réserve générale d'au moins
  * 15 % des excédents nets, après imputation du report à nouveau déficitaire (loi 002/2002, art. 9, 6° et 59, 1° ; Instr. BCC 002, art. 19 à 21 ; registre S127-13). */
 function AffectationResultat({ jour }: { jour: string }) {
-  const [exercice, setExercice] = useState(String(Number(jour.slice(0, 4)) - 1));
+  const [exercice, setExercice] = useState(jour.slice(0, 4));
   const [a, setA] = useState<Affectation | null>(null);
   const [saisie, setSaisie] = useState<Record<string, string>>({});
   const [decision, setDecision] = useState({ reference: "", le: jour });

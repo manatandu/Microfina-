@@ -8,6 +8,9 @@ const IDENTITE = { prenom: "Marie", naissance: "1990-01-15", lieuNaissance: "Kin
 const REP = { naissance: "1980-05-02", lieuNaissance: "Kinshasa", pieceDelivreeLe: "2024-01-10", pieceLieu: "Kinshasa", pieceAutorite: "DGM", pieceExpire: "2030-01-10",
   province: "Kinshasa", ville: "Kinshasa", commune: "Matete", quartier: "Kinsaku", qualite: "Gérant" };
 const PNG = "data:image/png;base64,iVBORw0KGgo=";
+// A12 : donneur d'ordre et bénéficiaire d'un virement (loi 22/068, art. 57 et 61)
+const PARTIES = { donneurOrdre: { nom: "Entreprise Lukaku SARL", compte: "RAW-0001-USD", identification: "Gombe, avenue du Port 4", institution: "Rawbank" },
+  beneficiaire: { nom: "Kalala Mbuyi Josée", compte: "TMB-778-USD" } };
 import { graine } from "./graine";
 import type { Representant, Tiers } from "./types";
 import { totalComptage, type Comptage, type Devise } from "@design/montant.js";
@@ -1141,8 +1144,10 @@ describe("journée de guichet", () => {
     const usd = (await api.banqueOperations.lire()).comptes[0]!.id;
     const comptes = await api.tiers.comptes(1);
     const cusd = comptes.find((c) => c.devise === "USD")!, ccdf = comptes.find((c) => c.devise === "CDF")!;
-    const base = { date: "2026-11-05", compteBancaireId: usd, compteDepotId: cusd.id, libelle: "Salaire", montant: 30000 };
+    const base = { date: "2026-11-05", compteBancaireId: usd, compteDepotId: cusd.id, libelle: "Salaire", montant: 30000, ...PARTIES };
     await expect(api.banqueOperations.enregistrer({ ...base, cle: cle(), type: "virement_client" })).rejects.toThrow("Type d'opération inconnu");
+    await expect(api.banqueOperations.enregistrerVirement({ ...base, cle: cle(), type: "virement_client", donneurOrdre: { ...PARTIES.donneurOrdre, institution: "" } }))
+      .rejects.toThrow("Donneur d'ordre : à remplir : institution");   // A12 : loi 22/068, art. 57
     await expect(api.banqueOperations.enregistrerVirement({ ...base, cle: cle(), type: "virement_client", libelle: "" })).rejects.toThrow("libellé opération");
     await expect(api.banqueOperations.enregistrerVirement({ ...base, cle: cle(), type: "virement_client", compteDepotId: ccdf.id })).rejects.toThrow("même devise");
     await expect(api.banqueOperations.enregistrerVirement({ ...base, cle: cle(), type: "prelevement_client", montant: cusd.disponible + 1 })).rejects.toThrow("disponible insuffisant");
@@ -1168,7 +1173,7 @@ describe("journée de guichet", () => {
     const comptes = await api.tiers.comptes(1);
     const cusd = comptes.find((c) => c.devise === "USD")!;
     const enc = await api.banqueOperations.enregistrer({ cle: cle(), type: "encaissement", date: "2026-11-05", compteBancaireId: usd, compte: "727", libelle: "Commission", montant: 50000 });
-    const vir = await api.banqueOperations.enregistrerVirement({ cle: cle(), type: "virement_client", date: "2026-11-05", compteBancaireId: usd, compteDepotId: cusd.id, libelle: "Salaire", montant: 30000 });
+    const vir = await api.banqueOperations.enregistrerVirement({ cle: cle(), type: "virement_client", date: "2026-11-05", compteBancaireId: usd, compteDepotId: cusd.id, libelle: "Salaire", montant: 30000, ...PARTIES });
     expect((await api.banqueOperations.visas("visa", "enc_dec")).map((x) => x.id)).toEqual([enc.id]);
     const v = (await api.banqueOperations.visas("visa", "virement"))[0]!;
     expect([v.id, v.compteEpargne, v.numeroComptable, v.debit, v.credit]).toEqual([vir.id, cusd.numero, cusd.pcci, 0, 30000]);

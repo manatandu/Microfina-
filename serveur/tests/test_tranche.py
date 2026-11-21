@@ -1049,7 +1049,10 @@ def test_virement_prelevement(clients, journee):
                                                                   "contactNom": "Mutombo"}, **H).json()["comptes"])
     cusd, ccdf = C("0412-000318-01"), C("0412-000318-02")
     dispo = next(c for c in compta.get(f"/api/tiers/{T('0412-000318')}/comptes").json() if c["id"] == cusd)["disponible"]
-    base = {"date": "2026-11-05", "compteBancaireId": usd, "compteDepotId": cusd, "libelle": "Salaire", "montant": 30000}
+    # A12 : donneur d'ordre et bénéficiaire (loi 22/068, art. 57 et 61)
+    base = {"date": "2026-11-05", "compteBancaireId": usd, "compteDepotId": cusd, "libelle": "Salaire", "montant": 30000,
+            "donneurOrdre": {"nom": "Entreprise Lukaku SARL", "compte": "RAW-0001-USD", "identification": "Gombe, avenue du Port 4", "institution": "Rawbank"},
+            "beneficiaire": {"nom": "Kalala Mbuyi Josée", "compte": "TMB-778-USD"}}
     def refus(corps, route="/api/banque/virements"):
         r = compta.post(route, {"cle": cle(), **base, **corps}, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
     assert "Type d'opération inconnu" in refus({"type": "virement_client"}, "/api/banque/operations")       # chaque écran sa route, donc son droit
@@ -1057,7 +1060,10 @@ def test_virement_prelevement(clients, journee):
     assert "libellé opération" in refus({"type": "virement_client", "libelle": ""})
     assert "même devise" in refus({"type": "virement_client", "compteDepotId": ccdf})
     assert "disponible insuffisant" in refus({"type": "prelevement_client", "montant": dispo + 1})
+    assert "Donneur d'ordre : à remplir : institution" in refus({"type": "virement_client", "donneurOrdre": {**base["donneurOrdre"], "institution": ""}})
+    assert "Bénéficiaire : à remplir : numéro de compte" in refus({"type": "prelevement_client", "beneficiaire": {"nom": "X"}})
     v = compta.post("/api/banque/virements", {"cle": cle(), **base, "type": "virement_client"}, **H).json()
+    assert v["donneurOrdre"]["institution"] == "Rawbank"
     assert (v["statut"], v["compteDepotId"], v["libelle"]) == ("saisie", cusd, "Salaire")
     p = compta.post("/api/banque/virements", {"cle": cle(), **base, "type": "prelevement_client", "montant": dispo}, **H).json()
     assert p["type"] == "prelevement_client"

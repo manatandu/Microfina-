@@ -5,6 +5,9 @@ import re
 import uuid
 
 from . import chequiers
+from psycopg.types.json import Jsonb
+
+from .services import json_lu
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import compte_du_produit, controler_statut_actif, est_coopec, exiger, journee_courante, nom_utilisateur, numero_compte, preparer_adhesion, solde_contrat
 
@@ -187,11 +190,15 @@ def enregistrer(u, d, client: bool = False) -> dict:
             raise ErreurMetier("Virement entre deux devises : à confirmer avec le porteur (cours du jour, S35).")
         dest = dest["id"]
         libelle = TYPES[type_]
+    # A12 : virement reçu par la banque sur le compte du client, donneur d'ordre ; prélèvement vers la banque, bénéficiaire (loi 22/068, art. 57 et 61)
+    from . import virements
+    donneur, beneficiaire = virements.controler(d, type_ == "virement_client", type_ == "prelevement_client")
     oid = valeur("""insert into operation_banque (institution_id, agence_id, type, date_operation, compte_bancaire_id, compte_bancaire_dest_id, guichet_id, compte,
-                                                  libelle, montant, devise, cheque, budget_type_id, budget_ligne_id, cle_idempotence, saisi_par, compte_depot_id)
-                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
+                                                  libelle, montant, devise, cheque, budget_type_id, budget_ligne_id, cle_idempotence, saisi_par, compte_depot_id,
+                                                  donneur_ordre, beneficiaire)
+                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
                  (i, u["agence_id"], type_, date_op, origine["id"], dest, guichet, compte, libelle, montant, origine["devise"], cheque,
-                  type_budget, ligne_budget, cle, u["id"], compte_client))
+                  type_budget, ligne_budget, cle, u["id"], compte_client, Jsonb(donneur) if donneur else None, Jsonb(beneficiaire) if beneficiaire else None))
     if cheque:                                                # registre S60-2 : un chèque d'un chéquier du compte, une seule fois
         chequiers.utiliser(origine["id"], cheque, oid)
     return vue(une("select * from operation_banque where id = %s", (oid,)))
@@ -201,7 +208,8 @@ def vue(o: dict) -> dict:
     return {"id": o["id"], "type": o["type"], "date": o["date_operation"].isoformat(), "compteBancaireId": o["compte_bancaire_id"],
             "compteBancaireDestId": o["compte_bancaire_dest_id"], "guichetId": o["guichet_id"], "compte": o["compte"] or "", "libelle": o["libelle"] or "",
             "montant": o["montant"], "devise": o["devise"].strip(), "cheque": o["cheque"] or "", "statut": o["statut"], "piece": o["piece"] or "",
-            "compteDepotId": o.get("compte_depot_id"), "tiersId": o.get("tiers_id"), "parts": o.get("parts"), "premierDepot": o.get("premier_depot")}
+            "compteDepotId": o.get("compte_depot_id"), "tiersId": o.get("tiers_id"), "parts": o.get("parts"), "premierDepot": o.get("premier_depot"),
+            "donneurOrdre": json_lu(o.get("donneur_ordre")) or None, "beneficiaire": json_lu(o.get("beneficiaire")) or None}   # A12
 
 
 # ---------- S57 : Visa puis Validation (manuel p. 65 à 67) ----------

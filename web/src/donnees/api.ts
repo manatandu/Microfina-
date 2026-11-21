@@ -10,7 +10,7 @@ import {
   type ChequeClient, type Chequier, type DepotTerme, type ImmoBien, type PaieEmploye, type PlanEpargne, type ClotureCompte, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type OperationCompta, type LigneOc, type ChargeFacture, type CommandeFournisseur, type FactureFournisseur, type ReglementFournisseur, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget, type CriteresAtypiques, type GelAvoirs,
-  type AnalyseFinanciere, type DemandeCredit, type CreditPret, type GarantieCredit, type RemboursementCredit, type VisaCredit, type BalanceAgee, type Adresse, type Procuration,
+  type AnalyseFinanciere, type DemandeCredit, type CreditPret, type GarantieCredit, type RemboursementCredit, type VisaCredit, type BalanceAgee, type Adresse, type Procuration, type DonneurOrdre, type BeneficiaireVirement,
 } from "./types";
 import { DROITS_METHODES } from "./droits.gen";
 import registreEcrans from "../ecrans/registre.json";
@@ -1602,6 +1602,19 @@ const OPERATIONS_CLIENT: TypeOperationBanque[] = ["virement_client", "prelevemen
 export interface SaisieOperationBanque {
   cle: string; type: TypeOperationBanque; date: string; compteBancaireId?: number; compteBancaireDestId?: number; guichetId?: number;
   compte?: string; libelle?: string; montant: number; cheque?: string; typeBudgetId?: number | null; ligneBudgetId?: number | null; compteDepotId?: number;
+  donneurOrdre?: Partial<DonneurOrdre>; beneficiaire?: Partial<BeneficiaireVirement>;   // A12
+}
+/** A12 : donneur d'ordre d'un virement reçu, bénéficiaire des fonds qui partent vers un compte bancaire (loi 22/068, art. 57 et 61). Comme noyau/virements.py. */
+function partiesVirement(d: { donneurOrdre?: Partial<DonneurOrdre>; beneficiaire?: Partial<BeneficiaireVirement> }, recu: boolean, sortantBancaire: boolean) {
+  const partie = <K extends string>(x: Partial<Record<K, string>> | undefined, champs: [K, string][], quoi: string) => {
+    const v = Object.fromEntries(champs.map(([k]) => [k, (x?.[k] ?? "").trim()])) as Record<K, string>;
+    const manque = champs.filter(([k]) => !v[k]).map(([, n]) => n);
+    if (manque.length) throw new ErreurMetier(`${quoi} : à remplir : ${manque.join(", ")} (loi 22/068, art. 57).`);
+    return v;
+  };
+  return { donneurOrdre: recu ? partie(d.donneurOrdre, [["nom", "nom complet"], ["compte", "numéro de compte"], ["identification", "adresse, n° d'identification ou date et lieu de naissance"],
+    ["institution", "institution financière"]], "Donneur d'ordre") as DonneurOrdre : null,
+    beneficiaire: sortantBancaire ? partie(d.beneficiaire, [["nom", "nom"], ["compte", "numéro de compte"]], "Bénéficiaire") as BeneficiaireVirement : null };
 }
 const soldeCompteNumero = (numero: string, devise: Devise) => E.ecritures.flatMap((e) => e.lignes).filter((x) => x.compte === numero && x.devise === devise)
   .reduce((s, x) => s + (x.sens === "D" ? x.montant : -x.montant), 0);
@@ -1829,7 +1842,7 @@ function enregistrerOperationBanque(d: SaisieOperationBanque, client: boolean): 
       if (d.type === "prelevement_client") {                 // S53-2 : comme un retrait (S74), sur le disponible
         if (d.montant > soldeContrat(`depot:${c.id}`, c.devise, "C") - bloqueDe(c) - sortiesEnAttente(c)) throw new ErreurMetier("Solde disponible insuffisant sur le compte du client.");
       }
-      Object.assign(o, { compteDepotId: c.id, libelle });
+      Object.assign(o, { compteDepotId: c.id, libelle, ...partiesVirement(d, d.type === "virement_client", d.type === "prelevement_client") });   // A12
     } else if (d.type === "banque_caisse") {
       if (!E.guichets.some((g) => g.id === d.guichetId && g.actif !== false)) throw new ErreurMetier("À remplir : caisse.");
       Object.assign(o, { guichetId: d.guichetId, cheque: d.cheque?.trim() ?? "" });
@@ -6373,12 +6386,15 @@ const operationsCompta = {
     o.lignes = l; rangerOc(o); enregistrer(); return vueEcritureOc(o, j, o.periode);
   },
   /** S116, onglet Virement/Prélèvement (p. 134 ; texte p. 161) : le compte du client contre un compte du plan (registre S116-2) */
-  enregistrerVirement(d: { cle: string; type: string; date?: string; compteDepotId: number | null; multiligne?: boolean; lignes: { compte: string; libelle: string; montant: number }[] }) {
+  enregistrerVirement(d: { cle: string; type: string; date?: string; compteDepotId: number | null; multiligne?: boolean; lignes: { compte: string; libelle: string; montant: number }[];
+    donneurOrdre?: Partial<DonneurOrdre>; beneficiaire?: Partial<BeneficiaireVirement> }) {
     const u = exiger(), cle = cleOc(d.cle), prec = dejaOc(cle); if (prec) return prec;
     if (d.type !== "virement" && d.type !== "prelevement") throw new ErreurMetier("À remplir : Type opération.");
     const date = dateOperationOc(d.date), c = compteClientOc(d.compteDepotId, "N° Compte"), l = lignesComptaOc(d), total = l.reduce((t, x) => t + x.montant, 0);
     if (d.type === "prelevement" && total > disponibleOc(c)) throw new ErreurMetier("Solde disponible insuffisant sur le compte du client.");
-    return nouvelleOc(u, cle, d.type, date, l[0]!.libelle!, total, c.devise, { compteDepotId: c.id, lignes: l });
+    // A12 : contrepartie bancaire (PCCI, compte 56), virement entre institutions (loi 22/068, art. 57 et 61). Comme le serveur.
+    const bancaire = l.some((x) => (x.compte ?? "").startsWith("56"));
+    return nouvelleOc(u, cle, d.type, date, l[0]!.libelle!, total, c.devise, { compteDepotId: c.id, lignes: l, ...partiesVirement(d, d.type === "virement" && bancaire, d.type === "prelevement" && bancaire) });
   },
   /** S116, onglets « Compte DAV vers un Autre Compte » et « Compte Tontine vers un Compte DAV » (p. 134 ; texte p. 160) : sans frais (Instr. BCC 37 ; registre S116-3) */
   enregistrerCompteACompte(d: { cle: string; onglet: string; emetteurId: number | null; recepteurId: number | null; montant: number | null }) {

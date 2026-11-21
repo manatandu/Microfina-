@@ -8,6 +8,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
 import { lireMontant, montant, type Devise } from "@design/montant.js";
+import { PartiesVirement, PARTIES_VIDES, type Parties } from "../composants/PartiesVirement";
 import { RechercheClient } from "./Visa";
 import { ChoixBanque } from "./OperationsBanque";
 
@@ -15,6 +16,7 @@ const nomComplet = (t: Tiers) => t.intitule || [t.nom, t.postnom, t.prenom].filt
 
 export function VirementPrelevement() {
   const { donnees } = useDonnees(async () => ({ ctx: await api.referentiel.contexte(), lu: await api.banqueOperations.lire() }));
+  const [parties, setParties] = useState<Parties>(PARTIES_VIDES);   // A12
   const vide = { date: "", type: "" as "" | "virement_client" | "prelevement_client", compteClient: "", banque: "", compte: "", libelle: "", montant: "" };
   const [f, setF] = useState(vide);
   const [t, setT] = useState<Tiers | null>(null);
@@ -29,12 +31,12 @@ export function VirementPrelevement() {
   const cc = (comptes ?? []).find((c) => String(c.id) === f.compteClient);
   const cb = lu.comptes.find((c) => String(c.id) === f.compte);
   const lu_ = (libelle: string, v: string) => <Champ libelle={libelle}>{(p) => <Lecture {...p} value={v} />}</Champ>;
-  const vider = () => { setF(vide); setT(null); setCle(nouvelleCle()); };
+  const vider = () => { setF(vide); setT(null); setCle(nouvelleCle()); setParties(PARTIES_VIDES); };
 
   function enregistrer() {
     if (!f.type) { setBoite({ type: "erreur", message: "À remplir : type opération." }); return; }
     const d = { cle, date, type: f.type, compteDepotId: f.compteClient ? Number(f.compteClient) : undefined, compteBancaireId: f.compte ? Number(f.compte) : undefined,
-      libelle: f.libelle, montant: lireMontant(f.montant) ?? 0 };
+      libelle: f.libelle, montant: lireMontant(f.montant) ?? 0, ...parties };
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try { await api.banqueOperations.enregistrerVirement(d); vider(); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
       catch (x) { setBoite({ type: "erreur", message: message(x) }); }
@@ -88,6 +90,7 @@ export function VirementPrelevement() {
           </div>
           <p>Solde Banque : <strong className="chiffres">{cb ? montant(cb.solde, cb.devise as Devise) : "0"}</strong></p>
         </fieldset>
+        <PartiesVirement valeur={parties} maj={setParties} recu={f.type === "virement_client"} sortant={f.type === "prelevement_client"} />
         <div className="actions-onglets">
           <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
           <button className="bouton secondaire" type="button" onClick={vider}>Annuler</button>

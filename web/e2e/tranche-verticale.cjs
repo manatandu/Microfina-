@@ -369,7 +369,11 @@ const OUT = process.argv[2];
   await rv.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rv.getByRole('row').filter({ hasText: 'Kalala' }).first().dblclick();
   await p.getByRole('radio', { name: 'Virement' }).check(); await p.getByLabel('N° Compte *').selectOption({ label: '0412-000318-01' });
   await p.getByLabel('Banque *', { exact: true }).selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte Banque *').selectOption({ index: 1 });
-  await p.getByLabel('Libelle operation *').fill('Salaire novembre'); await p.getByLabel('Montant *').fill('100'); await etape('06c7-virement-client');
+  await p.getByLabel('Libelle operation *').fill('Salaire novembre'); await p.getByLabel('Montant *').fill('100');
+  // donneur d'ordre du virement reçu (A12 ; loi 22/068, art. 57 et 61)
+  await p.getByLabel('Nom complet : *').fill('Entreprise Lukaku SARL'); await p.getByLabel('Numéro de compte : *').fill('RAW-0001-USD');
+  await p.getByLabel("Adresse, n° d'identification ou date et lieu de naissance : *").fill('Gombe, avenue du Port 4'); await p.getByLabel('Institution financière : *').fill('Rawbank');
+  await etape('06c7-virement-client');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
   await login('J.-P. Mukendi');
   // Paramétrage des frais (S16)
@@ -1295,7 +1299,10 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Calculer' }).click(); await p.getByText('Intérêts courus au').waitFor(); await etape('30b-interets-dat');
   await aller('/budget/s127'); await p.getByRole('heading', { name: 'Etat des provisions de crédits' }).waitFor(); await etape('30c-cloture-credit');
   await p.getByRole('tab', { name: 'Comptabilité' }).click(); await p.getByRole('heading', { name: 'Clôture comptable' }).waitFor();
-  await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByText('Soldes de gestion de l\'exercice').waitFor(); await etape('30d-cloture-comptable');
+  await p.getByRole('region', { name: 'Clôture comptable' }).getByRole('button', { name: 'Afficher' }).click(); await p.getByText('Soldes de gestion de l\'exercice').waitFor(); await etape('30d-cloture-comptable');
+  // Affectation du résultat (A1 ; loi 002/2002, art. 59, 1° ; Instr. BCC 002, art. 19 à 21) : l'exercice 2026 n'est pas encore clôturé
+  await p.getByRole('region', { name: 'Affectation du résultat' }).getByRole('button', { name: 'Afficher' }).click();
+  await p.getByText("Clôturer d'abord l'exercice 2026.").waitFor(); await etape('30d2-affectation-resultat');
   // Comptable : paie (S131 à S135, manuel p. 269 à 278)
   await aller('/paie/s131'); await p.getByRole('heading', { name: "Création et mise à jour d'allocations familiales" }).waitFor(); await etape('31a-paie-donnees-base');
   const listePaie = (nom) => p.getByRole('navigation', { name: 'Traitement de la paie' }).getByRole('button', { name: nom }).click();

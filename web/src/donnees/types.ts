@@ -65,6 +65,9 @@ export interface Procuration extends Adresse { id: number; mandantId: number; ty
   naissance: string; lieuNaissance: string; pieceType: string; pieceNumero: string; pieceDelivreeLe: string; pieceLieu: string; pieceAutorite: string; pieceExpire: string;
   piecePays: string; telephone: string; adresse: string; dateDebut: string; dateFin: string; copieActe: boolean; copiePiece: boolean; finLe: string; finMotif: string; enCours: boolean;
   ayantDroit?: boolean }   // A16 : ayant droit d'un titulaire décédé, sur la pièce de succession
+/** A12 : informations qui accompagnent un virement (loi 22/068, art. 57) */
+export interface DonneurOrdre { nom: string; compte: string; identification: string; institution: string }
+export interface BeneficiaireVirement { nom: string; compte: string }
 /** Nature du contrôle du bénéficiaire effectif (loi 22/068, art. 34 bis, 1° à 3°) et part du capital ou des droits de vote (art. 39, al. 2) */
 export interface ControleEffectif { nature: string; part: string }
 
@@ -228,6 +231,7 @@ export interface OperationCompta {
   statut: "brouillon" | "saisie" | "visee" | "validee" | "comptabilisee" | "payee"; date: string; journalId: number | null; periode: string; reference: string; libelle: string;
   montant: number; devise: Devise; sens: "" | "ENCAISSEMENT" | "DECAISSEMENT" | "DEPOT" | "RETRAIT"; lignes: LigneOc[];
   compteDepotId: number | null; compteDepotDestId: number | null; agenceClientId: number | null; numeroClient: string; nomClient: string;
+  donneurOrdre?: DonneurOrdre | null; beneficiaire?: BeneficiaireVirement | null;   // A12
   typeBudgetId: number | null; ligneBudgetId: number | null; saisiPar: number; visePar?: number; viseLe?: string; validePar?: number; dateValidation?: string;
   piece: string; ecritureId?: number; operationId?: number; refletEcritureId?: number;
 }
@@ -236,6 +240,7 @@ export interface OperationBanque {
   compte: string; libelle: string; montant: number; devise: Devise; cheque: string; typeBudgetId: number | null; ligneBudgetId: number | null;
   statut: "saisie" | "visee" | "validee" | "comptabilisee" | "refusee"; piece: string; saisiPar: number;
   visePar?: number; validePar?: number; dateValidation?: string;   // S57
+  donneurOrdre?: DonneurOrdre | null; beneficiaire?: BeneficiaireVirement | null;   // A12 : loi 22/068, art. 57 et 61
   compteDepotId?: number | null;   // S53 : compte du client
   tiersId?: number | null; parts?: number | null; premierDepot?: number | null;   // S56 : adhésion par banque
 }

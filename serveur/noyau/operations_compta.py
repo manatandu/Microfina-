@@ -320,7 +320,13 @@ def enregistrer_virement(u, d) -> dict:
     total = sum(x["montant"] for x in l)
     if type_ == "prelevement" and total > disponible(c):
         raise ErreurMetier("Solde disponible insuffisant sur le compte du client.")
-    return inserer(u, cle, type_, date_op, l[0]["libelle"], total, c["devise"], compte_depot_id=c["id"], lignes=Jsonb(l))
+    # A12 : quand la contrepartie est un compte bancaire (PCCI, compte 56), c'est un virement entre institutions : donneur d'ordre du virement reçu,
+    # bénéficiaire des fonds qui partent (loi 22/068, art. 57 et 61). Une contrepartie interne (intérêts, commissions) n'en demande pas.
+    from . import virements
+    bancaire = any(str(x["compte"]).startswith("56") for x in l)
+    donneur, beneficiaire = virements.controler(d, type_ == "virement" and bancaire, type_ == "prelevement" and bancaire)
+    return inserer(u, cle, type_, date_op, l[0]["libelle"], total, c["devise"], compte_depot_id=c["id"], lignes=Jsonb(l),
+                   donneur_ordre=Jsonb(donneur) if donneur else None, beneficiaire=Jsonb(beneficiaire) if beneficiaire else None)
 
 
 def enregistrer_compte_a_compte(u, d) -> dict:
@@ -496,6 +502,7 @@ def vue(o: dict) -> dict:
          "clientEmetteur": f"{e['client']} {titulaire(e['tiers_id'])}" if e else "", "compteEmetteur": e["numero"] if e else "",
          "clientRecepteur": f"{r['client']} {titulaire(r['tiers_id'])}" if r else "", "compteRecepteur": r["numero"] if r else "",
          "numeroClient": o["numero_client"] or "", "nomClient": o["nom_client"] or "",
+         "donneurOrdre": json_lu(o.get("donneur_ordre")) or None, "beneficiaire": json_lu(o.get("beneficiaire")) or None,   # A12
          "agenceClient": valeur("select nom from agence where id = %s", (o["agence_client_id"],)) or "" if o["agence_client_id"] else ""}
     # colonnes Debit et Crédit des listes : le sens du compte du client (virement : crédit ; prélèvement : débit), ou de l'opération diverse
     debit = t in ("prelevement", "domiciliation") or o["sens"] in ("DECAISSEMENT", "RETRAIT")

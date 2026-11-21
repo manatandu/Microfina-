@@ -1899,14 +1899,14 @@ def fin_provisions(request):
 
 @api.get("/autres/cloture/affectation")
 def affectation_apercu(request):
-    from . import affectation
-    return affectation.apercu(u(request), request.GET.dict())
+    from . import affectation_resultat
+    return affectation_resultat.apercu(u(request), request.GET.dict())
 
 
 @api.post("/autres/cloture/affectation")
 def affectation_passer(request, corps: dict = Body(...)):
-    from . import affectation
-    return affectation.affecter(u(request), corps)
+    from . import affectation_resultat
+    return affectation_resultat.affecter(u(request), corps)
 
 
 @api.get("/autres/cloture/contexte")

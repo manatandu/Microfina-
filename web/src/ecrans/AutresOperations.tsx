@@ -10,6 +10,7 @@ import { fr } from "../lib/dates";
 import { decimal, lireMontant, montant, type Devise } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee } from "../composants";
 import { RechercheClient } from "./Visa";
+import { PartiesVirement, PARTIES_VIDES, type Parties } from "../composants/PartiesVirement";
 
 type Ctx = Awaited<ReturnType<typeof api.operationsCompta.lire>>;
 type Compte = Awaited<ReturnType<typeof api.operationsCompta.comptesDuClient>>[number];
@@ -89,10 +90,13 @@ function VirementPrelevement({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
   const [type, setType] = useState<"virement" | "prelevement">("virement");
   const [cle, setCle] = useState(nouvelleCle);
   const [cherche, setCherche] = useState(false);
-  const annuler = () => { k.choisir(null); g.vider(); setDate(""); setType("virement"); setCle(nouvelleCle()); };
+  const [parties, setParties] = useState<Parties>(PARTIES_VIDES);   // A12
+  // A12 : une contrepartie bancaire (PCCI, compte 56) fait un virement entre institutions (loi 22/068, art. 57 et 61)
+  const bancaire = [g.s.compte, ...g.l.map((x) => x.compte)].some((c) => (c ?? "").trim().startsWith("56"));
+  const annuler = () => { k.choisir(null); g.vider(); setDate(""); setType("virement"); setCle(nouvelleCle()); setParties(PARTIES_VIDES); };
   function enregistrer() {
     poser({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
-      try { await api.operationsCompta.enregistrerVirement({ cle, type, date: date || ctx.date, compteDepotId: k.c?.id ?? null, multiligne: g.multi, lignes: g.envoi() });
+      try { await api.operationsCompta.enregistrerVirement({ cle, type, date: date || ctx.date, compteDepotId: k.c?.id ?? null, multiligne: g.multi, lignes: g.envoi(), ...parties });
         annuler(); poser({ type: "succes", message: "Enregistré avec succès !" }); }
       catch (x) { poser({ type: "erreur", message: message(x) }); }
     } });
@@ -113,6 +117,7 @@ function VirementPrelevement({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
       <CadreCompte titre="Compte Client" k={k} />
     </div>
     <fieldset className="cadre-champs pile"><legend>Comptabilite</legend><ChampsLignes g={g} ctx={ctx} devise={(k.c?.devise ?? "CDF") as Devise} /></fieldset>
+    <PartiesVirement valeur={parties} maj={setParties} recu={bancaire && type === "virement"} sortant={bancaire && type === "prelevement"} />
     <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button><button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button></div>
     <Recherche ouverte={cherche} fermer={() => setCherche(false)} choisir={k.choisir} />
   </>;
