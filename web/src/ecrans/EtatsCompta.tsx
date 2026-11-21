@@ -7,14 +7,23 @@ import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
+import { balanceXml, grandLivreXml, telecharger, type CompteGrandLivre } from "../lib/liasse";
 import { montant } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
 
 const m = (v: number) => (v ? montant(v, "CDF") : "");
 type Ctx = Awaited<ReturnType<typeof api.etatsCompta.contexte>>;
 type GL = Awaited<ReturnType<typeof api.etatsCompta.grandLivre>>;
 type Bal = Awaited<ReturnType<typeof api.etatsCompta.balance>>;
 const ONGLETS = [["general", "Général"], ["analytique", "Analytique"]] as const;
+
+/** En-tête des documents comptables (modèles FPM et CARRIGRES) : institution, période, date de tirage (registre T31) */
+async function enteteDoc(du: string, au: string) {
+  const ctx = await api.referentiel.contexte(), d = new Date();
+  return { institution: ctx.institution.nom, du, au, tirage: `${fr(d.toISOString().slice(0, 10))} ${d.toTimeString().slice(0, 5)}` };
+}
+const versGl = (c: { compte: string; intitule: string; soldeInitial: number; lignes: { date: string; journal: string; piece: string; libelle: string; debit: number; credit: number }[] }): CompteGrandLivre =>
+  ({ compte: c.compte, intitule: c.intitule, soldeInitial: c.soldeInitial, lignes: c.lignes.map(({ date, journal, piece, libelle, debit, credit }) => ({ date, journal, piece, libelle, debit, credit })) });
 
 function useCadre() {
   const { donnees } = useDonnees(async () => ({ ctx: await api.etatsCompta.contexte(), j: await api.journees.courante() }));
@@ -52,7 +61,9 @@ function EditionGrandLivre({ analytique, ctx, jour }: { analytique: boolean; ctx
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   }
   const COL = ["Compte", ...(analytique ? ["Auxiliaire"] : []), "Date", "Journal", "N°Pièce", "Libellé", "Débit", "Crédit", "Solde"];
-  const exporter = () => r && exporterExcel(titre, COL, r.comptes.flatMap((c) => [
+  const exporter = async () => { if (!r) return; if (!analytique) { telecharger(`grand-livre-${r.au}`, grandLivreXml(await enteteDoc(r.du, r.au), r.comptes.map(versGl))); return; }
+    exporterAnalytique(); };
+  const exporterAnalytique = () => r && exporterExcel(titre, COL, r.comptes.flatMap((c) => [
     [c.compte, ...(analytique ? [c.auxiliaire] : []), "", "", "", `${c.intitule} : solde d'ouverture`, "", "", c.soldeInitial / 100],
     ...c.lignes.map((l) => [c.compte, ...(analytique ? [c.auxiliaire] : []), fr(l.date), l.journal, l.piece, l.libelle, l.debit / 100, l.credit / 100, l.solde / 100]),
     [c.compte, ...(analytique ? [c.auxiliaire] : []), "", "", "", "Total du compte", c.debit / 100, c.credit / 100, c.soldeFinal / 100]]));
@@ -117,7 +128,19 @@ function EditionBalance({ analytique, ctx, jour }: { analytique: boolean; ctx: C
   type L = Bal["lignes"][number];
   const cellules = (x: Pick<L, "ouvertureDebit" | "ouvertureCredit" | "mouvementDebit" | "mouvementCredit" | "cumulDebit" | "cumulCredit" | "soldeDebit" | "soldeCredit">) => [
     ...(r?.type !== "4" ? [x.ouvertureDebit, x.ouvertureCredit] : []), x.mouvementDebit, x.mouvementCredit, ...(r?.type === "8" ? [x.cumulDebit, x.cumulCredit] : []), x.soldeDebit, x.soldeCredit];
-  const exporter = () => r && exporterExcel(titre, ["Compte", ...(analytique ? ["Auxiliaire"] : []), "Intitulé", ...groupes.flatMap((g) => [`${g} débit`, `${g} crédit`])],
+  const criteresGl = (compte?: string) => ({ type: "global", agenceId: f.agence ? Number(f.agence) : null, exercice: f.exercice, du: f.du, au: f.au, vidage: !f.sansVidage, compte });
+  const exporter = async () => {
+    if (!r) return;
+    if (analytique) { exporterAnalytique(); return; }
+    try {
+      const gl = await api.etatsCompta.grandLivre(criteresGl());
+      telecharger(`balance-${r.au}`, balanceXml(await enteteDoc(r.du, r.au), r.lignes.map((x) => ({ compte: x.compte, intitule: x.intitule, anterieurD: x.ouvertureDebit, anterieurC: x.ouvertureCredit,
+        mouvementD: x.mouvementDebit, mouvementC: x.mouvementCredit, soldeD: x.soldeDebit, soldeC: x.soldeCredit })), gl.comptes.map(versGl)));
+    } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+  };
+  const [glCompte, setGlCompte] = useState<{ compte: string; intitule: string; r: GL } | null>(null);
+  const ouvrirGl = async (compte: string, intitule: string) => { try { setGlCompte({ compte, intitule, r: await api.etatsCompta.grandLivre(criteresGl(compte)) }); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } };
+  const exporterAnalytique = () => r && exporterExcel(titre, ["Compte", ...(analytique ? ["Auxiliaire"] : []), "Intitulé", ...groupes.flatMap((g) => [`${g} débit`, `${g} crédit`])],
     r.lignes.map((x) => [x.compte, ...(analytique ? [x.auxiliaire] : []), x.intitule, ...cellules(x).map((v) => v / 100)]));
   return (
     <section className="bloc pile" aria-label={titre}>
@@ -149,14 +172,32 @@ function EditionBalance({ analytique, ctx, jour }: { analytique: boolean; ctx: C
           <tr>{groupes.flatMap((g) => [<th key={`${g}d`} scope="col" className="num">Débit</th>, <th key={`${g}c`} scope="col" className="num">Crédit</th>])}</tr>
         </thead>
         <tbody>{r.lignes.length === 0 && <tr><td colSpan={groupes.length * 2 + (analytique ? 3 : 2)}>Aucune écriture comptabilisée sur la période.</td></tr>}
-          {r.lignes.map((x) => <tr key={`${x.compte}-${x.auxiliaire}`}><td className="code">{x.compte}</td>{analytique && <td className="code">{x.auxiliaire}</td>}<td>{x.intitule}</td>
+          {r.lignes.map((x) => <tr key={`${x.compte}-${x.auxiliaire}`}><td className="code">{analytique ? x.compte
+            : <button type="button" className="lien" title={`Grand livre du compte ${x.compte}`} onClick={() => ouvrirGl(x.compte, x.intitule)}>{x.compte}</button>}</td>{analytique && <td className="code">{x.auxiliaire}</td>}<td>{x.intitule}</td>
             {cellules(x).map((v, i) => <td key={i} className="num chiffres">{m(v)}</td>)}</tr>)}</tbody>
         <tfoot><tr><th scope="row" colSpan={analytique ? 3 : 2}>Total {r.equilibree ? "· Équilibrée : débit égal au crédit" : "· Écart entre débit et crédit"}</th>
           {cellules(r.totaux).map((v, i) => <td key={i} className="num chiffres">{montant(v, "CDF")}</td>)}</tr></tfoot>
       </table></div>}
+      <Fiche titre={glCompte ? `Grand livre du compte ${glCompte.compte} ${glCompte.intitule}` : "Grand livre"} ouverte={!!glCompte} fermer={() => setGlCompte(null)}>
+        {glCompte && <><div className="defile-x"><table className="grille">
+          <caption>Du {fr(glCompte.r.du)} au {fr(glCompte.r.au)}, en CDF</caption>
+          <thead><tr><th scope="col">Date</th><th scope="col">C.j</th><th scope="col">N° pièce</th><th scope="col">Libellé écriture</th><th scope="col" className="num">Mouvement débit</th>
+            <th scope="col" className="num">Mouvement crédit</th><th scope="col" className="num">Solde progressif</th></tr></thead>
+          {glCompte.r.comptes.length === 0 && <tbody><tr><td colSpan={7}>Aucune écriture comptabilisée sur la période.</td></tr></tbody>}
+          {glCompte.r.comptes.map((c) => <tbody key={c.compte}>
+            <tr><th scope="rowgroup" colSpan={6}><span className="code">{c.compte}</span> {c.intitule} · solde d'ouverture</th><td className="num chiffres">{m(c.soldeInitial)}</td></tr>
+            {c.lignes.map((l, i) => <tr key={i}><td className="chiffres">{fr(l.date)}</td><td className="code">{l.journal}</td><td className="code">{l.piece}</td><td>{l.libelle}</td>
+              <td className="num chiffres">{m(l.debit)}</td><td className="num chiffres">{m(l.credit)}</td><td className="num chiffres">{m(l.solde)}</td></tr>)}
+            <tr><th scope="row" colSpan={4}>Total du compte {c.compte}</th><td className="num chiffres">{m(c.debit)}</td><td className="num chiffres">{m(c.credit)}</td><td className="num chiffres">{m(c.soldeFinal)}</td></tr>
+          </tbody>)}
+        </table></div>
+        <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={async () => telecharger(`grand-livre-${glCompte.compte}-${glCompte.r.au}`,
+          grandLivreXml(await enteteDoc(glCompte.r.du, glCompte.r.au), glCompte.r.comptes.map(versGl)))}>Exporter</button></div></>}
+      </Fiche>
       <Textes sources={[`Manuel Microfina++, p. ${analytique ? "140 : 18-2 Analytique" : "139 : 18-1 Générale"} ; capture ${titre} (Type de balance, Balance, Agence, Exercice, Date début période, Date fin période, Compte … à …, Niveau de rupture, Balance sans VIDAGE, Rechercher, Rein. les champs)`,
         "Registre S121-1 à S121-4, T13 : écritures définitives, en CDF ; 8 colonnes : solde d'ouverture, mouvements, cumuls, solde ; 6 colonnes sans les cumuls ; 4 colonnes : mouvements et solde ; Groupée : comptes regroupés au niveau de rupture (nombre de chiffres) ; « sans VIDAGE » écarte les écritures de clôture",
-        "PCCI § 3.2 et § 3.3 : comptabilité tenue en monnaie nationale ; balance générale des comptes"]} />
+        "PCCI § 3.2 et § 3.3 : comptabilité tenue en monnaie nationale ; balance générale des comptes",
+        "Registre T31 (demande du porteur, 21/11/2026) : un clic sur un compte ouvre son grand livre ; l'export suit le modèle de balance FPM et relie chaque compte à sa feuille de grand livre"]} />
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </section>
   );

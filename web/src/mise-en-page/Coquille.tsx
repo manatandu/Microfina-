@@ -18,7 +18,8 @@ export function Coquille() {
   const lieu = useLocation();
   // Téléphone : le menu d'accès rapide se replie derrière un bouton, pour que l'écran commence en haut de la page
   const [menuOuvert, setMenuOuvert] = useState(false);
-  useEffect(() => { setMenuOuvert(false); }, [lieu.pathname]);
+  const [aide, setAide] = useState(false);
+  useEffect(() => { setMenuOuvert(false); setAide(false); }, [lieu.pathname]);
   const { donnees } = useDonnees(async () => {
     const [u, ctx, j] = await Promise.all([api.session.courante(), api.referentiel.contexte(), api.journees.courante()]);
     if (u) definirMonnaies(ctx.devises, ctx.monnaies);   // devises et monnaies de S35 pour les guichets (registre S79-5)
@@ -53,7 +54,7 @@ export function Coquille() {
               <li role="menuitem" aria-disabled="true" className="muet">English · à venir</li>
             </ul>
           </details>
-          <span className="icone-inactive" title="Aide en ligne : à rédiger" aria-label="Aide en ligne, à rédiger">?</span>
+          <button type="button" className="sortir" title="Aide en ligne" aria-label="Aide en ligne" aria-expanded={aide} onClick={() => setAide((v) => !v)}>?</button>
           <button type="button" className="sortir" title="Se déconnecter" aria-label="Se déconnecter"
             onClick={async () => { await api.session.fermer(); nav("/connexion"); }}>{ICONES.sortie}</button>
         </div>
@@ -74,7 +75,8 @@ export function Coquille() {
             </details>
           ))}
         </aside>
-        <main className="page" id="contenu">{refuse ? <p className="attention">Droit manquant : {refuse.nom} (Administration &gt; Profil &gt; Assigner droit).</p> : <Outlet />}</main>
+        <main className="page" id="contenu">{aide && <AideEnLigne chemin={lieu.pathname} fermer={() => setAide(false)} />}
+          {refuse ? <p className="attention">Droit manquant : {refuse.nom} (Administration &gt; Profil &gt; Assigner droit).</p> : <Outlet />}</main>
       </div>
 
       <footer className="pied">
@@ -128,5 +130,29 @@ function MenuDeroulant({ menu, libelle }: { menu: Menu; libelle: string }) {
         ))}
       </div>
     </details>
+  );
+}
+
+/** Aide en ligne (manuel p. 14, article XXI : « on peut accéder à l'aide en ligne en cliquant sur l'icône d'aide de la barre des menus ») : l'écran ouvert,
+ *  son accès et son but (registre des écrans), puis la marche générale du manuel (p. 11 et 12, articles XIV à XVII). Registre T30. */
+function AideEnLigne({ chemin, fermer }: { chemin: string; fermer: () => void }) {
+  const e = ECRANS.find((x) => x.chemin === chemin);
+  return (
+    <section className="bloc pile aide-en-ligne" aria-label="Aide en ligne">
+      <h2>Aide en ligne{e ? ` : ${e.nom}` : ""}</h2>
+      {e ? <dl className="definitions"><dt>Accès</dt><dd>{e.acces}</dd><dt>À quoi sert l'écran</dt><dd>{e.but}</dd></dl>
+        : <p>Choisir un écran dans les menus ; l'aide montre alors son accès et son but.</p>}
+      <h3>Enregistrer une information</h3>
+      <ol><li>Utiliser les menus pour accéder à la page.</li><li>Renseigner toutes les zones obligatoires, marquées d'un astérisque (*).</li>
+        <li>Cliquer sur [Enregistrer].</li><li>Dans la boîte de confirmation, choisir [Oui].</li></ol>
+      <h3>Annuler la saisie</h3>
+      <p>[Annuler] ou [Effacer] vide les zones renseignées ; pendant une modification, la page se prépare pour un nouvel enregistrement.</p>
+      <h3>Modifier une donnée enregistrée</h3>
+      <ol><li>Cliquer sur la ligne dans la grille.</li><li>Ressaisir les informations erronées.</li><li>Cliquer sur [Modifier] ou [Enregistrer].</li><li>Confirmer par [Oui].</li></ol>
+      <h3>Supprimer une donnée enregistrée</h3>
+      <ol><li>Cliquer sur la ligne dans la grille.</li><li>Cliquer sur [Supprimer].</li><li>Confirmer par [Oui].</li></ol>
+      <p>Les suppressions sont logiques : la donnée n'apparaît plus, mais elle reste dans la base pour retracer l'historique.</p>
+      <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={fermer}>Fermer l'aide</button></div>
+    </section>
   );
 }

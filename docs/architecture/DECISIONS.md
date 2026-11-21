@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**842 décisions.** Solidité : 347 fortes (le manuel ou un texte répond), 418 moyennes (déduites d'un écran voisin ou d'une donnée), 77 faibles (notre choix, faute de mieux). Dans le code : 836 déjà en place, 6 à appliquer.
+**845 décisions.** Solidité : 349 fortes (le manuel ou un texte répond), 419 moyennes (déduites d'un écran voisin ou d'une donnée), 77 faibles (notre choix, faute de mieux). Dans le code : 839 déjà en place, 6 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -42,6 +42,8 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | T04-1 | Composant de la grille d'affichage (Toutes les grilles) | Une seule barre de pages pour tout le logiciel : boutons première page, page précédente, cinq numéros autour de la page affichée, page suivante, dernière page, au-dessus et au-dessous de la grille ; pages de 10 lignes ; les boutons sans objet sont grisés. Chaque grille de liste construite ensuite la reprend | Manuel : Manuel p. 9, figure des grilles (points 1 à 4) ; captures p. 54 et 55 (10 lignes par page) | forte | en place |
 | T04-2 | Filtre de colonne et Exporter, écran par écran (Toutes les grilles) | La capture de l'écran passe avant la figure générale de la p. 9 : une grille montrée sans case de filtre n'en a pas (S09, S11, S12, S13, S16, S18, S28, S30, S32, S34, S36, S40, S45, S47, S57, S65 à S68, S113) ; une grille montrée avec filtre l'a (S14 et sa famille, S44, S58). Les grilles de nos écrans complémentaires, sans capture, suivent la règle générale de la p. 9 : un filtre sous chaque colonne de texte (centrale des incidents, comptes inactifs, examen renforcé, personnes exposées, profils de risque, gel des avoirs, journal de sécurité, opérations atypiques, détail du compte au guichet). Le bouton Exporter (Export) n'est mis que là où la capture le montre (S13, S30, listes du crédit p. 33 à 36, plan comptable, localisation, rapports) | Manuel : Manuel p. 9, figure des grilles (point 4) ; captures p. 19, 21, 22, 23, 24 à 26, 42, 44, 46, 52, 55, 56, 65, 76, 77, 130 | forte | en place |
 | T29 | Qui gère les profils, les droits et les utilisateurs (tout le logiciel) | Un profil de départ « ADMINISTRATEUR SÉCURITÉ » tient seul la gestion des accès : profils (S03), droits (S04), utilisateurs (S05), profils des utilisateurs (S06), connexions (S07) et journal de sécurité (SA01). Le chef d'agence ne les a plus. Un profil qui gère les accès ne porte aucun droit d'opération, et le logiciel refuse de les mélanger. Personne ne change son propre profil (S06). Microfina++ laisse les noms de profils libres (p. 15 : exemple AUDITEUR) ; l'institution désigne la personne | Texte réglementaire : Instr. BCC 008, art. 16 (responsable de la sécurité informatique, fonction indépendante de l'exploitation ; à défaut, la fonction de gestion des risques ; gestion des accès maîtrisée) et art. 66 (séparation des tâches incompatibles) | forte | en place |
+| T30 | Aide en ligne (tout le logiciel) | Le bouton « ? » de la barre des menus ouvre l'aide de l'écran affiché : son accès et son but (registre des écrans), puis la marche générale du manuel (enregistrer, annuler, modifier, supprimer ; suppression logique). Le contenu détaillé écran par écran reste à écrire | Manuel : Manuel p. 14 (article XXI) et p. 11 et 12 (articles XIV à XVII) | moyenne | en place |
+| T31 | Balance reliée au grand livre ; modèles des documents comptables (tout le logiciel) | À l'écran Balance, un clic sur un compte ouvre le grand livre de ce compte (et de ses sous-comptes en balance groupée), pour la même période, exportable. L'export de la balance suit le modèle FPM (Sage 100 : en-tête, six colonnes, totaux des comptes de bilan, de gestion et de la balance) et relie chaque compte à sa feuille de grand livre au modèle CARRIGRES (solde d'ouverture, Date, C.j, N° pièce, Libellé, Mouvements, Solde progressif, Total du compte), avec un retour à la balance. Documents neutres, noir sur blanc | Choix du porteur : Demande du porteur, 21/11/2026 ; modèles des dossiers FPM et CARRIGRES (structure seule) | forte | en place |
 
 ## S03 Profils : création et modification
 
@@ -1872,6 +1874,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S140-1 | Cinq rapports | Liste des biens par localisation (période), liste des inventaires, simulation du tableau d'amortissement, état de suivi (affectation, transfert, libération), recherche multicritère ; Exporter | Manuel : Captures p. 7 à 9 | forte | en place |
 | S140-2 | Rechercher | Sur une période, à une date fixe, jusqu'à une date fixe (ou sur un exercice pour le suivi) ; éléments de la recherche des captures | Manuel : Captures p. 7 à 9 | moyenne | en place |
 | S140-3 | Droits de départ | Le comptable tient les données de base, les biens, les mouvements, les amortissements et les rapports | Écran voisin : T07 | moyenne | en place |
+
+## S122 États financiers
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S122-13 | Exporter la liasse | Bouton « Exporter la liasse » : garde, bilan actif et passif (N, N-1, variation, comptes), hors bilan, compte de résultat, tableau de flux (PCCI 14.3, N et N-1), notes (crédits, dépôts, avoirs, emprunts), cartouche du PCCI (dénomination, sigle, n° d'agrément) ; charte des liasses sycebnl et syscohada ; montants en francs | Choix du porteur : Demande du porteur, 20/11/2026 ; PCCI, chap. 14 ; skill liasse-pcci (charte) | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

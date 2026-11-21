@@ -396,6 +396,8 @@ button, summary, [role="tab"] { -webkit-user-select: none; user-select: none; }
 .cadre-champs > legend.sr-only { float: none; width: 1px; height: 1px; padding: 0; margin: 0; border: 0; }   /* légende pour lecteur d'écran : invisible, sans largeur */
 .ligne-choix { cursor: pointer; }
 .ligne-choix:focus-visible { outline: 2px solid var(--tampon); outline-offset: -2px; }
+button.lien { all: unset; cursor: pointer; font: inherit; color: var(--encre); text-decoration: underline; text-underline-offset: 2px; }
+button.lien:focus-visible { outline: 2px solid var(--tampon); outline-offset: 2px; }
 @media (hover: hover) and (pointer: fine) { .ligne-choix:hover, .grille tbody tr.ligne-choix:hover td { background: var(--tampon-pale); } }
 .contrat { display: grid; gap: var(--espace-2); font-size: var(--taille-dense); }
 .contrat h3 { text-align: center; margin: 0 0 var(--espace-3); }

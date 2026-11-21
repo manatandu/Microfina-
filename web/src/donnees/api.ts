@@ -5502,7 +5502,7 @@ function referentiel(o: OptionsReferentiel) {
 // de clôture des comptes de gestion, analytique = détail par compte auxiliaire. Registre S120-1 à S120-4, S121-1 à S121-4. ----------
 const TYPES_GRAND_LIVRE: Record<string, string> = { global: "Global", ...Object.fromEntries([0, 1, 2, 3, 4, 5, 6, 7].map((n) => [`classe${n}`, `Classe ${n}`])) };
 const TYPES_BALANCE: Record<string, string> = { "8": "Balance à 8 colonnes", "6": "Balance à 6 colonnes", "4": "Balance à 4 colonnes" };
-type CriteresEtat = { du?: string; au?: string; exercice?: number | string; type?: string; agenceId?: number | null; vidage?: boolean; sansVidage?: boolean; balance?: string;
+type CriteresEtat = { du?: string; au?: string; exercice?: number | string; type?: string; agenceId?: number | null; vidage?: boolean; sansVidage?: boolean; balance?: string; compte?: string;
   compteDe?: string; compteA?: string; niveau?: number | string | null };
 function periodeEtat(p: CriteresEtat) {
   for (const [v, nom] of [[p.du, "Date début"], [p.au, "Date fin"]] as const) if (!DATE_ISO.test(v ?? "")) throw new ErreurMetier(`À remplir : ${nom}.`);
@@ -7190,9 +7190,11 @@ const etatsCompta = {
     if (!TYPES_GRAND_LIVRE[t]) throw new ErreurMetier("Type de grand livre inconnu.");
     type C = { compte: string; intitule: string; auxiliaire: string; soldeInitial: number; lignes: { date: string; journal: string; piece: string; reference: string; libelle: string; debit: number; credit: number; solde: number }[];
       debit: number; credit: number; soldeFinal: number };
-    const comptes = new Map<string, C>();
+    const comptes = new Map<string, C>(), prefixe = (p.compte ?? "").trim();   // compte cliqué dans la balance (demande du porteur, 21/11/2026 ; registre T31)
+    if (prefixe && !/^\d+$/.test(prefixe)) throw new ErreurMetier("Compte : chiffres seulement.");
     for (const m of mouvementsDefinitifs(au, !!p.vidage)) {
       if (t !== "global" && m.compte[0] !== t.at(-1)) continue;
+      if (prefixe && !m.compte.startsWith(prefixe)) continue;
       if ("67".includes(m.compte[0]!) && Number(m.date.slice(0, 4)) !== ex) continue;
       const aux = analytique ? m.auxiliaire : "", k = `${m.compte}\u0000${aux}`;
       const c = comptes.get(k) ?? { compte: m.compte, intitule: m.intitule, auxiliaire: aux, soldeInitial: 0, lignes: [], debit: 0, credit: 0, soldeFinal: 0 }; comptes.set(k, c);

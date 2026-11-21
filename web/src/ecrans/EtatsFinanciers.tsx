@@ -8,6 +8,7 @@ import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
+import { liasseXml, telecharger } from "../lib/liasse";
 import { decimal } from "@design/montant.js";
 import { Attention, Champ, ChampDate, Chargement, Dialogue, Lecture, Textes, type Boite } from "../composants";
 
@@ -234,9 +235,37 @@ export function EtatsFinanciers() {
   if (!cadre) return <Chargement />;
   const jour = cadre.j?.date ?? new Date().toISOString().slice(0, 10);
   return <><h1>Etats financiers</h1>
+    <ExportLiasse jour={jour} />
     <div className="onglets" role="tablist" aria-label="Etats financiers">{PAGES.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={page === k} onClick={() => setParams(k === "bilan" ? {} : { page: k })}>{l}</button>)}</div>
     {page === "bilan" && <EditionBilan ctx={cadre.ctx} jour={jour} />}{page === "hors-bilan" && <EditionHorsBilan ctx={cadre.ctx} jour={jour} />}
     {page === "resultat" && <EditionResultat ctx={cadre.ctx} jour={jour} />}{page === "annexe" && <EditionAnnexes ctx={cadre.ctx} jour={jour} />}</>;
+}
+
+/** Exporter la liasse : bilan, hors bilan, compte de résultat, tableau de flux et notes de l'exercice, dans un classeur Excel aux couleurs des liasses
+ *  sycebnl et syscohada (demande du porteur, 20/11/2026 ; registre S122-13). Du 1er janvier de l'exercice à la date choisie ; écritures définitives (T13). */
+function ExportLiasse({ jour }: { jour: string }) {
+  const [au, setAu] = useState(jour);
+  const [boite, setBoite] = useState<Boite | null>(null);
+  async function exporter() {
+    try {
+      const ex = au.slice(0, 4), base = { du: `${ex}-01-01`, au, exercice: ex, type: "developpe", agenceId: null, compteDe: "", compteA: "", sansVidage: true };
+      const [ctx, bilan, horsBilan, resultat, flux] = await Promise.all([api.referentiel.contexte(), api.etatsFinanciers.bilan(base),
+        api.etatsFinanciers.horsBilan({ ...base, compteDe: "0", compteA: "09999999" }), api.etatsFinanciers.resultat(base), api.etatsFinanciers.annexe({ ...base, annexe: "flux" })]);
+      const annexes = [];
+      for (const code of ["credits", "depots", "avoirs", "emprunts"]) {
+        const a = await api.etatsFinanciers.annexe({ ...base, annexe: code });
+        if (a.forme === "ventilation") annexes.push({ titre: a.titre, sections: a.sections });
+      }
+      const i = ctx.institution;
+      telecharger(`liasse-pcci-${au}`, liasseXml({ institution: i.nom, sigle: i.sigle ?? "", agrement: i.numeroAgrement ?? "", adresse: [i.rue, i.quartier, i.commune, i.ville].filter(Boolean).join(", "),
+        du: base.du, au, exercice: Number(ex) }, { bilan, horsBilan, resultat, flux: { lignes: flux.forme === "flux" ? flux.lignes : [] }, annexes }));
+    } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+  }
+  return <div className="actions-onglets">
+    <ChampDate libelle="Liasse au :" valeur={au} onChange={setAu} />
+    <button className="bouton secondaire" type="button" onClick={exporter}>Exporter la liasse</button>
+    <Dialogue boite={boite} fermer={() => setBoite(null)} />
+  </div>;
 }
 
 /** S123 : « Edition des indicateurs financiers » : Exercice, Indicateur, Mois ; Date début période et Date fin période s'en déduisent */

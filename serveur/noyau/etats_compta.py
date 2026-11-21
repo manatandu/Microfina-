@@ -69,9 +69,14 @@ def grand_livre(u, p, analytique: bool = False) -> dict:
     if t not in TYPES_GRAND_LIVRE:
         raise ErreurMetier("Type de grand livre inconnu.")
     agence = int(p["agenceId"]) if str(p.get("agenceId") or "").isdigit() else None
+    prefixe = str(p.get("compte") or "").strip()          # compte cliqué dans la balance (demande du porteur, 21/11/2026 ; registre T31)
+    if prefixe and not prefixe.isdigit():
+        raise ErreurMetier("Compte : chiffres seulement.")
     comptes: dict = {}
     for m in mouvements(u, au, vidage=str(p.get("vidage")) in ("True", "true", "1"), agence_id=agence):
         if t != "global" and m["compte"][0] != t[-1]:
+            continue
+        if prefixe and not m["compte"].startswith(prefixe):
             continue
         if m["compte"][0] in "67" and m["date_valeur"].year != ex:
             continue

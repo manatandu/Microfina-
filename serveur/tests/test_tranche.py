@@ -4449,3 +4449,15 @@ def test_immobilisations(clients, journee):
     assert [x["dotation"] for x in sim] == [400000, 240000, 144000, 108000, 108000]
     assert clients["caisse"].get("/api/immobilisations/biens", **H).status_code == 403
     assert balance_equilibree(compta)
+
+
+def test_balance_vers_grand_livre(clients, journee):
+    """Registre T31 (demande du porteur, 21/11/2026) : le grand livre d'un compte cliqué dans la balance, et seulement de ce compte (ou de ses sous-comptes)"""
+    compta = clients["compta"]
+    comptabiliser_journee(clients, journee)
+    q = {"du": "2026-01-01", "au": "2026-11-05", "exercice": 2026, "type": "global"}
+    tout = compta.get("/api/comptabilite/grand-livre", q, **H).json()["comptes"]
+    assert len({c["compte"][:2] for c in tout}) > 1
+    seul = compta.get("/api/comptabilite/grand-livre", {**q, "compte": "57"}, **H).json()["comptes"]
+    assert seul and all(c["compte"].startswith("57") for c in seul)
+    assert "chiffres" in compta.get("/api/comptabilite/grand-livre", {**q, "compte": "5x"}, **H).json()["message"]
