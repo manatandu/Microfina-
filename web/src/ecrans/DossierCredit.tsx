@@ -83,7 +83,9 @@ export function DemandeCredit() {
             <Champ libelle="Région (province) *">{(pp) => <select {...pp} className="saisie" value={f.province} onChange={(ev) => maj({ province: ev.target.value, ville: "" })}>
               <option value=""></option>{ctx.provinces.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>
             <Champ libelle="Préfecture (ville ou territoire) *">{(pp) => <select {...pp} className="saisie" value={f.ville} onChange={(ev) => maj({ ville: ev.target.value })}>
-              <option value=""></option>{ctx.villes.filter((v) => String(v.provinceId) === f.province).map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>
+              <option value=""></option>
+              {(["Ville", "Territoire"] as const).map((nat) => <optgroup key={nat} label={nat === "Ville" ? "Villes" : "Territoires"}>   {/* registre S20-8 */}
+                {ctx.villes.filter((v) => String(v.provinceId) === f.province && (v.nature || "Ville") === nat).map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</optgroup>)}</select>}</Champ>
             <Effectifs e={r} maj={setR} prefixe="Ressaisir : " />
           </fieldset>
           {t?.type === "groupe" && <fieldset className="cadre-champs formulaire">

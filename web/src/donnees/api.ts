@@ -2948,7 +2948,7 @@ const dossiers = {
         montantMax: Number(p.montantMax) * 100, dureeMin: Number(p.dureeMin), dureeMax: Number(p.dureeMax) })),
       cycles: stockCredit("cycles").filter((c) => c.actif !== false).map((c) => ({ id: c.id, code: String(c.code ?? ""), libelle: String(c.libelle ?? "") })),
       provinces: E.lieux.filter((l) => l.niveau === "province" && l.actif).map((l) => ({ id: l.id, nom: l.nom })).sort((a, b) => a.nom.localeCompare(b.nom)),
-      villes: E.lieux.filter((l) => l.niveau === "ville" && l.actif).map((l) => ({ id: l.id, provinceId: l.parentId, nom: l.nom })).sort((a, b) => a.nom.localeCompare(b.nom)),
+      villes: E.lieux.filter((l) => l.niveau === "ville" && l.actif).map((l) => ({ id: l.id, provinceId: l.parentId, nom: l.nom, nature: l.nature || "Ville" })).sort((a, b) => a.nom.localeCompare(b.nom)),   // nature : registre S20-8
       fondsPropres: fondsPropresActuels(), coopec: estCoopec() };
   },
   fondsPropres() { exiger(); return fondsPropresActuels(); },
@@ -9022,13 +9022,17 @@ function localites() {
   const ids = (l: LigneLieu[]) => new Set(l.map((x) => x.id));
   return a.filter((p) => p.niveau === "pays").sort((x, y) => x.nom.localeCompare(y.nom)).map((p) => ({
     pays: p.nom,
-    villes: enfants(ids(enfants(new Set([p.id]), "province")), "ville").sort((x, y) => x.nom.localeCompare(y.nom)).map((v) => ({
-      ville: v.nom, quartiers: enfants(ids(enfants(new Set([v.id]), "commune")), "quartier").map((q) => q.nom).sort((x, y) => x.localeCompare(y)),
+    // Une ville et un territoire du même nom (ville et territoire de Buta, registre S20-8) font une seule entrée : la fiche garde le nom
+    villes: [...enfants(ids(enfants(new Set([p.id]), "province")), "ville").reduce((m, v) => m.set(v.nom, [...(m.get(v.nom) ?? []), v.id]), new Map<string, number[]>())]
+      .sort(([x], [y]) => x.localeCompare(y)).map(([nom, vids]) => ({
+      ville: nom, quartiers: enfants(ids(enfants(new Set(vids), "commune")), "quartier").map((q) => q.nom).sort((x, y) => x.localeCompare(y)),
       // communes de la ville et leurs quartiers (demande du porteur du 13/11/2026 pour Information société)
-      communes: enfants(new Set([v.id]), "commune").map((c) => ({ commune: c.nom, quartiers: enfants(new Set([c.id]), "quartier").map((q) => q.nom).sort((x, y) => x.localeCompare(y)) })) })),
+      communes: enfants(new Set(vids), "commune").map((c) => ({ commune: c.nom, quartiers: enfants(new Set([c.id]), "quartier").map((q) => q.nom).sort((x, y) => x.localeCompare(y)) })) })),
   }));
 }
 export type LieuVue = Omit<LigneLieu, "actif"> & { ascendants: Partial<Record<NiveauLieu, { id: number; nom: string }>> };
+/** Onglet Ville / Territoire : nature du lieu (décision du porteur du 21/11/2026, registre S20-8) ; mêmes valeurs que noyau/localisation.py */
+export const NATURES_LIEU = ["Ville", "Territoire"];
 const localisation = {
   lire(niveau: string) {
     exiger();
@@ -9040,10 +9044,11 @@ const localisation = {
       for (let r = l.parentId === null ? undefined : parId.get(l.parentId); r; r = r.parentId === null ? undefined : parId.get(r.parentId)) ascendants[r.niveau] = { id: r.id, nom: r.nom };
       return { ...l, ascendants };
     });
-    return { onglets: ONGLETS_LIEUX, niveau, zones: ZONES_PAYS, lignes, lieux: tous.map(({ actif: _a, ...l }) => l) };
+    return { onglets: ONGLETS_LIEUX, niveau, zones: ZONES_PAYS, natures: NATURES_LIEU, lignes, lieux: tous.map(({ actif: _a, ...l }) => l) };
   },
-  /** Enregistrer (sans id) ou Modifier (id). Tous les parents obligatoires ; un nom une seule fois sous le même parent (registre S20-2) */
-  enregistrer(niveau: string, d: { parentId?: number | null; nom: string; nationalite?: string; code?: string; zone?: string }, id?: number) {
+  /** Enregistrer (sans id) ou Modifier (id). Tous les parents obligatoires ; un nom une seule fois sous le même parent (registre S20-2), et sur l'onglet
+   * Ville / Territoire une fois par nature : une ville et un territoire peuvent porter le même nom (registre S20-8) */
+  enregistrer(niveau: string, d: { parentId?: number | null; nom: string; nature?: string; nationalite?: string; code?: string; zone?: string }, id?: number) {
     exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
     const o = ongletLieu(niveau); const rang = NIVEAUX.indexOf(o.niveau);
     const nom = d.nom?.trim() ?? ""; const t = (x?: string) => x?.trim() ?? "";
@@ -9052,15 +9057,18 @@ const localisation = {
     if (rang && parentId === null) manque.push(ONGLETS_LIEUX[rang - 1]!.libelle);
     if (!nom) manque.push(o.libelle);
     if (niveau === "pays") for (const [n, v] of [["Nationalite", d.nationalite], ["Code", d.code], ["Zone", d.zone]] as const) if (!t(v)) manque.push(n);
+    const nature = niveau === "ville" ? t(d.nature) : "";
+    if (niveau === "ville" && !nature) manque.push("Nature");
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
     const actuel = id === undefined ? undefined : E.lieux.find((l) => l.id === id && l.niveau === niveau && l.actif);
     if (id !== undefined && !actuel) throw new ErreurMetier("Ligne introuvable.");
     if (rang && !E.lieux.some((l) => l.id === parentId && l.niveau === NIVEAUX[rang - 1] && l.actif)) throw new ErreurMetier(`${ONGLETS_LIEUX[rang - 1]!.libelle} inconnu.`);
     if (niveau === "pays" && !ZONES_PAYS.includes(t(d.zone))) throw new ErreurMetier("Zone inconnue.");
-    if (E.lieux.some((l) => l.actif && l.niveau === niveau && l.parentId === parentId && l.nom.toLowerCase() === nom.toLowerCase() && l.id !== id))
+    if (niveau === "ville" && !NATURES_LIEU.includes(nature)) throw new ErreurMetier("Nature inconnue.");
+    if (E.lieux.some((l) => l.actif && l.niveau === niveau && l.parentId === parentId && l.nom.toLowerCase() === nom.toLowerCase() && (l.nature ?? "") === nature && l.id !== id))
       throw new ErreurMetier(`Ce ${o.libelle.toLowerCase()} existe déjà.`);
     if (niveau === "pays" && E.lieux.some((l) => l.actif && l.niveau === "pays" && l.code.toUpperCase() === t(d.code).toUpperCase() && l.id !== id)) throw new ErreurMetier("Ce code existe déjà.");
-    const v = { parentId, nom, nationalite: niveau === "pays" ? t(d.nationalite) : "", code: niveau === "pays" ? t(d.code).toUpperCase() : "", zone: niveau === "pays" ? t(d.zone) : "" };
+    const v = { parentId, nom, nature, nationalite: niveau === "pays" ? t(d.nationalite) : "", code: niveau === "pays" ? t(d.code).toUpperCase() : "", zone: niveau === "pays" ? t(d.zone) : "" };
     if (actuel) Object.assign(actuel, v); else E.lieux.push({ id: prochain(E.lieux), niveau: o.niveau, actif: true, ...v });
     enregistrer(); return localisation.lire(niveau);
   },

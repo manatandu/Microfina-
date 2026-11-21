@@ -1319,7 +1319,8 @@ def test_graine_complete_une_base_existante():
     nb = lambda niveau: valeur("select count(*) from localite where niveau = %s", (niveau,))
     assert (nb("province"), nb("commune")) == (26, 24)
     assert valeur("""select count(*) from localite t join localite p on p.id = t.parent_id where t.niveau = 'ville' and p.niveau = 'province'""") == 175
-    assert valeur("select count(*) from localite where niveau = 'ville' and nom like %s", ("%(territoire)",)) == 10
+    assert valeur("select count(*) from localite where niveau = 'ville' and nature = 'Territoire'") == 145
+    assert valeur("select count(*) from localite where niveau = 'ville' and nom like %s", ("%(%",)) == 0
 
 
 def test_exemples_du_site_publie():
@@ -1353,7 +1354,10 @@ def test_localisation(clients):
     assert "existe déjà" in refus("province", {"parentId": rdc["id"], "nom": "nord-kivu"})
     nk = next(x for x in pr["lignes"] if x["nom"] == "Nord-Kivu")
     assert "Ville ou territoire inconnu" in refus("commune", {"parentId": nk["id"], "nom": "Butembo"})           # une commune se rattache à une ville ou un territoire
-    v = chef.post(f"{L}/ville", {"parentId": nk["id"], "nom": "Butembo"}, **H).json()["lignes"]
+    assert "Nature" in refus("ville", {"parentId": nk["id"], "nom": "Butembo"})                              # Ville ou Territoire (registre S20-8)
+    assert "existe déjà" in refus("ville", {"parentId": nk["id"], "nom": "Beni", "nature": "Territoire"})
+    assert chef.post(f"{L}/ville", {"parentId": nk["id"], "nom": "Beni", "nature": "Ville"}, **H).status_code == 200   # la ville de Beni, à côté du territoire
+    v = chef.post(f"{L}/ville", {"parentId": nk["id"], "nom": "Butembo", "nature": "Ville"}, **H).json()["lignes"]
     goma = next(x for x in v if x["nom"] == "Butembo")
     assert goma["ascendants"]["province"]["nom"] == "Nord-Kivu" and goma["ascendants"]["pays"]["nom"] == "République démocratique du Congo"
     c = next(x for x in chef.post(f"{L}/commune", {"parentId": goma["id"], "nom": "Bulengera"}, **H).json()["lignes"] if x["nom"] == "Bulengera")

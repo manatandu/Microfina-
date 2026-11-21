@@ -7,7 +7,6 @@
   "Arrêté ministériel n° 002/CAB/MN/PTT/K/2000 (code postal) : villes déjà villes en 2000 ; graphies vérifiées avec les ordonnances sur les tribunaux de paix",
   "Arrêté provincial de Kinshasa n° 017/CAB/MIN.PROV/FIN.ECO/2023 du 7 décembre 2023, art. 13 : les 24 communes de Kinshasa"
  ],
- "regle": "Un territoire qui porte le nom d'une ville de la même province est suivi de « (territoire) ».",
  "provinces": [
   {
    "nom": "Bas-Uele",
@@ -20,7 +19,7 @@
     "Ango",
     "Bambesa",
     "Bondo",
-    "Buta (territoire)",
+    "Buta",
     "Poko"
    ]
   },
@@ -65,7 +64,7 @@
    "territoires": [
     "Bukama",
     "Kabongo",
-    "Kamina (territoire)",
+    "Kamina",
     "Kaniama",
     "Malemba-Nkulu"
    ]
@@ -171,7 +170,7 @@
     "Feshi",
     "Kahemba",
     "Kasongo-Lunda",
-    "Kenge (territoire)",
+    "Kenge",
     "Popokabaka"
    ]
   },
@@ -197,7 +196,7 @@
     "Kabinda"
    ],
    "territoires": [
-    "Kabinda (territoire)",
+    "Kabinda",
     "Kamiji",
     "Lubao",
     "Mwene-Ditu",
@@ -226,7 +225,7 @@
    ],
    "territoires": [
     "Bolobo",
-    "Inongo (territoire)",
+    "Inongo",
     "Kiri",
     "Kutu",
     "Kwamouth",
@@ -260,7 +259,7 @@
    "territoires": [
     "Bongandanga",
     "Bumba",
-    "Lisala (territoire)"
+    "Lisala"
    ]
   },
   {
@@ -303,7 +302,7 @@
     "Lodja",
     "Lomela",
     "Lubefu",
-    "Lusambo (territoire)"
+    "Lusambo"
    ]
   },
   {
@@ -332,7 +331,7 @@
    ],
    "territoires": [
     "Budjala",
-    "Gemena (territoire)",
+    "Gemena",
     "Kungu",
     "Libenge"
    ]
@@ -345,7 +344,7 @@
    ],
    "territoires": [
     "Kabalo",
-    "Kalemie (territoire)",
+    "Kalemie",
     "Kongolo",
     "Manono",
     "Moba",
@@ -376,7 +375,7 @@
    ],
    "territoires": [
     "Befale",
-    "Boende (territoire)",
+    "Boende",
     "Bokungu",
     "Djolu",
     "Ikela",
@@ -417,5 +416,6 @@
     ]
    }
   }
- ]
+ ],
+ "nature": "Les villes ont la nature Ville, les territoires la nature Territoire (registre S20-8) : une ville et un territoire peuvent porter le même nom."
 }

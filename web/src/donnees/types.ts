@@ -479,7 +479,7 @@ export type LigneBudget = Record<string, unknown> & { id: number; actif: boolean
 
 /** S20 : un lieu de Localisation (pays, province, ville ou territoire, commune / secteur / chefferie, quartier ou groupement) */
 export type NiveauLieu = "pays" | "province" | "ville" | "commune" | "quartier";
-export interface LigneLieu { id: number; parentId: number | null; niveau: NiveauLieu; nom: string; nationalite: string; code: string; zone: string; actif: boolean }
+export interface LigneLieu { id: number; parentId: number | null; niveau: NiveauLieu; nom: string; nature?: string; nationalite: string; code: string; zone: string; actif: boolean }   // nature : Ville ou Territoire (registre S20-8)
 
 /** S27 : produit d'épargne (manuel p. 40) ; montants en unités mineures */
 export interface ProduitEpargne extends Produit {

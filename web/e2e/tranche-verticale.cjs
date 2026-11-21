@@ -77,7 +77,7 @@ const OUT = process.argv[2];
   // Chef : localisation (S20, p. 30 à 32), découpage de la RDC : une ville sous sa province
   await aller('/parametrage/s20'); await p.getByRole('tab', { name: 'Ville / Territoire' }).click(); await p.getByLabel('Ville ou territoire : *').waitFor();
   await p.getByLabel('Pays : *').selectOption({ label: 'République démocratique du Congo' }); await p.getByLabel('Province : *').selectOption({ label: 'Nord-Kivu' });
-  await p.getByLabel('Ville ou territoire : *').fill('Butembo'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByLabel('Ville ou territoire : *').fill('Butembo'); await p.getByLabel('Nature : *').selectOption('Ville'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   // 26 provinces, leurs villes et leurs 145 territoires (registre S20-6) : la liste est paginée, la ville se retrouve par le filtre de la colonne
   await p.getByLabel('Filtrer Ville ou territoire').fill('Butembo'); await p.locator('tbody').getByRole('cell', { name: 'Butembo' }).waitFor(); await etape('02f7-localisation-ville');
   await p.getByRole('tab', { name: 'Quartier / Groupement' }).click(); await p.getByRole('cell', { name: 'Kinsaku' }).waitFor(); await etape('02f8-localisation-quartier');
@@ -1244,16 +1244,18 @@ const OUT = process.argv[2];
   // Comptable : paie (S131 à S135, manuel p. 269 à 278)
   await aller('/paie/s131'); await p.getByRole('heading', { name: "Création et mise à jour d'allocations familiales" }).waitFor(); await etape('31a-paie-donnees-base');
   const listePaie = (nom) => p.getByRole('navigation', { name: 'Traitement de la paie' }).getByRole('button', { name: nom }).click();
+  // Les listes de la graine (décret SMIG : 17 classes, 17 lignes de grille) passent la page de dix lignes : la valeur ajoutée est sur la dernière page
+  const dernierePage = async () => { const b = p.getByRole('button', { name: 'Dernière page' }); if (await b.count() && await b.isEnabled()) await b.click(); };
   await listePaie('Catégorie Classe et Echelon'); await p.getByRole('tab', { name: 'Catégorie' }).waitFor();
   for (const [onglet, v, titre] of [['Catégorie', 'A', 'Création et mise-à-jour des catégories de paie'], ['Classe', 'I', 'Création et mise à jour des Classes'],
     ['Echelon', 'INDEF', 'Création et mise à jour des Echelons']]) {
     await p.getByRole('tab', { name: onglet }).click(); await p.getByRole('heading', { name: titre }).waitFor(); await p.getByLabel('Libellé *').fill(v); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-    await p.getByRole('cell', { name: v, exact: true }).waitFor();
+    await dernierePage(); await p.getByRole('cell', { name: v, exact: true }).waitFor();
   }
   await etape('31b-categorie-classe-echelon');
   await listePaie('Grille salariale'); await p.getByRole('heading', { name: 'Création et mise à jour de grilles salariales' }).waitFor(); await p.getByLabel('Classe *').selectOption({ label: 'I' }); await p.getByLabel('Catégorie *').selectOption({ label: 'A' });
   await p.getByLabel('Echelon *').selectOption({ label: '1' }); await p.getByLabel('Salaire', { exact: true }).fill('250000'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  await p.getByRole('cell', { name: '250000' }).waitFor(); await etape('31c-grille-salariale');
+  await dernierePage(); await p.getByRole('cell', { name: '250000' }).waitFor(); await etape('31c-grille-salariale');
   await listePaie('Type de retenue'); await p.getByRole('heading', { name: 'Création et mise à jour des types de retenue' }).waitFor(); await p.getByLabel('Libellé *').fill('Acompte sur salaire'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await aller('/paie/s133'); await p.getByRole('heading', { name: "Enregistrement d'un employé" }).waitFor();
   await p.getByLabel('Matricule : *').fill('EMP/001/26'); await p.getByLabel('Sexe : *').selectOption('Féminin'); await p.getByLabel('Civilité : *').selectOption('Madame');
@@ -1292,7 +1294,7 @@ const OUT = process.argv[2];
   await p.getByLabel('Utilisation *').selectOption({ label: 'ENT ENTREPRISE' }); await p.getByLabel('Localisation *').selectOption({ label: '10.DG.01 Bureau Directeur Général' });
   await p.getByLabel('Montant TTC *').fill('1000000'); await p.getByLabel('Date mise en service *').fill('15072026'); await etape('32c-creation-bien');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  await p.getByRole('button', { name: 'Tableau amortissement' }).click(); await p.getByRole('dialog', { name: 'Tableau amortissement' }).getByRole('cell', { name: '166 667' }).first().waitFor();
+  await p.getByRole('button', { name: 'Tableau amortissement' }).click(); await p.getByRole('dialog', { name: 'Tableau amortissement' }).getByRole('cell', { name: '143 678' }).first().waitFor();   // base hors TVA : 1 000 000 / 1,16 (utilisation ENT, TVA 16 %)
   await etape('32d-tableau-amortissement'); await p.keyboard.press('Escape');
   await aller('/immobilisations/s139'); await p.getByRole('button', { name: 'Rechercher un bien' }).click(); await p.getByRole('dialog', { name: 'Liste des biens' }).getByRole('cell', { name: 'MAB-001' }).click();
   await p.getByLabel('Exercice: *').selectOption('2026'); await etape('32e-amortissement'); await p.getByRole('button', { name: 'Exécuter' }).click(); await oui();

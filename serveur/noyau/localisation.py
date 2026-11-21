@@ -14,6 +14,7 @@ ONGLETS = {
     "quartier": {"onglet": "Quartier / Groupement", "libelle": "Quartier ou groupement", "colonne": "Quartier ou groupement"},
 }
 ZONES = ["Afrique", "Amérique", "Asie", "Europe", "Océanie"]      # registre S20-3
+NATURES = ["Ville", "Territoire"]       # onglet Ville / Territoire : décision du porteur du 21/11/2026 (registre S20-8) ; Constitution, art. 3
 
 
 def droit(u):
@@ -27,7 +28,7 @@ def niveau_de(n: str) -> str:
 
 
 def actifs() -> list[dict]:
-    return lignes("""select id, parent_id as "parentId", niveau, nom, nationalite, code, zone from localite where actif order by id""")
+    return lignes("""select id, parent_id as "parentId", niveau, nom, nature, nationalite, code, zone from localite where actif order by id""")
 
 
 def lire(u, niveau: str) -> dict:
@@ -47,11 +48,12 @@ def lire(u, niveau: str) -> dict:
         if r["niveau"] == niveau:
             c = chaine(r)
             rangs.append({**r, "ascendants": {k: {"id": v["id"], "nom": v["nom"]} for k, v in c.items() if k != niveau}})
-    return {"onglets": [{"niveau": k, **v} for k, v in ONGLETS.items()], "niveau": niveau, "zones": ZONES, "lignes": rangs, "lieux": tous}
+    return {"onglets": [{"niveau": k, **v} for k, v in ONGLETS.items()], "niveau": niveau, "zones": ZONES, "natures": NATURES, "lignes": rangs, "lieux": tous}
 
 
 def enregistrer(u, niveau: str, d, lid: int | None = None) -> dict:
-    """Enregistrer (sans lid) ou Modifier (lid). Tous les parents sont obligatoires ; un nom ne figure qu'une fois sous le même parent (registre S20-2)."""
+    """Enregistrer (sans lid) ou Modifier (lid). Tous les parents sont obligatoires ; un nom ne figure qu'une fois sous le même parent (registre S20-2),
+    et, sur l'onglet Ville / Territoire, une fois par nature : une ville et un territoire peuvent porter le même nom (registre S20-8)."""
     droit(u)
     niveau_de(niveau)
     d = d if isinstance(d, dict) else {}
@@ -63,6 +65,9 @@ def enregistrer(u, niveau: str, d, lid: int | None = None) -> dict:
         manque.append(ONGLETS[niveau]["libelle"])
     if niveau == "pays":
         manque += [n for n, k in (("Nationalite", "nationalite"), ("Code", "code"), ("Zone", "zone")) if not texte(k)]
+    nature = texte("nature") if niveau == "ville" else ""
+    if niveau == "ville" and not nature:
+        manque.append("Nature")
     if manque:
         raise ErreurMetier("À remplir : " + ", ".join(manque) + ".")
     if lid is not None and not une("select 1 from localite where id = %s and niveau = %s and actif for update", (lid, niveau)):
@@ -71,16 +76,18 @@ def enregistrer(u, niveau: str, d, lid: int | None = None) -> dict:
         raise ErreurMetier(f"{ONGLETS[NIVEAUX[rang - 1]]['libelle']} inconnu.")
     if niveau == "pays" and texte("zone") not in ZONES:
         raise ErreurMetier("Zone inconnue.")
-    if une("""select 1 from localite where niveau = %s and parent_id is not distinct from %s and lower(nom) = lower(%s) and actif and id is distinct from %s""",
-           (niveau, parent, nom, lid)):
+    if niveau == "ville" and nature not in NATURES:
+        raise ErreurMetier("Nature inconnue.")
+    if une("""select 1 from localite where niveau = %s and parent_id is not distinct from %s and lower(nom) = lower(%s) and nature = %s and actif
+              and id is distinct from %s""", (niveau, parent, nom, nature, lid)):
         raise ErreurMetier(f"Ce {ONGLETS[niveau]['libelle'].lower()} existe déjà.")
     if niveau == "pays" and une("select 1 from localite where niveau = 'pays' and upper(code) = upper(%s) and actif and id is distinct from %s", (texte("code"), lid)):
         raise ErreurMetier("Ce code existe déjà.")
     extra = (texte("nationalite"), texte("code").upper(), texte("zone")) if niveau == "pays" else ("", "", "")
     if lid is None:
-        executer("insert into localite (parent_id, niveau, nom, nationalite, code, zone) values (%s, %s, %s, %s, %s, %s)", (parent, niveau, nom, *extra))
+        executer("insert into localite (parent_id, niveau, nom, nature, nationalite, code, zone) values (%s, %s, %s, %s, %s, %s, %s)", (parent, niveau, nom, nature, *extra))
     else:
-        executer("update localite set parent_id = %s, nom = %s, nationalite = %s, code = %s, zone = %s where id = %s", (parent, nom, *extra, lid))
+        executer("update localite set parent_id = %s, nom = %s, nature = %s, nationalite = %s, code = %s, zone = %s where id = %s", (parent, nom, nature, *extra, lid))
     return lire(u, niveau)
 
 

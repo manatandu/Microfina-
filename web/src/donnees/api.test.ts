@@ -2693,7 +2693,10 @@ describe("journée de guichet", () => {
     await expect(api.localisation.enregistrer("province", { parentId: rdc.id, nom: "nord-kivu" })).rejects.toThrow("existe déjà");
     const nk = pr.lignes.find((x) => x.nom === "Nord-Kivu")!;
     await expect(api.localisation.enregistrer("commune", { parentId: nk.id, nom: "Butembo" })).rejects.toThrow("Ville ou territoire inconnu");
-    const goma = (await api.localisation.enregistrer("ville", { parentId: nk.id, nom: "Butembo" })).lignes.find((x) => x.nom === "Butembo")!;
+    await expect(api.localisation.enregistrer("ville", { parentId: nk.id, nom: "Butembo" })).rejects.toThrow("Nature");     // Ville ou Territoire (registre S20-8)
+    await expect(api.localisation.enregistrer("ville", { parentId: nk.id, nom: "Beni", nature: "Territoire" })).rejects.toThrow("existe déjà");
+    await api.localisation.enregistrer("ville", { parentId: nk.id, nom: "Beni", nature: "Ville" });                             // la ville de Beni, à côté du territoire
+    const goma = (await api.localisation.enregistrer("ville", { parentId: nk.id, nom: "Butembo", nature: "Ville" })).lignes.find((x) => x.nom === "Butembo")!;
     expect([goma.ascendants.province?.nom, goma.ascendants.pays?.nom]).toEqual(["Nord-Kivu", "République démocratique du Congo"]);
     const c = (await api.localisation.enregistrer("commune", { parentId: goma.id, nom: "Bulengera" })).lignes.find((x) => x.nom === "Bulengera")!;
     await expect(api.localisation.supprimer("ville", goma.id)).rejects.toThrow("rattachés");

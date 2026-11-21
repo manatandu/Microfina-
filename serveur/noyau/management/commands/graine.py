@@ -143,11 +143,12 @@ def completer_lieux() -> int:
     d = json.loads(chemin.read_text(encoding="utf-8"))
     ajouts = 0
 
-    def lieu(parent, niveau, nom):
+    def lieu(parent, niveau, nom, nature=""):
         nonlocal ajouts
-        i = valeur("""select id from localite where niveau = %s and lower(nom) = lower(%s) and parent_id is not distinct from %s""", (niveau, nom, parent))
+        i = valeur("""select id from localite where niveau = %s and lower(nom) = lower(%s) and parent_id is not distinct from %s and nature = %s""",
+                   (niveau, nom, parent, nature))
         if i is None:
-            i = valeur("insert into localite (parent_id, niveau, nom) values (%s, %s, %s) returning id", (parent, niveau, nom))
+            i = valeur("insert into localite (parent_id, niveau, nom, nature) values (%s, %s, %s, %s) returning id", (parent, niveau, nom, nature))
             ajouts += 1
         return i
 
@@ -156,10 +157,12 @@ def completer_lieux() -> int:
         return 0
     for p in d["provinces"]:
         pr = lieu(pays, "province", p["nom"])
-        for v in p.get("villes", []) + p.get("territoires", []):
-            lieu(pr, "ville", v)
+        for v in p.get("villes", []):
+            lieu(pr, "ville", v, "Ville")
+        for t in p.get("territoires", []):
+            lieu(pr, "ville", t, "Territoire")          # nature du lieu : registre S20-8
         for v, communes in p.get("communes", {}).items():
-            vi = lieu(pr, "ville", v)
+            vi = lieu(pr, "ville", v, "Ville")
             for c in communes:
                 lieu(vi, "commune", c)
     return ajouts
@@ -181,7 +184,7 @@ class Command(BaseCommand):
         # Localisation (S20) : la ville de Kinshasa et les 25 provinces (Constitution, art. 2) ; communes et quartier de démonstration
         pays = valeur("insert into localite (niveau, nom, nationalite, code, zone) values ('pays', 'République démocratique du Congo', 'Congolaise', 'CD', 'Afrique') returning id")
         provinces = {pr: valeur("insert into localite (parent_id, niveau, nom) values (%s, 'province', %s) returning id", (pays, pr)) for pr in PROVINCES_RDC}
-        ville = valeur("insert into localite (parent_id, niveau, nom) values (%s, 'ville', 'Kinshasa') returning id", (provinces["Kinshasa"],))
+        ville = valeur("insert into localite (parent_id, niveau, nom, nature) values (%s, 'ville', 'Kinshasa', 'Ville') returning id", (provinces["Kinshasa"],))
         matete = valeur("insert into localite (parent_id, niveau, nom) values (%s, 'commune', 'Matete') returning id", (ville,))
         executer("insert into localite (parent_id, niveau, nom) values (%s, 'commune', 'Lemba')", (ville,))
         executer("insert into localite (parent_id, niveau, nom) values (%s, 'quartier', 'Kinsaku')", (matete,))

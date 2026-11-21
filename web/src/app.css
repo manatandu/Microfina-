@@ -453,6 +453,8 @@ textarea.saisie.montant { resize: none; text-align: end; }
 .champs-a-gauche .champ { grid-template-columns: var(--col-libelle, 10.5rem) minmax(0, 1fr); align-items: baseline; column-gap: var(--espace-3); }   /* v1.0 : une seule largeur */
 .champs-a-gauche .champ > label { font-weight: 400; }
 .champs-a-gauche .champ .saisie, .champs-a-gauche .champ .saisie.code { inline-size: 100%; }
+/* Localisation : les lieux au-dessus (Pays, Province…) prennent toute la largeur, même vides, comme la case du nom (Rafraichir reste au bout de Pays) */
+.ligne-champ.ligne-parent > .champ { flex: 1 1 auto; }
 /* S15 (capture p. 24) : éléments à gauche, flèches, Ordre des éléments, Générer et Enregistrer à droite */
 .numerotation { display: grid; grid-template-columns: minmax(0, 22rem) auto minmax(0, 18rem) auto; gap: var(--espace-4); align-items: start; }
 @media (max-width: 900px) { .numerotation { grid-template-columns: minmax(0, 1fr); } }

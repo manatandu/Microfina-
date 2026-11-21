@@ -1314,11 +1314,15 @@ def localites() -> list[dict]:
     enfants = lambda pids, niveau: [r for r in rows if r["parent_id"] in pids and r["niveau"] == niveau]
     ids = lambda l: {r["id"] for r in l}
     # communes : la ville, puis ses communes (secteurs ou chefferies) et leurs quartiers (demande du porteur du 13/11/2026 pour Information société)
-    return [{"pays": p["nom"], "villes": [{"ville": v["nom"], "quartiers": sorted(q["nom"] for q in enfants(ids(enfants({v["id"]}, "commune")), "quartier")),
-                                           "communes": [{"commune": c["nom"], "quartiers": sorted(q["nom"] for q in enfants({c["id"]}, "quartier"))}
-                                                        for c in enfants({v["id"]}, "commune")]}
-                                          for v in enfants(ids(enfants({p["id"]}, "province")), "ville")]}
-            for p in rows if p["niveau"] == "pays" and p["parent_id"] is None]
+    def villes(p):
+        """Une ville et un territoire du même nom (ville et territoire de Buta, registre S20-8) font une seule entrée : la fiche garde le nom"""
+        par_nom = {}
+        for v in enfants(ids(enfants({p["id"]}, "province")), "ville"):
+            par_nom.setdefault(v["nom"], set()).add(v["id"])
+        return [{"ville": nom, "quartiers": sorted(q["nom"] for q in enfants(ids(enfants(vids, "commune")), "quartier")),
+                 "communes": [{"commune": c["nom"], "quartiers": sorted(q["nom"] for q in enfants({c["id"]}, "quartier"))} for c in enfants(vids, "commune")]}
+                for nom, vids in par_nom.items()]
+    return [{"pays": p["nom"], "villes": villes(p)} for p in rows if p["niveau"] == "pays" and p["parent_id"] is None]
 
 
 def prospects(u: dict) -> list[dict]:

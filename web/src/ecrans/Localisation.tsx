@@ -7,8 +7,8 @@ import { exporterExcel } from "../lib/excel";
 import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 
 const NIVEAUX = ONGLETS_LIEUX.map((o) => o.niveau);
-type Saisie = { nom: string; nationalite: string; code: string; zone: string; parents: Partial<Record<NiveauLieu, number>> };
-const VIDE: Saisie = { nom: "", nationalite: "", code: "", zone: "", parents: {} };
+type Saisie = { nom: string; nature: string; nationalite: string; code: string; zone: string; parents: Partial<Record<NiveauLieu, number>> };
+const VIDE: Saisie = { nom: "", nature: "", nationalite: "", code: "", zone: "", parents: {} };
 
 /** S20 : Info de base > Localisation > Information de base (manuel Microfina++, p. 30 à 32). Les cinq onglets de Microfina++ prennent le
  * découpage de la RDC à la demande du porteur (registre S20-1) : Constitution, art. 2 et 3 ; Décret 22/07 du 02/03/2022, art. 9, point 26. */
@@ -45,23 +45,29 @@ function Onglet({ niveau }: { niveau: NiveauLieu }) {
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   } });
   const parentsDe = NIVEAUX.slice(0, rang);
-  const envoi = () => ({ nom: f.nom, nationalite: f.nationalite, code: f.code, zone: f.zone, parentId: rang ? f.parents[NIVEAUX[rang - 1]!] ?? null : null });
+  // Un seul pays (la RDC) : il est choisi d'office sur chaque onglet et sa colonne ne se répète pas dans la grille (décision du porteur du 21/11/2026, registre S20-7)
+  const pays = donnees.lieux.filter((l) => l.niveau === "pays");
+  const seulPays = pays.length === 1 ? pays[0]!.id : undefined;
+  const P: Saisie["parents"] = rang && seulPays !== undefined && f.parents.pays === undefined ? { ...f.parents, pays: seulPays } : f.parents;
+  const envoi = () => ({ nom: f.nom, nature: f.nature, nationalite: f.nationalite, code: f.code, zone: f.zone, parentId: rang ? P[NIVEAUX[rang - 1]!] ?? null : null });
   const choisir = (l: LieuVue) => {
     setChoisi(l.id);
-    setF({ nom: l.nom, nationalite: l.nationalite, code: l.code, zone: l.zone, parents: Object.fromEntries(Object.entries(l.ascendants).map(([k, v]) => [k, v!.id])) });
+    setF({ nom: l.nom, nature: l.nature ?? "", nationalite: l.nationalite, code: l.code, zone: l.zone, parents: Object.fromEntries(Object.entries(l.ascendants).map(([k, v]) => [k, v!.id])) });
   };
   // Colonnes : le lieu de l'onglet puis ses ascendants, du plus proche au pays (captures p. 31 et 32)
   const colonnes: { titre: string; valeur: (l: LieuVue) => string }[] = niveau === "pays"
     ? [{ titre: "Pays", valeur: (l) => l.nom }, { titre: "Nationalite", valeur: (l) => l.nationalite }, { titre: "Code", valeur: (l) => l.code }]
-    : [{ titre: o.colonne, valeur: (l) => l.nom }, ...[...parentsDe].reverse().map((n) => ({ titre: ONGLETS_LIEUX.find((x) => x.niveau === n)!.colonne, valeur: (l: LieuVue) => l.ascendants[n]?.nom ?? "" }))];
+    : [{ titre: o.colonne, valeur: (l) => l.nom }, ...(niveau === "ville" ? [{ titre: "Nature", valeur: (l: LieuVue) => l.nature ?? "" }] : []),
+      ...[...parentsDe].reverse().filter((n) => !(n === "pays" && seulPays !== undefined))
+        .map((n) => ({ titre: ONGLETS_LIEUX.find((x) => x.niveau === n)!.colonne, valeur: (l: LieuVue) => l.ascendants[n]?.nom ?? "" }))];
   const lignes = (donnees.lignes as LieuVue[]).filter((l) => colonnes.every((c) => !filtres[c.titre]?.trim() || c.valeur(l).toLowerCase().includes(filtres[c.titre]!.trim().toLowerCase())));
   const choixParent = (n: NiveauLieu, i: number) => {
-    const au_dessus = i ? f.parents[NIVEAUX[i - 1]!] : undefined;
+    const au_dessus = i ? P[NIVEAUX[i - 1]!] : undefined;
     return donnees.lieux.filter((l) => l.niveau === n && (i === 0 || l.parentId === au_dessus)).sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
   };
   const changerParent = (n: NiveauLieu, i: number, v: string) => {
     const parents: Saisie["parents"] = {};
-    for (const k of NIVEAUX.slice(0, i)) parents[k] = f.parents[k];
+    for (const k of NIVEAUX.slice(0, i)) parents[k] = P[k];
     if (v) parents[n] = Number(v);
     setF({ ...f, parents });
   };
@@ -77,15 +83,21 @@ function Onglet({ niveau }: { niveau: NiveauLieu }) {
       </div>
       <fieldset className="pile cadre-champs champs-a-gauche">
         {parentsDe.map((n, i) => (
-          <div key={n} className="ligne-champ">
+          <div key={n} className="ligne-champ ligne-parent">
             <Champ libelle={`${ONGLETS_LIEUX[i]!.libelle} : *`}>{(p) => (
-              <select {...p} className="saisie" value={f.parents[n] ?? ""} onChange={(e) => changerParent(n, i, e.target.value)}>
-                <option value=""></option>{choixParent(n, i).map((l) => <option key={l.id} value={l.id}>{l.nom}</option>)}
+              <select {...p} className="saisie" value={P[n] ?? ""} onChange={(e) => changerParent(n, i, e.target.value)}>
+                <option value=""></option>
+                {n === "ville"     // villes et territoires séparés : une ville et un territoire peuvent porter le même nom (registre S20-8)
+                  ? donnees.natures.map((nat) => <optgroup key={nat} label={nat === "Ville" ? "Villes" : "Territoires"}>
+                    {choixParent(n, i).filter((l) => (l.nature || "Ville") === nat).map((l) => <option key={l.id} value={l.id}>{l.nom}</option>)}</optgroup>)
+                  : choixParent(n, i).map((l) => <option key={l.id} value={l.id}>{l.nom}</option>)}
               </select>)}</Champ>
             {niveau === "province" && <button className="bouton secondaire" type="button" onClick={() => setRelu((x) => x + 1)}>Rafraichir</button>}
           </div>
         ))}
         <Champ libelle={`${o.libelle} : *`}>{(p) => <input {...p} className="saisie" {...texte("nom")} />}</Champ>
+        {niveau === "ville" && <Champ libelle="Nature : *">{(p) => <select {...p} className="saisie" value={f.nature} onChange={(e) => setF({ ...f, nature: e.target.value })}>
+          <option value=""></option>{donnees.natures.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>}
         {niveau === "pays" && <>
           <Champ libelle="Nationalite : *">{(p) => <input {...p} className="saisie" {...texte("nationalite")} />}</Champ>
           <Champ libelle="Code : *">{(p) => <input {...p} className="saisie code" {...texte("code")} />}</Champ>

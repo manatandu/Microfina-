@@ -47,7 +47,7 @@ def contexte(u) -> dict:
                          for p in lignes("select * from produit_credit where institution_id = %s and actif order by numero", (i,))],
             "cycles": lignes("select id, code, libelle from credit_cycle where institution_id = %s and actif order by code", (i,)),
             "provinces": lignes("select id, nom from localite where niveau = 'province' and actif order by nom"),
-            "villes": lignes("select id, parent_id as \"provinceId\", nom from localite where niveau = 'ville' and actif order by nom"),
+            "villes": lignes("select id, parent_id as \"provinceId\", nom, nature from localite where niveau = 'ville' and actif order by nom"),   # nature : registre S20-8
             "fondsPropres": fonds_propres(u), "coopec": est_coopec(u)}
 
 
