@@ -697,6 +697,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "refTiers.supprimer": [
 "S103"
 ],
+"registreMembres.reporter": [
+"SC04"
+],
 "releves.editer": [
 "S64"
 ],
@@ -764,6 +767,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 ],
 "tiers.modifierProspect": [
 "S45"
+],
+"tiers.refuser": [
+"S40"
 ],
 "tiers.resilier": [
 "S48"

@@ -4862,10 +4862,22 @@ const registreMembres = {
     // Écart E19 : parts à rembourser aux membres partis, dans l'année qui suit la prise d'effet du retrait (AUSCOOP, art. 11 ; loi 002/2002, art. 27)
     const jour = jourConformite(), vp = valeurPart();
     const aRembourser = membres.filter((x) => x.sortieLe && x.partsLiberees > 0).map((x) => {
-      const echeance = `${Number(x.sortieLe.slice(0, 4)) + 1}${x.sortieLe.slice(4) === "-02-29" ? "-02-28" : x.sortieLe.slice(4)}`;
-      return { tiersId: x.tiersId, numero: x.numero, nom: [x.nom, x.prenom].filter(Boolean).join(" "), sortieLe: x.sortieLe, parts: x.partsLiberees, montant: Math.round(x.partsLiberees * vp), echeance, enRetard: jour > echeance };
+      // P10 : un an, ou deux ans sur décision motivée du Conseil d'administration (AUSCOOP, art. 11, al. 3 et 5)
+      const rep = E.tiers.find((t) => t.id === x.tiersId)?.reportPartsReference ?? "", n = rep ? 2 : 1;
+      const echeance = `${Number(x.sortieLe.slice(0, 4)) + n}${x.sortieLe.slice(4) === "-02-29" ? "-02-28" : x.sortieLe.slice(4)}`;
+      return { tiersId: x.tiersId, numero: x.numero, nom: [x.nom, x.prenom].filter(Boolean).join(" "), sortieLe: x.sortieLe, parts: x.partsLiberees, montant: Math.round(x.partsLiberees * vp), echeance,
+        enRetard: jour > echeance, reportReference: rep };
     });
     return { entete: enteteDocument(), membres, aRembourser };
+  },
+  /** P10 : décision motivée qui porte le délai à deux ans (AUSCOOP, art. 11, al. 5). Comme le serveur (registre_membres.reporter). */
+  reporter(tid: number, d: { reference?: string; date?: string }) {
+    exiger();
+    const t = E.tiers.find((x) => x.id === tid);
+    if (!t || t.statut !== "resilie") throw new ErreurMetier("Seules les parts d'un membre parti se reportent.");
+    if (t.reportPartsReference) throw new ErreurMetier("Report déjà décidé.");
+    if (!(d.reference ?? "").trim() || !DATE.test(d.date ?? "")) throw new ErreurMetier("À remplir : référence et date de la décision motivée du Conseil d'administration (AUSCOOP, art. 11, al. 5).");
+    Object.assign(t, { reportPartsReference: d.reference!.trim(), reportPartsLe: d.date }); enregistrer(); return registreMembres.membres();
   },
 };
 // Écart E11 : comptes inactifs (loi 22/069, titre III, chap. Ier : dix ans sans opération ni réclamation ; lettre six mois avant ; fonds versés à la BCC). Mêmes règles que noyau/inactifs.py.

@@ -82,7 +82,8 @@ export interface Tiers {
   numero: string;
   statut: "prospect" | "a_viser" | "actif" | "modifie_a_revalider" | "resilie" | "refuse";   // refuse : A5, refus motivé
   refusMotif?: string; refuseLe?: string;
-  exclusionReference?: string; exclusionLe?: string;   // P1 : exclusion décidée par le Conseil d'administration (loi 002/2002, art. 25)
+  exclusionReference?: string; exclusionLe?: string;
+  reportPartsReference?: string; reportPartsLe?: string;   // P10 : remboursement des parts porté à deux ans (AUSCOOP, art. 11, al. 5)   // P1 : exclusion décidée par le Conseil d'administration (loi 002/2002, art. 25)
   nom: string;
   postnom: string;
   prenom: string;

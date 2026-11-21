@@ -486,6 +486,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
     },
     registreMembres: {
       membres: () => get("/clients/registre-membres"),
+      reporter: (tid: number, d: object) => post(`/clients/registre-membres/${tid}/report`, d),
     },
     inactifs: {
       comptes: (statut = "") => get(`/epargne/inactifs?statut=${statut}`),

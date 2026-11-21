@@ -3478,6 +3478,11 @@ def test_parts_a_rembourser_et_auxiliaires(clients, journee):
     r = chef.get("/api/clients/registre-membres", **H).json()["aRembourser"]
     k = next(x for x in r if x["numero"] == "0412-000320")
     assert (k["parts"], k["sortieLe"], k["echeance"], k["enRetard"]) == (1, "2025-10-01", "2026-10-01", True)
+    # P10 : report à deux ans par décision motivée du Conseil d'administration (AUSCOOP, art. 11, al. 5)
+    assert "décision motivée" in chef.post(f"/api/clients/registre-membres/{k['tiersId']}/report", {"reference": ""}, **H).json()["message"]
+    r = chef.post(f"/api/clients/registre-membres/{k['tiersId']}/report", {"reference": "CA du 20/09/2026, résolution 4 : trésorerie tendue", "date": "2026-09-20"}, **H).json()
+    k = next(x for x in r["aRembourser"] if x["numero"] == "0412-000320")
+    assert (k["echeance"], k["enRetard"], k["reportReference"]) == ("2027-10-01", False, "CA du 20/09/2026, résolution 4 : trésorerie tendue")
     m = agent.post("/api/tiers", {**FICHE, "nom": "Tshibola", "prenom": "Junior", "naissance": "2011-05-01", "pieceType": "Passeport", "pieceNumero": "OP-100009",
                                   "pieceExpire": "2031-01-01", "adresse": "Matete"}, **H).json()
     assert "statuts le prévoient" in chef.post(f"/api/tiers/{m['id']}/visa", {"auxiliaire": True}, **H).json()["message"]
