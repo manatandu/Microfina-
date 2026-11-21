@@ -13,7 +13,8 @@ export interface Institution { nom: string; sigle?: string; profil: string;
   delegationAdmission?: string;
   membresAuxiliaires?: string;   // écart E20 : article des statuts qui prévoit des membres auxiliaires (loi 002/2002, art. 23)
   criteresAtypiques?: CriteresAtypiques }   // écart E09 : critères fixés par l'institution (Instr. BCC 15, art. 36)
-export interface CriteresAtypiques { montantUsd: number | null; montantEleveUsd: number | null; nombreJour: number | null; reveilMois: number | null }   // écart E05 : décision du Conseil qui délègue l'admission des membres
+export interface CriteresAtypiques { montantUsd: number | null; montantEleveUsd: number | null; nombreJour: number | null; reveilMois: number | null;
+  fractionnementUsd?: number | null }   // P7 : fractionnement (Instr. BCC 15, art. 36)   // écart E05 : décision du Conseil qui délègue l'admission des membres
 /** Une seule adresse, la même partout (décision du porteur du 21/11/2026, registre T41) : « rue » est l'avenue, « numeroRue » le N° */
 export interface Adresse { pays?: string; province?: string; ville?: string; commune?: string; quartier?: string; rue?: string; numeroRue?: string }
 export interface Agence extends Adresse { id: number; code: string; nom: string }

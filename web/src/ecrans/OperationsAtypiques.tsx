@@ -14,7 +14,9 @@ type Rapport = Awaited<ReturnType<typeof api.conformite.rapportAtypiques>>;
 const FILTRES = [["a_analyser", "À analyser"], ["analysee", "Analysées"], ["", "Toutes"]] as const;
 const STATUTS: Record<string, string> = { a_analyser: "À analyser", justifiee: "Justifiée", atypique: "Atypique" };
 const CRITERES = [["montantUsd", "Montant d'un mouvement égal ou supérieur à (USD) :"], ["montantEleveUsd", "Client à risque élevé, montant égal ou supérieur à (USD) :"],
-  ["nombreJour", "Nombre de mouvements d'un compte dans la journée, au moins :"], ["reveilMois", "Compte sans mouvement depuis (mois), au moins :"]] as const;
+  ["nombreJour", "Nombre de mouvements d'un compte dans la journée, au moins :"], ["reveilMois", "Compte sans mouvement depuis (mois), au moins :"],
+  // P7 (confrontation du 21/11/2026 ; Instr. BCC 15, art. 36) : plusieurs opérations d'un client dans la journée, chacune sous ce montant, dont le total l'atteint
+  ["fractionnementUsd", "Fractionnement : total de la journée d'un client, en opérations chacune plus petite, égal ou supérieur à (USD) :"]] as const;
 type Cle = (typeof CRITERES)[number][0];
 const usd = (v: number) => `${v.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`;
 

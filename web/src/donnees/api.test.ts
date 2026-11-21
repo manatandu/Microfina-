@@ -316,7 +316,7 @@ describe("journée de guichet", () => {
     await journeeOuverte(); await connecter("jpmukendi");
     expect(await api.conformite.atypiques("2026-01-01", "2026-11-05")).toEqual([]);   // aucun critère : rien n'est surveillé
     await expect(api.conformite.fixerCriteresAtypiques({ nombreJour: 1 })).rejects.toThrow("au moins 2");
-    expect(await api.conformite.fixerCriteresAtypiques({ montantUsd: "300", nombreJour: 2 })).toEqual({ montantUsd: 300, montantEleveUsd: null, nombreJour: 2, reveilMois: null });
+    expect(await api.conformite.fixerCriteresAtypiques({ montantUsd: "300", nombreJour: 2 })).toEqual({ montantUsd: 300, montantEleveUsd: null, nombreJour: 2, reveilMois: null, fractionnementUsd: null });
     await connecter("engalula");
     for (let i = 0; i < 2; i++) await api.guichet.depot({ cle: cle(), compteId: 2, montant: 1000000, coupures: { 10000: 1 } });
     await connecter("jpmukendi");

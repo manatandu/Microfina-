@@ -5085,7 +5085,7 @@ const listesGel = {
 };
 
 // Écart E09 : opérations atypiques (Instr. BCC 15, art. 30, 31, 34 à 36). Mêmes règles que noyau/atypiques.py.
-const SANS_CRITERE: CriteresAtypiques = { montantUsd: null, montantEleveUsd: null, nombreJour: null, reveilMois: null };
+const SANS_CRITERE: CriteresAtypiques = { montantUsd: null, montantEleveUsd: null, nombreJour: null, reveilMois: null, fractionnementUsd: null };
 const usdTexte = (v: number) => `${v.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/\u202f/g, " ")} USD`;
 const atypiques = {
   criteres(): CriteresAtypiques { lectureAdmin(["SC01"]); return { ...SANS_CRITERE, ...E.institution.criteresAtypiques }; },
@@ -5107,22 +5107,32 @@ const atypiques = {
     const c = { ...SANS_CRITERE, ...E.institution.criteresAtypiques };
     if (Object.values(c).every((v) => v === null)) return [];
     // la reprise des soldes (journal AN) n'est pas une opération (registre E09-4)
+    // P7 : tous les comptes et opérations des clients (Instr. BCC 15, art. 36) : dépôts, crédits et parts ; pas les opérations diverses de l'institution
     const mvts = E.ecritures.filter((e) => e.journal !== "AN").flatMap((e) => e.lignes.map((l, i) => ({ e, l, rang: i + 1 }))).flatMap(({ e, l, rang }) => {
-      const id = /^depot:(\d+)$/.exec(l.contrat ?? "")?.[1]; const cpt = id ? E.comptes.find((x) => x.id === Number(id)) : undefined;
-      const date = dateJournee(e.journeeId);
+      const ref = l.contrat ?? "", date = dateJournee(e.journeeId);
+      const dep = /^depot:(\d+)$/.exec(ref)?.[1], cred = /^credit:(\d+)$/.exec(ref)?.[1], part = /^parts:(\d+)$/.exec(ref)?.[1];
+      const c = dep ? E.comptes.find((x) => x.id === Number(dep)) : undefined, cr = cred && e.journal !== "OD" ? E.credits.find((x) => x.id === Number(cred)) : undefined;
+      const cpt = c ? { cle: ref, numero: c.numero, tiersId: c.tiersId } : cr ? { cle: ref, numero: `Crédit ${cr.numero}`, tiersId: cr.tiersId }
+        : part && e.journal !== "OD" && E.tiers.some((t) => t.id === Number(part)) ? { cle: ref, numero: "Parts sociales", tiersId: Number(part) } : undefined;
       return cpt && date <= au ? [{ ecritureId: e.id, rang, sens: l.sens, montant: l.montant, devise: l.devise, date, libelle: e.libelle, piece: e.piece, cpt }] : [];
-    }).sort((a, b) => a.cpt.id - b.cpt.id || a.date.localeCompare(b.date) || a.ecritureId - b.ecritureId || a.rang - b.rang);
+    }).sort((a, b) => a.cpt.cle.localeCompare(b.cpt.cle) || a.date.localeCompare(b.date) || a.ecritureId - b.ecritureId || a.rang - b.rang);
     const eleves = new Set(E.tiers.filter((t) => E.profilsRisque.filter((x) => x.tiersId === t.id).sort((a, b) => b.evalueLe.localeCompare(a.evalueLe) || b.id - a.id)[0]?.niveau === "eleve").map((t) => t.id));
-    const parJour = new Map<string, number>(); for (const m of mvts) parJour.set(`${m.cpt.id}|${m.date}`, (parJour.get(`${m.cpt.id}|${m.date}`) ?? 0) + 1);
-    const precedent = new Map<number, string>(); const sortie = [];
+    const parJour = new Map<string, number>(); for (const m of mvts) parJour.set(`${m.cpt.cle}|${m.date}`, (parJour.get(`${m.cpt.cle}|${m.date}`) ?? 0) + 1);
+    const fractions = new Map<string, { total: number; nb: number; sous: boolean }>();   // (client, jour, sens)
+    if (c.fractionnementUsd != null) for (const m of mvts) { const k = `${m.cpt.tiersId}|${m.date}|${m.sens}`, f = fractions.get(k) ?? { total: 0, nb: 0, sous: true }, x = enUsd(m.montant, m.devise);
+      fractions.set(k, { total: f.total + x, nb: f.nb + 1, sous: f.sous && x < c.fractionnementUsd }); }
+    const precedent = new Map<string, string>(); const sortie = [];
     for (const m of mvts) {
-      const avant = precedent.get(m.cpt.id); precedent.set(m.cpt.id, m.date);
+      const avant = precedent.get(m.cpt.cle); precedent.set(m.cpt.cle, m.date);
       if (m.date < du) continue;
       const usd = enUsd(m.montant, m.devise), motifs: string[] = [];
       if (c.montantUsd !== null && usd >= c.montantUsd) motifs.push(`Montant de ${usdTexte(c.montantUsd)} ou plus`);
       if (c.montantEleveUsd !== null && eleves.has(m.cpt.tiersId) && usd >= c.montantEleveUsd) motifs.push(`Client à risque élevé : ${usdTexte(c.montantEleveUsd)} ou plus`);
-      if (c.nombreJour !== null && (parJour.get(`${m.cpt.id}|${m.date}`) ?? 0) >= c.nombreJour) motifs.push(`${c.nombreJour} mouvements ou plus sur le compte dans la journée`);
+      if (c.nombreJour !== null && (parJour.get(`${m.cpt.cle}|${m.date}`) ?? 0) >= c.nombreJour) motifs.push(`${c.nombreJour} mouvements ou plus sur le compte dans la journée`);
       if (c.reveilMois !== null && avant && ajouterMois(avant, c.reveilMois) <= m.date) motifs.push(`Compte sans mouvement depuis ${c.reveilMois} mois ou plus`);
+      const fr_ = fractions.get(`${m.cpt.tiersId}|${m.date}|${m.sens}`);
+      if (c.fractionnementUsd != null && fr_ && fr_.nb >= 2 && fr_.sous && fr_.total >= c.fractionnementUsd)
+        motifs.push(`Fractionnement : ${fr_.nb} opérations du client dans la journée, chacune sous ${usdTexte(c.fractionnementUsd)}, ${usdTexte(fr_.total)} au total`);
       if (!motifs.length) continue;
       const cle = `${m.ecritureId}:${m.rang}`, a = E.analysesAtypiques.find((x) => x.cle === cle), t = E.tiers.find((x) => x.id === m.cpt.tiersId)!;
       const v = { cle, date: m.date, piece: m.piece, libelle: m.libelle, membre: t.numero, client: titulaire(t), compte: m.cpt.numero, devise: m.devise, sens: m.sens, montant: m.montant,

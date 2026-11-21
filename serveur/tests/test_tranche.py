@@ -3076,7 +3076,7 @@ def test_operations_atypiques(clients, journee):
     assert chef.get("/api/conformite/atypiques" + P, **H).json() == []                      # aucun critère fixé : rien n'est surveillé
     assert "au moins 2" in chef.post("/api/conformite/atypiques/criteres", {"nombreJour": 1}, **H).json()["message"]
     assert agent.post("/api/conformite/atypiques/criteres", {"montantUsd": 100}, **H).status_code == 403
-    assert chef.post("/api/conformite/atypiques/criteres", {"montantUsd": "300", "nombreJour": 2}, **H).json() == {"montantUsd": 300.0, "montantEleveUsd": None, "nombreJour": 2, "reveilMois": None}
+    assert chef.post("/api/conformite/atypiques/criteres", {"montantUsd": "300", "nombreJour": 2}, **H).json() == {"montantUsd": 300.0, "montantEleveUsd": None, "nombreJour": 2, "reveilMois": None, "fractionnementUsd": None}
     for _ in range(2):    # 10 000 CDF, deux fois : petits montants, deux mouvements du compte dans la journée
         assert caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}, "mandataire": ""}, **H).status_code == 200
     al = [x for x in chef.get("/api/conformite/atypiques" + P, **H).json() if x["compte"] == "0412-000318-02" and x["date"] == "2026-11-05"]
@@ -3092,6 +3092,13 @@ def test_operations_atypiques(clients, journee):
     r = chef.get("/api/conformite/atypiques/rapport" + P, **H).json()
     assert [x["reference"] for x in r["operations"]] == ["CENAREF-DOS-03"]
     assert all(x["statut"] != "a_analyser" for x in chef.get("/api/conformite/atypiques" + P + "&statut=analysee", **H).json())
+    # P7 : fractionnement (deux dépôts de 10 000 CDF, chacun sous 5 USD, 7 USD et plus au total) ; parts sociales surveillées aussi (Instr. BCC 15, art. 36)
+    chef.post("/api/conformite/atypiques/criteres", {"fractionnementUsd": "5"}, **H)
+    al = [x for x in chef.get("/api/conformite/atypiques" + P + "&statut=", **H).json() if x["compte"] == "0412-000318-02" and x["date"] == "2026-11-05"]
+    assert al and all("Fractionnement" in " ".join(x["criteres"]) for x in al if x["statut"] == "a_analyser"), al
+    chef.post("/api/conformite/atypiques/criteres", {"montantUsd": "0.01"}, **H)
+    assert caisse.post("/api/guichet/parts", {"cle": cle(), "tiersId": T("0412-000318"), "sens": "achat", "nombre": 1, "coupures": {"1000": 4}}, **H).status_code == 200
+    assert any(x["compte"] == "Parts sociales" for x in chef.get("/api/conformite/atypiques" + P + "&statut=", **H).json())
 
 
 def test_gel_des_avoirs(clients, journee):

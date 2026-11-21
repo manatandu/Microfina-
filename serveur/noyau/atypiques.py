@@ -8,7 +8,8 @@ from .bd import ErreurMetier, executer, lignes, une
 from .conformite import _jour
 from .services import en_usd, exiger, nom_utilisateur, titulaire
 
-CRITERES = (("montantUsd", "critere_montant_usd"), ("montantEleveUsd", "critere_montant_eleve_usd"), ("nombreJour", "critere_nombre_jour"), ("reveilMois", "critere_reveil_mois"))
+CRITERES = (("montantUsd", "critere_montant_usd"), ("montantEleveUsd", "critere_montant_eleve_usd"), ("nombreJour", "critere_nombre_jour"), ("reveilMois", "critere_reveil_mois"),
+            ("fractionnementUsd", "critere_fractionnement_usd"))   # P7 : fractionnement (confrontation du 21/11/2026)
 
 
 def _nombre(v) -> float | None:
@@ -63,18 +64,29 @@ def alertes(u: dict, du: str, au: str, statut: str = "a_analyser") -> list[dict]
     c = criteres(u)
     if all(v is None for v in c.values()):
         return []
+    # P7 : tous les comptes et opérations des clients (Instr. BCC 15, art. 36) : comptes de dépôt, crédits (déblocage et remboursements) et parts sociales.
+    # Les écritures des opérations diverses (provisions, intérêts courus) sont des écritures de l'institution, pas des opérations du client.
     mvts = lignes("""select l.ecriture_id, l.rang, l.sens, l.montant_devise as montant, trim(l.devise) as devise, j.date_comptable as date, e.libelle,
-                            coalesce(p.numero, '') as piece, cd.id as compte_id, cd.numero as compte, cd.tiers_id, t.numero as membre
+                            coalesce(p.numero, '') as piece, l.contrat_ref as compte_id, coalesce(cd.numero, 'Crédit ' || cr.numero, 'Parts sociales') as compte,
+                            t.id as tiers_id, t.numero as membre
                      from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join journee_comptable j on j.id = e.journee_id
                      join journal jl on jl.id = e.journal_id and jl.type <> 'a_nouveaux'      -- la reprise des soldes n'est pas une opération (registre E09-4)
                      left join piece p on p.id = e.piece_id
-                     join compte_depot cd on l.contrat_ref = 'depot:' || cd.id join tiers t on t.id = cd.tiers_id
+                     left join compte_depot cd on l.contrat_ref = 'depot:' || cd.id
+                     left join credit cr on l.contrat_ref = 'credit:' || cr.id and jl.type <> 'operations_diverses'
+                     left join tiers tp on l.contrat_ref = 'parts:' || tp.id and jl.type <> 'operations_diverses'
+                     join tiers t on t.id = coalesce(cd.tiers_id, cr.tiers_id, tp.id)
                      where e.institution_id = %s and j.date_comptable <= %s
-                     order by cd.id, j.date_comptable, e.id, l.rang""", (u["institution_id"], au))
+                     order by l.contrat_ref, j.date_comptable, e.id, l.rang""", (u["institution_id"], au))
     eleves = {r["tiers_id"] for r in lignes("""select distinct on (tiers_id) tiers_id, niveau from profil_risque order by tiers_id, evalue_le desc, id desc""") if r["niveau"] == "eleve"}
     par_jour = defaultdict(int)
+    fractions = defaultdict(lambda: [0.0, 0, True])    # (client, jour, sens) -> total USD, nombre, toutes sous le seuil
     for m in mvts:
         par_jour[(m["compte_id"], m["date"])] += 1
+        if c["fractionnementUsd"] is not None:
+            f = fractions[(m["tiers_id"], m["date"], m["sens"])]
+            u_ = en_usd(m["montant"], m["devise"])
+            f[0] += u_; f[1] += 1; f[2] = f[2] and u_ < c["fractionnementUsd"]
     analyses = {(a["ecriture_id"], a["rang"]): a for a in lignes("select * from analyse_atypique where institution_id = %s", (u["institution_id"],))}
     sortie, precedent = [], {}
     for m in mvts:
@@ -91,6 +103,10 @@ def alertes(u: dict, du: str, au: str, statut: str = "a_analyser") -> list[dict]
             motifs.append(f"{int(c['nombreJour'])} mouvements ou plus sur le compte dans la journée")
         if c["reveilMois"] is not None and avant and _ajouter_mois(avant, int(c["reveilMois"])) <= m["date"]:
             motifs.append(f"Compte sans mouvement depuis {int(c['reveilMois'])} mois ou plus")
+        if c["fractionnementUsd"] is not None:
+            tot, nb, sous = fractions[(m["tiers_id"], m["date"], m["sens"])]
+            if nb >= 2 and sous and tot >= c["fractionnementUsd"]:
+                motifs.append(f"Fractionnement : {nb} opérations du client dans la journée, chacune sous {_usd(c['fractionnementUsd'])}, {_usd(tot)} au total")
         if not motifs:
             continue
         a = analyses.get((m["ecriture_id"], m["rang"]))
