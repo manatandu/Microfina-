@@ -3819,12 +3819,20 @@ def test_virements_mensuels(clients, journee):
     pa = compta.post(f"{OC}/mensuel", {"cle": cle(), "mode": "prelevement", "compteInstitutionId": inst["id"], "lignes": [{"compteDepotId": emp["id"], "montant": 1500}]}, **H).json()
     assert (pa["type"], pa["credit"]) == ("prelevement_auto", 1500)
     assert next(x for x in comptes(autre) if x["id"] == emp["id"])["solde"] == emp["solde"] - 1500     # engagé (T21)
-    assert [x["id"] for x in compta.get(f"{OC}/visas/visa/virement", **H).json()] == [o["id"], pa["id"]]
-    for x in (o, pa):
+    # Salaire du personnel (registre S117-7) : du compte 421 de l'institution vers les comptes des employés
+    sp = {"cle": cle(), "mode": "personnel", "devise": "CDF", "total": 40000, "lignes": [{"compteDepotId": emp["id"], "montant": 40000}]}
+    assert "Salaire total" in refus({**sp, "total": 1})
+    assert "devise" in refus({**sp, "lignes": [{"compteDepotId": usd["id"], "montant": 40000}]})
+    ps = compta.post(f"{OC}/mensuel", sp, **H).json()
+    assert (ps["type"], ps["operation"], ps["credit"]) == ("salaire_personnel", "Salaire du personnel", 40000)
+    assert [x["id"] for x in compta.get(f"{OC}/visas/visa/virement", **H).json()] == [o["id"], pa["id"], ps["id"]]
+    avant421 = solde_compte("421")
+    for x in (o, pa, ps):
         viser_valider(clients, x["id"])
     comptabiliser_journee(clients, journee)
     assert next(x for x in comptes(kalala) if x["id"] == inst["id"])["solde"] == inst["solde"] - 60000 + 1500
-    assert next(x for x in comptes(autre) if x["id"] == emp["id"])["solde"] == emp["solde"] + 60000 - 1500
+    assert next(x for x in comptes(autre) if x["id"] == emp["id"])["solde"] == emp["solde"] + 60000 - 1500 + 40000
+    assert solde_compte("421") - avant421 == 40000
     assert balance_equilibree(compta)
 
 
@@ -4310,3 +4318,69 @@ def test_calculs_et_clotures(clients, journee):
     assert ident("select count(*) from periode where annee = 2026 and statut = 'cloturee'") == 12 and ident("select ouvert from exercice where annee = 2026") is False
     assert "déjà clôturé" in msg(compta.post(f"{A}/cloture/exercice", {"exercice": 2026}, **H))
     assert balance_equilibree(compta)
+
+
+def test_paie(clients, journee):
+    """Paie (manuel p. 269 à 278) : données de base (S131), grilles et états (S132), nouvel employé (S133), rubriques, maquette, liste (S134),
+    retenues mises en place puis visées par une autre personne (S135). Code du travail, art. 39 à 41 et 112."""
+    compta, chef, caisse = clients["compta"], clients["chef"], clients["caisse"]
+    R, RS, RR = "/api/referentiels/paie", "/api/referentiels/paie_structure", "/api/referentiels/paie_rubriques"
+    def ok(c, url, corps):
+        r = c.post(url, corps, **H); assert r.status_code == 200, r.content; return r.json()
+    msg = lambda c, url, corps: c.post(url, corps, **H).json()["message"]
+    ident_ = lambda r, k, v: next(x["id"] for x in r["lignes"] if x[k] == v)
+    a = ok(compta, f"{R}/categories", {"libelle": "A"})
+    assert [x["menu"] for x in a["catalogue"]][:3] == ["Allocation", "Bârème d'imposition", "Catégorie Classe et Echelon"] and a["catalogue"][3]["onglet"] == "Classe"
+    cat = ident_(a, "libelle", "A")
+    cla = ident_(ok(compta, f"{R}/classes", {"libelle": "I"}), "libelle", "I")
+    ech = ident_(ok(compta, f"{R}/echelons", {"libelle": "1"}), "libelle", "1")
+    assert "existe déjà" in msg(compta, f"{R}/categories", {"libelle": "a"})
+    g = ok(compta, f"{R}/grilles_salariales", {"classeId": cla, "categorieId": cat, "echelonId": ech, "salaire": "250000"})
+    assert g["lignes"][0]["affichage"]["categorieId"] == "A"
+    assert "Max" in msg(compta, f"{R}/baremes", {"min": "100", "max": "10", "taux": "3", "montantTcs": "0"})
+    assert "100 %" in msg(compta, f"{R}/allocations", {"nombrePersonne": "1", "taux": "120", "limiteAssurance": "0", "montant": "0"})
+    ok(compta, f"{R}/baremes", {"min": "0", "max": "162000", "taux": "3", "montantTcs": "0"})
+    fam = ident_(ok(compta, f"{R}/grandes_familles", {"libelle": "Salaire de base"}), "libelle", "Salaire de base")
+    gr = ident_(ok(compta, f"{R}/grandes_rubriques", {"code": "G01", "libelle": "Salaire catégoriel", "imposable": "Oui"}), "code", "G01")
+    assert "inconnu" in msg(compta, f"{R}/grandes_rubriques", {"code": "G02", "libelle": "X", "imposable": "Peut-être"})
+    ok(compta, f"{R}/types_heure_sup", {"code": "HS1", "libelle": "Heures de nuit", "taux": "30", "elementId": gr})
+    tg = ident_(ok(compta, f"{R}/types_grille", {"libelle": "Grille fiscale"}), "libelle", "Grille fiscale")
+    tr = ident_(ok(compta, f"{R}/types_retenue", {"libelle": "Avance sur salaire"}), "libelle", "Avance sur salaire")
+    assert "Grille salariale" in msg(compta, f"{R}/classes/{cla}/suppression", {})
+    # S132
+    gi = ident_(ok(compta, f"{RS}/grilles", {"libelle": "IPR", "typeGrilleId": tg}), "libelle", "IPR")
+    assert "Gestion des grilles" in msg(compta, f"{R}/types_grille/{tg}/suppression", {})
+    ok(compta, f"{RS}/etats", {"code": "E1", "titre": "BULLETIN", "description": "BULLETIN DE PAYE"})
+    # S134 : rubrique
+    rub = ident_(ok(compta, f"{RR}/rubriques", {"familleId": fam, "grandeRubriqueId": gr, "code": "R100", "libelle": "Salaire de base"}), "code", "R100")
+    # S133 : nouvel employé
+    E = {"matricule": "EMP/001/26", "sexe": "Féminin", "civilite": "Madame", "nom": "MUJINGA", "prenoms": "Rose", "dateNaissance": "1990-04-02",
+         "dateEmbauche": "2024-02-01", "situationMatrimoniale": "", "categorieId": cat, "classeId": cla, "echelonId": ech, "salairePredefini": "Régime catégoriel",
+         "salaireBase": 250000, "grilles": [gi], "poste": "Caissière", "fonction": "Guichet", "typeContrat": "Contrat à durée déterminée",
+         "dateDebutContrat": "2024-02-01", "dateFinContrat": "2026-01-31", "personnes": [{"nom": "MUJINGA", "prenoms": "Paul", "dateNaissance": "2018-05-01",
+                                                                                          "conjoint": False, "employe": False, "enfantPropre": True}], "personnesACharge": 1}
+    assert "Matricule" in msg(compta, "/api/paie/employes", {})
+    assert "art. 41" in msg(compta, "/api/paie/employes", {**E, "dateFinContrat": "2026-03-01"})
+    assert "art. 39" in msg(compta, "/api/paie/employes", {**E, "typeContrat": "Contrat à durée indéterminée"})
+    e = ok(compta, "/api/paie/employes", E)
+    assert (e["matricule"], e["grilles"], len(e["personnes"]), e["agenceId"] is not None) == ("EMP/001/26", [gi], 1, True)
+    assert "existe déjà" in msg(compta, "/api/paie/employes", {**E, "matricule": "emp/001/26"})
+    ok(compta, f"/api/paie/employes/{e['id']}", {**E, "typeContrat": "Contrat à durée indéterminée", "dateFinContrat": ""})
+    l = compta.get("/api/paie/employes", {"sexe": "Féminin"}, **H).json()
+    assert [(x["matricule"], x["categorieSalariale"], x["typeContrat"]) for x in l] == [("EMP/001/26", "A - I - 1", "Contrat à durée indéterminée")]
+    assert caisse.get("/api/paie/employes", **H).status_code == 403
+    ok(compta, f"{RS}/etats", {"code": "E2", "titre": "ETAT IRPP", "signataireId": e["id"]})
+    # S134 : maquette
+    assert "Session" in msg(compta, "/api/paie/maquette", {"employeId": e["id"], "rubriqueId": rub, "montant": 250000})
+    m = ok(compta, "/api/paie/maquette", {"employeId": e["id"], "rubriqueId": rub, "montant": 250000, "active": True, "permanente": True})
+    assert [(x["rubrique"], x["permanente"], x["session"]) for x in m] == [("R100 Salaire de base", True, "")]
+    assert "Maquette de paie" in msg(compta, f"{RR}/rubriques/{rub}/suppression", {})
+    assert ok(compta, f"/api/paie/maquette/{m[0]['id']}/suppression", {}) == []
+    # S135 : retenue mise en place par le comptable, visée par le chef
+    assert "Durée" in msg(compta, "/api/paie/retenues", {"employeId": e["id"], "typeId": tr, "session": "2026-11", "montant": 300000})
+    r = ok(compta, "/api/paie/retenues", {"employeId": e["id"], "typeId": tr, "session": "2026-11", "montant": 300000, "duree": 3})
+    assert (r["statut"], r["mensualite"]) == ("saisie", 100000)
+    assert "autre personne" in msg(compta, f"/api/paie/retenues/{r['id']}/visa", {})
+    assert ok(chef, f"/api/paie/retenues/{r['id']}/visa", {})["statut"] == "visee"
+    assert "déjà visée" in msg(chef, f"/api/paie/retenues/{r['id']}/visa", {})
+    assert [x["statut"] for x in compta.get("/api/paie/retenues", {"employeId": e["id"]}, **H).json()] == ["visee"]

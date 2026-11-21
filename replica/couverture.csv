@@ -115,8 +115,8 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 114,Visa et validation comptables dont retrait au-delà du plafond,comptabilité,must,yes,S113 S114,A,visa,8 Comptabilité,,,,,
 115,Journaux comptables,comptabilité,must,yes,S115,A,rapport,8 Comptabilité,,,,,
 116,Virement de compte à compte et opérations diverses,comptabilité,must,yes,S116,A,guichet,8 Comptabilité,,,,,
-117,Domiciliation de salaire,comptabilité,must,partial,S117,B,traitement,8 Comptabilité,S117 : salaire du personnel et prélèvement automatique : en panne dans le manuel,"A:domiciliation (p. 136), S53 ; D:paie S133 à S135 ; P",,,S117-1 Onglets
-118,Virement des salaires et prélèvement automatique,comptabilité,should,partial,S117,B,traitement,8 Comptabilité,S117 : salaire du personnel et prélèvement automatique : en panne dans le manuel,"A:domiciliation (p. 136), S53 ; D:paie S133 à S135 ; P",,,S117-1 Onglets
+117,Domiciliation de salaire,comptabilité,must,yes,S117,B,traitement,8 Comptabilité,S117 : salaire du personnel et prélèvement automatique : en panne dans le manuel,"A:domiciliation (p. 136), S53 ; D:paie S133 à S135 ; P",,,
+118,Virement des salaires et prélèvement automatique,comptabilité,should,yes,S117,B,traitement,8 Comptabilité,S117 : salaire du personnel et prélèvement automatique : en panne dans le manuel,"A:domiciliation (p. 136), S53 ; D:paie S133 à S135 ; P",,,
 119,Contrôle écart gestion et comptabilité,comptabilité,skip,yes,S118,A,rapport,8 Comptabilité,,,,,
 120,Contrôle trésorerie et rapport des annulations,comptabilité,must,yes,S142 S118 S143,D,"traitement, rapport",8 Comptabilité,S143 : tout l'écran,R:PCCI (contre-passation) ; A:S118 contrôle de trésorerie (p. 137 et 162),,,
 121,État des revenus,comptabilité,should,yes,S118,A,rapport,8 Comptabilité,,,,,
@@ -129,9 +129,9 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 128,Calculs : tenue de compte intérêts DAV et DAT provisions,autres,must,yes,S128,D,traitement,9 Budget et Autres,"S128 : Frais de tenue de comptes, Intérêt sur DAV, Intérêts sur DAT, Intérêt et frais de tenue, État des provisions","A:S98, S127 ; D:S27 (options du produit) ; R:Instr. BCC sur les frais",,,
 129,Caisse mobile,autres,skip,skip,S129,D,guichet,Non repris,S129 : tout (non repris à ce jour),P,,S129,
 130,Gestion de réunion,autres,skip,skip,S130,D,liste,Non repris,S130 : tout (non repris à ce jour),P,,S130,
-131,Paie : données de base grilles états,paie,should,no,S131 S132,B,liste,10 Paie,S132 : fenêtre des signataires,R:droit du travail et fiscalité RDC ; A:recherche,,S131 S132,
-132,Paie : employé rubriques maquette,paie,should,no,S133 S134,C,"onglets, liste",10 Paie,"S133 : onglets Classification, Affectation, Contrat ; S134 : tous les écrans",M:texte p. 276 ; A:GRH p. 201 ; M:texte ; A:S131,,S133 S134,
-133,Paie : avances et retenues avec visa,paie,must,no,S135,C,visa,10 Paie,S135 : tous les écrans,"M:texte ; A:S94, S113",,S135,
+131,Paie : données de base grilles états,paie,should,yes,S131 S132,B,liste,10 Paie,S132 : fenêtre des signataires,R:droit du travail et fiscalité RDC ; A:recherche,,,
+132,Paie : employé rubriques maquette,paie,should,yes,S133 S134,C,"onglets, liste",10 Paie,"S133 : onglets Classification, Affectation, Contrat ; S134 : tous les écrans",M:texte p. 276 ; A:GRH p. 201 ; M:texte ; A:S131,,,
+133,Paie : avances et retenues avec visa,paie,must,yes,S135,C,visa,10 Paie,S135 : tous les écrans,"M:texte ; A:S94, S113",,,
 134,Immobilisations : données de base et familles avec comptes,immobilisations,must,no,S136,A,liste,11 Immobilisations,,,,S136,
 135,Immobilisations : création affectation transfert,immobilisations,must,no,S137 S138,A,"liste, guichet",11 Immobilisations,,R:PCCI (immobilisations),,S137 S138,
 136,Immobilisations : amortissement inventaire sortie,immobilisations,must,no,S139,B,traitement,11 Immobilisations,S139 : Sortie de biens (texte seul),M:texte p. 286 ; A:inventaire,,S139,

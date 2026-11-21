@@ -208,7 +208,7 @@ function SuiviBudgetaire({ ctx }: { ctx: Ctx }) {
 }
 
 function Consommation({ ctx }: { ctx: Ctx }) {
-  const vide = { exercice: String(ctx.exercices[0] ?? ""), ligne: "", centre: "", periode: "", dateFin: "" };
+  const vide = { exercice: String(ctx.exerciceCourant ?? ctx.exercices[0] ?? ""), ligne: "", centre: "", periode: "", dateFin: "" };
   const [f, setF] = useState(vide);
   const [r, setR] = useState<Conso | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);

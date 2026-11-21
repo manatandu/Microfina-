@@ -7,7 +7,7 @@ import type { ChampBudget, FicheBudget, LigneBudgetVue, OptionBudget } from "../
 import { useDonnees, message } from "../lib/useDonnees";
 import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 
-type Reponse = { catalogue: { page: string; menu: string }[]; fiche: Omit<FicheBudget, "fixe">; options: Record<string, OptionBudget[]>; lignes: LigneBudgetVue[] };
+type Reponse = { catalogue: { page: string; menu: string; groupe?: string; onglet?: string }[]; fiche: Omit<FicheBudget, "fixe">; options: Record<string, OptionBudget[]>; lignes: LigneBudgetVue[] };
 export interface FacadeReferentiel {
   lire: (page: string) => Promise<Reponse>;
   enregistrer: (page: string, d: Record<string, unknown>, id?: number) => Promise<unknown>;
@@ -70,9 +70,15 @@ function PageReferentiel({ facade, page, sources, menu, changer }: { facade: Fac
       <h1>{fiche.entete ?? fiche.menu}</h1>
       <div className={menu ? "page-liste-gauche" : undefined}>
         {menu && <nav className="liste-gauche" aria-label={menu}><ul>
-          {donnees.catalogue.map((x) => <li key={x.page} aria-current={x.page === page ? "page" : undefined}><button type="button" onClick={() => changer(x.page)}>{x.menu}</button></li>)}
+          {/* « groupe » : plusieurs pages sous une seule entrée de la liste, en onglets (capture p. 271 : Catégorie, Classe, Echelon) */}
+          {donnees.catalogue.filter((x, i, t) => !x.groupe || t.findIndex((y) => y.groupe === x.groupe) === i).map((x) => {
+            const actif = x.groupe ? donnees.catalogue.find((y) => y.page === page)?.groupe === x.groupe : x.page === page;
+            return <li key={x.page} aria-current={actif ? "page" : undefined}><button type="button" onClick={() => changer(x.page)}>{x.groupe ?? x.menu}</button></li>;
+          })}
         </ul></nav>}
         <section className="bloc pile" aria-label={fiche.entete ?? fiche.menu}>
+          {fiche.groupe && <div className="onglets" role="tablist" aria-label={fiche.groupe}>{donnees.catalogue.filter((x) => x.groupe === fiche.groupe).map((x) =>
+            <button key={x.page} type="button" role="tab" aria-selected={x.page === page} onClick={() => changer(x.page)}>{x.onglet}</button>)}</div>}
           {cadres.map((k) => <fieldset key={k || "saisie"} className="cadre-champs formulaire"><legend className={k || fiche.cadre ? undefined : "sr-only"}>{k || fiche.cadre || "Saisie"}</legend>
             {fiche.champs.filter((c) => (c.cadre ?? "") === k).map(champ)}</fieldset>)}
           <div className="actions-onglets">

@@ -18,8 +18,9 @@ from .services import (compte_du_produit, json_lu, controler_montant_coupures, c
 LIAISON = "451"       # PCCI, compte 451 Comptes de liaison inter agences : réciprocité entre l'agence qui paie et celle du client
 TYPES = {"ecriture": "Écriture comptable", "virement": "Virement", "prelevement": "Prélèvement", "compte_a_compte": "Compte DAV vers un Autre Compte",
          "tontine_dav": "Compte Tontine vers un Compte DAV", "diverse": "Opération diverse", "deplacee": "Opération déplacée",
-         "domiciliation": "Virement de salaire", "prelevement_auto": "Prélèvement automatique"}
-LISTES = {"virement": ("virement", "prelevement", "domiciliation", "prelevement_auto"), "ecriture": ("ecriture",),
+         "domiciliation": "Virement de salaire", "prelevement_auto": "Prélèvement automatique", "salaire_personnel": "Salaire du personnel"}
+REMUNERATIONS_DUES = "421"     # PCCI 421 « Rémunérations dues et non payées » : la charge (650) y est constatée avant le virement (registre S117-7)
+LISTES = {"virement": ("virement", "prelevement", "domiciliation", "prelevement_auto", "salaire_personnel"), "ecriture": ("ecriture",),
           "compte_a_compte": ("compte_a_compte", "tontine_dav"), "diverse": ("diverse",), "deplacee": ("deplacee",)}
 ETAPES = {"visa": "saisie", "validation": "visee"}
 CAISSE = ("diverse", "deplacee")          # après le visa, elles se paient en caisse (S82) : pas de liste de validation en comptabilité
@@ -415,7 +416,10 @@ def enregistrer_mensuel(u, d) -> dict:
     cle = cle_de(d)
     if (prec := deja(cle)):
         return prec
-    type_ = "prelevement_auto" if texte(d, "mode") == "prelevement" else "domiciliation"
+    mode = texte(d, "mode")
+    type_ = "prelevement_auto" if mode == "prelevement" else "salaire_personnel" if mode == "personnel" else "domiciliation"
+    if type_ == "salaire_personnel":
+        return salaire_personnel(u, d, cle)
     inst = compte_client(u, entier(d, "compteInstitutionId"), "Compte interne de l'institution", True)
     brut = d.get("lignes") if isinstance(d.get("lignes"), list) else []
     if not brut:
@@ -448,6 +452,33 @@ def enregistrer_mensuel(u, d) -> dict:
     return inserer(u, cle, type_, jour_ouvert(u), libelle, total, inst["devise"], compte_depot_id=inst["id"], lignes=Jsonb(l))
 
 
+def salaire_personnel(u, d: dict, cle) -> dict:
+    """Onglet Salaire du personnel (p. 136, « l'onglet ne marche pas » : même écran que la domiciliation) : le compte 421 de l'institution est débité du
+    total, chaque compte de la liste crédité du salaire de l'employé. Registre S117-7."""
+    dv = texte(d, "devise") or "CDF"
+    brut = d.get("lignes") if isinstance(d.get("lignes"), list) else []
+    if not brut:
+        raise ErreurMetier("Liste des Client : au moins un compte.")
+    l, vus = [], set()
+    for x in brut:
+        c = compte_client(u, entier(x, "compteDepotId"), "Compte du client", False)
+        m = entier(x, "montant")
+        if not m or m <= 0:
+            raise ErreurMetier(f"Compte {c['numero']} : un montant supérieur à zéro.")
+        if entier(x, "commission"):
+            raise ErreurMetier("Commission : aucune ; la domiciliation de salaire et le virement de compte à compte sont gratuits (Instr. BCC 37, annexe, points 1 et 2).")
+        if c["id"] in vus:
+            raise ErreurMetier(f"Compte {c['numero']} : déjà dans la liste.")
+        if c["devise"] != dv:
+            raise ErreurMetier(f"Compte {c['numero']} : pas dans la devise du virement.")
+        vus.add(c["id"])
+        l.append({"compteDepotId": c["id"], "numero": c["numero"], "client": c["numero_client"], "intitule": titulaire(c["tiers_id"]), "montant": m})
+    total = sum(x["montant"] for x in l)
+    if entier(d, "total") != total:
+        raise ErreurMetier("Salaire total à verser : il ne fait pas la somme des salaires de la liste.")
+    return inserer(u, cle, "salaire_personnel", jour_ouvert(u), f"Salaire du personnel ({len(l)} comptes)", total, dv, lignes=Jsonb(l))
+
+
 # ---------- Vues et listes ----------
 def depot_numero(cid) -> dict:
     return une("""select c.id, c.numero, c.tiers_id, t.numero as client, p.famille, p.compte_lie from compte_depot c join tiers t on t.id = c.tiers_id
@@ -468,7 +499,7 @@ def vue(o: dict) -> dict:
          "agenceClient": valeur("select nom from agence where id = %s", (o["agence_client_id"],)) or "" if o["agence_client_id"] else ""}
     # colonnes Debit et Crédit des listes : le sens du compte du client (virement : crédit ; prélèvement : débit), ou de l'opération diverse
     debit = t in ("prelevement", "domiciliation") or o["sens"] in ("DECAISSEMENT", "RETRAIT")
-    credit = t in ("virement", "prelevement_auto") or o["sens"] in ("ENCAISSEMENT", "DEPOT")
+    credit = t in ("virement", "prelevement_auto", "salaire_personnel") or o["sens"] in ("ENCAISSEMENT", "DEPOT")
     v |= {"debit": o["montant"] if debit else 0, "credit": o["montant"] if credit else 0}
     return v
 
@@ -542,6 +573,8 @@ def lignes_ecriture(o: dict) -> list[dict]:
         return [ligne_depot(o["compte_depot_id"], "D", dv, m)] + [ligne_depot(x["compteDepotId"], "C", dv, x["montant"]) for x in lg(o)]
     if t == "prelevement_auto":
         return [ligne_depot(x["compteDepotId"], "D", dv, x["montant"]) for x in lg(o)] + [ligne_depot(o["compte_depot_id"], "C", dv, m)]
+    if t == "salaire_personnel":
+        return [L(REMUNERATIONS_DUES, "D", dv, m)] + [ligne_depot(x["compteDepotId"], "C", dv, x["montant"]) for x in lg(o)]
     raise ErreurMetier("Cette opération se paie en caisse.")
 
 

@@ -11,6 +11,7 @@ import { EtatsFinanciers, IndicateursFinanciers } from "./EtatsFinanciers";
 import Financement from "./Financement";
 import { ConsultationBudget, NouveauBudget } from "./Budgets";
 import { Calculs, Clotures } from "./FinPeriode";
+import { DonneesBasePaie, GrillesEtats, NouvelEmploye, PersonnelPaie, RetenuesSalaire } from "./Paie";
 import VisaBanque from "./VisaBanque";
 import { ChequesClients } from "./ChequesClients";
 import { Chequiers } from "./Chequiers";
@@ -232,6 +233,11 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S126: Financement,
   S127: Clotures,
   S128: Calculs,
+  S131: DonneesBasePaie,
+  S132: GrillesEtats,
+  S133: NouvelEmploye,
+  S134: PersonnelPaie,
+  S135: RetenuesSalaire,
   S142: AnnulationReglement,
   S143: Tresorerie,
   S113: VisasComptables,

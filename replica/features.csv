@@ -115,8 +115,8 @@ Comptabilisation de la journée,comptabilité,must,yes,yes,"S111 ; principe P1 e
 Visa et validation comptables dont retrait au-delà du plafond,comptabilité,must,yes,yes,S113 S114
 Journaux comptables,comptabilité,must,yes,yes,S115 ; livre-journal grand livre balance livre d'inventaire (PCCI § 3.3)
 Virement de compte à compte et opérations diverses,comptabilité,must,yes,yes,S116 ; virement interne gratuit (Instr. BCC 37)
-Domiciliation de salaire,comptabilité,must,yes,partial,S117 ; gratuite (Instr. BCC 37)
-Virement des salaires et prélèvement automatique,comptabilité,should,yes,partial,S117 ; signalés non fonctionnels par le manuel
+Domiciliation de salaire,comptabilité,must,yes,yes,S117 ; gratuite (Instr. BCC 37)
+Virement des salaires et prélèvement automatique,comptabilité,should,yes,yes,S117 ; signalés non fonctionnels par le manuel
 Contrôle écart gestion et comptabilité,comptabilité,skip,yes,yes,S118 ; inutile par construction (ARCHITECTURE.md P1)
 Contrôle trésorerie et rapport des annulations,comptabilité,must,yes,yes,S118
 État des revenus,comptabilité,should,yes,yes,S118
@@ -129,9 +129,9 @@ Clôtures crédit dépôt comptabilité,autres,must,yes,yes,S127 ; traitements a
 Calculs : tenue de compte intérêts DAV et DAT provisions,autres,must,yes,yes,S128 ; idem
 Caisse mobile,autres,skip,yes,skip,S129 ; non décrite dans le manuel
 Gestion de réunion,autres,skip,yes,skip,S130 ; non décrite dans le manuel
-Paie : données de base grilles états,paie,should,yes,no,S131 S132 ; module complet en deuxième temps (décision du porteur)
-Paie : employé rubriques maquette,paie,should,yes,no,S133 S134
-Paie : avances et retenues avec visa,paie,must,yes,no,S135 ; premier temps du module paie (décision du porteur)
+Paie : données de base grilles états,paie,should,yes,yes,S131 S132 ; module complet en deuxième temps (décision du porteur)
+Paie : employé rubriques maquette,paie,should,yes,yes,S133 S134
+Paie : avances et retenues avec visa,paie,must,yes,yes,S135 ; premier temps du module paie (décision du porteur)
 Immobilisations : données de base et familles avec comptes,immobilisations,must,yes,no,S136 ; ratio des immobilisations (Instr. BCC 002 art. 34 à 36)
 Immobilisations : création affectation transfert,immobilisations,must,yes,no,S137 S138 ; écriture d'acquisition automatique (constats U9 C59)
 Immobilisations : amortissement inventaire sortie,immobilisations,must,yes,no,S139 ; inventaire (PCCI § 3.2)

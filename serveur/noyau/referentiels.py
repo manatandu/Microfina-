@@ -72,3 +72,33 @@ def valeurs(u, table: str, colonnes: str = "*") -> list[dict]:
 UTILISE_PAR["financement"] = {"types_financement": [("financement_ligne", "type_id", "Lignes de financement")],
                               "bailleurs": [("budget_ligne", "bailleur_id", "Ligne de plan budgétaire")]}
 TYPES_TIERS = next(f["valeurs"] for f in DESCRIPTION["tiers"]["pages"][0]["champs"] if f["cle"] == "typeTiers")
+
+
+# Paie (S131, S132 ; manuel p. 269 à 276)
+def verifier_paie(u, c, v, lid):
+    """Barème : Min au plus Max ; un taux ne dépasse pas 100 %"""
+    if c["page"] == "baremes" and v["min"] is not None and v["max"] is not None and v["min"] > v["max"]:
+        raise ErreurMetier("Max : au moins Min.")
+    if v.get("taux") and float(v["taux"].replace(",", ".")) > 100:
+        raise ErreurMetier("Taux : 100 % au plus.")
+
+
+VERIFIER["paie"] = verifier_paie
+VERIFIER["paie_structure"] = lambda u, c, v, lid: None
+UTILISE_PAR["paie"] = {"classes": [("paie_grille_salariale", "classe_id", "Grille salariale")], "categories": [("paie_grille_salariale", "categorie_id", "Grille salariale")],
+                       "echelons": [("paie_grille_salariale", "echelon_id", "Grille salariale")],
+                       "grandes_rubriques": [("paie_type_heure_sup", "element_id", "Type d'heure supplémentaire")],
+                       "types_grille": [("paie_grille", "type_grille_id", "Gestion des grilles")]}
+CHOIX["paie_structure"] = {
+    "types_grille": lambda u: [{"id": r["id"], "libelle": r["libelle"]} for r in valeurs(u, "paie_type_grille", "id, libelle")],
+    "employes": lambda u: [{"id": r["id"], "libelle": f"{r['matricule']} {r['nom']} {r['prenoms']}"} for r in
+                           lignes("select id, matricule, nom, prenoms from paie_employe where institution_id = %s order by matricule", (u["institution_id"],))],
+}
+CHOIX["paie_rubriques"] = {
+    "grandes_familles": lambda u: [{"id": r["id"], "libelle": r["libelle"]} for r in valeurs(u, "paie_grande_famille", "id, libelle")],
+    "grandes_rubriques": lambda u: [{"id": r["id"], "libelle": f"{r['code']} {r['libelle']}"} for r in valeurs(u, "paie_grande_rubrique", "id, code, libelle")],
+}
+UTILISE_PAR["paie"]["grandes_familles"] = [("paie_rubrique", "famille_id", "Rubrique de paie")]
+UTILISE_PAR["paie"]["grandes_rubriques"].append(("paie_rubrique", "grande_rubrique_id", "Rubrique de paie"))
+UTILISE_PAR["paie"]["types_retenue"] = [("paie_retenue", "type_id", "Mise en place retenue")]
+UTILISE_PAR["paie_rubriques"] = {"rubriques": [("paie_maquette", "rubrique_id", "Maquette de paie")]}

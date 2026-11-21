@@ -8,7 +8,7 @@ Mêmes règles que web/src/donnees/api.ts (budgets). Registre S124-1 à S124-5, 
 from collections import defaultdict
 from datetime import date
 
-from .bd import ErreurMetier, executer, lignes, une
+from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import exiger
 
 
@@ -72,7 +72,8 @@ def contexte(u) -> dict:
                                 from budget_ligne l join budget_centre c on c.id = l.centre_id left join bailleur b on b.id = l.bailleur_id
                                 where l.institution_id = %s and l.actif order by l.numero""", (i,)),
             "centres": lignes("select id, code, libelle from budget_centre where institution_id = %s and actif order by code", (i,)),
-            "exercices": [r["annee"] for r in lignes("select annee from exercice where institution_id = %s order by annee desc", (i,))]}
+            "exercices": [r["annee"] for r in lignes("select annee from exercice where institution_id = %s order by annee desc", (i,))],
+            "exerciceCourant": valeur("select annee from exercice where institution_id = %s and actif", (i,))}      # exercice en cours (S11-1)
 
 
 REQUETE = """select v.id, v.plan_id as "planId", v.type_id as "typeId", v.periode_id as "periodeId", v.ligne_id as "ligneId", v.compte, v.valeur,

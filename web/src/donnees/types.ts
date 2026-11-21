@@ -203,7 +203,7 @@ export interface ReglementFournisseur {
 export interface LigneOc { rang?: number; compte?: string; intitule?: string; libelle?: string; sens?: "D" | "C"; montant: number; auxiliaireId?: number | null;
   typeBudgetId?: number | null; ligneBudgetId?: number | null; compteDepotId?: number; numero?: string; client?: string }
 export interface OperationCompta {
-  id: number; cle: string; type: "ecriture" | "virement" | "prelevement" | "compte_a_compte" | "tontine_dav" | "diverse" | "deplacee" | "domiciliation" | "prelevement_auto";
+  id: number; cle: string; type: "ecriture" | "virement" | "prelevement" | "compte_a_compte" | "tontine_dav" | "diverse" | "deplacee" | "domiciliation" | "prelevement_auto" | "salaire_personnel";
   statut: "brouillon" | "saisie" | "visee" | "validee" | "comptabilisee" | "payee"; date: string; journalId: number | null; periode: string; reference: string; libelle: string;
   montant: number; devise: Devise; sens: "" | "ENCAISSEMENT" | "DECAISSEMENT" | "DEPOT" | "RETRAIT"; lignes: LigneOc[];
   compteDepotId: number | null; compteDepotDestId: number | null; agenceClientId: number | null; numeroClient: string; nomClient: string;
@@ -318,7 +318,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 80;
+  version: 81;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)
@@ -405,6 +405,9 @@ export interface Etat {
   rapprochements: Rapprochement[]; lettrages: Lettrage[]; remboursementsAnnules: RemboursementAnnule[];   // S110, S119, S142
   budgetValeurs: BudgetValeur[];
   calculsPeriodiques: { type: "tenue_compte" | "interet_dav"; exercice: number; mois: number; compteId: number; base: number; montant: number; retenue: number; devise: Devise; ecritureId: number; par: number }[];   // S128
+  paieEmployes: PaieEmploye[];   // S133
+  paieMaquette: { id: number; employeId: number; rubriqueId: number; montant: number; session: string; active: boolean; intersession: boolean; permanente: boolean; saisiPar: number }[];   // S134
+  paieRetenues: { id: number; employeId: number; typeId: number; session: string; montant: number; duree: number; statut: "saisie" | "visee"; saisiPar: number; visePar: number | null }[];   // S135
   periodesCloturees: { annee: number; mois: number; le: string; par: number }[];   // S127 : clôture informatique mensuelle (PCCI § 3.4)   // S124, S125 : une valeur par budget, type, période, ligne budgétaire et compte
   commandesFournisseurs: CommandeFournisseur[]; facturesFournisseurs: FactureFournisseur[]; reglementsFournisseurs: ReglementFournisseur[];   // S107
   chequesClients: ChequeClient[];   // S59
@@ -540,3 +543,15 @@ export interface VisaCredit { creditId: number; niveau: "responsable_credit" | "
 export type BalanceAgee = { id: number; date: string; lanceLe: string; lancePar: number; lignes: { creditId: number; tiersId: number; produitId: number; agentId: number | null;
   devise: string; montant: number; capitalRestant: number; capitalImpaye: number; interetImpaye: number; joursRetard: number; degre: number;
   classe: "sain" | "impaye" | "douteux" | "irrecuperable" | "proroge" | "contentieux"; assimile: boolean }[] };
+
+/** S133 : Paie > Personnel > Nouvel employé (onglets Informations générales, Classification, Affectation, Contrat ; manuel p. 276, captures GRH p. 201 à 206) */
+export interface PaieEmploye {
+  id: number; agenceId: number | null; matricule: string; numeroSecuriteSociale: string; sexe: string; civilite: string; nom: string; prenoms: string; nomJeuneFille: string;
+  situationMatrimoniale: string; dateNaissance: string; lieuNaissance: string; nationalite: string; groupeSanguin: string; contact1: string; contact2: string; adresse: string;
+  email: string; bp: string; profession: string; personneAPrevenir: string; dateDebutCarriere: string; dateEmbauche: string; personnesACharge: number;
+  personnes: { id: number; nom: string; prenoms: string; dateNaissance: string; conjoint: boolean; employe: boolean; enfantPropre: boolean }[];
+  categorieId: number | null; classeId: number | null; echelonId: number | null; salairePredefini: string; salaireBase: number | null; surSalaire: number | null;
+  dateReferenceAnciennete: string; tauxAnciennete: string; dureeAnciennete: number | null; montantAnciennete: number | null; congesDus: number | null; grilles: number[];
+  centreId: number | null; poste: string; fonction: string;
+  typeContrat: string; typeEmploye: string; dateDebutContrat: string; dateFinContrat: string; modeleContrat: string; creePar: number; creeLe: string;
+}

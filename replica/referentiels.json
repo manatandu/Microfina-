@@ -415,5 +415,729 @@
     ]
    }
   ]
+ },
+ "paie": {
+  "ecran": "S131",
+  "role": "comptable",
+  "pages": [
+   {
+    "page": "allocations",
+    "table": "paie_allocation",
+    "menu": "Allocation",
+    "entete": "Création et mise à jour d'allocations familiales",
+    "champs": [
+     {
+      "cle": "nombrePersonne",
+      "col": "nombre_personne",
+      "libelle": "Nombre personne :",
+      "type": "entier",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Nombre personne",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "taux",
+      "col": "taux",
+      "libelle": "Taux :",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Taux (%)",
+      "defaut": null,
+      "cadre": null,
+      "grille": true,
+      "format": "decimal"
+     },
+     {
+      "cle": "limiteAssurance",
+      "col": "limite_assurance",
+      "libelle": "Limite assurance :",
+      "type": "entier",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Limite assurance",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "montant",
+      "col": "montant",
+      "libelle": "Montant :",
+      "type": "entier",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Montant",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     }
+    ],
+    "unique": []
+   },
+   {
+    "page": "baremes",
+    "table": "paie_bareme",
+    "menu": "Bârème d'imposition",
+    "entete": "Création et mise à jour des Barèmes d'impôt",
+    "champs": [
+     {
+      "cle": "min",
+      "col": "min",
+      "libelle": "Min :",
+      "type": "entier",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Min",
+      "defaut": null,
+      "cadre": "Valeur",
+      "grille": true
+     },
+     {
+      "cle": "max",
+      "col": "max",
+      "libelle": "Max :",
+      "type": "entier",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Max",
+      "defaut": null,
+      "cadre": "Valeur",
+      "grille": true
+     },
+     {
+      "cle": "taux",
+      "col": "taux",
+      "libelle": "Taux :",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Taux (%)",
+      "defaut": null,
+      "cadre": null,
+      "grille": true,
+      "format": "decimal"
+     },
+     {
+      "cle": "montantTcs",
+      "col": "montant_tcs",
+      "libelle": "Montant TCS :",
+      "type": "entier",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Montant TCS",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     }
+    ],
+    "unique": []
+   },
+   {
+    "page": "categories",
+    "table": "paie_categorie",
+    "menu": "Catégorie Classe et Echelon",
+    "groupe": "Catégorie Classe et Echelon",
+    "onglet": "Catégorie",
+    "entete": "Création et mise-à-jour des catégories de paie",
+    "rafraichir": true,
+    "unique": [
+     "libelle"
+    ],
+    "champs": [
+     {
+      "cle": "libelle",
+      "col": "libelle",
+      "libelle": "Libellé",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Libellé catégorie",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     }
+    ]
+   },
+   {
+    "page": "classes",
+    "table": "paie_classe",
+    "menu": "Catégorie Classe et Echelon",
+    "groupe": "Catégorie Classe et Echelon",
+    "onglet": "Classe",
+    "entete": "Création et mise à jour des Classes",
+    "rafraichir": true,
+    "unique": [
+     "libelle"
+    ],
+    "champs": [
+     {
+      "cle": "libelle",
+      "col": "libelle",
+      "libelle": "Libellé",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Libellé classe",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     }
+    ]
+   },
+   {
+    "page": "echelons",
+    "table": "paie_echelon",
+    "menu": "Catégorie Classe et Echelon",
+    "groupe": "Catégorie Classe et Echelon",
+    "onglet": "Echelon",
+    "entete": "Création et mise à jour des Echelons",
+    "rafraichir": true,
+    "unique": [
+     "libelle"
+    ],
+    "champs": [
+     {
+      "cle": "libelle",
+      "col": "libelle",
+      "libelle": "Libellé",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Libellé echelon",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     }
+    ]
+   },
+   {
+    "page": "grandes_familles",
+    "table": "paie_grande_famille",
+    "menu": "Grande famille d'élément",
+    "entete": "Création et mise-à-jour des grandes familles d'éléments",
+    "rafraichir": true,
+    "filtres": true,
+    "unique": [
+     "libelle"
+    ],
+    "champs": [
+     {
+      "cle": "libelle",
+      "col": "libelle",
+      "libelle": "Grande famille :",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Grande famille",
+      "defaut": null,
+      "cadre": null,
+      "grille": true,
+      "sansEtoile": true
+     }
+    ]
+   },
+   {
+    "page": "grandes_rubriques",
+    "table": "paie_grande_rubrique",
+    "menu": "Grande rubrique d'élément",
+    "entete": "Création et mise-à-jour des grandes rubriques",
+    "rafraichir": true,
+    "unique": [
+     "code"
+    ],
+    "champs": [
+     {
+      "cle": "code",
+      "col": "code",
+      "libelle": "Code :",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Code",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "libelle",
+      "col": "libelle",
+      "libelle": "Grande rubrique :",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Grande rubrique",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "imposable",
+      "col": "imposable",
+      "libelle": "Imposable :",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Imposable",
+      "defaut": null,
+      "cadre": null,
+      "grille": true,
+      "valeurs": [
+       "Oui",
+       "Non"
+      ]
+     }
+    ]
+   },
+   {
+    "page": "grilles_salariales",
+    "table": "paie_grille_salariale",
+    "menu": "Grille salariale",
+    "entete": "Création et mise à jour de grilles salariales",
+    "rafraichir": true,
+    "unique": [
+     "classeId",
+     "categorieId",
+     "echelonId"
+    ],
+    "champs": [
+     {
+      "cle": "classeId",
+      "col": "classe_id",
+      "libelle": "Classe",
+      "type": "choix",
+      "obligatoire": true,
+      "ref": "classes",
+      "aide": null,
+      "colonne": "Classe",
+      "defaut": null,
+      "cadre": null,
+      "grille": true,
+      "rang": 2
+     },
+     {
+      "cle": "categorieId",
+      "col": "categorie_id",
+      "libelle": "Catégorie",
+      "type": "choix",
+      "obligatoire": true,
+      "ref": "categories",
+      "aide": null,
+      "colonne": "Catégorie",
+      "defaut": null,
+      "cadre": null,
+      "grille": true,
+      "rang": 1
+     },
+     {
+      "cle": "echelonId",
+      "col": "echelon_id",
+      "libelle": "Echelon",
+      "type": "choix",
+      "obligatoire": true,
+      "ref": "echelons",
+      "aide": null,
+      "colonne": "Echelon",
+      "defaut": null,
+      "cadre": null,
+      "grille": true,
+      "rang": 3
+     },
+     {
+      "cle": "salaire",
+      "col": "salaire",
+      "libelle": "Salaire",
+      "type": "entier",
+      "obligatoire": false,
+      "ref": null,
+      "aide": null,
+      "colonne": "Salaire",
+      "defaut": null,
+      "cadre": null,
+      "grille": true,
+      "rang": 4
+     },
+     {
+      "cle": "points",
+      "col": "points",
+      "libelle": "Points",
+      "type": "entier",
+      "obligatoire": false,
+      "ref": null,
+      "aide": null,
+      "colonne": "Point",
+      "defaut": null,
+      "cadre": null,
+      "grille": true,
+      "rang": 5
+     }
+    ]
+   },
+   {
+    "page": "types_avance",
+    "table": "paie_type_avance",
+    "menu": "Type d'avance",
+    "entete": "Création et mise-à-jour des types d' avance",
+    "unique": [
+     "code"
+    ],
+    "champs": [
+     {
+      "cle": "code",
+      "col": "code",
+      "libelle": "Code",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Code",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "libelle",
+      "col": "libelle",
+      "libelle": "Libellé",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Libellé",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "compte",
+      "col": "compte",
+      "libelle": "Compte",
+      "type": "compteSimple",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Compte",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     }
+    ]
+   },
+   {
+    "page": "types_heure_sup",
+    "table": "paie_type_heure_sup",
+    "menu": "Type d'heure supplémentaire",
+    "entete": "Création et mise -à-jour de type des heures supplémentaires",
+    "grille": "Liste des types d'heures supplémentaires",
+    "rafraichir": true,
+    "unique": [
+     "code"
+    ],
+    "champs": [
+     {
+      "cle": "code",
+      "col": "code",
+      "libelle": "Code :",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Code",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "libelle",
+      "col": "libelle",
+      "libelle": "Libellé :",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Libellé",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "taux",
+      "col": "taux",
+      "libelle": "Taux",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Taux",
+      "defaut": null,
+      "cadre": null,
+      "grille": true,
+      "format": "decimal"
+     },
+     {
+      "cle": "elementId",
+      "col": "element_id",
+      "libelle": "Elément salaire :",
+      "type": "choix",
+      "obligatoire": true,
+      "ref": "grandes_rubriques",
+      "aide": null,
+      "colonne": "Elément salaire",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     }
+    ]
+   },
+   {
+    "page": "types_grille",
+    "table": "paie_type_grille",
+    "menu": "Type de grille",
+    "entete": "Création et mise à jour des types de grille",
+    "rafraichir": true,
+    "unique": [
+     "libelle"
+    ],
+    "champs": [
+     {
+      "cle": "libelle",
+      "col": "libelle",
+      "libelle": "Libellé :",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Libellé",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     }
+    ]
+   },
+   {
+    "page": "types_retenue",
+    "table": "paie_type_retenue",
+    "menu": "Type de retenue",
+    "entete": "Création et mise à jour des types de retenue",
+    "unique": [
+     "libelle"
+    ],
+    "champs": [
+     {
+      "cle": "libelle",
+      "col": "libelle",
+      "libelle": "Libellé",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Libellé",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     }
+    ]
+   }
+  ]
+ },
+ "paie_structure": {
+  "ecran": "S132",
+  "role": "comptable",
+  "pages": [
+   {
+    "page": "grilles",
+    "table": "paie_grille",
+    "menu": "Gestion des grilles",
+    "entete": "Création et mise-à-jour de grilles avec ses détails",
+    "cadre": "Infos grille",
+    "grille": "Liste des grilles",
+    "filtres": true,
+    "rafraichir": true,
+    "unique": [
+     "libelle"
+    ],
+    "champs": [
+     {
+      "cle": "libelle",
+      "col": "libelle",
+      "libelle": "Grille :",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Grille",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "typeGrilleId",
+      "col": "type_grille_id",
+      "libelle": "Type de grille :",
+      "type": "choix",
+      "obligatoire": true,
+      "ref": "types_grille",
+      "aide": null,
+      "colonne": "Type de grille",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     }
+    ]
+   },
+   {
+    "page": "etats",
+    "table": "paie_etat",
+    "menu": "Gestion des états",
+    "entete": "Gestion des états",
+    "grille": "Liste des états",
+    "unique": [
+     "code"
+    ],
+    "champs": [
+     {
+      "cle": "code",
+      "col": "code",
+      "libelle": "Code",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Code",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "titre",
+      "col": "titre",
+      "libelle": "Titre",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Titre",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "description",
+      "col": "description",
+      "libelle": "Description",
+      "type": "texteLong",
+      "obligatoire": false,
+      "ref": null,
+      "aide": null,
+      "colonne": "Description",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "signataireId",
+      "col": "signataire_id",
+      "libelle": "Signataire",
+      "type": "choix",
+      "obligatoire": false,
+      "ref": "employes",
+      "aide": null,
+      "colonne": "Signataire",
+      "defaut": null,
+      "cadre": null,
+      "grille": false
+     }
+    ]
+   }
+  ]
+ },
+ "paie_rubriques": {
+  "ecran": "S134",
+  "role": "comptable",
+  "pages": [
+   {
+    "page": "rubriques",
+    "table": "paie_rubrique",
+    "menu": "Rubrique de paie",
+    "entete": "Rubrique de paie",
+    "grille": "Liste des rubriques",
+    "filtres": true,
+    "unique": [
+     "code"
+    ],
+    "champs": [
+     {
+      "cle": "familleId",
+      "col": "famille_id",
+      "libelle": "Famille du regroupement",
+      "type": "choix",
+      "obligatoire": true,
+      "ref": "grandes_familles",
+      "aide": null,
+      "colonne": "Famille",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "grandeRubriqueId",
+      "col": "grande_rubrique_id",
+      "libelle": "Grande rubrique",
+      "type": "choix",
+      "obligatoire": true,
+      "ref": "grandes_rubriques",
+      "aide": null,
+      "colonne": "Grande rubrique",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "code",
+      "col": "code",
+      "libelle": "Code rubrique",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Code",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "libelle",
+      "col": "libelle",
+      "libelle": "Rubrique",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Rubrique",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     }
+    ]
+   }
+  ]
  }
 }

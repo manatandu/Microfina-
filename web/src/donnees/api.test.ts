@@ -2861,10 +2861,17 @@ describe("journée de guichet", () => {
     const pa = await api.operationsCompta.enregistrerMensuel({ cle: cle(), mode: "prelevement", compteInstitutionId: inst.id, lignes: [{ compteDepotId: emp.id, montant: 1500 }] });
     expect([pa.type, pa.credit]).toEqual(["prelevement_auto", 1500]);
     expect((await comptes(e0.tid, emp.id)).solde).toBe(emp.solde - 1500);
-    expect((await api.operationsCompta.visas("visa", "virement")).map((x) => x.id)).toEqual([o.id, pa.id]);
-    await viserValider(o.id, pa.id);
+    // Salaire du personnel (registre S117-7) : du compte 421 vers les comptes des employés
+    const sp = { cle: cle(), mode: "personnel", compteInstitutionId: null, devise: "CDF", total: 40000, lignes: [{ compteDepotId: emp.id, montant: 40000 }] };
+    await expect(api.operationsCompta.enregistrerMensuel({ ...sp, total: 1 })).rejects.toThrow("Salaire total");
+    await expect(api.operationsCompta.enregistrerMensuel({ ...sp, lignes: [{ compteDepotId: usd.id, montant: 40000 }] })).rejects.toThrow("devise");
+    const ps = await api.operationsCompta.enregistrerMensuel(sp);
+    expect([ps.type, ps.operation, ps.credit]).toEqual(["salaire_personnel", "Salaire du personnel", 40000]);
+    expect((await api.operationsCompta.visas("visa", "virement")).map((x) => x.id)).toEqual([o.id, pa.id, ps.id]);
+    await viserValider(o.id, pa.id, ps.id);
     await comptabiliserJournee(j.id, s.id);
-    expect([(await comptes(i0.tid, inst.id)).solde, (await comptes(e0.tid, emp.id)).solde]).toEqual([inst.solde - 60000 + 1500, emp.solde + 60000 - 1500]);
+    expect([(await comptes(i0.tid, inst.id)).solde, (await comptes(e0.tid, emp.id)).solde]).toEqual([inst.solde - 60000 + 1500, emp.solde + 60000 - 1500 + 40000]);
+    expect(_etat().ecritures.flatMap((e) => e.lignes).filter((l) => l.compte === "421").reduce((t, l) => t + (l.sens === "D" ? l.montant : -l.montant), 0)).toBe(40000);
     expect(await soldeCdfGrandLivre()).toBe(0);
   });
   it("factures des fournisseurs (S107, p. 124 à 128 et 147 à 153) : commande et tranches, facture, visa, validation, règlement par chèque et en espèces (S141), déclaration de taxe (S108)", async () => {
@@ -3194,6 +3201,56 @@ describe("journée de guichet", () => {
     await expect(api.finPeriode.cloturer({ exercice: 2026 })).rejects.toThrow("déjà clôturé");
     const total = E0.ecritures.flatMap((e) => e.lignes).reduce((t, l) => t + (l.sens === "D" ? l.montantCdf : -l.montantCdf), 0);
     expect(total).toBe(0);
+  });
+
+  it("paie (S131 à S135, p. 269 à 278) : données de base, grilles et états, employé, rubriques, maquette, liste, retenues visées par une autre personne, comme le serveur", async () => {
+    await journeeOuverte();
+    await connecter("plumbala");
+    const R = api.refPaie, id = (r: { lignes: Record<string, unknown>[] }, k: string, v: unknown) => r.lignes.find((x) => x[k] === v)!.id as number;
+    const a = await R.enregistrer("categories", { libelle: "A" });
+    expect([a.catalogue.slice(0, 3).map((x) => x.menu), a.catalogue[3]!.onglet]).toEqual([["Allocation", "Bârème d'imposition", "Catégorie Classe et Echelon"], "Classe"]);
+    const cat = id(a, "libelle", "A"), cla = id(await R.enregistrer("classes", { libelle: "I" }), "libelle", "I"), ech = id(await R.enregistrer("echelons", { libelle: "1" }), "libelle", "1");
+    await expect(R.enregistrer("categories", { libelle: "a" })).rejects.toThrow("existe déjà");
+    expect((await R.enregistrer("grilles_salariales", { classeId: cla, categorieId: cat, echelonId: ech, salaire: "250000" })).lignes[0]!.affichage.categorieId).toBe("A");
+    await expect(R.enregistrer("baremes", { min: "100", max: "10", taux: "3", montantTcs: "0" })).rejects.toThrow("Max");
+    await expect(R.enregistrer("allocations", { nombrePersonne: "1", taux: "120", limiteAssurance: "0", montant: "0" })).rejects.toThrow("100 %");
+    const fam = id(await R.enregistrer("grandes_familles", { libelle: "Salaire de base" }), "libelle", "Salaire de base");
+    const gr = id(await R.enregistrer("grandes_rubriques", { code: "G01", libelle: "Salaire catégoriel", imposable: "Oui" }), "code", "G01");
+    await expect(R.enregistrer("grandes_rubriques", { code: "G02", libelle: "X", imposable: "Peut-être" })).rejects.toThrow("inconnu");
+    await R.enregistrer("types_heure_sup", { code: "HS1", libelle: "Heures de nuit", taux: "30", elementId: gr });
+    const tg = id(await R.enregistrer("types_grille", { libelle: "Grille fiscale" }), "libelle", "Grille fiscale");
+    const tr = id(await R.enregistrer("types_retenue", { libelle: "Avance sur salaire" }), "libelle", "Avance sur salaire");
+    await expect(R.supprimer("classes", cla)).rejects.toThrow("Grille salariale");
+    const gi = id(await api.refPaieStructure.enregistrer("grilles", { libelle: "IPR", typeGrilleId: tg }), "libelle", "IPR");
+    await expect(R.supprimer("types_grille", tg)).rejects.toThrow("Gestion des grilles");
+    const rub = id(await api.refPaieRubriques.enregistrer("rubriques", { familleId: fam, grandeRubriqueId: gr, code: "R100", libelle: "Salaire de base" }), "code", "R100");
+    const E = { matricule: "EMP/001/26", sexe: "Féminin", civilite: "Madame", nom: "MUJINGA", prenoms: "Rose", dateNaissance: "1990-04-02", dateEmbauche: "2024-02-01",
+      categorieId: cat, classeId: cla, echelonId: ech, salairePredefini: "Régime catégoriel", salaireBase: 250000, grilles: [gi], poste: "Caissière", fonction: "Guichet",
+      typeContrat: "Contrat à durée déterminée", dateDebutContrat: "2024-02-01", dateFinContrat: "2026-01-31", personnesACharge: 1,
+      personnes: [{ nom: "MUJINGA", prenoms: "Paul", dateNaissance: "2018-05-01", conjoint: false, employe: false, enfantPropre: true }] };
+    await expect(api.paie.enregistrer({})).rejects.toThrow("Matricule");
+    await expect(api.paie.enregistrer({ ...E, dateFinContrat: "2026-03-01" })).rejects.toThrow("art. 41");
+    await expect(api.paie.enregistrer({ ...E, typeContrat: "Contrat à durée indéterminée" })).rejects.toThrow("art. 39");
+    const e = await api.paie.enregistrer(E);
+    expect([e.matricule, e.grilles, e.personnes.length, e.agenceId !== null]).toEqual(["EMP/001/26", [gi], 1, true]);
+    await expect(api.paie.enregistrer({ ...E, matricule: "emp/001/26" })).rejects.toThrow("existe déjà");
+    await api.paie.enregistrer({ ...E, typeContrat: "Contrat à durée indéterminée", dateFinContrat: "" }, e.id);
+    expect((await api.paie.liste({ sexe: "Féminin" })).map((x) => [x.matricule, x.categorieSalariale, x.typeContrat])).toEqual([["EMP/001/26", "A - I - 1", "Contrat à durée indéterminée"]]);
+    await connecter("engalula");
+    await expect(api.paie.liste()).rejects.toThrow("Droit manquant");
+    await connecter("plumbala");
+    await expect(api.paie.ajouterMaquette({ employeId: e.id, rubriqueId: rub, montant: 250000 })).rejects.toThrow("Session");
+    const m = await api.paie.ajouterMaquette({ employeId: e.id, rubriqueId: rub, montant: 250000, active: true, permanente: true });
+    expect(m.map((x) => [x.rubrique, x.permanente, x.session])).toEqual([["R100 Salaire de base", true, ""]]);
+    await expect(api.refPaieRubriques.supprimer("rubriques", rub)).rejects.toThrow("Maquette de paie");
+    expect(await api.paie.retirerMaquette(m[0]!.id)).toEqual([]);
+    await expect(api.paie.mettreEnPlace({ employeId: e.id, typeId: tr, session: "2026-11", montant: 300000 })).rejects.toThrow("Durée");
+    const r = await api.paie.mettreEnPlace({ employeId: e.id, typeId: tr, session: "2026-11", montant: 300000, duree: 3 });
+    expect([r.statut, r.mensualite]).toEqual(["saisie", 100000]);
+    await expect(api.paie.viser(r.id)).rejects.toThrow("autre personne");
+    await connecter("jpmukendi");
+    expect((await api.paie.viser(r.id)).statut).toBe("visee");
+    await expect(api.paie.viser(r.id)).rejects.toThrow("déjà visée");
   });
 
   it("financement (S126), nouveau budget (S124), consultation, suivi et consommation (S125)", async () => {

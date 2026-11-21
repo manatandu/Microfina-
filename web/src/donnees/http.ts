@@ -212,6 +212,33 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       enregistrer: (page: string, d: object, id?: number) => post(id === undefined ? `/referentiels/tiers/${page}` : `/referentiels/tiers/${page}/${id}`, d),
       supprimer: (page: string, id: number) => post(`/referentiels/tiers/${page}/${id}/suppression`),
     },
+    refPaie: {
+      lire: (page: string) => get(`/referentiels/paie/${page}`),
+      enregistrer: (page: string, d: object, id?: number) => post(id === undefined ? `/referentiels/paie/${page}` : `/referentiels/paie/${page}/${id}`, d),
+      supprimer: (page: string, id: number) => post(`/referentiels/paie/${page}/${id}/suppression`),
+    },
+    refPaieRubriques: {
+      lire: (page: string) => get(`/referentiels/paie_rubriques/${page}`),
+      enregistrer: (page: string, d: object, id?: number) => post(id === undefined ? `/referentiels/paie_rubriques/${page}` : `/referentiels/paie_rubriques/${page}/${id}`, d),
+      supprimer: (page: string, id: number) => post(`/referentiels/paie_rubriques/${page}/${id}/suppression`),
+    },
+    paie: {
+      contexte: () => get("/paie/contexte"),
+      enregistrer: (d: unknown, id?: number) => post(id === undefined ? "/paie/employes" : `/paie/employes/${id}`, d),
+      fiche: (id: number) => get(`/paie/employes/${id}`),
+      liste: (p: Record<string, unknown> = {}) => get(`/paie/employes?${requete(p)}`),
+      maquette: (employeId: number) => get(`/paie/maquette?employeId=${employeId}`),
+      ajouterMaquette: (d: unknown) => post("/paie/maquette", d),
+      retirerMaquette: (id: number) => post(`/paie/maquette/${id}/suppression`),
+      retenues: (p: Record<string, unknown> = {}) => get(`/paie/retenues?${requete(p)}`),
+      mettreEnPlace: (d: unknown) => post("/paie/retenues", d),
+      viser: (id: number) => post(`/paie/retenues/${id}/visa`),
+    },
+    refPaieStructure: {
+      lire: (page: string) => get(`/referentiels/paie_structure/${page}`),
+      enregistrer: (page: string, d: object, id?: number) => post(id === undefined ? `/referentiels/paie_structure/${page}` : `/referentiels/paie_structure/${page}/${id}`, d),
+      supprimer: (page: string, id: number) => post(`/referentiels/paie_structure/${page}/${id}/suppression`),
+    },
     refFinancement: {
       lire: (page: string) => get(`/referentiels/financement/${page}`),
       enregistrer: (page: string, d: object, id?: number) => post(id === undefined ? `/referentiels/financement/${page}` : `/referentiels/financement/${page}/${id}`, d),

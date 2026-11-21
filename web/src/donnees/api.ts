@@ -7,7 +7,7 @@ import { graine } from "./graine";
 import { creerApiHttp } from "./http";
 import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
-  type ChequeClient, type Chequier, type DepotTerme, type PlanEpargne, type ClotureCompte, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type OperationCompta, type LigneOc, type ChargeFacture, type CommandeFournisseur, type FactureFournisseur, type ReglementFournisseur, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
+  type ChequeClient, type Chequier, type DepotTerme, type PaieEmploye, type PlanEpargne, type ClotureCompte, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type OperationCompta, type LigneOc, type ChargeFacture, type CommandeFournisseur, type FactureFournisseur, type ReglementFournisseur, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget, type CriteresAtypiques, type GelAvoirs,
   type AnalyseFinanciere, type DemandeCredit, type CreditPret, type GarantieCredit, type RemboursementCredit, type VisaCredit, type BalanceAgee,
@@ -22,7 +22,7 @@ import REFERENTIELS from "@referentiels";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v103";
+const CLE = "likelemba-demo-v104";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -30,7 +30,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 80) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 81) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -5383,7 +5383,7 @@ export function preparerDemo() {
 export type TypeChampBudget = "texte" | "texteLong" | "entier" | "jjmm" | "choix" | "annee" | "compte" | "compteSimple" | "operation" | "email" | "ouiNon";
 export interface ChampBudget { cle: string; libelle: string; type: TypeChampBudget; obligatoire: boolean; ref?: string; aide?: string; colonne: string; defaut?: number | boolean;
   sansEtoile?: boolean; cadre?: string; grille?: boolean; valeurs?: string[]; format?: "decimal" | "date"; rang?: number; propose?: string }   // sansEtoile : la capture ne montre pas l'astérisque ; grille false : champ absent de la grille
-export interface FicheBudget { page: string; menu: string; entete?: string; grille?: string; cadre?: string; rafraichir?: boolean; filtres?: boolean; unique?: string[];
+export interface FicheBudget { page: string; menu: string; groupe?: string; onglet?: string; entete?: string; grille?: string; cadre?: string; rafraichir?: boolean; filtres?: boolean; unique?: string[];
   parentMemeTable?: boolean; exporter?: boolean; outils?: boolean; portefeuille?: boolean; ordres?: boolean; fixe?: Record<string, unknown>[]; champs: ChampBudget[] }
 const ch = (cle: string, libelle: string, colonne: string, type: TypeChampBudget = "texte", obligatoire = true, x: Partial<ChampBudget> = {}): ChampBudget =>
   ({ cle, libelle, colonne, type, obligatoire, ...x });
@@ -5426,7 +5426,7 @@ function referentiel(o: OptionsReferentiel) {
     lire(page: string) {
       exiger();
       const c = fiche(page);
-      const catalogue = o.catalogue.map((x) => ({ page: x.page, menu: x.menu }));
+      const catalogue = o.catalogue.map((x) => ({ page: x.page, menu: x.menu, ...(x.groupe ? { groupe: x.groupe, onglet: x.onglet } : {}) }));
       const { fixe, ...vue } = c;
       if (fixe) return { catalogue, fiche: vue, options: {} as Record<string, OptionBudget[]>,
         lignes: fixe.map((r, n): LigneBudgetVue => ({ id: n + 1, ...r, affichage: Object.fromEntries(Object.entries(r).map(([k, v]) => [k, String(v)])) })) };
@@ -5533,8 +5533,8 @@ const enOuverture = (m: { compte: string; date: string }, du: string, ex: number
 const LIAISON = "451";   // PCCI, compte 451 Comptes de liaison inter agences
 const TYPES_OC: Record<OperationCompta["type"], string> = { ecriture: "Écriture comptable", virement: "Virement", prelevement: "Prélèvement",
   compte_a_compte: "Compte DAV vers un Autre Compte", tontine_dav: "Compte Tontine vers un Compte DAV", diverse: "Opération diverse", deplacee: "Opération déplacée",
-  domiciliation: "Virement de salaire", prelevement_auto: "Prélèvement automatique" };
-const LISTES_OC: Record<string, OperationCompta["type"][]> = { virement: ["virement", "prelevement", "domiciliation", "prelevement_auto"], ecriture: ["ecriture"],
+  domiciliation: "Virement de salaire", prelevement_auto: "Prélèvement automatique", salaire_personnel: "Salaire du personnel" };
+const LISTES_OC: Record<string, OperationCompta["type"][]> = { virement: ["virement", "prelevement", "domiciliation", "prelevement_auto", "salaire_personnel"], ecriture: ["ecriture"],
   compte_a_compte: ["compte_a_compte", "tontine_dav"], diverse: ["diverse"], deplacee: ["deplacee"] };
 const CAISSE_OC: OperationCompta["type"][] = ["diverse", "deplacee"];
 /** Comptes tenus par la gestion (registre S109-4) : crédits et provisions, dépôts, caisse, virements internes, parts sociales, liaison ; plus les comptes de banque */
@@ -5577,7 +5577,7 @@ function vueOc(o: OperationCompta) {
   const k = (id: number | null) => { const c = E.comptes.find((x) => x.id === id); const t = c ? E.tiers.find((x) => x.id === c.tiersId) : undefined; return c ? { c, client: `${t?.numero ?? ""} ${t ? titulaire(t) : ""}` } : null; };
   const e = k(o.compteDepotId), r = k(o.compteDepotDestId), t = o.type;
   const debit = t === "prelevement" || t === "domiciliation" || o.sens === "DECAISSEMENT" || o.sens === "RETRAIT";
-  const credit = t === "virement" || t === "prelevement_auto" || o.sens === "ENCAISSEMENT" || o.sens === "DEPOT";
+  const credit = t === "virement" || t === "prelevement_auto" || t === "salaire_personnel" || o.sens === "ENCAISSEMENT" || o.sens === "DEPOT";
   return { id: o.id, transaction: String(o.id).padStart(6, "0"), type: t, operation: TYPES_OC[t], statut: o.statut, date: o.date, libelle: o.libelle, montant: o.montant, devise: o.devise as string, sens: o.sens as string, piece: o.piece,
     reference: o.reference, lignes: o.lignes, saisiPar: nomUtilisateur(o.saisiPar), visePar: nomUtilisateur(o.visePar), dateVisa: o.viseLe ?? "", dateValidation: o.dateValidation ?? "",
     compteEpargne: e?.c.numero ?? "", numeroComptable: e?.c.pcci ?? "", clientEmetteur: e?.client ?? "", compteEmetteur: e?.c.numero ?? "",
@@ -5642,6 +5642,8 @@ function lignesEcritureOc(o: OperationCompta): LigneGl[] {
   if (t === "compte_a_compte" || t === "tontine_dav") return [ligneDepotOc(o.compteDepotId!, "D", dv, m), ligneDepotOc(o.compteDepotDestId!, "C", dv, m)];
   if (t === "domiciliation") return [ligneDepotOc(o.compteDepotId!, "D", dv, m), ...o.lignes.map((x) => ligneDepotOc(x.compteDepotId!, "C", dv, x.montant))];
   if (t === "prelevement_auto") return [...o.lignes.map((x) => ligneDepotOc(x.compteDepotId!, "D", dv, x.montant)), ligneDepotOc(o.compteDepotId!, "C", dv, m)];
+  // S117, Salaire du personnel : le compte 421 « Rémunérations dues et non payées » (PCCI) paie les comptes des employés (registre S117-7)
+  if (t === "salaire_personnel") return [{ compte: "421", sens: "D" as const, devise: dv, montant: m }, ...o.lignes.map((x) => ligneDepotOc(x.compteDepotId!, "C", dv, x.montant))];
   throw new ErreurMetier("Cette opération se paie en caisse.");
 }
 /** Reflet dans l'agence du client (PCCI, compte 45 : mouvement de montant égal et de signe contraire) */
@@ -5776,8 +5778,25 @@ const operationsCompta = {
     throw new ErreurMetier(`N° Compte : aucun compte ${numero} chez un client de l'agence ${ag.nom}.`);
   },
   /** S117 : domiciliation de salaire (capture « Virement de salaire », p. 136) et prélèvement automatique, même écran ; aucune commission (Instr. BCC 37) */
-  enregistrerMensuel(d: { cle: string; mode: string; compteInstitutionId: number | null; total?: number | null; lignes: { compteDepotId: number; montant: number; commission?: number | null }[] }) {
+  enregistrerMensuel(d: { cle: string; mode: string; compteInstitutionId: number | null; devise?: string; total?: number | null; lignes: { compteDepotId: number; montant: number; commission?: number | null }[] }) {
     const u = exiger(), cle = cleOc(d.cle), prec = dejaOc(cle); if (prec) return prec;
+    if (d.mode === "personnel") {      // onglet Salaire du personnel (p. 136) : même écran, payé du compte 421 (registre S117-7)
+      const dv = (d.devise || "CDF") as Devise, brut = Array.isArray(d.lignes) ? d.lignes : [];
+      if (!brut.length) throw new ErreurMetier("Liste des Client : au moins un compte.");
+      const l: LigneOc[] = [], vus = new Set<number>();
+      for (const x of brut) {
+        const c = compteClientOc(x.compteDepotId, "Compte du client"), m = entierOc(x.montant);
+        if (!m || m <= 0) throw new ErreurMetier(`Compte ${c.numero} : un montant supérieur à zéro.`);
+        if (entierOc(x.commission)) throw new ErreurMetier("Commission : aucune ; la domiciliation de salaire et le virement de compte à compte sont gratuits (Instr. BCC 37, annexe, points 1 et 2).");
+        if (vus.has(c.id)) throw new ErreurMetier(`Compte ${c.numero} : déjà dans la liste.`);
+        if (c.devise !== dv) throw new ErreurMetier(`Compte ${c.numero} : pas dans la devise du virement.`);
+        vus.add(c.id);
+        l.push({ compteDepotId: c.id, numero: c.numero, client: E.tiers.find((t) => t.id === c.tiersId)?.numero ?? "", intitule: titulaireOc(c.tiersId), montant: m });
+      }
+      const total = l.reduce((t, x) => t + x.montant, 0);
+      if (entierOc(d.total) !== total) throw new ErreurMetier("Salaire total à verser : il ne fait pas la somme des salaires de la liste.");
+      return nouvelleOc(u, cle, "salaire_personnel", jourOuvertOc(), `Salaire du personnel (${l.length} comptes)`, total, dv, { compteDepotId: null, lignes: l });
+    }
     const type = d.mode === "prelevement" ? "prelevement_auto" as const : "domiciliation" as const;
     const inst = compteClientOc(d.compteInstitutionId, "Compte interne de l'institution");
     const brut = Array.isArray(d.lignes) ? d.lignes : [];
@@ -6513,7 +6532,7 @@ const budgets = {
       lignes: stockB("lignes").map((l) => ({ id: l.id, numero: String(l.numero), libelle: String(l.libelle), planId: Number(l.planId), centreId: Number(l.centreId), centre: ce.get(Number(l.centreId)) ?? "",
         financement: String(valeursRef("financement", "bailleurs").find((b) => b.id === l.bailleurId)?.nom ?? "") })).sort((a, b) => a.numero.localeCompare(b.numero)),
       centres: stockB("centres").map((c) => ({ id: c.id, code: String(c.code), libelle: String(c.libelle) })).sort((a, b) => a.code.localeCompare(b.code)),
-      exercices: [...E.exercices].map((x) => x.annee).sort((a, b) => b - a) };
+      exercices: [...E.exercices].map((x) => x.annee).sort((a, b) => b - a), exerciceCourant: E.exercices.find((x) => x.actif)?.annee ?? null };   // exercice en cours (S11-1)
   },
   /** Comptes que le type de budget permet (Param Compte), saisissables et ouverts */
   comptesDuType(typeId: number) {
@@ -7246,6 +7265,204 @@ const refFinancement = { ...moteurFinancement,
     return moteurFinancement.supprimer(page, id);
   } };
 const TYPES_TIERS = DESCRIPTION_REF.tiers!.pages[0]!.champs.find((f) => f.cle === "typeTiers")!.valeurs!;
+// S131, S132 : Paie > Structure de base (p. 269 à 276) : données de base, grilles et états. Mêmes règles que serveur/noyau/referentiels.py
+VERIFIER_REF.paie = (c, v) => {
+  if (c.page === "baremes" && v.min !== null && v.max !== null && Number(v.min) > Number(v.max)) throw new ErreurMetier("Max : au moins Min.");
+  if (v.taux && Number(String(v.taux).replace(",", ".")) > 100) throw new ErreurMetier("Taux : 100 % au plus.");
+};
+UTILISE_PAR_REF.paie = { classes: [["grilles_salariales", "classeId", "Grille salariale"]], categories: [["grilles_salariales", "categorieId", "Grille salariale"]],
+  echelons: [["grilles_salariales", "echelonId", "Grille salariale"]], grandes_rubriques: [["types_heure_sup", "elementId", "Type d'heure supplémentaire"]] };
+CHOIX_REF.paie_structure = {
+  types_grille: () => valeursRef("paie", "types_grille").map((l) => ({ id: l.id, libelle: String(l.libelle) })),
+  employes: () => [...(E.paieEmployes ?? [])].sort((a, b) => a.matricule.localeCompare(b.matricule)).map((e) => ({ id: e.id, libelle: `${e.matricule} ${e.nom} ${e.prenoms}` })),
+};
+const moteurPaie = referentielPartage("paie"), refPaieStructure = referentielPartage("paie_structure");
+const refPaie = { ...moteurPaie,
+  supprimer(page: string, id: number) {
+    if (page === "types_grille" && valeursRef("paie_structure", "grilles").some((g) => g.typeGrilleId === id)) throw new ErreurMetier("Cette valeur est utilisée par la page Gestion des grilles : la retirer d'abord.");
+    return moteurPaie.supprimer(page, id);
+  } };
+// ---------- Paie : S133 Nouvel employé, S134 Rubriques, maquette et liste des employés, S135 Retenues (manuel p. 276 à 278 ; captures GRH p. 201 à 209) ----------
+// Mêmes règles que serveur/noyau/paie.py. Code du travail, art. 39 à 41 (contrats), art. 112 (retenues permises). Registre S133, S134, S135.
+CHOIX_REF.paie_rubriques = {
+  grandes_familles: () => valeursRef("paie", "grandes_familles").map((l) => ({ id: l.id, libelle: String(l.libelle) })),
+  grandes_rubriques: () => valeursRef("paie", "grandes_rubriques").map((l) => ({ id: l.id, libelle: `${l.code} ${l.libelle}` })),
+};
+UTILISE_PAR_REF.paie = { ...UTILISE_PAR_REF.paie, types_retenue: [] };
+const moteurRubriques = referentielPartage("paie_rubriques");
+const refPaieRubriques = { ...moteurRubriques,
+  supprimer(page: string, id: number) {
+    if (E.paieMaquette.some((m) => m.rubriqueId === id)) throw new ErreurMetier("Cette valeur est utilisée par la page Maquette de paie : la retirer d'abord.");
+    return moteurRubriques.supprimer(page, id);
+  } };
+const moteurPaieBase = refPaie;
+const refPaieBase = { ...moteurPaieBase,
+  supprimer(page: string, id: number) {
+    const sert = page === "grandes_familles" ? valeursRef("paie_rubriques", "rubriques").some((r) => r.familleId === id)
+      : page === "grandes_rubriques" ? valeursRef("paie_rubriques", "rubriques").some((r) => r.grandeRubriqueId === id)
+      : page === "types_retenue" ? E.paieRetenues.some((r) => r.typeId === id) : false;
+    if (sert) throw new ErreurMetier(`Cette valeur est utilisée par la page ${page === "types_retenue" ? "Mise en place retenue" : "Rubrique de paie"} : la retirer d'abord.`);
+    return moteurPaieBase.supprimer(page, id);
+  } };
+const SEXES = ["Masculin", "Féminin"], CIVILITES = ["Monsieur", "Madame", "Mademoiselle"], GROUPES_SANGUINS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+const TYPES_CONTRAT = ["Contrat à durée déterminée", "Contrat à durée indéterminée"], REGIMES = ["Régime catégoriel", "Régime indiciaire"];
+const SESSION_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+type SaisieEmploye = Partial<Omit<PaieEmploye, "id" | "creePar" | "creeLe" | "personnes">> & { personnes?: Partial<PaieEmploye["personnes"][number]>[] };
+const optionsPaie = (page: string) => valeursRef("paie", page).map((l) => ({ id: l.id, libelle: String(l.libelle) }));
+const vueEmploye = (e: PaieEmploye) => ({ ...e, creePar: nomUtilisateur(e.creePar) });
+const paie = {
+  contexte() {
+    lectureAdmin(["S132", "S133", "S134", "S135"]);
+    return { sexes: SEXES, civilites: CIVILITES, groupesSanguins: GROUPES_SANGUINS, typesContrat: TYPES_CONTRAT, regimes: REGIMES,
+      situations: valeursListe("situation_matrimoniale").map((l) => l.libelle), professions: valeursListe("profession").map((l) => l.libelle),
+      categories: optionsPaie("categories"), classes: optionsPaie("classes"), echelons: optionsPaie("echelons"),
+      grillesSalariales: valeursRef("paie", "grilles_salariales").map((g) => ({ categorieId: Number(g.categorieId), classeId: Number(g.classeId), echelonId: Number(g.echelonId),
+        salaire: g.salaire === null || g.salaire === undefined || g.salaire === "" ? null : Number(g.salaire), points: g.points === null || g.points === undefined || g.points === "" ? null : Number(g.points) })),
+      grilles: valeursRef("paie_structure", "grilles").map((g) => ({ id: g.id, libelle: String(g.libelle), type: String(valeursRef("paie", "types_grille").find((t) => t.id === g.typeGrilleId)?.libelle ?? "") })),
+      agences: E.agences.filter((a) => !a.supprime).map((a) => ({ id: a.id, nom: a.nom })),
+      centres: stockB("centres").map((c) => ({ id: c.id, libelle: String(c.libelle) })),
+      typesRetenue: optionsPaie("types_retenue"),
+      rubriques: valeursRef("paie_rubriques", "rubriques").sort((a, b) => String(a.code).localeCompare(String(b.code))).map((r) => ({ id: r.id, libelle: `${r.code} ${r.libelle}` })) };
+  },
+  enregistrer(d: SaisieEmploye, id?: number) {
+    const u = exiger(), ctx = paie.contexte();
+    const ancien = id === undefined ? undefined : E.paieEmployes.find((x) => x.id === id);
+    if (id !== undefined && !ancien) throw new ErreurMetier("Employé introuvable.");
+    const t = (k: keyof SaisieEmploye) => (typeof d[k] === "string" ? (d[k] as string).trim() : "");
+    const n = (k: keyof SaisieEmploye, defaut: number | null = null) => {
+      const x = d[k] as unknown;
+      if (x === undefined || x === null || x === "") return defaut;
+      if (typeof x === "boolean" || !(Number.isInteger(x) || (typeof x === "string" && /^\d+$/.test(x.trim()))) || Number(x) < 0) throw new ErreurMetier(`${String(k)} : nombre entier positif ou nul.`);
+      return Number(x);
+    };
+    const idv = (k: keyof SaisieEmploye) => { const x = d[k] as unknown; return typeof x === "number" && Number.isInteger(x) && x > 0 ? x : null; };
+    const manque = ([["matricule", "Matricule"], ["sexe", "Sexe"], ["civilite", "Civilité"], ["nom", "Nom"], ["prenoms", "Prénom(s)"], ["dateNaissance", "Date de naissance"],
+      ["dateEmbauche", "Date d'embauche"]] as const).filter(([k]) => !t(k)).map(([, x]) => x);
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    for (const k of ["dateNaissance", "dateDebutCarriere", "dateEmbauche", "dateReferenceAnciennete", "dateDebutContrat", "dateFinContrat"] as const)
+      if (t(k) && !DATE_ISO.test(t(k))) throw new ErreurMetier("Date invalide.");
+    if (!SEXES.includes(t("sexe")) || !CIVILITES.includes(t("civilite"))) throw new ErreurMetier("Sexe ou civilité inconnu.");
+    if (t("groupeSanguin") && !GROUPES_SANGUINS.includes(t("groupeSanguin"))) throw new ErreurMetier("Groupe sanguin inconnu.");
+    if (t("situationMatrimoniale") && !ctx.situations.includes(t("situationMatrimoniale"))) throw new ErreurMetier("Situation matrimoniale inconnue.");
+    if (t("email") && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(t("email"))) throw new ErreurMetier("Email invalide.");
+    if (t("dateEmbauche") <= t("dateNaissance")) throw new ErreurMetier("Date d'embauche : après la date de naissance.");
+    if (t("salairePredefini") && !REGIMES.includes(t("salairePredefini"))) throw new ErreurMetier("Salaire de base prédéfini inconnu.");
+    for (const [k, l] of [["categorieId", ctx.categories], ["classeId", ctx.classes], ["echelonId", ctx.echelons], ["agenceId", ctx.agences], ["centreId", ctx.centres]] as const)
+      if (idv(k) !== null && !(l as { id: number }[]).some((o) => o.id === idv(k))) throw new ErreurMetier(`${k} inconnu.`);
+    let taux = t("tauxAnciennete");
+    if (taux) {
+      if (!/^\d{1,3}([.,]\d{1,2})?$/.test(taux) || Number(taux.replace(",", ".")) > 100) throw new ErreurMetier("Taux de prime d'ancienneté : un pourcentage, 100 au plus.");
+      taux = Number(taux.replace(",", ".")).toFixed(2).replace(".", ",");
+    }
+    if (!t("dateReferenceAnciennete") !== !taux) throw new ErreurMetier("Ancienneté acquise : Date référence de prime d'ancienneté et Taux de prime d'ancienneté vont ensemble.");
+    if (t("typeContrat")) {
+      if (!TYPES_CONTRAT.includes(t("typeContrat"))) throw new ErreurMetier("Type de contrat inconnu.");
+      if (!t("dateDebutContrat")) throw new ErreurMetier("À remplir : Date début du contrat.");
+      if (t("typeContrat") === TYPES_CONTRAT[0]) {
+        if (!t("dateFinContrat")) throw new ErreurMetier("À remplir : Date fin du contrat (contrat à durée déterminée).");
+        if (t("dateFinContrat") < t("dateDebutContrat")) throw new ErreurMetier("Date fin du contrat : après la date début.");
+        const d0 = t("dateDebutContrat"), limite = `${Number(d0.slice(0, 4)) + 2}${d0.slice(4) === "-02-29" ? "-02-28" : d0.slice(4)}`;
+        if (t("dateFinContrat") > limite) throw new ErreurMetier("Un contrat à durée déterminée ne dépasse pas deux ans (code du travail, art. 41).");
+      } else if (t("dateFinContrat")) throw new ErreurMetier("Un contrat à durée indéterminée n'a pas de date fin (code du travail, art. 39).");
+    }
+    if (E.paieEmployes.some((x) => x.id !== id && x.matricule.toLowerCase() === t("matricule").toLowerCase())) throw new ErreurMetier("Ce Matricule existe déjà.");
+    const personnes = (d.personnes ?? []).map((p, i) => {
+      if (!p.nom?.trim() || !p.prenoms?.trim() || ![p.conjoint, p.employe, p.enfantPropre].every((x) => typeof x === "boolean"))
+        throw new ErreurMetier("Personne à charge : à remplir : Nom, Prénom(s), Conjoint, Employé, Enfant propre.");
+      if (p.dateNaissance && !DATE_ISO.test(p.dateNaissance)) throw new ErreurMetier("Personne à charge : date de naissance invalide.");
+      return { id: i + 1, nom: p.nom.trim(), prenoms: p.prenoms.trim(), dateNaissance: p.dateNaissance ?? "", conjoint: p.conjoint!, employe: p.employe!, enfantPropre: p.enfantPropre! };
+    });
+    const grilles = [...new Set(d.grilles ?? [])].sort((a, b) => a - b);
+    if (grilles.some((g) => !ctx.grilles.some((x) => x.id === g))) throw new ErreurMetier("Grille inconnue.");
+    const e: PaieEmploye = { id: ancien?.id ?? prochain(E.paieEmployes), agenceId: idv("agenceId") ?? E.agence.id, matricule: t("matricule"), numeroSecuriteSociale: t("numeroSecuriteSociale"),
+      sexe: t("sexe"), civilite: t("civilite"), nom: t("nom"), prenoms: t("prenoms"), nomJeuneFille: t("nomJeuneFille"), situationMatrimoniale: t("situationMatrimoniale"),
+      dateNaissance: t("dateNaissance"), lieuNaissance: t("lieuNaissance"), nationalite: t("nationalite"), groupeSanguin: t("groupeSanguin"), contact1: t("contact1"),
+      contact2: t("contact2"), adresse: t("adresse"), email: t("email"), bp: t("bp"), profession: t("profession"), personneAPrevenir: t("personneAPrevenir"),
+      dateDebutCarriere: t("dateDebutCarriere"), dateEmbauche: t("dateEmbauche"), personnesACharge: n("personnesACharge", 0)!, personnes,
+      categorieId: idv("categorieId"), classeId: idv("classeId"), echelonId: idv("echelonId"), salairePredefini: t("salairePredefini"), salaireBase: n("salaireBase"),
+      surSalaire: n("surSalaire"), dateReferenceAnciennete: t("dateReferenceAnciennete"), tauxAnciennete: taux, dureeAnciennete: n("dureeAnciennete"),
+      montantAnciennete: n("montantAnciennete"), congesDus: n("congesDus"), grilles, centreId: idv("centreId"), poste: t("poste"), fonction: t("fonction"),
+      typeContrat: t("typeContrat"), typeEmploye: t("typeEmploye"), dateDebutContrat: t("dateDebutContrat"), dateFinContrat: t("dateFinContrat"), modeleContrat: t("modeleContrat"),
+      creePar: ancien?.creePar ?? u.id, creeLe: ancien?.creeLe ?? new Date().toISOString() };
+    if (ancien) Object.assign(ancien, e); else E.paieEmployes.push(e);
+    enregistrer(); return vueEmploye(e);
+  },
+  fiche(id: number) {
+    lectureAdmin(["S132", "S133", "S134", "S135"]);
+    const e = E.paieEmployes.find((x) => x.id === id);
+    if (!e) throw new ErreurMetier("Employé introuvable.");
+    return vueEmploye(e);
+  },
+  liste(p: { sexe?: string; typeContrat?: string; du?: string; au?: string } = {}) {
+    lectureAdmin(["S132", "S133", "S134", "S135"]);
+    if ((p.du && !DATE_ISO.test(p.du)) || (p.au && !DATE_ISO.test(p.au))) throw new ErreurMetier("Date invalide.");
+    const lib = (page: string, id: number | null) => String(valeursRef("paie", page).find((x) => x.id === id)?.libelle ?? "");
+    return E.paieEmployes.filter((e) => (!p.sexe || e.sexe === p.sexe) && (!p.typeContrat || e.typeContrat === p.typeContrat) && (!p.du || e.dateEmbauche >= p.du) && (!p.au || e.dateEmbauche <= p.au))
+      .sort((a, b) => a.matricule.localeCompare(b.matricule))
+      .map((e) => ({ id: e.id, matricule: e.matricule, nom: e.nom, prenoms: e.prenoms, nomPrenoms: `${e.nom} ${e.prenoms}`, numeroSecuriteSociale: e.numeroSecuriteSociale, sexe: e.sexe,
+        categorieSalariale: [lib("categories", e.categorieId), lib("classes", e.classeId), lib("echelons", e.echelonId)].join(" - "), dateEmbauche: e.dateEmbauche,
+        poste: e.poste, fonction: e.fonction, typeContrat: e.typeContrat }));
+  },
+  maquette(employeId: number) {
+    lectureAdmin(["S132", "S133", "S134", "S135"]);
+    return E.paieMaquette.filter((m) => m.employeId === employeId).sort((a, b) => a.id - b.id).map((m) => {
+      const r = valeursRef("paie_rubriques", "rubriques").find((x) => x.id === m.rubriqueId) ?? stockRef("paie_rubriques", "rubriques").find((x) => x.id === m.rubriqueId);
+      return { id: m.id, rubriqueId: m.rubriqueId, rubrique: `${r?.code ?? ""} ${r?.libelle ?? ""}`, montant: m.montant, session: m.session, active: m.active, intersession: m.intersession, permanente: m.permanente };
+    });
+  },
+  ajouterMaquette(d: { employeId?: number | null; rubriqueId?: number | null; montant?: number | null; session?: string; active?: boolean; intersession?: boolean; permanente?: boolean }) {
+    const u = exiger();
+    const manque = ([["Employé", d.employeId], ["Rubrique", d.rubriqueId], ["Montant", d.montant]] as const).filter(([, x]) => x === undefined || x === null).map(([k]) => k);
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    if (!E.paieEmployes.some((e) => e.id === d.employeId)) throw new ErreurMetier("Employé introuvable.");
+    if (!valeursRef("paie_rubriques", "rubriques").some((r) => r.id === d.rubriqueId)) throw new ErreurMetier("Rubrique inconnue.");
+    if (typeof d.montant !== "number" || !Number.isInteger(d.montant) || d.montant < 0) throw new ErreurMetier("Montant : nombre entier positif ou nul.");
+    const permanente = !!d.permanente, session = (d.session ?? "").trim();
+    if (!permanente && !SESSION_RE.test(session)) throw new ErreurMetier("À remplir : Session (AAAA-MM), ou cocher Permanente.");
+    if (session && !SESSION_RE.test(session)) throw new ErreurMetier("Session : AAAA-MM.");
+    const s = permanente ? "" : session;
+    if (E.paieMaquette.some((m) => m.employeId === d.employeId && m.rubriqueId === d.rubriqueId && m.session === s)) throw new ErreurMetier("Cette rubrique est déjà dans la maquette de l'employé pour cette session.");
+    E.paieMaquette.push({ id: prochain(E.paieMaquette), employeId: d.employeId!, rubriqueId: d.rubriqueId!, montant: d.montant, session: s, active: !!d.active, intersession: !!d.intersession, permanente, saisiPar: u.id });
+    enregistrer(); return paie.maquette(d.employeId!);
+  },
+  retirerMaquette(id: number) {
+    exiger();
+    const m = E.paieMaquette.find((x) => x.id === id);
+    if (!m) throw new ErreurMetier("Ligne introuvable.");
+    E.paieMaquette = E.paieMaquette.filter((x) => x.id !== id); enregistrer(); return paie.maquette(m.employeId);
+  },
+  retenues(p: { employeId?: number | string; statut?: string } = {}) {
+    lectureAdmin(["S132", "S133", "S134", "S135"]);
+    return E.paieRetenues.filter((r) => (!p.employeId || r.employeId === Number(p.employeId)) && (!p.statut || r.statut === p.statut)).sort((a, b) => a.id - b.id).map((r) => {
+      const e = E.paieEmployes.find((x) => x.id === r.employeId)!;
+      return { id: r.id, employeId: r.employeId, matricule: e.matricule, employe: `${e.nom} ${e.prenoms}`, typeId: r.typeId, type: String(stockRef("paie", "types_retenue").find((t) => t.id === r.typeId)?.libelle ?? ""),
+        session: r.session, montant: r.montant, duree: r.duree, mensualite: Math.ceil(r.montant / r.duree), statut: r.statut, saisiPar: nomUtilisateur(r.saisiPar), visePar: r.visePar ? nomUtilisateur(r.visePar) : "" };
+    });
+  },
+  mettreEnPlace(d: { employeId?: number | null; typeId?: number | null; session?: string; montant?: number | null; duree?: number | null }) {
+    const u = exiger();
+    const manque = ([["Matricule", d.employeId], ["Type de retenue", d.typeId], ["Session", d.session], ["Montant", d.montant], ["Durée", d.duree]] as const)
+      .filter(([, x]) => x === undefined || x === null || x === "").map(([k]) => k);
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    if (!E.paieEmployes.some((e) => e.id === d.employeId)) throw new ErreurMetier("Employé introuvable.");
+    if (!valeursRef("paie", "types_retenue").some((t) => t.id === d.typeId)) throw new ErreurMetier("Type de retenue inconnu.");
+    if (!SESSION_RE.test(d.session!)) throw new ErreurMetier("Session : AAAA-MM.");
+    if (!Number.isInteger(d.montant) || d.montant! <= 0) throw new ErreurMetier("Montant : nombre entier positif.");
+    if (!Number.isInteger(d.duree) || d.duree! < 1 || d.duree! > 120) throw new ErreurMetier("Durée : de 1 à 120 sessions.");
+    const id = prochain(E.paieRetenues);
+    E.paieRetenues.push({ id, employeId: d.employeId!, typeId: d.typeId!, session: d.session!, montant: d.montant!, duree: d.duree!, statut: "saisie", saisiPar: u.id, visePar: null });
+    enregistrer(); return paie.retenues().find((r) => r.id === id)!;
+  },
+  viser(id: number) {
+    const u = exiger();
+    const r = E.paieRetenues.find((x) => x.id === id);
+    if (!r) throw new ErreurMetier("Retenue introuvable.");
+    if (r.statut !== "saisie") throw new ErreurMetier("Retenue déjà visée.");
+    if (r.saisiPar === u.id) throw new ErreurMetier("Visa : une autre personne que celle qui a mis la retenue en place (Instr. BCC 008, art. 66).");
+    r.statut = "visee"; r.visePar = u.id; enregistrer(); return paie.retenues().find((x) => x.id === id)!;
+  },
+};
+
 // ---------- Info de base > Budget : huit référentiels (S19, manuel p. 27 à 30) ----------
 /** Ordre du menu Info de base > Budget (2-1 à 2-8) ; titres, champs et colonnes des captures p. 27 à 30 */
 export const CATALOGUE_BUDGET: FicheBudget[] = [
@@ -8437,6 +8654,10 @@ const apiLocal = {
   refTaxes: asynchrone(refTaxes, "refTaxes"),
   refTiers: asynchrone(refTiers, "refTiers"),
   refFinancement: asynchrone(refFinancement, "refFinancement"),
+  refPaie: asynchrone(refPaieBase, "refPaie"),
+  refPaieRubriques: asynchrone(refPaieRubriques, "refPaieRubriques"),
+  paie: asynchrone(paie, "paie"),
+  refPaieStructure: asynchrone(refPaieStructure, "refPaieStructure"),
   litigieux: asynchrone(litigieux, "litigieux"),
   societe: asynchrone(societe, "societe"),
   agents: asynchrone(agents, "agents"),

@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**796 décisions.** Solidité : 329 fortes (le manuel ou un texte répond), 390 moyennes (déduites d'un écran voisin ou d'une donnée), 77 faibles (notre choix, faute de mieux). Dans le code : 789 déjà en place, 7 à appliquer.
+**823 décisions.** Solidité : 338 fortes (le manuel ou un texte répond), 408 moyennes (déduites d'un écran voisin ou d'une donnée), 77 faibles (notre choix, faute de mieux). Dans le code : 817 déjà en place, 6 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1592,12 +1592,13 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S117-1 | Onglets | Domiciliation salaire (capture « Virement de salaire ») et Prélèvement automatique (en panne dans le manuel : même écran, sens inverse). Salaire du personnel vient avec la Paie (S133 à S135) | Écran voisin : Captures p. 136 ; atlas S117 | moyenne | à appliquer |
+| S117-1 | Onglets | Domiciliation salaire (capture « Virement de salaire »), Salaire du personnel et Prélèvement automatique (en panne dans le manuel : même écran ; S117-6, S117-7), dans l'ordre du manuel (14-1, 14-2, 14-3) | Manuel : Captures p. 136 ; manuel p. 135 et 136 | moyenne | en place |
 | S117-2 | Domiciliation | Information Institution : le client qui paie les salaires (N°institution recherché, Nom, Intitulé compte : le produit, Compte interne : son compte chez nous). Salaire total à verser : égal à la somme de la liste. Comptes de la liste dans la devise du compte de l'institution ; total dans son disponible | Écran voisin : Capture p. 136 | moyenne | en place |
 | S117-3 | Commission | Aucune : le champ reste à l'écran, à zéro et non saisissable ; le serveur refuse toute commission (écart E28) | Texte réglementaire : Instr. BCC 37, art. 2 et 3, annexe, points 1 (domiciliation de salaire) et 2 (virement de compte à compte) | forte | en place |
 | S117-4 | Choose, Upload, Cancel | Fichier texte de la liste : une ligne par compte, « N° compte ; montant » ; chaque compte est vérifié | Écran voisin : Capture p. 136 (Choose, Upload, Cancel) | faible | en place |
 | S117-5 | Enregistrer et suite | Bouton Enregistrer sous la liste (capture coupée) : le lot part au visa dans « Virement et prélèvement » (une ligne), puis à la validation ; la comptabilisation passe une seule écriture : le compte de l'institution débité du total, chaque compte crédité de son salaire | Écran voisin : Capture p. 136 ; COMPLEMENTS § 6 ; Instr. BCC 008, art. 66 | moyenne | en place |
 | S117-6 | Prélèvement automatique | Même écran : chaque compte de la liste est débité, dans son disponible, et le compte de l'institution crédité. Le lot se lance chaque mois par l'utilisateur ; pas d'exécution sans intervention | Écran voisin : Manuel p. 136 (« l'onglet ne marche pas ») ; Instr. BCC 37, annexe, point 1 (autorisation de prélèvement gratuite) | faible | en place |
+| S117-7 | Salaire du personnel | Même écran que la domiciliation (manuel : « l'onglet ne marche pas ») : la source est le compte 421 « Rémunérations dues et non payées » de l'institution, en CDF ou en USD ; chaque compte de la liste est crédité du salaire de l'employé ; visa, validation, comptabilisation comme les autres virements. La charge de personnel (650) se constate avant au 421 par une écriture (S109) | Texte réglementaire : PCCI, comptes 421 et 650 ; manuel p. 136 ; Instr. BCC 37, annexe, point 1 | moyenne | en place |
 
 ## S107 Factures
 
@@ -1766,6 +1767,57 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S127-10 | Devise des soldes de gestion | Les soldes de gestion et le résultat se déterminent en CDF ; les écritures de clôture sont équilibrées en CDF | Texte réglementaire : PCCI § 7.1 (charges et produits en devises comptabilisés après conversion en CDF) | forte | en place |
 | S127-11 | Après la clôture de l'exercice | Les douze mois sont clôturés, l'exercice n'est plus ouvert ; date et auteur gardés ; une seconde clôture est refusée | Texte réglementaire : PCCI § 3.4, § 4.3.6 | forte | en place |
 | S127-12 | Compte 76 dans les soldes de gestion | Au compte 84, comme la classe 8. Le modèle 14.2 du compte de résultat le met avant le résultat brut d'exploitation (S122-6). Le PCCI se contredit : question posée au porteur | Texte réglementaire : PCCI, classe 8 (compte 84) ; PCCI 14.2 | moyenne | en place |
+
+## S131 Données de base de la paie
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S131-1 | Dix listes | Fenêtre « Traitement de la paie » : la liste des dix données de base à gauche, dans l'ordre de la capture ; Catégorie, Classe et Echelon en trois onglets d'une même entrée | Manuel : Manuel p. 269 à 275 (captures) | forte | en place |
+| S131-2 | Grilles des listes sans capture de grille | Allocation, Bârème d'imposition, Type d'avance, Type de retenue : la grille reprend les champs de la saisie, comme les listes voisines | Écran voisin : Listes voisines p. 271 à 275 | moyenne | en place |
+| S131-3 | Contrôles | Barème : Min au plus Max ; un taux ne dépasse pas 100 % ; un libellé, un code ou une combinaison Catégorie, Classe, Echelon ne se répète pas ; une valeur qui sert ailleurs ne se supprime pas | Écran voisin : Règles générales du manuel p. 10 à 12 ; S19 | forte | en place |
+| S131-4 | Elément salaire d'un type d'heure supplémentaire | Choisi dans les grandes rubriques d'élément | Écran voisin : Capture p. 274 (liste déroulante) ; grandes rubriques p. 273 | moyenne | en place |
+| S131-5 | Montants de la paie | En francs entiers, comme la capture de la grille salariale (250 000) | Manuel : Capture p. 273 | moyenne | en place |
+| S131-6 | Montant TCS du barème | Le libellé de la capture est repris tel quel ; le barème est saisi par l'institution, le logiciel ne calcule pas l'impôt (le manuel ne montre aucun calcul de paie) | Manuel : Capture p. 270 | moyenne | en place |
+| S131-7 | Droits de départ | Le comptable tient les listes, l'employé, la maquette et met en place les retenues ; le chef d'agence vise les retenues | Écran voisin : Instr. BCC 008, art. 66 ; T07 | moyenne | en place |
+
+## S132 Grilles et états
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S132-1 | Gestion des grilles et des états | Deux entrées sous « Structure de base » ; Grille et Type de grille ; Code, Titre, Description d'un état | Manuel : Manuel p. 275 et 276 (captures) | forte | en place |
+| S132-2 | Signataire d'un état | Choisi dans la liste des employés (matricule, nom, prénoms) au lieu d'une fenêtre de recherche | Écran voisin : Manuel p. 276 (recherche par Matricule ou Nom et prénoms) | moyenne | en place |
+
+## S133 Employé
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S133-1 | Onglets | Informations générales, Classification, Affectation, Contrat, comme le texte de la paie. L'onglet Formation, le bouton « Importer un candidat » et la photo de la capture GRH relèvent du module GRH, non repris | Manuel : Manuel p. 276 (texte) ; captures GRH p. 201 à 206 | moyenne | en place |
+| S133-2 | Champs obligatoires | Matricule, Sexe, Civilité, Nom, Prénom(s), Date de naissance, Date d'embauche (astérisques de la capture) ; matricule unique ; embauche après la naissance | Manuel : Capture p. 201 | forte | en place |
+| S133-3 | Listes de l'onglet Informations générales | Situation matrimoniale et Profession : listes de Général (S14) ; groupe sanguin : les huit groupes ; lieu de naissance et nationalité : saisie libre | Écran voisin : S14 ; capture p. 201 | moyenne | en place |
+| S133-4 | Personnes à charge | Bouton + : Nom, Prénom(s), Date de naissance, Conjoint, Employé, Enfant propre ; OK reporte leur nombre | Manuel : Capture p. 203 | forte | en place |
+| S133-5 | Classification | Catégorie, Classe, Echelon ; Salaire de base prédéfini : Régime catégoriel (salaire) ou Régime indiciaire (points), qui propose le salaire de base de la grille salariale ; Ancienneté acquise ; grilles fiscales et sociales ajoutées une à une | Manuel : Capture p. 206 ; grille salariale p. 273 | moyenne | en place |
+| S133-6 | Affectation (sans capture) | Agence, Centre de coût (S19), Poste, Fonction : ce que demande le texte et que montre la liste du personnel | Donnée exigée ailleurs : Manuel p. 277 (texte) ; capture p. 209 (Poste, Fonction) | moyenne | en place |
+| S133-7 | Contrat (sans capture) | Type de contrat : à durée déterminée ou indéterminée ; date fin obligatoire pour la durée déterminée, absente pour l'indéterminée ; deux ans au plus. Type d'employé et Modèle de contrat : saisie libre | Texte réglementaire : Code du travail, art. 39, 40 et 41 ; manuel p. 277 | forte | en place |
+| S133-8 | Visualiser le contrat | Les données de l'onglet Contrat, imprimables | Écran voisin : T11 | moyenne | en place |
+
+## S134 Rubriques et maquette
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S134-1 | Rubrique de paie | Famille du regroupement, Grande rubrique, Code et libellé de la rubrique | Manuel : Manuel p. 277 (texte) | moyenne | en place |
+| S134-2 | Maquette de paie | Employé, Rubrique, Montant ; Session (AAAA-MM) sauf si Permanente ; Active et Intersession gardées comme le texte les nomme ; une rubrique une fois par session | Manuel : Manuel p. 277 (texte) | moyenne | en place |
+| S134-3 | Liste des employés | Capture « Liste du Personnel » : Matricule, Nom et Prénoms, Catégorie salariale, Date d'embauche, Poste, Fonction ; Exporter, Répartition par sexe ; critères : Sexe, Type de contrat, embauche du … au …, Exécuter | Manuel : Capture p. 209 ; manuel p. 277 | moyenne | en place |
+| S134-4 | Calcul de la paie | Aucun bulletin ni calcul : le manuel n'en montre pas | Manuel : Manuel p. 269 à 278 | forte | en place |
+
+## S135 Retenues
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S135-1 | Mise en place retenue | Matricule (recherche), Type de retenue, Session, Montant total, Durée en sessions ; la part par session s'affiche | Manuel : Manuel p. 277 | moyenne | en place |
+| S135-2 | Liste des retenues sur salaire | Bouton en haut de la fiche : toutes les retenues avec leur état | Manuel : Manuel p. 278 | forte | en place |
+| S135-3 | Visa de retenue | Par une autre personne que celle qui l'a mise en place ; droit donné au chef d'agence | Texte réglementaire : Instr. BCC 008, art. 66 ; manuel p. 278 | forte | en place |
+| S135-4 | Types de retenue permis | Liste saisie par l'institution (S131) ; le code du travail limite les retenues à celles de l'art. 112 : à l'institution de s'y tenir | Texte réglementaire : Code du travail, art. 112 | moyenne | en place |
+| S135-5 | Quotité cessible | Non contrôlée : elle se calcule sur le salaire net (art. 114), que le logiciel ne calcule pas (S134-4) | Texte réglementaire : Code du travail, art. 114 | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

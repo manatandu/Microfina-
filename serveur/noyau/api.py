@@ -1905,6 +1905,73 @@ def fin_cloturer(request, corps: dict = Body(...)):
     return fin_periode.cloturer(u(request), corps)
 
 
+# ---------- Paie : S133 Nouvel employé, S134 Maquette et liste des employés, S135 Retenues ----------
+@api.get("/paie/contexte")
+def paie_contexte(request):
+    from . import paie
+    return paie.contexte(u(request))
+
+
+@api.get("/paie/employes")
+def paie_employes(request):
+    from . import paie
+    return paie.liste(u(request), request.GET.dict())
+
+
+@api.post("/paie/employes")
+def paie_creer(request, corps: dict = Body(...)):
+    from . import paie
+    return paie.enregistrer(u(request), corps)
+
+
+@api.get("/paie/employes/{eid}")
+def paie_fiche(request, eid: int):
+    from . import paie
+    return paie.fiche(u(request), eid)
+
+
+@api.post("/paie/employes/{eid}")
+def paie_modifier(request, eid: int, corps: dict = Body(...)):
+    from . import paie
+    return paie.enregistrer(u(request), corps, eid)
+
+
+@api.get("/paie/maquette")
+def paie_maquette(request, employeId: int):
+    from . import paie
+    return paie.maquette(u(request), employeId)
+
+
+@api.post("/paie/maquette")
+def paie_maquette_ajouter(request, corps: dict = Body(...)):
+    from . import paie
+    return paie.ajouter_maquette(u(request), corps)
+
+
+@api.post("/paie/maquette/{mid}/suppression")
+def paie_maquette_retirer(request, mid: int):
+    from . import paie
+    return paie.retirer_maquette(u(request), mid)
+
+
+@api.get("/paie/retenues")
+def paie_retenues(request):
+    from . import paie
+    return paie.retenues(u(request), request.GET.dict())
+
+
+@api.post("/paie/retenues")
+def paie_retenue_creer(request, corps: dict = Body(...)):
+    from . import paie
+    return paie.mettre_en_place(u(request), corps)
+
+
+@api.post("/paie/retenues/{rid}/visa")
+def paie_retenue_viser(request, rid: int):
+    from . import paie
+    return paie.viser(u(request), rid)
+
+
 @api.get("/budget-referentiels/{page}")
 def bu_lire(request, page: str):
     return bu.lire(u(request), page)

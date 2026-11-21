@@ -74,7 +74,7 @@ class Referentiel:
     def lire(self, u, page: str) -> dict:
         exiger(u)
         c = self.fiche(page)
-        entete = {"catalogue": [{k: x[k] for k in ("page", "menu")} for x in self.catalogue], "fiche": {k: v for k, v in c.items() if k not in ("table", "fixe")}}
+        entete = {"catalogue": [{k: x[k] for k in ("page", "menu", "groupe", "onglet") if k in x} for x in self.catalogue], "fiche": {k: v for k, v in c.items() if k not in ("table", "fixe")}}
         if "fixe" in c:                       # page en lecture seule : valeurs fixées par un texte ou par le logiciel
             return {**entete, "options": {}, "lignes": [{"id": n + 1, **r, "affichage": {k: str(v) for k, v in r.items()}} for n, r in enumerate(c["fixe"])]}
         i = u["institution_id"]

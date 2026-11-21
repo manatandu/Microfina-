@@ -148,11 +148,11 @@ S143,Autres : trésorerie,164 (nom dans le menu),D,rapport,tout l'écran,A:S118 
 S128,Calculs (cinq),164 (menu seul),D,traitement,"Frais de tenue de comptes, Intérêt sur DAV, Intérêts sur DAT, Intérêt et frais de tenue, État des provisions","A:S98, S127 ; D:S27 (options du produit) ; R:Instr. BCC sur les frais",9 Budget et Autres,oui
 S129,"Caisse mobile : transfert collecte, paramètres",164 (menu seul),D,guichet,tout (non repris à ce jour),P,9 Budget et Autres,non
 S130,Gestion de réunion (dix entrées),165 (menu seul),D,liste,tout (non repris à ce jour),P,9 Budget et Autres,non
-S131,Données de base (dix listes),269 à 275 ; doublons GRH 181 à 187,A,liste,,R:droit du travail et fiscalité RDC,10 Paie,non
-S132,"Gestion des grilles, gestion des états, signataires",275 et 276,B,liste,fenêtre des signataires,A:recherche,10 Paie,non
-S133,Nouvel employé (quatre onglets),276 et 277 (texte) ; captures GRH 201 à 206,B,onglets,"onglets Classification, Affectation, Contrat",M:texte p. 276 ; A:GRH p. 201,10 Paie,non
-S134,"Rubrique de paie, maquette de paie, liste des employés",277 (texte),C,liste,tous les écrans,M:texte ; A:S131,10 Paie,non
-S135,"Retenues : mise en place, liste, visa",277 et 278 (texte),C,visa,tous les écrans,"M:texte ; A:S94, S113",10 Paie,non
+S131,Données de base (dix listes),269 à 275 ; doublons GRH 181 à 187,A,liste,,R:droit du travail et fiscalité RDC,10 Paie,oui
+S132,"Gestion des grilles, gestion des états, signataires",275 et 276,B,liste,fenêtre des signataires,A:recherche,10 Paie,oui
+S133,Nouvel employé (quatre onglets),276 et 277 (texte) ; captures GRH 201 à 206,B,onglets,"onglets Classification, Affectation, Contrat",M:texte p. 276 ; A:GRH p. 201,10 Paie,oui
+S134,"Rubrique de paie, maquette de paie, liste des employés",277 (texte),C,liste,tous les écrans,M:texte ; A:S131,10 Paie,oui
+S135,"Retenues : mise en place, liste, visa",277 et 278 (texte),C,visa,tous les écrans,"M:texte ; A:S94, S113",10 Paie,oui
 S136,Données de base (six listes),279 à 282,A,liste,,,11 Immobilisations,non
 S137,Création de bien,283,A,liste,,R:PCCI (immobilisations),11 Immobilisations,non
 S138,"Affectation, transfert, libération",283 à 285 (quatre captures),A,guichet,,,11 Immobilisations,non

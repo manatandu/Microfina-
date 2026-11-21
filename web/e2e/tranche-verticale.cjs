@@ -19,7 +19,8 @@ const OUT = process.argv[2];
   // Chef : ouvrir la journée
   await login('J.-P. Mukendi');
   await p.getByRole('link', { name: 'DWACFINA' }).waitFor();   // module lié au profil (registre S02-1)
-  if (await p.getByRole('link', { name: 'Paie' }).count()) throw new Error('Paie ouverte sans droit');
+  if (!(await p.getByRole('link', { name: 'Paie' }).count())) throw new Error('Paie fermée au chef qui vise les retenues (S135)');
+  if (await p.getByRole('link', { name: 'Immo' }).count()) throw new Error('Immobilisations ouvertes sans droit');
   await etape('01b-modules');
   await aller('/administration/s12');
   const oui = async () => { await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click(); };
@@ -1224,6 +1225,37 @@ const OUT = process.argv[2];
   await aller('/budget/s127'); await p.getByRole('heading', { name: 'Etat des provisions de crédits' }).waitFor(); await etape('30c-cloture-credit');
   await p.getByRole('tab', { name: 'Comptabilité' }).click(); await p.getByRole('heading', { name: 'Clôture comptable' }).waitFor();
   await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByText('Soldes de gestion de l\'exercice').waitFor(); await etape('30d-cloture-comptable');
+  // Comptable : paie (S131 à S135, manuel p. 269 à 278)
+  await aller('/paie/s131'); await p.getByRole('heading', { name: "Création et mise à jour d'allocations familiales" }).waitFor(); await etape('31a-paie-donnees-base');
+  const listePaie = (nom) => p.getByRole('navigation', { name: 'Traitement de la paie' }).getByRole('button', { name: nom }).click();
+  await listePaie('Catégorie Classe et Echelon'); await p.getByRole('tab', { name: 'Catégorie' }).waitFor();
+  for (const [onglet, v] of [['Catégorie', 'A'], ['Classe', 'I'], ['Echelon', '1']]) {
+    await p.getByRole('tab', { name: onglet }).click(); await p.getByLabel('Libellé *').fill(v); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+    await p.getByRole('cell', { name: v, exact: true }).waitFor();
+  }
+  await etape('31b-categorie-classe-echelon');
+  await listePaie('Grille salariale'); await p.getByLabel('Classe *').selectOption({ label: 'I' }); await p.getByLabel('Catégorie *').selectOption({ label: 'A' });
+  await p.getByLabel('Echelon *').selectOption({ label: '1' }); await p.getByLabel('Salaire', { exact: true }).fill('250000'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByRole('cell', { name: '250000' }).waitFor(); await etape('31c-grille-salariale');
+  await listePaie('Type de retenue'); await p.getByLabel('Libellé *').fill('Avance sur salaire'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await aller('/paie/s133'); await p.getByRole('heading', { name: "Enregistrement d'un employé" }).waitFor();
+  await p.getByLabel('Matricule : *').fill('EMP/001/26'); await p.getByLabel('Sexe : *').selectOption('Féminin'); await p.getByLabel('Civilité : *').selectOption('Madame');
+  await p.getByLabel('Nom : *').fill('MUJINGA'); await p.getByLabel('Prénom(s) : *').fill('Rose'); await p.getByLabel('Date de naissance : *').fill('02041990');
+  await p.getByLabel("Date d'embauche : *").fill('01022024'); await etape('31d-employe');
+  await p.getByRole('tab', { name: 'Classification' }).click(); await p.getByLabel('Catégorie :').selectOption({ label: 'A' }); await p.getByLabel('Classe :').selectOption({ label: 'I' });
+  await p.getByLabel('Echelon :').selectOption({ label: '1' }); await p.getByLabel('Salaire de base prédéfini :').selectOption('Régime catégoriel');
+  if ((await p.getByLabel('Salaire de base :').inputValue()) !== '250000') throw new Error('S133 : salaire de base non proposé par la grille salariale');
+  await etape('31e-employe-classification');
+  await p.getByRole('tab', { name: 'Contrat' }).click(); await p.getByLabel('Type de contrat :').selectOption('Contrat à durée indéterminée'); await p.getByLabel('Date début :').fill('01022024');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('31f-employe-contrat');
+  await aller('/paie/s135'); await p.getByRole('button', { name: 'Rechercher un employé' }).click();
+  await p.getByRole('dialog', { name: "Recherche d'un employé" }).getByRole('cell', { name: 'EMP/001/26' }).click();
+  await p.getByLabel('Type de retenue *').selectOption({ label: 'Avance sur salaire' }); await p.getByLabel('Session *').fill('2026-11');
+  await p.getByLabel('Montant *').fill('300000'); await p.getByLabel('Durée (sessions) *').fill('3'); await etape('31g-retenue');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await login('J.-P. Mukendi'); await aller('/paie/s135?page=visa'); await p.getByRole('button', { name: 'Rechercher un employé' }).click();
+  await p.getByRole('dialog', { name: "Recherche d'un employé" }).getByRole('cell', { name: 'EMP/001/26' }).click();
+  await p.getByRole('cell', { name: '100 000' }).waitFor(); await etape('31h-visa-retenue'); await p.getByRole('button', { name: 'Viser' }).click(); await oui();
   console.log(errs.length ? 'ERREURS\n' + errs.join('\n') : 'aucune erreur console');
   await b.close();
 })().catch(async e => { await globalThis.__p.screenshot({ path: OUT + '/zz-echec.png', fullPage: true }); throw e; }).catch(async e => { console.error('ÉCHEC', e.message.split('\n').slice(0,3).join(' / ')); process.exit(1); });

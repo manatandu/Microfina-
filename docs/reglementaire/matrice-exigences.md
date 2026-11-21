@@ -179,3 +179,13 @@ Rapport sur les états financiers d'une COOPEC, remis par le porteur. Seuls les 
 | Instr. BCC 003, art. 12 et 14 | Provisions constituées chaque mois ; niveau constaté à la fin de chaque mois | S127-5, S128-8 |
 | Instr. BCC 37, annexe ; Instr. BCC 40, art. 8 et 12 | La tenue de compte n'est pas gratuite d'office ; tout frais hors liste exige l'autorisation de la BCC | S128-1, E21-1 |
 | Loi 23/053, art. 78, 80, 120 | Intérêts des comptes courants imposables, 20 % ; intérêts des comptes d'épargne exonérés | S128-4 |
+
+## Paie (lu le 21/11/2026, pour S131 à S135)
+
+| Texte | Ce qui en sort | Où |
+|---|---|---|
+| Code du travail, art. 39, 40, 41 | Contrat à durée déterminée ou indéterminée ; durée déterminée de deux ans au plus | S133-7 |
+| Code du travail, art. 112 | Retenues permises (fiscales, sécurité sociale, avances, indemnités, cautionnement, prêt, saisie-arrêt) | S135-4 |
+| Code du travail, art. 114 | Quotité cessible : un cinquième jusqu'à cinq fois le SMIG, un tiers au-delà, après retenues fiscales et sociales | S135-5 : non contrôlée, faute de calcul du salaire net |
+| Instr. BCC 008, art. 66 | Séparation des tâches : la retenue mise en place est visée par une autre personne | S135-3 |
+
