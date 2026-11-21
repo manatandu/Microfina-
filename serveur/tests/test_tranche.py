@@ -360,7 +360,7 @@ def test_mise_a_jour_client(clients, journee):
 def test_connexion_avec_mot_de_passe(clients, settings):
     """Site en ligne (registre S01-2) : mot de passe vérifié, même réponse pour un identifiant inconnu et un mauvais mot de passe, liste des identifiants fermée"""
     chef, autre = clients["chef"], Client()
-    connecter(chef, "jpmukendi")                                   # le chef crée un compte avec mot de passe (S05)
+    connecter(chef, "gmbuyi")                                   # le chef crée un compte avec mot de passe (S05)
     ag = chef.get("/api/referentiel").json()["agence"]["id"]
     r = chef.post("/api/gestion-utilisateurs", {"nom": "Essai Test", "agenceId": ag, "login": "etest", "motDePasse": "secret-1", "confirmation": "secret-1",
                                                 "portable": "+243 810 000 999"}, **H)
@@ -2198,9 +2198,9 @@ def test_facture_elements_types(clients):
 def test_profils(clients):
     """S03 (p. 15) : Nom Droit* et Description ; grille Libellé profil, Description profil ; Modifier et Supprimer (p. 12) ;
     les quatre profils de départ gardent leur code (registre T07, S03-1, S03-2)"""
-    chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    chef, agent = clients["chef"], clients["agent"]; connecter(chef, "gmbuyi"); connecter(agent, "bkasongo")
     l = chef.get("/api/profils", **H).json()["profils"]
-    assert [p["nom"] for p in l] == ["AGENT DE CRÉDIT", "CAISSIER", "CHEF D'AGENCE", "COMPTABLE"]
+    assert [p["nom"] for p in l] == ["ADMINISTRATEUR SÉCURITÉ", "AGENT DE CRÉDIT", "CAISSIER", "CHEF D'AGENCE", "COMPTABLE"]
     def refus(url, corps):
         r = chef.post(url, corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
     assert agent.post("/api/profils", {"nom": "AUDITEUR"}, **H).status_code == 403
@@ -2220,25 +2220,27 @@ def test_profils(clients):
 def test_droits_profils(clients):
     """S04 (p. 15 et 16) : droits restants et octroyés d'un profil, une tâche par écran ; chaque écriture exige le droit de sa tâche ;
     les quatre profils de départ gardent ce qu'ils faisaient (registre T07, S04-1 à S04-3)"""
-    chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    chef, agent = clients["chef"], clients["agent"]; connecter(chef, "gmbuyi"); connecter(agent, "bkasongo")
     pr = {p["nom"]: p["id"] for p in chef.get("/api/profils", **H).json()["profils"]}; CHEF = "CHEF D'AGENCE"
     l = chef.get(f"/api/droits?profil={pr[CHEF]}", **H).json()
-    assert "S16" in l["octroyes"] and "S04" in l["octroyes"] and "S102" not in l["octroyes"]
+    assert "S16" in l["octroyes"] and "S04" not in l["octroyes"] and "S102" not in l["octroyes"]
     assert "S04" in chef.get("/api/session", **H).json()["droits"]
     assert "Droit manquant" in agent.post(f"/api/droits/{pr['AUDITEUR' if 'AUDITEUR' in pr else 'CAISSIER']}", {"droits": []}, **H).json()["message"]
     r = chef.post(f"/api/droits/{pr[CHEF]}", {"droits": ["S99X"]}, **H); assert "Droit inconnu" in r.json()["message"]
+    r = chef.post(f"/api/droits/{pr[CHEF]}", {"droits": l["octroyes"] + ["S04"]}, **H); assert "Instr. BCC 008, art. 16" in r.json()["message"]   # registre T29
     sans16 = [c for c in l["octroyes"] if c != "S16"]
     assert chef.post(f"/api/droits/{pr[CHEF]}", {"droits": sans16}, **H).json()["octroyes"] == sans16
-    r = chef.post("/api/parametrage/frais", {"typeOperation": "DEPOT", "libelle": "X"}, **H)
+    jp = Client(); connecter(jp, "jpmukendi")
+    r = jp.post("/api/parametrage/frais", {"typeOperation": "DEPOT", "libelle": "X"}, **H)
     assert r.status_code == 403 and "Frais et opérations" in r.json()["message"]
     chef.post(f"/api/droits/{pr[CHEF]}", {"droits": l["octroyes"]}, **H)
-    assert chef.post("/api/parametrage/frais", {"typeOperation": "DEPOT", "libelle": "X"}, **H).status_code != 403
+    assert jp.post("/api/parametrage/frais", {"typeOperation": "DEPOT", "libelle": "X"}, **H).status_code != 403
 
 
 def test_utilisateurs_creation(clients):
     """S05 (p. 16 et 17) : champs marqués *, mot de passe confirmé et chiffré, nom utilisateur unique ; grille Nom user, Prenoms user,
     Agence, Telephone ; modifier sans retaper le mot de passe (registre S05-1 à S05-3)"""
-    chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    chef, agent = clients["chef"], clients["agent"]; connecter(chef, "gmbuyi"); connecter(agent, "bkasongo")
     l = chef.get("/api/gestion-utilisateurs", **H).json()
     ag = l["agences"][0]["id"]
     def refus(url, corps):
@@ -2259,7 +2261,7 @@ def test_utilisateurs_creation(clients):
 def test_profils_utilisateurs(clients):
     """S06 (p. 17) : un utilisateur reçoit un profil ; modules liés ; historique ; pas de profil donné à soi-même ; l'utilisateur
     créé en S05 travaille avec les droits de son profil (registre T07, S06-1 à S06-3)"""
-    chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
+    chef, agent = clients["chef"], clients["agent"]; connecter(chef, "gmbuyi"); connecter(agent, "bkasongo")
     ag = chef.get("/api/gestion-utilisateurs", **H).json()["agences"][0]["id"]
     chef.post("/api/gestion-utilisateurs", {"nom": "Mbala Joseph", "agenceId": ag, "login": "jmbala", "motDePasse": "secret-1", "confirmation": "secret-1", "portable": "1"}, **H)
     l = chef.get("/api/profils-utilisateurs", **H).json()
@@ -2270,10 +2272,10 @@ def test_profils_utilisateurs(clients):
         r = c.post("/api/profils-utilisateurs", corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
     assert "Nom et prénom(s), Choix du profil" in refus({})
     assert "Droit manquant" in refus({"utilisateurId": x["id"], "profilId": caissier["id"]}, agent)
-    moi = next(v for v in l["utilisateurs"] if v["login"] == "jpmukendi")
+    moi = next(v for v in l["utilisateurs"] if v["login"] == "gmbuyi")
     assert "propre profil" in refus({"utilisateurId": moi["id"], "profilId": caissier["id"]})
     r = chef.post("/api/profils-utilisateurs", {"utilisateurId": x["id"], "profilId": caissier["id"]}, **H).json()
-    assert r["profilId"] == caissier["id"] and r["historique"][0]["profil"] == "CAISSIER" and r["historique"][0]["attribuePar"] == "J.-P. Mukendi"
+    assert r["profilId"] == caissier["id"] and r["historique"][0]["profil"] == "CAISSIER" and r["historique"][0]["attribuePar"] == "Grâce Mbuyi"
     assert "déjà ce profil" in refus({"utilisateurId": x["id"], "profilId": caissier["id"]})
     j = clients["compta"]; connecter(j, "jmbala")
     s = j.get("/api/session", **H).json()
@@ -2283,11 +2285,11 @@ def test_profils_utilisateurs(clients):
 def test_connexions(clients):
     """S07 (p. 18) : Connecté, Machine, Actif ; Déconnecter un utilisateur : sa session tombe ; « Control utilisateur connecté » (S05)
     empêche une seconde connexion (registre S07-1 à S07-3)"""
-    chef, caisse = clients["chef"], clients["caisse"]; connecter(chef, "jpmukendi"); connecter(caisse, "engalula")
+    chef, caisse = clients["chef"], clients["caisse"]; connecter(chef, "gmbuyi"); connecter(caisse, "engalula")
     l = chef.get("/api/connexions", **H).json()["utilisateurs"]
     e = next(x for x in l if x["login"] == "engalula")
     assert e["connecte"] and e["machine"] == "127.0.0.1" and e["actif"]
-    moi = next(x for x in l if x["login"] == "jpmukendi")
+    moi = next(x for x in l if x["login"] == "gmbuyi")
     assert "bouton de sortie" in chef.post(f"/api/connexions/{moi['id']}/deconnexion", **H).json()["message"]
     assert "Droit manquant" in caisse.post(f"/api/connexions/{moi['id']}/deconnexion", **H).json()["message"]
     assert not next(x for x in chef.post(f"/api/connexions/{e['id']}/deconnexion", **H).json()["utilisateurs"] if x["login"] == "engalula")["connecte"]
@@ -2305,7 +2307,7 @@ def test_connexions(clients):
 
 def test_connexion_expire(clients):
     """S07 : la connexion tombe d'elle-même après la durée de la session ; « Control utilisateur connecté » ne bloque plus le lendemain (registre S07-4)"""
-    chef, caisse = clients["chef"], clients["caisse"]; connecter(chef, "jpmukendi")
+    chef, caisse = clients["chef"], clients["caisse"]; connecter(chef, "gmbuyi")
     ag = chef.get("/api/gestion-utilisateurs", **H).json()["agences"][0]["id"]
     chef.post("/api/gestion-utilisateurs", {"nom": "Mbala Joseph", "agenceId": ag, "login": "jmbala", "motDePasse": "secret-1", "confirmation": "secret-1", "portable": "1",
                                             "controleConnecte": True}, **H)
@@ -2542,7 +2544,7 @@ def test_securite(clients, settings):
         c.execute("delete from journal_securite")          # la trace survit au refus ; on nettoie pour les autres essais
     assert n >= 6
     settings.SANS_MOT_DE_PASSE = True
-    chef = clients["chef"]; connecter(chef, "jpmukendi")
+    chef = clients["chef"]; connecter(chef, "gmbuyi")
     ag = chef.get("/api/gestion-utilisateurs", **H).json()["agences"][0]["id"]
     U = {"nom": "Essai Mot", "agenceId": ag, "login": "emot", "portable": "1"}
     r = chef.post("/api/gestion-utilisateurs", {**U, "motDePasse": "court1", "confirmation": "court1"}, **H)

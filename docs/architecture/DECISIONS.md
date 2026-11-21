@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**754 décisions.** Solidité : 311 fortes (le manuel ou un texte répond), 372 moyennes (déduites d'un écran voisin ou d'une donnée), 71 faibles (notre choix, faute de mieux). Dans le code : 746 déjà en place, 7 à appliquer.
+**796 décisions.** Solidité : 329 fortes (le manuel ou un texte répond), 390 moyennes (déduites d'un écran voisin ou d'une donnée), 77 faibles (notre choix, faute de mieux). Dans le code : 789 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -41,6 +41,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | T28 | Écran ouvert sans le droit (tout le logiciel) | Un écran ouvert par son adresse suit la règle du menu : sans le droit, il affiche « Droit manquant » et ne lit rien | Écran voisin : T07 ; manuel p. 17 (droits par profil) | forte | en place |
 | T04-1 | Composant de la grille d'affichage (Toutes les grilles) | Une seule barre de pages pour tout le logiciel : boutons première page, page précédente, cinq numéros autour de la page affichée, page suivante, dernière page, au-dessus et au-dessous de la grille ; pages de 10 lignes ; les boutons sans objet sont grisés. Chaque grille de liste construite ensuite la reprend | Manuel : Manuel p. 9, figure des grilles (points 1 à 4) ; captures p. 54 et 55 (10 lignes par page) | forte | en place |
 | T04-2 | Filtre de colonne et Exporter, écran par écran (Toutes les grilles) | La capture de l'écran passe avant la figure générale de la p. 9 : une grille montrée sans case de filtre n'en a pas (S09, S11, S12, S13, S16, S18, S28, S30, S32, S34, S36, S40, S45, S47, S57, S65 à S68, S113) ; une grille montrée avec filtre l'a (S14 et sa famille, S44, S58). Les grilles de nos écrans complémentaires, sans capture, suivent la règle générale de la p. 9 : un filtre sous chaque colonne de texte (centrale des incidents, comptes inactifs, examen renforcé, personnes exposées, profils de risque, gel des avoirs, journal de sécurité, opérations atypiques, détail du compte au guichet). Le bouton Exporter (Export) n'est mis que là où la capture le montre (S13, S30, listes du crédit p. 33 à 36, plan comptable, localisation, rapports) | Manuel : Manuel p. 9, figure des grilles (point 4) ; captures p. 19, 21, 22, 23, 24 à 26, 42, 44, 46, 52, 55, 56, 65, 76, 77, 130 | forte | en place |
+| T29 | Qui gère les profils, les droits et les utilisateurs (tout le logiciel) | Un profil de départ « ADMINISTRATEUR SÉCURITÉ » tient seul la gestion des accès : profils (S03), droits (S04), utilisateurs (S05), profils des utilisateurs (S06), connexions (S07) et journal de sécurité (SA01). Le chef d'agence ne les a plus. Un profil qui gère les accès ne porte aucun droit d'opération, et le logiciel refuse de les mélanger. Personne ne change son propre profil (S06). Microfina++ laisse les noms de profils libres (p. 15 : exemple AUDITEUR) ; l'institution désigne la personne | Texte réglementaire : Instr. BCC 008, art. 16 (responsable de la sécurité informatique, fonction indépendante de l'exploitation ; à défaut, la fonction de gestion des risques ; gestion des accès maîtrisée) et art. 66 (séparation des tâches incompatibles) | forte | en place |
 
 ## S03 Profils : création et modification
 
@@ -1105,7 +1106,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| E21-1 | Gratuité | « Ouverture, fonctionnement et suivi de compte » est le titre de la première rubrique de l'annexe de l'Instr. 37 : seuls les services énumérés dessous sont gratuits (ouverture, dépôts et retraits d'espèces, domiciliation de salaire, changement du dossier, prélèvement ou virement permanent, deux premiers relevés mensuels, clôture). La tenue de compte n'y figure pas ; elle n'est pas non plus dans la liste de l'Instr. 40, art. 8 : un frais de tenue de compte demande l'autorisation préalable de la BCC, dont la référence sera exigée comme pour tout frais hors liste (E14), quand les calculs de fin de période (S128) seront construits | Texte réglementaire : Instr. BCC 37, art. 2 et 3, annexe ; Instr. BCC 40, art. 8 et 12 ; registre E14-1 | forte | à faire |
+| E21-1 | Gratuité | « Ouverture, fonctionnement et suivi de compte » est le titre de la première rubrique de l'annexe de l'Instr. 37 : seuls les services énumérés dessous sont gratuits. La tenue de compte se facture si la BCC l'a autorisée (Instr. 40, art. 12) : le frais TENUE COMPTE se crée avec la référence de l'autorisation (S16) et se prélève par Autres > Calculs (S128-1) | Texte réglementaire : Instr. BCC 37, annexe ; Instr. BCC 40, art. 8 et 12 | forte | en place |
 
 ## E22 Police du relevé
 
@@ -1700,6 +1701,72 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S123-2 | Indicateur | Mensuel (montré) ou Annuel : les deux rythmes de transmission à la BCC | Texte réglementaire : Capture p. 142 ; Instr. BCC 009, art. 1 | moyenne | en place |
 | S123-3 | Calcul | Les onze ratios de l'annexe, avec numérateur, dénominateur, valeur, norme : le même calcul que l'indicateur de gestion du Crédit | Texte réglementaire : Instr. BCC 004, art. 3 à 8 et annexe ; S101-9, S101-10 | forte | en place |
 
+## S126 Financement
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S126-1 | Lignes de financement | La liste d'abord, puis Nouveau, Ouvrir, Supprimer, Rafraîchir, comme la capture. La fenêtre de Nouveau et d'Ouvrir reprend les trois colonnes : Libellé, Montant, Type (choisi dans les types de financement) | Manuel : Capture « Ligne financement », p. 144 ; texte p. 143 | moyenne | en place |
+| S126-2 | Types de financement | Code et Libellé ; Enregistrer, Effacer, Supprimer ; un type qui sert à une ligne de financement ne se supprime pas | Manuel : Texte et capture p. 144 ; T02 | forte | en place |
+| S126-3 | Bailleurs | Type de bailleur : la nature des agents économiques du PCCI (dix valeurs). Code proposé d'avance (B et sept chiffres), modifiable. Nom obligatoire | Texte réglementaire : Capture « Bailleurs », p. 145 ; texte p. 144 ; PCCI § 10.2 | faible | en place |
+| S126-4 | Lien avec le budget | Le bailleur d'une ligne de plan budgétaire (S19) se choisit dans cette liste ; un bailleur qui sert à une ligne ne se supprime pas | Donnée exigée ailleurs : Capture p. 29 (Bailleur) ; S19-7 | forte | en place |
+| S126-5 | Montant et doublons | Montant en francs entiers, zéro par défaut, comme sur la capture. Deux lignes peuvent porter le même libellé : la capture en montre | Manuel : Capture p. 144 (PLANET FINANCE deux fois ; montants à 0) | moyenne | en place |
+
+## S124 Nouveau budget
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S124-1 | Fenêtre | Comme la capture : Définir nouveau budget, Reconduire ancien budget, OK | Manuel : Texte et capture p. 142 | forte | en place |
+| S124-2 | Ce qu'est un budget | Le « Budget » est le plan budgétaire de S19 (Année, Code, Libellé) ; ses lignes sont les lignes de plan budgétaire ; le type de budget dit quels comptes se budgètent ; la période donne les dates dans l'année du plan | Écran voisin : S19 (p. 28 et 29) ; capture p. 143 (Budget *, Type budget *, Période *) | moyenne | en place |
+| S124-3 | Définir | Après OK, le cadre « Détail budget » de la consultation : Budget, Type budget, Période, Ligne budgétaire, Financement, Compte, Valeur, Ajouter | Écran voisin : Atlas S124 ; capture « Budget - Consultation/Modification », p. 143 | moyenne | en place |
+| S124-4 | Reconduire | Ancien budget et Nouveau budget, puis OK : les lignes et les valeurs de l'ancien sont recopiées dans le nouveau, créé d'abord dans le plan budgétaire et encore sans valeur | Écran voisin : Texte p. 142 ; S19 | faible | en place |
+| S124-5 | Valeur | Un montant positif en CDF, une seule valeur par ligne budgétaire et compte ; le compte doit entrer dans le Param Compte du type de budget | Donnée exigée ailleurs : S19-3 (Param Compte) ; PCCI § 3.2 | moyenne | en place |
+
+## S125 Consultation et suivi budgétaire
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S125-1 | Boutons de la consultation | Détails : les valeurs du budget, du type et de la période. Modifier : la valeur de la ligne choisie. Supprimer : le budget. Réinitialiser : vide l'écran. Afficher tout : le budget entier | Manuel : Texte et capture p. 143 | moyenne | en place |
+| S125-2 | Supprimer | Retire les valeurs du budget pour le type et la période choisis ; suppression logique | Manuel : Texte p. 143 (« pour supprimer le budget ») ; T02 | moyenne | en place |
+| S125-3 | Imprimer Global, Imprimer Par type | Global : tous les types du budget pour la période ; Par type : le type choisi. La liste affichée s'imprime | Écran voisin : Capture p. 143 ; T11 | faible | en place |
+| S125-4 | Champ Financement | Le bailleur de la ligne budgétaire choisie, en lecture | Donnée exigée ailleurs : Capture p. 143 ; S19-7 ; S126-4 | moyenne | en place |
+| S125-5 | Suivi : colonnes | Prévu, réalisé, écart, taux de réalisation, par ligne budgétaire et compte. Réalisé : écritures définitives du compte sur la période, en CDF ; un produit se réalise au crédit, le reste au débit | Écran voisin : Texte p. 143 ; T10 ; T13 ; PCCI § 3.2 | moyenne | en place |
+| S125-6 | Rattachement du réalisé | Une écriture saisie avec sa ligne budgétaire (saisie d'écriture, opération diverse, commande) va à cette ligne. Sans ligne, elle va à la seule ligne qui budgète le compte ; si plusieurs lignes le budgètent, elle reste « non affectée » et s'affiche à part | Écran voisin : Champs Type budget et Ligne budgétaire de S109, S116, S107 | faible | en place |
+| S125-7 | Bouton Financement | Le même suivi, regroupé par bailleur | Écran voisin : Capture p. 143 (bouton Financement) | faible | en place |
+| S125-8 | Bouton Résultat analytique | Par centre de coût : charges, produits et résultat réalisés | Écran voisin : Capture p. 143 (bouton Résultat analytique) ; S19 (centres de coût) | faible | en place |
+| S125-9 | Consommation par centre de coût | Les budgets de l'exercice pour la période, par centre de coût et ligne budgétaire : prévu, consommé, disponible, taux | Manuel : Texte et capture p. 143 | moyenne | en place |
+| S125-10 | Date fin | Arrête le réalisé à cette date, qui doit tomber dans la période ; vide : toute la période | Écran voisin : Captures p. 143 (Date fin) | moyenne | en place |
+
+## S128 Calculs
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S128-1 | Frais de tenue de comptes | Chaque mois, une fois par compte : comptes ouverts dont le produit a « Tenue de compte » et le client « Prélever agios » (S27, S37). Le montant est le frais d'opération TENUE COMPTE paramétré pour le sous type du client (S16), en CDF, converti au cours du jour sur un compte en devise. Écriture : débit du compte du client, crédit du compte du frais (720 proposé). Un compte dont le disponible ne suffit pas n'est pas débité | Texte réglementaire : Instr. BCC 37, annexe (la tenue n'est pas gratuite d'office) ; Instr. BCC 40, art. 8 et 12 (autorisation de la BCC, saisie avec le frais, écart E14) ; PCCI, compte 720 | forte | en place |
+| S128-2 | Nature du frais de tenue | Un Montant seulement : le prélèvement mensuel n'a pas de montant d'opération sur lequel calculer un taux | Écran voisin : S16-2 (même règle pour le frais d'adhésion) | forte | en place |
+| S128-3 | Calcul intérêt sur DAV | Produits avec « Calculer intérêt » et un taux, clients avec « Calculer intérêt ». Intérêt du mois = somme des soldes créditeurs de fin de journée × taux annuel / 365, servi une fois le dernier jour du mois atteint, une fois par compte et par mois | Écran voisin : S67-2 (base 365 de la rupture d'un DAT) ; PCCI § 6.4 (rattachement à la période) | moyenne | en place |
+| S128-4 | Retenue sur les intérêts des DAV | Compte de catégorie « Courant » d'une personne physique : retenue de 20 %. Compte d'épargne : aucune retenue | Texte réglementaire : Loi 23/053, art. 78 (intérêts des comptes courants imposables), art. 80 (intérêts des comptes d'épargne exonérés), art. 120 (20 %) ; S67-3 | forte | en place |
+| S128-5 | Écriture des intérêts des DAV | Débit 610, crédit du compte du client pour le net, crédit 433 pour la retenue | Texte réglementaire : PCCI, comptes 610 et 433 | forte | en place |
+| S128-6 | Calcul des intérêts sur DAT | Intérêt couru de chaque DAT en cours à une date : montant × taux × jours courus / 365, plafonné à l'intérêt du contrat. Seule la part pas encore passée est passée : débit 612 de la durée, crédit 349. À l'échéance et à la rupture, la part déjà courue sort du 349 et seul le reste va au 612 | Texte réglementaire : PCCI § 6.4 (intérêts courus) ; comptes 612 et 349 « Dettes rattachées (intérêts sur dépôts) » | forte | en place |
+| S128-7 | Intérêt et frais de tenue de comptes | Les intérêts du mois d'abord, puis les frais de tenue ; un des deux peut ne rien donner | Écran voisin : Ordre du libellé du menu (manuel p. 163) | moyenne | en place |
+| S128-8 | Etat des provisions de crédits | Lit la balance âgée lancée à la date (S98) : par degré, terme et devise, encours, retard, provisions au taux du degré, compte du capital du crédit, 6902 et compte 380 de la tranche, comme le provisionnement (S99) | Écran voisin : Capture p. 163 (colonnes) ; S98, S99 ; Instr. BCC 003, art. 12 | forte | en place |
+| S128-9 | Fenêtres que le manuel ne montre pas | Critères (Exercice et Mois, ou Date), Calculer pour voir, Valider avec confirmation Oui/Non | Règle générale du manuel : Manuel p. 11 (confirmations) ; COMPLEMENTS § 4 (famille des traitements) | moyenne | en place |
+
+## S127 Clôtures
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S127-1 | Clôture > crédit | L'état des provisions de crédit de la capture : Balance âgée des crédits au, Afficher, Imprimer | Manuel : Manuel p. 163 | forte | en place |
+| S127-2 | Clôture > dépôt | État des intérêts courus sur les dépôts à terme à une date, en lecture ; la passation se fait par Calculs | Écran voisin : S128-6 | moyenne | en place |
+| S127-3 | Clôture du mois | Clôture informatique : le mois et les mois d'avant passent à « clôturé » ; plus aucune écriture n'y entre | Texte réglementaire : PCCI § 3.4 (validation au terme de chaque période, qui ne dépasse pas le mois ; procédure mensuelle de clôture informatique) | forte | en place |
+| S127-4 | Contrôles bloquants | Une journée ouverte après la période, toutes les journées de la période comptabilisées, toutes les caisses arrêtées | Texte réglementaire : PCCI § 3.4 ; S111 (comptabilisation) | forte | en place |
+| S127-5 | Contrôles signalés | Rapprochements bancaires à la fin de la période, comptes 475 et 37 soldés, balance âgée et provisions à la fin de la période, intérêts courus des DAT passés : affichés, non bloquants | Texte réglementaire : Instr. BCC 003, art. 12 et 14 ; PCCI, comptes 37 et 475 ; constats du rapport de commissariat (matrice) | moyenne | en place |
+| S127-6 | Réévaluation des devises | À chaque clôture de mois et d'exercice, les avoirs et dettes en monnaie (classes 3, 4, 5, comptes 16 et 17) tenus en devise sont portés à leur valeur au cours du dernier jour ; profits au 723, pertes au 623, sans compensation. Les immobilisations et les fonds propres restent au coût historique | Texte réglementaire : PCCI § 7.1, § 4.3.5, § 4.3.8 ; comptes 623 et 723 | forte | en place |
+| S127-7 | Forme de l'écriture de réévaluation | La ligne du compte en devise ajuste sa contre-valeur en CDF sans toucher au montant en devise. Le PCCI prévoit des sous-comptes « position de change » (472) et « contre-valeur » (473) : le logiciel tient chaque ligne en devise avec sa contre-valeur et n'a pas ces sous-comptes. Écart à revoir avec le porteur | Texte réglementaire : PCCI § 7.1 ; comptes 472, 473 | moyenne | en place |
+| S127-8 | Décembre | Décembre se clôture avec l'exercice | Écran voisin : S127-9 | forte | en place |
+| S127-9 | Clôture de l'exercice | Écritures de clôture (type vidage, écartées des états « sans vidage ») datées de la dernière journée de l'exercice : les comptes de gestion sont soldés dans 80, 82, 83, 84, 85 puis 87, et le résultat net va au 130 (bénéfice) ou au 131 (perte) | Texte réglementaire : PCCI, classe 8 (comptes 80 à 87) et compte 13 | forte | en place |
+| S127-10 | Devise des soldes de gestion | Les soldes de gestion et le résultat se déterminent en CDF ; les écritures de clôture sont équilibrées en CDF | Texte réglementaire : PCCI § 7.1 (charges et produits en devises comptabilisés après conversion en CDF) | forte | en place |
+| S127-11 | Après la clôture de l'exercice | Les douze mois sont clôturés, l'exercice n'est plus ouvert ; date et auteur gardés ; une seconde clôture est refusée | Texte réglementaire : PCCI § 3.4, § 4.3.6 | forte | en place |
+| S127-12 | Compte 76 dans les soldes de gestion | Au compte 84, comme la classe 8. Le modèle 14.2 du compte de résultat le met avant le résultat brut d'exploitation (S122-6). Le PCCI se contredit : question posée au porteur | Texte réglementaire : PCCI, classe 8 (compte 84) ; PCCI 14.2 | moyenne | en place |
+
 ## Les décisions faibles, à regarder en premier
 
 | N° | Écran | Question | Réponse retenue |
@@ -1775,3 +1842,9 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S122-9 | S122 Etats financiers | Champs Etat, Type, Période | Etat : la seule valeur montrée, « Création ». Type : « Version développée » (les comptes sous chaque poste) ou « Modèle PCCI » (les postes seuls). Période : un mois de l'exercice, qui remplit les deux dates |
 | S122-11 | S122 Etats financiers | Tableau de flux de trésorerie | Le modèle du PCCI. Chaque écriture qui touche la caisse, les banques ou les virements internes donne ses flux par ses autres lignes, classées selon leur compte. Subvention d'exploitation : en ressources spéciales. Contrôle affiché : liquidités de début plus variation égale liquidités de fin |
 | S122-12 | S122 Etats financiers | Tableau des emplois et ressources | Variation de chaque poste du bilan entre la veille du début et la fin de la période : un actif qui monte ou un passif qui baisse est un emploi, l'inverse une ressource ; totaux égaux. Sa forme n'est dans aucun texte lu : pratique comptable |
+| S126-3 | S126 Financement | Bailleurs | Type de bailleur : la nature des agents économiques du PCCI (dix valeurs). Code proposé d'avance (B et sept chiffres), modifiable. Nom obligatoire |
+| S124-4 | S124 Nouveau budget | Reconduire | Ancien budget et Nouveau budget, puis OK : les lignes et les valeurs de l'ancien sont recopiées dans le nouveau, créé d'abord dans le plan budgétaire et encore sans valeur |
+| S125-3 | S125 Consultation et suivi budgétaire | Imprimer Global, Imprimer Par type | Global : tous les types du budget pour la période ; Par type : le type choisi. La liste affichée s'imprime |
+| S125-6 | S125 Consultation et suivi budgétaire | Rattachement du réalisé | Une écriture saisie avec sa ligne budgétaire (saisie d'écriture, opération diverse, commande) va à cette ligne. Sans ligne, elle va à la seule ligne qui budgète le compte ; si plusieurs lignes le budgètent, elle reste « non affectée » et s'affiche à part |
+| S125-7 | S125 Consultation et suivi budgétaire | Bouton Financement | Le même suivi, regroupé par bailleur |
+| S125-8 | S125 Consultation et suivi budgétaire | Bouton Résultat analytique | Par centre de coût : charges, produits et résultat réalisés |

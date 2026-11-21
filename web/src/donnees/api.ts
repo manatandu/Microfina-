@@ -22,7 +22,7 @@ import REFERENTIELS from "@referentiels";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v102";
+const CLE = "likelemba-demo-v103";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -30,7 +30,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 79) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 80) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -100,7 +100,7 @@ function noterSecurite(evenement: string, login: string, utilisateurId: number |
   // Un accès refusé ne change aucune donnée affichée : il s'écrit sans réveiller les écrans, sinon l'écran refusé se relirait sans fin
   if (evenement === "acces_refuse") sauver(); else enregistrer();
 }
-export const LIBELLES_ROLES: Record<Role, string> = { caissier: "caissier", chef_agence: "chef d'agence", agent_credit: "agent de crédit", comptable: "comptable" };
+export const LIBELLES_ROLES: Record<Role, string> = { caissier: "caissier", chef_agence: "chef d'agence", agent_credit: "agent de crédit", comptable: "comptable", administrateur: "administrateur sécurité" };
 
 const session = {
   /** La démonstration dans le navigateur n'a pas de mot de passe ; le serveur l'exige sur le site en ligne (registre S01-2) */
@@ -6762,7 +6762,7 @@ function dateArrete(p: { date?: string }) {
 function ecrireCloture(journeeId: number, libelle: string, type: "reevaluation" | "vidage", lignes: Ligne[]) {
   if (lignes.reduce((s, x) => s + (x.sens === "D" ? x.montantCdf : -x.montantCdf), 0) !== 0) throw new ErreurMetier("Écriture déséquilibrée en CDF (PCCI § 3.2).");
   const j = E.journees.find((x) => x.id === journeeId)!, id = prochain(E.ecritures), u = exiger();
-  E.ecritures.push(Object.freeze({ id, numero: `OD-${j.date.slice(0, 4)}-${String(id).padStart(6, "0")}`, journal: "OD", journeeId, libelle, piece: piece("OD"), saisiPar: u.id, validePar: u.id,
+  E.ecritures.push(Object.freeze({ id, numero: `OD-${j.date.slice(0, 4)}-${String(id).padStart(6, "0")}`, journal: "OD", journeeId, libelle, piece: pieceJournee("OD", j), saisiPar: u.id, validePar: u.id,
     type, lignes: Object.freeze(lignes.map((x) => Object.freeze({ ...x }))) }));
 }
 const derniereJournee = (a: number, m: number | null) => E.journees.filter((j) => j.date >= `${a}-${String(m ?? 1).padStart(2, "0")}-01` && j.date <= finMois(a, m ?? 12)).sort((x, y) => y.date.localeCompare(x.date))[0];
@@ -8147,6 +8147,7 @@ const profils = {
 };
 
 // ---------- Administration > Profil > Assigner droit ; Modifier droit d'un profil (S04, manuel p. 15 et 16). Règles identiques côté serveur (noyau/droits.py). ----------
+const GESTION_ACCES = new Set(["S03", "S04", "S05", "S06", "S07"]);
 const droits = {
   lire(profil?: number) {
     lectureAdmin(["S04"]);
@@ -8166,6 +8167,9 @@ const droits = {
     if (!Array.isArray(d.droits) || !d.droits.every((x) => typeof x === "string")) throw new ErreurMetier("Droits invalides.");
     const inconnus = d.droits.filter((x) => !(x in NOMS_ECRANS) || x === "S01" || x === "S02");
     if (inconnus.length) throw new ErreurMetier(`Droit inconnu : ${[...new Set(inconnus)].sort().join(", ")}.`);
+    // Instr. BCC 008, art. 16 : la gestion des accès est indépendante de l'exploitation ; un profil ne porte pas les deux (registre T29)
+    if (d.droits.some((x) => GESTION_ACCES.has(x)) && d.droits.some((x) => !GESTION_ACCES.has(x) && x !== "SA01"))
+      throw new ErreurMetier("Un profil qui gère les accès (profils, droits, utilisateurs) ne porte aucun droit d'opération : la sécurité informatique est indépendante de l'exploitation (Instr. BCC 008, art. 16).");
     p.droits = [...new Set(d.droits)].sort();
     enregistrer(); return droits.lire(pid!);
   },

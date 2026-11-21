@@ -30,7 +30,7 @@ PIECES = ["Passeport", "Carte d'identité nationale", "Permis de conduire", "Car
           "Lettre certifiée du chef de village ou de quartier", "Liste des bénéficiaires de programmes sociaux", "Carte de réfugié"]          # seul type montré par le manuel (p. 49) ; la liste viendra du paramétrage S16
 IMAGE_MAX = 400_000                # caractères de l'image encodée, environ 300 Ko
 IMAGE_OK = re.compile(r"^data:image/(png|jpeg);base64,[A-Za-z0-9+/=]+$")
-LIBELLES_ROLES = {"caissier": "caissier", "chef_agence": "chef d'agence", "agent_credit": "agent de crédit", "comptable": "comptable"}
+LIBELLES_ROLES = {"caissier": "caissier", "chef_agence": "chef d'agence", "agent_credit": "agent de crédit", "comptable": "comptable", "administrateur": "administrateur sécurité"}
 
 
 # ---------- Session et utilisateur ----------

@@ -100,7 +100,7 @@ Note : l'art. 14 associe les pondérations à des niveaux de risque dans l'ordre
 |---|---|---|---|
 | Art. 9 | Manuels de procédures à jour | Documentation produit | lu |
 | Art. 11 | Piste d'audit : reconstitution chronologique, de la pièce à la synthèse et retour, explication des soldes d'un arrêté à l'autre | Grand livre, Reporting | lu |
-| Art. 15, 16 | Sécurité informatique, RSI indépendant de l'exploitation, accès et authentification maîtrisés, détection des actions anormales | Habilitations, Audit | lu |
+| Art. 15, 16 | Sécurité informatique, RSI indépendant de l'exploitation, accès et authentification maîtrisés, détection des actions anormales | Profil ADMINISTRATEUR SÉCURITÉ seul à gérer les accès, sans droit d'opération (T29) ; journal de sécurité (SA01) | en place |
 | Art. 66 | Séparation des tâches incompatibles (enregistrement, autorisation, vérification) : le DAT saisi par une personne est validé par une autre | Épargne (S66), Banque (S57) | lu |
 
 ## Autres instructions
@@ -164,6 +164,18 @@ Rapport sur les états financiers d'une COOPEC, remis par le porteur. Seuls les 
 | Caisse importante, inventaires de caisse irréguliers | Arrêté quotidien avec billetage, validé par une autre personne ; plafond de caisse | en place |
 | Rapprochements bancaires non périodiques ; monnaie électronique mal suivie | Rapprochement et historique (S110, S112) ; les comptes de monnaie électronique se tiennent et se rapprochent comme des comptes de banque | en place ; pas de liaison avec les opérateurs |
 | Pas de circularisation des soldes d'épargne | Lettres de confirmation de solde à une date | proposé, attend l'accord du porteur |
-| Comptes d'attente non régularisés | Lettrage (S119) ; état des comptes d'attente non soldés, avec leur ancienneté | lettrage en place ; état à construire avec la clôture (S127) |
+| Comptes d'attente non régularisés | Lettrage (S119) ; contrôle des comptes 475 et 37 non soldés à la clôture du mois et de l'exercice (S127-5) | en place |
 | Pertes de change élevées ; produits et pertes exceptionnels gonflés | Positions par monnaie (S122, annexe 6) ; réévaluation au cours de clôture, imputée aux comptes de change | positions en place ; réévaluation à construire avec la clôture (S127) |
-| Affectation du résultat par l'Assemblée générale | Clôture comptable, puis écriture d'affectation | à construire (S127) |
+| Affectation du résultat par l'Assemblée générale | Clôture de l'exercice : résultat net au 130 ou 131 (S127-9) ; l'affectation votée se passe ensuite par une écriture manuelle (S109) | clôture en place |
+
+## Fin de période (lu le 20/11/2026, pour S127 et S128)
+
+| Texte | Ce qui en sort | Où |
+|---|---|---|
+| PCCI § 3.4 | Validation au terme de chaque période, qui ne dépasse pas le mois ; clôture informatique mensuelle qui fige la chronologie | S127-3, S127-4 ; base : pas d'écriture dans un mois clôturé |
+| PCCI § 7.1, § 4.3.5, § 4.3.8 | Conversion au cours de clôture lors des arrêtés ; écarts en produits (723) ou en charges (623), sans compensation ; coût historique pour le reste | S127-6, S127-7 (écart sur les sous-comptes 472 et 473, à revoir) |
+| PCCI, classe 8 ; compte 13 | Soldes de gestion 80 à 87 en fin de période ; résultat net au 130 ou au 131 | S127-9, S127-10 ; contradiction sur le compte 76 posée au porteur (S127-12) |
+| PCCI § 6.4 ; comptes 612, 349 | Intérêts courus rattachés à la période | S128-6 |
+| Instr. BCC 003, art. 12 et 14 | Provisions constituées chaque mois ; niveau constaté à la fin de chaque mois | S127-5, S128-8 |
+| Instr. BCC 37, annexe ; Instr. BCC 40, art. 8 et 12 | La tenue de compte n'est pas gratuite d'office ; tout frais hors liste exige l'autorisation de la BCC | S128-1, E21-1 |
+| Loi 23/053, art. 78, 80, 120 | Intérêts des comptes courants imposables, 20 % ; intérêts des comptes d'épargne exonérés | S128-4 |

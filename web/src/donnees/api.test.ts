@@ -9,6 +9,9 @@ import type { Representant, Tiers } from "./types";
 import { totalComptage, type Comptage, type Devise } from "@design/montant.js";
 
 const connecter = (login: string) => api.session.ouvrir(login);
+/** Instr. BCC 008, art. 16 (registre T29) : les droits se donnent par l'administrateur sécurité ; la session d'avant revient ensuite */
+const adm = new Proxy(api, { get: (o, k) => new Proxy((o as unknown as Record<string, Record<string, (...a: unknown[]) => Promise<unknown>>>)[k as string]!, {
+  get: (m, f) => async (...a: unknown[]) => { const avant = _etat().session; await connecter("gmbuyi"); try { return await m[f as string]!(...a); } finally { _etat().session = avant; } } }) }) as typeof api;
 let n = 0;
 const cle = () => `cle-${++n}`;
 
@@ -207,9 +210,9 @@ describe("journée de guichet", () => {
     await expect(api.conformite.enregistrerPpe(t.id, { autoriser: true })).rejects.toThrow("Droit manquant");
     // un second chef d'agence autorise : le profil de plumbala reçoit le droit SC01
     await connecter("jpmukendi");
-    const profils = Object.fromEntries((await api.droits.lire()).profils.map((p) => [p.nom, p.id]));
+    const profils = Object.fromEntries((await adm.droits.lire()).profils.map((p) => [p.nom, p.id]));
     const id = Object.entries(profils).find(([n]) => n.includes("COMPTABLE"))![1]!;
-    await api.droits.enregistrer(id, { droits: [...(await api.droits.lire(id)).octroyes, "SC01"] });
+    await adm.droits.enregistrer(id, { droits: [...(await adm.droits.lire(id)).octroyes, "SC01"] });
     await connecter("plumbala");
     expect((await api.conformite.enregistrerPpe(t.id, { autoriser: true })).autorisePar).toBe("Patrick Lumbala");
     expect((await api.conformite.informerPpe(t.id, { date: "2026-11-05", reference: "CENAREF-PPE-07" })).informeLe).toBe("2026-11-05");
@@ -341,9 +344,9 @@ describe("journée de guichet", () => {
     await expect(api.session.ouvrir("inconnu")).rejects.toThrow("Identifiant inconnu");
     await connecter("jpmukendi");
     await expect(api.journalSecurite.consulter(jour, jour)).rejects.toThrow("Droit manquant");   // aucun profil de départ n'a SA01
-    const profils = Object.fromEntries((await api.droits.lire()).profils.map((p) => [p.nom, p.id]));
+    const profils = Object.fromEntries((await adm.droits.lire()).profils.map((p) => [p.nom, p.id]));
     const id = Object.entries(profils).find(([n]) => n.includes("COMPTABLE"))![1]!;
-    await api.droits.enregistrer(id, { droits: [...(await api.droits.lire(id)).octroyes, "SA01"] });
+    await adm.droits.enregistrer(id, { droits: [...(await adm.droits.lire(id)).octroyes, "SA01"] });
     await connecter("plumbala");
     const ev = await api.journalSecurite.consulter(jour, jour);
     expect(new Set(ev.map((x) => x.evenement))).toEqual(new Set(["connexion", "connexion_impossible", "acces_refuse"]));
@@ -989,10 +992,10 @@ describe("journée de guichet", () => {
     await api.banques.enregistrerCompte({ banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "",
       compte: "56010001", numeroBancaire: "R-USD-1", devise: "USD" });
     // le chef d'agence et le profil de bkasongo reçoivent le droit S57 (Administration > Profil), pour que trois personnes distinctes passent la chaîne
-    const profils = Object.fromEntries((await api.droits.lire()).profils.map((p) => [p.nom, p.id]));
+    const profils = Object.fromEntries((await adm.droits.lire()).profils.map((p) => [p.nom, p.id]));
     for (const nom of ["CHEF D'AGENCE", "AGENT DE CRÉDIT"]) {
       const id = profils[nom]; if (!id) continue;
-      await api.droits.enregistrer(id, { droits: [...(await api.droits.lire(id)).octroyes, "S57"] });
+      await adm.droits.enregistrer(id, { droits: [...(await adm.droits.lire(id)).octroyes, "S57"] });
     }
     await connecter("plumbala");
     const usd = (await api.banqueOperations.lire()).comptes[0]!.id;
@@ -1205,7 +1208,7 @@ describe("journée de guichet", () => {
   });
 
   it("sécurité (registre T24) : règle minimale des mots de passe", async () => {
-    await connecter("jpmukendi");
+    await connecter("gmbuyi");
     const U = { nom: "Essai Mot", agenceId: 1, login: "emot", portable: "1" };
     await expect(api.comptesUtilisateurs.enregistrer({ ...U, motDePasse: "court1", confirmation: "court1" })).rejects.toThrow("8 caractères");
     await expect(api.comptesUtilisateurs.enregistrer({ ...U, motDePasse: "sanschiffre", confirmation: "sanschiffre" })).rejects.toThrow("un chiffre");
@@ -1751,9 +1754,9 @@ describe("journée de guichet", () => {
   });
 
   it("profils (S03, p. 15) : Nom Droit obligatoire, unique ; Modifier, Supprimer refusé tant qu'un utilisateur le porte", async () => {
-    await connecter("jpmukendi");
+    await connecter("gmbuyi");
     const l = (await api.profils.lire()).profils;
-    expect(l.map((p) => p.nom)).toEqual(["AGENT DE CRÉDIT", "CAISSIER", "CHEF D'AGENCE", "COMPTABLE"]);
+    expect(l.map((p) => p.nom)).toEqual(["ADMINISTRATEUR SÉCURITÉ", "AGENT DE CRÉDIT", "CAISSIER", "CHEF D'AGENCE", "COMPTABLE"]);
     await expect(api.profils.enregistrer({ nom: " " })).rejects.toThrow("Nom Droit");
     await expect(api.profils.enregistrer({ nom: "caissier" })).rejects.toThrow("existe déjà");
     const a = (await api.profils.enregistrer({ nom: "AUDITEUR", description: "PROFIL DES AUDITEURS" })).profils.find((p) => p.nom === "AUDITEUR")!;
@@ -1763,22 +1766,25 @@ describe("journée de guichet", () => {
   });
 
   it("droits (S04, p. 15 et 16) : droits du profil, une tâche par écran ; chaque écriture exige le droit de sa tâche", async () => {
-    await connecter("jpmukendi");
+    await connecter("gmbuyi");
     const pr = Object.fromEntries((await api.droits.lire()).profils.map((p) => [p.nom, p.id]));
     const chef = pr["CHEF D'AGENCE"]!;
     const l = await api.droits.lire(chef);
-    expect([l.octroyes.includes("S16"), l.octroyes.includes("S04"), l.octroyes.includes("S102")]).toEqual([true, true, false]);
-    expect((await api.session.courante())!.droits).toContain("S04");
+    expect([l.octroyes.includes("S16"), l.octroyes.includes("S04"), l.octroyes.includes("S102")]).toEqual([true, false, false]);
+    expect((await api.session.courante())!.droits).toEqual(["S03", "S04", "S05", "S06", "S07", "SA01"]);
     await expect(api.droits.enregistrer(chef, { droits: ["S99X"] })).rejects.toThrow("Droit inconnu");
+    await expect(api.droits.enregistrer(chef, { droits: [...l.octroyes, "S04"] })).rejects.toThrow("Instr. BCC 008, art. 16");   // registre T29
     await api.droits.enregistrer(chef, { droits: l.octroyes.filter((c) => c !== "S16") });
+    await connecter("jpmukendi");
     await expect(api.parametrage.creerFrais({ typeOperation: "DEPOT", libelle: "X" })).rejects.toThrow("Frais et opérations");
+    await connecter("gmbuyi");
     await api.droits.enregistrer(chef, { droits: l.octroyes });
     await connecter("bkasongo");
     await expect(api.droits.enregistrer(chef, { droits: [] })).rejects.toThrow("Droit manquant");
   });
 
   it("utilisateurs (S05, p. 16 et 17) : champs marqués *, confirmation, nom utilisateur unique, modification sans mot de passe", async () => {
-    await connecter("jpmukendi");
+    await connecter("gmbuyi");
     const U = { nom: "Mbala Joseph", agenceId: 1, login: "jmbala", motDePasse: "secret-1", confirmation: "secret-1", portable: "+243 810 000 444" };
     await expect(api.comptesUtilisateurs.enregistrer({})).rejects.toThrow("Nom et prénom(s), Agence, Nom utilisateur, Mot de passe, Confirmation, Portable");
     await expect(api.comptesUtilisateurs.enregistrer({ ...U, confirmation: "x" })).rejects.toThrow("différente");
@@ -1791,16 +1797,16 @@ describe("journée de guichet", () => {
   });
 
   it("profils des utilisateurs (S06, p. 17) : un profil par utilisateur, modules liés, historique, pas pour soi-même ; droits du profil", async () => {
-    await connecter("jpmukendi");
+    await connecter("gmbuyi");
     await api.comptesUtilisateurs.enregistrer({ nom: "Mbala Joseph", agenceId: 1, login: "jmbala", motDePasse: "secret-1", confirmation: "secret-1", portable: "1" });
     const l = await api.profilsUtilisateurs.lire();
-    const x = l.utilisateurs.find((v) => v.login === "jmbala")!, moi = l.utilisateurs.find((v) => v.login === "jpmukendi")!;
+    const x = l.utilisateurs.find((v) => v.login === "jmbala")!, moi = l.utilisateurs.find((v) => v.login === "gmbuyi")!;
     const caissier = l.profils.find((p) => p.nom === "CAISSIER")!;
     expect(caissier.modules).toEqual(["Dwacfina"]);
     await expect(api.profilsUtilisateurs.enregistrer({})).rejects.toThrow("Nom et prénom(s), Choix du profil");
     await expect(api.profilsUtilisateurs.enregistrer({ utilisateurId: moi.id, profilId: caissier.id })).rejects.toThrow("propre profil");
     const r = await api.profilsUtilisateurs.enregistrer({ utilisateurId: x.id, profilId: caissier.id });
-    expect([r.profilId, r.historique[0]!.profil, r.historique[0]!.attribuePar]).toEqual([caissier.id, "CAISSIER", "J.-P. Mukendi"]);
+    expect([r.profilId, r.historique[0]!.profil, r.historique[0]!.attribuePar]).toEqual([caissier.id, "CAISSIER", "Grâce Mbuyi"]);
     await expect(api.profilsUtilisateurs.enregistrer({ utilisateurId: x.id, profilId: caissier.id })).rejects.toThrow("déjà ce profil");
     await expect(api.profils.supprimer(caissier.id)).rejects.toThrow("Des utilisateurs");
     await connecter("jmbala");
@@ -1809,9 +1815,9 @@ describe("journée de guichet", () => {
   });
 
   it("connexions (S07, p. 18) : connecté et machine, déconnexion d'un autre utilisateur seulement", async () => {
-    await connecter("jpmukendi");
+    await connecter("gmbuyi");
     const l = (await api.connexions.lire()).utilisateurs;
-    const moi = l.find((x) => x.login === "jpmukendi")!, e = l.find((x) => x.login === "engalula")!;
+    const moi = l.find((x) => x.login === "gmbuyi")!, e = l.find((x) => x.login === "engalula")!;
     expect([moi.connecte, moi.machine, e.connecte]).toEqual([true, "ce navigateur", false]);
     await expect(api.connexions.deconnecter(moi.id)).rejects.toThrow("bouton de sortie");
     await expect(api.connexions.deconnecter(e.id)).rejects.toThrow("pas connecté");
@@ -2490,8 +2496,8 @@ describe("journée de guichet", () => {
     const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
     await api.banques.enregistrerCompte({ banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "",
       compte: "56010001", numeroBancaire: "R-USD-1", devise: "USD" });
-    const profils = Object.fromEntries((await api.droits.lire()).profils.map((p) => [p.nom, p.id]));
-    for (const nom of ["CHEF D'AGENCE", "AGENT DE CRÉDIT"]) { const id = profils[nom]; if (id) await api.droits.enregistrer(id, { droits: [...(await api.droits.lire(id)).octroyes, "S57"] }); }
+    const profils = Object.fromEntries((await adm.droits.lire()).profils.map((p) => [p.nom, p.id]));
+    for (const nom of ["CHEF D'AGENCE", "AGENT DE CRÉDIT"]) { const id = profils[nom]; if (id) await adm.droits.enregistrer(id, { droits: [...(await adm.droits.lire(id)).octroyes, "S57"] }); }
     await connecter("plumbala");
     const usd = (await api.banqueOperations.lire()).comptes[0]!.id;
     const enc = await api.banqueOperations.enregistrer({ cle: cle(), type: "encaissement", date: "2026-11-05", compteBancaireId: usd, compte: "727", libelle: "Commission", montant: 50000 });
@@ -2703,8 +2709,8 @@ describe("journée de guichet", () => {
   /** Le chef vise, l'agent valide (droit S114 donné pour l'essai) : trois personnes distinctes (Instr. BCC 008, art. 66) */
   async function viserValider(...ids: number[]) {
     await connecter("jpmukendi");
-    const agent = (await api.droits.lire()).profils.find((p) => p.nom === "AGENT DE CRÉDIT")!.id;
-    await api.droits.enregistrer(agent, { droits: [...new Set([...(await api.droits.lire(agent)).octroyes, "S114"])] });
+    const agent = (await adm.droits.lire()).profils.find((p) => p.nom === "AGENT DE CRÉDIT")!.id;
+    await adm.droits.enregistrer(agent, { droits: [...new Set([...(await adm.droits.lire(agent)).octroyes, "S114"])] });
     for (const id of ids) expect((await api.operationsCompta.viser(id)).statut).toBe("visee");
     await connecter("bkasongo");
     for (const id of ids) expect((await api.operationsCompta.valider(id)).statut).toBe("validee");
@@ -2864,8 +2870,8 @@ describe("journée de guichet", () => {
   it("factures des fournisseurs (S107, p. 124 à 128 et 147 à 153) : commande et tranches, facture, visa, validation, règlement par chèque et en espèces (S141), déclaration de taxe (S108)", async () => {
     const { j, s } = await journeeOuverte();
     await connecter("jpmukendi");
-    const agent = (await api.droits.lire()).profils.find((p) => p.nom === "AGENT DE CRÉDIT")!.id;
-    await api.droits.enregistrer(agent, { droits: [...new Set([...(await api.droits.lire(agent)).octroyes, "S114"])] });
+    const agent = (await adm.droits.lire()).profils.find((p) => p.nom === "AGENT DE CRÉDIT")!.id;
+    await adm.droits.enregistrer(agent, { droits: [...new Set([...(await adm.droits.lire(agent)).octroyes, "S114"])] });
     await api.facture.enregistrerType({ code: "ACHA_M", libelle: "Achat de matériel" });
     await api.facture.enregistrerElement({ libelle: "Retenue sur loyers", compte: "433", taux: "20", retenue: true });
     const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
@@ -2944,8 +2950,8 @@ describe("journée de guichet", () => {
   it("retenue posée sur une ligne de commande (S107) : retenue au règlement, au prorata, et déclarée (S108) ; loi 23/053, art. 142 à 144", async () => {
     const { j, s } = await journeeOuverte();
     await connecter("jpmukendi");
-    const agent = (await api.droits.lire()).profils.find((p) => p.nom === "AGENT DE CRÉDIT")!.id;
-    await api.droits.enregistrer(agent, { droits: [...new Set([...(await api.droits.lire(agent)).octroyes, "S114"])] });
+    const agent = (await adm.droits.lire()).profils.find((p) => p.nom === "AGENT DE CRÉDIT")!.id;
+    await adm.droits.enregistrer(agent, { droits: [...new Set([...(await adm.droits.lire(agent)).octroyes, "S114"])] });
     await api.facture.enregistrerType({ code: "PREST", libelle: "Prestation" });
     const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
     await api.banques.enregistrerCompte({ banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "", compte: "56010003", numeroBancaire: "R-CDF-1", devise: "CDF" });
@@ -2977,8 +2983,8 @@ describe("journée de guichet", () => {
   it("rapprochement bancaire (S110, p. 129 et 153) et historique (S112) ; lettrage (S119) ; trésorerie et revenus (S118)", async () => {
     const { j, s } = await journeeOuverte();
     await connecter("jpmukendi");
-    const profils = Object.fromEntries((await api.droits.lire()).profils.map((p) => [p.nom, p.id]));
-    for (const [nom, d] of [["CHEF D'AGENCE", "S57"], ["AGENT DE CRÉDIT", "S57"], ["AGENT DE CRÉDIT", "S114"]] as const) await api.droits.enregistrer(profils[nom]!, { droits: [...new Set([...(await api.droits.lire(profils[nom]!)).octroyes, d])] });
+    const profils = Object.fromEntries((await adm.droits.lire()).profils.map((p) => [p.nom, p.id]));
+    for (const [nom, d] of [["CHEF D'AGENCE", "S57"], ["AGENT DE CRÉDIT", "S57"], ["AGENT DE CRÉDIT", "S114"]] as const) await adm.droits.enregistrer(profils[nom]!, { droits: [...new Set([...(await adm.droits.lire(profils[nom]!)).octroyes, d])] });
     const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
     await api.banques.enregistrerCompte({ banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "", compte: "56010003", numeroBancaire: "R-CDF-1", devise: "CDF" });
     await connecter("plumbala");
@@ -3054,8 +3060,8 @@ describe("journée de guichet", () => {
   it("états financiers (S122, p. 140 et 141 ; PCCI chap. 14) et indicateurs financiers (S123 ; Instr. BCC 004)", async () => {
     const { j, s } = await journeeOuverte();
     await connecter("jpmukendi");
-    const profils = Object.fromEntries((await api.droits.lire()).profils.map((p) => [p.nom, p.id]));
-    await api.droits.enregistrer(profils["AGENT DE CRÉDIT"]!, { droits: [...new Set([...(await api.droits.lire(profils["AGENT DE CRÉDIT"]!)).octroyes, "S114"])] });
+    const profils = Object.fromEntries((await adm.droits.lire()).profils.map((p) => [p.nom, p.id]));
+    await adm.droits.enregistrer(profils["AGENT DE CRÉDIT"]!, { droits: [...new Set([...(await adm.droits.lire(profils["AGENT DE CRÉDIT"]!)).octroyes, "S114"])] });
     await connecter("plumbala");
     const od = (await api.operationsCompta.lire()).journaux.find((x) => x.code === "OD")!.id, base = { journalId: od, periode: "11/2026", jour: 5, libelle: "Loyer du siège" };
     let e = null;
@@ -3107,11 +3113,94 @@ describe("journée de guichet", () => {
     await connecter("engalula");
     await expect(api.etatsFinanciers.bilan(q)).rejects.toThrow("Droit manquant");
   });
+  it("calculs (S128) et clôtures (S127) : frais de tenue, intérêts courus des DAT, clôture du mois et de l'exercice, comme le serveur", async () => {
+    const { j, s } = await journeeOuverte();
+    await connecter("jpmukendi");
+    const E0 = _etat();
+    const eav = E0.produits.find((p) => p.code === "EAV-CDF")!; eav.tenueCompte = true;
+    E0.tiers.find((t) => t.id === 1)!.sousTypeClient = "Homme";
+    await connecter("plumbala");
+    const q = { exercice: 2026, mois: 11 };
+    await expect(api.finPeriode.apercuTenue(q)).rejects.toThrow("Paramétrage > Frais");
+    await connecter("jpmukendi");
+    const f = await api.parametrage.creerFrais({ typeOperation: "TENUE_COMPTE", libelle: "Tenue de compte", fondement: "autorisation_bcc", autorisationBcc: "BCC/2026/001" });
+    await expect(api.parametrage.parametrerOperation({ fraisId: f.id, nature: "Taux", valeur: 100, compte: "720", sousTypes: ["Homme"] })).rejects.toThrow("Montant");
+    await api.parametrage.parametrerOperation({ fraisId: f.id, nature: "Montant", valeur: 50000, compte: "720", sousTypes: ["Homme"] });
+    await connecter("plumbala");
+    const a = await api.finPeriode.apercuTenue(q);
+    const kal = a.lignes.find((x) => x.client.startsWith("KALALA") || x.etat === "À prélever");
+    expect(kal?.etat).toBe("À prélever");
+    const solde720 = () => E0.ecritures.flatMap((e) => e.lignes).filter((x) => x.compte === "720").reduce((t, x) => t + (x.sens === "C" ? x.montant : -x.montant), 0);
+    expect((await api.finPeriode.passerTenue(q)).passes).toBe(1);
+    expect(solde720()).toBe(50000);
+    await expect(api.finPeriode.passerTenue(q)).rejects.toThrow("Rien à prélever");
+    await expect(api.finPeriode.apercuInteretsDav(q)).rejects.toThrow("pas fini");
+    // DAT : 1 000 000 à 7,5 %, 92 jours = 18 904 d'intérêts courus, repris à la rupture
+    await connecter("jpmukendi");
+    await api.produitsEpargne.enregistrer({ numero: 6, code: "DAT", famille: "EPARGNE", libelle: "Dépôt à terme", devise: "CDF", soldeMinimum: 0, nbMaxComptes: 1,
+      operer: true, depotCheque: false, caution: false, nantissement: false, calculerInteret: true, soldeNegatif: false, repartitionGroupe: false, actif: true });
+    const pdat = (await api.produitsEpargne.lire()).produits.find((x) => x.code === "DAT")!;
+    await api.parametrageEpargne.enregistrer({ onglet: "DAT", produitId: pdat.id, compteLie: "340" });
+    await connecter("bkasongo");
+    const g = (await api.depotsTerme.produits())[0]!;
+    const cdat = await api.comptesEpargne.ouvrir({ cle: cle(), tiersId: 1, produitId: g.id });
+    const em = (await api.tiers.comptes(1)).find((c) => c.devise === "CDF" && c.intitule !== "Dépôt à terme")!;
+    const x = await api.depotsTerme.mettreEnPlace({ cle: cle(), produitId: g.id, tiersId: 1, compteEmetteurId: em.id, compteDatId: cdat.id, montant: 1000000, duree: 12, tauxInteret: "7,5",
+      tauxPenalite: "2", aEcheance: true, dateDepot: "2026-08-05", observation: "", reconduction: false });
+    await connecter("jpmukendi"); await api.depotsTerme.valider(x.id);
+    await connecter("plumbala");
+    const d = await api.finPeriode.apercuInteretsDat({});
+    expect(d.lignes.map((l) => [l.couru, l.aPasser, l.compteCharge, l.compteDette])).toEqual([[18904, 18904, "6122", "349"]]);
+    expect((await api.finPeriode.passerInteretsDat({})).passes).toBe(1);
+    const solde349 = () => E0.ecritures.flatMap((e) => e.lignes).filter((y) => y.compte === "349").reduce((t, y) => t + (y.sens === "C" ? y.montant : -y.montant), 0);
+    expect(solde349()).toBe(18904);
+    await expect(api.finPeriode.passerInteretsDat({})).rejects.toThrow("Aucun intérêt couru");
+    await connecter("jpmukendi"); await api.depotsTerme.rompre(x.id, {});
+    expect(solde349()).toBe(0);
+    await connecter("plumbala");
+    await expect(api.finPeriode.etatProvisions({ date: "2026-11-05" })).rejects.toThrow("Aucune balance âgée");
+    // Clôture du mois : bloquée tant que novembre n'est pas fini et comptabilisé
+    await expect(api.finPeriode.cloturerMois(q)).rejects.toThrow("Période terminée");
+    await connecter("engalula");
+    for (const dv of ["CDF", "USD"] as const) await api.caisses.saisirBilletage(s.id, dv, await api.caisses.theorique(s.id, dv));
+    await connecter("jpmukendi");
+    for (const b of await api.caisses.aValider()) await api.caisses.validerBilletage(b.id);
+    await connecter("plumbala"); await api.comptabilisation.comptabiliser(j.id);
+    await connecter("jpmukendi");
+    const j2 = await api.journees.ouvrir("2026-12-01");
+    E0.coursListe.push({ id: 999, devise: "USD", jour: "2026-11-30", cours: 2900 } as (typeof E0.coursListe)[number]);
+    await connecter("plumbala");
+    const v = await api.finPeriode.apercuCloture(q);
+    expect(v.mois!.controles.filter((c) => c.bloquant).every((c) => c.ok)).toBe(true);
+    const r = await api.finPeriode.cloturerMois(q);
+    expect(r.periodes.map((p) => p.cloture)).toEqual([...Array(11).fill(true), false]);
+    await expect(api.finPeriode.cloturerMois(q)).rejects.toThrow("déjà clôturé");
+    await expect(api.finPeriode.cloturerMois({ exercice: 2026, mois: 12 })).rejects.toThrow("Décembre");
+    // Clôture de l'exercice : comptes de gestion soldés, résultat au 13
+    await expect(api.finPeriode.cloturer({ exercice: 2026 })).rejects.toThrow("Période terminée");
+    await api.comptabilisation.comptabiliser(j2.id);
+    if (!E0.exercices.some((e) => e.annee === 2027)) E0.exercices.push({ annee: 2027, actif: false, ouvert: true, valide: false });
+    else E0.exercices.find((e) => e.annee === 2027)!.ouvert = true;
+    await connecter("jpmukendi"); await api.journees.ouvrir("2027-01-04");
+    await connecter("plumbala");
+    const net = (await api.finPeriode.apercuCloture({ exercice: 2026 })).soldes.find((x) => x.compte === "87")!.montant;
+    const c = await api.finPeriode.cloturer({ exercice: 2026 });
+    expect(c.ecritures).toBeGreaterThanOrEqual(2);
+    const lignes2026 = E0.ecritures.filter((e) => (E0.journees.find((y) => y.id === e.journeeId)?.date ?? "").startsWith("2026")).flatMap((e) => e.lignes);
+    expect(lignes2026.filter((l) => "678".includes(l.compte[0]!)).reduce((t, l) => t + (l.sens === "D" ? l.montantCdf : -l.montantCdf), 0)).toBe(0);
+    expect(E0.ecritures.filter((e) => e.type === "vidage").flatMap((e) => e.lignes).filter((l) => ["130", "131"].includes(l.compte))
+      .reduce((t, l) => t + (l.sens === "C" ? l.montantCdf : -l.montantCdf), 0)).toBe(net);
+    expect(net).not.toBe(0);
+    await expect(api.finPeriode.cloturer({ exercice: 2026 })).rejects.toThrow("déjà clôturé");
+    const total = E0.ecritures.flatMap((e) => e.lignes).reduce((t, l) => t + (l.sens === "D" ? l.montantCdf : -l.montantCdf), 0);
+    expect(total).toBe(0);
+  });
+
   it("financement (S126), nouveau budget (S124), consultation, suivi et consommation (S125)", async () => {
     const { j, s } = await journeeOuverte();
     await connecter("jpmukendi");
-    const profils = Object.fromEntries((await api.droits.lire()).profils.map((p) => [p.nom, p.id]));
-    await api.droits.enregistrer(profils["AGENT DE CRÉDIT"]!, { droits: [...new Set([...(await api.droits.lire(profils["AGENT DE CRÉDIT"]!)).octroyes, "S114"])] });
+    const profils = Object.fromEntries((await adm.droits.lire()).profils.map((p) => [p.nom, p.id]));
+    await adm.droits.enregistrer(profils["AGENT DE CRÉDIT"]!, { droits: [...new Set([...(await adm.droits.lire(profils["AGENT DE CRÉDIT"]!)).octroyes, "S114"])] });
     // S19 : centre, type de budget, période, deux plans
     const id = (r: { lignes: Record<string, unknown>[] }, cle: string, v: unknown) => r.lignes.find((x) => x[cle] === v)!.id as number;
     const tcSer = id(await api.budget.lire("types_centre"), "code", "SER");

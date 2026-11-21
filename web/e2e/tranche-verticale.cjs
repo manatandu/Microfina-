@@ -9,7 +9,7 @@ const OUT = process.argv[2];
   const p = await ctx.newPage(); if (process.argv[4]) await p.emulateMedia({ colorScheme: process.argv[4] }); p.setDefaultTimeout(5000); globalThis.__p = p;
   const errs = []; p.on('pageerror', e => errs.push('page: ' + e.message)); p.on('console', m => { if (m.type() === 'error' && !/status of 422/.test(m.text())) errs.push('console: ' + m.text()); }); // 422 : refus métier attendu
   const etape = async (nom) => { await p.waitForTimeout(50); const d = await p.evaluate(() => document.documentElement.scrollWidth - innerWidth); await p.screenshot({ path: `${OUT}/${nom}.png`, fullPage: true }); console.log(d > 0 ? '⚠ débord ' + d : '✓', nom); };
-  const IDS = { 'J.-P. Mukendi': 'jpmukendi', 'Esther Ngalula': 'engalula', 'Bijou Kasongo': 'bkasongo', 'Patrick Lumbala': 'plumbala' };
+  const IDS = { 'J.-P. Mukendi': 'jpmukendi', 'Esther Ngalula': 'engalula', 'Bijou Kasongo': 'bkasongo', 'Patrick Lumbala': 'plumbala', 'Grâce Mbuyi': 'gmbuyi' };
   const login = async (nom) => { await p.goto(B + '/connexion'); await p.getByLabel("Nom d'utilisateur").fill(IDS[nom]); await p.getByRole('button', { name: 'Connexion' }).click(); await p.waitForURL(B + '/'); };
   // Valide les billetages un par un, en attendant que la liste se mette à jour entre deux clics
   const aller = async (chemin) => { await p.goto(B + chemin); await p.waitForLoadState('networkidle'); };
@@ -181,28 +181,30 @@ const OUT = process.argv[2];
   await p.getByRole('tab', { name: 'Cours', exact: true }).click(); await p.getByLabel('Cours (CDF pour une unité) :').waitFor(); await p.getByLabel('Devise :').selectOption('USD'); await p.getByLabel('Date :').fill('05/11/2026');
   await p.getByLabel('Cours (CDF pour une unité) :').fill('2850'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: '05/11/2026' }).waitFor(); await etape('02f28-cours');
-  // Chef : profils (S03, p. 15) : le profil AUDITEUR de la capture
+  // Administrateur sécurité (Instr. BCC 008, art. 16 ; registre T29) : profils (S03, p. 15) : le profil AUDITEUR de la capture
+  await login('Grâce Mbuyi');
   await aller('/administration/s03'); await p.getByLabel('Nom Droit *').fill('AUDITEUR'); await p.getByLabel('Description').fill('PROFIL DES AUDITEURS');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'AUDITEUR', exact: true }).waitFor(); await etape('02f31-profils');
-  // Chef : un utilisateur (S05, p. 17)
+  // Administrateur sécurité : un utilisateur (S05, p. 17)
   await aller('/administration/s05'); await p.getByLabel('Nom et prénom(s) *').fill('Mbala Joseph'); await p.getByLabel('Agence *').selectOption({ label: 'Matete' });
   await p.getByLabel('Nom utilisateur *').fill('jmbala'); await p.getByLabel('Mot de passe *').fill('secret-1'); await p.getByLabel('Confirmation *').fill('secret-1');
   await p.getByLabel('Portable : *').fill('+243 810 000 444'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: 'Mbala', exact: true }).waitFor(); await etape('02f33-utilisateurs');
-  // Chef : le profil AUDITEUR donné à cet utilisateur (S06, p. 17)
+  // Administrateur sécurité : le profil AUDITEUR donné à cet utilisateur (S06, p. 17)
   await aller('/administration/s06'); await p.getByRole('button', { name: 'Rechercher un utilisateur' }).click();
   await p.getByRole('dialog', { name: "Recherche d'un utilisateur" }).getByRole('cell', { name: 'jmbala' }).click();
   await p.getByRole('button', { name: 'Rechercher un profil' }).click(); await p.getByRole('dialog', { name: "Recherche d'un profil" }).getByRole('cell', { name: 'AUDITEUR', exact: true }).click();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('02f34-profils-utilisateur');
-  // Chef : utilisateurs connectés et déconnexion (S07, p. 18)
-  await aller('/administration/s07'); await p.getByRole('cell', { name: 'jpmukendi' }).waitFor(); await etape('02f35-connexions');
-  await p.getByRole('tab', { name: 'Déconnecter utilisateurs' }).click(); await p.getByRole('button', { name: 'Déconnecter jpmukendi' }).click();
+  // Administrateur sécurité : utilisateurs connectés et déconnexion (S07, p. 18)
+  await aller('/administration/s07'); await p.getByRole('cell', { name: 'gmbuyi' }).waitFor(); await etape('02f35-connexions');
+  await p.getByRole('tab', { name: 'Déconnecter utilisateurs' }).click(); await p.getByRole('button', { name: 'Déconnecter gmbuyi' }).click();
   await p.getByRole('dialog', { name: 'Confirmation' }).getByText('Voulez-vous déconnecter cet utilisateur').waitFor(); await etape('02f36-deconnexion');
   await p.getByRole('button', { name: 'Oui' }).click(); await p.getByText('bouton de sortie').waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
-  // Chef : droits du profil AUDITEUR (S04, p. 15 et 16) : le menu Client lui est octroyé
+  // Administrateur sécurité : droits du profil AUDITEUR (S04, p. 15 et 16) : le menu Client lui est octroyé
   await aller('/administration/s04'); await p.getByLabel('Libellé du Profil *').selectOption({ label: 'AUDITEUR' });
   await p.getByRole('checkbox', { name: 'LISTE DES DROITS RESTANTS : Client' }).check(); await p.getByRole('button', { name: 'Octroyer les droits cochés' }).click();
   await etape('02f32-droits'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await login('J.-P. Mukendi');
   // Chef : facture (S36, p. 46) : un élément de facture, la retenue sur les loyers au compte 433 (O.-L. 69/009, art. 10 et 11 ; PCCI), désactivé ensuite :
   // un élément actif s'applique à toutes les factures ; puis un type de commande (p. 125)
   await aller('/parametrage/s36'); await p.getByLabel('Libellé', { exact: true }).fill('Retenue sur loyers'); await p.getByLabel('Compte :').fill('433'); await p.getByLabel('Taux(%)').fill('20');
@@ -672,19 +674,15 @@ const OUT = process.argv[2];
   await aller('/clients/sc04'); await p.getByRole('heading', { name: 'Registre des membres' }).waitFor(); await p.getByRole('cell', { name: '0412-000318', exact: true }).waitFor(); await etape('10p-registre-membres');
   // Conditions de banque (écart E15 ; Instr. BCC 40, art. 2 à 6) : état à afficher chaque trimestre et à transmettre à la BCC
   await aller('/parametrage/sp01'); await p.getByRole('article', { name: 'Conditions de banque imprimées' }).waitFor(); await etape('10q-conditions-banque');
-  // Journal de sécurité (écart E17 ; Instr. BCC 008, art. 16) : le droit, donné à aucun profil de départ, est attribué au profil COMPTABLE, désigné responsable
-  await aller('/administration/s04'); await p.getByLabel('Libellé du Profil *').selectOption({ label: 'COMPTABLE' });
-  const restants = p.getByRole('group', { name: 'LISTE DES DROITS RESTANTS' }); await restants.locator('details', { hasText: 'Journal de sécurité' }).locator('summary').click();
-  await restants.getByRole('checkbox', { name: 'Journal de sécurité' }).check(); await p.getByRole('button', { name: 'Octroyer les droits cochés' }).click();
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  // Retenues à reverser (écart E16 ; arrêté 008/2025, art. 2) : état du mois, échéance du 15 du mois suivant, au comptable
-  await login('Patrick Lumbala'); await aller('/administration/sa01'); await p.getByRole('heading', { name: 'Journal de sécurité' }).waitFor();
+  // Journal de sécurité (écart E17 ; Instr. BCC 008, art. 16) : tenu par l'administrateur sécurité (registre T29)
+  await login('Grâce Mbuyi'); await aller('/administration/sa01'); await p.getByRole('heading', { name: 'Journal de sécurité' }).waitFor();
   await p.getByRole('cell', { name: 'Connexion', exact: true }).first().waitFor(); await etape('10s-journal-securite');
   // Filtre en tête de colonne (registre T04, manuel p. 9, point 4) : seules les lignes dont l'événement contient le texte saisi restent
   await p.getByLabel('Filtrer Événement').fill('Connexion refusée');
   if (await p.getByRole('cell', { name: 'Connexion', exact: true }).count()) throw new Error('T04 : le filtre ne retire pas les autres lignes');
   await p.getByLabel('Filtrer Événement').fill('');
-  await aller('/comptabilite/sf01'); await p.getByRole('article', { name: 'État des retenues du mois' }).waitFor(); await etape('10r-retenues');
+  // Retenues à reverser (écart E16 ; arrêté 008/2025, art. 2) : état du mois, échéance du 15 du mois suivant, au comptable
+  await login('Patrick Lumbala'); await aller('/comptabilite/sf01'); await p.getByRole('article', { name: 'État des retenues du mois' }).waitFor(); await etape('10r-retenues');
   await login('J.-P. Mukendi');
   // Centrale des incidents de paiement (écart E06) : les ouvertures et nouveaux clients du jour à déclarer, avec leur échéance
   await aller('/clients/sc02'); await p.getByRole('heading', { name: 'Centrale des incidents de paiement' }).waitFor(); await p.getByRole('cell', { name: 'Nouveau client' }).first().waitFor();
@@ -1202,7 +1200,7 @@ const OUT = process.argv[2];
   // Chef : une ligne du plan budgétaire, avec son bailleur (S19, p. 29)
   await login('J.-P. Mukendi'); await aller('/parametrage/s19?page=lignes'); await p.getByLabel('N° de ligne').fill('L1'); await p.getByLabel('Libellé Ligne').fill('Loyers');
   await p.getByLabel('Plan Budgétaire', { exact: true }).selectOption({ label: 'PLAN BUDGETAIRE ANNEE 2026' }); await p.getByLabel('Centre de coût', { exact: true }).selectOption({ label: 'Agence de Matete' });
-  await p.getByLabel('Bailleur').selectOption({ label: 'Fonds Exemple' }); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByLabel('Bailleur', { exact: true }).selectOption({ label: 'Fonds Exemple' }); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: 'Loyers' }).waitFor(); await etape('28e-ligne-plan-budgetaire');
   // Comptable : nouveau budget (S124, p. 142), consultation, suivi et consommation (S125, p. 143)
   await login('Patrick Lumbala'); await aller('/budget/s124'); const nb = p.getByRole('dialog', { name: 'Nouveau budget' }); await nb.getByRole('radio', { name: 'Définir nouveau budget' }).check();
@@ -1219,6 +1217,13 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Financement' }).click(); await p.getByRole('cell', { name: 'Fonds Exemple' }).waitFor(); await etape('29f-suivi-financement');
   await p.getByRole('tab', { name: 'Consommation par centre de cout' }).click(); await p.getByRole('heading', { name: 'Consommation par centre de coût' }).waitFor(); await p.getByLabel('Période :').selectOption({ label: '1er Trimestre' });
   await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByRole('cell', { name: 'Agence de Matete' }).waitFor(); await etape('29g-consommation-centre');
+  // Comptable : calculs (S128, p. 163) et clôtures (S127)
+  await aller('/budget/s128'); await p.getByRole('heading', { name: 'Frais de tenue de comptes' }).waitFor(); await etape('30a-calculs');
+  await p.getByRole('tab', { name: 'Calcul des intérêts sur DAT' }).click(); await p.getByRole('heading', { name: 'Calcul des intérêts sur DAT' }).waitFor();
+  await p.getByRole('button', { name: 'Calculer' }).click(); await p.getByText('Intérêts courus au').waitFor(); await etape('30b-interets-dat');
+  await aller('/budget/s127'); await p.getByRole('heading', { name: 'Etat des provisions de crédits' }).waitFor(); await etape('30c-cloture-credit');
+  await p.getByRole('tab', { name: 'Comptabilité' }).click(); await p.getByRole('heading', { name: 'Clôture comptable' }).waitFor();
+  await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByText('Soldes de gestion de l\'exercice').waitFor(); await etape('30d-cloture-comptable');
   console.log(errs.length ? 'ERREURS\n' + errs.join('\n') : 'aucune erreur console');
   await b.close();
 })().catch(async e => { await globalThis.__p.screenshot({ path: OUT + '/zz-echec.png', fullPage: true }); throw e; }).catch(async e => { console.error('ÉCHEC', e.message.split('\n').slice(0,3).join(' / ')); process.exit(1); });

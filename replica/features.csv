@@ -125,8 +125,8 @@ Grand livre et balance général et analytique,comptabilité,must,yes,yes,"S120 
 Bilan hors bilan résultat annexes,comptabilité,must,yes,yes,S122 ; états du PCCI ; tableau des flux de trésorerie et états de l'Instr. BCC 009 à ajouter (constats U23 C11)
 Indicateurs financiers,comptabilité,must,yes,yes,S123 ; formules de l'annexe de l'Instr. BCC 004
 Budget : création reconduction suivi consommation financement,budget,should,yes,yes,S124 à S126
-Clôtures crédit dépôt comptabilité,autres,must,yes,no,S127 ; traitements automatiques de fin de journée et de mois (ARCHITECTURE.md § 6)
-Calculs : tenue de compte intérêts DAV et DAT provisions,autres,must,yes,no,S128 ; idem
+Clôtures crédit dépôt comptabilité,autres,must,yes,yes,S127 ; traitements automatiques de fin de journée et de mois (ARCHITECTURE.md § 6)
+Calculs : tenue de compte intérêts DAV et DAT provisions,autres,must,yes,yes,S128 ; idem
 Caisse mobile,autres,skip,yes,skip,S129 ; non décrite dans le manuel
 Gestion de réunion,autres,skip,yes,skip,S130 ; non décrite dans le manuel
 Paie : données de base grilles états,paie,should,yes,no,S131 S132 ; module complet en deuxième temps (décision du porteur)

@@ -1,6 +1,6 @@
 import type { Comptage, Devise } from "@design/montant.js";
 
-export type Role = "caissier" | "chef_agence" | "agent_credit" | "comptable";
+export type Role = "caissier" | "chef_agence" | "agent_credit" | "comptable" | "administrateur";   // administrateur : Instr. BCC 008, art. 16 (registre T29)
 
 export interface Utilisateur { id: number; login: string; nom: string; roles: Role[];
   // S05 : Informations et Info Adresse (le mot de passe n'est pas gardé par la démo, registre S05-3)
@@ -318,7 +318,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 79;
+  version: 80;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)
