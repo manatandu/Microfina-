@@ -587,6 +587,7 @@ def vue_tiers(t: dict) -> dict:
             "objetRelation": t.get("objet_relation") or "", "origineFonds": t.get("origine_fonds") or "",   # A8
             "habilitationReference": t.get("habilitation_reference") or "",   # A7
             "refusMotif": t.get("refus_motif") or "", "refuseLe": iso(t.get("refuse_le")),   # A5
+            "exclusionReference": t.get("exclusion_reference") or "", "exclusionLe": iso(t.get("exclusion_le")),   # P1
             "decesLe": iso(t.get("deces_le")), "decesReference": t.get("deces_reference") or "",   # A16
             "intitule": t["intitule"] or "", "dateVisa": iso(t["date_visa"]), "admissionLe": iso(t.get("admission_le")), "admissionReference": t.get("admission_reference") or "", "emancipationReference": t.get("emancipation_reference") or "", "representantLegal": t.get("representant_legal") or "", "auxiliaire": bool(t.get("auxiliaire")), "creeLe": t["cree_le"].date().isoformat(), "motifDepart": t["motif_depart"] or "", "resilieLe": iso(t["resilie_le"]),
             "sensibilisateurId": t["sensibilisateur_id"], "commercialId": t["commercial_id"],
@@ -1599,7 +1600,15 @@ def resilier_tiers(u: dict, tid: int, d: dict) -> dict:
     controler_apurement(tid, est_coopec(u))
     j = journee_courante(u)
     jour = j["date"] if j and j["statut"] == "ouverte" else date.today().isoformat()
-    executer("update tiers set statut = 'resilie', motif_depart = %s, resilie_le = %s, resilie_par = %s where id = %s", (motif, jour, u["id"], tid))
+    # P1 : une exclusion porte la référence et la date de la décision du Conseil d'administration (loi 002/2002, art. 25 ; AUSCOOP, art. 13 et 14)
+    excl = d.get("exclusion") if isinstance(d, dict) and isinstance(d.get("exclusion"), dict) else None
+    excl_ref = excl_le = None
+    if excl is not None:
+        excl_ref, excl_le = str(excl.get("reference") or "").strip(), str(excl.get("date") or "").strip()
+        if not excl_ref or not re.match(r"^\d{4}-\d{2}-\d{2}$", excl_le) or excl_le > str(jour):
+            raise ErreurMetier("Exclusion : référence et date de la décision du Conseil d'administration (loi 002/2002, art. 25 ; AUSCOOP, art. 14).")
+    executer("update tiers set statut = 'resilie', motif_depart = %s, resilie_le = %s, resilie_par = %s, exclusion_reference = %s, exclusion_le = %s where id = %s",
+             (motif, jour, u["id"], excl_ref, excl_le, tid))
     return lire_tiers(tid)
 
 

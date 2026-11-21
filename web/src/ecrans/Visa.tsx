@@ -518,6 +518,7 @@ export function ResiliationClient() {
   const [t, setT] = useState<Tiers | null>(null);
   const [motif, setMotif] = useState("");
   const [deces, setDeces] = useState({ date: "", reference: "" });   // A16
+  const [exclusion, setExclusion] = useState<{ reference: string; date: string } | null>(null);   // P1
   const [recherche, setRecherche] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
   const { donnees: comptes } = useDonnees(() => (t ? api.tiers.comptes(t.id) : Promise.resolve([])), [t?.id]);
@@ -530,7 +531,7 @@ export function ResiliationClient() {
   function resilier() {
     if (!t) { setBoite({ type: "erreur", message: "Rechercher d'abord le client." }); return; }
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment résilier ce client ?", oui: async () => {
-      try { setT(await api.tiers.resilier(t.id, { motif })); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+      try { setT(await api.tiers.resilier(t.id, { motif, ...(exclusion ? { exclusion } : {}) })); setExclusion(null); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
       catch (x) { setBoite({ type: "erreur", message: message(x) }); }
     } });
   }
@@ -562,6 +563,13 @@ export function ResiliationClient() {
               ? <Lecture {...p} value={t!.motifDepart} />
               : <select {...p} className="saisie" required value={motif} onChange={(e) => setMotif(e.target.value)}><option value=""></option>
                   {ctx.motifsDepart.map((m) => <option key={m}>{m}</option>)}</select>}</Champ>
+            {/* P1 (confrontation du 21/11/2026) : exclusion par le Conseil d'administration (loi 002/2002, art. 25 ; AUSCOOP, art. 13 et 14) */}
+            {resilie ? t?.exclusionReference && <p>Exclusion : décision {t.exclusionReference} du {fr(t.exclusionLe ?? "")}</p>
+              : <label className="case sans-impression"><input type="checkbox" checked={!!exclusion} onChange={(e) => setExclusion(e.target.checked ? { reference: "", date: "" } : null)} /><span>Exclusion par le Conseil d'administration</span></label>}
+            {!resilie && exclusion && <>
+              <Champ libelle="Référence de la décision : *">{(p) => <input {...p} className="saisie" value={exclusion.reference} onChange={(e) => setExclusion({ ...exclusion, reference: e.target.value })} />}</Champ>
+              <ChampDate libelle="Date de la décision : *" valeur={exclusion.date} onChange={(v) => setExclusion({ ...exclusion, date: v })} requis />
+            </>}
           </div>
           <fieldset className="pile cadre-champs">
             <legend>Frais de résiliation de contrat</legend>

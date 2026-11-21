@@ -1035,7 +1035,7 @@ const tiers = {
     for (const p of (E.procurations ?? []).filter((x) => x.mandantId === id && !x.finLe)) Object.assign(p, { finLe: d.date > p.dateDebut ? d.date : p.dateDebut, finMotif: "Décès du mandant" });
     enregistrer(); return t;
   },
-  resilier(id: number, d: { motif: string }) {
+  resilier(id: number, d: { motif: string; exclusion?: { reference: string; date: string } }) {
     exiger("chef_agence");   // profil habilité : à confirmer
     const t = E.tiers.find((x) => x.id === id);
     if (!t) throw new ErreurMetier("Client introuvable.");
@@ -1051,7 +1051,11 @@ const tiers = {
       throw new ErreurMetier("Client endosseur d'un prêt en cours : il ne peut pas se retirer (loi 002/2002, art. 24).");
     controlerApurement(id);
     const j = journees.courante();
-    Object.assign(t, { statut: "resilie", motifDepart: motif, resilieLe: j && j.statut === "ouverte" ? j.date : new Date().toISOString().slice(0, 10) });
+    const jourResil = j && j.statut === "ouverte" ? j.date : new Date().toISOString().slice(0, 10);
+    // P1 : exclusion, référence et date de la décision du Conseil d'administration (loi 002/2002, art. 25 ; AUSCOOP, art. 14). Comme le serveur.
+    if (d.exclusion && (!d.exclusion.reference?.trim() || !DATE.test(d.exclusion.date ?? "") || d.exclusion.date > jourResil))
+      throw new ErreurMetier("Exclusion : référence et date de la décision du Conseil d'administration (loi 002/2002, art. 25 ; AUSCOOP, art. 14).");
+    Object.assign(t, { statut: "resilie", motifDepart: motif, resilieLe: jourResil, ...(d.exclusion ? { exclusionReference: d.exclusion.reference.trim(), exclusionLe: d.exclusion.date } : {}) });
     enregistrer(); return t;
   },
   /** S45 : prospects (manuel p. 55) */

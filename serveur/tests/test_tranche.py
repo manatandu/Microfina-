@@ -971,7 +971,10 @@ def test_parts_sociales(clients, journee):
     assert caisse.get(f"/api/tiers/{k}/parts").json() == 1
     # Membre résilié : toutes ses parts lui sont rendues (apurement, art. 27)
     vider_comptes(chef, caisse, m)
-    assert chef.post(f"/api/tiers/{m}/resiliation", {"motif": "AUTRES"}, **H).status_code == 200   # les parts restent, remboursées après (art. 22 et 27)
+    # P1 : une exclusion porte la référence et la date de la décision du Conseil d'administration (loi 002/2002, art. 25)
+    assert "Exclusion" in chef.post(f"/api/tiers/{m}/resiliation", {"motif": "AUTRES", "exclusion": {"reference": "", "date": "2026-11-05"}}, **H).json()["message"]
+    r = chef.post(f"/api/tiers/{m}/resiliation", {"motif": "AUTRES", "exclusion": {"reference": "CA du 04/11/2026, décision 7", "date": "2026-11-04"}}, **H)
+    assert r.status_code == 200 and r.json()["exclusionReference"] == "CA du 04/11/2026, décision 7", r.content   # les parts restent, remboursées après (art. 22 et 27)
     assert op({"tiersId": m, "sens": "retrait", "nombre": 1, "coupures": {"1000": 4}}).json()["statut"] == "validee"
     assert "résilié" in refus({"tiersId": m, "sens": "achat", "nombre": 1, "coupures": {"1000": 4}})
     # Compte de parts selon le type de client (PCCI, compte 103) : une entreprise en 1032
