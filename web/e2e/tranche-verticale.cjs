@@ -1274,6 +1274,8 @@ const OUT = process.argv[2];
   await etape('27f-flux-de-tresorerie');
   await p.getByLabel('Annexe :').selectOption('depots'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('rowheader', { name: 'Epargnes et dépôts ordinaires' }).waitFor(); await etape('27g-ventilation-depots');
   await aller('/comptabilite/s123'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('cell', { name: 'Portefeuille à Risque' }).waitFor(); await etape('27h-indicateurs-financiers');
+  // Normes prudentielles (SN01 ; Instr. BCC 002 ; loi 002/2002, art. 59) : état à la date de la journée
+  await aller('/comptabilite/sn01'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('cell', { name: /Liquidité immédiate/ }).waitFor(); await etape('27h2-normes-prudentielles');
   // Budget : financement (S126, p. 143 à 145), par le comptable
   await aller('/budget/s126'); await p.getByRole('heading', { name: 'Ligne financement' }).waitFor(); await etape('28a-lignes-financement');
   const fin = (nom) => p.getByRole('navigation', { name: 'Financement' }).getByRole('button', { name: nom, exact: true }).click();

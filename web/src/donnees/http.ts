@@ -253,6 +253,9 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       annexe: (p: Record<string, unknown>) => get(`/comptabilite/etats-financiers/annexe?${requete(p)}`),
       indicateurs: (p: Record<string, unknown>) => get(`/comptabilite/indicateurs-financiers?${requete(p)}`),
     },
+    normes: {
+      etat: (p: Record<string, unknown>) => get(`/comptabilite/normes-prudentielles?${requete(p)}`),
+    },
     comptabilisation: {
       aComptabiliser: (jid: number) => get(`/comptabilite/comptabilisation/${jid}`),
       comptabiliser: (jid: number) => post(`/comptabilite/comptabilisation/${jid}`),

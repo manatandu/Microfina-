@@ -2847,6 +2847,12 @@ def inactifs_lettre_imprimer(request, cid: int):
     return ina.lettre(u(request), cid)
 
 
+@api.get("/comptabilite/normes-prudentielles")
+def normes_prudentielles(request, date: str = "", tresorerieAssuree: str = ""):
+    from . import normes
+    return normes.etat(u(request), {"date": date, "tresorerieAssuree": tresorerieAssuree == "true"})
+
+
 @api.get("/clients/registre-membres")
 def registre_membres(request):
     return rmb.membres(u(request))

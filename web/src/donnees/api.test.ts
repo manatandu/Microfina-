@@ -3275,6 +3275,16 @@ describe("journée de guichet", () => {
     expect(await api.controlesCompta.annulations({ du: "2026-11-01", au: "2026-11-30", type: "depot" })).toEqual([]);
     expect(await soldeCdfGrandLivre()).toBe(0);
   });
+  it("normes prudentielles (SN01 ; Instr. BCC 002 ; loi 002/2002, art. 59) : état à une date, droit du comptable", async () => {
+    await journeeOuverte(); await connecter("plumbala");
+    const j = (await api.journees.courante())!.date;
+    const r = await api.normes.etat({ date: j });
+    expect(["solvabilite", "liquidite", "ressources", "immobilisations", "connexes"].every((c) => r.normes.some((x) => x.code === c))).toBe(true);
+    expect(r.fondsPropres.prudentiels).toBe(r.fondsPropres.base + r.fondsPropres.retenus);
+    await expect(api.normes.etat({ date: "" })).rejects.toThrow("Date de l'arrêté");
+    await connecter("engalula");
+    await expect(api.normes.etat({ date: j })).rejects.toThrow();
+  });
   it("états financiers (S122, p. 140 et 141 ; PCCI chap. 14) et indicateurs financiers (S123 ; Instr. BCC 004)", async () => {
     const { j, s } = await journeeOuverte();
     await connecter("jpmukendi");

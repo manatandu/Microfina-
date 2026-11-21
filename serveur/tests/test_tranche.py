@@ -4943,3 +4943,36 @@ def test_balance_vers_grand_livre(clients, journee):
     seul = compta.get("/api/comptabilite/grand-livre", {**q, "compte": "57"}, **H).json()["comptes"]
     assert seul and all(c["compte"].startswith("57") for c in seul)
     assert "chiffres" in compta.get("/api/comptabilite/grand-livre", {**q, "compte": "5x"}, **H).json()["message"]
+
+
+def test_normes_prudentielles_calcul():
+    """A2, B5, B6 (confrontation du 21/11/2026) : Instr. BCC 002, art. 7 à 43, sur une balance connue (montants en centimes, débit positif)"""
+    from noyau.normes import calculer, fonds_propres
+    s = {"1030": -50_000_000, "1110": -10_000_000, "1210": 2_000_000, "1622": -30_000_000, "18": -5_000_000, "2410": 20_000_000, "2810": -4_000_000,
+         "3210": 60_000_000, "3810": -3_000_000, "3300": -70_000_000, "3400": -20_000_000, "5700": 15_000_000, "5610": 25_000_000, "0010": 4_000_000}
+    fp = fonds_propres(s, -1_000_000)
+    assert fp["base"] == 50_000_000 + 10_000_000 - 2_000_000 - 1_000_000          # art. 8 : 10, 111, moins 121, perte de l'exercice
+    assert fp["complementaires"] == min(30_000_000, 57_000_000 // 2) + 5_000_000   # art. 9 et 11 : subordonnés dans la limite de 50 % de la base
+    assert fp["prudentiels"] == 57_000_000 + 33_500_000
+    x = {n["code"]: n for n in calculer("coopec", s, -1_000_000, 0, 0, {}, {7: 6_000_000}, 0, 2800.0, False)["normes"]}
+    assert x["liquidite"]["numerateur"] == 40_000_000 and x["liquidite"]["denominateur"] == 70_000_000 and x["liquidite"]["respect"] is True   # art. 16 à 18
+    pondere = round(20_000_000 - 4_000_000 + 60_000_000 - 3_000_000 + 15_000_000 * 0.2 + 25_000_000 * 0.25) + 4_000_000
+    assert x["solvabilite"]["denominateur"] == pondere                            # art. 15 : caisse 20 %, banques 25 %, autres 100 %, hors bilan donné
+    assert x["risques"]["numerateur"] == 60_000_000 + 25_000_000 + 4_000_000 and x["risques"]["denominateur"] == 90_000_000   # art. 23 et 24
+    assert x["division"]["norme"] == 10 and x["division_depots"]["numerateur"] == 6_000_000   # art. 29 ; loi 002/2002, art. 59, 6°
+    assert "capital" not in x
+    imf = {n["code"]: n for n in calculer("entreprise_microcredit", s, -1_000_000, 0, 0, {"USD": {"position": 9_000_000, "volume": 1}}, {}, 0, 2800.0, False)["normes"]}
+    assert imf["solvabilite"]["applicable"] is False and imf["solvabilite"]["respect"] is None   # art. 12 : sauf entreprises de microcrédit
+    assert imf["capital"]["denominateur"] == 250000 * 2800 * 100 and imf["division"]["norme"] == 5   # Instr. BCC 0010, art. 4 ; art. 28
+    assert imf["change_USD"]["norme"] == 15 and imf["change_USD"]["respect"] is True   # art. 40 : devise la plus utilisée, 15 %
+
+
+def test_normes_prudentielles_etat(clients, journee):
+    """SN01 : état à la date de la journée, droit du comptable"""
+    compta = clients["compta"]
+    r = compta.get("/api/comptabilite/normes-prudentielles?date=2026-11-05", **H)
+    assert r.status_code == 200, r.content
+    codes = [n["code"] for n in r.json()["normes"]]
+    assert {"solvabilite", "liquidite", "ressources", "immobilisations", "connexes"} <= set(codes)
+    assert "Date de l'arrêté" in compta.get("/api/comptabilite/normes-prudentielles?date=", **H).json()["message"]
+    assert clients["caisse"].get("/api/comptabilite/normes-prudentielles?date=2026-11-05", **H).status_code == 403

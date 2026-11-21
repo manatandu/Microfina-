@@ -8020,6 +8020,85 @@ const etatsFinanciers = {
   },
 };
 
+// ---------- SN01 : normes prudentielles (confrontation du 21/11/2026, A2, B5, B6). Mêmes règles que serveur/noyau/normes.py :
+// Instr. BCC 002, art. 3 à 43 ; Instr. BCC 0010, art. 4 ; loi 002/2002, art. 59 (2°, 4° à 6°) et 60. Le 3° (liquidité de 80 %) n'a pas d'éléments définis : non calculé. ----------
+const CAPITAL_MINIMUM_USD: Record<string, number> = { entreprise_microcredit: 250000, societe_microfinance: 700000 };   // Instr. BCC 0010, art. 4
+const CONNEXES = ["721", "722", "723", "727", "7289", "741", "748"];   // Instr. BCC 002, art. 39
+type LigneNorme = { code: string; libelle: string; reference: string; numerateur: number; denominateur: number; ratio: number | null; norme: number;
+  sens: "min" | "max" | "bande"; applicable: boolean; respect: boolean | null };
+const debitNormes = (s: Map<string, number>, pref: string[], sauf: string[] = []) => [...s].reduce((t, [k, v]) => t + (pref.some((p) => k.startsWith(p)) && !sauf.some((p) => k.startsWith(p)) ? v : 0), 0);
+const creditNormes = (s: Map<string, number>, pref: string[]) => -debitNormes(s, pref);
+function ligneNorme(code: string, libelle: string, reference: string, num: number, den: number, norme: number, sens: LigneNorme["sens"], applicable = true): LigneNorme {
+  const ratio = den ? Math.round(num / den * 10000) / 100 : null;
+  const respect = !applicable || ratio === null ? null : sens === "min" ? ratio >= norme : sens === "bande" ? Math.abs(ratio) <= norme : ratio <= norme;
+  return { code, libelle, reference, numerateur: num, denominateur: den, ratio, norme, sens, applicable, respect };
+}
+/** Art. 8, 9 et 11 ; le résultat pas encore affecté se lit comme les sous-comptes 130 et 131 (comme normes.fonds_propres) */
+function fondsPropresNormes(s: Map<string, number>, resultat: number) {
+  const base = creditNormes(s, ["10", "110", "111", "12", "13", "144", "170", "171"]) + resultat - debitNormes(s, ["20", "252", "2510"]);
+  const complementaires = creditNormes(s, ["14"]) - creditNormes(s, ["144"]) + creditNormes(s, ["15"]) + Math.min(creditNormes(s, ["1622"]), Math.floor(Math.max(base, 0) / 2))
+    + creditNormes(s, ["172"]) + creditNormes(s, ["18"]) - debitNormes(s, ["255"]);
+  const retenus = Math.min(complementaires, Math.max(base, 0));
+  return { base, complementaires, retenus, prudentiels: base + retenus };
+}
+function calculerNormes(profil: string, s: Map<string, number>, resultat: number, connexesN: number, produitsN1: number, positions: Record<string, { position: number; volume: number }>,
+  encours: Map<number, number>, apparentes: number, usd: number, tresorerieAssuree: boolean) {
+  const coopec = profil === "coopec" || profil === "faitiere", emc = profil === "entreprise_microcredit";
+  const fp = fondsPropresNormes(s, resultat), fpp = fp.prudentiels, depots = creditNormes(s, ["33", "34", "35", "36", "373"]);
+  const out: LigneNorme[] = [];
+  if (!coopec) out.push(ligneNorme("capital", "Fonds propres de base / capital minimum", "Instr. BCC 002, art. 3 et 6 ; Instr. BCC 0010, art. 4", fp.base, Math.round((CAPITAL_MINIMUM_USD[profil] ?? 0) * usd * 100), 100, "min"));
+  const deduits = ["20", "252", "2510", "255"], provisions = ["28", "29", "38", "48", "58"];
+  let pondere = 0;
+  for (const [k, v] of s) if ("2345".includes(k[0]!) && !deduits.some((p) => k.startsWith(p)) && (v > 0 || provisions.some((p) => k.startsWith(p))))
+    pondere += v * (k.startsWith("57") ? (tresorerieAssuree ? 0 : 20) : k.startsWith("53") || k.startsWith("56") ? 25 : 100) / 100;
+  pondere = Math.round(pondere) + debitNormes(s, ["00"]);
+  out.push(ligneNorme("solvabilite", "Solvabilité : fonds propres prudentiels / actifs pondérés", "Instr. BCC 002, art. 12 à 15", fpp, pondere, 10, "min", !emc));
+  out.push(ligneNorme("liquidite", "Liquidité immédiate : disponibilités / dépôts à vue", "Instr. BCC 002, art. 16 à 18", debitNormes(s, ["56", "57"]), creditNormes(s, ["330", "331", "332"]), 20, "min", !emc));
+  if (coopec) out.push(ligneNorme("risques", "Risques / dépôts des membres", "Instr. BCC 002, art. 22 à 24 ; loi 002/2002, art. 59, 5°",
+    debitNormes(s, ["30", "31", "32", "39"]) + debitNormes(s, ["25"]) + debitNormes(s, ["53", "56"]) + debitNormes(s, ["00"]), depots, 200, "max"));
+  out.push(ligneNorme("apparentes", "Crédits et engagements aux apparentés / fonds propres prudentiels", "Instr. BCC 002, art. 25 et 27", apparentes, fpp, 20, "max"));
+  if (coopec) out.push(ligneNorme("apparentes_depots", "Crédits et engagements aux apparentés / dépôts des membres", "Instr. BCC 002, art. 26 ; loi 002/2002, art. 59, 4°", apparentes, depots, 20, "max"));
+  const plusGros = Math.max(0, ...encours.values());
+  out.push(ligneNorme("division", `Plus gros risque sur un seul ${coopec ? "membre" : "client"} / fonds propres prudentiels`, coopec ? "Instr. BCC 002, art. 29" : "Instr. BCC 002, art. 28", plusGros, fpp, coopec ? 10 : 5, "max"));
+  if (coopec) out.push(ligneNorme("division_depots", "Plus gros risque sur un seul membre / dépôts des membres", "Loi 002/2002, art. 59, 6°, et art. 60", plusGros, depots, 10, "max"));
+  out.push(ligneNorme("participations", "Participations / fonds propres prudentiels", "Instr. BCC 002, art. 30", debitNormes(s, ["25"]) - (coopec ? debitNormes(s, ["252"]) : 0), fpp, 25, "max"));
+  out.push(ligneNorme("ressources", "Ressources stables / emplois stables", `Instr. BCC 002, art. 31 à 33${coopec ? " ; loi 002/2002, art. 59, 2°" : ""}`,
+    fpp + creditNormes(s, ["34"]) + creditNormes(s, ["35"]) + creditNormes(s, ["16"]) - creditNormes(s, ["1622"]), debitNormes(s, ["2"]) + debitNormes(s, ["30", "31"]) + debitNormes(s, ["39", "38"]), 100, "min"));
+  out.push(ligneNorme("immobilisations", "Immobilisations retenues / fonds propres prudentiels", "Instr. BCC 002, art. 34 à 36",
+    debitNormes(s, ["2"]) - debitNormes(s, ["251"]) - debitNormes(s, ["255"]) - debitNormes(s, ["20"]), fpp, 50, "max"));
+  out.push(ligneNorme("connexes", "Produits des opérations connexes / produits de l'année précédente", "Instr. BCC 002, art. 39", connexesN, produitsN1, 20, "max"));
+  const devises = Object.keys(positions).sort(), plusUtilisee = devises.reduce<string | null>((m, x) => (m === null || positions[x]!.volume > positions[m]!.volume ? x : m), null);
+  for (const dv of devises) out.push(ligneNorme(`change_${dv}`, `Position de change en ${dv} / fonds propres prudentiels`, "Instr. BCC 002, art. 40 à 43", positions[dv]!.position, fpp, dv === plusUtilisee ? 15 : 5, "bande"));
+  if (devises.length) out.push(ligneNorme("change", "Position de change, toutes devises / fonds propres prudentiels", "Instr. BCC 002, art. 40 à 43", devises.reduce((t, x) => t + positions[x]!.position, 0), fpp, 15, "bande"));
+  return { fondsPropres: fp, depots, normes: out };
+}
+const normes = {
+  /** Critères : Date de l'arrêté ; trésorerie couverte par une police d'assurance (art. 15 : 0 % au lieu de 20 %) */
+  etat(p: { date?: string; tresorerieAssuree?: boolean }) {
+    lectureAdmin(["SN01"]);
+    if (!DATE_ISO.test(p.date ?? "")) throw new ErreurMetier("À remplir : Date de l'arrêté.");
+    const au = p.date!, an = Number(au.slice(0, 4));
+    const { s, resultat, anterieurs } = soldesEf(au, an, true);
+    const mv = mouvementsGestionEf(`${an}-01-01`, au, false), mv1 = mouvementsGestionEf(`${an - 1}-01-01`, `${an - 1}-12-31`, false);
+    const connexes = -[...mv].reduce((t, [k, v]) => t + (CONNEXES.some((x) => k.startsWith(x)) ? v : 0), 0);
+    const produitsN1 = -[...mv1].reduce((t, [k, v]) => t + (k.startsWith("7") ? v : 0), 0);
+    const net: Record<string, { net: number; volume: number }> = {}, encours = new Map<number, number>();
+    for (const { e } of ecrituresDefinitives(null, au, true)) for (const l of e.lignes) {
+      if (l.devise !== "CDF" && "1345".includes(l.compte[0]!)) { const x = (net[l.devise] ??= { net: 0, volume: 0 }); x.net += l.sens === "D" ? l.montant : -l.montant; x.volume += l.montant; }
+      if (["30", "31", "32", "39", "00"].includes(l.compte.slice(0, 2)) && l.contrat) {
+        const [genre, ref] = l.contrat.split(":");
+        const tid = genre === "credit" ? E.credits.find((c) => c.id === Number(ref))?.tiersId : genre === "engagement" ? E.engagementsSignature.find((x) => x.reference === ref)?.tiersId : undefined;
+        if (tid !== undefined) encours.set(tid, (encours.get(tid) ?? 0) + (l.sens === "D" ? l.montantCdf : -l.montantCdf));
+      }
+    }
+    for (const [k, v] of encours) if (v <= 0) encours.delete(k);
+    const positions = Object.fromEntries(Object.entries(net).map(([dv, x]) => [dv, { position: Math.round(x.net * coursDe(dv as Devise, au)), volume: Math.round(x.volume * coursDe(dv as Devise, au)) }]));
+    const apparentes = [...encours].reduce((t, [k, v]) => t + (E.tiers.find((x) => x.id === k)?.apparente ? v : 0), 0);
+    return { date: au, profil: E.institution.profil, ...calculerNormes(E.institution.profil, s, resultat + anterieurs, connexes, produitsN1, positions, encours, apparentes,
+      coursDe("USD", au), p.tresorerieAssuree === true) };
+  },
+};
+
 const etatsCompta = {
   /** S115 : critères de « Journal comptables » (p. 133) */
   journauxContexte() {
@@ -9811,6 +9890,7 @@ const construireLocale = () => ({
   comptabilisation: asynchrone(comptabilisation, "comptabilisation"),
   etatsCompta: asynchrone(etatsCompta, "etatsCompta"),
   etatsFinanciers: asynchrone(etatsFinanciers, "etatsFinanciers"),
+  normes: asynchrone(normes, "normes"),
   budgets: asynchrone(budgets, "budgets"),
   finPeriode: asynchrone(finPeriode, "finPeriode"),
   operationsCompta: asynchrone(operationsCompta, "operationsCompta"),

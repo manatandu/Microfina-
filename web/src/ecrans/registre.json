@@ -1224,6 +1224,15 @@
   "chemin": "/comptabilite/s123"
  },
  {
+  "id": "SN01",
+  "nom": "Normes prudentielles",
+  "acces": "Comptabilité > Indicateurs > Normes prudentielles",
+  "but": "Calculer à une date, sur la balance, les normes prudentielles et dire si elles sont respectées (confrontation du 21/11/2026, A2, B5, B6 ; Instr. BCC 002 ; loi 002/2002, art. 59)",
+  "module": "comptabilite",
+  "priorite": "must",
+  "chemin": "/comptabilite/sn01"
+ },
+ {
   "id": "SF01",
   "nom": "Retenues à reverser",
   "acces": "Comptabilité > Retenues à reverser",

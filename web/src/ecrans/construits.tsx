@@ -37,6 +37,7 @@ const FICHIERS: (() => Promise<unknown>)[] = [
   () => import("./Plaintes"),
   () => import("./ComptesInactifs"),
   () => import("./RegistreMembres"),
+  () => import("./NormesPrudentielles"),
   () => import("./ConditionsBanque"),
   () => import("./RetenuesReverser"),
   () => import("./JournalSecurite"),
@@ -136,6 +137,7 @@ const Rapprochement = paresseux(() => import("./ControlesCompta"), "Rapprochemen
 const Tresorerie = paresseux(() => import("./ControlesCompta"), "Tresorerie");
 const EtatsFinanciers = paresseux(() => import("./EtatsFinanciers"), "EtatsFinanciers");
 const IndicateursFinanciers = paresseux(() => import("./EtatsFinanciers"), "IndicateursFinanciers");
+const NormesPrudentielles = paresseux(() => import("./NormesPrudentielles"), "default");
 const Financement = paresseux(() => import("./Financement"), "default");
 const ConsultationBudget = paresseux(() => import("./Budgets"), "ConsultationBudget");
 const NouveauBudget = paresseux(() => import("./Budgets"), "NouveauBudget");
@@ -399,6 +401,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S119: Lettrage,
   S122: EtatsFinanciers,
   S123: IndicateursFinanciers,
+  SN01: NormesPrudentielles,
   S124: NouveauBudget,
   S125: ConsultationBudget,
   S126: Financement,
