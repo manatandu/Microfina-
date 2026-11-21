@@ -586,6 +586,7 @@ def vue_tiers(t: dict) -> dict:
             "controleEffectifs": [{"nature": r["nature"] or "", "part": str(r["part"]).replace(".", ",") if r["part"] is not None else ""} for r in effectifs],
             "objetRelation": t.get("objet_relation") or "", "origineFonds": t.get("origine_fonds") or "",   # A8
             "habilitationReference": t.get("habilitation_reference") or "",   # A7
+            "refusMotif": t.get("refus_motif") or "", "refuseLe": iso(t.get("refuse_le")),   # A5
             "decesLe": iso(t.get("deces_le")), "decesReference": t.get("deces_reference") or "",   # A16
             "intitule": t["intitule"] or "", "dateVisa": iso(t["date_visa"]), "admissionLe": iso(t.get("admission_le")), "admissionReference": t.get("admission_reference") or "", "emancipationReference": t.get("emancipation_reference") or "", "representantLegal": t.get("representant_legal") or "", "auxiliaire": bool(t.get("auxiliaire")), "creeLe": t["cree_le"].date().isoformat(), "motifDepart": t["motif_depart"] or "", "resilieLe": iso(t["resilie_le"]),
             "sensibilisateurId": t["sensibilisateur_id"], "commercialId": t["commercial_id"],
@@ -1145,6 +1146,26 @@ MAJORITE = 18     # Code de la famille, art. 219
 def age_au(naissance: date, jour: date) -> int:
     """Âge en années accomplies au jour donné"""
     return jour.year - naissance.year - ((jour.month, jour.day) < (naissance.month, naissance.day))
+
+
+def refuser_tiers(u: dict, tid: int, d: dict | None = None) -> dict:
+    """A5 : refus de la demande d'ouverture, motivé et gardé (loi 22/069, titre III, chap. Ier). Quatre yeux, comme le visa."""
+    exiger(u, "chef_agence")
+    d = d or {}
+    t = une("select * from tiers where id = %s and institution_id = %s for update", (tid, u["institution_id"]))
+    if not t:
+        raise ErreurMetier("Client introuvable.")
+    if t["statut"] != "a_viser":
+        raise ErreurMetier("Seule une demande en attente de visa se refuse.")
+    if t["cree_par"] == u["id"]:
+        raise ErreurMetier("Quatre yeux : le refus vient d'une autre personne que celle qui a enrôlé.")
+    motif = str(d.get("motif") or "").strip()
+    if not motif:
+        raise ErreurMetier("À remplir : motif du refus (loi 22/069, titre III, chap. Ier : un refus se motive).")
+    j = journee_courante(u)
+    executer("update tiers set statut = 'refuse', refus_motif = %s, refuse_le = %s, refuse_par = %s where id = %s",
+             (motif, j["date"] if j else date.today().isoformat(), u["id"], tid))
+    return lire_tiers(tid)
 
 
 def viser_tiers(u: dict, tid: int, d: dict | None = None) -> dict:

@@ -80,7 +80,8 @@ export interface Tiers {
   type: "physique" | "morale" | "groupe";
   apparente?: "actionnaire" | "administrateur" | "dirigeant" | "personnel" | "famille" | "societe_liee" | "contrat" | null;   // registre CR-3
   numero: string;
-  statut: "prospect" | "a_viser" | "actif" | "modifie_a_revalider" | "resilie";
+  statut: "prospect" | "a_viser" | "actif" | "modifie_a_revalider" | "resilie" | "refuse";   // refuse : A5, refus motivé
+  refusMotif?: string; refuseLe?: string;
   nom: string;
   postnom: string;
   prenom: string;

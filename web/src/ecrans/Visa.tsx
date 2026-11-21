@@ -21,6 +21,7 @@ export function VisaClient() {
   const [admission, setAdmission] = useState({ le: "", reference: "" });   // écart E05
   const [mineur, setMineur] = useState({ emancipationReference: "", representantLegal: "" });   // écart E18
   const [auxiliaire, setAuxiliaire] = useState(false);   // écart E20
+  const [refus, setRefus] = useState<string | null>(null);   // A5
   const [recherche, setRecherche] = useState(false);
   const [contrat, setContrat] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
@@ -86,6 +87,19 @@ export function VisaClient() {
               <Champ libelle="Émancipation : référence de la décision du Tribunal pour enfants">{(p) => <input {...p} className="saisie code" value={mineur.emancipationReference} onChange={(e) => setMineur({ ...mineur, emancipationReference: e.target.value })} />}</Champ>
             </fieldset>}
             {t && vise && (t.representantLegal || t.emancipationReference) && <p className="aide">{t.emancipationReference ? `Émancipé : ${t.emancipationReference}` : `Représentant légal : ${t.representantLegal}`}</p>}
+            {/* A15 : l'adhésion se fixe au plus tard trois mois après la demande (AUSCOOP, art. 10, al. 2) */}
+            {t && !vise && aDesParts(ctx.institution) && t.dateDemande && (dateVisa || new Date().toISOString().slice(0, 10)) > plusTroisMois(t.dateDemande) && <p className="aide" role="status">Demande du {fr(t.dateDemande)} : plus de trois mois. L'adhésion se fixe au plus tard trois mois après la demande (AUSCOOP, art. 10, al. 2).</p>}
+            {refus !== null && <fieldset className="pile cadre-champs">
+              <legend>Refus de la demande</legend>
+              <Champ libelle="Motif du refus : *">{(p) => <input {...p} className="saisie" value={refus} onChange={(e) => setRefus(e.target.value)} />}</Champ>
+              <div className="actions-onglets">
+                <button className="bouton" type="button" onClick={() => t && setBoite({ type: "confirmation", message: "Voulez-vous vraiment refuser cette demande ?", oui: async () => {
+                  try { setT(await api.tiers.refuser(t.id, { motif: refus })); setRefus(null); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+                  catch (x) { setBoite({ type: "erreur", message: message(x) }); } } })}>Confirmer le refus</button>
+                <button className="bouton secondaire" type="button" onClick={() => setRefus(null)}>Annuler</button>
+              </div>
+            </fieldset>}
+            {t?.statut === "refuse" && <p className="aide" role="status">Demande refusée le {fr(t.refuseLe ?? "")} : {t.refusMotif}</p>}
             {t && !vise && manquantes.length > 0 && <p className="aide" role="status">Pas encore déposé : {manquantes.join(", ")} (Client &gt; Photos et signatures ; Instr. BCC 15, art. 12 et 29).</p>}
           </fieldset>
           <fieldset className="pile cadre-champs">
@@ -103,6 +117,8 @@ export function VisaClient() {
         </div>
         <div className="actions-onglets">
           <button className="bouton" type="button" disabled={vise} onClick={viser}>Viser</button>
+          {/* A5 (confrontation du 21/11/2026) : un refus se motive et se garde (loi 22/069, titre III, chap. Ier) */}
+          <button className="bouton secondaire" type="button" disabled={!t || t.statut !== "a_viser"} onClick={() => setRefus("")}>Refuser</button>
           <button className="bouton secondaire" type="button" disabled={!vise} onClick={() => setContrat(true)}>Imprimer Contrat</button>
           <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
         </div>
@@ -650,6 +666,13 @@ function Capture({ ouverte, fermer, prise }: { ouverte: boolean; fermer: () => v
 }
 
 /** S49 : Client > Gestion des photos et signatures (manuel Microfina++, p. 58) */
+/** Date de la demande plus trois mois (AUSCOOP, art. 10, al. 2), au format AAAA-MM-JJ */
+function plusTroisMois(d: string) {
+  const [a, m, j] = d.split("-").map(Number) as [number, number, number];
+  const x = new Date(Date.UTC(a, m - 1 + 3, 1)), fin = new Date(Date.UTC(x.getUTCFullYear(), x.getUTCMonth() + 1, 0)).getUTCDate();
+  return `${x.getUTCFullYear()}-${String(x.getUTCMonth() + 1).padStart(2, "0")}-${String(Math.min(j, fin)).padStart(2, "0")}`;
+}
+
 export function PhotosSignatures() {
   const [t, setT] = useState<Tiers | null>(null);
   const [photo, setPhoto] = useState<string | null>(null);

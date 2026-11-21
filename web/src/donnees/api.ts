@@ -876,6 +876,18 @@ const tiers = {
   },
   aViser: () => E.tiers.filter((t) => t.statut === "a_viser"),
   /** S40 : visa du client (p. 52). Admission du membre : loi 002/2002, art. 22, 6°. Contrôles identiques côté serveur (services.viser_tiers). */
+  /** A5 : refus de la demande, motivé et gardé (loi 22/069, titre III, chap. Ier). Comme le serveur (refuser_tiers). */
+  refuser(id: number, d: { motif?: string }) {
+    const u = exiger("chef_agence");
+    const t = E.tiers.find((x) => x.id === id);
+    if (!t) throw new ErreurMetier("Client introuvable.");
+    if (t.statut !== "a_viser") throw new ErreurMetier("Seule une demande en attente de visa se refuse.");
+    if (t.creePar === u.id) throw new ErreurMetier("Quatre yeux : le refus vient d'une autre personne que celle qui a enrôlé.");
+    const motif = (d.motif ?? "").trim();
+    if (!motif) throw new ErreurMetier("À remplir : motif du refus (loi 22/069, titre III, chap. Ier : un refus se motive).");
+    const j = journees.courante();
+    Object.assign(t, { statut: "refuse", refusMotif: motif, refuseLe: j?.date ?? new Date().toISOString().slice(0, 10) }); enregistrer(); return t;
+  },
   viser(id: number, v: Visa = {}) {
     const u = exiger("chef_agence");
     const t = E.tiers.find((x) => x.id === id);

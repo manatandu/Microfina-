@@ -288,6 +288,15 @@ def test_enrolement(clients, journee):
         ("a_viser", "EAV-USD", 2000, False, [T("0412-000318")], True, False)
 
 
+def test_refus_client(clients, journee):
+    """A5 : refus motivé et gardé (loi 22/069, titre III, chap. Ier)"""
+    t = clients["agent"].post("/api/tiers", {**FICHE, "nom": "Refusé", "pieceType": "Passeport", "pieceNumero": "RF1"}, **H).json()
+    assert "motif" in clients["chef"].post(f"/api/tiers/{t['id']}/refus", {}, **H).json()["message"]
+    r = clients["chef"].post(f"/api/tiers/{t['id']}/refus", {"motif": "Lien commun non partagé (loi 002/2002, art. 22, 1°)"}, **H).json()
+    assert (r["statut"], r["refusMotif"]) == ("refuse", "Lien commun non partagé (loi 002/2002, art. 22, 1°)")
+    assert "pas en attente" in clients["chef"].post(f"/api/tiers/{t['id']}/visa", {}, **H).json()["message"]
+
+
 def test_piece_admise(clients, journee):
     r = clients["agent"].post("/api/tiers", {**FICHE, "nom": "X", "pieceType": "Carte de membre", "pieceNumero": "1"}, **H)
     assert r.status_code == 422 and "art. 14" in r.json()["message"]

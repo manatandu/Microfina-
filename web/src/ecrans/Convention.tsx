@@ -22,6 +22,9 @@ export function ConventionCompte({ c }: { c: DonneesConvention }) {
     `${e.nom} garde le secret sur le compte et préserve la confidentialité des données personnelles de ${qui} (loi n° 002/2002, art. 79 ; loi n° 11/020, art. 60).`,
     `Toute réclamation se dépose à une agence ou au siège ; elle reçoit un numéro de référence et une réponse dans 45 jours calendaires au plus (Instruction BCC n° 39, art. 5 et 7).`,
     `Le titulaire signale sans délai tout changement de son identité, de son adresse ou de ses mandataires (Instruction BCC n° 15, art. 51).`,
+    // E9 (confrontation du 21/11/2026) : l'engagement du membre à respecter les statuts et règlements (loi 002/2002, art. 22, 4°) ; l'acte de la coopérative
+    // mentionne son acceptation des dispositions légales, réglementaires et statutaires (AUSCOOP, art. 10, al. 3)
+    ...(c.coopec ? [`Le membre déclare accepter les dispositions légales, réglementaires et statutaires qui régissent ${e.nom} et s'engage à en respecter les statuts et les règlements (loi n° 002/2002, art. 22, 4° ; AUSCOOP, art. 10).`] : []),
   ];
   return (
     <article className="releve-std contrat-dat a-imprimer" aria-label="Convention de compte">

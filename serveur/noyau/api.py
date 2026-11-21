@@ -289,6 +289,11 @@ def tiers_creer(request, corps: dict = Body(...)):
     return s.creer_tiers(u(request), corps)
 
 
+@api.post("/tiers/{tid}/refus")
+def tiers_refus(request, tid: int, corps: dict = Body(...)):
+    return s.refuser_tiers(u(request), tid, corps)
+
+
 @api.post("/tiers/{tid}/visa")
 def tiers_viser(request, tid: int, corps: dict | None = Body(None)):
     return s.viser_tiers(u(request), tid, corps)
