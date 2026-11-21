@@ -3350,7 +3350,9 @@ const miseEnPlace = {
     let assureur: number | null = d.assureurId ?? null;
     if (p.typeAssuranceId) { if (!stockCredit("assureurs").some((y) => y.id === assureur && Number(y.typeAssuranceId) === Number(p.typeAssuranceId))) throw new ErreurMetier("À remplir : Assureur (de l'assurance du produit)."); }
     else assureur = null;
-    if (!stockCredit("objets").some((o) => o.id === d.objetId && o.actif !== false)) throw new ErreurMetier("À remplir : Objet de crédit.");
+    const objet = stockCredit("objets").find((o) => o.id === d.objetId && o.actif !== false);
+    if (!objet) throw new ErreurMetier("À remplir : Objet de crédit.");
+    if (objet.souscriptionParts === true) throw new ErreurMetier("Objet interdit : pas de crédit pour souscrire ou acquérir des parts ou des actions de l'institution (loi 22/069, titre II, chap. II, section 4).");   // A6
     if (!stockCredit("zones").some((z) => z.id === d.zoneId && z.actif !== false)) throw new ErreurMetier("À remplir : Zone.");
     if (!E.utilisateurs.some((y) => y.id === d.agentId)) throw new ErreurMetier("À remplir : Agent de crédit.");
     const lb = d.ligneBudgetId ? (E.budget["lignes"] ?? []).find((y) => y.id === d.ligneBudgetId && y.actif) : null;
@@ -8551,7 +8553,9 @@ export const CATALOGUE_CREDIT: FicheBudget[] = [
   { page: "types_objet", menu: "Type Objet", unique: ["libelle"], filtres: true,
     champs: [ch("libelle", "Type Objet:", "Type Objet"), ch("secteurId", "Secteur Activité :", "Secteur Activite", "choix", true, { ref: "secteurs" })] },
   { page: "objets", menu: "Objet Credit", unique: ["libelle"], filtres: true, exporter: true,
-    champs: [ch("libelle", "Objet Credit:", "Objet Credit"), ch("typeObjetId", "Type Objet :", "Type Objet", "choix", true, { ref: "types_objet" })] },
+    champs: [ch("libelle", "Objet Credit:", "Objet Credit"), ch("typeObjetId", "Type Objet :", "Type Objet", "choix", true, { ref: "types_objet" }),
+      // A6 : crédit interdit pour cet objet (loi 22/069, titre II, chap. II, section 4)
+      ch("souscriptionParts", "Souscription de parts ou d'actions de l'institution :", "Souscription de parts", "ouiNon", false, { defaut: false })] },
   { page: "types_produit", menu: "Type produit Credit", exporter: true, filtres: true, champs: [ch("nom", "Nom", "Nom"), ch("code", "ID", "ID")],
     fixe: [["NORMAL", "CNO"], ["BDG", "CBD"], ["DECOUVERT", "CDL"], ["EMPLOYE", "TOP"], ["TONTINE CREDIT SPECIAL", "TOS"]].map(([nom, code]) => ({ nom, code })) },
   { page: "cycles", menu: "Cycle Credit", champs: [ch("code", "Code", "Code"), ch("libelle", "Libellé", "Libellé")] },

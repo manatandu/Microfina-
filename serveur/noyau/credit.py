@@ -23,7 +23,9 @@ CATALOGUE = [
         ch("secteurId", "secteur_id", "Secteur Activité :", "choix", True, "secteurs", colonne="Secteur Activite")]},
     {"page": "objets", "table": "credit_objet", "menu": "Objet Credit", "unique": ["libelle"], "filtres": True, "exporter": True, "champs": [
         ch("libelle", "libelle", "Objet Credit:", colonne="Objet Credit"),
-        ch("typeObjetId", "type_objet_id", "Type Objet :", "choix", True, "types_objet", colonne="Type Objet")]},
+        ch("typeObjetId", "type_objet_id", "Type Objet :", "choix", True, "types_objet", colonne="Type Objet"),
+        # A6 : crédit interdit pour cet objet (loi 22/069, titre II, chap. II, section 4)
+        ch("souscriptionParts", "souscription_parts", "Souscription de parts ou d'actions de l'institution :", "ouiNon", False, colonne="Souscription de parts", defaut=False)]},
     {"page": "types_produit", "menu": "Type produit Credit", "exporter": True, "filtres": True, "champs": [
         ch("nom", "nom", "Nom", colonne="Nom"), ch("code", "code", "ID", colonne="ID")],
      "fixe": [{"nom": n, "code": c} for n, c in (("NORMAL", "CNO"), ("BDG", "CBD"), ("DECOUVERT", "CDL"), ("EMPLOYE", "TOP"), ("TONTINE CREDIT SPECIAL", "TOS"))]},

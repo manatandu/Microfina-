@@ -89,8 +89,11 @@ def mettre_en_place(u, did: int, d) -> dict:
     else:
         assureur = None
     objet = entier_ou_rien(d, "objetId")
-    if not une("select 1 from credit_objet where id = %s and institution_id = %s and actif", (objet, u["institution_id"])):
+    o = une("select souscription_parts from credit_objet where id = %s and institution_id = %s and actif", (objet, u["institution_id"]))
+    if not o:
         raise ErreurMetier("À remplir : Objet de crédit.")
+    if o["souscription_parts"]:   # A6
+        raise ErreurMetier("Objet interdit : pas de crédit pour souscrire ou acquérir des parts ou des actions de l'institution (loi 22/069, titre II, chap. II, section 4).")
     zone = entier_ou_rien(d, "zoneId")
     if not une("select 1 from zone where id = %s and institution_id = %s and actif", (zone, u["institution_id"])):
         raise ErreurMetier("À remplir : Zone.")
