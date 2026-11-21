@@ -260,10 +260,10 @@ def enregistrer(u, c: dict, d: date, montant: int, rep: dict, contrepartie: dict
     eid = poster(u, journal=journal, journee_id=journee_courante(u)["id"], libelle=(extra or {}).get("libelle") or f"Remboursement du crédit {c['numero']}", piece=nouvelle_piece(u, journal, d),
                  evenement="remboursement_credit", cle=cle, valide_par=u["id"], lignes_ecr=l)
     rep_ = {k: r[k] for k in CLES + ("capitalAnticipe",)}
-    rid = valeur("""insert into remboursement (credit_id, ecriture_id, date_reglement, montant, repartition, modifie, mandataire, mode, compte_bancaire_id, saisi_par)
-                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
+    rid = valeur("""insert into remboursement (credit_id, ecriture_id, date_reglement, montant, repartition, modifie, mandataire, mode, compte_bancaire_id, saisi_par,
+                                                ordre_client) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
                  (c["id"], eid, d, montant, json.dumps(rep_), r["modifie"], mandataire, (extra or {}).get("mode", "caisse"),
-                  (extra or {}).get("compteBancaireId"), u["id"]))
+                  (extra or {}).get("compteBancaireId"), u["id"], (extra or {}).get("ordreClient")))
     if r["capitalAnticipe"]:
         nouvelles = anticipation(c, s, r["capitalAnticipe"])[1]
         avant = lignes("select rang, capital, interet from echeance where credit_id = %s and rang = any(%s) order by rang", (c["id"], [e["rang"] for e in nouvelles]))
@@ -376,12 +376,18 @@ def rembourser_epargne(u, cid: int, p) -> dict:
         raise ErreurMetier("À remplir : Compte Client.")
     if k["devise"] != c["devise"].strip():
         raise ErreurMetier("Le compte du client n'est pas dans la devise du crédit.")
+    # T1 : pas de compensation contre la restitution d'un dépôt (Code civil, livre III, art. 185, 2°) ; le disponible n'est pas nanti (loi 11/020, art. 48) :
+    # le prélèvement se fait sur ordre du client, dont la référence est gardée
+    ordre = (p or {}).get("ordreClient").strip() if isinstance((p or {}).get("ordreClient"), str) else ""
+    if not ordre:
+        raise ErreurMetier("À remplir : Ordre du client (Code civil, livre III, art. 185, 2° : pas de prélèvement sur un dépôt sans l'ordre du client).")
     m = (p or {}).get("montant")
     if isinstance(m, int) and not isinstance(m, bool) and m > k["disponible"]:
         raise ErreurMetier("Montant à payer : plus que le solde disponible du compte.")
     d = date_reglement(u, (p or {}).get("dateReglement"))
     _, rid = enregistrer(u, c, d, m, (p or {}).get("repartition"), {"compte": k["pcci"], "contrat": f"depot:{k['id']}"}, "OD", str(uuid.uuid4()), mand,
-                         {"mode": "epargne", "libelle": f"Remboursement du crédit {c['numero']} par prélèvement sur le compte {k['numero']}"})
+                         {"mode": "epargne", "libelle": f"Remboursement du crédit {c['numero']} par prélèvement sur le compte {k['numero']}",
+                          "ordreClient": ordre})
     return remboursement(u, rid)
 
 
@@ -389,7 +395,8 @@ def remboursement(u, rid: int) -> dict:
     r = une("""select r.*, pc.numero as piece from remboursement r join ecriture e on e.id = r.ecriture_id join piece pc on pc.id = e.piece_id join credit c on c.id = r.credit_id
                where r.id = %s and c.institution_id = %s""", (rid, u["institution_id"]))
     return {"id": r["id"], "creditId": r["credit_id"], "piece": r["piece"], "date": r["date_reglement"].isoformat(), "montant": r["montant"],
-            "repartition": json_lu(r["repartition"]), "modifie": r["modifie"], "mandataire": r["mandataire"] or "", "mode": r["mode"]}
+            "repartition": json_lu(r["repartition"]), "modifie": r["modifie"], "mandataire": r["mandataire"] or "", "mode": r["mode"],
+            "ordreClient": r.get("ordre_client") or ""}
 
 
 def situation(u, cid: int) -> dict:

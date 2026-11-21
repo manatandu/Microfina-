@@ -323,6 +323,7 @@ export function RemboursementPrelevement() {
   const [date, setDate] = useState("");
   const e = useRemboursement(date || undefined);
   const [compte, setCompte] = useState("");
+  const [ordre, setOrdre] = useState("");
   const [onglet, setOnglet] = useState<"detail" | "budget">("detail");
   const [fiche, setFiche] = useState<"" | "situation" | "plan" | "reel" | "memo" | "recherche" | "avis">("");
   const [fait, setFait] = useState<Awaited<ReturnType<typeof api.remboursementsCredit.rembourserEpargne>> | null>(null);
@@ -332,13 +333,13 @@ export function RemboursementPrelevement() {
   const d = e.donnees?.d ?? null, dv = (d?.devise ?? "CDF") as Devise, fige = !!fait;
   const liste = (comptes ?? []).filter((c) => !d || c.devise === d.devise);
   const k = liste.find((c) => String(c.id) === compte) ?? null;
-  const effacer = () => { e.effacer(); setCompte(""); setFait(null); setDate(""); };
+  const effacer = () => { e.effacer(); setCompte(""); setOrdre(""); setFait(null); setDate(""); };
   function enregistrer() {
-    const manque = !d ? "N° du Client" : !k ? "Compte Client" : !e.m ? "Montant à payer" : !e.mandataire.trim() ? "Mandataire" : "";
+    const manque = !d ? "N° du Client" : !k ? "Compte Client" : !ordre.trim() ? "Ordre du client" : !e.m ? "Montant à payer" : !e.mandataire.trim() ? "Mandataire" : "";
     if (manque) { setBoite({ type: "erreur", message: `À remplir : ${manque}.` }); return; }
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try {
-        const x = await api.remboursementsCredit.rembourserEpargne(d!.id, { mandataire: e.mandataire, compteId: k!.id, montant: e.m!, dateReglement: date || undefined, repartition: e.modifie });
+        const x = await api.remboursementsCredit.rembourserEpargne(d!.id, { mandataire: e.mandataire, compteId: k!.id, montant: e.m!, ordreClient: ordre, dateReglement: date || undefined, repartition: e.modifie });
         setFait(x); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" });
       } catch (y) { setBoite({ type: "erreur", message: message(y) }); }
     } });
@@ -354,6 +355,7 @@ export function RemboursementPrelevement() {
             <Champ libelle="Compte Client:">{(p) => <select {...p} className="saisie code" disabled={fige} value={compte} onChange={(x) => setCompte(x.target.value)}><option value=""></option>
               {liste.map((c) => <option key={c.id} value={c.id}>{`${c.numero} ${c.intitule} (${c.devise})`}</option>)}</select>}</Champ>
             <Champ libelle="Solde:">{(p) => <Lecture {...p} value={k ? montant(k.disponible, k.devise as Devise) : ""} />}</Champ>
+            <Champ libelle="Ordre du client : *">{(p) => <input {...p} className="saisie" autoComplete="off" readOnly={fige} value={ordre} onChange={(x) => setOrdre(x.target.value)} />}</Champ>
           </InfosClient>
           <InfosCredit e={e} fige={fige} banque />
         </div>
@@ -378,7 +380,8 @@ export function RemboursementPrelevement() {
         </div>
         <Textes sources={["Manuel Microfina++, p. 124 et 125 : infos client (compte client, solde, mandataire), infos crédit, répartition et détail crédit ; capture",
           "Manuel Microfina++, p. 157 : « Remboursement de crédit par prélèvement sur compte épargne » ; Situation, Plan, Réel, Memo, Imprimer, Enregistrer ; capture",
-          "Registre S106-1 à S106-4 : compte du client dans la devise du crédit, dans la limite du disponible ; mêmes règles de répartition que S76 (CR-7, CR-20)"]} />
+          "Registre S106-1 à S106-4 : compte du client dans la devise du crédit, dans la limite du disponible ; mêmes règles de répartition que S76 (CR-7, CR-20)",
+          "Code civil, livre III, art. 185, 2° ; loi 11/020, art. 48 : pas de compensation contre un dépôt non nanti, le prélèvement se fait sur ordre du client (registre T71)"]} />
       </section>
       <FenetresCredit cid={d?.id ?? null} devise={dv} ouverte={(["situation", "plan", "reel", "memo"] as const).find((x) => x === fiche) ?? ""} fermer={() => setFiche("")} />
       <Fiche titre="Remboursement par prélèvement sur compte" ouverte={fiche === "avis"} fermer={() => setFiche("")}>
@@ -388,6 +391,7 @@ export function RemboursementPrelevement() {
           <tr><th scope="row">Client</th><td>{e.t?.numero} {d.client}</td></tr>
           <tr><th scope="row">Crédit</th><td className="code">{d.numero}</td></tr>
           <tr><th scope="row">Compte Client</th><td className="code">{k?.numero ?? ""}</td></tr>
+          <tr><th scope="row">Ordre du client</th><td>{fait.ordreClient}</td></tr>
           <tr><th scope="row">Mandataire</th><td>{fait.mandataire}</td></tr>
           <tr><th scope="row">Montant</th><td className="chiffres">{montant(fait.montant, dv)}</td></tr>
           {REPARTITION.map(([c, l]) => { const v = (fait.repartition[c] ?? 0) + (c === "penalite" ? fait.repartition.anticipation ?? 0 : 0);

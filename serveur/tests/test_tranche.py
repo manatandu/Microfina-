@@ -1925,8 +1925,9 @@ def test_remboursement_prelevement(clients, journee):
     k = next(x for x in comptes if x["devise"] == "CDF" and x["disponible"] >= 1000000)
     def refus(corps):
         r = compta.post(f"/api/comptabilite/remboursement/{cid}", corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
-    b = {"mandataire": "Moi-même", "compteId": k["id"], "montant": 1000000}
+    b = {"mandataire": "Moi-même", "compteId": k["id"], "montant": 1000000, "ordreClient": "Ordre écrit du 14/11/2026"}
     assert "Compte Client" in refus({**b, "compteId": None})
+    assert "Ordre du client" in refus({**b, "ordreClient": " "})   # T1 : Code civil, livre III, art. 185, 2°
     assert "Mandataire" in refus({**b, "mandataire": " "})
     assert "solde disponible" in refus({**b, "montant": k["disponible"] + 100})
     assert "pas après" in refus({**b, "dateReglement": "2026-11-06"})
@@ -1935,7 +1936,7 @@ def test_remboursement_prelevement(clients, journee):
         assert "devise du crédit" in refus({**b, "compteId": usd["id"]})
     r = compta.post(f"/api/comptabilite/remboursement/{cid}", b, **H)
     assert r.status_code == 200, r.content
-    assert (r.json()["mode"], "OD" in r.json()["piece"], r.json()["montant"]) == ("epargne", True, 1000000)
+    assert (r.json()["mode"], "OD" in r.json()["piece"], r.json()["montant"], r.json()["ordreClient"]) == ("epargne", True, 1000000, "Ordre écrit du 14/11/2026")
     apres = next(x for x in compta.get(f"/api/credit/remboursement/comptes/{tid}", **H).json() if x["id"] == k["id"])
     assert k["solde"] - apres["solde"] == 1000000
     assert balance_equilibree(compta)
@@ -4492,7 +4493,7 @@ def test_annulation_reglement_credit(clients, journee):
     k = next(x for x in compta.get(f"/api/credit/remboursement/comptes/{tid}", **H).json() if x["devise"] == "CDF" and x["disponible"] >= 1000000)
     echeances = lambda: lignes_bd("select rang, capital, interet from echeance where credit_id = %s order by rang", (cid,))
     ech0 = echeances()
-    compta.post(f"/api/comptabilite/remboursement/{cid}", {"mandataire": "Moi-même", "compteId": k["id"], "montant": 1000000}, **H)
+    compta.post(f"/api/comptabilite/remboursement/{cid}", {"mandataire": "Moi-même", "compteId": k["id"], "montant": 1000000, "ordreClient": "Ordre écrit"}, **H)
     assert echeances() != ech0                                                                       # remboursement anticipé : l'échéancier est recalculé
     avant_cap = ident("select coalesce(sum(case sens when 'D' then montant_devise else -montant_devise end), 0) from ligne_ecriture where contrat_ref = %s", (f"credit:{cid}",))
     A = "/api/comptabilite/annulation-reglement"

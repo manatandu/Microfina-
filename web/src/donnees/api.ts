@@ -4339,7 +4339,7 @@ function compteAppoint(c: CreditPret) {
   return x;
 }
 function enregistrerRemboursement(c: CreditPret, d: string, montant: unknown, rep: Record<string, number> | null | undefined, contrepartie: { compte: string; contrat?: string },
-  journal: "CA" | "OD", u: number, mandataire: string, extra: { mode: RemboursementCredit["mode"]; compteBancaireId?: number; appoint?: [number, number]; libelle?: string }) {
+  journal: "CA" | "OD", u: number, mandataire: string, extra: { mode: RemboursementCredit["mode"]; compteBancaireId?: number; appoint?: [number, number]; libelle?: string; ordreClient?: string }) {
   const s = etatCredit(c, d);
   if (s.remboursements.length && d < s.remboursements[s.remboursements.length - 1]!.date) throw new ErreurMetier("Date règlement : pas avant le dernier remboursement.");
   const { r, modifie } = controlerRepartition(c, s, montant, rep);
@@ -4357,7 +4357,7 @@ function enregistrerRemboursement(c: CreditPret, d: string, montant: unknown, re
   const e = poster({ journal, journeeId: jourDeblocage().id, libelle: extra.libelle ?? `Remboursement du crédit ${c.numero}`, piece: piece(journal), saisiPar: u, validePar: u, lignes: l });
   const repartition = Object.fromEntries([...CLES_REMB, "capitalAnticipe"].map((k) => [k, r[k] ?? 0]));
   const rb: RemboursementCredit = { id: prochain(E.remboursementsCredit), creditId: c.id, ecritureId: e.id, operationId: null, date: d, montant: m, repartition,
-    modifie, mandataire, mode: extra.mode, compteBancaireId: extra.compteBancaireId ?? null, saisiPar: u };
+    modifie, mandataire, mode: extra.mode, compteBancaireId: extra.compteBancaireId ?? null, saisiPar: u, ...(extra.ordreClient ? { ordreClient: extra.ordreClient } : {}) };
   E.remboursementsCredit.push(rb);
   if (r.capitalAnticipe) { const nouvelles = anticipationCredit(c, s, r.capitalAnticipe!)[1];
     rb.echeancesAvant = nouvelles.map((x) => { const y = c.echeancier.find((z) => z.rang === x.rang)!; return { rang: y.rang, capital: y.capital, interet: y.interet }; });   // pour une annulation (S142)
@@ -4370,7 +4370,7 @@ function enregistrerRemboursement(c: CreditPret, d: string, montant: unknown, re
   return { e, rb };
 }
 const vueRemboursement = (r: RemboursementCredit) => ({ id: r.id, creditId: r.creditId, piece: E.ecritures.find((e) => e.id === r.ecritureId)?.piece ?? "", date: r.date,
-  montant: r.montant, repartition: r.repartition, modifie: r.modifie, mandataire: r.mandataire, mode: r.mode });
+  montant: r.montant, repartition: r.repartition, modifie: r.modifie, mandataire: r.mandataire, mode: r.mode, ordreClient: r.ordreClient ?? "" });
 const remboursementsCredit = {
   creditsDuClient(tid: number) {
     lectureAdmin(["S76", "S55", "S106"]);
@@ -4442,16 +4442,19 @@ const remboursementsCredit = {
       return { id: k.id, numero: k.numero, intitule: k.intitule, devise: k.devise as string, solde, disponible: solde - bloqueDe(k, solde) - sortiesEnAttente(k) }; });
   },
   /** S106 : Comptabilité > Remboursement de crédit par prélèvement (p. 125 et 157) : prélevé sur le compte du client, dans la limite du disponible (registre S106-1 à S106-3) */
-  rembourserEpargne(id: number, p: { mandataire: string; compteId: number; montant: number; dateReglement?: string; repartition?: Record<string, number> | null }) {
+  rembourserEpargne(id: number, p: { mandataire: string; compteId: number; montant: number; ordreClient?: string; dateReglement?: string; repartition?: Record<string, number> | null }) {
     const u = exiger();
     const c = creditEnCours(id), mand = mandataireDe(p.mandataire);
     const k = E.comptes.find((x) => x.id === p.compteId && x.tiersId === c.tiersId && !x.closLe);
     if (!k) throw new ErreurMetier("À remplir : Compte Client.");
     if (k.devise !== c.devise) throw new ErreurMetier("Le compte du client n'est pas dans la devise du crédit.");
+    // T1 : pas de prélèvement sur un dépôt sans l'ordre du client (Code civil, livre III, art. 185, 2° ; loi 11/020, art. 48)
+    const ordre = typeof p.ordreClient === "string" ? p.ordreClient.trim() : "";
+    if (!ordre) throw new ErreurMetier("À remplir : Ordre du client (Code civil, livre III, art. 185, 2° : pas de prélèvement sur un dépôt sans l'ordre du client).");
     const solde = soldeContrat(`depot:${k.id}`, k.devise, "C");
     if (Number.isInteger(p.montant) && p.montant > solde - bloqueDe(k, solde) - sortiesEnAttente(k)) throw new ErreurMetier("Montant à payer : plus que le solde disponible du compte.");
     const { rb } = enregistrerRemboursement(c, dateReglement(p.dateReglement), p.montant, p.repartition, { compte: k.pcci, contrat: `depot:${k.id}` }, "OD", u.id, mand,
-      { mode: "epargne", libelle: `Remboursement du crédit ${c.numero} par prélèvement sur le compte ${k.numero}` });
+      { mode: "epargne", libelle: `Remboursement du crédit ${c.numero} par prélèvement sur le compte ${k.numero}`, ordreClient: ordre });
     enregistrer(); return vueRemboursement(rb);
   },
   /** Situation (brouillard des remboursements, capture p. 88), Plan (échéancier en vigueur), Réel (remboursements effectués) */

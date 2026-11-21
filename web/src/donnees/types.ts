@@ -573,6 +573,7 @@ export interface CreditPret {
 export interface RemboursementCredit {
   id: number; creditId: number; ecritureId: number; operationId: number | null; date: string; montant: number; repartition: Record<string, number>;
   modifie: boolean; mandataire: string; mode: "caisse" | "banque" | "compensation" | "epargne"; compteBancaireId: number | null; saisiPar: number;
+  ordreClient?: string;   // T1 : référence de l'ordre du client pour un prélèvement sur son épargne (Code civil, livre III, art. 185, 2°)
   echeancesAvant?: { rang: number; capital: number; interet: number }[];   // échéances d'avant un remboursement anticipé : elles reviennent si le règlement est annulé (S142)
 }
 /** S110 : rapprochement bancaire enregistré (historique S112) ; S119 : lettrage ; S142 : règlement de crédit annulé */

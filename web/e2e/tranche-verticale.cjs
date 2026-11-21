@@ -1140,6 +1140,7 @@ const OUT = process.argv[2];
   await rpv.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rpv.getByRole('row').filter({ hasText: 'Kalala' }).first().dblclick();
   await p.getByLabel('Compte Client:').locator('option').nth(1).waitFor({ state: 'attached' });
   await p.getByLabel('Compte Client:').selectOption({ index: 1 }); await p.getByLabel('Montant à payer: *').fill('1000');
+  await p.getByLabel('Ordre du client : *').fill('Ordre écrit du client, 14/11/2026');
   await etape('15d-remboursement-prelevement');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('button', { name: 'Imprimer' }).click(); await p.getByRole('dialog', { name: 'Remboursement par prélèvement sur compte' }).getByRole('button', { name: 'Fermer' }).click();

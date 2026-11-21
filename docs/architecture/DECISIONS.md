@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**889 décisions.** Solidité : 384 fortes (le manuel ou un texte répond), 427 moyennes (déduites d'un écran voisin ou d'une donnée), 78 faibles (notre choix, faute de mieux). Dans le code : 883 déjà en place, 6 à appliquer.
+**899 décisions.** Solidité : 391 fortes (le manuel ou un texte répond), 430 moyennes (déduites d'un écran voisin ou d'une donnée), 78 faibles (notre choix, faute de mieux). Dans le code : 893 déjà en place, 6 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -73,6 +73,16 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | T58 | Donneur d'ordre et bénéficiaire d'un virement (S53 Virement prélèvement ; S116) | Virement reçu sur le compte d'un client : donneur d'ordre (nom complet, numéro de compte, adresse ou identifiant ou naissance, institution financière). Fonds qui partent vers un compte bancaire : bénéficiaire (nom, numéro de compte). En S116, seulement quand la contrepartie est un compte 56 ; une contrepartie interne (intérêts, commissions) n'en demande pas | Texte réglementaire : Loi 22/068, art. 57, 58 et 61 ; confrontation du 21/11/2026, A12 | forte | en place |
 | T59 | Surveillance étendue et fractionnement (SC01 Opérations atypiques) | La surveillance couvre aussi les crédits (déblocage et remboursements) et les parts sociales ; les écritures d'opérations diverses de l'institution n'y entrent pas. Nouveau critère fixé par l'institution : fractionnement, plusieurs opérations d'un client dans la journée, chacune sous le seuil, dont le total l'atteint | Texte réglementaire : Instr. BCC 15, art. 30, 31 et 36 ; confrontation du 21/11/2026, P7 | moyenne | en place |
 | T60 | Mise en attente d'une opération soupçonnée (SC01 Déclarations de soupçon) | La conformité met en attente les sorties de fonds d'un client (motif du soupçon) ; toute sortie d'un compte de dépôt ou des parts est refusée jusqu'à la déclaration de soupçon, qui libère d'elle-même, ou jusqu'à la levée motivée d'un soupçon écarté. Les entrées de fonds passent. Le client n'en est pas informé | Texte réglementaire : Loi 22/068, art. 92 et 93 ; Instr. BCC 15, art. 36 ; confrontation du 21/11/2026, P9 | forte | en place |
+| T61 | Clause d'acceptation des statuts (COOPEC) (E04 Convention de compte) | Dans une COOPEC, la convention porte une clause : le membre accepte les dispositions légales, réglementaires et statutaires et s'engage à respecter les statuts et règlements | Texte réglementaire : Loi 002/2002, art. 22, 4° ; AUSCOOP, art. 10, al. 3 ; confrontation du 21/11/2026, E9 | forte | en place |
+| T62 | Refus de la demande d'ouverture (S40 Viser un client) | Bouton Refuser sur une demande en attente de visa : motif obligatoire, gardé avec la date et l'auteur ; quatre yeux comme le visa ; le client passe au statut refusé | Texte réglementaire : Loi 22/069, titre III, chap. Ier ; confrontation du 21/11/2026, A5 | moyenne | en place |
+| T63 | Délai de trois mois pour l'adhésion (S40 Viser un client) | Quand la demande d'une institution à parts date de plus de trois mois, le visa le signale (sans bloquer) | Texte réglementaire : AUSCOOP, art. 10, al. 2 ; confrontation du 21/11/2026, A15 | moyenne | en place |
+| T64 | Objet interdit : souscription de parts (S21 Référentiel crédit ; S89 Dossier : mise en place) | Case Oui/Non « Souscription de parts ou d'actions de l'institution » sur l'objet de crédit ; un crédit sur un tel objet est refusé à la mise en place | Texte réglementaire : Loi 22/069, titre II, chap. II, section 4 ; confrontation du 21/11/2026, A6 | forte | en place |
+| T65 | Exclusion d'un membre (S48 Résilier contrat) | La résiliation par exclusion exige la référence et la date de la décision du Conseil d'administration, gardées sur la fiche | Texte réglementaire : Loi 002/2002, art. 25 ; AUSCOOP, art. 13 et 14 ; confrontation du 21/11/2026, P1 | forte | en place |
+| T66 | Pas de frais plus avantageux pour un apparenté (S73 Adhésion) | Pour un dirigeant, un salarié ou une personne liée, un frais d'adhésion inférieur au barème du type de membre est refusé | Texte réglementaire : Loi 002/2002, art. 52 ; confrontation du 21/11/2026, P2 | forte | en place |
+| T67 | Catégorie et qualité de la personne exposée (SC01 Personnes exposées) | La fiche de personne exposée choisit sa catégorie et sa qualité dans la liste de l'article 5 (replica/ppe-qualites.json, lue par le serveur et le navigateur) | Texte réglementaire : Instr. BCC 15, art. 5 ; confrontation du 21/11/2026, P6 | forte | en place |
+| T68 | Report du remboursement des parts à deux ans (E12 Registre des membres) | Sur décision motivée du Conseil d'administration (référence et date), l'échéance de remboursement des parts d'un membre parti passe d'un an à deux ans | Texte réglementaire : AUSCOOP, art. 11, al. 3 et 5 ; confrontation du 21/11/2026, P10 | forte | en place |
+| T69 | Signaux du profil de risque (SC01 Examen renforcé) | Colonne Signaux : courrier domicilié dans une boîte postale ; adresse changée au moins deux fois en douze mois | Texte réglementaire : Instr. BCC 15, art. 39 ; confrontation du 21/11/2026, A10 | moyenne | en place |
+| T70 | Autorisation de la BCC pour une agence ; COOPEC dans sa province (S33 Agence : gestionnaire) | Une nouvelle agence exige la référence et la date de l'autorisation préalable de la BCC ; une COOPEC ne crée ni agence ni guichet hors de la province de son siège | Texte réglementaire : Instr. BCC 41, art. 35 et 66 ; confrontation du 21/11/2026, A3 et B19 | forte | en place |
 
 ## S03 Profils : création et modification
 
@@ -282,6 +292,8 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | S40-1 | Colonne « Nbre » | Quantité du frais : 1, ou le nombre de parts pour la part sociale. Montant = Nbre × valeur — Construit : Nbre = 1 pour chaque frais, y compris la ligne de part (une part au moins à l'adhésion, loi 002/2002, art. 22, 2°) ; le nombre de parts réel se choisit au guichet (S73) | Manuel : Manuel p. 51 ; liste des frais p. 89 | moyenne | en place |
 | S40-2 | Contrat d'adhésion | Document selon T11. Un seul gabarit ; le vocabulaire suit le profil (membre pour une COOPEC, client pour une IMF) — Construit : la demande d'adhésion de la p. 52 reprend la profession, la filiation (Fils de, et de), l'adresse, le téléphone, l'institution et le vocabulaire du profil ; texte à fournir par l'institution | Choix du porteur : T11 ; DESIGN § 2.10 | faible | en place |
+| T62 | Refus de la demande d'ouverture (S40 Viser un client) | Bouton Refuser sur une demande en attente de visa : motif obligatoire, gardé avec la date et l'auteur ; quatre yeux comme le visa ; le client passe au statut refusé | Texte réglementaire : Loi 22/069, titre III, chap. Ier ; confrontation du 21/11/2026, A5 | moyenne | en place |
+| T63 | Délai de trois mois pour l'adhésion (S40 Viser un client) | Quand la demande d'une institution à parts date de plus de trois mois, le visa le signale (sans bloquer) | Texte réglementaire : AUSCOOP, art. 10, al. 2 ; confrontation du 21/11/2026, A15 | moyenne | en place |
 
 ## S41 Modifier frais
 
@@ -363,6 +375,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S73-1 | Adhésion et compte en USD | Frais et parts en CDF. Le premier dépôt se fait dans la devise du compte choisi. Un billetage par devise (T12). Pour un compte en devise : une seule écriture, équilibrée dans chaque devise ; deux mouvements de caisse (l'adhésion en CDF, le premier dépôt en devise) pour que le stock de coupures de chaque devise reste juste ; l'écran montre le total CDF, le total en devise et deux billetages. L'adhésion par banque (S56) reste en CDF : un compte en devise passe par le guichet | Texte réglementaire : T12 ; PCCI § 3.2 | moyenne | en place |
+| T66 | Pas de frais plus avantageux pour un apparenté (S73 Adhésion) | Pour un dirigeant, un salarié ou une personne liée, un frais d'adhésion inférieur au barème du type de membre est refusé | Texte réglementaire : Loi 002/2002, art. 52 ; confrontation du 21/11/2026, P2 | forte | en place |
 
 ## S74 Dépôt et retrait
 
@@ -1023,6 +1036,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | E04-1 | Où et quand | Un bouton par compte dans la liste des comptes du membre (Épargne > Nouveau compte, S63), donc aussi pour le compte ouvert à l'adhésion. Document de l'institution, en deux exemplaires, police 12 | Texte réglementaire : Loi 22/069, titre III, chap. Ier ; Instr. BCC 40, art. 5 et 13 | forte | en place |
 | E04-2 | Clauses | Titulaire, pièce, adresse, compte, produit, devise, agence, date, solde minimum, retrait maximum par jour ; gratuités (Instr. BCC 37, annexe) ; conditions publiées et affichées (Instr. BCC 40, art. 3 et 12) ; secret et données personnelles (loi 002/2002, art. 79 ; loi 11/020, art. 60) ; plaintes (Instr. BCC 39, art. 5 et 7) ; mise à jour du dossier (Instr. BCC 15, art. 51). La loi 22/069 (titre III, chap. Ier) renvoie à une convention-type « fixée par voie d'instruction », sans numéro ; aucune des Instructions BCC disponibles (49 pour les établissements de crédit, 12 pour la microfinance) ne la fixe. Ses clauses s'ajouteront quand le texte sera publié ou fourni | Texte réglementaire : Textes cités | moyenne | en place |
+| T61 | Clause d'acceptation des statuts (COOPEC) (E04 Convention de compte) | Dans une COOPEC, la convention porte une clause : le membre accepte les dispositions légales, réglementaires et statutaires et s'engage à respecter les statuts et règlements | Texte réglementaire : Loi 002/2002, art. 22, 4° ; AUSCOOP, art. 10, al. 3 ; confrontation du 21/11/2026, E9 | forte | en place |
 
 ## E05 Admission par le Conseil d'Administration
 
@@ -1085,6 +1099,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | E12-1 | Où et pour qui | Écran Client > Registre des membres (SC04 : chef d'agence et agent, qui tiennent déjà les rapports clients S51). Réservé aux COOPEC et faîtières ; une IMF reçoit un refus qui cite le texte. Imprimable et exportable | Texte réglementaire : AUSCOOP, art. 9 (registre tenu au siège) ; loi 002/2002, art. 67 et 68 (registres, consultation par les membres) ; loi 11/020, art. 60 (données personnelles : écran à droit) | forte | en place |
 | E12-2 | Ordre et membres inscrits | Tout client visé, y compris ceux partis (date de sortie montrée), par ordre de la date d'admission (décision du Conseil, E05) ou, à défaut, de la date du visa | Texte réglementaire : AUSCOOP, art. 9 (ordre chronologique) et art. 10 (adhésion constatée par l'organe d'administration) ; registre E05-1 | forte | en place |
 | E12-3 | Parts souscrites et libérées | Dans le logiciel, une part s'achète payée (adhésion S73, achat S77) : parts souscrites et parts libérées sont égales, au nombre de parts détenues | Donnée exigée ailleurs : AUSCOOP, art. 9 (deux mentions) ; schéma des parts du logiciel (S73, S77) | moyenne | en place |
+| T68 | Report du remboursement des parts à deux ans (E12 Registre des membres) | Sur décision motivée du Conseil d'administration (référence et date), l'échéance de remboursement des parts d'un membre parti passe d'un an à deux ans | Texte réglementaire : AUSCOOP, art. 11, al. 3 et 5 ; confrontation du 21/11/2026, P10 | forte | en place |
 
 ## E13 Chèques impayés
 
@@ -1451,6 +1466,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | SC01-9 | Personnes apparentées | Onglet « Personnes apparentées » : marquer un client avec son lien (art. 27) ou le retirer, après confirmation ; grille des apparentés | Choix du porteur : CR-3 ; Instr. BCC 002, art. 27 ; Instr. BCC 51 | moyenne | en place |
+| T69 | Signaux du profil de risque (SC01 Examen renforcé) | Colonne Signaux : courrier domicilié dans une boîte postale ; adresse changée au moins deux fois en douze mois | Texte réglementaire : Instr. BCC 15, art. 39 ; confrontation du 21/11/2026, A10 | moyenne | en place |
 
 ## S89 Dossier : mise en place
 

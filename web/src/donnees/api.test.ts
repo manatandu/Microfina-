@@ -2366,8 +2366,9 @@ describe("journée de guichet", () => {
     expect([x.statut, x.compteCredite, x.piece.includes("OD")]).toEqual(["debloque", d.comptePositionnement, true]);
     const k = await compteDe();
     expect(k.solde - avant).toBeGreaterThanOrEqual(d.retenues.net);
-    const p = { mandataire: "Moi-même", compteId: k.id, montant: 1000000 };
+    const p = { mandataire: "Moi-même", compteId: k.id, montant: 1000000, ordreClient: "Ordre écrit du 14/11/2026" };
     await expect(api.remboursementsCredit.rembourserEpargne(cid, { ...p, compteId: 0 })).rejects.toThrow("Compte Client");
+    await expect(api.remboursementsCredit.rembourserEpargne(cid, { ...p, ordreClient: " " })).rejects.toThrow("Ordre du client");
     await expect(api.remboursementsCredit.rembourserEpargne(cid, { ...p, montant: k.disponible + 100 })).rejects.toThrow("solde disponible");
     await expect(api.remboursementsCredit.rembourserEpargne(cid, { ...p, dateReglement: "2026-11-06" })).rejects.toThrow("pas après");
     const r = await api.remboursementsCredit.rembourserEpargne(cid, p);
@@ -3237,7 +3238,7 @@ describe("journée de guichet", () => {
     await connecter("plumbala");
     const tid = _etat().credits.find((x) => x.id === cid)!.tiersId, ech0 = JSON.stringify(_etat().credits.find((x) => x.id === cid)!.echeancier.map((e) => [e.rang, e.capital, e.interet]));
     const k = (await api.remboursementsCredit.comptesClient(tid)).find((x) => x.devise === "CDF" && x.disponible >= 1000000)!;
-    await api.remboursementsCredit.rembourserEpargne(cid, { mandataire: "Moi-même", compteId: k.id, montant: 1000000 });
+    await api.remboursementsCredit.rembourserEpargne(cid, { mandataire: "Moi-même", compteId: k.id, montant: 1000000, ordreClient: "Ordre écrit" });
     expect(JSON.stringify(_etat().credits.find((x) => x.id === cid)!.echeancier.map((e) => [e.rang, e.capital, e.interet])) === ech0).toBe(false);
     const l = await api.controlesCompta.reglementsAnnulables();
     expect(l.map((x) => [x.montant, x.compteClient])).toEqual([[1000000, k.numero]]);

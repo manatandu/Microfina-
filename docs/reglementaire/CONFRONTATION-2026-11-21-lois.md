@@ -353,5 +353,17 @@ Points non vérifiés dans le code :
 - **A12 corrigé** (loi 22/068, art. 57, 58, 61) : donneur d'ordre et bénéficiaire des virements entre institutions (registre T58).
 - **P7 corrigé** (Instr. BCC 15, art. 31 et 36) : surveillance étendue aux crédits et aux parts, critère de fractionnement (registre T59).
 - **P9 corrigé** (loi 22/068, art. 92) : sorties de fonds en attente jusqu'à la déclaration de soupçon (registre T60).
-- Gravité 1 et 2 terminées. Restent la gravité 3 (E9, A2 à A6, A9, A10, A15, P1, P2, P6, P10, T1, T2), dans l'ordre de ce document.
+- Gravité 1 et 2 terminées.
+- **E9 corrigé** (loi 002/2002, art. 22, 4° ; AUSCOOP, art. 10, al. 3) : clause d'acceptation des statuts dans la convention d'une COOPEC (registre T61).
+- **A5 corrigé** (loi 22/069, titre III, chap. Ier) : refus motivé d'une demande d'ouverture, quatre yeux (registre T62).
+- **A15 corrigé** (AUSCOOP, art. 10, al. 2) : le visa signale une demande de plus de trois mois (registre T63).
+- **A6 corrigé** (loi 22/069, titre II, chap. II, section 4) : pas de crédit pour souscrire des parts ou des actions de l'institution (registre T64).
+- **P1 corrigé** (loi 002/2002, art. 25 ; AUSCOOP, art. 13 et 14) : l'exclusion porte la référence et la date de la décision du Conseil (registre T65).
+- **P2 corrigé** (loi 002/2002, art. 52) : pas de frais d'adhésion plus avantageux pour un apparenté (registre T66).
+- **P6 corrigé** (Instr. BCC 15, art. 5) : catégorie et qualité de la personne exposée choisies dans la liste de l'article (registre T67).
+- **P10 corrigé** (AUSCOOP, art. 11, al. 5) : report à deux ans du remboursement des parts sur décision motivée (registre T68).
+- **A10 corrigé** (Instr. BCC 15, art. 39) : boîte postale et changements d'adresse répétés signalés au profil de risque (registre T69).
+- **A3 corrigé, avec B19** (Instr. BCC 41, art. 35 et 66) : autorisation préalable de la BCC pour une agence ; une COOPEC reste dans la province de son siège (registre T70).
+- **T1 tranché par les textes** (Code civil, livre III, art. 185, 2° ; loi 11/020, art. 48) : pas de compensation contre un dépôt non nanti ; le remboursement par prélèvement exige la référence de l'ordre du client, gardée avec le règlement (registre T71).
+- Restent en gravité 3 : A2 (ratios, avec B6), A4 et P3 (nantissement du matériel), A9 (identification électronique), T2 (pénalité sur intérêts échus).
 
