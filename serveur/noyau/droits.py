@@ -68,6 +68,7 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/conformite/atypiques/(criteres|analyses|declarations)", ["SC01"]),
     (r"/conformite/gels(/\d+/(information|levee))?", ["SC01"]),
     (r"/conformite/(listes-gel(/rapprochement)?|correspondances-gel/\d+)", ["SC01"]),
+    (r"/conformite/reporting-mensuel", ["SC01"]),
     (r"/conformite/systematiques/declarations", ["SC01"]),
     (r"/conformite/soupcons(/\d+/suivi)?", ["SC01"]),
     (r"/epargne/inactifs/\d+/lettre", ["SE01"]),

@@ -45,6 +45,9 @@
       ],
       "@demonstration": [
         "../replica/demonstration.json"
+      ],
+      "@reportingLcb": [
+        "../replica/reporting-lcb.json"
       ]
     }
   },

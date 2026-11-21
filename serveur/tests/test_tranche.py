@@ -3109,6 +3109,24 @@ def test_listes_de_gel(clients, journee):
     assert [(x["membre"], x["decisionReference"]) for x in g] == [("0412-000318", "CDi.001")]
 
 
+def test_reporting_lcb_mensuel(clients, journee):
+    """A11 : reporting LCB-FT mensuel à la BCC (Instr. BCC 15, art. 95, b ; annexe DSIF, codes LAB) : cellules calculées, cellules saisies gardées"""
+    chef, caisse = clients["chef"], clients["caisse"]
+    assert caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-01"), "montant": 950000, "coupures": {"100": 95}, "mandataire": ""},
+                       **H).status_code == 200   # 9 500 USD en espèces (au-delà, l'examen renforcé d'abord)
+    r = chef.get("/api/conformite/reporting-mensuel?annee=2026&mois=11", **H).json()
+    t = {x["cle"]: {l["code"]: l for l in x["lignes"]} for x in r["tableaux"]}
+    assert [x["cle"] for x in r["tableaux"]] == ["dispositif", "localisation", "portefeuille", "produits", "canaux"]
+    assert int(t["dispositif"]["LAB6"]["valeur"]) >= 1 and t["dispositif"]["LAB5"]["calcule"]
+    assert int(t["produits"]["LAB10"]["valeur"]) >= 1 and int(t["portefeuille"]["LAB6"]["valeur"]) >= 1
+    assert t["dispositif"]["LAB1"]["rubrique"] and t["dispositif"]["LAB19"]["valeur"] == ""
+    assert "calculée" in chef.post("/api/conformite/reporting-mensuel", {"annee": 2026, "mois": 11, "saisies": {"dispositif:LAB5": "3"}}, **H).json()["message"]
+    r = chef.post("/api/conformite/reporting-mensuel", {"annee": 2026, "mois": 11, "saisies": {"dispositif:LAB19": "4", "canaux:LAB1": "0"}}, **H).json()
+    t = {x["cle"]: {l["code"]: l for l in x["lignes"]} for x in r["tableaux"]}
+    assert (t["dispositif"]["LAB19"]["valeur"], t["canaux"]["LAB1"]["valeur"]) == ("4", "0")
+    assert clients["agent"].post("/api/conformite/reporting-mensuel", {"annee": 2026, "mois": 11, "saisies": {}}, **H).status_code == 403
+
+
 def test_arrondi_des_contre_valeurs(clients, journee):
     """PCCI § 7.1 ; décision du porteur du 21/11/2026 (registre T37) : arrondir chaque ligne en devise peut laisser un centime entre débits et crédits
     en CDF ; il va au compte 474 « Compte d'ajustement », l'écriture n'est plus refusée. Un vrai déséquilibre reste refusé par la base."""

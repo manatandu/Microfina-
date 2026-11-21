@@ -1,0 +1,510 @@
+{
+ "source": "Instr. BCC 15, art. 95, b ; annexe DSIF « Reporting LCB-FT mensuel », p. 128 à 132 (codes LAB)",
+ "tableaux": [
+  {
+   "cle": "dispositif",
+   "titre": "Dispositif de surveillance de lutte contre le blanchiment des capitaux et financement du terrorisme",
+   "lignes": [
+    {
+     "code": "LAB1",
+     "libelle": "Vigilance constante",
+     "rubrique": true
+    },
+    {
+     "code": "LAB2",
+     "libelle": "Nombre d'opérations ne paraissant pas avoir de justification économique (ce mois)",
+     "rubrique": false
+    },
+    {
+     "code": "LAB3",
+     "libelle": "Nombre d'opérations ne paraissant pas avoir d'objet licite (ce mois)",
+     "rubrique": false
+    },
+    {
+     "code": "LAB4",
+     "libelle": "Nombre des opérations inhabituelles ou suspectes (ce mois)",
+     "rubrique": false
+    },
+    {
+     "code": "LAB5",
+     "libelle": "Nombre d'opérations en espèces superieures ou égales à USD 10 000 (ce mois)",
+     "rubrique": false
+    },
+    {
+     "code": "LAB6",
+     "libelle": "Nombre d'opérations en espèces superieures à USD 9 000 et inférieures à USD 10 000 (ce mois)",
+     "rubrique": false
+    },
+    {
+     "code": "LAB7",
+     "libelle": "Nombre de clients ayant un profil de risque élévé",
+     "rubrique": false
+    },
+    {
+     "code": "LAB8",
+     "libelle": "Nombre de clients ayant un profil de risque moyen",
+     "rubrique": false
+    },
+    {
+     "code": "LAB9",
+     "libelle": "Nombre de clients ayant un profil de risque faible",
+     "rubrique": false
+    },
+    {
+     "code": "LAB10",
+     "libelle": "Montant des opérations des clients à risque élévé (ce mois)",
+     "rubrique": false
+    },
+    {
+     "code": "LAB11",
+     "libelle": "Montant des opérations des clients à risque moyen (ce mois)",
+     "rubrique": false
+    },
+    {
+     "code": "LAB12",
+     "libelle": "Montant des opérations des clients à faible risque (ce mois)",
+     "rubrique": false
+    },
+    {
+     "code": "LAB13",
+     "libelle": "Montant total des opérations de la clientèle (ce mois)",
+     "rubrique": false
+    },
+    {
+     "code": "LAB14",
+     "libelle": "Montant des opérations avec les PPE",
+     "rubrique": false
+    },
+    {
+     "code": "LAB15",
+     "libelle": "Nombre de PPE",
+     "rubrique": false
+    },
+    {
+     "code": "LAB16",
+     "libelle": "Déclaration de soupçon",
+     "rubrique": true
+    },
+    {
+     "code": "LAB17",
+     "libelle": "Nombre de soupçons déclarés à la CENAREF (ce mois)",
+     "rubrique": false
+    },
+    {
+     "code": "LAB18",
+     "libelle": "Organisation du dispositif LBC FT",
+     "rubrique": true
+    },
+    {
+     "code": "LAB19",
+     "libelle": "Nombre d'agents ayant suivi une formation en matière de LBC-FT (ce mois)",
+     "rubrique": false
+    },
+    {
+     "code": "LAB20",
+     "libelle": "Nombre total d'agents",
+     "rubrique": false
+    },
+    {
+     "code": "LAB21",
+     "libelle": "Nombre de comptes",
+     "rubrique": false
+    },
+    {
+     "code": "LAB22",
+     "libelle": "Nombre de comptes des non-résidents",
+     "rubrique": false
+    },
+    {
+     "code": "LAB23",
+     "libelle": "Nombre d'opérations avec l'étranger (ce mois)",
+     "rubrique": false
+    },
+    {
+     "code": "LAB24",
+     "libelle": "Montant importations de billets (ce mois)",
+     "rubrique": false
+    }
+   ]
+  },
+  {
+   "cle": "localisation",
+   "titre": "Localisation",
+   "lignes": [
+    {
+     "code": "LAB1",
+     "libelle": "Présence d'entites du groupe d'appartenance de l'entité Congolaise (par exemple : société sœur ou maison mère) dans l'un des pays suivants",
+     "rubrique": true
+    },
+    {
+     "code": "LAB2",
+     "libelle": "a) République du Congo, Rwanda, Soudan du Sud, Tanzanie, Angola, République Centrafricaine, Ouganda, Zambie, Burundi ?",
+     "rubrique": false
+    },
+    {
+     "code": "LAB3",
+     "libelle": "b) liste grise ?",
+     "rubrique": false
+    },
+    {
+     "code": "LAB4",
+     "libelle": "c) liste noire?",
+     "rubrique": false
+    },
+    {
+     "code": "LAB5",
+     "libelle": "d) centres ou terrirtoires offshores?",
+     "rubrique": false
+    },
+    {
+     "code": "LAB6",
+     "libelle": "e) autres pays",
+     "rubrique": false
+    },
+    {
+     "code": "LAB7",
+     "libelle": "Quelle est la répartition du portefeuille de clients suivant leur lieu :",
+     "rubrique": true
+    },
+    {
+     "code": "LAB8",
+     "libelle": "a) nombre total de clients en rdc - A l'exception de ceux qui ont ouvert leurs comptes dans une agence se trouvant dans les provinces suivantes : Nord-Kivu, Sud-Kivu, Ituri, Maniema, Haut-Uele, Bas-Uele (ce mois)",
+     "rubrique": false
+    },
+    {
+     "code": "LAB9",
+     "libelle": "bi) nombre total des clients en RDC qui ont ouvert leur compte se trouvant dans les provinces suivantes : Nord-Kivu (ce mois)",
+     "rubrique": false
+    },
+    {
+     "code": "LAB10",
+     "libelle": "bii) nombre total des clients en RDC qui ont ouvert leur compte se trouvant dans les provinces suivantes : Sud-Kivu (ce mois)",
+     "rubrique": false
+    },
+    {
+     "code": "LAB11",
+     "libelle": "biii) nombre total des clients en RDC qui ont ouvert leur compte se trouvant dans les provinces suivantes : Ituri (ce mois)",
+     "rubrique": false
+    },
+    {
+     "code": "LAB12",
+     "libelle": "biv) nombre total des clients en RDC qui ont ouvert leur compte se trouvant dans les provinces suivantes : Maniema (ce mois)",
+     "rubrique": false
+    },
+    {
+     "code": "LAB13",
+     "libelle": "bv) nombre total des clients en RDC qui ont ouvert leur compte se trouvant dans les provinces suivantes : Haut-Uele (ce mois)",
+     "rubrique": false
+    },
+    {
+     "code": "LAB14",
+     "libelle": "bvi) nombre total des clients en RDC qui ont ouvert leur compte se trouvant dans les provinces suivantes : Bas-Uele (ce mois)",
+     "rubrique": false
+    },
+    {
+     "code": "LAB15",
+     "libelle": "c) nombre de clients au Congo, Rwanda, Soudan du Sud, Tanzanie, Angola, République Centrafricaine, Ouganda, Zambie et Burundi ?",
+     "rubrique": false
+    },
+    {
+     "code": "LAB16",
+     "libelle": "d) nombre de clients dans un pays de la liste grise du Gafi ?",
+     "rubrique": false
+    },
+    {
+     "code": "LAB17",
+     "libelle": "e) nombre de clients dans un pays de la liste noire du Gafi?",
+     "rubrique": false
+    },
+    {
+     "code": "LAB18",
+     "libelle": "f) nombre de clients dans un autre pays",
+     "rubrique": false
+    },
+    {
+     "code": "LAB19",
+     "libelle": "Parmi les operations de transferts entrant, combien ont-elles été exécutées à partir d'un compte ouvert dans l'un des pays suivants :",
+     "rubrique": true
+    },
+    {
+     "code": "LAB20",
+     "libelle": "a) Congo",
+     "rubrique": false
+    },
+    {
+     "code": "LAB21",
+     "libelle": "b) Rwanda",
+     "rubrique": false
+    },
+    {
+     "code": "LAB22",
+     "libelle": "c) Soudan du Sud",
+     "rubrique": false
+    },
+    {
+     "code": "LAB23",
+     "libelle": "d) Tanzanie",
+     "rubrique": false
+    },
+    {
+     "code": "LAB24",
+     "libelle": "e) Soudan",
+     "rubrique": false
+    },
+    {
+     "code": "LAB25",
+     "libelle": "f) liste grise ?",
+     "rubrique": false
+    },
+    {
+     "code": "LAB26",
+     "libelle": "g) liste noire ?",
+     "rubrique": false
+    },
+    {
+     "code": "LAB27",
+     "libelle": "h) autres pays ?",
+     "rubrique": false
+    }
+   ]
+  },
+  {
+   "cle": "portefeuille",
+   "titre": "Portefeuille clientèle",
+   "lignes": [
+    {
+     "code": "LAB1",
+     "libelle": "Indiquer le nombre total de personnes ou entités qui au cours de l'exercice, bien que répondant aux critères définis par la politique d'acceptation de client de votre organisme, ont été refusés pour des raisons liées à la LBC-FT.",
+     "rubrique": false
+    },
+    {
+     "code": "LAB2",
+     "libelle": "Quel est le nombre de PPE",
+     "rubrique": false
+    },
+    {
+     "code": "LAB3",
+     "libelle": "Quel est le nombre de clients travaillant dans le secteur minier",
+     "rubrique": false
+    },
+    {
+     "code": "LAB4",
+     "libelle": "Quel est le nombre de clients non-résidents",
+     "rubrique": false
+    },
+    {
+     "code": "LAB5",
+     "libelle": "Quel est le nombre total de clients selon le statut juridique",
+     "rubrique": true
+    },
+    {
+     "code": "LAB6",
+     "libelle": "a) nombre de personnes physiques ?",
+     "rubrique": false
+    },
+    {
+     "code": "LAB7",
+     "libelle": "b) nombre de personnes morales ?",
+     "rubrique": false
+    },
+    {
+     "code": "LAB8",
+     "libelle": "c) nombre de trusts ?",
+     "rubrique": false
+    },
+    {
+     "code": "LAB9",
+     "libelle": "d) nombre de constructions juridiques ?",
+     "rubrique": false
+    },
+    {
+     "code": "LAB10",
+     "libelle": "e) nombre d'associations ?",
+     "rubrique": false
+    },
+    {
+     "code": "LAB11",
+     "libelle": "Donner la ventilation du portefeuille de vos clients suivant les catégories de risque qui ont été retenues par votre organisme",
+     "rubrique": true
+    },
+    {
+     "code": "LAB12",
+     "libelle": "a) nombre de clients à risque élevé ?",
+     "rubrique": false
+    },
+    {
+     "code": "LAB13",
+     "libelle": "b) nombre de clients à risque moyen ?",
+     "rubrique": false
+    },
+    {
+     "code": "LAB14",
+     "libelle": "c) nombre de clients à risque faible ?",
+     "rubrique": false
+    }
+   ]
+  },
+  {
+   "cle": "produits",
+   "titre": "Produit, service et opérations",
+   "lignes": [
+    {
+     "code": "LAB1",
+     "libelle": "Nombre total d'opérations",
+     "rubrique": false
+    },
+    {
+     "code": "LAB2",
+     "libelle": "Nombre total des garanties bancaires provenant d'une personne installée dans un pays listé ou un paradis fiscal",
+     "rubrique": false
+    },
+    {
+     "code": "LAB3",
+     "libelle": "Nombre total des garanties bancaires",
+     "rubrique": false
+    },
+    {
+     "code": "LAB4",
+     "libelle": "Nombre total des crédits",
+     "rubrique": false
+    },
+    {
+     "code": "LAB5",
+     "libelle": "Nombre total des crédits à la consommation",
+     "rubrique": false
+    },
+    {
+     "code": "LAB6",
+     "libelle": "Nombre total de crédit garanti par un DAT",
+     "rubrique": false
+    },
+    {
+     "code": "LAB7",
+     "libelle": "Nombre d'opérations en espèces (Débit) > 10k USD",
+     "rubrique": false
+    },
+    {
+     "code": "LAB8",
+     "libelle": "Nombre total d'opérations en espèces (Débit)",
+     "rubrique": false
+    },
+    {
+     "code": "LAB9",
+     "libelle": "Nombre d'opérations en espèces (Crédit) > 10k USD",
+     "rubrique": false
+    },
+    {
+     "code": "LAB10",
+     "libelle": "Nombre total d'opérations en espèces (Crédit)",
+     "rubrique": false
+    },
+    {
+     "code": "LAB11",
+     "libelle": "Nombre de transferts internationaux",
+     "rubrique": false
+    },
+    {
+     "code": "LAB12",
+     "libelle": "Montant total des opérations effectuées par les bureaux de change",
+     "rubrique": false
+    },
+    {
+     "code": "LAB13",
+     "libelle": "Nombre d'opération effectuées par les bureaux de change",
+     "rubrique": false
+    },
+    {
+     "code": "LAB14",
+     "libelle": "Nombre de transferts nationaux",
+     "rubrique": false
+    },
+    {
+     "code": "LAB15",
+     "libelle": "Donner en montant la répartition des opérations exécutées au cours du mois selon les différentes catégories de risque client qui ont été définies par votre organisme. ( En Unité de CDF)",
+     "rubrique": true
+    },
+    {
+     "code": "LAB16",
+     "libelle": "a) risque faible",
+     "rubrique": false
+    },
+    {
+     "code": "LAB17",
+     "libelle": "b) risque moyen",
+     "rubrique": false
+    },
+    {
+     "code": "LAB18",
+     "libelle": "c) risque fort",
+     "rubrique": false
+    }
+   ]
+  },
+  {
+   "cle": "canaux",
+   "titre": "Canaux de distribution",
+   "lignes": [
+    {
+     "code": "LAB1",
+     "libelle": "Nombre d'opérations effectuées par Mobile banking",
+     "rubrique": false
+    },
+    {
+     "code": "LAB2",
+     "libelle": "Nombre d'opérations effectuées par internet banking",
+     "rubrique": false
+    },
+    {
+     "code": "LAB3",
+     "libelle": "Nombre d'opérations effectuées via les agents bancaires",
+     "rubrique": false
+    },
+    {
+     "code": "LAB4",
+     "libelle": "Montant total des opérations effectuées par Mobile banking",
+     "rubrique": false
+    },
+    {
+     "code": "LAB5",
+     "libelle": "Montant total des opérations effectuées par internet banking",
+     "rubrique": false
+    },
+    {
+     "code": "LAB6",
+     "libelle": "Montant total des opérations effectuées via les agents bancaires",
+     "rubrique": false
+    },
+    {
+     "code": "LAB7",
+     "libelle": "Nombre des virements électroniques internationaux sortant - à destination - des pays listés",
+     "rubrique": false
+    },
+    {
+     "code": "LAB8",
+     "libelle": "Nombre des virements électroniques internationaux entrant - en provenance - des pays listés",
+     "rubrique": false
+    },
+    {
+     "code": "LAB9",
+     "libelle": "Nombre total d'operations de transfert executées par des messageries financières adossées a un etablissement bancaire (débit)",
+     "rubrique": false
+    },
+    {
+     "code": "LAB10",
+     "libelle": "Nombre total d'operations de transfert executées par des messageries financières adossées a un etablissement bancaire (crédit)",
+     "rubrique": false
+    },
+    {
+     "code": "LAB11",
+     "libelle": "Montant total des operations de transfert executés par des messageries financieres adossees a un etablissenent bancaire (débit)",
+     "rubrique": false
+    },
+    {
+     "code": "LAB12",
+     "libelle": "Montant total des operations de transfert executés par des messageries financieres adossees a un etablissenent bancaire (crédit)",
+     "rubrique": false
+    }
+   ]
+  }
+ ]
+}

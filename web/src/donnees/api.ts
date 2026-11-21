@@ -17,6 +17,7 @@ import registreEcrans from "../ecrans/registre.json";
 import { coupuresDe, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 import PCCI from "@pcci";
 import MODELE_ETATS from "@etats";
+import MODELE_LCB from "@reportingLcb";
 import REFERENTIELS from "@referentiels";
 import { bilanRapport } from "../lib/liasse";
 
@@ -4873,6 +4874,72 @@ const gels = {
     g.leveLe = d.date; g.referenceLevee = d.reference.trim(); g.levePar = u.id; enregistrer(); return vueGel(g);
   },
 };
+// ---------- A11 : reporting LCB-FT mensuel à la BCC (Instr. BCC 15, art. 95, b ; annexe DSIF, codes LAB). Mêmes règles que noyau/reporting_lcb.py. ----------
+const ENTREES_CAISSE = ["depot", "adhesion", "achat_parts", "remboursement_credit", "ed_encaissement"];
+const SORTIES_CAISSE = ["retrait", "retrait_parts", "deblocage_credit", "ed_decaissement"];
+const PROVINCES_SUIVIES = ["Nord-Kivu", "Sud-Kivu", "Ituri", "Maniema", "Haut-Uele", "Bas-Uele"];
+function calculerLcb(annee: number, mois: number): Record<string, number> {
+  const debut = `${annee}-${String(mois).padStart(2, "0")}-01`, fin = new Date(Date.UTC(annee, mois, 0)).toISOString().slice(0, 10);
+  const jourDe = (o: Operation) => E.journees.find((j) => j.id === E.sessions.find((s) => s.id === o.sessionId)?.journeeId)?.date ?? "";
+  const ops = E.operations.filter((o) => o.statut === "validee" && o.tiersId !== null && jourDe(o) >= debut && jourDe(o) <= fin);
+  const cdfOp = (o: Operation) => o.montant / 100 * coursDe(o.devise, jourDe(o)), usd = (o: Operation) => enUsd(o.montant, o.devise);
+  const clients = E.tiers.filter((t) => t.statut !== "prospect" && t.statut !== "resilie" && t.creeLe.slice(0, 10) <= fin);
+  const niv = new Map<number, string>();
+  for (const p of [...E.profilsRisque].filter((x) => x.evalueLe <= fin).sort((a, b) => a.evalueLe.localeCompare(b.evalueLe) || a.id - b.id)) niv.set(p.tiersId, p.niveau);
+  const ppe = new Set(clients.filter((t) => ppeActive(t.id)).map((t) => t.id));
+  const parNiveau = (n: string) => ops.filter((o) => niv.get(o.tiersId!) === n).reduce((s, o) => s + cdfOp(o), 0);
+  const nbNiveau = (n: string) => clients.filter((t) => niv.get(t.id) === n).length;
+  const comptes = E.comptes.filter((c) => (c.ouvertLe ?? "") <= fin && (!c.closLe || c.closLe > fin));
+  const resident = (tid: number) => E.tiers.find((t) => t.id === tid)?.resident !== false;
+  const province = E.agence.province ?? "";   // les clients de la démonstration sont de l'agence en cours
+  const r: Record<string, number> = {
+    "dispositif:LAB5": ops.filter((o) => usd(o) >= 10000).length, "dispositif:LAB6": ops.filter((o) => usd(o) > 9000 && usd(o) < 10000).length,
+    "dispositif:LAB7": nbNiveau("eleve"), "dispositif:LAB8": nbNiveau("moyen"), "dispositif:LAB9": nbNiveau("faible"),
+    "dispositif:LAB10": parNiveau("eleve"), "dispositif:LAB11": parNiveau("moyen"), "dispositif:LAB12": parNiveau("faible"),
+    "dispositif:LAB13": ops.reduce((s, o) => s + cdfOp(o), 0), "dispositif:LAB14": ops.filter((o) => ppe.has(o.tiersId!)).reduce((s, o) => s + cdfOp(o), 0),
+    "dispositif:LAB15": ppe.size, "dispositif:LAB17": (E.declarationsSoupcon ?? []).filter((d) => d.transmiseLe >= debut && d.transmiseLe <= fin).length,
+    "dispositif:LAB21": comptes.length, "dispositif:LAB22": comptes.filter((c) => !resident(c.tiersId)).length,
+    "localisation:LAB8": PROVINCES_SUIVIES.includes(province) ? 0 : clients.length,
+    "portefeuille:LAB2": ppe.size, "portefeuille:LAB4": clients.filter((t) => t.resident === false).length,
+    "portefeuille:LAB6": clients.filter((t) => t.type === "physique").length, "portefeuille:LAB7": clients.filter((t) => t.type === "morale").length,
+    "portefeuille:LAB10": clients.filter((t) => t.type === "groupe" && t.typeClient === "Association").length,
+    "portefeuille:LAB12": nbNiveau("eleve"), "portefeuille:LAB13": nbNiveau("moyen"), "portefeuille:LAB14": nbNiveau("faible"),
+    "produits:LAB4": E.credits.filter((c) => c.statut === "debloque" && c.debloqueLe && c.debloqueLe <= fin).length,
+    "produits:LAB7": ops.filter((o) => SORTIES_CAISSE.includes(o.type) && usd(o) > 10000).length, "produits:LAB8": ops.filter((o) => SORTIES_CAISSE.includes(o.type)).length,
+    "produits:LAB9": ops.filter((o) => ENTREES_CAISSE.includes(o.type) && usd(o) > 10000).length, "produits:LAB10": ops.filter((o) => ENTREES_CAISSE.includes(o.type)).length,
+    "produits:LAB16": parNiveau("faible"), "produits:LAB17": parNiveau("moyen"), "produits:LAB18": parNiveau("eleve") };
+  PROVINCES_SUIVIES.forEach((p, i) => { r[`localisation:LAB${i + 9}`] = province === p ? clients.length : 0; });
+  return r;
+}
+const reportingLcb = {
+  lire(annee: number, mois: number) {
+    lectureAdmin(["SC01"]);
+    if (!(annee >= 2000 && annee <= 2100 && mois >= 1 && mois <= 12)) throw new ErreurMetier("Mois invalide.");
+    const calc = calculerLcb(annee, mois);
+    const saisies = new Map((E.reportingLcb ?? []).filter((x) => x.annee === annee && x.mois === mois).map((x) => [`${x.tableau}:${x.code}`, x.valeur]));
+    const nombre = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(2).replace(".", ","));
+    return { annee, mois, agencesSansProvince: E.agence.province ? [] : [E.agence.nom], tableaux: MODELE_LCB.tableaux.map((t) => ({ cle: t.cle, titre: t.titre,
+      lignes: t.lignes.map((l) => { const k = `${t.cle}:${l.code}`; return { code: l.code, libelle: l.libelle, rubrique: l.rubrique, calcule: k in calc,
+        valeur: l.rubrique ? "" : k in calc ? nombre(calc[k]!) : saisies.get(k) ?? "" }; }) })) };
+  },
+  /** Cellules saisies du mois ; une cellule calculée ne se saisit pas */
+  enregistrer(d: { annee: number; mois: number; saisies: Record<string, string> }) {
+    const u = exiger();
+    if (!Number.isInteger(d.annee) || !Number.isInteger(d.mois) || d.mois < 1 || d.mois > 12) throw new ErreurMetier("Mois invalide.");
+    const calc = calculerLcb(d.annee, d.mois);
+    for (const [cle, brut] of Object.entries(d.saisies ?? {})) {
+      const [tableau, code] = cle.split(":") as [string, string];
+      const t = MODELE_LCB.tableaux.find((x) => x.cle === tableau);
+      if (!t || !t.lignes.some((l) => l.code === code && !l.rubrique)) throw new ErreurMetier(`Cellule inconnue : ${cle}.`);
+      if (cle in calc) throw new ErreurMetier(`${tableau} ${code} : cellule calculée par le logiciel.`);
+      const v = (brut ?? "").trim();
+      E.reportingLcb = (E.reportingLcb ?? []).filter((x) => !(x.annee === d.annee && x.mois === d.mois && x.tableau === tableau && x.code === code));
+      if (v) E.reportingLcb.push({ annee: d.annee, mois: d.mois, tableau, code, valeur: v });
+    }
+    void u; enregistrer(); return reportingLcb.lire(d.annee, d.mois);
+  },
+};
+
 // ---------- A13 : listes de désignation et rapprochement (confrontation du 21/11/2026). Mêmes règles que noyau/gel.py. ----------
 const SOURCES_LISTE_GEL = { onu: "Conseil de sécurité des Nations Unies", conasafic: "Liste nationale (CONASAFIC)" } as const;
 export const COLONNES_LISTE_GEL = ["Nom", "Autres noms", "Date de naissance", "N° de pièce", "Référence de désignation", "Date de désignation"];
@@ -5482,6 +5549,8 @@ const conformite = {
   },
   /** Instr. BCC 15, art. 62 : rapport écrit, strictement confidentiel */
   ppe: () => ppe.lister(),
+  reportingMensuel: (annee: number, mois: number) => reportingLcb.lire(annee, mois),
+  enregistrerReportingMensuel: (d: { annee: number; mois: number; saisies: Record<string, string> }) => reportingLcb.enregistrer(d),
   soupcons: () => soupcons.lister(),
   declarerSoupcon: (d: Parameters<typeof soupcons.enregistrer>[0]) => soupcons.enregistrer(d),
   suivreSoupcon: (id: number, d: Parameters<typeof soupcons.suivre>[1]) => soupcons.suivre(id, d),

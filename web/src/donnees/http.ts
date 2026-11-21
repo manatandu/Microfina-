@@ -438,6 +438,8 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       informerGel: (id: number, d: object) => post(`/conformite/gels/${id}/information`, d),
       leverGel: (id: number, d: object) => post(`/conformite/gels/${id}/levee`, d),
       listesGel: () => get("/conformite/listes-gel"),
+      reportingMensuel: (annee: number, mois: number) => get(`/conformite/reporting-mensuel?annee=${annee}&mois=${mois}`),
+      enregistrerReportingMensuel: (d: object) => post("/conformite/reporting-mensuel", d),
       importerListeGel: (d: object) => post("/conformite/listes-gel", d),
       rapprocherListesGel: () => post("/conformite/listes-gel/rapprochement", {}),
       examinerCorrespondance: (id: number, d: object) => post(`/conformite/correspondances-gel/${id}`, d),

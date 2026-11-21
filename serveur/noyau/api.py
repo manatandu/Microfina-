@@ -2720,6 +2720,18 @@ def gels_geler(request, corps: dict = Body(...)):
     return gel.geler(u(request), corps)
 
 
+@api.get("/conformite/reporting-mensuel")
+def reporting_lcb_lire(request, annee: int, mois: int):
+    from . import reporting_lcb
+    return reporting_lcb.lire(u(request), annee, mois)
+
+
+@api.post("/conformite/reporting-mensuel")
+def reporting_lcb_enregistrer(request, corps: dict = Body(...)):
+    from . import reporting_lcb
+    return reporting_lcb.enregistrer(u(request), corps)
+
+
 @api.get("/conformite/listes-gel")
 def listes_gel(request):
     return gel.listes(u(request))

@@ -141,10 +141,16 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "conformite.examiner": [
 "SC01"
 ],
+"conformite.examinerCorrespondance": [
+"SC01"
+],
 "conformite.fixerCriteresAtypiques": [
 "SC01"
 ],
 "conformite.geler": [
+"SC01"
+],
+"conformite.importerListeGel": [
 "SC01"
 ],
 "conformite.informerGel": [
@@ -158,6 +164,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 ],
 "conformite.noterIcu": [
 "SC02"
+],
+"conformite.rapprocherListesGel": [
+"SC01"
 ],
 "conformite.suivreSoupcon": [
 "SC01"

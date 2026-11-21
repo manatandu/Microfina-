@@ -367,6 +367,7 @@ export interface Etat {
   analysesAtypiques: AnalyseAtypique[];   // écart E09
   gels: GelAvoirs[];   // écart E10
   // A13 : listes de désignation importées et correspondances avec les clients (loi 22/068, art. 158 bis, 161 bis, 168 bis)
+  reportingLcb?: { annee: number; mois: number; tableau: string; code: string; valeur: string }[];   // A11 : cellules saisies du reporting LCB-FT mensuel
   listesGel?: { imports: { id: number; source: "onu" | "conasafic"; reference: string; publieLe: string; lignes: number; importePar: number; importeLe: string }[];
     entrees: { id: number; importId: number; source: "onu" | "conasafic"; nom: string; autresNoms: string; naissance: string; piece: string; reference: string; designeLe: string; actif: boolean }[];
     correspondances: { id: number; tiersId: number; listeId: number; personne: string; raison: string; statut: "a_examiner" | "confirmee" | "ecartee"; observation: string;
