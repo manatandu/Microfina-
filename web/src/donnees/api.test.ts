@@ -2011,7 +2011,8 @@ describe("journée de guichet", () => {
     const r = await api.societe.enregistrer({ ...i, directeur: "J.-P. Mukendi", journeeMax: 2, logo: "data:image/png;base64,iVBORw0KGgo=" });
     expect([r.institution.directeur, r.institution.journeeMax]).toEqual(["J.-P. Mukendi", 2]);
     await expect(api.societe.enregistrerAgence({ code: "0412", nom: "Autre" })).rejects.toThrow("existe déjà");
-    const n = (await api.societe.enregistrerAgence({ code: "0413", nom: "Lemba" })).agences.find((a) => a.code === "0413")!;
+    await expect(api.societe.enregistrerAgence({ code: "0413", nom: "Lemba" })).rejects.toThrow("Autorisation préalable");   // A3 : Instr. BCC 41, art. 35
+    const n = (await api.societe.enregistrerAgence({ code: "0413", nom: "Lemba", autorisationReference: "BCC/DSIF/2026/41", autorisationLe: "2026-10-01" })).agences.find((a) => a.code === "0413")!;
     await expect(api.societe.supprimerAgence(1)).rejects.toThrow("clients");
     expect((await api.societe.supprimerAgence(n.id)).agences.some((a) => a.code === "0413")).toBe(false);
   });

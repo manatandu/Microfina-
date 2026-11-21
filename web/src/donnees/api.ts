@@ -4928,6 +4928,11 @@ const inactifs = {
 const SOURCES_GEL: Record<GelAvoirs["source"], string> = { onu: "Conseil de sécurité des Nations Unies", conasafic: "Liste nationale (CONASAFIC)", bcc: "Banque Centrale du Congo", judiciaire: "Ministère public ou CENAREF" };
 const DATE_ISO = /^\d{4}-\d{2}-\d{2}$/;
 /** P9 : sortie de fonds d'un client dont les opérations sont en attente de la déclaration de soupçon (loi 22/068, art. 92). Comme le serveur (controler_attente). */
+/** Instr. BCC 41, art. 66 : une COOPEC n'ouvre ni agence, ni guichet, ni bureau hors de la province de son siège. Comme le serveur (controler_province_coopec). */
+function controlerProvinceCoopec(province: string, quoi: string) {
+  const siege = E.institution.province ?? "";
+  if (estCoopec() && province && siege && province !== siege) throw new ErreurMetier(`${quoi} hors de la province du siège (${siege}) : interdit à une COOPEC (Instr. BCC 41, art. 66).`);
+}
 function controlerAttente(tid: number) {
   if ((E.attentesSoupcon ?? []).some((a) => a.tiersId === tid && !a.leveeLe))
     throw new ErreurMetier("Opérations du client en attente : opération soupçonnée, à déclarer d'abord à la CENAREF (loi 22/068, art. 92). Client > Conformité > Examen renforcé, onglet Déclarations de soupçon.");
@@ -5860,7 +5865,7 @@ const guichets = {
     // Un guichet hors de son agence (antenne, point de service) a sa propre adresse ; sinon il prend celle de l'agence (registre T41)
     const hors = d.horsAgence === true;
     const adr = Object.fromEntries(CHAMPS_ADRESSE.map((k) => [k, hors ? ((d as Adresse)[k] ?? "").trim() : ""])) as Required<Adresse>;
-    if (hors) controlerAdresse(adr, true, "Adresse du guichet");
+    if (hors) { controlerAdresse(adr, true, "Adresse du guichet"); controlerProvinceCoopec(adr.province, "Guichet"); }   // B19 : Instr. BCC 41, art. 66
     const g = { ...v, journalId: d.journalId, plafonds, ...comptes, billetage: true, actif: d.actif, horsAgence: hors, adresse: adr };
     if (actuel) Object.assign(actuel, g); else E.guichets.push({ id: prochain(E.guichets), ...g });
     enregistrer(); return guichets.lire();
@@ -9116,7 +9121,8 @@ const societe = {
       numeroRue: i.numeroRue ?? "", email: i.email ?? "", bp: i.bp ?? "",
       telephoneFixe: i.telephoneFixe ?? "", adresse: i.adresse ?? "", logo: i.logo ?? null, delegationAdmission: i.delegationAdmission ?? "", membresAuxiliaires: i.membresAuxiliaires ?? "" };
     return { institution, types: Object.entries(PROFILS_INSTITUTION).map(([code, libelle]) => ({ code, libelle })), localites: localites(), arbreLieux: arbreLieux(),
-      agences: E.agences.filter((a) => !a.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ id, code, nom, ...x }) => ({ id, code, nom,
+      agences: E.agences.filter((a) => !a.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ id, code, nom, autorisationReference, autorisationLe, ...x }) => ({ id, code, nom,
+        autorisationReference: autorisationReference ?? "", autorisationLe: autorisationLe ?? "",   // A3
         ...Object.fromEntries(CHAMPS_ADRESSE.map((k) => [k, (x as Adresse)[k] ?? ""])) as Required<Adresse> })),
       securite: { motDePasseMin: 8, essais: 5, fenetreMinutes: 15 } };   // cadre « Info sécurité », règles en vigueur (S32-6 ; noyau/securite.py)
   },
@@ -9147,7 +9153,7 @@ const societe = {
     enregistrer(); return societe.lire();
   },
   /** Page Agence : Code et Nom (registre S32-5) ; le code d'une agence qui a des clients ne change plus (il entre dans leurs numéros, S15) */
-  enregistrerAgence(d: { code?: string; nom?: string } & Adresse, id?: number) {
+  enregistrerAgence(d: { code?: string; nom?: string; autorisationReference?: string; autorisationLe?: string } & Adresse, id?: number) {
     exiger("chef_agence");
     const code = d.code?.trim() ?? "", nom = d.nom?.trim() ?? "";
     const manque = manquants([["Code", code], ["Nom", nom]]);
@@ -9159,8 +9165,13 @@ const societe = {
     // Adresse de l'agence, la même que partout (décision du porteur du 21/11/2026, registre T41)
     const adr = Object.fromEntries(CHAMPS_ADRESSE.map((k) => [k, (d[k] ?? "").trim()])) as Required<Adresse>;
     controlerAdresse(adr, false, "Adresse de l'agence");
-    if (actuel) { Object.assign(actuel, { code, nom, ...adr }); if (actuel.id === E.agence.id) Object.assign(E.agence, { code, nom }); }
-    else E.agences.push({ id: prochain(E.agences), code, nom, supprime: false, ...adr });
+    // A3 et B19 : autorisation préalable de la BCC (Instr. BCC 41, art. 35) ; COOPEC dans la province du siège (art. 66). Comme le serveur.
+    const ref = d.autorisationReference?.trim() ?? "", le = d.autorisationLe?.trim() ?? "";
+    if (!actuel && (!ref || !DATE.test(le))) throw new ErreurMetier("Autorisation préalable de la BCC : référence et date (Instr. BCC 41, art. 35).");
+    controlerProvinceCoopec(adr.province, "Agence");
+    const aut = ref ? { autorisationReference: ref, autorisationLe: le } : {};
+    if (actuel) { Object.assign(actuel, { code, nom, ...adr, ...aut }); if (actuel.id === E.agence.id) Object.assign(E.agence, { code, nom }); }
+    else E.agences.push({ id: prochain(E.agences), code, nom, supprime: false, ...adr, ...aut });
     enregistrer(); return societe.lire();
   },
   /** Supprimer (p. 12) : logique (T02) ; une agence qui sert ne se supprime pas */

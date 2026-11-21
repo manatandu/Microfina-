@@ -120,6 +120,8 @@ def enregistrer(u, d, gid: int | None = None) -> dict:
     adr = {k: (d.get(k).strip() if hors and isinstance(d.get(k), str) else "") for k in CHAMPS}
     if hors:
         controler(lambda k: adr.get(k, ""), requis=True, quoi="Adresse du guichet")
+        from .societe import controler_province_coopec
+        controler_province_coopec(u, adr.get("province", ""), "Guichet")   # B19 : Instr. BCC 41, art. 66
     executer(f"update guichet set hors_agence = %s, {', '.join(f'{COLONNES[k]} = %s' for k in CHAMPS)} where id = %s", (hors, *adr.values(), gid))
     executer("delete from guichet_plafond where guichet_id = %s", (gid,))
     for dv, (maximum, retrait) in plafonds.items():

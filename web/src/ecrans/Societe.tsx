@@ -115,8 +115,8 @@ function InformationSociete() {
   );
 }
 
-type SaisieAgence = Adresse & { code: string; nom: string };
-const AGENCE_VIDE: SaisieAgence = { code: "", nom: "", pays: "", province: "", ville: "", commune: "", quartier: "", rue: "", numeroRue: "" };
+type SaisieAgence = Adresse & { code: string; nom: string; autorisationReference: string; autorisationLe: string };
+const AGENCE_VIDE: SaisieAgence = { code: "", nom: "", autorisationReference: "", autorisationLe: "", pays: "", province: "", ville: "", commune: "", quartier: "", rue: "", numeroRue: "" };
 function Agences() {
   const [f, setF] = useState<SaisieAgence>(AGENCE_VIDE);
   const [choisi, setChoisi] = useState<number | null>(null);
@@ -135,6 +135,11 @@ function Agences() {
       <div className="ligne-champ">
         <Champ libelle="Code : *">{(p) => <input {...p} className="saisie code" value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} />}</Champ>
         <Champ libelle="Nom : *">{(p) => <input {...p} className="saisie" value={f.nom} onChange={(e) => setF({ ...f, nom: e.target.value })} />}</Champ>
+      </div>
+      {/* A3 et B19 (confrontation du 21/11/2026) : autorisation préalable de la BCC pour ouvrir une agence (Instr. BCC 41, art. 35) */}
+      <div className="ligne-champ">
+        <Champ libelle="Autorisation de la BCC, référence : *">{(p) => <input {...p} className="saisie code" value={f.autorisationReference} onChange={(e) => setF({ ...f, autorisationReference: e.target.value })} />}</Champ>
+        <ChampDate libelle="Date de l'autorisation : *" valeur={f.autorisationLe} onChange={(v) => setF({ ...f, autorisationLe: v })} />
       </div>
       {/* Adresse de l'agence, la même que partout (décision du porteur du 21/11/2026, registre T41) */}
       <fieldset className="pile cadre-champs champs-a-gauche">

@@ -32,7 +32,8 @@ def lire(u) -> dict:
     r["code"] = r["code"] or ""
     from .adresse import arbre
     return {"institution": r, "types": [{"code": k, "libelle": v} for k, v in PROFILS.items()], "localites": localites(), "arbreLieux": arbre(),
-            "agences": lignes(f"""select id, code, nom, {', '.join(f'{c} as "{k}"' for k, c in ADRESSE.items())}
+            "agences": lignes(f"""select id, code, nom, coalesce(autorisation_bcc_reference, '') as "autorisationReference",
+                                     coalesce(autorisation_bcc_le::text, '') as "autorisationLe", {', '.join(f'{c} as "{k}"' for k, c in ADRESSE.items())}
                                   from agence where institution_id = %s and not supprime order by code""", (i,)),
             "securite": regles_securite()}
 
@@ -73,6 +74,14 @@ def enregistrer(u, d) -> dict:
     return lire(u)
 
 
+def controler_province_coopec(u, province: str, quoi: str):
+    """Instr. BCC 41, art. 66 : une COOPEC n'ouvre ni agence, ni guichet, ni bureau hors de la province de son siège"""
+    from .services import est_coopec
+    siege = valeur("select province from institution where id = %s", (u["institution_id"],)) or ""
+    if est_coopec(u) and province and siege and province != siege:
+        raise ErreurMetier(f"{quoi} hors de la province du siège ({siege}) : interdit à une COOPEC (Instr. BCC 41, art. 66).")
+
+
 def enregistrer_agence(u, d, aid: int | None = None) -> dict:
     """Page Agence : Code et Nom (registre S32-5) ; le code d'une agence qui a des clients ne change plus (il entre dans leurs numéros, S15)"""
     exiger(u, "chef_agence")
@@ -96,10 +105,18 @@ def enregistrer_agence(u, d, aid: int | None = None) -> dict:
     from .adresse import controler
     adr = {k: (d.get(k).strip() if isinstance(d.get(k), str) else "") for k in ADRESSE}
     controler(lambda k: adr.get(k, ""), quoi="Adresse de l'agence")
+    # A3 et B19 : autorisation préalable de la BCC pour une nouvelle agence (Instr. BCC 41, art. 35) ; COOPEC : dans la province du siège (art. 66)
+    ref = d.get("autorisationReference").strip() if isinstance(d.get("autorisationReference"), str) else ""
+    le = d.get("autorisationLe").strip() if isinstance(d.get("autorisationLe"), str) else ""
+    if aid is None and (not ref or not re.match(r"^\d{4}-\d{2}-\d{2}$", le)):
+        raise ErreurMetier("Autorisation préalable de la BCC : référence et date (Instr. BCC 41, art. 35).")
+    controler_province_coopec(u, adr.get("province", ""), "Agence")
     if aid is None:
-        aid = valeur("insert into agence (institution_id, code, nom) values (%s, %s, %s) returning id", (i, code, nom))
+        aid = valeur("insert into agence (institution_id, code, nom, autorisation_bcc_reference, autorisation_bcc_le) values (%s, %s, %s, %s, %s) returning id",
+                     (i, code, nom, ref, le))
     else:
-        executer("update agence set code = %s, nom = %s where id = %s", (code, nom, aid))
+        executer("update agence set code = %s, nom = %s, autorisation_bcc_reference = coalesce(%s, autorisation_bcc_reference), autorisation_bcc_le = coalesce(%s, autorisation_bcc_le) where id = %s",
+                 (code, nom, ref or None, le or None, aid))
     executer(f"update agence set {', '.join(f'{c} = %s' for c in ADRESSE.values())} where id = %s", (*adr.values(), aid))
     return lire(u)
 

@@ -17,7 +17,7 @@ export interface CriteresAtypiques { montantUsd: number | null; montantEleveUsd:
   fractionnementUsd?: number | null }   // P7 : fractionnement (Instr. BCC 15, art. 36)   // écart E05 : décision du Conseil qui délègue l'admission des membres
 /** Une seule adresse, la même partout (décision du porteur du 21/11/2026, registre T41) : « rue » est l'avenue, « numeroRue » le N° */
 export interface Adresse { pays?: string; province?: string; ville?: string; commune?: string; quartier?: string; rue?: string; numeroRue?: string }
-export interface Agence extends Adresse { id: number; code: string; nom: string }
+export interface Agence extends Adresse { id: number; code: string; nom: string; autorisationReference?: string; autorisationLe?: string }   // A3 : Instr. BCC 41, art. 35
 /** Guichet ; champs de « Gestion des guichets » (S08, manuel p. 18) */
 export interface Guichet {
   id: number; code: string; nom: string;

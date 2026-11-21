@@ -2246,7 +2246,15 @@ def test_info_societe(clients):
     ag = l["agences"][0]
     assert "ne change plus" in refus({"code": "0413", "nom": "Matete"}, f"/api/societe/agences/{ag['id']}")
     assert "existe déjà" in refus({"code": "0412", "nom": "Autre"}, "/api/societe/agences")
-    n = next(a for a in chef.post("/api/societe/agences", {"code": "0413", "nom": "Lemba"}, **H).json()["agences"] if a["code"] == "0413")
+    # A3 et B19 : autorisation préalable de la BCC (Instr. BCC 41, art. 35) ; une COOPEC reste dans la province de son siège (art. 66)
+    assert "Autorisation préalable" in refus({"code": "0413", "nom": "Lemba"}, "/api/societe/agences")
+    from noyau.bd import executer
+    executer("update institution set province = 'Kinshasa'")
+    assert "province du siège" in refus({"code": "0413", "nom": "Lemba", "autorisationReference": "BCC/DSIF/2026/41", "autorisationLe": "2026-10-01",
+                                         "province": "Kongo central"}, "/api/societe/agences")
+    n = next(a for a in chef.post("/api/societe/agences", {"code": "0413", "nom": "Lemba", "autorisationReference": "BCC/DSIF/2026/41", "autorisationLe": "2026-10-01"},
+                                  **H).json()["agences"] if a["code"] == "0413")
+    assert n["autorisationReference"] == "BCC/DSIF/2026/41"
     assert "des clients" in refus({}, f"/api/societe/agences/{ag['id']}/suppression")
     assert chef.post(f"/api/societe/agences/{n['id']}/suppression", {}, **H).status_code == 200
 
