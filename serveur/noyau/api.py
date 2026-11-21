@@ -2129,6 +2129,12 @@ def ref_supprimer(request, famille: str, page: str, lid: int):
 
 
 # ---------- Info de base > Localisation (S20) ----------
+@api.post("/adresse/quartiers")
+def ad_quartier(request, corps: dict = Body(...)):
+    from . import adresse
+    return adresse.ajouter_quartier(u(request), corps)
+
+
 @api.get("/localisation/{niveau}")
 def lo_lire(request, niveau: str):
     return lo.lire(u(request), niveau)

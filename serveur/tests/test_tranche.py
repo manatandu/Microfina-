@@ -649,7 +649,7 @@ def test_prospect(clients):
     assert "prénoms" in refus({**p, "prenom": ""})
     assert "quartier inconnu" in refus({**p, "quartier": "Gombe"})
     assert "Email" in refus({**p, "email": "pas-un-email"})
-    assert "Profession" in refus({**p, "profession": "Astronaute"})
+    # profession : champ libre (registre T42)
     t = agent.post("/api/prospects", p, **H).json()
     assert (t["statut"], t["quartier"], t["profession"]) == ("prospect", "Kinsaku", "Commerçant")
     chef = clients["chef"]; connecter(chef, "jpmukendi")               # un quartier ajouté dans Localisation (S20) est proposé aussitôt
@@ -1118,7 +1118,7 @@ def test_professions_s14b(clients):
     assert any(x["code"] == "COM" and x["libelle"] == "Commerçant" for x in l)
     p = {"nom": "Lukaku", "prenom": "Rose", "naissance": "1992-02-02", "lieuNaissance": "Kinshasa", "sexe": "F", "profession": "Vulcanisateur",
          "pays": "République démocratique du Congo", "ville": "Kinshasa", "quartier": "Kinsaku", "telephone": "+243 810 000 222"}
-    r = agent.post("/api/prospects", p, **H); assert r.status_code == 422 and "Profession inconnue" in r.json()["message"]
+    # profession : champ libre, hors liste admise (registre T42)
     chef.post("/api/listes/profession", {"code": "7213-90", "libelle": "Vulcanisateur"}, **H)
     assert "Vulcanisateur" in agent.get("/api/referentiel", **H).json()["professions"]
     assert agent.post("/api/prospects", p, **H).status_code == 200
@@ -1339,36 +1339,39 @@ def test_exemples_du_site_publie():
 
 
 def test_localisation(clients):
-    """S20 (p. 30 à 32), découpage de la RDC (registre S20-1 à S20-4) : parents obligatoires, nom unique sous un parent, Zone, Supprimer logique"""
+    """S20 : le découpage officiel (provinces à chefferies) se lit seulement ; l'institution tient les pays, les quartiers et les groupements
+    (registre S20-1 à S20-11) ; un quartier s'ajoute aussi depuis une fiche (registre T41)"""
     chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
     L = "/api/localisation"
     def refus(niveau, corps, lid=None):
         r = chef.post(f"{L}/{niveau}" + (f"/{lid}" if lid else ""), corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
     pr = chef.get(f"{L}/province", **H).json()
-    assert len(pr["lignes"]) == 26 and [o["onglet"] for o in pr["onglets"]][1] == "Province"
+    assert len(pr["lignes"]) == 26
     rdc = chef.get(f"{L}/pays", **H).json()["lignes"][0]
     assert (rdc["nationalite"], rdc["code"], rdc["zone"]) == ("Congolaise", "CD", "Afrique")
-    assert agent.post(f"{L}/province", {"parentId": rdc["id"], "nom": "X"}, **H).status_code == 403
+    assert agent.post(f"{L}/quartier", {"parentId": rdc["id"], "nom": "X"}, **H).status_code == 403
     assert "Nationalite, Code, Zone" in refus("pays", {"nom": "Angola"})
     assert "Zone inconnue" in refus("pays", {"nom": "Angola", "nationalite": "Angolaise", "code": "AO", "zone": "Lune"})
-    assert "code existe" in refus("pays", {"nom": "Congo", "nationalite": "Congolaise", "code": "cd", "zone": "Afrique"})
-    assert "Pays" in refus("province", {"nom": "Nouvelle"})
-    assert "existe déjà" in refus("province", {"parentId": rdc["id"], "nom": "nord-kivu"})
+    assert "code existe" in refus("pays", {"nom": "Pays d'essai", "nationalite": "Essai", "code": "cd", "zone": "Afrique"})
+    assert "existe déjà" in refus("pays", {"nom": "Congo", "nationalite": "Congolaise", "code": "CG", "zone": "Afrique"})     # pays du monde chargés (registre T42)
     nk = next(x for x in pr["lignes"] if x["nom"] == "Nord-Kivu")
-    assert "Ville ou territoire inconnu" in refus("commune", {"parentId": nk["id"], "nom": "Mutiri", "nature": "Commune"})           # une commune se rattache à une ville ou un territoire
-    assert "Nature" in refus("ville", {"parentId": nk["id"], "nom": "Mutiri"})                              # Ville ou Territoire (registre S20-8)
-    assert "existe déjà" in refus("ville", {"parentId": nk["id"], "nom": "Walikale", "nature": "Territoire"})
-    assert chef.post(f"{L}/ville", {"parentId": nk["id"], "nom": "Walikale", "nature": "Ville"}, **H).status_code == 200   # une ville à côté du territoire du même nom
-    v = chef.post(f"{L}/ville", {"parentId": nk["id"], "nom": "Mutiri", "nature": "Ville"}, **H).json()["lignes"]
-    goma = next(x for x in v if x["nom"] == "Mutiri")
-    assert goma["ascendants"]["province"]["nom"] == "Nord-Kivu" and goma["ascendants"]["pays"]["nom"] == "République démocratique du Congo"
-    c = next(x for x in chef.post(f"{L}/commune", {"parentId": goma["id"], "nom": "Kasando", "nature": "Commune"}, **H).json()["lignes"] if x["nom"] == "Kasando")
-    r = chef.post(f"{L}/ville/{goma['id']}/suppression", {}, **H); assert r.status_code == 422 and "rattachés" in r.json()["message"]
-    assert chef.post(f"{L}/commune/{c['id']}", {"parentId": goma["id"], "nom": "Kasando-Centre", "nature": "Commune"}, **H).status_code == 200
-    assert chef.post(f"{L}/commune/{c['id']}/suppression", {}, **H).status_code == 200
-    assert chef.post(f"{L}/ville/{goma['id']}/suppression", {}, **H).status_code == 200
-    assert all(x["nom"] != "Mutiri" for x in chef.get(f"{L}/ville", **H).json()["lignes"])
-
+    for niveau, corps in (("province", {"parentId": rdc["id"], "nom": "Nouvelle"}), ("ville", {"parentId": nk["id"], "nom": "Mutiri", "nature": "Ville"}),
+                          ("commune", {"parentId": nk["id"], "nom": "Kasando", "nature": "Commune"})):
+        assert "découpage officiel" in refus(niveau, corps)
+    assert "découpage officiel" in refus("province", {}, nk["id"]) and chef.post(f"{L}/province/{nk['id']}/suppression", {}, **H).status_code == 422
+    matete = next(x for x in chef.get(f"{L}/commune", **H).json()["lignes"] if x["nom"] == "Matete")
+    assert "Commune, secteur ou chefferie" in refus("quartier", {"nom": "Mbanza-Lemba"})
+    q = next(x for x in chef.post(f"{L}/quartier", {"parentId": matete["id"], "nom": "Mbanza-Lemba"}, **H).json()["lignes"] if x["nom"] == "Mbanza-Lemba")
+    assert "existe déjà" in refus("quartier", {"parentId": matete["id"], "nom": "mbanza-lemba"})
+    assert chef.post(f"{L}/quartier/{q['id']}", {"parentId": matete["id"], "nom": "Mbanza Lemba"}, **H).status_code == 200
+    assert chef.post(f"{L}/quartier/{q['id']}/suppression", {}, **H).status_code == 200
+    # Depuis la fiche du membre : l'agent ajoute un quartier absent, il rejoint la Localisation (registre T41)
+    A = "/api/adresse/quartiers"
+    r = agent.post(A, {"province": "Kinshasa", "ville": "Kinshasa", "nom": "Ndanu"}, **H); assert r.status_code == 422 and "Choisissez" in r.json()["message"]
+    r = agent.post(A, {"province": "Kinshasa", "ville": "Kinshasa", "commune": "Limete", "nom": "Ndanu"}, **H); assert r.status_code == 200, r.content
+    limete = [c for p in r.json()["arbre"] for pv in p["provinces"] if pv["province"] == "Kinshasa" for v in pv["villes"] for c in v["communes"] if c["commune"] == "Limete"]
+    assert limete[0]["quartiers"] == ["Ndanu"]
+    assert agent.post(A, {"province": "Kinshasa", "ville": "Kinshasa", "commune": "Limete", "nom": "ndanu"}, **H).status_code == 422
 
 def test_credit_general(clients):
     """S21 (p. 32 à 36) : onze onglets ; Degré selon l'Instr. BCC 003, Terme selon le PCCI (registre S21-1 à S21-7)"""

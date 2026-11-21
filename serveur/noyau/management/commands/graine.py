@@ -163,6 +163,8 @@ def completer_lieux() -> int:
             ajouts += len(manquants)
         return [connus[cle(r)] for r in rangs]
 
+    # Pays et territoires du monde, pour la nationalité et le pays de délivrance d'une pièce (registre T42)
+    lot([(None, "pays", nom, "") for nom in d.get("pays_du_monde", [])])
     provinces = d["provinces"]
     ids_p = lot([(pays, "province", p["nom"], "") for p in provinces])
     villes = [(pid, v, nat) for pid, p in zip(ids_p, provinces) for nat, cle in (("Ville", "villes"), ("Territoire", "territoires")) for v in p[cle]]

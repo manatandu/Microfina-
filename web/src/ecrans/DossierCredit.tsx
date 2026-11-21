@@ -28,7 +28,7 @@ function Effectifs({ e, maj, prefixe }: { e: Effectifs; maj: (x: Effectifs) => v
 export function DemandeCredit() {
   const { donnees: ctx } = useDonnees(() => api.dossiers.contexte());
   const [t, setT] = useState<Tiers | null>(null);
-  const [f, setF] = useState({ produit: "", cycle: "", analyse: "", duree: "", province: "", ville: "" });
+  const [f, setF] = useState({ produit: "", cycle: "", analyse: "", duree: "", province: "", ville: "", commune: "" });
   const [e, setE] = useState<Effectifs>(VIDES);
   const [r, setR] = useState<Effectifs>(VIDES);
   const [parts, setParts] = useState<string[]>([]);
@@ -40,12 +40,12 @@ export function DemandeCredit() {
   const p = ctx.produits.find((x) => String(x.id) === f.produit);
   const analyses = (h?.analyses ?? []).filter((a) => String(a.produitId) === f.produit);
   const maj = (x: Partial<typeof f>) => setF({ ...f, ...x });
-  const effacer = () => { setT(null); setF({ produit: "", cycle: "", analyse: "", duree: "", province: "", ville: "" }); setE(VIDES); setR(VIDES); setParts([]); setPage(1); };
+  const effacer = () => { setT(null); setF({ produit: "", cycle: "", analyse: "", duree: "", province: "", ville: "", commune: "" }); setE(VIDES); setR(VIDES); setParts([]); setPage(1); };
   function enregistrer() {
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try {
         const x = await api.dossiers.demander({ produitId: Number(f.produit), tiersId: t?.id, cycleId: f.cycle ? Number(f.cycle) : null, analyseId: f.analyse ? Number(f.analyse) : null,
-          ...valeurs(e), duree: entier(f.duree), provinceId: Number(f.province) || null, villeId: Number(f.ville) || null, ressaisie: valeurs(r),
+          ...valeurs(e), duree: entier(f.duree), provinceId: Number(f.province) || null, villeId: Number(f.ville) || null, communeId: Number(f.commune) || null, ressaisie: valeurs(r),
           parts: t?.type === "groupe" ? parts.map((m) => ({ montant: somme(m) })) : [] });
         effacer(); setBoite({ type: "succes", message: `Enregistré avec succès ! Demande N° ${x.numero}.` });
       } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
@@ -80,12 +80,17 @@ export function DemandeCredit() {
         </> : <>
           <fieldset className="cadre-champs formulaire">
             <legend>Détail de la demande</legend>
-            <Champ libelle="Région (province) *">{(pp) => <select {...pp} className="saisie" value={f.province} onChange={(ev) => maj({ province: ev.target.value, ville: "" })}>
+            <Champ libelle="Région (province) *">{(pp) => <select {...pp} className="saisie" value={f.province} onChange={(ev) => maj({ province: ev.target.value, ville: "", commune: "" })}>
               <option value=""></option>{ctx.provinces.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>
-            <Champ libelle="Préfecture (ville ou territoire) *">{(pp) => <select {...pp} className="saisie" value={f.ville} onChange={(ev) => maj({ ville: ev.target.value })}>
+            <Champ libelle="Préfecture (ville ou territoire) *">{(pp) => <select {...pp} className="saisie" value={f.ville} onChange={(ev) => maj({ ville: ev.target.value, commune: "" })}>
               <option value=""></option>
               {(["Ville", "Territoire"] as const).map((nat) => <optgroup key={nat} label={nat === "Ville" ? "Villes" : "Territoires"}>   {/* registre S20-8 */}
                 {ctx.villes.filter((v) => String(v.provinceId) === f.province && (v.nature || "Ville") === nat).map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</optgroup>)}</select>}</Champ>
+            {/* lieu de l'activité jusqu'à la commune, au secteur ou à la chefferie (registre T41) */}
+            <Champ libelle="Commune, secteur ou chefferie">{(pp) => <select {...pp} className="saisie" value={f.commune} disabled={!f.ville} onChange={(ev) => maj({ commune: ev.target.value })}>
+              <option value=""></option>
+              {(["Commune", "Secteur", "Chefferie"] as const).map((nat) => <optgroup key={nat} label={nat === "Chefferie" ? "Chefferies" : `${nat}s`}>
+                {ctx.communes.filter((c) => String(c.villeId) === f.ville && (c.nature || "Commune") === nat).map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</optgroup>)}</select>}</Champ>
             <Effectifs e={r} maj={setR} prefixe="Ressaisir : " />
           </fieldset>
           {t?.type === "groupe" && <fieldset className="cadre-champs formulaire">

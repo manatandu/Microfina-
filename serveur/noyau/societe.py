@@ -10,10 +10,12 @@ PROFILS = {"coopec": "COOPEC", "societe_microfinance": "Société de microfinanc
            "faitiere": "Structure faîtière"}       # loi 002/2002 (COOPEC, faîtières) ; loi 11/020, art. 11 (IMF)
 CHAMPS = {"code": "sigle", "denomination": "nom", "typeBase": "profil", "description": "description", "directeur": "directeur",
           "agrement": "numero_agrement", "journeeMax": "journee_max", "compteHorsBilan1": "compte_hors_bilan_1", "compteHorsBilan2": "compte_hors_bilan_2",
-          "ifu": "ifu", "pays": "pays", "ville": "ville", "commune": "commune", "quartier": "quartier", "rue": "rue", "email": "email", "bp": "bp",
+          "ifu": "ifu", "pays": "pays", "province": "province", "ville": "ville", "commune": "commune", "quartier": "quartier", "rue": "rue",
+          "numeroRue": "numero_rue", "email": "email", "bp": "bp",
           "telephoneFixe": "telephone_fixe", "adresse": "adresse", "logo": "logo",
           "delegationAdmission": "delegation_admission",     # écart E05 : référence de la décision du Conseil qui délègue l'admission (loi 002/2002, art. 22)
           "membresAuxiliaires": "membres_auxiliaires"}       # écart E20 : article des statuts qui prévoit des membres auxiliaires (loi 002/2002, art. 23)     # écart E05 : référence de la décision du Conseil qui délègue l'admission (loi 002/2002, art. 22)
+ADRESSE = {"pays": "pays", "province": "province", "ville": "ville", "commune": "commune", "quartier": "quartier", "rue": "rue", "numeroRue": "numero_rue"}
 LOGO_MAX = 300_000      # caractères de l'image encodée (registre S32-4)
 
 
@@ -28,8 +30,10 @@ def lire(u) -> dict:
     i = u["institution_id"]
     r = une(f"select {', '.join(f'{c} as \"{k}\"' for k, c in CHAMPS.items())} from institution where id = %s", (i,))
     r["code"] = r["code"] or ""
-    return {"institution": r, "types": [{"code": k, "libelle": v} for k, v in PROFILS.items()], "localites": localites(),
-            "agences": lignes("select id, code, nom from agence where institution_id = %s and not supprime order by code", (i,)),
+    from .adresse import arbre
+    return {"institution": r, "types": [{"code": k, "libelle": v} for k, v in PROFILS.items()], "localites": localites(), "arbreLieux": arbre(),
+            "agences": lignes(f"""select id, code, nom, {', '.join(f'{c} as "{k}"' for k, c in ADRESSE.items())}
+                                  from agence where institution_id = %s and not supprime order by code""", (i,)),
             "securite": regles_securite()}
 
 
@@ -50,9 +54,8 @@ def enregistrer(u, d) -> dict:
         raise ErreurMetier("Type base inconnu.")
     if not isinstance(jm, int) or isinstance(jm, bool) or jm < 1:
         raise ErreurMetier("Journée Maxi ouvert : nombre entier, 1 au moins.")
-    lieux = {(p["pays"], vi["ville"], c["commune"], q) for p in localites() for vi in p["villes"] for c in vi["communes"] for q in c["quartiers"]}
-    if (v["pays"], v["ville"], v["commune"], v["quartier"]) not in lieux:
-        raise ErreurMetier("Pays, ville, commune ou quartier inconnu (Localisation, S20).")      # registre S32-7
+    from .adresse import controler
+    controler(lambda k: v.get(k, ""), quoi="Pays, ville, commune ou quartier")      # registre S32-7 ; adresse unique (registre T41)
     for k, nom in (("compteHorsBilan1", "Compte Hors Bilan 1"), ("compteHorsBilan2", "Hors Bilan 2")):
         if v[k] and not (v[k].startswith("0") and valeur("select 1 from compte where numero = %s and (institution_id is null or institution_id = %s)", (v[k], i))):
             raise ErreurMetier(f"{nom} : {v[k]} n'est pas un compte de hors bilan du plan (classe 0).")       # PCCI § 9, T16
@@ -89,10 +92,15 @@ def enregistrer_agence(u, d, aid: int | None = None) -> dict:
             raise ErreurMetier("Des clients sont rattachés à cette agence : son code entre dans leurs numéros et ne change plus.")
     if une("select 1 from agence where institution_id = %s and code = %s and id is distinct from %s", (i, code, aid)):
         raise ErreurMetier("Ce Code existe déjà.")
+    # Adresse de l'agence, la même que partout (décision du porteur du 21/11/2026, registre T41)
+    from .adresse import controler
+    adr = {k: (d.get(k).strip() if isinstance(d.get(k), str) else "") for k in ADRESSE}
+    controler(lambda k: adr.get(k, ""), quoi="Adresse de l'agence")
     if aid is None:
-        executer("insert into agence (institution_id, code, nom) values (%s, %s, %s)", (i, code, nom))
+        aid = valeur("insert into agence (institution_id, code, nom) values (%s, %s, %s) returning id", (i, code, nom))
     else:
         executer("update agence set code = %s, nom = %s where id = %s", (code, nom, aid))
+    executer(f"update agence set {', '.join(f'{c} = %s' for c in ADRESSE.values())} where id = %s", (*adr.values(), aid))
     return lire(u)
 
 

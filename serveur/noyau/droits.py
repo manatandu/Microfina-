@@ -172,6 +172,7 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/autres/calculs/.*", ["S128"]),
     (r"/autres/cloture/.*", ["S127"]),
     (r"/localisation.*", ["S20"]),
+    (r"/adresse/quartiers", ["S20", "S37", "S38", "S39", "S45", "S46", "S32", "S08"]),   # quartier ajouté depuis une fiche (registre T41)
     (r"/credit-referentiels.*", ["S21"]),
     (r"/credit-degres/ordres", ["S21", "S22"]),
     (r"/produits-credit/activation", ["S25"]),

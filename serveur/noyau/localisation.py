@@ -22,6 +22,14 @@ def droit(u):
     return exiger(u, "chef_agence")          # profil habilité : registre T07, en attendant S03 à S06
 
 
+def officiel(niveau: str):
+    """Le découpage officiel de la RDC (provinces, villes et territoires, communes, secteurs et chefferies) vient des textes (registre S20-6) : il ne se
+    modifie pas à l'écran. L'institution tient les quartiers et les groupements, et les pays (nationalités) (décision du porteur du 21/11/2026, registre S20-11)."""
+    if niveau not in ("pays", "quartier"):
+        raise ErreurMetier("Le découpage officiel (provinces, villes, territoires, communes, secteurs, chefferies) ne se modifie pas : il vient des textes. "
+                           "Seuls les quartiers et les groupements s'ajoutent, se corrigent ou se suppriment.")
+
+
 def niveau_de(n: str) -> str:
     if n not in ONGLETS:
         raise ErreurMetier("Onglet inconnu.", 404)
@@ -57,6 +65,7 @@ def enregistrer(u, niveau: str, d, lid: int | None = None) -> dict:
     et, sur l'onglet Ville / Territoire, une fois par nature : une ville et un territoire peuvent porter le même nom (registre S20-8)."""
     droit(u)
     niveau_de(niveau)
+    officiel(niveau)
     d = d if isinstance(d, dict) else {}
     texte = lambda k: d.get(k).strip() if isinstance(d.get(k), str) else ""
     nom, rang = texte("nom"), NIVEAUX.index(niveau)
@@ -96,6 +105,7 @@ def supprimer(u, niveau: str, lid: int) -> dict:
     """Supprimer (manuel p. 12) : suppression logique (registre T02). Un lieu qui a des lieux actifs en dessous ne se supprime pas."""
     droit(u)
     niveau_de(niveau)
+    officiel(niveau)
     if not une("select 1 from localite where id = %s and niveau = %s and actif for update", (lid, niveau)):
         raise ErreurMetier("Ligne introuvable.")
     if une("select 1 from localite where parent_id = %s and actif limit 1", (lid,)):

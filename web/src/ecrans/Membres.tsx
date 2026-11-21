@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { api, enrolementVide, IMAGE_MAX, type Images, type NouveauTiers, type RepresentantSaisi } from "../donnees/api";
 import type { Beneficiaire, Tiers } from "../donnees/types";
+import { BlocAdresse } from "../composants/Adresse";
 import { useDonnees, message } from "../lib/useDonnees";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
 import { lireMontant } from "@design/montant.js";
@@ -281,7 +282,7 @@ function AgentsClient({ f, maj, ctx }: { f: NouveauTiers; maj: (p: Partial<Nouve
     {liste("Commercial :", "commercialId", ctx.commerciaux)}</>;
 }
 
-type CleTexte = "civilite" | "situationMatrimoniale" | "secteurActivite" | "typeActivite" | "categorie" | "sousTypeClient" | "nationalite" | "profession"
+type CleTexte = "civilite" | "situationMatrimoniale" | "secteurActivite" | "typeActivite" | "categorie" | "sousTypeClient" | "nationalite" | "profession" | "piecePays"
   | "pere" | "mere" | "pays" | "ville" | "commune" | "quartier" | "rue" | "email" | "bp" | "telephoneFixe";
 /** Liste déroulante lue dans le paramétrage (registre S37-2) */
 function ChoixListe({ libelle, k, valeurs, f, maj, apres }: { libelle: string; k: CleTexte; valeurs: string[]; f: NouveauTiers; maj: (p: Partial<NouveauTiers>) => void;
@@ -292,8 +293,17 @@ function ChoixListe({ libelle, k, valeurs, f, maj, apres }: { libelle: string; k
 
 /** Onglet Renseignements généraux (Info Généraux en S46) : identité et pièce. Le manuel ne montre pas ces champs : ceux que d'autres écrans affichent
  * du client (contrat p. 52, résiliation p. 56, situation p. 74) et les mentions de l'Instr. BCC 15, art. 12 et 13 (registre S37-1) */
+// Pièce d'identité (décision du porteur du 21/11/2026, registre T42) : trois formes proposées, « Autre » ouvre une case à préciser parmi les autres pièces
+// admises par l'Instr. BCC 15, art. 14
+const FORMES_PIECE = ["Passeport", "Carte d'identité nationale", "Carte d'électeur"];
+const AUTRE_PIECE = "Autre (veuillez préciser)";
+
 function IdentitePhysique({ f, maj, ctx }: { f: NouveauTiers; maj: (p: Partial<NouveauTiers>) => void; ctx: Ctx }) {
   const texte = (k: keyof NouveauTiers) => ({ value: (f[k] as string) ?? "", onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => maj({ [k]: e.target.value }) });
+  const [autre, setAutre] = useState(!!f.pieceType && !FORMES_PIECE.includes(f.pieceType));
+  const forme = autre ? AUTRE_PIECE : f.pieceType;
+  const autresPieces = ctx.pieces.filter((x) => !FORMES_PIECE.includes(x));
+  const pays = ctx.localites.map((x) => x.pays);
   return (
     <div className="deux-colonnes">
       <div className="pile">
@@ -301,25 +311,32 @@ function IdentitePhysique({ f, maj, ctx }: { f: NouveauTiers; maj: (p: Partial<N
         <Champ libelle="Nom : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("nom")} />}</Champ>
         <Champ libelle="Post-nom :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("postnom")} />}</Champ>
         <Champ libelle="Prénom : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("prenom")} />}</Champ>
-        <Champ libelle="Sexe :">{(p) => <select {...p} className="saisie" {...texte("sexe")}><option value=""></option><option value="F">Féminin</option><option value="M">Masculin</option></select>}</Champ>
-        <ChampDate libelle="Date de naissance : *" valeur={f.naissance} onChange={(v) => maj({ naissance: v })} requis />
-        <Champ libelle="Lieu de naissance : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("lieuNaissance")} />}</Champ>
-        <ChoixListe libelle="Nationalité :" k="nationalite" valeurs={ctx.localites.map((x) => x.pays)} f={f} maj={maj} />
-        <ChoixListe libelle="Situation matrimoniale :" k="situationMatrimoniale" valeurs={ctx.listesFiche.situationMatrimoniale ?? []} f={f} maj={maj} />
-        <Champ libelle="Fils / fille de :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("pere")} />}</Champ>
-        <Champ libelle="et de :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("mere")} />}</Champ>
-        <ChoixListe libelle="Profession :" k="profession" valeurs={ctx.professions} f={f} maj={maj} />
+        <Champ libelle="Forme d'identité : *">{(p) => <select {...p} className="saisie" required value={forme} onChange={(e) => {
+          const v = e.target.value; setAutre(v === AUTRE_PIECE); maj({ pieceType: v === AUTRE_PIECE ? "" : v });
+        }}><option value=""></option>{[...FORMES_PIECE, AUTRE_PIECE].map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+        {autre && <Champ libelle="Précisez la pièce : *" aide="Une des pièces admises par l'Instruction BCC 15, art. 14">{(p) => <>
+          <input {...p} className="saisie" required autoComplete="off" list="pieces-admises" {...texte("pieceType")} />
+          <datalist id="pieces-admises">{autresPieces.map((x) => <option key={x} value={x} />)}</datalist></>}</Champ>}
+        <Champ libelle="N° de pièce : *">{(p) => <input {...p} className="saisie code" required autoComplete="off" {...texte("pieceNumero")} />}</Champ>
+        <ChoixListe libelle="Pays de délivrance :" k="piecePays" valeurs={pays} f={f} maj={maj} />
+        <Champ libelle="Lieu de délivrance : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("pieceLieu")} />}</Champ>
+        <ChampDate libelle="Date de délivrance : *" valeur={f.pieceDelivreeLe} onChange={(v) => maj({ pieceDelivreeLe: v })} requis />
+        <ChampDate libelle="Date d'expiration : *" valeur={f.pieceExpire} onChange={(v) => maj({ pieceExpire: v })} requis />
+        {/* Instr. BCC 15, art. 13 : la pièce décline « les noms et la qualité de l'Autorité » qui l'a délivrée */}
+        <Champ libelle="Autorité de délivrance : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("pieceAutorite")} />}</Champ>
       </div>
       <div className="pile">
-        <Champ libelle="Type de pièce : *">{(p) => <select {...p} className="saisie" required {...texte("pieceType")}><option value=""></option>
-          {ctx.pieces.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
-        <Champ libelle="N° de pièce : *">{(p) => <input {...p} className="saisie code" required autoComplete="off" {...texte("pieceNumero")} />}</Champ>
-        <ChampDate libelle="Délivrée le : *" valeur={f.pieceDelivreeLe} onChange={(v) => maj({ pieceDelivreeLe: v })} requis />
-        <Champ libelle="Lieu de délivrance : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("pieceLieu")} />}</Champ>
-        <Champ libelle="Autorité de délivrance : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("pieceAutorite")} />}</Champ>
-        <ChampDate libelle="Valide jusqu'au : *" valeur={f.pieceExpire} onChange={(v) => maj({ pieceExpire: v })} requis />
-        <Champ libelle="Adresse : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("adresse")} />}</Champ>
-        <Champ libelle="Téléphone :">{(p) => <input {...p} className="saisie code" type="tel" inputMode="tel" autoComplete="off" {...texte("telephone")} />}</Champ>
+        <ChoixListe libelle="Nationalité :" k="nationalite" valeurs={pays} f={f} maj={maj} />
+        <Champ libelle="Sexe :">{(p) => <select {...p} className="saisie" {...texte("sexe")}><option value=""></option><option value="F">Féminin</option><option value="M">Masculin</option></select>}</Champ>
+        <ChoixListe libelle="Situation matrimoniale :" k="situationMatrimoniale" valeurs={ctx.listesFiche.situationMatrimoniale ?? []} f={f} maj={maj} />
+        <Champ libelle="Numéro de téléphone :">{(p) => <input {...p} className="saisie code" type="tel" inputMode="tel" autoComplete="off" {...texte("telephone")} />}</Champ>
+        <Champ libelle="Adresse électronique :">{(p) => <input {...p} className="saisie" type="email" autoComplete="off" {...texte("email")} />}</Champ>
+        <ChampDate libelle="Date de naissance : *" valeur={f.naissance} onChange={(v) => maj({ naissance: v })} requis />
+        <Champ libelle="Lieu de naissance : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("lieuNaissance")} />}</Champ>
+        <Champ libelle="Noms du père :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("pere")} />}</Champ>
+        <Champ libelle="Noms de la mère :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("mere")} />}</Champ>
+        {/* profession : champ libre (décision du porteur du 21/11/2026, registre T42) */}
+        <Champ libelle="Profession :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("profession")} />}</Champ>
       </div>
     </div>
   );
@@ -327,24 +344,19 @@ function IdentitePhysique({ f, maj, ctx }: { f: NouveauTiers; maj: (p: Partial<N
 
 /** Onglet Autres renseignements (Autre Info en S46) : domicile (S20), coordonnées, activité (S14, S14a, S14c, S14h), personne exposée (registre S37-1, S37-2).
  * Groupe : Catégorie de groupe, S14j (registre S39-1) */
-function AutresRenseignements({ f, maj, ctx, categories }: { f: NouveauTiers; maj: (p: Partial<NouveauTiers>) => void; ctx: Ctx; categories?: string[] }) {
+function AutresRenseignements({ f, maj, ctx, categories, physique }: { f: NouveauTiers; maj: (p: Partial<NouveauTiers>) => void; ctx: Ctx; categories?: string[];
+  physique?: boolean }) {
   const texte = (k: CleTexte, libelle: string, classe = "saisie") => (
     <Champ libelle={libelle}>{(p) => <input {...p} className={classe} autoComplete="off" value={f[k] ?? ""} onChange={(e) => maj({ [k]: e.target.value })} />}</Champ>);
-  const pays = ctx.localites.find((x) => x.pays === f.pays);
-  const ville = pays?.villes.find((x) => x.ville === f.ville);
-  const commune = ville?.communes.find((x) => x.commune === f.commune);
   const types = ctx.typesActivite.filter((t) => t.secteur === f.secteurActivite).map((t) => t.libelle);
   return (
     <div className="deux-colonnes">
       <div className="pile">
-        <ChoixListe libelle="Pays :" k="pays" valeurs={ctx.localites.map((x) => x.pays)} f={f} maj={maj} apres={{ ville: "", commune: "", quartier: "" }} />
-        <ChoixListe libelle="Ville :" k="ville" valeurs={pays?.villes.map((x) => x.ville) ?? []} f={f} maj={maj} apres={{ commune: "", quartier: "" }} />
-        <ChoixListe libelle="Commune :" k="commune" valeurs={ville?.communes.map((x) => x.commune) ?? []} f={f} maj={maj} apres={{ quartier: "" }} />
-        <ChoixListe libelle="Quartier :" k="quartier" valeurs={commune?.quartiers ?? ville?.quartiers ?? []} f={f} maj={maj} />
-        {texte("rue", "Rue / Maison :")}
+        {/* Adresse géographique, la même que partout (registre T41) */}
+        <BlocAdresse valeur={f} maj={maj} arbre={ctx.arbreLieux} requis ajouterQuartier={api.adresse.ajouterQuartier} />
         {texte("bp", "BP :", "saisie code")}
         {texte("telephoneFixe", "Téléphone fixe :", "saisie code")}
-        {texte("email", "Email :")}
+        {!physique && texte("email", "Email :")}
       </div>
       <div className="pile">
         <ChoixListe libelle="Secteur d'activité :" k="secteurActivite" valeurs={ctx.listesFiche.secteurActivite ?? []} f={f} maj={maj} apres={{ typeActivite: "" }} />
@@ -414,7 +426,6 @@ function RenseignementsEntreprise({ f, maj, ctx }: { f: NouveauTiers; maj: Maj; 
       <Champ libelle="Forme juridique : *">{(p) => <select {...p} className="saisie" required value={f.formeJuridique} onChange={(e) => maj({ formeJuridique: e.target.value })}>
         <option value=""></option>{(ctx.listesFiche.formeJuridique ?? []).map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
       <Champ libelle="N° du registre : *">{(p) => <input {...p} className="saisie code" required autoComplete="off" {...texte("registre")} />}</Champ>
-      <Champ libelle="Adresse du siège : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("adresse")} />}</Champ>
       <Champ libelle="Principal centre d'activité :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("centreActivite")} />}</Champ>
     </div>
   );
@@ -426,7 +437,6 @@ function RenseignementsGroupe({ f, maj, ctx }: { f: NouveauTiers; maj: Maj; ctx:
   return (
     <div className="formulaire">
       <Champ libelle="Dénomination : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("nom")} />}</Champ>
-      <Champ libelle="Adresse : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("adresse")} />}</Champ>
       <Champ libelle="Forme juridique :">{(p) => <select {...p} className="saisie" value={f.formeJuridique} onChange={(e) => maj({ formeJuridique: e.target.value })}>
         <option value=""></option>{(ctx.listesFiche.formeJuridique ?? []).map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
       <Champ libelle="N° du registre ou de l'acte :">{(p) => <input {...p} className="saisie code" autoComplete="off" {...texte("registre")} />}</Champ>
@@ -472,7 +482,7 @@ export function EnrolementPhysique() {
 
       {c.onglet === 1 && <IdentitePhysique f={f} maj={maj} ctx={ctx} />}
 
-      {c.onglet === 2 && <AutresRenseignements f={f} maj={maj} ctx={ctx} />}
+      {c.onglet === 2 && <AutresRenseignements f={f} maj={maj} ctx={ctx} physique />}
 
       {c.onglet === 3 && <PersonnesLiees key={c.generation} liees={c.liees} onChange={c.setLiees} />}
 
@@ -678,7 +688,7 @@ export function MiseAJourClient() {
             {nom === "Info Généraux" && <IdentitePhysique f={f} maj={maj} ctx={ctx} />}
             {nom === "Renseignements généraux" && (genre === "morale" ? <RenseignementsEntreprise f={f} maj={maj} ctx={ctx} /> : <RenseignementsGroupe f={f} maj={maj} ctx={ctx} />)}
             {(nom === "Autre Info" || nom === "Autres renseignements") &&
-              <AutresRenseignements f={f} maj={maj} ctx={ctx} categories={genre === "groupe" ? ctx.listesFiche.categorieGroupe ?? [] : undefined} />}
+              <AutresRenseignements f={f} maj={maj} ctx={ctx} categories={genre === "groupe" ? ctx.listesFiche.categorieGroupe ?? [] : undefined} physique={genre === "physique"} />}
             {nom === "Dirigeant" && <>
               <label className="case"><input type="checkbox" checked={avecDirigeant} onChange={(e) => setAvecDirigeant(e.target.checked)} /><span>Renseigner Dirigeant</span></label>
               {avecDirigeant && <ChampsRepresentant r={dirigeant} maj={(p) => setDirigeant({ ...dirigeant, ...p })} pieces={ctx.pieces} />}

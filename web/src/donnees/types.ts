@@ -9,17 +9,20 @@ export interface Utilisateur { id: number; login: string; nom: string; roles: Ro
 export interface Institution { nom: string; sigle?: string; profil: string;
   // S32 Info générale
   description?: string; directeur?: string; numeroAgrement?: string; journeeMax?: number; compteHorsBilan1?: string | null; compteHorsBilan2?: string | null;
-  ifu?: string; pays?: string; ville?: string; commune?: string; quartier?: string; rue?: string; email?: string; bp?: string; telephoneFixe?: string; adresse?: string; logo?: string | null;
+  ifu?: string; pays?: string; province?: string; ville?: string; commune?: string; quartier?: string; rue?: string; numeroRue?: string; email?: string; bp?: string; telephoneFixe?: string; adresse?: string; logo?: string | null;
   delegationAdmission?: string;
   membresAuxiliaires?: string;   // écart E20 : article des statuts qui prévoit des membres auxiliaires (loi 002/2002, art. 23)
   criteresAtypiques?: CriteresAtypiques }   // écart E09 : critères fixés par l'institution (Instr. BCC 15, art. 36)
 export interface CriteresAtypiques { montantUsd: number | null; montantEleveUsd: number | null; nombreJour: number | null; reveilMois: number | null }   // écart E05 : décision du Conseil qui délègue l'admission des membres
-export interface Agence { id: number; code: string; nom: string }
+/** Une seule adresse, la même partout (décision du porteur du 21/11/2026, registre T41) : « rue » est l'avenue, « numeroRue » le N° */
+export interface Adresse { pays?: string; province?: string; ville?: string; commune?: string; quartier?: string; rue?: string; numeroRue?: string }
+export interface Agence extends Adresse { id: number; code: string; nom: string }
 /** Guichet ; champs de « Gestion des guichets » (S08, manuel p. 18) */
 export interface Guichet {
   id: number; code: string; nom: string;
   typeGuichet?: string; journalId?: number; plafonds?: Record<string, { maximum: number; retrait: number }>;   // par devise tenue (S08-3)
   compteGuichet?: string; compteLiaison?: string; compteSurplus?: string; compteManquant?: string; billetage?: boolean; actif?: boolean;
+  horsAgence?: boolean; adresse?: Adresse;   // un guichet hors de son agence a sa propre adresse (registre T41)
 }
 
 export type EtatJournee = "ouverte" | "en_cloture" | "fermee";
@@ -90,6 +93,7 @@ export interface Tiers {
   pieceDelivreeLe: string;
   pieceLieu: string;
   pieceAutorite: string;
+  piecePays?: string;          // pays de délivrance (registre T42)
   liees: number[];             // personnes liées (onglet « Personnes Liées »)
   beneficiairesEffectifs?: number[];   // onglet « Personnes Liées », lien Bénéficiaire effectif (registre S38-3 ; Instr. BCC 15, art. 18)
   // S38, entreprise : nom = dénomination, adresse = siège, typeClient = type entreprise (Instr. BCC 15, art. 17)
@@ -113,6 +117,7 @@ export interface Tiers {
   ville: string;
   quartier: string;
   rue: string;
+  province?: string; numeroRue?: string;   // adresse unique (registre T41)
   email: string;
   bp: string;
   telephoneFixe: string;
@@ -506,7 +511,7 @@ export interface AnalyseFinanciere {
 
 /** S86 à S88 : demande de crédit, contrôlée puis approuvée (registre S86, S87, S88, CR-8) */
 export interface DemandeCredit {
-  id: number; numero: string; tiersId: number; produitId: number; devise: Devise; analyseId: number | null; cycleId: number | null; provinceId: number; villeId: number;
+  id: number; numero: string; tiersId: number; produitId: number; devise: Devise; analyseId: number | null; cycleId: number | null; provinceId: number; villeId: number; communeId?: number | null;
   nbHommes: number; nbFemmes: number; montantHommes: number; montantFemmes: number; nbGroupes: number; montant: number; duree: number;
   parts: { membre: string; montant: number }[]; statut: "saisie" | "controlee" | "approuvee" | "mise_en_place"; creeLe: string; saisiPar: number;
   controlePar: number | null; approuvePar: number | null; approuveLe?: string; montantApprouve: number | null; consultationCrLe: string; consultationCrRef: string;

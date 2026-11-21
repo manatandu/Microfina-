@@ -613,6 +613,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       enregistrer: (d: object, numero?: string) => post(numero === undefined ? "/plan-comptes" : `/plan-comptes/${numero}`, d),
       supprimer: (numero: string) => post(`/plan-comptes/${numero}/suppression`),
     },
+    adresse: { ajouterQuartier: (d: object) => post("/adresse/quartiers", d) },
     localisation: {
       lire: (niveau: string) => get(`/localisation/${niveau}`),
       enregistrer: (niveau: string, d: object, id?: number) => post(id === undefined ? `/localisation/${niveau}` : `/localisation/${niveau}/${id}`, d),

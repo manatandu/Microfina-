@@ -10,7 +10,7 @@ import {
   type ChequeClient, type Chequier, type DepotTerme, type ImmoBien, type PaieEmploye, type PlanEpargne, type ClotureCompte, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type OperationCompta, type LigneOc, type ChargeFacture, type CommandeFournisseur, type FactureFournisseur, type ReglementFournisseur, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget, type CriteresAtypiques, type GelAvoirs,
-  type AnalyseFinanciere, type DemandeCredit, type CreditPret, type GarantieCredit, type RemboursementCredit, type VisaCredit, type BalanceAgee,
+  type AnalyseFinanciere, type DemandeCredit, type CreditPret, type GarantieCredit, type RemboursementCredit, type VisaCredit, type BalanceAgee, type Adresse,
 } from "./types";
 import { DROITS_METHODES } from "./droits.gen";
 import registreEcrans from "../ecrans/registre.json";
@@ -118,7 +118,7 @@ const session = {
 };
 
 function contexte() {
-  return { institution: E.institution, agence: E.agence, guichets: E.guichets.filter((g) => g.actif !== false), produits: produitsProposes(), zones: zonesActives(), typesClient: valeursListe("type_client").map((l) => l.libelle), typesEntreprise: TYPES_ENTREPRISE, typesGroupe: valeursListe("type_groupe").map((l) => l.libelle), pieces: PIECES, professions: professions(), localites: localites(),
+  return { arbreLieux: arbreLieux(), institution: E.institution, agence: E.agence, guichets: E.guichets.filter((g) => g.actif !== false), produits: produitsProposes(), zones: zonesActives(), typesClient: valeursListe("type_client").map((l) => l.libelle), typesEntreprise: TYPES_ENTREPRISE, typesGroupe: valeursListe("type_groupe").map((l) => l.libelle), pieces: PIECES, professions: professions(), localites: localites(),
     // S37 : listes lues par la fiche du client (registre S37-2)
     listesFiche: { ...Object.fromEntries(Object.entries(LISTES_FICHE).map(([k, [liste]]) => [k, valeursListe(liste).map((l) => l.libelle)])) as Record<string, string[]>,
       filiation: valeursListe("filiation").map((l) => l.libelle), formeJuridique: valeursListe("forme_juridique").map((l) => l.libelle),
@@ -480,7 +480,7 @@ export const IMAGE_MAX = 400_000;   // caractères de l'image encodée, environ 
 /** Fiche vide : valeurs par défaut de la capture p. 49 (Résident et Prélever agios cochés, Calculer intérêt décoché) */
 export function enrolementVide(date: string): NouveauTiers {
   return { dateDemande: date, numeroManuel: "", matricule: "", typeClient: "Client", zone: "", produitCode: "", premierDepot: 0, resident: true, preleverAgios: true, calculerInteret: false,
-    nom: "", postnom: "", prenom: "", sexe: "", naissance: "", lieuNaissance: "", pieceType: "", pieceNumero: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", pieceExpire: "",
+    nom: "", postnom: "", prenom: "", sexe: "", naissance: "", lieuNaissance: "", pieceType: "", pieceNumero: "", pieceDelivreeLe: "", piecePays: "", pieceLieu: "", pieceAutorite: "", pieceExpire: "",
     adresse: "", telephone: "", personneExposee: false, liees: [], profession: "", pays: "", ville: "", quartier: "", rue: "", email: "", bp: "", telephoneFixe: "",
     formeJuridique: "", registre: "", centreActivite: "", activite: "", nbHommes: 0, nbFemmes: 0 };
 }
@@ -526,15 +526,67 @@ export const LISTES_FICHE: Record<string, [string, string]> = { civilite: ["civi
 const OBLIGATOIRES_IDENTITE: [string, keyof NouveauTiers][] = [["prénom", "prenom"], ["date de naissance", "naissance"], ["lieu de naissance", "lieuNaissance"],
   ["adresse", "adresse"], ["délivrée le", "pieceDelivreeLe"], ["lieu de délivrance", "pieceLieu"], ["autorité de délivrance", "pieceAutorite"], ["valide jusqu'au", "pieceExpire"]];
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
-function controlerLieu(d: { pays?: string; ville?: string; commune?: string; quartier?: string }) {
-  const [pays, ville, commune, quartier] = [d.pays ?? "", d.ville ?? "", d.commune ?? "", d.quartier ?? ""].map((x) => x.trim());
-  if (!(pays || ville || commune || quartier)) return;
-  const p = localites().find((x) => x.pays === pays);
-  const v = ville ? p?.villes.find((x) => x.ville === ville) : undefined;
-  const c = commune ? v?.communes.find((x) => x.commune === commune) : undefined;
-  const ok = !!p && (!ville || !!v) && (!commune || !!c) && (!quartier || (c ? c.quartiers : v ? v.quartiers : []).includes(quartier));
-  if (!ok) throw new ErreurMetier("Pays, ville, commune ou quartier inconnu.");
+function controlerLieu(d: Adresse, quoi = "Pays, ville, commune ou quartier") { controlerAdresse(d, !!d.province?.trim(), quoi); }   // une adresse commencée va jusqu'au quartier
+// ---------- Une seule adresse, la même partout (décision du porteur du 21/11/2026, registre T41) : mêmes règles que serveur/noyau/adresse.py ----------
+const ORDRE_NATURE_LIEU: Record<string, number> = { Ville: 0, Territoire: 1, Commune: 2, Secteur: 3, Chefferie: 4 };
+type GroupeLieu = { nom: string; natures: string[]; ids: number[] };
+/** Pays > provinces > villes ou territoires > communes, secteurs ou chefferies > quartiers ou groupements ; un même nom sous un même parent fait une entrée */
+export function arbreLieux() {
+  const a = E.lieux.filter((l) => l.actif);
+  const enfants = new Map<number | null, LigneLieu[]>();
+  for (const l of a) enfants.set(l.parentId, [...(enfants.get(l.parentId) ?? []), l]);
+  const sous = (ids: number[], niveau: NiveauLieu): GroupeLieu[] => {
+    const g = new Map<string, GroupeLieu>();
+    for (const i of ids) for (const l of enfants.get(i) ?? []) if (l.niveau === niveau) {
+      const x = g.get(l.nom) ?? { nom: l.nom, natures: [], ids: [] }; x.ids.push(l.id);
+      if (l.nature && !x.natures.includes(l.nature)) x.natures.push(l.nature); g.set(l.nom, x);
+    }
+    const rang = (x: GroupeLieu) => Math.min(9, ...x.natures.map((n) => ORDRE_NATURE_LIEU[n] ?? 9));
+    return [...g.values()].sort((x, y) => rang(x) - rang(y) || x.nom.toLowerCase().localeCompare(y.nom.toLowerCase()));
+  };
+  const quartiers = (ids: number[]) => [...new Set(ids.flatMap((i) => (enfants.get(i) ?? []).filter((l) => l.niveau === "quartier").map((l) => l.nom)))]
+    .sort((x, y) => x.toLowerCase().localeCompare(y.toLowerCase()));
+  // seuls les pays découpés dans la Localisation servent à l'adresse ; les autres servent aux nationalités (registre T42)
+  return a.filter((p) => p.niveau === "pays" && p.parentId === null).sort((x, y) => x.nom.localeCompare(y.nom)).map((p) => ({
+    pays: p.nom, provinces: sous([p.id], "province").map((pr) => ({ province: pr.nom, villes: sous(pr.ids, "ville").map((v) => ({ ville: v.nom, natures: v.natures,
+      communes: sous(v.ids, "commune").map((c) => ({ commune: c.nom, natures: c.natures, quartiers: quartiers(c.ids) })) })) })) })).filter((p) => p.provinces.length > 0);
 }
+export type ArbreLieux = ReturnType<typeof arbreLieux>;
+/** Cohérence de l'adresse avec la Localisation ; requis : province, ville ou territoire, commune, secteur ou chefferie, quartier ou groupement */
+export function controlerAdresse(d: Adresse, requis = false, quoi = "Adresse") {
+  const v = (k: keyof Adresse) => (d[k] ?? "").trim();
+  if (requis) {
+    const manque = ([["province", "province"], ["ville ou territoire", "ville"], ["commune, secteur ou chefferie", "commune"], ["quartier ou groupement", "quartier"]] as const)
+      .filter(([, k]) => !v(k)).map(([n]) => n);
+    if (manque.length) throw new ErreurMetier(`${quoi} : à remplir : ${manque.join(", ")}.`);
+  }
+  if (!(["pays", "province", "ville", "commune", "quartier"] as const).some((k) => v(k))) return;
+  const pays = arbreLieux().find((p) => p.pays === (v("pays") || "République démocratique du Congo"));
+  const provinces = (pays?.provinces ?? []).filter((x) => !v("province") || x.province === v("province"));
+  const villes = v("ville") ? provinces.flatMap((pr) => pr.villes.filter((x) => x.ville === v("ville"))) : [];
+  const communes = villes.flatMap((vi) => vi.communes.filter((x) => !v("commune") || x.commune === v("commune")));
+  const ok = !!pays && (!v("province") || provinces.length > 0) && (!v("ville") || villes.length > 0) && (!v("commune") || (!!v("ville") && communes.length > 0))
+    && (!v("quartier") || communes.some((c) => c.quartiers.includes(v("quartier"))));
+  if (!ok) throw new ErreurMetier(`${quoi} : province, ville ou territoire, commune ou quartier inconnu (Paramétrage > Localisation).`);
+}
+/** Un quartier ou un groupement absent, ajouté depuis une fiche : il rejoint la Localisation (registre T41) */
+function ajouterQuartier(d: Adresse & { nom?: string }) {
+  exiger();
+  const t = (k: "pays" | "province" | "ville" | "commune" | "nom") => ((d as Record<string, string | undefined>)[k] ?? "").trim();
+  const nom = t("nom");
+  if (!nom) throw new ErreurMetier("À remplir : nom du quartier ou du groupement.");
+  let ids = E.lieux.filter((l) => l.actif && l.niveau === "pays" && l.nom === (t("pays") || "République démocratique du Congo")).map((l) => l.id);
+  for (const [niveau, n] of [["province", t("province")], ["ville", t("ville")], ["commune", t("commune")]] as const)
+    ids = n ? E.lieux.filter((l) => l.actif && l.niveau === niveau && l.nom === n && l.parentId !== null && ids.includes(l.parentId)).map((l) => l.id) : [];
+  if (!(t("province") && t("ville") && t("commune")) || !ids.length) throw new ErreurMetier("Choisissez d'abord la province, la ville ou le territoire, et la commune, le secteur ou la chefferie.");
+  if (E.lieux.some((l) => l.actif && l.niveau === "quartier" && l.parentId !== null && ids.includes(l.parentId) && l.nom.toLowerCase() === nom.toLowerCase()))
+    throw new ErreurMetier("Ce quartier ou ce groupement existe déjà.");
+  const parent = ids.map((i) => E.lieux.find((l) => l.id === i)!).sort((x, y) => (x.nature === "Commune" ? 0 : 1) - (y.nature === "Commune" ? 0 : 1) || x.id - y.id)[0]!;
+  E.lieux.push({ id: prochain(E.lieux), parentId: parent.id, niveau: "quartier", nom, nature: "", nationalite: "", code: "", zone: "", actif: true });
+  enregistrer(); return { arbre: arbreLieux() };
+}
+const moduleAdresse = { ajouterQuartier };
+const CHAMPS_ADRESSE = ["pays", "province", "ville", "commune", "quartier", "rue", "numeroRue"] as const;
 /** identite = false : entreprise et groupe, sans mentions d'une personne physique */
 export function controlerFichePhysique(d: NouveauTiers, jour: string, identite = true, categorie = "categorie") {
   const txt = (k: keyof NouveauTiers) => (typeof d[k] === "string" ? (d[k] as string).trim() : "");
@@ -552,8 +604,9 @@ export function controlerFichePhysique(d: NouveauTiers, jour: string, identite =
   }
   if (txt("typeActivite") && !valeursListe("type_activite").some((l) => l.libelle === txt("typeActivite") && l.parent === txt("secteurActivite")))
     throw new ErreurMetier("Type d'activité : il n'appartient pas au secteur d'activité choisi.");
-  if (txt("profession") && !professions().includes(txt("profession"))) throw new ErreurMetier("Profession inconnue.");
+  // profession : champ libre (décision du porteur du 21/11/2026, registre T42)
   if (txt("nationalite") && !localites().some((p) => p.pays === txt("nationalite"))) throw new ErreurMetier("Nationalité : pays inconnu (Paramétrage > Localisation).");
+  if (txt("piecePays") && !localites().some((p) => p.pays === txt("piecePays"))) throw new ErreurMetier("Pays de délivrance : pays inconnu (Paramétrage > Localisation).");
   controlerLieu(d);
   if (txt("email") && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(txt("email"))) throw new ErreurMetier("Email invalide.");
   if (d.gestionnaireId != null && !E.agents.some((a) => a.id === d.gestionnaireId && a.role === "gestionnaire" && a.actif)) throw new ErreurMetier("Gestionnaire inconnu.");
@@ -623,7 +676,8 @@ function controlerStatutActif(statut: Tiers["statut"], suite = "") {
   if (statut !== "actif") throw new ErreurMetier(`Client pas encore visé${suite}.`);
 }
 /** Champs de l'écran prospect (p. 55) */
-export type Prospect = Pick<Tiers, "nom" | "prenom" | "naissance" | "lieuNaissance" | "sexe" | "profession" | "pays" | "ville" | "quartier" | "rue" | "email" | "bp" | "telephoneFixe" | "telephone"> &
+export type Prospect = Pick<Tiers, "nom" | "prenom" | "naissance" | "lieuNaissance" | "sexe" | "profession" | "pays" | "ville" | "quartier" | "rue" | "email" | "bp" | "telephoneFixe" | "telephone"
+  | "province" | "commune" | "numeroRue"> &
   { sensibilisateurId?: number | null; commercialId?: number | null };   // S33-4
 /** Sensibilisateur et Commercial du prospect : ceux de S33, ou aucun (INCONNU) ; registre S33-4 */
 function agentsProspect(d: Prospect) {
@@ -644,8 +698,7 @@ function controlerProspect(d: Prospect): Prospect {
   if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
   if (v.sexe !== "F" && v.sexe !== "M") throw new ErreurMetier("Sexe inconnu.");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(v.naissance) || v.naissance > new Date().toISOString().slice(0, 10)) throw new ErreurMetier("Date de naissance invalide.");
-  if (!localites().some((p) => p.pays === v.pays && p.villes.some((x) => x.ville === v.ville && x.quartiers.includes(v.quartier)))) throw new ErreurMetier("Pays, ville ou quartier inconnu.");
-  if (v.profession && !professions().includes(v.profession)) throw new ErreurMetier("Profession inconnue.");
+  controlerLieu(v, "Pays, ville ou quartier");          // adresse unique (registre T41)
   if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) throw new ErreurMetier("Email invalide.");
   return v;
 }
@@ -710,12 +763,12 @@ function modifierPhysique(t: Tiers, d: NouveauTiers, ctx: CtxControle) {
   controlerPiece(d.pieceType, d.pieceExpire, ctx.jour);
   controlerFichePhysique(d, ctx.jour);
   const champs = ["dateDemande", "typeClient", "zone", "resident", "preleverAgios", "calculerInteret", "personneExposee", "nom", "postnom", "prenom", "sexe",
-    "naissance", "lieuNaissance", "pieceType", "pieceNumero", "pieceDelivreeLe", "pieceLieu", "pieceAutorite", "pieceExpire", "adresse", "telephone", "liees",
+    "naissance", "lieuNaissance", "pieceType", "pieceNumero", "pieceDelivreeLe", "pieceLieu", "pieceAutorite", "pieceExpire", "piecePays", "adresse", "telephone", "liees",
     // S37 : fiche du client (registre S37-1 à S37-3)
-    "civilite", "nationalite", "situationMatrimoniale", "pere", "mere", "profession", "pays", "ville", "commune", "quartier", "rue", "email", "bp", "telephoneFixe",
+    "civilite", "nationalite", "situationMatrimoniale", "pere", "mere", "profession", "pays", "province", "ville", "commune", "quartier", "rue", "numeroRue", "email", "bp", "telephoneFixe",
     "secteurActivite", "typeActivite", "categorie", "sousTypeClient", "gestionnaireId", "sensibilisateurId", "commercialId", "beneficiaires"] as const;
   // comme le serveur (ecrire_fiche_physique) : une case vide de la fiche garde la valeur en place (registre S37-6)
-  const gardes = new Set(["civilite", "nationalite", "situationMatrimoniale", "pere", "mere", "profession", "pays", "ville", "commune", "quartier", "rue", "email", "bp", "telephoneFixe"]);
+  const gardes = new Set(["civilite", "nationalite", "situationMatrimoniale", "pere", "mere", "profession", "pays", "province", "ville", "commune", "quartier", "rue", "numeroRue", "email", "bp", "telephoneFixe"]);
   for (const k of champs) (t as unknown as Record<string, unknown>)[k] = gardes.has(k) && !d[k] ? t[k] : d[k];
 }
 
@@ -821,7 +874,7 @@ const tiers = {
     const avant = structuredClone(t);
     const dd = { ...d, produitCode: t.produitCode || "EAV-CDF", premierDepot: t.premierDepot };
     const fiche = ["dateDemande", "typeClient", "zone", "resident", "preleverAgios", "calculerInteret", "personneExposee", "nom", "adresse", "formeJuridique", "registre",
-      "liees", "pays", "ville", "commune", "quartier", "rue", "email", "bp", "telephoneFixe", "secteurActivite", "typeActivite", "categorie", "sousTypeClient",
+      "liees", "pays", "province", "ville", "commune", "quartier", "rue", "numeroRue", "email", "bp", "telephoneFixe", "secteurActivite", "typeActivite", "categorie", "sousTypeClient",
       "gestionnaireId", "sensibilisateurId", "commercialId"] as const;
     const ecrire = (champs: readonly (keyof NouveauTiers)[]) => { for (const k of champs) (t as unknown as Record<string, unknown>)[k] = d[k]; };
     if (t.type === "morale") {
@@ -2928,7 +2981,7 @@ const vueDemande = (x: DemandeCredit) => { const t = E.tiers.find((y) => y.id ==
   return { id: x.id, numero: x.numero, tiersId: x.tiersId, membre: t.numero, client: titulaire(t), produitId: x.produitId, produit: String(p.nom), devise: x.devise,
     cycle: String(stockCredit("cycles").find((c) => c.id === x.cycleId)?.libelle ?? ""), analyse: E.analyses.find((a) => a.id === x.analyseId)?.numero ?? "",
     nbHommes: x.nbHommes, nbFemmes: x.nbFemmes, montantHommes: x.montantHommes, montantFemmes: x.montantFemmes, nbGroupes: x.nbGroupes, montant: x.montant, duree: x.duree,
-    montantApprouve: x.montantApprouve, province: lieu(x.provinceId), ville: lieu(x.villeId), parts: x.parts, statut: x.statut, date: x.creeLe,
+    montantApprouve: x.montantApprouve, province: lieu(x.provinceId), ville: lieu(x.villeId), commune: x.communeId ? lieu(x.communeId) : "", parts: x.parts, statut: x.statut, date: x.creeLe,
     saisiPar: nomUtilisateur(x.saisiPar), controlePar: nomUtilisateur(x.controlePar ?? undefined), approuvePar: nomUtilisateur(x.approuvePar ?? undefined),
     consultationCrLe: x.consultationCrLe, consultationCrRef: x.consultationCrRef, accordConseilRef: x.accordConseilRef, accordBccRef: x.accordBccRef }; };
 const effectifsDossier = (d: Record<string, unknown> | undefined) => ({ nbHommes: entierDossier(d, "nbHommes", "Effectif hommes"), nbFemmes: entierDossier(d, "nbFemmes", "Effectif femmes"),
@@ -2948,7 +3001,9 @@ const dossiers = {
         montantMax: Number(p.montantMax) * 100, dureeMin: Number(p.dureeMin), dureeMax: Number(p.dureeMax) })),
       cycles: stockCredit("cycles").filter((c) => c.actif !== false).map((c) => ({ id: c.id, code: String(c.code ?? ""), libelle: String(c.libelle ?? "") })),
       provinces: E.lieux.filter((l) => l.niveau === "province" && l.actif).map((l) => ({ id: l.id, nom: l.nom })).sort((a, b) => a.nom.localeCompare(b.nom)),
-      villes: E.lieux.filter((l) => l.niveau === "ville" && l.actif).map((l) => ({ id: l.id, provinceId: l.parentId, nom: l.nom, nature: l.nature || "Ville" })).sort((a, b) => a.nom.localeCompare(b.nom)),   // nature : registre S20-8
+      villes: E.lieux.filter((l) => l.niveau === "ville" && l.actif).map((l) => ({ id: l.id, provinceId: l.parentId, nom: l.nom, nature: l.nature || "Ville" })).sort((a, b) => a.nom.localeCompare(b.nom)),
+      // lieu de l'activité jusqu'à la commune, au secteur ou à la chefferie (registre T41)
+      communes: E.lieux.filter((l) => l.niveau === "commune" && l.actif).map((l) => ({ id: l.id, villeId: l.parentId, nom: l.nom, nature: l.nature || "Commune" })).sort((a, b) => a.nom.localeCompare(b.nom)),   // nature : registre S20-8
       fondsPropres: fondsPropresActuels(), coopec: estCoopec() };
   },
   fondsPropres() { exiger(); return fondsPropresActuels(); },
@@ -3005,6 +3060,9 @@ const dossiers = {
     const pr = E.lieux.find((l) => l.id === d.provinceId && l.niveau === "province" && l.actif);
     const vi = pr && E.lieux.find((l) => l.id === d.villeId && l.niveau === "ville" && l.parentId === pr.id && l.actif);
     if (!pr || !vi) throw new ErreurMetier("À remplir : Province (région), Ville ou territoire (préfecture).");
+    const cId = (d as { communeId?: number | null }).communeId;
+    const co = cId ? E.lieux.find((l) => l.id === cId && l.niveau === "commune" && l.parentId === vi.id && l.actif) : undefined;
+    if (cId && !co) throw new ErreurMetier("Commune, secteur ou chefferie : il n'est pas dans la ville ou le territoire choisi.");
     const aid = (d.analyseId ?? null) as number | null;
     if (aid !== null && !E.analyses.some((a) => a.id === aid && a.tiersId === t.id && a.produitId === p.id)) throw new ErreurMetier("Cette analyse financière n'est pas celle de ce client et de ce produit.");
     let parts: DemandeCredit["parts"] = [];
@@ -3016,7 +3074,7 @@ const dossiers = {
       if (parts.reduce((s, x) => s + x.montant, 0) !== montant) throw new ErreurMetier("Groupe : la somme des parts des membres doit égaler le montant demandé.");
     }
     const x: DemandeCredit = { id: prochain(E.demandes), numero: `DC${String(E.demandes.length + 1).padStart(6, "0")}`, tiersId: t.id, produitId: p.id, devise: String(p.devise) as Devise,
-      analyseId: aid, cycleId: cid, provinceId: pr.id, villeId: vi.id, ...e, montant, duree, parts, statut: "saisie", creeLe: jourDossier(), saisiPar: u.id, controlePar: null,
+      analyseId: aid, cycleId: cid, provinceId: pr.id, villeId: vi.id, communeId: co?.id ?? null, ...e, montant, duree, parts, statut: "saisie", creeLe: jourDossier(), saisiPar: u.id, controlePar: null,
       approuvePar: null, montantApprouve: null, consultationCrLe: "", consultationCrRef: "", accordConseilRef: "", accordBccRef: "" };
     E.demandes.push(x); enregistrer(); return vueDemande(x);
   },
@@ -5291,7 +5349,8 @@ const typesGuichet = () => valeursListe("type_guichet").map((v) => v.libelle);
 /** Journaux de l'institution (S30) : non supprimés, rangés par code */
 const tousJournaux = () => E.journaux.filter((j) => !j.supprime).sort((a, b) => a.code.localeCompare(b.code));
 const journauxActifs = (type?: string) => tousJournaux().filter((j) => j.actif && (!type || j.type === type));
-export interface SaisieGuichet {
+export interface SaisieGuichet extends Adresse {
+  horsAgence?: boolean;   // registre T41
   agenceId: number; code: string; designation: string; typeGuichet: string; journalId: number;
   plafonds: Record<string, { maximum: number | null; retrait: number | null }>;   // une valeur par devise tenue (registre S08-3, S79-5)
   compteGuichet: string; compteLiaison: string; compteSurplus: string; compteManquant: string; billetage?: boolean; actif: boolean;
@@ -5311,9 +5370,11 @@ const guichets = {
         const s = E.sessions.find((x) => x.guichetId === g.id && x.journeeId === j?.id);
         return { id: g.id, code: g.code, nom: g.nom, typeGuichet: g.typeGuichet ?? "", actif: g.actif !== false, ouvert: s?.statut === "ouverte", dateOuverture: s && j ? j.date : "",
           agenceId: E.agence.id, journalId: g.journalId ?? 0, plafonds: g.plafonds ?? {}, compteGuichet: g.compteGuichet ?? "", compteLiaison: g.compteLiaison ?? "",
-          compteSurplus: g.compteSurplus ?? "", compteManquant: g.compteManquant ?? "", billetage: true };
+          compteSurplus: g.compteSurplus ?? "", compteManquant: g.compteManquant ?? "", billetage: true, horsAgence: !!g.horsAgence,
+          ...Object.fromEntries(CHAMPS_ADRESSE.map((k) => [k, g.adresse?.[k] ?? ""])) as Required<Adresse> };
       }),
       devises: devisesTenues(),
+      arbreLieux: arbreLieux(),   // adresse d'un guichet hors agence (registre T41)
     };
   },
   /** « Gestion des guichets » (p. 18 et 95). Sans id : Enregistrer ; avec id : Modifier après un clic sur la ligne (p. 12, registre S08-8). */
@@ -5343,7 +5404,11 @@ const guichets = {
     }
     if (E.guichets.some((g) => g.code === v.code && g.id !== id)) throw new ErreurMetier("Ce code guichet existe déjà.");
     // Billetage autorisé : toujours vrai (registre S08-6, ARCHITECTURE P8)
-    const g = { ...v, journalId: d.journalId, plafonds, ...comptes, billetage: true, actif: d.actif };
+    // Un guichet hors de son agence (antenne, point de service) a sa propre adresse ; sinon il prend celle de l'agence (registre T41)
+    const hors = d.horsAgence === true;
+    const adr = Object.fromEntries(CHAMPS_ADRESSE.map((k) => [k, hors ? ((d as Adresse)[k] ?? "").trim() : ""])) as Required<Adresse>;
+    if (hors) controlerAdresse(adr, true, "Adresse du guichet");
+    const g = { ...v, journalId: d.journalId, plafonds, ...comptes, billetage: true, actif: d.actif, horsAgence: hors, adresse: adr };
     if (actuel) Object.assign(actuel, g); else E.guichets.push({ id: prochain(E.guichets), ...g });
     enregistrer(); return guichets.lire();
   },
@@ -8528,7 +8593,7 @@ const edDivers = {
 // Règles identiques côté serveur (noyau/societe.py). ----------
 export const PROFILS_INSTITUTION: Record<string, string> = { coopec: "COOPEC", societe_microfinance: "Société de microfinance", entreprise_microcredit: "Entreprise de micro-crédit", faitiere: "Structure faîtière" };
 export type InfoSociete = { code: string; denomination: string; typeBase: string; description: string; directeur: string; agrement: string; journeeMax: number;
-  compteHorsBilan1: string | null; compteHorsBilan2: string | null; ifu: string; pays: string; ville: string; commune: string; quartier: string; rue: string; email: string; bp: string;
+  compteHorsBilan1: string | null; compteHorsBilan2: string | null; ifu: string; pays: string; province?: string; ville: string; commune: string; quartier: string; rue: string; numeroRue?: string; email: string; bp: string;
   telephoneFixe: string; adresse: string; logo: string | null; delegationAdmission?: string; membresAuxiliaires?: string };
 const societe = {
   lire() {
@@ -8536,25 +8601,26 @@ const societe = {
     const i = E.institution;
     const institution: InfoSociete = { code: i.sigle ?? "", denomination: i.nom, typeBase: i.profil, description: i.description ?? "", directeur: i.directeur ?? "",
       agrement: i.numeroAgrement ?? "", journeeMax: i.journeeMax ?? 1, compteHorsBilan1: i.compteHorsBilan1 ?? null, compteHorsBilan2: i.compteHorsBilan2 ?? null,
-      ifu: i.ifu ?? "", pays: i.pays ?? "", ville: i.ville ?? "", commune: i.commune ?? "", quartier: i.quartier ?? "", rue: i.rue ?? "", email: i.email ?? "", bp: i.bp ?? "",
+      ifu: i.ifu ?? "", pays: i.pays ?? "", province: i.province ?? "", ville: i.ville ?? "", commune: i.commune ?? "", quartier: i.quartier ?? "", rue: i.rue ?? "",
+      numeroRue: i.numeroRue ?? "", email: i.email ?? "", bp: i.bp ?? "",
       telephoneFixe: i.telephoneFixe ?? "", adresse: i.adresse ?? "", logo: i.logo ?? null, delegationAdmission: i.delegationAdmission ?? "", membresAuxiliaires: i.membresAuxiliaires ?? "" };
-    return { institution, types: Object.entries(PROFILS_INSTITUTION).map(([code, libelle]) => ({ code, libelle })), localites: localites(),
-      agences: E.agences.filter((a) => !a.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ id, code, nom }) => ({ id, code, nom })),
+    return { institution, types: Object.entries(PROFILS_INSTITUTION).map(([code, libelle]) => ({ code, libelle })), localites: localites(), arbreLieux: arbreLieux(),
+      agences: E.agences.filter((a) => !a.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ id, code, nom, ...x }) => ({ id, code, nom,
+        ...Object.fromEntries(CHAMPS_ADRESSE.map((k) => [k, (x as Adresse)[k] ?? ""])) as Required<Adresse> })),
       securite: { motDePasseMin: 8, essais: 5, fenetreMinutes: 15 } };   // cadre « Info sécurité », règles en vigueur (S32-6 ; noyau/securite.py)
   },
   /** Enregistrer la page Information Societe (registre S32-1 à S32-4) */
   enregistrer(d: Partial<Omit<InfoSociete, "journeeMax">> & { journeeMax?: number | null }) {
     exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
     const t = (x: unknown) => (typeof x === "string" ? x.trim() : "");
-    const v = { code: t(d.code), denomination: t(d.denomination), typeBase: t(d.typeBase), quartier: t(d.quartier), pays: t(d.pays), ville: t(d.ville), commune: t(d.commune),
+    const v = { code: t(d.code), denomination: t(d.denomination), typeBase: t(d.typeBase), quartier: t(d.quartier), pays: t(d.pays), province: t(d.province), ville: t(d.ville), commune: t(d.commune),
       compteHorsBilan1: t(d.compteHorsBilan1), compteHorsBilan2: t(d.compteHorsBilan2), email: t(d.email) };
     const manque = manquants([["Code Institution", v.code], ["Dénomination", v.denomination], ["Type base", v.typeBase], ["Quartier", v.quartier]]);
     if (d.journeeMax === undefined || d.journeeMax === null) manque.push("Journée Maxi ouvert");
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
     if (!(v.typeBase in PROFILS_INSTITUTION)) throw new ErreurMetier("Type base inconnu.");
     if (!Number.isInteger(d.journeeMax) || d.journeeMax! < 1) throw new ErreurMetier("Journée Maxi ouvert : nombre entier, 1 au moins.");
-    if (!localites().some((p) => p.pays === v.pays && p.villes.some((x) => x.ville === v.ville && x.communes.some((c) => c.commune === v.commune && c.quartiers.includes(v.quartier)))))
-      throw new ErreurMetier("Pays, ville, commune ou quartier inconnu (Localisation, S20).");   // registre S32-7
+    controlerLieu(v);   // registre S32-7 ; adresse unique (registre T41)
     for (const [k, nom] of [["compteHorsBilan1", "Compte Hors Bilan 1"], ["compteHorsBilan2", "Hors Bilan 2"]] as const)
       if (v[k] && !(v[k].startsWith("0") && PCCI.comptes.some((c) => c.numero === v[k]))) throw new ErreurMetier(`${nom} : ${v[k]} n'est pas un compte de hors bilan du plan (classe 0).`);
     if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) throw new ErreurMetier("email invalide.");
@@ -8564,13 +8630,13 @@ const societe = {
       if (logo.length > 300_000) throw new ErreurMetier("Logo : image trop lourde (200 Ko au plus).");
     }
     Object.assign(E.institution, { sigle: v.code, nom: v.denomination, profil: v.typeBase, description: t(d.description), directeur: t(d.directeur), numeroAgrement: t(d.agrement),
-      journeeMax: d.journeeMax, compteHorsBilan1: v.compteHorsBilan1 || null, compteHorsBilan2: v.compteHorsBilan2 || null, ifu: t(d.ifu), pays: v.pays, ville: v.ville, commune: v.commune,
-      quartier: v.quartier, rue: t(d.rue), email: v.email, bp: t(d.bp), telephoneFixe: t(d.telephoneFixe), adresse: t(d.adresse), logo,
+      journeeMax: d.journeeMax, compteHorsBilan1: v.compteHorsBilan1 || null, compteHorsBilan2: v.compteHorsBilan2 || null, ifu: t(d.ifu), pays: v.pays, province: v.province, ville: v.ville, commune: v.commune,
+      quartier: v.quartier, rue: t(d.rue), numeroRue: t(d.numeroRue), email: v.email, bp: t(d.bp), telephoneFixe: t(d.telephoneFixe), adresse: t(d.adresse), logo,
       delegationAdmission: t(d.delegationAdmission), membresAuxiliaires: t(d.membresAuxiliaires) });
     enregistrer(); return societe.lire();
   },
   /** Page Agence : Code et Nom (registre S32-5) ; le code d'une agence qui a des clients ne change plus (il entre dans leurs numéros, S15) */
-  enregistrerAgence(d: { code?: string; nom?: string }, id?: number) {
+  enregistrerAgence(d: { code?: string; nom?: string } & Adresse, id?: number) {
     exiger("chef_agence");
     const code = d.code?.trim() ?? "", nom = d.nom?.trim() ?? "";
     const manque = manquants([["Code", code], ["Nom", nom]]);
@@ -8579,8 +8645,11 @@ const societe = {
     if (id !== undefined && !actuel) throw new ErreurMetier("Agence introuvable.");
     if (actuel && code !== actuel.code && E.tiers.length && actuel.id === E.agence.id) throw new ErreurMetier("Des clients sont rattachés à cette agence : son code entre dans leurs numéros et ne change plus.");
     if (E.agences.some((a) => a.code === code && a.id !== id)) throw new ErreurMetier("Ce Code existe déjà.");
-    if (actuel) { Object.assign(actuel, { code, nom }); if (actuel.id === E.agence.id) Object.assign(E.agence, { code, nom }); }
-    else E.agences.push({ id: prochain(E.agences), code, nom, supprime: false });
+    // Adresse de l'agence, la même que partout (décision du porteur du 21/11/2026, registre T41)
+    const adr = Object.fromEntries(CHAMPS_ADRESSE.map((k) => [k, (d[k] ?? "").trim()])) as Required<Adresse>;
+    controlerAdresse(adr, false, "Adresse de l'agence");
+    if (actuel) { Object.assign(actuel, { code, nom, ...adr }); if (actuel.id === E.agence.id) Object.assign(E.agence, { code, nom }); }
+    else E.agences.push({ id: prochain(E.agences), code, nom, supprime: false, ...adr });
     enregistrer(); return societe.lire();
   },
   /** Supprimer (p. 12) : logique (T02) ; une agence qui sert ne se supprime pas */
@@ -9033,6 +9102,12 @@ function localites() {
 export type LieuVue = Omit<LigneLieu, "actif"> & { ascendants: Partial<Record<NiveauLieu, { id: number; nom: string }>> };
 /** Nature d'un lieu (décisions du porteur du 21/11/2026, registre S20-8 et S20-9) ; mêmes valeurs que noyau/localisation.py */
 export const NATURES_LIEU: Partial<Record<NiveauLieu, string[]>> = { ville: ["Ville", "Territoire"], commune: ["Commune", "Secteur", "Chefferie"] };
+/** Le découpage officiel (provinces à chefferies) vient des textes : il ne se modifie pas à l'écran ; l'institution tient les pays (nationalités),
+ * les quartiers et les groupements (décision du porteur du 21/11/2026, registre S20-11) ; mêmes règles que noyau/localisation.py */
+function officiel(niveau: string) {
+  if (niveau !== "pays" && niveau !== "quartier") throw new ErreurMetier("Le découpage officiel (provinces, villes, territoires, communes, secteurs, chefferies) ne se modifie pas : "
+    + "il vient des textes. Seuls les quartiers et les groupements s'ajoutent, se corrigent ou se suppriment.");
+}
 const localisation = {
   lire(niveau: string) {
     exiger();
@@ -9050,6 +9125,7 @@ const localisation = {
    * Ville / Territoire une fois par nature : une ville et un territoire peuvent porter le même nom (registre S20-8) */
   enregistrer(niveau: string, d: { parentId?: number | null; nom: string; nature?: string; nationalite?: string; code?: string; zone?: string }, id?: number) {
     exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
+    officiel(niveau);
     const o = ongletLieu(niveau); const rang = NIVEAUX.indexOf(o.niveau);
     const nom = d.nom?.trim() ?? ""; const t = (x?: string) => x?.trim() ?? "";
     const parentId = rang ? (typeof d.parentId === "number" ? d.parentId : null) : null;
@@ -9076,7 +9152,7 @@ const localisation = {
   /** Supprimer (p. 12) : suppression logique (T02) ; un lieu qui a des lieux actifs en dessous ne se supprime pas */
   supprimer(niveau: string, id: number) {
     exiger("chef_agence");
-    ongletLieu(niveau);
+    ongletLieu(niveau); officiel(niveau);
     const l = E.lieux.find((x) => x.id === id && x.niveau === niveau && x.actif);
     if (!l) throw new ErreurMetier("Ligne introuvable.");
     if (E.lieux.some((x) => x.actif && x.parentId === id)) throw new ErreurMetier("Ce lieu a des lieux rattachés : les retirer d'abord.");
@@ -9124,6 +9200,7 @@ const construireLocale = () => ({
   listes: asynchrone(listes, "listes"),
   budget: asynchrone(budget, "budget"),
   localisation: asynchrone(localisation, "localisation"),
+  adresse: asynchrone(moduleAdresse, "adresse"),
   credit: asynchrone(credit, "credit"),
   ordres: asynchrone(ordres, "ordres"),
   produitsCredit: asynchrone(produitsCredit, "produitsCredit"),

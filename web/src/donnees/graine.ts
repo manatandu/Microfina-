@@ -246,6 +246,8 @@ export function graine(): Etat {
       // Sous chaque ville ou territoire, ses communes, secteurs et chefferies (nomenclature budgétaire 2015, sans ses codes ; registre S20-9)
       type Entite = { nom: string; nature: string };
       type VilleTerr = { nom: string; entites: Entite[] };
+      // Pays et territoires du monde, pour la nationalité et le pays de délivrance d'une pièce (registre T42)
+      for (const nom of (LOCALISATION as { pays_du_monde?: string[] }).pays_du_monde ?? []) if (!tous.some((x) => x.niveau === "pays" && x.nom === nom)) tous.push(l(tous.length + 1, null, "pays", nom));
       for (const p of LOCALISATION.provinces as { nom: string; villes: VilleTerr[]; territoires: VilleTerr[] }[]) {
         const pr = lieu(1, "province", p.nom);
         for (const [nature, liste] of [["Ville", p.villes], ["Territoire", p.territoires]] as const)

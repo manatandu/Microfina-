@@ -241,6 +241,7 @@ def contexte(u: dict) -> dict:
         **{cle: lignes("""select id, trim(nom || ' ' || prenom) as nom from agent_agence where institution_id = %s and role = %s and actif order by nom, prenom""",
                        (u["institution_id"], role)) for cle, role in (("sensibilisateurs", "sensibilisateur"), ("commerciaux", "commercial"))},
         "localites": localites(),
+        "arbreLieux": __import__("noyau.adresse", fromlist=["arbre"]).arbre(),   # adresse unique : province, ville ou territoire, commune, quartier (registre T41)
         "motifsDepart": [r["libelle"] for r in sorted(listes.get("motif_depart", []), key=lambda r: r["id"])],
         "cours": {r["devise"].strip(): float(cours(r["devise"])) for r in lignes("select distinct devise from cours_change")},
         # S35 : devises et monnaies, lues par les guichets (registre S79-5)
@@ -567,13 +568,14 @@ def vue_tiers(t: dict) -> dict:
             "dateDemande": iso(t["date_demande"]), "numeroManuel": t["numero_manuel"] or "", "matricule": t["matricule"] or "", "typeClient": t["type_client"] or "",
             "zone": t["zone_nom"] or "", "produitCode": t["produit_code"] or "", "premierDepot": t["premier_depot"] or 0, "resident": t["residence"] != "non_resident",
             "preleverAgios": t["prelever_agios"], "calculerInteret": t["calculer_interet"],
-            "lieuNaissance": t["lieu_naissance"] or "", "pieceDelivreeLe": iso(t["piece_delivree_le"]), "pieceLieu": t["piece_lieu"] or "", "pieceAutorite": t["piece_autorite"] or "",
+            "lieuNaissance": t["lieu_naissance"] or "", "pieceDelivreeLe": iso(t["piece_delivree_le"]), "pieceLieu": t["piece_lieu"] or "", "pieceAutorite": t["piece_autorite"] or "", "piecePays": t.get("piece_pays") or "",
             "liees": [r["autre_id"] for r in lignes("select autre_id from lien_tiers where tiers_id = %s and role = 'personne_liee' order by id", (t["id"],))],
             "beneficiairesEffectifs": [r["autre_id"] for r in lignes("select autre_id from lien_tiers where tiers_id = %s and role = 'beneficiaire_effectif' order by id",
                                                                      (t["id"],))],
             "intitule": t["intitule"] or "", "dateVisa": iso(t["date_visa"]), "admissionLe": iso(t.get("admission_le")), "admissionReference": t.get("admission_reference") or "", "emancipationReference": t.get("emancipation_reference") or "", "representantLegal": t.get("representant_legal") or "", "auxiliaire": bool(t.get("auxiliaire")), "creeLe": t["cree_le"].date().isoformat(), "motifDepart": t["motif_depart"] or "", "resilieLe": iso(t["resilie_le"]),
             "sensibilisateurId": t["sensibilisateur_id"], "commercialId": t["commercial_id"],
             "profession": t["profession"] or "", "pays": t["pays"] or "", "ville": t["ville"] or "", "quartier": t["quartier"] or "", "rue": t["rue"] or "",
+            "province": t["province"] or "", "numeroRue": t["numero_rue"] or "",   # adresse unique (registre T41)
             "email": t["email"] or "", "bp": t["bp"] or "", "telephoneFixe": t["telephone_fixe"] or "",
             "type": t["type"], "formeJuridique": t["forme"] or "", "registre": t["rccm"] or "", "centreActivite": t["centre_activite"] or "", "activite": t["activite"] or "",
             "dirigeant": dirigeant, "signataires": signataires, "membres": membres, "nbHommes": t["nb_hommes"] or 0, "nbFemmes": t["nb_femmes"] or 0,
@@ -594,8 +596,9 @@ def iso(d) -> str:
 
 
 SQL_TIERS = """select t.*, coalesce(p.nom, m.raison_sociale) as nom, p.postnom, p.prenom, p.sexe, p.date_naissance, p.lieu_naissance, p.piece_type, p.piece_numero,
-                      p.piece_delivree_le, p.piece_lieu, p.piece_autorite, p.piece_validite, p.profession, coalesce(p.pays, m.pays) as pays, coalesce(p.ville, m.ville) as ville,
-                      coalesce(p.quartier, m.quartier) as quartier, coalesce(p.rue, m.rue) as rue, coalesce(p.email, m.email) as email, coalesce(p.bp, m.bp) as bp,
+                      p.piece_delivree_le, p.piece_lieu, p.piece_autorite, p.piece_validite, p.piece_pays, p.profession, coalesce(p.pays, m.pays) as pays, coalesce(p.ville, m.ville) as ville,
+                      coalesce(p.quartier, m.quartier) as quartier, coalesce(p.rue, m.rue) as rue,
+                      coalesce(p.province, m.province) as province, coalesce(p.numero_rue, m.numero_rue) as numero_rue, coalesce(p.email, m.email) as email, coalesce(p.bp, m.bp) as bp,
                       coalesce(p.telephone_fixe, m.telephone_fixe) as telephone_fixe,
                       p.civilite, p.nationalite, p.situation_matrimoniale, p.pere, p.mere, coalesce(p.commune, m.commune) as commune, coalesce(p.adresse, m.adresse_siege) as adresse, p.telephone,
                       m.forme, m.rccm, m.centre_activite, m.activite, m.nb_hommes, m.nb_femmes, z.nom as zone_nom, pe.code as produit_code
@@ -761,17 +764,9 @@ def libelles_liste(u: dict, liste: str) -> list[str]:
 
 
 def controler_lieu(texte, quoi: str = "Pays, ville, commune ou quartier"):
-    """Pays, Ville, Commune, Quartier de Localisation (S20) : facultatifs, mais cohérents entre eux"""
-    pays, ville, commune, quartier = texte("pays"), texte("ville"), texte("commune"), texte("quartier")
-    if not (pays or ville or commune or quartier):
-        return
-    p = next((x for x in localites() if x["pays"] == pays), None)
-    v = next((x for x in (p or {}).get("villes", []) if x["ville"] == ville), None) if ville else None
-    c = next((x for x in (v or {}).get("communes", []) if x["commune"] == commune), None) if commune else None
-    ok = p is not None and (not ville or v is not None) and (not commune or c is not None) and \
-        (not quartier or quartier in (c["quartiers"] if c else (v["quartiers"] if v else [])))
-    if not ok:
-        raise ErreurMetier(f"{quoi} inconnu.")
+    """L'adresse (Localisation, S20) : facultative, mais cohérente (registre T41, noyau/adresse.py)"""
+    from .adresse import controler
+    controler(texte, requis=bool(texte("province")), quoi=quoi)       # une adresse commencée par la province va jusqu'au quartier
 
 
 def controler_fiche_physique(u: dict, d: dict, texte, j: dict | None, identite: bool = True, categorie: str = "categorie") -> dict:
@@ -795,10 +790,10 @@ def controler_fiche_physique(u: dict, d: dict, texte, j: dict | None, identite: 
                                            where t.institution_id = %s and t.liste = 'type_activite' and t.libelle = %s and s.libelle = %s""",
                                         (u["institution_id"], texte("typeActivite"), texte("secteurActivite"))):
         raise ErreurMetier("Type d'activité : il n'appartient pas au secteur d'activité choisi.")
-    if texte("profession") and texte("profession") not in libelles_liste(u, "profession"):
-        raise ErreurMetier("Profession inconnue.")
     if texte("nationalite") and texte("nationalite") not in [p["pays"] for p in localites()]:
         raise ErreurMetier("Nationalité : pays inconnu (Paramétrage > Localisation).")
+    if texte("piecePays") and texte("piecePays") not in [p["pays"] for p in localites()]:
+        raise ErreurMetier("Pays de délivrance : pays inconnu (Paramétrage > Localisation).")
     controler_lieu(texte)
     if texte("email") and not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", texte("email")):
         raise ErreurMetier("Email invalide.")
@@ -829,9 +824,10 @@ def ecrire_fiche_physique(tid: int, texte, f: dict):
                                           situation_matrimoniale = coalesce(%s, situation_matrimoniale), pere = coalesce(%s, pere), mere = coalesce(%s, mere),
                                           profession = coalesce(%s, profession), pays = coalesce(%s, pays), ville = coalesce(%s, ville),
                                           commune = coalesce(%s, commune), quartier = coalesce(%s, quartier), rue = coalesce(%s, rue), email = coalesce(%s, email),
-                                          bp = coalesce(%s, bp), telephone_fixe = coalesce(%s, telephone_fixe) where tiers_id = %s""",
+                                          bp = coalesce(%s, bp), telephone_fixe = coalesce(%s, telephone_fixe), province = coalesce(%s, province),
+                                          numero_rue = coalesce(%s, numero_rue) where tiers_id = %s""",
              (*[texte(k) or None for k in ("civilite", "nationalite", "situationMatrimoniale", "pere", "mere", "profession", "pays", "ville", "commune",
-                                           "quartier", "rue", "email", "bp", "telephoneFixe")], tid))
+                                           "quartier", "rue", "email", "bp", "telephoneFixe", "province", "numeroRue")], tid))
     executer("""update tiers set secteur_activite = %s, type_activite = %s, categorie = %s, sous_type_client = %s, gestionnaire_agent_id = %s,
                                  sensibilisateur_id = %s, commercial_id = %s where id = %s""",
              (*[texte(k) or None for k in ("secteurActivite", "typeActivite", "categorie", "sousTypeClient")], f["gestionnaire"], *f["agents"], tid))
@@ -875,11 +871,12 @@ def creer_tiers(u: dict, d: dict) -> dict:
         tid = inserer_tiers(u, d, b, "physique", "menages")
         executer("insert into tiers_personne (tiers_id, nom) values (%s, '')", (tid,))
     executer("""update tiers_personne set nom = %s, postnom = %s, prenom = %s, sexe = %s, date_naissance = %s, lieu_naissance = %s, piece_type = %s, piece_numero = %s,
-                                          piece_delivree_le = %s, piece_lieu = %s, piece_autorite = %s, piece_validite = %s, adresse = %s, telephone = %s
+                                          piece_delivree_le = %s, piece_lieu = %s, piece_autorite = %s, piece_validite = %s, adresse = %s, telephone = %s,
+                                          piece_pays = coalesce(%s, piece_pays)
                 where tiers_id = %s""",
              (texte("nom"), texte("postnom") or None, texte("prenom") or None, texte("sexe") or None, texte("naissance") or None, texte("lieuNaissance") or None,
               texte("pieceType"), texte("pieceNumero"), texte("pieceDelivreeLe") or None, texte("pieceLieu") or None, texte("pieceAutorite") or None,
-              texte("pieceExpire") or None, texte("adresse") or None, texte("telephone") or None, tid))
+              texte("pieceExpire") or None, texte("adresse") or None, texte("telephone") or None, texte("piecePays") or None, tid))
     ecrire_fiche_physique(tid, texte, fiche)
     if any(images.get(k) for k in ("photo", "signature", "copiePiece", "justificatifAdresse")):
         executer("insert into specimen (tiers_id, photo, signature, copie_piece, justificatif_adresse, depose_le) values (%s, %s, %s, %s, %s, current_date)",
@@ -966,8 +963,9 @@ def creer_entreprise(u: dict, d: dict) -> dict:
 
 def ecrire_fiche_morale(tid: int, texte, f: dict):
     """Autres renseignements de l'entreprise, comme ceux du client physique (registre S38-1)"""
-    executer("""update tiers_morale set pays = %s, ville = %s, commune = %s, quartier = %s, rue = %s, email = %s, bp = %s, telephone_fixe = %s where tiers_id = %s""",
-             (*[texte(k) or None for k in ("pays", "ville", "commune", "quartier", "rue", "email", "bp", "telephoneFixe")], tid))
+    executer("""update tiers_morale set pays = %s, ville = %s, commune = %s, quartier = %s, rue = %s, email = %s, bp = %s, telephone_fixe = %s, province = %s,
+                                        numero_rue = %s where tiers_id = %s""",
+             (*[texte(k) or None for k in ("pays", "ville", "commune", "quartier", "rue", "email", "bp", "telephoneFixe", "province", "numeroRue")], tid))
     executer("""update tiers set secteur_activite = %s, type_activite = %s, categorie = %s, sous_type_client = %s, gestionnaire_agent_id = %s,
                                  sensibilisateur_id = %s, commercial_id = %s where id = %s""",
              (*[texte(k) or None for k in ("secteurActivite", "typeActivite", "categorie", "sousTypeClient")], f["gestionnaire"], *f["agents"], tid))
@@ -1158,11 +1156,12 @@ def modifier_tiers(u: dict, tid: int, d: dict) -> dict:
              (texte("dateDemande"), texte("typeClient"), b["zone"], "resident" if d.get("resident", True) else "non_resident",
               bool(d.get("preleverAgios", True)), bool(d.get("calculerInteret")), bool(d.get("personneExposee")), tid))
     executer("""update tiers_personne set nom = %s, postnom = %s, prenom = %s, sexe = %s, date_naissance = %s, lieu_naissance = %s, piece_type = %s,
-                    piece_numero = %s, piece_delivree_le = %s, piece_lieu = %s, piece_autorite = %s, piece_validite = %s, adresse = %s, telephone = %s
+                    piece_numero = %s, piece_delivree_le = %s, piece_lieu = %s, piece_autorite = %s, piece_validite = %s, adresse = %s, telephone = %s,
+                                          piece_pays = coalesce(%s, piece_pays)
                 where tiers_id = %s""",
              (texte("nom"), texte("postnom") or None, texte("prenom") or None, texte("sexe") or None, texte("naissance") or None, texte("lieuNaissance") or None,
               texte("pieceType"), texte("pieceNumero"), texte("pieceDelivreeLe") or None, texte("pieceLieu") or None, texte("pieceAutorite") or None,
-              texte("pieceExpire") or None, texte("adresse") or None, texte("telephone") or None, tid))
+              texte("pieceExpire") or None, texte("adresse") or None, texte("telephone") or None, texte("piecePays") or None, tid))
     ecrire_fiche_physique(tid, texte, fiche)
     return terminer_modification(u, tid, b, avant)
 
@@ -1341,24 +1340,20 @@ def controler_prospect(u: dict, d: dict):
         raise ErreurMetier("Sexe inconnu.")
     if not re.match(r"^\d{4}-\d{2}-\d{2}$", texte("naissance")) or texte("naissance") > date.today().isoformat():
         raise ErreurMetier("Date de naissance invalide.")
-    lieux = {(p["pays"], v["ville"], q) for p in localites() for v in p["villes"] for q in v["quartiers"]}
-    if (texte("pays"), texte("ville"), texte("quartier")) not in lieux:
-        raise ErreurMetier("Pays, ville ou quartier inconnu.")
-    if texte("profession") and texte("profession") not in libelles_liste(u, "profession"):
-        raise ErreurMetier("Profession inconnue.")
+    controler_lieu(texte, "Pays, ville ou quartier")          # adresse unique (registre T41)
     if texte("email") and not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", texte("email")):
         raise ErreurMetier("Email invalide.")
     return texte
 
 
 VALEURS_PROSPECT = """nom = %s, prenom = %s, date_naissance = %s, lieu_naissance = %s, sexe = %s, profession = %s, pays = %s, ville = %s, quartier = %s,
-                      rue = %s, email = %s, bp = %s, telephone_fixe = %s, telephone = %s"""
+                      rue = %s, email = %s, bp = %s, telephone_fixe = %s, telephone = %s, province = %s, commune = %s, numero_rue = %s"""
 
 
 def params_prospect(texte) -> tuple:
     return (texte("nom"), texte("prenom"), texte("naissance"), texte("lieuNaissance"), texte("sexe"), texte("profession") or None, texte("pays"),
             texte("ville"), texte("quartier"), texte("rue") or None, texte("email") or None, texte("bp") or None, texte("telephoneFixe") or None,
-            texte("telephone") or None)
+            texte("telephone") or None, texte("province") or None, texte("commune") or None, texte("numeroRue") or None)
 
 
 def agents_prospect(u: dict, d: dict) -> tuple:

@@ -47,6 +47,7 @@ def lire(u) -> dict:
                                      g.journal_id as "journalId",
                                      coalesce(g.compte_guichet, '') as "compteGuichet", coalesce(g.compte_liaison, '') as "compteLiaison",
                                      coalesce(g.compte_surplus, '') as "compteSurplus", coalesce(g.compte_manquant, '') as "compteManquant", g.billetage,
+                                     g.hors_agence as "horsAgence", g.pays, g.province, g.ville, g.commune, g.quartier, g.rue, g.numero_rue as "numeroRue",
                                      s.id is not null and s.fermee_le is null and s.statut = 'ouverte' as ouvert,
                                      case when s.id is not null then j.date_comptable::text else '' end as "dateOuverture"
                               from guichet g join agence a on a.id = g.agence_id
@@ -54,6 +55,7 @@ def lire(u) -> dict:
                               left join journee_comptable j on j.id = s.journee_id
                               where a.institution_id = %s and g.agence_id = %s order by g.code""", (j["id"] if j else None, i, u["agence_id"]))),
         "devises": devises_tenues(),
+        "arbreLieux": __import__("noyau.adresse", fromlist=["arbre"]).arbre(),     # adresse d'un guichet hors agence (registre T41)
     }
 
 
@@ -111,6 +113,14 @@ def enregistrer(u, d, gid: int | None = None) -> dict:
     else:
         executer("""update guichet set agence_id = %s, code = %s, nom = %s, type_guichet = %s, journal_id = %s, compte_guichet = %s, compte_liaison = %s, compte_surplus = %s,
                                        compte_manquant = %s, actif = %s, billetage = true where id = %s""", (*valeurs, gid))
+    # Un guichet hors de son agence (antenne, point de service) a sa propre adresse, la même que partout ; sinon il prend celle de l'agence
+    # (décision du porteur du 21/11/2026, registre T41)
+    from .adresse import CHAMPS, COLONNES, controler
+    hors = d.get("horsAgence") is True
+    adr = {k: (d.get(k).strip() if hors and isinstance(d.get(k), str) else "") for k in CHAMPS}
+    if hors:
+        controler(lambda k: adr.get(k, ""), requis=True, quoi="Adresse du guichet")
+    executer(f"update guichet set hors_agence = %s, {', '.join(f'{COLONNES[k]} = %s' for k in CHAMPS)} where id = %s", (hors, *adr.values(), gid))
     executer("delete from guichet_plafond where guichet_id = %s", (gid,))
     for dv, (maximum, retrait) in plafonds.items():
         executer("insert into guichet_plafond (guichet_id, devise, maximum, retrait) values (%s, %s, %s, %s)", (gid, dv, maximum, retrait))

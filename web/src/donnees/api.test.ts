@@ -874,7 +874,7 @@ describe("journée de guichet", () => {
     await expect(api.tiers.creerProspect({ ...p, prenom: "" })).rejects.toThrow("prénoms");
     await expect(api.tiers.creerProspect({ ...p, quartier: "Gombe" })).rejects.toThrow("quartier inconnu");
     await expect(api.tiers.creerProspect({ ...p, email: "pas-un-email" })).rejects.toThrow("Email");
-    await expect(api.tiers.creerProspect({ ...p, profession: "Astronaute" })).rejects.toThrow("Profession");
+    // profession : champ libre (registre T42)
     const t = await api.tiers.creerProspect(p);
     expect(t).toMatchObject({ statut: "prospect", quartier: "Kinsaku", profession: "Commerçant" });
     await connecter("jpmukendi");                                     // un quartier ajouté dans Localisation (S20) est proposé aussitôt
@@ -1658,7 +1658,7 @@ describe("journée de guichet", () => {
     await connecter("bkasongo");
     const p = { nom: "Lukaku", prenom: "Rose", naissance: "1992-02-02", lieuNaissance: "Kinshasa", sexe: "F" as const, profession: "Vulcanisateur",
       pays: "République démocratique du Congo", ville: "Kinshasa", quartier: "Kinsaku", rue: "", email: "", bp: "", telephoneFixe: "", telephone: "+243 810 000 222" };
-    await expect(api.tiers.creerProspect(p)).rejects.toThrow("Profession inconnue");
+    // profession : champ libre, hors liste admise (registre T42)
     await connecter("jpmukendi");
     await api.listes.enregistrer("profession", { code: "7213-90", libelle: "Vulcanisateur" });
     await connecter("bkasongo");
@@ -2680,29 +2680,29 @@ describe("journée de guichet", () => {
     expect(_etat().comptesBancaires.length).toBe(2);
     expect(_etat().paieEmployes!.find((e) => e.matricule === "EMP/000/26")!.salaireBase).toBe(50955 * 26);   // classe 7 du décret 25/22, annexe 2
   });
-  it("localisation (S20, p. 30 à 32), découpage de la RDC : parents obligatoires, nom unique sous un parent, Zone, Supprimer logique", async () => {
+  it("localisation (S20) : découpage officiel en lecture ; l'institution tient les pays, les quartiers et les groupements ; un quartier ajouté depuis une fiche, comme le serveur", async () => {
     await connecter("jpmukendi");
     const pr = await api.localisation.lire("province");
     expect(pr.lignes).toHaveLength(26);
     const rdc = (await api.localisation.lire("pays")).lignes[0]!;
     expect([rdc.nationalite, rdc.code, rdc.zone]).toEqual(["Congolaise", "CD", "Afrique"]);
     await expect(api.localisation.enregistrer("pays", { nom: "Angola" })).rejects.toThrow("Nationalite, Code, Zone");
-    await expect(api.localisation.enregistrer("pays", { nom: "Angola", nationalite: "Angolaise", code: "AO", zone: "Lune" })).rejects.toThrow("Zone inconnue");
-    await expect(api.localisation.enregistrer("pays", { nom: "Congo", nationalite: "Congolaise", code: "cd", zone: "Afrique" })).rejects.toThrow("code existe");
-    await expect(api.localisation.enregistrer("province", { nom: "Nouvelle" })).rejects.toThrow("Pays");
-    await expect(api.localisation.enregistrer("province", { parentId: rdc.id, nom: "nord-kivu" })).rejects.toThrow("existe déjà");
     const nk = pr.lignes.find((x) => x.nom === "Nord-Kivu")!;
-    await expect(api.localisation.enregistrer("commune", { parentId: nk.id, nom: "Mutiri", nature: "Commune" })).rejects.toThrow("Ville ou territoire inconnu");
-    await expect(api.localisation.enregistrer("ville", { parentId: nk.id, nom: "Mutiri" })).rejects.toThrow("Nature");     // Ville ou Territoire (registre S20-8)
-    await expect(api.localisation.enregistrer("ville", { parentId: nk.id, nom: "Walikale", nature: "Territoire" })).rejects.toThrow("existe déjà");
-    await api.localisation.enregistrer("ville", { parentId: nk.id, nom: "Walikale", nature: "Ville" });                             // la ville de Beni, à côté du territoire
-    const goma = (await api.localisation.enregistrer("ville", { parentId: nk.id, nom: "Mutiri", nature: "Ville" })).lignes.find((x) => x.nom === "Mutiri")!;
-    expect([goma.ascendants.province?.nom, goma.ascendants.pays?.nom]).toEqual(["Nord-Kivu", "République démocratique du Congo"]);
-    const c = (await api.localisation.enregistrer("commune", { parentId: goma.id, nom: "Kasando", nature: "Commune" })).lignes.find((x) => x.nom === "Kasando")!;
-    await expect(api.localisation.supprimer("ville", goma.id)).rejects.toThrow("rattachés");
-    await api.localisation.enregistrer("commune", { parentId: goma.id, nom: "Kasando-Centre", nature: "Commune" }, c.id);
-    await api.localisation.supprimer("commune", c.id);
-    expect((await api.localisation.supprimer("ville", goma.id)).lignes.some((x) => x.nom === "Mutiri")).toBe(false);
+    for (const [niveau, d] of [["province", { parentId: rdc.id, nom: "Nouvelle" }], ["ville", { parentId: nk.id, nom: "Mutiri", nature: "Ville" }],
+      ["commune", { parentId: nk.id, nom: "Kasando", nature: "Commune" }]] as const)
+      await expect(api.localisation.enregistrer(niveau, d)).rejects.toThrow("découpage officiel");
+    await expect(api.localisation.supprimer("province", nk.id)).rejects.toThrow("découpage officiel");
+    const matete = (await api.localisation.lire("commune")).lignes.find((x) => x.nom === "Matete")!;
+    await expect(api.localisation.enregistrer("quartier", { nom: "Mbanza-Lemba" })).rejects.toThrow("Commune, secteur ou chefferie");
+    const q = (await api.localisation.enregistrer("quartier", { parentId: matete.id, nom: "Mbanza-Lemba" })).lignes.find((x) => x.nom === "Mbanza-Lemba")!;
+    await expect(api.localisation.enregistrer("quartier", { parentId: matete.id, nom: "mbanza-lemba" })).rejects.toThrow("existe déjà");
+    await api.localisation.enregistrer("quartier", { parentId: matete.id, nom: "Mbanza Lemba" }, q.id);
+    await api.localisation.supprimer("quartier", q.id);
+    await connecter("bkasongo");
+    await expect(api.adresse.ajouterQuartier({ province: "Kinshasa", ville: "Kinshasa", nom: "Ndanu" })).rejects.toThrow("Choisissez");
+    const r = await api.adresse.ajouterQuartier({ province: "Kinshasa", ville: "Kinshasa", commune: "Limete", nom: "Ndanu" });
+    expect(r.arbre[0]!.provinces.find((p) => p.province === "Kinshasa")!.villes[0]!.communes.find((c) => c.commune === "Limete")!.quartiers).toEqual(["Ndanu"]);
+    await expect(api.adresse.ajouterQuartier({ province: "Kinshasa", ville: "Kinshasa", commune: "Limete", nom: "ndanu" })).rejects.toThrow("existe déjà");
   });
 
   it("motif de départ d'un client (S18, p. 26) : Libelle Motif seul, unique, ordre de saisie, lu par la résiliation", async () => {

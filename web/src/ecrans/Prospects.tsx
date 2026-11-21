@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { api, type Prospect } from "../donnees/api";
+import { BlocAdresse } from "../composants/Adresse";
 import { useDonnees, message } from "../lib/useDonnees";
 import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 
 const INCONNU = "INCONNU";   // Sensibilisateur et Commercial : aucun choisi (capture p. 55) ; sinon listes de S33 (registre S33-4)
-const VIDE: Prospect = { nom: "", prenom: "", naissance: "", lieuNaissance: "", sexe: "", profession: "", pays: "", ville: "", quartier: "", rue: "", email: "", bp: "", telephoneFixe: "", telephone: "" };
+const VIDE: Prospect = { nom: "", prenom: "", naissance: "", lieuNaissance: "", sexe: "", profession: "", pays: "", province: "", ville: "", commune: "", quartier: "", rue: "", numeroRue: "", email: "", bp: "", telephoneFixe: "", telephone: "" };
 const fr = (iso: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "");
 
 /** S45 : Client > Nouveau prospect (manuel Microfina++, p. 55) */
@@ -17,8 +18,6 @@ export function NouveauProspect() {
   const { ctx, liste } = donnees;
   const maj = (p: Partial<Prospect>) => setD({ ...d, ...p });
   const texte = (k: Exclude<keyof Prospect, "sensibilisateurId" | "commercialId">) => ({ value: d[k], onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => maj({ [k]: e.target.value }) });
-  const pays = ctx.localites.find((p) => p.pays === d.pays);
-  const ville = pays?.villes.find((v) => v.ville === d.ville);
   const annuler = () => { setD(VIDE); setChoisi(null); };
   const confirmer = (faire: () => Promise<unknown>) => setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
     try { await faire(); annuler(); setBoite({ type: "succes", message: "Enregistré avec succès !" }); } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
@@ -41,12 +40,7 @@ export function NouveauProspect() {
             <Champ libelle="Proffession :">{(p) => <select {...p} className="saisie" {...texte("profession")}><option value=""></option>{ctx.professions.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
           </div>
           <div className="pile">
-            <Champ libelle="Pays : *">{(p) => <select {...p} className="saisie" required value={d.pays} onChange={(e) => maj({ pays: e.target.value, ville: "", quartier: "" })}>
-              <option value=""></option>{ctx.localites.map((x) => <option key={x.pays}>{x.pays}</option>)}</select>}</Champ>
-            <Champ libelle="Ville : *">{(p) => <select {...p} className="saisie" required value={d.ville} onChange={(e) => maj({ ville: e.target.value, quartier: "" })}>
-              <option value=""></option>{pays?.villes.map((x) => <option key={x.ville}>{x.ville}</option>)}</select>}</Champ>
-            <Champ libelle="Quartier : *">{(p) => <select {...p} className="saisie" required {...texte("quartier")}><option value=""></option>{ville?.quartiers.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
-            <Champ libelle="Rue / maison :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("rue")} />}</Champ>
+            <BlocAdresse valeur={d} maj={maj} arbre={ctx.arbreLieux} requis ajouterQuartier={api.adresse.ajouterQuartier} />
             <Champ libelle="Email :">{(p) => <input {...p} className="saisie" type="email" autoComplete="off" {...texte("email")} />}</Champ>
             <Champ libelle="BP :">{(p) => <input {...p} className="saisie court" autoComplete="off" {...texte("bp")} />}</Champ>
             <Champ libelle="Téléphone fixe :">{(p) => <input {...p} className="saisie code" type="tel" inputMode="tel" autoComplete="off" {...texte("telephoneFixe")} />}</Champ>
@@ -66,7 +60,7 @@ export function NouveauProspect() {
           {visibles.map((t) => (
             <tr key={t.id} className="ligne-choix" tabIndex={0} aria-selected={choisi === t.id}
               onClick={() => { setChoisi(t.id); setD({ nom: t.nom, prenom: t.prenom, naissance: t.naissance, lieuNaissance: t.lieuNaissance, sexe: t.sexe, profession: t.profession,
-                pays: t.pays, ville: t.ville, quartier: t.quartier, rue: t.rue, email: t.email, bp: t.bp, telephoneFixe: t.telephoneFixe, telephone: t.telephone,
+                pays: t.pays, province: t.province ?? "", ville: t.ville, commune: t.commune ?? "", quartier: t.quartier, rue: t.rue, numeroRue: t.numeroRue ?? "", email: t.email, bp: t.bp, telephoneFixe: t.telephoneFixe, telephone: t.telephone,
                 sensibilisateurId: t.sensibilisateurId ?? null, commercialId: t.commercialId ?? null }); }}
               onKeyDown={(e) => { if (e.key === "Enter") (e.currentTarget as HTMLElement).click(); }}>
               <td>{t.nom} {t.prenom}</td><td className="chiffres">{fr(t.naissance)}</td><td>{t.profession}</td><td>{t.quartier}</td><td>{ctx.agence.nom}</td>

@@ -6,9 +6,12 @@ import { fr } from "../lib/dates";
 import { lireMontant } from "@design/montant.js";
 import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee } from "../composants";
 import { TableFiltree } from "./Groupes";
+import { BlocAdresse } from "../composants/Adresse";
 
 const VIDE = { agenceId: 0, code: "", designation: "", typeGuichet: "", journalId: 0, plafonds: {} as Record<string, { maximum: string; retrait: string }>,
-  compteGuichet: "", compteLiaison: "", compteSurplus: "", compteManquant: "", actif: false };
+  compteGuichet: "", compteLiaison: "", compteSurplus: "", compteManquant: "", actif: false,
+  // un guichet hors de son agence (antenne, point de service) a sa propre adresse (décision du porteur du 21/11/2026, registre T41)
+  horsAgence: false, pays: "", province: "", ville: "", commune: "", quartier: "", rue: "", numeroRue: "" };
 type Formulaire = typeof VIDE;
 const enTexte = (c: number) => String(c / 100).replace(".", ",");
 const COMPTES = [["compteGuichet", "Compte guichet"], ["compteLiaison", "Compte liaison"], ["compteSurplus", "Compte surplus"], ["compteManquant", "Compte manquant"]] as const;
@@ -33,7 +36,8 @@ export function GestionGuichets() {
     setChoisi(g.id);
     setF({ agenceId: g.agenceId, code: g.code, designation: g.nom, typeGuichet: g.typeGuichet, journalId: g.journalId,
       plafonds: Object.fromEntries(devises.map((d) => [d, { maximum: enTexte(g.plafonds[d]?.maximum ?? 0), retrait: enTexte(g.plafonds[d]?.retrait ?? 0) }])),
-      compteGuichet: g.compteGuichet, compteLiaison: g.compteLiaison, compteSurplus: g.compteSurplus, compteManquant: g.compteManquant, actif: g.actif });
+      compteGuichet: g.compteGuichet, compteLiaison: g.compteLiaison, compteSurplus: g.compteSurplus, compteManquant: g.compteManquant, actif: g.actif,
+      horsAgence: g.horsAgence, pays: g.pays, province: g.province, ville: g.ville, commune: g.commune, quartier: g.quartier, rue: g.rue, numeroRue: g.numeroRue });
   }
   function enregistrer() {
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
@@ -70,8 +74,14 @@ export function GestionGuichets() {
             </fieldset>
             <label className="case"><input type="checkbox" checked disabled /><span>Billetage autorisé</span></label>
             <label className="case"><input type="checkbox" checked={v.actif} onChange={(e) => setF({ ...v, actif: e.target.checked })} /><span>Guichet Actif</span></label>
+            <label className="case"><input type="checkbox" checked={v.horsAgence} onChange={(e) => setF({ ...v, horsAgence: e.target.checked })} /><span>Hors agence</span></label>
           </div>
         </div>
+        {v.horsAgence && <fieldset className="pile cadre-champs champs-a-gauche">
+          <legend>Adresse du guichet</legend>
+          <BlocAdresse valeur={v} maj={(x) => { const { adresse: _a, ...r } = x; setF({ ...v, ...r }); }} arbre={donnees.arbreLieux} requis
+            ajouterQuartier={api.adresse.ajouterQuartier} />
+        </fieldset>}
         <div className="actions-onglets">
           <button className="bouton" type="button" onClick={enregistrer}>{choisi ? "Modifier" : "Enregistrer"}</button>
           <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>

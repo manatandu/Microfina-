@@ -6,71 +6,66 @@ import { exporterExcel } from "../lib/excel";
 import { Champ, Chargement, Dialogue, type Boite } from "../composants";
 
 type Lieu = Omit<LieuVue, "ascendants">;
-const NIVEAUX: NiveauLieu[] = ["pays", "province", "ville", "commune", "quartier"];
+const ORDRE_NATURE = ["Ville", "Territoire", "Commune", "Secteur", "Chefferie"];
 const LIBELLE: Record<NiveauLieu, string> = { pays: "Pays", province: "Province", ville: "Ville ou territoire", commune: "Commune, secteur ou chefferie",
   quartier: "Quartier ou groupement" };
-const ORDRE_NATURE = ["Ville", "Territoire", "Commune", "Secteur", "Chefferie"];
-type Saisie = { nom: string; nature: string; nationalite: string; code: string; zone: string };
-const VIDE: Saisie = { nom: "", nature: "", nationalite: "", code: "", zone: "" };
 
-/** S20 : Localisation en un seul formulaire qui se remplit pas à pas (décision du porteur du 21/11/2026, registre S20-10), à la place des cinq onglets
- * de Microfina++ (p. 30 à 32) : on choisit le pays, puis la province, puis la ville ou le territoire, et ainsi de suite ; chaque liste apparaît quand la
- * précédente est choisie. Le dernier lieu choisi se modifie ou se supprime, et on ajoute un lieu dedans. Découpage de la RDC (registre S20-1, S20-8, S20-9). */
+/** S20 : Localisation, liste de référence de l'adresse (décisions du porteur du 21/11/2026, registre S20-10, S20-11, T41). Un seul formulaire qui se remplit
+ * pas à pas : Province, puis Ville ou territoire, puis Commune, secteur ou chefferie. Ce découpage officiel vient des textes et se lit seulement ;
+ * l'institution y ajoute, corrige ou retire ses quartiers (dans une commune) et ses groupements (dans un secteur ou une chefferie). Les pays servent aux nationalités. */
 export default function Localisation() {
   const [relu, setRelu] = useState(0);
   const { donnees } = useDonnees(() => api.localisation.lire("pays"), [relu]);
-  const [choix, setChoix] = useState<Partial<Record<NiveauLieu, number>>>({});
-  const [modif, setModif] = useState<Saisie>(VIDE);
-  const [ajout, setAjout] = useState<Saisie>(VIDE);
+  const [choix, setChoix] = useState<{ pays?: number; province?: number; ville?: number; commune?: number }>({});
+  const [quartier, setQuartier] = useState<Lieu | null>(null);
+  const [nomQuartier, setNomQuartier] = useState("");
+  const [nouveau, setNouveau] = useState("");
+  const [pays, setPays] = useState<{ nom: string; nationalite: string; code: string; zone: string } | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
-  const [corriger, setCorriger] = useState(false);
   if (!donnees) return <Chargement />;
 
   const lieux = donnees.lieux as Lieu[];
   const parId = new Map(lieux.map((l) => [l.id, l]));
   const rang = (l: Lieu) => (l.nature ? ORDRE_NATURE.indexOf(l.nature) : 0);
-  const sous = (parent: number | null, niveau: NiveauLieu) => lieux.filter((l) => l.niveau === niveau && l.parentId === parent)
+  const sous = (parent: number | undefined, niveau: NiveauLieu) => lieux.filter((l) => l.niveau === niveau && l.parentId === (parent ?? null))
     .sort((a, b) => rang(a) - rang(b) || a.nom.localeCompare(b.nom, "fr"));
-  const pays = sous(null, "pays");
-  // Un seul pays : il est choisi d'office (registre S20-7)
-  const C: Partial<Record<NiveauLieu, number>> = choix.pays === undefined && pays.length === 1 ? { ...choix, pays: pays[0]!.id } : choix;
-  // Le dernier niveau choisi, sans trou (un lieu retiré entre-temps arrête la chaîne)
-  let profondeur = -1;
-  for (let i = 0; i < NIVEAUX.length; i++) {
-    const id = C[NIVEAUX[i]!];
-    const l = id === undefined ? undefined : parId.get(id);
-    if (!l || (i > 0 && l.parentId !== C[NIVEAUX[i - 1]!])) break;
-    profondeur = i;
-  }
-  const dernier = profondeur >= 0 ? parId.get(C[NIVEAUX[profondeur]!]!)! : undefined;
-  const niveauAjout = NIVEAUX[profondeur + 1];
-  const naturesDe = (n: NiveauLieu | undefined) => (n === "ville" || n === "commune" ? donnees.natures[n] : undefined);
-  const nomDe = (l: Lieu) => (l.nature ? `${l.nom} (${l.nature})` : l.nom);
+  // seuls les pays découpés (la RDC) servent à l'adresse ; les autres pays servent aux nationalités (registre T42)
+  const listePays = sous(undefined, "pays").filter((p) => lieux.some((l) => l.parentId === p.id && l.niveau === "province"));
+  const paysId = choix.pays ?? listePays.find((p) => p.code === "CD")?.id ?? listePays[0]?.id;
+  const province = choix.province !== undefined ? parId.get(choix.province) : undefined;
+  const ville = province && choix.ville !== undefined ? parId.get(choix.ville) : undefined;
+  const commune = ville && choix.commune !== undefined ? parId.get(choix.commune) : undefined;
   // Sous une commune, un quartier ; sous un secteur ou une chefferie, un groupement (Décret 22/07, art. 9, point 26)
-  const libelleAjout = niveauAjout === "quartier" && dernier ? (dernier.nature === "Commune" ? "un quartier" : "un groupement")
-    : ({ pays: "un pays", province: "une province", ville: "une ville ou un territoire", commune: "une commune, un secteur ou une chefferie", quartier: "un quartier ou un groupement" } as const)[niveauAjout ?? "pays"];
-
-  const choisir = (i: number, v: string) => {
-    const c: Partial<Record<NiveauLieu, number>> = {};
-    for (let k = 0; k < i; k++) c[NIVEAUX[k]!] = C[NIVEAUX[k]!];
-    if (v) c[NIVEAUX[i]!] = Number(v);
-    setChoix(c); setAjout(VIDE); setCorriger(false);
-    const l = v ? parId.get(Number(v)) : undefined;
-    setModif(l ? { nom: l.nom, nature: l.nature ?? "", nationalite: l.nationalite, code: l.code, zone: l.zone } : VIDE);
-  };
+  const quoi = commune?.nature === "Commune" ? "quartier" : "groupement";
+  const choisir = (c: typeof choix) => { setChoix(c); setQuartier(null); setNouveau(""); };
   const confirmer = (texte: string, faire: () => Promise<unknown>, apres?: () => void) => setBoite({ type: "confirmation", message: texte, oui: async () => {
     try { await faire(); apres?.(); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   } });
   const chemin = (l: Lieu) => { const c: string[] = []; for (let r = l.parentId === null ? undefined : parId.get(l.parentId); r; r = r.parentId === null ? undefined : parId.get(r.parentId)) c.unshift(r.nom); return c.join(" / "); };
   const exporter = () => exporterExcel("Localisation", ["Lieu", "Nature", "Niveau", "Situé dans"], lieux.map((l) => [l.nom, l.nature ?? "", LIBELLE[l.niveau], chemin(l)]));
-  const champsPays = (f: Saisie, maj: (p: Partial<Saisie>) => void, suffixe: string) => <>
-    <Champ libelle={`Nationalite${suffixe} *`}>{(p) => <input {...p} className="saisie" value={f.nationalite} onChange={(e) => maj({ nationalite: e.target.value })} />}</Champ>
-    <Champ libelle={`Code${suffixe} *`}>{(p) => <input {...p} className="saisie code" value={f.code} onChange={(e) => maj({ code: e.target.value })} />}</Champ>
-    <Champ libelle={`Zone${suffixe} *`}>{(p) => <select {...p} className="saisie" value={f.zone} onChange={(e) => maj({ zone: e.target.value })}>
-      <option value=""></option>{donnees.zones.map((z) => <option key={z}>{z}</option>)}</select>}</Champ>
-  </>;
-  const contenu = dernier && niveauAjout ? sous(dernier.id, niveauAjout) : [];
+  const liste = (niveau: NiveauLieu, parent: number | undefined, valeur: number | undefined, changer: (id: number | undefined) => void, natures?: string[]) => {
+    const options = sous(parent, niveau);
+    return (
+      <Champ libelle={`${LIBELLE[niveau]} :`}>{(p) => <select {...p} className="saisie" value={valeur ?? ""} onChange={(e) => changer(e.target.value ? Number(e.target.value) : undefined)}>
+        <option value=""></option>
+        {natures ? natures.map((nat) => { const l = options.filter((x) => x.nature === nat);
+          return l.length ? <optgroup key={nat} label={nat === "Chefferie" ? "Chefferies" : `${nat}s`}>{l.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</optgroup> : null; })
+          : options.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}
+      </select>}</Champ>
+    );
+  };
+  // Ce que contient le dernier lieu choisi : on clique une ligne pour descendre
+  const contenu = commune ? sous(commune.id, "quartier") : ville ? sous(ville.id, "commune") : province ? sous(province.id, "ville") : sous(paysId, "province");
+  const dans = commune ?? ville ?? province ?? (paysId !== undefined ? parId.get(paysId) : undefined);
+  const titreContenu = commune ? `${quoi === "quartier" ? "Quartiers" : "Groupements"} de ${commune.nom}` : ville ? `Communes, secteurs et chefferies de ${ville.nom}`
+    : province ? `Villes et territoires de ${province.nom}` : `Provinces de ${dans?.nom ?? ""}`;
+  const descendre = (l: Lieu) => {
+    if (l.niveau === "province") choisir({ ...choix, province: l.id, ville: undefined, commune: undefined });
+    else if (l.niveau === "ville") choisir({ ...choix, ville: l.id, commune: undefined });
+    else if (l.niveau === "commune") choisir({ ...choix, commune: l.id });
+    else { setQuartier(l); setNomQuartier(l.nom); }
+  };
 
   return (
     <>
@@ -78,68 +73,61 @@ export default function Localisation() {
       <section className="bloc pile">
         <fieldset className="pile cadre-champs champs-a-gauche">
           <legend>Choisir un lieu</legend>
-          {NIVEAUX.slice(0, Math.min(profondeur + 2, NIVEAUX.length)).map((n, i) => {
-            const options = sous(i === 0 ? null : C[NIVEAUX[i - 1]!]!, n);
-            const natures = naturesDe(n);
-            return (
-              <Champ key={n} libelle={`${LIBELLE[n]} :`}>{(p) => (
-                <select {...p} className="saisie" value={i <= profondeur ? C[n] ?? "" : ""} onChange={(e) => choisir(i, e.target.value)}>
-                  <option value=""></option>
-                  {natures   // villes et territoires, communes, secteurs et chefferies : séparés (registre S20-8, S20-9)
-                    ? natures.map((nat) => <optgroup key={nat} label={nat === "Chefferie" ? "Chefferies" : `${nat}s`}>
-                      {options.filter((l) => l.nature === nat).map((l) => <option key={l.id} value={l.id}>{l.nom}</option>)}</optgroup>)
-                    : options.map((l) => <option key={l.id} value={l.id}>{l.nom}</option>)}
-                </select>)}</Champ>
-            );
-          })}
+          {listePays.length > 1 && liste("pays", undefined, paysId, (id) => choisir({ pays: id }))}
+          {liste("province", paysId, choix.province, (id) => choisir({ ...choix, province: id, ville: undefined, commune: undefined }))}
+          {province && liste("ville", province.id, choix.ville, (id) => choisir({ ...choix, ville: id, commune: undefined }), ["Ville", "Territoire"])}
+          {ville && liste("commune", ville.id, choix.commune, (id) => choisir({ ...choix, commune: id }), ["Commune", "Secteur", "Chefferie"])}
         </fieldset>
 
-        {dernier && <div className="actions-onglets">
-          <span className="muet">Lieu choisi : {nomDe(dernier)}</span>
-          <button className="bouton secondaire" type="button" aria-expanded={corriger} onClick={() => setCorriger(!corriger)}>Modifier</button>
-          <button className="bouton secondaire" type="button" onClick={() => confirmer(`Voulez-vous vraiment supprimer ${dernier.nom} ?`,
-            () => api.localisation.supprimer(dernier.niveau, dernier.id), () => choisir(profondeur, ""))}>Supprimer</button>
-        </div>}
-
-        {dernier && corriger && <fieldset className="pile cadre-champs champs-a-gauche">
-          <legend>Corriger le nom ou la nature de {dernier.nom}</legend>
-          <Champ libelle={`${LIBELLE[dernier.niveau]} *`}>{(p) => <input {...p} className="saisie" value={modif.nom} onChange={(e) => setModif({ ...modif, nom: e.target.value })} />}</Champ>
-          {naturesDe(dernier.niveau) && <Champ libelle="Nature *">{(p) => <select {...p} className="saisie" value={modif.nature} onChange={(e) => setModif({ ...modif, nature: e.target.value })}>
-            <option value=""></option>{naturesDe(dernier.niveau)!.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>}
-          {dernier.niveau === "pays" && champsPays(modif, (x) => setModif({ ...modif, ...x }), "")}
+        {commune && <fieldset className="pile cadre-champs champs-a-gauche">
+          <legend>Ajouter un {quoi} dans {commune.nom}</legend>
+          <Champ libelle={`Nom du ${quoi} *`}>{(p) => <input {...p} className="saisie" value={nouveau} onChange={(e) => setNouveau(e.target.value)} />}</Champ>
           <div className="actions-onglets">
-            <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment modifier ?",
-              () => api.localisation.enregistrer(dernier.niveau, { ...modif, parentId: dernier.parentId }, dernier.id), () => setCorriger(false))}>Enregistrer</button>
-            <button className="bouton secondaire" type="button" onClick={() => setCorriger(false)}>Annuler</button>
+            <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment enregistrer ?",
+              () => api.localisation.enregistrer("quartier", { parentId: commune.id, nom: nouveau }), () => setNouveau(""))}>Ajouter</button>
           </div>
         </fieldset>}
 
-        {niveauAjout && <fieldset className="pile cadre-champs champs-a-gauche">
-          <legend>Ajouter {libelleAjout}{dernier ? ` dans ${dernier.nom}` : ""}</legend>
-          <Champ libelle="Nom du nouveau lieu *">{(p) => <input {...p} className="saisie" value={ajout.nom} onChange={(e) => setAjout({ ...ajout, nom: e.target.value })} />}</Champ>
-          {naturesDe(niveauAjout) && <Champ libelle="Nature du nouveau lieu *">{(p) => <select {...p} className="saisie" value={ajout.nature} onChange={(e) => setAjout({ ...ajout, nature: e.target.value })}>
-            <option value=""></option>{naturesDe(niveauAjout)!.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>}
-          {niveauAjout === "pays" && champsPays(ajout, (x) => setAjout({ ...ajout, ...x }), " du nouveau pays")}
+        {quartier && <fieldset className="pile cadre-champs champs-a-gauche">
+          <legend>Corriger le {quoi} {quartier.nom}</legend>
+          <Champ libelle="Nouveau nom *">{(p) => <input {...p} className="saisie" value={nomQuartier} onChange={(e) => setNomQuartier(e.target.value)} />}</Champ>
           <div className="actions-onglets">
-            <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment enregistrer ?",
-              () => api.localisation.enregistrer(niveauAjout, { ...ajout, parentId: dernier?.id ?? null }), () => setAjout(VIDE))}>Ajouter</button>
-            <button className="bouton secondaire" type="button" onClick={() => setAjout(VIDE)}>Effacer</button>
+            <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment modifier ?",
+              () => api.localisation.enregistrer("quartier", { parentId: quartier.parentId, nom: nomQuartier }, quartier.id), () => setQuartier(null))}>Modifier</button>
+            <button className="bouton secondaire" type="button" onClick={() => confirmer(`Voulez-vous vraiment supprimer ${quartier.nom} ?`,
+              () => api.localisation.supprimer("quartier", quartier.id), () => setQuartier(null))}>Supprimer</button>
+            <button className="bouton secondaire" type="button" onClick={() => setQuartier(null)}>Annuler</button>
           </div>
         </fieldset>}
 
         <div className="actions-onglets">
           <button className="bouton secondaire" type="button" onClick={exporter}>Exporter</button>
         </div>
-        {dernier && niveauAjout && <table className="grille" aria-label={`Contenu de ${dernier.nom}`}>
-          <caption>{dernier.nom} : {contenu.length} {contenu.length > 1 ? "lieux" : "lieu"}</caption>
-          <thead><tr><th scope="col">{LIBELLE[niveauAjout]}</th>{naturesDe(niveauAjout) && <th scope="col">Nature</th>}</tr></thead>
+        <table className="grille" aria-label={titreContenu}>
+          <caption>{titreContenu} : {contenu.length}</caption>
+          <thead><tr><th scope="col">Nom</th>{!commune && province && <th scope="col">Nature</th>}</tr></thead>
           <tbody>
             {contenu.length === 0 && <tr><td colSpan={2}>Liste vide</td></tr>}
-            {contenu.map((l) => <tr key={l.id} className="ligne-choix" tabIndex={0} onClick={() => choisir(profondeur + 1, String(l.id))}
-              onKeyDown={(e) => { if (e.key === "Enter") choisir(profondeur + 1, String(l.id)); }}>
-              <td>{l.nom}</td>{naturesDe(niveauAjout) && <td>{l.nature}</td>}</tr>)}
+            {contenu.map((l) => <tr key={l.id} className="ligne-choix" tabIndex={0} aria-selected={l.id === quartier?.id} onClick={() => descendre(l)}
+              onKeyDown={(e) => { if (e.key === "Enter") descendre(l); }}><td>{l.nom}</td>{!commune && province && <td>{l.nature}</td>}</tr>)}
           </tbody>
-        </table>}
+        </table>
+
+        <div className="actions-onglets">
+          <button className="bouton secondaire" type="button" aria-expanded={pays !== null}
+            onClick={() => setPays(pays ? null : { nom: "", nationalite: "", code: "", zone: "" })}>Ajouter un pays (nationalités)</button>
+        </div>
+        {pays && <fieldset className="pile cadre-champs champs-a-gauche">
+          <legend>Ajouter un pays</legend>
+          <Champ libelle="Pays *">{(p) => <input {...p} className="saisie" value={pays.nom} onChange={(e) => setPays({ ...pays, nom: e.target.value })} />}</Champ>
+          <Champ libelle="Nationalite *">{(p) => <input {...p} className="saisie" value={pays.nationalite} onChange={(e) => setPays({ ...pays, nationalite: e.target.value })} />}</Champ>
+          <Champ libelle="Code *">{(p) => <input {...p} className="saisie code" value={pays.code} onChange={(e) => setPays({ ...pays, code: e.target.value })} />}</Champ>
+          <Champ libelle="Zone *">{(p) => <select {...p} className="saisie" value={pays.zone} onChange={(e) => setPays({ ...pays, zone: e.target.value })}>
+            <option value=""></option>{donnees.zones.map((z) => <option key={z}>{z}</option>)}</select>}</Champ>
+          <div className="actions-onglets">
+            <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment enregistrer ?", () => api.localisation.enregistrer("pays", pays), () => setPays(null))}>Enregistrer</button>
+          </div>
+        </fieldset>}
       </section>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>

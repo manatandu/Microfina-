@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api, type InfoSociete } from "../donnees/api";
+import { BlocAdresse, composerAdresse } from "../composants/Adresse";
+import type { Adresse } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee } from "../composants";
 import { fr } from "../lib/dates";
@@ -36,9 +38,6 @@ function InformationSociete() {
   if (!donnees) return <Chargement />;
   const v: InfoSociete = f ?? donnees.institution;
   const maj = (x: Partial<InfoSociete>) => setF({ ...v, ...x });
-  const pays = donnees.localites.find((p: { pays: string }) => p.pays === v.pays);
-  const ville = pays?.villes.find((x: { ville: string }) => x.ville === v.ville);
-  const commune = ville?.communes.find((x: { commune: string }) => x.commune === v.commune);
   const texte = (k: keyof InfoSociete, libelle: string, classe = "saisie") => (
     <Champ libelle={libelle}>{(p) => <input {...p} className={classe} value={String(v[k] ?? "")} onChange={(e) => maj({ [k]: e.target.value })} />}</Champ>);
   function choisirLogo(fichier: File | undefined) {
@@ -77,15 +76,7 @@ function InformationSociete() {
             {(v.typeBase === "coopec" || v.typeBase === "faitiere") && texte("membresAuxiliaires", "Membres auxiliaires (article des statuts) :")}
           </div>
           <div className="pile champs-a-gauche">
-            <Champ libelle="Pays">{(p) => <select {...p} className="saisie" value={v.pays} onChange={(e) => maj({ pays: e.target.value, ville: "", commune: "", quartier: "" })}>
-              <option value=""></option>{donnees.localites.map((x: { pays: string }) => <option key={x.pays}>{x.pays}</option>)}</select>}</Champ>
-            <Champ libelle="Ville:">{(p) => <select {...p} className="saisie" value={v.ville} onChange={(e) => maj({ ville: e.target.value, commune: "", quartier: "" })}>
-              <option value=""></option>{pays?.villes.map((x: { ville: string }) => <option key={x.ville}>{x.ville}</option>)}</select>}</Champ>
-            <Champ libelle="Commune">{(p) => <select {...p} className="saisie" value={v.commune} onChange={(e) => maj({ commune: e.target.value, quartier: "" })}>
-              <option value=""></option>{ville?.communes.map((x: { commune: string }) => <option key={x.commune}>{x.commune}</option>)}</select>}</Champ>
-            <Champ libelle="Quartier *">{(p) => <select {...p} className="saisie" value={v.quartier} onChange={(e) => maj({ quartier: e.target.value })}>
-              <option value=""></option>{commune?.quartiers.map((q: string) => <option key={q}>{q}</option>)}</select>}</Champ>
-            {texte("rue", "Rue / Maison")}
+            <BlocAdresse valeur={v} maj={(x) => maj(x)} arbre={donnees.arbreLieux} ajouterQuartier={api.adresse.ajouterQuartier} />
             {texte("email", "email :")}
             {texte("bp", "BP", "saisie code")}
             {texte("telephoneFixe", "Telephone fixe :")}
@@ -124,25 +115,32 @@ function InformationSociete() {
   );
 }
 
+type SaisieAgence = Adresse & { code: string; nom: string };
+const AGENCE_VIDE: SaisieAgence = { code: "", nom: "", pays: "", province: "", ville: "", commune: "", quartier: "", rue: "", numeroRue: "" };
 function Agences() {
-  const [f, setF] = useState({ code: "", nom: "" });
+  const [f, setF] = useState<SaisieAgence>(AGENCE_VIDE);
   const [choisi, setChoisi] = useState<number | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   const [relu, setRelu] = useState(0);
   const { donnees } = useDonnees(() => api.societe.lire(), [relu]);
   if (!donnees) return <Chargement />;
-  const effacer = () => { setF({ code: "", nom: "" }); setChoisi(null); };
+  const effacer = () => { setF(AGENCE_VIDE); setChoisi(null); };
   const confirmer = (texte: string, faire: () => Promise<unknown>) => setBoite({ type: "confirmation", message: texte, oui: async () => {
     try { await faire(); effacer(); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   } });
-  const choisir = (a: { id: number; code: string; nom: string }) => { setChoisi(a.id); setF({ code: a.code, nom: a.nom }); };
+  const choisir = (a: SaisieAgence & { id: number }) => { setChoisi(a.id); const { id: _id, ...x } = a; setF({ ...AGENCE_VIDE, ...x }); };
   return (
     <section className="bloc pile" id="volet-agence" role="tabpanel" aria-labelledby="onglet-agence">
       <div className="ligne-champ">
         <Champ libelle="Code : *">{(p) => <input {...p} className="saisie code" value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} />}</Champ>
         <Champ libelle="Nom : *">{(p) => <input {...p} className="saisie" value={f.nom} onChange={(e) => setF({ ...f, nom: e.target.value })} />}</Champ>
       </div>
+      {/* Adresse de l'agence, la même que partout (décision du porteur du 21/11/2026, registre T41) */}
+      <fieldset className="pile cadre-champs champs-a-gauche">
+        <legend>Adresse de l'agence</legend>
+        <BlocAdresse valeur={f} maj={(x) => { const { adresse: _a, ...r } = x; setF({ ...f, ...r }); }} arbre={donnees.arbreLieux} ajouterQuartier={api.adresse.ajouterQuartier} />
+      </fieldset>
       <div className="actions-onglets">
         <button className="bouton" type="button" onClick={() => confirmer(choisi === null ? "Voulez-vous vraiment enregistrer ?" : "Voulez-vous vraiment modifier ?",
           () => api.societe.enregistrerAgence(f, choisi ?? undefined))}>Enregistrer</button>
@@ -150,11 +148,11 @@ function Agences() {
         <button className="bouton secondaire" type="button" disabled={choisi === null} onClick={() => confirmer("Voulez-vous vraiment supprimer ?", () => api.societe.supprimerAgence(choisi!))}>Supprimer</button>
       </div>
       <Paginee lignes={donnees.agences}>{(visibles) => (<table className="grille">
-        <thead><tr><th scope="col">Code</th><th scope="col">Nom</th></tr></thead>
+        <thead><tr><th scope="col">Code</th><th scope="col">Nom</th><th scope="col">Adresse</th></tr></thead>
         <tbody>
-          {visibles.map((a: { id: number; code: string; nom: string }) => (
+          {visibles.map((a: SaisieAgence & { id: number }) => (
             <tr key={a.id} className="ligne-choix" tabIndex={0} aria-selected={a.id === choisi} onClick={() => choisir(a)} onKeyDown={(e) => { if (e.key === "Enter") choisir(a); }}>
-              <td>{a.code}</td><td>{a.nom}</td>
+              <td>{a.code}</td><td>{a.nom}</td><td>{composerAdresse(a)}</td>
             </tr>
           ))}
         </tbody>

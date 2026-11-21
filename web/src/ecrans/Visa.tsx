@@ -447,6 +447,16 @@ export function InformationsClient() {
               <tbody>{ecarts.map(([k, l]) => <tr key={k}><td>{l}</td><td>{enTexte(initial![k])}</td><td>{enTexte(t[k])}</td></tr>)}</tbody>
             </table>
           )}
+          {/* Un membre qui déménage : chaque ancienne adresse reste, avec la date du changement (registre T41 ; loi 22/068, art. 48 : conservation) */}
+          <h2>Adresses successives</h2>
+          <table className="grille" aria-label="Adresses successives">
+            <thead><tr><th scope="col">Adresse</th><th scope="col">Jusqu'au</th><th scope="col">Changement validé</th></tr></thead>
+            <tbody>
+              {(detail?.modifications ?? []).filter((m) => (m.avant.adresse ?? "") !== (m.apres.adresse ?? "")).map((m) =>
+                <tr key={m.modifieLe}><td>{m.avant.adresse}</td><td>{fr(m.modifieLe.slice(0, 10))}</td><td>{m.validePar ? "Oui" : "En attente"}</td></tr>)}
+              <tr><td>{t.adresse}</td><td>Adresse actuelle</td><td></td></tr>
+            </tbody>
+          </table>
         </>}
         {t && onglet === 1 && (
           <div className="formulaire">

@@ -48,6 +48,8 @@ def contexte(u) -> dict:
             "cycles": lignes("select id, code, libelle from credit_cycle where institution_id = %s and actif order by code", (i,)),
             "provinces": lignes("select id, nom from localite where niveau = 'province' and actif order by nom"),
             "villes": lignes("select id, parent_id as \"provinceId\", nom, nature from localite where niveau = 'ville' and actif order by nom"),   # nature : registre S20-8
+            # lieu de l'activité jusqu'à la commune, au secteur ou à la chefferie (registre T41)
+            "communes": lignes("select id, parent_id as \"villeId\", nom, nature from localite where niveau = 'commune' and actif order by nom"),
             "fondsPropres": fonds_propres(u), "coopec": est_coopec(u)}
 
 
@@ -98,7 +100,7 @@ def vue(x: dict) -> dict:
             "cycle": valeur("select libelle from credit_cycle where id = %s", (x["cycle_id"],)) or "", "analyse": valeur("select numero from analyse_financiere where id = %s", (x["analyse_id"],)) or "",
             "nbHommes": x["nb_hommes"], "nbFemmes": x["nb_femmes"], "montantHommes": x["montant_hommes"], "montantFemmes": x["montant_femmes"],
             "nbGroupes": x["nb_groupes"], "montant": x["montant_demande"], "duree": x["duree_mois"], "montantApprouve": x["montant_approuve"],
-            "province": valeur("select nom from localite where id = %s", (x["province_id"],)) or "", "ville": valeur("select nom from localite where id = %s", (x["ville_id"],)) or "",
+            "province": valeur("select nom from localite where id = %s", (x["province_id"],)) or "", "ville": valeur("select nom from localite where id = %s", (x["ville_id"],)) or "", "commune": valeur("select nom from localite where id = %s", (x["commune_id"],)) or "" if x.get("commune_id") else "",
             "parts": json_lu(x["parts"]) or [], "statut": x["statut"], "date": x["cree_le"].date().isoformat(), "saisiPar": nom(x["saisi_par"]),
             "controlePar": nom(x["controle_par"]), "approuvePar": nom(x["approuve_par"]), "consultationCrLe": x["consultation_cr_le"].isoformat() if x["consultation_cr_le"] else "",
             "consultationCrRef": x["consultation_cr_ref"] or "", "accordConseilRef": x["accord_conseil_ref"] or "", "accordBccRef": x["accord_bcc_ref"] or ""}
@@ -159,6 +161,12 @@ def demander(u, d) -> dict:
         if pr and isinstance(d.get("villeId"), int) else None
     if not pr or not vi:
         raise ErreurMetier("À remplir : Province (région), Ville ou territoire (préfecture).")
+    co = None
+    if d.get("communeId") not in (None, "", 0):
+        co = une("select id from localite where id = %s and niveau = 'commune' and parent_id = %s and actif", (d.get("communeId"), vi["id"])) \
+            if isinstance(d.get("communeId"), int) else None
+        if not co:
+            raise ErreurMetier("Commune, secteur ou chefferie : il n'est pas dans la ville ou le territoire choisi.")
     aid = d.get("analyseId")
     if aid is not None and not une("select 1 from analyse_financiere where id = %s and tiers_id = %s and produit_id = %s", (aid, t["id"], p["id"])):
         raise ErreurMetier("Cette analyse financière n'est pas celle de ce client et de ce produit.")
@@ -173,10 +181,10 @@ def demander(u, d) -> dict:
             raise ErreurMetier("Groupe : la somme des parts des membres doit égaler le montant demandé.")
     n = int(valeur("select count(*) from demande_credit where institution_id = %s", (u["institution_id"],))) + 1
     did = valeur("""insert into demande_credit (institution_id, agence_id, tiers_id, produit_id, montant_demande, duree_mois, nb_hommes, nb_femmes, montant_hommes,
-                    montant_femmes, nb_groupes, statut, numero, analyse_id, cycle_id, province_id, ville_id, devise, parts, saisi_par)
-                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'saisie', %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
+                    montant_femmes, nb_groupes, statut, numero, analyse_id, cycle_id, province_id, ville_id, devise, parts, saisi_par, commune_id)
+                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'saisie', %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
                  (u["institution_id"], u["agence_id"], t["id"], p["id"], montant, duree, e["nbHommes"], e["nbFemmes"], e["montantHommes"], e["montantFemmes"],
-                  e["nbGroupes"], f"DC{n:06d}", aid, cid, pr["id"], vi["id"], p["devise"], Jsonb(parts), u["id"]))
+                  e["nbGroupes"], f"DC{n:06d}", aid, cid, pr["id"], vi["id"], p["devise"], Jsonb(parts), u["id"], co["id"] if co else None))
     return vue(une("select * from demande_credit where id = %s", (did,)))
 
 
