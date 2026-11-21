@@ -144,19 +144,20 @@ export function liasseXml(e: Entete, d: DonneesLiasse) {
 export type LigneBalanceXml = { compte: string; intitule: string; anterieurD: number; anterieurC: number; mouvementD: number; mouvementC: number; soldeD: number; soldeC: number };
 export type CompteGrandLivre = { compte: string; intitule: string; soldeInitial: number; lignes: { date: string; journal: string; piece: string; libelle: string; debit: number; credit: number }[] };
 const nomFeuille = (compte: string) => `GL ${compte}`.slice(0, 31);
-export function balanceXml(e: { institution: string; du: string; au: string; tirage: string }, lignes: LigneBalanceXml[], grandLivre: CompteGrandLivre[] = []) {
+export function balanceXml(e: { institution: string; du: string; au: string; tirage: string }, lignes: LigneBalanceXml[], grandLivre: CompteGrandLivre[] = [], tiers = false) {
   const t = (f: (l: LigneBalanceXml) => boolean, nom: string): Ligne => {
     const s = lignes.filter(f), k = (x: keyof LigneBalanceXml) => s.reduce((a, l) => a + (l[x] as number), 0) / 100;
     return { style: "neutreTotal", cellules: [nom, null, k("anterieurD"), k("anterieurC"), k("mouvementD"), k("mouvementC"), k("soldeD"), k("soldeC")] };
   };
   const avecFeuille = new Set(lignes.filter((l) => grandLivre.some((c) => c.compte.startsWith(l.compte))).map((l) => l.compte));
   const rows: Ligne[] = [{ style: "neutreTitre", cellules: [e.institution, null, null, null, null, null, null, `Date de tirage : ${e.tirage}`] },
-    { style: "neutreTitre", cellules: ["Balance des comptes", null, null, null, null, null, null, null] },
+    { style: "neutreTitre", cellules: [tiers ? "Balance des Tiers" : "Balance des comptes", null, null, null, null, null, null, null] },
     { style: "texte", cellules: [`Période du ${fr(e.du)} au ${fr(e.au)}`, null, null, null, null, null, null, null] }, { style: "texte", cellules: ["Complète    Tenue de compte : CDF", null, null, null, null, null, null, null] },
-    { style: "neutreEntete", cellules: ["Numéro de compte", "Intitulé des comptes", `Mouvements au ${fr(e.du)} Débit`, "Crédit", "Mouvements Débit", "Crédit", "Soldes cumulés Débit", "Crédit"] },
+    { style: "neutreEntete", cellules: [tiers ? "Numéro tiers" : "Numéro de compte", tiers ? "Intitulé tiers" : "Intitulé des comptes", `Mouvements au ${fr(e.du)} Débit`, "Crédit", "Mouvements Débit", "Crédit", "Soldes cumulés Débit", "Crédit"] },
     ...lignes.map((l): Ligne => ({ style: "neutre", cellules: [avecFeuille.has(l.compte) ? { texte: l.compte, lien: `#'${nomFeuille(l.compte)}'!A1` } : l.compte, l.intitule,
       l.anterieurD / 100, l.anterieurC / 100, l.mouvementD / 100, l.mouvementC / 100, l.soldeD / 100, l.soldeC / 100] })),
-    t((l) => "12345".includes(l.compte[0]!), "Totaux comptes de bilan"), t((l) => "678".includes(l.compte[0]!), "Totaux comptes de gestion"), t(() => true, "Totaux de la balance")];
+    ...(tiers ? [t(() => true, "Total général")] : [t((l) => "12345".includes(l.compte[0]!), "Totaux comptes de bilan"), t((l) => "678".includes(l.compte[0]!), "Totaux comptes de gestion"),
+      t(() => true, "Totaux de la balance")])];
   const feuilles: Feuille[] = [{ nom: "Balance", largeurs: [80, 260, 85, 85, 85, 85, 85, 85], lignes: rows }];
   for (const l of lignes) if (avecFeuille.has(l.compte))
     feuilles.push(feuilleGrandLivre(e, `${l.compte} ${l.intitule}`, grandLivre.filter((c) => c.compte.startsWith(l.compte)), nomFeuille(l.compte), true));
@@ -165,9 +166,9 @@ export function balanceXml(e: { institution: string; du: string; au: string; tir
 
 /** Grand-livre des comptes (extrait de compte, modèle CARRIGRES ; colonnes du grand-livre des tiers FPM) : Date, C.j, N° pièce, Libellé écriture, Mouvement débit,
  *  Mouvement crédit, Solde progressif ; un bloc par compte avec son solde d'ouverture et « Total du compte » ; neutre */
-function feuilleGrandLivre(e: { institution: string; du: string; au: string; tirage: string }, titre: string, comptes: CompteGrandLivre[], nom: string, retour: boolean): Feuille {
+function feuilleGrandLivre(e: { institution: string; du: string; au: string; tirage: string }, titre: string, comptes: CompteGrandLivre[], nom: string, retour: boolean, tiers = false): Feuille {
   const rows: Ligne[] = [{ style: "neutreTitre", cellules: [e.institution, null, null, null, null, null, `Date de tirage : ${e.tirage}`] },
-    { style: "neutreTitre", cellules: [`Grand-livre : ${titre}`, null, null, null, null, null, null] },
+    { style: "neutreTitre", cellules: [`${tiers ? "Grand-livre des tiers" : "Grand-livre"} : ${titre}`, null, null, null, null, null, null] },
     { style: "texte", cellules: [`Période du ${fr(e.du)} au ${fr(e.au)}`, null, null, null, null, null, retour ? { texte: "Retour à la balance", lien: "#'Balance'!A1" } : null] },
     { style: "neutreEntete", cellules: ["Date", "C.j", "N° pièce", "Libellé écriture", "Mouvement débit", "Mouvement crédit", "Solde progressif"] }];
   for (const c of comptes) {
@@ -175,10 +176,10 @@ function feuilleGrandLivre(e: { institution: string; du: string; au: string; tir
     let solde = c.soldeInitial;
     rows.push({ style: "neutre", cellules: [null, null, null, "Solde d'ouverture", null, null, solde / 100] });
     for (const l of c.lignes) { solde += l.debit - l.credit; rows.push({ style: "neutre", cellules: [fr(l.date), l.journal, l.piece, l.libelle, l.debit / 100, l.credit / 100, solde / 100] }); }
-    rows.push({ style: "neutreTotal", cellules: [`Total du compte ${c.compte}`, null, null, null, c.lignes.reduce((a, l) => a + l.debit, 0) / 100, c.lignes.reduce((a, l) => a + l.credit, 0) / 100, solde / 100] });
+    rows.push({ style: "neutreTotal", cellules: [tiers ? `Total du tiers ${c.intitule}` : `Total du compte ${c.compte}`, null, null, null, c.lignes.reduce((a, l) => a + l.debit, 0) / 100, c.lignes.reduce((a, l) => a + l.credit, 0) / 100, solde / 100] });
   }
   return { nom, largeurs: [70, 40, 90, 260, 90, 90, 90], lignes: rows };
 }
-export function grandLivreXml(e: { institution: string; du: string; au: string; tirage: string }, comptes: CompteGrandLivre[]) {
-  return classeur([feuilleGrandLivre(e, "tous les comptes", comptes, "Grand livre", false)]);
+export function grandLivreXml(e: { institution: string; du: string; au: string; tirage: string }, comptes: CompteGrandLivre[], tiers = false) {
+  return classeur([feuilleGrandLivre(e, tiers ? "tous les tiers" : "tous les comptes", comptes, tiers ? "Grand-livre des tiers" : "Grand livre", false, tiers)]);
 }

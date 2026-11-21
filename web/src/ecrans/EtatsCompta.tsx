@@ -6,7 +6,6 @@ import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
-import { exporterExcel } from "../lib/excel";
 import { balanceXml, grandLivreXml, telecharger, type CompteGrandLivre } from "../lib/liasse";
 import { montant } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
@@ -60,13 +59,10 @@ function EditionGrandLivre({ analytique, ctx, jour }: { analytique: boolean; ctx
     try { setR(await api.etatsCompta.grandLivre({ type: f.type, agenceId: f.agence ? Number(f.agence) : null, exercice: f.exercice, du: f.du, au: f.au, vidage: f.vidage }, analytique)); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   }
-  const COL = ["Compte", ...(analytique ? ["Auxiliaire"] : []), "Date", "Journal", "N°Pièce", "Libellé", "Débit", "Crédit", "Solde"];
-  const exporter = async () => { if (!r) return; if (!analytique) { telecharger(`grand-livre-${r.au}`, grandLivreXml(await enteteDoc(r.du, r.au), r.comptes.map(versGl))); return; }
-    exporterAnalytique(); };
-  const exporterAnalytique = () => r && exporterExcel(titre, COL, r.comptes.flatMap((c) => [
-    [c.compte, ...(analytique ? [c.auxiliaire] : []), "", "", "", `${c.intitule} : solde d'ouverture`, "", "", c.soldeInitial / 100],
-    ...c.lignes.map((l) => [c.compte, ...(analytique ? [c.auxiliaire] : []), fr(l.date), l.journal, l.piece, l.libelle, l.debit / 100, l.credit / 100, l.solde / 100]),
-    [c.compte, ...(analytique ? [c.auxiliaire] : []), "", "", "", "Total du compte", c.debit / 100, c.credit / 100, c.soldeFinal / 100]]));
+  // Général : modèle CARRIGRES ; analytique : grand-livre des tiers (modèle FPM, un bloc et un total par tiers) ; registre T31
+  const exporter = async () => { if (!r) return;
+    telecharger(`${analytique ? "grand-livre-des-tiers" : "grand-livre"}-${r.au}`, grandLivreXml(await enteteDoc(r.du, r.au),
+      r.comptes.map((c) => versGl(analytique ? { ...c, intitule: `${c.auxiliaire || "sans tiers"} (${c.compte} ${c.intitule})` } : c)), analytique)); };
   const solde = (v: number) => (v ? `${montant(Math.abs(v), "CDF")} ${v > 0 ? "D" : "C"}` : "");
   return (
     <section className="bloc pile" aria-label={titre}>
@@ -131,7 +127,11 @@ function EditionBalance({ analytique, ctx, jour }: { analytique: boolean; ctx: C
   const criteresGl = (compte?: string) => ({ type: "global", agenceId: f.agence ? Number(f.agence) : null, exercice: f.exercice, du: f.du, au: f.au, vidage: !f.sansVidage, compte });
   const exporter = async () => {
     if (!r) return;
-    if (analytique) { exporterAnalytique(); return; }
+    if (analytique) {      // balance des tiers (modèle FPM) : une ligne par tiers et par compte, « Total général » (registre T31)
+      telecharger(`balance-des-tiers-${r.au}`, balanceXml(await enteteDoc(r.du, r.au), r.lignes.map((x) => ({ compte: x.auxiliaire || x.compte, intitule: `${x.intitule} (${x.compte})`,
+        anterieurD: x.ouvertureDebit, anterieurC: x.ouvertureCredit, mouvementD: x.mouvementDebit, mouvementC: x.mouvementCredit, soldeD: x.soldeDebit, soldeC: x.soldeCredit })), [], true));
+      return;
+    }
     try {
       const gl = await api.etatsCompta.grandLivre(criteresGl());
       telecharger(`balance-${r.au}`, balanceXml(await enteteDoc(r.du, r.au), r.lignes.map((x) => ({ compte: x.compte, intitule: x.intitule, anterieurD: x.ouvertureDebit, anterieurC: x.ouvertureCredit,
@@ -140,8 +140,6 @@ function EditionBalance({ analytique, ctx, jour }: { analytique: boolean; ctx: C
   };
   const [glCompte, setGlCompte] = useState<{ compte: string; intitule: string; r: GL } | null>(null);
   const ouvrirGl = async (compte: string, intitule: string) => { try { setGlCompte({ compte, intitule, r: await api.etatsCompta.grandLivre(criteresGl(compte)) }); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } };
-  const exporterAnalytique = () => r && exporterExcel(titre, ["Compte", ...(analytique ? ["Auxiliaire"] : []), "Intitulé", ...groupes.flatMap((g) => [`${g} débit`, `${g} crédit`])],
-    r.lignes.map((x) => [x.compte, ...(analytique ? [x.auxiliaire] : []), x.intitule, ...cellules(x).map((v) => v / 100)]));
   return (
     <section className="bloc pile" aria-label={titre}>
       <h2>{titre}</h2>
