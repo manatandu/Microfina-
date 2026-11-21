@@ -7,7 +7,7 @@ import { graine } from "./graine";
 import { creerApiHttp } from "./http";
 import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
-  type ChequeClient, type Chequier, type DepotTerme, type PaieEmploye, type PlanEpargne, type ClotureCompte, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type OperationCompta, type LigneOc, type ChargeFacture, type CommandeFournisseur, type FactureFournisseur, type ReglementFournisseur, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
+  type ChequeClient, type Chequier, type DepotTerme, type ImmoBien, type PaieEmploye, type PlanEpargne, type ClotureCompte, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type OperationCompta, type LigneOc, type ChargeFacture, type CommandeFournisseur, type FactureFournisseur, type ReglementFournisseur, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget, type CriteresAtypiques, type GelAvoirs,
   type AnalyseFinanciere, type DemandeCredit, type CreditPret, type GarantieCredit, type RemboursementCredit, type VisaCredit, type BalanceAgee,
@@ -22,7 +22,7 @@ import REFERENTIELS from "@referentiels";
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v104";
+const CLE = "likelemba-demo-v105";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = charger();
 const abonnes = new Set<() => void>();
@@ -30,7 +30,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 81) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 82) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return graine();
@@ -7462,6 +7462,256 @@ const paie = {
     r.statut = "visee"; r.visePar = u.id; enregistrer(); return paie.retenues().find((x) => x.id === id)!;
   },
 };
+// ---------- Immobilisations : S136 données de base, S137 biens, S138 mouvements, S139 amortissement, inventaire, sortie, S140 rapports (manuel, chap. 7) ----------
+// Mêmes règles que serveur/noyau/immobilisations.py. PCCI, classe 2 (inventaire détaillé ; cession : 673, 674, 774), comptes 28 et 681.
+VERIFIER_REF.immobilisations = (c, v) => {
+  const n = (x: unknown) => Number(String(x).replace(",", "."));
+  if (c.page === "coefficients" && v.de !== null && v.a !== null && n(v.de) > n(v.a)) throw new ErreurMetier("Période : « ans à » au moins « allant de ».");
+  if (c.page === "familles" && v.dureeMin !== null && v.dureeMax !== null && n(v.dureeMin) > n(v.dureeMax)) throw new ErreurMetier("Durée Max. : au moins la durée Min.");
+  if (c.page === "utilisations") {
+    if (v.tvaApplicable && !v.tva) throw new ErreurMetier("À remplir : T.V.A.");
+    if (v.tva && n(v.tva) > 100) throw new ErreurMetier("T.V.A : 100 % au plus.");
+  }
+};
+UTILISE_PAR_REF.immobilisations = { types: [["familles", "typeId", "Famille de biens"]], categories: [["familles", "categorieId", "Famille de biens"]] };
+const moteurImmo = referentielPartage("immobilisations");
+const refImmo = { ...moteurImmo,
+  supprimer(page: string, id: number) {
+    const cle = { categories: "categorieId", familles: "familleId", utilisations: "utilisationId", localisations: "localisationId" }[page] as keyof ImmoBien | undefined;
+    if (cle && E.immoBiens.some((b) => b.actif && b[cle] === id)) throw new ErreurMetier("Cette valeur est utilisée par la page Création de bien : la retirer d'abord.");
+    return moteurImmo.supprimer(page, id);
+  } };
+const ETATS_IMMO = ["Bon", "Moyen", "Mauvais", "Hors d'usage"], SORTIES_IMMO = ["Cession", "Mise au rebut"];
+const familleImmo = (id: number) => valeursRef("immobilisations", "familles").find((f) => f.id === id);
+function coefficientImmo(duree: number) {
+  const c = valeursRef("immobilisations", "coefficients").find((x) => Number(x.de) <= duree && duree <= Number(x.a));
+  if (!c) throw new ErreurMetier(`Aucun coefficient de dégressivité pour une durée de ${duree} ans (Données de base > Coefficient de dégressivité).`);
+  return Number(String(c.coefficient).replace(",", "."));
+}
+/** Plan d'amortissement par exercice (registre S139-1), comme serveur/noyau/immobilisations.py (plan) */
+export function planAmortissement(systeme: string, base: number, debut: string, duree: number, coef: number | null = null) {
+  if (base <= 0 || duree <= 0) return [];
+  const mois1 = 13 - Number(debut.slice(5, 7)), finMois = duree * 12, out: { exercice: number; mois: number; base: number; vncDebut: number; dotation: number; cumul: number; vnc: number }[] = [];
+  let cumul = 0, an = Number(debut.slice(0, 4)), ecoules = 0;
+  const arr = (x: number) => Math.round(x);
+  while (cumul < base && ecoules < finMois) {
+    const mois = Math.min(out.length ? 12 : mois1, finMois - ecoules), vnc = base - cumul;
+    let dot = systeme === "Dégressif" ? Math.max(arr(vnc * (1 / duree) * (coef ?? 1) * mois / 12), arr(vnc * mois / (finMois - ecoules))) : arr(base * mois / finMois);
+    if (ecoules + mois >= finMois || dot > vnc) dot = vnc;
+    cumul += dot; ecoules += mois;
+    out.push({ exercice: an, mois, base, vncDebut: vnc, dotation: dot, cumul, vnc: base - cumul }); an++;
+  }
+  return out;
+}
+function vueBien(b: ImmoBien) {
+  const f = familleImmo(b.familleId) ?? stockRef("immobilisations", "familles").find((x) => x.id === b.familleId)!;
+  const am = E.immoAmortissements.filter((a) => a.bienId === b.id).sort((x, y) => x.exercice - y.exercice), det = E.paieEmployes.find((e) => e.id === b.detenteurId);
+  return { ...b, famille: String(f.libelle), localisation: String(stockRef("immobilisations", "localisations").find((l) => l.id === b.localisationId)?.libelle ?? ""),
+    detenteur: det ? `${det.matricule} ${det.nom} ${det.prenoms}` : "", departement: det?.fonction ?? "", systeme: String(f.systeme), periodicite: String(f.periodicite),
+    comptes: { acquisition: String(f.compteAcquisition), dotation: String(f.compteDotation), amortissement: String(f.compteAmortissement), produit: String(f.compteProduits ?? ""), chargeVcn: String(f.compteChargeVcn) },
+    dernierAmortissement: am.at(-1)?.exercice ?? null, dateAmortissement: am.at(-1)?.le ?? "", cumulAmortissements: am.at(-1)?.cumul ?? 0 };
+}
+const bienImmo = (id: unknown) => { const b = E.immoBiens.find((x) => x.id === id && x.actif); if (!b) throw new ErreurMetier("Bien introuvable."); return b; };
+const employeImmo = (id: unknown) => { const e = E.paieEmployes.find((x) => x.id === id); if (!e) throw new ErreurMetier("Matricule : employé introuvable (Paie > Personnel)."); return e; };
+const quandImmo = (v: unknown, nom: string) => { if (!v || typeof v !== "string") throw new ErreurMetier(`À remplir : ${nom}.`); if (Number.isNaN(Date.parse(v))) throw new ErreurMetier(`${nom} : une date.`); return v; };
+const localisationImmo = (x: unknown) => { if (x === undefined || x === null || x === "") return null; if (!valeursRef("immobilisations", "localisations").some((l) => l.id === x)) throw new ErreurMetier("Localisation inconnue."); return x as number; };
+const jourImmo = () => { const j = journees.courante(); if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée)."); return j; };
+type SaisieBien = { [K in keyof Omit<ImmoBien, "id">]?: ImmoBien[K] | null };
+const immobilisations = {
+  contexte() {
+    lectureAdmin(["S137", "S138", "S139", "S140"]);
+    const o = (page: string) => valeursRef("immobilisations", page).map((l) => ({ id: l.id, libelle: `${l.code} ${l.libelle}` }));
+    return { categories: o("categories"), utilisations: o("utilisations"), localisations: o("localisations"), types: o("types"),
+      familles: valeursRef("immobilisations", "familles").map((f) => ({ id: f.id, code: String(f.code), libelle: String(f.libelle), categorieId: Number(f.categorieId), typeId: Number(f.typeId),
+        systeme: String(f.systeme), dureeMin: Number(f.dureeMin), dureeMax: Number(f.dureeMax), periodicite: String(f.periodicite), compteAcquisition: String(f.compteAcquisition),
+        compteDotation: String(f.compteDotation), compteAmortissement: String(f.compteAmortissement), compteProduits: String(f.compteProduits ?? ""), compteChargeVcn: String(f.compteChargeVcn),
+        immatriculation: !!f.immatriculation, chassis: !!f.chassis, carburant: !!f.carburant, titreFoncier: !!f.titreFoncier, description: !!f.description })),
+      utilisationsTva: Object.fromEntries(valeursRef("immobilisations", "utilisations").map((u) => [u.id, u.tvaApplicable ? String(u.tva ?? "") : ""])),
+      fournisseurs: stockRef("tiers", "tiers").filter((t) => t.actif && t.typeTiers === "FOURNISSEUR").map((t) => ({ id: t.id, libelle: `${t.compte} ${t.intitule}` })),
+      factures: E.facturesFournisseurs.map((f) => ({ id: f.id, fournisseurId: f.fournisseurId, numero: f.numero, montant: f.ttc })),
+      employes: [...E.paieEmployes].sort((a, b) => a.matricule.localeCompare(b.matricule)).map((e) => ({ id: e.id, matricule: e.matricule, nom: `${e.nom} ${e.prenoms}`, departement: e.fonction })),
+      etats: ETATS_IMMO, sorties: SORTIES_IMMO, systemes: ["Linéaire", "Dégressif"], periodicites: ["Annuelle", "Mensuelle"],
+      coefficients: valeursRef("immobilisations", "coefficients").map((c) => ({ coefficient: String(c.coefficient), de: Number(c.de), a: Number(c.a) })) };
+  },
+  enregistrer(d: SaisieBien, id?: number) {
+    const u = exiger(), j = jourImmo();
+    if (id !== undefined) {
+      const b = bienImmo(id);
+      if (b.statut === "SORTI" || E.immoAmortissements.some((a) => a.bienId === id)) throw new ErreurMetier("Bien déjà amorti ou sorti : il ne se modifie plus (PCCI § 3.4).");
+    }
+    const t = (k: keyof SaisieBien) => (typeof d[k] === "string" ? (d[k] as string).trim() : "");
+    const ent = (k: keyof SaisieBien) => (Number.isInteger(d[k]) ? d[k] as number : null);
+    const manque = [...([["codification", "Codification"], ["libelle", "Libellé Bien"]] as const).filter(([k]) => !t(k)).map(([, n]) => n),
+      ...([["categorieId", "Catégorie"], ["familleId", "Famille"], ["dureeVie", "Durée de vie"], ["utilisationId", "Utilisation"], ["localisationId", "Localisation"], ["montantTtc", "Montant TTC"]] as const)
+        .filter(([k]) => ent(k) === null).map(([, n]) => n)];
+    if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
+    if (!DATE_ISO.test(t("dateAcquisition"))) throw new ErreurMetier("À remplir : Date Acquisition.");
+    if (!DATE_ISO.test(t("dateMiseService"))) throw new ErreurMetier("À remplir : Date mise en service.");
+    if (t("dateMiseService") < t("dateAcquisition")) throw new ErreurMetier("Date mise en service : au plus tôt la date d'acquisition.");
+    const f = familleImmo(ent("familleId")!);
+    if (!f) throw new ErreurMetier("Famille inconnue.");
+    if (Number(f.categorieId) !== ent("categorieId")) throw new ErreurMetier("Famille : elle n'est pas de cette catégorie.");
+    if (ent("dureeVie")! < Number(f.dureeMin) || ent("dureeVie")! > Number(f.dureeMax)) throw new ErreurMetier(`Durée de vie : entre ${f.dureeMin} et ${f.dureeMax} ans pour cette famille (Normes).`);
+    const ut = valeursRef("immobilisations", "utilisations").find((x) => x.id === ent("utilisationId"));
+    if (!ut) throw new ErreurMetier("Utilisation inconnue.");
+    localisationImmo(ent("localisationId"));
+    if (ent("montantTtc")! <= 0) throw new ErreurMetier("Montant TTC : supérieur à zéro.");
+    if (ent("fournisseurId") && !stockRef("tiers", "tiers").some((x) => x.id === ent("fournisseurId"))) throw new ErreurMetier("Fournisseur inconnu.");
+    if (ent("factureId") && !E.facturesFournisseurs.some((x) => x.id === ent("factureId") && x.fournisseurId === ent("fournisseurId"))) throw new ErreurMetier("Facture : pas une facture de ce fournisseur.");
+    if (E.immoBiens.some((x) => x.actif && x.id !== id && x.codification.toLowerCase() === t("codification").toLowerCase())) throw new ErreurMetier("Cette Codification existe déjà.");
+    const ttc = ent("montantTtc")!, taux = ut.tvaApplicable && ut.tva ? Number(String(ut.tva).replace(",", ".")) : 0, tva = Math.round(ttc * taux / (100 + taux));
+    const opt = (k: "immatriculation" | "chassis" | "carburant" | "titreFoncier" | "description") => (f[k] ? t(k) : "");
+    const ancien = id === undefined ? undefined : bienImmo(id);
+    const b: ImmoBien = { id: ancien?.id ?? prochain(E.immoBiens), actif: true, numeroPiece: ancien?.numeroPiece ?? piece("OD"), dateOperation: ancien?.dateOperation ?? j.date,
+      codification: t("codification"), refConstructeur: t("refConstructeur"), categorieId: ent("categorieId")!, familleId: f.id, libelle: t("libelle"), dateAcquisition: t("dateAcquisition"),
+      dureeVie: ent("dureeVie")!, utilisationId: ut.id, localisationId: ent("localisationId")!, dateMiseService: t("dateMiseService"), fournisseurId: ent("fournisseurId"), factureId: ent("factureId"),
+      montantTtc: ttc, tva, prixAcquisition: ttc - tva, amortissable: d.amortissable !== false, subventionne: d.subventionne === true, immatriculation: opt("immatriculation"), chassis: opt("chassis"),
+      carburant: opt("carburant"), titreFoncier: opt("titreFoncier"), description: opt("description"), statut: ancien?.statut ?? "LIBRE", detenteurId: ancien?.detenteurId ?? null, creePar: ancien?.creePar ?? u.id };
+    if (ancien) Object.assign(ancien, b); else E.immoBiens.push(b);
+    enregistrer(); return vueBien(b);
+  },
+  supprimer(id: number) {
+    exiger();
+    const b = bienImmo(id);
+    if (b.statut !== "LIBRE" || E.immoAmortissements.some((a) => a.bienId === id) || E.immoMouvements.some((m) => m.bienId === id)) throw new ErreurMetier("Bien déjà affecté, amorti ou sorti : il ne se supprime plus.");
+    b.actif = false; enregistrer(); return { id };
+  },
+  liste(p: { statut?: string; detenteurId?: number | string } = {}) {
+    lectureAdmin(["S137", "S138", "S139", "S140"]);
+    return E.immoBiens.filter((b) => b.actif && (!p.statut || b.statut === p.statut) && (!p.detenteurId || b.detenteurId === Number(p.detenteurId)))
+      .sort((a, b) => a.codification.localeCompare(b.codification)).map(vueBien);
+  },
+  fiche(id: number) { lectureAdmin(["S137", "S138", "S139", "S140"]); return vueBien(bienImmo(id)); },
+  tableau(id: number) {
+    lectureAdmin(["S137", "S138", "S139", "S140"]);
+    const b = vueBien(bienImmo(id)), passe = new Set(E.immoAmortissements.filter((a) => a.bienId === id).map((a) => a.exercice));
+    return planAmortissement(b.systeme, b.prixAcquisition, b.dateMiseService, b.dureeVie, b.systeme === "Dégressif" ? coefficientImmo(b.dureeVie) : null).map((x) => ({ ...x, passe: passe.has(x.exercice) }));
+  },
+  mouvement(b: ImmoBien, type: "affectation" | "transfert" | "liberation", nouveau: number | null, loc: number | null, quand: string, u: number) {
+    E.immoMouvements.push({ id: prochain(E.immoMouvements), bienId: b.id, type, ancienDetenteurId: b.detenteurId, nouveauDetenteurId: nouveau, ancienneLocalisationId: b.localisationId,
+      nouvelleLocalisationId: loc ?? b.localisationId, date: quand, par: u });
+    b.detenteurId = nouveau; b.localisationId = loc ?? b.localisationId; b.statut = nouveau ? "AFFECTE" : "LIBRE";
+  },
+  choisis(d: { biens?: number[] }, statut: string) {
+    const ids = Array.isArray(d.biens) ? d.biens : [];
+    if (!ids.length) throw new ErreurMetier("Liste des biens choisis : au moins un bien.");
+    const bs = ids.map(bienImmo);
+    for (const b of bs) if (b.statut !== statut) throw new ErreurMetier(`Bien ${b.codification} : ${statut === "LIBRE" ? "déjà affecté ou sorti" : "pas en cours d’utilisation"}.`);
+    return bs;
+  },
+  affecter(d: { employeId?: number | null; date?: string; localisationId?: number | null; biens?: number[] }) {
+    const u = exiger(), e = employeImmo(d.employeId), q = quandImmo(d.date, "Date affectation"), loc = localisationImmo(d.localisationId), bs = immobilisations.choisis(d, "LIBRE");
+    for (const b of bs) immobilisations.mouvement(b, "affectation", e.id, loc, q, u.id);
+    enregistrer(); return bs.map(vueBien);
+  },
+  transfererBien(d: { bienId?: number | null; employeId?: number | null; localisationId?: number | null; date?: string }) {
+    const u = exiger(), b = bienImmo(d.bienId);
+    if (b.statut !== "AFFECTE") throw new ErreurMetier("Ce bien n'est pas en cours d'utilisation : l'affecter d'abord.");
+    const e = employeImmo(d.employeId), q = quandImmo(d.date, "Date transfert"), loc = localisationImmo(d.localisationId);
+    if (loc === null) throw new ErreurMetier("À remplir : Localisation.");
+    if (e.id === b.detenteurId) throw new ErreurMetier("Nouveau Détenteur : il détient déjà ce bien.");
+    immobilisations.mouvement(b, "transfert", e.id, loc, q, u.id); enregistrer(); return vueBien(b);
+  },
+  transfererEmploye(d: { ancienId?: number | null; nouveauId?: number | null; date?: string; localisationId?: number | null; biens?: number[] }) {
+    const u = exiger(), ancien = employeImmo(d.ancienId), nouveau = employeImmo(d.nouveauId), q = quandImmo(d.date, "Date transfert");
+    if (ancien.id === nouveau.id) throw new ErreurMetier("Nouveau détenteur : un autre employé que l'ancien.");
+    const bs = immobilisations.choisis(d, "AFFECTE");
+    if (bs.some((b) => b.detenteurId !== ancien.id)) throw new ErreurMetier("Liste des biens choisis : seulement des biens de l'ancien détenteur.");
+    const loc = localisationImmo(d.localisationId);
+    for (const b of bs) immobilisations.mouvement(b, "transfert", nouveau.id, loc, q, u.id);
+    enregistrer(); return bs.map(vueBien);
+  },
+  liberer(d: { date?: string; localisationId?: number | null; biens?: number[] }) {
+    const u = exiger(), q = quandImmo(d.date, "Date libération"), loc = localisationImmo(d.localisationId), bs = immobilisations.choisis(d, "AFFECTE");
+    for (const b of bs) immobilisations.mouvement(b, "liberation", null, loc, q, u.id);
+    enregistrer(); return bs.map(vueBien);
+  },
+  amortirUn(b: ImmoBien, exercice: number, u: number, j: Journee) {
+    if (!b.amortissable || b.statut === "SORTI" || E.immoAmortissements.some((a) => a.bienId === b.id && a.exercice === exercice)) return false;
+    const plan = immobilisations.tableau(b.id), x = plan.find((l) => l.exercice === exercice);
+    if (!x) return false;
+    const avant = plan.find((l) => l.exercice < exercice && !l.passe);
+    if (avant) throw new ErreurMetier(`Bien ${b.codification} : amortir d'abord l'exercice ${avant.exercice}.`);
+    const v = vueBien(b);
+    const e = x.dotation ? poster({ journal: "OD", journeeId: j.id, libelle: `Dotation aux amortissements ${exercice}, bien ${b.codification}`, piece: piece("OD"), saisiPar: u, validePar: u,
+      lignes: [{ compte: v.comptes.dotation, sens: "D", devise: "CDF", montant: x.dotation, montantCdf: x.dotation }, { compte: v.comptes.amortissement, sens: "C", devise: "CDF", montant: x.dotation, montantCdf: x.dotation }] }) : null;
+    E.immoAmortissements.push({ id: prochain(E.immoAmortissements), bienId: b.id, exercice, dotation: x.dotation, cumul: x.cumul, vnc: x.vnc, ecritureId: e?.id ?? null, par: u, le: j.date });
+    return true;
+  },
+  amortir(d: { par?: string; bienId?: number | null; exercice?: number | null }) {
+    const u = exiger();
+    if (!Number.isInteger(d.exercice) || !E.exercices.some((e) => e.annee === d.exercice && e.ouvert && !e.valide)) throw new ErreurMetier("Exercice : un exercice ouvert.");
+    const j = jourImmo();
+    const bs = d.par === "lot" ? E.immoBiens.filter((b) => b.actif && b.amortissable && b.statut !== "SORTI").sort((a, b) => a.codification.localeCompare(b.codification)) : [bienImmo(d.bienId)];
+    const n = bs.filter((b) => immobilisations.amortirUn(b, d.exercice as number, u.id, j)).length;
+    if (!n) throw new ErreurMetier("Rien à amortir pour cet exercice.");
+    enregistrer(); return { amortis: n };
+  },
+  inventorier(d: { bienId?: number | null; etat?: string; date?: string; observation?: string }) {
+    const u = exiger(), b = bienImmo(d.bienId);
+    if (!d.etat || !ETATS_IMMO.includes(d.etat)) throw new ErreurMetier("À remplir : Etat du bien.");
+    if (!DATE_ISO.test(d.date ?? "")) throw new ErreurMetier("À remplir : Date inventaire.");
+    if (d.date! > jourImmo().date) throw new ErreurMetier("Date inventaire : pas après la journée ouverte.");
+    E.immoInventaires.push({ id: prochain(E.immoInventaires), bienId: b.id, etat: d.etat, date: d.date!, observation: (d.observation ?? "").trim(), par: u.id });
+    enregistrer(); return { bienId: b.id, etat: d.etat, date: d.date! };
+  },
+  sortir(d: { type?: string; bienId?: number | null; date?: string; observation?: string }) {
+    const u = exiger();
+    if (!d.type || !SORTIES_IMMO.includes(d.type)) throw new ErreurMetier("À remplir : Type de sortie.");
+    const b = bienImmo(d.bienId);
+    if (b.statut === "SORTI") throw new ErreurMetier("Ce bien est déjà sorti du patrimoine.");
+    if (b.statut === "AFFECTE") throw new ErreurMetier("Ce bien est en cours d'utilisation : le libérer d'abord.");
+    if (!DATE_ISO.test(d.date ?? "")) throw new ErreurMetier("À remplir : Date de sortie.");
+    const j = jourImmo();
+    if (d.date! > j.date) throw new ErreurMetier("Date de sortie : pas après la journée ouverte.");
+    const v = vueBien(b), cumul = v.cumulAmortissements, vnc = b.prixAcquisition - cumul;
+    const l = (compte: string, sens: "D" | "C", m: number) => ({ compte, sens, devise: "CDF" as Devise, montant: m, montantCdf: m });
+    const lg = [l(v.comptes.acquisition, "C", b.prixAcquisition)];
+    if (cumul) lg.push(l(v.comptes.amortissement, "D", cumul));
+    if (vnc) lg.push(l(v.comptes.chargeVcn, "D", vnc));
+    const e = poster({ journal: "OD", journeeId: j.id, libelle: `Sortie du patrimoine (${d.type}), bien ${b.codification}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: lg });
+    E.immoSorties.push({ id: prochain(E.immoSorties), bienId: b.id, type: d.type, date: d.date!, observation: (d.observation ?? "").trim(), vnc, cumul, ecritureId: e.id, par: u.id });
+    b.statut = "SORTI"; enregistrer(); return { ...vueBien(b), vnc };
+  },
+  periode(p: { rechercher?: string; du?: string; au?: string }) {
+    const du = DATE_ISO.test(p.du ?? "") ? p.du! : null, au = DATE_ISO.test(p.au ?? "") ? p.au! : null;
+    return p.rechercher === "date" ? [du ?? au, du ?? au] : p.rechercher === "jusqua" ? [null, au ?? du] : [du, au];
+  },
+  rapportBiens(p: Record<string, string> = {}) {
+    lectureAdmin(["S137", "S138", "S139", "S140"]);
+    const [du, au] = immobilisations.periode(p);
+    return immobilisations.liste().filter((b) => (!du || b.dateAcquisition >= du) && (!au || b.dateAcquisition <= au)
+      && (["categorieId", "familleId", "utilisationId", "localisationId"] as const).every((k) => !p[k] || b[k] === Number(p[k]))
+      && (!p.statut || b.statut === p.statut) && (!p.subventionne || b.subventionne === (p.subventionne === "Oui"))
+      && (!p.amorti || (b.dernierAmortissement !== null) === (p.amorti === "Oui")) && (p.aAmortir !== "true" || (b.amortissable && b.statut !== "SORTI")));
+  },
+  rapportInventaires(p: Record<string, string> = {}) {
+    lectureAdmin(["S137", "S138", "S139", "S140"]);
+    const [du, au] = immobilisations.periode(p);
+    return E.immoInventaires.filter((i) => (!du || i.date >= du) && (!au || i.date <= au) && (!p.etat || i.etat === p.etat)).map((i) => ({ i, b: E.immoBiens.find((x) => x.id === i.bienId)! }))
+      .filter(({ b }) => !p.localisationId || b.localisationId === Number(p.localisationId)).sort((x, y) => x.i.date.localeCompare(y.i.date) || x.i.id - y.i.id)
+      .map(({ i, b }) => ({ date: i.date, codification: b.codification, libelle: b.libelle, etat: i.etat, observation: i.observation, par: nomUtilisateur(i.par) }));
+  },
+  simuler(p: { systeme?: string; coefficient?: string; dateAcquisition?: string; duree?: number | string; montant?: number | string }) {
+    lectureAdmin(["S137", "S138", "S139", "S140"]);
+    if (p.systeme !== "Linéaire" && p.systeme !== "Dégressif") throw new ErreurMetier("À remplir : Système.");
+    if (!DATE_ISO.test(p.dateAcquisition ?? "")) throw new ErreurMetier("À remplir : Date Acquisition.");
+    const duree = Number(p.duree), montant = Number(p.montant);
+    if (!Number.isInteger(duree) || !Number.isInteger(montant)) throw new ErreurMetier("À remplir : Durée de vie, Montant Acquis.");
+    const coef = p.systeme === "Dégressif" ? Number(String(p.coefficient ?? "").replace(",", ".")) : null;
+    if (coef !== null && Number.isNaN(coef)) throw new ErreurMetier("À remplir : Coef. degressi.");
+    return planAmortissement(p.systeme, montant, p.dateAcquisition!, duree, coef);
+  },
+  suivi(p: Record<string, string> = {}) {
+    lectureAdmin(["S137", "S138", "S139", "S140"]);
+    const [du, au] = immobilisations.periode(p), t = p.resultat || "transfert";
+    const nom = (id: number | null) => { const e = E.paieEmployes.find((x) => x.id === id); return e ? `${e.matricule} ${e.nom} ${e.prenoms}` : ""; };
+    const loc = (id: number | null) => String(stockRef("immobilisations", "localisations").find((l) => l.id === id)?.libelle ?? "");
+    return E.immoMouvements.filter((m) => m.type === t && (!du || m.date.slice(0, 10) >= du) && (!au || m.date.slice(0, 10) <= au)).sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id)
+      .map((m) => { const b = E.immoBiens.find((x) => x.id === m.bienId)!; return { date: m.date.slice(0, 10), codification: b.codification, libelle: b.libelle,
+        ancienDetenteur: nom(m.ancienDetenteurId), nouveauDetenteur: nom(m.nouveauDetenteurId), ancienneLocalisation: loc(m.ancienneLocalisationId), nouvelleLocalisation: loc(m.nouvelleLocalisationId) }; });
+  },
+};
 
 // ---------- Info de base > Budget : huit référentiels (S19, manuel p. 27 à 30) ----------
 /** Ordre du menu Info de base > Budget (2-1 à 2-8) ; titres, champs et colonnes des captures p. 27 à 30 */
@@ -8657,6 +8907,8 @@ const apiLocal = {
   refPaie: asynchrone(refPaieBase, "refPaie"),
   refPaieRubriques: asynchrone(refPaieRubriques, "refPaieRubriques"),
   paie: asynchrone(paie, "paie"),
+  refImmo: asynchrone(refImmo, "refImmo"),
+  immobilisations: asynchrone(immobilisations, "immobilisations"),
   refPaieStructure: asynchrone(refPaieStructure, "refPaieStructure"),
   litigieux: asynchrone(litigieux, "litigieux"),
   societe: asynchrone(societe, "societe"),

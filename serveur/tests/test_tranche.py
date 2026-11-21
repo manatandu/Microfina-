@@ -4384,3 +4384,68 @@ def test_paie(clients, journee):
     assert ok(chef, f"/api/paie/retenues/{r['id']}/visa", {})["statut"] == "visee"
     assert "déjà visée" in msg(chef, f"/api/paie/retenues/{r['id']}/visa", {})
     assert [x["statut"] for x in compta.get("/api/paie/retenues", {"employeId": e["id"]}, **H).json()] == ["visee"]
+
+
+def test_immobilisations(clients, journee):
+    """Immobilisations (manuel, chap. 7) : données de base (S136), création de bien (S137), affectation, transferts, libération (S138), amortissement,
+    inventaire, sortie (S139), rapports (S140). PCCI, classe 2, comptes 28, 681, 673."""
+    compta = clients["compta"]
+    R = "/api/referentiels/immobilisations"
+    def ok(url, corps):
+        r = compta.post(url, corps, **H); assert r.status_code == 200, r.content; return r.json()
+    msg = lambda url, corps: compta.post(url, corps, **H).json()["message"]
+    ident_ = lambda r, k, v: next(x["id"] for x in r["lignes"] if x[k] == v)
+    ty = ident_(ok(f"{R}/types", {"code": "CORP", "libelle": "Immobilisation corporelle"}), "code", "CORP")
+    assert "T.V.A" in msg(f"{R}/utilisations", {"code": "ENT", "libelle": "ENTREPRISE", "tvaApplicable": True})
+    ut = ident_(ok(f"{R}/utilisations", {"code": "ENT", "libelle": "ENTREPRISE", "tvaApplicable": True, "tva": "16"}), "code", "ENT")
+    assert "ans à" in msg(f"{R}/coefficients", {"coefficient": "2", "de": "6", "a": "5"})
+    ok(f"{R}/coefficients", {"coefficient": "2", "de": "5", "a": "6"})
+    cat = ident_(ok(f"{R}/categories", {"code": "MAB", "libelle": "MATERIEL DE BUREAU"}), "code", "MAB")
+    F = {"code": "FAM1", "typeId": ty, "categorieId": cat, "libelle": "Matériel de bureau", "systeme": "Linéaire", "dureeMin": "1", "dureeMax": "10", "periodicite": "Annuelle",
+         "compteAcquisition": "220", "compteDotation": "6810", "compteAmortissement": "2810", "compteChargeVcn": "673"}
+    assert "Durée Max" in msg(f"{R}/familles", {**F, "dureeMin": "11"})
+    fam = ident_(ok(f"{R}/familles", F), "code", "FAM1")
+    loc = ident_(ok(f"{R}/localisations", {"code": "10.DG.01", "libelle": "Bureau Directeur Général"}), "code", "10.DG.01")
+    loc2 = ident_(ok(f"{R}/localisations", {"code": "10.DG.02", "libelle": "Salle d'attente"}), "code", "10.DG.02")
+    B = {"codification": "MAB-001", "categorieId": cat, "familleId": fam, "libelle": "Ordinateur", "dateAcquisition": "2026-07-01", "dureeVie": 3, "utilisationId": ut,
+         "localisationId": loc, "dateMiseService": "2026-07-15", "montantTtc": 1160000, "amortissable": True, "subventionne": False}
+    assert "Codification" in msg("/api/immobilisations/biens", {})
+    assert "entre 1 et 10" in msg("/api/immobilisations/biens", {**B, "dureeVie": 12})
+    b = ok("/api/immobilisations/biens", B)
+    assert (b["tva"], b["prixAcquisition"], b["statut"], bool(b["numeroPiece"])) == (160000, 1000000, "LIBRE", True)
+    assert "existe déjà" in msg("/api/immobilisations/biens", {**B, "codification": "mab-001"})
+    t = compta.get(f"/api/immobilisations/biens/{b['id']}/tableau", **H).json()
+    assert [(x["exercice"], x["dotation"]) for x in t] == [(2026, 166667), (2027, 333333), (2028, 333333), (2029, 166667)]
+    # S138 : deux employés (S133)
+    E = {"sexe": "Féminin", "civilite": "Madame", "prenoms": "X", "dateNaissance": "1990-01-01", "dateEmbauche": "2020-01-01"}
+    e1 = ok("/api/paie/employes", {**E, "matricule": "E1", "nom": "MBUYI"})["id"]
+    e2 = ok("/api/paie/employes", {**E, "matricule": "E2", "nom": "KASA"})["id"]
+    assert "au moins un bien" in msg("/api/immobilisations/affectation", {"employeId": e1, "date": "2026-11-05T09:00", "biens": []})
+    assert ok("/api/immobilisations/affectation", {"employeId": e1, "date": "2026-11-05T09:00", "biens": [b["id"]]})[0]["statut"] == "AFFECTE"
+    assert "déjà affecté" in msg("/api/immobilisations/affectation", {"employeId": e2, "date": "2026-11-05T09:00", "biens": [b["id"]]})
+    x = ok("/api/immobilisations/transfert-bien", {"bienId": b["id"], "employeId": e2, "localisationId": loc2, "date": "2026-11-05T10:00"})
+    assert (x["detenteurId"], x["localisationId"]) == (e2, loc2)
+    assert ok("/api/immobilisations/transfert-employe", {"ancienId": e2, "nouveauId": e1, "date": "2026-11-05T11:00", "biens": [b["id"]]})[0]["detenteurId"] == e1
+    assert "libérer d'abord" in msg("/api/immobilisations/sortie", {"type": "Mise au rebut", "bienId": b["id"], "date": "2026-11-05"})
+    assert ok("/api/immobilisations/liberation", {"date": "2026-11-05T12:00", "biens": [b["id"]]})[0]["statut"] == "LIBRE"
+    # S139
+    avant = solde_compte("2810")
+    assert ok("/api/immobilisations/amortissement", {"par": "materiel", "bienId": b["id"], "exercice": 2026})["amortis"] == 1
+    assert avant - solde_compte("2810") == 166667
+    assert "Rien à amortir" in msg("/api/immobilisations/amortissement", {"par": "lot", "exercice": 2026})
+    assert "ne se modifie plus" in msg(f"/api/immobilisations/biens/{b['id']}", B)
+    assert "Etat du bien" in msg("/api/immobilisations/inventaire", {"bienId": b["id"], "date": "2026-11-05"})
+    ok("/api/immobilisations/inventaire", {"bienId": b["id"], "etat": "Bon", "date": "2026-11-05", "observation": "RAS"})
+    s = ok("/api/immobilisations/sortie", {"type": "Mise au rebut", "bienId": b["id"], "date": "2026-11-05", "observation": "Hors service"})
+    assert (s["statut"], s["vnc"]) == ("SORTI", 833333)
+    assert solde_compte("2810") == avant and solde_compte("673") == 833333
+    assert "déjà sorti" in msg("/api/immobilisations/sortie", {"type": "Cession", "bienId": b["id"], "date": "2026-11-05"})
+    # S140
+    q = {"rechercher": "periode", "du": "2026-01-01", "au": "2026-12-31"}
+    assert [x["codification"] for x in compta.get("/api/immobilisations/rapports/biens", q, **H).json()] == ["MAB-001"]
+    assert [x["etat"] for x in compta.get("/api/immobilisations/rapports/inventaires", q, **H).json()] == ["Bon"]
+    assert len(compta.get("/api/immobilisations/rapports/suivi", {**q, "resultat": "transfert"}, **H).json()) == 2
+    sim = compta.get("/api/immobilisations/rapports/simulation", {"systeme": "Dégressif", "coefficient": "2", "dateAcquisition": "2026-01-01", "duree": 5, "montant": 1000000}, **H).json()
+    assert [x["dotation"] for x in sim] == [400000, 240000, 144000, 108000, 108000]
+    assert clients["caisse"].get("/api/immobilisations/biens", **H).status_code == 403
+    assert balance_equilibree(compta)

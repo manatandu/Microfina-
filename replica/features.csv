@@ -132,10 +132,10 @@ Gestion de réunion,autres,skip,yes,skip,S130 ; non décrite dans le manuel
 Paie : données de base grilles états,paie,should,yes,yes,S131 S132 ; module complet en deuxième temps (décision du porteur)
 Paie : employé rubriques maquette,paie,should,yes,yes,S133 S134
 Paie : avances et retenues avec visa,paie,must,yes,yes,S135 ; premier temps du module paie (décision du porteur)
-Immobilisations : données de base et familles avec comptes,immobilisations,must,yes,no,S136 ; ratio des immobilisations (Instr. BCC 002 art. 34 à 36)
-Immobilisations : création affectation transfert,immobilisations,must,yes,no,S137 S138 ; écriture d'acquisition automatique (constats U9 C59)
-Immobilisations : amortissement inventaire sortie,immobilisations,must,yes,no,S139 ; inventaire (PCCI § 3.2)
-Rapports immobilisations,immobilisations,should,yes,no,S140
+Immobilisations : données de base et familles avec comptes,immobilisations,must,yes,yes,S136 ; ratio des immobilisations (Instr. BCC 002 art. 34 à 36)
+Immobilisations : création affectation transfert,immobilisations,must,yes,yes,S137 S138 ; écriture d'acquisition automatique (constats U9 C59)
+Immobilisations : amortissement inventaire sortie,immobilisations,must,yes,yes,S139 ; inventaire (PCCI § 3.2)
+Rapports immobilisations,immobilisations,should,yes,yes,S140
 Multilingue français et anglais,général,could,yes,no,p. 15
 Aide en ligne,général,could,yes,no,p. 15
 Export des grilles vers Excel,général,must,yes,yes,"p. 9 | Bouton Exporter (format Excel) là où la capture de l'écran le montre : S13, S30, listes du crédit, plan comptable, localisation, rapports (registre T04-2)."

@@ -1229,15 +1229,16 @@ const OUT = process.argv[2];
   await aller('/paie/s131'); await p.getByRole('heading', { name: "Création et mise à jour d'allocations familiales" }).waitFor(); await etape('31a-paie-donnees-base');
   const listePaie = (nom) => p.getByRole('navigation', { name: 'Traitement de la paie' }).getByRole('button', { name: nom }).click();
   await listePaie('Catégorie Classe et Echelon'); await p.getByRole('tab', { name: 'Catégorie' }).waitFor();
-  for (const [onglet, v] of [['Catégorie', 'A'], ['Classe', 'I'], ['Echelon', '1']]) {
-    await p.getByRole('tab', { name: onglet }).click(); await p.getByLabel('Libellé *').fill(v); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  for (const [onglet, v, titre] of [['Catégorie', 'A', 'Création et mise-à-jour des catégories de paie'], ['Classe', 'I', 'Création et mise à jour des Classes'],
+    ['Echelon', '1', 'Création et mise à jour des Echelons']]) {
+    await p.getByRole('tab', { name: onglet }).click(); await p.getByRole('heading', { name: titre }).waitFor(); await p.getByLabel('Libellé *').fill(v); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
     await p.getByRole('cell', { name: v, exact: true }).waitFor();
   }
   await etape('31b-categorie-classe-echelon');
-  await listePaie('Grille salariale'); await p.getByLabel('Classe *').selectOption({ label: 'I' }); await p.getByLabel('Catégorie *').selectOption({ label: 'A' });
+  await listePaie('Grille salariale'); await p.getByRole('heading', { name: 'Création et mise à jour de grilles salariales' }).waitFor(); await p.getByLabel('Classe *').selectOption({ label: 'I' }); await p.getByLabel('Catégorie *').selectOption({ label: 'A' });
   await p.getByLabel('Echelon *').selectOption({ label: '1' }); await p.getByLabel('Salaire', { exact: true }).fill('250000'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: '250000' }).waitFor(); await etape('31c-grille-salariale');
-  await listePaie('Type de retenue'); await p.getByLabel('Libellé *').fill('Avance sur salaire'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await listePaie('Type de retenue'); await p.getByRole('heading', { name: 'Création et mise à jour des types de retenue' }).waitFor(); await p.getByLabel('Libellé *').fill('Avance sur salaire'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await aller('/paie/s133'); await p.getByRole('heading', { name: "Enregistrement d'un employé" }).waitFor();
   await p.getByLabel('Matricule : *').fill('EMP/001/26'); await p.getByLabel('Sexe : *').selectOption('Féminin'); await p.getByLabel('Civilité : *').selectOption('Madame');
   await p.getByLabel('Nom : *').fill('MUJINGA'); await p.getByLabel('Prénom(s) : *').fill('Rose'); await p.getByLabel('Date de naissance : *').fill('02041990');
@@ -1256,6 +1257,29 @@ const OUT = process.argv[2];
   await login('J.-P. Mukendi'); await aller('/paie/s135?page=visa'); await p.getByRole('button', { name: 'Rechercher un employé' }).click();
   await p.getByRole('dialog', { name: "Recherche d'un employé" }).getByRole('cell', { name: 'EMP/001/26' }).click();
   await p.getByRole('cell', { name: '100 000' }).waitFor(); await etape('31h-visa-retenue'); await p.getByRole('button', { name: 'Viser' }).click(); await oui();
+  // Comptable : immobilisations (S136 à S140, manuel chap. 7)
+  await login('Patrick Lumbala'); await aller('/immobilisations/s136'); await p.getByRole('heading', { name: 'Type Immobilisation' }).waitFor();
+  const listeImmo = async (nom, titre) => { await p.getByRole('navigation', { name: 'Données de base' }).getByRole('button', { name: nom }).click(); await p.getByRole('heading', { name: titre }).waitFor(); };
+  const enreg = async (texte) => { await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: texte, exact: true }).first().waitFor(); };
+  await p.getByLabel('Code *').fill('CORP'); await p.getByLabel('Libellé *').fill('Immobilisation corporelle'); await enreg('CORP'); await etape('32a-immo-types');
+  await listeImmo('Utilisation de bien', 'Utilisation de Biens'); await p.getByLabel('Code *').fill('ENT'); await p.getByLabel('Libellé *').fill('ENTREPRISE'); await enreg('ENT');
+  await listeImmo('Catégorie de biens', 'Création et mise à jour de catégorie de biens'); await p.getByLabel('Code *').fill('MAB'); await p.getByLabel('Libellé catégorie *').fill('MATERIEL DE BUREAU'); await enreg('MAB');
+  await listeImmo('Localisation de biens', 'Localisation des biens'); await p.getByLabel('Code *').fill('10.DG.01'); await p.getByLabel('Libellé localisation *').fill('Bureau Directeur Général'); await enreg('10.DG.01');
+  await listeImmo('Famille de biens', 'Famille de Biens'); await p.getByLabel('Code *').fill('FAM1'); await p.getByLabel('Type immo *').selectOption({ label: 'Immobilisation corporelle' });
+  await p.getByLabel('Catégorie : *').selectOption({ label: 'MATERIEL DE BUREAU' }); await p.getByLabel('Libellé *').fill('Matériel de bureau'); await p.getByLabel('Système : *').selectOption('Linéaire');
+  await p.getByLabel('Durée Min. (ans) *').fill('1'); await p.getByLabel('Durée Max. (ans) *').fill('10'); await p.getByLabel('Périodicité : *').selectOption('Annuelle');
+  await p.getByLabel("Compte d'acquisition *").fill('220'); await p.getByLabel('Compte dotation *').fill('6810'); await p.getByLabel('Compte Amor. *').fill('2810'); await p.getByLabel('Compte charge VCN *').fill('673');
+  await enreg('FAM1'); await etape('32b-immo-famille');
+  await aller('/immobilisations/s137'); await p.getByRole('heading', { name: 'Création de Bien immobilier' }).waitFor();
+  await p.getByLabel('Codification *').fill('MAB-001'); await p.getByLabel('Catégorie : *').selectOption({ label: 'MAB MATERIEL DE BUREAU' }); await p.getByLabel('Famille *').selectOption({ label: 'Matériel de bureau' });
+  await p.getByLabel('Libellé Bien *').fill('Ordinateur'); await p.getByLabel('Date Acquisition *').fill('01072026'); await p.getByLabel('Durée de vie *').fill('3');
+  await p.getByLabel('Utilisation *').selectOption({ label: 'ENT ENTREPRISE' }); await p.getByLabel('Localisation *').selectOption({ label: '10.DG.01 Bureau Directeur Général' });
+  await p.getByLabel('Montant TTC *').fill('1000000'); await p.getByLabel('Date mise en service *').fill('15072026'); await etape('32c-creation-bien');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByRole('button', { name: 'Tableau amortissement' }).click(); await p.getByRole('dialog', { name: 'Tableau amortissement' }).getByRole('cell', { name: '166 667' }).first().waitFor();
+  await etape('32d-tableau-amortissement'); await p.keyboard.press('Escape');
+  await aller('/immobilisations/s139'); await p.getByRole('button', { name: 'Rechercher un bien' }).click(); await p.getByRole('dialog', { name: 'Liste des biens' }).getByRole('cell', { name: 'MAB-001' }).click();
+  await p.getByLabel('Exercice: *').selectOption('2026'); await etape('32e-amortissement'); await p.getByRole('button', { name: 'Exécuter' }).click(); await oui();
   console.log(errs.length ? 'ERREURS\n' + errs.join('\n') : 'aucune erreur console');
   await b.close();
 })().catch(async e => { await globalThis.__p.screenshot({ path: OUT + '/zz-echec.png', fullPage: true }); throw e; }).catch(async e => { console.error('ÉCHEC', e.message.split('\n').slice(0,3).join(' / ')); process.exit(1); });

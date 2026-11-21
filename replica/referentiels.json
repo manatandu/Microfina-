@@ -1139,5 +1139,478 @@
     ]
    }
   ]
+ },
+ "immobilisations": {
+  "ecran": "S136",
+  "role": "comptable",
+  "pages": [
+   {
+    "page": "types",
+    "table": "immo_type",
+    "menu": "Type d'immobilisation",
+    "entete": "Type Immobilisation",
+    "rafraichir": true,
+    "champs": [
+     {
+      "cle": "code",
+      "col": "code",
+      "libelle": "Code",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Code",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "libelle",
+      "col": "libelle",
+      "libelle": "Libellé",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Libellé",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     }
+    ]
+   },
+   {
+    "page": "utilisations",
+    "table": "immo_utilisation",
+    "menu": "Utilisation de bien",
+    "entete": "Utilisation de Biens",
+    "rafraichir": true,
+    "champs": [
+     {
+      "cle": "code",
+      "col": "code",
+      "libelle": "Code",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Code",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "libelle",
+      "col": "libelle",
+      "libelle": "Libellé",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Libellé",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "tvaApplicable",
+      "col": "tva_applicable",
+      "libelle": "TVA Applicable",
+      "type": "ouiNon",
+      "obligatoire": false,
+      "ref": null,
+      "aide": null,
+      "colonne": "T.V.A Applicable",
+      "defaut": false,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "tva",
+      "col": "tva",
+      "libelle": "T.V.A",
+      "type": "texte",
+      "obligatoire": false,
+      "ref": null,
+      "aide": null,
+      "colonne": "T.V.A",
+      "defaut": null,
+      "cadre": null,
+      "grille": true,
+      "format": "decimal"
+     }
+    ]
+   },
+   {
+    "page": "coefficients",
+    "table": "immo_coefficient",
+    "menu": "Coefficient de dégressivité",
+    "entete": "Coefficient de dégressivité",
+    "rafraichir": true,
+    "unique": [],
+    "champs": [
+     {
+      "cle": "coefficient",
+      "col": "coefficient",
+      "libelle": "Nouveau coefficient :",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Coefficient",
+      "defaut": null,
+      "cadre": null,
+      "grille": true,
+      "format": "decimal"
+     },
+     {
+      "cle": "de",
+      "col": "de",
+      "libelle": "Période allant de :",
+      "type": "entier",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "De (ans)",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "a",
+      "col": "a",
+      "libelle": "ans à",
+      "type": "entier",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "A (ans)",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     }
+    ]
+   },
+   {
+    "page": "categories",
+    "table": "immo_categorie",
+    "menu": "Catégorie de biens",
+    "entete": "Création et mise à jour de catégorie de biens",
+    "rafraichir": true,
+    "champs": [
+     {
+      "cle": "code",
+      "col": "code",
+      "libelle": "Code",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Code",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "libelle",
+      "col": "libelle",
+      "libelle": "Libellé catégorie",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Libelle",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     }
+    ]
+   },
+   {
+    "page": "familles",
+    "table": "immo_famille",
+    "menu": "Famille de biens",
+    "entete": "Famille de Biens",
+    "champs": [
+     {
+      "cle": "code",
+      "col": "code",
+      "libelle": "Code",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Code",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "typeId",
+      "col": "type_id",
+      "libelle": "Type immo",
+      "type": "choix",
+      "obligatoire": true,
+      "ref": "types",
+      "aide": null,
+      "colonne": "Type immo",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "categorieId",
+      "col": "categorie_id",
+      "libelle": "Catégorie :",
+      "type": "choix",
+      "obligatoire": true,
+      "ref": "categories",
+      "aide": null,
+      "colonne": "Catégorie",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "libelle",
+      "col": "libelle",
+      "libelle": "Libellé",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Libellé",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "systeme",
+      "col": "systeme",
+      "libelle": "Système :",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Système",
+      "defaut": null,
+      "cadre": null,
+      "grille": true,
+      "valeurs": [
+       "Linéaire",
+       "Dégressif"
+      ]
+     },
+     {
+      "cle": "dureeMin",
+      "col": "duree_min",
+      "libelle": "Durée Min. (ans)",
+      "type": "entier",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Durée min.",
+      "defaut": null,
+      "cadre": "Normes",
+      "grille": false
+     },
+     {
+      "cle": "dureeMax",
+      "col": "duree_max",
+      "libelle": "Durée Max. (ans)",
+      "type": "entier",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Durée max.",
+      "defaut": null,
+      "cadre": "Normes",
+      "grille": false
+     },
+     {
+      "cle": "periodicite",
+      "col": "periodicite",
+      "libelle": "Périodicité :",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Périodicité",
+      "defaut": null,
+      "cadre": "Normes",
+      "grille": false,
+      "valeurs": [
+       "Annuelle",
+       "Mensuelle"
+      ]
+     },
+     {
+      "cle": "compteAcquisition",
+      "col": "compte_acquisition",
+      "libelle": "Compte d'acquisition",
+      "type": "compteSimple",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Compte d'acquisition",
+      "defaut": null,
+      "cadre": "Comptes",
+      "grille": false
+     },
+     {
+      "cle": "compteDotation",
+      "col": "compte_dotation",
+      "libelle": "Compte dotation",
+      "type": "compteSimple",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Compte dotation",
+      "defaut": null,
+      "cadre": "Comptes",
+      "grille": false
+     },
+     {
+      "cle": "compteAmortissement",
+      "col": "compte_amortissement",
+      "libelle": "Compte Amor.",
+      "type": "compteSimple",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Compte Amor.",
+      "defaut": null,
+      "cadre": "Comptes",
+      "grille": false
+     },
+     {
+      "cle": "compteProduits",
+      "col": "compte_produits",
+      "libelle": "Compte de produits",
+      "type": "compteSimple",
+      "obligatoire": false,
+      "ref": null,
+      "aide": null,
+      "colonne": "Compte de produits",
+      "defaut": null,
+      "cadre": "Comptes",
+      "grille": false
+     },
+     {
+      "cle": "compteChargeVcn",
+      "col": "compte_charge_vcn",
+      "libelle": "Compte charge VCN",
+      "type": "compteSimple",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Compte charge VCN",
+      "defaut": null,
+      "cadre": "Comptes",
+      "grille": false
+     },
+     {
+      "cle": "immatriculation",
+      "col": "immatriculation",
+      "libelle": "Immatriculation",
+      "type": "ouiNon",
+      "obligatoire": false,
+      "ref": null,
+      "aide": null,
+      "colonne": "Immatriculation",
+      "defaut": false,
+      "cadre": "Option supplémentaire",
+      "grille": false
+     },
+     {
+      "cle": "chassis",
+      "col": "chassis",
+      "libelle": "N°chassis",
+      "type": "ouiNon",
+      "obligatoire": false,
+      "ref": null,
+      "aide": null,
+      "colonne": "N°chassis",
+      "defaut": false,
+      "cadre": "Option supplémentaire",
+      "grille": false
+     },
+     {
+      "cle": "carburant",
+      "col": "carburant",
+      "libelle": "Carburant",
+      "type": "ouiNon",
+      "obligatoire": false,
+      "ref": null,
+      "aide": null,
+      "colonne": "Carburant",
+      "defaut": false,
+      "cadre": "Option supplémentaire",
+      "grille": false
+     },
+     {
+      "cle": "titreFoncier",
+      "col": "titre_foncier",
+      "libelle": "Ref. titre foncier",
+      "type": "ouiNon",
+      "obligatoire": false,
+      "ref": null,
+      "aide": null,
+      "colonne": "Ref. titre foncier",
+      "defaut": false,
+      "cadre": "Option supplémentaire",
+      "grille": false
+     },
+     {
+      "cle": "description",
+      "col": "description",
+      "libelle": "Description",
+      "type": "ouiNon",
+      "obligatoire": false,
+      "ref": null,
+      "aide": null,
+      "colonne": "Description",
+      "defaut": false,
+      "cadre": "Option supplémentaire",
+      "grille": false
+     }
+    ]
+   },
+   {
+    "page": "localisations",
+    "table": "immo_localisation",
+    "menu": "Localisation de biens",
+    "entete": "Localisation des biens",
+    "rafraichir": true,
+    "champs": [
+     {
+      "cle": "code",
+      "col": "code",
+      "libelle": "Code",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Code",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     },
+     {
+      "cle": "libelle",
+      "col": "libelle",
+      "libelle": "Libellé localisation",
+      "type": "texte",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Libellé",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
+     }
+    ]
+   }
+  ]
  }
 }

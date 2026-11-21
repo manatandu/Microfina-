@@ -3253,6 +3253,60 @@ describe("journée de guichet", () => {
     await expect(api.paie.viser(r.id)).rejects.toThrow("déjà visée");
   });
 
+  it("immobilisations (S136 à S140, chap. 7) : données de base, bien, affectation, transferts, libération, amortissement, inventaire, sortie, rapports, comme le serveur", async () => {
+    await journeeOuverte();
+    await connecter("plumbala");
+    const R = api.refImmo, id = (r: { lignes: Record<string, unknown>[] }, k: string, v: unknown) => r.lignes.find((x) => x[k] === v)!.id as number;
+    const ty = id(await R.enregistrer("types", { code: "CORP", libelle: "Immobilisation corporelle" }), "code", "CORP");
+    await expect(R.enregistrer("utilisations", { code: "ENT", libelle: "ENTREPRISE", tvaApplicable: true })).rejects.toThrow("T.V.A");
+    const ut = id(await R.enregistrer("utilisations", { code: "ENT", libelle: "ENTREPRISE", tvaApplicable: true, tva: "16" }), "code", "ENT");
+    await expect(R.enregistrer("coefficients", { coefficient: "2", de: "6", a: "5" })).rejects.toThrow("ans à");
+    await R.enregistrer("coefficients", { coefficient: "2", de: "5", a: "6" });
+    const cat = id(await R.enregistrer("categories", { code: "MAB", libelle: "MATERIEL DE BUREAU" }), "code", "MAB");
+    const F = { code: "FAM1", typeId: ty, categorieId: cat, libelle: "Matériel de bureau", systeme: "Linéaire", dureeMin: "1", dureeMax: "10", periodicite: "Annuelle",
+      compteAcquisition: "220", compteDotation: "6810", compteAmortissement: "2810", compteChargeVcn: "673" };
+    await expect(R.enregistrer("familles", { ...F, dureeMin: "11" })).rejects.toThrow("Durée Max");
+    const fam = id(await R.enregistrer("familles", F), "code", "FAM1");
+    const loc = id(await R.enregistrer("localisations", { code: "10.DG.01", libelle: "Bureau Directeur Général" }), "code", "10.DG.01");
+    const loc2 = id(await R.enregistrer("localisations", { code: "10.DG.02", libelle: "Salle d'attente" }), "code", "10.DG.02");
+    const B = { codification: "MAB-001", categorieId: cat, familleId: fam, libelle: "Ordinateur", dateAcquisition: "2026-07-01", dureeVie: 3, utilisationId: ut, localisationId: loc,
+      dateMiseService: "2026-07-15", montantTtc: 1160000, amortissable: true, subventionne: false };
+    await expect(api.immobilisations.enregistrer({})).rejects.toThrow("Codification");
+    await expect(api.immobilisations.enregistrer({ ...B, dureeVie: 12 })).rejects.toThrow("entre 1 et 10");
+    const b = await api.immobilisations.enregistrer(B);
+    expect([b.tva, b.prixAcquisition, b.statut, !!b.numeroPiece]).toEqual([160000, 1000000, "LIBRE", true]);
+    await expect(api.immobilisations.enregistrer({ ...B, codification: "mab-001" })).rejects.toThrow("existe déjà");
+    expect((await api.immobilisations.tableau(b.id)).map((x) => [x.exercice, x.dotation])).toEqual([[2026, 166667], [2027, 333333], [2028, 333333], [2029, 166667]]);
+    const E0 = { sexe: "Féminin", civilite: "Madame", prenoms: "X", dateNaissance: "1990-01-01", dateEmbauche: "2020-01-01" };
+    const e1 = (await api.paie.enregistrer({ ...E0, matricule: "E1", nom: "MBUYI" })).id, e2 = (await api.paie.enregistrer({ ...E0, matricule: "E2", nom: "KASA" })).id;
+    await expect(api.immobilisations.affecter({ employeId: e1, date: "2026-11-05T09:00", biens: [] })).rejects.toThrow("au moins un bien");
+    expect((await api.immobilisations.affecter({ employeId: e1, date: "2026-11-05T09:00", biens: [b.id] }))[0]!.statut).toBe("AFFECTE");
+    await expect(api.immobilisations.affecter({ employeId: e2, date: "2026-11-05T09:00", biens: [b.id] })).rejects.toThrow("déjà affecté");
+    const x = await api.immobilisations.transfererBien({ bienId: b.id, employeId: e2, localisationId: loc2, date: "2026-11-05T10:00" });
+    expect([x.detenteurId, x.localisationId]).toEqual([e2, loc2]);
+    expect((await api.immobilisations.transfererEmploye({ ancienId: e2, nouveauId: e1, date: "2026-11-05T11:00", biens: [b.id] }))[0]!.detenteurId).toBe(e1);
+    await expect(api.immobilisations.sortir({ type: "Mise au rebut", bienId: b.id, date: "2026-11-05" })).rejects.toThrow("libérer d'abord");
+    expect((await api.immobilisations.liberer({ date: "2026-11-05T12:00", biens: [b.id] }))[0]!.statut).toBe("LIBRE");
+    const solde = (c: string) => _etat().ecritures.flatMap((e) => e.lignes).filter((l) => l.compte === c).reduce((t, l) => t + (l.sens === "D" ? l.montant : -l.montant), 0);
+    expect((await api.immobilisations.amortir({ par: "materiel", bienId: b.id, exercice: 2026 })).amortis).toBe(1);
+    expect(solde("2810")).toBe(-166667);
+    await expect(api.immobilisations.amortir({ par: "lot", exercice: 2026 })).rejects.toThrow("Rien à amortir");
+    await expect(api.immobilisations.enregistrer(B, b.id)).rejects.toThrow("ne se modifie plus");
+    await expect(api.immobilisations.inventorier({ bienId: b.id, date: "2026-11-05" })).rejects.toThrow("Etat du bien");
+    await api.immobilisations.inventorier({ bienId: b.id, etat: "Bon", date: "2026-11-05", observation: "RAS" });
+    const so = await api.immobilisations.sortir({ type: "Mise au rebut", bienId: b.id, date: "2026-11-05", observation: "Hors service" });
+    expect([so.statut, so.vnc, solde("2810"), solde("673")]).toEqual(["SORTI", 833333, 0, 833333]);
+    await expect(api.immobilisations.sortir({ type: "Cession", bienId: b.id, date: "2026-11-05" })).rejects.toThrow("déjà sorti");
+    const q = { rechercher: "periode", du: "2026-01-01", au: "2026-12-31" };
+    expect((await api.immobilisations.rapportBiens(q)).map((y) => y.codification)).toEqual(["MAB-001"]);
+    expect((await api.immobilisations.rapportInventaires(q)).map((y) => y.etat)).toEqual(["Bon"]);
+    expect((await api.immobilisations.suivi({ ...q, resultat: "transfert" })).length).toBe(2);
+    expect((await api.immobilisations.simuler({ systeme: "Dégressif", coefficient: "2", dateAcquisition: "2026-01-01", duree: 5, montant: 1000000 })).map((y) => y.dotation))
+      .toEqual([400000, 240000, 144000, 108000, 108000]);
+    await connecter("engalula");
+    await expect(api.immobilisations.liste()).rejects.toThrow("Droit manquant");
+  });
+
   it("financement (S126), nouveau budget (S124), consultation, suivi et consommation (S125)", async () => {
     const { j, s } = await journeeOuverte();
     await connecter("jpmukendi");

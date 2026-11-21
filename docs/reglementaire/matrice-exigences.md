@@ -189,3 +189,11 @@ Rapport sur les états financiers d'une COOPEC, remis par le porteur. Seuls les 
 | Code du travail, art. 114 | Quotité cessible : un cinquième jusqu'à cinq fois le SMIG, un tiers au-delà, après retenues fiscales et sociales | S135-5 : non contrôlée, faute de calcul du salaire net |
 | Instr. BCC 008, art. 66 | Séparation des tâches : la retenue mise en place est visée par une autre personne | S135-3 |
 
+## Immobilisations (lu le 21/11/2026, pour S136 à S140)
+
+| Texte | Ce qui en sort | Où |
+|---|---|---|
+| PCCI, classe 2 (introduction) | Inventaire détaillé des immobilisations ; fichier ou registre de l'inventaire | S137, S139 (inventaire), S140 |
+| PCCI, classe 2 (compte 20 et suivants) | Cession ou destruction : la valeur d'origine sort, avec les amortissements antérieurs et un compte de gestion (673, 674, 774) | S139-5 |
+| PCCI, comptes 28 et 681 | Amortissements au 28, dotations au 681 | S139-2 |
+

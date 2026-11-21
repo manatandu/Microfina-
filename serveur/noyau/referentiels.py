@@ -102,3 +102,23 @@ UTILISE_PAR["paie"]["grandes_familles"] = [("paie_rubrique", "famille_id", "Rubr
 UTILISE_PAR["paie"]["grandes_rubriques"].append(("paie_rubrique", "grande_rubrique_id", "Rubrique de paie"))
 UTILISE_PAR["paie"]["types_retenue"] = [("paie_retenue", "type_id", "Mise en place retenue")]
 UTILISE_PAR["paie_rubriques"] = {"rubriques": [("paie_maquette", "rubrique_id", "Maquette de paie")]}
+
+
+# Immobilisations (S136 ; manuel, chap. 7, p. 1 à 3)
+def verifier_immo(u, c, v, lid):
+    """Coefficient : période de … à … dans l'ordre ; famille : durée min. au plus durée max. ; TVA saisie si applicable, 100 % au plus"""
+    if c["page"] == "coefficients" and v["de"] is not None and v["a"] is not None and v["de"] > v["a"]:
+        raise ErreurMetier("Période : « ans à » au moins « allant de ».")
+    if c["page"] == "familles" and v["dureeMin"] is not None and v["dureeMax"] is not None and v["dureeMin"] > v["dureeMax"]:
+        raise ErreurMetier("Durée Max. : au moins la durée Min.")
+    if c["page"] == "utilisations":
+        if v["tvaApplicable"] and not v["tva"]:
+            raise ErreurMetier("À remplir : T.V.A.")
+        if v["tva"] and float(v["tva"].replace(",", ".")) > 100:
+            raise ErreurMetier("T.V.A : 100 % au plus.")
+
+
+VERIFIER["immobilisations"] = verifier_immo
+UTILISE_PAR["immobilisations"] = {"types": [("immo_famille", "type_id", "Famille de biens")], "categories": [("immo_famille", "categorie_id", "Famille de biens"), ("immo_bien", "categorie_id", "Création de bien")],
+                                  "familles": [("immo_bien", "famille_id", "Création de bien")], "utilisations": [("immo_bien", "utilisation_id", "Création de bien")],
+                                  "localisations": [("immo_bien", "localisation_id", "Création de bien")]}

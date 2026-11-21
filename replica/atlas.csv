@@ -153,8 +153,8 @@ S132,"Gestion des grilles, gestion des états, signataires",275 et 276,B,liste,f
 S133,Nouvel employé (quatre onglets),276 et 277 (texte) ; captures GRH 201 à 206,B,onglets,"onglets Classification, Affectation, Contrat",M:texte p. 276 ; A:GRH p. 201,10 Paie,oui
 S134,"Rubrique de paie, maquette de paie, liste des employés",277 (texte),C,liste,tous les écrans,M:texte ; A:S131,10 Paie,oui
 S135,"Retenues : mise en place, liste, visa",277 et 278 (texte),C,visa,tous les écrans,"M:texte ; A:S94, S113",10 Paie,oui
-S136,Données de base (six listes),279 à 282,A,liste,,,11 Immobilisations,non
-S137,Création de bien,283,A,liste,,R:PCCI (immobilisations),11 Immobilisations,non
-S138,"Affectation, transfert, libération",283 à 285 (quatre captures),A,guichet,,,11 Immobilisations,non
-S139,"Amortissement, inventaire, sortie",285 et 286,B,traitement,Sortie de biens (texte seul),M:texte p. 286 ; A:inventaire,11 Immobilisations,non
-S140,Rapports (cinq),286 à 288,A,rapport,,,11 Immobilisations,non
+S136,Données de base (six listes),279 à 282,A,liste,,,11 Immobilisations,oui
+S137,Création de bien,283,A,liste,,R:PCCI (immobilisations),11 Immobilisations,oui
+S138,"Affectation, transfert, libération",283 à 285 (quatre captures),A,guichet,,,11 Immobilisations,oui
+S139,"Amortissement, inventaire, sortie",285 et 286,B,traitement,Sortie de biens (texte seul),M:texte p. 286 ; A:inventaire,11 Immobilisations,oui
+S140,Rapports (cinq),286 à 288,A,rapport,,,11 Immobilisations,oui

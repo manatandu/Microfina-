@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**823 décisions.** Solidité : 338 fortes (le manuel ou un texte répond), 408 moyennes (déduites d'un écran voisin ou d'une donnée), 77 faibles (notre choix, faute de mieux). Dans le code : 817 déjà en place, 6 à appliquer.
+**842 décisions.** Solidité : 347 fortes (le manuel ou un texte répond), 418 moyennes (déduites d'un écran voisin ou d'une donnée), 77 faibles (notre choix, faute de mieux). Dans le code : 836 déjà en place, 6 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1818,6 +1818,60 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S135-3 | Visa de retenue | Par une autre personne que celle qui l'a mise en place ; droit donné au chef d'agence | Texte réglementaire : Instr. BCC 008, art. 66 ; manuel p. 278 | forte | en place |
 | S135-4 | Types de retenue permis | Liste saisie par l'institution (S131) ; le code du travail limite les retenues à celles de l'art. 112 : à l'institution de s'y tenir | Texte réglementaire : Code du travail, art. 112 | moyenne | en place |
 | S135-5 | Quotité cessible | Non contrôlée : elle se calcule sur le salaire net (art. 114), que le logiciel ne calcule pas (S134-4) | Texte réglementaire : Code du travail, art. 114 | moyenne | en place |
+
+## S136 Données de base
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S136-1 | Six listes | Type d'immobilisation, Utilisation de bien (TVA applicable et taux), Coefficient de dégressivité (de … à … ans), Catégorie de biens, Famille de biens (type, catégorie, système, normes, comptes, options), Localisation de biens, dans l'ordre du manuel | Manuel : Manuel, chap. 7, p. 1 à 3 (captures) | forte | en place |
+| S136-2 | Valeurs fermées de la famille | Système : Linéaire ou Dégressif (capture de la simulation) ; Périodicité : Annuelle ou Mensuelle ; grille : Code, Type immo, Catégorie, Libellé, Système | Écran voisin : Captures p. 3 et 8 | moyenne | en place |
+| S136-3 | Comptes de la famille | Choisis au plan de comptes (T16) : acquisition (classe 2), dotation (681), amortissement (28), produits (facultatif), charge VCN (673 ou 674) | Texte réglementaire : PCCI, classe 2, comptes 28, 681, 673, 674, 774 | forte | en place |
+
+## S137 Création de bien
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S137-1 | Champs | Ceux de la capture « Création de Bien immobilier » ; codification unique ; durée de vie dans les normes de la famille ; famille de la catégorie choisie ; options de la famille (immatriculation, châssis, carburant, titre foncier, description) montrées seulement si cochées | Manuel : Capture p. 4 | forte | en place |
+| S137-2 | Numéro de pièce et date d'opération | Donnés à l'enregistrement : pièce du journal OD, journée ouverte | Écran voisin : Capture p. 4 ; S29 | moyenne | en place |
+| S137-3 | T.V.A et Prix d'acquisition | TVA comprise dans le Montant TTC au taux de l'utilisation quand elle est applicable ; Prix d'acquisition = TTC moins TVA ; c'est la base amortissable | Écran voisin : Capture p. 1 (TVA de l'utilisation) et p. 4 (Val. acquisition) | moyenne | en place |
+| S137-4 | Écriture d'acquisition | Aucune à la création : l'acquisition passe au grand livre par la facture du fournisseur (S107) ou une écriture (S109) ; le bien la référence (Fournisseur, Facture) | Écran voisin : Capture p. 4 ; S107 | moyenne | en place |
+| S137-5 | Modifier, Supprimer | Un bien amorti ou sorti ne se modifie plus ; un bien affecté, amorti ou sorti ne se supprime plus ; suppression logique | Texte réglementaire : PCCI § 3.4 ; T02 | forte | en place |
+
+## S138 Affectation et transfert
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S138-1 | Détenteur | Un employé de la paie (S133), choisi par son matricule ; statut LIBRE puis AFFECTE ; libération : LIBRE | Manuel : Captures p. 4 à 6 | forte | en place |
+| S138-2 | Historique | Chaque affectation, transfert et libération est gardé (ancien et nouveau détenteur, localisations, date) : il nourrit l'état de suivi (S140) | Manuel : Capture p. 9 (Résultat : Affectation, Transfert, Libération) | forte | en place |
+| S138-3 | Imprimer reçu | Impression de la fiche à l'écran | Écran voisin : T11 | moyenne | en place |
+
+## S139 Amortissement
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S139-1 | Calcul | Par exercice. Première annuité au prorata des mois depuis la mise en service, mois compris. Linéaire : prix d'acquisition ÷ durée. Dégressif : valeur nette × (1 ÷ durée) × coefficient de la table selon la durée, l'annuité linéaire sur la durée restante dès qu'elle est plus forte ; la dernière annuité solde la valeur nette | Écran voisin : Capture p. 8 (Système, Coef. degressi., Durée, Montant) ; pratique comptable du plan d'amortissement | moyenne | en place |
+| S139-2 | Écriture | Débit compte dotation de la famille (681), crédit compte amortissement (28), à la journée ouverte ; une fois par bien et par exercice, dans l'ordre des exercices ; par matériel ou par lot de matériel (tous les biens amortissables) | Texte réglementaire : PCCI, comptes 28 et 681 ; capture p. 6 | forte | en place |
+
+## S139 Inventaire
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S139-3 | Etat du bien | Bon, Moyen, Mauvais, Hors d'usage | Écran voisin : Capture p. 7 (liste sans valeurs) ; PCCI, classe 2 (inventaire détaillé) | moyenne | en place |
+
+## S139 Sortie
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S139-4 | Types de sortie | Cession, Mise au rebut ; un bien affecté se libère d'abord | Texte réglementaire : PCCI, classe 2 (cession ou destruction, compte 673 mise au rebut) | moyenne | en place |
+| S139-5 | Écriture | Crédit compte d'acquisition (valeur d'origine), débit compte amortissement (cumul), débit compte charge VCN (valeur nette) ; le prix d'une cession s'encaisse à part, au compte de produits de la famille | Texte réglementaire : PCCI, classe 2 : « par le débit … des comptes d'amortissements antérieurs et d'un compte de gestion (674, 774, 673) » | forte | en place |
+
+## S140 Rapports
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S140-1 | Cinq rapports | Liste des biens par localisation (période), liste des inventaires, simulation du tableau d'amortissement, état de suivi (affectation, transfert, libération), recherche multicritère ; Exporter | Manuel : Captures p. 7 à 9 | forte | en place |
+| S140-2 | Rechercher | Sur une période, à une date fixe, jusqu'à une date fixe (ou sur un exercice pour le suivi) ; éléments de la recherche des captures | Manuel : Captures p. 7 à 9 | moyenne | en place |
+| S140-3 | Droits de départ | Le comptable tient les données de base, les biens, les mouvements, les amortissements et les rapports | Écran voisin : T07 | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

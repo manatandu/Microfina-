@@ -1972,6 +1972,115 @@ def paie_retenue_viser(request, rid: int):
     return paie.viser(u(request), rid)
 
 
+# ---------- Immobilisations : S137 biens, S138 mouvements, S139 amortissement, inventaire, sortie, S140 rapports ----------
+@api.get("/immobilisations/contexte")
+def immo_0_contexte(request):
+    from . import immobilisations as im
+    return im.contexte(u(request))
+
+
+@api.get("/immobilisations/biens")
+def immo_1_liste(request):
+    from . import immobilisations as im
+    return im.liste(u(request), request.GET.dict())
+
+
+@api.post("/immobilisations/biens")
+def immo_2_enregistrer(request, corps: dict = Body(...)):
+    from . import immobilisations as im
+    return im.enregistrer(u(request), corps)
+
+
+@api.get("/immobilisations/biens/{bid}")
+def immo_3_fiche(request, bid: int):
+    from . import immobilisations as im
+    return im.fiche(u(request), bid)
+
+
+@api.post("/immobilisations/biens/{bid}")
+def immo_4_enregistrer(request, bid: int, corps: dict = Body(...)):
+    from . import immobilisations as im
+    return im.enregistrer(u(request), corps, bid)
+
+
+@api.post("/immobilisations/biens/{bid}/suppression")
+def immo_5_supprimer(request, bid: int):
+    from . import immobilisations as im
+    return im.supprimer(u(request), bid)
+
+
+@api.get("/immobilisations/biens/{bid}/tableau")
+def immo_6_tableau(request, bid: int):
+    from . import immobilisations as im
+    return im.tableau(u(request), bid)
+
+
+@api.post("/immobilisations/affectation")
+def immo_7_affecter(request, corps: dict = Body(...)):
+    from . import immobilisations as im
+    return im.affecter(u(request), corps)
+
+
+@api.post("/immobilisations/transfert-bien")
+def immo_8_transferer_bien(request, corps: dict = Body(...)):
+    from . import immobilisations as im
+    return im.transferer_bien(u(request), corps)
+
+
+@api.post("/immobilisations/transfert-employe")
+def immo_9_transferer_employe(request, corps: dict = Body(...)):
+    from . import immobilisations as im
+    return im.transferer_employe(u(request), corps)
+
+
+@api.post("/immobilisations/liberation")
+def immo_10_liberer(request, corps: dict = Body(...)):
+    from . import immobilisations as im
+    return im.liberer(u(request), corps)
+
+
+@api.post("/immobilisations/amortissement")
+def immo_11_amortir(request, corps: dict = Body(...)):
+    from . import immobilisations as im
+    return im.amortir(u(request), corps)
+
+
+@api.post("/immobilisations/inventaire")
+def immo_12_inventorier(request, corps: dict = Body(...)):
+    from . import immobilisations as im
+    return im.inventorier(u(request), corps)
+
+
+@api.post("/immobilisations/sortie")
+def immo_13_sortir(request, corps: dict = Body(...)):
+    from . import immobilisations as im
+    return im.sortir(u(request), corps)
+
+
+@api.get("/immobilisations/rapports/biens")
+def immo_14_rapport_biens(request):
+    from . import immobilisations as im
+    return im.rapport_biens(u(request), request.GET.dict())
+
+
+@api.get("/immobilisations/rapports/inventaires")
+def immo_15_rapport_inventaires(request):
+    from . import immobilisations as im
+    return im.rapport_inventaires(u(request), request.GET.dict())
+
+
+@api.get("/immobilisations/rapports/simulation")
+def immo_16_simuler(request):
+    from . import immobilisations as im
+    return im.simuler(u(request), request.GET.dict())
+
+
+@api.get("/immobilisations/rapports/suivi")
+def immo_17_suivi(request):
+    from . import immobilisations as im
+    return im.suivi(u(request), request.GET.dict())
+
+
 @api.get("/budget-referentiels/{page}")
 def bu_lire(request, page: str):
     return bu.lire(u(request), page)

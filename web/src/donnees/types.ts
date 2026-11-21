@@ -318,7 +318,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 81;
+  version: 82;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)
@@ -406,6 +406,11 @@ export interface Etat {
   budgetValeurs: BudgetValeur[];
   calculsPeriodiques: { type: "tenue_compte" | "interet_dav"; exercice: number; mois: number; compteId: number; base: number; montant: number; retenue: number; devise: Devise; ecritureId: number; par: number }[];   // S128
   paieEmployes: PaieEmploye[];   // S133
+  immoBiens: ImmoBien[];   // S137
+  immoMouvements: { id: number; bienId: number; type: "affectation" | "transfert" | "liberation"; ancienDetenteurId: number | null; nouveauDetenteurId: number | null; ancienneLocalisationId: number | null; nouvelleLocalisationId: number | null; date: string; par: number }[];   // S138
+  immoAmortissements: { id: number; bienId: number; exercice: number; dotation: number; cumul: number; vnc: number; ecritureId: number | null; par: number; le: string }[];   // S139
+  immoInventaires: { id: number; bienId: number; etat: string; date: string; observation: string; par: number }[];   // S139
+  immoSorties: { id: number; bienId: number; type: string; date: string; observation: string; vnc: number; cumul: number; ecritureId: number; par: number }[];   // S139
   paieMaquette: { id: number; employeId: number; rubriqueId: number; montant: number; session: string; active: boolean; intersession: boolean; permanente: boolean; saisiPar: number }[];   // S134
   paieRetenues: { id: number; employeId: number; typeId: number; session: string; montant: number; duree: number; statut: "saisie" | "visee"; saisiPar: number; visePar: number | null }[];   // S135
   periodesCloturees: { annee: number; mois: number; le: string; par: number }[];   // S127 : clôture informatique mensuelle (PCCI § 3.4)   // S124, S125 : une valeur par budget, type, période, ligne budgétaire et compte
@@ -554,4 +559,12 @@ export interface PaieEmploye {
   dateReferenceAnciennete: string; tauxAnciennete: string; dureeAnciennete: number | null; montantAnciennete: number | null; congesDus: number | null; grilles: number[];
   centreId: number | null; poste: string; fonction: string;
   typeContrat: string; typeEmploye: string; dateDebutContrat: string; dateFinContrat: string; modeleContrat: string; creePar: number; creeLe: string;
+}
+
+/** S137 : Immobilisations > Création de bien (capture « Création de Bien immobilier ») */
+export interface ImmoBien {
+  id: number; actif: boolean; numeroPiece: string; dateOperation: string; codification: string; refConstructeur: string; categorieId: number; familleId: number; libelle: string;
+  dateAcquisition: string; dureeVie: number; utilisationId: number; localisationId: number; dateMiseService: string; fournisseurId: number | null; factureId: number | null;
+  montantTtc: number; tva: number; prixAcquisition: number; amortissable: boolean; subventionne: boolean; immatriculation: string; chassis: string; carburant: string;
+  titreFoncier: string; description: string; statut: "LIBRE" | "AFFECTE" | "SORTI"; detenteurId: number | null; creePar: number;
 }
