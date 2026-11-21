@@ -342,13 +342,6 @@
    ]
   },
   {
-   "signe": "+",
-   "libelle": "Subvention d'exploitation",
-   "comptes": [
-    "76"
-   ]
-  },
-  {
    "signe": "-",
    "libelle": "Charges générales d'exploitation",
    "comptes": [
@@ -404,6 +397,14 @@
   {
    "solde": "courant",
    "libelle": "Résultat courant avant impôt"
+  },
+  {
+   "signe": "+",
+   "libelle": "Subvention d'exploitation",
+   "comptes": [
+    "76"
+   ],
+   "exceptionnel": true
   },
   {
    "signe": "+",

@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**845 décisions.** Solidité : 349 fortes (le manuel ou un texte répond), 419 moyennes (déduites d'un écran voisin ou d'une donnée), 77 faibles (notre choix, faute de mieux). Dans le code : 839 déjà en place, 6 à appliquer.
+**845 décisions.** Solidité : 351 fortes (le manuel ou un texte répond), 417 moyennes (déduites d'un écran voisin ou d'une donnée), 77 faibles (notre choix, faute de mieux). Dans le code : 839 déjà en place, 6 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1688,7 +1688,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S122-3 | Amortissements et provisions au bilan | Tout le compte 28 vient en déduction des immobilisations corporelles ; 38 des crédits ; 48 des autres actifs ; 580 des titres ; 581 et 582 de la trésorerie. Le PCCI ne donne pas d'amortissement propre aux immobilisations incorporelles | Texte réglementaire : PCCI, comptes 28, 38, 48, 58 | faible | en place |
 | S122-4 | Hors bilan | Postes 00 (financement 000, garanties 001), 01 (financement 010, garantie 011), 04 et 06. Les bornes « Compte » proposées vont de 0 à 09999999 : au PCCI le hors bilan est la classe 0, la valeur de la capture (1 à 99000000) le laisserait vide | Texte réglementaire : PCCI, chap. 14.1 ; classe 0 ; capture p. 141 | forte | en place |
 | S122-5 | Forme du compte de résultat | Les 25 rubriques du modèle, dans son ordre, avec leurs signes : produit net financier, résultat brut d'exploitation, résultat courant avant impôt, résultat exceptionnel, impôt, résultat net. La colonne des codes de poste n'est pas reprise : elle est abîmée dans le texte lu (le 21 y figure deux fois) | Texte réglementaire : PCCI, chap. 14.2 ; classe 8 | moyenne | en place |
-| S122-6 | Subvention d'exploitation | Dans le résultat brut d'exploitation, comme sur le modèle 14.2 et le rapport annuel de l'Instr. 009. La classe 8 la porte au résultat exceptionnel : les deux textes se contredisent, le modèle de l'état l'emporte pour l'état | Texte réglementaire : PCCI, chap. 14.2 et compte 84 ; Instr. BCC 009, annexe | moyenne | en place |
+| S122-6 | Subvention d'exploitation | Au résultat exceptionnel, après le résultat courant, avec les produits exceptionnels (77) et les pertes exceptionnelles (67) : c'est la classe 8 du PCCI (compte 84) et la présentation du rapport du commissaire aux comptes que le porteur a retenu comme modèle. Le modèle 14.2 la plaçait avant le résultat brut d'exploitation : le porteur a tranché (21/11/2026). Le résultat net ne change pas | Choix du porteur : Décision du porteur, 21/11/2026 ; PCCI, classe 8 (compte 84) ; PCCI 14.2 | forte | en place |
 | S122-7 | Colonne N - 1 | Bilan et hors bilan : la fin de l'exercice précédent. Compte de résultat et flux : les mêmes dates un an plus tôt | Écran voisin : PCCI, chap. 14 (colonnes N et N - 1, Exercice et Ex. préc.) ; pratique des comptes intermédiaires | moyenne | en place |
 | S122-8 | Résultat au bilan | « Résultat de l'exercice » : le compte 13 et le résultat en formation (classes 6, 7 et 8 de l'exercice). Les résultats d'exercices antérieurs pas encore clôturés vont au report à nouveau, sur une ligne à part : le bilan reste équilibré même avant la clôture | Écran voisin : PCCI, comptes 12 et 13 ; classe 8 | moyenne | en place |
 | S122-9 | Champs Etat, Type, Période | Etat : la seule valeur montrée, « Création ». Type : « Version développée » (les comptes sous chaque poste) ou « Modèle PCCI » (les postes seuls). Période : un mois de l'exercice, qui remplit les deux dates | Manuel : Captures p. 140 et 141 | faible | en place |
@@ -1768,7 +1768,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S127-9 | Clôture de l'exercice | Écritures de clôture (type vidage, écartées des états « sans vidage ») datées de la dernière journée de l'exercice : les comptes de gestion sont soldés dans 80, 82, 83, 84, 85 puis 87, et le résultat net va au 130 (bénéfice) ou au 131 (perte) | Texte réglementaire : PCCI, classe 8 (comptes 80 à 87) et compte 13 | forte | en place |
 | S127-10 | Devise des soldes de gestion | Les soldes de gestion et le résultat se déterminent en CDF ; les écritures de clôture sont équilibrées en CDF | Texte réglementaire : PCCI § 7.1 (charges et produits en devises comptabilisés après conversion en CDF) | forte | en place |
 | S127-11 | Après la clôture de l'exercice | Les douze mois sont clôturés, l'exercice n'est plus ouvert ; date et auteur gardés ; une seconde clôture est refusée | Texte réglementaire : PCCI § 3.4, § 4.3.6 | forte | en place |
-| S127-12 | Compte 76 dans les soldes de gestion | Au compte 84, comme la classe 8. Le modèle 14.2 du compte de résultat le met avant le résultat brut d'exploitation (S122-6). Le PCCI se contredit : question posée au porteur | Texte réglementaire : PCCI, classe 8 (compte 84) ; PCCI 14.2 | moyenne | en place |
+| S127-12 | Compte 76 dans les soldes de gestion | Au compte 84, comme la classe 8 ; le compte de résultat de l'écran et la liasse suivent maintenant la même règle (S122-6) | Choix du porteur : Décision du porteur, 21/11/2026 ; PCCI, classe 8 (compte 84) | forte | en place |
 
 ## S131 Données de base de la paie
 
@@ -1879,7 +1879,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S122-13 | Exporter la liasse | Bouton « Exporter la liasse » : garde, bilan actif et passif (N, N-1, variation, comptes), hors bilan, compte de résultat, tableau de flux (PCCI 14.3, N et N-1), notes (crédits, dépôts, avoirs, emprunts), cartouche du PCCI (dénomination, sigle, n° d'agrément) ; charte des liasses sycebnl et syscohada ; montants en francs | Choix du porteur : Demande du porteur, 20/11/2026 ; PCCI, chap. 14 ; skill liasse-pcci (charte) | forte | en place |
+| S122-13 | Exporter la liasse | Bouton « Exporter la liasse », au modèle du rapport du commissaire aux comptes retenu par le porteur (replica/liasse-pcci.json, le même que le skill liasse-pcci) : garde ; bilan actif et passif en quatre masses par compte principal, TOTAL GENERAL en tête, N, N-1, variation ; hors bilan ; compte de résultat par soldes 80 à 87 ; tableau de flux (PCCI 14.3, N et N-1) ; notes (crédits, dépôts, avoirs, emprunts) ; cartouche du PCCI ; charte des liasses sycebnl et syscohada ; montants en francs. Les écrans gardent les modèles 14.1 et 14.2 du PCCI | Choix du porteur : Demandes du porteur, 20 et 21/11/2026 ; PCCI, chap. 14 et classe 8 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

@@ -36,6 +36,9 @@
       ],
       "@etats": [
         "../replica/etats-pcci.json"
+      ],
+      "@liasse": [
+        "../replica/liasse-pcci.json"
       ]
     }
   },

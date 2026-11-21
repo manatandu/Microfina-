@@ -174,7 +174,7 @@ Rapport sur les états financiers d'une COOPEC, remis par le porteur. Seuls les 
 |---|---|---|
 | PCCI § 3.4 | Validation au terme de chaque période, qui ne dépasse pas le mois ; clôture informatique mensuelle qui fige la chronologie | S127-3, S127-4 ; base : pas d'écriture dans un mois clôturé |
 | PCCI § 7.1, § 4.3.5, § 4.3.8 | Conversion au cours de clôture lors des arrêtés ; écarts en produits (723) ou en charges (623), sans compensation ; coût historique pour le reste | S127-6, S127-7 (écart sur les sous-comptes 472 et 473, à revoir) |
-| PCCI, classe 8 ; compte 13 | Soldes de gestion 80 à 87 en fin de période ; résultat net au 130 ou au 131 | S127-9, S127-10 ; contradiction sur le compte 76 posée au porteur (S127-12) |
+| PCCI, classe 8 ; compte 13 | Soldes de gestion 80 à 87 en fin de période ; résultat net au 130 ou au 131 | S127-9, S127-10 ; compte 76 au résultat exceptionnel, tranché par le porteur le 21/11/2026 (S122-6, S127-12) |
 | PCCI § 6.4 ; comptes 612, 349 | Intérêts courus rattachés à la période | S128-6 |
 | Instr. BCC 003, art. 12 et 14 | Provisions constituées chaque mois ; niveau constaté à la fin de chaque mois | S127-5, S128-8 |
 | Instr. BCC 37, annexe ; Instr. BCC 40, art. 8 et 12 | La tenue de compte n'est pas gratuite d'office ; tout frais hors liste exige l'autorisation de la BCC | S128-1, E21-1 |

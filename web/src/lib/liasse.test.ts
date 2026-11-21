@@ -1,19 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { balanceXml, liasseXml } from "./liasse";
+import { balanceXml, bilanRapport, liasseXml, resultatRapport } from "./liasse";
 
 const E = { institution: "COOPEC Exemple", du: "2026-01-01", au: "2026-11-30", tirage: "30/11/2026 10:00" };
 describe("classeurs Excel (registre S122-13, T31)", () => {
-  it("liasse : garde, bilan actif et passif, hors bilan, résultat, TFT, notes ; charte des liasses sycebnl et syscohada", () => {
-    const poste = { code: "1", libelle: "Caisse", n: 100000, n1: 50000, comptes: [{ compte: "570", intitule: "Caisse", n: 100000, n1: 50000 }] };
-    const x = liasseXml({ institution: "COOPEC Exemple", sigle: "CE", agrement: "A-1", adresse: "Kinshasa", du: E.du, au: E.au, exercice: 2026 }, {
-      bilan: { actif: [poste], passif: [{ ...poste, libelle: "Capital" }], totalActif: { n: 100000, n1: 50000 }, totalPassif: { n: 100000, n1: 50000 } },
-      horsBilan: { postes: [] }, resultat: { lignes: [{ signe: "", solde: true, libelle: "Résultat net de l'exercice", n: 1000, n1: 0, comptes: [] }] },
-      flux: { lignes: [{ libelle: "LIQUIDITES ET EQUIVALENTS DE LIQUIDITES EN FIN D'EXERCICE", titre: false, total: true, n: 100000, n1: 50000 }] },
+  it("liasse au modèle du rapport : bilan en quatre masses équilibré, résultat par soldes 80 à 87, subvention (76) en exceptionnel ; charte des liasses", () => {
+    const c = (compte: string, n: number, n1 = 0) => ({ compte, intitule: compte, n, n1 });
+    const bilan = { actif: [{ code: "1", libelle: "Caisse", n: 0, n1: 0, comptes: [c("570", 900000), c("2810", -50000), c("220", 150000)] }],
+      passif: [{ code: "2", libelle: "Dépôts", n: 0, n1: 0, comptes: [c("330", 700000), c("100", 200000), { compte: "", intitule: "Résultat en formation (classes 6, 7 et 8)", n: 100000, n1: 0 }] }],
+      totalActif: { n: 1000000, n1: 0 }, totalPassif: { n: 1000000, n1: 0 } };
+    const b = bilanRapport(bilan);
+    expect([b.actif.n, b.passif.n]).toEqual([1000000, 1000000]);
+    expect(b.actif.sections.map((x) => [x.titre, x.n])).toEqual([["Opérations de trésorerie (S/Total)", 900000], ["Opérations avec la clientèle (S/Total)", 0], ["Opérations diverses (S/Total)", 0], ["Immobilisations (S/Total)", 100000]]);
+    expect(b.passif.sections.at(-1)!.lignes.find((l) => l.libelle.startsWith("(13)"))!.n).toBe(100000);
+    const l = (signe: string, compte: string, n: number) => ({ signe, solde: false, libelle: compte, n, n1: 0, comptes: [c(compte, n)] });
+    const r = resultatRapport({ lignes: [l("+", "710", 500000), l("-", "650", 300000), l("+", "760", 40000), l("+", "770", 10000), l("-", "670", 5000)] });
+    const v = Object.fromEntries(r.map((x) => [x.code, x.n]));
+    expect([v["80"], v["82"], v["83"], v["76"], v["84"], v["85"], v["87"]]).toEqual([500000, 200000, 200000, 40000, 45000, 245000, 245000]);
+    expect(r.findIndex((x) => x.code === "76")).toBeGreaterThan(r.findIndex((x) => x.code === "83"));      // après le résultat courant d'exploitation
+    const x = liasseXml({ institution: "COOPEC Exemple", sigle: "CE", agrement: "A-1", adresse: "Kinshasa", du: E.du, au: E.au, exercice: 2026 }, { bilan, horsBilan: { postes: [] },
+      resultat: { lignes: [l("+", "710", 500000)] }, flux: { lignes: [{ libelle: "LIQUIDITES ET EQUIVALENTS DE LIQUIDITES EN FIN D'EXERCICE", titre: false, total: true, n: 900000, n1: 0 }] },
       annexes: [{ titre: "Crédits", sections: [] }] });
     for (const f of ["Garde", "Bilan-Actif", "Bilan-Passif", "Hors-Bilan", "Résultat", "TFT", "Note 1"]) expect(x).toContain(`ss:Name="${f}"`);
-    expect(x).toContain('ss:Color="#000080"');          // TOTAL GÉNÉRAL
-    expect(x).toContain('<Data ss:Type="Number">1000</Data>');   // 100 000 centimes = 1 000 francs
-    expect(x).toContain("TOTAL GENERAL ACTIF");
+    for (const t of ["TOTAL GENERAL", "(57) Caisse", "(28) Amort", "(84) Résultat exceptionnel", "(87) Résultat net de l&apos;exercice".replace("&apos;", "'"), 'ss:Color="#000080"']) expect(x).toContain(t);
+    expect(x).toContain('<Data ss:Type="Number">9000</Data>');   // 900 000 centimes = 9 000 francs
   });
   it("balance au modèle FPM : chaque compte renvoie à sa feuille de grand livre, qui revient à la balance", () => {
     const x = balanceXml(E, [{ compte: "570", intitule: "Caisse", anterieurD: 0, anterieurC: 0, mouvementD: 500000, mouvementC: 0, soldeD: 500000, soldeC: 0 },

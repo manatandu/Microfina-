@@ -1,0 +1,756 @@
+{
+ "source": "Présentation retenue par le porteur (20 et 21/11/2026) : bilan en quatre masses par compte principal, compte de résultat par soldes de la classe 8 du PCCI (80 à 87), subvention d'exploitation (76) au résultat exceptionnel (84). Même modèle que le skill liasse-pcci.",
+ "modes": {
+  "nd": "net débiteur (débit moins crédit)",
+  "nc": "net créditeur (crédit moins débit)",
+  "d": "soldes débiteurs seulement, compte par compte",
+  "c": "soldes créditeurs seulement, compte par compte"
+ },
+ "bilan": {
+  "actif": [
+   {
+    "titre": "Opérations de trésorerie (S/Total)",
+    "note": "2",
+    "lignes": [
+     {
+      "code": "57",
+      "libelle": "Caisse",
+      "comptes": [
+       "57"
+      ],
+      "mode": "nd"
+     },
+     {
+      "code": "56",
+      "libelle": "Banque, organe faîtier et autres I. F.",
+      "comptes": [
+       "56"
+      ],
+      "mode": "d"
+     },
+     {
+      "code": "53",
+      "libelle": "Prêts à terme",
+      "comptes": [
+       "53"
+      ],
+      "mode": "d"
+     },
+     {
+      "code": "52",
+      "libelle": "Titre à court terme",
+      "comptes": [
+       "52"
+      ],
+      "mode": "nd"
+     },
+     {
+      "code": "59",
+      "libelle": "Virements internes (à solder en fin de période)",
+      "comptes": [
+       "59"
+      ],
+      "mode": "d",
+      "siPresent": true
+     },
+     {
+      "code": "58",
+      "libelle": "Provisions pour dépréciation des comptes de la classe 5",
+      "comptes": [
+       "58"
+      ],
+      "mode": "nc",
+      "retranche": true
+     }
+    ]
+   },
+   {
+    "titre": "Opérations avec la clientèle (S/Total)",
+    "note": "3",
+    "lignes": [
+     {
+      "code": "32",
+      "libelle": "Crédit à court terme",
+      "comptes": [
+       "32"
+      ],
+      "mode": "nd"
+     },
+     {
+      "code": "31",
+      "libelle": "Crédit à moyen terme",
+      "comptes": [
+       "31"
+      ],
+      "mode": "nd"
+     },
+     {
+      "code": "30",
+      "libelle": "Crédit à long terme",
+      "comptes": [
+       "30"
+      ],
+      "mode": "nd"
+     },
+     {
+      "code": "33-36",
+      "libelle": "Comptes débiteurs de la clientèle ou des membres",
+      "comptes": [
+       "33",
+       "34",
+       "35",
+       "36"
+      ],
+      "mode": "d",
+      "siPresent": true
+     },
+     {
+      "code": "37",
+      "libelle": "Suspens de la clientèle ou des membres",
+      "comptes": [
+       "37"
+      ],
+      "mode": "d"
+     },
+     {
+      "code": "38",
+      "libelle": "Provisions pour dépréciation des comptes de la classe 3",
+      "comptes": [
+       "38"
+      ],
+      "mode": "nc",
+      "retranche": true
+     },
+     {
+      "code": "39",
+      "libelle": "Créances litigieuses ou en retard",
+      "comptes": [
+       "39"
+      ],
+      "mode": "nd"
+     }
+    ]
+   },
+   {
+    "titre": "Opérations diverses (S/Total)",
+    "note": "5",
+    "lignes": [
+     {
+      "code": "40",
+      "libelle": "Fournisseur",
+      "comptes": [
+       "40"
+      ],
+      "mode": "d"
+     },
+     {
+      "code": "42",
+      "libelle": "Personnel",
+      "comptes": [
+       "42"
+      ],
+      "mode": "d"
+     },
+     {
+      "code": "43",
+      "libelle": "Etat",
+      "comptes": [
+       "43"
+      ],
+      "mode": "d"
+     },
+     {
+      "code": "44",
+      "libelle": "Actionnaires et Associés",
+      "comptes": [
+       "44"
+      ],
+      "mode": "d"
+     },
+     {
+      "code": "45",
+      "libelle": "Compte de liaison",
+      "comptes": [
+       "45"
+      ],
+      "mode": "d"
+     },
+     {
+      "code": "46",
+      "libelle": "Débiteurs divers",
+      "comptes": [
+       "46"
+      ],
+      "mode": "d"
+     },
+     {
+      "code": "47",
+      "libelle": "Régularisations et emplois divers",
+      "comptes": [
+       "47"
+      ],
+      "mode": "d"
+     },
+     {
+      "code": "48",
+      "libelle": "Provisions pour dépréciation des comptes de la classe 4",
+      "comptes": [
+       "48"
+      ],
+      "mode": "nc",
+      "retranche": true
+     }
+    ]
+   },
+   {
+    "titre": "Immobilisations (S/Total)",
+    "note": "6",
+    "lignes": [
+     {
+      "code": "20",
+      "libelle": "Valeurs incorporelles immobilisées",
+      "comptes": [
+       "20"
+      ],
+      "mode": "nd"
+     },
+     {
+      "code": "21",
+      "libelle": "Compte 21, absent du PCCI (à reclasser)",
+      "comptes": [
+       "21"
+      ],
+      "mode": "nd",
+      "siPresent": true
+     },
+     {
+      "code": "22",
+      "libelle": "Autres immobilisations corporelles",
+      "comptes": [
+       "22"
+      ],
+      "mode": "nd"
+     },
+     {
+      "code": "23",
+      "libelle": "Immobilisations corporelles en cours",
+      "comptes": [
+       "23"
+      ],
+      "mode": "nd"
+     },
+     {
+      "code": "24",
+      "libelle": "Avances et acomptes sur commandes d'immobilisations",
+      "comptes": [
+       "24"
+      ],
+      "mode": "nd"
+     },
+     {
+      "code": "25",
+      "libelle": "Titres de participation et autres valeurs engagées à plus d'un an",
+      "comptes": [
+       "25"
+      ],
+      "mode": "nd"
+     },
+     {
+      "code": "26",
+      "libelle": "Prêts et titres à souscription obligatoire",
+      "comptes": [
+       "26"
+      ],
+      "mode": "nd"
+     },
+     {
+      "code": "27",
+      "libelle": "Garanties et cautionnements à moyen et long terme",
+      "comptes": [
+       "27"
+      ],
+      "mode": "nd"
+     },
+     {
+      "code": "28",
+      "libelle": "Amortissements et provisions pour dépréciation des comptes de la classe 2",
+      "comptes": [
+       "28"
+      ],
+      "mode": "nc",
+      "retranche": true
+     }
+    ]
+   }
+  ],
+  "passif": [
+   {
+    "titre": "Opérations de trésorerie (S/Total)",
+    "note": "7",
+    "lignes": [
+     {
+      "code": "56",
+      "libelle": "Banque, organe faîtier et autres I. F.",
+      "comptes": [
+       "56"
+      ],
+      "mode": "c"
+     },
+     {
+      "code": "53",
+      "libelle": "Emprunts à terme (organe faîtier ou autres I. F.)",
+      "comptes": [
+       "53"
+      ],
+      "mode": "c"
+     },
+     {
+      "code": "59",
+      "libelle": "Virements internes (à solder en fin de période)",
+      "comptes": [
+       "59"
+      ],
+      "mode": "c",
+      "siPresent": true
+     }
+    ]
+   },
+   {
+    "titre": "Opérations avec la clientèle (S/Total)",
+    "note": "8",
+    "lignes": [
+     {
+      "code": "33",
+      "libelle": "Epargnes et dépôts ordinaires",
+      "comptes": [
+       "33"
+      ],
+      "mode": "c"
+     },
+     {
+      "code": "34",
+      "libelle": "Dépôts à terme",
+      "comptes": [
+       "34"
+      ],
+      "mode": "c"
+     },
+     {
+      "code": "35",
+      "libelle": "Dépôts à régime spécial",
+      "comptes": [
+       "35"
+      ],
+      "mode": "c"
+     },
+     {
+      "code": "36",
+      "libelle": "Autres comptes de la clientèle ou des membres",
+      "comptes": [
+       "36"
+      ],
+      "mode": "c"
+     },
+     {
+      "code": "37",
+      "libelle": "Suspens de la clientèle ou des membres",
+      "comptes": [
+       "37"
+      ],
+      "mode": "c"
+     }
+    ]
+   },
+   {
+    "titre": "Opérations diverses (S/Total)",
+    "note": "9",
+    "lignes": [
+     {
+      "code": "40",
+      "libelle": "Fournisseur",
+      "comptes": [
+       "40"
+      ],
+      "mode": "c"
+     },
+     {
+      "code": "42",
+      "libelle": "Personnel",
+      "comptes": [
+       "42"
+      ],
+      "mode": "c"
+     },
+     {
+      "code": "43",
+      "libelle": "Etat",
+      "comptes": [
+       "43"
+      ],
+      "mode": "c"
+     },
+     {
+      "code": "44",
+      "libelle": "Actionnaires et Associés",
+      "comptes": [
+       "44"
+      ],
+      "mode": "c"
+     },
+     {
+      "code": "45",
+      "libelle": "Compte de liaison",
+      "comptes": [
+       "45"
+      ],
+      "mode": "c"
+     },
+     {
+      "code": "46",
+      "libelle": "Créditeurs divers",
+      "comptes": [
+       "46"
+      ],
+      "mode": "c"
+     },
+     {
+      "code": "47",
+      "libelle": "Régularisations et emplois divers",
+      "comptes": [
+       "47"
+      ],
+      "mode": "c"
+     },
+     {
+      "code": "15",
+      "libelle": "Subventions d'équipement",
+      "comptes": [
+       "15"
+      ],
+      "mode": "nc"
+     },
+     {
+      "code": "16",
+      "libelle": "Emprunts et dettes à moyen et long termes",
+      "comptes": [
+       "16"
+      ],
+      "mode": "nc"
+     },
+     {
+      "code": "17",
+      "libelle": "Fonds de financement et de garantie",
+      "comptes": [
+       "17"
+      ],
+      "mode": "nc"
+     },
+     {
+      "code": "18",
+      "libelle": "Provisions pour risques, charges et pertes",
+      "comptes": [
+       "18"
+      ],
+      "mode": "nc"
+     }
+    ]
+   },
+   {
+    "titre": "Fonds propres (S/Total)",
+    "note": "10",
+    "lignes": [
+     {
+      "code": "14",
+      "libelle": "Plus-values et provisions réglementées",
+      "comptes": [
+       "14"
+      ],
+      "mode": "nc"
+     },
+     {
+      "code": "13",
+      "libelle": "Résultat net",
+      "comptes": [
+       "13"
+      ],
+      "mode": "nc",
+      "plusResultat": true
+     },
+     {
+      "code": "12",
+      "libelle": "Report à nouveau",
+      "comptes": [
+       "12"
+      ],
+      "mode": "nc"
+     },
+     {
+      "code": "11",
+      "libelle": "Réserves et primes liées au capital",
+      "comptes": [
+       "11"
+      ],
+      "mode": "nc"
+     },
+     {
+      "code": "10",
+      "libelle": "Capital",
+      "comptes": [
+       "10"
+      ],
+      "mode": "nc"
+     }
+    ]
+   }
+  ]
+ },
+ "resultat": [
+  {
+   "code": "70",
+   "libelle": "Produits sur opérations avec l'organe faîtier et autres intermédiaires financiers",
+   "comptes": [
+    "70"
+   ],
+   "mode": "nc",
+   "signe": "+"
+  },
+  {
+   "code": "71",
+   "libelle": "Produits sur opérations avec la clientèle ou les membres",
+   "comptes": [
+    "71"
+   ],
+   "mode": "nc",
+   "signe": "+"
+  },
+  {
+   "code": "72",
+   "libelle": "Produits financiers divers",
+   "comptes": [
+    "72"
+   ],
+   "mode": "nc",
+   "signe": "+"
+  },
+  {
+   "code": "73",
+   "libelle": "Autres produits financiers",
+   "comptes": [
+    "73"
+   ],
+   "mode": "nc",
+   "signe": "+"
+  },
+  {
+   "code": "60",
+   "libelle": "Charges sur opérations avec l'organe faîtier et autres intermédiaires financiers",
+   "comptes": [
+    "60"
+   ],
+   "mode": "nd",
+   "signe": "-"
+  },
+  {
+   "code": "61",
+   "libelle": "Charges sur opérations avec la clientèle ou les membres",
+   "comptes": [
+    "61"
+   ],
+   "mode": "nd",
+   "signe": "-"
+  },
+  {
+   "code": "62",
+   "libelle": "Charges financières diverses",
+   "comptes": [
+    "62"
+   ],
+   "mode": "nd",
+   "signe": "-"
+  },
+  {
+   "code": "63",
+   "libelle": "Autres charges financières",
+   "comptes": [
+    "63"
+   ],
+   "mode": "nd",
+   "signe": "-"
+  },
+  {
+   "code": "80",
+   "libelle": "Produit net financier",
+   "solde": [
+    "+70",
+    "+71",
+    "+72",
+    "+73",
+    "-60",
+    "-61",
+    "-62",
+    "-63"
+   ],
+   "niveau": "inter"
+  },
+  {
+   "code": "74",
+   "libelle": "Produits accessoires",
+   "comptes": [
+    "74"
+   ],
+   "mode": "nc",
+   "signe": "+"
+  },
+  {
+   "code": "64",
+   "libelle": "Charges générales d'exploitation",
+   "comptes": [
+    "64"
+   ],
+   "mode": "nd",
+   "signe": "-"
+  },
+  {
+   "code": "65",
+   "libelle": "Charges du personnel",
+   "comptes": [
+    "65"
+   ],
+   "mode": "nd",
+   "signe": "-"
+  },
+  {
+   "code": "66",
+   "libelle": "Impôts et taxes",
+   "comptes": [
+    "66"
+   ],
+   "mode": "nd",
+   "signe": "-"
+  },
+  {
+   "code": "82",
+   "libelle": "Résultat brut d'exploitation",
+   "solde": [
+    "+80",
+    "+74",
+    "-64",
+    "-65",
+    "-66"
+   ],
+   "niveau": "inter"
+  },
+  {
+   "code": "78",
+   "libelle": "Reprises sur amortissements",
+   "comptes": [
+    "78"
+   ],
+   "mode": "nc",
+   "signe": "+"
+  },
+  {
+   "code": "79",
+   "libelle": "Reprises des provisions et récupération sur créances irrécouvrables",
+   "comptes": [
+    "79"
+   ],
+   "mode": "nc",
+   "signe": "+"
+  },
+  {
+   "code": "68",
+   "libelle": "Dotations aux amortissements",
+   "comptes": [
+    "68"
+   ],
+   "mode": "nd",
+   "signe": "-"
+  },
+  {
+   "code": "69",
+   "libelle": "Dotations aux provisions et pertes sur créances irrécouvrables",
+   "comptes": [
+    "69"
+   ],
+   "mode": "nd",
+   "signe": "-"
+  },
+  {
+   "code": "83",
+   "libelle": "Résultat courant d'exploitation",
+   "solde": [
+    "+82",
+    "+78",
+    "+79",
+    "-68",
+    "-69"
+   ],
+   "niveau": "inter"
+  },
+  {
+   "code": "76",
+   "libelle": "Subventions d'exploitation",
+   "comptes": [
+    "76"
+   ],
+   "mode": "nc",
+   "signe": "+"
+  },
+  {
+   "code": "77",
+   "libelle": "Produits exceptionnels",
+   "comptes": [
+    "77"
+   ],
+   "mode": "nc",
+   "signe": "+"
+  },
+  {
+   "code": "67",
+   "libelle": "Pertes exceptionnelles",
+   "comptes": [
+    "67"
+   ],
+   "mode": "nd",
+   "signe": "-"
+  },
+  {
+   "code": "84",
+   "libelle": "Résultat exceptionnel",
+   "solde": [
+    "+76",
+    "+77",
+    "-67"
+   ],
+   "niveau": "inter"
+  },
+  {
+   "code": "85",
+   "libelle": "Résultat avant impôt",
+   "solde": [
+    "+83",
+    "+84"
+   ],
+   "niveau": "section"
+  },
+  {
+   "code": "86",
+   "libelle": "Impôt sur le résultat",
+   "comptes": [
+    "86"
+   ],
+   "mode": "nd",
+   "signe": "-"
+  },
+  {
+   "code": "87",
+   "libelle": "Résultat net de l'exercice",
+   "solde": [
+    "+85",
+    "-86"
+   ],
+   "niveau": "general"
+  }
+ ]
+}

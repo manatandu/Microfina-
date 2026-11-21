@@ -3094,7 +3094,9 @@ describe("journée de guichet", () => {
     const formation = b.passif.at(-1)!.comptes.find((c) => c.intitule.startsWith("Résultat en formation"))?.n ?? 0;
     expect([r.lignes.at(-1)!.n, r.nonRattaches]).toEqual([formation, []]);
     const signe = (x: (typeof r.lignes)[number]) => (x.signe === "+" ? x.n : -x.n), somme = (a: number, z: number) => r.lignes.slice(a, z).reduce((t, x) => t + signe(x), 0);
-    expect([r.lignes[8]!.n, r.lignes[14]!.n, r.lignes[19]!.n]).toEqual([somme(0, 8), somme(0, 8) + somme(9, 14), somme(0, 8) + somme(9, 14) + somme(15, 19)]);
+    expect([r.lignes[8]!.n, r.lignes[13]!.n, r.lignes[18]!.n]).toEqual([somme(0, 8), somme(0, 8) + somme(9, 13), somme(0, 8) + somme(9, 13) + somme(14, 18)]);
+    // la subvention d'exploitation (76) est au résultat exceptionnel, après le résultat courant (PCCI, classe 8 ; registre S122-6)
+    expect(r.lignes.slice(19, 23).map((x) => x.libelle)).toEqual(["Subvention d'exploitation", "Produits exceptionnels", "Pertes exceptionnelles", "Résultat exceptionnel"]);
     const h = await api.etatsFinanciers.horsBilan(q);
     expect([h.postes.map((x) => x.code), h.postes[0]!.lignes.map((l) => l.libelle)]).toEqual([["00", "01", "04", "06"], ["Engagements de financement", "Engagements de garanties"]]);
     const fl = await api.etatsFinanciers.annexe({ ...q, annexe: "flux" });

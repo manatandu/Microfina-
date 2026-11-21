@@ -4129,9 +4129,11 @@ def test_etats_financiers(clients, journee):
     net = r["lignes"][-1]["n"]
     formation = next((c["n"] for c in b["passif"][-1]["comptes"] if c["intitule"].startswith("Résultat en formation")), 0)
     assert net == formation and r["nonRattaches"] == []
-    pnf, rbe, rcai = r["lignes"][8]["n"], r["lignes"][14]["n"], r["lignes"][19]["n"]
+    pnf, rbe, rcai = r["lignes"][8]["n"], r["lignes"][13]["n"], r["lignes"][18]["n"]
     signe = lambda x: x["n"] if x["signe"] == "+" else -x["n"]
-    assert pnf == sum(signe(x) for x in r["lignes"][:8]) and rbe == pnf + sum(signe(x) for x in r["lignes"][9:14]) and rcai == rbe + sum(signe(x) for x in r["lignes"][15:19])
+    assert pnf == sum(signe(x) for x in r["lignes"][:8]) and rbe == pnf + sum(signe(x) for x in r["lignes"][9:13]) and rcai == rbe + sum(signe(x) for x in r["lignes"][14:18])
+    # la subvention d'exploitation (76) est au résultat exceptionnel, après le résultat courant (PCCI, classe 8 ; registre S122-6)
+    assert [x["libelle"] for x in r["lignes"][19:23]] == ["Subvention d'exploitation", "Produits exceptionnels", "Pertes exceptionnelles", "Résultat exceptionnel"]
     h = compta.get(f"{EF}/hors-bilan", q, **H).json()
     assert [x["code"] for x in h["postes"]] == ["00", "01", "04", "06"] and [l["libelle"] for l in h["postes"][0]["lignes"]] == ["Engagements de financement", "Engagements de garanties"]
     fl = compta.get(f"{EF}/annexe", {**q, "annexe": "flux"}, **H).json()

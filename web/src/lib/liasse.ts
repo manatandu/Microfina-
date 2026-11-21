@@ -1,9 +1,12 @@
 /** Classeurs Excel (XML Spreadsheet 2003, sans bibliothèque) :
- * - la liasse des états financiers PCCI (bilan, hors bilan, compte de résultat, tableau de flux, états annexes), sur le modèle du rapport du commissaire
- *   aux comptes retenu par le porteur et avec la charte des liasses sycebnl et syscohada (skill liasse-pcci, theme_etafi : en-têtes CCFFFF, rubriques FFFFCC,
+ * - la liasse des états financiers PCCI, sur le modèle du rapport du commissaire aux comptes retenu par le porteur (replica/liasse-pcci.json : bilan en
+ *   quatre masses par compte principal, TOTAL GENERAL en tête ; compte de résultat par soldes 80 à 87, subvention d'exploitation au résultat exceptionnel),
+ *   hors bilan, tableau de flux et notes, avec la charte des liasses sycebnl et syscohada (skill liasse-pcci, theme_etafi : en-têtes CCFFFF, rubriques FFFFCC,
  *   totaux intermédiaires C0C0C0, totaux de section 008000, TOTAL GÉNÉRAL 000080, titres Arial Black 008000, montants sans décimale) ;
  * - les documents comptables (balance, grand livre, balance des tiers) sur les modèles neutres du porteur (exports Sage des dossiers FPM et CARRIGRES :
  *   bloc d'en-tête, colonnes, totaux ; noir sur blanc). Registre S122-13, T31. */
+import MODELE from "@liasse";
+
 const echapper = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 type Style = "titre" | "sousTitre" | "entete" | "rubrique" | "ligne" | "detail" | "sousTotal" | "totalSection" | "totalGeneral" | "neutreTitre" | "neutreEntete" | "neutre" | "neutreTotal" | "texte";
@@ -78,14 +81,58 @@ function cartouche(e: Entete, titre: string, nb: number): Ligne[] {
     { style: "sousTitre", cellules: [`Exercice ${e.exercice} : du ${fr(e.du)} au ${fr(e.au)} ; montants en francs congolais`, ...vide] }, { style: "texte", cellules: [null, ...vide] }];
 }
 
-function feuilleBilan(e: Entete, cote: "ACTIF" | "PASSIF", postes: Poste[], total: { n: number; n1: number }): Feuille {
-  const lignes: Ligne[] = [...cartouche(e, `BILAN - ${cote}`, 6), { style: "entete", cellules: ["N°", cote, "Note", "Exercice N", "Exercice N-1", "Variation %"] }];
-  for (const p of postes) {
-    lignes.push({ style: "rubrique", cellules: [p.code, p.libelle, null, cdf(p.n), cdf(p.n1), variation(p.n, p.n1)] });
-    for (const c of p.comptes) lignes.push({ style: "detail", cellules: [c.compte, c.intitule, null, cdf(c.n), cdf(c.n1), variation(c.n, c.n1)] });
+// ---------- Bilan et compte de résultat au modèle retenu par le porteur (replica/liasse-pcci.json ; rapport du commissaire aux comptes) ----------
+type Mode = "nd" | "nc" | "d" | "c";
+type LigneModele = { code: string; libelle: string; comptes: string[]; mode: Mode; retranche?: boolean; siPresent?: boolean; plusResultat?: boolean };
+type SectionModele = { titre: string; lignes: LigneModele[] };
+type RubriqueModele = { code: string; libelle: string; comptes?: string[]; mode?: Mode; signe?: string; solde?: string[]; niveau?: string };
+const ML = MODELE as unknown as { bilan: { actif: SectionModele[]; passif: SectionModele[] }; resultat: RubriqueModele[] };
+type Soldes = Map<string, [number, number]>;   // compte → solde débit moins crédit, N et N-1 (centimes)
+const capte = (compte: string, prefixes: string[]) => prefixes.some((p) => compte.startsWith(p));
+/** nd : net débiteur ; nc : net créditeur ; d : soldes débiteurs seulement ; c : soldes créditeurs seulement (compte par compte) */
+function somme(s: Soldes, prefixes: string[], mode: Mode, k: 0 | 1) {
+  let t = 0;
+  for (const [c, v] of s) if (capte(c, prefixes)) t += mode === "nd" ? v[k] : mode === "nc" ? -v[k] : mode === "d" ? Math.max(v[k], 0) : Math.max(-v[k], 0);
+  return t;
+}
+/** Soldes par compte relus du bilan de l'écran : à l'actif le solde débiteur, au passif le solde créditeur ; résultat en formation et résultats antérieurs à part */
+function soldesDuBilan(b: DonneesLiasse["bilan"]) {
+  const s: Soldes = new Map(), resultat: [number, number] = [0, 0], anterieurs: [number, number] = [0, 0];
+  for (const [cote, signe] of [["actif", 1], ["passif", -1]] as const) for (const p of b[cote]) for (const c of p.comptes) {
+    if (c.compte) { const x = s.get(c.compte) ?? [0, 0]; x[0] += signe * c.n; x[1] += signe * c.n1; s.set(c.compte, x); }
+    else { const x = /antérieur/i.test(c.intitule) ? anterieurs : resultat; x[0] += c.n; x[1] += c.n1; }
   }
-  lignes.push({ style: "totalGeneral", cellules: [null, `TOTAL GENERAL ${cote}`, null, cdf(total.n), cdf(total.n1), variation(total.n, total.n1)] });
-  return { nom: `Bilan-${cote === "ACTIF" ? "Actif" : "Passif"}`, largeurs: [45, 300, 40, 90, 90, 60], lignes };
+  return { s, resultat, anterieurs };
+}
+export function bilanRapport(b: DonneesLiasse["bilan"]) {
+  const { s, resultat, anterieurs } = soldesDuBilan(b);
+  const tous = [...ML.bilan.actif, ...ML.bilan.passif].flatMap((x) => x.lignes.flatMap((l) => l.comptes));
+  const hors: Soldes = new Map([...s].filter(([c]) => !capte(c, tous)));          // comptes que le modèle ne nomme pas : « Autres comptes », du côté de leur solde
+  const cote = (nom: "actif" | "passif") => {
+    const sections = ML.bilan[nom].map((sec, i, t) => {
+      const lignes = sec.lignes.map((l) => {
+        const v = ([0, 1] as const).map((k) => somme(s, l.comptes, l.mode, k) + (l.plusResultat ? resultat[k] : 0) + (nom === "passif" && l.code === "12" ? anterieurs[k] : 0)) as [number, number];
+        return { libelle: `(${l.code}) ${l.libelle}`, n: v[0], n1: v[1], retranche: !!l.retranche, montre: !l.siPresent || v[0] !== 0 || v[1] !== 0 };
+      });
+      if (i === t.findIndex((x) => /diverses/i.test(x.titre))) {
+        const v = ([0, 1] as const).map((k) => somme(hors, [""], nom === "actif" ? "d" : "c", k)) as [number, number];
+        lignes.push({ libelle: "Autres comptes", n: v[0], n1: v[1], retranche: false, montre: v[0] !== 0 || v[1] !== 0 });
+      }
+      const tot = (k: "n" | "n1") => lignes.reduce((a, l) => a + (l.retranche ? -l[k] : l[k]), 0);
+      return { titre: sec.titre, n: tot("n"), n1: tot("n1"), lignes: lignes.filter((l) => l.montre) };
+    });
+    return { sections, n: sections.reduce((a, x) => a + x.n, 0), n1: sections.reduce((a, x) => a + x.n1, 0) };
+  };
+  return { actif: cote("actif"), passif: cote("passif") };
+}
+function feuilleBilan(e: Entete, nom: "ACTIF" | "PASSIF", c: ReturnType<typeof bilanRapport>["actif"]): Feuille {
+  const lignes: Ligne[] = [...cartouche(e, `BILAN - ${nom}`, 4), { style: "entete", cellules: [nom, `${e.exercice} en CDF`, `${e.exercice - 1} en CDF`, "Variation %"] },
+    { style: "totalGeneral", cellules: ["TOTAL GENERAL", cdf(c.n), cdf(c.n1), variation(c.n, c.n1)] }];
+  for (const sec of c.sections) {
+    lignes.push({ style: "totalSection", cellules: [sec.titre, cdf(sec.n), cdf(sec.n1), variation(sec.n, sec.n1)] });
+    for (const l of sec.lignes) lignes.push({ style: "ligne", cellules: [l.libelle, cdf(l.n), cdf(l.n1), variation(l.n, l.n1)] });
+  }
+  return { nom: `Bilan-${nom === "ACTIF" ? "Actif" : "Passif"}`, largeurs: [340, 100, 100, 70], lignes };
 }
 
 function feuilleHorsBilan(e: Entete, postes: PosteHb[]): Feuille {
@@ -97,14 +144,22 @@ function feuilleHorsBilan(e: Entete, postes: PosteHb[]): Feuille {
   return { nom: "Hors-Bilan", largeurs: [45, 300, 40, 90, 90], lignes };
 }
 
-function feuilleResultat(e: Entete, rub: LigneResultat[]): Feuille {
-  const lignes: Ligne[] = [...cartouche(e, "COMPTE DE RESULTAT", 6), { style: "entete", cellules: ["", "RUBRIQUES", "Note", "Exercice N", "Exercice N-1", "Variation %"] }];
-  for (const r of rub) {
-    const net = /net/i.test(r.libelle) && r.solde;
-    lignes.push({ style: net ? "totalGeneral" : r.solde ? "totalSection" : "ligne", cellules: [r.signe, r.libelle, null, cdf(r.n), cdf(r.n1), variation(r.n, r.n1)] });
-    if (!r.solde) for (const c of r.comptes) lignes.push({ style: "detail", cellules: [c.compte, c.intitule, null, cdf(c.n), cdf(c.n1), variation(c.n, c.n1)] });
-  }
-  return { nom: "Résultat", largeurs: [45, 300, 40, 90, 90, 60], lignes };
+/** Compte de résultat par soldes de la classe 8 (80 à 87) : les comptes relus du compte de résultat de l'écran */
+export function resultatRapport(r: DonneesLiasse["resultat"]) {
+  const s: Soldes = new Map();
+  for (const l of r.lignes) if (!l.solde) for (const c of l.comptes) { const sg = l.signe === "+" ? -1 : 1, x = s.get(c.compte) ?? [0, 0]; x[0] += sg * c.n; x[1] += sg * c.n1; s.set(c.compte, x); }
+  const v = new Map<string, [number, number]>();
+  return ML.resultat.map((x) => {
+    const val = ([0, 1] as const).map((k) => x.solde ? x.solde.reduce((a, t) => a + (t[0] === "+" ? 1 : -1) * (v.get(t.slice(1))?.[k] ?? 0), 0) : somme(s, x.comptes ?? [], x.mode ?? "nd", k)) as [number, number];
+    v.set(x.code, val);
+    return { code: x.code, libelle: x.libelle, signe: x.signe ?? "", solde: !!x.solde, niveau: x.niveau ?? "normal", n: val[0], n1: val[1] };
+  });
+}
+function feuilleResultat(e: Entete, rub: ReturnType<typeof resultatRapport>): Feuille {
+  const lignes: Ligne[] = [...cartouche(e, "COMPTE DE RESULTAT", 4), { style: "entete", cellules: ["COMPTES", String(e.exercice), String(e.exercice - 1), "Variation %"] }];
+  for (const r of rub) lignes.push({ style: r.niveau === "general" ? "totalGeneral" : r.niveau === "section" ? "totalSection" : r.solde ? "sousTotal" : "ligne",
+    cellules: [`(${r.code}) ${r.signe ? `${r.signe} ` : ""}${r.libelle}`, cdf(r.n), cdf(r.n1), variation(r.n, r.n1)] });
+  return { nom: "Résultat", largeurs: [340, 100, 100, 70], lignes };
 }
 
 function feuilleFlux(e: Entete, fl: LigneFlux[]): Feuille {
@@ -134,8 +189,9 @@ function feuilleGarde(e: Entete): Feuille {
 }
 
 export function liasseXml(e: Entete, d: DonneesLiasse) {
-  return classeur([feuilleGarde(e), feuilleBilan(e, "ACTIF", d.bilan.actif, d.bilan.totalActif), feuilleBilan(e, "PASSIF", d.bilan.passif, d.bilan.totalPassif),
-    feuilleHorsBilan(e, d.horsBilan.postes), feuilleResultat(e, d.resultat.lignes), feuilleFlux(e, d.flux.lignes), ...d.annexes.map((a, i) => feuilleAnnexe(e, a, i))]);
+  const b = bilanRapport(d.bilan);
+  return classeur([feuilleGarde(e), feuilleBilan(e, "ACTIF", b.actif), feuilleBilan(e, "PASSIF", b.passif),
+    feuilleHorsBilan(e, d.horsBilan.postes), feuilleResultat(e, resultatRapport(d.resultat)), feuilleFlux(e, d.flux.lignes), ...d.annexes.map((a, i) => feuilleAnnexe(e, a, i))]);
 }
 
 /** Balance des comptes (modèle FPM, Sage 100) : en-tête, six colonnes de montants, totaux des comptes de bilan, de gestion et de la balance ; neutre.
