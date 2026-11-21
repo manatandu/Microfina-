@@ -94,10 +94,14 @@ def ouvrir_session(login: str, mot_de_passe: str | None, machine: str = "") -> d
 
 
 def utilisateur_de_session(uid, jeton) -> dict | None:
-    """La session vaut tant que son jeton est celui de l'utilisateur et que la connexion n'a pas expiré (registre S07-2, S07-4)"""
-    if not uid or not jeton or valeur(f"select jeton_session from utilisateur where id = %s and {CONNECTE}", (uid,)) != jeton:
+    """La session vaut tant que son jeton est celui de l'utilisateur et que la connexion n'a pas expiré (registre S07-2, S07-4).
+    Une seule requête pour le jeton, l'utilisateur et ses profils : cette lecture ouvre chaque appel de l'API (mesure du 21/11/2026)."""
+    if not uid or not jeton:
         return None
-    return charger_utilisateur(uid)
+    return une(f"""select u.id, u.login, u.nom, u.institution_id, u.agence_id,
+                          coalesce((select array_agg(p.code order by p.code) from utilisateur_profil up join profil p on p.id = up.profil_id
+                                    where up.utilisateur_id = u.id and p.code is not null and not p.supprime), '{{}}') as roles
+                   from utilisateur u where u.id = %s and u.actif and u.jeton_session = %s and {CONNECTE}""", (uid, jeton))
 
 
 def fermer_session(uid, jeton) -> None:
@@ -107,10 +111,19 @@ def fermer_session(uid, jeton) -> None:
 
 def utilisateurs(public: bool = False) -> list[dict]:
     """public : la page de connexion, sans session. Site en ligne : la liste des identifiants n'y est pas publique (registre S01-2).
-    Le référentiel, lu après connexion, garde la liste (noms des utilisateurs dans les rapports)."""
+    Le référentiel, lu après connexion, garde la liste (noms des utilisateurs dans les rapports).
+    Trois requêtes pour toute la liste (utilisateurs, profils, droits), au lieu de trois par utilisateur (mesure du 21/11/2026)."""
     if public and not settings.SANS_MOT_DE_PASSE:
         return []
-    return [vue_utilisateur(charger_utilisateur(r["id"])) for r in lignes("select id from utilisateur where actif order by id")]
+    roles, droits = {}, {}
+    for r in lignes("""select up.utilisateur_id, p.code from utilisateur_profil up join profil p on p.id = up.profil_id
+                       where p.code is not null and not p.supprime order by p.code"""):
+        roles.setdefault(r["utilisateur_id"], []).append(r["code"])
+    for r in lignes("""select up.utilisateur_id, pd.droit_code from utilisateur_profil up join profil p on p.id = up.profil_id
+                       join profil_droit pd on pd.profil_id = p.id where not p.supprime"""):
+        droits.setdefault(r["utilisateur_id"], set()).add(r["droit_code"])
+    return [{"id": r["id"], "login": r["login"], "nom": r["nom"], "roles": roles.get(r["id"], []), "droits": sorted(droits.get(r["id"], ()))}
+            for r in lignes("select id, login, nom from utilisateur where actif order by id")]
 
 
 def nom_utilisateur(uid: int | None) -> str:
@@ -201,6 +214,11 @@ def valeur_part_ou_rien(institution_id: int) -> int | None:
 def contexte(u: dict) -> dict:
     i = institution_de(u)
     a = une("select id, code, nom from agence where id = %s", (u["agence_id"],))
+    # Toutes les listes de référence en une requête, au lieu d'une par liste : le référentiel est lu par chaque écran (mesure du 21/11/2026)
+    listes: dict[str, list[dict]] = {}
+    for r in lignes("select liste, libelle, id from liste_reference where institution_id = %s and actif order by code, id", (u["institution_id"],)):
+        listes.setdefault(r["liste"], []).append(r)
+    libelles_liste = lambda _u, liste: [r["libelle"] for r in listes.get(liste, [])]
     return {
         "institution": {"nom": i["nom"], "profil": i["profil"], "delegationAdmission": i.get("delegation_admission") or "", "membresAuxiliaires": i.get("membres_auxiliaires") or ""},   # coopec, faitiere, societe_microfinance, entreprise_microcredit (S32)
         "agence": a,
@@ -223,7 +241,7 @@ def contexte(u: dict) -> dict:
         **{cle: lignes("""select id, trim(nom || ' ' || prenom) as nom from agent_agence where institution_id = %s and role = %s and actif order by nom, prenom""",
                        (u["institution_id"], role)) for cle, role in (("sensibilisateurs", "sensibilisateur"), ("commerciaux", "commercial"))},
         "localites": localites(),
-        "motifsDepart": [r["libelle"] for r in lignes("select libelle from liste_reference where institution_id = %s and liste = 'motif_depart' and actif order by id", (u["institution_id"],))],
+        "motifsDepart": [r["libelle"] for r in sorted(listes.get("motif_depart", []), key=lambda r: r["id"])],
         "cours": {r["devise"].strip(): float(cours(r["devise"])) for r in lignes("select distinct devise from cours_change")},
         # S35 : devises et monnaies, lues par les guichets (registre S79-5)
         "devises": lignes("select code, libelle, unite from devise order by code"),

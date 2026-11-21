@@ -23,6 +23,8 @@ if not DEBUG:
 
 INSTALLED_APPS = ["noyau"]
 MIDDLEWARE = [
+    "django.middleware.gzip.GZipMiddleware",         # réponses de l'API compressées : les listes et les états pèsent cinq à dix fois moins sur le réseau
+    "noyau.chrono.Chrono",                           # durée et nombre de requêtes SQL de chaque appel (en-tête Server-Timing)
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -41,6 +43,10 @@ DATABASES = {
         "HOST": os.environ.get("PG_HOTE", "127.0.0.1"),
         "PORT": os.environ.get("PG_PORT", "5432"),
         "ATOMIC_REQUESTS": True,          # une requête = une transaction : rien ne reste à moitié écrit
+        # La connexion à la base reste ouverte entre deux appels (dix minutes au plus, vérifiée avant usage) : sans cela, chaque appel
+        # rouvrait une connexion chiffrée vers la base, soit 0,1 à 0,3 seconde perdue à chaque clic (mesure du 21/11/2026)
+        "CONN_MAX_AGE": int(os.environ.get("PG_CONNEXION_SECONDES", "600")),
+        "CONN_HEALTH_CHECKS": True,
         # Neon (plan gratuit) : connexion chiffrée (PG_SSL=require) ; la base s'endort après 5 minutes, le premier appel la réveille
         "OPTIONS": {"sslmode": os.environ.get("PG_SSL", "prefer"), "connect_timeout": 20},
     }
@@ -68,8 +74,13 @@ SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
 X_FRAME_OPTIONS = "DENY"
 # Taille d'une requête : 2 Mo au plus (une photo ou un logo encodés font moins de 400 Ko)
 DATA_UPLOAD_MAX_MEMORY_SIZE = 2_000_000
+# Journal du serveur : tout part sur la console, que l'hébergeur garde. Sans la ligne « django », une erreur 500 ne laissait aucune trace
+# en production (Django n'écrit ses erreurs sur la console qu'en mode débogage ; audit du 21/11/2026).
 LOGGING = {"version": 1, "disable_existing_loggers": False, "handlers": {"console": {"class": "logging.StreamHandler"}},
-           "loggers": {"dwacfina.securite": {"handlers": ["console"], "level": "WARNING", "propagate": False}}}
+           "root": {"handlers": ["console"], "level": "WARNING"},
+           "loggers": {"django": {"handlers": ["console"], "level": "WARNING", "propagate": False},
+                       "dwacfina.securite": {"handlers": ["console"], "level": "WARNING", "propagate": False},
+                       "dwacfina.chrono": {"handlers": ["console"], "level": "WARNING", "propagate": False}}}
 
 USE_TZ = True
 TIME_ZONE = "UTC"                   # horodatage en UTC ; l'heure affichée suit l'agence

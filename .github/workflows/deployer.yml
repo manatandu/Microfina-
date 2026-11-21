@@ -121,7 +121,7 @@ jobs:
         run: |
           gcloud run deploy likelemba-api --region europe-west1 --image "$IMAGE" \
             --service-account "likelemba-run@$PROJET.iam.gserviceaccount.com" \
-            --allow-unauthenticated --min-instances 0 --max-instances 3 --memory 512Mi --cpu 1 \
+            --allow-unauthenticated --min-instances 0 --max-instances 3 --memory 512Mi --cpu 1 --cpu-boost \
             --set-env-vars "^@^LIKELEMBA_HOTES=.run.app,.web.app,.firebaseapp.com@LIKELEMBA_COOKIE=__session@PG_BASE=$BD_BASE@PG_UTILISATEUR=$BD_UTILISATEUR@PG_HOTE=$BD_HOTE@PG_PORT=5432@PG_SSL=require" \
             --set-secrets "LIKELEMBA_SECRET=likelemba-secret:latest,PG_MOT_DE_PASSE=likelemba-bd-mdp:latest"
       - uses: actions/setup-node@v4
