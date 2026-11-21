@@ -60,6 +60,9 @@ const COPIE_PIECE = "data:image/png;base64,iVBORw0KGgo=";
 const creerOrigine = api.tiers.creer;
 api.tiers.creer = ((d, images = {}, prospectId) => creerOrigine(d, { copiePiece: COPIE_PIECE, justificatifAdresse: COPIE_PIECE, ...images }, prospectId)) as typeof api.tiers.creer;
 
+/** Les essais des référentiels partent de pages vides : on retire les données de démonstration de la graine (replica/demonstration.json), comme le serveur */
+function sansDonneesDemo() { _etat().referentiels = {}; }
+
 describe("graine", () => {
   it("la caisse contient exactement l'épargne et les parts reprises", async () => {
     const b = await api.etats.balance();
@@ -2575,6 +2578,7 @@ describe("journée de guichet", () => {
   });
 
   it("taxes (S104, p. 123 et 124) et plan des tiers (S103, p. 123) : référentiels partagés ; type de suivi du plan (S102-7)", async () => {
+    sansDonneesDemo();
     await connecter("plumbala");
     await expect(api.refTaxes.enregistrer("taxes", {})).rejects.toThrow("Code, Désignation, Taux");
     await expect(api.refTaxes.enregistrer("taxes", { code: "TVA", designation: "Taxe sur la valeur ajoutée", taux: "seize" })).rejects.toThrow("deux décimales");
@@ -2681,14 +2685,14 @@ describe("journée de guichet", () => {
     await expect(api.localisation.enregistrer("province", { nom: "Nouvelle" })).rejects.toThrow("Pays");
     await expect(api.localisation.enregistrer("province", { parentId: rdc.id, nom: "nord-kivu" })).rejects.toThrow("existe déjà");
     const nk = pr.lignes.find((x) => x.nom === "Nord-Kivu")!;
-    await expect(api.localisation.enregistrer("commune", { parentId: nk.id, nom: "Goma" })).rejects.toThrow("Ville ou territoire inconnu");
-    const goma = (await api.localisation.enregistrer("ville", { parentId: nk.id, nom: "Goma" })).lignes.find((x) => x.nom === "Goma")!;
+    await expect(api.localisation.enregistrer("commune", { parentId: nk.id, nom: "Butembo" })).rejects.toThrow("Ville ou territoire inconnu");
+    const goma = (await api.localisation.enregistrer("ville", { parentId: nk.id, nom: "Butembo" })).lignes.find((x) => x.nom === "Butembo")!;
     expect([goma.ascendants.province?.nom, goma.ascendants.pays?.nom]).toEqual(["Nord-Kivu", "République démocratique du Congo"]);
-    const c = (await api.localisation.enregistrer("commune", { parentId: goma.id, nom: "Karisimbi" })).lignes.find((x) => x.nom === "Karisimbi")!;
+    const c = (await api.localisation.enregistrer("commune", { parentId: goma.id, nom: "Bulengera" })).lignes.find((x) => x.nom === "Bulengera")!;
     await expect(api.localisation.supprimer("ville", goma.id)).rejects.toThrow("rattachés");
-    await api.localisation.enregistrer("commune", { parentId: goma.id, nom: "Karisimbi-Centre" }, c.id);
+    await api.localisation.enregistrer("commune", { parentId: goma.id, nom: "Bulengera-Centre" }, c.id);
     await api.localisation.supprimer("commune", c.id);
-    expect((await api.localisation.supprimer("ville", goma.id)).lignes.some((x) => x.nom === "Goma")).toBe(false);
+    expect((await api.localisation.supprimer("ville", goma.id)).lignes.some((x) => x.nom === "Butembo")).toBe(false);
   });
 
   it("motif de départ d'un client (S18, p. 26) : Libelle Motif seul, unique, ordre de saisie, lu par la résiliation", async () => {
@@ -2976,6 +2980,7 @@ describe("journée de guichet", () => {
     expect(await soldeCdfGrandLivre()).toBe(0);
   });
   it("factures des fournisseurs (S107, p. 124 à 128 et 147 à 153) : commande et tranches, facture, visa, validation, règlement par chèque et en espèces (S141), déclaration de taxe (S108)", async () => {
+    sansDonneesDemo();
     const { j, s } = await journeeOuverte();
     await connecter("jpmukendi");
     const agent = (await adm.droits.lire()).profils.find((p) => p.nom === "AGENT DE CRÉDIT")!.id;
@@ -3061,6 +3066,7 @@ describe("journée de guichet", () => {
   });
 
   it("retenue posée sur une ligne de commande (S107) : retenue au règlement, au prorata, et déclarée (S108) ; loi 23/053, art. 142 à 144", async () => {
+    sansDonneesDemo();
     const { j, s } = await journeeOuverte();
     await connecter("jpmukendi");
     const agent = (await adm.droits.lire()).profils.find((p) => p.nom === "AGENT DE CRÉDIT")!.id;
@@ -3317,6 +3323,7 @@ describe("journée de guichet", () => {
   });
 
   it("paie (S131 à S135, p. 269 à 278) : données de base, grilles et états, employé, rubriques, maquette, liste, retenues visées par une autre personne, comme le serveur", async () => {
+    sansDonneesDemo();
     await journeeOuverte();
     await connecter("plumbala");
     const R = api.refPaie, id = (r: { lignes: Record<string, unknown>[] }, k: string, v: unknown) => r.lignes.find((x) => x[k] === v)!.id as number;
@@ -3367,6 +3374,7 @@ describe("journée de guichet", () => {
   });
 
   it("immobilisations (S136 à S140, chap. 7) : données de base, bien, affectation, transferts, libération, amortissement, inventaire, sortie, rapports, comme le serveur", async () => {
+    sansDonneesDemo();
     await journeeOuverte();
     await connecter("plumbala");
     const R = api.refImmo, id = (r: { lignes: Record<string, unknown>[] }, k: string, v: unknown) => r.lignes.find((x) => x[k] === v)!.id as number;

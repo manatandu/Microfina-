@@ -1,5 +1,8 @@
 import { DROITS_DEPART } from "./droits.gen";
-import type { Etat, Ligne, LigneLieu, NiveauLieu } from "./types";
+import type { Etat, Ligne, LigneBudget, LigneLieu, NiveauLieu } from "./types";
+import LOCALISATION from "@localisation";
+import DEMONSTRATION from "@demonstration";
+import REFERENTIELS from "@referentiels";
 import { totalComptage, type Comptage } from "@design/montant.js";
 
 /** Monnaies de démonstration (registre S35-4) : billets CDF et USD, valeurs en unités */
@@ -18,6 +21,16 @@ export const PROFESSIONS_ROME: [string, string][] = [["6330-01", "Agriculteur"],
 /** S14i : formes de société commerciales de l'AUSCGIE, art. 6 (démonstration ; la liste se tient dans le paramétrage) */
 export const FORMES_JURIDIQUES = ["Société en nom collectif", "Société en commandite simple", "Société à responsabilité limitée", "Société anonyme",
   "Société par actions simplifiée"];
+// Listes de base du client (Paramétrage > Info de base > Client > Général), complétées le 21/11/2026 (registre S14-4) ; mêmes valeurs que la graine du serveur
+export const LISTES_CLIENT: Record<string, string[]> = {
+  civilite: ["Monsieur", "Madame"],                                         // « Monsieur » : capture p. 201 ; « Madame », sans « Mademoiselle » : porteur, 21/11/2026
+  situation_matrimoniale: ["Célibataire", "Marié(e)", "Divorcé(e)", "Veuf(ve)"],   // « Marié(e) » : capture p. 201 ; Code de la famille, art. 669
+  filiation: ["Père", "Mère", "Conjoint(e)", "Enfant", "Frère", "Sœur"],
+  categorie: ["Membre effectif", "Membre auxiliaire"],                     // loi 002/2002, art. 22 et 23 ; PCCI, comptes 1030 à 1032
+  categorie_groupe: ["Groupe de femmes", "Groupe d'hommes", "Groupe mixte"], // pratique : composition du groupe selon le genre
+};
+// Sous types de client (S14h) : ceux des deux captures p. 25
+export const SOUS_TYPES = ["Homme", "Femme", "Entreprise", "Institution Financiere", "ETABLISSEMENT", "SARL", "SA", "GROUPEMENT", "ASSOCIATION", "EGLISE", "ONG", "ATELIER"];
 
 const FONDS_G2: { CDF: Comptage; USD: Comptage } = {
   USD: { 100: 140, 50: 12, 20: 8, 10: 3, 5: 2, 1: 6 },                    // 14 806 USD
@@ -114,7 +127,7 @@ export function graine(): Etat {
       return { degre, terme, compteCapital: compteCapital!, compteInterne: "", compteInteret: compteInteret! };
     })) }],
     // Référentiels du budget (S19) : exemples des captures p. 27 à 29
-    referentiels: {},
+    referentiels: referentielsDemo(),
     budget: (() => {
       const tc = [["INST", "Institution", 0], ["DIR_GENE", "Direction Générale", 1], ["DIR", "Direction", 2], ["AG", "Agence", 3], ["DEP", "Département", 4], ["SER", "Service", 5]]
         .map(([code, libelle, p], i) => ({ id: i + 1, actif: true, code, libelle, parentId: p || null }));
@@ -135,8 +148,8 @@ export function graine(): Etat {
       // Décision du porteur (18/11/2026, registre S14-3) : les autres lignes de la capture p. 23 sont des types d'activité (S14a), sous leur secteur (ids 1 à 3 ci-dessus)
       ...([["T1", "Elevage", 1], ["T2", "Pêche", 1], ["T3", "Transformation", 2], ["T4", "Artisanat", 2], ["T5", "Commerce", 3]] as const)
         .map(([code, libelle, parentId]) => ({ liste: "type_activite", code, libelle, parentId })), { liste: "type_guichet", code: "1", libelle: "PRINCIPALE" }, { liste: "type_guichet", code: "2", libelle: "SECONDAIRE" },
-      // Sous types de client fictifs (S14h), cochés dans Paramétrage frais (S16-8)
-      ...["Homme", "Femme", "Entreprise", "Groupement", "Association", "ONG"].map((libelle, i) => ({ liste: "sous_type_client", code: String(i + 1), libelle })),
+      // Sous types de client (S14h) des deux captures p. 25, cochés dans Paramétrage frais (S16-8)
+      ...SOUS_TYPES.map((libelle, i) => ({ liste: "sous_type_client", code: String(i + 1), libelle })),
       // S14g : type client « Client », valeur de la capture p. 49 (registre S37-2)
       { liste: "type_client", code: "1", libelle: "Client" },
       // S14f : types de groupe nommés par le manuel, p. 47 (registre S39-2)
@@ -146,7 +159,9 @@ export function graine(): Etat {
       ...FORMES_JURIDIQUES.map((libelle, i) => ({ liste: "forme_juridique", code: String(i + 1), libelle })),
       // S18 : motifs de départ de la capture p. 26 (registre S18-1)
       ...["DEPART DU PAYS", "Raisons personnelles", "DEMENAGEMENT", "DECISION DU CLIENT", "NE VEUT PLUS PRENDRE DE CREDIT", "AUTRES", "TRANSFERT SUR UNE AUTRE AGENCE"]
-        .map((libelle, i) => ({ liste: "motif_depart", code: String(i + 1), libelle }))]
+        .map((libelle, i) => ({ liste: "motif_depart", code: String(i + 1), libelle })),
+      // Listes de base du client complétées le 21/11/2026 (registre S14-4), comme la graine du serveur
+      ...Object.entries(LISTES_CLIENT).flatMap(([liste, libelles]) => libelles.map((libelle, i) => ({ liste, code: String(i + 1), libelle })))]
       .map((l, i) => ({ id: i + 1, ...l, actif: true })),
     numerotation: {},
     comptesInstitution: [],
@@ -219,8 +234,43 @@ export function graine(): Etat {
       const provinces = ["Kinshasa", "Bas-Uele", "Equateur", "Haut-Lomami", "Haut-Katanga", "Haut-Uele", "Ituri", "Kasaï", "Kasaï Oriental", "Kongo central", "Kwango",
         "Kwilu", "Lomami", "Lualaba", "Kasaï Central", "Mai-Ndombe", "Maniema", "Mongala", "Nord-Kivu", "Nord-Ubangi", "Sankuru", "Sud-Kivu", "Sud-Ubangi",
         "Tanganyika", "Tshopo", "Tshuapa"].map((nom, i) => l(i + 2, 1, "province", nom));
-      return [l(1, null, "pays", "République démocratique du Congo", { nationalite: "Congolaise", code: "CD", zone: "Afrique" }), ...provinces,
+      const tous = [l(1, null, "pays", "République démocratique du Congo", { nationalite: "Congolaise", code: "CD", zone: "Afrique" }), ...provinces,
         l(28, 2, "ville", "Kinshasa"), l(29, 28, "commune", "Matete"), l(30, 28, "commune", "Lemba"), l(31, 29, "quartier", "Kinsaku")];
+      // Villes, territoires et communes de Kinshasa (replica/localisation-rdc.json, registre S20-6), comme la graine du serveur : un lieu déjà là n'est pas doublé
+      const lieu = (parentId: number, niveau: NiveauLieu, nom: string) => {
+        const t = tous.find((x) => x.parentId === parentId && x.niveau === niveau && x.nom.toLowerCase() === nom.toLowerCase());
+        if (t) return t.id;
+        tous.push(l(tous.length + 1, parentId, niveau, nom));
+        return tous.length;
+      };
+      for (const p of LOCALISATION.provinces as { nom: string; villes: string[]; territoires: string[]; communes?: Record<string, string[]> }[]) {
+        const pr = lieu(1, "province", p.nom);
+        for (const v of [...p.villes, ...p.territoires]) lieu(pr, "ville", v);
+        for (const [v, communes] of Object.entries(p.communes ?? {})) { const vi = lieu(pr, "ville", v); for (const c of communes) lieu(vi, "commune", c); }
+      }
+      return tous;
     })(),
   };
+}
+
+/** Données de base de la paie, des immobilisations et des taxes (replica/demonstration.json ; registre S131-8, S136-4, S104-2), comme la graine du serveur.
+ * Une valeur de liste (champ « choix ») s'écrit par son libellé dans le fichier ; paie_structure et paie_rubriques lisent les pages de la paie. */
+function referentielsDemo(): Record<string, Record<string, LigneBudget[]>> {
+  const desc = REFERENTIELS as unknown as Record<string, { pages: { page: string; champs: { cle: string; type: string; ref?: string }[] }[] }>;
+  const r: Record<string, Record<string, LigneBudget[]>> = {};
+  for (const [fam, pages] of Object.entries(DEMONSTRATION.referentiels as Record<string, Record<string, Record<string, unknown>[]>>)) {
+    for (const [page, lignes] of Object.entries(pages)) {
+      const c = desc[fam]!.pages.find((p) => p.page === page)!;
+      (r[fam] ??= {})[page] = lignes.map((l, i) => {
+        const x: LigneBudget = { id: i + 1, actif: true };
+        for (const f of c.champs) {
+          if (!(f.cle in l)) continue;
+          const source = r[fam]?.[f.ref ?? ""] ?? r.paie?.[f.ref ?? ""] ?? [];
+          x[f.cle] = f.type === "choix" ? source.find((o) => o.libelle === l[f.cle])!.id : l[f.cle];
+        }
+        return x;
+      });
+    }
+  }
+  return r;
 }

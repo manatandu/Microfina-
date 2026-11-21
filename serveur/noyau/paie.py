@@ -13,7 +13,7 @@ from .listes import valeurs as valeurs_liste
 from .services import exiger, nom_utilisateur
 
 SEXES = ["Masculin", "Féminin"]
-CIVILITES = ["Monsieur", "Madame", "Mademoiselle"]
+CIVILITES = ["Monsieur", "Madame"]                 # sans « Mademoiselle » : décision du porteur, 21/11/2026 (registre S14-4)
 GROUPES_SANGUINS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
 TYPES_CONTRAT = ["Contrat à durée déterminée", "Contrat à durée indéterminée"]          # code du travail, art. 39 et 40
 REGIMES = ["Régime catégoriel", "Régime indiciaire"]                                       # capture p. 206 ; grille salariale p. 273 (Salaire ou Point)

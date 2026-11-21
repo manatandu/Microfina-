@@ -38,13 +38,141 @@ PROFESSIONS = (("6330-01", "Agriculteur"), ("6113-13", "Maraîcher"), ("6320-07"
 FORMES_JURIDIQUES = ("Société en nom collectif", "Société en commandite simple", "Société à responsabilité limitée", "Société anonyme",
                      "Société par actions simplifiée")
 
+# Schémas comptables de départ, un par événement (vides : le comptable les propose, le chef les valide)
+EVENEMENTS = ("depot", "retrait", "adhesion", "achat_parts", "retrait_parts", "a_nouveaux", "dat_constitution", "dat_rupture", "dat_echeance", "frais_tenue", "interet_dav", "interet_dat_couru", "reevaluation", "cloture_exercice", "immo_dotation", "immo_sortie", "plan_cotisation", "plan_fin", "cloture_inactif", "versement_bcc", "ed_encaissement", "ed_decaissement", "ecart_caisse", "transfert_caisse", "transfert_banque", "deblocage_credit", "remboursement_credit", "garantie_caution", "provision_credit", "radiation_credit", "engagement_signature", "fin_engagement", "comptabilisation_banque", "ecriture_manuelle", "operation_comptable", "facture", "reglement_facture", "annulation")
+
+# Listes de base du client (Paramétrage > Info de base > Client > Général), complétées le 21/11/2026 (registre S14-4)
+LISTES_CLIENT = {
+    "civilite": ["Monsieur", "Madame"],            # « Monsieur » : capture p. 201 ; « Madame », sans « Mademoiselle » : décision du porteur, 21/11/2026
+    "situation_matrimoniale": ["Célibataire", "Marié(e)", "Divorcé(e)", "Veuf(ve)"],   # « Marié(e) » : capture p. 201 ; Code de la famille, art. 669
+    "filiation": ["Père", "Mère", "Conjoint(e)", "Enfant", "Frère", "Sœur"],
+    "categorie": ["Membre effectif", "Membre auxiliaire"],   # loi 002/2002, art. 22 et 23 ; PCCI, comptes 1030 à 1032 (« effectifs »)
+    "categorie_groupe": ["Groupe de femmes", "Groupe d'hommes", "Groupe mixte"],      # pratique : composition du groupe selon le genre
+}
+# Sous types de client (S14h) : ceux des deux captures p. 25 (« Homme » dans la seconde)
+SOUS_TYPES = ("Homme", "Femme", "Entreprise", "Institution Financiere", "ETABLISSEMENT", "SARL", "SA", "GROUPEMENT", "ASSOCIATION", "EGLISE", "ONG", "ATELIER")
+
+
+def completer(ins: int) -> int:
+    """Complète une base déjà remplie avec ce que la démonstration a reçu depuis (base en ligne remplie le 14/11/2026).
+    N'ajoute que ce qui manque, n'efface et ne modifie rien. Une liste de base n'est remplie que si elle est encore vide.
+    Rend le nombre d'éléments ajoutés."""
+    ajouts = 0
+
+    def ajouter(sql, params=()):
+        nonlocal ajouts
+        executer(sql, params)
+        ajouts += 1
+
+    login = lambda l: valeur("select id from utilisateur where institution_id = %s and login = %s", (ins, l))
+    chef = login("jpmukendi") or valeur("select min(id) from utilisateur where institution_id = %s", (ins,))
+    compta = login("plumbala") or chef
+    # Listes de base du client : remplies seulement si elles sont vides (registre S14-4)
+    vide = lambda liste: not valeur("select count(*) from liste_reference where institution_id = %s and liste = %s", (ins, liste))
+    for liste, libelles in LISTES_CLIENT.items():
+        if vide(liste):
+            for n, l in enumerate(libelles, 1):
+                ajouter("insert into liste_reference (institution_id, liste, code, libelle) values (%s, %s, %s, %s)", (ins, liste, str(n), l))
+    if vide("type_activite"):          # registre S14-3 (18/11/2026)
+        for c, l, sec in TYPES_ACTIVITE:
+            parent = valeur("select id from liste_reference where institution_id = %s and liste = 'secteur_activite' and code = %s", (ins, sec))
+            if parent:
+                ajouter("insert into liste_reference (institution_id, liste, code, libelle, parent_id) values (%s, 'type_activite', %s, %s, %s)", (ins, c, l, parent))
+    # Gestion des accès séparée de l'exploitation (Instr. BCC 008, art. 16, registre T29) : profil et utilisateur de démonstration
+    if not valeur("select count(*) from profil where institution_id = %s and code = 'administrateur'", (ins,)):
+        pid = valeur("insert into profil (institution_id, code, nom) values (%s, 'administrateur', %s) returning id", (ins, NOMS_PROFILS["administrateur"]))
+        for c in DROITS_DEPART["administrateur"]:
+            executer("insert into profil_droit (profil_id, droit_code) values (%s, %s) on conflict do nothing", (pid, c))
+        ajouts += 1
+        if not login("gmbuyi"):
+            ag = valeur("select min(id) from agence where institution_id = %s", (ins,))
+            u = valeur("insert into utilisateur (institution_id, agence_id, login, nom, mot_de_passe_hash) values (%s, %s, 'gmbuyi', 'Grâce Mbuyi', '!') returning id", (ins, ag))
+            executer("insert into utilisateur_profil values (%s, %s)", (u, pid))
+            executer("insert into utilisateur_profil_historique (utilisateur_id, profil_id) values (%s, %s)", (u, pid))
+            ajouts += 1
+    if not valeur("select count(*) from journal where institution_id = %s and code = 'OD'", (ins,)):
+        ajouter("insert into journal (institution_id, code, libelle, type) values (%s, 'OD', 'Opérations diverses', 'operations_diverses')", (ins,))
+    for ev in EVENEMENTS:
+        if not valeur("select count(*) from schema_comptable where institution_id = %s and type_evenement = %s", (ins, ev)):
+            ajouter("""insert into schema_comptable (institution_id, type_evenement, version, date_effet, lignes, propose_par, valide_par)
+                       values (%s, %s, 1, '2026-01-01', '[]', %s, %s)""", (ins, ev, compta, chef))
+    ajouts += completer_lieux()
+    ajouts += completer_referentiels(ins)
+    return ajouts
+
+
+def completer_referentiels(ins: int) -> int:
+    """Données de base de la paie, des immobilisations et des taxes (replica/demonstration.json ; registre S131-8, S136-4, S104-2).
+    Une page n'est remplie que si elle est encore vide. Une valeur de liste (champ « choix ») s'écrit par son libellé dans le fichier."""
+    import json
+    from django.conf import settings
+    from noyau.referentiels import DESCRIPTION
+    demo = json.loads((settings.RACINE_DEPOT / "replica" / "demonstration.json").read_text(encoding="utf-8"))
+    fiches = {(fam, p["page"]): p for fam, d in DESCRIPTION.items() for p in d["pages"]}
+
+    def ref(fam, page, libelle):
+        c = fiches.get((fam, page)) or fiches[("paie", page)]      # paie_structure et paie_rubriques lisent les pages de la paie
+        return valeur(f"select id from {c['table']} where institution_id = %s and libelle = %s and actif", (ins, libelle))
+
+    ajouts = 0
+    for fam, pages in demo["referentiels"].items():
+        for page, lignes_demo in pages.items():
+            c = fiches[(fam, page)]
+            if valeur(f"select count(*) from {c['table']} where institution_id = %s", (ins,)):
+                continue
+            for ligne in lignes_demo:
+                cols, vals = ["institution_id"], [ins]
+                for f in c["champs"]:
+                    if f["cle"] in ligne:
+                        x = ligne[f["cle"]]
+                        cols.append(f["col"])
+                        vals.append(ref(fam, f["ref"], x) if f["type"] == "choix" else x)
+                executer(f"insert into {c['table']} ({', '.join(cols)}) values ({', '.join(['%s'] * len(vals))})", vals)
+                ajouts += 1
+    return ajouts
+
+
+def completer_lieux() -> int:
+    """Localisation (S20) : les 26 provinces avec leurs villes et territoires, les 24 communes de Kinshasa (replica/localisation-rdc.json, registre S20-6).
+    N'ajoute que les lieux absents (même nom, même niveau, même parent)."""
+    from django.conf import settings
+    chemin = settings.RACINE_DEPOT / "replica" / "localisation-rdc.json"
+    if not chemin.exists():
+        return 0
+    import json
+    d = json.loads(chemin.read_text(encoding="utf-8"))
+    ajouts = 0
+
+    def lieu(parent, niveau, nom):
+        nonlocal ajouts
+        i = valeur("""select id from localite where niveau = %s and lower(nom) = lower(%s) and parent_id is not distinct from %s""", (niveau, nom, parent))
+        if i is None:
+            i = valeur("insert into localite (parent_id, niveau, nom) values (%s, %s, %s) returning id", (parent, niveau, nom))
+            ajouts += 1
+        return i
+
+    pays = valeur("select id from localite where niveau = 'pays' and code = 'CD'") or valeur("select id from localite where niveau = 'pays' and nom = %s", (d["pays"],))
+    if pays is None:
+        return 0
+    for p in d["provinces"]:
+        pr = lieu(pays, "province", p["nom"])
+        for v in p.get("villes", []) + p.get("territoires", []):
+            lieu(pr, "ville", v)
+        for v, communes in p.get("communes", {}).items():
+            vi = lieu(pr, "ville", v)
+            for c in communes:
+                lieu(vi, "commune", c)
+    return ajouts
+
+
 class Command(BaseCommand):
     help = "Charge les données fictives de démonstration dans une base vide."
 
     @transaction.atomic
     def handle(self, *args, **opts):
         if valeur("select count(*) from institution"):
-            self.stdout.write("Base déjà remplie : rien à faire.")
+            n = completer(valeur("select min(id) from institution"))
+            self.stdout.write(f"Base déjà remplie : {n} élément(s) ajouté(s), rien d'effacé ni modifié.")
             return
         ins = valeur("insert into institution (nom, sigle, profil, pays, ville, commune, quartier) values ('COOPEC Tujenge', 'CTJ', 'coopec', 'République démocratique du Congo', 'Kinshasa', 'Matete', 'Kinsaku') returning id")
         # Écart E05 : le Conseil d'Administration délègue l'admission des membres (décision fictive de démonstration)
@@ -64,7 +192,7 @@ class Command(BaseCommand):
         for n, mo in enumerate(("DEPART DU PAYS", "Raisons personnelles", "DEMENAGEMENT", "DECISION DU CLIENT", "NE VEUT PLUS PRENDRE DE CREDIT", "AUTRES",
                                 "TRANSFERT SUR UNE AUTRE AGENCE"), 1):
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'motif_depart', %s, %s)", (ins, str(n), mo))
-        for n, st in enumerate(("Homme", "Femme", "Entreprise", "Groupement", "Association", "ONG"), 1):   # sous types de client fictifs (S14h)
+        for n, st in enumerate(SOUS_TYPES, 1):   # sous types de client (S14h), captures p. 25
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'sous_type_client', %s, %s)", (ins, str(n), st))
         # Référentiels du budget (S19) : exemples des captures p. 27 à 29
         tc = {}
@@ -160,7 +288,7 @@ class Command(BaseCommand):
         # Types de guichet (S14n), ceux de la capture p. 19 (registre S08-1)
         for c, l in (("1", "PRINCIPALE"), ("2", "SECONDAIRE")):
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'type_guichet', %s, %s)", (ins, c, l))
-        for ev in ("depot", "retrait", "adhesion", "achat_parts", "retrait_parts", "a_nouveaux", "dat_constitution", "dat_rupture", "dat_echeance", "frais_tenue", "interet_dav", "interet_dat_couru", "reevaluation", "cloture_exercice", "immo_dotation", "immo_sortie", "plan_cotisation", "plan_fin", "cloture_inactif", "versement_bcc", "ed_encaissement", "ed_decaissement", "ecart_caisse", "transfert_caisse", "transfert_banque", "deblocage_credit", "remboursement_credit", "garantie_caution", "provision_credit", "radiation_credit", "engagement_signature", "fin_engagement", "comptabilisation_banque", "ecriture_manuelle", "operation_comptable", "facture", "reglement_facture", "annulation"):
+        for ev in EVENEMENTS:
             executer("""insert into schema_comptable (institution_id, type_evenement, version, date_effet, lignes, propose_par, valide_par)
                         values (%s, %s, 1, '2026-01-01', '[]', %s, %s)""", (ins, ev, compta, chef))
 
@@ -229,4 +357,5 @@ class Command(BaseCommand):
             for v, n in fonds.items():
                 executer("insert into billetage_ligne values (%s, %s, %s, %s)", (b, d, v * 100, n))
         executer("update journee_comptable set statut = 'fermee', fermee_par = %s where id = %s", (chef, j))
+        completer(ins)
         self.stdout.write(self.style.SUCCESS("Données de démonstration chargées."))

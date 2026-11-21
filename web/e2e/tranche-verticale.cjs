@@ -77,8 +77,9 @@ const OUT = process.argv[2];
   // Chef : localisation (S20, p. 30 à 32), découpage de la RDC : une ville sous sa province
   await aller('/parametrage/s20'); await p.getByRole('tab', { name: 'Ville / Territoire' }).click(); await p.getByLabel('Ville ou territoire : *').waitFor();
   await p.getByLabel('Pays : *').selectOption({ label: 'République démocratique du Congo' }); await p.getByLabel('Province : *').selectOption({ label: 'Nord-Kivu' });
-  await p.getByLabel('Ville ou territoire : *').fill('Goma'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  await p.getByRole('cell', { name: 'Goma' }).waitFor(); await etape('02f7-localisation-ville');
+  await p.getByLabel('Ville ou territoire : *').fill('Butembo'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  // 26 provinces, leurs villes et leurs 145 territoires (registre S20-6) : la liste est paginée, la ville se retrouve par le filtre de la colonne
+  await p.getByLabel('Filtrer Ville ou territoire').fill('Butembo'); await p.locator('tbody').getByRole('cell', { name: 'Butembo' }).waitFor(); await etape('02f7-localisation-ville');
   await p.getByRole('tab', { name: 'Quartier / Groupement' }).click(); await p.getByRole('cell', { name: 'Kinsaku' }).waitFor(); await etape('02f8-localisation-quartier');
   // Chef : référentiel crédit (S21, p. 32 à 36) : un cycle, puis Degré Crédit (Instr. BCC 003)
   await aller('/parametrage/s21'); await p.getByRole('tab', { name: 'Cycle Credit' }).click(); await p.getByLabel('Libellé *').waitFor();
@@ -1100,8 +1101,9 @@ const OUT = process.argv[2];
   await aller('/comptabilite/s115'); await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByRole('cell', { name: /^CA / }).first().waitFor(); await etape('18e-journaux-comptables');
   // Grand livre (S120, p. 138) : écritures définitives de la journée comptabilisée ; taxes (S104, p. 124) et plan des tiers (S103, p. 123)
   await aller('/comptabilite/s120'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('rowheader', { name: 'Total général' }).waitFor(); await etape('18b-grand-livre');
-  await aller('/comptabilite/s104'); await p.getByLabel('Code *').fill('TVA'); await p.getByLabel('Désignation *').fill('Taxe sur la valeur ajoutée'); await p.getByLabel('Taux *').fill('16');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok(); await p.getByRole('cell', { name: '16,00' }).waitFor(); await etape('18c-taxes');
+  // La TVA à 16 % est dans la graine ; l'essai ajoute le taux réduit de 5 % (O.-L. 10/001, art. 35, modifié par la LF 25/060, art. 46)
+  await aller('/comptabilite/s104'); await p.getByRole('cell', { name: '16,00' }).waitFor(); await p.getByLabel('Code *').fill('TVA5'); await p.getByLabel('Désignation *').fill('TVA AU TAUX REDUIT'); await p.getByLabel('Taux *').fill('5');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok(); await p.getByRole('cell', { name: '5,00' }).waitFor(); await etape('18c-taxes');
   await aller('/comptabilite/s103'); await p.getByLabel('Type Tiers *').selectOption('FOURNISSEUR'); await p.getByLabel('Intitulé *').fill('Papeterie du Fleuve');
   await p.getByLabel('Compte *').fill('400'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('cell', { name: 'Papeterie du Fleuve' }).waitFor(); await etape('18d-plan-tiers');
@@ -1244,7 +1246,7 @@ const OUT = process.argv[2];
   const listePaie = (nom) => p.getByRole('navigation', { name: 'Traitement de la paie' }).getByRole('button', { name: nom }).click();
   await listePaie('Catégorie Classe et Echelon'); await p.getByRole('tab', { name: 'Catégorie' }).waitFor();
   for (const [onglet, v, titre] of [['Catégorie', 'A', 'Création et mise-à-jour des catégories de paie'], ['Classe', 'I', 'Création et mise à jour des Classes'],
-    ['Echelon', '1', 'Création et mise à jour des Echelons']]) {
+    ['Echelon', 'INDEF', 'Création et mise à jour des Echelons']]) {
     await p.getByRole('tab', { name: onglet }).click(); await p.getByRole('heading', { name: titre }).waitFor(); await p.getByLabel('Libellé *').fill(v); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
     await p.getByRole('cell', { name: v, exact: true }).waitFor();
   }
@@ -1252,7 +1254,7 @@ const OUT = process.argv[2];
   await listePaie('Grille salariale'); await p.getByRole('heading', { name: 'Création et mise à jour de grilles salariales' }).waitFor(); await p.getByLabel('Classe *').selectOption({ label: 'I' }); await p.getByLabel('Catégorie *').selectOption({ label: 'A' });
   await p.getByLabel('Echelon *').selectOption({ label: '1' }); await p.getByLabel('Salaire', { exact: true }).fill('250000'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: '250000' }).waitFor(); await etape('31c-grille-salariale');
-  await listePaie('Type de retenue'); await p.getByRole('heading', { name: 'Création et mise à jour des types de retenue' }).waitFor(); await p.getByLabel('Libellé *').fill('Avance sur salaire'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await listePaie('Type de retenue'); await p.getByRole('heading', { name: 'Création et mise à jour des types de retenue' }).waitFor(); await p.getByLabel('Libellé *').fill('Acompte sur salaire'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await aller('/paie/s133'); await p.getByRole('heading', { name: "Enregistrement d'un employé" }).waitFor();
   await p.getByLabel('Matricule : *').fill('EMP/001/26'); await p.getByLabel('Sexe : *').selectOption('Féminin'); await p.getByLabel('Civilité : *').selectOption('Madame');
   await p.getByLabel('Nom : *').fill('MUJINGA'); await p.getByLabel('Prénom(s) : *').fill('Rose'); await p.getByLabel('Date de naissance : *').fill('02041990');
@@ -1275,17 +1277,17 @@ const OUT = process.argv[2];
   await login('Patrick Lumbala'); await aller('/immobilisations/s136'); await p.getByRole('heading', { name: 'Type Immobilisation' }).waitFor();
   const listeImmo = async (nom, titre) => { await p.getByRole('navigation', { name: 'Données de base' }).getByRole('button', { name: nom }).click(); await p.getByRole('heading', { name: titre }).waitFor(); };
   const enreg = async (texte) => { await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: texte, exact: true }).first().waitFor(); };
-  await p.getByLabel('Code *').fill('CORP'); await p.getByLabel('Libellé *').fill('Immobilisation corporelle'); await enreg('CORP'); await etape('32a-immo-types');
-  await listeImmo('Utilisation de bien', 'Utilisation de Biens'); await p.getByLabel('Code *').fill('ENT'); await p.getByLabel('Libellé *').fill('ENTREPRISE'); await enreg('ENT');
-  await listeImmo('Catégorie de biens', 'Création et mise à jour de catégorie de biens'); await p.getByLabel('Code *').fill('MAB'); await p.getByLabel('Libellé catégorie *').fill('MATERIEL DE BUREAU'); await enreg('MAB');
-  await listeImmo('Localisation de biens', 'Localisation des biens'); await p.getByLabel('Code *').fill('10.DG.01'); await p.getByLabel('Libellé localisation *').fill('Bureau Directeur Général'); await enreg('10.DG.01');
+  await p.getByRole('cell', { name: 'CORP', exact: true }).waitFor(); await etape('32a-immo-types');      // données de base de la graine (captures p. 280 à 282)
+  await listeImmo('Utilisation de bien', 'Utilisation de Biens'); await p.getByRole('cell', { name: 'ENT', exact: true }).waitFor();
+  await listeImmo('Catégorie de biens', 'Création et mise à jour de catégorie de biens'); await p.getByLabel('Code *').fill('MRO'); await p.getByLabel('Libellé catégorie *').fill('MATERIEL ROULANT'); await enreg('MRO');
+  await listeImmo('Localisation de biens', 'Localisation des biens'); await p.getByLabel('Code *').fill('10.DG.10'); await p.getByLabel('Libellé localisation *').fill('Salle de réunion'); await enreg('10.DG.10');
   await listeImmo('Famille de biens', 'Famille de Biens'); await p.getByLabel('Code *').fill('FAM1'); await p.getByLabel('Type immo *').selectOption({ label: 'Immobilisation corporelle' });
-  await p.getByLabel('Catégorie : *').selectOption({ label: 'MATERIEL DE BUREAU' }); await p.getByLabel('Libellé *').fill('Matériel de bureau'); await p.getByLabel('Système : *').selectOption('Linéaire');
+  await p.getByLabel('Catégorie : *').selectOption({ label: 'MATERIEL DE BUREAU' }); await p.getByLabel('Libellé *').fill('Petit matériel de bureau'); await p.getByLabel('Système : *').selectOption('Linéaire');
   await p.getByLabel('Durée Min. (ans) *').fill('1'); await p.getByLabel('Durée Max. (ans) *').fill('10'); await p.getByLabel('Périodicité : *').selectOption('Annuelle');
   await p.getByLabel("Compte d'acquisition *").fill('220'); await p.getByLabel('Compte dotation *').fill('6810'); await p.getByLabel('Compte Amor. *').fill('2810'); await p.getByLabel('Compte charge VCN *').fill('673');
   await enreg('FAM1'); await etape('32b-immo-famille');
   await aller('/immobilisations/s137'); await p.getByRole('heading', { name: 'Création de Bien immobilier' }).waitFor();
-  await p.getByLabel('Codification *').fill('MAB-001'); await p.getByLabel('Catégorie : *').selectOption({ label: 'MAB MATERIEL DE BUREAU' }); await p.getByLabel('Famille *').selectOption({ label: 'Matériel de bureau' });
+  await p.getByLabel('Codification *').fill('MAB-001'); await p.getByLabel('Catégorie : *').selectOption({ label: 'MAB MATERIEL DE BUREAU' }); await p.getByLabel('Famille *').selectOption({ label: 'Petit matériel de bureau' });
   await p.getByLabel('Libellé Bien *').fill('Ordinateur'); await p.getByLabel('Date Acquisition *').fill('01072026'); await p.getByLabel('Durée de vie *').fill('3');
   await p.getByLabel('Utilisation *').selectOption({ label: 'ENT ENTREPRISE' }); await p.getByLabel('Localisation *').selectOption({ label: '10.DG.01 Bureau Directeur Général' });
   await p.getByLabel('Montant TTC *').fill('1000000'); await p.getByLabel('Date mise en service *').fill('15072026'); await etape('32c-creation-bien');

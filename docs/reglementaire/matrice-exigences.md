@@ -201,3 +201,18 @@ Rapport sur les états financiers d'une COOPEC, remis par le porteur. Seuls les 
 | PCCI, classe 2 (compte 20 et suivants) | Cession ou destruction : la valeur d'origine sort, avec les amortissements antérieurs et un compte de gestion (673, 674, 774) | S139-5 |
 | PCCI, comptes 28 et 681 | Amortissements au 28, dotations au 681 | S139-2 |
 
+
+## Données de départ (lu le 21/11/2026, pour les listes de base, la localisation, la paie, les immobilisations et les taxes)
+
+| Réf. | Exigence | Module | Statut |
+|---|---|---|---|
+| Constitution, art. 2 | La ville de Kinshasa et 25 provinces | S20 (graine, registre S20-6) | lu |
+| Loi organique 15/006 du 25/03/2015, art. 4 à 29 | Chef-lieu de chaque province ; Kinshasa a rang de province | S20 (graine) | lu |
+| Nomenclature budgétaire 2015, § 3.7 ; arrêté provincial de Kinshasa 017/2023, art. 13 | 145 territoires ; 24 communes de Kinshasa | S20 (graine) | lu (document administratif ; la loi 10/011 sur les subdivisions n'a pas pu être lue) |
+| Loi 002/2002, art. 22 et 23 ; PCCI, comptes 1030 à 1032 | Membres effectifs ; catégorie facultative de membres auxiliaires, sans vote | S14c Catégorie (registre S14-4) | lu |
+| Code de la famille, art. 669 | États : célibataire, veuve, divorcée | S14l Situation matrimoniale | lu |
+| Décret 25/22 de 2025 (SMIG), art. 2, 3, 7 et annexe 2 | Taux journalier par classe (17 classes, 7 catégories) ; valeur mensuelle = taux x 26 | S131 grille salariale (registre S131-8) | lu |
+| Code du travail, art. 112 | Retenues permises : fiscales, sociales, avances, indemnité compensatoire, cautionnement, prêt, saisie-arrêt | S131 types de retenue | lu |
+| Code général des impôts (loi 23/053), art. 68 et 69 | Avantages en nature imposables ; logement (30 % au plus), transport, allocations familiales immunisés | S131 grandes rubriques | lu |
+| O.-L. 10/001, art. 35, modifié par la LF 25/060, art. 46 | TVA : taux normal 16 %, taux réduits 1 % et 5 % | S104, S136 utilisations (registre S104-2, S136-4) | lu |
+| Loi 23/053, art. 142 à 144 | Prélèvement de 14 % sur les prestations des non-résidents | S104 | lu |

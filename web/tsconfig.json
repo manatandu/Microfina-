@@ -39,6 +39,12 @@
       ],
       "@liasse": [
         "../replica/liasse-pcci.json"
+      ],
+      "@localisation": [
+        "../replica/localisation-rdc.json"
+      ],
+      "@demonstration": [
+        "../replica/demonstration.json"
       ]
     }
   },
@@ -47,6 +53,8 @@
     "vite.config.ts",
     "../replica/design/montant.js",
     "../replica/pcci.json",
-    "../replica/referentiels.json"
+    "../replica/referentiels.json",
+    "../replica/localisation-rdc.json",
+    "../replica/demonstration.json"
   ]
 }

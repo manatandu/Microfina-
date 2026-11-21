@@ -13,11 +13,14 @@ const referentiels = fileURLToPath(new URL("../replica/referentiels.json", impor
 const etats = fileURLToPath(new URL("../replica/etats-pcci.json", import.meta.url));
 // Le modèle de la liasse exportée (replica/liasse-pcci.json) : bilan en quatre masses, résultat par soldes de la classe 8 (présentation retenue par le porteur)
 const liasse = fileURLToPath(new URL("../replica/liasse-pcci.json", import.meta.url));
+// Localisation (provinces, villes, territoires, communes de Kinshasa) et données de démonstration des référentiels : lues aussi par la graine du serveur
+const localisation = fileURLToPath(new URL("../replica/localisation-rdc.json", import.meta.url));
+const demonstration = fileURLToPath(new URL("../replica/demonstration.json", import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
-  resolve: { alias: { "@design": design, "@pcci": pcci, "@referentiels": referentiels, "@etats": etats, "@liasse": liasse } },
+  resolve: { alias: { "@design": design, "@pcci": pcci, "@referentiels": referentiels, "@etats": etats, "@liasse": liasse, "@localisation": localisation, "@demonstration": demonstration } },
   // VITE_DONNEES=serveur : les appels /api vont au serveur Django (python manage.py runserver 8000)
-  server: { fs: { allow: [".", design, pcci, referentiels, etats] }, proxy: { "/api": "http://127.0.0.1:8000" } },
+  server: { fs: { allow: [".", design, pcci, referentiels, etats, localisation, demonstration] }, proxy: { "/api": "http://127.0.0.1:8000" } },
   test: { environment: "node" },
 });

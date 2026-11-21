@@ -1,0 +1,559 @@
+{
+ "_source": "Graines de démonstration (serveur/noyau/management/commands/graine.py et web/src/donnees/graine.ts). Registre S131-8, S136-4, S104-2.",
+ "referentiels": {
+  "paie": {
+   "categories": [
+    {
+     "libelle": "Manœuvre"
+    },
+    {
+     "libelle": "Travailleur spécialisé"
+    },
+    {
+     "libelle": "Travailleur semi qualifié"
+    },
+    {
+     "libelle": "Travailleur qualifié"
+    },
+    {
+     "libelle": "Travailleur hautement qualifié"
+    },
+    {
+     "libelle": "Maîtrise"
+    },
+    {
+     "libelle": "Cadre de collaboration"
+    }
+   ],
+   "classes": [
+    {
+     "libelle": "1"
+    },
+    {
+     "libelle": "2"
+    },
+    {
+     "libelle": "3"
+    },
+    {
+     "libelle": "4"
+    },
+    {
+     "libelle": "5"
+    },
+    {
+     "libelle": "6"
+    },
+    {
+     "libelle": "7"
+    },
+    {
+     "libelle": "8"
+    },
+    {
+     "libelle": "9"
+    },
+    {
+     "libelle": "10"
+    },
+    {
+     "libelle": "11"
+    },
+    {
+     "libelle": "12"
+    },
+    {
+     "libelle": "13"
+    },
+    {
+     "libelle": "14"
+    },
+    {
+     "libelle": "15"
+    },
+    {
+     "libelle": "16"
+    },
+    {
+     "libelle": "17"
+    }
+   ],
+   "echelons": [
+    {
+     "libelle": "Ordinaire"
+    },
+    {
+     "libelle": "Lourd"
+    },
+    {
+     "libelle": "Sans échelon"
+    },
+    {
+     "libelle": "1"
+    },
+    {
+     "libelle": "2"
+    },
+    {
+     "libelle": "3"
+    },
+    {
+     "libelle": "4"
+    }
+   ],
+   "grilles_salariales": [
+    {
+     "classeId": "1",
+     "categorieId": "Manœuvre",
+     "echelonId": "Ordinaire",
+     "salaire": 559000,
+     "points": 100
+    },
+    {
+     "classeId": "2",
+     "categorieId": "Manœuvre",
+     "echelonId": "Lourd",
+     "salaire": 648440,
+     "points": 116
+    },
+    {
+     "classeId": "3",
+     "categorieId": "Travailleur spécialisé",
+     "echelonId": "Sans échelon",
+     "salaire": 743470,
+     "points": 133
+    },
+    {
+     "classeId": "4",
+     "categorieId": "Travailleur semi qualifié",
+     "echelonId": "1",
+     "salaire": 860860,
+     "points": 154
+    },
+    {
+     "classeId": "5",
+     "categorieId": "Travailleur semi qualifié",
+     "echelonId": "2",
+     "salaire": 995020,
+     "points": 178
+    },
+    {
+     "classeId": "6",
+     "categorieId": "Travailleur semi qualifié",
+     "echelonId": "3",
+     "salaire": 1151540,
+     "points": 206
+    },
+    {
+     "classeId": "7",
+     "categorieId": "Travailleur qualifié",
+     "echelonId": "1",
+     "salaire": 1324830,
+     "points": 237
+    },
+    {
+     "classeId": "8",
+     "categorieId": "Travailleur qualifié",
+     "echelonId": "2",
+     "salaire": 1531660,
+     "points": 274
+    },
+    {
+     "classeId": "9",
+     "categorieId": "Travailleur hautement qualifié",
+     "echelonId": "Sans échelon",
+     "salaire": 1772030,
+     "points": 317
+    },
+    {
+     "classeId": "10",
+     "categorieId": "Maîtrise",
+     "echelonId": "1",
+     "salaire": 2045940,
+     "points": 366
+    },
+    {
+     "classeId": "11",
+     "categorieId": "Maîtrise",
+     "echelonId": "2",
+     "salaire": 2358980,
+     "points": 422
+    },
+    {
+     "classeId": "12",
+     "categorieId": "Maîtrise",
+     "echelonId": "3",
+     "salaire": 2727920,
+     "points": 488
+    },
+    {
+     "classeId": "13",
+     "categorieId": "Maîtrise",
+     "echelonId": "4",
+     "salaire": 3152760,
+     "points": 564
+    },
+    {
+     "classeId": "14",
+     "categorieId": "Cadre de collaboration",
+     "echelonId": "1",
+     "salaire": 3639090,
+     "points": 651
+    },
+    {
+     "classeId": "15",
+     "categorieId": "Cadre de collaboration",
+     "echelonId": "2",
+     "salaire": 4203680,
+     "points": 752
+    },
+    {
+     "classeId": "16",
+     "categorieId": "Cadre de collaboration",
+     "echelonId": "3",
+     "salaire": 4852120,
+     "points": 868
+    },
+    {
+     "classeId": "17",
+     "categorieId": "Cadre de collaboration",
+     "echelonId": "4",
+     "salaire": 5590000,
+     "points": 1000
+    }
+   ],
+   "grandes_familles": [
+    {
+     "libelle": "Salaire de base"
+    },
+    {
+     "libelle": "Prime et indemnité"
+    },
+    {
+     "libelle": "HEURES SUPPLEMENTAIRES"
+    },
+    {
+     "libelle": "AUTRES RETENUES"
+    },
+    {
+     "libelle": "CREDIT AUX PERSONNELS"
+    }
+   ],
+   "grandes_rubriques": [
+    {
+     "code": "G01",
+     "libelle": "salaire catégoriel",
+     "imposable": "Oui"
+    },
+    {
+     "code": "G02",
+     "libelle": "Gratifications et interessements",
+     "imposable": "Oui"
+    },
+    {
+     "code": "G03",
+     "libelle": "Indemnité de logement",
+     "imposable": "Non"
+    },
+    {
+     "code": "G04",
+     "libelle": "Indemnité de transport",
+     "imposable": "Non"
+    },
+    {
+     "code": "G05",
+     "libelle": "Allocations familiales",
+     "imposable": "Non"
+    },
+    {
+     "code": "G07",
+     "libelle": "Avantage en nature Concédé",
+     "imposable": "Oui"
+    },
+    {
+     "code": "G08",
+     "libelle": "Frais professionnels",
+     "imposable": "Non"
+    },
+    {
+     "code": "G09",
+     "libelle": "Abattement 1",
+     "imposable": "Non"
+    }
+   ],
+   "types_grille": [
+    {
+     "libelle": "Grille fiscale"
+    },
+    {
+     "libelle": "Grille indiciaire"
+    },
+    {
+     "libelle": "Grille sociale"
+    },
+    {
+     "libelle": "Grille Primes et indemnités"
+    }
+   ],
+   "types_retenue": [
+    {
+     "libelle": "Avance sur salaire"
+    },
+    {
+     "libelle": "Prêt au personnel"
+    },
+    {
+     "libelle": "Saisie-arrêt"
+    },
+    {
+     "libelle": "Cautionnement"
+    },
+    {
+     "libelle": "Indemnité compensatoire"
+    }
+   ]
+  },
+  "paie_structure": {
+   "grilles": [
+    {
+     "libelle": "salaire de base",
+     "typeGrilleId": "Grille indiciaire"
+    },
+    {
+     "libelle": "CNSS",
+     "typeGrilleId": "Grille sociale"
+    },
+    {
+     "libelle": "IPR",
+     "typeGrilleId": "Grille fiscale"
+    }
+   ]
+  },
+  "paie_rubriques": {
+   "rubriques": [
+    {
+     "familleId": "Salaire de base",
+     "grandeRubriqueId": "salaire catégoriel",
+     "code": "SB",
+     "libelle": "Salaire de base"
+    },
+    {
+     "familleId": "HEURES SUPPLEMENTAIRES",
+     "grandeRubriqueId": "salaire catégoriel",
+     "code": "HS",
+     "libelle": "Heures supplémentaires"
+    },
+    {
+     "familleId": "Prime et indemnité",
+     "grandeRubriqueId": "Indemnité de logement",
+     "code": "IL",
+     "libelle": "Indemnité de logement"
+    },
+    {
+     "familleId": "Prime et indemnité",
+     "grandeRubriqueId": "Indemnité de transport",
+     "code": "IT",
+     "libelle": "Indemnité de transport"
+    },
+    {
+     "familleId": "Prime et indemnité",
+     "grandeRubriqueId": "Allocations familiales",
+     "code": "AF",
+     "libelle": "Allocations familiales"
+    }
+   ]
+  },
+  "immobilisations": {
+   "types": [
+    {
+     "code": "CORP",
+     "libelle": "Immobilisation corporelle"
+    },
+    {
+     "code": "INCORP",
+     "libelle": "Immobilisation incorporelle"
+    }
+   ],
+   "utilisations": [
+    {
+     "code": "ENT",
+     "libelle": "ENTREPRISE",
+     "tvaApplicable": true,
+     "tva": "16,00"
+    },
+    {
+     "code": "INDIV",
+     "libelle": "INDIVIDUELLE",
+     "tvaApplicable": false,
+     "tva": ""
+    },
+    {
+     "code": "mix",
+     "libelle": "MIXE",
+     "tvaApplicable": true,
+     "tva": "16,00"
+    }
+   ],
+   "categories": [
+    {
+     "code": "AGI",
+     "libelle": "AGENCEMENT ET INSTALLATION"
+    },
+    {
+     "code": "MAB",
+     "libelle": "MATERIEL DE BUREAU"
+    },
+    {
+     "code": "MIN",
+     "libelle": "MATERIEL INFORMATIQUE"
+    },
+    {
+     "code": "MOB",
+     "libelle": "MOBILIER DE BUREAU"
+    },
+    {
+     "code": "TER",
+     "libelle": "TERRAIN BATI"
+    }
+   ],
+   "familles": [
+    {
+     "code": "AGI",
+     "typeId": "Immobilisation corporelle",
+     "categorieId": "AGENCEMENT ET INSTALLATION",
+     "libelle": "Agencements et installations",
+     "systeme": "Linéaire",
+     "dureeMin": 5,
+     "dureeMax": 10,
+     "periodicite": "Annuelle",
+     "compteAcquisition": "229",
+     "compteDotation": "6819",
+     "compteAmortissement": "2820",
+     "compteProduits": "774",
+     "compteChargeVcn": "674",
+     "immatriculation": false,
+     "chassis": false,
+     "carburant": false,
+     "titreFoncier": false,
+     "description": false
+    },
+    {
+     "code": "MAB",
+     "typeId": "Immobilisation corporelle",
+     "categorieId": "MATERIEL DE BUREAU",
+     "libelle": "Matériel de bureau",
+     "systeme": "Linéaire",
+     "dureeMin": 5,
+     "dureeMax": 10,
+     "periodicite": "Annuelle",
+     "compteAcquisition": "2232",
+     "compteDotation": "6813",
+     "compteAmortissement": "2810",
+     "compteProduits": "774",
+     "compteChargeVcn": "674",
+     "immatriculation": false,
+     "chassis": false,
+     "carburant": false,
+     "titreFoncier": false,
+     "description": false
+    },
+    {
+     "code": "MIN",
+     "typeId": "Immobilisation corporelle",
+     "categorieId": "MATERIEL INFORMATIQUE",
+     "libelle": "Matériel informatique",
+     "systeme": "Linéaire",
+     "dureeMin": 3,
+     "dureeMax": 5,
+     "periodicite": "Annuelle",
+     "compteAcquisition": "2231",
+     "compteDotation": "6813",
+     "compteAmortissement": "2810",
+     "compteProduits": "774",
+     "compteChargeVcn": "674",
+     "immatriculation": false,
+     "chassis": false,
+     "carburant": false,
+     "titreFoncier": false,
+     "description": false
+    },
+    {
+     "code": "MOB",
+     "typeId": "Immobilisation corporelle",
+     "categorieId": "MOBILIER DE BUREAU",
+     "libelle": "Mobilier de bureau",
+     "systeme": "Linéaire",
+     "dureeMin": 5,
+     "dureeMax": 10,
+     "periodicite": "Annuelle",
+     "compteAcquisition": "2234",
+     "compteDotation": "6813",
+     "compteAmortissement": "2810",
+     "compteProduits": "774",
+     "compteChargeVcn": "674",
+     "immatriculation": false,
+     "chassis": false,
+     "carburant": false,
+     "titreFoncier": false,
+     "description": false
+    },
+    {
+     "code": "TER",
+     "typeId": "Immobilisation corporelle",
+     "categorieId": "TERRAIN BATI",
+     "libelle": "Immeubles d'exploitation",
+     "systeme": "Linéaire",
+     "dureeMin": 20,
+     "dureeMax": 50,
+     "periodicite": "Annuelle",
+     "compteAcquisition": "2200",
+     "compteDotation": "6810",
+     "compteAmortissement": "28000",
+     "compteProduits": "774",
+     "compteChargeVcn": "674",
+     "immatriculation": false,
+     "chassis": false,
+     "carburant": false,
+     "titreFoncier": true,
+     "description": false
+    }
+   ],
+   "localisations": [
+    {
+     "code": "10.DG.01",
+     "libelle": "Bureau Directeur Général"
+    },
+    {
+     "code": "10.DG.02",
+     "libelle": "Salle d'Attente DG"
+    },
+    {
+     "code": "10.DG.07",
+     "libelle": "Bureau Assistant / CCI"
+    },
+    {
+     "code": "10.DG.08",
+     "libelle": "Bureau Consultants"
+    },
+    {
+     "code": "10.DG.09",
+     "libelle": "Bureau A / AICG"
+    }
+   ]
+  },
+  "taxes": {
+   "taxes": [
+    {
+     "code": "TVA",
+     "designation": "TAXE SUR LA VALEUR AJOUTEE",
+     "taux": "16,00"
+    },
+    {
+     "code": "PNR",
+     "designation": "PRELEVEMENT SUR LES PRESTATIONS DES NON-RESIDENTS",
+     "taux": "14,00"
+    }
+   ]
+  }
+ }
+}

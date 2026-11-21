@@ -7501,7 +7501,7 @@ const refPaieBase = { ...moteurPaieBase,
     if (sert) throw new ErreurMetier(`Cette valeur est utilisée par la page ${page === "types_retenue" ? "Mise en place retenue" : "Rubrique de paie"} : la retirer d'abord.`);
     return moteurPaieBase.supprimer(page, id);
   } };
-const SEXES = ["Masculin", "Féminin"], CIVILITES = ["Monsieur", "Madame", "Mademoiselle"], GROUPES_SANGUINS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+const SEXES = ["Masculin", "Féminin"], CIVILITES = ["Monsieur", "Madame"], GROUPES_SANGUINS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 const TYPES_CONTRAT = ["Contrat à durée déterminée", "Contrat à durée indéterminée"], REGIMES = ["Régime catégoriel", "Régime indiciaire"];
 const SESSION_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 type SaisieEmploye = Partial<Omit<PaieEmploye, "id" | "creePar" | "creeLe" | "personnes">> & { personnes?: Partial<PaieEmploye["personnes"][number]>[] };

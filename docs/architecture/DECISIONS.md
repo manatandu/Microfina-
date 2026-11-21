@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**856 décisions.** Solidité : 361 fortes (le manuel ou un texte répond), 418 moyennes (déduites d'un écran voisin ou d'une donnée), 77 faibles (notre choix, faute de mieux). Dans le code : 849 déjà en place, 7 à appliquer.
+**863 décisions.** Solidité : 365 fortes (le manuel ou un texte répond), 421 moyennes (déduites d'un écran voisin ou d'une donnée), 77 faibles (notre choix, faute de mieux). Dans le code : 856 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -51,6 +51,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | T36 | Saisie des dates (Transversal) | Un clic dans une case de date ouvre un calendrier (mois, semaine du lundi au dimanche, listes du mois et de l'année, bouton Aujourd'hui). La date reste affichée jj/mm/aaaa. Téléphone : le clavier ne sort pas. Ordinateur : la frappe reste possible pour le guichet, Alt + flèche bas ouvre le calendrier. | Choix du porteur : Demande du porteur, 21/11/2026 (« je ne veux pas qu'on remplisse les dates à la main mais fais apparaître un calendrier ») ; DESIGN.md § 2.1 bis | forte | en place |
 | T37 | Arrondi des contre-valeurs d'une écriture en devise (Transversal) | Chaque ligne en devise est convertie au cours du jour et arrondie au centime. Quand cet arrondi laisse un écart entre les débits et les crédits en CDF (un centime par ligne en devise au plus), le logiciel ajoute une ligne de cet écart au compte 474 « Compte d'ajustement », sans montant en devise. Au-delà, l'écriture reste refusée. Le solde du 474 reste à porter en produits ou en charges à la clôture (confrontation du 21/11/2026, B9). | Choix du porteur : Décision du porteur, 21/11/2026 (choix A) ; PCCI § 7.1 (« en cours de période, les différences sont logées dans les sous-comptes d'ajustements devises en gain ou en perte ») ; PCCI, compte 474 | forte | en place |
 | T38 | Déclarations systématiques à la CENAREF : opérations liées (Transversal) | Onglet « Déclarations systématiques » de l'écran Examen renforcé. L'état retient toute entrée ou sortie de fonds d'un client, en espèces ou par la banque, et cumule par client et par sens (entrées d'un côté, sorties de l'autre) sur le mois civil. Au seuil de 10 000 USD, la ligne est à déclarer ; la date et la référence de la déclaration se notent ; si le total augmente ensuite, la ligne passe « à compléter ». L'examen renforcé avant l'opération garde son cumul sur la journée. | Choix du porteur : Demande du porteur, 21/11/2026 (« renseigne-toi sur la pratique et continue ») ; loi 22/068, art. 92 bis, al. 3 (loi 25/048), qui ne fixe pas de durée ; pratique française : Code monétaire et financier, art. R. 561-31-2 (cumul sur un mois civil, par nature d'opération) ; pratique américaine : 31 CFR 1010.313 (cumul sur une journée) | moyenne | en place |
+| T39 | Base déjà remplie (site en ligne, remplie le 14/11/2026) (Graine) | La graine complète une base existante : elle ajoute ce qui manque (listes de base encore vides, pages de référentiels encore vides, lieux absents, profil et utilisateur administrateur, journal OD, schémas comptables), sans rien effacer ni modifier. Lancée à chaque déploiement | Choix du porteur : Décision du porteur, 21/11/2026 (« Complète ces cases ») | forte | en place |
 
 ## S03 Profils : création et modification
 
@@ -406,6 +407,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S104-1 | Écran et taux | Comme la capture : Code *, Désignation *, Taux * ; Enregistrer, Effacer, Supprimer ; Listes de taxes (Désignation, Taux %), Rafraichir. Taux à deux décimales. Aucune taxe créée d'avance : l'institution saisit les siennes | Manuel : Capture p. 124 ; texte p. 123 | forte | en place |
+| S104-2 | Taxes de départ | TVA 16,00 et prélèvement sur les prestations des non-résidents 14,00 (et non les taux togolais de la capture p. 124) | Texte réglementaire : O.-L. 10/001, art. 35, modifié par la LF 25/060, art. 46 ; loi 23/053, art. 142 à 144 | forte | en place |
 
 ## S111 Comptabilisation
 
@@ -477,6 +479,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S20-3 | Zone d'un pays | Liste : Afrique, Amérique, Asie, Europe, Océanie | Manuel : Capture p. 30 (Zone*, liste déroulante, sans valeurs montrées) | faible | en place |
 | S20-4 | Lien avec la fiche client | L'enrôlement et les prospects lisent Pays, Ville, Quartier dans S20 : la ville ou le territoire à travers sa province, le quartier ou le groupement à travers sa commune. Un lieu retiré n'est plus proposé ; un client qui l'a garde son adresse | Donnée exigée ailleurs : Capture p. 55 (Pays, Ville, Quartier) ; COMPLEMENTS § 7.1 | moyenne | en place |
 | S20-5 | Barre d'outils et boutons | Nouveau, Modifier, Supprimer dans la barre du haut (Modifier et Supprimer grisés sans ligne choisie) ; Enregistrer, Annuler sous le formulaire ; Exporter au-dessus de la grille ; filtres sur chaque colonne ; Rafraichir à côté de Pays sur l'onglet Province. Les icônes Enregistrer et Annuler de la barre, en double, ne sont pas reprises | Écran voisin : Captures p. 30 à 32 ; manuel p. 9 et 12 (T01, T02, T17) | moyenne | en place |
+| S20-6 | Contenu de la localisation de départ | Les 26 provinces (Constitution, art. 2) ; sous chacune son chef-lieu (loi organique 15/006, art. 4 à 29), les villes déjà villes en 2000 et ses territoires (145) ; sous la ville de Kinshasa ses 24 communes. Un territoire qui porte le nom d'une ville de la même province est suivi de « (territoire) ». Les 80 autres agglomérations nommées villes en 2015 ne sont pas reprises : leur statut n'est pas confirmé. Fichier replica/localisation-rdc.json | Texte réglementaire : Constitution, art. 2 ; loi organique 15/006 du 25/03/2015, art. 4 à 29 ; Nomenclature budgétaire 2015 (Ministère du Budget), § 3.7 ; arrêté 002/CAB/MN/PTT/K/2000 ; arrêté provincial de Kinshasa 017/2023, art. 13 | moyenne | en place |
 
 ## S21 Référentiel crédit
 
@@ -1891,6 +1894,30 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | S122-13 | Exporter la liasse | Bouton « Exporter la liasse », au modèle du rapport du commissaire aux comptes retenu par le porteur (replica/liasse-pcci.json, le même que le skill liasse-pcci) : garde ; bilan actif et passif en quatre masses par compte principal, TOTAL GENERAL en tête, N, N-1, variation ; hors bilan ; compte de résultat par soldes 80 à 87 ; tableau de flux (PCCI 14.3, N et N-1) ; notes (crédits, dépôts, avoirs, emprunts) ; cartouche du PCCI ; charte des liasses sycebnl et syscohada ; montants en francs. Les écrans gardent les modèles 14.1 et 14.2 du PCCI | Choix du porteur : Demandes du porteur, 20 et 21/11/2026 ; PCCI, chap. 14 et classe 8 | forte | en place |
 | S122-14 | Type de bilan « Par masses » | Troisième type de bilan à côté de « Version développée » et « Modèle PCCI » : quatre masses (trésorerie, clientèle, opérations diverses, immobilisations à l'actif ; fonds propres au passif), une ligne par compte principal (numéro dans la colonne N°, lignes à zéro sur N et N-1 masquées), provisions retranchées, total général. Même modèle que l'export de la liasse (replica/liasse-pcci.json). Le compte de résultat garde ses deux types. | Choix du porteur : Décision du porteur, 21/11/2026 ; modèle de présentation du rapport du commissaire aux comptes (structure seulement) ; PCCI, classes 1 à 5 | forte | en place |
+
+## S14 Listes de base du client
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S14-4 | Valeurs de Civilité, Situation matrimoniale, Filiation, Catégorie, Catégorie de groupe (listes vides : le manuel ne les donne pas) | Civilité : Monsieur, Madame (sans Mademoiselle, aussi retirée de la fiche Employé). Situation matrimoniale : Célibataire, Marié(e), Divorcé(e), Veuf(ve). Filiation : Père, Mère, Conjoint(e), Enfant, Frère, Sœur. Catégorie : Membre effectif, Membre auxiliaire. Catégorie de groupe : Groupe de femmes, Groupe d'hommes, Groupe mixte. Modifiables dans Paramétrage > Info de base > Client > Général | Choix du porteur : Décision du porteur, 21/11/2026 (« Complète ces cases », « Retire Mademoiselle ») ; capture p. 201 (Monsieur, Marié(e)) ; Code de la famille, art. 669 ; loi 002/2002, art. 22 et 23 ; PCCI, comptes 1030 à 1032 ; pratique (genre des groupes) | moyenne | en place |
+
+## S14h Sous type de client
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S14-5 | Valeurs de démonstration des sous types | Celles des deux captures p. 25 : Homme, Femme, Entreprise, Institution Financiere, ETABLISSEMENT, SARL, SA, GROUPEMENT, ASSOCIATION, EGLISE, ONG, ATELIER (base neuve ; une base qui en a déjà garde les siennes) | Manuel : Manuel, captures p. 25 | forte | en place |
+
+## S131 Paie : données de base
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S131-8 | Données de départ de la paie | Catégories, échelons et classes du décret SMIG (7 catégories, 17 classes) ; grille salariale : salaire mensuel = taux journalier de l'annexe 2 (janvier 2026) x 26, points = tension ; grandes familles de la capture p. 272 ; grandes rubriques de la capture p. 273 avec Indemnité de logement, Indemnité de transport, Allocations familiales non imposables et Avantage en nature imposable ; types de grille p. 275 ; grilles salaire de base, CNSS, IPR ; types de retenue de l'art. 112 du Code du travail ; rubriques SB, HS, IL, IT, AF | Texte réglementaire : Décret 25/22 de 2025 (SMIG), art. 2, 7 et annexe 2 ; Code général des impôts (loi 23/053), art. 68 et 69 ; Code du travail, art. 112 ; manuel p. 272 à 275 | forte | en place |
+
+## S136 Immobilisations : données de base
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S136-4 | Données de départ des immobilisations | Types CORP et INCORP, utilisations ENT, INDIV, MIXE, catégories AGI, MAB, MIN, MOB, TER et localisations 10.DG de la capture ; TVA des utilisations à 16 % (et non 10 et 18 de la capture) ; une famille par catégorie avec les comptes du PCCI (2231, 2232, 2234, 229, 2200 ; 2810, 2820, 28000 ; 6810, 6813, 6819 ; 674 et 774). Durées : exemples, à fixer par l'institution | Texte réglementaire : Manuel p. 280 à 283 ; O.-L. 10/001, art. 35, modifié par la LF 25/060, art. 46 (TVA 16 %) ; PCCI, classes 2, 6 et 7 | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

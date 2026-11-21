@@ -24,6 +24,14 @@ def vider_journal_securite():
         c.execute("delete from journal_securite")
 
 
+def sans_donnees_demo():
+    """Les essais des référentiels partent de pages vides : on retire les données de démonstration de la graine (replica/demonstration.json)"""
+    from noyau.bd import executer
+    for t in ("paie_grille_salariale", "paie_rubrique", "paie_grille", "paie_categorie", "paie_classe", "paie_echelon", "paie_grande_famille", "paie_grande_rubrique",
+              "paie_type_grille", "paie_type_retenue", "immo_famille", "immo_type", "immo_utilisation", "immo_categorie", "immo_localisation", "taxe"):
+        executer(f"delete from {t}")
+
+
 def connecter(c: Client, login: str):
     r = c.post("/api/session", {"login": login}, **H)
     assert r.status_code == 200, r.content
@@ -1295,6 +1303,25 @@ def test_budget_referentiels(clients):
     assert m["lignes"][0]["libelle"] == "PLAN 2026"
 
 
+def test_graine_complete_une_base_existante():
+    """Base en ligne remplie le 14/11/2026 : la graine ajoute ce qui manque, sans doubler ni modifier (registre S14-4, S20-6, S131-8)"""
+    from noyau.bd import executer, valeur
+    from noyau.management.commands.graine import completer
+    ins = valeur("select min(id) from institution")
+    assert completer(ins) == 0                                                     # déjà complète : rien ajouté
+    assert [r for r in (valeur("select string_agg(libelle, ',' order by code) from liste_reference where liste = 'civilite'"),)] == ["Monsieur,Madame"]
+    executer("delete from liste_reference where liste in ('civilite', 'situation_matrimoniale')")
+    executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'situation_matrimoniale', 'X', 'Union libre')", (ins,))
+    executer("delete from schema_comptable where type_evenement = 'immo_dotation'")
+    executer("delete from paie_type_retenue")
+    assert completer(ins) == 2 + 1 + 5                                             # civilité, schéma comptable, types de retenue
+    assert valeur("select string_agg(libelle, ',') from liste_reference where liste = 'situation_matrimoniale'") == "Union libre"   # liste remplie : intacte
+    nb = lambda niveau: valeur("select count(*) from localite where niveau = %s", (niveau,))
+    assert (nb("province"), nb("commune")) == (26, 24)
+    assert valeur("""select count(*) from localite t join localite p on p.id = t.parent_id where t.niveau = 'ville' and p.niveau = 'province'""") == 175
+    assert valeur("select count(*) from localite where niveau = 'ville' and nom like %s", ("%(territoire)",)) == 10
+
+
 def test_localisation(clients):
     """S20 (p. 30 à 32), découpage de la RDC (registre S20-1 à S20-4) : parents obligatoires, nom unique sous un parent, Zone, Supprimer logique"""
     chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
@@ -1312,16 +1339,16 @@ def test_localisation(clients):
     assert "Pays" in refus("province", {"nom": "Nouvelle"})
     assert "existe déjà" in refus("province", {"parentId": rdc["id"], "nom": "nord-kivu"})
     nk = next(x for x in pr["lignes"] if x["nom"] == "Nord-Kivu")
-    assert "Ville ou territoire inconnu" in refus("commune", {"parentId": nk["id"], "nom": "Goma"})           # une commune se rattache à une ville ou un territoire
-    v = chef.post(f"{L}/ville", {"parentId": nk["id"], "nom": "Goma"}, **H).json()["lignes"]
-    goma = next(x for x in v if x["nom"] == "Goma")
+    assert "Ville ou territoire inconnu" in refus("commune", {"parentId": nk["id"], "nom": "Butembo"})           # une commune se rattache à une ville ou un territoire
+    v = chef.post(f"{L}/ville", {"parentId": nk["id"], "nom": "Butembo"}, **H).json()["lignes"]
+    goma = next(x for x in v if x["nom"] == "Butembo")
     assert goma["ascendants"]["province"]["nom"] == "Nord-Kivu" and goma["ascendants"]["pays"]["nom"] == "République démocratique du Congo"
-    c = next(x for x in chef.post(f"{L}/commune", {"parentId": goma["id"], "nom": "Karisimbi"}, **H).json()["lignes"] if x["nom"] == "Karisimbi")
+    c = next(x for x in chef.post(f"{L}/commune", {"parentId": goma["id"], "nom": "Bulengera"}, **H).json()["lignes"] if x["nom"] == "Bulengera")
     r = chef.post(f"{L}/ville/{goma['id']}/suppression", {}, **H); assert r.status_code == 422 and "rattachés" in r.json()["message"]
-    assert chef.post(f"{L}/commune/{c['id']}", {"parentId": goma["id"], "nom": "Karisimbi-Centre"}, **H).status_code == 200
+    assert chef.post(f"{L}/commune/{c['id']}", {"parentId": goma["id"], "nom": "Bulengera-Centre"}, **H).status_code == 200
     assert chef.post(f"{L}/commune/{c['id']}/suppression", {}, **H).status_code == 200
     assert chef.post(f"{L}/ville/{goma['id']}/suppression", {}, **H).status_code == 200
-    assert all(x["nom"] != "Goma" for x in chef.get(f"{L}/ville", **H).json()["lignes"])
+    assert all(x["nom"] != "Butembo" for x in chef.get(f"{L}/ville", **H).json()["lignes"])
 
 
 def test_credit_general(clients):
@@ -3642,6 +3669,7 @@ def test_credits_litigieux(clients, journee):
 
 def test_referentiels_compta(clients, journee):
     """S104 Taxes (p. 123 et 124) et S103 Plan des tiers (p. 123) : référentiels partagés (replica/referentiels.json) ; Type de suivi du plan (S102-7)"""
+    sans_donnees_demo()
     compta, caisse = clients["compta"], clients["caisse"]
     tx = lambda corps, lid=None: compta.post("/api/referentiels/taxes/taxes" + (f"/{lid}" if lid else ""), corps, **H)
     assert "Code, Désignation, Taux" in tx({}).json()["message"]
@@ -3991,6 +4019,7 @@ def socle_factures(clients):
 def test_factures_fournisseurs(clients, journee):
     """S107 (p. 124 à 128, 147 à 153) : bon de commande et tranches de paiement, validation ; facture d'une tranche, visa, validation ; règlement par chèque
     (Infos Chèque) et en espèces à la caisse (S141) ; écritures 40, 432, 433 (PCCI) ; rapport ; déclaration de taxe (S108)"""
+    sans_donnees_demo()
     chef, compta, agent, caisse = clients["chef"], clients["compta"], clients["agent"], clients["caisse"]
     ctx, four, tc, tx = socle_factures(clients)
     assert [m["code"] for m in ctx["modes"]] == ["CHEQUE", "ESPECE", "PRELEVEMENT", "VIREMENT"] and all(c["numero"][0] in "26" or c["numero"].startswith("47") for c in ctx["comptes"])
@@ -4109,6 +4138,7 @@ def test_factures_fournisseurs(clients, journee):
 def test_retenue_sur_commande(clients, journee):
     """S107 : une taxe de la liste (S104) posée en retenue sur une ligne de commande est retenue au règlement et figure à la déclaration (S108) ;
     loi 23/053, art. 142 à 144 : prélèvement sur les prestataires non-résidents, dû au paiement"""
+    sans_donnees_demo()
     chef, compta, agent = clients["chef"], clients["compta"], clients["agent"]
     ctx, four, tc, tx = socle_factures(clients)
     c = compta.post(f"{FF}/commandes", {"cle": cle(), "typeCommandeId": tc, "fournisseurId": four, "lignes": [
@@ -4470,6 +4500,7 @@ def test_calculs_et_clotures(clients, journee):
 def test_paie(clients, journee):
     """Paie (manuel p. 269 à 278) : données de base (S131), grilles et états (S132), nouvel employé (S133), rubriques, maquette, liste (S134),
     retenues mises en place puis visées par une autre personne (S135). Code du travail, art. 39 à 41 et 112."""
+    sans_donnees_demo()
     compta, chef, caisse = clients["compta"], clients["chef"], clients["caisse"]
     R, RS, RR = "/api/referentiels/paie", "/api/referentiels/paie_structure", "/api/referentiels/paie_rubriques"
     def ok(c, url, corps):
@@ -4536,6 +4567,7 @@ def test_paie(clients, journee):
 def test_immobilisations(clients, journee):
     """Immobilisations (manuel, chap. 7) : données de base (S136), création de bien (S137), affectation, transferts, libération (S138), amortissement,
     inventaire, sortie (S139), rapports (S140). PCCI, classe 2, comptes 28, 681, 673."""
+    sans_donnees_demo()
     compta = clients["compta"]
     R = "/api/referentiels/immobilisations"
     def ok(url, corps):
