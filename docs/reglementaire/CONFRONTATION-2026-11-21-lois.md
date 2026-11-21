@@ -346,5 +346,12 @@ Points non vérifiés dans le code :
 - **A14 corrigé** (art. 162, al. 2) : tentative sur des fonds gelés au journal de sécurité (registre T51).
 - **A8 corrigé** (art. 34, al. 3 et 47 ; Instr. BCC 15, art. 17 b) : objet et nature de la relation, origine des fonds (registre T52).
 - **A7 corrigé** (art. 33, al. 4 ; Instr. BCC 15, art. 13, al. 2) : pièce d'habilitation professionnelle, référence et copie (registre T53).
-- Les autres écarts et manques restent à traiter, dans l'ordre de gravité de ce document.
+- **A11 corrigé** (Instr. BCC 15, art. 95, b et annexe DSIF) : onglet « Reporting mensuel BCC », cinq tableaux aux codes LAB, cellules calculées et cellules saisies (registre T54).
+- **A1 corrigé** (loi 002/2002, art. 9, 6° et 59, 1° ; Instr. BCC 002, art. 19 à 21) : affectation du résultat, réserve générale d'au moins 15 % après le report déficitaire (registre T55, S127-13 en place).
+- **A16 corrigé** (Code civil, art. 544 ; AUSCOOP, art. 380) : décès déclaré, procurations closes, retraits par un ayant droit sur la pièce de succession (registre T56). Le Code de la famille reste à relire pour la désignation des héritiers.
+- **P4 corrigé** (Instr. BCC 13, art. 7) : pas d'ouverture de compte sous mise à l'index ; le logiciel ne délivre pas de chéquier aux clients (registre T57).
+- **A12 corrigé** (loi 22/068, art. 57, 58, 61) : donneur d'ordre et bénéficiaire des virements entre institutions (registre T58).
+- **P7 corrigé** (Instr. BCC 15, art. 31 et 36) : surveillance étendue aux crédits et aux parts, critère de fractionnement (registre T59).
+- **P9 corrigé** (loi 22/068, art. 92) : sorties de fonds en attente jusqu'à la déclaration de soupçon (registre T60).
+- Gravité 1 et 2 terminées. Restent la gravité 3 (E9, A2 à A6, A9, A10, A15, P1, P2, P6, P10, T1, T2), dans l'ordre de ce document.
 

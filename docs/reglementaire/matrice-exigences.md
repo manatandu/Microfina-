@@ -231,3 +231,10 @@ Rapport sur les états financiers d'une COOPEC, remis par le porteur. Seuls les 
 | Loi 22/068, art. 162, al. 2 | Tentative sur fonds gelés | Journal de sécurité | Événement « fonds gelés » (T51) | lu |
 | Loi 22/068, art. 47 ; Instr. 15, art. 17 b | Objet de la relation, origine des fonds | S37, S38, S39 | Deux champs à l'enrôlement (T52) | lu |
 | Loi 22/068, art. 33, al. 4 ; Instr. 15, art. 13, al. 2 | Pièce d'habilitation du professionnel | S37, S49, S40 | Référence et copie si une activité est déclarée (T53) | lu |
+| Instr. 15, art. 95, b et annexe DSIF | Reporting LCB-FT mensuel à la BCC | SC01 | Cinq tableaux LAB, calculés ou saisis (T54) | lu |
+| Loi 002/2002, art. 59, 1° ; Instr. 002, art. 19 à 21 | Réserve générale de 15 % à l'affectation | S127 | Affectation du résultat (T55) | lu |
+| Code civil, art. 544 ; AUSCOOP, art. 380 | Décès du titulaire | S48, S47, S74 | Procurations closes, ayant droit (T56) | lu |
+| Instr. 13, art. 7 | Mise à l'index : services suspendus | S63, S73 | Pas d'ouverture de compte (T57) | lu |
+| Loi 22/068, art. 57, 58, 61 | Donneur d'ordre et bénéficiaire du virement | S53, S116 | Champs exigés (T58) | lu |
+| Instr. 15, art. 31, 36 | Surveillance de tous les comptes et opérations | SC01 | Crédits et parts, fractionnement (T59) | lu |
+| Loi 22/068, art. 92 | S'abstenir de l'opération soupçonnée jusqu'à la déclaration | SC01 | Mise en attente des sorties de fonds (T60) | lu |
