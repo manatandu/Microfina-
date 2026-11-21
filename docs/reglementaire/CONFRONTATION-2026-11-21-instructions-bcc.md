@@ -403,5 +403,6 @@ Lecture arrêtée le 21/11/2026 à la demande du porteur. Ce qui suit n'est pas 
 ## Suites données le 21/11/2026
 
 - La matrice `matrice-exigences.md` est corrigée : les quatre lignes annoncées et absentes du code (éditions numérotées, insuffisance de provision, comptes 472 et 473, normes prudentielles) sont marquées « non construit ».
-- Aucun écart de ce document n'est encore corrigé dans le code : ils sont à traiter dans l'ordre de la section 15.
+- **B9, première partie** (PCCI § 7.1) : le compte 474 « Compte d'ajustement » reçoit l'écart d'arrondi des écritures en devise (décision du porteur, registre T37). Restent : les comptes 472 et 473, et le solde du 474 à porter en produits ou en charges à la clôture.
+- Les autres écarts de ce document restent à traiter, dans l'ordre de la section 15.
 

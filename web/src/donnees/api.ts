@@ -46,6 +46,7 @@ export function abonner(f: () => void) { abonnes.add(f); return () => { abonnes.
 export function reinitialiser() { E = graine(); enregistrer(); }
 /** Pour les tests */
 export function _etat(): Etat { return E; }
+export function _poster(e: Omit<Ecriture, "id" | "numero">): Ecriture { return poster(e); }
 export function _remplacer(e: Etat) { E = e; }
 
 const heure = () => new Date().toTimeString().slice(0, 5);
@@ -134,11 +135,17 @@ export const nomUtilisateur = (id?: number) => E.utilisateurs.find((u) => u.id =
 
 // ---------- Grand livre ----------
 function poster(e: Omit<Ecriture, "id" | "numero">): Ecriture {
-  const l = e.lignes;
+  let l = e.lignes;
   if (!l.some((x) => x.sens === "D") || !l.some((x) => x.sens === "C")) throw new ErreurMetier("Écriture sans débit ou sans crédit.");
   if (l.some((x) => !Number.isInteger(x.montant) || x.montant <= 0 || !Number.isInteger(x.montantCdf) || x.montantCdf <= 0)) throw new ErreurMetier("Montant d'écriture invalide.");
   const ecart = (f: (x: Ligne) => boolean, champ: "montant" | "montantCdf") =>
     l.filter(f).reduce((s, x) => s + (x.sens === "D" ? x[champ] : -x[champ]), 0);
+  // Arrondir au centime chaque ligne en devise peut laisser un centime entre les débits et les crédits en CDF : cet écart d'arrondi est porté
+  // au compte 474 « Compte d'ajustement », par une ligne sans montant en devise (PCCI § 7.1 : « en cours de période, les différences sont
+  // logées dans les sous-comptes d'ajustements devises » ; décision du porteur, 21/11/2026, registre T37). Comme le serveur (services.poster).
+  const etrangeres = l.filter((x) => x.devise !== "CDF"), arrondi = ecart(() => true, "montantCdf");
+  if (arrondi !== 0 && etrangeres.length && Math.abs(arrondi) <= etrangeres.length)
+    l = [...l, { compte: "474", sens: arrondi > 0 ? "C" : "D", devise: etrangeres[0]!.devise, montant: 0, montantCdf: Math.abs(arrondi) }];
   if (ecart(() => true, "montantCdf") !== 0) throw new ErreurMetier("Écriture déséquilibrée en CDF (PCCI § 3.2).");
   for (const d of new Set(l.map((x) => x.devise))) if (ecart((x) => x.devise === d, "montant") !== 0) throw new ErreurMetier(`Écriture déséquilibrée en ${d}.`);
   const j = E.journees.find((x) => x.id === e.journeeId);
@@ -168,7 +175,7 @@ const devisesTenues = () => [...new Set(E.monnaies.map((m) => m.devise))].sort()
 function coursCourants(): Record<string, number> {
   return Object.fromEntries([...new Set(E.coursListe.map((x) => x.devise))].flatMap((d) => { try { return [[d, coursDe(d)]]; } catch { return []; } }));
 }
-const cdf = (m: number, d: Devise) => (d === "CDF" ? m : Math.round(m * coursDe(d)));   // règle d'arrondi à confirmer
+const cdf = (m: number, d: Devise) => (d === "CDF" ? m : Math.round(m * coursDe(d)));   // au centime le plus proche ; l'écart d'arrondi d'une écriture va au 474 (poster)
 const enUsd = (m: number, d: Devise) => (d === "USD" ? m / 100 : m / 100 * coursDe(d) / coursDe("USD"));
 
 /** Solde d'un contrat (compte de dépôt, parts, guichet) lu dans le grand livre : la vue auxiliaire n'a pas de solde à elle */

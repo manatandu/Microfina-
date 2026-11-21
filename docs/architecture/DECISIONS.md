@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**854 décisions.** Solidité : 360 fortes (le manuel ou un texte répond), 417 moyennes (déduites d'un écran voisin ou d'une donnée), 77 faibles (notre choix, faute de mieux). Dans le code : 847 déjà en place, 7 à appliquer.
+**855 décisions.** Solidité : 361 fortes (le manuel ou un texte répond), 417 moyennes (déduites d'un écran voisin ou d'une donnée), 77 faibles (notre choix, faute de mieux). Dans le code : 848 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -49,6 +49,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | T34 | Vitesse du logiciel (Transversal) | Serveur : connexion à la base gardée ouverte, réponses compressées, session lue en une requête, référentiel en moins de requêtes, mesure de chaque appel (Server-Timing). Page web : écrans chargés à la demande puis préchargés en fond, démonstration retirée du paquet en ligne, lectures identiques non répétées, référentiel et session gardés en mémoire une minute au plus et relus après toute écriture, appel de maintien toutes les quatre minutes tant que la page sert. | Choix du porteur : Demande du porteur, 21/11/2026 (« le logiciel est lent ») ; mesures du 21/11/2026 dans docs/architecture/AUDIT-2026-11-21.md | forte | en place |
 | T35 | Volet « Textes » sous les écrans (Transversal) | Le volet replié « Textes » (pages du manuel de Microfina++, articles des textes) n'est plus affiché sur aucun écran. Les références restent dans le code de chaque écran, dans ce registre et dans docs/reglementaire. | Choix du porteur : Demande du porteur, 21/11/2026 (« retire partout ce défilement dénommé texte […] c'est pas important qu'il apparaisse ») | forte | en place |
 | T36 | Saisie des dates (Transversal) | Un clic dans une case de date ouvre un calendrier (mois, semaine du lundi au dimanche, listes du mois et de l'année, bouton Aujourd'hui). La date reste affichée jj/mm/aaaa. Téléphone : le clavier ne sort pas. Ordinateur : la frappe reste possible pour le guichet, Alt + flèche bas ouvre le calendrier. | Choix du porteur : Demande du porteur, 21/11/2026 (« je ne veux pas qu'on remplisse les dates à la main mais fais apparaître un calendrier ») ; DESIGN.md § 2.1 bis | forte | en place |
+| T37 | Arrondi des contre-valeurs d'une écriture en devise (Transversal) | Chaque ligne en devise est convertie au cours du jour et arrondie au centime. Quand cet arrondi laisse un écart entre les débits et les crédits en CDF (un centime par ligne en devise au plus), le logiciel ajoute une ligne de cet écart au compte 474 « Compte d'ajustement », sans montant en devise. Au-delà, l'écriture reste refusée. Le solde du 474 reste à porter en produits ou en charges à la clôture (confrontation du 21/11/2026, B9). | Choix du porteur : Décision du porteur, 21/11/2026 (choix A) ; PCCI § 7.1 (« en cours de période, les différences sont logées dans les sous-comptes d'ajustements devises en gain ou en perte ») ; PCCI, compte 474 | forte | en place |
 
 ## S03 Profils : création et modification
 

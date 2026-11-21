@@ -2872,6 +2872,34 @@ def test_gel_des_avoirs(clients, journee):
     assert caisse.post("/api/guichet/retraits", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}}, **H).status_code == 200
 
 
+def test_arrondi_des_contre_valeurs(clients, journee):
+    """PCCI § 7.1 ; décision du porteur du 21/11/2026 (registre T37) : arrondir chaque ligne en devise peut laisser un centime entre débits et crédits
+    en CDF ; il va au compte 474 « Compte d'ajustement », l'écriture n'est plus refusée. Un vrai déséquilibre reste refusé par la base."""
+    import uuid
+    from datetime import date
+    from noyau.bd import executer, lignes, valeur
+    from noyau.services import charger_utilisateur, journee_courante, nouvelle_piece, poster
+    u = charger_utilisateur(valeur("select id from utilisateur where login = 'plumbala'"))
+    j = journee_courante(u)
+    executer("update cours_change set cours = 2847.35 where devise = 'USD'")
+    def passer(montants):
+        return poster(u, journal="OD", journee_id=j["id"], libelle="Essai d'arrondi", piece=nouvelle_piece(u, "OD", date.fromisoformat(j["date"])),
+                      evenement="operation_comptable", cle=str(uuid.uuid4()), valide_par=u["id"],
+                      lignes_ecr=[{"compte": "570", "sens": "D", "devise": "USD", "montant": sum(montants)}] +
+                                 [{"compte": "330", "sens": "C", "devise": "USD", "montant": m} for m in montants])
+    # 1,00 USD = 2 847,35 CDF ; deux fois 0,50 USD = deux fois 1 423,68 CDF : un centime de plus au crédit
+    eid = passer([50, 50])
+    executer("set constraints all immediate")                    # l'équilibre se vérifie en fin de transaction : on le vérifie ici
+    ajust = lignes("""select c.numero, l.sens, trim(l.devise) as devise, l.montant_devise, l.montant_cdf from ligne_ecriture l join compte c on c.id = l.compte_id
+                      where l.ecriture_id = %s order by l.rang""", (eid,))
+    assert ajust[-1] == {"numero": "474", "sens": "D", "devise": "USD", "montant_devise": 0, "montant_cdf": 1}, ajust
+    assert sum(x["montant_cdf"] if x["sens"] == "D" else -x["montant_cdf"] for x in ajust) == 0
+    executer("set constraints all deferred")
+    # sans écart, aucune ligne d'ajustement
+    eid = passer([100])
+    assert valeur("select count(*) from ligne_ecriture where ecriture_id = %s", (eid,)) == 2
+
+
 def test_comptes_inactifs(clients, journee):
     """Écart E11 : loi 22/069, titre III, chap. Ier (dix ans ; lettre six mois avant)"""
     from noyau.bd import executer

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { composerNumeroCompte, composerPiece, api, _remplacer, _etat, compteParts, enrolementVide, calculRuptureDat } from "./api";
+import { composerNumeroCompte, composerPiece, api, _remplacer, _etat, _poster, compteParts, enrolementVide, calculRuptureDat } from "./api";
 
 /** Mentions de l'identité et de la pièce exigées à l'enrôlement (Instr. BCC 15, art. 12 et 13 ; registre S37-1) */
 const IDENTITE = { prenom: "Marie", naissance: "1990-01-15", lieuNaissance: "Kinshasa", adresse: "Matete, avenue Kinsaku 12", pieceDelivreeLe: "2024-01-10",
@@ -275,6 +275,20 @@ describe("journée de guichet", () => {
     expect(await api.conformite.gels()).toEqual([]);
     await connecter("engalula");
     expect((await api.guichet.retrait({ cle: cle(), compteId: 2, montant: 1000000, coupures: { 10000: 1 } })).statut).toBe("validee");
+  });
+
+  it("arrondi des contre-valeurs : le centime d'écart d'une écriture en devise va au compte 474 (PCCI § 7.1 ; registre T37)", async () => {
+    await journeeOuverte();
+    const j = _etat().journees.at(-1)!;
+    // au cours de 2 847,35 : 1,00 USD vaut 2 847,35 CDF, mais deux fois 0,50 USD valent deux fois 1 423,68 CDF, soit un centime de plus
+    const ligne = (compte: string, sens: "D" | "C", montant: number, montantCdf: number) => ({ compte, sens, devise: "USD" as const, montant, montantCdf });
+    const e = _poster({ journal: "OD", journeeId: j.id, libelle: "Essai d'arrondi", piece: "ESSAI-1", saisiPar: 1, validePar: 2,
+      lignes: [ligne("570", "D", 100, 284735), ligne("330", "C", 50, 142368), ligne("330", "C", 50, 142368)] });
+    expect(e.lignes.at(-1)).toEqual({ compte: "474", sens: "D", devise: "USD", montant: 0, montantCdf: 1 });
+    expect(e.lignes.reduce((t, x) => t + (x.sens === "D" ? x.montantCdf : -x.montantCdf), 0)).toBe(0);
+    // un vrai déséquilibre n'est pas un arrondi : il reste refusé
+    expect(() => _poster({ journal: "OD", journeeId: j.id, libelle: "Essai", piece: "ESSAI-2", saisiPar: 1, validePar: 2,
+      lignes: [ligne("570", "D", 100, 284735), ligne("330", "C", 100, 284000)] })).toThrow("déséquilibrée en CDF");
   });
 
   it("comptes inactifs (écart E11) : dix ans sans opération, lettre six mois avant", async () => {

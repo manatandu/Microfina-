@@ -1559,9 +1559,19 @@ def poster(u: dict, *, journal: str, journee_id: int, libelle: str, piece: str, 
                     values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
                  (u["institution_id"], numero, jid, journee_id, j["date_comptable"], libelle, pid, cle, schema_valide(u, evenement), u["id"], valide_par, contre_passe,
                   "contre_passation" if contre_passe else "normale"))     # PCCI § 3.3 : correction par inscription en négatif, liée à l'écriture d'origine
-    for rang, l in enumerate(lignes_ecr, start=1):
-        # contre-valeur au cours du jour de la devise de la ligne (PCCI § 7.1)
-        cdf = l["montant"] if l["devise"] == "CDF" else round(l["montant"] * cours(l["devise"], j["date_comptable"]))   # règle d'arrondi à confirmer
+    # Contre-valeur au cours du jour de la devise de la ligne (PCCI § 7.1), arrondie au centime, ligne par ligne.
+    # Arrondir chaque ligne peut laisser un centime entre les débits et les crédits en CDF : cet écart d'arrondi est porté au compte 474
+    # « Compte d'ajustement », par une ligne sans montant en devise (PCCI § 7.1 : « en cours de période, les différences sont logées dans
+    # les sous-comptes d'ajustements devises en gain ou en perte » ; décision du porteur, 21/11/2026, registre T37).
+    # Au-delà d'un centime par ligne en devise, ce n'est plus un arrondi : la base refuse l'écriture déséquilibrée.
+    import math
+    cdfs = [l["montant"] if l["devise"] == "CDF" else int(math.floor(l["montant"] * cours(l["devise"], j["date_comptable"]) + 0.5)) for l in lignes_ecr]
+    ecart = sum(c if l["sens"] == "D" else -c for l, c in zip(lignes_ecr, cdfs))
+    etrangeres = [l for l in lignes_ecr if l["devise"] != "CDF"]
+    ecritures = list(zip(lignes_ecr, cdfs))
+    if ecart and etrangeres and abs(ecart) <= len(etrangeres):
+        ecritures.append(({"compte": "474", "sens": "C" if ecart > 0 else "D", "devise": etrangeres[0]["devise"], "montant": 0}, abs(ecart)))
+    for rang, (l, cdf) in enumerate(ecritures, start=1):
         cours_id = None if l["devise"] == "CDF" else cours_ligne(l["devise"], j["date_comptable"])["id"]
         # « budget » : la ligne budgétaire saisie avec la ligne (S109, S116, S107), lue par le suivi budgétaire (S125)
         executer("""insert into ligne_ecriture (ecriture_id, rang, compte_id, contrat_ref, sens, devise, montant_devise, montant_cdf, cours_id, budget_ligne_id)
