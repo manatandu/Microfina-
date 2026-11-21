@@ -83,6 +83,19 @@ def soldes(u, au: date, exercice: int, *, vidage: bool, agence=None) -> tuple[di
     return {k: v for k, v in par_compte.items() if v}, resultat, anterieurs
 
 
+def parts_tiers(u, au: date, *, vidage: bool, agence=None) -> dict:
+    """B1 (confrontation du 21/11/2026) : pas de compensation entre actif et passif (PCCI § 4.3.8). Pour les comptes des clients et des tiers (classes 3 et 4),
+    les soldes de chaque contrat (compte de dépôt, crédit, tiers) se répartissent en soldes débiteurs et soldes créditeurs : (débiteurs, créditeurs)"""
+    par: dict = defaultdict(lambda: [0, 0])
+    for r in lignes(f"""select c.numero, coalesce(l.contrat_ref, '') as contrat, sum(case l.sens when 'D' then l.montant_cdf else -l.montant_cdf end) as s
+                        from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join journee_comptable jc on jc.id = e.journee_id join compte c on c.id = l.compte_id
+                        where e.institution_id = %s and jc.statut = 'fermee' and e.date_valeur <= %s and (%s::bigint is null or jc.agence_id = %s)
+                          and left(c.numero, 1) in ('3', '4') {"" if vidage else "and e.type <> 'vidage'"} group by 1, 2""", (u["institution_id"], au, agence, agence)):
+        v = int(r["s"])
+        par[r["numero"]][0 if v > 0 else 1] += v
+    return {k: tuple(v) for k, v in par.items() if any(v)}
+
+
 def mouvements_gestion(u, du: date, au: date, *, vidage: bool, agence=None) -> dict:
     """Mouvements nets (débit moins crédit) des comptes de gestion sur la période"""
     return {r["numero"]: int(r["s"]) for r in lignes(
@@ -113,17 +126,19 @@ def nomme(compte: str) -> bool:
     return any(compte.startswith(x) for cote in ("actif", "passif") for p in MODELE["bilan"][cote] for m in ("comptes", "debiteurs", "crediteurs") for x in p.get(m, []))
 
 
-def postes_bilan(s: dict, resultat: int, anterieurs: int, dans) -> dict:
-    """Valeur de chaque poste et détail par compte ; actif : débit moins crédit ; passif : crédit moins débit"""
+def postes_bilan(s: dict, resultat: int, anterieurs: int, dans, parts: dict | None = None) -> dict:
+    """Valeur de chaque poste et détail par compte ; actif : débit moins crédit ; passif : crédit moins débit. parts : soldes débiteurs et créditeurs
+    des comptes de clients et de tiers, rangés chacun de son côté (B1 ; PCCI § 4.3.8)"""
     out = {cote: [{"valeur": 0, "comptes": {}} for _ in MODELE["bilan"][cote]] for cote in ("actif", "passif")}
     hors = []
-    for n, v in s.items():
+    for n, solde in s.items():
         if n[0] not in "12345" or not dans(n):
             continue
-        cote, i = poste_de(n, v)
-        x = v if cote == "actif" else -v
-        out[cote][i]["valeur"] += x
-        out[cote][i]["comptes"][n] = out[cote][i]["comptes"].get(n, 0) + x
+        for v in ([x for x in parts[n] if x] if parts and n in parts else [solde]):
+            cote, i = poste_de(n, v)
+            x = v if cote == "actif" else -v
+            out[cote][i]["valeur"] += x
+            out[cote][i]["comptes"][n] = out[cote][i]["comptes"].get(n, 0) + x
         if not nomme(n):
             hors.append(n)
     for i, p in enumerate(MODELE["bilan"]["passif"]):
@@ -194,8 +209,8 @@ def bilan(u, p) -> dict:
     if (p.get("type") or "developpe") not in TYPES_BILAN:
         raise ErreurMetier("Type de bilan inconnu.")
     agence, vid, dans = agence_de(p), not vrai(p.get("sansVidage")), bornes(p)
-    a = postes_bilan(*soldes(u, au, ex, vidage=vid, agence=agence), dans)
-    b = postes_bilan(*soldes(u, fin_precedent(ex), ex - 1, vidage=vid, agence=agence), dans)
+    a = postes_bilan(*soldes(u, au, ex, vidage=vid, agence=agence), dans, parts_tiers(u, au, vidage=vid, agence=agence))
+    b = postes_bilan(*soldes(u, fin_precedent(ex), ex - 1, vidage=vid, agence=agence), dans, parts_tiers(u, fin_precedent(ex), vidage=vid, agence=agence))
     noms = intitules(u)
     actif, passif = presenter(MODELE["bilan"]["actif"], a["actif"], b["actif"], noms), presenter(MODELE["bilan"]["passif"], a["passif"], b["passif"], noms)
     if p.get("type") == "masses":
@@ -337,8 +352,8 @@ def annexe(u, p) -> dict:
     if a["code"] == "emplois":
         # Variation de chaque poste du bilan entre la veille du début et la fin : un actif qui monte ou un passif qui baisse est un emploi
         tout = lambda n: True
-        deb = postes_bilan(*soldes(u, du - timedelta(days=1), ex, vidage=True, agence=agence), tout)
-        fin = postes_bilan(*soldes(u, au, ex, vidage=True, agence=agence), tout)
+        deb = postes_bilan(*soldes(u, du - timedelta(days=1), ex, vidage=True, agence=agence), tout, parts_tiers(u, du - timedelta(days=1), vidage=True, agence=agence))
+        fin = postes_bilan(*soldes(u, au, ex, vidage=True, agence=agence), tout, parts_tiers(u, au, vidage=True, agence=agence))
         lg = []
         for cote in ("actif", "passif"):
             for i, m in enumerate(MODELE["bilan"][cote]):

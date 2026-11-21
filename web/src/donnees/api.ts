@@ -7486,6 +7486,15 @@ function soldesEf(au: string, ex: number, vidage: boolean) {
   for (const [k, v] of s) if (!v) s.delete(k);
   return { s, resultat, anterieurs };
 }
+/** B1 : pas de compensation entre actif et passif (PCCI § 4.3.8) ; comptes de clients et de tiers (classes 3 et 4) : [débiteurs, créditeurs] par contrat (comme parts_tiers) */
+function partsTiersEf(au: string, vidage: boolean) {
+  const c = new Map<string, number>();
+  for (const { e } of ecrituresDefinitives(null, au, vidage)) for (const l of e.lignes) if ("34".includes(l.compte[0]!)) {
+    const k = `${l.compte}|${l.contrat ?? ""}`; c.set(k, (c.get(k) ?? 0) + (l.sens === "D" ? l.montantCdf : -l.montantCdf)); }
+  const out = new Map<string, [number, number]>();
+  for (const [k, v] of c) { if (!v) continue; const n = k.split("|")[0]!, x = out.get(n) ?? [0, 0]; x[v > 0 ? 0 : 1] += v; out.set(n, x); }
+  return out;
+}
 function mouvementsGestionEf(du: string, au: string, vidage: boolean) {
   const s = new Map<string, number>();
   for (const { e } of ecrituresDefinitives(du, au, vidage)) for (const l of e.lignes) if ("678".includes(l.compte[0]!)) s.set(l.compte, (s.get(l.compte) ?? 0) + (l.sens === "D" ? l.montantCdf : -l.montantCdf));
@@ -7501,13 +7510,15 @@ function posteDe(compte: string, solde: number): [CoteBilan, number] {
   return [cote, ME.bilan[cote].findIndex((p) => p.reste)];
 }
 const nommeEf = (n: string) => (["actif", "passif"] as const).some((c) => ME.bilan[c].some((p) => commence(n, p.comptes) || commence(n, p.debiteurs) || commence(n, p.crediteurs)));
-function postesBilan({ s, resultat, anterieurs }: ReturnType<typeof soldesEf>, dans: (n: string) => boolean) {
+function postesBilan({ s, resultat, anterieurs }: ReturnType<typeof soldesEf>, dans: (n: string) => boolean, parts?: Map<string, [number, number]>) {
   const vide = (c: CoteBilan): ValeurPoste[] => ME.bilan[c].map(() => ({ valeur: 0, comptes: new Map() }));
   const out = { actif: vide("actif"), passif: vide("passif"), hors: [] as string[] };
-  for (const [n, v] of s) {
+  for (const [n, solde] of s) {
     if (!"12345".includes(n[0]!) || !dans(n)) continue;
-    const [cote, i] = posteDe(n, v), x = cote === "actif" ? v : -v, p = out[cote][i]!;
-    p.valeur += x; p.comptes.set(n, (p.comptes.get(n) ?? 0) + x);
+    for (const v of parts?.has(n) ? parts.get(n)!.filter((x) => x) : [solde]) {
+      const [cote, i] = posteDe(n, v), x = cote === "actif" ? v : -v, p = out[cote][i]!;
+      p.valeur += x; p.comptes.set(n, (p.comptes.get(n) ?? 0) + x);
+    }
     if (!nommeEf(n)) out.hors.push(n);
   }
   ME.bilan.passif.forEach((p, i) => { for (const [ok, v, nom] of [[p.resultat, resultat, "Résultat en formation (classes 6, 7 et 8)"], [p.anterieurs, anterieurs, "Résultats antérieurs non clôturés"]] as const)
@@ -7941,7 +7952,7 @@ const etatsFinanciers = {
     const { du, au, ex } = periodeEtat(p), type = p.type || "developpe";
     if (!TYPES_BILAN_EF[type]) throw new ErreurMetier("Type de bilan inconnu.");
     const vid = !p.sansVidage, dans = bornesEf(p), precedent = `${ex - 1}-12-31`, noms = intitulesComptes();
-    const a = postesBilan(soldesEf(au, ex, vid), dans), b = postesBilan(soldesEf(precedent, ex - 1, vid), dans);
+    const a = postesBilan(soldesEf(au, ex, vid), dans, partsTiersEf(au, vid)), b = postesBilan(soldesEf(precedent, ex - 1, vid), dans, partsTiersEf(precedent, vid));
     let actif = presenterEf(ME.bilan.actif, a.actif, b.actif, noms), passif = presenterEf(ME.bilan.passif, a.passif, b.passif, noms);
     if (type === "masses") {      // Par masses : présentation du rapport du commissaire aux comptes (décision du porteur, 21/11/2026 ; registre S122-14)
       const m = bilanRapport({ actif, passif, totalActif: { n: 0, n1: 0 }, totalPassif: { n: 0, n1: 0 } });
@@ -7986,7 +7997,7 @@ const etatsFinanciers = {
     if (a.code === "flux") { const n = fluxPeriode(du, au), n1 = fluxPeriode(anDernier(du), anDernier(au));
       return { ...base, forme: "flux" as const, controle: n.controle, lignes: ME.flux.map((l, i) => ({ libelle: l.titre ?? l.libelle ?? "", titre: !!l.titre, total: !!l.total, n: n.valeurs[i]!, n1: n1.valeurs[i]! })) }; }
     if (a.code === "emplois") {
-      const tout = () => true, deb = postesBilan(soldesEf(veilleEf(du), ex, true), tout), fin = postesBilan(soldesEf(au, ex, true), tout);
+      const tout = () => true, deb = postesBilan(soldesEf(veilleEf(du), ex, true), tout, partsTiersEf(veilleEf(du), true)), fin = postesBilan(soldesEf(au, ex, true), tout, partsTiersEf(au, true));
       const lignes = (["actif", "passif"] as const).flatMap((cote) => ME.bilan[cote].map((m, i) => { const d = fin[cote][i]!.valeur - deb[cote][i]!.valeur, emploi = cote === "actif" ? d : -d;
         return { cote, code: m.code, libelle: m.libelle, debut: deb[cote][i]!.valeur, fin: fin[cote][i]!.valeur, emploi: Math.max(emploi, 0), ressource: Math.max(-emploi, 0) }; }));
       return { ...base, forme: "emplois" as const, lignes, emplois: lignes.reduce((t, x) => t + x.emploi, 0), ressources: lignes.reduce((t, x) => t + x.ressource, 0) };

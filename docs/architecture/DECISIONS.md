@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**909 décisions.** Solidité : 396 fortes (le manuel ou un texte répond), 435 moyennes (déduites d'un écran voisin ou d'une donnée), 78 faibles (notre choix, faute de mieux). Dans le code : 903 déjà en place, 6 à appliquer.
+**910 décisions.** Solidité : 397 fortes (le manuel ou un texte répond), 435 moyennes (déduites d'un écran voisin ou d'une donnée), 78 faibles (notre choix, faute de mieux). Dans le code : 904 déjà en place, 6 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -93,6 +93,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | T78 | Déductions non tenues en comptabilité (SN01 Normes prudentielles) | Ne sont pas déduits, faute de compte qui les isole : les dépôts de garantie sous convention de fusion de compte (art. 15 et 23), les risques sur ressources affectées des bailleurs (loi 002/2002, art. 60, al. 2). La décote de 20 % par an des dettes subordonnées à moins de cinq ans (art. 10) reste à appliquer avec B21 | Texte réglementaire : Instr. BCC 002, art. 10, 15 et 23 ; loi 002/2002, art. 60 | moyenne | en place |
 | T79 | Liquidité de 80 % de la loi 002/2002 (SN01 Normes prudentielles) | Non calculée : l'art. 59, 3° renvoie à une instruction de la BCC pour ses éléments, et l'Instr. BCC 002 définit à la place la liquidité immédiate de 20 % (art. 16 à 18), qui est calculée | Texte réglementaire : Loi 002/2002, art. 59, 3° ; Instr. BCC 002, art. 16 à 18 | moyenne | en place |
 | T80 | Devise la plus utilisée ; produits connexes (SN01 Normes prudentielles) | Devise la plus utilisée (rapport porté à 15 %) : celle dont les mouvements sont les plus forts. Produits connexes : cumul de l'exercice à la date, rapporté aux produits (classe 7) de l'exercice précédent | Texte réglementaire : Instr. BCC 002, art. 39 et 40 | moyenne | en place |
+| T81 | Soldes débiteurs et créditeurs des clients et des tiers (S122 Etats financiers (bilan) ; tableau des flux) | Pour les comptes des classes 3 et 4, le solde de chaque contrat (compte de dépôt, crédit, tiers) est rangé de son côté : les soldes débiteurs à l'actif, les soldes créditeurs au passif, sans compensation dans le compte général. Même règle pour le tableau des flux, tiré des mêmes postes | Texte réglementaire : PCCI § 4.3.8 (principe de non compensation) ; confrontation du 21/11/2026, B1 | forte | en place |
 
 ## S03 Profils : création et modification
 

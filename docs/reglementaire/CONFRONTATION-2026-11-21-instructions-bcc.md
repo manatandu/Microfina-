@@ -412,3 +412,4 @@ Lecture arrêtée le 21/11/2026 à la demande du porteur. Ce qui suit n'est pas 
 - **B6 corrigé** : état « Normes prudentielles » (SN01), toutes les normes de l'Instr. BCC 002 calculées sur la balance (registre T75 à T80).
 - **B5 en partie** : les fonds propres prudentiels sont calculés sur la balance dans SN01 (art. 7 à 11). Les plafonds de crédit (registre CR-2) lisent encore le montant saisi chaque mois par la direction.
 - **B21 reste** : décote des dettes subordonnées (art. 10), notée T78.
+- **B1 corrigé** (PCCI § 4.3.8) : au bilan et au tableau des flux, les soldes débiteurs et créditeurs des clients et des tiers ne se compensent plus (registre T81).

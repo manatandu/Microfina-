@@ -4976,3 +4976,16 @@ def test_normes_prudentielles_etat(clients, journee):
     assert {"solvabilite", "liquidite", "ressources", "immobilisations", "connexes"} <= set(codes)
     assert "Date de l'arrêté" in compta.get("/api/comptabilite/normes-prudentielles?date=", **H).json()["message"]
     assert clients["caisse"].get("/api/comptabilite/normes-prudentielles?date=2026-11-05", **H).status_code == 403
+
+
+def test_bilan_sans_compensation():
+    """B1 (confrontation du 21/11/2026) : PCCI § 4.3.8, un compte de dépôt débiteur chez un client et créditeur chez un autre se range des deux côtés"""
+    from noyau.etats_financiers import poste_de, postes_bilan
+    s = {"3300": -15_000_000}
+    sans = postes_bilan(s, 0, 0, lambda n: True)
+    avec = postes_bilan(s, 0, 0, lambda n: True, {"3300": (5_000_000, -20_000_000)})
+    ca, ia = poste_de("3300", 5_000_000)
+    cp, ip = poste_de("3300", -20_000_000)
+    assert sum(p["valeur"] for p in sans["actif"]) == 0
+    assert (ca, avec["actif"][ia]["valeur"]) == ("actif", 5_000_000) and (cp, avec["passif"][ip]["valeur"]) == ("passif", 20_000_000)
+    assert sum(p["valeur"] for p in avec["passif"]) - sum(p["valeur"] for p in avec["actif"]) == 15_000_000
