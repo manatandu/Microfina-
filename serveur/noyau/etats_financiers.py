@@ -180,7 +180,9 @@ def masses(actif: list, passif: list) -> tuple[list, list]:
                 v = [somme(hors, [""], "d" if nom == "actif" else "c", k) for k in (0, 1)]
                 if v[0] or v[1]:
                     lignes.append({"compte": "", "intitule": "Autres comptes", "n": v[0], "n1": v[1], "retranche": False})
-            out.append({"code": "", "libelle": sec["titre"], "comptes": lignes, **{k: sum(-l[k] if l["retranche"] else l[k] for l in lignes) for k in ("n", "n1")}})
+            tot = {k: sum(-l[k] if l["retranche"] else l[k] for l in lignes) for k in ("n", "n1")}
+            out.append({"code": "", "libelle": sec["titre"], **tot,                  # lignes à zéro sur N et N-1 masquées (registre S122-14)
+                        "comptes": [{k: l[k] for k in ("compte", "intitule", "n", "n1")} for l in lignes if l["n"] or l["n1"]]})
         return out
     return cote("actif"), cote("passif")
 

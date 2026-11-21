@@ -7071,7 +7071,7 @@ const etatsFinanciers = {
     if (type === "masses") {      // Par masses : présentation du rapport du commissaire aux comptes (décision du porteur, 21/11/2026 ; registre S122-14)
       const m = bilanRapport({ actif, passif, totalActif: { n: 0, n1: 0 }, totalPassif: { n: 0, n1: 0 } });
       const vers = (c: typeof m.actif) => c.sections.map((sec) => ({ code: "", libelle: sec.titre, n: sec.n, n1: sec.n1,
-        comptes: sec.lignes.map((l) => ({ compte: /^\((.+?)\)/.exec(l.libelle)?.[1] ?? "", intitule: l.libelle.replace(/^\(.+?\) /, ""), n: l.n, n1: l.n1 })) }));
+        comptes: sec.lignes.filter((l) => l.n !== 0 || l.n1 !== 0).map((l) => ({ compte: /^\((.+?)\)/.exec(l.libelle)?.[1] ?? "", intitule: l.libelle.replace(/^\(.+?\) /, ""), n: l.n, n1: l.n1 })) }));
       actif = vers(m.actif); passif = vers(m.passif);
     }
     const tot = (x: typeof actif) => ({ n: x.reduce((t, y) => t + y.n, 0), n1: x.reduce((t, y) => t + y.n1, 0) }), totalActif = tot(actif), totalPassif = tot(passif);

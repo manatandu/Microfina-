@@ -76,7 +76,8 @@ function EditionBilan({ ctx, jour }: { ctx: Ctx; jour: string }) {
   const table = (titre: string, postes: Bilan["actif"], total: { n: number; n1: number }) => <table className="grille"><caption>{titre}</caption>
     <thead><tr><th scope="col">N°</th><th scope="col">{titre}</th><th scope="col" className="num">N</th><th scope="col" className="num">N - 1</th></tr></thead>
     <tbody>{postes.flatMap((x) => [<tr key={x.code || x.libelle}><td className="chiffres">{x.code ? `${x.code}.` : ""}</td><th scope="row">{x.libelle}</th><td className="num chiffres">{n(x.n)}</td><td className="num chiffres">{n(x.n1)}</td></tr>,
-      ...(detail ? lignesDetail(x.comptes, x.code) : [])])}</tbody>
+      ...(r?.type === "masses" ? x.comptes.map((c, i) => <tr key={`${x.libelle}-${i}`} className="muet"><td className="chiffres">{c.compte}</td><td>{c.intitule}</td>
+        <td className="num chiffres">{n(c.n)}</td><td className="num chiffres">{n(c.n1)}</td></tr>) : detail ? lignesDetail(x.comptes, x.code) : [])])}</tbody>
     <tfoot><tr><td></td><th scope="row">TOTAL {titre}</th><td className="num chiffres"><strong>{n(total.n)}</strong></td><td className="num chiffres"><strong>{n(total.n1)}</strong></td></tr></tfoot></table>;
   const exporter = () => r && exporterExcel("Bilan", ["Côté", "N°", "Poste", "Compte", "N", "N - 1"], (["actif", "passif"] as const).flatMap((c) => r[c].flatMap((x) => [
     [c === "actif" ? "ACTIF" : "PASSIF", x.code, x.libelle, "", x.n / 100, x.n1 / 100], ...(detail ? x.comptes.map((k) => ["", "", k.intitule, k.compte, k.n / 100, k.n1 / 100]) : [])])));

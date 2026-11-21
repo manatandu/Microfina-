@@ -3089,6 +3089,8 @@ describe("journée de guichet", () => {
     expect(autres(b).n - autres(avant).n).toBe(300000);   // la journée pas encore comptabilisée ne comptait pas (T13)
     const m = await api.etatsFinanciers.bilan({ ...q, type: "masses" });   // Par masses (registre S122-14) : quatre masses, total identique
     expect([m.actif.length, m.passif.length, m.equilibre, m.totalActif.n]).toEqual([4, 4, true, b.totalActif.n]);
+    expect(m.actif.concat(m.passif).every((x) => x.comptes.every((c) => c.n !== 0 || c.n1 !== 0))).toBe(true);
+    expect(m.actif[0]!.comptes.find((c) => c.compte === "57")?.intitule).toBe("Caisse");
     expect(ctx.typesResultat.map((x) => x.code)).toEqual(["developpe", "modele"]);
     const r = await api.etatsFinanciers.resultat({ ...q, sansVidage: true });
     expect([r.lignes.length, r.lignes[8]!.libelle, r.lignes.at(-1)!.libelle]).toEqual([25, "Produit Net Financier", "Résultat net de l'exercice"]);
