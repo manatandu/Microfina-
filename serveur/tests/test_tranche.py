@@ -297,6 +297,20 @@ def test_refus_client(clients, journee):
     assert "pas en attente" in clients["chef"].post(f"/api/tiers/{t['id']}/visa", {}, **H).json()["message"]
 
 
+def test_frais_apparente(clients, journee):
+    """P2 : pas de conditions plus avantageuses pour un dirigeant, un salarié ou une personne liée (loi 002/2002, art. 52)"""
+    from noyau.bd import executer
+    agent, chef = clients["agent"], clients["chef"]
+    t = agent.post("/api/tiers", {**FICHE, "nom": "Apparenté", "pieceType": "Passeport", "pieceNumero": "AP1"}, **H).json()
+    assert chef.post(f"/api/tiers/{t['id']}/visa", {}, **H).status_code == 200
+    f = chef.post("/api/parametrage/frais", {"typeOperation": "ADHESION", "libelle": "Droit d'entrée", "fondement": "droit_adhesion"}, **H).json()
+    chef.post("/api/parametrage/frais-adhesion", {"fraisId": f["id"], "nature": "Montant", "valeur": 200000, "compte": "728", "typesMembre": ["Physique"]}, **H)
+    executer("update tiers set apparente = 'personnel' where id = %s", (t["id"],))
+    r = chef.post(f"/api/tiers/{t['id']}/frais", {"frais": [{"fraisId": f["id"], "montant": 100000}]}, **H)
+    assert r.status_code == 422 and "art. 52" in r.json()["message"], r.content
+    assert chef.post(f"/api/tiers/{t['id']}/frais", {"frais": [{"fraisId": f["id"], "montant": 250000}]}, **H).status_code == 200
+
+
 def test_piece_admise(clients, journee):
     r = clients["agent"].post("/api/tiers", {**FICHE, "nom": "X", "pieceType": "Carte de membre", "pieceNumero": "1"}, **H)
     assert r.status_code == 422 and "art. 14" in r.json()["message"]

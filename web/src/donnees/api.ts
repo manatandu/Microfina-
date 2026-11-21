@@ -1259,6 +1259,11 @@ const parametrage = {
     for (const l of frais) {
       if (!lies.includes(l.fraisId)) throw new ErreurMetier("Ce frais n'est pas lié à ce client.");
       if (!Number.isInteger(l.montant) || l.montant < 0) throw new ErreurMetier("Montant invalide.");
+      // P2 : pas de conditions plus avantageuses pour un apparenté (loi 002/2002, art. 52). Comme le serveur.
+      const typeMembre = t.type === "physique" ? "Physique" : t.type === "morale" ? "Personne morale" : "Groupe";
+      const base = E.paramAdhesion.find((p) => p.fraisId === l.fraisId && p.typeMembre === typeMembre)?.valeur;
+      if (t.apparente && base != null && l.montant < base)
+        throw new ErreurMetier("Personne apparentée (dirigeant, salarié ou personne liée) : pas de frais plus avantageux que pour les autres membres (loi 002/2002, art. 52).");
     }
     for (const l of frais) {
       const x = E.fraisClient.find((y) => y.tiersId === tiersId && y.fraisId === l.fraisId);

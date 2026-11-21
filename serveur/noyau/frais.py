@@ -269,12 +269,19 @@ def modifier_frais_client(u, tid: int, d) -> list[dict]:
     lignes_ = d.get("frais") if isinstance(d, dict) else None
     if not isinstance(lignes_, list) or not lignes_:
         raise ErreurMetier("Aucun frais à modifier.")
+    # P2 : un dirigeant, un salarié ou une personne liée à un dirigeant n'obtient pas de conditions plus avantageuses que les autres membres
+    # (loi 002/2002, art. 52) : pas de frais réduit pour un apparenté (registre CR-3)
+    apparente = valeur("select apparente from tiers where id = %s", (tid,))
+    base = {r["frais_id"]: r["valeur"] for r in lignes("""select p.frais_id, p.valeur from parametrage_frais_adhesion p join tiers t on t.type = p.type_membre
+                                                           where t.id = %s and p.supprime_le is null""", (tid,))}
     for l in lignes_:
         fid, m = (l or {}).get("fraisId"), (l or {}).get("montant")
         if fid not in lies:
             raise ErreurMetier("Ce frais n'est pas lié à ce client.")
         if not isinstance(m, int) or isinstance(m, bool) or m < 0:
             raise ErreurMetier("Montant invalide.")
+        if apparente and base.get(fid) is not None and m < base[fid]:
+            raise ErreurMetier("Personne apparentée (dirigeant, salarié ou personne liée) : pas de frais plus avantageux que pour les autres membres (loi 002/2002, art. 52).")
     for l in lignes_:
         executer("""insert into frais_client (tiers_id, frais_id, montant, modifie_par) values (%s, %s, %s, %s)
                     on conflict (tiers_id, frais_id) do update set montant = excluded.montant, modifie_par = excluded.modifie_par, modifie_le = now()""",
