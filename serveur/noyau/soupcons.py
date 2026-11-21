@@ -79,6 +79,10 @@ def enregistrer(u: dict, d: dict) -> dict:
     sid = valeur("""insert into declaration_soupcon (institution_id, numero, tiers_id, nature, description, personnes, raisons, delai, transmise_le, moyen, saisi_par)
                     values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
                  (u["institution_id"], n, tid, t("nature"), t("description"), t("personnes"), t("raisons"), t("delai") or None, t("transmiseLe"), t("moyen"), u["id"]))
+    # P9 : la déclaration faite, les opérations du client mises en attente peuvent reprendre (loi 22/068, art. 92)
+    if tid:
+        executer("""update attente_soupcon set levee_le = now(), levee_motif = %s, levee_par = %s, soupcon_id = %s where tiers_id = %s and levee_le is null""",
+                 (f"Déclaration de soupçon n° {n} transmise le {t('transmiseLe')}", u["id"], sid, tid))
     return _vue(une("select * from declaration_soupcon where id = %s", (sid,)))
 
 
@@ -115,3 +119,56 @@ def suivre(u: dict, sid: int, d: dict) -> dict:
     else:
         raise ErreurMetier("Rien à noter.")
     return _vue(une("select * from declaration_soupcon where id = %s", (sid,)))
+
+
+# ---------- P9 : mise en attente des opérations soupçonnées (confrontation du 21/11/2026) ----------
+def _vue_attente(x: dict) -> dict:
+    membre, client = _client(x["tiers_id"])
+    return {"id": x["id"], "membre": membre, "client": client, "motif": x["motif"], "miseLe": x["mise_le"].date().isoformat(), "misePar": nom_utilisateur(x["mise_par"]),
+            "leveeLe": x["levee_le"].date().isoformat() if x["levee_le"] else "", "leveeMotif": x["levee_motif"] or "",
+            "leveePar": nom_utilisateur(x["levee_par"]) if x["levee_par"] else ""}
+
+
+def attentes(u: dict) -> list[dict]:
+    exiger(u)
+    return [_vue_attente(x) for x in lignes("select * from attente_soupcon where institution_id = %s order by levee_le is not null, mise_le desc, id desc", (u["institution_id"],))]
+
+
+def mettre_en_attente(u: dict, d: dict) -> dict:
+    """La conformité suspend les sorties de fonds du client jusqu'à la déclaration (art. 92). Confidentiel : le client n'en est pas informé (art. 93)."""
+    exiger(u)
+    d = d if isinstance(d, dict) else {}
+    membre, motif = str(d.get("membre") or "").strip(), str(d.get("motif") or "").strip()
+    if not membre or not motif:
+        raise ErreurMetier("À remplir : N° client et motif du soupçon.")
+    tid = valeur("select id from tiers where institution_id = %s and numero = %s", (u["institution_id"], membre))
+    if tid is None:
+        raise ErreurMetier("N° client inconnu.")
+    if valeur("select 1 from attente_soupcon where tiers_id = %s and levee_le is null", (tid,)):
+        raise ErreurMetier("Les opérations de ce client sont déjà en attente.")
+    aid = valeur("insert into attente_soupcon (institution_id, tiers_id, motif, mise_par) values (%s, %s, %s, %s) returning id", (u["institution_id"], tid, motif, u["id"]))
+    return _vue_attente(une("select * from attente_soupcon where id = %s", (aid,)))
+
+
+def lever_attente(u: dict, aid: int, d: dict) -> dict:
+    """Soupçon écarté après examen : les opérations reprennent ; le motif reste"""
+    exiger(u)
+    d = d if isinstance(d, dict) else {}
+    x = une("select * from attente_soupcon where id = %s and institution_id = %s for update", (aid, u["institution_id"]))
+    if not x:
+        raise ErreurMetier("Mise en attente introuvable.")
+    if x["levee_le"]:
+        raise ErreurMetier("Mise en attente déjà levée.")
+    motif = str(d.get("motif") or "").strip()
+    if not motif:
+        raise ErreurMetier("À remplir : motif de la levée (soupçon écarté après examen).")
+    executer("update attente_soupcon set levee_le = now(), levee_motif = %s, levee_par = %s where id = %s", (motif, u["id"], aid))
+    return _vue_attente(une("select * from attente_soupcon where id = %s", (aid,)))
+
+
+def controler_attente(tid: int) -> None:
+    """Appelé à chaque sortie de fonds d'un compte de dépôt ou des parts du client (poster)"""
+    x = une("select mise_le from attente_soupcon where tiers_id = %s and levee_le is null", (tid,))
+    if x:
+        raise ErreurMetier("Opérations du client en attente : opération soupçonnée, à déclarer d'abord à la CENAREF (loi 22/068, art. 92). "
+                           "Client > Conformité > Examen renforcé, onglet Déclarations de soupçon.")

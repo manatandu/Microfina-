@@ -100,7 +100,51 @@ export default function DeclarationsSoupcon({ jour }: { jour: string }) {
           <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setChoisi(null)}>Fermer</button></div>
         </div>}
       </Fiche>
+      <Attentes />
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </section>
+  );
+}
+
+/** P9 (confrontation du 21/11/2026) : l'assujetti s'abstient de l'opération soupçonnée jusqu'à la déclaration (loi 22/068, art. 92 ; Instr. BCC 15, art. 36).
+ * Les sorties de fonds du client attendent ; la déclaration enregistrée ci-dessus les libère, ou la levée d'un soupçon écarté. */
+function Attentes() {
+  const [relu, setRelu] = useState(0);
+  const { donnees } = useDonnees(() => api.conformite.attentes(), [relu]);
+  const [f, setF] = useState({ membre: "", motif: "" });
+  const [levee, setLevee] = useState<{ id: number; motif: string } | null>(null);
+  const [boite, setBoite] = useState<Boite | null>(null);
+  if (!donnees) return <Chargement />;
+  const agir = (msg: string, appel: () => Promise<unknown>, apres: () => void) => setBoite({ type: "confirmation", message: msg, oui: async () => {
+    try { await appel(); apres(); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+  } });
+  return (
+    <>
+      <h2>Opérations en attente de la déclaration</h2>
+      <div className="formulaire">
+        <Champ libelle="N° client : *">{(p) => <input {...p} className="saisie code" value={f.membre} onChange={(e) => setF({ ...f, membre: e.target.value })} />}</Champ>
+        <Champ libelle="Motif du soupçon : *">{(p) => <input {...p} className="saisie" value={f.motif} onChange={(e) => setF({ ...f, motif: e.target.value })} />}</Champ>
+        <div className="champ"><span className="libelle-vide" aria-hidden="true">&nbsp;</span><button className="bouton" type="button"
+          onClick={() => agir("Voulez-vous vraiment mettre en attente les sorties de fonds de ce client ?", () => api.conformite.mettreEnAttente(f), () => setF({ membre: "", motif: "" }))}>Mettre en attente</button></div>
+      </div>
+      <table className="grille" aria-label="Opérations en attente">
+        <thead><tr><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Motif</th><th scope="col">Depuis le</th><th scope="col">Levée</th><th scope="col"><span className="sr-only">Action</span></th></tr></thead>
+        <tbody>
+          {donnees.length === 0 && <tr><td colSpan={6}>Aucune</td></tr>}
+          {donnees.map((x) => <tr key={x.id}><td className="chiffres">{x.membre}</td><td>{x.client}</td><td>{x.motif}</td><td className="chiffres">{fr(x.miseLe)}</td>
+            <td>{x.leveeLe ? `${fr(x.leveeLe)} : ${x.leveeMotif}` : "En attente"}</td>
+            <td>{!x.leveeLe && <button className="bouton secondaire" type="button" onClick={() => setLevee({ id: x.id, motif: "" })}>Lever</button>}</td></tr>)}
+        </tbody>
+      </table>
+      {levee && <fieldset className="pile cadre-champs">
+        <legend>Lever la mise en attente (soupçon écarté)</legend>
+        <Champ libelle="Motif de la levée : *">{(p) => <input {...p} className="saisie" value={levee.motif} onChange={(e) => setLevee({ ...levee, motif: e.target.value })} />}</Champ>
+        <div className="actions-onglets">
+          <button className="bouton" type="button" onClick={() => agir("Voulez-vous vraiment lever la mise en attente ?", () => api.conformite.leverAttente(levee.id, { motif: levee.motif }), () => setLevee(null))}>Lever</button>
+          <button className="bouton secondaire" type="button" onClick={() => setLevee(null)}>Annuler</button>
+        </div>
+      </fieldset>}
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </>
   );
 }

@@ -71,6 +71,7 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/conformite/reporting-mensuel", ["SC01"]),
     (r"/conformite/systematiques/declarations", ["SC01"]),
     (r"/conformite/soupcons(/\d+/suivi)?", ["SC01"]),
+    (r"/conformite/attentes(/\d+/levee)?", ["SC01"]),
     (r"/epargne/inactifs/\d+/lettre", ["SE01"]),
     (r"/comptabilite/retenues/reversements", ["SF01"]),
     (r"/conformite/cip/(declarations|icu/\d+)", ["SC02"]),
@@ -226,7 +227,7 @@ LECTURES_ADMIN = [(re.compile(m), e) for m, e in [
     (r"/droits", ["S04"]),
     (r"/paie/.*", ["S132", "S133", "S134", "S135"]),
     (r"/immobilisations/.*", ["S137", "S138", "S139", "S140"]),         # données personnelles des employés : lecture avec le droit de l'écran (registre T27)
-    (r"/conformite/(examens|ppe|profils|atypiques|gels|systematiques|soupcons).*", ["SC01"]),    # confidentiel : Instr. BCC 15, art. 62
+    (r"/conformite/(examens|ppe|profils|atypiques|gels|systematiques|soupcons|attentes|listes-gel|correspondances-gel|reporting-mensuel).*", ["SC01"]),    # confidentiel : Instr. BCC 15, art. 62
     (r"/conformite/cip.*", ["SC02"]),
     (r"/conformite/centrale-risques.*", ["SC05"]),
     (r"/epargne/inactifs.*", ["SE01"]),

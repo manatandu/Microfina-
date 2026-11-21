@@ -158,7 +158,7 @@ function poster(e: Omit<Ecriture, "id" | "numero">): Ecriture {
     if (x.sens !== "D") continue;
     const dep = /^depot:(\d+)$/.exec(x.contrat ?? "")?.[1], parts = /^parts:(\d+)$/.exec(x.contrat ?? "")?.[1];
     const tid = dep ? E.comptes.find((c) => c.id === Number(dep))?.tiersId : parts ? Number(parts) : undefined;
-    if (tid !== undefined) controlerGel(tid);
+    if (tid !== undefined) { controlerGel(tid); controlerAttente(tid); }   // P9 : opération soupçonnée en attente de la déclaration
   }
   const id = prochain(E.ecritures);
   const ecr: Ecriture = Object.freeze({ ...e, id, numero: `${e.journal}-${j.date.slice(0, 4)}-${String(id).padStart(6, "0")}`, lignes: Object.freeze(l.map((x) => Object.freeze({ ...x }))) });
@@ -4877,6 +4877,11 @@ const inactifs = {
 // Écart E10 : gel des avoirs (loi 22/068 modifiée, art. 121, 158, 158 bis, 162 ; loi 22/069, art. 71 à 77 ; Instr. BCC 15, art. 42). Mêmes règles que noyau/gel.py.
 const SOURCES_GEL: Record<GelAvoirs["source"], string> = { onu: "Conseil de sécurité des Nations Unies", conasafic: "Liste nationale (CONASAFIC)", bcc: "Banque Centrale du Congo", judiciaire: "Ministère public ou CENAREF" };
 const DATE_ISO = /^\d{4}-\d{2}-\d{2}$/;
+/** P9 : sortie de fonds d'un client dont les opérations sont en attente de la déclaration de soupçon (loi 22/068, art. 92). Comme le serveur (controler_attente). */
+function controlerAttente(tid: number) {
+  if ((E.attentesSoupcon ?? []).some((a) => a.tiersId === tid && !a.leveeLe))
+    throw new ErreurMetier("Opérations du client en attente : opération soupçonnée, à déclarer d'abord à la CENAREF (loi 22/068, art. 92). Client > Conformité > Examen renforcé, onglet Déclarations de soupçon.");
+}
 function controlerGel(tid: number) {
   const g = E.gels.find((x) => x.tiersId === tid && !x.leveLe);
   // A14 : la tentative reste au journal de sécurité (loi 22/068, art. 162, al. 2). Comme le serveur (gel.controler_gel).
@@ -5519,7 +5524,37 @@ const soupcons = {
     const x = { id: prochain(liste), numero: liste.reduce((m, y) => Math.max(m, y.numero), 0) + 1, tiersId, nature: t(d.nature) as "operation" | "tentative", description: t(d.description),
       personnes: t(d.personnes), raisons: t(d.raisons), delai: t(d.delai), transmiseLe: t(d.transmiseLe), moyen: t(d.moyen) as keyof typeof MOYENS_SOUPCON, confirmeeLe: "", accuseReference: "", accuseLe: "",
       saisiPar: u.id };
-    liste.push(x); enregistrer(); return soupcons.vue(x);
+    liste.push(x);
+    // P9 : la déclaration faite, les opérations mises en attente reprennent (loi 22/068, art. 92). Comme le serveur.
+    if (tiersId) for (const a of (E.attentesSoupcon ?? []).filter((y) => y.tiersId === tiersId && !y.leveeLe))
+      Object.assign(a, { leveeLe: new Date().toISOString().slice(0, 10), leveeMotif: `Déclaration de soupçon n° ${x.numero} transmise le ${x.transmiseLe}`, leveePar: u.id });
+    enregistrer(); return soupcons.vue(x);
+  },
+  // ---------- P9 : mise en attente des opérations soupçonnées (confrontation du 21/11/2026). Mêmes règles que noyau/soupcons.py. ----------
+  attentes() {
+    lectureAdmin(["SC01"]);
+    return [...(E.attentesSoupcon ?? [])].sort((a, b) => Number(!!a.leveeLe) - Number(!!b.leveeLe) || b.miseLe.localeCompare(a.miseLe) || b.id - a.id).map((a) => {
+      const t = E.tiers.find((y) => y.id === a.tiersId)!;
+      return { id: a.id, membre: t.numero, client: titulaire(t), motif: a.motif, miseLe: a.miseLe, misePar: nomUtilisateur(a.misePar), leveeLe: a.leveeLe, leveeMotif: a.leveeMotif,
+        leveePar: nomUtilisateur(a.leveePar ?? undefined) };
+    });
+  },
+  mettreEnAttente(d: { membre?: string; motif?: string }) {
+    const u = exiger();
+    const membre = (d.membre ?? "").trim(), motif = (d.motif ?? "").trim();
+    if (!membre || !motif) throw new ErreurMetier("À remplir : N° client et motif du soupçon.");
+    const t = E.tiers.find((y) => y.numero === membre); if (!t) throw new ErreurMetier("N° client inconnu.");
+    if ((E.attentesSoupcon ?? []).some((a) => a.tiersId === t.id && !a.leveeLe)) throw new ErreurMetier("Les opérations de ce client sont déjà en attente.");
+    const a = { id: prochain(E.attentesSoupcon ?? []), tiersId: t.id, motif, miseLe: new Date().toISOString().slice(0, 10), misePar: u.id, leveeLe: "", leveeMotif: "", leveePar: null };
+    (E.attentesSoupcon ??= []).push(a); enregistrer(); return soupcons.attentes().find((x) => x.id === a.id)!;
+  },
+  /** Soupçon écarté après examen : les opérations reprennent ; le motif reste */
+  leverAttente(id: number, d: { motif?: string }) {
+    const u = exiger();
+    const a = (E.attentesSoupcon ?? []).find((y) => y.id === id); if (!a) throw new ErreurMetier("Mise en attente introuvable.");
+    if (a.leveeLe) throw new ErreurMetier("Mise en attente déjà levée.");
+    const motif = (d.motif ?? "").trim(); if (!motif) throw new ErreurMetier("À remplir : motif de la levée (soupçon écarté après examen).");
+    Object.assign(a, { leveeLe: new Date().toISOString().slice(0, 10), leveeMotif: motif, leveePar: u.id }); enregistrer(); return soupcons.attentes().find((x) => x.id === id)!;
   },
   /** Après la transmission : confirmation écrite d'une déclaration faite par téléphone, puis accusé de réception de la CENAREF (art. 94) */
   suivre(id: number, d: { confirmeeLe?: string; accuseLe?: string; accuseReference?: string }) {
@@ -5606,6 +5641,9 @@ const conformite = {
   enregistrerReportingMensuel: (d: { annee: number; mois: number; saisies: Record<string, string> }) => reportingLcb.enregistrer(d),
   soupcons: () => soupcons.lister(),
   declarerSoupcon: (d: Parameters<typeof soupcons.enregistrer>[0]) => soupcons.enregistrer(d),
+  attentes: () => soupcons.attentes(),
+  mettreEnAttente: (d: { membre?: string; motif?: string }) => soupcons.mettreEnAttente(d),
+  leverAttente: (id: number, d: { motif?: string }) => soupcons.leverAttente(id, d),
   suivreSoupcon: (id: number, d: Parameters<typeof soupcons.suivre>[1]) => soupcons.suivre(id, d),
   systematiques: (annee: number, mois: number) => declarationsSystematiques.etat(annee, mois),
   declarerSystematique: (d: { tiersId: number; annee: number; mois: number; sens: string; date: string; reference: string }) => declarationsSystematiques.declarer(d),

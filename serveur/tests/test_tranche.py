@@ -3167,6 +3167,22 @@ def test_reporting_lcb_mensuel(clients, journee):
     assert clients["agent"].post("/api/conformite/reporting-mensuel", {"annee": 2026, "mois": 11, "saisies": {}}, **H).status_code == 403
 
 
+def test_attente_operation_soupconnee(clients, journee):
+    """P9 : l'assujetti s'abstient de l'opération soupçonnée jusqu'à la déclaration (loi 22/068, art. 92) : mise en attente, puis déclaration qui libère"""
+    chef, caisse = clients["chef"], clients["caisse"]
+    a = chef.post("/api/conformite/attentes", {"membre": "0412-000318", "motif": "Virements entrants sans lien avec l'activité"}, **H).json()
+    assert "déjà en attente" in chef.post("/api/conformite/attentes", {"membre": "0412-000318", "motif": "x"}, **H).json()["message"]
+    retrait = {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}}
+    r = caisse.post("/api/guichet/retraits", retrait, **H); assert r.status_code == 422 and "en attente" in r.json()["message"], r.content
+    assert caisse.post("/api/guichet/depots", {**retrait, "cle": cle(), "mandataire": ""}, **H).status_code == 200      # l'entrée de fonds passe
+    chef.post("/api/conformite/soupcons", {"nature": "operation", "description": "Virements", "personnes": "Kalala", "raisons": "Sans lien avec l'activité",
+                                           "membre": "0412-000318", "transmiseLe": "2026-11-05", "moyen": "ecrit"}, **H)
+    l = next(x for x in chef.get("/api/conformite/attentes", **H).json() if x["id"] == a["id"])
+    assert l["leveeLe"] and "Déclaration de soupçon" in l["leveeMotif"], l
+    assert caisse.post("/api/guichet/retraits", {**retrait, "cle": cle()}, **H).status_code == 200
+    assert clients["agent"].post("/api/conformite/attentes", {"membre": "0412-000318", "motif": "x"}, **H).status_code == 403
+
+
 def test_arrondi_des_contre_valeurs(clients, journee):
     """PCCI § 7.1 ; décision du porteur du 21/11/2026 (registre T37) : arrondir chaque ligne en devise peut laisser un centime entre débits et crédits
     en CDF ; il va au compte 474 « Compte d'ajustement », l'écriture n'est plus refusée. Un vrai déséquilibre reste refusé par la base."""

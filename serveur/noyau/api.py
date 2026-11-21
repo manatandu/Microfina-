@@ -2677,6 +2677,21 @@ def conformite_soupcon_enregistrer(request, corps: dict = Body(...)):
     return sou.enregistrer(u(request), corps)
 
 
+@api.get("/conformite/attentes")
+def conformite_attentes(request):
+    return sou.attentes(u(request))
+
+
+@api.post("/conformite/attentes")
+def conformite_attente(request, corps: dict = Body(...)):
+    return sou.mettre_en_attente(u(request), corps)
+
+
+@api.post("/conformite/attentes/{aid}/levee")
+def conformite_attente_levee(request, aid: int, corps: dict = Body(...)):
+    return sou.lever_attente(u(request), aid, corps)
+
+
 @api.post("/conformite/soupcons/{sid}/suivi")
 def conformite_soupcon_suivre(request, sid: int, corps: dict = Body(...)):
     return sou.suivre(u(request), sid, corps)

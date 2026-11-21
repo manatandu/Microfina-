@@ -162,7 +162,13 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "conformite.informerPpe": [
 "SC01"
 ],
+"conformite.leverAttente": [
+"SC01"
+],
 "conformite.leverGel": [
+"SC01"
+],
+"conformite.mettreEnAttente": [
 "SC01"
 ],
 "conformite.noterIcu": [

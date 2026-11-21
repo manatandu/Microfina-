@@ -377,6 +377,8 @@ export interface Etat {
   // A13 : listes de désignation importées et correspondances avec les clients (loi 22/068, art. 158 bis, 161 bis, 168 bis)
   // A1 : affectation du résultat d'un exercice clôturé (loi 002/2002, art. 59, 1° ; Instr. BCC 002, art. 19 à 21)
   affectationsResultat?: { exercice: number; resultat: number; decisionReference: string; decisionLe: string; lignes: { compte: string; sens: "D" | "C"; montant: number }[]; saisiPar: number }[];
+  // P9 : opérations d'un client en attente de la déclaration de soupçon (loi 22/068, art. 92)
+  attentesSoupcon?: { id: number; tiersId: number; motif: string; miseLe: string; misePar: number; leveeLe: string; leveeMotif: string; leveePar: number | null }[];
   reportingLcb?: { annee: number; mois: number; tableau: string; code: string; valeur: string }[];   // A11 : cellules saisies du reporting LCB-FT mensuel
   listesGel?: { imports: { id: number; source: "onu" | "conasafic"; reference: string; publieLe: string; lignes: number; importePar: number; importeLe: string }[];
     entrees: { id: number; importId: number; source: "onu" | "conasafic"; nom: string; autresNoms: string; naissance: string; piece: string; reference: string; designeLe: string; actif: boolean }[];
