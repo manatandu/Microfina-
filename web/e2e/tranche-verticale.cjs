@@ -74,17 +74,20 @@ const OUT = process.argv[2];
   await budget('Plan budgétaire'); await p.getByLabel('Année *').selectOption({ label: '2026' }); await p.getByLabel('Code *').fill('2026-PL');
   await p.getByLabel('Libellé Plan *').fill('PLAN BUDGETAIRE ANNEE 2026'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: 'PLAN BUDGETAIRE ANNEE 2026' }).waitFor(); await etape('02f6-budget-plan');
-  // Chef : localisation sur un seul écran (S20, registre S20-10) : l'arbre de la RDC ; Businga et ses quatre entités ; une ville ajoutée sous sa province
-  await aller('/parametrage/s20'); await p.getByRole('tree', { name: 'Lieux' }).waitFor();
-  await p.getByLabel('Rechercher un lieu').fill('Businga'); await p.getByRole('list', { name: 'Lieux trouvés' }).getByRole('button', { name: /^Businga \(Territoire\)/ }).click();
-  for (const e of ['Businga Commune', 'Bodangabo Secteur', 'Businga Secteur', 'Karawa Secteur']) await p.getByRole('tree', { name: 'Lieux' }).getByRole('button', { name: e, exact: true }).waitFor();
-  await etape('02f7-localisation-arbre');
-  await p.getByLabel('Rechercher un lieu').fill('Nord-Kivu'); await p.getByRole('list', { name: 'Lieux trouvés' }).getByRole('button', { name: /^Nord-Kivu/ }).click();
+  // Chef : localisation en un seul formulaire pas à pas (S20, registre S20-10) : Nord-Ubangi, territoire de Businga et ses quatre entités ; une ville ajoutée
+  await aller('/parametrage/s20'); await p.getByLabel('Province :').selectOption({ label: 'Nord-Ubangi' });
+  await p.getByLabel('Ville ou territoire :').selectOption({ label: 'Businga' });
+  const contenu = (nom) => p.getByRole('table', { name: `Contenu de ${nom}` });
+  for (const e of ['Bodangabo', 'Karawa']) await contenu('Businga').getByRole('cell', { name: e, exact: true }).waitFor();
+  if ((await contenu('Businga').locator('tbody tr').count()) !== 4) throw new Error('S20 : Businga doit avoir une commune et trois secteurs');
+  await etape('02f7-localisation-businga');
+  await p.getByLabel('Province :').selectOption({ label: 'Nord-Kivu' });
   await p.getByLabel('Nom du nouveau lieu *').fill('Mutiri'); await p.getByLabel('Nature du nouveau lieu *').selectOption('Ville');
   await p.getByRole('button', { name: 'Ajouter', exact: true }).click(); await oui();
-  await p.getByRole('treeitem', { name: 'Mutiri (Ville)' }).waitFor(); await etape('02f7b-localisation-ville');
-  await p.getByLabel('Rechercher un lieu').fill('Kinsaku'); await p.getByRole('list', { name: 'Lieux trouvés' }).getByRole('button', { name: /^Kinsaku/ }).click();
-  await p.getByRole('heading', { name: 'Kinsaku' }).waitFor(); await etape('02f8-localisation-quartier');
+  await contenu('Nord-Kivu').getByRole('cell', { name: 'Mutiri', exact: true }).waitFor(); await etape('02f7b-localisation-ville');
+  await p.getByLabel('Province :').selectOption({ label: 'Kinshasa' }); await p.getByLabel('Ville ou territoire :').selectOption({ label: 'Kinshasa' });
+  await p.getByLabel('Commune, secteur ou chefferie :').selectOption({ label: 'Matete' });
+  await contenu('Matete').getByRole('cell', { name: 'Kinsaku', exact: true }).waitFor(); await etape('02f8-localisation-quartier');
   // Chef : référentiel crédit (S21, p. 32 à 36) : un cycle, puis Degré Crédit (Instr. BCC 003)
   await aller('/parametrage/s21'); await p.getByRole('tab', { name: 'Cycle Credit' }).click(); await p.getByLabel('Libellé *').waitFor();
   await p.getByLabel('Code *').fill('C03'); await p.getByLabel('Libellé *').fill('TROISIEME CYCLE'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
