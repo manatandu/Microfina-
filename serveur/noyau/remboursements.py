@@ -70,7 +70,7 @@ def etat(c: dict, d: date) -> dict:
     ech = lignes("select * from echeance where credit_id = %s order by rang", (c["id"],))
     rb = [{**r, "repartition": json_lu(r["repartition"])} for r in lignes("select * from remboursement where credit_id = %s and date_reglement <= %s order by date_reglement, id", (c["id"], d))]
     p = payes(rb)
-    regulier = lambda r: int(r["repartition"].get("capital") or 0) - int(r["repartition"].get("capitalAnticipe") or 0) + int(r["repartition"].get("interet") or 0)
+    capital_regulier = lambda r: int(r["repartition"].get("capital") or 0) - int(r["repartition"].get("capitalAnticipe") or 0)
     echu = [e for e in ech if e["date_due"] <= d]
     du = {k: max(0, sum(e[k] for e in echu) - (p["capital"] - p["capitalAnticipe"] if k == "capital" else p[k])) for k in ("capital", "interet", "tva", "epargne", "solidarite")}
     # Jours de retard : la plus ancienne échéance que les paiements réguliers ne couvrent pas (capital et intérêt)
@@ -81,12 +81,14 @@ def etat(c: dict, d: date) -> dict:
             retard_depuis = e["date_due"] if e["date_due"] < d else None
             break
     jours = (d - retard_depuis).days if retard_depuis else 0
-    # Pénalité de retard (CR-7) : au jour le jour, sur l'échu impayé (capital et intérêt), entre les échéances et les paiements
+    # Pénalité de retard (CR-7) : au jour le jour, sur le capital échu impayé, entre les échéances et les paiements. Pas sur les intérêts échus : ils ne
+    # produisent d'intérêts que par convention spéciale ou demande en justice, pour des intérêts dus au moins pour une année entière (Code civil, livre III,
+    # art. 52 ; confrontation du 21/11/2026, T2 ; registre T74)
     taux = Decimal(valeur("select penalite_retard from produit_credit where id = %s", (c["produit_id"],)) or 0)
     points = sorted({e["date_due"] for e in echu} | {r["date_reglement"] for r in rb if r["date_reglement"] <= d} | {d})
     accrue = Decimal(0)
     for a, b in zip(points, points[1:]):
-        impaye = sum(e["capital"] + e["interet"] for e in ech if e["date_due"] <= a) - sum(regulier(r) for r in rb if r["date_reglement"] <= a)
+        impaye = sum(e["capital"] for e in ech if e["date_due"] <= a) - sum(capital_regulier(r) for r in rb if r["date_reglement"] <= a)
         if impaye > 0:
             accrue += Decimal(impaye) * taux / 100 * (b - a).days / 30
     penalite = max(0, arrondi(accrue) - p["penalite"])

@@ -2308,7 +2308,7 @@ describe("journée de guichet", () => {
     let d = await api.remboursementsCredit.detail(cid);
     const e1 = d.echeancier[0]!;
     expect([d.joursRetard, d.degre, e1.date]).toEqual([31, "Douteux", "2026-10-05"]);   // comme le serveur
-    expect(d.du.penalite).toBe(Math.round((e1.capital + e1.interet) * 0.03 * 31 / 30));
+    expect(d.du.penalite).toBe(Math.round(e1.capital * 0.03 * 31 / 30));
     expect(d.ordre[0]).toBe("capital");
     const base = { mandataire: "Moi-même", montant: 5000000, coupures: { 20000: 2, 10000: 1 } as Comptage };
     await expect(api.remboursementsCredit.rembourserCaisse(cid, { ...base, cle: cle(), mandataire: " " })).rejects.toThrow("Mandataire");
@@ -2320,8 +2320,8 @@ describe("journée de guichet", () => {
     expect([o.type, o.montant]).toEqual(["remboursement_credit", 5000000]);
     d = await api.remboursementsCredit.detail(cid);
     expect([d.capitalRestant, d.dernierPaiement]).toEqual([97500000, "2026-11-05"]);
-    const tout = d.toutSurLeCredit, s = (await api.caisses.duCaissier())!;
-    const cp = billets(await api.caisses.theorique(s.id, "CDF"), tout);
+    const tout = d.toutSurLeCredit;
+    const cp = billets(Object.fromEntries([20000, 10000, 5000, 1000, 500, 200, 100, 50].map((v) => [v, 1e6])), tout);   // le client apporte ses billets
     if (tout % 5000) cp[50] = (cp[50] ?? 0) + 1;
     await expect(api.remboursementsCredit.proposer(cid, { montant: tout + 1 })).rejects.toThrow("au plus le reste dû");
     await api.remboursementsCredit.rembourserCaisse(cid, { cle: cle(), mandataire: "Moi-même", montant: tout, coupures: cp });

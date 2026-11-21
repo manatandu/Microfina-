@@ -4315,7 +4315,7 @@ function etatCredit(c: CreditPret, d: string) {
   const ech = c.echeancier as EcheanceCredit[];
   const rb = E.remboursementsCredit.filter((r) => r.creditId === c.id && r.date <= d).sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
   const p: Record<string, number> = Object.fromEntries([...CLES_REMB, "capitalAnticipe"].map((k) => [k, rb.reduce((s, r) => s + (r.repartition[k] ?? 0), 0)]));
-  const regulier = (r: RemboursementCredit) => (r.repartition.capital ?? 0) - (r.repartition.capitalAnticipe ?? 0) + (r.repartition.interet ?? 0);
+  const capitalRegulier = (r: RemboursementCredit) => (r.repartition.capital ?? 0) - (r.repartition.capitalAnticipe ?? 0);
   const echu = ech.filter((e) => e.date <= d);
   const du: Record<string, number> = Object.fromEntries(["capital", "interet", "tva", "epargne", "solidarite"].map((k) =>
     [k, Math.max(0, echu.reduce((s, e) => s + champ(e, k), 0) - (k === "capital" ? p.capital! - p.capitalAnticipe! : p[k]!))]));
@@ -4328,7 +4328,8 @@ function etatCredit(c: CreditPret, d: string) {
   let accrue = 0;
   for (let k = 0; k + 1 < points.length; k++) {
     const a = points[k]!, b = points[k + 1]!;
-    const impaye = ech.filter((e) => e.date <= a).reduce((s, e) => s + e.capital + e.interet, 0) - rb.filter((r) => r.date <= a).reduce((s, r) => s + regulier(r), 0);
+    // T2 : sur le capital échu impayé seulement (Code civil, livre III, art. 52 : pas d'intérêts sur les intérêts échus de moins d'un an, sans convention spéciale)
+    const impaye = ech.filter((e) => e.date <= a).reduce((s, e) => s + e.capital, 0) - rb.filter((r) => r.date <= a).reduce((s, r) => s + capitalRegulier(r), 0);
     if (impaye > 0) accrue += impaye * taux / 100 * joursRemb(a, b) / 30;
   }
   du.penalite = Math.max(0, Math.round(accrue) - p.penalite!);

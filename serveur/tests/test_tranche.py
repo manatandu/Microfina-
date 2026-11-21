@@ -1843,7 +1843,7 @@ def test_remboursement_caisse(clients, journee):
     d = caisse.get(f"/api/credit/remboursement/{cid}", **H).json()
     e1 = d["echeancier"][0]
     assert (d["joursRetard"], d["degre"], e1["date"]) == (31, "Douteux", "2026-10-05")
-    assert d["du"]["penalite"] == round((e1["capital"] + e1["interet"]) * 0.03 * 31 / 30)
+    assert d["du"]["penalite"] == round(e1["capital"] * 0.03 * 31 / 30)   # T2 : sur le capital échu seulement (Code civil, livre III, art. 52)
     assert d["ordre"][0] == "capital"                                    # Douteux : CIPES (graine, S22-3)
     def refus(corps):
         r = caisse.post(f"/api/guichet/remboursement/{cid}", {"cle": cle(), **corps}, **H); assert r.status_code == 422, r.content; return r.json()["message"]
@@ -1860,8 +1860,7 @@ def test_remboursement_caisse(clients, journee):
     d = caisse.get(f"/api/credit/remboursement/{cid}", **H).json()
     assert d["capitalRestant"] == 97500000 and d["dernierPaiement"] == "2026-11-05"
     tout = d["toutSurLeCredit"]
-    stock = caisse.get(f"/api/caisses/{journee[1]['id']}/theorique?devise=CDF", **H).json()
-    cp, reste = billets(stock, tout)
+    cp, reste = billets({str(v): 10 ** 6 for v in (20000, 10000, 5000, 1000, 500, 200, 100, 50)}, tout)   # le client apporte ses billets
     cp["50"] = cp.get("50", 0) + (1 if tout % 5000 else 0)              # centimes : une coupure de 50 de plus, l'appoint va au compte
     assert "au plus le reste dû" in caisse.post(f"/api/credit/remboursement/{cid}/repartition", {"montant": tout + 1}, **H).json()["message"]
     r = caisse.post(f"/api/guichet/remboursement/{cid}", {"cle": cle(), "mandataire": "Moi-même", "montant": tout, "coupures": cp}, **H)
