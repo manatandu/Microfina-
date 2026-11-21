@@ -7695,6 +7695,15 @@ function controlesFin(a: number, m: number | null) {
       ajouter("Crédits irrécupérables passés en perte", irr.length === 0, `À passer en perte au 31 décembre (Instr. BCC 003, art. 9 et 10) : ${irr.join(", ")}`); }
   }
   const reste = E.depotsTerme.filter((x) => x.statut === "valide" && x.dateDepot <= fin).reduce((s, x) => s + Math.max(couruDat(x, fin) - (x.interetsCourus ?? 0), 0), 0);
+  // B4 : compte courant débiteur sans versement depuis plus de 30 jours, inclus dans les crédits douteux (Instr. BCC 003, art. 7, al. 2) ; le seuil « significatif » n'est défini par aucun texte lu
+  const deb: string[] = [];
+  for (const k of E.comptes.filter((c) => produitDuCompte(c)?.categorie === "Courant")) {
+    let solde = 0, dernier = "";
+    for (const e of E.ecritures) { const j = E.journees.find((x) => x.id === e.journeeId); if (!j || j.date > fin) continue;
+      for (const l of e.lignes) if (l.contrat === `depot:${k.id}`) { solde += l.sens === "D" ? l.montant : -l.montant; if (l.sens === "C" && j.date > dernier) dernier = j.date; } }
+    if (solde > 0 && (!dernier || (Date.parse(fin) - Date.parse(dernier)) / 86400000 > 30)) deb.push(`${k.numero} (dernier versement : ${dernier ? frDate(dernier) : "aucun"})`);
+  }
+  ajouter("Comptes courants débiteurs sans versement depuis plus de 30 jours", deb.length === 0, `À classer en crédits douteux (Instr. BCC 003, art. 7, al. 2) : ${deb.join(", ")}`);
   ajouter("Intérêts courus des dépôts à terme", reste === 0, "À passer : Autres > Calculs > Calcul des intérêts sur DAT");
   return out;
 }

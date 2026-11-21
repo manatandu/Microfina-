@@ -414,3 +414,4 @@ Lecture arrêtée le 21/11/2026 à la demande du porteur. Ce qui suit n'est pas 
 - **B21 reste** : décote des dettes subordonnées (art. 10), notée T78.
 - **B1 corrigé** (PCCI § 4.3.8) : au bilan et au tableau des flux, les soldes débiteurs et créditeurs des clients et des tiers ne se compensent plus (registre T81).
 - **B2 et B3 corrigés** (Instr. BCC 003, art. 9, 10, 12, 14) : contrôles de clôture sur le niveau de provisionnement, avec la pénalité de 1 %, et sur les irrécupérables à passer en perte au 31 décembre (registre T82).
+- **B4 en partie** (Instr. BCC 003, art. 7, al. 2) : les comptes courants débiteurs sans versement depuis plus de 30 jours sont signalés à la clôture (registre T83). Le seuil du versement « significatif » est à confirmer par le porteur avant le virement au 39 et la provision (T84).

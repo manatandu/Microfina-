@@ -468,6 +468,19 @@ def controles(u, annee: int, mois: int | None) -> list[dict]:
         if not mois:
             irr = [valeur("select numero from credit where id = %s", (l["credit_id"],)) for l in bl if l["classe"] == "irrecuperable"]
             ajouter("Crédits irrécupérables passés en perte", not irr, "À passer en perte au 31 décembre (Instr. BCC 003, art. 9 et 10) : " + ", ".join(irr))
+    # B4 : compte courant débiteur sans mouvement créditeur depuis plus de 30 jours, inclus dans les crédits douteux (Instr. BCC 003, art. 7, al. 2). Le seuil
+    # du mouvement « significatif » n'étant défini par aucun texte lu, le dernier versement est montré pour que l'institution en juge
+    deb = []
+    for k in lignes("""select k.id, k.numero, sum(case l.sens when 'D' then l.montant_devise else -l.montant_devise end) as solde, k.devise,
+                              max(case when l.sens = 'C' then e.date_valeur end) as dernier_credit
+                       from compte_depot k join produit_epargne pe on pe.id = k.produit_id join ligne_ecriture l on l.contrat_ref = 'depot:' || k.id
+                       join ecriture e on e.id = l.ecriture_id where pe.institution_id = %s and pe.categorie_compte = 'Courant' and e.date_valeur <= %s
+                       group by k.id, k.numero, k.devise""", (i, fin)):
+        if int(k["solde"]) > 0 and (not k["dernier_credit"] or (fin - k["dernier_credit"]).days > 30):
+            dc = k["dernier_credit"]
+            deb.append(f"{k['numero']} (dernier versement : {dc.strftime('%d/%m/%Y') if dc else 'aucun'})")
+    ajouter("Comptes courants débiteurs sans versement depuis plus de 30 jours", not deb,
+            "À classer en crédits douteux (Instr. BCC 003, art. 7, al. 2) : " + ", ".join(deb))
     reste = sum(max(couru(x, fin) - x["interets_courus"], 0) for x in lignes(
         "select * from depot_terme where institution_id = %s and statut = 'valide' and date_depot <= %s", (i, fin)))
     ajouter("Intérêts courus des dépôts à terme", reste == 0, "À passer : Autres > Calculs > Calcul des intérêts sur DAT")

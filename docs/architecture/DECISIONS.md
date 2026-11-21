@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**911 décisions.** Solidité : 398 fortes (le manuel ou un texte répond), 435 moyennes (déduites d'un écran voisin ou d'une donnée), 78 faibles (notre choix, faute de mieux). Dans le code : 905 déjà en place, 6 à appliquer.
+**913 décisions.** Solidité : 399 fortes (le manuel ou un texte répond), 435 moyennes (déduites d'un écran voisin ou d'une donnée), 79 faibles (notre choix, faute de mieux). Dans le code : 906 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -95,6 +95,8 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | T80 | Devise la plus utilisée ; produits connexes (SN01 Normes prudentielles) | Devise la plus utilisée (rapport porté à 15 %) : celle dont les mouvements sont les plus forts. Produits connexes : cumul de l'exercice à la date, rapporté aux produits (classe 7) de l'exercice précédent | Texte réglementaire : Instr. BCC 002, art. 39 et 40 | moyenne | en place |
 | T81 | Soldes débiteurs et créditeurs des clients et des tiers (S122 Etats financiers (bilan) ; tableau des flux) | Pour les comptes des classes 3 et 4, le solde de chaque contrat (compte de dépôt, crédit, tiers) est rangé de son côté : les soldes débiteurs à l'actif, les soldes créditeurs au passif, sans compensation dans le compte général. Même règle pour le tableau des flux, tiré des mêmes postes | Texte réglementaire : PCCI § 4.3.8 (principe de non compensation) ; confrontation du 21/11/2026, B1 | forte | en place |
 | T82 | Niveau de provisionnement et irrécupérables à la clôture (S127 Clôtures (contrôles avant clôture)) | Quand la balance âgée de fin de période existe : contrôle « Provisions au niveau requis » (capital restant × taux de la tranche, contre le solde des comptes 380), avec l'insuffisance et la pénalité mensuelle de 1 % ; à la clôture de l'exercice, contrôle « Crédits irrécupérables passés en perte ». Contrôles signalés, non bloquants, comme les autres travaux de fin de période | Texte réglementaire : Instr. BCC 003, art. 9, 10, 12 et 14 ; confrontation du 21/11/2026, B2 et B3 | forte | en place |
+| T83 | Comptes courants débiteurs (S127 Clôtures (contrôles avant clôture)) | Contrôle de clôture : chaque compte courant (catégorie Courant) débiteur à la fin de la période et sans versement depuis plus de 30 jours est signalé, avec la date du dernier versement, à classer en crédits douteux | Texte réglementaire : Instr. BCC 003, art. 7, al. 2 ; confrontation du 21/11/2026, B4 | forte | en place |
+| T84 | Compte courant débiteur : mouvement créditeur « significatif », classement, provision et virement au 39 (S127 Clôtures (contrôles avant clôture)) | À confirmer par le porteur : le seuil d'un versement « significatif » (aucun texte lu ne le fixe). Ensuite seulement : virement du découvert au compte 39 et provision selon l'art. 12 | Choix du porteur : Instr. BCC 003, art. 7, al. 2, et art. 12 ; PCCI, compte 39 | faible | à appliquer |
 
 ## S03 Profils : création et modification
 
@@ -2058,3 +2060,4 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S125-7 | S125 Consultation et suivi budgétaire | Bouton Financement | Le même suivi, regroupé par bailleur |
 | S125-8 | S125 Consultation et suivi budgétaire | Bouton Résultat analytique | Par centre de coût : charges, produits et résultat réalisés |
 | T44 | SC01 Gel des avoirs | Format des listes de désignation à importer | Fichier CSV de l'institution, colonnes dans cet ordre : Nom ; Autres noms ; Date de naissance ; N° de pièce ; Référence de désignation ; Date de désignation. Une publication remplace la précédente de la même source. À confirmer : aucun texte lu ne donne le format de la liste nationale ni celui du Conseil de sécurité |
+| T84 | S127 Clôtures (contrôles avant clôture) | Compte courant débiteur : mouvement créditeur « significatif », classement, provision et virement au 39 | À confirmer par le porteur : le seuil d'un versement « significatif » (aucun texte lu ne le fixe). Ensuite seulement : virement du découvert au compte 39 et provision selon l'art. 12 |
