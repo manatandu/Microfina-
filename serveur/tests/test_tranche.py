@@ -4989,3 +4989,24 @@ def test_bilan_sans_compensation():
     assert sum(p["valeur"] for p in sans["actif"]) == 0
     assert (ca, avec["actif"][ia]["valeur"]) == ("actif", 5_000_000) and (cp, avec["passif"][ip]["valeur"]) == ("passif", 20_000_000)
     assert sum(p["valeur"] for p in avec["passif"]) - sum(p["valeur"] for p in avec["actif"]) == 15_000_000
+
+
+def test_controle_provisions_cloture(clients, journee):
+    """B2 et B3 (confrontation du 21/11/2026) : à la clôture, provision requise contre provision constatée (Instr. BCC 003, art. 12) et pénalité de 1 %
+    de l'insuffisance (art. 14) ; irrécupérables à passer en perte au 31 décembre (art. 9 et 10)"""
+    from noyau.bd import executer, valeur
+    from noyau.fin_periode import controles
+    from noyau.provisions import taux
+    cid = credit_debloque(clients, journee)
+    c = lignes_bd("select tiers_id, montant, institution_id from credit where id = %s", (cid,))[0]
+    u = {"institution_id": c[2]}
+    uid = valeur("select id from utilisateur limit 1")
+    for d, degre, classe in (("2026-11-30", 3, "douteux"), ("2026-12-31", 7, "irrecuperable")):
+        b = valeur("insert into balance_agee (institution_id, date_lancement, lance_par) values (%s, %s, %s) returning id", (c[2], d, uid))
+        executer("""insert into balance_agee_ligne (balance_id, credit_id, tiers_id, devise, montant, capital_restant, capital_impaye, interet_impaye, jours_retard, degre, classe)
+                    values (%s, %s, %s, 'CDF', %s, %s, 0, 0, 45, %s, %s)""", (b, cid, c[0], c[1], 40_000_000, degre, classe))
+    x = next(k for k in controles(u, 2026, 11) if k["libelle"].startswith("Provisions au niveau requis"))
+    manque = 40_000_000 * taux(3) // 100
+    assert x["ok"] is False and f"{manque / 100:,.2f}".replace(",", " ") in x["detail"] and "art. 12 et 14" in x["detail"]
+    an = controles(u, 2026, None)
+    assert any(k["libelle"] == "Crédits irrécupérables passés en perte" and not k["ok"] for k in an)

@@ -7682,6 +7682,18 @@ function controlesFin(a: number, m: number | null) {
   ajouter("Comptes d'attente (475) et de suspens (37) soldés", !nonSoldes.length, `Non soldés : ${nonSoldes.join(", ")}`);
   const credits = E.credits.some((c) => c.statut === "debloque" && (c.debloqueLe ?? "") <= fin);
   ajouter(`Balance âgée et provisions ${quoi}`, !credits || E.balancesAgees.some((b) => b.date === fin), `Lancer la balance âgée au ${frDate(fin)}, puis provisionner (Crédit ; Instr. BCC 003, art. 12)`);
+  const ba = E.balancesAgees.find((b) => b.date === fin);
+  if (ba) {
+    // B2 : provision requise contre provision constatée (380) ; pénalité mensuelle de 1 % de l'insuffisance (Instr. BCC 003, art. 12 et 14). B3 : irrécupérables (art. 9 et 10)
+    const bl = ba.lignes.filter((l) => E.credits.find((c) => c.id === l.creditId)?.statut !== "passe_en_perte");
+    const requise = Math.round(bl.reduce((s, l) => s + Math.floor(l.capitalRestant * tauxProvision(degreCible(l)) / 100) * coursDe(l.devise as Devise, fin), 0));
+    let constatee = 0;
+    for (const e of E.ecritures) { const j = E.journees.find((x) => x.id === e.journeeId); if (j && j.date <= fin) for (const l of e.lignes) if (l.compte.startsWith("380")) constatee -= l.sens === "D" ? l.montantCdf : -l.montantCdf; }
+    const manque = Math.max(requise - constatee, 0), f = (v: number) => (v / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/,/g, " ");
+    ajouter(`Provisions au niveau requis ${quoi}`, manque === 0, `Insuffisance : ${f(manque)} CDF ; pénalité mensuelle de 1 % : ${f(manque / 100)} CDF (Instr. BCC 003, art. 12 et 14). Provisionner (Crédit > Déclassement et provisions)`);
+    if (!m) { const irr = bl.filter((l) => l.classe === "irrecuperable").map((l) => E.credits.find((c) => c.id === l.creditId)!.numero);
+      ajouter("Crédits irrécupérables passés en perte", irr.length === 0, `À passer en perte au 31 décembre (Instr. BCC 003, art. 9 et 10) : ${irr.join(", ")}`); }
+  }
   const reste = E.depotsTerme.filter((x) => x.statut === "valide" && x.dateDepot <= fin).reduce((s, x) => s + Math.max(couruDat(x, fin) - (x.interetsCourus ?? 0), 0), 0);
   ajouter("Intérêts courus des dépôts à terme", reste === 0, "À passer : Autres > Calculs > Calcul des intérêts sur DAT");
   return out;

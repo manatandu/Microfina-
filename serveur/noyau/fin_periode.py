@@ -451,6 +451,23 @@ def controles(u, annee: int, mois: int | None) -> list[dict]:
     ba = valeur("select 1 from balance_agee where institution_id = %s and date_lancement = %s", (i, fin))
     ajouter(f"Balance âgée et provisions {quoi}", not credits or ba,
             f"Lancer la balance âgée au {fin.strftime('%d/%m/%Y')}, puis provisionner (Crédit ; Instr. BCC 003, art. 12)")
+    if ba:
+        # B2 : provision requise (capital restant × taux de la tranche, art. 12) contre provision constatée aux comptes 380 ; pénalité mensuelle de 1 % de
+        # l'insuffisance (Instr. BCC 003, art. 14). B3 : irrécupérables passés en perte à la clôture du bilan au 31 décembre (art. 9 et 10)
+        from .provisions import cible
+        from .services import cours
+        bl = lignes("""select l.* from balance_agee_ligne l join balance_agee b on b.id = l.balance_id join credit c on c.id = l.credit_id
+                       where b.institution_id = %s and b.date_lancement = %s and c.statut <> 'passe_en_perte'""", (i, fin))
+        requise = round(sum(l["capital_restant"] * taux_provision(cible(l)) // 100 * cours(l["devise"], fin) for l in bl))
+        constatee = -(valeur("""select coalesce(sum(case l.sens when 'D' then l.montant_cdf else -l.montant_cdf end), 0) from ligne_ecriture l
+                                join ecriture e on e.id = l.ecriture_id join compte c on c.id = l.compte_id
+                                where e.institution_id = %s and e.date_valeur <= %s and c.numero like '380%%'""", (i, fin)) or 0)
+        manque = max(requise - constatee, 0)
+        ajouter(f"Provisions au niveau requis {quoi}", manque == 0, f"Insuffisance : {manque / 100:,.2f} CDF ; pénalité mensuelle de 1 % : {manque / 10000:,.2f} CDF "
+                f"(Instr. BCC 003, art. 12 et 14). Provisionner (Crédit > Déclassement et provisions)".replace(",", " "))
+        if not mois:
+            irr = [valeur("select numero from credit where id = %s", (l["credit_id"],)) for l in bl if l["classe"] == "irrecuperable"]
+            ajouter("Crédits irrécupérables passés en perte", not irr, "À passer en perte au 31 décembre (Instr. BCC 003, art. 9 et 10) : " + ", ".join(irr))
     reste = sum(max(couru(x, fin) - x["interets_courus"], 0) for x in lignes(
         "select * from depot_terme where institution_id = %s and statut = 'valide' and date_depot <= %s", (i, fin)))
     ajouter("Intérêts courus des dépôts à terme", reste == 0, "À passer : Autres > Calculs > Calcul des intérêts sur DAT")
