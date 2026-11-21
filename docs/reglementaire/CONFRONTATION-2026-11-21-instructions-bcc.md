@@ -415,3 +415,6 @@ Lecture arrêtée le 21/11/2026 à la demande du porteur. Ce qui suit n'est pas 
 - **B1 corrigé** (PCCI § 4.3.8) : au bilan et au tableau des flux, les soldes débiteurs et créditeurs des clients et des tiers ne se compensent plus (registre T81).
 - **B2 et B3 corrigés** (Instr. BCC 003, art. 9, 10, 12, 14) : contrôles de clôture sur le niveau de provisionnement, avec la pénalité de 1 %, et sur les irrécupérables à passer en perte au 31 décembre (registre T82).
 - **B4 en partie** (Instr. BCC 003, art. 7, al. 2) : les comptes courants débiteurs sans versement depuis plus de 30 jours sont signalés à la clôture (registre T83). Le seuil du versement « significatif » est à confirmer par le porteur avant le virement au 39 et la provision (T84).
+- **B12 corrigé** (PCCI § 3.4) : états périodiques numérotés et datés, numéro continu gardé en base (registre T85).
+- **B7 en attente** : le format FinA n'est pas dans les textes lus ; il faut le cahier des charges de la BCC.
+- **B8 sans suite** : le PCCI, § 6.4, dit « peut » ; aucun texte lu n'oblige à passer les intérêts courus non échus.

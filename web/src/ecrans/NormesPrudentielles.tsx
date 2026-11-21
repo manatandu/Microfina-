@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { fr } from "../lib/dates";
+import { fr, texteEdition } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
 import { decimal } from "@design/montant.js";
 import { ChampDate, Chargement, Dialogue, Textes, type Boite } from "../composants";
@@ -47,7 +47,7 @@ export default function NormesPrudentielles() {
               <tr><th scope="row">Fonds propres prudentiels</th><td className="num chiffres">{m(r.fondsPropres.prudentiels)}</td></tr>
               <tr><th scope="row">Dépôts</th><td className="num chiffres">{m(r.depots)}</td></tr>
             </tbody></table></div>
-          <div className="defile-x"><table className="grille"><caption>Normes prudentielles au {fr(r.date)}</caption>
+          <div className="defile-x"><table className="grille"><caption>Normes prudentielles au {fr(r.date)}{texteEdition(r.edition)}</caption>
             <thead><tr><th scope="col">Norme</th><th scope="col">Référence</th><th scope="col" className="num">Numérateur</th><th scope="col" className="num">Dénominateur</th>
               <th scope="col" className="num">Ratio</th><th scope="col">Norme</th><th scope="col">État</th></tr></thead>
             <tbody>{r.normes.map((x) => <tr key={x.code}><td>{x.libelle}</td><td>{x.reference}</td><td className="num chiffres">{m(x.numerateur)}</td>

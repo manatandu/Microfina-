@@ -409,6 +409,7 @@ export interface Etat {
   affectationsCredit: { id: number; creditId: number; de: number; vers: number; le: string; par: number }[];   // S96
   liberationsGarantie: { id: number; garantieId: number; montant: number; date: string; ecritureId: number | null; par: number }[];
   nantissementsMateriel?: NantissementMateriel[];   // A4 et P3
+  editions?: { numero: number; etat: string; le: string; par: number }[];   // B12 : états périodiques numérotés et datés (PCCI § 3.4)
   visasCredit: VisaCredit[];   // S90
   declarationsRisque: { type: string; objetId: number; dateEvenement: string; declareLe: string; reference: string; declarePar: number }[];   // E26, Instr. BCC 05
   reversementsRetenues: ReversementRetenue[];   // écart E16

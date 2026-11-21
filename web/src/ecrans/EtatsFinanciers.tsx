@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { fr } from "../lib/dates";
+import { fr, texteEdition } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
 import { liasseXml, telecharger } from "../lib/liasse";
 import { decimal } from "@design/montant.js";
@@ -87,7 +87,7 @@ function EditionBilan({ ctx, jour }: { ctx: Ctx; jour: string }) {
       <Edition ctx={ctx} f={f} setF={setF} libelleType="Type de bilan :" types={ctx.typesBilan} libelleVidage="Bilan sans VIDAGE" />
       <Actions rechercher={rechercher} vider={() => { setF(vide); setR(null); }} exporter={r ? exporter : null} />
       {r && <div className="pile">
-        <p>BILAN au <strong className="chiffres">{fr(r.au)}</strong> (N), comparé au <span className="chiffres">{fr(r.precedent)}</span> (N - 1), en CDF</p>
+        <p>BILAN au <strong className="chiffres">{fr(r.au)}</strong> (N), comparé au <span className="chiffres">{fr(r.precedent)}</span> (N - 1), en CDF{texteEdition(r.edition)}</p>
         {!r.equilibre && <Attention>Le total de l'actif diffère du total du passif : la plage de comptes choisie ne couvre pas tout le bilan.</Attention>}
         <div className="defile-x">{table("ACTIF", r.actif, r.totalActif)}</div>
         <div className="defile-x">{table("PASSIF", r.passif, r.totalPassif)}</div>
@@ -114,7 +114,7 @@ function EditionHorsBilan({ ctx, jour }: { ctx: Ctx; jour: string }) {
       <h2>Edition de l'état hors bilan</h2>
       <Edition ctx={ctx} f={f} setF={setF} libelleType="Hors bilan :" types={ctx.typesHorsBilan} libelleVidage="Bilan sans VIDAGE" />
       <Actions rechercher={rechercher} vider={() => { setF(vide); setR(null); }} exporter={r ? exporter : null} />
-      {r && <div className="defile-x"><table className="grille"><caption>HORS-BILAN au {fr(r.au)} (N), comparé au {fr(r.precedent)} (N - 1), en CDF</caption>
+      {r && <div className="defile-x"><table className="grille"><caption>HORS-BILAN au {fr(r.au)} (N), comparé au {fr(r.precedent)} (N - 1), en CDF{texteEdition(r.edition)}</caption>
         <thead><tr><th scope="col">Code Poste</th><th scope="col">HORS-BILAN</th><th scope="col" className="num">N</th><th scope="col" className="num">N - 1</th></tr></thead>
         <tbody>{r.postes.flatMap((x) => [<tr key={x.code}><td className="code">{x.code}</td><th scope="row">{x.libelle}</th><td className="num chiffres">{n(x.n)}</td><td className="num chiffres">{n(x.n1)}</td></tr>,
           ...x.lignes.filter((l) => l.libelle !== x.libelle).map((l) => <tr key={`${x.code}-${l.libelle}`}><td></td><td>{l.libelle}</td><td className="num chiffres">{n(l.n)}</td><td className="num chiffres">{n(l.n1)}</td></tr>),
@@ -142,7 +142,7 @@ function EditionResultat({ ctx, jour }: { ctx: Ctx; jour: string }) {
       <Edition ctx={ctx} f={f} setF={setF} libelleType="Type de résultat :" types={ctx.typesResultat} libelleVidage="Resultat sans VIDAGE" />
       <Actions rechercher={rechercher} vider={() => { setF(vide); setR(null); }} exporter={r ? exporter : null} />
       {r && <div className="pile"><div className="defile-x"><table className="grille">
-        <caption>COMPTE DE RESULTAT du {fr(r.du)} au {fr(r.au)} (Exercice), comparé à la période du {fr(r.precedentDu)} au {fr(r.precedentAu)} (Ex. préc.), en CDF</caption>
+        <caption>COMPTE DE RESULTAT du {fr(r.du)} au {fr(r.au)} (Exercice), comparé à la période du {fr(r.precedentDu)} au {fr(r.precedentAu)} (Ex. préc.), en CDF{texteEdition(r.edition)}</caption>
         <thead><tr><th scope="col"><span className="sr-only">Signe</span></th><th scope="col">RUBRIQUES</th><th scope="col" className="num">Exercice</th><th scope="col" className="num">Ex. préc.</th></tr></thead>
         <tbody>{r.lignes.flatMap((x, i) => [<tr key={i}><td className="chiffres">{x.signe}</td>{x.solde ? <th scope="row">{x.libelle}</th> : <td>{x.libelle}</td>}
           <td className="num chiffres">{x.solde ? <strong>{n(x.n)}</strong> : n(x.n)}</td><td className="num chiffres">{x.solde ? <strong>{n(x.n1)}</strong> : n(x.n1)}</td></tr>,
@@ -196,25 +196,25 @@ function EditionAnnexes({ ctx, jour }: { ctx: Ctx; jour: string }) {
       <Actions rechercher={rechercher} vider={() => { setF(vide); setR(null); }} exporter={r ? exporter : null} />
       {r?.forme === "flux" && <div className="pile">
         {!r.controle && <Attention>Les flux ne retombent pas sur la variation des liquidités : une écriture mêle des comptes que le tableau ne sait pas classer.</Attention>}
-        <div className="defile-x"><table className="grille"><caption>{r.titre}, du {fr(r.du)} au {fr(r.au)}, en CDF</caption>
+        <div className="defile-x"><table className="grille"><caption>{r.titre}, du {fr(r.du)} au {fr(r.au)}, en CDF{texteEdition(r.edition)}</caption>
           <thead><tr><th scope="col">TABLEAU DE FLUX DE TRESORERIE</th><th scope="col" className="num">Année N</th><th scope="col" className="num">Année N - 1</th></tr></thead>
           <tbody>{r.lignes.map((x, i) => <tr key={i}>{x.titre || x.total ? <th scope="row" colSpan={x.titre ? 3 : 1}>{x.libelle}</th> : <td>{x.libelle}</td>}
             {!x.titre && <><td className="num chiffres">{x.total ? <strong>{n(x.n)}</strong> : n(x.n)}</td><td className="num chiffres">{x.total ? <strong>{n(x.n1)}</strong> : n(x.n1)}</td></>}</tr>)}</tbody>
         </table></div></div>}
-      {r?.forme === "emplois" && <div className="defile-x"><table className="grille"><caption>{r.titre}, du {fr(r.du)} au {fr(r.au)}, en CDF</caption>
+      {r?.forme === "emplois" && <div className="defile-x"><table className="grille"><caption>{r.titre}, du {fr(r.du)} au {fr(r.au)}, en CDF{texteEdition(r?.edition)}</caption>
         <thead><tr><th scope="col">Côté</th><th scope="col">N°</th><th scope="col">Poste</th><th scope="col" className="num">Début</th><th scope="col" className="num">Fin</th><th scope="col" className="num">Emplois</th><th scope="col" className="num">Ressources</th></tr></thead>
         <tbody>{r.lignes.map((x) => <tr key={`${x.cote}-${x.code}`}><td>{x.cote === "actif" ? "ACTIF" : "PASSIF"}</td><td className="chiffres">{x.code}.</td><td>{x.libelle}</td><td className="num chiffres">{n(x.debut)}</td>
           <td className="num chiffres">{n(x.fin)}</td><td className="num chiffres">{x.emploi ? n(x.emploi) : ""}</td><td className="num chiffres">{x.ressource ? n(x.ressource) : ""}</td></tr>)}</tbody>
         <tfoot><tr><th scope="row" colSpan={5}>TOTAL</th><td className="num chiffres"><strong>{n(r.emplois)}</strong></td><td className="num chiffres"><strong>{n(r.ressources)}</strong></td></tr></tfoot>
       </table></div>}
-      {r?.forme === "monnaies" && <div className="defile-x"><table className="grille"><caption>{r.titre}, au {fr(r.au)}</caption>
+      {r?.forme === "monnaies" && <div className="defile-x"><table className="grille"><caption>{r.titre}, au {fr(r.au)}{texteEdition(r?.edition)}</caption>
         <thead><tr><th scope="col">Monnaie</th><th scope="col" className="num">Avoirs</th><th scope="col" className="num">Avoirs (CDF)</th><th scope="col" className="num">Engagements</th><th scope="col" className="num">Engagements (CDF)</th>
           <th scope="col" className="num">Position nette (CDF)</th></tr></thead>
         <tbody>{r.lignes.length === 0 && <tr><td colSpan={6}>No records found.</td></tr>}
           {r.lignes.map((x) => <tr key={x.devise}><td className="code">{x.devise}</td><td className="num chiffres">{n(x.avoirs)}</td><td className="num chiffres">{n(x.avoirsCdf)}</td><td className="num chiffres">{n(x.engagements)}</td>
             <td className="num chiffres">{n(x.engagementsCdf)}</td><td className="num chiffres">{n(x.positionCdf)}</td></tr>)}</tbody>
       </table></div>}
-      {r?.forme === "ventilation" && <div className="defile-x"><table className="grille"><caption>{r.titre}, au {fr(r.au)} (N), comparé au {fr(r.precedent)} (N - 1), en CDF</caption>
+      {r?.forme === "ventilation" && <div className="defile-x"><table className="grille"><caption>{r.titre}, au {fr(r.au)} (N), comparé au {fr(r.precedent)} (N - 1), en CDF{texteEdition(r?.edition)}</caption>
         <thead><tr><th scope="col">Compte</th><th scope="col">Intitulé</th><th scope="col" className="num">N</th><th scope="col" className="num">N - 1</th></tr></thead>
         <tbody>{r.sections.flatMap((s) => [<tr key={s.libelle}><td></td><th scope="row">{s.libelle}</th><td className="num chiffres"><strong>{n(s.n)}</strong></td><td className="num chiffres"><strong>{n(s.n1)}</strong></td></tr>,
           ...s.lignes.map((l) => <tr key={`${s.libelle}-${l.compte}`}><td className="code">{l.compte}</td><td>{l.intitule}</td><td className="num chiffres">{n(l.n)}</td><td className="num chiffres">{n(l.n1)}</td></tr>)])}</tbody>
@@ -302,7 +302,7 @@ export function IndicateursFinanciers() {
         </div>
         <Actions rechercher={rechercher} vider={() => { setF(null); setR(null); }}
           exporter={r ? () => exporterExcel("Indicateurs financiers", r.colonnes.map((x) => x.titre), r.lignes.map((l) => l.v.map((v, i) => (typeof v === "number" ? (r.colonnes[i]!.type === "montant" && !l.nombres ? v / 100 : v) : v ?? "")))) : null} />
-        {r && <div className="defile-x"><table className="grille"><caption>Indicateurs de performance du {fr(r.du)} au {fr(r.au)}, montants en CDF</caption>
+        {r && <div className="defile-x"><table className="grille"><caption>Indicateurs de performance du {fr(r.du)} au {fr(r.au)}, montants en CDF{texteEdition(r.edition)}</caption>
           <thead><tr>{r.colonnes.map((x) => <th key={x.titre} scope="col" className={["montant", "nombre", "taux"].includes(x.type) ? "num" : undefined}>{x.titre}</th>)}</tr></thead>
           <tbody>{r.lignes.map((l, i) => <tr key={i}>{l.v.map((v, k) => { const t = r.colonnes[k]!.type;
             return <td key={k} className={["montant", "nombre", "taux"].includes(t) ? "num chiffres" : undefined}>{cellule(v, t, l.nombres)}</td>; })}</tr>)}</tbody>

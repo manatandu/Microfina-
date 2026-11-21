@@ -5010,3 +5010,12 @@ def test_controle_provisions_cloture(clients, journee):
     assert x["ok"] is False and f"{manque / 100:,.2f}".replace(",", " ") in x["detail"] and "art. 12 et 14" in x["detail"]
     an = controles(u, 2026, None)
     assert any(k["libelle"] == "Crédits irrécupérables passés en perte" and not k["ok"] for k in an)
+
+
+def test_etats_numerotes(clients, journee):
+    """B12 (confrontation du 21/11/2026) : les états périodiques sont numérotés et datés (PCCI § 3.4), numéro continu"""
+    compta = clients["compta"]
+    a = compta.get("/api/comptabilite/normes-prudentielles?date=2026-11-05", **H).json()["edition"]
+    b = compta.get("/api/comptabilite/etats-financiers/bilan?exercice=2026&du=2026-01-01&au=2026-11-05", **H).json()
+    assert b.get("edition", {}).get("numero") == a["numero"] + 1, b
+    assert a["le"][:4] == str(__import__("datetime").date.today().year)

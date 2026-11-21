@@ -3282,6 +3282,8 @@ describe("journée de guichet", () => {
     expect(["solvabilite", "liquidite", "ressources", "immobilisations", "connexes"].every((c) => r.normes.some((x) => x.code === c))).toBe(true);
     expect(r.fondsPropres.prudentiels).toBe(r.fondsPropres.base + r.fondsPropres.retenus);
     await expect(api.normes.etat({ date: "" })).rejects.toThrow("Date de l'arrêté");
+    const e1 = (await api.normes.etat({ date: j })).edition, e2 = (await api.normes.etat({ date: j })).edition;
+    expect(e2.numero).toBe(e1.numero + 1);   // B12 : états numérotés et datés (PCCI § 3.4)
     await connecter("engalula");
     await expect(api.normes.etat({ date: j })).rejects.toThrow();
   });

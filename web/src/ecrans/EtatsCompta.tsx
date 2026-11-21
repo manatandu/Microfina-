@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { fr } from "../lib/dates";
+import { fr, texteEdition } from "../lib/dates";
 import { balanceXml, grandLivreXml, telecharger, type CompteGrandLivre } from "../lib/liasse";
 import { montant } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
@@ -81,7 +81,7 @@ function EditionGrandLivre({ analytique, ctx, jour }: { analytique: boolean; ctx
         <button className="bouton secondaire" type="button" disabled={!r || r.comptes.length === 0} onClick={exporter}>Exporter</button>
       </div>
       {r && <div className="defile-x"><table className="grille">
-        <caption>Grand livre{analytique ? " analytique" : ""} du {fr(r.du)} au {fr(r.au)}, exercice {r.exercice}, en CDF</caption>
+        <caption>Grand livre{analytique ? " analytique" : ""} du {fr(r.du)} au {fr(r.au)}, exercice {r.exercice}, en CDF{texteEdition(r.edition)}</caption>
         <thead><tr><th scope="col">Date</th><th scope="col">Journal</th><th scope="col">N°Pièce</th><th scope="col">Libellé</th><th scope="col" className="num">Débit</th><th scope="col" className="num">Crédit</th><th scope="col" className="num">Solde</th></tr></thead>
         {r.comptes.length === 0 && <tbody><tr><td colSpan={7}>Aucune écriture comptabilisée sur la période.</td></tr></tbody>}
         {r.comptes.map((c) => <tbody key={`${c.compte}-${c.auxiliaire}`}>
@@ -164,7 +164,7 @@ function EditionBalance({ analytique, ctx, jour }: { analytique: boolean; ctx: C
         <button className="bouton secondaire" type="button" disabled={!r || r.lignes.length === 0} onClick={exporter}>Exporter</button>
       </div>
       {r && <div className="defile-x"><table className="grille">
-        <caption>Balance{analytique ? " analytique" : ""} du {fr(r.du)} au {fr(r.au)}, exercice {r.exercice}, en CDF</caption>
+        <caption>Balance{analytique ? " analytique" : ""} du {fr(r.du)} au {fr(r.au)}, exercice {r.exercice}, en CDF{texteEdition(r.edition)}</caption>
         <thead>
           <tr><th scope="col" rowSpan={2}>Compte</th>{analytique && <th scope="col" rowSpan={2}>Auxiliaire</th>}<th scope="col" rowSpan={2}>Intitulé</th>{groupes.map((g) => <th key={g} scope="colgroup" colSpan={2}>{g}</th>)}</tr>
           <tr>{groupes.flatMap((g) => [<th key={`${g}d`} scope="col" className="num">Débit</th>, <th key={`${g}c`} scope="col" className="num">Crédit</th>])}</tr>

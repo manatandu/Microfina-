@@ -2,6 +2,7 @@
 // Mouvement, Montant, Utilisateur ; Numéro de pièce et Libellé : Commençant par, Contenant, Terminant par) ; Afficher ; grille Journal, N° Compte,
 // Intitulé compte, Débit, Crédit ; Total ; Exporter. Registre S115-1 à S115-4.
 import { useState } from "react";
+import { texteEdition } from "../lib/dates";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { exporterExcel } from "../lib/excel";
@@ -57,6 +58,7 @@ export default function JournauxComptables({ achats = false }: { achats?: boolea
           </div>
         </fieldset>
         <div className="actions-onglets"><button className="bouton" type="button" onClick={afficher}>Afficher</button></div>
+        {r?.edition && <p className="aide">Journaux{texteEdition(r.edition)}</p>}
         <Paginee lignes={r?.lignes ?? []}>{(visibles) => (<table className="grille">
           <thead><tr><th scope="col">Journal</th><th scope="col">N° Compte</th><th scope="col">Intitulé compte</th><th scope="col" className="num">Débit</th><th scope="col" className="num">Crédit</th></tr></thead>
           <tbody>{(r?.lignes ?? []).length === 0 && <tr><td colSpan={5}>No records found.</td></tr>}

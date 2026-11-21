@@ -1026,16 +1026,20 @@ def etats_financiers_contexte(request):
 @api.get("/comptabilite/etats-financiers/{etat}")
 def etats_financiers_etat(request, etat: str):
     from . import etats_financiers as ef
+    from .editions import numeroter
     f = {"bilan": ef.bilan, "hors-bilan": ef.hors_bilan, "resultat": ef.resultat, "annexe": ef.annexe}.get(etat)
     if not f:
         raise ErreurMetier("Etat inconnu.")
-    return f(u(request), request.GET.dict())
+    r = f(u(request), request.GET.dict())
+    return {**r, "edition": numeroter(u(request), etat)}
 
 
 @api.get("/comptabilite/indicateurs-financiers")
 def indicateurs_financiers(request):
     from . import etats_financiers as ef
-    return ef.indicateurs(u(request), request.GET.dict())
+    from .editions import numeroter
+    r = ef.indicateurs(u(request), request.GET.dict())
+    return {**r, "edition": numeroter(u(request), "indicateurs")}
 
 
 @api.get("/comptabilite/factures/contexte")
@@ -1248,7 +1252,9 @@ def journaux_comptables_contexte(request):
 @api.get("/comptabilite/journaux-comptables")
 def journaux_comptables(request):
     from . import etats_compta as ec
-    return ec.journaux(u(request), request.GET.dict())
+    from .editions import numeroter
+    r = ec.journaux(u(request), request.GET.dict())
+    return {**r, "edition": numeroter(u(request), "journaux")}
 
 
 # ---------- S111 : comptabilisation de la journée (p. 130 et 155) ----------
@@ -1278,13 +1284,17 @@ def etats_compta_contexte(request):
 @api.get("/comptabilite/grand-livre")
 def etats_grand_livre(request, analytique: bool = False):
     from . import etats_compta as ec
-    return ec.grand_livre(u(request), _criteres(request), analytique)
+    from .editions import numeroter
+    r = ec.grand_livre(u(request), _criteres(request), analytique)
+    return {**r, "edition": numeroter(u(request), "grand-livre")}
 
 
 @api.get("/comptabilite/balance")
 def etats_balance_periode(request, analytique: bool = False):
     from . import etats_compta as ec
-    return ec.balance(u(request), _criteres(request), analytique)
+    from .editions import numeroter
+    r = ec.balance(u(request), _criteres(request), analytique)
+    return {**r, "edition": numeroter(u(request), "balance")}
 
 
 # ---------- États ----------
@@ -2850,7 +2860,9 @@ def inactifs_lettre_imprimer(request, cid: int):
 @api.get("/comptabilite/normes-prudentielles")
 def normes_prudentielles(request, date: str = "", tresorerieAssuree: str = ""):
     from . import normes
-    return normes.etat(u(request), {"date": date, "tresorerieAssuree": tresorerieAssuree == "true"})
+    from .editions import numeroter
+    r = normes.etat(u(request), {"date": date, "tresorerieAssuree": tresorerieAssuree == "true"})
+    return {**r, "edition": numeroter(u(request), "normes")}
 
 
 @api.get("/clients/registre-membres")

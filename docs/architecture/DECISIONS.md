@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**913 décisions.** Solidité : 399 fortes (le manuel ou un texte répond), 435 moyennes (déduites d'un écran voisin ou d'une donnée), 79 faibles (notre choix, faute de mieux). Dans le code : 906 déjà en place, 7 à appliquer.
+**914 décisions.** Solidité : 400 fortes (le manuel ou un texte répond), 435 moyennes (déduites d'un écran voisin ou d'une donnée), 79 faibles (notre choix, faute de mieux). Dans le code : 907 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -97,6 +97,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | T82 | Niveau de provisionnement et irrécupérables à la clôture (S127 Clôtures (contrôles avant clôture)) | Quand la balance âgée de fin de période existe : contrôle « Provisions au niveau requis » (capital restant × taux de la tranche, contre le solde des comptes 380), avec l'insuffisance et la pénalité mensuelle de 1 % ; à la clôture de l'exercice, contrôle « Crédits irrécupérables passés en perte ». Contrôles signalés, non bloquants, comme les autres travaux de fin de période | Texte réglementaire : Instr. BCC 003, art. 9, 10, 12 et 14 ; confrontation du 21/11/2026, B2 et B3 | forte | en place |
 | T83 | Comptes courants débiteurs (S127 Clôtures (contrôles avant clôture)) | Contrôle de clôture : chaque compte courant (catégorie Courant) débiteur à la fin de la période et sans versement depuis plus de 30 jours est signalé, avec la date du dernier versement, à classer en crédits douteux | Texte réglementaire : Instr. BCC 003, art. 7, al. 2 ; confrontation du 21/11/2026, B4 | forte | en place |
 | T84 | Compte courant débiteur : mouvement créditeur « significatif », classement, provision et virement au 39 (S127 Clôtures (contrôles avant clôture)) | À confirmer par le porteur : le seuil d'un versement « significatif » (aucun texte lu ne le fixe). Ensuite seulement : virement du découvert au compte 39 et provision selon l'art. 12 | Choix du porteur : Instr. BCC 003, art. 7, al. 2, et art. 12 ; PCCI, compte 39 | faible | à appliquer |
+| T85 | États périodiques numérotés et datés (S115 Journaux ; S121 Balance ; grand livre ; S122 ; S123 ; SN01) | Chaque édition d'un état périodique (journaux, grand livre, balance, bilan, hors bilan, résultat, annexe, indicateurs, normes prudentielles) reçoit le numéro suivant, continu pour l'institution, gardé en base avec la date, l'heure et l'auteur ; l'en-tête de l'état affiche « édition n° … du … à … » | Texte réglementaire : PCCI § 3.4 (« les états périodiques fournis par le système de traitement soient numérotés et datés ») ; confrontation du 21/11/2026, B12 | forte | en place |
 
 ## S03 Profils : création et modification
 

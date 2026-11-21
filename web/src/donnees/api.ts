@@ -5859,6 +5859,21 @@ function asynchrone<T extends object>(o: T, nom = ""): Asynchrone<T> {
     try { return (f as (...x: unknown[]) => unknown)(...a); } finally { droitVerifie = false; }
   } : f])) as Asynchrone<T>;
 }
+/** B12 : les états périodiques sont numérotés et datés (PCCI § 3.4) ; un numéro continu, comme serveur/noyau/editions.py */
+export type Edition = { numero: number; le: string };
+function numeroterEdition(etat: string): Edition {
+  const l = (E.editions ??= []), e = { numero: (l.at(-1)?.numero ?? 0) + 1, etat, le: new Date().toISOString(), par: exiger().id };
+  l.push(e); sauver(); return { numero: e.numero, le: e.le };
+}
+type Numerote<T, K extends keyof T> = { [P in keyof T]: P extends K ? T[P] extends (...a: infer A) => infer R ? (...a: A) => R & { edition: Edition } : T[P] : T[P] };
+function numerote<T extends object, K extends keyof T>(o: T, etats: Record<K, string>): Numerote<T, K> {
+  const r = { ...o } as Record<string, unknown>;
+  for (const [k, etat] of Object.entries(etats) as [string, string][]) {
+    const f = (o as Record<string, (...a: unknown[]) => object>)[k]!;
+    r[k] = (...a: unknown[]) => ({ ...f(...a), edition: numeroterEdition(etat) });
+  }
+  return r as Numerote<T, K>;
+}
 // ---------- Administration : guichets (S08 et S09, manuel p. 18 et 19). Règles identiques côté serveur (noyau/guichets.py). ----------
 /** Types de guichet lus sur la capture p. 19 ; liste complète à confirmer */
 /** Registre S08-1 : les types de guichet viennent de Général > Type Guichet (S14n) */
@@ -9920,9 +9935,9 @@ const construireLocale = () => ({
   rapportsCredit: asynchrone(rapportsCreditApi, "rapportsCredit"),
   centraleRisques: asynchrone(centraleRisques, "centraleRisques"),
   comptabilisation: asynchrone(comptabilisation, "comptabilisation"),
-  etatsCompta: asynchrone(etatsCompta, "etatsCompta"),
-  etatsFinanciers: asynchrone(etatsFinanciers, "etatsFinanciers"),
-  normes: asynchrone(normes, "normes"),
+  etatsCompta: asynchrone(numerote(etatsCompta, { journaux: "journaux", grandLivre: "grand-livre", balance: "balance" }), "etatsCompta"),
+  etatsFinanciers: asynchrone(numerote(etatsFinanciers, { bilan: "bilan", horsBilan: "hors-bilan", resultat: "resultat", annexe: "annexe", indicateurs: "indicateurs" }), "etatsFinanciers"),
+  normes: asynchrone(numerote(normes, { etat: "normes" }), "normes"),
   budgets: asynchrone(budgets, "budgets"),
   finPeriode: asynchrone(finPeriode, "finPeriode"),
   operationsCompta: asynchrone(operationsCompta, "operationsCompta"),
