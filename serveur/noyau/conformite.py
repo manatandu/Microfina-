@@ -9,7 +9,7 @@ import json
 from django.conf import settings
 
 from .bd import ErreurMetier, executer, lignes, une, valeur
-from .services import SEUIL_ESPECES_USD, en_usd, especes_du_jour_usd, exiger, journee_courante, nom_utilisateur, titulaire
+from .services import SEUIL_ESPECES_USD, en_usd, especes_du_jour_usd, exiger, journee_courante, json_lu, nom_utilisateur, titulaire
 
 TYPES = {"depot": "Dépôt en espèces", "retrait": "Retrait en espèces", "adhesion": "Adhésion", "achat_parts": "Achat de parts", "retrait_parts": "Retrait de parts",
          "deblocage_credit": "Déblocage de crédit", "remboursement_credit": "Remboursement de crédit"}
@@ -295,7 +295,21 @@ def vue_profil(t: dict, jour: str) -> dict:
     return {"tiersId": t["id"], "membre": t["numero"], "client": titulaire(t["id"]), "exposee": ppe_active(t["id"]),
             "niveau": p.get("niveau") or "", "niveauLibelle": NIVEAUX.get(p.get("niveau") or "", ""), "motif": p.get("motif") or "",
             "evalueLe": p["evalue_le"].isoformat() if p else "", "evaluePar": nom_utilisateur(p["evalue_par"]) if p else "",
-            "prochaineRevue": prochaine, "echue": not p or prochaine <= jour}
+            "prochaineRevue": prochaine, "echue": not p or prochaine <= jour, "signaux": signaux_profil(t["id"], jour)}
+
+
+def signaux_profil(tid: int, jour: str) -> list[str]:
+    """A10 : vigilance renforcée (Instr. BCC 15, art. 39) : courrier domicilié dans une boîte postale ; adresse changée plusieurs fois en douze mois"""
+    s = []
+    if valeur("select coalesce(p.bp, m.bp, '') <> '' from tiers t left join tiers_personne p on p.tiers_id = t.id left join tiers_morale m on m.tiers_id = t.id where t.id = %s",
+              (tid,)):
+        s.append("Courrier domicilié dans une boîte postale (Instr. BCC 15, art. 39)")
+    cles = ("adresse", "province", "ville", "commune", "quartier", "rue", "numeroRue")
+    n = sum(1 for r in lignes("select avant, apres from tiers_modification where tiers_id = %s and modifie_le >= %s::date - interval '12 months'", (tid, jour))
+            if any(((json_lu(r["avant"]) or {}).get(k) or "") != ((json_lu(r["apres"]) or {}).get(k) or "") for k in cles))
+    if n >= 2:
+        s.append(f"Adresse changée {n} fois en douze mois (Instr. BCC 15, art. 39)")
+    return s
 
 
 def profils_lister(u: dict, filtre: str = "echues") -> list[dict]:

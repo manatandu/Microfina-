@@ -4777,8 +4777,18 @@ const vueProfil = (t: Tiers, jour: string) => {
   const p = E.profilsRisque.filter((x) => x.tiersId === t.id).sort((a, b) => b.evalueLe.localeCompare(a.evalueLe) || b.id - a.id)[0];
   const prochaine = p ? ajouterMois(p.evalueLe, 6) : "";
   return { tiersId: t.id, membre: t.numero, client: titulaire(t), exposee: ppeActive(t.id), niveau: p?.niveau ?? "", niveauLibelle: NIVEAUX_RISQUE[p?.niveau ?? ""] ?? "",
-    motif: p?.motif ?? "", evalueLe: p?.evalueLe ?? "", evaluePar: E.utilisateurs.find((u) => u.id === p?.evaluePar)?.nom ?? "", prochaineRevue: prochaine, echue: !p || prochaine <= jour };
+    motif: p?.motif ?? "", evalueLe: p?.evalueLe ?? "", evaluePar: E.utilisateurs.find((u) => u.id === p?.evaluePar)?.nom ?? "", prochaineRevue: prochaine, echue: !p || prochaine <= jour,
+    signaux: signauxProfil(t, jour) };
 };
+/** A10 : vigilance renforcée (Instr. BCC 15, art. 39) : boîte postale ; adresse changée plusieurs fois en douze mois. Comme le serveur (signaux_profil). */
+function signauxProfil(t: Tiers, jour: string) {
+  const s: string[] = [];
+  if (t.bp?.trim()) s.push("Courrier domicilié dans une boîte postale (Instr. BCC 15, art. 39)");
+  const debut = ajouterMois(jour, -12), cles = ["adresse", "province", "ville", "commune", "quartier", "rue", "numeroRue"] as const;
+  const n = E.modifications.filter((m) => m.tiersId === t.id && m.modifieLe.slice(0, 10) >= debut && cles.some((k) => (m.avant[k] ?? "") !== (m.apres[k] ?? ""))).length;
+  if (n >= 2) s.push(`Adresse changée ${n} fois en douze mois (Instr. BCC 15, art. 39)`);
+  return s;
+}
 const profilsRisque = {
   lister(filtre = "echues") {
     lectureAdmin(["SC01"]); const jour = jourConformite();

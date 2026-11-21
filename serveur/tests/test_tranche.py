@@ -3084,6 +3084,11 @@ def test_profil_risque(clients, journee):
     echues = chef.get("/api/conformite/profils", **H).json()
     k = next(x for x in echues if x["membre"] == "0412-000318")
     assert k["niveau"] == "" and k["echue"] is True
+    # A10 : boîte postale signalée (Instr. BCC 15, art. 39)
+    from noyau.bd import executer as ex_
+    ex_("update tiers_personne set bp = 'BP 1234 Kinshasa' where tiers_id = %s", (k["tiersId"],))
+    k = next(x for x in chef.get("/api/conformite/profils", **H).json() if x["membre"] == "0412-000318")
+    assert any("boîte postale" in x for x in k["signaux"]), k
     assert agent.get("/api/conformite/profils", **H).status_code == 403
     assert agent.post(f"/api/conformite/profils/{k['tiersId']}", {"niveau": "faible", "motif": "x", "donneesRevues": True}, **H).status_code == 403
     assert "Motif" in chef.post(f"/api/conformite/profils/{k['tiersId']}", {"niveau": "faible"}, **H).json()["message"]

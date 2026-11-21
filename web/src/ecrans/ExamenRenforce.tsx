@@ -258,14 +258,15 @@ function ProfilsRisque() {
         <label className="case"><input type="radio" name="filtre-profils" checked={filtre === "echues"} onChange={() => setFiltre("echues")} /><span>Revues échues</span></label>
         <label className="case"><input type="radio" name="filtre-profils" checked={filtre === "tous"} onChange={() => setFiltre("tous")} /><span>Tous les clients</span></label>
       </div>
-      <Paginee lignes={donnees} colonnes={(x) => [x.membre, x.client, x.niveauLibelle || "À évaluer", fr(x.evalueLe), x.evaluePar, x.prochaineRevue ? fr(x.prochaineRevue) : ""]}>{(visibles) => (<div className="defile-x"><table className="grille">
-        <thead><tr><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Niveau</th><th scope="col">Évalué le</th><th scope="col">Évalué par</th><th scope="col">Prochaine revue</th></tr><LigneFiltres titres={["N° client", "Client", "Niveau", "Évalué le", "Évalué par", "Prochaine revue"]} /></thead>
+      <Paginee lignes={donnees} colonnes={(x) => [x.membre, x.client, x.niveauLibelle || "À évaluer", fr(x.evalueLe), x.evaluePar, x.prochaineRevue ? fr(x.prochaineRevue) : "", x.signaux.join(" ; ")]}>{(visibles) => (<div className="defile-x"><table className="grille">
+        <thead><tr><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Niveau</th><th scope="col">Évalué le</th><th scope="col">Évalué par</th><th scope="col">Prochaine revue</th><th scope="col">Signaux</th></tr><LigneFiltres titres={["N° client", "Client", "Niveau", "Évalué le", "Évalué par", "Prochaine revue", "Signaux"]} /></thead>
         <tbody>
-          {visibles.length === 0 && <tr><td colSpan={6}>No records found.</td></tr>}
+          {visibles.length === 0 && <tr><td colSpan={7}>No records found.</td></tr>}
           {visibles.map((x) => (
             <tr key={x.tiersId} className="ligne-choix" tabIndex={0} aria-selected={choisi?.tiersId === x.tiersId} onClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
               <td className="chiffres">{x.membre}</td><td>{x.client}{x.exposee ? " · exposée" : ""}</td><td>{x.niveauLibelle || "À évaluer"}</td>
               <td className="chiffres">{fr(x.evalueLe)}</td><td>{x.evaluePar}</td><td className="chiffres">{x.prochaineRevue ? fr(x.prochaineRevue) : ""}{x.echue && x.evalueLe ? " · échue" : ""}</td>
+              <td>{x.signaux.join(" ; ")}</td>
             </tr>))}
         </tbody>
       </table></div>)}</Paginee>
