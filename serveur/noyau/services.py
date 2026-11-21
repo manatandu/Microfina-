@@ -1628,6 +1628,20 @@ def especes_du_jour_usd(tid: int, journee_id: int, sens: str) -> float:
     return total
 
 
+MSG_ESPECES_HORS_CLIENTELE = ("Espèces refusées : une opération de 10 000 USD ou plus ne se règle pas en espèces (loi 22/068, art. 23). "
+                              "La dérogation de l'Instr. BCC 15 bis ne vaut que pour les dépôts, les crédits et les moyens de paiement de la clientèle "
+                              "(art. 4 et 5). Régler par la banque.")
+
+
+def controler_especes_hors_clientele(montants: list[tuple[int, str]]) -> None:
+    """Loi 22/068, art. 23, al. 1 : « toute opération portant sur une somme […] globalement égale ou supérieure à 10.000 Dollars américains ne peut
+    être acquittée en espèces ». L'Instr. BCC 15 bis déroge pour les opérations de banque avec la clientèle (art. 4 : dépôts, crédits, moyens de
+    paiement), qui passent par l'examen renforcé. Hors clientèle (encaissement ou décaissement divers, règlement d'un fournisseur), rien ne déroge :
+    les espèces sont refusées au seuil. Confrontation du 21/11/2026, E4."""
+    if sum(en_usd(m, d) for m, d in montants) >= SEUIL_ESPECES_USD:
+        raise ErreurMetier(MSG_ESPECES_HORS_CLIENTELE)
+
+
 def session_ouverte(u: dict, devise: str) -> dict:
     exiger(u, "caissier")
     s = session_du_caissier(u)

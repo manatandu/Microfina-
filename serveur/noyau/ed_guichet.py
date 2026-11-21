@@ -49,6 +49,8 @@ def enregistrer(u: dict, p: dict) -> dict:
         saisis.append((d, m, nettoyer(coupures.get(d) or {})))
     if not saisis:
         raise ErreurMetier("À remplir : Montant.")
+    from .services import controler_especes_hors_clientele
+    controler_especes_hors_clientele([(m, d) for d, m, _ in saisis])          # loi 22/068, art. 23 (confrontation du 21/11/2026, E4)
     s = session_ouverte(u, saisis[0][0])
     encaissement = type_op == "ENCAISSEMENT"
     for d, m, c in saisis:

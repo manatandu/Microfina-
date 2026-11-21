@@ -783,6 +783,8 @@ def test_ed_divers_guichet(clients, journee):
     assert "pas proposée en encaissement" in refus("ENCAISSEMENT", c["id"], {"CDF": 100000}, {"CDF": {"1000": 1}})
     assert "Montant" in refus("ENCAISSEMENT", p["id"], {}, {})
     assert "billetage" in refus("ENCAISSEMENT", p["id"], {"CDF": 200000}, {"CDF": {"1000": 1}})
+    # Loi 22/068, art. 23 : 10 000 USD ou plus ne se règle pas en espèces ; hors clientèle, l'Instr. BCC 15 bis ne déroge pas (confrontation du 21/11/2026, E4)
+    assert "art. 23" in refus("ENCAISSEMENT", p["id"], {"USD": 1000000}, {"USD": {"100": 100}})
     o = op("ENCAISSEMENT", p["id"], {"CDF": 200000}, {"CDF": {"1000": 2}}, "Livret Kalala").json()
     assert [o["type"], o["tiersId"], o["statut"]] == ["ed_encaissement", None, "validee"]
     r = caisse.get(f"/api/operations/{o['id']}/recu").json()
@@ -791,7 +793,7 @@ def test_ed_divers_guichet(clients, journee):
     avant = th()
     assert op("DECAISSEMENT", c["id"], {"CDF": 100000}, {"CDF": {"1000": 1}}).json()["type"] == "ed_decaissement"
     assert th() == avant - 1
-    assert "coupures en caisse" in refus("DECAISSEMENT", c["id"], {"USD": 10000000}, {"USD": {"100": 1000}})
+    assert "coupures en caisse" in refus("DECAISSEMENT", c["id"], {"USD": 990000}, {"USD": {"1": 9900}})
     assert balance_equilibree(caisse)
 
 
@@ -2784,6 +2786,14 @@ def test_examen_renforce(clients, journee):
     dc = chef.post(f"/api/conformite/examens/{e['id']}/declaration", {"date": "2026-11-05", "reference": "CENAREF-2026-118"}, **H).json()
     assert dc["declareLe"] == "2026-11-05" and chef.get("/api/conformite/examens?statut=a_declarer", **H).json() == []
     assert chef.get(f"/api/conformite/examens/{e['id']}/rapport", **H).json()["examen"]["objet"] == "Dépôt de la recette"
+    # un examen refusé est une tentative : il entre dans la liste à déclarer (loi 22/068, art. 92 ; confrontation du 21/11/2026, E6)
+    e3 = caisse.post("/api/conformite/examens", {**d, "cle": cle(), "montant": 1200000}, **H).json()
+    rf = chef.post(f"/api/conformite/examens/{e3['id']}/examen", {"decision": "refuse", "origineFonds": "Non justifiée", "destinationFonds": "Épargne",
+                                                                 "objet": "Dépôt", "observations": "Origine des fonds non justifiée"}, **H).json()
+    assert rf["statut"] == "refuse"
+    assert [x["id"] for x in chef.get("/api/conformite/examens?statut=a_declarer", **H).json()] == [e3["id"]]
+    chef.post(f"/api/conformite/examens/{e3['id']}/declaration", {"date": "2026-11-05", "reference": "CENAREF-2026-119"}, **H)
+    assert chef.get("/api/conformite/examens?statut=a_declarer", **H).json() == []
     # quatre yeux : celui qui demande n'examine pas
     e2 = chef.post("/api/conformite/examens", {**d, "cle": cle(), "type": "retrait"}, **H)
     assert e2.status_code == 403                                                                      # le chef n'a pas le guichet
@@ -3966,6 +3976,13 @@ def test_factures_fournisseurs(clients, journee):
     r1 = compta.post(f"{FF}/reglements", rg, **H).json()
     assert (r1["statut"], r1["aPayer"], r1["modeLibelle"]) == ("saisie", 1403600, "CHEQUE")
     assert compta.get(f"{FF}/{f2['id']}/reglement-apercu?montant=250000", **H).json() == {"charges": [{**f2["charges"][0], "montant": 50000}], "aPayer": 200000}
+    # Loi 22/068, art. 23 : un fournisseur ne se règle pas en espèces à 10 000 USD ou plus (E4) ; essai avec un cours du dollar abaissé
+    from noyau.bd import executer as _ex, lignes as _lg
+    cours_usd = _lg("select id, cours from cours_change where devise = 'USD'")
+    _ex("update cours_change set cours = 0.3 where devise = 'USD'")
+    assert "art. 23" in refus(compta, f"{FF}/reglements", {"cle": cle(), "factureId": f2["id"], "montant": 500000, "mode": "ESPECE"})
+    for x in cours_usd:
+        _ex("update cours_change set cours = %s where id = %s", (x["cours"], x["id"]))
     r2 = compta.post(f"{FF}/reglements", {"cle": cle(), "factureId": f2["id"], "montant": 500000, "mode": "ESPECE"}, **H).json()
     assert (r2["aPayer"], r2["totalCharges"]) == (400000, 100000)
     for r in (r1, r2):

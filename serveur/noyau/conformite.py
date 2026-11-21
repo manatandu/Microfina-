@@ -95,7 +95,9 @@ def lister(u: dict, statut: str = "") -> list[dict]:
     exiger(u)
     if statut and statut not in ("a_examiner", "autorise", "refuse", "a_declarer"):
         raise ErreurMetier("Statut inconnu.")
-    filtre = {"": "true", "a_declarer": "statut = 'autorise' and declare_le is null"}.get(statut, "statut = %(s)s")
+    # À déclarer : l'opération autorisée (rapport à la CENAREF : Instr. BCC 15 bis, art. 7) et l'opération refusée, qui est une tentative
+    # (loi 22/068, art. 92 : « il en va de même pour les tentatives d'opérations suspectes » ; confrontation du 21/11/2026, E6)
+    filtre = {"": "true", "a_declarer": "statut in ('autorise', 'refuse') and declare_le is null"}.get(statut, "statut = %(s)s")
     return [vue(x) for x in lignes(f"select * from examen_renforce where institution_id = %(i)s and {filtre} order by numero desc",
                                    {"i": u["institution_id"], "s": statut})]
 

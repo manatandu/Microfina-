@@ -412,6 +412,9 @@ def enregistrer_reglement(u, d) -> dict:
     if date_r < f["date_facture"].isoformat():
         raise ErreurMetier("Date Règlement : pas avant la date de la facture.")
     ch = retenues_reglement(f, m)
+    if mode == "ESPECE":                                                        # loi 22/068, art. 23 (confrontation du 21/11/2026, E4)
+        from .services import controler_especes_hors_clientele
+        controler_especes_hors_clientele([(m - sum(x["montant"] for x in ch), "CDF")])
     rid = valeur("""insert into reglement_fournisseur (institution_id, agence_id, facture_id, montant, date_reglement, mode, charges, montant_a_payer, observations,
                                                        saisi_par, cle_idempotence) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
                  (u["institution_id"], u["agence_id"], f["id"], m, date_r, mode, Jsonb(ch), m - sum(x["montant"] for x in ch), texte(d, "observations"), u["id"], cle))
@@ -578,6 +581,8 @@ def payer_reglement(u, rid: int, d) -> dict:
         raise ErreurMetier("Rien à régler.")
     if u["id"] in (r["saisi_par"], r["vise_par"], r["valide_par"]):
         raise ErreurMetier("Quatre yeux : le paiement en caisse vient d'une autre personne que celles qui ont saisi, visé et validé.")
+    from .services import controler_especes_hors_clientele
+    controler_especes_hors_clientele([(r["montant_a_payer"], "CDF")])            # le cours a pu changer depuis la saisie du règlement
     s = session_ouverte(u, "CDF")
     coupures = nettoyer(d.get("coupures") if isinstance(d.get("coupures"), dict) else {})
     controler_montant_coupures(coupures, r["montant_a_payer"], "CDF")

@@ -653,11 +653,17 @@ def payer(u, oid: int, d) -> dict:
             raise ErreurMetier(f"Pas assez de coupures en caisse ({dv}).")
     j = une("select date_comptable from journee_comptable where id = %s", (s["journeeId"],))
     caisse = L("570", "D" if entree else "C", dv, m, f"guichet:{s['guichetId']}")
+    examen = None
     if o["type"] == "diverse":
+        from .services import controler_especes_hors_clientele
+        controler_especes_hors_clientele([(m, dv)])                         # hors clientèle : loi 22/068, art. 23 (confrontation du 21/11/2026, E4)
         autres = [L(x["compte"], "C" if entree else "D", dv, x["montant"], None, o["budget_ligne_id"]) for x in lg(o)]
         tiers_id, contrat = None, None
     else:
         c = compte_client(u, o["compte_depot_id"], "N° Compte", True)
+        from . import conformite
+        # dépôt ou retrait d'un client d'une autre agence : même examen renforcé qu'au guichet (Instr. BCC 15 bis, art. 5 à 7)
+        examen = conformite.autorisation(u, c["tiers_id"], s["journeeId"], "depot" if entree else "retrait", m, dv)
         if not entree and m > disponible(c, o["id"]):
             raise ErreurMetier("Solde disponible insuffisant sur le compte du client.")
         autres = [L(LIAISON, "C" if entree else "D", dv, m, f"liaison:{o['agence_client_id']}")]
@@ -667,6 +673,9 @@ def payer(u, oid: int, d) -> dict:
                  cle=cle, valide_par=u["id"], lignes_ecr=[caisse, *autres] if entree else [*autres, caisse])
     op = creer_operation(u, s, cle=cle, type_="ed_encaissement" if entree else "ed_decaissement", statut="validee", tiers_id=tiers_id, contrat=contrat,
                          montant=m, devise=dv, coupures=coupures, remis_par=o["nom_client"], ecriture_id=eid, motif=o["libelle"])
+    if examen:
+        from . import conformite
+        conformite.lier(examen, op)
     executer("""update operation_comptable set statut = 'payee', valide_par = %s, valide_le = now(), date_validation = %s, piece = %s, ecriture_id = %s,
                 operation_id = %s where id = %s""", (u["id"], j["date_comptable"], piece, eid, op, oid))
     o = une("select * from operation_comptable where id = %s", (oid,))

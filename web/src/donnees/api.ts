@@ -177,6 +177,13 @@ function coursCourants(): Record<string, number> {
 }
 const cdf = (m: number, d: Devise) => (d === "CDF" ? m : Math.round(m * coursDe(d)));   // au centime le plus proche ; l'écart d'arrondi d'une écriture va au 474 (poster)
 const enUsd = (m: number, d: Devise) => (d === "USD" ? m / 100 : m / 100 * coursDe(d) / coursDe("USD"));
+/** Loi 22/068, art. 23, al. 1 : une opération de 10 000 USD ou plus ne se règle pas en espèces. L'Instr. BCC 15 bis ne déroge que pour les opérations
+ *  de banque avec la clientèle (art. 4 et 5), qui passent par l'examen renforcé. Hors clientèle (encaissement ou décaissement divers, règlement d'un
+ *  fournisseur) : espèces refusées au seuil. Comme le serveur (controler_especes_hors_clientele ; confrontation du 21/11/2026, E4). */
+function controlerEspecesHorsClientele(montants: [number, Devise][]) {
+  if (montants.reduce((t, [m, d]) => t + enUsd(m, d), 0) >= SEUIL_ESPECES_USD)
+    throw new ErreurMetier("Espèces refusées : une opération de 10 000 USD ou plus ne se règle pas en espèces (loi 22/068, art. 23). La dérogation de l'Instr. BCC 15 bis ne vaut que pour les dépôts, les crédits et les moyens de paiement de la clientèle (art. 4 et 5). Régler par la banque.");
+}
 
 /** Solde d'un contrat (compte de dépôt, parts, guichet) lu dans le grand livre : la vue auxiliaire n'a pas de solde à elle */
 function soldeContrat(contrat: string, devise: Devise, sensNormal: "D" | "C"): number {
@@ -2731,6 +2738,7 @@ const guichet = {
       saisis.push([d, m, nettoyer(p.coupures?.[d] ?? {})]);
     }
     if (saisis.length === 0) throw new ErreurMetier("À remplir : Montant.");
+    controlerEspecesHorsClientele(saisis.map(([d, m]) => [m, d]));   // loi 22/068, art. 23 (E4)
     const { u, s } = sessionOuverte(saisis[0]![0]);
     const enc = p.typeOperation === "ENCAISSEMENT";
     for (const [d, m, c] of saisis) {
@@ -4994,7 +5002,8 @@ const conformite = {
   lister(statut = "") {
     lectureAdmin(["SC01"]);
     if (statut && !["a_examiner", "autorise", "refuse", "a_declarer"].includes(statut)) throw new ErreurMetier("Statut inconnu.");
-    return E.examens.filter((x) => !statut || (statut === "a_declarer" ? x.statut === "autorise" && !x.declareLe : x.statut === statut))
+    // À déclarer : l'opération autorisée et l'opération refusée, qui est une tentative (loi 22/068, art. 92 ; E6). Comme le serveur.
+    return E.examens.filter((x) => !statut || (statut === "a_declarer" ? (x.statut === "autorise" || x.statut === "refuse") && !x.declareLe : x.statut === statut))
       .sort((a, b) => b.numero - a.numero).map(vueExamen);
   },
   /** Instr. BCC 15, art. 61 : origine et destination des fonds, objet, acteurs ; une autre personne que le demandeur (Instr. BCC 008, art. 66) */
@@ -5891,10 +5900,14 @@ const operationsCompta = {
     if (!entree) { const th = caisses.theorique(s.id, dv); if (Object.entries(cp).some(([v, n]) => (n ?? 0) > (th[Number(v)] ?? 0))) throw new ErreurMetier(`Pas assez de coupures en caisse (${dv}).`); }
     const L = (compte: string, sens: "D" | "C", montant: number, contrat?: string): Ligne => ({ compte, sens, devise: dv, montant, montantCdf: cdf(montant, dv), ...(contrat ? { contrat } : {}) });
     const caisse = L("570", entree ? "D" : "C", m, guichetDe(s));
-    let autres: Ligne[], tiersId: number | null = null;
-    if (o.type === "diverse") autres = o.lignes.map((x) => ({ ...L(x.compte!, entree ? "C" : "D", x.montant), ...(o.ligneBudgetId ? { budget: o.ligneBudgetId } : {}) }));
-    else {
+    let autres: Ligne[], tiersId: number | null = null, examen: ReturnType<typeof autorisationExamen> = null;
+    if (o.type === "diverse") {
+      controlerEspecesHorsClientele([[m, dv]]);   // hors clientèle : loi 22/068, art. 23 (E4)
+      autres = o.lignes.map((x) => ({ ...L(x.compte!, entree ? "C" : "D", x.montant), ...(o.ligneBudgetId ? { budget: o.ligneBudgetId } : {}) }));
+    } else {
       const c = compteClientOc(o.compteDepotId, "N° Compte");
+      // dépôt ou retrait d'un client d'une autre agence : même examen renforcé qu'au guichet (Instr. BCC 15 bis, art. 5 à 7)
+      examen = autorisationExamen(c.tiersId, s.journeeId, entree ? "depot" : "retrait", m, dv);
       if (!entree && m > disponibleOc(c, o.id)) throw new ErreurMetier("Solde disponible insuffisant sur le compte du client.");
       autres = [L(LIAISON, entree ? "C" : "D", m, `liaison:${o.agenceClientId}`)]; tiersId = c.tiersId;
     }
@@ -5902,7 +5915,7 @@ const operationsCompta = {
     const e = poster({ journal: "CA", journeeId: s.journeeId, libelle: o.libelle, piece: pc, saisiPar: u.id, validePar: u.id, lignes: entree ? [caisse, ...autres] : [...autres, caisse] });
     const op: Operation = { id: prochain(E.operations), cle, type: entree ? "ed_encaissement" : "ed_decaissement", statut: "validee", sessionId: s.id, tiersId, montant: m, devise: dv, coupures: cp,
       remisPar: o.nomClient, motif: o.libelle, saisiPar: u.id, ecritureId: e.id, heure: heure() };
-    E.operations.push(op);
+    E.operations.push(op); lierExamen(examen, op.id);
     Object.assign(o, { statut: "payee", validePar: u.id, dateValidation: E.journees.find((x) => x.id === s.journeeId)!.date, piece: pc, ecritureId: e.id, operationId: op.id });
     if (o.type === "deplacee") {   // le reflet passe tout de suite : la démonstration locale tient une seule journée ouverte
       const r = poster({ journal: "OD", journeeId: s.journeeId, libelle: o.libelle, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: lignesRefletOc(o).map((x) => ({ ...x, montantCdf: cdf(x.montant, x.devise) })) });
@@ -6186,6 +6199,7 @@ const facturesFournisseurs = {
     if (date > jour) throw new ErreurMetier("Date Règlement : pas après la journée ouverte.");
     if (date < f.date) throw new ErreurMetier("Date Règlement : pas avant la date de la facture.");
     const ch = retenuesReglement(f, m);
+    if (d.mode === "ESPECE") controlerEspecesHorsClientele([[m - ch.reduce((t, x) => t + x.montant, 0), "CDF"]]);   // loi 22/068, art. 23 (E4)
     const r: ReglementFournisseur = { id: prochain(E.reglementsFournisseurs), cle, factureId: f.id, montant: m, date, mode: d.mode as ReglementFournisseur["mode"], charges: ch,
       aPayer: m - ch.reduce((t, x) => t + x.montant, 0), observations: texteOc(d.observations), statut: "saisie", saisiPar: u.id, piece: "" };
     E.reglementsFournisseurs.push(r); enregistrer(); return vueReglementF(r);
@@ -6213,6 +6227,7 @@ const facturesFournisseurs = {
     if (!r || r.mode !== "ESPECE" || r.statut !== "validee") throw new ErreurMetier("Rien à régler.");
     const moi = exiger();
     if ([r.saisiPar, r.visePar, r.validePar].includes(moi.id)) throw new ErreurMetier("Quatre yeux : le paiement en caisse vient d'une autre personne que celles qui ont saisi, visé et validé.");
+    controlerEspecesHorsClientele([[r.aPayer, "CDF"]]);   // le cours a pu changer depuis la saisie du règlement
     const { u, s } = sessionOuverte("CDF"), cp = nettoyer(p.coupures ?? {});
     controlerCoupures(cp, r.aPayer, "CDF");
     const th = caisses.theorique(s.id, "CDF");

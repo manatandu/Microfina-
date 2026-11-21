@@ -192,6 +192,15 @@ describe("journée de guichet", () => {
     const dc = await api.conformite.declarer(e.id, { date: "2026-11-05", reference: "CENAREF-2026-118" });
     expect([dc.declareLe, (await api.conformite.lister("a_declarer")).length]).toEqual(["2026-11-05", 0]);
     expect((await api.conformite.rapport(e.id)).examen.objet).toBe("Dépôt de la recette");
+    // un examen refusé est une tentative : il entre dans la liste à déclarer (loi 22/068, art. 92 ; confrontation du 21/11/2026, E6)
+    await connecter("engalula");
+    const e3 = await api.conformite.demander({ ...d, cle: cle(), montant: 1200000 });
+    await connecter("jpmukendi");
+    const rf = await api.conformite.examiner(e3.id, { decision: "refuse", origineFonds: "Non justifiée", destinationFonds: "Épargne", objet: "Dépôt", observations: "Origine des fonds non justifiée" });
+    expect(rf.statut).toBe("refuse");
+    expect((await api.conformite.lister("a_declarer")).map((x) => x.id)).toEqual([e3.id]);
+    await api.conformite.declarer(e3.id, { date: "2026-11-05", reference: "CENAREF-2026-119" });
+    expect((await api.conformite.lister("a_declarer")).length).toBe(0);
   });
 
   it("personne politiquement exposée (écart E02) : dossier, autorisation de la conformité avant le visa, quatre yeux, information de la CENAREF", async () => {
@@ -916,6 +925,8 @@ describe("journée de guichet", () => {
     await expect(ed("ENCAISSEMENT", c.id, { CDF: 100000 }, { CDF: { 1000: 1 } })).rejects.toThrow("pas proposée en encaissement");
     await expect(ed("ENCAISSEMENT", p.id, {}, {})).rejects.toThrow("Montant");
     await expect(ed("ENCAISSEMENT", p.id, { CDF: 200000 }, { CDF: { 1000: 1 } })).rejects.toThrow("billetage");
+    // Loi 22/068, art. 23 : 10 000 USD ou plus ne se règle pas en espèces ; hors clientèle, l'Instr. BCC 15 bis ne déroge pas (confrontation du 21/11/2026, E4)
+    await expect(ed("ENCAISSEMENT", p.id, { USD: 1000000 }, { USD: { 100: 100 } })).rejects.toThrow("art. 23");
     const o = await ed("ENCAISSEMENT", p.id, { CDF: 200000 }, { CDF: { 1000: 2 } }, "Livret Kalala");
     expect([o.type, o.tiersId, o.statut]).toEqual(["ed_encaissement", null, "validee"]);
     const r = await api.operations.recu(o.id);
@@ -923,7 +934,7 @@ describe("journée de guichet", () => {
     const avant = (await api.caisses.theorique(o.sessionId, "CDF"))[1000] ?? 0;
     expect((await ed("DECAISSEMENT", c.id, { CDF: 100000 }, { CDF: { 1000: 1 } })).type).toBe("ed_decaissement");
     expect((await api.caisses.theorique(o.sessionId, "CDF"))[1000]).toBe(avant - 1);
-    await expect(ed("DECAISSEMENT", c.id, { USD: 10000000 }, { USD: { 100: 1000 } })).rejects.toThrow("coupures en caisse");
+    await expect(ed("DECAISSEMENT", c.id, { USD: 990000 }, { USD: { 1: 9900 } })).rejects.toThrow("coupures en caisse");
   });
 
   it("transferts (S81, p. 92 et 93) : caisse vers caisse par 579, caisse vers banque par 591, coupures déplacées", async () => {
@@ -2953,6 +2964,11 @@ describe("journée de guichet", () => {
     const r1 = await api.facturesFournisseurs.enregistrerReglement({ cle: cle(), factureId: f1.id, montant: 1403600, mode: "CHEQUE" });
     expect([r1.statut, r1.aPayer, r1.totalCharges]).toEqual(["saisie", 1161600, 242000]);
     expect((await api.facturesFournisseurs.apercuReglement(f2.id, 250000)).aPayer).toBe(200000);
+    // Loi 22/068, art. 23 : un fournisseur ne se règle pas en espèces à 10 000 USD ou plus (E4) ; essai avec un cours du dollar abaissé
+    const Ec = _etat(), coursAvant = Ec.coursListe;
+    Ec.coursListe = coursAvant.map((x) => (x.devise === "USD" ? { ...x, cours: 0.3 } : x));
+    await expect(api.facturesFournisseurs.enregistrerReglement({ cle: cle(), factureId: f2.id, montant: 500000, mode: "ESPECE" })).rejects.toThrow("art. 23");
+    Ec.coursListe = coursAvant;
     const r2 = await api.facturesFournisseurs.enregistrerReglement({ cle: cle(), factureId: f2.id, montant: 500000, mode: "ESPECE" });
     await connecter("jpmukendi"); for (const r of [r1, r2]) await api.facturesFournisseurs.viser("reglement", r.id);
     await connecter("bkasongo");
