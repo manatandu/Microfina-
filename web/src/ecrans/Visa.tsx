@@ -501,6 +501,7 @@ export function ResiliationClient() {
   const { donnees: ctx } = useDonnees(() => api.referentiel.contexte());
   const [t, setT] = useState<Tiers | null>(null);
   const [motif, setMotif] = useState("");
+  const [deces, setDeces] = useState({ date: "", reference: "" });   // A16
   const [recherche, setRecherche] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
   const { donnees: comptes } = useDonnees(() => (t ? api.tiers.comptes(t.id) : Promise.resolve([])), [t?.id]);
@@ -551,6 +552,19 @@ export function ResiliationClient() {
             <table className="grille"><thead><tr><th scope="col">Libelle Frais</th><th scope="col">Frais</th></tr></thead><tbody><tr><td colSpan={2}>Liste vide</td></tr></tbody></table>
           </fieldset>
         </div>
+        {/* A16 (confrontation du 21/11/2026) : décès du titulaire ; les procurations prennent fin (Code civil, art. 544), les retraits passent par un ayant droit */}
+        {t?.type === "physique" && <fieldset className="pile cadre-champs sans-impression">
+          <legend>Décès du titulaire</legend>
+          {t.decesLe ? <p>Décédé le <strong className="chiffres">{fr(t.decesLe)}</strong>, acte {t.decesReference}. Retraits par un ayant droit enregistré sur la pièce de succession (Client &gt; Gestion des procurations).</p>
+            : <div className="formulaire">
+                <ChampDate libelle="Date du décès : *" valeur={deces.date} onChange={(v) => setDeces({ ...deces, date: v })} requis />
+                <Champ libelle="Référence de l'acte de décès : *">{(p) => <input {...p} className="saisie" value={deces.reference} onChange={(e) => setDeces({ ...deces, reference: e.target.value })} />}</Champ>
+                <div className="champ"><span className="libelle-vide" aria-hidden="true">&nbsp;</span><button className="bouton secondaire" type="button" onClick={() =>
+                  setBoite({ type: "confirmation", message: "Voulez-vous vraiment déclarer le décès de ce client ?", oui: async () => {
+                    try { setT(await api.tiers.declarerDeces(t.id, deces)); setDeces({ date: "", reference: "" }); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+                    catch (x) { setBoite({ type: "erreur", message: message(x) }); } } })}>Déclarer le décès</button></div>
+              </div>}
+        </fieldset>}
         <div className="actions-onglets sans-impression">
           <button className="bouton" type="button" disabled={!t || resilie} onClick={resilier}>Résilier</button>
           <button className="bouton secondaire" type="button" disabled={!resilie} onClick={() => window.print()}>Imprimer</button>

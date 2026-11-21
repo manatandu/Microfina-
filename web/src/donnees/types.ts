@@ -63,7 +63,8 @@ export interface Representant extends Adresse { nom: string; postnom: string; pr
  * et de la pièce (art. 33, al. 2 ; Instr. BCC 15, art. 12 et 29). Confrontation du 21/11/2026, E2. */
 export interface Procuration extends Adresse { id: number; mandantId: number; typeId: number; type: string; reference: string; nom: string; postnom: string; prenom: string;
   naissance: string; lieuNaissance: string; pieceType: string; pieceNumero: string; pieceDelivreeLe: string; pieceLieu: string; pieceAutorite: string; pieceExpire: string;
-  piecePays: string; telephone: string; adresse: string; dateDebut: string; dateFin: string; copieActe: boolean; copiePiece: boolean; finLe: string; finMotif: string; enCours: boolean }
+  piecePays: string; telephone: string; adresse: string; dateDebut: string; dateFin: string; copieActe: boolean; copiePiece: boolean; finLe: string; finMotif: string; enCours: boolean;
+  ayantDroit?: boolean }   // A16 : ayant droit d'un titulaire décédé, sur la pièce de succession
 /** Nature du contrôle du bénéficiaire effectif (loi 22/068, art. 34 bis, 1° à 3°) et part du capital ou des droits de vote (art. 39, al. 2) */
 export interface ControleEffectif { nature: string; part: string }
 
@@ -107,6 +108,7 @@ export interface Tiers {
   liees: number[];             // personnes liées (onglet « Personnes Liées »)
   controleEffectifs?: ControleEffectif[];   // aligné sur beneficiairesEffectifs (confrontation du 21/11/2026, E1)
   representantsRetires?: (Representant & { retireLe: string })[];   // E8 : retirés, gardés avec leurs images (loi 22/068, art. 48)
+  decesLe?: string; decesReference?: string;   // A16 : décès du titulaire, sur l'acte de décès
   habilitationReference?: string;   // A7 : pièce qui habilite à exercer l'activité déclarée (loi 22/068, art. 33, al. 4)
   objetRelation?: string; origineFonds?: string;   // A8 : loi 22/068, art. 34, al. 3 et art. 47 ; Instr. BCC 15, art. 17 b
   beneficiairesEffectifs?: number[];   // onglet « Personnes Liées », lien Bénéficiaire effectif (registre S38-3 ; Instr. BCC 15, art. 18)

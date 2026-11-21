@@ -89,7 +89,7 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/tiers", ["S37"]),
     (r"/tiers/\d+/visa", ["S40"]),
     (r"/tiers/\d+/modification", ["S46"]),
-    (r"/tiers/\d+/resiliation", ["S48"]),
+    (r"/tiers/\d+/(resiliation|deces)", ["S48"]),
     (r"/tiers/\d+/specimen", ["S49"]),
     (r"/tiers/\d+/consentements", ["S50"]),
     (r"/tiers/\d+/frais", ["S41"]),

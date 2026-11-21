@@ -1375,6 +1375,11 @@ def tp_supprimer(request, tid: int):
     return None
 
 
+@api.post("/tiers/{tid}/deces")
+def tiers_deces(request, tid: int, corps: dict = Body(...)):
+    return pr.declarer_deces(u(request), tid, corps)
+
+
 # ---------- Client : procurations (S47 ; confrontation du 21/11/2026, E2) ----------
 @api.get("/procurations")
 def proc_lister(request, tiers: int):

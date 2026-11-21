@@ -43,7 +43,8 @@ def _vue(r: dict) -> dict:
     return {**{k: v[k] for k in v if k not in ("photo", "specimen", "qualite", "personneExposee")},
             "id": r["id"], "mandantId": r["mandant_id"], "typeId": r["type_id"], "type": r.get("type_libelle") or "", "reference": r["reference"] or "",
             "telephone": r["telephone"] or "", "dateDebut": iso(r["date_debut"]), "dateFin": iso(r["date_fin"]), "copieActe": bool(r["copie_acte"]),
-            "copiePiece": bool(r["copie_piece"]), "finLe": iso(r["fin_le"]), "finMotif": r["fin_motif"] or "", "enCours": en_cours}
+            "copiePiece": bool(r["copie_piece"]), "finLe": iso(r["fin_le"]), "finMotif": r["fin_motif"] or "", "enCours": en_cours,
+            "ayantDroit": bool(r.get("ayant_droit"))}   # A16 : ayant droit d'un titulaire décédé
 
 
 SQL_VUE = "select p.*, t.libelle as type_libelle from procuration p left join type_procuration t on t.id = p.type_id"
@@ -70,11 +71,17 @@ def enregistrer(u, d) -> dict:
     d = d if isinstance(d, dict) else {}
     texte = texte_de(d)
     tid = d.get("mandantId")
-    t = une("select id, statut from tiers where id = %s and institution_id = %s", (tid, u["institution_id"])) if isinstance(tid, int) else None
+    t = une("select id, statut, deces_le from tiers where id = %s and institution_id = %s", (tid, u["institution_id"])) if isinstance(tid, int) else None
     if not t:
         raise ErreurMetier("Mandant : client introuvable.")
     if t["statut"] in ("prospect", "resilie"):
         raise ErreurMetier("Mandant prospect ou résilié : pas de procuration.")
+    # A16 : après le décès, plus de mandat (Code civil, art. 544) ; seul un ayant droit s'enregistre, sur la pièce de succession
+    ayant_droit = d.get("ayantDroit") is True
+    if t["deces_le"] and not ayant_droit:
+        raise ErreurMetier("Titulaire décédé : le mandat a pris fin (Code civil, art. 544). Enregistrer un ayant droit, sur la pièce de succession.")
+    if ayant_droit and not t["deces_le"]:
+        raise ErreurMetier("Ayant droit : seulement pour un titulaire dont le décès est déclaré (Client > Résilier un client).")
     type_id = d.get("typeId")
     if not isinstance(type_id, int) or not une("select 1 from type_procuration where id = %s and institution_id = %s and supprime_le is null",
                                                (type_id, u["institution_id"])):
@@ -86,18 +93,18 @@ def enregistrer(u, d) -> dict:
         raise ErreurMetier("Date de début : à remplir.")
     if fin and (not re.match(r"^\d{4}-\d{2}-\d{2}$", fin) or fin < debut):
         raise ErreurMetier("Date de fin : date invalide ou avant le début.")
-    for k, n in (("copieActe", "copie de la procuration"), ("copiePiece", "copie de la pièce du mandataire")):
+    for k, n in (("copieActe", "copie de la pièce de succession" if ayant_droit else "copie de la procuration"), ("copiePiece", "copie de la pièce du mandataire")):
         if not d.get(k):
             raise ErreurMetier(f"À déposer : {n} (loi 22/068, art. 33, al. 2 ; Instr. BCC 15, art. 12 et 29).")
         controler_image(d.get(k), n.capitalize())
     pid = valeur("""insert into procuration (mandant_id, type_id, date_debut, date_fin, reference, nom, postnom, prenom, date_naissance, lieu_naissance, piece_type,
                                              piece_numero, piece_delivree_le, piece_lieu, piece_autorite, piece_validite, piece_pays, telephone, pays, province, ville,
-                                             commune, quartier, rue, numero_rue, adresse, copie_acte, copie_piece, cree_par)
-                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
+                                             commune, quartier, rue, numero_rue, adresse, copie_acte, copie_piece, cree_par, ayant_droit)
+                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
                  (tid, type_id, debut, fin or None, texte("reference") or None, texte("nom"), texte("postnom") or None, texte("prenom"), texte("naissance"),
                   texte("lieuNaissance"), texte("pieceType"), texte("pieceNumero"), texte("pieceDelivreeLe"), texte("pieceLieu"), texte("pieceAutorite"),
                   texte("pieceExpire"), texte("piecePays") or None, texte("telephone") or None, *[texte(k) or None for k in ADRESSE_REP],
-                  adresse.composer(texte) or None, d["copieActe"], d["copiePiece"], u["id"]))
+                  adresse.composer(texte) or None, d["copieActe"], d["copiePiece"], u["id"], ayant_droit))
     from .gel import rapprocher
     rapprocher(u, [tid])                                  # A13 : le mandataire aussi (loi 22/068, art. 158 bis, 4°)
     return _vue(une(SQL_VUE + " where p.id = %s", (pid,)))
@@ -126,6 +133,10 @@ def mandataire_du_retrait(u, tiers_id: int, p: dict) -> tuple[str | None, int | 
     """Retrait au guichet (S74) : le titulaire lui-même, ou un mandataire choisi parmi ses procurations en cours (loi 22/068, art. 31, al. 3 ;
     Instr. BCC 15, art. 11 et 16). Rend le nom de celui qui retire et la procuration."""
     pid = p.get("procurationId")
+    deces = valeur("select deces_le from tiers where id = %s", (tiers_id,))
+    if deces and (pid is None or pid == ""):
+        raise ErreurMetier(f"Titulaire décédé le {deces.strftime('%d/%m/%Y')} : retrait seulement par un ayant droit enregistré sur la pièce de succession "
+                           "(Client > Gestion des procurations).")
     if pid is None or pid == "":
         if str(p.get("mandataire") or "").strip():
             raise ErreurMetier("Retrait par un mandataire : choisir sa procuration en cours (Client > Gestion des procurations ; loi 22/068, art. 31, al. 3).")
@@ -133,4 +144,29 @@ def mandataire_du_retrait(u, tiers_id: int, p: dict) -> tuple[str | None, int | 
     x = next((x for x in en_cours(u, tiers_id) if x["id"] == pid), None)
     if not x:
         raise ErreurMetier("Procuration inconnue, terminée ou pas encore en vigueur pour ce titulaire.")
+    if deces and not x["ayantDroit"]:
+        raise ErreurMetier("Titulaire décédé : le mandat a pris fin (Code civil, art. 544) ; retrait seulement par un ayant droit.")
+    if x["ayantDroit"]:
+        return " ".join(v for v in (x["nom"], x["postnom"], x["prenom"]) if v) + " (ayant droit)", pid
     return " ".join(v for v in (x["nom"], x["postnom"], x["prenom"]) if v) + " (mandataire)", pid
+
+
+def declarer_deces(u, tid: int, d) -> dict:
+    """A16 : décès du titulaire, sur l'acte de décès. Les procurations en cours prennent fin (Code civil, art. 544) ; les retraits ne se font plus qu'à un
+    ayant droit enregistré sur la pièce de succession."""
+    import re
+    from .services import lire_tiers
+    exiger(u, "chef_agence")
+    d = d if isinstance(d, dict) else {}
+    t = une("select id, statut, deces_le from tiers where id = %s and institution_id = %s and type = 'physique' for update", (tid, u["institution_id"]))
+    if not t:
+        raise ErreurMetier("Client physique introuvable.")
+    if t["deces_le"]:
+        raise ErreurMetier("Décès déjà déclaré.")
+    le, ref = str(d.get("date") or "").strip(), str(d.get("reference") or "").strip()
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", le) or le > valeur("select current_date").isoformat() or not ref:
+        raise ErreurMetier("À remplir : date du décès (pas dans le futur) et référence de l'acte de décès.")
+    executer("update tiers set deces_le = %s, deces_reference = %s, deces_par = %s where id = %s", (le, ref, u["id"], tid))
+    executer("""update procuration set fin_le = greatest(%s::date, date_debut), fin_motif = 'Décès du mandant', fin_par = %s, fin_saisie_le = now()
+                where mandant_id = %s and fin_le is null""", (le, u["id"], tid))
+    return lire_tiers(tid)

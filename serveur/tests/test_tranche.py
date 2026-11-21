@@ -142,6 +142,27 @@ def test_procuration_mandataire(clients, journee):
     assert len(agent.get(f"/api/procurations?tiers={m}").json()) == 1
 
 
+def test_deces_du_titulaire(clients, journee):
+    """A16 : décès déclaré sur l'acte ; procurations closes (Code civil, art. 544) ; retrait seulement par un ayant droit, sur la pièce de succession"""
+    agent, chef, caisse = clients["agent"], clients["chef"], clients["caisse"]
+    tid = agent.post("/api/types-procuration", {"libelle": "Générale"}, **H).json()["id"]
+    m = T("0412-000318")
+    fiche = {**REP, "mandantId": m, "typeId": tid, "nom": "Kasongo", "prenom": "Albert", "pieceType": "Passeport", "pieceNumero": "OB78",
+             "dateDebut": "2026-11-01", "copieActe": PNG, "copiePiece": PNG}
+    pr = agent.post("/api/procurations", fiche, **H).json()
+    assert "acte de décès" in chef.post(f"/api/tiers/{m}/deces", {"date": "2026-11-04"}, **H).json()["message"]
+    assert chef.post(f"/api/tiers/{m}/deces", {"date": "2026-11-04", "reference": "Acte n° 112/2026, Matete"}, **H).json()["decesLe"] == "2026-11-04"
+    assert agent.get(f"/api/procurations?tiers={m}", **H).json()[0]["finMotif"] == "Décès du mandant"
+    corps = {"cle": cle(), "compteId": C("0412-000318-01"), "montant": 45000, "coupures": {"100": 4, "50": 1}}
+    r = caisse.post("/api/guichet/retraits", corps, **H); assert r.status_code == 422 and "décédé" in r.json()["message"]
+    r = caisse.post("/api/guichet/retraits", {**corps, "cle": cle(), "procurationId": pr["id"]}, **H); assert r.status_code == 422
+    assert "mandat a pris fin" in agent.post("/api/procurations", fiche, **H).json()["message"]
+    ad = agent.post("/api/procurations", {**fiche, "ayantDroit": True, "nom": "Kalala", "prenom": "Pierre", "pieceNumero": "OB79"}, **H).json()
+    assert ad["ayantDroit"] and ad["enCours"], ad
+    r = caisse.post("/api/guichet/retraits", {**corps, "cle": cle(), "procurationId": ad["id"]}, **H)
+    assert r.status_code == 200 and r.json()["remisPar"] == "Kalala Pierre (ayant droit)", r.content
+
+
 def test_retrait_plafond_et_maximum(clients, journee):
     """S08 : retrait au-delà du plafond en attente du visa « Retrait plafond » puis payé (registre S08-5) ; avertissement au-delà du maximum (S08-4)"""
     from noyau.bd import executer

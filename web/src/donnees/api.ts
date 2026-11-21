@@ -1011,6 +1011,18 @@ const tiers = {
   },
   /** S48 : Résilier un client (p. 57). Loi 002/2002, art. 24 (pas de crédit dans la démonstration) ; apurement ensuite (art. 27).
    *  Aucun frais de fermeture : clôture de compte gratuite (Instr. BCC 37). Règles identiques côté serveur (services.resilier_tiers). */
+  /** A16 : décès du titulaire, sur l'acte de décès ; les procurations en cours prennent fin (Code civil, art. 544). Comme le serveur (declarer_deces). */
+  declarerDeces(id: number, d: { date: string; reference: string }) {
+    exiger("chef_agence");
+    const t = E.tiers.find((x) => x.id === id && x.type === "physique");
+    if (!t) throw new ErreurMetier("Client physique introuvable.");
+    if (t.decesLe) throw new ErreurMetier("Décès déjà déclaré.");
+    if (!DATE.test(d.date ?? "") || d.date > new Date().toISOString().slice(0, 10) || !(d.reference ?? "").trim())
+      throw new ErreurMetier("À remplir : date du décès (pas dans le futur) et référence de l'acte de décès.");
+    Object.assign(t, { decesLe: d.date, decesReference: d.reference.trim() });
+    for (const p of (E.procurations ?? []).filter((x) => x.mandantId === id && !x.finLe)) Object.assign(p, { finLe: d.date > p.dateDebut ? d.date : p.dateDebut, finMotif: "Décès du mandant" });
+    enregistrer(); return t;
+  },
   resilier(id: number, d: { motif: string }) {
     exiger("chef_agence");   // profil habilité : à confirmer
     const t = E.tiers.find((x) => x.id === id);
@@ -1338,13 +1350,17 @@ const procurations = {
     const t = E.tiers.find((x) => x.id === d.mandantId);
     if (!t) throw new ErreurMetier("Mandant : client introuvable.");
     if (t.statut === "prospect" || t.statut === "resilie") throw new ErreurMetier("Mandant prospect ou résilié : pas de procuration.");
+    // A16 : après le décès, plus de mandat (Code civil, art. 544) ; seul un ayant droit s'enregistre, sur la pièce de succession
+    const ayantDroit = d.ayantDroit === true;
+    if (t.decesLe && !ayantDroit) throw new ErreurMetier("Titulaire décédé : le mandat a pris fin (Code civil, art. 544). Enregistrer un ayant droit, sur la pièce de succession.");
+    if (ayantDroit && !t.decesLe) throw new ErreurMetier("Ayant droit : seulement pour un titulaire dont le décès est déclaré (Client > Résilier un client).");
     const type = E.typesProcuration.find((x) => x.id === d.typeId);
     if (!type) throw new ErreurMetier("Type de procuration : à choisir (Gestion des procurations, Nouveau type procuration).");
     const j = journees.courante();
     controlerRepresentant(d as unknown as RepresentantSaisi, "Mandataire", j?.date ?? "");
     if (!DATE.test(d.dateDebut ?? "")) throw new ErreurMetier("Date de début : à remplir.");
     if (d.dateFin && (!DATE.test(d.dateFin) || d.dateFin < d.dateDebut)) throw new ErreurMetier("Date de fin : date invalide ou avant le début.");
-    for (const [k, n] of [["copieActe", "copie de la procuration"], ["copiePiece", "copie de la pièce du mandataire"]] as const) {
+    for (const [k, n] of [["copieActe", ayantDroit ? "copie de la pièce de succession" : "copie de la procuration"], ["copiePiece", "copie de la pièce du mandataire"]] as const) {
       if (!d[k]) throw new ErreurMetier(`À déposer : ${n} (loi 22/068, art. 33, al. 2 ; Instr. BCC 15, art. 12 et 29).`);
       controlerImage(d[k], n[0]!.toUpperCase() + n.slice(1));
     }
@@ -1354,7 +1370,7 @@ const procurations = {
       pieceDelivreeLe: v("pieceDelivreeLe"), pieceLieu: v("pieceLieu"), pieceAutorite: v("pieceAutorite"), pieceExpire: v("pieceExpire"), piecePays: v("piecePays"),
       telephone: v("telephone"), ...Object.fromEntries(CHAMPS_ADRESSE.map((k) => [k, v(k as keyof SaisieProcuration)])), adresse: composerAdresseEcrite(d),
       dateDebut: d.dateDebut, dateFin: d.dateFin ?? "", copieActe: true, copiePiece: true, finLe: "", finMotif: "", enCours: false,
-      copieActeImage: d.copieActe!, copiePieceImage: d.copiePiece!, creePar: u.id };
+      copieActeImage: d.copieActe!, copiePieceImage: d.copiePiece!, creePar: u.id, ayantDroit };
     (E.procurations ??= []).push(p); rapprocherGel([t.id]); enregistrer(); return vueProcuration(p);   // A13 : le mandataire aussi
   },
   /** Fin du mandat (Code civil, art. 544 à 548) : la fiche reste, avec la date et le motif */
@@ -1379,13 +1395,17 @@ function vueProcuration(p: NonNullable<Etat["procurations"]>[number]): Procurati
 }
 /** Retrait (S74) : le titulaire, ou un mandataire choisi parmi ses procurations en cours (loi 22/068, art. 31, al. 3). Comme le serveur (mandataire_du_retrait). */
 function mandataireDuRetrait(tiersId: number, p: { mandataire?: string; procurationId?: number | null }) {
+  const deces = E.tiers.find((t) => t.id === tiersId)?.decesLe;
+  if (deces && p.procurationId == null)
+    throw new ErreurMetier(`Titulaire décédé le ${fr(deces)} : retrait seulement par un ayant droit enregistré sur la pièce de succession (Client > Gestion des procurations).`);
   if (p.procurationId == null) {
     if (p.mandataire?.trim()) throw new ErreurMetier("Retrait par un mandataire : choisir sa procuration en cours (Client > Gestion des procurations ; loi 22/068, art. 31, al. 3).");
     return null;
   }
   const x = procurations.enCours(tiersId).find((y) => y.id === p.procurationId);
   if (!x) throw new ErreurMetier("Procuration inconnue, terminée ou pas encore en vigueur pour ce titulaire.");
-  return { nom: `${[x.nom, x.postnom, x.prenom].filter(Boolean).join(" ")} (mandataire)`, id: x.id };
+  if (deces && !x.ayantDroit) throw new ErreurMetier("Titulaire décédé : le mandat a pris fin (Code civil, art. 544) ; retrait seulement par un ayant droit.");
+  return { nom: `${[x.nom, x.postnom, x.prenom].filter(Boolean).join(" ")} (${x.ayantDroit ? "ayant droit" : "mandataire"})`, id: x.id };
 }
 
 // ---------- Client : rapports (S51, manuel p. 58 et 59) ----------

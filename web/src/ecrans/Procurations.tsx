@@ -107,7 +107,7 @@ function ProcurationsClient() {
             {liste.map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} aria-selected={choisie?.id === x.id} onClick={() => setChoisie(x)}
               onKeyDown={(e) => { if (e.key === "Enter") setChoisie(x); }}>
               <td>{x.type}</td><td>{nom(x)}</td><td>{x.pieceType} <span className="chiffres">{x.pieceNumero}</span></td><td className="chiffres">{x.dateDebut}</td>
-              <td className="chiffres">{x.dateFin}</td><td>{x.finLe ? `Terminée le ${x.finLe} : ${x.finMotif}` : x.enCours ? "En cours" : "Pas encore en vigueur"}</td></tr>)}
+              <td className="chiffres">{x.dateFin}</td><td>{x.finLe ? `Terminée le ${x.finLe} : ${x.finMotif}` : x.enCours ? (x.ayantDroit ? "En cours (ayant droit)" : "En cours") : "Pas encore en vigueur"}</td></tr>)}
           </tbody>
         </table>
         {choisie && !choisie.finLe && <fieldset className="pile cadre-champs champs-a-gauche">
@@ -129,12 +129,14 @@ function ProcurationsClient() {
             <Champ libelle="Référence de l'acte :">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.reference ?? ""} onChange={(e) => maj({ reference: e.target.value })} />}</Champ>
             <ChampDate libelle="Date de début : *" valeur={f.dateDebut} onChange={(v) => maj({ dateDebut: v })} requis />
             <ChampDate libelle="Date de fin :" valeur={f.dateFin ?? ""} onChange={(v) => maj({ dateFin: v })} />
+            {t.decesLe && <label className="case"><input type="checkbox" checked={!!f.ayantDroit} onChange={(e) => maj({ ayantDroit: e.target.checked })} />
+              <span>Ayant droit (titulaire décédé le {t.decesLe}), sur la pièce de succession</span></label>}
             <Champ libelle="Téléphone du mandataire :">{(p) => <input {...p} className="saisie code" type="tel" autoComplete="off" value={f.telephone ?? ""} onChange={(e) => maj({ telephone: e.target.value })} />}</Champ>
           </div>
           <h2>Mandataire</h2>
           <ChampsRepresentant r={f as RepresentantSaisi} maj={(p) => maj(p as Partial<typeof f>)} ctx={ctx} />
           <div className="deux-colonnes">
-            {([["copieActe", "Copie de la procuration"], ["copiePiece", "Copie de la pièce du mandataire"]] as const).map(([k, titre]) => (
+            {([["copieActe", f.ayantDroit ? "Copie de la pièce de succession" : "Copie de la procuration"], ["copiePiece", "Copie de la pièce du mandataire"]] as const).map(([k, titre]) => (
               <fieldset key={k} className="pile cadre-champs">
                 <legend>{titre} *</legend>
                 <div className="actions-ligne"><label className="bouton secondaire">Choisir<input className="sr-only" type="file" accept="image/png,image/jpeg" aria-label={`Choisir : ${titre}`} onChange={image(k)} /></label></div>

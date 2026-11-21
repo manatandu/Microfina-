@@ -135,6 +135,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "conformite.enregistrerPpe": [
 "SC01"
 ],
+"conformite.enregistrerReportingMensuel": [
+"SC01"
+],
 "conformite.evaluerProfil": [
 "SC01"
 ],
@@ -317,6 +320,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 ],
 "facturesFournisseurs.viser": [
 "S113"
+],
+"finPeriode.affecter": [
+"S127"
 ],
 "finPeriode.cloturer": [
 "S127"
@@ -743,6 +749,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 ],
 "tiers.creerProspect": [
 "S45"
+],
+"tiers.declarerDeces": [
+"S48"
 ],
 "tiers.modifier": [
 "S46"

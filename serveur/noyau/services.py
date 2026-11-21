@@ -586,6 +586,7 @@ def vue_tiers(t: dict) -> dict:
             "controleEffectifs": [{"nature": r["nature"] or "", "part": str(r["part"]).replace(".", ",") if r["part"] is not None else ""} for r in effectifs],
             "objetRelation": t.get("objet_relation") or "", "origineFonds": t.get("origine_fonds") or "",   # A8
             "habilitationReference": t.get("habilitation_reference") or "",   # A7
+            "decesLe": iso(t.get("deces_le")), "decesReference": t.get("deces_reference") or "",   # A16
             "intitule": t["intitule"] or "", "dateVisa": iso(t["date_visa"]), "admissionLe": iso(t.get("admission_le")), "admissionReference": t.get("admission_reference") or "", "emancipationReference": t.get("emancipation_reference") or "", "representantLegal": t.get("representant_legal") or "", "auxiliaire": bool(t.get("auxiliaire")), "creeLe": t["cree_le"].date().isoformat(), "motifDepart": t["motif_depart"] or "", "resilieLe": iso(t["resilie_le"]),
             "sensibilisateurId": t["sensibilisateur_id"], "commercialId": t["commercial_id"],
             "profession": t["profession"] or "", "pays": t["pays"] or "", "ville": t["ville"] or "", "quartier": t["quartier"] or "", "rue": t["rue"] or "",
