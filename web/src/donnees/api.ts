@@ -18,6 +18,7 @@ import { coupuresDe, totalComptage, type Comptage, type Devise } from "@design/m
 import PCCI from "@pcci";
 import MODELE_ETATS from "@etats";
 import MODELE_LCB from "@reportingLcb";
+import QUALITES_PPE from "@ppeQualites";
 import REFERENTIELS from "@referentiels";
 import { bilanRapport } from "../lib/liasse";
 
@@ -4729,14 +4730,15 @@ function exigerAutorisationPpe(tid: number) {
     throw new ErreurMetier("Personne politiquement exposée, le client ou un de ses bénéficiaires effectifs (loi 22/068, art. 53) : l'autorisation de la conformité vient avant le visa (Instr. BCC 15, art. 64). Client > Conformité > Examen renforcé, onglet Personnes exposées.");
 }
 const vuePpe = (t: Tiers) => { const d = E.dossiersPpe.find((x) => x.tiersId === t.id); const nom = (id: number | null | undefined) => E.utilisateurs.find((u) => u.id === id)?.nom ?? "";
-  return { tiersId: t.id, membre: t.numero, client: titulaire(t), statutClient: t.statut, exposee: ppeActive(t.id), fonction: d?.fonction ?? "", finFonction: d?.finFonction ?? "",
+  return { tiersId: t.id, membre: t.numero, client: titulaire(t), statutClient: t.statut, exposee: ppeActive(t.id), categorie: d?.categorie ?? "", qualite: d?.qualite ?? "",
+    fonction: d?.fonction ?? "", finFonction: d?.finFonction ?? "",
     originePatrimoine: d?.originePatrimoine ?? "", saisiPar: nom(d?.saisiPar), autorisePar: nom(d?.autorisePar), autoriseLe: d?.autoriseLe ?? "",
     informeLe: d?.informeLe ?? "", referenceCenaref: d?.referenceCenaref ?? "" }; };
 const ppe = {
   lister() { lectureAdmin(["SC01"]); const expose = (id: number) => !!E.tiers.find((x) => x.id === id)?.personneExposee;
     return E.tiers.filter((t) => t.personneExposee || (t.beneficiairesEffectifs ?? []).some(expose) || !!t.dirigeant?.personneExposee).sort((a, b) => a.numero.localeCompare(b.numero)).map(vuePpe); },
   /** Fonction, fin de fonction, origine du patrimoine (art. 41, 64) ; « autoriser » : accord de la conformité, par une autre personne (Instr. BCC 008, art. 66) */
-  enregistrer(tid: number, d: { fonction?: string; finFonction?: string; originePatrimoine?: string; autoriser?: boolean }) {
+  enregistrer(tid: number, d: { fonction?: string; finFonction?: string; originePatrimoine?: string; categorie?: string; qualite?: string; autoriser?: boolean }) {
     const u = exiger();
     const t = E.tiers.find((x) => x.id === tid);
     if (!t || !(t.personneExposee || ppeActive(tid))) throw new ErreurMetier("Ni ce client ni un de ses bénéficiaires effectifs n'est inscrit comme personne politiquement exposée (case de la fiche).");
@@ -4750,10 +4752,13 @@ const ppe = {
     const f = (d.fonction ?? "").trim(), o = (d.originePatrimoine ?? "").trim(), fin = (d.finFonction ?? "").trim();
     const manque = ([[f, "Fonction exercée"], [o, "Origine du patrimoine et des fonds"]] as const).filter(([v]) => !v).map(([, n]) => n);
     if (manque.length) throw new ErreurMetier(`À remplir (Instr. BCC 15, art. 41 et 64) : ${manque.join(", ")}.`);
+    // P6 : catégorie et qualité de la liste de l'Instr. BCC 15, art. 5 (replica/ppe-qualites.json). Comme le serveur.
+    const cat = (d.categorie ?? "").trim(), qual = (d.qualite ?? "").trim();
+    if (!(QUALITES_PPE.qualites as Record<string, string[]>)[cat]?.includes(qual)) throw new ErreurMetier("À remplir : catégorie et qualité de la personne exposée, dans la liste de l'Instr. BCC 15, art. 5.");
     if (fin && !/^\d{4}-\d{2}-\d{2}$/.test(fin)) throw new ErreurMetier("Fin de la fonction : date invalide.");
     if (x?.autorisePar) throw new ErreurMetier("Dossier autorisé : il ne se modifie plus.");
-    if (x) Object.assign(x, { fonction: f, finFonction: fin, originePatrimoine: o, saisiPar: u.id });
-    else E.dossiersPpe.push({ tiersId: tid, fonction: f, finFonction: fin, originePatrimoine: o, saisiPar: u.id, autorisePar: null, autoriseLe: "", informeLe: "", referenceCenaref: "" });
+    if (x) Object.assign(x, { categorie: cat, qualite: qual, fonction: f, finFonction: fin, originePatrimoine: o, saisiPar: u.id });
+    else E.dossiersPpe.push({ tiersId: tid, categorie: cat, qualite: qual, fonction: f, finFonction: fin, originePatrimoine: o, saisiPar: u.id, autorisePar: null, autoriseLe: "", informeLe: "", referenceCenaref: "" });
     enregistrer(); return vuePpe(t);
   },
   /** Art. 65 : information de la CENAREF, même sans soupçon */
@@ -5690,6 +5695,7 @@ const conformite = {
   declarerCip: (d: Parameters<typeof cip.declarer>[0]) => cip.declarer(d),
   noterIcu: (tid: number, d: { icu: string }) => cip.noterIcu(tid, d),
   enregistrerPpe: (tid: number, d: Parameters<typeof ppe.enregistrer>[1]) => ppe.enregistrer(tid, d),
+  ppeQualites: () => { lectureAdmin(["SC01"]); return QUALITES_PPE; },
   informerPpe: (tid: number, d: { date: string; reference: string }) => ppe.informer(tid, d),
   rapport(id: number) {
     lectureAdmin(["SC01"]);

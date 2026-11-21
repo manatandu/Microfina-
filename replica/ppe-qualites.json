@@ -1,0 +1,64 @@
+{
+ "source": "Instr. BCC 15 (modification n° 3), art. 5 : personne politiquement exposée",
+ "categories": [
+  {
+   "cle": "nationale",
+   "libelle": "Personne politiquement exposée nationale"
+  },
+  {
+   "cle": "etrangere",
+   "libelle": "Personne politiquement exposée étrangère"
+  },
+  {
+   "cle": "organisation",
+   "libelle": "Personne politiquement exposée d'une organisation internationale"
+  },
+  {
+   "cle": "famille",
+   "libelle": "Membre de la famille ou proche associé d'une personne politiquement exposée"
+  }
+ ],
+ "qualites": {
+  "nationale": [
+   "Chef de l'Etat",
+   "Chef du Gouvernement",
+   "Membre du Gouvernement Central ou provincial",
+   "Membre du Parlement national ou Assemblée provinciale",
+   "Secrétaires Généraux des institutions, des Ministères et Directeurs Généraux des services publics et établissements de l'Etat",
+   "Membre de l'Organe dirigeant d'un parti ou groupement politique",
+   "Membre de la Cour Constitutionnelle, de la Cour de Cassation, du Conseil d'Etat et des Parquets y rattachés",
+   "Membre de la Cour des comptes",
+   "Dirigeant ou membre du Conseil ou de l'organe de direction de la Banque Centrale du Congo",
+   "Ambassadeur, chargé d'affaires, Consul général, Consul de carrière",
+   "Officier général ou Officier supérieur assurant le commandement des forces armées ou de Police Nationale Congolaise",
+   "Membre d'un organe d'administration, de direction ou de surveillance d'une entreprise publique ou parastatale",
+   "Agents publics de l'Etat ayant rang de Directeur"
+  ],
+  "etrangere": [
+   "Chef de l'Etat",
+   "Chef du Gouvernement",
+   "Membre du Gouvernement Central",
+   "Membre d'une Assemblée parlementaire nationale",
+   "Directeur Général d'un ministère",
+   "Membre de l'Organe dirigeant d'un parti ou groupement politique étranger",
+   "Membre d'une Cour suprême, d'une Cour constitutionnelle ou d'une autre juridiction dont les décisions ne sont pas, sauf circonstance exceptionnelle, susceptibles de recours",
+   "Membre d'une Cour des comptes",
+   "Dirigeant ou membre de l'Organe de direction ou d'administration d'une banque centrale",
+   "Ambassadeur, chargé d'affaires, Consul général, Consul de carrière",
+   "Officier général ou Officier supérieur assurant le commandement d'une armée ou de la force publique",
+   "Membre d'un organe d'administration, de direction ou de surveillance d'une entreprise publique ou parastatale"
+  ],
+  "organisation": [
+   "Directeur",
+   "Directeur Adjoint",
+   "Membre du conseil d'une organisation internationale créée par un traité, ou une personne qui occupe une position équivalente en son sein"
+  ],
+  "famille": [
+   "Le conjoint",
+   "Tout partenaire considéré par le droit national comme équivalent d'un conjoint",
+   "Les descendants et leurs conjoints, tout partenaire considéré par le droit national comme un conjoint",
+   "Les ascendants",
+   "Les personnes connues pour être étroitement associées à une personne politiquement exposée"
+  ]
+ }
+}

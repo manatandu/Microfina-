@@ -48,6 +48,9 @@
       ],
       "@reportingLcb": [
         "../replica/reporting-lcb.json"
+      ],
+      "@ppeQualites": [
+        "../replica/ppe-qualites.json"
       ]
     }
   },

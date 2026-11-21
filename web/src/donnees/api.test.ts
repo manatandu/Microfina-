@@ -279,7 +279,9 @@ describe("journée de guichet", () => {
     await expect(api.tiers.viser(t.id)).rejects.toThrow("autorisation de la conformité");
     expect((await api.conformite.ppe()).map((x) => [x.client, x.fonction])).toEqual([["Mbala Kanku Pierre", ""]]);
     await expect(api.conformite.enregistrerPpe(t.id, { fonction: "Député provincial" })).rejects.toThrow("Origine du patrimoine");
-    await api.conformite.enregistrerPpe(t.id, { fonction: "Député provincial", originePatrimoine: "Indemnités parlementaires, ferme à Kasangulu" });
+    await expect(api.conformite.enregistrerPpe(t.id, { fonction: "Député provincial", originePatrimoine: "Indemnités" })).rejects.toThrow("catégorie et qualité");   // P6
+    await api.conformite.enregistrerPpe(t.id, { fonction: "Député provincial", originePatrimoine: "Indemnités parlementaires, ferme à Kasangulu", categorie: "nationale",
+      qualite: "Membre du Parlement national ou Assemblée provinciale" });
     await expect(api.conformite.enregistrerPpe(t.id, { autoriser: true })).rejects.toThrow("Quatre yeux");
     await connecter("bkasongo");
     await expect(api.conformite.ppe()).rejects.toThrow("Droit manquant");

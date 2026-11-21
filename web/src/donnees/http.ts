@@ -460,6 +460,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       declarerCip: (d: object) => post("/conformite/cip/declarations", d),
       noterIcu: (tid: number, d: object) => post(`/conformite/cip/icu/${tid}`, d),
       enregistrerPpe: (tid: number, d: object) => post(`/conformite/ppe/${tid}`, d),
+      ppeQualites: () => get("/conformite/ppe-qualites"),
       informerPpe: (tid: number, d: object) => post(`/conformite/ppe/${tid}/information`, d),
     },
     plaintes: {

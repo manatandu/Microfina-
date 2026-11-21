@@ -2707,6 +2707,12 @@ def conformite_ppe(request):
     return conf.ppe_lister(u(request))
 
 
+@api.get("/conformite/ppe-qualites")
+def conformite_ppe_qualites(request):
+    from . import conformite
+    return conformite.ppe_qualites(u(request))
+
+
 @api.post("/conformite/ppe/{tid}")
 def conformite_ppe_enregistrer(request, tid: int, corps: dict = Body(...)):
     return conf.ppe_enregistrer(u(request), tid, corps)

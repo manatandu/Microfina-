@@ -4,6 +4,10 @@ objet de l'opération, acteurs économiques) et 62 (rapport écrit confidentiel)
 après ses diligences, puis informe la CENAREF par un rapport confidentiel). Mêmes règles que web/src/donnees/api.ts (conformite)."""
 import uuid
 
+import json
+
+from django.conf import settings
+
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import SEUIL_ESPECES_USD, en_usd, especes_du_jour_usd, exiger, journee_courante, nom_utilisateur, titulaire
 
@@ -163,6 +167,16 @@ def rapport(u: dict, eid: int) -> dict:
 MOIS_FIN_PPE = 36      # Instr. BCC 15, art. 64, dernier alinéa
 
 
+# P6 : catégories et qualités de la personne politiquement exposée (Instr. BCC 15, art. 5), une seule copie lue aussi par le navigateur
+QUALITES_PPE = json.loads((settings.RACINE_DEPOT / "replica" / "ppe-qualites.json").read_text(encoding="utf-8"))
+
+
+def ppe_qualites(u: dict) -> dict:
+    from .services import exiger
+    exiger(u)
+    return QUALITES_PPE
+
+
 def _ppe_personne(tid: int) -> bool:
     """Exposée : case cochée sur la fiche, et pas de fonction terminée depuis plus de 36 mois"""
     if not valeur("select personne_exposee from tiers where id = %s", (tid,)):
@@ -191,6 +205,7 @@ def exiger_autorisation_ppe(tid: int) -> None:
 def vue_ppe(t: dict) -> dict:
     d = une("select * from dossier_ppe where tiers_id = %s", (t["id"],)) or {}
     return {"tiersId": t["id"], "membre": t["numero"], "client": titulaire(t["id"]), "statutClient": t["statut"], "exposee": ppe_active(t["id"]),
+            "categorie": d.get("categorie") or "", "qualite": d.get("qualite") or "",   # P6
             "fonction": d.get("fonction") or "", "finFonction": d["fin_fonction"].isoformat() if d.get("fin_fonction") else "",
             "originePatrimoine": d.get("origine_patrimoine") or "", "saisiPar": nom_utilisateur(d["saisi_par"]) if d.get("saisi_par") else "",
             "autorisePar": nom_utilisateur(d["autorise_par"]) if d.get("autorise_par") else "",
@@ -230,15 +245,20 @@ def ppe_enregistrer(u: dict, tid: int, d: dict) -> dict:
     manque = [n for v, n in ((f, "Fonction exercée"), (o, "Origine du patrimoine et des fonds")) if not v]
     if manque:
         raise ErreurMetier("À remplir (Instr. BCC 15, art. 41 et 64) : " + ", ".join(manque) + ".")
+    # P6 : catégorie et qualité de la liste de l'Instr. BCC 15, art. 5 (replica/ppe-qualites.json)
+    cat, qual = str(d.get("categorie") or "").strip(), str(d.get("qualite") or "").strip()
+    if cat not in QUALITES_PPE["qualites"] or qual not in QUALITES_PPE["qualites"][cat]:
+        raise ErreurMetier("À remplir : catégorie et qualité de la personne exposée, dans la liste de l'Instr. BCC 15, art. 5.")
     if fin and not re.match(r"^\d{4}-\d{2}-\d{2}$", fin):
         raise ErreurMetier("Fin de la fonction : date invalide.")
     if x and x["autorise_par"]:
         raise ErreurMetier("Dossier autorisé : il ne se modifie plus.")
     if x:
-        executer("update dossier_ppe set fonction = %s, fin_fonction = %s, origine_patrimoine = %s, saisi_par = %s, saisi_le = now() where tiers_id = %s",
-                 (f, fin or None, o, u["id"], tid))
+        executer("""update dossier_ppe set fonction = %s, fin_fonction = %s, origine_patrimoine = %s, categorie = %s, qualite = %s, saisi_par = %s, saisi_le = now()
+                    where tiers_id = %s""", (f, fin or None, o, cat, qual, u["id"], tid))
     else:
-        executer("insert into dossier_ppe (tiers_id, fonction, fin_fonction, origine_patrimoine, saisi_par) values (%s, %s, %s, %s, %s)", (tid, f, fin or None, o, u["id"]))
+        executer("insert into dossier_ppe (tiers_id, fonction, fin_fonction, origine_patrimoine, categorie, qualite, saisi_par) values (%s, %s, %s, %s, %s, %s, %s)",
+                 (tid, f, fin or None, o, cat, qual, u["id"]))
     return vue_ppe(t)
 
 

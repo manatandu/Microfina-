@@ -3066,7 +3066,9 @@ def test_personne_exposee(clients, journee):
     assert r.status_code == 422 and "autorisation de la conformité" in r.json()["message"]
     assert [x["client"] for x in chef.get("/api/conformite/ppe", **H).json()] == ["Mbala Kanku Pierre"]
     assert "Origine du patrimoine" in chef.post(f"/api/conformite/ppe/{t['id']}", {"fonction": "Député provincial"}, **H).json()["message"]
-    assert chef.post(f"/api/conformite/ppe/{t['id']}", {"fonction": "Député provincial", "originePatrimoine": "Indemnités, ferme"}, **H).status_code == 200
+    assert "catégorie et qualité" in chef.post(f"/api/conformite/ppe/{t['id']}", {"fonction": "Député provincial", "originePatrimoine": "Indemnités, ferme"}, **H).json()["message"]
+    assert chef.post(f"/api/conformite/ppe/{t['id']}", {"fonction": "Député provincial", "originePatrimoine": "Indemnités, ferme", "categorie": "nationale",
+                                                        "qualite": "Membre du Parlement national ou Assemblée provinciale"}, **H).status_code == 200   # P6 : Instr. BCC 15, art. 5
     assert "Quatre yeux" in chef.post(f"/api/conformite/ppe/{t['id']}", {"autoriser": True}, **H).json()["message"]
     assert agent.get("/api/conformite/ppe", **H).status_code == 403
     assert compta.post(f"/api/conformite/ppe/{t['id']}", {"autoriser": True}, **H).status_code == 403

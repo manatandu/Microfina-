@@ -10,7 +10,7 @@ COPY serveur/ .
 # et les descriptions partagées avec la page web : référentiels, modèles des états financiers du PCCI, modèle de la liasse,
 # localisation (provinces, villes, territoires, communes de Kinshasa) et données de démonstration des référentiels (graine).
 # Tout fichier de replica/ lu par le serveur doit figurer ici : le test tests/test_image.py le vérifie.
-COPY replica/schema.sql replica/pcci.json replica/referentiels.json replica/etats-pcci.json replica/liasse-pcci.json replica/localisation-rdc.json replica/demonstration.json replica/reporting-lcb.json /replica/
+COPY replica/schema.sql replica/pcci.json replica/referentiels.json replica/etats-pcci.json replica/liasse-pcci.json replica/localisation-rdc.json replica/demonstration.json replica/reporting-lcb.json replica/ppe-qualites.json /replica/
 # Les droits des écrans (droits.py) sont lus dans le registre des écrans de la page web
 COPY web/src/ecrans/registre.json /web/src/ecrans/registre.json
 USER nobody

@@ -18,11 +18,13 @@ const localisation = fileURLToPath(new URL("../replica/localisation-rdc.json", i
 const demonstration = fileURLToPath(new URL("../replica/demonstration.json", import.meta.url));
 // Reporting LCB-FT mensuel à la BCC (Instr. BCC 15, art. 95, b ; annexe, codes LAB) : lu aussi par le serveur (noyau/reporting_lcb.py)
 const reportingLcb = fileURLToPath(new URL("../replica/reporting-lcb.json", import.meta.url));
+// Catégories et qualités de la personne politiquement exposée (Instr. BCC 15, art. 5) : lues aussi par le serveur (noyau/conformite.py)
+const ppeQualites = fileURLToPath(new URL("../replica/ppe-qualites.json", import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
-  resolve: { alias: { "@design": design, "@pcci": pcci, "@referentiels": referentiels, "@etats": etats, "@liasse": liasse, "@localisation": localisation, "@demonstration": demonstration, "@reportingLcb": reportingLcb } },
+  resolve: { alias: { "@design": design, "@pcci": pcci, "@referentiels": referentiels, "@etats": etats, "@liasse": liasse, "@localisation": localisation, "@demonstration": demonstration, "@reportingLcb": reportingLcb, "@ppeQualites": ppeQualites } },
   // VITE_DONNEES=serveur : les appels /api vont au serveur Django (python manage.py runserver 8000)
-  server: { fs: { allow: [".", design, pcci, referentiels, etats, localisation, demonstration, reportingLcb] }, proxy: { "/api": "http://127.0.0.1:8000" } },
+  server: { fs: { allow: [".", design, pcci, referentiels, etats, localisation, demonstration, reportingLcb, ppeQualites] }, proxy: { "/api": "http://127.0.0.1:8000" } },
   test: { environment: "node" },
 });

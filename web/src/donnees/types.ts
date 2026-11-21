@@ -277,7 +277,7 @@ export interface Examen {
   examinePar: number | null; examineLe: string; operationId: number | null; declareLe: string; referenceDeclaration: string;
 }
 /** Écart E02 : dossier d'une personne politiquement exposée (Instr. BCC 15, art. 41, 64, 65) */
-export interface DossierPpe { tiersId: number; fonction: string; finFonction: string; originePatrimoine: string; saisiPar: number; autorisePar: number | null; autoriseLe: string; informeLe: string; referenceCenaref: string }
+export interface DossierPpe { tiersId: number; categorie?: string; qualite?: string; fonction: string; finFonction: string; originePatrimoine: string; saisiPar: number; autorisePar: number | null; autoriseLe: string; informeLe: string; referenceCenaref: string }
 /** Écart E17 : événement du journal de sécurité (Instr. BCC 008, art. 16) */
 export interface EvenementSecurite { id: number; le: string; evenement: string; login: string; utilisateurId: number | null; detail: string }
 /** Écart E16 : reversement mensuel des retenues sur intérêts (arrêté 008/2025, art. 2) */

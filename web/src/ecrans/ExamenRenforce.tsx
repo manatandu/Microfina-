@@ -169,13 +169,14 @@ type Ppe = Awaited<ReturnType<typeof api.conformite.ppe>>[number];
 function PersonnesExposees({ jour }: { jour: string }) {
   const [relu, setRelu] = useState(0);
   const { donnees, erreur } = useDonnees(() => api.conformite.ppe(), [relu]);
+  const { donnees: qualites } = useDonnees(() => api.conformite.ppeQualites());
   const [choisi, setChoisi] = useState<Ppe | null>(null);
-  const [f, setF] = useState({ fonction: "", finFonction: "", originePatrimoine: "" });
+  const [f, setF] = useState({ categorie: "", qualite: "", fonction: "", finFonction: "", originePatrimoine: "" });
   const [info, setInfo] = useState({ date: "", reference: "" });
   const [boite, setBoite] = useState<Boite | null>(null);
   if (erreur) return <p role="alert" className="erreur-champ">{erreur}</p>;
   if (!donnees) return <Chargement />;
-  const ouvrir = (x: Ppe) => { setChoisi(x); setF({ fonction: x.fonction, finFonction: x.finFonction, originePatrimoine: x.originePatrimoine }); setInfo({ date: "", reference: "" }); };
+  const ouvrir = (x: Ppe) => { setChoisi(x); setF({ categorie: x.categorie, qualite: x.qualite, fonction: x.fonction, finFonction: x.finFonction, originePatrimoine: x.originePatrimoine }); setInfo({ date: "", reference: "" }); };
   const agir = (msg: string, appel: () => Promise<Ppe>) => setBoite({ type: "confirmation", message: msg, oui: async () => {
     try { setChoisi(await appel()); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
@@ -200,6 +201,11 @@ function PersonnesExposees({ jour }: { jour: string }) {
         {choisi && <div className="pile">
           <fieldset className="pile cadre-champs">
             <legend>Dossier (Instr. BCC 15, art. 41 et 64)</legend>
+            {/* P6 (confrontation du 21/11/2026) : catégorie et qualité de la liste de l'Instr. BCC 15, art. 5 */}
+            <Champ libelle="Catégorie : *">{(p) => <select {...p} className="saisie" disabled={fige} value={f.categorie} onChange={(e) => setF({ ...f, categorie: e.target.value, qualite: "" })}>
+              <option value=""></option>{(qualites?.categories ?? []).map((c) => <option key={c.cle} value={c.cle}>{c.libelle}</option>)}</select>}</Champ>
+            <Champ libelle="Qualité : *">{(p) => <select {...p} className="saisie" disabled={fige || !f.categorie} value={f.qualite} onChange={(e) => setF({ ...f, qualite: e.target.value })}>
+              <option value=""></option>{((qualites?.qualites as Record<string, string[]> | undefined)?.[f.categorie] ?? []).map((q) => <option key={q}>{q}</option>)}</select>}</Champ>
             <Champ libelle="Fonction exercée : *">{(p) => <input {...p} className="saisie" readOnly={fige} value={f.fonction} onChange={(e) => setF({ ...f, fonction: e.target.value })} />}</Champ>
             {fige ? <Champ libelle="Fin de la fonction :">{(p) => <input {...p} className="saisie date" readOnly value={fr(f.finFonction)} />}</Champ>
               : <ChampDate libelle="Fin de la fonction :" valeur={f.finFonction} onChange={(v) => setF({ ...f, finFonction: v })} aide="Vide si la fonction est en cours" />}
