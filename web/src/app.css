@@ -9,7 +9,8 @@ a { color: var(--tampon); text-underline-offset: 3px; }
 .cadre { min-height: 100vh; min-height: 100dvh; display: grid; grid-template-rows: auto 1fr auto; grid-template-columns: minmax(0, 1fr); }
 .barre-menus {
   position: sticky; top: 0; z-index: 20; display: flex; align-items: stretch; gap: var(--espace-2);
-  background: var(--nuit); color: var(--nuit-texte); padding: env(safe-area-inset-top, 0px) max(var(--espace-4), env(safe-area-inset-right, 0px)) 0 max(var(--espace-4), env(safe-area-inset-left, 0px)); min-height: 64px;
+  background: var(--nuit); color: var(--nuit-texte); padding: env(safe-area-inset-top, 0px) max(var(--espace-3), env(safe-area-inset-right, 0px)) 0 max(var(--espace-3), env(safe-area-inset-left, 0px)); min-height: var(--mise-barre);
+  border-bottom: 2px solid var(--marque-rouge);   /* le filet rouge de la marque, seule touche de rouge du cadre */
 }
 .logo { display: flex; align-items: center; gap: var(--espace-2); padding-right: var(--espace-4); margin-right: var(--espace-1); border-right: 1px solid var(--nuit-trait); color: var(--nuit-fort); text-decoration: none; font-weight: 700; white-space: nowrap; }
 .logo:focus-visible { outline: 2px solid var(--ciel); outline-offset: -2px; }
@@ -23,9 +24,10 @@ a { color: var(--tampon); text-underline-offset: 3px; }
 .deroulant { position: relative; display: flex; }
 .deroulant > summary {
   list-style: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-  padding: var(--espace-2) var(--espace-3); font-size: var(--taille-dense); font-weight: 600; color: var(--nuit-texte); white-space: nowrap;
+  padding: 5px var(--espace-3) 3px; font-size: var(--taille-dense); font-weight: 600; color: var(--nuit-texte); white-space: nowrap;
   border-bottom: 3px solid transparent;
 }
+.deroulant > summary svg { width: 18px; height: 18px; }
 .deroulant > summary::-webkit-details-marker { display: none; }
 @media (hover: hover) and (pointer: fine) { .deroulant > summary:hover { color: var(--nuit-fort); background: var(--nuit-2); } }
 .deroulant[open] > summary, .deroulant > summary.actif { color: var(--nuit-fort); background: var(--nuit-2); }
@@ -35,182 +37,142 @@ a { color: var(--tampon); text-underline-offset: 3px; }
 .liste-deroulante {
   position: absolute; top: 100%; left: 0; z-index: 30; min-width: 260px; max-height: 70vh; overflow-y: auto;
   display: grid; gap: var(--espace-1); margin: 0; padding: var(--espace-2); list-style: none;
-  background: var(--feuille); color: var(--encre); border: 1px solid var(--trait); border-radius: 0 0 var(--rayon-bloc) var(--rayon-bloc); box-shadow: var(--ombre-flottant);
+  background: var(--feuille); color: var(--encre); border: 1px solid var(--trait-saisie); border-radius: 0 0 var(--rayon-bloc) var(--rayon-bloc); box-shadow: var(--ombre-flottant);
 }
-.liste-deroulante li { padding: var(--espace-2) var(--espace-3); font-size: var(--taille-dense); }
+.liste-deroulante li { padding: 5px var(--espace-3); font-size: var(--taille-courant); }
 .groupe-menu { display: grid; }
 .groupe-menu + .groupe-menu { border-top: 1px solid var(--ligne); padding-top: var(--espace-1); }
-.titre-groupe { margin: var(--espace-1) var(--espace-3) 2px; font-size: var(--taille-dense); font-weight: 700; color: var(--encre-2); }
-.liste-deroulante a { padding: 6px var(--espace-3); border-radius: var(--rayon-petit); color: var(--encre); text-decoration: none; font-size: var(--taille-dense); }
-@media (hover: hover) and (pointer: fine) { .liste-deroulante a:hover { background: var(--papier); } }
+.titre-groupe { margin: var(--espace-1) var(--espace-1) 2px; padding: 3px var(--espace-2); font-size: var(--taille-dense); font-weight: 700; color: var(--encre-2); background: var(--papier); border-radius: var(--rayon-petit); }
+.liste-deroulante a { padding: 5px var(--espace-3); border-radius: var(--rayon-petit); color: var(--encre); text-decoration: none; font-size: var(--taille-courant); }
+@media (hover: hover) and (pointer: fine) { .liste-deroulante a:hover { background: var(--tampon-pale); } }
 .liste-deroulante a.active { background: var(--tampon-pale); color: var(--tampon); font-weight: 600; }
 .liste-deroulante a.a-construire { color: var(--encre-2); }
 .complementaires { display: flex; align-items: center; gap: var(--espace-1); margin-left: auto; padding-left: var(--espace-3); border-left: 1px solid var(--nuit-trait); }
 .complementaires .deroulant > summary { flex-direction: row; min-width: 36px; padding: var(--espace-2); }
 .complementaires .liste-deroulante { left: auto; right: 0; min-width: 180px; }
 .icone-inactive { display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--rayon-rond); border: 1px solid var(--nuit-trait); color: var(--nuit-texte); font-weight: 700; font-size: var(--taille-dense); opacity: .6; }
-.sortir { flex-shrink: 0; display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: var(--rayon-champ); background: none; color: var(--nuit-texte); cursor: pointer; }
+.sortir { flex-shrink: 0; display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: var(--rayon-champ); background: none; color: var(--nuit-texte); cursor: pointer; }
 @media (hover: hover) and (pointer: fine) { .sortir:hover { background: var(--nuit-2); color: var(--nuit-fort); } }
 .sortir:focus-visible { outline: 2px solid var(--ciel); }
 
-.corps { display: grid; grid-template-columns: var(--mise-menu) minmax(0, 1fr); min-height: 0; background: var(--feuille); }
-/* Accès rapide : une colonne de liens, sans boîtes empilées (refonte v1.0) */
-.acces-rapide { border-right: 1px solid var(--trait); background: var(--papier); padding: var(--espace-3) var(--espace-2); display: grid; gap: 0; align-content: start; }
-/* Le menu défile dans sa colonne et reste en place : la hauteur de la page est celle de l'écran de travail (refonte v1.0) */
-@media (min-width: 861px) { .acces-rapide { position: sticky; top: 64px; align-self: start; max-height: calc(100vh - 64px); max-height: calc(100dvh - 64px); overflow-y: auto; overscroll-behavior: contain; } }
-.acces-rapide details { border: 0; border-bottom: 1px solid var(--ligne); border-radius: 0; background: none; }
-.acces-rapide summary { cursor: pointer; padding: var(--espace-2) var(--espace-2); font-size: var(--taille-dense); font-weight: 700; color: var(--encre); list-style: none; display: flex; justify-content: space-between; }
+.corps { display: grid; grid-template-columns: var(--mise-menu) minmax(0, 1fr); min-height: 0; background: var(--bureau); }
+/* Accès rapide : un volet à gauche du bureau, un titre par menu, ses écrans dessous (manuel Microfina++, p. 13, point 2) */
+.acces-rapide { border-right: 1px solid var(--trait); background: var(--papier); padding: var(--espace-2); display: flex; flex-direction: column; gap: var(--espace-1); }
+.acces-rapide details { flex-shrink: 0; }
+/* Le volet défile dans sa colonne et reste en place : la hauteur de la page est celle de l'écran de travail */
+@media (min-width: 861px) { .acces-rapide { position: sticky; top: calc(var(--mise-barre) + 2px); align-self: start; height: calc(100vh - var(--mise-barre) - 2px - var(--hauteur-pied, 26px)); height: calc(100dvh - var(--mise-barre) - 2px - var(--hauteur-pied, 26px)); overflow-y: auto; overscroll-behavior: contain; } }
+.acces-rapide details { border: 1px solid var(--trait); border-radius: var(--rayon-bloc); background: var(--cadre); overflow: hidden; }
+.acces-rapide summary { cursor: pointer; padding: 5px var(--espace-2); font-size: var(--taille-courant); font-weight: 700; color: var(--encre); list-style: none; display: flex; justify-content: space-between; align-items: center; background: var(--bandeau); }
 .acces-rapide summary::-webkit-details-marker { display: none; }
-.acces-rapide summary::after { content: "+"; color: var(--encre-2); font-weight: 400; }
-.acces-rapide details[open] summary::after { content: "−"; }
-.acces-rapide details[open] summary { border-bottom: 0; background: none; }
-.acces-rapide ul { list-style: none; margin: 0; padding: 0 0 var(--espace-2); display: grid; }
-.acces-rapide a { display: block; padding: 5px var(--espace-2); border-radius: var(--rayon-petit); font-size: var(--taille-dense); color: var(--encre); text-decoration: none; }
-@media (hover: hover) and (pointer: fine) { .acces-rapide a:hover { background: var(--papier); } }
-.acces-rapide a.active { background: var(--feuille); color: var(--tampon); font-weight: 600; box-shadow: inset 3px 0 0 var(--tampon); }
+.acces-rapide summary::after { content: ""; width: 6px; height: 6px; border-right: 1.5px solid var(--encre-2); border-bottom: 1.5px solid var(--encre-2); rotate: -45deg; margin-right: 3px; transition: rotate var(--mouvement-rapide) var(--mouvement-courbe-sortie); }
+.acces-rapide details[open] summary::after { rotate: 45deg; }
+.acces-rapide details[open] summary { border-bottom: 1px solid var(--trait); }
+.acces-rapide ul { list-style: none; margin: 0; padding: var(--espace-1); display: grid; }
+.acces-rapide a { display: block; padding: 4px var(--espace-2); border-radius: var(--rayon-petit); font-size: var(--taille-courant); color: var(--encre); text-decoration: none; }
+@media (hover: hover) and (pointer: fine) { .acces-rapide a:hover { background: var(--tampon-pale); } .acces-rapide summary:hover { background: var(--bandeau-fort); } }
+.acces-rapide a.active { background: var(--tampon); color: var(--sur-tampon); font-weight: 600; }
 .acces-rapide a.a-construire { color: var(--encre-2); }
-.zone-vide { min-height: 60vh; border: 1px solid var(--trait); border-radius: var(--rayon-bloc); background: var(--feuille); }
+.zone-vide { min-height: 60vh; border: 1px dashed var(--trait); border-radius: var(--rayon-bloc); background: color-mix(in srgb, var(--cadre) 45%, transparent); }
 
+/* Bas de page : la barre d'état d'un logiciel (serveur, base, journée, utilisateur ; manuel p. 13) */
 .pied {
-  display: flex; flex-wrap: wrap; gap: var(--espace-1) var(--espace-6); align-items: center;
-  padding: var(--espace-2) var(--espace-5) calc(var(--espace-2) + env(safe-area-inset-bottom, 0px)); background: var(--feuille); border-top: 1px solid var(--trait);
-  font-size: var(--taille-dense); color: var(--encre-2);
+  position: sticky; bottom: 0; z-index: 10;
+  display: flex; flex-wrap: wrap; gap: 0 var(--espace-4); align-items: center; min-height: 26px;
+  padding: 3px var(--espace-3) calc(3px + env(safe-area-inset-bottom, 0px)); background: var(--nuit); border-top: 1px solid var(--nuit-trait);
+  font-size: var(--taille-dense); color: var(--nuit-texte);
 }
-.pied strong { color: var(--encre); font-weight: 600; }
-.pied .muet { margin-left: auto; }
+.pied > span + span { padding-left: var(--espace-4); border-left: 1px solid var(--nuit-trait); }
+.pied strong { color: var(--nuit-fort); font-weight: 600; }
+.pied .muet { margin-left: auto; color: var(--nuit-texte); border-left: 0; }
 
-/* ---------- Page des modules (manuel Microfina++, p. 6, figure 2) : une boule au centre, huit autour ----------
-   Scène immersive (DESIGN § 2.7 ter, demande du porteur) : nuit du drapeau en trois plans (ciel, orbite, planète) qui suivent la souris
-   ou l'inclinaison du téléphone, orbite vue en perspective, étoiles qui scintillent, modules qui flottent, plongée dans le module choisi.
-   Fiche emil-kowalski « animate » : transform et opacity seulement, courbes fortes, décalage de 50 ms, mouvement réduit respecté. */
-.page-modules {
-  --planete: var(--tampon);
-  --halo: color-mix(in srgb, var(--planete) 38%, transparent);
-  position: relative; min-height: 100vh; display: grid; place-items: center; padding: var(--espace-6) var(--mise-gouttiere-mobile); overflow: hidden;
-  background: radial-gradient(ellipse 70% 60% at 50% 50%, color-mix(in srgb, var(--planete) 22%, var(--nuit)) 0, var(--nuit) 70%);
+/* ---------- Page des modules (manuel Microfina++, p. 6, figure 2) : le module principal au centre, huit autour ----------
+   Présentation du 21/11/2026 (DESIGN § 2.7 ter) : tableau de trois sur trois sur fond Bleu Nuit, un trait du centre vers chaque module.
+   Fiche emil-kowalski « animate » : transform et opacity, courbe forte de sortie, décalage de 35 ms, entrée finie en 0,7 s, mouvement réduit respecté. */
+.page-modules { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: var(--espace-5) var(--mise-gouttiere-mobile); background: var(--nuit); overflow: hidden; }
+.tableau-modules {
+  position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr));
+  width: min(100%, 820px, calc((100dvh - 2 * var(--espace-5)) * 1.32)); aspect-ratio: 1.32; place-items: center; container-type: size;
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .page-modules { --planete: color-mix(in srgb, var(--tampon) 58%, var(--nuit)); } }
-:root[data-theme="dark"] .page-modules { --planete: color-mix(in srgb, var(--tampon) 58%, var(--nuit)); }
-
-/* Plan lointain : le ciel, un peu plus grand que l'écran pour que la parallaxe ne découvre jamais de bord */
-.ciel { position: absolute; inset: -40px; pointer-events: none; }
-.ciel i { position: absolute; border-radius: 50%; background: var(--nuit-fort); opacity: var(--eclat); animation: scintille ease-in-out infinite alternate; }
-@keyframes scintille { to { opacity: calc(var(--eclat) * .25); } }
-
-.orbite { --cote: min(92vw, 680px); --rayon: calc(var(--cote) * 0.38); position: relative; width: var(--cote); height: calc(var(--cote) * 0.86); }
-.plan { position: absolute; inset: 0; pointer-events: none; }
-.plan a, .plan .boule { pointer-events: auto; }
-
-/* Orbite en perspective : ellipse aplatie, pointillés qui glissent le long de la trajectoire */
-.anneaux { position: absolute; left: 0; top: 50%; width: 100%; aspect-ratio: 1; translate: 0 -50%; overflow: visible; pointer-events: none; }
-.anneaux ellipse, .anneaux circle { fill: none; vector-effect: non-scaling-stroke; }
-.anneau { stroke: color-mix(in srgb, var(--nuit-texte) 40%, transparent); stroke-width: 1; stroke-dasharray: 2 7; animation: orbite-glisse 9s linear infinite; }
-.anneau-interieur { stroke: color-mix(in srgb, var(--planete) 60%, transparent); stroke-width: 1; }
-@keyframes orbite-glisse { to { stroke-dashoffset: -90; } }
-
-/* Satellites : position sur l'ellipse, taille et voile selon la profondeur (Grh au fond, Performance sociale devant) */
-.satellite {
-  position: absolute; left: 50%; top: 50%; width: calc(var(--cote) * 0.17); aspect-ratio: 1;
-  transform: translate(-50%, -50%) translate(calc(var(--x) * var(--rayon)), calc(var(--y) * var(--rayon) * var(--aplati))) scale(var(--profondeur));
-  opacity: var(--voile);
+/* Un trait par module : il part du centre du tableau, tourné vers la case du module (dx, dy valent -1, 0 ou 1) et s'arrête avant elle.
+   Longueur et angle calculés par le navigateur ; l'entrée et le point qui court n'animent que transform et opacity. */
+.liaisons { position: absolute; inset: 0; pointer-events: none; }
+.liaison {
+  --lx: calc(var(--dx) * 100cqw / 3); --ly: calc(var(--dy) * 100cqh / 3);
+  position: absolute; left: 50%; top: 50%; height: 2px; margin-top: -1px; width: calc(hypot(var(--lx), var(--ly)) * .72);
+  transform-origin: 0 50%; transform: rotate(atan2(var(--ly), var(--lx))); background: var(--nuit-trait); border-radius: 1px; overflow: hidden;
 }
-.boule {
-  position: relative; width: 100%; height: 100%;
-  display: grid; place-items: center; align-content: center; gap: 6px; text-align: center; padding: var(--espace-2); line-height: 1.15;
-  border-radius: var(--rayon-rond); text-decoration: none; font-size: var(--taille-dense); font-weight: 600;
-  color: var(--nuit-fort); background: color-mix(in srgb, var(--nuit-2) 82%, transparent);
-  border: 1px solid var(--nuit-trait); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--nuit-fort) 8%, transparent);
-  animation: flotte 6s ease-in-out infinite alternate; animation-delay: calc(var(--rang, 0) * -0.75s);
-  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease, scale 160ms var(--mouvement-courbe-sortie);
-}
-@keyframes flotte { from { translate: 0 -3px; } to { translate: 0 3px; } }
-.boule svg { width: 26px; height: 26px; color: var(--nuit-fort); }
-.boule:focus-visible { outline: 2px solid var(--etoile); outline-offset: 4px; }
-.boule.inactive { cursor: not-allowed; color: var(--nuit-texte); background: transparent; border-style: dashed;
-  border-color: color-mix(in srgb, var(--nuit-texte) 35%, transparent); opacity: .8; }
-.boule.inactive svg { color: var(--nuit-texte); }
+.liaison.ouverte { background: color-mix(in srgb, var(--tampon) 60%, var(--nuit-texte)); }
+/* Le point qui court sur le trait d'un module ouvert, du module vers le centre : les modules alimentent la comptabilité du centre */
+.flux { position: absolute; top: 0; left: 0; width: 9%; height: 100%; background: var(--nuit-fort); border-radius: 1px; opacity: 0;
+  animation: flux-module 2.8s linear infinite; animation-delay: calc(1000ms + var(--rang, 0) * 350ms); }
+@keyframes flux-module { 0% { transform: translateX(1050%); opacity: 0; } 10% { opacity: .95; } 70% { opacity: .95; } 85%, 100% { transform: translateX(380%); opacity: 0; } }
 
-/* Plan proche : la planète */
-.boule.centre {
-  position: absolute; left: 50%; top: 50%; width: calc(var(--cote) * 0.34); height: auto; aspect-ratio: 1; translate: -50% -50%; animation: none;
-  gap: var(--espace-2); font-size: var(--taille-titre); font-weight: 700; letter-spacing: .08em; border: 0;
-  background: radial-gradient(circle at 32% 28%, color-mix(in srgb, var(--planete) 70%, var(--nuit-fort)) 0, var(--planete) 42%, color-mix(in srgb, var(--planete) 55%, var(--nuit)) 100%);
-  box-shadow: 0 0 0 10px color-mix(in srgb, var(--planete) 14%, transparent), 0 24px 80px var(--halo);
+.module {
+  position: relative; z-index: 1; display: grid; justify-items: center; gap: var(--espace-2); padding: var(--espace-2); max-width: 100%;
+  color: var(--nuit-fort); text-decoration: none; text-align: center; font-size: var(--taille-courant); font-weight: 600; line-height: 1.2; border-radius: var(--rayon-bloc);
+  transition: transform var(--mouvement-pression) var(--mouvement-courbe-sortie);
 }
-.plan-planete .anneaux { z-index: 0; }
-.boule.centre svg { width: 56px; height: 56px; filter: drop-shadow(0 0 12px color-mix(in srgb, var(--etoile) 55%, transparent)); }
-.boule.centre.inactive { background: var(--nuit-2); box-shadow: none; }
+.module .pastille {
+  display: grid; place-items: center; width: 72px; height: 72px; border-radius: 16px;
+  background: var(--tampon); border: 1px solid color-mix(in srgb, var(--nuit-fort) 22%, var(--tampon)); box-shadow: 0 6px 18px color-mix(in srgb, var(--nuit) 60%, transparent), inset 0 1px 0 color-mix(in srgb, var(--nuit-fort) 22%, transparent);
+  transition: transform var(--mouvement-deroulant) var(--mouvement-courbe-sortie), background-color var(--mouvement-rapide) ease;
+}
+.module .pastille svg { width: 30px; height: 30px; }
+.module:focus-visible { outline: 2px solid var(--nuit-fort); outline-offset: 4px; }
+a.module:active { transform: scale(.97); }
+.module.inactif { color: var(--nuit-texte); cursor: not-allowed; }
+.module.inactif .pastille { background: var(--nuit); border: 1px dashed var(--nuit-trait); box-shadow: none; color: color-mix(in srgb, var(--nuit-texte) 70%, var(--nuit)); }
+.module.inactif > span:last-child { opacity: .75; }
+/* Le centre : le signe de Dwacfina dans un grand cartouche, le nom dessous */
+.module.centre { grid-column: 2; grid-row: 2; gap: var(--espace-3); font-family: var(--police-marque); font-size: 17px; font-weight: 700; letter-spacing: .12em; }
+.module.centre .symbole {
+  box-sizing: content-box; width: 84px; height: 84px; padding: 34px; border-radius: 30px; background: var(--nuit-2);
+  border: 1px solid color-mix(in srgb, var(--nuit-fort) 16%, var(--nuit-2)); box-shadow: 0 0 0 8px color-mix(in srgb, var(--nuit-2) 45%, transparent), 0 18px 48px color-mix(in srgb, var(--nuit) 70%, black);
+  transition: transform var(--mouvement-deroulant) var(--mouvement-courbe-sortie), border-color var(--mouvement-rapide) ease;
+}
+.module.centre.inactif .symbole { filter: grayscale(1); opacity: .55; box-shadow: none; }
 @media (hover: hover) and (pointer: fine) {
-  a.boule:not(.centre):hover { scale: 1.08; border-color: color-mix(in srgb, var(--tampon) 80%, var(--nuit-fort));
-    background: color-mix(in srgb, var(--planete) 35%, var(--nuit-2)); box-shadow: 0 0 32px var(--halo); }
-  a.boule.centre:hover { scale: 1.03; box-shadow: 0 0 0 14px color-mix(in srgb, var(--planete) 22%, transparent), 0 24px 96px var(--halo); }
+  a.module:hover .pastille { transform: translateY(-3px); background: color-mix(in srgb, var(--tampon) 82%, var(--nuit-fort)); }
+  a.module.centre:hover .symbole { transform: scale(1.03); border-color: color-mix(in srgb, var(--nuit-fort) 45%, var(--nuit-2)); }
 }
 
-/* Plongée : la boule choisie couvre l'écran, sa peau s'efface sur le fond des écrans du module */
-.plongee { position: fixed; z-index: 1000; border-radius: 50%; background: var(--papier); pointer-events: none; will-change: transform; }
-.plongee-peau { position: absolute; inset: 0; border-radius: inherit; }
-
-/* Scène 3D (scene-modules.ts) : la toile occupe l'écran, les étiquettes HTML suivent les objets 3D */
-.scene-3d { display: block; padding: 0; height: 100vh; height: 100dvh; min-height: 0; background: var(--nuit); }
-.toile-3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.etiquettes { position: absolute; inset: 0; pointer-events: none; }
-.etiquette {
-  position: absolute; left: 0; top: 0; width: 120px; height: 120px; pointer-events: auto; will-change: transform;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding-bottom: 0;
-  border-radius: var(--rayon-rond); text-decoration: none; color: var(--nuit-fort); font-size: var(--taille-dense); font-weight: 600;
-  text-shadow: 0 1px 12px var(--nuit), 0 0 2px var(--nuit);
-}
-.etiquette > span { translate: 0 -62px; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: var(--rayon-rond);
-  background: color-mix(in srgb, var(--nuit) 80%, transparent); border: 1px solid color-mix(in srgb, var(--nuit-texte) 22%, transparent); text-shadow: none; }   /* sans flou d'arrière-plan : la scène change à chaque image, huit flous à recalculer à chaque fois */
-.etiquette > span svg { width: 14px; height: 14px; opacity: .9; }
-.etiquette.inactive { color: var(--nuit-texte); cursor: not-allowed; opacity: .7; }
-.etiquette:focus-visible { outline: 2px solid var(--etoile); outline-offset: 2px; }
-.etiquette.centre { width: 220px; height: 220px; font-size: var(--taille-titre); font-weight: 700; letter-spacing: .14em; }
-.etiquette.centre > span { translate: 0 150px; background: none; border: 0; text-shadow: 0 1px 12px var(--nuit); }
-@media (hover: hover) and (pointer: fine) { a.etiquette:not(.centre):hover > span { border-color: color-mix(in srgb, var(--etoile) 70%, transparent); color: var(--etoile); } a.etiquette.centre:hover > span { color: var(--etoile); } }
-.etiquette.inactive > span { border-style: dashed; }
-.page-modules.scene-3d[data-entree="complete"] .etiquette { animation: fondu 500ms ease-out backwards; animation-delay: calc(1200ms + var(--rang, 0) * 150ms); }
-.page-modules.scene-3d[data-entree="complete"] .etiquette.centre { animation-delay: 1800ms; }
-.page-modules.scene-3d[data-entree="retour"] .etiquettes { animation: fondu 300ms ease-out backwards; }
-.voile-plongee { position: fixed; inset: 0; z-index: 1000; background: var(--papier); pointer-events: none; }
-@media (max-width: 480px) { .etiquette { width: 84px; height: 84px; font-size: 11px; } .etiquette > span { translate: 0 -44px; padding: 3px 8px; } .etiquette.centre { width: 150px; height: 150px; font-size: var(--taille-corps); } .etiquette.centre > span { translate: 0 100px; } }
-
-/* Entrée complète, à la première visite de la session */
-.page-modules[data-entree="complete"] .boule.centre { animation: planete-entre 600ms var(--mouvement-courbe-sortie) backwards; }
-.page-modules[data-entree="complete"] .boule.centre svg { animation: etoile-entre 900ms var(--mouvement-courbe-sortie) 120ms backwards; }
-.page-modules[data-entree="complete"] .orbite .anneaux { animation: anneaux-entrent 900ms var(--mouvement-courbe-sortie) 80ms backwards; }
-.page-modules[data-entree="complete"] .satellite { animation: module-sort 650ms var(--mouvement-courbe-sortie) backwards; animation-delay: calc(220ms + var(--rang) * 50ms); }
-.page-modules[data-entree="complete"] .ciel { animation: fondu 1200ms ease-out backwards; }
-.page-modules[data-entree="retour"] .orbite { animation: fondu 200ms ease-out backwards; }
-@keyframes planete-entre { from { opacity: 0; scale: .94; } }
-@keyframes etoile-entre { from { opacity: 0; rotate: -72deg; scale: .7; } }
-@keyframes anneaux-entrent { from { opacity: 0; scale: .9; } }
-@keyframes module-sort { from { opacity: 0; scale: .9; translate: calc(-1 * var(--x) * var(--rayon)) calc(-1 * var(--y) * var(--rayon) * var(--aplati)); } }
+/* Entrée complète, une fois par connexion : le centre, les traits qui partent, puis les modules, décalés de 35 ms */
+.page-modules[data-entree="complete"] .module.centre { animation: module-centre 260ms var(--mouvement-courbe-sortie) backwards; }
+.page-modules[data-entree="complete"] .liaison { animation: liaison-tire 300ms var(--mouvement-courbe-sortie) backwards; animation-delay: calc(120ms + var(--rang, 0) * 25ms); }
+.page-modules[data-entree="complete"] .module:not(.centre) { animation: module-pose 260ms var(--mouvement-courbe-sortie) backwards; animation-delay: calc(200ms + var(--rang, 0) * 35ms); }
+.page-modules[data-entree="retour"] .tableau-modules { animation: fondu 160ms ease-out backwards; }
+@keyframes module-centre { from { opacity: 0; transform: scale(.96); } }
+@keyframes liaison-tire { from { transform: rotate(atan2(var(--ly), var(--lx))) scaleX(0); } }
+@keyframes module-pose { from { opacity: 0; transform: scale(.94); } }
 @keyframes fondu { from { opacity: 0; } }
-
 @media (prefers-reduced-motion: reduce) {
-  .anneau, .boule, .ciel i { animation: none; }
-  .page-modules[data-entree] .satellite, .page-modules[data-entree] .boule.centre, .page-modules[data-entree] .boule.centre svg,
-  .page-modules[data-entree] .anneaux, .page-modules[data-entree] .ciel { animation: fondu 200ms ease-out backwards; }
-  .boule { transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease; }
-  @media (hover: hover) and (pointer: fine) { a.boule:hover { scale: none; } }
+  .flux { animation: none; }
+  .page-modules[data-entree] .module, .page-modules[data-entree] .liaison { animation: fondu 160ms ease-out backwards; animation-delay: 0ms; }
+  .module, .module .pastille, .module.centre .symbole { transition: none; }
 }
-@media (max-width: 480px) { .orbite { --cote: calc(100vw - 2 * var(--mise-gouttiere-mobile)); } .boule:not(.centre) span { font-size: 11px; } .boule:not(.centre) svg { width: 18px; height: 18px; } .boule { gap: 2px; }
-  .boule.centre { font-size: var(--taille-corps); } .boule.centre svg { width: 40px; height: 40px; } }
+@media (max-width: 560px) {
+  .tableau-modules { aspect-ratio: .82; width: 100%; }
+  .module { font-size: var(--taille-dense); }
+  .module .pastille { width: 52px; height: 52px; border-radius: 12px; } .module .pastille svg { width: 24px; height: 24px; }
+  .module.centre { font-size: 14px; } .module.centre .symbole { width: 52px; height: 52px; padding: 18px; border-radius: 20px; }
+  .liaison { width: calc(hypot(var(--lx), var(--ly)) * .62); }
+}
 
 /* ---------- Page ---------- */
-.page { padding: var(--espace-6); min-width: 0; display: grid; gap: var(--espace-5); align-content: start; max-width: var(--mise-contenu-max); width: 100%; }
-.page > h1 { margin: 0; font-size: var(--taille-grand); line-height: var(--interligne-grand); font-weight: 700; }
+.page { padding: var(--espace-3) var(--espace-4) var(--espace-5); min-width: 0; display: grid; gap: var(--espace-3); align-content: start; max-width: var(--mise-contenu-max); width: 100%; }
+/* Titre de l'écran : posé sur le bureau, marqué du rouge de la marque */
+.page > h1, .page > .entete-ecran { margin: 0; padding-left: var(--espace-3); border-left: 4px solid var(--marque-rouge); }
+.page > h1, .page > .entete-ecran h1 { margin: 0; font-size: var(--taille-grand); line-height: var(--interligne-grand); font-weight: 700; }
 .page > .chapeau { margin: calc(-1 * var(--espace-4)) 0 0; color: var(--encre-2); max-width: 70ch; }
-.rangee { display: flex; flex-wrap: wrap; gap: var(--espace-3); align-items: center; }
-.pile { display: grid; gap: var(--espace-4); align-content: start; min-width: 0; }
-.deux-colonnes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--espace-5); align-items: start; }
-.formulaire { align-items: start; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--mise-champ-min)), 1fr)); gap: var(--espace-4); }
+.rangee { display: flex; flex-wrap: wrap; gap: var(--espace-2); align-items: center; }
+.pile { display: grid; gap: var(--espace-3); align-content: start; min-width: 0; }
+.deux-colonnes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--espace-4); align-items: start; }
+.formulaire { align-items: start; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--mise-champ-min)), 1fr)); gap: var(--espace-3); }
 fieldset.formulaire { padding-bottom: var(--espace-2); }
 .liste-taches { display: grid; gap: var(--espace-2); margin: 0; padding: 0; list-style: none; }
 .liste-taches li {
   display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--espace-3);
-  padding: var(--espace-3) var(--espace-4); border: 1px solid var(--trait); border-radius: var(--rayon-champ); background: var(--feuille);
+  padding: var(--espace-2) var(--espace-3); border: 1px solid var(--trait); border-radius: var(--rayon-champ); background: var(--feuille);
 }
 .controle { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 2px var(--espace-3); padding: var(--espace-3) 0; border-top: 1px solid var(--ligne); align-items: start; }
 .controle:first-child { border-top: 0; padding-top: 0; }
@@ -224,7 +186,7 @@ fieldset.formulaire { padding-bottom: var(--espace-2); }
 /* ---------- Guichet : identité, bordereau, argent (DESIGN § 4) ---------- */
 .guichet { display: grid; grid-template-columns: var(--mise-guichet-gauche) minmax(0, 1fr) var(--mise-guichet-droite); gap: var(--espace-4); align-items: start; }
 .guichet .bordereau { display: grid; gap: var(--espace-4); }
-.guichet .bloc { padding: var(--espace-4); }
+.guichet .bloc { padding: var(--espace-3); }
 .guichet .bloc > h2 { margin-bottom: var(--espace-3); }
 .pied-guichet { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--espace-3); border-top: 1px solid var(--ligne); padding-top: var(--espace-4); }
 .choix { display: grid; gap: var(--espace-2); border: 0; margin: 0; padding: 0; min-width: 0; }
@@ -232,19 +194,27 @@ fieldset.formulaire { padding-bottom: var(--espace-2); }
 .resultat-ok { display: flex; gap: var(--espace-2); align-items: baseline; background: var(--sain-pale); color: var(--encre); padding: var(--espace-3) var(--espace-4); border-radius: var(--rayon-champ); margin: 0; }
 .resultat-ok::before { content: "✓"; color: var(--sain-texte); font-weight: 700; }
 
-/* ---------- Connexion (manuel Microfina++, p. 5) : bandeau vertical au nom du logiciel, champs, bouton ---------- */
-.connexion { min-height: 100vh; min-height: 100svh; display: grid; place-items: center; padding: var(--espace-6) var(--mise-gouttiere-mobile); background: var(--papier); }
+/* ---------- Connexion (manuel Microfina++, p. 5) ----------
+   Disposition du 14/11/2026, remise à la demande du porteur le 21/11/2026 (capture jointe ; « la disposition de la page, pas la couleur
+   sombre ni le logo ») : une seule carte au milieu de la page, le logo en haut à gauche, les champs l'un sous l'autre sur toute la largeur,
+   le serveur, puis le bouton Connexion à droite. Couleurs et logo : ceux du logiciel (DESIGN § 3). */
+.connexion { min-height: 100vh; min-height: 100svh; display: grid; place-items: center; gap: var(--espace-5); align-content: center; padding: var(--espace-6) var(--mise-gouttiere-mobile); background: var(--bureau); }
 .carte-connexion {
-  width: 100%; max-width: 560px; display: grid; grid-template-columns: minmax(0, 1fr);
-  background: var(--feuille); border: 1px solid var(--trait); border-radius: var(--rayon-bloc); box-shadow: var(--ombre-surface); overflow: hidden;
+  width: 100%; max-width: 520px; display: grid; grid-template-columns: minmax(0, 1fr);
+  background: var(--cadre); border: 1px solid var(--trait); border-radius: calc(var(--rayon-bloc) * 2); box-shadow: var(--ombre-flottant); overflow: hidden;
 }
-.champs-connexion { display: grid; gap: var(--espace-3); padding: var(--espace-5); }
-.serveur { margin: 0; font-size: var(--taille-dense); color: var(--encre-2); }
-.connexion { gap: var(--espace-5); align-content: center; }
-.comptes-demo { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--espace-3); padding: var(--espace-5); }
+.champs-connexion { display: grid; gap: var(--espace-4); padding: var(--espace-6); }
+.marque-connexion { margin: 0 0 var(--espace-2); }
+.connexion .champ { gap: var(--espace-1); }
+.connexion .champ > label { font-size: var(--taille-courant); color: var(--encre); }
+.connexion .saisie { min-height: 40px; padding: var(--espace-2) var(--espace-3); font-size: var(--taille-titre); border-radius: var(--rayon-bloc); }
+.connexion .bouton { min-height: 40px; padding: var(--espace-2) var(--espace-5); font-size: var(--taille-titre); border-radius: var(--rayon-bloc); }
+.serveur { margin: 0; font-size: var(--taille-courant); color: var(--encre-2); }
+.comptes-demo { gap: var(--espace-2); padding: var(--espace-5); box-shadow: var(--ombre-surface); }
 .comptes-demo h2 { margin: 0; font-size: var(--taille-titre); }
-.comptes-demo ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--espace-2); }
-.comptes-demo li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--espace-2) var(--espace-3); padding-block: var(--espace-2); border-top: 1px solid var(--ligne); }
+.comptes-demo ul { list-style: none; margin: 0; padding: 0; display: grid; }
+.comptes-demo li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--espace-1) var(--espace-3); padding-block: var(--espace-2); border-top: 1px solid var(--ligne); }
+.connexion .comptes-demo .bouton { min-height: var(--mise-bouton-h); padding: 4px var(--espace-3); font-size: var(--taille-courant); border-radius: var(--rayon-champ); }
 
 /* Valeur d'exemple ou à confirmer */
 .exemple { font-size: var(--taille-dense); color: var(--encre-2); font-style: italic; }
@@ -263,6 +233,9 @@ fieldset.formulaire { padding-bottom: var(--espace-2); }
   .page { padding: var(--espace-4) var(--mise-gouttiere-mobile); }
   .deux-colonnes { grid-template-columns: minmax(0, 1fr); }
   .pied .muet { margin-left: 0; }
+  /* Téléphone : la barre d'état ne reste pas collée en bas (elle prendrait un quart de l'écran) ; elle ferme la page */
+  .pied { position: static; gap: 2px var(--espace-3); padding-block: var(--espace-2); }
+  .pied > span + span { padding-left: 0; border-left: 0; }
   /* Un tableau plus large que l'écran défile dans son cadre ; la page, elle, ne glisse jamais de côté.
      Une ombre au bord dit qu'il reste des colonnes (fond « local » qui suit le contenu, ombre « scroll » qui reste au bord) ; la première colonne reste en place. */
   .grille {
@@ -349,17 +322,18 @@ button, summary, [role="tab"] { -webkit-user-select: none; user-select: none; }
 
 /* ---------- Cadre de champs (les cadres des captures de Microfina++) : une section titrée, sans boîte (refonte v1.0, 20/11/2026) ----------
    Comme Oracle Banking Branch : le titre du cadre et un filet dessous ; pas de bordure tout autour, pas de bandeau gris. */
-.cadre-champs { border: 0; border-radius: 0; padding: 0; margin: 0; min-width: 0; }
+/* Cadre de champs : la boîte à légende des logiciels de bureau, le titre posé sur le filet (« Info crédit », « Répartition » : Microfina++, p. 87) */
+.cadre-champs { border: 1px solid var(--trait); border-radius: var(--rayon-bloc); padding: var(--espace-1) var(--espace-3) var(--espace-3); margin: 0; min-width: 0; }
 .cadre-champs.pile, .cadre-champs > .pile { gap: var(--espace-2); }
 .cadre-champs > legend {
-  float: left; grid-column: 1 / -1; box-sizing: border-box; width: 100%;
-  margin: 0 0 var(--espace-2); padding: 0 0 var(--espace-2);
-  background: none; border-bottom: 1px solid var(--trait); border-radius: 0;
-  font-weight: 700; font-size: var(--taille-courant); color: var(--encre);
+  padding: 0 var(--espace-2); margin: 0 0 0 calc(-1 * var(--espace-1));
+  font-weight: 700; font-size: var(--taille-dense); line-height: var(--interligne-dense); color: var(--tampon-fort);
 }
+/* Sans légende visible, ou dans une barre de filtres : pas de boîte */
+.cadre-champs:has(> legend.sr-only), .cadre-champs:not(:has(> legend)) { border: 0; padding: 0; }
 /* Libellé à gauche dans les cadres de saisie : un tiers pour le libellé, le reste pour la case (SAP Fiori, ratio 4:8 ; captures de Microfina++).
    Les barres de filtres (ligne-champ) gardent le libellé au-dessus. Au téléphone, le libellé repasse au-dessus. */
-:root { --col-libelle: 10.5rem; }
+:root { --col-libelle: 9.5rem; }
 .cadre-champs { container-type: inline-size; }
 .ligne-champ .cadre-champs, .ligne-champ.cadre-champs { container-type: normal; }   /* cadre de filtres dans une rangée : il garde sa largeur naturelle */
 .cadre-champs .champ:not(.ligne-champ .champ):not(.barre-filtres .champ), .champs-gauche .champ:not(.ligne-champ .champ):not(.barre-filtres .champ) {
@@ -428,7 +402,7 @@ fieldset.sans-cadre { border: 0; padding: 0; margin: 0; min-width: 0; }
 
 /* Tableaux filtrés et paginés (S44, manuel Microfina++ p. 54 et 55) */
 .grille tr.filtres td { padding-top: 0; }
-.grille tr.filtres .saisie { min-height: 0; padding: 4px var(--espace-2); font-size: var(--taille-dense); }
+.grille tr.filtres .saisie { min-height: 0; padding: 2px var(--espace-2); font-size: var(--taille-dense); }
 .pagination { display: flex; flex-wrap: wrap; gap: var(--espace-1); justify-content: center; }
 .pagination button { font: inherit; font-size: var(--taille-dense); min-width: 2rem; padding: 2px var(--espace-2); border: 1px solid var(--trait); border-radius: var(--rayon-petit); background: var(--feuille); color: var(--encre); cursor: pointer; }
 .pagination button[aria-current="page"] { border-color: var(--tampon); color: var(--tampon); font-weight: 600; }
@@ -450,7 +424,7 @@ label.bouton.inactif { opacity: 0.5; cursor: default; }
 label.bouton:focus-within { outline: 2px solid var(--tampon); outline-offset: 2px; }
 /* Libellé et valeur en lecture : même grille et même filet que les cases en lecture des cadres (refonte v1.0) */
 dl.infos { display: grid; gap: 0; margin: 0; }
-.info-ligne { display: grid; grid-template-columns: var(--col-libelle, 10.5rem) minmax(0, 1fr); gap: var(--espace-3); align-items: baseline; padding: 5px 0; border-bottom: 1px solid var(--ligne); }
+.info-ligne { display: grid; grid-template-columns: var(--col-libelle, 10.5rem) minmax(0, 1fr); gap: var(--espace-3); align-items: baseline; padding: 4px 0; border-bottom: 1px solid var(--ligne); }
 .info-ligne dd { overflow-wrap: break-word; }
 .info-ligne dt { color: var(--encre-2); font-size: var(--taille-dense); }
 .info-ligne dd { margin: 0; }
@@ -469,7 +443,7 @@ textarea.saisie.montant { resize: none; text-align: end; }
 /* S14 (p. 23) : liste des pages de Info de base > Client > Général, à gauche du formulaire */
 .page-liste-gauche { display: grid; grid-template-columns: 12rem minmax(0, 1fr); gap: var(--espace-4); align-items: start; }
 @media (max-width: 720px) { .page-liste-gauche { grid-template-columns: minmax(0, 1fr); } }
-.liste-gauche { list-style: none; margin: 0; padding: var(--espace-2); background: var(--feuille); border: 1px solid var(--trait); border-radius: var(--rayon-bloc); font-size: var(--taille-dense); }
+.liste-gauche { list-style: none; margin: 0; padding: var(--espace-1); background: var(--feuille); border: 1px solid var(--trait); border-radius: var(--rayon-bloc); font-size: var(--taille-dense); }
 .liste-gauche li { padding: var(--espace-1) var(--espace-2); border-radius: var(--rayon-petit); }
 .liste-gauche li[aria-current="page"] { background: var(--tampon-pale); color: var(--tampon); font-weight: 600; }
 .liste-gauche ul { list-style: none; margin: 0; padding: 0; }
@@ -612,8 +586,8 @@ select.saisie { max-width: 100%; }
 /* ---------- Barre de filtres d'un rapport ou d'une liste (refonte v1.0 ; SAP Fiori « filter bar ») ----------
    Une grille régulière : chaque filtre a la même largeur, libellé au-dessus ; un groupe de deux dates prend deux colonnes. */
 .barre-filtres { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr)); gap: var(--espace-3) var(--espace-4); align-items: end; }
-.barre-filtres > .cadre-champs { container-type: normal; align-self: stretch; }
-.barre-filtres > .cadre-champs > legend { font-size: var(--taille-dense); font-weight: 600; color: var(--encre-2); border-bottom: 0; padding-bottom: 0; margin-bottom: 6px; }
+.barre-filtres > .cadre-champs { container-type: normal; align-self: stretch; border: 0; padding: 0; }
+.barre-filtres > .cadre-champs > legend { float: left; width: 100%; font-size: var(--taille-dense); font-weight: 600; color: var(--encre-2); padding: 0; margin: 0 0 3px; }
 .barre-filtres > .cadre-champs.double { grid-column: span 2; }
 .barre-filtres > .cadre-champs.double > .ligne-champ { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--espace-4); }
 .barre-filtres .champ > .saisie.date, .barre-filtres .champ > .saisie.court { max-width: none; }
@@ -638,3 +612,83 @@ select.saisie { max-width: 100%; }
 
 /* Case dans une ligne de tableau : compacte, pour garder des lignes de même hauteur (Carbon, Data table) */
 .grille td .saisie { min-height: 32px; padding-block: 4px; }
+
+/* ---------- Calendrier d'une case de date (demande du porteur, 21/11/2026) : ouvert par un clic dans la case, posé sous elle ---------- */
+.calendrier { position: fixed; z-index: 60; width: 264px; padding: var(--espace-2); background: var(--feuille); color: var(--encre);
+  border: 1px solid var(--trait-saisie); border-radius: var(--rayon-bloc); box-shadow: var(--ombre-flottant); font-size: var(--taille-courant); }
+.calendrier-tete { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto 28px; gap: var(--espace-1); align-items: center; margin-bottom: var(--espace-2); }
+.calendrier-tete button { height: 28px; border: 1px solid var(--trait); border-radius: var(--rayon-champ); background: var(--papier); color: var(--encre); font: inherit; font-size: var(--taille-titre); line-height: 1; cursor: pointer; }
+.calendrier-tete select { height: 28px; min-width: 0; padding: 0 var(--espace-1); border: 1px solid var(--trait); border-radius: var(--rayon-champ); background: var(--feuille); color: var(--encre); font: inherit; font-weight: 600; }
+.calendrier-grille { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
+.calendrier-jour { text-align: center; font-size: var(--taille-dense); font-weight: 600; color: var(--encre-2); padding-bottom: 2px; }
+.calendrier-grille button { height: 30px; border: 1px solid transparent; border-radius: var(--rayon-champ); background: none; color: var(--encre); font: inherit; font-variant-numeric: tabular-nums; cursor: pointer; }
+.calendrier-grille button[aria-current="date"] { border-color: var(--trait-saisie); font-weight: 700; }
+.calendrier-grille button[aria-pressed="true"] { background: var(--tampon); border-color: var(--tampon-fort); color: var(--sur-tampon); font-weight: 700; }
+.calendrier-pied { display: flex; justify-content: flex-end; margin-top: var(--espace-2); padding-top: var(--espace-2); border-top: 1px solid var(--ligne); }
+.calendrier-pied button { border: 0; background: none; color: var(--tampon); font: inherit; font-weight: 600; padding: 2px var(--espace-2); border-radius: var(--rayon-petit); cursor: pointer; }
+@media (hover: hover) and (pointer: fine) {
+  .calendrier-grille button:not([aria-pressed="true"]):hover, .calendrier-pied button:hover { background: var(--tampon-pale); }
+  .calendrier-tete button:hover { background: var(--bandeau); }
+}
+@media (pointer: coarse) { .calendrier { width: min(320px, calc(100vw - 16px)); } .calendrier-grille button { height: 40px; } .calendrier-tete { grid-template-columns: 40px minmax(0, 1fr) auto 40px; } .calendrier-tete button, .calendrier-tete select { height: 40px; } }
+
+/* ---------- Mouvement (demande du porteur, 21/11/2026 : « ajoute des animations dans le logiciel ») ----------
+   Fiche emil-kowalski « animate » et ses recettes : transform et opacity seulement, courbe forte de sortie, tout sous 300 ms ;
+   pression 140 ms, menus 160 ms, fenêtres 220 ms. Après une touche du clavier (attribut data-geste), rien ne s'anime : le guichet
+   reste instantané. Mouvement réduit demandé par le système : aucun de ces mouvements. */
+.progres { position: fixed; inset: 0 0 auto 0; height: 3px; z-index: 2000; overflow: hidden; pointer-events: none; }
+.progres i { position: absolute; inset: 0 auto 0 0; width: 34%; background: var(--marque-rouge); border-radius: 2px; animation: progres 1.1s linear infinite; }
+.progres span { position: fixed; right: var(--espace-3); bottom: 34px; padding: 5px var(--espace-3); border-radius: var(--rayon-champ); background: var(--nuit); color: var(--nuit-fort);
+  font-size: var(--taille-dense); box-shadow: var(--ombre-flottant); }
+@keyframes progres { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+@media (prefers-reduced-motion: reduce) { .progres i { animation: none; width: 100%; opacity: .7; } }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Pression d'un bouton, à la souris ou au doigt */
+  :root:not([data-geste="clavier"]) .bouton:not(:disabled), :root:not([data-geste="clavier"]) .sortir {
+    transition: transform var(--mouvement-pression) var(--mouvement-courbe-sortie), background-color 120ms ease, border-color 120ms ease, color 120ms ease; }
+  :root:not([data-geste="clavier"]) .bouton:not(:disabled):active, :root:not([data-geste="clavier"]) .sortir:active { transform: scale(.97); }
+
+  /* Un écran qui s'ouvre : fondu court, presque imperceptible (on change d'écran des dizaines de fois par jour) */
+  :root:not([data-geste="clavier"]) .page { animation: ecran-entre 140ms var(--mouvement-courbe-sortie) backwards; }
+  /* Le contenu d'un onglet, un tableau de résultats, un message : ils paraissent au lieu de surgir */
+  :root:not([data-geste="clavier"]) .onglets + .bloc, :root:not([data-geste="clavier"]) .grille-cadre, :root:not([data-geste="clavier"]) .page .grille { transition: opacity 140ms ease-out; }
+  :root:not([data-geste="clavier"]) .bloquant, :root:not([data-geste="clavier"]) .attention, :root:not([data-geste="clavier"]) .resultat-ok {
+    transition: opacity var(--mouvement-deroulant) var(--mouvement-courbe-sortie), transform var(--mouvement-deroulant) var(--mouvement-courbe-sortie); }
+
+  /* Menus de la barre : ils sortent de leur titre */
+  :root:not([data-geste="clavier"]) .deroulant[open] > .liste-deroulante { transform-origin: top left;
+    transition: opacity 160ms var(--mouvement-courbe-sortie), transform 160ms var(--mouvement-courbe-sortie); }
+  :root:not([data-geste="clavier"]) .complementaires .deroulant[open] > .liste-deroulante { transform-origin: top right; }
+  :root:not([data-geste="clavier"]) .menu-action > ul, :root:not([data-geste="clavier"]) .suggestions { transform-origin: top right;
+    transition: opacity 140ms var(--mouvement-courbe-sortie), transform 140ms var(--mouvement-courbe-sortie); }
+  :root:not([data-geste="clavier"]) .calendrier { transform-origin: top left; transition: opacity 140ms var(--mouvement-courbe-sortie), transform 140ms var(--mouvement-courbe-sortie); }
+
+  /* Fenêtres de dialogue et fiches : elles restent centrées, s'ouvrent d'un souffle, le voile avec elles */
+  :root:not([data-geste="clavier"]) dialog.boite[open], :root:not([data-geste="clavier"]) dialog.fiche[open] {
+    transition: opacity var(--mouvement-fenetre) var(--mouvement-courbe-sortie), transform var(--mouvement-fenetre) var(--mouvement-courbe-sortie); }
+  :root:not([data-geste="clavier"]) dialog.boite[open]::backdrop, :root:not([data-geste="clavier"]) dialog.fiche[open]::backdrop { transition: opacity var(--mouvement-fenetre) ease-out; }
+
+  /* Accès rapide : un menu se déplie au lieu de sauter (navigateurs récents ; ailleurs, il s'ouvre d'un coup) */
+  @supports (interpolate-size: allow-keywords) {
+    .acces-rapide details { interpolate-size: allow-keywords; }
+    :root:not([data-geste="clavier"]) .acces-rapide details::details-content { height: 0; overflow: clip; transition: height 200ms var(--mouvement-courbe-sortie), content-visibility 200ms allow-discrete; }
+    :root:not([data-geste="clavier"]) .acces-rapide details[open]::details-content { height: auto; }
+  }
+
+  /* Connexion : la fenêtre se pose, une fois */
+  .carte-connexion { animation: carte-entre 260ms var(--mouvement-courbe-sortie) backwards; }
+  .carte-connexion.comptes-demo { animation-delay: 60ms; }
+
+  @starting-style {
+    :root:not([data-geste="clavier"]) .onglets + .bloc, :root:not([data-geste="clavier"]) .grille-cadre, :root:not([data-geste="clavier"]) .page .grille { opacity: 0; }
+    :root:not([data-geste="clavier"]) .bloquant, :root:not([data-geste="clavier"]) .attention, :root:not([data-geste="clavier"]) .resultat-ok { opacity: 0; transform: translateY(-3px); }
+    :root:not([data-geste="clavier"]) .deroulant[open] > .liste-deroulante { opacity: 0; transform: translateY(-4px) scale(.98); }
+    :root:not([data-geste="clavier"]) .menu-action > ul, :root:not([data-geste="clavier"]) .suggestions { opacity: 0; transform: scale(.97); }
+    :root:not([data-geste="clavier"]) .calendrier { opacity: 0; transform: translateY(-4px) scale(.98); }
+    :root:not([data-geste="clavier"]) dialog.boite[open], :root:not([data-geste="clavier"]) dialog.fiche[open] { opacity: 0; transform: scale(.96); }
+    :root:not([data-geste="clavier"]) dialog.boite[open]::backdrop, :root:not([data-geste="clavier"]) dialog.fiche[open]::backdrop { opacity: 0; }
+  }
+}
+@keyframes ecran-entre { from { opacity: 0; transform: translateY(4px); } }
+@keyframes carte-entre { from { opacity: 0; transform: translateY(8px) scale(.985); } }

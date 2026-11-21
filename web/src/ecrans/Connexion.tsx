@@ -43,15 +43,13 @@ export default function Connexion() {
             <label htmlFor="mdp">Mot de passe :</label>
             <input id="mdp" className="saisie" type="password" autoComplete="current-password" value={mdp} onChange={(e) => setMdp(e.target.value)} />
           </div>
-          <div className="deux-colonnes">
-            <div className="champ">
-              <label htmlFor="journee">Journée ouverte :</label>
-              <input id="journee" className="saisie" readOnly value={donnees?.j && donnees.j.statut === "ouverte" ? fr(donnees.j.date) : ""} />
-            </div>
-            <div className="champ">
-              <label htmlFor="date-systeme">Date système :</label>
-              <input id="date-systeme" className="saisie" readOnly value={fr(aujourdhui)} />
-            </div>
+          <div className="champ">
+            <label htmlFor="journee">Journée ouverte :</label>
+            <input id="journee" className="saisie" readOnly value={donnees?.j && donnees.j.statut === "ouverte" ? fr(donnees.j.date) : ""} />
+          </div>
+          <div className="champ">
+            <label htmlFor="date-systeme">Date système :</label>
+            <input id="date-systeme" className="saisie" readOnly value={fr(aujourdhui)} />
           </div>
           <p className="serveur">Serveur : {location.host || "local"}</p>
           <Bloquant titre="">{erreur}</Bloquant>

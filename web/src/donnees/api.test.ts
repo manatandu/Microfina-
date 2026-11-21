@@ -292,6 +292,12 @@ describe("journée de guichet", () => {
     await api.guichet.depot({ cle: cle(), compteId: 5, montant: 1000000, coupures: { 10000: 1 } });
     await connecter("jpmukendi");
     expect((await api.inactifs.comptes()).some((x) => x.compte === "0412-000320-02")).toBe(false);
+    // une écriture passée par l'institution (intérêts, frais de tenue : S128) n'est pas une opération du titulaire : elle ne repousse pas les dix ans
+    // (loi 22/069, titre III, chap. Ier ; confrontation du 21/11/2026, E7)
+    const e = _etat();
+    e.ecritures.filter((x) => x.journal !== "AN" && x.lignes.some((l) => l.contrat === "depot:5")).forEach((x, i) =>
+      e.calculsPeriodiques.push({ type: "interet_dav", exercice: 2026, mois: i + 1, compteId: 5, base: 0, montant: 100, retenue: 0, devise: "CDF", ecritureId: x.id, par: 1 }));
+    expect((await api.inactifs.comptes()).some((x) => x.compte === "0412-000320-02")).toBe(true);
     await connecter("bkasongo");
     await expect(api.inactifs.comptes()).rejects.toThrow("Droit manquant");
   });

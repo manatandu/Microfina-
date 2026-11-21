@@ -13,20 +13,24 @@
     "success": "sain"
   },
   "color": {
-    "papier": "#121924",
-    "feuille": "#182232",
+    "papier": "#18212F",
+    "feuille": "#1C2636",
+    "bureau": "#0C121B",
+    "cadre": "#141C29",
     "encre": "#EDEDED",
     "encre-2": "#B1B4B9",
-    "trait": "#354052",
+    "trait": "#3A4659",
     "trait-saisie": "#8C9098",
-    "ligne": "#283244",
-    "bandeau": "#1F2939",
-    "zebre": "#1B2432",
-    "tete-grille": "#1F2939",
-    "sur-tete-grille": "#C9CED6",
-    "tampon": "#EDEDED",
-    "tampon-pale": "#2A3445",
-    "sur-tampon": "#182232",
+    "ligne": "#2A3547",
+    "bandeau": "#1F2A3B",
+    "bandeau-fort": "#27344A",
+    "zebre": "#182130",
+    "tete-grille": "#243044",
+    "sur-tete-grille": "#D3D8E0",
+    "tampon": "#8DB8F2",
+    "tampon-fort": "#A9CAF6",
+    "tampon-pale": "#22344F",
+    "sur-tampon": "#0E1724",
     "alerte": "#E8707B",
     "alerte-pale": "#3F2031",
     "sain": "#6FC79B",
@@ -48,6 +52,7 @@
     "r5-texte": "#D9A0AE",
     "r5-pale": "#33202A",
     "inactif": "#283244",
+    "lecture": "#202A3A",
     "sur-inactif": "#98A0AC",
     "specimen": "#141C29",
     "photo-fond": "#2F3846",
@@ -239,6 +244,90 @@
     [
       "tampon",
       "tampon-pale"
+    ],
+    [
+      "encre-2",
+      "bandeau"
+    ],
+    [
+      "sur-tete-grille",
+      "tete-grille"
+    ],
+    [
+      "encre-2",
+      "zebre"
+    ],
+    [
+      "encre",
+      "cadre"
+    ],
+    [
+      "encre-2",
+      "cadre"
+    ],
+    [
+      "encre",
+      "bureau"
+    ],
+    [
+      "encre-2",
+      "bureau"
+    ],
+    [
+      "encre",
+      "bandeau"
+    ],
+    [
+      "encre",
+      "bandeau-fort"
+    ],
+    [
+      "encre",
+      "lecture"
+    ],
+    [
+      "encre-2",
+      "lecture"
+    ],
+    [
+      "tampon",
+      "cadre"
+    ],
+    [
+      "sur-tampon",
+      "tampon-fort"
+    ],
+    [
+      "encre",
+      "tampon-pale"
+    ],
+    [
+      "trait-saisie",
+      "cadre",
+      "ui"
+    ],
+    [
+      "alerte",
+      "cadre"
+    ],
+    [
+      "sain-texte",
+      "cadre"
+    ],
+    [
+      "sur-tete-grille",
+      "tete-grille"
+    ],
+    [
+      "encre",
+      "zebre"
     ]
-  ]
+  ],
+  "shadow": {
+    "surface": "0 1px 2px rgba(0, 0, 0, .5)",
+    "relief": "inset 0 1px 0 rgba(255, 255, 255, .25), 0 1px 1px rgba(0, 0, 0, .4)",
+    "relief-clair": "inset 0 1px 0 rgba(255, 255, 255, .07), 0 1px 1px rgba(0, 0, 0, .35)",
+    "creux": "inset 0 1px 2px rgba(0, 0, 0, .35)",
+    "flottant": "0 12px 32px rgba(0, 0, 0, .55), 0 2px 6px rgba(0, 0, 0, .35)"
+  }
 }

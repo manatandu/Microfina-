@@ -399,3 +399,9 @@ Lecture arrêtée le 21/11/2026 à la demande du porteur. Ce qui suit n'est pas 
 - Frais de crédit : les comptes proposés par défaut sur un produit n'ont pas été relevés (ils décident du ratio « rendement du portefeuille »).
 - Écart B8 (intérêts courus) et B10 (compte 76) : à confirmer par le porteur avant toute correction.
 - La matrice `matrice-exigences.md` annonce comme « lu » ou « en place » des points qui n'existent pas dans le code : registre des éditions numérotées, indicateur d'insuffisance de provision, ratios prudentiels, comptes 472 à 474. Elle est à corriger d'après ce document.
+
+## Suites données le 21/11/2026
+
+- La matrice `matrice-exigences.md` est corrigée : les quatre lignes annoncées et absentes du code (éditions numérotées, insuffisance de provision, comptes 472 et 473, normes prudentielles) sont marquées « non construit ».
+- Aucun écart de ce document n'est encore corrigé dans le code : ils sont à traiter dans l'ordre de la section 15.
+

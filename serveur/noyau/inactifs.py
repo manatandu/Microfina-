@@ -27,7 +27,10 @@ def comptes(u: dict, statut: str = "") -> list[dict]:
     for c in lignes("""select c.id, c.numero, c.tiers_id, trim(c.devise) as devise, t.numero as membre,
                               greatest((select max(jc.date_comptable) from ligne_ecriture l join ecriture e on e.id = l.ecriture_id
                                         join journee_comptable jc on jc.id = e.journee_id join journal jl on jl.id = e.journal_id
-                                        where l.contrat_ref = 'depot:' || c.id and jl.type <> 'a_nouveaux'),
+                                        where l.contrat_ref = 'depot:' || c.id and jl.type <> 'a_nouveaux'
+                                          -- seules comptent les opérations « de la part de leurs titulaires ou ayants droit » (loi 22/069, titre III, chap. Ier) :
+                                          -- les intérêts et les frais de tenue passés par l'institution (S128) ne repoussent pas les dix ans
+                                          and not exists (select 1 from calcul_periodique cp where cp.ecriture_id = e.id)),
                                        (select max(p.recue_le) from plainte p where p.tiers_id = c.tiers_id),
                                        c.ouvert_le) as derniere
                        from compte_depot c join tiers t on t.id = c.tiers_id

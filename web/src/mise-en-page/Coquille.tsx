@@ -1,13 +1,13 @@
 // Cadre d'un module, sur le modèle de la « page du menu général » de Microfina++ (manuel, p. 13 et 14) :
 // barre de menus horizontale, menus d'accès rapide à gauche, zone de travail, bas de page
 // (serveur, base de données, journée ouverte, utilisateur), menus complémentaires langue, aide, déconnexion.
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { api, SUR_SERVEUR } from "../donnees/api";
 import { useDonnees } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { menus, applicationDe, APPLICATIONS, ECRANS, type Menu } from "../ecrans/registre";
-import { CONSTRUITS } from "../ecrans/construits";
+import { CONSTRUITS, prechargerEcrans } from "../ecrans/construits";
 import { definirMonnaies } from "@design/montant.js";
 import { mots } from "../lib/vocabulaire";
 import { ICONES } from "./icones";
@@ -25,7 +25,10 @@ export function Coquille() {
     if (u) definirMonnaies(ctx.devises, ctx.monnaies);   // devises et monnaies de S35 pour les guichets (registre S79-5)
     return { u, ctx, j };
   });
-  if (!donnees) return null;
+  const connecte = !!donnees?.u;
+  useEffect(() => { if (connecte) prechargerEcrans(); }, [connecte]);   // les autres écrans se chargent en fond : le clic suivant ne les attend pas
+  // En attendant la session : le cadre vide plutôt qu'une page blanche
+  if (!donnees) return <div className="cadre" aria-busy="true"><header className="barre-menus"><span className="logo"><Marque sombre taille={26} /></span></header><div className="corps" /><footer className="pied" /></div>;
   const { u, ctx, j } = donnees;
   if (!u) return <Navigate to="/connexion" replace state={{ apres: lieu.pathname }} />;
   const application = applicationDe(lieu.pathname);
@@ -75,8 +78,8 @@ export function Coquille() {
             </details>
           ))}
         </aside>
-        <main className="page" id="contenu">{aide && <AideEnLigne chemin={lieu.pathname} fermer={() => setAide(false)} />}
-          {refuse ? <p className="attention">Droit manquant : {refuse.nom} (Administration &gt; Profil &gt; Assigner droit).</p> : <Outlet />}</main>
+        <main className="page" id="contenu" key={lieu.pathname}>{aide && <AideEnLigne chemin={lieu.pathname} fermer={() => setAide(false)} />}
+          {refuse ? <p className="attention">Droit manquant : {refuse.nom} (Administration &gt; Profil &gt; Assigner droit).</p> : <Suspense fallback={null}><Outlet /></Suspense>}</main>
       </div>
 
       <footer className="pied">

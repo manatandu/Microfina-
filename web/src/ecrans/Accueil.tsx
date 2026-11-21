@@ -1,26 +1,27 @@
-import { useEffect, useRef, useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link, Navigate } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees } from "../lib/useDonnees";
 import { ICONES } from "../mise-en-page/icones";
-import monogramme from "../marque/dwacfina-symbole-blanc.svg";
+import { LOGO_SYMBOLE } from "../marque/dwacfina-traces";
 import { ECRANS } from "./registre";
-import { monterScene, type Ancre, type Scene } from "./scene-modules";
 
-// S02 : page des modules, comme dans Microfina++ (manuel, p. 6, figure 2) :
-// le module principal dans la grande boule du centre, huit modules autour, dans le même ordre.
+// S02 : page des modules de Microfina++ (manuel, p. 6, figure 2) : le module principal au centre, huit modules autour, dans le même ordre.
+// Présentation du 21/11/2026 (demande du porteur : « change-le, présente-le autrement, l'animation est lente ») : un tableau de trois sur trois,
+// Dwacfina dans la case du centre, chaque module à la place qu'il a sur la capture (Grh en haut, puis dans le sens des aiguilles d'une montre),
+// un trait du centre vers chaque module. Aucun calcul graphique : la page s'affiche d'un coup, l'entrée dure moins d'une seconde (DESIGN § 2.7 ter).
 // Un module s'ouvre si le profil de l'utilisateur y a au moins un droit : « Liste des modules liés » (S06-1), « ces différents
 // modules sont gérés grâce au module [Administration] » (p. 6) ; registre S02-1. Grh et Stock : hors périmètre ; Performance sociale,
 // Tontine, Sauvegarde, Spy : montrés sur la capture, non décrits par le manuel (registre S02-2).
-const AUTOUR: { libelle: string; application?: "paie" | "immobilisations"; chemin?: string; icone: React.ReactNode }[] = [
-  { libelle: "Grh", icone: ICONES.clients },
-  { libelle: "Paie", application: "paie", chemin: "/paie", icone: ICONES.paie },
-  { libelle: "Immo", application: "immobilisations", chemin: "/immobilisations", icone: ICONES.immobilisations },
-  { libelle: "Stock", icone: ICONES.caisse },
-  { libelle: "Performance sociale", icone: ICONES.clients },
-  { libelle: "Tontine", icone: ICONES.parts },
-  { libelle: "Sauvegarde", icone: ICONES.budget },
-  { libelle: "Spy", icone: ICONES.budget },
+const AUTOUR: { libelle: string; application?: "paie" | "immobilisations"; chemin?: string; icone: React.ReactNode; colonne: 1 | 2 | 3; rangee: 1 | 2 | 3 }[] = [
+  { libelle: "Grh", icone: ICONES.clients, colonne: 2, rangee: 1 },
+  { libelle: "Paie", application: "paie", chemin: "/paie", icone: ICONES.paie, colonne: 3, rangee: 1 },
+  { libelle: "Immo", application: "immobilisations", chemin: "/immobilisations", icone: ICONES.immobilisations, colonne: 3, rangee: 2 },
+  { libelle: "Stock", icone: ICONES.caisse, colonne: 3, rangee: 3 },
+  { libelle: "Performance sociale", icone: ICONES.clients, colonne: 2, rangee: 3 },
+  { libelle: "Tontine", icone: ICONES.parts, colonne: 1, rangee: 3 },
+  { libelle: "Sauvegarde", icone: ICONES.budget, colonne: 1, rangee: 2 },
+  { libelle: "Spy", icone: ICONES.budget, colonne: 1, rangee: 1 },
 ];
 
 /** Applications où l'utilisateur tient au moins un droit ; « principal » pour les modules de Dwacfina (mêmes règles que modules_lies, S06-1) */
@@ -35,171 +36,34 @@ function premiereVisite(): boolean {
   try { if (sessionStorage.getItem("likelemba-modules-vus")) return false; sessionStorage.setItem("likelemba-modules-vus", "1"); } catch { /* stockage indisponible */ }
   return true;
 }
-const mouvementReduit = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-/** Ciel : étoiles à position fixe (suite pseudo-aléatoire à graine, identique à chaque visite), chacune avec son rythme de scintillement */
-const ETOILES = (() => {
-  let g = 7;
-  const h = () => { g = (g * 16807) % 2147483647; return g / 2147483647; };
-  return Array.from({ length: 72 }, () => ({ x: h() * 100, y: h() * 100, t: 1 + Math.round(h() * 2) / 2, d: 2.5 + h() * 4, r: -h() * 6, o: .35 + h() * .55 }));
-})();
-
-/** Orbite vue en perspective : ellipse aplatie (registre S02-1 pour l'ouverture ; DESIGN § 2.7 ter pour l'apparence) */
-const APLATI = 0.78;
-
-/** Parallaxe : trois plans suivent la souris (ou l'inclinaison du téléphone) avec inertie ; le plus proche bouge le plus */
-function useParallaxe(plans: React.RefObject<HTMLElement | null>[], amplitudes: number[]) {
-  useEffect(() => {
-    if (mouvementReduit()) return;
-    const cible = { x: 0, y: 0 }, cour = { x: 0, y: 0 };
-    let image = 0;
-    const appliquer = () => {
-      cour.x += (cible.x - cour.x) * 0.075; cour.y += (cible.y - cour.y) * 0.075;
-      plans.forEach((r, i) => { if (r.current) r.current.style.transform = `translate3d(${(cour.x * amplitudes[i]!).toFixed(2)}px, ${(cour.y * amplitudes[i]!).toFixed(2)}px, 0)`; });
-      image = Math.abs(cible.x - cour.x) + Math.abs(cible.y - cour.y) > 0.001 ? requestAnimationFrame(appliquer) : 0;
-    };
-    const viser = (x: number, y: number) => {
-      cible.x = Math.max(-1, Math.min(1, x)); cible.y = Math.max(-1, Math.min(1, y));
-      if (!image) image = requestAnimationFrame(appliquer);
-    };
-    const souris = (e: PointerEvent) => { if (e.pointerType === "mouse") viser(e.clientX / innerWidth * 2 - 1, e.clientY / innerHeight * 2 - 1); };
-    const inclinaison = (e: DeviceOrientationEvent) => { if (e.gamma != null && e.beta != null) viser(e.gamma / 25, (e.beta - 40) / 25); };
-    addEventListener("pointermove", souris, { passive: true });
-    addEventListener("deviceorientation", inclinaison);
-    return () => { removeEventListener("pointermove", souris); removeEventListener("deviceorientation", inclinaison); cancelAnimationFrame(image); };
-  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
-}
-
-/** Plongée : au clic de la souris ou du doigt, la boule choisie grandit jusqu'à couvrir l'écran et se fond dans le fond du module.
- * Au clavier, avec une touche de modification ou en mouvement réduit : ouverture directe (DESIGN § 2.7 bis). */
-function usePlongee() {
-  const aller = useNavigate();
-  return (e: React.MouseEvent<HTMLAnchorElement>, chemin: string) => {
-    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.detail === 0 || mouvementReduit()) return;
-    e.preventDefault();
-    const boule = e.currentTarget, r = boule.getBoundingClientRect(), style = getComputedStyle(boule);
-    const voile = document.createElement("div");
-    voile.className = "plongee";
-    Object.assign(voile.style, { left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px` });
-    const peau = document.createElement("div");
-    peau.className = "plongee-peau";
-    peau.style.background = style.backgroundImage !== "none" ? style.backgroundImage : style.backgroundColor;
-    voile.appendChild(peau);
-    document.body.appendChild(voile);
-    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-    const portee = 2 * Math.hypot(Math.max(cx, innerWidth - cx), Math.max(cy, innerHeight - cy)) / r.width + 0.2;
-    const courbe = "cubic-bezier(0.77, 0, 0.175, 1)";
-    // La nuit reste ; seuls les astres s'effacent, la boule choisie passe devant
-    document.querySelectorAll(".page-modules .orbite, .page-modules .ciel").forEach((x) =>
-      x.animate([{ opacity: 1, transform: "scale(1)" }, { opacity: 0, transform: "scale(1.04)" }], { duration: 360, easing: "ease-out", fill: "forwards" }));
-    peau.animate([{ opacity: 1 }, { opacity: 1, offset: 0.45 }, { opacity: 0 }], { duration: 460, easing: "linear", fill: "forwards" });
-    voile.animate([{ transform: "scale(1)" }, { transform: `scale(${portee.toFixed(2)})` }], { duration: 460, easing: courbe, fill: "forwards" }).finished.then(() => {
-      aller(chemin);
-      voile.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, easing: "ease-out", fill: "forwards" }).finished.then(() => voile.remove());
-    });
-  };
-}
-
-/** Version plate, en CSS : secours quand la carte graphique ne permet pas la scène 3D */
-function ScenePlate({ entree }: { entree: boolean }) {
-  const { donnees } = useDonnees(() => api.session.courante());
-  const ciel = useRef<HTMLDivElement>(null), planOrbite = useRef<HTMLDivElement>(null), planPlanete = useRef<HTMLDivElement>(null);
-  useParallaxe([ciel, planOrbite, planPlanete], [6, 14, 26]);
-  const plonger = usePlongee();
-  if (donnees === null) return <Navigate to="/connexion" replace />;
-  const liees = applicationsLiees((donnees as { droits?: string[] } | undefined)?.droits ?? []);
-  const ferme = (libelle: string, icone: React.ReactNode, motif: string, classe = "boule inactive") =>
-    <span className={classe} aria-disabled="true" title={motif}>{icone}<span>{libelle}</span></span>;
-  return (
-    <main className="page-modules" data-entree={entree ? "complete" : "retour"}>
-      <h1 className="sr-only">Modules</h1>
-      <div className="ciel" ref={ciel} aria-hidden="true">
-        {ETOILES.map((e, i) => <i key={i} style={{ left: `${e.x}%`, top: `${e.y}%`, width: e.t, height: e.t, "--eclat": e.o,
-          animationDuration: `${e.d.toFixed(2)}s`, animationDelay: `${e.r.toFixed(2)}s` } as React.CSSProperties} />)}
-      </div>
-      <div className="orbite" style={{ "--aplati": APLATI } as React.CSSProperties}>
-        <div className="plan" ref={planOrbite}>
-          <svg className="anneaux" viewBox="0 0 100 100" aria-hidden="true">
-            <ellipse className="anneau" cx="50" cy="50" rx="38" ry={38 * APLATI} />
-          </svg>
-          {AUTOUR.map((m, i) => {
-            // Grh en haut (au fond de l'orbite), puis dans le sens des aiguilles d'une montre, comme la capture p. 6
-            const a = (i * Math.PI) / 4, fond = Math.cos(a);
-            const style = { "--x": Math.sin(a).toFixed(4), "--y": (-Math.cos(a)).toFixed(4), "--rang": i,
-              "--profondeur": (1 - 0.07 * fond).toFixed(3), "--voile": (1 - 0.12 * (fond + 1) / 2).toFixed(3), zIndex: Math.round(10 - fond * 5) } as React.CSSProperties;
-            const ouvert = m.application && liees.has(m.application);
-            return (
-              <div key={m.libelle} className="satellite" style={style}>
-                {ouvert
-                  ? <Link to={m.chemin!} className="boule" onClick={(e) => plonger(e, m.chemin!)}>{m.icone}<span>{m.libelle}</span></Link>
-                  : ferme(m.libelle, m.icone, m.application ? "Module non lié à votre profil" : "Non repris")}
-              </div>
-            );
-          })}
-        </div>
-        <div className="plan plan-planete" ref={planPlanete}>
-          <svg className="anneaux" viewBox="0 0 100 100" aria-hidden="true"><circle className="anneau-interieur" cx="50" cy="50" r="21" /></svg>
-          {liees.has("principal")
-            ? <Link to="/principal" className="boule centre" onClick={(e) => plonger(e, "/principal")}><img src={monogramme} alt="" width={56} height={56} /><span>DWACFINA</span></Link>
-            : ferme("DWACFINA", <img src={monogramme} alt="" width={56} height={56} />, "Module non lié à votre profil", "boule centre inactive")}
-        </div>
-      </div>
-    </main>
-  );
-}
 
 export function PageModules() {
   const [entree] = useState(premiereVisite);
-  const [plate, setPlate] = useState(false);
-  return plate ? <ScenePlate entree={entree} /> : <Scene3D entree={entree} secours={() => setPlate(true)} />;
-}
-
-/** Scène 3D (scene-modules.ts) : la toile dessine, les liens HTML posés par-dessus restent accessibles au clavier et au lecteur d'écran */
-function Scene3D({ entree, secours }: { entree: boolean; secours: () => void }) {
   const { donnees } = useDonnees(() => api.session.courante());
-  const toile = useRef<HTMLCanvasElement>(null), etoile = useRef<HTMLElement>(null), socles = useRef<(HTMLElement | null)[]>([]);
-  const scene = useRef<Scene | null>(null);
-  const aller = useNavigate();
-  const liees = applicationsLiees((donnees as { droits?: string[] } | undefined)?.droits ?? []);
-  const actifs = AUTOUR.map((m) => !!m.application && liees.has(m.application));
-  const cle = donnees ? actifs.join() + liees.has("principal") : "";
-  useEffect(() => {
-    if (!donnees || !toile.current) return;
-    const poser = (el: HTMLElement | null | undefined, a: Ancre) => { if (el) el.style.transform = `translate3d(${a.x.toFixed(1)}px, ${a.y.toFixed(1)}px, 0) translate(-50%, -50%) scale(${Math.max(.55, Math.min(1.25, a.echelle)).toFixed(3)})`; };
-    const s = monterScene(toile.current, { actifs, entree, reduit: mouvementReduit(),
-      placer: (e, l) => { poser(etoile.current, e); l.forEach((a, i) => poser(socles.current[i], a)); } });
-    if (!s) { secours(); return; }
-    scene.current = s;
-    return () => { s.detruire(); scene.current = null; };
-  }, [cle]);   // eslint-disable-line react-hooks/exhaustive-deps
   if (donnees === null) return <Navigate to="/connexion" replace />;
-  /** Plongée : souris ou doigt seulement ; au clavier, avec une touche de modification ou en mouvement réduit, ouverture directe (DESIGN § 2.7 bis) */
-  const plonger = async (e: React.MouseEvent<HTMLAnchorElement>, i: number, chemin: string) => {
-    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.detail === 0 || mouvementReduit() || !scene.current) return;
-    e.preventDefault();
-    document.querySelector(".etiquettes")?.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 250, easing: "ease-out", fill: "forwards" });
-    await scene.current.plonger(i);
-    const voile = document.createElement("div"); voile.className = "voile-plongee"; document.body.appendChild(voile);
-    await voile.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 140, easing: "ease-out", fill: "forwards" }).finished;
-    aller(chemin);
-    voile.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, easing: "ease-out", fill: "forwards" }).finished.then(() => voile.remove());
-  };
-  const survol = (i: number | null) => ({ onPointerEnter: () => scene.current?.survoler(i), onPointerLeave: () => scene.current?.survoler(null),
-    onFocus: () => scene.current?.survoler(i), onBlur: () => scene.current?.survoler(null) });
+  if (!donnees) return <main className="page-modules" aria-busy="true" />;
+  const liees = applicationsLiees((donnees as { droits?: string[] }).droits ?? []);
+  const symbole = <svg className="symbole" viewBox="40 40 176 176" aria-hidden="true"><path fill="var(--marque-rouge)" fillRule="evenodd" d={LOGO_SYMBOLE} /></svg>;
   return (
-    <main className="page-modules scene-3d" data-entree={entree ? "complete" : "retour"}>
+    <main className="page-modules" data-entree={entree ? "complete" : "retour"}>
       <h1 className="sr-only">Modules</h1>
-      <canvas ref={toile} className="toile-3d" aria-hidden="true" />
-      <div className="etiquettes">
+      <div className="tableau-modules">
+        {/* Un trait du centre vers chaque case ; sur un module ouvert, un point le parcourt vers le centre */}
+        <div className="liaisons" aria-hidden="true">
+          {AUTOUR.map((m, i) => {
+            const ouvert = !!m.application && liees.has(m.application);
+            return <i key={m.libelle} className={`liaison${ouvert ? " ouverte" : ""}`} style={{ "--dx": m.colonne - 2, "--dy": m.rangee - 2, "--rang": i } as React.CSSProperties}>{ouvert && <b className="flux" />}</i>;
+          })}
+        </div>
         {liees.has("principal")
-          ? <Link ref={(el) => { etoile.current = el; }} to="/principal" className="etiquette centre" onClick={(e) => plonger(e, -1, "/principal")} {...survol(-1)}><span>DWACFINA</span></Link>
-          : <span ref={(el) => { etoile.current = el; }} className="etiquette centre inactive" aria-disabled="true" title="Module non lié à votre profil"><span>DWACFINA</span></span>}
+          ? <Link to="/principal" className="module centre">{symbole}<span>DWACFINA</span></Link>
+          : <span className="module centre inactif" aria-disabled="true" title="Module non lié à votre profil">{symbole}<span>DWACFINA</span></span>}
         {AUTOUR.map((m, i) => {
-          const ref = (el: HTMLElement | null) => { socles.current[i] = el; };
-          const style = { "--rang": i } as React.CSSProperties;
-          return actifs[i]
-            ? <Link key={m.libelle} ref={ref} to={m.chemin!} className="etiquette" style={style} onClick={(e) => plonger(e, i, m.chemin!)} {...survol(i)}><span>{m.icone}{m.libelle}</span></Link>
-            : <span key={m.libelle} ref={ref} className="etiquette inactive" style={style} aria-disabled="true" title={m.application ? "Module non lié à votre profil" : "Non repris"}><span>{m.icone}{m.libelle}</span></span>;
+          const style = { gridColumn: m.colonne, gridRow: m.rangee, "--rang": i } as React.CSSProperties;
+          const contenu = <><span className="pastille">{m.icone}</span><span>{m.libelle}</span></>;
+          return m.application && liees.has(m.application)
+            ? <Link key={m.libelle} to={m.chemin!} className="module" style={style}>{contenu}</Link>
+            : <span key={m.libelle} className="module inactif" style={style} aria-disabled="true" title={m.application ? "Module non lié à votre profil" : "Non repris"}>{contenu}</span>;
         })}
       </div>
     </main>

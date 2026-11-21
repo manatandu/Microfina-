@@ -15,13 +15,10 @@ export function Attention({ children }: { children: ReactNode }) {
   return <p className="attention">{children}</p>;
 }
 
-export function Textes({ sources }: { sources: string[] }) {
-  return (
-    <details className="textes">
-      <summary>Textes</summary>
-      <ul>{sources.map((s) => <li key={s}>{s}</li>)}</ul>
-    </details>
-  );
+/** Références d'un écran (pages du manuel de Microfina++, articles des textes). Demande du porteur, 21/11/2026 : le volet « Textes » ne s'affiche
+ * plus sur aucun écran. Les références restent écrites dans le code de chaque écran et dans le registre des décisions. */
+export function Textes(_: { sources: string[] }) {
+  return null;
 }
 
 export function Touche({ children }: { children: ReactNode }) {
@@ -136,19 +133,89 @@ export function Chargement() {
   return <p className="muet chargement" role="status">Chargement…</p>;
 }
 
-/** Date jj/mm/aaaa au clavier (DESIGN § 2.1, composant C06). Jamais le sélecteur du navigateur :
- * son format suit la langue du poste, et « 11/05 » peut alors vouloir dire le 5 novembre. */
+/** Date jj/mm/aaaa. Un clic dans la case ouvre un calendrier (demande du porteur, 21/11/2026 : « je ne veux pas qu'on remplisse les dates
+ * à la main mais fais apparaître un calendrier »). La date s'écrit toujours jj/mm/aaaa, jamais au format du navigateur : « 11/05 » ne peut pas
+ * vouloir dire le 5 novembre. Au clavier, la frappe reste possible (guichet : DESIGN § 2.1) ; Alt + flèche bas ouvre le calendrier.
+ * Sur un écran tactile, le clavier du téléphone ne sort pas : le calendrier suffit. */
 export function ChampDate({ libelle, valeur, onChange, aide, requis }: { libelle: string; valeur: string; onChange: (iso: string) => void; aide?: string; requis?: boolean }) {
   const versTexte = (iso: string) => (/^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "");
   const [texte, setTexte] = useState(versTexte(valeur));
+  const [ouvert, setOuvert] = useState(false);
+  const entree = useRef<HTMLInputElement>(null);
   useEffect(() => { if (lireDate(texte) !== valeur) setTexte(versTexte(valeur)); }, [valeur]);   // valeur changée de l'extérieur
   const complet = texte.length === 10, iso = lireDate(texte);
   const erreur = complet && !iso ? "Date impossible." : "";
+  const tactile = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
   return (
     <Champ libelle={libelle} aide={aide} erreur={erreur}>
-      {(p) => <input {...p} className="saisie date" inputMode="numeric" autoComplete="off" placeholder="jj/mm/aaaa" maxLength={10} required={requis} value={texte}
-        onChange={(e) => { const t = masque(e.target.value); setTexte(t); onChange(lireDate(t) ?? ""); }} />}
+      {(p) => <>
+        <input {...p} ref={entree} className="saisie date" inputMode={tactile ? "none" : "numeric"} autoComplete="off" placeholder="jj/mm/aaaa" maxLength={10} required={requis} value={texte}
+          aria-haspopup="dialog" aria-expanded={ouvert}
+          onClick={() => setOuvert(true)}
+          onKeyDown={(e) => { if (e.key === "ArrowDown" && e.altKey) { e.preventDefault(); setOuvert(true); } else if (e.key === "Tab" || e.key === "Escape") setOuvert(false); }}
+          onChange={(e) => { const t = masque(e.target.value); setOuvert(false); setTexte(t); onChange(lireDate(t) ?? ""); }} />
+        {ouvert && entree.current && <Calendrier valeur={iso ?? ""} ancre={entree.current} fermer={() => setOuvert(false)}
+          choisir={(d) => { setTexte(versTexte(d)); onChange(d); setOuvert(false); entree.current?.focus(); }} />}
+      </>}
     </Champ>
+  );
+}
+
+const MOIS_CALENDRIER = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+const JOURS_CALENDRIER = ["lu", "ma", "me", "je", "ve", "sa", "di"];
+const deuxChiffres = (n: number) => String(n).padStart(2, "0");
+
+/** Calendrier d'une case de date : un mois, la semaine commence le lundi, le mois et l'année se choisissent dans deux listes (une date de
+ * naissance se trouve sans feuilleter). Placé sous la case, ou au-dessus s'il n'y a pas la place ; fermé par un clic ailleurs ou Échap. */
+function Calendrier({ valeur, ancre, choisir, fermer }: { valeur: string; ancre: HTMLInputElement; choisir: (iso: string) => void; fermer: () => void }) {
+  const jour = new Date(), aujourdhui = `${jour.getFullYear()}-${deuxChiffres(jour.getMonth() + 1)}-${deuxChiffres(jour.getDate())}`;
+  const depart = valeur || aujourdhui;
+  const [an, setAn] = useState(Number(depart.slice(0, 4)));
+  const [mois, setMois] = useState(Number(depart.slice(5, 7)) - 1);
+  const ref = useRef<HTMLDivElement>(null);
+  const [place, setPlace] = useState<{ top: number; left: number } | null>(null);
+  useLayoutEffect(() => {
+    const placer = () => {
+      const r = ancre.getBoundingClientRect(), h = ref.current?.offsetHeight ?? 300, l = ref.current?.offsetWidth ?? 264, marge = 8;
+      const dessous = r.bottom + 4 + h <= window.innerHeight - marge || r.top < h + 4 + marge;
+      setPlace({ top: Math.max(marge, dessous ? r.bottom + 4 : r.top - h - 4), left: Math.max(marge, Math.min(r.left, window.innerWidth - l - marge)) });
+    };
+    placer();
+    window.addEventListener("resize", placer); window.addEventListener("scroll", placer, true);
+    return () => { window.removeEventListener("resize", placer); window.removeEventListener("scroll", placer, true); };
+  }, [ancre, an, mois]);
+  useEffect(() => {
+    const dehors = (e: PointerEvent) => { if (!ref.current?.contains(e.target as Node) && e.target !== ancre) fermer(); };
+    const touche = (e: KeyboardEvent) => { if (e.key === "Escape") { e.stopPropagation(); fermer(); ancre.focus(); } };
+    document.addEventListener("pointerdown", dehors, true); document.addEventListener("keydown", touche, true);
+    return () => { document.removeEventListener("pointerdown", dehors, true); document.removeEventListener("keydown", touche, true); };
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+  const decalage = (new Date(an, mois, 1).getDay() + 6) % 7, jours = new Date(an, mois + 1, 0).getDate();
+  const isoDe = (j: number) => `${an}-${deuxChiffres(mois + 1)}-${deuxChiffres(j)}`;
+  const aller = (d: number) => { const m = mois + d; setAn(an + Math.floor(m / 12)); setMois(((m % 12) + 12) % 12); };
+  const annees = Array.from({ length: jour.getFullYear() + 10 - 1900 + 1 }, (_, i) => 1900 + i);
+  return (
+    <div ref={ref} className="calendrier" role="dialog" aria-label="Choisir une date" style={place ? { top: place.top, left: place.left } : { visibility: "hidden" }}>
+      <div className="calendrier-tete">
+        <button type="button" tabIndex={-1} aria-label="Mois précédent" onClick={() => aller(-1)}>‹</button>
+        <select tabIndex={-1} aria-label="Mois du calendrier" value={mois} onChange={(e) => setMois(Number(e.target.value))}>
+          {MOIS_CALENDRIER.map((m, i) => <option key={m} value={i}>{m}</option>)}
+        </select>
+        <select tabIndex={-1} aria-label="Année du calendrier" value={an} onChange={(e) => setAn(Number(e.target.value))}>
+          {(annees.includes(an) ? annees : [...annees, an].sort((a, b) => a - b)).map((a) => <option key={a} value={a}>{a}</option>)}
+        </select>
+        <button type="button" tabIndex={-1} aria-label="Mois suivant" onClick={() => aller(1)}>›</button>
+      </div>
+      <div className="calendrier-grille" aria-hidden="true">{JOURS_CALENDRIER.map((j) => <span key={j} className="calendrier-jour">{j}</span>)}</div>
+      <div className="calendrier-grille">
+        {Array.from({ length: decalage }, (_, i) => <span key={`v${i}`} />)}
+        {Array.from({ length: jours }, (_, i) => i + 1).map((j) => (
+          <button key={j} type="button" tabIndex={-1} aria-pressed={isoDe(j) === valeur} aria-current={isoDe(j) === aujourdhui ? "date" : undefined}
+            aria-label={`${j} ${MOIS_CALENDRIER[mois]} ${an}`} onClick={() => choisir(isoDe(j))}>{j}</button>
+        ))}
+      </div>
+      <div className="calendrier-pied"><button type="button" tabIndex={-1} onClick={() => choisir(aujourdhui)}>Aujourd'hui</button></div>
+    </div>
   );
 }
 function masque(v: string) {

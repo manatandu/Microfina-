@@ -1,104 +1,274 @@
-import { ValidationsComptables, VisasComptables } from "./VisasCompta";
-import SaisieEcriture from "./SaisieEcriture";
-import JournauxComptables from "./JournauxComptables";
-import AutresOperations from "./AutresOperations";
-import ValidationCaisse from "./ValidationCaisse";
-import VirementsMensuels from "./VirementsMensuels";
-import Factures, { DeclarationTaxes } from "./Factures";
-import ReglementEspece from "./ReglementEspece";
-import { AnnulationReglement, Controles, HistoriqueRapprochement, Lettrage, Rapprochement, Tresorerie } from "./ControlesCompta";
-import { EtatsFinanciers, IndicateursFinanciers } from "./EtatsFinanciers";
-import Financement from "./Financement";
-import { ConsultationBudget, NouveauBudget } from "./Budgets";
-import { Calculs, Clotures } from "./FinPeriode";
-import { DonneesBasePaie, GrillesEtats, NouvelEmploye, PersonnelPaie, RetenuesSalaire } from "./Paie";
-import { CreationBien, DonneesBaseImmo, MouvementsBiens, RapportsImmo, TraitementsBiens } from "./Immobilisations";
-import VisaBanque from "./VisaBanque";
-import { ChequesClients } from "./ChequesClients";
-import { Chequiers } from "./Chequiers";
-import { Emprunts } from "./Emprunts";
-import { RapportsBanque } from "./RapportsBanque";
-import { NouveauCompte } from "./NouveauCompte";
-import { ReleveCompte } from "./ReleveCompte";
-import ExamenRenforce from "./ExamenRenforce";
-import CentraleIncidents from "./CentraleIncidents";
-import CentraleRisques from "./CentraleRisques";
-import Litigieux from "./Litigieux";
-import Comptabilisation from "./Comptabilisation";
-import { PlanTiers, Taxes } from "./ReferentielsCompta";
-import Plaintes from "./Plaintes";
-import ComptesInactifs from "./ComptesInactifs";
-import RegistreMembres from "./RegistreMembres";
-import ConditionsBanque from "./ConditionsBanque";
-import RetenuesReverser from "./RetenuesReverser";
-import JournalSecurite from "./JournalSecurite";
-import { MiseEnPlaceDat, RechercheDat, RuptureDat, ValidationDat } from "./DepotsTerme";
-import PlanEpargne from "./PlanEpargne";
-import ClotureCompte from "./Clotures";
-import BlocageCompte from "./Blocages";
-import RapportsEpargne from "./RapportsEpargne";
-import EdDivers from "./EdDivers";
-import Transferts from "./Transferts";
-import JournalCaisse from "./JournalCaisse";
-import SimulationCredit from "./SimulationCredit";
-import AnalyseFinanciere from "./AnalyseFinanciere";
-import { ApprobationDemande, ControleDemande, DemandeCredit } from "./DossierCredit";
-import MiseEnPlace from "./MiseEnPlace";
-import { AffectationDossier, EtatCredit, HistoriqueVisas, ValidesNonDebloques, VisasCredit } from "./SuiviCredit";
-import { DeblocageBanque, DeblocageGuichet, DeblocageEpargne } from "./DeblocageCredit";
-import { ConsulterPret, RemboursementBanque, RemboursementGuichet, RemboursementPrelevement } from "./RemboursementCredit";
-import Garanties from "./Garanties";
-import ListeRouge from "./ListeRouge";
-import BalanceAgee from "./BalanceAgee";
-import Provisions from "./Provisions";
-import EngagementSignature from "./EngagementSignature";
-import RapportsCredit from "./RapportsCredit";
-import type { ComponentType } from "react";
-import GuichetDepotRetrait from "./Guichet";
-import Adhesion from "./Adhesion";
-import { BalanceComptes, GrandLivre } from "./EtatsCompta";
-import { BilletageCaisse, ValidationBilletage } from "./Caisse";
-import { AffectationGuichets, GestionGuichets, OuvertureFermetureGuichets } from "./Guichets";
-import { CompleterJournalDetail, NouvelExercice, OuvertureExercice } from "./Exercices";
-import { EnrolementEntreprise, EnrolementGroupe, EnrolementPhysique, MiseAJourClient } from "./Membres";
-import RapportTransactions from "./Transactions";
-import ListesGenerales, { MotifsDepart } from "./Secteurs";
-import PlanComptes from "./PlanComptes";
-import ReferentielsBudget from "./Budget";
-import Localisation from "./Localisation";
-import CreditGeneral from "./Credit";
-import OrdreRemboursement from "./Ordres";
-import ProduitCredit, { ListeProduitsCredit } from "./ProduitCredit";
-import ActivationProduitsCredit from "./ActivationProduits";
-import ModeleCredit from "./ModeleCredit";
-import GestionProduitsEpargne from "./ProduitEpargne";
-import ParametrageProduitsEpargne from "./ParametrageEpargne";
-import NumeroPiece from "./NumeroPiece";
-import Journaux from "./Journaux";
-import ParametrageAutresOperations from "./OperationsDiverses";
-import InfoSocietePage from "./Societe";
-import InformationsAgences from "./Agents";
-import JoursTravail from "./JoursTravail";
-import Devises from "./Devises";
-import Facture from "./Facture";
-import GestionProfils from "./Profils";
-import DroitsProfil from "./Droits";
-import EnregistrementUtilisateurs from "./Utilisateurs";
-import GestionProfilsUtilisateur from "./ProfilsUtilisateurs";
-import Connexions from "./Connexions";
-import ParametragesClients, { ParametrageCompteClient } from "./Numerotation";
-import { EcranJournee } from "./Journee";
-import { Consentement, InformationsClient, ModificationFrais, PhotosSignatures, ResiliationClient, ValidationClientModifie, VisaClient } from "./Visa";
-import { FraisOperations } from "./Parametrage";
-import { GroupeSolidaire } from "./Groupes";
-import { NouveauProspect } from "./Prospects";
-import { TypesProcuration } from "./Procurations";
-import { RapportsClients } from "./Rapports";
-import { PartsSociales } from "./Parts";
-import { OperationsBanque } from "./OperationsBanque";
-import { VirementPrelevement } from "./VirementPrelevement";
-import { AdhesionBanque } from "./AdhesionBanque";
-import { CreationBanque } from "./Banques";
+import { lazy, type ComponentType } from "react";
+
+// Chaque écran se charge à la demande (demande du porteur, 21/11/2026 : « le logiciel est lent ») : la page d'entrée ne porte plus
+// les cent écrans. Après la connexion, les autres écrans sont préchargés en fond (prechargerEcrans) : le clic suivant ne les attend pas.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const paresseux = (charger: () => Promise<any>, nom: string): ComponentType => lazy(() => charger().then((m) => ({ default: m[nom] as ComponentType })));
+
+const FICHIERS: (() => Promise<unknown>)[] = [
+  () => import("./VisasCompta"),
+  () => import("./SaisieEcriture"),
+  () => import("./JournauxComptables"),
+  () => import("./AutresOperations"),
+  () => import("./ValidationCaisse"),
+  () => import("./VirementsMensuels"),
+  () => import("./Factures"),
+  () => import("./ReglementEspece"),
+  () => import("./ControlesCompta"),
+  () => import("./EtatsFinanciers"),
+  () => import("./Financement"),
+  () => import("./Budgets"),
+  () => import("./FinPeriode"),
+  () => import("./Paie"),
+  () => import("./Immobilisations"),
+  () => import("./VisaBanque"),
+  () => import("./ChequesClients"),
+  () => import("./Chequiers"),
+  () => import("./Emprunts"),
+  () => import("./RapportsBanque"),
+  () => import("./NouveauCompte"),
+  () => import("./ReleveCompte"),
+  () => import("./ExamenRenforce"),
+  () => import("./CentraleIncidents"),
+  () => import("./CentraleRisques"),
+  () => import("./Litigieux"),
+  () => import("./Comptabilisation"),
+  () => import("./ReferentielsCompta"),
+  () => import("./Plaintes"),
+  () => import("./ComptesInactifs"),
+  () => import("./RegistreMembres"),
+  () => import("./ConditionsBanque"),
+  () => import("./RetenuesReverser"),
+  () => import("./JournalSecurite"),
+  () => import("./DepotsTerme"),
+  () => import("./PlanEpargne"),
+  () => import("./Clotures"),
+  () => import("./Blocages"),
+  () => import("./RapportsEpargne"),
+  () => import("./EdDivers"),
+  () => import("./Transferts"),
+  () => import("./JournalCaisse"),
+  () => import("./SimulationCredit"),
+  () => import("./AnalyseFinanciere"),
+  () => import("./DossierCredit"),
+  () => import("./MiseEnPlace"),
+  () => import("./SuiviCredit"),
+  () => import("./DeblocageCredit"),
+  () => import("./RemboursementCredit"),
+  () => import("./Garanties"),
+  () => import("./ListeRouge"),
+  () => import("./BalanceAgee"),
+  () => import("./Provisions"),
+  () => import("./EngagementSignature"),
+  () => import("./RapportsCredit"),
+  () => import("./Guichet"),
+  () => import("./Adhesion"),
+  () => import("./EtatsCompta"),
+  () => import("./Caisse"),
+  () => import("./Guichets"),
+  () => import("./Exercices"),
+  () => import("./Membres"),
+  () => import("./Transactions"),
+  () => import("./Secteurs"),
+  () => import("./PlanComptes"),
+  () => import("./Budget"),
+  () => import("./Localisation"),
+  () => import("./Credit"),
+  () => import("./Ordres"),
+  () => import("./ProduitCredit"),
+  () => import("./ActivationProduits"),
+  () => import("./ModeleCredit"),
+  () => import("./ProduitEpargne"),
+  () => import("./ParametrageEpargne"),
+  () => import("./NumeroPiece"),
+  () => import("./Journaux"),
+  () => import("./OperationsDiverses"),
+  () => import("./Societe"),
+  () => import("./Agents"),
+  () => import("./JoursTravail"),
+  () => import("./Devises"),
+  () => import("./Facture"),
+  () => import("./Profils"),
+  () => import("./Droits"),
+  () => import("./Utilisateurs"),
+  () => import("./ProfilsUtilisateurs"),
+  () => import("./Connexions"),
+  () => import("./Numerotation"),
+  () => import("./Journee"),
+  () => import("./Visa"),
+  () => import("./Parametrage"),
+  () => import("./Groupes"),
+  () => import("./Prospects"),
+  () => import("./Procurations"),
+  () => import("./Rapports"),
+  () => import("./Parts"),
+  () => import("./OperationsBanque"),
+  () => import("./VirementPrelevement"),
+  () => import("./AdhesionBanque"),
+  () => import("./Banques"),
+];
+let precharge = false;
+/** Charge les écrans un à un quand le navigateur est libre ; un échec (réseau coupé) n'empêche rien : l'écran se chargera au clic */
+export function prechargerEcrans() {
+  if (precharge || import.meta.env.DEV) return;   // en développement, chaque fichier est servi à la demande : précharger ne sert à rien
+  precharge = true;
+  const file = [...FICHIERS];
+  const attendre = (f: () => void) => (typeof requestIdleCallback === "function" ? requestIdleCallback(f, { timeout: 1500 }) : setTimeout(f, 200));
+  const suivant = () => { const f = file.shift(); if (f) f().catch(() => undefined).finally(() => attendre(suivant)); };
+  // Trois secondes de répit : l'écran demandé d'abord, le reste ensuite, trois fichiers à la fois
+  setTimeout(() => { for (let i = 0; i < 3; i++) attendre(suivant); }, 3000);
+}
+const ValidationsComptables = paresseux(() => import("./VisasCompta"), "ValidationsComptables");
+const VisasComptables = paresseux(() => import("./VisasCompta"), "VisasComptables");
+const SaisieEcriture = paresseux(() => import("./SaisieEcriture"), "default");
+const JournauxComptables = paresseux(() => import("./JournauxComptables"), "default");
+const AutresOperations = paresseux(() => import("./AutresOperations"), "default");
+const ValidationCaisse = paresseux(() => import("./ValidationCaisse"), "default");
+const VirementsMensuels = paresseux(() => import("./VirementsMensuels"), "default");
+const Factures = paresseux(() => import("./Factures"), "default");
+const DeclarationTaxes = paresseux(() => import("./Factures"), "DeclarationTaxes");
+const ReglementEspece = paresseux(() => import("./ReglementEspece"), "default");
+const AnnulationReglement = paresseux(() => import("./ControlesCompta"), "AnnulationReglement");
+const Controles = paresseux(() => import("./ControlesCompta"), "Controles");
+const HistoriqueRapprochement = paresseux(() => import("./ControlesCompta"), "HistoriqueRapprochement");
+const Lettrage = paresseux(() => import("./ControlesCompta"), "Lettrage");
+const Rapprochement = paresseux(() => import("./ControlesCompta"), "Rapprochement");
+const Tresorerie = paresseux(() => import("./ControlesCompta"), "Tresorerie");
+const EtatsFinanciers = paresseux(() => import("./EtatsFinanciers"), "EtatsFinanciers");
+const IndicateursFinanciers = paresseux(() => import("./EtatsFinanciers"), "IndicateursFinanciers");
+const Financement = paresseux(() => import("./Financement"), "default");
+const ConsultationBudget = paresseux(() => import("./Budgets"), "ConsultationBudget");
+const NouveauBudget = paresseux(() => import("./Budgets"), "NouveauBudget");
+const Calculs = paresseux(() => import("./FinPeriode"), "Calculs");
+const Clotures = paresseux(() => import("./FinPeriode"), "Clotures");
+const DonneesBasePaie = paresseux(() => import("./Paie"), "DonneesBasePaie");
+const GrillesEtats = paresseux(() => import("./Paie"), "GrillesEtats");
+const NouvelEmploye = paresseux(() => import("./Paie"), "NouvelEmploye");
+const PersonnelPaie = paresseux(() => import("./Paie"), "PersonnelPaie");
+const RetenuesSalaire = paresseux(() => import("./Paie"), "RetenuesSalaire");
+const CreationBien = paresseux(() => import("./Immobilisations"), "CreationBien");
+const DonneesBaseImmo = paresseux(() => import("./Immobilisations"), "DonneesBaseImmo");
+const MouvementsBiens = paresseux(() => import("./Immobilisations"), "MouvementsBiens");
+const RapportsImmo = paresseux(() => import("./Immobilisations"), "RapportsImmo");
+const TraitementsBiens = paresseux(() => import("./Immobilisations"), "TraitementsBiens");
+const VisaBanque = paresseux(() => import("./VisaBanque"), "default");
+const ChequesClients = paresseux(() => import("./ChequesClients"), "ChequesClients");
+const Chequiers = paresseux(() => import("./Chequiers"), "Chequiers");
+const Emprunts = paresseux(() => import("./Emprunts"), "Emprunts");
+const RapportsBanque = paresseux(() => import("./RapportsBanque"), "RapportsBanque");
+const NouveauCompte = paresseux(() => import("./NouveauCompte"), "NouveauCompte");
+const ReleveCompte = paresseux(() => import("./ReleveCompte"), "ReleveCompte");
+const ExamenRenforce = paresseux(() => import("./ExamenRenforce"), "default");
+const CentraleIncidents = paresseux(() => import("./CentraleIncidents"), "default");
+const CentraleRisques = paresseux(() => import("./CentraleRisques"), "default");
+const Litigieux = paresseux(() => import("./Litigieux"), "default");
+const Comptabilisation = paresseux(() => import("./Comptabilisation"), "default");
+const PlanTiers = paresseux(() => import("./ReferentielsCompta"), "PlanTiers");
+const Taxes = paresseux(() => import("./ReferentielsCompta"), "Taxes");
+const Plaintes = paresseux(() => import("./Plaintes"), "default");
+const ComptesInactifs = paresseux(() => import("./ComptesInactifs"), "default");
+const RegistreMembres = paresseux(() => import("./RegistreMembres"), "default");
+const ConditionsBanque = paresseux(() => import("./ConditionsBanque"), "default");
+const RetenuesReverser = paresseux(() => import("./RetenuesReverser"), "default");
+const JournalSecurite = paresseux(() => import("./JournalSecurite"), "default");
+const MiseEnPlaceDat = paresseux(() => import("./DepotsTerme"), "MiseEnPlaceDat");
+const RechercheDat = paresseux(() => import("./DepotsTerme"), "RechercheDat");
+const RuptureDat = paresseux(() => import("./DepotsTerme"), "RuptureDat");
+const ValidationDat = paresseux(() => import("./DepotsTerme"), "ValidationDat");
+const PlanEpargne = paresseux(() => import("./PlanEpargne"), "default");
+const ClotureCompte = paresseux(() => import("./Clotures"), "default");
+const BlocageCompte = paresseux(() => import("./Blocages"), "default");
+const RapportsEpargne = paresseux(() => import("./RapportsEpargne"), "default");
+const EdDivers = paresseux(() => import("./EdDivers"), "default");
+const Transferts = paresseux(() => import("./Transferts"), "default");
+const JournalCaisse = paresseux(() => import("./JournalCaisse"), "default");
+const SimulationCredit = paresseux(() => import("./SimulationCredit"), "default");
+const AnalyseFinanciere = paresseux(() => import("./AnalyseFinanciere"), "default");
+const ApprobationDemande = paresseux(() => import("./DossierCredit"), "ApprobationDemande");
+const ControleDemande = paresseux(() => import("./DossierCredit"), "ControleDemande");
+const DemandeCredit = paresseux(() => import("./DossierCredit"), "DemandeCredit");
+const MiseEnPlace = paresseux(() => import("./MiseEnPlace"), "default");
+const AffectationDossier = paresseux(() => import("./SuiviCredit"), "AffectationDossier");
+const EtatCredit = paresseux(() => import("./SuiviCredit"), "EtatCredit");
+const HistoriqueVisas = paresseux(() => import("./SuiviCredit"), "HistoriqueVisas");
+const ValidesNonDebloques = paresseux(() => import("./SuiviCredit"), "ValidesNonDebloques");
+const VisasCredit = paresseux(() => import("./SuiviCredit"), "VisasCredit");
+const DeblocageBanque = paresseux(() => import("./DeblocageCredit"), "DeblocageBanque");
+const DeblocageGuichet = paresseux(() => import("./DeblocageCredit"), "DeblocageGuichet");
+const DeblocageEpargne = paresseux(() => import("./DeblocageCredit"), "DeblocageEpargne");
+const ConsulterPret = paresseux(() => import("./RemboursementCredit"), "ConsulterPret");
+const RemboursementBanque = paresseux(() => import("./RemboursementCredit"), "RemboursementBanque");
+const RemboursementGuichet = paresseux(() => import("./RemboursementCredit"), "RemboursementGuichet");
+const RemboursementPrelevement = paresseux(() => import("./RemboursementCredit"), "RemboursementPrelevement");
+const Garanties = paresseux(() => import("./Garanties"), "default");
+const ListeRouge = paresseux(() => import("./ListeRouge"), "default");
+const BalanceAgee = paresseux(() => import("./BalanceAgee"), "default");
+const Provisions = paresseux(() => import("./Provisions"), "default");
+const EngagementSignature = paresseux(() => import("./EngagementSignature"), "default");
+const RapportsCredit = paresseux(() => import("./RapportsCredit"), "default");
+const GuichetDepotRetrait = paresseux(() => import("./Guichet"), "default");
+const Adhesion = paresseux(() => import("./Adhesion"), "default");
+const BalanceComptes = paresseux(() => import("./EtatsCompta"), "BalanceComptes");
+const GrandLivre = paresseux(() => import("./EtatsCompta"), "GrandLivre");
+const BilletageCaisse = paresseux(() => import("./Caisse"), "BilletageCaisse");
+const ValidationBilletage = paresseux(() => import("./Caisse"), "ValidationBilletage");
+const AffectationGuichets = paresseux(() => import("./Guichets"), "AffectationGuichets");
+const GestionGuichets = paresseux(() => import("./Guichets"), "GestionGuichets");
+const OuvertureFermetureGuichets = paresseux(() => import("./Guichets"), "OuvertureFermetureGuichets");
+const CompleterJournalDetail = paresseux(() => import("./Exercices"), "CompleterJournalDetail");
+const NouvelExercice = paresseux(() => import("./Exercices"), "NouvelExercice");
+const OuvertureExercice = paresseux(() => import("./Exercices"), "OuvertureExercice");
+const EnrolementEntreprise = paresseux(() => import("./Membres"), "EnrolementEntreprise");
+const EnrolementGroupe = paresseux(() => import("./Membres"), "EnrolementGroupe");
+const EnrolementPhysique = paresseux(() => import("./Membres"), "EnrolementPhysique");
+const MiseAJourClient = paresseux(() => import("./Membres"), "MiseAJourClient");
+const RapportTransactions = paresseux(() => import("./Transactions"), "default");
+const ListesGenerales = paresseux(() => import("./Secteurs"), "default");
+const MotifsDepart = paresseux(() => import("./Secteurs"), "MotifsDepart");
+const PlanComptes = paresseux(() => import("./PlanComptes"), "default");
+const ReferentielsBudget = paresseux(() => import("./Budget"), "default");
+const Localisation = paresseux(() => import("./Localisation"), "default");
+const CreditGeneral = paresseux(() => import("./Credit"), "default");
+const OrdreRemboursement = paresseux(() => import("./Ordres"), "default");
+const ProduitCredit = paresseux(() => import("./ProduitCredit"), "default");
+const ListeProduitsCredit = paresseux(() => import("./ProduitCredit"), "ListeProduitsCredit");
+const ActivationProduitsCredit = paresseux(() => import("./ActivationProduits"), "default");
+const ModeleCredit = paresseux(() => import("./ModeleCredit"), "default");
+const GestionProduitsEpargne = paresseux(() => import("./ProduitEpargne"), "default");
+const ParametrageProduitsEpargne = paresseux(() => import("./ParametrageEpargne"), "default");
+const NumeroPiece = paresseux(() => import("./NumeroPiece"), "default");
+const Journaux = paresseux(() => import("./Journaux"), "default");
+const ParametrageAutresOperations = paresseux(() => import("./OperationsDiverses"), "default");
+const InfoSocietePage = paresseux(() => import("./Societe"), "default");
+const InformationsAgences = paresseux(() => import("./Agents"), "default");
+const JoursTravail = paresseux(() => import("./JoursTravail"), "default");
+const Devises = paresseux(() => import("./Devises"), "default");
+const Facture = paresseux(() => import("./Facture"), "default");
+const GestionProfils = paresseux(() => import("./Profils"), "default");
+const DroitsProfil = paresseux(() => import("./Droits"), "default");
+const EnregistrementUtilisateurs = paresseux(() => import("./Utilisateurs"), "default");
+const GestionProfilsUtilisateur = paresseux(() => import("./ProfilsUtilisateurs"), "default");
+const Connexions = paresseux(() => import("./Connexions"), "default");
+const ParametragesClients = paresseux(() => import("./Numerotation"), "default");
+const ParametrageCompteClient = paresseux(() => import("./Numerotation"), "ParametrageCompteClient");
+const EcranJournee = paresseux(() => import("./Journee"), "EcranJournee");
+const Consentement = paresseux(() => import("./Visa"), "Consentement");
+const InformationsClient = paresseux(() => import("./Visa"), "InformationsClient");
+const ModificationFrais = paresseux(() => import("./Visa"), "ModificationFrais");
+const PhotosSignatures = paresseux(() => import("./Visa"), "PhotosSignatures");
+const ResiliationClient = paresseux(() => import("./Visa"), "ResiliationClient");
+const ValidationClientModifie = paresseux(() => import("./Visa"), "ValidationClientModifie");
+const VisaClient = paresseux(() => import("./Visa"), "VisaClient");
+const FraisOperations = paresseux(() => import("./Parametrage"), "FraisOperations");
+const GroupeSolidaire = paresseux(() => import("./Groupes"), "GroupeSolidaire");
+const NouveauProspect = paresseux(() => import("./Prospects"), "NouveauProspect");
+const TypesProcuration = paresseux(() => import("./Procurations"), "TypesProcuration");
+const RapportsClients = paresseux(() => import("./Rapports"), "RapportsClients");
+const PartsSociales = paresseux(() => import("./Parts"), "PartsSociales");
+const OperationsBanque = paresseux(() => import("./OperationsBanque"), "OperationsBanque");
+const VirementPrelevement = paresseux(() => import("./VirementPrelevement"), "VirementPrelevement");
+const AdhesionBanque = paresseux(() => import("./AdhesionBanque"), "AdhesionBanque");
+const CreationBanque = paresseux(() => import("./Banques"), "CreationBanque");
 
 /** Écrans de l'inventaire déjà construits. Les autres affichent « pas encore construit ». */
 export const CONSTRUITS: Record<string, ComponentType> = {

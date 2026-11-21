@@ -4,7 +4,9 @@ Chaque ligne relie un texte à une exigence et à l'endroit du logiciel qui la p
 
 Textes lus pour cette version : PCCI (BCC, juillet 2009, rendu obligatoire par l'Instr. 006 du 14/04/2012), Loi 11/020, Instructions BCC 002, 003, 004, 008 (mod. 1), 009, et survol des n° 5, 15 bis, 36, 38, 39. Versions vérifiées dans l'index des Instructions BCC en vigueur.
 
-Écarts constatés entre le logiciel et les textes : `ECARTS-2026-11-15.md` (inspection du 15/11/2026).
+Écarts constatés entre le logiciel et les textes : `ECARTS-2026-11-15.md` (inspection du 15/11/2026), puis les deux confrontations du 21/11/2026, qui font foi pour ce qui est réellement construit : `CONFRONTATION-2026-11-21-instructions-bcc.md` (Instructions de la BCC et PCCI) et `CONFRONTATION-2026-11-21-lois.md` (lois des institutions, blanchiment, Code civil).
+
+Attention : la colonne « Module ou règle » de cette matrice dit où l'exigence doit être portée. Elle ne dit pas que c'est construit. La confrontation du 21/11/2026 a relevé quatre lignes annoncées ici et absentes du code ; elles sont marquées « non construit » ci-dessous.
 
 Statut : **lu** = article lu et reporté ici ; **à lire** = texte identifié, détail à reprendre avant le développement du module.
 
@@ -15,7 +17,7 @@ Statut : **lu** = article lu et reporté ici ; **à lire** = texte identifié, d
 | PCCI § 3.2 | Comptabilité en français et en CDF, partie double | Grand livre | Équilibre vérifié en base, contre-valeur CDF sur chaque ligne | lu |
 | PCCI § 3.2 | Pièce justificative datée pour chaque écriture, piste d'audit | Grand livre | `piece_id` obligatoire | lu |
 | PCCI § 3.2 | Enregistrement chronologique, récapitulation au plus mensuelle | Grand livre | Numérotation continue par journal et période | lu |
-| PCCI § 3.3 | Livre-journal, grand-livre, balance, livre d'inventaire | Reporting | Quatre éditions, numérotées et datées | lu |
+| PCCI § 3.3 | Livre-journal, grand-livre, balance, livre d'inventaire | Reporting | Quatre éditions datées ; numérotation des éditions non construite (confrontation du 21/11/2026, B12) | lu |
 | PCCI § 3.3 | Correction uniquement par inscription en négatif | Grand livre | Contre-passation liée (`contre_passe_id`), pas d'UPDATE | lu |
 | PCCI § 3.4 | Irréversibilité, validation au plus tard mensuelle | Grand livre | Droits base de données, trigger | lu |
 | PCCI § 3.4 | Clôture informatique mensuelle ; opération en période close passée au 1er jour ouvert avec date de valeur au libellé | Grand livre | Table `periode`, règle de report automatique | lu |
@@ -25,11 +27,11 @@ Statut : **lu** = article lu et reporté ici ; **à lire** = texte identifié, d
 | PCCI § 3.3 et 3.4 | Correction par inscription en négatif ; irréversibilité des enregistrements | Annulation de règlement de crédit (S142) | Écriture inverse liée à l'écriture d'origine, sur la journée ouverte ; rien n'est effacé (registre S142-2) | lu le 20/11/2026, en place |
 | PCCI et Instructions (recherche du 20/11/2026) | Aucun texte ne fixe la forme de l'état de rapprochement bancaire ni du lettrage | Rapprochement (S110, S112), lettrage (S119) | Pratique comptable, sous l'exigence générale de justification des soldes (Instr. BCC 008, art. 10 et 11) ; registre S110-3, S119-2 | lu, textes muets |
 | PCCI, chap. 14 ; chap. 9 ; classe 8 | Comptes annuels : bilan et hors-bilan, compte de résultat, tableau de flux de trésorerie, annexe ; colonnes N et N - 1 | États financiers (S122) | Modèles repris poste par poste ; comptes rattachés d'après le cadre des comptes (replica/etats-pcci.json) ; registre S122-2 à S122-12 | lu le 20/11/2026, en place |
-| PCCI § 3.4 | États numérotés et datés | Reporting | Registre des éditions avec numéro et empreinte | lu |
+| PCCI § 3.4 | États numérotés et datés | Reporting | Non construit : seul le relevé de compte a un numéro d'édition (confrontation du 21/11/2026, B12) | lu |
 | PCCI § 3.4 | Accès au chemin de révision et à la documentation pour contrôle | Habilitations, Audit | Profil auditeur en lecture seule | lu |
 | PCCI § 3.5 | Arrêté annuel dans les trois mois ; conservation dix ans | Grand livre, Exploitation | Partitionnement par exercice, archivage | lu |
 | PCCI § 7.1 | Conversion en CDF au cours du jour ou de clôture | Cours et change | Table des cours, cours référencé sur chaque ligne | lu |
-| PCCI § 7.1 | Positions de change et contre-valeur en régularisation | Cours et change | Comptes 472, 473, 474 ; réévaluation à chaque clôture | lu |
+| PCCI § 7.1 | Positions de change et contre-valeur en régularisation | Cours et change | Réévaluation à la clôture construite (S127) ; comptes 472 et 473 non tenus (confrontation du 21/11/2026, B9) | lu |
 | PCCI § 7.1 | Interdiction des opérations de change | Épargne, Caisse | Devise de l'opération = devise du compte, sans exception | lu |
 | PCCI § 9 | Plan de comptes ; ouverture de divisionnaires ou regroupement possible | Référentiel, Schémas | Plan PCCI livré en standard, extension contrôlée | lu |
 | PCCI § 10 | Attributs : résidence, agent économique, réseau, statut des créances, support, durées initiale et résiduelle, garanties, monnaie | Tiers, Épargne, Crédit, Grand livre | Champs obligatoires, copiés sur les lignes d'écriture | lu |
@@ -48,9 +50,11 @@ Statut : **lu** = article lu et reporté ici ; **à lire** = texte identifié, d
 | Art. 9 et 10 | Irrécupérable au-delà de 12 mois ; passage en perte au 31/12, suivi hors bilan | Classement, Grand livre | Radier par anticipation (S99), seulement au 31/12 et pour un irrécupérable ; 6910, 6911, hors bilan 0612/096 | en place |
 | Art. 11 | Intérêts non réglés des litigieux en hors bilan, en produit seulement à l'encaissement | Classement, Schémas | 0630 contre 096 au provisionnement (S99), sortis à l'encaissement (S76) ; produits à l'encaissement (CR-19) | en place |
 | Art. 12 | Provisions mensuelles : 5 %, 25 %, 50 %, 75 %, 100 % du capital restant dû par tranche ; prorogés depuis l'échéancier initial | Classement | Déclassement et provisions (S99) : comptes 3800 à 3804, dotation 6902, reprise 7902 ; prorogés en attente (CR-16b) | en place |
-| Art. 14 | Pénalité de 1 % par mois de l'insuffisance de provision | Prudentiel | Indicateur d'écart affiché au tableau de bord | lu |
+| Art. 14 | Pénalité de 1 % par mois de l'insuffisance de provision | Prudentiel | Non construit : aucune insuffisance de provision calculée (confrontation du 21/11/2026, B2) | lu |
 
 ## Normes prudentielles (Instr. 002)
+
+Aucune de ces normes n'est encore calculée par le logiciel : les fonds propres prudentiels sont saisis à la main pour les plafonds de crédit (confrontation du 21/11/2026, B5 et B6).
 
 | Réf. | Exigence | Module | Statut |
 |---|---|---|---|

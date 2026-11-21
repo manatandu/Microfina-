@@ -25,7 +25,7 @@ export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art.
 
 const CLE = "likelemba-demo-v105";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
-let E: Etat = charger();
+let E: Etat = /* @__PURE__ */ charger();
 const abonnes = new Set<() => void>();
 
 function charger(): Etat {
@@ -2329,8 +2329,11 @@ const blocages = {
 const lignesDepot = (jusqua: string, depuis = "") => E.ecritures.flatMap((e) => { const d = dateJournee(e.journeeId);
   return d <= jusqua && d >= depuis ? e.lignes.filter((l) => l.contrat?.startsWith("depot:")).map((l) => ({ e, l, d })) : []; });
 const DATE_RAPPORT = (v: string, nom: string) => { if (!/^\d{4}-\d{2}-\d{2}$/.test(v ?? "")) throw new ErreurMetier(`À remplir : ${nom}.`); return v; };
+/** Écritures passées par l'institution elle-même (intérêts, frais de tenue : S128) : elles ne sont pas des opérations « de la part de leurs titulaires
+ *  ou ayants droit » et ne repoussent pas les dix ans d'un compte inactif (loi 22/069, titre III, chap. Ier). Comme le serveur (inactifs.py). */
+const duTitulaire = (e: Ecriture) => e.journal !== "AN" && !E.calculsPeriodiques.some((x) => x.ecritureId === e.id);
 function derniereOperation(c: CompteDepot, jusqua: string) {
-  const dates = [...E.ecritures.filter((e) => e.journal !== "AN" && e.lignes.some((l) => l.contrat === `depot:${c.id}`)).map((e) => dateJournee(e.journeeId)),
+  const dates = [...E.ecritures.filter((e) => duTitulaire(e) && e.lignes.some((l) => l.contrat === `depot:${c.id}`)).map((e) => dateJournee(e.journeeId)),
     ...E.plaintes.filter((p) => p.tiersId === c.tiersId).map((p) => p.recueLe), c.ouvertLe ?? ""].filter((x) => x && x <= jusqua).sort();
   return dates.at(-1) ?? "";
 }
@@ -4587,7 +4590,7 @@ const inactifs = {
     lectureAdmin(["SE01"]); const jour = jourConformite();
     return E.comptes.flatMap((c) => {
       const t = E.tiers.find((x) => x.id === c.tiersId); if (!t || c.closLe) return [];
-      const dates = [...E.ecritures.filter((e) => e.journal !== "AN" && e.lignes.some((l) => l.contrat === `depot:${c.id}`)).map((e) => dateJournee(e.journeeId)),
+      const dates = [...E.ecritures.filter((e) => duTitulaire(e) && e.lignes.some((l) => l.contrat === `depot:${c.id}`)).map((e) => dateJournee(e.journeeId)),
         ...E.plaintes.filter((p) => p.tiersId === t.id).map((p) => p.recueLe), c.ouvertLe ?? ""].filter(Boolean).sort();
       const derniere = dates.at(-1); if (!derniere) return [];
       const echeance = ajouterMois(derniere, 120), lettreDue = ajouterMois(derniere, 114);
@@ -8839,7 +8842,9 @@ const localisation = {
   },
 };
 
-const apiLocal = {
+// Construite dans une fonction marquée pure : sur le serveur (VITE_DONNEES=serveur) elle ne sert pas, et le paquet publié n'embarque plus
+// la démonstration (mesure du 21/11/2026 : la page en ligne pesait 2 Mo, dont toute la couche locale).
+const construireLocale = () => ({
   referentiel: asynchrone({ contexte }),
   session: asynchrone(session, "session"),
   journees: asynchrone(journees, "journees"),
@@ -8932,10 +8937,10 @@ const apiLocal = {
   connexions: asynchrone(connexions, "connexions"),
   comptes: asynchrone(comptes, "comptes"),
   numerotation: asynchrone(numerotation, "numerotation"),
-};
+});
 
-export type ApiDonnees = typeof apiLocal;
+export type ApiDonnees = ReturnType<typeof construireLocale>;
 
 /** Les écrans appellent `api`. VITE_DONNEES=serveur : le serveur Django ; sinon la couche locale de démonstration. */
 export const SUR_SERVEUR = import.meta.env.VITE_DONNEES === "serveur";
-export const api: ApiDonnees = SUR_SERVEUR ? creerApiHttp(() => abonnes.forEach((f) => f())) : apiLocal;
+export const api: ApiDonnees = SUR_SERVEUR ? creerApiHttp(() => abonnes.forEach((f) => f())) : /* @__PURE__ */ construireLocale();

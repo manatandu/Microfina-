@@ -5,23 +5,76 @@ import { ErreurMetier } from "./types";
 
 type Methode = "GET" | "POST" | "DELETE";
 
+// ---------- Activité du réseau : la barre de progression de l'application s'y abonne (BarreProgres) ----------
+let enCours = 0;
+const temoins = new Set<(n: number) => void>();
+const signaler = (d: number) => { enCours += d; temoins.forEach((f) => f(enCours)); };
+/** Nombre d'appels au serveur en cours, donné à chaque changement */
+export function suivreActivite(f: (n: number) => void) { temoins.add(f); return () => { temoins.delete(f); }; }
+
+// ---------- Lectures : pas deux fois la même en même temps, et une mémoire courte pour ce qui change peu ----------
+// Mesure du 21/11/2026 : le référentiel et la session étaient relus à chaque écran (deux tiers des requêtes en base du serveur).
+// Une lecture identique déjà partie n'est pas relancée. Le référentiel, la session et le mode de connexion restent en mémoire un court moment ;
+// toute écriture faite depuis ce poste vide la mémoire, donc l'écran relit toujours ce qu'il vient de changer.
+// La réponse est gardée en texte et relue pour chaque écran : aucun écran ne modifie la copie d'un autre.
+const MEMOIRE_MS: [RegExp, number][] = [[/^\/referentiel$/, 60_000], [/^\/session$/, 30_000], [/^\/session\/mode$/, 600_000]];
+const memoire = new Map<string, { jusqua: number; texte: string }>();
+const enVol = new Map<string, Promise<string>>();
+
 export function creerApiHttp(notifier: () => void): ApiDonnees {
+  async function envoyer(methode: Methode, chemin: string, corps?: unknown): Promise<string> {
+    signaler(1);
+    try {
+      const r = await fetch(`/api${chemin}`, {
+        method: methode,
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json", ...(methode !== "GET" ? { "X-Likelemba": "1" } : {}) },
+        body: corps === undefined ? undefined : JSON.stringify(corps),
+      });
+      if (!r.ok) {
+        let message = "Le serveur ne répond pas comme prévu.";
+        try { message = ((await r.json()) as { message?: string }).message ?? message; } catch { /* réponse vide */ }
+        if (r.status === 401) {
+          // Session fermée par le serveur (durée dépassée, déconnexion par l'administrateur) : la mémoire est vidée et, si ce poste se croyait
+          // connecté, les écrans relisent : le cadre voit la session fermée et renvoie à la connexion
+          const connecte = memoire.get("/session")?.texte;
+          memoire.clear();
+          if (connecte && connecte !== "null") notifier();
+        }
+        throw new ErreurMetier(message);
+      }
+      return await r.text();
+    } finally { signaler(-1); }
+  }
   async function appel<T>(methode: Methode, chemin: string, corps?: unknown): Promise<T> {
-    const r = await fetch(`/api${chemin}`, {
-      method: methode,
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json", ...(methode !== "GET" ? { "X-Likelemba": "1" } : {}) },
-      body: corps === undefined ? undefined : JSON.stringify(corps),
-    });
-    if (!r.ok) {
-      let message = "Le serveur ne répond pas comme prévu.";
-      try { message = ((await r.json()) as { message?: string }).message ?? message; } catch { /* réponse vide */ }
-      throw new ErreurMetier(message);
+    const lire = (texte: string) => (texte ? JSON.parse(texte) : null) as T;
+    if (methode !== "GET") {
+      const texte = await envoyer(methode, chemin, corps);
+      memoire.clear();
+      notifier();   // les écrans relisent après chaque écriture
+      return lire(texte);
     }
-    const texte = await r.text();
-    const valeur = (texte ? JSON.parse(texte) : null) as T;
-    if (methode !== "GET") notifier();   // les écrans relisent après chaque écriture
-    return valeur;
+    const garde = memoire.get(chemin);
+    if (garde && garde.jusqua > Date.now()) return lire(garde.texte);
+    let vol = enVol.get(chemin);
+    if (!vol) {
+      vol = envoyer("GET", chemin).finally(() => enVol.delete(chemin));
+      enVol.set(chemin, vol);
+      const duree = MEMOIRE_MS.find(([m]) => m.test(chemin))?.[1];
+      if (duree) vol.then((texte) => memoire.set(chemin, { jusqua: Date.now() + duree, texte }), () => undefined);
+    }
+    return lire(await vol);
+  }
+  // Maintien : tant que la page est à l'écran et qu'on s'en sert, un appel léger toutes les quatre minutes empêche le serveur et la base
+  // de s'endormir en pleine journée (mesure du 21/11/2026 : 5,8 secondes au premier appel après une pause). Page cachée ou poste laissé
+  // dix minutes : plus d'appel.
+  if (typeof window !== "undefined" && typeof document !== "undefined") {
+    let dernierGeste = Date.now();
+    const geste = () => { dernierGeste = Date.now(); };
+    window.addEventListener("pointerdown", geste, { passive: true }); window.addEventListener("keydown", geste, { passive: true });
+    setInterval(() => {
+      if (document.visibilityState === "visible" && Date.now() - dernierGeste < 10 * 60_000 && enCours === 0) void fetch("/api/session/mode", { credentials: "same-origin" }).catch(() => undefined);
+    }, 4 * 60_000);
   }
   const get = <T,>(c: string) => appel<T>("GET", c);
   /** Critères d'un état en paramètres d'adresse ; les vides sont omis */

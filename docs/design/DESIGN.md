@@ -1,4 +1,4 @@
-# Dwacfina (ex-Likelemba) : direction design, version 1.0
+# Dwacfina (ex-Likelemba) : direction design, version 2.0
 
 Le design d'un logiciel de microfinance ne se juge pas sur une capture d'écran de tableau de bord. Il se juge à 15 h 40, au guichet de Matete, avec douze personnes dans la file, un écran de 2014 et une coupure de courant il y a vingt minutes. Tout part de là.
 
@@ -31,6 +31,10 @@ Conditions de terrain qu'on prend comme contraintes de conception, pas comme cas
 
 Toute opération de caisse se fait sans souris. Ordre de tabulation fixe. Touches de fonction stables d'un écran à l'autre : F2 rechercher un membre, F4 billetage, F9 valider, Échap annuler. Un caissier qui a appris un écran les connaît tous.
 
+### 2.1 bis Une date se choisit dans un calendrier
+
+Demande du porteur, 21/11/2026 : « je ne veux pas qu'on remplisse les dates à la main mais fais apparaître un calendrier ». Un clic dans une case de date ouvre un calendrier sous la case : un mois, la semaine commence le lundi, le mois et l'année se choisissent dans deux listes, un bouton « Aujourd'hui ». La date s'affiche toujours jj/mm/aaaa. Sur un téléphone, le clavier ne sort pas : le calendrier suffit. Sur un ordinateur, la frappe au clavier reste possible pour le guichet (§ 2.1), et Alt + flèche bas ouvre le calendrier.
+
 ### 2.2 Un montant n'est jamais ambigu
 
 - La devise est toujours écrite à côté du montant. Jamais déduite d'une couleur ou d'un drapeau.
@@ -48,6 +52,7 @@ L'interface est sobre. La couleur ne sert qu'à trois choses :
 1. **Le statut des crédits**, avec une rampe calée sur les tranches de l'Instr. 003 et des comptes 3900 à 3904 : sain, 1 à 30 jours, 31 à 60, 61 à 90, 91 à 180, plus de 180. Partout la même, du guichet au rapport annuel. Le libellé accompagne toujours la couleur.
 2. **L'état de la journée et de la caisse** : ouverte, en clôture, fermée.
 3. **Les erreurs** qui bloquent une action.
+4. **L'action et le choix** (version 2.0) : le bleu d'action désigne le bouton principal, l'onglet, la ligne et l'écran choisis.
 
 Pas de dégradé, pas d'icône colorée décorative, pas de carte KPI pastel.
 
@@ -55,37 +60,52 @@ Pas de dégradé, pas d'icône colorée décorative, pas de carte KPI pastel.
 
 Une boîte de confirmation, on la valide sans la lire au bout de la troisième. À la place : un récapitulatif dans le bordereau lui-même (montant en lettres, compte, bénéficiaire, billetage) et une validation unique. Pour les opérations à quatre yeux, l'écran du valideur montre ce qu'il valide, avec les mêmes informations, pas un simple « approuver ».
 
-### 2.6 Chaque règle a sa source, à un clic
+### 2.6 Le logiciel dit pourquoi, en quelques mots
 
-Quand le logiciel bloque ou alerte, il dit pourquoi en quelques mots, à côté du champ concerné : « Dépasse le solde disponible », « Bloquée : garantie du prêt ». Le texte de référence (« Instr. 003, art. 12 ») reste à un clic, dans un petit « Textes » replié. Le caissier n'a pas à lire des articles de loi pour travailler ; l'inspecteur les trouve quand il les cherche.
+Quand le logiciel bloque ou alerte, il dit pourquoi en quelques mots, à côté du champ concerné : « Dépasse le solde disponible », « Bloquée : garantie du prêt ». Le caissier n'a pas à lire des articles de loi pour travailler.
+
+Le volet replié « Textes », qui listait sous chaque écran les pages du manuel de Microfina++ et les articles des textes, n'est plus affiché (demande du porteur, 21/11/2026 : « c'est pas important qu'il apparaisse »). Les références restent écrites dans le code de chaque écran, dans le registre des décisions et dans `docs/reglementaire/`.
 
 ### 2.7 N'afficher que ce qui sert maintenant
 
 Un écran de guichet montre l'opération courante, pas toutes les règles possibles. Les visas n'apparaissent que si le montant les exige, l'examen renforcé que si le seuil est atteint, la procuration que si un mandataire se présente. Ce qui reste à faire tient en une rangée d'étapes cochées au-dessus du bouton Valider. Les détails (écriture comptable, aperçu du bordereau) se déplient à la demande.
 
-### 2.7 bis Pas d'animation sur ce qui se répète
+### 2.7 bis Le mouvement : court, utile, jamais après une touche
 
-Le guichet valide des centaines d'opérations par jour, au clavier. Rien ne s'anime après F9 : le résultat s'affiche d'un coup. Une page qui charge n'affiche « Chargement… » qu'au-delà de 400 ms : une lecture rapide ne fait plus clignoter l'écran. Source : skill `emil-kowalski`, fiche `emil-design-eng`, « Never animate keyboard-initiated actions ». Les boutons n'ont pas d'effet à la pression (décision du porteur du projet, 05/11/2026).
+Demande du porteur, 21/11/2026 : « ajoute des animations dans le logiciel ». Elle remplace la règle du 05/11/2026 (« pas d'effet à la pression »). Source : skill `emil-kowalski`, fiches `animate` (avec ses recettes) et `find-animation-opportunities`. Les durées et les courbes viennent de ces fiches, par les jetons `mouvement-*`.
+
+Ce qui s'anime, et pourquoi :
+
+| Élément | Mouvement | Raison |
+|---|---|---|
+| Bouton pressé | échelle 0,97, 140 ms | L'interface a entendu |
+| Menu de la barre, menu d'actions | fondu et léger glissement depuis son titre, 160 ms | D'où il sort |
+| Accès rapide | le menu se déplie, 200 ms | Éviter le saut |
+| Fenêtre de dialogue, fiche | fondu et échelle 0,96, 220 ms, le voile avec elle | Éviter le saut |
+| Écran qui s'ouvre, contenu d'un onglet, tableau de résultats, message | fondu de 140 à 180 ms | Éviter le saut |
+| Appel au serveur de plus de 150 ms | barre fine en haut ; un mot après 3 secondes | Dire que le logiciel travaille |
+
+Ce qui ne s'anime jamais :
+
+- **Rien après une touche du clavier.** Le guichet valide des centaines d'opérations par jour au clavier (F9) : le résultat s'affiche d'un coup. Le logiciel note le dernier geste (clavier ou souris) et coupe tout mouvement après une touche.
+- Les données qu'on lit (montants, lignes d'un tableau déjà affiché) ne bougent pas.
+- Seuls `transform` et `opacity` s'animent ; rien au-delà de 300 ms, sauf la page des modules.
+- Mouvement réduit demandé par le système : aucun de ces mouvements.
+
+Une page qui charge n'affiche « Chargement… » qu'au-delà de 400 ms.
 
 
-### 2.7 ter Une exception : la page des modules
+### 2.7 ter La page des modules
 
-Demande du porteur du projet (13/11/2026) : « un bon design et l'animation immersive », sur le modèle des animations 3D de produit (objet héros sur podium, anneaux de lumière, profondeur, bokeh, reflets). La page des modules (S02) s'ouvre une fois par connexion : c'est le seul écran où le mouvement sert le plaisir (fiche `animate` de `emil-kowalski` : budget de plaisir réservé au rare). La structure reste celle de la capture p. 6 : le module principal au centre, huit modules autour, dans le même ordre.
+Demande du porteur, 21/11/2026 : « la page d'accueil avec animation, change-la, et présente-la autrement. L'animation est lente. » La scène 3D du 13/11/2026 est retirée.
 
-- **Moteur** : une scène 3D calculée par la carte graphique (WebGL 2, `web/src/ecrans/scene-modules.ts`), sans bibliothèque. Les liens restent des éléments HTML posés par-dessus : clavier, lecteur d'écran et tests les trouvent comme avant. Sans WebGL 2 : la version plate en CSS prend le relais.
-- **Scène** : le D de Dwacfina en rouge (`--marque-rouge`, polygones tirés du logo, registre D01-6) flotte au-dessus d'un podium sombre cerclé d'anneaux rouges et blancs (`--marque-gris`), sous un faisceau de lumière. Huit socles en orbite portent chacun une sphère : bleue et lumineuse quand le module est ouvert, verre fumé quand il est fermé. Sol miroir, cercles de lumière au sol, orbite tracée en lumière qui court, bokeh bleu et or à trois profondeurs, nuit (`--nuit`). Étalonnage cinéma, vignette, grain léger.
-- **Caméra** : vue plongeante de trois quarts, qui suit la souris ou l'inclinaison du téléphone, avec inertie. Sur écran étroit, elle monte pour que l'orbite remplisse l'écran.
-- **Entrée**, à la première visite de la session (2,6 s, ease-out) : travelling depuis le lointain, le monogramme monte du podium en tournant, les anneaux des socles s'allument l'un après l'autre, les noms paraissent ensuite. Aux retours : la scène est là, les noms en fondu.
-- **Plongée** : au clic de la souris ou du doigt sur un module ouvert, la caméra fond sur son socle (750 ms, courbe forte d'entrée et de sortie), puis un fondu vers le fond des écrans du module. Au clavier, avec une touche de modification ou en mouvement réduit : ouverture directe.
-- **Survol** : le socle et l'orbe s'illuminent, le nom passe en or.
-- **Mouvement réduit** demandé par le système : une image fixe de la scène, sans travelling, ni parallaxe, ni plongée.
-- **Charge** (fluidité, demande du porteur, 18/11/2026 : la scène 3D reste partout, elle doit être fluide ; fiche `animation-performance` d'emil-kowalski) :
-  - chaque rayon ne fait ses pas que dans l'enveloppe des objets (cylindre de rayon 5,25, hauteur 3) ; le sol est un plan calculé d'un coup ; le reflet ne cherche pas le sol ; le faisceau n'est calculé que dans son cône ;
-  - le D est décrit directement dans le programme graphique : aucun calcul au démarrage ; le programme est compilé avant que l'horloge du travelling ne parte ;
-  - étalonnage : pendant les premières images, encore noires, la machine est mesurée et la résolution fixée ; le travelling se joue ensuite sans changement de netteté ; ensuite, la résolution baisse si l'écart réel entre deux images dépasse 20 ms ; le calcul s'arrête quand l'onglet est caché ;
-  - étiquettes sans flou d'arrière-plan (la scène change à chaque image) ;
-  - mesuré sans carte graphique (le cas le plus lent) : 383 ms par image avant, 217 ms à résolution égale après, 50 ms après étalonnage.
-- Ailleurs, la règle 2.7 bis reste entière.
+- **Présentation** : sur fond Bleu Nuit, un tableau de trois sur trois. Dwacfina est dans la case du centre ; chaque module garde la place qu'il a sur la capture p. 6 (Grh en haut, puis dans le sens des aiguilles d'une montre). Un trait part du centre vers chaque module.
+- **Module ouvert** : pastille en bleu d'action, nom en blanc ; un point court sur son trait, du module vers le centre (les modules alimentent la comptabilité). **Module fermé** : pastille en pointillé, nom atténué.
+- **Entrée**, une fois par connexion, 0,7 seconde au plus : le centre, les traits qui partent, les modules décalés de 35 ms. Aux retours : fondu de 160 ms.
+- **Ouverture** d'un module : immédiate.
+- **Charge** : aucun calcul graphique ; l'entrée et le point qui court n'animent que `transform` et `opacity`.
+- **Mouvement réduit** : image fixe.
+
 ### 2.8 Le papier est un écran comme un autre
 
 Reçu, bordereau, échéancier, fiche membre, états BCC : chaque sortie papier a son gabarit dessiné, testé sur une vraie imprimante. Jamais « Imprimer la page » du navigateur.
@@ -100,70 +120,74 @@ Une COOPEC a des **membres** et des **parts sociales**. Une IMF a des **clients*
 
 ---
 
-## 3. Système visuel, version 1.0 (20/11/2026)
+## 3. Système visuel, version 2.0 (21/11/2026)
 
-Décision du porteur, 20/11/2026 (« Go » sur le plan de refonte, après « inspire-toi des vrais logiciels ») : une seule règle, adossée à des logiciels en production. Elle remplace les cinq couches de la version 0 (refonte du 05/11, identité du 14/11, police du 15/11, contours et « registre de nuit » du 18/11), archivées dans [`historique/DESIGN-v0.md`](historique/DESIGN-v0.md). La structure des écrans reste celle de Microfina++ (CLAUDE.md § 0) : seule l'apparence suit cette section.
+Demande du porteur, 21/11/2026 : « retravaille encore le design […] que ça soit professionnel, je ne veux pas qu'on voie que ça a été généré par une IA avec cet aspect toujours propre et tout blanc. Fais des recherches sur des vrais logiciels et inspire-toi. » La version 1.0 (page blanche, sections sans cadre, onglets soulignés, cases de 40 px) est archivée dans [`historique/DESIGN-v1.md`](historique/DESIGN-v1.md). La structure des écrans reste celle de Microfina++ (CLAUDE.md § 0) : seule l'apparence suit cette section.
 
-Sources lues, citées pour chaque règle :
-- **Oracle Banking Branch**, guide du guichet 14.7, écran Cash Deposit : sections titrées sans encadré, cases de même largeur, montant à droite avec sa devise, date de l'agence en haut à droite.
-- **SAP Fiori**, Form et Simple Form : libellé et case dans une grille de 12 colonnes, ratio 4:8 sur grand écran ; en lecture seule, couple libellé et valeur sans case ; montants à droite en saisie.
-- **SAP Fiori**, Grid Table et Analytical Table : nombres à droite sauf les identifiants, montants alignés sur la virgule, devise dans la cellule.
-- **IBM Carbon**, Forms et Data table : cases de 40 px, écarts de 16 à 32 px, largeur selon la donnée attendue ; hauteur de ligne fixe, en-tête à la hauteur des lignes.
+Sources regardées le 21/11/2026 :
+- **Microfina++**, captures du manuel, p. 13 (page du menu général) et p. 87 (guichet, remboursement) : bureau gris bleuté, zone de travail posée dessus, cadres à titre (« Info crédit », « Répartition »), onglets pleins, cases compactes, cases grisées pour ce qui se lit.
+- **Odoo**, documentation de la facturation (écran de facture) : barre de couleur en haut, bureau gris, la fiche posée dessus comme une feuille, barre d'actions au-dessus.
+- Déjà lues pour la version 1.0 et gardées : **SAP Fiori** (libellé et case en grille, montants à droite, devise dans la cellule), **IBM Carbon** (hauteur de ligne fixe), **Oracle Banking Branch** (cases de même largeur).
+- Non ouvertes ce jour (réseau fermé) : captures de Sage 100, Oracle Flexcube, Temenos T24. À regarder si le porteur le demande.
 
-### 3.1 Jetons
+### 3.1 Quatre plans au lieu d'un
+
+Un logiciel de bureau se lit par ses plans. Du fond vers l'avant :
+
+| Plan | Jeton | Où |
+|---|---|---|
+| Bureau | `bureau` | Fond de la zone de travail, de la page de connexion |
+| Cadre | `cadre` | Chaque panneau d'un écran (`.bloc`), les fenêtres de dialogue |
+| Bandeau | `bandeau`, `bandeau-fort` | Titre d'un cadre, titre d'une fenêtre, en-tête d'un menu |
+| Feuille | `feuille` | Seulement là où l'on tape et où l'on lit des données : cases, tableaux |
+
+Le blanc n'est plus le fond de la page : il désigne ce qui se remplit. Une valeur en lecture est une case grisée (`lecture`), de la même taille que les autres.
+
+### 3.2 Jetons
 
 Les valeurs font foi dans `replica/design/tokens.json` (clair) et `tokens-sombre.json` (sombre) ; `generer.py` écrit `tokens.css`. Aucune couleur, taille ou rayon ne s'écrit ailleurs.
 
-- **Couleurs** : page blanche (`feuille`) ; neutres très légers teintés du Bleu Nuit de la marque (`papier` #F5F6F8 pour le menu, `trait` #D2D7DE, `ligne` #E5E8ED) ; texte `encre` #182232 et `encre-2` #4E5767 ; action `tampon` = Bleu Nuit ; rouge de la marque pour les erreurs et le logo ; rampe des statuts de crédit (§ 2.4) inchangée. Contraste mesuré à chaque changement : 4,5:1 pour le texte, 3:1 pour les bords de case, en clair et en sombre (88 paires, aucun échec le 20/11/2026).
-- **Typographie** : police de l'appareil (décision du 15/11/2026), chiffres de même largeur (`tabular-nums`). Quatre tailles : 13 px (libellés, tableaux), 14 px (texte, cases), 16 px (titres de section), 22 px (titre d'écran) ; le montant du guichet garde 28 px.
-- **Espacement** : grille de 4 px (4, 8, 12, 16, 24, 32).
-- **Formes** : rayon de 4 px pour les cases et les boutons ; aucune ombre sur la page, seulement sur ce qui flotte (fenêtre, menu déroulant).
+- **Couleurs** : neutres acier teintés du Bleu Nuit de la marque ; **bleu d'action** `tampon` (#1D4F91, dérivé du Bleu Nuit) pour le bouton principal, les liens, l'onglet et la ligne choisis ; Bleu Nuit pour la barre du haut et la barre d'état ; rouge de la marque pour le logo, le filet sous la barre du haut, la marque du titre d'écran et les erreurs ; rampe des statuts de crédit (§ 2.4) inchangée. Contraste mesuré à chaque changement (`replica/design/contraste.txt`) : 60 paires, aucun échec en clair ni en sombre le 21/11/2026.
+- **Typographie** : police de l'appareil (décision du 15/11/2026), chiffres de même largeur. Texte et tableaux 13 px, libellés secondaires 12 px, titre de cadre 13 px gras, titre d'écran 18 px ; le montant du guichet garde 28 px.
+- **Densité** : cases et boutons de 30 px, lignes de tableau de 28 px, grille de 4 px. Sous le doigt (`pointer: coarse`) : 44 px et texte de 16 px dans les cases.
+- **Formes** : rayon de 3 à 4 px ; un léger relief sur les boutons (`ombre-relief`), un léger creux dans les cases (`ombre-creux`) ; ombre portée seulement sur ce qui flotte.
 
-### 3.2 Sections
+### 3.3 Cadre de l'application
 
-Un cadre des captures de Microfina++ (Infos client, Infos crédit, Répartition…) est une **section** : son titre, un filet dessous, sans bordure autour, sans bandeau gris, sans ombre (Oracle Banking Branch). La page est blanche ; le menu d'accès rapide est sur `papier`, une colonne de liens séparés par des filets.
+- **Barre du haut** : Bleu Nuit, 52 px, logo, menus (icône et libellé), filet rouge de la marque dessous.
+- **Accès rapide**, à gauche : un volet, un bloc par menu avec son bandeau, l'écran en cours sur fond bleu d'action. Il défile dans sa colonne.
+- **Zone de travail** : le bureau. Le titre de l'écran y est posé, marqué d'un trait rouge ; dessous, les cadres.
+- **Barre d'état**, en bas, toujours visible : Bleu Nuit, serveur, base, journée, utilisateur, institution (manuel p. 13).
 
-### 3.3 Cases et libellés
+### 3.4 Cadres, onglets, cases
 
-- Dans une section, **libellé à gauche**, sur une colonne de 10,5rem, la case sur le reste (Fiori 4:8 ; libellé à gauche comme Microfina++). Toutes les cases d'une section ont donc la même largeur.
-- Une case et son bouton (Rechercher) tiennent sur la même ligne : libellé, case, bouton.
-- Une section étroite (26rem ou moins) : la case à remplir passe sous son libellé ; une valeur en lecture reste sur la ligne, à droite, comme sur un reçu.
-- Dans une **barre de filtres** (rapports, listes), libellé au-dessus, grille régulière de colonnes égales de 12rem au moins ; deux dates d'une même période prennent deux colonnes (Fiori, barre de filtres).
-- Au téléphone, libellé au-dessus partout.
-
-### 3.4 Valeurs en lecture
-
-Une valeur qu'on ne modifie pas s'affiche en **texte sur un filet**, sans case, en couleur de texte normale (Fiori, mode affichage). Une liste bloquée n'a ni flèche ni pointillé. Les couples libellé et valeur (`dl.infos`) ont la même grille et le même filet.
+- **Cadre** (`.bloc`) : bordure, fond `cadre`, titre dans un bandeau.
+- **Cadre de champs** (`fieldset.cadre-champs`) : la boîte à légende des logiciels de bureau, le titre posé sur le filet, comme les cadres de Microfina++. Sans légende visible ou dans une barre de filtres : pas de boîte.
+- **Onglets pleins** : l'onglet choisi prend le fond du cadre, un trait bleu au-dessus, et tient à son panneau.
+- **Libellé à gauche** dans un cadre de champs (colonne de 9,5rem), au-dessus dans une barre de filtres et au téléphone. Toutes les cases d'un cadre ont la même largeur.
+- **Boutons** : un seul bouton principal par écran, en bleu d'action ; les autres sur fond acier. Les boutons d'un écran restent à droite, sous le contenu, comme sur les captures.
 
 ### 3.5 Montants et nombres
 
 - La devise est toujours écrite (`1 000 000,00 CDF`), deux décimales, espace fine, virgule (§ 2.2).
-- En saisie et dans les tableaux : à droite. En lecture dans une section : à gauche, juste après le libellé (Fiori : pas de grand vide entre libellé et valeur) ; à droite dans une section étroite.
+- En saisie et dans les tableaux : à droite. En lecture dans un cadre : à gauche, juste après le libellé ; à droite dans un cadre étroit.
 - Les identifiants (numéros de compte, de crédit, de pièce) restent à gauche et ne se coupent jamais.
 
 ### 3.6 Tableaux
 
-En-tête clair (`tete-grille`), texte foncé, trait dessous ; lignes de même hauteur, contenu centré verticalement ; lignes alternées très légères ; montants à droite ; total arrêté (un trait au-dessus, double trait dessous). Une seule barre de pages, au-dessus du tableau, comme les captures de Microfina++ (p. 9, 116). Une action dans une ligne est un petit bouton (28 px).
+En-tête plein (`tete-grille`), filets verticaux et horizontaux, lignes de 28 px, lignes alternées teintées, ligne survolée ou choisie en bleu pâle, total arrêté (un trait au-dessus, double trait dessous, fond de bandeau). Le titre d'un tableau est un bandeau collé à son en-tête. Une action dans une ligne est un petit bouton (24 px).
 
-### 3.7 Boutons et onglets
+### 3.7 Fenêtres de dialogue
 
-- **Une seule action principale pleine par écran** (Enregistrer, Exécuter, Débloquer, Suivant) ; toutes les autres sont secondaires (contour). Pas d'ombre, pas d'effet à la pression (§ 2.7 bis). Les boutons d'un écran restent à droite, sous le contenu, comme sur les captures.
-- **Onglets soulignés** : texte, trait de 2 px sous l'onglet actif, filet sous la rangée (Fiori, Oracle).
-
-### 3.7 bis Rangées, menu, cases de tableau (étape 6, 20/11/2026)
-
-- Plusieurs cases posées dans une rangée à l'intérieur d'une section forment une grille à libellé à gauche, comme le reste de la section ; les barres de filtres gardent le libellé au-dessus.
-- Le menu d'accès rapide défile dans sa colonne et reste en place : la hauteur d'une page est celle de son contenu.
-- Une case dans une ligne de tableau est compacte (32 px) ; un nombre y est à droite.
-- Une légende réservée aux lecteurs d'écran ne prend aucune place.
+Une petite fenêtre : barre de titre (`bandeau-fort`), message, boutons à droite. Succès : marque verte dans la barre de titre ; erreur : marque rouge. Le voile derrière est en Bleu Nuit à 50 %.
 
 ### 3.8 Contrôles
 
-À chaque lot d'écrans : captures avant et après à 1366 × 768 ; tests et parcours complets ; contraste des jetons ; aucune page qui déborde de côté. Mesures suivies : hauteur des écrans, nombre de largeurs de case, montants sans devise.
+À chaque lot d'écrans : captures à 1366 × 768 ; tests et parcours complets ; contraste des jetons ; aucune page qui déborde de côté.
 
 ### 3.9 Identité DWAC (inchangée)
 
-Trois couleurs (Rouge Écarlate #C91B2C, Bleu Nuit #182232, Gris Clair #EDEDED), logo « Partie double » dans la barre du haut, documents imprimés aux couleurs de l'institution cliente (registre D01). La barre du haut reste Bleu Nuit. La page des modules garde sa scène 3D (§ 2.7 ter).
+Trois couleurs (Rouge Écarlate #C91B2C, Bleu Nuit #182232, Gris Clair #EDEDED), logo « Partie double », documents imprimés aux couleurs de l'institution cliente (registre D01). Le bleu d'action est une teinte unie dérivée du Bleu Nuit ; aucun dégradé.
 
 ---
 
@@ -204,7 +228,7 @@ Ce qui compte : identité à gauche, montant au centre, argent physique à droit
 
 ## 4 bis. Accueil et navigation : le modèle Microfina++ (décision du porteur, 05/11/2026)
 
-Connexion (nom d'utilisateur, mot de passe, journée ouverte et date système en lecture seule, serveur), puis page des modules, puis, dans chaque module, une barre de menus horizontale avec ses sous-menus, des menus d'accès rapide à gauche, la zone de travail et un bas de page (serveur, base de données, journée ouverte, utilisateur), comme aux pages 5 à 14 du manuel. Les menus suivent les chemins du manuel. Seule l'apparence est la nôtre.
+Connexion (nom d'utilisateur, mot de passe, journée ouverte et date système en lecture seule, serveur ; disposition demandée par le porteur le 21/11/2026 : une seule carte au milieu de la page, le logo en haut à gauche, les champs l'un sous l'autre, le bouton Connexion à droite), puis page des modules, puis, dans chaque module, une barre de menus horizontale avec ses sous-menus, des menus d'accès rapide à gauche, la zone de travail et un bas de page (serveur, base de données, journée ouverte, utilisateur), comme aux pages 5 à 14 du manuel. Les menus suivent les chemins du manuel. Seule l'apparence est la nôtre.
 
 ## 5. Ce que je refuse
 

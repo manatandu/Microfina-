@@ -5,6 +5,7 @@ import { AccueilModule, PageModules } from "./ecrans/Accueil";
 import { AConstruire, Introuvable, ListeModule } from "./ecrans/Modules";
 import { ECRANS } from "./ecrans/registre";
 import { CONSTRUITS } from "./ecrans/construits";
+import { BarreProgres } from "./mise-en-page/BarreProgres";
 
 // Version publiée en page de démonstration : adresses après « # », le serveur ne connaît qu'un fichier
 const Routeur = import.meta.env.VITE_ROUTEUR === "hash" ? HashRouter : BrowserRouter;
@@ -13,6 +14,7 @@ const Routeur = import.meta.env.VITE_ROUTEUR === "hash" ? HashRouter : BrowserRo
 export default function App() {
   return (
     <Routeur>
+      <BarreProgres />
       <Routes>
         <Route path="/connexion" element={<Connexion />} />
         <Route index element={<PageModules />} />

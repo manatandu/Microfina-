@@ -2876,6 +2876,14 @@ def test_comptes_inactifs(clients, journee):
     # une opération du titulaire fait sortir le compte de la liste
     assert clients["caisse"].post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000320-02"), "montant": 1000000, "coupures": {"10000": 1}, "mandataire": ""}, **H).status_code == 200
     assert all(x["compte"] != "0412-000320-02" for x in chef.get("/api/epargne/inactifs", **H).json())
+    # une écriture passée par l'institution (intérêts, frais de tenue : S128) n'est pas une opération « de la part de leurs titulaires » :
+    # elle ne repousse pas les dix ans (loi 22/069, titre III, chap. Ier ; confrontation du 21/11/2026, E7)
+    executer("""insert into calcul_periodique (institution_id, agence_id, type, exercice, mois, compte_depot_id, montant, devise, ecriture_id, passe_par)
+                select e.institution_id, (select agence_id from utilisateur where id = e.saisi_par), 'interet_dav', 2026, row_number() over (order by e.id), %s, 100, 'CDF', e.id, e.saisi_par
+                from ecriture e join journal jl on jl.id = e.journal_id
+                where jl.type <> 'a_nouveaux' and exists (select 1 from ligne_ecriture l where l.ecriture_id = e.id and l.contrat_ref = %s)""",
+             (C("0412-000320-02"), f"depot:{C('0412-000320-02')}"))
+    assert any(x["compte"] == "0412-000320-02" for x in chef.get("/api/epargne/inactifs", **H).json())
 
 
 def test_cloture_compte(clients, journee):

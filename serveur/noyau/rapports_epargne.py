@@ -93,7 +93,8 @@ def comptes(u, du: str, au: str) -> list[dict]:
 def _derniere(cid: int, tiers_id: int, ouvert, jusqua: date):
     """Dernière opération (registre E11-2) : dernier mouvement hors reprise des soldes, dernière plainte, ou ouverture ; au plus la date du rapport"""
     v = [valeur("""select max(jc.date_comptable) from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join journee_comptable jc on jc.id = e.journee_id
-                   join journal jl on jl.id = e.journal_id where l.contrat_ref = %s and jl.type <> 'a_nouveaux' and jc.date_comptable <= %s""", (f"depot:{cid}", jusqua)),
+                   join journal jl on jl.id = e.journal_id where l.contrat_ref = %s and jl.type <> 'a_nouveaux' and jc.date_comptable <= %s
+                     and not exists (select 1 from calcul_periodique cp where cp.ecriture_id = e.id)""", (f"depot:{cid}", jusqua)),   # opérations du titulaire seulement (loi 22/069, titre III, chap. Ier)
          valeur("select max(recue_le) from plainte where tiers_id = %s and recue_le <= %s", (tiers_id, jusqua)), ouvert]
     v = [x if isinstance(x, date) else None for x in v]
     return max([x for x in v if x], default=None)
