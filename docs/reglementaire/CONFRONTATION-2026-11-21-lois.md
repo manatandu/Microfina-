@@ -332,5 +332,8 @@ Points non vérifiés dans le code :
 ## Suites données le 21/11/2026
 
 - **E7 corrigé** (loi 22/069, titre III, chap. Ier) : seules comptent les opérations « de la part de leurs titulaires ou ayants droit ». Les intérêts et les frais de tenue passés par l'institution ne repoussent plus les dix ans d'un compte inactif (`serveur/noyau/inactifs.py`, `rapports_epargne.py`, miroir `web/src/donnees/api.ts`, tests des deux côtés).
+- **E1, première partie, corrigée** (loi 22/068, art. 34, al. 4) : le dirigeant d'une personne morale est obligatoire à l'enrôlement (S38) et à la mise à jour (S46). La case « Renseigner Dirigeant » de Microfina++ reste à l'écran ; décochée, l'enregistrement est refusé avec la référence de la loi (`serveur/noyau/services.py`, `controler_entreprise` ; miroir `controlerEntreprise`). Restent pour E1 : les mentions complètes des représentants (naissance, adresse, délivrance, pouvoir), la copie des statuts au visa, la part du bénéficiaire effectif.
+- **E3 corrigé pour les bénéficiaires effectifs** (loi 22/068, art. 53) : une entreprise dont un bénéficiaire effectif est une personne exposée ne se vise plus sans l'autorisation de la conformité ; elle figure dans la liste des personnes exposées (`serveur/noyau/conformite.py`, `ppe_active` ; miroir `ppeActive`). Reste : le dirigeant est saisi en texte libre, il n'a pas encore de case « personne exposée ».
+- Décision du porteur du 21/11/2026 : réserve générale de 15 % (loi 002/2002, art. 59, 1°), pas la règle de l'AUSCOOP (registre S127-13).
 - Les autres écarts et manques restent à traiter, dans l'ordre de gravité de ce document.
 

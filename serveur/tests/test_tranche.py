@@ -234,6 +234,7 @@ def test_enrolement_entreprise(clients, journee):
     assert "Type inconnu" in refus({**base, "typeClient": "Client"})
     assert "Signataire 1 : à remplir : nom" in refus({**base, "signataires": [{**sig, "nom": ""}]})
     assert "Dirigeant" in refus({**base, "dirigeant": {**sig, "pieceType": "Badge"}})
+    assert "Dirigeant : à remplir" in refus({**base, "dirigeant": None})        # loi 22/068, art. 34, al. 4 (confrontation du 21/11/2026, E1)
     r = agent.post("/api/tiers/entreprises", base, **H)
     assert r.status_code == 200, r.content
     t = r.json()
@@ -247,11 +248,13 @@ def test_fiche_entreprise(clients, journee):
     """S38 : listes comme pour S37 (registre S38-1), Retirer côté écran (S38-2), bénéficiaire effectif dans Personnes liées (S38-3 ; Instr. BCC 15, art. 18)"""
     agent = clients["agent"]
     physique = ident("select id from tiers where type = 'physique' order by id limit 1")
+    dirigeant = {"nom": "Ilunga", "prenom": "Paul", "pieceType": "Passeport", "pieceNumero": "OP9"}
     morale = agent.post("/api/tiers/entreprises", {**FICHE, "typeClient": "Entreprises privées", "zone": "Matete", "nom": "Témoin SA",
-                        "formeJuridique": "Société anonyme", "registre": "R0", "adresse": "Matete"}, **H).json()["id"]
+                        "formeJuridique": "Société anonyme", "registre": "R0", "adresse": "Matete", "dirigeant": dirigeant}, **H).json()["id"]
     sens = ident("select id from agent_agence where role = 'sensibilisateur' and actif order by id limit 1")
     base = {**FICHE, "typeClient": "Entreprises privées", "zone": "Matete", "nom": "Kinsaku Pain SARL", "formeJuridique": "Société à responsabilité limitée",
-            "registre": "R2", "adresse": "Matete", "secteurActivite": "PRIMAIRE", "pays": "", "email": "contact@exemple.cd", "sensibilisateurId": sens}
+            "registre": "R2", "adresse": "Matete", "secteurActivite": "PRIMAIRE", "pays": "", "email": "contact@exemple.cd", "sensibilisateurId": sens,
+            "dirigeant": dirigeant}
     def refus(corps):
         r = agent.post("/api/tiers/entreprises", corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
     assert "Forme juridique : valeur inconnue" in refus({**base, "formeJuridique": "SARLU"})
@@ -263,6 +266,16 @@ def test_fiche_entreprise(clients, journee):
     assert (t["formeJuridique"], t["secteurActivite"], t["email"], t["beneficiairesEffectifs"], t["liees"]) == \
         ("Société à responsabilité limitée", "PRIMAIRE", "contact@exemple.cd", [physique], [])
     assert t["sensibilisateurId"] == sens or sens is None
+    # Loi 22/068, art. 53 : « le client ou un bénéficiaire effectif du client » ; une personne exposée parmi les bénéficiaires effectifs
+    # d'une entreprise exige l'autorisation de la conformité avant le visa (confrontation du 21/11/2026, E3)
+    from noyau.bd import executer
+    chef = clients["chef"]
+    executer("update tiers set personne_exposee = true where id = %s", (physique,))
+    r = chef.post(f"/api/tiers/{t['id']}/visa", {}, **H)
+    assert r.status_code == 422 and "bénéficiaires effectifs" in r.json()["message"], r.content
+    assert any(x["tiersId"] == t["id"] and x["exposee"] for x in chef.get("/api/conformite/ppe", **H).json())
+    executer("update tiers set personne_exposee = false where id = %s", (physique,))
+    assert chef.post(f"/api/tiers/{t['id']}/visa", {}, **H).status_code == 200
 
 
 def test_enrolement_groupe(clients, journee):
@@ -849,7 +862,8 @@ def test_parts_sociales(clients, journee):
     assert "résilié" in refus({"tiersId": m, "sens": "achat", "nombre": 1, "coupures": {"1000": 4}})
     # Compte de parts selon le type de client (PCCI, compte 103) : une entreprise en 1032
     e = agent.post("/api/tiers/entreprises", {**FICHE, "typeClient": "Entreprises privées", "zone": "Matete", "nom": "Boulangerie Kinsaku SARL",
-        "formeJuridique": "Société à responsabilité limitée", "registre": "R1", "adresse": "Matete", "signataires": []}, **H).json()
+        "formeJuridique": "Société à responsabilité limitée", "registre": "R1", "adresse": "Matete", "signataires": [],
+        "dirigeant": {"nom": "Ilunga", "prenom": "Paul", "pieceType": "Passeport", "pieceNumero": "OP9"}}, **H).json()
     chef.post(f"/api/tiers/{e['id']}/visa", {}, **H)
     caisse.post("/api/guichet/adhesions", {"cle": cle(), "tiersId": e["id"], "parts": 1, "depot": 0, "compteUsd": False, "coupures": {"1000": 4}}, **H)
     assert ident("""select c.numero from ligne_ecriture l join compte c on c.id = l.compte_id where l.contrat_ref = %s""", (f"parts:{e['id']}",)) == "1032"

@@ -125,7 +125,7 @@ n,travail,module,priorite,etat,ecrans,niveau,gabarit,etape,complete_par_nous,ori
 124,Bilan hors bilan résultat annexes,comptabilité,must,yes,S122,B,rapport,8 Comptabilité,S122 : forme des états,R:PCCI et Instr. BCC sur les états ; document,,,
 125,Indicateurs financiers,comptabilité,must,yes,S123,B,rapport,8 Comptabilité,S123 : liste et calcul des indicateurs,R:Instr. BCC sur les indicateurs,,,
 126,Budget : création reconduction suivi consommation financement,budget,should,yes,S124 S125 S126,B,"onglets, rapport, liste",9 Budget et Autres,S124 : écran de définition après le choix,A:S125 consultation (p. 143) ; D:S19,,,
-127,Clôtures crédit dépôt comptabilité,autres,must,yes,S127,B,traitement,9 Budget et Autres,S127 : clôtures Dépôt et Comptabilité,A:clôture crédit ; R:PCCI (clôtures),,,
+127,Clôtures crédit dépôt comptabilité,autres,must,partial,S127,B,traitement,9 Budget et Autres,S127 : clôtures Dépôt et Comptabilité,A:clôture crédit ; R:PCCI (clôtures),,,S127-13 Réserve générale à l'affectation du résultat d'une COOPEC
 128,Calculs : tenue de compte intérêts DAV et DAT provisions,autres,must,yes,S128,D,traitement,9 Budget et Autres,"S128 : Frais de tenue de comptes, Intérêt sur DAV, Intérêts sur DAT, Intérêt et frais de tenue, État des provisions","A:S98, S127 ; D:S27 (options du produit) ; R:Instr. BCC sur les frais",,,
 129,Caisse mobile,autres,skip,skip,S129,D,guichet,Non repris,S129 : tout (non repris à ce jour),P,,S129,
 130,Gestion de réunion,autres,skip,skip,S130,D,liste,Non repris,S130 : tout (non repris à ce jour),P,,S130,

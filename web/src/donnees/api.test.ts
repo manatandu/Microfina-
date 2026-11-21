@@ -610,16 +610,18 @@ describe("journée de guichet", () => {
     const sig = { nom: "Ilunga", postnom: "", prenom: "Paul", pieceType: "Passeport", pieceNumero: "OP9", pieceExpire: "", signature: "data:image/png;base64,iVBORw0KGgo=" };
     const base = { ...enrolementVide("2026-11-05"), ...IDENTITE, typeClient: "Entreprises privées", zone: "Matete", produitCode: "EAV-CDF", nom: "Boulangerie Kinsaku SARL",
       formeJuridique: "Société à responsabilité limitée", registre: "CD/KNG/RCCM/24-B-00001", adresse: "Matete, avenue Kinsaku" };
-    const e = await api.tiers.creerEntreprise(base, null, [sig]);
+    const e = await api.tiers.creerEntreprise(base, { ...sig, pieceNumero: "OP1", signature: undefined }, [sig]);
     const g = await api.tiers.creerGroupe({ ...enrolementVide("2026-11-05"), typeClient: "Association", produitCode: "EAV-CDF", nom: "Mamans de Kinsaku", adresse: "Matete", nbFemmes: 12 },
       [{ ...sig, pieceNumero: "OP8" }, { ...sig, nom: "Mbuyi", pieceNumero: "OP7" }]);
     await connecter("jpmukendi"); await api.tiers.viser(e.id); await api.tiers.viser(g.id); await connecter("bkasongo");
     const garde = (r: Representant) => ({ ...r, photo: undefined, signature: undefined, existant: { photo: r.photo, specimen: r.specimen } });
     const nouveau = { nom: "Kabila", postnom: "", prenom: "Rose", pieceType: "Carte d'électeur", pieceNumero: "9-0412-0001", pieceExpire: "2031-01-01" };
     const te = (await api.tiers.lire(e.id))!;
-    await expect(api.tiers.modifier(e.id, te, { signataires: [...te.signataires.map(garde), garde({ ...nouveau, photo: false, specimen: false })] })).rejects.toThrow("Signataire 2 : inconnu");
-    await expect(api.tiers.modifier(e.id, { ...te, registre: "" }, { signataires: te.signataires.map(garde) })).rejects.toThrow("registre");
-    const m = await api.tiers.modifier(e.id, { ...te, centreActivite: "Lemba" }, { signataires: [...te.signataires.map(garde), nouveau] });
+    const dirigeant = garde(te.dirigeant!);
+    await expect(api.tiers.modifier(e.id, te, { dirigeant, signataires: [...te.signataires.map(garde), garde({ ...nouveau, photo: false, specimen: false })] })).rejects.toThrow("Signataire 2 : inconnu");
+    await expect(api.tiers.modifier(e.id, { ...te, registre: "" }, { dirigeant, signataires: te.signataires.map(garde) })).rejects.toThrow("registre");
+    await expect(api.tiers.modifier(e.id, te, { signataires: te.signataires.map(garde) })).rejects.toThrow("Dirigeant : à remplir");   // loi 22/068, art. 34 (E1)
+    const m = await api.tiers.modifier(e.id, { ...te, centreActivite: "Lemba" }, { dirigeant, signataires: [...te.signataires.map(garde), nouveau] });
     expect(m).toMatchObject({ statut: "modifie_a_revalider", centreActivite: "Lemba", signataires: [{ nom: "Ilunga", specimen: true }, { nom: "Kabila", specimen: false }] });
     const tg = (await api.tiers.lire(g.id))!;
     const mg = await api.tiers.modifier(g.id, { ...tg, nbFemmes: 20 }, { membres: tg.membres.slice(1).map(garde) });
@@ -630,14 +632,24 @@ describe("journée de guichet", () => {
     await connecter("bkasongo");
     const base = { ...enrolementVide("2026-11-05"), ...IDENTITE, typeClient: "Entreprises privées", zone: "Matete", produitCode: "EAV-CDF", nom: "Kinsaku Pain SARL",
       formeJuridique: "Société à responsabilité limitée", registre: "R2", adresse: "Matete", secteurActivite: "PRIMAIRE", email: "contact@exemple.cd" };
-    const morale = (await api.tiers.creerEntreprise({ ...base, nom: "Témoin SA", formeJuridique: "Société anonyme" }, null, [])).id;
+    const dir = { nom: "Ilunga", postnom: "", prenom: "Paul", pieceType: "Passeport", pieceNumero: "OP9", pieceExpire: "" };
+    await expect(api.tiers.creerEntreprise(base, null, [])).rejects.toThrow("Dirigeant : à remplir");   // loi 22/068, art. 34, al. 4 (confrontation du 21/11/2026, E1)
+    const morale = (await api.tiers.creerEntreprise({ ...base, nom: "Témoin SA", formeJuridique: "Société anonyme" }, dir, [])).id;
     await expect(api.tiers.creerEntreprise({ ...base, formeJuridique: "SARLU" }, null, [])).rejects.toThrow("Forme juridique : valeur inconnue");
     await expect(api.tiers.creerEntreprise({ ...base, secteurActivite: "Pêche industrielle" }, null, [])).rejects.toThrow("Secteur d'activité : valeur inconnue");
     await expect(api.tiers.creerEntreprise({ ...base, email: "contact" }, null, [])).rejects.toThrow("Email invalide");
     await expect(api.tiers.creerEntreprise({ ...base, beneficiairesEffectifs: [morale] }, null, [])).rejects.toThrow("Bénéficiaire effectif");
     await expect(api.tiers.creerEntreprise({ ...base, liees: [1], beneficiairesEffectifs: [1] }, null, [])).rejects.toThrow("Bénéficiaire effectif");
-    const t = await api.tiers.creerEntreprise({ ...base, beneficiairesEffectifs: [1] }, null, []);
+    const t = await api.tiers.creerEntreprise({ ...base, beneficiairesEffectifs: [1] }, dir, []);
     expect(t).toMatchObject({ formeJuridique: "Société à responsabilité limitée", secteurActivite: "PRIMAIRE", email: "contact@exemple.cd", beneficiairesEffectifs: [1], liees: [] });
+    // Loi 22/068, art. 53 : « le client ou un bénéficiaire effectif du client » ; une personne exposée parmi les bénéficiaires effectifs
+    // d'une entreprise exige l'autorisation de la conformité avant le visa (confrontation du 21/11/2026, E3)
+    await journeeOuverte(); await connecter("jpmukendi");
+    _etat().tiers.find((x) => x.id === 1)!.personneExposee = true;
+    await expect(api.tiers.viser(t.id)).rejects.toThrow("bénéficiaires effectifs");
+    expect((await api.conformite.ppe()).some((x) => x.tiersId === t.id && x.exposee)).toBe(true);
+    _etat().tiers.find((x) => x.id === 1)!.personneExposee = false;
+    expect((await api.tiers.viser(t.id)).statut).not.toBe("a_viser");
   });
 
   it("enrôlement d'un groupe (S39) : type de groupe de la p. 47, nombres d'hommes et de femmes, membres", async () => {

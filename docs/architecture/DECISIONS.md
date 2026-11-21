@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**853 décisions.** Solidité : 359 fortes (le manuel ou un texte répond), 417 moyennes (déduites d'un écran voisin ou d'une donnée), 77 faibles (notre choix, faute de mieux). Dans le code : 847 déjà en place, 6 à appliquer.
+**854 décisions.** Solidité : 360 fortes (le manuel ou un texte répond), 417 moyennes (déduites d'un écran voisin ou d'une donnée), 77 faibles (notre choix, faute de mieux). Dans le code : 847 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1776,6 +1776,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S127-10 | Devise des soldes de gestion | Les soldes de gestion et le résultat se déterminent en CDF ; les écritures de clôture sont équilibrées en CDF | Texte réglementaire : PCCI § 7.1 (charges et produits en devises comptabilisés après conversion en CDF) | forte | en place |
 | S127-11 | Après la clôture de l'exercice | Les douze mois sont clôturés, l'exercice n'est plus ouvert ; date et auteur gardés ; une seconde clôture est refusée | Texte réglementaire : PCCI § 3.4, § 4.3.6 | forte | en place |
 | S127-12 | Compte 76 dans les soldes de gestion | Au compte 84, comme la classe 8 ; le compte de résultat de l'écran et la liasse suivent maintenant la même règle (S122-6) | Choix du porteur : Décision du porteur, 21/11/2026 ; PCCI, classe 8 (compte 84) | forte | en place |
+| S127-13 | Réserve générale à l'affectation du résultat d'une COOPEC | 15 % au moins des excédents nets avant ristourne de chaque exercice, après imputation de tout report à nouveau déficitaire. La règle de l'AUSCOOP (20 % et réserve de formation, art. 114) n'est pas retenue. L'affectation du résultat n'est pas encore construite : cette règle s'appliquera quand elle le sera (confrontation du 21/11/2026, A1). | Choix du porteur : Décision du porteur, 21/11/2026 (« Loi 002/2002 ») ; loi 002/2002, art. 59, 1° | forte | à appliquer |
 
 ## S131 Données de base de la paie
 

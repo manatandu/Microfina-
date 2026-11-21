@@ -590,6 +590,9 @@ export function controlerEntreprise(d: NouveauTiers, dirigeant: RepresentantSais
   controlerFichePhysique(d, ctx.jour, false);   // listes, lieu, email, agents (registre S38-1)
   if (dirigeant) controlerRepresentant(dirigeant, "Dirigeant", ctx.jour);
   controlerRepresentants(signataires, "Signataire", ctx.jour, anciens);
+  // Loi 22/068, art. 34, al. 4 : noms des personnes exerçant des fonctions de direction ; art. 34 bis, 3° : faute d'autre bénéficiaire effectif,
+  // le dirigeant est tenu pour tel (confrontation du 21/11/2026, E1). Comme le serveur (controler_entreprise).
+  if (!dirigeant) throw new ErreurMetier("Dirigeant : à remplir. Le dirigeant d'une personne morale est identifié à l'entrée en relation (loi 22/068, art. 34).");
 }
 
 const versRepresentant = ({ photo, signature, existant: _e, ...r }: RepresentantSaisi): Representant => ({ ...r, photo: !!photo, specimen: !!signature });
@@ -4441,25 +4444,28 @@ const vueExamen = (x: Examen) => { const t = E.tiers.find((y) => y.id === x.tier
     origineFonds: x.origineFonds, destinationFonds: x.destinationFonds, objet: x.objet, acteurs: x.acteurs, observations: x.observations,
     examinePar: nom(x.examinePar), examineLe: x.examineLe, operationFaite: x.operationId !== null, declareLe: x.declareLe, referenceDeclaration: x.referenceDeclaration }; };
 // Écart E02 : personnes politiquement exposées (Instr. BCC 15, art. 41, 60, 64, 65 ; Instr. BCC 52, art. 26). Mêmes règles que noyau/conformite.py.
-const ppeActive = (tid: number) => { const t = E.tiers.find((x) => x.id === tid); if (!t?.personneExposee) return false;
+const ppePersonne = (tid: number) => { const t = E.tiers.find((x) => x.id === tid); if (!t?.personneExposee) return false;
   const fin = E.dossiersPpe.find((x) => x.tiersId === tid)?.finFonction; if (!fin) return true;
   const [a, m, j] = fin.split("-").map(Number) as [number, number, number]; const limite = new Date(Date.UTC(a, m - 1 + 36, j)).toISOString().slice(0, 10);
   return limite >= new Date().toISOString().slice(0, 10); };   // 36 mois après la fin de la fonction, plus exposée (art. 64)
+/** Le client lui-même, ou un de ses bénéficiaires effectifs (loi 22/068, art. 53 ; confrontation du 21/11/2026, E3). Comme le serveur (ppe_active). */
+const ppeActive = (tid: number) => ppePersonne(tid) || (E.tiers.find((x) => x.id === tid)?.beneficiairesEffectifs ?? []).some(ppePersonne);
 function exigerAutorisationPpe(tid: number) {
   if (ppeActive(tid) && !E.dossiersPpe.find((x) => x.tiersId === tid)?.autorisePar)
-    throw new ErreurMetier("Personne politiquement exposée : l'autorisation de la conformité vient avant le visa (Instr. BCC 15, art. 64). Client > Conformité > Examen renforcé, onglet Personnes exposées.");
+    throw new ErreurMetier("Personne politiquement exposée, le client ou un de ses bénéficiaires effectifs (loi 22/068, art. 53) : l'autorisation de la conformité vient avant le visa (Instr. BCC 15, art. 64). Client > Conformité > Examen renforcé, onglet Personnes exposées.");
 }
 const vuePpe = (t: Tiers) => { const d = E.dossiersPpe.find((x) => x.tiersId === t.id); const nom = (id: number | null | undefined) => E.utilisateurs.find((u) => u.id === id)?.nom ?? "";
   return { tiersId: t.id, membre: t.numero, client: titulaire(t), statutClient: t.statut, exposee: ppeActive(t.id), fonction: d?.fonction ?? "", finFonction: d?.finFonction ?? "",
     originePatrimoine: d?.originePatrimoine ?? "", saisiPar: nom(d?.saisiPar), autorisePar: nom(d?.autorisePar), autoriseLe: d?.autoriseLe ?? "",
     informeLe: d?.informeLe ?? "", referenceCenaref: d?.referenceCenaref ?? "" }; };
 const ppe = {
-  lister() { lectureAdmin(["SC01"]); return E.tiers.filter((t) => t.personneExposee).sort((a, b) => a.numero.localeCompare(b.numero)).map(vuePpe); },
+  lister() { lectureAdmin(["SC01"]); const expose = (id: number) => !!E.tiers.find((x) => x.id === id)?.personneExposee;
+    return E.tiers.filter((t) => t.personneExposee || (t.beneficiairesEffectifs ?? []).some(expose)).sort((a, b) => a.numero.localeCompare(b.numero)).map(vuePpe); },
   /** Fonction, fin de fonction, origine du patrimoine (art. 41, 64) ; « autoriser » : accord de la conformité, par une autre personne (Instr. BCC 008, art. 66) */
   enregistrer(tid: number, d: { fonction?: string; finFonction?: string; originePatrimoine?: string; autoriser?: boolean }) {
     const u = exiger();
     const t = E.tiers.find((x) => x.id === tid);
-    if (!t?.personneExposee) throw new ErreurMetier("Ce client n'est pas inscrit comme personne politiquement exposée (case de sa fiche).");
+    if (!t || !(t.personneExposee || ppeActive(tid))) throw new ErreurMetier("Ni ce client ni un de ses bénéficiaires effectifs n'est inscrit comme personne politiquement exposée (case de la fiche).");
     const x = E.dossiersPpe.find((y) => y.tiersId === tid);
     if (d.autoriser) {
       if (!x) throw new ErreurMetier("Saisir d'abord le dossier : fonction et origine du patrimoine.");

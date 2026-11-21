@@ -161,7 +161,7 @@ def rapport(u: dict, eid: int) -> dict:
 MOIS_FIN_PPE = 36      # Instr. BCC 15, art. 64, dernier alinéa
 
 
-def ppe_active(tid: int) -> bool:
+def _ppe_personne(tid: int) -> bool:
     """Exposée : case cochée sur la fiche, et pas de fonction terminée depuis plus de 36 mois"""
     if not valeur("select personne_exposee from tiers where id = %s", (tid,)):
         return False
@@ -169,10 +169,18 @@ def ppe_active(tid: int) -> bool:
     return not (fin and valeur("select %s::date + interval '36 months' < current_date", (fin,)))
 
 
+def ppe_active(tid: int) -> bool:
+    """Le client lui-même, ou un de ses bénéficiaires effectifs : « déterminer si le client ou un bénéficiaire effectif du client est une
+    personne politiquement exposée » (loi 22/068, art. 53 ; confrontation du 21/11/2026, E3)"""
+    return _ppe_personne(tid) or any(_ppe_personne(r["autre_id"]) for r in lignes(
+        "select autre_id from lien_tiers where tiers_id = %s and role = 'beneficiaire_effectif'", (tid,)))
+
+
 def exiger_autorisation_ppe(tid: int) -> None:
     """Appelé par le visa (S40) et la validation d'un client modifié (S42) : la conformité autorise d'abord (art. 64)"""
     if ppe_active(tid) and not valeur("select 1 from dossier_ppe where tiers_id = %s and autorise_par is not null", (tid,)):
-        raise ErreurMetier("Personne politiquement exposée : l'autorisation de la conformité vient avant le visa (Instr. BCC 15, art. 64). "
+        raise ErreurMetier("Personne politiquement exposée, le client ou un de ses bénéficiaires effectifs (loi 22/068, art. 53) : "
+                           "l'autorisation de la conformité vient avant le visa (Instr. BCC 15, art. 64). "
                            "Client > Conformité > Examen renforcé, onglet Personnes exposées.")
 
 
@@ -188,7 +196,9 @@ def vue_ppe(t: dict) -> dict:
 
 def ppe_lister(u: dict) -> list[dict]:
     exiger(u)
-    return [vue_ppe(t) for t in lignes("select id, numero, statut from tiers where institution_id = %s and personne_exposee order by numero", (u["institution_id"],))]
+    return [vue_ppe(t) for t in lignes("""select id, numero, statut from tiers t where institution_id = %s and (personne_exposee or exists (
+                                              select 1 from lien_tiers l join tiers b on b.id = l.autre_id
+                                              where l.tiers_id = t.id and l.role = 'beneficiaire_effectif' and b.personne_exposee)) order by numero""", (u["institution_id"],))]
 
 
 def ppe_enregistrer(u: dict, tid: int, d: dict) -> dict:
@@ -198,8 +208,8 @@ def ppe_enregistrer(u: dict, tid: int, d: dict) -> dict:
     exiger(u)
     d = d if isinstance(d, dict) else {}
     t = une("select id, numero, statut, personne_exposee from tiers where id = %s and institution_id = %s for update", (tid, u["institution_id"]))
-    if not t or not t["personne_exposee"]:
-        raise ErreurMetier("Ce client n'est pas inscrit comme personne politiquement exposée (case de sa fiche).")
+    if not t or not (t["personne_exposee"] or ppe_active(tid)):
+        raise ErreurMetier("Ni ce client ni un de ses bénéficiaires effectifs n'est inscrit comme personne politiquement exposée (case de la fiche).")
     x = une("select * from dossier_ppe where tiers_id = %s for update", (tid,))
     if d.get("autoriser"):
         if not x:

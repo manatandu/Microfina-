@@ -944,6 +944,10 @@ def controler_entreprise(u: dict, d: dict, tid: int | None = None):
         controler_representant(dirigeant, "Dirigeant", j)
     signataires = d.get("signataires") or []
     controler_representants(signataires, "Signataire", j, anciens_representants(tid, "signataire") if tid else None)
+    if dirigeant is None:
+        # Loi 22/068, art. 34, al. 4 : « obtenir et vérifier les noms des personnes exerçant des fonctions de direction au sein des personnes
+        # morales ». Faute d'autre bénéficiaire effectif, le dirigeant est tenu pour tel (art. 34 bis, 3°). Confrontation du 21/11/2026, E1.
+        raise ErreurMetier("Dirigeant : à remplir. Le dirigeant d'une personne morale est identifié à l'entrée en relation (loi 22/068, art. 34).")
     return b, texte, fiche, dirigeant, signataires
 
 
