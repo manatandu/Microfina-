@@ -380,9 +380,10 @@ const OUT = process.argv[2];
   // Paramétrage des frais (S16)
   await aller('/parametrage/s16');
   const ok = async () => { await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click(); };
-  await p.getByLabel('Type Opération: *').selectOption('DEPOT'); await p.getByLabel('Libellé du frais: *').fill('FRAIS VERSEMENT');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
-  await p.getByRole('dialog', { name: 'Erreur' }).waitFor(); await etape('06d-frais-refus-bcc37'); await p.getByRole('button', { name: 'Ok' }).click();
+  // Dépôt et retrait ne sont plus proposés : ils sont gratuits (Instr. BCC 37, art. 2, 3 et annexe ; plan d'allègement 0.15, registre S16-15)
+  const typesFrais = await p.getByLabel('Type Opération: *').locator('option').allTextContents();
+  if (typesFrais.some((x) => /^(DEPOT|RETRAIT)$/.test(x.trim()))) throw new Error(`Dépôt ou retrait encore proposés : ${typesFrais.join(', ')}`);
+  await etape('06d-frais-refus-bcc37');
   await p.getByLabel('Type Opération: *').selectOption('ADHESION'); await p.getByLabel('Libellé du frais: *').fill("Droit d'entrée"); await p.getByLabel('Fondement: *').selectOption('droit_adhesion');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('cell', { name: "Droit d'entrée" }).waitFor(); await etape('06e-frais');
