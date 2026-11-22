@@ -5060,3 +5060,28 @@ def test_comptes_courants_debiteurs(clients, journee, monkeypatch):
     y = r["creances"][0]
     assert (y["restant"], y["provision"]) == (2_000_000, 2_000_000 * taux(g) // 100)
     assert clients["caisse"].get("/api/credit/provisions/decouverts", **H).status_code == 403
+
+
+def test_interets_courus_credits(clients, journee):
+    """B8 (confrontation du 21/11/2026) : intérêts courus non échus d'un crédit sain aux créances rattachées (PCCI § 4.1.3, § 6.4, classe 3) ;
+    repris quand le crédit n'est plus sain"""
+    from noyau.bd import executer
+    compta = clients["compta"]
+    cid = credit_debloque(clients, journee)
+    executer("update credit set debloque_le = '2026-10-16' where id = %s", (cid,))                 # crédit débloqué 20 jours avant la journée
+    executer("update echeance set date_due = (date_due - interval '20 days')::date where credit_id = %s", (cid,))
+    e1 = lignes_bd("select interet, date_due from echeance where credit_id = %s order by rang limit 1", (cid,))[0]
+    a = compta.get("/api/autres/calculs/interets-credits?date=2026-11-05", **H).json()
+    x = next(l for l in a["lignes"] if l["id"] == cid)
+    duree = (e1[1] - __import__("datetime").date(2026, 10, 16)).days
+    assert x["couru"] == round(e1[0] * 20 / duree) and x["aPasser"] == x["couru"] and x["compteRattache"] in ("328", "318", "308")
+    r = compta.post("/api/autres/calculs/interets-credits", {"date": "2026-11-05"}, **H)
+    assert r.status_code == 200, r.content
+    assert next(l for l in r.json()["lignes"] if l["id"] == cid)["aPasser"] == 0
+    assert "Aucun intérêt couru" in compta.post("/api/autres/calculs/interets-credits", {"date": "2026-11-05"}, **H).json()["message"]
+    executer("update echeance set date_due = (date_due - interval '2 months')::date where credit_id = %s", (cid,))      # le crédit passe en retard
+    a = compta.get("/api/autres/calculs/interets-credits?date=2026-11-05", **H).json()
+    y = next(l for l in a["lignes"] if l["id"] == cid)
+    assert (y["couru"], y["aPasser"]) == (0, -x["couru"])                                  # reprise entière
+    assert compta.post("/api/autres/calculs/interets-credits", {"date": "2026-11-05"}, **H).status_code == 200
+    assert ident("select interets_courus from credit where id = %s", (cid,)) == 0

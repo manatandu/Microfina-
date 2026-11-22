@@ -345,6 +345,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "finPeriode.interetsEtFrais": [
 "S128"
 ],
+"finPeriode.passerInteretsCredits": [
+"S128"
+],
 "finPeriode.passerInteretsDat": [
 "S128"
 ],

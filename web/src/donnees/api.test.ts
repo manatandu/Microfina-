@@ -3275,6 +3275,21 @@ describe("journée de guichet", () => {
     expect(await api.controlesCompta.annulations({ du: "2026-11-01", au: "2026-11-30", type: "depot" })).toEqual([]);
     expect(await soldeCdfGrandLivre()).toBe(0);
   });
+  it("intérêts courus sur crédits sains (B8 ; PCCI § 4.1.3, § 6.4, classe 3) : passés aux créances rattachées, repris quand le crédit est en retard", async () => {
+    const cid = await creditDebloque();
+    const c = _etat().credits.find((x) => x.id === cid)!, j = (await api.journees.courante())!.date;
+    const recule = (jours: number) => { const d = new Date(`${j}T00:00:00Z`); d.setUTCDate(d.getUTCDate() - jours); return d.toISOString().slice(0, 10); };
+    const decale = (jours: number) => { for (const e of c.echeancier) { const d = new Date(`${e.date}T00:00:00Z`); d.setUTCDate(d.getUTCDate() - jours); e.date = d.toISOString().slice(0, 10); } };
+    c.debloqueLe = recule(20); decale(20);                                   // débloqué 20 jours avant la journée
+    await connecter("plumbala");
+    const a = await api.finPeriode.apercuInteretsCredits({ date: j }), x = a.lignes.find((l) => l.id === cid)!;
+    expect(x.couru).toBeGreaterThan(0); expect(x.aPasser).toBe(x.couru);
+    const r = await api.finPeriode.passerInteretsCredits({ date: j });
+    expect(r.lignes.find((l) => l.id === cid)!.aPasser).toBe(0);
+    decale(60);                                                              // le crédit passe en retard : reprise entière
+    const y = (await api.finPeriode.apercuInteretsCredits({ date: j })).lignes.find((l) => l.id === cid)!;
+    expect([y.couru, y.aPasser]).toEqual([0, -x.couru]);
+  });
   it("comptes courants débiteurs (B4 ; Instr. BCC 003, art. 7, al. 2 ; PCCI 33 et 39) : virement au 39, provision, recouvrement", async () => {
     await journeeOuverte(); await connecter("bkasongo");
     const E = _etat(), modele = E.comptes.find((c) => c.numero === "0412-000319-02")!, p = E.produits.find((x) => x.libelle === modele.intitule && x.devise === modele.devise)!;

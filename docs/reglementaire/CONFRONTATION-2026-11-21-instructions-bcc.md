@@ -431,3 +431,4 @@ Le porteur a demandé de répondre par les textes aux points du § 16.
 - **Intérêts courus sur crédits sains** : à passer (PCCI § 4.1.3, classe 3, § 6.4, lus ensemble ; registre T90).
 - **Compte divisionnaire** : détailler est libre (PCCI, chap. 9) ; une opération hors nomenclature demande l'autorisation, dont la référence se note sur le compte (registre T87 ; B19 terminé).
 - **Les autres points** : registre T92.
+- **B8 corrigé** : calcul « Intérêts courus sur crédits » dans Autres > Calculs, contrôle à la clôture (registre T90).

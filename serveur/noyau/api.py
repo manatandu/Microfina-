@@ -1942,6 +1942,18 @@ def fin_dat_passer(request, corps: dict = Body(...)):
     return fin_periode.passer_interets_dat(u(request), corps)
 
 
+@api.get("/autres/calculs/interets-credits")
+def fin_credits(request):
+    from . import fin_periode
+    return fin_periode.apercu_interets_credits(u(request), request.GET.dict())
+
+
+@api.post("/autres/calculs/interets-credits")
+def fin_credits_passer(request, corps: dict = Body(...)):
+    from . import fin_periode
+    return fin_periode.passer_interets_credits(u(request), corps)
+
+
 @api.post("/autres/calculs/interets-et-frais")
 def fin_interets_et_frais(request, corps: dict = Body(...)):
     from . import fin_periode

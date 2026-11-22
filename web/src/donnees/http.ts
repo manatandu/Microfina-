@@ -241,6 +241,8 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       apercuInteretsDat: (p: Record<string, unknown> = {}) => get(`/autres/calculs/interets-dat?${requete(p)}`),
       interetsCourusDepot: (p: Record<string, unknown> = {}) => get(`/autres/cloture/depot?${requete(p)}`),
       passerInteretsDat: (d: unknown = {}) => post("/autres/calculs/interets-dat", d),
+      apercuInteretsCredits: (p: Record<string, unknown> = {}) => get(`/autres/calculs/interets-credits?${requete(p)}`),
+      passerInteretsCredits: (d: unknown = {}) => post("/autres/calculs/interets-credits", d),
       interetsEtFrais: (d: unknown) => post("/autres/calculs/interets-et-frais", d),
       etatProvisions: (p: Record<string, unknown>) => get(`/autres/calculs/provisions?${requete(p)}`),
       provisionsCloture: (p: Record<string, unknown>) => get(`/autres/cloture/provisions?${requete(p)}`),

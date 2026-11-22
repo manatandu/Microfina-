@@ -108,6 +108,29 @@ function InteretsDat({ jour, passer }: { jour: string; passer: boolean }) {
     {t.dialogue}</section>;
 }
 
+/** B8 (confrontation du 21/11/2026) : intérêts courus non échus des crédits sains, aux créances rattachées (PCCI § 4.1.3, § 6.4, classe 3) ; gabarit du calcul sur DAT */
+function InteretsCredits({ jour }: { jour: string }) {
+  const [d, setD] = useState(jour);
+  const [r, setR] = useState<Awaited<ReturnType<typeof api.finPeriode.apercuInteretsCredits>> | null>(null);
+  const t = useTraitement();
+  const calculer = async () => { try { setR(await api.finPeriode.apercuInteretsCredits({ date: d })); } catch (x) { t.erreur(x); } };
+  return <section className="bloc pile" aria-label="Intérêts courus sur crédits"><h2>Intérêts courus sur crédits</h2>
+    <fieldset className="cadre-champs formulaire"><legend className="sr-only">Date</legend><ChampDate libelle="Date :" valeur={d} onChange={(v) => { setD(v); setR(null); }} /></fieldset>
+    <div className="actions-onglets"><button className="bouton" type="button" onClick={calculer}>Calculer</button>
+      <button className="bouton secondaire" type="button" disabled={!r?.lignes.some((x) => x.aPasser)}
+        onClick={() => t.confirmer("Voulez-vous vraiment passer les intérêts courus ?", async () => setR(await api.finPeriode.passerInteretsCredits({ date: d })))}>Valider</button></div>
+    {r && <table className="grille"><caption>Intérêts courus au {fr(r.date)}</caption>
+      <thead><tr><th scope="col">N° crédit</th><th scope="col">Client</th><th scope="col">Devise</th><th scope="col" className="num">Montant prêt</th><th scope="col" className="num">Intérêt couru</th>
+        <th scope="col" className="num">Déjà passé</th><th scope="col" className="num">A passer</th><th scope="col">Compte créance</th><th scope="col">Compte produit</th></tr></thead>
+      <tbody>{r.lignes.length === 0 && <tr><td colSpan={9}>Aucune donnée dans la liste</td></tr>}
+        {r.lignes.map((x) => <tr key={x.id}><td className="code">{x.numero}</td><td>{x.client}</td><td>{x.devise}</td><td className="num chiffres">{n(x.montant)}</td>
+          <td className="num chiffres">{n(x.couru)}</td><td className="num chiffres">{n(x.dejaPasse)}</td><td className="num chiffres">{n(x.aPasser)}</td>
+          <td className="code">{x.compteRattache}</td><td className="code">{x.compteProduit}</td></tr>)}</tbody>
+      <tfoot>{Object.entries(r.totaux).map(([dv, v]) => <tr key={dv}><th scope="row" colSpan={4}>Total {dv}</th><td className="num chiffres"><strong>{n(v.couru)}</strong></td><td></td>
+        <td className="num chiffres"><strong>{n(v.aPasser)}</strong></td><td colSpan={2}></td></tr>)}</tfoot></table>}
+    {t.dialogue}</section>;
+}
+
 function InteretsEtFrais({ ctx, jour }: { ctx: Ctx; jour: string }) {
   const [f, setF] = useState({ exercice: jour.slice(0, 4), mois: String(Number(jour.slice(5, 7))) });
   const [r, setR] = useState<{ interets: number; frais: number } | null>(null);
@@ -234,7 +257,7 @@ function useCadreCloture() {
 }
 
 const PAGES_CALCULS = [["tenue", "Frais de tenue de comptes"], ["dav", "Calcul intérêt sur DAV"], ["dat", "Calcul des intérêts sur DAT"], ["interets-frais", "Intérêt et frais de tenue de comptes"],
-  ["provisions", "Etat des provisions de crédits"]] as const;
+  ["provisions", "Etat des provisions de crédits"], ["credits", "Intérêts courus sur crédits"]] as const;
 export function Calculs() {
   const o = Onglets({ pages: PAGES_CALCULS, titre: "Calculs", defaut: "tenue" });
   const cadre = useCadre();
@@ -243,7 +266,7 @@ export function Calculs() {
   return <><h1>Calculs</h1>{o.barre}
     {o.page === "tenue" && <FraisTenue ctx={cadre.ctx} jour={jour} />}{o.page === "dav" && <InteretsDav ctx={cadre.ctx} jour={jour} />}
     {o.page === "dat" && <InteretsDat jour={jour} passer />}{o.page === "interets-frais" && <InteretsEtFrais ctx={cadre.ctx} jour={jour} />}
-    {o.page === "provisions" && <EtatProvisions jour={jour} cloture={false} />}</>;
+    {o.page === "provisions" && <EtatProvisions jour={jour} cloture={false} />}{o.page === "credits" && <InteretsCredits jour={jour} />}</>;
 }
 
 const PAGES_CLOTURE = [["credit", "Crédit"], ["depot", "Dépôt"], ["comptabilite", "Comptabilité"]] as const;

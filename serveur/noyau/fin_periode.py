@@ -279,6 +279,71 @@ def passer_interets_dat(u, p: dict) -> dict:
     return {**apercu_interets_dat(u, p), "passes": n}
 
 
+RATTACHEES = {1: "328", 2: "318", 3: "308"}      # PCCI, classe 3 : créances rattachées des crédits à court, moyen et long terme
+
+
+def couru_credit(c: dict, d: date) -> int:
+    """B8 : intérêt couru non échu d'un crédit sain à la date : la part, au prorata des jours, de l'intérêt de la prochaine échéance, moins ce que le
+    client en a déjà payé d'avance. Un crédit en retard n'en porte pas (PCCI § 6.4 : produits des créances en retard à l'encaissement seulement)."""
+    from .remboursements import etat
+    if c["statut"] != "debloque":
+        return 0
+    s = etat(c, d)
+    if s["joursRetard"] or not s["nonEchu"]:
+        return 0
+    e = s["nonEchu"][0]
+    echus = [x for x in s["echeances"] if x["date_due"] <= d]
+    debut = echus[-1]["date_due"] if echus else c["debloque_le"]
+    duree = (e["date_due"] - debut).days
+    if duree <= 0 or d <= debut:
+        return 0
+    avance = max(s["payes"]["interet"] - sum(x["interet"] for x in echus), 0)
+    return max(arrondi(Decimal(e["interet"]) * (d - debut).days / duree) - avance, 0)
+
+
+def apercu_interets_credits(u, p: dict) -> dict:
+    """Etat des intérêts courus non échus sur les crédits sains, à la date ; un crédit qui n'est plus sain voit sa part passée reprise"""
+    from .deblocage import terme
+    exiger(u)
+    d = date_arrete(u, p)
+    out = []
+    for c in lignes("""select * from credit where institution_id = %s and debloque_le <= %s and (statut = 'debloque' or interets_courus > 0) order by numero""",
+                    (u["institution_id"], d)):
+        couru_ = couru_credit(c, d)
+        if not couru_ and not c["interets_courus"]:
+            continue
+        out.append({"id": c["id"], "numero": c["numero"], "client": titulaire(c["tiers_id"]), "devise": c["devise"].strip(), "montant": c["montant"],
+                    "couru": couru_, "dejaPasse": c["interets_courus"], "aPasser": couru_ - c["interets_courus"],
+                    "compteRattache": RATTACHEES[terme(c["duree_mois"])], "compteProduit": comptes_credit(c, 1)["interet"]})
+    tot: dict = defaultdict(lambda: {"couru": 0, "aPasser": 0})
+    for x in out:
+        tot[x["devise"]]["couru"] += x["couru"]
+        tot[x["devise"]]["aPasser"] += x["aPasser"]
+    return {"date": d.isoformat(), "lignes": out, "totaux": dict(tot)}
+
+
+def passer_interets_credits(u, p: dict) -> dict:
+    """Bouton Valider : la différence entre l'intérêt couru et la part déjà passée : débit de la créance rattachée, crédit du produit ; l'inverse pour une reprise"""
+    exiger(u)
+    a = apercu_interets_credits(u, p)
+    j = jour_ouvert(u)
+    n = 0
+    for x in a["lignes"]:
+        if not x["aPasser"]:
+            continue
+        une("select id from credit where id = %s for update", (x["id"],))
+        plus, m, k = x["aPasser"] > 0, abs(x["aPasser"]), f"credit:{x['id']}"
+        poster(u, journal="OD", journee_id=j["id"], libelle=f"Intérêts courus au {date.fromisoformat(a['date']).strftime('%d/%m/%Y')}, crédit {x['numero']}",
+               piece=nouvelle_piece(u, "OD", date.fromisoformat(j["date"])), evenement="interet_credit_couru", cle=str(uuid.uuid4()), valide_par=u["id"],
+               lignes_ecr=[{"compte": x["compteRattache"], "contrat": k, "sens": "D" if plus else "C", "devise": x["devise"], "montant": m},
+                           {"compte": x["compteProduit"], "contrat": k, "sens": "C" if plus else "D", "devise": x["devise"], "montant": m}])
+        executer("update credit set interets_courus = %s where id = %s", (x["couru"], x["id"]))
+        n += 1
+    if not n:
+        raise ErreurMetier("Aucun intérêt couru à passer à cette date.")
+    return {**apercu_interets_credits(u, p), "passes": n}
+
+
 def interets_et_frais(u, p: dict) -> dict:
     """« Intérêt et Frais de tenue de comptes » : les intérêts du mois d'abord, puis les frais de tenue"""
     exiger(u)
@@ -484,6 +549,10 @@ def controles(u, annee: int, mois: int | None) -> list[dict]:
     reste = sum(max(couru(x, fin) - x["interets_courus"], 0) for x in lignes(
         "select * from depot_terme where institution_id = %s and statut = 'valide' and date_depot <= %s", (i, fin)))
     ajouter("Intérêts courus des dépôts à terme", reste == 0, "À passer : Autres > Calculs > Calcul des intérêts sur DAT")
+    # B8 : intérêts courus non échus des crédits sains aux créances rattachées (PCCI § 4.1.3 et § 6.4)
+    ecart = sum(abs(couru_credit(c, fin) - c["interets_courus"]) for c in lignes(
+        "select * from credit where institution_id = %s and debloque_le <= %s and (statut = 'debloque' or interets_courus > 0)", (i, fin)))
+    ajouter("Intérêts courus des crédits sains", ecart == 0, "À passer : Autres > Calculs > Intérêts courus sur crédits")
     return out
 
 

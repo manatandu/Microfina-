@@ -7697,6 +7697,18 @@ function soldesDuMois(c: CompteDepot, du: string, au: string) {
   return out;
 }
 const couruDat = (x: DepotTerme, d: string) => Math.min(Math.round(x.montant * Number(x.tauxInteret.replace(",", ".")) / 100 * Math.max(joursEntre(x.dateDepot, d < x.dateEcheance ? d : x.dateEcheance), 0) / 365), x.montantInteret);
+const RATTACHEES_CREDIT: Record<number, string> = { 1: "328", 2: "318", 3: "308" };   // PCCI, classe 3 : créances rattachées
+/** B8 : intérêt couru non échu d'un crédit sain à la date (comme fin_periode.couru_credit) */
+function couruCredit(c: CreditPret, d: string) {
+  if (c.statut !== "debloque") return 0;
+  const s = etatCredit(c, d);
+  if (s.joursRetard || !s.nonEchu.length) return 0;
+  const e = s.nonEchu[0]!, echus = s.echeances.filter((x) => x.date <= d), debut = echus.length ? echus[echus.length - 1]!.date : c.debloqueLe;
+  const duree = joursRemb(debut, e.date);
+  if (duree <= 0 || d <= debut) return 0;
+  const avance = Math.max(s.payes.interet! - echus.reduce((t, x) => t + x.interet, 0), 0);
+  return Math.max(Math.round(e.interet * joursRemb(debut, d) / duree) - avance, 0);
+}
 function dateArrete(p: { date?: string }) {
   const j = jourOuvertFin(), d = p.date || j.date;
   if (!DATE_ISO.test(d)) throw new ErreurMetier("À remplir : Date.");
@@ -7797,6 +7809,10 @@ function controlesFin(a: number, m: number | null) {
   }
   ajouter("Comptes courants débiteurs sans versement depuis plus de 30 jours", deb.length === 0, `À classer en crédits douteux (Instr. BCC 003, art. 7, al. 2) : ${deb.join(", ")}`);
   ajouter("Intérêts courus des dépôts à terme", reste === 0, "À passer : Autres > Calculs > Calcul des intérêts sur DAT");
+  // B8 : intérêts courus non échus des crédits sains aux créances rattachées (PCCI § 4.1.3 et § 6.4)
+  const ecartCredits = E.credits.filter((c) => c.debloqueLe && c.debloqueLe <= fin && (c.statut === "debloque" || (c.interetsCourus ?? 0) > 0))
+    .reduce((s, c) => s + Math.abs(couruCredit(c, fin) - (c.interetsCourus ?? 0)), 0);
+  ajouter("Intérêts courus des crédits sains", ecartCredits === 0, "À passer : Autres > Calculs > Intérêts courus sur crédits");
   return out;
 }
 function bloquantsFin(l: ReturnType<typeof controlesFin>) {
@@ -7882,6 +7898,34 @@ const finPeriode = {
     if (!n) throw new ErreurMetier("Aucun intérêt à servir pour ce mois.");
     enregistrer();
     return { ...finPeriode.apercuInteretsDav(p), passes: n };
+  },
+  /** B8 : intérêts courus non échus des crédits sains aux créances rattachées (PCCI § 4.1.3, § 6.4, classe 3). Comme fin_periode.apercu_interets_credits. */
+  apercuInteretsCredits(p: { date?: string } = {}) {
+    lectureAdmin(["S127", "S128"]);
+    const d = dateArrete(p);
+    const lignes = E.credits.filter((c) => c.debloqueLe && c.debloqueLe <= d && (c.statut === "debloque" || (c.interetsCourus ?? 0) > 0)).sort((a, b) => a.numero.localeCompare(b.numero)).flatMap((c) => {
+      const couru = couruCredit(c, d), deja = c.interetsCourus ?? 0, t = E.tiers.find((y) => y.id === c.tiersId);
+      if (!couru && !deja) return [];
+      return [{ id: c.id, numero: c.numero, client: t ? titulaire(t) : "", devise: c.devise as string, montant: c.montant, couru, dejaPasse: deja, aPasser: couru - deja,
+        compteRattache: RATTACHEES_CREDIT[termeCredit(c.duree)]!, compteProduit: comptesCredit(c, 1).interet }];
+    });
+    const totaux: Record<string, { couru: number; aPasser: number }> = {};
+    for (const x of lignes) { const t = (totaux[x.devise] ??= { couru: 0, aPasser: 0 }); t.couru += x.couru; t.aPasser += x.aPasser; }
+    return { date: d, lignes, totaux };
+  },
+  passerInteretsCredits(p: { date?: string } = {}) {
+    const u = exiger(), a = finPeriode.apercuInteretsCredits(p), j = jourOuvertFin();
+    let n = 0;
+    for (const x of a.lignes) {
+      if (!x.aPasser) continue;
+      const plus = x.aPasser > 0, m = Math.abs(x.aPasser), k = `credit:${x.id}`;
+      poster({ journal: "OD", journeeId: j.id, libelle: `Intérêts courus au ${frDate(a.date)}, crédit ${x.numero}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id,
+        lignes: [ligneFin(x.compteRattache, plus ? "D" : "C", x.devise as Devise, m, k), ligneFin(x.compteProduit, plus ? "C" : "D", x.devise as Devise, m, k)] });
+      E.credits.find((c) => c.id === x.id)!.interetsCourus = x.couru; n++;
+    }
+    if (!n) throw new ErreurMetier("Aucun intérêt couru à passer à cette date.");
+    enregistrer();
+    return { ...finPeriode.apercuInteretsCredits(p), passes: n };
   },
   apercuInteretsDat(p: { date?: string } = {}) {
     lectureAdmin(["S127", "S128"]);
