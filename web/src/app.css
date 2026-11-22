@@ -171,6 +171,8 @@ a.module:active { transform: scale(.97); }
 .page > h1, .page > .entete-ecran h1 { margin: 0; font-size: var(--taille-grand); line-height: var(--interligne-grand); font-weight: 700; }
 /* Un seul titre, celui de la coquille (plan d'allègement, point 1.6) : l'en-tête qui suit ne redouble pas sa barre */
 .page > h1 + .entete-ecran { border-left: 0; padding-left: 0; }
+/* Le titre de fenêtre de Microfina++, sous le titre du menu : une étiquette, pas un second titre */
+.page > h2, .page > .bloc > h2:first-child { margin: 0; font-size: var(--taille-courant); font-weight: 600; color: var(--encre-2); }
 .page > .chapeau { margin: calc(-1 * var(--espace-4)) 0 0; color: var(--encre-2); max-width: 70ch; }
 .rangee { display: flex; flex-wrap: wrap; gap: var(--espace-2); align-items: center; }
 .pile { display: grid; gap: var(--espace-3); align-content: start; min-width: 0; }
