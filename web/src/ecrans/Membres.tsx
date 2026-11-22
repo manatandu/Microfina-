@@ -80,7 +80,7 @@ function InformationsDeBase({ genre, f, maj, ctx, numero, depot, setDepot, chois
         <Champ libelle="N° Manuel :">{(p) => <input {...p} className="saisie code" autoComplete="off" value={f.numeroManuel} onChange={(e) => maj({ numeroManuel: e.target.value })} />}</Champ>
         {physique && <Champ libelle="N° Matricule :">{(p) => <input {...p} className="saisie code" autoComplete="off" value={f.matricule} onChange={(e) => maj({ matricule: e.target.value })} />}</Champ>}
         {/* Type client : une seule valeur, posée d'office pour la personne physique (plan d'allègement, point 2.3) */}
-        {!physique && <Champ libelle={entreprise ? "Agent économique (PCCI) : *" : "Type de groupe *"}>{(p) => <select {...p} className="saisie" required {...sel("typeClient")}>
+        {entreprise && <Champ libelle="Agent économique (PCCI) : *">{(p) => <select {...p} className="saisie" required {...sel("typeClient")}>
           <option value=""></option>{types.map((t) => <option key={t} value={t}>{enClair(t)}</option>)}</select>}</Champ>}
         {groupe && <>
           <Champ libelle="Nombre d'Homme :">{(p) => <input {...p} className="saisie code court" inputMode="numeric" autoComplete="off" {...nombre("nbHommes")} />}</Champ>
@@ -477,7 +477,7 @@ function RenseignementsGroupe({ f, maj, ctx }: { f: NouveauTiers; maj: Maj; ctx:
   return (
     <div className="formulaire">
       <Champ libelle="Dénomination : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("nom")} />}</Champ>
-      <Champ libelle="Forme juridique :">{(p) => <select {...p} className="saisie" value={f.formeJuridique} onChange={(e) => maj({ formeJuridique: e.target.value })}>
+      <Champ libelle="Forme juridique : *">{(p) => <select {...p} className="saisie" required value={f.formeJuridique} onChange={(e) => maj({ formeJuridique: e.target.value })}>
         <option value=""></option>{(ctx.listesFiche.formeJuridiqueGroupe ?? []).map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
       <Champ libelle="N° du registre ou de l'acte :">{(p) => <input {...p} className="saisie code" autoComplete="off" {...texte("registre")} />}</Champ>
     </div>
@@ -709,7 +709,7 @@ export function MiseAJourClient() {
               <div className="deux-colonnes">
                 <div className="pile">
                   <ChampDate libelle="Date demande : *" valeur={f.dateDemande} onChange={(v) => maj({ dateDemande: v })} requis />
-                  {genre !== "physique" && <Champ libelle={genre === "morale" ? "Agent économique (PCCI) : *" : "Type de groupe *"}>{(p) =>
+                  {genre === "morale" && <Champ libelle="Agent économique (PCCI) : *">{(p) =>
                     <select {...p} className="saisie" required {...sel("typeClient")}><option value=""></option>{types.map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>}
                   {genre === "groupe" && <>
                     <Champ libelle="Nombre d'Homme :">{(p) => <input {...p} className="saisie code court" inputMode="numeric" autoComplete="off" {...nombre("nbHommes")} />}</Champ>

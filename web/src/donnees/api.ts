@@ -691,6 +691,11 @@ function controlerRepresentants(l: RepresentantSaisi[], qui: string, jour: strin
 
 /** S39, et S46 pour la mise à jour (anciens). Contrôles identiques côté serveur (services.controler_groupe) */
 export function controlerGroupe(d: NouveauTiers, membres: RepresentantSaisi[], images: Images, ctx: CtxControle, anciens?: Representant[]) {
+  // Une seule « Forme juridique » ; le type de groupe s'en déduit (plan d'allègement, point 2.5 ; même règle que services.controler_groupe)
+  if (!d.typeClient?.trim()) {
+    if (!d.formeJuridique?.trim()) throw new ErreurMetier("À remplir : forme juridique.");
+    d.typeClient = d.formeJuridique.trim().startsWith("Groupement") ? "Groupement solidaire" : "Association";
+  }
   controlerBase(d, [["date demande", d.dateDemande], ["type de groupe", d.typeClient], ["type de compte à créer", d.produitCode],
     ["dénomination", d.nom], ["adresse", d.adresse]], valeursListe("type_groupe").map((l) => l.libelle), false, ctx);
   if (d.formeJuridique.trim() && !valeursListe("forme_juridique_groupe").some((l) => l.libelle === d.formeJuridique.trim()))   // registre S39-5
@@ -1509,7 +1514,7 @@ export const CATALOGUE_LISTES: FicheListe[] = ([
   { liste: "secteur_activite", ecran: "S14", titre: "Secteur d'activité", code: "N° secteur", libelle: "Secteur d'activite", colonne: "Secteur" },
   { liste: "type_activite", ecran: "S14a", titre: "Type d'activité", parent: "secteur_activite" },
   { liste: "profession", ecran: "S14b", titre: "Profession" },
-  { liste: "type_groupe", ecran: "S14f", titre: "Type de groupe" }, { liste: "forme_juridique", ecran: "S14i", titre: "Forme juridique" },
+  { liste: "forme_juridique", ecran: "S14i", titre: "Forme juridique" },
   { liste: "filiation", ecran: "S14k", titre: "Lien de parenté" },
   { liste: "situation_matrimoniale", ecran: "S14l", titre: "Situation matrimoniale" }, 
   // S18 (p. 26) : même liste que S14m (registre S18-1), avec la forme de sa capture : Libelle Motif seul, Reinitialiser

@@ -8,7 +8,6 @@ CATALOGUE = [
     {"liste": "secteur_activite", "ecran": "S14", "titre": "Secteur d'activité", "code": "N° secteur", "libelle": "Secteur d'activite", "colonne": "Secteur"},
     {"liste": "type_activite", "ecran": "S14a", "titre": "Type d'activité", "parent": "secteur_activite"},
     {"liste": "profession", "ecran": "S14b", "titre": "Profession"},
-    {"liste": "type_groupe", "ecran": "S14f", "titre": "Type de groupe"},
     {"liste": "forme_juridique", "ecran": "S14i", "titre": "Forme juridique"},
     {"liste": "filiation", "ecran": "S14k", "titre": "Lien de parenté"},
     {"liste": "situation_matrimoniale", "ecran": "S14l", "titre": "Situation matrimoniale"},

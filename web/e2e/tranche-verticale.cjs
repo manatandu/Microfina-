@@ -280,14 +280,14 @@ const OUT = process.argv[2];
   await oui(); await etape('05-enrole');
   // Groupe (S39)
   await aller('/clients/s39');
-  await p.getByLabel('Type de groupe *').selectOption('Association'); await p.getByLabel('Nombre de Femme :').fill('12');
+  await p.getByLabel('Nombre de Femme :').fill('12');
   await p.getByLabel('Type de compte à créer *').selectOption('EAV-CDF'); await etape('05g-groupe');
   await p.getByLabel('Objet et nature de la relation : *').fill('Épargne et crédit');   // A8 : loi 22/068, art. 47
   await p.getByRole('button', { name: 'Suivant' }).click();
   await p.getByLabel('Dénomination : *').fill('Mamans de Kinsaku');
   await p.getByRole('tab', { name: 'Autres renseignements' }).click(); await adresseKinsaku('Kinsaku', ''); await p.getByRole('tab', { name: 'Renseignements généraux' }).click();
-  await p.getByLabel('Forme juridique :').selectOption('Groupement sans personnalité juridique'); await etape('05g2-groupe-renseignements');   // S39-5 : formes des groupes
-  if (await p.getByLabel('Forme juridique :').locator('option', { hasText: 'Société anonyme' }).count()) throw new Error('Groupe : forme de société proposée');
+  await p.getByLabel('Forme juridique : *').selectOption('Association sans but lucratif à caractère culturel, social, éducatif ou économique'); await etape('05g2-groupe-renseignements');   // S39-5 : formes des groupes
+  if (await p.getByLabel('Forme juridique : *').locator('option', { hasText: 'Société anonyme' }).count()) throw new Error('Groupe : forme de société proposée');
   await p.getByRole('button', { name: 'Suivant' }).click(); await p.getByRole('button', { name: 'Ajouter', exact: true }).click();
   const mb = p.getByRole('dialog', { name: 'Membre du groupe' });
   await representant(mb, 'Mbuyi', 'Anne', "Carte d'électeur", '1-0412-7777');

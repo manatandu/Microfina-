@@ -1120,6 +1120,12 @@ def inserer_representants(tid: int, liste: list[tuple[str, dict]]):
 
 def controler_groupe(u: dict, d: dict, tid: int | None = None):
     """S39, et S46 pour la mise à jour (tid) : mêmes contrôles que controlerGroupe (web/src/donnees/api.ts)"""
+    # Une seule « Forme juridique » ; le type de groupe, qui donne l'agent économique, s'en déduit (plan d'allègement, point 2.5 ; registre S39-2)
+    if not (d.get("typeClient") or "").strip():
+        forme = (d.get("formeJuridique") or "").strip()
+        if not forme:
+            raise ErreurMetier("À remplir : forme juridique.")
+        d["typeClient"] = "Groupement solidaire" if forme.startswith("Groupement") else "Association"
     b = controler_base(u, d, [("date demande", "dateDemande"), ("type de groupe", "typeClient"), ("type de compte à créer", "produitCode"),
                               ("dénomination", "nom"), ("adresse", "adresse")], libelles_liste(u, "type_groupe"), False)
     texte = b["texte"]

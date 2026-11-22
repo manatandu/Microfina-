@@ -426,7 +426,7 @@ def test_enrolement_groupe(clients, journee):
     base = {**FICHE, "typeClient": "Association", "nom": "Mamans de Kinsaku", "adresse": "Matete, quartier Kinsaku", "nbHommes": 0, "nbFemmes": 12, "membres": [mb]}
     def refus(corps):
         r = agent.post("/api/tiers/groupes", corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
-    assert "type de groupe" in refus({**base, "typeClient": ""})
+    assert "forme juridique" in refus({**base, "typeClient": ""})   # le type de groupe se déduit de la forme (plan d'allègement, point 2.5)
     assert "Type inconnu" in refus({**base, "typeClient": "Coopérative"})
     assert "Nombre" in refus({**base, "nbFemmes": -1})
     assert "Membre 1 : Type de pièce non admis" in refus({**base, "membres": [{**mb, "pieceType": "Badge"}]})
@@ -1278,7 +1278,7 @@ def test_listes_general(clients):
     chef, agent = clients["chef"], clients["agent"]
     connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
     l = chef.get("/api/listes/secteur_activite", **H).json()
-    assert [x["code"] for x in l["lignes"]][:3] == ["S1", "S2", "S3"] and l["lignes"][0]["libelle"] == "Primaire" and len(l["catalogue"]) == 10   # pages retirées : plan d'allègement, points 2.2 à 2.7
+    assert [x["code"] for x in l["lignes"]][:3] == ["S1", "S2", "S3"] and l["lignes"][0]["libelle"] == "Primaire" and len(l["catalogue"]) == 9   # pages retirées : plan d'allègement, points 2.2 à 2.7
     def refus(chemin, c):
         r = chef.post(chemin, c, **H); assert r.status_code == 422, r.content; return r.json()["message"]
     assert "N° secteur" in refus("/api/listes/secteur_activite", {"code": "", "libelle": "Pêche"})

@@ -435,7 +435,6 @@ export const CONSTRUITS: Record<string, ComponentType> = {
 export const SOUS_PAGES_S14 = {
   S14a: "type_activite",
   S14b: "profession",
-  S14f: "type_groupe",
   S14i: "forme_juridique",
   S14k: "filiation",
   S14l: "situation_matrimoniale",

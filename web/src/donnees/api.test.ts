@@ -791,7 +791,7 @@ describe("journée de guichet", () => {
     await connecter("bkasongo");
     const mb = { ...REP, nom: "Mbuyi", postnom: "", prenom: "Anne", pieceType: "Carte d'électeur", pieceNumero: "1-0412-7777", signature: "data:image/png;base64,iVBORw0KGgo=" };
     const base = { ...enrolementVide("2026-11-05"), ...IDENTITE, typeClient: "Association", produitCode: "EAV-CDF", nom: "Mamans de Kinsaku", adresse: "Matete", nbFemmes: 12 };
-    await expect(api.tiers.creerGroupe({ ...base, typeClient: "" }, [mb])).rejects.toThrow("type de groupe");
+    await expect(api.tiers.creerGroupe({ ...base, typeClient: "" }, [mb])).rejects.toThrow("forme juridique");   // le type de groupe se déduit de la forme (plan d'allègement, point 2.5)
     await expect(api.tiers.creerGroupe({ ...base, nbFemmes: -1 }, [mb])).rejects.toThrow("Nombre");
     await expect(api.tiers.creerGroupe({ ...base, formeJuridique: "Société anonyme" }, [mb])).rejects.toThrow("Forme juridique du groupe");   // S39-5 : forme de société refusée
     expect((await api.referentiel.contexte()).listesFiche.formeJuridiqueGroupe?.[2]).toBe("Organisation non gouvernementale (ONG)");   // comme le serveur
