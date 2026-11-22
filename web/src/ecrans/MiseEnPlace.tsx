@@ -1,6 +1,7 @@
 // S89 : Crédit > Dossier de crédit > Mise en place (manuel Microfina++, p. 113 : « Information de base sur le prêt » ; texte p. 114, 2.16 à 2.23).
 // Demande, puis Informations sur le montant et la durée, Epargne de capitalisation, Autres informations, Recapitulatif (échéancier, agent, Enregistrer).
 // Registre S89-1 à S89-9, CR-6, CR-8, CR-24.
+import { enClair } from "../lib/enclair";
 import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
@@ -91,7 +92,7 @@ export default function MiseEnPlace() {
               <Champ libelle="Ligne Financement">{(p) => <select {...p} className="saisie" value={f.ligne} onChange={(e) => maj({ ligne: e.target.value })}><option value=""></option>
                 {ctx.lignesBudget.map((x) => <option key={x.id} value={x.id}>{`${x.numero} ${x.libelle}`}</option>)}</select>}</Champ>
               <Champ libelle="Structure de référencement">{(p) => <select {...p} className="saisie" value={f.structure} onChange={(e) => maj({ structure: e.target.value })}>
-                {ctx.structures.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+                {ctx.structures.map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
             </fieldset>
           </div>}
           {page === 1 && <fieldset className="cadre-champs formulaire"><legend>Comptes</legend>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { enClair } from "../lib/enclair";
 import { useSearchParams } from "react-router-dom";
 import { api, type LigneCompte, type SaisieCompte } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
@@ -97,7 +98,7 @@ function Creation({ comptes, typesSuivi, relire }: { comptes: LigneCompte[]; typ
           <label className="case"><input type="checkbox" disabled /><span>Clé de répartition analytique</span></label>
           {OPTIONS.slice(1).map(([k, l]) => <label key={k} className="case"><input type="checkbox" checked={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.checked })} /><span>{l}</span></label>)}
           <Champ libelle="Type de suivi">{(p) => <select {...p} className="saisie" value={f.typeSuivi} onChange={(e) => setF({ ...f, typeSuivi: e.target.value })}><option value=""></option>
-            {typesSuivi.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+            {typesSuivi.map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
           <Champ libelle="Autorisation BCC (opération hors nomenclature du PCCI) :">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.autorisationBcc}
             onChange={(e) => setF({ ...f, autorisationBcc: e.target.value })} />}</Champ>
         </fieldset>

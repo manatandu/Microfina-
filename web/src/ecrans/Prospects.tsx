@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { enClair } from "../lib/enclair";
 import { api, type Prospect } from "../donnees/api";
 import { BlocAdresse } from "../composants/Adresse";
 import { useDonnees, message } from "../lib/useDonnees";
@@ -36,7 +37,7 @@ export function NouveauProspect() {
             <ChampDate libelle="Date naissance : *" valeur={d.naissance} onChange={(v) => maj({ naissance: v })} requis />
             <Champ libelle="à : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("lieuNaissance")} />}</Champ>
             <Champ libelle="Sexe : *">{(p) => <select {...p} className="saisie court" required {...texte("sexe")}><option value=""></option><option value="M">M</option><option value="F">F</option></select>}</Champ>
-            <Champ libelle="Profession :">{(p) => <select {...p} className="saisie" {...texte("profession")}><option value=""></option>{ctx.professions.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+            <Champ libelle="Profession :">{(p) => <select {...p} className="saisie" {...texte("profession")}><option value=""></option>{ctx.professions.map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
           </div>
           <div className="pile">
             <BlocAdresse valeur={d} maj={maj} arbre={ctx.arbreLieux} requis ajouterQuartier={api.adresse.ajouterQuartier} />

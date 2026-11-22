@@ -21,7 +21,7 @@ FONDS_G2 = {"USD": {100: 140, 50: 12, 20: 8, 10: 3, 5: 2, 1: 6}, "CDF": {20000: 
 
 
 
-SECTEURS = [("S1", "PRIMAIRE"), ("S2", "SECONDAIRE"), ("S3", "TERTIAIRE")]
+SECTEURS = [("S1", "Primaire"), ("S2", "Secondaire"), ("S3", "Tertiaire")]
 # Décision du porteur (18/11/2026, registre S14-3) : les autres lignes de la capture p. 23 sont des types d'activité (S14a), rangés sous leur secteur
 TYPES_ACTIVITE = [("T1", "Elevage", "S1"), ("T2", "Pêche", "S1"), ("T3", "Transformation", "S2"), ("T4", "Artisanat", "S2"), ("T5", "Commerce", "S3")]
 # Les 14 grands domaines du ROME/RDC (ONEM), sous leur secteur : toute activité, salariée ou non, y trouve sa place (fonctionnaire : services à la collectivité ;
@@ -59,7 +59,7 @@ LISTES_CLIENT = {
     "categorie_groupe": ["Groupe de femmes", "Groupe d'hommes", "Groupe mixte"],      # pratique : composition du groupe selon le genre
 }
 # Sous types de client (S14h) : ceux des deux captures p. 25 (« Homme » dans la seconde)
-SOUS_TYPES = ("Homme", "Femme", "Entreprise", "Institution Financiere", "ETABLISSEMENT", "SARL", "SA", "GROUPEMENT", "ASSOCIATION", "EGLISE", "ONG", "ATELIER")
+SOUS_TYPES = ("Homme", "Femme", "Entreprise", "Institution financière", "Établissement", "SARL", "SA", "Groupement", "Association", "Église", "ONG", "Atelier")
 
 
 def completer(ins: int) -> int:
@@ -205,8 +205,8 @@ class Command(BaseCommand):
         for c, pr in PROFESSIONS:
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'profession', %s, %s)", (ins, c, pr))
         # Motifs de départ : exemples de la capture du manuel (p. 26), dans le moteur des listes (S18, registre S18-1)
-        for n, mo in enumerate(("DEPART DU PAYS", "Raisons personnelles", "DEMENAGEMENT", "DECISION DU CLIENT", "NE VEUT PLUS PRENDRE DE CREDIT", "AUTRES",
-                                "TRANSFERT SUR UNE AUTRE AGENCE"), 1):
+        for n, mo in enumerate(("Départ du pays", "Raisons personnelles", "Déménagement", "Décision du client", "Ne veut plus prendre de crédit", "Autres",
+                                "Transfert sur une autre agence"), 1):
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'motif_depart', %s, %s)", (ins, str(n), mo))
         for n, st in enumerate(SOUS_TYPES, 1):   # sous types de client (S14h), captures p. 25
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'sous_type_client', %s, %s)", (ins, str(n), st))
@@ -219,14 +219,14 @@ class Command(BaseCommand):
         for c, l in (("SARH", "Service Administratif et RH"), ("CI", "Cellule Informatique"), ("SA", "Service Audit"), ("SCOMFI", "Service Comptabilité & Finances"),
                      ("SOP", "Service des opérations")):
             executer("insert into budget_centre (institution_id, code, libelle, type_id, parent_id) values (%s, %s, %s, %s, %s)", (ins, c, l, tc["DIR"], dg))
-        for c, l, pc in (("BR", "BUDGET DES RESSOURCES", "1*,2*,5*,7*"), ("BF", "BUDGET DE FONCTIONNEMENT", "6*"), ("BO", "BUDGET DES OPERATIONS", "2*"),
-                         ("BI", "BUDGET DES INVESTISSEMENTS", "4*")):
+        for c, l, pc in (("BR", "Budget des ressources", "1*,2*,5*,7*"), ("BF", "Budget de fonctionnement", "6*"), ("BO", "Budget des opérations", "2*"),
+                         ("BI", "Budget des investissements", "4*")):
             executer("insert into budget_type (institution_id, code, libelle, param_compte) values (%s, %s, %s, %s)", (ins, c, l, pc))
         tp = {}
         for c, l, m, j in (("M", "Mensuel", 1, 30), ("TRIM", "Trimestriel", 3, 0), ("SEM", "Semestriel", 6, 0), ("15J", "Quinzaine", 0, 14), ("AN", "Annuel", 12, 360)):
             tp[c] = valeur("insert into budget_type_periode (institution_id, code, libelle, duree_mois, duree_jours) values (%s, %s, %s, %s, %s) returning id", (ins, c, l, m, j))
-        for c, l, t, d, f in (("TR1", "1er Trimestre", "TRIM", "01/01", "31/03"), ("1", "JANVIER", "M", "01/01", "31/01"), ("2", "FEVRIER", "M", "01/02", "28/02"),
-                              ("14", "1ère Quinzaine de Janvier", "15J", "01/01", "14/01"), ("3", "MARS", "M", "01/03", "31/03"), ("4", "AVRIL", "M", "01/04", "30/04")):
+        for c, l, t, d, f in (("TR1", "1er Trimestre", "TRIM", "01/01", "31/03"), ("1", "Janvier", "M", "01/01", "31/01"), ("2", "Février", "M", "01/02", "28/02"),
+                              ("14", "1ère Quinzaine de Janvier", "15J", "01/01", "14/01"), ("3", "Mars", "M", "01/03", "31/03"), ("4", "Avril", "M", "01/04", "30/04")):
             executer("insert into budget_periode (institution_id, code, libelle, type_id, debut, fin) values (%s, %s, %s, %s, %s, %s)", (ins, c, l, tp[t], d, f))
         ag = valeur("insert into agence (institution_id, code, nom) values (%s, '0412', 'Matete') returning id", (ins,))
         # Référentiel crédit (S21) : zone de démonstration et exemples des captures p. 32 à 36
@@ -293,7 +293,7 @@ class Command(BaseCommand):
             to[l] = valeur("insert into credit_type_objet (institution_id, libelle, secteur_id) values (%s, %s, %s) returning id", (ins, l, secteur(sec)))
         for l in ("Crédits immobiliers", "Crédits d'équipement", "Crédits à la consommation", "Crédits de trésorerie", "Autres crédits"):
             executer("insert into credit_objet (institution_id, libelle, type_objet_id) values (%s, %s, %s)", (ins, l, to["Commerce, hôtels et restaurants"]))
-        for c, l in (("C01", "PREMIER CYCLE"), ("C02", "DEUXIEME CYCLE")):
+        for c, l in (("C01", "Premier cycle"), ("C02", "Deuxième cycle")):
             executer("insert into credit_cycle (institution_id, code, libelle) values (%s, %s, %s)", (ins, c, l))
         executer("insert into credit_type_assurance (institution_id, code, libelle) values (%s, 'T01', 'Interne')", (ins,))
         # Ordres de remboursement (S22) : ceux des captures p. 34 et 37 ; Sains et Impayés en PICES, les autres degrés en CIPES (capture p. 34)

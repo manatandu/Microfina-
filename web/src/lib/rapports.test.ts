@@ -21,9 +21,9 @@ describe("rapports clients (S51)", () => {
   });
   it("multicritère : secteur, nationalité et agents de la fiche (registre S14-1, S51-2)", () => {
     const l = clients();
-    Object.assign(l[1]!, { secteurActivite: "PRIMAIRE", nationalite: "République démocratique du Congo", gestionnaireId: 7 });
-    expect(multicritere(l, { ...base, secteur: "PRIMAIRE" }, cx).map((t) => t.nom)).toEqual(["Mwamba"]);
-    expect(multicritere(l, { ...base, secteur: "TERTIAIRE" }, cx)).toEqual([]);
+    Object.assign(l[1]!, { secteurActivite: "Primaire", nationalite: "République démocratique du Congo", gestionnaireId: 7 });
+    expect(multicritere(l, { ...base, secteur: "Primaire" }, cx).map((t) => t.nom)).toEqual(["Mwamba"]);
+    expect(multicritere(l, { ...base, secteur: "Tertiaire" }, cx)).toEqual([]);
     expect(multicritere(l, { ...base, nationalite: "République démocratique du Congo" }, cx).map((t) => t.nom)).toEqual(["Mwamba"]);
     expect(multicritere(l, { ...base, gestionnaire: "7" }, cx).map((t) => t.nom)).toEqual(["Mwamba"]);
     expect(multicritere(l, { ...base, gestionnaire: "0" }, cx).map((t) => t.nom)).toEqual(["Kalala", "Lukusa"]);   // INCONNU : aucun gestionnaire

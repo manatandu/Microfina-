@@ -6458,7 +6458,7 @@ export function preparerDemo() {
     guichet.retrait({ cle: cle(), compteId: 3, montant: 5000, coupures: billets(5000, "USD", caisses.theorique(sid, "USD")), motif: "" });
     for (const r of [0, 5]) guichet.parts({ cle: cle(), tiersId: ids[r]!, sens: "achat", nombre: 1, coupures: billets(valeurPart(), "CDF") });
     // Un membre résilié (S48)
-    comme("jpmukendi"); tiers.resilier(ids[15]!, { motif: "DEMENAGEMENT" });
+    comme("jpmukendi"); tiers.resilier(ids[15]!, { motif: "Déménagement" });
   } finally { E.session = avant; enregistrer(); }
 }
 

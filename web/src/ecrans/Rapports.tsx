@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { enClair } from "../lib/enclair";
 import { api } from "../donnees/api";
 import type { Tiers } from "../donnees/types";
 import { useDonnees } from "../lib/useDonnees";
@@ -108,17 +109,17 @@ function Multicritere({ ctx, cx, clients }: { ctx: Ctx; cx: ContexteRapport; cli
         <Champ libelle="Prénoms :">{(p) => <input {...p} className="saisie" autoComplete="off" value={c.prenoms} onChange={(e) => maj({ prenoms: e.target.value })} />}</Champ>
         <Champ libelle="Agence :">{(p) => <select {...p} className="saisie"><option>{ctx.agence.nom}</option></select>}</Champ>
         <Champ libelle="TypeClient :">{(p) => <select {...p} className="saisie" value={c.typeClient} onChange={(e) => maj({ typeClient: e.target.value })}><option value=""></option>
-          {[...ctx.typesClient, ...ctx.typesEntreprise, ...ctx.typesGroupe].map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+          {[...ctx.typesClient, ...ctx.typesEntreprise, ...ctx.typesGroupe].map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
         <Champ libelle="Catégorie :">{(p) => <select {...p} className="saisie" value={c.categorie} onChange={(e) => maj({ categorie: e.target.value as CriteresMulticritere["categorie"] })}>
           <option value=""></option>{Object.entries(CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>}</Champ>
-        <Champ libelle="Zone :">{(p) => <select {...p} className="saisie" value={c.zone} onChange={(e) => maj({ zone: e.target.value })}><option value=""></option>{ctx.zones.map((z) => <option key={z}>{z}</option>)}</select>}</Champ>
+        <Champ libelle="Zone :">{(p) => <select {...p} className="saisie" value={c.zone} onChange={(e) => maj({ zone: e.target.value })}><option value=""></option>{ctx.zones.map((z) => <option key={z} value={z}>{enClair(z)}</option>)}</select>}</Champ>
         <Champ libelle="Nationalité :">{(p) => <select {...p} className="saisie" value={c.nationalite} onChange={(e) => maj({ nationalite: e.target.value })}><option value=""></option>
-          {nationalites.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+          {nationalites.map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
         <ChoixAgent libelle="Gestionnaire :" liste={ctx.gestionnaires} valeur={c.gestionnaire} onChange={(v) => maj({ gestionnaire: v })} />
         <ChoixAgent libelle="Commercial :" liste={ctx.commerciaux} valeur={c.commercial} onChange={(v) => maj({ commercial: v })} />
         <ChoixAgent libelle="Sensibilisateur :" liste={ctx.sensibilisateurs} valeur={c.sensibilisateur} onChange={(v) => maj({ sensibilisateur: v })} />
         <Champ libelle="Secteur d'activité :">{(p) => <select {...p} className="saisie" value={c.secteur} onChange={(e) => maj({ secteur: e.target.value })}><option value=""></option>
-          {(ctx.listesFiche.secteurActivite ?? []).map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+          {(ctx.listesFiche.secteurActivite ?? []).map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
         <Champ libelle="Genre :">{(p) => <select {...p} className="saisie" value={c.genre} onChange={(e) => maj({ genre: e.target.value as CriteresMulticritere["genre"] })}>
           <option value="">Tous les Client</option><option value="M">Homme</option><option value="F">Femme</option></select>}</Champ>
       </fieldset>
@@ -175,11 +176,11 @@ function Prospects({ ctx, clients }: { ctx: Ctx; clients: Tiers[] }) {
         <Champ libelle="Nom :">{(p) => <input {...p} className="saisie" autoComplete="off" value={c.nom} onChange={(e) => maj({ nom: e.target.value })} />}</Champ>
         <Champ libelle="Prénoms :">{(p) => <input {...p} className="saisie" autoComplete="off" value={c.prenoms} onChange={(e) => maj({ prenoms: e.target.value })} />}</Champ>
         <Champ libelle="Agence :">{(p) => <select {...p} className="saisie"><option>{ctx.agence.nom}</option></select>}</Champ>
-        <Champ libelle="Zone :">{(p) => <select {...p} className="saisie" value={c.quartier} onChange={(e) => maj({ quartier: e.target.value })}><option value=""></option>{quartiers.map((q) => <option key={q}>{q}</option>)}</select>}</Champ>
+        <Champ libelle="Zone :">{(p) => <select {...p} className="saisie" value={c.quartier} onChange={(e) => maj({ quartier: e.target.value })}><option value=""></option>{quartiers.map((q) => <option key={q} value={q}>{enClair(q)}</option>)}</select>}</Champ>
         <ChoixAgent libelle="Commercial :" liste={ctx.commerciaux} valeur={c.commercial} onChange={(v) => maj({ commercial: v })} />
         <Champ libelle="Genre :">{(p) => <select {...p} className="saisie" value={c.genre} onChange={(e) => maj({ genre: e.target.value as CriteresProspect["genre"] })}>
           <option value="">Tous les Client</option><option value="M">Homme</option><option value="F">Femme</option></select>}</Champ>
-        <Champ libelle="Profession :">{(p) => <select {...p} className="saisie" value={c.profession} onChange={(e) => maj({ profession: e.target.value })}><option value=""></option>{ctx.professions.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+        <Champ libelle="Profession :">{(p) => <select {...p} className="saisie" value={c.profession} onChange={(e) => maj({ profession: e.target.value })}><option value=""></option>{ctx.professions.map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
       </fieldset>
       <div className="actions-onglets">
         <button className="bouton" type="button" onClick={() => setLignes(prospects(clients, c))}>Rechercher</button>

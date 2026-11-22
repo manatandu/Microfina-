@@ -1,5 +1,6 @@
 // S85 : Crédit > Analyse financière (manuel Microfina++, p. 112 : deux captures). Allégée : Identification, Crédit, Element ; développée : Identification,
 // Bilan, Garanties, Crédit, Indicateurs, Ratios, Recommandations. Contenu des onglets proposé par nous (registre CR-11, S85-1 à S85-6). Indicative.
+import { enClair } from "../lib/enclair";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api, calculerAnalyse } from "../donnees/api";
@@ -138,7 +139,7 @@ function Analyse({ type }: { type: Type }) {
       {cle === "garanties" && <fieldset className="cadre-champs pile"><legend>Garanties proposées</legend>
         {f.garanties.map((g, i) => <div key={i} className="ligne-champ">
           <Champ libelle={`Type ${i + 1}`}>{(pp) => <select {...pp} className="saisie" value={g.type} onChange={(e) => maj({ garanties: f.garanties.map((x, j) => (j === i ? { ...x, type: e.target.value } : x)) })}>
-            <option value=""></option>{["Caution", "Dépôt de garantie", "Nantissement de matériel", "Gage", "Hypothèque", "Autre"].map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+            <option value=""></option>{["Caution", "Dépôt de garantie", "Nantissement de matériel", "Gage", "Hypothèque", "Autre"].map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
           <Champ libelle={`Description ${i + 1}`}>{(pp) => <input {...pp} className="saisie" autoComplete="off" value={g.description} onChange={(e) => maj({ garanties: f.garanties.map((x, j) => (j === i ? { ...x, description: e.target.value } : x)) })} />}</Champ>
           <Champ libelle={`Valeur ${i + 1}`}>{(pp) => <input {...pp} className="saisie montant" inputMode="decimal" autoComplete="off" value={g.valeur} onChange={(e) => maj({ garanties: f.garanties.map((x, j) => (j === i ? { ...x, valeur: e.target.value } : x)) })} />}</Champ>
           <button className="bouton secondaire" type="button" onClick={() => maj({ garanties: f.garanties.filter((_, j) => j !== i) })}>Retirer</button>

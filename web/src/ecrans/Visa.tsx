@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { enClair } from "../lib/enclair";
 import { api, IMAGE_MAX, ageAu, MAJORITE } from "../donnees/api";
 import type { Representant, Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
@@ -579,7 +580,7 @@ export function ResiliationClient() {
             <Champ libelle="Motif *">{(p) => resilie
               ? <Lecture {...p} value={t!.motifDepart} />
               : <select {...p} className="saisie" required value={motif} onChange={(e) => setMotif(e.target.value)}><option value=""></option>
-                  {ctx.motifsDepart.map((m) => <option key={m}>{m}</option>)}</select>}</Champ>
+                  {ctx.motifsDepart.map((m) => <option key={m} value={m}>{enClair(m)}</option>)}</select>}</Champ>
             {/* P1 (confrontation du 21/11/2026) : exclusion par le Conseil d'administration (loi 002/2002, art. 25) */}
             {resilie ? t?.exclusionReference && <p>Exclusion : décision {t.exclusionReference} du {fr(t.exclusionLe ?? "")}</p>
               : <label className="case sans-impression"><input type="checkbox" checked={!!exclusion} onChange={(e) => setExclusion(e.target.checked ? { reference: "", date: "" } : null)} /><span>Exclusion par le Conseil d'administration</span></label>}

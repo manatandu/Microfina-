@@ -332,9 +332,9 @@ def test_piece_admise(clients, journee):
     r = clients["agent"].post("/api/tiers", {**FICHE, "nom": "X", "pieceType": "Passeport", "pieceNumero": "1", "objetRelation": ""}, **H)
     assert r.status_code == 422 and "objet et nature de la relation" in r.json()["message"]   # A8 : loi 22/068, art. 47
     # A7 : une activité déclarée demande la pièce d'habilitation (loi 22/068, art. 33, al. 4 ; Instr. BCC 15, art. 13, al. 2)
-    r = clients["agent"].post("/api/tiers", {**FICHE, "nom": "X", "pieceType": "Passeport", "pieceNumero": "1", "secteurActivite": "PRIMAIRE"}, **H)
+    r = clients["agent"].post("/api/tiers", {**FICHE, "nom": "X", "pieceType": "Passeport", "pieceNumero": "1", "secteurActivite": "Primaire"}, **H)
     assert r.status_code == 422 and "habilitation" in r.json()["message"]
-    t = clients["agent"].post("/api/tiers", {**FICHE, "nom": "X", "pieceType": "Passeport", "pieceNumero": "1", "secteurActivite": "PRIMAIRE",
+    t = clients["agent"].post("/api/tiers", {**FICHE, "nom": "X", "pieceType": "Passeport", "pieceNumero": "1", "secteurActivite": "Primaire",
                                              "habilitationReference": "Patente 0412/2026"}, **H).json()
     assert t["habilitationReference"] == "Patente 0412/2026"
     r = clients["chef"].post(f"/api/tiers/{t['id']}/visa", {}, **H)
@@ -378,7 +378,7 @@ def test_fiche_entreprise(clients, journee):
                         "formeJuridique": "Société anonyme", "registre": "R0", "adresse": "Matete", "dirigeant": dirigeant}, **H).json()["id"]
     sens = ident("select id from agent_agence where role = 'sensibilisateur' and actif order by id limit 1")
     base = {**FICHE, "typeClient": "Entreprises privées", "zone": "Matete", "nom": "Kinsaku Pain SARL", "formeJuridique": "Société à responsabilité limitée",
-            "registre": "R2", "adresse": "Matete", "secteurActivite": "PRIMAIRE", "pays": "", "email": "contact@exemple.cd", "sensibilisateurId": sens,
+            "registre": "R2", "adresse": "Matete", "secteurActivite": "Primaire", "pays": "", "email": "contact@exemple.cd", "sensibilisateurId": sens,
             "dirigeant": dirigeant}
     def refus(corps):
         r = agent.post("/api/tiers/entreprises", corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
@@ -397,7 +397,7 @@ def test_fiche_entreprise(clients, journee):
     t = agent.post("/api/tiers/entreprises", {**base, "beneficiairesEffectifs": [physique],
                                               "controleEffectifs": [{"nature": "Participation de contrôle", "part": "40,5"}]}, **H).json()
     assert (t["formeJuridique"], t["secteurActivite"], t["email"], t["beneficiairesEffectifs"], t["liees"], t["controleEffectifs"]) == \
-        ("Société à responsabilité limitée", "PRIMAIRE", "contact@exemple.cd", [physique], [], [{"nature": "Participation de contrôle", "part": "40,50"}])
+        ("Société à responsabilité limitée", "Primaire", "contact@exemple.cd", [physique], [], [{"nature": "Participation de contrôle", "part": "40,50"}])
     # copie des statuts et du registre avant le visa (loi 22/068, art. 34 ; confrontation du 21/11/2026, E1)
     r = clients["chef"].post(f"/api/tiers/{t['id']}/visa", {}, **H)
     assert r.status_code == 422 and "copie des statuts" in r.json()["message"], r.content
@@ -444,7 +444,7 @@ def test_fiche_groupe(clients, journee):
     ins = ident("select institution_id from agence order by id limit 1")
     executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'categorie_groupe', 'G1', 'Groupe de femmes')", (ins,))
     executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'type_groupe', '9', 'Tontine')", (ins,))
-    base = {**FICHE, "typeClient": "Tontine", "nom": "Tontine Kinsaku", "adresse": "Matete", "membres": [], "secteurActivite": "PRIMAIRE",
+    base = {**FICHE, "typeClient": "Tontine", "nom": "Tontine Kinsaku", "adresse": "Matete", "membres": [], "secteurActivite": "Primaire",
             "categorie": "Groupe de femmes", "email": "tontine@exemple.cd"}
     def refus(corps):
         r = agent.post("/api/tiers/groupes", corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
@@ -456,7 +456,7 @@ def test_fiche_groupe(clients, journee):
     assert "Sensibilisateur inconnu" in refus({**base, "sensibilisateurId": 999999})
     r = agent.post("/api/tiers/groupes", base, **H); assert r.status_code == 200, r.content
     t = r.json()
-    assert (t["typeClient"], t["categorie"], t["secteurActivite"], t["email"]) == ("Tontine", "Groupe de femmes", "PRIMAIRE", "tontine@exemple.cd")
+    assert (t["typeClient"], t["categorie"], t["secteurActivite"], t["email"]) == ("Tontine", "Groupe de femmes", "Primaire", "tontine@exemple.cd")
     assert ident("select agent_economique from tiers where id = %s", (t["id"],)) == "menages"   # groupement sans personnalité juridique : ses membres sont des personnes physiques (registre S39-2)
     assert "Tontine" in agent.get("/api/referentiel", **H).json()["typesGroupe"]
 
@@ -828,7 +828,7 @@ def test_motif_depart(clients):
     """S18 (p. 26) : Libellé Motif seul, unique, ordre de saisie ; la résiliation (S48) lit la même liste (registre S18-1, S18-2)"""
     chef = clients["chef"]; connecter(chef, "jpmukendi")
     l = chef.get("/api/listes/motif_depart", **H).json()
-    assert l["lignes"][0]["libelle"] == "DEPART DU PAYS" and l["liste"]["sansCode"]
+    assert l["lignes"][0]["libelle"] == "Départ du pays" and l["liste"]["sansCode"]
     def refus(corps):
         r = chef.post("/api/listes/motif_depart", corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
     assert "Libellé Motif" in refus({"code": "", "libelle": ""})
@@ -863,7 +863,7 @@ def test_resiliation(clients, journee):
     k = T("0412-000320")
     def refus(c, corps, tid=k):
         r = c.post(f"/api/tiers/{tid}/resiliation", corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
-    assert "Droit manquant" in refus(agent, {"motif": "AUTRES"})
+    assert "Droit manquant" in refus(agent, {"motif": "Autres"})
     assert "motif" in refus(chef, {"motif": ""})
     assert "Motif inconnu" in refus(chef, {"motif": "Fâché"})
     assert "compte à solder : 0412-000320-02" in refus(chef, {"motif": "Raisons personnelles"})   # registre S48-1 ; loi 002/2002, art. 27
@@ -872,7 +872,7 @@ def test_resiliation(clients, journee):
     assert r.status_code == 200, r.content
     v = r.json()
     assert (v["statut"], v["motifDepart"], v["resilieLe"]) == ("resilie", "Raisons personnelles", "2026-11-05")
-    assert "déjà résilié" in refus(chef, {"motif": "AUTRES"})
+    assert "déjà résilié" in refus(chef, {"motif": "Autres"})
     r = caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000320-02"), "montant": 1000000, "coupures": {"10000": 1}, "mandataire": ""}, **H)
     assert r.status_code == 422 and "résilié" in r.json()["message"]
 
@@ -1008,8 +1008,8 @@ def test_parts_sociales(clients, journee):
     # Membre résilié : toutes ses parts lui sont rendues (apurement, art. 27)
     vider_comptes(chef, caisse, m)
     # P1 : une exclusion porte la référence et la date de la décision du Conseil d'administration (loi 002/2002, art. 25)
-    assert "Exclusion" in chef.post(f"/api/tiers/{m}/resiliation", {"motif": "AUTRES", "exclusion": {"reference": "", "date": "2026-11-05"}}, **H).json()["message"]
-    r = chef.post(f"/api/tiers/{m}/resiliation", {"motif": "AUTRES", "exclusion": {"reference": "CA du 04/11/2026, décision 7", "date": "2026-11-04"}}, **H)
+    assert "Exclusion" in chef.post(f"/api/tiers/{m}/resiliation", {"motif": "Autres", "exclusion": {"reference": "", "date": "2026-11-05"}}, **H).json()["message"]
+    r = chef.post(f"/api/tiers/{m}/resiliation", {"motif": "Autres", "exclusion": {"reference": "CA du 04/11/2026, décision 7", "date": "2026-11-04"}}, **H)
     assert r.status_code == 200 and r.json()["exclusionReference"] == "CA du 04/11/2026, décision 7", r.content   # les parts restent, remboursées après (art. 22 et 27)
     assert op({"tiersId": m, "sens": "retrait", "nombre": 1, "coupures": {"1000": 4}}).json()["statut"] == "validee"
     assert "résilié" in refus({"tiersId": m, "sens": "achat", "nombre": 1, "coupures": {"1000": 4}})
@@ -1279,7 +1279,7 @@ def test_listes_general(clients):
     chef, agent = clients["chef"], clients["agent"]
     connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
     l = chef.get("/api/listes/secteur_activite", **H).json()
-    assert [x["code"] for x in l["lignes"]][:3] == ["S1", "S2", "S3"] and l["lignes"][0]["libelle"] == "PRIMAIRE" and len(l["catalogue"]) == 16   # S14o : forme juridique du groupe (S39-5)
+    assert [x["code"] for x in l["lignes"]][:3] == ["S1", "S2", "S3"] and l["lignes"][0]["libelle"] == "Primaire" and len(l["catalogue"]) == 16   # S14o : forme juridique du groupe (S39-5)
     def refus(chemin, c):
         r = chef.post(chemin, c, **H); assert r.status_code == 422, r.content; return r.json()["message"]
     assert "N° secteur" in refus("/api/listes/secteur_activite", {"code": "", "libelle": "Pêche"})
@@ -1444,7 +1444,7 @@ def test_budget_referentiels(clients):
     assert li["affichage"] == {"numero": "1", "libelle": "Salaires", "planId": "PLAN BUDGETAIRE ANNEE 2026", "centreId": "Agence de Matete", "bailleurId": ""}
     assert "existe déjà" in refus("lignes", {"numero": "1", "libelle": "Autre", "planId": p["id"], "centreId": agm["id"]})
     o = ok("operations", {"typeOperation": "DEPOT", "typeBudgetId": next(x for x in tb["lignes"] if x["code"] == "BO")["id"]})["lignes"][0]
-    assert o["affichage"]["typeOperation"] == "DEPOT" and o["affichage"]["typeBudgetId"] == "BUDGET DES OPERATIONS"
+    assert o["affichage"]["typeOperation"] == "DEPOT" and o["affichage"]["typeBudgetId"] == "Budget des opérations"
     assert "existe déjà" in refus("operations", {"typeOperation": "DEPOT", "typeBudgetId": o["typeBudgetId"]})
     assert "inconnu" in refus("operations", {"typeOperation": "PRET", "typeBudgetId": o["typeBudgetId"]})
     assert chef.post(f"{B}/lignes/{li['id']}/suppression", {}, **H).status_code == 200
@@ -1533,7 +1533,7 @@ def test_credit_general(clients):
         r = chef.post(f"{C}/{page}" + (f"/{lid}" if lid else ""), corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
     l = chef.get(f"{C}/types_objet", **H).json()
     assert [x["menu"] for x in l["catalogue"]][:3] == ["Type Objet", "Objet Credit", "Type produit Credit"] and len(l["catalogue"]) == 11
-    assert agent.post(f"{C}/cycles", {"code": "C03", "libelle": "TROISIEME CYCLE"}, **H).status_code == 403
+    assert agent.post(f"{C}/cycles", {"code": "C03", "libelle": "Troisième cycle"}, **H).status_code == 403
     d = chef.get(f"{C}/degres", **H).json()["lignes"]                     # Instr. BCC 003, art. 12
     assert [(x["debut"], x["fin"], x["taux"]) for x in d] == [(0, 0, 0), (1, 30, 5), (31, 60, 25), (61, 90, 50), (91, 180, 75), (181, 365, 100), (366, 999999, 100)]
     assert "ne se modifie pas" in refus("degres", {"libelle": "X"})
@@ -2639,7 +2639,7 @@ def test_fiche_client_physique(clients, journee):
     connecter(chef, "jpmukendi")
     chef.post("/api/listes/situation_matrimoniale", {"code": "1", "libelle": "Marié(e)"}, **H)
     chef.post("/api/listes/filiation", {"code": "1", "libelle": "Enfant"}, **H)
-    primaire = next(x for x in chef.get("/api/listes/secteur_activite", **H).json()["lignes"] if x["libelle"] == "PRIMAIRE")
+    primaire = next(x for x in chef.get("/api/listes/secteur_activite", **H).json()["lignes"] if x["libelle"] == "Primaire")
     chef.post("/api/listes/type_activite", {"code": "A1", "libelle": "Pisciculture", "parentId": primaire["id"]}, **H)
     base = {**FICHE, "nom": "Kalonji", "pieceType": "Passeport", "pieceNumero": "OP77"}
     def refus(corps):
@@ -2648,14 +2648,14 @@ def test_fiche_client_physique(clients, journee):
         {**base, **{k: "" for k in ("prenom", "naissance", "lieuNaissance", "adresse", "pieceDelivreeLe", "pieceLieu", "pieceAutorite", "pieceExpire")}})
     assert "Pièce expirée" in refus({**base, "pieceExpire": "2020-01-01"})
     assert "Situation matrimoniale" in refus({**base, "situationMatrimoniale": "Pacsé"})
-    assert "Type d'activité" in refus({**base, "secteurActivite": "SECONDAIRE", "typeActivite": "Pisciculture"})
+    assert "Type d'activité" in refus({**base, "secteurActivite": "Secondaire", "typeActivite": "Pisciculture"})
     assert "Nationalité" in refus({**base, "nationalite": "Atlantide"})
     assert "Pays, ville, commune ou quartier" in refus({**base, "pays": "République démocratique du Congo", "ville": "Kinshasa", "quartier": "Nulle part"})
     assert "Gestionnaire inconnu" in refus({**base, "gestionnaireId": 999999})
     assert "Bénéficiaire 1 : à remplir : nom" in refus({**base, "beneficiaires": [{"nom": ""}]})
     assert "filiation inconnue" in refus({**base, "beneficiaires": [{"nom": "Kalonji", "filiation": "Cousin"}]})
     t = agent.post("/api/tiers", {**base, "situationMatrimoniale": "Marié(e)", "nationalite": "République démocratique du Congo", "pere": "Kalonji Pierre",
-                                  "mere": "Mbuyi Anne", "secteurActivite": "PRIMAIRE", "typeActivite": "Pisciculture", "habilitationReference": "Autorisation de pêche 12",
+                                  "mere": "Mbuyi Anne", "secteurActivite": "Primaire", "typeActivite": "Pisciculture", "habilitationReference": "Autorisation de pêche 12",
                                   "beneficiaires": [{"nom": "Kalonji", "prenom": "Paul", "filiation": "Enfant", "sexe": "M"}]}, **H).json()
     assert "situationMatrimoniale" in t, t
     assert (t["situationMatrimoniale"], t["pere"], t["typeActivite"], t["beneficiaires"][0]["filiation"]) == ("Marié(e)", "Kalonji Pierre", "Pisciculture", "Enfant")

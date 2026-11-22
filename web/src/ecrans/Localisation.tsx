@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { enClair } from "../lib/enclair";
 import { api, type LieuVue } from "../donnees/api";
 import type { NiveauLieu } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
@@ -124,7 +125,7 @@ export default function Localisation() {
           <Champ libelle="Nationalite *">{(p) => <input {...p} className="saisie" value={pays.nationalite} onChange={(e) => setPays({ ...pays, nationalite: e.target.value })} />}</Champ>
           <Champ libelle="Code *">{(p) => <input {...p} className="saisie code" value={pays.code} onChange={(e) => setPays({ ...pays, code: e.target.value })} />}</Champ>
           <Champ libelle="Zone *">{(p) => <select {...p} className="saisie" value={pays.zone} onChange={(e) => setPays({ ...pays, zone: e.target.value })}>
-            <option value=""></option>{donnees.zones.map((z) => <option key={z}>{z}</option>)}</select>}</Champ>
+            <option value=""></option>{donnees.zones.map((z) => <option key={z} value={z}>{enClair(z)}</option>)}</select>}</Champ>
           <div className="actions-onglets">
             <button className="bouton" type="button" onClick={() => executer( () => api.localisation.enregistrer("pays", pays), () => setPays(null))}>Enregistrer</button>
           </div>

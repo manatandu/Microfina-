@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { enClair } from "../lib/enclair";
 import { api, type ValeursFrais } from "../donnees/api";
 import type { Frais, ParamAdhesion, ParamOperation } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
@@ -36,7 +37,7 @@ function Valeurs({ v, maj, natures }: { v: { nature: string; valeur: string; com
     <fieldset className="pile cadre-champs">
       <legend>Valeurs du paramétrage</legend>
       <Champ libelle="Nature du frais *">{(p) => <select {...p} className="saisie" required value={v.nature} onChange={(e) => maj({ nature: e.target.value })}>
-        <option value=""></option>{natures.map((n) => <option key={n}>{n}</option>)}</select>}</Champ>
+        <option value=""></option>{natures.map((n) => <option key={n} value={n}>{enClair(n)}</option>)}</select>}</Champ>
       <Champ libelle={v.nature === "Taux" ? "Valeur (%)" : "Valeur (CDF)"}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={v.valeur} onChange={(e) => maj({ valeur: e.target.value })} />}</Champ>
       <Champ libelle="Compte">{(p) => <input {...p} className="saisie code" inputMode="numeric" autoComplete="off" value={v.compte} onChange={(e) => maj({ compte: e.target.value })} />}</Champ>
     </fieldset>
@@ -119,7 +120,7 @@ function OngletFrais({ d, confirmer }: Props) {
     <>
       <div className="formulaire">
         <Champ libelle="Type Opération: *">{(p) => <select {...p} className="saisie" required value={type} onChange={(e) => setType(e.target.value)}>
-          <option value=""></option>{d.typesOperation.map((t) => <option key={t}>{t}</option>)}</select>}</Champ>
+          <option value=""></option>{d.typesOperation.map((t) => <option key={t} value={t}>{enClair(t)}</option>)}</select>}</Champ>
         <Champ libelle="Libellé du frais: *">{(p) => <input {...p} className="saisie" required autoComplete="off" value={libelle} onChange={(e) => setLibelle(e.target.value)} />}</Champ>
         <Champ libelle="Fondement: *">{(p) => <select {...p} className="saisie" required value={fondement} onChange={(e) => setFondement(e.target.value)}>
           <option value=""></option>{Object.entries(d.fondements).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}</Champ>
@@ -167,7 +168,7 @@ function OngletParamOperation({ d, confirmer, erreur }: Props) {
           <fieldset className="cadre-champs formulaire">
             <legend>Frais Opération</legend>
             <Champ libelle="Opération: *">{(p) => <select {...p} className="saisie" required value={operation} onChange={(e) => { setOperation(e.target.value); setFraisId(0); }}>
-              <option value=""></option>{d.typesOperation.map((t) => <option key={t}>{t}</option>)}</select>}</Champ>
+              <option value=""></option>{d.typesOperation.map((t) => <option key={t} value={t}>{enClair(t)}</option>)}</select>}</Champ>
             <Champ libelle="Frais: *">{(p) => <select {...p} className="saisie" required value={fraisId} onChange={(e) => setFraisId(Number(e.target.value))}>
               <option value={0}></option>{fraisOp.map((f) => <option key={f.id} value={f.id}>{f.libelle}</option>)}</select>}</Champ>
           </fieldset>
@@ -254,11 +255,11 @@ function OngletModif({ d, confirmer, erreur, genre }: Props & { genre: "operatio
       <fieldset className="cadre-champs formulaire">
         <legend>Frais Opération</legend>
         {!adhesion && <Champ libelle="Opération: *">{(p) => <select {...p} className="saisie" required value={operation} onChange={(e) => { setOperation(e.target.value); setFraisId(0); fini(); }}>
-          <option value=""></option>{d.typesOperation.filter((t) => t !== "ADHESION").map((t) => <option key={t}>{t}</option>)}</select>}</Champ>}
+          <option value=""></option>{d.typesOperation.filter((t) => t !== "ADHESION").map((t) => <option key={t} value={t}>{enClair(t)}</option>)}</select>}</Champ>}
         <Champ libelle="Frais: *">{(p) => <select {...p} className="saisie" required value={fraisId} onChange={(e) => { setFraisId(Number(e.target.value)); fini(); }}>
           <option value={0}></option>{d.frais.filter((f) => f.typeOperation === operation).map((f) => <option key={f.id} value={f.id}>{f.libelle}</option>)}</select>}</Champ>
         {adhesion && <Champ libelle="Type membre *">{(p) => <select {...p} className="saisie" required value={typeMembre} onChange={(e) => { setTypeMembre(e.target.value); fini(); }}>
-          <option value=""></option>{d.typesMembre.map((t) => <option key={t}>{t}</option>)}</select>}</Champ>}
+          <option value=""></option>{d.typesMembre.map((t) => <option key={t} value={t}>{enClair(t)}</option>)}</select>}</Champ>}
       </fieldset>
       {edition && (
         <div className="pile">
@@ -275,7 +276,7 @@ function OngletModif({ d, confirmer, erreur, genre }: Props & { genre: "operatio
       {categorie && (
         <div className="pile">
           <Champ libelle="Nouveau type membre *">{(p) => <select {...p} className="saisie" required value={categorie.typeMembre} onChange={(e) => setCategorie({ ...categorie, typeMembre: e.target.value })}>
-            <option value=""></option>{d.typesMembre.filter((t) => t !== typeMembre).map((t) => <option key={t}>{t}</option>)}</select>}</Champ>
+            <option value=""></option>{d.typesMembre.filter((t) => t !== typeMembre).map((t) => <option key={t} value={t}>{enClair(t)}</option>)}</select>}</Champ>
           <div className="actions-onglets">
             <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment enregistrer ?", () => api.parametrage.modifierCategorie(categorie.id, categorie.typeMembre), fini)}>Enregistrer</button>
             <button className="bouton secondaire" type="button" onClick={() => setCategorie(null)}>Annuler</button>

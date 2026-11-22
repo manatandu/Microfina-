@@ -1,6 +1,7 @@
 // S100 : Crédit > Engagement par signature (manuel Microfina++, p. 121, capture « Création engagement par signature ») : cadres Bénéficiaire et Détails,
 // Enregistrer, Annuler, Imprimer ; grille des engagements (gabarit liste). Registre S100-1 à S100-7, CR-22, CR-14 ; PCCI hors bilan 00 et 090, compte 727 ;
 // Instr. BCC 002, art. 23, 25 à 29.
+import { enClair } from "../lib/enclair";
 import { useState } from "react";
 import { api } from "../donnees/api";
 import type { Tiers } from "../donnees/types";
@@ -88,7 +89,7 @@ export default function EngagementSignature() {
           <Champ libelle="Compte Epargne *">{(p) => <select {...p} className="saisie" value={f.compteEpargneId} onChange={(e) => maj({ compteEpargneId: e.target.value })}><option value=""></option>{comptes}</select>}</Champ>
           <Champ libelle="Compte Garanti *">{(p) => <select {...p} className="saisie" value={f.compteGarantiId} onChange={(e) => maj({ compteGarantiId: e.target.value })}><option value=""></option>{comptes}</select>}</Champ>
           <Champ libelle="Banque">{(p) => <select {...p} className="saisie" value={f.banque} onChange={(e) => maj({ banque: e.target.value, compteBancaireId: "" })}><option value=""></option>
-            {banques.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+            {banques.map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
           <Champ libelle="Compte Banque">{(p) => <select {...p} className="saisie" value={f.compteBancaireId} onChange={(e) => maj({ compteBancaireId: e.target.value })}><option value=""></option>
             {ctx.banques.filter((x) => x.banque === f.banque).map((x) => <option key={x.id} value={x.id}>{x.numero} ({x.devise})</option>)}</select>}</Champ>
           <Champ libelle="Observation">{(p) => <textarea {...p} className="saisie" rows={2} value={f.observation} onChange={(e) => maj({ observation: e.target.value })} />}</Champ>

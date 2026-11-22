@@ -74,11 +74,11 @@ const OUT = process.argv[2];
   await aller('/administration/s11'); await p.getByLabel('Actif : 2027').uncheck(); await p.getByLabel('Actif : 2026').check(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   // Chef : secteur d'activité (S14, p. 23)
   // Les trois secteurs ; les activités se rangent dessous, dans Type d'activité (décision du porteur, registre S14-3)
-  await aller('/parametrage/s14'); await p.getByRole('cell', { name: 'TERTIAIRE' }).waitFor(); await etape('02f-secteurs-activite');
+  await aller('/parametrage/s14'); await p.getByRole('cell', { name: 'Tertiaire' }).waitFor(); await etape('02f-secteurs-activite');
   // Page Type d'activité de la liste de gauche (S14a, registre S14-2) : rattachée à un secteur
   await p.getByRole('navigation', { name: 'Général' }).getByRole('button', { name: "Type d'activité" }).click();
   await p.getByRole('heading', { name: "Information de base: Type d'activité" }).waitFor();
-  await p.getByLabel("Secteur d'activite : *").selectOption({ label: 'PRIMAIRE' }); await p.getByLabel('Code : *').fill('A1'); await p.getByLabel("Type d'activité : *").fill('Pisciculture');
+  await p.getByLabel("Secteur d'activite : *").selectOption({ label: 'Primaire' }); await p.getByLabel('Code : *').fill('A1'); await p.getByLabel("Type d'activité : *").fill('Pisciculture');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Pisciculture' }).waitFor(); await etape('02f1-type-activite');
   // Chef : motif de départ d'un client (S18, p. 26) : même page, Libelle Motif seul
   await aller('/parametrage/s18'); await p.getByRole('heading', { name: "Motif de départ d'un client" }).waitFor();
@@ -108,8 +108,8 @@ const OUT = process.argv[2];
   await contenu('Quartiers de Matete').getByRole('cell', { name: 'Mbanza-Lemba', exact: true }).waitFor(); await etape('02f8b-localisation-ajout-quartier');
   // Chef : référentiel crédit (S21, p. 32 à 36) : un cycle, puis Degré Crédit (Instr. BCC 003)
   await aller('/parametrage/s21'); await p.getByRole('tab', { name: 'Cycle Credit' }).click(); await p.getByLabel('Libellé *').waitFor();
-  await p.getByLabel('Code *').fill('C03'); await p.getByLabel('Libellé *').fill('TROISIEME CYCLE'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  await p.getByRole('cell', { name: 'TROISIEME CYCLE' }).waitFor(); await etape('02f9-credit-cycles');
+  await p.getByLabel('Code *').fill('C03'); await p.getByLabel('Libellé *').fill('Troisième cycle'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByRole('cell', { name: 'Troisième cycle' }).waitFor(); await etape('02f9-credit-cycles');
   // Type objet et objet de crédit (S21) : lus par la mise en place (S89)
   await p.getByRole('tab', { name: 'Type Objet' }).click(); await p.getByLabel('Type Objet: *').fill('Commerce'); await p.getByLabel('Secteur Activité : *').selectOption({ index: 1 });
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Commerce', exact: true }).waitFor();
@@ -267,7 +267,7 @@ const OUT = process.argv[2];
   await p.getByLabel("Date d'expiration : *").fill('01012031');
   await etape('04b-renseignements');
   await p.getByRole('tab', { name: 'Autres renseignements' }).click(); await adresseKinsaku('Kinsaku', '12');
-  await p.getByLabel('Secteur d\'activité :').selectOption('TERTIAIRE'); await p.getByLabel("Type d'activité :").selectOption('Commerce');
+  await p.getByLabel('Secteur d\'activité :').selectOption('Tertiaire'); await p.getByLabel("Type d'activité :").selectOption('Commerce');
   await p.getByLabel("Pièce d'habilitation professionnelle : *").fill('Patente 0412/2026');   // A7 : loi 22/068, art. 33, al. 4
   await etape('04b2-autres-renseignements');
   await p.getByRole('tab', { name: 'Héritiers désignés' }).click(); await p.getByRole('button', { name: '+Ajouter' }).click();
@@ -297,7 +297,7 @@ const OUT = process.argv[2];
   await mb.getByRole('button', { name: 'Enregistrer' }).click(); await mb.getByRole('button', { name: 'Fermer' }).click();
   await p.getByRole('cell', { name: 'Mbuyi' }).waitFor(); await etape('05i-membres-groupe');
   await p.getByRole('button', { name: 'Suivant' }).click();
-  await p.getByLabel("Secteur d'activité :").selectOption('PRIMAIRE'); await etape('05i2-groupe-autres');   // registre S39-1
+  await p.getByLabel("Secteur d'activité :").selectOption('Primaire'); await etape('05i2-groupe-autres');   // registre S39-1
   await p.getByRole('tab', { name: 'Photo' }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await succes();
   // Entreprise (S38)
@@ -310,7 +310,7 @@ const OUT = process.argv[2];
   await p.getByLabel('Dénomination : *').fill('Boulangerie Kinsaku SARL'); await p.getByLabel('Forme juridique : *').selectOption('Société à responsabilité limitée');
   await p.getByLabel('N° du registre : *').fill('CD/KNG/RCCM/24-B-00001');
   await p.getByRole('button', { name: 'Suivant' }).click(); await adresseKinsaku('Kinsaku', '3');
-  await p.getByLabel("Secteur d'activité :").selectOption('PRIMAIRE'); await etape('05b2-entreprise-autres');
+  await p.getByLabel("Secteur d'activité :").selectOption('Primaire'); await etape('05b2-entreprise-autres');
   await p.getByRole('tab', { name: 'Dirigeant' }).click();
   await representant(p, 'Ilunga', 'Paul', 'Passeport', 'OP9', 'Gérant');
   await etape('05c-dirigeant');
@@ -638,7 +638,7 @@ const OUT = process.argv[2];
   await aller('/clients/s51'); await p.getByRole('button', { name: 'Rechercher' }).click();
   await p.getByRole('cell', { name: '0412-000318' }).waitFor(); await etape('06x-rapport-multicritere');
   // Critère Secteur d'activité (registre S14-1) : l'entreprise et le groupe enrôlés en PRIMAIRE
-  await p.getByLabel("Secteur d'activité :").selectOption('PRIMAIRE'); await p.getByRole('button', { name: 'Rechercher' }).click();
+  await p.getByLabel("Secteur d'activité :").selectOption('Primaire'); await p.getByRole('button', { name: 'Rechercher' }).click();
   await p.getByRole('cell', { name: 'Boulangerie Kinsaku SARL' }).waitFor(); await p.getByRole('cell', { name: 'Mamans de Kinsaku' }).waitFor();
   if (await p.getByRole('cell', { name: /Kalala/ }).count()) throw new Error('secteur : Kalala ne devrait pas sortir');
   await etape('06x2-rapport-secteur');
@@ -1344,11 +1344,11 @@ const OUT = process.argv[2];
   await login('Patrick Lumbala'); await aller('/budget/s124'); const nb = p.getByRole('dialog', { name: 'Nouveau budget' }); await nb.getByRole('radio', { name: 'Définir nouveau budget' }).check();
   await etape('29a-nouveau-budget'); await nb.getByRole('button', { name: 'OK' }).click();
   const choisirBudget = async () => { await p.getByRole('button', { name: 'Rechercher un budget' }).click(); await p.getByRole('dialog', { name: "Recherche d'un budget" }).getByRole('row').filter({ hasText: '2026-PL' }).click(); };
-  await choisirBudget(); await p.getByLabel('Type budget *').selectOption({ label: 'BUDGET DE FONCTIONNEMENT' }); await p.getByLabel('Période *').selectOption({ label: '1er Trimestre' });
+  await choisirBudget(); await p.getByLabel('Type budget *').selectOption({ label: 'Budget de fonctionnement' }); await p.getByLabel('Période *').selectOption({ label: '1er Trimestre' });
   await p.getByLabel('Ligne budgétaire:').selectOption({ label: 'L1 Loyers' }); if ((await p.getByLabel('Financement:').inputValue()) !== 'Fonds Exemple') throw new Error('S124 : financement de la ligne non affiché');
   await p.getByLabel('Compte:').locator('option[value="640"]').waitFor({ state: 'attached' }); await p.getByLabel('Compte:').selectOption('640'); await p.getByLabel('Valeur:').fill('1000000');
   await etape('29b-definir-budget'); await p.getByRole('button', { name: 'Ajouter' }).click(); await oui(); await p.getByRole('cell', { name: '1 000 000,00' }).first().waitFor(); await etape('29c-budget-defini');
-  await aller('/budget/s125'); await choisirBudget(); await p.getByLabel('Type budget *').selectOption({ label: 'BUDGET DE FONCTIONNEMENT' }); await p.getByLabel('Période *').selectOption({ label: '1er Trimestre' });
+  await aller('/budget/s125'); await choisirBudget(); await p.getByLabel('Type budget *').selectOption({ label: 'Budget de fonctionnement' }); await p.getByLabel('Période *').selectOption({ label: '1er Trimestre' });
   await p.getByRole('button', { name: 'Détails' }).click(); await p.getByRole('cell', { name: 'Loyers' }).waitFor(); await etape('29d-consultation-budget');
   await p.getByRole('tab', { name: 'Suivi budgétaire' }).click(); await p.getByRole('heading', { name: 'Suivi budgétaire' }).waitFor(); await p.getByLabel('Budget :', { exact: true }).selectOption({ index: 1 }); await p.getByLabel('Période :').selectOption({ label: '1er Trimestre' });
   await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByRole('columnheader', { name: 'Réalisé' }).waitFor(); await etape('29e-suivi-budgetaire');

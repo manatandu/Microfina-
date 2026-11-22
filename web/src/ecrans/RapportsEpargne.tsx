@@ -1,5 +1,6 @@
 // S72 : Épargne > Rapport (manuel Microfina++, p. 82 à 84, six captures) : virements compte à compte, garanties, recherche multicritère,
 // indicateur crédit épargne, comptes inactifs, comptes dormants. Registre S72-1 à S72-8.
+import { enClair } from "../lib/enclair";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
@@ -199,10 +200,10 @@ function Multicritere({ erreur }: Proprietes) {
         <Champ libelle="Prénoms">{(p) => <input {...p} className="saisie" autoComplete="off" value={c.prenoms} onChange={(e) => maj({ prenoms: e.target.value })} />}</Champ>
         <Champ libelle="Agence :">{(p) => <select {...p} className="saisie"><option>{ctx.agence.nom}</option></select>}</Champ>
         <Champ libelle="TypeClient">{(p) => <select {...p} className="saisie" value={c.typeClient} onChange={(e) => maj({ typeClient: e.target.value })}><option value=""></option>
-          {[...ctx.typesClient, ...ctx.typesEntreprise, ...ctx.typesGroupe].map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+          {[...ctx.typesClient, ...ctx.typesEntreprise, ...ctx.typesGroupe].map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
         <Champ libelle="Catégorie :">{(p) => <select {...p} className="saisie" value={c.categorie} onChange={(e) => maj({ categorie: e.target.value as CriteresMulticritere["categorie"] })}>
           <option value=""></option>{Object.entries(CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>}</Champ>
-        <Champ libelle="Zone :">{(p) => <select {...p} className="saisie" value={c.zone} onChange={(e) => maj({ zone: e.target.value })}><option value=""></option>{ctx.zones.map((z) => <option key={z}>{z}</option>)}</select>}</Champ>
+        <Champ libelle="Zone :">{(p) => <select {...p} className="saisie" value={c.zone} onChange={(e) => maj({ zone: e.target.value })}><option value=""></option>{ctx.zones.map((z) => <option key={z} value={z}>{enClair(z)}</option>)}</select>}</Champ>
         <Champ libelle="Nationalité">{(p) => <select {...p} className="saisie" value={c.nationalite} onChange={(e) => maj({ nationalite: e.target.value })}><option value=""></option>
           {ctx.localites.map((x) => <option key={x.pays}>{x.pays}</option>)}</select>}</Champ>
         <Champ libelle="Gestionnaire :">{(p) => <select {...p} className="saisie" value={c.gestionnaire} onChange={(e) => maj({ gestionnaire: e.target.value })}><option value=""></option>
@@ -211,7 +212,7 @@ function Multicritere({ erreur }: Proprietes) {
           <option value="0">{INCONNU}</option>{ctx.commerciaux.map((a: Agent) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
         <Champ libelle="Montant de :">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={c.de} onChange={(e) => maj({ de: e.target.value })} />}</Champ>
         <Champ libelle="Secteur d'activité :">{(p) => <select {...p} className="saisie" value={c.secteur} onChange={(e) => maj({ secteur: e.target.value })}><option value=""></option>
-          {(ctx.listesFiche.secteurActivite ?? []).map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+          {(ctx.listesFiche.secteurActivite ?? []).map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
         <Champ libelle="à :">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={c.a} onChange={(e) => maj({ a: e.target.value })} />}</Champ>
         <Champ libelle="Genre :">{(p) => <select {...p} className="saisie" value={c.genre} onChange={(e) => maj({ genre: e.target.value as CriteresMulticritere["genre"] })}>
           <option value="">Tous les Client</option><option value="M">Homme</option><option value="F">Femme</option></select>}</Champ>

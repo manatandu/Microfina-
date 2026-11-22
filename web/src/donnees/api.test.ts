@@ -758,7 +758,7 @@ describe("journée de guichet", () => {
   it("fiche de l'entreprise (S38) : forme juridique et listes de S14, bénéficiaire effectif personne physique (Instr. BCC 15, art. 18)", async () => {
     await connecter("bkasongo");
     const base = { ...enrolementVide("2026-11-05"), ...IDENTITE, typeClient: "Entreprises privées", zone: "Matete", produitCode: "EAV-CDF", nom: "Kinsaku Pain SARL",
-      formeJuridique: "Société à responsabilité limitée", registre: "R2", adresse: "Matete", secteurActivite: "PRIMAIRE", email: "contact@exemple.cd" };
+      formeJuridique: "Société à responsabilité limitée", registre: "R2", adresse: "Matete", secteurActivite: "Primaire", email: "contact@exemple.cd" };
     const dir = { ...REP, nom: "Ilunga", postnom: "", prenom: "Paul", pieceType: "Passeport", pieceNumero: "OP9" };
     await expect(api.tiers.creerEntreprise(base, null, [])).rejects.toThrow("Dirigeant : à remplir");   // loi 22/068, art. 34, al. 4 (confrontation du 21/11/2026, E1)
     const morale = (await api.tiers.creerEntreprise({ ...base, nom: "Témoin SA", formeJuridique: "Société anonyme" }, dir, [])).id;
@@ -771,7 +771,7 @@ describe("journée de guichet", () => {
     await expect(api.tiers.creerEntreprise({ ...base, beneficiairesEffectifs: [1] }, dir, [])).rejects.toThrow("nature du contrôle");
     await expect(api.tiers.creerEntreprise({ ...base, beneficiairesEffectifs: [1], controleEffectifs: [{ nature: "Participation de contrôle", part: "20" }] }, dir, [])).rejects.toThrow("25 %");
     const t = await api.tiers.creerEntreprise({ ...base, beneficiairesEffectifs: [1], controleEffectifs: [{ nature: "Participation de contrôle", part: "40,5" }] }, dir, []);
-    expect(t).toMatchObject({ formeJuridique: "Société à responsabilité limitée", secteurActivite: "PRIMAIRE", email: "contact@exemple.cd", beneficiairesEffectifs: [1], liees: [],
+    expect(t).toMatchObject({ formeJuridique: "Société à responsabilité limitée", secteurActivite: "Primaire", email: "contact@exemple.cd", beneficiairesEffectifs: [1], liees: [],
       controleEffectifs: [{ nature: "Participation de contrôle", part: "40,50" }] });
     // Loi 22/068, art. 53 : « le client ou un bénéficiaire effectif du client » ; une personne exposée parmi les bénéficiaires effectifs
     // d'une entreprise exige l'autorisation de la conformité avant le visa (confrontation du 21/11/2026, E3)
@@ -803,14 +803,14 @@ describe("journée de guichet", () => {
 
   it("fiche du groupe (S39) : type de groupe de S14f, forme juridique et listes de S14, catégorie de groupe de S14j", async () => {
     await connecter("bkasongo");
-    const base = { ...enrolementVide("2026-11-05"), ...IDENTITE, typeClient: "ONG", produitCode: "EAV-CDF", nom: "ONG Kinsaku", adresse: "Matete", secteurActivite: "PRIMAIRE",
+    const base = { ...enrolementVide("2026-11-05"), ...IDENTITE, typeClient: "ONG", produitCode: "EAV-CDF", nom: "ONG Kinsaku", adresse: "Matete", secteurActivite: "Primaire",
       email: "ong@exemple.cd" };
     expect((await api.referentiel.contexte()).typesGroupe).toEqual(["Groupement solidaire", "Association", "ONG"]);
     await expect(api.tiers.creerGroupe({ ...base, formeJuridique: "ASBL de fait" }, [])).rejects.toThrow("Forme juridique : valeur inconnue");
     await expect(api.tiers.creerGroupe({ ...base, categorie: "Catégorie A" }, [])).rejects.toThrow("Catégorie : valeur inconnue");
     await expect(api.tiers.creerGroupe({ ...base, email: "ong" }, [])).rejects.toThrow("Email invalide");
     const t = await api.tiers.creerGroupe(base, []);
-    expect(t).toMatchObject({ typeClient: "ONG", secteurActivite: "PRIMAIRE", email: "ong@exemple.cd" });
+    expect(t).toMatchObject({ typeClient: "ONG", secteurActivite: "Primaire", email: "ong@exemple.cd" });
   });
 
   it("visa du client (S40) : date de visa, intitulé, premier dépôt, une seule fois", async () => {
@@ -996,14 +996,14 @@ describe("journée de guichet", () => {
   it("résiliation (S48) : chef d'agence, motif de la liste, client bloqué au guichet", async () => {
     await journeeOuverte();
     await connecter("bkasongo");
-    await expect(api.tiers.resilier(3, { motif: "AUTRES" })).rejects.toThrow("Droit manquant");
+    await expect(api.tiers.resilier(3, { motif: "Autres" })).rejects.toThrow("Droit manquant");
     await connecter("jpmukendi");
     await expect(api.tiers.resilier(3, { motif: "" })).rejects.toThrow("motif");
     await expect(api.tiers.resilier(3, { motif: "Fâché" })).rejects.toThrow("Motif inconnu");
     await expect(api.tiers.resilier(3, { motif: "Raisons personnelles" })).rejects.toThrow("compte à solder");   // registre S48-1 ; loi 002/2002, art. 27
     await viderComptes(3);
     expect(await api.tiers.resilier(3, { motif: "Raisons personnelles" })).toMatchObject({ statut: "resilie", motifDepart: "Raisons personnelles", resilieLe: "2026-11-05" });
-    await expect(api.tiers.resilier(3, { motif: "AUTRES" })).rejects.toThrow("déjà résilié");
+    await expect(api.tiers.resilier(3, { motif: "Autres" })).rejects.toThrow("déjà résilié");
     await connecter("engalula");
     await expect(api.guichet.depot({ cle: cle(), compteId: 5, montant: 1000000, coupures: { 10000: 1 } })).rejects.toThrow("résilié");
   });
@@ -1043,7 +1043,7 @@ describe("journée de guichet", () => {
     await expect(op(1, "retrait", 5, { 1000: 20 })).rejects.toThrow("ne détient que");
     expect((await op(1, "retrait", 2, { 5000: 1, 1000: 3 })).statut).toBe("validee");
     expect(await api.tiers.parts(1)).toBe(1);
-    await viderComptes(2); await api.tiers.resilier(2, { motif: "AUTRES" }); await connecter("engalula");   // les parts restent, remboursées après (art. 22 et 27)
+    await viderComptes(2); await api.tiers.resilier(2, { motif: "Autres" }); await connecter("engalula");   // les parts restent, remboursées après (art. 22 et 27)
     expect((await op(2, "retrait", 1, { 1000: 4 })).statut).toBe("validee");
     await expect(op(2, "achat", 1, { 1000: 4 })).rejects.toThrow("résilié");
     expect(compteParts({ ...(await api.tiers.lire(1))!, type: "morale" })).toBe("1032");
@@ -1814,7 +1814,7 @@ describe("journée de guichet", () => {
     await expect(api.budget.enregistrer("lignes", { numero: "1", libelle: "Autre", planId: p.id, centreId: agm.id })).rejects.toThrow("existe déjà");
     const bo = tb.find((x) => x.code === "BO")!.id;
     const o = (await api.budget.enregistrer("operations", { typeOperation: "DEPOT", typeBudgetId: bo })).lignes[0]!;
-    expect([o.affichage.typeOperation, o.affichage.typeBudgetId]).toEqual(["DEPOT", "BUDGET DES OPERATIONS"]);
+    expect([o.affichage.typeOperation, o.affichage.typeBudgetId]).toEqual(["DEPOT", "Budget des opérations"]);
     await expect(api.budget.enregistrer("operations", { typeOperation: "DEPOT", typeBudgetId: bo })).rejects.toThrow("existe déjà");
     await expect(api.budget.enregistrer("operations", { typeOperation: "PRET", typeBudgetId: bo })).rejects.toThrow("inconnu");
     await api.budget.supprimer("lignes", li.id);
@@ -2923,7 +2923,7 @@ describe("journée de guichet", () => {
   it("motif de départ d'un client (S18, p. 26) : Libellé Motif seul, unique, ordre de saisie, lu par la résiliation", async () => {
     await connecter("jpmukendi");
     let l = await api.listes.lire("motif_depart");
-    expect(l.lignes.map((x) => x.libelle)[0]).toBe("DEPART DU PAYS");
+    expect(l.lignes.map((x) => x.libelle)[0]).toBe("Départ du pays");
     await expect(api.listes.enregistrer("motif_depart", { code: "", libelle: "" })).rejects.toThrow("Libellé Motif");
     await expect(api.listes.enregistrer("motif_depart", { code: "", libelle: "autres" })).rejects.toThrow("existe déjà");
     l = await api.listes.enregistrer("motif_depart", { code: "", libelle: "Mutation professionnelle" });

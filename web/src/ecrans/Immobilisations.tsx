@@ -2,6 +2,7 @@
 // S138 : « Création des affectations de Biens », « Transférer un bien immobilier », « Transfert de biens d'un employé à un autre », « Libération d'un bien
 // encours d'utilisation ». S139 : « Amortissement », « Inventaire de biens », Sortie de biens (texte seul). S140 : cinq rapports.
 // PCCI, classe 2 et comptes 28, 681, 673 à 774. Registre S136 à S140. Montants en francs entiers, comme la paie.
+import { enClair } from "../lib/enclair";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
@@ -233,7 +234,7 @@ export function TraitementsBiens() {
     </section>}
     {page === "inventaire" && <section className="bloc pile" aria-label="Inventaire de biens"><h1>Inventaire de biens</h1>
       <div className="deux-colonnes"><fieldset className="cadre-champs formulaire"><legend className="sr-only">Inventaire</legend>{choixBien}
-        <Champ libelle="État du bien *">{(p) => <select {...p} className="saisie" value={f.etat ?? ""} onChange={(e) => maj("etat", e.target.value)}><option value=""></option>{ctx.etats.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+        <Champ libelle="État du bien *">{(p) => <select {...p} className="saisie" value={f.etat ?? ""} onChange={(e) => maj("etat", e.target.value)}><option value=""></option>{ctx.etats.map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
         <ChampDate libelle="Date inventaire *" valeur={f.date ?? ""} onChange={(x) => maj("date", x)} />
         <Champ libelle="Observation">{(p) => <textarea {...p} className="saisie" rows={2} value={f.observation ?? ""} onChange={(e) => maj("observation", e.target.value)} />}</Champ></fieldset>
         <fieldset className="cadre-champs"><legend>Détails bien</legend><dl className="definitions"><dt>Détenteur</dt><dd>{bien?.detenteur}</dd><dt>Direction/Cellule</dt><dd>{bien?.departement}</dd>
@@ -243,7 +244,7 @@ export function TraitementsBiens() {
     </section>}
     {page === "sortie" && <section className="bloc pile" aria-label="Sortie de biens du patrimoine"><h1>Sortie de biens du patrimoine</h1>
       <fieldset className="cadre-champs formulaire"><legend className="sr-only">Sortie</legend>
-        <Champ libelle="Type de sortie *">{(p) => <select {...p} className="saisie" value={f.type ?? ""} onChange={(e) => maj("type", e.target.value)}><option value=""></option>{ctx.sorties.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+        <Champ libelle="Type de sortie *">{(p) => <select {...p} className="saisie" value={f.type ?? ""} onChange={(e) => maj("type", e.target.value)}><option value=""></option>{ctx.sorties.map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
         {choixBien}<ChampDate libelle="Date de sortie *" valeur={f.date ?? ""} onChange={(x) => maj("date", x)} />
         <Champ libelle="Observation">{(p) => <textarea {...p} className="saisie" rows={2} value={f.observation ?? ""} onChange={(e) => maj("observation", e.target.value)} />}</Champ>
         {f.type === "Cession" && <Champ libelle="Autorisation BCC (au-delà de 10 % des fonds propres de base)">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.autorisationBcc ?? ""}

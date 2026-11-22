@@ -35,7 +35,7 @@ export const LISTES_CLIENT: Record<string, string[]> = {
   categorie_groupe: ["Groupe de femmes", "Groupe d'hommes", "Groupe mixte"], // pratique : composition du groupe selon le genre
 };
 // Sous types de client (S14h) : ceux des deux captures p. 25
-export const SOUS_TYPES = ["Homme", "Femme", "Entreprise", "Institution Financiere", "ETABLISSEMENT", "SARL", "SA", "GROUPEMENT", "ASSOCIATION", "EGLISE", "ONG", "ATELIER"];
+export const SOUS_TYPES = ["Homme", "Femme", "Entreprise", "Institution financière", "Établissement", "SARL", "SA", "Groupement", "Association", "Église", "ONG", "Atelier"];
 
 const FONDS_G2: { CDF: Comptage; USD: Comptage } = {
   USD: { 100: 140, 50: 12, 20: 8, 10: 3, 5: 2, 1: 6 },                    // 14 806 USD
@@ -118,7 +118,7 @@ export function graine(): Etat {
         ["Bâtiments et travaux publics", 2], ["Commerce, hôtels et restaurants", 3], ["Electricité, gaz, eau", 2], ["Transports, entrepôts et communications", 3],
         ["Assurances, services aux entreprises", 3]] as const).map(([libelle, secteurId], i) => ({ id: i + 1, actif: true, libelle, secteurId })),
       objets: ["Crédits immobiliers", "Crédits d'équipement", "Crédits à la consommation", "Crédits de trésorerie", "Autres crédits"].map((libelle, i) => ({ id: i + 1, actif: true, libelle, typeObjetId: 5 })),
-      cycles: [{ id: 1, actif: true, code: "C01", libelle: "PREMIER CYCLE" }, { id: 2, actif: true, code: "C02", libelle: "DEUXIEME CYCLE" }],
+      cycles: [{ id: 1, actif: true, code: "C01", libelle: "Premier cycle" }, { id: 2, actif: true, code: "C02", libelle: "Deuxième cycle" }],
       types_assurance: [{ id: 1, actif: true, code: "T01", libelle: "Interne" }],
       assureurs: [], gestionnaires: [],
     },
@@ -141,16 +141,16 @@ export function graine(): Etat {
       const centres = [{ id: 1, actif: true, code: "DIR_GENE", libelle: "Direction Générale", typeId: 2, parentId: null },
         ...[["SARH", "Service Administratif et RH"], ["CI", "Cellule Informatique"], ["SA", "Service Audit"], ["SCOMFI", "Service Comptabilité & Finances"], ["SOP", "Service des opérations"]]
           .map(([code, libelle], i) => ({ id: i + 2, actif: true, code, libelle, typeId: 3, parentId: 1 }))];
-      const tb = [["BR", "BUDGET DES RESSOURCES", "1*,2*,5*,7*"], ["BF", "BUDGET DE FONCTIONNEMENT", "6*"], ["BO", "BUDGET DES OPERATIONS", "2*"], ["BI", "BUDGET DES INVESTISSEMENTS", "4*"]]
+      const tb = [["BR", "Budget des ressources", "1*,2*,5*,7*"], ["BF", "Budget de fonctionnement", "6*"], ["BO", "Budget des opérations", "2*"], ["BI", "Budget des investissements", "4*"]]
         .map(([code, libelle, paramCompte], i) => ({ id: i + 1, actif: true, code, libelle, paramCompte }));
       const tp = ([["M", "Mensuel", 1, 30], ["TRIM", "Trimestriel", 3, 0], ["SEM", "Semestriel", 6, 0], ["15J", "Quinzaine", 0, 14], ["AN", "Annuel", 12, 360]] as const)
         .map(([code, libelle, dureeMois, dureeJours], i) => ({ id: i + 1, actif: true, code, libelle, dureeMois, dureeJours }));
-      const pe = ([["TR1", "1er Trimestre", 2, "01/01", "31/03"], ["1", "JANVIER", 1, "01/01", "31/01"], ["2", "FEVRIER", 1, "01/02", "28/02"],
-        ["14", "1ère Quinzaine de Janvier", 4, "01/01", "14/01"], ["3", "MARS", 1, "01/03", "31/03"], ["4", "AVRIL", 1, "01/04", "30/04"]] as const)
+      const pe = ([["TR1", "1er Trimestre", 2, "01/01", "31/03"], ["1", "Janvier", 1, "01/01", "31/01"], ["2", "Février", 1, "01/02", "28/02"],
+        ["14", "1ère Quinzaine de Janvier", 4, "01/01", "14/01"], ["3", "Mars", 1, "01/03", "31/03"], ["4", "Avril", 1, "01/04", "30/04"]] as const)
         .map(([code, libelle, typeId, debut, fin], i) => ({ id: i + 1, actif: true, code, libelle, typeId, debut, fin }));
       return { types_centre: tc, centres, types_budget: tb, types_periode: tp, periodes: pe, plans: [], lignes: [], operations: [] };
     })(),
-    listes: [...[["S1", "PRIMAIRE"], ["S2", "SECONDAIRE"], ["S3", "TERTIAIRE"]]
+    listes: [...[["S1", "Primaire"], ["S2", "Secondaire"], ["S3", "Tertiaire"]]
       .map(([code, libelle]) => ({ liste: "secteur_activite", code: code!, libelle: libelle! })),
       // Décision du porteur (18/11/2026, registre S14-3) : les autres lignes de la capture p. 23 sont des types d'activité (S14a), sous leur secteur (ids 1 à 3 ci-dessus)
       // + les 14 grands domaines du ROME/RDC (ONEM), sous leur secteur (question du porteur du 22/11/2026, registre S14-6)
@@ -168,7 +168,7 @@ export function graine(): Etat {
       ...FORMES_JURIDIQUES.map((libelle, i) => ({ liste: "forme_juridique", code: String(i + 1), libelle })),
       ...FORMES_JURIDIQUES_GROUPE.map((libelle, i) => ({ liste: "forme_juridique_groupe", code: String(i + 1), libelle })),
       // S18 : motifs de départ de la capture p. 26 (registre S18-1)
-      ...["DEPART DU PAYS", "Raisons personnelles", "DEMENAGEMENT", "DECISION DU CLIENT", "NE VEUT PLUS PRENDRE DE CREDIT", "AUTRES", "TRANSFERT SUR UNE AUTRE AGENCE"]
+      ...["Départ du pays", "Raisons personnelles", "Déménagement", "Décision du client", "Ne veut plus prendre de crédit", "Autres", "Transfert sur une autre agence"]
         .map((libelle, i) => ({ liste: "motif_depart", code: String(i + 1), libelle })),
       // Listes de base du client complétées le 21/11/2026 (registre S14-4), comme la graine du serveur
       ...Object.entries(LISTES_CLIENT).flatMap(([liste, libelles]) => libelles.map((libelle, i) => ({ liste, code: String(i + 1), libelle })))]

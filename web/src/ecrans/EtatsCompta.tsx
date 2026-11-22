@@ -1,6 +1,7 @@
 // S120 : Comptabilité > Grand livre, général et analytique (manuel Microfina++, p. 138 et 139, captures « Edition du grand livre » et « Edition du grand
 // livre analytique »). S121 : Comptabilité > Balance, générale et analytique (p. 139 et 140, captures « Edition de la balance des comptes » et « Edition de
 // la balance analytique des comptes »). Registre S120-1 à S120-4, S121-1 à S121-4, T13 : écritures définitives seulement, montants en CDF.
+import { enClair } from "../lib/enclair";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
@@ -36,7 +37,7 @@ function Communs({ ctx, f, setF }: { ctx: Ctx; f: { agence: string; exercice: st
     <Champ libelle="Agence :">{(p) => <select {...p} className="saisie" value={f.agence} onChange={(e) => setF({ ...f, agence: e.target.value })}><option value="">Toutes les agences</option>
       {ctx.agences.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
     <Champ libelle="Exercice :">{(p) => <select {...p} className="saisie court" value={f.exercice} onChange={(e) => setF({ ...f, exercice: e.target.value })}>
-      {ctx.exercices.map((a) => <option key={a}>{a}</option>)}</select>}</Champ>
+      {ctx.exercices.map((a) => <option key={a} value={a}>{enClair(a)}</option>)}</select>}</Champ>
   </>;
 }
 
@@ -155,7 +156,7 @@ function EditionBalance({ analytique, ctx, jour }: { analytique: boolean; ctx: C
         <Champ libelle="Compte :">{(p) => <input {...p} className="saisie code" inputMode="numeric" value={f.compteDe} onChange={(e) => setF({ ...f, compteDe: e.target.value })} />}</Champ>
         <Champ libelle="------- :">{(p) => <input {...p} aria-label="Compte, jusqu'à" className="saisie code" inputMode="numeric" value={f.compteA} onChange={(e) => setF({ ...f, compteA: e.target.value })} />}</Champ>
         <Champ libelle="Niveau de rupture :">{(p) => <select {...p} className="saisie court" value={f.niveau} onChange={(e) => setF({ ...f, niveau: e.target.value })}>
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => <option key={n}>{n}</option>)}</select>}</Champ>
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => <option key={n} value={n}>{enClair(n)}</option>)}</select>}</Champ>
         <label className="case"><input type="checkbox" checked={f.sansVidage} onChange={(e) => setF({ ...f, sansVidage: e.target.checked })} /><span>Balance sans VIDAGE</span></label>
       </fieldset>
       <div className="actions-onglets">

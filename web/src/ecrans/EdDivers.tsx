@@ -71,7 +71,7 @@ export default function EdDivers() {
           <legend>Opérations diverses</legend>
           <Champ libelle="Type operation">{(p) => <select {...p} className="saisie" disabled={!!fait} value={f.type}
             onChange={(e) => { setF({ ...f, type: e.target.value as TypeOp, operation: "", libelle: "" }); setCoupures({}); nouveau(); }}>
-            <option value="ENCAISSEMENT">ENCAISSEMENT</option><option value="DECAISSEMENT">DECAISSEMENT</option></select>}</Champ>
+            <option value="ENCAISSEMENT">Encaissement</option><option value="DECAISSEMENT">Décaissement</option></select>}</Champ>
           <Champ libelle="Opérations">{(p) => <select {...p} className="saisie" disabled={!!fait} value={f.operation}
             onChange={(e) => { const x = proposees.find((o) => String(o.id) === e.target.value); setF({ ...f, operation: e.target.value, libelle: x?.libelle ?? "" }); nouveau(); }}>
             <option value=""></option>{proposees.map((o) => <option key={o.id} value={o.id}>{o.libelle}</option>)}</select>}</Champ>

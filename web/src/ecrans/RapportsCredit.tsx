@@ -1,6 +1,7 @@
 // S101 : Crédit > Rapport (manuel Microfina++, p. 121 : le menu seul, huit entrées) : Journal, Rapports de base, Rapport multicritère, Synthèse de la balance
 // âgée, Taux de remboursements, Encours prévisionnel, Rapport des exigibles, Indicateur de gestion. Gabarit rapport (critères, Afficher, grille, Export).
 // Registre S101-1 à S101-10, CR-13, CR-26 ; Instr. BCC 004, annexe ; Instr. BCC 003.
+import { enClair } from "../lib/enclair";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
@@ -84,7 +85,7 @@ function UnRapport({ onglet, ctx, erreur }: { onglet: Onglet; ctx: Ctx; erreur: 
           <Champ libelle="Sexe">{(p) => <select {...p} className="saisie court" value={f.sexe} onChange={(e) => setF({ ...f, sexe: e.target.value })}>
             <option value="">Tous</option><option value="M">M</option><option value="F">F</option><option>Morale</option></select>}</Champ>
           <Champ libelle="Degré">{(p) => <select {...p} className="saisie" value={f.degre} onChange={(e) => setF({ ...f, degre: e.target.value })}>
-            <option value="">Tous</option>{["Sains", "Impayés", "Douteux", "Irrécupérables"].map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+            <option value="">Tous</option>{["Sains", "Impayés", "Douteux", "Irrécupérables"].map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
           <Champ libelle="Ordonner suivant">{(p) => <select {...p} className="saisie" value={f.ordre} onChange={(e) => setF({ ...f, ordre: e.target.value })}>
             <option value="produit">Produit</option><option value="agent">Agent crédit</option><option value="degre">Degré</option><option value="sexe">Sexe</option></select>}</Champ>
           <fieldset className="cadre-champs"><legend>Résultat</legend>

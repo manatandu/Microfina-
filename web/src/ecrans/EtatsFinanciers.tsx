@@ -2,6 +2,7 @@
 // « Edition de l'état hors bilan », « Compte de résultat », « Edition des états annexes »). S123 : Comptabilité > Indicateurs > Financiers (p. 142,
 // capture « Edition des indicateurs financiers »). Le manuel montre les fenêtres de critères, pas les états : leur forme suit le PCCI (chap. 14) et les
 // Instructions BCC 009 (états à transmettre) et 004 (indicateurs). Registre S122-1 à S122-12, S123-1 à S123-3.
+import { enClair } from "../lib/enclair";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
@@ -49,7 +50,7 @@ function Edition({ ctx, f, setF, libelleType, types, libelleVidage }: { ctx: Ctx
       <Champ libelle="Période :">{(p) => <select {...p} className="saisie" value={f.periode} onChange={(e) => periode(e.target.value)}><option value=""></option>
         {ctx.mois.map((m, i) => <option key={m} value={String(i + 1).padStart(2, "0")}>{m}</option>)}</select>}</Champ>
       <Champ libelle="Exercice :">{(p) => <select {...p} className="saisie court" value={f.exercice} onChange={(e) => setF({ ...f, exercice: e.target.value, periode: "" })}>
-        {ctx.exercices.map((a) => <option key={a}>{a}</option>)}</select>}</Champ>
+        {ctx.exercices.map((a) => <option key={a} value={a}>{enClair(a)}</option>)}</select>}</Champ>
       <label className="case"><input type="checkbox" checked={f.sansVidage} onChange={(e) => setF({ ...f, sansVidage: e.target.checked })} /><span>{libelleVidage}</span></label>
     </fieldset>
   </div>;
@@ -209,7 +210,7 @@ function EditionAnnexes({ ctx, jour }: { ctx: Ctx; jour: string }) {
           <ChampDate libelle="Date fin période :" valeur={f.au} onChange={(v) => setF({ ...f, au: v })} />
         </fieldset>
         <fieldset className="cadre-champs formulaire"><legend className="sr-only">Annexe</legend>
-          <Champ libelle="Exercice :">{(p) => <select {...p} className="saisie court" value={f.exercice} onChange={(e) => setF({ ...f, exercice: e.target.value })}>{ctx.exercices.map((a) => <option key={a}>{a}</option>)}</select>}</Champ>
+          <Champ libelle="Exercice :">{(p) => <select {...p} className="saisie court" value={f.exercice} onChange={(e) => setF({ ...f, exercice: e.target.value })}>{ctx.exercices.map((a) => <option key={a} value={a}>{enClair(a)}</option>)}</select>}</Champ>
           <Champ libelle="Annexe :">{(p) => <select {...p} className="saisie" value={f.annexe} onChange={(e) => { setF({ ...f, annexe: e.target.value }); setR(null); }}>
             {ctx.annexes.map((a) => <option key={a.code} value={a.code}>{a.libelle}</option>)}</select>}</Champ>
         </fieldset>
@@ -342,7 +343,7 @@ export function IndicateursFinanciers() {
         <h2>Edition des indicateurs financiers</h2>
         <div className="deux-colonnes">
           <fieldset className="cadre-champs formulaire"><legend className="sr-only">Période</legend>
-            <Champ libelle="Exercice :">{(p) => <select {...p} className="saisie court" value={c.exercice} onChange={(e) => setF({ ...c, exercice: e.target.value })}>{ctx.exercices.map((a) => <option key={a}>{a}</option>)}</select>}</Champ>
+            <Champ libelle="Exercice :">{(p) => <select {...p} className="saisie court" value={c.exercice} onChange={(e) => setF({ ...c, exercice: e.target.value })}>{ctx.exercices.map((a) => <option key={a} value={a}>{enClair(a)}</option>)}</select>}</Champ>
             <Champ libelle="Date début période :">{(p) => <Lecture {...p} value={fr(du)} />}</Champ>
             <Champ libelle="Date fin période :">{(p) => <Lecture {...p} value={fr(au)} />}</Champ>
           </fieldset>

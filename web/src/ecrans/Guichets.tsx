@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { enClair } from "../lib/enclair";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { Link } from "react-router-dom";
@@ -60,7 +61,7 @@ export function GestionGuichets() {
             <Champ libelle="Code guichet *">{(p) => <input {...p} className="saisie code" value={v.code} onChange={champ("code")} />}</Champ>
             <Champ libelle="Désignation *">{(p) => <input {...p} className="saisie" value={v.designation} onChange={champ("designation")} />}</Champ>
             <Champ libelle="Type de guichet *">{(p) => <select {...p} className="saisie" value={v.typeGuichet} onChange={champ("typeGuichet")}>
-              <option value=""></option>{types.map((t) => <option key={t}>{t}</option>)}</select>}</Champ>
+              <option value=""></option>{types.map((t) => <option key={t} value={t}>{enClair(t)}</option>)}</select>}</Champ>
             <Champ libelle="Journal *">{(p) => <select {...p} className="saisie" value={v.journalId || ""} onChange={champ("journalId")}>
               <option value=""></option>{journaux.map((j) => <option key={j.id} value={j.id}>{j.libelle}</option>)}</select>}</Champ>
             {(["maximum", "retrait"] as const).flatMap((k) => devises.map((d) => (

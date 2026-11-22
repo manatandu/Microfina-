@@ -3,6 +3,7 @@
 // S133 : Personnel > Nouvel employé (onglets Informations générales, Classification, Affectation, Contrat). S134 : Rubrique de paie, Maquette de paie,
 // Liste des employés. S135 : Traitement retenues : Mise en place retenue, Liste des retenues sur salaire, Visa de retenue.
 // Registre S131 à S135. Les montants de la paie sont en francs entiers, comme les listes de la capture p. 273 (250 000).
+import { enClair } from "../lib/enclair";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
@@ -260,8 +261,8 @@ function ListeEmployes({ ctx }: { ctx: Ctx }) {
   const lignes = (r ?? []).filter((l) => !filtre || l.nomPrenoms.toLowerCase().includes(filtre.toLowerCase()));
   return <section className="bloc pile" aria-label="Liste du Personnel"><h2>Liste du Personnel</h2>
     <fieldset className="cadre-champs formulaire"><legend>Critère de recherche</legend>
-      <Champ libelle="Sexe">{(pp) => <select {...pp} className="saisie" value={f.sexe} onChange={(e) => setF({ ...f, sexe: e.target.value })}><option value=""></option>{ctx.sexes.map((s) => <option key={s}>{s}</option>)}</select>}</Champ>
-      <Champ libelle="Type de contrat">{(pp) => <select {...pp} className="saisie" value={f.typeContrat} onChange={(e) => setF({ ...f, typeContrat: e.target.value })}><option value=""></option>{ctx.typesContrat.map((s) => <option key={s}>{s}</option>)}</select>}</Champ>
+      <Champ libelle="Sexe">{(pp) => <select {...pp} className="saisie" value={f.sexe} onChange={(e) => setF({ ...f, sexe: e.target.value })}><option value=""></option>{ctx.sexes.map((s) => <option key={s} value={s}>{enClair(s)}</option>)}</select>}</Champ>
+      <Champ libelle="Type de contrat">{(pp) => <select {...pp} className="saisie" value={f.typeContrat} onChange={(e) => setF({ ...f, typeContrat: e.target.value })}><option value=""></option>{ctx.typesContrat.map((s) => <option key={s} value={s}>{enClair(s)}</option>)}</select>}</Champ>
       <ChampDate libelle="Embauche du :" valeur={f.du} onChange={(x) => setF({ ...f, du: x })} /><ChampDate libelle="au :" valeur={f.au} onChange={(x) => setF({ ...f, au: x })} />
     </fieldset>
     <div className="actions-onglets"><button className="bouton" type="button" onClick={executer}>Exécuter</button></div>

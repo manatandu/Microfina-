@@ -1,5 +1,6 @@
 // Écart E01 (docs/reglementaire/ECARTS-2026-11-15.md) : Client > Conformité > Examen renforcé. Écran imposé par les textes, absent de Microfina++.
 // Loi 22/068, art. 23 ; loi 25/048, art. 92 bis ; Instr. BCC 15, art. 61, 62 et 48 ; Instr. BCC 15 bis, art. 5 à 7 ; Instr. BCC 008, art. 66.
+import { enClair } from "../lib/enclair";
 import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
@@ -205,7 +206,7 @@ function PersonnesExposees({ jour }: { jour: string }) {
             <Champ libelle="Catégorie : *">{(p) => <select {...p} className="saisie" disabled={fige} value={f.categorie} onChange={(e) => setF({ ...f, categorie: e.target.value, qualite: "" })}>
               <option value=""></option>{(qualites?.categories ?? []).map((c) => <option key={c.cle} value={c.cle}>{c.libelle}</option>)}</select>}</Champ>
             <Champ libelle="Qualité : *">{(p) => <select {...p} className="saisie" disabled={fige || !f.categorie} value={f.qualite} onChange={(e) => setF({ ...f, qualite: e.target.value })}>
-              <option value=""></option>{((qualites?.qualites as Record<string, string[]> | undefined)?.[f.categorie] ?? []).map((q) => <option key={q}>{q}</option>)}</select>}</Champ>
+              <option value=""></option>{((qualites?.qualites as Record<string, string[]> | undefined)?.[f.categorie] ?? []).map((q) => <option key={q} value={q}>{enClair(q)}</option>)}</select>}</Champ>
             <Champ libelle="Fonction exercée : *">{(p) => <input {...p} className="saisie" readOnly={fige} value={f.fonction} onChange={(e) => setF({ ...f, fonction: e.target.value })} />}</Champ>
             {fige ? <Champ libelle="Fin de la fonction :">{(p) => <input {...p} className="saisie date" readOnly value={fr(f.finFonction)} />}</Champ>
               : <ChampDate libelle="Fin de la fonction :" valeur={f.finFonction} onChange={(v) => setF({ ...f, finFonction: v })} />}

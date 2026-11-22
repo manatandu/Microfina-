@@ -1,6 +1,7 @@
 // Écran générique des référentiels partagés (replica/referentiels.json ; gabarit liste, COMPLEMENTS § 4.1) : cadre de saisie, Enregistrer, Effacer,
 // Supprimer, grille paginée avec filtres ; un clic sur une ligne la charge pour la modifier (manuel Microfina++, p. 10 à 12). La description des champs
 // vient du serveur ou du mode local, la même des deux côtés.
+import { enClair } from "../lib/enclair";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { ChampBudget, FicheBudget, LigneBudgetVue, OptionBudget } from "../donnees/api";
@@ -58,7 +59,7 @@ function PageReferentiel({ facade, page, sources, menu, changer }: { facade: Fac
       <Champ key={c.cle} libelle={etiquette} aide={c.aide ?? undefined}>{(p) => options
         ? <select {...p} className="saisie" value={valeur(c)} onChange={(e) => maj(e.target.value)}><option value=""></option>
             {options.map((o) => <option key={String(o.id)} value={String(o.id)}>{o.libelle}</option>)}</select>
-        : c.valeurs ? <select {...p} className="saisie" value={valeur(c)} onChange={(e) => maj(e.target.value)}><option value=""></option>{c.valeurs.map((o) => <option key={o}>{o}</option>)}</select>
+        : c.valeurs ? <select {...p} className="saisie" value={valeur(c)} onChange={(e) => maj(e.target.value)}><option value=""></option>{c.valeurs.map((o) => <option key={o} value={o}>{enClair(o)}</option>)}</select>
         : c.type === "ouiNon" ? <select {...p} className="saisie court" value={valeur(c) === "true" ? "true" : "false"} onChange={(e) => maj(e.target.value)}><option value="true">OUI</option><option value="false">NON</option></select>
         : c.type === "texteLong" ? <textarea {...p} className="saisie" rows={2} value={valeur(c)} onChange={(e) => maj(e.target.value)} />
         : <input {...p} className={c.type === "entier" || c.format === "decimal" ? "saisie montant" : c.type === "compteSimple" || c.format === "date" ? "saisie code" : "saisie"}

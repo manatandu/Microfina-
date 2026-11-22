@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { enClair } from "../lib/enclair";
 import { api, MOTIFS_FIN_PROCURATION, type RepresentantSaisi, type SaisieProcuration } from "../donnees/api";
 import type { Procuration, Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
@@ -113,7 +114,7 @@ function ProcurationsClient() {
         {choisie && !choisie.finLe && <fieldset className="pile cadre-champs champs-a-gauche">
           <legend>Fin de la procuration de {nom(choisie)}</legend>
           <Champ libelle="Motif : *">{(p) => <select {...p} className="saisie" value={fin.motif} onChange={(e) => setFin({ ...fin, motif: e.target.value })}>
-            <option value=""></option>{MOTIFS_FIN_PROCURATION.map((m) => <option key={m}>{m}</option>)}</select>}</Champ>
+            <option value=""></option>{MOTIFS_FIN_PROCURATION.map((m) => <option key={m} value={m}>{enClair(m)}</option>)}</select>}</Champ>
           <ChampDate libelle="Date de fin : *" valeur={fin.date} onChange={(v) => setFin({ ...fin, date: v })} requis />
           <div className="actions-onglets">
             <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment enregistrer ?", () => api.procurations.mettreFin(choisie.id, fin),

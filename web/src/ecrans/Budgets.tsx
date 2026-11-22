@@ -1,6 +1,7 @@
 // S124 : Budget > Nouveau budget (manuel Microfina++, p. 142, fenêtre « Nouveau budget » : Définir nouveau budget, Reconduire ancien budget, OK).
 // S125 : Budget > Consultation budget, Suivi budgétaire, Consommation par centre de cout (p. 143, captures « Budget - Consultation/Modification »,
 // « Recherche » du suivi, « Consommation par centre de coût »). Le « Budget » est le plan budgétaire de S19. Registre S124-1 à S124-5, S125-1 à S125-9.
+import { enClair } from "../lib/enclair";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
@@ -222,7 +223,7 @@ function Consommation({ ctx }: { ctx: Ctx }) {
       <h2>Consommation par centre de coût</h2>
       <div className="deux-colonnes">
         <fieldset className="cadre-champs formulaire"><legend className="sr-only">Critères</legend>
-          <Champ libelle="Exercice">{(p) => <select {...p} className="saisie court" value={f.exercice} onChange={(e) => setF({ ...f, exercice: e.target.value, ligne: "" })}>{ctx.exercices.map((a) => <option key={a}>{a}</option>)}</select>}</Champ>
+          <Champ libelle="Exercice">{(p) => <select {...p} className="saisie court" value={f.exercice} onChange={(e) => setF({ ...f, exercice: e.target.value, ligne: "" })}>{ctx.exercices.map((a) => <option key={a} value={a}>{enClair(a)}</option>)}</select>}</Champ>
           <Champ libelle="Ligne budgétaire :">{(p) => <select {...p} className="saisie" value={f.ligne} onChange={(e) => setF({ ...f, ligne: e.target.value })}><option value=""></option>
             {ctx.lignes.filter((l) => plans.has(l.planId)).map((l) => <option key={l.id} value={l.id}>{`${l.numero} ${l.libelle}`}</option>)}</select>}</Champ>
           <Champ libelle="Centre de cout :">{(p) => <select {...p} className="saisie" value={f.centre} onChange={(e) => setF({ ...f, centre: e.target.value })}><option value=""></option>

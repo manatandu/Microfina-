@@ -1,4 +1,5 @@
 // S83 : Caisse > Rapport > Journal des opérations de caisse (manuel Microfina++, p. 95 ; doublon p. 109). Registre S83-1 à S83-5.
+import { enClair } from "../lib/enclair";
 import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
@@ -53,7 +54,7 @@ export default function JournalCaisse() {
                 <option value=""></option>{c.guichets.map((g) => <option key={g.id} value={g.id}>{g.nom}</option>)}</select>}</Champ>}
             <ChampDate libelle="Du :" valeur={v.du} onChange={(x) => maj({ du: x })} />
             <Champ libelle="Rapport :">{(p) => <select {...p} className="saisie" value={v.rapport} onChange={(e) => maj({ rapport: e.target.value })}>
-              {c.rapports.map((r) => <option key={r}>{r}</option>)}</select>}</Champ>
+              {c.rapports.map((r) => <option key={r} value={r}>{enClair(r)}</option>)}</select>}</Champ>
             <ChampDate libelle="Au :" valeur={v.au} onChange={(x) => maj({ au: x })} />
           </fieldset>
           <fieldset className="cadre-champs formulaire">

@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { enClair } from "../lib/enclair";
 import { api, enrolementVide, IMAGE_MAX, NATURES_EFFECTIF, type Images, type NouveauTiers, type RepresentantSaisi } from "../donnees/api";
 import type { Beneficiaire, ControleEffectif, Tiers } from "../donnees/types";
 import { BlocAdresse } from "../composants/Adresse";
@@ -79,13 +80,13 @@ function InformationsDeBase({ genre, f, maj, ctx, numero, depot, setDepot, chois
         <Champ libelle="N° Manuel :">{(p) => <input {...p} className="saisie code" autoComplete="off" value={f.numeroManuel} onChange={(e) => maj({ numeroManuel: e.target.value })} />}</Champ>
         {physique && <Champ libelle="N° Matricule :">{(p) => <input {...p} className="saisie code" autoComplete="off" value={f.matricule} onChange={(e) => maj({ matricule: e.target.value })} />}</Champ>}
         <Champ libelle={entreprise ? "Type entreprise : *" : groupe ? "Type de groupe *" : "Type Client : *"}>{(p) => <select {...p} className="saisie" required {...sel("typeClient")}>
-          {!physique && <option value=""></option>}{types.map((t) => <option key={t}>{t}</option>)}</select>}</Champ>
+          {!physique && <option value=""></option>}{types.map((t) => <option key={t} value={t}>{enClair(t)}</option>)}</select>}</Champ>
         {groupe && <>
           <Champ libelle="Nombre d'Homme :">{(p) => <input {...p} className="saisie code court" inputMode="numeric" autoComplete="off" {...nombre("nbHommes")} />}</Champ>
           <Champ libelle="Nombre de Femme :">{(p) => <input {...p} className="saisie code court" inputMode="numeric" autoComplete="off" {...nombre("nbFemmes")} />}</Champ>
         </>}
         <Champ libelle={entreprise ? "Zone : *" : "Zone :"}>{(p) => <select {...p} className="saisie" required={entreprise} {...sel("zone")}><option value=""></option>
-          {ctx.zones.map((z) => <option key={z}>{z}</option>)}</select>}</Champ>
+          {ctx.zones.map((z) => <option key={z} value={z}>{enClair(z)}</option>)}</select>}</Champ>
         {physique && <Champ libelle="Sensibilisateur :">{(p) => <select {...p} className="saisie" value={f.sensibilisateurId ?? ""}
           onChange={(e) => maj({ sensibilisateurId: e.target.value ? Number(e.target.value) : null })}><option value=""></option>
           {ctx.sensibilisateurs.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>}
@@ -167,7 +168,7 @@ function PersonnesLiees({ liees, onChange, effectifs, onEffectifs, controles = {
             <tr key={t.id}><td className="chiffres">{t.numero}</td><td>{nomComplet(t)}</td>{onEffectifs && <><td>{LIENS[l]}</td>
               {/* loi 22/068, art. 34 bis, 1° à 3° ; participation de contrôle : plus de 25 % (art. 39, al. 2) */}
               <td>{l === "effectif" && <select className="saisie" aria-label={`Nature du contrôle : ${nomComplet(t)}`} value={controles[t.id]?.nature ?? ""}
-                onChange={(e) => ctl(t.id, { nature: e.target.value })}><option value=""></option>{NATURES_EFFECTIF.map((n) => <option key={n}>{n}</option>)}</select>}</td>
+                onChange={(e) => ctl(t.id, { nature: e.target.value })}><option value=""></option>{NATURES_EFFECTIF.map((n) => <option key={n} value={n}>{enClair(n)}</option>)}</select>}</td>
               <td>{l === "effectif" && <input className="saisie montant court" inputMode="decimal" autoComplete="off" aria-label={`Part (%) : ${nomComplet(t)}`}
                 value={controles[t.id]?.part ?? ""} onChange={(e) => ctl(t.id, { part: e.target.value })} />}</td></>}
               <td><button className="bouton secondaire" type="button" onClick={() => retirer(t.id, l)}>Retirer</button></td></tr>
@@ -226,7 +227,7 @@ export function ChampsRepresentant({ r, maj, ctx, qualite, exposee }: { r: Repre
         <ChampDate libelle="Date de naissance : *" valeur={r.naissance ?? ""} onChange={(v) => maj({ naissance: v })} requis />
         <Champ libelle="Lieu de naissance : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...t("lieuNaissance")} />}</Champ>
         <Champ libelle="Type de pièce : *">{(p) => <select {...p} className="saisie" required value={r.pieceType} onChange={(e) => maj({ pieceType: e.target.value })}>
-          <option value=""></option>{ctx.pieces.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+          <option value=""></option>{ctx.pieces.map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
         <Champ libelle="N° de pièce : *">{(p) => <input {...p} className="saisie code" required autoComplete="off" {...t("pieceNumero")} />}</Champ>
         <Champ libelle="Pays de délivrance :">{(p) => <select {...p} className="saisie" value={r.piecePays ?? ""} onChange={(e) => maj({ piecePays: e.target.value })}>
           <option value=""></option>{ctx.localites.map((x) => <option key={x.pays}>{x.pays}</option>)}</select>}</Champ>
@@ -324,7 +325,7 @@ type CleTexte = "civilite" | "situationMatrimoniale" | "secteurActivite" | "type
 function ChoixListe({ libelle, k, valeurs, f, maj, apres }: { libelle: string; k: CleTexte; valeurs: string[]; f: NouveauTiers; maj: (p: Partial<NouveauTiers>) => void;
   apres?: Partial<NouveauTiers> }) {
   return <Champ libelle={libelle}>{(p) => <select {...p} className="saisie" value={f[k] ?? ""} onChange={(e) => maj({ [k]: e.target.value, ...apres })}>
-    <option value=""></option>{valeurs.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>;
+    <option value=""></option>{valeurs.map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>;
 }
 
 /** Onglet Renseignements généraux (Info Généraux en S46) : identité et pièce. Le manuel ne montre pas ces champs : ceux que d'autres écrans affichent
@@ -349,7 +350,7 @@ function IdentitePhysique({ f, maj, ctx }: { f: NouveauTiers; maj: (p: Partial<N
         <Champ libelle="Prénom : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("prenom")} />}</Champ>
         <Champ libelle="Forme d'identité : *">{(p) => <select {...p} className="saisie" required value={forme} onChange={(e) => {
           const v = e.target.value; setAutre(v === AUTRE_PIECE); maj({ pieceType: v === AUTRE_PIECE ? "" : v });
-        }}><option value=""></option>{[...FORMES_PIECE, AUTRE_PIECE].map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+        }}><option value=""></option>{[...FORMES_PIECE, AUTRE_PIECE].map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
         {autre && <Champ libelle="Précisez la pièce : *">{(p) => <>
           <input {...p} className="saisie" required autoComplete="off" list="pieces-admises" {...texte("pieceType")} />
           <datalist id="pieces-admises">{autresPieces.map((x) => <option key={x} value={x} />)}</datalist></>}</Champ>}
@@ -440,7 +441,7 @@ function Beneficiaires({ liste, onChange, filiations }: { liste: Beneficiaire[];
             <option value=""></option><option value="F">Féminin</option><option value="M">Masculin</option></select>}</Champ>
           <ChampDate libelle="Date de naissance :" valeur={b.naissance} onChange={(v) => setB({ ...b, naissance: v })} />
           <Champ libelle="Filiation :">{(p) => <select {...p} className="saisie" value={b.filiation} onChange={(e) => setB({ ...b, filiation: e.target.value })}>
-            <option value=""></option>{filiations.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+            <option value=""></option>{filiations.map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
           {texte("telephone", "Téléphone :")}
         </div>
         {erreur && <p className="ecart ko" role="alert">{erreur}</p>}
@@ -463,7 +464,7 @@ function RenseignementsEntreprise({ f, maj, ctx }: { f: NouveauTiers; maj: Maj; 
     <div className="formulaire">
       <Champ libelle="Dénomination : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("nom")} />}</Champ>
       <Champ libelle="Forme juridique : *">{(p) => <select {...p} className="saisie" required value={f.formeJuridique} onChange={(e) => maj({ formeJuridique: e.target.value })}>
-        <option value=""></option>{(ctx.listesFiche.formeJuridique ?? []).map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+        <option value=""></option>{(ctx.listesFiche.formeJuridique ?? []).map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
       <Champ libelle="N° du registre : *">{(p) => <input {...p} className="saisie code" required autoComplete="off" {...texte("registre")} />}</Champ>
       <Champ libelle="Principal centre d'activité :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("centreActivite")} />}</Champ>
     </div>
@@ -477,7 +478,7 @@ function RenseignementsGroupe({ f, maj, ctx }: { f: NouveauTiers; maj: Maj; ctx:
     <div className="formulaire">
       <Champ libelle="Dénomination : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("nom")} />}</Champ>
       <Champ libelle="Forme juridique :">{(p) => <select {...p} className="saisie" value={f.formeJuridique} onChange={(e) => maj({ formeJuridique: e.target.value })}>
-        <option value=""></option>{(ctx.listesFiche.formeJuridiqueGroupe ?? []).map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+        <option value=""></option>{(ctx.listesFiche.formeJuridiqueGroupe ?? []).map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
       <Champ libelle="N° du registre ou de l'acte :">{(p) => <input {...p} className="saisie code" autoComplete="off" {...texte("registre")} />}</Champ>
     </div>
   );
@@ -709,13 +710,13 @@ export function MiseAJourClient() {
                 <div className="pile">
                   <ChampDate libelle="Date demande : *" valeur={f.dateDemande} onChange={(v) => maj({ dateDemande: v })} requis />
                   <Champ libelle={genre === "morale" ? "Type entreprise : *" : genre === "groupe" ? "Type de groupe *" : "Type Client : *"}>{(p) =>
-                    <select {...p} className="saisie" required {...sel("typeClient")}>{genre !== "physique" && <option value=""></option>}{types.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+                    <select {...p} className="saisie" required {...sel("typeClient")}>{genre !== "physique" && <option value=""></option>}{types.map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
                   {genre === "groupe" && <>
                     <Champ libelle="Nombre d'Homme :">{(p) => <input {...p} className="saisie code court" inputMode="numeric" autoComplete="off" {...nombre("nbHommes")} />}</Champ>
                     <Champ libelle="Nombre de Femme :">{(p) => <input {...p} className="saisie code court" inputMode="numeric" autoComplete="off" {...nombre("nbFemmes")} />}</Champ>
                   </>}
                   <Champ libelle={genre === "morale" ? "Zone : *" : "Zone :"}>{(p) => <select {...p} className="saisie" required={genre === "morale"} {...sel("zone")}><option value=""></option>
-                    {ctx.zones.map((z) => <option key={z}>{z}</option>)}</select>}</Champ>
+                    {ctx.zones.map((z) => <option key={z} value={z}>{enClair(z)}</option>)}</select>}</Champ>
                   <ChampsRelation f={f} maj={maj} morale={genre === "morale"} />
                 </div>
                 <div className="pile">

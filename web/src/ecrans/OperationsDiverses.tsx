@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { enClair } from "../lib/enclair";
 import { api, type OperationDiverse } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
@@ -21,7 +22,7 @@ export default function ParametrageAutresOperations() {
   } });
   const liste = (k: "sens" | "statut", libelle: string, valeurs: string[]) => (
     <Champ libelle={libelle}>{(p) => <select {...p} className="saisie" value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })}>
-      <option value=""></option>{valeurs.map((v) => <option key={v}>{v}</option>)}</select>}</Champ>);
+      <option value=""></option>{valeurs.map((v) => <option key={v} value={v}>{enClair(v)}</option>)}</select>}</Champ>);
   return (
     <>
       <h1>Paramétrage autres opérations</h1>

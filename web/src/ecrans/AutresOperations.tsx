@@ -205,7 +205,7 @@ function OperationDiverse({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
       <label className="case"><input type="checkbox" checked={g.multi} onChange={(e) => g.setMulti(e.target.checked)} /><span>Opération multiligne</span></label>
       <div className="ligne-champ">
         <Champ libelle="Type opération">{(p) => <select {...p} className="saisie" value={f.sens} onChange={(e) => setF({ ...f, sens: e.target.value })}>
-          <option value="DECAISSEMENT">Decaissement divers</option><option value="ENCAISSEMENT">Encaissement divers</option></select>}</Champ>
+          <option value="DECAISSEMENT">Décaissement divers</option><option value="ENCAISSEMENT">Encaissement divers</option></select>}</Champ>
         <ChampDate libelle="Date opération" valeur={f.date || ctx.date} onChange={(v) => setF({ ...f, date: v })} />
       </div>
       <ChampsLignes g={g} ctx={ctx} devise="CDF" />
