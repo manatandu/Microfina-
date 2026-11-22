@@ -1717,6 +1717,28 @@ const banqueOperations = {
     return { exercices: [...E.exercices].sort((a, b) => a.annee - b.annee).map((e) => e.annee), enCours: E.exercices.find((e) => e.actif)?.annee ?? null,
       agences: E.agences.filter((a) => !a.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ id, nom }) => ({ id, nom })) };
   },
+  /** S62 refait en relevé d'un compte bancaire lu au grand livre, avec les opérations pas encore comptabilisées (registre S62-4 ; Instr. BCC 008, art. 10 et 11).
+   *  Mêmes règles côté serveur (banque_operations.releve). */
+  releve(du: string, au: string, compteBancaireId: number) {
+    exiger();
+    if (![du, au].every((d) => /^\d{4}-\d{2}-\d{2}$/.test(d ?? ""))) throw new ErreurMetier("À remplir : période.");
+    if (du > au) throw new ErreurMetier("La date de début dépasse la date de fin.");
+    const cb = E.comptesBancaires.find((c) => c.id === compteBancaireId);
+    if (!cb) throw new ErreurMetier("À remplir : N° Compte.");
+    let ouverture = 0, td = 0, tc = 0;
+    const lignes: { date: string; journal: string; piece: string; libelle: string; debit: number; credit: number; solde: number }[] = [];
+    for (const e of [...E.ecritures].map((x) => ({ x, d: dateEcriture(x) })).filter(({ d }) => d && d <= au).sort((a, b) => a.d.localeCompare(b.d) || a.x.id - b.x.id))
+      for (const l of e.x.lignes.filter((y) => y.compte === cb.compte && y.devise === cb.devise)) {
+        if (e.d < du) { ouverture += l.sens === "D" ? l.montant : -l.montant; continue; }
+        if (l.sens === "D") td += l.montant; else tc += l.montant;
+        lignes.push({ date: e.d, journal: e.x.journal, piece: e.x.piece, libelle: e.x.libelle, debit: l.sens === "D" ? l.montant : 0, credit: l.sens === "C" ? l.montant : 0, solde: 0 });
+      }
+    let solde = ouverture; for (const l of lignes) { solde += l.debit - l.credit; l.solde = solde; }
+    const enAttente = E.operationsBanque.filter((o) => ["saisie", "visee", "validee"].includes(o.statut) && (o.compteBancaireId === cb.id || o.compteBancaireDestId === cb.id))
+      .sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id).map(ligneListe);
+    return { compte: cb.compte, intitule: intitulesComptes().get(cb.compte) ?? "", numeroBancaire: cb.numeroBancaire, banque: E.banques.find((b) => b.id === cb.banqueId)?.libelle ?? "",
+      devise: cb.devise as string, du, au, ouverture, lignes, totalDebit: td, totalCredit: tc, cloture: solde, enAttente };
+  },
   rapport(du: string, au: string, banqueId: number, compteBancaireId?: number | null, agenceId?: number | null): LigneVisaBanque[] {
     exiger();
     if (![du, au].every((d) => /^\d{4}-\d{2}-\d{2}$/.test(d ?? ""))) throw new ErreurMetier("À remplir : période.");
@@ -5144,14 +5166,15 @@ const conditionsBanque = {
     exiger();
     const per = Object.fromEntries(fixeCredit("periodicites").map((r) => [String(r.code), String(r.libelle)]));
     const epargne = E.produits.filter((p) => p.actif && !p.supprime).sort((a, b) => a.code.localeCompare(b.code)).map((p) => ({ code: p.code, libelle: p.libelle, devise: p.devise,
-      categorie: p.categorie ?? "", soldeMinimum: p.soldeMinimum, retraitMaxJour: p.retraitMaxJour, calculInteret: p.calculerInteret, tenueCompte: p.tenueCompte }));
+      categorie: p.categorie ?? "", soldeMinimum: p.soldeMinimum, retraitMaxJour: p.retraitMaxJour, calculInteret: p.calculerInteret, tenueCompte: p.tenueCompte,
+      tauxInteret: p.tauxInteret === undefined || p.tauxInteret === null || String(p.tauxInteret) === "" ? null : Number(String(p.tauxInteret).replace(",", ".")) }));
     const credit = E.produitsCredit.filter((p) => p.actif !== false).sort((a, b) => String(a.numero).localeCompare(String(b.numero))).map((p) => ({ numero: String(p.numero ?? ""), nom: String(p.nom ?? ""),
       devise: String(p.devise ?? ""), tauxInteret: nb(p.tauxInteret), typeInteret: String(p.typeInteret ?? ""), modeCalcul: String(p.modeCalcul ?? ""),
       periodicite: per[String(p.periodicite ?? "")] ?? String(p.periodicite ?? ""), tauxDiffere: nb(p.tauxDiffere), penaliteRetard: nb(p.penaliteRetard), penaliteAnticipation: nb(p.penaliteAnticipation),
       epargne: { nature: String(p.epargneNature ?? ""), valeur: nb(p.epargneValeur) }, assurance: { nature: String(p.assuranceNature ?? ""), valeur: nb(p.assuranceValeur) },
       frais: p.frais.map((f) => ({ type: f.typeFrais, nature: f.nature, valeur: f.valeur })) }));
     const frais = E.frais.flatMap((f) => [...E.paramOperations.filter((x) => x.fraisId === f.id).map((x) => ({ x, pour: x.sousType })), ...E.paramAdhesion.filter((x) => x.fraisId === f.id).map((x) => ({ x, pour: x.typeMembre }))]
-      .map(({ x, pour }) => ({ libelle: f.libelle, operation: f.typeOperation, pour, nature: x.nature, valeur: x.valeur, fondement: FONDEMENTS_FRAIS[f.fondement ?? ""] ?? "À renseigner", autorisationBcc: f.autorisationBcc ?? "" })));
+      .map(({ x, pour }) => ({ libelle: f.libelle, operation: f.typeOperation, pour, nature: x.nature, valeur: x.valeur, part: f.fondement === "part_sociale", fondement: FONDEMENTS_FRAIS[f.fondement ?? ""] ?? "À renseigner", autorisationBcc: f.autorisationBcc ?? "" })));
     return { entete: enteteDocument(), date: journees.courante()?.date ?? "", epargne, credit, frais, retenueInterets: 20 };   // loi 23/053, art. 120 (registre S67-3)
   },
 };
@@ -8511,14 +8534,14 @@ function calculerNormes(profil: string, s: Map<string, number>, resultat: number
   return { fondsPropres: fp, depots, normes: out };
 }
 const normes = {
-  /** Critères : Date de l'arrêté ; trésorerie couverte par une police d'assurance (art. 15 : 0 % au lieu de 20 %) */
-  etat(p: { date?: string; tresorerieAssuree?: boolean }) {
+  /** Critère : Date de l'arrêté ; la trésorerie est couverte (art. 15 : 0 % au lieu de 20 %) quand la fiche de l'institution déclare une police en cours (registre SN01-4) */
+  etat(p: { date?: string }) {
     lectureAdmin(["SN01"]);
     return etatNormes(p);
   },
 };
 /** Le calcul des normes à une date, sans contrôle du droit : l'écran SN01 et le rapport d'activités (B13) le font de la même façon */
-function etatNormes(p: { date?: string; tresorerieAssuree?: boolean }) {
+function etatNormes(p: { date?: string }) {
   {
     if (!DATE_ISO.test(p.date ?? "")) throw new ErreurMetier("À remplir : Date de l'arrêté.");
     const au = p.date!, an = Number(au.slice(0, 4));
@@ -8548,8 +8571,10 @@ function etatNormes(p: { date?: string; tresorerieAssuree?: boolean }) {
       if (annees < 5) decote += Math.round((e.montant - amorti) * coursDe(e.devise, au) * (5 - annees) * 20 / 100);
     }
     const correspondant = Math.max(0, ...[...s].filter(([k, v]) => (k.startsWith("53") || k.startsWith("56")) && v > 0).map(([, v]) => v));
-    return { date: au, profil: E.institution.profil, ...calculerNormes(E.institution.profil, s, resultat + anterieurs, connexes, produitsN1, positions, groupes, apparentes,
-      coursDe("USD", au), p.tresorerieAssuree === true, decote, correspondant) };
+    const ins = E.institution, assuree = !!(ins.assurancePolice && (ins.assuranceEcheance ?? "") >= au);   // police déclarée dans la fiche (S32), en cours à l'arrêté
+    return { date: au, profil: ins.profil, ...calculerNormes(ins.profil, s, resultat + anterieurs, connexes, produitsN1, positions, groupes, apparentes,
+      coursDe("USD", au), assuree, decote, correspondant),
+      assuranceTresorerie: { couverte: assuree, assureur: ins.assuranceAssureur ?? "", police: ins.assurancePolice ?? "", echeance: ins.assuranceEcheance ?? "" } };
   }
 }
 
@@ -9844,7 +9869,8 @@ const edDivers = {
 export const PROFILS_INSTITUTION: Record<string, string> = { coopec: "COOPEC", societe_microfinance: "Société de microfinance", entreprise_microcredit: "Entreprise de micro-crédit", faitiere: "Structure faîtière" };
 export type InfoSociete = { code: string; denomination: string; typeBase: string; description: string; directeur: string; agrement: string; journeeMax: number;
   compteHorsBilan1: string | null; compteHorsBilan2: string | null; ifu: string; pays: string; province?: string; ville: string; commune: string; quartier: string; rue: string; numeroRue?: string; email: string; bp: string;
-  telephoneFixe: string; adresse: string; logo: string | null; delegationAdmission?: string; membresAuxiliaires?: string; faitiereAffiliation?: string; nrc?: string };
+  telephoneFixe: string; adresse: string; logo: string | null; delegationAdmission?: string; membresAuxiliaires?: string; faitiereAffiliation?: string; nrc?: string;
+  assuranceAssureur?: string; assurancePolice?: string; assuranceEcheance?: string };
 const societe = {
   lire() {
     exiger();
@@ -9853,7 +9879,8 @@ const societe = {
       agrement: i.numeroAgrement ?? "", journeeMax: i.journeeMax ?? 1, compteHorsBilan1: i.compteHorsBilan1 ?? null, compteHorsBilan2: i.compteHorsBilan2 ?? null,
       ifu: i.ifu ?? "", pays: i.pays ?? "", province: i.province ?? "", ville: i.ville ?? "", commune: i.commune ?? "", quartier: i.quartier ?? "", rue: i.rue ?? "",
       numeroRue: i.numeroRue ?? "", email: i.email ?? "", bp: i.bp ?? "",
-      telephoneFixe: i.telephoneFixe ?? "", adresse: i.adresse ?? "", logo: i.logo ?? null, delegationAdmission: i.delegationAdmission ?? "", membresAuxiliaires: i.membresAuxiliaires ?? "", faitiereAffiliation: i.faitiereAffiliation ?? "", nrc: i.nrc ?? "" };
+      telephoneFixe: i.telephoneFixe ?? "", adresse: i.adresse ?? "", logo: i.logo ?? null, delegationAdmission: i.delegationAdmission ?? "", membresAuxiliaires: i.membresAuxiliaires ?? "", faitiereAffiliation: i.faitiereAffiliation ?? "", nrc: i.nrc ?? "",
+      assuranceAssureur: i.assuranceAssureur ?? "", assurancePolice: i.assurancePolice ?? "", assuranceEcheance: i.assuranceEcheance ?? "" };
     return { institution, types: Object.entries(PROFILS_INSTITUTION).map(([code, libelle]) => ({ code, libelle })), localites: localites(), arbreLieux: arbreLieux(),
       agences: E.agences.filter((a) => !a.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ id, code, nom, autorisationReference, autorisationLe, ...x }) => ({ id, code, nom,
         autorisationReference: autorisationReference ?? "", autorisationLe: autorisationLe ?? "",   // A3
@@ -9875,6 +9902,8 @@ const societe = {
     for (const [k, nom] of [["compteHorsBilan1", "Compte Hors Bilan 1"], ["compteHorsBilan2", "Hors Bilan 2"]] as const)
       if (v[k] && !(v[k].startsWith("0") && PCCI.comptes.some((c) => c.numero === v[k]))) throw new ErreurMetier(`${nom} : ${v[k]} n'est pas un compte de hors bilan du plan (classe 0).`);
     if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) throw new ErreurMetier("email invalide.");
+    const [aa, ap, ae] = [t(d.assuranceAssureur), t(d.assurancePolice), t(d.assuranceEcheance)];   // police de la trésorerie : tout ou rien (registre SN01-4)
+    if ((aa || ap || ae) && !(aa && ap && /^\d{4}-\d{2}-\d{2}$/.test(ae))) throw new ErreurMetier("Assurance de la trésorerie : assureur, numéro de police et date d'échéance.");
     const logo = d.logo ?? null;
     if (logo) {
       if (!/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(logo)) throw new ErreurMetier("Logo : une image PNG ou JPEG.");
@@ -9883,7 +9912,8 @@ const societe = {
     Object.assign(E.institution, { sigle: v.code, nom: v.denomination, profil: v.typeBase, description: t(d.description), directeur: t(d.directeur), numeroAgrement: t(d.agrement),
       journeeMax: d.journeeMax, compteHorsBilan1: v.compteHorsBilan1 || null, compteHorsBilan2: v.compteHorsBilan2 || null, ifu: t(d.ifu), pays: v.pays, province: v.province, ville: v.ville, commune: v.commune,
       quartier: v.quartier, rue: t(d.rue), numeroRue: t(d.numeroRue), email: v.email, bp: t(d.bp), telephoneFixe: t(d.telephoneFixe), adresse: t(d.adresse), logo,
-      delegationAdmission: t(d.delegationAdmission), membresAuxiliaires: t(d.membresAuxiliaires), faitiereAffiliation: t(d.faitiereAffiliation), nrc: t(d.nrc) });
+      delegationAdmission: t(d.delegationAdmission), membresAuxiliaires: t(d.membresAuxiliaires), faitiereAffiliation: t(d.faitiereAffiliation), nrc: t(d.nrc),
+      assuranceAssureur: t(d.assuranceAssureur), assurancePolice: t(d.assurancePolice), assuranceEcheance: t(d.assuranceEcheance) });
     enregistrer(); return societe.lire();
   },
   /** Page Agence : Code et Nom (registre S32-5) ; le code d'une agence qui a des clients ne change plus (il entre dans leurs numéros, S15) */

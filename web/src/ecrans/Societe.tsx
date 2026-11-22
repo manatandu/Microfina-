@@ -73,6 +73,10 @@ function InformationSociete() {
             {texte("compteHorsBilan1", "Compte Hors Bilan 1", "saisie code")}
             {texte("ifu", "NIF")}
             {texte("nrc", "NRC")}
+            {/* Police d'assurance de la trésorerie : déclarée une fois, lue par les normes prudentielles (Instr. BCC 002 ; registre SN01-4) */}
+            {texte("assuranceAssureur", "Assurance de la trésorerie : assureur")}
+            {texte("assurancePolice", "Assurance de la trésorerie : n° de police", "saisie code")}
+            <ChampDate libelle="Assurance de la trésorerie : échéance" valeur={String(v.assuranceEcheance ?? "")} onChange={(x) => maj({ assuranceEcheance: x })} />
             {(v.typeBase === "coopec" || v.typeBase === "faitiere") && texte("delegationAdmission", "Délégation d'admission (décision du CA) :")}
             {v.typeBase === "coopec" && texte("faitiereAffiliation", "Faîtière d'affiliation :")}
             {(v.typeBase === "coopec" || v.typeBase === "faitiere") && texte("membresAuxiliaires", "Membres auxiliaires (article des statuts) :")}

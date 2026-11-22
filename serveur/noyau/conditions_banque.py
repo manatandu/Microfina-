@@ -37,6 +37,7 @@ def etat(u: dict) -> dict:
                            select initcap(nature), valeur, case type_membre when 'physique' then 'Physique' when 'morale' then 'Personne morale' else 'Groupe' end
                            from parametrage_frais_adhesion where frais_id = %s and supprime_le is null""", (f["id"], f["id"])):
             frais.append({"libelle": f["libelle"], "operation": f["type_operation"], "pour": p["pour"], "nature": p["nature"], "valeur": p["valeur"],
-                          "fondement": FONDEMENTS.get(f["fondement"] or "", "À renseigner"), "autorisationBcc": f["autorisation_bcc"] or ""})
+                          "fondement": FONDEMENTS.get(f["fondement"] or "", "À renseigner"), "autorisationBcc": f["autorisation_bcc"] or "",
+                          "part": f["fondement"] == "part_sociale"})   # publiée à part : une part du capital, pas une commission (registre SP01-4)
     return {"entete": entete(i), "date": j["date"] if j else "", "epargne": epargne, "credit": credit, "frais": frais,
             "retenueInterets": float(TAUX_IRC_PHYSIQUE)}

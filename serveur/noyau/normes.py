@@ -11,7 +11,7 @@ Mêmes règles que web/src/donnees/api.ts (normes)."""
 from collections import defaultdict
 from datetime import date
 
-from .bd import ErreurMetier, lignes, valeur
+from .bd import ErreurMetier, lignes, une, valeur
 from .etats_financiers import mouvements_gestion, soldes
 from .services import cours, exiger
 
@@ -99,7 +99,8 @@ def calculer(profil: str, s: dict, resultat: int, connexes_n: int, produits_n1: 
 
 
 def etat(u, p) -> dict:
-    """Critères : Date de l'arrêté ; trésorerie couverte par une police d'assurance (art. 15 : 0 % au lieu de 20 %)"""
+    """Critère : Date de l'arrêté. La trésorerie est couverte (art. 15 : 0 % au lieu de 20 %) quand la fiche de l'institution déclare une police en cours
+    à la date de l'arrêté (plan d'allègement, point 0.18 ; registre SN01-4)"""
     exiger(u)
     p = p if isinstance(p, dict) else {}
     try:
@@ -108,6 +109,8 @@ def etat(u, p) -> dict:
         raise ErreurMetier("À remplir : Date de l'arrêté.")
     i = u["institution_id"]
     profil = valeur("select profil from institution where id = %s", (i,)) or ""
+    pol = une("select assurance_tresorerie_assureur as assureur, assurance_tresorerie_police as police, assurance_tresorerie_echeance as echeance from institution where id = %s", (i,))
+    assuree = bool(pol and pol["police"] and pol["echeance"] >= au.isoformat())
     s, resultat, anterieurs = soldes(u, au, au.year, vidage=True)
     mv = mouvements_gestion(u, date(au.year, 1, 1), au, vidage=False)
     mv1 = mouvements_gestion(u, date(au.year - 1, 1, 1), date(au.year - 1, 12, 31), vidage=False)
@@ -151,5 +154,6 @@ def etat(u, p) -> dict:
     # B15 : le plafond par signature vaut aussi pour les avoirs chez un correspondant (art. 28, al. 4 ; art. 29, al. 2) : comptes 53 et 56
     correspondant = max((v for k, v in s.items() if k.startswith(("53", "56")) and v > 0), default=0)
     x = calculer(profil, s, resultat + anterieurs, connexes, produits_n1, positions, dict(groupes), sum(v for k, v in encours.items() if k in apparentes),
-                 cours("USD", au), p.get("tresorerieAssuree") is True, decote, correspondant)
-    return {"date": au.isoformat(), "profil": profil, **x}
+                 cours("USD", au), assuree, decote, correspondant)
+    return {"date": au.isoformat(), "profil": profil, **x, "assuranceTresorerie": {"couverte": assuree, "assureur": (pol or {}).get("assureur") or "",
+                                                                                "police": (pol or {}).get("police") or "", "echeance": (pol or {}).get("echeance") or ""}}

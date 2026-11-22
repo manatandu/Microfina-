@@ -288,6 +288,46 @@ def rapport_contexte(u) -> dict:
             "agences": lignes("select id, nom from agence where institution_id = %s order by code", (i,))}
 
 
+def releve(u, du: str, au: str, compte_bancaire_id: int) -> dict:
+    """S62 refait en « Relevé d'un compte bancaire » lu au grand livre (plan d'allègement, point 0.13 ; registre S62-4) : tous les mouvements du compte
+    comptable du compte bancaire, quel que soit l'écran d'origine (déblocages par chèque, remboursements reçus, chèques encaissés, emprunts…), dans sa
+    devise, avec le solde au début et à la fin ; puis les opérations de banque saisies mais pas encore comptabilisées. Instr. BCC 008, art. 10 et 11."""
+    exiger(u)
+    for d in (du, au):
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", d or ""):
+            raise ErreurMetier("À remplir : période.")
+    if du > au:
+        raise ErreurMetier("La date de début dépasse la date de fin.")
+    cb = une("""select cb.id, cb.compte_id, cb.numero, cb.devise, c.numero as compte, c.libelle as intitule, b.nom as banque from compte_bancaire cb
+                join compte c on c.id = cb.compte_id join banque b on b.id = cb.banque_id where cb.id = %s and cb.institution_id = %s""",
+             (compte_bancaire_id, u["institution_id"])) if isinstance(compte_bancaire_id, int) and not isinstance(compte_bancaire_id, bool) else None
+    if not cb:
+        raise ErreurMetier("À remplir : N° Compte.")
+    dev = cb["devise"].strip()
+    ouverture, lignes_, td, tc = 0, [], 0, 0
+    for m in lignes("""select e.date_valeur, j.code as journal, p.numero as piece, e.libelle, l.sens, l.montant_devise
+                       from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join journal j on j.id = e.journal_id join piece p on p.id = e.piece_id
+                       where l.compte_id = %s and e.institution_id = %s and e.date_valeur <= %s and l.devise = %s order by e.date_valeur, e.id, l.rang""",
+                    (cb["compte_id"], u["institution_id"], au, dev)):
+        signe = m["montant_devise"] if m["sens"] == "D" else -m["montant_devise"]
+        if m["date_valeur"].isoformat() < du:
+            ouverture += signe
+            continue
+        td += m["montant_devise"] if m["sens"] == "D" else 0
+        tc += m["montant_devise"] if m["sens"] == "C" else 0
+        lignes_.append({"date": m["date_valeur"].isoformat(), "journal": m["journal"], "piece": m["piece"], "libelle": m["libelle"],
+                        "debit": m["montant_devise"] if m["sens"] == "D" else 0, "credit": m["montant_devise"] if m["sens"] == "C" else 0})
+    solde = ouverture
+    for l in lignes_:
+        solde += l["debit"] - l["credit"]
+        l["solde"] = solde
+    attente = [ligne_liste(o) for o in lignes(SELECT_LIGNES + """ where o.institution_id = %s and o.statut in ('saisie', 'visee', 'validee')
+                                                  and (o.compte_bancaire_id = %s or o.compte_bancaire_dest_id = %s) order by o.date_operation, o.id""",
+                                              (u["institution_id"], cb["id"], cb["id"]))]
+    return {"compte": cb["compte"], "intitule": cb["intitule"], "numeroBancaire": cb["numero"], "banque": cb["banque"], "devise": dev, "du": du, "au": au,
+            "ouverture": ouverture, "lignes": lignes_, "totalDebit": td, "totalCredit": tc, "cloture": solde, "enAttente": attente}
+
+
 def rapport(u, du: str, au: str, banque_id: int, compte_bancaire_id: int | None = None, agence_id: int | None = None) -> list[dict]:
     """Opérations de banque de la période (date de l'opération), de la banque choisie (compte d'origine ou de destination), hors refusées
     (registre S62-1). Critères Rechercher par / Option / Valeur appliqués à l'écran."""

@@ -10,7 +10,8 @@ export interface Utilisateur { id: number; login: string; nom: string; roles: Ro
 export interface Institution { nom: string; sigle?: string; profil: string;
   // S32 Info générale
   description?: string; directeur?: string; numeroAgrement?: string; journeeMax?: number; compteHorsBilan1?: string | null; compteHorsBilan2?: string | null;
-  ifu?: string; nrc?: string; pays?: string; province?: string; ville?: string; commune?: string; quartier?: string; rue?: string; numeroRue?: string; email?: string; bp?: string; telephoneFixe?: string; adresse?: string; logo?: string | null;
+  ifu?: string; nrc?: string; assuranceAssureur?: string; assurancePolice?: string; assuranceEcheance?: string;   // police de la trésorerie (SN01-4)
+   pays?: string; province?: string; ville?: string; commune?: string; quartier?: string; rue?: string; numeroRue?: string; email?: string; bp?: string; telephoneFixe?: string; adresse?: string; logo?: string | null;
   delegationAdmission?: string;
   faitiereAffiliation?: string;   // B30 : faîtière d'affiliation d'une COOPEC (Instr. BCC 0011, art. 29)
   membresAuxiliaires?: string;   // écart E20 : article des statuts qui prévoit des membres auxiliaires (loi 002/2002, art. 23)

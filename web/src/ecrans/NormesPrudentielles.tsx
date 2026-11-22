@@ -14,12 +14,11 @@ const SENS = { min: "au moins", max: "au plus", bande: "entre -/+" } as const;
 export default function NormesPrudentielles() {
   const { donnees: j } = useDonnees(() => api.journees.courante());
   const [date, setDate] = useState("");
-  const [assuree, setAssuree] = useState(false);
   const [r, setR] = useState<Etat | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   if (j === undefined) return <Chargement />;
   const d = date || j?.date || new Date().toISOString().slice(0, 10);
-  async function rechercher() { try { setR(await api.normes.etat({ date: d, tresorerieAssuree: assuree })); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } }
+  async function rechercher() { try { setR(await api.normes.etat({ date: d })); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } }
   const m = (v: number) => decimal.format(v / 100);
   const etat = (x: Etat["normes"][number]) => (!x.applicable ? "Sans objet" : x.respect === null ? "Non calculable" : x.respect ? "Respectée" : "Non respectée");
   const exporter = r ? () => exporterExcel("Normes prudentielles", ["Norme", "Référence", "Numérateur", "Dénominateur", "Ratio (%)", "Norme (%)", "État"],
@@ -31,11 +30,14 @@ export default function NormesPrudentielles() {
         <h2>Edition des normes prudentielles</h2>
         <fieldset className="cadre-champs formulaire"><legend className="sr-only">Arrêté</legend>
           <ChampDate libelle="Date de l'arrêté :" valeur={d} onChange={setDate} />
-          <label className="case"><input type="checkbox" checked={assuree} onChange={(e) => setAssuree(e.target.checked)} /><span>Trésorerie couverte par une police d'assurance</span></label>
         </fieldset>
+        {/* La police se déclare une fois dans la fiche de l'institution (S32) : plus de case à cocher à chaque calcul (plan d'allègement 0.18 ; registre SN01-4) */}
+        {r && <p>Trésorerie couverte par une police d'assurance : {r.assuranceTresorerie.couverte
+          ? `oui, police ${r.assuranceTresorerie.police} (${r.assuranceTresorerie.assureur}), jusqu'au ${fr(r.assuranceTresorerie.echeance)} : caisse pondérée à 0 %.`
+          : "non (aucune police en cours déclarée dans Paramétrage > Société) : caisse pondérée à 20 %."}</p>}
         <div className="actions-onglets">
           <button className="bouton" type="button" onClick={rechercher}>Rechercher</button>
-          <button className="bouton secondaire" type="button" onClick={() => { setDate(""); setAssuree(false); setR(null); }}>Rein. les champs</button>
+          <button className="bouton secondaire" type="button" onClick={() => { setDate(""); setR(null); }}>Rein. les champs</button>
           <button className="bouton secondaire" type="button" disabled={!exporter} onClick={() => exporter?.()}>Exporter</button>
         </div>
         {r && <>

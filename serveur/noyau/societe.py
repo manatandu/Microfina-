@@ -15,7 +15,9 @@ CHAMPS = {"code": "sigle", "denomination": "nom", "typeBase": "profil", "descrip
           "telephoneFixe": "telephone_fixe", "adresse": "adresse", "logo": "logo",
           "faitiereAffiliation": "faitiere_affiliation",      # B30 : faîtière d'affiliation d'une COOPEC (Instr. BCC 0011, art. 29)
           "delegationAdmission": "delegation_admission",     # écart E05 : référence de la décision du Conseil qui délègue l'admission (loi 002/2002, art. 22)
-          "membresAuxiliaires": "membres_auxiliaires"}       # écart E20 : article des statuts qui prévoit des membres auxiliaires (loi 002/2002, art. 23)     # écart E05 : référence de la décision du Conseil qui délègue l'admission (loi 002/2002, art. 22)
+          "membresAuxiliaires": "membres_auxiliaires",
+          # Police d'assurance de la trésorerie (Instr. BCC 002 : caisse pondérée à 0 %), lue par les normes prudentielles (registre SN01-4)
+          "assuranceAssureur": "assurance_tresorerie_assureur", "assurancePolice": "assurance_tresorerie_police", "assuranceEcheance": "assurance_tresorerie_echeance"}       # écart E20 : article des statuts qui prévoit des membres auxiliaires (loi 002/2002, art. 23)     # écart E05 : référence de la décision du Conseil qui délègue l'admission (loi 002/2002, art. 22)
 ADRESSE = {"pays": "pays", "province": "province", "ville": "ville", "commune": "commune", "quartier": "quartier", "rue": "rue", "numeroRue": "numero_rue"}
 LOGO_MAX = 300_000      # caractères de l'image encodée (registre S32-4)
 
@@ -56,6 +58,9 @@ def enregistrer(u, d) -> dict:
         raise ErreurMetier("Type base inconnu.")
     if not isinstance(jm, int) or isinstance(jm, bool) or jm < 1:
         raise ErreurMetier("Journée Maxi ouvert : nombre entier, 1 au moins.")
+    if v["assurancePolice"] or v["assuranceEcheance"] or v["assuranceAssureur"]:
+        if not (v["assurancePolice"] and v["assuranceAssureur"] and re.fullmatch(r"\d{4}-\d{2}-\d{2}", v["assuranceEcheance"])):
+            raise ErreurMetier("Assurance de la trésorerie : assureur, numéro de police et date d'échéance.")
     from .adresse import controler
     controler(lambda k: v.get(k, ""), quoi="Pays, ville, commune ou quartier")      # registre S32-7 ; adresse unique (registre T41)
     for k, nom in (("compteHorsBilan1", "Compte Hors Bilan 1"), ("compteHorsBilan2", "Hors Bilan 2")):

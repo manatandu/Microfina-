@@ -92,6 +92,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       enregistrerAdhesion: (d: object) => post("/banque/adhesions", d),
       visas: (etape: string, liste: string) => get(`/banque/visas?etape=${etape}&liste=${liste}`),
       rapportContexte: () => get("/banque/rapport/contexte"),
+      releve: (du: string, au: string, compteBancaireId: number) => get(`/banque/releve?du=${du}&au=${au}&compteBancaireId=${compteBancaireId}`),
       rapport: (du: string, au: string, banqueId: number, compteBancaireId?: number | null, agenceId?: number | null) =>
         get(`/banque/rapport?du=${du}&au=${au}&banqueId=${banqueId}${compteBancaireId ? `&compteBancaireId=${compteBancaireId}` : ""}${agenceId ? `&agenceId=${agenceId}` : ""}`),
       suivre: (id: number, etape: string, d: object = {}) => post(`/banque/visas/${id}/${etape}`, d),

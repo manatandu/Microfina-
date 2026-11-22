@@ -1558,6 +1558,11 @@ def banque_rapport_contexte(request):
     return bop.rapport_contexte(u(request))
 
 
+@api.get("/banque/releve")
+def banque_releve(request, du: str, au: str, compteBancaireId: int):
+    return bop.releve(u(request), du, au, compteBancaireId)
+
+
 @api.get("/banque/rapport")
 def banque_rapport(request, du: str, au: str, banqueId: int, compteBancaireId: int | None = None, agenceId: int | None = None):
     return bop.rapport(u(request), du, au, banqueId, compteBancaireId, agenceId)
@@ -2925,10 +2930,10 @@ def inactifs_lettre_imprimer(request, cid: int):
 
 
 @api.get("/comptabilite/normes-prudentielles")
-def normes_prudentielles(request, date: str = "", tresorerieAssuree: str = ""):
+def normes_prudentielles(request, date: str = ""):
     from . import normes
     from .editions import numeroter
-    r = normes.etat(u(request), {"date": date, "tresorerieAssuree": tresorerieAssuree == "true"})
+    r = normes.etat(u(request), {"date": date})
     return {**r, "edition": numeroter(u(request), "normes")}
 
 

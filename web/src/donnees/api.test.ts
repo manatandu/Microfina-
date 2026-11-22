@@ -435,6 +435,8 @@ describe("journée de guichet", () => {
     expect(e.epargne.map((p) => p.code)).toContain("EAV-CDF");
     const f = e.frais.find((x) => x.libelle === "Part sociale standard")!;
     expect([f.operation, f.nature, f.fondement]).toEqual(["ADHESION", "Montant", "Part sociale (loi 002/2002, art. 22, 2°)"]);
+    expect([f.part, e.frais.filter((x) => x.part).length]).toEqual([true, e.frais.filter((x) => x.libelle === "Part sociale standard").length]);   // publiée à part (SP01-4)
+    expect(e.epargne.every((p) => "tauxInteret" in p)).toBe(true);   // le taux, pas « Oui » ou « Non » (Instr. BCC 40, art. 2)
   });
 
   it("retenues à reverser (écart E16) : état du mois, échéance du 15 du mois suivant, reversement noté", async () => {
@@ -3471,6 +3473,14 @@ describe("journée de guichet", () => {
     await expect(api.normes.etat({ date: "" })).rejects.toThrow("Date de l'arrêté");
     const e1 = (await api.normes.etat({ date: j })).edition, e2 = (await api.normes.etat({ date: j })).edition;
     expect(e2.numero).toBe(e1.numero + 1);   // B12 : états numérotés et datés (PCCI § 3.4)
+    // Police d'assurance de la trésorerie déclarée dans la fiche de l'institution (registre SN01-4)
+    expect(r.assuranceTresorerie.couverte).toBe(false);
+    await connecter("jpmukendi");
+    const i = (await api.societe.lire()).institution;
+    await expect(api.societe.enregistrer({ ...i, assurancePolice: "POL-1" })).rejects.toThrow("assureur, numéro de police");
+    await api.societe.enregistrer({ ...i, assuranceAssureur: "SONAS", assurancePolice: "POL-1", assuranceEcheance: "2026-12-31" });
+    await connecter("plumbala");
+    expect([(await api.normes.etat({ date: j })).assuranceTresorerie.couverte, (await api.normes.etat({ date: "2027-01-15" })).assuranceTresorerie.couverte]).toEqual([true, false]);
     await connecter("engalula");
     await expect(api.normes.etat({ date: j })).rejects.toThrow();
   });

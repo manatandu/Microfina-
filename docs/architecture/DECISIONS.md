@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**959 décisions.** Solidité : 421 fortes (le manuel ou un texte répond), 456 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 952 déjà en place, 7 à appliquer.
+**963 décisions.** Solidité : 424 fortes (le manuel ou un texte répond), 457 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 956 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2084,6 +2084,37 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S83-6 | Soldes et totaux | Une colonne Devise ; par devise, le solde au début de la période, les totaux débit et crédit, le solde à la fin ; un montant absent reste vide | Texte réglementaire : PCCI, compte 57 (caisse débitée des entrées, créditée des sorties) ; plan d'allègement, point 0.12 | forte | en place |
+
+## S62 Banque > Rapport
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S62-4 | Journal des opérations de banque | Refait en « Relevé d'un compte bancaire » : le compte bancaire choisi, Du et Au ; ses mouvements lus au grand livre, quel que soit l'écran d'origine (déblocages par chèque, remboursements reçus, chèques encaissés, emprunts), dans sa devise, avec le solde au début, les totaux et le solde à la fin, Exporter ; puis les opérations de banque saisies, visées ou validées mais pas encore comptabilisées. Exercice, Agence et le bloc de recherche sont retirés | Texte réglementaire : Instr. BCC 008, art. 10 et 11 (exhaustivité, justification des soldes) ; PCCI, compte 56 ; plan d'allègement, point 0.13 | forte | en place |
+
+## SP01 Conditions de banque
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| SP01-4 | Intérêt des produits d'épargne et part sociale | La colonne Intérêt donne le taux annuel du produit (ou « Aucun intérêt »), pas « Oui » ou « Non ». La part sociale se publie à part, comme une part du capital remboursable, hors des frais et commissions | Texte réglementaire : Instr. BCC 40, art. 2 (taux applicables) et art. 6 (informations exactes) ; loi 002/2002, art. 20 et 22 ; plan d'allègement, point 0.14 | forte | en place |
+
+## SN01 Normes prudentielles
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| T75 | État des normes prudentielles (SN01 Normes prudentielles) | Écran Comptabilité > Indicateurs > Normes prudentielles (comptable), au gabarit des indicateurs financiers (S123) : date de l'arrêté, trésorerie couverte par une police d'assurance (Oui/Non), Rechercher, Rein. les champs, Exporter. Fonds propres de base, complémentaires et prudentiels calculés sur la balance définitive en CDF ; une ligne par norme avec numérateur, dénominateur, ratio, norme et état (respectée, non respectée, sans objet). Normes : capital minimum (IMF), solvabilité et liquidité immédiate (sauf entreprise de microcrédit), risques et apparentés sur dépôts (COOPEC), apparentés, plus gros risque, participations, ressources stables, immobilisations, produits connexes, positions de change | Texte réglementaire : Instr. BCC 002, art. 3 à 43 ; Instr. BCC 0010, art. 4 ; loi 002/2002, art. 59, 2°, 4°, 5° et 6°, et art. 60 ; confrontation du 21/11/2026, A2, B5, B6 | forte | en place |
+| T76 | Résultat de l'exercice dans les fonds propres de base (SN01 Normes prudentielles) | Le résultat de l'exercice et ceux des exercices non clôturés, pas encore affectés, se lisent comme les excédents non affectés (130) ou la perte (131) | Texte réglementaire : Instr. BCC 002, art. 8 (sous-comptes 130 et 131) | moyenne | en place |
+| T77 | « Crédits distribués (Comptes 30 à 39) » (SN01 Normes prudentielles) | Comptes de crédit de la plage : 30, 31, 32 et 39 ; les comptes 33 à 37 sont des dépôts, 38 des provisions | Texte réglementaire : Instr. BCC 002, art. 23 ; PCCI, liste des comptes, classe 3 | moyenne | en place |
+| T78 | Déductions non tenues en comptabilité (SN01 Normes prudentielles) | Ne sont pas déduits, faute de compte qui les isole : les dépôts de garantie sous convention de fusion de compte (art. 15 et 23), les risques sur ressources affectées des bailleurs (loi 002/2002, art. 60, al. 2). | Texte réglementaire : Instr. BCC 002, art. 10, 15 et 23 ; loi 002/2002, art. 60 | moyenne | en place |
+| T79 | Liquidité de 80 % de la loi 002/2002 (SN01 Normes prudentielles) | Non calculée : l'art. 59, 3° renvoie à une instruction de la BCC pour ses éléments, et l'Instr. BCC 002 définit à la place la liquidité immédiate de 20 % (art. 16 à 18), qui est calculée | Texte réglementaire : Loi 002/2002, art. 59, 3° ; Instr. BCC 002, art. 16 à 18 ; Instr. BCC 002, visas : prise pour l'application des art. 58 à 61 de la loi 002/2002 ; Instr. BCC 009, annexe, ratios prudentiels à rapporter : « Liquidité immédiate » | forte | en place |
+| T80 | Devise la plus utilisée ; produits connexes (SN01 Normes prudentielles) | Devise la plus utilisée (rapport porté à 15 %) : celle dont les mouvements sont les plus forts. Produits connexes : cumul de l'exercice à la date, rapporté aux produits (classe 7) de l'exercice précédent | Texte réglementaire : Instr. BCC 002, art. 39 et 40 | moyenne | en place |
+| T97 | Avoirs chez un correspondant ; décote des dettes subordonnées (SN01 Normes prudentielles) | Nouvelle ligne « Plus gros avoir chez un correspondant / fonds propres prudentiels » (plus gros solde débiteur d'un compte 53 ou 56 ; 5 % pour une IMF, 10 % pour une COOPEC). Dettes subordonnées (emprunts tenus au compte 1622) : 20 % de moins par année quand il reste moins de cinq ans à courir, d'après la date et la durée de l'emprunt (S61) | Texte réglementaire : Instr. BCC 002, art. 10, art. 28, al. 4, et art. 29, al. 2 ; confrontation du 21/11/2026, B15 et B21 | moyenne | en place |
+| SN01-4 | Trésorerie couverte par une police d'assurance | Déclarée une fois dans la fiche de l'institution (S32) : assureur, n° de police, échéance. Les normes la lisent : caisse pondérée à 0 % si la police est en cours à la date de l'arrêté, à 20 % sinon. La case cochée à chaque calcul disparaît | Texte réglementaire : Instr. BCC 002 (ratio de solvabilité, pondération de la caisse) ; plan d'allègement, point 0.18 | forte | en place |
+
+## S127, S128 Fin de période
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S127-14 | Mois proposé | Le dernier mois terminé à la journée ouverte (décembre de l'année précédente en janvier), le seul qu'on puisse calculer ou clôturer | Écran voisin : Plan d'allègement, point 0.19 | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

@@ -26,6 +26,8 @@ function Onglets({ pages, titre, defaut }: { pages: readonly (readonly [string, 
     onClick={() => setParams(k === defaut ? {} : { page: k })}>{l}</button>)}</div> };
 }
 
+/** Mois proposé : le dernier mois terminé à la journée ouverte, le seul qu'on puisse calculer ou clôturer (plan d'allègement, point 0.19 ; registre S127-14) */
+const moisTermine = (jour: string) => { const a = Number(jour.slice(0, 4)), m = Number(jour.slice(5, 7)); return m === 1 ? { exercice: String(a - 1), mois: "12" } : { exercice: String(a), mois: String(m - 1) }; };
 /** Exercice et Mois : critères des calculs mensuels */
 function Periode({ ctx, f, setF }: { ctx: Ctx; f: { exercice: string; mois: string }; setF: (x: { exercice: string; mois: string }) => void }) {
   return <fieldset className="cadre-champs formulaire"><legend className="sr-only">Période</legend>
@@ -45,7 +47,7 @@ function useTraitement() {
 }
 
 function FraisTenue({ ctx, jour }: { ctx: Ctx; jour: string }) {
-  const [f, setF] = useState({ exercice: jour.slice(0, 4), mois: String(Number(jour.slice(5, 7))) });
+  const [f, setF] = useState(moisTermine(jour));
   const [r, setR] = useState<Tenue | null>(null);
   const t = useTraitement();
   const calculer = async () => { try { setR(await api.finPeriode.apercuTenue(f)); } catch (x) { t.erreur(x); } };
@@ -62,7 +64,7 @@ function FraisTenue({ ctx, jour }: { ctx: Ctx; jour: string }) {
 }
 
 function InteretsDav({ ctx, jour }: { ctx: Ctx; jour: string }) {
-  const [f, setF] = useState({ exercice: jour.slice(0, 4), mois: String(Number(jour.slice(5, 7))) });
+  const [f, setF] = useState(moisTermine(jour));
   const [r, setR] = useState<Dav | null>(null);
   const t = useTraitement();
   const calculer = async () => { try { setR(await api.finPeriode.apercuInteretsDav(f)); } catch (x) { t.erreur(x); } };
@@ -132,7 +134,7 @@ function InteretsCredits({ jour }: { jour: string }) {
 }
 
 function InteretsEtFrais({ ctx, jour }: { ctx: Ctx; jour: string }) {
-  const [f, setF] = useState({ exercice: jour.slice(0, 4), mois: String(Number(jour.slice(5, 7))) });
+  const [f, setF] = useState(moisTermine(jour));
   const [r, setR] = useState<{ interets: number; frais: number } | null>(null);
   const t = useTraitement();
   return <section className="bloc pile" aria-label="Intérêt et frais de tenue de comptes"><h2>Intérêt et frais de tenue de comptes</h2>
@@ -170,7 +172,7 @@ function Controles({ titre, liste }: { titre: string; liste: Cloture["controles"
 }
 
 function ClotureComptable({ ctx, jour }: { ctx: Ctx; jour: string }) {
-  const [f, setF] = useState({ exercice: jour.slice(0, 4), mois: String(Number(jour.slice(5, 7))) });
+  const [f, setF] = useState(moisTermine(jour));
   const [r, setR] = useState<Cloture | null>(null);
   const t = useTraitement();
   const afficher = async (x = f) => { try { setR(await api.finPeriode.apercuCloture(x)); } catch (e) { t.erreur(e); } };

@@ -3525,6 +3525,8 @@ def test_conditions_de_banque(clients, journee):
     assert {"EAV-CDF", "EAV-USD"} <= {p["code"] for p in e["epargne"]}
     f = next(x for x in e["frais"] if x["libelle"] == "Part sociale standard")
     assert (f["operation"], f["nature"], f["fondement"]) == ("ADHESION", "Montant", "Part sociale (loi 002/2002, art. 22, 2°)")
+    assert f["part"] is True and all(not x["part"] for x in e["frais"] if x["libelle"] != "Part sociale standard")   # publiée à part (registre SP01-4)
+    assert all("tauxInteret" in p for p in e["epargne"])                                                      # le taux, pas « Oui » ou « Non » (Instr. BCC 40, art. 2)
 
 
 def test_retenues_a_reverser(clients, journee):
@@ -5119,6 +5121,16 @@ def test_normes_prudentielles_etat(clients, journee):
     assert {"solvabilite", "liquidite", "ressources", "immobilisations", "connexes"} <= set(codes)
     assert "Date de l'arrêté" in compta.get("/api/comptabilite/normes-prudentielles?date=", **H).json()["message"]
     assert clients["caisse"].get("/api/comptabilite/normes-prudentielles?date=2026-11-05", **H).status_code == 403
+    # Police d'assurance de la trésorerie déclarée dans la fiche de l'institution (registre SN01-4) : plus de case à cocher à chaque calcul
+    chef = clients["chef"]
+    assert r.json()["assuranceTresorerie"]["couverte"] is False
+    i = chef.get("/api/societe", **H).json()["institution"]
+    assert "assureur, numéro de police" in chef.post("/api/societe", {**i, "assurancePolice": "POL-1"}, **H).json()["message"]
+    assert chef.post("/api/societe", {**i, "assuranceAssureur": "SONAS", "assurancePolice": "POL-1", "assuranceEcheance": "2026-12-31"}, **H).status_code == 200
+    a = compta.get("/api/comptabilite/normes-prudentielles?date=2026-11-05", **H).json()["assuranceTresorerie"]
+    assert (a["couverte"], a["police"]) == (True, "POL-1")
+    chef.post("/api/societe", {**i, "assuranceAssureur": "SONAS", "assurancePolice": "POL-1", "assuranceEcheance": "2026-10-31"}, **H)
+    assert compta.get("/api/comptabilite/normes-prudentielles?date=2026-11-05", **H).json()["assuranceTresorerie"]["couverte"] is False   # échue à l'arrêté
 
 
 def test_bilan_sans_compensation():

@@ -1,89 +1,89 @@
-// S62 : Banque > Rapport (manuel Microfina++, p. 71, capture « Édition du journal des opérations de banque » et texte : exercice, période, banque, agence, Valider).
-// Le résultat n'est pas montré : colonnes des listes des opérations de banque (S57) plus l'agence, Export Excel (COMPLEMENTS § 4.5, registre S62-1 à S62-3).
+// S62 : Banque > Rapport (manuel Microfina++, p. 71, « Édition du journal des opérations de banque »). Refait en « Relevé d'un compte bancaire » lu au
+// grand livre (plan d'allègement, point 0.13 ; registre S62-4) : l'ancien journal ne lisait que trois écrans de saisie et laissait de côté les déblocages par
+// chèque, les remboursements reçus en banque, les chèques encaissés et les emprunts.
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, type LigneVisaBanque } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
-import { montant } from "@design/montant.js";
+import { montant, type Devise } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite } from "../composants";
 
-const COLONNES: [string, (x: LigneVisaBanque) => string][] = [
-  ["Date operation", (x) => fr(x.date)], ["Operation", (x) => x.operation], ["Montant", (x) => montant(x.montant, x.devise)], ["Banque", (x) => x.banque],
-  ["Compte Banque", (x) => x.compteBanque], ["Numero comptable", (x) => x.numeroComptable], ["Libelle", (x) => x.libelle], ["Agence", (x) => x.agence ?? ""],
-];
-const RECHERCHE = ["Operation", "Libelle", "Numero comptable", "Compte Banque"] as const;
+type Releve = Awaited<ReturnType<typeof api.banqueOperations.releve>>;
+const COLONNES = ["Date", "Journal", "N° pièce", "Libellé", "Débit", "Crédit", "Solde"];
 
 export function RapportsBanque() {
   const nav = useNavigate();
   const { donnees } = useDonnees(async () => ({ cx: await api.banqueOperations.rapportContexte(), lu: await api.banqueOperations.lire() }));
-  const [f, setF] = useState({ exercice: "", du: "", au: "", banque: "", compte: "", agence: "", par: "", valeur: "" });
-  const [lignes, setLignes] = useState<LigneVisaBanque[] | null>(null);
+  const [f, setF] = useState({ du: "", au: "", banque: "", compte: "" });
+  const [r, setR] = useState<Releve | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   if (!donnees) return <Chargement />;
   const { cx, lu } = donnees;
   const maj = (p: Partial<typeof f>) => setF((x) => ({ ...x, ...p }));
-  const exercice = f.exercice || String(cx.enCours ?? new Date().getFullYear());
-  const du = f.du || `${exercice}-01-01`;
+  const du = f.du || `${cx.enCours ?? new Date().getFullYear()}-01-01`;
   const au = f.au || lu.date || new Date().toISOString().slice(0, 10);
   const comptes = lu.comptes.filter((c) => String(c.banqueId) === f.banque);
-  const colonne = COLONNES.find(([t]) => t === f.par);
-  const affichees = (lignes ?? []).filter((x) => !colonne || !f.valeur.trim() || colonne[1](x).toLowerCase().startsWith(f.valeur.trim().toLowerCase()));
+  const m = (x: number) => (r && x ? montant(x, r.devise as Devise) : "");
 
-  async function valider() {
-    if (!f.banque) { setBoite({ type: "erreur", message: "À remplir : Banque." }); return; }
-    try { setLignes(await api.banqueOperations.rapport(du, au, Number(f.banque), f.compte ? Number(f.compte) : null, f.agence ? Number(f.agence) : null)); }
-    catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+  async function afficher() {
+    try {
+      if (!f.compte) throw new Error(f.banque ? "À remplir : N° Compte." : "À remplir : Banque, N° Compte.");
+      setR(await api.banqueOperations.releve(du, au, Number(f.compte)));
+    } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   }
 
   return (
     <>
-      <h1>Édition du journal des opérations de banque</h1>
+      <h1>Relevé d'un compte bancaire</h1>
       <section className="bloc pile" aria-label="Critères">
         <div className="formulaire">
-          <Champ libelle="Exercice">{(p) => <select {...p} className="saisie" value={exercice} onChange={(e) => maj({ exercice: e.target.value, du: "", au: "" })}>
-            {cx.exercices.map((a) => <option key={a} value={a}>{a}</option>)}</select>}</Champ>
-          <ChampDate libelle="Date début :" valeur={du} onChange={(v) => maj({ du: v })} />
-          <ChampDate libelle="Date fin :" valeur={au} onChange={(v) => maj({ au: v })} />
           <Champ libelle="Banque *">{(p) => <select {...p} className="saisie" value={f.banque} onChange={(e) => maj({ banque: e.target.value, compte: "" })}>
             <option value=""></option>{lu.banques.map((b) => <option key={b.id} value={b.id}>{b.libelle}</option>)}</select>}</Champ>
-          <Champ libelle="N° Compte">{(p) => <select {...p} className="saisie" value={f.compte} onChange={(e) => maj({ compte: e.target.value })}>
-            <option value="">Tous les comptes</option>{comptes.map((c) => <option key={c.id} value={c.id}>{c.numero} ({c.devise})</option>)}</select>}</Champ>
-          <Champ libelle="Agence :">{(p) => <select {...p} className="saisie" value={f.agence} onChange={(e) => maj({ agence: e.target.value })}>
-            <option value=""></option>{cx.agences.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
+          <Champ libelle="N° Compte *">{(p) => <select {...p} className="saisie" value={f.compte} disabled={!f.banque} onChange={(e) => maj({ compte: e.target.value })}>
+            <option value="">{f.banque ? "" : "Choisir d'abord la banque"}</option>{comptes.map((c) => <option key={c.id} value={c.id}>{c.numero} ({c.devise})</option>)}</select>}</Champ>
+          <ChampDate libelle="Du :" valeur={du} onChange={(v) => maj({ du: v })} />
+          <ChampDate libelle="Au :" valeur={au} onChange={(v) => maj({ au: v })} />
         </div>
-        <fieldset className="pile cadre-champs">
-          <legend>Rechercher</legend>
-          <div className="formulaire">
-            <Champ libelle="Rechercher par :">{(p) => <select {...p} className="saisie" value={f.par} onChange={(e) => maj({ par: e.target.value })}>
-              <option value=""></option>{RECHERCHE.map((r) => <option key={r}>{r}</option>)}</select>}</Champ>
-            <Champ libelle="Option :">{(p) => <select {...p} className="saisie"><option>Commencant par</option></select>}</Champ>
-            <Champ libelle="Valeur :">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.valeur} onChange={(e) => maj({ valeur: e.target.value })} />}</Champ>
-          </div>
-        </fieldset>
         <div className="actions-onglets">
-          <button className="bouton" type="button" onClick={valider}>Valider</button>
+          <button className="bouton" type="button" onClick={afficher}>Afficher</button>
           <button className="bouton secondaire" type="button" onClick={() => nav("/banque")}>Fermer</button>
         </div>
       </section>
-      {lignes && (
-        <section className="bloc pile" aria-label="Journal des opérations de banque">
+      {r && (
+        <section className="bloc pile" aria-label="Relevé du compte bancaire">
+          <p>{r.banque}, compte {r.numeroBancaire} : compte comptable <span className="code">{r.compte}</span> {r.intitule}, en {r.devise}, du {fr(r.du)} au {fr(r.au)}.</p>
           <div className="defile-x"><table className="grille">
-            <thead><tr>{COLONNES.map(([t]) => <th key={t} scope="col" className={t === "Montant" ? "montant" : undefined}>{t}</th>)}</tr></thead>
+            <thead><tr>{COLONNES.map((t, i) => <th key={t} scope="col" className={i > 3 ? "num" : undefined}>{t}</th>)}</tr></thead>
             <tbody>
-              {affichees.length === 0 && <tr><td colSpan={COLONNES.length}>Aucune donnée</td></tr>}
-              {affichees.map((x) => <tr key={x.id}>{COLONNES.map(([t, v]) => <td key={t} className={t === "Montant" ? "montant chiffres" : undefined}>{v(x)}</td>)}</tr>)}
+              <tr><td colSpan={6}>Solde au début</td><td className="num chiffres">{montant(r.ouverture, r.devise as Devise)}</td></tr>
+              {r.lignes.length === 0 && <tr><td colSpan={7}>Aucun mouvement dans la période.</td></tr>}
+              {r.lignes.map((x, i) => <tr key={i}><td className="chiffres">{fr(x.date)}</td><td className="code">{x.journal}</td><td className="code">{x.piece}</td><td>{x.libelle}</td>
+                <td className="num chiffres">{m(x.debit)}</td><td className="num chiffres">{m(x.credit)}</td><td className="num chiffres">{montant(x.solde, r.devise as Devise)}</td></tr>)}
             </tbody>
+            <tfoot><tr><td colSpan={4}>Totaux et solde à la fin</td><td className="num chiffres">{montant(r.totalDebit, r.devise as Devise)}</td>
+              <td className="num chiffres">{montant(r.totalCredit, r.devise as Devise)}</td><td className="num chiffres">{montant(r.cloture, r.devise as Devise)}</td></tr></tfoot>
           </table></div>
           <div className="actions-onglets">
-            <button className="bouton secondaire" type="button" disabled={affichees.length === 0}
-              onClick={() => exporterExcel("Journal des opérations de banque", COLONNES.map(([t]) => t), affichees.map((x) => COLONNES.map(([, v]) => v(x))))}>Export</button>
+            <button className="bouton secondaire" type="button" onClick={() => exporterExcel(`Relevé du compte bancaire ${r.numeroBancaire}`, COLONNES,
+              [["", "", "", "Solde au début", "", "", montant(r.ouverture, r.devise as Devise)], ...r.lignes.map((x) => [fr(x.date), x.journal, x.piece, x.libelle, m(x.debit), m(x.credit), montant(x.solde, r.devise as Devise)]),
+                ["", "", "", "Totaux et solde à la fin", montant(r.totalDebit, r.devise as Devise), montant(r.totalCredit, r.devise as Devise), montant(r.cloture, r.devise as Devise)]])}>Exporter</button>
           </div>
+          <h2>Opérations de banque pas encore comptabilisées</h2>
+          <div className="defile-x"><table className="grille" aria-label="Opérations pas encore comptabilisées">
+            <thead><tr><th scope="col">Date</th><th scope="col">Opération</th><th scope="col">Libellé</th><th scope="col">État</th><th scope="col" className="num">Montant</th></tr></thead>
+            <tbody>
+              {r.enAttente.length === 0 && <tr><td colSpan={5}>Rien en attente.</td></tr>}
+              {r.enAttente.map((x: LigneVisaBanque) => <tr key={x.id}><td className="chiffres">{fr(x.date)}</td><td>{x.operation}</td><td>{x.libelle}</td>
+                <td>{({ saisie: "À viser", visee: "À valider", validee: "À comptabiliser" } as Record<string, string>)[x.statut] ?? x.statut}</td>
+                <td className="num chiffres">{montant(x.montant, x.devise)}</td></tr>)}
+            </tbody>
+          </table></div>
         </section>
       )}
-      <Textes sources={["Manuel Microfina++, p. 71 : capture « Édition du journal des opérations de banque » (Exercice, Date début, Date fin, Banque*, N° Compte, Agence, Rechercher par, Option, Valeur, Valider, Fermer) et texte (choisir l'exercice, la période, la banque, l'agence, Valider)",
-        "Résultat non montré par le manuel : colonnes des listes des opérations de banque (Banque > Visa, p. 65 et 66) plus l'agence (COMPLEMENTS § 4.5) ; manuel p. 9 : une grille s'exporte vers Excel"]} />
+      <Textes sources={["Manuel Microfina++, p. 71 : « Édition du journal des opérations de banque » (période, banque, compte), refait en relevé lu au grand livre (plan d'allègement, point 0.13 ; registre S62-4)",
+        "Instr. BCC 008, art. 10 et 11 : exhaustivité de l'enregistrement et justification des soldes ; PCCI, compte 56 (banques)"]} />
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );

@@ -34,6 +34,7 @@ export default function ConditionsBanque() {
 
 function Document({ e }: { e: Etat }) {
   const en = e.entete;
+  const parts = e.frais.filter((f) => f.part), commissions = e.frais.filter((f) => !f.part);
   return (
     <article className="releve-std contrat-dat a-imprimer" aria-label="Conditions de banque imprimées">
       <header className="releve-tete">
@@ -48,7 +49,7 @@ function Document({ e }: { e: Etat }) {
           {e.epargne.length === 0 && <tr><td colSpan={5}>Aucun produit actif.</td></tr>}
           {e.epargne.map((p) => <tr key={p.code}><td>{p.libelle}</td><td>{p.devise}</td><td className="chiffres">{montant(p.soldeMinimum, p.devise as Devise)}</td>
             <td className="chiffres">{p.retraitMaxJour ? montant(p.retraitMaxJour, p.devise as Devise) : "Aucun"}</td>
-            <td>{p.categorie === "DAT" ? "Taux fixé au contrat, selon la durée" : p.calculInteret ? "Oui" : "Non"}</td></tr>)}
+            <td>{p.categorie === "DAT" ? "Taux fixé au contrat, selon la durée" : p.calculInteret && p.tauxInteret ? `${pct(p.tauxInteret)} l'an` : "Aucun intérêt"}</td></tr>)}
         </tbody>
       </table>
       <h3>2. Produits de crédit</h3>
@@ -64,12 +65,19 @@ function Document({ e }: { e: Etat }) {
               p.assurance.valeur ? `Assurance : ${valeurCredit(p.assurance.nature, p.assurance.valeur, p.devise)}` : ""].filter(Boolean).join(" ; ")}</td></tr>)}
         </tbody>
       </table>
+      {/* La part sociale est une part du capital, remboursable, pas une commission : elle se publie à part (loi 002/2002, art. 20 et 22 ; Instr. BCC 40, art. 2 et 6 ;
+          plan d'allègement, point 0.14 ; registre SP01-4) */}
+      {parts.length > 0 && <><h3>Part sociale</h3>
+        <table className="releve-detail">
+          <thead><tr><th scope="col">Pour</th><th scope="col">Valeur de la part</th><th scope="col">Nature</th></tr></thead>
+          <tbody>{parts.map((f, i) => <tr key={i}><td>{f.pour}</td><td className="chiffres">{valeur(f.nature, f.valeur)}</td><td>Part du capital social, remboursable au départ du membre</td></tr>)}</tbody>
+        </table></>}
       <h3>3. Frais et commissions sur opérations</h3>
       <table className="releve-detail">
         <thead><tr><th scope="col">Frais</th><th scope="col">Opération</th><th scope="col">Pour</th><th scope="col">Tarif</th><th scope="col">Fondement</th></tr></thead>
         <tbody>
-          {e.frais.length === 0 && <tr><td colSpan={5}>Aucun frais paramétré.</td></tr>}
-          {e.frais.map((f, i) => <tr key={i}><td>{f.libelle}</td><td>{f.operation}</td><td>{f.pour}</td><td className="chiffres">{valeur(f.nature, f.valeur)}</td>
+          {commissions.length === 0 && <tr><td colSpan={5}>Aucun frais paramétré.</td></tr>}
+          {commissions.map((f, i) => <tr key={i}><td>{f.libelle}</td><td>{f.operation}</td><td>{f.pour}</td><td className="chiffres">{valeur(f.nature, f.valeur)}</td>
             <td>{f.fondement}{f.autorisationBcc ? ` : ${f.autorisationBcc}` : ""}</td></tr>)}
         </tbody>
       </table>

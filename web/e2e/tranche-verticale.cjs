@@ -950,10 +950,11 @@ const OUT = process.argv[2];
   await p.getByLabel('Amortissement').fill('4 000'); await p.getByLabel('Intérêt', { exact: true }).fill('100');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
   await p.getByLabel('Capital Restant').and(p.locator('[value*="6"]')).waitFor(); await etape('06c16-remboursement-emprunt');
-  // Rapport banque (S62) : journal des opérations de Rawbank depuis le début de l'exercice
-  await aller('/banque/s62'); await p.getByRole('heading', { name: 'Édition du journal des opérations de banque' }).waitFor();
-  await p.getByLabel('Banque *').selectOption({ label: 'Rawbank' }); await p.getByRole('button', { name: 'Valider' }).click();
-  await p.getByRole('cell', { name: 'Encaissement divers' }).first().waitFor(); await etape('06c17-rapport-banque');
+  // Relevé d'un compte bancaire (S62 refait, plan d'allègement 0.13 ; registre S62-4) : lu au grand livre, puis les opérations pas encore comptabilisées
+  await aller('/banque/s62'); await p.getByRole('heading', { name: "Relevé d'un compte bancaire" }).waitFor();
+  await p.getByLabel('Banque *').selectOption({ label: 'Rawbank' }); await p.getByLabel('N° Compte *').selectOption({ index: 1 }); await p.getByRole('button', { name: 'Afficher' }).click();
+  await p.getByText('Solde au début').waitFor();
+  await p.getByRole('table', { name: 'Opérations pas encore comptabilisées' }).getByRole('cell', { name: 'Encaissement divers' }).first().waitFor(); await etape('06c17-rapport-banque');
   // Incidents et dépassements (SC06 ; Instr. BCC 008, art. 43 et 49) : le chef déclare un incident, puis le traite et le régularise
   await login('J.-P. Mukendi'); await aller('/clients/sc06'); await p.getByRole('heading', { name: 'Incidents et dépassements' }).waitFor();
   await p.getByLabel('Type : *').selectOption({ label: 'Incident opérationnel' }); await p.getByLabel('Description : *').fill("Coupure du réseau de l'agence");
