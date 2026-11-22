@@ -23,7 +23,9 @@ export default function ClotureCompte() {
   const { donnees: comptes } = useDonnees(() => (t ? api.tiers.comptes(t.id) : Promise.resolve([])), [t?.id, relu]);
   const { donnees } = useDonnees(async () => ({ avoirs: await api.clotures.avoirs(), banques: await api.banques.lire() }), [relu]);
   if (!donnees) return <Chargement />;
-  const c = (comptes ?? []).find((x) => String(x.id) === compte);
+  // Une seule valeur possible : prise d'office (plan d'allègement, point 1.11)
+  const compteC = compte || (comptes?.length === 1 ? String(comptes[0]!.id) : "");
+  const c = (comptes ?? []).find((x) => String(x.id) === compteC);
   const cb = donnees.banques.comptes.find((x) => String(x.id) === versement.compteBancaire);
   const aVerser = donnees.avoirs.filter((x) => !x.verseeBccLe);
   const fini = (msg = "Enregistré avec succès !") => { setRelu((v) => v + 1); setBoite({ type: "succes", message: msg }); };
@@ -52,7 +54,7 @@ export default function ClotureCompte() {
               <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
             </div>
             <Champ libelle="Nom et prénom :">{(pp) => <Lecture {...pp} value={t ? nomComplet(t) : ""} />}</Champ>
-            <Champ libelle="N° compte : *">{(pp) => <select {...pp} className="saisie" value={compte} disabled={!comptes} onChange={(e) => setCompte(e.target.value)}>
+            <Champ libelle="N° compte : *">{(pp) => <select {...pp} className="saisie" value={compteC} disabled={!t} onChange={(e) => setCompte(e.target.value)}>
               <option value="">{comptes ? "" : "Choisir d'abord le client"}</option>{(comptes ?? []).map((x) => <option key={x.id} value={x.id}>{x.numero} {x.intitule}</option>)}</select>}</Champ>
           </div>
           <div className="pile">

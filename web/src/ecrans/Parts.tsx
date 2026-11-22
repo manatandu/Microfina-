@@ -41,7 +41,8 @@ export function PartsSociales() {
   if (!s || s.statut !== "ouverte") return (
     <><OngletsGuichet /><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>
   );
-  const c = comptes.find((x) => x.id === compteId);
+  const compteP = compteId || (comptes.length === 1 ? comptes[0]!.id : 0);   // une seule valeur : prise d'office (plan d'allègement, point 1.11)
+  const c = comptes.find((x) => x.id === compteP);
   const n = /^\d+$/.test(nombre.trim()) ? Number(nombre.trim()) : 0;
   const aPayer = n * (ctx.valeurPart ?? 0);   // valeur de la ligne de part des frais d'adhésion (registre S16-11)
   const achat = sens === "achat";
@@ -70,7 +71,7 @@ export function PartsSociales() {
               <button className="bouton secondaire" type="button" aria-label="Rechercher un client" disabled={!!fait} onClick={() => setRecherche(true)}>Rechercher</button>
             </div>
             <Champ libelle="Intitulé">{(p) => <Lecture {...p} value={t ? nomComplet(t) : ""} />}</Champ>
-            <Champ libelle="N° Compte *">{(p) => <select {...p} className="saisie" required disabled={!!fait || !t} value={compteId} onChange={(e) => setCompteId(Number(e.target.value))}>
+            <Champ libelle="N° Compte *">{(p) => <select {...p} className="saisie" required disabled={!!fait || !t} value={compteP} onChange={(e) => setCompteId(Number(e.target.value))}>
               <option value={0}>{t ? "" : "Choisir d'abord le client"}</option>{comptes.map((x) => <option key={x.id} value={x.id}>{x.numero}</option>)}</select>}</Champ>
             <Champ libelle="N° Comptable">{(p) => <input {...p} className="saisie code" readOnly value={c?.pcci ?? ""} />}</Champ>
             <Champ libelle="Produit">{(p) => <Lecture {...p} value={c ? `${c.intitule} ${c.devise}` : ""} />}</Champ>

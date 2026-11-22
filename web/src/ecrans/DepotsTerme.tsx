@@ -80,8 +80,8 @@ export function MiseEnPlaceDat() {
               <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
             </div>
             <Champ libelle="Intitulé du compte :">{(pp) => <Lecture {...pp} value={t ? nomComplet(t) : ""} />}</Champ>
-            <Champ libelle="N° Compte :">{(pp) => <select {...pp} className="saisie" value={f.compte} disabled={!comptes || !p} onChange={(e) => maj({ compte: e.target.value })}>
-              <option value="">{!comptes ? "Choisir d'abord le client" : !p ? "Choisir d'abord le produit" : ""}</option>{emetteurs.map((c) => <option key={c.id} value={c.id}>{c.numero}</option>)}</select>}</Champ>
+            <Champ libelle="N° Compte :">{(pp) => <select {...pp} className="saisie" value={f.compte} disabled={!t || !p} onChange={(e) => maj({ compte: e.target.value })}>
+              <option value="">{!t ? "Choisir d'abord le client" : !p ? "Choisir d'abord le produit" : ""}</option>{emetteurs.map((c) => <option key={c.id} value={c.id}>{c.numero}</option>)}</select>}</Champ>
             <p>Solde : <strong className="chiffres">{em && em.solde !== null && em.solde !== undefined ? montant(em.disponible ?? em.solde, dev) : "0"}</strong></p>
           </fieldset>
           <fieldset className="pile cadre-champs">

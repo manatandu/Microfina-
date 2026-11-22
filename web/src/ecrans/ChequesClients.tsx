@@ -33,13 +33,15 @@ export function ChequesClients() {
   const { ctx, lu } = donnees;
   const maj = (p: Partial<typeof VIDE>) => setF({ ...f, ...p });
   const date = f.date || lu.date;
-  const cc = (comptes ?? []).find((c) => String(c.id) === f.compte);
+  // Une seule valeur possible : prise d'office (plan d'allègement, point 1.11)
+  const compteF = f.compte || (comptes?.length === 1 ? String(comptes[0]!.id) : "");
+  const cc = (comptes ?? []).find((c) => String(c.id) === compteF);
   const m = lireMontant(f.montant);
   const vider = () => { setF(VIDE); setT(null); setCle(nouvelleCle()); setChoisi(null); setDateEnc(""); };
   const changerOnglet = (i: number) => { setOnglet(i); vider(); };
 
   function enregistrer() {
-    const d = { cle, date, compteDepotId: f.compte ? Number(f.compte) : undefined, compteBancaireId: cb || undefined, numeroCheque: f.numero, tireur: f.tireur, banqueTireur: f.banqueTireur,
+    const d = { cle, date, compteDepotId: compteF ? Number(compteF) : undefined, compteBancaireId: cb || undefined, numeroCheque: f.numero, tireur: f.tireur, banqueTireur: f.banqueTireur,
       montant: m ?? 0, deposant: f.deposant, pieceType: f.pieceType, pieceNumero: f.pieceNumero, etabliA: f.etabliA, dateExpiration: f.expire };
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try { await api.chequesClients.deposer(d); vider(); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
@@ -98,8 +100,8 @@ export function ChequesClients() {
                   <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
                 </div>
                 {lu_("Intitulé", t ? nomComplet(t) : "")}
-                <Champ libelle="Compte *">{(p) => <select {...p} className="saisie" value={f.compte} disabled={!comptes} onChange={(e) => maj({ compte: e.target.value })}>
-                  <option value="">{comptes ? "" : "Choisir d'abord le client"}</option>{(comptes ?? []).map((c) => <option key={c.id} value={c.id}>{c.numero}</option>)}</select>}</Champ>
+                <Champ libelle="Compte *">{(p) => <select {...p} className="saisie" value={compteF} disabled={!t} onChange={(e) => maj({ compte: e.target.value })}>
+                  <option value="">{t ? "" : "Choisir d'abord le client"}</option>{(comptes ?? []).map((c) => <option key={c.id} value={c.id}>{c.numero}</option>)}</select>}</Champ>
                 {lu_("Intitulé Compte", cc?.intitule ?? "")}
               </fieldset>
               <fieldset className="pile cadre-champs">
