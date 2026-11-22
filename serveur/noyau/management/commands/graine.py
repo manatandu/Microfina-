@@ -228,7 +228,7 @@ class Command(BaseCommand):
         for c, l, t, d, f in (("TR1", "1er Trimestre", "TRIM", "01/01", "31/03"), ("1", "Janvier", "M", "01/01", "31/01"), ("2", "Février", "M", "01/02", "28/02"),
                               ("14", "1ère Quinzaine de Janvier", "15J", "01/01", "14/01"), ("3", "Mars", "M", "01/03", "31/03"), ("4", "Avril", "M", "01/04", "30/04")):
             executer("insert into budget_periode (institution_id, code, libelle, type_id, debut, fin) values (%s, %s, %s, %s, %s, %s)", (ins, c, l, tp[t], d, f))
-        ag = valeur("insert into agence (institution_id, code, nom) values (%s, '0412', 'Matete') returning id", (ins,))
+        ag = valeur("insert into agence (institution_id, code, nom, jours_travail) values (%s, '0412', 'Matete', '{t,t,t,t,t,t,t}') returning id", (ins,))   # sept jours actifs (plan 2.22)
         # Référentiel crédit (S21) : zone de démonstration et exemples des captures p. 32 à 36
         executer("insert into zone (institution_id, code, nom, description, agence_id) values (%s, 'Z01', 'Matete', 'Commune de Matete', %s)", (ins, ag))
         # CDF : symbole FC, cent centimes (D.-L. 080/1998, art. 1 et 2) ; USD : données de démonstration

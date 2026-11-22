@@ -2386,7 +2386,7 @@ def test_jours_travail_feries(clients):
     chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
     l = chef.get("/api/jours", **H).json()
     a = l["agences"][0]
-    assert a["jours"] == [False] * 7 and len(l["institutions"]) == 1 and 2026 in l["exercices"] and len(l["feries"]) == 20   # ordonnance 23-042, art. 1
+    assert a["jours"] == [True] * 7 and len(l["institutions"]) == 1 and 2026 in l["exercices"] and len(l["feries"]) == 20   # ordonnance 23-042, art. 1
     assert next(f for f in l["feries"] if f["exercice"] == 2026 and f["description"] == "Journée des Martyrs de l'indépendance")["date"] == "2026-01-03"   # art. 2 : dimanche, pris la veille
     S = [False, True, True, True, True, True, True]
     assert agent.post("/api/jours/journees", {"agenceId": a["id"], "jours": S}, **H).status_code == 403

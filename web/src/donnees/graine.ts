@@ -75,7 +75,7 @@ export function graine(): Etat {
     version: 82,
     institution: { nom: "COOPEC Tujenge", sigle: "CTJ", profil: "coopec", delegationAdmission: "Décision du Conseil d'Administration n° 01/2026 du 05/01/2026", pays: "République démocratique du Congo", ville: "Kinshasa", commune: "Matete", quartier: "Kinsaku", journeeMax: 1 },   // sigle fictif : élément Institution du numéro client (S15-11)
     agence: { id: 1, code: "0412", nom: "Matete" },
-    agences: [{ id: 1, code: "0412", nom: "Matete", supprime: false }],
+    agences: [{ id: 1, code: "0412", nom: "Matete", supprime: false, jours: Array(7).fill(true) }],   // les sept jours actifs d'emblée (plan d'allègement, point 2.22)
     guichets: [{ id: 1, code: "G1", nom: "Caisse 1", typeGuichet: "PRINCIPALE", journalId: 1, ...COMPTES_GUICHET }, { id: 2, code: "G2", nom: "Caisse 2", typeGuichet: "SECONDAIRE", journalId: 1, ...COMPTES_GUICHET }],   // type et journal fictifs (S08)
     // numero : S17-2 ; famille et options : S27 (valeurs par défaut de la migration 0039)
     produits: ([["EAV-CDF", "CDF", 2], ["EAV-USD", "USD", 1]] as const).map(([code, devise, numero], i) => ({ id: i + 1, code, libelle: "Épargne à vue", devise, numero,
