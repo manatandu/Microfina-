@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**951 décisions.** Solidité : 413 fortes (le manuel ou un texte répond), 456 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 944 déjà en place, 7 à appliquer.
+**951 décisions.** Solidité : 414 fortes (le manuel ou un texte répond), 455 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 944 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1965,7 +1965,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S137-1 | Champs | Ceux de la capture « Création de Bien immobilier » ; codification unique ; durée de vie dans les normes de la famille ; famille de la catégorie choisie ; options de la famille (immatriculation, châssis, carburant, titre foncier, description) montrées seulement si cochées | Manuel : Capture p. 4 | forte | en place |
-| S137-2 | Numéro de pièce et date d'opération | Donnés à l'enregistrement : pièce du journal OD, journée ouverte | Écran voisin : Capture p. 4 ; S29 | moyenne | en place |
+| S137-2 | Numéro de pièce et date d'opération | La date d'opération est la journée ouverte. Aucun numéro de pièce à la création : elle ne passe pas d'écriture, et un numéro pris sans écriture laisse un trou dans le journal OD. L'acquisition prend son numéro avec sa facture (S107) ou son écriture (S109) | Texte réglementaire : PCCI § 3.4 (chronologie sans trou) ; plan d'allègement, point 0.2 | forte | en place |
 | S137-3 | T.V.A et Prix d'acquisition | TVA comprise dans le Montant TTC au taux de l'utilisation quand elle est applicable ; Prix d'acquisition = TTC moins TVA ; c'est la base amortissable | Écran voisin : Capture p. 1 (TVA de l'utilisation) et p. 4 (Val. acquisition) | moyenne | en place |
 | S137-4 | Écriture d'acquisition | Aucune à la création : l'acquisition passe au grand livre par la facture du fournisseur (S107) ou une écriture (S109) ; le bien la référence (Fournisseur, Facture) | Écran voisin : Capture p. 4 ; S107 | moyenne | en place |
 | S137-5 | Modifier, Supprimer | Un bien amorti ou sorti ne se modifie plus ; un bien affecté, amorti ou sorti ne se supprime plus ; suppression logique | Texte réglementaire : PCCI § 3.4 ; T02 | forte | en place |
@@ -1996,7 +1996,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S139-4 | Types de sortie | Cession, Mise au rebut ; un bien affecté se libère d'abord | Texte réglementaire : PCCI, classe 2 (cession ou destruction, compte 673 mise au rebut) | moyenne | en place |
-| S139-5 | Écriture | Crédit compte d'acquisition (valeur d'origine), débit compte amortissement (cumul), débit compte charge VCN (valeur nette) ; le prix d'une cession s'encaisse à part, au compte de produits de la famille | Texte réglementaire : PCCI, classe 2 : « par le débit … des comptes d'amortissements antérieurs et d'un compte de gestion (674, 774, 673) » | forte | en place |
+| S139-5 | Écriture | Crédit du compte d'acquisition (valeur d'origine), débit du compte d'amortissement (cumul). Cession : prix de cession et compte qui le reçoit (classe 5 ou 4) ; le prix est débité à ce compte ; s'il est inférieur à la valeur nette, la différence va au 674 (moins-value), s'il est supérieur, au 774 (plus-value). Mise au rebut : la valeur nette au 673. Le compte de la famille sert s'il est un sous-compte du compte du PCCI | Texte réglementaire : PCCI, classe 2 : « par le débit d'un compte de trésorerie ou de tiers pour le prix de la cession, des comptes d'amortissements antérieurs et d'un compte de gestion (674 : moins-value, 774 : plus-value ou 673 mise au rebut d'immobilisation) » ; plan d'allègement, point 0.1 | forte | en place |
 
 ## S140 Rapports
 

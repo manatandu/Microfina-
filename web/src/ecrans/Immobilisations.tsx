@@ -8,7 +8,8 @@ import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, ChampMontant, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
+import { lireMontant } from "@design/montant.js";
 import { Referentiels, type FacadeReferentiel } from "./Referentiels";
 
 const entier = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });
@@ -78,7 +79,7 @@ export function CreationBien() {
   const radio = (k: string, l: string) => <fieldset className="choix-radio"><legend>{l}</legend>{["oui", "non"].map((x) =>
     <label key={x} className="case"><input type="radio" name={k} checked={v(k) === x} onChange={() => maj(k, x)} /><span>{x === "oui" ? "Oui" : "Non"}</span></label>)}</fieldset>;
   return <section className="bloc pile" aria-label="Création de Bien immobilier"><h1>Création de Bien immobilier</h1>
-    <div className="deux-colonnes"><Champ libelle="Numéro de pièce :">{(p) => <Lecture {...p} value={b?.numeroPiece ?? ""} />}</Champ>
+    <div className="deux-colonnes">{b?.numeroPiece && <Champ libelle="Numéro de pièce :">{(p) => <Lecture {...p} value={b.numeroPiece} />}</Champ>}
       <Champ libelle="Date opération">{(p) => <Lecture {...p} value={b ? fr(b.dateOperation) : ""} />}</Champ></div>
     <div className="deux-colonnes">
       <fieldset className="cadre-champs formulaire"><legend className="sr-only">Bien</legend>
@@ -246,11 +247,19 @@ export function TraitementsBiens() {
         <Champ libelle="Observation">{(p) => <textarea {...p} className="saisie" rows={2} value={f.observation ?? ""} onChange={(e) => maj("observation", e.target.value)} />}</Champ>
         {f.type === "Cession" && <Champ libelle="Autorisation BCC (au-delà de 10 % des fonds propres de base)">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.autorisationBcc ?? ""}
           onChange={(e) => maj("autorisationBcc", e.target.value)} />}</Champ>}
+        {f.type === "Cession" && <>
+          <ChampMontant libelle="Prix de cession *" valeur={f.prix ?? ""} onChange={(x) => maj("prix", x)} devise="CDF" />
+          <Champ libelle="Compte qui reçoit le prix *" aide="Compte de trésorerie (classe 5) ou de tiers (classe 4)">{(p) => <input {...p} className="saisie code" inputMode="numeric" autoComplete="off"
+            value={f.contrepartie ?? ""} onChange={(e) => maj("contrepartie", e.target.value)} />}</Champ></>}
         {bien && <dl className="definitions"><dt>Prix d'acquisition</dt><dd>{n(bien.prixAcquisition)}</dd><dt>Amortissements cumulés</dt><dd>{n(bien.cumulAmortissements)}</dd>
-          <dt>Valeur nette comptable</dt><dd>{n(bien.prixAcquisition - bien.cumulAmortissements)}</dd></dl>}
+          <dt>Valeur nette comptable</dt><dd>{n(bien.prixAcquisition - bien.cumulAmortissements)}</dd>
+          {f.type === "Cession" && lireMontant(f.prix ?? "") !== null && (() => { const r = (lireMontant(f.prix ?? "") ?? 0) - (bien.prixAcquisition - bien.cumulAmortissements);
+            return r ? <><dt>{r > 0 ? "Plus-value (774)" : "Moins-value (674)"}</dt><dd>{n(Math.abs(r))}</dd></> : null; })()}
+          {f.type === "Mise au rebut" && <><dt>Mise au rebut (673)</dt><dd>{n(bien.prixAcquisition - bien.cumulAmortissements)}</dd></>}</dl>}
       </fieldset>
       <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => window.print()}>Imprimer</button>
-        <button className="bouton" type="button" onClick={() => c.confirmer("Voulez-vous vraiment sortir ce bien du patrimoine ?", () => api.immobilisations.sortir({ type: f.type, bienId: bien?.id, date: f.date, observation: f.observation, autorisationBcc: f.autorisationBcc }))}>Enregistrer</button></div>
+        <button className="bouton" type="button" onClick={() => c.confirmer("Voulez-vous vraiment sortir ce bien du patrimoine ?", () => api.immobilisations.sortir({ type: f.type, bienId: bien?.id, date: f.date, observation: f.observation, autorisationBcc: f.autorisationBcc,
+          prixCession: f.type === "Cession" ? lireMontant(f.prix ?? "") : null, compteContrepartie: f.contrepartie }))}>Enregistrer</button></div>
     </section>}
     <Textes sources={[M("p. 6 et 7 : amortissement par matériel ou lot de matériel ; inventaire : code du bien, état, date, observation ; sortie : type de sortie, bien, date, observation, « imprimer l'état »"),
       "PCCI : compte 681 (dotations), 28 (amortissements) ; sortie : la valeur d'origine sort, avec les amortissements antérieurs et un compte de gestion (673 mise au rebut, 674 moins-value, 774 plus-value)"]} />

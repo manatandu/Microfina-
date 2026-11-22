@@ -181,7 +181,9 @@ def enregistrer(u, d, bid: int | None = None) -> dict:
             raise ErreurMetier("Bien déjà amorti ou sorti : il ne se modifie plus (PCCI § 3.4).")
     v = valider(u, d, bid)
     if bid is None:
-        v |= {"numero_piece": nouvelle_piece(u, "OD", date.fromisoformat(j["date"])), "date_operation": j["date"], "institution_id": u["institution_id"], "cree_par": u["id"]}
+        # Aucun numéro de pièce à la création : elle ne passe pas d'écriture, et le journal OD ne doit pas avoir de trou (PCCI § 3.4 ; plan d'allègement,
+        # point 0.2 ; registre S137-2). L'acquisition est comptabilisée par sa facture.
+        v |= {"numero_piece": "", "date_operation": j["date"], "institution_id": u["institution_id"], "cree_par": u["id"]}
         bid = valeur(f"insert into immo_bien ({', '.join(v)}) values ({', '.join(['%s'] * len(v))}) returning id", tuple(v.values()))
     else:
         executer(f"update immo_bien set {', '.join(f'{k} = %s' for k in v)} where id = %s", (*v.values(), bid))
@@ -398,9 +400,16 @@ def inventorier(u, d) -> dict:
     return {"bienId": b["id"], "etat": etat, "date": q.isoformat()}
 
 
+def compte_gestion(compte_famille: str, racine: str) -> str:
+    """Le compte de gestion du PCCI pour une sortie : celui de la famille s'il en est un sous-compte, sinon le compte du PCCI lui-même"""
+    return compte_famille if compte_famille and compte_famille.startswith(racine) else racine
+
+
 def sortir(u, d) -> dict:
-    """« Sortie de biens du patrimoine » : type de sortie, bien, date, observation. La valeur brute sort du compte d'acquisition ; les amortissements cumulés
-    et la valeur nette comptable (compte charge VCN de la famille) la soldent (PCCI, classe 2). Le prix d'une cession s'encaisse à part. Registre S139-5."""
+    """« Sortie de biens du patrimoine » : type de sortie, bien, date, observation ; pour une cession, le prix et le compte qui le reçoit.
+    PCCI, classe 2 (fonctionnement des comptes de valeurs immobilisées) : la valeur d'origine est créditée « par le débit d'un compte de trésorerie
+    ou de tiers pour le prix de la cession, des comptes d'amortissements antérieurs et d'un compte de gestion (674 : moins-values, 774 : plus-values
+    ou 673 : mise au rebut d'immobilisation) ». Plan d'allègement, point 0.1 ; registre S139-5."""
     exiger(u)
     d = d if isinstance(d, dict) else {}
     if d.get("type") not in SORTIES:
@@ -427,20 +436,39 @@ def sortir(u, d) -> dict:
         base = fonds_propres(s, res + ant)["base"]
         if b["prix_acquisition"] * 10 > max(base, 0):
             raise ErreurMetier("Cession au-delà de 10 % des fonds propres de base : à remplir, Autorisation BCC (Instr. BCC 41, art. 33).")
+    prix, contrepartie = 0, ""
+    if d["type"] == "Cession":
+        prix = d.get("prixCession")
+        if isinstance(prix, bool) or not isinstance(prix, (int, float)) or prix < 0:
+            raise ErreurMetier("À remplir : Prix de cession (0 si le bien est cédé sans prix).")
+        prix = round(prix, 2)
+        contrepartie = d.get("compteContrepartie").strip() if isinstance(d.get("compteContrepartie"), str) else ""
+        if prix and (not contrepartie.isdigit() or contrepartie[0] not in "45"
+                     or not une("select 1 from compte where numero = %s and (institution_id is null or institution_id = %s)", (contrepartie, u["institution_id"]))):
+            raise ErreurMetier("Compte qui reçoit le prix : un compte de trésorerie (classe 5) ou de tiers (classe 4) du plan de comptes.")
     lg = [{"compte": v["comptes"]["acquisition"], "sens": "C", "devise": "CDF", "montant": b["prix_acquisition"]}]
     if cumul:
         lg.append({"compte": v["comptes"]["amortissement"], "sens": "D", "devise": "CDF", "montant": cumul})
-    if vnc:
-        lg.append({"compte": v["comptes"]["chargeVcn"], "sens": "D", "devise": "CDF", "montant": vnc})
+    if d["type"] == "Mise au rebut":
+        if vnc:
+            lg.append({"compte": compte_gestion(v["comptes"]["chargeVcn"], "673"), "sens": "D", "devise": "CDF", "montant": vnc})
+    else:
+        if prix:
+            lg.append({"compte": contrepartie, "sens": "D", "devise": "CDF", "montant": prix})
+        ecart = round(prix - vnc, 2)
+        if ecart < 0:
+            lg.append({"compte": compte_gestion(v["comptes"]["chargeVcn"], "674"), "sens": "D", "devise": "CDF", "montant": -ecart})
+        elif ecart > 0:
+            lg.append({"compte": compte_gestion(v["comptes"]["produit"], "774"), "sens": "C", "devise": "CDF", "montant": ecart})
     eid = poster(u, journal="OD", journee_id=j["id"], libelle=f"Sortie du patrimoine ({d['type']}), bien {b['codification']}",
                  piece=nouvelle_piece(u, "OD", date.fromisoformat(j["date"])), evenement="immo_sortie", cle=str(uuid.uuid4()), valide_par=u["id"], lignes_ecr=lg)
     obs = d.get("observation").strip() if isinstance(d.get("observation"), str) else ""
     if autorisation:
         obs = (obs + " " if obs else "") + f"Autorisation BCC : {autorisation}"
-    executer("insert into immo_sortie (bien_id, type, date_sortie, observation, vnc, cumul, ecriture_id, par) values (%s, %s, %s, %s, %s, %s, %s, %s)",
-             (b["id"], d["type"], q, obs, vnc, cumul, eid, u["id"]))
+    executer("insert into immo_sortie (bien_id, type, date_sortie, observation, vnc, cumul, ecriture_id, par, prix_cession, compte_contrepartie)"
+             " values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", (b["id"], d["type"], q, obs, vnc, cumul, eid, u["id"], prix, contrepartie))
     executer("update immo_bien set statut = 'SORTI' where id = %s", (b["id"],))
-    return {**vue(u, bien(u, b["id"])), "vnc": vnc}
+    return {**vue(u, bien(u, b["id"])), "vnc": vnc, "prixCession": prix, "resultatCession": round(prix - vnc, 2) if d["type"] == "Cession" else 0}
 
 
 # ---------- S140 : rapports ----------

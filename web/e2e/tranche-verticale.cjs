@@ -1414,6 +1414,12 @@ const OUT = process.argv[2];
   await etape('32d-tableau-amortissement'); await p.keyboard.press('Escape');
   await aller('/immobilisations/s139'); await p.getByRole('button', { name: 'Rechercher un bien' }).click(); await p.getByRole('dialog', { name: 'Liste des biens' }).getByRole('cell', { name: 'MAB-001' }).click();
   await p.getByLabel('Exercice: *').selectOption('2026'); await etape('32e-amortissement'); await p.getByRole('button', { name: 'Exécuter' }).click(); await oui();
+  // Sortie par cession (PCCI, classe 2 ; plan d'allègement 0.1, registre S139-5) : prix, compte qui le reçoit, plus-value au 774
+  await p.getByRole('tab', { name: 'Sortie de biens' }).click(); await p.getByLabel('Type de sortie *').selectOption('Cession');
+  await p.getByRole('button', { name: 'Rechercher un bien' }).click(); await p.getByRole('dialog', { name: 'Liste des biens' }).getByRole('cell', { name: 'MAB-001' }).click();
+  await p.getByLabel('Date de sortie *').fill('05112026'); await p.getByLabel('Prix de cession *').fill('800000'); await p.getByLabel('Compte qui reçoit le prix *').fill('570');
+  await p.getByLabel('Autorisation BCC (au-delà de 10 % des fonds propres de base)').fill('BCC/DSIF/2026/051');
+  await p.getByText('Plus-value (774)').waitFor(); await etape('32f-cession'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   // Langue des libellés (manuel p. 14, article XX ; registre T118) : en anglais, les menus, l'écran, les données et l'aide ; puis retour au français
   await login('Patrick Lumbala'); await aller('/comptabilite/s115'); await p.getByRole('heading', { name: 'Journal comptables' }).waitFor();
   await p.locator('summary[title="Langue"]').click(); await p.getByRole('menuitemradio', { name: 'English' }).click();

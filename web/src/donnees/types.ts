@@ -459,7 +459,7 @@ export interface Etat {
   immoMouvements: { id: number; bienId: number; type: "affectation" | "transfert" | "liberation"; ancienDetenteurId: number | null; nouveauDetenteurId: number | null; ancienneLocalisationId: number | null; nouvelleLocalisationId: number | null; date: string; par: number }[];   // S138
   immoAmortissements: { id: number; bienId: number; exercice: number; dotation: number; cumul: number; vnc: number; ecritureId: number | null; par: number; le: string }[];   // S139
   immoInventaires: { id: number; bienId: number; etat: string; date: string; observation: string; par: number }[];   // S139
-  immoSorties: { id: number; bienId: number; type: string; date: string; observation: string; vnc: number; cumul: number; ecritureId: number; par: number }[];   // S139
+  immoSorties: { id: number; bienId: number; type: string; date: string; observation: string; vnc: number; cumul: number; ecritureId: number; par: number; prixCession?: number; compteContrepartie?: string }[];   // S139
   paieMaquette: { id: number; employeId: number; rubriqueId: number; montant: number; session: string; active: boolean; intersession: boolean; permanente: boolean; saisiPar: number }[];   // S134
   paieRetenues: { id: number; employeId: number; typeId: number; session: string; montant: number; duree: number; statut: "saisie" | "visee"; saisiPar: number; visePar: number | null }[];   // S135
   periodesCloturees: { annee: number; mois: number; le: string; par: number }[];   // S127 : clôture informatique mensuelle (PCCI § 3.4)   // S124, S125 : une valeur par budget, type, période, ligne budgétaire et compte

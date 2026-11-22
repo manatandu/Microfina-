@@ -1,6 +1,6 @@
 id,lot,titre,ecrans,statut,question,reste
-0.1,0,Sortie d'une immobilisation,S139,à faire,,
-0.2,0,Création d'un bien,S137,à faire,oui,
+0.1,0,Sortie d'une immobilisation,S139,fait,,
+0.2,0,Création d'un bien,S137,partiel,oui,Plus de numéro de pièce à la création (fait). Reste ta réponse : faut-il passer l'écriture d'acquisition quand la facture n'est pas comptabilisée ?
 0.3,0,TVA d'un remboursement de crédit,S55 S76 S106 S108,à faire,,
 0.4,0,Séparation des tâches du crédit,S54 S87 S88 S90 S105,à faire,,
 0.5,0,Utilisateur qui quitte l'institution,S05 S07,à faire,,

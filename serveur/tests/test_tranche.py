@@ -4980,7 +4980,7 @@ def test_immobilisations(clients, journee):
     assert "Acquisition au-delà de 10 %" in msg("/api/immobilisations/biens", {**B, "autorisationBcc": ""})     # Instr. BCC 41, art. 33 : acquisition comme cession
     assert "entre 1 et 10" in msg("/api/immobilisations/biens", {**B, "dureeVie": 12})
     b = ok("/api/immobilisations/biens", B)
-    assert (b["tva"], b["prixAcquisition"], b["statut"], bool(b["numeroPiece"])) == (160000, 1000000, "LIBRE", True)
+    assert (b["tva"], b["prixAcquisition"], b["statut"], b["numeroPiece"]) == (160000, 1000000, "LIBRE", "")   # aucune pièce sans écriture (registre S137-2)
     assert b["autorisationBcc"] == "BCC/DSIF/2026/044"
     assert "existe déjà" in msg("/api/immobilisations/biens", {**B, "codification": "mab-001"})
     t = compta.get(f"/api/immobilisations/biens/{b['id']}/tableau", **H).json()
@@ -5014,9 +5014,20 @@ def test_immobilisations(clients, journee):
     assert (s["statut"], s["vnc"]) == ("SORTI", 833333)
     assert solde_compte("2810") == avant and solde_compte("673") == 833333
     assert "déjà sorti" in msg("/api/immobilisations/sortie", {"type": "Cession", "bienId": b["id"], "date": "2026-11-05"})
+    # Cession (PCCI, classe 2 ; registre S139-5) : prix au compte qui le reçoit, plus-value au 774, moins-value au 674 ; le compte de la famille (673) n'en est pas un sous-compte
+    b2 = ok("/api/immobilisations/biens", {**B, "codification": "MAB-002"})
+    b3 = ok("/api/immobilisations/biens", {**B, "codification": "MAB-003"})
+    assert "Prix de cession" in msg("/api/immobilisations/sortie", {"type": "Cession", "bienId": b2["id"], "date": "2026-11-05", "autorisationBcc": "BCC/DSIF/2026/051"})
+    assert "classe 5" in msg("/api/immobilisations/sortie", {"type": "Cession", "bienId": b2["id"], "date": "2026-11-05", "autorisationBcc": "BCC/DSIF/2026/051", "prixCession": 1200000, "compteContrepartie": "673"})
+    c570, c774, c674 = solde_compte("570"), solde_compte("774"), solde_compte("674")
+    s2 = ok("/api/immobilisations/sortie", {"type": "Cession", "bienId": b2["id"], "date": "2026-11-05", "autorisationBcc": "BCC/DSIF/2026/051", "prixCession": 1200000, "compteContrepartie": "570"})
+    assert (s2["prixCession"], s2["resultatCession"]) == (1200000, 200000)
+    assert (solde_compte("570") - c570, c774 - solde_compte("774")) == (1200000, 200000)
+    s3 = ok("/api/immobilisations/sortie", {"type": "Cession", "bienId": b3["id"], "date": "2026-11-05", "autorisationBcc": "BCC/DSIF/2026/051", "prixCession": 0})
+    assert s3["resultatCession"] == -1000000 and solde_compte("674") - c674 == 1000000
     # S140
     q = {"rechercher": "periode", "du": "2026-01-01", "au": "2026-12-31"}
-    assert [x["codification"] for x in compta.get("/api/immobilisations/rapports/biens", q, **H).json()] == ["MAB-001"]
+    assert [x["codification"] for x in compta.get("/api/immobilisations/rapports/biens", q, **H).json()] == ["MAB-001", "MAB-002", "MAB-003"]
     assert [x["etat"] for x in compta.get("/api/immobilisations/rapports/inventaires", q, **H).json()] == ["Bon"]
     assert len(compta.get("/api/immobilisations/rapports/suivi", {**q, "resultat": "transfert"}, **H).json()) == 2
     sim = compta.get("/api/immobilisations/rapports/simulation", {"systeme": "Dégressif", "coefficient": "2", "dateAcquisition": "2026-01-01", "duree": 5, "montant": 1000000}, **H).json()

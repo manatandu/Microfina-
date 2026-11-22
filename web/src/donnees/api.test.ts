@@ -3670,7 +3670,7 @@ describe("journée de guichet", () => {
     await expect(api.immobilisations.enregistrer({ ...B, autorisationBcc: "" })).rejects.toThrow("Acquisition au-delà de 10 %");   // Instr. BCC 41, art. 33 : acquisition comme cession
     await expect(api.immobilisations.enregistrer({ ...B, dureeVie: 12 })).rejects.toThrow("entre 1 et 10");
     const b = await api.immobilisations.enregistrer(B);
-    expect([b.tva, b.prixAcquisition, b.statut, !!b.numeroPiece]).toEqual([160000, 1000000, "LIBRE", true]);
+    expect([b.tva, b.prixAcquisition, b.statut, b.numeroPiece]).toEqual([160000, 1000000, "LIBRE", ""]);   // aucune pièce sans écriture (registre S137-2)
     await expect(api.immobilisations.enregistrer({ ...B, codification: "mab-001" })).rejects.toThrow("existe déjà");
     expect((await api.immobilisations.tableau(b.id)).map((x) => [x.exercice, x.dotation])).toEqual([[2026, 166667], [2027, 333333], [2028, 333333], [2029, 166667]]);
     const E0 = { sexe: "Féminin", civilite: "Madame", prenoms: "X", dateNaissance: "1990-01-01", dateEmbauche: "2020-01-01" };
@@ -3693,8 +3693,18 @@ describe("journée de guichet", () => {
     const so = await api.immobilisations.sortir({ type: "Mise au rebut", bienId: b.id, date: "2026-11-05", observation: "Hors service" });
     expect([so.statut, so.vnc, solde("2810"), solde("673")]).toEqual(["SORTI", 833333, 0, 833333]);
     await expect(api.immobilisations.sortir({ type: "Cession", bienId: b.id, date: "2026-11-05" })).rejects.toThrow("déjà sorti");
+    // Cession (PCCI, classe 2 ; registre S139-5) : prix au compte qui le reçoit, plus-value au 774, moins-value au 674
+    const A = { date: "2026-11-05", autorisationBcc: "BCC/DSIF/2026/051" };
+    const b2 = await api.immobilisations.enregistrer({ ...B, codification: "MAB-002" }), b3 = await api.immobilisations.enregistrer({ ...B, codification: "MAB-003" });
+    await expect(api.immobilisations.sortir({ ...A, type: "Cession", bienId: b2.id })).rejects.toThrow("Prix de cession");
+    await expect(api.immobilisations.sortir({ ...A, type: "Cession", bienId: b2.id, prixCession: 1200000, compteContrepartie: "673" })).rejects.toThrow("classe 5");
+    const c570 = solde("570"), c774 = solde("774"), c674 = solde("674");
+    const s2 = await api.immobilisations.sortir({ ...A, type: "Cession", bienId: b2.id, prixCession: 1200000, compteContrepartie: "570" });
+    expect([s2.prixCession, s2.resultatCession, solde("570") - c570, solde("774") - c774]).toEqual([1200000, 200000, 1200000, -200000]);
+    const s3 = await api.immobilisations.sortir({ ...A, type: "Cession", bienId: b3.id, prixCession: 0 });
+    expect([s3.resultatCession, solde("674") - c674]).toEqual([-1000000, 1000000]);
     const q = { rechercher: "periode", du: "2026-01-01", au: "2026-12-31" };
-    expect((await api.immobilisations.rapportBiens(q)).map((y) => y.codification)).toEqual(["MAB-001"]);
+    expect((await api.immobilisations.rapportBiens(q)).map((y) => y.codification)).toEqual(["MAB-001", "MAB-002", "MAB-003"]);
     expect((await api.immobilisations.rapportInventaires(q)).map((y) => y.etat)).toEqual(["Bon"]);
     expect((await api.immobilisations.suivi({ ...q, resultat: "transfert" })).length).toBe(2);
     expect((await api.immobilisations.simuler({ systeme: "Dégressif", coefficient: "2", dateAcquisition: "2026-01-01", duree: 5, montant: 1000000 })).map((y) => y.dotation))

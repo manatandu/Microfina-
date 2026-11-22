@@ -9061,7 +9061,8 @@ const immobilisations = {
     const autorisationBcc = t("autorisationBcc");
     if (!autorisationBcc) { const { s, resultat, anterieurs } = soldesEf(j.date, Number(j.date.slice(0, 4)), true);
       if ((ttc - tva) * 10 > Math.max(fondsPropresNormes(s, resultat + anterieurs).base, 0)) throw new ErreurMetier("Acquisition au-delà de 10 % des fonds propres de base : à remplir, Autorisation BCC (Instr. BCC 41, art. 33)."); }
-    const b: ImmoBien = { id: ancien?.id ?? prochain(E.immoBiens), actif: true, numeroPiece: ancien?.numeroPiece ?? piece("OD"), dateOperation: ancien?.dateOperation ?? j.date,
+    const b: ImmoBien = { id: ancien?.id ?? prochain(E.immoBiens), actif: true, numeroPiece: ancien?.numeroPiece ?? "",   // aucune pièce sans écriture (PCCI § 3.4 ; registre S137-2)
+      dateOperation: ancien?.dateOperation ?? j.date,
       codification: t("codification"), refConstructeur: t("refConstructeur"), categorieId: ent("categorieId")!, familleId: f.id, libelle: t("libelle"), dateAcquisition: t("dateAcquisition"),
       dureeVie: ent("dureeVie")!, utilisationId: ut.id, localisationId: ent("localisationId")!, dateMiseService: t("dateMiseService"), fournisseurId: ent("fournisseurId"), factureId: ent("factureId"),
       montantTtc: ttc, tva, prixAcquisition: ttc - tva, amortissable: d.amortissable !== false, subventionne: d.subventionne === true, immatriculation: opt("immatriculation"), chassis: opt("chassis"),
@@ -9159,7 +9160,9 @@ const immobilisations = {
     E.immoInventaires.push({ id: prochain(E.immoInventaires), bienId: b.id, etat: d.etat, date: d.date!, observation: (d.observation ?? "").trim(), par: u.id });
     enregistrer(); return { bienId: b.id, etat: d.etat, date: d.date! };
   },
-  sortir(d: { type?: string; bienId?: number | null; date?: string; observation?: string; autorisationBcc?: string }) {
+  /** S139 Sortie : PCCI, classe 2 : prix de cession au débit d'un compte de trésorerie ou de tiers, 674 moins-value, 774 plus-value, 673 mise au rebut
+   *  (plan d'allègement, point 0.1 ; registre S139-5) */
+  sortir(d: { type?: string; bienId?: number | null; date?: string; observation?: string; autorisationBcc?: string; prixCession?: number | null; compteContrepartie?: string }) {
     const u = exiger();
     if (!d.type || !SORTIES_IMMO.includes(d.type)) throw new ErreurMetier("À remplir : Type de sortie.");
     const b = bienImmo(d.bienId);
@@ -9174,13 +9177,27 @@ const immobilisations = {
       const { s, resultat, anterieurs } = soldesEf(j.date, Number(j.date.slice(0, 4)), true);
       if (b.prixAcquisition * 10 > Math.max(fondsPropresNormes(s, resultat + anterieurs).base, 0)) throw new ErreurMetier("Cession au-delà de 10 % des fonds propres de base : à remplir, Autorisation BCC (Instr. BCC 41, art. 33).");
     }
+    let prix = 0, contrepartie = "";
+    if (d.type === "Cession") {
+      if (typeof d.prixCession !== "number" || !Number.isFinite(d.prixCession) || d.prixCession < 0) throw new ErreurMetier("À remplir : Prix de cession (0 si le bien est cédé sans prix).");
+      prix = arrondi2(d.prixCession); contrepartie = (d.compteContrepartie ?? "").trim();
+      if (prix && (!/^[45]\d*$/.test(contrepartie) || !planComptable().includes(contrepartie)))
+        throw new ErreurMetier("Compte qui reçoit le prix : un compte de trésorerie (classe 5) ou de tiers (classe 4) du plan de comptes.");
+    }
     const l = (compte: string, sens: "D" | "C", m: number) => ({ compte, sens, devise: "CDF" as Devise, montant: m, montantCdf: m });
+    const gestion = (famille: string, racine: string) => (famille && famille.startsWith(racine) ? famille : racine);
     const lg = [l(v.comptes.acquisition, "C", b.prixAcquisition)];
     if (cumul) lg.push(l(v.comptes.amortissement, "D", cumul));
-    if (vnc) lg.push(l(v.comptes.chargeVcn, "D", vnc));
+    if (d.type === "Mise au rebut") { if (vnc) lg.push(l(gestion(v.comptes.chargeVcn, "673"), "D", vnc)); }
+    else {
+      if (prix) lg.push(l(contrepartie, "D", prix));
+      const ecart = arrondi2(prix - vnc);
+      if (ecart < 0) lg.push(l(gestion(v.comptes.chargeVcn, "674"), "D", -ecart));
+      else if (ecart > 0) lg.push(l(gestion(v.comptes.produit, "774"), "C", ecart));
+    }
     const e = poster({ evenement: "immo_sortie", journal: "OD", journeeId: j.id, libelle: `Sortie du patrimoine (${d.type}), bien ${b.codification}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: lg });
-    E.immoSorties.push({ id: prochain(E.immoSorties), bienId: b.id, type: d.type, date: d.date!, observation: [(d.observation ?? "").trim(), autorisation ? `Autorisation BCC : ${autorisation}` : ""].filter(Boolean).join(" "), vnc, cumul, ecritureId: e.id, par: u.id });
-    b.statut = "SORTI"; enregistrer(); return { ...vueBien(b), vnc };
+    E.immoSorties.push({ id: prochain(E.immoSorties), bienId: b.id, type: d.type, date: d.date!, observation: [(d.observation ?? "").trim(), autorisation ? `Autorisation BCC : ${autorisation}` : ""].filter(Boolean).join(" "), vnc, cumul, ecritureId: e.id, par: u.id, prixCession: prix, compteContrepartie: contrepartie });
+    b.statut = "SORTI"; enregistrer(); return { ...vueBien(b), vnc, prixCession: prix, resultatCession: d.type === "Cession" ? arrondi2(prix - vnc) : 0 };
   },
   periode(p: { rechercher?: string; du?: string; au?: string }) {
     const du = DATE_ISO.test(p.du ?? "") ? p.du! : null, au = DATE_ISO.test(p.au ?? "") ? p.au! : null;
