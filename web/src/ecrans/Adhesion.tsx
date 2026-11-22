@@ -55,7 +55,7 @@ export default function Adhesion() {
   const effacer = () => { setT(null); setDepot(""); setParts("1"); setCoupures({}); setCoupuresDepot({}); setCle(nouvelleCle()); setFait(null); };
   function enregistrer() {
     if (!t || mDepot === null) { setBoite({ type: "erreur", message: !t ? "À remplir : N° Client." : "Premier dépôt invalide." }); return; }
-    setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
+    setBoite({ type: "confirmation", message: `Voulez-vous vraiment enregistrer ? Adhésion : ${montant(totalCdf, "CDF")}${enDevise && mDepot ? ` et premier dépôt de ${montant(mDepot, devDepot)}` : ""}.`, oui: async () => {
       try { const o = await api.guichet.adhesion({ cle, tiersId: t.id, parts: nParts, depot: mDepot, coupures, ...(enDevise ? { coupuresDepot } : {}) }); setFait(o); setBoite({ type: "succes", message: ["Enregistré avec succès !", o.avertissement].filter(Boolean).join(" ") }); }
       catch (x) { setBoite(boiteOperation(x, { type: "adhesion", tiersId: t.id, montant: totalCdf, devise: "CDF" }, setBoite)); }
     } });

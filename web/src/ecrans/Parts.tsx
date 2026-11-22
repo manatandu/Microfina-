@@ -48,7 +48,7 @@ export function PartsSociales() {
   const effacer = () => { setT(null); setCompteId(0); setNombre(""); setCoupures({}); setCle(nouvelleCle()); setFait(null); };
   function enregistrer() {
     if (!t || !c) { setBoite({ type: "erreur", message: "À remplir : numéro client, N° Compte." }); return; }
-    setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
+    setBoite({ type: "confirmation", message: `Voulez-vous vraiment enregistrer ? ${achat ? "Achat" : "Retrait"} de ${n} part(s) sociale(s) : ${montant(aPayer, "CDF")}${c ? `, compte ${c.numero}` : ""}.`, oui: async () => {
       try { const o = await api.guichet.parts({ cle, tiersId: t.id, sens, nombre: n, coupures }); setFait(o); setBoite({ type: "succes", message: ["Enregistré avec succès !", o.avertissement].filter(Boolean).join(" ") }); }
       catch (x) { setBoite(boiteOperation(x, { type: sens === "retrait" ? "retrait_parts" : "achat_parts", tiersId: t.id, montant: aPayer, devise: "CDF" }, setBoite)); }
     } });

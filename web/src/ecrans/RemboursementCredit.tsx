@@ -186,7 +186,7 @@ export function RemboursementGuichet() {
   function enregistrer() {
     const manque = !d ? "N° du client" : !e.m ? "Montant à payer" : !e.mandataire.trim() ? "Mandataire" : "";
     if (manque) { setBoite({ type: "erreur", message: `À remplir : ${manque}.` }); return; }
-    setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
+    setBoite({ type: "confirmation", message: `Voulez-vous vraiment enregistrer ? Remboursement : ${montant(e.m!, d!.devise as Devise)}, crédit ${d!.numero}, ${d!.client}.`, oui: async () => {
       try {
         const o = await api.remboursementsCredit.rembourserCaisse(d!.id, { cle, mandataire: e.mandataire, montant: e.m!, coupures, repartition: e.modifie });
         setFait(o); setBoite({ type: "succes", message: "Enregistré avec succès !" });
@@ -261,7 +261,7 @@ export function RemboursementBanque() {
   function suivant() {
     const manque = !d ? "N° du Client" : !e.m ? "Montant à payer" : !e.mandataire.trim() ? "Mandataire" : !cb ? "Banque et Compte" : "";
     if (manque) { setBoite({ type: "erreur", message: `À remplir : ${manque}.` }); return; }
-    setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
+    setBoite({ type: "confirmation", message: `Voulez-vous vraiment enregistrer ? Remboursement : ${montant(e.m!, d!.devise as Devise)}, crédit ${d!.numero}, ${d!.client}.`, oui: async () => {
       try {
         const x = await api.remboursementsCredit.rembourserBanque(d!.id, { mandataire: e.mandataire, compteBancaireId: cb!.id, montant: e.m!, dateReglement: date || undefined, repartition: e.modifie });
         setFait(x); setBoite({ type: "succes", message: "Enregistré avec succès !" });
@@ -336,7 +336,7 @@ export function RemboursementPrelevement() {
   function enregistrer() {
     const manque = !d ? "N° du Client" : !k ? "Compte Client" : !ordre.trim() ? "Ordre du client" : !e.m ? "Montant à payer" : !e.mandataire.trim() ? "Mandataire" : "";
     if (manque) { setBoite({ type: "erreur", message: `À remplir : ${manque}.` }); return; }
-    setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
+    setBoite({ type: "confirmation", message: `Voulez-vous vraiment enregistrer ? Remboursement : ${montant(e.m!, d!.devise as Devise)}, crédit ${d!.numero}, ${d!.client}.`, oui: async () => {
       try {
         const x = await api.remboursementsCredit.rembourserEpargne(d!.id, { mandataire: e.mandataire, compteId: k!.id, montant: e.m!, ordreClient: ordre, dateReglement: date || undefined, repartition: e.modifie });
         setFait(x); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" });

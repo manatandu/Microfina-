@@ -96,7 +96,7 @@ export default function GuichetDepotRetrait() {
   function enregistrer() {
     const manque = !t ? "N° client" : !c ? "N° compte" : !m ? "Montant" : "";
     if (manque) { setBoite({ type: "erreur", message: `À remplir : ${manque}.` }); return; }
-    setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
+    setBoite({ type: "confirmation", message: `Voulez-vous vraiment enregistrer ? ${cadre} : ${montant(m!, devise)}, compte ${c!.numero}, ${nomComplet(t!)}.`, oui: async () => {
       try {
         const corps = { cle, compteId: c!.id, montant: m!, coupures, mandataire, motif };
         const o = op === "depot" ? await api.guichet.depot(corps) : await api.guichet.retrait({ ...corps, mandataire: "", procurationId });

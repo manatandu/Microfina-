@@ -105,7 +105,7 @@ export function DeblocageGuichet() {
   }
   function debloquer() {
     if (!d) return;
-    setBoite({ type: "confirmation", message: "Voulez-vous vraiment débloquer ce crédit ?", oui: async () => {
+    setBoite({ type: "confirmation", message: `Voulez-vous vraiment débloquer le crédit ${d.numero}, ${d.client} ? Montant du prêt : ${montant(d.montant, d.devise as Devise)}.`, oui: async () => {
       try { const o = await api.deblocage.debloquerCaisse(d.id, { cle, coupures }); setFait(o); setBoite({ type: "succes", message: "Crédit débloqué avec succès !" }); }
       catch (x) { erreur(x); }
     } });
@@ -188,7 +188,7 @@ export function DeblocageBanque() {
   }
   function debloquer() {
     if (!d || !cb) return;
-    setBoite({ type: "confirmation", message: "Voulez-vous vraiment débloquer ce crédit ?", oui: async () => {
+    setBoite({ type: "confirmation", message: `Voulez-vous vraiment débloquer le crédit ${d.numero}, ${d.client} ? Montant du prêt : ${montant(d.montant, d.devise as Devise)}.`, oui: async () => {
       try { await api.deblocage.debloquerBanque(d.id, { compteBancaireId: cb.id, cheque: f.cheque }); setFait(true); setBoite({ type: "succes", message: "Crédit débloqué avec succès !" }); }
       catch (x) { erreur(x); }
     } });
@@ -261,7 +261,7 @@ export function DeblocageEpargne() {
   }
   function debloquer() {
     if (!d) return;
-    setBoite({ type: "confirmation", message: "Voulez-vous vraiment débloquer ce crédit ?", oui: async () => {
+    setBoite({ type: "confirmation", message: `Voulez-vous vraiment débloquer le crédit ${d.numero}, ${d.client} ? Montant du prêt : ${montant(d.montant, d.devise as Devise)}.`, oui: async () => {
       try { const x = await api.deblocage.debloquerEpargne(d.id); setFait({ piece: x.piece }); setBoite({ type: "succes", message: "Crédit débloqué avec succès !" }); }
       catch (x) { erreur(x); }
     } });
