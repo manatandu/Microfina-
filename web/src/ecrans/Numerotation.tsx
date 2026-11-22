@@ -14,13 +14,12 @@ export default function ParametragesClients() {
   const [inst, setInst] = useState("");
   const [r, setR] = useState<RegleNumerotation>(VIDE);
   const [choisi, setChoisi] = useState<string | null>(null);
-  const [apercu, setApercu] = useState("");
   const [boite, setBoite] = useState<Boite | null>(null);
   const { donnees } = useDonnees(() => api.numerotation.lire());
   // Une seule institution : choisie d'office, la case se cache (plan d'allègement, point 1.10)
   useEffect(() => { if (donnees && !inst && donnees.institutions.length === 1) { const v = String(donnees.institutions[0]!.id); setInst(v); setR(donnees.regles[v] ?? VIDE); } }, [donnees]);   // eslint-disable-line react-hooks/exhaustive-deps
   if (!donnees) return <Chargement />;
-  function institution(v: string) { setInst(v); setR(donnees!.regles[v] ?? VIDE); setChoisi(null); setApercu(""); }
+  function institution(v: string) { setInst(v); setR(donnees!.regles[v] ?? VIDE); setChoisi(null); }
   /** Cocher un élément le met à la fin de l'ordre ; le décocher l'en retire */
   function cocher(k: "prefixe" | "suffixe" | "institution" | "agence" | "categorie", actif: boolean) {
     const e = k.toUpperCase();
@@ -31,15 +30,6 @@ export default function ParametragesClients() {
     const o = r.ordre.filter((x) => x !== choisi), i = r.ordre.indexOf(choisi);
     const j = { haut: 0, monter: Math.max(0, i - 1), descendre: Math.min(o.length, i + 1), bas: o.length }[vers];
     o.splice(j, 0, choisi); setR({ ...r, ordre: o });
-  }
-  /** Registre S15-6 : un numéro d'exemple, avec la règle telle qu'elle est saisie */
-  function generer() { setApercu(composerNumero(r, donnees!.exemple)); }
-  /** Registre S15-1, S15-2, S15-5 : une Position est le rang de l'élément ; la changer déplace l'élément dans l'Ordre des éléments */
-  const rang = (e: string) => r.ordre.indexOf(e) + 1;
-  function placer(e: string, n: number) {
-    if (!r.ordre.includes(e) || !Number.isInteger(n) || n < 1) return;
-    const o = r.ordre.filter((x) => x !== e);
-    o.splice(Math.min(n - 1, o.length), 0, e); setR({ ...r, ordre: o });
   }
   function enregistrerRegle() {
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
@@ -55,12 +45,11 @@ export default function ParametragesClients() {
       <input className="saisie code" aria-label={`Valeur : ${nom}`} disabled={!r[k].actif} value={r[k].valeur} onChange={(e) => setR({ ...r, [k]: { ...r[k], valeur: e.target.value } })} />
     </div>
   );
+  // L'ordre se règle par les flèches seulement (plan d'allègement, point 2.19)
   const lignePosition = (k: "institution" | "agence" | "categorie", nom: string) => (
     <div className="ligne-numerotation">
       <input type="checkbox" checked={r[k].actif} aria-label={`Choisir : ${nom}`} onChange={(e) => cocher(k, e.target.checked)} />
       <span>{nom}</span>
-      <input className="saisie code num" type="number" min={1} aria-label={`Position : ${nom}`} disabled={!r[k].actif} value={r[k].actif ? rang(k.toUpperCase()) : 1}
-        onChange={(e) => placer(k.toUpperCase(), nombre(e.target.value))} />
     </div>
   );
   return (
@@ -81,12 +70,10 @@ export default function ParametragesClients() {
             {ligneValeur("prefixe", "Préfixe")}
             {ligneValeur("suffixe", "Suffixe")}
             <hr />
-            <div className="ligne-numerotation entete"><span /><span>Elément</span><span>Position</span></div>
+            <div className="ligne-numerotation entete"><span /><span>Elément</span></div>
             {lignePosition("institution", "Institution")}
             {lignePosition("agence", "Agence")}
             {lignePosition("categorie", "Catégorie")}
-            <div className="ligne-numerotation"><span /><label htmlFor="num-position">Position</label>
-              <input id="num-position" className="saisie code num" type="number" min={1} value={rang("COMPTEUR")} onChange={(e) => placer("COMPTEUR", nombre(e.target.value))} /></div>
             <div className="ligne-numerotation"><span /><label htmlFor="num-compteur">Compteur</label>
               <input id="num-compteur" className="saisie code num" type="number" min={1} value={r.compteur} onChange={(e) => setR({ ...r, compteur: nombre(e.target.value) })} /></div>
           </div>
@@ -113,8 +100,7 @@ export default function ParametragesClients() {
             </fieldset>
           </div>
           <div className="pile">
-            <button className="bouton secondaire" type="button" onClick={generer}>Générer</button>
-            <output aria-label="Aperçu">{apercu || "Aperçu"}</output>
+            <output aria-label="Aperçu" className="apercu-numero">{composerNumero(r, donnees.exemple)}</output>
             <button className="bouton" type="button" onClick={enregistrerRegle}>Enregistrer</button>
           </div>
         </div>
@@ -131,20 +117,17 @@ export default function ParametragesClients() {
 export function ParametrageCompteClient() {
   const [relu, setRelu] = useState(0);
   const [f, setF] = useState<{ prefixe: boolean; suffixe: boolean; position: string } | null>(null);
-  const [apercu, setApercu] = useState("");
   const [boite, setBoite] = useState<Boite | null>(null);
   const { donnees } = useDonnees(() => api.numerotation.lireCompte(), [relu]);
   if (!donnees) return <Chargement />;
   const neuf = { prefixe: false, suffixe: true, position: "2" };
   const v = f ?? (donnees.regle ? { ...donnees.regle, position: String(donnees.regle.position) } : neuf);
   const position = Number(v.position);
-  function generer() {
-    const e = donnees!.exemple;
-    setApercu(composerNumeroCompte({ prefixe: v.prefixe, suffixe: v.suffixe, position: Number.isInteger(position) && position > 0 ? position : 2 }, e.numeroClient || "0412-000001", e.agence, e.produit));
-  }
+  const e = donnees.exemple;
+  const apercu = composerNumeroCompte({ prefixe: v.prefixe, suffixe: v.suffixe, position: Number.isInteger(position) && position > 0 ? position : 2 }, e.numeroClient || "0412-000001", e.agence, e.produit);
   function enregistrerRegle() {
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
-      try { await api.numerotation.enregistrerCompte({ prefixe: v.prefixe, suffixe: v.suffixe, position }); setF(null); setApercu(""); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+      try { await api.numerotation.enregistrerCompte({ prefixe: v.prefixe, suffixe: v.suffixe, position }); setF(null); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
       catch (x) { setBoite({ type: "erreur", message: message(x) }); }
     } });
   }
@@ -163,15 +146,14 @@ export function ParametrageCompteClient() {
               <label htmlFor="nc-position">Position</label>
               <span className="ligne-champ">
                 <input id="nc-position" className="saisie code num" inputMode="numeric" value={v.position} onChange={(e) => setF({ ...v, position: e.target.value.trim() })} />
-                {apercu && <output className="apercu-numero" aria-label="Aperçu">{apercu}</output>}
+                <output className="apercu-numero" aria-label="Aperçu">{apercu}</output>
               </span>
             </div>
           </div>
         </fieldset>
         <div className="actions-onglets">
           <button className="bouton" type="button" onClick={enregistrerRegle}>Enregistrer</button>
-          <button className="bouton secondaire" type="button" onClick={() => { setF(null); setApercu(""); }}>Annuler</button>
-          <button className="bouton secondaire" type="button" onClick={generer}>Générer</button>
+          <button className="bouton secondaire" type="button" onClick={() => setF(null)}>Annuler</button>
         </div>
         <fieldset className="pile cadre-champs">
           <legend>Pamamétrage du N° des Compte Client</legend>

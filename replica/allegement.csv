@@ -59,7 +59,7 @@ id,lot,titre,ecrans,statut,question,reste
 2.16,2,Produits de crédit,S23 S24 S25,partiel,,"Fait : fiche en trois parties, Enregistrer toujours visible, listes à une valeur en phrase, un seul réglage du remboursement anticipé. Reste : liste, activation et fiche dans une seule entrée ; TEG indicatif du produit"
 2.17,2,Produits d'épargne,S27 S28,fait,,
 2.18,2,Frais,S16,à faire,oui,
-2.19,2,Numérotation,S15 S17 S29,partiel,,"Fait : un écran à trois onglets, case Institution cachée. Reste : même disposition des trois onglets, ordre par flèches seulement, aperçu en direct"
+2.19,2,Numérotation,S15 S17 S29,fait,,
 2.20,2,Agents,S33,partiel,,"Fait : fiche réduite à nom, prénom, sexe, portable. Reste : une seule liste avec les rôles à cocher et l'utilisateur lié"
 2.21,2,Société,S32,fait,,
 2.22,2,Calendrier,S34,fait,,

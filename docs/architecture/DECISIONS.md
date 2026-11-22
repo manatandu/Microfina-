@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**997 décisions.** Solidité : 450 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 990 déjà en place, 7 à appliquer.
+**998 décisions.** Solidité : 451 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 991 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -270,6 +270,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S15-9 | Application au numéro des clients | La règle s'applique aux clients créés après son enregistrement. Les numéros existants ne changent pas. Règle de départ : le format actuel (code agence, tiret, compteur) | Choix du porteur : Prudence : un numéro déjà donné ne change pas | moyenne | en place |
 | S15-10 | Séparateur entre les éléments | Un tiret | Manuel : Exemple de la capture p. 26 (« 25121200-INS000SA000001-E-05 ») et numéros actuels (« 0412-000318 ») | moyenne | en place |
 | S15-11 | Valeur de l'élément Institution | Le sigle de l'institution (Information société, S32) | Donnée exigée ailleurs : S32 (p. 42) : identité de l'institution | moyenne | en place |
+
+## S15 Numérotation
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S15-12 | Ordre par flèches, aperçu en direct | Membres et pièces ont la même disposition : éléments à cocher, flèches, ordre des éléments, aperçu, Enregistrer. L'ordre se règle par les flèches seulement (les positions chiffrées disparaissent ; la position enregistrée est le rang dans l'ordre). L'aperçu du numéro s'affiche en direct sur les trois onglets ; le bouton Générer disparaît. Pièces : l'exercice reste en tête, l'institution cochée se place en tête des autres éléments. | Choix du porteur : Plan d'allègement, point 2.19 (accord du porteur, 22/11/2026) ; registre S15-1, S15-6, S29-1, S29-2 | forte | en place |
 
 ## S16 Frais
 

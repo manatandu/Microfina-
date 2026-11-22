@@ -142,11 +142,11 @@ const OUT = process.argv[2];
   await aller('/parametrage/s15');
   await p.getByLabel('Choisir : Préfixe').check(); await p.getByLabel('Valeur : Préfixe').fill('TJ'); await p.getByLabel('Choisir : Agence').check();
   await p.getByRole('cell', { name: 'AGENCE' }).click(); await p.getByRole('button', { name: 'Tout en haut' }).click();
-  await p.getByRole('button', { name: 'Générer' }).click(); await p.getByText('0412-000321-TJ').waitFor(); await etape('02g-parametrages-clients');
+  await p.getByText('0412-000321-TJ').waitFor(); await etape('02g-parametrages-clients');   // aperçu en direct (plan 2.19)
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  // Chef : numéro de compte client (S17, p. 26) : Générer un exemple
+  // Chef : numéro de compte client (S17, p. 26) : l'exemple s'affiche en direct
   await aller('/parametrage/s15?onglet=comptes'); await p.getByLabel('Prefixe').check(); await p.getByLabel('Position').fill('3');
-  await p.getByRole('button', { name: 'Générer' }).click(); await p.getByText('0412-0412-000318-002').waitFor(); await etape('02h-numero-compte');
+  await p.getByText('0412-0412-000318-002').waitFor(); await etape('02h-numero-compte');
   await p.getByRole('button', { name: 'Annuler' }).click();
   // Chef : produit épargne (S27, p. 40) : un produit de garantie, famille BLOQUE
   await aller('/parametrage/s27'); await p.getByLabel('N° Produit : *').fill('5'); await p.getByLabel('Code produit : *').fill('G');
@@ -154,12 +154,9 @@ const OUT = process.argv[2];
   await p.getByLabel('Devise : *').selectOption('CDF'); await p.getByLabel('Solde minimum : *').fill('0'); await p.getByLabel('Max compte à créer *').fill('1');
   await p.getByLabel('Nantissement', { exact: true }).check();   // les autres cases gardent la valeur proposée (plan 2.17)
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Epargne De Garantie' }).waitFor(); await etape('02f17-produit-epargne');
-  // Chef : numéro de pièce (S29, p. 41) : Institution cochée en tête, Générer, Enregistrer
+  // Chef : numéro de pièce (S29, p. 41) : Institution cochée en tête, Enregistrer
   await aller('/parametrage/s15?onglet=pieces');
-  await p.getByText('Position Institution', { exact: true }).click(); await p.getByLabel('Position Institution').and(p.locator('input.saisie')).fill('1');
-  await p.getByLabel('Position Agence').and(p.locator('input.saisie')).fill('2'); await p.getByLabel('Position Journal').and(p.locator('input.saisie')).fill('3');
-  await p.getByLabel('Position compteur').and(p.locator('input.saisie')).fill('4');
-  await p.getByRole('button', { name: 'Générer' }).click(); await p.getByText('2026-CTJ-0412-CA-').waitFor();
+  await p.getByLabel('Choisir : Institution').check(); await p.getByText('2026-CTJ-0412-CA-').waitFor();   // l'institution se place en tête ; aperçu en direct (plan 2.19)
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('02f19-numero-piece');
   // Chef : journal (S30, p. 41 et 42) : un journal des opérations diverses, avec son détail dans l'exercice
   await aller('/parametrage/s30'); await p.getByLabel('Type Journal *').selectOption({ label: 'Journal des Opérations diverses' });
