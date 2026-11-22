@@ -46,7 +46,7 @@ export function BilletageCaisse() {
   }
   return (
     <>
-      <h1>Arretée de : {ctx.guichets.find((g) => g.id === s.guichetId)?.nom}</h1>
+      <h1>Arrêté de caisse : {ctx.guichets.find((g) => g.id === s.guichetId)?.nom}</h1>
       <section className="bloc pile" aria-label="Billetage">
         {/* Registre S79-2 et T12 : un tableau par devise, chacun comme la capture p. 91 */}
         {DEVISES.map((d) => (
@@ -120,7 +120,7 @@ export function ValidationBilletage() {
   }
   return (
     <>
-      <h1>Validation Arretée Temporaire : {guichet?.nom ?? ""}</h1>
+      <h1>Validation de l'arrêté temporaire : {guichet?.nom ?? ""}</h1>
       <section className="bloc pile" aria-label="Validation du billetage">
         <div className="grille-cadres quatre">
           <Champ libelle="Guichet">{(p) => (
