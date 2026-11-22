@@ -43,7 +43,7 @@ export default function ActivationProduitsCredit() {
               <td /><td /><td /><td /></tr>
           </thead>
           <tbody>
-            {lignes.length === 0 && <tr><td colSpan={7}>Liste vide</td></tr>}
+            {lignes.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
             {visibles.map((p) => (
               <tr key={p.id}>
                 <td><input type="checkbox" aria-label={`Choisir ${p.numero}`} checked={coches.includes(p.id)}

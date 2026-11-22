@@ -50,7 +50,7 @@ export default function GestionProfilsUtilisateur() {
           <table className="grille">
             <thead><tr><th scope="col">Nom Module</th></tr></thead>
             <tbody>
-              {!profil?.modules.length && <tr><td>Liste module vide</td></tr>}
+              {!profil?.modules.length && <tr><td>Aucune ligne.</td></tr>}
               {profil?.modules.map((m) => <tr key={m}><td>{m}</td></tr>)}
             </tbody>
           </table>
@@ -86,7 +86,7 @@ export default function GestionProfilsUtilisateur() {
         <table className="grille">
           <thead><tr><th scope="col">Profil</th><th scope="col">Début</th><th scope="col">Fin</th><th scope="col">Attribué par</th></tr></thead>
           <tbody>
-            {donnees.historique.length === 0 && <tr><td colSpan={4}>Liste vide</td></tr>}
+            {donnees.historique.length === 0 && <tr><td colSpan={4}>Aucune ligne.</td></tr>}
             {donnees.historique.map((h, i) => <tr key={i}><td>{h.profil}</td><td>{jour(h.debut)}</td><td>{jour(h.fin)}</td><td>{h.attribuePar}</td></tr>)}
           </tbody>
         </table>

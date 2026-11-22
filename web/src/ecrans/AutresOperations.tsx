@@ -77,7 +77,7 @@ function ChampsLignes({ g, ctx, devise }: { g: ReturnType<typeof useLignes>; ctx
     <datalist id="comptes-libres">{ctx.comptes.map((c) => <option key={c.numero} value={c.numero}>{c.libelle}</option>)}</datalist>
     {g.multi && <div className="defile-x"><table className="grille">
       <thead><tr><th scope="col">Compte</th><th scope="col">Libelle</th><th scope="col" className="num">Montant</th><th scope="col"><span className="sr-only">Retirer</span></th></tr></thead>
-      <tbody>{g.l.length === 0 && <tr><td colSpan={4}>No records found.</td></tr>}
+      <tbody>{g.l.length === 0 && <tr><td colSpan={4}>Aucune ligne.</td></tr>}
         {g.l.map((x, i) => <tr key={i}><td className="code">{x.compte}</td><td>{x.libelle}</td><td className="num chiffres">{montant(x.montant, devise)}</td>
           <td><button className="bouton secondaire" type="button" aria-label={`Retirer ${x.libelle}`} onClick={() => g.retirer(i)}>Supprimer</button></td></tr>)}</tbody>
     </table></div>}
@@ -221,7 +221,7 @@ function OperationDiverse({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
     <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
       <thead><tr><th scope="col"><span className="sr-only">Sens</span></th><th scope="col">Date opération</th><th scope="col">Numero de piece</th><th scope="col">Libelle de l'opération</th>
         <th scope="col" className="num">Montant</th><th scope="col">Date visa</th><th scope="col">Date validation</th></tr></thead>
-      <tbody>{lignes.length === 0 && <tr><td colSpan={7}>No records found.</td></tr>}
+      <tbody>{lignes.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
         {visibles.map((x) => <tr key={x.id}><td><Sens x={x} /></td><td className="chiffres">{fr(x.date)}</td><td className="chiffres">{x.piece}</td><td>{x.libelle}</td>
           <td className="num chiffres">{decimal.format(x.montant / 100)}</td><td className="chiffres">{fr(x.dateVisa)}</td><td className="chiffres">{fr(x.dateValidation)}</td></tr>)}</tbody>
     </table>)}</Paginee>
@@ -267,7 +267,7 @@ function OperationsDeplacees({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
         <th scope="col" className="num">Montant</th><th scope="col">Numero de piece</th><th scope="col">Visa</th></tr>
         <tr className="filtres"><td /><td /><td><input className="saisie" type="search" aria-label="Filtrer N° Membre" value={filtre.membre} onChange={(e) => setFiltre({ ...filtre, membre: e.target.value })} /></td><td />
           <td><input className="saisie" type="search" aria-label="Filtrer Nom et Prenoms" value={filtre.nom} onChange={(e) => setFiltre({ ...filtre, nom: e.target.value })} /></td><td /><td /><td /></tr></thead>
-      <tbody>{lignes.length === 0 && <tr><td colSpan={8}>No records found.</td></tr>}
+      <tbody>{lignes.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
         {visibles.map((x) => <tr key={x.id}><td><Sens x={x} /></td><td>{x.sens === "DEPOT" ? "Dépot Espèces" : "Retrait Espèces"}</td><td className="chiffres">{x.numeroClient}</td><td className="code">{x.compteEpargne}</td>
           <td>{x.nomClient}</td><td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td><td className="chiffres">{x.piece}</td><td className="chiffres">{fr(x.dateVisa)}</td></tr>)}</tbody>
     </table>)}</Paginee>

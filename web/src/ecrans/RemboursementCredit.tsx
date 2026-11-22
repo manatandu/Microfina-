@@ -46,7 +46,7 @@ export function FenetresCredit({ cid, devise, ouverte, fermer }: { cid: number |
           <tr>{["Echéance", "Intérêts", "Capital", "Epargne", "Fond Solid.", "Cap. Restant", "Intérêts", "Capital", "Pénalité", "Epargne", "Fond Solid.", "Cap. Restant"].map((t, i) =>
             <th key={i} scope="col" className={i ? "num" : undefined}>{t}</th>)}</tr>
         </thead>
-        <tbody>{x.s.brouillard.length === 0 && <tr><td colSpan={16}>No records found.</td></tr>}
+        <tbody>{x.s.brouillard.length === 0 && <tr><td colSpan={16}>Aucune ligne.</td></tr>}
           {x.s.brouillard.map((l, i) => { const e = "echeance" in l ? l.echeance : null, b = "remboursement" in l ? l.remboursement : null;
             return <tr key={i}><td className="chiffres">{b?.piece ?? ""}</td><td className="chiffres">{b ? fr(b.date) : ""}</td><td className="chiffres">{e ? fr(e.date) : ""}</td>
               <td className="num chiffres">{mt(e?.interet)}</td><td className="num chiffres">{mt(e?.capital)}</td><td className="num chiffres">{mt(e?.epargne)}</td>
@@ -70,7 +70,7 @@ export function FenetresCredit({ cid, devise, ouverte, fermer }: { cid: number |
       {x && <div className="pile"><div className="defile-x"><table className="grille">
         <thead><tr><th scope="col">N° pièce</th><th scope="col">Date</th><th scope="col" className="num">Montant</th><th scope="col" className="num">Capital</th><th scope="col" className="num">Intérêt</th>
           <th scope="col" className="num">Pénalité</th><th scope="col" className="num">Cap. Restant</th><th scope="col">Mandataire</th></tr></thead>
-        <tbody>{x.s.reel.length === 0 && <tr><td colSpan={8}>No records found.</td></tr>}
+        <tbody>{x.s.reel.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
           {x.s.reel.map((l) => <tr key={l.id}><td className="chiffres">{l.piece}</td><td className="chiffres">{fr(l.date)}</td><td className="num chiffres">{montant(l.montant, devise)}</td>
             <td className="num chiffres">{r("capital", l.repartition)}</td><td className="num chiffres">{r("interet", l.repartition)}</td>
             <td className="num chiffres">{mt((l.repartition.penalite ?? 0) + (l.repartition.anticipation ?? 0))}</td><td className="num chiffres">{montant(l.capitalRestant, devise)}</td><td>{l.mandataire}</td></tr>)}</tbody>
@@ -79,7 +79,7 @@ export function FenetresCredit({ cid, devise, ouverte, fermer }: { cid: number |
     <Fiche titre="Memo" ouverte={ouverte === "memo"} fermer={fermer}>
       {x && <div className="pile">
         <table className="grille"><thead><tr><th scope="col">Date</th><th scope="col">Memo</th><th scope="col">Saisi par</th></tr></thead>
-          <tbody>{x.m.length === 0 && <tr><td colSpan={3}>No records found.</td></tr>}
+          <tbody>{x.m.length === 0 && <tr><td colSpan={3}>Aucune ligne.</td></tr>}
             {x.m.map((m) => <tr key={m.id}><td className="chiffres">{fr(m.date)}</td><td>{m.texte}</td><td>{m.par}</td></tr>)}</tbody></table>
         <Champ libelle="Memo *">{(p) => <textarea {...p} className="saisie" rows={3} value={texte} onChange={(e) => setTexte(e.target.value)} />}</Champ>
         <div className="actions-onglets"><button className="bouton" type="button" onClick={ajouter}>Enregistrer</button><button className="bouton secondaire" type="button" onClick={fermer}>Fermer</button></div>

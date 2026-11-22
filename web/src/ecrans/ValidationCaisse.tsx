@@ -54,15 +54,15 @@ export default function ValidationCaisse() {
             <th scope="col">Nom et Prenoms</th><th scope="col" className="num">Montant</th></tr>
             <tr className="filtres"><td /><td /><td><input className="saisie" type="search" aria-label="Filtrer N° Membre" value={filtre.membre} onChange={(e) => setFiltre({ ...filtre, membre: e.target.value })} /></td><td /><td />
               <td><input className="saisie" type="search" aria-label="Filtrer Nom et Prenoms" value={filtre.nom} onChange={(e) => setFiltre({ ...filtre, nom: e.target.value })} /></td><td /></tr></thead>
-          <tbody>{lignes.length === 0 && <tr><td colSpan={7}>No records found.</td></tr>}
-            {visibles.map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} onDoubleClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
+          <tbody>{lignes.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
+            {visibles.map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} onClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
               <td><Sens x={x} /></td><td className="chiffres">{fr(x.date)}</td><td className="chiffres">{x.numeroClient}</td><td className="code">{x.compteEpargne}</td><td className="chiffres">{x.piece}</td>
               <td>{x.nomClient}</td><td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td></tr>)}</tbody>
         </table> : <table className="grille">
           <thead><tr><th scope="col"><span className="sr-only">Sens</span></th><th scope="col">Date operation</th><th scope="col">Numero de piece</th><th scope="col">Libelle de l'operation</th>
             <th scope="col" className="num">Debit</th><th scope="col" className="num">Crédit</th><th scope="col">No Client</th><th scope="col">Nom Client</th></tr></thead>
-          <tbody>{lignes.length === 0 && <tr><td colSpan={8}>No records found.</td></tr>}
-            {visibles.map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} onDoubleClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
+          <tbody>{lignes.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
+            {visibles.map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} onClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
               <td><Sens x={x} /></td><td className="chiffres">{fr(x.date)}</td><td className="chiffres">{x.piece}</td><td>{x.libelle}</td>
               <td className="num chiffres">{x.debit ? montant(x.debit, x.devise as Devise) : ""}</td><td className="num chiffres">{x.credit ? montant(x.credit, x.devise as Devise) : ""}</td>
               <td className="chiffres">{x.numeroClient}</td><td>{x.nomClient}</td></tr>)}</tbody>

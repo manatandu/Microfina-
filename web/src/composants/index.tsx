@@ -247,7 +247,10 @@ const TITRES = { confirmation: "Confirmation", succes: "Succès", erreur: "Erreu
 export function Dialogue({ boite, fermer }: { boite: Boite | null; fermer: () => void }) {
   const [el, setEl] = useState<HTMLDialogElement | null>(null);
   useEffect(() => { if (el && boite && !el.open) el.showModal?.(); if (el && !boite && el.open) el.close(); }, [el, boite]);
+  // Succès : un message qui disparaît seul, sans bouton à cliquer (plan d'allègement, point 1.12 ; registre T121)
+  useEffect(() => { if (boite?.type !== "succes") return; const t = setTimeout(fermer, 5000); return () => clearTimeout(t); }, [boite]);   // eslint-disable-line react-hooks/exhaustive-deps
   if (!boite) return null;
+  if (boite.type === "succes") return <p className="message-succes" role="status">{boite.message}</p>;
   return (
     <dialog ref={setEl} className="boite" data-type={boite.type} aria-labelledby="boite-titre" onCancel={(e) => { e.preventDefault(); fermer(); }}>
       <h2 id="boite-titre">{TITRES[boite.type]}</h2>
@@ -325,8 +328,8 @@ export function Paginee<T>({ lignes, children, parPage = PAR_PAGE, colonnes }: {
   return (
     <FiltresGrille.Provider value={{ valeurs, changer }}>
       <div className="pile">
-        <BarrePages page={p} pages={pages} aller={setPage} />
         {children(retenues.slice(p * parPage, (p + 1) * parPage))}
+        {pages > 1 && <BarrePages page={p} pages={pages} aller={setPage} />}
       </div>
     </FiltresGrille.Provider>
   );

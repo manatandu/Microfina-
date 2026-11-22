@@ -67,7 +67,7 @@ export default function JournauxComptables({ achats = false }: { achats?: boolea
         {r?.edition && <p className="aide">Journaux{texteEdition(r.edition)}</p>}
         <Paginee lignes={r?.lignes ?? []}>{(visibles) => (<table className="grille">
           <thead><tr><th scope="col">Journal</th><th scope="col">N° Compte</th><th scope="col">Intitulé compte</th><th scope="col" className="num">Débit</th><th scope="col" className="num">Crédit</th></tr></thead>
-          <tbody>{(r?.lignes ?? []).length === 0 && <tr><td colSpan={5}>No records found.</td></tr>}
+          <tbody>{(r?.lignes ?? []).length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
             {visibles.map((x, i) => <tr key={i}><td>{x.journal}</td><td className="code">{x.compte}</td><td>{x.intitule}</td>
               <td className="num chiffres">{x.debit ? montant(x.debit, "CDF") : ""}</td><td className="num chiffres">{x.credit ? montant(x.credit, "CDF") : ""}</td></tr>)}</tbody>
           <tfoot><tr><th scope="row">Total</th><td></td><td></td><td className="num chiffres">{r ? montant(r.totalDebit, "CDF") : ""}</td><td className="num chiffres">{r ? montant(r.totalCredit, "CDF") : ""}</td></tr></tfoot>
@@ -85,7 +85,7 @@ export default function JournauxComptables({ achats = false }: { achats?: boolea
           {sch.edition && <p className="aide">Schémas comptables{texteEdition(sch.edition)}</p>}
           <div className="defile-x"><table className="grille" aria-label="Schémas comptables">
             <thead><tr><th scope="col">Évènement</th><th scope="col">Journal</th><th scope="col">Comptes débités</th><th scope="col">Comptes crédités</th><th scope="col" className="num">Écritures</th></tr></thead>
-            <tbody>{sch.schemas.length === 0 && <tr><td colSpan={5}>No records found.</td></tr>}
+            <tbody>{sch.schemas.length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
               {sch.schemas.map((x) => <tr key={x.evenement}><td>{x.libelle}</td><td className="code">{x.journaux.join(", ")}</td>
                 <td>{comptes(x.debit).map((c) => <div key={c}>{c}</div>)}</td><td>{comptes(x.credit).map((c) => <div key={c}>{c}</div>)}</td><td className="num chiffres">{x.ecritures}</td></tr>)}</tbody>
           </table></div>

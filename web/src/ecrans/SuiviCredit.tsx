@@ -24,7 +24,7 @@ function GrilleCredits({ lignes, choisie, choisir, groupe }: { lignes: Ligne[]; 
     <Paginee lignes={lignes} colonnes={(x) => [null, null, x.compte, x.client, null, null, x.produit, null]}>{(v) => (<div className="defile-x"><table className="grille">
       <thead><tr>{titres.map((t, i) => <th key={t} scope="col" className={i === 4 || i === 5 ? "num" : undefined}>{t}</th>)}</tr>
         <LigneFiltres titres={[null, null, "Compte", "Intitulé", null, null, "Produit", null]} /></thead>
-      <tbody>{v.length === 0 && <tr><td colSpan={8}>No records found.</td></tr>}
+      <tbody>{v.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
         {v.map((x) => <tr key={x.id} aria-selected={x.id === choisie} onClick={() => choisir?.(x)}><td className="code">{x.numero}</td><td className="chiffres">{fr(x.dateDemande)}</td>
           <td className="code">{x.compte}</td><td>{x.client}</td><td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td><td className="num chiffres">{x.duree}</td>
           <td>{x.produit}</td><td>{groupe ? x.groupe : x.agent}</td></tr>)}</tbody>
@@ -125,7 +125,7 @@ export function HistoriqueVisas() {
         <Paginee lignes={l} colonnes={(x) => [x.numero, null, x.client, null, null, x.produit, x.agent, null, null, null]}>{(v) => (<div className="defile-x"><table className="grille">
           <thead><tr>{COL.map((t, i) => <th key={t} scope="col" className={i === 3 || i === 4 ? "num" : undefined}>{t}</th>)}{refusCommission && <th scope="col">Appel</th>}</tr>
             <LigneFiltres titres={["N° credit", null, "Intitulé", null, null, "Produit", "Agent crédit", null, null, null, ...(refusCommission ? [null] : [])]} /></thead>
-          <tbody>{v.length === 0 && <tr><td colSpan={11}>No records found.</td></tr>}
+          <tbody>{v.length === 0 && <tr><td colSpan={11}>Aucune ligne.</td></tr>}
             {v.map((x, i) => <tr key={i}><td className="code">{x.numero}</td><td className="chiffres">{fr(x.dateDemande)}</td><td>{x.client}</td>
               <td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td><td className="num chiffres">{x.duree}</td><td>{x.produit}</td><td>{x.agent}</td>
               <td className="chiffres">{fr(x.visaLe)}</td><td>{x.visePar}</td><td>{x.motif}</td>
@@ -234,7 +234,7 @@ export function EtatCredit() {
         <Paginee lignes={l} colonnes={(x) => [null, null, null, null, null, x.client, null, x.groupe]}>{(v) => (<div className="defile-x"><table className="grille">
           <thead><tr>{["Echéancier", "Contrat prêt", ...COL].map((t, i) => <th key={t} scope="col" className={[8, 12, 13].includes(i) ? "num" : undefined}>{t}</th>)}</tr>
             <LigneFiltres titres={[null, null, null, null, null, "Intitulé", null, "Groupe", null, null, null, null, null, null, null]} /></thead>
-          <tbody>{v.length === 0 && <tr><td colSpan={15}>aucune donnée</td></tr>}
+          <tbody>{v.length === 0 && <tr><td colSpan={15}>Aucune ligne.</td></tr>}
             {v.map((x) => <tr key={x.id}>
               <td><button className="bouton secondaire petit" type="button" aria-label={`Echéancier ${x.numero}`} onClick={() => setFiche({ id: x.id, devise: dv(x), quoi: "plan" })}>Echéancier</button></td>
               <td><button className="bouton secondaire petit" type="button" aria-label={`Contrat prêt ${x.numero}`} onClick={() => setFiche({ id: x.id, devise: dv(x), quoi: "contrat" })}>Contrat</button></td>
@@ -288,7 +288,7 @@ export function AffectationDossier() {
               <thead><tr><th scope="col"><input type="checkbox" aria-label="Tout cocher" checked={tous} onChange={(e) => setCoches(e.target.checked ? gauche.map((x) => x.id) : [])} /></th>
                 <th scope="col">Crédit N°</th><th scope="col" className="num">Montant</th><th scope="col">Client</th></tr>
                 <LigneFiltres titres={[null, "Crédit N°", "Montant", "Client"]} /></thead>
-              <tbody>{v.length === 0 && <tr><td colSpan={4}>No records found.</td></tr>}
+              <tbody>{v.length === 0 && <tr><td colSpan={4}>Aucune ligne.</td></tr>}
                 {v.map((x) => <tr key={x.id}><td><input type="checkbox" aria-label={`Cocher ${x.numero}`} checked={coches.includes(x.id)}
                   onChange={(e) => setCoches(e.target.checked ? [...coches, x.id] : coches.filter((y) => y !== x.id))} /></td>
                   <td className="code">{x.numero}</td><td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td><td>{x.client}</td></tr>)}</tbody>
@@ -298,7 +298,7 @@ export function AffectationDossier() {
             {choix(vers, setVers, "Gestionnaire dont le portefeuille sera augmenté")}
             <Paginee lignes={droite}>{(v) => (<div className="defile-x"><table className="grille">
               <thead><tr><th scope="col">Crédit N°</th><th scope="col" className="num">Montant</th><th scope="col">Client</th></tr></thead>
-              <tbody>{v.length === 0 && <tr><td colSpan={3}>No records found.</td></tr>}
+              <tbody>{v.length === 0 && <tr><td colSpan={3}>Aucune ligne.</td></tr>}
                 {v.map((x) => <tr key={x.id}><td className="code">{x.numero}</td><td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td><td>{x.client}</td></tr>)}</tbody>
             </table></div>)}</Paginee>
           </div>

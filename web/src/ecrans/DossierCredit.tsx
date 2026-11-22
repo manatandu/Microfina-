@@ -119,8 +119,8 @@ function Grille({ lignes, choisir, choisie }: { lignes: Demande[]; choisir: (d: 
     <Paginee lignes={lignes}>{(v) => (<div className="defile-x"><table className="grille">
       <thead><tr><th scope="col">N° demande</th><th scope="col">Date</th><th scope="col">N° client</th><th scope="col">Intitulé</th><th scope="col">Produit</th>
         <th scope="col" className="num">Montant</th><th scope="col" className="num">Durée (mois)</th><th scope="col">Saisi par</th></tr></thead>
-      <tbody>{v.length === 0 && <tr><td colSpan={8}>No records found.</td></tr>}
-        {v.map((x) => <tr key={x.id} aria-selected={x.id === choisie} onClick={() => choisir(x)} onDoubleClick={() => choisir(x)}>
+      <tbody>{v.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
+        {v.map((x) => <tr key={x.id} aria-selected={x.id === choisie} onClick={() => choisir(x)}>
           <td className="code">{x.numero}</td><td className="chiffres">{fr(x.date)}</td><td className="code">{x.membre}</td><td>{x.client}</td><td>{x.produit}</td>
           <td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td><td className="num chiffres">{x.duree}</td><td>{x.saisiPar}</td></tr>)}</tbody>
     </table></div>)}</Paginee>

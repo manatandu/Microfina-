@@ -49,7 +49,7 @@ export default function ParametrageProduitsEpargne() {
               <thead><tr><th scope="col"><input type="checkbox" aria-label="Tout cocher" checked={tout} onChange={(e) => setTypes(e.target.checked ? donnees.typesClient.map((t: { id: number }) => t.id) : [])} /></th>
                 <th scope="col"><span className="sr-only">Type client</span></th></tr></thead>
               <tbody>
-                {donnees.typesClient.length === 0 && <tr><td colSpan={2}>Liste vide</td></tr>}
+                {donnees.typesClient.length === 0 && <tr><td colSpan={2}>Aucune ligne.</td></tr>}
                 {donnees.typesClient.map((t: { id: number; libelle: string }) => (
                   <tr key={t.id}><td><input type="checkbox" aria-label={t.libelle} checked={types.includes(t.id)}
                     onChange={(e) => setTypes(e.target.checked ? [...types, t.id] : types.filter((x) => x !== t.id))} /></td><td>{t.libelle}</td></tr>
@@ -65,7 +65,7 @@ export default function ParametrageProduitsEpargne() {
         <table className="grille">
           <thead><tr><th scope="col">Code Produit</th><th scope="col">Famille</th><th scope="col">Produit</th></tr></thead>
           <tbody>
-            {produits.filter((p) => p.categorie === onglet).length === 0 && <tr><td colSpan={3}>Liste vide</td></tr>}
+            {produits.filter((p) => p.categorie === onglet).length === 0 && <tr><td colSpan={3}>Aucune ligne.</td></tr>}
             {produits.filter((p) => p.categorie === onglet).map((p) => (
               <tr key={p.id} className="ligne-choix" tabIndex={0} aria-selected={String(p.id) === produitId} onClick={() => choisir(p)} onKeyDown={(e) => { if (e.key === "Enter") choisir(p); }}>
                 <td>{p.code}</td><td>{p.famille}</td><td>{p.libelle}</td>

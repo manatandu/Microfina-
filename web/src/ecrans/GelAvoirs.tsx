@@ -36,7 +36,7 @@ export default function GelAvoirs({ jour }: { jour: string }) {
       <Paginee lignes={donnees} colonnes={(x) => [x.membre, x.client, x.sourceLibelle, `${x.decisionReference} du ${fr(x.decisionLe)}`, fr(x.geleLe), x.informeLe ? fr(x.informeLe) : "À faire", fr(x.leveLe)]}>{(visibles) => (<div className="defile-x"><table className="grille">
         <thead><tr><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Autorité</th><th scope="col">Décision</th><th scope="col">Gelé le</th><th scope="col">Information</th><th scope="col">Levé le</th></tr><LigneFiltres titres={["N° client", "Client", "Autorité", "Décision", "Gelé le", "Information", "Levé le"]} /></thead>
         <tbody>
-          {visibles.length === 0 && <tr><td colSpan={7}>No records found.</td></tr>}
+          {visibles.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
           {visibles.map((x) => (
             <tr key={x.id} className="ligne-choix" tabIndex={0} aria-selected={choisi?.id === x.id} onClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
               <td className="chiffres">{x.membre}</td><td>{x.client}</td><td>{x.sourceLibelle}</td><td className="chiffres">{x.decisionReference} du {fr(x.decisionLe)}</td>

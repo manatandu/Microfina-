@@ -82,7 +82,7 @@ export default function ModeleCredit() {
         <table className="grille">
           <thead><tr><th scope="col">Libellé model</th></tr></thead>
           <tbody>
-            {donnees.modeles.length === 0 && <tr><td>Liste vide</td></tr>}
+            {donnees.modeles.length === 0 && <tr><td>Aucune ligne.</td></tr>}
             {(donnees.modeles as { id: number; libelle: string }[]).map((m) => (
               <tr key={m.id} className="ligne-choix" tabIndex={0} aria-selected={m.id === choisi} onClick={() => ouvrir(m.id)} onKeyDown={(e) => { if (e.key === "Enter") void ouvrir(m.id); }}><td>{m.libelle}</td></tr>
             ))}

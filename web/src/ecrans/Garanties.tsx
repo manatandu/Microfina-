@@ -80,7 +80,7 @@ function Operation({ page }: { page: Exclude<Page, "rapport" | "materiel"> }) {
       <div className="defile-x"><table className="grille">
         <thead><tr><th scope="col" className="num">{mot} ajouté{type === "caution" ? "e" : ""}</th><th scope="col" className="num">{mot} libéré{type === "caution" ? "e" : ""}</th>
           <th scope="col">{type === "caution" ? "Membre caution" : "Date"}</th></tr></thead>
-        <tbody>{enCours.length === 0 && <tr><td colSpan={3}>Aucune donnée dans la liste pour le moment</td></tr>}
+        <tbody>{enCours.length === 0 && <tr><td colSpan={3}>Aucune ligne.</td></tr>}
           {enCours.map((g) => <tr key={g.id} aria-selected={String(g.id) === f.garantie} onClick={() => !ajout && g.reste > 0 && setF({ ...f, garantie: String(g.id) })}>
             <td className="num chiffres">{montant(g.ajoute, dv)}</td><td className="num chiffres">{montant(g.libere, dv)}</td>
             <td>{type === "caution" ? `${g.membre} (${g.compte})` : fr(g.date)}</td></tr>)}</tbody>
@@ -223,7 +223,7 @@ function Materiel() {
         <div className="defile-x"><table className="grille" aria-label="Liste nantissement du matériel">
           <thead><tr><th scope="col">Matériel</th><th scope="col" className="num">Créance garantie</th><th scope="col">N° d'inscription</th><th scope="col">Inscrit le</th>
             <th scope="col">Échéance</th><th scope="col">État</th></tr></thead>
-          <tbody>{(s?.nantissements ?? []).length === 0 && <tr><td colSpan={6}>Aucune donnée dans la liste pour le moment</td></tr>}
+          <tbody>{(s?.nantissements ?? []).length === 0 && <tr><td colSpan={6}>Aucune ligne.</td></tr>}
             {(s?.nantissements ?? []).map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} aria-selected={x.id === choisi} onClick={() => setChoisi(x.id)}
               onKeyDown={(e) => { if (e.key === "Enter") setChoisi(x.id); }}>
               <td>{x.description}</td><td className="num chiffres">{montant(x.montant, dv)}</td><td className="code">{x.inscriptionNumero}</td>
@@ -276,7 +276,7 @@ function Rapport() {
         <Paginee lignes={l} colonnes={() => []}>{(v) => (<div className="defile-x"><table className="grille">
           <thead><tr>{["N°Membre", "N°Compte", "N°credit", "Date", "Client", onglet === "caution" ? "Caution et Ajout" : "Nantissement", "Libéré", "Restant"].map((t, i) =>
             <th key={t} scope="col" className={i >= 5 ? "num" : undefined}>{t}</th>)}</tr></thead>
-          <tbody>{v.length === 0 && <tr><td colSpan={8}>No records found.</td></tr>}
+          <tbody>{v.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
             {v.map((x) => <tr key={x.id}><td className="code">{x.numeroMembre}</td><td className="code">{x.compte}</td><td className="code">{x.numeroCredit}</td>
               <td className="chiffres">{fr(x.date)}</td><td>{x.client}</td><td className="num chiffres">{montant(x.ajoute, x.devise as Devise)}</td>
               <td className="num chiffres">{montant(x.libere, x.devise as Devise)}</td><td className="num chiffres">{montant(x.reste, x.devise as Devise)}</td></tr>)}</tbody>

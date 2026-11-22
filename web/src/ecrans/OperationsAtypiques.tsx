@@ -57,7 +57,7 @@ export default function OperationsAtypiques({ jour }: { jour: string }) {
         <thead><tr><th scope="col">Date</th><th scope="col">Pièce</th><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Compte</th><th scope="col">Sens</th>
           <th scope="col" className="montant">Montant</th><th scope="col">Critères</th><th scope="col">Statut</th></tr><LigneFiltres titres={["Date", "Pièce", "N° client", "Client", "Compte", "Sens", "Montant", "Critères", "Statut"]} /></thead>
         <tbody>
-          {visibles.length === 0 && <tr><td colSpan={9}>No records found.</td></tr>}
+          {visibles.length === 0 && <tr><td colSpan={9}>Aucune ligne.</td></tr>}
           {visibles.map((x) => (
             <tr key={x.cle} className="ligne-choix" tabIndex={0} aria-selected={choisi?.cle === x.cle} onClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
               <td className="chiffres">{fr(x.date)}</td><td className="chiffres">{x.piece}</td><td className="chiffres">{x.membre}</td><td>{x.client}</td><td className="chiffres">{x.compte}</td>

@@ -47,7 +47,7 @@ function NouveauType() {
         <Paginee lignes={liste}>{(visibles) => (<table className="grille">
           <thead><tr><th scope="col">Nom Type procuration</th></tr></thead>
           <tbody>
-            {liste.length === 0 && <tr><td>Liste vide</td></tr>}
+            {liste.length === 0 && <tr><td>Aucune ligne.</td></tr>}
             {visibles.map((t) => (
               <tr key={t.id} className="ligne-choix" tabIndex={0} aria-selected={choisi === t.id} onClick={() => setChoisi(t.id)} onKeyDown={(e) => { if (e.key === "Enter") setChoisi(t.id); }}>
                 <td>{t.libelle}</td>
@@ -103,7 +103,7 @@ function ProcurationsClient() {
         <table className="grille" aria-label="Procurations du client">
           <thead><tr><th scope="col">Type</th><th scope="col">Mandataire</th><th scope="col">Pièce</th><th scope="col">Du</th><th scope="col">Au</th><th scope="col">État</th></tr></thead>
           <tbody>
-            {liste.length === 0 && <tr><td colSpan={6}>Liste vide</td></tr>}
+            {liste.length === 0 && <tr><td colSpan={6}>Aucune ligne.</td></tr>}
             {liste.map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} aria-selected={choisie?.id === x.id} onClick={() => setChoisie(x)}
               onKeyDown={(e) => { if (e.key === "Enter") setChoisie(x); }}>
               <td>{x.type}</td><td>{nom(x)}</td><td>{x.pieceType} <span className="chiffres">{x.pieceNumero}</span></td><td className="chiffres">{x.dateDebut}</td>

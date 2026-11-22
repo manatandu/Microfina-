@@ -9,7 +9,7 @@ const nomComplet = (t: { nom: string; postnom: string; prenom: string }) => [t.n
 const fr = (iso: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "");
 
 /** Tableau avec un filtre sous chaque en-tête et des pages de 10 lignes (captures p. 54 et 55) */
-export function TableFiltree<T>({ colonnes, lignes, cle, vide = "Liste vide", avant, apres, choisir, choisi, sansFiltres }: {
+export function TableFiltree<T>({ colonnes, lignes, cle, vide = "Aucune ligne.", avant, apres, choisir, choisi, sansFiltres }: {
   colonnes: { titre: string; valeur: (l: T) => string; classe?: string }[]; lignes: T[]; cle: (l: T) => string | number; vide?: string;
   avant?: { titre: ReactNode; cellule: (l: T) => ReactNode }; apres?: { titre: string; cellule: (l: T) => ReactNode };
   choisir?: (l: T) => void; choisi?: string | number | null; sansFiltres?: boolean;   // sansFiltres : grille sans zone de filtre (ex. S12, p. 21)
@@ -21,7 +21,6 @@ export function TableFiltree<T>({ colonnes, lignes, cle, vide = "Liste vide", av
   const p = Math.min(page, pages - 1);
   return (
     <div className="pile">
-      <BarrePages page={p} pages={pages} aller={setPage} />
       <div className="defile-x"><table className="grille">
         <thead>
           <tr>{avant && <th scope="col">{avant.titre}</th>}{colonnes.map((c) => <th key={c.titre} scope="col">{c.titre}</th>)}{apres && <th scope="col">{apres.titre}</th>}</tr>
@@ -38,7 +37,7 @@ export function TableFiltree<T>({ colonnes, lignes, cle, vide = "Liste vide", av
           ))}
         </tbody>
       </table></div>
-      <BarrePages page={p} pages={pages} aller={setPage} />
+      {pages > 1 && <BarrePages page={p} pages={pages} aller={setPage} />}
     </div>
   );
 }
@@ -66,9 +65,10 @@ export function GroupeSolidaire() {
   const { ctx, g } = donnees;
   const erreur = (x: unknown) => setBoite({ type: "erreur", message: message(x) });
   const effacer = () => { setCode(null); setNom(""); setEdition(null); };
-  const confirmer = (texte: string, faire: () => Promise<unknown>, succes: string, apres?: () => void) => setBoite({ type: "confirmation", message: texte, oui: async () => {
+  const executer = async (faire: () => Promise<unknown>, succes: string, apres?: () => void) => {
     try { await faire(); apres?.(); setBoite({ type: "succes", message: succes }); } catch (x) { erreur(x); }
-  } });
+  };
+  const confirmer = (texte: string, faire: () => Promise<unknown>, succes: string, apres?: () => void) => setBoite({ type: "confirmation", message: texte, oui: () => executer(faire, succes, apres) });
   const groupe = g.groupes.find((x) => x.id === groupeId);
   const lignesAffectation = [
     ...g.membres.filter((m) => m.groupeId === groupeId).map((m) => ({ tiersId: m.tiersId, membre: m.membre, nouveau: false })),
@@ -93,7 +93,7 @@ export function GroupeSolidaire() {
           <div className="actions-onglets">
             <button className="bouton" type="button" onClick={() => {
               const d = { code: code ?? g.codeSuivant, nom };
-              confirmer("Voulez-vous vraiment enregistrer ?", () => (edition ? api.groupes.modifier(edition, d) : api.groupes.creer(d)), "Groupe solidarité enregistré avec succès", effacer);
+              executer(() => (edition ? api.groupes.modifier(edition, d) : api.groupes.creer(d)), "Groupe solidarité enregistré avec succès", effacer);
             }}>Enregistrer</button>
             <button className="bouton secondaire" type="button" onClick={effacer}>effacer</button>
           </div>

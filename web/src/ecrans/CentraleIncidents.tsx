@@ -60,7 +60,7 @@ export default function CentraleIncidents() {
           <thead><tr><th scope="col"><span className="sr-only">Choisir</span></th><th scope="col">Événement</th><th scope="col">Date</th><th scope="col">Échéance</th><th scope="col">N° client</th>
             <th scope="col">Client</th><th scope="col">ICU</th><th scope="col">Compte</th><th scope="col">Devise</th><th scope="col">Déclaré le</th><th scope="col">Référence</th></tr><LigneFiltres titres={[null, "Événement", "Date", "Échéance", "N° client", "Client", "ICU", "Compte", "Devise", "Déclaré le", "Référence"]} /></thead>
           <tbody>
-            {visibles.length === 0 && <tr><td colSpan={11}>No records found.</td></tr>}
+            {visibles.length === 0 && <tr><td colSpan={11}>Aucune ligne.</td></tr>}
             {visibles.map((e) => (
               <tr key={cleDe(e)}>
                 <td>{!e.declareLe && <input type="checkbox" aria-label={`Choisir : ${e.typeLibelle} ${e.compte || e.membre}`} checked={choisis.has(cleDe(e))} onChange={() => basculer(e)} />}</td>

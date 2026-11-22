@@ -89,7 +89,7 @@ export default function ProduitCredit({ listeOuverte = false }: { listeOuverte?:
       <table className="grille">
         <thead><tr><th scope="col">Type de frais</th><th scope="col">Nature</th><th scope="col" className="num">Valeur</th><th scope="col">Compte</th><th scope="col"><span className="sr-only">Retirer</span></th></tr></thead>
         <tbody>
-          {frais.length === 0 && <tr><td colSpan={5}>Liste vide</td></tr>}
+          {frais.length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
           {frais.map((x, i) => {
             const maj = (k: string, v: string) => setFrais(frais.map((y, j) => (j === i ? { ...y, [k]: v } : y)));
             return (
@@ -150,7 +150,7 @@ export default function ProduitCredit({ listeOuverte = false }: { listeOuverte?:
               <td><input className="saisie" type="search" aria-label="Filtrer Produit" value={filtres.nom} onChange={(e) => setFiltres({ ...filtres, nom: e.target.value })} /></td><td /><td /><td /></tr>
           </thead>
           <tbody>
-            {produits.length === 0 && <tr><td colSpan={5}>Liste vide</td></tr>}
+            {produits.length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
             {visibles.map((p: { id: number; numero: string; nom: string; typeClient: string; tauxInteret: number; tauxDiffere: number }) => (
               <tr key={p.id} className="ligne-choix" tabIndex={0} onClick={() => ouvrir(p.id)} onKeyDown={(e) => { if (e.key === "Enter") void ouvrir(p.id); }}>
                 <td>{p.numero}</td><td>{p.nom}</td><td>{p.typeClient}</td><td className="num">{p.tauxInteret.toFixed(1)}</td><td className="num">{p.tauxDiffere.toFixed(1)}</td>

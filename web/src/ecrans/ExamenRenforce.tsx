@@ -71,7 +71,7 @@ export default function ExamenRenforce() {
           <thead><tr><th scope="col">N°</th><th scope="col">Date</th><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Opération</th>
             <th scope="col" className="montant">Montant</th><th scope="col" className="montant">Cumul du jour</th><th scope="col">Demandé par</th><th scope="col">Statut</th></tr><LigneFiltres titres={["N°", "Date", "N° client", "Client", "Opération", "Montant", "Cumul du jour", "Demandé par", "Statut"]} /></thead>
           <tbody>
-            {visibles.length === 0 && <tr><td colSpan={9}>No records found.</td></tr>}
+            {visibles.length === 0 && <tr><td colSpan={9}>Aucune ligne.</td></tr>}
             {visibles.map((x) => (
               <tr key={x.id} className="ligne-choix" tabIndex={0} aria-selected={choisi?.id === x.id} onClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
                 <td className="chiffres">{x.numero}</td><td className="chiffres">{fr(x.date)}</td><td className="chiffres">{x.membre}</td><td>{x.client}</td><td>{x.typeLibelle}</td>
@@ -187,7 +187,7 @@ function PersonnesExposees({ jour }: { jour: string }) {
       <Paginee lignes={donnees} colonnes={(x) => [x.membre, x.client, x.fonction || "À saisir", fr(x.finFonction), x.autorisePar ? `${x.autorisePar}, ${fr(x.autoriseLe)}` : "À donner", x.informeLe ? fr(x.informeLe) : "À informer"]}>{(visibles) => (<div className="defile-x"><table className="grille">
         <thead><tr><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Fonction</th><th scope="col">Fin de fonction</th><th scope="col">Autorisation</th><th scope="col">CENAREF</th></tr><LigneFiltres titres={["N° client", "Client", "Fonction", "Fin de fonction", "Autorisation", "CENAREF"]} /></thead>
         <tbody>
-          {visibles.length === 0 && <tr><td colSpan={6}>No records found.</td></tr>}
+          {visibles.length === 0 && <tr><td colSpan={6}>Aucune ligne.</td></tr>}
           {visibles.map((x) => (
             <tr key={x.tiersId} className="ligne-choix" tabIndex={0} aria-selected={choisi?.tiersId === x.tiersId} onClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
               <td className="chiffres">{x.membre}</td><td>{x.client}</td><td>{x.fonction || "À saisir"}</td><td className="chiffres">{fr(x.finFonction)}{x.finFonction && !x.exposee ? " · plus exposée" : ""}</td>
@@ -261,7 +261,7 @@ function ProfilsRisque() {
       <Paginee lignes={donnees} colonnes={(x) => [x.membre, x.client, x.niveauLibelle || "À évaluer", fr(x.evalueLe), x.evaluePar, x.prochaineRevue ? fr(x.prochaineRevue) : "", x.signaux.join(" ; ")]}>{(visibles) => (<div className="defile-x"><table className="grille">
         <thead><tr><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Niveau</th><th scope="col">Évalué le</th><th scope="col">Évalué par</th><th scope="col">Prochaine revue</th><th scope="col">Signaux</th></tr><LigneFiltres titres={["N° client", "Client", "Niveau", "Évalué le", "Évalué par", "Prochaine revue", "Signaux"]} /></thead>
         <tbody>
-          {visibles.length === 0 && <tr><td colSpan={7}>No records found.</td></tr>}
+          {visibles.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
           {visibles.map((x) => (
             <tr key={x.tiersId} className="ligne-choix" tabIndex={0} aria-selected={choisi?.tiersId === x.tiersId} onClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
               <td className="chiffres">{x.membre}</td><td>{x.client}{x.exposee ? " · exposée" : ""}</td><td>{x.niveauLibelle || "À évaluer"}</td>

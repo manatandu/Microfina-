@@ -41,7 +41,7 @@ export default function ComptesInactifs() {
           <thead><tr><th scope="col">Compte</th><th scope="col">Client</th><th scope="col" className="montant">Solde</th><th scope="col">Dernière opération</th>
             <th scope="col">Lettre au plus tard</th><th scope="col">Dix ans le</th><th scope="col">Statut</th></tr><LigneFiltres titres={["Compte", "Client", "Solde", "Dernière opération", "Lettre au plus tard", "Dix ans le", "Statut"]} /></thead>
           <tbody>
-            {visibles.length === 0 && <tr><td colSpan={7}>No records found.</td></tr>}
+            {visibles.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
             {visibles.map((x) => (
               <tr key={x.compteId} className="ligne-choix" tabIndex={0} aria-selected={choisi?.compteId === x.compteId} onClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
                 <td className="chiffres">{x.compte}</td><td>{x.client} ({x.membre})</td><td className="montant chiffres">{montant(x.solde, x.devise as Devise)}</td>

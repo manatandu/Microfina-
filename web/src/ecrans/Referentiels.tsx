@@ -35,10 +35,12 @@ function PageReferentiel({ facade, page, sources, menu, changer }: { facade: Fac
   // « propose » : un code proposé d'avance, que l'on peut changer (capture « Bailleurs », p. 145 : B5393144)
   const valeur = (c: ChampBudget) => f[c.cle] ?? (c.propose && choisi === null ? `${c.propose}${String(graine).padStart(7, "0")}` : c.defaut !== undefined && c.defaut !== null ? String(c.defaut) : "");
   const effacer = () => { setF({}); setChoisi(null); setGraine(Math.floor(Math.random() * 1e7)); };
-  const confirmer = (texte: string, faire: () => Promise<unknown>) => setBoite({ type: "confirmation", message: texte, oui: async () => {
-    try { await faire(); effacer(); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+  const faire = async (action: () => Promise<unknown>) => {
+    try { await action(); effacer(); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
-  } });
+  };
+  // Un libellé de liste s'enregistre sans question ; la suppression la garde (plan d'allègement, point 1.12 ; registre T121)
+  const confirmer = (texte: string, action: () => Promise<unknown>) => setBoite({ type: "confirmation", message: texte, oui: () => faire(action) });
   const envoi = () => Object.fromEntries(fiche.champs.map((c) => {
     const v = valeur(c);
     if (c.type === "choix" || c.type === "annee") return [c.cle, v ? Number(v) : null];
@@ -82,8 +84,7 @@ function PageReferentiel({ facade, page, sources, menu, changer }: { facade: Fac
           {cadres.map((k) => <fieldset key={k || "saisie"} className="cadre-champs formulaire"><legend className={k || fiche.cadre ? undefined : "sr-only"}>{k || fiche.cadre || "Saisie"}</legend>
             {fiche.champs.filter((c) => (c.cadre ?? "") === k).map(champ)}</fieldset>)}
           <div className="actions-onglets">
-            <button className="bouton" type="button" onClick={() => confirmer(choisi === null ? "Voulez-vous vraiment enregistrer ?" : "Voulez-vous vraiment modifier ?",
-              () => facade.enregistrer(page, envoi(), choisi ?? undefined))}>Enregistrer</button>
+            <button className="bouton" type="button" onClick={() => faire(() => facade.enregistrer(page, envoi(), choisi ?? undefined))}>Enregistrer</button>
             <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
             <button className="bouton secondaire" type="button" disabled={choisi === null}
               onClick={() => choisi !== null && confirmer("Voulez-vous vraiment supprimer ?", () => facade.supprimer(page, choisi))}>Supprimer</button>
@@ -96,14 +97,13 @@ function PageReferentiel({ facade, page, sources, menu, changer }: { facade: Fac
                 <td key={c.cle}><input className="saisie" type="search" aria-label={`Filtrer ${c.colonne}`} value={filtres[c.cle] ?? ""} onChange={(e) => setFiltres({ ...filtres, [c.cle]: e.target.value })} /></td>))}</tr>}
             </thead>
             <tbody>
-              {lignes.length === 0 && <tr><td colSpan={colonnes.length}>Aucune donnée dans la liste</td></tr>}
+              {lignes.length === 0 && <tr><td colSpan={colonnes.length}>Aucune ligne.</td></tr>}
               {visibles.map((l) => (
                 <tr key={l.id} className="ligne-choix" tabIndex={0} aria-selected={l.id === choisi} onClick={() => choisir(l)} onKeyDown={(e) => { if (e.key === "Enter") choisir(l); }}>
                   {colonnes.map((c) => <td key={c.cle} className={c.type === "entier" || c.format === "decimal" ? "num chiffres" : c.type === "compteSimple" ? "code" : undefined}>{l.affichage[c.cle]}</td>)}
                 </tr>))}
             </tbody>
           </table></div>)}</Paginee>
-          {fiche.rafraichir && <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setRelu((x) => x + 1)}>Rafraichir</button></div>}
           <Textes sources={[...sources, "Manuel Microfina++, p. 10 à 12 : champs obligatoires, confirmation, modifier et supprimer une ligne ; « Les suppressions sont généralement logiques »"]} />
         </section>
       </div>

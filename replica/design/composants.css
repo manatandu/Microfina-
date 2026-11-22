@@ -359,6 +359,10 @@ details.textes ul { margin: var(--espace-1) 0 0; padding-left: var(--espace-4); 
 .boite p { margin: 0; }
 .boite .boutons { display: flex; justify-content: flex-end; gap: var(--espace-2); margin-top: var(--espace-4); }
 .boite .boutons .bouton { min-width: 5.5rem; }
+/* Succès : un message bref, en bas de l'écran, qui disparaît seul (registre T121) */
+.message-succes { position: fixed; inset-inline-end: var(--espace-4); inset-block-end: calc(var(--espace-4) + 2rem); z-index: 60; margin: 0;
+  max-width: min(var(--mise-carte-etroite), calc(100vw - 2 * var(--espace-4))); padding: var(--espace-2) var(--espace-3); background: var(--cadre); color: var(--encre);
+  border: 1px solid var(--trait-saisie); border-radius: var(--rayon-bloc); box-shadow: inset 4px 0 0 var(--sain), var(--ombre-flottant); pointer-events: none; }
 
 /* Fiche ouverte par-dessus l'écran (signataire, bénéficiaire) */
 .fiche { border: 1px solid var(--trait-saisie); border-radius: var(--rayon-bloc); padding: 0 var(--espace-4) var(--espace-4); width: min(48rem, calc(100vw - 2 * var(--espace-4)));

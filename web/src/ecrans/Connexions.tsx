@@ -50,7 +50,7 @@ function Volet({ deconnexion }: { deconnexion: boolean }) {
             onChange={(e) => setFiltres({ ...filtres, [k]: e.target.value })} /></td>)}{deconnexion ? <td /> : <><td /><td /><td /></>}</tr>
         </thead>
         <tbody>
-          {lignes.length === 0 && <tr><td colSpan={deconnexion ? 5 : 6}>Liste vide</td></tr>}
+          {lignes.length === 0 && <tr><td colSpan={deconnexion ? 5 : 6}>Aucune ligne.</td></tr>}
           {visibles.map((x) => (
             <tr key={x.id}>
               {colonnes.map(([k]) => <td key={k}>{String(x[k])}</td>)}

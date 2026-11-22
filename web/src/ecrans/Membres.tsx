@@ -427,7 +427,7 @@ function Beneficiaires({ liste, onChange, filiations }: { liste: Beneficiaire[];
       <table className="grille">
         <thead><tr><th scope="col">Nom</th><th scope="col">Prénom</th><th scope="col">Filiation</th><th scope="col">Téléphone</th><th scope="col"><span className="sr-only">Retirer</span></th></tr></thead>
         <tbody>
-          {liste.length === 0 && <tr><td colSpan={5}>Liste vide</td></tr>}
+          {liste.length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
           {liste.map((x, i) => (
             <tr key={i}><td>{[x.nom, x.postnom].filter(Boolean).join(" ")}</td><td>{x.prenom}</td><td>{x.filiation}</td><td>{x.telephone}</td>
               <td><button className="bouton secondaire" type="button" onClick={() => onChange(liste.filter((_, k) => k !== i))}>Retirer</button></td></tr>
@@ -737,7 +737,7 @@ export function MiseAJourClient() {
             </>}
             {nom === "Personnes Liées" && (edition
               ? <PersonnesLiees liees={liees} onChange={setLiees} {...(genre === "morale" ? { effectifs, onEffectifs: setEffectifs, controles, onControles: setControles } : {})} />
-              : liees.length + effectifs.length === 0 ? <p>Liste vide</p> : (
+              : liees.length + effectifs.length === 0 ? <p>Aucune ligne.</p> : (
                 <table className="grille"><thead><tr><th scope="col">N° du Client</th><th scope="col">Nom</th><th scope="col">Lien</th><th scope="col">Nature du contrôle</th>
                   <th scope="col">Part (%)</th></tr></thead>
                   <tbody>{[...liees.map((x) => [x, LIENS.liee] as const), ...effectifs.map((x) => [x, LIENS.effectif] as const)].map(([x, l]) =>

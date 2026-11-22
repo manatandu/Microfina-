@@ -152,7 +152,7 @@ export function ValidationBilletage() {
                 <table className="grille">
                   <thead><tr><th scope="col">Libelle</th><th scope="col">Nombre</th><th scope="col" className="num">Montant</th></tr></thead>
                   <tbody>
-                    {lignes.length === 0 && <tr><td colSpan={3}>Aucune donnée dans la liste</td></tr>}
+                    {lignes.length === 0 && <tr><td colSpan={3}>Aucune ligne.</td></tr>}
                     {lignes.map(({ v, n }) => <tr key={v}><td>{libelleCoupure(d, v)} {d}</td><td className="chiffres">{n}</td><td className="num chiffres">{montant(n * v * 100, d)}</td></tr>)}
                   </tbody>
                   <tfoot><tr><td>Bon Caisse ====&gt; <span className="chiffres">{montant(bon, d)}</span></td><td>Total Billetage</td>

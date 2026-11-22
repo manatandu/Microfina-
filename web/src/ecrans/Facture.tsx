@@ -70,7 +70,7 @@ function Elements() {
           <thead><tr><th scope="col">Libelle</th><th scope="col">Compte</th><th scope="col">Taux (%)</th><th scope="col">Taux A. (%)</th><th scope="col">Taux N.A. (%)</th>
             <th scope="col">Retenue</th><th scope="col">Désactiver</th></tr></thead>
           <tbody>
-            {donnees.elements.length === 0 && <tr><td colSpan={7}>Liste vide</td></tr>}
+            {donnees.elements.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
             {visibles.map((e) => (
               <tr key={e.id} className="ligne-choix" tabIndex={0} aria-selected={e.id === choisi} onClick={() => choisir(e)} onKeyDown={(x) => { if (x.key === "Enter") choisir(e); }}>
                 <td>{e.libelle}</td><td>{e.compte}</td><td className="chiffres">{taux(e.taux)}</td><td className="chiffres">{taux(e.tauxA)}</td><td className="chiffres">{taux(e.tauxNA)}</td>
@@ -113,7 +113,7 @@ function References() {
       <Paginee lignes={donnees.types}>{(visibles) => (<table className="grille">
         <thead><tr><th scope="col">Code</th><th scope="col">Type Commande</th></tr></thead>
         <tbody>
-          {donnees.types.length === 0 && <tr><td colSpan={2}>Liste vide</td></tr>}
+          {donnees.types.length === 0 && <tr><td colSpan={2}>Aucune ligne.</td></tr>}
           {visibles.map((t) => (
             <tr key={t.id} className="ligne-choix" tabIndex={0} aria-selected={t.id === choisi} onClick={() => { setChoisi(t.id); setF({ code: t.code, libelle: t.libelle }); }}
               onKeyDown={(x) => { if (x.key === "Enter") { setChoisi(t.id); setF({ code: t.code, libelle: t.libelle }); } }}>

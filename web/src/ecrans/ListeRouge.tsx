@@ -48,7 +48,7 @@ export default function ListeRouge() {
         <Paginee lignes={l} colonnes={(x) => [x.membre, x.client, fr(x.date), null]}>{(v) => (<div className="defile-x"><table className="grille">
           <thead><tr><th scope="col">N° client</th><th scope="col">Intitulé</th><th scope="col">Date</th><th scope="col">Motif</th></tr>
             <LigneFiltres titres={["N° client", "Intitulé", "Date", null]} /></thead>
-          <tbody>{v.length === 0 && <tr><td colSpan={4}>Aucune donnée dans la liste</td></tr>}
+          <tbody>{v.length === 0 && <tr><td colSpan={4}>Aucune ligne.</td></tr>}
             {v.map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} aria-selected={x.tiersId === t?.id} onClick={() => setT({ id: x.tiersId, numero: x.membre, nom: x.client })}>
               <td className="code">{x.membre}</td><td>{x.client}</td><td className="chiffres">{fr(x.date)}</td>
               <td>{x.motif}{x.referenceBcc ? ` (décision BCC ${x.referenceBcc})` : ""}{x.personnesVisees.length ? ` ; visés : ${x.personnesVisees.map((y) => y.nom).join(", ")}` : ""}</td></tr>)}</tbody>

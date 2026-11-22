@@ -58,7 +58,7 @@ export function RapportsBanque() {
             <thead><tr>{COLONNES.map((t, i) => <th key={t} scope="col" className={i > 3 ? "num" : undefined}>{t}</th>)}</tr></thead>
             <tbody>
               <tr><td colSpan={6}>Solde au début</td><td className="num chiffres">{montant(r.ouverture, r.devise as Devise)}</td></tr>
-              {r.lignes.length === 0 && <tr><td colSpan={7}>Aucun mouvement dans la période.</td></tr>}
+              {r.lignes.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
               {r.lignes.map((x, i) => <tr key={i}><td className="chiffres">{fr(x.date)}</td><td className="code">{x.journal}</td><td className="code">{x.piece}</td><td>{x.libelle}</td>
                 <td className="num chiffres">{m(x.debit)}</td><td className="num chiffres">{m(x.credit)}</td><td className="num chiffres">{montant(x.solde, r.devise as Devise)}</td></tr>)}
             </tbody>

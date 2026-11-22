@@ -134,7 +134,7 @@ function Multicritere({ ctx, cx, clients }: { ctx: Ctx; cx: ContexteRapport; cli
               <table className="grille">
                 <thead><tr>{entetes.map((e) => <th key={e} scope="col">{e}</th>)}</tr></thead>
                 <tbody>
-                  {lignes.length === 0 && <tr><td colSpan={entetes.length}>No records found.</td></tr>}
+                  {lignes.length === 0 && <tr><td colSpan={entetes.length}>Aucune ligne.</td></tr>}
                   {lignes.map((t) => <tr key={t.id}>{valeurs(t).map((v, i) => <td key={i} className={i === 0 || i === entetes.length - 2 ? "chiffres" : undefined}>{v}</td>)}</tr>)}
                 </tbody>
               </table>
@@ -189,7 +189,7 @@ function Prospects({ ctx, clients }: { ctx: Ctx; clients: Tiers[] }) {
       <table className="grille">
         <thead><tr>{entetes.map((e) => <th key={e} scope="col">{e}</th>)}</tr></thead>
         <tbody>
-          {(!lignes || lignes.length === 0) && <tr><td colSpan={5}>No records found.</td></tr>}
+          {(!lignes || lignes.length === 0) && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
           {lignes?.map((t) => <tr key={t.id}>{valeurs(t).map((v, i) => <td key={i} className={i === 4 ? "chiffres" : undefined}>{v}</td>)}</tr>)}
         </tbody>
       </table>
@@ -235,7 +235,7 @@ function Modifies({ ctx, clients, modifs }: { ctx: Ctx; clients: Tiers[]; modifs
       <table className="grille">
         <thead><tr>{entetes.map((e) => <th key={e} scope="col">{e}</th>)}</tr></thead>
         <tbody>
-          {(!lignes || lignes.length === 0) && <tr><td colSpan={5}>No records found.</td></tr>}
+          {(!lignes || lignes.length === 0) && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
           {lignes?.map((l) => <tr key={`${l.date}${l.utilisateur}${l.numero}`}>{valeurs(l).map((v, i) => <td key={i} className={i === 0 || i === 2 || i === 4 ? "chiffres" : undefined}>{v}</td>)}</tr>)}
         </tbody>
       </table>

@@ -60,7 +60,7 @@ export default function OrdreRemboursement() {
         <table className="grille">
           <thead><tr><th scope="col">Code</th><th scope="col">Libellé</th></tr></thead>
           <tbody>
-            {donnees.lignes.length === 0 && <tr><td colSpan={2}>Liste vide</td></tr>}
+            {donnees.lignes.length === 0 && <tr><td colSpan={2}>Aucune ligne.</td></tr>}
             {(donnees.lignes as Ligne[]).map((l) => (
               <tr key={l.id} className="ligne-choix" tabIndex={0} aria-selected={l.id === choisi} onClick={() => choisir(l)} onKeyDown={(e) => { if (e.key === "Enter") choisir(l); }}>
                 <td>{l.code}</td><td>{l.libelle}</td>

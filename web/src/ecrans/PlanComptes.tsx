@@ -120,7 +120,7 @@ function Creation({ comptes, typesSuivi, relire }: { comptes: LigneCompte[]; typ
             </tr>
           </thead>
           <tbody>
-            {propres.length === 0 && <tr><td colSpan={5 + OPTIONS.length}>Liste vide</td></tr>}
+            {propres.length === 0 && <tr><td colSpan={5 + OPTIONS.length}>Aucune ligne.</td></tr>}
             {visibles.map((c) => (
               <tr key={c.numero} className="ligne-choix" tabIndex={0} aria-selected={c.numero === choisi} onClick={() => charger(c)} onKeyDown={(e) => { if (e.key === "Enter") charger(c); }}>
                 <td className="chiffres">{c.numero}</td><td>{c.libelle}</td><td className="chiffres">{parentDe(numeros, c.numero)}</td>
@@ -188,7 +188,7 @@ function Modele({ comptes, groupes }: { comptes: LigneCompte[]; groupes: Record<
         <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
           <thead><tr><th scope="col">Code</th><th scope="col">Libelle</th>{lg === 1 && <th scope="col">Groupe</th>}</tr></thead>
           <tbody>
-            {lignes.length === 0 && <tr><td colSpan={lg === 1 ? 3 : 2}>Liste vide</td></tr>}
+            {lignes.length === 0 && <tr><td colSpan={lg === 1 ? 3 : 2}>Aucune ligne.</td></tr>}
             {visibles.map((c) => <tr key={c.numero}><td className="chiffres">{c.numero}</td><td>{c.libelle}</td>{lg === 1 && <td>{groupes[c.numero] ?? ""}</td>}</tr>)}
           </tbody>
         </table>)}</Paginee>

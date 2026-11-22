@@ -31,8 +31,8 @@ function ChoixFournisseur({ ctx, valeur, choisir }: { ctx: Ctx; valeur: string; 
     <Fiche titre="Recherche d'un fournisseur" ouverte={ouverte} fermer={() => setOuverte(false)}>
       <div className="pile"><div className="defile-x"><table className="grille">
         <thead><tr><th scope="col">Intitulé</th><th scope="col">Compte</th></tr></thead>
-        <tbody>{ctx.fournisseurs.length === 0 && <tr><td colSpan={2}>No records found.</td></tr>}
-          {ctx.fournisseurs.map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} onDoubleClick={() => { choisir(String(x.id)); setOuverte(false); }}
+        <tbody>{ctx.fournisseurs.length === 0 && <tr><td colSpan={2}>Aucune ligne.</td></tr>}
+          {ctx.fournisseurs.map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} onClick={() => { choisir(String(x.id)); setOuverte(false); }}
             onKeyDown={(e) => { if (e.key === "Enter") { choisir(String(x.id)); setOuverte(false); } }}><td>{x.intitule}</td><td className="code">{x.compte}</td></tr>)}</tbody>
       </table></div><div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setOuverte(false)}>Fermer</button></div></div>
     </Fiche>
@@ -97,7 +97,7 @@ function BonDeCommande({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
   const grille = <div className="defile-x"><table className="grille">
     <thead><tr><th scope="col">Compte</th><th scope="col">Libelle</th><th scope="col" className="num">Quantité</th><th scope="col" className="num">P.U</th><th scope="col">Unité</th>
       <th scope="col" className="num">Montant HT</th><th scope="col" className="num">TVA</th></tr></thead>
-    <tbody>{lignes.length === 0 && <tr><td colSpan={7}>No records found.</td></tr>}
+    <tbody>{lignes.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
       {lignes.map((x, i) => <tr key={i} className="ligne-choix" tabIndex={0} aria-selected={choisie === i} onClick={() => setChoisie(i)} onKeyDown={(e) => { if (e.key === "Enter") setChoisie(i); }}>
         <td className="code">{x.compte}</td><td>{x.designation}</td><td className="num chiffres">{x.quantite}</td><td className="num chiffres">{x.pu}</td><td>{x.unite}</td>
         <td className="num chiffres">{decimal.format(htDe(x) / 100)}</td><td className="num chiffres">{decimal.format(tvaDe(x) / 100)}</td></tr>)}</tbody>
@@ -156,7 +156,7 @@ function BonDeCommande({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
           setTranches([...tranches, { date: tr.date || f.date || ctx.date, montant: tr.montant, taux: tr.taux }]); setTr({ date: "", montant: "", taux: "" }); }}>Ajouter</button></div>
         <table className="grille"><caption>Liste des tranches</caption>
           <thead><tr><th scope="col">Date</th><th scope="col" className="num">Montant</th><th scope="col" className="num">Taux (%)</th></tr></thead>
-          <tbody>{tranches.length === 0 && <tr><td colSpan={3}>No records found.</td></tr>}
+          <tbody>{tranches.length === 0 && <tr><td colSpan={3}>Aucune ligne.</td></tr>}
             {tranches.map((t, i) => { const m = t.montant.trim() ? lireMontant(t.montant) ?? 0 : pct(ht, t.taux || "0"), taux = t.taux.trim() || (ht ? String(Math.round(m * 10000 / ht) / 100) : "");
               return <tr key={i}><td className="chiffres">{fr(t.date)}</td><td className="num chiffres">{decimal.format(m / 100)}</td><td className="num chiffres">{taux}</td></tr>; })}</tbody>
           <tfoot><tr><th scope="row">Total</th><td className="num chiffres">{decimal.format(ht / 100)}</td><td className="num chiffres">100</td></tr></tfoot></table>
@@ -175,7 +175,7 @@ function BonDeCommande({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
 function Charges({ charges, titre }: { charges: { libelle: string; taux: string; montant: number }[]; titre: string }) {
   return <table className="grille"><caption>{titre}</caption>
     <thead><tr><th scope="col">Libellé</th><th scope="col" className="num">Taux (%)</th><th scope="col" className="num">Montant</th></tr></thead>
-    <tbody>{charges.length === 0 && <tr><td colSpan={3}>Aucune donnée dans la liste pour le moment</td></tr>}
+    <tbody>{charges.length === 0 && <tr><td colSpan={3}>Aucune ligne.</td></tr>}
       {charges.map((c, i) => <tr key={i}><td>{c.libelle}</td><td className="num chiffres">{c.taux}</td><td className="num chiffres">{decimal.format(c.montant / 100)}</td></tr>)}</tbody>
     <tfoot><tr><td></td><td></td><td className="num chiffres">{decimal.format(charges.reduce((t, c) => t + c.montant, 0) / 100)}</td></tr></tfoot></table>;
 }
@@ -337,13 +337,13 @@ function Rapport({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
     {r && (r.groupe ? <Paginee lignes={r.groupes}>{(v) => (<table className="grille">
       <thead><tr><th scope="col">Fournisseur</th><th scope="col" className="num">Factures</th><th scope="col" className="num">Montant (HT)</th><th scope="col" className="num">TVA</th><th scope="col" className="num">TTC</th>
         <th scope="col" className="num">Réglé</th><th scope="col" className="num">Reste</th></tr></thead>
-      <tbody>{r.groupes.length === 0 && <tr><td colSpan={7}>Aucune donnée</td></tr>}
+      <tbody>{r.groupes.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
         {v.map((x) => <tr key={x.fournisseur}><td>{x.fournisseur}</td><td className="num chiffres">{x.nombre}</td><td className="num chiffres">{n(x.ht)}</td><td className="num chiffres">{n(x.tva)}</td>
           <td className="num chiffres">{n(x.ttc)}</td><td className="num chiffres">{n(x.regle)}</td><td className="num chiffres">{n(x.reste)}</td></tr>)}</tbody></table>)}</Paginee>
       : <Paginee lignes={r.lignes}>{(v) => (<table className="grille">
         <thead><tr><th scope="col">Date</th><th scope="col">Fournisseur</th><th scope="col">Référence</th><th scope="col" className="num">Montant à payer</th><th scope="col" className="num">Montant (HT)</th>
           <th scope="col" className="num">TVA</th><th scope="col" className="num">TTC</th><th scope="col" className="num">Totale(s) charge(s)</th><th scope="col" className="num">Reste</th></tr></thead>
-        <tbody>{r.lignes.length === 0 && <tr><td colSpan={9}>Aucune donnée</td></tr>}
+        <tbody>{r.lignes.length === 0 && <tr><td colSpan={9}>Aucune ligne.</td></tr>}
           {v.map((x) => <tr key={x.id}><td className="chiffres">{fr(x.date)}</td><td>{x.fournisseur}</td><td>{x.reference}</td><td className="num chiffres">{n(x.aPayer)}</td><td className="num chiffres">{n(x.ht)}</td>
             <td className="num chiffres">{n(x.tva)}</td><td className="num chiffres">{n(x.ttc)}</td><td className="num chiffres">{n(x.totalCharges)}</td><td className="num chiffres">{n(x.reste)}</td></tr>)}</tbody></table>)}</Paginee>)}
   </>;
@@ -405,7 +405,7 @@ export function DeclarationTaxes() {
             r.lignes.map((x) => [fr(x.date), x.fournisseur, x.reference, x.base / 100, x.taux, x.montant / 100]))}>Exporter</button></div>
         <Paginee lignes={r?.lignes ?? []}>{(v) => (<table className="grille">
           <thead><tr><th scope="col">Date</th><th scope="col">Fournisseur</th><th scope="col">Référence</th><th scope="col" className="num">Base</th><th scope="col" className="num">Taux (%)</th><th scope="col" className="num">Montant</th></tr></thead>
-          <tbody>{(r?.lignes ?? []).length === 0 && <tr><td colSpan={6}>No records found.</td></tr>}
+          <tbody>{(r?.lignes ?? []).length === 0 && <tr><td colSpan={6}>Aucune ligne.</td></tr>}
             {v.map((x, i) => <tr key={i}><td className="chiffres">{fr(x.date)}</td><td>{x.fournisseur}</td><td>{x.reference}</td><td className="num chiffres">{cdf(x.base)}</td><td className="num chiffres">{x.taux}</td><td className="num chiffres">{cdf(x.montant)}</td></tr>)}</tbody>
           <tfoot><tr><th scope="row" colSpan={3}>Total</th><td className="num chiffres">{r ? cdf(r.totalBase) : ""}</td><td></td><td className="num chiffres">{r ? cdf(r.total) : ""}</td></tr></tfoot>
         </table>)}</Paginee>

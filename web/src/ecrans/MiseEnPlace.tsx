@@ -124,8 +124,8 @@ export default function MiseEnPlace() {
       <Fiche titre="Demandes en attente de mise en place" ouverte={!!liste} fermer={() => setListe(null)}>
         <Paginee lignes={liste ?? []}>{(v) => (<div className="defile-x"><table className="grille">
           <thead><tr><th scope="col">N° demande</th><th scope="col">N° client</th><th scope="col">Intitulé</th><th scope="col">Produit</th><th scope="col" className="num">Montant approuvé</th><th scope="col">Approuvé par</th></tr></thead>
-          <tbody>{v.length === 0 && <tr><td colSpan={6}>No records found.</td></tr>}
-            {v.map((x) => <tr key={x.id} onDoubleClick={() => charger(x.id)}><td className="code">{x.numero}</td><td className="code">{x.membre}</td><td>{x.client}</td><td>{x.produit}</td>
+          <tbody>{v.length === 0 && <tr><td colSpan={6}>Aucune ligne.</td></tr>}
+            {v.map((x) => <tr key={x.id} onClick={() => charger(x.id)}><td className="code">{x.numero}</td><td className="code">{x.membre}</td><td>{x.client}</td><td>{x.produit}</td>
               <td className="num chiffres">{montant(x.montantApprouve ?? 0, x.devise as Devise)}</td><td>{x.approuvePar}</td></tr>)}</tbody>
         </table></div>)}</Paginee>
       </Fiche>

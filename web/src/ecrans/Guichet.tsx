@@ -219,7 +219,7 @@ export default function GuichetDepotRetrait() {
           <Paginee lignes={detail.lignes} colonnes={(l) => [fr(l.date), l.piece, l.libelle, l.debit ? montant(l.debit, detail.compte.devise as Devise) : "", l.credit ? montant(l.credit, detail.compte.devise as Devise) : "", montant(l.solde, detail.compte.devise as Devise)]}>{(visibles) => (<div className="defile-x"><table className="grille">
             <thead><tr><th scope="col">Date</th><th scope="col">Pièce</th><th scope="col">Libellé</th><th scope="col" className="montant">Débit</th><th scope="col" className="montant">Crédit</th><th scope="col" className="montant">Solde</th></tr><LigneFiltres titres={["Date", "Pièce", "Libellé", "Débit", "Crédit", "Solde"]} /></thead>
             <tbody>
-              {visibles.length === 0 && <tr><td colSpan={6}>No records found.</td></tr>}
+              {visibles.length === 0 && <tr><td colSpan={6}>Aucune ligne.</td></tr>}
               {visibles.map((l, i) => <tr key={`${l.piece}-${i}`}><td className="chiffres">{fr(l.date)}</td><td className="chiffres">{l.piece}</td><td>{l.libelle}</td>
                 <td className="montant chiffres">{l.debit ? montant(l.debit, detail.compte.devise as Devise) : ""}</td><td className="montant chiffres">{l.credit ? montant(l.credit, detail.compte.devise as Devise) : ""}</td>
                 <td className="montant chiffres">{montant(l.solde, detail.compte.devise as Devise)}</td></tr>)}

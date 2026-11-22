@@ -75,11 +75,10 @@ export function Rapprochement() {
           <button className="bouton secondaire" type="button" disabled={!f.compte} onClick={() => setNouveau({ type: "decaissement", compte: "", libelle: "", montant: "", date: "" })}>Nouveau</button>
           <button className="bouton secondaire" type="button" disabled={!j} onClick={exporter}>Exporter</button>
         </div>
-        <div className="actions-onglets"><button className="bouton secondaire" type="button" disabled={!j} onClick={rechercher}>Rafraichir</button></div>
         <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
           <thead><tr><th scope="col"><input type="checkbox" aria-label="Tout cocher" checked={tous} onChange={() => setCoches(tous ? new Set() : new Set(lignes.map((x) => x.id)))} /></th>
             <th scope="col">N°piece</th><th scope="col">Date Comptable</th><th scope="col">Libelle Operation</th><th scope="col" className="num">Débit</th><th scope="col" className="num">Crédit</th></tr></thead>
-          <tbody>{lignes.length === 0 && <tr><td colSpan={6}>No records found.</td></tr>}
+          <tbody>{lignes.length === 0 && <tr><td colSpan={6}>Aucune ligne.</td></tr>}
             {visibles.map((x) => <tr key={x.id}><td><input type="checkbox" aria-label={`Cocher ${x.libelle}`} checked={coches.has(x.id)} onChange={() => basculer(x.id)} /></td>
               <td className="chiffres">{x.piece}</td><td className="chiffres">{fr(x.date)}</td><td>{x.libelle}</td><td className="num chiffres">{x.debit ? n(x.debit) : ""}</td><td className="num chiffres">{x.credit ? n(x.credit) : ""}</td></tr>)}</tbody>
         </table>)}</Paginee>
@@ -100,7 +99,7 @@ export function Rapprochement() {
             </tbody></table>
             <table className="grille"><caption>Opérations en suspens</caption>
               <thead><tr><th scope="col">N°piece</th><th scope="col">Date Comptable</th><th scope="col">Libelle Operation</th><th scope="col" className="num">Débit</th><th scope="col" className="num">Crédit</th></tr></thead>
-              <tbody>{etat.suspens.length === 0 && <tr><td colSpan={5}>No records found.</td></tr>}
+              <tbody>{etat.suspens.length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
                 {etat.suspens.map((x) => <tr key={x.id}><td className="chiffres">{x.piece}</td><td className="chiffres">{fr(x.date)}</td><td>{x.libelle}</td><td className="num chiffres">{x.debit ? n(x.debit) : ""}</td><td className="num chiffres">{x.credit ? n(x.credit) : ""}</td></tr>)}</tbody></table>
           </article>
           <div className="actions-onglets sans-impression"><button className="bouton secondaire" type="button" onClick={() => window.print()}>Imprimer</button>
@@ -161,7 +160,7 @@ export function HistoriqueRapprochement() {
         <Paginee lignes={r ?? []}>{(visibles) => (<table className="grille">
           <thead><tr><th scope="col">Date</th><th scope="col">Banque</th><th scope="col">Compte</th><th scope="col">Date début</th><th scope="col">Date fin</th><th scope="col" className="num">Solde début</th>
             <th scope="col" className="num">Solde Fin</th><th scope="col" className="num">Solde comptable</th><th scope="col" className="num">Écart</th><th scope="col">Utilisateur</th></tr></thead>
-          <tbody>{(r ?? []).length === 0 && <tr><td colSpan={10}>No records found.</td></tr>}
+          <tbody>{(r ?? []).length === 0 && <tr><td colSpan={10}>Aucune ligne.</td></tr>}
             {visibles.map((x) => <tr key={x.id}><td className="chiffres">{fr(x.date)}</td><td>{x.banque}</td><td className="chiffres">{x.compte}</td><td className="chiffres">{fr(x.du)}</td><td className="chiffres">{fr(x.au)}</td>
               <td className="num chiffres">{n(x.soldeDebut)}</td><td className="num chiffres">{n(x.soldeReleve)}</td><td className="num chiffres">{n(x.soldeComptable)}</td><td className="num chiffres">{n(x.ecart)}</td><td>{x.preparePar}</td></tr>)}</tbody>
         </table>)}</Paginee>
@@ -214,7 +213,7 @@ export function Lettrage() {
         <Paginee lignes={lignes}>{(visibles) => (<table className="grille"><caption>Liste des écritures comptables</caption>
           <thead><tr><th scope="col"><span className="sr-only">Cocher</span></th><th scope="col">Date</th><th scope="col">N°piece</th><th scope="col">Libellé</th><th scope="col" className="num">Débit</th>
             <th scope="col" className="num">Crédit</th><th scope="col">Lettre</th></tr></thead>
-          <tbody>{lignes.length === 0 && <tr><td colSpan={7}>No records found.</td></tr>}
+          <tbody>{lignes.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
             {visibles.map((x) => <tr key={x.id}><td><input type="checkbox" aria-label={`Cocher ${x.libelle}`} disabled={!!x.lettre} checked={coches.has(x.id)} onChange={() => basculer(x.id)} /></td>
               <td className="chiffres">{fr(x.date)}</td><td className="chiffres">{x.piece}</td><td>{x.libelle}</td><td className="num chiffres">{x.debit ? n(x.debit) : ""}</td>
               <td className="num chiffres">{x.credit ? n(x.credit) : ""}</td><td className="code">{x.lettre}</td></tr>)}</tbody>
@@ -236,7 +235,7 @@ function EtatTresorerie() {
   async function afficher() { try { setR(await api.controlesCompta.tresorerie({ date: date || jour?.date || "" })); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } }
   const table = (titre: string, l: { compte: string; designation: string; devise: string; solde: number }[], tot: Record<string, number>) => <table className="grille"><caption>{titre}</caption>
     <thead><tr><th scope="col">Compte</th><th scope="col">Désignation</th><th scope="col" className="num">Solde</th></tr></thead>
-    <tbody>{l.length === 0 && <tr><td colSpan={3}>No records found.</td></tr>}
+    <tbody>{l.length === 0 && <tr><td colSpan={3}>Aucune ligne.</td></tr>}
       {l.map((x, i) => <tr key={i}><td className="code">{x.compte}</td><td>{x.designation}</td><td className="num chiffres">{montant(x.solde, x.devise as Devise)}</td></tr>)}</tbody>
     <tfoot>{Object.entries(tot).map(([dv, v]) => <tr key={dv}><td></td><td></td><td className="num chiffres"><strong>{montant(v, dv as Devise)}</strong></td></tr>)}</tfoot></table>;
   return <>
@@ -282,7 +281,7 @@ function RapportAnnulations() {
     <Paginee lignes={r ?? []}>{(visibles) => (<table className="grille">
       <thead><tr><th scope="col">N° Pièce ancien</th><th scope="col">N° Pièce nouveau</th><th scope="col">N° Client</th><th scope="col">Nom Prénom</th><th scope="col" className="num">Montant</th>
         <th scope="col">Date</th><th scope="col">Type d'opération</th><th scope="col">Utilisateur</th></tr></thead>
-      <tbody>{(r ?? []).length === 0 && <tr><td colSpan={8}>No records found.</td></tr>}
+      <tbody>{(r ?? []).length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
         {visibles.map((x, i) => <tr key={i}><td className="chiffres">{x.ancienne}</td><td className="chiffres">{x.nouvelle}</td><td className="chiffres">{x.numeroClient}</td><td>{x.nom}</td>
           <td className="num chiffres">{montant(x.montant, "CDF")}</td><td className="chiffres">{fr(x.date)}</td><td>{x.type}</td><td>{x.utilisateur}</td></tr>)}</tbody>
     </table>)}</Paginee>
@@ -308,7 +307,7 @@ function EtatRevenus() {
     <div className="actions-onglets"><button className="bouton" type="button" onClick={afficher}>Afficher</button></div>
     <Paginee lignes={r?.lignes ?? []}>{(visibles) => (<table className="grille">
       <thead><tr><th scope="col">Date Opération</th><th scope="col">AGENCE</th><th scope="col" className="num">DEPENSES</th><th scope="col" className="num">RECETTES</th><th scope="col" className="num">RESULTATS</th></tr></thead>
-      <tbody>{(r?.lignes ?? []).length === 0 && <tr><td colSpan={5}>No records found.</td></tr>}
+      <tbody>{(r?.lignes ?? []).length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
         {visibles.map((x, i) => <tr key={i}><td className="chiffres">{x.date ? fr(x.date) : ""}</td><td>{x.agence}</td><td className="num chiffres">{n(x.depenses)}</td><td className="num chiffres">{n(x.recettes)}</td><td className="num chiffres">{n(x.resultat)}</td></tr>)}</tbody>
       <tfoot><tr><td></td><td></td><td className="num chiffres">{r ? n(r.depenses) : ""}</td><td className="num chiffres">{r ? n(r.recettes) : ""}</td><td className="num chiffres">{r ? n(r.resultat) : ""}</td></tr></tfoot>
     </table>)}</Paginee>
@@ -382,8 +381,8 @@ export function AnnulationReglement() {
       <Fiche titre="Règlements par prélèvement sur compte" ouverte={cherche} fermer={() => setCherche(false)}>
         <div className="pile"><div className="defile-x"><table className="grille">
           <thead><tr><th scope="col">N° de pièce</th><th scope="col">Date règlement</th><th scope="col">Crédit</th><th scope="col">Client</th><th scope="col" className="num">Montant total</th></tr></thead>
-          <tbody>{l.length === 0 && <tr><td colSpan={5}>No records found.</td></tr>}
-            {l.map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} onDoubleClick={() => { setChoisi(x.id); setFait(null); setCherche(false); }}
+          <tbody>{l.length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
+            {l.map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} onClick={() => { setChoisi(x.id); setFait(null); setCherche(false); }}
               onKeyDown={(e) => { if (e.key === "Enter") { setChoisi(x.id); setFait(null); setCherche(false); } }}>
               <td className="chiffres">{x.piece}</td><td className="chiffres">{fr(x.date)}</td><td className="code">{x.credit}</td><td>{x.client}</td><td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td></tr>)}</tbody>
         </table></div><div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setCherche(false)}>Fermer</button></div></div>

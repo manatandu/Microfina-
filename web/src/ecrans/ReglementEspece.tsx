@@ -38,8 +38,8 @@ export default function ReglementEspece() {
         <Paginee lignes={lignes}>{(visibles) => (<table className="grille"><caption>Liste des règlements</caption>
           <thead><tr><th scope="col">Référence</th><th scope="col">Fournisseur</th><th scope="col" className="num">Montant (HT)</th><th scope="col" className="num">Montant Charge(s)</th>
             <th scope="col" className="num">Montant à payer</th><th scope="col">Mode Règlement</th><th scope="col">Date Règlement</th></tr></thead>
-          <tbody>{lignes.length === 0 && <tr><td colSpan={7}>Aucune donnée</td></tr>}
-            {visibles.map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} onDoubleClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
+          <tbody>{lignes.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
+            {visibles.map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} onClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
               <td>{x.reference}</td><td>{x.fournisseur}</td><td className="num chiffres">{n(x.ht)}</td><td className="num chiffres">{n(x.totalCharges)}</td><td className="num chiffres">{n(x.aPayer)}</td>
               <td>{x.modeLibelle}</td><td className="chiffres">{fr(x.date)}</td></tr>)}</tbody>
         </table>)}</Paginee>

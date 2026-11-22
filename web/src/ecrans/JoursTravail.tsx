@@ -101,7 +101,7 @@ function Feries() {
         <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
           <thead><tr><th scope="col">Date</th><th scope="col">Description</th><th scope="col">Exercice</th><th scope="col">Actions</th></tr></thead>
           <tbody>
-            {lignes.length === 0 && <tr><td colSpan={4}>Liste vide</td></tr>}
+            {lignes.length === 0 && <tr><td colSpan={4}>Aucune ligne.</td></tr>}
             {visibles.map((l) => (
               <tr key={l.date}>
                 <td>{fr(l.date)}</td><td>{l.description}</td><td>{l.exercice}</td>

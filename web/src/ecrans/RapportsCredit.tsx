@@ -100,7 +100,7 @@ function UnRapport({ onglet, ctx, erreur }: { onglet: Onglet; ctx: Ctx; erreur: 
       </div>
       {r && <Paginee lignes={lignes} parPage={onglet === "indicateurs" ? 11 : undefined}>{(v) => (<div className="defile-x"><table className="grille">
         <thead><tr>{r.colonnes.map((x) => <th key={x.titre} scope="col" className={["montant", "nombre", "taux"].includes(x.type) ? "num" : undefined}>{x.titre}</th>)}</tr></thead>
-        <tbody>{v.length === 0 && <tr><td colSpan={r.colonnes.length}>Aucune donnée dans la liste</td></tr>}
+        <tbody>{v.length === 0 && <tr><td colSpan={r.colonnes.length}>Aucune ligne.</td></tr>}
           {v.map((l, i) => <tr key={i}>{l.v.map((x, k) => { const t = r.colonnes[k]!.type;
             return <td key={k} className={t === "code" ? "code" : ["montant", "nombre", "taux"].includes(t) ? "num chiffres" : t === "date" ? "chiffres" : undefined}>{texte(x, t, l.devise, l.nombres)}</td>; })}</tr>)}</tbody>
       </table></div>)}</Paginee>}

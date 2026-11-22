@@ -27,7 +27,7 @@ Ce ne sont pas des allègements : ici le logiciel fait faux, ou laisse faire ce 
 
 **0.1 Sortie d'une immobilisation (S139).** Vérifié dans le code. La sortie ne demande pas de prix de cession et porte toute la valeur nette au même compte de charge, qu'il s'agisse d'une cession ou d'une mise au rebut. Le PCCI (classe 2, fonctionnement des comptes de valeurs immobilisées) veut au débit le compte de trésorerie ou de tiers pour le prix de cession, les amortissements, et le compte 674 (moins-value), 774 (plus-value) ou 673 (mise au rebut). Correction : prix et compte demandés pour une cession, plus- ou moins-value calculée ; mise au rebut au 673.
 
-**0.2 Création d'un bien (S137).** Vérifié dans le code. Elle prend un numéro de pièce du journal OD sans passer d'écriture : un trou dans la suite des pièces (PCCI § 3.4). Correction : plus de numéro de pièce à la création ; la référence de la facture reste. Question au porteur : faut-il plutôt passer l'écriture d'acquisition quand la facture n'est pas comptabilisée ?
+**0.2 Création d'un bien (S137).** Vérifié dans le code. Elle prend un numéro de pièce du journal OD sans passer d'écriture : un trou dans la suite des pièces (PCCI § 3.4). Correction : plus de numéro de pièce à la création ; la référence de la facture reste. Réponse du porteur (22/11/2026) : l'écriture d'acquisition se passe avec sa pièce justificative, la facture.
 
 **0.3 TVA d'un remboursement de crédit (S55, S76, S106).** Vérifié dans le code. La part « TVA » est créditée au compte d'intérêts du crédit. Elle n'apparaît donc ni en taxe collectée (PCCI, compte 433 « Impôts et taxes collectés ») ni dans la déclaration des taxes (S108). Correction : lire d'abord l'O.-L. 10/001 sur la TVA des intérêts. Si elle est due, elle va au 433 et dans S108. Sinon, la ligne TVA disparaît des écrans de remboursement.
 
@@ -124,6 +124,8 @@ Ces règles passent par les composants communs : une correction, et tous les éc
 - « Membre » en COOPEC, « client » en IMF (la règle existe déjà pour le contrat).
 
 **1.17 Taux d'intérêt du crédit.** « Taux d'intérêt mensuel (%) » partout, avec l'équivalent annuel à côté (S23, S25, S84). Aujourd'hui rien ne dit que le taux est mensuel, et S95 l'appelle « annuel ».
+
+**1.18 Pas de texte superflu (demande du porteur, 22/11/2026).** À l'écran, ni phrase d'explication, ni rappel de règle, ni aide qui redit le libellé. Un libellé court suffit ; les règles et leurs textes restent dans l'aide en ligne. Même présentation d'un écran à l'autre.
 
 ## Lot 2. Listes et référentiels : une donnée, un seul endroit
 
@@ -436,7 +438,6 @@ Membre, Conformité, Épargne, Caisse, Crédit, Banque, Comptabilité, Budget, P
 
 Elles se posent au début du lot concerné. Aucune n'a de réponse dans les textes lus.
 
-- 0.2 Création d'un bien : passer l'écriture d'acquisition, ou ne prendre aucun numéro de pièce ?
 - 0.22 Faut-il un droit à part pour enregistrer à une date antérieure à la journée ?
 - 2.10 Types de procuration : quelles valeurs de départ ?
 - 2.11 Profession : liste avec « Autre (préciser) », ou champ libre (le registre dit les deux) ?

@@ -66,7 +66,6 @@ export function MiseEnPlaceDat() {
     <>
       <h1>Mise en place DAT</h1>
       <div className="actions-onglets">
-        <button className="bouton secondaire" type="button" aria-label="Nouveau DAT" title="Nouveau" onClick={effacer}>+</button>
         <button className="bouton secondaire" type="button" disabled={!aAnnuler} aria-label="Annuler un DAT" title="Annuler le DAT choisi dans Liste DAT" onClick={annuler}>⊘</button>
         <button className="bouton secondaire" type="button" onClick={async () => setListe(await api.depotsTerme.liste())}>Liste DAT</button>
       </div>
@@ -140,7 +139,7 @@ export function FicheBeneficiaires({ lignes, fermer }: { lignes: Beneficiaire[] 
       <div className="defile-x"><table className="grille">
         <thead><tr><th scope="col">Nom</th><th scope="col">Post-nom</th><th scope="col">Prénom</th><th scope="col">Sexe</th><th scope="col">Date de naissance</th><th scope="col">Filiation</th><th scope="col">Téléphone</th></tr></thead>
         <tbody>
-          {(lignes ?? []).length === 0 && <tr><td colSpan={7}>No records found.</td></tr>}
+          {(lignes ?? []).length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
           {(lignes ?? []).map((b, i) => <tr key={i}><td>{b.nom}</td><td>{b.postnom}</td><td>{b.prenom}</td><td>{b.sexe}</td><td className="chiffres">{b.naissance ? fr(b.naissance) : ""}</td><td>{b.filiation}</td><td className="chiffres">{b.telephone}</td></tr>)}
         </tbody>
       </table></div>
@@ -155,7 +154,7 @@ function ListeDat({ lignes, choisi, choisir, avecStatut }: { lignes: Dat[]; choi
       <thead><tr><th scope="col">Certificat</th><th scope="col">Date opération</th><th scope="col">N° compte</th><th scope="col">N° membre</th><th scope="col" className="montant">Montant dépôt</th>
         <th scope="col">Durée</th><th scope="col">Taux interêt</th><th scope="col" className="montant">Montant interêt</th><th scope="col">Date échéance</th>{statut && <th scope="col">Statut</th>}</tr></thead>
       <tbody>
-        {lignes.length === 0 && <tr><td colSpan={statut ? 10 : 9}>No records found.</td></tr>}
+        {lignes.length === 0 && <tr><td colSpan={statut ? 10 : 9}>Aucune ligne.</td></tr>}
         {visibles.map((x) => (
           <tr key={x.id} {...(choisir ? { className: "ligne-choix", tabIndex: 0, "aria-selected": choisi === x.id, onClick: () => choisir(x), onKeyDown: (e: React.KeyboardEvent) => { if (e.key === "Enter") choisir(x); } } : {})}>
             <td className="chiffres">{String(x.certificat).padStart(6, "0")}</td><td className="chiffres">{fr(x.dateDepot)}</td><td className="chiffres">{x.compteDat}</td><td className="chiffres">{x.membre}</td>
@@ -446,7 +445,7 @@ export function RechercheDat() {
                 <thead><tr><th scope="col">Certificat</th><th scope="col">Date dépôt</th><th scope="col">Date échéance</th><th scope="col">N° compte DAT</th><th scope="col">Client</th>
                   {cols.map(([k, l]) => <th key={k} scope="col" className={k === "montant" ? "montant" : undefined}>{l}</th>)}</tr></thead>
                 <tbody>
-                  {lignes.length === 0 && <tr><td colSpan={5 + cols.length}>No records found.</td></tr>}
+                  {lignes.length === 0 && <tr><td colSpan={5 + cols.length}>Aucune ligne.</td></tr>}
                   {lignes.map((x) => <tr key={x.id}><td className="chiffres">{String(x.certificat).padStart(6, "0")}</td><td className="chiffres">{fr(x.dateDepot)}</td>
                     <td className="chiffres">{fr(x.dateEcheance)}</td><td className="chiffres">{x.compteDat}</td><td>{x.client}</td>
                     {cols.map(([k]) => <td key={k} className={k === "montant" ? "montant chiffres" : undefined}>{cellule(x, k)}</td>)}</tr>)}

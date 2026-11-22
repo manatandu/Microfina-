@@ -35,7 +35,7 @@ export default function Incidents() {
         <div className="defile-x"><table className="grille" aria-label="Liste des incidents">
           <thead><tr><th scope="col">Date</th><th scope="col">Type</th><th scope="col">Description</th><th scope="col" className="num">Montant</th><th scope="col">Origine</th>
             <th scope="col">Traitement</th><th scope="col">Régularisé le</th></tr></thead>
-          <tbody>{donnees.incidents.length === 0 && <tr><td colSpan={7}>Aucune donnée dans la liste</td></tr>}
+          <tbody>{donnees.incidents.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
             {donnees.incidents.map((y) => <tr key={y.id} className="ligne-choix" tabIndex={0} aria-selected={y.id === choisi} onClick={() => { setChoisi(y.id); setT({ traitement: y.traitement, regularise: false }); }}
               onKeyDown={(e) => { if (e.key === "Enter") setChoisi(y.id); }}><td className="chiffres">{fr(y.le)}</td><td>{y.typeLibelle}</td><td>{y.description}</td>
               <td className="num chiffres">{y.montant === null ? "" : montant(y.montant, (y.devise || "CDF") as Devise)}</td><td>{y.origine === "automatique" ? "Logiciel" : "Déclaré"}</td>

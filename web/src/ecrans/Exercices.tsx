@@ -126,7 +126,7 @@ export function OuvertureExercice() {
         </div>
         <fieldset className="pile cadre-champs">
           <legend>Liste Détails Journal</legend>
-          <ListeDetails lignes={lignes} vide="No records found." />
+          <ListeDetails lignes={lignes} vide="Aucune ligne." />
         </fieldset>
         <div className="actions-onglets">
           <button className="bouton" type="button" onClick={ouvrir}>Ouvrir</button>
@@ -163,7 +163,7 @@ export function CompleterJournalDetail() {
         <div className="ligne-champ">
           <Champ libelle="Exerice encours">{(p) => <input {...p} className="saisie code" readOnly value={a ?? ""} />}</Champ>
         </div>
-        <ListeDetails lignes={manquants} vide="Liste vide" coches={coches} cocher={(id, v) => setCoches(v ? [...coches, id] : coches.filter((x) => x !== id))} />
+        <ListeDetails lignes={manquants} vide="Aucune ligne." coches={coches} cocher={(id, v) => setCoches(v ? [...coches, id] : coches.filter((x) => x !== id))} />
         <div className="actions-onglets">
           <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
         </div>

@@ -20,7 +20,7 @@ const debutAnnee = debutExercice;
 const aujourdhui = jourOuvert;   // la journée ouverte (registre T120)
 const nomComplet = (t: Tiers) => t.intitule || [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
 const m = (v: number, d: string) => montant(v, d as Devise);
-const vide = (n: number, texte = "No records found.") => <tr><td colSpan={n}>{texte}</td></tr>;
+const vide = (n: number, texte = "Aucune ligne.") => <tr><td colSpan={n}>{texte}</td></tr>;
 
 export default function RapportsEpargne() {
   const [params, setParams] = useSearchParams();
@@ -292,7 +292,7 @@ function Indicateurs({ erreur }: Proprietes) {
   const [f, setF] = useState({ date: aujourdhui(), auxiliaires: false });
   const [r, setR] = useState<Awaited<ReturnType<typeof api.rapportsEpargne.indicateurs>> | null>(null);
   async function executer() { try { setR(await api.rapportsEpargne.indicateurs(f.date, f.auxiliaires)); } catch (x) { erreur(x); } }
-  const aucune = (n: number) => vide(n, "Aucune donnée");
+  const aucune = (n: number) => vide(n, "Aucune ligne.");
   const totalRegroupement = (r?.regroupementParSexe ?? []).reduce((s, x) => s + x.total, 0);
   const totalParts = (r?.partsSociales ?? []).reduce((s, x) => s + x.parts, 0);
   return (
@@ -384,7 +384,7 @@ function Inactivite({ dormants, erreur }: Proprietes & { dormants: boolean }) {
       <Paginee lignes={l}>{(v) => (<div className="defile-x"><table className="grille">
         <thead><tr>{COL.map((c, i) => <th key={c} scope="col" className={i > 4 ? "num" : undefined}>{c}</th>)}</tr></thead>
         <tbody>
-          {v.length === 0 && vide(7, "aucune donnée")}
+          {v.length === 0 && vide(7, "Aucune ligne.")}
           {v.map((x) => <tr key={x.compte}><td className="code">{x.membre}</td><td className="code">{x.compte}</td><td>{x.client}</td><td className="chiffres">{fr(x.dateCreation)}</td>
             <td className="chiffres">{fr(x.derniere)}</td><td className="num chiffres">{x.jours}</td><td className="num chiffres">{m(x.solde, x.devise)}</td></tr>)}
         </tbody>

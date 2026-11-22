@@ -90,7 +90,7 @@ export default function BlocageCompte() {
           <thead><tr><th scope="col">Date</th><th scope="col">Action</th><th scope="col" className="num">Montant</th><th scope="col">Motif</th><th scope="col">Par</th>
             <th scope="col">Débloqué le</th><th scope="col">Motif du déblocage</th><th scope="col"><span className="sr-only">Débloquer</span></th></tr></thead>
           <tbody>
-            {visibles.length === 0 && <tr><td colSpan={8}>Aucune donnée dans la liste</td></tr>}
+            {visibles.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
             {visibles.map((b) => <tr key={b.id}><td className="chiffres">{fr(b.debut)}</td><td>{b.action}</td><td className="num chiffres">{b.montant === null ? "Tout le compte" : montant(b.montant, dev)}</td>
               <td>{b.motif}</td><td>{b.posePar}</td><td className="chiffres">{fr(b.fin)}</td><td>{b.motifLevee}</td>
               <td>{b.enCours && !b.garantie && <button className="bouton secondaire" type="button" onClick={() => setLevee({ id: b.id, motif: "" })}>Débloquer</button>}</td></tr>)}

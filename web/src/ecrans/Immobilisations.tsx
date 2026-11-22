@@ -42,7 +42,7 @@ function ChoixBien({ ouverte, fermer, choisir, statut }: { ouverte: boolean; fer
   const { donnees } = useDonnees(() => (ouverte ? api.immobilisations.liste(statut ? { statut } : {}) : Promise.resolve([] as Bien[])), [ouverte, statut]);
   return <Fiche titre="Liste des biens" ouverte={ouverte} fermer={fermer}>
     <table className="grille"><thead><tr><th scope="col">Code</th><th scope="col">Libellé</th><th scope="col">Statut</th><th scope="col">Détenteur</th><th scope="col">Localisation</th></tr></thead>
-      <tbody>{(donnees ?? []).length === 0 && <tr><td colSpan={5}>Aucune donnée trouvée</td></tr>}
+      <tbody>{(donnees ?? []).length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
         {(donnees ?? []).map((b) => <tr key={b.id} className="ligne-choix" tabIndex={0} onClick={() => { choisir(b); fermer(); }} onKeyDown={(e) => { if (e.key === "Enter") { choisir(b); fermer(); } }}>
           <td className="code">{b.codification}</td><td>{b.libelle}</td><td>{b.statut}</td><td>{b.detenteur}</td><td>{b.localisation}</td></tr>)}</tbody></table>
   </Fiche>;
@@ -125,7 +125,7 @@ export function CreationBien() {
 function TablePlan({ plan }: { plan: (Plan[number] & { passe?: boolean })[] }) {
   return <table className="grille"><thead><tr><th scope="col">Exercice</th><th scope="col" className="num">Mois</th><th scope="col" className="num">Base</th><th scope="col" className="num">VNC début</th>
     <th scope="col" className="num">Dotation</th><th scope="col" className="num">Cumul</th><th scope="col" className="num">VNC fin</th><th scope="col">Passé</th></tr></thead>
-    <tbody>{plan.length === 0 && <tr><td colSpan={8}>Aucune donnée trouvée</td></tr>}
+    <tbody>{plan.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
       {plan.map((x) => <tr key={x.exercice}><td>{x.exercice}</td><td className="num chiffres">{x.mois}</td><td className="num chiffres">{n(x.base)}</td><td className="num chiffres">{n(x.vncDebut)}</td>
         <td className="num chiffres">{n(x.dotation)}</td><td className="num chiffres">{n(x.cumul)}</td><td className="num chiffres">{n(x.vnc)}</td><td>{x.passe === undefined ? "" : x.passe ? "Oui" : "Non"}</td></tr>)}</tbody></table>;
 }
@@ -320,12 +320,12 @@ export function RapportsImmo() {
       {r && page === "tableau" && <TablePlan plan={r as unknown as Plan} />}
       {r && (page === "biens" || page === "multicritere") && <table className="grille"><thead><tr><th scope="col">Code</th><th scope="col">Libellé</th><th scope="col">Localisation</th><th scope="col">Date acquisition</th>
         <th scope="col" className="num">Prix d'acquisition</th><th scope="col" className="num">Cumul amortissements</th><th scope="col">Statut</th><th scope="col">Détenteur</th></tr></thead>
-        <tbody>{lignes.length === 0 && <tr><td colSpan={8}>Aucune donnée trouvée</td></tr>}{lignes.map((b) => <tr key={String(b.id)}><td className="code">{String(b.codification)}</td><td>{String(b.libelle)}</td><td>{String(b.localisation)}</td>
+        <tbody>{lignes.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}{lignes.map((b) => <tr key={String(b.id)}><td className="code">{String(b.codification)}</td><td>{String(b.libelle)}</td><td>{String(b.localisation)}</td>
           <td>{fr(String(b.dateAcquisition))}</td><td className="num chiffres">{n(b.prixAcquisition as number)}</td><td className="num chiffres">{n(b.cumulAmortissements as number)}</td><td>{String(b.statut)}</td><td>{String(b.detenteur)}</td></tr>)}</tbody></table>}
       {r && page === "inventaires" && <table className="grille"><thead><tr><th scope="col">Date</th><th scope="col">Code</th><th scope="col">Libellé</th><th scope="col">Etat</th><th scope="col">Observation</th><th scope="col">Par</th></tr></thead>
-        <tbody>{lignes.length === 0 && <tr><td colSpan={6}>Aucune donnée trouvée</td></tr>}{lignes.map((x, i) => <tr key={i}><td>{fr(String(x.date))}</td><td className="code">{String(x.codification)}</td><td>{String(x.libelle)}</td><td>{String(x.etat)}</td><td>{String(x.observation)}</td><td>{String(x.par)}</td></tr>)}</tbody></table>}
+        <tbody>{lignes.length === 0 && <tr><td colSpan={6}>Aucune ligne.</td></tr>}{lignes.map((x, i) => <tr key={i}><td>{fr(String(x.date))}</td><td className="code">{String(x.codification)}</td><td>{String(x.libelle)}</td><td>{String(x.etat)}</td><td>{String(x.observation)}</td><td>{String(x.par)}</td></tr>)}</tbody></table>}
       {r && page === "suivi" && <table className="grille"><thead><tr><th scope="col">Date</th><th scope="col">Code</th><th scope="col">Libellé</th><th scope="col">Ancien détenteur</th><th scope="col">Nouveau détenteur</th><th scope="col">Ancienne localisation</th><th scope="col">Nouvelle localisation</th></tr></thead>
-        <tbody>{lignes.length === 0 && <tr><td colSpan={7}>Aucune donnée trouvée</td></tr>}{lignes.map((x, i) => <tr key={i}><td>{fr(String(x.date))}</td><td className="code">{String(x.codification)}</td><td>{String(x.libelle)}</td><td>{String(x.ancienDetenteur)}</td><td>{String(x.nouveauDetenteur)}</td><td>{String(x.ancienneLocalisation)}</td><td>{String(x.nouvelleLocalisation)}</td></tr>)}</tbody></table>}
+        <tbody>{lignes.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}{lignes.map((x, i) => <tr key={i}><td>{fr(String(x.date))}</td><td className="code">{String(x.codification)}</td><td>{String(x.libelle)}</td><td>{String(x.ancienDetenteur)}</td><td>{String(x.nouveauDetenteur)}</td><td>{String(x.ancienneLocalisation)}</td><td>{String(x.nouvelleLocalisation)}</td></tr>)}</tbody></table>}
       <Textes sources={[M("p. 7 à 9 : liste des biens par localisation, liste des inventaires, simulation du tableau d'amortissement, état de suivi des biens, recherche multicritère")]} />
     </section>
     {c.dialogue}

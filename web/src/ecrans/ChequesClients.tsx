@@ -63,9 +63,9 @@ export function ChequesClients() {
       <thead><tr><th scope="col">Date operation</th><th scope="col">Client</th><th scope="col">N° Chèque</th><th scope="col">Tireur</th><th scope="col">Banque Tireur</th>
         <th scope="col" className="montant">Montant</th><th scope="col">Statut</th><th scope="col">Date Encaissement</th></tr></thead>
       <tbody>
-        {(cheques ?? []).length === 0 && <tr><td colSpan={8}>Aucune donnée</td></tr>}
+        {(cheques ?? []).length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
         {(cheques ?? []).map((c) => (
-          <tr key={c.id} aria-selected={cliquable ? c.id === choisi : undefined} onDoubleClick={cliquable ? () => setChoisi(c.id) : undefined}>
+          <tr key={c.id} aria-selected={cliquable ? c.id === choisi : undefined} onClick={cliquable ? () => setChoisi(c.id) : undefined}>
             <td className="chiffres">{fr(c.date)}</td><td>{c.client}</td><td className="chiffres">{c.numeroCheque}</td><td>{c.tireur}</td><td>{c.banqueTireur}</td>
             <td className="montant chiffres">{montant(c.montant, c.devise)}</td><td>{c.statutLibelle}</td><td className="chiffres">{c.dateEncaissement ? fr(c.dateEncaissement) : ""}</td>
           </tr>

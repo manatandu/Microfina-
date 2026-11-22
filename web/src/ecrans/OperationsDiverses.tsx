@@ -39,7 +39,7 @@ export default function ParametrageAutresOperations() {
         <table className="grille">
           <thead><tr><th scope="col">Sens</th><th scope="col">Compte</th><th scope="col">Libelle</th><th scope="col">Statut</th></tr></thead>
           <tbody>
-            {donnees.operations.length === 0 && <tr><td colSpan={4}>Liste vide</td></tr>}
+            {donnees.operations.length === 0 && <tr><td colSpan={4}>Aucune ligne.</td></tr>}
             {(donnees.operations as OperationDiverse[]).map((o) => (
               <tr key={o.id} className="ligne-choix" tabIndex={0} aria-selected={o.id === choisi} onClick={() => choisir(o)} onKeyDown={(e) => { if (e.key === "Enter") choisir(o); }}>
                 <td>{o.sens}</td><td>{o.compte}</td><td>{o.libelle}</td><td>{o.statut}</td>

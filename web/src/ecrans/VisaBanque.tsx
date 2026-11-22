@@ -63,7 +63,7 @@ export default function VisaBanque() {
         <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
           <thead><tr><th scope="col"><span className="sr-only">{etape === "visa" ? "Viser" : "Valider"}</span></th>{colonnes.map(([c]) => <th key={c} scope="col">{c}</th>)}</tr></thead>
           <tbody>
-            {lignes.length === 0 && <tr><td colSpan={colonnes.length + 1}>{l.id === "virement" && etape === "validation" ? "Liste vide" : "Aucune donnée"}</td></tr>}
+            {lignes.length === 0 && <tr><td colSpan={colonnes.length + 1}>{l.id === "virement" && etape === "validation" ? "Aucune ligne." : "Aucune ligne."}</td></tr>}
             {visibles.map((x) => (
               <tr key={x.id}>
                 <td><button className="bouton secondaire" type="button" aria-label={`${etape === "visa" ? "Viser" : "Valider"} ${x.libelle}`} title={etape === "visa" ? "Viser" : "Valider"} onClick={() => agir(x)}>↑</button></td>

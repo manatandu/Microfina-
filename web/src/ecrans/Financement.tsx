@@ -40,7 +40,7 @@ function LignesFinancement({ changer }: { changer: (p: string) => void }) {
         <section className="bloc pile" aria-label="Ligne financement">
           <Paginee lignes={lignes}>{(visibles) => (<table className="grille"><caption>Liste des lignes de financement</caption>
             <thead><tr><th scope="col">Libellé</th><th scope="col" className="num">Montant</th><th scope="col">Type</th></tr></thead>
-            <tbody>{lignes.length === 0 && <tr><td colSpan={3}>Liste vide</td></tr>}
+            <tbody>{lignes.length === 0 && <tr><td colSpan={3}>Aucune ligne.</td></tr>}
               {visibles.map((l) => <tr key={l.id} className="ligne-choix" tabIndex={0} aria-selected={l.id === choisi} onClick={() => setChoisi(l.id)} onKeyDown={(e) => { if (e.key === "Enter") setChoisi(l.id); }}>
                 <td>{l.affichage.libelle}</td><td className="num chiffres">{l.affichage.montant}</td><td>{l.affichage.typeId}</td></tr>)}</tbody>
           </table>)}</Paginee>
@@ -49,7 +49,6 @@ function LignesFinancement({ changer }: { changer: (p: string) => void }) {
             <button className="bouton secondaire" type="button" disabled={choisi === null} onClick={ouvrir}>Ouvrir</button>
             <button className="bouton secondaire" type="button" disabled={choisi === null}
               onClick={() => choisi !== null && confirmer("Voulez-vous vraiment supprimer ?", () => facade.supprimer("lignes_financement", choisi))}>Supprimer</button>
-            <button className="bouton secondaire" type="button" onClick={() => { setChoisi(null); setRelu((x) => x + 1); }}>Rafraîchir</button>
           </div>
           <Textes sources={["Manuel Microfina++, p. 143 et 144 : « Paramétrage de Lignes de financement » ; capture « Ligne financement », Liste des lignes de financement (Libellé, Montant, Type ; Nouveau, Ouvrir, Supprimer, Rafraîchir)",
             "Registre S126-1 et S126-5 : la fenêtre de Nouveau et d'Ouvrir reprend les trois colonnes de la liste ; le type se choisit dans les types de financement ; deux lignes peuvent porter le même libellé, comme sur la capture"]} />

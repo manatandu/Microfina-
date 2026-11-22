@@ -45,10 +45,11 @@ function Onglet({ role }: { role: Role }) {
       profession: a.profession, rue: a.rue, email: a.email, bp: a.bp, telephoneFixe: a.telephoneFixe, portable: a.portable });
   };
   const envoi = () => ({ ...valeurs, agenceId: gestionnaire && valeurs.agenceId ? Number(valeurs.agenceId) : null });
-  const confirmer = (texte: string, faire: () => Promise<unknown>) => setBoite({ type: "confirmation", message: texte, oui: async () => {
+  const executer = async (faire: () => Promise<unknown>) => {
     try { await faire(); effacer(); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
-  } });
+  };
+  const confirmer = (texte: string, faire: () => Promise<unknown>) => setBoite({ type: "confirmation", message: texte, oui: () => executer(faire) });
   const texte = (k: string, libelle: string, classe = "saisie") => (
     <Champ libelle={libelle}>{(p) => <input {...p} className={classe} value={valeurs[k]} onChange={(e) => setF({ ...valeurs, [k]: e.target.value })} />}</Champ>);
   return (
@@ -56,7 +57,7 @@ function Onglet({ role }: { role: Role }) {
       <div className="actions-onglets">
         <button className="bouton secondaire" type="button" onClick={effacer}>Nouveau</button>
         <button className="bouton secondaire" type="button" disabled={choisi === null}
-          onClick={() => confirmer("Voulez-vous vraiment modifier ?", () => api.agents.enregistrer(role, envoi(), choisi!))}>Modifier</button>
+          onClick={() => executer( () => api.agents.enregistrer(role, envoi(), choisi!))}>Modifier</button>
         {role !== "sensibilisateur" && <button className="bouton secondaire" type="button" disabled={choisi === null}
           onClick={() => confirmer("Voulez-vous vraiment supprimer ?", () => api.agents.supprimer(role, choisi!))}>Supprimer</button>}
         <button className="bouton secondaire" type="button" onClick={() => setListe(true)}>{titreListe}</button>
@@ -83,7 +84,7 @@ function Onglet({ role }: { role: Role }) {
         </div>
       </div>
       <div className="actions-onglets">
-        <button className="bouton" type="button" disabled={choisi !== null} onClick={() => confirmer("Voulez-vous vraiment enregistrer ?", () => api.agents.enregistrer(role, envoi()))}>Enregistrer</button>
+        <button className="bouton" type="button" disabled={choisi !== null} onClick={() => executer( () => api.agents.enregistrer(role, envoi()))}>Enregistrer</button>
         <button className="bouton secondaire" type="button" onClick={effacer}>{gestionnaire ? "Effacer" : "Annuler"}</button>
       </div>
       <Textes sources={["Manuel Microfina++, p. 43 : Informations de base liées aux agences, onglets Gestionnaire, Sensibilisateur, Commercial ; « renseigner les informations relatives […] puis enregistrer sans omettre les champs obligatoires » ; captures : Rue / Maison, Email, BP, Tél fix, Portable, Agence (Gestionnaire), Nom*, Prénom*, Né(e) le*, à (obligatoire pour Sensibilisateur et Commercial), Sexe*, Profession ; barre (nouveau, modifier, supprimer sauf Sensibilisateur, liste) ; Enregistrer, Effacer ou Annuler",
@@ -92,7 +93,7 @@ function Onglet({ role }: { role: Role }) {
         <table className="grille">
           <thead><tr><th scope="col">Nom</th><th scope="col">Prénom</th><th scope="col">Sexe</th><th scope="col">Portable</th></tr></thead>
           <tbody>
-            {donnees.agents.length === 0 && <tr><td colSpan={4}>Liste vide</td></tr>}
+            {donnees.agents.length === 0 && <tr><td colSpan={4}>Aucune ligne.</td></tr>}
             {(donnees.agents as Agent[]).map((a) => (
               <tr key={a.id} className="ligne-choix" tabIndex={0} onClick={() => choisir(a)} onKeyDown={(e) => { if (e.key === "Enter") choisir(a); }}>
                 <td>{a.nom}</td><td>{a.prenom}</td><td>{a.sexe}</td><td>{a.portable}</td>

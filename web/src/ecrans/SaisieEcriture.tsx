@@ -89,7 +89,7 @@ export default function SaisieEcriture() {
         </div>
         <div className="defile-x"><table className="grille">
           <thead><tr><th scope="col">Compte</th><th scope="col">Intitulé</th><th scope="col">Libellé</th><th scope="col" className="num">Débit</th><th scope="col" className="num">Crédit</th></tr></thead>
-          <tbody>{(ecr?.lignes ?? []).length === 0 && <tr><td colSpan={5}>No records found.</td></tr>}
+          <tbody>{(ecr?.lignes ?? []).length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
             {(ecr?.lignes ?? []).map((l) => <tr key={l.rang} className="ligne-choix" tabIndex={0} aria-selected={choisie === l.rang} onClick={() => setChoisie(l.rang ?? null)}
               onKeyDown={(e) => { if (e.key === "Enter") setChoisie(l.rang ?? null); }}>
               <td className="code">{l.compte}</td><td>{l.intitule}</td><td>{l.libelle}</td>
@@ -113,8 +113,8 @@ export default function SaisieEcriture() {
       <Fiche titre="Compte auxiliaire" ouverte={fenetreAux} fermer={() => setFenetreAux(false)}>
         <div className="pile"><div className="defile-x"><table className="grille">
           <thead><tr><th scope="col">Intitulé</th><th scope="col">Type Tiers</th><th scope="col">Compte</th></tr></thead>
-          <tbody>{ctx.auxiliaires.length === 0 && <tr><td colSpan={3}>No records found.</td></tr>}
-            {ctx.auxiliaires.map((a) => <tr key={a.id} className="ligne-choix" tabIndex={0} onDoubleClick={() => { maj({ auxiliaire: String(a.id) }); setFenetreAux(false); }}
+          <tbody>{ctx.auxiliaires.length === 0 && <tr><td colSpan={3}>Aucune ligne.</td></tr>}
+            {ctx.auxiliaires.map((a) => <tr key={a.id} className="ligne-choix" tabIndex={0} onClick={() => { maj({ auxiliaire: String(a.id) }); setFenetreAux(false); }}
               onKeyDown={(e) => { if (e.key === "Enter") { maj({ auxiliaire: String(a.id) }); setFenetreAux(false); } }}><td>{a.intitule}</td><td>{a.typeTiers}</td><td className="code">{a.compte}</td></tr>)}</tbody>
         </table></div>
         <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setFenetreAux(false)}>Fermer</button></div></div>

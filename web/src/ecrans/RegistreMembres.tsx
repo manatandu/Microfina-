@@ -33,7 +33,7 @@ export default function RegistreMembres() {
           <thead><tr><th scope="col">N° d'adhésion</th><th scope="col">Membre parti</th><th scope="col">Sorti le</th><th scope="col" className="montant">Parts</th>
             <th scope="col" className="montant">Montant</th></tr></thead>
           <tbody>
-            {donnees.aRembourser.length === 0 && <tr><td colSpan={5}>No records found.</td></tr>}
+            {donnees.aRembourser.length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
             {donnees.aRembourser.map((x) => <tr key={x.tiersId}><td className="chiffres">{x.numero}</td><td>{x.nom}</td><td className="chiffres">{fr(x.sortieLe)}</td>
               <td className="montant chiffres">{x.parts}</td><td className="montant chiffres">{montant(x.montant, "CDF")}</td></tr>)}
           </tbody>
@@ -69,7 +69,7 @@ function Tableau({ r, imprime = false }: { r: Registre; imprime?: boolean }) {
         <th scope="col">Adresse</th><th scope="col">Profession</th><th scope="col">Catégorie</th><th scope="col" className="montant">Parts souscrites</th><th scope="col" className="montant">Parts libérées</th>
         <th scope="col">Admis le</th><th scope="col">Sorti le</th></tr></thead>
       <tbody>
-        {r.membres.length === 0 && <tr><td colSpan={12}>No records found.</td></tr>}
+        {r.membres.length === 0 && <tr><td colSpan={12}>Aucune ligne.</td></tr>}
         {r.membres.map((x) => (
           <tr key={x.tiersId}><td className="chiffres">{x.rang}</td><td className="chiffres">{x.numero}</td><td>{x.nom}</td><td>{x.prenom}</td><td>{x.piece}</td><td>{x.adresse}</td>
             <td>{x.profession}</td><td>{x.categorie}</td><td className="montant chiffres">{x.partsSouscrites}</td><td className="montant chiffres">{x.partsLiberees}</td>

@@ -36,7 +36,7 @@ export default function DeclarationsSoupcon({ jour }: { jour: string }) {
         <thead><tr><th scope="col">N°</th><th scope="col">Date</th><th scope="col">Origine</th><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Nature</th>
           <th scope="col">Moyen</th><th scope="col">Suite</th></tr></thead>
         <tbody>
-          {donnees.length === 0 && <tr><td colSpan={8}>No records found.</td></tr>}
+          {donnees.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
           {donnees.map((x) => (
             <tr key={x.cle} className="ligne-choix" tabIndex={0} aria-selected={choisi?.cle === x.cle} onClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
               <td className="chiffres">{x.numero ?? ""}</td><td className="chiffres">{fr(x.date)}</td><td>{x.origine}</td><td className="chiffres">{x.membre}</td><td>{x.client}</td>

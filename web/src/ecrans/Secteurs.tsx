@@ -35,10 +35,11 @@ function PageListe({ liste, changer }: { liste: string; changer: (l: string) => 
   let lignes = (donnees.lignes as Ligne[]).filter((l) => l.libelle.toLowerCase().includes(filtre.trim().toLowerCase()));
   if (tri !== "none") lignes = [...lignes].sort((a, b) => (tri === "ascending" ? 1 : -1) * a.libelle.localeCompare(b.libelle, "fr"));
   const effacer = () => { setF(VIDE); setChoisi(null); };
-  const confirmer = (texte: string, faire: () => Promise<unknown>) => setBoite({ type: "confirmation", message: texte, oui: async () => {
+  const executer = async (faire: () => Promise<unknown>) => {
     try { await faire(); effacer(); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
-  } });
+  };
+  const confirmer = (texte: string, faire: () => Promise<unknown>) => setBoite({ type: "confirmation", message: texte, oui: () => executer(faire) });
   const saisie = { code: f.code, libelle: f.libelle, parentId: f.parentId || null };
   return (
     <>
@@ -61,9 +62,9 @@ function PageListe({ liste, changer }: { liste: string; changer: (l: string) => 
             <Champ libelle={`${c.libelle} : *`}>{(p) => <input {...p} className="saisie" value={f.libelle} onChange={(e) => setF({ ...f, libelle: e.target.value })} />}</Champ>
             <div className="actions-onglets">
               {choisi === null
-                ? <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment enregistrer ?", () => api.listes.enregistrer(liste, saisie))}>Enregistrer</button>
+                ? <button className="bouton" type="button" onClick={() => executer( () => api.listes.enregistrer(liste, saisie))}>Enregistrer</button>
                 : <>
-                    <button className="bouton secondaire" type="button" onClick={() => confirmer("Voulez-vous vraiment modifier ?", () => api.listes.enregistrer(liste, saisie, choisi))}>Modifier</button>
+                    <button className="bouton secondaire" type="button" onClick={() => executer( () => api.listes.enregistrer(liste, saisie, choisi))}>Modifier</button>
                     <button className="bouton secondaire" type="button" onClick={() => confirmer("Voulez-vous vraiment supprimer ?", () => api.listes.supprimer(liste, choisi))}>Supprimer</button>
                   </>}
               <button className="bouton secondaire" type="button" onClick={effacer}>{c.effacer ?? "Effacer"}</button>
@@ -76,7 +77,7 @@ function PageListe({ liste, changer }: { liste: string; changer: (l: string) => 
               <tr className="filtres">{!c.sansCode && <td />}{parent && <td />}<td><input className="saisie" type="search" aria-label={`Filtrer ${c.colonne}`} value={filtre} onChange={(e) => setFiltre(e.target.value)} /></td></tr>
             </thead>
             <tbody>
-              {lignes.length === 0 && <tr><td colSpan={(parent ? 2 : 1) + (c.sansCode ? 0 : 1)}>Liste vide</td></tr>}
+              {lignes.length === 0 && <tr><td colSpan={(parent ? 2 : 1) + (c.sansCode ? 0 : 1)}>Aucune ligne.</td></tr>}
               {visibles.map((l) => (
                 <tr key={l.id} className="ligne-choix" tabIndex={0} aria-selected={l.id === choisi}
                   onClick={() => { setChoisi(l.id); setF({ code: l.code, libelle: l.libelle, parentId: l.parentId ?? 0 }); }}

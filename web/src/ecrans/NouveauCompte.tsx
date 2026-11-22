@@ -72,7 +72,7 @@ export function NouveauCompte() {
           <div className="defile-x"><table className="grille">
             <thead><tr><th scope="col">N° du compte</th><th scope="col">Produit</th><th scope="col">Devise</th><th scope="col" className="montant">Solde</th><th scope="col">Convention</th></tr></thead>
             <tbody>
-              {(comptes ?? []).length === 0 && <tr><td colSpan={5}>Liste vide</td></tr>}
+              {(comptes ?? []).length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
               {(comptes ?? []).map((c) => <tr key={c.id}><td className="chiffres">{c.numero}</td><td>{c.intitule}</td><td>{c.devise}</td>
                 <td className="montant chiffres">{c.solde === null || c.solde === undefined ? "" : montant(c.solde, c.devise as Devise)}</td>
                 <td><button className="bouton secondaire" type="button" aria-label={`Convention du compte ${c.numero}`} onClick={async () => {

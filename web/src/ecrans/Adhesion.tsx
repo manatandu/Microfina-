@@ -101,7 +101,7 @@ export default function Adhesion() {
           <table className="grille">
             <thead><tr><th scope="col">Libellé Frais</th><th scope="col">Compte</th><th scope="col">Nombre</th><th scope="col">Montant</th></tr></thead>
             <tbody>
-              {autres.length === 0 && <tr><td colSpan={4}>Liste des Frais vide</td></tr>}
+              {autres.length === 0 && <tr><td colSpan={4}>Aucune ligne.</td></tr>}
               {autres.map((f) => <tr key={f.fraisId}><td>{f.libelle}</td><td className="chiffres">{f.compte}</td><td></td><td className="chiffres">{f.montant === null ? "" : montant(f.montant, "CDF")}</td></tr>)}
               {parts_ && <tr>
                 <td>{ligneParts?.libelle ?? "Part sociale"}</td><td className="chiffres">{ligneParts?.compte ?? ""}</td>

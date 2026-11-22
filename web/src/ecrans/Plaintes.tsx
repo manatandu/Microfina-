@@ -69,7 +69,7 @@ export default function Plaintes() {
           <thead><tr><th scope="col">Référence</th><th scope="col">Reçue le</th><th scope="col">Plaignant</th><th scope="col">Canal</th><th scope="col">Nature</th><th scope="col">Objet</th>
             <th scope="col">{onglet === "recue" ? "Réponse due le" : "Répondue le"}</th></tr></thead>
           <tbody>
-            {(donnees ?? []).length === 0 && <tr><td colSpan={7}>No records found.</td></tr>}
+            {(donnees ?? []).length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
             {(donnees ?? []).map((x) => (
               <tr key={x.id} className="ligne-choix" tabIndex={0} aria-selected={choisie?.id === x.id} onClick={() => { setChoisie(x); setR({ fondee: "", reponse: "", reparation: "" }); }}
                 onKeyDown={(e) => { if (e.key === "Enter") { setChoisie(x); setR({ fondee: "", reponse: "", reparation: "" }); } }}>

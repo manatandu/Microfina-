@@ -40,7 +40,7 @@ function Liste({ etape, liste, titre, colonnes, fleche, vide, poser }: { etape: 
     <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
       <thead><tr>{fleche && <th scope="col"><span className="sr-only">{bouton}</span></th>}{colonnes.map(([c, , num]) => <th key={c} scope="col" className={num ? "num" : undefined}>{c}</th>)}</tr></thead>
       <tbody>{lignes.length === 0 && <tr><td colSpan={colonnes.length + (fleche ? 1 : 0)}>{vide}</td></tr>}
-        {visibles.map((x) => <tr key={x.id} className={fleche ? undefined : "ligne-choix"} tabIndex={fleche ? undefined : 0} onDoubleClick={fleche ? undefined : () => ouvrir(x)}
+        {visibles.map((x) => <tr key={x.id} className={fleche ? undefined : "ligne-choix"} tabIndex={fleche ? undefined : 0} onClick={fleche ? undefined : () => ouvrir(x)}
           onKeyDown={fleche ? undefined : (e) => { if (e.key === "Enter") ouvrir(x); }}>
           {fleche && <td><button className="bouton secondaire" type="button" aria-label={`${bouton} ${x.libelle}`} title={bouton} onClick={() => agir(x)}>↑</button></td>}
           {colonnes.map(([c, f, num]) => <td key={c} className={num ? "num chiffres" : undefined}>{f(x)}</td>)}</tr>)}</tbody>
@@ -76,7 +76,7 @@ function ListeFactures({ etape, poser }: { etape: Etape; poser: (b: Boite | null
     <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
       <thead><tr><th scope="col"><span className="sr-only">{bouton}</span></th><th scope="col">Date</th><th scope="col">Fournisseur</th><th scope="col">Référence</th><th scope="col" className="num">Montant à payer</th>
         <th scope="col" className="num">Montant (HT)</th><th scope="col" className="num">TVA</th><th scope="col" className="num">TTC</th><th scope="col" className="num">Totale(s) charge(s)</th></tr></thead>
-      <tbody>{lignes.length === 0 && <tr><td colSpan={9}>Aucune donnée</td></tr>}
+      <tbody>{lignes.length === 0 && <tr><td colSpan={9}>Aucune ligne.</td></tr>}
         {visibles.map((x) => <tr key={x.id}><td><button className="bouton secondaire" type="button" aria-label={`${bouton} ${x.reference}`} title={bouton} onClick={() => agir(x)}>↑</button></td>
           <td className="chiffres">{fr(x.date)}</td><td>{x.fournisseur}</td><td>{x.reference}</td><td className="num chiffres">{nb(x.aPayer)}</td><td className="num chiffres">{nb(x.ht)}</td>
           <td className="num chiffres">{nb(x.tva)}</td><td className="num chiffres">{nb(x.ttc)}</td><td className="num chiffres">{nb(x.totalCharges)}</td></tr>)}</tbody>
@@ -104,7 +104,7 @@ function ListeReglements({ etape, poser }: { etape: Etape; poser: (b: Boite | nu
     <Paginee lignes={lignes}>{(visibles) => (<table className="grille"><caption>Liste des règlements</caption>
       <thead><tr><th scope="col"><span className="sr-only">{bouton}</span></th><th scope="col">Référence</th><th scope="col">Fournisseur</th><th scope="col" className="num">Montant (HT)</th>
         <th scope="col" className="num">Montant Charge(s)</th><th scope="col" className="num">{etape === "visa" ? "Montant à régler" : "Montant à payer"}</th><th scope="col">Mode Règlement</th><th scope="col">Date Règlement</th></tr></thead>
-      <tbody>{lignes.length === 0 && <tr><td colSpan={8}>Aucune donnée</td></tr>}
+      <tbody>{lignes.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
         {visibles.map((x) => <tr key={x.id}><td><button className="bouton secondaire" type="button" aria-label={`${bouton} ${x.reference}`} title={bouton} onClick={() => agir(x)}>↑</button></td>
           <td>{x.reference}</td><td>{x.fournisseur}</td><td className="num chiffres">{nb(x.ht)}</td><td className="num chiffres">{nb(x.totalCharges)}</td><td className="num chiffres">{nb(x.aPayer)}</td>
           <td>{x.modeLibelle}</td><td className="chiffres">{fr(x.date)}</td></tr>)}</tbody>
@@ -138,7 +138,7 @@ function ListeCommandes({ validees, poser }: { validees: boolean; poser: (b: Boi
     <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
       <thead><tr><th scope="col"><span className="sr-only">{validees ? "Imprimer" : "Valider"}</span></th><th scope="col">Date</th><th scope="col">N° Commande</th><th scope="col" className="num">Montant (HT)</th>
         <th scope="col" className="num">TVA</th><th scope="col" className="num">TTC</th><th scope="col">Fournisseur</th>{validees && <th scope="col">Description</th>}</tr></thead>
-      <tbody>{lignes.length === 0 && <tr><td colSpan={validees ? 8 : 7}>Aucune donnée</td></tr>}
+      <tbody>{lignes.length === 0 && <tr><td colSpan={validees ? 8 : 7}>Aucune ligne.</td></tr>}
         {visibles.map((x) => <tr key={x.id}><td>{validees
           ? <button className="bouton secondaire" type="button" aria-label={`Imprimer ${x.numero}`} title="Imprimer" onClick={() => setBon(x.id)}>↑</button>
           : <button className="bouton secondaire" type="button" aria-label={`Valider ${x.numero}`} title="Valider" onClick={() => valider(x)}>↑</button>}</td>
@@ -195,7 +195,7 @@ export function VisasComptables() {
     { libelle: "Virement et prélèvement", contenu: (p) => <Liste etape="visa" liste="virement" titre="Viser Prélèvement/Virement" colonnes={VIREMENT} fleche vide="Aucune information" poser={p} /> },
     { libelle: "Retrait plafond", contenu: () => <VisaRetraitPlafond /> },
     { libelle: "Opérations diverses et déplacées", contenu: (p) => <DiversesDeplacees poser={p} /> },
-    { libelle: "Écritures comptables", contenu: (p) => <Liste etape="visa" liste="ecriture" titre="Ecritures à viser" colonnes={ECRITURE} fleche={false} vide="No records found." poser={p} /> },
+    { libelle: "Écritures comptables", contenu: (p) => <Liste etape="visa" liste="ecriture" titre="Ecritures à viser" colonnes={ECRITURE} fleche={false} vide="Aucune ligne." poser={p} /> },
     { libelle: "Facture", contenu: (p) => <ListeFactures etape="visa" poser={p} /> },
     { libelle: "Règlement", contenu: (p) => <ListeReglements etape="visa" poser={p} /> },
     { libelle: "Virement compte à compte", contenu: (p) => <Liste etape="visa" liste="compte_a_compte" titre="Visa Virement Compte à Compte" colonnes={COMPTE.filter(([c]) => c !== "No piece")} fleche={false} vide="Aucune information" poser={p} /> },
@@ -205,7 +205,7 @@ export function VisasComptables() {
 export function ValidationsComptables() {
   return <Ecran etape="validation" onglets={[
     { libelle: "Virement et prélèvement", contenu: (p) => <Liste etape="validation" liste="virement" titre="Validation prélèvement/virement" colonnes={VIREMENT} fleche vide="Aucune information" poser={p} /> },
-    { libelle: "Écritures comptables", contenu: (p) => <Liste etape="validation" liste="ecriture" titre="Ecritures en attente de validation" colonnes={ECRITURE} fleche={false} vide="No records found." poser={p} /> },
+    { libelle: "Écritures comptables", contenu: (p) => <Liste etape="validation" liste="ecriture" titre="Ecritures en attente de validation" colonnes={ECRITURE} fleche={false} vide="Aucune ligne." poser={p} /> },
     { libelle: "Commande", contenu: (p) => <ListeCommandes validees={false} poser={p} /> },
     { libelle: "Liste de commandes", contenu: (p) => <ListeCommandes validees poser={p} /> },
     { libelle: "Facture", contenu: (p) => <ListeFactures etape="validation" poser={p} /> },

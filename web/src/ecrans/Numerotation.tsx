@@ -174,7 +174,7 @@ export function ParametrageCompteClient() {
           <table className="grille">
             <thead><tr><th scope="col">Position du N°</th><th scope="col">N° Client?</th><th scope="col">Préfixe ?</th><th scope="col">Suffixe?</th></tr></thead>
             <tbody>
-              {!r && <tr><td colSpan={4}>Liste vide</td></tr>}
+              {!r && <tr><td colSpan={4}>Aucune ligne.</td></tr>}
               {r && <tr><td className="chiffres">{r.position}</td>
                 <td><input type="checkbox" checked disabled aria-label="N° Client" /></td>
                 <td><input type="checkbox" checked={r.prefixe} disabled aria-label="Préfixe" /></td>

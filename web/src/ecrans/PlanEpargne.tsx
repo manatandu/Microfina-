@@ -221,7 +221,7 @@ function Consultation() {
             <tr><th scope="col">N°</th><th scope="col">Date prévue</th><th scope="col">Date réel</th><th scope="col" className="num">Prévue</th><th scope="col" className="num">Réel</th></tr>
           </thead>
           <tbody>
-            {visibles.length === 0 && <tr><td colSpan={7}>Aucune donnée dans la liste pour le moment</td></tr>}
+            {visibles.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
             {visibles.map((l) => <tr key={l.id}><td className="chiffres">{l.rang}</td><td className="chiffres">{fr(l.datePrevue)}</td><td className="chiffres">{fr(l.dateReelle)}</td>
               <td className="num chiffres">{montant(l.capital, dev)}</td><td className="num chiffres">{montant(l.interetPrevu, dev)}</td><td className="num chiffres">{montant(l.interetReel, dev)}</td>
               <td className="num chiffres">{montant(l.cumul, dev)}</td></tr>)}
@@ -276,7 +276,7 @@ function Cotisations() {
           <tr><th scope="col">N°</th><th scope="col">Date prévue</th><th scope="col">Date réel</th></tr>
         </thead>
         <tbody>
-          {visibles.length === 0 && <tr><td colSpan={5}>Aucune donnée dans la liste pour le moment</td></tr>}
+          {visibles.length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
           {visibles.map((l) => <tr key={l.id}><td className="chiffres">{l.rang}</td><td className="chiffres">{fr(l.datePrevue)}</td><td className="chiffres">{fr(l.dateReelle)}</td>
             <td className="num chiffres">{montant(l.capital, dev)}</td>
             <td>{!l.dateReelle && <input type="checkbox" aria-label={`Cotiser l'échéance ${l.rang}`} checked={coches.includes(l.id)}

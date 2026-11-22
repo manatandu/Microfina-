@@ -36,10 +36,12 @@ function PageBudget({ page, changer }: { page: string; changer: (p: string) => v
   const { donnees } = useDonnees(() => api.budget.lire(page), [relu]);
   if (!donnees) return <Chargement />;
   const effacer = () => { setF(vide()); setChoisi(null); };
-  const confirmer = (texte: string, faire: () => Promise<unknown>) => setBoite({ type: "confirmation", message: texte, oui: async () => {
-    try { await faire(); effacer(); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+  const faire = async (action: () => Promise<unknown>) => {
+    try { await action(); effacer(); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
-  } });
+  };
+  // Un libellé de liste s'enregistre sans question ; la suppression la garde (plan d'allègement, point 1.12 ; registre T121)
+  const confirmer = (texte: string, action: () => Promise<unknown>) => setBoite({ type: "confirmation", message: texte, oui: () => faire(action) });
   const envoi = () => Object.fromEntries(fiche.champs.map((c) => {
     const v = f[c.cle] ?? "";
     if (c.type === "choix" || c.type === "annee") return [c.cle, v ? Number(v) : null];
@@ -66,8 +68,7 @@ function PageBudget({ page, changer }: { page: string; changer: (p: string) => v
     <>
       <div className="ligne-champ">{fiche.champs.map(champ)}</div>
       <div className="actions-onglets">
-        <button className="bouton" type="button" onClick={() => confirmer(choisi === null ? "Voulez-vous vraiment enregistrer ?" : "Voulez-vous vraiment modifier ?",
-          () => api.budget.enregistrer(page, envoi(), choisi ?? undefined))}>Enregistrer</button>
+        <button className="bouton" type="button" onClick={() => faire(() => api.budget.enregistrer(page, envoi(), choisi ?? undefined))}>Enregistrer</button>
         <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
         <button className="bouton secondaire" type="button" disabled={choisi === null}
           onClick={() => choisi !== null && confirmer("Voulez-vous vraiment supprimer ?", () => api.budget.supprimer(page, choisi))}>Supprimer</button>
@@ -101,7 +102,7 @@ function PageBudget({ page, changer }: { page: string; changer: (p: string) => v
                   onChange={(e) => setFiltres({ ...filtres, [c.cle]: e.target.value })} /></td>))}</tr>}
             </thead>
             <tbody>
-              {lignes.length === 0 && <tr><td colSpan={fiche.champs.length}>Liste vide</td></tr>}
+              {lignes.length === 0 && <tr><td colSpan={fiche.champs.length}>Aucune ligne.</td></tr>}
               {visibles.map((l) => (
                 <tr key={l.id} className="ligne-choix" tabIndex={0} aria-selected={l.id === choisi} onClick={() => choisir(l)}
                   onKeyDown={(e) => { if (e.key === "Enter") choisir(l); }}>
@@ -110,7 +111,6 @@ function PageBudget({ page, changer }: { page: string; changer: (p: string) => v
               ))}
             </tbody>
           </table>)}</Paginee>
-          {fiche.rafraichir && <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setRelu((x) => x + 1)}>Rafraichir</button></div>}
           <Textes sources={[`Manuel Microfina++, ${PAGES_MANUEL[page]}`, "Manuel Microfina++, p. 12 : modifier, supprimer ; « Les suppressions sont généralement logiques »",
             "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
         </section>

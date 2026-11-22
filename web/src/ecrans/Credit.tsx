@@ -130,7 +130,7 @@ export function Onglet({ page }: { page: string }) {
           <caption>Portefeuille</caption>
           <thead><tr><th scope="col">N° Client</th><th scope="col">Nom</th></tr></thead>
           <tbody>
-            {clients.length === 0 && <tr><td colSpan={2}>Liste vide</td></tr>}
+            {clients.length === 0 && <tr><td colSpan={2}>Aucune ligne.</td></tr>}
             {clients.map((c) => <tr key={c.id}><td>{c.numero}</td><td>{c.nom}</td></tr>)}
           </tbody>
         </table>
@@ -146,7 +146,7 @@ export function Onglet({ page }: { page: string }) {
               onChange={(e) => setFiltres({ ...filtres, [c.cle]: e.target.value })} /></td>))}</tr>}
         </thead>
         <tbody>
-          {lignes.length === 0 && <tr><td colSpan={colonnes.length}>Liste vide</td></tr>}
+          {lignes.length === 0 && <tr><td colSpan={colonnes.length}>Aucune ligne.</td></tr>}
           {visibles.map((l) => (
             <tr key={l.id} className={lecture ? undefined : "ligne-choix"} tabIndex={lecture ? undefined : 0} aria-selected={lecture ? undefined : l.id === choisi}
               onClick={() => choisir(l)} onKeyDown={(e) => { if (e.key === "Enter") choisir(l); }}>

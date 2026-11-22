@@ -48,7 +48,7 @@ export default function DeclarationsSystematiques({ jour }: { jour: string }) {
         <thead><tr><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Nature</th><th scope="col">Mode</th><th scope="col" className="num">Opérations</th>
           <th scope="col" className="num">Total du mois</th><th scope="col" className="num">Plus grosse opération</th><th scope="col">Déclaration</th></tr></thead>
         <tbody>
-          {donnees.lignes.length === 0 && <tr><td colSpan={8}>No records found.</td></tr>}
+          {donnees.lignes.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
           {donnees.lignes.map((x) => (
             <tr key={`${x.tiersId}-${x.sens}`} className="ligne-choix" tabIndex={0} aria-selected={choisi?.tiersId === x.tiersId && choisi.sens === x.sens}
               onClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>

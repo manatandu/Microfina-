@@ -120,7 +120,7 @@ function Analyse({ type }: { type: Type }) {
         {t && <p>{nomComplet(t)}</p>}
         <Paginee lignes={h?.credits ?? []}>{(v) => (<div className="defile-x"><table className="grille">
           <thead><tr><th scope="col">Numéro crédit</th><th scope="col">Produit</th><th scope="col">Date</th><th scope="col" className="num">Montant</th><th scope="col">Observation</th></tr></thead>
-          <tbody>{v.length === 0 && <tr><td colSpan={5}>No records found.</td></tr>}
+          <tbody>{v.length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
             {v.map((c) => <tr key={c.numero}><td className="code">{c.numero}</td><td>{c.produit}</td><td className="chiffres">{fr(c.date)}</td>
               <td className="num chiffres">{montant(c.montant, "CDF")}</td><td>{c.observation}</td></tr>)}</tbody>
         </table></div>)}</Paginee>

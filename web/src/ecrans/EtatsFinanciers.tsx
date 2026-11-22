@@ -233,7 +233,7 @@ function EditionAnnexes({ ctx, jour }: { ctx: Ctx; jour: string }) {
       {r?.forme === "monnaies" && <div className="defile-x"><table className="grille"><caption>{r.titre}, au {fr(r.au)}{texteEdition(r?.edition)}</caption>
         <thead><tr><th scope="col">Monnaie</th><th scope="col" className="num">Avoirs</th><th scope="col" className="num">Avoirs (CDF)</th><th scope="col" className="num">Engagements</th><th scope="col" className="num">Engagements (CDF)</th>
           <th scope="col" className="num">Position nette (CDF)</th></tr></thead>
-        <tbody>{r.lignes.length === 0 && <tr><td colSpan={6}>No records found.</td></tr>}
+        <tbody>{r.lignes.length === 0 && <tr><td colSpan={6}>Aucune ligne.</td></tr>}
           {r.lignes.map((x) => <tr key={x.devise}><td className="code">{x.devise}</td><td className="num chiffres">{n(x.avoirs)}</td><td className="num chiffres">{n(x.avoirsCdf)}</td><td className="num chiffres">{n(x.engagements)}</td>
             <td className="num chiffres">{n(x.engagementsCdf)}</td><td className="num chiffres">{n(x.positionCdf)}</td></tr>)}</tbody>
       </table></div>}
@@ -258,7 +258,7 @@ function EditionAnnexes({ ctx, jour }: { ctx: Ctx; jour: string }) {
       </div>}
       {r?.forme === "tableau" && <div className="defile-x"><table className="grille"><caption>{r.titre}, au {fr(r.au)}, en CDF{r.balanceDu ? `, balance âgée du ${fr(r.balanceDu)}` : ""}{texteEdition(r?.edition)}</caption>
         <thead><tr><th scope="col"></th>{r.colonnes.map((c) => <th key={c.titre} scope="col" className="num">{c.titre}</th>)}</tr></thead>
-        <tbody>{r.lignes.length === 0 && <tr><td colSpan={r.colonnes.length + 1}>No records found.</td></tr>}
+        <tbody>{r.lignes.length === 0 && <tr><td colSpan={r.colonnes.length + 1}>Aucune ligne.</td></tr>}
           {r.lignes.map((l) => <tr key={l.libelle}><th scope="row">{l.libelle}</th>{l.valeurs.map((v, i) => <td key={i} className="num chiffres">{r.colonnes[i]!.type === "montant" ? n(v) : v}</td>)}</tr>)}</tbody>
         {r.totaux.length > 0 && <tfoot><tr><th scope="row">TOTAL</th>{r.totaux.map((v, i) => <td key={i} className="num chiffres"><strong>{r.colonnes[i]!.type === "montant" ? n(v) : v}</strong></td>)}</tr></tfoot>}
       </table></div>}

@@ -50,7 +50,7 @@ export default function Journaux() {
           <Paginee lignes={liste}>{(visibles) => (<table className="grille">
             <thead><tr><th scope="col">N° Journal</th><th scope="col">Libellé</th><th scope="col">Type Journal</th><th scope="col">Actif</th></tr></thead>
             <tbody>
-              {liste.length === 0 && <tr><td colSpan={4}>Liste vide</td></tr>}
+              {liste.length === 0 && <tr><td colSpan={4}>Aucune ligne.</td></tr>}
               {visibles.map((j) => (
                 <tr key={j.id} className="ligne-choix" tabIndex={0} aria-selected={j.id === choisi} onClick={() => choisir(j)} onKeyDown={(e) => { if (e.key === "Enter") choisir(j); }}>
                   <td>{j.code}</td><td>{j.libelle}</td><td>{j.typeLibelle}</td><td><input type="checkbox" aria-label={`Actif : ${j.code}`} checked={j.actif} disabled /></td>

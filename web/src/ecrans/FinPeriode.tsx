@@ -124,7 +124,7 @@ function InteretsCredits({ jour }: { jour: string }) {
     {r && <table className="grille"><caption>Intérêts courus au {fr(r.date)}</caption>
       <thead><tr><th scope="col">N° crédit</th><th scope="col">Client</th><th scope="col">Devise</th><th scope="col" className="num">Montant prêt</th><th scope="col" className="num">Intérêt couru</th>
         <th scope="col" className="num">Déjà passé</th><th scope="col" className="num">A passer</th><th scope="col">Compte créance</th><th scope="col">Compte produit</th></tr></thead>
-      <tbody>{r.lignes.length === 0 && <tr><td colSpan={9}>Aucune donnée dans la liste</td></tr>}
+      <tbody>{r.lignes.length === 0 && <tr><td colSpan={9}>Aucune ligne.</td></tr>}
         {r.lignes.map((x) => <tr key={x.id}><td className="code">{x.numero}</td><td>{x.client}</td><td>{x.devise}</td><td className="num chiffres">{n(x.montant)}</td>
           <td className="num chiffres">{n(x.couru)}</td><td className="num chiffres">{n(x.dejaPasse)}</td><td className="num chiffres">{n(x.aPasser)}</td>
           <td className="code">{x.compteRattache}</td><td className="code">{x.compteProduit}</td></tr>)}</tbody>

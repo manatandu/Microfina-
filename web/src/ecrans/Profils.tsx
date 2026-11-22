@@ -40,7 +40,7 @@ export default function GestionProfils() {
         <table className="grille">
           <thead><tr><th scope="col">Libellé profil</th><th scope="col">Description profil</th></tr></thead>
           <tbody>
-            {donnees.profils.length === 0 && <tr><td colSpan={2}>Liste vide</td></tr>}
+            {donnees.profils.length === 0 && <tr><td colSpan={2}>Aucune ligne.</td></tr>}
             {(donnees.profils as Profil[]).map((p) => (
               <tr key={p.id} className="ligne-choix" tabIndex={0} aria-selected={p.id === choisi} onClick={() => choisir(p)} onKeyDown={(e) => { if (e.key === "Enter") choisir(p); }}>
                 <td>{p.nom}</td><td>{p.description}</td>

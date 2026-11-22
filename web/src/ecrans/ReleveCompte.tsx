@@ -152,7 +152,7 @@ export function ReleveCompte() {
         <div className="defile-x"><table className="grille">
           <thead><tr><th scope="col">Nom</th><th scope="col">Post-nom</th><th scope="col">Prénom</th><th scope="col">Pièce</th><th scope="col">N° pièce</th></tr></thead>
           <tbody>
-            {(membres ?? []).length === 0 && <tr><td colSpan={5}>No records found.</td></tr>}
+            {(membres ?? []).length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
             {(membres ?? []).map((m, i) => <tr key={i}><td>{m.nom}</td><td>{m.postnom}</td><td>{m.prenom}</td><td>{m.pieceType}</td><td className="chiffres">{m.pieceNumero}</td></tr>)}
           </tbody>
         </table></div>

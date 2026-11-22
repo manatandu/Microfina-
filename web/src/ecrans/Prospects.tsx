@@ -56,7 +56,7 @@ export function NouveauProspect() {
       <Paginee lignes={liste}>{(visibles) => (<table className="grille">
         <thead><tr><th scope="col">Nom / Prenom</th><th scope="col">Né(e) le</th><th scope="col">Profession</th><th scope="col">Quartier</th><th scope="col">Agence</th></tr></thead>
         <tbody>
-          {liste.length === 0 && <tr><td colSpan={5}>No records found.</td></tr>}
+          {liste.length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
           {visibles.map((t) => (
             <tr key={t.id} className="ligne-choix" tabIndex={0} aria-selected={choisi === t.id}
               onClick={() => { setChoisi(t.id); setD({ nom: t.nom, prenom: t.prenom, naissance: t.naissance, lieuNaissance: t.lieuNaissance, sexe: t.sexe, profession: t.profession,

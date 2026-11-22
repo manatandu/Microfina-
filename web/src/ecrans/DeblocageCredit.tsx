@@ -25,8 +25,8 @@ function ChoixCredit({ choisir }: { choisir: (id: number) => void }) {
     <Fiche titre="Crédits à débloquer" ouverte={ouverte} fermer={() => setOuverte(false)}>
       <div className="defile-x"><table className="grille">
         <thead><tr><th scope="col">N° crédit</th><th scope="col">Client</th><th scope="col" className="num">Montant du prêt</th></tr></thead>
-        <tbody>{(l ?? []).length === 0 && <tr><td colSpan={3}>No records found.</td></tr>}
-          {(l ?? []).map((x) => <tr key={x.id} onDoubleClick={() => { choisir(x.id); setOuverte(false); }}><td className="code">{x.numero}</td><td>{x.client}</td>
+        <tbody>{(l ?? []).length === 0 && <tr><td colSpan={3}>Aucune ligne.</td></tr>}
+          {(l ?? []).map((x) => <tr key={x.id} onClick={() => { choisir(x.id); setOuverte(false); }}><td className="code">{x.numero}</td><td>{x.client}</td>
             <td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td></tr>)}</tbody>
       </table></div>
     </Fiche>
@@ -50,7 +50,7 @@ function Retenues({ d }: { d: Detail }) {
     <div className="pile">
       <div className="defile-x"><table className="grille">
         <thead><tr><th scope="col">Libellé</th><th scope="col" className="num">Valeur</th><th scope="col">Compte</th></tr></thead>
-        <tbody>{r.frais.length === 0 && <tr><td colSpan={3}>No records found.</td></tr>}
+        <tbody>{r.frais.length === 0 && <tr><td colSpan={3}>Aucune ligne.</td></tr>}
           {r.frais.map((f) => <tr key={f.libelle}><td>{f.libelle}</td><td className="num chiffres">{montant(f.montant, dv)}</td><td className="code">{f.compte}</td></tr>)}</tbody>
       </table></div>
       <dl className="infos">

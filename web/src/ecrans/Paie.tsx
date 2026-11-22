@@ -55,7 +55,7 @@ function RechercheEmploye({ ouverte, fermer, choisir }: { ouverte: boolean; ferm
   return <Fiche titre="Recherche d'un employé" ouverte={ouverte} fermer={fermer}>
     <table className="grille"><thead><tr>{cols.map(([, t]) => <th key={t} scope="col">{t}</th>)}</tr>
       <tr className="filtres">{cols.map(([k, t]) => <td key={k}><input className="saisie" type="search" aria-label={`Filtrer ${t}`} value={f[k] ?? ""} onChange={(e) => setF({ ...f, [k]: e.target.value })} /></td>)}</tr></thead>
-      <tbody>{lignes.length === 0 && <tr><td colSpan={4}>Aucune donnée trouvée</td></tr>}
+      <tbody>{lignes.length === 0 && <tr><td colSpan={4}>Aucune ligne.</td></tr>}
         {lignes.map((l) => <tr key={l.id} className="ligne-choix" tabIndex={0} onClick={() => { choisir(l.id); fermer(); }} onKeyDown={(e) => { if (e.key === "Enter") { choisir(l.id); fermer(); } }}>
           {cols.map(([k]) => <td key={k}>{l[k]}</td>)}</tr>)}</tbody></table>
   </Fiche>;
@@ -127,7 +127,6 @@ export function NouvelEmploye() {
       <h1>Enregistrement d'un employé</h1>
       <div className="actions-onglets">
         <button className="bouton secondaire" type="button" disabled={!v("typeContrat")} onClick={() => setFenetre("contrat")}>Visualiser le contrat</button>
-        <button className="bouton secondaire" type="button" aria-label="Nouvel employé" onClick={nouveau}>+</button>
         <button className="bouton secondaire" type="button" aria-label="Rechercher un employé" onClick={() => setFenetre("recherche")}>Rechercher</button>
         <button className="bouton secondaire" type="button" onClick={nouveau}>Annuler</button>
       </div>
@@ -163,7 +162,7 @@ export function NouvelEmploye() {
         </div>
         <fieldset className="cadre-champs"><legend>Grilles</legend>
           <table className="grille"><thead><tr><th scope="col">Libellé</th><th scope="col">Type</th><th scope="col"><span className="sr-only">Retirer</span></th></tr></thead>
-            <tbody>{grillesVues.length === 0 && <tr><td colSpan={3}>Aucune donnée trouvée</td></tr>}
+            <tbody>{grillesVues.length === 0 && <tr><td colSpan={3}>Aucune ligne.</td></tr>}
               {grillesVues.map((g) => <tr key={g.id}><td>{g.libelle}</td><td>{g.type}</td><td><button className="bouton secondaire" type="button" aria-label={`Supprimer ${g.libelle}`}
                 onClick={() => setGrilles(grilles.filter((x) => x !== g.id))}>Supprimer</button></td></tr>)}</tbody></table>
           <div className="actions-onglets">
@@ -196,7 +195,7 @@ export function NouvelEmploye() {
           <button className="bouton secondaire" type="button" onClick={() => setP({})}>Effacer</button></div>
         <table className="grille"><caption>Liste des personnes en charge</caption>
           <thead><tr><th scope="col">Nom</th><th scope="col">Prénoms</th><th scope="col">Date de naissance</th><th scope="col">Conjoint</th><th scope="col">Employé</th><th scope="col">Enfant propre</th><th scope="col"><span className="sr-only">Supprimer</span></th></tr></thead>
-          <tbody>{personnes.length === 0 && <tr><td colSpan={7}>Aucune donnée trouvée</td></tr>}
+          <tbody>{personnes.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
             {personnes.map((x, i) => <tr key={i}><td>{x.nom}</td><td>{x.prenoms}</td><td>{x.dateNaissance ? fr(x.dateNaissance) : ""}</td><td>{x.conjoint ? "Oui" : "Non"}</td>
               <td>{x.employe ? "Oui" : "Non"}</td><td>{x.enfantPropre ? "Oui" : "Non"}</td>
               <td><button className="bouton secondaire" type="button" onClick={() => setPersonnes(personnes.filter((_, j) => j !== i))}>Supprimer</button></td></tr>)}</tbody></table>
@@ -241,7 +240,7 @@ function Maquette({ ctx }: { ctx: Ctx }) {
       employeId: emp, rubriqueId: f.rubriqueId ? Number(f.rubriqueId) : null, montant: f.montant === "" ? null : Number(f.montant), session: f.session, active: f.active, intersession: f.intersession, permanente: f.permanente }))}>Enregistrer</button></div>
     <table className="grille"><caption>Rubriques de l'employé</caption>
       <thead><tr><th scope="col">Rubrique</th><th scope="col" className="num">Montant</th><th scope="col">Session</th><th scope="col">Active</th><th scope="col">Intersession</th><th scope="col">Permanente</th><th scope="col"><span className="sr-only">Retirer</span></th></tr></thead>
-      <tbody>{(lignes ?? []).length === 0 && <tr><td colSpan={7}>Aucune donnée trouvée</td></tr>}
+      <tbody>{(lignes ?? []).length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
         {(lignes ?? []).map((l) => <tr key={l.id}><td>{l.rubrique}</td><td className="num chiffres">{n(l.montant)}</td><td>{l.session}</td><td>{l.active ? "Oui" : "Non"}</td>
           <td>{l.intersession ? "Oui" : "Non"}</td><td>{l.permanente ? "Oui" : "Non"}</td>
           <td><button className="bouton secondaire" type="button" onClick={() => confirmer("Voulez-vous vraiment supprimer ?", () => api.paie.retirerMaquette(l.id))}>Supprimer</button></td></tr>)}</tbody></table>
@@ -270,7 +269,7 @@ function ListeEmployes({ ctx }: { ctx: Ctx }) {
       <Paginee lignes={lignes}>{(vis) => <div className="defile-x"><table className="grille">
         <thead><tr><th scope="col">Matricule</th><th scope="col">Nom et Prénoms</th><th scope="col">Catégorie salariale</th><th scope="col">Date d'embauche</th><th scope="col">Poste</th><th scope="col">Fonction</th></tr>
           <tr className="filtres"><td></td><td><input className="saisie" type="search" aria-label="Filtrer Nom et Prénoms" value={filtre} onChange={(e) => setFiltre(e.target.value)} /></td><td colSpan={4}></td></tr></thead>
-        <tbody>{lignes.length === 0 && <tr><td colSpan={6}>Aucune donnée trouvée</td></tr>}
+        <tbody>{lignes.length === 0 && <tr><td colSpan={6}>Aucune ligne.</td></tr>}
           {vis.map((l) => <tr key={l.id}><td className="code">{l.matricule}</td><td>{l.nomPrenoms}</td><td>{l.categorieSalariale}</td><td>{fr(l.dateEmbauche)}</td><td>{l.poste}</td><td>{l.fonction}</td></tr>)}</tbody>
       </table></div>}</Paginee>
       <div className="actions-onglets">
@@ -321,7 +320,7 @@ export function RetenuesSalaire() {
   const grille = (l: NonNullable<typeof toutes>, viser: boolean) => <table className="grille">
     <thead><tr><th scope="col">Matricule</th><th scope="col">Employé</th><th scope="col">Type de retenue</th><th scope="col">Session</th><th scope="col" className="num">Montant</th>
       <th scope="col" className="num">Durée</th><th scope="col" className="num">Par session</th><th scope="col">Etat</th>{viser && <th scope="col"><span className="sr-only">Viser</span></th>}</tr></thead>
-    <tbody>{l.length === 0 && <tr><td colSpan={viser ? 9 : 8}>Aucune donnée trouvée</td></tr>}
+    <tbody>{l.length === 0 && <tr><td colSpan={viser ? 9 : 8}>Aucune ligne.</td></tr>}
       {l.map((r) => <tr key={r.id}><td className="code">{r.matricule}</td><td>{r.employe}</td><td>{r.type}</td><td>{r.session}</td><td className="num chiffres">{n(r.montant)}</td>
         <td className="num chiffres">{r.duree}</td><td className="num chiffres">{n(r.mensualite)}</td><td>{r.statut === "visee" ? `Visée par ${r.visePar}` : `Mise en place par ${r.saisiPar}`}</td>
         {viser && <td><button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment viser cette retenue ?", () => api.paie.viser(r.id))}>Viser</button></td>}</tr>)}</tbody></table>;

@@ -46,7 +46,7 @@ export default function Comptabilisation() {
         <Paginee lignes={lignes}>{(v) => (<div className="defile-x"><table className="grille">
           <thead><tr><th scope="col">Date opération</th><th scope="col">N°Pièce</th><th scope="col">N° Compte</th><th scope="col" className="num">Débit</th><th scope="col" className="num">Crédit</th>
             <th scope="col">Référence écriture</th><th scope="col">Intitulé</th></tr></thead>
-          <tbody>{v.length === 0 && <tr><td colSpan={7}>{j ? "Aucune donnée dans la liste" : "Aucune journée à comptabiliser."}</td></tr>}
+          <tbody>{v.length === 0 && <tr><td colSpan={7}>{j ? "Aucune ligne." : "Aucune journée à comptabiliser."}</td></tr>}
             {v.map((l, i) => <tr key={i}><td className="chiffres">{fr(l.date)}</td><td className="code">{l.piece}</td><td className="code">{l.compte}</td>
               <td className="num chiffres">{m(l.debit, l.devise)}</td><td className="num chiffres">{m(l.credit, l.devise)}</td><td className="code">{l.reference}</td><td>{l.intitule}</td></tr>)}</tbody>
         </table></div>)}</Paginee>

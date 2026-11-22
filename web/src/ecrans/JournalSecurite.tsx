@@ -40,7 +40,7 @@ export default function JournalSecurite() {
         <Paginee lignes={donnees} colonnes={(x) => [heure(x.le), x.evenementLibelle, x.login, x.utilisateur, x.ip, x.detail]}>{(visibles) => (<div className="defile-x"><table className="grille">
           <thead><tr><th scope="col">Date et heure</th><th scope="col">Événement</th><th scope="col">Identifiant</th><th scope="col">Utilisateur</th><th scope="col">Adresse</th><th scope="col">Détail</th></tr><LigneFiltres titres={["Date et heure", "Événement", "Identifiant", "Utilisateur", "Adresse", "Détail"]} /></thead>
           <tbody>
-            {visibles.length === 0 && <tr><td colSpan={6}>No records found.</td></tr>}
+            {visibles.length === 0 && <tr><td colSpan={6}>Aucune ligne.</td></tr>}
             {visibles.map((x, i) => (
               <tr key={i}><td className="chiffres">{heure(x.le)}</td><td>{ALERTES.has(x.evenement) ? <strong>{x.evenementLibelle}</strong> : x.evenementLibelle}</td>
                 <td className="chiffres">{x.login}</td><td>{x.utilisateur}</td><td className="chiffres">{x.ip}</td><td>{x.detail}</td></tr>))}

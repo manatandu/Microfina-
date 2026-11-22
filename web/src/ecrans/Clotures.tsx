@@ -70,7 +70,7 @@ export default function ClotureCompte() {
           <thead><tr><th scope="col"><span className="sr-only">Verser</span></th><th scope="col">Compte</th><th scope="col">Client</th><th scope="col">Clôturé le</th>
             <th scope="col" className="num">Solde</th><th scope="col">Versé à la BCC le</th><th scope="col">Référence</th></tr></thead>
           <tbody>
-            {visibles.length === 0 && <tr><td colSpan={7}>Aucune donnée dans la liste</td></tr>}
+            {visibles.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
             {visibles.map((x) => <tr key={x.id}>
               <td>{!x.verseeBccLe && <input type="checkbox" aria-label={`Verser : ${x.compte}`} checked={coches.includes(x.id)} onChange={(e) => setCoches(e.target.checked ? [...coches, x.id] : coches.filter((y) => y !== x.id))} />}</td>
               <td className="chiffres">{x.compte}</td><td>{x.client} ({x.membre})</td><td className="chiffres">{fr(x.dateCloture)}</td>

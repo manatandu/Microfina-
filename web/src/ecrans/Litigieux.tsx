@@ -91,7 +91,7 @@ export default function Litigieux() {
         </div>
         <div className="defile-x"><table className="grille">
           <thead><tr><th scope="col">Type de résolution</th><th scope="col">Référence</th><th scope="col">Ouvert le</th><th scope="col">Clos le</th><th scope="col">Issue</th></tr></thead>
-          <tbody>{(s?.contentieux ?? []).length === 0 && <tr><td colSpan={5}>Aucune donnée dans la liste</td></tr>}
+          <tbody>{(s?.contentieux ?? []).length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
             {(s?.contentieux ?? []).map((x) => <tr key={x.id}><td>{x.typeLibelle}</td><td className="code">{x.reference}</td><td className="chiffres">{fr(x.ouvertLe)}</td><td className="chiffres">{fr(x.closLe)}</td><td>{x.issue}</td></tr>)}</tbody>
         </table></div>
         <Textes sources={["Instr. BCC 003, art. 5 : crédit prorogé = échéances modifiées à la demande du membre ou client, avant ou après l'échéance ; une seule prorogation ; art. 12 : provisionné comme un crédit litigieux à compter de son échéancier initial",

@@ -40,7 +40,7 @@ export default function PersonnesApparentees() {
       </fieldset>
       <Paginee lignes={donnees}>{(v) => (<div className="defile-x"><table className="grille">
         <thead><tr><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Lien</th><th scope="col"><span className="sr-only">Retirer</span></th></tr></thead>
-        <tbody>{v.length === 0 && <tr><td colSpan={4}>No records found.</td></tr>}
+        <tbody>{v.length === 0 && <tr><td colSpan={4}>Aucune ligne.</td></tr>}
           {v.map((x) => <tr key={x.tiersId}><td className="code">{x.numero}</td><td>{x.client}</td><td>{libelle(x.lien)}</td>
             <td><button className="bouton secondaire" type="button" onClick={() => marquer(x.tiersId, null, "Voulez-vous vraiment retirer cette personne des apparentés ?")}>Retirer</button></td></tr>)}</tbody>
       </table></div>)}</Paginee>

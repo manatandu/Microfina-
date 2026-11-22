@@ -106,7 +106,7 @@ export function VisaClient() {
             <table className="grille">
               <thead><tr><th scope="col">Libellé Frais</th><th scope="col">Compte</th><th scope="col">Nbre</th><th scope="col">Montant</th></tr></thead>
               <tbody>
-                {(!t || frais.length === 0) && <tr><td colSpan={4}>Liste vide</td></tr>}
+                {(!t || frais.length === 0) && <tr><td colSpan={4}>Aucune ligne.</td></tr>}
                 {/* Registre S40-1 : Nbre = 1, ou le nombre de parts pour la part sociale (au moins une, loi 002/2002, art. 22, 2°) ; Montant = Nbre × valeur */}
                 {t && frais.map((f, i) => <tr key={i}><td>{f.libelle}</td><td className="chiffres">{f.compte}</td><td className="chiffres">1</td>
                   <td className="chiffres">{f.montant === null ? "" : montant(f.montant, "CDF")}</td></tr>)}
@@ -172,9 +172,9 @@ export function RechercheClient({ source, choisir, fermer }: { source: (q: strin
         <Paginee lignes={liste}>{(visibles) => (<table className="grille">
           <thead><tr><th scope="col">Numéro</th><th scope="col">Nom prénom/raison s.</th><th scope="col">Agence</th></tr></thead>
           <tbody>
-            {liste.length === 0 && <tr><td colSpan={3}>Liste vide</td></tr>}
+            {liste.length === 0 && <tr><td colSpan={3}>Aucune ligne.</td></tr>}
             {visibles.map((t) => (
-              <tr key={t.id} className="ligne-choix" tabIndex={0} onDoubleClick={() => choisir(t)} onKeyDown={(e) => { if (e.key === "Enter") choisir(t); }}>
+              <tr key={t.id} className="ligne-choix" tabIndex={0} onClick={() => choisir(t)} onKeyDown={(e) => { if (e.key === "Enter") choisir(t); }}>
                 <td className="chiffres">{t.numero}</td><td>{nomComplet(t)}</td><td>{donnees?.ctx.agence.nom ?? ""}</td>
               </tr>
             ))}
@@ -229,7 +229,7 @@ export function ModificationFrais() {
             <table className="grille">
               <thead><tr><th scope="col">Libellé</th><th scope="col">Compte</th><th scope="col">Nombre</th><th scope="col">Montant (CDF)</th></tr></thead>
               <tbody>
-                {(!t || frais.length === 0) && <tr><td colSpan={4}>Liste vide</td></tr>}
+                {(!t || frais.length === 0) && <tr><td colSpan={4}>Aucune ligne.</td></tr>}
                 {t && frais.map((f) => (
                   <tr key={f.fraisId}><td>{f.libelle}</td><td className="chiffres">{f.compte}</td><td></td>
                     <td><input className="saisie montant" inputMode="decimal" autoComplete="off" aria-label={`Montant de ${f.libelle}`} value={saisie(f)} readOnly={f.part}
@@ -270,7 +270,7 @@ function DetailClient({ t }: { t: Tiers }) {
   const { donnees: cx } = useDonnees(() => api.referentiel.contexte() as Promise<Agents>);
   const lu = (libelle: string, v: string) => <Champ libelle={libelle}>{(p) => <Lecture {...p} value={v} />}</Champ>;
   const coche = (libelle: string, v: boolean) => <label className="case"><input type="checkbox" checked={v} disabled /><span>{libelle}</span></label>;
-  const reps = (l: Representant[]) => l.length === 0 ? <p>Liste vide</p> : (
+  const reps = (l: Representant[]) => l.length === 0 ? <p>Aucune ligne.</p> : (
     <table className="grille"><thead><tr><th scope="col">Nom</th><th scope="col">Pièce</th><th scope="col">Signature</th></tr></thead>
       <tbody>{l.map((r, i) => <tr key={i}><td>{nomComplet(r)}</td><td>{r.pieceType} <span className="chiffres">{r.pieceNumero}</span></td><td>{r.specimen ? "Oui" : "Non"}</td></tr>)}</tbody></table>
   );
@@ -303,14 +303,14 @@ function DetailClient({ t }: { t: Tiers }) {
         {o === 2 && <div className="formulaire">
           {lu("Secteur d'activité :", t.secteurActivite ?? "")}{lu("Type d'activité :", t.typeActivite ?? "")}{t.type === "physique" && lu("Profession :", t.profession)}
           {lu("Adresse :", t.adresse)}{lu("BP :", t.bp)}{coche("Personne politiquement exposée", t.personneExposee)}</div>}
-        {o === 3 && (!liees || liees.length === 0 ? <p>Liste vide</p> : (
+        {o === 3 && (!liees || liees.length === 0 ? <p>Aucune ligne.</p> : (
           <table className="grille"><thead><tr><th scope="col">N° du Client</th><th scope="col">Nom</th></tr></thead>
             <tbody>{liees.filter((x): x is Tiers => !!x).map((x) => <tr key={x.id}><td className="chiffres">{x.numero}</td><td>{nomComplet(x)}</td></tr>)}</tbody></table>
         ))}
-        {o === 4 && ((t.beneficiaires ?? []).length === 0 ? <p>Aucun héritier désigné.</p> : (
+        {o === 4 && ((t.beneficiaires ?? []).length === 0 ? <p>Aucune ligne.</p> : (
           <table className="grille"><thead><tr><th scope="col">Nom</th><th scope="col">Lien de parenté</th><th scope="col">Téléphone</th></tr></thead>
             <tbody>{(t.beneficiaires ?? []).map((b, i) => <tr key={i}><td>{[b.nom, b.postnom, b.prenom].filter(Boolean).join(" ")}</td><td>{b.filiation}</td><td>{b.telephone}</td></tr>)}</tbody></table>))}
-        {onglets[o] === "Dirigeant" && (t.dirigeant ? reps([t.dirigeant]) : <p>Liste vide</p>)}
+        {onglets[o] === "Dirigeant" && (t.dirigeant ? reps([t.dirigeant]) : <p>Aucune ligne.</p>)}
         {onglets[o] === "Signataires" && reps(t.signataires)}
         {onglets[o] === "Membres Groupe" && reps(t.membres)}
       </div>
@@ -502,13 +502,13 @@ export function InformationsClient() {
           <table className="grille">
             <thead><tr><th scope="col">N° Compte</th><th scope="col">Produit</th><th scope="col">Solde</th><th scope="col">Bloqué</th><th scope="col">Disponible</th></tr></thead>
             <tbody>
-              {(!detail || detail.comptes.length === 0) && <tr><td colSpan={5}>Liste vide</td></tr>}
+              {(!detail || detail.comptes.length === 0) && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
               {detail?.comptes.map((c) => <tr key={c.id}><td className="chiffres">{c.numero}</td><td>{c.intitule} {c.devise}</td>
                 <td className="chiffres">{montant(c.solde, c.devise)}</td><td className="chiffres">{montant(c.bloque, c.devise)}</td><td className="chiffres">{montant(c.disponible, c.devise)}</td></tr>)}
             </tbody>
           </table>
         )}
-        {t && onglet === 3 && ((detail?.credits ?? []).length === 0 ? <p>Aucun crédit.</p> : (
+        {t && onglet === 3 && ((detail?.credits ?? []).length === 0 ? <p>Aucune ligne.</p> : (
           <table className="grille" aria-label="Crédits du membre"><thead><tr><th scope="col">N° crédit</th><th scope="col">Produit</th><th scope="col" className="num">Montant</th>
             <th scope="col">Débloqué le</th><th scope="col">État</th></tr></thead>
             <tbody>{detail!.credits.map((c) => <tr key={c.numero}><td className="code">{c.numero}</td><td>{c.produit}</td><td className="num chiffres">{montant(c.montant, c.devise as Devise)}</td>
@@ -613,7 +613,7 @@ export function ResiliationClient() {
             <tr><th scope="col">Débit</th><th scope="col">Crédit</th></tr>
           </thead>
           <tbody>
-            {(!t || !comptes || comptes.length === 0) && <tr><td colSpan={3}>Liste vide</td></tr>}
+            {(!t || !comptes || comptes.length === 0) && <tr><td colSpan={3}>Aucune ligne.</td></tr>}
             {t && comptes?.map((c) => <tr key={c.id}><td>{c.intitule} {c.devise}</td><td className="chiffres">{montant(Math.max(0, -c.solde), c.devise)}</td><td className="chiffres">{montant(Math.max(0, c.solde), c.devise)}</td></tr>)}
             {t && devises.map((d) => {
               const l = comptes!.filter((c) => c.devise === d);
@@ -763,7 +763,7 @@ export function PhotosSignatures() {
               <table className="grille">
                 <thead><tr><th scope="col">Nom</th><th scope="col">Prénom</th><th scope="col">Actif</th><th scope="col">Adresse</th><th scope="col">Action</th></tr></thead>
                 <tbody>
-                  {signataires.length === 0 && <tr><td colSpan={5}>Aucun Signataire Renseigné</td></tr>}
+                  {signataires.length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
                   {signataires.map((r, i) => <tr key={i}><td>{r.nom}</td><td>{r.prenom}</td><td>Oui</td><td>{r.adresse}</td><td></td></tr>)}
                 </tbody>
               </table>
@@ -839,7 +839,7 @@ export function Consentement() {
         <table className="grille">
           <thead><tr><th scope="col">Code</th><th scope="col">Date début</th><th scope="col">Date fin</th><th scope="col">Commentaire</th></tr></thead>
           <tbody>
-            {(!liste || liste.length === 0) && <tr><td colSpan={4}>No records found.</td></tr>}
+            {(!liste || liste.length === 0) && <tr><td colSpan={4}>Aucune ligne.</td></tr>}
             {liste?.map((c) => <tr key={c.id}><td className="chiffres">{c.code}</td><td className="chiffres">{fr(c.dateDebut)}</td><td className="chiffres">{fr(c.dateFin)}</td><td>{c.commentaire}</td></tr>)}
           </tbody>
         </table>

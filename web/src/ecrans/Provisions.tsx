@@ -50,7 +50,7 @@ export default function Provisions() {
             <th scope="col" className="num">Capital Restant</th><th scope="col" className="num">Jours de retard</th><th scope="col">Degré</th><th scope="col" className="num">Taux</th>
             <th scope="col" className="num">Provision requise</th><th scope="col" className="num">Provision constituée</th></tr>
             <LigneFiltres titres={[null, "N° crédit", "Client", null, null, null, null, null, null, null, null]} /></thead>
-          <tbody>{v.length === 0 && <tr><td colSpan={11}>Aucune donnée dans la liste</td></tr>}
+          <tbody>{v.length === 0 && <tr><td colSpan={11}>Aucune ligne.</td></tr>}
             {v.map((x) => <tr key={x.id}><td><input type="checkbox" aria-label={`Cocher ${x.numero}`} checked={coches.includes(x.id)}
               onChange={(e) => setCoches(e.target.checked ? [...coches, x.id] : coches.filter((y) => y !== x.id))} /></td>
               <td className="code">{x.numero}</td><td>{x.client}</td><td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td><td className="chiffres">{fr(x.dateDeblocage)}</td>
@@ -90,7 +90,7 @@ function ComptesCourantsDebiteurs() {
       <div className="defile-x"><table className="grille" aria-label="Comptes courants débiteurs à classer">
         <thead><tr><th scope="col">N° compte</th><th scope="col">Client</th><th scope="col" className="num">Solde débiteur</th><th scope="col">Dernier versement</th>
           <th scope="col" className="num">Jours de retard</th><th scope="col">Degré</th><th scope="col" className="num">Taux</th></tr></thead>
-        <tbody>{donnees.candidats.length === 0 && <tr><td colSpan={7}>Aucune donnée dans la liste</td></tr>}
+        <tbody>{donnees.candidats.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
           {donnees.candidats.map((x) => <tr key={x.compteId}><td className="code">{x.numero}</td><td>{x.client}</td><td className="num chiffres">{montant(x.solde, x.devise as Devise)}</td>
             <td className="chiffres">{x.dernierVersement ? fr(x.dernierVersement) : ""}</td><td className="num chiffres">{x.joursRetard}</td><td>{x.degre}</td><td className="num chiffres">{x.taux} %</td></tr>)}</tbody>
       </table></div>
@@ -101,7 +101,7 @@ function ComptesCourantsDebiteurs() {
       <div className="defile-x"><table className="grille" aria-label="Créances sur comptes courants">
         <thead><tr><th scope="col">N° compte</th><th scope="col">Client</th><th scope="col" className="num">Reste dû</th><th scope="col" className="num">Jours de retard</th>
           <th scope="col">Degré</th><th scope="col" className="num">Taux</th><th scope="col" className="num">Provision requise</th><th scope="col" className="num">Provision constituée</th></tr></thead>
-        <tbody>{donnees.creances.length === 0 && <tr><td colSpan={8}>Aucune donnée dans la liste</td></tr>}
+        <tbody>{donnees.creances.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
           {donnees.creances.map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} aria-selected={x.id === choisi} onClick={() => setChoisi(x.id)}
             onKeyDown={(e) => { if (e.key === "Enter") setChoisi(x.id); }}><td className="code">{x.numero}</td><td>{x.client}</td>
             <td className="num chiffres">{montant(x.restant, x.devise as Devise)}</td><td className="num chiffres">{x.joursRetard}</td><td>{x.degre}</td><td className="num chiffres">{x.taux} %</td>

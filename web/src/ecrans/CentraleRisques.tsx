@@ -55,7 +55,7 @@ export default function CentraleRisques() {
           <thead><tr><th scope="col"><span className="sr-only">Choisir</span></th>{COL.map((c) => <th key={c} scope="col" className={c === "Montant" ? "num" : undefined}>{c}</th>)}</tr>
             <LigneFiltres titres={[null, "Événement", "Date", "N° client", "Client", "Crédit ou engagement", null, "Déclaré le", "Référence"]} /></thead>
           <tbody>
-            {visibles.length === 0 && <tr><td colSpan={9}>Aucune donnée dans la liste</td></tr>}
+            {visibles.length === 0 && <tr><td colSpan={9}>Aucune ligne.</td></tr>}
             {visibles.map((e) => (
               <tr key={cleDe(e)}>
                 <td>{!e.declareLe && <input type="checkbox" aria-label={`Choisir : ${e.typeLibelle} ${e.reference || e.membre}`} checked={choisis.has(cleDe(e))} onChange={() => basculer(e)} />}</td>

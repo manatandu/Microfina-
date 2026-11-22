@@ -27,8 +27,8 @@ function ChoixBudget({ ctx, valeur, choisir }: { ctx: Ctx; valeur: string; chois
     <Fiche titre="Recherche d'un budget" ouverte={ouverte} fermer={() => setOuverte(false)}>
       <div className="pile"><div className="defile-x"><table className="grille">
         <thead><tr><th scope="col">Code</th><th scope="col">Libellé</th><th scope="col">Année</th></tr></thead>
-        <tbody>{ctx.plans.length === 0 && <tr><td colSpan={3}>No records found.</td></tr>}
-          {ctx.plans.map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} onDoubleClick={() => { choisir(String(x.id)); setOuverte(false); }}
+        <tbody>{ctx.plans.length === 0 && <tr><td colSpan={3}>Aucune ligne.</td></tr>}
+          {ctx.plans.map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} onClick={() => { choisir(String(x.id)); setOuverte(false); }}
             onKeyDown={(e) => { if (e.key === "Enter") { choisir(String(x.id)); setOuverte(false); } }}><td className="code">{x.code}</td><td>{x.libelle}</td><td className="chiffres">{x.annee}</td></tr>)}</tbody>
       </table></div><div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setOuverte(false)}>Fermer</button></div></div>
     </Fiche>
@@ -88,7 +88,7 @@ function DetailBudget({ ctx }: { ctx: Ctx }) {
         <caption>{`${r.budget.code} ${r.budget.libelle}, ${r.budget.annee}, en CDF`}</caption>
         <thead><tr><th scope="col">Type budget</th><th scope="col">Période</th><th scope="col">N°</th><th scope="col">Ligne budgétaire</th><th scope="col">Financement</th><th scope="col">Compte</th>
           <th scope="col">Intitulé</th><th scope="col" className="num">Valeur</th></tr></thead>
-        <tbody>{r.lignes.length === 0 && <tr><td colSpan={8}>No records found.</td></tr>}
+        <tbody>{r.lignes.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
           {visibles.map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} aria-selected={x.id === choisi} onClick={() => choisir(x.id)} onKeyDown={(e) => { if (e.key === "Enter") choisir(x.id); }}>
             <td>{x.type}</td><td>{x.periode}</td><td className="code">{x.numero}</td><td>{x.ligne}</td><td>{x.financement}</td><td className="code">{x.compte}</td><td>{x.intitule}</td><td className="num chiffres">{n(x.valeur)}</td></tr>)}</tbody>
         <tfoot><tr><th scope="row" colSpan={7}>Total</th><td className="num chiffres"><strong>{n(r.total)}</strong></td></tr></tfoot>
@@ -184,7 +184,7 @@ function SuiviBudgetaire({ ctx }: { ctx: Ctx }) {
         <caption>{`${r.budget.code} ${r.budget.libelle}, ${r.periode}, du ${fr(r.du)} au ${fr(r.au)}, en CDF`}</caption>
         <thead><tr><th scope="col">Type budget</th><th scope="col">N°</th><th scope="col">Ligne budgétaire</th><th scope="col">Centre de cout</th><th scope="col">Compte</th><th scope="col" className="num">Prévu</th>
           <th scope="col" className="num">Réalisé</th><th scope="col" className="num">Écart</th><th scope="col" className="num">Taux</th></tr></thead>
-        <tbody>{r.lignes.length === 0 && <tr><td colSpan={9}>No records found.</td></tr>}
+        <tbody>{r.lignes.length === 0 && <tr><td colSpan={9}>Aucune ligne.</td></tr>}
           {r.lignes.map((x, i) => <tr key={i}><td>{x.type}</td><td className="code">{x.numero}</td><td>{x.ligne}</td><td>{x.centre}</td><td><span className="code">{x.compte}</span> {x.intitule}</td>
             <td className="num chiffres">{n(x.prevu)}</td><td className="num chiffres">{n(x.realise)}</td><td className="num chiffres">{n(x.ecart)}</td><td className="num chiffres">{pct(x.taux)}</td></tr>)}</tbody>
         <tfoot><tr><th scope="row" colSpan={5}>Total</th><td className="num chiffres"><strong>{n(r.prevu)}</strong></td><td className="num chiffres"><strong>{n(r.realise)}</strong></td>
@@ -196,7 +196,7 @@ function SuiviBudgetaire({ ctx }: { ctx: Ctx }) {
         <caption>{`${r.mode === "financement" ? "Financement" : "Résultat analytique"} : ${r.budget.code} ${r.budget.libelle}, ${r.periode}, du ${fr(r.du)} au ${fr(r.au)}, en CDF`}</caption>
         <thead><tr><th scope="col">{r.mode === "financement" ? "Financement" : "Centre de cout"}</th><th scope="col" className="num">Prévu</th><th scope="col" className="num">Réalisé</th><th scope="col" className="num">Écart</th>
           {r.mode === "analytique" && <><th scope="col" className="num">Charges</th><th scope="col" className="num">Produits</th><th scope="col" className="num">Résultat</th></>}</tr></thead>
-        <tbody>{r.groupes.length === 0 && <tr><td colSpan={r.mode === "analytique" ? 7 : 4}>No records found.</td></tr>}
+        <tbody>{r.groupes.length === 0 && <tr><td colSpan={r.mode === "analytique" ? 7 : 4}>Aucune ligne.</td></tr>}
           {r.groupes.map((g) => <tr key={g.libelle}><td>{g.libelle}</td><td className="num chiffres">{n(g.prevu)}</td><td className="num chiffres">{n(g.realise)}</td><td className="num chiffres">{n(g.ecart)}</td>
             {r.mode === "analytique" && <><td className="num chiffres">{n(g.charges)}</td><td className="num chiffres">{n(g.produits)}</td><td className="num chiffres">{n(g.resultat)}</td></>}</tr>)}</tbody>
       </table></div>}
@@ -240,7 +240,7 @@ function Consommation({ ctx }: { ctx: Ctx }) {
       {r && <div className="defile-x"><table className="grille"><caption>{`Exercice ${r.exercice}, ${r.periode}, du ${fr(r.du)} au ${fr(r.au)}, en CDF`}</caption>
         <thead><tr><th scope="col">Centre de cout</th><th scope="col">N°</th><th scope="col">Ligne budgétaire</th><th scope="col" className="num">Prévu</th><th scope="col" className="num">Consommé</th>
           <th scope="col" className="num">Disponible</th><th scope="col" className="num">Taux</th></tr></thead>
-        <tbody>{r.lignes.length === 0 && <tr><td colSpan={7}>No records found.</td></tr>}
+        <tbody>{r.lignes.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
           {r.lignes.map((x, i) => <tr key={i}><td>{x.centre}</td><td className="code">{x.numero}</td><td>{x.ligne}</td><td className="num chiffres">{n(x.prevu)}</td><td className="num chiffres">{n(x.consomme)}</td>
             <td className="num chiffres">{n(x.disponible)}</td><td className="num chiffres">{pct(x.taux)}</td></tr>)}</tbody>
         <tfoot><tr><th scope="row" colSpan={3}>Total</th><td className="num chiffres"><strong>{n(r.prevu)}</strong></td><td className="num chiffres"><strong>{n(r.consomme)}</strong></td>

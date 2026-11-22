@@ -1,6 +1,6 @@
 id,lot,titre,ecrans,statut,question,reste
 0.1,0,Sortie d'une immobilisation,S139,fait,,
-0.2,0,Création d'un bien,S137,partiel,oui,Plus de numéro de pièce à la création (fait). Reste ta réponse : faut-il passer l'écriture d'acquisition quand la facture n'est pas comptabilisée ?
+0.2,0,Création d'un bien,S137,fait,,
 0.3,0,TVA d'un remboursement de crédit,S55 S76 S106 S108,partiel,,"Écriture corrigée : la TVA va au 433. Le logiciel ne calcule pas encore de TVA sur les intérêts (toujours 0) : à prévoir sur le produit quand l'institution est assujettie (O.-L. 10/001, art. 14 : 80 millions de CDF) et le crédit taxable (art. 17, 14° et 17° ; art. 25, 5°), au lot 2 avec le produit de crédit."
 0.4,0,Séparation des tâches du crédit,S54 S87 S88 S90 S105,fait,,
 0.5,0,Utilisateur qui quitte l'institution,S05 S07,fait,,
@@ -23,7 +23,7 @@ id,lot,titre,ecrans,statut,question,reste
 0.22,0,Dates modifiables qui changent un calcul,S40 S63 S65 S69,à faire,oui,Attend ta réponse : faut-il un droit à part pour enregistrer à une date antérieure à la journée ?
 0.23,0,Cases enregistrées qui n'agissent sur rien,S14 S19 S23 S26 S32 S65 S69 S102 S126 S136,partiel,,"Fait : « A échéance » (S65) et « Mode règlement » (S69). Reste, avec leurs écrans refaits : champs du produit de crédit (lot 2.16), compte interne (2.15), hors bilan 1 et 2 (2.21), options du plan des comptes (2.26), périodicité des familles de biens (9.6), financement et pages du budget (9.4), page Type de pièce (2.7)."
 0.24,0,Écrans non repris encore dans les menus,S129 S130,fait,,
-1.1,1,Tableau vide,,à faire,,
+1.1,1,Tableau vide,,fait,,
 1.2,1,Plus un mot d'anglais,S21 S25 S37 S39 S117,à faire,,
 1.3,1,"Accents, fautes et capitales",,à faire,,
 1.4,1,"Des mots, pas des codes",,à faire,,
@@ -34,12 +34,13 @@ id,lot,titre,ecrans,statut,question,reste
 1.9,1,Dates et périodes,,à faire,,
 1.10,1,Cases à un seul choix,,à faire,,
 1.11,1,Listes qui attendent un autre choix,,à faire,,
-1.12,1,Confirmations,,à faire,,
-1.13,1,Un clic suffit,S09 S125,à faire,,
-1.14,1,Pagination,,à faire,,
-1.15,1,Boutons qui ne font rien de plus,S19 S65 S104 S110 S126 S132 S133 S136,à faire,,
+1.12,1,Confirmations,,partiel,,"Faire dire à la question ce qu'on confirme (client, compte, montant) sur les opérations qui engagent"
+1.13,1,Un clic suffit,S09 S125,fait,,
+1.14,1,Pagination,,fait,,
+1.15,1,Boutons qui ne font rien de plus,S19 S65 S104 S110 S126 S132 S133 S136,fait,,
 1.16,1,"Un mot par notion, le même partout",S42 S44 S46 S48 S49 S73,à faire,,
 1.17,1,Taux d'intérêt du crédit,S23 S25 S84 S95,à faire,,
+1.18,1,"Pas de texte superflu (demande du porteur, 22/11/2026)",,à faire,,
 2.1,2,Activité (l'exemple du porteur),S14 S21 S37 S38 S39 S46,à faire,,
 2.2,2,Sous type de client : supprimé,S14,à faire,,
 2.3,2,Type client : supprimé,S14 S28 S37,à faire,,

@@ -81,7 +81,7 @@ export default function GestionProduitsEpargne() {
         <table className="grille">
           <thead><tr><th scope="col">Code Produit</th><th scope="col">Famille</th><th scope="col">Produit</th></tr></thead>
           <tbody>
-            {donnees.produits.length === 0 && <tr><td colSpan={3}>Liste vide</td></tr>}
+            {donnees.produits.length === 0 && <tr><td colSpan={3}>Aucune ligne.</td></tr>}
             {(donnees.produits as ProduitEpargne[]).map((p) => (
               <tr key={p.id} className="ligne-choix" tabIndex={0} aria-selected={p.id === choisi} onClick={() => choisir(p)} onKeyDown={(e) => { if (e.key === "Enter") choisir(p); }}>
                 <td>{p.code}</td><td>{p.famille}</td><td>{p.libelle}</td>

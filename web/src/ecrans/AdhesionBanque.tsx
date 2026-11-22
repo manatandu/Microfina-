@@ -81,7 +81,7 @@ export function AdhesionBanque() {
           <table className="grille">
             <thead><tr><th scope="col">Libellé Frais</th><th scope="col">Compte</th><th scope="col">Nombre</th><th scope="col">Montant</th></tr></thead>
             <tbody>
-              {(!ap || ap.frais.length === 0) && <tr><td colSpan={4}>Liste des Frais vide</td></tr>}
+              {(!ap || ap.frais.length === 0) && <tr><td colSpan={4}>Aucune ligne.</td></tr>}
               {ap?.frais.map((x) => <tr key={x.fraisId}><td>{x.libelle}</td><td className="chiffres">{x.compte}</td><td></td><td className="chiffres">{montant(x.montant, "CDF")}</td></tr>)}
               {lignePart && <tr><td>{lignePart.libelle}</td><td></td>
                 <td><input className="saisie code court" inputMode="numeric" aria-label="Nombre de parts sociales" value={parts}

@@ -71,7 +71,7 @@ export default function JournalCaisse() {
         <Paginee lignes={l ?? []}>{(vis) => (<div className="defile-x"><table className="grille">
           <thead><tr>{COLONNES.map((t, i) => <th key={t} scope="col" className={i > 4 ? "num" : undefined}>{t}</th>)}</tr></thead>
           <tbody>
-            {vis.length === 0 && <tr><td colSpan={7}>Aucune opération.</td></tr>}
+            {vis.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
             {vis.map((x, i) => <tr key={i}><td className="chiffres">{fr(x.date)}</td><td className="code">{x.client}</td><td className="code">{x.piece}</td><td>{x.libelle}</td>
               <td className="code">{x.devise}</td><td className="num chiffres">{m(x.debit, x.devise)}</td><td className="num chiffres">{m(x.credit, x.devise)}</td></tr>)}
           </tbody>

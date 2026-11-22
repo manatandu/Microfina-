@@ -103,7 +103,7 @@ export default function EngagementSignature() {
           <thead><tr><th scope="col">Référence</th><th scope="col">N° Client</th><th scope="col">Client</th><th scope="col">Type engagement</th><th scope="col" className="num">Montant</th>
             <th scope="col">Date Début</th><th scope="col">Date Fin</th><th scope="col" className="num">Frais</th><th scope="col" className="num">Garantie</th><th scope="col">Fin</th></tr>
             <LigneFiltres titres={["Référence", "N° Client", "Client", "Type engagement", null, null, null, null, null, null]} /></thead>
-          <tbody>{v.length === 0 && <tr><td colSpan={10}>Aucune donnée dans la liste</td></tr>}
+          <tbody>{v.length === 0 && <tr><td colSpan={10}>Aucune ligne.</td></tr>}
             {v.map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} aria-selected={x.id === choisi?.id} onClick={() => setChoisi(x)}>
               <td className="code">{x.reference}</td><td className="code">{x.membre}</td><td>{x.client}</td><td>{x.typeLibelle}</td>
               <td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td><td className="chiffres">{fr(x.dateDebut)}</td><td className="chiffres">{fr(x.dateFin)}</td>

@@ -131,7 +131,7 @@ export function OuvertureFermetureGuichets() {
             <tbody>
               {visibles.map((x) => (
                 <tr key={x.id} className="ligne-choix" tabIndex={0} aria-selected={x.id === choisi}
-                  onDoubleClick={() => setChoisi(x.id)} onKeyDown={(e) => { if (e.key === "Enter") setChoisi(x.id); }}>
+                  onClick={() => setChoisi(x.id)} onKeyDown={(e) => { if (e.key === "Enter") setChoisi(x.id); }}>
                   <td className="chiffres">{x.code}</td><td>{x.typeGuichet}</td><td>{x.nom}</td>
                   <td><input type="checkbox" disabled checked={x.actif} aria-label={`Actif : ${x.nom}`} /></td>
                   <td><input type="checkbox" disabled checked={x.ouvert} aria-label={`Ouvert : ${x.nom}`} /></td>

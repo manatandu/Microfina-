@@ -38,10 +38,11 @@ export default function Localisation() {
   // Sous une commune, un quartier ; sous un secteur ou une chefferie, un groupement (Décret 22/07, art. 9, point 26)
   const quoi = commune?.nature === "Commune" ? "quartier" : "groupement";
   const choisir = (c: typeof choix) => { setChoix(c); setQuartier(null); setNouveau(""); };
-  const confirmer = (texte: string, faire: () => Promise<unknown>, apres?: () => void) => setBoite({ type: "confirmation", message: texte, oui: async () => {
+  const executer = async (faire: () => Promise<unknown>, apres?: () => void) => {
     try { await faire(); apres?.(); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
-  } });
+  };
+  const confirmer = (texte: string, faire: () => Promise<unknown>, apres?: () => void) => setBoite({ type: "confirmation", message: texte, oui: () => executer(faire, apres) });
   const chemin = (l: Lieu) => { const c: string[] = []; for (let r = l.parentId === null ? undefined : parId.get(l.parentId); r; r = r.parentId === null ? undefined : parId.get(r.parentId)) c.unshift(r.nom); return c.join(" / "); };
   const exporter = () => exporterExcel("Localisation", ["Lieu", "Nature", "Niveau", "Situé dans"], lieux.map((l) => [l.nom, l.nature ?? "", LIBELLE[l.niveau], chemin(l)]));
   const liste = (niveau: NiveauLieu, parent: number | undefined, valeur: number | undefined, changer: (id: number | undefined) => void, natures?: string[]) => {
@@ -83,7 +84,7 @@ export default function Localisation() {
           <legend>Ajouter un {quoi} dans {commune.nom}</legend>
           <Champ libelle={`Nom du ${quoi} *`}>{(p) => <input {...p} className="saisie" value={nouveau} onChange={(e) => setNouveau(e.target.value)} />}</Champ>
           <div className="actions-onglets">
-            <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment enregistrer ?",
+            <button className="bouton" type="button" onClick={() => executer(
               () => api.localisation.enregistrer("quartier", { parentId: commune.id, nom: nouveau }), () => setNouveau(""))}>Ajouter</button>
           </div>
         </fieldset>}
@@ -92,7 +93,7 @@ export default function Localisation() {
           <legend>Corriger le {quoi} {quartier.nom}</legend>
           <Champ libelle="Nouveau nom *">{(p) => <input {...p} className="saisie" value={nomQuartier} onChange={(e) => setNomQuartier(e.target.value)} />}</Champ>
           <div className="actions-onglets">
-            <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment modifier ?",
+            <button className="bouton" type="button" onClick={() => executer(
               () => api.localisation.enregistrer("quartier", { parentId: quartier.parentId, nom: nomQuartier }, quartier.id), () => setQuartier(null))}>Modifier</button>
             <button className="bouton secondaire" type="button" onClick={() => confirmer(`Voulez-vous vraiment supprimer ${quartier.nom} ?`,
               () => api.localisation.supprimer("quartier", quartier.id), () => setQuartier(null))}>Supprimer</button>
@@ -107,7 +108,7 @@ export default function Localisation() {
           <caption>{titreContenu} : {contenu.length}</caption>
           <thead><tr><th scope="col">Nom</th>{!commune && province && <th scope="col">Nature</th>}</tr></thead>
           <tbody>
-            {contenu.length === 0 && <tr><td colSpan={2}>Liste vide</td></tr>}
+            {contenu.length === 0 && <tr><td colSpan={2}>Aucune ligne.</td></tr>}
             {contenu.map((l) => <tr key={l.id} className="ligne-choix" tabIndex={0} aria-selected={l.id === quartier?.id} onClick={() => descendre(l)}
               onKeyDown={(e) => { if (e.key === "Enter") descendre(l); }}><td>{l.nom}</td>{!commune && province && <td>{l.nature}</td>}</tr>)}
           </tbody>
@@ -125,7 +126,7 @@ export default function Localisation() {
           <Champ libelle="Zone *">{(p) => <select {...p} className="saisie" value={pays.zone} onChange={(e) => setPays({ ...pays, zone: e.target.value })}>
             <option value=""></option>{donnees.zones.map((z) => <option key={z}>{z}</option>)}</select>}</Champ>
           <div className="actions-onglets">
-            <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment enregistrer ?", () => api.localisation.enregistrer("pays", pays), () => setPays(null))}>Enregistrer</button>
+            <button className="bouton" type="button" onClick={() => executer( () => api.localisation.enregistrer("pays", pays), () => setPays(null))}>Enregistrer</button>
           </div>
         </fieldset>}
       </section>
