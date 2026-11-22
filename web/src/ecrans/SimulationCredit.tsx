@@ -70,8 +70,8 @@ export default function SimulationCredit() {
                 <Champ libelle="Mode différé">{(pp) => <select {...pp} className="saisie" disabled value="Réparti"><option>Réparti</option></select>}</Champ>
               </div>
               <dl className="infos">
-                <div className="info-ligne"><dt>Taux Int.</dt><dd className="chiffres">{fiche ? `${String(fiche.tauxInteret).replace(".", ",")} %` : ""}</dd></div>
-                <div className="info-ligne"><dt>Taux Diff.</dt><dd className="chiffres">{fiche ? `${String(fiche.tauxDiffere).replace(".", ",")} %` : ""}</dd></div>
+                <div className="info-ligne"><dt>Taux d'intérêt mensuel</dt><dd className="chiffres">{fiche ? `${String(fiche.tauxInteret).replace(".", ",")} % (${String(Math.round(Number(fiche.tauxInteret) * 1200) / 100).replace(".", ",")} % l'an)` : ""}</dd></div>
+                <div className="info-ligne"><dt>Taux différé</dt><dd className="chiffres">{fiche ? `${String(fiche.tauxDiffere).replace(".", ",")} %` : ""}</dd></div>
                 <div className="info-ligne"><dt>TEG annuel</dt><dd className="chiffres">{r?.tauxRegle ? "Taux réglementé" : pct(r?.tegR)}</dd></div>
                 <div className="info-ligne"><dt>TEG actuariel</dt><dd className="chiffres">{r?.tauxRegle ? "Taux réglementé" : pct(r?.tegA)}</dd></div>
               </dl>
@@ -99,7 +99,7 @@ export default function SimulationCredit() {
             {r && <dl className="infos">
               {([["Produit", r.produit], ["Périodicité", r.libellePeriodicite], ["Mode de calcul", r.modeCalcul], ["Mode différé", r.modeDiffere],
                 ["Montant du prêt", montant(r.montant, dv)], ["Durée", `${r.duree} mois`], ["Différé", `${r.differe} mois`], ["Nombre de traites", String(r.nombreTraites)],
-                ["Taux d'intérêt", `${r.tauxInteret.replace(".", ",")} % par mois`], ["Taux différé", `${r.tauxDiffere.replace(".", ",")} % par mois`],
+                ["Taux d'intérêt mensuel", `${r.tauxInteret.replace(".", ",")} % par mois (${String(Math.round(Number(r.tauxInteret) * 1200) / 100).replace(".", ",")} % l'an)`], ["Taux différé", `${r.tauxDiffere.replace(".", ",")} % par mois`],
                 ["Date de déblocage", fr(r.dateDeblocage)], ["Première échéance", fr(r.dateDebut)], ["Dernière échéance", fr(r.dateFin)],
                 ["Échéance", montant(r.echeanceConstante, dv)], ["Intérêts du différé", montant(r.interetDiffere, dv)], ["Total des intérêts", montant(r.totalInteret, dv)],
                 ["Frais", montant(r.frais, dv)], ["Assurance", montant(r.assurance, dv)], ["Épargne obligatoire", montant(r.epargneObligatoire, dv)],

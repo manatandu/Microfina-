@@ -25,8 +25,8 @@ TYPES_FRAIS = ["Frais de dossier", "Frais d'hypothèque", "Frais de mise en plac
 CHAMPS = {   # clé -> (colonne, libellé, sorte) ; sorte : texte, nombre, entier, oui (booléen)
     "numero": ("numero", "Num Produit", "texte"), "nom": ("nom", "Nom du produit", "texte"), "typeProduit": ("type_produit", "Type Produit", "texte"),
     "cyclique": ("cyclique", "Cyclique", "oui"), "devise": ("devise", "Devise", "texte"), "modeCalcul": ("mode_calcul", "Mode calcul int", "texte"),
-    "typeInteret": ("type_interet", "Type", "texte"), "tauxInteret": ("taux_interet", "Taux int. (%)", "nombre"),
-    "tauxDiffere": ("taux_differe", "Taux diff. (%)", "nombre"),
+    "typeInteret": ("type_interet", "Type", "texte"), "tauxInteret": ("taux_interet", "Taux d'intérêt mensuel (%)", "nombre"),
+    "tauxDiffere": ("taux_differe", "Taux différé (%)", "nombre"),
     "montantMin": ("montant_min", "Montant minimum", "nombre"), "montantMax": ("montant_max", "Montant maximum", "nombre"),
     "dureeMin": ("duree_min", "Durée minimum", "entier"), "dureeMax": ("duree_max", "Durée maximum", "entier"),
     "differeMin": ("differe_min", "Différé minimum", "entier"), "differeMax": ("differe_max", "Différé maximum", "entier"),
@@ -151,7 +151,7 @@ def valider(u, d) -> tuple[dict, list]:
     if v["differeMax"] >= v["dureeMax"]:
         raise ErreurMetier("Le différé maximum doit être inférieur à la durée maximum.")
     if (v["interetMin"] is not None and v["tauxInteret"] < v["interetMin"]) or (v["interetMax"] is not None and v["tauxInteret"] > v["interetMax"]):
-        raise ErreurMetier("Taux int. (%) hors des bornes Intérêt minimum et maximum.")
+        raise ErreurMetier("Taux d'intérêt mensuel (%) hors des bornes Intérêt minimum et maximum.")
     if v["ageMax"] < 18 or v["ageMax"] > 120:
         raise ErreurMetier("Age max : entre 18 et 120 ans.")
     for nat, val, nom in (("epargneNature", "epargneValeur", "Épargne obligatoire"), ("solidariteNature", "solidariteValeur", "Fonds de solidarité"),

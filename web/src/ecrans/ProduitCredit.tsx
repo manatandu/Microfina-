@@ -51,6 +51,8 @@ export default function ProduitCredit({ listeOuverte = false }: { listeOuverte?:
     try { const r = await api.produitsCredit.enregistrer(envoi(), choisi ?? undefined); setChoisi(r.produit.id); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   } });
+  // Taux du crédit : mensuel, avec l'équivalent annuel proportionnel (× 12 ; Instr. BCC 38, art. 2 ; plan d'allègement, point 1.17)
+  const annuel = (t: string) => { const n = Number(t.replace(",", ".")); return t && Number.isFinite(n) ? String(Math.round(n * 12 * 100) / 100).replace(".", ",") : ""; };
   const texte = (k: string, libelle: string, classe = "saisie") => (
     <Champ libelle={libelle}>{(p) => <input {...p} className={classe} value={String(f[k])} onChange={(e) => setF({ ...f, [k]: e.target.value })} />}</Champ>);
   const choix = (k: string, libelle: string, valeurs: { v: string; l: string }[], vide = true) => (
@@ -68,7 +70,7 @@ export default function ProduitCredit({ listeOuverte = false }: { listeOuverte?:
         {cadre("Maximum", <>{texte("montantMax", "Montant *", "saisie montant")}{texte("dureeMax", "Durée (mois) *", "saisie nombre")}{texte("differeMax", "Différé (mois) *", "saisie nombre")}{texte("interetMax", "Intérêt", "saisie nombre")}</>)}
         {cadre("Identification", <>{choix("typeProduit", "Type Produit *", o.typesProduit.map((t: { code: string; libelle: string }) => ({ v: t.code, l: t.libelle })), false)}{case_("cyclique", "Cyclique")}
           {texte("numero", "Num Produit *", "saisie code")}{texte("nom", "Nom du produit *")}{choix("devise", "Devise *", simple(o.devises))}{choix("modeCalcul", "Mode calcul int *", simple(o.modesCalcul), false)}</>)}
-        {cadre("Intérêt", <>{choix("typeInteret", "Type *", simple(o.typesInteret), false)}{texte("tauxInteret", "Taux int. (%) *", "saisie nombre")}{texte("tauxDiffere", "Taux diff. (%) *", "saisie nombre")}</>)}
+        {cadre("Intérêt", <>{choix("typeInteret", "Type *", simple(o.typesInteret), false)}{texte("tauxInteret", "Taux d'intérêt mensuel (%) *", "saisie nombre")}<Champ libelle="Équivalent annuel (%)">{(p) => <input {...p} className="saisie nombre" readOnly value={annuel(String(f.tauxInteret))} />}</Champ>{texte("tauxDiffere", "Taux différé (%) *", "saisie nombre")}</>)}
       </div>
       <div className="grille-deux">
         {cadre("Types de client", <>{case_("clientPhysique", "Physique")}{case_("clientGroupe", "Groupe")}{case_("clientEntreprise", "Personne morale")}{case_("maxParMembre", "Appliquer montant max. prêt par mbre du groupe")}</>)}
@@ -145,7 +147,7 @@ export default function ProduitCredit({ listeOuverte = false }: { listeOuverte?:
         <Paginee lignes={produits}>{(visibles) => (<table className="grille">
           <caption>Liste des produits crédits</caption>
           <thead>
-            <tr><th scope="col">Numéro</th><th scope="col">Produit</th><th scope="col">Type de client</th><th scope="col" className="num">Taux d'intérêt</th><th scope="col" className="num">Taux différé</th></tr>
+            <tr><th scope="col">Numéro</th><th scope="col">Produit</th><th scope="col">Type de client</th><th scope="col" className="num">Taux d'intérêt mensuel (%)</th><th scope="col" className="num">Taux différé (%)</th></tr>
             <tr className="filtres"><td><input className="saisie" type="search" aria-label="Filtrer Numéro" value={filtres.numero} onChange={(e) => setFiltres({ ...filtres, numero: e.target.value })} /></td>
               <td><input className="saisie" type="search" aria-label="Filtrer Produit" value={filtres.nom} onChange={(e) => setFiltres({ ...filtres, nom: e.target.value })} /></td><td /><td /><td /></tr>
           </thead>
@@ -153,7 +155,7 @@ export default function ProduitCredit({ listeOuverte = false }: { listeOuverte?:
             {produits.length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
             {visibles.map((p: { id: number; numero: string; nom: string; typeClient: string; tauxInteret: number; tauxDiffere: number }) => (
               <tr key={p.id} className="ligne-choix" tabIndex={0} onClick={() => ouvrir(p.id)} onKeyDown={(e) => { if (e.key === "Enter") void ouvrir(p.id); }}>
-                <td>{p.numero}</td><td>{p.nom}</td><td>{p.typeClient}</td><td className="num">{p.tauxInteret.toFixed(1)}</td><td className="num">{p.tauxDiffere.toFixed(1)}</td>
+                <td>{p.numero}</td><td>{p.nom}</td><td>{p.typeClient}</td><td className="num">{p.tauxInteret.toFixed(1).replace(".", ",")}</td><td className="num">{p.tauxDiffere.toFixed(1).replace(".", ",")}</td>
               </tr>
             ))}
           </tbody>

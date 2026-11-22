@@ -9497,7 +9497,7 @@ export const OPTIONS_PRODUIT_CREDIT = {
 type SorteChamp = "texte" | "nombre" | "entier" | "oui" | "id";
 const CHAMPS_PRODUIT: Record<string, [string, SorteChamp]> = {
   numero: ["Num Produit", "texte"], nom: ["Nom du produit", "texte"], typeProduit: ["Type Produit", "texte"], cyclique: ["Cyclique", "oui"], devise: ["Devise", "texte"],
-  modeCalcul: ["Mode calcul int", "texte"], typeInteret: ["Type", "texte"], tauxInteret: ["Taux int. (%)", "nombre"], tauxDiffere: ["Taux diff. (%)", "nombre"],
+  modeCalcul: ["Mode calcul int", "texte"], typeInteret: ["Type", "texte"], tauxInteret: ["Taux d'intérêt mensuel (%)", "nombre"], tauxDiffere: ["Taux différé (%)", "nombre"],
   montantMin: ["Montant minimum", "nombre"], montantMax: ["Montant maximum", "nombre"], dureeMin: ["Durée minimum", "entier"], dureeMax: ["Durée maximum", "entier"],
   differeMin: ["Différé minimum", "entier"], differeMax: ["Différé maximum", "entier"], interetMin: ["Intérêt minimum", "nombre"], interetMax: ["Intérêt maximum", "nombre"],
   clientPhysique: ["Physique", "oui"], clientGroupe: ["Groupe", "oui"], clientEntreprise: ["Personne morale", "oui"], maxParMembre: ["Appliquer montant max. prêt par mbre du groupe", "oui"],
@@ -9586,7 +9586,7 @@ const produitsCredit = {
       if (v[a] !== null && v[b] !== null && (v[b] as number) < (v[a] as number)) throw new ErreurMetier(`${nom} : le maximum est inférieur au minimum.`);
     if ((v.differeMax as number) >= (v.dureeMax as number)) throw new ErreurMetier("Le différé maximum doit être inférieur à la durée maximum.");
     const t = v.tauxInteret as number;
-    if ((v.interetMin !== null && t < (v.interetMin as number)) || (v.interetMax !== null && t > (v.interetMax as number))) throw new ErreurMetier("Taux int. (%) hors des bornes Intérêt minimum et maximum.");
+    if ((v.interetMin !== null && t < (v.interetMin as number)) || (v.interetMax !== null && t > (v.interetMax as number))) throw new ErreurMetier("Taux d'intérêt mensuel (%) hors des bornes Intérêt minimum et maximum.");
     if ((v.ageMax as number) < 18 || (v.ageMax as number) > 120) throw new ErreurMetier("Age max : entre 18 et 120 ans.");
     for (const [nat, val, nom] of [["epargneNature", "epargneValeur", "Épargne obligatoire"], ["solidariteNature", "solidariteValeur", "Fonds de solidarité"], ["assuranceNature", "assuranceValeur", "Assurance"]] as const) {
       if ((v[val] as number) > 0 && v[nat] === null) throw new ErreurMetier(`${nom} : choisir Montant ou Taux.`);

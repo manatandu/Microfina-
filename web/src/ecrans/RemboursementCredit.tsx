@@ -461,7 +461,7 @@ export function ConsulterPret() {
             {ro("Dernier payement", d?.dernierPaiement ? fr(d.dernierPaiement) : "")}{ro("Interêt total", mt(d?.interetTotal))}{ro("Int. restant", mt(d?.interetRestant))}
             {ro("Retard capil.", mt(d?.du.capital))}{ro("Retard intérêt", mt(d?.du.interet))}{ro("Retard fond Solid.", mt(d?.du.solidarite))}{ro("Retard Epargne", mt(d?.du.epargne))}
             {ro("Pénalité", mt(d?.du.penalite))}{ro("Retard total", d ? montant(d.retardTotal, dv) : "")}{ro("Durée prêt (mois)", String(d?.duree ?? ""))}
-            {ro("Taux annuel", d ? decimal.format(d.tauxAnnuel) : "")}{ro("Nbre trait", String(d?.nombreTraites ?? ""))}{ro("Périodicité", d?.periodiciteLibelle ?? "")}
+            {ro("Taux d'intérêt mensuel (%)", d ? decimal.format(d.tauxAnnuel / 12) : "")}{ro("Équivalent annuel (%)", d ? decimal.format(d.tauxAnnuel) : "")}{ro("Nbre trait", String(d?.nombreTraites ?? ""))}{ro("Périodicité", d?.periodiciteLibelle ?? "")}
             {ro("Différé de paiement (jour)", String(d?.differeJours ?? ""))}
           </div>
         </fieldset>
