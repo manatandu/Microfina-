@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**988 décisions.** Solidité : 443 fortes (le manuel ou un texte répond), 463 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 981 déjà en place, 7 à appliquer.
+**989 décisions.** Solidité : 444 fortes (le manuel ou un texte répond), 463 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 982 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2200,6 +2200,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S34-3 | Jours fériés légaux | Les dix jours fériés légaux de l'ordonnance n° 23-042 du 30 mars 2023 (art. 1) sont posés pour chaque exercice, à sa création et dans les données de départ ; un jour qui tombe un dimanche est pris le jour précédent (art. 2). L'institution ajoute ses jours propres ; ceux qu'elle a déjà saisis restent | Texte réglementaire : Ordonnance n° 23-042 du 30 mars 2023 fixant la liste des jours fériés légaux, art. 1 et 2 (JO RDC, 15 mai 2023 ; lue sur droitcongolais.info) ; plan d'allègement, point 2.22 | forte | en place |
+
+## S32 Société ; S33 Agents ; SN01 Normes
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S32-8 | Fiche Société allégée | La fiche Société garde un seul niveau d'onglets (Information Société, Agence) et un Enregistrer par onglet. La zone passe dans l'écran « Agents et zones » (S33), les fonds propres prudentiels, donnée mensuelle, dans les normes prudentielles. « Compte Hors Bilan 1 et 2 » (lus par rien), l'adresse libre en double de l'adresse structurée et le bouton « Liste institution » disparaissent | Choix du porteur : Plan d'allègement, point 2.21 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

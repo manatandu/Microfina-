@@ -1,5 +1,6 @@
 // SN01 : Comptabilité > Indicateurs > Normes prudentielles (confrontation du 21/11/2026, A2, B5, B6). Écran imposé par les textes, absent de Microfina++ ;
 // gabarit de l'édition des indicateurs financiers (S123) : critères, Rechercher, Rein. les champs, Exporter. Instr. BCC 002 ; Instr. BCC 0010 ; loi 002/2002, art. 59 et 60.
+import { FondsPropres } from "./Societe";
 import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
@@ -26,6 +27,7 @@ export default function NormesPrudentielles() {
   return (
     <>
       
+      <FondsPropres />   {/* les fonds propres prudentiels, donnée mensuelle, sont saisis ici (plan d'allègement, point 2.21) */}
       <section className="bloc pile" aria-label="Edition des normes prudentielles">
         <h2>Edition des normes prudentielles</h2>
         <fieldset className="cadre-champs formulaire"><legend className="sr-only">Arrêté</legend>

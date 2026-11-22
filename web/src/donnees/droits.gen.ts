@@ -268,7 +268,8 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "S86"
 ],
 "dossiers.enregistrerFondsPropres": [
-"S32"
+"S32",
+"SN01"
 ],
 "dossiers.marquerApparente": [
 "SC01"

@@ -573,7 +573,7 @@ const OUT = process.argv[2];
   await p.getByRole('cell', { name: 'CR-1' }).waitFor(); await etape('06w-consentement');
   // Dossier de crédit (S86 à S88, p. 113 et 114 ; registre S86 à S88, CR-2, CR-14) : fonds propres saisis par la direction, demande de Kalala par l'agent,
   // contrôle et approbation par le chef d'agence, après consultation de la Centrale des risques
-  await aller('/parametrage/s32'); const fpp = p.getByRole('region', { name: 'Fonds propres prudentiels' });
+  await aller('/comptabilite/sn01'); const fpp = p.getByRole('region', { name: 'Fonds propres prudentiels' });   // saisis avec les normes (plan d'allègement, point 2.21)
   await fpp.getByLabel("Date de l'arrêté *").fill('31/10/2026'); await fpp.getByLabel('Montant (CDF) *').fill('100 000 000');
   await fpp.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByText('100 000 000,00 CDF au 31/10/2026').waitFor();
   await login('Bijou Kasongo'); await aller('/credit/s86');

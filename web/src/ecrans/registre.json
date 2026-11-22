@@ -298,7 +298,7 @@
   },
   {
     "id": "S33",
-    "nom": "Agence : personnes",
+    "nom": "Agents et zones",
     "acces": "Agence > Paramètre",
     "but": "Gestionnaires, sensibilisateurs, commerciaux",
     "module": "parametrage",

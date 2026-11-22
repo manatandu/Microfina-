@@ -103,7 +103,7 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/credit/dossiers", ["S86"]),
     (r"/credit/dossiers/\d+/controle", ["S87"]),
     (r"/credit/dossiers/\d+/approbation", ["S88"]),
-    (r"/credit/fonds-propres", ["S32"]),
+    (r"/credit/fonds-propres", ["SN01", "S32"]),   # saisis avec les normes prudentielles (plan d'allègement, point 2.21)
     (r"/credit/mise-en-place/\d+(/apercu)?", ["S89"]),
     (r"/credit/visas/\d+/\w+", ["S90"]),
     (r"/credit/visas-appel/\d+", ["S90"]),

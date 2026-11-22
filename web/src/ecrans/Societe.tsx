@@ -4,12 +4,11 @@ import { api, type InfoSociete } from "../donnees/api";
 import { BlocAdresse, composerAdresse } from "../composants/Adresse";
 import type { Adresse } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 import { fr } from "../lib/dates";
 import { lireMontant, montant } from "@design/montant.js";
-import { Onglet as PageZone } from "./Credit";
 
-const PAGES = [["societe", "Information Société"], ["agence", "Agence"], ["zone", "Zone"]] as const;
+const PAGES = [["societe", "Information Société"], ["agence", "Agence"]] as const;   // la zone passe dans « Agents et zones », les fonds propres dans les normes (plan d'allègement, point 2.21)
 
 /** S32 : Paramétrage > Info société (manuel Microfina++, p. 42) : pages Information Societe, Agence, Zone */
 export default function InfoSocietePage() {
@@ -22,16 +21,14 @@ export default function InfoSocietePage() {
         {PAGES.map(([p, nom]) => <button key={p} type="button" role="tab" id={`onglet-${p}`} aria-controls={`volet-${p}`} aria-selected={p === page}
           onClick={() => setParams(p === "societe" ? {} : { page: p })}>{nom}</button>)}
       </div>
-      {page === "societe" && <><InformationSociete /><FondsPropres /></>}
+      {page === "societe" && <InformationSociete />}
       {page === "agence" && <Agences />}
-      {page === "zone" && <div id="volet-zone" role="tabpanel" aria-labelledby="onglet-zone"><PageZone page="zones" /></div>}
     </>
   );
 }
 
 function InformationSociete() {
   const [f, setF] = useState<InfoSociete | null>(null);
-  const [liste, setListe] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
   const [relu, setRelu] = useState(0);
   const { donnees } = useDonnees(() => api.societe.lire(), [relu]);
@@ -52,11 +49,6 @@ function InformationSociete() {
   } });
   return (
     <section className="bloc pile" id="volet-societe" role="tabpanel" aria-labelledby="onglet-societe">
-      <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setListe(true)}>Liste institution</button></div>
-      <div className="onglets" role="tablist" aria-label="Information société">
-        <button type="button" role="tab" aria-selected="true">Info générale</button>
-        <button type="button" role="tab" aria-selected="false" disabled title="Le manuel ne montre pas le contenu de cet onglet (registre S32-6)">Autres Info</button>
-      </div>
       <fieldset className="cadre-champs">
         <legend>Info générale</legend>
         <div className="grille-deux">
@@ -70,7 +62,6 @@ function InformationSociete() {
             {texte("agrement", "N° Agrément", "saisie code")}
             <Champ libelle="Journée Maxi ouvert : *">{(p) => <input {...p} className="saisie code" inputMode="numeric" value={String(v.journeeMax ?? "")}
               onChange={(e) => setF({ ...v, journeeMax: e.target.value as unknown as number })} />}</Champ>
-            {texte("compteHorsBilan1", "Compte Hors Bilan 1", "saisie code")}
             {texte("ifu", "NIF")}
             {texte("nrc", "NRC")}
             {/* Police d'assurance de la trésorerie : déclarée une fois, lue par les normes prudentielles (Instr. BCC 002 ; registre SN01-4) */}
@@ -86,8 +77,6 @@ function InformationSociete() {
             {texte("email", "email :")}
             {texte("bp", "BP", "saisie code")}
             {texte("telephoneFixe", "Téléphone fixe :")}
-            {texte("adresse", "Adresse :")}
-            {texte("compteHorsBilan2", "Hors Bilan 2", "saisie code")}
           </div>
         </div>
         <fieldset className="cadre-champs pile">
@@ -109,13 +98,6 @@ function InformationSociete() {
         "Loi 002/2002 (COOPEC, structures faîtières) ; loi 11/020, art. 11 (sociétés de microfinance, entreprises de micro-crédit) : Type base",
         "PCCI § 9 : classe 0, comptes de hors bilan",
         "Loi 002/2002, art. 22, 6° : le Conseil d'Administration admet les membres ; sa décision de déléguer l'admission au visa se note ici (écart E05)"]} />
-      <Fiche titre="Liste institution" ouverte={liste} fermer={() => setListe(false)}>
-        <table className="grille">
-          <thead><tr><th scope="col">Code Institution</th><th scope="col">Dénomination</th></tr></thead>
-          <tbody><tr><td>{donnees.institution.code}</td><td>{donnees.institution.denomination}</td></tr></tbody>
-        </table>
-        <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setListe(false)}>Fermer</button></div>
-      </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </section>
   );
@@ -176,7 +158,7 @@ function Agences() {
 }
 
 /** Registre CR-2 : fonds propres prudentiels du dernier arrêté mensuel, saisis par la direction ; ils servent aux plafonds du crédit (Instr. BCC 002, art. 7 à 11, 25 à 29) */
-function FondsPropres() {
+export function FondsPropres() {
   const [relu, setRelu] = useState(0);
   const { donnees: fp } = useDonnees(() => api.dossiers.fondsPropres(), [relu]);
   const [f, setF] = useState({ date: "", montant: "" });

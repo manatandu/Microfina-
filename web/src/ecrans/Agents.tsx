@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Onglet as PageZone } from "./Credit";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import type { AgentAgence } from "../donnees/types";
@@ -14,15 +15,17 @@ const VIDE = { agenceId: "", nom: "", prenom: "", naissance: "", lieuNaissance: 
 /** S33 : Agence > Paramètre > Informations de base liées aux agences (manuel Microfina++, p. 43) */
 export default function InformationsAgences() {
   const [params, setParams] = useSearchParams();
+  const zones = params.get("onglet") === "zones";   // la zone rejoint les agents (plan d'allègement, point 2.21)
   const role = (ONGLETS.some(([r]) => r === params.get("onglet")) ? params.get("onglet") : "gestionnaire") as Role;
   return (
     <>
       <h2>Informations de base liées aux agences</h2>
       <div className="onglets" role="tablist" aria-label="Informations de base liées aux agences">
-        {ONGLETS.map(([r, nom]) => <button key={r} type="button" role="tab" id={`onglet-${r}`} aria-controls="volet" aria-selected={r === role}
+        {ONGLETS.map(([r, nom]) => <button key={r} type="button" role="tab" id={`onglet-${r}`} aria-controls="volet" aria-selected={!zones && r === role}
           onClick={() => setParams(r === "gestionnaire" ? {} : { onglet: r })}>{nom}</button>)}
+        <button type="button" role="tab" id="onglet-zones" aria-controls="volet" aria-selected={zones} onClick={() => setParams({ onglet: "zones" })}>Zones</button>
       </div>
-      <Onglet key={role} role={role} />
+      {zones ? <PageZone page="zones" /> : <Onglet key={role} role={role} />}
     </>
   );
 }
