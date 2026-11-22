@@ -573,7 +573,7 @@ export interface CreditPret {
   differe: number; periodicite: string; tauxInteret: string; tauxDiffere: string; dateEffet: string; dateDebut: string; cycleId: number | null; zoneId: number;
   agentId: number; ligneBudgetId: number | null; ligneFinancement: string; bailleur: string; structure: string; compteEpargneId: number | null;
   compteSolidariteId: number | null; epargneObligatoire: number; fondsSolidarite: number; frais: number; assurance: number; assureurId: number | null;
-  objetId: number; tegR: number | null; tegA: number | null; parts: { membre: string; montant: number }[];
+  objetId: number; usagePrecis?: string; tegR: number | null; tegA: number | null; parts: { membre: string; montant: number }[];
   statut: "mis_en_place" | "vise" | "refuse" | "debloque" | "solde" | "passe_en_perte"; misEnPlacePar: number; misEnPlaceLe: string; debloqueLe: string;
   interetsCourus?: number;   // B8 : intérêts courus non échus déjà passés aux créances rattachées (PCCI § 6.4)
   fraisEncaissesLe?: string; fraisEncaissesPar?: number; ecritureDeblocageId?: number; modeDeblocage?: "caisse" | "banque" | "epargne"; chequeDeblocage?: string;

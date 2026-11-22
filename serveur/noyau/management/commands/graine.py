@@ -23,7 +23,7 @@ FONDS_G2 = {"USD": {100: 140, 50: 12, 20: 8, 10: 3, 5: 2, 1: 6}, "CDF": {20000: 
 
 SECTEURS = [("S1", "Primaire"), ("S2", "Secondaire"), ("S3", "Tertiaire")]
 # Décision du porteur (18/11/2026, registre S14-3) : les autres lignes de la capture p. 23 sont des types d'activité (S14a), rangés sous leur secteur
-TYPES_ACTIVITE = [("T1", "Elevage", "S1"), ("T2", "Pêche", "S1"), ("T3", "Transformation", "S2"), ("T4", "Artisanat", "S2"), ("T5", "Commerce", "S3")]
+TYPES_ACTIVITE = []   # les types T1 à T5 de la capture redisaient des domaines : retirés (plan d'allègement, point 2.1)
 # Les 14 grands domaines du ROME/RDC (ONEM), sous leur secteur : toute activité, salariée ou non, y trouve sa place (fonctionnaire : services à la collectivité ;
 # employé de banque : banque, assurance, immobilier ; cabinet d'audit : support à l'entreprise). Question du porteur du 22/11/2026, registre S14-6
 TYPES_ACTIVITE += [("R-A", "Agriculture et pêche, espaces naturels et espaces verts, soins aux animaux", "S1"), ("R-B", "Artisanat et façonnage d'ouvrages d'art", "S2"), ("R-F", "Construction, bâtiment et travaux publics", "S2"), ("R-H", "Industrie", "S2"), ("R-I", "Installation et maintenance", "S2"), ("R-C", "Banque, assurance, immobilier", "S3"), ("R-D", "Commerce, vente et grande distribution", "S3"), ("R-E", "Communication, média et multimédia", "S3"), ("R-G", "Hôtellerie-restauration, tourisme, loisirs et animation", "S3"), ("R-J", "Santé", "S3"), ("R-K", "Services à la personne et à la collectivité", "S3"), ("R-L", "Spectacle", "S3"), ("R-M", "Support à l'entreprise", "S3"), ("R-N", "Transport et logistique", "S3")]
@@ -286,13 +286,9 @@ class Command(BaseCommand):
         secteur = lambda c: valeur("select id from liste_reference where institution_id = %s and liste = 'secteur_activite' and code = %s", (ins, c))
         for c, l, s in TYPES_ACTIVITE:
             executer("insert into liste_reference (institution_id, liste, code, libelle, parent_id) values (%s, 'type_activite', %s, %s, %s)", (ins, c, l, secteur(s)))
-        to = {}
-        for l, sec in (("Agriculture, élevage, chasse, pêche, sylviculture, pisciculture et aquaculture", "S1"), ("Industries extractives", "S1"),
-                       ("Industrie manufacturière", "S2"), ("Bâtiments et travaux publics", "S2"), ("Commerce, hôtels et restaurants", "S3"),
-                       ("Electricité, gaz, eau", "S2"), ("Transports, entrepôts et communications", "S3"), ("Assurances, services aux entreprises", "S3")):
-            to[l] = valeur("insert into credit_type_objet (institution_id, libelle, secteur_id) values (%s, %s, %s) returning id", (ins, l, secteur(sec)))
-        for l in ("Crédits immobiliers", "Crédits d'équipement", "Crédits à la consommation", "Crédits de trésorerie", "Autres crédits"):
-            executer("insert into credit_objet (institution_id, libelle, type_objet_id) values (%s, %s, %s)", (ins, l, to["Commerce, hôtels et restaurants"]))
+        # Objet du crédit : la catégorisation des produits de l'Instr. BCC 38, art. 6 (plan d'allègement, point 2.1)
+        for l in ("Prêt à la consommation", "Prêt commercial", "Crédit de trésorerie", "Prêt d'investissement"):
+            executer("insert into credit_objet (institution_id, libelle) values (%s, %s)", (ins, l))
         for c, l in (("C01", "Premier cycle"), ("C02", "Deuxième cycle")):
             executer("insert into credit_cycle (institution_id, code, libelle) values (%s, %s, %s)", (ins, c, l))
         executer("insert into credit_type_assurance (institution_id, code, libelle) values (%s, 'T01', 'Interne')", (ins,))

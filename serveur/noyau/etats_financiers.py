@@ -428,12 +428,11 @@ def annexe(u, p) -> dict:
                 x["engagementsCdf"] -= s
         return {**base, "forme": "monnaies", "lignes": [{"devise": dv, **x, "positionCdf": x["avoirsCdf"] - x["engagementsCdf"]} for dv, x in sorted(par.items())]}
     if a["code"] == "agr":
-        # B7 : encours des crédits débloqués, par secteur d'activité de leur objet (Type Objet, S21), en CDF au cours de la date
+        # B7 : encours des crédits débloqués, par secteur d'activité de l'emprunteur (plan d'allègement, point 2.1), en CDF au cours de la date
         from .remboursements import etat
         from .services import cours
         g2: dict = defaultdict(lambda: [0, 0])
-        for c in lignes("""select c.*, coalesce(s.libelle, 'Sans objet') as secteur from credit c left join credit_objet o on o.id = c.objet_id
-                           left join credit_type_objet t on t.id = o.type_objet_id left join liste_reference s on s.id = t.secteur_id
+        for c in lignes("""select c.*, coalesce(nullif(t.secteur_activite, ''), 'Non renseigné') as secteur from credit c join tiers t on t.id = c.tiers_id
                            where c.institution_id = %s and c.statut = 'debloque' and c.debloque_le <= %s""", (u["institution_id"], au)):
             restant = etat(c, au)["capitalRestant"]
             if restant > 0:

@@ -110,10 +110,8 @@ const OUT = process.argv[2];
   await aller('/parametrage/s21'); await p.getByRole('tab', { name: 'Cycle Credit' }).click(); await p.getByLabel('Libellé *').waitFor();
   await p.getByLabel('Code *').fill('C03'); await p.getByLabel('Libellé *').fill('Troisième cycle'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: 'Troisième cycle' }).waitFor(); await etape('02f9-credit-cycles');
-  // Type objet et objet de crédit (S21) : lus par la mise en place (S89)
-  await p.getByRole('tab', { name: 'Type Objet' }).click(); await p.getByLabel('Type Objet: *').fill('Commerce'); await p.getByLabel('Secteur Activité : *').selectOption({ index: 1 });
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Commerce', exact: true }).waitFor();
-  await p.getByRole('tab', { name: 'Objet Credit' }).click(); await p.getByLabel('Objet Credit: *').fill('Achat de marchandises'); await p.getByLabel('Type Objet : *').selectOption({ label: 'Commerce' });
+  // Objet de crédit (S21) : lu par la mise en place (S89) ; plus de type d'objet (plan d'allègement, point 2.1)
+  await p.getByRole('tab', { name: 'Objet Credit' }).click(); await p.getByRole('cell', { name: 'Prêt commercial' }).waitFor(); await p.getByLabel('Objet Credit: *').fill('Achat de marchandises');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Achat de marchandises' }).waitFor();
   await p.getByRole('tab', { name: 'Degré Credit' }).click(); await p.getByRole('cell', { name: 'Irrécupérables' }).waitFor(); await etape('02f10-credit-degres');
   // Chef : ordre de remboursement (S22, p. 37) : Intérêt d'abord, puis Capital
@@ -267,7 +265,7 @@ const OUT = process.argv[2];
   await p.getByLabel("Date d'expiration : *").fill('01012031');
   await etape('04b-renseignements');
   await p.getByRole('tab', { name: 'Autres renseignements' }).click(); await adresseKinsaku('Kinsaku', '12');
-  await p.getByLabel('Secteur d\'activité :').selectOption('Tertiaire'); await p.getByLabel("Type d'activité :").selectOption('Commerce');
+  await p.getByLabel('Activité :').selectOption('Commerce, vente et grande distribution');
   await p.getByLabel("Pièce d'habilitation professionnelle : *").fill('Patente 0412/2026');   // A7 : loi 22/068, art. 33, al. 4
   await etape('04b2-autres-renseignements');
   await p.getByRole('tab', { name: 'Héritiers désignés' }).click(); await p.getByRole('button', { name: '+Ajouter' }).click();
@@ -297,7 +295,7 @@ const OUT = process.argv[2];
   await mb.getByRole('button', { name: 'Enregistrer' }).click(); await mb.getByRole('button', { name: 'Fermer' }).click();
   await p.getByRole('cell', { name: 'Mbuyi' }).waitFor(); await etape('05i-membres-groupe');
   await p.getByRole('button', { name: 'Suivant' }).click();
-  await p.getByLabel("Secteur d'activité :").selectOption('Primaire'); await etape('05i2-groupe-autres');   // registre S39-1
+  await p.getByLabel('Activité :').selectOption('Pisciculture'); await etape('05i2-groupe-autres');   // registre S39-1
   await p.getByRole('tab', { name: 'Photo' }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await succes();
   // Entreprise (S38)
@@ -310,7 +308,7 @@ const OUT = process.argv[2];
   await p.getByLabel('Dénomination : *').fill('Boulangerie Kinsaku SARL'); await p.getByLabel('Forme juridique : *').selectOption('Société à responsabilité limitée');
   await p.getByLabel('N° du registre : *').fill('CD/KNG/RCCM/24-B-00001');
   await p.getByRole('button', { name: 'Suivant' }).click(); await adresseKinsaku('Kinsaku', '3');
-  await p.getByLabel("Secteur d'activité :").selectOption('Primaire'); await etape('05b2-entreprise-autres');
+  await p.getByLabel('Activité :').selectOption('Pisciculture'); await etape('05b2-entreprise-autres');
   await p.getByRole('tab', { name: 'Dirigeant' }).click();
   await representant(p, 'Ilunga', 'Paul', 'Passeport', 'OP9', 'Gérant');
   await etape('05c-dirigeant');

@@ -96,6 +96,7 @@ def mettre_en_place(u, did: int, d) -> dict:
         raise ErreurMetier("À remplir : Objet de crédit.")
     if o["souscription_parts"]:   # A6
         raise ErreurMetier("Objet interdit : pas de crédit pour souscrire ou acquérir des parts ou des actions de l'institution (loi 22/069, titre II, chap. II, section 4).")
+    usage = str(d.get("usagePrecis") or "").strip()[:200]   # usage précis de l'objet (plan d'allègement, point 2.1)
     zone = entier_ou_rien(d, "zoneId")
     if not une("select 1 from zone where id = %s and institution_id = %s and actif", (zone, u["institution_id"])):
         raise ErreurMetier("À remplir : Zone.")
@@ -115,13 +116,13 @@ def mettre_en_place(u, did: int, d) -> dict:
     cid = valeur("""insert into credit (institution_id, demande_id, numero, tiers_id, produit_id, montant, devise, duree_mois, date_effet, date_debut, nb_echeances,
                     zone_id, agent_id, ligne_financement, statut, cycle_id, periodicite, taux_interet, taux_differe, differe_mois, ligne_budget_id, bailleur, structure,
                     compte_epargne_id, compte_solidarite_id, epargne_obligatoire, fonds_solidarite, frais, assurance, assureur_id, objet_id, teg_r, teg_a, parts,
-                    mis_en_place_par, mis_en_place_le)
+                    mis_en_place_par, mis_en_place_le, usage_precis)
                     values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'mis_en_place', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                    %s, %s, %s, %s, %s) returning id""",
+                    %s, %s, %s, %s, %s, %s) returning id""",
                  (u["institution_id"], x["id"], numero, x["tiers_id"], p["id"], x["montant_approuve"], p["devise"], x["duree_mois"], s["dateEffet"], s["dateDebut"],
                   s["nombreTraites"], zone, agent, f"{lb['numero']} {lb['libelle']}" if lb else None, x["cycle_id"], s["periodicite"], p["taux_interet"], p["taux_differe"],
                   s["differe"], ligne, bailleur, structure, ce if s["epargneObligatoire"] else None, cs if a["fondsSolidarite"] else None, s["epargneObligatoire"],
-                  a["fondsSolidarite"], s["frais"], s["assurance"], assureur, objet, s["tegR"], s["tegA"], Jsonb(json_lu(x["parts"]) or []), u["id"], jour(u)))
+                  a["fondsSolidarite"], s["frais"], s["assurance"], assureur, objet, s["tegR"], s["tegA"], Jsonb(json_lu(x["parts"]) or []), u["id"], jour(u), usage))
     for l in s["echeancier"]:
         executer("insert into echeance (credit_id, rang, date_due, capital, interet) values (%s, %s, %s, %s, %s)", (cid, l["rang"], l["date"], l["capital"], l["interet"]))
     executer("update demande_credit set statut = 'mise_en_place' where id = %s", (x["id"],))
@@ -135,7 +136,7 @@ def vue(c: dict) -> dict:
             "montant": c["montant"], "devise": c["devise"].strip(), "duree": c["duree_mois"], "nombreTraites": c["nb_echeances"], "differe": c["differe_mois"],
             "periodicite": c["periodicite"] or "", "tauxInteret": str(c["taux_interet"].normalize()) if c["taux_interet"] is not None else "",
             "dateEffet": c["date_effet"].isoformat() if c["date_effet"] else "", "dateDebut": c["date_debut"].isoformat() if c["date_debut"] else "",
-            "objet": valeur("select libelle from credit_objet where id = %s", (c["objet_id"],)) or "", "zone": valeur("select nom from zone where id = %s", (c["zone_id"],)) or "",
+            "objet": valeur("select libelle from credit_objet where id = %s", (c["objet_id"],)) or "", "usagePrecis": c["usage_precis"] or "", "zone": valeur("select nom from zone where id = %s", (c["zone_id"],)) or "",
             "agentId": c["agent_id"], "agent": nom(c["agent_id"]), "ligneFinancement": c["ligne_financement"] or "", "bailleur": c["bailleur"] or "",
             "epargneObligatoire": c["epargne_obligatoire"], "fondsSolidarite": c["fonds_solidarite"], "frais": c["frais"], "assurance": c["assurance"],
             "assureur": valeur("select nom from credit_assureur where id = %s", (c["assureur_id"],)) or "", "tegR": float(c["teg_r"]) if c["teg_r"] is not None else None,

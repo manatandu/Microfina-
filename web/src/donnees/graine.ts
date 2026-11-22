@@ -114,10 +114,9 @@ export function graine(): Etat {
     // Référentiel crédit (S21) : zone de démonstration et exemples des captures p. 32 à 36
     credit: {
       zones: [{ id: 1, actif: true, code: "Z01", nom: "Matete", description: "Commune de Matete", agenceId: 1 }],
-      types_objet: ([["Agriculture, élevage, chasse, pêche, sylviculture, pisciculture et aquaculture", 1], ["Industries extractives", 1], ["Industrie manufacturière", 2],
-        ["Bâtiments et travaux publics", 2], ["Commerce, hôtels et restaurants", 3], ["Electricité, gaz, eau", 2], ["Transports, entrepôts et communications", 3],
-        ["Assurances, services aux entreprises", 3]] as const).map(([libelle, secteurId], i) => ({ id: i + 1, actif: true, libelle, secteurId })),
-      objets: ["Crédits immobiliers", "Crédits d'équipement", "Crédits à la consommation", "Crédits de trésorerie", "Autres crédits"].map((libelle, i) => ({ id: i + 1, actif: true, libelle, typeObjetId: 5 })),
+      types_objet: [],
+      // Objet du crédit : la catégorisation des produits de l'Instr. BCC 38, art. 6 (plan d'allègement, point 2.1)
+      objets: ["Prêt à la consommation", "Prêt commercial", "Crédit de trésorerie", "Prêt d'investissement"].map((libelle, i) => ({ id: i + 1, actif: true, libelle })),
       cycles: [{ id: 1, actif: true, code: "C01", libelle: "Premier cycle" }, { id: 2, actif: true, code: "C02", libelle: "Deuxième cycle" }],
       types_assurance: [{ id: 1, actif: true, code: "T01", libelle: "Interne" }],
       assureurs: [], gestionnaires: [],
@@ -154,8 +153,7 @@ export function graine(): Etat {
       .map(([code, libelle]) => ({ liste: "secteur_activite", code: code!, libelle: libelle! })),
       // Décision du porteur (18/11/2026, registre S14-3) : les autres lignes de la capture p. 23 sont des types d'activité (S14a), sous leur secteur (ids 1 à 3 ci-dessus)
       // + les 14 grands domaines du ROME/RDC (ONEM), sous leur secteur (question du porteur du 22/11/2026, registre S14-6)
-      ...([["T1", "Elevage", 1], ["T2", "Pêche", 1], ["T3", "Transformation", 2], ["T4", "Artisanat", 2], ["T5", "Commerce", 3],
-        ["R-A", "Agriculture et pêche, espaces naturels et espaces verts, soins aux animaux", 1], ["R-B", "Artisanat et façonnage d'ouvrages d'art", 2], ["R-F", "Construction, bâtiment et travaux publics", 2], ["R-H", "Industrie", 2], ["R-I", "Installation et maintenance", 2], ["R-C", "Banque, assurance, immobilier", 3], ["R-D", "Commerce, vente et grande distribution", 3], ["R-E", "Communication, média et multimédia", 3], ["R-G", "Hôtellerie-restauration, tourisme, loisirs et animation", 3], ["R-J", "Santé", 3], ["R-K", "Services à la personne et à la collectivité", 3], ["R-L", "Spectacle", 3], ["R-M", "Support à l'entreprise", 3], ["R-N", "Transport et logistique", 3]] as const)
+      ...([["R-A", "Agriculture et pêche, espaces naturels et espaces verts, soins aux animaux", 1], ["R-B", "Artisanat et façonnage d'ouvrages d'art", 2], ["R-F", "Construction, bâtiment et travaux publics", 2], ["R-H", "Industrie", 2], ["R-I", "Installation et maintenance", 2], ["R-C", "Banque, assurance, immobilier", 3], ["R-D", "Commerce, vente et grande distribution", 3], ["R-E", "Communication, média et multimédia", 3], ["R-G", "Hôtellerie-restauration, tourisme, loisirs et animation", 3], ["R-J", "Santé", 3], ["R-K", "Services à la personne et à la collectivité", 3], ["R-L", "Spectacle", 3], ["R-M", "Support à l'entreprise", 3], ["R-N", "Transport et logistique", 3]] as const)
         .map(([code, libelle, parentId]) => ({ liste: "type_activite", code, libelle, parentId })), { liste: "type_guichet", code: "1", libelle: "PRINCIPALE" }, { liste: "type_guichet", code: "2", libelle: "SECONDAIRE" },
       // Sous types de client (S14h) des deux captures p. 25, cochés dans Paramétrage frais (S16-8)
       ...SOUS_TYPES.map((libelle, i) => ({ liste: "sous_type_client", code: String(i + 1), libelle })),

@@ -3435,7 +3435,7 @@ function demandeApprouvee(id: number) {
 const vueCredit = (c: CreditPret) => ({ id: c.id, numero: c.numero, tiersId: c.tiersId, membre: E.tiers.find((t) => t.id === c.tiersId)!.numero,
   client: titulaire(E.tiers.find((t) => t.id === c.tiersId)!), produitId: c.produitId, produit: String(E.produitsCredit.find((p) => p.id === c.produitId)?.nom ?? ""),
   montant: c.montant, devise: c.devise, duree: c.duree, nombreTraites: c.nombreTraites, differe: c.differe, periodicite: c.periodicite, tauxInteret: c.tauxInteret,
-  dateEffet: c.dateEffet, dateDebut: c.dateDebut, objet: String(stockCredit("objets").find((o) => o.id === c.objetId)?.libelle ?? ""),
+  dateEffet: c.dateEffet, dateDebut: c.dateDebut, objet: String(stockCredit("objets").find((o) => o.id === c.objetId)?.libelle ?? ""), usagePrecis: c.usagePrecis ?? "",
   zone: String(stockCredit("zones").find((z) => z.id === c.zoneId)?.nom ?? ""), agentId: c.agentId, agent: nomUtilisateur(c.agentId), ligneFinancement: c.ligneFinancement,
   bailleur: c.bailleur, epargneObligatoire: c.epargneObligatoire, fondsSolidarite: c.fondsSolidarite, frais: c.frais, assurance: c.assurance,
   assureur: String(stockCredit("assureurs").find((a) => a.id === c.assureurId)?.nom ?? ""), tegR: c.tegR, tegA: c.tegA, parts: c.parts, statut: c.statut,
@@ -3464,7 +3464,7 @@ const miseEnPlace = {
       fondsSolidarite: chargeCredit(p.solidariteNature, p.solidariteValeur, x.montantApprouve!), differeMin: Number(p.differeMin), differeMax: Number(p.differeMax), simulation: s };
   },
   /** 2.16 à 2.23 ; registre S89-1 à S89-9 */
-  mettreEnPlace(id: number, d: { differe?: number; compteEpargneId?: number | null; compteSolidariteId?: number | null; assureurId?: number | null; objetId?: number | null;
+  mettreEnPlace(id: number, d: { differe?: number; compteEpargneId?: number | null; compteSolidariteId?: number | null; assureurId?: number | null; objetId?: number | null; usagePrecis?: string;
     zoneId?: number | null; agentId?: number | null; ligneBudgetId?: number | null; structure?: string }) {
     const u = exiger();
     const a = miseEnPlace.apercu(id, d);
@@ -3491,7 +3491,7 @@ const miseEnPlace = {
       tauxInteret: s.tauxInteret, tauxDiffere: s.tauxDiffere, dateEffet: s.dateEffet, dateDebut: s.dateDebut, cycleId: x.cycleId, zoneId: d.zoneId!, agentId: d.agentId!,
       ligneBudgetId: lb?.id ?? null, ligneFinancement: lb ? `${String(lb.numero ?? "")} ${String(lb.libelle ?? "")}` : "", bailleur: "", structure,
       compteEpargneId: s.epargneObligatoire ? d.compteEpargneId! : null, compteSolidariteId: a.fondsSolidarite ? d.compteSolidariteId! : null, epargneObligatoire: s.epargneObligatoire,
-      fondsSolidarite: a.fondsSolidarite, frais: s.frais, assurance: s.assurance, assureurId: assureur, objetId: d.objetId!, tegR: s.tegR, tegA: s.tegA, parts: x.parts,
+      fondsSolidarite: a.fondsSolidarite, frais: s.frais, assurance: s.assurance, assureurId: assureur, objetId: d.objetId!, usagePrecis: String(d.usagePrecis ?? "").trim().slice(0, 200), tegR: s.tegR, tegA: s.tegA, parts: x.parts,
       statut: "mis_en_place", misEnPlacePar: u.id, misEnPlaceLe: jourDossier(), debloqueLe: "",
       echeancier: s.echeancier.map((l) => ({ rang: l.rang, date: l.date, capital: l.capital, interet: l.interet })) };
     E.credits.push(c); x.statut = "mise_en_place"; enregistrer(); return vueCredit(c);
@@ -8419,12 +8419,11 @@ const etatsFinanciers = {
         if (v >= 0) { x.avoirs += d; x.avoirsCdf += v; } else { x.engagements -= d; x.engagementsCdf -= v; } }
       return { ...base, forme: "monnaies" as const, lignes: [...par].sort(([x], [y]) => x.localeCompare(y)).map(([devise, x]) => ({ devise, ...x, positionCdf: x.avoirsCdf - x.engagementsCdf })) };
     }
-    if (a.code === "agr") {   // B7 : encours des crédits débloqués, par secteur d'activité de leur objet (Type Objet, S21), en CDF au cours de la date
+    if (a.code === "agr") {   // B7 : encours des crédits débloqués, par secteur d'activité de l'emprunteur (plan d'allègement, point 2.1), en CDF au cours de la date
       const g2 = new Map<string, [number, number]>();
       for (const c of E.credits.filter((x) => x.statut === "debloque" && (x.debloqueLe ?? "") <= au)) {
         const restant = etatCredit(c, au).capitalRestant; if (restant <= 0) continue;
-        const type = stockCredit("types_objet").find((t) => t.id === stockCredit("objets").find((o) => o.id === c.objetId)?.typeObjetId);
-        const secteur = E.listes.find((l) => l.id === type?.secteurId)?.libelle ?? "Sans objet", x = g2.get(secteur) ?? [0, 0];
+        const secteur = E.tiers.find((t) => t.id === c.tiersId)?.secteurActivite || "Non renseigné", x = g2.get(secteur) ?? [0, 0];
         x[0] += 1; x[1] += Math.round(restant * coursDe(c.devise, au)); g2.set(secteur, x);
       }
       const lignes = [...g2].sort(([x], [y]) => x.localeCompare(y)).map(([libelle, valeurs]) => ({ libelle, valeurs: valeurs as number[] }));
@@ -9358,10 +9357,8 @@ const adresse = (cadre: string) => [ch("rue", "Rue / Maison :", "Rue / Maison", 
   ch("email", "email :", "email", "email", false, { cadre, grille: false }), ch("portable", "Portable :", "Portable", "texte", false, { cadre, grille: false })];
 /** Onglets de la capture p. 33, dans leur ordre. « fixe » : valeurs en lecture seule, avec Exporter (captures p. 33 à 35) */
 export const CATALOGUE_CREDIT: FicheBudget[] = [
-  { page: "types_objet", menu: "Type Objet", unique: ["libelle"], filtres: true,
-    champs: [ch("libelle", "Type Objet:", "Type Objet"), ch("secteurId", "Secteur Activité :", "Secteur Activité", "choix", true, { ref: "secteurs" })] },
   { page: "objets", menu: "Objet Credit", unique: ["libelle"], filtres: true, exporter: true,
-    champs: [ch("libelle", "Objet Credit:", "Objet Credit"), ch("typeObjetId", "Type Objet :", "Type Objet", "choix", true, { ref: "types_objet" }),
+    champs: [ch("libelle", "Objet Credit:", "Objet Credit"),
       // A6 : crédit interdit pour cet objet (loi 22/069, titre II, chap. II, section 4)
       ch("souscriptionParts", "Souscription de parts ou d'actions de l'institution :", "Souscription de parts", "ouiNon", false, { defaut: false })] },
   { page: "types_produit", menu: "Type produit Credit", exporter: true, filtres: true, champs: [ch("nom", "Nom", "Nom"), ch("code", "ID", "ID")],
@@ -9412,7 +9409,7 @@ const moteurCredit = referentiel({
         for (const [de, a, nom] of [["montantDe", "montantA", "Montant"], ["dureeDe", "dureeA", "Durée"]] as const)
           if (v[de] != null && v[a] != null && (v[a] as number) < (v[de] as number)) throw new ErreurMetier(`${nom} : la borne haute est inférieure à la borne basse.`);
     },
-    utilisePar: { types_objet: [["objets", "typeObjetId", "Objet Credit"]], types_assurance: [["assureurs", "typeAssuranceId", "Assureur crédit"]] },
+    utilisePar: { types_assurance: [["assureurs", "typeAssuranceId", "Assureur crédit"]] },
 });
 const ordresActifs = () => E.ordres.filter((o) => o.actif);
 /** « Pénalité Intérêt Capital Epargne Solidarité » devient « Pénalité, intérêt, capital, épargne, solidarité » (plan d'allègement, point 1.4 ; même règle que noyau/credit.py) */

@@ -302,7 +302,7 @@ function DetailClient({ t }: { t: Tiers }) {
           </div>
         )}
         {o === 2 && <div className="formulaire">
-          {lu("Secteur d'activité :", t.secteurActivite ?? "")}{lu("Type d'activité :", t.typeActivite ?? "")}{t.type === "physique" && lu("Profession :", t.profession)}
+          {lu("Activité :", t.typeActivite ?? "")}{lu("Secteur :", enClair(t.secteurActivite ?? ""))}{t.type === "physique" && lu("Profession :", t.profession)}
           {lu("Adresse :", t.adresse)}{lu("BP :", t.bp)}{coche("Personne politiquement exposée", t.personneExposee)}</div>}
         {o === 3 && (!liees || liees.length === 0 ? <p>Aucune ligne.</p> : (
           <table className="grille"><thead><tr><th scope="col">N° du Client</th><th scope="col">Nom</th></tr></thead>
@@ -567,7 +567,7 @@ export function ResiliationClient() {
         </div>
         <fieldset className="cadre-champs formulaire">
           <legend>Informations générales du client</legend>
-          {lu("Secteur d'activité :", t?.secteurActivite ?? "")}{lu("Type d'activité :", t?.typeActivite ?? "")}
+          {lu("Activité :", t?.typeActivite ?? "")}{lu("Secteur :", enClair(t?.secteurActivite ?? ""))}
           {lu(t?.type === "physique" ? "Nom :" : "Raison sociale :", t ? nomComplet(t) : "")}{t?.type !== "physique" && lu("RCCM :", t?.registre ?? "")}
           {lu("Créé le :", t ? fr(t.creeLe) : "")}{t?.type === "physique" && lu("Nationalité :", t?.nationalite ?? "")}
           {lu("Type de pièce :", t?.pieceType ?? "")}{lu("Numéro de pièce :", t?.pieceNumero ?? "")}

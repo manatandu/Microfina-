@@ -39,8 +39,7 @@ async function creditMisEnPlace(produit: Record<string, unknown> = PRODUIT_CREDI
   await journeeOuverte();
   await connecter("jpmukendi");
   const pid = (await api.produitsCredit.enregistrer(produit)).produits[0]!.id;
-  const to = await api.credit.enregistrer("types_objet", { libelle: "Commerce", secteurId: (await api.credit.lire("types_objet")).options.secteurId![0]!.id });
-  const objet = (await api.credit.enregistrer("objets", { libelle: "Achat de marchandises", typeObjetId: to.lignes[0]!.id })).lignes[0]!.id;
+  const objet = (await api.credit.enregistrer("objets", { libelle: "Achat de marchandises" })).lignes.find((x) => x.libelle === "Achat de marchandises")!.id;
   await api.tiers.creerConsentement(1, { code: "CR", dateDebut: "2026-01-01", dateFin: "", commentaire: "" });
   await api.dossiers.enregistrerFondsPropres({ dateArrete: "2026-10-31", montant: 100000000000 });
   await connecter("bkasongo");
@@ -1824,19 +1823,15 @@ describe("journée de guichet", () => {
 
   it("référentiel crédit (S21, p. 32 à 36) : Degré selon l'Instr. BCC 003, Terme selon le PCCI, listes, zones de la fiche client", async () => {
     await connecter("jpmukendi");
-    const l = await api.credit.lire("types_objet");
-    expect(l.catalogue).toHaveLength(11);
+    const l = await api.credit.lire("objets");
+    expect(l.catalogue).toHaveLength(10);
+    expect(l.lignes.map((x) => x.libelle)).toEqual(expect.arrayContaining(["Prêt à la consommation", "Prêt commercial", "Crédit de trésorerie", "Prêt d'investissement"]));   // Instr. BCC 38, art. 6
     expect((await api.credit.lire("degres")).lignes.map((x) => [x.debut, x.fin, x.taux])).toEqual([[0, 0, 0], [1, 30, 5], [31, 60, 25], [61, 90, 50], [91, 180, 75], [181, 365, 100], [366, 999999, 100]]);
     await expect(api.credit.enregistrer("degres", { libelle: "X" })).rejects.toThrow("ne se modifie pas");
     expect((await api.credit.lire("termes")).lignes.map((x) => [x.libelle, x.debut, x.fin])).toEqual([["Court terme", 1, 12], ["Moyen terme", 13, 60], ["Long terme", 61, 9999]]);
     expect((await api.credit.lire("periodicites")).lignes).toHaveLength(8);
-    await expect(api.credit.enregistrer("types_objet", { libelle: "Pêche artisanale" })).rejects.toThrow("Secteur Activité");
-    const sec = l.options.secteurId![0]!.id;
-    const to = (await api.credit.enregistrer("types_objet", { libelle: "Pêche artisanale", secteurId: sec })).lignes.find((x) => x.libelle === "Pêche artisanale")!;
-    await expect(api.credit.enregistrer("types_objet", { libelle: "pêche ARTISANALE", secteurId: sec })).rejects.toThrow("existe déjà");
-    const ob = await api.credit.enregistrer("objets", { libelle: "Achat de filets", typeObjetId: to.id });
-    expect(ob.lignes.find((x) => x.libelle === "Achat de filets")!.affichage.typeObjetId).toBe("Pêche artisanale");
-    await expect(api.credit.supprimer("types_objet", to.id)).rejects.toThrow("Objet Credit");
+    await api.credit.enregistrer("objets", { libelle: "Achat de filets" });
+    await expect(api.credit.enregistrer("objets", { libelle: "achat de FILETS" })).rejects.toThrow("existe déjà");
     await expect(api.credit.enregistrer("cycles", { code: "C01", libelle: "X" })).rejects.toThrow("existe déjà");
     const ag = (await api.credit.lire("zones")).options.agenceId![0]!.id;
     await expect(api.credit.enregistrer("zones", { code: "Z02", nom: "Lemba", agenceId: ag })).rejects.toThrow("Description");
@@ -2222,8 +2217,7 @@ describe("journée de guichet", () => {
       modeDiffere: "Réparti", paiementInteret: "Normal", interetAnticipation: false, ageMax: 65, epargneNature: "Taux", epargneValeur: 10, categorie: "Prêt commercial",
       penaliteAnticipation: 50, frais: [{ typeFrais: "Frais de dossier", nature: "Taux", valeur: 1, compte: "7152" }] };
     const pid = (await api.produitsCredit.enregistrer(P)).produits[0]!.id;
-    const to = await api.credit.enregistrer("types_objet", { libelle: "Commerce", secteurId: (await api.credit.lire("types_objet")).options.secteurId![0]!.id });
-    const objet = (await api.credit.enregistrer("objets", { libelle: "Achat de marchandises", typeObjetId: to.lignes[0]!.id })).lignes[0]!.id;
+    const objet = (await api.credit.enregistrer("objets", { libelle: "Achat de marchandises" })).lignes.find((x) => x.libelle === "Achat de marchandises")!.id;
     await api.tiers.creerConsentement(1, { code: "CR", dateDebut: "2026-01-01", dateFin: "", commentaire: "" });
     await api.dossiers.enregistrerFondsPropres({ dateArrete: "2026-10-31", montant: 100000000000 });
     await connecter("bkasongo");

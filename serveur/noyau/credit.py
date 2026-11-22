@@ -18,12 +18,8 @@ def adresse(cadre):
 
 # Onglets de la capture p. 33, dans leur ordre. « fixe » : valeurs en lecture seule, avec Exporter (captures p. 33 à 35).
 CATALOGUE = [
-    {"page": "types_objet", "table": "credit_type_objet", "menu": "Type Objet", "unique": ["libelle"], "filtres": True, "champs": [
-        ch("libelle", "libelle", "Type Objet:", colonne="Type Objet"),
-        ch("secteurId", "secteur_id", "Secteur Activité :", "choix", True, "secteurs", colonne="Secteur Activité")]},
     {"page": "objets", "table": "credit_objet", "menu": "Objet Credit", "unique": ["libelle"], "filtres": True, "exporter": True, "champs": [
         ch("libelle", "libelle", "Objet Credit:", colonne="Objet Credit"),
-        ch("typeObjetId", "type_objet_id", "Type Objet :", "choix", True, "types_objet", colonne="Type Objet"),
         # A6 : crédit interdit pour cet objet (loi 22/069, titre II, chap. II, section 4)
         ch("souscriptionParts", "souscription_parts", "Souscription de parts ou d'actions de l'institution :", "ouiNon", False, colonne="Souscription de parts", defaut=False)]},
     {"page": "types_produit", "menu": "Type produit Credit", "exporter": True, "filtres": True, "champs": [
@@ -88,7 +84,6 @@ def verifier(u, c, v, lid):
 
 
 UTILISE_PAR = {
-    "types_objet": [("credit_objet", "type_objet_id", "Objet Credit")],
     "types_assurance": [("credit_assureur", "type_assurance_id", "Assureur crédit")],
 }
 

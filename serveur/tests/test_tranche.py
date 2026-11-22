@@ -1531,8 +1531,9 @@ def test_credit_general(clients):
         r = chef.post(f"{C}/{page}" + (f"/{lid}" if lid else ""), corps, **H); assert r.status_code == 200, r.content; return r.json()
     def refus(page, corps, lid=None):
         r = chef.post(f"{C}/{page}" + (f"/{lid}" if lid else ""), corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
-    l = chef.get(f"{C}/types_objet", **H).json()
-    assert [x["menu"] for x in l["catalogue"]][:3] == ["Type Objet", "Objet Credit", "Type produit Credit"] and len(l["catalogue"]) == 11
+    l = chef.get(f"{C}/objets", **H).json()
+    assert [x["menu"] for x in l["catalogue"]][:2] == ["Objet Credit", "Type produit Credit"] and len(l["catalogue"]) == 10
+    assert {"Prêt à la consommation", "Prêt commercial", "Crédit de trésorerie", "Prêt d'investissement"} <= {x["libelle"] for x in l["lignes"]}   # Instr. BCC 38, art. 6
     assert agent.post(f"{C}/cycles", {"code": "C03", "libelle": "Troisième cycle"}, **H).status_code == 403
     d = chef.get(f"{C}/degres", **H).json()["lignes"]                     # Instr. BCC 003, art. 12
     assert [(x["debut"], x["fin"], x["taux"]) for x in d] == [(0, 0, 0), (1, 30, 5), (31, 60, 25), (61, 90, 50), (91, 180, 75), (181, 365, 100), (366, 999999, 100)]
@@ -1540,13 +1541,8 @@ def test_credit_general(clients):
     t = chef.get(f"{C}/termes", **H).json()["lignes"]                     # PCCI, classe 3
     assert [(x["libelle"], x["debut"], x["fin"]) for x in t] == [("Court terme", 1, 12), ("Moyen terme", 13, 60), ("Long terme", 61, 9999)]
     assert len(chef.get(f"{C}/periodicites", **H).json()["lignes"]) == 8
-    assert "Secteur Activité" in refus("types_objet", {"libelle": "Pêche artisanale"})
-    sec = l["options"]["secteurId"][0]["id"]
-    to = next(x for x in ok("types_objet", {"libelle": "Pêche artisanale", "secteurId": sec})["lignes"] if x["libelle"] == "Pêche artisanale")
-    assert "existe déjà" in refus("types_objet", {"libelle": "pêche ARTISANALE", "secteurId": sec})
-    ob = ok("objets", {"libelle": "Achat de filets", "typeObjetId": to["id"]})
-    assert next(x for x in ob["lignes"] if x["libelle"] == "Achat de filets")["affichage"]["typeObjetId"] == "Pêche artisanale"
-    assert "Objet Credit" in chef.post(f"{C}/types_objet/{to['id']}/suppression", {}, **H).json()["message"]
+    ok("objets", {"libelle": "Achat de filets"})
+    assert "existe déjà" in refus("objets", {"libelle": "achat de FILETS"})
     assert "existe déjà" in refus("cycles", {"code": "C01", "libelle": "X"})
     z = chef.get(f"{C}/zones", **H).json()
     ag = z["options"]["agenceId"][0]["id"]
@@ -1697,10 +1693,8 @@ def objet_credit(chef) -> int:
     o = ident("select id from credit_objet where libelle = 'Achat de marchandises'")
     if o:
         return o
-    t = chef.get("/api/credit-referentiels/types_objet", **H).json()
-    sid = next(iter(t["options"].values()))[0]["id"]
-    tid = chef.post("/api/credit-referentiels/types_objet", {"libelle": "Commerce", "secteurId": sid}, **H).json()["lignes"][0]["id"]
-    return chef.post("/api/credit-referentiels/objets", {"libelle": "Achat de marchandises", "typeObjetId": tid}, **H).json()["lignes"][0]["id"]
+    chef.post("/api/credit-referentiels/objets", {"libelle": "Achat de marchandises"}, **H)
+    return ident("select id from credit_objet where libelle = 'Achat de marchandises'")
 
 
 def test_mise_en_place(clients, journee):

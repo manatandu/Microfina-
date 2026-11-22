@@ -385,7 +385,6 @@ function AutresRenseignements({ f, maj, ctx, categories, physique }: { f: Nouvea
   physique?: boolean }) {
   const texte = (k: CleTexte, libelle: string, classe = "saisie") => (
     <Champ libelle={libelle}>{(p) => <input {...p} className={classe} autoComplete="off" value={f[k] ?? ""} onChange={(e) => maj({ [k]: e.target.value })} />}</Champ>);
-  const types = ctx.typesActivite.filter((t) => t.secteur === f.secteurActivite).map((t) => t.libelle);
   return (
     <div className="deux-colonnes">
       <div className="pile">
@@ -396,8 +395,11 @@ function AutresRenseignements({ f, maj, ctx, categories, physique }: { f: Nouvea
         {!physique && texte("email", "Email :")}
       </div>
       <div className="pile">
-        <ChoixListe libelle="Secteur d'activité :" k="secteurActivite" valeurs={ctx.listesFiche.secteurActivite ?? []} f={f} maj={maj} apres={{ typeActivite: "" }} />
-        <ChoixListe libelle="Type d'activité :" k="typeActivite" valeurs={types} f={f} maj={maj} />
+        {/* Une seule liste « Activité » ; le secteur s'en déduit (plan d'allègement, point 2.1 ; Instr. BCC 15, art. 13) */}
+        <Champ libelle="Activité :">{(p) => <select {...p} className="saisie" value={f.typeActivite ?? ""}
+          onChange={(e) => maj({ typeActivite: e.target.value, secteurActivite: ctx.typesActivite.find((t) => t.libelle === e.target.value)?.secteur ?? "" })}>
+          <option value=""></option>{ctx.typesActivite.map((t) => <option key={`${t.secteur}-${t.libelle}`} value={t.libelle}>{t.libelle}</option>)}</select>}</Champ>
+        <Champ libelle="Secteur :">{(p) => <Lecture {...p} value={enClair(f.secteurActivite ?? "")} />}</Champ>
         {/* A7 : activité déclarée, pièce qui habilite à l'exercer (loi 22/068, art. 33, al. 4 ; Instr. BCC 15, art. 13, al. 2) ; sa copie se dépose dans Photos et signatures */}
         {physique && <Champ libelle={f.secteurActivite ? "Pièce d'habilitation professionnelle : *" : "Pièce d'habilitation professionnelle :"}>{(p) =>
           <input {...p} className="saisie" required={!!f.secteurActivite} autoComplete="off" value={f.habilitationReference ?? ""} onChange={(e) => maj({ habilitationReference: e.target.value })} />}</Champ>}

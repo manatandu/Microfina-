@@ -14,7 +14,7 @@ type Apercu = Awaited<ReturnType<typeof api.miseEnPlace.apercu>>;
 type Demande = Awaited<ReturnType<typeof api.dossiers.lister>>[number];
 const PAGES = ["Informations sur le montant et la durée", "Epargne de capitalisation", "Autres informations", "Recapitulatif"];
 const pct = (x: number | null | undefined) => (x === null || x === undefined ? "" : `${String(x.toFixed(2)).replace(".", ",")} %`);
-const VIDE = { differe: "0", ligne: "", structure: "Part. classique", assureur: "", ce: "", cs: "", objet: "", zone: "", agent: "" };
+const VIDE = { differe: "0", ligne: "", structure: "Part. classique", assureur: "", ce: "", cs: "", objet: "", usage: "", zone: "", agent: "" };
 
 export default function MiseEnPlace() {
   const { donnees: ctx } = useDonnees(() => api.miseEnPlace.contexte());
@@ -44,7 +44,7 @@ export default function MiseEnPlace() {
       try {
         const n = (v: string) => (v ? Number(v) : null);
         const c = await api.miseEnPlace.mettreEnPlace(a.demande.id, { differe: Number(f.differe) || 0, ligneBudgetId: n(f.ligne), structure: f.structure, assureurId: n(f.assureur),
-          compteEpargneId: n(f.ce), compteSolidariteId: n(f.cs), objetId: n(f.objet), zoneId: n(f.zone), agentId: n(f.agent) });
+          compteEpargneId: n(f.ce), compteSolidariteId: n(f.cs), objetId: n(f.objet), usagePrecis: f.usage, zoneId: n(f.zone), agentId: n(f.agent) });
         setA(null); setCode(""); setBoite({ type: "succes", message: `Enregistré avec succès ! Crédit N° ${c.numero}.` });
       } catch (x) { erreur(x); }
     } });
@@ -104,6 +104,7 @@ export default function MiseEnPlace() {
           {page === 2 && <fieldset className="cadre-champs formulaire"><legend>Autres informations</legend>
             <Champ libelle="Objet de crédit *">{(p) => <select {...p} className="saisie" value={f.objet} onChange={(e) => maj({ objet: e.target.value })}><option value=""></option>
               {ctx.objets.map((x) => <option key={x.id} value={x.id}>{x.libelle}</option>)}</select>}</Champ>
+            <Champ libelle="Usage précis">{(p) => <input {...p} className="saisie" autoComplete="off" maxLength={200} value={f.usage} onChange={(e) => maj({ usage: e.target.value })} />}</Champ>
             <Champ libelle="Zone *">{(p) => <select {...p} className="saisie" value={f.zone} onChange={(e) => maj({ zone: e.target.value })}><option value=""></option>
               {ctx.zones.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>
           </fieldset>}
