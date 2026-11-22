@@ -229,7 +229,7 @@ const OUT = process.argv[2];
   await login('J.-P. Mukendi');
   // Chef : facture (S36, p. 46) : un élément de facture, la retenue sur les loyers au compte 433 (O.-L. 69/009, art. 10 et 11 ; PCCI), désactivé ensuite :
   // un élément actif s'applique à toutes les factures ; puis un type de commande (p. 125)
-  await aller('/parametrage/s36'); await p.getByLabel('Libellé', { exact: true }).fill('Retenue sur loyers'); await p.getByLabel('Compte :').fill('433'); await p.getByLabel('Taux(%)').fill('20');
+  await aller('/comptabilite/s36'); await p.getByLabel('Libellé', { exact: true }).fill('Retenue sur loyers'); await p.getByLabel('Compte :').fill('433'); await p.getByLabel('Taux(%)').fill('20');
   await p.getByLabel('Retenue Taux').check();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Retenue sur loyers', exact: true }).waitFor(); await etape('02f29-element-facture');
   await p.getByLabel('Désactiver : Retenue sur loyers').click(); await oui(); await etape('02f29b-element-desactive');

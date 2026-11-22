@@ -315,15 +315,6 @@
     "chemin": "/parametrage/s35"
   },
   {
-    "id": "S36",
-    "nom": "Facture : éléments et références",
-    "acces": "Facture",
-    "but": "Éléments de facture, références de commande",
-    "module": "parametrage",
-    "priorite": "could",
-    "chemin": "/parametrage/s36"
-  },
-  {
     "id": "S37",
     "nom": "Enrôlement personne physique",
     "acces": "Client > Enrôlement > Physique",
@@ -1015,6 +1006,15 @@
     "module": "comptabilite",
     "priorite": "should",
     "chemin": "/comptabilite/s104"
+  },
+  {
+    "id": "S36",
+    "nom": "Facture : éléments et références",
+    "acces": "Comptabilité > Facture : éléments et références",
+    "but": "Éléments de facture, références de commande",
+    "module": "comptabilite",
+    "priorite": "could",
+    "chemin": "/comptabilite/s36"
   },
   {
     "id": "S105",
