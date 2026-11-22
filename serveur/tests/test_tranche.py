@@ -382,6 +382,7 @@ def test_fiche_entreprise(clients, journee):
     def refus(corps):
         r = agent.post("/api/tiers/entreprises", corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
     assert "Forme juridique : valeur inconnue" in refus({**base, "formeJuridique": "SARLU"})
+    assert "Société à responsabilité limitée unipersonnelle" in agent.get("/api/referentiel", **H).json()["listesFiche"]["formeJuridique"]   # S38-4
     assert "Secteur d'activité : valeur inconnue" in refus({**base, "secteurActivite": "Pêche industrielle"})
     assert "Email invalide" in refus({**base, "email": "contact"})
     assert "Bénéficiaire effectif" in refus({**base, "beneficiairesEffectifs": [morale]})
@@ -444,6 +445,8 @@ def test_fiche_groupe(clients, journee):
     def refus(corps):
         r = agent.post("/api/tiers/groupes", corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
     assert "Forme juridique : valeur inconnue" in refus({**base, "formeJuridique": "ASBL de fait"})
+    assert "Forme juridique : valeur inconnue" in refus({**base, "formeJuridique": "Société anonyme"})                  # forme de société : pas pour un groupe (S39-5)
+    assert agent.get("/api/referentiel", **H).json()["listesFiche"]["formeJuridiqueGroupe"][2] == "Organisation non gouvernementale (ONG)"
     assert "Catégorie : valeur inconnue" in refus({**base, "categorie": "Catégorie A"})
     assert "Email invalide" in refus({**base, "email": "tontine"})
     assert "Sensibilisateur inconnu" in refus({**base, "sensibilisateurId": 999999})
@@ -1267,11 +1270,11 @@ def test_professions_s14b(clients):
 
 
 def test_listes_general(clients):
-    """S14, S14a à S14n (p. 23) : obligatoires, code unique, Modifier et Supprimer logique (p. 12), parent ; Type Guichet alimente S08 (S08-1)"""
+    """S14, S14a à S14o (p. 23 ; S14o : registre S39-5) : obligatoires, code unique, Modifier et Supprimer logique (p. 12), parent ; Type Guichet alimente S08 (S08-1)"""
     chef, agent = clients["chef"], clients["agent"]
     connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
     l = chef.get("/api/listes/secteur_activite", **H).json()
-    assert [x["code"] for x in l["lignes"]][:3] == ["S1", "S2", "S3"] and l["lignes"][0]["libelle"] == "PRIMAIRE" and len(l["catalogue"]) == 15
+    assert [x["code"] for x in l["lignes"]][:3] == ["S1", "S2", "S3"] and l["lignes"][0]["libelle"] == "PRIMAIRE" and len(l["catalogue"]) == 16   # S14o : forme juridique du groupe (S39-5)
     def refus(chemin, c):
         r = chef.post(chemin, c, **H); assert r.status_code == 422, r.content; return r.json()["message"]
     assert "N° secteur" in refus("/api/listes/secteur_activite", {"code": "", "libelle": "Pêche"})

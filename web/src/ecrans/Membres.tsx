@@ -478,7 +478,7 @@ function RenseignementsGroupe({ f, maj, ctx }: { f: NouveauTiers; maj: Maj; ctx:
     <div className="formulaire">
       <Champ libelle="Dénomination : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("nom")} />}</Champ>
       <Champ libelle="Forme juridique :">{(p) => <select {...p} className="saisie" value={f.formeJuridique} onChange={(e) => maj({ formeJuridique: e.target.value })}>
-        <option value=""></option>{(ctx.listesFiche.formeJuridique ?? []).map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+        <option value=""></option>{(ctx.listesFiche.formeJuridiqueGroupe ?? []).map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
       <Champ libelle="N° du registre ou de l'acte :">{(p) => <input {...p} className="saisie code" autoComplete="off" {...texte("registre")} />}</Champ>
     </div>
   );
@@ -603,7 +603,7 @@ export function EnrolementGroupe() {
       enregistrer={() => c.confirmer((m) => api.tiers.creerGroupe({ ...f, premierDepot: m, liees: c.liees.map((t) => t.id) }, membres, images),
         () => { setMembres([]); setImages({}); })}
       textes={["Manuel Microfina++, p. 47 : groupements, associations, ONG ; p. 50 : onglets, champs de l'onglet Informations de base, membres du groupe (Ajouter, Enregistrer), personnes liées, photo",
-        "Onglet Autres renseignements et listes : comme le client physique (S37) ; Type de groupe (S14f), Catégorie de groupe (S14j), Forme juridique (S14i) : Paramétrage > Info de base > Client > Général ; Sensibilisateur, Gestionnaire, Commercial : Agence > Paramètre (S33)",
+        "Onglet Autres renseignements et listes : comme le client physique (S37) ; Type de groupe (S14f), Catégorie de groupe (S14j), Forme juridique du groupe (S14o ; loi 004/2001, art. 2) : Paramétrage > Info de base > Client > Général ; Sensibilisateur, Gestionnaire, Commercial : Agence > Paramètre (S33)",
         "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
         "PCCI § 10.1 : lieu de résidence ; § 10.2 : agents économiques (associations et ONG : institutions sans but lucratif)",
         "Instr. BCC 15, art. 11 et 17 : identification d'une personne morale ou d'une autre entité juridique",

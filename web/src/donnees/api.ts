@@ -125,6 +125,7 @@ function contexte() {
     // S37 : listes lues par la fiche du client (registre S37-2)
     listesFiche: { ...Object.fromEntries(Object.entries(LISTES_FICHE).map(([k, [liste]]) => [k, valeursListe(liste).map((l) => l.libelle)])) as Record<string, string[]>,
       filiation: valeursListe("filiation").map((l) => l.libelle), formeJuridique: valeursListe("forme_juridique").map((l) => l.libelle),
+      formeJuridiqueGroupe: valeursListe("forme_juridique_groupe").map((l) => l.libelle),   // registre S39-5
       categorieGroupe: valeursListe("categorie_groupe").map((l) => l.libelle) } as Record<string, string[]>,
     typesActivite: valeursListe("type_activite").map((l) => ({ libelle: l.libelle, secteur: l.parent })),
     gestionnaires: E.agents.filter((a) => a.role === "gestionnaire" && a.actif).map((a) => ({ id: a.id, nom: `${a.nom} ${a.prenom}`.trim() })),
@@ -686,8 +687,8 @@ function controlerRepresentants(l: RepresentantSaisi[], qui: string, jour: strin
 export function controlerGroupe(d: NouveauTiers, membres: RepresentantSaisi[], images: Images, ctx: CtxControle, anciens?: Representant[]) {
   controlerBase(d, [["date demande", d.dateDemande], ["type de groupe", d.typeClient], ["type de compte à créer", d.produitCode],
     ["dénomination", d.nom], ["adresse", d.adresse]], valeursListe("type_groupe").map((l) => l.libelle), false, ctx);
-  if (d.formeJuridique.trim() && !valeursListe("forme_juridique").some((l) => l.libelle === d.formeJuridique.trim()))
-    throw new ErreurMetier("Forme juridique : valeur inconnue (Paramétrage > Info de base > Client > Général).");
+  if (d.formeJuridique.trim() && !valeursListe("forme_juridique_groupe").some((l) => l.libelle === d.formeJuridique.trim()))   // registre S39-5
+    throw new ErreurMetier("Forme juridique : valeur inconnue (Paramétrage > Info de base > Client > Général > Forme juridique du groupe).");
   controlerFichePhysique(d, ctx.jour, false, "categorie_groupe");   // registre S39-1
   if ([d.nbHommes, d.nbFemmes].some((n) => !Number.isInteger(n) || n < 0)) throw new ErreurMetier("Nombre d'hommes ou de femmes invalide.");
   controlerRepresentants(membres, "Membre", ctx.jour, anciens);
@@ -1490,6 +1491,8 @@ export const CATALOGUE_LISTES: FicheListe[] = ([
   // S18 (p. 26) : même liste que S14m (registre S18-1), avec la forme de sa capture : Libelle Motif seul, Reinitialiser
   { liste: "motif_depart", ecran: "S14m", titre: "Motif de départ", entete: "Motif de départ d'un client", libelle: "Libelle Motif", colonne: "Libelle Motif", sansCode: true, effacer: "Reinitialiser" },
   { liste: "type_guichet", ecran: "S14n", titre: "Type Guichet" },
+  // Décision du porteur du 22/11/2026 : les groupes ont leur liste de formes juridiques (loi n° 004/2001 sur les ASBL, art. 2 ; registre S39-5)
+  { liste: "forme_juridique_groupe", ecran: "S14o", titre: "Forme juridique du groupe" },
 ] as (Partial<FicheListe> & { liste: string; ecran: string; titre: string })[]).map((c) => ({ code: "Code", libelle: c.titre, colonne: c.titre, ...c }) as FicheListe);
 const ficheListe = (liste: string) => { const c = CATALOGUE_LISTES.find((x) => x.liste === liste); if (!c) throw new ErreurMetier("Liste inconnue."); return c; };
 /** S14b : la fiche, le prospect, les agents et le rapport lisent la liste Profession du paramétrage (registre S14b-2) */

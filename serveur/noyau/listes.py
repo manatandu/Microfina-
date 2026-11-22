@@ -22,6 +22,8 @@ CATALOGUE = [
     {"liste": "motif_depart", "ecran": "S14m", "titre": "Motif de départ", "entete": "Motif de départ d'un client", "libelle": "Libelle Motif",
      "colonne": "Libelle Motif", "sansCode": True, "effacer": "Reinitialiser"},
     {"liste": "type_guichet", "ecran": "S14n", "titre": "Type Guichet"},
+    # Décision du porteur du 22/11/2026 : les groupes ont leur liste de formes juridiques (loi n° 004/2001 sur les ASBL, art. 2 ; registre S39-5)
+    {"liste": "forme_juridique_groupe", "ecran": "S14o", "titre": "Forme juridique du groupe"},
 ]
 for c in CATALOGUE:      # registre S14-2 : un code et un libellé, comme Secteur d'activité
     c.setdefault("code", "Code")

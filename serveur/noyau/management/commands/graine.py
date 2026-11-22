@@ -36,7 +36,11 @@ PROFESSIONS = (("6330-01", "Agriculteur"), ("6113-13", "Maraîcher"), ("6320-07"
                ("COM", "Commerçant"))
 
 FORMES_JURIDIQUES = ("Société en nom collectif", "Société en commandite simple", "Société à responsabilité limitée", "Société anonyme",
-                     "Société par actions simplifiée")
+                     "Société par actions simplifiée", "Société à responsabilité limitée unipersonnelle", "Société anonyme unipersonnelle",
+                     "Société par actions simplifiée unipersonnelle")
+# Formes juridiques des groupes : loi n° 004/2001 sur les ASBL, art. 2 et titre II ; groupement sans personnalité juridique (manuel p. 47) ; registre S39-5
+FORMES_JURIDIQUES_GROUPE = ("Groupement sans personnalité juridique", "Association sans but lucratif à caractère culturel, social, éducatif ou économique",
+                            "Organisation non gouvernementale (ONG)", "Association confessionnelle", "Établissement d'utilité publique")
 
 # Schémas comptables de départ, un par événement (vides : le comptable les propose, le chef les valide)
 EVENEMENTS = ("depot", "retrait", "adhesion", "achat_parts", "retrait_parts", "a_nouveaux", "dat_constitution", "dat_rupture", "dat_echeance", "frais_tenue", "interet_dav", "interet_dat_couru", "reevaluation", "cloture_exercice", "immo_dotation", "immo_sortie", "plan_cotisation", "plan_fin", "cloture_inactif", "versement_bcc", "ed_encaissement", "ed_decaissement", "ecart_caisse", "transfert_caisse", "transfert_banque", "deblocage_credit", "remboursement_credit", "garantie_caution", "provision_credit", "radiation_credit", "engagement_signature", "fin_engagement", "comptabilisation_banque", "ecriture_manuelle", "operation_comptable", "facture", "reglement_facture", "annulation", "affectation_resultat", "interet_credit_couru")
@@ -242,9 +246,11 @@ class Command(BaseCommand):
         # S14f : types de groupe nommés par le manuel, p. 47 (registre S39-2)
         for n, tg in enumerate(("Groupement solidaire", "Association", "ONG"), 1):
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'type_groupe', %s, %s)", (ins, str(n), tg))
-        # S14i : formes de société de l'AUSCGIE, art. 6, en démonstration (registre S38-4)
+        # S14i : formes de société en démonstration, gardées et complétées par le porteur le 22/11/2026 (registre S38-4) ; S14o : formes des groupes (S39-5)
         for n, fj in enumerate(FORMES_JURIDIQUES, 1):
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'forme_juridique', %s, %s)", (ins, str(n), fj))
+        for n, fj in enumerate(FORMES_JURIDIQUES_GROUPE, 1):
+            executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'forme_juridique_groupe', %s, %s)", (ins, str(n), fj))
         # Utilisateurs et profils
         uid = {}
         for login, nom, profil in (("engalula", "Esther Ngalula", "caissier"), ("jpmukendi", "J.-P. Mukendi", "chef_agence"),

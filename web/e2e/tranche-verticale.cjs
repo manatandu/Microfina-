@@ -286,7 +286,8 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Suivant' }).click();
   await p.getByLabel('Dénomination : *').fill('Mamans de Kinsaku');
   await p.getByRole('tab', { name: 'Autres renseignements' }).click(); await adresseKinsaku('Kinsaku', ''); await p.getByRole('tab', { name: 'Renseignements généraux' }).click();
-  await p.getByLabel('Forme juridique :').waitFor(); await etape('05g2-groupe-renseignements');
+  await p.getByLabel('Forme juridique :').selectOption('Groupement sans personnalité juridique'); await etape('05g2-groupe-renseignements');   // S39-5 : formes des groupes
+  if (await p.getByLabel('Forme juridique :').locator('option', { hasText: 'Société anonyme' }).count()) throw new Error('Groupe : forme de société proposée');
   await p.getByRole('button', { name: 'Suivant' }).click(); await p.getByRole('button', { name: 'Ajouter', exact: true }).click();
   const mb = p.getByRole('dialog', { name: 'Membre du groupe' });
   await representant(mb, 'Mbuyi', 'Anne', "Carte d'électeur", '1-0412-7777');
@@ -1421,7 +1422,7 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Online Help' }).click(); await p.getByRole('heading', { name: 'Online Help: Journals' }).waitFor();
   await p.getByRole('heading', { name: 'Rules applied by this screen' }).waitFor(); await etape('40-anglais');
   await p.getByRole('button', { name: 'Close Help' }).click();
-  await p.locator('summary[title="Language"]').click(); await p.getByRole('menuitemradio', { name: 'Français' }).click();
+  await p.locator('summary[title="Langue"]').click(); await p.getByRole('menuitemradio', { name: 'Français' }).click();   // le menu des langues ne se traduit pas
   await p.getByRole('heading', { name: 'Journal comptables' }).waitFor();
   console.log(errs.length ? 'ERREURS\n' + errs.join('\n') : 'aucune erreur console');
   await b.close();

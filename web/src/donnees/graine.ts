@@ -20,7 +20,10 @@ export const VALEUR_PART_EXEMPLE = 400000;    // 4 000 CDF : exemple du manuel M
 export const PROFESSIONS_ROME: [string, string][] = [["6330-01", "Agriculteur"], ["6113-13", "Maraîcher"], ["6320-07", "Éleveur de bovins"], ["6122-06", "Éleveur de volailles"], ["5211-01", "Marchand de fruits et légumes"], ["5211-04", "Vendeur en alimentation générale"], ["7532-09", "Tailleur"], ["7532-04", "Couturier tailleur"], ["5141-06", "Coiffeur mixte"], ["7512-02", "Boulanger"], ["7112-11", "Maçon"], ["7522-02", "Menuisier"], ["7536-01", "Cordonnier"], ["2341-06", "Enseignant des écoles"], ["2240-09", "Infirmier général"], ["3311-23", "Cambiste, Changeur de monnaie"], ["COM", "Commerçant"]];
 /** S14i : formes de société commerciales de l'AUSCGIE, art. 6 (démonstration ; la liste se tient dans le paramétrage) */
 export const FORMES_JURIDIQUES = ["Société en nom collectif", "Société en commandite simple", "Société à responsabilité limitée", "Société anonyme",
-  "Société par actions simplifiée"];
+  "Société par actions simplifiée", "Société à responsabilité limitée unipersonnelle", "Société anonyme unipersonnelle", "Société par actions simplifiée unipersonnelle"];
+/** Formes juridiques des groupes : loi n° 004/2001 sur les ASBL, art. 2 et titre II ; groupement sans personnalité juridique (manuel p. 47) ; registre S39-5 */
+export const FORMES_JURIDIQUES_GROUPE = ["Groupement sans personnalité juridique", "Association sans but lucratif à caractère culturel, social, éducatif ou économique",
+  "Organisation non gouvernementale (ONG)", "Association confessionnelle", "Établissement d'utilité publique"];
 // Listes de base du client (Paramétrage > Info de base > Client > Général), complétées le 21/11/2026 (registre S14-4) ; mêmes valeurs que la graine du serveur
 export const LISTES_CLIENT: Record<string, string[]> = {
   civilite: ["Monsieur", "Madame"],                                         // « Monsieur » : capture p. 201 ; « Madame », sans « Mademoiselle » : porteur, 21/11/2026
@@ -157,6 +160,7 @@ export function graine(): Etat {
       ...PROFESSIONS_ROME.map(([code, libelle]) => ({ liste: "profession", code, libelle })),   // S14b (registre S14b-1)
       // S14i : formes de société de l'AUSCGIE, art. 6, en démonstration (registre S38-4)
       ...FORMES_JURIDIQUES.map((libelle, i) => ({ liste: "forme_juridique", code: String(i + 1), libelle })),
+      ...FORMES_JURIDIQUES_GROUPE.map((libelle, i) => ({ liste: "forme_juridique_groupe", code: String(i + 1), libelle })),
       // S18 : motifs de départ de la capture p. 26 (registre S18-1)
       ...["DEPART DU PAYS", "Raisons personnelles", "DEMENAGEMENT", "DECISION DU CLIENT", "NE VEUT PLUS PRENDRE DE CREDIT", "AUTRES", "TRANSFERT SUR UNE AUTRE AGENCE"]
         .map((libelle, i) => ({ liste: "motif_depart", code: String(i + 1), libelle })),

@@ -789,6 +789,8 @@ describe("journée de guichet", () => {
     const base = { ...enrolementVide("2026-11-05"), ...IDENTITE, typeClient: "Association", produitCode: "EAV-CDF", nom: "Mamans de Kinsaku", adresse: "Matete", nbFemmes: 12 };
     await expect(api.tiers.creerGroupe({ ...base, typeClient: "" }, [mb])).rejects.toThrow("type de groupe");
     await expect(api.tiers.creerGroupe({ ...base, nbFemmes: -1 }, [mb])).rejects.toThrow("Nombre");
+    await expect(api.tiers.creerGroupe({ ...base, formeJuridique: "Société anonyme" }, [mb])).rejects.toThrow("Forme juridique du groupe");   // S39-5 : forme de société refusée
+    expect((await api.referentiel.contexte()).listesFiche.formeJuridiqueGroupe?.[2]).toBe("Organisation non gouvernementale (ONG)");   // comme le serveur
     await expect(api.tiers.creerGroupe(base, [{ ...mb, pieceType: "Badge" }])).rejects.toThrow("Membre 1 : Type de pièce non admis");
     const t = await api.tiers.creerGroupe(base, [mb]);
     expect(t).toMatchObject({ type: "groupe", nom: "Mamans de Kinsaku", nbFemmes: 12, statut: "a_viser", membres: [{ nom: "Mbuyi", specimen: true }] });

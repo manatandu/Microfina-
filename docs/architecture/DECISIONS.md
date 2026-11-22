@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**948 décisions.** Solidité : 411 fortes (le manuel ou un texte répond), 455 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 941 déjà en place, 7 à appliquer.
+**949 décisions.** Solidité : 412 fortes (le manuel ou un texte répond), 455 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 942 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -317,7 +317,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | S38-3 | Bénéficiaires effectifs d'une entreprise | Saisis dans l'onglet Personnes liées, avec ce lien. Pas de nouvel onglet (ancien numéro S37-5) — Construit : liste Lien (Personne liée, Bénéficiaire effectif) ; un bénéficiaire effectif est une personne physique (art. 18, al. 3 et 4 : personnes physiques), jamais aussi personne liée | Texte réglementaire : Instr. BCC 15, art. 18 (déjà lu pour S38) | moyenne | en place |
 | S38-1 | Fiche complétée comme S37 | Appliquer à l'entreprise ce que S37-1 et S37-2 ont mis en place pour le client physique — Construit pour S38 : Sensibilisateur, Gestionnaire, Commercial pris dans S33 (INCONNU = aucun) ; Forme juridique pris dans S14i ; onglet Autres renseignements du client physique (Pays, Ville, Commune, Quartier, Rue / Maison, BP, Téléphone fixe, Email, Secteur et Type d'activité, Catégorie, Sous type client, Personne politiquement exposée) ; la saisie libre « Nature de l'activité » est remplacée par Secteur et Type d'activité, le type choisi tenant lieu de nature de l'activité pour les écrans qui l'affichent (S40). Groupe : S39-1 ; mise à jour : S46-3 | Donnée exigée ailleurs : S37-1, S37-2 ; Instr. BCC 15, art. 17 | moyenne | en place |
-| S38-4 | Valeurs de la liste Forme juridique (S14i) en démonstration | Les cinq formes de société commerciale de l'AUSCGIE, art. 6 : société en nom collectif, en commandite simple, à responsabilité limitée, anonyme, par actions simplifiée. L'institution tient sa liste dans S14i | Texte réglementaire : AUSCGIE, art. 6 (lu) | forte | en place |
+| S38-4 | Valeurs de la liste Forme juridique (S14i) en démonstration | Les cinq formes de société commerciale (société en nom collectif, en commandite simple, à responsabilité limitée, anonyme, par actions simplifiée) et, à la demande du porteur du 22/11/2026, les sociétés unipersonnelles (à responsabilité limitée, anonyme, par actions simplifiée). L'institution tient sa liste dans S14i | Choix du porteur : Décision du porteur du 22/11/2026 (« Laisse-le. Ajoute les sociétés unipersonnelles ») ; registre T73 : l'Acte uniforme n'est plus cité comme source | forte | en place |
 
 ## S37 à S39, S46 Fiche du client
 
@@ -762,6 +762,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | S39-1 | Fiche complétée comme S37 (reste de S38-1) | Sensibilisateur, Gestionnaire, Commercial pris dans S33 au lieu de INCONNU seul ; Autres renseignements comme le client physique ; saisies libres remplacées par les listes de paramétrage — Construit pour S39 : Sensibilisateur, Gestionnaire, Commercial de S33 ; Forme juridique de S14i (facultative) ; onglet Autres renseignements du client physique, Catégorie prise dans Catégorie de groupe (S14j) ; la saisie libre « Nature de l'activité » est remplacée par Secteur et Type d'activité | Donnée exigée ailleurs : S37-1, S37-2, S38-1 | moyenne | en place |
 | S39-2 | Liste du Type de groupe | Liste lue dans Type de groupe (S14f). Agent économique (PCCI § 10.2.2) : Association et ONG en institutions sans but lucratif ; tout autre groupe, sans personnalité juridique, en Ménages, parce que ses membres sont des personnes physiques. Même règle que la retenue d'impôt (S67-7). Décidé par délégation du porteur (15/11/2026). | Texte réglementaire : Manuel p. 47 ; PCCI § 10.2.2 | moyenne | en place |
+
+## S39 Fiche du groupe ; S14o
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S39-5 | Forme juridique du groupe | Le groupe a sa propre liste de formes juridiques (Paramétrage > Info de base > Client > Général > Forme juridique du groupe, S14o), au lieu des formes de société : groupement sans personnalité juridique ; association sans but lucratif à caractère culturel, social, éducatif ou économique ; organisation non gouvernementale (ONG) ; association confessionnelle ; établissement d'utilité publique. Une forme de société est refusée sur la fiche d'un groupe | Choix du porteur : Décision du porteur du 22/11/2026 ; loi n° 004/2001 sur les ASBL, art. 2 et titre II ; manuel p. 47 (groupements, associations, ONG) | forte | en place |
 
 ## S14b Profession
 

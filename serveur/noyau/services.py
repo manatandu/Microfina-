@@ -230,7 +230,7 @@ def contexte(u: dict) -> dict:
         "zones": [z["nom"] for z in lignes("select nom from zone where institution_id = %s and actif order by nom", (u["institution_id"],))],
         "typesClient": libelles_liste(u, "type_client"),   # S14g (registre S37-2)
         # S37 : listes lues par la fiche du client (registre S37-2)
-        "listesFiche": {k: libelles_liste(u, liste) for k, (liste, _) in LISTES_FICHE.items()} | {"filiation": libelles_liste(u, "filiation"), "formeJuridique": libelles_liste(u, "forme_juridique"),
+        "listesFiche": {k: libelles_liste(u, liste) for k, (liste, _) in LISTES_FICHE.items()} | {"filiation": libelles_liste(u, "filiation"), "formeJuridique": libelles_liste(u, "forme_juridique"), "formeJuridiqueGroupe": libelles_liste(u, "forme_juridique_groupe"),
                         "categorieGroupe": libelles_liste(u, "categorie_groupe")},
         "typesActivite": lignes("""select t.libelle, s.libelle as secteur from liste_reference t join liste_reference s on s.id = t.parent_id
                                    where t.institution_id = %s and t.liste = 'type_activite' and t.actif order by t.code""", (u["institution_id"],)),
@@ -1116,8 +1116,8 @@ def controler_groupe(u: dict, d: dict, tid: int | None = None):
     b = controler_base(u, d, [("date demande", "dateDemande"), ("type de groupe", "typeClient"), ("type de compte à créer", "produitCode"),
                               ("dénomination", "nom"), ("adresse", "adresse")], libelles_liste(u, "type_groupe"), False)
     texte = b["texte"]
-    if texte("formeJuridique") and texte("formeJuridique") not in libelles_liste(u, "forme_juridique"):
-        raise ErreurMetier("Forme juridique : valeur inconnue (Paramétrage > Info de base > Client > Général).")
+    if texte("formeJuridique") and texte("formeJuridique") not in libelles_liste(u, "forme_juridique_groupe"):      # registre S39-5
+        raise ErreurMetier("Forme juridique : valeur inconnue (Paramétrage > Info de base > Client > Général > Forme juridique du groupe).")
     fiche = controler_fiche_physique(u, d, texte, None, identite=False, categorie="categorie_groupe")   # registre S39-1
     nombres = [d.get("nbHommes", 0), d.get("nbFemmes", 0)]
     if any(not isinstance(n, int) or isinstance(n, bool) or n < 0 for n in nombres):
