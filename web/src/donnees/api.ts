@@ -692,7 +692,7 @@ function controlerRepresentants(l: RepresentantSaisi[], qui: string, jour: strin
 /** S39, et S46 pour la mise à jour (anciens). Contrôles identiques côté serveur (services.controler_groupe) */
 export function controlerGroupe(d: NouveauTiers, membres: RepresentantSaisi[], images: Images, ctx: CtxControle, anciens?: Representant[]) {
   // Une seule « Forme juridique » ; le type de groupe s'en déduit (plan d'allègement, point 2.5 ; même règle que services.controler_groupe)
-  if (!d.typeClient?.trim()) {
+  if (!valeursListe("type_groupe").some((l) => l.libelle === d.typeClient?.trim())) {
     if (!d.formeJuridique?.trim()) throw new ErreurMetier("À remplir : forme juridique.");
     d.typeClient = d.formeJuridique.trim().startsWith("Groupement") ? "Groupement solidaire" : "Association";
   }
