@@ -72,6 +72,7 @@ function InformationSociete() {
               onChange={(e) => setF({ ...v, journeeMax: e.target.value as unknown as number })} />}</Champ>
             {texte("compteHorsBilan1", "Compte Hors Bilan 1", "saisie code")}
             {texte("ifu", "NIF")}
+            {texte("nrc", "NRC")}
             {(v.typeBase === "coopec" || v.typeBase === "faitiere") && texte("delegationAdmission", "Délégation d'admission (décision du CA) :")}
             {v.typeBase === "coopec" && texte("faitiereAffiliation", "Faîtière d'affiliation :")}
             {(v.typeBase === "coopec" || v.typeBase === "faitiere") && texte("membresAuxiliaires", "Membres auxiliaires (article des statuts) :")}

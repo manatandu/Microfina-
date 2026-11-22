@@ -1286,7 +1286,9 @@ const OUT = process.argv[2];
   await etape('27b-bilan');
   await p.getByRole('tab', { name: 'Hors bilan' }).click(); await p.getByRole('heading', { name: "Edition de l'état hors bilan" }).waitFor(); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('rowheader', { name: 'Engagements donnés' }).waitFor(); await etape('27c-hors-bilan');
   await p.getByRole('tab', { name: 'Résultat' }).click(); await p.getByRole('heading', { name: 'Compte de résultat' }).waitFor(); await p.getByLabel('Resultat sans VIDAGE').check(); await p.getByRole('button', { name: 'Rechercher' }).click();
-  await p.getByRole('rowheader', { name: "Résultat net de l'exercice" }).waitFor(); await etape('27d-compte-de-resultat');
+  await p.getByRole('rowheader', { name: "Résultat net de l'exercice" }).waitFor();
+  await p.getByLabel("En-tête de l'état").getByText('Dénomination ou raison sociale').waitFor(); await p.getByLabel("En-tête de l'état").getByText('NRC', { exact: true }).waitFor();   // PCCI 14.2 : en-tête du modèle
+  await etape('27d-compte-de-resultat');
   await p.getByRole('tab', { name: 'Etat annexe' }).click(); await p.getByRole('heading', { name: 'Edition des états annexes' }).waitFor(); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('rowheader', { name: 'TOTAL' }).waitFor(); await etape('27e-emplois-ressources');
   await p.getByLabel('Annexe :').selectOption('flux'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('rowheader', { name: /^LIQUIDITES ET EQUIVALENTS/ }).waitFor();
   if (await p.getByText(/Les flux ne retombent pas/).count()) throw new Error('S122 : flux de trésorerie non bouclés');

@@ -55,6 +55,22 @@ function Edition({ ctx, f, setF, libelleType, types, libelleVidage }: { ctx: Ctx
   </div>;
 }
 const envoi = (f: Criteres) => ({ du: f.du, au: f.au, exercice: f.exercice, type: f.type, agenceId: f.agence ? Number(f.agence) : null, compteDe: f.compteDe, compteA: f.compteA, sansVidage: f.sansVidage });
+/** En-tête des modèles du PCCI (14.1 à 14.3) : dénomination ou raison sociale, n° d'agrément, sigle, date, NRC */
+function EnteteEtat({ date }: { date: string }) {
+  const { donnees } = useDonnees(() => api.referentiel.contexte());
+  const i = donnees?.institution;
+  if (!i) return null;
+  return (
+    <dl className="infos" aria-label="En-tête de l'état">
+      <div className="info-ligne"><dt>Dénomination ou raison sociale</dt><dd>{i.nom}</dd></div>
+      <div className="info-ligne"><dt>N° Agrément</dt><dd>{i.numeroAgrement ?? ""}</dd></div>
+      <div className="info-ligne"><dt>Sigle</dt><dd>{i.sigle ?? ""}</dd></div>
+      <div className="info-ligne"><dt>Date</dt><dd className="chiffres">{fr(date)}</dd></div>
+      <div className="info-ligne"><dt>NRC</dt><dd>{i.nrc ?? ""}</dd></div>
+    </dl>
+  );
+}
+
 function Actions({ rechercher, vider, exporter }: { rechercher: () => void; vider: () => void; exporter: (() => void) | null }) {
   return <div className="actions-onglets">
     <button className="bouton" type="button" onClick={rechercher}>Rechercher</button>
@@ -87,6 +103,7 @@ function EditionBilan({ ctx, jour }: { ctx: Ctx; jour: string }) {
       <Edition ctx={ctx} f={f} setF={setF} libelleType="Type de bilan :" types={ctx.typesBilan} libelleVidage="Bilan sans VIDAGE" />
       <Actions rechercher={rechercher} vider={() => { setF(vide); setR(null); }} exporter={r ? exporter : null} />
       {r && <div className="pile">
+        <EnteteEtat date={r.au} />
         <p>BILAN au <strong className="chiffres">{fr(r.au)}</strong> (N), comparé au <span className="chiffres">{fr(r.precedent)}</span> (N - 1), en CDF{texteEdition(r.edition)}</p>
         {!r.equilibre && <Attention>Le total de l'actif diffère du total du passif : la plage de comptes choisie ne couvre pas tout le bilan.</Attention>}
         <div className="defile-x">{table("ACTIF", r.actif, r.totalActif)}</div>
@@ -114,6 +131,7 @@ function EditionHorsBilan({ ctx, jour }: { ctx: Ctx; jour: string }) {
       <h2>Edition de l'état hors bilan</h2>
       <Edition ctx={ctx} f={f} setF={setF} libelleType="Hors bilan :" types={ctx.typesHorsBilan} libelleVidage="Bilan sans VIDAGE" />
       <Actions rechercher={rechercher} vider={() => { setF(vide); setR(null); }} exporter={r ? exporter : null} />
+      {r && <EnteteEtat date={r.au} />}
       {r && <div className="defile-x"><table className="grille"><caption>HORS-BILAN au {fr(r.au)} (N), comparé au {fr(r.precedent)} (N - 1), en CDF{texteEdition(r.edition)}</caption>
         <thead><tr><th scope="col">Code Poste</th><th scope="col">HORS-BILAN</th><th scope="col" className="num">N</th><th scope="col" className="num">N - 1</th></tr></thead>
         <tbody>{r.postes.flatMap((x) => [<tr key={x.code}><td className="code">{x.code}</td><th scope="row">{x.libelle}</th><td className="num chiffres">{n(x.n)}</td><td className="num chiffres">{n(x.n1)}</td></tr>,
@@ -141,7 +159,7 @@ function EditionResultat({ ctx, jour }: { ctx: Ctx; jour: string }) {
       <h2>Compte de résultat</h2>
       <Edition ctx={ctx} f={f} setF={setF} libelleType="Type de résultat :" types={ctx.typesResultat} libelleVidage="Resultat sans VIDAGE" />
       <Actions rechercher={rechercher} vider={() => { setF(vide); setR(null); }} exporter={r ? exporter : null} />
-      {r && <div className="pile"><div className="defile-x"><table className="grille">
+      {r && <div className="pile"><EnteteEtat date={r.au} /><div className="defile-x"><table className="grille">
         <caption>COMPTE DE RESULTAT du {fr(r.du)} au {fr(r.au)} (Exercice), comparé à la période du {fr(r.precedentDu)} au {fr(r.precedentAu)} (Ex. préc.), en CDF{texteEdition(r.edition)}</caption>
         <thead><tr><th scope="col"><span className="sr-only">Signe</span></th><th scope="col">RUBRIQUES</th><th scope="col" className="num">Exercice</th><th scope="col" className="num">Ex. préc.</th></tr></thead>
         <tbody>{r.lignes.flatMap((x, i) => [<tr key={i}><td className="chiffres">{x.signe}</td>{x.solde ? <th scope="row">{x.libelle}</th> : <td>{x.libelle}</td>}
@@ -199,6 +217,7 @@ function EditionAnnexes({ ctx, jour }: { ctx: Ctx; jour: string }) {
       <p><strong>{titre}</strong></p>
       <Actions rechercher={rechercher} vider={() => { setF(vide); setR(null); }} exporter={r ? exporter : null} />
       {r?.forme === "flux" && <div className="pile">
+        <EnteteEtat date={r.au} />
         {!r.controle && <Attention>Les flux ne retombent pas sur la variation des liquidités : une écriture mêle des comptes que le tableau ne sait pas classer.</Attention>}
         <div className="defile-x"><table className="grille"><caption>{r.titre}, du {fr(r.du)} au {fr(r.au)}, en CDF{texteEdition(r.edition)}</caption>
           <thead><tr><th scope="col">TABLEAU DE FLUX DE TRESORERIE</th><th scope="col" className="num">Année N</th><th scope="col" className="num">Année N - 1</th></tr></thead>
@@ -291,7 +310,7 @@ function ExportLiasse({ jour }: { jour: string }) {
         if (a.forme === "ventilation") annexes.push({ titre: a.titre, sections: a.sections });
       }
       const i = ctx.institution;
-      telecharger(`liasse-pcci-${au}`, liasseXml({ institution: i.nom, sigle: i.sigle ?? "", agrement: i.numeroAgrement ?? "", adresse: [i.rue, i.quartier, i.commune, i.ville].filter(Boolean).join(", "),
+      telecharger(`liasse-pcci-${au}`, liasseXml({ institution: i.nom, sigle: i.sigle ?? "", agrement: i.numeroAgrement ?? "", nrc: i.nrc ?? "", adresse: [i.rue, i.quartier, i.commune, i.ville].filter(Boolean).join(", "),
         du: base.du, au, exercice: Number(ex) }, { bilan, horsBilan, resultat, flux: { lignes: flux.forme === "flux" ? flux.lignes : [] }, annexes }));
     } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   }

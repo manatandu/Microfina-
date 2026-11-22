@@ -61,7 +61,7 @@ export function telecharger(nom: string, xml: string) {
 const cdf = (v: number) => Math.round(v / 100);      // montants du logiciel en centimes ; la liasse est en francs entiers
 const variation = (n: number, n1: number) => (n1 ? Math.round(((n - n1) / Math.abs(n1)) * 1000) / 10 : null);
 
-export interface Entete { institution: string; sigle: string; agrement: string; adresse: string; du: string; au: string; exercice: number }
+export interface Entete { institution: string; sigle: string; agrement: string; nrc?: string; adresse: string; du: string; au: string; exercice: number }
 type Poste = { code: string; libelle: string; n: number; n1: number; comptes: { compte: string; intitule: string; n: number; n1: number }[] };
 type LigneResultat = { signe: string; solde: boolean; libelle: string; n: number; n1: number; comptes: { compte: string; intitule: string; n: number; n1: number }[] };
 type LigneFlux = { libelle: string; titre: boolean; total: boolean; n: number; n1: number };
@@ -73,10 +73,10 @@ export interface DonneesLiasse {
 }
 const fr = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
 
-/** Cartouche de chaque état (PCCI 14.1 à 14.3 : dénomination, sigle, n° d'agrément, date) */
+/** Cartouche de chaque état (PCCI 14.1 à 14.3 : dénomination, sigle, n° d'agrément, NRC, date) */
 function cartouche(e: Entete, titre: string, nb: number): Ligne[] {
   const vide = Array(nb - 1).fill(null);
-  return [{ style: "sousTitre", cellules: [`Dénomination : ${e.institution}`, ...vide] }, { style: "texte", cellules: [`Sigle : ${e.sigle}    N° Agrément : ${e.agrement}`, ...vide] },
+  return [{ style: "sousTitre", cellules: [`Dénomination : ${e.institution}`, ...vide] }, { style: "texte", cellules: [`Sigle : ${e.sigle}    N° Agrément : ${e.agrement}    NRC : ${e.nrc ?? ""}`, ...vide] },
     { style: "texte", cellules: [`Adresse : ${e.adresse}`, ...vide] }, { style: "texte", cellules: [null, ...vide] }, { style: "titre", cellules: [titre, ...vide] },
     { style: "sousTitre", cellules: [`Exercice ${e.exercice} : du ${fr(e.du)} au ${fr(e.au)} ; montants en francs congolais`, ...vide] }, { style: "texte", cellules: [null, ...vide] }];
 }

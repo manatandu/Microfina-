@@ -10,7 +10,7 @@ PROFILS = {"coopec": "COOPEC", "societe_microfinance": "Société de microfinanc
            "faitiere": "Structure faîtière"}       # loi 002/2002 (COOPEC, faîtières) ; loi 11/020, art. 11 (IMF)
 CHAMPS = {"code": "sigle", "denomination": "nom", "typeBase": "profil", "description": "description", "directeur": "directeur",
           "agrement": "numero_agrement", "journeeMax": "journee_max", "compteHorsBilan1": "compte_hors_bilan_1", "compteHorsBilan2": "compte_hors_bilan_2",
-          "ifu": "ifu", "pays": "pays", "province": "province", "ville": "ville", "commune": "commune", "quartier": "quartier", "rue": "rue",
+          "ifu": "ifu", "nrc": "nrc", "pays": "pays", "province": "province", "ville": "ville", "commune": "commune", "quartier": "quartier", "rue": "rue",
           "numeroRue": "numero_rue", "email": "email", "bp": "bp",
           "telephoneFixe": "telephone_fixe", "adresse": "adresse", "logo": "logo",
           "faitiereAffiliation": "faitiere_affiliation",      # B30 : faîtière d'affiliation d'une COOPEC (Instr. BCC 0011, art. 29)

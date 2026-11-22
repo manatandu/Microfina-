@@ -9772,7 +9772,7 @@ const edDivers = {
 export const PROFILS_INSTITUTION: Record<string, string> = { coopec: "COOPEC", societe_microfinance: "Société de microfinance", entreprise_microcredit: "Entreprise de micro-crédit", faitiere: "Structure faîtière" };
 export type InfoSociete = { code: string; denomination: string; typeBase: string; description: string; directeur: string; agrement: string; journeeMax: number;
   compteHorsBilan1: string | null; compteHorsBilan2: string | null; ifu: string; pays: string; province?: string; ville: string; commune: string; quartier: string; rue: string; numeroRue?: string; email: string; bp: string;
-  telephoneFixe: string; adresse: string; logo: string | null; delegationAdmission?: string; membresAuxiliaires?: string; faitiereAffiliation?: string };
+  telephoneFixe: string; adresse: string; logo: string | null; delegationAdmission?: string; membresAuxiliaires?: string; faitiereAffiliation?: string; nrc?: string };
 const societe = {
   lire() {
     exiger();
@@ -9781,7 +9781,7 @@ const societe = {
       agrement: i.numeroAgrement ?? "", journeeMax: i.journeeMax ?? 1, compteHorsBilan1: i.compteHorsBilan1 ?? null, compteHorsBilan2: i.compteHorsBilan2 ?? null,
       ifu: i.ifu ?? "", pays: i.pays ?? "", province: i.province ?? "", ville: i.ville ?? "", commune: i.commune ?? "", quartier: i.quartier ?? "", rue: i.rue ?? "",
       numeroRue: i.numeroRue ?? "", email: i.email ?? "", bp: i.bp ?? "",
-      telephoneFixe: i.telephoneFixe ?? "", adresse: i.adresse ?? "", logo: i.logo ?? null, delegationAdmission: i.delegationAdmission ?? "", membresAuxiliaires: i.membresAuxiliaires ?? "", faitiereAffiliation: i.faitiereAffiliation ?? "" };
+      telephoneFixe: i.telephoneFixe ?? "", adresse: i.adresse ?? "", logo: i.logo ?? null, delegationAdmission: i.delegationAdmission ?? "", membresAuxiliaires: i.membresAuxiliaires ?? "", faitiereAffiliation: i.faitiereAffiliation ?? "", nrc: i.nrc ?? "" };
     return { institution, types: Object.entries(PROFILS_INSTITUTION).map(([code, libelle]) => ({ code, libelle })), localites: localites(), arbreLieux: arbreLieux(),
       agences: E.agences.filter((a) => !a.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ id, code, nom, autorisationReference, autorisationLe, ...x }) => ({ id, code, nom,
         autorisationReference: autorisationReference ?? "", autorisationLe: autorisationLe ?? "",   // A3
@@ -9811,7 +9811,7 @@ const societe = {
     Object.assign(E.institution, { sigle: v.code, nom: v.denomination, profil: v.typeBase, description: t(d.description), directeur: t(d.directeur), numeroAgrement: t(d.agrement),
       journeeMax: d.journeeMax, compteHorsBilan1: v.compteHorsBilan1 || null, compteHorsBilan2: v.compteHorsBilan2 || null, ifu: t(d.ifu), pays: v.pays, province: v.province, ville: v.ville, commune: v.commune,
       quartier: v.quartier, rue: t(d.rue), numeroRue: t(d.numeroRue), email: v.email, bp: t(d.bp), telephoneFixe: t(d.telephoneFixe), adresse: t(d.adresse), logo,
-      delegationAdmission: t(d.delegationAdmission), membresAuxiliaires: t(d.membresAuxiliaires), faitiereAffiliation: t(d.faitiereAffiliation) });
+      delegationAdmission: t(d.delegationAdmission), membresAuxiliaires: t(d.membresAuxiliaires), faitiereAffiliation: t(d.faitiereAffiliation), nrc: t(d.nrc) });
     enregistrer(); return societe.lire();
   },
   /** Page Agence : Code et Nom (registre S32-5) ; le code d'une agence qui a des clients ne change plus (il entre dans leurs numéros, S15) */

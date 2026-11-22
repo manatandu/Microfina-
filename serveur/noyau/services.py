@@ -220,7 +220,10 @@ def contexte(u: dict) -> dict:
         listes.setdefault(r["liste"], []).append(r)
     libelles_liste = lambda _u, liste: [r["libelle"] for r in listes.get(liste, [])]
     return {
-        "institution": {"nom": i["nom"], "profil": i["profil"], "delegationAdmission": i.get("delegation_admission") or "", "membresAuxiliaires": i.get("membres_auxiliaires") or ""},   # coopec, faitiere, societe_microfinance, entreprise_microcredit (S32)
+        "institution": {"nom": i["nom"], "profil": i["profil"], "delegationAdmission": i.get("delegation_admission") or "", "membresAuxiliaires": i.get("membres_auxiliaires") or "",
+                        # en-tête des états financiers (PCCI 14.1) et de la liasse : sigle, n° d'agrément, NRC, adresse
+                        "sigle": i.get("sigle") or "", "numeroAgrement": i.get("numero_agrement") or "", "nrc": i.get("nrc") or "", "rue": i.get("rue") or "",
+                        "quartier": i.get("quartier") or "", "commune": i.get("commune") or "", "ville": i.get("ville") or ""},   # coopec, faitiere, societe_microfinance, entreprise_microcredit (S32)
         "agence": a,
         "guichets": lignes("select id, code, nom from guichet where agence_id = %s and actif order by code", (u["agence_id"],)),
         "produits": lignes("select code, libelle, devise from produit_epargne where institution_id = %s and actif and not supprime order by code", (u["institution_id"],)),

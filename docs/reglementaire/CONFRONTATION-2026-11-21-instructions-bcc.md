@@ -450,3 +450,7 @@ Le porteur a demandé de répondre par les textes aux points du § 16.
 - **B20 non construit** (PCCI 14.4.1) : le PCCI ne donne que les titres des 22 sous-tableaux du T.E.F.F. ; leurs modèles sont dans le Plan comptable général congolais, absent des sources lues. À construire sur les modèles officiels, à fournir (registre T112, à confirmer).
 - **B32 laissé tel quel** : aucun texte ne dit sur quelles écritures se lisent les indicateurs (registre T113).
 - **Lot terminé le 22/11/2026.** Restent : B20 (modèles à fournir), le compte 08 de B25 (aucune règle de déclenchement dans les textes), le fichier FinA (T88).
+
+### Points du § 18.2 vérifiés le 22/11/2026
+
+- **En-tête des états de S122 : absent, corrigé** (PCCI 14.1 à 14.3) : dénomination, n° d'agrément, sigle, date et NRC en tête du bilan, du hors-bilan, du compte de résultat et du tableau de flux ; champ NRC sur la société ; sur le serveur, la liasse retrouve le sigle, l'agrément et l'adresse (registre T114).

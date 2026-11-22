@@ -2315,9 +2315,12 @@ def test_info_societe(clients):
     assert "commune" in refus({**i, "commune": "Lemba"})                     # Kinsaku est un quartier de Matete, pas de Lemba
     assert "classe 0" in refus({**i, "compteHorsBilan1": "570"})
     assert "PNG ou JPEG" in refus({**i, "logo": "data:text/html;base64,AAAA"})
-    r = chef.post("/api/societe", {**i, "directeur": "J.-P. Mukendi", "journeeMax": 2, "logo": "data:image/png;base64,iVBORw0KGgo="}, **H)
+    r = chef.post("/api/societe", {**i, "directeur": "J.-P. Mukendi", "journeeMax": 2, "logo": "data:image/png;base64,iVBORw0KGgo=", "nrc": "KIN/1234", "agrement": "A-77"}, **H)
     assert r.status_code == 200, r.content
-    assert (r.json()["institution"]["directeur"], r.json()["institution"]["journeeMax"]) == ("J.-P. Mukendi", 2)
+    assert (r.json()["institution"]["directeur"], r.json()["institution"]["journeeMax"], r.json()["institution"]["nrc"]) == ("J.-P. Mukendi", 2, "KIN/1234")
+    # En-tête des états financiers (PCCI 14.1) : le contexte porte la dénomination, le sigle, le n° d'agrément et le NRC
+    ci = chef.get("/api/referentiel", **H).json()["institution"]
+    assert (ci["nom"], ci["sigle"], ci["numeroAgrement"], ci["nrc"]) == (i["denomination"], i["code"], "A-77", "KIN/1234")
     ag = l["agences"][0]
     assert "ne change plus" in refus({"code": "0413", "nom": "Matete"}, f"/api/societe/agences/{ag['id']}")
     assert "existe déjà" in refus({"code": "0412", "nom": "Autre"}, "/api/societe/agences")

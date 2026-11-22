@@ -2010,8 +2010,11 @@ describe("journée de guichet", () => {
     await expect(api.societe.enregistrer({ ...i, quartier: "Gombe" })).rejects.toThrow("inconnu");
     await expect(api.societe.enregistrer({ ...i, compteHorsBilan1: "570" })).rejects.toThrow("classe 0");
     await expect(api.societe.enregistrer({ ...i, logo: "data:text/html;base64,AAAA" })).rejects.toThrow("PNG ou JPEG");
-    const r = await api.societe.enregistrer({ ...i, directeur: "J.-P. Mukendi", journeeMax: 2, logo: "data:image/png;base64,iVBORw0KGgo=" });
-    expect([r.institution.directeur, r.institution.journeeMax]).toEqual(["J.-P. Mukendi", 2]);
+    const r = await api.societe.enregistrer({ ...i, directeur: "J.-P. Mukendi", journeeMax: 2, logo: "data:image/png;base64,iVBORw0KGgo=", nrc: "KIN/1234", agrement: "A-77" });
+    expect([r.institution.directeur, r.institution.journeeMax, r.institution.nrc]).toEqual(["J.-P. Mukendi", 2, "KIN/1234"]);
+    // En-tête des états financiers (PCCI 14.1) : le contexte porte la dénomination, le sigle, le n° d'agrément et le NRC
+    const ci = (await api.referentiel.contexte()).institution;
+    expect([ci.nom, ci.sigle, ci.numeroAgrement, ci.nrc]).toEqual([i.denomination, i.code, "A-77", "KIN/1234"]);
     await expect(api.societe.enregistrerAgence({ code: "0412", nom: "Autre" })).rejects.toThrow("existe déjà");
     await expect(api.societe.enregistrerAgence({ code: "0413", nom: "Lemba" })).rejects.toThrow("Autorisation préalable");   // A3 : Instr. BCC 41, art. 35
     const n = (await api.societe.enregistrerAgence({ code: "0413", nom: "Lemba", autorisationReference: "BCC/DSIF/2026/41", autorisationLe: "2026-10-01" })).agences.find((a) => a.code === "0413")!;
