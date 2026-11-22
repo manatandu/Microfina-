@@ -7893,6 +7893,13 @@ function echeancesFin(ex: number, m: number | null): string[] {
   const coopec = estCoopec(), rang = coopec ? 6 : 4;
   const out = [`États financiers certifiés et états annexes de l'exercice ${ex} : à transmettre à la BCC le ${rang}e mois qui suit la clôture, en ${MOIS_FR[rang - 1]!.toLowerCase()} ${ex + 1} (Instr. BCC 009, art. 1er).`];
   if (coopec) out.push(`Composition du capital social (membres effectifs, parts sociales, adresses) : à déclarer à la BCC au plus tard fin janvier ${ex + 1} (Instr. BCC 41, art. 67).`);
+  const faitiere = E.institution.faitiereAffiliation?.trim();
+  if (coopec && faitiere) {   // B30 : cotisation au fonds de sécurité, 1 % de l'encours de crédit net à la fin de l'exercice (Instr. BCC 0011, art. 29)
+    let net = 0;
+    for (const e of E.ecritures) { if (dateEcr(e) > `${ex}-12-31`) continue; for (const l of e.lignes) if (["30", "31", "32", "38", "39"].includes(l.compte.slice(0, 2))) net += l.sens === "D" ? l.montantCdf : -l.montantCdf; }
+    const cot = (Math.floor(Math.max(net, 0) / 100) / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/,/g, " ");
+    out.push(`Cotisation au fonds de sécurité de ${faitiere} : 1 % de l'encours de crédit net au 31/12/${ex}, soit ${cot} CDF, à verser au plus tard le 30/06/${ex + 1} (Instr. BCC 0011, art. 29).`);
+  }
   return out;
 }
 function controlesFin(a: number, m: number | null) {
@@ -8969,7 +8976,7 @@ const immobilisations = {
     E.immoInventaires.push({ id: prochain(E.immoInventaires), bienId: b.id, etat: d.etat, date: d.date!, observation: (d.observation ?? "").trim(), par: u.id });
     enregistrer(); return { bienId: b.id, etat: d.etat, date: d.date! };
   },
-  sortir(d: { type?: string; bienId?: number | null; date?: string; observation?: string }) {
+  sortir(d: { type?: string; bienId?: number | null; date?: string; observation?: string; autorisationBcc?: string }) {
     const u = exiger();
     if (!d.type || !SORTIES_IMMO.includes(d.type)) throw new ErreurMetier("À remplir : Type de sortie.");
     const b = bienImmo(d.bienId);
@@ -8979,12 +8986,17 @@ const immobilisations = {
     const j = jourImmo();
     if (d.date! > j.date) throw new ErreurMetier("Date de sortie : pas après la journée ouverte.");
     const v = vueBien(b), cumul = v.cumulAmortissements, vnc = b.prixAcquisition - cumul;
+    const autorisation = (d.autorisationBcc ?? "").trim();
+    if (d.type === "Cession" && !autorisation) {   // B28 : cession au-delà de 10 % des fonds propres de base : autorisation préalable de la BCC (Instr. BCC 41, art. 33)
+      const { s, resultat, anterieurs } = soldesEf(j.date, Number(j.date.slice(0, 4)), true);
+      if (b.prixAcquisition * 10 > Math.max(fondsPropresNormes(s, resultat + anterieurs).base, 0)) throw new ErreurMetier("Cession au-delà de 10 % des fonds propres de base : à remplir, Autorisation BCC (Instr. BCC 41, art. 33).");
+    }
     const l = (compte: string, sens: "D" | "C", m: number) => ({ compte, sens, devise: "CDF" as Devise, montant: m, montantCdf: m });
     const lg = [l(v.comptes.acquisition, "C", b.prixAcquisition)];
     if (cumul) lg.push(l(v.comptes.amortissement, "D", cumul));
     if (vnc) lg.push(l(v.comptes.chargeVcn, "D", vnc));
     const e = poster({ journal: "OD", journeeId: j.id, libelle: `Sortie du patrimoine (${d.type}), bien ${b.codification}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: lg });
-    E.immoSorties.push({ id: prochain(E.immoSorties), bienId: b.id, type: d.type, date: d.date!, observation: (d.observation ?? "").trim(), vnc, cumul, ecritureId: e.id, par: u.id });
+    E.immoSorties.push({ id: prochain(E.immoSorties), bienId: b.id, type: d.type, date: d.date!, observation: [(d.observation ?? "").trim(), autorisation ? `Autorisation BCC : ${autorisation}` : ""].filter(Boolean).join(" "), vnc, cumul, ecritureId: e.id, par: u.id });
     b.statut = "SORTI"; enregistrer(); return { ...vueBien(b), vnc };
   },
   periode(p: { rechercher?: string; du?: string; au?: string }) {
@@ -9599,7 +9611,7 @@ const edDivers = {
 export const PROFILS_INSTITUTION: Record<string, string> = { coopec: "COOPEC", societe_microfinance: "Société de microfinance", entreprise_microcredit: "Entreprise de micro-crédit", faitiere: "Structure faîtière" };
 export type InfoSociete = { code: string; denomination: string; typeBase: string; description: string; directeur: string; agrement: string; journeeMax: number;
   compteHorsBilan1: string | null; compteHorsBilan2: string | null; ifu: string; pays: string; province?: string; ville: string; commune: string; quartier: string; rue: string; numeroRue?: string; email: string; bp: string;
-  telephoneFixe: string; adresse: string; logo: string | null; delegationAdmission?: string; membresAuxiliaires?: string };
+  telephoneFixe: string; adresse: string; logo: string | null; delegationAdmission?: string; membresAuxiliaires?: string; faitiereAffiliation?: string };
 const societe = {
   lire() {
     exiger();
@@ -9608,7 +9620,7 @@ const societe = {
       agrement: i.numeroAgrement ?? "", journeeMax: i.journeeMax ?? 1, compteHorsBilan1: i.compteHorsBilan1 ?? null, compteHorsBilan2: i.compteHorsBilan2 ?? null,
       ifu: i.ifu ?? "", pays: i.pays ?? "", province: i.province ?? "", ville: i.ville ?? "", commune: i.commune ?? "", quartier: i.quartier ?? "", rue: i.rue ?? "",
       numeroRue: i.numeroRue ?? "", email: i.email ?? "", bp: i.bp ?? "",
-      telephoneFixe: i.telephoneFixe ?? "", adresse: i.adresse ?? "", logo: i.logo ?? null, delegationAdmission: i.delegationAdmission ?? "", membresAuxiliaires: i.membresAuxiliaires ?? "" };
+      telephoneFixe: i.telephoneFixe ?? "", adresse: i.adresse ?? "", logo: i.logo ?? null, delegationAdmission: i.delegationAdmission ?? "", membresAuxiliaires: i.membresAuxiliaires ?? "", faitiereAffiliation: i.faitiereAffiliation ?? "" };
     return { institution, types: Object.entries(PROFILS_INSTITUTION).map(([code, libelle]) => ({ code, libelle })), localites: localites(), arbreLieux: arbreLieux(),
       agences: E.agences.filter((a) => !a.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ id, code, nom, autorisationReference, autorisationLe, ...x }) => ({ id, code, nom,
         autorisationReference: autorisationReference ?? "", autorisationLe: autorisationLe ?? "",   // A3
@@ -9638,7 +9650,7 @@ const societe = {
     Object.assign(E.institution, { sigle: v.code, nom: v.denomination, profil: v.typeBase, description: t(d.description), directeur: t(d.directeur), numeroAgrement: t(d.agrement),
       journeeMax: d.journeeMax, compteHorsBilan1: v.compteHorsBilan1 || null, compteHorsBilan2: v.compteHorsBilan2 || null, ifu: t(d.ifu), pays: v.pays, province: v.province, ville: v.ville, commune: v.commune,
       quartier: v.quartier, rue: t(d.rue), numeroRue: t(d.numeroRue), email: v.email, bp: t(d.bp), telephoneFixe: t(d.telephoneFixe), adresse: t(d.adresse), logo,
-      delegationAdmission: t(d.delegationAdmission), membresAuxiliaires: t(d.membresAuxiliaires) });
+      delegationAdmission: t(d.delegationAdmission), membresAuxiliaires: t(d.membresAuxiliaires), faitiereAffiliation: t(d.faitiereAffiliation) });
     enregistrer(); return societe.lire();
   },
   /** Page Agence : Code et Nom (registre S32-5) ; le code d'une agence qui a des clients ne change plus (il entre dans leurs numéros, S15) */

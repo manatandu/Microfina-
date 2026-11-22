@@ -11,6 +11,7 @@ export interface Institution { nom: string; sigle?: string; profil: string;
   description?: string; directeur?: string; numeroAgrement?: string; journeeMax?: number; compteHorsBilan1?: string | null; compteHorsBilan2?: string | null;
   ifu?: string; pays?: string; province?: string; ville?: string; commune?: string; quartier?: string; rue?: string; numeroRue?: string; email?: string; bp?: string; telephoneFixe?: string; adresse?: string; logo?: string | null;
   delegationAdmission?: string;
+  faitiereAffiliation?: string;   // B30 : faîtière d'affiliation d'une COOPEC (Instr. BCC 0011, art. 29)
   membresAuxiliaires?: string;   // écart E20 : article des statuts qui prévoit des membres auxiliaires (loi 002/2002, art. 23)
   criteresAtypiques?: CriteresAtypiques }   // écart E09 : critères fixés par l'institution (Instr. BCC 15, art. 36)
 export interface CriteresAtypiques { montantUsd: number | null; montantEleveUsd: number | null; nombreJour: number | null; reveilMois: number | null;

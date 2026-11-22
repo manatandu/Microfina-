@@ -243,11 +243,13 @@ export function TraitementsBiens() {
         <Champ libelle="Type de sortie *">{(p) => <select {...p} className="saisie" value={f.type ?? ""} onChange={(e) => maj("type", e.target.value)}><option value=""></option>{ctx.sorties.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
         {choixBien}<ChampDate libelle="Date de sortie *" valeur={f.date ?? ""} onChange={(x) => maj("date", x)} />
         <Champ libelle="Observation">{(p) => <textarea {...p} className="saisie" rows={2} value={f.observation ?? ""} onChange={(e) => maj("observation", e.target.value)} />}</Champ>
+        {f.type === "Cession" && <Champ libelle="Autorisation BCC (au-delà de 10 % des fonds propres de base)">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.autorisationBcc ?? ""}
+          onChange={(e) => maj("autorisationBcc", e.target.value)} />}</Champ>}
         {bien && <dl className="definitions"><dt>Prix d'acquisition</dt><dd>{n(bien.prixAcquisition)}</dd><dt>Amortissements cumulés</dt><dd>{n(bien.cumulAmortissements)}</dd>
           <dt>Valeur nette comptable</dt><dd>{n(bien.prixAcquisition - bien.cumulAmortissements)}</dd></dl>}
       </fieldset>
       <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => window.print()}>Imprimer</button>
-        <button className="bouton" type="button" onClick={() => c.confirmer("Voulez-vous vraiment sortir ce bien du patrimoine ?", () => api.immobilisations.sortir({ type: f.type, bienId: bien?.id, date: f.date, observation: f.observation }))}>Enregistrer</button></div>
+        <button className="bouton" type="button" onClick={() => c.confirmer("Voulez-vous vraiment sortir ce bien du patrimoine ?", () => api.immobilisations.sortir({ type: f.type, bienId: bien?.id, date: f.date, observation: f.observation, autorisationBcc: f.autorisationBcc }))}>Enregistrer</button></div>
     </section>}
     <Textes sources={[M("p. 6 et 7 : amortissement par matériel ou lot de matériel ; inventaire : code du bien, état, date, observation ; sortie : type de sortie, bien, date, observation, « imprimer l'état »"),
       "PCCI : compte 681 (dotations), 28 (amortissements) ; sortie : la valeur d'origine sort, avec les amortissements antérieurs et un compte de gestion (673 mise au rebut, 674 moins-value, 774 plus-value)"]} />

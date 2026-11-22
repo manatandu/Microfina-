@@ -13,6 +13,7 @@ CHAMPS = {"code": "sigle", "denomination": "nom", "typeBase": "profil", "descrip
           "ifu": "ifu", "pays": "pays", "province": "province", "ville": "ville", "commune": "commune", "quartier": "quartier", "rue": "rue",
           "numeroRue": "numero_rue", "email": "email", "bp": "bp",
           "telephoneFixe": "telephone_fixe", "adresse": "adresse", "logo": "logo",
+          "faitiereAffiliation": "faitiere_affiliation",      # B30 : faîtière d'affiliation d'une COOPEC (Instr. BCC 0011, art. 29)
           "delegationAdmission": "delegation_admission",     # écart E05 : référence de la décision du Conseil qui délègue l'admission (loi 002/2002, art. 22)
           "membresAuxiliaires": "membres_auxiliaires"}       # écart E20 : article des statuts qui prévoit des membres auxiliaires (loi 002/2002, art. 23)     # écart E05 : référence de la décision du Conseil qui délègue l'admission (loi 002/2002, art. 22)
 ADRESSE = {"pays": "pays", "province": "province", "ville": "ville", "commune": "commune", "quartier": "quartier", "rue": "rue", "numeroRue": "numero_rue"}

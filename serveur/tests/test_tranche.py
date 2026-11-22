@@ -4772,6 +4772,8 @@ def test_calculs_et_clotures(clients, journee):
     v = compta.get(f"{A}/cloture/comptabilite", q, **H).json()
     assert all(c["ok"] for c in v["mois"]["controles"] if c["bloquant"]) and v["mois"]["reevaluation"]["lignes"], v["mois"]
     assert "15/12/2026" in v["mois"]["echeances"][0] and "fin janvier 2027" in " ".join(v["echeances"])     # B31 : Instr. BCC 009, art. 1er ; Instr. BCC 41, art. 67
+    executer("update institution set faitiere_affiliation = 'COOCEC Kinshasa'")                           # B30 : Instr. BCC 0011, art. 29
+    assert "Cotisation au fonds de sécurité de COOCEC Kinshasa : 1 %" in " ".join(compta.get(f"{A}/cloture/comptabilite", q, **H).json()["echeances"])
     reev = v["mois"]["reevaluation"]
     p723, p623 = solde_compte("723"), solde_compte("623")
     r = compta.post(f"{A}/cloture/mois", q, **H)
@@ -4942,6 +4944,11 @@ def test_immobilisations(clients, journee):
     assert "ne se modifie plus" in msg(f"/api/immobilisations/biens/{b['id']}", B)
     assert "Etat du bien" in msg("/api/immobilisations/inventaire", {"bienId": b["id"], "date": "2026-11-05"})
     ok("/api/immobilisations/inventaire", {"bienId": b["id"], "etat": "Bon", "date": "2026-11-05", "observation": "RAS"})
+    from noyau.bd import executer as _ex, valeur as _val
+    prix = _val("select prix_acquisition from immo_bien where id = %s", (b["id"],))
+    _ex("update immo_bien set prix_acquisition = 900000000000 where id = %s", (b["id"],))            # B28 : au-delà de 10 % des fonds propres de base
+    assert "Autorisation BCC" in msg("/api/immobilisations/sortie", {"type": "Cession", "bienId": b["id"], "date": "2026-11-05"})
+    _ex("update immo_bien set prix_acquisition = %s where id = %s", (prix, b["id"]))
     s = ok("/api/immobilisations/sortie", {"type": "Mise au rebut", "bienId": b["id"], "date": "2026-11-05", "observation": "Hors service"})
     assert (s["statut"], s["vnc"]) == ("SORTI", 833333)
     assert solde_compte("2810") == avant and solde_compte("673") == 833333

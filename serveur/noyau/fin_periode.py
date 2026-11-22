@@ -678,6 +678,15 @@ def echeances(u, ex: int, m: int | None) -> list[str]:
            "(Instr. BCC 009, art. 1er)."]
     if coopec:
         out.append(f"Composition du capital social (membres effectifs, parts sociales, adresses) : à déclarer à la BCC au plus tard fin janvier {ex + 1} (Instr. BCC 41, art. 67).")
+        faitiere = valeur("select faitiere_affiliation from institution where id = %s", (u["institution_id"],))
+        if faitiere:
+            # B30 : cotisation au fonds de sécurité, 1 % de l'encours de crédit net à la fin de l'exercice (Instr. BCC 0011, art. 29)
+            net = int(valeur("""select coalesce(sum(case l.sens when 'D' then l.montant_cdf else -l.montant_cdf end), 0) from ligne_ecriture l
+                                join ecriture e on e.id = l.ecriture_id join compte c on c.id = l.compte_id
+                                where e.institution_id = %s and e.date_valeur <= %s and left(c.numero, 2) in ('30', '31', '32', '38', '39')""",
+                             (u["institution_id"], date(ex, 12, 31))))
+            out.append(f"Cotisation au fonds de sécurité de {faitiere} : 1 % de l'encours de crédit net au 31/12/{ex}, soit {max(net, 0) // 100 / 100:,.2f} CDF, ".replace(",", " ")
+                       + f"à verser au plus tard le 30/06/{ex + 1} (Instr. BCC 0011, art. 29).")
     return out
 
 

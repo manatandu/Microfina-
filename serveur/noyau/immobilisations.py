@@ -407,6 +407,16 @@ def sortir(u, d) -> dict:
     v = vue(u, b)
     cumul = v["cumulAmortissements"]
     vnc = b["prix_acquisition"] - cumul
+    autorisation = d.get("autorisationBcc").strip() if isinstance(d.get("autorisationBcc"), str) else ""
+    if d["type"] == "Cession" and not autorisation:
+        # B28 : cession d'un actif patrimonial au-delà de 10 % des fonds propres de base : autorisation préalable de la BCC (Instr. BCC 41, art. 33)
+        from .etats_financiers import soldes
+        from .normes import fonds_propres
+        jd = date.fromisoformat(j["date"])
+        s, res, ant = soldes(u, jd, jd.year, vidage=True)
+        base = fonds_propres(s, res + ant)["base"]
+        if b["prix_acquisition"] * 10 > max(base, 0):
+            raise ErreurMetier("Cession au-delà de 10 % des fonds propres de base : à remplir, Autorisation BCC (Instr. BCC 41, art. 33).")
     lg = [{"compte": v["comptes"]["acquisition"], "sens": "C", "devise": "CDF", "montant": b["prix_acquisition"]}]
     if cumul:
         lg.append({"compte": v["comptes"]["amortissement"], "sens": "D", "devise": "CDF", "montant": cumul})
@@ -415,6 +425,8 @@ def sortir(u, d) -> dict:
     eid = poster(u, journal="OD", journee_id=j["id"], libelle=f"Sortie du patrimoine ({d['type']}), bien {b['codification']}",
                  piece=nouvelle_piece(u, "OD", date.fromisoformat(j["date"])), evenement="immo_sortie", cle=str(uuid.uuid4()), valide_par=u["id"], lignes_ecr=lg)
     obs = d.get("observation").strip() if isinstance(d.get("observation"), str) else ""
+    if autorisation:
+        obs = (obs + " " if obs else "") + f"Autorisation BCC : {autorisation}"
     executer("insert into immo_sortie (bien_id, type, date_sortie, observation, vnc, cumul, ecriture_id, par) values (%s, %s, %s, %s, %s, %s, %s, %s)",
              (b["id"], d["type"], q, obs, vnc, cumul, eid, u["id"]))
     executer("update immo_bien set statut = 'SORTI' where id = %s", (b["id"],))

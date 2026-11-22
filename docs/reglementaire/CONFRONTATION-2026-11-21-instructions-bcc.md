@@ -441,3 +441,5 @@ Le porteur a demandé de répondre par les textes aux points du § 16.
 - **B17 corrigé** (Instr. BCC 008, art. 43 et 49) : écran « Incidents et dépassements » (SC06), dépassements notés par le logiciel, traitement tracé, contrôle à la clôture (registre T102).
 - **B26 corrigé** (PCCI, compte 15) : subvention d'équipement rapportée au résultat avec la dotation du bien subventionné (registre T103).
 - **B25 en partie** (PCCI § 7.3.1.2) : contrôle de clôture sur les cautions reçues ; le compte 08 reste sans règle de déclenchement dans les textes (registre T104).
+- **B28 terminé** (Instr. BCC 41, art. 33) : autorisation de la BCC exigée pour une cession au-delà de 10 % des fonds propres de base (registre T105).
+- **B30 corrigé** (Instr. BCC 0011, art. 29) : faîtière d'affiliation et rappel de la cotisation de 1 % à la clôture (registre T106). L'accord de la faîtière sur un crédit au-delà du plafond (art. 8) se note dans la référence de dérogation déjà prévue.

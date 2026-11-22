@@ -73,6 +73,7 @@ function InformationSociete() {
             {texte("compteHorsBilan1", "Compte Hors Bilan 1", "saisie code")}
             {texte("ifu", "NIF")}
             {(v.typeBase === "coopec" || v.typeBase === "faitiere") && texte("delegationAdmission", "Délégation d'admission (décision du CA) :")}
+            {v.typeBase === "coopec" && texte("faitiereAffiliation", "Faîtière d'affiliation :")}
             {(v.typeBase === "coopec" || v.typeBase === "faitiere") && texte("membresAuxiliaires", "Membres auxiliaires (article des statuts) :")}
           </div>
           <div className="pile champs-a-gauche">
