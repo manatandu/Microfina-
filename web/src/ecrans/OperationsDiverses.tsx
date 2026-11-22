@@ -25,10 +25,11 @@ export default function ParametrageAutresOperations() {
       <option value=""></option>{valeurs.map((v) => <option key={v} value={v}>{enClair(v)}</option>)}</select>}</Champ>);
   return (
     <>
-      <h2>Paramétrage autres opérations</h2>
       <section className="bloc pile" aria-label="Paramétrage autres opérations">
         <div className="grille-deux">
-          {liste("sens", "Type Opération: *", donnees.sens)}
+          {/* Nature de l'opération : encaissement (compte de produit) ou décaissement (charge) (plan d'allègement, point 2.25) */}
+          <Champ libelle="Nature : *">{(p) => <select {...p} className="saisie" value={f.sens} onChange={(e) => setF({ ...f, sens: e.target.value })}>
+            <option value=""></option>{donnees.sens.map((v) => <option key={v} value={v}>{({ PRODUIT: "Encaissement (produit)", CHARGE: "Décaissement (charge)" } as Record<string, string>)[v] ?? enClair(v)}</option>)}</select>}</Champ>
           <Champ libelle="Compte *">{(p) => <input {...p} className="saisie code" value={f.compte} onChange={(e) => setF({ ...f, compte: e.target.value })} />}</Champ>
           {liste("statut", "Statut *", donnees.statuts)}
           <Champ libelle="Libellé opération *">{(p) => <input {...p} className="saisie" value={f.libelle} onChange={(e) => setF({ ...f, libelle: e.target.value })} />}</Champ>
