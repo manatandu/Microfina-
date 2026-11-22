@@ -439,3 +439,5 @@ Le porteur a demandé de répondre par les textes aux points du § 16.
 - **B29 (emprunts), B28 (organes en retard) et B31 corrigés** : décision du Conseil sur un emprunt et emprunt subordonné au 1622 (registre T98), contrôle des membres des organes en retard (T99), rappel des échéances de transmission (T100). Restent de B28 l'alerte de cession au-delà de 10 %, et de B29 l'appel d'un refus de la commission de crédit.
 - **B7, états annexes : faits** (Instr. BCC 009, art. 1er) : les six états manquants sont ajoutés, annexes 8 à 13 (registre T101, contenu à valider : le texte ne donne que les titres). Le fichier FinA reste hors textes (T88).
 - **B17 corrigé** (Instr. BCC 008, art. 43 et 49) : écran « Incidents et dépassements » (SC06), dépassements notés par le logiciel, traitement tracé, contrôle à la clôture (registre T102).
+- **B26 corrigé** (PCCI, compte 15) : subvention d'équipement rapportée au résultat avec la dotation du bien subventionné (registre T103).
+- **B25 en partie** (PCCI § 7.3.1.2) : contrôle de clôture sur les cautions reçues ; le compte 08 reste sans règle de déclenchement dans les textes (registre T104).

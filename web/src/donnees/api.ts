@@ -7946,6 +7946,11 @@ function controlesFin(a: number, m: number | null) {
     if (solde > 0 && (!dernier || (Date.parse(fin) - Date.parse(dernier)) / 86400000 > 30)) deb.push(`${k.numero} (dernier versement : ${dernier ? frDate(dernier) : "aucun"})`);
   }
   ajouter("Comptes courants débiteurs sans versement depuis plus de 30 jours", deb.length === 0, `À classer en crédits douteux (Instr. BCC 003, art. 7, al. 2) : ${deb.join(", ")}`);
+  // B25 : une caution reçue reste engagée au plus pour le capital restant dû du crédit à la clôture (PCCI § 7.3.1.2)
+  const parCredit = new Map<number, number>();
+  for (const g of E.garanties) if (g.type === "caution" && g.montant > g.libere) parCredit.set(g.creditId, (parCredit.get(g.creditId) ?? 0) + g.montant - g.libere);
+  const trop = [...parCredit].map(([cid, reste]) => ({ c: E.credits.find((x) => x.id === cid)!, reste })).filter(({ c, reste }) => c.statut !== "debloque" || reste > etatCredit(c, fin).capitalRestant).map(({ c }) => c.numero).sort();
+  ajouter("Cautions reçues au plus égales au restant dû", trop.length === 0, `À ramener au restant dû (Crédit > Caution et nantissement > Libérer caution ; PCCI § 7.3.1.2) : ${trop.join(", ")}`);
   const incidentsOuverts = (E.incidents ?? []).filter((x) => !x.regulariseLe).length;   // B17 : Instr. BCC 008, art. 49
   ajouter("Incidents et dépassements régularisés", incidentsOuverts === 0, `${incidentsOuverts} incident(s) ou dépassement(s) à traiter (Client > Conformité > Incidents et dépassements)`);
   ajouter("Intérêts courus des dépôts à terme", reste === 0, "À passer : Autres > Calculs > Calcul des intérêts sur DAT");
@@ -8937,8 +8942,13 @@ const immobilisations = {
     const avant = plan.find((l) => l.exercice < exercice && !l.passe);
     if (avant) throw new ErreurMetier(`Bien ${b.codification} : amortir d'abord l'exercice ${avant.exercice}.`);
     const v = vueBien(b);
-    const e = x.dotation ? poster({ journal: "OD", journeeId: j.id, libelle: `Dotation aux amortissements ${exercice}, bien ${b.codification}`, piece: piece("OD"), saisiPar: u, validePar: u,
-      lignes: [{ compte: v.comptes.dotation, sens: "D", devise: "CDF", montant: x.dotation, montantCdf: x.dotation }, { compte: v.comptes.amortissement, sens: "C", devise: "CDF", montant: x.dotation, montantCdf: x.dotation }] }) : null;
+    const lg: Ligne[] = [{ compte: v.comptes.dotation, sens: "D", devise: "CDF", montant: x.dotation, montantCdf: x.dotation }, { compte: v.comptes.amortissement, sens: "C", devise: "CDF", montant: x.dotation, montantCdf: x.dotation }];
+    if (x.dotation && b.subventionne) {   // B26 : subvention d'équipement rapportée au résultat à hauteur de la dotation, dans la limite du solde du compte 15 (PCCI, fiche du compte 15 ; 158 et 771)
+      const reste = -E.ecritures.reduce((s, e2) => s + e2.lignes.filter((l) => l.compte.startsWith("15")).reduce((t, l) => t + (l.sens === "D" ? l.montantCdf : -l.montantCdf), 0), 0);
+      const reprise = Math.min(x.dotation, Math.max(reste, 0));
+      if (reprise) lg.push({ compte: "158", sens: "D", devise: "CDF", montant: reprise, montantCdf: reprise }, { compte: "771", sens: "C", devise: "CDF", montant: reprise, montantCdf: reprise });
+    }
+    const e = x.dotation ? poster({ journal: "OD", journeeId: j.id, libelle: `Dotation aux amortissements ${exercice}, bien ${b.codification}`, piece: piece("OD"), saisiPar: u, validePar: u, lignes: lg }) : null;
     E.immoAmortissements.push({ id: prochain(E.immoAmortissements), bienId: b.id, exercice, dotation: x.dotation, cumul: x.cumul, vnc: x.vnc, ecritureId: e?.id ?? null, par: u, le: j.date });
     return true;
   },

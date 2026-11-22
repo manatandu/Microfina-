@@ -335,10 +335,20 @@ def amortir_un(u, b: dict, exercice: int, j: dict) -> bool:
         raise ErreurMetier(f"Bien {b['codification']} : amortir d'abord l'exercice {avant[0]['exercice']}.")
     eid = None
     if x["dotation"]:
+        lg = [{"compte": v["comptes"]["dotation"], "sens": "D", "devise": "CDF", "montant": x["dotation"]},
+              {"compte": v["comptes"]["amortissement"], "sens": "C", "devise": "CDF", "montant": x["dotation"]}]
+        if b["subventionne"]:
+            # B26 : la subvention d'équipement est rapportée au résultat d'un montant égal à la dotation du bien qu'elle a financé, dans la limite de
+            # ce qui en reste au compte 15 (PCCI, fiche du compte 15 : débit du 15 par le crédit du 77 ; comptes 158 et 771)
+            reste = -int(valeur("""select coalesce(sum(case l.sens when 'D' then l.montant_cdf else -l.montant_cdf end), 0) from ligne_ecriture l
+                                   join ecriture e on e.id = l.ecriture_id join compte c on c.id = l.compte_id
+                                   where e.institution_id = %s and c.numero like '15%%'""", (u["institution_id"],)))
+            reprise = min(x["dotation"], max(reste, 0))
+            if reprise:
+                lg += [{"compte": "158", "sens": "D", "devise": "CDF", "montant": reprise}, {"compte": "771", "sens": "C", "devise": "CDF", "montant": reprise}]
         eid = poster(u, journal="OD", journee_id=j["id"], libelle=f"Dotation aux amortissements {exercice}, bien {b['codification']}",
                      piece=nouvelle_piece(u, "OD", date.fromisoformat(j["date"])), evenement="immo_dotation", cle=str(uuid.uuid4()), valide_par=u["id"],
-                     lignes_ecr=[{"compte": v["comptes"]["dotation"], "sens": "D", "devise": "CDF", "montant": x["dotation"]},
-                                 {"compte": v["comptes"]["amortissement"], "sens": "C", "devise": "CDF", "montant": x["dotation"]}])
+                     lignes_ecr=lg)
     executer("insert into immo_amortissement (bien_id, exercice, dotation, cumul, vnc, ecriture_id, par) values (%s, %s, %s, %s, %s, %s, %s)",
              (b["id"], exercice, x["dotation"], x["cumul"], x["vnc"], eid, u["id"]))
     return True
