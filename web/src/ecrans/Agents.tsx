@@ -44,7 +44,8 @@ function Onglet({ role }: { role: Role }) {
     setF({ agenceId: a.agenceId ? String(a.agenceId) : "", nom: a.nom, prenom: a.prenom, naissance: a.naissance, lieuNaissance: a.lieuNaissance, sexe: a.sexe,
       profession: a.profession, rue: a.rue, email: a.email, bp: a.bp, telephoneFixe: a.telephoneFixe, portable: a.portable });
   };
-  const envoi = () => ({ ...valeurs, agenceId: gestionnaire && valeurs.agenceId ? Number(valeurs.agenceId) : null });
+  const seule = donnees.agences.length === 1 ? (donnees.agences[0] as { id: number }).id : 0;   // une seule agence : prise d'office, la case se cache (plan d'allègement, point 1.10)
+  const envoi = () => ({ ...valeurs, agenceId: gestionnaire && (valeurs.agenceId || seule) ? Number(valeurs.agenceId || seule) : null });
   const executer = async (faire: () => Promise<unknown>) => {
     try { await faire(); effacer(); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
@@ -71,7 +72,7 @@ function Onglet({ role }: { role: Role }) {
           {texte("portable", "Portable :")}
         </div>
         <div className="pile champs-a-gauche">
-          {gestionnaire && <Champ libelle="Agence :">{(p) => <select {...p} className="saisie" value={valeurs.agenceId} onChange={(e) => setF({ ...valeurs, agenceId: e.target.value })}>
+          {gestionnaire && !seule && <Champ libelle="Agence :">{(p) => <select {...p} className="saisie" value={valeurs.agenceId} onChange={(e) => setF({ ...valeurs, agenceId: e.target.value })}>
             {donnees.agences.map((a: { id: number; nom: string }) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>}
           {texte("nom", "Nom : *")}
           {texte("prenom", role === "commercial" ? "Prénoms: *" : "Prénom : *")}
