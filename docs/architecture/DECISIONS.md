@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**998 décisions.** Solidité : 451 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 991 déjà en place, 7 à appliquer.
+**999 décisions.** Solidité : 452 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 991 déjà en place, 8 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -140,6 +140,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | T125 | Motifs de départ, lien de parenté, nom du menu (S14 listes ; S18 motifs de départ) | Les motifs de départ n'ont plus qu'une entrée, dans les listes de la fiche du membre (l'entrée de menu S18 disparaît). Les doublons fusionnent dans « Décision du client » ; s'ajoutent « Décès » et « Exclusion par le Conseil d'administration ». « Filiation » devient « Lien de parenté ». L'entrée de menu « Secteurs d'activité » devient « Listes de la fiche du membre » | Choix du porteur : Plan d'allègement, points 2.8, 2.9 et 2.12 ; loi 002/2002, art. 24 et 25 (lus) | forte | en place |
 | T126 | Forme juridique du groupe (S39 fiche du groupe ; S14f) | Le groupe ne demande plus qu'une « Forme juridique » (liste des formes des groupes, loi 004/2001, art. 2) ; le type de groupe, qui donne l'agent économique du PCCI, s'en déduit : « Groupement sans personnalité juridique » donne un groupement solidaire (ménages), les autres formes une association (institutions sans but lucratif). La page Type de groupe disparaît | Choix du porteur : Plan d'allègement, point 2.5 ; registre S39-2 et S39-5 | forte | en place |
 | T127 | Un écran de numérotation (S15, S17, S29 numérotation) | Les numéros des membres (S15), des comptes (S17) et des pièces (S29) se règlent dans un seul écran « Numérotation » à trois onglets (Membres, Comptes, Pièces) ; S17 et S29 sortent du menu et leurs droits passent à S15. La case Institution se cache quand il n'y en a qu'une | Choix du porteur : Plan d'allègement, point 2.19 | forte | en place |
+| T128 | Comptes qui reçoivent les écritures (S102 et toutes les écritures) | Seuls les comptes ouverts ou personnalisés par l'institution reçoivent des écritures ; les comptes du PCCI servent de cadre. Chaque compte du membre (épargne, dépôt à terme, prêt, parts sociales, épargne obligatoire, fonds de solidarité) a son propre compte au plan ; chaque caisse, banque, produit, frais et taxe a le sien. Plan d'allègement, lot 10, avant le lot 7. | Choix du porteur : Décision du porteur, 23/11/2026 ; PCCI § 9 et compte 103 ; loi 002/2002, art. 20 et 21 ; manuel p. 146 et 147 | forte | à appliquer |
 
 ## S03 Profils : création et modification
 

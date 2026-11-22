@@ -327,6 +327,20 @@ Textes : Instr. BCC 008, art. 66 ; loi 002/2002, art. 41 à 43 et Instr. BCC 007
 
 **6.16 Menu Crédit, dans l'ordre de la vie du crédit.** Simulation, Analyse, Demande, Portefeuille (vérifier, décider, viser), Déblocage, Remboursement, Garanties, Prorogation et contentieux, Liste rouge, Affectation, Balance âgée et provisions, Engagements par signature, Rapports.
 
+## Lot 10. Plan des comptes : un compte pour chaque compte du membre et pour chaque opération
+
+Demande du porteur, 23/11/2026 (registre T128). Ce lot se fait avant le lot 7 : toutes les écritures automatiques en dépendent.
+
+**10.1 Seuls les comptes de l'institution reçoivent des écritures.** Aujourd'hui, le logiciel écrit directement sur les comptes du PCCI (330, 433, 701…). Après : les comptes du PCCI deviennent « non saisissables » et servent de cadre et de regroupement. À la mise en service, le logiciel propose un compte d'utilisation sous chaque compte du PCCI dont il se sert ; l'institution le renomme ou en ouvre d'autres. Chaque paramétrage de compte (produits, frais, caisses, banques, crédit, taxes) n'accepte plus qu'un compte de l'institution. Textes : PCCI § 9 (comptes divisionnaires ; liste « suffisamment détaillée pour permettre l'enregistrement des opérations ») ; manuel Microfina++, p. 146 et 147 (comptes d'utilisation créés sous un parent).
+
+**10.2 Un compte au plan pour chaque compte du membre.** L'ouverture d'un compte d'épargne, d'un dépôt à terme ou d'un prêt ouvre un compte divisionnaire sous le compte du produit, à numéro propre ; un membre a donc autant de comptes au plan que de comptes chez l'institution. Les écritures du guichet, du crédit et des calculs de fin de période passent sur ce compte. Le compte se ferme avec le compte du membre (il ne se supprime pas : S102-4). Le grand livre montre chaque compte de membre ; la balance générale s'imprime aussi regroupée par compte du PCCI, pour les états remis à la BCC. Les comptes en place reçoivent leur compte au plan, avec leur solde. Textes : PCCI § 9 ; Instr. BCC 006 (PCCI obligatoire).
+
+**10.3 Parts sociales : un compte par membre.** Sous 1030 (personnes physiques), 1031 (groupements solidaires) ou 1032 (personnes morales), selon le membre. Le compte reçoit la libération des parts à l'adhésion et leur remboursement au départ. Le total du compte 103 reste le capital social, qui varie avec le nombre de membres. Textes : PCCI, compte 103 ; loi 002/2002, art. 20 (capital variable) et 21 (parts nominatives, non négociables, intégralement libérées). Une IMF constituée en société a un capital en actions (compte 1000) : elle n'est pas visée.
+
+**10.4 Fonds de solidarité et épargne obligatoire.** Ce sont des comptes de dépôt du membre, retenus au déblocage, bloqués en garantie du prêt et libérés à son solde (CR-6, S75-8, S76-9) : chacun a son compte au plan (10.2). L'épargne obligatoire se range sous 334 « Épargnes obligatoires » (PCCI). Le fonds de solidarité n'est nommé ni dans le PCCI ni dans les Instructions lues : question au porteur.
+
+**10.5 Un compte pour chaque opération.** Chaque caisse a son compte par guichet et par devise (PCCI, classe 5 : « le compte caisse est subdivisé selon la devise ») ; chaque compte bancaire, chaque produit, chaque frais, chaque taxe a le sien, déjà en partie en place (S58, S26, 2.17, 2.26). Ce qui écrit encore sur un compte du PCCI passe sur un compte de l'institution.
+
 ## Lot 7. Banque et comptabilité
 
 **7.1 Opérations en attente.** Viser puis valider se fait aujourd'hui dans 23 listes réparties sur trois écrans (S57, S113, S114), dont les onglets ne concordent pas. Après : une file « Opérations en attente », une seule entrée de menu avec le nombre en attente. Colonnes : type, origine, date, pièce, montant, saisi par, visé par, étape. Boutons : Viser, Valider, Refuser avec motif. Trois personnes distinctes (Instr. BCC 008, art. 66 ; PCCI § 3.4).
@@ -457,6 +471,8 @@ Elles se posent au début du lot concerné. Aucune n'a de réponse dans les text
 - 9.3 Personnel et Immobilisations dans la barre, page des modules supprimée (change S02-2 et S02-3) ?
 - 9.4 Liaison du budget aux opérations : la brancher ou la supprimer ?
 - 9.5 Calcul de la paie : à construire, ou le module reste-t-il fiche du personnel et retenues ?
+- 10.2 Forme du numéro d'un compte de membre au plan : compte du produit suivi du numéro du compte du membre ?
+- 10.4 Le fonds de solidarité est-il rendu au membre à la fin du prêt (compte de dépôt du membre), ou mis en commun pour couvrir les impayés du groupe ?
 
 ## Textes à lire avant d'agir
 
@@ -466,4 +482,4 @@ Elles se posent au début du lot concerné. Aucune n'a de réponse dans les text
 
 ## Ordre de travail et suivi
 
-Les lots se font dans l'ordre : 0, 1, 2, puis les modules (3 à 7), puis 8 et 9, qui rangent les menus une fois les fusions faites. Chaque point appliqué entre au registre des décisions avec son origine et sa référence, passe les essais et le parcours complet, puis la page des travaux le compte comme fait. `LIMITES-MICROFINA.md` renvoie à ce plan pour chaque limite traitée.
+Les lots se font dans l'ordre : 0, 1, 2, puis les modules (3 à 6), puis 10 (plan des comptes) et 7, puis 8 et 9, qui rangent les menus une fois les fusions faites. Chaque point appliqué entre au registre des décisions avec son origine et sa référence, passe les essais et le parcours complet, puis la page des travaux le compte comme fait. `LIMITES-MICROFINA.md` renvoie à ce plan pour chaque limite traitée.
