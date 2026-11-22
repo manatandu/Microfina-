@@ -1,5 +1,5 @@
 // Primitives de replica/design/components.md, en React. Les classes viennent de composants.css.
-import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { coupuresDe, entier, lireMontant, montant, montantEnLettres, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 
 export function Puce({ etat, children }: { etat?: "ouverte" | "en_cloture" | "fermee"; children: ReactNode }) {
@@ -17,7 +17,17 @@ export function Attention({ children }: { children: ReactNode }) {
 
 /** Références d'un écran (pages du manuel de Microfina++, articles des textes). Demande du porteur, 21/11/2026 : le volet « Textes » ne s'affiche
  * plus sur aucun écran. Les références restent écrites dans le code de chaque écran et dans le registre des décisions. */
-export function Textes(_: { sources: string[] }) {
+// Règles appliquées par l'écran ouvert : chaque écran les déclare par <Textes sources={…} /> ; rien ne s'affiche sur l'écran lui-même (décision du porteur),
+// l'aide en ligne les montre (registre T119).
+const sourcesEcran = new Set<readonly string[]>(), abonnesSources = new Set<() => void>();
+let sourcesInstantane: readonly string[] = [];
+function publierSources() { sourcesInstantane = [...new Set([...sourcesEcran].flat())]; abonnesSources.forEach((f) => f()); }
+export function useSourcesEcran() {
+  return useSyncExternalStore((f) => { abonnesSources.add(f); return () => { abonnesSources.delete(f); }; }, () => sourcesInstantane);
+}
+export function Textes({ sources }: { sources: string[] }) {
+  const cle = sources.join("\u0000");
+  useEffect(() => { const s = sources; sourcesEcran.add(s); publierSources(); return () => { sourcesEcran.delete(s); publierSources(); }; }, [cle]);   // eslint-disable-line react-hooks/exhaustive-deps
   return null;
 }
 

@@ -47,6 +47,12 @@ a { color: var(--tampon); text-underline-offset: 3px; }
 @media (hover: hover) and (pointer: fine) { .liste-deroulante a:hover { background: var(--tampon-pale); } }
 .liste-deroulante a.active { background: var(--tampon-pale); color: var(--tampon); font-weight: 600; }
 .liste-deroulante a.a-construire { color: var(--encre-2); }
+/* Menu langue (manuel p. 14, article XX) : un choix par ligne, comme les entrées des menus */
+.liste-deroulante .choix-langue { display: block; width: 100%; padding: 5px var(--espace-3); border: 0; border-radius: var(--rayon-petit); background: none; color: var(--encre);
+  font: inherit; font-size: var(--taille-courant); text-align: left; cursor: pointer; }
+@media (hover: hover) and (pointer: fine) { .liste-deroulante .choix-langue:hover { background: var(--tampon-pale); } }
+.liste-deroulante .choix-langue[aria-checked="true"] { background: var(--tampon-pale); color: var(--tampon); font-weight: 600; }
+.liste-deroulante .choix-langue:focus-visible { outline: 2px solid var(--tampon); outline-offset: -2px; }
 .complementaires { display: flex; align-items: center; gap: var(--espace-1); margin-left: auto; padding-left: var(--espace-3); border-left: 1px solid var(--nuit-trait); }
 .complementaires .deroulant > summary { flex-direction: row; min-width: 36px; padding: var(--espace-2); }
 .complementaires .liste-deroulante { left: auto; right: 0; min-width: 180px; }

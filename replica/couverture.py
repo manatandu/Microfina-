@@ -41,8 +41,8 @@ RATTACHES = {"Secteurs d'activité": [f"S14{c}" for c in "abcdefghijklmn"],
              "Contrôle trésorerie et rapport des annulations": ["S142", "S143"]}
 # Travaux sans écran propre : règle transverse du § 5 (T..), ou hors périmètre
 SANS_ECRAN = {
-    "Multilingue français et anglais": ("A", "Plus tard", "Menu des langues montré p. 14. Français seul pour l'instant (décision du porteur)", ""),
-    "Aide en ligne": ("D", "Plus tard", "Icône montrée p. 14, contenu non montré : à écrire par nous, écran par écran", ""),
+    "Multilingue français et anglais": ("A", "Plus tard", "Menu des langues montré p. 14 : français et anglais (anglais des établissements de crédit, registre T118)", "T118"),
+    "Aide en ligne": ("D", "Plus tard", "Icône montrée p. 14, contenu non montré : complété par nous, écran par écran (registre T30, T119)", "T119"),
     "Export des grilles vers Excel": ("A", "0 Reprises, puis chaque liste et chaque rapport", "", "T04"),
     "Grilles paginées avec filtres par colonne": ("A", "0 Reprises, puis chaque liste et chaque rapport", "", "T04"),
     "Boîtes de confirmation oui ou non": ("A", "Fait à chaque écran", "", "T06"),

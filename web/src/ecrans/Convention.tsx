@@ -26,7 +26,7 @@ export function ConventionCompte({ c }: { c: DonneesConvention }) {
     ...(c.coopec ? [`Le membre s'engage à respecter les statuts et les règlements de ${e.nom} (loi n° 002/2002, art. 22, 4°).`] : []),
   ];
   return (
-    <article className="releve-std contrat-dat a-imprimer" aria-label="Convention de compte">
+    <article className="releve-std contrat-dat a-imprimer" aria-label="Convention de compte" translate="no">
       <header className="releve-tete">
         <p className="releve-num">Compte <span className="chiffres">{x.numero}</span></p>
         <h2 className="releve-titre">CONVENTION DE COMPTE</h2>

@@ -136,8 +136,8 @@ Immobilisations : données de base et familles avec comptes,immobilisations,must
 Immobilisations : création affectation transfert,immobilisations,must,yes,yes,S137 S138 ; écriture d'acquisition automatique (constats U9 C59)
 Immobilisations : amortissement inventaire sortie,immobilisations,must,yes,yes,S139 ; inventaire (PCCI § 3.2)
 Rapports immobilisations,immobilisations,should,yes,yes,S140
-Multilingue français et anglais,général,could,yes,no,p. 15
-Aide en ligne,général,could,yes,yes,"p. 15 ; bouton ? de la barre des menus : accès et but de l'écran ouvert, marche générale du manuel (registre T30)"
+Multilingue français et anglais,général,could,yes,yes,"p. 14, article XX : menu Langue, français et anglais ; anglais des établissements de crédit (registre T118)"
+Aide en ligne,général,could,yes,yes,"p. 14, article XXI ; bouton ? : accès, but, onglets, zones obligatoires, boutons et règles appliquées de l'écran ouvert, marche générale du manuel (registre T30, T119)"
 Export des grilles vers Excel,général,must,yes,yes,"p. 9 | Bouton Exporter (format Excel) là où la capture de l'écran le montre : S13, S30, listes du crédit, plan comptable, localisation, rapports (registre T04-2)."
 Grilles paginées avec filtres par colonne,général,must,yes,yes,"p. 9 | Barre de pages sur toutes les listes (T04-1) ; filtre sous chaque colonne là où la capture le montre (S14, S44, S58) et sur les grilles de nos écrans complémentaires ; aucun filtre là où la capture n'en montre pas (registre T04-2)."
 Boîtes de confirmation oui ou non,général,must,yes,yes,"p. 10 et 11 | Reproduites sur les écrans faits depuis le 05/11/2026 (Client, S16, S44, S58, S73, S74, S77, S79, S80, S08, S09, S11, S12…). Les anciens écrans sont tous réalignés."

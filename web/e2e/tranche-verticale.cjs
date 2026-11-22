@@ -1188,6 +1188,12 @@ const OUT = process.argv[2];
   // Schémas comptables appliqués (B22 ; Instr. BCC 008, art. 9 ; PCCI § 3.1) : par évènement, journaux et comptes débités et crédités
   await p.getByRole('button', { name: 'Schémas comptables' }).click(); const fsc = p.getByRole('dialog', { name: /^Schémas comptables/ });
   await fsc.getByRole('cell', { name: 'Dépôt en espèces', exact: true }).waitFor(); await etape('18e2-schemas-comptables'); await fsc.getByRole('button', { name: 'Fermer' }).click();
+  // Aide en ligne (manuel p. 14, article XXI ; registre T119) : accès, but, boutons de l'écran et règles appliquées, avec leur texte
+  await p.getByRole('button', { name: 'Aide en ligne' }).click(); const aide = p.getByRole('region', { name: 'Aide en ligne' });
+  await aide.getByRole('heading', { name: 'Aide en ligne : Journaux' }).waitFor(); await aide.getByRole('heading', { name: 'Règles appliquées par cet écran' }).waitFor();
+  await aide.getByText(/^PCCI § 3\.3 : livre-journal/).waitFor(); await aide.getByText(/Afficher/).first().waitFor();
+  if (await aide.getByText(/Manuel Microfina|Registre S115/).count()) throw new Error('Aide : note interne montrée');
+  await etape('18e3-aide-en-ligne'); await aide.getByRole('button', { name: "Fermer l'aide" }).click();
   // Grand livre (S120, p. 138) : écritures définitives de la journée comptabilisée ; taxes (S104, p. 124) et plan des tiers (S103, p. 123)
   await aller('/comptabilite/s120'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('rowheader', { name: 'Total général' }).waitFor(); await etape('18b-grand-livre');
   // La TVA à 16 % est dans la graine ; l'essai ajoute le taux réduit de 5 % (O.-L. 10/001, art. 35, modifié par la LF 25/060, art. 46)

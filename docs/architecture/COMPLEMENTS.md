@@ -570,8 +570,8 @@ Lecture de la colonne « Manuel » : c'est le niveau le plus faible parmi les é
 
 | N° | Travail | Écrans | Manuel | Étape | Complété par nous |
 |---|---|---|---|---|---|
-| 138 | Multilingue français et anglais | tous | Montré en entier | Plus tard | Menu des langues montré p. 14. Français seul pour l'instant (décision du porteur) |
-| 139 | Aide en ligne | tous | Nom seul | Plus tard | Icône montrée p. 14, contenu non montré : à écrire par nous, écran par écran |
+| 138 | Multilingue français et anglais | tous | Montré en entier | Plus tard | Menu des langues montré p. 14 : français et anglais (anglais des établissements de crédit, registre T118) |
+| 139 | Aide en ligne | tous | Nom seul | Plus tard | Icône montrée p. 14, contenu non montré : complété par nous, écran par écran (registre T30, T119) |
 | 140 | Export des grilles vers Excel | tous | Montré en entier | 0 Reprises, puis chaque liste et chaque rapport | Règle T04 |
 | 141 | Grilles paginées avec filtres par colonne | tous | Montré en entier | 0 Reprises, puis chaque liste et chaque rapport | Règle T04 |
 | 142 | Boîtes de confirmation oui ou non | tous | Montré en entier | Fait à chaque écran | Règle T06 |

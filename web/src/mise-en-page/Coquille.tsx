@@ -12,6 +12,9 @@ import { definirMonnaies } from "@design/montant.js";
 import { mots } from "../lib/vocabulaire";
 import { ICONES } from "./icones";
 import { Marque } from "./Marque";
+import { useSourcesEcran } from "../composants";
+import { choisirLangue, langue } from "../lib/langue";
+import { reglesAide } from "../lib/aide";
 
 export function Coquille() {
   const nav = useNavigate();
@@ -50,11 +53,13 @@ export function Coquille() {
           {barre.map((x) => <MenuDeroulant key={x.id} menu={x} libelle={libelle(x)} />)}
         </nav>
         <div className="complementaires">
+          {/* Menu langue (manuel p. 14, article XX) : français et anglais ; le nom de chaque langue s'écrit dans cette langue */}
           <details className="deroulant">
-            <summary title="Langue">FR</summary>
-            <ul className="liste-deroulante" role="menu">
-              <li role="menuitem" aria-current="true">Français</li>
-              <li role="menuitem" aria-disabled="true" className="muet">English · à venir</li>
+            <summary title="Langue" translate="no">{langue() === "en" ? "EN" : "FR"}</summary>
+            <ul className="liste-deroulante" role="menu" translate="no">
+              {([["fr", "Français", "fr"], ["en", "English", "en"]] as const).map(([code, nom, lang]) => (
+                <li key={code}><button type="button" role="menuitemradio" lang={lang} aria-checked={langue() === code} className="choix-langue"
+                  onClick={() => { if (langue() !== code) choisirLangue(code); }}>{nom}</button></li>))}
             </ul>
           </details>
           <button type="button" className="sortir" title="Aide en ligne" aria-label="Aide en ligne" aria-expanded={aide} onClick={() => setAide((v) => !v)}>?</button>
@@ -136,15 +141,35 @@ function MenuDeroulant({ menu, libelle }: { menu: Menu; libelle: string }) {
   );
 }
 
-/** Aide en ligne (manuel p. 14, article XXI : « on peut accéder à l'aide en ligne en cliquant sur l'icône d'aide de la barre des menus ») : l'écran ouvert,
- *  son accès et son but (registre des écrans), puis la marche générale du manuel (p. 11 et 12, articles XIV à XVII). Registre T30. */
+/** Ce que l'écran ouvert montre : ses onglets, ses zones obligatoires (marquées *) et ses boutons, lus sur l'écran tel qu'il est affiché */
+function lireEcran(): { onglets: string[]; obligatoires: string[]; boutons: string[] } {
+  const zone = document.getElementById("contenu");
+  const dans = (sel: string) => [...(zone?.querySelectorAll<HTMLElement>(sel) ?? [])].filter((e) => !e.closest(".aide-en-ligne") && e.offsetParent !== null);
+  const texte = (e: HTMLElement) => (e.innerText || e.textContent || "").replace(/\s+/g, " ").trim();
+  const uniques = (l: string[]) => [...new Set(l.filter((x) => x && x.length < 80))];
+  return {
+    onglets: uniques(dans("[role=tab]").map(texte)),
+    obligatoires: uniques(dans("label, legend, th").map(texte).filter((x) => /\*\s*$/.test(x)).map((x) => x.replace(/\s*:?\s*\*\s*$/, ""))),
+    boutons: uniques(dans("button").filter((b) => !b.closest("[role=tablist], .pagination, thead")).map(texte).filter((x) => /[A-Za-zÀ-ÿ]/.test(x))),
+  };
+}
+
+/** Aide en ligne (manuel p. 14, article XXI : « l'aide en ligne de Microfina++ est très riche en information … on peut y accéder en cliquant sur l'icône
+ *  d'aide de la barre des menus ») : l'écran ouvert, son accès et son but (registre des écrans), ce qu'il montre (onglets, zones obligatoires, boutons),
+ *  les règles qu'il applique avec leur texte, puis la marche générale du manuel (p. 11 et 12, articles XIV à XVII). Registre T30 et T119. */
 function AideEnLigne({ chemin, fermer }: { chemin: string; fermer: () => void }) {
   const e = ECRANS.find((x) => x.chemin === chemin);
+  const regles = reglesAide(useSourcesEcran());
+  const [vu, setVu] = useState<ReturnType<typeof lireEcran> | null>(null);
+  useEffect(() => { const t = setTimeout(() => setVu(lireEcran()), 50); return () => clearTimeout(t); }, [chemin]);
+  const liste = (titre: string, l: string[] | undefined) => l && l.length > 0 && <><dt>{titre}</dt><dd>{l.join(" · ")}</dd></>;
   return (
     <section className="bloc pile aide-en-ligne" aria-label="Aide en ligne">
       <h2>Aide en ligne{e ? ` : ${e.nom}` : ""}</h2>
-      {e ? <dl className="definitions"><dt>Accès</dt><dd>{e.acces}</dd><dt>À quoi sert l'écran</dt><dd>{e.but}</dd></dl>
-        : <p>Choisir un écran dans les menus ; l'aide montre alors son accès et son but.</p>}
+      {e ? <dl className="definitions"><dt>Accès</dt><dd>{e.acces}</dd><dt>À quoi sert l'écran</dt><dd>{e.but}</dd>
+          {liste("Onglets", vu?.onglets)}{liste("Zones obligatoires", vu?.obligatoires)}{liste("Boutons", vu?.boutons)}</dl>
+        : <p>Choisir un écran dans les menus ; l'aide montre alors son accès, son but et les règles qu'il applique.</p>}
+      {regles.length > 0 && <><h3>Règles appliquées par cet écran</h3><ul className="pile">{regles.map((r) => <li key={r}>{r}</li>)}</ul></>}
       <h3>Enregistrer une information</h3>
       <ol><li>Utiliser les menus pour accéder à la page.</li><li>Renseigner toutes les zones obligatoires, marquées d'un astérisque (*).</li>
         <li>Cliquer sur [Enregistrer].</li><li>Dans la boîte de confirmation, choisir [Oui].</li></ol>
@@ -155,6 +180,8 @@ function AideEnLigne({ chemin, fermer }: { chemin: string; fermer: () => void })
       <h3>Supprimer une donnée enregistrée</h3>
       <ol><li>Cliquer sur la ligne dans la grille.</li><li>Cliquer sur [Supprimer].</li><li>Confirmer par [Oui].</li></ol>
       <p>Les suppressions sont logiques : la donnée n'apparaît plus, mais elle reste dans la base pour retracer l'historique.</p>
+      <h3>Grilles</h3>
+      <p>Une grille se filtre par les zones placées sous ses titres et se parcourt page par page ; [Exporter] l'enregistre en fichier Excel.</p>
       <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={fermer}>Fermer l'aide</button></div>
     </section>
   );
