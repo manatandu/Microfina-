@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**989 décisions.** Solidité : 444 fortes (le manuel ou un texte répond), 463 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 982 déjà en place, 7 à appliquer.
+**990 décisions.** Solidité : 445 fortes (le manuel ou un texte répond), 463 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 983 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2206,6 +2206,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S32-8 | Fiche Société allégée | La fiche Société garde un seul niveau d'onglets (Information Société, Agence) et un Enregistrer par onglet. La zone passe dans l'écran « Agents et zones » (S33), les fonds propres prudentiels, donnée mensuelle, dans les normes prudentielles. « Compte Hors Bilan 1 et 2 » (lus par rien), l'adresse libre en double de l'adresse structurée et le bouton « Liste institution » disparaissent | Choix du porteur : Plan d'allègement, point 2.21 | forte | en place |
+
+## S26 Comptes des crédits
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S26-5 | Tableau des comptes | Les 21 combinaisons classe (Instr. BCC 003) et terme (PCCI, classe 3) s'affichent dans un seul tableau, modifiable sur place : compte capital et compte intérêt. « Compte interne », jamais lu, n'est plus demandé | Choix du porteur : Plan d'allègement, point 2.15 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

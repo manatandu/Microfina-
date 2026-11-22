@@ -55,7 +55,7 @@ id,lot,titre,ecrans,statut,question,reste
 2.12,2,Résultat pour les listes du membre,,partiel,,"Fait : 16 pages ramenées à 8, menu « Listes de la fiche du membre ». Reste : secteur et activité sur une page, types de procuration"
 2.13,2,Référentiel du crédit,S21 S26,partiel,oui,"Fait : quatre onglets, règles du crédit en lecture. Reste : cycle calculé (question au porteur sur les plafonds par cycle)"
 2.14,2,Ordre de remboursement,S21 S22 S23,à faire,oui,
-2.15,2,Comptes des crédits,S26,à faire,,
+2.15,2,Comptes des crédits,S26,fait,,
 2.16,2,Produits de crédit,S23 S24 S25,à faire,,
 2.17,2,Produits d'épargne,S27 S28,à faire,,
 2.18,2,Frais,S16,à faire,oui,
