@@ -9986,12 +9986,11 @@ const agents = {
     const t = (x: unknown) => (typeof x === "string" ? x.trim() : "");
     const v = { nom: t(d.nom), prenom: t(d.prenom), naissance: t(d.naissance), lieuNaissance: t(d.lieuNaissance), sexe: t(d.sexe), profession: t(d.profession),
       rue: t(d.rue), email: t(d.email), bp: t(d.bp), telephoneFixe: t(d.telephoneFixe), portable: t(d.portable) };
-    const oblig: [string, string][] = [["Nom", v.nom], ["Prénom", v.prenom], ["Né(e) le", v.naissance], ["Sexe", v.sexe]];
-    if (role !== "gestionnaire") oblig.push(["à", v.lieuNaissance]);
+    const oblig: [string, string][] = [["Nom", v.nom], ["Prénom", v.prenom], ["Sexe", v.sexe]];   // fiche allégée (plan d'allègement, point 2.20)
     const manque = manquants(oblig);
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
     if (!["M", "F"].includes(v.sexe)) throw new ErreurMetier("Sexe inconnu.");
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(v.naissance) || v.naissance > new Date().toISOString().slice(0, 10)) throw new ErreurMetier("Né(e) le : date invalide.");
+    if (v.naissance && (!/^\d{4}-\d{2}-\d{2}$/.test(v.naissance) || v.naissance > new Date().toISOString().slice(0, 10))) throw new ErreurMetier("Né(e) le : date invalide.");
     if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) throw new ErreurMetier("Email invalide.");
     if (v.profession && !professions().includes(v.profession)) throw new ErreurMetier("Profession inconnue.");
     const agenceId = role === "gestionnaire" ? d.agenceId ?? null : null;

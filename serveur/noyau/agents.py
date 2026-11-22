@@ -24,7 +24,7 @@ def lire(u, role: str) -> dict:
     i = u["institution_id"]
     agents = actifs(u, role)
     for a in agents:
-        a["naissance"] = a["naissance"].isoformat()
+        a["naissance"] = a["naissance"].isoformat() if a["naissance"] else ""
     return {"role": role, "agents": agents, "agenceDefaut": u["agence_id"],
             "agences": lignes("select id, nom from agence where institution_id = %s and not supprime order by code", (i,)),
             "professions": [r["libelle"] for r in lignes("select libelle from liste_reference where institution_id = %s and liste = 'profession' and actif order by code, id", (i,))]}
@@ -39,13 +39,13 @@ def enregistrer(u, role: str, d, aid: int | None = None) -> dict:
     i = u["institution_id"]
     t = lambda k: d.get(k).strip() if isinstance(d.get(k), str) else ""
     v = {k: t(k) for k in CHAMPS if k != "agenceId"}
-    obligatoires = [("Nom", "nom"), ("Prénom", "prenom"), ("Né(e) le", "naissance"), ("Sexe", "sexe")] + ([] if role == "gestionnaire" else [("à", "lieuNaissance")])
+    obligatoires = [("Nom", "nom"), ("Prénom", "prenom"), ("Sexe", "sexe")]   # fiche allégée (plan d'allègement, point 2.20)
     manque = [n for n, k in obligatoires if not v[k]]
     if manque:
         raise ErreurMetier("À remplir : " + ", ".join(manque) + ".")
     if v["sexe"] not in ("M", "F"):
         raise ErreurMetier("Sexe inconnu.")
-    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", v["naissance"]) or v["naissance"] > date.today().isoformat():
+    if v["naissance"] and (not re.fullmatch(r"\d{4}-\d{2}-\d{2}", v["naissance"]) or v["naissance"] > date.today().isoformat()):
         raise ErreurMetier("Né(e) le : date invalide.")
     if v["email"] and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", v["email"]):
         raise ErreurMetier("Email invalide.")
@@ -56,7 +56,7 @@ def enregistrer(u, role: str, d, aid: int | None = None) -> dict:
         raise ErreurMetier("Agence inconnue.")
     if aid is not None and not une("select 1 from agent_agence where id = %s and institution_id = %s and role = %s and actif for update", (aid, i, role)):
         raise ErreurMetier("Agent introuvable.")
-    vals = {**v, "agenceId": agence}
+    vals = {**v, "agenceId": agence, "naissance": v["naissance"] or None}
     if aid is None:
         executer(f"insert into agent_agence (institution_id, role, {', '.join(CHAMPS.values())}) values (%s, %s, {', '.join(['%s'] * len(CHAMPS))})",
                  (i, role, *[vals[k] for k in CHAMPS]))

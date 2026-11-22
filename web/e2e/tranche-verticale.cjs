@@ -181,9 +181,9 @@ const OUT = process.argv[2];
   await etape('02f22-info-societe');
   await p.getByRole('tab', { name: 'Agence' }).click(); await p.getByRole('cell', { name: '0412' }).waitFor();
   // Chef : agents d'agence (S33, p. 43) : un sensibilisateur
-  await aller('/parametrage/s33'); await p.getByRole('tab', { name: 'Sensibilisateur' }).click(); await p.getByLabel('à : *').waitFor();
-  await p.getByLabel('Nom : *', { exact: true }).fill('Mbuyi'); await p.getByLabel('Prénom : *', { exact: true }).fill('Sarah'); await p.getByLabel('Né(e) le : *').fill('02/04/1990');
-  await p.getByLabel('à : *').fill('Kananga'); await p.getByLabel('Sexe : *').selectOption('F');
+  await aller('/parametrage/s33'); await p.getByRole('tab', { name: 'Sensibilisateur' }).click(); await p.getByLabel('Portable :').waitFor();   // fiche allégée (plan d'allègement, point 2.20)
+  await p.getByLabel('Nom : *', { exact: true }).fill('Mbuyi'); await p.getByLabel('Prénom : *', { exact: true }).fill('Sarah');
+  await p.getByLabel('Sexe : *').selectOption('F');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('02f23-agents-agence');
   await p.getByRole('button', { name: 'Liste des sensibilisateurs' }).click(); await p.getByRole('cell', { name: 'Mbuyi' }).waitFor(); await p.getByRole('button', { name: 'Fermer' }).click();
   // Chef : journées de travail et jours fériés (S34, p. 44) : lundi à samedi pour l'agence ; un jour férié variable

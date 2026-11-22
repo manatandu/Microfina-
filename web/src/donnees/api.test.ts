@@ -1851,8 +1851,7 @@ describe("journée de guichet", () => {
     await connecter("jpmukendi");
     expect((await api.agents.lire("gestionnaire")).agents).toEqual([]);
     const P = { nom: "Kabeya", prenom: "Sarah", naissance: "1990-04-02", sexe: "F" as const, profession: "Commerçant" };
-    await expect(api.agents.enregistrer("gestionnaire", {})).rejects.toThrow("Nom, Prénom, Né(e) le, Sexe");
-    await expect(api.agents.enregistrer("sensibilisateur", P)).rejects.toThrow("à");
+    await expect(api.agents.enregistrer("gestionnaire", {})).rejects.toThrow("Nom, Prénom, Sexe");   // fiche allégée (plan d'allègement, point 2.20)
     await expect(api.agents.enregistrer("gestionnaire", { ...P, naissance: "2999-01-01" })).rejects.toThrow("date invalide");
     await api.agents.enregistrer("gestionnaire", { ...P, agenceId: 1 });
     const s = (await api.agents.enregistrer("sensibilisateur", { ...P, nom: "Mbuyi", lieuNaissance: "Kananga" })).agents[0]!;

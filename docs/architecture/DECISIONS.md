@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**990 décisions.** Solidité : 445 fortes (le manuel ou un texte répond), 463 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 983 déjà en place, 7 à appliquer.
+**991 décisions.** Solidité : 446 fortes (le manuel ou un texte répond), 463 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 984 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2212,6 +2212,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S26-5 | Tableau des comptes | Les 21 combinaisons classe (Instr. BCC 003) et terme (PCCI, classe 3) s'affichent dans un seul tableau, modifiable sur place : compte capital et compte intérêt. « Compte interne », jamais lu, n'est plus demandé | Choix du porteur : Plan d'allègement, point 2.15 | forte | en place |
+
+## S33 Agents et zones
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S33-5 | Fiche de l'agent allégée | La fiche de l'agent garde nom, prénom, sexe et portable (l'agence pour un gestionnaire, quand il y en a plusieurs) ; adresse, adresse électronique, BP, téléphone fixe, date et lieu de naissance et profession ne sont plus demandés. Les trois rôles gardent leurs onglets en attendant la liste unique à rôles cochés | Choix du porteur : Plan d'allègement, point 2.20 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import type { AgentAgence } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
 
 type Role = "gestionnaire" | "sensibilisateur" | "commercial";
 const ONGLETS: [Role, string, string][] = [["gestionnaire", "Gestionnaire", "Liste gestionnaires"], ["sensibilisateur", "Sensibilisateur", "Liste des sensibilisateurs"],
@@ -68,10 +68,6 @@ function Onglet({ role }: { role: Role }) {
       </div>
       <div className="grille-deux">
         <div className="pile champs-a-gauche">
-          {texte("rue", "Rue / Maison :")}
-          {texte("email", "Email :")}
-          {texte("bp", "BP :", "saisie code")}
-          {texte("telephoneFixe", role === "sensibilisateur" ? "Téléphone fixe :" : "Tél fix :")}
           {texte("portable", "Portable :")}
         </div>
         <div className="pile champs-a-gauche">
@@ -79,12 +75,8 @@ function Onglet({ role }: { role: Role }) {
             {donnees.agences.map((a: { id: number; nom: string }) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>}
           {texte("nom", "Nom : *")}
           {texte("prenom", role === "commercial" ? "Prénoms: *" : "Prénom : *")}
-          <ChampDate libelle="Né(e) le : *" valeur={valeurs.naissance ?? ""} onChange={(v) => setF({ ...valeurs, naissance: v })} requis />
-          {texte("lieuNaissance", gestionnaire ? "à :" : "à : *")}
           <Champ libelle="Sexe : *">{(p) => <select {...p} className="saisie court" value={valeurs.sexe} onChange={(e) => setF({ ...valeurs, sexe: e.target.value })}>
             <option value=""></option><option value="M">M</option><option value="F">F</option></select>}</Champ>
-          <Champ libelle="Profession :">{(p) => <select {...p} className="saisie" value={valeurs.profession} onChange={(e) => setF({ ...valeurs, profession: e.target.value })}>
-            <option value=""></option>{donnees.professions.map((x: string) => <option key={x}>{x}</option>)}</select>}</Champ>
         </div>
       </div>
       <div className="actions-onglets">

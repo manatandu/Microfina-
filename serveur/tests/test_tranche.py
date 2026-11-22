@@ -2360,8 +2360,7 @@ def test_agents_agence(clients):
         r = chef.post(f"{A}/{role}{suffixe}", corps, **H); assert r.status_code in (403, 404, 422), r.content; return r.json()["message"]
     P = {"nom": "Kabeya", "prenom": "Sarah", "naissance": "1990-04-02", "sexe": "F", "profession": "Commerçant"}
     assert agent.post(f"{A}/gestionnaire", P, **H).status_code == 403
-    assert "Nom, Prénom, Né(e) le, Sexe" in refus("gestionnaire", {})
-    assert "à" in refus("sensibilisateur", P)                          # « à » obligatoire pour le sensibilisateur et le commercial
+    assert "Nom, Prénom, Sexe" in refus("gestionnaire", {})              # fiche allégée : naissance et lieu facultatifs (plan d'allègement, point 2.20)
     assert "date invalide" in refus("gestionnaire", {**P, "naissance": "2999-01-01"})
     assert "Profession inconnue" in refus("gestionnaire", {**P, "profession": "Astronaute"})
     g = chef.post(f"{A}/gestionnaire", {**P, "agenceId": l["agenceDefaut"]}, **H).json()["agents"][0]

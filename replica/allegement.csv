@@ -60,7 +60,7 @@ id,lot,titre,ecrans,statut,question,reste
 2.17,2,Produits d'épargne,S27 S28,à faire,,
 2.18,2,Frais,S16,à faire,oui,
 2.19,2,Numérotation,S15 S17 S29,partiel,,"Fait : un écran à trois onglets, case Institution cachée. Reste : même disposition des trois onglets, ordre par flèches seulement, aperçu en direct"
-2.20,2,Agents,S33,à faire,,
+2.20,2,Agents,S33,partiel,,"Fait : fiche réduite à nom, prénom, sexe, portable. Reste : une seule liste avec les rôles à cocher et l'utilisateur lié"
 2.21,2,Société,S32,fait,,
 2.22,2,Calendrier,S34,fait,,
 2.23,2,Devises et coupures,S35,fait,,
