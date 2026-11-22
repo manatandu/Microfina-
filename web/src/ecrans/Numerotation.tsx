@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import NumeroPiece from "./NumeroPiece";
 import { api, composerNumero, composerNumeroCompte } from "../donnees/api";
 import type { RegleNumerotation } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
@@ -188,6 +190,21 @@ export function ParametrageCompteClient() {
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
       </section>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </>
+  );
+}
+
+/** Numérotation : membres (S15), comptes (S17) et pièces (S29) dans un seul écran à trois onglets (plan d'allègement, point 2.19) */
+const ONGLETS_NUM = [["membres", "Membres"], ["comptes", "Comptes"], ["pieces", "Pièces"]] as const;
+export function Numerotations() {
+  const [params, setParams] = useSearchParams();
+  const onglet = ONGLETS_NUM.find(([k]) => k === params.get("onglet"))?.[0] ?? "membres";
+  return (
+    <>
+      <div className="onglets" role="tablist" aria-label="Numérotation">
+        {ONGLETS_NUM.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={k === onglet} onClick={() => setParams(k === "membres" ? {} : { onglet: k })}>{l}</button>)}
+      </div>
+      {onglet === "membres" && <ParametragesClients />}{onglet === "comptes" && <ParametrageCompteClient />}{onglet === "pieces" && <NumeroPiece />}
     </>
   );
 }

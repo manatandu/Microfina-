@@ -240,7 +240,6 @@ const ActivationProduitsCredit = paresseux(() => import("./ActivationProduits"),
 const ModeleCredit = paresseux(() => import("./ModeleCredit"), "default");
 const GestionProduitsEpargne = paresseux(() => import("./ProduitEpargne"), "default");
 const ParametrageProduitsEpargne = paresseux(() => import("./ParametrageEpargne"), "default");
-const NumeroPiece = paresseux(() => import("./NumeroPiece"), "default");
 const Journaux = paresseux(() => import("./Journaux"), "default");
 const ParametrageAutresOperations = paresseux(() => import("./OperationsDiverses"), "default");
 const InfoSocietePage = paresseux(() => import("./Societe"), "default");
@@ -253,8 +252,7 @@ const DroitsProfil = paresseux(() => import("./Droits"), "default");
 const EnregistrementUtilisateurs = paresseux(() => import("./Utilisateurs"), "default");
 const GestionProfilsUtilisateur = paresseux(() => import("./ProfilsUtilisateurs"), "default");
 const Connexions = paresseux(() => import("./Connexions"), "default");
-const ParametragesClients = paresseux(() => import("./Numerotation"), "default");
-const ParametrageCompteClient = paresseux(() => import("./Numerotation"), "ParametrageCompteClient");
+const Numerotations = paresseux(() => import("./Numerotation"), "Numerotations");
 const EcranJournee = paresseux(() => import("./Journee"), "EcranJournee");
 const Consentement = paresseux(() => import("./Visa"), "Consentement");
 const InformationsClient = paresseux(() => import("./Visa"), "InformationsClient");
@@ -285,8 +283,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S12: EcranJournee,
   S13: RapportTransactions,
   S14: ListesGenerales,
-  S15: ParametragesClients,
-  S17: ParametrageCompteClient,
+  S15: Numerotations,
   S18: MotifsDepart,
   S19: ReferentielsBudget,
   S20: Localisation,
@@ -298,7 +295,6 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S26: ModeleCredit,
   S27: GestionProduitsEpargne,
   S28: ParametrageProduitsEpargne,
-  S29: NumeroPiece,
   S30: Journaux,
   S31: ParametrageAutresOperations,
   S32: InfoSocietePage,

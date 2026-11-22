@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**986 décisions.** Solidité : 441 fortes (le manuel ou un texte répond), 463 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 979 déjà en place, 7 à appliquer.
+**987 décisions.** Solidité : 442 fortes (le manuel ou un texte répond), 463 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 980 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -139,6 +139,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | T124 | Listes de la fiche du membre (S14 listes ; S37 à S39 fiches ; S16 frais ; S133 employé) | Retirés de la fiche et des listes : le sous type de client (les frais se règlent par nature du membre : personne physique, entreprise, groupe), le type client de la personne physique (une seule valeur, posée d'office ; l'entreprise garde « Agent économique (PCCI) »), la civilité (fiche du membre et de l'employé ; le sexe reste), la catégorie (membre effectif ou auxiliaire gardé au visa seulement), la page Type de pièce (la liste fixe des pièces admises reste). La catégorie d'un groupe se calcule d'après ses nombres d'hommes et de femmes. Les pages de listes passent de 16 à 10 | Choix du porteur : Plan d'allègement, points 2.2 à 2.7 ; Instr. BCC 15, art. 14 (pièces admises) ; loi 002/2002, art. 23 (membre auxiliaire) ; PCCI § 10.2 | forte | en place |
 | T125 | Motifs de départ, lien de parenté, nom du menu (S14 listes ; S18 motifs de départ) | Les motifs de départ n'ont plus qu'une entrée, dans les listes de la fiche du membre (l'entrée de menu S18 disparaît). Les doublons fusionnent dans « Décision du client » ; s'ajoutent « Décès » et « Exclusion par le Conseil d'administration ». « Filiation » devient « Lien de parenté ». L'entrée de menu « Secteurs d'activité » devient « Listes de la fiche du membre » | Choix du porteur : Plan d'allègement, points 2.8, 2.9 et 2.12 ; loi 002/2002, art. 24 et 25 (lus) | forte | en place |
 | T126 | Forme juridique du groupe (S39 fiche du groupe ; S14f) | Le groupe ne demande plus qu'une « Forme juridique » (liste des formes des groupes, loi 004/2001, art. 2) ; le type de groupe, qui donne l'agent économique du PCCI, s'en déduit : « Groupement sans personnalité juridique » donne un groupement solidaire (ménages), les autres formes une association (institutions sans but lucratif). La page Type de groupe disparaît | Choix du porteur : Plan d'allègement, point 2.5 ; registre S39-2 et S39-5 | forte | en place |
+| T127 | Un écran de numérotation (S15, S17, S29 numérotation) | Les numéros des membres (S15), des comptes (S17) et des pièces (S29) se règlent dans un seul écran « Numérotation » à trois onglets (Membres, Comptes, Pièces) ; S17 et S29 sortent du menu et leurs droits passent à S15. La case Institution se cache quand il n'y en a qu'une | Choix du porteur : Plan d'allègement, point 2.19 | forte | en place |
 
 ## S03 Profils : création et modification
 

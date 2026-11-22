@@ -154,9 +154,9 @@
   },
   {
     "id": "S15",
-    "nom": "Numérotation des clients",
+    "nom": "Numérotation",
     "acces": "Info de base > Client > Numérotation",
-    "but": "Règle de numérotation par institution",
+    "but": "Numéros des membres, des comptes et des pièces",
     "module": "parametrage",
     "priorite": "must",
     "chemin": "/parametrage/s15"
@@ -169,15 +169,6 @@
     "module": "parametrage",
     "priorite": "must",
     "chemin": "/parametrage/s16"
-  },
-  {
-    "id": "S17",
-    "nom": "Numéro de compte client",
-    "acces": "Info de base > Client > Numéro de compte",
-    "but": "Composer le numéro de compte",
-    "module": "parametrage",
-    "priorite": "must",
-    "chemin": "/parametrage/s17"
   },
   {
     "id": "S19",
@@ -277,15 +268,6 @@
     "module": "parametrage",
     "priorite": "must",
     "chemin": "/parametrage/sp01"
-  },
-  {
-    "id": "S29",
-    "nom": "Numéros de pièce",
-    "acces": "Paramétrage > Comptabilité > Numéro pièce",
-    "but": "Règle de numérotation des pièces",
-    "module": "parametrage",
-    "priorite": "must",
-    "chemin": "/parametrage/s29"
   },
   {
     "id": "S30",

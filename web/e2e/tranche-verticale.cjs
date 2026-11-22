@@ -151,7 +151,7 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Générer' }).click(); await p.getByText('0412-000321-TJ').waitFor(); await etape('02g-parametrages-clients');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   // Chef : numéro de compte client (S17, p. 26) : Générer un exemple
-  await aller('/parametrage/s17'); await p.getByLabel('Prefixe').check(); await p.getByLabel('Position').fill('3');
+  await aller('/parametrage/s15?onglet=comptes'); await p.getByLabel('Prefixe').check(); await p.getByLabel('Position').fill('3');
   await p.getByRole('button', { name: 'Générer' }).click(); await p.getByText('0412-0412-000318-002').waitFor(); await etape('02h-numero-compte');
   await p.getByRole('button', { name: 'Annuler' }).click();
   // Chef : produit épargne (S27, p. 40) : un produit de garantie, famille BLOQUE
@@ -162,7 +162,7 @@ const OUT = process.argv[2];
     await p.getByRole('group', { name: nom }).getByLabel(rep).check();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Epargne De Garantie' }).waitFor(); await etape('02f17-produit-epargne');
   // Chef : numéro de pièce (S29, p. 41) : Institution cochée en tête, Générer, Enregistrer
-  await aller('/parametrage/s29');
+  await aller('/parametrage/s15?onglet=pieces');
   await p.getByText('Position Institution', { exact: true }).click(); await p.getByLabel('Position Institution').and(p.locator('input.saisie')).fill('1');
   await p.getByLabel('Position Agence').and(p.locator('input.saisie')).fill('2'); await p.getByLabel('Position Journal').and(p.locator('input.saisie')).fill('3');
   await p.getByLabel('Position compteur').and(p.locator('input.saisie')).fill('4');
