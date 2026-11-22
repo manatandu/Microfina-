@@ -74,7 +74,7 @@ function EnteteEtat({ date }: { date: string }) {
 function Actions({ rechercher, vider, exporter }: { rechercher: () => void; vider: () => void; exporter: (() => void) | null }) {
   return <div className="actions-onglets">
     <button className="bouton" type="button" onClick={rechercher}>Rechercher</button>
-    <button className="bouton secondaire" type="button" onClick={vider}>Rein. les champs</button>
+    <button className="bouton secondaire" type="button" onClick={vider}>Effacer les critères</button>
     <button className="bouton secondaire" type="button" disabled={!exporter} onClick={() => exporter?.()}>Exporter</button>
   </div>;
 }

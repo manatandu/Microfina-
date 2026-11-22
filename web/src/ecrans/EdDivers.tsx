@@ -56,7 +56,7 @@ export default function EdDivers() {
     <>
       <h1>Guichet</h1>
       <OngletsGuichet />
-      <section className="bloc pile" aria-label="ED Divers">
+      <section className="bloc pile" aria-label="Autres encaissements et décaissements">
         <div className="entete-ecran">
           <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p>
           <p>Date opération : <strong className="chiffres">{fr(j?.date ?? "")}</strong></p>
@@ -75,7 +75,7 @@ export default function EdDivers() {
           <Champ libelle="Opérations">{(p) => <select {...p} className="saisie" disabled={!!fait} value={f.operation}
             onChange={(e) => { const x = proposees.find((o) => String(o.id) === e.target.value); setF({ ...f, operation: e.target.value, libelle: x?.libelle ?? "" }); nouveau(); }}>
             <option value=""></option>{proposees.map((o) => <option key={o.id} value={o.id}>{o.libelle}</option>)}</select>}</Champ>
-          <Champ libelle="Compte *">{(p) => <Lecture {...p} value={od?.compte ?? ""} />}</Champ>
+          <Champ libelle="Compte">{(p) => <Lecture {...p} value={od?.compte ?? ""} />}</Champ>
           <Champ libelle="Libellé">{(p) => <input {...p} className="saisie" autoComplete="off" readOnly={!!fait} value={f.libelle} onChange={(e) => { setF({ ...f, libelle: e.target.value }); nouveau(); }} />}</Champ>
           {DEVISES.map((d) => <Champ key={d} libelle={`Montant (${d})${d === DEVISES[0] ? " *" : ""}`}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off"
             readOnly={!!fait} value={f.montants[d] ?? ""} onChange={(e) => { setF({ ...f, montants: { ...f.montants, [d]: e.target.value } }); setCoupures({ ...coupures, [d]: {} }); nouveau(); }} />}</Champ>)}

@@ -96,6 +96,12 @@ MOTEUR = Referentiel(CATALOGUE, CHOIX, verifier, UTILISE_PAR)
 enregistrer, supprimer = MOTEUR.enregistrer, MOTEUR.supprimer
 
 
+def ordre_en_clair(libelle: str) -> str:
+    """« Pénalité Intérêt Capital Epargne Solidarité » devient « Pénalité, intérêt, capital, épargne, solidarité » (plan d'allègement, point 1.4)"""
+    mots = [m.lower().replace("epargne", "épargne") for m in libelle.split()]
+    return ", ".join(mots).capitalize() if mots else ""
+
+
 def ordres_actifs(u) -> list[dict]:
     return lignes("select id, code, libelle from credit_ordre where institution_id = %s and actif order by id", (u["institution_id"],))
 
@@ -106,11 +112,11 @@ def lire(u, page: str) -> dict:
     if page == "degres":
         ordres = {o["id"]: o for o in ordres_actifs(u)}
         lies = {x["rang"]: x["ordre_id"] for x in lignes("select rang, ordre_id from credit_degre_ordre where institution_id = %s", (u["institution_id"],))}
-        r["options"] = {"ordre": [{"id": o["id"], "libelle": f"{o['code']} ==> {o['libelle']}"} for o in ordres.values()]}
+        r["options"] = {"ordre": [{"id": o["id"], "libelle": ordre_en_clair(o["libelle"])} for o in ordres.values()]}
         for l in r["lignes"]:
             o = ordres.get(lies.get(l["id"]))
             l["ordre"] = o["id"] if o else None
-            l["affichage"]["ordre"] = f"{o['code']} ==> {o['libelle']}" if o else ""
+            l["affichage"]["ordre"] = ordre_en_clair(o["libelle"]) if o else ""
     return r
 
 

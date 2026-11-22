@@ -50,7 +50,7 @@ export function NouveauCompte() {
           <fieldset className="pile cadre-champs">
             <legend>Informations sur le client</legend>
             <div className="ligne-champ">
-              <Champ libelle="Numéro du Client *">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
+              <Champ libelle="Numéro du Client">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
               <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
             </div>
             <Champ libelle="Intitulé :">{(p) => <Lecture {...p} value={t ? nomComplet(t) : ""} />}</Champ>
@@ -58,7 +58,7 @@ export function NouveauCompte() {
           </fieldset>
           <fieldset className="pile cadre-champs">
             <legend>Informations sur le compte</legend>
-            <Champ libelle="N° du compte : *">{(p) => <input {...p} className="saisie code" readOnly value={ap?.numero ?? ""} />}</Champ>
+            <Champ libelle="N° du compte :">{(p) => <input {...p} className="saisie code" readOnly value={ap?.numero ?? ""} />}</Champ>
             <ChampDate libelle="Date création : *" valeur={date || jour} onChange={setDate} requis />
           </fieldset>
         </div>

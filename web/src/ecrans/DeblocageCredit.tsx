@@ -271,7 +271,7 @@ export function DeblocageEpargne() {
       <h1>Déblocage crédit</h1>
       <section className="bloc pile" aria-label="Déblocage crédit sur compte d'épargne">
         <div className="entete-ecran"><p>Numéro de pièce : <strong className="chiffres">{fait?.piece ?? ""}</strong></p>
-          <Champ libelle="Date Opération : *">{(p) => <Lecture {...p} value={fr(j?.date ?? "")} />}</Champ></div>
+          <Champ libelle="Date Opération :">{(p) => <Lecture {...p} value={fr(j?.date ?? "")} />}</Champ></div>
         <div className="grille-deux">
           <fieldset className="cadre-champs formulaire"><legend>Infos crédit</legend>
             <Champ libelle="N° crédit">{(p) => <input {...p} className="saisie code" readOnly value={d?.numero ?? ""} />}</Champ>

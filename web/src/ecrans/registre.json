@@ -344,7 +344,7 @@
  {
   "id": "S35",
   "nom": "Devises et coupures",
-  "acces": "Préférences > Devise ; Type sous ; Sous",
+  "acces": "Préférences > Devise ; Types de coupures ; Coupures",
   "but": "Devises, types de monnaie, coupures",
   "module": "parametrage",
   "priorite": "must",
@@ -794,7 +794,7 @@
  {
   "id": "S78",
   "nom": "Guichet : encaissements et décaissements divers",
-  "acces": "Caisse > ED Divers",
+  "acces": "Caisse > Autres encaissements et décaissements",
   "but": "Encaisser ou décaisser hors opération client",
   "module": "caisse",
   "priorite": "must",

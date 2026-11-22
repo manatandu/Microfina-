@@ -168,7 +168,7 @@ function RecherchePlan({ choisi, choisir }: { choisi: Plan | null; choisir: (p: 
           <Champ libelle="N°Client:">{(pp) => <input {...pp} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
           <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
         </div>
-        <Champ libelle="Nom et prénoms du Client: *">{(pp) => <Lecture {...pp} value={t ? nomComplet(t) : ""} />}</Champ>
+        <Champ libelle="Nom et prénoms du Client :">{(pp) => <Lecture {...pp} value={t ? nomComplet(t) : ""} />}</Champ>
         <Champ libelle="N° Contrat : *">{(pp) => <select {...pp} className="saisie" value={choisi?.id ?? ""} onChange={(e) => choisir((plans ?? []).find((x) => x.id === Number(e.target.value)) ?? null)}>
           <option value=""></option>{(plans ?? []).map((x) => <option key={x.id} value={x.id}>{x.numero}</option>)}</select>}</Champ>
       </div>

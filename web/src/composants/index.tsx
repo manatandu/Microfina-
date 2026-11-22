@@ -244,13 +244,26 @@ export function lireDate(t: string): string | null {
 /** Boîtes de dialogue du manuel Microfina++ (p. 10 et 11) : confirmation Oui/Non, succès, erreur. */
 export type Boite = { type: "confirmation"; message: string; oui: () => void } | { type: "succes" | "erreur"; message: string };
 const TITRES = { confirmation: "Confirmation", succes: "Succès", erreur: "Erreur" };
+const ecouteursSucces = new Set<(texte: string) => void>();
+/** Remet le message de succès à la coquille ; faux si aucune coquille n'écoute (écran affiché seul) */
+function annoncer(texte: string) { ecouteursSucces.forEach((f) => f(texte)); return ecouteursSucces.size > 0; }
+
+/** Le message de succès de tout le logiciel, affiché cinq secondes (plan d'allègement, point 1.12 ; registre T121) */
+export function MessageSucces() {
+  const [m, setM] = useState<{ texte: string; n: number } | null>(null);
+  useEffect(() => { const f = (texte: string) => setM((x) => ({ texte, n: (x?.n ?? 0) + 1 })); ecouteursSucces.add(f); return () => { ecouteursSucces.delete(f); }; }, []);
+  useEffect(() => { if (!m) return; const t = setTimeout(() => setM(null), 5000); return () => clearTimeout(t); }, [m]);
+  return m ? <p key={m.n} className="message-succes" role="status">{m.texte}</p> : null;
+}
+
 export function Dialogue({ boite, fermer }: { boite: Boite | null; fermer: () => void }) {
   const [el, setEl] = useState<HTMLDialogElement | null>(null);
   // Succès : un message qui disparaît seul, sans bouton à cliquer (plan d'allègement, point 1.12 ; registre T121). La boîte se ferme aussitôt,
-  // comme après un clic sur Ok : l'écran reprend la main pendant que le message reste affiché cinq secondes.
-  const [succes, setSucces] = useState<{ texte: string; n: number } | null>(null);
-  useEffect(() => { if (boite?.type === "succes") { setSucces((x) => ({ texte: boite.message, n: (x?.n ?? 0) + 1 })); fermer(); } }, [boite]);   // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (!succes) return; const t = setTimeout(() => setSucces(null), 5000); return () => clearTimeout(t); }, [succes]);
+  // comme après un clic sur Ok ; le message est montré par la coquille, qui reste en place quand l'écran se recharge.
+  const [local, setLocal] = useState<{ texte: string; n: number } | null>(null);
+  useEffect(() => { if (boite?.type === "succes") { if (!annoncer(boite.message)) setLocal((x) => ({ texte: boite.message, n: (x?.n ?? 0) + 1 })); fermer(); } }, [boite]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!local) return; const t = setTimeout(() => setLocal(null), 5000); return () => clearTimeout(t); }, [local]);
+  const succes = local;
   const ouverte = boite && boite.type !== "succes" ? boite : null;
   useEffect(() => { if (el && ouverte && !el.open) el.showModal?.(); if (el && !ouverte && el.open) el.close(); }, [el, ouverte]);
   const message = succes && <p key={succes.n} className="message-succes" role="status">{succes.texte}</p>;

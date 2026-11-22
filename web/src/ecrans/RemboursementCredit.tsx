@@ -216,7 +216,7 @@ export function RemboursementGuichet() {
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("situation")}>Situation.</button>
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("plan")}>Plan</button>
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("reel")}>Réel</button>
-          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("memo")}>Memo</button>
+          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("memo")}>Mémo</button>
           <button className="bouton secondaire" type="button" disabled={!d || !e.m || fige} onClick={() => setFiche("billetage")}>Billetage</button>
           <button className="bouton secondaire" type="button" disabled={!fait} onClick={() => setFiche("recu")}>Imprimer</button>
           <button className="bouton" type="button" disabled={!d || fige} onClick={enregistrer}>Enregistrer</button>
@@ -273,7 +273,7 @@ export function RemboursementBanque() {
       <h1>Remboursement de crédits par banque</h1>
       <section className="bloc pile" aria-label="Remboursement de crédits par banque">
         <div className="entete-ecran"><p>Numéro de pièce : <strong className="chiffres">{fait?.piece ?? ""}</strong></p>
-          {fige ? <Champ libelle="Date règlement : *">{(p) => <Lecture {...p} value={fr(date || j?.date || "")} />}</Champ>
+          {fige ? <Champ libelle="Date règlement :">{(p) => <Lecture {...p} value={fr(date || j?.date || "")} />}</Champ>
             : <ChampDate libelle="Date règlement : *" valeur={date || j?.date || ""} onChange={setDate} />}</div>
         <div className="grille-cadres client-large">
           <InfosClient e={e} fige={fige} rechercher={() => setFiche("recherche")} />
@@ -296,12 +296,10 @@ export function RemboursementBanque() {
             <Champ libelle="Ligne budgetaire">{(p) => <Lecture {...p} value={d?.ligneFinancement ?? ""} />}</Champ>
             <Champ libelle="Bailleur">{(p) => <Lecture {...p} value={d?.bailleur ?? ""} />}</Champ></fieldset>}
         <div className="actions-onglets">
-          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("situation")}>B</button>
-          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("plan")}>P</button>
-          <button className="bouton secondaire" type="button" disabled>M.P</button>
-          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("reel")}>R</button>
-          <button className="bouton secondaire" type="button" disabled>H</button>
-          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("memo")}>Memo</button>
+          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("situation")}>Situation</button>
+          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("plan")}>Échéancier prévu</button>
+          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("reel")}>Paiements reçus</button>
+          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("memo")}>Mémo</button>
           <button className="bouton" type="button" disabled={!d || fige} onClick={suivant}>Suivant</button>
           <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
         </div>
@@ -350,7 +348,7 @@ export function RemboursementPrelevement() {
       <h1>Remboursement de crédits par prélèvement sur compte</h1>
       <section className="bloc pile" aria-label="Remboursement de crédits par prélèvement sur compte">
         <div className="entete-ecran"><p>Numéro de pièce : <strong className="chiffres">{fait?.piece ?? ""}</strong></p>
-          {fige ? <Champ libelle="Date règlement : *">{(p) => <Lecture {...p} value={fr(date || j?.date || "")} />}</Champ>
+          {fige ? <Champ libelle="Date règlement :">{(p) => <Lecture {...p} value={fr(date || j?.date || "")} />}</Champ>
             : <ChampDate libelle="Date règlement : *" valeur={date || j?.date || ""} onChange={setDate} />}</div>
         <div className="grille-deux">
           <InfosClient e={e} fige={fige} rechercher={() => setFiche("recherche")}>
@@ -370,12 +368,10 @@ export function RemboursementPrelevement() {
             <Champ libelle="Ligne budgetaire">{(p) => <Lecture {...p} value={d?.ligneFinancement ?? ""} />}</Champ>
             <Champ libelle="Bailleur">{(p) => <Lecture {...p} value={d?.bailleur ?? ""} />}</Champ></fieldset>}
         <div className="actions-onglets">
-          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("situation")}>B</button>
-          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("plan")}>P</button>
-          <button className="bouton secondaire" type="button" disabled>M.P</button>
-          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("reel")}>R</button>
-          <button className="bouton secondaire" type="button" disabled>H</button>
-          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("memo")}>Memo</button>
+          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("situation")}>Situation</button>
+          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("plan")}>Échéancier prévu</button>
+          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("reel")}>Paiements reçus</button>
+          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("memo")}>Mémo</button>
           <button className="bouton secondaire" type="button" disabled={!fait} onClick={() => setFiche("avis")}>Imprimer</button>
           <button className="bouton" type="button" disabled={!d || fige} onClick={enregistrer}>Enregistrer</button>
           <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
@@ -460,7 +456,7 @@ export function ConsulterPret() {
         </div>
         <fieldset className="pile cadre-champs"><legend>Détail crédit</legend>
           <div className="grille-cadres client-large">
-            <Champ libelle="Percevoir int. par anticipation *">{(p) => <select {...p} className="saisie court" disabled value={d ? (d.interetAnticipation ? "OUI" : "NON") : ""}>
+            <Champ libelle="Percevoir int. par anticipation">{(p) => <select {...p} className="saisie court" disabled value={d ? (d.interetAnticipation ? "OUI" : "NON") : ""}>
               <option value=""></option><option>OUI</option><option>NON</option></select>}</Champ>
             {ro("Dernier payement", d?.dernierPaiement ? fr(d.dernierPaiement) : "")}{ro("Interêt total", mt(d?.interetTotal))}{ro("Int. restant", mt(d?.interetRestant))}
             {ro("Retard capil.", mt(d?.du.capital))}{ro("Retard intérêt", mt(d?.du.interet))}{ro("Retard fond Solid.", mt(d?.du.solidarite))}{ro("Retard Epargne", mt(d?.du.epargne))}
@@ -470,12 +466,11 @@ export function ConsulterPret() {
           </div>
         </fieldset>
         <div className="actions-onglets">
-          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("situation")}>B</button>
-          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("plan")}>P</button>
-          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("reel")}>R</button>
-          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("memo")}>Memo</button>
+          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("situation")}>Situation</button>
+          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("plan")}>Échéancier prévu</button>
+          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("reel")}>Paiements reçus</button>
+          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("memo")}>Mémo</button>
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => d && setBoite({ type: "succes", message: `Tout sur le crédit au ${fr(d.dateReglement)} : ${montant(d.toutSurLeCredit, dv)}.` })}>Tout sur le crédit</button>
-          <button className="bouton secondaire" type="button" disabled>H</button>
           <button className="bouton secondaire" type="button" onClick={() => { setT(null); setCid(null); setDate(""); }}>Effacer</button>
         </div>
         <Textes sources={["Manuel Microfina++, p. 118 : 6-Consulter prêt, N° Client, Situation, Réel, Plan, Mémo ; capture p. 119",

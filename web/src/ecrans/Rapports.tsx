@@ -124,7 +124,7 @@ function Multicritere({ ctx, cx, clients }: { ctx: Ctx; cx: ContexteRapport; cli
       </fieldset>
       <div className="actions-onglets">
         <button className="bouton" type="button" onClick={() => setLignes(multicritere(clients, c, cx))}>Rechercher</button>
-        <button className="bouton secondaire" type="button" onClick={() => { setC(MULTI_VIDE()); setLignes(null); }}>Reint champs</button>
+        <button className="bouton secondaire" type="button" onClick={() => { setC(MULTI_VIDE()); setLignes(null); }}>Effacer les critères</button>
       </div>
       {lignes && (
         <>

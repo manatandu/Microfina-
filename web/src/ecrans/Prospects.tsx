@@ -4,7 +4,6 @@ import { BlocAdresse } from "../composants/Adresse";
 import { useDonnees, message } from "../lib/useDonnees";
 import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 
-const INCONNU = "INCONNU";   // Sensibilisateur et Commercial : aucun choisi (capture p. 55) ; sinon listes de S33 (registre S33-4)
 const VIDE: Prospect = { nom: "", prenom: "", naissance: "", lieuNaissance: "", sexe: "", profession: "", pays: "", province: "", ville: "", commune: "", quartier: "", rue: "", numeroRue: "", email: "", bp: "", telephoneFixe: "", telephone: "" };
 const fr = (iso: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "");
 
@@ -24,7 +23,7 @@ export function NouveauProspect() {
   } });
   const agent = (libelle: string, k: "sensibilisateurId" | "commercialId", liste: { id: number; nom: string }[]) => (
     <Champ libelle={libelle}>{(p) => <select {...p} className="saisie" value={d[k] ?? ""} onChange={(e) => maj({ [k]: e.target.value ? Number(e.target.value) : null })}>
-      <option value="">{INCONNU}</option>{liste.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>);
+      <option value=""></option>{liste.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>);
   return (
     <>
       <h1>Enregistrement d'un prospect</h1>

@@ -79,7 +79,7 @@ function DetailBudget({ ctx }: { ctx: Ctx }) {
         <button className="bouton secondaire" type="button" disabled={!complet} onClick={() => charger(base())}>Détails</button>
         <button className="bouton secondaire" type="button" disabled={choisi === null} onClick={() => choisi !== null && confirmer("Voulez-vous vraiment modifier ?", () => api.budgets.modifier(choisi, { valeur: lireMontant(f.valeur) }))}>Modifier</button>
         <button className="bouton secondaire" type="button" disabled={!complet} onClick={() => confirmer("Voulez-vous vraiment supprimer ?", () => api.budgets.supprimer(base()))}>Supprimer</button>
-        <button className="bouton secondaire" type="button" onClick={() => { setF(vide); setR(null); setChoisi(null); }}>Réinitialiser</button>
+        <button className="bouton secondaire" type="button" onClick={() => { setF(vide); setR(null); setChoisi(null); }}>Effacer</button>
         <button className="bouton secondaire" type="button" disabled={!f.plan || !f.periode} onClick={() => charger({ ...base(), global: true }, true)}>Imprimer Global</button>
         <button className="bouton secondaire" type="button" disabled={!complet} onClick={() => charger(base(), true)}>Imprimer Par type</button>
         <button className="bouton secondaire" type="button" disabled={!f.plan} onClick={() => charger({ planId: Number(f.plan), tout: true })}>Afficher tout</button>

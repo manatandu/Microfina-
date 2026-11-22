@@ -2880,10 +2880,10 @@ describe("journée de guichet", () => {
     expect([r.code, r.libelle]).toEqual(["ICPES", "Intérêt Capital Pénalité Epargne Solidarité"]);
     const m = (await api.ordres.enregistrer({ ordre: ["I", "P", "C", "E", "S"] }, r.id)).lignes.at(-1)!;
     expect([m.id, m.code]).toEqual([r.id, "IPCES"]);
-    expect((await api.credit.lire("degres")).lignes[0]!.affichage.ordre).toBe("PICES ==> Pénalité Intérêt Capital Epargne Solidarité");
+    expect((await api.credit.lire("degres")).lignes[0]!.affichage.ordre).toBe("Pénalité, intérêt, capital, épargne, solidarité");
     await expect(api.ordres.supprimer(l.lignes[0]!.id)).rejects.toThrow("attaché à un degré");
     const d = await api.credit.enregistrerOrdres({ 7: m.id });
-    expect(d.lignes[6]!.affichage.ordre!.startsWith("IPCES")).toBe(true);
+    expect(d.lignes[6]!.affichage.ordre).toBe("Intérêt, pénalité, capital, épargne, solidarité");
     await expect(api.credit.enregistrerOrdres({ 9: m.id })).rejects.toThrow("inconnu");
     await api.ordres.supprimer(l.lignes[1]!.id);
   });

@@ -160,7 +160,7 @@ function EditionBalance({ analytique, ctx, jour }: { analytique: boolean; ctx: C
       </fieldset>
       <div className="actions-onglets">
         <button className="bouton" type="button" onClick={rechercher}>Rechercher</button>
-        <button className="bouton secondaire" type="button" onClick={() => { setF(vide); setR(null); }}>Rein. les champs</button>
+        <button className="bouton secondaire" type="button" onClick={() => { setF(vide); setR(null); }}>Effacer les critères</button>
         <button className="bouton secondaire" type="button" disabled={!r || r.lignes.length === 0} onClick={exporter}>Exporter</button>
       </div>
       {r && <div className="defile-x"><table className="grille">

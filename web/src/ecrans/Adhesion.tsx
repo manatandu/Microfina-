@@ -76,12 +76,12 @@ export default function Adhesion() {
               <Champ libelle="N° Client :">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
               <button className="bouton secondaire" type="button" aria-label="Rechercher un client" disabled={!!fait} onClick={() => setRecherche(true)}>Rechercher</button>
             </div>
-            <Champ libelle="Intitulé : *">{(p) => <Lecture {...p} value={t ? nomComplet(t) : ""} />}</Champ>
-            <Champ libelle="Catégorie : *">{(p) => <Lecture {...p} value={t?.typeClient ?? ""} />}</Champ>
+            <Champ libelle="Intitulé :">{(p) => <Lecture {...p} value={t ? nomComplet(t) : ""} />}</Champ>
+            <Champ libelle="Catégorie :">{(p) => <Lecture {...p} value={t?.typeClient ?? ""} />}</Champ>
           </fieldset>
           <fieldset className="pile cadre-champs">
             <legend>Informations sur le Compte</legend>
-            <Champ libelle="N° compte épargne : *">{(p) => <input {...p} className="saisie code" readOnly value={compte?.numero ?? ""} />}</Champ>
+            <Champ libelle="N° compte épargne :">{(p) => <input {...p} className="saisie code" readOnly value={compte?.numero ?? ""} />}</Champ>
             <Champ libelle={`Premier dépôt : *${produit ? ` (${produit.devise})` : ""}`}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" required readOnly={!!fait}
               autoComplete="off" value={depot} onChange={(e) => { setDepot(e.target.value); setCle(nouvelleCle()); }} />}</Champ>
             <p>Total : <strong className="chiffres">{montant(totalCdf, "CDF")}</strong>{enDevise && mDepot ? <> + <strong className="chiffres">{montant(mDepot, devDepot)}</strong></> : null}</p>

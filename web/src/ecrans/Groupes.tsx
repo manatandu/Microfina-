@@ -88,7 +88,7 @@ export function GroupeSolidaire() {
           <div className="formulaire">
             <Champ libelle="Code groupe *">{(p) => <input {...p} className="saisie code" required autoComplete="off" value={code ?? g.codeSuivant} onChange={(e) => setCode(e.target.value)} />}</Champ>
             <Champ libelle="nom groupe *">{(p) => <input {...p} className="saisie" required autoComplete="off" value={nom} onChange={(e) => setNom(e.target.value)} />}</Champ>
-            <Champ libelle="Agence *">{(p) => <select {...p} className="saisie" disabled><option>{ctx.agence.nom}</option></select>}</Champ>
+            <Champ libelle="Agence">{(p) => <select {...p} className="saisie" disabled><option>{ctx.agence.nom}</option></select>}</Champ>
           </div>
           <div className="actions-onglets">
             <button className="bouton" type="button" onClick={() => {
@@ -107,7 +107,7 @@ export function GroupeSolidaire() {
               <Champ libelle="Groupe Solidaire *">{(p) => <select {...p} className="saisie" required value={groupeId} onChange={(e) => { setGroupeId(Number(e.target.value)); setAjoutes([]); setCoches([]); }}>
                 <option value={0}></option>{g.groupes.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>
               <div className="ligne-champ">
-                <Champ libelle="N° Client *">{(p) => <input {...p} className="saisie code" readOnly required value={client?.numero ?? ""} />}</Champ>
+                <Champ libelle="N° Client">{(p) => <input {...p} className="saisie code" readOnly required value={client?.numero ?? ""} />}</Champ>
                 <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
               </div>
               <Champ libelle="Intitulé :">{(p) => <Lecture {...p} value={client ? client.intitule || nomComplet(client) : ""} />}</Champ>

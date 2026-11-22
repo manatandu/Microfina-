@@ -103,7 +103,7 @@ export function CreationBien() {
           <Champ libelle="T.V.A">{(p) => <Lecture {...p} value={n(tva)} />}</Champ><Champ libelle="Prix Acquis.">{(p) => <Lecture {...p} value={ttc ? n(ttc - tva) : ""} />}</Champ></fieldset>
         {radio("amortissable", "Bien Amortissable ?")}{radio("subventionne", "Bien Subventionné ?")}
         <ChampDate libelle="Date mise en service *" valeur={v("dateMiseService")} onChange={(x) => maj("dateMiseService", x)} />
-        <Champ libelle="Statut *">{(p) => <Lecture {...p} value={b?.statut ?? "LIBRE"} />}</Champ>
+        <Champ libelle="Statut">{(p) => <Lecture {...p} value={b?.statut ?? "LIBRE"} />}</Champ>
       </fieldset>
     </div>
     <div className="actions-onglets">

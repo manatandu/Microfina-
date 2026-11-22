@@ -53,11 +53,11 @@ export default function BlocageCompte() {
               <Champ libelle="N° Client">{(pp) => <input {...pp} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
               <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
             </div>
-            <Champ libelle="Intitulé *">{(pp) => <Lecture {...pp} value={t ? nomComplet(t) : ""} />}</Champ>
-            <Champ libelle="Catégorie *">{(pp) => <Lecture {...pp} value={t?.categorie ?? ""} />}</Champ>
+            <Champ libelle="Intitulé">{(pp) => <Lecture {...pp} value={t ? nomComplet(t) : ""} />}</Champ>
+            <Champ libelle="Catégorie">{(pp) => <Lecture {...pp} value={t?.categorie ?? ""} />}</Champ>
             <Champ libelle="compte: *">{(pp) => <select {...pp} className="saisie" value={f.compte} onChange={(ev) => setF({ ...VIDE, compte: ev.target.value })}>
               <option value=""></option>{(comptes ?? []).map((x) => <option key={x.id} value={x.id}>{x.numero}</option>)}</select>}</Champ>
-            <Champ libelle="Produit : *">{(pp) => <Lecture {...pp} value={c?.intitule ?? ""} />}</Champ>
+            <Champ libelle="Produit :">{(pp) => <Lecture {...pp} value={c?.intitule ?? ""} />}</Champ>
           </fieldset>
           <fieldset className="pile cadre-champs">
             <legend>Infos compte</legend>
@@ -76,7 +76,7 @@ export default function BlocageCompte() {
             {f.montantCoche && <Champ libelle="Montant à bloquer :">{(pp) => <input {...pp} className="saisie montant" inputMode="decimal" autoComplete="off" value={f.montant} onChange={(ev) => setF({ ...f, montant: ev.target.value })} />}</Champ>}
           </div>
         </fieldset>
-        <Champ libelle="Motif:">{(pp) => <input {...pp} className="saisie" value={f.motif} onChange={(ev) => setF({ ...f, motif: ev.target.value })} />}</Champ>
+        <Champ libelle="Motif : *">{(pp) => <input {...pp} className="saisie" value={f.motif} onChange={(ev) => setF({ ...f, motif: ev.target.value })} />}</Champ>
         <div className="actions-onglets">
           <button className="bouton" type="button" disabled={!f.compte || (!f.tout && !f.montantCoche)} onClick={enregistrer}>Enregistrer</button>
           <button className="bouton secondaire" type="button" disabled={!e} onClick={() => setHistorique(true)}>Voir historique des actions</button>

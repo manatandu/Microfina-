@@ -90,7 +90,7 @@ function BanqueInstitution({ d, confirmer }: Props) {
         <Champ libelle="Banque *">{(p) => <select {...p} className="saisie" required value={f.banqueId} onChange={(e) => setF({ ...f, banqueId: Number(e.target.value) })}>
           <option value={0}></option>{d.banques.map((b) => <option key={b.id} value={b.id}>{b.libelle}</option>)}</select>}</Champ>
         <Champ libelle="Compte *">{(p) => <input {...p} className="saisie code" required inputMode="numeric" autoComplete="off" {...t("compte")} />}</Champ>
-        <Champ libelle="Libellé : *">{(p) => <Lecture {...p} value={banque && f.devise ? `${banque.libelle} ${f.devise}` : ""} />}</Champ>
+        <Champ libelle="Libellé :">{(p) => <Lecture {...p} value={banque && f.devise ? `${banque.libelle} ${f.devise}` : ""} />}</Champ>
         <Champ libelle="N° Compte Bancaire : *">{(p) => <input {...p} className="saisie code" required autoComplete="off" {...t("numeroBancaire")} />}</Champ>
         <Champ libelle="Devise *">{(p) => <select {...p} className="saisie" required value={f.devise} onChange={(e) => setF({ ...f, devise: e.target.value })}>
           <option value=""></option>{d.devises.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>

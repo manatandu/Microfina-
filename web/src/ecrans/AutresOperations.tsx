@@ -36,7 +36,7 @@ type Client = ReturnType<typeof useClient>;
 
 function Identifiant({ titre, agence, k, chercher }: { titre: string; agence: string; k: Client; chercher: () => void }) {
   return <fieldset className="cadre-champs formulaire"><legend>{titre}</legend>
-    <Champ libelle="Agence *">{(p) => <Lecture {...p} value={agence} />}</Champ>
+    <Champ libelle="Agence">{(p) => <Lecture {...p} value={agence} />}</Champ>
     <div className="ligne-champ"><Champ libelle="N° Client">{(p) => <input {...p} className="saisie code" readOnly value={k.t?.numero ?? ""} />}</Champ>
       <button className="bouton secondaire" type="button" aria-label={`Rechercher : ${titre}`} onClick={chercher}>Rechercher</button></div>
     <Champ libelle="Intitule">{(p) => <textarea {...p} className="saisie" rows={2} readOnly value={nomDe(k.t)} />}</Champ>
@@ -104,7 +104,7 @@ function VirementPrelevement({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
   return <>
     <div className="deux-colonnes">
       <fieldset className="cadre-champs formulaire"><legend>Agence</legend>
-        <Champ libelle="Agence *">{(p) => <Lecture {...p} value={ctx.agence.nom} />}</Champ>
+        <Champ libelle="Agence">{(p) => <Lecture {...p} value={ctx.agence.nom} />}</Champ>
         <ChampDate libelle="Date opération *" valeur={date || ctx.date} onChange={setDate} requis />
       </fieldset>
       <Identifiant titre="Identifiant Client" agence={ctx.agence.nom} k={k} chercher={() => setCherche(true)} />
@@ -170,7 +170,7 @@ function CompteACompte({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
         <Identifiant titre="Identifiant Recepteur" agence={ctx.agence.nom} k={r} chercher={() => setCherche("r")} />
         <CadreCompte titre="Compte Recepteur" k={r} garde={(c) => c.id !== e.c?.id && c.devise === e.c?.devise && (onglet !== "tontine" || c.famille === "EPARGNE")} />
         <fieldset className="cadre-champs formulaire"><legend>Montant</legend>
-          <Champ libelle="Montant *">{(p) => <Lecture {...p} value={m && e.c ? montant(m, e.c.devise as Devise) : ""} />}</Champ>
+          <Champ libelle="Montant">{(p) => <Lecture {...p} value={m && e.c ? montant(m, e.c.devise as Devise) : ""} />}</Champ>
         </fieldset>
       </div>
       <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button><button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button></div>

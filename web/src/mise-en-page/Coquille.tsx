@@ -12,7 +12,7 @@ import { definirMonnaies } from "@design/montant.js";
 import { mots } from "../lib/vocabulaire";
 import { ICONES } from "./icones";
 import { Marque } from "./Marque";
-import { useSourcesEcran } from "../composants";
+import { MessageSucces, useSourcesEcran } from "../composants";
 import { choisirLangue, langue } from "../lib/langue";
 import { reglesAide } from "../lib/aide";
 
@@ -85,7 +85,7 @@ export function Coquille() {
           ))}
         </aside>
         <main className="page" id="contenu" key={lieu.pathname}>{aide && <AideEnLigne chemin={lieu.pathname} fermer={() => setAide(false)} />}
-          {refuse ? <p className="attention">Droit manquant : {refuse.nom} (Administration &gt; Profil &gt; Assigner droit).</p> : <Suspense fallback={null}><Outlet /></Suspense>}</main>
+          {refuse ? <p className="attention">Droit manquant : {refuse.nom} (Administration &gt; Profil &gt; Assigner droit).</p> : <Suspense fallback={null}><Outlet /></Suspense>}</main><MessageSucces />
       </div>
 
       <footer className="pied">

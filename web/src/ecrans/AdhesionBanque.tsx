@@ -59,12 +59,12 @@ export function AdhesionBanque() {
               <Champ libelle="N° Client :">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
               <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
             </div>
-            <Champ libelle="Intitulé : *">{(p) => <Lecture {...p} value={t ? nomComplet(t) : ""} />}</Champ>
-            <Champ libelle="Catégorie : *">{(p) => <Lecture {...p} value={t?.typeClient ?? ""} />}</Champ>
+            <Champ libelle="Intitulé :">{(p) => <Lecture {...p} value={t ? nomComplet(t) : ""} />}</Champ>
+            <Champ libelle="Catégorie :">{(p) => <Lecture {...p} value={t?.typeClient ?? ""} />}</Champ>
           </fieldset>
           <fieldset className="pile cadre-champs">
             <legend>Informations sur le Compte</legend>
-            <Champ libelle="N° compte épargne : *">{(p) => <input {...p} className="saisie code" readOnly value={ap?.numeroCompte ?? ""} />}</Champ>
+            <Champ libelle="N° compte épargne :">{(p) => <input {...p} className="saisie code" readOnly value={ap?.numeroCompte ?? ""} />}</Champ>
             <Champ libelle="Premier dépôt : *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" required autoComplete="off" value={depot}
               onChange={(e) => { setDepot(e.target.value); setCle(nouvelleCle()); }} />}</Champ>
             <p>Total : <strong className="chiffres">{montant(total, "CDF")}</strong></p>

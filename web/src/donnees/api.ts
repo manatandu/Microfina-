@@ -1508,7 +1508,7 @@ export const CATALOGUE_LISTES: FicheListe[] = ([
   { liste: "categorie_groupe", ecran: "S14j", titre: "Catégorie de groupe" }, { liste: "filiation", ecran: "S14k", titre: "Filiation" },
   { liste: "situation_matrimoniale", ecran: "S14l", titre: "Situation matrimoniale" }, 
   // S18 (p. 26) : même liste que S14m (registre S18-1), avec la forme de sa capture : Libelle Motif seul, Reinitialiser
-  { liste: "motif_depart", ecran: "S14m", titre: "Motif de départ", entete: "Motif de départ d'un client", libelle: "Libellé Motif", colonne: "Libellé Motif", sansCode: true, effacer: "Reinitialiser" },
+  { liste: "motif_depart", ecran: "S14m", titre: "Motif de départ", entete: "Motif de départ d'un client", libelle: "Libellé Motif", colonne: "Libellé Motif", sansCode: true, effacer: "Effacer" },
   { liste: "type_guichet", ecran: "S14n", titre: "Type Guichet" },
   // Décision du porteur du 22/11/2026 : les groupes ont leur liste de formes juridiques (loi n° 004/2001 sur les ASBL, art. 2 ; registre S39-5)
   { liste: "forme_juridique_groupe", ecran: "S14o", titre: "Forme juridique du groupe" },
@@ -9415,6 +9415,8 @@ const moteurCredit = referentiel({
     utilisePar: { types_objet: [["objets", "typeObjetId", "Objet Credit"]], types_assurance: [["assureurs", "typeAssuranceId", "Assureur crédit"]] },
 });
 const ordresActifs = () => E.ordres.filter((o) => o.actif);
+/** « Pénalité Intérêt Capital Epargne Solidarité » devient « Pénalité, intérêt, capital, épargne, solidarité » (plan d'allègement, point 1.4 ; même règle que noyau/credit.py) */
+const ordreEnClair = (libelle: string) => { const t = libelle.split(/\s+/).filter(Boolean).map((m) => m.toLowerCase().replace("epargne", "épargne")).join(", "); return t.charAt(0).toUpperCase() + t.slice(1); };
 const credit = {
   ...moteurCredit,
   /** Degré Crédit : chaque degré porte son ordre de remboursement (S22), choisi dans la colonne et enregistré (registre S22-3) */
@@ -9422,10 +9424,10 @@ const credit = {
     const r = moteurCredit.lire(page);
     if (page !== "degres") return r;
     const ordres = new Map(ordresActifs().map((o) => [o.id, o]));
-    r.options = { ordre: ordresActifs().map((o) => ({ id: o.id, libelle: `${o.code} ==> ${o.libelle}` })) };
+    r.options = { ordre: ordresActifs().map((o) => ({ id: o.id, libelle: ordreEnClair(o.libelle) })) };
     for (const l of r.lignes) {
       const o = ordres.get(E.degreOrdres[l.id] ?? -1);
-      l.ordre = o ? o.id : null; l.affichage.ordre = o ? `${o.code} ==> ${o.libelle}` : "";
+      l.ordre = o ? o.id : null; l.affichage.ordre = o ? ordreEnClair(o.libelle) : "";
     }
     return r;
   },
@@ -9533,7 +9535,7 @@ const produitsCredit = {
     return { typesProduit: fixeCredit("types_produit").map((r) => ({ code: String(r.code), libelle: String(r.nom) })),
       periodicites: fixeCredit("periodicites").map((r) => ({ code: String(r.code), libelle: String(r.libelle) })), devises: E.devises.map((x) => x.code).sort().reverse(),
       ...OPTIONS_PRODUIT_CREDIT, typesAssurance: stockCredit("types_assurance").filter((t) => t.actif).map((t) => ({ id: t.id, libelle: String(t.libelle) })),
-      ordres: ordresActifs().map((o) => ({ id: o.id, libelle: `${o.code} ==> ${o.libelle}` })),
+      ordres: ordresActifs().map((o) => ({ id: o.id, libelle: ordreEnClair(o.libelle) })),
       modeles: E.modelesCredit.filter((m) => m.actif).map((m) => ({ id: m.id, libelle: m.libelle })) };
   },
   /** La page et la liste des produits crédits (Fig. 2, p. 38 : Numero, Produit, Type de client, Taux interet, Taux différé) */

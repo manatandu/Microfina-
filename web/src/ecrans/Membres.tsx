@@ -7,7 +7,6 @@ import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Lect
 import { lireMontant } from "@design/montant.js";
 import { RechercheClient } from "./Visa";
 
-const INCONNU = "INCONNU";   // valeur montrée pour Sensibilisateur, Gestionnaire et Commercial (p. 49 et 50) : aucun agent ; la liste vient de S33
 type Ctx = Awaited<ReturnType<typeof api.referentiel.contexte>>;
 const nomComplet = (t: { nom: string; postnom: string; prenom: string }) => [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
 
@@ -88,17 +87,17 @@ function InformationsDeBase({ genre, f, maj, ctx, numero, depot, setDepot, chois
         <Champ libelle={entreprise ? "Zone : *" : "Zone :"}>{(p) => <select {...p} className="saisie" required={entreprise} {...sel("zone")}><option value=""></option>
           {ctx.zones.map((z) => <option key={z}>{z}</option>)}</select>}</Champ>
         {physique && <Champ libelle="Sensibilisateur :">{(p) => <select {...p} className="saisie" value={f.sensibilisateurId ?? ""}
-          onChange={(e) => maj({ sensibilisateurId: e.target.value ? Number(e.target.value) : null })}><option value="">{INCONNU}</option>
+          onChange={(e) => maj({ sensibilisateurId: e.target.value ? Number(e.target.value) : null })}><option value=""></option>
           {ctx.sensibilisateurs.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>}
       </div>
       <div className="pile">
         {!physique && <AgentsClient f={f} maj={maj} ctx={ctx} />}
         {physique ? <>
           <Champ libelle="Gestionnaire :">{(p) => <select {...p} className="saisie" value={f.gestionnaireId ?? ""}
-            onChange={(e) => maj({ gestionnaireId: e.target.value ? Number(e.target.value) : null })}><option value="">{INCONNU}</option>
+            onChange={(e) => maj({ gestionnaireId: e.target.value ? Number(e.target.value) : null })}><option value=""></option>
             {ctx.gestionnaires.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
           <Champ libelle="Commercial :">{(p) => <select {...p} className="saisie" value={f.commercialId ?? ""}
-            onChange={(e) => maj({ commercialId: e.target.value ? Number(e.target.value) : null })}><option value="">{INCONNU}</option>
+            onChange={(e) => maj({ commercialId: e.target.value ? Number(e.target.value) : null })}><option value=""></option>
             {ctx.commerciaux.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
         </> : null}
         <Champ libelle="Type de compte à créer *">{(p) => <select {...p} className="saisie" required {...sel("produitCode")}><option value=""></option>
@@ -310,11 +309,11 @@ function useCommun() {
     numero: d ? "" : cree?.numero ?? "" };
 }
 
-/** Sensibilisateur, Gestionnaire, Commercial : agents d'agence de S33 ; INCONNU = aucun (capture p. 49 ; registre S33-4, S37-2) */
+/** Sensibilisateur, Gestionnaire, Commercial : agents d'agence de S33 ; case vide = aucun (registre S33-4, S37-2 ; plan d'allègement, point 1.5) */
 function AgentsClient({ f, maj, ctx }: { f: NouveauTiers; maj: (p: Partial<NouveauTiers>) => void; ctx: Ctx }) {
   const liste = (libelle: string, k: "sensibilisateurId" | "gestionnaireId" | "commercialId", agents: { id: number; nom: string }[]) => (
     <Champ libelle={libelle}>{(p) => <select {...p} className="saisie" value={f[k] ?? ""} onChange={(e) => maj({ [k]: e.target.value ? Number(e.target.value) : null })}>
-      <option value="">{INCONNU}</option>{agents.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>);
+      <option value=""></option>{agents.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>);
   return <>{liste("Sensibilisateur :", "sensibilisateurId", ctx.sensibilisateurs)}{liste("Gestionnaire :", "gestionnaireId", ctx.gestionnaires)}
     {liste("Commercial :", "commercialId", ctx.commerciaux)}</>;
 }

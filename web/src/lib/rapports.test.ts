@@ -32,7 +32,7 @@ describe("rapports clients (S51)", () => {
     const l = clients();
     l[1]!.gestionnaireId = 7;
     expect(synthese(multicritere(l, base, cx), "genre", cx)).toEqual({ total: 3, groupes: [["Femme", 2], ["Homme", 1]] });
-    expect(synthese(multicritere(l, base, cx), "gestionnaire", cx).groupes).toEqual([["Ilunga Paul", 1], ["INCONNU", 2]]);
+    expect(synthese(multicritere(l, base, cx), "gestionnaire", cx).groupes).toEqual([["Ilunga Paul", 1], ["Non attribué", 2]]);
   });
   it("clients modifiés : une ligne par jour, utilisateur et membre, avec le nombre (capture p. 59, registre S51-4)", () => {
     const l = clients();

@@ -6,7 +6,7 @@ import re
 from decimal import Decimal, InvalidOperation
 
 from .bd import ErreurMetier, executer, lignes, une, valeur
-from .credit import CATALOGUE as CATALOGUE_CREDIT
+from .credit import CATALOGUE as CATALOGUE_CREDIT, ordre_en_clair
 from .moteur import compte_existe
 from .services import exiger
 
@@ -68,7 +68,7 @@ def options(u) -> dict:
             "devises": [r["code"] for r in lignes("select code from devise order by code desc")], "modesCalcul": MODES_CALCUL, "typesInteret": TYPES_INTERET,
             "modesDiffere": MODES_DIFFERE, "paiementsInteret": PAIEMENTS_INTERET, "natures": NATURES, "categories": CATEGORIES, "typesFrais": TYPES_FRAIS,
             "typesAssurance": lignes("select id, libelle from credit_type_assurance where institution_id = %s and actif order by id", (i,)),
-            "ordres": [{"id": o["id"], "libelle": f"{o['code']} ==> {o['libelle']}"} for o in
+            "ordres": [{"id": o["id"], "libelle": ordre_en_clair(o["libelle"])} for o in
                        lignes("select id, code, libelle from credit_ordre where institution_id = %s and actif order by id", (i,))],
             "modeles": lignes("select id, libelle from credit_modele where institution_id = %s and actif order by id", (i,))}
 

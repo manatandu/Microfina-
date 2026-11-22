@@ -1581,11 +1581,11 @@ def test_ordre_remboursement(clients):
     m = chef.post(f"/api/ordres-remboursement/{r['id']}", {"ordre": list("IPCES")}, **H).json()["lignes"][-1]
     assert m["id"] == r["id"] and m["code"] == "IPCES"
     d = chef.get("/api/credit-referentiels/degres", **H).json()
-    assert d["lignes"][0]["affichage"]["ordre"] == "PICES ==> Pénalité Intérêt Capital Epargne Solidarité"
+    assert d["lignes"][0]["affichage"]["ordre"] == "Pénalité, intérêt, capital, épargne, solidarité"
     cipes = next(x for x in l["lignes"] if x["code"] == "CIPES")
     assert "attaché à un degré" in chef.post(f"/api/ordres-remboursement/{cipes['id']}/suppression", {}, **H).json()["message"]
     d = chef.post("/api/credit-degres/ordres", {"ordres": {"7": m["id"]}}, **H).json()
-    assert d["lignes"][6]["affichage"]["ordre"].startswith("IPCES") and d["lignes"][6]["taux"] == 100
+    assert d["lignes"][6]["affichage"]["ordre"] == "Intérêt, pénalité, capital, épargne, solidarité" and d["lignes"][6]["taux"] == 100
     assert "inconnu" in chef.post("/api/credit-degres/ordres", {"ordres": {"9": m["id"]}}, **H).json()["message"]
     assert chef.post(f"/api/ordres-remboursement/{next(x for x in l['lignes'] if x['code'] == 'CPIES')['id']}/suppression", {}, **H).status_code == 200
 

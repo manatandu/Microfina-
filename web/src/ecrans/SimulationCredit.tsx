@@ -64,16 +64,16 @@ export default function SimulationCredit() {
                   maj({ produit: id, periodicite: "" });
                   if (id) { const x = await api.produitsCredit.lireProduit(Number(id)); setF((v) => (v.produit === id ? { ...v, periodicite: String(x.periodicite ?? "") } : v)); } }}>
                   <option value=""></option>{produits.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>
-                <Champ libelle="Périodicité *">{(pp) => <select {...pp} className="saisie" disabled value={f.periodicite}>
+                <Champ libelle="Périodicité">{(pp) => <select {...pp} className="saisie" disabled value={f.periodicite}>
                   <option value=""></option>{p.options.periodicites.map((x) => <option key={x.code} value={x.code}>{x.libelle}</option>)}</select>}</Champ>
-                <Champ libelle="M. calcul *">{(pp) => <select {...pp} className="saisie" disabled value="Dégressif"><option>Dégressif</option></select>}</Champ>
-                <Champ libelle="Mode différé *">{(pp) => <select {...pp} className="saisie" disabled value="Réparti"><option>Réparti</option></select>}</Champ>
+                <Champ libelle="M. calcul">{(pp) => <select {...pp} className="saisie" disabled value="Dégressif"><option>Dégressif</option></select>}</Champ>
+                <Champ libelle="Mode différé">{(pp) => <select {...pp} className="saisie" disabled value="Réparti"><option>Réparti</option></select>}</Champ>
               </div>
               <dl className="infos">
                 <div className="info-ligne"><dt>Taux Int.</dt><dd className="chiffres">{fiche ? `${String(fiche.tauxInteret).replace(".", ",")} %` : ""}</dd></div>
                 <div className="info-ligne"><dt>Taux Diff.</dt><dd className="chiffres">{fiche ? `${String(fiche.tauxDiffere).replace(".", ",")} %` : ""}</dd></div>
-                <div className="info-ligne"><dt>T.E.G R</dt><dd className="chiffres">{r?.tauxRegle ? "Taux réglementé" : pct(r?.tegR)}</dd></div>
-                <div className="info-ligne"><dt>T.E.G A</dt><dd className="chiffres">{r?.tauxRegle ? "Taux réglementé" : pct(r?.tegA)}</dd></div>
+                <div className="info-ligne"><dt>TEG annuel</dt><dd className="chiffres">{r?.tauxRegle ? "Taux réglementé" : pct(r?.tegR)}</dd></div>
+                <div className="info-ligne"><dt>TEG actuariel</dt><dd className="chiffres">{r?.tauxRegle ? "Taux réglementé" : pct(r?.tegA)}</dd></div>
               </dl>
             </div>
           </fieldset>
@@ -103,7 +103,7 @@ export default function SimulationCredit() {
                 ["Date de déblocage", fr(r.dateDeblocage)], ["Première échéance", fr(r.dateDebut)], ["Dernière échéance", fr(r.dateFin)],
                 ["Échéance", montant(r.echeanceConstante, dv)], ["Intérêts du différé", montant(r.interetDiffere, dv)], ["Total des intérêts", montant(r.totalInteret, dv)],
                 ["Frais", montant(r.frais, dv)], ["Assurance", montant(r.assurance, dv)], ["Épargne obligatoire", montant(r.epargneObligatoire, dv)],
-                ["T.E.G R", r.tauxRegle ? "Taux réglementé" : pct(r.tegR)], ["T.E.G A", r.tauxRegle ? "Taux réglementé" : pct(r.tegA)]] as const)
+                ["TEG annuel", r.tauxRegle ? "Taux réglementé" : pct(r.tegR)], ["TEG actuariel", r.tauxRegle ? "Taux réglementé" : pct(r.tegA)]] as const)
                 .map(([k, v]) => <div key={k} className="info-ligne"><dt>{k}</dt><dd className="chiffres">{v}</dd></div>)}
             </dl>}
           </fieldset>
@@ -118,7 +118,7 @@ export default function SimulationCredit() {
       </section>
       <Fiche titre="Echéancier" ouverte={echeancier} fermer={() => setEcheancier(false)}>
         {r && <div className="pile" id="echeancier-simulation">
-          <p>{r.produit} · {montant(r.montant, dv)} · {r.nombreTraites} traites {r.libellePeriodicite.toLowerCase()} · T.E.G A {r.tauxRegle ? "sans objet" : pct(r.tegA)}</p>
+          <p>{r.produit} · {montant(r.montant, dv)} · {r.nombreTraites} traites {r.libellePeriodicite.toLowerCase()} · TEG actuariel {r.tauxRegle ? "sans objet" : pct(r.tegA)}</p>
           <div className="defile-x"><table className="grille">
             <thead><tr><th scope="col">N°</th><th scope="col">Date</th><th scope="col" className="num">Capital début</th><th scope="col" className="num">Capital</th>
               <th scope="col" className="num">Intérêt</th><th scope="col" className="num">Échéance</th><th scope="col" className="num">Capital restant</th></tr></thead>

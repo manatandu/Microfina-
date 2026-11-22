@@ -60,7 +60,7 @@ export function DemandeCredit() {
             <Champ libelle="Produit crédit *">{(pp) => <select {...pp} className="saisie" value={f.produit} onChange={(ev) => maj({ produit: ev.target.value, analyse: "" })}>
               <option value=""></option>{ctx.produits.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>
             <div className="ligne-champ">
-              <Champ libelle="Numéro client *">{(pp) => <input {...pp} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
+              <Champ libelle="Numéro client">{(pp) => <input {...pp} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
               <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
             </div>
             <Champ libelle="Intitulé">{(pp) => <Lecture {...pp} value={t ? nomComplet(t) : ""} />}</Champ>

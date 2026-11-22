@@ -26,7 +26,7 @@ export function OngletsGuichet() {
       {onglet(vers("S75"), ici("S75"), "Décaissement crédit")}
       {onglet(vers("S76"), ici("S76"), "Remboursement de credit")}
       {onglet(vers("S77"), ici("S77"), "Part sociale(Achat/Retrait)")}
-      {onglet(vers("S78"), ici("S78"), "ED Divers")}
+      {onglet(vers("S78"), ici("S78"), "Autres encaissements et décaissements")}
     </nav>
   );
 }

@@ -26,7 +26,7 @@ function ChoixFournisseur({ ctx, valeur, choisir }: { ctx: Ctx; valeur: string; 
   const [ouverte, setOuverte] = useState(false);
   const f = ctx.fournisseurs.find((x) => String(x.id) === valeur);
   return <>
-    <div className="ligne-champ"><Champ libelle="Fournisseur *">{(p) => <input {...p} className="saisie" readOnly value={f?.intitule ?? ""} />}</Champ>
+    <div className="ligne-champ"><Champ libelle="Fournisseur">{(p) => <input {...p} className="saisie" readOnly value={f?.intitule ?? ""} />}</Champ>
       <button className="bouton secondaire" type="button" aria-label="Rechercher un fournisseur" onClick={() => setOuverte(true)}>Rechercher</button></div>
     <Fiche titre="Recherche d'un fournisseur" ouverte={ouverte} fermer={() => setOuverte(false)}>
       <div className="pile"><div className="defile-x"><table className="grille">

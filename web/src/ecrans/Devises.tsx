@@ -6,7 +6,7 @@ import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite } from "../c
 import { fr } from "../lib/dates";
 import { definirMonnaies } from "@design/montant.js";
 
-const PAGES = [["devise", "Devise", "Enregistrement des devises"], ["type", "Type sous", "Enregistrer un type de monnaies"], ["sous", "Sous", "Enregistrement de monnaies"],
+const PAGES = [["devise", "Devise", "Enregistrement des devises"], ["type", "Types de coupures", "Enregistrer un type de monnaies"], ["sous", "Coupures", "Enregistrement de monnaies"],
   ["cours", "Cours", "Cours du jour"]] as const;
 type Devise = { code: string; libelle: string; unite: string; subdivision: number };
 type Monnaie = { devise: string; valeur: number; typeId: number; libelle: string };

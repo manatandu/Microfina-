@@ -23,7 +23,7 @@ export type Tri = (typeof CRITERES_TRI)[number][0];
 
 export const CATEGORIES: Record<Tiers["type"], string> = { physique: "Personne physique", morale: "Personne morale", groupe: "Groupe" };
 const GENRES: Record<string, string> = { M: "Homme", F: "Femme" };
-export const INCONNU = "INCONNU";
+export const INCONNU = "Non attribué";   // aucun agent (plan d'allègement, point 1.5)
 
 /** Valeur d'un critère pour un client, telle qu'elle s'affiche (colonnes, tri, synthèse) */
 export function valeur(t: Tiers, cle: Tri, cx: ContexteRapport): string {

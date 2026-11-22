@@ -35,7 +35,7 @@ export default function NormesPrudentielles() {
           ? `oui, police ${r.assuranceTresorerie.police} (${r.assuranceTresorerie.assureur}), jusqu'au ${fr(r.assuranceTresorerie.echeance)}.` : "non."}</p>}
         <div className="actions-onglets">
           <button className="bouton" type="button" onClick={rechercher}>Rechercher</button>
-          <button className="bouton secondaire" type="button" onClick={() => { setDate(""); setR(null); }}>Rein. les champs</button>
+          <button className="bouton secondaire" type="button" onClick={() => { setDate(""); setR(null); }}>Effacer les critères</button>
           <button className="bouton secondaire" type="button" disabled={!exporter} onClick={() => exporter?.()}>Exporter</button>
         </div>
         {r && <>

@@ -83,7 +83,7 @@ function Mensuel({ mode }: { mode: "domiciliation" | "personnel" | "prelevement"
       </fieldset> : <fieldset className="cadre-champs formulaire"><legend>Information Institution</legend>
         <div className="ligne-champ"><Champ libelle="N°institution">{(p) => <input {...p} className="saisie code" readOnly value={inst.t?.numero ?? ""} />}</Champ>
           <button className="bouton secondaire" type="button" aria-label="Rechercher une institution" disabled={fige} onClick={() => setCherche("inst")}>Rechercher</button></div>
-        <Champ libelle="Nom institution *">{(p) => <Lecture {...p} value={nomDe(inst.t)} />}</Champ>
+        <Champ libelle="Nom institution">{(p) => <Lecture {...p} value={nomDe(inst.t)} />}</Champ>
         <Champ libelle="Intitulé compte">{(p) => <Lecture {...p} value={inst.c?.produit ?? ""} />}</Champ>
         <Champ libelle="Compte interne">{(p) => <select {...p} className="saisie code" disabled={fige} value={inst.compte} onChange={(e) => inst.setCompte(e.target.value)}><option value=""></option>
           {inst.comptes.map((c) => <option key={c.id} value={c.id}>{`${c.numero} (${c.devise})`}</option>)}</select>}</Champ>
@@ -95,7 +95,7 @@ function Mensuel({ mode }: { mode: "domiciliation" | "personnel" | "prelevement"
           <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setCherche("client")}>Rechercher</button></div>
         <Champ libelle="Compte">{(p) => <select {...p} className="saisie code" value={cl.compte} onChange={(e) => cl.setCompte(e.target.value)}><option value=""></option>
           {cl.comptes.filter((c) => (perso ? c.devise === dv : !inst.c || c.devise === inst.c.devise)).map((c) => <option key={c.id} value={c.id}>{c.numero}</option>)}</select>}</Champ>
-        <Champ libelle="Intitulé du compte *">{(p) => <Lecture {...p} value={nomDe(cl.t)} />}</Champ>
+        <Champ libelle="Intitulé du compte">{(p) => <Lecture {...p} value={nomDe(cl.t)} />}</Champ>
         <Champ libelle={`${libelleMontant} *`}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={salaire} onChange={(e) => setSalaire(e.target.value)} />}</Champ>
         <div className="ligne-champ">
           <label className="bouton secondaire">Choisir un fichier<input className="sr-only" type="file" accept=".csv,.txt,text/csv,text/plain" onChange={(e) => setFichier(e.target.files?.[0] ?? null)} /></label>
