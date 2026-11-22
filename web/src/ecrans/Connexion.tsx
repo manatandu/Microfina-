@@ -35,7 +35,7 @@ export default function Connexion() {
         <div className="champs-connexion">
           <div className="marque-connexion" aria-hidden="true"><Marque taille={44} /></div>
           <div className="champ">
-            <label htmlFor="login">Nom d'utilisateur :</label>
+            <label htmlFor="login">Identifiant de connexion :</label>
             <input id="login" className="saisie" autoComplete="username" autoFocus list={enLigne ? undefined : "utilisateurs"} value={login} onChange={(e) => setLogin(e.target.value)} />
             <datalist id="utilisateurs">{donnees?.users.map((u) => <option key={u.id} value={u.login}>{u.nom}</option>)}</datalist>
           </div>

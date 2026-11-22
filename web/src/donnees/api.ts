@@ -10304,7 +10304,7 @@ const comptesUtilisateurs = {
     const v = { nom: txt(d.nom), login: txt(d.login), rue: txt(d.rue), adresse: txt(d.adresse), bp: txt(d.bp), telephoneFixe: txt(d.telephoneFixe), portable: txt(d.portable), email: txt(d.email) };
     const mdp = typeof d.motDePasse === "string" ? d.motDePasse : "", conf = typeof d.confirmation === "string" ? d.confirmation : "";
     const agenceId = typeof d.agenceId === "number" ? d.agenceId : null;
-    const oblig: [string, string][] = [["Nom et prénom(s)", v.nom], ["Agence", agenceId ? "x" : ""], ["Nom utilisateur", v.login]];
+    const oblig: [string, string][] = [["Nom et prénoms", v.nom], ["Agence", agenceId ? "x" : ""], ["Identifiant de connexion", v.login]];
     if (id === undefined) oblig.push(["Mot de passe", mdp], ["Confirmation", conf]);
     oblig.push(["Portable", v.portable]);
     const manque = manquants(oblig);
@@ -10314,12 +10314,12 @@ const comptesUtilisateurs = {
       if (mdp.length < 8 || !/[A-Za-zÀ-ÿ]/.test(mdp) || !/\d/.test(mdp)) throw new ErreurMetier("Mot de passe : 8 caractères au moins, avec au moins une lettre et un chiffre.");
       if (mdp.trim().toLowerCase() === v.login.trim().toLowerCase()) throw new ErreurMetier("Mot de passe : différent du nom d'utilisateur.");
     }
-    if (/\s/.test(v.login)) throw new ErreurMetier("Nom utilisateur : sans espace.");
+    if (/\s/.test(v.login)) throw new ErreurMetier("Identifiant de connexion : sans espace.");
     if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) throw new ErreurMetier("Email invalide.");
     if (!E.agences.some((a) => a.id === agenceId && !a.supprime)) throw new ErreurMetier("Agence inconnue.");
     const x = id === undefined ? undefined : E.utilisateurs.find((y) => y.id === id);
     if (id !== undefined && !x) throw new ErreurMetier("Utilisateur introuvable.");
-    if (E.utilisateurs.some((y) => y.id !== id && y.login.toLowerCase() === v.login.toLowerCase())) throw new ErreurMetier("Ce Nom utilisateur existe déjà.");
+    if (E.utilisateurs.some((y) => y.id !== id && y.login.toLowerCase() === v.login.toLowerCase())) throw new ErreurMetier("Cet identifiant de connexion existe déjà.");
     const f = { ...v, agenceId: agenceId!, controleConnecte: !!d.controleConnecte };
     if (x && x.actif === false) throw new ErreurMetier("Utilisateur introuvable.");   // désactivé : il ne se modifie plus (registre S05-4)
     if (x) Object.assign(x, f); else E.utilisateurs.push({ id: prochain(E.utilisateurs), roles: [], ...f });
@@ -10352,7 +10352,7 @@ const profilsUtilisateurs = {
   /** Le profil choisi remplace celui de l'utilisateur ; on ne se donne pas un profil à soi-même (registre S06-1, S06-3) */
   enregistrer(d: { utilisateurId?: number | null; profilId?: number | null }) {
     const moi = exiger("chef_agence");
-    const manque = manquants([["Nom et prénom(s)", typeof d.utilisateurId === "number" ? "x" : ""], ["Choix du profil", typeof d.profilId === "number" ? "x" : ""]]);
+    const manque = manquants([["Nom et prénoms", typeof d.utilisateurId === "number" ? "x" : ""], ["Choix du profil", typeof d.profilId === "number" ? "x" : ""]]);
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
     const x = E.utilisateurs.find((y) => y.id === d.utilisateurId);
     if (!x) throw new ErreurMetier("Utilisateur introuvable.");

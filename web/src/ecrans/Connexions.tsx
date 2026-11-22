@@ -32,8 +32,8 @@ function Volet({ deconnexion }: { deconnexion: boolean }) {
   const { donnees } = useDonnees(() => api.connexions.lire(), [relu]);
   if (!donnees) return <Chargement />;
   const colonnes: [keyof Ligne, string][] = deconnexion
-    ? [["login", "Login utilisateur"], ["nom", "Nom utilisateur"], ["machine", "Machine"], ["agence", "Agence"]]
-    : [["nom", "Nom et prénom(s)"], ["login", "Nom utilisateur"], ["agence", "Agence"]];
+    ? [["login", "Identifiant de connexion"], ["nom", "Nom et prénoms"], ["machine", "Machine"], ["agence", "Agence"]]
+    : [["nom", "Nom et prénoms"], ["login", "Identifiant de connexion"], ["agence", "Agence"]];
   const lignes = (donnees.utilisateurs as Ligne[]).filter((x) => (!deconnexion || x.connecte)
     && colonnes.every(([k]) => String(x[k]).toLowerCase().includes((filtres[k] ?? "").trim().toLowerCase())));
   const deconnecter = (x: Ligne) => setBoite({ type: "confirmation", message: "Voulez-vous déconnecter cet utilisateur", oui: async () => {

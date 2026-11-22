@@ -189,8 +189,8 @@ export function AffectationGuichets() {
       <h1>Ajout et Retrait de Guichet à un utilisateur</h1>
       <section className="bloc pile" aria-label="Ajout et Retrait de Guichet à un utilisateur">
         <TableFiltree lignes={donnees.utilisateurs as LigneAffectation[]} cle={(l) => l.id} colonnes={[
-          { titre: "Login utilisateur", valeur: (l) => l.login },
-          { titre: "Nom utilisateur", valeur: (l) => l.nom },
+          { titre: "Identifiant de connexion", valeur: (l) => l.login },
+          { titre: "Nom et prénoms", valeur: (l) => l.nom },
           { titre: "Guichet", valeur: (l) => l.guichet },
           { titre: "Agence", valeur: (l) => l.agence },
         ]} apres={{ titre: "Action", cellule: (l) => (

@@ -35,7 +35,7 @@ export default function GestionProfilsUtilisateur() {
         <fieldset className="cadre-champs pile">
           <legend>Informations</legend>
           <div className="ligne-champ">
-            <Champ libelle="Nom et prénom(s)">{(p) => <Lecture {...p} value={utilisateur?.nom ?? ""} />}</Champ>
+            <Champ libelle="Nom et prénoms">{(p) => <Lecture {...p} value={utilisateur?.nom ?? ""} />}</Champ>
             <button className="bouton secondaire" type="button" aria-label="Rechercher un utilisateur" onClick={() => setFenetre("utilisateur")}>⌕</button>
             <span><strong>Agence</strong> {utilisateur?.agence ?? ""}</span>
           </div>
@@ -66,7 +66,7 @@ export default function GestionProfilsUtilisateur() {
       <Fiche titre="Recherche d'un utilisateur" ouverte={fenetre === "utilisateur"} fermer={fermer}>
         <Champ libelle="Nom">{(p) => <input {...p} className="saisie" type="search" value={filtre} onChange={(e) => setFiltre(e.target.value)} />}</Champ>
         <table className="grille">
-          <thead><tr><th scope="col">Nom et prénom(s)</th><th scope="col">Nom utilisateur</th><th scope="col">Agence</th></tr></thead>
+          <thead><tr><th scope="col">Nom et prénoms</th><th scope="col">Identifiant de connexion</th><th scope="col">Agence</th></tr></thead>
           <tbody>{(donnees.utilisateurs as Utilisateur[]).filter((x) => cherche(x.nom) || cherche(x.login)).map((x) => (
             <tr key={x.id} className="ligne-choix" tabIndex={0} onClick={() => { setUid(x.id); setPid(null); fermer(); }}
               onKeyDown={(e) => { if (e.key === "Enter") { setUid(x.id); setPid(null); fermer(); } }}><td>{x.nom}</td><td>{x.login}</td><td>{x.agence}</td></tr>))}</tbody>

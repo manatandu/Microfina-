@@ -2546,7 +2546,7 @@ def test_utilisateurs_creation(clients):
         r = chef.post(url, corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
     U = {"nom": "Mbala Joseph", "agenceId": ag, "login": "jmbala", "motDePasse": "secret-1", "confirmation": "secret-1", "portable": "+243 810 000 444"}
     assert agent.post("/api/gestion-utilisateurs", U, **H).status_code == 403
-    assert "Nom et prénom(s), Agence, Nom utilisateur, Mot de passe, Confirmation, Portable" in refus("/api/gestion-utilisateurs", {})
+    assert "Nom et prénoms, Agence, Identifiant de connexion, Mot de passe, Confirmation, Portable" in refus("/api/gestion-utilisateurs", {})
     assert "différente" in refus("/api/gestion-utilisateurs", {**U, "confirmation": "x"})
     assert "existe déjà" in refus("/api/gestion-utilisateurs", {**U, "login": "JPMUKENDI"})
     x = next(v for v in chef.post("/api/gestion-utilisateurs", U, **H).json()["utilisateurs"] if v["login"] == "jmbala")
@@ -2581,7 +2581,7 @@ def test_profils_utilisateurs(clients):
     assert caissier["modules"] == ["Dwacfina"]
     def refus(corps, c=chef):
         r = c.post("/api/profils-utilisateurs", corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
-    assert "Nom et prénom(s), Choix du profil" in refus({})
+    assert "Nom et prénoms, Choix du profil" in refus({})
     assert "Droit manquant" in refus({"utilisateurId": x["id"], "profilId": caissier["id"]}, agent)
     moi = next(v for v in l["utilisateurs"] if v["login"] == "gmbuyi")
     assert "propre profil" in refus({"utilisateurId": moi["id"], "profilId": caissier["id"]})

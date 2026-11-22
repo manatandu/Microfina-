@@ -10,7 +10,7 @@ const OUT = process.argv[2];
   const errs = []; p.on('pageerror', e => errs.push('page: ' + e.message)); p.on('console', m => { if (m.type() === 'error' && !/status of 422/.test(m.text())) errs.push('console: ' + m.text()); }); // 422 : refus métier attendu
   const etape = async (nom) => { await p.waitForTimeout(50); const d = await p.evaluate(() => document.documentElement.scrollWidth - innerWidth); await p.screenshot({ path: `${OUT}/${nom}.png`, fullPage: true }); console.log(d > 0 ? '⚠ débord ' + d : '✓', nom); };
   const IDS = { 'J.-P. Mukendi': 'jpmukendi', 'Esther Ngalula': 'engalula', 'Bijou Kasongo': 'bkasongo', 'Patrick Lumbala': 'plumbala', 'Grâce Mbuyi': 'gmbuyi', 'Sarah Tshibanda': 'stshibanda' };
-  const login = async (nom) => { await p.goto(B + '/connexion'); await p.getByLabel("Nom d'utilisateur").fill(IDS[nom]); await p.getByRole('button', { name: 'Connexion' }).click(); await p.waitForURL(B + '/'); };
+  const login = async (nom) => { await p.goto(B + '/connexion'); await p.getByLabel("Identifiant de connexion").fill(IDS[nom]); await p.getByRole('button', { name: 'Connexion' }).click(); await p.waitForURL(B + '/'); };
   // Valide les billetages un par un, en attendant que la liste se mette à jour entre deux clics
   const aller = async (chemin) => { await p.goto(B + chemin); await p.waitForLoadState('networkidle'); };
 
@@ -213,8 +213,8 @@ const OUT = process.argv[2];
   await aller('/administration/s03'); await p.getByLabel('Nom Droit *').fill('AUDITEUR'); await p.getByLabel('Description').fill('PROFIL DES AUDITEURS');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'AUDITEUR', exact: true }).waitFor(); await etape('02f31-profils');
   // Administrateur sécurité : un utilisateur (S05, p. 17)
-  await aller('/administration/s05'); await p.getByLabel('Nom et prénom(s) *').fill('Mbala Joseph');
-  await p.getByLabel('Nom utilisateur *').fill('jmbala'); await p.getByLabel('Mot de passe *').fill('secret-1'); await p.getByLabel('Confirmation *').fill('secret-1');
+  await aller('/administration/s05'); await p.getByLabel('Nom et prénoms *').fill('Mbala Joseph');
+  await p.getByLabel('Identifiant de connexion *').fill('jmbala'); await p.getByLabel('Mot de passe *').fill('secret-1'); await p.getByLabel('Confirmation *').fill('secret-1');
   await p.getByLabel('Portable : *').fill('+243 810 000 444'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: 'Mbala', exact: true }).waitFor(); await etape('02f33-utilisateurs');
   // Administrateur sécurité : le profil AUDITEUR donné à cet utilisateur (S06, p. 17)
@@ -685,7 +685,7 @@ const OUT = process.argv[2];
     await r.getByRole('row').filter({ hasText: nom }).click();
   };
   await aller('/caisse/s74?op=depot'); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-02' });
-  await p.getByLabel('Montant *').fill('150 000'); await p.getByLabel('Mandataire').fill('Moi même'); await p.getByLabel('Motif:').fill('ECOLAGE');
+  await p.getByLabel('Montant *').fill('150 000'); await p.getByLabel('Versé par').fill('Le titulaire'); await p.getByLabel('Motif:').fill('ECOLAGE');
   await p.getByRole('button', { name: 'Billetage' }).click(); await p.getByRole('dialog', { name: 'Billetage' }).getByLabel('Nombre de coupures de 10 000 CDF').fill('15');
   await p.getByRole('dialog', { name: 'Billetage' }).getByRole('button', { name: 'Fermer' }).click(); await etape('09-depot');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
@@ -898,7 +898,7 @@ const OUT = process.argv[2];
   await p.getByRole('cell', { name: 'Aucune information' }).waitFor();
   await login('Esther Ngalula'); await aller('/caisse/s74?op=retrait'); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-01' });
   await p.getByLabel('Montant *').fill('1 500'); await p.getByLabel('Motif:').fill('Loyer');
-  await p.getByLabel('Mandataire').selectOption({ label: 'Kasongo Albert : Passeport OB77' });   // E2 : procuration en cours
+  await p.getByLabel('Remis à').selectOption({ label: 'Kasongo Albert : Passeport OB77' });   // E2 : procuration en cours
   await p.getByRole('button', { name: 'Billetage' }).click(); await p.getByRole('dialog', { name: 'Billetage' }).getByLabel('Nombre de coupures de 100 USD').fill('15');
   await p.getByRole('dialog', { name: 'Billetage' }).getByRole('button', { name: 'Fermer' }).click();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();

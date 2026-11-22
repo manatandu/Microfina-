@@ -40,7 +40,7 @@ def enregistrer(u, d) -> dict:
     d = d if isinstance(d, dict) else {}
     i = u["institution_id"]
     uid, pid = d.get("utilisateurId"), d.get("profilId")
-    manque = [n for n, v in (("Nom et prénom(s)", uid), ("Choix du profil", pid)) if not isinstance(v, int) or isinstance(v, bool)]
+    manque = [n for n, v in (("Nom et prénoms", uid), ("Choix du profil", pid)) if not isinstance(v, int) or isinstance(v, bool)]
     if manque:
         raise ErreurMetier("À remplir : " + ", ".join(manque) + ".")
     if not une("select 1 from utilisateur where id = %s and institution_id = %s and actif for update", (uid, i)):

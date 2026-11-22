@@ -7,7 +7,6 @@ type Ligne = { id: number; nom: string; login: string; agenceId: number | null; 
   telephoneFixe: string; portable: string; email: string; agence: string; actif: boolean; derniereActivation: string };
 const VIDE = { nom: "", agenceId: "", controleConnecte: false, login: "", motDePasse: "", confirmation: "", rue: "", adresse: "", bp: "", telephoneFixe: "", portable: "", email: "" };
 /** Grille : Nom user, le premier mot ; Prenoms user, la suite (registre S05-2) */
-const decouper = (n: string) => { const [premier = "", ...reste] = n.split(/\s+/); return [premier, reste.join(" ")]; };
 
 /** S05 : Administration > Utilisateur > Création (manuel Microfina++, p. 16 et 17) */
 export default function EnregistrementUtilisateurs() {
@@ -42,14 +41,14 @@ export default function EnregistrementUtilisateurs() {
         <div className="grille-deux">
           <fieldset className="cadre-champs pile champs-a-gauche">
             <legend>Informations</legend>
-            {texte("nom", "Nom et prénom(s) *")}
+            {texte("nom", "Nom et prénoms *")}
             {donnees.agences.length > 1 && <Champ libelle="Agence *">{(p) => <select {...p} className="saisie" value={f.agenceId} onChange={(e) => setF({ ...f, agenceId: e.target.value })}>
               <option value=""></option>{donnees.agences.map((a: { id: number; nom: string }) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>}
             <label className="case-jour"><input type="checkbox" checked={f.controleConnecte} onChange={(e) => setF({ ...f, controleConnecte: e.target.checked })} /> Control utilisateur connecté</label>
           </fieldset>
           <fieldset className="cadre-champs pile champs-a-gauche">
             <legend>Authentification</legend>
-            {texte("login", "Nom utilisateur *")}
+            {texte("login", "Identifiant de connexion *")}
             {texte("motDePasse", choisi === null ? "Mot de passe *" : "Mot de passe", "password")}
             {texte("confirmation", choisi === null ? "Confirmation *" : "Confirmation", "password")}
           </fieldset>
@@ -71,13 +70,12 @@ export default function EnregistrementUtilisateurs() {
           <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => activer(!ligne.actif)}>{ligne.actif ? "Désactiver" : "Réactiver"}</button></div>
         </fieldset>}
         <table className="grille">
-          <thead><tr><th scope="col">Nom user</th><th scope="col">Prénoms user</th><th scope="col">Agence</th><th scope="col">Téléphone</th><th scope="col">Actif</th></tr></thead>
+          <thead><tr><th scope="col">Nom et prénoms</th><th scope="col">Identifiant de connexion</th><th scope="col">Agence</th><th scope="col">Téléphone</th><th scope="col">Actif</th></tr></thead>
           <tbody>
             {(donnees.utilisateurs as Ligne[]).map((x) => {
-              const [nom, prenoms] = decouper(x.nom);
               return (
                 <tr key={x.id} className="ligne-choix" tabIndex={0} aria-selected={x.id === choisi} onClick={() => choisir(x)} onKeyDown={(e) => { if (e.key === "Enter") choisir(x); }}>
-                  <td>{nom}</td><td>{prenoms}</td><td>{x.agence}</td><td>{x.portable}</td><td>{x.actif ? "Oui" : "Non"}</td>
+                  <td>{x.nom}</td><td>{x.login}</td><td>{x.agence}</td><td>{x.portable}</td><td>{x.actif ? "Oui" : "Non"}</td>
                 </tr>
               );
             })}

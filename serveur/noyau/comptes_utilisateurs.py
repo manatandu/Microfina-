@@ -34,7 +34,7 @@ def enregistrer(u, d, uid: int | None = None) -> dict:
     v = {k: t(k) for k in ("nom", "login", "rue", "adresse", "bp", "telephoneFixe", "portable", "email")}
     mdp, conf = d.get("motDePasse") if isinstance(d.get("motDePasse"), str) else "", d.get("confirmation") if isinstance(d.get("confirmation"), str) else ""
     agence = d.get("agenceId") if isinstance(d.get("agenceId"), int) and not isinstance(d.get("agenceId"), bool) else None
-    oblig = [("Nom et prénom(s)", v["nom"]), ("Agence", agence), ("Nom utilisateur", v["login"])]
+    oblig = [("Nom et prénoms", v["nom"]), ("Agence", agence), ("Identifiant de connexion", v["login"])]
     if uid is None:
         oblig += [("Mot de passe", mdp), ("Confirmation", conf)]
     oblig.append(("Portable", v["portable"]))
@@ -46,7 +46,7 @@ def enregistrer(u, d, uid: int | None = None) -> dict:
     if mdp:
         controler_mot_de_passe(mdp, d.get("login") if isinstance(d.get("login"), str) else "")      # registre T24
     if re.search(r"\s", v["login"]):
-        raise ErreurMetier("Nom utilisateur : sans espace.")
+        raise ErreurMetier("Identifiant de connexion : sans espace.")
     if v["email"] and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", v["email"]):
         raise ErreurMetier("Email invalide.")
     if not une("select 1 from agence where id = %s and institution_id = %s and not supprime", (agence, i)):
@@ -54,7 +54,7 @@ def enregistrer(u, d, uid: int | None = None) -> dict:
     if uid is not None and not une("select 1 from utilisateur where id = %s and institution_id = %s and actif for update", (uid, i)):
         raise ErreurMetier("Utilisateur introuvable.")
     if une("select 1 from utilisateur where lower(login) = lower(%s) and id is distinct from %s", (v["login"], uid)):
-        raise ErreurMetier("Ce Nom utilisateur existe déjà.")                            # T08
+        raise ErreurMetier("Cet identifiant de connexion existe déjà.")                            # T08
     vals = {**v, "agenceId": agence, "controleConnecte": bool(d.get("controleConnecte"))}
     cols = list(CHAMPS)
     if uid is None:

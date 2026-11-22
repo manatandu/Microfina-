@@ -1980,7 +1980,7 @@ describe("journée de guichet", () => {
   it("utilisateurs (S05, p. 16 et 17) : champs marqués *, confirmation, nom utilisateur unique, modification sans mot de passe", async () => {
     await connecter("gmbuyi");
     const U = { nom: "Mbala Joseph", agenceId: 1, login: "jmbala", motDePasse: "secret-1", confirmation: "secret-1", portable: "+243 810 000 444" };
-    await expect(api.comptesUtilisateurs.enregistrer({})).rejects.toThrow("Nom et prénom(s), Agence, Nom utilisateur, Mot de passe, Confirmation, Portable");
+    await expect(api.comptesUtilisateurs.enregistrer({})).rejects.toThrow("Nom et prénoms, Agence, Identifiant de connexion, Mot de passe, Confirmation, Portable");
     await expect(api.comptesUtilisateurs.enregistrer({ ...U, confirmation: "x" })).rejects.toThrow("différente");
     await expect(api.comptesUtilisateurs.enregistrer({ ...U, login: "JPMUKENDI" })).rejects.toThrow("existe déjà");
     const x = (await api.comptesUtilisateurs.enregistrer(U)).utilisateurs.find((v) => v.login === "jmbala")!;
@@ -1997,7 +1997,7 @@ describe("journée de guichet", () => {
     const x = l.utilisateurs.find((v) => v.login === "jmbala")!, moi = l.utilisateurs.find((v) => v.login === "gmbuyi")!;
     const caissier = l.profils.find((p) => p.nom === "CAISSIER")!;
     expect(caissier.modules).toEqual(["Dwacfina"]);
-    await expect(api.profilsUtilisateurs.enregistrer({})).rejects.toThrow("Nom et prénom(s), Choix du profil");
+    await expect(api.profilsUtilisateurs.enregistrer({})).rejects.toThrow("Nom et prénoms, Choix du profil");
     await expect(api.profilsUtilisateurs.enregistrer({ utilisateurId: moi.id, profilId: caissier.id })).rejects.toThrow("propre profil");
     const r = await api.profilsUtilisateurs.enregistrer({ utilisateurId: x.id, profilId: caissier.id });
     expect([r.profilId, r.historique[0]!.profil, r.historique[0]!.attribuePar]).toEqual([caissier.id, "CAISSIER", "Grâce Mbuyi"]);

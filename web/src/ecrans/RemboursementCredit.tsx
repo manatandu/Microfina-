@@ -69,7 +69,7 @@ export function FenetresCredit({ cid, devise, ouverte, fermer }: { cid: number |
     <Fiche titre="Réel" ouverte={ouverte === "reel"} fermer={fermer}>
       {x && <div className="pile"><div className="defile-x"><table className="grille">
         <thead><tr><th scope="col">N° pièce</th><th scope="col">Date</th><th scope="col" className="num">Montant</th><th scope="col" className="num">Capital</th><th scope="col" className="num">Intérêt</th>
-          <th scope="col" className="num">Pénalité</th><th scope="col" className="num">Cap. Restant</th><th scope="col">Mandataire</th></tr></thead>
+          <th scope="col" className="num">Pénalité</th><th scope="col" className="num">Cap. Restant</th><th scope="col">Versé par</th></tr></thead>
         <tbody>{x.s.reel.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
           {x.s.reel.map((l) => <tr key={l.id}><td className="chiffres">{l.piece}</td><td className="chiffres">{fr(l.date)}</td><td className="num chiffres">{montant(l.montant, devise)}</td>
             <td className="num chiffres">{r("capital", l.repartition)}</td><td className="num chiffres">{r("interet", l.repartition)}</td>
@@ -94,7 +94,7 @@ function useRemboursement(date?: string) {
   const [t, setT] = useState<Tiers | null>(null);
   const [cid, setCid] = useState<number | null>(null);
   const [saisie, setSaisie] = useState("");
-  const [mandataire, setMandataire] = useState("Moi-même");
+  const [mandataire, setMandataire] = useState("Le titulaire");
   const [modifie, setModifie] = useState<Rep | null>(null);
   const [relu, setRelu] = useState(0);
   const m = saisie.trim() ? lireMontant(saisie) : null;
@@ -106,7 +106,7 @@ function useRemboursement(date?: string) {
     if (d && m) { try { rep = await api.remboursementsCredit.proposer(d.id, { montant: m, dateReglement: date }); } catch (e) { erreur = message(e); } }
     return { credits, d, rep, erreur };
   }, [t?.id, cid, m, date, relu]);
-  const effacer = () => { setT(null); setCid(null); setSaisie(""); setMandataire("Moi-même"); setModifie(null); };
+  const effacer = () => { setT(null); setCid(null); setSaisie(""); setMandataire("Le titulaire"); setModifie(null); };
   return { t, setT, cid, setCid, saisie, setSaisie, mandataire, setMandataire, modifie, setModifie, m, donnees, relire: () => setRelu((v) => v + 1), effacer };
 }
 type Etat = ReturnType<typeof useRemboursement>;
@@ -117,7 +117,7 @@ function InfosClient({ e, fige, rechercher, children }: { e: Etat; fige: boolean
       <button className="bouton secondaire" type="button" aria-label="Rechercher un client" disabled={fige} onClick={rechercher}>Rechercher</button></div>
     <Champ libelle="Intitulé:">{(p) => <textarea {...p} className="saisie" rows={2} readOnly value={e.donnees?.d?.client ?? (e.t ? [e.t.nom, e.t.postnom, e.t.prenom].filter(Boolean).join(" ") : "")} />}</Champ>
     {children}
-    <Champ libelle="Mandataire : *">{(p) => <input {...p} className="saisie" readOnly={fige} value={e.mandataire} onChange={(x) => e.setMandataire(x.target.value)} />}</Champ>
+    <Champ libelle="Versé par : *">{(p) => <input {...p} className="saisie" readOnly={fige} value={e.mandataire} onChange={(x) => e.setMandataire(x.target.value)} />}</Champ>
   </fieldset>;
 }
 
@@ -184,7 +184,7 @@ export function RemboursementGuichet() {
   const d = e.donnees?.d ?? null, fige = !!fait;
   const effacer = () => { e.effacer(); setCoupures({}); setCle(nouvelleCle()); setFait(null); };
   function enregistrer() {
-    const manque = !d ? "N° du client" : !e.m ? "Montant à payer" : !e.mandataire.trim() ? "Mandataire" : "";
+    const manque = !d ? "N° du client" : !e.m ? "Montant à payer" : !e.mandataire.trim() ? "Versé par" : "";
     if (manque) { setBoite({ type: "erreur", message: `À remplir : ${manque}.` }); return; }
     setBoite({ type: "confirmation", message: `Voulez-vous vraiment enregistrer ? Remboursement : ${montant(e.m!, d!.devise as Devise)}, crédit ${d!.numero}, ${d!.client}.`, oui: async () => {
       try {
@@ -259,7 +259,7 @@ export function RemboursementBanque() {
   const cb = comptes.find((c) => String(c.id) === f.compte);
   const effacer = () => { e.effacer(); setF({ banque: "", compte: "" }); setFait(null); setDate(""); };
   function suivant() {
-    const manque = !d ? "N° du Client" : !e.m ? "Montant à payer" : !e.mandataire.trim() ? "Mandataire" : !cb ? "Banque et Compte" : "";
+    const manque = !d ? "N° du Client" : !e.m ? "Montant à payer" : !e.mandataire.trim() ? "Versé par" : !cb ? "Banque et Compte" : "";
     if (manque) { setBoite({ type: "erreur", message: `À remplir : ${manque}.` }); return; }
     setBoite({ type: "confirmation", message: `Voulez-vous vraiment enregistrer ? Remboursement : ${montant(e.m!, d!.devise as Devise)}, crédit ${d!.numero}, ${d!.client}.`, oui: async () => {
       try {
@@ -334,7 +334,7 @@ export function RemboursementPrelevement() {
   const k = liste.find((c) => String(c.id) === compte) ?? null;
   const effacer = () => { e.effacer(); setCompte(""); setOrdre(""); setFait(null); setDate(""); };
   function enregistrer() {
-    const manque = !d ? "N° du Client" : !k ? "Compte Client" : !ordre.trim() ? "Ordre du client" : !e.m ? "Montant à payer" : !e.mandataire.trim() ? "Mandataire" : "";
+    const manque = !d ? "N° du Client" : !k ? "Compte Client" : !ordre.trim() ? "Ordre du client" : !e.m ? "Montant à payer" : !e.mandataire.trim() ? "Versé par" : "";
     if (manque) { setBoite({ type: "erreur", message: `À remplir : ${manque}.` }); return; }
     setBoite({ type: "confirmation", message: `Voulez-vous vraiment enregistrer ? Remboursement : ${montant(e.m!, d!.devise as Devise)}, crédit ${d!.numero}, ${d!.client}.`, oui: async () => {
       try {

@@ -165,9 +165,9 @@ export default function GuichetDepotRetrait() {
               <Champ libelle="Montant *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" readOnly={!!fait} value={saisie}
                 onChange={(e) => { setSaisie(e.target.value); nouvelle(); }} />}</Champ>
               {op === "depot"
-                ? <Champ libelle="Mandataire">{(p) => <input {...p} className="saisie" readOnly={!!fait} value={mandataire} onChange={(e) => setMandataire(e.target.value)} />}</Champ>
+                ? <Champ libelle="Versé par">{(p) => <input {...p} className="saisie" readOnly={!!fait} value={mandataire} onChange={(e) => setMandataire(e.target.value)} />}</Champ>
                 /* Retrait : le titulaire, ou un mandataire d'une procuration en cours (loi 22/068, art. 31, al. 3 ; confrontation du 21/11/2026, E2) */
-                : <Champ libelle="Mandataire">{(p) => <select {...p} className="saisie" disabled={!!fait} value={procurationId ?? ""}
+                : <Champ libelle="Remis à">{(p) => <select {...p} className="saisie" disabled={!!fait} value={procurationId ?? ""}
                     onChange={(e) => setProcurationId(e.target.value ? Number(e.target.value) : null)}><option value="">Le titulaire</option>
                     {procurations.map((x) => <option key={x.id} value={x.id}>{[x.nom, x.postnom, x.prenom].filter(Boolean).join(" ")} : {x.pieceType} {x.pieceNumero}</option>)}</select>}</Champ>}
               <Champ libelle="Motif:">{(p) => <input {...p} className="saisie" readOnly={!!fait} value={motif} onChange={(e) => setMotif(e.target.value)} />}</Champ>
