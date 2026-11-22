@@ -1413,6 +1413,16 @@ const OUT = process.argv[2];
   await etape('32d-tableau-amortissement'); await p.keyboard.press('Escape');
   await aller('/immobilisations/s139'); await p.getByRole('button', { name: 'Rechercher un bien' }).click(); await p.getByRole('dialog', { name: 'Liste des biens' }).getByRole('cell', { name: 'MAB-001' }).click();
   await p.getByLabel('Exercice: *').selectOption('2026'); await etape('32e-amortissement'); await p.getByRole('button', { name: 'Exécuter' }).click(); await oui();
+  // Langue des libellés (manuel p. 14, article XX ; registre T118) : en anglais, les menus, l'écran, les données et l'aide ; puis retour au français
+  await login('Patrick Lumbala'); await aller('/comptabilite/s115'); await p.getByRole('heading', { name: 'Journal comptables' }).waitFor();
+  await p.locator('summary[title="Langue"]').click(); await p.getByRole('menuitemradio', { name: 'English' }).click();
+  await p.getByRole('heading', { name: 'Accounting Journals' }).waitFor(); await p.getByText('Accounting', { exact: true }).first().waitFor();
+  await p.getByRole('button', { name: 'Display' }).click(); await p.getByRole('cell', { name: /^CA / }).first().waitFor();   // les données restent telles quelles
+  await p.getByRole('button', { name: 'Online Help' }).click(); await p.getByRole('heading', { name: 'Online Help: Journals' }).waitFor();
+  await p.getByRole('heading', { name: 'Rules applied by this screen' }).waitFor(); await etape('40-anglais');
+  await p.getByRole('button', { name: 'Close Help' }).click();
+  await p.locator('summary[title="Language"]').click(); await p.getByRole('menuitemradio', { name: 'Français' }).click();
+  await p.getByRole('heading', { name: 'Journal comptables' }).waitFor();
   console.log(errs.length ? 'ERREURS\n' + errs.join('\n') : 'aucune erreur console');
   await b.close();
 })().catch(async e => { await globalThis.__p.screenshot({ path: OUT + '/zz-echec.png', fullPage: true }); throw e; }).catch(async e => { console.error('ÉCHEC', e.message.split('\n').slice(0,3).join(' / ')); process.exit(1); });

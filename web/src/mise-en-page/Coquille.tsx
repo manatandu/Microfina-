@@ -165,7 +165,7 @@ function AideEnLigne({ chemin, fermer }: { chemin: string; fermer: () => void })
   const liste = (titre: string, l: string[] | undefined) => l && l.length > 0 && <><dt>{titre}</dt><dd>{l.join(" · ")}</dd></>;
   return (
     <section className="bloc pile aide-en-ligne" aria-label="Aide en ligne">
-      <h2>Aide en ligne{e ? ` : ${e.nom}` : ""}</h2>
+      <h2>{`Aide en ligne${e ? ` : ${e.nom}` : ""}`}</h2>
       {e ? <dl className="definitions"><dt>Accès</dt><dd>{e.acces}</dd><dt>À quoi sert l'écran</dt><dd>{e.but}</dd>
           {liste("Onglets", vu?.onglets)}{liste("Zones obligatoires", vu?.obligatoires)}{liste("Boutons", vu?.boutons)}</dl>
         : <p>Choisir un écran dans les menus ; l'aide montre alors son accès, son but et les règles qu'il applique.</p>}

@@ -32,7 +32,7 @@ function preparer(d: Dictionnaire) {
   exact = new Map(Object.entries(d.exact));
   gabarits = d.gabarits.map(([fr, en]) => {
     const morceaux = fr.split(/\{\d+\}/), ordre = [...fr.matchAll(/\{(\d+)\}/g)].map((m) => Number(m[1]));
-    const re = new RegExp("^" + morceaux.map(echapper).join("([\\s\\S]+?)") + "$");
+    const re = new RegExp("^" + morceaux.map(echapper).join("([\\s\\S]*?)") + "$");   // une valeur peut être vide (« Premier dépôt :{0} » sans devise)
     return { ancre: morceaux.reduce((a, b) => (b.length > a.length ? b : a), ""), re, en: en.replace(/\{(\d+)\}/g, (_, n) => `{${ordre.indexOf(Number(n))}}`) };
   }).filter((g) => g.ancre.trim().length >= 3).sort((a, b) => b.ancre.length - a.ancre.length);
 }
@@ -48,11 +48,26 @@ function chercher(t: string, profondeur = 0): string | null {
     if (m && (m[2] || m[3]) && m[1]) { const base = exact.get(m[1]!) ?? exact.get(`${m[1]} :`)?.replace(/:$/, ""); if (base !== undefined) r = base.replace(/\s*:$/, "") + (m[2] ? ":" : "") + (m[3] ? " *" : ""); }
   }
   if (r === null && profondeur < 3) {
+    // Plusieurs gabarits peuvent convenir (« Choisir : {0} » et « Choisir : {0} {1} ») : on garde celui dont les valeurs glissées se traduisent le mieux
+    let meilleur = Infinity, essais = 0;
     for (const g of gabarits) {
       if (!t.includes(g.ancre)) continue;
       const m = g.re.exec(t);
-      if (m) { r = g.en.replace(/\{(\d+)\}/g, (_, n) => partie(m[Number(n) + 1] ?? "", profondeur)); break; }
+      if (!m) continue;
+      let inconnues = 0;
+      const x = g.en.replace(/\{(\d+)\}/g, (_, n) => { const v = m[Number(n) + 1] ?? "", y = partie(v, profondeur); if (y === v && /[A-Za-zÀ-ÿ]{3}/.test(v)) inconnues++; return y; });
+      if (inconnues < meilleur) { meilleur = inconnues; r = x; }
+      if (meilleur === 0 || ++essais >= 6) break;
     }
+  }
+  if (r === null && /\((?:registre|Registre)[^()]*\)/.test(t)) {   // note interne entre parenthèses : le libellé sans elle
+    const sans = t.replace(/\s*\((?:registre|Registre)[^()]*\)/g, "").trim();
+    if (sans !== t) r = chercher(sans, profondeur);
+  }
+  if (r === null && /[A-ZÀ-Ý]{2}/.test(t) && t === t.toUpperCase()) {   // libellé mis en capitales par l'écran : celui du dictionnaire, en capitales
+    const bas = t.toLowerCase(), cap = bas.charAt(0).toUpperCase() + bas.slice(1);
+    const x = chercher(cap, profondeur + 1) ?? chercher(bas, profondeur + 1);
+    if (x !== null) r = x.toUpperCase();
   }
   if (r === null && profondeur === 0) {   // message fait de plusieurs phrases : celles que le dictionnaire connaît
     const phrases = t.split(/(?<=[.;!?])\s+/);

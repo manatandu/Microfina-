@@ -6,8 +6,9 @@ describe("langue des libellés (manuel p. 14, article XX ; registre T118)", () =
   it("traduit mot pour mot, avec la marque de champ, par gabarit, par liste et phrase par phrase", () => {
     chargerDictionnaire({
       exact: { "Enregistrer": "Save", "Nom": "Name", "Type de pièce": "ID type", "Date de naissance :": "Date of birth:", "Crédit": "Loan",
-        "Enregistré avec succès !": "Saved successfully.", "Journée fermée : aucune écriture possible.": "Business day closed: no entry can be posted." },
-      gabarits: [["À remplir : {0}.", "Required: {0}."], ["{0} du crédit {1}", "{0} for loan {1}"], ["Montant de {0} à {1}", "Amount from {0} to {1}"]],
+        "Enregistré avec succès !": "Saved successfully.", "Copie de la pièce d'identité": "Copy of ID document", "Journée fermée : aucune écriture possible.": "Business day closed: no entry can be posted." },
+      gabarits: [["À remplir : {0}.", "Required: {0}."], ["{0} du crédit {1}", "{0} for loan {1}"], ["Montant de {0} à {1}", "Amount from {0} to {1}"],
+        ["Choisir : {0} {1}", "Select: {0} {1}"], ["Choisir : {0}", "Select: {0}"]],
     });
     expect(traduire("Enregistrer")).toBe("Save");
     expect(traduire("  Enregistrer ")).toBe("  Save ");                       // les espaces de bord restent
@@ -18,6 +19,7 @@ describe("langue des libellés (manuel p. 14, article XX ; registre T118)", () =
     expect(traduire("Écriture du crédit 0412/L001/00001")).toBe("Écriture for loan 0412/L001/00001");   // la donnée reste
     expect(traduire("Montant de 10 à 20")).toBe("Amount from 10 to 20");
     expect(traduire("Enregistré avec succès ! Journée fermée : aucune écriture possible.")).toBe("Saved successfully. Business day closed: no entry can be posted.");
+    expect(traduire("Choisir : Copie de la pièce d'identité")).toBe("Select: Copy of ID document");   // le gabarit dont la valeur se traduit
     expect(traduire("Kalala Mbuyi Josée")).toBe("Kalala Mbuyi Josée");         // inconnu : tel quel
     expect(traduire("1 000 000,00 CDF")).toBe("1 000 000,00 CDF");
   });
