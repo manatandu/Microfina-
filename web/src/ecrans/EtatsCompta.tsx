@@ -36,8 +36,6 @@ function Communs({ ctx, f, setF }: { ctx: Ctx; f: { agence: string; exercice: st
   return <>
     <Champ libelle="Agence :">{(p) => <select {...p} className="saisie" value={f.agence} onChange={(e) => setF({ ...f, agence: e.target.value })}><option value="">Toutes les agences</option>
       {ctx.agences.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
-    <Champ libelle="Exercice :">{(p) => <select {...p} className="saisie court" value={f.exercice} onChange={(e) => setF({ ...f, exercice: e.target.value })}>
-      {ctx.exercices.map((a) => <option key={a} value={a}>{enClair(a)}</option>)}</select>}</Champ>
   </>;
 }
 
@@ -57,7 +55,7 @@ function EditionGrandLivre({ analytique, ctx, jour }: { analytique: boolean; ctx
   const [boite, setBoite] = useState<Boite | null>(null);
   const titre = analytique ? "Edition du grand livre analytique" : "Edition du grand livre";
   async function rechercher() {
-    try { setR(await api.etatsCompta.grandLivre({ type: f.type, agenceId: f.agence ? Number(f.agence) : null, exercice: f.exercice, du: f.du, au: f.au, vidage: f.vidage }, analytique)); }
+    try { setR(await api.etatsCompta.grandLivre({ type: f.type, agenceId: f.agence ? Number(f.agence) : null, exercice: f.du.slice(0, 4), du: f.du, au: f.au, vidage: f.vidage }, analytique)); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   }
   // Général : modèle CARRIGRES ; analytique : grand-livre des tiers (modèle FPM, un bloc et un total par tiers) ; registre T31
@@ -117,7 +115,7 @@ function EditionBalance({ analytique, ctx, jour }: { analytique: boolean; ctx: C
   const [boite, setBoite] = useState<Boite | null>(null);
   const titre = analytique ? "Edition de la balance analytique des comptes" : "Edition de la balance des comptes";
   async function rechercher() {
-    try { setR(await api.etatsCompta.balance({ type: f.type, balance: f.balance, agenceId: f.agence ? Number(f.agence) : null, exercice: f.exercice, du: f.du, au: f.au, compteDe: f.compteDe, compteA: f.compteA,
+    try { setR(await api.etatsCompta.balance({ type: f.type, balance: f.balance, agenceId: f.agence ? Number(f.agence) : null, exercice: f.du.slice(0, 4), du: f.du, au: f.au, compteDe: f.compteDe, compteA: f.compteA,
       niveau: f.niveau, sansVidage: f.sansVidage }, analytique)); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   }
@@ -125,7 +123,7 @@ function EditionBalance({ analytique, ctx, jour }: { analytique: boolean; ctx: C
   type L = Bal["lignes"][number];
   const cellules = (x: Pick<L, "ouvertureDebit" | "ouvertureCredit" | "mouvementDebit" | "mouvementCredit" | "cumulDebit" | "cumulCredit" | "soldeDebit" | "soldeCredit">) => [
     ...(r?.type !== "4" ? [x.ouvertureDebit, x.ouvertureCredit] : []), x.mouvementDebit, x.mouvementCredit, ...(r?.type === "8" ? [x.cumulDebit, x.cumulCredit] : []), x.soldeDebit, x.soldeCredit];
-  const criteresGl = (compte?: string) => ({ type: "global", agenceId: f.agence ? Number(f.agence) : null, exercice: f.exercice, du: f.du, au: f.au, vidage: !f.sansVidage, compte });
+  const criteresGl = (compte?: string) => ({ type: "global", agenceId: f.agence ? Number(f.agence) : null, exercice: f.du.slice(0, 4), du: f.du, au: f.au, vidage: !f.sansVidage, compte });
   const exporter = async () => {
     if (!r) return;
     if (analytique) {      // balance des tiers (modèle FPM) : une ligne par tiers et par compte, « Total général » (registre T31)

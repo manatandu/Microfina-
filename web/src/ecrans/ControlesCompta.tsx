@@ -125,13 +125,13 @@ export function Rapprochement() {
 /** S112 : Rechercher (Par période, Par date), Période, Elément de la recherche (période rapprochée, Banque, Compte) ; Rechercher, Effacer */
 export function HistoriqueRapprochement() {
   const { donnees: ctx } = useDonnees(() => api.controlesCompta.rapproContexte());
-  const vide = { mode: "periode", du: "", au: "", periodeDu: "", periodeAu: "", banque: "", compte: "" };
+  const vide = { du: "", au: "", periodeDu: "", periodeAu: "", banque: "", compte: "" };
   const [f, setF] = useState(vide);
   const [r, setR] = useState<Awaited<ReturnType<typeof api.controlesCompta.historique>> | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   if (!ctx) return <Chargement />;
   async function rechercher() {
-    try { setR(await api.controlesCompta.historique({ mode: f.mode, du: f.du || ctx!.date, au: f.au, periodeDu: f.periodeDu, periodeAu: f.periodeAu, banqueId: f.banque, compteBancaireId: f.compte })); }
+    try { setR(await api.controlesCompta.historique({ mode: "periode", du: f.du || ctx!.date, au: f.au || f.du || ctx!.date, periodeDu: f.periodeDu, periodeAu: f.periodeAu, banqueId: f.banque, compteBancaireId: f.compte })); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   }
   return (
@@ -139,12 +139,9 @@ export function HistoriqueRapprochement() {
       <h1>Historique rapprochement</h1>
       <section className="bloc pile" aria-label="Historique rapprochement">
         <div className="deux-colonnes">
-          <fieldset className="cadre-champs pile"><legend>Rechercher</legend>
-            <label className="case"><input type="radio" name="hr-mode" checked={f.mode === "periode"} onChange={() => setF({ ...f, mode: "periode" })} /><span>Par période</span></label>
-            <label className="case"><input type="radio" name="hr-mode" checked={f.mode === "date"} onChange={() => setF({ ...f, mode: "date" })} /><span>Par date</span></label></fieldset>
           <fieldset className="cadre-champs formulaire"><legend>Période</legend>
-            <ChampDate libelle="Date Début : *" valeur={f.du || ctx.date} onChange={(v) => setF({ ...f, du: v })} requis />
-            {f.mode === "periode" && <ChampDate libelle="Date Fin : *" valeur={f.au} onChange={(v) => setF({ ...f, au: v })} requis />}</fieldset>
+            <ChampDate libelle="Du :" valeur={f.du || ctx.date} onChange={(v) => setF({ ...f, du: v })} />
+            <ChampDate libelle="Au :" valeur={f.au} onChange={(v) => setF({ ...f, au: v })} /></fieldset>
         </div>
         <fieldset className="cadre-champs"><legend>Elément de la recherche</legend>
           <div className="deux-colonnes">

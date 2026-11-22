@@ -306,18 +306,17 @@ function Rapport({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
   const [r, setR] = useState<Awaited<ReturnType<typeof api.facturesFournisseurs.rapport>> | null>(null);
   const maj = (p: Partial<typeof vide>) => setF((x) => ({ ...x, ...p }));
   async function rechercher() {
-    try { setR(await api.facturesFournisseurs.rapport({ mode: f.mode, du: f.du || ctx.date, au: f.au, resultat: f.resultat, visa: f.visa, etat: f.etat, typeFacture: f.typeFacture, fournisseurId: f.fournisseur })); }
+    try { setR(await api.facturesFournisseurs.rapport({ mode: "periode", du: f.du || ctx.date, au: f.au || f.du || ctx.date, resultat: f.resultat, visa: f.visa, etat: f.etat, typeFacture: f.typeFacture, fournisseurId: f.fournisseur })); }
     catch (x) { poser({ type: "erreur", message: message(x) }); }
   }
-  const radio = (nom: "mode" | "resultat" | "visa" | "etat", v: string, l: string) => <label key={v} className="case"><input type="radio" name={`fr-${nom}`} checked={f[nom] === v} onChange={() => maj({ [nom]: v })} /><span>{l}</span></label>;
+  const radio = (nom: "resultat" | "visa" | "etat", v: string, l: string) => <label key={v} className="case"><input type="radio" name={`fr-${nom}`} checked={f[nom] === v} onChange={() => maj({ [nom]: v })} /><span>{l}</span></label>;
   const n = (v: number) => decimal.format(v / 100);
   return <>
     <h2>Facture</h2>
     <div className="deux-colonnes">
-      <fieldset className="cadre-champs pile"><legend>Rechercher</legend>{radio("mode", "periode", "Par période")}{radio("mode", "date", "Par date")}</fieldset>
       <fieldset className="cadre-champs formulaire"><legend>Période</legend>
-        <ChampDate libelle="Date Début : *" valeur={f.du || ctx.date} onChange={(v) => maj({ du: v })} requis />
-        {f.mode === "periode" && <ChampDate libelle="Date Fin : *" valeur={f.au} onChange={(v) => maj({ au: v })} requis />}</fieldset>
+        <ChampDate libelle="Du :" valeur={f.du || ctx.date} onChange={(v) => maj({ du: v })} />
+        <ChampDate libelle="Au :" valeur={f.au} onChange={(v) => maj({ au: v })} /></fieldset>
       <fieldset className="cadre-champs pile"><legend>Resultat</legend>{radio("resultat", "detaille", "Détaillé")}{radio("resultat", "groupe", "Groupé")}</fieldset>
       <fieldset className="cadre-champs pile"><legend>Visa</legend>{radio("visa", "visee", "Facture Visée")}{radio("visa", "validee", "Facture Validée")}{radio("visa", "tout", "Tout")}</fieldset>
       <fieldset className="cadre-champs pile"><legend>État</legend>{radio("etat", "soldee", "Facture Soldée")}{radio("etat", "encours", "Facture Encours")}{radio("etat", "annulee", "Facture Annulée")}</fieldset>

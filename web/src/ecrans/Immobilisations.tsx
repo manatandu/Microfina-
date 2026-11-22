@@ -291,9 +291,7 @@ export function RapportsImmo() {
   };
   const sel = (k: string, l: string, o: (string | { id: number; libelle: string })[]) => <Champ libelle={l}>{(p) => <select {...p} className="saisie" value={f[k] ?? ""} onChange={(e) => maj(k, e.target.value)}><option value=""></option>
     {o.map((x) => typeof x === "string" ? <option key={x}>{x}</option> : <option key={x.id} value={String(x.id)}>{x.libelle}</option>)}</select>}</Champ>;
-  const recherche = (fixe: string) => <div className="deux-colonnes"><fieldset className="choix-radio cadre-champs"><legend>Rechercher</legend>
-    {([["periode", "Sur une Période"], ["date", "A une date fixe"], ["jusqua", fixe]] as const).map(([k, l]) => <label key={k} className="case"><input type="radio" name="rechercher" checked={f.rechercher === k} onChange={() => maj("rechercher", k)} /><span>{l}</span></label>)}</fieldset>
-    <fieldset className="cadre-champs formulaire"><legend>Période</legend><ChampDate libelle="Date début:" valeur={f.du ?? ""} onChange={(x) => maj("du", x)} /><ChampDate libelle="Date Fin:" valeur={f.au ?? ""} onChange={(x) => maj("au", x)} /></fieldset></div>;
+  const recherche = <fieldset className="cadre-champs formulaire"><legend>Période</legend><ChampDate libelle="Du :" valeur={f.du ?? ""} onChange={(x) => maj("du", x)} /><ChampDate libelle="Au :" valeur={f.au ?? ""} onChange={(x) => maj("au", x)} /></fieldset>;
   const elements = <fieldset className="cadre-champs formulaire"><legend>Eléments de la recherche</legend>
     {sel("categorieId", "Catégorie bien", ctx.categories)}{sel("familleId", "Famille", ctx.familles.map((x) => ({ id: x.id, libelle: x.libelle })))}{sel("utilisationId", "Utilisation", ctx.utilisations)}
     {sel("statut", "Statut bien", ["LIBRE", "AFFECTE", "SORTI"])}{sel("subventionne", "Bien subventionné", ["Oui", "Non"])}{sel("amorti", "Bien amorti", ["Oui", "Non"])}
@@ -309,7 +307,7 @@ export function RapportsImmo() {
         {sel("periodicite", "Périodicité : *", ctx.periodicites)}<ChampDate libelle="Date Acquisition *" valeur={f.dateAcquisition ?? ""} onChange={(x) => maj("dateAcquisition", x)} />
         <Champ libelle="Durée de vie * (ans)">{(p) => <input {...p} className="saisie montant" inputMode="numeric" value={f.duree ?? ""} onChange={(e) => maj("duree", e.target.value.replace(/\D/g, ""))} />}</Champ>
         <Champ libelle="Montant Acquis. *">{(p) => <input {...p} className="saisie montant" inputMode="numeric" value={f.montant ?? ""} onChange={(e) => maj("montant", e.target.value.replace(/\D/g, ""))} />}</Champ>
-      </fieldset> : <>{recherche(page === "suivi" ? "Sur un exercice" : "Jusqu'à une date fixe")}
+      </fieldset> : <>{recherche}
         {page === "suivi" && <fieldset className="choix-radio cadre-champs"><legend>Résultat</legend>{([["affectation", "Affectation"], ["transfert", "Transfert"], ["liberation", "Libération"]] as const).map(([k, l]) =>
           <label key={k} className="case"><input type="radio" name="resultat" checked={f.resultat === k} onChange={() => maj("resultat", k)} /><span>{l}</span></label>)}</fieldset>}
         {page === "multicritere" && <label className="case"><input type="checkbox" checked={f.aAmortir === "true"} onChange={(e) => maj("aAmortir", e.target.checked ? "true" : "")} /><span>Afficher les biens à amortir</span></label>}

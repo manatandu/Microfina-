@@ -185,7 +185,7 @@ export function ValidesNonDebloques() {
  *  Colonnes après « Groupe » (coupées sur la capture) : celles de S92 et la situation du remboursement (registre S93-2) */
 export function EtatCredit() {
   const { donnees: ctx } = useDonnees(() => Promise.all([api.visasCredit.contexte(), api.referentiel.contexte(), api.produitsCredit.lire()]));
-  const [f, setF] = useState({ mode: "periode", du: debutAnnee(), au: aujourdhui(), date: aujourdhui(), produit: "", niveau: "", agent: "", operateur: "", montant: "", archives: false });
+  const [f, setF] = useState({ du: debutAnnee(), au: aujourdhui(), produit: "", niveau: "", agent: "", operateur: "", montant: "", archives: false });
   const [l, setL] = useState<Awaited<ReturnType<typeof api.etatCredits.situation>>>([]);
   const [fiche, setFiche] = useState<{ id: number; devise: Devise; quoi: "plan" | "contrat" } | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
@@ -194,7 +194,7 @@ export function EtatCredit() {
   async function executer() {
     try {
       const m = f.montant.trim() ? lireMontant(f.montant) : null;
-      setL(await api.etatCredits.situation({ mode: f.mode, du: f.du, au: f.au, date: f.date, produitId: f.produit ? Number(f.produit) : null, niveau: f.niveau || null,
+      setL(await api.etatCredits.situation({ mode: f.du ? "periode" : "date", du: f.du, au: f.au, date: f.au, produitId: f.produit ? Number(f.produit) : null, niveau: f.niveau || null,
         agentId: f.agent ? Number(f.agent) : null, operateur: f.operateur || null, montant: m, archives: f.archives }));
     } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   }
@@ -204,13 +204,8 @@ export function EtatCredit() {
       <h1>Situation des crédits</h1>
       <section className="bloc pile" aria-label="Situation des crédits">
         <div className="barre-filtres">
-          <fieldset className="cadre-champs"><legend>Rechercher</legend>
-            <label className="case"><input type="radio" name="mode" checked={f.mode === "periode"} onChange={() => setF({ ...f, mode: "periode" })} /><span>Sur une Période</span></label>
-            <label className="case"><input type="radio" name="mode" checked={f.mode === "date"} onChange={() => setF({ ...f, mode: "date" })} /><span>A une date fixe</span></label>
-          </fieldset>
-          <fieldset className="cadre-champs double"><legend>{f.mode === "date" ? "Date" : "Période(Date d'approbation)"}</legend>
-            <div className="ligne-champ">{f.mode === "date" ? <ChampDate libelle="Date" valeur={f.date} onChange={(v) => setF({ ...f, date: v })} />
-              : <><ChampDate libelle="Date début" valeur={f.du} onChange={(v) => setF({ ...f, du: v })} /><ChampDate libelle="Date fin" valeur={f.au} onChange={(v) => setF({ ...f, au: v })} /></>}</div>
+          <fieldset className="cadre-champs double"><legend>Période (date d'approbation)</legend>
+            <div className="ligne-champ"><ChampDate libelle="Du :" valeur={f.du} onChange={(v) => setF({ ...f, du: v })} /><ChampDate libelle="Au :" valeur={f.au} onChange={(v) => setF({ ...f, au: v })} /></div>
           </fieldset>
           <Champ libelle="Produit crédit">{(p) => <select {...p} className="saisie" value={f.produit} onChange={(e) => setF({ ...f, produit: e.target.value })}><option value="">Tous les produits</option>
             {ctx[2].produits.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>

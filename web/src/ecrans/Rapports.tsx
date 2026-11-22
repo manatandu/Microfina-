@@ -83,11 +83,8 @@ function Multicritere({ ctx, cx, clients }: { ctx: Ctx; cx: ContexteRapport; cli
   return (
     <>
       <div className="grille-cadres">
-        <fieldset className="pile cadre-champs"><legend>Rechercher</legend>{radio("mode", "periode", "Sur une période")}{radio("mode", "date", "A une date fixe")}</fieldset>
         <fieldset className="pile cadre-champs"><legend>Période</legend>
-          {c.mode === "periode"
-            ? <><ChampDate libelle="Date début : *" valeur={c.du} onChange={(v) => maj({ du: v })} requis /><ChampDate libelle="Date Fin : *" valeur={c.au} onChange={(v) => maj({ au: v })} requis /></>
-            : <ChampDate libelle="Date : *" valeur={c.date} onChange={(v) => maj({ date: v })} requis />}
+          <ChampDate libelle="Du :" valeur={c.du} onChange={(v) => maj({ du: v })} /><ChampDate libelle="Au :" valeur={c.au} onChange={(v) => maj({ au: v })} />
         </fieldset>
         <fieldset className="pile cadre-champs"><legend>Résultat</legend>
           <label className="case"><input type="radio" name="resultat" checked={resultat === "detaille"} onChange={() => setResultat("detaille")} /><span>Détaillé</span></label>
@@ -201,24 +198,18 @@ function Prospects({ ctx, clients }: { ctx: Ctx; clients: Tiers[] }) {
 type Modif = Awaited<ReturnType<typeof api.rapports.modifications>>[number];
 /** 11-3 Rapport des clients modifiés (capture p. 59) : Rechercher, Période, Critères (Agence, Utilisateur, Etat), Afficher, Exporter */
 function Modifies({ ctx, clients, modifs }: { ctx: Ctx; clients: Tiers[]; modifs: Modif[] }) {
-  const [c, setC] = useState<CriteresModifies>({ mode: "date", du: debutAnnee(), au: aujourdhui(), date: aujourdhui(), utilisateur: "", etat: "actifs" });
+  const [c, setC] = useState<CriteresModifies>({ mode: "periode", du: aujourdhui(), au: aujourdhui(), date: aujourdhui(), utilisateur: "", etat: "actifs" });
   const [lignes, setLignes] = useState<LigneModifies[] | null>(null);
   const maj = (p: Partial<CriteresModifies>) => setC({ ...c, ...p });
   const utilisateurs = ctx.utilisateurs as { id: number; nom: string }[];
   const nomU = (id: number) => utilisateurs.find((u) => u.id === id)?.nom ?? "";
   const entetes = ["Date Modification", "Utilisateur", "N°Membre", "Agence", "Nombre de Modification"];
   const valeurs = (l: LigneModifies) => [fr(l.date), nomU(l.utilisateur), l.numero, l.agence, String(l.nombre)];
-  const radio = (v: CriteresModifies["mode"], libelle: string) => (
-    <label className="case"><input type="radio" name="mode-modifies" checked={c.mode === v} onChange={() => maj({ mode: v })} /><span>{libelle}</span></label>
-  );
   return (
     <>
       <div className="grille-cadres">
-        <fieldset className="pile cadre-champs"><legend>Rechercher</legend>{radio("periode", "Sur une Période")}{radio("date", "A une date fixe")}</fieldset>
         <fieldset className="pile cadre-champs"><legend>Période</legend>
-          {c.mode === "periode"
-            ? <><ChampDate libelle="Date début :" valeur={c.du} onChange={(v) => maj({ du: v })} /><ChampDate libelle="Date Fin :" valeur={c.au} onChange={(v) => maj({ au: v })} /></>
-            : <ChampDate libelle="Date" valeur={c.date} onChange={(v) => maj({ date: v })} />}
+          <ChampDate libelle="Du :" valeur={c.du} onChange={(v) => maj({ du: v })} /><ChampDate libelle="Au :" valeur={c.au} onChange={(v) => maj({ au: v })} />
         </fieldset>
         <fieldset className="pile cadre-champs"><legend>Critères</legend>
           <Champ libelle="Agence :">{(p) => <select {...p} className="saisie"><option>{ctx.agence.nom}</option></select>}</Champ>

@@ -1256,7 +1256,7 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('tab', { name: 'Règlement' }).click(); await p.getByRole('heading', { name: 'Règlement de factures' }).waitFor(); await etape('23c-reglement');
   await p.getByRole('tab', { name: 'Journal' }).click(); await p.getByRole('button', { name: 'Afficher' }).click(); await etape('23d-journal-achats');
-  await p.getByRole('tab', { name: 'Rapport' }).click(); await p.getByLabel('Date Fin : *').fill('30112026'); await p.getByRole('radio', { name: 'Détaillé' }).check(); await p.getByRole('radio', { name: 'Tout' }).check();
+  await p.getByRole('tab', { name: 'Rapport' }).click(); await p.getByLabel('Au :').fill('30112026'); await p.getByRole('radio', { name: 'Détaillé' }).check(); await p.getByRole('radio', { name: 'Tout' }).check();
   await p.getByRole('button', { name: 'Rechercher', exact: true }).click();
   await p.getByRole('cell', { name: 'F-2026-001' }).first().waitFor(); await etape('23e-rapport-factures');
   await aller('/comptabilite/s108'); await p.getByRole('heading', { name: 'État de déclaration des taxes' }).waitFor(); await etape('23f-declaration-taxes');
@@ -1285,7 +1285,7 @@ const OUT = process.argv[2];
   await er.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await er.getByRole('button', { name: 'Fermer' }).click();
   await p.getByRole('button', { name: 'Nouveau' }).click(); await p.getByRole('dialog', { name: 'Nouveau' }).waitFor(); await etape('25c-rapprochement-nouveau');
   await p.getByRole('dialog', { name: 'Nouveau' }).getByRole('button', { name: 'Annuler' }).click();
-  await aller('/comptabilite/s112'); await p.getByLabel('Date Fin : *').fill('30112026'); await p.getByRole('button', { name: 'Rechercher' }).click();
+  await aller('/comptabilite/s112'); await p.getByLabel('Au :').fill('30112026'); await p.getByRole('button', { name: 'Rechercher' }).click();
   await p.getByRole('cell', { name: 'Rawbank' }).first().waitFor(); await etape('25d-historique-rapprochement');
   // Lettrage (S119, p. 138 et 160) ; contrôle (S118, p. 136 à 138) ; trésorerie (S143, p. 162)
   await aller('/comptabilite/s119'); await p.getByLabel('Compte *').fill('610'); await p.getByRole('radio', { name: 'Toutes les écritures' }).check();

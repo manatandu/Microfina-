@@ -97,13 +97,9 @@ function Garanties({ erreur }: Proprietes) {
     <section className="bloc pile" aria-label="Rapport des garanties">
       <h2>Rapport des garanties</h2>
       <div className="grille-cadres">
-        <fieldset className="pile cadre-champs"><legend>Rechercher</legend>
-          <label className="case"><input type="radio" name="g-mode" checked={f.mode === "periode"} onChange={() => setF({ ...f, mode: "periode" })} /><span>Sur une Période</span></label>
-          <label className="case"><input type="radio" name="g-mode" checked={f.mode === "date"} onChange={() => setF({ ...f, mode: "date" })} /><span>A une date fixe</span></label>
-        </fieldset>
         <fieldset className="pile cadre-champs"><legend>Période(Date deblocage)</legend>
-          {f.mode === "periode" && <ChampDate libelle="Date de début :" valeur={f.du} onChange={(v) => setF({ ...f, du: v })} />}
-          <ChampDate libelle={f.mode === "periode" ? "Date de fin :" : "Date :"} valeur={f.au} onChange={(v) => setF({ ...f, au: v })} />
+          <ChampDate libelle="Du :" valeur={f.du} onChange={(v) => setF({ ...f, du: v })} />
+          <ChampDate libelle="Au :" valeur={f.au} onChange={(v) => setF({ ...f, au: v })} />
         </fieldset>
         <fieldset className="pile cadre-champs"><legend><span className="sr-only">Filtres</span></legend>
           <Champ libelle="Produit">{(p) => <select {...p} className="saisie" value={f.produit} onChange={(e) => setF({ ...f, produit: e.target.value })}>
@@ -169,13 +165,9 @@ function Multicritere({ erreur }: Proprietes) {
     <section className="bloc pile" aria-label="Recherche multicritères épargne">
       <h2>Recherche multicritères épargne</h2>
       <div className="grille-cadres">
-        <fieldset className="pile cadre-champs"><legend>Rechercher</legend>
-          <label className="case"><input type="radio" name="m-mode" checked={c.mode === "periode"} onChange={() => maj({ mode: "periode" })} /><span>Sur une période</span></label>
-          <label className="case"><input type="radio" name="m-mode" checked={c.mode === "date"} onChange={() => maj({ mode: "date" })} /><span>Date fixe</span></label>
-        </fieldset>
         <fieldset className="pile cadre-champs"><legend>Période</legend>
-          {c.mode === "periode" && <ChampDate libelle="Date début : *" valeur={c.du} onChange={(v) => maj({ du: v })} requis />}
-          <ChampDate libelle={c.mode === "periode" ? "Date Fin *" : "Date *"} valeur={c.au} onChange={(v) => maj({ au: v })} requis />
+          <ChampDate libelle="Du :" valeur={c.du} onChange={(v) => maj({ du: v })} />
+          <ChampDate libelle="Au :" valeur={c.au} onChange={(v) => maj({ au: v })} />
         </fieldset>
         <fieldset className="pile cadre-champs"><legend>Résultat</legend>
           {([["detaille", "Détaillé"], ["groupe", "Groupé"], ["operations", "Opérations"]] as const).map(([k, l]) =>
