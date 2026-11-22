@@ -1278,7 +1278,7 @@ def test_listes_general(clients):
     chef, agent = clients["chef"], clients["agent"]
     connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
     l = chef.get("/api/listes/secteur_activite", **H).json()
-    assert [x["code"] for x in l["lignes"]][:3] == ["S1", "S2", "S3"] and l["lignes"][0]["libelle"] == "Primaire" and len(l["catalogue"]) == 9   # pages retirées : plan d'allègement, points 2.2 à 2.7
+    assert [x["code"] for x in l["lignes"]][:3] == ["S1", "S2", "S3"] and l["lignes"][0]["libelle"] == "Primaire" and len(l["catalogue"]) == 8   # pages retirées : plan d'allègement, points 2.2 à 2.7
     def refus(chemin, c):
         r = chef.post(chemin, c, **H); assert r.status_code == 422, r.content; return r.json()["message"]
     assert "N° secteur" in refus("/api/listes/secteur_activite", {"code": "", "libelle": "Pêche"})
@@ -1297,8 +1297,7 @@ def test_listes_general(clients):
     l = chef.post(f"/api/listes/secteur_activite/{s9}/suppression", **H).json()
     assert not [x for x in l["lignes"] if x["code"] == "S9"]
     assert "existe déjà" in refus("/api/listes/secteur_activite", {"code": "S9", "libelle": "Pêche"})
-    chef.post("/api/listes/type_guichet", {"code": "3", "libelle": "MOBILE"}, **H)
-    assert "MOBILE" in chef.get("/api/guichets", **H).json()["types"]
+    assert len(chef.get("/api/guichets", **H).json()["types"]) == 2   # deux types, sans page de liste (plan d'allègement, point 2.10)
 
 def test_parametrages_lies_aux_clients(clients):
     """S15 (p. 23, capture p. 24) : Institution obligatoire ; l'ordre reprend les éléments cochés et le compteur"""

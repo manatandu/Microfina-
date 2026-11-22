@@ -5,7 +5,7 @@ from .listes import valeurs
 
 
 def types_guichet(u) -> list[str]:
-    """Registre S08-1 : les types viennent de Général > Type Guichet (S14n)"""
+    """Les deux types de guichet (principal, secondaire), choisis dans l'écran Guichets ; ils n'ont plus de page de liste (plan d'allègement, point 2.10)"""
     return [v["libelle"] for v in valeurs(u, "type_guichet")]
 
 # Registre S08-7 : comptes du PCCI proposés par défaut (570, 579, 7790, 671), modifiables, contrôlés sur le plan de comptes (règle T16)

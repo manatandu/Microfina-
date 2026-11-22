@@ -14,7 +14,6 @@ CATALOGUE = [
     # S18 (p. 26) : même liste que S14m (registre S18-1), avec la forme de sa capture : Libelle Motif seul, Reinitialiser
     {"liste": "motif_depart", "ecran": "S14m", "titre": "Motif de départ", "entete": "Motif de départ d'un client", "libelle": "Libellé Motif",
      "colonne": "Libellé Motif", "sansCode": True, "effacer": "Effacer"},
-    {"liste": "type_guichet", "ecran": "S14n", "titre": "Type Guichet"},
     # Décision du porteur du 22/11/2026 : les groupes ont leur liste de formes juridiques (loi n° 004/2001 sur les ASBL, art. 2 ; registre S39-5)
     {"liste": "forme_juridique_groupe", "ecran": "S14o", "titre": "Forme juridique du groupe"},
 ]

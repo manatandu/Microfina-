@@ -439,6 +439,5 @@ export const SOUS_PAGES_S14 = {
   S14k: "filiation",
   S14l: "situation_matrimoniale",
   S14m: "motif_depart",
-  S14n: "type_guichet",
   S14o: "forme_juridique_groupe",
 };

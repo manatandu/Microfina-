@@ -1776,9 +1776,8 @@ describe("journée de guichet", () => {
     l = await api.listes.supprimer("secteur_activite", s9.id);
     expect(l.lignes.some((x) => x.code === "S9")).toBe(false);
     await expect(api.listes.enregistrer("secteur_activite", { code: "S9", libelle: "Pêche" })).rejects.toThrow("existe déjà");   // supprimé logiquement
-    // Type Guichet (S14n) : il alimente Gestion des guichets (S08-1)
-    await api.listes.enregistrer("type_guichet", { code: "3", libelle: "MOBILE" });
-    expect((await api.guichets.lire()).types).toContain("MOBILE");
+    // Type de guichet : deux valeurs, choisies dans l'écran Guichets, sans page de liste (plan d'allègement, point 2.10)
+    expect((await api.guichets.lire()).types).toHaveLength(2);
   });
 
   it("référentiels du budget (S19, p. 27 à 30) : obligatoires, code unique, JJ/MM, Param Compte au plan, parents sans boucle, Supprimer", async () => {
