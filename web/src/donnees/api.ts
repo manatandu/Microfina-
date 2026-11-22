@@ -7645,7 +7645,12 @@ interface ModeleEtats { liquidites: string[]; bilan: { actif: PosteBilan[]; pass
   horsBilan: { code: string; libelle: string; lignes: { libelle: string; comptes: string[] }[] }[];
   resultat: { signe?: "+" | "-"; solde?: "courant" | "exceptionnel" | "net"; libelle: string; comptes?: string[]; exceptionnel?: boolean; impot?: boolean }[];
   flux: { titre?: string; libelle?: string; comptes?: string[]; groupe?: string; reste?: boolean; change?: boolean; total?: string; sens?: "entree" | "sortie" }[];
-  annexes: { code: string; libelle: string; sens?: "D" | "C"; sections?: { libelle: string; comptes: string[]; niveau?: number }[] }[] }
+  annexes: { code: string; libelle: string; sens?: "D" | "C"; sections?: { libelle: string; comptes: string[]; niveau?: number }[] }[];
+  // B13 : modèle du rapport d'activités annuel (Instr. BCC 009, annexe)
+  rapportActivites: { contre: string[]; rediger: { titre: string; rubriques?: string[] }[]; autres: string[]; conclusion: string;
+    bilan: { libelle: string; titre?: boolean; total?: string; fondsPropres?: boolean; actif?: string[]; passif?: string[]; resultat?: boolean }[];
+    resultat: { libelle: string; solde?: string; plus?: string[]; produits?: string[]; charges?: string[] }[];
+    ratios: { libelle: string; code?: string; fondsPropres?: boolean }[]; indicateurs: { type: string; libelle: string; ratio: string }[] } }
 const ME = MODELE_ETATS as unknown as ModeleEtats;
 const TYPES_EF: Record<string, string> = { developpe: "Version développée", modele: "Modèle PCCI" }, TYPES_BILAN_EF: Record<string, string> = { ...TYPES_EF, masses: "Par masses" }, TYPES_HB: Record<string, string> = { developpe: "Hors bilan développé", modele: "Modèle PCCI" };
 const PERIODICITES_EF: Record<string, string> = { mensuel: "Mensuel", annuel: "Annuel" };
@@ -8349,6 +8354,7 @@ const etatsFinanciers = {
       return { ...base, forme: "tableau" as const, balanceDu: "", colonnes: [{ titre: "Nombre de crédits", type: "nombre" }, { titre: "Encours", type: "montant" }], lignes,
         totaux: [0, 1].map((k) => lignes.reduce((t, x) => t + x.valeurs[k]!, 0)) };
     }
+    if (a.code === "rapport-activites") return { ...base, forme: "rapport" as const, ...rapportActivites(du, au, ex) };   // B13 : Instr. BCC 009, art. 3 et annexe
     if (a.code === "durees-initiales" || a.code === "durees-residuelles") {   // B27 : PCCI § 10.6 et 10.7. Comme etats_financiers.durees
       const initiale = a.code === "durees-initiales", g = new Map(LIGNES_DUREE.map(([k]) => [k, TRANCHES_DUREE.map(() => 0)]));
       const porter = (cle: string, m: number, devise: Devise, mois: number, fin: string) => { if (m <= 0) return;
@@ -8452,6 +8458,12 @@ const normes = {
   /** Critères : Date de l'arrêté ; trésorerie couverte par une police d'assurance (art. 15 : 0 % au lieu de 20 %) */
   etat(p: { date?: string; tresorerieAssuree?: boolean }) {
     lectureAdmin(["SN01"]);
+    return etatNormes(p);
+  },
+};
+/** Le calcul des normes à une date, sans contrôle du droit : l'écran SN01 et le rapport d'activités (B13) le font de la même façon */
+function etatNormes(p: { date?: string; tresorerieAssuree?: boolean }) {
+  {
     if (!DATE_ISO.test(p.date ?? "")) throw new ErreurMetier("À remplir : Date de l'arrêté.");
     const au = p.date!, an = Number(au.slice(0, 4));
     const { s, resultat, anterieurs } = soldesEf(au, an, true);
@@ -8482,8 +8494,75 @@ const normes = {
     const correspondant = Math.max(0, ...[...s].filter(([k, v]) => (k.startsWith("53") || k.startsWith("56")) && v > 0).map(([, v]) => v));
     return { date: au, profil: E.institution.profil, ...calculerNormes(E.institution.profil, s, resultat + anterieurs, connexes, produitsN1, positions, groupes, apparentes,
       coursDe("USD", au), p.tresorerieAssuree === true, decote, correspondant) };
-  },
-};
+  }
+}
+
+// ---------- B13 : rapport d'activités annuel au modèle de l'annexe de l'Instr. BCC 009 (art. 3). Mêmes règles que serveur/noyau/rapport_activites.py ;
+// modèle dans replica/etats-pcci.json (rapportActivites). Les rubriques à rédiger et les réponses Oui/Non sortent vides. Registre T110. ----------
+const RA = ME.rapportActivites;
+type LigneRa = { libelle: string; valeurs: (number | string | null)[]; type?: string; gras?: boolean; titre?: boolean };
+type SectionRa = { titre: string; rubriques?: string[]; colonnes?: { titre: string; type: string }[]; lignes?: LigneRa[] };
+const contreRa = (k: string) => RA.contre.some((x) => k.startsWith(x)), debuteRa = (k: string, pref: readonly string[]) => pref.some((x) => k.startsWith(x));
+const posteActifRa = (s: Map<string, number>, pref: readonly string[]) => [...s].reduce((t, [k, v]) => t + ("2345".includes(k[0]!) && debuteRa(k, pref) ? (k[0] === "2" || contreRa(k) ? v : Math.max(v, 0)) : 0), 0);
+const postePassifRa = (s: Map<string, number>, pref: readonly string[]) => [...s].reduce((t, [k, v]) => t + ("1345".includes(k[0]!) && !contreRa(k) && debuteRa(k, pref) ? (k[0] === "1" ? -v : Math.max(-v, 0)) : 0), 0);
+function bilanRa({ s, resultat, anterieurs }: { s: Map<string, number>; resultat: number; anterieurs: number }): (number | null)[] {
+  const actif = [..."2345"].reduce((t, k) => t + posteActifRa(s, [k]), 0), fp = postePassifRa(s, ["1"]) - postePassifRa(s, ["16"]) + resultat + anterieurs;
+  const passif = fp + postePassifRa(s, ["16"]) + [..."345"].reduce((t, k) => t + postePassifRa(s, [k]), 0);
+  return RA.bilan.map((m) => {
+    return m.titre ? null : m.total ? (m.total === "actif" ? actif : passif) : m.fondsPropres ? fp : m.actif ? posteActifRa(s, m.actif) : postePassifRa(s, m.passif!) + (m.resultat ? resultat : 0); });
+}
+function compteResultatRa(mv: Map<string, number>): number[] {
+  const r = rubriquesEf(mv, () => true).out, soldes = new Map(ME.resultat.map((m, i) => [m.libelle, r[i]!.valeur] as [string, number]).filter((_, i) => !!ME.resultat[i]!.solde));
+  const somme = (pref: readonly string[] = []) => [...mv].reduce((t, [k, v]) => t + (debuteRa(k, pref) ? v : 0), 0);
+  return RA.resultat.map((m) => {
+    return m.solde ? soldes.get(m.solde)! + somme(m.plus) : m.produits ? -somme(m.produits) : somme(m.charges); });
+}
+const pctRa = (a: number, b: number) => (b ? Math.round(a * 10000 / b) / 100 : null);
+const variationRa = (n: number | null, n1: number | null) => (n !== null && n1 ? pctRa(n - n1, Math.abs(n1)) : null);
+function ratiosRa(nn: ReturnType<typeof etatNormes>): [string, number | null][] {
+  return RA.ratios.map((m) => { const x = nn.normes.find((y) => y.code === m.code);
+    return m.fondsPropres ? ["", nn.fondsPropres.prudentiels] : x && x.applicable ? [`${x.sens === "min" ? "≥" : "≤"} ${String(x.norme).replace(".", ",")} %`, x.ratio] : ["", null]; });
+}
+function identiteRa(au: string, au1: string): LigneRa[] {
+  const ins = E.institution, adresse = [`${ins.numeroRue ?? ""} ${ins.rue ?? ""}`.trim(), ins.quartier, ins.commune, ins.ville, ins.province].filter(Boolean).join(", ") || (ins.adresse ?? "");
+  const organes = E.tiers.filter((t) => t.apparente === "administrateur" || t.apparente === "dirigeant");
+  const personnel = (d: string) => { const l = (E.paieEmployes ?? []).filter((e) => (!e.dateEmbauche || e.dateEmbauche <= d) && (!e.dateFinContrat || e.dateFinContrat > d));
+    return { n: l.length, f: l.filter((e) => e.sexe.startsWith("F")).length, h: l.filter((e) => e.sexe.startsWith("M")).length,
+      moyen: l.length ? Math.round(l.reduce((t, e) => t + (e.salaireBase ?? 0), 0) / l.length) : null }; };
+  const p = personnel(au), p1 = personnel(au1);
+  const L = (libelle: string, n: number | string | null = null, n1: number | string | null = null, type = "texte"): LigneRa => ({ libelle, valeurs: [n, n1], type });
+  return [L("Dénomination de la COOPEC/ IMF", ins.nom), L("Date du début des activités"), L("Coordonnées téléphoniques", ins.telephoneFixe ?? ""), L("Adresses électroniques", ins.email ?? ""),
+    L("Adresse physique", adresse), L("Nombre de"), L("- Agences", 1, null, "nombre"), L("- Guichets", E.guichets.filter((g) => g.actif !== false).length, null, "nombre"), L("- Antennes"),
+    L("Organes statutaires dont :", organes.length, null, "nombre"), L("- Femmes", organes.filter((t) => t.sexe === "F").length, null, "nombre"),
+    L("- Hommes", organes.filter((t) => t.sexe === "M").length, null, "nombre"),
+    L("Personnel dont :", p.n, p1.n, "nombre"), L("- Femmes", p.f, p1.f, "nombre"), L("- Hommes", p.h, p1.h, "nombre"), L("Salaire moyen (salaire de base, CDF)", p.moyen, p1.moyen, "montant")];
+}
+function rapportActivites(du: string, au: string, ex: number): { sections: SectionRa[] } {
+  const du1 = anDernier(du), au1 = anDernier(au), b = bilanRa(soldesEf(au, ex, true)), b1 = bilanRa(soldesEf(au1, ex - 1, true));
+  const r = compteResultatRa(mouvementsGestionEf(du, au, false)), r1 = compteResultatRa(mouvementsGestionEf(du1, au1, false));
+  const total = (v: (number | null)[], actif: boolean) => v[RA.bilan.findIndex((x) => x.total === (actif ? "actif" : "passif"))]!;
+  let cote = true;
+  const lb: LigneRa[] = RA.bilan.map((m, k) => { const x = m;
+    if (x.titre) { cote = m.libelle === "ACTIF"; return { libelle: m.libelle, titre: true, valeurs: [null, null, null, null, null] }; }
+    return { libelle: m.libelle, gras: !!x.total, valeurs: [b[k]!, pctRa(b[k]!, total(b, cote)), b1[k]!, pctRa(b1[k]!, total(b1, cote)), variationRa(b[k]!, b1[k]!)] }; });
+  const lr: LigneRa[] = RA.resultat.map((m, k) => ({ libelle: m.libelle, gras: !!m.solde, valeurs: [r[k]!, r1[k]!, variationRa(r[k]!, r1[k]!)] }));
+  const rn = ratiosRa(etatNormes({ date: au }));
+  let rn1: [string, number | null][];
+  try { rn1 = ratiosRa(etatNormes({ date: au1 })); } catch (x) { if (!(x instanceof ErreurMetier)) throw x; rn1 = RA.ratios.map(() => ["", null]); }   // N-1 sans cours du dollar : colonne vide
+  const lp: LigneRa[] = RA.ratios.map((m, k) => ({ libelle: m.libelle, valeurs: [rn[k]![0], rn[k]![1], rn1[k]![1]], type: m.fondsPropres ? "montant" : "taux" }));
+  const ind = (a: string, z: string) => new Map(rapportsCredit.indicateurs!({ du: a, au: z }).lignes.map((x) => [String(x.v[1]), x.v[4] as number | null]));
+  const i = ind(du, au), i1 = ind(du1, au1);
+  const li: LigneRa[] = RA.indicateurs.map((m) => ({ libelle: m.libelle, valeurs: [m.type, i.get(m.ratio) ?? null, i1.get(m.ratio) ?? null] }));
+  const C = (...c: [string, string][]) => c.map(([titre, type]) => ({ titre, type }));
+  return { sections: [...RA.rediger.map((x) => ({ ...x })),
+    { titre: "", colonnes: C(["N", "texte"], ["N-1", "texte"]), lignes: identiteRa(au, au1) },
+    { titre: "AUTRES INFORMATIONS (à spécifier)", colonnes: C(["OUI", "texte"], ["NON", "texte"]), lignes: RA.autres.map((libelle) => ({ libelle, valeurs: [null, null] })) },
+    { titre: "BILAN", colonnes: C(["N", "montant"], ["%", "taux"], ["N-1", "montant"], ["%", "taux"], ["Var. %", "taux"]), lignes: lb },
+    { titre: "5. COMPTE DE GESTION OU COMPTE DE RESULTAT", colonnes: C(["N", "montant"], ["N - 1", "montant"], ["VAR. %", "taux"]), lignes: lr },
+    { titre: "RATIOS PRUDENTIELS", colonnes: C(["NORME", "texte"], ["N", "taux"], ["N-1", "taux"]), lignes: lp },
+    { titre: "INDICATEURS DE PERFORMANCE", colonnes: C(["TYPE D'INDICATEUR", "texte"], ["N", "taux"], ["N-1", "taux"]), lignes: li },
+    { titre: RA.conclusion }] };
+}
 
 // B27 : durées initiales et résiduelles (PCCI § 10.6 et 10.7). Le texte s'arrête à 6 mois : ce qui va au-delà forme la dernière colonne. Comme etats_financiers.py.
 const BORNES_DUREE = [1, 3, 6], TRANCHES_DUREE = ["1 mois au plus", "Plus de 1 mois à 3 mois", "Plus de 3 mois à 6 mois", "Plus de 6 mois"];

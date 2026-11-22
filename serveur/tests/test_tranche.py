@@ -4610,7 +4610,7 @@ def test_etats_financiers(clients, journee):
     viser_valider(clients, e["id"])
     EF, q = "/api/comptabilite/etats-financiers", {"du": "2026-01-01", "au": "2026-11-05", "exercice": 2026}
     ctx = compta.get(f"{EF}/contexte", **H).json()
-    assert [a["code"] for a in ctx["annexes"]] == ["emplois", "flux", "credits", "depots", "avoirs", "monnaies", "emprunts", "engagements-normaux", "engagements-litigieux", "engagements-recus", "hors-bilan-litigieux", "agr", "balance-agee-nature", "durees-initiales", "durees-residuelles"] and ctx["typesBilan"][0]["libelle"] == "Version développée"
+    assert [a["code"] for a in ctx["annexes"]] == ["emplois", "flux", "credits", "depots", "avoirs", "monnaies", "emprunts", "engagements-normaux", "engagements-litigieux", "engagements-recus", "hors-bilan-litigieux", "agr", "balance-agee-nature", "durees-initiales", "durees-residuelles", "rapport-activites"] and ctx["typesBilan"][0]["libelle"] == "Version développée"
     avant = compta.get(f"{EF}/bilan", q, **H).json()
     comptabiliser_journee(clients, journee)
     b = compta.get(f"{EF}/bilan", q, **H).json()
@@ -5154,6 +5154,36 @@ def test_etats_par_duree(clients, journee):
     executer("update echeance set date_due = '2026-11-01' where credit_id = %s", (cid,))            # échéance dépassée : première tranche
     assert etat("durees-residuelles")["lignes"][0]["valeurs"] == [montant, 0, 0, 0, montant]
     assert etat("durees-initiales")["lignes"][0]["valeurs"] == [0, 0, 0, montant, montant]
+
+
+def test_rapport_activites(clients, journee):
+    """B13 : rapport d'activités annuel au modèle de l'annexe de l'Instr. BCC 009 (art. 3) : sections dans l'ordre du modèle, bilan résumé équilibré,
+    compte de résultat, ratios et indicateurs ; les rubriques à rédiger sortent vides"""
+    compta = clients["compta"]
+    credit_debloque(clients, journee)
+    comptabiliser_journee(clients, journee)
+    q = {"exercice": 2026, "du": "2026-01-01", "au": "2026-11-05"}
+    r = compta.get("/api/comptabilite/etats-financiers/annexe", {**q, "annexe": "rapport-activites"}, **H).json()
+    assert "message" not in r, r
+    assert r["forme"] == "rapport" and [x["titre"] for x in r["sections"]] == [
+        "1. ENVIRONNEMENT ECONOMIQUE", "2. PRESENTATION DE L'INSTITUTION", "", "AUTRES INFORMATIONS (à spécifier)", "BILAN",
+        "5. COMPTE DE GESTION OU COMPTE DE RESULTAT", "RATIOS PRUDENTIELS", "INDICATEURS DE PERFORMANCE", "8. CONCLUSION ET PERSPECTIVES D'AVENIR"]
+    assert len(r["sections"][1]["rubriques"]) == 7 and "colonnes" not in r["sections"][0] and "colonnes" not in r["sections"][-1]
+    ident = {x["libelle"]: x["valeurs"] for x in r["sections"][2]["lignes"]}
+    assert ident["Dénomination de la COOPEC/ IMF"][0] == "COOPEC Tujenge" and ident["- Agences"][0] >= 1 and ident["Date du début des activités"] == [None, None]
+    assert all(x["valeurs"] == [None, None] for x in r["sections"][3]["lignes"]) and len(r["sections"][3]["lignes"]) == 5
+    b = {x["libelle"]: x["valeurs"] for x in r["sections"][4]["lignes"]}
+    bilan = compta.get("/api/comptabilite/etats-financiers/bilan", q, **H).json()
+    assert b["TOTAL ACTIF"][0] == b["TOTAL PASSIF"][0] == sum(x["n"] for x in bilan["actif"]) and b["TOTAL ACTIF"][1] == 100
+    assert b["- Crédits à court terme"][0] + b["- Crédits à moyen terme"][0] > 0 and b["Immobilisations"][0] >= 0
+    res = compta.get("/api/comptabilite/etats-financiers/resultat", {**q, "sansVidage": "true"}, **H).json()
+    net = next(x["n"] for x in res["lignes"] if x["libelle"] == "Résultat net de l'exercice")
+    cr = {x["libelle"]: x["valeurs"] for x in r["sections"][5]["lignes"]}
+    assert cr["RESULTAT NET DE L'EXERCICE"][0] == net and cr["RESULTAT AVANT IMPOT"][0] >= net and b["- Résultat net"][0] == net
+    ratios = {x["libelle"]: x["valeurs"] for x in r["sections"][6]["lignes"]}
+    assert ratios["Capitalisation"] == ["", None, None] and ratios["Solvabilité"][0] == "≥ 10 %" and ratios["Fonds Propres Prudentiels"][1] is not None
+    assert [x["libelle"] for x in r["sections"][7]["lignes"]][3] == "Portefeuille à Risque (PAR)" and r["sections"][7]["lignes"][0]["valeurs"][0] == "I. INDICATEUR DE RENTABILITE"
+    assert clients["caisse"].get("/api/comptabilite/etats-financiers/annexe", {**q, "annexe": "rapport-activites"}, **H).status_code == 403
 
 
 def test_interets_courus_credits(clients, journee):

@@ -2320,6 +2320,27 @@ describe("journée de guichet", () => {
     return cid;
   }
 
+  it("rapport d'activités annuel (B13 ; Instr. BCC 009, art. 3 et annexe) : sections du modèle, bilan résumé équilibré, résultat, ratios, indicateurs", async () => {
+    await creditDebloque();
+    const j = _etat().journees.at(-1)!, ss = _etat().sessions.find((x) => x.journeeId === j.id && x.statut !== "fermee");
+    await comptabiliserJournee(j.id, ss!.id);
+    await connecter("plumbala");
+    const q = { exercice: "2026", du: "2026-01-01", au: "2026-11-05" };
+    const r = await api.etatsFinanciers.annexe({ ...q, annexe: "rapport-activites" });
+    if (r.forme !== "rapport") throw new Error("forme");
+    expect(r.sections.map((x) => x.titre)).toEqual(["1. ENVIRONNEMENT ECONOMIQUE", "2. PRESENTATION DE L'INSTITUTION", "", "AUTRES INFORMATIONS (à spécifier)", "BILAN",
+      "5. COMPTE DE GESTION OU COMPTE DE RESULTAT", "RATIOS PRUDENTIELS", "INDICATEURS DE PERFORMANCE", "8. CONCLUSION ET PERSPECTIVES D'AVENIR"]);   // comme le serveur
+    const table = (k: number) => new Map(r.sections[k]!.lignes!.map((x) => [x.libelle, x.valeurs]));
+    expect([r.sections[1]!.rubriques!.length, r.sections[0]!.colonnes, table(2).get("Dénomination de la COOPEC/ IMF")![0], table(2).get("Date du début des activités")])
+      .toEqual([7, undefined, "COOPEC Tujenge", [null, null]]);
+    expect(r.sections[3]!.lignes!.every((x) => x.valeurs.every((v) => v === null))).toBe(true);
+    const b = table(4), bilan = await api.etatsFinanciers.bilan(q);
+    expect([b.get("TOTAL ACTIF")![0], b.get("TOTAL PASSIF")![0], b.get("TOTAL ACTIF")![1]]).toEqual([bilan.actif.reduce((t, x) => t + x.n, 0), bilan.actif.reduce((t, x) => t + x.n, 0), 100]);
+    const net = (await api.etatsFinanciers.resultat({ ...q, sansVidage: true })).lignes.find((x) => x.libelle === "Résultat net de l'exercice")!.n;
+    expect([table(5).get("RESULTAT NET DE L'EXERCICE")![0], b.get("- Résultat net")![0]]).toEqual([net, net]);
+    expect([table(6).get("Capitalisation"), table(6).get("Solvabilité")![0], table(7).get("Portefeuille à Risque (PAR)")![0]]).toEqual([["", null, null], "≥ 10 %", "II. INDICATEUR DE QUALITE DU PORTEFEUILLE"]);
+  });
+
   it("états par durée (B27 ; PCCI § 10.6 et 10.7) : crédit débloqué classé par durée initiale et par durée résiduelle", async () => {
     const cid = await creditDebloque();
     const c = _etat().credits.find((x) => x.id === cid)!, montant = c.montant;
@@ -3401,7 +3422,7 @@ describe("journée de guichet", () => {
     await connecter("plumbala");
     const q = { du: "2026-01-01", au: "2026-11-05", exercice: 2026 };
     const ctx = await api.etatsFinanciers.contexte();
-    expect(ctx.annexes.map((a) => a.code)).toEqual(["emplois", "flux", "credits", "depots", "avoirs", "monnaies", "emprunts", "engagements-normaux", "engagements-litigieux", "engagements-recus", "hors-bilan-litigieux", "agr", "balance-agee-nature", "durees-initiales", "durees-residuelles"]);
+    expect(ctx.annexes.map((a) => a.code)).toEqual(["emplois", "flux", "credits", "depots", "avoirs", "monnaies", "emprunts", "engagements-normaux", "engagements-litigieux", "engagements-recus", "hors-bilan-litigieux", "agr", "balance-agee-nature", "durees-initiales", "durees-residuelles", "rapport-activites"]);
     for (const annexe of ["engagements-normaux", "hors-bilan-litigieux", "agr", "balance-agee-nature"]) {   // B7 : Instr. BCC 009, art. 1er
       const x = await api.etatsFinanciers.annexe({ exercice: "2026", du: "2026-01-01", au: "2026-11-05", annexe });
       expect(x.forme).toBe(annexe === "agr" || annexe === "balance-agee-nature" ? "tableau" : "ventilation");

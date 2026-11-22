@@ -442,6 +442,10 @@ def annexe(u, p) -> dict:
         lg = [{"libelle": k, "valeurs": v} for k, v in sorted(g2.items())]
         return {**base, "forme": "tableau", "colonnes": [{"titre": "Nombre de crédits", "type": "nombre"}, {"titre": "Encours", "type": "montant"}],
                 "lignes": lg, "totaux": [sum(x["valeurs"][k] for x in lg) for k in (0, 1)]}
+    if a["code"] == "rapport-activites":
+        # B13 : rapport d'activités annuel au modèle de l'annexe de l'Instr. BCC 009 (art. 3)
+        from .rapport_activites import rapport
+        return {**base, "forme": "rapport", **rapport(u, du, au, ex)}
     if a["code"] in ("durees-initiales", "durees-residuelles"):
         # B27 : pas de total général, les lignes mêlent emplois, ressources et hors bilan
         return {**base, "forme": "tableau", "colonnes": [{"titre": t, "type": "montant"} for t in (*TRANCHES_DUREE, "Total")],

@@ -446,3 +446,4 @@ Le porteur a demandé de répondre par les textes aux points du § 16.
 - **B29 terminé** (Instr. BCC 007, art. 18) : dans une COOPEC, un refus de la Commission de crédit se porte en appel devant le Conseil d'administration depuis l'historique des visas ; accordé, le crédit reprend au service financier (registre T107).
 - **B22 corrigé** (Instr. BCC 008, art. 9 ; PCCI § 3.1) : édition des schémas comptables appliqués, par évènement, depuis « Journal comptables » (registre T108).
 - **B27 corrigé** (PCCI § 10.6 et 10.7) : deux états annexes, par durée initiale et par durée résiduelle, pour les crédits, les dépôts à terme, les plans d'épargne, les emprunts et les engagements par signature (registre T109).
+- **B13 corrigé** (Instr. BCC 009, art. 3 et annexe) : rapport d'activités annuel au modèle, en état annexe ; le logiciel remplit les tableaux, l'institution rédige les rubriques (registre T110).

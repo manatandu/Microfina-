@@ -1296,6 +1296,10 @@ const OUT = process.argv[2];
     await p.getByLabel('Annexe :').selectOption(code); await p.getByRole('button', { name: 'Rechercher' }).click();
     await p.getByRole('rowheader', { name: 'Emplois : crédits à la clientèle ou aux membres' }).waitFor(); await p.getByRole('columnheader', { name: 'Plus de 6 mois' }).waitFor(); await etape(nom);
   }
+  // Rapport d'activités annuel (B13 ; Instr. BCC 009, art. 3 et annexe) : sections du modèle, tableaux remplis par le logiciel
+  await p.getByLabel('Annexe :').selectOption('rapport-activites'); await p.getByRole('button', { name: 'Rechercher' }).click();
+  await p.getByRole('heading', { name: '5. COMPTE DE GESTION OU COMPTE DE RESULTAT' }).waitFor(); await p.getByRole('rowheader', { name: 'TOTAL ACTIF' }).waitFor();
+  await p.getByRole('heading', { name: "8. CONCLUSION ET PERSPECTIVES D'AVENIR" }).waitFor(); await etape('27f4-rapport-activites');
   await p.getByLabel('Annexe :').selectOption('depots'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('rowheader', { name: 'Epargnes et dépôts ordinaires' }).waitFor(); await etape('27g-ventilation-depots');
   await aller('/comptabilite/s123'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('cell', { name: 'Portefeuille à Risque' }).waitFor(); await etape('27h-indicateurs-financiers');
   // Normes prudentielles (SN01 ; Instr. BCC 002 ; loi 002/2002, art. 59) : état à la date de la journée

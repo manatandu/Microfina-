@@ -176,6 +176,8 @@ function EditionAnnexes({ ctx, jour }: { ctx: Ctx; jour: string }) {
       r.lignes.map((x) => [x.devise, x.avoirs / 100, x.avoirsCdf / 100, x.engagements / 100, x.engagementsCdf / 100, x.positionCdf / 100]));
     else if (r.forme === "tableau") exporterExcel(r.titre, ["", ...r.colonnes.map((c) => c.titre)],
       [...r.lignes.map((l) => [l.libelle, ...l.valeurs.map((v, i) => (r.colonnes[i]!.type === "montant" ? v / 100 : v))]), ...(r.totaux.length ? [["TOTAL", ...r.totaux.map((v, i) => (r.colonnes[i]!.type === "montant" ? v / 100 : v))]] : [])]);
+    else if (r.forme === "rapport") exporterExcel(r.titre, ["Rubrique", "", "", "", "", ""], r.sections.flatMap((x) => [[x.titre], ...(x.rubriques ?? []).map((t) => [t]),
+      ...(x.colonnes ? [["", ...x.colonnes.map((c) => c.titre)]] : []), ...(x.lignes ?? []).map((l) => [l.libelle, ...l.valeurs.map((v, i) => celluleRapport(v, l.type ?? x.colonnes![i]!.type, true))]), [""]]));
     else exporterExcel(r.titre, ["Rubrique", "Compte", "Intitulé", "N", "N - 1"], r.sections.flatMap((s) => [[s.libelle, "", "", s.n / 100, s.n1 / 100], ...s.lignes.map((l) => ["", l.compte, l.intitule, l.n / 100, l.n1 / 100])]));
   }
   return (
@@ -222,6 +224,19 @@ function EditionAnnexes({ ctx, jour }: { ctx: Ctx; jour: string }) {
           ...s.lignes.map((l) => <tr key={`${s.libelle}-${l.compte}`}><td className="code">{l.compte}</td><td>{l.intitule}</td><td className="num chiffres">{n(l.n)}</td><td className="num chiffres">{n(l.n1)}</td></tr>)])}</tbody>
         <tfoot><tr><td></td><th scope="row">TOTAL</th><td className="num chiffres"><strong>{n(r.n)}</strong></td><td className="num chiffres"><strong>{n(r.n1)}</strong></td></tr></tfoot>
       </table></div>}
+      {r?.forme === "rapport" && <div className="pile">
+        <p className="aide">{r.titre}, du {fr(r.du)} au {fr(r.au)}, montants en CDF{texteEdition(r?.edition)}</p>
+        {r.sections.map((x, k) => <section key={k} className="pile" aria-label={x.titre || "Identité de l'institution"}>
+          {x.titre && <h3>{x.titre}</h3>}
+          {x.rubriques?.map((t) => <p key={t}>{t}</p>)}
+          {x.colonnes && <div className="defile-x"><table className="grille">
+            <thead><tr><th scope="col">{x.titre === "INDICATEURS DE PERFORMANCE" ? "INDICATEUR" : x.titre === "RATIOS PRUDENTIELS" ? "RATIOS" : "RUBRIQUES"}</th>
+              {x.colonnes.map((c, i) => <th key={i} scope="col" className={c.type === "texte" ? undefined : "num"}>{c.titre}</th>)}</tr></thead>
+            <tbody>{(x.lignes ?? []).map((l, j) => <tr key={j}><th scope="row">{l.titre || l.gras ? <strong>{l.libelle}</strong> : l.libelle}</th>
+              {l.valeurs.map((v, i) => <td key={i} className={typeof v === "number" ? "num chiffres" : undefined}>{celluleRapport(v, l.type ?? x.colonnes![i]!.type)}</td>)}</tr>)}</tbody>
+          </table></div>}
+        </section>)}
+      </div>}
       {r?.forme === "tableau" && <div className="defile-x"><table className="grille"><caption>{r.titre}, au {fr(r.au)}, en CDF{r.balanceDu ? `, balance âgée du ${fr(r.balanceDu)}` : ""}{texteEdition(r?.edition)}</caption>
         <thead><tr><th scope="col"></th>{r.colonnes.map((c) => <th key={c.titre} scope="col" className="num">{c.titre}</th>)}</tr></thead>
         <tbody>{r.lignes.length === 0 && <tr><td colSpan={r.colonnes.length + 1}>No records found.</td></tr>}
@@ -230,6 +245,7 @@ function EditionAnnexes({ ctx, jour }: { ctx: Ctx; jour: string }) {
       </table></div>}
       <Textes sources={["Manuel Microfina++, p. 141 : « Sélectionner : Agence, Exercice, Annexe puis cliquer sur [Rechercher] ensuite [Exporter] ou [Rein les champs] » ; capture « Edition des états annexes » (Annexe 1 : TABLEAU DES EMPLOIS ET RESSOURCES)",
         "PCCI 14.3 : tableau de flux de trésorerie (exploitation, investissement, financement, incidence du change, liquidités de début et de fin) ; 14.4 : annexe",
+        "Instr. BCC 009, art. 3 et annexe : rapport d'activités annuel au modèle ; les rubriques à rédiger et les réponses Oui ou Non restent à l'institution (registre T110)",
         "PCCI § 10.6 et 10.7 : durées initiales et durées résiduelles des ressources, emplois et engagements hors bilan ayant une échéance contractuelle (1 mois au plus ; plus de 1 mois à 3 mois ; plus de 3 mois à 6 mois ; registre T109)",
         "Instr. BCC 009, art. 1 : tableau de flux de trésorerie et états annexes à la situation comptable (ventilation des crédits, des dépôts, des avoirs auprès de l'organe faîtier et autres intermédiaires financiers, par monnaies, des emprunts et dettes à moyen et long terme)",
         "Registre S122-8 à S122-12 : flux classés par la contrepartie des écritures de caisse et de banque ; emplois et ressources : variation des postes du bilan sur la période ; ventilations par compte divisionnaire du PCCI ; les états tirés du portefeuille (créances en retard, provisions, balances âgées) restent dans Crédit (S98, S99, S101)", REGLES]} />
@@ -249,6 +265,14 @@ export function EtatsFinanciers() {
     <div className="onglets" role="tablist" aria-label="Etats financiers">{PAGES.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={page === k} onClick={() => setParams(k === "bilan" ? {} : { page: k })}>{l}</button>)}</div>
     {page === "bilan" && <EditionBilan ctx={cadre.ctx} jour={jour} />}{page === "hors-bilan" && <EditionHorsBilan ctx={cadre.ctx} jour={jour} />}
     {page === "resultat" && <EditionResultat ctx={cadre.ctx} jour={jour} />}{page === "annexe" && <EditionAnnexes ctx={cadre.ctx} jour={jour} />}</>;
+}
+
+/** B13 : une case du rapport d'activités. Texte tel quel ; nombre selon le type de la ligne ou de la colonne (montant en centimes, taux en %, nombre) */
+function celluleRapport(v: number | string | null, type: string, brut = false): string | number {
+  if (v === null) return "";
+  if (typeof v === "string") return v;
+  if (brut) return type === "montant" ? v / 100 : v;
+  return type === "montant" ? n(v) : type === "taux" ? `${String(v).replace(".", ",")} %` : String(v);
 }
 
 /** Exporter la liasse : bilan, hors bilan, compte de résultat, tableau de flux et notes de l'exercice, dans un classeur Excel aux couleurs des liasses

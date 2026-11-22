@@ -878,6 +878,366 @@
   {
    "code": "durees-residuelles",
    "libelle": "VENTILATION PAR DUREE RESIDUELLE (PCCI § 10.7)"
+  },
+  {
+   "code": "rapport-activites",
+   "libelle": "RAPPORT D'ACTIVITES ANNUEL (Instr. BCC 009, art. 3 et annexe)"
   }
- ]
+ ],
+ "rapportActivites": {
+  "source": "Instr. BCC 009, art. 3 et annexe « Modèle de rapport d'activités à produire ». Les libellés sont ceux du modèle ; les comptes rattachés sont ceux que le PCCI nomme de la même façon (chap. 9, liste des comptes). L'annexe saute les rubriques 3, 4, 6 et 7.",
+  "contre": [
+   "28",
+   "38",
+   "48",
+   "58"
+  ],
+  "rediger": [
+   {
+    "titre": "1. ENVIRONNEMENT ECONOMIQUE"
+   },
+   {
+    "titre": "2. PRESENTATION DE L'INSTITUTION",
+    "rubriques": [
+     "2.1 Historique",
+     "2.2 Vision, mission et objectif",
+     "2.3 Services offerts",
+     "2.4 Ressources de l'Institution",
+     "2.5 Résultats de l'Institution",
+     "2.6 Difficultés rencontrées par l'Institution dans la réalisation de son objectif",
+     "2.7 Faits saillants"
+    ]
+   }
+  ],
+  "autres": [
+   "Existence d'un SIG",
+   "Recours à un Cabinet d'audit externe",
+   "Bâtiment propre ou en location",
+   "A bénéficié d'une assistance technique. Si oui dans quels domaines",
+   "A bénéficié d'une assistance financière. Si oui de quel partenaire"
+  ],
+  "bilan": [
+   {
+    "libelle": "ACTIF",
+    "titre": true
+   },
+   {
+    "libelle": "Opérations de trésorerie dont :",
+    "actif": [
+     "5"
+    ]
+   },
+   {
+    "libelle": "- Caisse",
+    "actif": [
+     "57"
+    ]
+   },
+   {
+    "libelle": "- Banque",
+    "actif": [
+     "56"
+    ]
+   },
+   {
+    "libelle": "Opérations avec les membres ou la clientèle dont :",
+    "actif": [
+     "3"
+    ]
+   },
+   {
+    "libelle": "- Crédits à court terme",
+    "actif": [
+     "32"
+    ]
+   },
+   {
+    "libelle": "- Crédits à moyen terme",
+    "actif": [
+     "31"
+    ]
+   },
+   {
+    "libelle": "- Créances litigieuses",
+    "actif": [
+     "39"
+    ]
+   },
+   {
+    "libelle": "Opérations diverses dont :",
+    "actif": [
+     "4"
+    ]
+   },
+   {
+    "libelle": "- Débiteurs divers",
+    "actif": [
+     "46"
+    ]
+   },
+   {
+    "libelle": "- Régularisations et emplois divers",
+    "actif": [
+     "47"
+    ]
+   },
+   {
+    "libelle": "Immobilisations",
+    "actif": [
+     "2"
+    ]
+   },
+   {
+    "libelle": "TOTAL ACTIF",
+    "total": "actif"
+   },
+   {
+    "libelle": "PASSIF",
+    "titre": true
+   },
+   {
+    "libelle": "Opérations de trésorerie dont :",
+    "passif": [
+     "5"
+    ]
+   },
+   {
+    "libelle": "- Emprunts à terme (organe faîtier et autre I.F.)",
+    "passif": [
+     "533"
+    ]
+   },
+   {
+    "libelle": "Opérations avec les membres ou la clientèle dont :",
+    "passif": [
+     "3"
+    ]
+   },
+   {
+    "libelle": "- Epargnes et dépôts ordinaires",
+    "passif": [
+     "33"
+    ]
+   },
+   {
+    "libelle": "- Dépôts à terme",
+    "passif": [
+     "34"
+    ]
+   },
+   {
+    "libelle": "Opérations diverses dont :",
+    "passif": [
+     "4",
+     "16"
+    ]
+   },
+   {
+    "libelle": "- Compte de liaison",
+    "passif": [
+     "45"
+    ]
+   },
+   {
+    "libelle": "- Créditeurs divers",
+    "passif": [
+     "46"
+    ]
+   },
+   {
+    "libelle": "- Régularisations et emplois divers",
+    "passif": [
+     "47"
+    ]
+   },
+   {
+    "libelle": "- Emprunts et dettes à moyen et long terme",
+    "passif": [
+     "16"
+    ]
+   },
+   {
+    "libelle": "Fonds Propres dont :",
+    "fondsPropres": true
+   },
+   {
+    "libelle": "- Résultat net",
+    "passif": [
+     "13"
+    ],
+    "resultat": true
+   },
+   {
+    "libelle": "- Report à nouveau",
+    "passif": [
+     "12"
+    ]
+   },
+   {
+    "libelle": "- Capital",
+    "passif": [
+     "10"
+    ]
+   },
+   {
+    "libelle": "TOTAL PASSIF",
+    "total": "passif"
+   }
+  ],
+  "resultat": [
+   {
+    "libelle": "PRODUIT NET FINANCIER DONT :",
+    "solde": "Produit Net Financier"
+   },
+   {
+    "libelle": "- Intérêts sur crédits à moyen terme",
+    "produits": [
+     "711"
+    ]
+   },
+   {
+    "libelle": "- Produits financiers divers",
+    "produits": [
+     "72"
+    ]
+   },
+   {
+    "libelle": "- Intérêts sur dépôts à terme",
+    "charges": [
+     "612"
+    ]
+   },
+   {
+    "libelle": "- Charges financières diverses",
+    "charges": [
+     "62"
+    ]
+   },
+   {
+    "libelle": "RESULTAT BRUT D'EXPLOITATION DONT :",
+    "solde": "Résultat Brut d'exploitation"
+   },
+   {
+    "libelle": "- Subvention d'exploitation",
+    "produits": [
+     "76"
+    ]
+   },
+   {
+    "libelle": "- Charges générales d'exploitation",
+    "charges": [
+     "64"
+    ]
+   },
+   {
+    "libelle": "- Charges du personnel",
+    "charges": [
+     "65"
+    ]
+   },
+   {
+    "libelle": "RESULTAT COURANT D'EXPLOITATION DONT :",
+    "solde": "Résultat courant avant impôt"
+   },
+   {
+    "libelle": "- Dotations aux amortissements",
+    "charges": [
+     "68"
+    ]
+   },
+   {
+    "libelle": "- Dotations aux provisions",
+    "charges": [
+     "690"
+    ]
+   },
+   {
+    "libelle": "- Pertes sur créances irrécouvrables",
+    "charges": [
+     "691"
+    ]
+   },
+   {
+    "libelle": "RESULTAT EXCEPTIONNEL",
+    "solde": "Résultat exceptionnel"
+   },
+   {
+    "libelle": "RESULTAT AVANT IMPOT",
+    "solde": "Résultat net de l'exercice",
+    "plus": [
+     "86"
+    ]
+   },
+   {
+    "libelle": "RESULTAT NET DE L'EXERCICE",
+    "solde": "Résultat net de l'exercice"
+   }
+  ],
+  "ratios": [
+   {
+    "libelle": "Capital minimum",
+    "code": "capital"
+   },
+   {
+    "libelle": "Fonds Propres Prudentiels",
+    "fondsPropres": true
+   },
+   {
+    "libelle": "Solvabilité",
+    "code": "solvabilite"
+   },
+   {
+    "libelle": "Capitalisation"
+   },
+   {
+    "libelle": "Liquidité immédiate",
+    "code": "liquidite"
+   },
+   {
+    "libelle": "Couverture des immobilisations par FPP",
+    "code": "immobilisations"
+   },
+   {
+    "libelle": "Couverture des emplois à moyen et long terme par des ressources stables",
+    "code": "ressources"
+   },
+   {
+    "libelle": "Surveillance des positions de change",
+    "code": "change"
+   }
+  ],
+  "indicateurs": [
+   {
+    "type": "I. INDICATEUR DE RENTABILITE",
+    "libelle": "Rentabilité des fonds propres",
+    "ratio": "Rentabilité des fonds propres"
+   },
+   {
+    "type": "I. INDICATEUR DE RENTABILITE",
+    "libelle": "Rendement du portefeuille",
+    "ratio": "Rendement du portefeuille"
+   },
+   {
+    "type": "I. INDICATEUR DE RENTABILITE",
+    "libelle": "Autosuffisance opérationnelle",
+    "ratio": "Autosuffisance opérationnelle"
+   },
+   {
+    "type": "II. INDICATEUR DE QUALITE DU PORTEFEUILLE",
+    "libelle": "Portefeuille à Risque (PAR)",
+    "ratio": "Portefeuille à Risque"
+   },
+   {
+    "type": "II. INDICATEUR DE QUALITE DU PORTEFEUILLE",
+    "libelle": "Ratio des créances abandonnées",
+    "ratio": "Ratio d'abandon des créances"
+   },
+   {
+    "type": "III. INDICATEUR D'EFFICACITE ET PRODUCTIVITE",
+    "libelle": "Efficacité opérationnelle",
+    "ratio": "Efficacité opérationnelle"
+   }
+  ],
+  "conclusion": "8. CONCLUSION ET PERSPECTIVES D'AVENIR"
+ }
 }
