@@ -435,3 +435,4 @@ Le porteur a demandé de répondre par les textes aux points du § 16.
 - **B9 corrigé** (PCCI § 7.1) : comptes 472 et 473 tenus à chaque clôture, résultat de change net par devise, 474 soldé (registre T93).
 - **B18 corrigé** : rentrée sur créance passée en perte au 791, sortie du hors bilan (registre T94).
 - **B23 et B24 corrigés** : contrôles de clôture sur le 59 et sur les suspens de plus d'une semaine (registre T95).
+- **B15, B16 et B21 corrigés** (Instr. BCC 002, art. 10, 28 et 29) : plafond sur les avoirs chez un correspondant, clients liés comptés comme une seule signature, décote des dettes subordonnées (registre T96, T97).

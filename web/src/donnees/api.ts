@@ -3150,10 +3150,18 @@ const encoursDossier = (tiersIds?: number[]) =>
     .reduce((s, x) => s + Math.round((x.montant - (x.utilise ?? 0)) * coursDe(x.devise, jourDossier())), 0);
 /** Plafonds par client et des apparentés, crédits et engagements par signature confondus (CR-14 ; Instr. BCC 002, art. 23, 25 à 29 ; loi 002/2002, art. 59 et 60).
  * Commun à l'approbation (S88) et à l'engagement par signature (S100). Mêmes règles que serveur/noyau/dossiers.py (controler_plafonds). */
+/** B16 : « une seule signature » : la personne et les structures qu'elle contrôle (Instr. BCC 002, art. 28, al. 3), par le lien du bénéficiaire effectif, de proche en proche */
+function groupeSignature(tid: number): number[] {
+  const groupe = new Set([tid]), file = [tid];
+  while (file.length) { const x = file.pop()!;
+    for (const t of E.tiers) for (const b of t.beneficiairesEffectifs ?? []) for (const [de, vers] of [[t.id, b], [b, t.id]] as const)
+      if (de === x && !groupe.has(vers)) { groupe.add(vers); file.push(vers); } }
+  return [...groupe].sort((a, b) => a - b);
+}
 function controlerPlafonds(tid: number, mCdf: number, apparente: boolean, bcc: string) {
   const fp = fondsPropresActuels();
   if (!fp) throw new ErreurMetier("Fonds propres prudentiels non saisis : la direction les saisit d'abord (registre CR-2 ; Instr. BCC 002).");
-  const risque = encoursDossier([tid]) + mCdf, coopec = estCoopec();
+  const risque = encoursDossier(groupeSignature(tid)) + mCdf, coopec = estCoopec();   // B16 : le client et les structures liées par le contrôle
   const depasse: string[] = [];
   if (coopec) {
     if (risque * 10 > fp.montant) depasse.push("10 % des fonds propres prudentiels (Instr. BCC 002, art. 29)");
@@ -8271,17 +8279,17 @@ function ligneNorme(code: string, libelle: string, reference: string, num: numbe
   return { code, libelle, reference, numerateur: num, denominateur: den, ratio, norme, sens, applicable, respect };
 }
 /** Art. 8, 9 et 11 ; le résultat pas encore affecté se lit comme les sous-comptes 130 et 131 (comme normes.fonds_propres) */
-function fondsPropresNormes(s: Map<string, number>, resultat: number) {
+function fondsPropresNormes(s: Map<string, number>, resultat: number, decote = 0) {
   const base = creditNormes(s, ["10", "110", "111", "12", "13", "144", "170", "171"]) + resultat - debitNormes(s, ["20", "252", "2510"]);
-  const complementaires = creditNormes(s, ["14"]) - creditNormes(s, ["144"]) + creditNormes(s, ["15"]) + Math.min(creditNormes(s, ["1622"]), Math.floor(Math.max(base, 0) / 2))
+  const complementaires = creditNormes(s, ["14"]) - creditNormes(s, ["144"]) + creditNormes(s, ["15"]) + Math.min(creditNormes(s, ["1622"]) - decote, Math.floor(Math.max(base, 0) / 2))
     + creditNormes(s, ["172"]) + creditNormes(s, ["18"]) - debitNormes(s, ["255"]);
   const retenus = Math.min(complementaires, Math.max(base, 0));
   return { base, complementaires, retenus, prudentiels: base + retenus };
 }
 function calculerNormes(profil: string, s: Map<string, number>, resultat: number, connexesN: number, produitsN1: number, positions: Record<string, { position: number; volume: number }>,
-  encours: Map<number, number>, apparentes: number, usd: number, tresorerieAssuree: boolean) {
+  encours: Map<number, number>, apparentes: number, usd: number, tresorerieAssuree: boolean, decote = 0, correspondant = 0) {
   const coopec = profil === "coopec" || profil === "faitiere", emc = profil === "entreprise_microcredit";
-  const fp = fondsPropresNormes(s, resultat), fpp = fp.prudentiels, depots = creditNormes(s, ["33", "34", "35", "36", "373"]);
+  const fp = fondsPropresNormes(s, resultat, decote), fpp = fp.prudentiels, depots = creditNormes(s, ["33", "34", "35", "36", "373"]);
   const out: LigneNorme[] = [];
   if (!coopec) out.push(ligneNorme("capital", "Fonds propres de base / capital minimum", "Instr. BCC 002, art. 3 et 6 ; Instr. BCC 0010, art. 4", fp.base, Math.round((CAPITAL_MINIMUM_USD[profil] ?? 0) * usd * 100), 100, "min"));
   const deduits = ["20", "252", "2510", "255"], provisions = ["28", "29", "38", "48", "58"];
@@ -8298,6 +8306,7 @@ function calculerNormes(profil: string, s: Map<string, number>, resultat: number
   const plusGros = Math.max(0, ...encours.values());
   out.push(ligneNorme("division", `Plus gros risque sur un seul ${coopec ? "membre" : "client"} / fonds propres prudentiels`, coopec ? "Instr. BCC 002, art. 29" : "Instr. BCC 002, art. 28", plusGros, fpp, coopec ? 10 : 5, "max"));
   if (coopec) out.push(ligneNorme("division_depots", "Plus gros risque sur un seul membre / dépôts des membres", "Loi 002/2002, art. 59, 6°, et art. 60", plusGros, depots, 10, "max"));
+  out.push(ligneNorme("correspondants", "Plus gros avoir chez un correspondant / fonds propres prudentiels", coopec ? "Instr. BCC 002, art. 29, al. 2" : "Instr. BCC 002, art. 28, al. 4", correspondant, fpp, coopec ? 10 : 5, "max"));
   out.push(ligneNorme("participations", "Participations / fonds propres prudentiels", "Instr. BCC 002, art. 30", debitNormes(s, ["25"]) - (coopec ? debitNormes(s, ["252"]) : 0), fpp, 25, "max"));
   out.push(ligneNorme("ressources", "Ressources stables / emplois stables", `Instr. BCC 002, art. 31 à 33${coopec ? " ; loi 002/2002, art. 59, 2°" : ""}`,
     fpp + creditNormes(s, ["34"]) + creditNormes(s, ["35"]) + creditNormes(s, ["16"]) - creditNormes(s, ["1622"]), debitNormes(s, ["2"]) + debitNormes(s, ["30", "31"]) + debitNormes(s, ["39", "38"]), 100, "min"));
@@ -8331,8 +8340,18 @@ const normes = {
     for (const [k, v] of encours) if (v <= 0) encours.delete(k);
     const positions = Object.fromEntries(Object.entries(net).map(([dv, x]) => [dv, { position: Math.round(x.net * coursDe(dv as Devise, au)), volume: Math.round(x.volume * coursDe(dv as Devise, au)) }]));
     const apparentes = [...encours].reduce((t, [k, v]) => t + (E.tiers.find((x) => x.id === k)?.apparente ? v : 0), 0);
-    return { date: au, profil: E.institution.profil, ...calculerNormes(E.institution.profil, s, resultat + anterieurs, connexes, produitsN1, positions, encours, apparentes,
-      coursDe("USD", au), p.tresorerieAssuree === true) };
+    // B16 : risques des clients liés par le contrôle, additionnés ; B21 : décote des dettes subordonnées (art. 10) ; B15 : plus gros avoir chez un correspondant (53, 56)
+    const groupes = new Map<number, number>();
+    for (const [tid, v] of encours) { const g = groupeSignature(tid)[0]!; groupes.set(g, (groupes.get(g) ?? 0) + v); }
+    let decote = 0;
+    for (const e of E.emprunts.filter((x) => x.compteEmprunt.startsWith("1622") && x.dateEmprunt <= au)) {
+      const amorti = E.remboursementsEmprunt.filter((r) => r.empruntId === e.id && r.date <= au).reduce((t, r) => t + r.amortissement, 0);
+      const annees = Math.floor(Math.max(joursEntre(au, ajouterMois(e.dateEmprunt, e.duree)), 0) / 365);
+      if (annees < 5) decote += Math.round((e.montant - amorti) * coursDe(e.devise, au) * (5 - annees) * 20 / 100);
+    }
+    const correspondant = Math.max(0, ...[...s].filter(([k, v]) => (k.startsWith("53") || k.startsWith("56")) && v > 0).map(([, v]) => v));
+    return { date: au, profil: E.institution.profil, ...calculerNormes(E.institution.profil, s, resultat + anterieurs, connexes, produitsN1, positions, groupes, apparentes,
+      coursDe("USD", au), p.tresorerieAssuree === true, decote, correspondant) };
   },
 };
 

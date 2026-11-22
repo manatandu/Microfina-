@@ -30,11 +30,11 @@ def c(s: dict, *pref, sauf=()) -> int:
     return -d(s, *pref, sauf=sauf)
 
 
-def fonds_propres(s: dict, resultat: int) -> dict:
+def fonds_propres(s: dict, resultat: int, decote: int = 0) -> dict:
     """Art. 8 : base ; art. 9 : complémentaires ; art. 11 : complémentaires dans la limite de la base, dettes subordonnées dans la limite de 50 % de la base.
     Le résultat de l'exercice pas encore affecté se lit comme les excédents non affectés ou la perte (sous-comptes 130 et 131)."""
     base = c(s, "10", "110", "111", "12", "13", "144", "170", "171") + resultat - d(s, "20", "252", "2510")
-    subordonnes = c(s, "1622")
+    subordonnes = c(s, "1622") - decote            # art. 10 : 20 % de moins par an quand il reste moins de cinq ans à courir
     complementaires = c(s, "14") - c(s, "144") + c(s, "15") + min(subordonnes, max(base, 0) // 2) + c(s, "172") + c(s, "18") - d(s, "255")
     retenus = min(complementaires, max(base, 0))
     return {"base": base, "complementaires": complementaires, "retenus": retenus, "prudentiels": base + retenus}
@@ -49,11 +49,11 @@ def ligne(code, libelle, reference, num, den, norme, sens, applicable=True) -> d
 
 
 def calculer(profil: str, s: dict, resultat: int, connexes_n: int, produits_n1: int, positions: dict, encours: dict, apparentes: int,
-             usd: float, tresorerie_assuree: bool) -> dict:
+             usd: float, tresorerie_assuree: bool, decote: int = 0, correspondant: int = 0) -> dict:
     """Le calcul, sans base de données : les deux côtés (serveur et navigateur) le font de la même façon"""
     coopec = profil in ("coopec", "faitiere")
     emc = profil == "entreprise_microcredit"
-    fp = fonds_propres(s, resultat)
+    fp = fonds_propres(s, resultat, decote)
     fpp = fp["prudentiels"]
     depots = c(s, "33", "34", "35", "36", "373")
     out = []
@@ -78,6 +78,8 @@ def calculer(profil: str, s: dict, resultat: int, connexes_n: int, produits_n1: 
                      "Instr. BCC 002, art. 29" if coopec else "Instr. BCC 002, art. 28", plus_gros, fpp, 10 if coopec else 5, "max"))
     if coopec:
         out.append(ligne("division_depots", "Plus gros risque sur un seul membre / dépôts des membres", "Loi 002/2002, art. 59, 6°, et art. 60", plus_gros, depots, 10, "max"))
+    out.append(ligne("correspondants", "Plus gros avoir chez un correspondant / fonds propres prudentiels",
+                     "Instr. BCC 002, art. 29, al. 2" if coopec else "Instr. BCC 002, art. 28, al. 4", correspondant, fpp, 10 if coopec else 5, "max"))
     out.append(ligne("participations", "Participations / fonds propres prudentiels", "Instr. BCC 002, art. 30",
                      d(s, "25") - (d(s, "252") if coopec else 0), fpp, 25, "max"))
     stables = fpp + c(s, "34") + c(s, "35") + c(s, "16") - c(s, "1622")
@@ -132,6 +134,22 @@ def etat(u, p) -> dict:
         if int(r["s"]) > 0:
             encours[r["tiers_id"]] += int(r["s"])
     apparentes = {r["id"] for r in lignes("select id from tiers where institution_id = %s and apparente is not null", (i,))}
-    x = calculer(profil, s, resultat + anterieurs, connexes, produits_n1, positions, dict(encours), sum(v for k, v in encours.items() if k in apparentes),
-                 cours("USD", au), p.get("tresorerieAssuree") is True)
+    # B16 : « une seule signature » : les risques des clients liés par le contrôle s'additionnent (art. 28, al. 3)
+    from .dossiers import groupe_signature
+    groupes: dict = defaultdict(int)
+    for tid, v in encours.items():
+        groupes[groupe_signature(u, tid)[0]] += v
+    # B21 : dettes subordonnées à moins de cinq ans de leur échéance : 20 % de moins par an (art. 10) ; l'échéance se lit sur l'emprunt (S61)
+    from .depots_terme import ajouter_mois
+    decote = 0
+    for e in lignes("""select e.montant, e.devise, e.date_emprunt, e.duree_mois,
+                              coalesce((select sum(r.amortissement) from remboursement_emprunt r where r.emprunt_id = e.id and r.date_operation <= %s), 0) as amorti
+                       from emprunt e where e.institution_id = %s and e.compte_emprunt like '1622%%' and e.date_emprunt <= %s""", (au, i, au)):
+        annees = max((ajouter_mois(e["date_emprunt"], e["duree_mois"]) - au).days, 0) // 365
+        if annees < 5:
+            decote += round((int(e["montant"]) - int(e["amorti"])) * cours(e["devise"].strip(), au) * (5 - annees) * 20 / 100)
+    # B15 : le plafond par signature vaut aussi pour les avoirs chez un correspondant (art. 28, al. 4 ; art. 29, al. 2) : comptes 53 et 56
+    correspondant = max((v for k, v in s.items() if k.startswith(("53", "56")) and v > 0), default=0)
+    x = calculer(profil, s, resultat + anterieurs, connexes, produits_n1, positions, dict(groupes), sum(v for k, v in encours.items() if k in apparentes),
+                 cours("USD", au), p.get("tresorerieAssuree") is True, decote, correspondant)
     return {"date": au.isoformat(), "profil": profil, **x}

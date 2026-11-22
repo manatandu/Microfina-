@@ -4981,6 +4981,21 @@ def test_normes_prudentielles_calcul():
     assert imf["solvabilite"]["applicable"] is False and imf["solvabilite"]["respect"] is None   # art. 12 : sauf entreprises de microcrédit
     assert imf["capital"]["denominateur"] == 250000 * 2800 * 100 and imf["division"]["norme"] == 5   # Instr. BCC 0010, art. 4 ; art. 28
     assert imf["change_USD"]["norme"] == 15 and imf["change_USD"]["respect"] is True   # art. 40 : devise la plus utilisée, 15 %
+    assert fonds_propres(s, -1_000_000, 10_000_000)["complementaires"] == 20_000_000 + 5_000_000   # B21 : décote des subordonnés (art. 10)
+    co = {n["code"]: n for n in calculer("coopec", s, -1_000_000, 0, 0, {}, {}, 0, 2800.0, False, 0, 25_000_000)["normes"]}["correspondants"]
+    assert (co["numerateur"], co["norme"]) == (25_000_000, 10)                                    # B15 : art. 29, al. 2
+
+
+def test_une_seule_signature(clients, journee):
+    """B16 (confrontation du 21/11/2026) : le client et la structure qu'il contrôle font une seule signature (Instr. BCC 002, art. 28, al. 3)"""
+    from noyau.bd import executer, une
+    from noyau.dossiers import groupe_signature
+    util = une("select u.id, u.institution_id, u.agence_id from utilisateur u where u.login = 'plumbala'")
+    a, b, c = T("0412-000318"), T("0412-000319"), T("0412-000320")
+    assert groupe_signature(util, a) == [a]
+    executer("insert into lien_tiers (tiers_id, autre_id, role, nature, part) values (%s, %s, 'beneficiaire_effectif', 'Participation de contrôle', 60)", (b, a))
+    executer("insert into lien_tiers (tiers_id, autre_id, role, nature, part) values (%s, %s, 'beneficiaire_effectif', 'Participation de contrôle', 40)", (c, a))
+    assert groupe_signature(util, a) == sorted([a, b, c]) and groupe_signature(util, c) == sorted([a, b, c])
 
 
 def test_normes_prudentielles_etat(clients, journee):

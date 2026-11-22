@@ -245,13 +245,29 @@ def controler_retard(u, tid: int):
                                "à rembourser un crédit en retard (Instr. BCC 003, art. 5, al. 3).")
 
 
+def groupe_signature(u, tid: int) -> list[int]:
+    """B16 : « une seule signature » : la personne et les structures sur lesquelles elle détient un pouvoir de contrôle (Instr. BCC 002, art. 28, al. 3).
+    Le lien lu est celui du bénéficiaire effectif (loi 22/068, art. 34 bis), dans les deux sens, de proche en proche."""
+    liens = lignes("""select l.tiers_id, l.autre_id from lien_tiers l join tiers t on t.id = l.tiers_id
+                      where t.institution_id = %s and l.role = 'beneficiaire_effectif'""", (u["institution_id"],))
+    groupe, file = {tid}, [tid]
+    while file:
+        x = file.pop()
+        for l in liens:
+            for a, b in ((l["tiers_id"], l["autre_id"]), (l["autre_id"], l["tiers_id"])):
+                if a == x and b not in groupe:
+                    groupe.add(b)
+                    file.append(b)
+    return sorted(groupe)
+
+
 def controler_plafonds(u, tid: int, m_cdf: int, apparente, bcc: str | None):
     """Plafonds par client et des apparentés, crédits et engagements par signature confondus (CR-14 ; Instr. BCC 002, art. 23, 25 à 29 ;
     loi 002/2002, art. 59 et 60). Commun à l'approbation (S88) et à l'engagement par signature (S100)."""
     fp = fonds_propres(u)
     if not fp:
         raise ErreurMetier("Fonds propres prudentiels non saisis : la direction les saisit d'abord (registre CR-2 ; Instr. BCC 002).")
-    risque = encours(u, [tid]) + m_cdf
+    risque = encours(u, groupe_signature(u, tid)) + m_cdf          # B16 : le client et les structures qu'il contrôle, ou qui le contrôlent
     coopec = est_coopec(u)
     depasse = []
     if coopec:
