@@ -870,6 +870,14 @@
   {
    "code": "balance-agee-nature",
    "libelle": "Annexe 13 : BALANCE AGEE PAR NATURE DES CREDITS EN RETARD"
+  },
+  {
+   "code": "durees-initiales",
+   "libelle": "VENTILATION PAR DUREE INITIALE (PCCI § 10.6)"
+  },
+  {
+   "code": "durees-residuelles",
+   "libelle": "VENTILATION PAR DUREE RESIDUELLE (PCCI § 10.7)"
   }
  ]
 }

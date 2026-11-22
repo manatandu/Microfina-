@@ -1291,6 +1291,11 @@ const OUT = process.argv[2];
   await p.getByLabel('Annexe :').selectOption('flux'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('rowheader', { name: /^LIQUIDITES ET EQUIVALENTS/ }).waitFor();
   if (await p.getByText(/Les flux ne retombent pas/).count()) throw new Error('S122 : flux de trésorerie non bouclés');
   await etape('27f-flux-de-tresorerie');
+  // États par durée (B27 ; PCCI § 10.6 et 10.7) : emplois, ressources et hors bilan à échéance contractuelle, par tranche
+  for (const [code, nom] of [['durees-initiales', '27f2-durees-initiales'], ['durees-residuelles', '27f3-durees-residuelles']]) {
+    await p.getByLabel('Annexe :').selectOption(code); await p.getByRole('button', { name: 'Rechercher' }).click();
+    await p.getByRole('rowheader', { name: 'Emplois : crédits à la clientèle ou aux membres' }).waitFor(); await p.getByRole('columnheader', { name: 'Plus de 6 mois' }).waitFor(); await etape(nom);
+  }
   await p.getByLabel('Annexe :').selectOption('depots'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('rowheader', { name: 'Epargnes et dépôts ordinaires' }).waitFor(); await etape('27g-ventilation-depots');
   await aller('/comptabilite/s123'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('cell', { name: 'Portefeuille à Risque' }).waitFor(); await etape('27h-indicateurs-financiers');
   // Normes prudentielles (SN01 ; Instr. BCC 002 ; loi 002/2002, art. 59) : état à la date de la journée

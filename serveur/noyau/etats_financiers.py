@@ -15,7 +15,7 @@ from datetime import date, timedelta
 
 from django.conf import settings
 
-from .bd import ErreurMetier, lignes
+from .bd import ErreurMetier, lignes, valeur
 from .etats_compta import d_, periode
 from .services import exiger
 
@@ -334,6 +334,51 @@ def flux_periode(u, du: date, au: date, agence=None) -> dict:
             "controle": totaux["debut"] + totaux["variation"] == totaux["fin"]}
 
 
+# B27 : durées initiales et résiduelles (PCCI § 10.6 et 10.7) : « durée inférieure ou égale à 1 mois ; durée supérieure à 1 mois et inférieure ou égale à
+# 3 mois ; durée supérieure à 3 mois et inférieure ou égale à 6 mois ». Le texte s'arrête à 6 mois : ce qui va au-delà forme la dernière colonne.
+BORNES_DUREE = (1, 3, 6)
+TRANCHES_DUREE = ("1 mois au plus", "Plus de 1 mois à 3 mois", "Plus de 3 mois à 6 mois", "Plus de 6 mois")
+LIGNES_DUREE = (("credits", "Emplois : crédits à la clientèle ou aux membres"), ("dat", "Ressources : dépôts à terme"), ("plans", "Ressources : plans d'épargne"),
+                ("emprunts", "Ressources : emprunts"), ("engagements", "Hors bilan : engagements par signature"))
+
+
+def durees(u, au: date, initiale: bool) -> list[dict]:
+    """Emplois, ressources et engagements hors bilan ayant une échéance contractuelle, par tranche de durée initiale (durée convenue, en mois) ou résiduelle
+    (de la date de l'état à l'échéance du contrat), en CDF au cours de la date. Une échéance dépassée tombe dans la première tranche."""
+    from .depots_terme import ajouter_mois
+    from .remboursements import etat
+    from .services import cours
+    i = u["institution_id"]
+    g = {k: [0] * len(TRANCHES_DUREE) for k, _ in LIGNES_DUREE}
+
+    def porter(cle: str, montant: int, devise: str, mois: int, fin: date):
+        if montant <= 0:
+            return
+        if initiale:
+            rang = next((k for k, b in enumerate(BORNES_DUREE) if mois <= b), len(BORNES_DUREE))
+        else:
+            rang = next((k for k, b in enumerate(BORNES_DUREE) if fin <= ajouter_mois(au, b)), len(BORNES_DUREE))
+        g[cle][rang] += round(montant * cours(devise.strip(), au))
+
+    for c in lignes("select * from credit where institution_id = %s and statut = 'debloque' and debloque_le <= %s", (i, au)):
+        porter("credits", etat(c, au)["capitalRestant"], c["devise"], c["duree_mois"], valeur("select max(date_due) from echeance where credit_id = %s", (c["id"],)) or au)
+    for x in lignes("select montant, devise, duree_mois, date_echeance from depot_terme where institution_id = %s and statut = 'valide' and date_depot <= %s", (i, au)):
+        porter("dat", x["montant"], x["devise"], x["duree_mois"], x["date_echeance"])
+    for x in lignes("""select p.devise, p.duree_mois, p.date_fin,
+                              (select coalesce(sum(e.capital), 0) from plan_epargne_echeance e where e.plan_id = p.id and e.date_reelle <= %s) as verse
+                       from plan_epargne p where p.institution_id = %s and p.statut = 'en_cours' and p.date_debut <= %s""", (au, i, au)):
+        porter("plans", int(x["verse"]), x["devise"], x["duree_mois"], x["date_fin"])
+    for x in lignes("""select e.montant, e.devise, e.duree_mois, e.date_emprunt,
+                              (select coalesce(sum(r.amortissement), 0) from remboursement_emprunt r
+                               where r.emprunt_id = e.id and r.statut = 'comptabilisee' and r.date_operation <= %s) as rembourse
+                       from emprunt e where e.institution_id = %s and e.statut = 'comptabilisee' and e.date_emprunt <= %s""", (au, i, au)):
+        porter("emprunts", x["montant"] - int(x["rembourse"]), x["devise"], x["duree_mois"], ajouter_mois(x["date_emprunt"], x["duree_mois"]))
+    for x in lignes("""select montant, utilise, devise, duree_mois, date_fin from engagement_signature
+                       where institution_id = %s and cloture_le is null and date_debut <= %s""", (i, au)):
+        porter("engagements", x["montant"] - x["utilise"], x["devise"], x["duree_mois"], x["date_fin"])
+    return [{"libelle": lib, "valeurs": [*g[k], sum(g[k])]} for k, lib in LIGNES_DUREE]
+
+
 def annexe(u, p) -> dict:
     exiger(u)
     p = p if isinstance(p, dict) else {}
@@ -397,6 +442,10 @@ def annexe(u, p) -> dict:
         lg = [{"libelle": k, "valeurs": v} for k, v in sorted(g2.items())]
         return {**base, "forme": "tableau", "colonnes": [{"titre": "Nombre de crédits", "type": "nombre"}, {"titre": "Encours", "type": "montant"}],
                 "lignes": lg, "totaux": [sum(x["valeurs"][k] for x in lg) for k in (0, 1)]}
+    if a["code"] in ("durees-initiales", "durees-residuelles"):
+        # B27 : pas de total général, les lignes mêlent emplois, ressources et hors bilan
+        return {**base, "forme": "tableau", "colonnes": [{"titre": t, "type": "montant"} for t in (*TRANCHES_DUREE, "Total")],
+                "lignes": durees(u, au, a["code"] == "durees-initiales"), "totaux": []}
     if a["code"] == "balance-agee-nature":
         # B7 : capital restant des crédits en retard de la dernière balance âgée lancée à la date ou avant, par terme (court, moyen, long) et par tranche
         from .deblocage import terme

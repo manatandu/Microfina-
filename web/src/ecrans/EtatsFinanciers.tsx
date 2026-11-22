@@ -175,7 +175,7 @@ function EditionAnnexes({ ctx, jour }: { ctx: Ctx; jour: string }) {
     else if (r.forme === "monnaies") exporterExcel(r.titre, ["Monnaie", "Avoirs", "Avoirs (CDF)", "Engagements", "Engagements (CDF)", "Position nette (CDF)"],
       r.lignes.map((x) => [x.devise, x.avoirs / 100, x.avoirsCdf / 100, x.engagements / 100, x.engagementsCdf / 100, x.positionCdf / 100]));
     else if (r.forme === "tableau") exporterExcel(r.titre, ["", ...r.colonnes.map((c) => c.titre)],
-      [...r.lignes.map((l) => [l.libelle, ...l.valeurs.map((v, i) => (r.colonnes[i]!.type === "montant" ? v / 100 : v))]), ["TOTAL", ...r.totaux.map((v, i) => (r.colonnes[i]!.type === "montant" ? v / 100 : v))]]);
+      [...r.lignes.map((l) => [l.libelle, ...l.valeurs.map((v, i) => (r.colonnes[i]!.type === "montant" ? v / 100 : v))]), ...(r.totaux.length ? [["TOTAL", ...r.totaux.map((v, i) => (r.colonnes[i]!.type === "montant" ? v / 100 : v))]] : [])]);
     else exporterExcel(r.titre, ["Rubrique", "Compte", "Intitulé", "N", "N - 1"], r.sections.flatMap((s) => [[s.libelle, "", "", s.n / 100, s.n1 / 100], ...s.lignes.map((l) => ["", l.compte, l.intitule, l.n / 100, l.n1 / 100])]));
   }
   return (
@@ -226,10 +226,11 @@ function EditionAnnexes({ ctx, jour }: { ctx: Ctx; jour: string }) {
         <thead><tr><th scope="col"></th>{r.colonnes.map((c) => <th key={c.titre} scope="col" className="num">{c.titre}</th>)}</tr></thead>
         <tbody>{r.lignes.length === 0 && <tr><td colSpan={r.colonnes.length + 1}>No records found.</td></tr>}
           {r.lignes.map((l) => <tr key={l.libelle}><th scope="row">{l.libelle}</th>{l.valeurs.map((v, i) => <td key={i} className="num chiffres">{r.colonnes[i]!.type === "montant" ? n(v) : v}</td>)}</tr>)}</tbody>
-        <tfoot><tr><th scope="row">TOTAL</th>{r.totaux.map((v, i) => <td key={i} className="num chiffres"><strong>{r.colonnes[i]!.type === "montant" ? n(v) : v}</strong></td>)}</tr></tfoot>
+        {r.totaux.length > 0 && <tfoot><tr><th scope="row">TOTAL</th>{r.totaux.map((v, i) => <td key={i} className="num chiffres"><strong>{r.colonnes[i]!.type === "montant" ? n(v) : v}</strong></td>)}</tr></tfoot>}
       </table></div>}
       <Textes sources={["Manuel Microfina++, p. 141 : « Sélectionner : Agence, Exercice, Annexe puis cliquer sur [Rechercher] ensuite [Exporter] ou [Rein les champs] » ; capture « Edition des états annexes » (Annexe 1 : TABLEAU DES EMPLOIS ET RESSOURCES)",
         "PCCI 14.3 : tableau de flux de trésorerie (exploitation, investissement, financement, incidence du change, liquidités de début et de fin) ; 14.4 : annexe",
+        "PCCI § 10.6 et 10.7 : durées initiales et durées résiduelles des ressources, emplois et engagements hors bilan ayant une échéance contractuelle (1 mois au plus ; plus de 1 mois à 3 mois ; plus de 3 mois à 6 mois ; registre T109)",
         "Instr. BCC 009, art. 1 : tableau de flux de trésorerie et états annexes à la situation comptable (ventilation des crédits, des dépôts, des avoirs auprès de l'organe faîtier et autres intermédiaires financiers, par monnaies, des emprunts et dettes à moyen et long terme)",
         "Registre S122-8 à S122-12 : flux classés par la contrepartie des écritures de caisse et de banque ; emplois et ressources : variation des postes du bilan sur la période ; ventilations par compte divisionnaire du PCCI ; les états tirés du portefeuille (créances en retard, provisions, balances âgées) restent dans Crédit (S98, S99, S101)", REGLES]} />
       <Dialogue boite={boite} fermer={() => setBoite(null)} />

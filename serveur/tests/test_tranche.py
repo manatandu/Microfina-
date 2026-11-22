@@ -4610,7 +4610,7 @@ def test_etats_financiers(clients, journee):
     viser_valider(clients, e["id"])
     EF, q = "/api/comptabilite/etats-financiers", {"du": "2026-01-01", "au": "2026-11-05", "exercice": 2026}
     ctx = compta.get(f"{EF}/contexte", **H).json()
-    assert [a["code"] for a in ctx["annexes"]] == ["emplois", "flux", "credits", "depots", "avoirs", "monnaies", "emprunts", "engagements-normaux", "engagements-litigieux", "engagements-recus", "hors-bilan-litigieux", "agr", "balance-agee-nature"] and ctx["typesBilan"][0]["libelle"] == "Version développée"
+    assert [a["code"] for a in ctx["annexes"]] == ["emplois", "flux", "credits", "depots", "avoirs", "monnaies", "emprunts", "engagements-normaux", "engagements-litigieux", "engagements-recus", "hors-bilan-litigieux", "agr", "balance-agee-nature", "durees-initiales", "durees-residuelles"] and ctx["typesBilan"][0]["libelle"] == "Version développée"
     avant = compta.get(f"{EF}/bilan", q, **H).json()
     comptabiliser_journee(clients, journee)
     b = compta.get(f"{EF}/bilan", q, **H).json()
@@ -5135,6 +5135,25 @@ def test_comptes_courants_debiteurs(clients, journee, monkeypatch):
     y = r["creances"][0]
     assert (y["restant"], y["provision"]) == (2_000_000, 2_000_000 * taux(g) // 100)
     assert clients["caisse"].get("/api/credit/provisions/decouverts", **H).status_code == 403
+
+
+def test_etats_par_duree(clients, journee):
+    """B27 : emplois, ressources et hors bilan à échéance contractuelle, par durée initiale et par durée résiduelle (PCCI § 10.6 et 10.7)"""
+    from noyau.bd import executer
+    compta = clients["compta"]
+    cid = credit_debloque(clients, journee)                                                       # crédit sur 12 mois
+    montant = lignes_bd("select montant from credit where id = %s", (cid,))[0][0]
+    etat = lambda code: compta.get("/api/comptabilite/etats-financiers/annexe", {"exercice": 2026, "du": "2026-01-01", "au": "2026-11-05", "annexe": code}, **H).json()
+    ini = etat("durees-initiales")
+    assert [c["titre"] for c in ini["colonnes"]] == ["1 mois au plus", "Plus de 1 mois à 3 mois", "Plus de 3 mois à 6 mois", "Plus de 6 mois", "Total"]
+    assert (ini["forme"], ini["totaux"], ini["lignes"][0]["libelle"]) == ("tableau", [], "Emplois : crédits à la clientèle ou aux membres")
+    assert ini["lignes"][0]["valeurs"] == [0, 0, 0, montant, montant] and all(x["valeurs"] == [0] * 5 for x in ini["lignes"][1:])
+    assert etat("durees-residuelles")["lignes"][0]["valeurs"] == [0, 0, 0, montant, montant]
+    executer("update echeance set date_due = '2027-01-05' where credit_id = %s and date_due > '2027-01-05'", (cid,))   # dernière échéance à deux mois
+    assert etat("durees-residuelles")["lignes"][0]["valeurs"] == [0, montant, 0, 0, montant]
+    executer("update echeance set date_due = '2026-11-01' where credit_id = %s", (cid,))            # échéance dépassée : première tranche
+    assert etat("durees-residuelles")["lignes"][0]["valeurs"] == [montant, 0, 0, 0, montant]
+    assert etat("durees-initiales")["lignes"][0]["valeurs"] == [0, 0, 0, montant, montant]
 
 
 def test_interets_courus_credits(clients, journee):

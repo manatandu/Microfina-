@@ -2320,6 +2320,24 @@ describe("journée de guichet", () => {
     return cid;
   }
 
+  it("états par durée (B27 ; PCCI § 10.6 et 10.7) : crédit débloqué classé par durée initiale et par durée résiduelle", async () => {
+    const cid = await creditDebloque();
+    const c = _etat().credits.find((x) => x.id === cid)!, montant = c.montant;
+    await connecter("plumbala");
+    const etat = (annexe: string) => api.etatsFinanciers.annexe({ exercice: "2026", du: "2026-01-01", au: "2026-11-05", annexe });
+    const ini = await etat("durees-initiales");
+    if (ini.forme !== "tableau") throw new Error("forme");
+    expect(ini.colonnes.map((x) => x.titre)).toEqual(["1 mois au plus", "Plus de 1 mois à 3 mois", "Plus de 3 mois à 6 mois", "Plus de 6 mois", "Total"]);
+    expect([ini.totaux, ini.lignes[0]!.libelle, ini.lignes[0]!.valeurs, ini.lignes.slice(1).every((x) => x.valeurs.every((v) => v === 0))])
+      .toEqual([[], "Emplois : crédits à la clientèle ou aux membres", [0, 0, 0, montant, montant], true]);   // comme le serveur
+    const residuelle = async () => { const r = await etat("durees-residuelles"); if (r.forme !== "tableau") throw new Error("forme"); return r.lignes[0]!.valeurs; };
+    expect(await residuelle()).toEqual([0, 0, 0, montant, montant]);
+    for (const e of c.echeancier) if (e.date > "2027-01-05") e.date = "2027-01-05";   // dernière échéance à deux mois
+    expect(await residuelle()).toEqual([0, montant, 0, 0, montant]);
+    for (const e of c.echeancier) e.date = "2026-11-01";                               // échéance dépassée : première tranche
+    expect(await residuelle()).toEqual([montant, 0, 0, 0, montant]);
+  });
+
   it("remboursement au guichet (S76, p. 87 et 88) : retard, pénalité (CR-7), ordre (CR-20), anticipation (Instr. BCC 38, art. 11 et 14), appoint (S76-8), crédit soldé", async () => {
     const cid = await creditDebloque({ ...PRODUIT_CREDIT, penaliteRetard: 3, interetAnticipation: true });
     const c = _etat().credits.find((x) => x.id === cid)!;
@@ -3383,7 +3401,7 @@ describe("journée de guichet", () => {
     await connecter("plumbala");
     const q = { du: "2026-01-01", au: "2026-11-05", exercice: 2026 };
     const ctx = await api.etatsFinanciers.contexte();
-    expect(ctx.annexes.map((a) => a.code)).toEqual(["emplois", "flux", "credits", "depots", "avoirs", "monnaies", "emprunts", "engagements-normaux", "engagements-litigieux", "engagements-recus", "hors-bilan-litigieux", "agr", "balance-agee-nature"]);
+    expect(ctx.annexes.map((a) => a.code)).toEqual(["emplois", "flux", "credits", "depots", "avoirs", "monnaies", "emprunts", "engagements-normaux", "engagements-litigieux", "engagements-recus", "hors-bilan-litigieux", "agr", "balance-agee-nature", "durees-initiales", "durees-residuelles"]);
     for (const annexe of ["engagements-normaux", "hors-bilan-litigieux", "agr", "balance-agee-nature"]) {   // B7 : Instr. BCC 009, art. 1er
       const x = await api.etatsFinanciers.annexe({ exercice: "2026", du: "2026-01-01", au: "2026-11-05", annexe });
       expect(x.forme).toBe(annexe === "agr" || annexe === "balance-agee-nature" ? "tableau" : "ventilation");

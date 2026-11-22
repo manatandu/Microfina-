@@ -8349,6 +8349,22 @@ const etatsFinanciers = {
       return { ...base, forme: "tableau" as const, balanceDu: "", colonnes: [{ titre: "Nombre de crédits", type: "nombre" }, { titre: "Encours", type: "montant" }], lignes,
         totaux: [0, 1].map((k) => lignes.reduce((t, x) => t + x.valeurs[k]!, 0)) };
     }
+    if (a.code === "durees-initiales" || a.code === "durees-residuelles") {   // B27 : PCCI § 10.6 et 10.7. Comme etats_financiers.durees
+      const initiale = a.code === "durees-initiales", g = new Map(LIGNES_DUREE.map(([k]) => [k, TRANCHES_DUREE.map(() => 0)]));
+      const porter = (cle: string, m: number, devise: Devise, mois: number, fin: string) => { if (m <= 0) return;
+        const k = BORNES_DUREE.findIndex((b) => (initiale ? mois <= b : fin <= ajouterMois(au, b)));
+        g.get(cle)![k < 0 ? BORNES_DUREE.length : k]! += Math.round(m * coursDe(devise, au)); };
+      for (const c of E.credits.filter((x) => x.statut === "debloque" && (x.debloqueLe ?? "") <= au))
+        porter("credits", etatCredit(c, au).capitalRestant, c.devise, c.duree, (c.echeancier as EcheanceCredit[]).reduce((m, e) => (e.date > m ? e.date : m), "") || au);
+      for (const x of E.depotsTerme.filter((y) => y.statut === "valide" && y.dateDepot <= au)) porter("dat", x.montant, x.devise, x.duree, x.dateEcheance);
+      for (const x of E.plansEpargne.filter((y) => y.statut === "en_cours" && y.dateDebut <= au))
+        porter("plans", x.echeances.filter((e) => e.dateReelle && e.dateReelle <= au).reduce((t, e) => t + e.capital, 0), x.devise, x.duree, x.dateFin);
+      for (const x of E.emprunts.filter((y) => y.piece && y.dateEmprunt <= au))
+        porter("emprunts", x.montant - E.remboursementsEmprunt.filter((r) => r.empruntId === x.id && r.piece && r.date <= au).reduce((t, r) => t + r.amortissement, 0), x.devise, x.duree, ajouterMois(x.dateEmprunt, x.duree));
+      for (const x of (E.engagementsSignature ?? []).filter((y) => !y.clotureLe && y.dateDebut <= au)) porter("engagements", x.montant - (x.utilise ?? 0), x.devise, x.duree, x.dateFin);
+      const lignes = LIGNES_DUREE.map(([k, libelle]) => ({ libelle, valeurs: [...g.get(k)!, g.get(k)!.reduce((t, v) => t + v, 0)] }));
+      return { ...base, forme: "tableau" as const, balanceDu: "", colonnes: [...TRANCHES_DUREE, "Total"].map((titre) => ({ titre, type: "montant" })), lignes, totaux: [] as number[] };
+    }
     if (a.code === "balance-agee-nature") {   // B7 : crédits en retard de la dernière balance âgée lancée à la date ou avant, par terme et par tranche
       const b = [...E.balancesAgees].filter((x) => x.date <= au).sort((x, y) => y.date.localeCompare(x.date))[0];
       const degres = fixeCredit("degres"), termes = fixeCredit("termes"), tranches = degres.map((_, i) => i + 1).filter((d) => d > 1);
@@ -8469,6 +8485,10 @@ const normes = {
   },
 };
 
+// B27 : durées initiales et résiduelles (PCCI § 10.6 et 10.7). Le texte s'arrête à 6 mois : ce qui va au-delà forme la dernière colonne. Comme etats_financiers.py.
+const BORNES_DUREE = [1, 3, 6], TRANCHES_DUREE = ["1 mois au plus", "Plus de 1 mois à 3 mois", "Plus de 3 mois à 6 mois", "Plus de 6 mois"];
+const LIGNES_DUREE: [string, string][] = [["credits", "Emplois : crédits à la clientèle ou aux membres"], ["dat", "Ressources : dépôts à terme"], ["plans", "Ressources : plans d'épargne"],
+  ["emprunts", "Ressources : emprunts"], ["engagements", "Hors bilan : engagements par signature"]];
 // B22 : libellés des évènements comptables du logiciel. Mêmes libellés que serveur/noyau/etats_compta.py (EVENEMENTS_COMPTA).
 const EVENEMENTS_COMPTA: Record<string, string> = {
   depot: "Dépôt en espèces", retrait: "Retrait en espèces", adhesion: "Adhésion", achat_parts: "Achat de parts sociales", retrait_parts: "Retrait de parts sociales",
