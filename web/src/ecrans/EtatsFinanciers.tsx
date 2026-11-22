@@ -19,7 +19,7 @@ type HorsBilan = Awaited<ReturnType<typeof api.etatsFinanciers.horsBilan>>;
 type Resultat = Awaited<ReturnType<typeof api.etatsFinanciers.resultat>>;
 type Annexe = Awaited<ReturnType<typeof api.etatsFinanciers.annexe>>;
 type Indicateurs = Awaited<ReturnType<typeof api.etatsFinanciers.indicateurs>>;
-const PAGES = [["bilan", "Bilan"], ["hors-bilan", "Hors bilan"], ["resultat", "Résultat"], ["annexe", "Etat annexe"]] as const;
+const PAGES = [["bilan", "Bilan"], ["hors-bilan", "Hors bilan"], ["resultat", "Résultat"], ["annexe", "État annexe"]] as const;
 const PCCI_14 = "PCCI, chap. 14 « Comptes annuels » : 14.1 bilan (actif, 8 postes ; passif, 14 postes) et hors-bilan (00, 01, 04, 06), 14.2 compte de résultat, 14.3 tableau de flux de trésorerie ; colonnes N et N-1";
 const REGLES = "Registre S122 et T13 : écritures définitives seulement, en CDF ; comptes rattachés aux postes d'après le cadre des comptes (PCCI, chap. 9) ; « sans VIDAGE » écarte les écritures de clôture";
 
@@ -37,11 +37,11 @@ function Edition({ ctx, f, setF, libelleType, types, libelleVidage }: { ctx: Ctx
     <fieldset className="cadre-champs formulaire"><legend className="sr-only">Période et comptes</legend>
       <ChampDate libelle="Date début période :" valeur={f.du} onChange={(v) => setF({ ...f, du: v, periode: "" })} />
       <ChampDate libelle="Date fin période :" valeur={f.au} onChange={(v) => setF({ ...f, au: v, periode: "" })} />
-      <Champ libelle="Etat :">{(p) => <select {...p} className="saisie" value={f.etat} onChange={(e) => setF({ ...f, etat: e.target.value })}><option value="creation">Création</option></select>}</Champ>
+      <Champ libelle="État :">{(p) => <select {...p} className="saisie" value={f.etat} onChange={(e) => setF({ ...f, etat: e.target.value })}><option value="creation">Création</option></select>}</Champ>
       <Champ libelle="Compte :">{(p) => <input {...p} className="saisie code" inputMode="numeric" value={f.compteDe} onChange={(e) => setF({ ...f, compteDe: e.target.value })} />}</Champ>
       <Champ libelle="------- :">{(p) => <input {...p} aria-label="Compte, jusqu'à" className="saisie code" inputMode="numeric" value={f.compteA} onChange={(e) => setF({ ...f, compteA: e.target.value })} />}</Champ>
     </fieldset>
-    <fieldset className="cadre-champs formulaire"><legend className="sr-only">Etat</legend>
+    <fieldset className="cadre-champs formulaire"><legend className="sr-only">État</legend>
       <Champ libelle={libelleType}>{(p) => <select {...p} className="saisie" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}>
         {types.map((t) => <option key={t.code} value={t.code}>{t.libelle}</option>)}</select>}</Champ>
       <Champ libelle="Agence :">{(p) => <select {...p} className="saisie" value={f.agence} onChange={(e) => setF({ ...f, agence: e.target.value })}><option value="">Toutes les agences</option>

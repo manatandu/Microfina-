@@ -72,7 +72,7 @@ function PageListe({ liste, changer }: { liste: string; changer: (l: string) => 
           </fieldset>
           <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
             <thead>
-              <tr>{!c.sansCode && <th scope="col">Numero</th>}{parent && <th scope="col">{parent.colonne}</th>}
+              <tr>{!c.sansCode && <th scope="col">Numéro</th>}{parent && <th scope="col">{parent.colonne}</th>}
                 <th scope="col" aria-sort={tri}><button type="button" onClick={() => setTri(tri === "ascending" ? "descending" : "ascending")}>{c.colonne}</button></th></tr>
               <tr className="filtres">{!c.sansCode && <td />}{parent && <td />}<td><input className="saisie" type="search" aria-label={`Filtrer ${c.colonne}`} value={filtre} onChange={(e) => setFiltre(e.target.value)} /></td></tr>
             </thead>

@@ -15,12 +15,12 @@ type L = LigneOperationCompta;
 type Etape = "visa" | "validation";
 type Colonne = [string, (x: L) => ReactNode, boolean?];
 const m = (v: number, x: L) => (v ? montant(v, x.devise as Devise) : "");
-const VIREMENT: Colonne[] = [["Date operation", (x) => fr(x.date)], ["Compte epargne", (x) => x.compteEpargne], ["Numero comptable", (x) => x.numeroComptable],
-  ["Libelle de l'operation", (x) => x.libelle], ["Debit", (x) => m(x.debit, x), true], ["Crédit", (x) => m(x.credit, x), true]];
-const DIVERSE: Colonne[] = [["Date operation", (x) => fr(x.date)], ["Numero de piece", (x) => x.piece], ["Libelle de l'operation", (x) => x.libelle],
-  ["Debit", (x) => m(x.debit, x), true], ["Crédit", (x) => m(x.credit, x), true]];
-const ECRITURE: Colonne[] = [["N° Pièce", (x) => x.reference || x.transaction], ["Libelle", (x) => x.libelle], ["Montant Pièce", (x) => decimal.format(x.montant / 100), true], ["Date Opération", (x) => fr(x.date)]];
-const COMPTE: Colonne[] = [["Date operation", (x) => fr(x.date)], ["No piece", (x) => x.piece], ["Client Emetteur", (x) => x.clientEmetteur], ["Client Recepteur", (x) => x.clientRecepteur],
+const VIREMENT: Colonne[] = [["Date opération", (x) => fr(x.date)], ["Compte epargne", (x) => x.compteEpargne], ["Numéro comptable", (x) => x.numeroComptable],
+  ["Libellé de l'opération", (x) => x.libelle], ["Débit", (x) => m(x.debit, x), true], ["Crédit", (x) => m(x.credit, x), true]];
+const DIVERSE: Colonne[] = [["Date opération", (x) => fr(x.date)], ["Numéro de piece", (x) => x.piece], ["Libellé de l'opération", (x) => x.libelle],
+  ["Débit", (x) => m(x.debit, x), true], ["Crédit", (x) => m(x.credit, x), true]];
+const ECRITURE: Colonne[] = [["N° Pièce", (x) => x.reference || x.transaction], ["Libellé", (x) => x.libelle], ["Montant Pièce", (x) => decimal.format(x.montant / 100), true], ["Date Opération", (x) => fr(x.date)]];
+const COMPTE: Colonne[] = [["Date opération", (x) => fr(x.date)], ["No piece", (x) => x.piece], ["Client Emetteur", (x) => x.clientEmetteur], ["Client Recepteur", (x) => x.clientRecepteur],
   ["Compte Emetteur", (x) => x.compteEmetteur], ["Compte Recepteur", (x) => x.compteRecepteur], ["Montant", (x) => m(x.montant, x), true]];
 
 /** Une liste : flèche de visa en première colonne quand la capture la montre ; sinon la ligne s'ouvre par double-clic */

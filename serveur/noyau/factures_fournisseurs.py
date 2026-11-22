@@ -193,7 +193,7 @@ def enregistrer_commande(u, d) -> dict:
         raise ErreurMetier("À remplir : Type Commande (Paramétrage > Facture > Référence Commande).")
     f = fournisseur(u, entier(d, "fournisseurId"))
     jour = jour_ouvert(u)
-    date_op = d_iso(d.get("date"), "Date operation", jour)
+    date_op = d_iso(d.get("date"), "Date opération", jour)
     if date_op > jour:
         raise ErreurMetier("La date de l'opération ne peut pas dépasser la journée ouverte.")
     l = lignes_commande(u, d.get("lignes"))
@@ -604,7 +604,7 @@ def payer_reglement(u, rid: int, d) -> dict:
 
 # ---------- Journal achat (p. 128) et Rapport des factures (p. 128 et 153) ----------
 def rapport(u, p: dict) -> dict:
-    """Rapport > Facture : par période ou par date ; Visa (visée, validée, tout) ; Etat (soldée, en cours, annulée) ; détaillé ou groupé par fournisseur"""
+    """Rapport > Facture : par période ou par date ; Visa (visée, validée, tout) ; État (soldée, en cours, annulée) ; détaillé ou groupé par fournisseur"""
     exiger(u)
     du = d_iso(p.get("du"), "Date Début")
     au = du if p.get("mode") == "date" else d_iso(p.get("au"), "Date Fin")
@@ -663,7 +663,7 @@ def declaration_taxes(u, p: dict) -> dict:
 
 
 def bon_de_commande(u, cid: int) -> dict:
-    """Etat de validation du bon de commande (p. 150) : Bon de commande, Date, Fournisseur ; Quantité, Désignation, P.U, TVA, Montant HT, Montant TTC"""
+    """État de validation du bon de commande (p. 150) : Bon de commande, Date, Fournisseur ; Quantité, Désignation, P.U, TVA, Montant HT, Montant TTC"""
     exiger(u)
     c = une("select * from commande_fournisseur where id = %s and institution_id = %s", (cid, u["institution_id"]))
     if not c:

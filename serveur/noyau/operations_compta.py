@@ -273,10 +273,10 @@ def ecriture_supprimer(u, oid: int, rang: int) -> dict:
 
 # ---------- S116 : Autres opérations (p. 133 à 135 ; 160 et 161) ----------
 def lignes_compta(u, d, multiligne: bool) -> list[dict]:
-    """Cadre « Comptabilite » : Compte, Libelle, Montant ; plusieurs lignes quand la case multiligne est cochée"""
+    """Cadre « Comptabilite » : Compte, Libellé, Montant ; plusieurs lignes quand la case multiligne est cochée"""
     brut = d.get("lignes") if isinstance(d.get("lignes"), list) else []
     if not brut:
-        raise ErreurMetier("À remplir : Compte, Libelle et Montant.")
+        raise ErreurMetier("À remplir : Compte, Libellé et Montant.")
     if len(brut) > 1 and not multiligne:
         raise ErreurMetier("Plusieurs lignes : cocher la case multiligne.")
     out = []
@@ -284,7 +284,7 @@ def lignes_compta(u, d, multiligne: bool) -> list[dict]:
         compte = compte_libre(u, texte(x, "compte"), "Compte")
         libelle, m = texte(x, "libelle"), entier(x, "montant")
         if not libelle:
-            raise ErreurMetier("À remplir : Libelle.")
+            raise ErreurMetier("À remplir : Libellé.")
         if not m or m <= 0:
             raise ErreurMetier("Montant : un montant supérieur à zéro.")
         out.append({"compte": compte, "libelle": libelle, "montant": m})
@@ -395,7 +395,7 @@ def enregistrer_deplacee(u, d) -> dict:
         raise ErreurMetier("Agence : celle du client, autre que la vôtre ; un client de votre agence passe au guichet (Caisse > Opération).")
     nom, numero = texte(d, "nom"), texte(d, "numeroCompte")
     if not nom:
-        raise ErreurMetier("À remplir : Nom et Prenoms.")
+        raise ErreurMetier("À remplir : Nom et Prénoms.")
     if not numero:
         raise ErreurMetier("À remplir : N° Compte.")
     k = une("""select c.id from compte_depot c join tiers t on t.id = c.tiers_id where c.numero = %s and t.institution_id = %s and t.agence_id = %s""",

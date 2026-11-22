@@ -473,7 +473,7 @@ def controler_coupures(c: dict, devise: str):
 
 
 def saisir_billetage(u: dict, session_id: int, devise: str, compte: dict, bon_caisse: int = 0) -> dict:
-    """S79 : Caisse > Billetage > Enregistrer de billetage (manuel p. 90 et 91) : « Arretée de » la caisse, coupures, Bon de Caisse."""
+    """S79 : Caisse > Billetage > Enregistrer de billetage (manuel p. 90 et 91) : « Arrêtée de » la caisse, coupures, Bon de Caisse."""
     exiger(u, "caissier")
     s = une("select * from session_caisse where id = %s for update", (session_id,))
     if not s or s["caissier_id"] != u["id"]:

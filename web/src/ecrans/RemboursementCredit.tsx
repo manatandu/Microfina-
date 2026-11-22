@@ -17,7 +17,7 @@ import { OngletsGuichet, Recu, SoldesCaisse } from "./Guichet";
 import { RechercheClient } from "./Visa";
 
 type Rep = Record<string, number>;
-const REPARTITION: [string, string][] = [["capital", "Capital"], ["interet", "Intêret"], ["tva", "TVA"], ["epargne", "Epargne"], ["solidarite", "Fonds solid."], ["penalite", "Pénalité"]];
+const REPARTITION: [string, string][] = [["capital", "Capital"], ["interet", "Intérêt"], ["tva", "TVA"], ["epargne", "Epargne"], ["solidarite", "Fonds solid."], ["penalite", "Pénalité"]];
 const vide = (n: number) => (n ? decimal.format(n / 100) : "");
 
 /** Situation (brouillard, capture p. 88), Plan, Réel, Memo : les fenêtres communes de S76, S55 et S95 */
@@ -130,7 +130,7 @@ function InfosCredit({ e, fige, banque }: { e: Etat; fige: boolean; banque?: boo
       <div className="info-ligne"><dt>Débloqué le:</dt><dd className="chiffres">{d ? fr(d.debloqueLe) : ""}</dd></div>
       <div className="info-ligne"><dt>Montant prêt:</dt><dd className="chiffres">{d ? montant(d.montant, dv) : ""}</dd></div>
       <div className="info-ligne"><dt>Capital restant :</dt><dd className="chiffres">{d ? montant(d.capitalRestant, dv) : ""}</dd></div>
-      <div className="info-ligne"><dt>Rest à payer :</dt><dd className="chiffres">{d ? montant(d.resteAPayer, dv) : ""}</dd></div>
+      <div className="info-ligne"><dt>Reste à payer :</dt><dd className="chiffres">{d ? montant(d.resteAPayer, dv) : ""}</dd></div>
       <div className="info-ligne"><dt>Produit crédit:</dt><dd>{d?.produit ?? ""}</dd></div>
       <div className="info-ligne"><dt>Degré crédit:</dt><dd>{d ? <>{d.degre} <span className="negatif">Jour retard : {d.joursRetard}</span></> : ""}</dd></div>
       {banque && <div className="info-ligne"><dt>Degré réel</dt><dd>{d?.degre ?? ""}</dd></div>}

@@ -33,11 +33,11 @@ export function NouveauProspect() {
           <div className="pile">
             {agent("Sensibilisateur", "sensibilisateurId", ctx.sensibilisateurs)}{agent("Commercial", "commercialId", ctx.commerciaux)}
             <Champ libelle="Nom : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("nom")} />}</Champ>
-            <Champ libelle="Prenoms : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("prenom")} />}</Champ>
+            <Champ libelle="Prénoms : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("prenom")} />}</Champ>
             <ChampDate libelle="Date naissance : *" valeur={d.naissance} onChange={(v) => maj({ naissance: v })} requis />
             <Champ libelle="à : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("lieuNaissance")} />}</Champ>
             <Champ libelle="Sexe : *">{(p) => <select {...p} className="saisie court" required {...texte("sexe")}><option value=""></option><option value="M">M</option><option value="F">F</option></select>}</Champ>
-            <Champ libelle="Proffession :">{(p) => <select {...p} className="saisie" {...texte("profession")}><option value=""></option>{ctx.professions.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+            <Champ libelle="Profession :">{(p) => <select {...p} className="saisie" {...texte("profession")}><option value=""></option>{ctx.professions.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
           </div>
           <div className="pile">
             <BlocAdresse valeur={d} maj={maj} arbre={ctx.arbreLieux} requis ajouterQuartier={api.adresse.ajouterQuartier} />
@@ -54,7 +54,7 @@ export function NouveauProspect() {
         </div>
       </section>
       <Paginee lignes={liste}>{(visibles) => (<table className="grille">
-        <thead><tr><th scope="col">Nom / Prenom</th><th scope="col">Né(e) le</th><th scope="col">Profession</th><th scope="col">Quartier</th><th scope="col">Agence</th></tr></thead>
+        <thead><tr><th scope="col">Nom / Prénom</th><th scope="col">Né(e) le</th><th scope="col">Profession</th><th scope="col">Quartier</th><th scope="col">Agence</th></tr></thead>
         <tbody>
           {liste.length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
           {visibles.map((t) => (

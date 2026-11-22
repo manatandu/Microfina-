@@ -233,11 +233,11 @@ export function TraitementsBiens() {
     </section>}
     {page === "inventaire" && <section className="bloc pile" aria-label="Inventaire de biens"><h1>Inventaire de biens</h1>
       <div className="deux-colonnes"><fieldset className="cadre-champs formulaire"><legend className="sr-only">Inventaire</legend>{choixBien}
-        <Champ libelle="Etat du bien *">{(p) => <select {...p} className="saisie" value={f.etat ?? ""} onChange={(e) => maj("etat", e.target.value)}><option value=""></option>{ctx.etats.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+        <Champ libelle="État du bien *">{(p) => <select {...p} className="saisie" value={f.etat ?? ""} onChange={(e) => maj("etat", e.target.value)}><option value=""></option>{ctx.etats.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
         <ChampDate libelle="Date inventaire *" valeur={f.date ?? ""} onChange={(x) => maj("date", x)} />
         <Champ libelle="Observation">{(p) => <textarea {...p} className="saisie" rows={2} value={f.observation ?? ""} onChange={(e) => maj("observation", e.target.value)} />}</Champ></fieldset>
         <fieldset className="cadre-champs"><legend>Détails bien</legend><dl className="definitions"><dt>Détenteur</dt><dd>{bien?.detenteur}</dd><dt>Direction/Cellule</dt><dd>{bien?.departement}</dd>
-          <dt>Localisation</dt><dd>{bien?.localisation}</dd><dt>Etat</dt><dd>{bien?.statut}</dd></dl></fieldset></div>
+          <dt>Localisation</dt><dd>{bien?.localisation}</dd><dt>État</dt><dd>{bien?.statut}</dd></dl></fieldset></div>
       <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => { setBien(null); setF({ par: "materiel" }); }}>Effacer</button>
         <button className="bouton" type="button" onClick={() => c.confirmer("Voulez-vous vraiment enregistrer ?", () => api.immobilisations.inventorier({ bienId: bien?.id, etat: f.etat, date: f.date, observation: f.observation }))}>Enregistrer</button></div>
     </section>}
@@ -269,7 +269,7 @@ export function TraitementsBiens() {
   </>;
 }
 
-const PAGES_RAPPORTS = [["biens", "Liste des biens par localisation"], ["inventaires", "Liste des inventaires"], ["tableau", "Tableau d'amortissement"], ["suivi", "Etat de suivi de bien"], ["multicritere", "Etat recherche multicritère"]] as const;
+const PAGES_RAPPORTS = [["biens", "Liste des biens par localisation"], ["inventaires", "Liste des inventaires"], ["tableau", "Tableau d'amortissement"], ["suivi", "État de suivi de bien"], ["multicritere", "État recherche multicritère"]] as const;
 /** S140 : rapports (p. 7 à 9) */
 export function RapportsImmo() {
   const [params, setParams] = useSearchParams();
@@ -296,10 +296,10 @@ export function RapportsImmo() {
   const elements = <fieldset className="cadre-champs formulaire"><legend>Eléments de la recherche</legend>
     {sel("categorieId", "Catégorie bien", ctx.categories)}{sel("familleId", "Famille", ctx.familles.map((x) => ({ id: x.id, libelle: x.libelle })))}{sel("utilisationId", "Utilisation", ctx.utilisations)}
     {sel("statut", "Statut bien", ["LIBRE", "AFFECTE", "SORTI"])}{sel("subventionne", "Bien subventionné", ["Oui", "Non"])}{sel("amorti", "Bien amorti", ["Oui", "Non"])}
-    {sel("localisationId", "Localisation", ctx.localisations)}{page === "inventaires" && sel("etat", "Etat du bien", ctx.etats)}</fieldset>;
+    {sel("localisationId", "Localisation", ctx.localisations)}{page === "inventaires" && sel("etat", "État du bien", ctx.etats)}</fieldset>;
   const lignes = (r ?? []) as Record<string, string | number | boolean | null>[];
-  const titre = { biens: "Eléments immobilisés sur une période donnée", inventaires: "Etat des inventaires sur une période donnée", tableau: "Tableau Amortissement",
-    suivi: "Etat des transferts de biens effectués sur une période donnée", multicritere: "Recherche multicritère sur les biens acquis" }[page];
+  const titre = { biens: "Eléments immobilisés sur une période donnée", inventaires: "État des inventaires sur une période donnée", tableau: "Tableau Amortissement",
+    suivi: "État des transferts de biens effectués sur une période donnée", multicritere: "Recherche multicritère sur les biens acquis" }[page];
   return <>
     <div className="onglets" role="tablist" aria-label="Rapports">{PAGES_RAPPORTS.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={page === k} onClick={() => { setR(null); setParams(k === "biens" ? {} : { page: k }); }}>{l}</button>)}</div>
     <section className="bloc pile" aria-label={titre}><h1>{titre}</h1>
@@ -322,7 +322,7 @@ export function RapportsImmo() {
         <th scope="col" className="num">Prix d'acquisition</th><th scope="col" className="num">Cumul amortissements</th><th scope="col">Statut</th><th scope="col">Détenteur</th></tr></thead>
         <tbody>{lignes.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}{lignes.map((b) => <tr key={String(b.id)}><td className="code">{String(b.codification)}</td><td>{String(b.libelle)}</td><td>{String(b.localisation)}</td>
           <td>{fr(String(b.dateAcquisition))}</td><td className="num chiffres">{n(b.prixAcquisition as number)}</td><td className="num chiffres">{n(b.cumulAmortissements as number)}</td><td>{String(b.statut)}</td><td>{String(b.detenteur)}</td></tr>)}</tbody></table>}
-      {r && page === "inventaires" && <table className="grille"><thead><tr><th scope="col">Date</th><th scope="col">Code</th><th scope="col">Libellé</th><th scope="col">Etat</th><th scope="col">Observation</th><th scope="col">Par</th></tr></thead>
+      {r && page === "inventaires" && <table className="grille"><thead><tr><th scope="col">Date</th><th scope="col">Code</th><th scope="col">Libellé</th><th scope="col">État</th><th scope="col">Observation</th><th scope="col">Par</th></tr></thead>
         <tbody>{lignes.length === 0 && <tr><td colSpan={6}>Aucune ligne.</td></tr>}{lignes.map((x, i) => <tr key={i}><td>{fr(String(x.date))}</td><td className="code">{String(x.codification)}</td><td>{String(x.libelle)}</td><td>{String(x.etat)}</td><td>{String(x.observation)}</td><td>{String(x.par)}</td></tr>)}</tbody></table>}
       {r && page === "suivi" && <table className="grille"><thead><tr><th scope="col">Date</th><th scope="col">Code</th><th scope="col">Libellé</th><th scope="col">Ancien détenteur</th><th scope="col">Nouveau détenteur</th><th scope="col">Ancienne localisation</th><th scope="col">Nouvelle localisation</th></tr></thead>
         <tbody>{lignes.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}{lignes.map((x, i) => <tr key={i}><td>{fr(String(x.date))}</td><td className="code">{String(x.codification)}</td><td>{String(x.libelle)}</td><td>{String(x.ancienDetenteur)}</td><td>{String(x.nouveauDetenteur)}</td><td>{String(x.ancienneLocalisation)}</td><td>{String(x.nouvelleLocalisation)}</td></tr>)}</tbody></table>}

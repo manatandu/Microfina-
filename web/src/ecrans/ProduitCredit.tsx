@@ -145,8 +145,8 @@ export default function ProduitCredit({ listeOuverte = false }: { listeOuverte?:
         <Paginee lignes={produits}>{(visibles) => (<table className="grille">
           <caption>Liste des produits crédits</caption>
           <thead>
-            <tr><th scope="col">Numero</th><th scope="col">Produit</th><th scope="col">Type de client</th><th scope="col" className="num">Taux interet</th><th scope="col" className="num">Taux différé</th></tr>
-            <tr className="filtres"><td><input className="saisie" type="search" aria-label="Filtrer Numero" value={filtres.numero} onChange={(e) => setFiltres({ ...filtres, numero: e.target.value })} /></td>
+            <tr><th scope="col">Numéro</th><th scope="col">Produit</th><th scope="col">Type de client</th><th scope="col" className="num">Taux d'intérêt</th><th scope="col" className="num">Taux différé</th></tr>
+            <tr className="filtres"><td><input className="saisie" type="search" aria-label="Filtrer Numéro" value={filtres.numero} onChange={(e) => setFiltres({ ...filtres, numero: e.target.value })} /></td>
               <td><input className="saisie" type="search" aria-label="Filtrer Produit" value={filtres.nom} onChange={(e) => setFiltres({ ...filtres, nom: e.target.value })} /></td><td /><td /><td /></tr>
           </thead>
           <tbody>

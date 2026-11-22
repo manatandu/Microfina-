@@ -42,7 +42,7 @@ def lire(u) -> dict:
 
 
 def enregistrer(u, d) -> dict:
-    """Enregistrer la page Information Societe (registre S32-1 à S32-4)"""
+    """Enregistrer la page Information Société (registre S32-1 à S32-4)"""
     exiger(u, "chef_agence")                  # profil habilité : registre T07, en attendant S03 à S06
     d = d if isinstance(d, dict) else {}
     i = u["institution_id"]

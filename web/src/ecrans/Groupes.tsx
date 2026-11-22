@@ -111,7 +111,7 @@ export function GroupeSolidaire() {
                 <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
               </div>
               <Champ libelle="Intitulé :">{(p) => <Lecture {...p} value={client ? client.intitule || nomComplet(client) : ""} />}</Champ>
-              <Champ libelle="Categorie :">{(p) => <Lecture {...p} value={client?.typeClient ?? ""} />}</Champ>
+              <Champ libelle="Catégorie :">{(p) => <Lecture {...p} value={client?.typeClient ?? ""} />}</Champ>
               <Champ libelle="Né (e) le :">{(p) => <input {...p} className="saisie date" readOnly value={client ? fr(client.naissance) : ""} />}</Champ>
               <div className="actions-onglets">
                 <button className="bouton" type="button" disabled={!client || !groupeId} onClick={() => {

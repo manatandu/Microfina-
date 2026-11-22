@@ -121,7 +121,7 @@ export function OuvertureExercice() {
       <h1>Ouverture d'un Exercice</h1>
       <section className="bloc pile" aria-label="Ouverture d'un Exercice">
         <div className="ligne-champ">
-          <Champ libelle="Exerice à ouvrir">{(p) => <input {...p} className="saisie code" inputMode="numeric" value={saisie} onChange={(e) => setSaisie(e.target.value)} />}</Champ>
+          <Champ libelle="Exercice à ouvrir">{(p) => <input {...p} className="saisie code" inputMode="numeric" value={saisie} onChange={(e) => setSaisie(e.target.value)} />}</Champ>
           <button className="bouton secondaire" type="button" onClick={() => setChoisi(saisie.trim())}>Exercice à ouvrir</button>
         </div>
         <fieldset className="pile cadre-champs">
@@ -161,7 +161,7 @@ export function CompleterJournalDetail() {
       <h1>Completer journal detail de l'exercice encours</h1>
       <section className="bloc pile" aria-label="Compléter journal détail">
         <div className="ligne-champ">
-          <Champ libelle="Exerice encours">{(p) => <input {...p} className="saisie code" readOnly value={a ?? ""} />}</Champ>
+          <Champ libelle="Exercice encours">{(p) => <input {...p} className="saisie code" readOnly value={a ?? ""} />}</Champ>
         </div>
         <ListeDetails lignes={manquants} vide="Aucune ligne." coches={coches} cocher={(id, v) => setCoches(v ? [...coches, id] : coches.filter((x) => x !== id))} />
         <div className="actions-onglets">

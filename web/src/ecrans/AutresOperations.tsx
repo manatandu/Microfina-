@@ -70,13 +70,13 @@ function ChampsLignes({ g, ctx, devise }: { g: ReturnType<typeof useLignes>; ctx
   return <>
     <div className="ligne-champ">
       <Champ libelle="Compte *">{(p) => <input {...p} className="saisie code" inputMode="numeric" autoComplete="off" list="comptes-libres" value={g.s.compte} onChange={(e) => g.setS({ ...g.s, compte: e.target.value })} />}</Champ>
-      <Champ libelle="Libelle *">{(p) => <input {...p} className="saisie" autoComplete="off" value={g.s.libelle} onChange={(e) => g.setS({ ...g.s, libelle: e.target.value })} />}</Champ>
+      <Champ libelle="Libellé *">{(p) => <input {...p} className="saisie" autoComplete="off" value={g.s.libelle} onChange={(e) => g.setS({ ...g.s, libelle: e.target.value })} />}</Champ>
       <Champ libelle="Montant *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={g.s.montant} onChange={(e) => g.setS({ ...g.s, montant: e.target.value })} />}</Champ>
       {g.multi && <button className="bouton secondaire" type="button" onClick={g.ajouter}>Ajouter</button>}
     </div>
     <datalist id="comptes-libres">{ctx.comptes.map((c) => <option key={c.numero} value={c.numero}>{c.libelle}</option>)}</datalist>
     {g.multi && <div className="defile-x"><table className="grille">
-      <thead><tr><th scope="col">Compte</th><th scope="col">Libelle</th><th scope="col" className="num">Montant</th><th scope="col"><span className="sr-only">Retirer</span></th></tr></thead>
+      <thead><tr><th scope="col">Compte</th><th scope="col">Libellé</th><th scope="col" className="num">Montant</th><th scope="col"><span className="sr-only">Retirer</span></th></tr></thead>
       <tbody>{g.l.length === 0 && <tr><td colSpan={4}>Aucune ligne.</td></tr>}
         {g.l.map((x, i) => <tr key={i}><td className="code">{x.compte}</td><td>{x.libelle}</td><td className="num chiffres">{montant(x.montant, devise)}</td>
           <td><button className="bouton secondaire" type="button" aria-label={`Retirer ${x.libelle}`} onClick={() => g.retirer(i)}>Supprimer</button></td></tr>)}</tbody>
@@ -105,7 +105,7 @@ function VirementPrelevement({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
     <div className="deux-colonnes">
       <fieldset className="cadre-champs formulaire"><legend>Agence</legend>
         <Champ libelle="Agence *">{(p) => <Lecture {...p} value={ctx.agence.nom} />}</Champ>
-        <ChampDate libelle="Date operation *" valeur={date || ctx.date} onChange={setDate} requis />
+        <ChampDate libelle="Date opération *" valeur={date || ctx.date} onChange={setDate} requis />
       </fieldset>
       <Identifiant titre="Identifiant Client" agence={ctx.agence.nom} k={k} chercher={() => setCherche(true)} />
       <fieldset className="cadre-champs pile"><legend>Type operation</legend>
@@ -154,7 +154,7 @@ function CompteACompte({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
         <button type="button" role="tab" aria-selected={etape === "emetteur"} onClick={() => setEtape("emetteur")}>Emetteur</button>
         <button type="button" role="tab" aria-selected={etape === "recepteur"} onClick={suivant}>Recepteur</button>
       </div>
-      <p>Periode <strong className="chiffres">{fr(ctx.date)}</strong></p>
+      <p>Période <strong className="chiffres">{fr(ctx.date)}</strong></p>
     </div>
     {etape === "emetteur" ? <>
       <div className="deux-colonnes">
@@ -219,7 +219,7 @@ function OperationDiverse({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
     </fieldset>
     <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button><button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button></div>
     <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
-      <thead><tr><th scope="col"><span className="sr-only">Sens</span></th><th scope="col">Date opération</th><th scope="col">Numero de piece</th><th scope="col">Libelle de l'opération</th>
+      <thead><tr><th scope="col"><span className="sr-only">Sens</span></th><th scope="col">Date opération</th><th scope="col">Numéro de piece</th><th scope="col">Libellé de l'opération</th>
         <th scope="col" className="num">Montant</th><th scope="col">Date visa</th><th scope="col">Date validation</th></tr></thead>
       <tbody>{lignes.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
         {visibles.map((x) => <tr key={x.id}><td><Sens x={x} /></td><td className="chiffres">{fr(x.date)}</td><td className="chiffres">{x.piece}</td><td>{x.libelle}</td>
@@ -249,24 +249,24 @@ function OperationsDeplacees({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
   const texte = (libelle: string, k: keyof typeof vide, classe = "saisie") => <Champ libelle={libelle}>{(p) => <input {...p} className={classe} autoComplete="off"
     inputMode={k === "montant" ? "decimal" : undefined} value={f[k]} onChange={(e) => maj({ [k]: e.target.value })} />}</Champ>;
   return <>
-    <fieldset className="cadre-champs pile"><legend>Operation</legend>
+    <fieldset className="cadre-champs pile"><legend>Opération</legend>
       <div className="ligne-champ">
         <Champ libelle="Agence">{(p) => <select {...p} className="saisie" value={f.agence} onChange={(e) => maj({ agence: e.target.value })}><option value=""></option>
           {ctx.agences.filter((a) => a.id !== ctx.agence.id).map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
         <Champ libelle="Type operation">{(p) => <select {...p} className="saisie" value={f.sens} onChange={(e) => maj({ sens: e.target.value })}>
           <option value="DEPOT">Dépot Espèces</option><option value="RETRAIT">Retrait Espèces</option></select>}</Champ>
-        {texte("Reference", "reference")}
-        <Champ libelle="Date operation">{(p) => <Lecture {...p} value={fr(ctx.date)} />}</Champ>
+        {texte("Référence", "reference")}
+        <Champ libelle="Date opération">{(p) => <Lecture {...p} value={fr(ctx.date)} />}</Champ>
       </div>
-      <div className="ligne-champ">{texte("N° Client", "numeroClient", "saisie code")}{texte("Nom et Prenoms *", "nom")}</div>
+      <div className="ligne-champ">{texte("N° Client", "numeroClient", "saisie code")}{texte("Nom et Prénoms *", "nom")}</div>
       <div className="ligne-champ">{texte("N° Compte *", "numeroCompte", "saisie code")}{texte("Montant *", "montant", "saisie montant")}</div>
     </fieldset>
     <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button><button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button></div>
     <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
-      <thead><tr><th scope="col"><span className="sr-only">Sens</span></th><th scope="col">Operation</th><th scope="col">N° Membre</th><th scope="col">N° Compte</th><th scope="col">Nom et Prenoms</th>
-        <th scope="col" className="num">Montant</th><th scope="col">Numero de piece</th><th scope="col">Visa</th></tr>
+      <thead><tr><th scope="col"><span className="sr-only">Sens</span></th><th scope="col">Opération</th><th scope="col">N° Membre</th><th scope="col">N° Compte</th><th scope="col">Nom et Prénoms</th>
+        <th scope="col" className="num">Montant</th><th scope="col">Numéro de piece</th><th scope="col">Visa</th></tr>
         <tr className="filtres"><td /><td /><td><input className="saisie" type="search" aria-label="Filtrer N° Membre" value={filtre.membre} onChange={(e) => setFiltre({ ...filtre, membre: e.target.value })} /></td><td />
-          <td><input className="saisie" type="search" aria-label="Filtrer Nom et Prenoms" value={filtre.nom} onChange={(e) => setFiltre({ ...filtre, nom: e.target.value })} /></td><td /><td /><td /></tr></thead>
+          <td><input className="saisie" type="search" aria-label="Filtrer Nom et Prénoms" value={filtre.nom} onChange={(e) => setFiltre({ ...filtre, nom: e.target.value })} /></td><td /><td /><td /></tr></thead>
       <tbody>{lignes.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
         {visibles.map((x) => <tr key={x.id}><td><Sens x={x} /></td><td>{x.sens === "DEPOT" ? "Dépot Espèces" : "Retrait Espèces"}</td><td className="chiffres">{x.numeroClient}</td><td className="code">{x.compteEpargne}</td>
           <td>{x.nomClient}</td><td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td><td className="chiffres">{x.piece}</td><td className="chiffres">{fr(x.dateVisa)}</td></tr>)}</tbody>
@@ -274,7 +274,7 @@ function OperationsDeplacees({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
   </>;
 }
 
-const ONGLETS = ["Virement/Prélèvement", "Virement compte à compte", "Opération diverse", "Operations deplacées"];
+const ONGLETS = ["Virement/Prélèvement", "Virement compte à compte", "Opération diverse", "Opérations déplacées"];
 export default function AutresOperations() {
   const { donnees: ctx } = useDonnees(() => api.operationsCompta.lire());
   const [onglet, setOnglet] = useState(0);

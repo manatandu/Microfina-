@@ -169,7 +169,7 @@ function RecherchePlan({ choisi, choisir }: { choisi: Plan | null; choisir: (p: 
           <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
         </div>
         <Champ libelle="Nom et prénoms du Client: *">{(pp) => <Lecture {...pp} value={t ? nomComplet(t) : ""} />}</Champ>
-        <Champ libelle="N°Contrant : *">{(pp) => <select {...pp} className="saisie" value={choisi?.id ?? ""} onChange={(e) => choisir((plans ?? []).find((x) => x.id === Number(e.target.value)) ?? null)}>
+        <Champ libelle="N° Contrat : *">{(pp) => <select {...pp} className="saisie" value={choisi?.id ?? ""} onChange={(e) => choisir((plans ?? []).find((x) => x.id === Number(e.target.value)) ?? null)}>
           <option value=""></option>{(plans ?? []).map((x) => <option key={x.id} value={x.id}>{x.numero}</option>)}</select>}</Champ>
       </div>
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
@@ -199,7 +199,7 @@ function Consultation() {
   const [tb, setTb] = useState<Tableau | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   async function afficher() {
-    if (!plan) { setBoite({ type: "erreur", message: "À remplir : N°Contrant." }); return; }
+    if (!plan) { setBoite({ type: "erreur", message: "À remplir : N° Contrat." }); return; }
     try { setTb(await api.plansEpargne.tableau(plan.id, filtre)); } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   }
   const dev = (tb?.plan.devise ?? "CDF") as Devise;
@@ -245,7 +245,7 @@ function Cotisations() {
   const [coches, setCoches] = useState<number[]>([]);
   const [boite, setBoite] = useState<Boite | null>(null);
   async function afficher() {
-    if (!plan) { setBoite({ type: "erreur", message: "À remplir : N°Contrant." }); return; }
+    if (!plan) { setBoite({ type: "erreur", message: "À remplir : N° Contrat." }); return; }
     try { setTb(await api.plansEpargne.tableau(plan.id, filtre)); setCoches([]); } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   }
   const dev = (tb?.plan.devise ?? "CDF") as Devise;

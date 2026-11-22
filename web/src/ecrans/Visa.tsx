@@ -68,7 +68,7 @@ export function VisaClient() {
               <button className="bouton secondaire" type="button" aria-label="Rechercher un client" disabled={vise} onClick={() => setRecherche(true)}>Rechercher</button>
             </div>
             <Champ libelle="Intitulé : *">{(p) => <input {...p} className="saisie" required readOnly={!t || vise} autoComplete="off" value={intitule} onChange={(e) => setIntitule(e.target.value)} />}</Champ>
-            <Champ libelle={`Prémier dépôt :${t ? ` (${deviseDe(ctx, t)})` : ""}`}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" readOnly={!t || vise} autoComplete="off" value={depot} onChange={(e) => setDepot(e.target.value)} />}</Champ>
+            <Champ libelle={`Premier dépôt :${t ? ` (${deviseDe(ctx, t)})` : ""}`}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" readOnly={!t || vise} autoComplete="off" value={depot} onChange={(e) => setDepot(e.target.value)} />}</Champ>
             <Champ libelle="Date Demande *">{(p) => <input {...p} className="saisie date" readOnly value={t ? fr(t.dateDemande) : ""} />}</Champ>
             <ChampDate libelle="Date Visa *" valeur={dateVisa} onChange={setDateVisa} requis />
             {t && aDesParts(ctx.institution) && (vise
@@ -163,7 +163,7 @@ export function RechercheClient({ source, choisir, fermer }: { source: (q: strin
       <fieldset className="cadre-champs">
         <legend>Filtre</legend>
         <div className="ligne-champ">
-          {champ("numero", "Numero:")}{champ("nom", "Nom:")}{champ("prenom", "Prénom:")}
+          {champ("numero", "Numéro:")}{champ("nom", "Nom:")}{champ("prenom", "Prénom:")}
           <button className="bouton secondaire" type="button" onClick={() => setCherche(f)}>Rechercher</button>
         </div>
       </fieldset>
@@ -221,7 +221,7 @@ export function ModificationFrais() {
             </div>
             <Champ libelle="Date Visa *">{(p) => <input {...p} className="saisie date" readOnly value={t ? fr(t.dateVisa) : ""} />}</Champ>
             <Champ libelle="Nom ou Raison sociale :">{(p) => <Lecture {...p} value={t ? t.intitule || nomComplet(t) : ""} />}</Champ>
-            <Champ libelle="Prémier dépôt:">{(p) => <input {...p} className="saisie montant" readOnly value={t ? montant(t.premierDepot, deviseDe(ctx, t)) : ""} />}</Champ>
+            <Champ libelle="Premier dépôt:">{(p) => <input {...p} className="saisie montant" readOnly value={t ? montant(t.premierDepot, deviseDe(ctx, t)) : ""} />}</Champ>
             <Champ libelle="Date Demande *">{(p) => <input {...p} className="saisie date" readOnly value={t ? fr(t.dateDemande) : ""} />}</Champ>
           </fieldset>
           <fieldset className="pile cadre-champs">
@@ -569,13 +569,13 @@ export function ResiliationClient() {
           {lu("Secteur d'activité :", t?.secteurActivite ?? "")}{lu("Type d'activité :", t?.typeActivite ?? "")}
           {lu(t?.type === "physique" ? "Nom :" : "Raison sociale :", t ? nomComplet(t) : "")}{t?.type !== "physique" && lu("RCCM :", t?.registre ?? "")}
           {lu("Créé le :", t ? fr(t.creeLe) : "")}{t?.type === "physique" && lu("Nationalité :", t?.nationalite ?? "")}
-          {lu("Type de pièce :", t?.pieceType ?? "")}{lu("Numero de pièce :", t?.pieceNumero ?? "")}
+          {lu("Type de pièce :", t?.pieceType ?? "")}{lu("Numéro de pièce :", t?.pieceNumero ?? "")}
           {lu("Etabli à:", t?.pieceLieu ?? "")}{lu("Date dexpiration : *", t ? fr(t.pieceExpire) : "")}
           {t?.type === "groupe" && <>{lu("Type de Groupement :", t.typeClient)}{lu("Nombre d'Homme :", String(t.nbHommes))}{lu("Nombre de Femme :", String(t.nbFemmes))}</>}
         </fieldset>
         <div className="deux-colonnes">
           <div className="formulaire">
-            {lu("Resilié le", fr(jour))}
+            {lu("Résilié le", fr(jour))}
             <Champ libelle="Motif *">{(p) => resilie
               ? <Lecture {...p} value={t!.motifDepart} />
               : <select {...p} className="saisie" required value={motif} onChange={(e) => setMotif(e.target.value)}><option value=""></option>
@@ -817,8 +817,8 @@ export function Consentement() {
             <dl className="infos">
               {info("Intitulé client :", t ? t.intitule || nomComplet(t) : "")}{info("Téléphone :", t?.telephone ?? "")}{info("Adresse :", t?.adresse ?? "")}
               {info("Sexe :", t?.sexe ?? "")}{info("Email :", t?.email ?? "")}{info("Résident :", t ? (t.resident ? "Oui" : "Non") : "")}
-              {info("Type Pièce", t?.pieceType ?? "")}{info("N° de Pièce :", t?.pieceNumero ?? "")}{info("Pays de délivrace :", t?.pieceLieu ?? "")}
-              {info("Date de délivrace :", t ? fr(t.pieceDelivreeLe) : "")}{info("Date d'expiration :", t ? fr(t.pieceExpire) : "")}
+              {info("Type Pièce", t?.pieceType ?? "")}{info("N° de Pièce :", t?.pieceNumero ?? "")}{info("Pays de délivrance :", t?.pieceLieu ?? "")}
+              {info("Date de délivrance :", t ? fr(t.pieceDelivreeLe) : "")}{info("Date d'expiration :", t ? fr(t.pieceExpire) : "")}
             </dl>
           </fieldset>
           <fieldset className="pile cadre-champs">

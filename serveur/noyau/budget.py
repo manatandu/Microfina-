@@ -8,15 +8,15 @@ from .moteur import Referentiel, ch, jour_mois
 CATALOGUE = [
     {"page": "types_centre", "table": "budget_type_centre", "menu": "Types de centre de coût", "entete": "Création et mise à jour des types de centre de coût",
      "grille": "Liste des types de centres de coût", "rafraichir": True, "parentMemeTable": True, "champs": [
-         ch("code", "code", "Code :", colonne="Code"), ch("libelle", "libelle", "Libellé :", colonne="Libelle"),
+         ch("code", "code", "Code :", colonne="Code"), ch("libelle", "libelle", "Libellé :", colonne="Libellé"),
          ch("parentId", "parent_id", "Parent", "choix", False, "types_centre", colonne="Parent")]},
     {"page": "centres", "table": "budget_centre", "menu": "Centres de coût", "entete": "Création et mise à jour des centres de coût",
      "grille": "Liste des centres de coût", "filtres": True, "parentMemeTable": True, "champs": [
-         ch("code", "code", "Code :", colonne="Code"), ch("libelle", "libelle", "Libellé:", colonne="Libelle"),
+         ch("code", "code", "Code :", colonne="Code"), ch("libelle", "libelle", "Libellé:", colonne="Libellé"),
          ch("typeId", "type_id", "Type :", "choix", True, "types_centre", colonne="Type"),
          ch("parentId", "parent_id", "Parent", "choix", False, "centres", colonne="Parent")]},
     {"page": "types_budget", "table": "budget_type", "menu": "Types de budget", "entete": "Type de budget", "champs": [
-         ch("code", "code", "Code :", colonne="Code"), ch("libelle", "libelle", "Libellé :", colonne="Libelle"),
+         ch("code", "code", "Code :", colonne="Code"), ch("libelle", "libelle", "Libellé :", colonne="Libellé"),
          ch("paramCompte", "param_compte", "Param Compte:", "compte", False, aide="( Ex1 : 6*,712* Ex2 : 5*,3327258 )", colonne="Param Compte")]},
     {"page": "types_periode", "table": "budget_type_periode", "menu": "Types de période", "entete": "Types de période", "cadre": "Type de période",
      "grille": "Liste des Types de Périodes Budgétaires", "champs": [
@@ -38,7 +38,7 @@ CATALOGUE = [
          ch("planId", "plan_id", "Plan Budgétaire", "choix", True, "plans", colonne="Plan BudGetaire"),
          ch("centreId", "centre_id", "Centre de coût", "choix", True, "centres", colonne="Centre de coût"),
          ch("bailleurId", "bailleur_id", "Bailleur", "choix", False, "bailleurs", colonne="Bailleur")]},
-    {"page": "operations", "table": "budget_operation", "menu": "Operations", "entete": "Liaison des éléments du budget aux opérations",
+    {"page": "operations", "table": "budget_operation", "menu": "Opérations", "entete": "Liaison des éléments du budget aux opérations",
      "grille": "Liste des types de budgets paramétrés sur les types d'opération", "unique": ["typeOperation"], "champs": [
          ch("typeOperation", "type_operation", "Type opération :", "operation", colonne="Type opération"),
          ch("typeBudgetId", "type_budget_id", "Type budget :", "choix", True, "types_budget", colonne="Type budget")]},
@@ -66,7 +66,7 @@ CHOIX = {
 UTILISE_PAR = {
     "types_centre": [("budget_type_centre", "parent_id", "Types de centre de coût"), ("budget_centre", "type_id", "Centres de coût")],
     "centres": [("budget_centre", "parent_id", "Centres de coût"), ("budget_ligne", "centre_id", "Ligne de plan budgétaire")],
-    "types_budget": [("budget_operation", "type_budget_id", "Operations")],
+    "types_budget": [("budget_operation", "type_budget_id", "Opérations")],
     "types_periode": [("budget_periode", "type_id", "Périodes")],
     "plans": [("budget_ligne", "plan_id", "Ligne de plan budgétaire")],
 }

@@ -60,7 +60,7 @@ export function BilletageCaisse() {
               <Champ libelle={`Total Caisse (${d})`}>{(p) => <input {...p} className="saisie montant" readOnly value={montant(totalComptage(compte(d)) + (bonDe(d) ?? 0), d)} />}</Champ>
             </div>
             <table className="grille colonnes-billetage">
-              <thead><tr><th scope="col">Libelle</th><th scope="col">Nombre</th><th scope="col" className="num">Total</th></tr></thead>
+              <thead><tr><th scope="col">Libellé</th><th scope="col">Nombre</th><th scope="col" className="num">Total</th></tr></thead>
               <tbody>
                 {coupuresDe(d).map((v) => {
                   const libelle = `${libelleCoupure(d, v)} ${d}`;   // registre S79-4 : libellé du type de monnaie (S35)
@@ -150,7 +150,7 @@ export function ValidationBilletage() {
                       <input {...p} className="saisie montant" readOnly data-ecart={ecart ? "" : undefined} value={montant(ecart, d)} />}</Champ>; })()}
                 </div>
                 <table className="grille">
-                  <thead><tr><th scope="col">Libelle</th><th scope="col">Nombre</th><th scope="col" className="num">Montant</th></tr></thead>
+                  <thead><tr><th scope="col">Libellé</th><th scope="col">Nombre</th><th scope="col" className="num">Montant</th></tr></thead>
                   <tbody>
                     {lignes.length === 0 && <tr><td colSpan={3}>Aucune ligne.</td></tr>}
                     {lignes.map(({ v, n }) => <tr key={v}><td>{libelleCoupure(d, v)} {d}</td><td className="chiffres">{n}</td><td className="num chiffres">{montant(n * v * 100, d)}</td></tr>)}

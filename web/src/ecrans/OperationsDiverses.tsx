@@ -37,7 +37,7 @@ export default function ParametrageAutresOperations() {
           <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
         </div>
         <table className="grille">
-          <thead><tr><th scope="col">Sens</th><th scope="col">Compte</th><th scope="col">Libelle</th><th scope="col">Statut</th></tr></thead>
+          <thead><tr><th scope="col">Sens</th><th scope="col">Compte</th><th scope="col">Libellé</th><th scope="col">Statut</th></tr></thead>
           <tbody>
             {donnees.operations.length === 0 && <tr><td colSpan={4}>Aucune ligne.</td></tr>}
             {(donnees.operations as OperationDiverse[]).map((o) => (

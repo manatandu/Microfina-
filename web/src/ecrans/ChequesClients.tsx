@@ -60,7 +60,7 @@ export function ChequesClients() {
   );
   const liste = (cliquable: boolean) => (
     <table className="grille">
-      <thead><tr><th scope="col">Date operation</th><th scope="col">Client</th><th scope="col">N° Chèque</th><th scope="col">Tireur</th><th scope="col">Banque Tireur</th>
+      <thead><tr><th scope="col">Date opération</th><th scope="col">Client</th><th scope="col">N° Chèque</th><th scope="col">Tireur</th><th scope="col">Banque Tireur</th>
         <th scope="col" className="montant">Montant</th><th scope="col">Statut</th><th scope="col">Date Encaissement</th></tr></thead>
       <tbody>
         {(cheques ?? []).length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}

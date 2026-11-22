@@ -5,14 +5,14 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 
 const PAGES_MANUEL: Record<string, string> = {
-  types_centre: "p. 27 : 2-1 Types de centre de coût, Création et mise à jour des types de centre de coût, Code*, Libellé*, Parent, Enregistrer, Effacer, Supprimer, Liste des types de centres de coût (Code, Libelle, Parent), Rafraichir ; « Remplir les champs obligatoires code, et libelle puis préciser le parent »",
-  centres: "p. 27 : 2-2 Centres de coût, Création et mise à jour des centres de coût, Code*, Libellé*, Parent, Type*, Liste des centres de coût (Code, Libelle, Type, Parent) ; « Remplir les champs obligatoires code, libelle, Type et associer le parent »",
-  types_budget: "p. 28 : 2-3 Types de budget, Code, Libellé, Param Compte « ( Ex1 : 6*,712* Ex2 : 5*,3327258 ) », grille Code, Libelle, Param Compte",
+  types_centre: "p. 27 : 2-1 Types de centre de coût, Création et mise à jour des types de centre de coût, Code*, Libellé*, Parent, Enregistrer, Effacer, Supprimer, Liste des types de centres de coût (Code, Libellé, Parent), Rafraichir ; « Remplir les champs obligatoires code, et libelle puis préciser le parent »",
+  centres: "p. 27 : 2-2 Centres de coût, Création et mise à jour des centres de coût, Code*, Libellé*, Parent, Type*, Liste des centres de coût (Code, Libellé, Type, Parent) ; « Remplir les champs obligatoires code, libelle, Type et associer le parent »",
+  types_budget: "p. 28 : 2-3 Types de budget, Code, Libellé, Param Compte « ( Ex1 : 6*,712* Ex2 : 5*,3327258 ) », grille Code, Libellé, Param Compte",
   types_periode: "p. 28 : 2-4 Types de période, cadre Type de période, Code*, Libellé*, Durée (Mois), Durée (Jours), Liste des Types de Périodes Budgétaires",
   periodes: "p. 29 : 2-5 Périodes, cadre Période budgétaire, Code*, Type*, Libellé*, Date Début (JJ/MM), Date Fin (JJ/MM) ; « Remplir les champs obligatoires : code, libelle, Type, Date début et Date fin »",
   plans: "p. 29 : 2-6 Plan budgétaire, Création de Plan Budgétaire, Année*, Code*, Libellé Plan*, grille Code, Libellé, Année",
   lignes: "p. 29 : 2-7 Ligne de plan budgétaire, N° de ligne, Libellé Ligne, Plan Budgétaire, Centre de coût, Bailleur, grille N°, Libellé, Plan BudGetaire, Centre de coût, Bailleur",
-  operations: "p. 30 : 2-8 Operations, Liaison des éléments du budget aux opérations, Type opération*, Type budget*, Liste des types de budgets paramétrés sur les types d'opération",
+  operations: "p. 30 : 2-8 Opérations, Liaison des éléments du budget aux opérations, Type opération*, Type budget*, Liste des types de budgets paramétrés sur les types d'opération",
 };
 
 /** S19 : Info de base > Budget, huit référentiels (manuel Microfina++, p. 27 à 30). La liste de gauche ouvre les huit pages du menu (registre S19-6) ;

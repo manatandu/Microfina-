@@ -67,7 +67,7 @@ function Onglet({ role }: { role: Role }) {
           {texte("rue", "Rue / Maison :")}
           {texte("email", "Email :")}
           {texte("bp", "BP :", "saisie code")}
-          {texte("telephoneFixe", role === "sensibilisateur" ? "Telephone fixe :" : "Tél fix :")}
+          {texte("telephoneFixe", role === "sensibilisateur" ? "Téléphone fixe :" : "Tél fix :")}
           {texte("portable", "Portable :")}
         </div>
         <div className="pile champs-a-gauche">

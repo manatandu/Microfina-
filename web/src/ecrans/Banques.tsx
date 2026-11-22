@@ -48,7 +48,7 @@ function BanqueClient({ d, confirmer }: Props) {
       <fieldset className="cadre-champs formulaire">
         <legend>Info Banque Client</legend>
         <Champ libelle="Code Banque: *">{(p) => <input {...p} className="saisie code" required autoComplete="off" {...t("code")} />}</Champ>
-        <Champ libelle="Libelle : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...t("libelle")} />}</Champ>
+        <Champ libelle="Libellé : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...t("libelle")} />}</Champ>
         <Champ libelle="Compte Liaison *">{(p) => <input {...p} className="saisie code" required inputMode="numeric" autoComplete="off" {...t("compteLiaison")} />}</Champ>
         <Champ libelle="Adresse :">{(p) => <textarea {...p} className="saisie" rows={2} {...t("adresse")} />}</Champ>
       </fieldset>
@@ -90,7 +90,7 @@ function BanqueInstitution({ d, confirmer }: Props) {
         <Champ libelle="Banque *">{(p) => <select {...p} className="saisie" required value={f.banqueId} onChange={(e) => setF({ ...f, banqueId: Number(e.target.value) })}>
           <option value={0}></option>{d.banques.map((b) => <option key={b.id} value={b.id}>{b.libelle}</option>)}</select>}</Champ>
         <Champ libelle="Compte *">{(p) => <input {...p} className="saisie code" required inputMode="numeric" autoComplete="off" {...t("compte")} />}</Champ>
-        <Champ libelle="Libelle : *">{(p) => <Lecture {...p} value={banque && f.devise ? `${banque.libelle} ${f.devise}` : ""} />}</Champ>
+        <Champ libelle="Libellé : *">{(p) => <Lecture {...p} value={banque && f.devise ? `${banque.libelle} ${f.devise}` : ""} />}</Champ>
         <Champ libelle="N° Compte Bancaire : *">{(p) => <input {...p} className="saisie code" required autoComplete="off" {...t("numeroBancaire")} />}</Champ>
         <Champ libelle="Devise *">{(p) => <select {...p} className="saisie" required value={f.devise} onChange={(e) => setF({ ...f, devise: e.target.value })}>
           <option value=""></option>{d.devises.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>

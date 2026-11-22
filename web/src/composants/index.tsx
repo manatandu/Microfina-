@@ -246,22 +246,27 @@ export type Boite = { type: "confirmation"; message: string; oui: () => void } |
 const TITRES = { confirmation: "Confirmation", succes: "Succès", erreur: "Erreur" };
 export function Dialogue({ boite, fermer }: { boite: Boite | null; fermer: () => void }) {
   const [el, setEl] = useState<HTMLDialogElement | null>(null);
-  useEffect(() => { if (el && boite && !el.open) el.showModal?.(); if (el && !boite && el.open) el.close(); }, [el, boite]);
-  // Succès : un message qui disparaît seul, sans bouton à cliquer (plan d'allègement, point 1.12 ; registre T121)
-  useEffect(() => { if (boite?.type !== "succes") return; const t = setTimeout(fermer, 5000); return () => clearTimeout(t); }, [boite]);   // eslint-disable-line react-hooks/exhaustive-deps
-  if (!boite) return null;
-  if (boite.type === "succes") return <p className="message-succes" role="status">{boite.message}</p>;
+  // Succès : un message qui disparaît seul, sans bouton à cliquer (plan d'allègement, point 1.12 ; registre T121). La boîte se ferme aussitôt,
+  // comme après un clic sur Ok : l'écran reprend la main pendant que le message reste affiché cinq secondes.
+  const [succes, setSucces] = useState<{ texte: string; n: number } | null>(null);
+  useEffect(() => { if (boite?.type === "succes") { setSucces((x) => ({ texte: boite.message, n: (x?.n ?? 0) + 1 })); fermer(); } }, [boite]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!succes) return; const t = setTimeout(() => setSucces(null), 5000); return () => clearTimeout(t); }, [succes]);
+  const ouverte = boite && boite.type !== "succes" ? boite : null;
+  useEffect(() => { if (el && ouverte && !el.open) el.showModal?.(); if (el && !ouverte && el.open) el.close(); }, [el, ouverte]);
+  const message = succes && <p key={succes.n} className="message-succes" role="status">{succes.texte}</p>;
+  if (!ouverte) return message || null;
   return (
-    <dialog ref={setEl} className="boite" data-type={boite.type} aria-labelledby="boite-titre" onCancel={(e) => { e.preventDefault(); fermer(); }}>
-      <h2 id="boite-titre">{TITRES[boite.type]}</h2>
-      <p>{boite.message}</p>
+    <>{message}
+    <dialog ref={setEl} className="boite" data-type={ouverte.type} aria-labelledby="boite-titre" onCancel={(e) => { e.preventDefault(); fermer(); }}>
+      <h2 id="boite-titre">{TITRES[ouverte.type]}</h2>
+      <p>{ouverte.message}</p>
       <div className="boutons">
-        {boite.type === "confirmation"
-          ? <><button className="bouton" type="button" autoFocus onClick={() => { fermer(); boite.oui(); }}>Oui</button>
+        {ouverte.type === "confirmation"
+          ? <><button className="bouton" type="button" autoFocus onClick={() => { fermer(); ouverte.oui(); }}>Oui</button>
               <button className="bouton secondaire" type="button" onClick={fermer}>Non</button></>
           : <button className="bouton" type="button" autoFocus onClick={fermer}>Ok</button>}
       </div>
-    </dialog>
+    </dialog></>
   );
 }
 

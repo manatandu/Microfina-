@@ -825,13 +825,13 @@ def test_type_procuration(clients):
 
 
 def test_motif_depart(clients):
-    """S18 (p. 26) : Libelle Motif seul, unique, ordre de saisie ; la résiliation (S48) lit la même liste (registre S18-1, S18-2)"""
+    """S18 (p. 26) : Libellé Motif seul, unique, ordre de saisie ; la résiliation (S48) lit la même liste (registre S18-1, S18-2)"""
     chef = clients["chef"]; connecter(chef, "jpmukendi")
     l = chef.get("/api/listes/motif_depart", **H).json()
     assert l["lignes"][0]["libelle"] == "DEPART DU PAYS" and l["liste"]["sansCode"]
     def refus(corps):
         r = chef.post("/api/listes/motif_depart", corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
-    assert "Libelle Motif" in refus({"code": "", "libelle": ""})
+    assert "Libellé Motif" in refus({"code": "", "libelle": ""})
     assert "existe déjà" in refus({"code": "", "libelle": "autres"})
     m = chef.post("/api/listes/motif_depart", {"code": "", "libelle": "Mutation professionnelle"}, **H).json()["lignes"][-1]
     r = chef.post(f"/api/listes/motif_depart/{m['id']}", {"code": "", "libelle": "Mutation"}, **H)
@@ -1249,7 +1249,7 @@ def test_liste_des_journees(clients, journee):
 
 
 def test_rapport_des_transactions(clients, journee):
-    """S13 (p. 22) : par utilisateur, Nbres Opérations, Nbres Annulations, Nbres Tansactions sur la période DU AU"""
+    """S13 (p. 22) : par utilisateur, Nbres Opérations, Nbres Annulations, Nbres Transactions sur la période DU AU"""
     caisse, chef = clients["caisse"], clients["chef"]
     for _ in range(2):
         assert caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}}, **H).status_code == 200
@@ -2284,7 +2284,7 @@ def test_journaux(clients, journee):
     assert (ca["typeLibelle"], ca["actif"], ca["detail"]) == ("Journal de Caisse", True, True)
     def refus(corps, jid=None, suffixe=""):
         r = chef.post("/api/journaux" + (f"/{jid}" if jid else "") + suffixe, corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
-    assert "Type Journal, Libelle, Code" in refus({})
+    assert "Type Journal, Libellé, Code" in refus({})
     assert "existe déjà" in refus({"type": "caisse", "libelle": "Autre", "code": "ca"})
     r = chef.post("/api/journaux", {"type": "operations_diverses", "libelle": "Opérations diverses 2", "code": "O2", "actif": True, "detail": True}, **H)
     assert r.status_code == 200, r.content
@@ -4312,7 +4312,7 @@ def test_operations_diverses_et_deplacees(clients, journee):
     dp = {"cle": cle(), "agenceId": ag2, "sens": "DEPOT", "reference": "AV-7", "numeroClient": "0412-000319", "nom": "Mbuyi Paul", "numeroCompte": num, "montant": 3000000}
     assert "autre que la vôtre" in refus(compta, f"{OC}/deplacee", {**dp, "agenceId": ici})
     assert "aucun compte" in refus(compta, f"{OC}/deplacee", {**dp, "numeroCompte": "0412-000318-02"})
-    assert "Nom et Prenoms" in refus(compta, f"{OC}/deplacee", {**dp, "nom": ""})
+    assert "Nom et Prénoms" in refus(compta, f"{OC}/deplacee", {**dp, "nom": ""})
     dep = compta.post(f"{OC}/deplacee", dp, **H).json()
     assert (dep["statut"], dep["sens"], dep["agenceClient"], dep["nomClient"], dep["compteEpargne"]) == ("saisie", "DEPOT", "Limete", "Mbuyi Paul", num)
     ret = compta.post(f"{OC}/deplacee", {**dp, "cle": cle(), "sens": "RETRAIT", "montant": 1000000}, **H).json()
@@ -5031,7 +5031,7 @@ def test_immobilisations(clients, journee):
     assert avant - solde_compte("2810") == 166667
     assert "Rien à amortir" in msg("/api/immobilisations/amortissement", {"par": "lot", "exercice": 2026})
     assert "ne se modifie plus" in msg(f"/api/immobilisations/biens/{b['id']}", B)
-    assert "Etat du bien" in msg("/api/immobilisations/inventaire", {"bienId": b["id"], "date": "2026-11-05"})
+    assert "État du bien" in msg("/api/immobilisations/inventaire", {"bienId": b["id"], "date": "2026-11-05"})
     ok("/api/immobilisations/inventaire", {"bienId": b["id"], "etat": "Bon", "date": "2026-11-05", "observation": "RAS"})
     from noyau.bd import executer as _ex, valeur as _val
     prix = _val("select prix_acquisition from immo_bien where id = %s", (b["id"],))

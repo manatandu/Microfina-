@@ -42,7 +42,7 @@ def enregistrer(u, d, jid: int | None = None) -> dict:
     texte = lambda k: d.get(k).strip() if isinstance(d.get(k), str) else ""
     type_, libelle, code = texte("type"), texte("libelle"), texte("code").upper()
     actif, detail = bool(d.get("actif")), bool(d.get("detail"))
-    manque = [n for n, v in (("Type Journal", type_), ("Libelle", libelle), ("Code", code)) if not v]
+    manque = [n for n, v in (("Type Journal", type_), ("Libellé", libelle), ("Code", code)) if not v]
     if manque:
         raise ErreurMetier("À remplir : " + ", ".join(manque) + ".")
     if type_ not in TYPES:

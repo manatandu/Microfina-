@@ -72,12 +72,12 @@ export function OperationsBanque() {
       <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${onglet}`}>
         <div className="entete-ecran">
           <p>Numéro de pièce : <strong className="chiffres"></strong></p>
-          <ChampDate libelle={onglet === 0 ? "Date operation" : "Date Operation : *"} valeur={date} onChange={(v) => maj({ date: v })} requis={onglet !== 0} />
+          <ChampDate libelle={onglet === 0 ? "Date opération" : "Date Opération : *"} valeur={date} onChange={(v) => maj({ date: v })} requis={onglet !== 0} />
         </div>
 
         {onglet === 0 && (
           <fieldset className="cadre-champs pile">
-            <legend>Operations de banque</legend>
+            <legend>Opérations de banque</legend>
             <label className="case" title="À confirmer : le manuel ne montre pas cette case cochée (registre S52-1)"><input type="checkbox" disabled /><span>Type écriture Multiligne</span></label>
             <div className="formulaire">
               <Champ libelle="Type operation">{(p) => <select {...p} className="saisie" value={f.type} onChange={(e) => maj({ type: e.target.value as typeof f.type, cheque: "" })}>
@@ -87,7 +87,7 @@ export function OperationsBanque() {
               {chequeVide(f.type === "decaissement")}
               <Champ libelle="Solde banque">{(p) => <input {...p} className="saisie montant" readOnly value={solde(origine)} />}</Champ>
               <Champ libelle="Compte *">{(p) => <input {...p} className="saisie code" inputMode="numeric" autoComplete="off" value={f.contrepartie} onChange={(e) => maj({ contrepartie: e.target.value })} />}</Champ>
-              <Champ libelle="Libelle">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.libelle} onChange={(e) => maj({ libelle: e.target.value })} />}</Champ>
+              <Champ libelle="Libellé">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.libelle} onChange={(e) => maj({ libelle: e.target.value })} />}</Champ>
               <Champ libelle="Montant *">{montantSaisi}</Champ>
               <Champ libelle="Type budget">{(p) => <select {...p} className="saisie" value={f.typeBudget} onChange={(e) => maj({ typeBudget: e.target.value })}>
                 <option value="">Choisissez un budget</option>{lu.typesBudget.map((t) => <option key={t.id} value={t.id}>{t.libelle}</option>)}</select>}</Champ>

@@ -161,7 +161,7 @@ function Prospects({ ctx, clients }: { ctx: Ctx; clients: Tiers[] }) {
   const [lignes, setLignes] = useState<Tiers[] | null>(null);
   const maj = (p: Partial<CriteresProspect>) => setC({ ...c, ...p });
   const quartiers = ctx.localites.flatMap((p) => p.villes.flatMap((v) => v.quartiers));
-  const entetes = ["Noms", "Prenoms", "Sexe", "Profession", "Date Naissance"];
+  const entetes = ["Noms", "Prénoms", "Sexe", "Profession", "Date Naissance"];
   const valeurs = (t: Tiers) => [t.nom, t.prenom, t.sexe, t.profession, fr(t.naissance)];
   return (
     <>
@@ -223,7 +223,7 @@ function Modifies({ ctx, clients, modifs }: { ctx: Ctx; clients: Tiers[]; modifs
           <Champ libelle="Agence :">{(p) => <select {...p} className="saisie"><option>{ctx.agence.nom}</option></select>}</Champ>
           <Champ libelle="Utilisateur :">{(p) => <select {...p} className="saisie" value={c.utilisateur} onChange={(e) => maj({ utilisateur: e.target.value })}><option value=""></option>
             {utilisateurs.map((u) => <option key={u.id} value={String(u.id)}>{u.nom}</option>)}</select>}</Champ>
-          <Champ libelle="Etat :">{(p) => <select {...p} className="saisie" value={c.etat} onChange={(e) => maj({ etat: e.target.value as CriteresModifies["etat"] })}>
+          <Champ libelle="État :">{(p) => <select {...p} className="saisie" value={c.etat} onChange={(e) => maj({ etat: e.target.value as CriteresModifies["etat"] })}>
             <option value="actifs">Actif</option><option value="inactifs">Inactif</option><option value="depart">Départ</option><option value="tous">Tous</option></select>}</Champ>
         </fieldset>
       </div>

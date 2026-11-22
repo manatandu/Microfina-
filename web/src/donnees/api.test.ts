@@ -2060,7 +2060,7 @@ describe("journée de guichet", () => {
     expect([l.exercice, l.journaux.map((j) => j.code)]).toEqual([2026, ["AN", "BQ", "CA", "OD"]]);
     const ca = l.journaux.find((j) => j.code === "CA")!;
     expect([ca.typeLibelle, ca.actif, ca.detail]).toEqual(["Journal de Caisse", true, true]);
-    await expect(api.journaux.enregistrer({})).rejects.toThrow("Type Journal, Libelle, Code");
+    await expect(api.journaux.enregistrer({})).rejects.toThrow("Type Journal, Libellé, Code");
     await expect(api.journaux.enregistrer({ type: "caisse", libelle: "Autre", code: "ca" })).rejects.toThrow("existe déjà");
     const od = (await api.journaux.enregistrer({ type: "operations_diverses", libelle: "Opérations diverses 2", code: "O2", actif: true, detail: true })).journaux.find((j) => j.code === "O2")!;
     expect([od.detail, od.typeLibelle]).toEqual([true, "Journal des Opérations diverses"]);
@@ -2920,11 +2920,11 @@ describe("journée de guichet", () => {
     await expect(api.adresse.ajouterQuartier({ province: "Kinshasa", ville: "Kinshasa", commune: "Limete", nom: "ndanu" })).rejects.toThrow("existe déjà");
   });
 
-  it("motif de départ d'un client (S18, p. 26) : Libelle Motif seul, unique, ordre de saisie, lu par la résiliation", async () => {
+  it("motif de départ d'un client (S18, p. 26) : Libellé Motif seul, unique, ordre de saisie, lu par la résiliation", async () => {
     await connecter("jpmukendi");
     let l = await api.listes.lire("motif_depart");
     expect(l.lignes.map((x) => x.libelle)[0]).toBe("DEPART DU PAYS");
-    await expect(api.listes.enregistrer("motif_depart", { code: "", libelle: "" })).rejects.toThrow("Libelle Motif");
+    await expect(api.listes.enregistrer("motif_depart", { code: "", libelle: "" })).rejects.toThrow("Libellé Motif");
     await expect(api.listes.enregistrer("motif_depart", { code: "", libelle: "autres" })).rejects.toThrow("existe déjà");
     l = await api.listes.enregistrer("motif_depart", { code: "", libelle: "Mutation professionnelle" });
     const m = l.lignes.at(-1)!; expect(m.libelle).toBe("Mutation professionnelle");
@@ -3729,7 +3729,7 @@ describe("journée de guichet", () => {
     expect(solde("2810")).toBe(-166667);
     await expect(api.immobilisations.amortir({ par: "lot", exercice: 2026 })).rejects.toThrow("Rien à amortir");
     await expect(api.immobilisations.enregistrer(B, b.id)).rejects.toThrow("ne se modifie plus");
-    await expect(api.immobilisations.inventorier({ bienId: b.id, date: "2026-11-05" })).rejects.toThrow("Etat du bien");
+    await expect(api.immobilisations.inventorier({ bienId: b.id, date: "2026-11-05" })).rejects.toThrow("État du bien");
     await api.immobilisations.inventorier({ bienId: b.id, etat: "Bon", date: "2026-11-05", observation: "RAS" });
     const so = await api.immobilisations.sortir({ type: "Mise au rebut", bienId: b.id, date: "2026-11-05", observation: "Hors service" });
     expect([so.statut, so.vnc, solde("2810"), solde("673")]).toEqual(["SORTI", 833333, 0, 833333]);

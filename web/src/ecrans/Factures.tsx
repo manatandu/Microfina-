@@ -95,7 +95,7 @@ function BonDeCommande({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
     } });
   }
   const grille = <div className="defile-x"><table className="grille">
-    <thead><tr><th scope="col">Compte</th><th scope="col">Libelle</th><th scope="col" className="num">Quantité</th><th scope="col" className="num">P.U</th><th scope="col">Unité</th>
+    <thead><tr><th scope="col">Compte</th><th scope="col">Libellé</th><th scope="col" className="num">Quantité</th><th scope="col" className="num">P.U</th><th scope="col">Unité</th>
       <th scope="col" className="num">Montant HT</th><th scope="col" className="num">TVA</th></tr></thead>
     <tbody>{lignes.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
       {lignes.map((x, i) => <tr key={i} className="ligne-choix" tabIndex={0} aria-selected={choisie === i} onClick={() => setChoisie(i)} onKeyDown={(e) => { if (e.key === "Enter") setChoisie(i); }}>
@@ -111,8 +111,8 @@ function BonDeCommande({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
         <Champ libelle="Type Commande:">{(p) => <select {...p} className="saisie" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}><option value=""></option>
           {ctx.typesCommande.map((t) => <option key={t.id} value={t.id}>{t.libelle}</option>)}</select>}</Champ>
         <ChoixFournisseur ctx={ctx} valeur={f.fournisseur} choisir={(v) => setF({ ...f, fournisseur: v })} />
-        <Champ libelle="Libelle">{(p) => <textarea {...p} className="saisie" rows={3} value={f.libelle} onChange={(e) => setF({ ...f, libelle: e.target.value })} />}</Champ>
-        <ChampDate libelle="Date operation" valeur={f.date || ctx.date} onChange={(v) => setF({ ...f, date: v })} />
+        <Champ libelle="Libellé">{(p) => <textarea {...p} className="saisie" rows={3} value={f.libelle} onChange={(e) => setF({ ...f, libelle: e.target.value })} />}</Champ>
+        <ChampDate libelle="Date opération" valeur={f.date || ctx.date} onChange={(v) => setF({ ...f, date: v })} />
       </fieldset>
       <fieldset className="cadre-champs formulaire"><legend>Enregistrement des Lignes de commandes</legend>
         <div className="ligne-champ"><label className="case"><input type="checkbox" disabled /><span>Produit</span></label><label className="case"><input type="checkbox" disabled /><span>Besoin</span></label></div>
@@ -320,7 +320,7 @@ function Rapport({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
         {f.mode === "periode" && <ChampDate libelle="Date Fin : *" valeur={f.au} onChange={(v) => maj({ au: v })} requis />}</fieldset>
       <fieldset className="cadre-champs pile"><legend>Resultat</legend>{radio("resultat", "detaille", "Détaillé")}{radio("resultat", "groupe", "Groupé")}</fieldset>
       <fieldset className="cadre-champs pile"><legend>Visa</legend>{radio("visa", "visee", "Facture Visée")}{radio("visa", "validee", "Facture Validée")}{radio("visa", "tout", "Tout")}</fieldset>
-      <fieldset className="cadre-champs pile"><legend>Etat</legend>{radio("etat", "soldee", "Facture Soldée")}{radio("etat", "encours", "Facture Encours")}{radio("etat", "annulee", "Facture Annulée")}</fieldset>
+      <fieldset className="cadre-champs pile"><legend>État</legend>{radio("etat", "soldee", "Facture Soldée")}{radio("etat", "encours", "Facture Encours")}{radio("etat", "annulee", "Facture Annulée")}</fieldset>
       <fieldset className="cadre-champs formulaire"><legend>Elément de la recherche</legend>
         <Champ libelle="Type Facture">{(p) => <select {...p} className="saisie" value={f.typeFacture} onChange={(e) => maj({ typeFacture: e.target.value })}><option value=""></option>
           {ctx.typesCommande.map((t) => <option key={t.id} value={t.code}>{t.libelle}</option>)}</select>}</Champ>
@@ -388,8 +388,8 @@ export function DeclarationTaxes() {
   }
   return (
     <>
-      <h1>Etat de déclaration des taxes</h1>
-      <section className="bloc pile" aria-label="Etat de déclaration des taxes">
+      <h1>État de déclaration des taxes</h1>
+      <section className="bloc pile" aria-label="État de déclaration des taxes">
         <div className="deux-colonnes">
           <fieldset className="cadre-champs formulaire"><legend>Période</legend>
             <Champ libelle="Exercice :">{(p) => <select {...p} className="saisie" value={exercice} onChange={(e) => setF({ ...f, exercice: e.target.value })}>{ctx.exercices.map((a) => <option key={a} value={a}>{a}</option>)}</select>}</Champ>

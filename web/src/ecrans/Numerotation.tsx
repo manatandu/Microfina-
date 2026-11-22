@@ -80,7 +80,7 @@ export default function ParametragesClients() {
             <div className="ligne-numerotation entete"><span /><span>Elément</span><span>Position</span></div>
             {lignePosition("institution", "Institution")}
             {lignePosition("agence", "Agence")}
-            {lignePosition("categorie", "Categorie")}
+            {lignePosition("categorie", "Catégorie")}
             <div className="ligne-numerotation"><span /><label htmlFor="num-position">Position</label>
               <input id="num-position" className="saisie code num" type="number" min={1} value={rang("COMPTEUR")} onChange={(e) => placer("COMPTEUR", nombre(e.target.value))} /></div>
             <div className="ligne-numerotation"><span /><label htmlFor="num-compteur">Compteur</label>

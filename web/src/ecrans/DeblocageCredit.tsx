@@ -131,7 +131,7 @@ export function DeblocageGuichet() {
           <fieldset className="cadre-champs formulaire"><legend>Info client</legend>
             <Champ libelle="N° client">{(p) => <Lecture {...p} value={d?.membre ?? ""} />}</Champ>
             <Champ libelle="Intitulé du compte">{(p) => <Lecture {...p} value={d?.client ?? ""} />}</Champ>
-            <Champ libelle="Numero compte">{(p) => <Lecture {...p} value={d?.compteClient ?? ""} />}</Champ>
+            <Champ libelle="Numéro compte">{(p) => <Lecture {...p} value={d?.compteClient ?? ""} />}</Champ>
             {d && <p>{d.fraisEncaisses ? "Frais encaissés." : "Frais à encaisser."} Montant remis : <strong className="chiffres">{montant(d.retenues.net, dv)}</strong></p>}
           </fieldset>
         </div>
@@ -215,7 +215,7 @@ export function DeblocageBanque() {
             <fieldset className="cadre-champs formulaire"><legend>Info Client</legend>
               <Champ libelle="N° Client">{(p) => <Lecture {...p} value={d?.membre ?? ""} />}</Champ>
               <Champ libelle="Intitulé du compte">{(p) => <Lecture {...p} value={d?.client ?? ""} />}</Champ>
-              <Champ libelle="Numero compte">{(p) => <Lecture {...p} value={d?.compteClient ?? ""} />}</Champ>
+              <Champ libelle="Numéro compte">{(p) => <Lecture {...p} value={d?.compteClient ?? ""} />}</Champ>
             </fieldset>
             <fieldset className="cadre-champs"><legend>Frais</legend>{d && <><Retenues d={d} />
               <div className="actions-onglets"><button className="bouton secondaire" type="button" disabled={d.fraisEncaisses} onClick={prelever}>Prélever les frais</button></div></>}</fieldset>
@@ -282,7 +282,7 @@ export function DeblocageEpargne() {
             <fieldset className="cadre-champs formulaire"><legend>Info Client</legend>
               <Champ libelle="N° Client">{(p) => <Lecture {...p} value={d?.membre ?? ""} />}</Champ>
               <Champ libelle="Intitulé du compte">{(p) => <Lecture {...p} value={d?.client ?? ""} />}</Champ>
-              <Champ libelle="Numero compte">{(p) => <Lecture {...p} value={d?.comptePositionnement ?? ""} />}</Champ>
+              <Champ libelle="Numéro compte">{(p) => <Lecture {...p} value={d?.comptePositionnement ?? ""} />}</Champ>
             </fieldset>
             <fieldset className="cadre-champs"><legend>Frais</legend>{d && <><Retenues d={d} />
               <div className="actions-onglets"><button className="bouton secondaire" type="button" disabled={d.fraisEncaisses} onClick={prelever}>Prélever les frais</button></div></>}</fieldset>

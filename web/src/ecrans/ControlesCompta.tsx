@@ -77,7 +77,7 @@ export function Rapprochement() {
         </div>
         <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
           <thead><tr><th scope="col"><input type="checkbox" aria-label="Tout cocher" checked={tous} onChange={() => setCoches(tous ? new Set() : new Set(lignes.map((x) => x.id)))} /></th>
-            <th scope="col">N°piece</th><th scope="col">Date Comptable</th><th scope="col">Libelle Operation</th><th scope="col" className="num">Débit</th><th scope="col" className="num">Crédit</th></tr></thead>
+            <th scope="col">N°piece</th><th scope="col">Date Comptable</th><th scope="col">Libellé Opération</th><th scope="col" className="num">Débit</th><th scope="col" className="num">Crédit</th></tr></thead>
           <tbody>{lignes.length === 0 && <tr><td colSpan={6}>Aucune ligne.</td></tr>}
             {visibles.map((x) => <tr key={x.id}><td><input type="checkbox" aria-label={`Cocher ${x.libelle}`} checked={coches.has(x.id)} onChange={() => basculer(x.id)} /></td>
               <td className="chiffres">{x.piece}</td><td className="chiffres">{fr(x.date)}</td><td>{x.libelle}</td><td className="num chiffres">{x.debit ? n(x.debit) : ""}</td><td className="num chiffres">{x.credit ? n(x.credit) : ""}</td></tr>)}</tbody>
@@ -85,9 +85,9 @@ export function Rapprochement() {
         <Textes sources={["Manuel Microfina++, p. 129 : capture « Rapprochement Bancaire » ; p. 154 et 155 : banque, compte, période, solde à rapprocher ; Rechercher fait apparaître le journal banque ; cocher les opérations du relevé ; Nouveau pour celles qui manquent à nos livres ; Exporter pour l'état",
           TEXTE_008, "Registre S110-1 à S110-5 : lignes pas encore pointées jusqu'à la date de fin ; état du solde comptable au solde du relevé ; le rapprochement enregistré entre à l'historique (S112)"]} />
       </section>
-      <Fiche titre="Etat de rapprochement bancaire" ouverte={!!etat} fermer={() => setEtat(null)}>
+      <Fiche titre="État de rapprochement bancaire" ouverte={!!etat} fermer={() => setEtat(null)}>
         {etat && <div className="pile">
-          <article className="a-imprimer pile" aria-label="Etat de rapprochement bancaire">
+          <article className="a-imprimer pile" aria-label="État de rapprochement bancaire">
             <p><strong>{etat.banque}</strong>, compte <span className="chiffres">{etat.compte}</span> ({etat.devise}), du {fr(etat.du)} au {fr(etat.au)}</p>
             <table className="grille"><tbody>
               <tr><th scope="row">Solde comptable au {fr(etat.au)}</th><td className="num chiffres">{n(etat.soldeComptable)}</td></tr>
@@ -98,7 +98,7 @@ export function Rapprochement() {
               <tr><th scope="row">Écart</th><td className="num chiffres"><strong>{n(etat.ecart)}</strong></td></tr>
             </tbody></table>
             <table className="grille"><caption>Opérations en suspens</caption>
-              <thead><tr><th scope="col">N°piece</th><th scope="col">Date Comptable</th><th scope="col">Libelle Operation</th><th scope="col" className="num">Débit</th><th scope="col" className="num">Crédit</th></tr></thead>
+              <thead><tr><th scope="col">N°piece</th><th scope="col">Date Comptable</th><th scope="col">Libellé Opération</th><th scope="col" className="num">Débit</th><th scope="col" className="num">Crédit</th></tr></thead>
               <tbody>{etat.suspens.length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
                 {etat.suspens.map((x) => <tr key={x.id}><td className="chiffres">{x.piece}</td><td className="chiffres">{fr(x.date)}</td><td>{x.libelle}</td><td className="num chiffres">{x.debit ? n(x.debit) : ""}</td><td className="num chiffres">{x.credit ? n(x.credit) : ""}</td></tr>)}</tbody></table>
           </article>
@@ -110,9 +110,9 @@ export function Rapprochement() {
         {nouveau && <div className="pile formulaire">
           <Champ libelle="Type operation">{(p) => <select {...p} className="saisie" value={nouveau.type} onChange={(e) => setNouveau({ ...nouveau, type: e.target.value as "encaissement" | "decaissement" })}>
             <option value="encaissement">Encaissement divers</option><option value="decaissement">Décaissement divers</option></select>}</Champ>
-          <ChampDate libelle="Date operation" valeur={nouveau.date || ctx.date} onChange={(v) => setNouveau({ ...nouveau, date: v })} />
+          <ChampDate libelle="Date opération" valeur={nouveau.date || ctx.date} onChange={(v) => setNouveau({ ...nouveau, date: v })} />
           <Champ libelle="Compte *">{(p) => <input {...p} className="saisie code" inputMode="numeric" autoComplete="off" value={nouveau.compte} onChange={(e) => setNouveau({ ...nouveau, compte: e.target.value })} />}</Champ>
-          <Champ libelle="Libelle">{(p) => <input {...p} className="saisie" autoComplete="off" value={nouveau.libelle} onChange={(e) => setNouveau({ ...nouveau, libelle: e.target.value })} />}</Champ>
+          <Champ libelle="Libellé">{(p) => <input {...p} className="saisie" autoComplete="off" value={nouveau.libelle} onChange={(e) => setNouveau({ ...nouveau, libelle: e.target.value })} />}</Champ>
           <Champ libelle="Montant *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={nouveau.montant} onChange={(e) => setNouveau({ ...nouveau, montant: e.target.value })} />}</Champ>
           <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrerNouveau}>Enregistrer</button><button className="bouton secondaire" type="button" onClick={() => setNouveau(null)}>Annuler</button></div>
         </div>}
@@ -297,7 +297,7 @@ function EtatRevenus() {
   const du = f.du || (jour?.date ? `${jour.date.slice(0, 4)}-01-01` : ""), au = f.au || jour?.date || "";
   async function afficher() { try { setR(await api.controlesCompta.revenus({ du, au, resultat: f.resultat })); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } }
   return <>
-    <h2>Etat des revenus</h2>
+    <h2>État des revenus</h2>
     <div className="deux-colonnes">
       <fieldset className="cadre-champs"><legend>Période</legend><div className="ligne-champ"><ChampDate libelle="Du :" valeur={du} onChange={(v) => setF({ ...f, du: v })} /><ChampDate libelle="Au :" valeur={au} onChange={(v) => setF({ ...f, au: v })} /></div></fieldset>
       <div className="ligne-champ" role="radiogroup">
@@ -320,7 +320,7 @@ function EtatRevenus() {
 /** S118 : Comptabilité > Contrôle : Trésorerie, Rapport annulation, Etat des revenus (le contrôle « Compte », écart entre gestion et comptabilité, n'est pas repris) */
 export function Controles() {
   const [onglet, setOnglet] = useState(0);
-  const ONGLETS = ["Tresorerie", "Rapport annulation", "Etat des revenus"];
+  const ONGLETS = ["Trésorerie", "Rapport annulation", "État des revenus"];
   return (
     <>
       <h1>Contrôle</h1>
@@ -359,7 +359,7 @@ export function AnnulationReglement() {
     <>
       <h1>Annulation de règlement d'un crédit effectué par prélèvement sur compte</h1>
       <section className="bloc pile" aria-label="Annulation de règlement de crédit">
-        <div className="entete-ecran"><p>Numéro de pièce : <strong className="chiffres">{fait?.piece ?? ""}</strong></p><p>Date Operation: <strong className="chiffres">{fr(j?.date ?? "")}</strong></p></div>
+        <div className="entete-ecran"><p>Numéro de pièce : <strong className="chiffres">{fait?.piece ?? ""}</strong></p><p>Date Opération: <strong className="chiffres">{fr(j?.date ?? "")}</strong></p></div>
         <div className="deux-colonnes">
           <fieldset className="cadre-champs formulaire"><legend>Infos règlement</legend>
             <div className="ligne-champ"><Champ libelle="N° de pièce :">{(p) => <input {...p} className="saisie code" readOnly value={r?.piece ?? ""} />}</Champ>
@@ -370,7 +370,7 @@ export function AnnulationReglement() {
             <Champ libelle="Compte client:">{(p) => <Lecture {...p} value={r?.compteClient ?? ""} />}</Champ>
           </fieldset>
           <fieldset className="cadre-champs formulaire"><legend>Détail montant règlement</legend>
-            {m("Capital", r?.capital)}{m("Intêret", r?.interet)}{m("Epargne", r?.epargne)}{m("Fonds solid.", r?.solidarite)}{m("Pénalité", r?.penalite)}{m("Montant total", r?.montant)}
+            {m("Capital", r?.capital)}{m("Intérêt", r?.interet)}{m("Epargne", r?.epargne)}{m("Fonds solid.", r?.solidarite)}{m("Pénalité", r?.penalite)}{m("Montant total", r?.montant)}
           </fieldset>
         </div>
         <div className="actions-onglets"><button className="bouton" type="button" onClick={valider}>Valider</button><button className="bouton secondaire" type="button" onClick={() => { setChoisi(null); setFait(null); }}>Effacer</button></div>

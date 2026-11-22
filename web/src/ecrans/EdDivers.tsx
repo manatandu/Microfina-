@@ -42,7 +42,7 @@ export default function EdDivers() {
   const nouveau = () => { setCle(nouvelleCle()); setFait(null); };
   const annuler = () => { setF(VIDE()); setCoupures({}); nouveau(); };
   function enregistrer() {
-    if (!od || saisies.length === 0) { setBoite({ type: "erreur", message: "À remplir : Operations, Compte, Montant." }); return; }
+    if (!od || saisies.length === 0) { setBoite({ type: "erreur", message: "À remplir : Opérations, Compte, Montant." }); return; }
     if (DEVISES.some((d) => lu(d) === null)) { setBoite({ type: "erreur", message: "Montant invalide." }); return; }
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try {
@@ -59,7 +59,7 @@ export default function EdDivers() {
       <section className="bloc pile" aria-label="ED Divers">
         <div className="entete-ecran">
           <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p>
-          <p>Date operation : <strong className="chiffres">{fr(j?.date ?? "")}</strong></p>
+          <p>Date opération : <strong className="chiffres">{fr(j?.date ?? "")}</strong></p>
         </div>
         <div className="cadre-champs"><dl className="infos">
           <div className="info-ligne"><dt>Agence</dt><dd>{ctx.agence.nom}</dd></div>
@@ -68,15 +68,15 @@ export default function EdDivers() {
           {DEVISES.map((d) => <div key={d} className="info-ligne"><dt>Solde ({d})</dt><dd className="chiffres">{montant(totalComptage(stocks[d] ?? {}), d)}</dd></div>)}
         </dl></div>
         <fieldset className="cadre-champs formulaire">
-          <legend>Operations diverses</legend>
+          <legend>Opérations diverses</legend>
           <Champ libelle="Type operation">{(p) => <select {...p} className="saisie" disabled={!!fait} value={f.type}
             onChange={(e) => { setF({ ...f, type: e.target.value as TypeOp, operation: "", libelle: "" }); setCoupures({}); nouveau(); }}>
             <option value="ENCAISSEMENT">ENCAISSEMENT</option><option value="DECAISSEMENT">DECAISSEMENT</option></select>}</Champ>
-          <Champ libelle="Operations">{(p) => <select {...p} className="saisie" disabled={!!fait} value={f.operation}
+          <Champ libelle="Opérations">{(p) => <select {...p} className="saisie" disabled={!!fait} value={f.operation}
             onChange={(e) => { const x = proposees.find((o) => String(o.id) === e.target.value); setF({ ...f, operation: e.target.value, libelle: x?.libelle ?? "" }); nouveau(); }}>
             <option value=""></option>{proposees.map((o) => <option key={o.id} value={o.id}>{o.libelle}</option>)}</select>}</Champ>
           <Champ libelle="Compte *">{(p) => <Lecture {...p} value={od?.compte ?? ""} />}</Champ>
-          <Champ libelle="Libelle">{(p) => <input {...p} className="saisie" autoComplete="off" readOnly={!!fait} value={f.libelle} onChange={(e) => { setF({ ...f, libelle: e.target.value }); nouveau(); }} />}</Champ>
+          <Champ libelle="Libellé">{(p) => <input {...p} className="saisie" autoComplete="off" readOnly={!!fait} value={f.libelle} onChange={(e) => { setF({ ...f, libelle: e.target.value }); nouveau(); }} />}</Champ>
           {DEVISES.map((d) => <Champ key={d} libelle={`Montant (${d})${d === DEVISES[0] ? " *" : ""}`}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off"
             readOnly={!!fait} value={f.montants[d] ?? ""} onChange={(e) => { setF({ ...f, montants: { ...f.montants, [d]: e.target.value } }); setCoupures({ ...coupures, [d]: {} }); nouveau(); }} />}</Champ>)}
         </fieldset>

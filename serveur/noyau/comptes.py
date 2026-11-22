@@ -59,7 +59,7 @@ def enregistrer(u, d, numero_actuel: str | None = None) -> dict:
     d = d if isinstance(d, dict) else {}
     texte = lambda k: d.get(k).strip() if isinstance(d.get(k), str) else ""
     parent, suite, libelle = texte("parent"), texte("suite"), texte("libelle")
-    manque = [n for n, v in (("Parent", parent), ("Numero", suite), ("Libelle", libelle)) if not v]
+    manque = [n for n, v in (("Parent", parent), ("Numéro", suite), ("Libellé", libelle)) if not v]
     if d.get("ouvert") is None:
         manque.append("Statut")
     if d.get("saisissable") is None:
@@ -67,7 +67,7 @@ def enregistrer(u, d, numero_actuel: str | None = None) -> dict:
     if manque:
         raise ErreurMetier("À remplir : " + ", ".join(manque) + ".")
     if not suite.isdigit():
-        raise ErreurMetier("Numero : chiffres seulement.")
+        raise ErreurMetier("Numéro : chiffres seulement.")
     p = une("select * from compte where numero = %s and (institution_id is null or institution_id = %s)", (parent, i))
     if not p:
         raise ErreurMetier("Parent : ce compte n'est pas dans le plan." + (" Une classe n'a pas de compte divisionnaire direct : choisir un compte." if parent in CLASSES else ""))

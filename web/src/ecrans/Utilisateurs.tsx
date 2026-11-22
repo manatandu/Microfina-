@@ -71,7 +71,7 @@ export default function EnregistrementUtilisateurs() {
           <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => activer(!ligne.actif)}>{ligne.actif ? "Désactiver" : "Réactiver"}</button></div>
         </fieldset>}
         <table className="grille">
-          <thead><tr><th scope="col">Nom user</th><th scope="col">Prenoms user</th><th scope="col">Agence</th><th scope="col">Telephone</th><th scope="col">Actif</th></tr></thead>
+          <thead><tr><th scope="col">Nom user</th><th scope="col">Prénoms user</th><th scope="col">Agence</th><th scope="col">Téléphone</th><th scope="col">Actif</th></tr></thead>
           <tbody>
             {(donnees.utilisateurs as Ligne[]).map((x) => {
               const [nom, prenoms] = decouper(x.nom);

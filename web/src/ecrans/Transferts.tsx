@@ -37,7 +37,7 @@ function Entete({ fait, date }: { fait: Operation | null; date: string }) {
   return (
     <div className="entete-ecran">
       <p>Numéro de pièce : <strong className="chiffres">{piece ?? ""}</strong></p>
-      <p>Date operation : <strong className="chiffres">{fr(date)}</strong></p>
+      <p>Date opération : <strong className="chiffres">{fr(date)}</strong></p>
     </div>
   );
 }

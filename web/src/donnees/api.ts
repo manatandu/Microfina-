@@ -1508,7 +1508,7 @@ export const CATALOGUE_LISTES: FicheListe[] = ([
   { liste: "categorie_groupe", ecran: "S14j", titre: "Catégorie de groupe" }, { liste: "filiation", ecran: "S14k", titre: "Filiation" },
   { liste: "situation_matrimoniale", ecran: "S14l", titre: "Situation matrimoniale" }, 
   // S18 (p. 26) : même liste que S14m (registre S18-1), avec la forme de sa capture : Libelle Motif seul, Reinitialiser
-  { liste: "motif_depart", ecran: "S14m", titre: "Motif de départ", entete: "Motif de départ d'un client", libelle: "Libelle Motif", colonne: "Libelle Motif", sansCode: true, effacer: "Reinitialiser" },
+  { liste: "motif_depart", ecran: "S14m", titre: "Motif de départ", entete: "Motif de départ d'un client", libelle: "Libellé Motif", colonne: "Libellé Motif", sansCode: true, effacer: "Reinitialiser" },
   { liste: "type_guichet", ecran: "S14n", titre: "Type Guichet" },
   // Décision du porteur du 22/11/2026 : les groupes ont leur liste de formes juridiques (loi n° 004/2001 sur les ASBL, art. 2 ; registre S39-5)
   { liste: "forme_juridique_groupe", ecran: "S14o", titre: "Forme juridique du groupe" },
@@ -3075,7 +3075,7 @@ const guichet = {
     const SENS = { ENCAISSEMENT: "PRODUIT", DECAISSEMENT: "CHARGE" } as const;
     if (!(p.typeOperation in SENS)) throw new ErreurMetier("À remplir : Type operation.");
     const od = E.operationsDiverses.find((x) => x.id === p.operationId);
-    if (!od) throw new ErreurMetier("À remplir : Operations.");
+    if (!od) throw new ErreurMetier("À remplir : Opérations.");
     if (od.statut !== "ACTIF" || od.sens !== SENS[p.typeOperation]) throw new ErreurMetier(`Cette opération n'est pas proposée en ${p.typeOperation.toLowerCase()} (Paramétrage > ED divers).`);
     const libelle = p.libelle?.trim() || od.libelle;
     const tenues = devisesTenues();
@@ -4948,11 +4948,11 @@ const comptes = {
   enregistrer(d: SaisieCompte, numeroActuel?: string) {
     exiger("comptable");   // profil habilité : registre T07, en attendant S03 à S06
     const parent = d.parent.trim(), suite = d.suite.trim(), libelle = d.libelle.trim();
-    const manque = manquants([["Parent", parent], ["Numero", suite], ["Libelle", libelle]]);
+    const manque = manquants([["Parent", parent], ["Numéro", suite], ["Libellé", libelle]]);
     if (d.ouvert === null || d.ouvert === undefined) manque.push("Statut");
     if (d.saisissable === null || d.saisissable === undefined) manque.push("Nature");
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
-    if (!/^\d+$/.test(suite)) throw new ErreurMetier("Numero : chiffres seulement.");
+    if (!/^\d+$/.test(suite)) throw new ErreurMetier("Numéro : chiffres seulement.");
     const p = comptes.lire().comptes.find((c) => c.numero === parent && c.numero.length > 1);
     if (!p) throw new ErreurMetier("Parent : ce compte n'est pas dans le plan." + (parent in PCCI.classes ? " Une classe n'a pas de compte divisionnaire direct : choisir un compte." : ""));
     const numero = parent + suite;
@@ -6705,11 +6705,11 @@ function cleOc(c: unknown) { const x = texteOc(c); if (!x) throw new ErreurMetie
 /** Cadre « Comptabilite » : Compte, Libelle, Montant ; plusieurs lignes quand la case multiligne est cochée */
 function lignesComptaOc(d: { lignes?: unknown; multiligne?: unknown }): LigneOc[] {
   const brut = Array.isArray(d.lignes) ? (d.lignes as Record<string, unknown>[]) : [];
-  if (!brut.length) throw new ErreurMetier("À remplir : Compte, Libelle et Montant.");
+  if (!brut.length) throw new ErreurMetier("À remplir : Compte, Libellé et Montant.");
   if (brut.length > 1 && !d.multiligne) throw new ErreurMetier("Plusieurs lignes : cocher la case multiligne.");
   return brut.map((x) => {
     const compte = compteLibre(x.compte, "Compte"), libelle = texteOc(x.libelle), m = entierOc(x.montant);
-    if (!libelle) throw new ErreurMetier("À remplir : Libelle.");
+    if (!libelle) throw new ErreurMetier("À remplir : Libellé.");
     if (!m || m <= 0) throw new ErreurMetier("Montant : un montant supérieur à zéro.");
     return { compte, libelle, montant: m };
   });
@@ -6860,7 +6860,7 @@ const operationsCompta = {
     if (!ag) throw new ErreurMetier("À remplir : Agence.");
     if (ag.id === E.agence.id) throw new ErreurMetier("Agence : celle du client, autre que la vôtre ; un client de votre agence passe au guichet (Caisse > Opération).");
     const nom = texteOc(d.nom), numero = texteOc(d.numeroCompte);
-    if (!nom) throw new ErreurMetier("À remplir : Nom et Prenoms.");
+    if (!nom) throw new ErreurMetier("À remplir : Nom et Prénoms.");
     if (!numero) throw new ErreurMetier("À remplir : N° Compte.");
     throw new ErreurMetier(`N° Compte : aucun compte ${numero} chez un client de l'agence ${ag.nom}.`);
   },
@@ -7127,7 +7127,7 @@ const facturesFournisseurs = {
     const u = exiger(), cle = cleOc(d.cle), prec = E.commandesFournisseurs.find((x) => x.cle === cle); if (prec) return vueCommande(prec);
     const tc = E.typesCommande.find((x) => x.id === entierOc(d.typeCommandeId) && !x.supprime);
     if (!tc) throw new ErreurMetier("À remplir : Type Commande (Paramétrage > Facture > Référence Commande).");
-    const f = fournisseurF(d.fournisseurId), jour = jourOuvertOc(), date = dateF(d.date, "Date operation", jour);
+    const f = fournisseurF(d.fournisseurId), jour = jourOuvertOc(), date = dateF(d.date, "Date opération", jour);
     if (date > jour) throw new ErreurMetier("La date de l'opération ne peut pas dépasser la journée ouverte.");
     const brut = Array.isArray(d.lignes) ? d.lignes : [];
     if (!brut.length) throw new ErreurMetier("Enregistrement des Lignes de commandes : au moins une ligne (Ajouter).");
@@ -9219,7 +9219,7 @@ const immobilisations = {
   },
   inventorier(d: { bienId?: number | null; etat?: string; date?: string; observation?: string }) {
     const u = exiger(), b = bienImmo(d.bienId);
-    if (!d.etat || !ETATS_IMMO.includes(d.etat)) throw new ErreurMetier("À remplir : Etat du bien.");
+    if (!d.etat || !ETATS_IMMO.includes(d.etat)) throw new ErreurMetier("À remplir : État du bien.");
     if (!DATE_ISO.test(d.date ?? "")) throw new ErreurMetier("À remplir : Date inventaire.");
     if (d.date! > jourImmo().date) throw new ErreurMetier("Date inventaire : pas après la journée ouverte.");
     E.immoInventaires.push({ id: prochain(E.immoInventaires), bienId: b.id, etat: d.etat, date: d.date!, observation: (d.observation ?? "").trim(), par: u.id });
@@ -9308,12 +9308,12 @@ const immobilisations = {
 /** Ordre du menu Info de base > Budget (2-1 à 2-8) ; titres, champs et colonnes des captures p. 27 à 30 */
 export const CATALOGUE_BUDGET: FicheBudget[] = [
   { page: "types_centre", menu: "Types de centre de coût", entete: "Création et mise à jour des types de centre de coût", grille: "Liste des types de centres de coût", rafraichir: true, parentMemeTable: true,
-    champs: [ch("code", "Code :", "Code"), ch("libelle", "Libellé :", "Libelle"), ch("parentId", "Parent", "Parent", "choix", false, { ref: "types_centre" })] },
+    champs: [ch("code", "Code :", "Code"), ch("libelle", "Libellé :", "Libellé"), ch("parentId", "Parent", "Parent", "choix", false, { ref: "types_centre" })] },
   { page: "centres", menu: "Centres de coût", entete: "Création et mise à jour des centres de coût", grille: "Liste des centres de coût", filtres: true, parentMemeTable: true,
-    champs: [ch("code", "Code :", "Code"), ch("libelle", "Libellé:", "Libelle"), ch("typeId", "Type :", "Type", "choix", true, { ref: "types_centre" }),
+    champs: [ch("code", "Code :", "Code"), ch("libelle", "Libellé:", "Libellé"), ch("typeId", "Type :", "Type", "choix", true, { ref: "types_centre" }),
       ch("parentId", "Parent", "Parent", "choix", false, { ref: "centres" })] },
   { page: "types_budget", menu: "Types de budget", entete: "Type de budget",
-    champs: [ch("code", "Code :", "Code", "texte", true, { sansEtoile: true }), ch("libelle", "Libellé :", "Libelle", "texte", true, { sansEtoile: true }), ch("paramCompte", "Param Compte:", "Param Compte", "compte", false, { aide: "( Ex1 : 6*,712* Ex2 : 5*,3327258 )" })] },
+    champs: [ch("code", "Code :", "Code", "texte", true, { sansEtoile: true }), ch("libelle", "Libellé :", "Libellé", "texte", true, { sansEtoile: true }), ch("paramCompte", "Param Compte:", "Param Compte", "compte", false, { aide: "( Ex1 : 6*,712* Ex2 : 5*,3327258 )" })] },
   { page: "types_periode", menu: "Types de période", entete: "Types de période", cadre: "Type de période", grille: "Liste des Types de Périodes Budgétaires",
     champs: [ch("code", "Code :", "Code"), ch("libelle", "Libellé :", "Libellé"), ch("dureeMois", "Durée (Mois) :", "Durée (Mois)", "entier", false, { defaut: 0 }),
       ch("dureeJours", "Durée (Jours) :", "Durée (Jours)", "entier", false, { defaut: 0 })] },
@@ -9326,7 +9326,7 @@ export const CATALOGUE_BUDGET: FicheBudget[] = [
     champs: [ch("numero", "N° de ligne", "N°", "texte", true, { sansEtoile: true }), ch("libelle", "Libellé Ligne", "Libellé", "texte", true, { sansEtoile: true }),
       ch("planId", "Plan Budgétaire", "Plan BudGetaire", "choix", true, { ref: "plans", sansEtoile: true }),
       ch("centreId", "Centre de coût", "Centre de coût", "choix", true, { ref: "centres", sansEtoile: true }), ch("bailleurId", "Bailleur", "Bailleur", "choix", false, { ref: "bailleurs" })] },
-  { page: "operations", menu: "Operations", entete: "Liaison des éléments du budget aux opérations", grille: "Liste des types de budgets paramétrés sur les types d'opération",
+  { page: "operations", menu: "Opérations", entete: "Liaison des éléments du budget aux opérations", grille: "Liste des types de budgets paramétrés sur les types d'opération",
     unique: ["typeOperation"], champs: [ch("typeOperation", "Type opération :", "Type opération", "operation"), ch("typeBudgetId", "Type budget :", "Type budget", "choix", true, { ref: "types_budget" })] },
 ];
 const budget = referentiel({
@@ -9347,19 +9347,19 @@ const budget = referentiel({
   utilisePar: {
     types_centre: [["types_centre", "parentId", "Types de centre de coût"], ["centres", "typeId", "Centres de coût"]],
     centres: [["centres", "parentId", "Centres de coût"], ["lignes", "centreId", "Ligne de plan budgétaire"]],
-    types_budget: [["operations", "typeBudgetId", "Operations"]], types_periode: [["periodes", "typeId", "Périodes"]], plans: [["lignes", "planId", "Ligne de plan budgétaire"]],
+    types_budget: [["operations", "typeBudgetId", "Opérations"]], types_periode: [["periodes", "typeId", "Périodes"]], plans: [["lignes", "planId", "Ligne de plan budgétaire"]],
   },
 });
 
 // ---------- Produits > Crédits > Général (S21, manuel p. 32 à 36). Degré selon l'Instr. BCC 003, Terme selon le PCCI (registre S21-1, S21-2).
 // Règles identiques côté serveur (noyau/credit.py). ----------
 const adresse = (cadre: string) => [ch("rue", "Rue / Maison :", "Rue / Maison", "texte", false, { cadre, grille: false }),
-  ch("telephoneFixe", "Telephone fixe:", "Telephone fixe", "texte", false, { cadre, grille: false }), ch("bp", "BP :", "BP", "texte", false, { cadre, grille: false }),
+  ch("telephoneFixe", "Téléphone fixe:", "Téléphone fixe", "texte", false, { cadre, grille: false }), ch("bp", "BP :", "BP", "texte", false, { cadre, grille: false }),
   ch("email", "email :", "email", "email", false, { cadre, grille: false }), ch("portable", "Portable :", "Portable", "texte", false, { cadre, grille: false })];
 /** Onglets de la capture p. 33, dans leur ordre. « fixe » : valeurs en lecture seule, avec Exporter (captures p. 33 à 35) */
 export const CATALOGUE_CREDIT: FicheBudget[] = [
   { page: "types_objet", menu: "Type Objet", unique: ["libelle"], filtres: true,
-    champs: [ch("libelle", "Type Objet:", "Type Objet"), ch("secteurId", "Secteur Activité :", "Secteur Activite", "choix", true, { ref: "secteurs" })] },
+    champs: [ch("libelle", "Type Objet:", "Type Objet"), ch("secteurId", "Secteur Activité :", "Secteur Activité", "choix", true, { ref: "secteurs" })] },
   { page: "objets", menu: "Objet Credit", unique: ["libelle"], filtres: true, exporter: true,
     champs: [ch("libelle", "Objet Credit:", "Objet Credit"), ch("typeObjetId", "Type Objet :", "Type Objet", "choix", true, { ref: "types_objet" }),
       // A6 : crédit interdit pour cet objet (loi 22/069, titre II, chap. II, section 4)
@@ -9370,14 +9370,14 @@ export const CATALOGUE_CREDIT: FicheBudget[] = [
   { page: "zones", menu: "Zone Credit", champs: [ch("code", "Code Zone :", "Code Zone", "texte", true, { grille: false }), ch("nom", "Nom Zone :", "Nom zone"),
     ch("description", "Description :", "Description", "texteLong"), ch("agenceId", "Agence :", "Agence", "choix", true, { ref: "agences" })] },
   // Instr. BCC 003 : art. 3, 6, 7, 9 et 12 (provision sur le capital restant dû) ; ordre de remboursement : S22 (registre S21-1)
-  { page: "degres", menu: "Dégré Credit", exporter: true, filtres: true, ordres: true,
-    champs: [ch("libelle", "Libelle Degre", "Libelle Degre"), ch("debut", "Debut Degre", "Debut Degre", "entier"), ch("fin", "Fin degre", "Fin degre", "entier"),
+  { page: "degres", menu: "Degré Credit", exporter: true, filtres: true, ordres: true,
+    champs: [ch("libelle", "Libellé Degré", "Libellé Degré"), ch("debut", "Début Degré", "Début Degré", "entier"), ch("fin", "Fin degre", "Fin degre", "entier"),
       ch("taux", "taux", "taux", "entier"), ch("ordre", "Ordre de remboursement crédit", "Ordre de remboursement crédit")],
     fixe: ([["Sains", 0, 0, 0], ["Impayés", 1, 30, 5], ["Douteux", 31, 60, 25], ["Douteux", 61, 90, 50], ["Douteux", 91, 180, 75], ["Douteux", 181, 365, 100],
       ["Irrécupérables", 366, 999999, 100]] as const).map(([libelle, debut, fin, taux]) => ({ libelle, debut, fin, taux, ordre: "" })) },
   // PCCI, classe 3 : court terme jusqu'à 1 an (compte 32), moyen terme de 1 à 5 ans (31), long terme au-delà de 5 ans (30) ; en mois (registre S21-2)
   { page: "termes", menu: "Terme Credit", exporter: true, filtres: true,
-    champs: [ch("libelle", "Libelle", "Libelle"), ch("debut", "Durée Debut", "Durée Debut", "entier"), ch("fin", "Durée Fin", "Durée Fin", "entier"), ch("compte", "Compte garanties", "Compte garanties")],
+    champs: [ch("libelle", "Libellé", "Libellé"), ch("debut", "Durée Début", "Durée Début", "entier"), ch("fin", "Durée Fin", "Durée Fin", "entier"), ch("compte", "Compte garanties", "Compte garanties")],
     fixe: ([["Court terme", 1, 12], ["Moyen terme", 13, 60], ["Long terme", 61, 9999]] as const).map(([libelle, debut, fin]) => ({ libelle, debut, fin, compte: "" })) },
   { page: "periodicites", menu: "Périodicité", exporter: true, filtres: true,
     champs: [ch("libelle", "Libellé", "Libellé"), ch("code", "Code", "Code"), ch("denominateur", "Dénominateur", "Dénominateur"), ch("constante", "Constante", "Constante"), ch("unite", "Unité", "Unité")],
@@ -9385,7 +9385,7 @@ export const CATALOGUE_CREDIT: FicheBudget[] = [
       ["Annuel", "An", "1", "12", "Mois"], ["Mensuel", "M", "12", "1", "Mois"], ["Hebdomadaire", "S", "52", "1", "Semaine"], ["Semestriel", "Sem", "2", "6", "Mois"],
       ["Trimestriel", "Trim", "4", "3", "Mois"]].map(([libelle, code, denominateur, constante, unite]) => ({ libelle, code, denominateur, constante, unite })) },
   { page: "types_assurance", menu: "Type assurance", outils: true, exporter: true, filtres: true,
-    champs: [ch("code", "Code Type Assurance", "code Type Assurance"), ch("libelle", "Libellé Type Assurance", "Libelle Type Assurance")] },
+    champs: [ch("code", "Code Type Assurance", "code Type Assurance"), ch("libelle", "Libellé Type Assurance", "Libellé Type Assurance")] },
   { page: "assureurs", menu: "Assureur crédit", unique: ["nom"], outils: true,
     champs: [ch("nom", "Nom Assureur:", "Nom Assureur", "texte", true, { cadre: "Info générale" }),
       ch("typeAssuranceId", "Type Assurance:", "Type Assurance", "choix", true, { ref: "types_assurance", cadre: "Info générale" }),
@@ -9809,7 +9809,7 @@ const journaux = {
   enregistrer(d: { type?: string; libelle?: string; code?: string; actif?: boolean; detail?: boolean }, id?: number) {
     exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
     const type = d.type?.trim() ?? "", libelle = d.libelle?.trim() ?? "", code = (d.code ?? "").trim().toUpperCase();
-    const manque = manquants([["Type Journal", type], ["Libelle", libelle], ["Code", code]]);
+    const manque = manquants([["Type Journal", type], ["Libellé", libelle], ["Code", code]]);
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
     if (!(type in TYPES_JOURNAL)) throw new ErreurMetier("Type Journal inconnu.");
     const actuel = id === undefined ? undefined : E.journaux.find((j) => j.id === id && !j.supprime);

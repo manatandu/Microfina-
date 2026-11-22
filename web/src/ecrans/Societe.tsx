@@ -9,7 +9,7 @@ import { fr } from "../lib/dates";
 import { lireMontant, montant } from "@design/montant.js";
 import { Onglet as PageZone } from "./Credit";
 
-const PAGES = [["societe", "Information Societe"], ["agence", "Agence"], ["zone", "Zone"]] as const;
+const PAGES = [["societe", "Information Société"], ["agence", "Agence"], ["zone", "Zone"]] as const;
 
 /** S32 : Paramétrage > Info société (manuel Microfina++, p. 42) : pages Information Societe, Agence, Zone */
 export default function InfoSocietePage() {
@@ -85,7 +85,7 @@ function InformationSociete() {
             <BlocAdresse valeur={v} maj={(x) => maj(x)} arbre={donnees.arbreLieux} ajouterQuartier={api.adresse.ajouterQuartier} />
             {texte("email", "email :")}
             {texte("bp", "BP", "saisie code")}
-            {texte("telephoneFixe", "Telephone fixe :")}
+            {texte("telephoneFixe", "Téléphone fixe :")}
             {texte("adresse", "Adresse :")}
             {texte("compteHorsBilan2", "Hors Bilan 2", "saisie code")}
           </div>

@@ -33,15 +33,15 @@ export default function VisaBanque() {
   } });
   const m = (x: LigneVisaBanque) => montant(x.montant, x.devise);
   const colonnes: [string, (x: LigneVisaBanque) => React.ReactNode][] = l.id === "enc_dec"
-    ? [["Date operation", (x) => fr(x.date)], ["Operation", (x) => x.operation], ["Montant", m], ["Banque", (x) => x.banque], ["Compte Banque", (x) => x.compteBanque],
-       ["Numero comptable", (x) => x.numeroComptable], ["Libelle", (x) => x.libelle]]
+    ? [["Date opération", (x) => fr(x.date)], ["Opération", (x) => x.operation], ["Montant", m], ["Banque", (x) => x.banque], ["Compte Banque", (x) => x.compteBanque],
+       ["Numéro comptable", (x) => x.numeroComptable], ["Libellé", (x) => x.libelle]]
     : l.id === "banque_caisse"
-    ? [["Date operation", (x) => fr(x.date)], ["Montant", m], ["Banque", (x) => x.banque], ["Compte Banque", (x) => x.compteBanque], ["Libelle", (x) => x.libelle]]
+    ? [["Date opération", (x) => fr(x.date)], ["Montant", m], ["Banque", (x) => x.banque], ["Compte Banque", (x) => x.compteBanque], ["Libellé", (x) => x.libelle]]
     : l.id === "banque_banque"
-    ? [["Date operation", (x) => fr(x.date)], ["Montant", m], ["Banque Origine", (x) => x.banque], ["Compte Banque Origine", (x) => x.compteBanque],
-       ["Banque Desdinataire", (x) => x.banqueDest], ["Compte Banque Desdinataire", (x) => x.compteBanqueDest]]
-    : [["Date operation", (x) => fr(x.date)], ["Compte epargne", (x) => x.compteEpargne], ["Numero comptable", (x) => x.numeroComptable], ["Libelle de l'operation", (x) => x.libelle],
-       ["Debit", (x) => (x.debit ? montant(x.debit, x.devise) : "")], ["Crédit", (x) => (x.credit ? montant(x.credit, x.devise) : "")]];
+    ? [["Date opération", (x) => fr(x.date)], ["Montant", m], ["Banque Origine", (x) => x.banque], ["Compte Banque Origine", (x) => x.compteBanque],
+       ["Banque Destinataire", (x) => x.banqueDest], ["Compte Banque Destinataire", (x) => x.compteBanqueDest]]
+    : [["Date opération", (x) => fr(x.date)], ["Compte epargne", (x) => x.compteEpargne], ["Numéro comptable", (x) => x.numeroComptable], ["Libellé de l'opération", (x) => x.libelle],
+       ["Débit", (x) => (x.debit ? montant(x.debit, x.devise) : "")], ["Crédit", (x) => (x.credit ? montant(x.credit, x.devise) : "")]];
   const titre = etape === "visa" ? l.viser : l.valider;
 
   return (
@@ -57,7 +57,7 @@ export default function VisaBanque() {
         {etape === "validation" && l.id !== "virement" && (
           <div className="entete-ecran">
             <p>Numéro de pièce : <strong className="chiffres"></strong></p>
-            <ChampDate libelle="Date operation : *" valeur={dateOp} onChange={setDate} requis />
+            <ChampDate libelle="Date opération : *" valeur={dateOp} onChange={setDate} requis />
           </div>
         )}
         <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
@@ -67,7 +67,7 @@ export default function VisaBanque() {
             {visibles.map((x) => (
               <tr key={x.id}>
                 <td><button className="bouton secondaire" type="button" aria-label={`${etape === "visa" ? "Viser" : "Valider"} ${x.libelle}`} title={etape === "visa" ? "Viser" : "Valider"} onClick={() => agir(x)}>↑</button></td>
-                {colonnes.map(([c, f]) => <td key={c} className={c === "Montant" || c === "Debit" || c === "Crédit" ? "montant chiffres" : undefined}>{f(x)}</td>)}
+                {colonnes.map(([c, f]) => <td key={c} className={c === "Montant" || c === "Débit" || c === "Crédit" ? "montant chiffres" : undefined}>{f(x)}</td>)}
               </tr>
             ))}
           </tbody>

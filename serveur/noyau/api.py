@@ -1075,7 +1075,7 @@ def etats_financiers_etat(request, etat: str):
     from .editions import numeroter
     f = {"bilan": ef.bilan, "hors-bilan": ef.hors_bilan, "resultat": ef.resultat, "annexe": ef.annexe}.get(etat)
     if not f:
-        raise ErreurMetier("Etat inconnu.")
+        raise ErreurMetier("État inconnu.")
     r = f(u(request), request.GET.dict())
     return {**r, "edition": numeroter(u(request), etat)}
 

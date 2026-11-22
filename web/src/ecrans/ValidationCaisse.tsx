@@ -50,10 +50,10 @@ export default function ValidationCaisse() {
       <section className="bloc pile" aria-label={deplacee ? "Validation Opération déplacée" : "Opération diverse"}>
         {(!s || s.statut !== "ouverte") && <Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention>}
         <Paginee lignes={lignes}>{(visibles) => (deplacee ? <table className="grille">
-          <thead><tr><th scope="col"><span className="sr-only">Sens</span></th><th scope="col">Date operation</th><th scope="col">N° Membre</th><th scope="col">N° Compte</th><th scope="col">Numero de piece</th>
-            <th scope="col">Nom et Prenoms</th><th scope="col" className="num">Montant</th></tr>
+          <thead><tr><th scope="col"><span className="sr-only">Sens</span></th><th scope="col">Date opération</th><th scope="col">N° Membre</th><th scope="col">N° Compte</th><th scope="col">Numéro de piece</th>
+            <th scope="col">Nom et Prénoms</th><th scope="col" className="num">Montant</th></tr>
             <tr className="filtres"><td /><td /><td><input className="saisie" type="search" aria-label="Filtrer N° Membre" value={filtre.membre} onChange={(e) => setFiltre({ ...filtre, membre: e.target.value })} /></td><td /><td />
-              <td><input className="saisie" type="search" aria-label="Filtrer Nom et Prenoms" value={filtre.nom} onChange={(e) => setFiltre({ ...filtre, nom: e.target.value })} /></td><td /></tr></thead>
+              <td><input className="saisie" type="search" aria-label="Filtrer Nom et Prénoms" value={filtre.nom} onChange={(e) => setFiltre({ ...filtre, nom: e.target.value })} /></td><td /></tr></thead>
           <tbody>{lignes.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
             {visibles.map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} onClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
               <td><Sens x={x} /></td><td className="chiffres">{fr(x.date)}</td><td className="chiffres">{x.numeroClient}</td><td className="code">{x.compteEpargne}</td><td className="chiffres">{x.piece}</td>
@@ -76,7 +76,7 @@ export default function ValidationCaisse() {
         {ouverte && detail && <div className="pile">
           <p>N° Piece <strong className="chiffres">{fait?.piece ?? ""}</strong></p>
           <div className="defile-x"><table className="grille">
-            <thead><tr><th scope="col">Compte</th><th scope="col">Libelle Detail</th><th scope="col" className="num">Montant</th></tr></thead>
+            <thead><tr><th scope="col">Compte</th><th scope="col">Libellé Detail</th><th scope="col" className="num">Montant</th></tr></thead>
             <tbody>{detail.map((l, i) => <tr key={i}><td className="code">{l.compte}</td><td>{l.libelle}</td><td className="num chiffres">{montant(l.montant, ouverte.devise as Devise)}</td></tr>)}</tbody>
           </table></div>
           {!fait && <Billetage devise={ouverte.devise as Devise} comptage={coupures} onChange={(c) => { setCoupures(c); setCle(nouvelleCle()); }} cible={ouverte.montant}

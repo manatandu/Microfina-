@@ -51,7 +51,7 @@ export function VirementPrelevement() {
           <fieldset className="pile cadre-champs">
             <legend>Agence</legend>
             {lu_("Agence *", ctx.agence.nom)}
-            <ChampDate libelle="Date operation" valeur={date} onChange={(v) => maj({ date: v })} />
+            <ChampDate libelle="Date opération" valeur={date} onChange={(v) => maj({ date: v })} />
           </fieldset>
           <fieldset className="pile cadre-champs">
             <legend>Identifiant Client</legend>
@@ -85,7 +85,7 @@ export function VirementPrelevement() {
           <div className="formulaire">
             <ChoixBanque lu={lu} libelleBanque="Banque *" libelleCompte="Compte Banque *" banque={f.banque} compte={f.compte}
               onBanque={(v) => maj({ banque: v, compte: "" })} onCompte={(v) => setF((x) => ({ ...x, compte: v }))} />
-            <Champ libelle="Libelle operation *">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.libelle} onChange={(e) => maj({ libelle: e.target.value })} />}</Champ>
+            <Champ libelle="Libellé opération *">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.libelle} onChange={(e) => maj({ libelle: e.target.value })} />}</Champ>
             <Champ libelle="Montant *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={f.montant} onChange={(e) => maj({ montant: e.target.value })} />}</Champ>
           </div>
           <p>Solde Banque : <strong className="chiffres">{cb ? montant(cb.solde, cb.devise as Devise) : "0"}</strong></p>

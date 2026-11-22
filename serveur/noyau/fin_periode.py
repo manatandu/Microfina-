@@ -239,7 +239,7 @@ def date_arrete(u, p: dict) -> date:
 
 
 def apercu_interets_dat(u, p: dict) -> dict:
-    """Etat des intérêts courus sur les dépôts à terme en cours, à la date"""
+    """État des intérêts courus sur les dépôts à terme en cours, à la date"""
     exiger(u)
     d = date_arrete(u, p)
     out = []
@@ -302,7 +302,7 @@ def couru_credit(c: dict, d: date) -> int:
 
 
 def apercu_interets_credits(u, p: dict) -> dict:
-    """Etat des intérêts courus non échus sur les crédits sains, à la date ; un crédit qui n'est plus sain voit sa part passée reprise"""
+    """État des intérêts courus non échus sur les crédits sains, à la date ; un crédit qui n'est plus sain voit sa part passée reprise"""
     from .deblocage import terme
     exiger(u)
     d = date_arrete(u, p)

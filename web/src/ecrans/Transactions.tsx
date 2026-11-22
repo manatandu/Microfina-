@@ -20,7 +20,7 @@ export default function RapportTransactions() {
   }
   /** Export vers Excel (manuel p. 9 ; registre T17 et S13-5) */
   function exporter() {
-    exporterExcel("Rapport des transactions", ["Utilisateur", "Nbres Opérations", "Nbres Annulations", "Nbres Tansactions"],
+    exporterExcel("Rapport des transactions", ["Utilisateur", "Nbres Opérations", "Nbres Annulations", "Nbres Transactions"],
       [...lignes.map((l) => [l.utilisateur, l.operations, l.annulations, l.transactions]), ["TOTAL", total("operations"), total("annulations"), total("transactions")]]);
   }
   return (
@@ -33,7 +33,7 @@ export default function RapportTransactions() {
           <button className="bouton" type="button" onClick={afficher}>Afficher</button>
         </div>
         <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
-          <thead><tr><th scope="col">Utilisateur</th><th scope="col" className="num">Nbres Opérations</th><th scope="col" className="num">Nbres Annulations</th><th scope="col" className="num">Nbres Tansactions</th></tr></thead>
+          <thead><tr><th scope="col">Utilisateur</th><th scope="col" className="num">Nbres Opérations</th><th scope="col" className="num">Nbres Annulations</th><th scope="col" className="num">Nbres Transactions</th></tr></thead>
           <tbody>
             {visibles.map((l) => (
               <tr key={l.utilisateur}><td>{l.utilisateur}</td><td className="num">{nombre(l.operations)}</td>

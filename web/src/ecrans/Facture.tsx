@@ -67,7 +67,7 @@ function Elements() {
       <fieldset className="cadre-champs pile">
         <legend>Liste éléments</legend>
         <Paginee lignes={donnees.elements}>{(visibles) => (<table className="grille">
-          <thead><tr><th scope="col">Libelle</th><th scope="col">Compte</th><th scope="col">Taux (%)</th><th scope="col">Taux A. (%)</th><th scope="col">Taux N.A. (%)</th>
+          <thead><tr><th scope="col">Libellé</th><th scope="col">Compte</th><th scope="col">Taux (%)</th><th scope="col">Taux A. (%)</th><th scope="col">Taux N.A. (%)</th>
             <th scope="col">Retenue</th><th scope="col">Désactiver</th></tr></thead>
           <tbody>
             {donnees.elements.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}

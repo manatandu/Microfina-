@@ -391,7 +391,7 @@ def inventorier(u, d) -> dict:
     b = bien(u, d.get("bienId"))
     etat = d.get("etat")
     if etat not in ETATS:
-        raise ErreurMetier("À remplir : Etat du bien.")
+        raise ErreurMetier("À remplir : État du bien.")
     q = lire_date(d, "date", "Date inventaire")
     if q > date.fromisoformat(jour_ouvert(u)["date"]):
         raise ErreurMetier("Date inventaire : pas après la journée ouverte.")
@@ -543,7 +543,7 @@ def simuler(u, p: dict) -> list[dict]:
 
 
 def suivi(u, p: dict) -> list[dict]:
-    """« Etat des transferts de biens effectués sur une période donnée » : Résultat Affectation, Transfert ou Libération"""
+    """« État des transferts de biens effectués sur une période donnée » : Résultat Affectation, Transfert ou Libération"""
     exiger(u)
     du, au = periode(p)
     t = p.get("resultat") or "transfert"

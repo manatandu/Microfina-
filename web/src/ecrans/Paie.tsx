@@ -319,7 +319,7 @@ export function RetenuesSalaire() {
   const aViser = (toutes ?? []).filter((r) => r.employeId === emp && r.statut === "saisie");
   const grille = (l: NonNullable<typeof toutes>, viser: boolean) => <table className="grille">
     <thead><tr><th scope="col">Matricule</th><th scope="col">Employé</th><th scope="col">Type de retenue</th><th scope="col">Session</th><th scope="col" className="num">Montant</th>
-      <th scope="col" className="num">Durée</th><th scope="col" className="num">Par session</th><th scope="col">Etat</th>{viser && <th scope="col"><span className="sr-only">Viser</span></th>}</tr></thead>
+      <th scope="col" className="num">Durée</th><th scope="col" className="num">Par session</th><th scope="col">État</th>{viser && <th scope="col"><span className="sr-only">Viser</span></th>}</tr></thead>
     <tbody>{l.length === 0 && <tr><td colSpan={viser ? 9 : 8}>Aucune ligne.</td></tr>}
       {l.map((r) => <tr key={r.id}><td className="code">{r.matricule}</td><td>{r.employe}</td><td>{r.type}</td><td>{r.session}</td><td className="num chiffres">{n(r.montant)}</td>
         <td className="num chiffres">{r.duree}</td><td className="num chiffres">{n(r.mensualite)}</td><td>{r.statut === "visee" ? `Visée par ${r.visePar}` : `Mise en place par ${r.saisiPar}`}</td>

@@ -67,7 +67,7 @@ export default function Adhesion() {
       <section className="bloc pile" aria-label="Adhésion">
         <div className="entete-ecran">
           <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p>
-          <p>Date Operation : * <strong className="chiffres">{fr(j?.date ?? "")}</strong></p>
+          <p>Date Opération : * <strong className="chiffres">{fr(j?.date ?? "")}</strong></p>
         </div>
         <div className="grille-cadres">
           <fieldset className="pile cadre-champs">

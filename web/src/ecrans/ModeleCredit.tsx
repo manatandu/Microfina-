@@ -50,10 +50,10 @@ export default function ModeleCredit() {
         <div className="ligne-champ"><Champ libelle="Libellé : *">{(p) => <input {...p} className="saisie" value={libelle} onChange={(e) => setLibelle(e.target.value)} />}</Champ></div>
         <div className="grille-deux">
           <table className="grille">
-            <caption>Dégré</caption>
+            <caption>Degré</caption>
             <thead>
               <tr><th scope="col" rowSpan={2}>Libellé</th><th scope="col" rowSpan={2} className="num">Taux</th><th scope="colgroup" colSpan={2}>Durée (Jours)</th></tr>
-              <tr><th scope="col" className="num">Debut</th><th scope="col" className="num">Fin</th></tr>
+              <tr><th scope="col" className="num">Début</th><th scope="col" className="num">Fin</th></tr>
             </thead>
             <tbody>{(donnees.degres as Degre[]).map((d) => ligne(d.rang === degre, () => montrer(d.rang, terme), [d.libelle, d.taux, d.debut, d.fin], d.rang))}</tbody>
           </table>
@@ -61,7 +61,7 @@ export default function ModeleCredit() {
             <caption>Terme</caption>
             <thead>
               <tr><th scope="col" rowSpan={2}>Libellé</th><th scope="colgroup" colSpan={2}>Durée (Mois)</th></tr>
-              <tr><th scope="col" className="num">Debut</th><th scope="col" className="num">Fin</th></tr>
+              <tr><th scope="col" className="num">Début</th><th scope="col" className="num">Fin</th></tr>
             </thead>
             <tbody>{(donnees.termes as Terme[]).map((t) => ligne(t.rang === terme, () => montrer(degre, t.rang), [t.libelle, t.debut, t.fin], t.rang))}</tbody>
           </table>

@@ -23,7 +23,7 @@ export default function VisaRetraitPlafond() {
       <h2>Viser Retrait plafonné</h2>
       <div className="pile">
         <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
-          <thead><tr><th scope="col"><span className="sr-only">Viser</span></th><th scope="col">Date operation</th><th scope="col">Libelle de l'operation</th>
+          <thead><tr><th scope="col"><span className="sr-only">Viser</span></th><th scope="col">Date opération</th><th scope="col">Libellé de l'opération</th>
             <th scope="col" className="montant">montant</th><th scope="col">Membre</th><th scope="col">Compte</th></tr></thead>
           <tbody>
             {lignes.length === 0 && <tr><td colSpan={6}>Aucune information</td></tr>}

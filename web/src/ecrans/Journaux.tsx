@@ -32,7 +32,7 @@ export default function Journaux() {
           <div className="ligne-champ">
             <Champ libelle="Type Journal *">{(p) => <select {...p} className="saisie" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}>
               <option value=""></option>{donnees.types.map((t: { code: string; libelle: string }) => <option key={t.code} value={t.code}>{t.libelle}</option>)}</select>}</Champ>
-            <Champ libelle="Libelle : *">{(p) => <input {...p} className="saisie" value={f.libelle} onChange={(e) => setF({ ...f, libelle: e.target.value })} />}</Champ>
+            <Champ libelle="Libellé : *">{(p) => <input {...p} className="saisie" value={f.libelle} onChange={(e) => setF({ ...f, libelle: e.target.value })} />}</Champ>
             <Champ libelle="Code :">{(p) => <input {...p} className="saisie code" value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} />}</Champ>
             <label className="case"><input type="checkbox" checked={f.actif} onChange={(e) => setF({ ...f, actif: e.target.checked })} /><span>Actif</span></label>
           </div>

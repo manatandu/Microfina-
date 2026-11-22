@@ -57,7 +57,7 @@ function FraisTenue({ ctx, jour }: { ctx: Ctx; jour: string }) {
       <button className="bouton secondaire" type="button" disabled={!r?.lignes.some((x) => x.etat === "À prélever")}
         onClick={() => t.confirmer("Voulez-vous vraiment prélever les frais de tenue de compte ?", async () => setR(await api.finPeriode.passerTenue(f)))}>Valider</button></div>
     {r && <table className="grille"><caption>Comptes</caption>
-      <thead><tr><th scope="col">N° compte</th><th scope="col">Client</th><th scope="col">Produit</th><th scope="col">Devise</th><th scope="col" className="num">Montant</th><th scope="col">Etat</th></tr></thead>
+      <thead><tr><th scope="col">N° compte</th><th scope="col">Client</th><th scope="col">Produit</th><th scope="col">Devise</th><th scope="col" className="num">Montant</th><th scope="col">État</th></tr></thead>
       <tbody>{r.lignes.map((x) => <tr key={x.compteId}><td className="code">{x.numero}</td><td>{x.client}</td><td>{x.produit}</td><td>{x.devise}</td>
         <td className="num chiffres">{x.montant ? n(x.montant) : ""}</td><td>{x.etat}</td></tr>)}</tbody></table>}
     {t.dialogue}</section>;
@@ -75,7 +75,7 @@ function InteretsDav({ ctx, jour }: { ctx: Ctx; jour: string }) {
         onClick={() => t.confirmer("Voulez-vous vraiment servir les intérêts ?", async () => setR(await api.finPeriode.passerInteretsDav(f)))}>Valider</button></div>
     {r && <table className="grille"><caption>Comptes</caption>
       <thead><tr><th scope="col">N° compte</th><th scope="col">Client</th><th scope="col">Devise</th><th scope="col" className="num">Taux</th><th scope="col" className="num">Solde moyen</th>
-        <th scope="col" className="num">Intérêt</th><th scope="col" className="num">Retenue</th><th scope="col" className="num">Net</th><th scope="col">Etat</th></tr></thead>
+        <th scope="col" className="num">Intérêt</th><th scope="col" className="num">Retenue</th><th scope="col" className="num">Net</th><th scope="col">État</th></tr></thead>
       <tbody>{r.lignes.map((x) => <tr key={x.compteId}><td className="code">{x.numero}</td><td>{x.client}</td><td>{x.devise}</td><td className="num chiffres">{x.taux} %</td>
         <td className="num chiffres">{n(x.base)}</td><td className="num chiffres">{n(x.interet)}</td><td className="num chiffres">{n(x.retenue)}</td><td className="num chiffres">{n(x.net)}</td><td>{x.etat}</td></tr>)}</tbody></table>}
     {t.dialogue}</section>;
@@ -151,13 +151,13 @@ function EtatProvisions({ jour, cloture }: { jour: string; cloture: boolean }) {
   const [r, setR] = useState<Provisions | null>(null);
   const t = useTraitement();
   const afficher = async () => { try { setR(await (cloture ? api.finPeriode.provisionsCloture : api.finPeriode.etatProvisions)({ date: d })); } catch (x) { t.erreur(x); } };
-  return <section className="bloc pile" aria-label="Etat des provisions de crédits"><h2>Etat des provisions de crédits</h2>
+  return <section className="bloc pile" aria-label="État des provisions de crédits"><h2>État des provisions de crédits</h2>
     <fieldset className="cadre-champs formulaire"><legend className="sr-only">Date</legend>
       <ChampDate libelle="Balance âgée des crédits au :" valeur={d} onChange={(v) => { setD(v); setR(null); }} /></fieldset>
     <div className="actions-onglets"><button className="bouton" type="button" onClick={afficher}>Afficher</button>
       <button className="bouton secondaire" type="button" disabled={!r} onClick={() => window.print()}>Imprimer</button></div>
     {r && <table className="grille"><caption>Provisions au {fr(r.date)}</caption>
-      <thead><tr><th scope="col">Dégré</th><th scope="col">Terme</th><th scope="col">Devise</th><th scope="col" className="num">Encours</th><th scope="col" className="num">Retard</th>
+      <thead><tr><th scope="col">Degré</th><th scope="col">Terme</th><th scope="col">Devise</th><th scope="col" className="num">Encours</th><th scope="col" className="num">Retard</th>
         <th scope="col" className="num">Taux</th><th scope="col" className="num">Provisions</th><th scope="col">Compte capital</th><th scope="col">Compte provision débit</th><th scope="col">Compte provision crédit</th></tr></thead>
       <tbody>{r.lignes.map((x, i) => <tr key={i}><td>{x.degre}</td><td>{x.terme}</td><td>{x.devise}</td><td className="num chiffres">{n(x.encours)}</td><td className="num chiffres">{n(x.retard)}</td>
         <td className="num chiffres">{x.taux} %</td><td className="num chiffres">{n(x.provisions)}</td><td className="code">{x.compteCapital}</td><td className="code">{x.compteProvisionDebit}</td>
@@ -167,7 +167,7 @@ function EtatProvisions({ jour, cloture }: { jour: string; cloture: boolean }) {
 
 function Controles({ titre, liste }: { titre: string; liste: Cloture["controles"] }) {
   return <table className="grille"><caption>{titre}</caption>
-    <thead><tr><th scope="col">Contrôle</th><th scope="col">Etat</th><th scope="col">Détail</th></tr></thead>
+    <thead><tr><th scope="col">Contrôle</th><th scope="col">État</th><th scope="col">Détail</th></tr></thead>
     <tbody>{liste.map((c) => <tr key={c.libelle}><th scope="row">{c.libelle}</th><td>{c.ok ? "Oui" : c.bloquant ? "Non (bloquant)" : "Non"}</td><td>{c.detail}</td></tr>)}</tbody></table>;
 }
 
@@ -261,7 +261,7 @@ function useCadreCloture() {
 }
 
 const PAGES_CALCULS = [["tenue", "Frais de tenue de comptes"], ["dav", "Calcul intérêt sur DAV"], ["dat", "Calcul des intérêts sur DAT"], ["interets-frais", "Intérêt et frais de tenue de comptes"],
-  ["provisions", "Etat des provisions de crédits"], ["credits", "Intérêts courus sur crédits"]] as const;
+  ["provisions", "État des provisions de crédits"], ["credits", "Intérêts courus sur crédits"]] as const;
 export function Calculs() {
   const o = Onglets({ pages: PAGES_CALCULS, titre: "Calculs", defaut: "tenue" });
   const cadre = useCadre();

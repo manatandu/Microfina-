@@ -31,7 +31,7 @@ def enregistrer(u: dict, p: dict) -> dict:
     od = une("select * from operation_diverse where id = %s and institution_id = %s", (oid, u["institution_id"])) \
         if isinstance(oid, int) and not isinstance(oid, bool) else None
     if not od:
-        raise ErreurMetier("À remplir : Operations.")
+        raise ErreurMetier("À remplir : Opérations.")
     if od["statut"] != "ACTIF" or od["sens"] != SENS[type_op]:
         raise ErreurMetier("Cette opération n'est pas proposée en " + type_op.lower() + " (Paramétrage > ED divers).")
     libelle = (p.get("libelle") or "").strip() or od["libelle"]

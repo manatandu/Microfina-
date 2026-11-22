@@ -10,7 +10,7 @@ ADRESSE = "Données D'adresse"
 
 def adresse(cadre):
     return [ch("rue", "rue", "Rue / Maison :", obligatoire=False, cadre=cadre, grille=False),
-            ch("telephoneFixe", "telephone_fixe", "Telephone fixe:", obligatoire=False, cadre=cadre, grille=False),
+            ch("telephoneFixe", "telephone_fixe", "Téléphone fixe:", obligatoire=False, cadre=cadre, grille=False),
             ch("bp", "bp", "BP :", obligatoire=False, cadre=cadre, grille=False),
             ch("email", "email", "email :", "email", False, cadre=cadre, grille=False),
             ch("portable", "portable", "Portable :", obligatoire=False, cadre=cadre, grille=False)]
@@ -20,7 +20,7 @@ def adresse(cadre):
 CATALOGUE = [
     {"page": "types_objet", "table": "credit_type_objet", "menu": "Type Objet", "unique": ["libelle"], "filtres": True, "champs": [
         ch("libelle", "libelle", "Type Objet:", colonne="Type Objet"),
-        ch("secteurId", "secteur_id", "Secteur Activité :", "choix", True, "secteurs", colonne="Secteur Activite")]},
+        ch("secteurId", "secteur_id", "Secteur Activité :", "choix", True, "secteurs", colonne="Secteur Activité")]},
     {"page": "objets", "table": "credit_objet", "menu": "Objet Credit", "unique": ["libelle"], "filtres": True, "exporter": True, "champs": [
         ch("libelle", "libelle", "Objet Credit:", colonne="Objet Credit"),
         ch("typeObjetId", "type_objet_id", "Type Objet :", "choix", True, "types_objet", colonne="Type Objet"),
@@ -37,8 +37,8 @@ CATALOGUE = [
         ch("agenceId", "agence_id", "Agence :", "choix", True, "agences", colonne="Agence")]},
     # Instr. BCC 003 du 14/04/2012 : art. 3 (sains), 6 (impayés dès 1 jour), 7 (douteux dès le 31e jour), 9 (irrécupérables au-delà de 12 mois),
     # 12 (provision sur le capital restant dû). L'ordre de remboursement vient de S22 (registre S21-1).
-    {"page": "degres", "menu": "Dégré Credit", "exporter": True, "filtres": True, "ordres": True, "champs": [
-        ch("libelle", "libelle", "Libelle Degre", colonne="Libelle Degre"), ch("debut", "debut", "Debut Degre", "entier", colonne="Debut Degre"),
+    {"page": "degres", "menu": "Degré Credit", "exporter": True, "filtres": True, "ordres": True, "champs": [
+        ch("libelle", "libelle", "Libellé Degré", colonne="Libellé Degré"), ch("debut", "debut", "Début Degré", "entier", colonne="Début Degré"),
         ch("fin", "fin", "Fin degre", "entier", colonne="Fin degre"), ch("taux", "taux", "taux", "entier", colonne="taux"),
         ch("ordre", "ordre", "Ordre de remboursement crédit", colonne="Ordre de remboursement crédit")],
      "fixe": [{"libelle": l, "debut": d, "fin": f, "taux": t, "ordre": ""} for l, d, f, t in (
@@ -46,11 +46,11 @@ CATALOGUE = [
          ("Douteux", 181, 365, 100), ("Irrécupérables", 366, 999999, 100))]},
     # PCCI, classe 3 : court terme jusqu'à 1 an (compte 32), moyen terme de 1 à 5 ans (compte 31), long terme au-delà de 5 ans (compte 30) ; en mois
     {"page": "termes", "menu": "Terme Credit", "exporter": True, "filtres": True, "champs": [
-        ch("libelle", "libelle", "Libelle", colonne="Libelle"), ch("debut", "debut", "Durée Debut", "entier", colonne="Durée Debut"),
+        ch("libelle", "libelle", "Libellé", colonne="Libellé"), ch("debut", "debut", "Durée Début", "entier", colonne="Durée Début"),
         ch("fin", "fin", "Durée Fin", "entier", colonne="Durée Fin"), ch("compte", "compte", "Compte garanties", colonne="Compte garanties")],
      "fixe": [{"libelle": l, "debut": d, "fin": f, "compte": ""} for l, d, f in (("Court terme", 1, 12), ("Moyen terme", 13, 60), ("Long terme", 61, 9999))]},
     {"page": "periodicites", "menu": "Périodicité", "exporter": True, "filtres": True, "champs": [
-        ch("libelle", "libelle", "Libelle", colonne="Libelle"), ch("code", "code", "Code", colonne="Code"),
+        ch("libelle", "libelle", "Libellé", colonne="Libellé"), ch("code", "code", "Code", colonne="Code"),
         ch("denominateur", "denominateur", "Dénominateur", colonne="Dénominateur"), ch("constante", "constante", "Constante", colonne="Constante"),
         ch("unite", "unite", "Unité", colonne="Unité")],
      "fixe": [{"libelle": l, "code": c, "denominateur": d, "constante": k, "unite": un} for l, c, d, k, un in (
@@ -58,7 +58,7 @@ CATALOGUE = [
          ("Annuel", "An", "1", "12", "Mois"), ("Mensuel", "M", "12", "1", "Mois"), ("Hebdomadaire", "S", "52", "1", "Semaine"),
          ("Semestriel", "Sem", "2", "6", "Mois"), ("Trimestriel", "Trim", "4", "3", "Mois"))]},
     {"page": "types_assurance", "table": "credit_type_assurance", "menu": "Type assurance", "outils": True, "exporter": True, "filtres": True, "champs": [
-        ch("code", "code", "Code Type Assurance", colonne="code Type Assurance"), ch("libelle", "libelle", "Libellé Type Assurance", colonne="Libelle Type Assurance")]},
+        ch("code", "code", "Code Type Assurance", colonne="code Type Assurance"), ch("libelle", "libelle", "Libellé Type Assurance", colonne="Libellé Type Assurance")]},
     {"page": "assureurs", "table": "credit_assureur", "menu": "Assureur crédit", "etiquette": "nom", "unique": ["nom"], "outils": True, "champs": [
         ch("nom", "nom", "Nom Assureur:", colonne="Nom Assureur", cadre="Info générale"),
         ch("typeAssuranceId", "type_assurance_id", "Type Assurance:", "choix", True, "types_assurance", colonne="Type Assurance", cadre="Info générale"),

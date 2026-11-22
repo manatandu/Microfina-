@@ -80,13 +80,13 @@ function Creation({ comptes, typesSuivi, relire }: { comptes: LigneCompte[]; typ
             <datalist id="cp-numeros">{comptes.map((c) => <option key={c.numero} value={c.numero}>{c.libelle}</option>)}</datalist>
           </div>
           <div className="champ">
-            <label htmlFor="cp-suite">Numero *</label>
+            <label htmlFor="cp-suite">Numéro *</label>
             <span className="ligne-champ">
               <input className="saisie code" aria-label="Numéro du parent" readOnly value={f.parent} />
               <input id="cp-suite" className="saisie code" inputMode="numeric" disabled={!!choisi} value={f.suite} onChange={(e) => setF({ ...f, suite: e.target.value.trim() })} />
             </span>
           </div>
-          <Champ libelle="Libelle *">{(p) => <input {...p} className="saisie" value={f.libelle} onChange={(e) => setF({ ...f, libelle: e.target.value })} />}</Champ>
+          <Champ libelle="Libellé *">{(p) => <input {...p} className="saisie" value={f.libelle} onChange={(e) => setF({ ...f, libelle: e.target.value })} />}</Champ>
           <Champ libelle="Statut *">{(p) => <select {...p} className="saisie" value={f.ouvert} onChange={(e) => setF({ ...f, ouvert: e.target.value })}>
             <option value=""></option><option value="1">Ouvert</option><option value="0">Fermé</option></select>}</Champ>
           <Champ libelle="Nature *">{(p) => <select {...p} className="saisie" value={f.saisissable} onChange={(e) => setF({ ...f, saisissable: e.target.value })}>
@@ -186,7 +186,7 @@ function Modele({ comptes, groupes }: { comptes: LigneCompte[]; groupes: Record<
       </div>
       <fieldset className="pile cadre-champs"><legend>{nom} ({lg} position{lg > 1 ? "s" : ""})</legend>
         <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
-          <thead><tr><th scope="col">Code</th><th scope="col">Libelle</th>{lg === 1 && <th scope="col">Groupe</th>}</tr></thead>
+          <thead><tr><th scope="col">Code</th><th scope="col">Libellé</th>{lg === 1 && <th scope="col">Groupe</th>}</tr></thead>
           <tbody>
             {lignes.length === 0 && <tr><td colSpan={lg === 1 ? 3 : 2}>Aucune ligne.</td></tr>}
             {visibles.map((c) => <tr key={c.numero}><td className="chiffres">{c.numero}</td><td>{c.libelle}</td>{lg === 1 && <td>{groupes[c.numero] ?? ""}</td>}</tr>)}
