@@ -297,6 +297,20 @@ def test_refus_client(clients, journee):
     assert "pas en attente" in clients["chef"].post(f"/api/tiers/{t['id']}/visa", {}, **H).json()["message"]
 
 
+def test_piece_identite_univoque(clients, journee):
+    """A9 : l'identification représente la personne de manière univoque (Instr. BCC 15, art. 23 ; Code du numérique, art. 171) : une pièce d'identité
+    ne sert qu'à une fiche de client en cours ; une fiche refusée ne compte pas"""
+    agent, chef = clients["agent"], clients["chef"]
+    fiche = lambda nom, numero: agent.post("/api/tiers", {**FICHE, "nom": nom, "pieceType": "Passeport", "pieceNumero": numero}, **H)
+    t = fiche("Premier", "UN-1").json()
+    assert t["statut"] == "a_viser"
+    r = fiche("Second", " un-1 ")
+    assert r.status_code == 422 and f"déjà celle du client n° {t['numero']}" in r.json()["message"] and "art. 23" in r.json()["message"]
+    assert agent.post("/api/tiers", {**FICHE, "nom": "Second", "pieceType": "Carte d'électeur", "pieceNumero": "UN-1"}, **H).status_code == 200   # autre type de pièce
+    chef.post(f"/api/tiers/{t['id']}/refus", {"motif": "Dossier incomplet"}, **H)
+    assert fiche("Troisième", "UN-1").json()["statut"] == "a_viser"                                   # la fiche refusée ne compte plus
+
+
 def test_frais_apparente(clients, journee):
     """P2 : pas de conditions plus avantageuses pour un dirigeant, un salarié ou une personne liée (loi 002/2002, art. 52)"""
     from noyau.bd import executer

@@ -2341,6 +2341,19 @@ describe("journée de guichet", () => {
     expect([table(6).get("Capitalisation"), table(6).get("Solvabilité")![0], table(7).get("Portefeuille à Risque (PAR)")![0]]).toEqual([["", null, null], "≥ 10 %", "II. INDICATEUR DE QUALITE DU PORTEFEUILLE"]);
   });
 
+  it("pièce d'identité univoque (A9 ; Instr. BCC 15, art. 23 ; Code du numérique, art. 171) : une pièce ne sert qu'à une fiche de client en cours", async () => {
+    await connecter("bkasongo");
+    const fiche = (nom: string, pieceNumero: string, pieceType = "Passeport") => api.tiers.creer({ ...enrolementVide("2026-11-05"), ...IDENTITE, produitCode: "EAV-CDF", nom, prenom: "Essai", pieceType, pieceNumero },
+      { copiePiece: PNG, justificatifAdresse: PNG });
+    const t = await fiche("Premier", "UN-1");
+    await expect(fiche("Second", " un-1 ")).rejects.toThrow(`déjà celle du client n° ${t.numero}`);
+    expect((await fiche("Second", "UN-1", "Carte d'électeur")).statut).toBe("a_viser");   // autre type de pièce
+    await connecter("jpmukendi");
+    await api.tiers.refuser(t.id, { motif: "Dossier incomplet" });
+    await connecter("bkasongo");
+    expect((await fiche("Troisième", "UN-1")).statut).toBe("a_viser");                      // la fiche refusée ne compte plus
+  });
+
   it("états par durée (B27 ; PCCI § 10.6 et 10.7) : crédit débloqué classé par durée initiale et par durée résiduelle", async () => {
     const cid = await creditDebloque();
     const c = _etat().credits.find((x) => x.id === cid)!, montant = c.montant;

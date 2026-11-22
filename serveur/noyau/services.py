@@ -655,6 +655,16 @@ def controler_piece(type_: str, expire: str, j: dict | None, qui: str = ""):
         raise ErreurMetier(f"{qui}Pièce expirée.")
 
 
+def controler_univocite(u: dict, type_: str, numero: str, sauf: int | None = None):
+    """A9 : l'identification représente la personne « de manière univoque » (Instr. BCC 15, art. 23 ; ordonnance-loi 23/010 portant Code du numérique,
+    art. 171) : une pièce d'identité ne sert qu'à une fiche de client en cours. Les fiches résiliées ou refusées ne comptent pas."""
+    r = une("""select t.numero from tiers t join tiers_personne p on p.tiers_id = t.id
+               where t.institution_id = %s and p.piece_type = %s and upper(btrim(p.piece_numero)) = upper(%s) and t.statut not in ('resilie', 'refuse')
+                 and (%s::bigint is null or t.id <> %s) order by t.id limit 1""", (u["institution_id"], type_, numero.strip(), sauf, sauf))
+    if r:
+        raise ErreurMetier(f"Cette pièce d'identité est déjà celle du client n° {r['numero']} : une personne n'a qu'une fiche (Instr. BCC 15, art. 23).")
+
+
 def controler_base(u: dict, d: dict, obligatoires: list[tuple[str, str]], types: list[str], zone_requise: bool) -> dict:
     """Contrôles communs aux enrôlements (onglet Informations de base, Personnes Liées). Mêmes règles que web/src/donnees/api.ts."""
     texte = texte_de(d)
@@ -910,6 +920,7 @@ def creer_tiers(u: dict, d: dict) -> dict:
     if texte("sexe") not in ("", "F", "M"):
         raise ErreurMetier("Sexe inconnu.")
     controler_piece(texte("pieceType"), texte("pieceExpire"), journee_courante(u))
+    controler_univocite(u, texte("pieceType"), texte("pieceNumero"), d.get("prospectId") if isinstance(d.get("prospectId"), int) else None)   # A9
     controler_relation(texte, False)                                 # A8
     fiche = controler_fiche_physique(u, d, texte, journee_courante(u))
     images = d.get("images") or {}
@@ -1302,6 +1313,7 @@ def modifier_tiers(u: dict, tid: int, d: dict) -> dict:
     if texte("sexe") not in ("", "F", "M"):
         raise ErreurMetier("Sexe inconnu.")
     controler_piece(texte("pieceType"), texte("pieceExpire"), journee_courante(u))
+    controler_univocite(u, texte("pieceType"), texte("pieceNumero"), tid)   # A9
     fiche = controler_fiche_physique(u, d, texte, journee_courante(u))   # mentions de l'identité obligatoires (registre S46-3)
     executer("""update tiers set date_demande = %s, type_client = %s, zone_id = %s, residence = %s, prelever_agios = %s, calculer_interet = %s,
                                  personne_exposee = %s, statut = 'modifie_a_revalider' where id = %s""",

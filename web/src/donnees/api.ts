@@ -536,6 +536,14 @@ function controlerRelation(d: NouveauTiers, morale: boolean) {
   const manque = ([["objet et nature de la relation", d.objetRelation, true], ["origine des fonds", d.origineFonds, morale]] as const).filter(([, v, r]) => r && !v?.trim()).map(([n]) => n);
   if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")} (loi 22/068, art. 47 ; Instr. BCC 15, art. 17).`);
 }
+/** A9 : l'identification représente la personne « de manière univoque » (Instr. BCC 15, art. 23 ; ordonnance-loi 23/010 portant Code du numérique, art. 171) :
+ *  une pièce d'identité ne sert qu'à une fiche de client en cours. Comme services.controler_univocite. */
+function controlerUnivocite(type: string, numero: string, sauf?: number) {
+  const n = numero.trim().toUpperCase();
+  const x = [...E.tiers].sort((a, b) => a.id - b.id).find((t) => t.type === "physique" && t.id !== sauf && t.pieceType === type && (t.pieceNumero ?? "").trim().toUpperCase() === n
+    && t.statut !== "resilie" && t.statut !== "refuse");
+  if (x) throw new ErreurMetier(`Cette pièce d'identité est déjà celle du client n° ${x.numero} : une personne n'a qu'une fiche (Instr. BCC 15, art. 23).`);
+}
 export function controlerEnrolement(d: NouveauTiers, images: Images, ctx: CtxControle) {
   controlerBase(d, [["date demande", d.dateDemande], ["type client", d.typeClient], ["type de compte à créer", d.produitCode],
     ["nom", d.nom], ["type de pièce", d.pieceType], ["numéro de pièce", d.pieceNumero]], valeursListe("type_client").map((l) => l.libelle), false, ctx);
@@ -816,6 +824,7 @@ function modifierPhysique(t: Tiers, d: NouveauTiers, ctx: CtxControle) {
     ["nom", d.nom], ["type de pièce", d.pieceType], ["numéro de pièce", d.pieceNumero]], valeursListe("type_client").map((l) => l.libelle), false, ctx);
   if (!["", "F", "M"].includes(d.sexe)) throw new ErreurMetier("Sexe inconnu.");
   controlerPiece(d.pieceType, d.pieceExpire, ctx.jour);
+  controlerUnivocite(d.pieceType, d.pieceNumero, t.id);   // A9
   controlerFichePhysique(d, ctx.jour);
   const champs = ["dateDemande", "typeClient", "zone", "resident", "preleverAgios", "calculerInteret", "personneExposee", "nom", "postnom", "prenom", "sexe",
     "naissance", "lieuNaissance", "pieceType", "pieceNumero", "pieceDelivreeLe", "pieceLieu", "pieceAutorite", "pieceExpire", "piecePays", "adresse", "telephone", "liees",
@@ -839,6 +848,7 @@ const tiers = {
     const u = utilisateur();
     if (!u) throw new ErreurMetier("Session fermée.");
     controlerEnrolement(d, images, ctxControle());
+    controlerUnivocite(d.pieceType, d.pieceNumero, prospectId);   // A9
     controlerRelation(d, false);   // A8
     const reste = { type: "physique" as const, dirigeant: null, signataires: [], membres: [], photo: !!images.photo, specimen: !!images.signature };
     let t: Tiers;
