@@ -1239,7 +1239,8 @@ const OUT = process.argv[2];
   // Journées en attente de comptabilisation (registre T14, S12-2, S12-5) : Journée Maxi ouvert à 2, deux journées ouvertes, la troisième refusée
   await aller('/parametrage/s32'); await p.getByLabel('Journée Maxi ouvert : *').fill('2'); await p.getByRole('tabpanel', { name: 'Information Société' }).getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await aller('/administration/s12');
-  for (const d of ['06112026', '09112026']) { await p.getByLabel('Date à ouvrir').fill(d); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); }
+  for (const d of ['06112026', '09112026']) { await p.getByLabel('Date à ouvrir').fill(d); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+    await p.getByRole('cell', { name: `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}` }).waitFor(); await p.getByLabel('Date à ouvrir').and(p.locator('[value=""]')).waitFor(); }
   await p.getByLabel('Date à ouvrir').fill('10112026'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByRole('dialog', { name: 'Erreur' }).getByText(/Journée Maxi ouvert atteinte \(2\)/).waitFor(); await etape('21-journee-maxi-atteinte'); await p.getByRole('button', { name: 'Ok' }).click();
   await aller('/comptabilite/s111'); await p.getByLabel('Journée non comptabilisée :').waitFor();
