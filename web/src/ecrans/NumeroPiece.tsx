@@ -43,7 +43,6 @@ export default function NumeroPiece() {
       <section className="bloc pile" aria-label="Paramétrage du numéro de piece">
         <Champ libelle="Institution *">{(p) => <select {...p} className="saisie" value={institutionId} onChange={(e) => setInstitutionId(e.target.value)}>
           <option value=""></option>{donnees.institutions.map((i: { id: number; nom: string }) => <option key={i.id} value={i.id}>{i.nom}</option>)}</select>}</Champ>
-        {institutionId && regle && <p className="aide" role="status">Un parametrage est déjà effectué vous pouvez le mettre à jour</p>}
         <div className="ligne-champ">
           <div className="pile">
             <label className="case"><input type="checkbox" checked disabled /><span>Exercice</span></label>

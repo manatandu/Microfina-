@@ -80,10 +80,10 @@ export function VisaClient() {
                     <Champ libelle="Décision du CA, référence : *">{(p) => <input {...p} className="saisie code" value={admission.reference} onChange={(e) => setAdmission({ ...admission, reference: e.target.value })} />}</Champ>
                   </div>)}
             {t && !vise && aDesParts(ctx.institution) && ctx.institution.membresAuxiliaires && <label className="case"><input type="checkbox" checked={auxiliaire} onChange={(e) => setAuxiliaire(e.target.checked)} />
-              <span>Membre auxiliaire (loi 002/2002, art. 23 ; statuts : {ctx.institution.membresAuxiliaires})</span></label>}
-            {t && vise && t.auxiliaire && <p className="aide">Membre auxiliaire (loi 002/2002, art. 23)</p>}
+              <span>Membre auxiliaire</span></label>}
+            {t && vise && t.auxiliaire && <p className="aide">Membre auxiliaire</p>}
             {t && !vise && t.type === "physique" && t.naissance && ageAu(t.naissance, dateVisa || jourOuvert()) < MAJORITE && <fieldset className="pile cadre-champs">
-              <legend>Client mineur (Code de la famille, art. 219)</legend>
+              <legend>Client mineur</legend>
               {(!aDesParts(ctx.institution) || auxiliaire) && <Champ libelle="Représentant légal : nom, qualité (père, mère ou tuteur), pièce">{(p) => <input {...p} className="saisie" value={mineur.representantLegal} onChange={(e) => setMineur({ ...mineur, representantLegal: e.target.value })} />}</Champ>}
               <Champ libelle="Émancipation : référence de la décision du Tribunal pour enfants">{(p) => <input {...p} className="saisie code" value={mineur.emancipationReference} onChange={(e) => setMineur({ ...mineur, emancipationReference: e.target.value })} />}</Champ>
             </fieldset>}
@@ -99,7 +99,7 @@ export function VisaClient() {
               </div>
             </fieldset>}
             {t?.statut === "refuse" && <p className="aide" role="status">Demande refusée le {fr(t.refuseLe ?? "")} : {t.refusMotif}</p>}
-            {t && !vise && manquantes.length > 0 && <p className="aide" role="status">Pas encore déposé : {manquantes.join(", ")} (Client &gt; Photos et signatures ; Instr. BCC 15, art. 12 et 29).</p>}
+            {t && !vise && manquantes.length > 0 && <p className="aide" role="status">Pas encore déposé : {manquantes.join(", ")}.</p>}
           </fieldset>
           <fieldset className="pile cadre-champs">
             <legend>Liste des Frais liés</legend>
@@ -715,7 +715,7 @@ export function PhotosSignatures() {
     <fieldset className="pile cadre-champs">
       <legend>{titre}</legend>
       <div className="actions-ligne">
-        <label className={`bouton secondaire${t ? "" : " inactif"}`}>Choisir<input className="sr-only" type="file" accept="image/png,image/jpeg" aria-label={`Choisir : ${titre}`} disabled={!t} onChange={choisir(poser)} /></label>
+        <label className={`bouton secondaire${t ? "" : " inactif"}`}>Choisir un fichier<input className="sr-only" type="file" accept="image/png,image/jpeg" aria-label={`Choisir : ${titre}`} disabled={!t} onChange={choisir(poser)} /></label>
       </div>
       <div className="cadre-signature apercu-grand">{apercu ? <img src={apercu} alt={`Aperçu : ${titre}`} /> : t && <p className="muet">Aucune image déposée</p>}</div>
     </fieldset>);
@@ -739,7 +739,7 @@ export function PhotosSignatures() {
               <legend>Photo client</legend>
               <div className="actions-ligne">
                 <button className="bouton secondaire" type="button" disabled={!t} onClick={() => setCapture(true)}>Capturer</button>
-                <label className={`bouton secondaire${t ? "" : " inactif"}`}>Choisir<input className="sr-only" type="file" accept="image/png,image/jpeg" disabled={!t} onChange={choisir(setPhoto)} /></label>
+                <label className={`bouton secondaire${t ? "" : " inactif"}`}>Choisir un fichier<input className="sr-only" type="file" accept="image/png,image/jpeg" disabled={!t} onChange={choisir(setPhoto)} /></label>
               </div>
               <p className="muet">APERCU PHOTO</p>
               <div className="cadre-signature apercu-grand">{apercuPhoto && <img src={apercuPhoto} alt="Aperçu de la photo" />}</div>
@@ -747,7 +747,7 @@ export function PhotosSignatures() {
             <fieldset className="pile cadre-champs">
               <legend>Signature client</legend>
               <div className="actions-ligne">
-                <label className={`bouton secondaire${t ? "" : " inactif"}`}>Choisir<input className="sr-only" type="file" accept="image/png,image/jpeg" disabled={!t} onChange={choisir(setSignature)} /></label>
+                <label className={`bouton secondaire${t ? "" : " inactif"}`}>Choisir un fichier<input className="sr-only" type="file" accept="image/png,image/jpeg" disabled={!t} onChange={choisir(setSignature)} /></label>
               </div>
               <p className="muet">APERCU SIGNATURE</p>
               <div className="cadre-signature apercu-grand">{apercuSignature && <img src={apercuSignature} alt="Aperçu de la signature" />}</div>

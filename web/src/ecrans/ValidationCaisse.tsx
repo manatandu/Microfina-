@@ -59,8 +59,8 @@ export default function ValidationCaisse() {
               <td><Sens x={x} /></td><td className="chiffres">{fr(x.date)}</td><td className="chiffres">{x.numeroClient}</td><td className="code">{x.compteEpargne}</td><td className="chiffres">{x.piece}</td>
               <td>{x.nomClient}</td><td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td></tr>)}</tbody>
         </table> : <table className="grille">
-          <thead><tr><th scope="col"><span className="sr-only">Sens</span></th><th scope="col">Date operation</th><th scope="col">Numero de piece</th><th scope="col">Libelle de l'operation</th>
-            <th scope="col" className="num">Debit</th><th scope="col" className="num">Crédit</th><th scope="col">No Client</th><th scope="col">Nom Client</th></tr></thead>
+          <thead><tr><th scope="col"><span className="sr-only">Sens</span></th><th scope="col">Date opération</th><th scope="col">N° pièce</th><th scope="col">Libellé de l'opération</th>
+            <th scope="col" className="num">Débit</th><th scope="col" className="num">Crédit</th><th scope="col">N° client</th><th scope="col">Nom du client</th></tr></thead>
           <tbody>{lignes.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
             {visibles.map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} onClick={() => ouvrir(x)} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(x); }}>
               <td><Sens x={x} /></td><td className="chiffres">{fr(x.date)}</td><td className="chiffres">{x.piece}</td><td>{x.libelle}</td>

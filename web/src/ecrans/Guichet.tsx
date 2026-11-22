@@ -264,7 +264,6 @@ export function Recu({ id, onNouveau }: { id: number; onNouveau: () => void }) {
       <div className="rangee">
         <button type="button" className="bouton" onClick={onNouveau}>Nouvelle opération <Touche>Échap</Touche></button>
       </div>
-      <p className="exemple">Impression : le gabarit du reçu 80 mm reste à dessiner (DESIGN § 2.8). Pas d'impression de la page du navigateur.</p>
     </div>
   );
 }

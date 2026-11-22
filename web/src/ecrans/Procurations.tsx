@@ -139,7 +139,7 @@ function ProcurationsClient() {
             {([["copieActe", f.ayantDroit ? "Copie de la pièce de succession" : "Copie de la procuration"], ["copiePiece", "Copie de la pièce du mandataire"]] as const).map(([k, titre]) => (
               <fieldset key={k} className="pile cadre-champs">
                 <legend>{titre} *</legend>
-                <div className="actions-ligne"><label className="bouton secondaire">Choisir<input className="sr-only" type="file" accept="image/png,image/jpeg" aria-label={`Choisir : ${titre}`} onChange={image(k)} /></label></div>
+                <div className="actions-ligne"><label className="bouton secondaire">Choisir un fichier<input className="sr-only" type="file" accept="image/png,image/jpeg" aria-label={`Choisir : ${titre}`} onChange={image(k)} /></label></div>
                 <div className="cadre-signature apercu-grand">{f[k] ? <img src={f[k]} alt={`Aperçu : ${titre}`} /> : <p className="muet">Aucune image déposée</p>}</div>
               </fieldset>))}
           </div>

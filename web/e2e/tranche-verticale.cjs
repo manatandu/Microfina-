@@ -715,7 +715,7 @@ const OUT = process.argv[2];
   await p.getByRole('tab', { name: 'Profils de risque' }).click(); await p.getByRole('row').filter({ hasText: '0412-000318' }).first().click();
   const fr2 = p.getByRole('dialog', { name: /^Profil de risque : / });
   await fr2.getByLabel('Niveau de risque : *').selectOption('moyen'); await fr2.getByLabel('Motif : *').fill('Commerçante, dépôts réguliers, un examen renforcé autorisé');
-  await fr2.getByLabel("Données d'identification revues (art. 27 et 51)").check(); await etape('10i-profil-risque');
+  await fr2.getByLabel("Données d'identification revues").check(); await etape('10i-profil-risque');
   await fr2.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await fr2.getByText(/Niveau en cours : Moyen/).waitFor();
   await fr2.getByRole('button', { name: 'Fermer' }).click();
   // Déclarations systématiques (loi 22/068, art. 92 bis, al. 3 ; registre T38) : l'état du mois s'ouvre, sans erreur
@@ -734,7 +734,7 @@ const OUT = process.argv[2];
   await rs.getByRole('cell', { name: 'Accusé AR-2026-17' }).waitFor();
   // Opérations atypiques (écart E09 ; Instr. BCC 15, art. 31 et 36) : le chef fixe les critères, analyse une alerte, ouvre le rapport
   await p.getByRole('tab', { name: 'Opérations atypiques' }).click(); const ra = p.getByRole('region', { name: 'Opérations atypiques' });
-  await ra.getByText(/Aucun critère fixé/).waitFor(); await ra.getByRole('button', { name: 'Critères' }).click();
+  await ra.getByText('Aucun critère fixé.').waitFor(); await ra.getByRole('button', { name: 'Critères' }).click();
   const fc = p.getByRole('dialog', { name: 'Critères des opérations atypiques' });
   await fc.getByLabel("Montant d'un mouvement égal ou supérieur à (USD) :").fill('10'); await fc.getByLabel("Nombre de mouvements d'un compte dans la journée, au moins :").fill('3');
   await etape('10j-criteres-atypiques'); await fc.getByRole('button', { name: 'Enregistrer' }).click(); await oui();

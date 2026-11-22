@@ -73,7 +73,7 @@ export default function GelAvoirs({ jour }: { jour: string }) {
             <div className="info-ligne"><dt>Gelé par</dt><dd>{choisi.gelePar}, le {fr(choisi.geleLe)}</dd></div>
           </dl>
           <fieldset className="pile cadre-champs">
-            <legend>Information des autorités (art. 162 ; loi 22/069, art. 76)</legend>
+            <legend>Information des autorités</legend>
             {choisi.informeLe ? <p>Informées le <strong className="chiffres">{fr(choisi.informeLe)}</strong>, référence <strong className="chiffres">{choisi.referenceInformation}</strong>.</p>
               : <div className="grille-deux">
                   <ChampDate libelle="Date : *" valeur={info.date || jour} onChange={(v) => setInfo({ ...info, date: v })} />
@@ -134,7 +134,7 @@ function ListesDesignation({ jour, gelChange }: { jour: string; gelChange: () =>
           <Champ libelle="Référence de la publication : *">{(p) => <input {...p} className="saisie code" value={imp.reference} onChange={(e) => setImp({ ...imp, reference: e.target.value })} />}</Champ>
           <ChampDate libelle="Date de publication : *" valeur={imp.publieLe || jour} onChange={(v) => setImp({ ...imp, publieLe: v })} />
           <Champ libelle="Fichier CSV : *" aide={`Colonnes, dans cet ordre : ${donnees.colonnes.join(" ; ")}`}>{(p) => <div className="ligne-champ">
-            <label className="bouton secondaire">Choisir<input {...p} className="sr-only" type="file" accept=".csv,.txt,text/csv,text/plain" onChange={lire} /></label>
+            <label className="bouton secondaire">Choisir un fichier<input {...p} className="sr-only" type="file" accept=".csv,.txt,text/csv,text/plain" onChange={lire} /></label>
             <span>{imp.fichier}</span></div>}</Champ>
         </div>
         <div className="actions-onglets">
@@ -165,7 +165,7 @@ function ListesDesignation({ jour, gelChange }: { jour: string; gelChange: () =>
       </table></div>)}</Paginee>
       {choisie && choisie.statut === "a_examiner" && <fieldset className="pile cadre-champs">
         <legend>Examen : {choisie.personne} ({choisie.membre})</legend>
-        <Champ libelle="Observation :" aide="Obligatoire pour écarter : ce qui montre que ce n'est pas la personne désignée (date de naissance, pièce)">{(p) =>
+        <Champ libelle="Observation :">{(p) =>
           <textarea {...p} className="saisie" rows={2} value={observation} onChange={(e) => setObservation(e.target.value)} />}</Champ>
         <div className="actions-onglets">
           <button className="bouton" type="button" onClick={() => agir("Voulez-vous vraiment confirmer et geler les avoirs de ce client ?",

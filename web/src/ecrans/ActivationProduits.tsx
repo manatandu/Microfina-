@@ -20,7 +20,7 @@ export default function ActivationProduitsCredit() {
     try { await api.produitsCredit.activer({ ids: coches, actif }); setCoches([]); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   } });
-  const taux = (n: number) => n.toFixed(1);
+  const taux = (n: number) => n.toFixed(1).replace(".", ",");
   return (
     <>
       <h1>Activation et désactivation de produit crédit</h1>
@@ -34,11 +34,11 @@ export default function ActivationProduitsCredit() {
           <thead>
             <tr>
               <th scope="col"><input type="checkbox" aria-label="Tout cocher" checked={tout} onChange={(e) => setCoches(e.target.checked ? lignes.map((p) => p.id) : [])} /></th>
-              <th scope="col">Numero</th><th scope="col">Produit</th><th scope="col">Type de client</th>
-              <th scope="col" className="num">Taux interet</th><th scope="col" className="num">Taux différé</th><th scope="col">Actif</th>
+              <th scope="col">N°</th><th scope="col">Produit</th><th scope="col">Type de client</th>
+              <th scope="col" className="num">Taux d'intérêt mensuel (%)</th><th scope="col" className="num">Taux différé (%)</th><th scope="col">Actif</th>
             </tr>
             <tr className="filtres"><td />
-              <td><input className="saisie" type="search" aria-label="Filtrer Numero" value={filtres.numero} onChange={(e) => setFiltres({ ...filtres, numero: e.target.value })} /></td>
+              <td><input className="saisie" type="search" aria-label="Filtrer N°" value={filtres.numero} onChange={(e) => setFiltres({ ...filtres, numero: e.target.value })} /></td>
               <td><input className="saisie" type="search" aria-label="Filtrer Produit" value={filtres.nom} onChange={(e) => setFiltres({ ...filtres, nom: e.target.value })} /></td>
               <td /><td /><td /><td /></tr>
           </thead>

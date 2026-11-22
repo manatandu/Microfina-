@@ -51,12 +51,12 @@ CATALOGUE = [
      "fixe": [{"libelle": l, "debut": d, "fin": f, "compte": ""} for l, d, f in (("Court terme", 1, 12), ("Moyen terme", 13, 60), ("Long terme", 61, 9999))]},
     {"page": "periodicites", "menu": "Périodicité", "exporter": True, "filtres": True, "champs": [
         ch("libelle", "libelle", "Libelle", colonne="Libelle"), ch("code", "code", "Code", colonne="Code"),
-        ch("denominateur", "denominateur", "Denominateur", colonne="Denominateur"), ch("constante", "constante", "Contante", colonne="Contante"),
+        ch("denominateur", "denominateur", "Dénominateur", colonne="Dénominateur"), ch("constante", "constante", "Constante", colonne="Constante"),
         ch("unite", "unite", "Unité", colonne="Unité")],
      "fixe": [{"libelle": l, "code": c, "denominateur": d, "constante": k, "unite": un} for l, c, d, k, un in (
-         ("Tous les 2 semaines", "15J", "26.0", "2.0", "WEEK"), ("Tous les 2 mois", "2M", "6.0", "2.0", "MONTH"), ("Tous les 4 mois", "4M", "3.0", "4.0", "MONTH"),
-         ("Annuel", "An", "1.0", "12.0", "MONTH"), ("Mensuel", "M", "12.0", "1.0", "MONTH"), ("Hebdomadaire", "S", "52.0", "1.0", "WEEK"),
-         ("Semestriel", "Sem", "2.0", "6.0", "MONTH"), ("Trimestriel", "Trim", "4.0", "3.0", "MONTH"))]},
+         ("Tous les 2 semaines", "15J", "26", "2", "Semaine"), ("Tous les 2 mois", "2M", "6", "2", "Mois"), ("Tous les 4 mois", "4M", "3", "4", "Mois"),
+         ("Annuel", "An", "1", "12", "Mois"), ("Mensuel", "M", "12", "1", "Mois"), ("Hebdomadaire", "S", "52", "1", "Semaine"),
+         ("Semestriel", "Sem", "2", "6", "Mois"), ("Trimestriel", "Trim", "4", "3", "Mois"))]},
     {"page": "types_assurance", "table": "credit_type_assurance", "menu": "Type assurance", "outils": True, "exporter": True, "filtres": True, "champs": [
         ch("code", "code", "Code Type Assurance", colonne="code Type Assurance"), ch("libelle", "libelle", "Libellé Type Assurance", colonne="Libelle Type Assurance")]},
     {"page": "assureurs", "table": "credit_assureur", "menu": "Assureur crédit", "etiquette": "nom", "unique": ["nom"], "outils": True, "champs": [

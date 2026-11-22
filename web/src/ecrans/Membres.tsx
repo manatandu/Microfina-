@@ -200,7 +200,7 @@ function ChargementImages({ images, onChange, erreur }: { images: Images; onChan
       <div className="formulaire">
         <Champ libelle="Choisir :">{(p) => <select {...p} className="saisie" value={quoi} onChange={(e) => setQuoi(e.target.value as "photo" | "signature")}>
           <option value="photo">Photo</option><option value="signature">Signature</option></select>}</Champ>
-        <Champ libelle="Choisir Photo ou Signature :">{(p) => <input {...p} key={cle} className="saisie" type="file" accept="image/png,image/jpeg" onChange={(e) => setFichier(e.target.files?.[0] ?? null)} />}</Champ>
+        <Champ libelle="Fichier :">{(p) => <div className="ligne-champ"><label className="bouton secondaire">Choisir un fichier<input {...p} key={cle} className="sr-only" type="file" accept="image/png,image/jpeg" onChange={(e) => setFichier(e.target.files?.[0] ?? null)} /></label><span>{fichier?.name ?? ""}</span></div>}</Champ>
         <div className="champ"><span className="libelle-vide" aria-hidden="true">&nbsp;</span>
           <button className="bouton secondaire" type="button" disabled={!fichier} onClick={charger}>Charger</button></div>
       </div>
@@ -351,7 +351,7 @@ function IdentitePhysique({ f, maj, ctx }: { f: NouveauTiers; maj: (p: Partial<N
         <Champ libelle="Forme d'identité : *">{(p) => <select {...p} className="saisie" required value={forme} onChange={(e) => {
           const v = e.target.value; setAutre(v === AUTRE_PIECE); maj({ pieceType: v === AUTRE_PIECE ? "" : v });
         }}><option value=""></option>{[...FORMES_PIECE, AUTRE_PIECE].map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
-        {autre && <Champ libelle="Précisez la pièce : *" aide="Une des pièces admises par l'Instruction BCC 15, art. 14">{(p) => <>
+        {autre && <Champ libelle="Précisez la pièce : *">{(p) => <>
           <input {...p} className="saisie" required autoComplete="off" list="pieces-admises" {...texte("pieceType")} />
           <datalist id="pieces-admises">{autresPieces.map((x) => <option key={x} value={x} />)}</datalist></>}</Champ>}
         <Champ libelle="N° de pièce : *">{(p) => <input {...p} className="saisie code" required autoComplete="off" {...texte("pieceNumero")} />}</Champ>

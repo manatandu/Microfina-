@@ -101,7 +101,6 @@ export default function Plaintes() {
             </div>
           </div>
           <Champ libelle="Objet de la plainte : *">{(p) => <textarea {...p} className="saisie" rows={3} value={f.objet} onChange={(e) => maj({ objet: e.target.value })} />}</Champ>
-          {f.canal === "telephone" && <p className="aide">Plainte par téléphone : dire au client que l'appel peut être enregistré et qu'il devra en faire un compte rendu écrit (Instr. BCC 39, art. 10).</p>}
           <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button><button className="bouton secondaire" type="button" onClick={() => setNouvelle(false)}>Fermer</button></div>
         </div>
       </Fiche>

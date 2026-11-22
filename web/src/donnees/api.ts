@@ -2364,7 +2364,7 @@ const depotsTerme = {
 // ---------- S69 : Épargne > Plan Epargne (manuel p. 78 à 80). Mêmes règles que serveur/noyau/plans_epargne.py (registre S69). ----------
 /** Périodicités de S21 (registre S69-2) */
 /** 52 semaines par an : pour une périodicité en semaines, une durée en mois donne le nombre de semaines le plus proche (registre S21-3) */
-const semaines = (n: number, unite: string) => (unite === "WEEK" ? Math.round(n) : n);
+const semaines = (n: number, unite: string) => (unite === "Semaine" ? Math.round(n) : n);
 const periodicitesPlan = () => (CATALOGUE_CREDIT.find((c) => c.page === "periodicites")!.fixe as { libelle: string; code: string; denominateur: string; constante: string; unite: string }[]);
 const periodicitePlan = (code: string) => periodicitesPlan().find((p) => p.code === code);
 const MODES_PLAN = ["CHEQUE", "ESPECES", "VIREMENT"];   // capture p. 79 : CHEQUE par défaut (registre S69-5)
@@ -2376,7 +2376,7 @@ function echeancesPlan(duree: number, code: string) {
   return n;
 }
 const dateRangPlan = (debut: string, code: string, k: number) => { const p = periodicitePlan(code)!, pas = Number(p.constante);
-  return p.unite === "MONTH" ? ajouterMois(debut, pas * k) : new Date(Date.parse(`${debut}T00:00:00Z`) + 7 * pas * k * 86400000).toISOString().slice(0, 10); };
+  return p.unite === "Mois" ? ajouterMois(debut, pas * k) : new Date(Date.parse(`${debut}T00:00:00Z`) + 7 * pas * k * 86400000).toISOString().slice(0, 10); };
 /** Intérêt d'une échéance : le cumul versé, au taux annuel, pour une période (registre S69-3) */
 const interetPlan = (cumul: number, taux: string, code: string) => Math.round(cumul * Number(taux.replace(",", ".")) / 100 / Number(periodicitePlan(code)!.denominateur));
 /** PCCI 613 : 6132 épargne-logement (352), 6133 épargne-retraite (353), 6134 autres */
@@ -9380,10 +9380,10 @@ export const CATALOGUE_CREDIT: FicheBudget[] = [
     champs: [ch("libelle", "Libelle", "Libelle"), ch("debut", "Durée Debut", "Durée Debut", "entier"), ch("fin", "Durée Fin", "Durée Fin", "entier"), ch("compte", "Compte garanties", "Compte garanties")],
     fixe: ([["Court terme", 1, 12], ["Moyen terme", 13, 60], ["Long terme", 61, 9999]] as const).map(([libelle, debut, fin]) => ({ libelle, debut, fin, compte: "" })) },
   { page: "periodicites", menu: "Périodicité", exporter: true, filtres: true,
-    champs: [ch("libelle", "Libelle", "Libelle"), ch("code", "Code", "Code"), ch("denominateur", "Denominateur", "Denominateur"), ch("constante", "Contante", "Contante"), ch("unite", "Unité", "Unité")],
-    fixe: [["Tous les 2 semaines", "15J", "26.0", "2.0", "WEEK"], ["Tous les 2 mois", "2M", "6.0", "2.0", "MONTH"], ["Tous les 4 mois", "4M", "3.0", "4.0", "MONTH"],
-      ["Annuel", "An", "1.0", "12.0", "MONTH"], ["Mensuel", "M", "12.0", "1.0", "MONTH"], ["Hebdomadaire", "S", "52.0", "1.0", "WEEK"], ["Semestriel", "Sem", "2.0", "6.0", "MONTH"],
-      ["Trimestriel", "Trim", "4.0", "3.0", "MONTH"]].map(([libelle, code, denominateur, constante, unite]) => ({ libelle, code, denominateur, constante, unite })) },
+    champs: [ch("libelle", "Libellé", "Libellé"), ch("code", "Code", "Code"), ch("denominateur", "Dénominateur", "Dénominateur"), ch("constante", "Constante", "Constante"), ch("unite", "Unité", "Unité")],
+    fixe: [["Tous les 2 semaines", "15J", "26", "2", "Semaine"], ["Tous les 2 mois", "2M", "6", "2", "Mois"], ["Tous les 4 mois", "4M", "3", "4", "Mois"],
+      ["Annuel", "An", "1", "12", "Mois"], ["Mensuel", "M", "12", "1", "Mois"], ["Hebdomadaire", "S", "52", "1", "Semaine"], ["Semestriel", "Sem", "2", "6", "Mois"],
+      ["Trimestriel", "Trim", "4", "3", "Mois"]].map(([libelle, code, denominateur, constante, unite]) => ({ libelle, code, denominateur, constante, unite })) },
   { page: "types_assurance", menu: "Type assurance", outils: true, exporter: true, filtres: true,
     champs: [ch("code", "Code Type Assurance", "code Type Assurance"), ch("libelle", "Libellé Type Assurance", "Libelle Type Assurance")] },
   { page: "assureurs", menu: "Assureur crédit", unique: ["nom"], outils: true,

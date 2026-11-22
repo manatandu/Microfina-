@@ -96,7 +96,7 @@ export default function ExamenRenforce() {
             {!enAttente && <div className="info-ligne"><dt>{STATUTS[choisi.statut]} par</dt><dd>{choisi.examinePar}, le {fr(choisi.examineLe)}{choisi.operationFaite ? " · opération faite" : ""}</dd></div>}
           </dl>
           <fieldset className="pile cadre-champs">
-            <legend>Diligences (Instr. BCC 15, art. 61)</legend>
+            <legend>Diligences</legend>
             {texte("origineFonds", "Origine des fonds : *")}
             {texte("destinationFonds", "Destination des fonds : *")}
             {texte("objet", "Objet de l'opération : *")}
@@ -200,7 +200,7 @@ function PersonnesExposees({ jour }: { jour: string }) {
       <Fiche titre={choisi ? `Personne exposée : ${choisi.client}` : ""} ouverte={!!choisi} fermer={() => { setChoisi(null); setRelu((v) => v + 1); }}>
         {choisi && <div className="pile">
           <fieldset className="pile cadre-champs">
-            <legend>Dossier (Instr. BCC 15, art. 41 et 64)</legend>
+            <legend>Dossier</legend>
             {/* P6 (confrontation du 21/11/2026) : catégorie et qualité de la liste de l'Instr. BCC 15, art. 5 */}
             <Champ libelle="Catégorie : *">{(p) => <select {...p} className="saisie" disabled={fige} value={f.categorie} onChange={(e) => setF({ ...f, categorie: e.target.value, qualite: "" })}>
               <option value=""></option>{(qualites?.categories ?? []).map((c) => <option key={c.cle} value={c.cle}>{c.libelle}</option>)}</select>}</Champ>
@@ -208,12 +208,12 @@ function PersonnesExposees({ jour }: { jour: string }) {
               <option value=""></option>{((qualites?.qualites as Record<string, string[]> | undefined)?.[f.categorie] ?? []).map((q) => <option key={q}>{q}</option>)}</select>}</Champ>
             <Champ libelle="Fonction exercée : *">{(p) => <input {...p} className="saisie" readOnly={fige} value={f.fonction} onChange={(e) => setF({ ...f, fonction: e.target.value })} />}</Champ>
             {fige ? <Champ libelle="Fin de la fonction :">{(p) => <input {...p} className="saisie date" readOnly value={fr(f.finFonction)} />}</Champ>
-              : <ChampDate libelle="Fin de la fonction :" valeur={f.finFonction} onChange={(v) => setF({ ...f, finFonction: v })} aide="Vide si la fonction est en cours" />}
+              : <ChampDate libelle="Fin de la fonction :" valeur={f.finFonction} onChange={(v) => setF({ ...f, finFonction: v })} />}
             <Champ libelle="Origine du patrimoine et des fonds : *">{(p) => <textarea {...p} className="saisie" rows={2} readOnly={fige} value={f.originePatrimoine} onChange={(e) => setF({ ...f, originePatrimoine: e.target.value })} />}</Champ>
             {choisi.saisiPar && <p>Saisi par {choisi.saisiPar}{choisi.autorisePar ? ` · autorisé par ${choisi.autorisePar} le ${fr(choisi.autoriseLe)}` : ""}</p>}
           </fieldset>
           {choisi.autorisePar && <fieldset className="pile cadre-champs">
-            <legend>Information de la CENAREF (art. 65)</legend>
+            <legend>Information de la CENAREF</legend>
             {choisi.informeLe ? <p>Informée le <strong className="chiffres">{fr(choisi.informeLe)}</strong>, référence <strong className="chiffres">{choisi.referenceCenaref}</strong>.</p>
               : <div className="grille-deux">
                   <ChampDate libelle="Date : *" valeur={info.date || jour} onChange={(v) => setInfo({ ...info, date: v })} />
@@ -276,10 +276,10 @@ function ProfilsRisque() {
         {choisi && <div className="pile">
           {choisi.evalueLe && <p>Niveau en cours : <strong>{choisi.niveauLibelle}</strong>, évalué le <span className="chiffres">{fr(choisi.evalueLe)}</span> par {choisi.evaluePar}. Motif : {choisi.motif}</p>}
           <fieldset className="pile cadre-champs">
-            <legend>Évaluation (Instr. BCC 15, art. 28)</legend>
+            <legend>Évaluation</legend>
             <Champ libelle="Niveau de risque : *">{(p) => <select {...p} className="saisie" value={f.niveau} onChange={(e) => setF({ ...f, niveau: e.target.value })}>{NIVEAUX.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>}</Champ>
             <Champ libelle="Motif : *">{(p) => <textarea {...p} className="saisie" rows={2} value={f.motif} onChange={(e) => setF({ ...f, motif: e.target.value })} />}</Champ>
-            <label className="case"><input type="checkbox" checked={f.donneesRevues} onChange={(e) => setF({ ...f, donneesRevues: e.target.checked })} /><span>Données d'identification revues (art. 27 et 51)</span></label>
+            <label className="case"><input type="checkbox" checked={f.donneesRevues} onChange={(e) => setF({ ...f, donneesRevues: e.target.checked })} /><span>Données d'identification revues</span></label>
           </fieldset>
           <div className="actions-onglets">
             <button className="bouton" type="button" onClick={evaluer}>Enregistrer</button>

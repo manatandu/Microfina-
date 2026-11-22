@@ -31,10 +31,8 @@ export default function NormesPrudentielles() {
         <fieldset className="cadre-champs formulaire"><legend className="sr-only">Arrêté</legend>
           <ChampDate libelle="Date de l'arrêté :" valeur={d} onChange={setDate} />
         </fieldset>
-        {/* La police se déclare une fois dans la fiche de l'institution (S32) : plus de case à cocher à chaque calcul (plan d'allègement 0.18 ; registre SN01-4) */}
-        {r && <p>Trésorerie couverte par une police d'assurance : {r.assuranceTresorerie.couverte
-          ? `oui, police ${r.assuranceTresorerie.police} (${r.assuranceTresorerie.assureur}), jusqu'au ${fr(r.assuranceTresorerie.echeance)} : caisse pondérée à 0 %.`
-          : "non (aucune police en cours déclarée dans Paramétrage > Société) : caisse pondérée à 20 %."}</p>}
+        {r && <p>Trésorerie assurée : {r.assuranceTresorerie.couverte
+          ? `oui, police ${r.assuranceTresorerie.police} (${r.assuranceTresorerie.assureur}), jusqu'au ${fr(r.assuranceTresorerie.echeance)}.` : "non."}</p>}
         <div className="actions-onglets">
           <button className="bouton" type="button" onClick={rechercher}>Rechercher</button>
           <button className="bouton secondaire" type="button" onClick={() => { setDate(""); setR(null); }}>Rein. les champs</button>

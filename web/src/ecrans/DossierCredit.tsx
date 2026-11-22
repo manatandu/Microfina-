@@ -37,7 +37,6 @@ export function DemandeCredit() {
   const [boite, setBoite] = useState<Boite | null>(null);
   const { donnees: h } = useDonnees(() => (t ? api.analyses.historique(t.id) : Promise.resolve(null)), [t?.id]);
   if (!ctx) return <Chargement />;
-  const p = ctx.produits.find((x) => String(x.id) === f.produit);
   const analyses = (h?.analyses ?? []).filter((a) => String(a.produitId) === f.produit);
   const maj = (x: Partial<typeof f>) => setF({ ...f, ...x });
   const effacer = () => { setT(null); setF({ produit: "", cycle: "", analyse: "", duree: "", province: "", ville: "", commune: "" }); setE(VIDES); setR(VIDES); setParts([]); setPage(1); };
@@ -72,7 +71,6 @@ export function DemandeCredit() {
             <Champ libelle="Durée (mois) *">{(pp) => <input {...pp} className="saisie code" inputMode="numeric" autoComplete="off" value={f.duree} onChange={(ev) => maj({ duree: ev.target.value })} />}</Champ>
             <Effectifs e={e} maj={setE} prefixe="" />
           </fieldset>
-          {p && <p>Bornes du produit : {montant(p.montantMin, p.devise as Devise)} à {montant(p.montantMax, p.devise as Devise)}, {p.dureeMin} à {p.dureeMax} mois.</p>}
           <div className="actions-onglets">
             <button className="bouton" type="button" disabled={!f.produit || !t} onClick={() => { setPage(2); setParts((t?.membres ?? []).map(() => "")); }}>Suivant</button>
             <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>

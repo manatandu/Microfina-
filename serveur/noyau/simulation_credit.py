@@ -75,7 +75,7 @@ def simuler(u, d) -> dict:
         raise ErreurMetier(f"Différé : entre {p['differe_min']} et {p['differe_max']} mois pour ce produit.")
     n = nombre_echeances(duree, code)
     nd = Decimal(differe) * Decimal(per["denominateur"]) / 12
-    if per["unite"] == "WEEK":                  # 52 semaines par an : le différé en mois donne le nombre de semaines le plus proche (registre S21-3)
+    if per["unite"] == "Semaine":                  # 52 semaines par an : le différé en mois donne le nombre de semaines le plus proche (registre S21-3)
         nd = nd.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
     if nd != nd.to_integral_value():
         raise ErreurMetier(f"Différé : {differe} mois ne se découpe pas en périodes « {per['libelle']} ».")

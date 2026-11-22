@@ -52,7 +52,7 @@ export default function OperationsAtypiques({ jour }: { jour: string }) {
       <div className="ligne-champ" role="radiogroup" aria-label="Alertes">
         {FILTRES.map(([k, l]) => <label key={k || "toutes"} className="case"><input type="radio" name="filtre-atypiques" checked={filtre === k} onChange={() => setFiltre(k)} /><span>{l}</span></label>)}
       </div>
-      {aucunCritere && <p role="status">Aucun critère fixé : aucune opération n'est surveillée. Les fixer avec le bouton Critères (Instr. BCC 15, art. 36).</p>}
+      {aucunCritere && <p role="status">Aucun critère fixé.</p>}
       <Paginee lignes={donnees} colonnes={(x) => [fr(x.date), x.piece, x.membre, x.client, x.compte, x.sens === "C" ? "Crédit" : "Débit", montant(x.montant, x.devise as Devise), x.criteres.join(" ; "), STATUTS[x.statut]]}>{(visibles) => (<div className="defile-x"><table className="grille">
         <thead><tr><th scope="col">Date</th><th scope="col">Pièce</th><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Compte</th><th scope="col">Sens</th>
           <th scope="col" className="montant">Montant</th><th scope="col">Critères</th><th scope="col">Statut</th></tr><LigneFiltres titres={["Date", "Pièce", "N° client", "Client", "Compte", "Sens", "Montant", "Critères", "Statut"]} /></thead>
@@ -76,7 +76,7 @@ export default function OperationsAtypiques({ jour }: { jour: string }) {
       <Fiche titre="Critères des opérations atypiques" ouverte={!!saisie} fermer={() => setSaisie(null)}>
         {saisie && <div className="pile">
           <fieldset className="pile cadre-champs">
-            <legend>Critères (Instr. BCC 15, art. 36) ; vide : non appliqué</legend>
+            <legend>Critères</legend>
             {CRITERES.map(([k, l]) => <Champ key={k} libelle={l}>{(p) => <input {...p} className="saisie chiffres" inputMode="decimal" value={saisie[k]} onChange={(e) => setSaisie({ ...saisie, [k]: e.target.value })} />}</Champ>)}
           </fieldset>
           <div className="actions-onglets">
@@ -95,7 +95,7 @@ export default function OperationsAtypiques({ jour }: { jour: string }) {
             {choisi.statut !== "a_analyser" && <div className="info-ligne"><dt>{STATUTS[choisi.statut]}</dt><dd>{choisi.analysePar}, le {fr(choisi.analyseLe)} : {choisi.analyse}</dd></div>}
           </dl>
           {choisi.statut === "a_analyser" && <fieldset className="pile cadre-champs">
-            <legend>Analyse (Instr. BCC 15, art. 35 et 36)</legend>
+            <legend>Analyse</legend>
             <Champ libelle="Justification économique et légitimité apparente : *">{(p) => <textarea {...p} className="saisie" rows={3} value={f.analyse} onChange={(e) => setF({ ...f, analyse: e.target.value })} />}</Champ>
             <Champ libelle="Conclusion : *">{(p) => <select {...p} className="saisie" value={f.conclusion} onChange={(e) => setF({ ...f, conclusion: e.target.value })}>
               <option value="" /><option value="justifiee">Justifiée</option><option value="atypique">Atypique</option></select>}</Champ>

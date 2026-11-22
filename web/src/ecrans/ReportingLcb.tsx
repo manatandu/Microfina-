@@ -30,7 +30,7 @@ export default function ReportingLcb({ jour }: { jour: string }) {
         <Champ libelle="Année :">{(p) => <input {...p} className="saisie code court" inputMode="numeric" value={periode.annee}
           onChange={(e) => { const v = Number(e.target.value); if (Number.isInteger(v)) { setPeriode({ ...periode, annee: v }); setSaisies({}); } }} />}</Champ>
       </div>
-      {donnees.agencesSansProvince.length > 0 && <p className="aide" role="status">Province à renseigner pour : {donnees.agencesSansProvince.join(", ")} (Paramétrage &gt; Info société, agences). Sans elle, la localisation range ses clients hors des six provinces suivies.</p>}
+      {donnees.agencesSansProvince.length > 0 && <p className="aide" role="status">Province à renseigner pour : {donnees.agencesSansProvince.join(", ")}.</p>}
       {donnees.tableaux.map((t) => (
         <div key={t.cle} className="defile-x">
           <table className="grille" aria-label={t.titre}>

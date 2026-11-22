@@ -250,7 +250,7 @@ export function TraitementsBiens() {
           onChange={(e) => maj("autorisationBcc", e.target.value)} />}</Champ>}
         {f.type === "Cession" && <>
           <ChampMontant libelle="Prix de cession *" valeur={f.prix ?? ""} onChange={(x) => maj("prix", x)} devise="CDF" />
-          <Champ libelle="Compte qui reçoit le prix *" aide="Compte de trésorerie (classe 5) ou de tiers (classe 4)">{(p) => <input {...p} className="saisie code" inputMode="numeric" autoComplete="off"
+          <Champ libelle="Compte qui reçoit le prix *">{(p) => <input {...p} className="saisie code" inputMode="numeric" autoComplete="off"
             value={f.contrepartie ?? ""} onChange={(e) => maj("contrepartie", e.target.value)} />}</Champ></>}
         {bien && <dl className="definitions"><dt>Prix d'acquisition</dt><dd>{n(bien.prixAcquisition)}</dd><dt>Amortissements cumulés</dt><dd>{n(bien.cumulAmortissements)}</dd>
           <dt>Valeur nette comptable</dt><dd>{n(bien.prixAcquisition - bien.cumulAmortissements)}</dd>

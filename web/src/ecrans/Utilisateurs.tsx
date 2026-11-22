@@ -67,7 +67,6 @@ export default function EnregistrementUtilisateurs() {
         </div>
         {ligne && <fieldset className="cadre-champs pile champs-a-gauche">
           <legend>{ligne.actif ? "Désactiver cet utilisateur" : "Réactiver cet utilisateur"}</legend>
-          {ligne.derniereActivation && <p>Dernière décision : {ligne.derniereActivation}</p>}
           <Champ libelle="Motif *">{(p) => <input {...p} className="saisie" autoComplete="off" value={motif} onChange={(e) => setMotif(e.target.value)} />}</Champ>
           <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => activer(!ligne.actif)}>{ligne.actif ? "Désactiver" : "Réactiver"}</button></div>
         </fieldset>}

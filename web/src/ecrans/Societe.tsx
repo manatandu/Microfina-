@@ -92,7 +92,7 @@ function InformationSociete() {
         </div>
         <fieldset className="cadre-champs pile">
           <legend>Logo</legend>
-          <label className="bouton secondaire choisir-fichier">Choisir<input type="file" accept="image/png,image/jpeg" className="sr-only" onChange={(e) => choisirLogo(e.target.files?.[0])} /></label>
+          <label className="bouton secondaire choisir-fichier">Choisir un fichier<input type="file" accept="image/png,image/jpeg" className="sr-only" onChange={(e) => choisirLogo(e.target.files?.[0])} /></label>
           <span>APERCU LOGO</span>
           {v.logo ? <img src={v.logo} alt="Logo de l'institution" className="apercu-logo" /> : <div className="apercu-logo" aria-hidden="true" />}
         </fieldset>
