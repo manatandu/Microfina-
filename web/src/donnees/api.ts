@@ -7586,7 +7586,7 @@ interface ModeleEtats { liquidites: string[]; bilan: { actif: PosteBilan[]; pass
   horsBilan: { code: string; libelle: string; lignes: { libelle: string; comptes: string[] }[] }[];
   resultat: { signe?: "+" | "-"; solde?: "courant" | "exceptionnel" | "net"; libelle: string; comptes?: string[]; exceptionnel?: boolean; impot?: boolean }[];
   flux: { titre?: string; libelle?: string; comptes?: string[]; groupe?: string; reste?: boolean; change?: boolean; total?: string; sens?: "entree" | "sortie" }[];
-  annexes: { code: string; libelle: string; sens?: "D" | "C"; sections?: { libelle: string; comptes: string[] }[] }[] }
+  annexes: { code: string; libelle: string; sens?: "D" | "C"; sections?: { libelle: string; comptes: string[]; niveau?: number }[] }[] }
 const ME = MODELE_ETATS as unknown as ModeleEtats;
 const TYPES_EF: Record<string, string> = { developpe: "Version développée", modele: "Modèle PCCI" }, TYPES_BILAN_EF: Record<string, string> = { ...TYPES_EF, masses: "Par masses" }, TYPES_HB: Record<string, string> = { developpe: "Hors bilan développé", modele: "Modèle PCCI" };
 const PERIODICITES_EF: Record<string, string> = { mensuel: "Mensuel", annuel: "Annuel" };
@@ -8264,9 +8264,31 @@ const etatsFinanciers = {
         if (v >= 0) { x.avoirs += d; x.avoirsCdf += v; } else { x.engagements -= d; x.engagementsCdf -= v; } }
       return { ...base, forme: "monnaies" as const, lignes: [...par].sort(([x], [y]) => x.localeCompare(y)).map(([devise, x]) => ({ devise, ...x, positionCdf: x.avoirsCdf - x.engagementsCdf })) };
     }
+    if (a.code === "agr") {   // B7 : encours des crédits débloqués, par secteur d'activité de leur objet (Type Objet, S21), en CDF au cours de la date
+      const g2 = new Map<string, [number, number]>();
+      for (const c of E.credits.filter((x) => x.statut === "debloque" && (x.debloqueLe ?? "") <= au)) {
+        const restant = etatCredit(c, au).capitalRestant; if (restant <= 0) continue;
+        const type = stockCredit("types_objet").find((t) => t.id === stockCredit("objets").find((o) => o.id === c.objetId)?.typeObjetId);
+        const secteur = E.listes.find((l) => l.id === type?.secteurId)?.libelle ?? "Sans objet", x = g2.get(secteur) ?? [0, 0];
+        x[0] += 1; x[1] += Math.round(restant * coursDe(c.devise, au)); g2.set(secteur, x);
+      }
+      const lignes = [...g2].sort(([x], [y]) => x.localeCompare(y)).map(([libelle, valeurs]) => ({ libelle, valeurs: valeurs as number[] }));
+      return { ...base, forme: "tableau" as const, balanceDu: "", colonnes: [{ titre: "Nombre de crédits", type: "nombre" }, { titre: "Encours", type: "montant" }], lignes,
+        totaux: [0, 1].map((k) => lignes.reduce((t, x) => t + x.valeurs[k]!, 0)) };
+    }
+    if (a.code === "balance-agee-nature") {   // B7 : crédits en retard de la dernière balance âgée lancée à la date ou avant, par terme et par tranche
+      const b = [...E.balancesAgees].filter((x) => x.date <= au).sort((x, y) => y.date.localeCompare(x.date))[0];
+      const degres = fixeCredit("degres"), termes = fixeCredit("termes"), tranches = degres.map((_, i) => i + 1).filter((d) => d > 1);
+      const g3 = termes.map(() => tranches.map(() => 0));
+      for (const l of b?.lignes ?? []) if (l.degre > 1) { const c = E.credits.find((x) => x.id === l.creditId)!;
+        g3[termeCredit(c.duree) - 1]![l.degre - 2]! += Math.round(l.capitalRestant * coursDe(l.devise as Devise, au)); }
+      const lignes = termes.map((t, i) => ({ libelle: String(t.libelle), valeurs: g3[i]! }));
+      return { ...base, forme: "tableau" as const, balanceDu: b?.date ?? "", colonnes: tranches.map((d) => ({ titre: String(degres[d - 1]!.libelle), type: "montant" })), lignes,
+        totaux: tranches.map((_, k) => lignes.reduce((t, x) => t + x.valeurs[k]!, 0)) };
+    }
     const sn = soldesEf(au, ex, true).s, s1 = soldesEf(precedent, ex - 1, true).s, signe = a.sens === "D" ? 1 : -1;
     const sections = (a.sections ?? []).map((sec) => { const gr = new Map<string, [number, number]>();
-      [sn, s1].forEach((src, k) => { for (const [n, v] of src) if (commence(n, sec.comptes)) { const x = gr.get(n.slice(0, 3)) ?? [0, 0]; gr.set(n.slice(0, 3), x); x[k]! += signe * v; } });
+      [sn, s1].forEach((src, k) => { for (const [n, v] of src) if (commence(n, sec.comptes)) { const cle = n.slice(0, sec.niveau ?? 3), x = gr.get(cle) ?? [0, 0]; gr.set(cle, x); x[k]! += signe * v; } });
       const lignes = [...gr].sort(([x], [y]) => x.localeCompare(y)).map(([compte, v]) => ({ compte, intitule: noms.get(compte) ?? "", n: v[0], n1: v[1] }));
       return { libelle: sec.libelle, lignes, n: lignes.reduce((t, x) => t + x.n, 0), n1: lignes.reduce((t, x) => t + x.n1, 0) }; });
     return { ...base, forme: "ventilation" as const, precedent, sections, n: sections.reduce((t, x) => t + x.n, 0), n1: sections.reduce((t, x) => t + x.n1, 0) };

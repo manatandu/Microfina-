@@ -3348,7 +3348,11 @@ describe("journée de guichet", () => {
     await connecter("plumbala");
     const q = { du: "2026-01-01", au: "2026-11-05", exercice: 2026 };
     const ctx = await api.etatsFinanciers.contexte();
-    expect(ctx.annexes.map((a) => a.code)).toEqual(["emplois", "flux", "credits", "depots", "avoirs", "monnaies", "emprunts"]);
+    expect(ctx.annexes.map((a) => a.code)).toEqual(["emplois", "flux", "credits", "depots", "avoirs", "monnaies", "emprunts", "engagements-normaux", "engagements-litigieux", "engagements-recus", "hors-bilan-litigieux", "agr", "balance-agee-nature"]);
+    for (const annexe of ["engagements-normaux", "hors-bilan-litigieux", "agr", "balance-agee-nature"]) {   // B7 : Instr. BCC 009, art. 1er
+      const x = await api.etatsFinanciers.annexe({ exercice: "2026", du: "2026-01-01", au: "2026-11-05", annexe });
+      expect(x.forme).toBe(annexe === "agr" || annexe === "balance-agee-nature" ? "tableau" : "ventilation");
+    }
     const autres = (x: Awaited<ReturnType<typeof api.etatsFinanciers.bilan>>) => x.passif.find((y) => y.libelle === "Autres passifs")!;
     const avant = await api.etatsFinanciers.bilan(q);
     await comptabiliserJournee(j.id, s.id);

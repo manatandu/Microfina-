@@ -382,6 +382,36 @@ def annexe(u, p) -> dict:
                 x["engagements"] -= d
                 x["engagementsCdf"] -= s
         return {**base, "forme": "monnaies", "lignes": [{"devise": dv, **x, "positionCdf": x["avoirsCdf"] - x["engagementsCdf"]} for dv, x in sorted(par.items())]}
+    if a["code"] == "agr":
+        # B7 : encours des crédits débloqués, par secteur d'activité de leur objet (Type Objet, S21), en CDF au cours de la date
+        from .remboursements import etat
+        from .services import cours
+        g2: dict = defaultdict(lambda: [0, 0])
+        for c in lignes("""select c.*, coalesce(s.libelle, 'Sans objet') as secteur from credit c left join credit_objet o on o.id = c.objet_id
+                           left join credit_type_objet t on t.id = o.type_objet_id left join liste_reference s on s.id = t.secteur_id
+                           where c.institution_id = %s and c.statut = 'debloque' and c.debloque_le <= %s""", (u["institution_id"], au)):
+            restant = etat(c, au)["capitalRestant"]
+            if restant > 0:
+                g2[c["secteur"]][0] += 1
+                g2[c["secteur"]][1] += round(restant * cours(c["devise"].strip(), au))
+        lg = [{"libelle": k, "valeurs": v} for k, v in sorted(g2.items())]
+        return {**base, "forme": "tableau", "colonnes": [{"titre": "Nombre de crédits", "type": "nombre"}, {"titre": "Encours", "type": "montant"}],
+                "lignes": lg, "totaux": [sum(x["valeurs"][k] for x in lg) for k in (0, 1)]}
+    if a["code"] == "balance-agee-nature":
+        # B7 : capital restant des crédits en retard de la dernière balance âgée lancée à la date ou avant, par terme (court, moyen, long) et par tranche
+        from .deblocage import terme
+        from .modeles_credit import DEGRES, TERMES
+        from .services import cours
+        b = lignes("select id, date_lancement from balance_agee where institution_id = %s and date_lancement <= %s order by date_lancement desc limit 1", (u["institution_id"], au))
+        tranches = list(range(2, len(DEGRES) + 1))
+        g3 = {t: [0] * len(tranches) for t in range(1, len(TERMES) + 1)}
+        for l in (lignes("""select l.degre, l.capital_restant, l.devise, c.duree_mois from balance_agee_ligne l join credit c on c.id = l.credit_id
+                            where l.balance_id = %s and l.degre > 1""", (b[0]["id"],)) if b else []):
+            g3[terme(l["duree_mois"])][l["degre"] - 2] += round(l["capital_restant"] * cours(l["devise"].strip(), au))
+        lg = [{"libelle": TERMES[t - 1]["libelle"], "valeurs": v} for t, v in g3.items()]
+        return {**base, "forme": "tableau", "balanceDu": b[0]["date_lancement"].isoformat() if b else "",
+                "colonnes": [{"titre": DEGRES[d - 1]["libelle"], "type": "montant"} for d in tranches], "lignes": lg,
+                "totaux": [sum(x["valeurs"][k] for x in lg) for k in range(len(tranches))]}
     # Ventilations (Instr. BCC 009, art. 1) : par compte divisionnaire du PCCI, soldes à la date de fin et à la fin de l'exercice précédent
     sn, _, _ = soldes(u, au, ex, vidage=True, agence=agence)
     s1, _, _ = soldes(u, fin_precedent(ex), ex - 1, vidage=True, agence=agence)
@@ -392,7 +422,7 @@ def annexe(u, p) -> dict:
         for src, k in ((sn, 0), (s1, 1)):
             for n, v in src.items():
                 if n.startswith(tuple(sec["comptes"])):
-                    groupes[n[:3]][k] += signe * v
+                    groupes[n[:sec.get("niveau", 3)]][k] += signe * v
         ls = [{"compte": c, "intitule": noms.get(c, ""), "n": v[0], "n1": v[1]} for c, v in sorted(groupes.items())]
         sections.append({"libelle": sec["libelle"], "lignes": ls, "n": sum(x["n"] for x in ls), "n1": sum(x["n1"] for x in ls)})
     return {**base, "forme": "ventilation", "precedent": fin_precedent(ex).isoformat(), "sections": sections,

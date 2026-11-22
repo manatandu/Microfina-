@@ -4581,7 +4581,7 @@ def test_etats_financiers(clients, journee):
     viser_valider(clients, e["id"])
     EF, q = "/api/comptabilite/etats-financiers", {"du": "2026-01-01", "au": "2026-11-05", "exercice": 2026}
     ctx = compta.get(f"{EF}/contexte", **H).json()
-    assert [a["code"] for a in ctx["annexes"]] == ["emplois", "flux", "credits", "depots", "avoirs", "monnaies", "emprunts"] and ctx["typesBilan"][0]["libelle"] == "Version développée"
+    assert [a["code"] for a in ctx["annexes"]] == ["emplois", "flux", "credits", "depots", "avoirs", "monnaies", "emprunts", "engagements-normaux", "engagements-litigieux", "engagements-recus", "hors-bilan-litigieux", "agr", "balance-agee-nature"] and ctx["typesBilan"][0]["libelle"] == "Version développée"
     avant = compta.get(f"{EF}/bilan", q, **H).json()
     comptabiliser_journee(clients, journee)
     b = compta.get(f"{EF}/bilan", q, **H).json()
@@ -4616,6 +4616,10 @@ def test_etats_financiers(clients, journee):
     em = compta.get(f"{EF}/annexe", {**q, "annexe": "emplois"}, **H).json()
     assert em["emplois"] == em["ressources"] and len(em["lignes"]) == 22
     dep = compta.get(f"{EF}/annexe", {**q, "annexe": "depots"}, **H).json()
+    for code in ("engagements-normaux", "engagements-litigieux", "engagements-recus", "hors-bilan-litigieux", "agr", "balance-agee-nature"):   # B7 : Instr. BCC 009, art. 1er
+        x = compta.get(f"{EF}/annexe", {**q, "annexe": code}, **H)
+        assert x.status_code == 200, x.content
+        assert x.json()["forme"] == ("tableau" if code in ("agr", "balance-agee-nature") else "ventilation")
     assert dep["n"] == sum(x["n"] for x in b["passif"][1]["comptes"]) - sum(x["n"] for x in b["actif"][1]["comptes"] if x["compte"][:2] in ("33", "34", "35", "36", "37"))
     mo = compta.get(f"{EF}/annexe", {**q, "annexe": "monnaies"}, **H).json()
     assert "CDF" in [x["devise"] for x in mo["lignes"]] and sum(x["positionCdf"] for x in mo["lignes"]) == formation + sum(

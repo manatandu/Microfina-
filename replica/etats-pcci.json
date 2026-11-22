@@ -758,6 +758,118 @@
     }
    ],
    "sens": "C"
+  },
+  {
+   "code": "engagements-normaux",
+   "libelle": "Annexe 8 : ENGAGEMENTS NORMAUX",
+   "sens": "D",
+   "sections": [
+    {
+     "libelle": "Crédits à long terme",
+     "comptes": [
+      "30"
+     ]
+    },
+    {
+     "libelle": "Crédits à moyen terme",
+     "comptes": [
+      "31"
+     ]
+    },
+    {
+     "libelle": "Crédits à court terme",
+     "comptes": [
+      "32"
+     ]
+    }
+   ]
+  },
+  {
+   "code": "engagements-litigieux",
+   "libelle": "Annexe 9 : ENGAGEMENTS LITIGIEUX",
+   "sens": "D",
+   "sections": [
+    {
+     "libelle": "Crédits en retard",
+     "comptes": [
+      "390"
+     ],
+     "niveau": 4
+    },
+    {
+     "libelle": "Créances consolidées (immobilisées)",
+     "comptes": [
+      "391"
+     ]
+    },
+    {
+     "libelle": "Crédits bail",
+     "comptes": [
+      "393"
+     ]
+    },
+    {
+     "libelle": "Créances rattachées",
+     "comptes": [
+      "398"
+     ]
+    },
+    {
+     "libelle": "Provisions pour dépréciation",
+     "comptes": [
+      "38"
+     ]
+    }
+   ]
+  },
+  {
+   "code": "engagements-recus",
+   "libelle": "Annexe 10 : VENTILATION DES ENGAGEMENTS RECUS DE L'ORGANE FAITIER ET AUTRES INTERMEDIAIRES FINANCIERS",
+   "sens": "C",
+   "sections": [
+    {
+     "libelle": "Engagements de financement reçus",
+     "comptes": [
+      "0101"
+     ],
+     "niveau": 4
+    },
+    {
+     "libelle": "Garanties reçues",
+     "comptes": [
+      "0111"
+     ],
+     "niveau": 4
+    }
+   ]
+  },
+  {
+   "code": "hors-bilan-litigieux",
+   "libelle": "Annexe 11 : ETAT DES ENGAGEMENTS HORS BILAN LITIGIEUX",
+   "sens": "D",
+   "sections": [
+    {
+     "libelle": "Engagements douteux",
+     "comptes": [
+      "08"
+     ]
+    },
+    {
+     "libelle": "Créances annulées et intérêts non perçus, suivis en hors bilan",
+     "comptes": [
+      "06"
+     ],
+     "niveau": 4
+    }
+   ]
+  },
+  {
+   "code": "agr",
+   "libelle": "Annexe 12 : VENTILATION DES ENCOURS DE CREDITS AFFECTES AUX ACTIVITES GENERATRICES DE REVENUS"
+  },
+  {
+   "code": "balance-agee-nature",
+   "libelle": "Annexe 13 : BALANCE AGEE PAR NATURE DES CREDITS EN RETARD"
   }
  ]
 }
