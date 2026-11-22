@@ -2237,6 +2237,24 @@ describe("journée de guichet", () => {
     expect([h[0]!.numero, h[0]!.referencePv, h[0]!.membres.length]).toEqual(["0412/L001/00001", "PV-12", 3]);
   });
 
+  it("appel au Conseil d'administration (B29 ; Instr. BCC 007, art. 18) : un refus de la commission, accordé en appel, reprend le circuit des visas", async () => {
+    const cid = await creditMisEnPlace();
+    await connecter("jpmukendi");
+    await expect(api.visasCredit.appel(cid, { decision: "accorde", reference: "CA-7" })).rejects.toThrow("Seul un refus");
+    await api.visasCredit.viser(cid, "responsable_credit", { avis: "accepte" });
+    const m = [{ nom: "Mbala", avis: "accepte" }, { nom: "Ilunga", avis: "refuse" }, { nom: "Kabeya", avis: "accepte" }];
+    expect((await api.visasCredit.viser(cid, "comite", { membres: m, motif: "Capacité insuffisante" })).statut).toBe("refuse");
+    await expect(api.visasCredit.appel(cid, { reference: "CA-7" })).rejects.toThrow("Décision du Conseil");
+    await expect(api.visasCredit.appel(cid, { decision: "accorde", reference: " " })).rejects.toThrow("Référence de la décision");
+    expect(await api.visasCredit.appel(cid, { decision: "accorde", reference: "CA-7" })).toEqual({ statut: "mis_en_place", decision: "accorde" });   // comme le serveur
+    await expect(api.visasCredit.appel(cid, { decision: "confirme", reference: "CA-8" })).rejects.toThrow("Seul un refus");
+    const h = await api.visasCredit.historique("comite", "refuse", "2026-01-01", "2026-12-31");
+    expect([h[0]!.creditId, h[0]!.appel]).toEqual([cid, "Accordé (CA-7)"]);
+    await connecter("plumbala");
+    expect((await api.visasCredit.aViser("service_financier")).map((x) => x.id)).toEqual([cid]);
+    expect((await api.visasCredit.viser(cid, "service_financier", { avis: "accepte" })).statut).toBe("vise");
+  });
+
   /** Crédit mis en place puis visé aux trois niveaux (S90) : prêt au déblocage */
   async function creditVise(produit: Record<string, unknown> = PRODUIT_CREDIT) {
     const cid = await creditMisEnPlace(produit);

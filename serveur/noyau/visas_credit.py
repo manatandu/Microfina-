@@ -7,7 +7,7 @@ from datetime import date
 from psycopg.types.json import Jsonb
 
 from .bd import ErreurMetier, executer, lignes, une, valeur
-from .services import est_coopec, exiger, json_lu, titulaire
+from .services import est_coopec, exiger, journee_courante, json_lu, titulaire
 
 NIVEAUX = ("responsable_credit", "comite", "service_financier")
 LIBELLES = {"responsable_credit": "Responsable crédit", "comite": "Comité de crédit", "service_financier": "Service financier"}
@@ -33,7 +33,7 @@ def a_viser(u, niveau: str, agent_id: int | None = None) -> list[dict]:
     exiger(u)
     niveau_ok(niveau)
     i = NIVEAUX.index(niveau)
-    prec = "true" if i == 0 else f"exists (select 1 from visa_credit v where v.credit_id = c.id and v.niveau = '{NIVEAUX[i - 1]}' and v.avis = 'accepte')"
+    prec = "true" if i == 0 else f"exists (select 1 from visa_credit v where v.credit_id = c.id and v.niveau = '{NIVEAUX[i - 1]}' and (v.avis = 'accepte' or v.appel_decision = 'accorde'))"
     return [ligne(c) for c in lignes(f"""select c.* from credit c where c.institution_id = %s and c.statut = 'mis_en_place' and {prec}
                                          and not exists (select 1 from visa_credit v where v.credit_id = c.id and v.niveau = %s)
                                          and (%s::bigint is null or c.agent_id = %s) order by c.id""", (u["institution_id"], niveau, agent_id, agent_id))]
@@ -75,6 +75,30 @@ def viser(u, cid: int, niveau: str, d) -> dict:
     return {"credit": ligne(une("select * from credit where id = %s", (cid,))), "avis": avis, "statut": valeur("select statut from credit where id = %s", (cid,))}
 
 
+def appel(u, cid: int, d) -> dict:
+    """B29 : appel d'un refus de la Commission de crédit devant le Conseil d'administration, dans une COOPEC (Instr. BCC 007, art. 18 : le Conseil
+    statue en appel sur les décisions de la Commission de crédit à l'endroit d'un membre). Accordé : le crédit reprend le circuit des visas."""
+    exiger(u)
+    d = d if isinstance(d, dict) else {}
+    if not est_coopec(u):
+        raise ErreurMetier("L'appel devant le Conseil d'administration est propre aux coopératives (Instr. BCC 007, art. 18).")
+    c = une("select * from credit where id = %s and institution_id = %s for update", (cid, u["institution_id"]))
+    v = une("select * from visa_credit where credit_id = %s and niveau = 'comite' and avis = 'refuse' and appel_decision is null", (cid,)) if c else None
+    if not c or c["statut"] != "refuse" or not v:
+        raise ErreurMetier("Seul un refus de la Commission de crédit, pas encore porté en appel, se porte devant le Conseil d'administration.")
+    if d.get("decision") not in ("accorde", "confirme"):
+        raise ErreurMetier("À remplir : Décision du Conseil d'administration.")
+    ref = d.get("reference").strip() if isinstance(d.get("reference"), str) else ""
+    if not ref:
+        raise ErreurMetier("À remplir : Référence de la décision du Conseil d'administration.")
+    j = journee_courante(u)
+    executer("update visa_credit set appel_decision = %s, appel_reference = %s, appel_le = %s, appel_par = %s where credit_id = %s and niveau = 'comite'",
+             (d["decision"], ref, j["date"] if j else date.today(), u["id"], cid))
+    if d["decision"] == "accorde":
+        executer("update credit set statut = 'mis_en_place' where id = %s", (cid,))
+    return {"statut": valeur("select statut from credit where id = %s", (cid,)), "decision": d["decision"]}
+
+
 def date_iso(v: str, nom: str) -> date:
     try:
         return date.fromisoformat(v or "")
@@ -93,7 +117,8 @@ def historique(u, niveau: str, avis: str, du: str, au: str) -> list[dict]:
     for v in lignes("""select v.*, c.* from visa_credit v join credit c on c.id = v.credit_id where c.institution_id = %s and v.niveau = %s and v.avis = %s
                        and v.le::date between %s and %s order by v.le""", (u["institution_id"], niveau, avis, d1, d2)):
         sortie.append({**ligne(v), "visaLe": v["le"].date().isoformat(), "visePar": valeur("select nom from utilisateur where id = %s", (v["par"],)) or "",
-                       "motif": v["motif"] or "", "membres": json_lu(v["membres"]) or [], "referencePv": v["reference_pv"] or ""})
+                       "motif": v["motif"] or "", "membres": json_lu(v["membres"]) or [], "referencePv": v["reference_pv"] or "", "creditId": v["credit_id"],
+                       "appel": ({"accorde": "Accordé", "confirme": "Refus confirmé"}[v["appel_decision"]] + f" ({v['appel_reference']})") if v.get("appel_decision") else ""})
     return sortie
 
 

@@ -106,6 +106,7 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/credit/fonds-propres", ["S32"]),
     (r"/credit/mise-en-place/\d+(/apercu)?", ["S89"]),
     (r"/credit/visas/\d+/\w+", ["S90"]),
+    (r"/credit/visas-appel/\d+", ["S90"]),
     (r"/credit/deblocage/\d+/frais", ["S75", "S54", "S105"]),
     (r"/comptabilite/deblocage/\d+", ["S105"]),
     (r"/comptabilite/remboursement/\d+", ["S106"]),

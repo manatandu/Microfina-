@@ -388,6 +388,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       aViser: (niveau: string, agentId?: number | null) => get(`/credit/visas?niveau=${niveau}${agentId ? `&agentId=${agentId}` : ""}`),
       viser: (id: number, niveau: string, d: unknown) => post(`/credit/visas/${id}/${niveau}`, d),
       historique: (niveau: string, avis: string, du: string, au: string) => get(`/credit/visas-historique?niveau=${niveau}&avis=${avis}&du=${du}&au=${au}`),
+      appel: (id: number, d: unknown) => post(`/credit/visas-appel/${id}`, d),
       validesNonDebloques: (du: string, au: string, agentId?: number | null, archives = false) =>
         get(`/credit/valides-non-debloques?du=${du}&au=${au}${agentId ? `&agentId=${agentId}` : ""}&archives=${archives}`),
     },

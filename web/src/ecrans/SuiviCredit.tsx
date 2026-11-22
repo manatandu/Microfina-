@@ -98,6 +98,12 @@ export function HistoriqueVisas() {
   const [l, setL] = useState<Awaited<ReturnType<typeof api.visasCredit.historique>>>([]);
   const [boite, setBoite] = useState<Boite | null>(null);
   const COL = ["N° credit", "Date demande", "Intitulé", "Montant pret", "Durée", "Produit", "Agent crédit", "Visé le", "Visé par", "Motif"];
+  // B29 : appel d'un refus de la Commission de crédit devant le Conseil d'administration (Instr. BCC 007, art. 18)
+  const [appel, setAppel] = useState<{ id: number; numero: string; decision: string; reference: string } | null>(null);
+  const refusCommission = f.niveau === "comite" && f.avis === "refuse";
+  const enregistrerAppel = () => appel && setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer la décision du Conseil d'administration ?", oui: async () => {
+    try { await api.visasCredit.appel(appel.id, { decision: appel.decision, reference: appel.reference }); setAppel(null); await rechercher(); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+    catch (x) { setBoite({ type: "erreur", message: message(x) }); } } });
   async function rechercher() { try { setL(await api.visasCredit.historique(f.niveau, f.avis, f.du, f.au)); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } }
   return (
     <>
@@ -117,14 +123,23 @@ export function HistoriqueVisas() {
             l.map((x) => [x.numero, fr(x.dateDemande), x.client, montant(x.montant, x.devise as Devise), x.duree, x.produit, x.agent, fr(x.visaLe), x.visePar, x.motif]))}>Exporter</button>
         </div>
         <Paginee lignes={l} colonnes={(x) => [x.numero, null, x.client, null, null, x.produit, x.agent, null, null, null]}>{(v) => (<div className="defile-x"><table className="grille">
-          <thead><tr>{COL.map((t, i) => <th key={t} scope="col" className={i === 3 || i === 4 ? "num" : undefined}>{t}</th>)}</tr>
-            <LigneFiltres titres={["N° credit", null, "Intitulé", null, null, "Produit", "Agent crédit", null, null, null]} /></thead>
-          <tbody>{v.length === 0 && <tr><td colSpan={10}>No records found.</td></tr>}
+          <thead><tr>{COL.map((t, i) => <th key={t} scope="col" className={i === 3 || i === 4 ? "num" : undefined}>{t}</th>)}{refusCommission && <th scope="col">Appel</th>}</tr>
+            <LigneFiltres titres={["N° credit", null, "Intitulé", null, null, "Produit", "Agent crédit", null, null, null, ...(refusCommission ? [null] : [])]} /></thead>
+          <tbody>{v.length === 0 && <tr><td colSpan={11}>No records found.</td></tr>}
             {v.map((x, i) => <tr key={i}><td className="code">{x.numero}</td><td className="chiffres">{fr(x.dateDemande)}</td><td>{x.client}</td>
               <td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td><td className="num chiffres">{x.duree}</td><td>{x.produit}</td><td>{x.agent}</td>
-              <td className="chiffres">{fr(x.visaLe)}</td><td>{x.visePar}</td><td>{x.motif}</td></tr>)}</tbody>
+              <td className="chiffres">{fr(x.visaLe)}</td><td>{x.visePar}</td><td>{x.motif}</td>
+              {refusCommission && <td>{x.appel || <button className="bouton secondaire" type="button" onClick={() => setAppel({ id: x.creditId, numero: x.numero, decision: "", reference: "" })}>Appel au Conseil</button>}</td>}</tr>)}</tbody>
         </table></div>)}</Paginee>
-        <Textes sources={["Manuel Microfina++, p. 115 : 4-4 Historique suivi : « Sélectionner le Niveau hiérarchique, l'avis » ; capture (Du, A, Exporter, grille)", "Registre S91-1"]} />
+        {appel && <fieldset className="pile cadre-champs champs-a-gauche"><legend>Appel devant le Conseil d'administration, crédit {appel.numero}</legend>
+          <Champ libelle="Décision du Conseil : *">{(p) => <select {...p} className="saisie" value={appel.decision} onChange={(e) => setAppel({ ...appel, decision: e.target.value })}><option value=""></option>
+            <option value="accorde">Accordé</option><option value="confirme">Refus confirmé</option></select>}</Champ>
+          <Champ libelle="Référence de la décision : *">{(p) => <input {...p} className="saisie" autoComplete="off" value={appel.reference} onChange={(e) => setAppel({ ...appel, reference: e.target.value })} />}</Champ>
+          <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrerAppel}>Enregistrer</button>
+            <button className="bouton secondaire" type="button" onClick={() => setAppel(null)}>Annuler</button></div>
+        </fieldset>}
+        <Textes sources={["Manuel Microfina++, p. 115 : 4-4 Historique suivi : « Sélectionner le Niveau hiérarchique, l'avis » ; capture (Du, A, Exporter, grille)", "Registre S91-1",
+          "Instr. BCC 007, art. 18 : le Conseil d'administration statue en appel sur les décisions de la Commission de crédit à l'endroit d'un membre (registre T107)"]} />
       </section>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>

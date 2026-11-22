@@ -604,7 +604,8 @@ export interface GarantieCredit {
 
 /** S90 : visa d'un niveau (registre S90, CR-4, CR-5) */
 export interface VisaCredit { creditId: number; niveau: "responsable_credit" | "comite" | "service_financier"; avis: "accepte" | "refuse"; par: number; le: string;
-  motif: string; referencePv: string; membres: { nom: string; avis: "accepte" | "refuse" }[] }
+  motif: string; referencePv: string; membres: { nom: string; avis: "accepte" | "refuse" }[];
+  appelDecision?: "accorde" | "confirme"; appelReference?: string; appelLe?: string }   // B29 : appel devant le Conseil d'administration (Instr. BCC 007, art. 18)
 
 // S98 : balance âgée générée à une date (Instr. BCC 003, art. 2 à 9)
 export type BalanceAgee = { id: number; date: string; lanceLe: string; lancePar: number; lignes: { creditId: number; tiersId: number; produitId: number; agentId: number | null;

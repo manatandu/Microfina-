@@ -746,6 +746,12 @@ def visas_historique(request, niveau: str, avis: str, du: str, au: str):
     return vc.historique(u(request), niveau, avis, du, au)
 
 
+@api.post("/credit/visas-appel/{cid}")
+def visas_appel(request, cid: int, corps: dict = Body(...)):
+    from . import visas_credit as vc
+    return vc.appel(u(request), cid, corps)
+
+
 @api.get("/credit/valides-non-debloques")
 def valides_non_debloques(request, du: str, au: str, agentId: int | None = None, archives: bool = False):
     from . import visas_credit as vc

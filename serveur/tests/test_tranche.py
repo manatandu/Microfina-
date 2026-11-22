@@ -1738,6 +1738,26 @@ def test_commission_unanime(clients, journee):
     assert (r["avis"], r["statut"]) == ("refuse", "refuse")
 
 
+def test_appel_au_conseil(clients, journee):
+    """B29 : le Conseil d'administration statue en appel sur un refus de la Commission de crédit (Instr. BCC 007, art. 18). Accordé, le crédit
+    reprend le circuit des visas au service financier ; un refus ne se porte qu'une fois en appel"""
+    chef, compta = clients["chef"], clients["compta"]
+    cid = credit_mis_en_place(clients)
+    appel = lambda d: chef.post(f"/api/credit/visas-appel/{cid}", d, **H)
+    assert "Seul un refus" in appel({"decision": "accorde", "reference": "CA-7"}).json()["message"]
+    chef.post(f"/api/credit/visas/{cid}/responsable_credit", {"avis": "accepte"}, **H)
+    m = [{"nom": "Mbala", "avis": "accepte"}, {"nom": "Ilunga", "avis": "refuse"}, {"nom": "Kabeya", "avis": "accepte"}]
+    assert chef.post(f"/api/credit/visas/{cid}/comite", {"membres": m, "motif": "Capacité insuffisante"}, **H).json()["statut"] == "refuse"
+    assert "Décision du Conseil" in appel({"reference": "CA-7"}).json()["message"]
+    assert "Référence de la décision" in appel({"decision": "accorde", "reference": " "}).json()["message"]
+    assert appel({"decision": "accorde", "reference": "CA-7"}).json() == {"statut": "mis_en_place", "decision": "accorde"}
+    assert "Seul un refus" in appel({"decision": "confirme", "reference": "CA-8"}).json()["message"]
+    assert [x["id"] for x in compta.get("/api/credit/visas?niveau=service_financier", **H).json()] == [cid]
+    h = chef.get("/api/credit/visas-historique?niveau=comite&avis=refuse&du=2026-01-01&au=2026-12-31", **H).json()
+    assert (h[0]["creditId"], h[0]["appel"]) == (cid, "Accordé (CA-7)")
+    assert compta.post(f"/api/credit/visas/{cid}/service_financier", {"avis": "accepte"}, **H).json()["statut"] == "vise"
+
+
 def credit_vise(clients, produit=None) -> int:
     """Crédit de Kalala mis en place (S89) et visé aux trois niveaux (S90) : prêt au déblocage"""
     chef, compta = clients["chef"], clients["compta"]

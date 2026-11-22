@@ -3462,7 +3462,7 @@ const visasCredit = {
   aViser(niveau: string, agentId?: number | null) {
     lectureAdmin(["S90", "S91", "S92"]);
     const n = niveauVisa(niveau), i = NIVEAUX_VISA.indexOf(n);
-    return E.credits.filter((c) => c.statut === "mis_en_place" && (i === 0 || E.visasCredit.some((v) => v.creditId === c.id && v.niveau === NIVEAUX_VISA[i - 1] && v.avis === "accepte"))
+    return E.credits.filter((c) => c.statut === "mis_en_place" && (i === 0 || E.visasCredit.some((v) => v.creditId === c.id && v.niveau === NIVEAUX_VISA[i - 1] && (v.avis === "accepte" || v.appelDecision === "accorde")))
       && !E.visasCredit.some((v) => v.creditId === c.id && v.niveau === n) && (!agentId || c.agentId === agentId)).map(ligneVisa);
   },
   /** Viser : avis, motif d'un refus ; comité d'une COOPEC : trois membres, unanimité (registre S90-2 à S90-5, CR-4) */
@@ -3494,7 +3494,21 @@ const visasCredit = {
     if (avis !== "accepte" && avis !== "refuse") throw new ErreurMetier("À remplir : Avis.");
     dateVisa(du, "Du"); dateVisa(au, "A");
     return E.visasCredit.filter((v) => v.niveau === n && v.avis === avis && v.le >= du && v.le <= au).map((v) => ({ ...ligneVisa(E.credits.find((c) => c.id === v.creditId)!),
-      visaLe: v.le, visePar: nomUtilisateur(v.par), motif: v.motif, membres: v.membres, referencePv: v.referencePv }));
+      visaLe: v.le, visePar: nomUtilisateur(v.par), motif: v.motif, membres: v.membres, referencePv: v.referencePv, creditId: v.creditId,
+      appel: v.appelDecision ? `${v.appelDecision === "accorde" ? "Accordé" : "Refus confirmé"} (${v.appelReference ?? ""})` : "" }));
+  },
+  /** B29 : appel d'un refus de la Commission de crédit devant le Conseil d'administration, dans une COOPEC (Instr. BCC 007, art. 18). Comme visas_credit.appel. */
+  appel(id: number, d: { decision?: string; reference?: string }) {
+    exiger();
+    if (!estCoopec()) throw new ErreurMetier("L'appel devant le Conseil d'administration est propre aux coopératives (Instr. BCC 007, art. 18).");
+    const c = E.credits.find((x) => x.id === id), v = E.visasCredit.find((x) => x.creditId === id && x.niveau === "comite" && x.avis === "refuse" && !x.appelDecision);
+    if (!c || c.statut !== "refuse" || !v) throw new ErreurMetier("Seul un refus de la Commission de crédit, pas encore porté en appel, se porte devant le Conseil d'administration.");
+    if (d.decision !== "accorde" && d.decision !== "confirme") throw new ErreurMetier("À remplir : Décision du Conseil d'administration.");
+    const ref = (d.reference ?? "").trim();
+    if (!ref) throw new ErreurMetier("À remplir : Référence de la décision du Conseil d'administration.");
+    Object.assign(v, { appelDecision: d.decision, appelReference: ref, appelLe: journees.courante()?.date ?? "" });
+    if (d.decision === "accorde") c.statut = "mis_en_place";
+    enregistrer(); return { statut: c.statut as string, decision: d.decision };
   },
   /** « Archivés » : les crédits validés déjà débloqués s'y ajoutent (registre S92-2) */
   validesNonDebloques(du: string, au: string, agentId?: number | null, archives = false) {

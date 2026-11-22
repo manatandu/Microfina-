@@ -613,10 +613,18 @@ const OUT = process.argv[2];
     await p.getByText('Visa enregistré : crédit accepté.').waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
   };
   await viser('responsable_credit', async (fv) => fv.getByLabel('Avis *').selectOption('accepte'));
-  await viser('comite', async (fv) => {
-    for (const [i, nom] of [[1, 'Mbala'], [2, 'Ilunga'], [3, 'Kabeya']]) { await fv.getByLabel(`Membre ${i} *`, { exact: true }).fill(nom); await fv.getByLabel(`Avis du membre ${i} *`).selectOption('accepte'); }
-    await fv.getByLabel('N° du procès-verbal').fill('PV-2026-12'); await etape('06w5-visa-commission');
-  });
+  // La commission refuse sur un avis contraire (loi 002/2002, art. 43), puis le Conseil d'administration accorde en appel (B29 ; Instr. BCC 007, art. 18) :
+  // le crédit reprend le circuit au service financier
+  await aller('/credit/s90?page=comite'); await p.getByRole('cell', { name: '0412/L001/00001' }).click(); await p.getByRole('button', { name: 'Viser' }).click();
+  const fCom = p.getByRole('dialog', { name: /^Visa / });
+  for (const [i, nom, avis] of [[1, 'Mbala', 'accepte'], [2, 'Ilunga', 'refuse'], [3, 'Kabeya', 'accepte']]) { await fCom.getByLabel(`Membre ${i} *`, { exact: true }).fill(nom); await fCom.getByLabel(`Avis du membre ${i} *`).selectOption(avis); }
+  await fCom.getByLabel('Motif (refus)').fill('Capacité de remboursement à revoir'); await fCom.getByLabel('N° du procès-verbal').fill('PV-2026-12'); await etape('06w5-visa-commission');
+  await fCom.getByRole('button', { name: 'Viser' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByText('Visa enregistré : crédit refusé.').waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
+  await aller('/credit/s91'); await p.getByLabel('Niveau hiérarchique *').selectOption('comite'); await p.getByLabel('Avis *').selectOption('refuse'); await p.getByRole('button', { name: 'Rechercher' }).click();
+  await p.getByRole('button', { name: 'Appel au Conseil' }).click(); await p.getByLabel('Décision du Conseil : *').selectOption('accorde'); await p.getByLabel('Référence de la décision : *').fill('CA-2026-07');
+  await etape('06w5b-appel-conseil'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByRole('cell', { name: 'Accordé (CA-2026-07)' }).waitFor();
   await login('Patrick Lumbala'); await viser('service_financier', async (fv) => fv.getByLabel('Avis *').selectOption('accepte'));
   await aller('/credit/s92'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('cell', { name: '0412/L001/00001' }).waitFor(); await etape('06w6-valides-non-debloques');
   await login('J.-P. Mukendi');
@@ -854,11 +862,6 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByRole('cell', { name: 'Portefeuille à Risque' }).waitFor(); await etape('11p-indicateur-gestion');
   // Centrale des risques (écart E26, Instr. BCC 05, annexe I) : octroi, engagement à déclarer ; Tout choisir, Noter la déclaration
   await aller('/clients/sc05'); await p.getByRole('cell', { name: 'Octroi de crédit' }).first().waitFor(); await etape('11q-centrale-risques');
-  // Incidents et dépassements (SC06 ; Instr. BCC 008, art. 43 et 49) : un incident déclaré, puis traité
-  await aller('/clients/sc06'); await p.getByRole('heading', { name: 'Incidents et dépassements' }).waitFor();
-  await p.getByLabel('Type : *').selectOption({ label: 'Incident opérationnel' }); await p.getByLabel('Description : *').fill("Coupure du réseau de l'agence");
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  await p.getByRole('cell', { name: "Coupure du réseau de l'agence" }).waitFor(); await etape('11q2-incidents');
   await p.getByRole('button', { name: 'Tout choisir' }).click(); await p.getByRole('button', { name: 'Noter la déclaration' }).click();
   await p.getByLabel('Référence : *').fill('CR-2026-0001'); await p.getByRole('dialog', { name: 'Déclaration à la Centrale des risques' }).getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('cell', { name: 'Aucune donnée dans la liste' }).waitFor();
@@ -948,6 +951,13 @@ const OUT = process.argv[2];
   await aller('/banque/s62'); await p.getByRole('heading', { name: 'Édition du journal des opérations de banque' }).waitFor();
   await p.getByLabel('Banque *').selectOption({ label: 'Rawbank' }); await p.getByRole('button', { name: 'Valider' }).click();
   await p.getByRole('cell', { name: 'Encaissement divers' }).first().waitFor(); await etape('06c17-rapport-banque');
+  // Incidents et dépassements (SC06 ; Instr. BCC 008, art. 43 et 49) : le chef déclare un incident, puis le traite et le régularise
+  await login('J.-P. Mukendi'); await aller('/clients/sc06'); await p.getByRole('heading', { name: 'Incidents et dépassements' }).waitFor();
+  await p.getByLabel('Type : *').selectOption({ label: 'Incident opérationnel' }); await p.getByLabel('Description : *').fill("Coupure du réseau de l'agence");
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByRole('cell', { name: "Coupure du réseau de l'agence" }).waitFor(); await etape('11q2-incidents');
+  await p.getByRole('cell', { name: "Coupure du réseau de l'agence" }).click(); await p.getByLabel('Traitement : *').fill('Réseau rétabli'); await p.getByLabel('Régularisé').check();
+  await p.getByRole('group', { name: 'Traitement' }).getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('11q3-incident-traite');
   // Nouveau compte (S63) : le chef active le produit Epargne De Garantie (S27), puis l'agent de crédit ouvre ce compte pour Kalala
   await login('J.-P. Mukendi'); await aller('/parametrage/s27'); await p.getByRole('row').filter({ hasText: 'Epargne De Garantie' }).first().click();
   await p.getByLabel('Actif', { exact: true }).check(); await p.getByRole('button', { name: 'Modifier' }).click(); await oui();
