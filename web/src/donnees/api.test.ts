@@ -1392,6 +1392,18 @@ describe("journée de guichet", () => {
     await expect(api.comptesUtilisateurs.enregistrer({ ...U, motDePasse: "sanschiffre", confirmation: "sanschiffre" })).rejects.toThrow("un chiffre");
     await expect(api.comptesUtilisateurs.enregistrer({ ...U, login: "emot12345", motDePasse: "emot12345", confirmation: "emot12345" })).rejects.toThrow("différent du nom");
     expect((await api.comptesUtilisateurs.enregistrer({ ...U, motDePasse: "Kinshasa2026", confirmation: "Kinshasa2026" })).utilisateurs.some((v) => v.login === "emot")).toBe(true);
+    // Désactiver l'utilisateur qui quitte l'institution (Instr. BCC 008, art. 16 ; registre S05-4) : motif, pas soi-même ; plus de connexion ; réactiver
+    const l = (await api.comptesUtilisateurs.lire()).utilisateurs, x = l.find((v) => v.login === "emot")!, moi = l.find((v) => v.login === "gmbuyi")!;
+    await expect(api.comptesUtilisateurs.activer(x.id, { actif: false, motif: " " })).rejects.toThrow("Motif");
+    await expect(api.comptesUtilisateurs.activer(moi.id, { actif: false, motif: "Essai" })).rejects.toThrow("soi-même");
+    const d = (await api.comptesUtilisateurs.activer(x.id, { actif: false, motif: "Départ de l'institution" })).utilisateurs.find((v) => v.login === "emot")!;
+    expect([d.actif, d.derniereActivation.startsWith("Départ de l'institution (")]).toEqual([false, true]);
+    await expect(api.comptesUtilisateurs.enregistrer({ ...U, motDePasse: "", confirmation: "" }, x.id)).rejects.toThrow("introuvable");
+    await expect(api.comptesUtilisateurs.activer(x.id, { actif: false, motif: "Encore" })).rejects.toThrow("déjà désactivé");
+    await expect(connecter("emot")).rejects.toThrow("Identifiant inconnu");
+    await connecter("gmbuyi");
+    await api.comptesUtilisateurs.activer(x.id, { actif: true, motif: "Retour" });
+    await connecter("emot");
     // registre T27 : les lectures d'administration demandent le droit de l'écran
     await connecter("bkasongo");
     await expect(api.comptesUtilisateurs.lire()).rejects.toThrow("Droit manquant");

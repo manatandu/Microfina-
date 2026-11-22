@@ -5,7 +5,8 @@ export type Role = "caissier" | "chef_agence" | "agent_credit" | "comptable" | "
 export interface Utilisateur { id: number; login: string; nom: string; roles: Role[];
   // S05 : Informations et Info Adresse (le mot de passe n'est pas gardé par la démo, registre S05-3)
   profilId?: number;   // S06 : profil de l'utilisateur
-  agenceId?: number; controleConnecte?: boolean; rue?: string; adresse?: string; bp?: string; telephoneFixe?: string; portable?: string; email?: string }
+  agenceId?: number; controleConnecte?: boolean; rue?: string; adresse?: string; bp?: string; telephoneFixe?: string; portable?: string; email?: string;
+  actif?: boolean }   // S05 : désactivé, il ne se connecte plus (registre S05-4)
 export interface Institution { nom: string; sigle?: string; profil: string;
   // S32 Info générale
   description?: string; directeur?: string; numeroAgrement?: string; journeeMax?: number; compteHorsBilan1?: string | null; compteHorsBilan2?: string | null;
@@ -460,6 +461,7 @@ export interface Etat {
   immoAmortissements: { id: number; bienId: number; exercice: number; dotation: number; cumul: number; vnc: number; ecritureId: number | null; par: number; le: string }[];   // S139
   immoInventaires: { id: number; bienId: number; etat: string; date: string; observation: string; par: number }[];   // S139
   immoSorties: { id: number; bienId: number; type: string; date: string; observation: string; vnc: number; cumul: number; ecritureId: number; par: number; prixCession?: number; compteContrepartie?: string }[];   // S139
+  activationsUtilisateurs?: { utilisateurId: number; actif: boolean; motif: string; par: number; le: string }[];   // S05 : désactivations (registre S05-4)
   paieMaquette: { id: number; employeId: number; rubriqueId: number; montant: number; session: string; active: boolean; intersession: boolean; permanente: boolean; saisiPar: number }[];   // S134
   paieRetenues: { id: number; employeId: number; typeId: number; session: string; montant: number; duree: number; statut: "saisie" | "visee"; saisiPar: number; visePar: number | null }[];   // S135
   periodesCloturees: { annee: number; mois: number; le: string; par: number }[];   // S127 : clôture informatique mensuelle (PCCI § 3.4)   // S124, S125 : une valeur par budget, type, période, ligne budgétaire et compte

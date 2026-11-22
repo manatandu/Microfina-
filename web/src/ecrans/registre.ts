@@ -40,7 +40,8 @@ function sousMenu(e: Ecran, libelleMenu: string): string {
 
 function construire(id: string, libelle: string, ecrans: Ecran[]): Menu {
   const groupes = new Map<string, Ecran[]>();
-  for (const e of ecrans) {
+  // Un écran non repris n'apparaît ni dans les menus ni dans l'arbre des droits (plan d'allègement, point 0.24)
+  for (const e of ecrans.filter((x) => x.priorite !== "skip")) {
     const g = sousMenu(e, libelle);
     groupes.set(g, [...(groupes.get(g) ?? []), e]);
   }

@@ -2553,6 +2553,18 @@ def test_utilisateurs_creation(clients):
     assert h != "secret-1" and h.startswith(("pbkdf2", "argon2", "bcrypt", "scrypt"))
     chef.post(f"/api/gestion-utilisateurs/{x['id']}", {**U, "motDePasse": "", "confirmation": "", "portable": "+243 810 000 555"}, **H)
     assert ident("select mot_de_passe_hash from utilisateur where login = 'jmbala'") == h
+    # Désactiver l'utilisateur qui quitte l'institution (Instr. BCC 008, art. 16 ; registre S05-4) : motif, pas soi-même ; plus de connexion ; réactiver
+    moi = next(v for v in chef.get("/api/gestion-utilisateurs", **H).json()["utilisateurs"] if v["login"] == "gmbuyi")
+    assert "Motif" in refus(f"/api/gestion-utilisateurs/{x['id']}/activation", {"actif": False, "motif": " "})
+    assert "soi-même" in refus(f"/api/gestion-utilisateurs/{moi['id']}/activation", {"actif": False, "motif": "Essai"})
+    d = next(v for v in chef.post(f"/api/gestion-utilisateurs/{x['id']}/activation", {"actif": False, "motif": "Départ de l'institution"}, **H).json()["utilisateurs"]
+             if v["login"] == "jmbala")
+    assert d["actif"] is False and d["derniereActivation"].startswith("Départ de l'institution (")
+    assert Client().post("/api/session", {"login": "jmbala"}, **H).status_code != 200
+    assert "introuvable" in refus(f"/api/gestion-utilisateurs/{x['id']}", {**U, "motDePasse": "", "confirmation": ""})
+    assert "déjà désactivé" in refus(f"/api/gestion-utilisateurs/{x['id']}/activation", {"actif": False, "motif": "Encore"})
+    chef.post(f"/api/gestion-utilisateurs/{x['id']}/activation", {"actif": True, "motif": "Retour"}, **H)
+    connecter(Client(), "jmbala")
 
 
 def test_profils_utilisateurs(clients):

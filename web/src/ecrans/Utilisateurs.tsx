@@ -4,7 +4,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
 
 type Ligne = { id: number; nom: string; login: string; agenceId: number | null; controleConnecte: boolean; rue: string; adresse: string; bp: string;
-  telephoneFixe: string; portable: string; email: string; agence: string };
+  telephoneFixe: string; portable: string; email: string; agence: string; actif: boolean; derniereActivation: string };
 const VIDE = { nom: "", agenceId: "", controleConnecte: false, login: "", motDePasse: "", confirmation: "", rue: "", adresse: "", bp: "", telephoneFixe: "", portable: "", email: "" };
 /** Grille : Nom user, le premier mot ; Prenoms user, la suite (registre S05-2) */
 const decouper = (n: string) => { const [premier = "", ...reste] = n.split(/\s+/); return [premier, reste.join(" ")]; };
@@ -15,9 +15,16 @@ export default function EnregistrementUtilisateurs() {
   const [choisi, setChoisi] = useState<number | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   const [relu, setRelu] = useState(0);
+  const [motif, setMotif] = useState("");
   const { donnees } = useDonnees(() => api.comptesUtilisateurs.lire(), [relu]);
   if (!donnees) return <Chargement />;
-  const effacer = () => { setF(VIDE); setChoisi(null); };
+  const effacer = () => { setF(VIDE); setChoisi(null); setMotif(""); };
+  const ligne = (donnees.utilisateurs as Ligne[]).find((x) => x.id === choisi);
+  // Désactiver l'utilisateur qui quitte l'institution, ou le réactiver : motif, date et auteur gardés (Instr. BCC 008, art. 16 ; registre S05-4)
+  const activer = (actif: boolean) => setBoite({ type: "confirmation", message: actif ? `Réactiver ${ligne?.nom} ?` : `Désactiver ${ligne?.nom} ? Il ne pourra plus se connecter.`, oui: async () => {
+    try { await api.comptesUtilisateurs.activer(choisi!, { actif, motif }); effacer(); setRelu((x) => x + 1); setBoite({ type: "succes", message: actif ? "Utilisateur réactivé." : "Utilisateur désactivé." }); }
+    catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+  } });
   const choisir = (x: Ligne) => { setChoisi(x.id); setF({ ...VIDE, nom: x.nom, agenceId: x.agenceId ? String(x.agenceId) : "", controleConnecte: x.controleConnecte, login: x.login,
     rue: x.rue, adresse: x.adresse, bp: x.bp, telephoneFixe: x.telephoneFixe, portable: x.portable, email: x.email }); };
   const enregistrer = () => setBoite({ type: "confirmation", message: choisi === null ? "Voulez-vous vraiment enregistrer ?" : "Voulez-vous vraiment modifier ?", oui: async () => {
@@ -55,24 +62,31 @@ export default function EnregistrementUtilisateurs() {
           </div>
         </fieldset>
         <div className="actions-onglets">
-          <button className="bouton" type="button" onClick={enregistrer}>{choisi === null ? "Enregistrer" : "Modifier"}</button>
+          <button className="bouton" type="button" disabled={ligne?.actif === false} onClick={enregistrer}>{choisi === null ? "Enregistrer" : "Modifier"}</button>
           <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
         </div>
+        {ligne && <fieldset className="cadre-champs pile champs-a-gauche">
+          <legend>{ligne.actif ? "Désactiver cet utilisateur" : "Réactiver cet utilisateur"}</legend>
+          {ligne.derniereActivation && <p>Dernière décision : {ligne.derniereActivation}</p>}
+          <Champ libelle="Motif *">{(p) => <input {...p} className="saisie" autoComplete="off" value={motif} onChange={(e) => setMotif(e.target.value)} />}</Champ>
+          <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => activer(!ligne.actif)}>{ligne.actif ? "Désactiver" : "Réactiver"}</button></div>
+        </fieldset>}
         <table className="grille">
-          <thead><tr><th scope="col">Nom user</th><th scope="col">Prenoms user</th><th scope="col">Agence</th><th scope="col">Telephone</th></tr></thead>
+          <thead><tr><th scope="col">Nom user</th><th scope="col">Prenoms user</th><th scope="col">Agence</th><th scope="col">Telephone</th><th scope="col">Actif</th></tr></thead>
           <tbody>
             {(donnees.utilisateurs as Ligne[]).map((x) => {
               const [nom, prenoms] = decouper(x.nom);
               return (
                 <tr key={x.id} className="ligne-choix" tabIndex={0} aria-selected={x.id === choisi} onClick={() => choisir(x)} onKeyDown={(e) => { if (e.key === "Enter") choisir(x); }}>
-                  <td>{nom}</td><td>{prenoms}</td><td>{x.agence}</td><td>{x.portable}</td>
+                  <td>{nom}</td><td>{prenoms}</td><td>{x.agence}</td><td>{x.portable}</td><td>{x.actif ? "Oui" : "Non"}</td>
                 </tr>
               );
             })}
           </tbody>
         </table>
         <Textes sources={["Manuel Microfina++, p. 16 : « Renseigner obligatoirement les champs marqués (*) avant d'enregistrer » ; capture p. 17 : Informations (Nom et prénom(s)*, Agence*, Control utilisateur connecté), Authentification (Nom utilisateur*, Mot de passe*, Confirmation*), Info Adresse (Rue / Maison, Adresse, BP, Tél fix, Portable*, Email), Enregistrer, Effacer ; grille Nom user, Prenoms user, Agence, Telephone",
-          "Instr. BCC 008, art. 16 : gestion des accès et authentification des usagers maîtrisées ; règles internes de sécurité édictées par l'institution"]} />
+          "Instr. BCC 008, art. 16 : gestion des accès et authentification des usagers maîtrisées ; règles internes de sécurité édictées par l'institution",
+          "Instr. BCC 008, art. 16 : l'utilisateur qui quitte l'institution est désactivé, avec motif, date et auteur ; il ne se connecte plus et reste nommé dans les historiques (registre S05-4)"]} />
         <Dialogue boite={boite} fermer={() => setBoite(null)} />
       </section>
     </>

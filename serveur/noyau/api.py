@@ -2477,6 +2477,11 @@ def cu_modifier(request, uid: int, corps: dict = Body(...)):
     return cu.enregistrer(u(request), corps, uid)
 
 
+@api.post("/gestion-utilisateurs/{uid}/activation")
+def cu_activer(request, uid: int, corps: dict = Body(...)):
+    return cu.activer(u(request), uid, corps)
+
+
 # ---------- Administration > Utilisateur > Gestion des profils (S06) ----------
 @api.get("/profils-utilisateurs")
 def pu_lire(request, utilisateur: int | None = None):

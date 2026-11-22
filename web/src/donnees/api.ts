@@ -114,7 +114,7 @@ const session = {
   courante: () => { const u = utilisateur(); return u ? { ...u, droits: droitsDe(u) } : null; },
   ouvrir(login: string, _motDePasse?: string) {
     const u = E.utilisateurs.find((x) => x.login === login);
-    if (!u) { noterSecurite("connexion_impossible", login, null, "Identifiant inconnu."); throw new ErreurMetier("Identifiant inconnu."); }
+    if (!u || u.actif === false) { noterSecurite("connexion_impossible", login, null, "Identifiant inconnu."); throw new ErreurMetier("Identifiant inconnu."); }   // désactivé : plus de connexion (S05-4)
     E.session = u.id; noterSecurite("connexion", login, u.id); return u;
   },
   fermer() { E.session = null; enregistrer(); return undefined; },
@@ -1452,8 +1452,8 @@ const rapports = {
     return [...E.modifications].reverse().map(({ tiersId, avant, apres, modifiePar, modifieLe, validePar }) =>
       ({ tiersId, numero: E.tiers.find((t) => t.id === tiersId)?.numero ?? "", avant, apres, modifiePar, modifieLe, validePar: validePar ?? null }));
   },
-  /** S13 (manuel p. 22) : par utilisateur, opérations de la période (date des journées). Pas encore d'annulation : 0 (à confirmer).
-   * Transactions = Opérations - Annulations (capture p. 22). Mêmes règles côté serveur (services.rapport_transactions). */
+  /** S13 (manuel p. 22) : par utilisateur, opérations de la période (date des journées) ; annulations : écritures de contre-passation qu'il a passées
+   * (PCCI § 3.3). Transactions = Opérations - Annulations (capture p. 22 ; registre S13-2). Mêmes règles côté serveur (services.rapport_transactions). */
   transactions(du: string, au: string) {
     exiger();
     if (!du || !au) throw new ErreurMetier("À remplir : DU et AU.");
@@ -1462,7 +1462,10 @@ const rapports = {
       const j = E.journees.find((x) => x.id === E.sessions.find((s) => s.id === o.sessionId)?.journeeId);
       if (j && j.date >= du && j.date <= au) n.set(o.saisiPar, (n.get(o.saisiPar) ?? 0) + 1);
     }
-    return [...n].map(([uid, k]) => ({ utilisateur: E.utilisateurs.find((u) => u.id === uid)?.nom ?? "", operations: k, annulations: 0, transactions: k }))
+    const a = new Map<number, number>();
+    for (const e of E.ecritures) { const d = e.contrePasseId ? dateEcriture(e) : ""; if (d && d >= du && d <= au) a.set(e.saisiPar, (a.get(e.saisiPar) ?? 0) + 1); }
+    return [...new Set([...n.keys(), ...a.keys()])].map((uid) => ({ utilisateur: E.utilisateurs.find((u) => u.id === uid)?.nom ?? "", operations: n.get(uid) ?? 0,
+      annulations: a.get(uid) ?? 0, transactions: (n.get(uid) ?? 0) - (a.get(uid) ?? 0) }))
       .sort((a, b) => a.utilisateur.toLowerCase().localeCompare(b.utilisateur.toLowerCase()));
   },
 };
@@ -10229,7 +10232,24 @@ const comptesUtilisateurs = {
     return { agences: E.agences.filter((a) => !a.supprime).map(({ id, nom }) => ({ id, nom })),
       utilisateurs: [...E.utilisateurs].sort((a, b) => a.nom.localeCompare(b.nom)).map((x) => ({ id: x.id, nom: x.nom, login: x.login, agenceId: x.agenceId ?? null,
         controleConnecte: !!x.controleConnecte, rue: x.rue ?? "", adresse: x.adresse ?? "", bp: x.bp ?? "", telephoneFixe: x.telephoneFixe ?? "", portable: x.portable ?? "",
-        email: x.email ?? "", agence: E.agences.find((a) => a.id === x.agenceId)?.nom ?? "" })) };
+        email: x.email ?? "", agence: E.agences.find((a) => a.id === x.agenceId)?.nom ?? "", actif: x.actif !== false,
+        derniereActivation: (() => { const h = (E.activationsUtilisateurs ?? []).filter((y) => y.utilisateurId === x.id).at(-1);
+          return h ? `${h.motif} (${h.le.slice(8, 10)}/${h.le.slice(5, 7)}/${h.le.slice(0, 4)}, ${E.utilisateurs.find((p) => p.id === h.par)?.nom ?? ""})` : ""; })() }))
+        .sort((a, b) => Number(!a.actif) - Number(!b.actif)) };
+  },
+  /** Désactiver l'utilisateur qui quitte l'institution, ou le réactiver : motif, date et auteur gardés ; pas soi-même (Instr. BCC 008, art. 16 ; registre S05-4) */
+  activer(id: number, d: { actif?: unknown; motif?: unknown }) {
+    const u = exiger("chef_agence");
+    const motif = typeof d.motif === "string" ? d.motif.trim() : "";
+    if (typeof d.actif !== "boolean") throw new ErreurMetier("Désactiver ou réactiver : à préciser.");
+    if (!motif) throw new ErreurMetier("À remplir : Motif.");
+    const x = E.utilisateurs.find((y) => y.id === id);
+    if (!x) throw new ErreurMetier("Utilisateur introuvable.");
+    if (x.id === u.id) throw new ErreurMetier("On ne se désactive pas soi-même : un autre utilisateur le fait.");
+    if ((x.actif !== false) === d.actif) throw new ErreurMetier(`Cet utilisateur est déjà ${d.actif ? "actif." : "désactivé."}`);
+    x.actif = d.actif;
+    (E.activationsUtilisateurs ??= []).push({ utilisateurId: x.id, actif: d.actif, motif, par: u.id, le: new Date().toISOString() });
+    enregistrer(); return comptesUtilisateurs.lire();
   },
   /** Enregistrer ou modifier l'utilisateur choisi (p. 12, T01) ; registre S05-1 à S05-3 ; la démo ne garde pas le mot de passe */
   enregistrer(d: SaisieUtilisateur, id?: number) {
@@ -10254,6 +10274,7 @@ const comptesUtilisateurs = {
     if (id !== undefined && !x) throw new ErreurMetier("Utilisateur introuvable.");
     if (E.utilisateurs.some((y) => y.id !== id && y.login.toLowerCase() === v.login.toLowerCase())) throw new ErreurMetier("Ce Nom utilisateur existe déjà.");
     const f = { ...v, agenceId: agenceId!, controleConnecte: !!d.controleConnecte };
+    if (x && x.actif === false) throw new ErreurMetier("Utilisateur introuvable.");   // désactivé : il ne se modifie plus (registre S05-4)
     if (x) Object.assign(x, f); else E.utilisateurs.push({ id: prochain(E.utilisateurs), roles: [], ...f });
     enregistrer(); return comptesUtilisateurs.lire();
   },
@@ -10306,7 +10327,7 @@ const connexions = {
   lire() {
     lectureAdmin(["S07"]);
     return { utilisateurs: [...E.utilisateurs].sort((a, b) => a.nom.localeCompare(b.nom)).map((x) => ({ id: x.id, nom: x.nom, login: x.login,
-      agence: E.agences.find((a) => a.id === x.agenceId)?.nom ?? "", connecte: E.session === x.id, machine: E.session === x.id ? "ce navigateur" : "", actif: true })) };
+      agence: E.agences.find((a) => a.id === x.agenceId)?.nom ?? "", connecte: E.session === x.id, machine: E.session === x.id ? "ce navigateur" : "", actif: x.actif !== false })) };
   },
   /** Déconnecter (registre S07-2) ; pas soi-même : bouton de sortie */
   deconnecter(id: number) {

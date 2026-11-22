@@ -20,7 +20,15 @@ export function NouvelExercice() {
   const { donnees } = useDonnees(() => api.exercices.lire(), [relu]);
   if (!donnees) return <Chargement />;
   const ligne = (a: number) => cases[a] ?? donnees.exercices.find((e) => e.annee === a)!;
-  const cocher = (a: number, k: "actif" | "ouvert" | "valide") => (v: boolean) => setCases({ ...cases, [a]: { ...ligne(a), [k]: v } });
+  const cocher = (a: number, k: "actif" | "ouvert") => (v: boolean) => setCases({ ...cases, [a]: { ...ligne(a), [k]: v } });
+  // Clôturer l'exercice : un bouton et un message qui dit que c'est définitif, au lieu d'une case (PCCI § 3.4, irréversibilité ; plan d'allègement 0.17, registre S11-3)
+  const cloturer = (a: number) => setBoite({ type: "confirmation", message: `Clôturer l'exercice ${a} ? C'est définitif : aucune écriture ne pourra plus être passée sur ${a}.`, oui: async () => {
+    try {
+      const e = donnees.exercices.find((x) => x.annee === a)!;
+      await api.exercices.enregistrer({ annee: "", lignes: [{ annee: a, actif: e.actif, ouvert: e.ouvert, valide: true }] });
+      setCases({}); setRelu((x) => x + 1); setBoite({ type: "succes", message: `Exercice ${a} clôturé.` });
+    } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+  } });
   function enregistrer() {
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try {
@@ -44,7 +52,7 @@ export function NouvelExercice() {
           <button className="bouton secondaire" type="button" onClick={() => { setAnnee(""); setCases({}); }}>Effacer</button>
         </div>
         <Paginee lignes={donnees.exercices}>{(visibles) => (<table className="grille">
-          <thead><tr><th scope="col">Annee</th><th scope="col">Actif ?</th><th scope="col">Ouvert ?</th><th scope="col">Validé ?</th></tr></thead>
+          <thead><tr><th scope="col">Annee</th><th scope="col">Actif ?</th><th scope="col">Ouvert ?</th><th scope="col">État</th></tr></thead>
           <tbody>
             {visibles.map((e) => {
               const c = ligne(e.annee);
@@ -53,7 +61,7 @@ export function NouvelExercice() {
                   <td className="chiffres">{e.annee}</td>
                   <td><Case coche={c.actif} libelle={`Actif : ${e.annee}`} onChange={cocher(e.annee, "actif")} /></td>
                   <td><Case coche={c.ouvert} libelle={`Ouvert : ${e.annee}`} onChange={cocher(e.annee, "ouvert")} /></td>
-                  <td><Case coche={c.valide} libelle={`Validé : ${e.annee}`} onChange={e.valide ? undefined : cocher(e.annee, "valide")} /></td>
+                  <td>{e.valide ? "Clôturé" : <>{e.actif ? "En cours" : "Préparé"} <button className="bouton secondaire" type="button" onClick={() => cloturer(e.annee)}>Clôturer l'exercice {e.annee}</button></>}</td>
                 </tr>
               );
             })}

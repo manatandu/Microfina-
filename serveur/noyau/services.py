@@ -1456,13 +1456,17 @@ def rapport_modifications(u: dict) -> list[dict]:
 
 def rapport_transactions(u: dict, du: str, au: str) -> list[dict]:
     """S13, « Rapport des transactions » (manuel p. 22) : par utilisateur, opérations de la période (date des journées de l'agence).
-    Pas encore d'annulation d'opération dans le logiciel : Nbres Annulations vaut 0 (à confirmer). Transactions = Opérations - Annulations (capture p. 22)."""
+    Annulations : les écritures d'annulation (contre-passations, PCCI § 3.3) passées par l'utilisateur dans la période. Transactions = Opérations - Annulations
+    (capture p. 22). Plan d'allègement, point 0.20 ; registre S13-2."""
     exiger(u)
     if not du or not au:
         raise ErreurMetier("À remplir : DU et AU.")
-    r = lignes("""select o.saisi_par, count(*) as n from operation o join journee_comptable j on j.id = o.journee_id
-                  where o.agence_id = %s and j.date_comptable between %s and %s group by o.saisi_par""", (u["agence_id"], du, au))
-    sortie = [{"utilisateur": nom_utilisateur(x["saisi_par"]), "operations": x["n"], "annulations": 0, "transactions": x["n"]} for x in r]
+    ops = {x["saisi_par"]: x["n"] for x in lignes("""select o.saisi_par, count(*) as n from operation o join journee_comptable j on j.id = o.journee_id
+                  where o.agence_id = %s and j.date_comptable between %s and %s group by o.saisi_par""", (u["agence_id"], du, au))}
+    ann = {x["saisi_par"]: x["n"] for x in lignes("""select a.saisi_par, count(*) as n from ecriture a join journee_comptable j on j.id = a.journee_id
+                  where j.agence_id = %s and a.contre_passe_id is not null and j.date_comptable between %s and %s group by a.saisi_par""", (u["agence_id"], du, au))}
+    sortie = [{"utilisateur": nom_utilisateur(k), "operations": ops.get(k, 0), "annulations": ann.get(k, 0), "transactions": ops.get(k, 0) - ann.get(k, 0)}
+              for k in set(ops) | set(ann)]
     return sorted(sortie, key=lambda x: x["utilisateur"].lower())
 
 

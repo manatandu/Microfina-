@@ -106,6 +106,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "comptesEpargne.ouvrir": [
 "S63"
 ],
+"comptesUtilisateurs.activer": [
+"S05"
+],
 "comptesUtilisateurs.enregistrer": [
 "S05"
 ],

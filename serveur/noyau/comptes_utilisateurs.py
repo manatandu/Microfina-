@@ -18,9 +18,11 @@ def lire(u) -> dict:
     exiger(u)
     i = u["institution_id"]
     return {"agences": lignes("select id, nom from agence where institution_id = %s and not supprime order by code", (i,)),
-            "utilisateurs": lignes(f"""select x.id, {', '.join(f'x.{c} as "{k}"' for k, c in CHAMPS.items())}, coalesce(a.nom, '') as agence
+            "utilisateurs": lignes(f"""select x.id, {', '.join(f'x.{c} as "{k}"' for k, c in CHAMPS.items())}, coalesce(a.nom, '') as agence, x.actif,
+                                         coalesce((select h.motif || ' (' || to_char(h.le, 'DD/MM/YYYY') || ', ' || p.nom || ')' from utilisateur_activation h
+                                                   join utilisateur p on p.id = h.par where h.utilisateur_id = x.id order by h.id desc limit 1), '') as "derniereActivation"
                                        from utilisateur x left join agence a on a.id = x.agence_id
-                                       where x.institution_id = %s and x.actif and not x.est_admin_systeme order by x.nom""", (i,))}
+                                       where x.institution_id = %s and not x.est_admin_systeme order by not x.actif, x.nom""", (i,))}
 
 
 def enregistrer(u, d, uid: int | None = None) -> dict:
@@ -62,4 +64,28 @@ def enregistrer(u, d, uid: int | None = None) -> dict:
         executer(f"update utilisateur set {', '.join(f'{CHAMPS[k]} = %s' for k in cols)} where id = %s", (*[vals[k] for k in cols], uid))
         if mdp:
             executer("update utilisateur set mot_de_passe_hash = %s where id = %s", (make_password(mdp), uid))
+    return lire(u)
+
+
+def activer(u, uid: int, d) -> dict:
+    """Désactiver l'utilisateur qui quitte l'institution, ou le réactiver : motif obligatoire, date et auteur gardés ; on ne se désactive pas soi-même.
+    Désactivé, il ne se connecte plus (sa session tombe) et reste nommé dans les historiques (Instr. BCC 008, art. 16 ; registre S05-4)."""
+    exiger(u, "chef_agence")
+    d = d if isinstance(d, dict) else {}
+    actif = d.get("actif")
+    motif = d.get("motif").strip() if isinstance(d.get("motif"), str) else ""
+    if not isinstance(actif, bool):
+        raise ErreurMetier("Désactiver ou réactiver : à préciser.")
+    if not motif:
+        raise ErreurMetier("À remplir : Motif.")
+    x = une("select id, actif from utilisateur where id = %s and institution_id = %s and not est_admin_systeme for update", (uid, u["institution_id"])) \
+        if isinstance(uid, int) and not isinstance(uid, bool) else None
+    if not x:
+        raise ErreurMetier("Utilisateur introuvable.")
+    if x["id"] == u["id"]:
+        raise ErreurMetier("On ne se désactive pas soi-même : un autre utilisateur le fait.")
+    if x["actif"] == actif:
+        raise ErreurMetier("Cet utilisateur est déjà " + ("actif." if actif else "désactivé."))
+    executer("update utilisateur set actif = %s" + ("" if actif else ", jeton_session = null") + " where id = %s", (actif, x["id"]))
+    executer("insert into utilisateur_activation (utilisateur_id, actif, motif, par) values (%s, %s, %s, %s)", (x["id"], actif, motif, u["id"]))
     return lire(u)

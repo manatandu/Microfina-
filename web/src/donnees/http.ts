@@ -684,6 +684,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
     comptesUtilisateurs: {
       lire: () => get("/gestion-utilisateurs"),
       enregistrer: (d: object, id?: number) => post(id === undefined ? "/gestion-utilisateurs" : `/gestion-utilisateurs/${id}`, d),
+      activer: (id: number, d: { actif: boolean; motif: string }) => post(`/gestion-utilisateurs/${id}/activation`, d),
     },
     droits: {
       lire: (profil?: number) => get(profil === undefined ? "/droits" : `/droits?profil=${profil}`),

@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**954 décisions.** Solidité : 418 fortes (le manuel ou un texte répond), 454 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 947 déjà en place, 7 à appliquer.
+**955 décisions.** Solidité : 419 fortes (le manuel ou un texte répond), 454 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 948 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -213,7 +213,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | S11-1 | Case Actif | L'exercice actif est l'exercice en cours, proposé par défaut dans les écrans. Un seul actif à la fois | Écran voisin : S11c « Exerice encours » (p. 21), S29 (p. 41) | moyenne | en place |
 | S11-2 | Case Ouvert | On n'ouvre une journée (S12) et on ne saisit une écriture (S109) que dans un exercice ouvert | Donnée exigée ailleurs : S12, S109 | moyenne | en place |
-| S11-3 | Case Validé | Exercice clôturé définitivement : plus aucune écriture. La case ne se décoche pas | Texte réglementaire : PCCI § 3.4 (validation, irréversibilité) et § 4.3.6 (intangibilité du bilan d'ouverture) | moyenne | en place |
+| S11-3 | Clôture de l'exercice | Exercice clôturé définitivement : plus aucune écriture. Une colonne État (Préparé, En cours, Clôturé) remplace la case ; la clôture se fait par un bouton « Clôturer l'exercice AAAA » et un message qui dit que c'est définitif. Elle ne se défait pas | Texte réglementaire : PCCI § 3.4 (validation, irréversibilité) et § 4.3.6 (intangibilité du bilan d'ouverture) ; plan d'allègement, point 0.17 | moyenne | en place |
 | S11-4 | Durée de l'exercice | Du 1er janvier au 31 décembre | Texte réglementaire : PCCI § 4.3.1 | forte | en place |
 | S11-5 | Bouton « Exercice à ouvrir » | Affiche les journaux de l'exercice saisi | Écran voisin : Capture p. 21 | faible | en place |
 | S11-6 | Ce que crée Ouvrir | Une ligne par journal de l'institution, compteur à 0 | Manuel : Capture p. 21 (Liste Détails Journal) | moyenne | en place |
@@ -234,7 +234,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S13-1 | Ce qui compte comme opération | Toute opération saisie par l'utilisateur, dans tous les menus (caisse, banque, comptabilité) | Manuel : Manuel p. 22 (« rapport des opérations ») | moyenne | en place |
-| S13-2 | Ce qui compte comme annulation | Une opération annulée (S142, et rapport des annulations S118). Reste à 0 tant que S142 n'est pas construit | Donnée exigée ailleurs : S142 (p. 158), S118 (p. 137) | moyenne | en place |
+| S13-2 | Ce qui compte comme annulation | Les écritures d'annulation (contre-passations) passées par l'utilisateur dans la période, celles que liste le rapport des annulations (S118) | Texte réglementaire : PCCI § 3.3 (correction par écriture d'annulation) ; capture p. 22 ; plan d'allègement, point 0.20 | moyenne | en place |
 | S13-3 | Transactions | Opérations moins annulations | Manuel : Chiffres de la capture p. 22 | forte | en place |
 | S13-4 | Utilisateurs sans opération | Non listés | Écran voisin : Capture p. 22 | faible | en place |
 | S13-5 | Format du fichier d'Export | Fichier Excel, comme toute grille (règle T17). Aujourd'hui l'Export sort un fichier CSV, que Excel ouvre | Règle générale du manuel : Manuel p. 9 : « Une grille peut être exportée vers Excel » | forte | en place |
@@ -2054,6 +2054,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | CR-28 | Séparation des tâches sur un crédit | Quatre tâches, une personne chacune sur un même crédit : enregistrement (saisie de la demande, mise en place) ; vérification (contrôle, visa du responsable crédit) ; autorisation (approbation, visa de la commission, visa du service financier) ; manipulation (frais et déblocage). Une même personne peut tenir plusieurs étapes d'une même tâche. Démonstration : une responsable crédit vérifie, le chef d'agence autorise | Texte réglementaire : Instr. BCC 008, art. 66 : « la séparation des tâches incompatibles, notamment la manipulation des valeurs, l'enregistrement, l'autorisation des opérations, leur vérification » ; plan d'allègement, point 0.4 | forte | en place |
+
+## S05 Utilisateurs
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S05-4 | Utilisateur qui quitte l'institution | Désactiver, puis au besoin réactiver, avec un motif ; date et auteur gardés ; on ne se désactive pas soi-même. Désactivé, l'utilisateur ne se connecte plus (sa session tombe), ne se modifie plus et reste nommé dans les historiques. La grille montre la colonne Actif | Texte réglementaire : Instr. BCC 008, art. 16 (gestion des accès et authentification maîtrisées) ; plan d'allègement, point 0.5 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

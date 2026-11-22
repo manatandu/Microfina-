@@ -1168,7 +1168,9 @@ const OUT = process.argv[2];
   const rpv = p.getByRole('dialog', { name: "Recherche d'un client" });
   await rpv.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rpv.getByRole('row').filter({ hasText: 'Kalala' }).first().dblclick();
   await p.getByLabel('Compte Client:').locator('option').nth(1).waitFor({ state: 'attached' });
-  await p.getByLabel('Compte Client:').selectOption({ index: 1 }); await p.getByLabel('Montant à payer: *').fill('1000');
+  // le compte se choisit une fois la liste stable (en mode serveur, elle peut se recharger après le choix du client)
+  for (let i = 0; i < 10; i++) { await p.getByLabel('Compte Client:').selectOption({ index: 1 }); await p.waitForTimeout(300); if (await p.getByLabel('Compte Client:').inputValue()) break; }
+  await p.getByLabel('Montant à payer: *').fill('1000');
   await p.getByLabel('Ordre du client : *').fill('Ordre écrit du client, 14/11/2026');
   await etape('15d-remboursement-prelevement');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
