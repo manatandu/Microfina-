@@ -1916,7 +1916,7 @@ const chequiers = {
 // ---------- Banque > Emprunts bancaires (S61, manuel p. 70, deux captures sans texte). Règles identiques côté serveur (noyau/emprunts.py). ----------
 // PCCI : capital au compte 533 « Emprunts à terme », intérêts 6020 (plus d'un an) ou 6021, commissions 60702 ; écritures à la comptabilisation (S111).
 export type SaisieEmprunt = { cle: string; compteBancaireId?: number; reference: string; montant: number; duree: number; dateEmprunt: string; taux: string;
-  totalInteret: number; totalCommission: number; totalFrais: number; commentaire: string; compteEmprunt: string };
+  totalInteret: number; totalCommission: number; totalFrais: number; commentaire: string; compteEmprunt: string; decisionConseil?: string; autorisationBcc?: string };
 const vueEmprunt = (e: Emprunt) => {
   const cb = E.comptesBancaires.find((x) => x.id === e.compteBancaireId), b = E.banques.find((x) => x.id === cb?.banqueId);
   const amorti = E.remboursementsEmprunt.filter((r) => r.empruntId === e.id).reduce((s, r) => s + r.amortissement, 0);
@@ -1943,11 +1943,17 @@ const emprunts = {
       if (!Number.isInteger(v) || v < 0) throw new ErreurMetier(`${nom} : un montant positif ou nul.`);
     const compte = (d.compteEmprunt ?? "").trim() || "533";
     const c = [...PCCI.comptes.map((x) => ({ numero: x.numero, ouvert: true, saisissable: true })), ...E.comptesInstitution].find((x) => x.numero === compte);
-    if (!compte.startsWith("533") || !c) throw new ErreurMetier("Compte Emprunt : un compte 533 « Emprunts à terme » du plan (PCCI, compte 53).");   // S61-1
+    const subordonne = compte.startsWith("1622");   // B21 : emprunts et dettes subordonnés (Instr. BCC 002, art. 9 et 10)
+    if (!(compte.startsWith("533") || subordonne) || !c) throw new ErreurMetier("Compte Emprunt : un compte 533 « Emprunts à terme » du plan (PCCI, compte 53), ou 1622 pour un emprunt subordonné.");   // S61-1
+    const decision = (d.decisionConseil ?? "").trim(), autorisation = (d.autorisationBcc ?? "").trim();
+    if (!decision) throw new ErreurMetier("À remplir : Décision du Conseil d'administration (Instr. BCC 007, art. 17 : le Conseil autorise les emprunts).");   // B29
+    if (subordonne && d.duree < 60) throw new ErreurMetier("Emprunt subordonné : durée initiale d'au moins cinq ans (Instr. BCC 002, art. 10).");
+    if (subordonne && !autorisation) throw new ErreurMetier("Emprunt subordonné : à remplir, Autorisation BCC (Instr. BCC 002, art. 10 : autorisation préalable).");
     if (!(c.saisissable && c.ouvert)) throw new ErreurMetier(`Compte Emprunt : ${compte} est fermé ou non saisissable.`);
     const e: Emprunt = { id: prochain(E.emprunts), cle: d.cle, numero: E.emprunts.reduce((m, x) => Math.max(m, x.numero), 0) + 1, compteBancaireId: b.id, reference,
       montant: d.montant, devise: b.devise, duree: d.duree, dateEmprunt: d.dateEmprunt, taux: String(Number(t)).replace(".", ","), totalInteret: d.totalInteret,
-      totalCommission: d.totalCommission, totalFrais: d.totalFrais, commentaire: (d.commentaire ?? "").trim(), compteEmprunt: compte, dateSaisie: j.date, piece: "", saisiPar: u.id };
+      totalCommission: d.totalCommission, totalFrais: d.totalFrais, commentaire: (d.commentaire ?? "").trim(), compteEmprunt: compte, dateSaisie: j.date, piece: "", saisiPar: u.id,
+      decisionConseil: decision, autorisationBcc: autorisation };
     E.emprunts.push(e); enregistrer(); return vueEmprunt(e);
   },
   /** Remboursement : l'emprunt par son numéro (champ N°Compte) */
@@ -7838,6 +7844,15 @@ function resultatsFin(ex: number) {
     { compte: "85", libelle: "Résultat avant impôt", montant: rce + rex }, { compte: "86", libelle: "Impôt sur le résultat", montant: impot },
     { compte: "87", libelle: "Résultat net de l'exercice", montant: net }];
 }
+/** B31 : dates de transmission à la BCC (Instr. BCC 009, art. 1er ; Instr. BCC 41, art. 67). Comme fin_periode.echeances. */
+function echeancesFin(ex: number, m: number | null): string[] {
+  if (m) { const [a, mm] = m === 12 ? [ex + 1, 1] : [ex, m + 1];
+    return [`Situation comptable et états annexes de ${MOIS_FR[m - 1]!.toLowerCase()} ${ex} : à transmettre à la BCC au plus tard le 15/${String(mm).padStart(2, "0")}/${a} (Instr. BCC 009, art. 1er).`]; }
+  const coopec = estCoopec(), rang = coopec ? 6 : 4;
+  const out = [`États financiers certifiés et états annexes de l'exercice ${ex} : à transmettre à la BCC le ${rang}e mois qui suit la clôture, en ${MOIS_FR[rang - 1]!.toLowerCase()} ${ex + 1} (Instr. BCC 009, art. 1er).`];
+  if (coopec) out.push(`Composition du capital social (membres effectifs, parts sociales, adresses) : à déclarer à la BCC au plus tard fin janvier ${ex + 1} (Instr. BCC 41, art. 67).`);
+  return out;
+}
 function controlesFin(a: number, m: number | null) {
   const debut = `${a}-01-01`, fin = finMois(a, m ?? 12), quoi = m ? "du mois" : "au 31 décembre", out: { libelle: string; ok: boolean; detail: string; bloquant: boolean }[] = [];
   const ajouter = (libelle: string, ok: boolean, detail = "", bloquant = false) => out.push({ libelle, ok, detail: ok ? "" : detail, bloquant });
@@ -7872,6 +7887,10 @@ function controlesFin(a: number, m: number | null) {
     for (const e of E.ecritures) { const j = E.journees.find((x) => x.id === e.journeeId); if (j && j.date <= fin) for (const l of e.lignes) if (l.compte.startsWith("380")) constatee -= l.sens === "D" ? l.montantCdf : -l.montantCdf; }
     const manque = Math.max(requise - constatee, 0), f = (v: number) => (v / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/,/g, " ");
     ajouter(`Provisions au niveau requis ${quoi}`, manque === 0, `Insuffisance : ${f(manque)} CDF ; pénalité mensuelle de 1 % : ${f(manque / 100)} CDF (Instr. BCC 003, art. 12 et 14). Provisionner (Crédit > Déclassement et provisions)`);
+    if (estCoopec()) {   // B28 : le membre d'un organe d'une COOPEC ne détient aucune créance en retard (Instr. BCC 41, art. 21)
+      const retard = [...new Set(bl.filter((l) => l.joursRetard > 0).map((l) => E.tiers.find((t) => t.id === l.tiersId)).filter((t) => t && (t.apparente === "administrateur" || t.apparente === "dirigeant")).map((t) => t!.numero))].sort();
+      ajouter("Membres des organes sans créance en retard", retard.length === 0, `En retard de remboursement (Instr. BCC 41, art. 21) : ${retard.join(", ")}`);
+    }
     if (!m) { const irr = bl.filter((l) => l.classe === "irrecuperable").map((l) => E.credits.find((c) => c.id === l.creditId)!.numero);
       ajouter("Crédits irrécupérables passés en perte", irr.length === 0, `À passer en perte au 31 décembre (Instr. BCC 003, art. 9 et 10) : ${irr.join(", ")}`); }
   }
@@ -8075,10 +8094,10 @@ const finPeriode = {
       let reevaluation: ReturnType<typeof vueReevaluation> & { erreur?: string };
       try { reevaluation = vueReevaluation(positionsFin(finMois(ex, m)), finMois(ex, m), ajustementDevises(finMois(ex, m))); }
       catch (err) { reevaluation = { date: finMois(ex, m), lignes: [], profit: 0, perte: 0, erreur: (err as Error).message }; }
-      mois = { mois: m, libelle: MOIS_FR[m - 1]!, controles: controlesFin(ex, m), reevaluation };
+      mois = { mois: m, libelle: MOIS_FR[m - 1]!, controles: controlesFin(ex, m), reevaluation, echeances: echeancesFin(ex, m) };
     }
     return { exercice: ex, ouvert: e.ouvert, valide: e.valide, clotureLe: e.clotureLe ?? "", cloturePar: e.cloturePar ? nomUtilisateur(e.cloturePar) : "", periodes, mois,
-      controles: controlesFin(ex, null), soldes: resultatsFin(ex) };
+      controles: controlesFin(ex, null), soldes: resultatsFin(ex), echeances: echeancesFin(ex, null) };
   },
   cloturerMois(p: { exercice?: unknown; mois?: unknown }) {
     const u = exiger(), e = exerciceFin(p), { ex, m } = periodeFin(p);

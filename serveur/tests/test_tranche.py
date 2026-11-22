@@ -2682,12 +2682,15 @@ def test_emprunts_bancaires(clients, journee):
     chef, compta, agent = clients["chef"], clients["compta"], clients["agent"]
     ids = banque_usd(chef)
     base = {"compteBancaireId": ids["R-USD-1"], "reference": "RAW-2026-01", "montant": 1000000, "duree": 24, "dateEmprunt": "2026-11-05", "taux": "12,5",
-            "totalInteret": 125000, "totalCommission": 5000, "totalFrais": 0, "commentaire": "", "compteEmprunt": "533"}
+            "totalInteret": 125000, "totalCommission": 5000, "totalFrais": 0, "commentaire": "", "compteEmprunt": "533", "decisionConseil": "CA du 30/10/2026, résolution 3"}
     def refus(route, corps, c=compta):
         r = c.post(route, {"cle": cle(), **corps}, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
     assert "Droit manquant" in refus("/api/banque/emprunts", base, agent)
     assert "compte 533" in refus("/api/banque/emprunts", {**base, "compteEmprunt": "1619"})
     assert "Taux annuel" in refus("/api/banque/emprunts", {**base, "taux": "1e2"})
+    assert "Décision du Conseil" in refus("/api/banque/emprunts", {**base, "decisionConseil": " "})                    # B29 : Instr. BCC 007, art. 17
+    assert "au moins cinq ans" in refus("/api/banque/emprunts", {**base, "compteEmprunt": "1622"})                     # B21 : Instr. BCC 002, art. 10
+    assert "Autorisation BCC" in refus("/api/banque/emprunts", {**base, "compteEmprunt": "1622", "duree": 72})
     e = compta.post("/api/banque/emprunts", {"cle": cle(), **base}, **H).json()
     assert (e["numero"], e["devise"], e["taux"], e["compteInteret"], e["capitalRestant"]) == (1, "USD", "12,5", "6020", 1000000)
     assert compta.post("/api/banque/emprunts", {"cle": cle(), **base, "duree": 6}, **H).json()["compteInteret"] == "6021"
@@ -4001,7 +4004,7 @@ def test_comptabilisation_banque(clients, journee):
     agent.post(f"/api/banque/visas/{o['id']}/validation", {}, **H)
     e = compta.post("/api/banque/emprunts", {"cle": cle(), "compteBancaireId": ids["R-USD-1"], "reference": "RAW-1", "montant": 1000000, "duree": 24,
                                              "dateEmprunt": "2026-11-05", "taux": "12,5", "totalInteret": 125000, "totalCommission": 5000, "totalFrais": 0,
-                                             "commentaire": "", "compteEmprunt": "533"}, **H).json()
+                                             "commentaire": "", "compteEmprunt": "533", "decisionConseil": "CA du 30/10/2026"}, **H).json()
     compta.post(f"/api/banque/emprunts/{e['id']}/remboursements", {"cle": cle(), "date": "2026-11-05", "amortissement": 400000, "interet": 10000, "commission": 0}, **H)
     jid = journee[0]["id"]
     g = compta.get(f"/api/comptabilite/comptabilisation/{jid}", **H).json()
@@ -4764,6 +4767,7 @@ def test_calculs_et_clotures(clients, journee):
     executer("insert into cours_change (institution_id, devise, jour, cours) select id, 'USD', '2026-11-30', 2900 from institution")
     v = compta.get(f"{A}/cloture/comptabilite", q, **H).json()
     assert all(c["ok"] for c in v["mois"]["controles"] if c["bloquant"]) and v["mois"]["reevaluation"]["lignes"], v["mois"]
+    assert "15/12/2026" in v["mois"]["echeances"][0] and "fin janvier 2027" in " ".join(v["echeances"])     # B31 : Instr. BCC 009, art. 1er ; Instr. BCC 41, art. 67
     reev = v["mois"]["reevaluation"]
     p723, p623 = solde_compte("723"), solde_compte("623")
     r = compta.post(f"{A}/cloture/mois", q, **H)

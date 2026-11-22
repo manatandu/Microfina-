@@ -932,6 +932,7 @@ const OUT = process.argv[2];
   await p.getByLabel('Banque', { exact: true }).selectOption({ label: 'Rawbank 05100-01234567-89 (USD)' });
   await p.getByLabel('Réf.Emprunt').fill('RAW-2026-01'); await p.getByLabel('Montant', { exact: true }).fill('10 000'); await p.getByLabel('Durée').fill('24');
   await p.getByLabel('Date Emprunt').fill('05/11/2026'); await p.getByLabel('Taux annuel').fill('12,5'); await p.getByLabel('Total Intérêt').fill('1 250');
+  await p.getByLabel("Décision du Conseil d'administration *").fill('CA du 30/10/2026, résolution 3');
   await etape('06c15-emprunt');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Succès' }).waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
   await p.getByRole('tab', { name: 'Remboursement' }).click(); await p.getByLabel('N°Compte').fill('1'); await p.getByLabel('N°Compte').press('Enter');

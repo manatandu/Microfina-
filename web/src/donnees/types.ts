@@ -302,6 +302,7 @@ export interface RuptureDat { jours: number; interet: number; penalite: number; 
 export interface Emprunt {   // S61
   id: number; cle: string; numero: number; compteBancaireId: number; reference: string; montant: number; devise: Devise; duree: number; dateEmprunt: string; taux: string;
   totalInteret: number; totalCommission: number; totalFrais: number; commentaire: string; compteEmprunt: string; dateSaisie: string; piece: string; saisiPar: number;
+  decisionConseil?: string; autorisationBcc?: string;   // B29 : Instr. BCC 007, art. 17 ; B21 : Instr. BCC 002, art. 10
 }
 export interface RemboursementEmprunt { id: number; cle: string; empruntId: number; date: string; amortissement: number; interet: number; commission: number; piece: string; saisiPar: number }
 

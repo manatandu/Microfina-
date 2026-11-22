@@ -189,6 +189,7 @@ function ClotureComptable({ ctx, jour }: { ctx: Ctx; jour: string }) {
         <tbody>{r.periodes.map((p) => <tr key={p.mois}><th scope="row">{p.libelle}</th><td>{p.cloture ? "Oui" : "Non"}</td><td>{p.clotureLe ? fr(p.clotureLe) : ""}</td><td>{p.cloturePar}</td></tr>)}</tbody></table>
       {mois && <>
         <Controles titre={`Contrôles de ${mois.libelle}`} liste={mois.controles} />
+        {mois.echeances.map((x) => <p key={x}>{x}</p>)}
         <table className="grille"><caption>Réévaluation des comptes en devises au {fr(mois.reevaluation.date)}</caption>
           <thead><tr><th scope="col">Compte</th><th scope="col">Devise</th><th scope="col" className="num">Solde en devise</th><th scope="col" className="num">Valeur au livre</th>
             <th scope="col" className="num">Valeur au cours</th><th scope="col" className="num">Ecart</th></tr></thead>
@@ -197,6 +198,7 @@ function ClotureComptable({ ctx, jour }: { ctx: Ctx; jour: string }) {
           <tfoot><tr><th scope="row" colSpan={5}>Profits de change (723)</th><td className="num chiffres">{n(mois.reevaluation.profit)}</td></tr>
             <tr><th scope="row" colSpan={5}>Pertes de change (623)</th><td className="num chiffres">{n(mois.reevaluation.perte)}</td></tr></tfoot></table></>}
       <Controles titre="Contrôles de l'exercice" liste={r.controles} />
+      {r.echeances.map((x) => <p key={x}>{x}</p>)}
       <table className="grille"><caption>Soldes de gestion de l'exercice</caption>
         <thead><tr><th scope="col">Compte</th><th scope="col">Solde</th><th scope="col" className="num">Montant</th></tr></thead>
         <tbody>{r.soldes.map((s) => <tr key={s.compte}><td className="code">{s.compte}</td><th scope="row">{s.libelle}</th><td className="num chiffres">{n(s.montant)}</td></tr>)}</tbody></table></>}

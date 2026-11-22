@@ -592,6 +592,12 @@ def controles(u, annee: int, mois: int | None) -> list[dict]:
         manque = max(requise - constatee, 0)
         ajouter(f"Provisions au niveau requis {quoi}", manque == 0, f"Insuffisance : {manque / 100:,.2f} CDF ; pénalité mensuelle de 1 % : {manque / 10000:,.2f} CDF "
                 f"(Instr. BCC 003, art. 12 et 14). Provisionner (Crédit > Déclassement et provisions)".replace(",", " "))
+        from .services import est_coopec
+        if est_coopec(u):
+            # B28 : le membre d'un organe d'une COOPEC ne détient aucune créance en retard de remboursement (Instr. BCC 41, art. 21)
+            organes = {r["id"]: r["numero"] for r in lignes("select id, numero from tiers where institution_id = %s and apparente in ('administrateur', 'dirigeant')", (i,))}
+            retard = sorted({organes[l["tiers_id"]] for l in bl if l["jours_retard"] > 0 and l["tiers_id"] in organes})
+            ajouter("Membres des organes sans créance en retard", not retard, "En retard de remboursement (Instr. BCC 41, art. 21) : " + ", ".join(retard))
         if not mois:
             irr = [valeur("select numero from credit where id = %s", (l["credit_id"],)) for l in bl if l["classe"] == "irrecuperable"]
             ajouter("Crédits irrécupérables passés en perte", not irr, "À passer en perte au 31 décembre (Instr. BCC 003, art. 9 et 10) : " + ", ".join(irr))
@@ -647,6 +653,21 @@ def resultats(u, ex: int) -> list[dict]:
             {"compte": "87", "libelle": "Résultat net de l'exercice", "montant": net}]
 
 
+def echeances(u, ex: int, m: int | None) -> list[str]:
+    """B31 : dates de transmission à la BCC (Instr. BCC 009, art. 1er ; Instr. BCC 41, art. 67)"""
+    from .services import est_coopec
+    if m:
+        a, mm = (ex + 1, 1) if m == 12 else (ex, m + 1)
+        return [f"Situation comptable et états annexes de {MOIS[m - 1].lower()} {ex} : à transmettre à la BCC au plus tard le 15/{mm:02d}/{a} (Instr. BCC 009, art. 1er)."]
+    coopec = est_coopec(u)
+    rang = 6 if coopec else 4
+    out = [f"États financiers certifiés et états annexes de l'exercice {ex} : à transmettre à la BCC le {rang}e mois qui suit la clôture, en {MOIS[rang - 1].lower()} {ex + 1} "
+           "(Instr. BCC 009, art. 1er)."]
+    if coopec:
+        out.append(f"Composition du capital social (membres effectifs, parts sociales, adresses) : à déclarer à la BCC au plus tard fin janvier {ex + 1} (Instr. BCC 41, art. 67).")
+    return out
+
+
 def apercu_cloture(u, p: dict) -> dict:
     """Clôture > Comptabilité : les douze mois de l'exercice et leur état ; pour le mois choisi, les contrôles et la réévaluation à passer ;
     pour l'exercice, les contrôles et les soldes de gestion (classe 8) dont le dernier est viré au compte 13"""
@@ -656,13 +677,13 @@ def apercu_cloture(u, p: dict) -> dict:
     m = int(p["mois"]) if str(p.get("mois") or "").isdigit() and 1 <= int(p["mois"]) <= 12 else None
     out = {"exercice": ex, "ouvert": e["ouvert"], "valide": e["valide"], "clotureLe": e["cloture_le"].date().isoformat() if e["cloture_le"] else "",
            "cloturePar": nom_utilisateur(e["cloture_par"]) if e["cloture_par"] else "", "periodes": periodes(u, ex), "mois": None,
-           "controles": controles(u, ex, None), "soldes": resultats(u, ex)}
+           "controles": controles(u, ex, None), "soldes": resultats(u, ex), "echeances": echeances(u, ex, None)}
     if m:
         try:
             reev = vue_reevaluation(positions(u, fin_de(ex, m)), fin_de(ex, m), ajustement_devises(u, fin_de(ex, m)))
         except ErreurMetier as err:
             reev = {"date": fin_de(ex, m).isoformat(), "lignes": [], "profit": 0, "perte": 0, "erreur": str(err)}
-        out["mois"] = {"mois": m, "libelle": MOIS[m - 1], "controles": controles(u, ex, m), "reevaluation": reev}
+        out["mois"] = {"mois": m, "libelle": MOIS[m - 1], "controles": controles(u, ex, m), "reevaluation": reev, "echeances": echeances(u, ex, m)}
     return out
 
 

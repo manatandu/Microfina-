@@ -1281,9 +1281,11 @@ describe("journée de guichet", () => {
     await connecter("plumbala");
     const cb = (await api.banqueOperations.lire()).comptes[0]!.id;
     const base = { compteBancaireId: cb, reference: "RAW-2026-01", montant: 1000000, duree: 24, dateEmprunt: "2026-11-05", taux: "12,5", totalInteret: 125000,
-      totalCommission: 5000, totalFrais: 0, commentaire: "", compteEmprunt: "533" };
+      totalCommission: 5000, totalFrais: 0, commentaire: "", compteEmprunt: "533", decisionConseil: "CA du 30/10/2026, résolution 3" };
     await expect(api.emprunts.mettreEnPlace({ ...base, cle: cle(), compteEmprunt: "1619" })).rejects.toThrow("compte 533");
     await expect(api.emprunts.mettreEnPlace({ ...base, cle: cle(), taux: "1e2" })).rejects.toThrow("Taux annuel");
+    await expect(api.emprunts.mettreEnPlace({ ...base, cle: cle(), decisionConseil: " " })).rejects.toThrow("Décision du Conseil");
+    await expect(api.emprunts.mettreEnPlace({ ...base, cle: cle(), compteEmprunt: "1622" })).rejects.toThrow("au moins cinq ans");
     await expect(api.emprunts.mettreEnPlace({ ...base, cle: cle(), duree: 0 })).rejects.toThrow("Durée");
     await expect(api.emprunts.mettreEnPlace({ ...base, cle: cle(), dateEmprunt: "2026-11-06" })).rejects.toThrow("dépasser la journée");
     const k = cle(), e = await api.emprunts.mettreEnPlace({ ...base, cle: k });

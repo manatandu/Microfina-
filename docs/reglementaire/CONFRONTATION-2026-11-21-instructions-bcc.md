@@ -436,3 +436,4 @@ Le porteur a demandé de répondre par les textes aux points du § 16.
 - **B18 corrigé** : rentrée sur créance passée en perte au 791, sortie du hors bilan (registre T94).
 - **B23 et B24 corrigés** : contrôles de clôture sur le 59 et sur les suspens de plus d'une semaine (registre T95).
 - **B15, B16 et B21 corrigés** (Instr. BCC 002, art. 10, 28 et 29) : plafond sur les avoirs chez un correspondant, clients liés comptés comme une seule signature, décote des dettes subordonnées (registre T96, T97).
+- **B29 (emprunts), B28 (organes en retard) et B31 corrigés** : décision du Conseil sur un emprunt et emprunt subordonné au 1622 (registre T98), contrôle des membres des organes en retard (T99), rappel des échéances de transmission (T100). Restent de B28 l'alerte de cession au-delà de 10 %, et de B29 l'appel d'un refus de la commission de crédit.

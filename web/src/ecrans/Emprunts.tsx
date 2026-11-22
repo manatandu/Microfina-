@@ -9,7 +9,7 @@ import { Champ, ChampDate, Chargement, Dialogue, Lecture, Textes, type Boite } f
 
 type Vue = Awaited<ReturnType<typeof api.emprunts.lire>>;
 const ONGLETS = ["Mise en place", "Remboursement"] as const;
-const VIDE = { banque: "", reference: "", montant: "", duree: "", date: "", taux: "", interet: "", commission: "", frais: "", commentaire: "", compte: "533" };
+const VIDE = { banque: "", reference: "", montant: "", duree: "", date: "", taux: "", interet: "", commission: "", frais: "", commentaire: "", compte: "533", decision: "", autorisation: "" };
 const VIDE_R = { numero: "", date: "", amortissement: "", interet: "", commission: "" };
 const m0 = (v: string) => (v.trim() ? lireMontant(v) : 0);
 
@@ -35,7 +35,8 @@ export function Emprunts() {
     if (valeurs.some((v) => v === null)) { erreur(new Error("Montant invalide.")); return; }
     const [mt, it, co, fr] = valeurs as [number, number, number, number];
     const d = { cle, compteBancaireId: f.banque ? Number(f.banque) : undefined, reference: f.reference, montant: mt, duree: Number(f.duree) || 0, dateEmprunt: f.date, taux: f.taux,
-      totalInteret: it, totalCommission: co, totalFrais: fr, commentaire: f.commentaire, compteEmprunt: f.compte };
+      totalInteret: it, totalCommission: co, totalFrais: fr, commentaire: f.commentaire, compteEmprunt: f.compte,
+      decisionConseil: f.decision, autorisationBcc: f.autorisation };
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try { setFait(await api.emprunts.mettreEnPlace(d)); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
       catch (x) { erreur(x); }
@@ -82,6 +83,8 @@ export function Emprunts() {
               <Champ libelle="Date saisie">{(p) => <input {...p} className="saisie code" readOnly value={lu.date ? lu.date.split("-").reverse().join("/") : ""} />}</Champ>
               <Champ libelle="Commentaire">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.commentaire} onChange={(e) => maj({ commentaire: e.target.value })} />}</Champ>
               <Champ libelle="Compte Emprunt">{(p) => <input {...p} className="saisie code" inputMode="numeric" autoComplete="off" value={f.compte} onChange={(e) => maj({ compte: e.target.value.trim() })} />}</Champ>
+              <Champ libelle="Décision du Conseil d'administration *">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.decision} onChange={(e) => maj({ decision: e.target.value })} />}</Champ>
+              <Champ libelle="Autorisation BCC (emprunt subordonné)">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.autorisation} onChange={(e) => maj({ autorisation: e.target.value })} />}</Champ>
               <Champ libelle="N°Emprunt">{(p) => <input {...p} className="saisie code" readOnly value={fait ? String(fait.numero) : ""} />}</Champ>
               <div className="ligne-champ">
                 <Champ libelle="N°Piece">{(p) => <input {...p} className="saisie code" readOnly value={fait?.piece ?? ""} />}</Champ>

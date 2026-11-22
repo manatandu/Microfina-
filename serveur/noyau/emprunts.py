@@ -80,16 +80,25 @@ def mettre_en_place(u, d) -> dict:
         totaux[k] = v
     compte = texte(d, "compteEmprunt") or "533"
     c = une("select saisissable, ouvert from compte where numero = %s and (institution_id is null or institution_id = %s)", (compte, i))
-    if not compte.startswith("533") or not c:                 # PCCI : emprunts auprès des intermédiaires financiers au compte 53 (registre S61-1)
-        raise ErreurMetier("Compte Emprunt : un compte 533 « Emprunts à terme » du plan (PCCI, compte 53).")
+    subordonne = compte.startswith("1622")                    # B21 : emprunts et dettes subordonnés (PCCI, 1622 ; Instr. BCC 002, art. 9 et 10)
+    if not (compte.startswith("533") or subordonne) or not c:  # PCCI : emprunts auprès des intermédiaires financiers au compte 53 (registre S61-1)
+        raise ErreurMetier("Compte Emprunt : un compte 533 « Emprunts à terme » du plan (PCCI, compte 53), ou 1622 pour un emprunt subordonné.")
+    decision, autorisation = texte(d, "decisionConseil"), texte(d, "autorisationBcc")
+    if not decision:                                           # B29 : le Conseil d'administration autorise les emprunts (Instr. BCC 007, art. 17)
+        raise ErreurMetier("À remplir : Décision du Conseil d'administration (Instr. BCC 007, art. 17 : le Conseil autorise les emprunts).")
+    if subordonne and duree < 60:
+        raise ErreurMetier("Emprunt subordonné : durée initiale d'au moins cinq ans (Instr. BCC 002, art. 10).")
+    if subordonne and not autorisation:
+        raise ErreurMetier("Emprunt subordonné : à remplir, Autorisation BCC (Instr. BCC 002, art. 10 : autorisation préalable).")
     if not (c["saisissable"] and c["ouvert"]):
         raise ErreurMetier(f"Compte Emprunt : {compte} est fermé ou non saisissable.")
     numero = int(valeur("select coalesce(max(numero), 0) + 1 from emprunt where institution_id = %s", (i,)))
     eid = valeur("""insert into emprunt (institution_id, agence_id, numero, compte_bancaire_id, reference, montant, devise, duree_mois, date_emprunt, taux_annuel,
-                                         total_interet, total_commission, total_frais, commentaire, compte_emprunt, date_saisie, cle_idempotence, saisi_par)
-                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
+                                         total_interet, total_commission, total_frais, commentaire, compte_emprunt, date_saisie, cle_idempotence, saisi_par,
+                                         decision_conseil, autorisation_bcc)
+                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
                  (i, u["agence_id"], numero, b["id"], ref, montant, b["devise"], duree, date_e, taux, totaux["totalInteret"], totaux["totalCommission"],
-                  totaux["totalFrais"], texte(d, "commentaire") or None, compte, jour, cle, u["id"]))
+                  totaux["totalFrais"], texte(d, "commentaire") or None, compte, jour, cle, u["id"], decision, autorisation or None))
     return vue(une("select * from emprunt where id = %s", (eid,)))
 
 
@@ -103,7 +112,8 @@ def vue(e: dict) -> dict:
             "montant": e["montant"], "devise": e["devise"].strip(), "duree": e["duree_mois"], "dateEmprunt": e["date_emprunt"].isoformat(),
             "taux": str(e["taux_annuel"].normalize()).replace(".", ","), "totalInteret": e["total_interet"], "totalCommission": e["total_commission"],
             "totalFrais": e["total_frais"], "commentaire": e["commentaire"] or "", "compteEmprunt": e["compte_emprunt"], "compteInteret": compte_interet(e["duree_mois"]),
-            "dateSaisie": e["date_saisie"].isoformat(), "piece": e["piece"] or "", "capitalRestant": capital_restant(e)}
+            "dateSaisie": e["date_saisie"].isoformat(), "piece": e["piece"] or "", "capitalRestant": capital_restant(e),
+            "decisionConseil": e.get("decision_conseil") or "", "autorisationBcc": e.get("autorisation_bcc") or ""}
 
 
 def lire(u, numero: int) -> dict:
