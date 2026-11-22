@@ -48,7 +48,7 @@ export function abonner(f: () => void) { abonnes.add(f); return () => { abonnes.
 export function reinitialiser() { E = graine(); enregistrer(); }
 /** Pour les tests */
 export function _etat(): Etat { return E; }
-export function _poster(e: Omit<Ecriture, "id" | "numero">): Ecriture { return poster(e); }
+export function _poster(e: Omit<Ecriture, "id" | "numero">): Ecriture { return poster({ evenement: "ecriture_manuelle", ...e }); }
 export function _remplacer(e: Etat) { E = e; }
 
 const heure = () => new Date().toTimeString().slice(0, 5);
@@ -137,7 +137,7 @@ function contexte() {
 export const nomUtilisateur = (id?: number) => E.utilisateurs.find((u) => u.id === id)?.nom ?? "";
 
 // ---------- Grand livre ----------
-function poster(e: Omit<Ecriture, "id" | "numero">): Ecriture {
+function poster(e: Omit<Ecriture, "id" | "numero"> & { evenement: string }): Ecriture {
   let l = e.lignes;
   if (!l.some((x) => x.sens === "D") || !l.some((x) => x.sens === "C")) throw new ErreurMetier("Écriture sans débit ou sans crédit.");
   if (l.some((x) => !Number.isInteger(x.montant) || x.montant <= 0 || !Number.isInteger(x.montantCdf) || x.montantCdf <= 0)) throw new ErreurMetier("Montant d'écriture invalide.");
@@ -248,6 +248,9 @@ const journees = {
 const VIREMENTS_INTERNES = "591";
 type EnAttente = { source: "operation_banque" | "cheque_client" | "emprunt" | "remboursement_emprunt" | "operation_comptable" | "facture" | "reglement"; id: number; type: string; libelle: string; journal: string; date: string;
   lignes: { compte: string; sens: "D" | "C"; devise: Devise; montant: number; contrat?: string; budget?: number }[]; o?: OperationBanque };
+/** Évènement comptable de l'écriture en attente, comme le serveur (comptabilisation.py, operations_compta.py, factures_fournisseurs.py) */
+const evenementAttente = (x: EnAttente) => x.source === "facture" ? "facture" : x.source === "reglement" ? "reglement_facture"
+  : x.source === "operation_comptable" ? (x.type === "ecriture" ? "ecriture_manuelle" : "operation_comptable") : "comptabilisation_banque";
 function enAttenteBanque(j: Journee): EnAttente[] {
   const banque = (id: number) => { const cb = E.comptesBancaires.find((x) => x.id === id)!; const jr = E.journaux.find((x) => x.id === cb.journalId && x.actif && !x.supprime);
     return { compte: cb.compte, journal: jr?.code ?? "OD" }; };
@@ -302,7 +305,7 @@ function passerEnAttente(j: Journee) {
       if (lg.slice(1).reduce((t, l) => t + l.montant, 0) !== o.montant) throw new ErreurMetier(`Adhésion par banque de ${a.t.numero} : les frais ou la valeur de la part ont changé depuis la saisie ; refuser l'opération et la ressaisir.`);
     }
     const pc = pieceJournee(x.journal, j);
-    const e = poster({ journal: x.journal, journeeId: j.id, libelle: x.libelle, piece: pc, saisiPar: u, validePar: u, lignes: lg.map((l) => ({ ...l, montantCdf: l.devise === "CDF" ? l.montant : Math.round(l.montant * coursDe(l.devise, j.date)) })) });
+    const e = poster({ evenement: evenementAttente(x), journal: x.journal, journeeId: j.id, libelle: x.libelle, piece: pc, saisiPar: u, validePar: u, lignes: lg.map((l) => ({ ...l, montantCdf: l.devise === "CDF" ? l.montant : Math.round(l.montant * coursDe(l.devise, j.date)) })) });
     if (x.source === "operation_comptable") Object.assign(E.operationsCompta.find((y) => y.id === x.id)!, { statut: "comptabilisee", piece: pc, ecritureId: e.id });
     else if (x.source === "facture") Object.assign(E.facturesFournisseurs.find((y) => y.id === x.id)!, { statut: "comptabilisee", piece: pc, ecritureId: e.id });
     else if (x.source === "reglement") Object.assign(E.reglementsFournisseurs.find((y) => y.id === x.id)!, { statut: "comptabilisee", piece: pc, ecritureId: e.id });
@@ -433,7 +436,7 @@ const caisses = {
     if (b.moment === "arret" && ecart !== 0) {
       const g = E.guichets.find((x) => x.id === sc.guichetId);
       const m = Math.abs(ecart), surplus = ecart > 0;
-      const e = poster({ journal: "CA", journeeId: sc.journeeId, libelle: `${surplus ? "Excédent" : "Manquant"} de caisse ${g?.nom ?? ""}`.trim(), piece: piece(), saisiPar: u.id, validePar: u.id, lignes: [
+      const e = poster({ evenement: "ecart_caisse", journal: "CA", journeeId: sc.journeeId, libelle: `${surplus ? "Excédent" : "Manquant"} de caisse ${g?.nom ?? ""}`.trim(), piece: piece(), saisiPar: u.id, validePar: u.id, lignes: [
         { compte: "570", contrat: `guichet:${sc.guichetId}`, sens: surplus ? "D" : "C", devise: b.devise, montant: m, montantCdf: cdf(m, b.devise) },
         { compte: surplus ? g?.compteSurplus || "7790" : g?.compteManquant || "671", sens: surplus ? "C" : "D", devise: b.devise, montant: m, montantCdf: cdf(m, b.devise) },
       ] });
@@ -2172,7 +2175,7 @@ function traiterEcheancesDat(j: Journee) {
       lignes.push(...lignesInteretDat(x, x.montantInteret, ligne));
       if (verse) lignes.push(ligne(em.pcci, "C", verse, `depot:${em.id}`));
       if (irc) lignes.push(ligne("433", "C", irc));
-      const e = lignes.length ? poster({ journal: "OD", journeeId: j.id, libelle: `${x.reconduction ? "Reconduction" : "Échéance"} DAT n° ${x.certificat}`, piece: piece("OD"),
+      const e = lignes.length ? poster({ evenement: "dat_echeance", journal: "OD", journeeId: j.id, libelle: `${x.reconduction ? "Reconduction" : "Échéance"} DAT n° ${x.certificat}`, piece: piece("OD"),
         saisiPar: E.session ?? 0, validePar: E.session ?? 0, lignes }) : null;
       x.interetsCourus = 0; x.statut = x.reconduction ? "reconduit" : "echu"; x.echeance = { interet: x.montantInteret, irc, montantVerse: verse, ecritureId: e?.id ?? null };
       if (x.reconduction) E.depotsTerme.push({ ...x, id: prochain(E.depotsTerme), cle: `${x.cle}:reconduction`, certificat: E.depotsTerme.reduce((m, y) => Math.max(m, y.certificat), 0) + 1,
@@ -2250,7 +2253,7 @@ const depotsTerme = {
     const em = E.comptes.find((c) => c.id === x.compteEmetteurId)!;
     if (x.montant > disponibleDat(em) + x.montant) throw new ErreurMetier("Solde disponible insuffisant sur le compte émetteur.");   // le DAT lui-même est compté « en attente »
     const pc = piece("OD");
-    const e = poster({ journal: "OD", journeeId: j.id, libelle: `Constitution DAT n° ${x.certificat}`, piece: pc, saisiPar: u.id, validePar: u.id, lignes: [
+    const e = poster({ evenement: "dat_constitution", journal: "OD", journeeId: j.id, libelle: `Constitution DAT n° ${x.certificat}`, piece: pc, saisiPar: u.id, validePar: u.id, lignes: [
       { compte: em.pcci, contrat: `depot:${em.id}`, sens: "D", devise: x.devise, montant: x.montant, montantCdf: cdf(x.montant, x.devise) },
       { compte: p.compteLie!, contrat: `depot:${x.compteDatId}`, sens: "C", devise: x.devise, montant: x.montant, montantCdf: cdf(x.montant, x.devise) },
     ] });
@@ -2299,7 +2302,7 @@ const depotsTerme = {
     if (r.montantAVerser) lignes.push(ligne(em.pcci, "C", r.montantAVerser, `depot:${em.id}`));
     if (r.irc) lignes.push(ligne("433", "C", r.irc));          // PCCI 433 « Impôts et taxes collectés »
     if (r.penalite) lignes.push(ligne("7791", "C", r.penalite));   // PCCI 7791 (produits exceptionnels : dédits, pénalités)
-    const e = poster({ journal: "OD", journeeId: j.id, libelle: `Rupture DAT n° ${x.certificat}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes });
+    const e = poster({ evenement: "dat_rupture", journal: "OD", journeeId: j.id, libelle: `Rupture DAT n° ${x.certificat}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes });
     x.interetsCourus = 0; x.statut = "rompu"; x.rupture = { ...r, dateRupture: dr, dateDemande: dd, ecritureId: e.id, rompuPar: u.id }; enregistrer(); return vueDat(x);
   },
 };
@@ -2344,7 +2347,7 @@ function clorePlan(x: PlanEpargne, j: Journee, jour: string, statut: "termine" |
   if (r.interet) lignes.push(ligne(compteInteretPlan(cp.pcci), "D", r.interet));
   if (r.montantAVerser) lignes.push(ligne(em.pcci, "C", r.montantAVerser, `depot:${em.id}`));
   if (r.irc) lignes.push(ligne("433", "C", r.irc));
-  const e = lignes.length ? poster({ journal: "OD", journeeId: j.id, libelle: `${statut === "rompu" ? "Rupture" : "Fin"} plan épargne n° ${x.numero}`, piece: piece("OD"),
+  const e = lignes.length ? poster({ evenement: "plan_fin", journal: "OD", journeeId: j.id, libelle: `${statut === "rompu" ? "Rupture" : "Fin"} plan épargne n° ${x.numero}`, piece: piece("OD"),
     saisiPar: E.session ?? 0, validePar: E.session ?? 0, lignes }) : null;
   Object.assign(x, { statut, dateFinReelle: jour, interetVerse: r.interet, irc: r.irc, montantVerse: r.montantAVerser, ecritureFinId: e?.id ?? null });
   return r;
@@ -2437,7 +2440,7 @@ const plansEpargne = {
     const total = choisies.reduce((s, e) => s + e.capital, 0);
     const em = E.comptes.find((c) => c.id === x.compteEpargneId)!, cp = E.comptes.find((c) => c.id === x.comptePlanId)!;
     if (total > disponibleDat(em)) throw new ErreurMetier("Solde disponible insuffisant sur le compte épargne.");
-    const e = poster({ journal: "OD", journeeId: j.id, libelle: `Cotisation plan épargne n° ${x.numero}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: [
+    const e = poster({ evenement: "plan_cotisation", journal: "OD", journeeId: j.id, libelle: `Cotisation plan épargne n° ${x.numero}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: [
       { compte: em.pcci, contrat: `depot:${em.id}`, sens: "D", devise: x.devise, montant: total, montantCdf: cdf(total, x.devise) },
       { compte: cp.pcci, contrat: `depot:${cp.id}`, sens: "C", devise: x.devise, montant: total, montantCdf: cdf(total, x.devise) }] });
     for (const c of choisies) { c.dateReelle = j.date; c.ecritureId = e.id; }
@@ -2509,7 +2512,7 @@ const clotures = {
     const r = attachesS70(c);
     if (r.length) throw new ErreurMetier(`Clôture impossible : ${r.join(", ")}.`);
     const solde = soldeContrat(`depot:${c.id}`, c.devise, "C");
-    const e = solde > 0 ? poster({ journal: "OD", journeeId: j.id, libelle: `Clôture compte inactif ${c.numero}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: [
+    const e = solde > 0 ? poster({ evenement: "cloture_inactif", journal: "OD", journeeId: j.id, libelle: `Clôture compte inactif ${c.numero}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: [
       { compte: c.pcci, contrat: `depot:${c.id}`, sens: "D", devise: c.devise, montant: solde, montantCdf: cdf(solde, c.devise) },
       { compte: "369", contrat: `prescription:${c.id}`, sens: "C", devise: c.devise, montant: solde, montantCdf: cdf(solde, c.devise) }] }) : null;
     c.closLe = j.date;
@@ -2534,7 +2537,7 @@ const clotures = {
     const j = journees.courante();
     if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
     const total = l.reduce((s, x) => s + x.solde, 0);
-    const e = poster({ journal: "OD", journeeId: j.id, libelle: `Versement à la BCC des avoirs en cours de prescription, réf. ${ref}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: [
+    const e = poster({ evenement: "versement_bcc", journal: "OD", journeeId: j.id, libelle: `Versement à la BCC des avoirs en cours de prescription, réf. ${ref}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: [
       ...l.map((x) => ({ compte: "369", contrat: `prescription:${x.compteId}`, sens: "D" as const, devise: cb.devise, montant: x.solde, montantCdf: cdf(x.solde, cb.devise) })),
       { compte: cb.compte, sens: "C", devise: cb.devise, montant: total, montantCdf: cdf(total, cb.devise) }] });
     for (const x of l) Object.assign(x, { verseeBccLe: j.date, referenceBcc: ref, compteBancaireId: cb.id, ecritureVersementId: e.id });
@@ -2878,7 +2881,7 @@ const guichet = {
     controlerCoupures(p.coupures, p.montant, c.devise);
     const examen = autorisationExamen(t.id, s.journeeId, "depot", p.montant, c.devise);   // écart E01 : examen renforcé
     const pc = piece();
-    const e = poster({ journal: "CA", journeeId: s.journeeId, libelle: `Dépôt espèces ${c.numero}`, piece: pc, saisiPar: u.id, validePar: u.id, lignes: [
+    const e = poster({ evenement: "depot", journal: "CA", journeeId: s.journeeId, libelle: `Dépôt espèces ${c.numero}`, piece: pc, saisiPar: u.id, validePar: u.id, lignes: [
       { compte: "570", contrat: guichetDe(s), sens: "D", devise: c.devise, montant: p.montant, montantCdf: cdf(p.montant, c.devise) },
       { compte: c.pcci, contrat: `depot:${c.id}`, sens: "C", devise: c.devise, montant: p.montant, montantCdf: cdf(p.montant, c.devise) },
     ] });
@@ -2920,7 +2923,7 @@ const guichet = {
       }
     }
     const pc = piece();
-    const e = poster({ journal: "CA", journeeId: s.journeeId, libelle: `Retrait espèces ${c.numero}`, piece: pc, saisiPar: u.id, validePar: u.id, lignes: [
+    const e = poster({ evenement: "retrait", journal: "CA", journeeId: s.journeeId, libelle: `Retrait espèces ${c.numero}`, piece: pc, saisiPar: u.id, validePar: u.id, lignes: [
       { compte: c.pcci, contrat: `depot:${c.id}`, sens: "D", devise: c.devise, montant: p.montant, montantCdf: cdf(p.montant, c.devise) },
       { compte: "570", contrat: guichetDe(s), sens: "C", devise: c.devise, montant: p.montant, montantCdf: cdf(p.montant, c.devise) },
     ] });
@@ -2963,7 +2966,7 @@ const guichet = {
       if (dev !== "CDF") lignes.push({ compte: "570", contrat: guichetDe(s), sens: "D", devise: dev, montant: p.depot, montantCdf: cdf(p.depot, dev) });
       lignes.push({ compte: cpt.pcci, contrat: `depot:${cpt.id}`, sens: "C", devise: dev, montant: p.depot, montantCdf: cdf(p.depot, dev) });
     }
-    const e = poster({ journal: "CA", journeeId: s.journeeId, libelle: `Adhésion ${t.numero}`, piece: piece(), saisiPar: u.id, validePar: u.id, lignes });
+    const e = poster({ evenement: "adhesion", journal: "CA", journeeId: s.journeeId, libelle: `Adhésion ${t.numero}`, piece: piece(), saisiPar: u.id, validePar: u.id, lignes });
     let o: Operation | undefined;
     if (mCdf || dev === "CDF") {
       o = { id: prochain(E.operations), cle: p.cle, type: "adhesion", statut: "validee", sessionId: s.id, tiersId: t.id, compteId: cpt.id, montant: mCdf, devise: "CDF", ...(p.parts ? { parts: p.parts } : {}), coupures: nettoyer(p.coupures), remisPar: titulaire(t), saisiPar: u.id, ecritureId: e.id, heure: heure() };
@@ -3004,7 +3007,7 @@ const guichet = {
       { compte: "570", contrat: guichetDe(s), sens: achat ? "D" : "C", devise: "CDF", montant, montantCdf: montant },
       { compte: compteParts(t), contrat: `parts:${t.id}`, sens: achat ? "C" : "D", devise: "CDF", montant, montantCdf: montant },
     ];
-    const e = poster({ journal: "CA", journeeId: s.journeeId, libelle: `${achat ? "Achat" : "Retrait"} de parts sociales ${t.numero}`, piece: piece(), saisiPar: u.id, validePar: u.id, lignes });
+    const e = poster({ evenement: achat ? "achat_parts" : "retrait_parts", journal: "CA", journeeId: s.journeeId, libelle: `${achat ? "Achat" : "Retrait"} de parts sociales ${t.numero}`, piece: piece(), saisiPar: u.id, validePar: u.id, lignes });
     const o: Operation = { id: prochain(E.operations), cle: p.cle, type: achat ? "achat_parts" : "retrait_parts", statut: "validee", sessionId: s.id, tiersId: t.id, montant, devise: "CDF",
       parts: p.nombre, coupures: nettoyer(p.coupures), remisPar: titulaire(t), saisiPar: u.id, ecritureId: e.id, heure: heure() };
     E.operations.push(o); lierExamen(examen, o.id); enregistrer(); return avecAvertissement(o, s, "CDF");   // registre S08-4
@@ -3040,7 +3043,7 @@ const guichet = {
       { compte: "570", contrat: guichetDe(s), sens: enc ? "D" : "C", devise: d, montant: m, montantCdf: cdf(m, d) },
       { compte: od.compte, contrat: `ed:${od.id}`, sens: enc ? "C" : "D", devise: d, montant: m, montantCdf: cdf(m, d) },
     ] as Ligne[]);
-    const e = poster({ journal: "CA", journeeId: s.journeeId, libelle, piece: piece(), saisiPar: u.id, validePar: u.id, lignes });
+    const e = poster({ evenement: enc ? "ed_encaissement" : "ed_decaissement", journal: "CA", journeeId: s.journeeId, libelle, piece: piece(), saisiPar: u.id, validePar: u.id, lignes });
     const ops: Operation[] = saisis.map(([d, m, c], i) => ({ id: prochain(E.operations) + i, cle: i === 0 ? p.cle : `${p.cle}:${d}`, type: enc ? "ed_encaissement" : "ed_decaissement",
       statut: "validee", sessionId: s.id, tiersId: null, montant: m, devise: d, coupures: c, remisPar: "", motif: libelle, saisiPar: u.id, ecritureId: e.id, heure: heure() }));
     E.operations.push(...ops); enregistrer(); return avecAvertissement(ops[0]!, s, saisis[0]![0]);
@@ -3542,7 +3545,7 @@ const vueGarantie = (g: GarantieCredit) => { const k = E.comptes.find((x) => x.i
   return { id: g.id, type: g.type, ajoute: g.montant, libere: g.libere, reste: g.montant - g.libere, date: g.ajouteLe, membre: k ? titulaire(E.tiers.find((t) => t.id === k.tiersId)!) : "", compte: k?.numero ?? "" }; };
 function horsBilanGarantie(c: CreditPret, montant: number, sens: "ajout" | "liberation", libelle: string, u: number) {
   const [a, b] = sens === "ajout" ? ["091", "0112"] : ["0112", "091"];
-  return poster({ journal: "OD", journeeId: jourDeblocage().id, libelle, piece: piece("OD"), saisiPar: u, validePar: u, lignes: [
+  return poster({ evenement: "garantie_caution", journal: "OD", journeeId: jourDeblocage().id, libelle, piece: piece("OD"), saisiPar: u, validePar: u, lignes: [
     { compte: a!, contrat: `credit:${c.id}`, sens: "D", devise: c.devise, montant, montantCdf: cdf(montant, c.devise) },
     { compte: b!, contrat: `credit:${c.id}`, sens: "C", devise: c.devise, montant, montantCdf: cdf(montant, c.devise) }] });
 }
@@ -3851,7 +3854,7 @@ function ecritureDeblocage(c: CreditPret, contrepartie: { compte: string; contra
     const cp = E.comptes.find((x) => x.id === cid)!;
     l.push({ compte: cp.pcci, contrat: `depot:${cid}`, sens: "C", devise: dv, montant: m, montantCdf: cdf(m, dv) });
   }
-  return poster({ journal, journeeId: j.id, libelle: `Déblocage du crédit ${c.numero}`, piece: piece(journal), saisiPar, validePar: saisiPar, lignes: l });
+  return poster({ evenement: "deblocage_credit", journal, journeeId: j.id, libelle: `Déblocage du crédit ${c.numero}`, piece: piece(journal), saisiPar, validePar: saisiPar, lignes: l });
 }
 function apresDeblocage(c: CreditPret, eid: number, mode: "caisse" | "banque" | "epargne", u: number) {
   const d = jourDeblocage().date;
@@ -4020,7 +4023,7 @@ function provisionnerUn(c: CreditPret, l: LigneBalanceAgee | undefined, d: strin
   const hbAv = c.interetsHorsBilan ?? 0, hb = l && g > 1 ? l.interetImpaye : 0;   // CR-19 : intérêts non réglés d'un crédit litigieux, 0630 contre 096
   if (hb > hbAv) mv("0630", "096", hb - hbAv); else if (hb < hbAv) mv("096", "0630", hbAv - hb);
   if (!lg.length && g === gAv && p === pAv) { c.provisionneLe = d; return false; }
-  const e = lg.length ? poster({ journal: "OD", journeeId: jourDeblocage().id, libelle: `Déclassement et provision du crédit ${c.numero} au ${frDate(d)}`, piece: piece("OD"), saisiPar: u, validePar: u, lignes: lg }) : null;
+  const e = lg.length ? poster({ evenement: "provision_credit", journal: "OD", journeeId: jourDeblocage().id, libelle: `Déclassement et provision du crédit ${c.numero} au ${frDate(d)}`, piece: piece("OD"), saisiPar: u, validePar: u, lignes: lg }) : null;
   E.provisionsCredit.push({ id: prochain(E.provisionsCredit), creditId: c.id, date: d, nature: "provision", degreAvant: gAv, degreApres: g, provisionAvant: pAv, provisionApres: p,
     capitalRestant: capital, ecritureId: e?.id ?? null, par: u });
   Object.assign(c, { degreComptable: g, provision: p, degreProvision: p ? g : null, provisionneLe: d, interetsHorsBilan: hb });
@@ -4106,7 +4109,7 @@ const provisions = {
       ln("6910", "D", Math.min(pv, r)); ln("6911", "D", r - Math.min(pv, r)); ln(comptesCredit(c, c.degreComptable ?? 1).capital, "C", r);
       if (pv) { ln(COMPTE_PROVISION[c.degreProvision ?? 7]!, "D", pv); ln("7902", "C", pv); }
       ln("0612", "D", r); ln("096", "C", r);
-      const e = poster({ journal: "OD", journeeId: jourDeblocage().id, libelle: `Passage en perte du crédit ${c.numero}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: lg });
+      const e = poster({ evenement: "radiation_credit", journal: "OD", journeeId: jourDeblocage().id, libelle: `Passage en perte du crédit ${c.numero}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: lg });
       E.provisionsCredit.push({ id: prochain(E.provisionsCredit), creditId: i, date: d, nature: "radiation", degreAvant: c.degreComptable ?? 1, degreApres: c.degreComptable ?? 1,
         provisionAvant: pv, provisionApres: 0, capitalRestant: r, ecritureId: e.id, par: u.id });
       Object.assign(c, { statut: "passe_en_perte", provision: 0, degreProvision: null, radieLe: d });
@@ -4139,7 +4142,7 @@ const creancesRadiees = {
     const solde = soldeContrat(`depot:${k.id}`, k.devise, "C");
     if (p.montant! > solde - bloqueDe(k, solde) - sortiesEnAttente(k)) throw new ErreurMetier("Montant de la rentrée : plus que le solde disponible du compte.");
     const dv = c.devise as Devise, kc = `credit:${c.id}`, m = p.montant!, ligne = (compte: string, contrat: string, sens: "D" | "C"): Ligne => ({ compte, contrat, sens, devise: dv, montant: m, montantCdf: cdf(m, dv) });
-    poster({ journal: "OD", journeeId: jourDeblocage().id, libelle: `Rentrée sur le crédit ${c.numero} passé en perte (ordre : ${ordre})`, piece: piece("OD"), saisiPar: u.id, validePar: u.id,
+    poster({ evenement: "remboursement_credit", journal: "OD", journeeId: jourDeblocage().id, libelle: `Rentrée sur le crédit ${c.numero} passé en perte (ordre : ${ordre})`, piece: piece("OD"), saisiPar: u.id, validePar: u.id,
       lignes: [ligne(k.pcci, `depot:${k.id}`, "D"), ligne("791", kc, "C"), ligne("096", kc, "D"), ligne("0612", kc, "C")] });
     enregistrer(); return creancesRadiees.lister();
   },
@@ -4168,8 +4171,8 @@ function vueDecouvert(x: DecouvertDouteux, d: string) {
   return { id: x.id, compteId: x.compteId, numero: k.numero, client: titulaire(E.tiers.find((t) => t.id === k.tiersId)!), devise: x.devise, montant: x.montant, restant: x.restant,
     retardDepuis: x.retardDepuis, joursRetard: jours, degre: lib, taux: tauxProvision(g), provisionRequise: Math.floor(x.restant * tauxProvision(g) / 100), provision: x.provision, classeLe: x.classeLe };
 }
-function ecrireDecouvert(u: number, libelle: string, lg: Omit<Ligne, "montantCdf">[]) {
-  if (lg.length) poster({ journal: "OD", journeeId: jourDeblocage().id, libelle, piece: piece("OD"), saisiPar: u, validePar: u,
+function ecrireDecouvert(u: number, libelle: string, evenement: string, lg: Omit<Ligne, "montantCdf">[]) {
+  if (lg.length) poster({ evenement, journal: "OD", journeeId: jourDeblocage().id, libelle, piece: piece("OD"), saisiPar: u, validePar: u,
     lignes: lg.map((l) => ({ ...l, montantCdf: cdf(l.montant, l.devise) })) });
 }
 /** Tranche et provision de la créance à la date (comme decouverts.ajuster) */
@@ -4180,7 +4183,7 @@ function ajusterDecouvert(u: number, x: DecouvertDouteux, d: string, restant: nu
   if (ancien && (g !== x.degre || cible < ancien)) { const repris = g !== x.degre ? ancien : ancien - cible;
     lg.push({ compte: COMPTE_PROVISION[x.degre]!, contrat: k, sens: "D", devise: dv, montant: repris }, { compte: "7902", contrat: k, sens: "C", devise: dv, montant: repris }); ancien -= repris; }
   if (cible > ancien) lg.push({ compte: "6902", contrat: k, sens: "D", devise: dv, montant: cible - ancien }, { compte: COMPTE_PROVISION[g]!, contrat: k, sens: "C", devise: dv, montant: cible - ancien });
-  ecrireDecouvert(u, `Provision du compte courant débiteur ${E.comptes.find((c) => c.id === x.compteId)!.numero}`, lg);
+  ecrireDecouvert(u, `Provision du compte courant débiteur ${E.comptes.find((c) => c.id === x.compteId)!.numero}`, "provision_credit", lg);
   Object.assign(x, { degre: g, provision: cible, restant, soldeLe: restant ? "" : d });
 }
 const decouverts = {
@@ -4198,7 +4201,7 @@ const decouverts = {
       const g = degreDe(c.joursRetard)[0], x: DecouvertDouteux = { id: prochain(l), compteId: k.id, devise: k.devise, montant: m, restant: m, retardDepuis: c.retardDepuis, degre: g, provision: 0,
         classeLe: d, classePar: u.id, soldeLe: "" };
       l.push(x);
-      ecrireDecouvert(u.id, `Compte courant débiteur ${k.numero} viré en créances douteuses`, [{ compte: COMPTE_RETARD[g]!, contrat: `decouvert:${x.id}`, sens: "D", devise: k.devise as Devise, montant: m },
+      ecrireDecouvert(u.id, `Compte courant débiteur ${k.numero} viré en créances douteuses`, "provision_credit", [{ compte: COMPTE_RETARD[g]!, contrat: `decouvert:${x.id}`, sens: "D", devise: k.devise as Devise, montant: m },
         { compte: k.pcci, contrat: `depot:${k.id}`, sens: "C", devise: k.devise as Devise, montant: m }]);
     }
     for (const x of l.filter((y) => y.restant > 0)) ajusterDecouvert(u.id, x, d, x.restant);
@@ -4213,7 +4216,7 @@ const decouverts = {
     const k = E.comptes.find((c) => c.id === x.compteId)!;
     if (p.montant! > soldeContrat(`depot:${k.id}`, k.devise, "C")) throw new ErreurMetier("Montant à recouvrer : plus que le solde du compte du client.");
     const d = jourDeblocage().date, dv = x.devise as Devise;
-    ecrireDecouvert(u.id, `Recouvrement de la créance sur le compte courant ${k.numero}`, [{ compte: k.pcci, contrat: `depot:${k.id}`, sens: "D", devise: dv, montant: p.montant! },
+    ecrireDecouvert(u.id, `Recouvrement de la créance sur le compte courant ${k.numero}`, "remboursement_credit", [{ compte: k.pcci, contrat: `depot:${k.id}`, sens: "D", devise: dv, montant: p.montant! },
       { compte: COMPTE_RETARD[x.degre]!, contrat: `decouvert:${x.id}`, sens: "C", devise: dv, montant: p.montant! }]);
     ajusterDecouvert(u.id, x, d, x.restant - p.montant!);
     enregistrer(); return decouverts.lire();
@@ -4281,7 +4284,7 @@ const engagements = {
     const ln = (c: string, sens: "D" | "C", v: number, contrat = k): Ligne => ({ compte: c, contrat, sens, devise: dv, montant: v, montantCdf: cdf(v, dv) });
     const lg = [ln(compte, "D", m), ln("090", "C", m)];
     if (frais) lg.push(ln(ce.pcci, "D", frais, `depot:${ce.id}`), ln("727", "C", frais));
-    const e = poster({ journal: "OD", journeeId: jourDeblocage().id, libelle: `${libelle} ${ref}, ${titulaire(E.tiers.find((t) => t.id === tid)!)}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: lg });
+    const e = poster({ evenement: "engagement_signature", journal: "OD", journeeId: jourDeblocage().id, libelle: `${libelle} ${ref}, ${titulaire(E.tiers.find((t) => t.id === tid)!)}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: lg });
     let bid: number | null = null;
     if (garantie) { bid = prochain(E.blocages); E.blocages.push({ id: bid, compteId: cg.id, montant: garantie, motif: `Garantie de l'engagement par signature ${ref}`, debut: j, posePar: u.id, fin: "", levePar: null, motifLevee: "" }); }
     const x: EngagementSignature = { id: prochain(E.engagementsSignature), reference: ref, tiersId: tid, type: type!, description: p.description!.trim(), dateDebut: debut, dateFin: plusMois(debut, duree),
@@ -4320,7 +4323,7 @@ const engagements = {
         e.blocageId = nb; }
     } else if (bl) { Object.assign(bl, { fin: j, levePar: u.id, motifLevee: `${MOTIFS_FIN[motif]} de l'engagement ${e.reference}` }); e.blocageId = null; }
     lg.push(ln("090", "D", sortie, k), ln(compte, "C", sortie, k));
-    poster({ journal: "OD", journeeId: jourDeblocage().id, libelle: `${MOTIFS_FIN[motif]}, engagement ${e.reference}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: lg });
+    poster({ evenement: "fin_engagement", journal: "OD", journeeId: jourDeblocage().id, libelle: `${MOTIFS_FIN[motif]}, engagement ${e.reference}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: lg });
     const fini = motif !== "mise_en_jeu" || paye === reste;
     Object.assign(e, { utilise: (e.utilise ?? 0) + paye, ...(fini ? { clotureLe: j, motifFin: motif } : {}) });
     enregistrer(); return vueEngagement(e);
@@ -4599,7 +4602,7 @@ function enregistrerRemboursement(c: CreditPret, d: string, montant: unknown, re
   for (const k of ["interet", "penalite", "anticipation", "tva"]) ligne(k === "anticipation" ? cc.interet : ci.interet, r[k]!);
   for (const [k, cid] of [["epargne", c.compteEpargneId], ["solidarite", c.compteSolidariteId]] as [string, number | null][])
     if (r[k] && cid) ligne(E.comptes.find((x) => x.id === cid)!.pcci, r[k]!, `depot:${cid}`);
-  const e = poster({ journal, journeeId: jourDeblocage().id, libelle: extra.libelle ?? `Remboursement du crédit ${c.numero}`, piece: piece(journal), saisiPar: u, validePar: u, lignes: l });
+  const e = poster({ evenement: "remboursement_credit", journal, journeeId: jourDeblocage().id, libelle: extra.libelle ?? `Remboursement du crédit ${c.numero}`, piece: piece(journal), saisiPar: u, validePar: u, lignes: l });
   const repartition = Object.fromEntries([...CLES_REMB, "capitalAnticipe"].map((k) => [k, r[k] ?? 0]));
   const rb: RemboursementCredit = { id: prochain(E.remboursementsCredit), creditId: c.id, ecritureId: e.id, operationId: null, date: d, montant: m, repartition,
     modifie, mandataire, mode: extra.mode, compteBancaireId: extra.compteBancaireId ?? null, saisiPar: u, ...(extra.ordreClient ? { ordreClient: extra.ordreClient } : {}) };
@@ -4796,7 +4799,7 @@ const transferts = {
       { compte: "570", contrat: `guichet:${d.g.id}`, sens: "D", devise: dv, montant: m, montantCdf: cdf(m, dv) },
       { compte: o.g.compteLiaison || "579", sens: "C", devise: dv, montant: m, montantCdf: cdf(m, dv) },
     ] as Ligne[]);
-    const e = poster({ journal: "CA", journeeId: o.s.journeeId, libelle: `Alimentation de guichet : ${o.g.nom} vers ${d.g.nom}`, piece: piece(), saisiPar: u.id, validePar: u.id, lignes });
+    const e = poster({ evenement: "transfert_caisse", journal: "CA", journeeId: o.s.journeeId, libelle: `Alimentation de guichet : ${o.g.nom} vers ${d.g.nom}`, piece: piece(), saisiPar: u.id, validePar: u.id, lignes });
     const base = prochain(E.operations);
     const ops: Operation[] = saisis.flatMap(([dv, m, c], i) => [
       { id: base + 2 * i, cle: i === 0 ? p.cle : `${p.cle}:${dv}`, type: "transfert_sortie", statut: "validee", sessionId: o.s.id, tiersId: null, montant: m, devise: dv,
@@ -4820,7 +4823,7 @@ const transferts = {
     const dv = cb.devise, c = nettoyer(p.coupures ?? {});
     controlerCoupures(c, p.montant, dv); sortiePossible(s.id, dv, c);
     const m = p.montant;
-    const e = poster({ journal: "CA", journeeId: s.journeeId, libelle: `Versement en banque, chèque ${cheque}`, piece: piece(), saisiPar: u.id, validePar: u.id, lignes: [
+    const e = poster({ evenement: "transfert_banque", journal: "CA", journeeId: s.journeeId, libelle: `Versement en banque, chèque ${cheque}`, piece: piece(), saisiPar: u.id, validePar: u.id, lignes: [
       { compte: "591", sens: "D", devise: dv, montant: m, montantCdf: cdf(m, dv) },
       { compte: "570", contrat: `guichet:${g.id}`, sens: "C", devise: dv, montant: m, montantCdf: cdf(m, dv) },
       { compte: cb.compte, sens: "D", devise: dv, montant: m, montantCdf: cdf(m, dv) },
@@ -6894,13 +6897,13 @@ const operationsCompta = {
       autres = [L(LIAISON, entree ? "C" : "D", m, `liaison:${o.agenceClientId}`)]; tiersId = c.tiersId;
     }
     const pc = piece("CA");
-    const e = poster({ journal: "CA", journeeId: s.journeeId, libelle: o.libelle, piece: pc, saisiPar: u.id, validePar: u.id, lignes: entree ? [caisse, ...autres] : [...autres, caisse] });
+    const e = poster({ evenement: entree ? "ed_encaissement" : "ed_decaissement", journal: "CA", journeeId: s.journeeId, libelle: o.libelle, piece: pc, saisiPar: u.id, validePar: u.id, lignes: entree ? [caisse, ...autres] : [...autres, caisse] });
     const op: Operation = { id: prochain(E.operations), cle, type: entree ? "ed_encaissement" : "ed_decaissement", statut: "validee", sessionId: s.id, tiersId, montant: m, devise: dv, coupures: cp,
       remisPar: o.nomClient, motif: o.libelle, saisiPar: u.id, ecritureId: e.id, heure: heure() };
     E.operations.push(op); lierExamen(examen, op.id);
     Object.assign(o, { statut: "payee", validePar: u.id, dateValidation: E.journees.find((x) => x.id === s.journeeId)!.date, piece: pc, ecritureId: e.id, operationId: op.id });
     if (o.type === "deplacee") {   // le reflet passe tout de suite : la démonstration locale tient une seule journée ouverte
-      const r = poster({ journal: "OD", journeeId: s.journeeId, libelle: o.libelle, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: lignesRefletOc(o).map((x) => ({ ...x, montantCdf: cdf(x.montant, x.devise) })) });
+      const r = poster({ evenement: "operation_comptable", journal: "OD", journeeId: s.journeeId, libelle: o.libelle, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: lignesRefletOc(o).map((x) => ({ ...x, montantCdf: cdf(x.montant, x.devise) })) });
       o.refletEcritureId = r.id;
     }
     enregistrer(); return vueOc(o);
@@ -7215,7 +7218,7 @@ const facturesFournisseurs = {
     const th = caisses.theorique(s.id, "CDF");
     if (Object.entries(cp).some(([v, n]) => (n ?? 0) > (th[Number(v)] ?? 0))) throw new ErreurMetier("Pas assez de coupures en caisse (CDF).");
     const ref = E.facturesFournisseurs.find((x) => x.id === r.factureId)!.reference, libelle = `Règlement en espèces de la facture ${ref}`, pc = piece("CA");
-    const e = poster({ journal: "CA", journeeId: s.journeeId, libelle, piece: pc, saisiPar: u.id, validePar: u.id,
+    const e = poster({ evenement: "reglement_facture", journal: "CA", journeeId: s.journeeId, libelle, piece: pc, saisiPar: u.id, validePar: u.id,
       lignes: lignesReglementF(r, { compte: "570", sens: "C", devise: "CDF", montant: r.aPayer, contrat: guichetDe(s) }).map((x) => ({ ...x, montantCdf: x.montant })) });
     const op: Operation = { id: prochain(E.operations), cle, type: "ed_decaissement", statut: "validee", sessionId: s.id, tiersId: null, montant: r.aPayer, devise: "CDF", coupures: cp,
       remisPar: vueReglementF(r).fournisseur, motif: libelle, saisiPar: u.id, ecritureId: e.id, heure: heure() };
@@ -7464,7 +7467,7 @@ const controlesCompta = {
     const j = journees.courante();
     if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
     const orig = E.ecritures.find((x) => x.id === r.ecritureId)!, vue = repartitionAnnulable(r);
-    const e = poster({ journal: "OD", journeeId: j.id, libelle: `Annulation : ${orig.libelle}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, type: "contre_passation", contrePasseId: orig.id,
+    const e = poster({ evenement: "annulation", journal: "OD", journeeId: j.id, libelle: `Annulation : ${orig.libelle}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, type: "contre_passation", contrePasseId: orig.id,
       lignes: orig.lignes.map((l) => ({ ...l, sens: l.sens === "D" ? "C" as const : "D" as const })) });
     const hb = orig.lignes.filter((l) => l.compte === "0630" && l.sens === "C").reduce((t, l) => t + l.montant, 0);   // intérêts sortis du hors bilan au règlement : ils y reviennent (CR-19)
     if (hb) c.interetsHorsBilan = (c.interetsHorsBilan ?? 0) + hb;
@@ -7818,7 +7821,7 @@ function dateArrete(p: { date?: string }) {
 function ecrireCloture(journeeId: number, libelle: string, type: "reevaluation" | "vidage", lignes: Ligne[]) {
   if (lignes.reduce((s, x) => s + (x.sens === "D" ? x.montantCdf : -x.montantCdf), 0) !== 0) throw new ErreurMetier("Écriture déséquilibrée en CDF (PCCI § 3.2).");
   const j = E.journees.find((x) => x.id === journeeId)!, id = prochain(E.ecritures), u = exiger();
-  E.ecritures.push(Object.freeze({ id, numero: `OD-${j.date.slice(0, 4)}-${String(id).padStart(6, "0")}`, journal: "OD", journeeId, libelle, piece: pieceJournee("OD", j), saisiPar: u.id, validePar: u.id,
+  E.ecritures.push(Object.freeze({ id, numero: `OD-${j.date.slice(0, 4)}-${String(id).padStart(6, "0")}`, journal: "OD", evenement: type === "reevaluation" ? "reevaluation" : "cloture_exercice", journeeId, libelle, piece: pieceJournee("OD", j), saisiPar: u.id, validePar: u.id,
     type, lignes: Object.freeze(lignes.map((x) => Object.freeze({ ...x }))) }));
 }
 const derniereJournee = (a: number, m: number | null) => E.journees.filter((j) => j.date >= `${a}-${String(m ?? 1).padStart(2, "0")}-01` && j.date <= finMois(a, m ?? 12)).sort((x, y) => y.date.localeCompare(x.date))[0];
@@ -8024,7 +8027,7 @@ const finPeriode = {
     for (const x of a.lignes) {
       if (x.etat !== "À prélever") continue;
       const c = E.comptes.find((y) => y.id === x.compteId)!;
-      const e = poster({ journal: "OD", journeeId: j.id, libelle: `Frais de tenue de compte ${MOIS_FR[a.mois - 1]} ${a.exercice}, compte ${x.numero}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id,
+      const e = poster({ evenement: "frais_tenue", journal: "OD", journeeId: j.id, libelle: `Frais de tenue de compte ${MOIS_FR[a.mois - 1]} ${a.exercice}, compte ${x.numero}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id,
         lignes: [ligneFin(c.pcci, "D", c.devise, x.montant, `depot:${c.id}`), ligneFin(x.compteFrais, "C", c.devise, x.montant)] });
       E.calculsPeriodiques.push({ type: "tenue_compte", exercice: a.exercice, mois: a.mois, compteId: c.id, base: 0, montant: x.montant, retenue: 0, devise: c.devise, ecritureId: e.id, par: u.id });
       n++;
@@ -8057,7 +8060,7 @@ const finPeriode = {
       const c = E.comptes.find((y) => y.id === x.compteId)!, lg = [ligneFin("610", "D", c.devise, x.interet)];
       if (x.net) lg.push(ligneFin(c.pcci, "C", c.devise, x.net, `depot:${c.id}`));
       if (x.retenue) lg.push(ligneFin("433", "C", c.devise, x.retenue));
-      const e = poster({ journal: "OD", journeeId: j.id, libelle: `Intérêts ${MOIS_FR[a.mois - 1]} ${a.exercice}, compte ${x.numero}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: lg });
+      const e = poster({ evenement: "interet_dav", journal: "OD", journeeId: j.id, libelle: `Intérêts ${MOIS_FR[a.mois - 1]} ${a.exercice}, compte ${x.numero}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: lg });
       E.calculsPeriodiques.push({ type: "interet_dav", exercice: a.exercice, mois: a.mois, compteId: c.id, base: x.base, montant: x.interet, retenue: x.retenue, devise: c.devise, ecritureId: e.id, par: u.id });
       n++;
     }
@@ -8085,7 +8088,7 @@ const finPeriode = {
     for (const x of a.lignes) {
       if (!x.aPasser) continue;
       const plus = x.aPasser > 0, m = Math.abs(x.aPasser), k = `credit:${x.id}`;
-      poster({ journal: "OD", journeeId: j.id, libelle: `Intérêts courus au ${frDate(a.date)}, crédit ${x.numero}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id,
+      poster({ evenement: "interet_credit_couru", journal: "OD", journeeId: j.id, libelle: `Intérêts courus au ${frDate(a.date)}, crédit ${x.numero}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id,
         lignes: [ligneFin(x.compteRattache, plus ? "D" : "C", x.devise as Devise, m, k), ligneFin(x.compteProduit, plus ? "C" : "D", x.devise as Devise, m, k)] });
       E.credits.find((c) => c.id === x.id)!.interetsCourus = x.couru; n++;
     }
@@ -8112,7 +8115,7 @@ const finPeriode = {
     for (const x of a.lignes) {
       if (!x.aPasser) continue;
       const dt = E.depotsTerme.find((y) => y.id === x.id)!;
-      poster({ journal: "OD", journeeId: j.id, libelle: `Intérêts courus au ${frDate(a.date)}, DAT n° ${x.certificat}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id,
+      poster({ evenement: "interet_dat_couru", journal: "OD", journeeId: j.id, libelle: `Intérêts courus au ${frDate(a.date)}, DAT n° ${x.certificat}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id,
         lignes: [ligneFin(x.compteCharge, "D", x.devise, x.aPasser), ligneFin("349", "C", x.devise, x.aPasser)] });
       dt.interetsCourus = (dt.interetsCourus ?? 0) + x.aPasser; n++;
     }
@@ -8249,7 +8252,7 @@ const finPeriode = {
     } else {
       for (const [k, v] of vus) lg.push(ligne(table[k]![0], "D", v)); lg.push(ligne("131", "C", -a.resultat));
     }
-    E.ecritures.push(Object.freeze({ id: prochain(E.ecritures), numero: `OD-${j.date.slice(0, 4)}-${String(prochain(E.ecritures)).padStart(6, "0")}`, journal: "OD", journeeId: j.id,
+    E.ecritures.push(Object.freeze({ id: prochain(E.ecritures), numero: `OD-${j.date.slice(0, 4)}-${String(prochain(E.ecritures)).padStart(6, "0")}`, journal: "OD", evenement: "affectation_resultat", journeeId: j.id,
       libelle: `Affectation du résultat ${a.exercice} : ${ref}`, piece: pieceJournee("OD", j), saisiPar: u.id, validePar: u.id,
       lignes: Object.freeze(lg.map((x) => Object.freeze({ ...x }))) }));
     (E.affectationsResultat ??= []).push({ exercice: a.exercice, resultat: a.resultat, decisionReference: ref, decisionLe: le, lignes: lg.map((x) => ({ compte: x.compte, sens: x.sens, montant: x.montant })), saisiPar: u.id });
@@ -8466,7 +8469,42 @@ const normes = {
   },
 };
 
+// B22 : libellés des évènements comptables du logiciel. Mêmes libellés que serveur/noyau/etats_compta.py (EVENEMENTS_COMPTA).
+const EVENEMENTS_COMPTA: Record<string, string> = {
+  depot: "Dépôt en espèces", retrait: "Retrait en espèces", adhesion: "Adhésion", achat_parts: "Achat de parts sociales", retrait_parts: "Retrait de parts sociales",
+  a_nouveaux: "À-nouveaux", dat_constitution: "Constitution d'un dépôt à terme", dat_rupture: "Rupture d'un dépôt à terme", dat_echeance: "Échéance d'un dépôt à terme",
+  frais_tenue: "Frais de tenue de compte", interet_dav: "Intérêts des comptes d'épargne", interet_dat_couru: "Intérêts courus des dépôts à terme",
+  interet_credit_couru: "Intérêts courus des crédits", reevaluation: "Réévaluation des comptes en devises", cloture_exercice: "Clôture de l'exercice",
+  affectation_resultat: "Affectation du résultat", immo_dotation: "Dotation aux amortissements", immo_sortie: "Sortie d'un bien du patrimoine",
+  plan_cotisation: "Cotisation d'un plan d'épargne", plan_fin: "Fin d'un plan d'épargne", cloture_inactif: "Clôture d'un compte inactif",
+  versement_bcc: "Versement à la BCC des avoirs en cours de prescription", ed_encaissement: "Encaissement divers", ed_decaissement: "Décaissement divers",
+  ecart_caisse: "Écart de caisse", transfert_caisse: "Alimentation de guichet", transfert_banque: "Versement en banque", deblocage_credit: "Déblocage de crédit",
+  remboursement_credit: "Remboursement de crédit", garantie_caution: "Caution reçue ou libérée", provision_credit: "Déclassement et provision des crédits",
+  radiation_credit: "Passage en perte d'un crédit", engagement_signature: "Engagement par signature", fin_engagement: "Fin d'un engagement par signature",
+  comptabilisation_banque: "Opération de banque", ecriture_manuelle: "Écriture saisie", operation_comptable: "Opération comptable", facture: "Facture fournisseur",
+  reglement_facture: "Règlement de facture", annulation: "Annulation par contre-passation",
+};
+
 const etatsCompta = {
+  /** B22 : schémas comptables que le logiciel applique, pour le manuel de procédures de l'institution (Instr. BCC 008, art. 9 ; PCCI § 3.1) : par évènement,
+   *  les journaux, les comptes débités et crédités des écritures définitives de l'exercice (T13). Comme etats_compta.schemas. */
+  schemas(p: { exercice?: unknown }) {
+    lectureAdmin(["S115"]);
+    if (!/^\d+$/.test(String(p.exercice ?? ""))) throw new ErreurMetier("À remplir : Exercice.");
+    const ex = Number(p.exercice), noms = intitulesComptes();
+    const out = new Map<string, { evenement: string; libelle: string; journaux: Set<string>; ecritures: number; debit: Set<string>; credit: Set<string> }>();
+    for (const e of E.ecritures) {
+      const j = E.journees.find((x) => x.id === e.journeeId);
+      if (!j || j.statut !== "fermee" || Number(j.date.slice(0, 4)) !== ex) continue;
+      const ev = e.evenement ?? "ecriture_manuelle";
+      const x = out.get(ev) ?? { evenement: ev, libelle: EVENEMENTS_COMPTA[ev] ?? ev, journaux: new Set<string>(), ecritures: 0, debit: new Set<string>(), credit: new Set<string>() };
+      out.set(ev, x); x.journaux.add(e.journal); x.ecritures++;
+      for (const l of e.lignes) (l.sens === "D" ? x.debit : x.credit).add(l.compte);
+    }
+    const comptes = (v: Set<string>) => [...v].sort().map((compte) => ({ compte, intitule: noms.get(compte) ?? "" }));
+    return { exercice: ex, schemas: [...out.values()].sort((a, b) => a.libelle.localeCompare(b.libelle, "fr"))
+      .map((x) => ({ evenement: x.evenement, libelle: x.libelle, journaux: [...x.journaux].sort(), ecritures: x.ecritures, debit: comptes(x.debit), credit: comptes(x.credit) })) };
+  },
   /** S115 : critères de « Journal comptables » (p. 133) */
   journauxContexte() {
     lectureAdmin(["S115", "S107"]);
@@ -8969,7 +9007,7 @@ const immobilisations = {
       const reprise = Math.min(x.dotation, Math.max(reste, 0));
       if (reprise) lg.push({ compte: "158", sens: "D", devise: "CDF", montant: reprise, montantCdf: reprise }, { compte: "771", sens: "C", devise: "CDF", montant: reprise, montantCdf: reprise });
     }
-    const e = x.dotation ? poster({ journal: "OD", journeeId: j.id, libelle: `Dotation aux amortissements ${exercice}, bien ${b.codification}`, piece: piece("OD"), saisiPar: u, validePar: u, lignes: lg }) : null;
+    const e = x.dotation ? poster({ evenement: "immo_dotation", journal: "OD", journeeId: j.id, libelle: `Dotation aux amortissements ${exercice}, bien ${b.codification}`, piece: piece("OD"), saisiPar: u, validePar: u, lignes: lg }) : null;
     E.immoAmortissements.push({ id: prochain(E.immoAmortissements), bienId: b.id, exercice, dotation: x.dotation, cumul: x.cumul, vnc: x.vnc, ecritureId: e?.id ?? null, par: u, le: j.date });
     return true;
   },
@@ -9009,7 +9047,7 @@ const immobilisations = {
     const lg = [l(v.comptes.acquisition, "C", b.prixAcquisition)];
     if (cumul) lg.push(l(v.comptes.amortissement, "D", cumul));
     if (vnc) lg.push(l(v.comptes.chargeVcn, "D", vnc));
-    const e = poster({ journal: "OD", journeeId: j.id, libelle: `Sortie du patrimoine (${d.type}), bien ${b.codification}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: lg });
+    const e = poster({ evenement: "immo_sortie", journal: "OD", journeeId: j.id, libelle: `Sortie du patrimoine (${d.type}), bien ${b.codification}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: lg });
     E.immoSorties.push({ id: prochain(E.immoSorties), bienId: b.id, type: d.type, date: d.date!, observation: [(d.observation ?? "").trim(), autorisation ? `Autorisation BCC : ${autorisation}` : ""].filter(Boolean).join(" "), vnc, cumul, ecritureId: e.id, par: u.id });
     b.statut = "SORTI"; enregistrer(); return { ...vueBien(b), vnc };
   },
@@ -10265,7 +10303,7 @@ const construireLocale = () => ({
   rapportsCredit: asynchrone(rapportsCreditApi, "rapportsCredit"),
   centraleRisques: asynchrone(centraleRisques, "centraleRisques"),
   comptabilisation: asynchrone(comptabilisation, "comptabilisation"),
-  etatsCompta: asynchrone(numerote(etatsCompta, { journaux: "journaux", grandLivre: "grand-livre", balance: "balance" }), "etatsCompta"),
+  etatsCompta: asynchrone(numerote(etatsCompta, { journaux: "journaux", grandLivre: "grand-livre", balance: "balance", schemas: "schemas-comptables" }), "etatsCompta"),
   etatsFinanciers: asynchrone(numerote(etatsFinanciers, { bilan: "bilan", horsBilan: "hors-bilan", resultat: "resultat", annexe: "annexe", indicateurs: "indicateurs" }), "etatsFinanciers"),
   normes: asynchrone(numerote(normes, { etat: "normes" }), "normes"),
   decouverts: asynchrone(decouverts, "decouverts"),

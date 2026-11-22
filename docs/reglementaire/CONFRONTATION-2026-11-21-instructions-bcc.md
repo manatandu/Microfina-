@@ -444,3 +444,4 @@ Le porteur a demandé de répondre par les textes aux points du § 16.
 - **B28 terminé** (Instr. BCC 41, art. 33) : autorisation de la BCC exigée pour une cession au-delà de 10 % des fonds propres de base (registre T105).
 - **B30 corrigé** (Instr. BCC 0011, art. 29) : faîtière d'affiliation et rappel de la cotisation de 1 % à la clôture (registre T106). L'accord de la faîtière sur un crédit au-delà du plafond (art. 8) se note dans la référence de dérogation déjà prévue.
 - **B29 terminé** (Instr. BCC 007, art. 18) : dans une COOPEC, un refus de la Commission de crédit se porte en appel devant le Conseil d'administration depuis l'historique des visas ; accordé, le crédit reprend au service financier (registre T107).
+- **B22 corrigé** (Instr. BCC 008, art. 9 ; PCCI § 3.1) : édition des schémas comptables appliqués, par évènement, depuis « Journal comptables » (registre T108).

@@ -2996,6 +2996,12 @@ describe("journée de guichet", () => {
     expect([c.lignes.every((x) => x.journal.startsWith("OD")), c.totalDebit === c.totalCredit]).toEqual([true, true]);
     expect((await q({ mois: 10 })).lignes).toEqual([]);
     await expect(api.etatsCompta.journaux({})).rejects.toThrow("Exercice");
+    // B22 : schémas comptables appliqués, par évènement (Instr. BCC 008, art. 9 ; PCCI § 3.1)
+    const sc = await api.etatsCompta.schemas({ exercice: 2026 });
+    const em = sc.schemas.find((x) => x.evenement === "ecriture_manuelle")!;
+    expect([em.libelle, em.journaux, em.ecritures, em.debit.map((x) => x.compte), em.credit.map((x) => x.compte)]).toEqual(["Écriture saisie", ["OD"], 1, ["610", "612"], ["461"]]);   // comme le serveur
+    expect([sc.exercice, sc.edition!.numero >= 1, (await api.etatsCompta.schemas({ exercice: 2025 })).schemas]).toEqual([2026, true, []]);
+    await expect(api.etatsCompta.schemas({})).rejects.toThrow("Exercice");
   });
 
   it("autres opérations (S116, p. 133 à 135) : virement, prélèvement, compte à compte ; le disponible tient compte des sorties saisies (T21) ; sans frais (Instr. BCC 37)", async () => {

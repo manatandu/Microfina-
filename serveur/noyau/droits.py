@@ -267,6 +267,7 @@ LECTURES_ADMIN = [(re.compile(m), e) for m, e in [
     (r"/comptabilite/operations/visas/\w+/\w+", ["S113", "S114"]),
     (r"/caisse/operations-compta/\w+", ["S82"]),
     (r"/comptabilite/journaux-comptables(/contexte)?", ["S115", "S107"]),
+    (r"/comptabilite/journaux-comptables/schemas", ["S115"]),
     (r"/budget/(contexte|comptes|valeurs)", ["S124", "S125"]),
     (r"/budget/(suivi|consommation)", ["S125"]),
     (r"/autres/calculs/provisions", ["S127", "S128"]),

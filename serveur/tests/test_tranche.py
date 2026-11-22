@@ -4157,6 +4157,15 @@ def test_saisie_ecriture(clients, journee):
     assert all(x["journal"].startswith("OD") for x in c["lignes"]) and c["totalDebit"] == c["totalCredit"]
     assert q(mois=10)["lignes"] == [] and "Exercice" in compta.get("/api/comptabilite/journaux-comptables", **H).json()["message"]
     assert caisse.get("/api/comptabilite/journaux-comptables?exercice=2026", **H).status_code == 403
+    # B22 : schémas comptables appliqués, par évènement (Instr. BCC 008, art. 9 ; PCCI § 3.1)
+    SC = "/api/comptabilite/journaux-comptables/schemas"
+    sc = compta.get(SC, {"exercice": 2026}, **H).json()
+    em = next(x for x in sc["schemas"] if x["evenement"] == "ecriture_manuelle")
+    assert (em["libelle"], em["journaux"], em["ecritures"]) == ("Écriture saisie", ["OD"], 1)
+    assert ([x["compte"] for x in em["debit"]], [x["compte"] for x in em["credit"]]) == (["610", "612"], ["461"])
+    assert sc["exercice"] == 2026 and sc["edition"]["numero"] >= 1 and [x["libelle"] for x in sc["schemas"]] == sorted(x["libelle"] for x in sc["schemas"])
+    assert compta.get(SC, {"exercice": 2025}, **H).json()["schemas"] == [] and "Exercice" in compta.get(SC, **H).json()["message"]
+    assert caisse.get(SC + "?exercice=2026", **H).status_code == 403
 
 
 def test_autres_operations(clients, journee):

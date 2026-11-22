@@ -195,6 +195,7 @@ export interface Ecriture {
   id: number;
   numero: string;
   journal: string;   // code du journal (S30) : CA, AN, OD, ou un journal de banque
+  evenement?: string;   // évènement comptable dont le schéma a produit l'écriture (serveur : schema_comptable.type_evenement) ; édité par les schémas comptables (B22)
   journeeId: number;
   libelle: string;
   piece: string;

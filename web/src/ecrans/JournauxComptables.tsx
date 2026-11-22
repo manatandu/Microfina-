@@ -7,9 +7,11 @@ import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { exporterExcel } from "../lib/excel";
 import { lireMontant, montant } from "@design/montant.js";
-import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
+import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee } from "../composants";
 
 type Resultat = Awaited<ReturnType<typeof api.etatsCompta.journaux>>;
+type Schemas = Awaited<ReturnType<typeof api.etatsCompta.schemas>>;
+const comptes = (l: { compte: string; intitule: string }[]) => l.map((x) => `${x.compte} ${x.intitule}`.trim());
 const MODES: [string, string][] = [["debut", "Commencant par"], ["contient", "Contenant"], ["fin", "Terminant par"]];
 
 /** achats : onglet Journal de Comptabilité > Factures (capture « Journal achat », p. 128) : mêmes critères, sans Type journal ni Journal */
@@ -18,6 +20,7 @@ export default function JournauxComptables({ achats = false }: { achats?: boolea
   const [f, setF] = useState({ exercice: "", mois: "", type: "", journal: "", mouvement: "", montant: "", utilisateur: "", piece: "", pieceMode: "debut", libelle: "", libelleMode: "debut" });
   const [r, setR] = useState<Resultat | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
+  const [sch, setSch] = useState<Schemas | null>(null);   // B22 : schémas comptables appliqués (Instr. BCC 008, art. 9 ; PCCI § 3.1)
   if (!ctx) return <Chargement />;
   const maj = (p: Partial<typeof f>) => setF((x) => ({ ...x, ...p }));
   const exercice = f.exercice || String(ctx.exerciceActif ?? ctx.exercices[0] ?? "");
@@ -27,6 +30,9 @@ export default function JournauxComptables({ achats = false }: { achats?: boolea
       setR(await api.etatsCompta.journaux({ achats, exercice, mois: f.mois, type: f.type, journalId: f.journal, mouvement: f.mouvement, montant: f.montant.trim() ? lireMontant(f.montant) : null,
         utilisateurId: f.utilisateur, piece: f.piece, pieceMode: f.pieceMode, libelle: f.libelle, libelleMode: f.libelleMode }));
     } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+  }
+  async function schemas() {
+    try { setSch(await api.etatsCompta.schemas({ exercice })); } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   }
   const radios = (nom: "pieceMode" | "libelleMode") => <div className="ligne-champ" role="radiogroup">{MODES.map(([v, l]) =>
     <label key={v} className="case"><input type="radio" name={nom} checked={f[nom] === v} onChange={() => maj({ [nom]: v })} /><span>{l}</span></label>)}</div>;
@@ -67,11 +73,28 @@ export default function JournauxComptables({ achats = false }: { achats?: boolea
           <tfoot><tr><th scope="row">Total</th><td></td><td></td><td className="num chiffres">{r ? montant(r.totalDebit, "CDF") : ""}</td><td className="num chiffres">{r ? montant(r.totalCredit, "CDF") : ""}</td></tr></tfoot>
         </table>)}</Paginee>
         <div className="actions-onglets"><button className="bouton secondaire" type="button" disabled={!r || r.lignes.length === 0}
-          onClick={() => r && exporterExcel("journal-comptable", ["Journal", "N° Compte", "Intitulé compte", "Débit", "Crédit"], r.lignes.map((x) => [x.journal, x.compte, x.intitule, x.debit / 100, x.credit / 100]))}>Exporter</button></div>
+          onClick={() => r && exporterExcel("journal-comptable", ["Journal", "N° Compte", "Intitulé compte", "Débit", "Crédit"], r.lignes.map((x) => [x.journal, x.compte, x.intitule, x.debit / 100, x.credit / 100]))}>Exporter</button>
+          {!achats && <button className="bouton secondaire" type="button" onClick={schemas}>Schémas comptables</button>}</div>
         {!achats && <Textes sources={["Manuel Microfina++, p. 133 : capture « Journal comptables » (critères recherche, Afficher, grille, Total, Exporter)",
           "PCCI § 3.3 : livre-journal et journaux auxiliaires, centralisés au moins une fois par mois ; § 3.4 : enregistrements définitifs après validation",
-          "Registre S115-1 à S115-4 : écritures des journées comptabilisées seulement (T13), montants en CDF ; « Journal centralisé » : totaux par journal et par compte"]} />}
+          "Registre S115-1 à S115-4 : écritures des journées comptabilisées seulement (T13), montants en CDF ; « Journal centralisé » : totaux par journal et par compte",
+          "Instr. BCC 008, art. 9 : les manuels de procédures décrivent les schémas comptables ; PCCI § 3.1 : documentation décrivant les procédures et l'organisation comptable (registre T108)"]} />}
       </section>
+      <Fiche titre={`Schémas comptables, exercice ${sch?.exercice ?? ""}`} ouverte={sch !== null} fermer={() => setSch(null)}>
+        {sch && <div className="pile">
+          {sch.edition && <p className="aide">Schémas comptables{texteEdition(sch.edition)}</p>}
+          <div className="defile-x"><table className="grille" aria-label="Schémas comptables">
+            <thead><tr><th scope="col">Évènement</th><th scope="col">Journal</th><th scope="col">Comptes débités</th><th scope="col">Comptes crédités</th><th scope="col" className="num">Écritures</th></tr></thead>
+            <tbody>{sch.schemas.length === 0 && <tr><td colSpan={5}>No records found.</td></tr>}
+              {sch.schemas.map((x) => <tr key={x.evenement}><td>{x.libelle}</td><td className="code">{x.journaux.join(", ")}</td>
+                <td>{comptes(x.debit).map((c) => <div key={c}>{c}</div>)}</td><td>{comptes(x.credit).map((c) => <div key={c}>{c}</div>)}</td><td className="num chiffres">{x.ecritures}</td></tr>)}</tbody>
+          </table></div>
+          <div className="actions-onglets"><button className="bouton secondaire" type="button" disabled={sch.schemas.length === 0}
+            onClick={() => exporterExcel("schemas-comptables", ["Évènement", "Journal", "Comptes débités", "Comptes crédités", "Écritures"],
+              sch.schemas.map((x) => [x.libelle, x.journaux.join(", "), comptes(x.debit).join(" ; "), comptes(x.credit).join(" ; "), x.ecritures]))}>Exporter</button>
+            <button className="bouton secondaire" type="button" onClick={() => setSch(null)}>Fermer</button></div>
+        </div>}
+      </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );

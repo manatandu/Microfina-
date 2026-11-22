@@ -1185,6 +1185,9 @@ const OUT = process.argv[2];
   await login('Patrick Lumbala'); await p.goto(B + '/comptabilite/s121'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByText(/Équilibrée/).waitFor(); await etape('18-balance');
   // Journaux comptables (S115, p. 133) : lignes définitives, journal centralisé
   await aller('/comptabilite/s115'); await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByRole('cell', { name: /^CA / }).first().waitFor(); await etape('18e-journaux-comptables');
+  // Schémas comptables appliqués (B22 ; Instr. BCC 008, art. 9 ; PCCI § 3.1) : par évènement, journaux et comptes débités et crédités
+  await p.getByRole('button', { name: 'Schémas comptables' }).click(); const fsc = p.getByRole('dialog', { name: /^Schémas comptables/ });
+  await fsc.getByRole('cell', { name: 'Dépôt en espèces', exact: true }).waitFor(); await etape('18e2-schemas-comptables'); await fsc.getByRole('button', { name: 'Fermer' }).click();
   // Grand livre (S120, p. 138) : écritures définitives de la journée comptabilisée ; taxes (S104, p. 124) et plan des tiers (S103, p. 123)
   await aller('/comptabilite/s120'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('rowheader', { name: 'Total général' }).waitFor(); await etape('18b-grand-livre');
   // La TVA à 16 % est dans la graine ; l'essai ajoute le taux réduit de 5 % (O.-L. 10/001, art. 35, modifié par la LF 25/060, art. 46)

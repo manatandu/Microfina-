@@ -1293,6 +1293,15 @@ def journaux_comptables(request):
     return {**r, "edition": numeroter(u(request), "journaux")}
 
 
+@api.get("/comptabilite/journaux-comptables/schemas")
+def journaux_comptables_schemas(request):
+    """B22 : schémas comptables appliqués (Instr. BCC 008, art. 9 ; PCCI § 3.1)"""
+    from . import etats_compta as ec
+    from .editions import numeroter
+    r = ec.schemas(u(request), request.GET.dict())
+    return {**r, "edition": numeroter(u(request), "schemas-comptables")}
+
+
 # ---------- S111 : comptabilisation de la journée (p. 130 et 155) ----------
 @api.get("/comptabilite/comptabilisation/{jid}")
 def comptabilisation_lire(request, jid: int):

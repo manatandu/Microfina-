@@ -225,6 +225,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
     etatsCompta: {
       journauxContexte: () => get("/comptabilite/journaux-comptables/contexte"),
       journaux: (p: Record<string, unknown>) => get(`/comptabilite/journaux-comptables?${requete(p)}`),
+      schemas: (p: Record<string, unknown>) => get(`/comptabilite/journaux-comptables/schemas?${requete(p)}`),
       contexte: () => get("/comptabilite/etats/contexte"),
       grandLivre: (p: Record<string, unknown>, analytique = false) => get(`/comptabilite/grand-livre?${requete({ ...p, analytique })}`),
       balance: (p: Record<string, unknown>, analytique = false) => get(`/comptabilite/balance?${requete({ ...p, analytique })}`),

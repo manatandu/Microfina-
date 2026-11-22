@@ -146,6 +146,46 @@ MOIS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août
 MODES = {"debut": "{}%", "contient": "%{}%", "fin": "%{}"}
 
 
+# B22 : libellés des évènements comptables du logiciel (schema_comptable.type_evenement). Mêmes libellés que web/src/donnees/api.ts.
+EVENEMENTS_COMPTA = {
+    "depot": "Dépôt en espèces", "retrait": "Retrait en espèces", "adhesion": "Adhésion", "achat_parts": "Achat de parts sociales",
+    "retrait_parts": "Retrait de parts sociales", "a_nouveaux": "À-nouveaux", "dat_constitution": "Constitution d'un dépôt à terme",
+    "dat_rupture": "Rupture d'un dépôt à terme", "dat_echeance": "Échéance d'un dépôt à terme", "frais_tenue": "Frais de tenue de compte",
+    "interet_dav": "Intérêts des comptes d'épargne", "interet_dat_couru": "Intérêts courus des dépôts à terme",
+    "interet_credit_couru": "Intérêts courus des crédits", "reevaluation": "Réévaluation des comptes en devises", "cloture_exercice": "Clôture de l'exercice",
+    "affectation_resultat": "Affectation du résultat", "immo_dotation": "Dotation aux amortissements", "immo_sortie": "Sortie d'un bien du patrimoine",
+    "plan_cotisation": "Cotisation d'un plan d'épargne", "plan_fin": "Fin d'un plan d'épargne", "cloture_inactif": "Clôture d'un compte inactif",
+    "versement_bcc": "Versement à la BCC des avoirs en cours de prescription", "ed_encaissement": "Encaissement divers", "ed_decaissement": "Décaissement divers",
+    "ecart_caisse": "Écart de caisse", "transfert_caisse": "Alimentation de guichet", "transfert_banque": "Versement en banque",
+    "deblocage_credit": "Déblocage de crédit", "remboursement_credit": "Remboursement de crédit", "garantie_caution": "Caution reçue ou libérée",
+    "provision_credit": "Déclassement et provision des crédits", "radiation_credit": "Passage en perte d'un crédit",
+    "engagement_signature": "Engagement par signature", "fin_engagement": "Fin d'un engagement par signature", "comptabilisation_banque": "Opération de banque",
+    "ecriture_manuelle": "Écriture saisie", "operation_comptable": "Opération comptable", "facture": "Facture fournisseur",
+    "reglement_facture": "Règlement de facture", "annulation": "Annulation par contre-passation",
+}
+
+
+def schemas(u, p: dict) -> dict:
+    """B22 : édition des schémas comptables que le logiciel applique, pour le manuel de procédures de l'institution (Instr. BCC 008, art. 9 : les
+    manuels décrivent « les schémas comptables correspondants » ; PCCI § 3.1 : documentation décrivant les procédures et l'organisation comptable).
+    Par évènement : les journaux, les comptes débités et les comptes crédités des écritures définitives de l'exercice (journées comptabilisées, T13)."""
+    exiger(u)
+    ex = p.get("exercice")
+    if not str(ex or "").isdigit():
+        raise ErreurMetier("À remplir : Exercice.")
+    base = """from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join journee_comptable jc on jc.id = e.journee_id
+              join compte c on c.id = l.compte_id join journal j on j.id = e.journal_id join schema_comptable sc on sc.id = e.schema_id
+              where e.institution_id = %s and jc.statut = 'fermee' and extract(year from e.date_valeur) = %s"""
+    q = (u["institution_id"], int(ex))
+    out = {}
+    for r in lignes(f"select sc.type_evenement as ev, count(distinct e.id) as n, array_agg(distinct j.code) as journaux {base} group by 1", q):
+        out[r["ev"]] = {"evenement": r["ev"], "libelle": EVENEMENTS_COMPTA.get(r["ev"], r["ev"]), "journaux": sorted(r["journaux"]), "ecritures": r["n"],
+                        "debit": [], "credit": []}
+    for r in lignes(f"select distinct sc.type_evenement as ev, c.numero as compte, c.libelle as intitule, l.sens {base} order by 2", q):
+        out[r["ev"]]["debit" if r["sens"] == "D" else "credit"].append({"compte": r["compte"], "intitule": r["intitule"]})
+    return {"exercice": int(ex), "schemas": sorted(out.values(), key=lambda x: x["libelle"])}
+
+
 def journaux_contexte(u) -> dict:
     """Critères recherche : Exercice, Mois, Type journal, Journal, Mouvement, Utilisateur"""
     exiger(u)

@@ -93,7 +93,7 @@ export function graine(): Etat {
       { id: 4, tiersId: 2, numero: "0412-000319-02", intitule: "Épargne à vue", pcci: "330", devise: "CDF", bloque: 0, ouvertLe: "2026-01-15" },
       { id: 5, tiersId: 3, numero: "0412-000320-02", intitule: "Épargne à vue", pcci: "330", devise: "CDF", bloque: 0, ouvertLe: "2026-01-15" },
     ],
-    ecritures: [{ id: 1, numero: "AN-2026-000001", journal: "AN", journeeId: 1, libelle: "Reprise des soldes au 04/11/2026", piece: "AN-1", saisiPar: 3, validePar: 2, lignes }],
+    ecritures: [{ id: 1, numero: "AN-2026-000001", journal: "AN", evenement: "a_nouveaux", journeeId: 1, libelle: "Reprise des soldes au 04/11/2026", piece: "AN-1", saisiPar: 3, validePar: 2, lignes }],
     operations: [],
     fondsVeille: { 1: { CDF: {}, USD: {} }, 2: FONDS_G2 },
     session: null,
