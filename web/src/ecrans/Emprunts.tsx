@@ -111,7 +111,7 @@ export function Emprunts() {
               <Champ libelle="Intérêt">{montantSaisi(r.interet, (v) => majR({ interet: v }))}</Champ>
               <Champ libelle="Commission">{montantSaisi(r.commission, (v) => majR({ commission: v }))}</Champ>
               <div className="ligne-champ">
-                <Champ libelle="N°Pièce">{(p) => <input {...p} className="saisie code" readOnly value="" />}</Champ>
+                
                 <button className="bouton secondaire" type="button" disabled title="La pièce vient avec la comptabilisation (registre S61-4)">Imprimer</button>
               </div>
             </div>

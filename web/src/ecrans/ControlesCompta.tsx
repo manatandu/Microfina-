@@ -359,7 +359,7 @@ export function AnnulationReglement() {
     <>
       <h1>Annulation de règlement d'un crédit effectué par prélèvement sur compte</h1>
       <section className="bloc pile" aria-label="Annulation de règlement de crédit">
-        <div className="entete-ecran"><p>Numéro de pièce : <strong className="chiffres">{fait?.piece ?? ""}</strong></p><p>Date Opération: <strong className="chiffres">{fr(j?.date ?? "")}</strong></p></div>
+        <div className="entete-ecran">{(fait?.piece ?? "") ? <p>Numéro de pièce : <strong className="chiffres">{fait?.piece ?? ""}</strong></p> : null}<p>Date Opération: <strong className="chiffres">{fr(j?.date ?? "")}</strong></p></div>
         <div className="deux-colonnes">
           <fieldset className="cadre-champs formulaire"><legend>Infos règlement</legend>
             <div className="ligne-champ"><Champ libelle="N° de pièce :">{(p) => <input {...p} className="saisie code" readOnly value={r?.piece ?? ""} />}</Champ>

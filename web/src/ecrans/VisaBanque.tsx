@@ -56,7 +56,6 @@ export default function VisaBanque() {
       <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`liste-${liste}`}>
         {etape === "validation" && l.id !== "virement" && (
           <div className="entete-ecran">
-            <p>Numéro de pièce : <strong className="chiffres"></strong></p>
             <ChampDate libelle="Date opération : *" valeur={dateOp} onChange={setDate} requis />
           </div>
         )}

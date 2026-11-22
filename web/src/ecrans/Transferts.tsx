@@ -36,7 +36,7 @@ function Entete({ fait, date }: { fait: Operation | null; date: string }) {
   const { donnees: piece } = useDonnees(async () => (fait ? (await api.operations.recu(fait.id)).piece : ""), [fait?.id]);
   return (
     <div className="entete-ecran">
-      <p>Numéro de pièce : <strong className="chiffres">{piece ?? ""}</strong></p>
+      {(piece ?? "") ? <p>Numéro de pièce : <strong className="chiffres">{piece ?? ""}</strong></p> : null}
       <p>Date opération : <strong className="chiffres">{fr(date)}</strong></p>
     </div>
   );

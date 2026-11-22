@@ -71,7 +71,6 @@ export function OperationsBanque() {
       </div>
       <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${onglet}`}>
         <div className="entete-ecran">
-          <p>Numéro de pièce : <strong className="chiffres"></strong></p>
           <ChampDate libelle={onglet === 0 ? "Date opération" : "Date Opération : *"} valeur={date} onChange={(v) => maj({ date: v })} requis={onglet !== 0} />
         </div>
 

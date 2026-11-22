@@ -58,7 +58,7 @@ export default function EdDivers() {
       <OngletsGuichet />
       <section className="bloc pile" aria-label="Autres encaissements et décaissements">
         <div className="entete-ecran">
-          <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p>
+          {(piece) ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}
           <p>Date opération : <strong className="chiffres">{fr(j?.date ?? "")}</strong></p>
         </div>
         <div className="cadre-champs"><dl className="infos">

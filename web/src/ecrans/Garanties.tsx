@@ -91,7 +91,7 @@ function Operation({ page }: { page: Exclude<Page, "rapport" | "materiel"> }) {
     <>
       <h1>{titre}</h1>
       <section className="bloc pile" aria-label={titre}>
-        <div className="entete-ecran"><p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p>
+        <div className="entete-ecran">{(piece) ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}
           <ChampDate libelle="Date opération : *" valeur={f.date || j?.date || ""} onChange={(v) => setF({ ...f, date: v })} /></div>
         <div className="grille-deux">
           <fieldset className="pile cadre-champs"><legend>Infos crédit</legend>

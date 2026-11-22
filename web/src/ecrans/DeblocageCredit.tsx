@@ -115,7 +115,7 @@ export function DeblocageGuichet() {
       <h1>Guichet</h1>
       <OngletsGuichet />
       <section className="bloc pile" aria-label="Déblocage crédit">
-        <div className="entete-ecran"><p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p><p>Date Opération : <strong className="chiffres">{fr(j?.date ?? "")}</strong></p></div>
+        <div className="entete-ecran">{(piece) ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}<p>Date Opération : <strong className="chiffres">{fr(j?.date ?? "")}</strong></p></div>
         <div className="cadre-champs"><dl className="infos">
           <div className="info-ligne"><dt>Agence</dt><dd>{ctx.agence.nom}</dd></div>
           <div className="info-ligne"><dt>Nom</dt><dd>{ctx.guichets.find((g) => g.id === s.guichetId)?.nom ?? ""}</dd></div>
@@ -270,7 +270,7 @@ export function DeblocageEpargne() {
     <>
       <h1>Déblocage crédit</h1>
       <section className="bloc pile" aria-label="Déblocage crédit sur compte d'épargne">
-        <div className="entete-ecran"><p>Numéro de pièce : <strong className="chiffres">{fait?.piece ?? ""}</strong></p>
+        <div className="entete-ecran">{(fait?.piece ?? "") ? <p>Numéro de pièce : <strong className="chiffres">{fait?.piece ?? ""}</strong></p> : null}
           <Champ libelle="Date Opération :">{(p) => <Lecture {...p} value={fr(j?.date ?? "")} />}</Champ></div>
         <div className="grille-deux">
           <fieldset className="cadre-champs formulaire"><legend>Infos crédit</legend>

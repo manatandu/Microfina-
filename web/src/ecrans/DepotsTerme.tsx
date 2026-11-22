@@ -86,7 +86,7 @@ export function MiseEnPlaceDat() {
           </fieldset>
           <fieldset className="pile cadre-champs">
             <legend>Infos Certificat</legend>
-            <p>Certificat N° : <strong className="chiffres">{fait ? String(fait.certificat).padStart(6, "0") : ""}</strong></p>
+            {fait ? <p>Certificat N° : <strong className="chiffres">{String(fait.certificat).padStart(6, "0")}</strong></p> : null}
             <Champ libelle="Montant : *">{(pp) => <input {...pp} className="saisie montant" inputMode="decimal" autoComplete="off" value={f.montant} onChange={(e) => maj({ montant: e.target.value })} />}</Champ>
             <Champ libelle="Durée (Mois) : *">{(pp) => <input {...pp} className="saisie code" inputMode="numeric" autoComplete="off" value={f.duree} onChange={(e) => { if (/^\d{0,3}$/.test(e.target.value)) maj({ duree: e.target.value }); }} />}</Champ>
             <Champ libelle="Taux intérêt (%) :">{(pp) => <input {...pp} className="saisie code" inputMode="decimal" autoComplete="off" value={f.ti} onChange={(e) => maj({ ti: e.target.value })} />}</Champ>
@@ -187,7 +187,7 @@ export function ValidationDat() {
     <>
       <h1>Validation DAT</h1>
       <section className="bloc pile" aria-label="Validation DAT">
-        <p>Numéro de pièce : <strong className="chiffres">{dernier?.piece ?? ""}</strong></p>
+        {(dernier?.piece ?? "") ? <p>Numéro de pièce : <strong className="chiffres">{dernier?.piece ?? ""}</strong></p> : null}
         <fieldset className="pile cadre-champs">
           <legend>Liste DAT à valider</legend>
           <ListeDat lignes={donnees} choisi={choisi} choisir={(x) => setChoisi(x.id)} />
@@ -285,7 +285,7 @@ export function RuptureDat() {
       <h1>Rupture DAT</h1>
       <section className="bloc pile" aria-label="Rupture DAT">
         <div className="grille-deux">
-          <p>Numéro de pièce : <strong className="chiffres">{fait?.rupture?.piece ?? ""}</strong></p>
+          {(fait?.rupture?.piece ?? "") ? <p>Numéro de pièce : <strong className="chiffres">{fait?.rupture?.piece ?? ""}</strong></p> : null}
           <ChampDate libelle="Date rupture : *" valeur={dr} onChange={(v) => { setDate(v); if (choix && !fait) void calculer(choix, v); }} requis />
         </div>
         <div className="grille-deux">

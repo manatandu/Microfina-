@@ -59,7 +59,7 @@ export function PartsSociales() {
       <OngletsGuichet />
       <section className="bloc pile" aria-label="Part sociale (Achat/Retrait)">
         <div className="entete-ecran">
-          <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p>
+          {(piece) ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}
           <p>Date Opération : <strong className="chiffres">{fr(j?.date ?? "")}</strong></p>
         </div>
         <div className="grille-cadres">

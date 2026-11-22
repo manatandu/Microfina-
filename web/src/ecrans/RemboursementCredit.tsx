@@ -200,7 +200,7 @@ export function RemboursementGuichet() {
       <h1>Guichet</h1>
       <OngletsGuichet />
       <section className="bloc pile" aria-label="Remboursement de crédit">
-        <div className="entete-ecran"><p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p><p>Date règlement : <strong className="chiffres">{fr(j?.date ?? "")}</strong></p></div>
+        <div className="entete-ecran">{(piece) ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}<p>Date règlement : <strong className="chiffres">{fr(j?.date ?? "")}</strong></p></div>
         <div className="grille-cadres client-large">
           <InfosClient e={e} fige={fige} rechercher={() => setFiche("recherche")} />
           <InfosCredit e={e} fige={fige} />
@@ -272,7 +272,7 @@ export function RemboursementBanque() {
     <>
       <h1>Remboursement de crédits par banque</h1>
       <section className="bloc pile" aria-label="Remboursement de crédits par banque">
-        <div className="entete-ecran"><p>Numéro de pièce : <strong className="chiffres">{fait?.piece ?? ""}</strong></p>
+        <div className="entete-ecran">{(fait?.piece ?? "") ? <p>Numéro de pièce : <strong className="chiffres">{fait?.piece ?? ""}</strong></p> : null}
           {fige ? <Champ libelle="Date règlement :">{(p) => <Lecture {...p} value={fr(date || j?.date || "")} />}</Champ>
             : <ChampDate libelle="Date règlement : *" valeur={date || j?.date || ""} onChange={setDate} />}</div>
         <div className="grille-cadres client-large">
@@ -347,7 +347,7 @@ export function RemboursementPrelevement() {
     <>
       <h1>Remboursement de crédits par prélèvement sur compte</h1>
       <section className="bloc pile" aria-label="Remboursement de crédits par prélèvement sur compte">
-        <div className="entete-ecran"><p>Numéro de pièce : <strong className="chiffres">{fait?.piece ?? ""}</strong></p>
+        <div className="entete-ecran">{(fait?.piece ?? "") ? <p>Numéro de pièce : <strong className="chiffres">{fait?.piece ?? ""}</strong></p> : null}
           {fige ? <Champ libelle="Date règlement :">{(p) => <Lecture {...p} value={fr(date || j?.date || "")} />}</Champ>
             : <ChampDate libelle="Date règlement : *" valeur={date || j?.date || ""} onChange={setDate} />}</div>
         <div className="grille-deux">

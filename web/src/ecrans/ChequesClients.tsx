@@ -83,7 +83,6 @@ export function ChequesClients() {
       <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${onglet}`}>
         {onglet < 2 && (
           <div className="entete-ecran">
-            <p>Numéro de pièce : <strong className="chiffres"></strong></p>
             <ChampDate libelle="Date Opération : *" valeur={date} onChange={(v) => maj({ date: v })} requis />
             {onglet === 1 && <ChampDate libelle="Date Encaissement *" valeur={dateEnc} onChange={setDateEnc} requis />}
           </div>
