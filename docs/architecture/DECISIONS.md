@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**984 décisions.** Solidité : 439 fortes (le manuel ou un texte répond), 463 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 977 déjà en place, 7 à appliquer.
+**985 décisions.** Solidité : 440 fortes (le manuel ou un texte répond), 463 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 978 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -591,6 +591,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S21-6 | Gestionnaire de portefeuille | Utilisateur choisi parmi les utilisateurs de l'institution. Portefeuille : les clients dont la fiche porte cet utilisateur comme gestionnaire. Montants en CDF, durées en mois | Donnée exigée ailleurs : Capture p. 36 ; fiche client (gestionnaire, S37) | faible | en place |
 | S21-7 | Bornes | Montant à et Durée Au ne sont pas inférieurs à Montant de et Durée de | Donnée exigée ailleurs : Capture p. 36 (paires de / à) | moyenne | en place |
 | S21-8 | Doublons et suppression | Type Objet, Objet Credit, Nom Assureur, Nom Zone : un libellé une seule fois (sans tenir compte des majuscules) ; codes uniques. Un type d'objet ou d'assurance utilisé ne se supprime pas | Donnée exigée ailleurs : T08 ; T02 | moyenne | en place |
+| S21-10 | Onglets du référentiel crédit | Quatre onglets au lieu de dix : Objet du crédit ; Assurance (types et assureurs sur la même page) ; Règles du crédit, en lecture (classes de l'Instr. BCC 003, termes du PCCI, périodicités) ; Cycle. La zone se règle dans « Société, agences, zones » (même table), le gestionnaire de portefeuille est l'agent de crédit, le type de produit crédit sort de l'écran. Le cycle reste choisi tant que le porteur n'a pas dit s'il faut des plafonds par cycle | Choix du porteur : Plan d'allègement, point 2.13 | forte | en place |
 
 ## S22 Ordre de remboursement
 

@@ -18,20 +18,31 @@ const SOURCES: Record<string, string> = {
   gestionnaires: "Manuel Microfina++, p. 36 : Agent de crédit, Code*, Utilisateur, Montant de, à, Durée de, Au, Actif, Nom prénom*, Portefeuille, Adresse",
 };
 
-/** S21 : Produits > Crédits > Général (manuel Microfina++, p. 32 à 36), onze onglets */
+/** S21 : Produits > Crédits > Général (manuel Microfina++, p. 32 à 36). Regroupé en quatre onglets (plan d'allègement, point 2.13) : la zone est dans
+ *  « Société, agences, zones », le gestionnaire de portefeuille est l'agent de crédit, le type de produit n'agit sur rien ; classes, termes et
+ *  périodicités forment une page en lecture « Règles du crédit » */
+const ONGLETS: { cle: string; menu: string; pages: string[] }[] = [
+  { cle: "objets", menu: "Objet du crédit", pages: ["objets"] },
+  { cle: "assurance", menu: "Assurance", pages: ["types_assurance", "assureurs"] },
+  { cle: "regles", menu: "Règles du crédit", pages: ["degres", "termes", "periodicites"] },
+  { cle: "cycles", menu: "Cycle", pages: ["cycles"] },
+];
 export default function CreditGeneral() {
   const [params, setParams] = useSearchParams();
-  const page = CATALOGUE_CREDIT.some((c) => c.page === params.get("onglet")) ? params.get("onglet")! : "objets";
+  const onglet = ONGLETS.find((o) => o.cle === params.get("onglet")) ?? ONGLETS[0]!;
   return (
     <>
-      <h2>Crédits : Général</h2>
       <div className="onglets" role="tablist" aria-label="Crédits : Général">
-        {CATALOGUE_CREDIT.map((c) => (
-          <button key={c.page} type="button" role="tab" id={`onglet-${c.page}`} aria-controls="volet" aria-selected={c.page === page}
-            onClick={() => setParams(c.page === "objets" ? {} : { onglet: c.page })}>{c.menu}</button>
+        {ONGLETS.map((o) => (
+          <button key={o.cle} type="button" role="tab" id={`onglet-${o.cle}`} aria-controls="volet" aria-selected={o.cle === onglet.cle}
+            onClick={() => setParams(o.cle === "objets" ? {} : { onglet: o.cle })}>{o.menu}</button>
         ))}
       </div>
-      <Onglet key={page} page={page} />
+      <div id="volet" role="tabpanel" aria-labelledby={`onglet-${onglet.cle}`} className="pile">
+        {onglet.pages.map((p) => onglet.pages.length > 1
+          ? <div key={p} className="pile"><h3>{CATALOGUE_CREDIT.find((c) => c.page === p)!.menu}</h3><Onglet page={p} /></div>
+          : <Onglet key={p} page={p} />)}
+      </div>
     </>
   );
 }
@@ -95,7 +106,7 @@ export function Onglet({ page }: { page: string }) {
   const supprimer = () => choisi !== null && confirmer("Voulez-vous vraiment supprimer ?", () => api.credit.supprimer(page, choisi));
   const exporter = () => exporterExcel(fiche.menu, colonnes.map((c) => c.colonne), lignes.map((l) => colonnes.map((c) => l.affichage[c.cle] ?? "")));
   return (
-    <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${page}`}>
+    <section className="bloc pile" aria-label={fiche.menu}>
       {!lecture && fiche.outils && (
         <div className="actions-onglets">
           <button className="bouton secondaire" type="button" onClick={effacer}>Nouveau</button>

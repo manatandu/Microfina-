@@ -107,13 +107,13 @@ const OUT = process.argv[2];
   await p.getByLabel('Nom du quartier *').fill('Mbanza-Lemba'); await p.getByRole('button', { name: 'Ajouter', exact: true }).click(); await oui();
   await contenu('Quartiers de Matete').getByRole('cell', { name: 'Mbanza-Lemba', exact: true }).waitFor(); await etape('02f8b-localisation-ajout-quartier');
   // Chef : référentiel crédit (S21, p. 32 à 36) : un cycle, puis Degré Crédit (Instr. BCC 003)
-  await aller('/parametrage/s21'); await p.getByRole('tab', { name: 'Cycle Credit' }).click(); await p.getByLabel('Libellé *').waitFor();
+  await aller('/parametrage/s21'); await p.getByRole('tab', { name: 'Cycle' }).click(); await p.getByLabel('Libellé *').waitFor();
   await p.getByLabel('Code *').fill('C03'); await p.getByLabel('Libellé *').fill('Troisième cycle'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: 'Troisième cycle' }).waitFor(); await etape('02f9-credit-cycles');
   // Objet de crédit (S21) : lu par la mise en place (S89) ; plus de type d'objet (plan d'allègement, point 2.1)
-  await p.getByRole('tab', { name: 'Objet Credit' }).click(); await p.getByRole('cell', { name: 'Prêt commercial' }).waitFor(); await p.getByLabel('Objet Credit: *').fill('Achat de marchandises');
+  await p.getByRole('tab', { name: 'Objet du crédit' }).click(); await p.getByRole('cell', { name: 'Prêt commercial' }).waitFor(); await p.getByLabel('Objet Credit: *').fill('Achat de marchandises');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Achat de marchandises' }).waitFor();
-  await p.getByRole('tab', { name: 'Degré Credit' }).click(); await p.getByRole('cell', { name: 'Irrécupérables' }).waitFor(); await etape('02f10-credit-degres');
+  await p.getByRole('tab', { name: 'Règles du crédit' }).click(); await p.getByRole('cell', { name: 'Irrécupérables' }).waitFor(); await etape('02f10-credit-degres');
   // Chef : ordre de remboursement (S22, p. 37) : Intérêt d'abord, puis Capital
   await aller('/parametrage/s22'); await p.getByRole('cell', { name: 'Capital Pénalité Intérêt Epargne Solidarité' }).waitFor();
   await p.getByRole('cell', { name: 'Intérêt', exact: true }).click(); await p.getByRole('button', { name: 'Tout en haut' }).click();
