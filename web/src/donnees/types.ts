@@ -573,7 +573,7 @@ export interface CreditPret {
   objetId: number; tegR: number | null; tegA: number | null; parts: { membre: string; montant: number }[];
   statut: "mis_en_place" | "vise" | "refuse" | "debloque" | "solde" | "passe_en_perte"; misEnPlacePar: number; misEnPlaceLe: string; debloqueLe: string;
   interetsCourus?: number;   // B8 : intérêts courus non échus déjà passés aux créances rattachées (PCCI § 6.4)
-  fraisEncaissesLe?: string; ecritureDeblocageId?: number; modeDeblocage?: "caisse" | "banque" | "epargne"; chequeDeblocage?: string;
+  fraisEncaissesLe?: string; fraisEncaissesPar?: number; ecritureDeblocageId?: number; modeDeblocage?: "caisse" | "banque" | "epargne"; chequeDeblocage?: string;
   echeancier: { rang: number; date: string; capital: number; interet: number }[];
   degreComptable?: number; provision?: number; degreProvision?: number | null; provisionneLe?: string; radieLe?: string;   // S99
   interetsHorsBilan?: number;   // CR-19 : intérêts non réglés d'un crédit litigieux, suivis en 0630

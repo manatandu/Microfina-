@@ -48,6 +48,8 @@ def viser(u, cid: int, niveau: str, d) -> dict:
         raise ErreurMetier("Ce crédit n'attend pas ce visa.")
     if c["mis_en_place_par"] == u["id"]:
         raise ErreurMetier("Quatre yeux : le visa est donné par un autre utilisateur que celui qui a mis le crédit en place.")
+    from .separation_credit import separer
+    separer(u, "verification" if niveau == "responsable_credit" else "autorisation", c["demande_id"], cid)
     avis = (d or {}).get("avis")
     membres = []
     if niveau == "comite" and est_coopec(u):

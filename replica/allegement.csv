@@ -1,11 +1,11 @@
 id,lot,titre,ecrans,statut,question,reste
 0.1,0,Sortie d'une immobilisation,S139,fait,,
 0.2,0,Création d'un bien,S137,partiel,oui,Plus de numéro de pièce à la création (fait). Reste ta réponse : faut-il passer l'écriture d'acquisition quand la facture n'est pas comptabilisée ?
-0.3,0,TVA d'un remboursement de crédit,S55 S76 S106 S108,à faire,,
-0.4,0,Séparation des tâches du crédit,S54 S87 S88 S90 S105,à faire,,
+0.3,0,TVA d'un remboursement de crédit,S55 S76 S106 S108,partiel,,"Écriture corrigée : la TVA va au 433. Le logiciel ne calcule pas encore de TVA sur les intérêts (toujours 0) : à prévoir sur le produit quand l'institution est assujettie (O.-L. 10/001, art. 14 : 80 millions de CDF) et le crédit taxable (art. 17, 14° et 17° ; art. 25, 5°), au lot 2 avec le produit de crédit."
+0.4,0,Séparation des tâches du crédit,S54 S87 S88 S90 S105,fait,,
 0.5,0,Utilisateur qui quitte l'institution,S05 S07,à faire,,
 0.6,0,Numéro du compte d'épargne au guichet d'adhésion,S73,à faire,,
-0.7,0,Prêts remboursés chaque semaine ou toutes les deux semaines,S21 S84 S89,à faire,,
+0.7,0,Prêts remboursés chaque semaine ou toutes les deux semaines,S21 S84 S89,fait,,
 0.8,0,Dates écrites à l'américaine,S55 S95 S105 S106 S138,à faire,,
 0.9,0,Dates proposées d'après l'horloge de l'ordinateur,S50 S51 S72 S91 S94 S101 S138,à faire,,
 0.10,0,Solde de la caisse différent selon l'onglet du guichet,S73 S78,à faire,,
@@ -19,7 +19,7 @@ id,lot,titre,ecrans,statut,question,reste
 0.18,0,Normes prudentielles,SN01,à faire,,
 0.19,0,Fin de mois bloquée,S127 S128,à faire,,
 0.20,0,Rapport des transactions,S13,à faire,,
-0.21,0,Simulation de crédit,S84,à faire,,
+0.21,0,Simulation de crédit,S84,fait,,
 0.22,0,Dates modifiables qui changent un calcul,S40 S63 S65 S69,à faire,oui,
 0.23,0,Cases enregistrées qui n'agissent sur rien,S14 S19 S23 S26 S32 S65 S69 S102 S126 S136,à faire,,
 0.24,0,Écrans non repris encore dans les menus,S129 S130,à faire,,

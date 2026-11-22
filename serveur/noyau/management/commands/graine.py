@@ -257,15 +257,20 @@ class Command(BaseCommand):
         for n, fj in enumerate(FORMES_JURIDIQUES_GROUPE, 1):
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'forme_juridique_groupe', %s, %s)", (ins, str(n), fj))
         # Utilisateurs et profils
-        uid = {}
+        uid, pids = {}, {}
+        # Sarah Tshibanda, responsable crédit, vérifie les dossiers : la vérification et l'autorisation d'un crédit reviennent à deux personnes
+        # distinctes (Instr. BCC 008, art. 66 ; registre CR-28)
         for login, nom, profil in (("engalula", "Esther Ngalula", "caissier"), ("jpmukendi", "J.-P. Mukendi", "chef_agence"),
                                    ("plumbala", "Patrick Lumbala", "comptable"), ("bkasongo", "Bijou Kasongo", "agent_credit"),
-                                   ("gmbuyi", "Grâce Mbuyi", "administrateur")):
-            pid = valeur("insert into profil (institution_id, code, nom) values (%s, %s, %s) returning id", (ins, profil, NOMS_PROFILS[profil]))
+                                   ("gmbuyi", "Grâce Mbuyi", "administrateur"), ("stshibanda", "Sarah Tshibanda", "agent_credit")):
+            nouveau = profil not in pids
+            if nouveau:
+                pids[profil] = valeur("insert into profil (institution_id, code, nom) values (%s, %s, %s) returning id", (ins, profil, NOMS_PROFILS[profil]))
+            pid = pids[profil]
             uid[login] = valeur("insert into utilisateur (institution_id, agence_id, login, nom, mot_de_passe_hash) values (%s, %s, %s, %s, '!') returning id", (ins, ag, login, nom))
             executer("insert into utilisateur_profil values (%s, %s)", (uid[login], pid))
             executer("insert into utilisateur_profil_historique (utilisateur_id, profil_id) values (%s, %s)", (uid[login], pid))   # registre S06-2
-            for c in DROITS_DEPART[profil]:                       # registre S04-2
+            for c in DROITS_DEPART[profil] if nouveau else ():     # registre S04-2
                 executer("insert into profil_droit (profil_id, droit_code) values (%s, %s)", (pid, c))
         chef, compta, caissiere = uid["jpmukendi"], uid["plumbala"], uid["engalula"]
 

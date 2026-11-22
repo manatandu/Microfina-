@@ -2322,13 +2322,15 @@ const depotsTerme = {
 
 // ---------- S69 : Épargne > Plan Epargne (manuel p. 78 à 80). Mêmes règles que serveur/noyau/plans_epargne.py (registre S69). ----------
 /** Périodicités de S21 (registre S69-2) */
+/** 52 semaines par an : pour une périodicité en semaines, une durée en mois donne le nombre de semaines le plus proche (registre S21-3) */
+const semaines = (n: number, unite: string) => (unite === "WEEK" ? Math.round(n) : n);
 const periodicitesPlan = () => (CATALOGUE_CREDIT.find((c) => c.page === "periodicites")!.fixe as { libelle: string; code: string; denominateur: string; constante: string; unite: string }[]);
 const periodicitePlan = (code: string) => periodicitesPlan().find((p) => p.code === code);
 const MODES_PLAN = ["CHEQUE", "ESPECES", "VIREMENT"];   // capture p. 79 : CHEQUE par défaut (registre S69-5)
 function echeancesPlan(duree: number, code: string) {
   const p = periodicitePlan(code);
   if (!p) throw new ErreurMetier("Périodicité inconnue.");
-  const n = duree * Number(p.denominateur) / 12;
+  const n = semaines(duree * Number(p.denominateur) / 12, p.unite);
   if (n < 1 || !Number.isInteger(n)) throw new ErreurMetier(`Durée plan épargne : ${duree} mois ne se découpe pas en échéances « ${p.libelle} ».`);
   return n;
 }
@@ -3083,7 +3085,7 @@ const simulationCredit = {
     const p = E.produitsCredit.find((x) => x.id === d.produitId);
     if (!p) throw new ErreurMetier("À remplir : Produit.");
     const nb = (k: string) => Number(String(p[k] ?? 0).replace(",", "."));
-    const code = d.periodicite || String(p.periodicite), per = periodicitePlan(code);
+    const code = String(p.periodicite), per = periodicitePlan(code);   // celle du produit : la demande et la mise en place la reprennent (Instr. BCC 38, art. 3 et 5 ; registre S84-10)
     if (!per) throw new ErreurMetier("À remplir : Périodicité.");
     if (!Number.isInteger(d.montant)) throw new ErreurMetier("À remplir : Montant du prêt.");
     if (!Number.isInteger(d.duree)) throw new ErreurMetier("À remplir : Durée.");
@@ -3094,9 +3096,9 @@ const simulationCredit = {
       throw new ErreurMetier(`Montant du prêt : entre ${montantLisible(nb("montantMin") * 100, dv).replace(",00", "")} et ${montantLisible(nb("montantMax") * 100, dv)} pour ce produit.`);
     if (d.duree < nb("dureeMin") || d.duree > nb("dureeMax")) throw new ErreurMetier(`Durée : entre ${nb("dureeMin")} et ${nb("dureeMax")} mois pour ce produit.`);
     if (differe < nb("differeMin") || differe > nb("differeMax")) throw new ErreurMetier(`Différé : entre ${nb("differeMin")} et ${nb("differeMax")} mois pour ce produit.`);
-    const n = d.duree * Number(per.denominateur) / 12;
+    const n = semaines(d.duree * Number(per.denominateur) / 12, per.unite);
     if (n < 1 || !Number.isInteger(n)) throw new ErreurMetier(`Durée : ${d.duree} mois ne se découpe pas en échéances « ${per.libelle} ».`);
-    const nd = differe * Number(per.denominateur) / 12;
+    const nd = semaines(differe * Number(per.denominateur) / 12, per.unite);
     if (!Number.isInteger(nd)) throw new ErreurMetier(`Différé : ${differe} mois ne se découpe pas en périodes « ${per.libelle} ».`);
     const deblocage = d.dateDeblocage || journees.courante()?.date || new Date().toISOString().slice(0, 10);
     const den = Number(per.denominateur), r = nb("tauxInteret") * 12 / den / 100, rd = nb("tauxDiffere") * 12 / den / 100;
@@ -3346,6 +3348,7 @@ const dossiers = {
     const u = exiger();
     const x = demandeAuStatut(id, "saisie");
     if (x.saisiPar === u.id) throw new ErreurMetier("Quatre yeux : le contrôle est fait par un autre utilisateur que celui qui a saisi la demande.");
+    separerCredit(u.id, "verification", x.id);
     if (entierDossier(d, "effectif", "Effectif") !== x.nbHommes + x.nbFemmes || entierDossier(d, "nbGroupes", "Nombre de groupes solidaires") !== x.nbGroupes
       || entierDossier(d, "montant", "Montant") !== x.montant) throw new ErreurMetier("L'effectif, le nombre de groupes ou le montant ressaisis ne correspondent pas à la demande.");
     x.statut = "controlee"; x.controlePar = u.id; enregistrer(); return vueDemande(x);
@@ -3355,6 +3358,7 @@ const dossiers = {
     const u = exiger();
     const x = demandeAuStatut(id, "controlee");
     if (u.id === x.saisiPar) throw new ErreurMetier("Quatre yeux : l'approbation est faite par un autre utilisateur que celui qui a saisi la demande.");
+    separerCredit(u.id, "autorisation", x.id);
     const m = entierDossier(d, "montantApprouve", "Montant approuvé", 1);
     const p = E.produitsCredit.find((y) => y.id === x.produitId)!;
     if (m > x.montant) throw new ErreurMetier("Montant approuvé : pas plus que le montant demandé.");
@@ -3425,6 +3429,7 @@ const miseEnPlace = {
     const u = exiger();
     const a = miseEnPlace.apercu(id, d);
     const x = demandeApprouvee(id), p = E.produitsCredit.find((y) => y.id === x.produitId)!, s = a.simulation;
+    separerCredit(u.id, "enregistrement", x.id);
     controlerListeRouge(x.tiersId);   // registre CR-9
     const ids = new Set(a.comptes.map((c) => c.id));
     if (s.epargneObligatoire && !ids.has(d.compteEpargneId ?? -1)) throw new ErreurMetier("À remplir : compte d'épargne obligatoire du client, dans la devise du crédit.");
@@ -3488,6 +3493,7 @@ const visasCredit = {
     const c = E.credits.find((x) => x.id === id);
     if (!c || !visasCredit.aViser(n).some((x) => x.id === id)) throw new ErreurMetier("Ce crédit n'attend pas ce visa.");
     if (c.misEnPlacePar === u.id) throw new ErreurMetier("Quatre yeux : le visa est donné par un autre utilisateur que celui qui a mis le crédit en place.");
+    separerCredit(u.id, n === "responsable_credit" ? "verification" : "autorisation", c.demandeId, c);
     let avis = d.avis;
     let membres: VisaCredit["membres"] = [];
     if (n === "comite" && estCoopec()) {
@@ -3838,11 +3844,26 @@ function jourOuvre(d: string) {
   }
   return x;
 }
-function creditVise(id: number) {
+function creditVise(id: number, agir = false) {
   const c = E.credits.find((x) => x.id === id);
   if (!c) throw new ErreurMetier("À remplir : N° crédit.");
   if (c.statut !== "vise") throw new ErreurMetier("Ce crédit n'est pas prêt au déblocage : il faut les trois visas (Crédit > Visas).");
+  if (agir) separerCredit(exiger().id, "manipulation", c.demandeId, c);   // frais et déblocage : manipulation des valeurs (Instr. BCC 008, art. 66 ; registre CR-28)
   return c;
+}
+/** Séparation des tâches incompatibles sur un crédit : Instr. BCC 008, art. 66 (« la manipulation des valeurs, l'enregistrement, l'autorisation des
+ *  opérations, leur vérification ») ; une même personne ne tient qu'une de ces tâches sur un même crédit (plan d'allègement, point 0.4 ; registre CR-28) */
+const TACHES_CREDIT = { enregistrement: "l'enregistrement (saisie de la demande ou mise en place)", verification: "la vérification (contrôle de la demande ou visa du responsable crédit)",
+  autorisation: "l'autorisation (approbation, visa de la commission de crédit ou du service financier)", manipulation: "le déblocage" } as const;
+type TacheCredit = keyof typeof TACHES_CREDIT;
+function separerCredit(uid: number, tache: TacheCredit, demandeId: number | null, c?: CreditPret) {
+  const t: Record<TacheCredit, (number | null | undefined)[]> = { enregistrement: [], verification: [], autorisation: [], manipulation: [] };
+  const d = demandeId ? E.demandes.find((x) => x.id === demandeId) : undefined;
+  if (d) { t.enregistrement.push(d.saisiPar); t.verification.push(d.controlePar); t.autorisation.push(d.approuvePar); }
+  if (c) { t.enregistrement.push(c.misEnPlacePar); t.manipulation.push(c.fraisEncaissesPar);
+    for (const v of E.visasCredit.filter((x) => x.creditId === c.id)) (v.niveau === "responsable_credit" ? t.verification : t.autorisation).push(v.par); }
+  for (const k of Object.keys(t) as TacheCredit[])
+    if (k !== tache && t[k].includes(uid)) throw new ErreurMetier(`Séparation des tâches (Instr. BCC 008, art. 66) : vous avez déjà fait ${TACHES_CREDIT[k]} de ce crédit ; ${TACHES_CREDIT[tache]} revient à un autre utilisateur.`);
 }
 const fraisDuCredit = (c: CreditPret) => ((E.produitsCredit.find((p) => p.id === c.produitId)?.frais ?? []) as FraisProduit[])
   .map((f) => ({ libelle: f.typeFrais, compte: f.compte, montant: chargeCredit(f.nature, f.valeur, c.montant) }));
@@ -3894,14 +3915,14 @@ const deblocage = {
   },
   /** « Encaisser frais » (p. 86) : frais et retenues arrêtés, retenus sur le prêt au déblocage (CR-6) */
   encaisserFrais(id: number) {
-    exiger();
-    const c = creditVise(id);
-    c.fraisEncaissesLe = jourDeblocage().date; enregistrer(); return deblocage.detail(id);
+    const u = exiger();
+    const c = creditVise(id, true);
+    c.fraisEncaissesLe = jourDeblocage().date; c.fraisEncaissesPar = u.id; enregistrer(); return deblocage.detail(id);
   },
   /** S75 : Débloquer au guichet, en espèces, billetage des coupures remises */
   debloquerCaisse(id: number, p: { cle: string; coupures: Comptage }) {
     const prec = dejaFaite(p.cle); if (prec) return prec;
-    const c = creditVise(id);
+    const c = creditVise(id, true);
     if (!c.fraisEncaissesLe) throw new ErreurMetier("Encaisser frais d'abord (texte p. 86 : « Encaisser frais » puis « Débloquer »).");
     const { u, s } = sessionOuverte(c.devise);
     const net = retenuesCredit(c).net, cp = nettoyer(p.coupures ?? {});
@@ -3917,7 +3938,7 @@ const deblocage = {
   /** S54 : déblocage par banque, chèque d'un chéquier du compte bancaire (S60-5) */
   debloquerBanque(id: number, p: { compteBancaireId: number; cheque: string }) {
     const u = exiger();
-    const c = creditVise(id);
+    const c = creditVise(id, true);
     if (!c.fraisEncaissesLe) throw new ErreurMetier("Prélever les frais d'abord (capture p. 62 : « Prélever les frais »).");
     const cb = E.comptesBancaires.find((x) => x.id === p.compteBancaireId);
     if (!cb) throw new ErreurMetier("À remplir : Banque et Compte.");
@@ -3934,7 +3955,7 @@ const deblocage = {
   /** S105 : Comptabilité > Déblocage crédit (p. 124 et 157) : le net est porté au compte d'épargne du client (registre S105-1 à S105-3) */
   debloquerEpargne(id: number) {
     const u = exiger();
-    const c = creditVise(id);
+    const c = creditVise(id, true);
     if (!c.fraisEncaissesLe) throw new ErreurMetier("Prélever les frais d'abord (capture p. 124 : « Prélever les frais »).");
     const k = comptePositionnement(c);
     if (!k) throw new ErreurMetier("Le client n'a pas de compte d'épargne ouvert dans la devise du crédit.");
@@ -4612,7 +4633,8 @@ function enregistrerRemboursement(c: CreditPret, d: string, montant: unknown, re
   const hbRemb = Math.min(c.interetsHorsBilan ?? 0, r.interet!);   // intérêts suivis en hors bilan, perçus : sortis du hors bilan (CR-19)
   if (hbRemb) { l.push({ compte: "096", contrat: `credit:${c.id}`, sens: "D", devise: dv, montant: hbRemb, montantCdf: cdf(hbRemb, dv) }, { compte: "0630", contrat: `credit:${c.id}`, sens: "C", devise: dv, montant: hbRemb, montantCdf: cdf(hbRemb, dv) });
     c.interetsHorsBilan = (c.interetsHorsBilan ?? 0) - hbRemb; }
-  for (const k of ["interet", "penalite", "anticipation", "tva"]) ligne(k === "anticipation" ? cc.interet : ci.interet, r[k]!);
+  for (const k of ["interet", "penalite", "anticipation"]) ligne(k === "anticipation" ? cc.interet : ci.interet, r[k]!);
+  ligne("433", r.tva!);   // la TVA perçue est due au Trésor : taxe collectée, jamais un produit (PCCI, compte 433 ; O.-L. 10/001, art. 25, 5° ; registre CR-27)
   for (const [k, cid] of [["epargne", c.compteEpargneId], ["solidarite", c.compteSolidariteId]] as [string, number | null][])
     if (r[k] && cid) ligne(E.comptes.find((x) => x.id === cid)!.pcci, r[k]!, `depot:${cid}`);
   const e = poster({ evenement: "remboursement_credit", journal, journeeId: jourDeblocage().id, libelle: extra.libelle ?? `Remboursement du crédit ${c.numero}`, piece: piece(journal), saisiPar: u, validePar: u, lignes: l });
@@ -9316,8 +9338,8 @@ export const CATALOGUE_CREDIT: FicheBudget[] = [
     fixe: ([["Court terme", 1, 12], ["Moyen terme", 13, 60], ["Long terme", 61, 9999]] as const).map(([libelle, debut, fin]) => ({ libelle, debut, fin, compte: "" })) },
   { page: "periodicites", menu: "Périodicité", exporter: true, filtres: true,
     champs: [ch("libelle", "Libelle", "Libelle"), ch("code", "Code", "Code"), ch("denominateur", "Denominateur", "Denominateur"), ch("constante", "Contante", "Contante"), ch("unite", "Unité", "Unité")],
-    fixe: [["Tous les 2 semaines", "15J", "24.0", "2.0", "WEEK"], ["Tous les 2 mois", "2M", "6.0", "2.0", "MONTH"], ["Tous les 4 mois", "4M", "3.0", "4.0", "MONTH"],
-      ["Annuel", "An", "1.0", "12.0", "MONTH"], ["Mensuel", "M", "12.0", "1.0", "MONTH"], ["Hebdomadaire", "S", "48.0", "1.0", "WEEK"], ["Semestriel", "Sem", "2.0", "6.0", "MONTH"],
+    fixe: [["Tous les 2 semaines", "15J", "26.0", "2.0", "WEEK"], ["Tous les 2 mois", "2M", "6.0", "2.0", "MONTH"], ["Tous les 4 mois", "4M", "3.0", "4.0", "MONTH"],
+      ["Annuel", "An", "1.0", "12.0", "MONTH"], ["Mensuel", "M", "12.0", "1.0", "MONTH"], ["Hebdomadaire", "S", "52.0", "1.0", "WEEK"], ["Semestriel", "Sem", "2.0", "6.0", "MONTH"],
       ["Trimestriel", "Trim", "4.0", "3.0", "MONTH"]].map(([libelle, code, denominateur, constante, unite]) => ({ libelle, code, denominateur, constante, unite })) },
   { page: "types_assurance", menu: "Type assurance", outils: true, exporter: true, filtres: true,
     champs: [ch("code", "Code Type Assurance", "code Type Assurance"), ch("libelle", "Libellé Type Assurance", "Libelle Type Assurance")] },

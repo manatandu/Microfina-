@@ -48,8 +48,9 @@ async function creditMisEnPlace(produit: Record<string, unknown> = PRODUIT_CREDI
   const pr = ctx.provinces.find((x) => x.nom === "Kinshasa")!.id, vi = ctx.villes.find((x) => x.provinceId === pr)!.id;
   const e = { nbHommes: 0, nbFemmes: 1, montantHommes: 0, montantFemmes: 100000000, nbGroupes: 0 };
   const x = await api.dossiers.demander({ produitId: pid, tiersId: 1, duree: 12, provinceId: pr, villeId: vi, ...e, ressaisie: e });
-  await connecter("jpmukendi");
+  await connecter("stshibanda");   // la responsable crédit vérifie, le chef autorise (Instr. BCC 008, art. 66 ; registre CR-28)
   await api.dossiers.controler(x.id, { effectif: 1, nbGroupes: 0, montant: 100000000 });
+  await connecter("jpmukendi");
   await api.dossiers.approuver(x.id, { montantApprouve: 100000000, consultationCrLe: "2026-11-05", consultationCrRef: "CR-1" });
   await connecter("bkasongo");
   const a = await api.miseEnPlace.apercu(x.id, {});
@@ -2132,6 +2133,14 @@ describe("journée de guichet", () => {
     expect([r.echeancier[0]!.interet, r.frais, r.epargneObligatoire]).toEqual([2500000, 1000000, 10000000]);
     const d = await sim({ differe: 2 });
     expect([d.interetDiffere, d.totalInteret]).toEqual([4000000, r.totalInteret + 4000000]);
+    expect((await api.simulationCredit.simuler({ produitId: pid, montant: 100000000, duree: 12, periodicite: "S" })).nombreTraites).toBe(12);   // celle du produit (S84-10)
+    // 52 semaines par an (registre S21-3) : 12 mois, 52 échéances ; 4 mois, 17 ; taux de la semaine : taux mensuel × 12 / 52 (comme le serveur)
+    await connecter("jpmukendi");
+    const hid = (await api.produitsCredit.enregistrer({ ...P, numero: "L002", nom: "Crédit hebdomadaire", periodicite: "S", differeMax: 0 })).produits.find((x) => x.nom === "Crédit hebdomadaire")!.id;
+    await connecter("bkasongo");
+    const w = await api.simulationCredit.simuler({ produitId: hid, montant: 100000000, duree: 12 });
+    expect([w.nombreTraites, w.echeancier[0]!.interet]).toEqual([52, 576923]);
+    expect((await api.simulationCredit.simuler({ produitId: hid, montant: 100000000, duree: 4 })).nombreTraites).toBe(17);
   });
 
   it("analyse financière (S85, p. 112) : revenu net, capacité, bilan, ratios, garanties ; avis obligatoire (registre CR-11)", async () => {
@@ -2170,10 +2179,12 @@ describe("journée de guichet", () => {
     const x = await api.dossiers.demander(d);
     expect([x.numero, x.statut, x.montant]).toEqual(["DC000001", "saisie", 100000000]);
     await expect(api.dossiers.controler(x.id, { effectif: 1, nbGroupes: 0, montant: 100000000 })).rejects.toThrow("Quatre yeux");
-    await connecter("jpmukendi");
+    await connecter("stshibanda");
     await expect(api.dossiers.controler(x.id, { effectif: 1, nbGroupes: 0, montant: 90000000 })).rejects.toThrow("ne correspondent pas");
     expect((await api.dossiers.controler(x.id, { effectif: 1, nbGroupes: 0, montant: 100000000 })).statut).toBe("controlee");
     const a = { montantApprouve: 100000000, consultationCrLe: "2026-11-05", consultationCrRef: "CR-2026-0001" };
+    await expect(api.dossiers.approuver(x.id, a)).rejects.toThrow("Séparation des tâches");   // qui a vérifié n'autorise pas (Instr. BCC 008, art. 66)
+    await connecter("jpmukendi");
     await expect(api.dossiers.approuver(x.id, a)).rejects.toThrow("consentement");
     await api.tiers.creerConsentement(1, { code: "CR", dateDebut: "2026-01-01", dateFin: "", commentaire: "" });
     await expect(api.dossiers.approuver(x.id, a)).rejects.toThrow("Fonds propres prudentiels non saisis");
@@ -2204,8 +2215,9 @@ describe("journée de guichet", () => {
     const pr = ctx.provinces.find((x) => x.nom === "Kinshasa")!.id, vi = ctx.villes.find((x) => x.provinceId === pr)!.id;
     const e = { nbHommes: 0, nbFemmes: 1, montantHommes: 0, montantFemmes: 100000000, nbGroupes: 0 };
     const x = await api.dossiers.demander({ produitId: pid, tiersId: 1, duree: 12, provinceId: pr, villeId: vi, ...e, ressaisie: e });
-    await connecter("jpmukendi");
+    await connecter("stshibanda");
     await api.dossiers.controler(x.id, { effectif: 1, nbGroupes: 0, montant: 100000000 });
+    await connecter("jpmukendi");
     await api.dossiers.approuver(x.id, { montantApprouve: 100000000, consultationCrLe: "2026-11-05", consultationCrRef: "CR-1" });
     await connecter("bkasongo");
     const mc = await api.miseEnPlace.contexte();
@@ -2229,9 +2241,12 @@ describe("journée de guichet", () => {
     await expect(api.visasCredit.viser(cid, "responsable_credit", { avis: "accepte" })).rejects.toThrow("Quatre yeux");
     await connecter("jpmukendi");
     await expect(api.visasCredit.viser(cid, "comite", { avis: "accepte" })).rejects.toThrow("attend pas ce visa");
+    await connecter("stshibanda");
     expect((await api.visasCredit.viser(cid, "responsable_credit", { avis: "accepte" })).avis).toBe("accepte");
-    await expect(api.visasCredit.viser(cid, "comite", { avis: "accepte" })).rejects.toThrow("trois membres");
     const m = [{ nom: "Mbala", avis: "accepte" }, { nom: "Ilunga", avis: "refuse" }, { nom: "Kabeya", avis: "accepte" }];
+    await expect(api.visasCredit.viser(cid, "comite", { membres: m, motif: "x" })).rejects.toThrow("Séparation des tâches");   // registre CR-28
+    await connecter("jpmukendi");
+    await expect(api.visasCredit.viser(cid, "comite", { avis: "accepte" })).rejects.toThrow("trois membres");
     await expect(api.visasCredit.viser(cid, "comite", { membres: m })).rejects.toThrow("motif");
     m[1]!.avis = "accepte";
     expect((await api.visasCredit.viser(cid, "comite", { membres: m, referencePv: "PV-12" })).avis).toBe("accepte");
@@ -2246,7 +2261,9 @@ describe("journée de guichet", () => {
     const cid = await creditMisEnPlace();
     await connecter("jpmukendi");
     await expect(api.visasCredit.appel(cid, { decision: "accorde", reference: "CA-7" })).rejects.toThrow("Seul un refus");
+    await connecter("stshibanda");
     await api.visasCredit.viser(cid, "responsable_credit", { avis: "accepte" });
+    await connecter("jpmukendi");
     const m = [{ nom: "Mbala", avis: "accepte" }, { nom: "Ilunga", avis: "refuse" }, { nom: "Kabeya", avis: "accepte" }];
     expect((await api.visasCredit.viser(cid, "comite", { membres: m, motif: "Capacité insuffisante" })).statut).toBe("refuse");
     await expect(api.visasCredit.appel(cid, { reference: "CA-7" })).rejects.toThrow("Décision du Conseil");
@@ -2263,10 +2280,10 @@ describe("journée de guichet", () => {
   /** Crédit mis en place puis visé aux trois niveaux (S90) : prêt au déblocage */
   async function creditVise(produit: Record<string, unknown> = PRODUIT_CREDIT) {
     const cid = await creditMisEnPlace(produit);
-    await connecter("jpmukendi");
+    await connecter("stshibanda");
     await api.visasCredit.viser(cid, "responsable_credit", { avis: "accepte" });
+    await connecter("jpmukendi");   // la commission et le service financier autorisent ; le comptable, qui débloque, ne vise pas (Instr. BCC 008, art. 66)
     await api.visasCredit.viser(cid, "comite", { membres: ["Mbala", "Ilunga", "Kabeya"].map((nom) => ({ nom, avis: "accepte" })), referencePv: "PV-1" });
-    await connecter("plumbala");
     await api.visasCredit.viser(cid, "service_financier", { avis: "accepte" });
     return cid;
   }

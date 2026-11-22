@@ -57,7 +57,7 @@ def simuler(u, d) -> dict:
         if isinstance(pid, int) and not isinstance(pid, bool) else None
     if not p:
         raise ErreurMetier("À remplir : Produit.")
-    code = (d or {}).get("periodicite") or p["periodicite"]
+    code = p["periodicite"]          # celle du produit : la demande et la mise en place la reprennent (Instr. BCC 38, art. 3 et 5 ; registre S84-10)
     per = PERIODICITES.get(code)
     if not per:
         raise ErreurMetier("À remplir : Périodicité.")
@@ -75,6 +75,8 @@ def simuler(u, d) -> dict:
         raise ErreurMetier(f"Différé : entre {p['differe_min']} et {p['differe_max']} mois pour ce produit.")
     n = nombre_echeances(duree, code)
     nd = Decimal(differe) * Decimal(per["denominateur"]) / 12
+    if per["unite"] == "WEEK":                  # 52 semaines par an : le différé en mois donne le nombre de semaines le plus proche (registre S21-3)
+        nd = nd.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
     if nd != nd.to_integral_value():
         raise ErreurMetier(f"Différé : {differe} mois ne se découpe pas en périodes « {per['libelle']} ».")
     nd = int(nd)

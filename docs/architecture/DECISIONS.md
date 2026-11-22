@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**951 décisions.** Solidité : 414 fortes (le manuel ou un texte répond), 455 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 944 déjà en place, 7 à appliquer.
+**954 décisions.** Solidité : 418 fortes (le manuel ou un texte répond), 454 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 947 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -576,7 +576,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | S21-1 | Degré Crédit | Écart imposé par l'Instr. BCC 003. À la place des degrés de la capture (Souffrant 1 à 4 : 1-90, 91-180, 181-360, 361-720 jours ; 0, 40, 80, 100 %) : Sains 0 % ; Impayés 1-30 jours 5 % ; Douteux 31-60 jours 25 %, 61-90 jours 50 %, 91-180 jours 75 %, 181-365 jours 100 % ; Irrécupérables au-delà de 12 mois 100 %. Lecture seule avec Exporter : le bouton Enregistrement n'est pas repris, les taux étant fixés par la BCC. Colonne Ordre de remboursement remplie par S22 | Texte réglementaire : Instr. BCC n°003 du 14/04/2012, art. 3, 6, 7, 9 et 12 | forte | en place |
 | S21-2 | Terme Crédit | Écart imposé par le PCCI. À la place des six termes de la capture (moyen terme jusqu'à 36 mois) : Court terme 1-12 mois (compte 32), Moyen terme 13-60 mois (compte 31), Long terme au-delà de 60 mois (compte 30). Lecture seule avec Exporter. Colonne Compte garanties vide, comme sur la capture | Texte réglementaire : PCCI, classe 3 (« Le classement des crédits à échéance dans les comptes principaux 30, 31 et 32 repose sur la durée initiale des prêts ») | forte | en place |
-| S21-3 | Type produit, Périodicité | Valeurs de la capture, en lecture seule avec Exporter. Périodicité : dénominateurs de la capture (Hebdomadaire 48, Tous les 2 semaines 24), à revoir avec le porteur pour le calcul du taux effectif (52 et 26 semaines par an) | Écran voisin : Captures p. 33 et 35 | moyenne | en place |
+| S21-3 | Type produit, Périodicité | Valeurs de la capture, en lecture seule avec Exporter. Périodicité : 52 semaines et 26 quinzaines par an (la capture en compte 48 et 24, ce qui faisait couvrir 12 mois de remboursement en 11) ; pour une périodicité en semaines, la durée et le différé en mois donnent le nombre de semaines le plus proche | Texte réglementaire : Instr. BCC 38, art. 2 (taux de période et nombre de périodes dans l'année) ; plan d'allègement, point 0.7 | forte | en place |
 | S21-4 | Zone Crédit | La zone de la fiche client est la Zone Crédit : la table des zones reçoit Code Zone, Description et Agence ; l'enrôlement propose les zones actives | Donnée exigée ailleurs : Capture p. 34 ; fiche client (S37, zone) | moyenne | en place |
 | S21-5 | Boutons | Type Objet, Objet Credit, Cycle, Zone, Gestionnaire : Enregistrer, Effacer, Supprimer (grisé sans ligne choisie). Type assurance et Assureur crédit : barre Nouveau, Modifier, Supprimer puis Enregistrer, Annuler. Assureur crédit reçoit une grille (Nom Assureur, Type Assurance, Compte Assureur) pour pouvoir modifier | Écran voisin : Captures p. 32 à 36 ; manuel p. 12 (T01, T02) | moyenne | en place |
 | S21-6 | Gestionnaire de portefeuille | Utilisateur choisi parmi les utilisateurs de l'institution. Portefeuille : les clients dont la fiche porte cet utilisateur comme gestionnaire. Montants en CDF, durées en mois | Donnée exigée ailleurs : Capture p. 36 ; fiche client (gestionnaire, S37) | faible | en place |
@@ -1355,7 +1355,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S84-4 | T.E.G R et T.E.G A | T.E.G R : taux de période × dénominateur (art. 2, taux proportionnel) ; T.E.G A : (1 + taux de période)^dénominateur − 1 (annexe, taux actuariel). Deux décimales. Rien pour un produit à taux réglementé ou bonifié (art. 5) | Choix du porteur : Décision du porteur, 19/11/2026 ; Instr. BCC 38, art. 2, 4, 5 et annexe | forte | en place |
 | S84-5 | Flux du TEG | Au déblocage, le client reçoit le montant moins les frais, l'assurance et l'épargne obligatoire du produit ; il verse les échéances ; l'épargne obligatoire lui revient avec la dernière échéance. Le taux de période égalise ces flux selon les intérêts composés | Texte réglementaire : Instr. BCC 38, art. 4, 6 et 9 | moyenne | en place |
 | S84-6 | Fonds de solidarité | Hors du TEG : l'article 6 nomme le taux débiteur, les frais et commissions, l'épargne obligatoire et l'assurance, pas le fonds de solidarité | Texte réglementaire : Instr. BCC 38, art. 6 | faible | en place |
-| S84-7 | Bornes | Montant, durée et différé dans les bornes du produit (S23) ; durée et différé en mois, découpés en périodes entières de la périodicité | Donnée exigée ailleurs : S23-3 ; S69-2 | moyenne | en place |
+| S84-7 | Bornes | Montant, durée et différé dans les bornes du produit (S23) ; durée et différé en mois, découpés en périodes entières (en semaines, au plus proche) de la périodicité | Donnée exigée ailleurs : S23-3 ; S69-2 | moyenne | en place |
 | S84-8 | Récapitulatif et échéancier | Récapitulatif : les caractéristiques, l'échéance, les intérêts (dont ceux du différé), les frais, l'assurance, l'épargne obligatoire et les deux TEG. Échéancier : N°, Date, Capital début, Capital, Intérêt, Échéance, Capital restant, total ; Imprimer | Manuel : Texte p. 111 (« vérifier le détail des caractéristiques puis cliquez sur [Échéancier] et cliquez sur imprimer ») | moyenne | en place |
 | S84-9 | Qui simule | Le profil qui a S84 (agent de crédit au départ) ; la simulation n'enregistre rien | Écran voisin : DROITS_DEPART | moyenne | en place |
 
@@ -2036,6 +2036,24 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S136-4 | Données de départ des immobilisations | Types CORP et INCORP, utilisations ENT, INDIV, MIXE, catégories AGI, MAB, MIN, MOB, TER et localisations 10.DG de la capture ; TVA des utilisations à 16 % (et non 10 et 18 de la capture) ; une famille par catégorie avec les comptes du PCCI (2231, 2232, 2234, 229, 2200 ; 2810, 2820, 28000 ; 6810, 6813, 6819 ; 674 et 774). Durées : exemples, à fixer par l'institution | Texte réglementaire : Manuel p. 280 à 283 ; O.-L. 10/001, art. 35, modifié par la LF 25/060, art. 46 (TVA 16 %) ; PCCI, classes 2, 6 et 7 | moyenne | en place |
+
+## S55, S76, S106 Remboursement de crédit
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| CR-27 | Compte de la TVA perçue avec un remboursement | La part TVA d'un remboursement est créditée au compte 433 (taxe collectée, due au Trésor), jamais au compte d'intérêts. Le logiciel ne calcule pas encore de TVA sur les intérêts : la part vaut 0 tant que le produit ne la prévoit pas | Texte réglementaire : O.-L. 10/001, art. 17, 14° et 17° (exonérations : crédit d'investissement, agricole, découvert ; crédit social ou agricole des COOPEC et IMF), art. 25, 5° (TVA exigible à l'échéance des intérêts du crédit à la consommation) ; PCCI, compte 433 « Impôts et taxes collectés » ; plan d'allègement, point 0.3 | forte | en place |
+
+## S84 Simulation
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S84-10 | Périodicité de la simulation | Celle du produit, en lecture : la demande et la mise en place la reprennent, l'échéancier simulé remis au client est donc le sien | Texte réglementaire : Instr. BCC 38, art. 3 (TEG calculé sur des éléments connus) et art. 5 (TEG dans l'offre) ; plan d'allègement, point 0.21 | forte | en place |
+
+## S86 à S90, S54, S75, S105 Crédit
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| CR-28 | Séparation des tâches sur un crédit | Quatre tâches, une personne chacune sur un même crédit : enregistrement (saisie de la demande, mise en place) ; vérification (contrôle, visa du responsable crédit) ; autorisation (approbation, visa de la commission, visa du service financier) ; manipulation (frais et déblocage). Une même personne peut tenir plusieurs étapes d'une même tâche. Démonstration : une responsable crédit vérifie, le chef d'agence autorise | Texte réglementaire : Instr. BCC 008, art. 66 : « la séparation des tâches incompatibles, notamment la manipulation des valeurs, l'enregistrement, l'autorisation des opérations, leur vérification » ; plan d'allègement, point 0.4 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

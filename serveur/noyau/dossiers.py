@@ -203,6 +203,8 @@ def controler(u, did: int, d) -> dict:
     x = demande(u, did, "saisie")
     if x["saisi_par"] == u["id"]:
         raise ErreurMetier("Quatre yeux : le contrôle est fait par un autre utilisateur que celui qui a saisi la demande.")
+    from .separation_credit import separer
+    separer(u, "verification", x["id"])
     if (entier(d, "effectif", "Effectif"), entier(d, "nbGroupes", "Nombre de groupes solidaires"), entier(d, "montant", "Montant")) != \
             (x["nb_hommes"] + x["nb_femmes"], x["nb_groupes"], x["montant_demande"]):
         raise ErreurMetier("L'effectif, le nombre de groupes ou le montant ressaisis ne correspondent pas à la demande.")
@@ -308,6 +310,8 @@ def approuver(u, did: int, d) -> dict:
     x = demande(u, did, "controlee")
     if u["id"] == x["saisi_par"]:
         raise ErreurMetier("Quatre yeux : l'approbation est faite par un autre utilisateur que celui qui a saisi la demande.")
+    from .separation_credit import separer
+    separer(u, "autorisation", x["id"])
     m = entier(d, "montantApprouve", "Montant approuvé", 1)
     p = produit(u, x["produit_id"])
     if m > x["montant_demande"]:

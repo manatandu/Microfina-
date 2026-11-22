@@ -9,7 +9,7 @@ const OUT = process.argv[2];
   const p = await ctx.newPage(); if (process.argv[4]) await p.emulateMedia({ colorScheme: process.argv[4] }); p.setDefaultTimeout(5000); globalThis.__p = p;
   const errs = []; p.on('pageerror', e => errs.push('page: ' + e.message)); p.on('console', m => { if (m.type() === 'error' && !/status of 422/.test(m.text())) errs.push('console: ' + m.text()); }); // 422 : refus métier attendu
   const etape = async (nom) => { await p.waitForTimeout(50); const d = await p.evaluate(() => document.documentElement.scrollWidth - innerWidth); await p.screenshot({ path: `${OUT}/${nom}.png`, fullPage: true }); console.log(d > 0 ? '⚠ débord ' + d : '✓', nom); };
-  const IDS = { 'J.-P. Mukendi': 'jpmukendi', 'Esther Ngalula': 'engalula', 'Bijou Kasongo': 'bkasongo', 'Patrick Lumbala': 'plumbala', 'Grâce Mbuyi': 'gmbuyi' };
+  const IDS = { 'J.-P. Mukendi': 'jpmukendi', 'Esther Ngalula': 'engalula', 'Bijou Kasongo': 'bkasongo', 'Patrick Lumbala': 'plumbala', 'Grâce Mbuyi': 'gmbuyi', 'Sarah Tshibanda': 'stshibanda' };
   const login = async (nom) => { await p.goto(B + '/connexion'); await p.getByLabel("Nom d'utilisateur").fill(IDS[nom]); await p.getByRole('button', { name: 'Connexion' }).click(); await p.waitForURL(B + '/'); };
   // Valide les billetages un par un, en attendant que la liste se mette à jour entre deux clics
   const aller = async (chemin) => { await p.goto(B + chemin); await p.waitForLoadState('networkidle'); };
@@ -585,12 +585,13 @@ const OUT = process.argv[2];
   await p.getByLabel('Ressaisir : Effectif femmes').fill('1'); await p.getByLabel('Ressaisir : Montant femmes').fill('1 000 000'); await etape('06w1-demande-credit');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByText('Demande N° DC000001').waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
-  await login('J.-P. Mukendi'); await aller('/credit/s87'); await p.getByRole('button', { name: 'Contrôle', exact: true }).click();
+  // Séparation des tâches (Instr. BCC 008, art. 66 ; registre CR-28) : la responsable crédit vérifie, le chef d'agence autorise
+  await login('Sarah Tshibanda'); await aller('/credit/s87'); await p.getByRole('button', { name: 'Contrôle', exact: true }).click();
   await p.getByRole('cell', { name: 'DC000001' }).dblclick(); const ctl = p.getByRole('dialog', { name: /Contrôle de la demande/ });
   await ctl.getByLabel('Effectif *').fill('1'); await ctl.getByLabel('Nombre de groupes solidaires *').fill('0'); await ctl.getByLabel('Montant *').fill('1 000 000');
   await ctl.getByRole('button', { name: 'Terminer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByText('Contrôle terminé avec succès').waitFor(); await p.getByRole('button', { name: 'Ok' }).click(); await etape('06w2-controle-demande');
-  await aller('/credit/s88'); await p.getByRole('cell', { name: 'DC000001' }).click(); await p.getByRole('button', { name: 'Approuver' }).click();
+  await login('J.-P. Mukendi'); await aller('/credit/s88'); await p.getByRole('cell', { name: 'DC000001' }).click(); await p.getByRole('button', { name: 'Approuver' }).click();
   const apv = p.getByRole('dialog', { name: /Approbation de la demande/ });
   await apv.getByLabel('Montant approuvé *').fill('1 000 000'); await apv.getByLabel('Référence du rapport de la Centrale *').fill('CR-2026-0001'); await etape('06w3-approbation');
   await apv.getByRole('button', { name: 'Approuver' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
@@ -606,14 +607,15 @@ const OUT = process.argv[2];
   await p.getByRole('dialog', { name: 'Echéancier' }).getByRole('button', { name: 'Fermer' }).click();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByText('Crédit N° 0412/L001/00001').waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
-  // Visas (S90, p. 114 et 115 ; registre CR-4, CR-5) : responsable crédit et commission de crédit (trois membres, unanimité) par le chef, service financier par le comptable
+  // Visas (S90, p. 114 et 115 ; registre CR-4, CR-5, CR-28) : responsable crédit par la responsable crédit, commission (trois membres, unanimité) par le chef, service financier par le comptable
   await login('J.-P. Mukendi');
   const viser = async (page, remplir) => {
     await aller(`/credit/s90?page=${page}`); await p.getByRole('cell', { name: '0412/L001/00001' }).click(); await p.getByRole('button', { name: 'Viser' }).click();
     const fv = p.getByRole('dialog', { name: /^Visa / }); await remplir(fv); await fv.getByRole('button', { name: 'Viser' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
     await p.getByText('Visa enregistré : crédit accepté.').waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
   };
-  await viser('responsable_credit', async (fv) => fv.getByLabel('Avis *').selectOption('accepte'));
+  await login('Sarah Tshibanda'); await viser('responsable_credit', async (fv) => fv.getByLabel('Avis *').selectOption('accepte'));
+  await login('J.-P. Mukendi');
   // La commission refuse sur un avis contraire (loi 002/2002, art. 43), puis le Conseil d'administration accorde en appel (B29 ; Instr. BCC 007, art. 18) :
   // le crédit reprend le circuit au service financier
   await aller('/credit/s90?page=comite'); await p.getByRole('cell', { name: '0412/L001/00001' }).click(); await p.getByRole('button', { name: 'Viser' }).click();

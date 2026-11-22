@@ -78,6 +78,8 @@ export function graine(): Etat {
       { id: 3, login: "plumbala", profilId: 3, nom: "Patrick Lumbala", roles: ["comptable"], agenceId: 1 },
       { id: 4, login: "bkasongo", profilId: 4, nom: "Bijou Kasongo", roles: ["agent_credit"], agenceId: 1 },
       { id: 5, login: "gmbuyi", profilId: 5, nom: "Grâce Mbuyi", roles: ["administrateur"], agenceId: 1 },   // Instr. BCC 008, art. 16 (registre T29)
+      // Responsable crédit : vérifie les dossiers, distincte de celle qui autorise (Instr. BCC 008, art. 66 ; registre CR-28)
+      { id: 6, login: "stshibanda", profilId: 4, nom: "Sarah Tshibanda", roles: ["agent_credit"], agenceId: 1 },
     ],
     coursListe: [{ devise: "USD", jour: "2026-11-04", cours: COURS_EXEMPLE }],
     journees: [{ id: 1, date: "2026-11-04", statut: "fermee", ouvertePar: 2, fermeePar: 2 }],

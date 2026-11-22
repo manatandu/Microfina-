@@ -66,7 +66,7 @@ def T(numero):
 
 @pytest.fixture
 def clients():
-    return {n: Client() for n in ("chef", "caisse", "agent", "compta")}
+    return {n: Client() for n in ("chef", "caisse", "agent", "compta", "resp")}
 
 
 @pytest.fixture
@@ -74,6 +74,7 @@ def journee(clients):
     chef, caisse = clients["chef"], clients["caisse"]
     connecter(chef, "jpmukendi"); connecter(caisse, "engalula")
     connecter(clients["agent"], "bkasongo"); connecter(clients["compta"], "plumbala")
+    connecter(clients["resp"], "stshibanda")                       # responsable crédit : la vérification d'un crédit (Instr. BCC 008, art. 66 ; registre CR-28)
     j = chef.post("/api/journees", {"date": "2026-11-05"}, **H).json()
     s = caisse.post("/api/caisses", {"guichetId": G2()}, **H).json()
     return j, s
@@ -1611,6 +1612,13 @@ def test_simulation_credit(clients, journee):
     d = sim(differe=2).json()
     assert d["interetDiffere"] == 4000000 and sum(l["interet"] for l in d["echeancier"]) == r["totalInteret"] + 4000000
     assert d["dateDebut"] > r["dateDebut"]
+    assert sim(periodicite="S").json()["nombreTraites"] == 12                                  # la périodicité du produit, toujours (registre S84-10)
+    # 52 semaines par an (registre S21-3) : 12 mois, 52 échéances hebdomadaires ; 4 mois, 17 ; le taux de la semaine est le taux mensuel × 12 / 52
+    ph = chef.post("/api/produits-credit", {**PRODUIT, "numero": "L002", "nom": "Crédit hebdomadaire", "periodicite": "S", "differeMax": 0}, **H).json()["produits"]
+    hid = next(x["id"] for x in ph if x["nom"] == "Crédit hebdomadaire")
+    w = agent.post("/api/credit/simulation", {"produitId": hid, "montant": 100000000, "duree": 12}, **H).json()
+    assert w["nombreTraites"] == 52 and w["echeancier"][0]["interet"] == 576923               # 1 000 000 × 2,5 % × 12 / 52
+    assert agent.post("/api/credit/simulation", {"produitId": hid, "montant": 100000000, "duree": 4}, **H).json()["nombreTraites"] == 17
     assert chef.post("/api/credit/simulation", {"produitId": pid, "montant": 100000000, "duree": 12}, **H).status_code == 403
 
 
@@ -1649,9 +1657,10 @@ def test_dossier_credit(clients, journee):
     x = agent.post("/api/credit/dossiers", d, **H).json()
     assert (x["numero"], x["statut"], x["montant"]) == ("DC000001", "saisie", 100000000)
     assert "Quatre yeux" in refus(agent, f"/api/credit/dossiers/{x['id']}/controle", {"effectif": 1, "nbGroupes": 0, "montant": 100000000})
-    assert "ne correspondent pas" in refus(chef, f"/api/credit/dossiers/{x['id']}/controle", {"effectif": 1, "nbGroupes": 0, "montant": 90000000})
-    assert chef.post(f"/api/credit/dossiers/{x['id']}/controle", {"effectif": 1, "nbGroupes": 0, "montant": 100000000}, **H).json()["statut"] == "controlee"
+    assert "ne correspondent pas" in refus(clients["resp"], f"/api/credit/dossiers/{x['id']}/controle", {"effectif": 1, "nbGroupes": 0, "montant": 90000000})
+    assert clients["resp"].post(f"/api/credit/dossiers/{x['id']}/controle", {"effectif": 1, "nbGroupes": 0, "montant": 100000000}, **H).json()["statut"] == "controlee"
     a = {"montantApprouve": 100000000, "consultationCrLe": "2026-11-05", "consultationCrRef": "CR-2026-0001"}
+    assert "Séparation des tâches" in refus(clients["resp"], f"/api/credit/dossiers/{x['id']}/approbation", a)   # qui a vérifié n'autorise pas (Instr. BCC 008, art. 66)
     assert "consentement" in refus(chef, f"/api/credit/dossiers/{x['id']}/approbation", a)
     agent.post(f"/api/tiers/{k}/consentements", {"code": "CR", "dateDebut": "2026-01-01", "dateFin": "", "commentaire": ""}, **H)
     assert "Fonds propres prudentiels non saisis" in refus(chef, f"/api/credit/dossiers/{x['id']}/approbation", a)
@@ -1675,7 +1684,7 @@ def credit_approuve(clients, produit=None):
     k = T("0412-000318")
     e = {"nbHommes": 0, "nbFemmes": 1, "montantHommes": 0, "montantFemmes": 100000000, "nbGroupes": 0}
     x = agent.post("/api/credit/dossiers", {"produitId": pid, "tiersId": k, "duree": 12, "provinceId": pr, "villeId": vi, **e, "ressaisie": e}, **H).json()
-    chef.post(f"/api/credit/dossiers/{x['id']}/controle", {"effectif": 1, "nbGroupes": 0, "montant": 100000000}, **H)
+    clients["resp"].post(f"/api/credit/dossiers/{x['id']}/controle", {"effectif": 1, "nbGroupes": 0, "montant": 100000000}, **H)
     agent.post(f"/api/tiers/{k}/consentements", {"code": "CR", "dateDebut": "2026-01-01", "dateFin": "", "commentaire": ""}, **H)
     chef.post("/api/credit/fonds-propres", {"dateArrete": "2026-10-31", "montant": 100000000000}, **H)
     a = chef.post(f"/api/credit/dossiers/{x['id']}/approbation", {"montantApprouve": 100000000, "consultationCrLe": "2026-11-05", "consultationCrRef": "CR-1"}, **H)
@@ -1736,9 +1745,11 @@ def test_visas_credit(clients, journee):
     assert file(chef, "responsable_credit") == [cid] and file(chef, "comite") == []
     assert "Quatre yeux" in agent.post(f"/api/credit/visas/{cid}/responsable_credit", {"avis": "accepte"}, **H).json()["message"]
     assert "attend pas ce visa" in chef.post(f"/api/credit/visas/{cid}/comite", {"avis": "accepte"}, **H).json()["message"]
-    assert chef.post(f"/api/credit/visas/{cid}/responsable_credit", {"avis": "accepte"}, **H).json()["avis"] == "accepte"
+    assert clients["resp"].post(f"/api/credit/visas/{cid}/responsable_credit", {"avis": "accepte"}, **H).json()["avis"] == "accepte"
     assert "trois membres" in chef.post(f"/api/credit/visas/{cid}/comite", {"avis": "accepte"}, **H).json()["message"]
     m = [{"nom": "Mbala", "avis": "accepte"}, {"nom": "Ilunga", "avis": "accepte"}, {"nom": "Kabeya", "avis": "accepte"}]
+    # qui a vérifié n'autorise pas (Instr. BCC 008, art. 66 ; registre CR-28)
+    assert "Séparation des tâches" in clients["resp"].post(f"/api/credit/visas/{cid}/comite", {"membres": m, "referencePv": "PV-12"}, **H).json()["message"]
     assert chef.post(f"/api/credit/visas/{cid}/comite", {"membres": m, "referencePv": "PV-12"}, **H).json()["avis"] == "accepte"
     r = compta.post(f"/api/credit/visas/{cid}/service_financier", {"avis": "accepte"}, **H).json()
     assert r["statut"] == "vise"
@@ -1751,7 +1762,7 @@ def test_commission_unanime(clients, journee):
     """Un seul avis contraire de la commission de crédit refuse le crédit (loi 002/2002, art. 43 ; Instr. BCC 007, art. 32)"""
     chef = clients["chef"]
     cid = credit_mis_en_place(clients)
-    chef.post(f"/api/credit/visas/{cid}/responsable_credit", {"avis": "accepte"}, **H)
+    clients["resp"].post(f"/api/credit/visas/{cid}/responsable_credit", {"avis": "accepte"}, **H)
     m = [{"nom": "Mbala", "avis": "accepte"}, {"nom": "Ilunga", "avis": "refuse"}, {"nom": "Kabeya", "avis": "accepte"}]
     assert "motif" in chef.post(f"/api/credit/visas/{cid}/comite", {"membres": m}, **H).json()["message"]
     r = chef.post(f"/api/credit/visas/{cid}/comite", {"membres": m, "motif": "Capacité insuffisante"}, **H).json()
@@ -1765,7 +1776,7 @@ def test_appel_au_conseil(clients, journee):
     cid = credit_mis_en_place(clients)
     appel = lambda d: chef.post(f"/api/credit/visas-appel/{cid}", d, **H)
     assert "Seul un refus" in appel({"decision": "accorde", "reference": "CA-7"}).json()["message"]
-    chef.post(f"/api/credit/visas/{cid}/responsable_credit", {"avis": "accepte"}, **H)
+    clients["resp"].post(f"/api/credit/visas/{cid}/responsable_credit", {"avis": "accepte"}, **H)
     m = [{"nom": "Mbala", "avis": "accepte"}, {"nom": "Ilunga", "avis": "refuse"}, {"nom": "Kabeya", "avis": "accepte"}]
     assert chef.post(f"/api/credit/visas/{cid}/comite", {"membres": m, "motif": "Capacité insuffisante"}, **H).json()["statut"] == "refuse"
     assert "Décision du Conseil" in appel({"reference": "CA-7"}).json()["message"]
@@ -1782,10 +1793,11 @@ def credit_vise(clients, produit=None) -> int:
     """Crédit de Kalala mis en place (S89) et visé aux trois niveaux (S90) : prêt au déblocage"""
     chef, compta = clients["chef"], clients["compta"]
     cid = credit_mis_en_place(clients, produit)
-    chef.post(f"/api/credit/visas/{cid}/responsable_credit", {"avis": "accepte"}, **H)
+    clients["resp"].post(f"/api/credit/visas/{cid}/responsable_credit", {"avis": "accepte"}, **H)
     m = [{"nom": n, "avis": "accepte"} for n in ("Mbala", "Ilunga", "Kabeya")]
     chef.post(f"/api/credit/visas/{cid}/comite", {"membres": m, "referencePv": "PV-1"}, **H)
-    assert compta.post(f"/api/credit/visas/{cid}/service_financier", {"avis": "accepte"}, **H).json()["statut"] == "vise"
+    # le service financier autorise, comme la commission : le chef ; le comptable, qui débloque par banque ou sur le compte, ne vise pas (Instr. BCC 008, art. 66)
+    assert chef.post(f"/api/credit/visas/{cid}/service_financier", {"avis": "accepte"}, **H).json()["statut"] == "vise"
     return cid
 
 
@@ -3907,7 +3919,7 @@ def test_refinancement_retard(clients, journee):
     corps = {"produitId": pid, "tiersId": T("0412-000318"), "duree": 12, "provinceId": pr, "villeId": vi, **e, "ressaisie": e}
     x = agent.post("/api/credit/dossiers", corps, **H)                   # crédit à jour : la demande passe
     assert x.status_code == 200, x.content
-    chef.post(f"/api/credit/dossiers/{x.json()['id']}/controle", {"effectif": 1, "nbGroupes": 0, "montant": 100000000}, **H)
+    clients["resp"].post(f"/api/credit/dossiers/{x.json()['id']}/controle", {"effectif": 1, "nbGroupes": 0, "montant": 100000000}, **H)
     with connection.cursor() as cur:
         cur.execute("update echeance set date_due = (date_due - interval '40 days')::date where credit_id = %s", (cid,))
     r = agent.post("/api/credit/dossiers", corps, **H)

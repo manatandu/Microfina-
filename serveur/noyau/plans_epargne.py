@@ -35,6 +35,8 @@ def nombre_echeances(duree: int, code: str) -> int:
     if not p:
         raise ErreurMetier("Périodicité inconnue.")
     n = Decimal(duree) * Decimal(p["denominateur"]) / 12
+    if p["unite"] == "WEEK":                    # 52 semaines par an : la durée en mois donne le nombre de semaines le plus proche (registre S21-3)
+        n = n.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
     if n < 1 or n != n.to_integral_value():
         raise ErreurMetier(f"Durée plan épargne : {duree} mois ne se découpe pas en échéances « {p['libelle']} ».")
     return int(n)

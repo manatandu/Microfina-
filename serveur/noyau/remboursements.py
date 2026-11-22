@@ -247,9 +247,11 @@ def enregistrer(u, c: dict, d: date, montant: int, rep: dict, contrepartie: dict
     if r["capital"]:
         l.append({"compte": comptes_credit(c, c.get("degre_comptable") or 1)["capital"], "contrat": f"credit:{c['id']}", "sens": "C", "devise": dv,
                   "montant": r["capital"]})                              # le compte qui porte le capital : sain, ou 390 après déclassement (S99)
-    for k in ("interet", "penalite", "anticipation", "tva"):
+    for k in ("interet", "penalite", "anticipation"):
         if r[k]:
             l.append({"compte": ci["interet"] if k != "anticipation" else cc["interet"], "contrat": f"credit:{c['id']}", "sens": "C", "devise": dv, "montant": r[k]})
+    if r["tva"]:   # la TVA perçue est due au Trésor : taxe collectée, jamais un produit (PCCI, compte 433 ; O.-L. 10/001, art. 25, 5° ; registre CR-27)
+        l.append({"compte": "433", "contrat": f"credit:{c['id']}", "sens": "C", "devise": dv, "montant": r["tva"]})
     for k, cid_ in (("epargne", c["compte_epargne_id"]), ("solidarite", c["compte_solidarite_id"])):
         if r[k]:
             pr = une("select p.famille, p.compte_lie from compte_depot cd join produit_epargne p on p.id = cd.produit_id where cd.id = %s", (cid_,))

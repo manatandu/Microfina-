@@ -54,8 +54,8 @@ CATALOGUE = [
         ch("denominateur", "denominateur", "Denominateur", colonne="Denominateur"), ch("constante", "constante", "Contante", colonne="Contante"),
         ch("unite", "unite", "Unité", colonne="Unité")],
      "fixe": [{"libelle": l, "code": c, "denominateur": d, "constante": k, "unite": un} for l, c, d, k, un in (
-         ("Tous les 2 semaines", "15J", "24.0", "2.0", "WEEK"), ("Tous les 2 mois", "2M", "6.0", "2.0", "MONTH"), ("Tous les 4 mois", "4M", "3.0", "4.0", "MONTH"),
-         ("Annuel", "An", "1.0", "12.0", "MONTH"), ("Mensuel", "M", "12.0", "1.0", "MONTH"), ("Hebdomadaire", "S", "48.0", "1.0", "WEEK"),
+         ("Tous les 2 semaines", "15J", "26.0", "2.0", "WEEK"), ("Tous les 2 mois", "2M", "6.0", "2.0", "MONTH"), ("Tous les 4 mois", "4M", "3.0", "4.0", "MONTH"),
+         ("Annuel", "An", "1.0", "12.0", "MONTH"), ("Mensuel", "M", "12.0", "1.0", "MONTH"), ("Hebdomadaire", "S", "52.0", "1.0", "WEEK"),
          ("Semestriel", "Sem", "2.0", "6.0", "MONTH"), ("Trimestriel", "Trim", "4.0", "3.0", "MONTH"))]},
     {"page": "types_assurance", "table": "credit_type_assurance", "menu": "Type assurance", "outils": True, "exporter": True, "filtres": True, "champs": [
         ch("code", "code", "Code Type Assurance", colonne="code Type Assurance"), ch("libelle", "libelle", "Libellé Type Assurance", colonne="Libelle Type Assurance")]},

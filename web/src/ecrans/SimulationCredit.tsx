@@ -64,7 +64,7 @@ export default function SimulationCredit() {
                   maj({ produit: id, periodicite: "" });
                   if (id) { const x = await api.produitsCredit.lireProduit(Number(id)); setF((v) => (v.produit === id ? { ...v, periodicite: String(x.periodicite ?? "") } : v)); } }}>
                   <option value=""></option>{produits.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>
-                <Champ libelle="Périodicité *">{(pp) => <select {...pp} className="saisie" value={f.periodicite} onChange={(e) => maj({ periodicite: e.target.value })}>
+                <Champ libelle="Périodicité *">{(pp) => <select {...pp} className="saisie" disabled value={f.periodicite}>
                   <option value=""></option>{p.options.periodicites.map((x) => <option key={x.code} value={x.code}>{x.libelle}</option>)}</select>}</Champ>
                 <Champ libelle="M. calcul *">{(pp) => <select {...pp} className="saisie" disabled value="Dégressif"><option>Dégressif</option></select>}</Champ>
                 <Champ libelle="Mode différé *">{(pp) => <select {...pp} className="saisie" disabled value="Réparti"><option>Réparti</option></select>}</Champ>

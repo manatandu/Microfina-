@@ -57,12 +57,15 @@ def ouvre(u, d: date) -> date:
     return d
 
 
-def credit_vise(u, cid) -> dict:
+def credit_vise(u, cid, agir: bool = False) -> dict:
     c = une("select * from credit where id = %s and institution_id = %s for update", (cid, u["institution_id"])) if isinstance(cid, int) and not isinstance(cid, bool) else None
     if not c:
         raise ErreurMetier("À remplir : N° crédit.")
     if c["statut"] != "vise":
         raise ErreurMetier("Ce crédit n'est pas prêt au déblocage : il faut les trois visas (Crédit > Visas).")
+    if agir:                                                            # frais et déblocage : manipulation des valeurs (Instr. BCC 008, art. 66 ; registre CR-28)
+        from .separation_credit import separer
+        separer(u, "manipulation", c["demande_id"], c["id"])
     return c
 
 
@@ -117,7 +120,7 @@ def detail(u, cid: int) -> dict:
 def encaisser_frais(u, cid: int) -> dict:
     """« Encaisser frais » (texte p. 86) : les frais et retenues sont arrêtés ; ils seront retenus sur le prêt au déblocage (CR-6)"""
     exiger(u)
-    c = credit_vise(u, cid)
+    c = credit_vise(u, cid, True)
     executer("update credit set frais_encaisses_le = %s, frais_encaisses_par = %s where id = %s", (jour(u), u["id"], c["id"]))
     return detail(u, c["id"])
 
@@ -166,7 +169,7 @@ def debloquer_caisse(u, cid: int, p) -> dict:
     prec = operation_par_cle(cle)
     if prec and prec["statut"] == "validee":
         return vue_operation(prec)
-    c = credit_vise(u, cid)
+    c = credit_vise(u, cid, True)
     if not c["frais_encaisses_le"]:
         raise ErreurMetier("Encaisser frais d'abord (texte p. 86 : « Encaisser frais » puis « Débloquer »).")
     dv = c["devise"].strip()
@@ -191,7 +194,7 @@ def debloquer_caisse(u, cid: int, p) -> dict:
 def debloquer_banque(u, cid: int, p) -> dict:
     """S54 : déblocage par banque : le net part du compte bancaire choisi, par un chèque du chéquier de l'institution (registre S54-2 à S54-5, S60-5)"""
     exiger(u)
-    c = credit_vise(u, cid)
+    c = credit_vise(u, cid, True)
     if not c["frais_encaisses_le"]:
         raise ErreurMetier("Prélever les frais d'abord (capture p. 62 : « Prélever les frais »).")
     cbid = (p or {}).get("compteBancaireId")
@@ -218,7 +221,7 @@ def debloquer_epargne(u, cid: int, p) -> dict:
     """S105 : Comptabilité > Déblocage crédit (manuel p. 124 ; « Déblocage de crédit par positionnement sur compte épargne », p. 156 et 157) :
     le net est porté au compte d'épargne du client, celui du crédit ou son premier compte ouvert dans la devise (registre S105-1 à S105-3)"""
     exiger(u)
-    c = credit_vise(u, cid)
+    c = credit_vise(u, cid, True)
     if not c["frais_encaisses_le"]:
         raise ErreurMetier("Prélever les frais d'abord (capture p. 124 : « Prélever les frais »).")
     from .services import compte_du_produit
