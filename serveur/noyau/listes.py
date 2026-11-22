@@ -5,8 +5,9 @@ from .services import exiger
 
 # Ordre de la liste de gauche de la capture p. 23. code, libelle, colonne : libellés des champs et de la grille.
 CATALOGUE = [
-    {"liste": "secteur_activite", "ecran": "S14", "titre": "Secteur d'activité", "code": "N° secteur", "libelle": "Secteur d'activite", "colonne": "Secteur"},
-    {"liste": "type_activite", "ecran": "S14a", "titre": "Type d'activité", "parent": "secteur_activite"},
+    # Secteur et activité sur une page (plan d'allègement, point 2.12) : les trois secteurs se choisissent dans la page Activité, sans page à eux
+    {"liste": "secteur_activite", "ecran": "S14", "titre": "Secteur d'activité", "code": "N° secteur", "libelle": "Secteur d'activité", "colonne": "Secteur", "cache": True},
+    {"liste": "type_activite", "ecran": "S14a", "titre": "Activité", "parent": "secteur_activite"},
     {"liste": "profession", "ecran": "S14b", "titre": "Profession"},
     {"liste": "forme_juridique", "ecran": "S14i", "titre": "Forme juridique"},
     {"liste": "filiation", "ecran": "S14k", "titre": "Lien de parenté"},

@@ -1768,10 +1768,10 @@ describe("journée de guichet", () => {
     l = await api.listes.enregistrer("secteur_activite", { code: "S9", libelle: "Pêche" }, s9.id);                 // Modifier (T01)
     expect(l.lignes.find((x) => x.id === s9.id)!.libelle).toBe("Pêche");
     // Type d'activité : le secteur est obligatoire ; un secteur utilisé ne se supprime pas (T02)
-    await expect(api.listes.enregistrer("type_activite", { code: "A1", libelle: "Pisciculture" })).rejects.toThrow("Secteur d'activite");
+    await expect(api.listes.enregistrer("type_activite", { code: "A1", libelle: "Pisciculture" })).rejects.toThrow("Secteur d'activité");
     l = await api.listes.enregistrer("type_activite", { code: "A1", libelle: "Pisciculture", parentId: s9.id });
     expect(l.lignes[0]).toMatchObject({ code: "A1", parent: "Pêche" });
-    await expect(api.listes.supprimer("secteur_activite", s9.id)).rejects.toThrow("Type d'activité");
+    await expect(api.listes.supprimer("secteur_activite", s9.id)).rejects.toThrow("Activité");
     await api.listes.supprimer("type_activite", l.lignes[0]!.id);
     l = await api.listes.supprimer("secteur_activite", s9.id);
     expect(l.lignes.some((x) => x.code === "S9")).toBe(false);

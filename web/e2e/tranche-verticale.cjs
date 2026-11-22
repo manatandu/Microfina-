@@ -72,13 +72,9 @@ const OUT = process.argv[2];
   await aller('/administration/s11c'); await p.getByRole('cell', { name: 'Aucune ligne.' }).waitFor(); await etape('02e-completer-journal-detail');
   // Remettre 2026 en cours pour la suite de la journée (un seul exercice actif, registre S11-1)
   await aller('/administration/s11'); await p.getByLabel('Actif : 2027').uncheck(); await p.getByLabel('Actif : 2026').check(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  // Chef : secteur d'activité (S14, p. 23)
-  // Les trois secteurs ; les activités se rangent dessous, dans Type d'activité (décision du porteur, registre S14-3)
-  await aller('/parametrage/s14'); await p.getByRole('cell', { name: 'Tertiaire' }).waitFor(); await etape('02f-secteurs-activite');
-  // Page Type d'activité de la liste de gauche (S14a, registre S14-2) : rattachée à un secteur
-  await p.getByRole('navigation', { name: 'Général' }).getByRole('button', { name: "Type d'activité" }).click();
-  await p.getByRole('heading', { name: "Information de base: Type d'activité" }).waitFor();
-  await p.getByLabel("Secteur d'activite : *").selectOption({ label: 'Primaire' }); await p.getByLabel('Code : *').fill('A1'); await p.getByLabel("Type d'activité : *").fill('Pisciculture');
+  // Chef : listes de la fiche du membre (S14, p. 23) : secteur et activité sur une page (plan d'allègement, point 2.12)
+  await aller('/parametrage/s14'); await p.getByRole('heading', { name: "Information de base: Activité" }).waitFor(); await etape('02f-secteurs-activite');
+  await p.getByLabel("Secteur d'activité : *").selectOption({ label: 'Primaire' }); await p.getByLabel('Code : *').fill('A1'); await p.getByLabel("Activité : *", { exact: true }).fill('Pisciculture');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Pisciculture' }).waitFor(); await etape('02f1-type-activite');
   // Chef : motif de départ d'un client (S18, p. 26) : même page, Libelle Motif seul
   await aller('/parametrage/s14'); await p.getByRole('navigation', { name: 'Général' }).getByRole('button', { name: 'Motif de départ' }).click(); await p.getByRole('heading', { name: "Motif de départ d'un client" }).waitFor();

@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**996 décisions.** Solidité : 449 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 989 déjà en place, 7 à appliquer.
+**997 décisions.** Solidité : 450 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 990 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2042,6 +2042,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S14-5 | Valeurs de démonstration des sous types | Celles des deux captures p. 25 : Homme, Femme, Entreprise, Institution Financiere, ETABLISSEMENT, SARL, SA, GROUPEMENT, ASSOCIATION, EGLISE, ONG, ATELIER (base neuve ; une base qui en a déjà garde les siennes) | Manuel : Manuel, captures p. 25 | forte | en place |
+
+## S14 Listes de la fiche du membre
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S14-7 | Secteur et activité sur une page | La liste de gauche ouvre sur « Activité » : chaque activité se range sous l'un des trois secteurs, choisi dans la même page. Les secteurs n'ont plus de page à eux ; leurs valeurs restent (Primaire, Secondaire, Tertiaire) et un secteur qui porte des activités ne se supprime pas. | Choix du porteur : Plan d'allègement, points 2.1 et 2.12 (accord du porteur, 22/11/2026) ; registre S14-1, S14-3 | forte | en place |
 
 ## S131 Paie : données de base
 

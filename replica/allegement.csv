@@ -52,7 +52,7 @@ id,lot,titre,ecrans,statut,question,reste
 2.9,2,Filiation,,fait,,
 2.10,2,Listes mal rangées,S47,partiel,oui,Fait : le type de guichet n'a plus de page de liste. Reste : les valeurs de départ des types de procuration (question au porteur)
 2.11,2,Profession,S14b,à faire,oui,
-2.12,2,Résultat pour les listes du membre,,partiel,,"Fait : 16 pages ramenées à 8, menu « Listes de la fiche du membre ». Reste : secteur et activité sur une page, types de procuration"
+2.12,2,Résultat pour les listes du membre,,partiel,,"Fait : 16 pages ramenées à 7, menu « Listes de la fiche du membre », secteur et activité sur une page. Reste : types de procuration (question 2.10)"
 2.13,2,Référentiel du crédit,S21 S26,partiel,oui,"Fait : quatre onglets, règles du crédit en lecture. Reste : cycle calculé (question au porteur sur les plafonds par cycle)"
 2.14,2,Ordre de remboursement,S21 S22 S23,à faire,oui,
 2.15,2,Comptes des crédits,S26,fait,,

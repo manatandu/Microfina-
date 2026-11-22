@@ -10,7 +10,7 @@ const VIDE = { code: "", libelle: "", parentId: 0 };
 /** S14 et S14a à S14n : Info de base > Client > Général (manuel Microfina++, p. 23). La page Secteur d'activité est montrée par le manuel ;
  * les autres pages de la liste de gauche prennent sa forme (registre S14-2), sauf Motif de départ, montrée par S18 (p. 26 ; registre S18-1).
  * Modifier et Supprimer : manuel p. 12 (registre T01, T02). */
-export default function ListesGenerales({ initiale = "secteur_activite" }: { initiale?: string }) {
+export default function ListesGenerales({ initiale = "type_activite" }: { initiale?: string }) {
   const [params, setParams] = useSearchParams();
   const liste = CATALOGUE_LISTES.some((c) => c.liste === params.get("page")) ? params.get("page")! : initiale;
   return <PageListe key={liste} liste={liste} changer={(l) => setParams(l === initiale ? {} : { page: l })} />;
@@ -47,7 +47,7 @@ function PageListe({ liste, changer }: { liste: string; changer: (l: string) => 
       <div className="page-liste-gauche">
         <nav className="liste-gauche" aria-label="Général">
           <ul>
-            {donnees.catalogue.map((x) => (
+            {donnees.catalogue.filter((x) => !x.cache).map((x) => (
               <li key={x.liste} aria-current={x.liste === liste ? "page" : undefined}>
                 <button type="button" onClick={() => changer(x.liste)}>{x.titre}</button>
               </li>

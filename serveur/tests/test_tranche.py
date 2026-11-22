@@ -1289,10 +1289,10 @@ def test_listes_general(clients):
     s9 = next(x["id"] for x in l["lignes"] if x["code"] == "S9")
     l = chef.post(f"/api/listes/secteur_activite/{s9}", {"code": "S9", "libelle": "Pêche"}, **H).json()
     assert next(x for x in l["lignes"] if x["id"] == s9)["libelle"] == "Pêche"
-    assert "Secteur d'activite" in refus("/api/listes/type_activite", {"code": "A1", "libelle": "Pisciculture"})
+    assert "Secteur d'activité" in refus("/api/listes/type_activite", {"code": "A1", "libelle": "Pisciculture"})
     l = chef.post("/api/listes/type_activite", {"code": "A1", "libelle": "Pisciculture", "parentId": s9}, **H).json()
     assert (l["lignes"][0]["code"], l["lignes"][0]["parent"]) == ("A1", "Pêche")
-    assert "Type d'activité" in refus(f"/api/listes/secteur_activite/{s9}/suppression", {})
+    assert "Activité" in refus(f"/api/listes/secteur_activite/{s9}/suppression", {})
     chef.post(f"/api/listes/type_activite/{l['lignes'][0]['id']}/suppression", **H)
     l = chef.post(f"/api/listes/secteur_activite/{s9}/suppression", **H).json()
     assert not [x for x in l["lignes"] if x["code"] == "S9"]

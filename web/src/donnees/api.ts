@@ -1507,12 +1507,13 @@ export type SaisieCompteBancaire = { banqueId: number; compte: string; numeroBan
   comptePenalite?: string; contactAdresse?: string };   // registre S58-3
 // ---------- Info de base > Client > Général : moteur des listes simples (S14, S14a à S14n ; COMPLEMENTS § 7.2).
 // Règles identiques côté serveur (noyau/listes.py). ----------
-export interface FicheListe { liste: string; ecran: string; titre: string; code: string; libelle: string; colonne: string; parent?: string;
+export interface FicheListe { liste: string; ecran: string; titre: string; code: string; libelle: string; colonne: string; parent?: string; cache?: boolean;
   entete?: string; sansCode?: boolean; effacer?: string }
 /** Ordre de la liste de gauche de la capture p. 23 ; les pages autres que Secteur d'activité prennent sa forme (registre S14-2) */
 export const CATALOGUE_LISTES: FicheListe[] = ([
-  { liste: "secteur_activite", ecran: "S14", titre: "Secteur d'activité", code: "N° secteur", libelle: "Secteur d'activite", colonne: "Secteur" },
-  { liste: "type_activite", ecran: "S14a", titre: "Type d'activité", parent: "secteur_activite" },
+  // Secteur et activité sur une page (plan d'allègement, point 2.12) : les trois secteurs se choisissent dans la page Activité, sans page à eux
+  { liste: "secteur_activite", ecran: "S14", titre: "Secteur d'activité", code: "N° secteur", libelle: "Secteur d'activité", colonne: "Secteur", cache: true },
+  { liste: "type_activite", ecran: "S14a", titre: "Activité", parent: "secteur_activite" },
   { liste: "profession", ecran: "S14b", titre: "Profession" },
   { liste: "forme_juridique", ecran: "S14i", titre: "Forme juridique" },
   { liste: "filiation", ecran: "S14k", titre: "Lien de parenté" },
