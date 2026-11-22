@@ -137,7 +137,7 @@ export function FicheBeneficiaires({ lignes, fermer }: { lignes: Beneficiaire[] 
   return (
     <Fiche titre="Bénéficiaire" ouverte={!!lignes} fermer={fermer}>
       <div className="defile-x"><table className="grille">
-        <thead><tr><th scope="col">Nom</th><th scope="col">Post-nom</th><th scope="col">Prénom</th><th scope="col">Sexe</th><th scope="col">Date de naissance</th><th scope="col">Filiation</th><th scope="col">Téléphone</th></tr></thead>
+        <thead><tr><th scope="col">Nom</th><th scope="col">Post-nom</th><th scope="col">Prénom</th><th scope="col">Sexe</th><th scope="col">Date de naissance</th><th scope="col">Lien de parenté</th><th scope="col">Téléphone</th></tr></thead>
         <tbody>
           {(lignes ?? []).length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
           {(lignes ?? []).map((b, i) => <tr key={i}><td>{b.nom}</td><td>{b.postnom}</td><td>{b.prenom}</td><td>{b.sexe}</td><td className="chiffres">{b.naissance ? fr(b.naissance) : ""}</td><td>{b.filiation}</td><td className="chiffres">{b.telephone}</td></tr>)}

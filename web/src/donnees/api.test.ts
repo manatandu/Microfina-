@@ -998,9 +998,9 @@ describe("journée de guichet", () => {
     await connecter("jpmukendi");
     await expect(api.tiers.resilier(3, { motif: "" })).rejects.toThrow("motif");
     await expect(api.tiers.resilier(3, { motif: "Fâché" })).rejects.toThrow("Motif inconnu");
-    await expect(api.tiers.resilier(3, { motif: "Raisons personnelles" })).rejects.toThrow("compte à solder");   // registre S48-1 ; loi 002/2002, art. 27
+    await expect(api.tiers.resilier(3, { motif: "Décision du client" })).rejects.toThrow("compte à solder");   // registre S48-1 ; loi 002/2002, art. 27
     await viderComptes(3);
-    expect(await api.tiers.resilier(3, { motif: "Raisons personnelles" })).toMatchObject({ statut: "resilie", motifDepart: "Raisons personnelles", resilieLe: "2026-11-05" });
+    expect(await api.tiers.resilier(3, { motif: "Décision du client" })).toMatchObject({ statut: "resilie", motifDepart: "Décision du client", resilieLe: "2026-11-05" });
     await expect(api.tiers.resilier(3, { motif: "Autres" })).rejects.toThrow("déjà résilié");
     await connecter("engalula");
     await expect(api.guichet.depot({ cle: cle(), compteId: 5, montant: 1000000, coupures: { 10000: 1 } })).rejects.toThrow("résilié");

@@ -865,12 +865,12 @@ def test_resiliation(clients, journee):
     assert "Droit manquant" in refus(agent, {"motif": "Autres"})
     assert "motif" in refus(chef, {"motif": ""})
     assert "Motif inconnu" in refus(chef, {"motif": "Fâché"})
-    assert "compte à solder : 0412-000320-02" in refus(chef, {"motif": "Raisons personnelles"})   # registre S48-1 ; loi 002/2002, art. 27
+    assert "compte à solder : 0412-000320-02" in refus(chef, {"motif": "Décision du client"})   # registre S48-1 ; loi 002/2002, art. 27
     vider_comptes(chef, caisse, k)
-    r = chef.post(f"/api/tiers/{k}/resiliation", {"motif": "Raisons personnelles"}, **H)
+    r = chef.post(f"/api/tiers/{k}/resiliation", {"motif": "Décision du client"}, **H)
     assert r.status_code == 200, r.content
     v = r.json()
-    assert (v["statut"], v["motifDepart"], v["resilieLe"]) == ("resilie", "Raisons personnelles", "2026-11-05")
+    assert (v["statut"], v["motifDepart"], v["resilieLe"]) == ("resilie", "Décision du client", "2026-11-05")
     assert "déjà résilié" in refus(chef, {"motif": "Autres"})
     r = caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000320-02"), "montant": 1000000, "coupures": {"10000": 1}, "mandataire": ""}, **H)
     assert r.status_code == 422 and "résilié" in r.json()["message"]

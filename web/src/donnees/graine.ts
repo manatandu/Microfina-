@@ -166,7 +166,7 @@ export function graine(): Etat {
       ...FORMES_JURIDIQUES.map((libelle, i) => ({ liste: "forme_juridique", code: String(i + 1), libelle })),
       ...FORMES_JURIDIQUES_GROUPE.map((libelle, i) => ({ liste: "forme_juridique_groupe", code: String(i + 1), libelle })),
       // S18 : motifs de départ de la capture p. 26 (registre S18-1)
-      ...["Départ du pays", "Raisons personnelles", "Déménagement", "Décision du client", "Ne veut plus prendre de crédit", "Autres", "Transfert sur une autre agence"]
+      ...["Départ du pays", "Déménagement", "Décision du client", "Décès", "Exclusion par le Conseil d'administration", "Transfert sur une autre agence", "Autres"]
         .map((libelle, i) => ({ liste: "motif_depart", code: String(i + 1), libelle })),
       // Listes de base du client complétées le 21/11/2026 (registre S14-4), comme la graine du serveur
       ...Object.entries(LISTES_CLIENT).flatMap(([liste, libelles]) => libelles.map((libelle, i) => ({ liste, code: String(i + 1), libelle })))]

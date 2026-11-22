@@ -1,1415 +1,1406 @@
 [
- {
-  "id": "S01",
-  "nom": "Connexion",
-  "acces": "URL de l'application",
-  "but": "Ouvrir une session",
-  "module": "administration",
-  "priorite": "must",
-  "chemin": "/administration/s01"
- },
- {
-  "id": "S02",
-  "nom": "Page des modules",
-  "acces": "après connexion",
-  "but": "Choisir un module",
-  "module": "administration",
-  "priorite": "must",
-  "chemin": "/administration/s02"
- },
- {
-  "id": "S03",
-  "nom": "Profils : création et modification",
-  "acces": "Administration > Profil",
-  "but": "Créer un profil",
-  "module": "administration",
-  "priorite": "must",
-  "chemin": "/administration/s03"
- },
- {
-  "id": "S04",
-  "nom": "Profils : droits",
-  "acces": "Administration > Profil > Assigner / modifier droit",
-  "but": "Cocher les tâches permises à un profil",
-  "module": "administration",
-  "priorite": "must",
-  "chemin": "/administration/s04"
- },
- {
-  "id": "S05",
-  "nom": "Utilisateurs : création",
-  "acces": "Administration > Utilisateur",
-  "but": "Créer un utilisateur",
-  "module": "administration",
-  "priorite": "must",
-  "chemin": "/administration/s05"
- },
- {
-  "id": "S06",
-  "nom": "Utilisateurs : profils",
-  "acces": "Administration > Utilisateur > Gestion des profils",
-  "but": "Lier utilisateur, agence et profil",
-  "module": "administration",
-  "priorite": "must",
-  "chemin": "/administration/s06"
- },
- {
-  "id": "S07",
-  "nom": "Utilisateurs : liste et déconnexion",
-  "acces": "Administration > Utilisateur > Autres fonctions, Déconnecter",
-  "but": "Voir qui est connecté, depuis quelle machine ; déconnecter",
-  "module": "administration",
-  "priorite": "should",
-  "chemin": "/administration/s07"
- },
- {
-  "id": "S08",
-  "nom": "Guichets : gestion",
-  "acces": "Administration > Guichet",
-  "but": "Créer un guichet, ses comptes, l'option billetage, l'activer",
-  "module": "administration",
-  "priorite": "must",
-  "chemin": "/administration/s08"
- },
- {
-  "id": "S09",
-  "nom": "Guichets : ouverture et fermeture",
-  "acces": "Administration > Guichet > Ouverture/Fermeture",
-  "but": "Ouvrir ou fermer un guichet",
-  "module": "administration",
-  "priorite": "must",
-  "chemin": "/administration/s09"
- },
- {
-  "id": "S10",
-  "nom": "Guichets : affectation",
-  "acces": "Administration > Guichet > Affectation",
-  "but": "Ajouter ou retirer un guichet à un utilisateur",
-  "module": "administration",
-  "priorite": "must",
-  "chemin": "/administration/s10"
- },
- {
-  "id": "S11",
-  "nom": "Exercice : création",
-  "acces": "Administration > Exercice > Création",
-  "but": "Créer un exercice, cocher Actif, Ouvert, Validé (p. 20)",
-  "module": "administration",
-  "priorite": "must",
-  "chemin": "/administration/s11"
- },
- {
-  "id": "S11b",
-  "nom": "Exercice : ouverture",
-  "acces": "Administration > Exercice > Ouverture",
-  "but": "Ouvrir un exercice (p. 21)",
-  "module": "administration",
-  "priorite": "must",
-  "chemin": "/administration/s11b"
- },
- {
-  "id": "S11c",
-  "nom": "Exercice : compléter journal détail",
-  "acces": "Administration > Exercice > Compléter journal détail",
-  "but": "Compléter le journal détail de l'exercice en cours (p. 21)",
-  "module": "administration",
-  "priorite": "must",
-  "chemin": "/administration/s11c"
- },
- {
-  "id": "S12",
-  "nom": "Ouverture de journée",
-  "acces": "Administration > Ouverture de journée",
-  "but": "Ouvrir une journée comptable",
-  "module": "administration",
-  "priorite": "must",
-  "chemin": "/administration/s12"
- },
- {
-  "id": "S13",
-  "nom": "Rapport des transactions",
-  "acces": "Administration > Rapport des transactions",
-  "but": "Lister les opérations d'une période",
-  "module": "administration",
-  "priorite": "should",
-  "chemin": "/administration/s13"
- },
- {
-  "id": "SA01",
-  "nom": "Journal de sécurité",
-  "acces": "Administration > Journal de sécurité",
-  "but": "Consulter les connexions, refus, blocages et accès refusés pour détecter les actions anormales ; écran du responsable de la sécurité informatique (écart E17 ; Instr. BCC 008, art. 16)",
-  "module": "administration",
-  "priorite": "must",
-  "chemin": "/administration/sa01"
- },
- {
-  "id": "S14",
-  "nom": "Secteurs d'activité",
-  "acces": "Info de base > Client > Général",
-  "but": "Liste des secteurs",
-  "module": "parametrage",
-  "priorite": "must",
-  "chemin": "/parametrage/s14"
- },
- {
-  "id": "S15",
-  "nom": "Numérotation des clients",
-  "acces": "Info de base > Client > Numérotation",
-  "but": "Règle de numérotation par institution",
-  "module": "parametrage",
-  "priorite": "must",
-  "chemin": "/parametrage/s15"
- },
- {
-  "id": "S16",
-  "nom": "Frais et opérations",
-  "acces": "Info de base > Client > Opération",
-  "but": "Définir les frais, les rattacher aux opérations et à l'adhésion par type de client",
-  "module": "parametrage",
-  "priorite": "must",
-  "chemin": "/parametrage/s16"
- },
- {
-  "id": "S17",
-  "nom": "Numéro de compte client",
-  "acces": "Info de base > Client > Numéro de compte",
-  "but": "Composer le numéro de compte",
-  "module": "parametrage",
-  "priorite": "must",
-  "chemin": "/parametrage/s17"
- },
- {
-  "id": "S18",
-  "nom": "Motifs de départ",
-  "acces": "Info de base > Client > Motif départ",
-  "but": "Motifs de résiliation",
-  "module": "parametrage",
-  "priorite": "must",
-  "chemin": "/parametrage/s18"
- },
- {
-  "id": "S19",
-  "nom": "Budget : référentiel",
-  "acces": "Info de base > Budget (types de centre de coût, centres, types de budget, types de période, périodes, plan, lignes, opérations)",
-  "but": "Préparer le budget",
-  "module": "parametrage",
-  "priorite": "should",
-  "chemin": "/parametrage/s19"
- },
- {
-  "id": "S20",
-  "nom": "Localisation",
-  "acces": "Info de base > Localisation",
-  "but": "Pays, département, commune, arrondissement, quartier",
-  "module": "parametrage",
-  "priorite": "must",
-  "chemin": "/parametrage/s20"
- },
- {
-  "id": "S21",
-  "nom": "Référentiel crédit",
-  "acces": "Produits > Crédits > Général",
-  "but": "Types et objets de crédit, type de produit, cycles, zones, degrés, termes, périodicités, types d'assurance, assureurs, gestionnaires de portefeuille",
-  "module": "parametrage",
-  "priorite": "must",
-  "chemin": "/parametrage/s21"
- },
- {
-  "id": "S22",
-  "nom": "Ordre de remboursement",
-  "acces": "Paramétrage > Produit > Crédit",
-  "but": "Ordre d'imputation d'un remboursement entre intérêt, capital, pénalité, épargne, solidarité",
-  "module": "parametrage",
-  "priorite": "must",
-  "chemin": "/parametrage/s22"
- },
- {
-  "id": "S23",
-  "nom": "Produit crédit : création",
-  "acces": "Paramétrage > Produit > Crédit > Produit crédit",
-  "but": "Définir un produit de crédit",
-  "module": "parametrage",
-  "priorite": "must",
-  "chemin": "/parametrage/s23"
- },
- {
-  "id": "S24",
-  "nom": "Produits crédit : liste",
-  "acces": "idem, onglet liste",
-  "but": "Voir les produits",
-  "module": "parametrage",
-  "priorite": "must",
-  "chemin": "/parametrage/s24"
- },
- {
-  "id": "S25",
-  "nom": "Produits crédit : activation",
-  "acces": "Paramétrage > Produit > Crédit > Activation",
-  "but": "Activer ou désactiver des produits",
-  "module": "parametrage",
-  "priorite": "must",
-  "chemin": "/parametrage/s25"
- },
- {
-  "id": "S26",
-  "nom": "Modèle de produit crédit",
-  "acces": "Produits > Crédits > Modèle pour crédit",
-  "but": "Comptes capital, interne, intérêt ; table des degrés de classement (taux de provision, jours) ; table des termes (durées)",
-  "module": "parametrage",
-  "priorite": "must",
-  "chemin": "/parametrage/s26"
- },
- {
-  "id": "S27",
-  "nom": "Produit épargne",
-  "acces": "Paramétrage > Produit > Épargne",
-  "but": "Définir un produit d'épargne",
-  "module": "parametrage",
-  "priorite": "must",
-  "chemin": "/parametrage/s27"
- },
- {
-  "id": "S28",
-  "nom": "Comptes des produits épargne",
-  "acces": "Produits > Épargne > Paramétrage des produits",
-  "but": "Comptes comptables par nature : épargne, courant, DAT, bloqué",
-  "module": "parametrage",
-  "priorite": "must",
-  "chemin": "/parametrage/s28"
- },
- {
-  "id": "SP01",
-  "nom": "Conditions de banque",
-  "acces": "Paramétrage > Produit > Conditions de banque",
-  "but": "Imprimer les conditions de banque paramétrées (taux, prélèvements, commissions, frais, dates de valeur) pour l'affichage trimestriel et la transmission à la BCC (écart E15 ; Instr. BCC 40, art. 2 à 6)",
-  "module": "parametrage",
-  "priorite": "must",
-  "chemin": "/parametrage/sp01"
- },
- {
-  "id": "S29",
-  "nom": "Numéros de pièce",
-  "acces": "Paramétrage > Comptabilité > Numéro pièce",
-  "but": "Règle de numérotation des pièces",
-  "module": "parametrage",
-  "priorite": "must",
-  "chemin": "/parametrage/s29"
- },
- {
-  "id": "S30",
-  "nom": "Journaux",
-  "acces": "Paramétrage > Comptabilité > Journal",
-  "but": "Créer les journaux",
-  "module": "parametrage",
-  "priorite": "must",
-  "chemin": "/parametrage/s30"
- },
- {
-  "id": "S31",
-  "nom": "Encaissements et décaissements divers : référentiel",
-  "acces": "Paramétrage > Comptabilité > ED divers",
-  "but": "Opérations diverses autorisées et leur compte",
-  "module": "parametrage",
-  "priorite": "must",
-  "chemin": "/parametrage/s31"
- },
- {
-  "id": "S32",
-  "nom": "Société, agences, zones",
-  "acces": "Paramétrage > Info société",
-  "but": "Identité de l'institution, logo, agences, zones",
-  "module": "parametrage",
-  "priorite": "must",
-  "chemin": "/parametrage/s32"
- },
- {
-  "id": "S33",
-  "nom": "Agence : personnes",
-  "acces": "Agence > Paramètre",
-  "but": "Gestionnaires, sensibilisateurs, commerciaux",
-  "module": "parametrage",
-  "priorite": "must",
-  "chemin": "/parametrage/s33"
- },
- {
-  "id": "S34",
-  "nom": "Agence : jours de travail et fériés",
-  "acces": "Agence > Journée de travail ; Jours fériés",
-  "but": "Calendrier",
-  "module": "parametrage",
-  "priorite": "should",
-  "chemin": "/parametrage/s34"
- },
- {
-  "id": "S35",
-  "nom": "Devises et coupures",
-  "acces": "Préférences > Devise ; Types de coupures ; Coupures",
-  "but": "Devises, types de monnaie, coupures",
-  "module": "parametrage",
-  "priorite": "must",
-  "chemin": "/parametrage/s35"
- },
- {
-  "id": "S36",
-  "nom": "Facture : éléments et références",
-  "acces": "Facture",
-  "but": "Éléments de facture, références de commande",
-  "module": "parametrage",
-  "priorite": "could",
-  "chemin": "/parametrage/s36"
- },
- {
-  "id": "S37",
-  "nom": "Enrôlement personne physique",
-  "acces": "Client > Enrôlement > Physique",
-  "but": "Créer un client",
-  "module": "clients",
-  "priorite": "must",
-  "chemin": "/clients/s37"
- },
- {
-  "id": "S38",
-  "nom": "Enrôlement entreprise",
-  "acces": "Client > Enrôlement > Entreprise",
-  "but": "Créer une personne morale",
-  "module": "clients",
-  "priorite": "must",
-  "chemin": "/clients/s38"
- },
- {
-  "id": "S39",
-  "nom": "Enrôlement groupe",
-  "acces": "Client > Enrôlement > Groupe",
-  "but": "Créer un groupement, une association, une ONG",
-  "module": "clients",
-  "priorite": "must",
-  "chemin": "/clients/s39"
- },
- {
-  "id": "S40",
-  "nom": "Visa du client",
-  "acces": "Client > Visa > Viser un client",
-  "but": "Valider l'enrôlement ; imprimer le contrat d'adhésion",
-  "module": "clients",
-  "priorite": "must",
-  "chemin": "/clients/s40"
- },
- {
-  "id": "S41",
-  "nom": "Modifier les frais d'adhésion",
-  "acces": "Client > Visa > Modifier frais",
-  "but": "Changer le montant des frais liés",
-  "module": "clients",
-  "priorite": "must",
-  "chemin": "/clients/s41"
- },
- {
-  "id": "S42",
-  "nom": "Valider un client modifié",
-  "acces": "Client > Visa > Valider client modifié",
-  "but": "Réactiver après modification",
-  "module": "clients",
-  "priorite": "must",
-  "chemin": "/clients/s42"
- },
- {
-  "id": "S43",
-  "nom": "Consulter un client",
-  "acces": "Client > Consulter client",
-  "but": "Voir l'état initial et l'état actuel",
-  "module": "clients",
-  "priorite": "must",
-  "chemin": "/clients/s43"
- },
- {
-  "id": "S44",
-  "nom": "Groupe solidaire",
-  "acces": "Client > Groupe solidaire",
-  "but": "Créer un groupe solidaire et y affecter des clients",
-  "module": "clients",
-  "priorite": "must",
-  "chemin": "/clients/s44"
- },
- {
-  "id": "S45",
-  "nom": "Prospect",
-  "acces": "Client > Nouveau prospect",
-  "but": "Enregistrer un prospect, réutilisable à l'enrôlement",
-  "module": "clients",
-  "priorite": "must",
-  "chemin": "/clients/s45"
- },
- {
-  "id": "S46",
-  "nom": "Mise à jour d'un client",
-  "acces": "Client > Mise à jour",
-  "but": "Modifier un client",
-  "module": "clients",
-  "priorite": "must",
-  "chemin": "/clients/s46"
- },
- {
-  "id": "S47",
-  "nom": "Procurations",
-  "acces": "Client > Gestion des procurations",
-  "but": "Enregistrer une procuration",
-  "module": "clients",
-  "priorite": "must",
-  "chemin": "/clients/s47"
- },
- {
-  "id": "S48",
-  "nom": "Résilier un client",
-  "acces": "Client > Résilier",
-  "but": "Clôturer la relation",
-  "module": "clients",
-  "priorite": "must",
-  "chemin": "/clients/s48"
- },
- {
-  "id": "S49",
-  "nom": "Photos et signatures",
-  "acces": "Client > Gestion des photos et signatures",
-  "but": "Mettre à jour photo et specimen",
-  "module": "clients",
-  "priorite": "must",
-  "chemin": "/clients/s49"
- },
- {
-  "id": "S50",
-  "nom": "Consentement BIC",
-  "acces": "Client > Consentement BIC",
-  "but": "Enregistrer le consentement au bureau d'information sur le crédit",
-  "module": "clients",
-  "priorite": "should",
-  "chemin": "/clients/s50"
- },
- {
-  "id": "S51",
-  "nom": "Rapports clients",
-  "acces": "Client > Rapport",
-  "but": "Multicritère, prospects, clients modifiés",
-  "module": "clients",
-  "priorite": "must",
-  "chemin": "/clients/s51"
- },
- {
-  "id": "SC01",
-  "nom": "Examen renforcé",
-  "acces": "Client > Conformité > Examen renforcé",
-  "but": "Examiner les opérations en espèces de 10 000 USD ou plus, les autoriser ou les refuser, noter la déclaration à la CENAREF (écart E01 ; loi 22/068, art. 23 ; Instr. BCC 15, art. 61 et 62)",
-  "module": "clients",
-  "priorite": "must",
-  "chemin": "/clients/sc01"
- },
- {
-  "id": "SC02",
-  "nom": "Centrale des incidents de paiement",
-  "acces": "Client > Conformité > Centrale des incidents",
-  "but": "Lister ce qui se déclare à la Centrale des incidents de paiement dans les deux jours ouvrables, noter la déclaration et l'identifiant client unique (écart E06 ; Instr. BCC 52, art. 10 à 15)",
-  "module": "clients",
-  "priorite": "must",
-  "chemin": "/clients/sc02"
- },
- {
-  "id": "SC03",
-  "nom": "Plaintes",
-  "acces": "Client > Conformité > Plaintes",
-  "but": "Enregistrer les plaintes avec un numéro de référence unique, y répondre dans 45 jours, rapport trimestriel (écart E07 ; Instr. BCC 39)",
-  "module": "clients",
-  "priorite": "must",
-  "chemin": "/clients/sc03"
- },
- {
-  "id": "SC04",
-  "nom": "Registre des membres",
-  "acces": "Client > Registre des membres",
-  "but": "Registre des membres par ordre chronologique : numéro d'adhésion, nom, pièce, adresse, profession, parts souscrites et libérées (écart E12 ; loi 002/2002, art. 67)",
-  "module": "clients",
-  "priorite": "must",
-  "chemin": "/clients/sc04"
- },
- {
-  "id": "SC05",
-  "nom": "Centrale des risques",
-  "acces": "Client > Conformité > Centrale des risques",
-  "but": "Lister ce qui se déclare en temps réel à la Centrale des risques (octroi, remboursements, engagements par signature, modifications du client, passages en perte, radiations après trois ans d'encours nul), noter la déclaration (écart E26 ; Instr. BCC 05, annexe I, art. 1, 4 à 7 et 10)",
-  "module": "clients",
-  "priorite": "must",
-  "chemin": "/clients/sc05"
- },
- {
-  "id": "SC06",
-  "nom": "Incidents et dépassements",
-  "acces": "Client > Conformité > Incidents et dépassements",
-  "but": "Garder les incidents (dépassements de limites notés par le logiciel, incidents opérationnels et déficits de trésorerie déclarés), alerter et tracer leur traitement (confrontation du 21/11/2026, B17 ; Instr. BCC 008, art. 43 et 49)",
-  "module": "clients",
-  "priorite": "must",
-  "chemin": "/clients/sc06"
- },
- {
-  "id": "S52",
-  "nom": "Opérations de banque",
-  "acces": "Banque > Opération",
-  "but": "Encaissement et décaissement, virement banque vers caisse, banque vers banque",
-  "module": "banque",
-  "priorite": "must",
-  "chemin": "/banque/s52"
- },
- {
-  "id": "S53",
-  "nom": "Virement et prélèvement",
-  "acces": "Banque > Virement prélèvement",
-  "but": "Mouvement entre un compte client et une banque",
-  "module": "banque",
-  "priorite": "must",
-  "chemin": "/banque/s53"
- },
- {
-  "id": "S54",
-  "nom": "Déblocage de crédit par banque",
-  "acces": "Banque > Déblocage crédit",
-  "but": "Verser un crédit par chèque",
-  "module": "banque",
-  "priorite": "must",
-  "chemin": "/banque/s54"
- },
- {
-  "id": "S55",
-  "nom": "Remboursement par banque",
-  "acces": "Banque > Remboursement de crédit",
-  "but": "Recevoir un remboursement par banque",
-  "module": "banque",
-  "priorite": "must",
-  "chemin": "/banque/s55"
- },
- {
-  "id": "S56",
-  "nom": "Adhésion par banque",
-  "acces": "Banque > Adhésion",
-  "but": "Premier dépôt d'adhésion reçu en banque",
-  "module": "banque",
-  "priorite": "should",
-  "chemin": "/banque/s56"
- },
- {
-  "id": "S57",
-  "nom": "Visa et validation des opérations de banque",
-  "acces": "Banque > Visa ; Validation",
-  "but": "Deux étapes pour chaque type d'opération de banque",
-  "module": "banque",
-  "priorite": "must",
-  "chemin": "/banque/s57"
- },
- {
-  "id": "S58",
-  "nom": "Banques",
-  "acces": "Banque > Création banque",
-  "but": "Banques des clients et banques de l'institution, comptes, journal, compte de pénalité",
-  "module": "banque",
-  "priorite": "must",
-  "chemin": "/banque/s58"
- },
- {
-  "id": "S59",
-  "nom": "Chèques clients",
-  "acces": "Banque > Gestion chèque client",
-  "but": "Dépôt, encaissement, historique",
-  "module": "banque",
-  "priorite": "should",
-  "chemin": "/banque/s59"
- },
- {
-  "id": "S60",
-  "nom": "Chèques de l'institution",
-  "acces": "Banque > Gestion chèque institution",
-  "but": "Générer un chéquier ; chèque pour crédit",
-  "module": "banque",
-  "priorite": "could",
-  "chemin": "/banque/s60"
- },
- {
-  "id": "S61",
-  "nom": "Emprunts bancaires",
-  "acces": "Banque > Emprunts bancaires",
-  "but": "Mise en place, remboursement",
-  "module": "banque",
-  "priorite": "should",
-  "chemin": "/banque/s61"
- },
- {
-  "id": "S62",
-  "nom": "Rapports banque",
-  "acces": "Banque > Rapport",
-  "but": "Opérations par banque et période",
-  "module": "banque",
-  "priorite": "should",
-  "chemin": "/banque/s62"
- },
- {
-  "id": "S63",
-  "nom": "Nouveau compte",
-  "acces": "Épargne > Nouveau compte",
-  "but": "Ouvrir un compte d'un produit pour un client",
-  "module": "epargne",
-  "priorite": "must",
-  "chemin": "/epargne/s63"
- },
- {
-  "id": "S64",
-  "nom": "Relevé de compte",
-  "acces": "Épargne > Relevé",
-  "but": "Opérations d'un compte sur une période ; situation du client",
-  "module": "epargne",
-  "priorite": "must",
-  "chemin": "/epargne/s64"
- },
- {
-  "id": "S65",
-  "nom": "Mise en place de DAT",
-  "acces": "Épargne > Dépôt à terme > Mise en place",
-  "but": "Constituer un DAT à partir d'un compte",
-  "module": "epargne",
-  "priorite": "must",
-  "chemin": "/epargne/s65"
- },
- {
-  "id": "S66",
-  "nom": "Validation de DAT",
-  "acces": "Épargne > Dépôt à terme > Validation",
-  "but": "Valider les DAT saisis ; imprimer le contrat",
-  "module": "epargne",
-  "priorite": "should",
-  "chemin": "/epargne/s66"
- },
- {
-  "id": "S67",
-  "nom": "Rupture de DAT",
-  "acces": "Épargne > Dépôt à terme > Rupture",
-  "but": "Rompre un DAT avant terme",
-  "module": "epargne",
-  "priorite": "should",
-  "chemin": "/epargne/s67"
- },
- {
-  "id": "S68",
-  "nom": "Recherche des DAT",
-  "acces": "Épargne > Dépôt à terme > Recherche multicritère",
-  "but": "Rechercher par type d'opération et période",
-  "module": "epargne",
-  "priorite": "must",
-  "chemin": "/epargne/s68"
- },
- {
-  "id": "S69",
-  "nom": "Plan d'épargne",
-  "acces": "Épargne > Plan épargne",
-  "but": "Simulation, création, échéancier (toutes, cotisées, non cotisées), cotisations, rupture",
-  "module": "epargne",
-  "priorite": "should",
-  "chemin": "/epargne/s69"
- },
- {
-  "id": "S70",
-  "nom": "Clôturer un compte",
-  "acces": "Épargne > Clôturer",
-  "but": "Fermer un compte",
-  "module": "epargne",
-  "priorite": "must",
-  "chemin": "/epargne/s70"
- },
- {
-  "id": "S71",
-  "nom": "Blocage",
-  "acces": "Épargne > Blocage compte et montant",
-  "but": "Bloquer un compte ou un montant, avec motif",
-  "module": "epargne",
-  "priorite": "must",
-  "chemin": "/epargne/s71"
- },
- {
-  "id": "S72",
-  "nom": "Rapports épargne",
-  "acces": "Épargne > Rapport",
-  "but": "Virements de compte à compte, garanties, multicritère, indicateur crédit épargne, comptes inactifs, comptes dormants",
-  "module": "epargne",
-  "priorite": "should",
-  "chemin": "/epargne/s72"
- },
- {
-  "id": "SE01",
-  "nom": "Comptes inactifs",
-  "acces": "Épargne > Comptes inactifs",
-  "but": "Lister les comptes sans opération ni réclamation depuis près de dix ans, noter la lettre avec accusé de réception, signaler ceux à clôturer et à verser à la BCC (écart E11 ; loi 22/069, titre III, chap. Ier)",
-  "module": "epargne",
-  "priorite": "must",
-  "chemin": "/epargne/se01"
- },
- {
-  "id": "S73",
-  "nom": "Guichet : adhésion",
-  "acces": "Caisse > Opération > Adhésion",
-  "but": "Encaisser le premier dépôt et les frais d'adhésion",
-  "module": "caisse",
-  "priorite": "must",
-  "chemin": "/caisse/s73"
- },
- {
-  "id": "S74",
-  "nom": "Guichet : dépôt et retrait",
-  "acces": "Caisse > Opération > Dépôt/Retrait",
-  "but": "Dépôt ou retrait d'espèces",
-  "module": "caisse",
-  "priorite": "must",
-  "chemin": "/caisse/s74"
- },
- {
-  "id": "S75",
-  "nom": "Guichet : déblocage de crédit",
-  "acces": "Caisse > Opération > Déblocage crédit",
-  "but": "Verser un crédit en espèces",
-  "module": "caisse",
-  "priorite": "must",
-  "chemin": "/caisse/s75"
- },
- {
-  "id": "S76",
-  "nom": "Guichet : remboursement",
-  "acces": "Caisse > Opération > Remboursement de crédit",
-  "but": "Recevoir une échéance",
-  "module": "caisse",
-  "priorite": "must",
-  "chemin": "/caisse/s76"
- },
- {
-  "id": "S77",
-  "nom": "Guichet : parts sociales",
-  "acces": "Caisse > Opération > Part sociale (Achat/Retrait)",
-  "but": "Acheter ou retirer des parts",
-  "module": "caisse",
-  "priorite": "must",
-  "chemin": "/caisse/s77"
- },
- {
-  "id": "S78",
-  "nom": "Guichet : encaissements et décaissements divers",
-  "acces": "Caisse > Autres encaissements et décaissements",
-  "but": "Encaisser ou décaisser hors opération client",
-  "module": "caisse",
-  "priorite": "must",
-  "chemin": "/caisse/s78"
- },
- {
-  "id": "S79",
-  "nom": "Billetage : saisie",
-  "acces": "Caisse > Billetage > Enregistrer",
-  "but": "Compter la caisse par coupure",
-  "module": "caisse",
-  "priorite": "must",
-  "chemin": "/caisse/s79"
- },
- {
-  "id": "S80",
-  "nom": "Billetage : validation",
-  "acces": "Caisse > Billetage > Validation",
-  "but": "Comparer solde informatique et solde réel",
-  "module": "caisse",
-  "priorite": "must",
-  "chemin": "/caisse/s80"
- },
- {
-  "id": "S81",
-  "nom": "Transfert entre caisses",
-  "acces": "Caisse > Transfert > Caisse vers caisse ; Caisse vers banque",
-  "but": "Mouvements de fonds",
-  "module": "caisse",
-  "priorite": "must",
-  "chemin": "/caisse/s81"
- },
- {
-  "id": "S82",
-  "nom": "Validation des opérations diverses et déplacées",
-  "acces": "Caisse > Opération diverse",
-  "but": "Payer en caisse une opération saisie en comptabilité, y compris pour un client d'une autre agence",
-  "module": "caisse",
-  "priorite": "must",
-  "chemin": "/caisse/s82"
- },
- {
-  "id": "S141",
-  "nom": "Règlement facture espèce",
-  "acces": "Caisse > Règlement facture espèce",
-  "but": "Payer en espèces, à la caisse, une facture de fournisseur réglée en comptabilité",
-  "module": "caisse",
-  "priorite": "should",
-  "chemin": "/caisse/s141"
- },
- {
-  "id": "S83",
-  "nom": "Rapports caisse",
-  "acces": "Caisse > Rapport",
-  "but": "Journal des opérations de caisse",
-  "module": "caisse",
-  "priorite": "must",
-  "chemin": "/caisse/s83"
- },
- {
-  "id": "S84",
-  "nom": "Simulation d'échéancier",
-  "acces": "Crédit > Plan d'amortissement",
-  "but": "Simuler un tableau d'amortissement",
-  "module": "credit",
-  "priorite": "must",
-  "chemin": "/credit/s84"
- },
- {
-  "id": "S85",
-  "nom": "Analyse financière",
-  "acces": "Crédit > Analyse financière (allégée, développée)",
-  "but": "Analyse du demandeur",
-  "module": "credit",
-  "priorite": "should",
-  "chemin": "/credit/s85"
- },
- {
-  "id": "S86",
-  "nom": "Dossier : demande",
-  "acces": "Crédit > Dossier de crédit > Analyse",
-  "but": "Saisir la demande",
-  "module": "credit",
-  "priorite": "must",
-  "chemin": "/credit/s86"
- },
- {
-  "id": "S87",
-  "nom": "Dossier : contrôle",
-  "acces": "Crédit > Dossier > Contrôle",
-  "but": "Contrôler en ressaisissant les chiffres",
-  "module": "credit",
-  "priorite": "must",
-  "chemin": "/credit/s87"
- },
- {
-  "id": "S88",
-  "nom": "Dossier : approbation",
-  "acces": "Crédit > Dossier > Approbation",
-  "but": "Approuver un montant",
-  "module": "credit",
-  "priorite": "must",
-  "chemin": "/credit/s88"
- },
- {
-  "id": "S89",
-  "nom": "Dossier : mise en place",
-  "acces": "Crédit > Dossier > Mise en place",
-  "but": "Monter le prêt",
-  "module": "credit",
-  "priorite": "must",
-  "chemin": "/credit/s89"
- },
- {
-  "id": "S90",
-  "nom": "Visas du crédit",
-  "acces": "Crédit > Suivi dossier > Visa responsable crédit ; comité ; service financier",
-  "but": "Trois niveaux de visa",
-  "module": "credit",
-  "priorite": "must",
-  "chemin": "/credit/s90"
- },
- {
-  "id": "S91",
-  "nom": "Historique des visas",
-  "acces": "Crédit > Suivi dossier > Historique",
-  "but": "Qui a visé quoi",
-  "module": "credit",
-  "priorite": "must",
-  "chemin": "/credit/s91"
- },
- {
-  "id": "S92",
-  "nom": "Crédits validés non débloqués",
-  "acces": "Crédit > Suivi dossier",
-  "but": "Suivre les crédits approuvés en attente",
-  "module": "credit",
-  "priorite": "must",
-  "chemin": "/credit/s92"
- },
- {
-  "id": "S93",
-  "nom": "État de crédit",
-  "acces": "Crédit > Suivi dossier > État",
-  "but": "Situation des crédits",
-  "module": "credit",
-  "priorite": "must",
-  "chemin": "/credit/s93"
- },
- {
-  "id": "S94",
-  "nom": "Cautions et nantissements",
-  "acces": "Crédit > Ajout/libération",
-  "but": "Ajouter ou libérer une caution, un dépôt de garantie ; rapport",
-  "module": "credit",
-  "priorite": "must",
-  "chemin": "/credit/s94"
- },
- {
-  "id": "S95",
-  "nom": "Consulter un prêt",
-  "acces": "Crédit > Consulter prêt",
-  "but": "Situation, plan réel, plan prévisionnel, mémo",
-  "module": "credit",
-  "priorite": "must",
-  "chemin": "/credit/s95"
- },
- {
-  "id": "S96",
-  "nom": "Affectation de portefeuille",
-  "acces": "Crédit > Affectation de dossier",
-  "but": "Transférer des prêts d'un gestionnaire à un autre",
-  "module": "credit",
-  "priorite": "should",
-  "chemin": "/credit/s96"
- },
- {
-  "id": "S97",
-  "nom": "Liste rouge",
-  "acces": "Crédit > Liste rouge",
-  "but": "Ajouter ou retirer un client, avec motif",
-  "module": "credit",
-  "priorite": "should",
-  "chemin": "/credit/s97"
- },
- {
-  "id": "S98",
-  "nom": "Balance âgée",
-  "acces": "Crédit > Génération de balance âgée",
-  "but": "Lancer la balance âgée à une date",
-  "module": "credit",
-  "priorite": "must",
-  "chemin": "/credit/s98"
- },
- {
-  "id": "S99",
-  "nom": "Déclassement et provisions",
-  "acces": "Crédit > Déclassement provision/crédit",
-  "but": "Charger les crédits, provisionner, radier par anticipation",
-  "module": "credit",
-  "priorite": "must",
-  "chemin": "/credit/s99"
- },
- {
-  "id": "SL01",
-  "nom": "Prorogation et contentieux",
-  "acces": "Crédit > Prorogation et contentieux",
-  "but": "Proroger un crédit une seule fois à la demande du client en reportant ses échéances, ouvrir et clore un dossier contentieux (résolution à l'amiable ou en justice) ; le crédit prend alors la classe « prorogé » ou « contentieux » dans la balance âgée (écart E27 ; Instr. BCC 003, art. 5, 8 et 12)",
-  "module": "credit",
-  "priorite": "must",
-  "chemin": "/credit/sl01"
- },
- {
-  "id": "S100",
-  "nom": "Engagement par signature",
-  "acces": "Crédit > Engagement par signature",
-  "but": "Enregistrer un engagement donné",
-  "module": "credit",
-  "priorite": "should",
-  "chemin": "/credit/s100"
- },
- {
-  "id": "S101",
-  "nom": "Rapports crédit",
-  "acces": "Crédit > Rapport",
-  "but": "Journal, rapports de base, multicritère, synthèse de la balance âgée, taux de remboursement, encours prévisionnel, exigibles, indicateurs de gestion",
-  "module": "credit",
-  "priorite": "must",
-  "chemin": "/credit/s101"
- },
- {
-  "id": "S102",
-  "nom": "Plan des comptes",
-  "acces": "Comptabilité > Plan des comptes",
-  "but": "Créer et consulter le référentiel ; modèle de plan à cinq positions ; comptes saisissables avec nature et taxe ; concordance entre plans",
-  "module": "comptabilite",
-  "priorite": "must",
-  "chemin": "/comptabilite/s102"
- },
- {
-  "id": "S103",
-  "nom": "Plan des tiers",
-  "acces": "Comptabilité > Plan des tiers",
-  "but": "Fournisseurs et autres tiers",
-  "module": "comptabilite",
-  "priorite": "must",
-  "chemin": "/comptabilite/s103"
- },
- {
-  "id": "S104",
-  "nom": "Taxes",
-  "acces": "Comptabilité > Taxes",
-  "but": "Taux de taxe",
-  "module": "comptabilite",
-  "priorite": "should",
-  "chemin": "/comptabilite/s104"
- },
- {
-  "id": "S105",
-  "nom": "Déblocage par compte d'épargne",
-  "acces": "Comptabilité > Déblocage crédit",
-  "but": "Verser un crédit sur le compte du client",
-  "module": "comptabilite",
-  "priorite": "must",
-  "chemin": "/comptabilite/s105"
- },
- {
-  "id": "S106",
-  "nom": "Remboursement par prélèvement",
-  "acces": "Comptabilité > Remboursement par prélèvement",
-  "but": "Prélever une échéance sur l'épargne",
-  "module": "comptabilite",
-  "priorite": "must",
-  "chemin": "/comptabilite/s106"
- },
- {
-  "id": "S142",
-  "nom": "Annulation de règlement de crédit",
-  "acces": "Comptabilité > Annulation de règlement de crédit",
-  "but": "Annuler un remboursement de crédit fait par prélèvement sur compte",
-  "module": "comptabilite",
-  "priorite": "must",
-  "chemin": "/comptabilite/s142"
- },
- {
-  "id": "S107",
-  "nom": "Factures fournisseurs",
-  "acces": "Comptabilité > Factures",
-  "but": "Bon de commande avec tranches d'acompte, facture, règlement, journal, rapport",
-  "module": "comptabilite",
-  "priorite": "should",
-  "chemin": "/comptabilite/s107"
- },
- {
-  "id": "S108",
-  "nom": "Déclaration de taxes",
-  "acces": "Comptabilité > Déclaration",
-  "but": "Taxes d'un mois",
-  "module": "comptabilite",
-  "priorite": "should",
-  "chemin": "/comptabilite/s108"
- },
- {
-  "id": "S109",
-  "nom": "Saisie d'écritures",
-  "acces": "Comptabilité > Saisie d'écriture",
-  "but": "Saisir une écriture dans un journal et une période",
-  "module": "comptabilite",
-  "priorite": "must",
-  "chemin": "/comptabilite/s109"
- },
- {
-  "id": "S110",
-  "nom": "Rapprochement bancaire",
-  "acces": "Comptabilité > Rapprochement",
-  "but": "Pointer le relevé, ajouter les opérations manquantes, éditer l'état",
-  "module": "comptabilite",
-  "priorite": "must",
-  "chemin": "/comptabilite/s110"
- },
- {
-  "id": "S111",
-  "nom": "Comptabilisation",
-  "acces": "Comptabilité > Comptabilisation",
-  "but": "Passer le brouillard de la journée en comptabilité",
-  "module": "comptabilite",
-  "priorite": "must",
-  "chemin": "/comptabilite/s111"
- },
- {
-  "id": "S112",
-  "nom": "Historique des rapprochements",
-  "acces": "Comptabilité > Historique",
-  "but": "Retrouver un rapprochement",
-  "module": "comptabilite",
-  "priorite": "must",
-  "chemin": "/comptabilite/s112"
- },
- {
-  "id": "S113",
-  "nom": "Visas comptables",
-  "acces": "Comptabilité > Visa",
-  "but": "Viser virements, retraits au-delà du plafond, opérations diverses et déplacées, écritures, factures, règlements, virements de compte à compte",
-  "module": "comptabilite",
-  "priorite": "must",
-  "chemin": "/comptabilite/s113"
- },
- {
-  "id": "S114",
-  "nom": "Validations comptables",
-  "acces": "Comptabilité > Validation",
-  "but": "Valider les mêmes opérations après visa",
-  "module": "comptabilite",
-  "priorite": "must",
-  "chemin": "/comptabilite/s114"
- },
- {
-  "id": "S115",
-  "nom": "Journaux",
-  "acces": "Comptabilité > Journaux",
-  "but": "Journaux comptables",
-  "module": "comptabilite",
-  "priorite": "must",
-  "chemin": "/comptabilite/s115"
- },
- {
-  "id": "S116",
-  "nom": "Autres opérations",
-  "acces": "Comptabilité > Autres opérations",
-  "but": "Virement et prélèvement, virement de compte à compte, opération diverse (à payer en caisse ou sur compte client), opération déplacée",
-  "module": "comptabilite",
-  "priorite": "must",
-  "chemin": "/comptabilite/s116"
- },
- {
-  "id": "S117",
-  "nom": "Virements mensuels",
-  "acces": "Comptabilité > Virements mensuels",
-  "but": "Domiciliation de salaire ; salaires du personnel et prélèvement automatique « ne marchent pas » (p. 137)",
-  "module": "comptabilite",
-  "priorite": "must",
-  "chemin": "/comptabilite/s117"
- },
- {
-  "id": "S118",
-  "nom": "Contrôles",
-  "acces": "Comptabilité > Contrôle",
-  "but": "Compte (écart gestion et comptabilité), trésorerie (soldes des caisses et banques), rapport des annulations, état des revenus",
-  "module": "comptabilite",
-  "priorite": "must",
-  "chemin": "/comptabilite/s118"
- },
- {
-  "id": "S119",
-  "nom": "Lettrage",
-  "acces": "Comptabilité > Lettrage",
-  "but": "Lettrer un compte",
-  "module": "comptabilite",
-  "priorite": "must",
-  "chemin": "/comptabilite/s119"
- },
- {
-  "id": "S120",
-  "nom": "Grand livre",
-  "acces": "Comptabilité > Grand livre",
-  "but": "Général et analytique",
-  "module": "comptabilite",
-  "priorite": "must",
-  "chemin": "/comptabilite/s120"
- },
- {
-  "id": "S121",
-  "nom": "Balance",
-  "acces": "Comptabilité > Balance",
-  "but": "Générale et analytique",
-  "module": "comptabilite",
-  "priorite": "must",
-  "chemin": "/comptabilite/s121"
- },
- {
-  "id": "S122",
-  "nom": "États financiers",
-  "acces": "Comptabilité > États financiers",
-  "but": "Bilan, hors bilan, résultat, annexes",
-  "module": "comptabilite",
-  "priorite": "must",
-  "chemin": "/comptabilite/s122"
- },
- {
-  "id": "S123",
-  "nom": "Indicateurs",
-  "acces": "Comptabilité > Indicateurs > Financiers",
-  "but": "Indicateurs par mois",
-  "module": "comptabilite",
-  "priorite": "must",
-  "chemin": "/comptabilite/s123"
- },
- {
-  "id": "SN01",
-  "nom": "Normes prudentielles",
-  "acces": "Comptabilité > Indicateurs > Normes prudentielles",
-  "but": "Calculer à une date, sur la balance, les normes prudentielles et dire si elles sont respectées (confrontation du 21/11/2026, A2, B5, B6 ; Instr. BCC 002 ; loi 002/2002, art. 59)",
-  "module": "comptabilite",
-  "priorite": "must",
-  "chemin": "/comptabilite/sn01"
- },
- {
-  "id": "SF01",
-  "nom": "Retenues à reverser",
-  "acces": "Comptabilité > Retenues à reverser",
-  "but": "État mensuel des retenues à la source sur les intérêts (compte 433), échéance du 15 du mois suivant, reversement noté avec sa quittance (écart E16 ; arrêté 008/2025, art. 2 ; loi 23/053, art. 120)",
-  "module": "comptabilite",
-  "priorite": "must",
-  "chemin": "/comptabilite/sf01"
- },
- {
-  "id": "S124",
-  "nom": "Nouveau budget",
-  "acces": "Budget > Nouveau",
-  "but": "Définir ou reconduire un budget",
-  "module": "budget",
-  "priorite": "should",
-  "chemin": "/budget/s124"
- },
- {
-  "id": "S125",
-  "nom": "Consultation et suivi budgétaire",
-  "acces": "Budget > Consultation ; Suivi ; Consommation par centre de coût",
-  "but": "Suivre le réalisé",
-  "module": "budget",
-  "priorite": "should",
-  "chemin": "/budget/s125"
- },
- {
-  "id": "S126",
-  "nom": "Financement",
-  "acces": "Budget > Financement",
-  "but": "Lignes, types de financement, bailleurs",
-  "module": "budget",
-  "priorite": "should",
-  "chemin": "/budget/s126"
- },
- {
-  "id": "S127",
-  "nom": "Clôtures",
-  "acces": "Autres > Clôture",
-  "but": "Crédit (état des provisions), dépôt, comptabilité",
-  "module": "budget",
-  "priorite": "must",
-  "chemin": "/budget/s127"
- },
- {
-  "id": "S143",
-  "nom": "Trésorerie",
-  "acces": "Autres > Trésorerie",
-  "but": "Voir les soldes des caisses et des banques à une date",
-  "module": "budget",
-  "priorite": "must",
-  "chemin": "/budget/s143"
- },
- {
-  "id": "S128",
-  "nom": "Calculs",
-  "acces": "Autres > Calculs",
-  "but": "Frais de tenue de compte, intérêts sur DAV et DAT, état des provisions",
-  "module": "budget",
-  "priorite": "must",
-  "chemin": "/budget/s128"
- },
- {
-  "id": "S129",
-  "nom": "Caisse mobile",
-  "acces": "Autres > Caisse mobile",
-  "but": "Transfert de collecte, paramètres",
-  "module": "budget",
-  "priorite": "skip",
-  "chemin": "/budget/s129"
- },
- {
-  "id": "S130",
-  "nom": "Gestion de réunion",
-  "acces": "Autres > Gestion de réunion",
-  "but": "non décrit",
-  "module": "budget",
-  "priorite": "skip",
-  "chemin": "/budget/s130"
- },
- {
-  "id": "S131",
-  "nom": "Données de base de la paie",
-  "acces": "Structure de base > Données de base",
-  "but": "Allocations, barème d'imposition, catégories, classes, échelons, familles et rubriques d'éléments, grilles salariales, types d'avance, d'heures supplémentaires, de grille, de retenue (avec compte comptable)",
-  "module": "paie",
-  "priorite": "should",
-  "chemin": "/paie/s131"
- },
- {
-  "id": "S132",
-  "nom": "Grilles et états",
-  "acces": "Structure de base > Gestion des grilles ; Gestion des états",
-  "but": "Grilles fiscales et sociales ; états et leurs signataires",
-  "module": "paie",
-  "priorite": "should",
-  "chemin": "/paie/s132"
- },
- {
-  "id": "S133",
-  "nom": "Employé",
-  "acces": "Personnel > Nouvel employé",
-  "but": "Fiche, classification et grilles, affectation, contrat",
-  "module": "paie",
-  "priorite": "should",
-  "chemin": "/paie/s133"
- },
- {
-  "id": "S134",
-  "nom": "Rubriques et maquette de paie",
-  "acces": "Personnel > Rubrique ; Maquette de paie",
-  "but": "Rubriques et montants par employé",
-  "module": "paie",
-  "priorite": "should",
-  "chemin": "/paie/s134"
- },
- {
-  "id": "S135",
-  "nom": "Retenues",
-  "acces": "Traitement retenues",
-  "but": "Mettre en place, lister, viser une retenue",
-  "module": "paie",
-  "priorite": "must",
-  "chemin": "/paie/s135"
- },
- {
-  "id": "S136",
-  "nom": "Données de base",
-  "acces": "Données de base",
-  "but": "Types, utilisations (TVA), coefficients de dégressivité, catégories, familles avec comptes, localisations",
-  "module": "immobilisations",
-  "priorite": "must",
-  "chemin": "/immobilisations/s136"
- },
- {
-  "id": "S137",
-  "nom": "Création de bien",
-  "acces": "Nouveau",
-  "but": "Créer un bien",
-  "module": "immobilisations",
-  "priorite": "must",
-  "chemin": "/immobilisations/s137"
- },
- {
-  "id": "S138",
-  "nom": "Affectation et transfert",
-  "acces": "Affectation ; Transfert",
-  "but": "Affecter un bien, le transférer, le libérer",
-  "module": "immobilisations",
-  "priorite": "must",
-  "chemin": "/immobilisations/s138"
- },
- {
-  "id": "S139",
-  "nom": "Amortissement, inventaire, sortie",
-  "acces": "Amortissement ; Inventaire ; Sortie",
-  "but": "Amortir, inventorier, sortir du patrimoine",
-  "module": "immobilisations",
-  "priorite": "must",
-  "chemin": "/immobilisations/s139"
- },
- {
-  "id": "S140",
-  "nom": "Rapports immobilisations",
-  "acces": "Rapport",
-  "but": "Biens par localisation, inventaires, simulation d'amortissement, suivi, multicritère",
-  "module": "immobilisations",
-  "priorite": "should",
-  "chemin": "/immobilisations/s140"
- }
+  {
+    "id": "S01",
+    "nom": "Connexion",
+    "acces": "URL de l'application",
+    "but": "Ouvrir une session",
+    "module": "administration",
+    "priorite": "must",
+    "chemin": "/administration/s01"
+  },
+  {
+    "id": "S02",
+    "nom": "Page des modules",
+    "acces": "après connexion",
+    "but": "Choisir un module",
+    "module": "administration",
+    "priorite": "must",
+    "chemin": "/administration/s02"
+  },
+  {
+    "id": "S03",
+    "nom": "Profils : création et modification",
+    "acces": "Administration > Profil",
+    "but": "Créer un profil",
+    "module": "administration",
+    "priorite": "must",
+    "chemin": "/administration/s03"
+  },
+  {
+    "id": "S04",
+    "nom": "Profils : droits",
+    "acces": "Administration > Profil > Assigner / modifier droit",
+    "but": "Cocher les tâches permises à un profil",
+    "module": "administration",
+    "priorite": "must",
+    "chemin": "/administration/s04"
+  },
+  {
+    "id": "S05",
+    "nom": "Utilisateurs : création",
+    "acces": "Administration > Utilisateur",
+    "but": "Créer un utilisateur",
+    "module": "administration",
+    "priorite": "must",
+    "chemin": "/administration/s05"
+  },
+  {
+    "id": "S06",
+    "nom": "Utilisateurs : profils",
+    "acces": "Administration > Utilisateur > Gestion des profils",
+    "but": "Lier utilisateur, agence et profil",
+    "module": "administration",
+    "priorite": "must",
+    "chemin": "/administration/s06"
+  },
+  {
+    "id": "S07",
+    "nom": "Utilisateurs : liste et déconnexion",
+    "acces": "Administration > Utilisateur > Autres fonctions, Déconnecter",
+    "but": "Voir qui est connecté, depuis quelle machine ; déconnecter",
+    "module": "administration",
+    "priorite": "should",
+    "chemin": "/administration/s07"
+  },
+  {
+    "id": "S08",
+    "nom": "Guichets : gestion",
+    "acces": "Administration > Guichet",
+    "but": "Créer un guichet, ses comptes, l'option billetage, l'activer",
+    "module": "administration",
+    "priorite": "must",
+    "chemin": "/administration/s08"
+  },
+  {
+    "id": "S09",
+    "nom": "Guichets : ouverture et fermeture",
+    "acces": "Administration > Guichet > Ouverture/Fermeture",
+    "but": "Ouvrir ou fermer un guichet",
+    "module": "administration",
+    "priorite": "must",
+    "chemin": "/administration/s09"
+  },
+  {
+    "id": "S10",
+    "nom": "Guichets : affectation",
+    "acces": "Administration > Guichet > Affectation",
+    "but": "Ajouter ou retirer un guichet à un utilisateur",
+    "module": "administration",
+    "priorite": "must",
+    "chemin": "/administration/s10"
+  },
+  {
+    "id": "S11",
+    "nom": "Exercice : création",
+    "acces": "Administration > Exercice > Création",
+    "but": "Créer un exercice, cocher Actif, Ouvert, Validé (p. 20)",
+    "module": "administration",
+    "priorite": "must",
+    "chemin": "/administration/s11"
+  },
+  {
+    "id": "S11b",
+    "nom": "Exercice : ouverture",
+    "acces": "Administration > Exercice > Ouverture",
+    "but": "Ouvrir un exercice (p. 21)",
+    "module": "administration",
+    "priorite": "must",
+    "chemin": "/administration/s11b"
+  },
+  {
+    "id": "S11c",
+    "nom": "Exercice : compléter journal détail",
+    "acces": "Administration > Exercice > Compléter journal détail",
+    "but": "Compléter le journal détail de l'exercice en cours (p. 21)",
+    "module": "administration",
+    "priorite": "must",
+    "chemin": "/administration/s11c"
+  },
+  {
+    "id": "S12",
+    "nom": "Ouverture de journée",
+    "acces": "Administration > Ouverture de journée",
+    "but": "Ouvrir une journée comptable",
+    "module": "administration",
+    "priorite": "must",
+    "chemin": "/administration/s12"
+  },
+  {
+    "id": "S13",
+    "nom": "Rapport des transactions",
+    "acces": "Administration > Rapport des transactions",
+    "but": "Lister les opérations d'une période",
+    "module": "administration",
+    "priorite": "should",
+    "chemin": "/administration/s13"
+  },
+  {
+    "id": "SA01",
+    "nom": "Journal de sécurité",
+    "acces": "Administration > Journal de sécurité",
+    "but": "Consulter les connexions, refus, blocages et accès refusés pour détecter les actions anormales ; écran du responsable de la sécurité informatique (écart E17 ; Instr. BCC 008, art. 16)",
+    "module": "administration",
+    "priorite": "must",
+    "chemin": "/administration/sa01"
+  },
+  {
+    "id": "S14",
+    "nom": "Listes de la fiche du membre",
+    "acces": "Info de base > Client > Général",
+    "but": "Listes que lit la fiche du membre",
+    "module": "parametrage",
+    "priorite": "must",
+    "chemin": "/parametrage/s14"
+  },
+  {
+    "id": "S15",
+    "nom": "Numérotation des clients",
+    "acces": "Info de base > Client > Numérotation",
+    "but": "Règle de numérotation par institution",
+    "module": "parametrage",
+    "priorite": "must",
+    "chemin": "/parametrage/s15"
+  },
+  {
+    "id": "S16",
+    "nom": "Frais et opérations",
+    "acces": "Info de base > Client > Opération",
+    "but": "Définir les frais, les rattacher aux opérations et à l'adhésion par type de client",
+    "module": "parametrage",
+    "priorite": "must",
+    "chemin": "/parametrage/s16"
+  },
+  {
+    "id": "S17",
+    "nom": "Numéro de compte client",
+    "acces": "Info de base > Client > Numéro de compte",
+    "but": "Composer le numéro de compte",
+    "module": "parametrage",
+    "priorite": "must",
+    "chemin": "/parametrage/s17"
+  },
+  {
+    "id": "S19",
+    "nom": "Budget : référentiel",
+    "acces": "Info de base > Budget (types de centre de coût, centres, types de budget, types de période, périodes, plan, lignes, opérations)",
+    "but": "Préparer le budget",
+    "module": "parametrage",
+    "priorite": "should",
+    "chemin": "/parametrage/s19"
+  },
+  {
+    "id": "S20",
+    "nom": "Localisation",
+    "acces": "Info de base > Localisation",
+    "but": "Pays, département, commune, arrondissement, quartier",
+    "module": "parametrage",
+    "priorite": "must",
+    "chemin": "/parametrage/s20"
+  },
+  {
+    "id": "S21",
+    "nom": "Référentiel crédit",
+    "acces": "Produits > Crédits > Général",
+    "but": "Types et objets de crédit, type de produit, cycles, zones, degrés, termes, périodicités, types d'assurance, assureurs, gestionnaires de portefeuille",
+    "module": "parametrage",
+    "priorite": "must",
+    "chemin": "/parametrage/s21"
+  },
+  {
+    "id": "S22",
+    "nom": "Ordre de remboursement",
+    "acces": "Paramétrage > Produit > Crédit",
+    "but": "Ordre d'imputation d'un remboursement entre intérêt, capital, pénalité, épargne, solidarité",
+    "module": "parametrage",
+    "priorite": "must",
+    "chemin": "/parametrage/s22"
+  },
+  {
+    "id": "S23",
+    "nom": "Produit crédit : création",
+    "acces": "Paramétrage > Produit > Crédit > Produit crédit",
+    "but": "Définir un produit de crédit",
+    "module": "parametrage",
+    "priorite": "must",
+    "chemin": "/parametrage/s23"
+  },
+  {
+    "id": "S24",
+    "nom": "Produits crédit : liste",
+    "acces": "idem, onglet liste",
+    "but": "Voir les produits",
+    "module": "parametrage",
+    "priorite": "must",
+    "chemin": "/parametrage/s24"
+  },
+  {
+    "id": "S25",
+    "nom": "Produits crédit : activation",
+    "acces": "Paramétrage > Produit > Crédit > Activation",
+    "but": "Activer ou désactiver des produits",
+    "module": "parametrage",
+    "priorite": "must",
+    "chemin": "/parametrage/s25"
+  },
+  {
+    "id": "S26",
+    "nom": "Modèle de produit crédit",
+    "acces": "Produits > Crédits > Modèle pour crédit",
+    "but": "Comptes capital, interne, intérêt ; table des degrés de classement (taux de provision, jours) ; table des termes (durées)",
+    "module": "parametrage",
+    "priorite": "must",
+    "chemin": "/parametrage/s26"
+  },
+  {
+    "id": "S27",
+    "nom": "Produit épargne",
+    "acces": "Paramétrage > Produit > Épargne",
+    "but": "Définir un produit d'épargne",
+    "module": "parametrage",
+    "priorite": "must",
+    "chemin": "/parametrage/s27"
+  },
+  {
+    "id": "S28",
+    "nom": "Comptes des produits épargne",
+    "acces": "Produits > Épargne > Paramétrage des produits",
+    "but": "Comptes comptables par nature : épargne, courant, DAT, bloqué",
+    "module": "parametrage",
+    "priorite": "must",
+    "chemin": "/parametrage/s28"
+  },
+  {
+    "id": "SP01",
+    "nom": "Conditions de banque",
+    "acces": "Paramétrage > Produit > Conditions de banque",
+    "but": "Imprimer les conditions de banque paramétrées (taux, prélèvements, commissions, frais, dates de valeur) pour l'affichage trimestriel et la transmission à la BCC (écart E15 ; Instr. BCC 40, art. 2 à 6)",
+    "module": "parametrage",
+    "priorite": "must",
+    "chemin": "/parametrage/sp01"
+  },
+  {
+    "id": "S29",
+    "nom": "Numéros de pièce",
+    "acces": "Paramétrage > Comptabilité > Numéro pièce",
+    "but": "Règle de numérotation des pièces",
+    "module": "parametrage",
+    "priorite": "must",
+    "chemin": "/parametrage/s29"
+  },
+  {
+    "id": "S30",
+    "nom": "Journaux",
+    "acces": "Paramétrage > Comptabilité > Journal",
+    "but": "Créer les journaux",
+    "module": "parametrage",
+    "priorite": "must",
+    "chemin": "/parametrage/s30"
+  },
+  {
+    "id": "S31",
+    "nom": "Encaissements et décaissements divers : référentiel",
+    "acces": "Paramétrage > Comptabilité > ED divers",
+    "but": "Opérations diverses autorisées et leur compte",
+    "module": "parametrage",
+    "priorite": "must",
+    "chemin": "/parametrage/s31"
+  },
+  {
+    "id": "S32",
+    "nom": "Société, agences, zones",
+    "acces": "Paramétrage > Info société",
+    "but": "Identité de l'institution, logo, agences, zones",
+    "module": "parametrage",
+    "priorite": "must",
+    "chemin": "/parametrage/s32"
+  },
+  {
+    "id": "S33",
+    "nom": "Agence : personnes",
+    "acces": "Agence > Paramètre",
+    "but": "Gestionnaires, sensibilisateurs, commerciaux",
+    "module": "parametrage",
+    "priorite": "must",
+    "chemin": "/parametrage/s33"
+  },
+  {
+    "id": "S34",
+    "nom": "Agence : jours de travail et fériés",
+    "acces": "Agence > Journée de travail ; Jours fériés",
+    "but": "Calendrier",
+    "module": "parametrage",
+    "priorite": "should",
+    "chemin": "/parametrage/s34"
+  },
+  {
+    "id": "S35",
+    "nom": "Devises et coupures",
+    "acces": "Préférences > Devise ; Types de coupures ; Coupures",
+    "but": "Devises, types de monnaie, coupures",
+    "module": "parametrage",
+    "priorite": "must",
+    "chemin": "/parametrage/s35"
+  },
+  {
+    "id": "S36",
+    "nom": "Facture : éléments et références",
+    "acces": "Facture",
+    "but": "Éléments de facture, références de commande",
+    "module": "parametrage",
+    "priorite": "could",
+    "chemin": "/parametrage/s36"
+  },
+  {
+    "id": "S37",
+    "nom": "Enrôlement personne physique",
+    "acces": "Client > Enrôlement > Physique",
+    "but": "Créer un client",
+    "module": "clients",
+    "priorite": "must",
+    "chemin": "/clients/s37"
+  },
+  {
+    "id": "S38",
+    "nom": "Enrôlement entreprise",
+    "acces": "Client > Enrôlement > Entreprise",
+    "but": "Créer une personne morale",
+    "module": "clients",
+    "priorite": "must",
+    "chemin": "/clients/s38"
+  },
+  {
+    "id": "S39",
+    "nom": "Enrôlement groupe",
+    "acces": "Client > Enrôlement > Groupe",
+    "but": "Créer un groupement, une association, une ONG",
+    "module": "clients",
+    "priorite": "must",
+    "chemin": "/clients/s39"
+  },
+  {
+    "id": "S40",
+    "nom": "Visa du client",
+    "acces": "Client > Visa > Viser un client",
+    "but": "Valider l'enrôlement ; imprimer le contrat d'adhésion",
+    "module": "clients",
+    "priorite": "must",
+    "chemin": "/clients/s40"
+  },
+  {
+    "id": "S41",
+    "nom": "Modifier les frais d'adhésion",
+    "acces": "Client > Visa > Modifier frais",
+    "but": "Changer le montant des frais liés",
+    "module": "clients",
+    "priorite": "must",
+    "chemin": "/clients/s41"
+  },
+  {
+    "id": "S42",
+    "nom": "Valider un client modifié",
+    "acces": "Client > Visa > Valider client modifié",
+    "but": "Réactiver après modification",
+    "module": "clients",
+    "priorite": "must",
+    "chemin": "/clients/s42"
+  },
+  {
+    "id": "S43",
+    "nom": "Consulter un client",
+    "acces": "Client > Consulter client",
+    "but": "Voir l'état initial et l'état actuel",
+    "module": "clients",
+    "priorite": "must",
+    "chemin": "/clients/s43"
+  },
+  {
+    "id": "S44",
+    "nom": "Groupe solidaire",
+    "acces": "Client > Groupe solidaire",
+    "but": "Créer un groupe solidaire et y affecter des clients",
+    "module": "clients",
+    "priorite": "must",
+    "chemin": "/clients/s44"
+  },
+  {
+    "id": "S45",
+    "nom": "Prospect",
+    "acces": "Client > Nouveau prospect",
+    "but": "Enregistrer un prospect, réutilisable à l'enrôlement",
+    "module": "clients",
+    "priorite": "must",
+    "chemin": "/clients/s45"
+  },
+  {
+    "id": "S46",
+    "nom": "Mise à jour d'un client",
+    "acces": "Client > Mise à jour",
+    "but": "Modifier un client",
+    "module": "clients",
+    "priorite": "must",
+    "chemin": "/clients/s46"
+  },
+  {
+    "id": "S47",
+    "nom": "Procurations",
+    "acces": "Client > Gestion des procurations",
+    "but": "Enregistrer une procuration",
+    "module": "clients",
+    "priorite": "must",
+    "chemin": "/clients/s47"
+  },
+  {
+    "id": "S48",
+    "nom": "Résilier un client",
+    "acces": "Client > Résilier",
+    "but": "Clôturer la relation",
+    "module": "clients",
+    "priorite": "must",
+    "chemin": "/clients/s48"
+  },
+  {
+    "id": "S49",
+    "nom": "Photos et signatures",
+    "acces": "Client > Gestion des photos et signatures",
+    "but": "Mettre à jour photo et specimen",
+    "module": "clients",
+    "priorite": "must",
+    "chemin": "/clients/s49"
+  },
+  {
+    "id": "S50",
+    "nom": "Consentement BIC",
+    "acces": "Client > Consentement BIC",
+    "but": "Enregistrer le consentement au bureau d'information sur le crédit",
+    "module": "clients",
+    "priorite": "should",
+    "chemin": "/clients/s50"
+  },
+  {
+    "id": "S51",
+    "nom": "Rapports clients",
+    "acces": "Client > Rapport",
+    "but": "Multicritère, prospects, clients modifiés",
+    "module": "clients",
+    "priorite": "must",
+    "chemin": "/clients/s51"
+  },
+  {
+    "id": "SC01",
+    "nom": "Examen renforcé",
+    "acces": "Client > Conformité > Examen renforcé",
+    "but": "Examiner les opérations en espèces de 10 000 USD ou plus, les autoriser ou les refuser, noter la déclaration à la CENAREF (écart E01 ; loi 22/068, art. 23 ; Instr. BCC 15, art. 61 et 62)",
+    "module": "clients",
+    "priorite": "must",
+    "chemin": "/clients/sc01"
+  },
+  {
+    "id": "SC02",
+    "nom": "Centrale des incidents de paiement",
+    "acces": "Client > Conformité > Centrale des incidents",
+    "but": "Lister ce qui se déclare à la Centrale des incidents de paiement dans les deux jours ouvrables, noter la déclaration et l'identifiant client unique (écart E06 ; Instr. BCC 52, art. 10 à 15)",
+    "module": "clients",
+    "priorite": "must",
+    "chemin": "/clients/sc02"
+  },
+  {
+    "id": "SC03",
+    "nom": "Plaintes",
+    "acces": "Client > Conformité > Plaintes",
+    "but": "Enregistrer les plaintes avec un numéro de référence unique, y répondre dans 45 jours, rapport trimestriel (écart E07 ; Instr. BCC 39)",
+    "module": "clients",
+    "priorite": "must",
+    "chemin": "/clients/sc03"
+  },
+  {
+    "id": "SC04",
+    "nom": "Registre des membres",
+    "acces": "Client > Registre des membres",
+    "but": "Registre des membres par ordre chronologique : numéro d'adhésion, nom, pièce, adresse, profession, parts souscrites et libérées (écart E12 ; loi 002/2002, art. 67)",
+    "module": "clients",
+    "priorite": "must",
+    "chemin": "/clients/sc04"
+  },
+  {
+    "id": "SC05",
+    "nom": "Centrale des risques",
+    "acces": "Client > Conformité > Centrale des risques",
+    "but": "Lister ce qui se déclare en temps réel à la Centrale des risques (octroi, remboursements, engagements par signature, modifications du client, passages en perte, radiations après trois ans d'encours nul), noter la déclaration (écart E26 ; Instr. BCC 05, annexe I, art. 1, 4 à 7 et 10)",
+    "module": "clients",
+    "priorite": "must",
+    "chemin": "/clients/sc05"
+  },
+  {
+    "id": "SC06",
+    "nom": "Incidents et dépassements",
+    "acces": "Client > Conformité > Incidents et dépassements",
+    "but": "Garder les incidents (dépassements de limites notés par le logiciel, incidents opérationnels et déficits de trésorerie déclarés), alerter et tracer leur traitement (confrontation du 21/11/2026, B17 ; Instr. BCC 008, art. 43 et 49)",
+    "module": "clients",
+    "priorite": "must",
+    "chemin": "/clients/sc06"
+  },
+  {
+    "id": "S52",
+    "nom": "Opérations de banque",
+    "acces": "Banque > Opération",
+    "but": "Encaissement et décaissement, virement banque vers caisse, banque vers banque",
+    "module": "banque",
+    "priorite": "must",
+    "chemin": "/banque/s52"
+  },
+  {
+    "id": "S53",
+    "nom": "Virement et prélèvement",
+    "acces": "Banque > Virement prélèvement",
+    "but": "Mouvement entre un compte client et une banque",
+    "module": "banque",
+    "priorite": "must",
+    "chemin": "/banque/s53"
+  },
+  {
+    "id": "S54",
+    "nom": "Déblocage de crédit par banque",
+    "acces": "Banque > Déblocage crédit",
+    "but": "Verser un crédit par chèque",
+    "module": "banque",
+    "priorite": "must",
+    "chemin": "/banque/s54"
+  },
+  {
+    "id": "S55",
+    "nom": "Remboursement par banque",
+    "acces": "Banque > Remboursement de crédit",
+    "but": "Recevoir un remboursement par banque",
+    "module": "banque",
+    "priorite": "must",
+    "chemin": "/banque/s55"
+  },
+  {
+    "id": "S56",
+    "nom": "Adhésion par banque",
+    "acces": "Banque > Adhésion",
+    "but": "Premier dépôt d'adhésion reçu en banque",
+    "module": "banque",
+    "priorite": "should",
+    "chemin": "/banque/s56"
+  },
+  {
+    "id": "S57",
+    "nom": "Visa et validation des opérations de banque",
+    "acces": "Banque > Visa ; Validation",
+    "but": "Deux étapes pour chaque type d'opération de banque",
+    "module": "banque",
+    "priorite": "must",
+    "chemin": "/banque/s57"
+  },
+  {
+    "id": "S58",
+    "nom": "Banques",
+    "acces": "Banque > Création banque",
+    "but": "Banques des clients et banques de l'institution, comptes, journal, compte de pénalité",
+    "module": "banque",
+    "priorite": "must",
+    "chemin": "/banque/s58"
+  },
+  {
+    "id": "S59",
+    "nom": "Chèques clients",
+    "acces": "Banque > Gestion chèque client",
+    "but": "Dépôt, encaissement, historique",
+    "module": "banque",
+    "priorite": "should",
+    "chemin": "/banque/s59"
+  },
+  {
+    "id": "S60",
+    "nom": "Chèques de l'institution",
+    "acces": "Banque > Gestion chèque institution",
+    "but": "Générer un chéquier ; chèque pour crédit",
+    "module": "banque",
+    "priorite": "could",
+    "chemin": "/banque/s60"
+  },
+  {
+    "id": "S61",
+    "nom": "Emprunts bancaires",
+    "acces": "Banque > Emprunts bancaires",
+    "but": "Mise en place, remboursement",
+    "module": "banque",
+    "priorite": "should",
+    "chemin": "/banque/s61"
+  },
+  {
+    "id": "S62",
+    "nom": "Rapports banque",
+    "acces": "Banque > Rapport",
+    "but": "Opérations par banque et période",
+    "module": "banque",
+    "priorite": "should",
+    "chemin": "/banque/s62"
+  },
+  {
+    "id": "S63",
+    "nom": "Nouveau compte",
+    "acces": "Épargne > Nouveau compte",
+    "but": "Ouvrir un compte d'un produit pour un client",
+    "module": "epargne",
+    "priorite": "must",
+    "chemin": "/epargne/s63"
+  },
+  {
+    "id": "S64",
+    "nom": "Relevé de compte",
+    "acces": "Épargne > Relevé",
+    "but": "Opérations d'un compte sur une période ; situation du client",
+    "module": "epargne",
+    "priorite": "must",
+    "chemin": "/epargne/s64"
+  },
+  {
+    "id": "S65",
+    "nom": "Mise en place de DAT",
+    "acces": "Épargne > Dépôt à terme > Mise en place",
+    "but": "Constituer un DAT à partir d'un compte",
+    "module": "epargne",
+    "priorite": "must",
+    "chemin": "/epargne/s65"
+  },
+  {
+    "id": "S66",
+    "nom": "Validation de DAT",
+    "acces": "Épargne > Dépôt à terme > Validation",
+    "but": "Valider les DAT saisis ; imprimer le contrat",
+    "module": "epargne",
+    "priorite": "should",
+    "chemin": "/epargne/s66"
+  },
+  {
+    "id": "S67",
+    "nom": "Rupture de DAT",
+    "acces": "Épargne > Dépôt à terme > Rupture",
+    "but": "Rompre un DAT avant terme",
+    "module": "epargne",
+    "priorite": "should",
+    "chemin": "/epargne/s67"
+  },
+  {
+    "id": "S68",
+    "nom": "Recherche des DAT",
+    "acces": "Épargne > Dépôt à terme > Recherche multicritère",
+    "but": "Rechercher par type d'opération et période",
+    "module": "epargne",
+    "priorite": "must",
+    "chemin": "/epargne/s68"
+  },
+  {
+    "id": "S69",
+    "nom": "Plan d'épargne",
+    "acces": "Épargne > Plan épargne",
+    "but": "Simulation, création, échéancier (toutes, cotisées, non cotisées), cotisations, rupture",
+    "module": "epargne",
+    "priorite": "should",
+    "chemin": "/epargne/s69"
+  },
+  {
+    "id": "S70",
+    "nom": "Clôturer un compte",
+    "acces": "Épargne > Clôturer",
+    "but": "Fermer un compte",
+    "module": "epargne",
+    "priorite": "must",
+    "chemin": "/epargne/s70"
+  },
+  {
+    "id": "S71",
+    "nom": "Blocage",
+    "acces": "Épargne > Blocage compte et montant",
+    "but": "Bloquer un compte ou un montant, avec motif",
+    "module": "epargne",
+    "priorite": "must",
+    "chemin": "/epargne/s71"
+  },
+  {
+    "id": "S72",
+    "nom": "Rapports épargne",
+    "acces": "Épargne > Rapport",
+    "but": "Virements de compte à compte, garanties, multicritère, indicateur crédit épargne, comptes inactifs, comptes dormants",
+    "module": "epargne",
+    "priorite": "should",
+    "chemin": "/epargne/s72"
+  },
+  {
+    "id": "SE01",
+    "nom": "Comptes inactifs",
+    "acces": "Épargne > Comptes inactifs",
+    "but": "Lister les comptes sans opération ni réclamation depuis près de dix ans, noter la lettre avec accusé de réception, signaler ceux à clôturer et à verser à la BCC (écart E11 ; loi 22/069, titre III, chap. Ier)",
+    "module": "epargne",
+    "priorite": "must",
+    "chemin": "/epargne/se01"
+  },
+  {
+    "id": "S73",
+    "nom": "Guichet : adhésion",
+    "acces": "Caisse > Opération > Adhésion",
+    "but": "Encaisser le premier dépôt et les frais d'adhésion",
+    "module": "caisse",
+    "priorite": "must",
+    "chemin": "/caisse/s73"
+  },
+  {
+    "id": "S74",
+    "nom": "Guichet : dépôt et retrait",
+    "acces": "Caisse > Opération > Dépôt/Retrait",
+    "but": "Dépôt ou retrait d'espèces",
+    "module": "caisse",
+    "priorite": "must",
+    "chemin": "/caisse/s74"
+  },
+  {
+    "id": "S75",
+    "nom": "Guichet : déblocage de crédit",
+    "acces": "Caisse > Opération > Déblocage crédit",
+    "but": "Verser un crédit en espèces",
+    "module": "caisse",
+    "priorite": "must",
+    "chemin": "/caisse/s75"
+  },
+  {
+    "id": "S76",
+    "nom": "Guichet : remboursement",
+    "acces": "Caisse > Opération > Remboursement de crédit",
+    "but": "Recevoir une échéance",
+    "module": "caisse",
+    "priorite": "must",
+    "chemin": "/caisse/s76"
+  },
+  {
+    "id": "S77",
+    "nom": "Guichet : parts sociales",
+    "acces": "Caisse > Opération > Part sociale (Achat/Retrait)",
+    "but": "Acheter ou retirer des parts",
+    "module": "caisse",
+    "priorite": "must",
+    "chemin": "/caisse/s77"
+  },
+  {
+    "id": "S78",
+    "nom": "Guichet : encaissements et décaissements divers",
+    "acces": "Caisse > Autres encaissements et décaissements",
+    "but": "Encaisser ou décaisser hors opération client",
+    "module": "caisse",
+    "priorite": "must",
+    "chemin": "/caisse/s78"
+  },
+  {
+    "id": "S79",
+    "nom": "Billetage : saisie",
+    "acces": "Caisse > Billetage > Enregistrer",
+    "but": "Compter la caisse par coupure",
+    "module": "caisse",
+    "priorite": "must",
+    "chemin": "/caisse/s79"
+  },
+  {
+    "id": "S80",
+    "nom": "Billetage : validation",
+    "acces": "Caisse > Billetage > Validation",
+    "but": "Comparer solde informatique et solde réel",
+    "module": "caisse",
+    "priorite": "must",
+    "chemin": "/caisse/s80"
+  },
+  {
+    "id": "S81",
+    "nom": "Transfert entre caisses",
+    "acces": "Caisse > Transfert > Caisse vers caisse ; Caisse vers banque",
+    "but": "Mouvements de fonds",
+    "module": "caisse",
+    "priorite": "must",
+    "chemin": "/caisse/s81"
+  },
+  {
+    "id": "S82",
+    "nom": "Validation des opérations diverses et déplacées",
+    "acces": "Caisse > Opération diverse",
+    "but": "Payer en caisse une opération saisie en comptabilité, y compris pour un client d'une autre agence",
+    "module": "caisse",
+    "priorite": "must",
+    "chemin": "/caisse/s82"
+  },
+  {
+    "id": "S141",
+    "nom": "Règlement facture espèce",
+    "acces": "Caisse > Règlement facture espèce",
+    "but": "Payer en espèces, à la caisse, une facture de fournisseur réglée en comptabilité",
+    "module": "caisse",
+    "priorite": "should",
+    "chemin": "/caisse/s141"
+  },
+  {
+    "id": "S83",
+    "nom": "Rapports caisse",
+    "acces": "Caisse > Rapport",
+    "but": "Journal des opérations de caisse",
+    "module": "caisse",
+    "priorite": "must",
+    "chemin": "/caisse/s83"
+  },
+  {
+    "id": "S84",
+    "nom": "Simulation d'échéancier",
+    "acces": "Crédit > Plan d'amortissement",
+    "but": "Simuler un tableau d'amortissement",
+    "module": "credit",
+    "priorite": "must",
+    "chemin": "/credit/s84"
+  },
+  {
+    "id": "S85",
+    "nom": "Analyse financière",
+    "acces": "Crédit > Analyse financière (allégée, développée)",
+    "but": "Analyse du demandeur",
+    "module": "credit",
+    "priorite": "should",
+    "chemin": "/credit/s85"
+  },
+  {
+    "id": "S86",
+    "nom": "Dossier : demande",
+    "acces": "Crédit > Dossier de crédit > Analyse",
+    "but": "Saisir la demande",
+    "module": "credit",
+    "priorite": "must",
+    "chemin": "/credit/s86"
+  },
+  {
+    "id": "S87",
+    "nom": "Dossier : contrôle",
+    "acces": "Crédit > Dossier > Contrôle",
+    "but": "Contrôler en ressaisissant les chiffres",
+    "module": "credit",
+    "priorite": "must",
+    "chemin": "/credit/s87"
+  },
+  {
+    "id": "S88",
+    "nom": "Dossier : approbation",
+    "acces": "Crédit > Dossier > Approbation",
+    "but": "Approuver un montant",
+    "module": "credit",
+    "priorite": "must",
+    "chemin": "/credit/s88"
+  },
+  {
+    "id": "S89",
+    "nom": "Dossier : mise en place",
+    "acces": "Crédit > Dossier > Mise en place",
+    "but": "Monter le prêt",
+    "module": "credit",
+    "priorite": "must",
+    "chemin": "/credit/s89"
+  },
+  {
+    "id": "S90",
+    "nom": "Visas du crédit",
+    "acces": "Crédit > Suivi dossier > Visa responsable crédit ; comité ; service financier",
+    "but": "Trois niveaux de visa",
+    "module": "credit",
+    "priorite": "must",
+    "chemin": "/credit/s90"
+  },
+  {
+    "id": "S91",
+    "nom": "Historique des visas",
+    "acces": "Crédit > Suivi dossier > Historique",
+    "but": "Qui a visé quoi",
+    "module": "credit",
+    "priorite": "must",
+    "chemin": "/credit/s91"
+  },
+  {
+    "id": "S92",
+    "nom": "Crédits validés non débloqués",
+    "acces": "Crédit > Suivi dossier",
+    "but": "Suivre les crédits approuvés en attente",
+    "module": "credit",
+    "priorite": "must",
+    "chemin": "/credit/s92"
+  },
+  {
+    "id": "S93",
+    "nom": "État de crédit",
+    "acces": "Crédit > Suivi dossier > État",
+    "but": "Situation des crédits",
+    "module": "credit",
+    "priorite": "must",
+    "chemin": "/credit/s93"
+  },
+  {
+    "id": "S94",
+    "nom": "Cautions et nantissements",
+    "acces": "Crédit > Ajout/libération",
+    "but": "Ajouter ou libérer une caution, un dépôt de garantie ; rapport",
+    "module": "credit",
+    "priorite": "must",
+    "chemin": "/credit/s94"
+  },
+  {
+    "id": "S95",
+    "nom": "Consulter un prêt",
+    "acces": "Crédit > Consulter prêt",
+    "but": "Situation, plan réel, plan prévisionnel, mémo",
+    "module": "credit",
+    "priorite": "must",
+    "chemin": "/credit/s95"
+  },
+  {
+    "id": "S96",
+    "nom": "Affectation de portefeuille",
+    "acces": "Crédit > Affectation de dossier",
+    "but": "Transférer des prêts d'un gestionnaire à un autre",
+    "module": "credit",
+    "priorite": "should",
+    "chemin": "/credit/s96"
+  },
+  {
+    "id": "S97",
+    "nom": "Liste rouge",
+    "acces": "Crédit > Liste rouge",
+    "but": "Ajouter ou retirer un client, avec motif",
+    "module": "credit",
+    "priorite": "should",
+    "chemin": "/credit/s97"
+  },
+  {
+    "id": "S98",
+    "nom": "Balance âgée",
+    "acces": "Crédit > Génération de balance âgée",
+    "but": "Lancer la balance âgée à une date",
+    "module": "credit",
+    "priorite": "must",
+    "chemin": "/credit/s98"
+  },
+  {
+    "id": "S99",
+    "nom": "Déclassement et provisions",
+    "acces": "Crédit > Déclassement provision/crédit",
+    "but": "Charger les crédits, provisionner, radier par anticipation",
+    "module": "credit",
+    "priorite": "must",
+    "chemin": "/credit/s99"
+  },
+  {
+    "id": "SL01",
+    "nom": "Prorogation et contentieux",
+    "acces": "Crédit > Prorogation et contentieux",
+    "but": "Proroger un crédit une seule fois à la demande du client en reportant ses échéances, ouvrir et clore un dossier contentieux (résolution à l'amiable ou en justice) ; le crédit prend alors la classe « prorogé » ou « contentieux » dans la balance âgée (écart E27 ; Instr. BCC 003, art. 5, 8 et 12)",
+    "module": "credit",
+    "priorite": "must",
+    "chemin": "/credit/sl01"
+  },
+  {
+    "id": "S100",
+    "nom": "Engagement par signature",
+    "acces": "Crédit > Engagement par signature",
+    "but": "Enregistrer un engagement donné",
+    "module": "credit",
+    "priorite": "should",
+    "chemin": "/credit/s100"
+  },
+  {
+    "id": "S101",
+    "nom": "Rapports crédit",
+    "acces": "Crédit > Rapport",
+    "but": "Journal, rapports de base, multicritère, synthèse de la balance âgée, taux de remboursement, encours prévisionnel, exigibles, indicateurs de gestion",
+    "module": "credit",
+    "priorite": "must",
+    "chemin": "/credit/s101"
+  },
+  {
+    "id": "S102",
+    "nom": "Plan des comptes",
+    "acces": "Comptabilité > Plan des comptes",
+    "but": "Créer et consulter le référentiel ; modèle de plan à cinq positions ; comptes saisissables avec nature et taxe ; concordance entre plans",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s102"
+  },
+  {
+    "id": "S103",
+    "nom": "Plan des tiers",
+    "acces": "Comptabilité > Plan des tiers",
+    "but": "Fournisseurs et autres tiers",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s103"
+  },
+  {
+    "id": "S104",
+    "nom": "Taxes",
+    "acces": "Comptabilité > Taxes",
+    "but": "Taux de taxe",
+    "module": "comptabilite",
+    "priorite": "should",
+    "chemin": "/comptabilite/s104"
+  },
+  {
+    "id": "S105",
+    "nom": "Déblocage par compte d'épargne",
+    "acces": "Comptabilité > Déblocage crédit",
+    "but": "Verser un crédit sur le compte du client",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s105"
+  },
+  {
+    "id": "S106",
+    "nom": "Remboursement par prélèvement",
+    "acces": "Comptabilité > Remboursement par prélèvement",
+    "but": "Prélever une échéance sur l'épargne",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s106"
+  },
+  {
+    "id": "S142",
+    "nom": "Annulation de règlement de crédit",
+    "acces": "Comptabilité > Annulation de règlement de crédit",
+    "but": "Annuler un remboursement de crédit fait par prélèvement sur compte",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s142"
+  },
+  {
+    "id": "S107",
+    "nom": "Factures fournisseurs",
+    "acces": "Comptabilité > Factures",
+    "but": "Bon de commande avec tranches d'acompte, facture, règlement, journal, rapport",
+    "module": "comptabilite",
+    "priorite": "should",
+    "chemin": "/comptabilite/s107"
+  },
+  {
+    "id": "S108",
+    "nom": "Déclaration de taxes",
+    "acces": "Comptabilité > Déclaration",
+    "but": "Taxes d'un mois",
+    "module": "comptabilite",
+    "priorite": "should",
+    "chemin": "/comptabilite/s108"
+  },
+  {
+    "id": "S109",
+    "nom": "Saisie d'écritures",
+    "acces": "Comptabilité > Saisie d'écriture",
+    "but": "Saisir une écriture dans un journal et une période",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s109"
+  },
+  {
+    "id": "S110",
+    "nom": "Rapprochement bancaire",
+    "acces": "Comptabilité > Rapprochement",
+    "but": "Pointer le relevé, ajouter les opérations manquantes, éditer l'état",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s110"
+  },
+  {
+    "id": "S111",
+    "nom": "Comptabilisation",
+    "acces": "Comptabilité > Comptabilisation",
+    "but": "Passer le brouillard de la journée en comptabilité",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s111"
+  },
+  {
+    "id": "S112",
+    "nom": "Historique des rapprochements",
+    "acces": "Comptabilité > Historique",
+    "but": "Retrouver un rapprochement",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s112"
+  },
+  {
+    "id": "S113",
+    "nom": "Visas comptables",
+    "acces": "Comptabilité > Visa",
+    "but": "Viser virements, retraits au-delà du plafond, opérations diverses et déplacées, écritures, factures, règlements, virements de compte à compte",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s113"
+  },
+  {
+    "id": "S114",
+    "nom": "Validations comptables",
+    "acces": "Comptabilité > Validation",
+    "but": "Valider les mêmes opérations après visa",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s114"
+  },
+  {
+    "id": "S115",
+    "nom": "Journaux",
+    "acces": "Comptabilité > Journaux",
+    "but": "Journaux comptables",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s115"
+  },
+  {
+    "id": "S116",
+    "nom": "Autres opérations",
+    "acces": "Comptabilité > Autres opérations",
+    "but": "Virement et prélèvement, virement de compte à compte, opération diverse (à payer en caisse ou sur compte client), opération déplacée",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s116"
+  },
+  {
+    "id": "S117",
+    "nom": "Virements mensuels",
+    "acces": "Comptabilité > Virements mensuels",
+    "but": "Domiciliation de salaire ; salaires du personnel et prélèvement automatique « ne marchent pas » (p. 137)",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s117"
+  },
+  {
+    "id": "S118",
+    "nom": "Contrôles",
+    "acces": "Comptabilité > Contrôle",
+    "but": "Compte (écart gestion et comptabilité), trésorerie (soldes des caisses et banques), rapport des annulations, état des revenus",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s118"
+  },
+  {
+    "id": "S119",
+    "nom": "Lettrage",
+    "acces": "Comptabilité > Lettrage",
+    "but": "Lettrer un compte",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s119"
+  },
+  {
+    "id": "S120",
+    "nom": "Grand livre",
+    "acces": "Comptabilité > Grand livre",
+    "but": "Général et analytique",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s120"
+  },
+  {
+    "id": "S121",
+    "nom": "Balance",
+    "acces": "Comptabilité > Balance",
+    "but": "Générale et analytique",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s121"
+  },
+  {
+    "id": "S122",
+    "nom": "États financiers",
+    "acces": "Comptabilité > États financiers",
+    "but": "Bilan, hors bilan, résultat, annexes",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s122"
+  },
+  {
+    "id": "S123",
+    "nom": "Indicateurs",
+    "acces": "Comptabilité > Indicateurs > Financiers",
+    "but": "Indicateurs par mois",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s123"
+  },
+  {
+    "id": "SN01",
+    "nom": "Normes prudentielles",
+    "acces": "Comptabilité > Indicateurs > Normes prudentielles",
+    "but": "Calculer à une date, sur la balance, les normes prudentielles et dire si elles sont respectées (confrontation du 21/11/2026, A2, B5, B6 ; Instr. BCC 002 ; loi 002/2002, art. 59)",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/sn01"
+  },
+  {
+    "id": "SF01",
+    "nom": "Retenues à reverser",
+    "acces": "Comptabilité > Retenues à reverser",
+    "but": "État mensuel des retenues à la source sur les intérêts (compte 433), échéance du 15 du mois suivant, reversement noté avec sa quittance (écart E16 ; arrêté 008/2025, art. 2 ; loi 23/053, art. 120)",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/sf01"
+  },
+  {
+    "id": "S124",
+    "nom": "Nouveau budget",
+    "acces": "Budget > Nouveau",
+    "but": "Définir ou reconduire un budget",
+    "module": "budget",
+    "priorite": "should",
+    "chemin": "/budget/s124"
+  },
+  {
+    "id": "S125",
+    "nom": "Consultation et suivi budgétaire",
+    "acces": "Budget > Consultation ; Suivi ; Consommation par centre de coût",
+    "but": "Suivre le réalisé",
+    "module": "budget",
+    "priorite": "should",
+    "chemin": "/budget/s125"
+  },
+  {
+    "id": "S126",
+    "nom": "Financement",
+    "acces": "Budget > Financement",
+    "but": "Lignes, types de financement, bailleurs",
+    "module": "budget",
+    "priorite": "should",
+    "chemin": "/budget/s126"
+  },
+  {
+    "id": "S127",
+    "nom": "Clôtures",
+    "acces": "Autres > Clôture",
+    "but": "Crédit (état des provisions), dépôt, comptabilité",
+    "module": "budget",
+    "priorite": "must",
+    "chemin": "/budget/s127"
+  },
+  {
+    "id": "S143",
+    "nom": "Trésorerie",
+    "acces": "Autres > Trésorerie",
+    "but": "Voir les soldes des caisses et des banques à une date",
+    "module": "budget",
+    "priorite": "must",
+    "chemin": "/budget/s143"
+  },
+  {
+    "id": "S128",
+    "nom": "Calculs",
+    "acces": "Autres > Calculs",
+    "but": "Frais de tenue de compte, intérêts sur DAV et DAT, état des provisions",
+    "module": "budget",
+    "priorite": "must",
+    "chemin": "/budget/s128"
+  },
+  {
+    "id": "S129",
+    "nom": "Caisse mobile",
+    "acces": "Autres > Caisse mobile",
+    "but": "Transfert de collecte, paramètres",
+    "module": "budget",
+    "priorite": "skip",
+    "chemin": "/budget/s129"
+  },
+  {
+    "id": "S130",
+    "nom": "Gestion de réunion",
+    "acces": "Autres > Gestion de réunion",
+    "but": "non décrit",
+    "module": "budget",
+    "priorite": "skip",
+    "chemin": "/budget/s130"
+  },
+  {
+    "id": "S131",
+    "nom": "Données de base de la paie",
+    "acces": "Structure de base > Données de base",
+    "but": "Allocations, barème d'imposition, catégories, classes, échelons, familles et rubriques d'éléments, grilles salariales, types d'avance, d'heures supplémentaires, de grille, de retenue (avec compte comptable)",
+    "module": "paie",
+    "priorite": "should",
+    "chemin": "/paie/s131"
+  },
+  {
+    "id": "S132",
+    "nom": "Grilles et états",
+    "acces": "Structure de base > Gestion des grilles ; Gestion des états",
+    "but": "Grilles fiscales et sociales ; états et leurs signataires",
+    "module": "paie",
+    "priorite": "should",
+    "chemin": "/paie/s132"
+  },
+  {
+    "id": "S133",
+    "nom": "Employé",
+    "acces": "Personnel > Nouvel employé",
+    "but": "Fiche, classification et grilles, affectation, contrat",
+    "module": "paie",
+    "priorite": "should",
+    "chemin": "/paie/s133"
+  },
+  {
+    "id": "S134",
+    "nom": "Rubriques et maquette de paie",
+    "acces": "Personnel > Rubrique ; Maquette de paie",
+    "but": "Rubriques et montants par employé",
+    "module": "paie",
+    "priorite": "should",
+    "chemin": "/paie/s134"
+  },
+  {
+    "id": "S135",
+    "nom": "Retenues",
+    "acces": "Traitement retenues",
+    "but": "Mettre en place, lister, viser une retenue",
+    "module": "paie",
+    "priorite": "must",
+    "chemin": "/paie/s135"
+  },
+  {
+    "id": "S136",
+    "nom": "Données de base",
+    "acces": "Données de base",
+    "but": "Types, utilisations (TVA), coefficients de dégressivité, catégories, familles avec comptes, localisations",
+    "module": "immobilisations",
+    "priorite": "must",
+    "chemin": "/immobilisations/s136"
+  },
+  {
+    "id": "S137",
+    "nom": "Création de bien",
+    "acces": "Nouveau",
+    "but": "Créer un bien",
+    "module": "immobilisations",
+    "priorite": "must",
+    "chemin": "/immobilisations/s137"
+  },
+  {
+    "id": "S138",
+    "nom": "Affectation et transfert",
+    "acces": "Affectation ; Transfert",
+    "but": "Affecter un bien, le transférer, le libérer",
+    "module": "immobilisations",
+    "priorite": "must",
+    "chemin": "/immobilisations/s138"
+  },
+  {
+    "id": "S139",
+    "nom": "Amortissement, inventaire, sortie",
+    "acces": "Amortissement ; Inventaire ; Sortie",
+    "but": "Amortir, inventorier, sortir du patrimoine",
+    "module": "immobilisations",
+    "priorite": "must",
+    "chemin": "/immobilisations/s139"
+  },
+  {
+    "id": "S140",
+    "nom": "Rapports immobilisations",
+    "acces": "Rapport",
+    "but": "Biens par localisation, inventaires, simulation d'amortissement, suivi, multicritère",
+    "module": "immobilisations",
+    "priorite": "should",
+    "chemin": "/immobilisations/s140"
+  }
 ]

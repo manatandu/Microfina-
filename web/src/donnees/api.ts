@@ -1510,7 +1510,7 @@ export const CATALOGUE_LISTES: FicheListe[] = ([
   { liste: "type_activite", ecran: "S14a", titre: "Type d'activité", parent: "secteur_activite" },
   { liste: "profession", ecran: "S14b", titre: "Profession" },
   { liste: "type_groupe", ecran: "S14f", titre: "Type de groupe" }, { liste: "forme_juridique", ecran: "S14i", titre: "Forme juridique" },
-  { liste: "filiation", ecran: "S14k", titre: "Filiation" },
+  { liste: "filiation", ecran: "S14k", titre: "Lien de parenté" },
   { liste: "situation_matrimoniale", ecran: "S14l", titre: "Situation matrimoniale" }, 
   // S18 (p. 26) : même liste que S14m (registre S18-1), avec la forme de sa capture : Libelle Motif seul, Reinitialiser
   { liste: "motif_depart", ecran: "S14m", titre: "Motif de départ", entete: "Motif de départ d'un client", libelle: "Libellé Motif", colonne: "Libellé Motif", sansCode: true, effacer: "Effacer" },

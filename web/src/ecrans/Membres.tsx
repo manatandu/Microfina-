@@ -425,7 +425,7 @@ function Beneficiaires({ liste, onChange, filiations }: { liste: Beneficiaire[];
     <>
       <div><button className="bouton secondaire" type="button" onClick={() => setOuverte(true)}>+Ajouter</button></div>
       <table className="grille">
-        <thead><tr><th scope="col">Nom</th><th scope="col">Prénom</th><th scope="col">Filiation</th><th scope="col">Téléphone</th><th scope="col"><span className="sr-only">Retirer</span></th></tr></thead>
+        <thead><tr><th scope="col">Nom</th><th scope="col">Prénom</th><th scope="col">Lien de parenté</th><th scope="col">Téléphone</th><th scope="col"><span className="sr-only">Retirer</span></th></tr></thead>
         <tbody>
           {liste.length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
           {liste.map((x, i) => (
@@ -440,7 +440,7 @@ function Beneficiaires({ liste, onChange, filiations }: { liste: Beneficiaire[];
           <Champ libelle="Sexe :">{(p) => <select {...p} className="saisie" value={b.sexe} onChange={(e) => setB({ ...b, sexe: e.target.value as Beneficiaire["sexe"] })}>
             <option value=""></option><option value="F">Féminin</option><option value="M">Masculin</option></select>}</Champ>
           <ChampDate libelle="Date de naissance :" valeur={b.naissance} onChange={(v) => setB({ ...b, naissance: v })} />
-          <Champ libelle="Filiation :">{(p) => <select {...p} className="saisie" value={b.filiation} onChange={(e) => setB({ ...b, filiation: e.target.value })}>
+          <Champ libelle="Lien de parenté :">{(p) => <select {...p} className="saisie" value={b.filiation} onChange={(e) => setB({ ...b, filiation: e.target.value })}>
             <option value=""></option>{filiations.map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
           {texte("telephone", "Téléphone :")}
         </div>

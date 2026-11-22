@@ -205,8 +205,8 @@ class Command(BaseCommand):
         for c, pr in PROFESSIONS:
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'profession', %s, %s)", (ins, c, pr))
         # Motifs de départ : exemples de la capture du manuel (p. 26), dans le moteur des listes (S18, registre S18-1)
-        for n, mo in enumerate(("Départ du pays", "Raisons personnelles", "Déménagement", "Décision du client", "Ne veut plus prendre de crédit", "Autres",
-                                "Transfert sur une autre agence"), 1):
+        for n, mo in enumerate(("Départ du pays", "Déménagement", "Décision du client", "Décès", "Exclusion par le Conseil d'administration",
+                                "Transfert sur une autre agence", "Autres"), 1):
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'motif_depart', %s, %s)", (ins, str(n), mo))
         for n, st in enumerate(SOUS_TYPES, 1):   # sous types de client (S14h), captures p. 25
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'sous_type_client', %s, %s)", (ins, str(n), st))

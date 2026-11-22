@@ -81,7 +81,7 @@ const OUT = process.argv[2];
   await p.getByLabel("Secteur d'activite : *").selectOption({ label: 'Primaire' }); await p.getByLabel('Code : *').fill('A1'); await p.getByLabel("Type d'activité : *").fill('Pisciculture');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Pisciculture' }).waitFor(); await etape('02f1-type-activite');
   // Chef : motif de départ d'un client (S18, p. 26) : même page, Libelle Motif seul
-  await aller('/parametrage/s18'); await p.getByRole('heading', { name: "Motif de départ d'un client" }).waitFor();
+  await aller('/parametrage/s14'); await p.getByRole('navigation', { name: 'Général' }).getByRole('button', { name: 'Motif de départ' }).click(); await p.getByRole('heading', { name: "Motif de départ d'un client" }).waitFor();
   await p.getByLabel('Libellé Motif : *').fill('Mutation professionnelle'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: 'Mutation professionnelle' }).waitFor(); await etape('02f2-motifs-depart');
   // Chef : référentiels du budget (S19, p. 27 à 30) : types de centre de coût, centres, périodes, plan
@@ -1224,14 +1224,14 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Rechercher un client' }).click();
   const rk = p.getByRole('dialog', { name: "Recherche d'un client" });
   await rk.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rk.getByRole('row').filter({ hasText: 'Kalala' }).first().click();
-  await p.getByLabel('Motif *').selectOption('Raisons personnelles');
+  await p.getByLabel('Motif *').selectOption('Décision du client');
   await p.getByRole('button', { name: 'Résilier' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByRole('dialog', { name: 'Erreur' }).getByText(/Client emprunteur : il ne peut pas se retirer/).waitFor(); await etape('19a-apurement-a-faire');
   await p.getByRole('button', { name: 'Ok' }).click();
   await p.getByRole('button', { name: 'Rechercher un client' }).click();
   const rr = p.getByRole('dialog', { name: "Recherche d'un client" });
   await rr.getByLabel('Nom:', { exact: true }).fill('Lukusa'); await rr.getByRole('row').filter({ hasText: 'Lukusa' }).click();
-  await p.getByLabel('Motif *').selectOption('Raisons personnelles'); await etape('19-resiliation');
+  await p.getByLabel('Motif *').selectOption('Décision du client'); await etape('19-resiliation');
   await p.getByRole('button', { name: 'Résilier' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await succes(); await etape('20-resilie');
   // Journées en attente de comptabilisation (registre T14, S12-2, S12-5) : Journée Maxi ouvert à 2, deux journées ouvertes, la troisième refusée

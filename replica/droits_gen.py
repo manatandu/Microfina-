@@ -30,7 +30,7 @@ for i, ligne in enumerate(lignes):
         for url in urls:
             chemin = re.sub(r"\$\{[^}]*\}", "12", url).split("?")[0]
             if chemin.startswith("/listes/"):
-                ecrans |= {"S14", "S18"}
+                ecrans |= {"S14"}   # les motifs de départ sont une page des listes du membre (plan d'allègement, point 2.8)
                 continue
             for motif, e in routes:
                 if motif.fullmatch(chemin):
