@@ -4033,14 +4033,15 @@ def test_referentiels_compta(clients, journee):
     sans_donnees_demo()
     compta, caisse = clients["compta"], clients["caisse"]
     tx = lambda corps, lid=None: compta.post("/api/referentiels/taxes/taxes" + (f"/{lid}" if lid else ""), corps, **H)
-    assert "Code, Désignation, Taux" in tx({}).json()["message"]
-    assert "deux décimales" in tx({"code": "TVA", "designation": "Taxe sur la valeur ajoutée", "taux": "seize"}).json()["message"]
-    r = tx({"code": "TVA", "designation": "Taxe sur la valeur ajoutée", "taux": "16.00"})
+    assert "Code, Désignation, Taux, Compte" in tx({}).json()["message"]
+    assert "deux décimales" in tx({"code": "TVA", "designation": "Taxe sur la valeur ajoutée", "taux": "seize", "compte": "432"}).json()["message"]
+    assert "432" in tx({"code": "TVA", "designation": "Taxe sur la valeur ajoutée", "taux": "16", "compte": "400"}).json()["message"]   # plan 2.26
+    r = tx({"code": "TVA", "designation": "Taxe sur la valeur ajoutée", "taux": "16.00", "compte": "432"})
     assert r.status_code == 200, r.content
     l = r.json()["lignes"][0]
     assert (l["affichage"]["designation"], l["taux"]) == ("Taxe sur la valeur ajoutée", "16,00")
-    assert "existe déjà" in tx({"code": "tva", "designation": "x", "taux": "1"}).json()["message"]
-    assert tx({"code": "TVA", "designation": "TVA", "taux": "16"}, l["id"]).json()["lignes"][0]["designation"] == "TVA"
+    assert "existe déjà" in tx({"code": "tva", "designation": "x", "taux": "1", "compte": "432"}).json()["message"]
+    assert tx({"code": "TVA", "designation": "TVA", "taux": "16", "compte": "432"}, l["id"]).json()["lignes"][0]["designation"] == "TVA"
     ti = lambda corps: compta.post("/api/referentiels/tiers/tiers", corps, **H)
     base = {"typeTiers": "FOURNISSEUR", "intitule": "Papeterie du Fleuve", "qualite": "SARL", "compte": "400", "pays": "RDC", "dateCreation": "05/11/2026", "compteBanque": "00012-34567"}
     assert "Type Tiers inconnu" in ti({**base, "typeTiers": "AMI"}).json()["message"]
@@ -4050,7 +4051,7 @@ def test_referentiels_compta(clients, journee):
     assert r.status_code == 200, r.content
     assert [f["cle"] for f in r.json()["fiche"]["champs"] if f.get("rang") == 1] == ["compteBanque"]
     assert compta.get("/api/plan-comptes", **H).json()["typesSuivi"][0] == "FOURNISSEUR"
-    assert caisse.post("/api/referentiels/taxes/taxes", {"code": "X", "designation": "x", "taux": "1"}, **H).status_code == 403
+    assert caisse.post("/api/referentiels/taxes/taxes", {"code": "X", "designation": "x", "taux": "1", "compte": "433"}, **H).status_code == 403
 
 
 def test_comptabilisation_banque(clients, journee):
@@ -4378,7 +4379,7 @@ def socle_factures(clients):
     from noyau.bd import executer
     executer("""insert into profil_droit (profil_id, droit_code) select p.id, 'S114' from profil p where p.code = 'agent_credit'
                 and not exists (select 1 from profil_droit x where x.profil_id = p.id and x.droit_code = 'S114')""")
-    for t in ({"code": "TVA", "designation": "Taxe sur la valeur ajoutée", "taux": "16"}, {"code": "PNR", "designation": "Prélèvement prestataires non-résidents", "taux": "14"}):
+    for t in ({"code": "TVA", "designation": "Taxe sur la valeur ajoutée", "taux": "16", "compte": "432"}, {"code": "PNR", "designation": "Prélèvement prestataires non-résidents", "taux": "14", "compte": "433"}):
         assert compta.post("/api/referentiels/taxes/taxes", t, **H).status_code == 200
     assert compta.post("/api/referentiels/tiers/tiers", {"typeTiers": "FOURNISSEUR", "intitule": "Papeterie du Fleuve", "compte": "400"}, **H).status_code == 200
     assert chef.post("/api/facture/types", {"code": "ACHA_M", "libelle": "Achat de matériel"}, **H).status_code == 200

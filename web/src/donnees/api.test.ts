@@ -2787,11 +2787,12 @@ describe("journée de guichet", () => {
   it("taxes (S104, p. 123 et 124) et plan des tiers (S103, p. 123) : référentiels partagés ; type de suivi du plan (S102-7)", async () => {
     sansDonneesDemo();
     await connecter("plumbala");
-    await expect(api.refTaxes.enregistrer("taxes", {})).rejects.toThrow("Code, Désignation, Taux");
-    await expect(api.refTaxes.enregistrer("taxes", { code: "TVA", designation: "Taxe sur la valeur ajoutée", taux: "seize" })).rejects.toThrow("deux décimales");
-    const r = await api.refTaxes.enregistrer("taxes", { code: "TVA", designation: "Taxe sur la valeur ajoutée", taux: "16.00" });
+    await expect(api.refTaxes.enregistrer("taxes", {})).rejects.toThrow("Code, Désignation, Taux, Compte");
+    await expect(api.refTaxes.enregistrer("taxes", { code: "TVA", designation: "Taxe sur la valeur ajoutée", taux: "seize", compte: "432" })).rejects.toThrow("deux décimales");
+    await expect(api.refTaxes.enregistrer("taxes", { code: "TVA", designation: "Taxe sur la valeur ajoutée", taux: "16", compte: "400" })).rejects.toThrow("432");   // plan 2.26
+    const r = await api.refTaxes.enregistrer("taxes", { code: "TVA", designation: "Taxe sur la valeur ajoutée", taux: "16.00", compte: "432" });
     expect([r.lignes[0]!.affichage.designation, r.lignes[0]!.taux]).toEqual(["Taxe sur la valeur ajoutée", "16,00"]);   // comme le serveur
-    await expect(api.refTaxes.enregistrer("taxes", { code: "tva", designation: "x", taux: "1" })).rejects.toThrow("existe déjà");
+    await expect(api.refTaxes.enregistrer("taxes", { code: "tva", designation: "x", taux: "1", compte: "432" })).rejects.toThrow("existe déjà");
     const base = { typeTiers: "FOURNISSEUR", intitule: "Papeterie du Fleuve", qualite: "SARL", compte: "400", pays: "RDC", dateCreation: "05/11/2026", compteBanque: "00012-34567" };
     await expect(api.refTiers.enregistrer("tiers", { ...base, typeTiers: "AMI" })).rejects.toThrow("Type Tiers inconnu");
     await expect(api.refTiers.enregistrer("tiers", { ...base, compte: "999999" })).rejects.toThrow("n'existe pas au plan");
@@ -2799,7 +2800,7 @@ describe("journée de guichet", () => {
     expect((await api.refTiers.enregistrer("tiers", base)).lignes).toHaveLength(1);
     expect((await api.comptes.lire()).typesSuivi[0]).toBe("FOURNISSEUR");
     await connecter("engalula");
-    await expect(api.refTaxes.enregistrer("taxes", { code: "X", designation: "x", taux: "1" })).rejects.toThrow("Droit manquant");
+    await expect(api.refTaxes.enregistrer("taxes", { code: "X", designation: "x", taux: "1", compte: "433" })).rejects.toThrow("Droit manquant");
   });
 
   it("comptabilisation (S111, p. 130 et 155) : la grille montre l'écriture en attente d'une opération de banque validée ; Comptabiliser la passe avec son N° de pièce et ferme la journée (S111-4)", async () => {
@@ -3213,8 +3214,8 @@ describe("journée de guichet", () => {
     const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
     await api.banques.enregistrerCompte({ banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "", compte: "56010003", numeroBancaire: "R-CDF-1", devise: "CDF" });
     await connecter("plumbala");
-    await api.refTaxes.enregistrer("taxes", { code: "TVA", designation: "Taxe sur la valeur ajoutée", taux: "16" });
-    await api.refTaxes.enregistrer("taxes", { code: "PNR", designation: "Prélèvement prestataires non-résidents", taux: "14" });
+    await api.refTaxes.enregistrer("taxes", { code: "TVA", designation: "Taxe sur la valeur ajoutée", taux: "16", compte: "432" });
+    await api.refTaxes.enregistrer("taxes", { code: "PNR", designation: "Prélèvement prestataires non-résidents", taux: "14", compte: "433" });
     await api.refTiers.enregistrer("tiers", { typeTiers: "FOURNISSEUR", intitule: "Papeterie du Fleuve", compte: "400" });
     const ctx = await api.facturesFournisseurs.contexte(), four = ctx.fournisseurs[0]!.id, tc = ctx.typesCommande[0]!.id, tx = Object.fromEntries(ctx.taxes.map((t) => [t.code, t.id]));
     const cb = ctx.comptesBancaires[0]!.id;
@@ -3298,7 +3299,7 @@ describe("journée de guichet", () => {
     const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
     await api.banques.enregistrerCompte({ banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "", compte: "56010003", numeroBancaire: "R-CDF-1", devise: "CDF" });
     await connecter("plumbala");
-    await api.refTaxes.enregistrer("taxes", { code: "PNR", designation: "Prélèvement prestataires non-résidents", taux: "14" });
+    await api.refTaxes.enregistrer("taxes", { code: "PNR", designation: "Prélèvement prestataires non-résidents", taux: "14", compte: "433" });
     await api.refTiers.enregistrer("tiers", { typeTiers: "FOURNISSEUR", intitule: "Cabinet Delta", compte: "400" });
     const ctx = await api.facturesFournisseurs.contexte(), four = ctx.fournisseurs[0]!.id, pnr = ctx.taxes[0]!.id, cb = ctx.comptesBancaires[0]!.id;
     const c = await api.facturesFournisseurs.enregistrerCommande({ cle: cle(), typeCommandeId: ctx.typesCommande[0]!.id, fournisseurId: four,

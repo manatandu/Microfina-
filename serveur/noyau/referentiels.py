@@ -71,6 +71,15 @@ def valeurs(u, table: str, colonnes: str = "*") -> list[dict]:
 
 UTILISE_PAR["financement"] = {"types_financement": [("financement_ligne", "type_id", "Lignes de financement")],
                               "bailleurs": [("budget_ligne", "bailleur_id", "Ligne de plan budgétaire")]}
+# Taxes (S104) : chaque taxe porte son compte du PCCI, 432 Impôts et taxes déductibles ou 433 Impôts et taxes collectés (plan d'allègement, point 2.26)
+VERIFIER["taxes"] = lambda u, c, v, lid: _compte_taxe(v.get("compte"))
+
+
+def _compte_taxe(compte):
+    if compte and not str(compte).startswith(("432", "433")):
+        raise ErreurMetier("Compte : un compte 432 (impôts et taxes déductibles) ou 433 (impôts et taxes collectés) du PCCI.")
+
+
 TYPES_TIERS = next(f["valeurs"] for f in DESCRIPTION["tiers"]["pages"][0]["champs"] if f["cle"] == "typeTiers")
 
 

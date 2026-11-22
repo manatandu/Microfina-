@@ -546,12 +546,14 @@
     {
      "code": "TVA",
      "designation": "TAXE SUR LA VALEUR AJOUTEE",
-     "taux": "16,00"
+     "taux": "16,00",
+     "compte": "432"
     },
     {
      "code": "PNR",
      "designation": "PRELEVEMENT SUR LES PRESTATIONS DES NON-RESIDENTS",
-     "taux": "14,00"
+     "taux": "14,00",
+     "compte": "433"
     }
    ]
   }

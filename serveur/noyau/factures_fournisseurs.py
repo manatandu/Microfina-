@@ -61,7 +61,7 @@ def fournisseur(u, fid) -> dict:
 
 
 def taxes(u) -> list[dict]:
-    return lignes("select id, code, designation, taux from taxe where institution_id = %s and actif order by code", (u["institution_id"],))
+    return lignes("select id, code, designation, taux, compte from taxe where institution_id = %s and actif order by code", (u["institution_id"],))
 
 
 def taxe_tva(u) -> dict:
@@ -70,6 +70,11 @@ def taxe_tva(u) -> dict:
     if not t:
         raise ErreurMetier("TVA : créer d'abord la taxe de code TVA (Comptabilité > Plan des comptes > Création des taxes).")
     return t
+
+
+def compte_taxe(u, taxe_id) -> str:
+    """Compte de la taxe (S104, point 2.26 du plan d'allègement) ; une taxe d'avant le compte garde 433, celui des retenues à la source"""
+    return valeur("select compte from taxe where id = %s and institution_id = %s", (taxe_id, u["institution_id"])) or TAXES_RETENUES
 
 
 def compte_achat(u, numero: str, quoi: str = "Compte") -> str:
@@ -282,7 +287,7 @@ def calculer(u, d) -> dict:
                 deja = sum(ch["montant"] for fa in faites for ch in json_lu(fa["charges"]) if ch.get("ligne") == k)
                 m = part(x["retenue"], deja)
                 if m:
-                    charges.append({"libelle": x["retenueLibelle"], "taux": x["retenueTaux"], "montant": m, "retenue": True, "compte": TAXES_RETENUES,
+                    charges.append({"libelle": x["retenueLibelle"], "taux": x["retenueTaux"], "montant": m, "retenue": True, "compte": compte_taxe(u, x["retenueTaxeId"]),
                                     "taxeId": x["retenueTaxeId"], "ligne": k})
         type_facture = valeur("select code from type_commande where id = %s", (c["type_commande_id"],)) or ""
     nif = bool(d.get("nif"))
@@ -491,8 +496,9 @@ def lignes_facture(f: dict) -> list[dict]:
     """Débit des comptes d'achat (hors taxes), de la TVA déductible (432) et des charges ajoutées ; crédit du fournisseur, toutes taxes comprises"""
     fo = une("select id, compte from tiers_comptable where id = %s", (f["fournisseur_id"],))
     l = [L(x["compte"], "D", "CDF", x["montant"], None, x.get("ligneBudgetId")) for x in json_lu(f["lignes"]) if x["montant"]]
-    if f["tva"]:
-        l.append(L(TVA_DEDUCTIBLE, "D", "CDF", f["tva"]))
+    if f["tva"]:   # le compte de la taxe TVA (S104), 432 par défaut
+        l.append(L(valeur("select compte from taxe where institution_id = %s and actif and upper(trim(code)) = 'TVA' limit 1", (f["institution_id"],)) or TVA_DEDUCTIBLE,
+                   "D", "CDF", f["tva"]))
     l += [L(x["compte"], "D", "CDF", x["montant"]) for x in json_lu(f["charges"]) if not x["retenue"]]
     l.append(L(fo["compte"], "C", "CDF", f["montant_du"], f"tc:{fo['id']}"))
     return l

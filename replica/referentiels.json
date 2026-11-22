@@ -54,6 +54,19 @@
       "cadre": null,
       "grille": true,
       "format": "decimal"
+     },
+     {
+      "cle": "compte",
+      "col": "compte",
+      "libelle": "Compte",
+      "type": "compteSimple",
+      "obligatoire": true,
+      "ref": null,
+      "aide": "(432 ou 433)",
+      "colonne": "Compte",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
      }
     ]
    }

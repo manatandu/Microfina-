@@ -7006,8 +7006,10 @@ const MODES_REGLEMENT: Record<ReglementFournisseur["mode"], string> = { CHEQUE: 
 const pctF = (montant: number, taux: number | string) => Math.floor((montant * Math.round(Number(String(taux).replace(",", ".")) * 100) + 5000) / 10000);
 const proF = (total: number, part: number, base: number) => Math.floor((total * part * 2 + base) / (base * 2));
 function dateF(v: unknown, nom: string, defaut?: string) { const x = texteOc(v); if (!x && defaut) return defaut; if (!DATE_ISO.test(x)) throw new ErreurMetier(`À remplir : ${nom}.`); return x; }
-const taxesF = () => valeursRef("taxes", "taxes").map((t) => ({ id: t.id, code: String(t.code ?? ""), designation: String(t.designation ?? ""), taux: String(t.taux ?? "0") }))
+const taxesF = () => valeursRef("taxes", "taxes").map((t) => ({ id: t.id, code: String(t.code ?? ""), designation: String(t.designation ?? ""), taux: String(t.taux ?? "0"), compte: String(t.compte ?? "") }))
   .sort((a, b) => a.code.localeCompare(b.code));
+/** Compte de la taxe (S104, point 2.26 du plan d'allègement) ; une taxe d'avant le compte garde 433, celui des retenues à la source. Identique au serveur. */
+const compteTaxe = (id: unknown) => taxesF().find((t) => t.id === id)?.compte || TAXES_RETENUES;
 function taxeTva() {
   const t = taxesF().find((x) => x.code.trim().toUpperCase() === "TVA");
   if (!t) throw new ErreurMetier("TVA : créer d'abord la taxe de code TVA (Comptabilité > Plan des comptes > Création des taxes).");
@@ -7073,7 +7075,7 @@ function calculerFacture(d: SaisieFacture) {
     ht = imputation.reduce((t, x) => t + x.montant, 0); tva = part(cmd.tva, faites.reduce((t, fa) => t + fa.tva, 0));
     cmd.lignes.forEach((x, k) => { if (!x.retenueTaxeId) return;
       const m = part(x.retenue, faites.reduce((t, fa) => t + fa.charges.filter((ch) => ch.ligne === k).reduce((s, ch) => s + ch.montant, 0), 0));
-      if (m) charges.push({ libelle: x.retenueLibelle, taux: x.retenueTaux, montant: m, retenue: true, compte: TAXES_RETENUES, taxeId: x.retenueTaxeId, ligne: k }); });
+      if (m) charges.push({ libelle: x.retenueLibelle, taux: x.retenueTaux, montant: m, retenue: true, compte: compteTaxe(x.retenueTaxeId), taxeId: x.retenueTaxeId, ligne: k }); });
     typeFacture = E.typesCommande.find((x) => x.id === cmd.typeCommandeId)?.code ?? "";
   }
   for (const e of elementsF()) {
@@ -7093,7 +7095,7 @@ type LigneGlF = { compte: string; sens: "D" | "C"; devise: Devise; montant: numb
 function lignesFactureF(f: FactureFournisseur): LigneGlF[] {
   const fo = stockRef("tiers", "tiers").find((x) => x.id === f.fournisseurId)!;
   return [...f.imputation.filter((x) => x.montant).map((x) => ({ compte: x.compte, sens: "D" as const, devise: "CDF" as Devise, montant: x.montant, ...(x.ligneBudgetId ? { budget: x.ligneBudgetId } : {}) })),
-    ...(f.tva ? [{ compte: TVA_DEDUCTIBLE, sens: "D" as const, devise: "CDF" as Devise, montant: f.tva }] : []),
+    ...(f.tva ? [{ compte: taxesF().find((x) => x.code.trim().toUpperCase() === "TVA")?.compte || TVA_DEDUCTIBLE, sens: "D" as const, devise: "CDF" as Devise, montant: f.tva }] : []),
     ...f.charges.filter((x) => !x.retenue).map((x) => ({ compte: x.compte, sens: "D" as const, devise: "CDF" as Devise, montant: x.montant })),
     { compte: String(fo.compte), sens: "C", devise: "CDF", montant: f.du, contrat: `tc:${fo.id}` }];
 }
@@ -8832,6 +8834,10 @@ const refFinancement = { ...moteurFinancement,
   } };
 const TYPES_TIERS = DESCRIPTION_REF.tiers!.pages[0]!.champs.find((f) => f.cle === "typeTiers")!.valeurs!;
 // S131, S132 : Paie > Structure de base (p. 269 à 276) : données de base, grilles et états. Mêmes règles que serveur/noyau/referentiels.py
+// Taxes (S104) : chaque taxe porte son compte du PCCI, 432 ou 433 (plan d'allègement, point 2.26). Identique au serveur.
+VERIFIER_REF.taxes = (_c, v) => {
+  if (v.compte && !/^43[23]/.test(String(v.compte))) throw new ErreurMetier("Compte : un compte 432 (impôts et taxes déductibles) ou 433 (impôts et taxes collectés) du PCCI.");
+};
 VERIFIER_REF.paie = (c, v) => {
   if (c.page === "baremes" && v.min !== null && v.max !== null && Number(v.min) > Number(v.max)) throw new ErreurMetier("Max : au moins Min.");
   if (v.taux && Number(String(v.taux).replace(",", ".")) > 100) throw new ErreurMetier("Taux : 100 % au plus.");

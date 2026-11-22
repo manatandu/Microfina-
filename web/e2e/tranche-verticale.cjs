@@ -568,7 +568,7 @@ const OUT = process.argv[2];
   await p.getByRole('cell', { name: 'CR-1' }).waitFor(); await etape('06w-consentement');
   // Dossier de crédit (S86 à S88, p. 113 et 114 ; registre S86 à S88, CR-2, CR-14) : fonds propres saisis par la direction, demande de Kalala par l'agent,
   // contrôle et approbation par le chef d'agence, après consultation de la Centrale des risques
-  await aller('/comptabilite/sn01'); const fpp = p.getByRole('region', { name: 'Fonds propres prudentiels' });   // saisis avec les normes (plan d'allègement, point 2.21)
+  await login('Patrick Lumbala'); await aller('/comptabilite/sn01'); const fpp = p.getByRole('region', { name: 'Fonds propres prudentiels' });   // saisis avec les normes (plan d'allègement, point 2.21)
   await fpp.getByLabel("Date de l'arrêté *").fill('31/10/2026'); await fpp.getByLabel('Montant (CDF) *').fill('100 000 000');
   await fpp.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByText('100 000 000,00 CDF au 31/10/2026').waitFor();
   await login('Bijou Kasongo'); await aller('/credit/s86');
@@ -1195,7 +1195,7 @@ const OUT = process.argv[2];
   // Grand livre (S120, p. 138) : écritures définitives de la journée comptabilisée ; taxes (S104, p. 124) et plan des tiers (S103, p. 123)
   await aller('/comptabilite/s120'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('rowheader', { name: 'Total général' }).waitFor(); await etape('18b-grand-livre');
   // La TVA à 16 % est dans la graine ; l'essai ajoute le taux réduit de 5 % (O.-L. 10/001, art. 35, modifié par la LF 25/060, art. 46)
-  await aller('/comptabilite/s104'); await p.getByRole('cell', { name: '16,00' }).waitFor(); await p.getByLabel('Code *').fill('TVA5'); await p.getByLabel('Désignation *').fill('TVA AU TAUX REDUIT'); await p.getByLabel('Taux *').fill('5');
+  await aller('/comptabilite/s104'); await p.getByRole('cell', { name: '16,00' }).waitFor(); await p.getByLabel('Code *').fill('TVA5'); await p.getByLabel('Désignation *').fill('TVA AU TAUX REDUIT'); await p.getByLabel('Taux *').fill('5'); await p.getByLabel('Compte *').fill('432');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok(); await p.getByRole('cell', { name: '5,00' }).waitFor(); await etape('18c-taxes');
   await aller('/comptabilite/s103'); await p.getByLabel('Type Tiers *').selectOption('FOURNISSEUR'); await p.getByLabel('Intitulé *').fill('Papeterie du Fleuve');
   await p.getByLabel('Compte *').fill('400'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
@@ -1205,10 +1205,10 @@ const OUT = process.argv[2];
   await p.getByLabel('Parent *').fill('570'); await p.getByRole('textbox', { name: 'Libellé du parent' }).waitFor();
   await p.locator('#cp-suite').fill('1'); await p.getByLabel('Libellé *').fill('Caisse Matete CDF');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  await p.getByRole('cell', { name: 'Caisse Matete CDF' }).waitFor(); await etape('18a-plan-creation');
-  await p.getByRole('tab', { name: 'Consultation' }).click(); await p.getByLabel('Recherche par N°compte').fill('5701');
-  await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByText('5701 - Caisse Matete CDF').waitFor(); await etape('18b-plan-consultation');
-  await p.getByRole('tab', { name: 'Modèle de plan comptable' }).click(); await p.getByRole('cell', { name: 'COMPTES DE TRESORERIE' }).waitFor(); await etape('18c-plan-modele');
+  await etape('18a-plan-creation');
+  // Une page : l'arbre et sa recherche, la fiche à côté (plan d'allègement, point 2.26)
+  await p.getByLabel('Rechercher un compte').fill('5701'); await p.getByRole('button', { name: '5701 Caisse Matete CDF' }).click();
+  await p.getByRole('button', { name: 'Modifier' }).waitFor(); await etape('18b-plan-consultation');
   // Résiliation (S48), par le chef
   await login('J.-P. Mukendi'); await aller('/clients/s48');
   // Kalala a un prêt en cours (loi 002/2002, art. 24 ; registre CR-23) et encore des soldes (registre S48-1 ; art. 27) : refus
