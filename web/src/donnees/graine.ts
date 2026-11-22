@@ -35,6 +35,16 @@ export const LISTES_CLIENT: Record<string, string[]> = {
   categorie_groupe: ["Groupe de femmes", "Groupe d'hommes", "Groupe mixte"], // pratique : composition du groupe selon le genre
 };
 // Sous types de client (S14h) : ceux des deux captures p. 25
+/** Jours fériés légaux : ordonnance n° 23-042 du 30 mars 2023, art. 1 ; art. 2 : un jour qui tombe un dimanche est pris le jour précédent (plan d'allègement, point 2.22 ; même liste que jours.py) */
+export const FERIES_LEGAUX: [number, number, string][] = [[1, 1, "Nouvel an"], [1, 4, "Journée des Martyrs de l'indépendance"], [1, 16, "Journée du héros national Laurent Désiré Kabila"],
+  [1, 17, "Journée du héros national Patrice Emery Lumumba"], [4, 6, "Journée du combat de Simon Kimbangu et de la conscience africaine"], [5, 1, "Fête du travail"],
+  [5, 17, "Journée des Forces armées"], [6, 30, "Journée de l'indépendance"], [8, 1, "Fête des parents"], [12, 25, "Noël"]];
+export function feriesLegaux(annee: number) {
+  return FERIES_LEGAUX.map(([m, j, description]) => {
+    const d = new Date(Date.UTC(annee, m - 1, j)); if (d.getUTCDay() === 0) d.setUTCDate(d.getUTCDate() - 1);
+    return { date: d.toISOString().slice(0, 10), description, exercice: annee };
+  });
+}
 export const SOUS_TYPES = ["Personne physique", "Entreprise", "Groupe"];   // les frais se règlent par nature du membre (plan d'allègement, point 2.2)
 
 const FONDS_G2: { CDF: Comptage; USD: Comptage } = {
@@ -218,7 +228,7 @@ export function graine(): Etat {
     remboursementsEmprunt: [],
     chequesInstitution: [],
     agents: [],
-    feries: [],
+    feries: [...feriesLegaux(2025), ...feriesLegaux(2026)],
     elementsFacture: [],
     typesCommande: [],
     historiqueProfils: [1, 2, 3, 4, 5].map((id) => ({ utilisateurId: id, profilId: id, debut: "2026-11-01T08:00:00.000Z", fin: "", par: null })),   // registre S06-2

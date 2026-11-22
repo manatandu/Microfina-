@@ -3,7 +3,7 @@
 // les remplacera sans toucher aux écrans. Les règles qui valent pour l'argent sont appliquées ici
 // comme elles le seront par PostgreSQL : équilibre, écritures figées, clé d'idempotence.
 
-import { graine } from "./graine";
+import { feriesLegaux, graine } from "./graine";
 import { creerApiHttp } from "./http";
 import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
@@ -6298,7 +6298,10 @@ const exercices = {
     if ([...voulu.values()].filter((e) => e.actif).length > 1) throw new ErreurMetier("Un seul exercice actif à la fois.");   // registre S11-1
     if (nouvelle !== null && voulu.has(nouvelle)) throw new ErreurMetier("Cet exercice existe déjà.");
     E.exercices = [...voulu.values()];
-    if (nouvelle !== null) E.exercices.push({ annee: nouvelle, actif: false, ouvert: false, valide: false });
+    if (nouvelle !== null) {
+      E.exercices.push({ annee: nouvelle, actif: false, ouvert: false, valide: false });
+      for (const f of feriesLegaux(nouvelle)) if (!E.feries.some((x) => x.date === f.date)) E.feries.push(f);   // jours fériés légaux repris chaque année (plan 2.22)
+    }
     enregistrer(); return exercices.lire();
   },
   /** « Ouverture d'un Exercice » (p. 21) : Exercice à ouvrir, Ouvrir ; la Liste Détails Journal reçoit les journaux de l'institution */

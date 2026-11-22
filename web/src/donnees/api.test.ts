@@ -1875,7 +1875,8 @@ describe("journée de guichet", () => {
     await expect(api.jours.enregistrerJournees({ agenceId: 1, jours: Array(7).fill(true) })).rejects.toThrow();
     await connecter("jpmukendi");
     const l = await api.jours.lire();
-    expect([l.agences[0]!.jours, l.feries, l.exercices.includes(2026)]).toEqual([Array(7).fill(false), [], true]);
+    expect([l.agences[0]!.jours, l.feries.length, l.exercices.includes(2026)]).toEqual([Array(7).fill(false), 20, true]);   // jours fériés légaux de 2025 et 2026 (ordonnance 23-042, art. 1)
+    expect(l.feries.find((f) => f.description === "Journée des Martyrs de l'indépendance" && f.exercice === 2026)!.date).toBe("2026-01-03");   // dimanche 4 janvier : pris le jour précédent (art. 2)
     const S = [false, true, true, true, true, true, true];
     await expect(api.jours.enregistrerJournees({ jours: S })).rejects.toThrow("Agence");
     expect((await api.jours.enregistrerJournees({ agenceId: 1, jours: S })).agences[0]!.jours).toEqual(S);

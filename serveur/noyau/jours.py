@@ -7,6 +7,27 @@ from .bd import ErreurMetier, executer, lignes, une
 from .services import exiger
 
 JOURS = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"]
+# Jours fériés légaux : ordonnance n° 23-042 du 30 mars 2023 (JO RDC, 15 mai 2023), art. 1 ; posés pour chaque exercice (plan d'allègement, point 2.22)
+FERIES_LEGAUX = [(1, 1, "Nouvel an"), (1, 4, "Journée des Martyrs de l'indépendance"), (1, 16, "Journée du héros national Laurent Désiré Kabila"),
+                 (1, 17, "Journée du héros national Patrice Emery Lumumba"), (4, 6, "Journée du combat de Simon Kimbangu et de la conscience africaine"),
+                 (5, 1, "Fête du travail"), (5, 17, "Journée des Forces armées"), (6, 30, "Journée de l'indépendance"), (8, 1, "Fête des parents"), (12, 25, "Noël")]
+
+
+def feries_legaux(annee: int) -> list[tuple]:
+    """Art. 2 de l'ordonnance 23-042 : un jour férié qui tombe un dimanche est pris le jour précédent"""
+    from datetime import date, timedelta
+    out = []
+    for m, j, desc in FERIES_LEGAUX:
+        d = date(annee, m, j)
+        out.append((d - timedelta(days=1) if d.isoweekday() == 7 else d, desc))
+    return out
+
+
+def poser_feries_legaux(institution_id: int, annee: int):
+    """Ajoute à l'exercice les jours fériés légaux qu'il n'a pas encore ; ceux que l'institution a déjà saisis restent"""
+    for d, desc in feries_legaux(annee):
+        if not une("select 1 from jour_ferie where institution_id = %s and date_ferie = %s", (institution_id, d)):
+            executer("insert into jour_ferie (institution_id, date_ferie, description, annee) values (%s, %s, %s, %s)", (institution_id, d, desc, annee))
 
 
 def lire(u) -> dict:

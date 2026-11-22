@@ -191,10 +191,11 @@ const OUT = process.argv[2];
   await aller('/parametrage/s34');
   for (const j of ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']) await p.getByRole('checkbox', { name: j }).check();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('02f24-journees-travail');
-  await p.getByRole('tab', { name: 'Jours fériés' }).click();
-  await p.getByLabel('Date *').fill('30/06/2026'); await p.getByLabel('Description *').fill("Fête de l'indépendance");
+  // Les jours fériés légaux sont déjà posés (ordonnance 23-042 ; plan d'allègement, point 2.22) ; l'institution ajoute ses jours propres
+  await p.getByRole('tab', { name: 'Jours fériés' }).click(); await p.getByRole('cell', { name: "Journée de l'indépendance" }).first().waitFor();
+  await p.getByLabel('Date *').fill('15/07/2026'); await p.getByLabel('Description *').fill("Fête de l'agence");
   await p.getByLabel('Exercice').selectOption('2026'); await p.getByRole('button', { name: 'Ajouter' }).click();
-  await p.getByRole('cell', { name: "Fête de l'indépendance" }).waitFor();
+  await p.getByRole('cell', { name: "Fête de l'agence" }).waitFor();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('02f25-jours-feries');
   // Chef : devises, types de monnaie, monnaies (S35, p. 45 et 46) : la pièce de 50 centimes du franc congolais
   await aller('/parametrage/s35'); await p.getByRole('cell', { name: 'Franc congolais' }).waitFor(); await etape('02f26-devises');

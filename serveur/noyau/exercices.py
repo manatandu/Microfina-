@@ -65,6 +65,8 @@ def enregistrer(u, d) -> dict:
         if a in voulu:
             raise ErreurMetier("Cet exercice existe déjà.")
         executer("insert into exercice (institution_id, annee) values (%s, %s)", (i, a))
+        from .jours import poser_feries_legaux
+        poser_feries_legaux(i, a)   # jours fériés légaux repris chaque année (plan d'allègement, point 2.22)
     for a in maj:
         e = voulu[a]
         executer("update exercice set actif = %s, ouvert = %s, valide = %s where institution_id = %s and annee = %s", (e["actif"], e["ouvert"], e["valide"], i, a))

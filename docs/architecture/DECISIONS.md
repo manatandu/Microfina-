@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**987 décisions.** Solidité : 442 fortes (le manuel ou un texte répond), 463 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 980 déjà en place, 7 à appliquer.
+**988 décisions.** Solidité : 443 fortes (le manuel ou un texte répond), 463 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 981 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2194,6 +2194,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S35-7 | Coupures | Les onglets « Types de coupures » et « Coupures » deviennent « Coupures » : devise, billet ou pièce, valeur ; le libellé se compose seul (« Pièce de 0,5 CDF », « Billet de 50 CDF »). Une coupure existante garde son libellé | Choix du porteur : Plan d'allègement, point 2.23 | forte | en place |
+
+## S34 Agence : jours de travail et fériés
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S34-3 | Jours fériés légaux | Les dix jours fériés légaux de l'ordonnance n° 23-042 du 30 mars 2023 (art. 1) sont posés pour chaque exercice, à sa création et dans les données de départ ; un jour qui tombe un dimanche est pris le jour précédent (art. 2). L'institution ajoute ses jours propres ; ceux qu'elle a déjà saisis restent | Texte réglementaire : Ordonnance n° 23-042 du 30 mars 2023 fixant la liste des jours fériés légaux, art. 1 et 2 (JO RDC, 15 mai 2023 ; lue sur droitcongolais.info) ; plan d'allègement, point 2.22 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 
