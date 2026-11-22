@@ -2907,6 +2907,25 @@ def normes_prudentielles(request, date: str = "", tresorerieAssuree: str = ""):
     return {**r, "edition": numeroter(u(request), "normes")}
 
 
+# ---------- SC06 : incidents et dépassements (B17 ; Instr. BCC 008, art. 43 et 49) ----------
+@api.get("/conformite/incidents")
+def incidents_lister(request):
+    from . import incidents
+    return incidents.lister(u(request))
+
+
+@api.post("/conformite/incidents")
+def incidents_declarer(request, corps: dict = Body(...)):
+    from . import incidents
+    return incidents.declarer(u(request), corps)
+
+
+@api.post("/conformite/incidents/{iid}/traitement")
+def incidents_traiter(request, iid: int, corps: dict = Body(...)):
+    from . import incidents
+    return incidents.traiter(u(request), iid, corps)
+
+
 @api.get("/clients/registre-membres")
 def registre_membres(request):
     return rmb.membres(u(request))

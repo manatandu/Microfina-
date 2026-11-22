@@ -31,6 +31,7 @@ const FICHIERS: (() => Promise<unknown>)[] = [
   () => import("./ExamenRenforce"),
   () => import("./CentraleIncidents"),
   () => import("./CentraleRisques"),
+  () => import("./Incidents"),
   () => import("./Litigieux"),
   () => import("./Comptabilisation"),
   () => import("./ReferentielsCompta"),
@@ -163,6 +164,7 @@ const ReleveCompte = paresseux(() => import("./ReleveCompte"), "ReleveCompte");
 const ExamenRenforce = paresseux(() => import("./ExamenRenforce"), "default");
 const CentraleIncidents = paresseux(() => import("./CentraleIncidents"), "default");
 const CentraleRisques = paresseux(() => import("./CentraleRisques"), "default");
+const Incidents = paresseux(() => import("./Incidents"), "default");
 const Litigieux = paresseux(() => import("./Litigieux"), "default");
 const Comptabilisation = paresseux(() => import("./Comptabilisation"), "default");
 const PlanTiers = paresseux(() => import("./ReferentielsCompta"), "PlanTiers");
@@ -351,6 +353,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   SC03: Plaintes,
   SC04: RegistreMembres,
   SC05: CentraleRisques,
+  SC06: Incidents,
   SL01: Litigieux,
   SP01: ConditionsBanque,
   SF01: RetenuesReverser,

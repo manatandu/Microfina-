@@ -3306,6 +3306,17 @@ describe("journée de guichet", () => {
     const r = await api.creancesRadiees.rentree(cid, { compteId: k.id, montant: 500000, ordreClient: "Ordre écrit" });
     expect(r[0]!.reste).toBe(1500000);
   });
+  it("incidents et dépassements (B17 ; Instr. BCC 008, art. 43 et 49) : déclaration, traitement tracé, régularisation", async () => {
+    await journeeOuverte(); await connecter("jpmukendi");
+    await expect(api.incidents.declarer({ type: "incident_operationnel", description: " " })).rejects.toThrow("Description");
+    const l = await api.incidents.declarer({ type: "deficit_tresorerie", description: "Encaisse insuffisante le 05/11", montant: 1000000 });
+    const x = l.incidents[0]!;
+    expect([x.typeLibelle, x.origine, x.regulariseLe]).toEqual(["Déficit de trésorerie", "manuelle", ""]);
+    await expect(api.incidents.traiter(x.id, { traitement: "" })).rejects.toThrow("Traitement");
+    const r = await api.incidents.traiter(x.id, { traitement: "Approvisionnement par la banque", regularise: true });
+    expect(r.incidents.find((y) => y.id === x.id)!.regulariseLe).not.toBe("");
+    await expect(api.incidents.traiter(x.id, { traitement: "x" })).rejects.toThrow("déjà régularisé");
+  });
   it("comptes courants débiteurs (B4 ; Instr. BCC 003, art. 7, al. 2 ; PCCI 33 et 39) : virement au 39, provision, recouvrement", async () => {
     await journeeOuverte(); await connecter("bkasongo");
     const E = _etat(), modele = E.comptes.find((c) => c.numero === "0412-000319-02")!, p = E.produits.find((x) => x.libelle === modele.intitule && x.devise === modele.devise)!;

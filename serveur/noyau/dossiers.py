@@ -277,6 +277,10 @@ def controler_plafonds(u, tid: int, m_cdf: int, apparente, bcc: str | None):
             depasse.append("10 % des dépôts des membres (loi 002/2002, art. 59, 6°)")
     elif risque * 20 > fp["montant"]:
         depasse.append("5 % des fonds propres prudentiels (Instr. BCC 002, art. 28)")
+    if depasse:                                                    # B17 : dépassement noté, qu'il soit refusé ou couvert par la BCC (Instr. BCC 008, art. 43 et 49)
+        from .incidents import noter
+        numero = valeur("select numero from tiers where id = %s", (tid,))
+        noter(u, f"Plafond par emprunteur dépassé, client {numero} : " + " ; ".join(depasse) + (f". Référence BCC : {bcc}" if bcc else ""), risque, "CDF")
     if depasse and not bcc:
         raise ErreurMetier("Plafond par emprunteur dépassé : " + " ; ".join(depasse) + ". Il faut l'accord préalable ou la dérogation de la BCC, référence à noter.")
     if apparente:

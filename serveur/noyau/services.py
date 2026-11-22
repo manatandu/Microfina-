@@ -1888,6 +1888,11 @@ def avec_avertissement(v: dict, s: dict, devise: str) -> dict:
     if maximum and encaisse > maximum:
         v["avertissement"] = (f"Encaisse de la caisse au-dessus du maximum autorisé ({montant_lisible(maximum, devise)}) : "
                               "transférer l'excédent à la caisse principale (Caisse > Transfert).")
+        from .incidents import noter                                   # B17 : dépassement de limite noté (Instr. BCC 008, art. 43 et 49)
+        g = une("select g.code, a.institution_id from guichet g join agence a on a.id = g.agence_id where g.id = %s", (s["guichetId"],))
+        if g:
+            noter({"institution_id": g["institution_id"], "id": s.get("caissierId")},
+                  f"Encaisse du guichet {g['code']} au-dessus du maximum autorisé ({montant_lisible(maximum, devise)})", encaisse, devise)
     return v
 
 

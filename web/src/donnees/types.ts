@@ -412,6 +412,8 @@ export interface Etat {
   nantissementsMateriel?: NantissementMateriel[];   // A4 et P3
   decouvertsDouteux?: { id: number; compteId: number; devise: string; montant: number; restant: number; retardDepuis: string; degre: number; provision: number;
     classeLe: string; classePar: number; soldeLe: string }[];   // B4 : comptes courants débiteurs virés au 39 (Instr. BCC 003, art. 7, al. 2)
+  incidents?: { id: number; type: "depassement_limite" | "incident_operationnel" | "deficit_tresorerie"; origine: "automatique" | "manuelle"; le: string; description: string;
+    montant: number | null; devise: string; utilisateurId: number | null; traitement: string; regulariseLe: string; traitePar: number | null }[];   // B17 : Instr. BCC 008, art. 43 et 49
   editions?: { numero: number; etat: string; le: string; par: number }[];   // B12 : états périodiques numérotés et datés (PCCI § 3.4)
   visasCredit: VisaCredit[];   // S90
   declarationsRisque: { type: string; objetId: number; dateEvenement: string; declareLe: string; reference: string; declarePar: number }[];   // E26, Instr. BCC 05

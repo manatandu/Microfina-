@@ -540,6 +540,15 @@
   "chemin": "/clients/sc05"
  },
  {
+  "id": "SC06",
+  "nom": "Incidents et dépassements",
+  "acces": "Client > Conformité > Incidents et dépassements",
+  "but": "Garder les incidents (dépassements de limites notés par le logiciel, incidents opérationnels et déficits de trésorerie déclarés), alerter et tracer leur traitement (confrontation du 21/11/2026, B17 ; Instr. BCC 008, art. 43 et 49)",
+  "module": "clients",
+  "priorite": "must",
+  "chemin": "/clients/sc06"
+ },
+ {
   "id": "S52",
   "nom": "Opérations de banque",
   "acces": "Banque > Opération",

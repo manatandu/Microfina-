@@ -854,6 +854,11 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByRole('cell', { name: 'Portefeuille à Risque' }).waitFor(); await etape('11p-indicateur-gestion');
   // Centrale des risques (écart E26, Instr. BCC 05, annexe I) : octroi, engagement à déclarer ; Tout choisir, Noter la déclaration
   await aller('/clients/sc05'); await p.getByRole('cell', { name: 'Octroi de crédit' }).first().waitFor(); await etape('11q-centrale-risques');
+  // Incidents et dépassements (SC06 ; Instr. BCC 008, art. 43 et 49) : un incident déclaré, puis traité
+  await aller('/clients/sc06'); await p.getByRole('heading', { name: 'Incidents et dépassements' }).waitFor();
+  await p.getByLabel('Type : *').selectOption({ label: 'Incident opérationnel' }); await p.getByLabel('Description : *').fill("Coupure du réseau de l'agence");
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByRole('cell', { name: "Coupure du réseau de l'agence" }).waitFor(); await etape('11q2-incidents');
   await p.getByRole('button', { name: 'Tout choisir' }).click(); await p.getByRole('button', { name: 'Noter la déclaration' }).click();
   await p.getByLabel('Référence : *').fill('CR-2026-0001'); await p.getByRole('dialog', { name: 'Déclaration à la Centrale des risques' }).getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('cell', { name: 'Aucune donnée dans la liste' }).waitFor();

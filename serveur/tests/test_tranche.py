@@ -5141,3 +5141,27 @@ def test_position_de_change(clients, journee):
     assert [x["montant"] for x in lg if x["compte"] == "472" and x["montant"]] == [4000]
     assert (somme("723", "C"), somme("623", "D")) == (400_000, 0)                                 # résultat net de la devise
     assert (vue_reevaluation(pos, D(2026, 11, 5))["profit"], vue_reevaluation(pos, D(2026, 11, 5), 50)["perte"]) == (400_000, 50)
+
+
+def test_incidents_et_depassements(clients, journee):
+    """B17 (confrontation du 21/11/2026) : registre des incidents (Instr. BCC 008, art. 43), dépassement noté par le logiciel et traitement tracé (art. 49)"""
+    from noyau.bd import une
+    from noyau.incidents import noter
+    chef = clients["chef"]
+    util = une("select u.id, u.institution_id, u.agence_id from utilisateur u where u.login = 'jpmukendi'")
+    avant = len(chef.get("/api/conformite/incidents", **H).json()["incidents"])
+    noter(util, "Plafond par emprunteur dépassé, client d'essai", 5_000_000, "CDF")
+    noter(util, "Plafond par emprunteur dépassé, client d'essai", 5_000_000, "CDF")          # le même dépassement encore ouvert ne se note qu'une fois
+    l = chef.get("/api/conformite/incidents", **H).json()["incidents"]
+    assert len(l) == avant + 1 and (l[0]["origine"], l[0]["typeLibelle"]) == ("automatique", "Dépassement de limite")
+    assert "Description" in chef.post("/api/conformite/incidents", {"type": "incident_operationnel", "description": " "}, **H).json()["message"]
+    r = chef.post("/api/conformite/incidents", {"type": "incident_operationnel", "description": "Coupure du réseau de l'agence", "montant": None}, **H)
+    assert r.status_code == 200, r.content
+    x = next(y for y in r.json()["incidents"] if y["description"].startswith("Plafond"))
+    route = f"/api/conformite/incidents/{x['id']}/traitement"
+    assert "Traitement" in chef.post(route, {"traitement": ""}, **H).json()["message"]
+    r = chef.post(route, {"traitement": "Encours ramené sous le plafond", "regularise": True}, **H).json()
+    y = next(z for z in r["incidents"] if z["id"] == x["id"])
+    assert (y["traitement"], y["regulariseLe"]) == ("Encours ramené sous le plafond", "2026-11-05")
+    assert "déjà régularisé" in chef.post(route, {"traitement": "x"}, **H).json()["message"]
+    assert clients["caisse"].get("/api/conformite/incidents", **H).status_code == 403

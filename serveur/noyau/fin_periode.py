@@ -614,6 +614,9 @@ def controles(u, annee: int, mois: int | None) -> list[dict]:
             deb.append(f"{k['numero']} (dernier versement : {dc.strftime('%d/%m/%Y') if dc else 'aucun'})")
     ajouter("Comptes courants débiteurs sans versement depuis plus de 30 jours", not deb,
             "À classer en crédits douteux (Instr. BCC 003, art. 7, al. 2) : " + ", ".join(deb))
+    from .incidents import ouverts                                     # B17 : traitement des incidents et dépassements (Instr. BCC 008, art. 49)
+    no = ouverts(i)
+    ajouter("Incidents et dépassements régularisés", no == 0, f"{no} incident(s) ou dépassement(s) à traiter (Client > Conformité > Incidents et dépassements)")
     reste = sum(max(couru(x, fin) - x["interets_courus"], 0) for x in lignes(
         "select * from depot_terme where institution_id = %s and statut = 'valide' and date_depot <= %s", (i, fin)))
     ajouter("Intérêts courus des dépôts à terme", reste == 0, "À passer : Autres > Calculs > Calcul des intérêts sur DAT")

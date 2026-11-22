@@ -2780,9 +2780,50 @@ function plafondsGuichet(guichetId: number, devise: Devise) {
   const p = E.guichets.find((g) => g.id === guichetId)?.plafonds?.[devise];
   return { maximum: p?.maximum ?? 0, retrait: p?.retrait ?? 0 };
 }
+// ---------- SC06 : incidents et dépassements (B17 ; Instr. BCC 008, art. 43 et 49 ; Instr. BCC 007, art. 39). Mêmes règles que serveur/noyau/incidents.py ----------
+const TYPES_INCIDENT = { depassement_limite: "Dépassement de limite", incident_operationnel: "Incident opérationnel", deficit_tresorerie: "Déficit de trésorerie" } as const;
+type Incident = NonNullable<Etat["incidents"]>[number];
+/** Dépassement constaté par le logiciel : noté même quand l'opération est refusée ; un même dépassement encore ouvert ne se note pas deux fois */
+function noterIncident(description: string, montant: number | null = null, devise: string | null = null) {
+  const l = (E.incidents ??= []);
+  if (l.some((x) => x.type === "depassement_limite" && x.description === description && !x.regulariseLe)) return;
+  l.push({ id: prochain(l), type: "depassement_limite", origine: "automatique", le: journees.courante()?.date ?? new Date().toISOString().slice(0, 10), description, montant, devise: devise ?? "",
+    utilisateurId: session.courante()?.id ?? null, traitement: "", regulariseLe: "", traitePar: null });
+  sauver();
+}
+const vueIncident = (x: Incident) => ({ id: x.id, type: x.type as string, typeLibelle: TYPES_INCIDENT[x.type], origine: x.origine as string, le: x.le, description: x.description, montant: x.montant,
+  devise: x.devise, traitement: x.traitement, regulariseLe: x.regulariseLe, traitePar: x.traitePar ? nomUtilisateur(x.traitePar) : "" });
+const incidents = {
+  lister() {
+    lectureAdmin(["SC06"]);
+    return { types: Object.entries(TYPES_INCIDENT).map(([code, libelle]) => ({ code, libelle })),
+      incidents: [...(E.incidents ?? [])].sort((a, b) => Number(!!a.regulariseLe) - Number(!!b.regulariseLe) || b.le.localeCompare(a.le) || b.id - a.id).map(vueIncident) };
+  },
+  declarer(d: { type?: string; description?: string; montant?: number | null }) {
+    const u = exiger(), description = (d.description ?? "").trim();
+    if (!d.type || !(d.type in TYPES_INCIDENT)) throw new ErreurMetier("À remplir : Type.");
+    if (!description) throw new ErreurMetier("À remplir : Description.");
+    if (d.montant !== null && d.montant !== undefined && (!Number.isInteger(d.montant) || d.montant < 0)) throw new ErreurMetier("Montant : un montant positif.");
+    const l = (E.incidents ??= []);
+    l.push({ id: prochain(l), type: d.type as Incident["type"], origine: "manuelle", le: journees.courante()?.date ?? new Date().toISOString().slice(0, 10), description, montant: d.montant ?? null,
+      devise: d.montant !== null && d.montant !== undefined ? "CDF" : "", utilisateurId: u.id, traitement: "", regulariseLe: "", traitePar: null });
+    enregistrer(); return incidents.lister();
+  },
+  traiter(id: number, d: { traitement?: string; regularise?: boolean }) {
+    const u = exiger(), x = (E.incidents ?? []).find((y) => y.id === id);
+    if (!x) throw new ErreurMetier("Choisir l'incident dans la liste.");
+    if (x.regulariseLe) throw new ErreurMetier("Incident déjà régularisé.");
+    const traitement = (d.traitement ?? "").trim();
+    if (!traitement) throw new ErreurMetier("À remplir : Traitement.");
+    Object.assign(x, { traitement, traitePar: u.id, regulariseLe: d.regularise === true ? journees.courante()?.date ?? "" : "" });
+    enregistrer(); return incidents.lister();
+  },
+};
 /** Registre S08-4 : après une entrée d'espèces, avertir si l'encaisse dépasse le maximum autorisé ; l'opération n'est jamais refusée pour cela */
 function avecAvertissement(o: Operation, s: SessionCaisse, devise: Devise): Operation {
   const { maximum } = plafondsGuichet(s.guichetId, devise);
+  if (maximum && totalComptage(caisses.theorique(s.id, devise)) > maximum) noterIncident(`Encaisse du guichet ${E.guichets.find((g) => g.id === s.guichetId)?.code ?? ""} au-dessus du maximum autorisé (${montantTexte(maximum, devise)})`,
+    totalComptage(caisses.theorique(s.id, devise)), devise);   // B17
   if (maximum && totalComptage(caisses.theorique(s.id, devise)) > maximum)
     return { ...o, avertissement: `Encaisse de la caisse au-dessus du maximum autorisé (${montantTexte(maximum, devise)}) : transférer l'excédent à la caisse principale (Caisse > Transfert).` };
   return o;
@@ -3173,6 +3214,7 @@ function controlerPlafonds(tid: number, mCdf: number, apparente: boolean, bcc: s
     if (risque * 10 > fp.montant) depasse.push("10 % des fonds propres prudentiels (Instr. BCC 002, art. 29)");
     if (risque * 10 > depotsMembres()) depasse.push("10 % des dépôts des membres (loi 002/2002, art. 59, 6°)");
   } else if (risque * 20 > fp.montant) depasse.push("5 % des fonds propres prudentiels (Instr. BCC 002, art. 28)");
+  if (depasse.length) noterIncident(`Plafond par emprunteur dépassé, client ${E.tiers.find((y) => y.id === tid)?.numero ?? ""} : ${depasse.join(" ; ")}${bcc ? `. Référence BCC : ${bcc}` : ""}`, risque, "CDF");   // B17
   if (depasse.length && !bcc) throw new ErreurMetier(`Plafond par emprunteur dépassé : ${depasse.join(" ; ")}. Il faut l'accord préalable ou la dérogation de la BCC, référence à noter.`);
   if (apparente) {
     const tot = encoursDossier(E.tiers.filter((y) => y.apparente).map((y) => y.id)) + mCdf;
@@ -7904,6 +7946,8 @@ function controlesFin(a: number, m: number | null) {
     if (solde > 0 && (!dernier || (Date.parse(fin) - Date.parse(dernier)) / 86400000 > 30)) deb.push(`${k.numero} (dernier versement : ${dernier ? frDate(dernier) : "aucun"})`);
   }
   ajouter("Comptes courants débiteurs sans versement depuis plus de 30 jours", deb.length === 0, `À classer en crédits douteux (Instr. BCC 003, art. 7, al. 2) : ${deb.join(", ")}`);
+  const incidentsOuverts = (E.incidents ?? []).filter((x) => !x.regulariseLe).length;   // B17 : Instr. BCC 008, art. 49
+  ajouter("Incidents et dépassements régularisés", incidentsOuverts === 0, `${incidentsOuverts} incident(s) ou dépassement(s) à traiter (Client > Conformité > Incidents et dépassements)`);
   ajouter("Intérêts courus des dépôts à terme", reste === 0, "À passer : Autres > Calculs > Calcul des intérêts sur DAT");
   // B8 : intérêts courus non échus des crédits sains aux créances rattachées (PCCI § 4.1.3 et § 6.4)
   const ecartCredits = E.credits.filter((c) => c.debloqueLe && c.debloqueLe <= fin && (c.statut === "debloque" || (c.interetsCourus ?? 0) > 0))
@@ -10189,6 +10233,7 @@ const construireLocale = () => ({
   etatsFinanciers: asynchrone(numerote(etatsFinanciers, { bilan: "bilan", horsBilan: "hors-bilan", resultat: "resultat", annexe: "annexe", indicateurs: "indicateurs" }), "etatsFinanciers"),
   normes: asynchrone(numerote(normes, { etat: "normes" }), "normes"),
   decouverts: asynchrone(decouverts, "decouverts"),
+  incidents: asynchrone(incidents, "incidents"),
   creancesRadiees: asynchrone(creancesRadiees, "creancesRadiees"),
   budgets: asynchrone(budgets, "budgets"),
   finPeriode: asynchrone(finPeriode, "finPeriode"),
