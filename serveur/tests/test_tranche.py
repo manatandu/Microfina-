@@ -383,6 +383,9 @@ def test_fiche_entreprise(clients, journee):
         r = agent.post("/api/tiers/entreprises", corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
     assert "Forme juridique : valeur inconnue" in refus({**base, "formeJuridique": "SARLU"})
     assert "Société à responsabilité limitée unipersonnelle" in agent.get("/api/referentiel", **H).json()["listesFiche"]["formeJuridique"]   # S38-4
+    lf = agent.get("/api/referentiel", **H).json()["listesFiche"]
+    assert {"Établissement public", "Administration publique (État, province, entité territoriale décentralisée)"} <= set(lf["formeJuridique"])   # S38-6
+    assert {"Services à la personne et à la collectivité", "Banque, assurance, immobilier", "Support à l'entreprise"} <= set(lf["typeActivite"])   # S14-5 : ROME/RDC
     assert "Secteur d'activité : valeur inconnue" in refus({**base, "secteurActivite": "Pêche industrielle"})
     assert "Email invalide" in refus({**base, "email": "contact"})
     assert "Bénéficiaire effectif" in refus({**base, "beneficiairesEffectifs": [morale]})

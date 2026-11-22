@@ -24,6 +24,9 @@ FONDS_G2 = {"USD": {100: 140, 50: 12, 20: 8, 10: 3, 5: 2, 1: 6}, "CDF": {20000: 
 SECTEURS = [("S1", "PRIMAIRE"), ("S2", "SECONDAIRE"), ("S3", "TERTIAIRE")]
 # Décision du porteur (18/11/2026, registre S14-3) : les autres lignes de la capture p. 23 sont des types d'activité (S14a), rangés sous leur secteur
 TYPES_ACTIVITE = [("T1", "Elevage", "S1"), ("T2", "Pêche", "S1"), ("T3", "Transformation", "S2"), ("T4", "Artisanat", "S2"), ("T5", "Commerce", "S3")]
+# Les 14 grands domaines du ROME/RDC (ONEM), sous leur secteur : toute activité, salariée ou non, y trouve sa place (fonctionnaire : services à la collectivité ;
+# employé de banque : banque, assurance, immobilier ; cabinet d'audit : support à l'entreprise). Question du porteur du 22/11/2026, registre S14-5
+TYPES_ACTIVITE += [("R-A", "Agriculture et pêche, espaces naturels et espaces verts, soins aux animaux", "S1"), ("R-B", "Artisanat et façonnage d'ouvrages d'art", "S2"), ("R-F", "Construction, bâtiment et travaux publics", "S2"), ("R-H", "Industrie", "S2"), ("R-I", "Installation et maintenance", "S2"), ("R-C", "Banque, assurance, immobilier", "S3"), ("R-D", "Commerce, vente et grande distribution", "S3"), ("R-E", "Communication, média et multimédia", "S3"), ("R-G", "Hôtellerie-restauration, tourisme, loisirs et animation", "S3"), ("R-J", "Santé", "S3"), ("R-K", "Services à la personne et à la collectivité", "S3"), ("R-L", "Spectacle", "S3"), ("R-M", "Support à l'entreprise", "S3"), ("R-N", "Transport et logistique", "S3")]
 
 # Constitution, art. 2 : la ville de Kinshasa (statut de province) et les 25 provinces
 PROVINCES_RDC = ["Kinshasa", "Bas-Uele", "Equateur", "Haut-Lomami", "Haut-Katanga", "Haut-Uele", "Ituri", "Kasaï", "Kasaï Oriental", "Kongo central", "Kwango",
@@ -37,7 +40,9 @@ PROFESSIONS = (("6330-01", "Agriculteur"), ("6113-13", "Maraîcher"), ("6320-07"
 
 FORMES_JURIDIQUES = ("Société en nom collectif", "Société en commandite simple", "Société à responsabilité limitée", "Société anonyme",
                      "Société par actions simplifiée", "Société à responsabilité limitée unipersonnelle", "Société anonyme unipersonnelle",
-                     "Société par actions simplifiée unipersonnelle")
+                     "Société par actions simplifiée unipersonnelle",
+                     # Personnes morales publiques et coopératives (loi 08/009 sur les établissements publics ; loi 002/2002) ; registre S38-6
+                     "Administration publique (État, province, entité territoriale décentralisée)", "Établissement public", "Coopérative d'épargne et de crédit (COOPEC)")
 # Formes juridiques des groupes : loi n° 004/2001 sur les ASBL, art. 2 et titre II ; groupement sans personnalité juridique (manuel p. 47) ; registre S39-5
 FORMES_JURIDIQUES_GROUPE = ("Groupement sans personnalité juridique", "Association sans but lucratif à caractère culturel, social, éducatif ou économique",
                             "Organisation non gouvernementale (ONG)", "Association confessionnelle", "Établissement d'utilité publique")

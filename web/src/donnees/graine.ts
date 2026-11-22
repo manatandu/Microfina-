@@ -18,9 +18,11 @@ export const COURS_EXEMPLE = 2850;            // CDF pour 1 USD, fictif
 export const VALEUR_PART_EXEMPLE = 400000;    // 4 000 CDF : exemple du manuel Microfina++ ; la vraie valeur vient des statuts (loi 002/2002, art. 20)
 /** S14b : sélection de métiers du ROME/RDC (ONEM, nov. 2022), code et libellé du répertoire ; « Commerçant », que le ROME ne nomme pas, code de l'institution (registre S14b-1) */
 export const PROFESSIONS_ROME: [string, string][] = [["6330-01", "Agriculteur"], ["6113-13", "Maraîcher"], ["6320-07", "Éleveur de bovins"], ["6122-06", "Éleveur de volailles"], ["5211-01", "Marchand de fruits et légumes"], ["5211-04", "Vendeur en alimentation générale"], ["7532-09", "Tailleur"], ["7532-04", "Couturier tailleur"], ["5141-06", "Coiffeur mixte"], ["7512-02", "Boulanger"], ["7112-11", "Maçon"], ["7522-02", "Menuisier"], ["7536-01", "Cordonnier"], ["2341-06", "Enseignant des écoles"], ["2240-09", "Infirmier général"], ["3311-23", "Cambiste, Changeur de monnaie"], ["COM", "Commerçant"]];
-/** S14i : formes de société commerciales de l'AUSCGIE, art. 6 (démonstration ; la liste se tient dans le paramétrage) */
+/** S14i : formes juridiques des personnes morales (démonstration ; la liste se tient dans le paramétrage) : registre S38-4 et S38-6 */
 export const FORMES_JURIDIQUES = ["Société en nom collectif", "Société en commandite simple", "Société à responsabilité limitée", "Société anonyme",
-  "Société par actions simplifiée", "Société à responsabilité limitée unipersonnelle", "Société anonyme unipersonnelle", "Société par actions simplifiée unipersonnelle"];
+  "Société par actions simplifiée", "Société à responsabilité limitée unipersonnelle", "Société anonyme unipersonnelle", "Société par actions simplifiée unipersonnelle",
+  // Personnes morales publiques et coopératives (loi 08/009 sur les établissements publics ; loi 002/2002) ; registre S38-6
+  "Administration publique (État, province, entité territoriale décentralisée)", "Établissement public", "Coopérative d'épargne et de crédit (COOPEC)"];
 /** Formes juridiques des groupes : loi n° 004/2001 sur les ASBL, art. 2 et titre II ; groupement sans personnalité juridique (manuel p. 47) ; registre S39-5 */
 export const FORMES_JURIDIQUES_GROUPE = ["Groupement sans personnalité juridique", "Association sans but lucratif à caractère culturel, social, éducatif ou économique",
   "Organisation non gouvernementale (ONG)", "Association confessionnelle", "Établissement d'utilité publique"];
@@ -149,7 +151,9 @@ export function graine(): Etat {
     listes: [...[["S1", "PRIMAIRE"], ["S2", "SECONDAIRE"], ["S3", "TERTIAIRE"]]
       .map(([code, libelle]) => ({ liste: "secteur_activite", code: code!, libelle: libelle! })),
       // Décision du porteur (18/11/2026, registre S14-3) : les autres lignes de la capture p. 23 sont des types d'activité (S14a), sous leur secteur (ids 1 à 3 ci-dessus)
-      ...([["T1", "Elevage", 1], ["T2", "Pêche", 1], ["T3", "Transformation", 2], ["T4", "Artisanat", 2], ["T5", "Commerce", 3]] as const)
+      // + les 14 grands domaines du ROME/RDC (ONEM), sous leur secteur (question du porteur du 22/11/2026, registre S14-5)
+      ...([["T1", "Elevage", 1], ["T2", "Pêche", 1], ["T3", "Transformation", 2], ["T4", "Artisanat", 2], ["T5", "Commerce", 3],
+        ["R-A", "Agriculture et pêche, espaces naturels et espaces verts, soins aux animaux", 1], ["R-B", "Artisanat et façonnage d'ouvrages d'art", 2], ["R-F", "Construction, bâtiment et travaux publics", 2], ["R-H", "Industrie", 2], ["R-I", "Installation et maintenance", 2], ["R-C", "Banque, assurance, immobilier", 3], ["R-D", "Commerce, vente et grande distribution", 3], ["R-E", "Communication, média et multimédia", 3], ["R-G", "Hôtellerie-restauration, tourisme, loisirs et animation", 3], ["R-J", "Santé", 3], ["R-K", "Services à la personne et à la collectivité", 3], ["R-L", "Spectacle", 3], ["R-M", "Support à l'entreprise", 3], ["R-N", "Transport et logistique", 3]] as const)
         .map(([code, libelle, parentId]) => ({ liste: "type_activite", code, libelle, parentId })), { liste: "type_guichet", code: "1", libelle: "PRINCIPALE" }, { liste: "type_guichet", code: "2", libelle: "SECONDAIRE" },
       // Sous types de client (S14h) des deux captures p. 25, cochés dans Paramétrage frais (S16-8)
       ...SOUS_TYPES.map((libelle, i) => ({ liste: "sous_type_client", code: String(i + 1), libelle })),

@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**949 décisions.** Solidité : 412 fortes (le manuel ou un texte répond), 455 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 942 déjà en place, 7 à appliquer.
+**951 décisions.** Solidité : 413 fortes (le manuel ou un texte répond), 456 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 944 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -756,6 +756,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S76-9 | Crédit soldé, Situation, Plan, Réel, Memo | Capital et intérêts payés : statut soldé, épargne obligatoire et fonds de solidarité libérés, remboursement total à déclarer (CR-10). Situation : brouillard des remboursements de la capture p. 88 (échéances et remboursements par date) ; Plan : échéancier en vigueur ; Réel : remboursements effectués ; Memo : notes datées. Espèces de 10 000 USD ou plus : examen renforcé (E01) | Manuel : Capture p. 88 ; texte p. 88 ; Instr. BCC 38, art. 9 ; Instr. BCC 05, art. 10 ; loi 22/068, art. 23 | moyenne | en place |
 | S76-10 | Bouton MP | Non repris : il sert aux crédits repris de LPF, au premier remboursement seulement ; aucun crédit n'est repris de LPF | Manuel : Texte p. 88 | forte | en place |
 
+## S38 Fiche de l'entreprise ; S14i
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S38-6 | État, banque, compagnie d'assurance | Type entreprise (agent économique du PCCI § 10.2) : l'État est « Administration centrale », une province ou une entité territoriale « Administrations provinciales ou locales », une banque « Banques commerciales et autres intermédiaires financiers », une compagnie d'assurance « Institutions financières non bancaires », une société de l'État « Entreprises publiques ». Formes juridiques ajoutées : administration publique (État, province, entité territoriale décentralisée), établissement public, coopérative d'épargne et de crédit. Une banque et une entreprise d'assurance sont des sociétés anonymes, déjà dans la liste | Texte réglementaire : Question du porteur du 22/11/2026 ; PCCI § 10.2 ; loi 22/069 (banque : société anonyme avec conseil d'administration) ; loi 15/005, Code des assurances (société anonyme non unipersonnelle) ; loi n° 08/009 du 7 juillet 2008 (établissements publics) ; loi 002/2002 | forte | en place |
+
 ## S39 Fiche du groupe
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
@@ -1255,6 +1261,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | E27-3 | Prorogation : classe et provision | Classe « prorogé » dès la prorogation ; jours de retard comptés sur l'échéancier initial ; degré au moins « Impayés » (5 %), puis selon les jours | Texte réglementaire : Instr. BCC 003, art. 4 et 12, dernier alinéa | moyenne | en place |
 | E27-4 | Contentieux | Ouvert seulement s'il y a un impayé ; un seul dossier ouvert par crédit ; clos par l'agent avec l'issue, ou d'office « Crédit remboursé » au remboursement total | Texte réglementaire : Instr. BCC 003, art. 8 | forte | en place |
 | E27-5 | Déclarations | La prorogation et l'ouverture d'un contentieux entrent dans la liste à déclarer à la Centrale des risques (E26) | Texte réglementaire : Instr. BCC 05, annexe I, art. 1 et 7 | forte | en place |
+
+## S14 Secteur d'activité ; S14a Type d'activité
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S14-5 | Activités de toute nature | Aux types d'activité de la capture s'ajoutent les 14 grands domaines du Répertoire opérationnel des métiers et des emplois de la RDC (ROME/RDC, ONEM), rangés sous leur secteur : agriculture et pêche (primaire) ; artisanat, construction, industrie, installation et maintenance (secondaire) ; banque, assurance, immobilier ; commerce ; communication ; hôtellerie et tourisme ; santé ; services à la personne et à la collectivité ; spectacle ; support à l'entreprise ; transport et logistique (tertiaire). Un fonctionnaire se range en services à la collectivité, un employé de banque en banque, assurance, immobilier, un cabinet d'audit en support à l'entreprise. La profession se saisit à part, en clair. L'institution complète la liste dans le paramétrage | Texte réglementaire : Question du porteur du 22/11/2026 ; ROME/RDC, ONEM (grands domaines A à N) ; Instr. BCC 15, art. 13, al. 2 | moyenne | en place |
 
 ## S74 Dépôt / Retrait
 
