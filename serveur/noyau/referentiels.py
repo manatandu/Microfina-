@@ -111,6 +111,13 @@ def verifier_immo(u, c, v, lid):
         raise ErreurMetier("Période : « ans à » au moins « allant de ».")
     if c["page"] == "familles" and v["dureeMin"] is not None and v["dureeMax"] is not None and v["dureeMin"] > v["dureeMax"]:
         raise ErreurMetier("Durée Max. : au moins la durée Min.")
+    if c["page"] == "familles":
+        # PCCI : les valeurs immobilisées sont en classe 2, leurs amortissements au compte 28, les dotations au compte 68 (vérification du 22/11/2026)
+        for cle, nom, bon, attendu in (("compteAcquisition", "Compte d'acquisition", lambda n: n.startswith("2") and not n.startswith("28"), "un compte de la classe 2, hors 28"),
+                                       ("compteAmortissement", "Compte Amor.", lambda n: n.startswith("28"), "un compte 28"),
+                                       ("compteDotation", "Compte dotation", lambda n: n.startswith("68"), "un compte 68")):
+            if v.get(cle) and not bon(str(v[cle])):
+                raise ErreurMetier(f"{nom} : {attendu} (PCCI, classes 2 et 6).")
     if c["page"] == "utilisations":
         if v["tvaApplicable"] and not v["tva"]:
             raise ErreurMetier("À remplir : T.V.A.")

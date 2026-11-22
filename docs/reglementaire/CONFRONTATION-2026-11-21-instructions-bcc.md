@@ -454,3 +454,9 @@ Le porteur a demandé de répondre par les textes aux points du § 16.
 ### Points du § 18.2 vérifiés le 22/11/2026
 
 - **En-tête des états de S122 : absent, corrigé** (PCCI 14.1 à 14.3) : dénomination, n° d'agrément, sigle, date et NRC en tête du bilan, du hors-bilan, du compte de résultat et du tableau de flux ; champ NRC sur la société ; sur le serveur, la liasse retrouve le sigle, l'agrément et l'adresse (registre T114).
+- **Paie : rien à vérifier.** Le module tient les employés, la maquette de paie et les retenues ; il ne calcule pas le salaire et ne passe aucune écriture (le manuel non plus). Aucun compte 65, 42 ou 43 n'est mouvementé par la paie.
+- **Immobilisations : contrôle ajouté** (PCCI, classe 2, comptes 28 et 68) : les comptes d'une famille de biens sont vérifiés à la saisie (registre T115). Les comptes de sortie 673, 674 et 774 étaient déjà ceux du PCCI.
+- **États trimestriels : essayés.** La période se choisit librement dans l'exercice ; le quatrième trimestre sort un bilan équilibré et son compte de résultat (essai ajouté aux tests).
+- **Compte 591 : couvert par le contrôle de clôture** « comptes 59 soldés » (B23, registre T95) : un virement interne resté ouvert est signalé avant la clôture, sans la bloquer.
+- **Frais de crédit : aucun compte proposé par défaut.** L'institution saisit le compte de chaque frais sur le produit (S23) ; le logiciel exige seulement qu'il existe au plan. Le PCCI range les commissions sur crédits au 715 : c'est ce compte qui les fait entrer dans le « rendement du portefeuille ». À dire à la mise en service ; aucun texte n'impose un contrôle.
+- **Miroir local** : chaque règle ajoutée depuis le 21/11/2026 a son essai des deux côtés, avec les mêmes valeurs attendues. Les règles plus anciennes n'ont pas été relues ligne à ligne.

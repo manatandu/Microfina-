@@ -4671,6 +4671,11 @@ def test_etats_financiers(clients, journee):
     assert "CDF" in [x["devise"] for x in mo["lignes"]] and sum(x["positionCdf"] for x in mo["lignes"]) == formation + sum(
         c["n"] for c in b["passif"][-2]["comptes"] if not c["compte"])                         # avoirs moins engagements : le résultat pas encore viré
     assert "Annexe" in compta.get(f"{EF}/annexe", q, **H).json()["message"]
+    # État trimestriel (PCCI § 2.2) : la période se choisit ; le quatrième trimestre donne le même résultat que la période depuis le 1er octobre
+    tri = {"exercice": 2026, "du": "2026-10-01", "au": "2026-12-31", "sansVidage": "true"}
+    rt = compta.get(f"{EF}/resultat", tri, **H)
+    assert rt.status_code == 200, rt.content
+    assert compta.get(f"{EF}/bilan", tri, **H).json()["equilibre"] is True and rt.json()["du"] == "2026-10-01"
     assert "exercice 2026" in compta.get(f"{EF}/bilan", {**q, "du": "2025-12-01"}, **H).json()["message"]
     assert caisse.get(f"{EF}/bilan", q, **H).status_code == 403
     ind = compta.get("/api/comptabilite/indicateurs-financiers", {"exercice": 2026, "indicateur": "mensuel", "mois": 11}, **H).json()
@@ -4958,6 +4963,8 @@ def test_immobilisations(clients, journee):
     F = {"code": "FAM1", "typeId": ty, "categorieId": cat, "libelle": "Matériel de bureau", "systeme": "Linéaire", "dureeMin": "1", "dureeMax": "10", "periodicite": "Annuelle",
          "compteAcquisition": "220", "compteDotation": "6810", "compteAmortissement": "2810", "compteChargeVcn": "673"}
     assert "Durée Max" in msg(f"{R}/familles", {**F, "dureeMin": "11"})
+    assert "classe 2, hors 28" in msg(f"{R}/familles", {**F, "compteAcquisition": "2810"}) and "un compte 28" in msg(f"{R}/familles", {**F, "compteAmortissement": "220"})
+    assert "un compte 68" in msg(f"{R}/familles", {**F, "compteDotation": "640"})                 # PCCI : classe 2, compte 28, compte 68
     fam = ident_(ok(f"{R}/familles", F), "code", "FAM1")
     loc = ident_(ok(f"{R}/localisations", {"code": "10.DG.01", "libelle": "Bureau Directeur Général"}), "code", "10.DG.01")
     loc2 = ident_(ok(f"{R}/localisations", {"code": "10.DG.02", "libelle": "Salle d'attente"}), "code", "10.DG.02")

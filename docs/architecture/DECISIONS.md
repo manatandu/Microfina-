@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**943 décisions.** Solidité : 410 fortes (le manuel ou un texte répond), 452 moyennes (déduites d'un écran voisin ou d'une donnée), 81 faibles (notre choix, faute de mieux). Dans le code : 936 déjà en place, 7 à appliquer.
+**944 décisions.** Solidité : 411 fortes (le manuel ou un texte répond), 452 moyennes (déduites d'un écran voisin ou d'une donnée), 81 faibles (notre choix, faute de mieux). Dans le code : 937 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -127,6 +127,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | T112 | Sous-tableaux du T.E.F.F. de l'annexe (S122 États financiers (état annexe)) | Non construits. Le PCCI ne donne que les titres des 22 sous-tableaux du Tableau économique, fiscal et financier (n° 16 à 22, 24 à 27, 29 à 39, 47) ; leurs modèles sont dans le Plan comptable général congolais, que les sources lues ne contiennent pas (l'ordonnance 76-150 lue n'a que son dispositif). Ils se construiront sur les modèles officiels, à fournir. Les notes explicatives (PCCI 14.4.2) sont des commentaires de la direction : hors logiciel | Texte réglementaire : PCCI 14.4.1 et 14.4.2 ; confrontation du 21/11/2026, B20 | faible | à appliquer |
 | T113 | Écritures lues par les indicateurs (S101 Rapports crédit ; S123 Indicateurs ; S122 États financiers) | Laissé tel quel : les indicateurs de gestion se lisent sur toutes les écritures passées, les états financiers sur les seules journées comptabilisées (T13). Aucun texte lu ne tranche ; le rapport d'activités annuel reprend les indicateurs tels quels | Donnée exigée ailleurs : Aucun texte ; confrontation du 21/11/2026, B32 ; registre T13 | faible | en place |
 | T114 | En-tête des états financiers (S122 États financiers ; S32 Information société) | Le bilan, le hors-bilan, le compte de résultat et le tableau de flux portent l'en-tête du modèle : dénomination ou raison sociale, n° d'agrément, sigle, date, NRC. Le NRC est un champ nouveau de la société (S32), sous le NIF. La liasse exportée le porte aussi. Sur le serveur, la liasse perdait le sigle, l'agrément et l'adresse : corrigé | Texte réglementaire : PCCI 14.1, 14.2 et 14.3 (en-tête des modèles) ; confrontation BCC du 21/11/2026, § 18.2 | forte | en place |
+| T115 | Comptes d'une famille de biens (S136 Famille de biens) | Le compte d'acquisition d'une famille est un compte de la classe 2, hors 28 ; le compte d'amortissement, un compte 28 ; le compte de dotation, un compte 68. Un autre compte est refusé. Les comptes de sortie (673, 674, 774) sont déjà fixés par le logiciel | Texte réglementaire : PCCI, classe 2 (valeurs immobilisées, compte 28) et compte 68 ; confrontation BCC du 21/11/2026, § 18.2 | forte | en place |
 
 ## S03 Profils : création et modification
 

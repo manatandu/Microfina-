@@ -8945,6 +8945,11 @@ VERIFIER_REF.immobilisations = (c, v) => {
   const n = (x: unknown) => Number(String(x).replace(",", "."));
   if (c.page === "coefficients" && v.de !== null && v.a !== null && n(v.de) > n(v.a)) throw new ErreurMetier("Période : « ans à » au moins « allant de ».");
   if (c.page === "familles" && v.dureeMin !== null && v.dureeMax !== null && n(v.dureeMin) > n(v.dureeMax)) throw new ErreurMetier("Durée Max. : au moins la durée Min.");
+  if (c.page === "familles")   // PCCI : valeurs immobilisées en classe 2, amortissements au 28, dotations au 68. Comme referentiels.verifier_immo
+    for (const [cle, nom, bon, attendu] of [["compteAcquisition", "Compte d'acquisition", (x: string) => x.startsWith("2") && !x.startsWith("28"), "un compte de la classe 2, hors 28"],
+      ["compteAmortissement", "Compte Amor.", (x: string) => x.startsWith("28"), "un compte 28"],
+      ["compteDotation", "Compte dotation", (x: string) => x.startsWith("68"), "un compte 68"]] as [string, string, (x: string) => boolean, string][])
+      if (v[cle] && !bon(String(v[cle]))) throw new ErreurMetier(`${nom} : ${attendu} (PCCI, classes 2 et 6).`);
   if (c.page === "utilisations") {
     if (v.tvaApplicable && !v.tva) throw new ErreurMetier("À remplir : T.V.A.");
     if (v.tva && n(v.tva) > 100) throw new ErreurMetier("T.V.A : 100 % au plus.");

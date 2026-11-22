@@ -3640,6 +3640,9 @@ describe("journée de guichet", () => {
     const F = { code: "FAM1", typeId: ty, categorieId: cat, libelle: "Matériel de bureau", systeme: "Linéaire", dureeMin: "1", dureeMax: "10", periodicite: "Annuelle",
       compteAcquisition: "220", compteDotation: "6810", compteAmortissement: "2810", compteChargeVcn: "673" };
     await expect(R.enregistrer("familles", { ...F, dureeMin: "11" })).rejects.toThrow("Durée Max");
+    await expect(R.enregistrer("familles", { ...F, compteAcquisition: "2810" })).rejects.toThrow("classe 2, hors 28");   // PCCI : classe 2, compte 28, compte 68
+    await expect(R.enregistrer("familles", { ...F, compteAmortissement: "220" })).rejects.toThrow("un compte 28");
+    await expect(R.enregistrer("familles", { ...F, compteDotation: "640" })).rejects.toThrow("un compte 68");
     const fam = id(await R.enregistrer("familles", F), "code", "FAM1");
     const loc = id(await R.enregistrer("localisations", { code: "10.DG.01", libelle: "Bureau Directeur Général" }), "code", "10.DG.01");
     const loc2 = id(await R.enregistrer("localisations", { code: "10.DG.02", libelle: "Salle d'attente" }), "code", "10.DG.02");
