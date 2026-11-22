@@ -42,7 +42,7 @@ export default function ClotureCompte() {
   }
   return (
     <>
-      <h1>Clôturer un Compte</h1>
+      
       <section className="bloc pile" aria-label="Clôturer un compte">
         <h2>Clôture d'un compte</h2>
         <div className="grille-deux">

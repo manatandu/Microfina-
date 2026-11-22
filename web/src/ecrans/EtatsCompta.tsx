@@ -44,7 +44,7 @@ export function GrandLivre() {
   const page = params.get("page") === "analytique" ? "analytique" : "general";
   const cadre = useCadre();
   if (!cadre) return <Chargement />;
-  return <><h1>Grand livre</h1><Onglets nom="Grand livre" valeur={page} changer={(k) => setParams(k === "general" ? {} : { page: k })} />
+  return <><Onglets nom="Grand livre" valeur={page} changer={(k) => setParams(k === "general" ? {} : { page: k })} />
     <EditionGrandLivre key={page} analytique={page === "analytique"} ctx={cadre.ctx} jour={cadre.j?.date ?? new Date().toISOString().slice(0, 10)} /></>;
 }
 
@@ -104,7 +104,7 @@ export function BalanceComptes() {
   const page = params.get("page") === "analytique" ? "analytique" : "generale";
   const cadre = useCadre();
   if (!cadre) return <Chargement />;
-  return <><h1>Balance</h1><Onglets nom="Balance" valeur={page} changer={(k) => setParams(k === "generale" ? {} : { page: k })} libelles={[["generale", "Générale"], ["analytique", "Analytique"]]} />
+  return <><Onglets nom="Balance" valeur={page} changer={(k) => setParams(k === "generale" ? {} : { page: k })} libelles={[["generale", "Générale"], ["analytique", "Analytique"]]} />
     <EditionBalance key={page} analytique={page === "analytique"} ctx={cadre.ctx} jour={cadre.j?.date ?? new Date().toISOString().slice(0, 10)} /></>;
 }
 

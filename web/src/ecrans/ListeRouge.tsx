@@ -31,7 +31,7 @@ export default function ListeRouge() {
   }
   return (
     <>
-      <h1>Gestion de la liste rouge</h1>
+      <h2>Gestion de la liste rouge</h2>
       <section className="bloc pile" aria-label="Gestion de la liste rouge">
         <fieldset className="cadre-champs formulaire"><legend>Infos client</legend>
           <div className="ligne-champ"><Champ libelle="N° Client:">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>

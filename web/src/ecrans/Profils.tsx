@@ -22,7 +22,7 @@ export default function GestionProfils() {
   } });
   return (
     <>
-      <h1>Gestion des profils</h1>
+      <h2>Gestion des profils</h2>
       <section className="bloc pile" aria-label="Gestion des profils">
         <div className="ligne-champ">
           <Champ libelle="Nom Droit *">{(p) => <input {...p} className="saisie" value={f.nom} onChange={(e) => setF({ ...f, nom: e.target.value })} />}</Champ>

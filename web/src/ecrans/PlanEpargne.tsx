@@ -27,7 +27,7 @@ export default function PlanEpargne() {
   if (!ctx) return <Chargement />;
   return (
     <>
-      <h1>Plan épargne</h1>
+      <h2>Plan épargne</h2>
       <div className="onglets" role="tablist" aria-label="Plan épargne">
         {ONGLETS.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={onglet === k} onClick={() => setParams({ page: k })}>{l}</button>)}
       </div>

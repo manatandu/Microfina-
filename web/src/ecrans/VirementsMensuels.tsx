@@ -132,7 +132,7 @@ export default function VirementsMensuels() {
   const [onglet, setOnglet] = useState<"domiciliation" | "personnel" | "prelevement">("domiciliation");
   return (
     <>
-      <h1>{onglet === "domiciliation" ? "Virement de salaire" : onglet === "personnel" ? "Salaire du personnel" : "Prélèvement automatique"}</h1>
+      <h2>{onglet === "domiciliation" ? "Virement de salaire" : onglet === "personnel" ? "Salaire du personnel" : "Prélèvement automatique"}</h2>
       <div className="onglets" role="tablist" aria-label="Virements mensuels">
         <button type="button" role="tab" aria-selected={onglet === "domiciliation"} onClick={() => setOnglet("domiciliation")}>Domiciliation salaire</button>
         <button type="button" role="tab" aria-selected={onglet === "personnel"} onClick={() => setOnglet("personnel")}>Salaire du personnel</button>

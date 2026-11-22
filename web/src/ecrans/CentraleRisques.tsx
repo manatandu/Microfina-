@@ -26,7 +26,7 @@ export default function CentraleRisques() {
   const [decl, setDecl] = useState<{ date: string; reference: string } | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   if (j === undefined) return <Chargement />;
-  if (erreur) return <><h1>Centrale des risques</h1><p role="alert" className="erreur-champ">{erreur}</p></>;
+  if (erreur) return <><p role="alert" className="erreur-champ">{erreur}</p></>;
   const lignes = donnees ?? [];
   const basculer = (e: Evenement) => setChoisis((s) => { const n = new Set(s); const k = cleDe(e); if (n.has(k)) n.delete(k); else n.add(k); return n; });
   const aDeclarer = lignes.filter((e) => !e.declareLe);
@@ -42,7 +42,7 @@ export default function CentraleRisques() {
   const exporter = () => exporterExcel("declarations-centrale-risques", COL, lignes.map((e) => [e.typeLibelle, fr(e.date), e.membre, e.client, e.reference, m(e), fr(e.declareLe), e.referenceDeclaration]));
   return (
     <>
-      <h1>Centrale des risques</h1>
+      
       <div className="onglets" role="tablist" aria-label="Déclarations">
         {STATUTS.map(([k, l]) => <button key={k || "tous"} type="button" role="tab" aria-selected={k === statut} onClick={() => { setStatut(k); setChoisis(new Set()); }}>{l}</button>)}
       </div>

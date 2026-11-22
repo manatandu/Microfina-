@@ -25,7 +25,7 @@ export default function CreditGeneral() {
   const page = CATALOGUE_CREDIT.some((c) => c.page === params.get("onglet")) ? params.get("onglet")! : "types_objet";
   return (
     <>
-      <h1>Crédits : Général</h1>
+      <h2>Crédits : Général</h2>
       <div className="onglets" role="tablist" aria-label="Crédits : Général">
         {CATALOGUE_CREDIT.map((c) => (
           <button key={c.page} type="button" role="tab" id={`onglet-${c.page}`} aria-controls="volet" aria-selected={c.page === page}

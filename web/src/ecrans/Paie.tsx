@@ -125,7 +125,7 @@ export function NouvelEmploye() {
     <label key={x} className="case"><input type="radio" name={k} checked={p[k] === x} onChange={() => setP({ ...p, [k]: x })} /><span>{x === "oui" ? "Oui" : "Non"}</span></label>)}</fieldset>;
   return (
     <section className="bloc pile" aria-label="Enregistrement d'un employé">
-      <h1>Enregistrement d'un employé</h1>
+      <h2>Enregistrement d'un employé</h2>
       <div className="actions-onglets">
         <button className="bouton secondaire" type="button" disabled={!v("typeContrat")} onClick={() => setFenetre("contrat")}>Visualiser le contrat</button>
         <button className="bouton secondaire" type="button" aria-label="Rechercher un employé" onClick={() => setFenetre("recherche")}>Rechercher</button>

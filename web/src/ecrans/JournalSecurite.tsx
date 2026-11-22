@@ -20,14 +20,14 @@ export default function JournalSecurite() {
   const fin = au || aujourdhui, debut = du || `${fin.slice(0, 7)}-01`;
   const { donnees, erreur } = useDonnees(() => api.journalSecurite.consulter(debut, fin, evenement), [debut, fin, evenement]);
   if (j === undefined) return <Chargement />;
-  if (erreur) return <><h1>Journal de sécurité</h1><p role="alert" className="erreur-champ">{erreur}</p></>;
+  if (erreur) return <><p role="alert" className="erreur-champ">{erreur}</p></>;
   if (!donnees) return <Chargement />;
   const alertes = donnees.filter((x) => ALERTES.has(x.evenement)).length;
   const exporter = () => exporterExcel("journal-securite", ["Date et heure", "Événement", "Identifiant", "Utilisateur", "Adresse", "Détail"],
     donnees.map((x) => [heure(x.le), x.evenementLibelle, x.login, x.utilisateur, x.ip, x.detail]));
   return (
     <>
-      <h1>Journal de sécurité</h1>
+      
       <section className="bloc pile" aria-label="Journal de sécurité">
         <div className="ligne-champ">
           <ChampDate libelle="Du" valeur={debut} onChange={setDu} />

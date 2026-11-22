@@ -22,7 +22,7 @@ export default function Transferts() {
   if (!ctx) return <Chargement />;
   return (
     <>
-      <h1>Transfert entre caisse</h1>
+      <h2>Transfert entre caisse</h2>
       <div className="onglets" role="tablist" aria-label="Transfert entre caisse">
         {PAGES.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={page === k} onClick={() => setParams({ page: k })}>{l}</button>)}
       </div>

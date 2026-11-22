@@ -52,7 +52,7 @@ export function Rapprochement() {
   const lignes = j?.lignes ?? [], tous = lignes.length > 0 && lignes.every((x) => coches.has(x.id));
   return (
     <>
-      <h1>Rapprochement Bancaire</h1>
+      
       <section className="bloc pile" aria-label="Rapprochement Bancaire">
         <fieldset className="cadre-champs pile"><legend>Info Relevé</legend>
           <div className="ligne-champ">
@@ -136,7 +136,7 @@ export function HistoriqueRapprochement() {
   }
   return (
     <>
-      <h1>Historique rapprochement</h1>
+      <h2>Historique rapprochement</h2>
       <section className="bloc pile" aria-label="Historique rapprochement">
         <div className="deux-colonnes">
           <fieldset className="cadre-champs formulaire"><legend>Période</legend>
@@ -190,7 +190,7 @@ export function Lettrage() {
   const radio = (v: string, l: string) => <label className="case"><input type="radio" name="lt-etat" checked={f.etat === v} onChange={() => setF({ ...f, etat: v })} /><span>{l}</span></label>;
   return (
     <>
-      <h1>Lettrage des écritures comptables</h1>
+      <h2>Lettrage des écritures comptables</h2>
       <section className="bloc pile" aria-label="Lettrage des écritures comptables">
         <div className="deux-colonnes">
           <fieldset className="cadre-champs pile"><legend>Rechercher</legend>
@@ -245,7 +245,7 @@ function EtatTresorerie() {
 const SOURCES_TRESORERIE = ["Manuel Microfina++, p. 136 : renseigner le champ Date, obligatoire, puis Afficher pour le solde des caisses ; p. 162 : soldes des caisses et des banques pour la journée comptable ; capture",
   TEXTE_008, "Registre S118-1 : soldes lus au grand livre à la date, brouillard compris ; un solde par devise"];
 export function Tresorerie() {
-  return <><h1>Trésorerie</h1><section className="bloc pile" aria-label="Trésorerie"><EtatTresorerie /><Textes sources={[...SOURCES_TRESORERIE, "Manuel Microfina++, p. 163 : le menu Autres affiche Clôture, Trésorerie, Calculs ; registre S143-1 : même état que Contrôle > Trésorerie"]} /></section></>;
+  return <><section className="bloc pile" aria-label="Trésorerie"><EtatTresorerie /><Textes sources={[...SOURCES_TRESORERIE, "Manuel Microfina++, p. 163 : le menu Autres affiche Clôture, Trésorerie, Calculs ; registre S143-1 : même état que Contrôle > Trésorerie"]} /></section></>;
 }
 
 function RapportAnnulations() {
@@ -320,7 +320,7 @@ export function Controles() {
   const ONGLETS = ["Trésorerie", "Rapport annulation", "État des revenus"];
   return (
     <>
-      <h1>Contrôle</h1>
+      <h2>Contrôle</h2>
       <div className="onglets" role="tablist" aria-label="Contrôle">
         {ONGLETS.map((o, i) => <button key={o} type="button" role="tab" id={`ct-${i}`} aria-controls="ct-volet" aria-selected={i === onglet} onClick={() => setOnglet(i)}>{o}</button>)}
       </div>
@@ -354,7 +354,7 @@ export function AnnulationReglement() {
   const m = (libelle: string, v: number | undefined) => <Champ libelle={libelle}>{(p) => <Lecture {...p} value={r ? montant(v ?? 0, dv) : ""} />}</Champ>;
   return (
     <>
-      <h1>Annulation de règlement d'un crédit effectué par prélèvement sur compte</h1>
+      <h2>Annulation de règlement d'un crédit effectué par prélèvement sur compte</h2>
       <section className="bloc pile" aria-label="Annulation de règlement de crédit">
         <div className="entete-ecran">{(fait?.piece ?? "") ? <p>Numéro de pièce : <strong className="chiffres">{fait?.piece ?? ""}</strong></p> : null}<p>Date Opération: <strong className="chiffres">{fr(j?.date ?? "")}</strong></p></div>
         <div className="deux-colonnes">

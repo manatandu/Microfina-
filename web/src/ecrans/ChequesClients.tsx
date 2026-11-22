@@ -76,7 +76,7 @@ export function ChequesClients() {
 
   return (
     <>
-      <h1>{onglet === 0 ? "Enregistrement Dépôt de Chèque" : onglet === 1 ? "Encaissement de Chèque" : "Historique chèque"}</h1>
+      <h2>{onglet === 0 ? "Enregistrement Dépôt de Chèque" : onglet === 1 ? "Encaissement de Chèque" : "Historique chèque"}</h2>
       <div className="onglets" role="tablist" aria-label="Gestion Chèque Client">
         {ONGLETS.map((o, i) => <button key={o} type="button" role="tab" id={`onglet-${i}`} aria-controls="volet" aria-selected={i === onglet} onClick={() => changerOnglet(i)}>{o}</button>)}
       </div>

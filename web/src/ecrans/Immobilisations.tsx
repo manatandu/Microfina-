@@ -78,7 +78,7 @@ export function CreationBien() {
   const txt = (k: string, l: string, req = false) => <Champ libelle={`${l}${req ? " *" : ""}`}>{(p) => <input {...p} className="saisie" value={v(k)} onChange={(e) => maj(k, e.target.value)} />}</Champ>;
   const radio = (k: string, l: string) => <fieldset className="choix-radio"><legend>{l}</legend>{["oui", "non"].map((x) =>
     <label key={x} className="case"><input type="radio" name={k} checked={v(k) === x} onChange={() => maj(k, x)} /><span>{x === "oui" ? "Oui" : "Non"}</span></label>)}</fieldset>;
-  return <section className="bloc pile" aria-label="Création de Bien immobilier"><h1>Création de Bien immobilier</h1>
+  return <section className="bloc pile" aria-label="Création de Bien immobilier"><h2>Création de Bien immobilier</h2>
     <div className="deux-colonnes">{b?.numeroPiece && <Champ libelle="Numéro de pièce :">{(p) => <Lecture {...p} value={b.numeroPiece} />}</Champ>}
       <Champ libelle="Date opération">{(p) => <Lecture {...p} value={b ? fr(b.dateOperation) : ""} />}</Champ></div>
     <div className="deux-colonnes">
@@ -162,7 +162,7 @@ export function MouvementsBiens() {
   const ids = choisis.map((b) => b.id), num = (x: string) => (x ? Number(x) : null);
   return <>
     <div className="onglets" role="tablist" aria-label="Mouvements des biens">{PAGES_MOUV.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={page === k} onClick={() => { vider(); setParams(k === "affectation" ? {} : { page: k }); }}>{l}</button>)}</div>
-    {page === "affectation" && <section className="bloc pile" aria-label="Création des affectations de Biens"><h1>Création des affectations de Biens</h1>
+    {page === "affectation" && <section className="bloc pile" aria-label="Création des affectations de Biens"><h2>Création des affectations de Biens</h2>
       <fieldset className="cadre-champs formulaire"><legend className="sr-only">Affectation</legend>{choisirEmp(emp, setEmp, "Matricule")}{local()}{date("Date affectation")}</fieldset>
       <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setListe("LIBRE")}>Liste des biens à affecter</button></div>
       <BiensChoisis biens={choisis} retirer={(i) => setChoisis(choisis.filter((x) => x.id !== i))} ctx={ctx} />
@@ -170,7 +170,7 @@ export function MouvementsBiens() {
         <button className="bouton secondaire" type="button" onClick={() => window.print()}>Imprimer reçu</button>
         <button className="bouton" type="button" onClick={() => c.confirmer("Voulez-vous vraiment enregistrer ?", () => api.immobilisations.affecter({ employeId: num(emp), localisationId: num(loc), date: quand, biens: ids }), vider)}>Enregistrer</button></div>
     </section>}
-    {page === "bien" && <section className="bloc pile" aria-label="Transférer un bien immobilier"><h1>Transférer un bien immobilier</h1>
+    {page === "bien" && <section className="bloc pile" aria-label="Transférer un bien immobilier"><h2>Transférer un bien immobilier</h2>
       <fieldset className="cadre-champs formulaire"><legend>Détails Biens</legend>
         <Champ libelle="Code:">{(p) => <span className="avec-unite"><input {...p} className="saisie code" readOnly value={bien?.codification ?? ""} />
           <button className="bouton secondaire" type="button" aria-label="Rechercher un bien" onClick={() => setListe("AFFECTE")}>Rechercher</button></span>}</Champ>
@@ -181,7 +181,7 @@ export function MouvementsBiens() {
         () => api.immobilisations.transfererBien({ bienId: bien?.id, employeId: num(emp), localisationId: num(loc), date: quand }), vider)}>Transférer</button>
         <button className="bouton secondaire" type="button" onClick={() => window.print()}>Imprimer reçu</button></div>
     </section>}
-    {page === "employe" && <section className="bloc pile" aria-label="Transfert de biens d'un employé à un autre"><h1>Transfert de biens d'un employé à un autre</h1>
+    {page === "employe" && <section className="bloc pile" aria-label="Transfert de biens d'un employé à un autre"><h2>Transfert de biens d'un employé à un autre</h2>
       <fieldset className="cadre-champs formulaire"><legend>Infos ancien détenteur</legend>{choisirEmp(emp, (x) => { setEmp(x); setChoisis([]); }, "Matricule")}{local()}</fieldset>
       <div className="actions-onglets"><button className="bouton secondaire" type="button" disabled={!emp} onClick={() => setListe("AFFECTE")}>Liste des biens encours d'utilisation</button></div>
       <BiensChoisis biens={choisis} retirer={(i) => setChoisis(choisis.filter((x) => x.id !== i))} ctx={ctx} />
@@ -189,7 +189,7 @@ export function MouvementsBiens() {
       <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={vider}>Effacer</button>
         <button className="bouton" type="button" onClick={() => c.confirmer("Voulez-vous vraiment enregistrer ?", () => api.immobilisations.transfererEmploye({ ancienId: num(emp), nouveauId: num(emp2), localisationId: num(loc), date: quand, biens: ids }), vider)}>Enregistrer</button></div>
     </section>}
-    {page === "liberation" && <section className="bloc pile" aria-label="Libération d'un bien encours d'utilisation"><h1>Libération d'un bien encours d'utilisation</h1>
+    {page === "liberation" && <section className="bloc pile" aria-label="Libération d'un bien encours d'utilisation"><h2>Libération d'un bien encours d'utilisation</h2>
       <fieldset className="cadre-champs formulaire"><legend className="sr-only">Libération</legend>{date("Date libération")}{local()}</fieldset>
       <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setListe("AFFECTE")}>Liste des biens encours d'utilisation</button></div>
       <BiensChoisis biens={choisis} retirer={(i) => setChoisis(choisis.filter((x) => x.id !== i))} ctx={ctx} />
@@ -220,7 +220,7 @@ export function TraitementsBiens() {
     <button className="bouton secondaire" type="button" aria-label="Rechercher un bien" onClick={() => setListe(true)}>Rechercher</button></span>}</Champ>;
   return <>
     <div className="onglets" role="tablist" aria-label="Traitements des biens">{PAGES_TRAIT.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={page === k} onClick={() => { setBien(null); setF({ par: "materiel" }); setParams(k === "amortissement" ? {} : { page: k }); }}>{l}</button>)}</div>
-    {page === "amortissement" && <section className="bloc pile" aria-label="Amortissement"><h1>Amortissement</h1>
+    {page === "amortissement" && <section className="bloc pile" aria-label="Amortissement"><h2>Amortissement</h2>
       <Champ libelle="Amortissement par">{(p) => <select {...p} className="saisie" value={f.par} onChange={(e) => maj("par", e.target.value)}><option value="materiel">Matériel</option><option value="lot">Lot de matériel</option></select>}</Champ>
       <fieldset className="cadre-champs formulaire"><legend className="sr-only">Bien</legend>
         {f.par === "materiel" && choixBien}
@@ -232,7 +232,7 @@ export function TraitementsBiens() {
         <button className="bouton secondaire" type="button" onClick={() => window.print()}>Imprimer</button>
         <button className="bouton" type="button" onClick={() => c.confirmer("Voulez-vous vraiment passer l'amortissement ?", () => api.immobilisations.amortir({ par: f.par, bienId: bien?.id, exercice: f.exercice ? Number(f.exercice) : null }))}>Exécuter</button></div>
     </section>}
-    {page === "inventaire" && <section className="bloc pile" aria-label="Inventaire de biens"><h1>Inventaire de biens</h1>
+    {page === "inventaire" && <section className="bloc pile" aria-label="Inventaire de biens"><h2>Inventaire de biens</h2>
       <div className="deux-colonnes"><fieldset className="cadre-champs formulaire"><legend className="sr-only">Inventaire</legend>{choixBien}
         <Champ libelle="État du bien *">{(p) => <select {...p} className="saisie" value={f.etat ?? ""} onChange={(e) => maj("etat", e.target.value)}><option value=""></option>{ctx.etats.map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
         <ChampDate libelle="Date inventaire *" valeur={f.date ?? ""} onChange={(x) => maj("date", x)} />
@@ -242,7 +242,7 @@ export function TraitementsBiens() {
       <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => { setBien(null); setF({ par: "materiel" }); }}>Effacer</button>
         <button className="bouton" type="button" onClick={() => c.confirmer("Voulez-vous vraiment enregistrer ?", () => api.immobilisations.inventorier({ bienId: bien?.id, etat: f.etat, date: f.date, observation: f.observation }))}>Enregistrer</button></div>
     </section>}
-    {page === "sortie" && <section className="bloc pile" aria-label="Sortie de biens du patrimoine"><h1>Sortie de biens du patrimoine</h1>
+    {page === "sortie" && <section className="bloc pile" aria-label="Sortie de biens du patrimoine"><h2>Sortie de biens du patrimoine</h2>
       <fieldset className="cadre-champs formulaire"><legend className="sr-only">Sortie</legend>
         <Champ libelle="Type de sortie *">{(p) => <select {...p} className="saisie" value={f.type ?? ""} onChange={(e) => maj("type", e.target.value)}><option value=""></option>{ctx.sorties.map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
         {choixBien}<ChampDate libelle="Date de sortie *" valeur={f.date ?? ""} onChange={(x) => maj("date", x)} />
@@ -301,7 +301,7 @@ export function RapportsImmo() {
     suivi: "État des transferts de biens effectués sur une période donnée", multicritere: "Recherche multicritère sur les biens acquis" }[page];
   return <>
     <div className="onglets" role="tablist" aria-label="Rapports">{PAGES_RAPPORTS.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={page === k} onClick={() => { setR(null); setParams(k === "biens" ? {} : { page: k }); }}>{l}</button>)}</div>
-    <section className="bloc pile" aria-label={titre}><h1>{titre}</h1>
+    <section className="bloc pile" aria-label={titre}><h2>{titre}</h2>
       {page === "tableau" ? <fieldset className="cadre-champs formulaire"><legend>Simulation</legend>
         {sel("systeme", "Système : *", ctx.systemes)}{f.systeme === "Dégressif" && <Champ libelle="Coef. degressi. *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={f.coefficient ?? ""} onChange={(e) => maj("coefficient", e.target.value)} />}</Champ>}
         {sel("periodicite", "Périodicité : *", ctx.periodicites)}<ChampDate libelle="Date Acquisition *" valeur={f.dateAcquisition ?? ""} onChange={(x) => maj("dateAcquisition", x)} />

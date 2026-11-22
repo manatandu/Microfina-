@@ -61,7 +61,7 @@ export function Emprunts() {
 
   return (
     <>
-      <h1>{onglet === 0 ? "Mise en place d'emprunt" : "Remboursement emprunt"}</h1>
+      <h2>{onglet === 0 ? "Mise en place d'emprunt" : "Remboursement emprunt"}</h2>
       <div className="onglets" role="tablist" aria-label="Emprunts bancaires">
         {ONGLETS.map((o, i) => <button key={o} type="button" role="tab" id={`onglet-${i}`} aria-controls="volet" aria-selected={i === onglet} onClick={() => changer(i)}>{o}</button>)}
       </div>

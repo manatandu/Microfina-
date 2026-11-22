@@ -37,7 +37,7 @@ export default function Litigieux() {
   const ouvert = s?.contentieux.find((x) => !x.closLe);
   return (
     <>
-      <h1>Prorogation et contentieux</h1>
+      
       <section className="bloc pile" aria-label="Prorogation et contentieux">
         <fieldset className="cadre-champs formulaire"><legend>Infos client</legend>
           <div className="ligne-champ"><Champ libelle="N° Client:">{(p) => <input {...p} className="saisie code" readOnly value={client?.numero ?? ""} />}</Champ>

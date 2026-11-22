@@ -41,7 +41,7 @@ export default function JournauxComptables({ achats = false }: { achats?: boolea
       <option value="">{vide}</option>{options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>}</Champ>;
   return (
     <>
-      {achats ? <h2>Journal achat</h2> : <h1>Journal comptables</h1>}
+      {achats ? <h2>Journal achat</h2> : <h2>Journal comptables</h2>}
       <section className={achats ? "pile" : "bloc pile"} aria-label={achats ? "Journal achat" : "Journal comptables"}>
         <fieldset className="cadre-champs"><legend>Critères recherche</legend>
           <div className="deux-colonnes">

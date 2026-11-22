@@ -22,7 +22,7 @@ export default function Incidents() {
   } });
   return (
     <>
-      <h1>Incidents et dépassements</h1>
+      
       <section className="bloc pile" aria-label="Incidents et dépassements">
         <fieldset className="pile cadre-champs champs-a-gauche"><legend>Déclarer un incident</legend>
           <Champ libelle="Type : *">{(p) => <select {...p} className="saisie" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}><option value=""></option>

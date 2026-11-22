@@ -77,7 +77,7 @@ export function GroupeSolidaire() {
 
   return (
     <>
-      <h1>Groupe solidaire</h1>
+      
       <div className="onglets" role="tablist" aria-label="Groupe solidaire">
         {["Groupe Solidarité", "Affectation Groupe Solidarité"].map((o, i) => (
           <button key={o} type="button" role="tab" id={`onglet-${i}`} aria-controls="volet" aria-selected={i === onglet} onClick={() => setOnglet(i)}>{o}</button>

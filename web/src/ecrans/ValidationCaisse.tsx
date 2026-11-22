@@ -42,7 +42,7 @@ export default function ValidationCaisse() {
     : [{ compte: ouverte.compteEpargne, libelle: ouverte.libelle, montant: ouverte.montant }]);
   return (
     <>
-      <h1>{deplacee ? "Validation Opération déplacée" : "Opération diverse"}</h1>
+      <h2>{deplacee ? "Validation Opération déplacée" : "Opération diverse"}</h2>
       <div className="onglets" role="tablist" aria-label="Validation des opérations">
         <button type="button" role="tab" aria-selected={!deplacee} onClick={() => { setOnglet("diverse"); fermer(); }}>Opération diverse</button>
         <button type="button" role="tab" aria-selected={deplacee} onClick={() => { setOnglet("deplacee"); fermer(); }}>Opération déplacée</button>

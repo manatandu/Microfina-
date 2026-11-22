@@ -44,7 +44,7 @@ export default function JournalCaisse() {
   const m = (x: number, d: string) => (x ? montant(x, d as Devise) : "");
   return (
     <>
-      <h1>Journal des Opérations</h1>
+      <h2>Journal des Opérations</h2>
       <section className="bloc pile" aria-label="Journal des Opérations">
         <div className="grille-deux">
           <fieldset className="cadre-champs formulaire">

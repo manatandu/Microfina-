@@ -89,7 +89,7 @@ function Operation({ page }: { page: Exclude<Page, "rapport" | "materiel"> }) {
   );
   return (
     <>
-      <h1>{titre}</h1>
+      <h2>{titre}</h2>
       <section className="bloc pile" aria-label={titre}>
         <div className="entete-ecran">{(piece) ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}
           <ChampDate libelle="Date opération : *" valeur={f.date || j?.date || ""} onChange={(v) => setF({ ...f, date: v })} /></div>
@@ -177,7 +177,7 @@ function Materiel() {
     <Champ libelle={libelle}>{(p) => <input {...p} className="saisie" autoComplete="off" value={f[k]} onChange={(e) => maj({ [k]: e.target.value })} />}</Champ>;
   return (
     <>
-      <h1>Nantissement du matériel professionnel</h1>
+      <h2>Nantissement du matériel professionnel</h2>
       <section className="bloc pile" aria-label="Nantissement du matériel professionnel">
         <div className="entete-ecran"><span />
           <ChampDate libelle="Date opération : *" valeur={date || j?.date || ""} onChange={setDate} /></div>
@@ -262,7 +262,7 @@ function Rapport() {
   async function executer() { try { setL(await api.garanties.rapport(onglet, f.du, f.au)); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } }
   return (
     <>
-      <h1>Rapport caution et nantissement</h1>
+      <h2>Rapport caution et nantissement</h2>
       <section className="bloc pile" aria-label="Rapport caution et nantissement">
         <div className="onglets" role="tablist" aria-label="Rapport">
           {([["depot_garantie", "Nantissement"], ["caution", "Caution"]] as const).map(([k, t]) => <button key={k} type="button" role="tab" aria-selected={onglet === k}

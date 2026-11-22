@@ -61,7 +61,7 @@ export default function EngagementSignature() {
   const comptes = (b?.comptes ?? []).map((k) => <option key={k.id} value={k.id}>{k.numero} ({k.devise})</option>);
   return (
     <>
-      <h1>Création engagement par signature</h1>
+      <h2>Création engagement par signature</h2>
       <section className="bloc pile" aria-label="Création engagement par signature">
         <fieldset className="cadre-champs formulaire"><legend>Bénéficiaire</legend>
           <div className="ligne-champ"><Champ libelle="N° Client">{(p) => <input {...p} className="saisie code" readOnly value={b?.numero ?? ""} />}</Champ>

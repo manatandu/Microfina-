@@ -46,7 +46,7 @@ export function AdhesionBanque() {
 
   return (
     <>
-      <h1>Adhésion a la Banque</h1>
+      <h2>Adhésion a la Banque</h2>
       <section className="bloc pile" aria-label="Adhésion à la banque">
         <div className="entete-ecran">
           <ChampDate libelle="Date Opération : *" valeur={date} onChange={(v) => setF({ ...f, date: v })} requis />

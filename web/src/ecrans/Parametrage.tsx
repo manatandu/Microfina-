@@ -84,7 +84,7 @@ export function FraisOperations() {
   const props = { d: donnees, confirmer, erreur };
   return (
     <>
-      <h1>Paramétrage des frais</h1>
+      <h2>Paramétrage des frais</h2>
       <div className="onglets" role="tablist" aria-label="Paramétrage des frais">
         {ONGLETS.map((o, i) => <button key={o} type="button" role="tab" id={`onglet-${i}`} aria-controls="volet" aria-selected={i === onglet} onClick={() => setOnglet(i)}>{o}</button>)}
       </div>

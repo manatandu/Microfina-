@@ -32,7 +32,7 @@ export default function PlanComptes() {
   if (!donnees) return <Chargement />;
   return (
     <>
-      <h1>{page === "modele" ? "Modèle de plan comptable" : "Plan général PCCI"}</h1>
+      <h2>{page === "modele" ? "Modèle de plan comptable" : "Plan général PCCI"}</h2>
       <nav className="onglets" aria-label="Plan des comptes">
         {PAGES.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={k === page} onClick={() => setParams(k === "creation" ? {} : { page: k })}>{l}</button>)}
       </nav>

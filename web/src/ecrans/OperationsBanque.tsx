@@ -65,7 +65,7 @@ export function OperationsBanque() {
 
   return (
     <>
-      <h1>Opérations de banque</h1>
+      
       <div className="onglets" role="tablist" aria-label="Opérations de banque">
         {ONGLETS.map((o, i) => <button key={o} type="button" role="tab" id={`onglet-${i}`} aria-controls="volet" aria-selected={i === onglet} onClick={() => changerOnglet(i)}>{o}</button>)}
       </div>

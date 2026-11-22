@@ -32,7 +32,7 @@ export default function Comptabilisation() {
   }
   return (
     <>
-      <h1>Comptabilisation d'écriture comptable</h1>
+      <h2>Comptabilisation d'écriture comptable</h2>
       <section className="bloc pile" aria-label="Comptabilisation d'écriture comptable">
         <div className="barre-filtres">
           <label className="case"><input type="checkbox" checked={avancee} onChange={(e) => setAvancee(e.target.checked)} /><span>Recherche avancée</span></label>

@@ -43,7 +43,7 @@ function PageListe({ liste, changer }: { liste: string; changer: (l: string) => 
   const saisie = { code: f.code, libelle: f.libelle, parentId: f.parentId || null };
   return (
     <>
-      <h1>{c.entete ?? `Information de base: ${c.titre}`}</h1>
+      <h2>{c.entete ?? `Information de base: ${c.titre}`}</h2>
       <div className="page-liste-gauche">
         <nav className="liste-gauche" aria-label="Général">
           <ul>

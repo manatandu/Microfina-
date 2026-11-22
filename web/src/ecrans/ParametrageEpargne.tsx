@@ -28,7 +28,7 @@ export default function ParametrageProduitsEpargne() {
   } });
   return (
     <>
-      <h1>Paramétrage des produits epargnes</h1>
+      <h2>Paramétrage des produits epargnes</h2>
       <div className="onglets" role="tablist" aria-label="Paramétrage des produits epargnes">
         {donnees.onglets.map((o: { onglet: string }) => (
           <button key={o.onglet} type="button" role="tab" id={`onglet-${o.onglet}`} aria-controls="volet" aria-selected={o.onglet === onglet} onClick={() => changerOnglet(o.onglet)}>{o.onglet}</button>

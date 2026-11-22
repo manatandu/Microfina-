@@ -59,7 +59,7 @@ export function VisasCredit() {
   }
   return (
     <>
-      <h1>Visa crédit - {titre}</h1>
+      <h2>Visa crédit - {titre}</h2>
       <div className="onglets" role="tablist" aria-label="Visa crédit">
         {NIVEAUX.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={k === niveau} onClick={() => { setParams({ page: k }); setChoisie(null); }}>{l}</button>)}
       </div>
@@ -107,7 +107,7 @@ export function HistoriqueVisas() {
   async function rechercher() { try { setL(await api.visasCredit.historique(f.niveau, f.avis, f.du, f.au)); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } }
   return (
     <>
-      <h1>Historique</h1>
+      <h2>Historique</h2>
       <section className="bloc pile" aria-label="Historique">
         <fieldset className="cadre-champs"><legend>Recherche</legend><div className="barre-filtres">
           <Champ libelle="Niveau hiérarchique *">{(p) => <select {...p} className="saisie" value={f.niveau} onChange={(e) => setF({ ...f, niveau: e.target.value })}>
@@ -157,7 +157,7 @@ export function ValidesNonDebloques() {
   async function rechercher() { try { setL(await api.visasCredit.validesNonDebloques(f.du, f.au, f.agent ? Number(f.agent) : null, f.archives)); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } }
   return (
     <>
-      <h1>Crédits validés non débloqués</h1>
+      
       <section className="bloc pile" aria-label="Crédits validés non débloqués">
         <fieldset className="cadre-champs"><legend>Recherche</legend><div className="barre-filtres">
           <ChampDate libelle="Du *" valeur={f.du} onChange={(v) => setF({ ...f, du: v })} />
@@ -200,7 +200,7 @@ export function EtatCredit() {
   const dv = (x: (typeof l)[number]) => x.devise as Devise;
   return (
     <>
-      <h1>Situation des crédits</h1>
+      <h2>Situation des crédits</h2>
       <section className="bloc pile" aria-label="Situation des crédits">
         <div className="barre-filtres">
           <fieldset className="cadre-champs double"><legend>Période (date d'approbation)</legend>
@@ -272,7 +272,7 @@ export function AffectationDossier() {
   const tous = gauche.length > 0 && gauche.every((x) => coches.includes(x.id));
   return (
     <>
-      <h1>Affectation de crédit</h1>
+      <h2>Affectation de crédit</h2>
       <section className="bloc pile" aria-label="Affectation de crédit">
         <div className="grille-deux">
           <div className="pile">

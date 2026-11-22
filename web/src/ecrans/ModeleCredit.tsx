@@ -45,7 +45,7 @@ export default function ModeleCredit() {
     </tr>);
   return (
     <>
-      <h1>Modèle pour crédit</h1>
+      <h2>Modèle pour crédit</h2>
       <section className="bloc pile" aria-label="Modèle pour crédit">
         <div className="ligne-champ"><Champ libelle="Libellé : *">{(p) => <input {...p} className="saisie" value={libelle} onChange={(e) => setLibelle(e.target.value)} />}</Champ></div>
         <div className="grille-deux">

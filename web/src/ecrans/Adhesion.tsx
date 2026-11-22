@@ -39,7 +39,7 @@ export default function Adhesion() {
   if (!donnees) return <Chargement />;
   const { s, ctx, u, j, frais, piece, compte } = donnees;
   if (!s || s.statut !== "ouverte") return (
-    <><h1>Guichet</h1><OngletsGuichet /><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>
+    <><OngletsGuichet /><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>
   );
   const parts_ = aDesParts(ctx.institution);   // IMF : pas de parts sociales (loi 11/020, art. 14 et 15)
   const nParts = !parts_ ? 0 : /^\d+$/.test(parts.trim()) ? Number(parts.trim()) : 0;
@@ -62,7 +62,7 @@ export default function Adhesion() {
   }
   return (
     <>
-      <h1>Guichet</h1>
+      
       <OngletsGuichet />
       <section className="bloc pile" aria-label="Adhésion">
         <div className="entete-ecran">

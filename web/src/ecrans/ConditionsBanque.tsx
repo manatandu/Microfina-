@@ -16,11 +16,11 @@ const trimestre = (d: string) => (d ? `${Math.floor((Number(d.slice(5, 7)) - 1) 
 
 export default function ConditionsBanque() {
   const { donnees, erreur } = useDonnees(() => api.conditionsBanque.etat());
-  if (erreur) return <><h1>Conditions de banque</h1><p role="alert" className="erreur-champ">{erreur}</p></>;
+  if (erreur) return <><p role="alert" className="erreur-champ">{erreur}</p></>;
   if (!donnees) return <Chargement />;
   return (
     <>
-      <h1>Conditions de banque</h1>
+      
       <section className="bloc pile" aria-label="Conditions de banque">
         <Document e={donnees} />
         <div className="actions-onglets"><button className="bouton" type="button" onClick={() => imprimer(".bloc .a-imprimer")}>Imprimer</button></div>

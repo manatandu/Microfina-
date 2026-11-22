@@ -32,7 +32,7 @@ export default function EdDivers() {
   if (!donnees) return <Chargement />;
   const { s, ctx, u, j, ed, stocks, piece } = donnees;
   if (!s || s.statut !== "ouverte" || !stocks) return (
-    <><h1>Guichet</h1><OngletsGuichet /><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>
+    <><OngletsGuichet /><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>
   );
   const proposees = ed.operations.filter((o) => o.statut === "ACTIF" && o.sens === SENS[f.type]);   // registre S31-1
   const od = proposees.find((o) => String(o.id) === f.operation);
@@ -54,7 +54,7 @@ export default function EdDivers() {
   }
   return (
     <>
-      <h1>Guichet</h1>
+      
       <OngletsGuichet />
       <section className="bloc pile" aria-label="Autres encaissements et décaissements">
         <div className="entete-ecran">

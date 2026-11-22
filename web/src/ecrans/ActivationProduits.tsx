@@ -23,7 +23,7 @@ export default function ActivationProduitsCredit() {
   const taux = (n: number) => n.toFixed(1).replace(".", ",");
   return (
     <>
-      <h1>Activation et désactivation de produit crédit</h1>
+      <h2>Activation et désactivation de produit crédit</h2>
       <section className="bloc pile" aria-label="Activation et désactivation de produit crédit">
         <div className="actions-onglets">
           <button className="bouton" type="button" onClick={() => traiter(true)}>Activer</button>

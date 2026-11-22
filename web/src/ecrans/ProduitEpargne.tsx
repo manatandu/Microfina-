@@ -45,7 +45,7 @@ export default function GestionProduitsEpargne() {
     <label className="case"><input type="checkbox" checked={!!f[k]} onChange={(e) => setF({ ...f, [k]: e.target.checked })} /><span>{libelle}</span></label>);
   return (
     <>
-      <h1>Gestion des produits épargnes</h1>
+      <h2>Gestion des produits épargnes</h2>
       <section className="bloc pile" aria-label="Gestion des produits épargnes">
         <div className="grille-deux">
           <div className="pile champs-a-gauche">

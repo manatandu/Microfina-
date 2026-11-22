@@ -42,7 +42,7 @@ export function Chequiers() {
 
   return (
     <>
-      <h1>Numéro Chequier</h1>
+      <h2>Numéro Chequier</h2>
       <section className="bloc pile" aria-label="Numéro Chequier">
         <div className="grille-deux">
           <div className="pile">

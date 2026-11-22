@@ -22,7 +22,7 @@ function Enrolement({ titre, onglets, numero, onglet, setOnglet, enregistrer, bo
   return (
     <>
       <div className="entete-ecran">
-        <h1>{titre}</h1>
+        <h2>{titre}</h2>
         {numero && <p className="chiffres">N° {numero}</p>}
       </div>
       <div className="onglets" role="tablist" aria-label={titre}>
@@ -687,7 +687,7 @@ export function MiseAJourClient() {
 
   return (
     <>
-      <h1>{titre}</h1>
+      <h2>{titre}</h2>
       <section className="bloc pile" aria-label="Client">
         <div className="formulaire">
           <div className="ligne-champ">

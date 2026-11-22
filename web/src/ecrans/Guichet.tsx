@@ -86,7 +86,7 @@ export default function GuichetDepotRetrait() {
   if (!donnees) return <Chargement />;
   const { s, ctx, u, j, comptes, c, stock, img, piece, procurations } = donnees;
   if (!s || s.statut !== "ouverte") return (
-    <><h1>Guichet</h1><OngletsGuichet /><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>
+    <><OngletsGuichet /><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>
   );
   const devise: Devise = c?.devise ?? "CDF";
   const m = saisie.trim() ? lireMontant(saisie) : null;
@@ -113,7 +113,7 @@ export default function GuichetDepotRetrait() {
 
   return (
     <>
-      <h1>Guichet</h1>
+      
       <OngletsGuichet />
       <section className="bloc pile" aria-label="Dépôt / Retrait">
         <div className="entete-ecran">

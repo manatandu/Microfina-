@@ -77,7 +77,7 @@ function PageBudget({ page, changer }: { page: string; changer: (p: string) => v
   );
   return (
     <>
-      <h1>{fiche.entete}</h1>
+      <h2>{fiche.entete}</h2>
       <div className="page-liste-gauche">
         <nav className="liste-gauche" aria-label="Budget">
           <ul>

@@ -15,7 +15,7 @@ export default function JoursTravail() {
   const page = PAGES.some(([p]) => p === params.get("page")) ? params.get("page")! : "journees";
   return (
     <>
-      <h1>{page === "journees" ? "Journées de travail" : "Jours fériés"}</h1>
+      <h2>{page === "journees" ? "Journées de travail" : "Jours fériés"}</h2>
       <div className="onglets" role="tablist" aria-label="Journée de travail, jours fériés">
         {PAGES.map(([p, nom]) => <button key={p} type="button" role="tab" id={`onglet-${p}`} aria-controls={`volet-${p}`} aria-selected={p === page}
           onClick={() => setParams(p === "journees" ? {} : { page: p })}>{nom}</button>)}

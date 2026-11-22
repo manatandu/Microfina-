@@ -56,7 +56,7 @@ export function ReleveCompte() {
 
   return (
     <>
-      <h1>Relevé de compte</h1>
+      
       <section className="bloc pile" aria-label="Relevé de compte">
         <div className="actions-onglets">
           <button className="bouton secondaire" type="button" disabled={t?.type !== "groupe"} onClick={async () => { if (t) setMembres((await api.tiers.lire(t.id))?.membres ?? []); }}>Membres du Groupes</button>

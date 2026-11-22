@@ -120,7 +120,7 @@ export function NouveauBudget() {
     {ctx.plans.map((x) => <option key={x.id} value={x.id}>{`${x.code} ${x.libelle} (${x.annee})`}</option>)}</select>}</Champ>;
   return (
     <>
-      <h1>Nouveau budget</h1>
+      
       <Fiche titre="Nouveau budget" ouverte={mode === ""} fermer={() => undefined}>
         <div className="pile" role="radiogroup" aria-label="Nouveau budget">
           <label className="case"><input type="radio" name="nb" checked={choix === "definir"} onChange={() => setChoix("definir")} /><span>Définir nouveau budget</span></label>
@@ -260,7 +260,7 @@ export function ConsultationBudget() {
   const page = PAGES.find(([k]) => k === params.get("page"))?.[0] ?? "consultation";
   const { donnees: ctx } = useDonnees(() => api.budgets.contexte());
   if (!ctx) return <Chargement />;
-  return <><h1>Budget</h1>
+  return <><h2>Budget</h2>
     <div className="onglets" role="tablist" aria-label="Budget">{PAGES.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={page === k} onClick={() => setParams(k === "consultation" ? {} : { page: k })}>{l}</button>)}</div>
     {page === "consultation" && <DetailBudget ctx={ctx} />}{page === "suivi" && <SuiviBudgetaire ctx={ctx} />}{page === "consommation" && <Consommation ctx={ctx} />}</>;
 }

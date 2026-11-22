@@ -180,7 +180,7 @@ export function RemboursementGuichet() {
   }, [e.donnees?.d?.devise, fait?.id]);
   if (!g) return <Chargement />;
   const { s, ctx, u, j, dv, stock, piece } = g;
-  if (!s || s.statut !== "ouverte") return <><h1>Guichet</h1><OngletsGuichet /><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>;
+  if (!s || s.statut !== "ouverte") return <><OngletsGuichet /><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>;
   const d = e.donnees?.d ?? null, fige = !!fait;
   const effacer = () => { e.effacer(); setCoupures({}); setCle(nouvelleCle()); setFait(null); };
   function enregistrer() {
@@ -197,7 +197,7 @@ export function RemboursementGuichet() {
   }
   return (
     <>
-      <h1>Guichet</h1>
+      
       <OngletsGuichet />
       <section className="bloc pile" aria-label="Remboursement de crédit">
         <div className="entete-ecran">{(piece) ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}<p>Date règlement : <strong className="chiffres">{fr(j?.date ?? "")}</strong></p></div>
@@ -270,7 +270,7 @@ export function RemboursementBanque() {
   }
   return (
     <>
-      <h1>Remboursement de crédits par banque</h1>
+      <h2>Remboursement de crédits par banque</h2>
       <section className="bloc pile" aria-label="Remboursement de crédits par banque">
         <div className="entete-ecran">{(fait?.piece ?? "") ? <p>Numéro de pièce : <strong className="chiffres">{fait?.piece ?? ""}</strong></p> : null}
           {fige ? <Champ libelle="Date règlement :">{(p) => <Lecture {...p} value={fr(date || j?.date || "")} />}</Champ>
@@ -345,7 +345,7 @@ export function RemboursementPrelevement() {
   }
   return (
     <>
-      <h1>Remboursement de crédits par prélèvement sur compte</h1>
+      <h2>Remboursement de crédits par prélèvement sur compte</h2>
       <section className="bloc pile" aria-label="Remboursement de crédits par prélèvement sur compte">
         <div className="entete-ecran">{(fait?.piece ?? "") ? <p>Numéro de pièce : <strong className="chiffres">{fait?.piece ?? ""}</strong></p> : null}
           {fige ? <Champ libelle="Date règlement :">{(p) => <Lecture {...p} value={fr(date || j?.date || "")} />}</Champ>
@@ -427,7 +427,7 @@ export function ConsulterPret() {
   const mt = (v: number | undefined) => montant(v ?? 0, dv);
   return (
     <>
-      <h1>Consultation de prêts</h1>
+      <h2>Consultation de prêts</h2>
       <section className="bloc pile" aria-label="Consultation de prêts">
         <div className="entete-ecran"><span></span>
           <ChampDate libelle="Date règlement : *" valeur={date || j?.date || ""} onChange={setDate} /></div>

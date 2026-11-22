@@ -17,7 +17,7 @@ export default function InformationsAgences() {
   const role = (ONGLETS.some(([r]) => r === params.get("onglet")) ? params.get("onglet") : "gestionnaire") as Role;
   return (
     <>
-      <h1>Informations de base liées aux agences</h1>
+      <h2>Informations de base liées aux agences</h2>
       <div className="onglets" role="tablist" aria-label="Informations de base liées aux agences">
         {ONGLETS.map(([r, nom]) => <button key={r} type="button" role="tab" id={`onglet-${r}`} aria-controls="volet" aria-selected={r === role}
           onClick={() => setParams(r === "gestionnaire" ? {} : { onglet: r })}>{nom}</button>)}

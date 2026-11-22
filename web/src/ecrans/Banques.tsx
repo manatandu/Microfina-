@@ -20,7 +20,7 @@ export function CreationBanque() {
   } });
   return (
     <>
-      <h1>Création banque</h1>
+      <h2>Création banque</h2>
       <div className="onglets" role="tablist" aria-label="Création banque">
         {["Banque Client", "Banque Institution"].map((o, i) => <button key={o} type="button" role="tab" id={`onglet-${i}`} aria-controls="volet" aria-selected={i === onglet} onClick={() => setOnglet(i)}>{o}</button>)}
       </div>

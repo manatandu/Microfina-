@@ -52,7 +52,7 @@ export function GestionGuichets() {
   }
   return (
     <>
-      <h1>Gestion des guichets</h1>
+      <h2>Gestion des guichets</h2>
       <section className="bloc pile" aria-label="Gestion des guichets">
         <div className="deux-colonnes">
           <fieldset className="pile cadre-champs">
@@ -124,7 +124,7 @@ export function OuvertureFermetureGuichets() {
   }
   return (
     <>
-      <h1>Ouverture/Fermeture de guichets</h1>
+      <h2>Ouverture/Fermeture de guichets</h2>
       <section className="bloc pile" aria-label="Ouverture/Fermeture de guichets">
         <fieldset className="pile cadre-champs">
           <legend>Liste des guichets</legend>
@@ -186,7 +186,7 @@ export function AffectationGuichets() {
   const guichetsCible = cible ? donnees.guichets.filter((g) => g.agenceId === cible.agenceId) : [];
   return (
     <>
-      <h1>Ajout et Retrait de Guichet à un utilisateur</h1>
+      <h2>Ajout et Retrait de Guichet à un utilisateur</h2>
       <section className="bloc pile" aria-label="Ajout et Retrait de Guichet à un utilisateur">
         <TableFiltree lignes={donnees.utilisateurs as LigneAffectation[]} cle={(l) => l.id} colonnes={[
           { titre: "Identifiant de connexion", valeur: (l) => l.login },

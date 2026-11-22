@@ -25,7 +25,7 @@ export default function ParametrageAutresOperations() {
       <option value=""></option>{valeurs.map((v) => <option key={v} value={v}>{enClair(v)}</option>)}</select>}</Champ>);
   return (
     <>
-      <h1>Paramétrage autres opérations</h1>
+      <h2>Paramétrage autres opérations</h2>
       <section className="bloc pile" aria-label="Paramétrage autres opérations">
         <div className="grille-deux">
           {liste("sens", "Type Opération: *", donnees.sens)}

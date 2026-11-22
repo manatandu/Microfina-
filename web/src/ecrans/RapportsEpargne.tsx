@@ -30,7 +30,7 @@ export default function RapportsEpargne() {
   const erreur = (x: unknown) => setBoite({ type: "erreur", message: message(x) });
   return (
     <>
-      <h1>Rapports épargne</h1>
+      
       <div className="onglets" role="tablist" aria-label="Rapports épargne">
         {ONGLETS.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={onglet === k} onClick={() => setParams({ page: k })}>{l}</button>)}
       </div>

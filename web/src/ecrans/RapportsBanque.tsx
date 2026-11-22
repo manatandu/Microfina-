@@ -36,7 +36,7 @@ export function RapportsBanque() {
 
   return (
     <>
-      <h1>Relevé d'un compte bancaire</h1>
+      <h2>Relevé d'un compte bancaire</h2>
       <section className="bloc pile" aria-label="Critères">
         <div className="formulaire">
           <Champ libelle="Banque *">{(p) => <select {...p} className="saisie" value={f.banque} onChange={(e) => maj({ banque: e.target.value, compte: "" })}>

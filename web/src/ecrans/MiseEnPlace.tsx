@@ -54,7 +54,7 @@ export default function MiseEnPlace() {
     onChange={(e) => maj({ [k]: e.target.value } as Partial<typeof VIDE>)}><option value=""></option>{a!.comptes.map((c) => <option key={c.id} value={c.id}>{`${c.numero} ${c.produit}`}</option>)}</select>}</Champ>;
   return (
     <>
-      <h1>Information de base sur le prêt</h1>
+      <h2>Information de base sur le prêt</h2>
       <section className="bloc pile" aria-label="Mise en place">
         <div className="ligne-champ">
           <button className="bouton secondaire" type="button" onClick={voirDemandes}>Demande</button>

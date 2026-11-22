@@ -267,7 +267,7 @@ export function Calculs() {
   const cadre = useCadre();
   if (!cadre) return <Chargement />;
   const jour = cadre.j?.date ?? new Date().toISOString().slice(0, 10);
-  return <><h1>Calculs</h1>{o.barre}
+  return <>{o.barre}
     {o.page === "tenue" && <FraisTenue ctx={cadre.ctx} jour={jour} />}{o.page === "dav" && <InteretsDav ctx={cadre.ctx} jour={jour} />}
     {o.page === "dat" && <InteretsDat jour={jour} passer />}{o.page === "interets-frais" && <InteretsEtFrais ctx={cadre.ctx} jour={jour} />}
     {o.page === "provisions" && <EtatProvisions jour={jour} cloture={false} />}{o.page === "credits" && <InteretsCredits jour={jour} />}</>;
@@ -279,7 +279,7 @@ export function Clotures() {
   const cadre = useCadreCloture();
   if (!cadre) return <Chargement />;
   const jour = cadre.j?.date ?? new Date().toISOString().slice(0, 10);
-  return <><h1>Clôture</h1>{o.barre}
+  return <><h2>Clôture</h2>{o.barre}
     {o.page === "credit" && <EtatProvisions jour={jour} cloture />}{o.page === "depot" && <InteretsDat jour={jour} passer={false} />}
     {o.page === "comptabilite" && <><ClotureComptable ctx={cadre.ctx} jour={jour} /><AffectationResultat jour={jour} /></>}</>;
 }

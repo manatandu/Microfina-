@@ -164,7 +164,7 @@ function Ecran({ etape, onglets }: { etape: Etape; onglets: { libelle: string; c
   const [boite, setBoite] = useState<Boite | null>(null);
   return (
     <>
-      <h1>{etape === "visa" ? "Visa" : "Validation"}</h1>
+      <h2>{etape === "visa" ? "Visa" : "Validation"}</h2>
       <div className="onglets" role="tablist" aria-label={etape === "visa" ? "Visa" : "Validation"}>
         {onglets.map((o, i) => <button key={o.libelle} type="button" role="tab" id={`vc-${i}`} aria-controls="vc-volet" aria-selected={i === onglet} onClick={() => setOnglet(i)}>{o.libelle}</button>)}
       </div>

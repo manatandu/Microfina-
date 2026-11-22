@@ -45,7 +45,7 @@ export function VirementPrelevement() {
 
   return (
     <>
-      <h1>Virement prélèvement</h1>
+      <h2>Virement prélèvement</h2>
       <section className="bloc pile" aria-label="Virement prélèvement">
         <div className="grille-cadres">
           <fieldset className="pile cadre-champs">

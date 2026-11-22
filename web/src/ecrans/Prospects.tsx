@@ -27,7 +27,7 @@ export function NouveauProspect() {
       <option value=""></option>{liste.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>);
   return (
     <>
-      <h1>Enregistrement d'un prospect</h1>
+      <h2>Enregistrement d'un prospect</h2>
       <section className="bloc pile" aria-label="Prospect">
         <div className="deux-colonnes">
           <div className="pile">

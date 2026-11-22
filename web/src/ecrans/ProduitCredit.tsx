@@ -121,7 +121,7 @@ export default function ProduitCredit({ listeOuverte = false }: { listeOuverte?:
     && p.nom.toLowerCase().includes(filtres.nom.trim().toLowerCase()));
   return (
     <>
-      <h1>Produit crédit : création/modification</h1>
+      <h2>Produit crédit : création/modification</h2>
       <div className="actions-onglets">
         <button className="bouton secondaire" type="button" aria-label="Nouveau produit crédit" onClick={nouveau}>+</button>
         <button className="bouton secondaire" type="button" onClick={() => setListe(true)}>Produits credit</button>

@@ -32,7 +32,7 @@ function LignesFinancement({ changer }: { changer: (p: string) => void }) {
   const ouvrir = () => { const l = lignes.find((x) => x.id === choisi); if (l) setF({ id: l.id, libelle: String(l.libelle ?? ""), montant: String(l.montant ?? "0"), typeId: String(l.typeId ?? "") }); };
   return (
     <>
-      <h1>Ligne financement</h1>
+      <h2>Ligne financement</h2>
       <div className="page-liste-gauche">
         <nav className="liste-gauche" aria-label="Financement"><ul>
           {donnees.catalogue.map((x) => <li key={x.page} aria-current={x.page === "lignes_financement" ? "page" : undefined}><button type="button" onClick={() => changer(x.page)}>{x.menu}</button></li>)}

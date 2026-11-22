@@ -39,7 +39,7 @@ export function PartsSociales() {
   if (!donnees) return <Chargement />;
   const { s, ctx, u, j, stock, comptes, parts, piece } = donnees;
   if (!s || s.statut !== "ouverte") return (
-    <><h1>Guichet</h1><OngletsGuichet /><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>
+    <><OngletsGuichet /><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>
   );
   const c = comptes.find((x) => x.id === compteId);
   const n = /^\d+$/.test(nombre.trim()) ? Number(nombre.trim()) : 0;
@@ -55,7 +55,7 @@ export function PartsSociales() {
   }
   return (
     <>
-      <h1>Guichet</h1>
+      
       <OngletsGuichet />
       <section className="bloc pile" aria-label="Part sociale (Achat/Retrait)">
         <div className="entete-ecran">

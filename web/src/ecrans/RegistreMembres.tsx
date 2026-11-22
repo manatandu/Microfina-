@@ -14,14 +14,14 @@ type Registre = Awaited<ReturnType<typeof api.registreMembres.membres>>;
 export default function RegistreMembres() {
   const { donnees, erreur } = useDonnees(() => api.registreMembres.membres());
   const [apercu, setApercu] = useState(false);
-  if (erreur) return <><h1>Registre des membres</h1><p role="alert" className="erreur-champ">{erreur}</p></>;
+  if (erreur) return <><p role="alert" className="erreur-champ">{erreur}</p></>;
   if (!donnees) return <Chargement />;
   const m = donnees.membres;
   const exporter = () => exporterExcel("registre-membres", ["N° d'ordre", "N° d'adhésion", "Nom", "Prénom", "Pièce d'identité", "Adresse", "Profession", "Catégorie", "Parts souscrites", "Parts libérées", "Admis le", "Sorti le"],
     m.map((x) => [x.rang, x.numero, x.nom, x.prenom, x.piece, x.adresse, x.profession, x.categorie, x.partsSouscrites, x.partsLiberees, fr(x.admissionLe), fr(x.sortieLe)]));
   return (
     <>
-      <h1>Registre des membres</h1>
+      
       <section className="bloc pile" aria-label="Registre des membres">
         <div className="defile-x"><Tableau r={donnees} /></div>
         <div className="actions-onglets">

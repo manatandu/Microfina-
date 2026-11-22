@@ -27,7 +27,7 @@ export function EcranJournee() {
   }
   return (
     <>
-      <h1>Ouverture de journée</h1>
+      
       <section className="bloc pile" aria-label="Ouverture de journée">
         <div className="grille-cadres quatre">
           <Champ libelle="Dernière journée ouverte">{(p) => <input {...p} className="saisie date" readOnly value={liste[0] ? fr(liste[0].date) : ""} />}</Champ>
@@ -59,7 +59,7 @@ export function FermetureJournee() {
   const { donnees: u } = useDonnees(() => api.session.courante());
   return (
     <>
-      <h1>Comptabilisation</h1>
+      <h2>Comptabilisation</h2>
       {u?.roles.includes("chef_agence") ? <Fermeture /> : <p>Réservé au chef d'agence.</p>}
     </>
   );
@@ -70,7 +70,7 @@ export function EcranValidation({ titre, seulement }: { titre: string; seulement
   const { donnees: u } = useDonnees(() => api.session.courante());
   return (
     <>
-      <h1>{titre}</h1>
+      <h2>{titre}</h2>
       {u?.roles.includes("chef_agence") ? <AValider seulement={seulement} /> : <p>Réservé au chef d'agence.</p>}
     </>
   );

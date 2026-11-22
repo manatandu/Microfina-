@@ -356,7 +356,7 @@ export default function Factures() {
   if (!ctx) return <Chargement />;
   return (
     <>
-      <h1>Factures</h1>
+      <h2>Factures</h2>
       <div className="onglets" role="tablist" aria-label="Factures">
         {ONGLETS.map((o, i) => <button key={o} type="button" role="tab" id={`fa-${i}`} aria-controls="fa-volet" aria-selected={i === onglet} onClick={() => setOnglet(i)}>{o}</button>)}
       </div>
@@ -387,7 +387,7 @@ export function DeclarationTaxes() {
   }
   return (
     <>
-      <h1>État de déclaration des taxes</h1>
+      <h2>État de déclaration des taxes</h2>
       <section className="bloc pile" aria-label="État de déclaration des taxes">
         <div className="deux-colonnes">
           <fieldset className="cadre-champs formulaire"><legend>Période</legend>

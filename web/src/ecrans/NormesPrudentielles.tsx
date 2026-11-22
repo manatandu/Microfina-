@@ -25,7 +25,7 @@ export default function NormesPrudentielles() {
     r.normes.map((x) => [x.libelle, x.reference, x.numerateur / 100, x.denominateur / 100, x.ratio ?? "", `${SENS[x.sens]} ${x.norme}`, etat(x)])) : null;
   return (
     <>
-      <h1>Normes prudentielles</h1>
+      
       <section className="bloc pile" aria-label="Edition des normes prudentielles">
         <h2>Edition des normes prudentielles</h2>
         <fieldset className="cadre-champs formulaire"><legend className="sr-only">Arrêté</legend>

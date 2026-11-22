@@ -41,7 +41,7 @@ export default function RapportsCredit() {
   if (!ctx) return <Chargement />;
   return (
     <>
-      <h1>Rapports crédit</h1>
+      
       <div className="onglets" role="tablist" aria-label="Rapports crédit">
         {ONGLETS.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={onglet === k} onClick={() => setParams({ page: k })}>{l}</button>)}
       </div>

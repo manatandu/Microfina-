@@ -281,7 +281,7 @@ export default function AutresOperations() {
   if (!ctx) return <Chargement />;
   return (
     <>
-      <h1>Autres opérations</h1>
+      
       <div className="onglets" role="tablist" aria-label="Autres opérations">
         {ONGLETS.map((o, i) => <button key={o} type="button" role="tab" id={`ao-${i}`} aria-controls="ao-volet" aria-selected={i === onglet} onClick={() => setOnglet(i)}>{o}</button>)}
       </div>

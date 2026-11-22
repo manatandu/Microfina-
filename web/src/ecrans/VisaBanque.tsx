@@ -46,7 +46,7 @@ export default function VisaBanque() {
 
   return (
     <>
-      <h1>{titre}</h1>
+      <h2>{titre}</h2>
       <div className="onglets" role="tablist" aria-label="Étape">
         {(["visa", "validation"] as const).map((e) => <button key={e} type="button" role="tab" aria-selected={e === etape} onClick={() => { setEtape(e); setDate(""); }}>{e === "visa" ? "Visa" : "Validation"}</button>)}
       </div>

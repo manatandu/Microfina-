@@ -30,7 +30,7 @@ export default function GestionProfilsUtilisateur() {
   const cherche = (t: string) => t.toLowerCase().includes(filtre.trim().toLowerCase());
   return (
     <>
-      <h1>Gestion des profils utilisateur</h1>
+      <h2>Gestion des profils utilisateur</h2>
       <section className="bloc pile" aria-label="Gestion des profils utilisateur">
         <fieldset className="cadre-champs pile">
           <legend>Informations</legend>

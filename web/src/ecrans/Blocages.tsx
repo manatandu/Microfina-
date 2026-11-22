@@ -44,7 +44,7 @@ export default function BlocageCompte() {
   const c = (comptes ?? []).find((x) => String(x.id) === f.compte);
   return (
     <>
-      <h1>Blocage et déblocage de compte</h1>
+      <h2>Blocage et déblocage de compte</h2>
       <section className="bloc pile" aria-label="Blocage et déblocage de compte">
         <div className="grille-deux">
           <fieldset className="pile cadre-champs">

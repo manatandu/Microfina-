@@ -30,7 +30,7 @@ export default function OrdreRemboursement() {
   const choisir = (l: Ligne) => { setChoisi(l.id); setOrdre(l.code.split("")); setElement(null); };
   return (
     <>
-      <h1>Ordre de repartition des montants lors des remboursements de crédits</h1>
+      <h2>Ordre de repartition des montants lors des remboursements de crédits</h2>
       <section className="bloc pile" aria-label="Ordre de remboursement">
         <div className="ordonner">
           <div className="fleches-ordre">

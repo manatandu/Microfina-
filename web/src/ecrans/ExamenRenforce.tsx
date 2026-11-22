@@ -32,7 +32,7 @@ export default function ExamenRenforce() {
   const [decl, setDecl] = useState({ date: "", reference: "" });
   const [rapport, setRapport] = useState<Rapport | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
-  if (erreur) return <><h1>Examen renforcé</h1><p role="alert" className="erreur-champ">{erreur}</p></>;
+  if (erreur) return <><p role="alert" className="erreur-champ">{erreur}</p></>;
   if (!donnees) return <Chargement />;
   const ouvrir = (x: Examen) => { setChoisi(x); setF({ origineFonds: x.origineFonds, destinationFonds: x.destinationFonds, objet: x.objet, acteurs: x.acteurs, observations: x.observations }); setDecl({ date: "", reference: "" }); };
   const fermer = () => { setChoisi(null); setRelu((v) => v + 1); };
@@ -55,7 +55,7 @@ export default function ExamenRenforce() {
     <Champ libelle={libelle}>{(p) => <textarea {...p} className="saisie" rows={2} readOnly={!enAttente} value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} />}</Champ>);
   return (
     <>
-      <h1>Examen renforcé</h1>
+      
       <div className="onglets" role="tablist" aria-label="Examen renforcé">
         {ONGLETS.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={k === onglet} onClick={() => { setOnglet(k); setChoisi(null); }}>{l}</button>)}
       </div>

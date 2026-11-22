@@ -36,7 +36,7 @@ export default function Plaintes() {
   const [accuse, setAccuse] = useState<Plainte | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   if (j === undefined) return <Chargement />;
-  if (erreur) return <><h1>Plaintes</h1><p role="alert" className="erreur-champ">{erreur}</p></>;
+  if (erreur) return <><p role="alert" className="erreur-champ">{erreur}</p></>;
   const jour = j?.date ?? "";
   const maj = (p: Partial<typeof VIDE>) => setF({ ...f, ...p });
   const liste = (k: keyof typeof VIDE, libelle: string, valeurs: readonly (readonly [string, string])[]) => (
@@ -59,7 +59,7 @@ export default function Plaintes() {
   }
   return (
     <>
-      <h1>Plaintes</h1>
+      
       <div className="onglets" role="tablist" aria-label="Plaintes">
         {ONGLETS.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={k === onglet} onClick={() => setOnglet(k)}>{l}</button>)}
       </div>

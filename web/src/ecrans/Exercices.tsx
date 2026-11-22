@@ -39,7 +39,7 @@ export function NouvelExercice() {
   }
   return (
     <>
-      <h1>Nouvel Exercice</h1>
+      <h2>Nouvel Exercice</h2>
       <section className="bloc pile" aria-label="Nouvel Exercice">
         <fieldset className="pile cadre-champs">
           <legend>Exercice</legend>
@@ -118,7 +118,7 @@ export function OuvertureExercice() {
   }
   return (
     <>
-      <h1>Ouverture d'un Exercice</h1>
+      <h2>Ouverture d'un Exercice</h2>
       <section className="bloc pile" aria-label="Ouverture d'un Exercice">
         <div className="ligne-champ">
           <Champ libelle="Exercice à ouvrir">{(p) => <input {...p} className="saisie code" inputMode="numeric" value={saisie} onChange={(e) => setSaisie(e.target.value)} />}</Champ>
@@ -158,7 +158,7 @@ export function CompleterJournalDetail() {
   }
   return (
     <>
-      <h1>Completer journal detail de l'exercice encours</h1>
+      <h2>Completer journal detail de l'exercice encours</h2>
       <section className="bloc pile" aria-label="Compléter journal détail">
         <div className="ligne-champ">
           <Champ libelle="Exercice encours">{(p) => <input {...p} className="saisie code" readOnly value={a ?? ""} />}</Champ>

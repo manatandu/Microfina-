@@ -24,7 +24,7 @@ export default function CentraleIncidents() {
   const [icu, setIcu] = useState<{ e: Evenement; valeur: string } | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   if (j === undefined) return <Chargement />;
-  if (erreur) return <><h1>Centrale des incidents de paiement</h1><p role="alert" className="erreur-champ">{erreur}</p></>;
+  if (erreur) return <><p role="alert" className="erreur-champ">{erreur}</p></>;
   const lignes = donnees ?? [];
   const basculer = (e: Evenement) => setChoisis((s) => { const n = new Set(s); const k = cleDe(e); if (n.has(k)) n.delete(k); else n.add(k); return n; });
   const aDeclarer = lignes.filter((e) => !e.declareLe);
@@ -47,7 +47,7 @@ export default function CentraleIncidents() {
     lignes.map((e) => [e.typeLibelle, fr(e.date), fr(e.echeance), e.membre, e.client, e.categorie, e.icu, e.compte, e.produit, e.devise, fr(e.declareLe), e.reference]));
   return (
     <>
-      <h1>Centrale des incidents de paiement</h1>
+      
       <div className="onglets" role="tablist" aria-label="Déclarations">
         {STATUTS.map(([k, l]) => <button key={k || "tous"} type="button" role="tab" aria-selected={k === statut} onClick={() => { setStatut(k); setChoisis(new Set()); }}>{l}</button>)}
       </div>

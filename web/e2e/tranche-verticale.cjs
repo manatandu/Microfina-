@@ -216,7 +216,7 @@ const OUT = process.argv[2];
   await aller('/administration/s05'); await p.getByLabel('Nom et prénoms *').fill('Mbala Joseph');
   await p.getByLabel('Identifiant de connexion *').fill('jmbala'); await p.getByLabel('Mot de passe *').fill('secret-1'); await p.getByLabel('Confirmation *').fill('secret-1');
   await p.getByLabel('Portable : *').fill('+243 810 000 444'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  await p.getByRole('cell', { name: 'Mbala', exact: true }).waitFor(); await etape('02f33-utilisateurs');
+  await p.getByRole('cell', { name: 'Mbala Joseph', exact: true }).waitFor(); await etape('02f33-utilisateurs');
   // Administrateur sécurité : le profil AUDITEUR donné à cet utilisateur (S06, p. 17)
   await aller('/administration/s06'); await p.getByRole('button', { name: 'Rechercher un utilisateur' }).click();
   await p.getByRole('dialog', { name: "Recherche d'un utilisateur" }).getByRole('cell', { name: 'jmbala' }).click();

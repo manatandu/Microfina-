@@ -71,7 +71,7 @@ export default function Localisation() {
 
   return (
     <>
-      <h1>Localisation</h1>
+      
       <section className="bloc pile">
         <fieldset className="pile cadre-champs champs-a-gauche">
           <legend>Choisir un lieu</legend>

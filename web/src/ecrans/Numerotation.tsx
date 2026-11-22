@@ -63,7 +63,7 @@ export default function ParametragesClients() {
   );
   return (
     <>
-      <h1>Paramétrages liés aux clients</h1>
+      <h2>Paramétrages liés aux clients</h2>
       <section className="bloc pile" aria-label="Paramétrages liés aux clients">
         {donnees.institutions.length > 1 && <div className="ligne-champ champs-a-gauche">
           <div className="champ">
@@ -149,7 +149,7 @@ export function ParametrageCompteClient() {
   const r = donnees.regle;
   return (
     <>
-      <h1>Parametrage du Compte Client</h1>
+      <h2>Parametrage du Compte Client</h2>
       <section className="bloc pile" aria-label="Parametrage du Compte Client">
         <fieldset className="pile cadre-champs">
           <legend>Configuration du N° des Compte Client</legend>

@@ -52,7 +52,7 @@ export function DemandeCredit() {
   }
   return (
     <>
-      <h1>Dossier de crédit : analyse de la demande</h1>
+      <h2>Dossier de crédit : analyse de la demande</h2>
       <section className="bloc pile" aria-label="Demande de crédit">
         {page === 1 ? <>
           <fieldset className="cadre-champs formulaire">
@@ -143,7 +143,7 @@ export function ControleDemande() {
   }
   return (
     <>
-      <h1>Dossier de crédit : contrôle de la demande</h1>
+      <h2>Dossier de crédit : contrôle de la demande</h2>
       <section className="bloc pile" aria-label="Contrôle de la demande">
         <div className="actions-onglets"><button className="bouton" type="button" onClick={() => { setOuvert(true); setRelu((v) => v + 1); }}>Contrôle</button></div>
         {ouvert && (donnees ? <Grille lignes={donnees} choisir={(x) => { setD(x); setF({ effectif: "", nbGroupes: "", montant: "" }); }} /> : <Chargement />)}
@@ -185,7 +185,7 @@ export function ApprobationDemande() {
   }
   return (
     <>
-      <h1>Dossier de crédit : approbation</h1>
+      <h2>Dossier de crédit : approbation</h2>
       <section className="bloc pile" aria-label="Approbation">
         <p>Fonds propres prudentiels : <strong className="chiffres">{ctx.fondsPropres ? `${montant(ctx.fondsPropres.montant, "CDF")} au ${fr(ctx.fondsPropres.dateArrete)}` : "non saisis (Paramétrage > Info société)"}</strong></p>
         <Grille lignes={liste} choisir={setChoisie} choisie={choisie?.id} />

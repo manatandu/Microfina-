@@ -36,7 +36,7 @@ export default function EnregistrementUtilisateurs() {
       onChange={(e) => setF({ ...f, [k]: e.target.value })} />}</Champ>);
   return (
     <>
-      <h1>Enregistrement des utilisateurs</h1>
+      <h2>Enregistrement des utilisateurs</h2>
       <section className="bloc pile" aria-label="Enregistrement des utilisateurs">
         <div className="grille-deux">
           <fieldset className="cadre-champs pile champs-a-gauche">

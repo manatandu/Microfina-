@@ -281,7 +281,7 @@ export function EtatsFinanciers() {
   const cadre = useCadre();
   if (!cadre) return <Chargement />;
   const jour = cadre.j?.date ?? new Date().toISOString().slice(0, 10);
-  return <><h1>Etats financiers</h1>
+  return <>
     <ExportLiasse jour={jour} />
     <div className="onglets" role="tablist" aria-label="Etats financiers">{PAGES.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={page === k} onClick={() => setParams(k === "bilan" ? {} : { page: k })}>{l}</button>)}</div>
     {page === "bilan" && <EditionBilan ctx={cadre.ctx} jour={jour} />}{page === "hors-bilan" && <EditionHorsBilan ctx={cadre.ctx} jour={jour} />}
@@ -338,7 +338,7 @@ export function IndicateursFinanciers() {
     : type === "taux" ? `${decimal.format(v)}${nombres ? "" : " %"}` : String(v));
   return (
     <>
-      <h1>Indicateurs financiers</h1>
+      <h2>Indicateurs financiers</h2>
       <section className="bloc pile" aria-label="Edition des indicateurs financiers">
         <h2>Edition des indicateurs financiers</h2>
         <div className="deux-colonnes">

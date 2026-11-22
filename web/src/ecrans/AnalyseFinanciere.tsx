@@ -33,7 +33,7 @@ export default function AnalyseFinanciere() {
   const type = (params.get("page") === "developpee" ? "developpee" : "allegee") as Type;
   return (
     <>
-      <h1>Analyse financière</h1>
+      
       <div className="onglets" role="tablist" aria-label="Analyse financière">
         <button type="button" role="tab" aria-selected={type === "allegee"} onClick={() => setParams({ page: "allegee" })}>Analyse financière allégée</button>
         <button type="button" role="tab" aria-selected={type === "developpee"} onClick={() => setParams({ page: "developpee" })}>Analyse financière développée</button>

@@ -64,7 +64,7 @@ export function MiseEnPlaceDat() {
 
   return (
     <>
-      <h1>Mise en place DAT</h1>
+      <h2>Mise en place DAT</h2>
       <div className="actions-onglets">
         <button className="bouton secondaire" type="button" disabled={!aAnnuler} aria-label="Annuler un DAT" title="Annuler le DAT choisi dans Liste DAT" onClick={annuler}>⊘</button>
         <button className="bouton secondaire" type="button" onClick={async () => setListe(await api.depotsTerme.liste())}>Liste DAT</button>
@@ -185,7 +185,7 @@ export function ValidationDat() {
   const pourContrat = choisi ?? dernier?.id ?? null;
   return (
     <>
-      <h1>Validation DAT</h1>
+      <h2>Validation DAT</h2>
       <section className="bloc pile" aria-label="Validation DAT">
         {(dernier?.piece ?? "") ? <p>Numéro de pièce : <strong className="chiffres">{dernier?.piece ?? ""}</strong></p> : null}
         <fieldset className="pile cadre-champs">
@@ -282,7 +282,7 @@ export function RuptureDat() {
   const mt = (v: number | undefined) => (x && v !== undefined ? montant(v, dev) : "");
   return (
     <>
-      <h1>Rupture DAT</h1>
+      <h2>Rupture DAT</h2>
       <section className="bloc pile" aria-label="Rupture DAT">
         <div className="grille-deux">
           {(fait?.rupture?.piece ?? "") ? <p>Numéro de pièce : <strong className="chiffres">{fait?.rupture?.piece ?? ""}</strong></p> : null}
@@ -418,7 +418,7 @@ export function RechercheDat() {
   const totaux = lignes && coches.has("montant") ? Object.entries(lignes.reduce<Record<string, number>>((m, x) => ({ ...m, [x.devise]: (m[x.devise] ?? 0) + x.montant }), {})) : [];
   return (
     <>
-      <h1>Recherche multicritères DAT</h1>
+      <h2>Recherche multicritères DAT</h2>
       <section className="bloc pile" aria-label="Recherche multicritères DAT">
         <div className="grille-deux">
           <fieldset className="pile cadre-champs">

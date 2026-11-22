@@ -23,7 +23,7 @@ export function BilletageCaisse() {
     return { s, ctx, j, billetages: billetages.filter((b) => b.moment === "arret"), theorique: Object.fromEntries(DEVISES.map((d, i) => [d, th[i] ?? {}])) as Record<Devise, Comptage> };
   }, [relu]);
   if (!donnees) return <Chargement />;
-  if (!donnees.s) return <><h1>Billetage</h1><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>;
+  if (!donnees.s) return <><h2>Billetage</h2><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>;
   const { s, ctx, billetages, theorique } = donnees as Required<typeof donnees>;
   const saisis = nombres ?? Object.fromEntries(DEVISES.map((d) => {
     const b = billetages.find((x) => x.devise === d);
@@ -45,7 +45,7 @@ export function BilletageCaisse() {
   }
   return (
     <>
-      <h1>Arrêté de caisse : {ctx.guichets.find((g) => g.id === s.guichetId)?.nom}</h1>
+      <h2>Arrêté de caisse : {ctx.guichets.find((g) => g.id === s.guichetId)?.nom}</h2>
       <section className="bloc pile" aria-label="Billetage">
         {/* Registre S79-2 et T12 : un tableau par devise, chacun comme la capture p. 91 */}
         {DEVISES.map((d) => (
@@ -118,7 +118,7 @@ export function ValidationBilletage() {
   }
   return (
     <>
-      <h1>Validation de l'arrêté temporaire : {guichet?.nom ?? ""}</h1>
+      <h2>Validation de l'arrêté temporaire : {guichet?.nom ?? ""}</h2>
       <section className="bloc pile" aria-label="Validation du billetage">
         <div className="grille-cadres quatre">
           <Champ libelle="Guichet">{(p) => (

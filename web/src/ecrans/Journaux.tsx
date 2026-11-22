@@ -25,7 +25,7 @@ export default function Journaux() {
   const exporter = () => exporterExcel("Liste des Journaux", ["N° Journal", "Libellé", "Type Journal", "Actif"], liste.map((j) => [j.code, j.libelle, j.typeLibelle, j.actif ? "Oui" : "Non"]));
   return (
     <>
-      <h1>Journal</h1>
+      <h2>Journal</h2>
       <section className="bloc pile" aria-label="Journal">
         <fieldset className="cadre-champs">
           <legend>Info Journal</legend>

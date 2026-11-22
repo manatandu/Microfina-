@@ -15,7 +15,7 @@ export default function DroitsProfil() {
   const page = PAGES.find(([p]) => p === params.get("page")) ?? PAGES[0];
   return (
     <>
-      <h1>{page[2]}</h1>
+      <h2>{page[2]}</h2>
       <div className="onglets" role="tablist" aria-label="Profil">
         {PAGES.map(([p, nom]) => <button key={p} type="button" role="tab" id={`onglet-${p}`} aria-controls={`volet-${p}`} aria-selected={p === page[0]}
           onClick={() => setParams(p === "assigner" ? {} : { page: p })}>{nom}</button>)}

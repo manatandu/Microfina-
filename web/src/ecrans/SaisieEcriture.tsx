@@ -49,7 +49,7 @@ export default function SaisieEcriture() {
   }
   return (
     <>
-      <h1>Saisie d'écriture comptable</h1>
+      <h2>Saisie d'écriture comptable</h2>
       <section className="bloc pile" aria-label="Saisie d'écriture comptable">
         <p>N° Transaction: <strong className="chiffres">{ecr?.transaction ?? ""}</strong></p>
         <div className="ligne-champ">

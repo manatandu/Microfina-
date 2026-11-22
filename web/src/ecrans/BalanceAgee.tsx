@@ -20,7 +20,7 @@ export default function BalanceAgee() {
   }
   return (
     <>
-      <h1>Génération de nouvelle balance âgée</h1>
+      <h2>Génération de nouvelle balance âgée</h2>
       <section className="bloc pile" aria-label="Génération de nouvelle balance âgée">
         <fieldset className="cadre-champs formulaire"><legend className="sr-only">Date</legend>
           <ChampDate libelle="Date lancement : *" valeur={d} onChange={setDate} requis />

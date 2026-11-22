@@ -59,7 +59,7 @@ export function VisaClient() {
 
   return (
     <>
-      <h1>Visa client</h1>
+      <h2>Visa client</h2>
       <section className="bloc pile" aria-label="Visa">
         <div className="deux-colonnes">
           <fieldset className="pile cadre-champs">
@@ -211,7 +211,7 @@ export function ModificationFrais() {
   }
   return (
     <>
-      <h1>Modification de Frais</h1>
+      <h2>Modification de Frais</h2>
       <section className="bloc pile" aria-label="Modification de Frais">
         <div className="deux-colonnes">
           <fieldset className="pile cadre-champs">
@@ -373,7 +373,7 @@ export function ValidationClientModifie() {
   }
   return (
     <>
-      <h1>Validation d'un client modifié</h1>
+      <h2>Validation d'un client modifié</h2>
       <section className="bloc pile" aria-label="Validation d'un client modifié">
         <fieldset className="pile cadre-champs">
           <legend>Informations sur le Client</legend>
@@ -435,7 +435,7 @@ export function InformationsClient() {
   const ecarts = t && initial ? CHAMPS_SUIVIS.filter(([k]) => enTexte(initial[k]) !== enTexte(t[k])) : [];
   return (
     <>
-      <h1>Informations client</h1>
+      <h2>Informations client</h2>
       <section className="bloc pile" aria-label="Client">
         <div className="formulaire">
           <div className="ligne-champ">
@@ -556,7 +556,7 @@ export function ResiliationClient() {
   }
   return (
     <>
-      <h1>Résiliation du contrat client</h1>
+      <h2>Résiliation du contrat client</h2>
       <section className="bloc pile a-imprimer" aria-label="Résiliation du contrat client">
         <div className="formulaire">
           <div className="ligne-champ">
@@ -722,7 +722,7 @@ export function PhotosSignatures() {
     </fieldset>);
   return (
     <>
-      <h1>Modification ou Ajout (Photo/Signature) : {genre}</h1>
+      <h2>Modification ou Ajout (Photo/Signature) : {genre}</h2>
       <section className="bloc pile" aria-label="Client">
         <div className="formulaire">
           <div className="ligne-champ">
@@ -806,7 +806,7 @@ export function Consentement() {
   const info = (libelle: string, v: string) => <div className="info-ligne"><dt>{libelle}</dt><dd>{v}</dd></div>;
   return (
     <>
-      <h1>Consentement</h1>
+      <h2>Consentement</h2>
       <section className="bloc pile" aria-label="Consentement">
         <div className="ligne-champ">
           <Champ libelle="N° Client :">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>

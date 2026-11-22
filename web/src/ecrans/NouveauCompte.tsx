@@ -39,7 +39,7 @@ export function NouveauCompte() {
 
   return (
     <>
-      <h1>Création d'un compte Epargne</h1>
+      <h2>Création d'un compte Epargne</h2>
       <section className="bloc pile" aria-label="Création d'un compte Epargne">
         <fieldset className="pile cadre-champs">
           <legend>Informations sur le Produit</legend>

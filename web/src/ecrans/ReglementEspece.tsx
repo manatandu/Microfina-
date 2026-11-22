@@ -32,7 +32,7 @@ export default function ReglementEspece() {
   }
   return (
     <>
-      <h1>Règlement de factures</h1>
+      <h2>Règlement de factures</h2>
       <section className="bloc pile" aria-label="Règlement facture espèce">
         {(!s || s.statut !== "ouverte") && <Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention>}
         <Paginee lignes={lignes}>{(visibles) => (<table className="grille"><caption>Liste des règlements</caption>

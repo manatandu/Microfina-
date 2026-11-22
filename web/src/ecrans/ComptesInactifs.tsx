@@ -22,7 +22,7 @@ export default function ComptesInactifs() {
   const [envoi, setEnvoi] = useState({ date: "", reference: "" });
   const [lettre, setLettre] = useState<Lettre | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
-  if (erreur) return <><h1>Comptes inactifs</h1><p role="alert" className="erreur-champ">{erreur}</p></>;
+  if (erreur) return <><p role="alert" className="erreur-champ">{erreur}</p></>;
   if (!donnees || j === undefined) return <Chargement />;
   const jour = j?.date ?? "";
   const ouvrir = (x: Compte) => { setChoisi(x); setEnvoi({ date: "", reference: "" }); };
@@ -32,7 +32,7 @@ export default function ComptesInactifs() {
   } });
   return (
     <>
-      <h1>Comptes inactifs</h1>
+      
       <section className="bloc pile" aria-label="Comptes inactifs">
         <div className="ligne-champ" role="radiogroup" aria-label="Comptes">
           {FILTRES.map(([k, l]) => <label key={k || "tous"} className="case"><input type="radio" name="filtre-inactifs" checked={filtre === k} onChange={() => setFiltre(k)} /><span>{l}</span></label>)}

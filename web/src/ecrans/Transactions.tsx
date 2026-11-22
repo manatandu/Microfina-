@@ -25,7 +25,7 @@ export default function RapportTransactions() {
   }
   return (
     <>
-      <h1>Rapport des transactions</h1>
+      
       <section className="bloc pile" aria-label="Rapport des transactions">
         <div className="ligne-champ">
           <ChampDate libelle="DU:" valeur={du} onChange={setDu} aide="" />

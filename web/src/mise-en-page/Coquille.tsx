@@ -85,7 +85,7 @@ export function Coquille() {
           ))}
         </aside>
         <main className="page" id="contenu" key={lieu.pathname}>{aide && <AideEnLigne chemin={lieu.pathname} fermer={() => setAide(false)} />}
-          {refuse ? <p className="attention">Droit manquant : {refuse.nom} (Administration &gt; Profil &gt; Assigner droit).</p> : <Suspense fallback={null}><Outlet /></Suspense>}</main><MessageSucces />
+          {vise && !refuse && <h1>{vise.nom}</h1>}{refuse ? <p className="attention">Droit manquant : {refuse.nom} (Administration &gt; Profil &gt; Assigner droit).</p> : <Suspense fallback={null}><Outlet /></Suspense>}</main><MessageSucces />
       </div>
 
       <footer className="pied">

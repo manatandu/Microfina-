@@ -35,7 +35,7 @@ function NouveauType() {
   } });
   return (
     <>
-      <h1>Nouveau type procuration</h1>
+      <h2>Nouveau type procuration</h2>
       <section className="bloc pile" aria-label="Type de procuration">
         <div className="formulaire">
           <Champ libelle="Libellé *">{(p) => <input {...p} className="saisie" required autoComplete="off" value={libelle} onChange={(e) => setLibelle(e.target.value)} />}</Champ>
@@ -92,7 +92,7 @@ function ProcurationsClient() {
   const nom = (p: { nom: string; postnom: string; prenom: string }) => [p.nom, p.postnom, p.prenom].filter(Boolean).join(" ");
   return (
     <section className="bloc pile" aria-label="Procurations">
-      <h1>Procurations</h1>
+      
       <div className="formulaire">
         <div className="ligne-champ">
           <Champ libelle="N° client (mandant)">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>

@@ -31,7 +31,7 @@ export default function Provisions() {
   const tous = lignes.length > 0 && lignes.every((x) => coches.includes(x.id));
   return (
     <>
-      <h1>Déclassement et provisionnement de crédit</h1>
+      <h2>Déclassement et provisionnement de crédit</h2>
       <section className="bloc pile" aria-label="Déclassement et provisionnement de crédit">
         <div className="actions-onglets">
           <button className="bouton secondaire" type="button" onClick={() => agir("Voulez-vous vraiment provisionner tous les crédits ?", () => api.provisions.tout({ date: d }))}>Provisionner tous les crédits</button>

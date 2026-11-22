@@ -43,7 +43,7 @@ export default function SimulationCredit() {
   const dv = (r?.devise ?? "CDF") as Devise;
   return (
     <>
-      <h1>Simulation tableau d'amortissement pour un crédit donné</h1>
+      <h2>Simulation tableau d'amortissement pour un crédit donné</h2>
       <section className="bloc pile" aria-label="Simulation tableau d'amortissement">
         <div className="grille-deux">
           <fieldset className="pile cadre-champs">

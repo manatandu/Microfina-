@@ -20,7 +20,7 @@ export default function RetenuesReverser() {
   const { donnees, erreur } = useDonnees(() => (annee && mois ? api.retenues.etat(annee, mois) : Promise.resolve(null)), [annee, mois, relu]);
   const [rv, setRv] = useState({ date: "", reference: "" });
   const [boite, setBoite] = useState<Boite | null>(null);
-  if (j === undefined || donnees === undefined) return erreur ? <><h1>Retenues à reverser</h1><p role="alert" className="erreur-champ">{erreur}</p></> : <Chargement />;
+  if (j === undefined || donnees === undefined) return erreur ? <><p role="alert" className="erreur-champ">{erreur}</p></> : <Chargement />;
   const reverser = () => setBoite({ type: "confirmation", message: "Voulez-vous vraiment noter ce reversement ?", oui: async () => {
     try { await api.retenues.reverser({ annee, mois, date: rv.date || jour, reference: rv.reference }); setRv({ date: "", reference: "" }); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
@@ -28,7 +28,7 @@ export default function RetenuesReverser() {
   const e = donnees;
   return (
     <>
-      <h1>Retenues à reverser</h1>
+      
       <section className="bloc pile" aria-label="Retenues à reverser">
         <div className="ligne-champ">
           <Champ libelle="Mois">{(p) => <select {...p} className="saisie" value={mois} onChange={(x) => setChoix({ annee, mois: x.target.value })}>{MOIS.map((l, i) => <option key={l} value={String(i + 1)}>{l}</option>)}</select>}</Champ>

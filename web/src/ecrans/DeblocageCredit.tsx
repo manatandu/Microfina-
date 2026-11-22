@@ -92,7 +92,7 @@ export function DeblocageGuichet() {
   }, [cid, relu, fait?.id]);
   if (!donnees) return <Chargement />;
   const { s, ctx, u, j, d, stock, piece } = donnees;
-  if (!s || s.statut !== "ouverte") return <><h1>Guichet</h1><OngletsGuichet /><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>;
+  if (!s || s.statut !== "ouverte") return <><OngletsGuichet /><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>;
   const dv = (d?.devise ?? fait?.devise ?? "CDF") as Devise;
   const erreur = (x: unknown) => setBoite({ type: "erreur", message: message(x) });
   const effacer = () => { setCid(null); setCoupures({}); setCle(nouvelleCle()); setFait(null); };
@@ -112,7 +112,7 @@ export function DeblocageGuichet() {
   }
   return (
     <>
-      <h1>Guichet</h1>
+      
       <OngletsGuichet />
       <section className="bloc pile" aria-label="Déblocage crédit">
         <div className="entete-ecran">{(piece) ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}<p>Date Opération : <strong className="chiffres">{fr(j?.date ?? "")}</strong></p></div>
@@ -195,7 +195,7 @@ export function DeblocageBanque() {
   }
   return (
     <>
-      <h1>Déblocage crédit</h1>
+      <h2>Déblocage crédit</h2>
       <section className="bloc pile" aria-label="Déblocage crédit par banque">
         <fieldset className="cadre-champs formulaire"><legend>Infos banque</legend>
           <Champ libelle="Banque *">{(p) => <select {...p} className="saisie" value={f.banque} onChange={(e) => setF({ ...f, banque: e.target.value, compte: "" })}><option value=""></option>
@@ -268,7 +268,7 @@ export function DeblocageEpargne() {
   }
   return (
     <>
-      <h1>Déblocage crédit</h1>
+      <h2>Déblocage crédit</h2>
       <section className="bloc pile" aria-label="Déblocage crédit sur compte d'épargne">
         <div className="entete-ecran">{(fait?.piece ?? "") ? <p>Numéro de pièce : <strong className="chiffres">{fait?.piece ?? ""}</strong></p> : null}
           <Champ libelle="Date Opération :">{(p) => <Lecture {...p} value={fr(j?.date ?? "")} />}</Champ></div>

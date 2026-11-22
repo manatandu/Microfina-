@@ -17,7 +17,7 @@ export default function InfoSocietePage() {
   const page = PAGES.some(([p]) => p === params.get("page")) ? params.get("page")! : "societe";
   return (
     <>
-      <h1>Information société</h1>
+      <h2>Information société</h2>
       <div className="onglets" role="tablist" aria-label="Information société">
         {PAGES.map(([p, nom]) => <button key={p} type="button" role="tab" id={`onglet-${p}`} aria-controls={`volet-${p}`} aria-selected={p === page}
           onClick={() => setParams(p === "societe" ? {} : { page: p })}>{nom}</button>)}
