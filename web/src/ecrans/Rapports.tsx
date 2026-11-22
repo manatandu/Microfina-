@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api } from "../donnees/api";
 import type { Tiers } from "../donnees/types";
 import { useDonnees } from "../lib/useDonnees";
-import { debutExercice, jourOuvert } from "../lib/dates";
+import { debutExercice, jusquAujourdhui } from "../lib/dates";
 import { Champ, ChampDate, Chargement, Textes } from "../composants";
 import { CATEGORIES, CRITERES_TRI, csv, dateReference, INCONNU, modifies, multicritere, prospects, synthese, valeur,
   type ContexteRapport, type CriteresModifies, type CriteresMulticritere, type CriteresProspect, type LigneModifies, type Tri } from "../lib/rapports";
@@ -12,7 +12,7 @@ const fr = (iso: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso
 const nomComplet = (t: { nom: string; postnom: string; prenom: string }) => [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
 const STATUTS: Record<Tiers["statut"], string> = { prospect: "Prospect", a_viser: "À viser", actif: "Actif", modifie_a_revalider: "Modifié à valider", resilie: "Résilié", refuse: "Refusé" };
 const debutAnnee = debutExercice;
-const aujourdhui = jourOuvert;   // la journée ouverte (registre T120)
+const aujourdhui = jusquAujourdhui;   // fiches et modifications sont datées à l'heure réelle (registre T120)
 
 function telecharger(nom: string, contenu: string) {
   const a = document.createElement("a");

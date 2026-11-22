@@ -22,3 +22,6 @@ let jourCourant = "";
 export function definirJourOuvert(d?: string | null) { jourCourant = d ?? ""; }
 export function jourOuvert() { return jourCourant || new Date().toISOString().slice(0, 10); }
 export function debutExercice() { return `${jourOuvert().slice(0, 4)}-01-01`; }
+/** Fin de période des listes datées à l'heure réelle (visas, approbations, modifications de fiche) : la journée ouverte ou, si elle est plus tard,
+ *  la date du jour, pour ne laisser dehors aucun enregistrement (registre T120) */
+export function jusquAujourdhui() { const r = new Date().toISOString().slice(0, 10), j = jourOuvert(); return r > j ? r : j; }

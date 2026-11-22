@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { debutExercice, fr, jourOuvert } from "../lib/dates";
+import { debutExercice, fr, jusquAujourdhui } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
 import { lireMontant, montant, type Devise } from "@design/montant.js";
 import { ContratPret } from "./ContratPret";
@@ -16,7 +16,7 @@ const NIVEAUX = [["responsable_credit", "Responsable crédit"], ["comite", "Comi
 type Niveau = (typeof NIVEAUX)[number][0];
 const AVIS = [["accepte", "Accepté"], ["refuse", "Refusé"]] as const;
 const debutAnnee = debutExercice;
-const aujourdhui = jourOuvert;   // la journée ouverte (registre T120)
+const aujourdhui = jusquAujourdhui;   // visas et approbations sont datés à l'heure réelle (registre T120)
 
 function GrilleCredits({ lignes, choisie, choisir, groupe }: { lignes: Ligne[]; choisie?: number; choisir?: (l: Ligne) => void; groupe?: boolean }) {
   const titres = ["N° credit", "Date demande", "Compte", "Intitulé", "Montant pret", "Durée (mois)", "Produit", groupe ? "Groupe solidaire" : "Agent crédit"];
