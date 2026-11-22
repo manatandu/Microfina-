@@ -3742,6 +3742,18 @@ def test_provisions(clients, journee):
     assert (solde("3904"), solde("3901"), solde("3801"), solde("3804"), solde("6910"), solde("0612"), solde("096")) == (0, 0, 0, 0, cap, cap, -cap - hb)
     assert balance_equilibree(agent)
     assert clients["caisse"].get("/api/credit/provisions", {"date": "2026-12-31"}, **H).status_code == 403
+    # B18 : rentrée sur la créance passée en perte : produit 791, sortie du hors bilan (PCCI, compte 79 ; hors bilan 06)
+    rad = agent.get("/api/credit/provisions/radies", **H).json()
+    assert [(x["id"], x["reste"]) for x in rad] == [(cid, cap)]
+    tid = ident("select tiers_id from credit where id = %s", (cid,))
+    k = next(x for x in agent.get(f"/api/tiers/{tid}/comptes", **H).json() if x["devise"] == "CDF" and x["disponible"] >= 500000)
+    route = f"/api/credit/provisions/radies/{cid}/rentree"
+    assert "Ordre du client" in agent.post(route, {"compteId": k["id"], "montant": 500000}, **H).json()["message"]
+    assert "au plus ce qui reste" in agent.post(route, {"compteId": k["id"], "montant": cap + 1, "ordreClient": "Ordre du 31/12"}, **H).json()["message"]
+    r = agent.post(route, {"compteId": k["id"], "montant": 500000, "ordreClient": "Ordre du 31/12"}, **H)
+    assert r.status_code == 200, r.content
+    assert (r.json()[0]["reste"], solde("791"), solde("0612")) == (cap - 500000, -500000, cap - 500000)
+    assert balance_equilibree(agent)
 
 
 def test_engagement_signature(clients, journee):
@@ -4758,6 +4770,10 @@ def test_calculs_et_clotures(clients, journee):
     assert r.status_code == 200, r.content
     assert [p["cloture"] for p in r.json()["periodes"]] == [True] * 11 + [False]
     assert (p723 - solde_compte("723"), solde_compte("623") - p623) == (reev["profit"], reev["perte"])
+    # B9 (PCCI § 7.1) : la position de change (472, créditeur) et sa contre-valeur (473, débiteur) se répondent en CDF après la clôture
+    cdf = lambda n: ident("""select coalesce(sum(case when l.sens = 'D' then l.montant_cdf else -l.montant_cdf end), 0) from ligne_ecriture l
+                             join compte c on c.id = l.compte_id where c.numero = %s""", (n,))
+    assert cdf("473") == -cdf("472") and cdf("474") == 0
     assert compta.get(f"{A}/cloture/comptabilite", q, **H).json()["mois"]["reevaluation"]["lignes"] == []
     assert "déjà clôturé" in msg(compta.post(f"{A}/cloture/mois", q, **H))
     assert "Décembre" in msg(compta.post(f"{A}/cloture/mois", {"exercice": 2026, "mois": 12}, **H))
@@ -5085,3 +5101,20 @@ def test_interets_courus_credits(clients, journee):
     assert (y["couru"], y["aPasser"]) == (0, -x["couru"])                                  # reprise entière
     assert compta.post("/api/autres/calculs/interets-credits", {"date": "2026-11-05"}, **H).status_code == 200
     assert ident("select interets_courus from credit where id = %s", (cid,)) == 0
+
+
+def test_position_de_change(clients, journee):
+    """B9 (confrontation du 21/11/2026) : PCCI § 7.1, position de change (472), contre-valeur (473) et résultat de change net de la devise"""
+    from datetime import date as D
+    from noyau.bd import une
+    from noyau.fin_periode import lignes_reevaluation, vue_reevaluation
+    util = une("select u.id, u.institution_id, u.agence_id from utilisateur u where u.login = 'plumbala'")
+    pos = [{"compte": "5701", "contrat": "", "devise": "USD", "soldeDevise": 10000, "valeurLivre": 28_000_000, "valeurCours": 29_000_000, "ecart": 1_000_000},
+           {"compte": "3300", "contrat": "", "devise": "USD", "soldeDevise": -6000, "valeurLivre": -16_800_000, "valeurCours": -17_400_000, "ecart": -600_000}]
+    lg = lignes_reevaluation(util, pos, D(2026, 11, 5))
+    somme = lambda compte, sens: sum(x["cdf"] for x in lg if x["compte"] == compte and x["sens"] == sens)
+    assert sum(x["cdf"] if x["sens"] == "D" else -x["cdf"] for x in lg) == 0                      # écriture équilibrée
+    assert somme("472", "C") - somme("472", "D") == 11_600_000 and somme("473", "D") == 11_600_000   # position de 40 USD à sa valeur, et sa contre-valeur
+    assert [x["montant"] for x in lg if x["compte"] == "472" and x["montant"]] == [4000]
+    assert (somme("723", "C"), somme("623", "D")) == (400_000, 0)                                 # résultat net de la devise
+    assert (vue_reevaluation(pos, D(2026, 11, 5))["profit"], vue_reevaluation(pos, D(2026, 11, 5), 50)["perte"]) == (400_000, 50)

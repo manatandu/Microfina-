@@ -198,6 +198,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "controlesCompta.nouvelleOperation": [
 "S110"
 ],
+"creancesRadiees.rentree": [
+"S99"
+],
 "credit.enregistrer": [
 "S21"
 ],

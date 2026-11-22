@@ -432,3 +432,6 @@ Le porteur a demandé de répondre par les textes aux points du § 16.
 - **Compte divisionnaire** : détailler est libre (PCCI, chap. 9) ; une opération hors nomenclature demande l'autorisation, dont la référence se note sur le compte (registre T87 ; B19 terminé).
 - **Les autres points** : registre T92.
 - **B8 corrigé** : calcul « Intérêts courus sur crédits » dans Autres > Calculs, contrôle à la clôture (registre T90).
+- **B9 corrigé** (PCCI § 7.1) : comptes 472 et 473 tenus à chaque clôture, résultat de change net par devise, 474 soldé (registre T93).
+- **B18 corrigé** : rentrée sur créance passée en perte au 791, sortie du hors bilan (registre T94).
+- **B23 et B24 corrigés** : contrôles de clôture sur le 59 et sur les suspens de plus d'une semaine (registre T95).

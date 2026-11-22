@@ -599,6 +599,18 @@ def provisions_charger(request, date: str = ""):
     return pv.charger(u(request), {"date": date})
 
 
+@api.get("/credit/provisions/radies")
+def provisions_radies(request):
+    from . import provisions as pv
+    return pv.radies(u(request))
+
+
+@api.post("/credit/provisions/radies/{cid}/rentree")
+def provisions_rentree(request, cid: int, corps: dict = Body(...)):
+    from . import provisions as pv
+    return pv.rentree(u(request), cid, corps)
+
+
 @api.get("/credit/provisions/decouverts")
 def decouverts_lire(request):
     from . import decouverts as dc

@@ -244,3 +244,55 @@ def radier(u, p) -> dict:
                     capital_restant, ecriture_id, par) values (%s, %s, %s, 'radiation', %s, %s, %s, 0, %s, %s, %s)""",
                  (u["institution_id"], i, d, c["degre_comptable"], c["degre_comptable"], pv, r, eid, u["id"]))
     return {"credits": len(ids), "lignes": charger(u, {"date": d.isoformat()})}
+
+
+def reste_radie(c: dict) -> int:
+    """Ce qui reste suivi en hors bilan (0612) d'un crédit passé en perte"""
+    return int(valeur("""select coalesce(sum(case l.sens when 'D' then l.montant_devise else -l.montant_devise end), 0) from ligne_ecriture l
+                         join compte k on k.id = l.compte_id where k.numero = '0612' and l.contrat_ref = %s""", (f"credit:{c['id']}",)))
+
+
+def radies(u) -> list[dict]:
+    """B18 (confrontation du 21/11/2026) : crédits passés en perte dont une part reste suivie en hors bilan"""
+    exiger(u)
+    out = []
+    for c in lignes("select * from credit where institution_id = %s and statut = 'passe_en_perte' order by numero", (u["institution_id"],)):
+        r = reste_radie(c)
+        if r > 0:
+            out.append({"id": c["id"], "numero": c["numero"], "client": titulaire(c["tiers_id"]), "tiersId": c["tiers_id"], "devise": c["devise"].strip(),
+                        "radieLe": c["radie_le"].isoformat() if c["radie_le"] else "", "reste": r})
+    return out
+
+
+def rentree(u, cid: int, p) -> list[dict]:
+    """B18 : rentrée sur une créance passée en perte : produit au 791 « Rentrées sur créances irrécouvrables », sortie du hors bilan (0612 contre 096).
+    Elle est prélevée sur un compte du client, sur son ordre (PCCI, compte 79 ; hors bilan 06 ; Code civil, livre III, art. 185, 2°, registre T71)."""
+    from .services import comptes_du_tiers
+    exiger(u)
+    p = p if isinstance(p, dict) else {}
+    c = une("select * from credit where id = %s and institution_id = %s and statut = 'passe_en_perte' for update", (cid, u["institution_id"])) if isinstance(cid, int) else None
+    if not c:
+        raise ErreurMetier("Choisir le crédit passé en perte dans la liste.")
+    k = next((x for x in comptes_du_tiers(c["tiers_id"]) if x["id"] == p.get("compteId")), None)
+    if not k:
+        raise ErreurMetier("À remplir : Compte Client.")
+    if k["devise"] != c["devise"].strip():
+        raise ErreurMetier("Le compte du client n'est pas dans la devise du crédit.")
+    ordre = p.get("ordreClient").strip() if isinstance(p.get("ordreClient"), str) else ""
+    if not ordre:
+        raise ErreurMetier("À remplir : Ordre du client (Code civil, livre III, art. 185, 2° : pas de prélèvement sur un dépôt sans l'ordre du client).")
+    m = p.get("montant")
+    if not isinstance(m, int) or isinstance(m, bool) or m <= 0:
+        raise ErreurMetier("À remplir : Montant de la rentrée.")
+    if m > reste_radie(c):
+        raise ErreurMetier("Montant de la rentrée : au plus ce qui reste suivi en hors bilan.")
+    if m > k["disponible"]:
+        raise ErreurMetier("Montant de la rentrée : plus que le solde disponible du compte.")
+    j, dv, kc = jour(u), c["devise"].strip(), f"credit:{c['id']}"
+    poster(u, journal="OD", journee_id=journee_courante(u)["id"], libelle=f"Rentrée sur le crédit {c['numero']} passé en perte (ordre : {ordre})",
+           piece=nouvelle_piece(u, "OD", j), evenement="remboursement_credit", cle=str(uuid.uuid4()), valide_par=u["id"],
+           lignes_ecr=[{"compte": k["pcci"], "contrat": f"depot:{k['id']}", "sens": "D", "devise": dv, "montant": m},
+                       {"compte": "791", "contrat": kc, "sens": "C", "devise": dv, "montant": m},
+                       {"compte": "096", "contrat": kc, "sens": "D", "devise": dv, "montant": m},
+                       {"compte": "0612", "contrat": kc, "sens": "C", "devise": dv, "montant": m}])
+    return radies(u)

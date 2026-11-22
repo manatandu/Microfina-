@@ -3290,6 +3290,20 @@ describe("journée de guichet", () => {
     const y = (await api.finPeriode.apercuInteretsCredits({ date: j })).lignes.find((l) => l.id === cid)!;
     expect([y.couru, y.aPasser]).toEqual([0, -x.couru]);
   });
+  it("rentrée sur une créance passée en perte (B18 ; PCCI, compte 791 ; hors bilan 0612 et 096)", async () => {
+    const cid = await creditDebloque();
+    await connecter("bkasongo");
+    const E = _etat(), c = E.credits.find((x) => x.id === cid)!;
+    c.statut = "passe_en_perte"; c.radieLe = "2026-11-05";
+    const ligne = (compte: string, sens: "D" | "C") => ({ compte, contrat: `credit:${cid}`, sens, devise: "CDF" as const, montant: 2000000, montantCdf: 2000000 });
+    E.ecritures.push({ ...E.ecritures[0]!, id: 9002, numero: "ESSAI-2", libelle: "Passage en perte d'essai", piece: "ESSAI-2", lignes: [ligne("0612", "D"), ligne("096", "C")] });
+    const k = (await api.tiers.comptes(c.tiersId)).find((x) => x.devise === "CDF" && x.disponible >= 500000)!;
+    expect((await api.creancesRadiees.lister()).map((x) => [x.id, x.reste])).toEqual([[cid, 2000000]]);
+    await expect(api.creancesRadiees.rentree(cid, { compteId: k.id, montant: 500000 })).rejects.toThrow("Ordre du client");
+    await expect(api.creancesRadiees.rentree(cid, { compteId: k.id, montant: 2000001, ordreClient: "Ordre écrit" })).rejects.toThrow("au plus ce qui reste");
+    const r = await api.creancesRadiees.rentree(cid, { compteId: k.id, montant: 500000, ordreClient: "Ordre écrit" });
+    expect(r[0]!.reste).toBe(1500000);
+  });
   it("comptes courants débiteurs (B4 ; Instr. BCC 003, art. 7, al. 2 ; PCCI 33 et 39) : virement au 39, provision, recouvrement", async () => {
     await journeeOuverte(); await connecter("bkasongo");
     const E = _etat(), modele = E.comptes.find((c) => c.numero === "0412-000319-02")!, p = E.produits.find((x) => x.libelle === modele.intitule && x.devise === modele.devise)!;

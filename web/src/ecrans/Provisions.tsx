@@ -59,6 +59,7 @@ export default function Provisions() {
               <td className="num chiffres">{montant(x.provision, x.devise as Devise)}</td></tr>)}</tbody>
         </table></div>)}</Paginee>
         <ComptesCourantsDebiteurs />
+        <CreancesRadiees />
         <Textes sources={["Manuel Microfina++, p. 121 : 10-Déclassement Provision/Crédit, capture sans texte (Provisionner tout les crédits, Date Opération, Charger crédits, Radier par anticipation, Provisionner)",
           "Registre CR-21b, CR-19 : avant de provisionner un crédit en retard, son dépôt nanti (épargne obligatoire, dépôt de garantie) paie l'échu par compensation, la pénalité d'abord (loi 11/020, art. 48) ; les intérêts non réglés d'un crédit litigieux sont suivis en hors bilan, 0630 contre 096 (Instr. BCC 003, art. 11)",
           "Registre S99-1 à S99-6 : crédits de la balance âgée de la date (S98) ; capital déclassé au compte 390 de la tranche ; provision au taux de la tranche au compte 380, dotation 6902, reprise 7902 ; radiation d'un irrécupérable au 31 décembre seulement, perte 6910 (6911 au-delà de la provision), suivi en hors bilan 0612 contre 096",
@@ -111,6 +112,42 @@ function ComptesCourantsDebiteurs() {
         <button className="bouton" type="button" onClick={() => agir("Voulez-vous vraiment recouvrer ce montant sur le compte du client ?",
           () => api.decouverts.recouvrer(choisi, { montant: m.trim() ? lireMontant(m) : null }))}>Recouvrer</button>
       </div>}
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </>
+  );
+}
+
+/** B18 (confrontation du 21/11/2026) : rentrée sur une créance passée en perte (PCCI, compte 791 ; hors bilan 0612 et 096), prélevée sur un compte du client, sur son ordre */
+function CreancesRadiees() {
+  const [relu, setRelu] = useState(0);
+  const { donnees } = useDonnees(() => api.creancesRadiees.lister().catch(() => null), [relu]);
+  const [choisi, setChoisi] = useState<number | null>(null);
+  const [f, setF] = useState({ compte: "", montant: "", ordre: "" });
+  const [boite, setBoite] = useState<Boite | null>(null);
+  const c = donnees?.find((x) => x.id === choisi) ?? null;
+  const { donnees: comptes } = useDonnees(() => (c ? api.tiers.comptes(c.tiersId) : Promise.resolve([])), [c?.tiersId]);
+  if (!donnees || donnees.length === 0) return null;
+  const encaisser = () => setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer cette rentrée ?", oui: async () => {
+    try { await api.creancesRadiees.rentree(choisi ?? 0, { compteId: f.compte ? Number(f.compte) : null, montant: f.montant.trim() ? lireMontant(f.montant) : null, ordreClient: f.ordre });
+      setF({ compte: "", montant: "", ordre: "" }); setChoisi(null); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Opération effectuée avec succès !" }); }
+    catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+  } });
+  return (
+    <>
+      <h2>Créances passées en perte</h2>
+      <div className="defile-x"><table className="grille" aria-label="Créances passées en perte">
+        <thead><tr><th scope="col">N° crédit</th><th scope="col">Client</th><th scope="col">Passé en perte le</th><th scope="col" className="num">Reste en hors bilan</th></tr></thead>
+        <tbody>{donnees.map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} aria-selected={x.id === choisi} onClick={() => { setChoisi(x.id); setF({ compte: "", montant: "", ordre: "" }); }}
+          onKeyDown={(e) => { if (e.key === "Enter") setChoisi(x.id); }}><td className="code">{x.numero}</td><td>{x.client}</td><td className="chiffres">{x.radieLe ? fr(x.radieLe) : ""}</td>
+          <td className="num chiffres">{montant(x.reste, x.devise as Devise)}</td></tr>)}</tbody>
+      </table></div>
+      {c && <fieldset className="pile cadre-champs champs-a-gauche"><legend>Rentrée sur le crédit {c.numero}</legend>
+        <Champ libelle="Compte Client : *">{(p) => <select {...p} className="saisie code" value={f.compte} onChange={(e) => setF({ ...f, compte: e.target.value })}><option value=""></option>
+          {(comptes ?? []).filter((k) => k.devise === c.devise).map((k) => <option key={k.id} value={k.id}>{k.numero}</option>)}</select>}</Champ>
+        <Champ libelle="Ordre du client : *">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.ordre} onChange={(e) => setF({ ...f, ordre: e.target.value })} />}</Champ>
+        <Champ libelle="Montant de la rentrée : *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={f.montant} onChange={(e) => setF({ ...f, montant: e.target.value })} />}</Champ>
+        <div className="actions-onglets"><button className="bouton" type="button" onClick={encaisser}>Enregistrer</button></div>
+      </fieldset>}
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );

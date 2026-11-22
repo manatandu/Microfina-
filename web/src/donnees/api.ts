@@ -4046,6 +4046,35 @@ const provisions = {
   },
 };
 
+// ---------- B18 (confrontation du 21/11/2026) : rentrée sur une créance passée en perte. Mêmes règles que provisions.radies et provisions.rentree :
+// produit au 791, sortie du hors bilan (0612 contre 096), prélevée sur un compte du client, sur son ordre (PCCI, compte 79 ; registre T71) ----------
+const resteRadie = (c: CreditPret) => E.ecritures.reduce((s, e) => s + e.lignes.filter((l) => l.compte === "0612" && l.contrat === `credit:${c.id}`)
+  .reduce((t, l) => t + (l.sens === "D" ? l.montant : -l.montant), 0), 0);
+const creancesRadiees = {
+  lister() {
+    lectureAdmin(["S99"]);
+    return E.credits.filter((c) => c.statut === "passe_en_perte").sort((a, b) => a.numero.localeCompare(b.numero)).flatMap((c) => { const r = resteRadie(c);
+      return r > 0 ? [{ id: c.id, numero: c.numero, client: titulaire(E.tiers.find((t) => t.id === c.tiersId)!), tiersId: c.tiersId, devise: c.devise as string, radieLe: c.radieLe ?? "", reste: r }] : []; });
+  },
+  rentree(id: number, p: { compteId?: number | null; montant?: number | null; ordreClient?: string }) {
+    const u = exiger(), c = E.credits.find((x) => x.id === id && x.statut === "passe_en_perte");
+    if (!c) throw new ErreurMetier("Choisir le crédit passé en perte dans la liste.");
+    const k = E.comptes.find((x) => x.id === p.compteId && x.tiersId === c.tiersId && !x.closLe);
+    if (!k) throw new ErreurMetier("À remplir : Compte Client.");
+    if (k.devise !== c.devise) throw new ErreurMetier("Le compte du client n'est pas dans la devise du crédit.");
+    const ordre = typeof p.ordreClient === "string" ? p.ordreClient.trim() : "";
+    if (!ordre) throw new ErreurMetier("À remplir : Ordre du client (Code civil, livre III, art. 185, 2° : pas de prélèvement sur un dépôt sans l'ordre du client).");
+    if (!Number.isInteger(p.montant) || p.montant! <= 0) throw new ErreurMetier("À remplir : Montant de la rentrée.");
+    if (p.montant! > resteRadie(c)) throw new ErreurMetier("Montant de la rentrée : au plus ce qui reste suivi en hors bilan.");
+    const solde = soldeContrat(`depot:${k.id}`, k.devise, "C");
+    if (p.montant! > solde - bloqueDe(k, solde) - sortiesEnAttente(k)) throw new ErreurMetier("Montant de la rentrée : plus que le solde disponible du compte.");
+    const dv = c.devise as Devise, kc = `credit:${c.id}`, m = p.montant!, ligne = (compte: string, contrat: string, sens: "D" | "C"): Ligne => ({ compte, contrat, sens, devise: dv, montant: m, montantCdf: cdf(m, dv) });
+    poster({ journal: "OD", journeeId: jourDeblocage().id, libelle: `Rentrée sur le crédit ${c.numero} passé en perte (ordre : ${ordre})`, piece: piece("OD"), saisiPar: u.id, validePar: u.id,
+      lignes: [ligne(k.pcci, `depot:${k.id}`, "D"), ligne("791", kc, "C"), ligne("096", kc, "D"), ligne("0612", kc, "C")] });
+    enregistrer(); return creancesRadiees.lister();
+  },
+};
+
 // ---------- B4 (confrontation du 21/11/2026) : comptes courants débiteurs. Mêmes règles que serveur/noyau/decouverts.py : sans versement depuis plus de
 // 30 jours, le compte est inclus dans les crédits douteux (Instr. BCC 003, art. 7, al. 2 ; tout versement compte, registre T84) ; son solde débiteur est viré
 // au compte 39 (PCCI, fiche du compte 33) et provisionné au taux de sa tranche (art. 12) ; le compte 39 est crédité du montant remboursé. ----------
@@ -7723,31 +7752,62 @@ function ecrireCloture(journeeId: number, libelle: string, type: "reevaluation" 
     type, lignes: Object.freeze(lignes.map((x) => Object.freeze({ ...x }))) }));
 }
 const derniereJournee = (a: number, m: number | null) => E.journees.filter((j) => j.date >= `${a}-${String(m ?? 1).padStart(2, "0")}-01` && j.date <= finMois(a, m ?? 12)).sort((x, y) => y.date.localeCompare(x.date))[0];
+const COMPTES_POSITION = ["472", "473", "474"];   // PCCI § 7.1 : position de change, contre-valeur, ajustement devises
 function positionsFin(d: string) {
   const g = new Map<string, { compte: string; contrat: string; devise: Devise; sd: number; sc: number }>();
   for (const e of E.ecritures) { if (dateEcr(e) > d) continue; for (const l of e.lignes) {
-    if (l.devise === "CDF" || !monetaire(l.compte)) continue;
+    if (l.devise === "CDF" || !monetaire(l.compte) || COMPTES_POSITION.some((p) => l.compte.startsWith(p))) continue;
     const k = `${l.compte}|${l.contrat ?? ""}|${l.devise}`, x = g.get(k) ?? { compte: l.compte, contrat: l.contrat ?? "", devise: l.devise, sd: 0, sc: 0 };
     x.sd += l.sens === "D" ? l.montant : -l.montant; x.sc += l.sens === "D" ? l.montantCdf : -l.montantCdf; g.set(k, x);
   } }
   return [...g.values()].filter((x) => x.sd || x.sc).sort((a, b) => a.compte.localeCompare(b.compte) || a.contrat.localeCompare(b.contrat))
     .map((x) => { const cible = Math.round(x.sd * coursDe(x.devise, d)); return { compte: x.compte, contrat: x.contrat, devise: x.devise, soldeDevise: x.sd, valeurLivre: x.sc, valeurCours: cible, ecart: cible - x.sc }; });
 }
-function vueReevaluation(pos: ReturnType<typeof positionsFin>, d: string) {
-  const g = new Map<string, { compte: string; devise: Devise; soldeDevise: number; valeurLivre: number; valeurCours: number; ecart: number }>();
+/** Soldes débiteurs d'un compte de position à la date : par devise [montant en devise, contre-valeur], et par contrat la contre-valeur (comme solde_position) */
+function soldePosition(d: string, compte: string) {
+  const parDevise = new Map<string, [number, number]>(), parContrat = new Map<string, number>();
+  for (const e of E.ecritures) { if (dateEcr(e) > d) continue; for (const l of e.lignes) if (l.compte.startsWith(compte)) {
+    const x = parDevise.get(l.devise) ?? [0, 0]; x[0] += l.sens === "D" ? l.montant : -l.montant; x[1] += l.sens === "D" ? l.montantCdf : -l.montantCdf; parDevise.set(l.devise, x);
+    parContrat.set(l.contrat ?? "", (parContrat.get(l.contrat ?? "") ?? 0) + (l.sens === "D" ? l.montantCdf : -l.montantCdf)); } }
+  return { parDevise, parContrat };
+}
+const ajustementDevises = (d: string) => [...soldePosition(d, "474").parDevise.values()].reduce((s, v) => s + v[1], 0);
+/** Profit ou perte de change de la clôture, net par devise (PCCI § 7.1), plus le solde du compte d'ajustement (474) */
+function vueReevaluation(pos: ReturnType<typeof positionsFin>, d: string, ajustement = 0) {
+  const g = new Map<string, { compte: string; devise: Devise; soldeDevise: number; valeurLivre: number; valeurCours: number; ecart: number }>(), net = new Map<string, number>();
   for (const x of pos) { const k = `${x.compte}|${x.devise}`, y = g.get(k) ?? { compte: x.compte, devise: x.devise, soldeDevise: 0, valeurLivre: 0, valeurCours: 0, ecart: 0 };
-    y.soldeDevise += x.soldeDevise; y.valeurLivre += x.valeurLivre; y.valeurCours += x.valeurCours; y.ecart += x.ecart; g.set(k, y); }
+    y.soldeDevise += x.soldeDevise; y.valeurLivre += x.valeurLivre; y.valeurCours += x.valeurCours; y.ecart += x.ecart; g.set(k, y); net.set(x.devise, (net.get(x.devise) ?? 0) + x.ecart); }
+  const nets = [...net.values()];
   return { date: d, lignes: [...g.values()].filter((x) => x.ecart).sort((a, b) => a.compte.localeCompare(b.compte) || a.devise.localeCompare(b.devise)),
-    profit: pos.filter((x) => x.ecart > 0).reduce((s, x) => s + x.ecart, 0), perte: -pos.filter((x) => x.ecart < 0).reduce((s, x) => s + x.ecart, 0) };
+    profit: nets.filter((v) => v > 0).reduce((s, v) => s + v, 0) + Math.max(-ajustement, 0), perte: -nets.filter((v) => v < 0).reduce((s, v) => s + v, 0) + Math.max(ajustement, 0) };
+}
+/** B9 : comme fin_periode.lignes_reevaluation : par devise, mouvement et réévaluation de la position (472), contre-valeur (473), résultat de change (723 ou 623) ; puis le 474 */
+function lignesReevaluation(pos: ReturnType<typeof positionsFin>, d: string): Ligne[] {
+  const resultat = (lg: Ligne[]) => { const s = lg.reduce((t, x) => t + (x.sens === "D" ? x.montantCdf : -x.montantCdf), 0);
+    if (s > 0) lg.push({ compte: "723", sens: "C", devise: "CDF", montant: s, montantCdf: s }); else if (s < 0) lg.push({ compte: "623", sens: "D", devise: "CDF", montant: -s, montantCdf: -s });
+    return lg; };
+  const p472 = soldePosition(d, "472").parDevise, p473 = soldePosition(d, "473").parContrat, out: Ligne[] = [];
+  for (const dv of [...new Set([...pos.map((x) => x.devise as string), ...p472.keys()])].sort() as Devise[]) {
+    const l = pos.filter((x) => x.devise === dv);
+    const lg: Ligne[] = l.filter((x) => x.ecart).map((x) => ({ compte: x.compte, ...(x.contrat ? { contrat: x.contrat } : {}), sens: x.ecart > 0 ? "D" : "C", devise: dv, montant: 0, montantCdf: Math.abs(x.ecart) }));
+    const position = l.reduce((s, x) => s + x.soldeDevise, 0), valeur = l.reduce((s, x) => s + x.valeurCours, 0), tenue = p472.get(dv) ?? [0, 0], tenueD = -tenue[0], tenueC = -tenue[1];
+    const mouvement = position - tenueD, cdfMouvement = Math.round(Math.abs(mouvement) * coursDe(dv, d)) * (mouvement > 0 ? 1 : -1);
+    if (cdfMouvement) lg.push({ compte: "472", sens: mouvement > 0 ? "C" : "D", devise: dv, montant: Math.abs(mouvement), montantCdf: Math.abs(cdfMouvement) });
+    const reste = valeur - tenueC - cdfMouvement;
+    if (reste) lg.push({ compte: "472", sens: reste > 0 ? "C" : "D", devise: dv, montant: 0, montantCdf: Math.abs(reste) });
+    const contre = p473.get(`devise:${dv}`) ?? 0;
+    if (valeur - contre) lg.push({ compte: "473", contrat: `devise:${dv}`, sens: valeur > contre ? "D" : "C", devise: "CDF", montant: Math.abs(valeur - contre), montantCdf: Math.abs(valeur - contre) });
+    out.push(...resultat(lg));
+  }
+  const aj = ajustementDevises(d);
+  if (aj) out.push(...resultat([{ compte: "474", sens: aj > 0 ? "C" : "D", devise: "CDF", montant: Math.abs(aj), montantCdf: Math.abs(aj) }]));
+  return out;
 }
 function reevaluerFin(a: number, m: number | null) {
   const j = derniereJournee(a, m); if (!j) return 0;
-  const pos = positionsFin(finMois(a, m ?? 12)).filter((x) => x.ecart); if (!pos.length) return 0;
-  const lg: Ligne[] = pos.map((x) => ({ compte: x.compte, ...(x.contrat ? { contrat: x.contrat } : {}), sens: x.ecart > 0 ? "D" : "C", devise: x.devise, montant: 0, montantCdf: Math.abs(x.ecart) }));
-  const gains = pos.filter((x) => x.ecart > 0).reduce((s, x) => s + x.ecart, 0), pertes = -pos.filter((x) => x.ecart < 0).reduce((s, x) => s + x.ecart, 0);
-  if (gains) lg.push({ compte: "723", sens: "C", devise: "CDF", montant: gains, montantCdf: gains });
-  if (pertes) lg.push({ compte: "623", sens: "D", devise: "CDF", montant: pertes, montantCdf: pertes });
-  ecrireCloture(j.id, `Réévaluation des comptes en devises au ${frDate(finMois(a, m ?? 12))}`, "reevaluation", lg);
+  const d = finMois(a, m ?? 12), lg = lignesReevaluation(positionsFin(d), d);
+  if (!lg.length) return 0;
+  ecrireCloture(j.id, `Réévaluation des comptes en devises au ${frDate(d)}`, "reevaluation", lg);
   return 1;
 }
 function soldesGestionFin(ex: number) {
@@ -7784,6 +7844,15 @@ function controlesFin(a: number, m: number | null) {
   for (const e of E.ecritures) { if (dateEcr(e) > fin) continue; for (const l of e.lignes) if (l.compte.startsWith("475") || l.compte.startsWith("37")) att.set(l.compte, (att.get(l.compte) ?? 0) + (l.sens === "D" ? l.montantCdf : -l.montantCdf)); }
   const nonSoldes = [...att].filter(([, v]) => v).map(([k]) => k).sort();
   ajouter("Comptes d'attente (475) et de suspens (37) soldés", !nonSoldes.length, `Non soldés : ${nonSoldes.join(", ")}`);
+  // B23 : le 59 « Virements internes » doit être soldé en fin de période ; B24 : un suspens (37) se reclasse dans la semaine (PCCI, fiches des comptes 59 et 37)
+  const vi = new Map<string, number>(), susp = new Map<string, [number, number]>(), ilYaSeptJours = new Date(Date.parse(`${fin}T00:00:00Z`) - 7 * 86400000).toISOString().slice(0, 10);
+  for (const e of E.ecritures) { const de = dateEcr(e); if (de > fin) continue; for (const l of e.lignes) { const v = l.sens === "D" ? l.montantCdf : -l.montantCdf;
+    if (l.compte.startsWith("59")) vi.set(l.compte, (vi.get(l.compte) ?? 0) + v);
+    if (l.compte.startsWith("37")) { const k = `${l.compte}|${l.contrat ?? ""}`, x = susp.get(k) ?? [0, 0]; x[0] += v; if (de <= ilYaSeptJours) x[1] += v; susp.set(k, x); } } }
+  const viNonSoldes = [...vi].filter(([, v]) => v).map(([k]) => k).sort();
+  ajouter("Virements internes (59) soldés", !viNonSoldes.length, `Non soldés : ${viNonSoldes.join(", ")}`);
+  const vieux = [...new Set([...susp].filter(([, v]) => v[0] && v[1]).map(([k]) => k.split("|")[0]!))].sort();
+  ajouter("Suspens (37) reclassés dans la semaine", !vieux.length, `En suspens depuis plus d'une semaine : ${vieux.join(", ")}`);
   const credits = E.credits.some((c) => c.statut === "debloque" && (c.debloqueLe ?? "") <= fin);
   ajouter(`Balance âgée et provisions ${quoi}`, !credits || E.balancesAgees.some((b) => b.date === fin), `Lancer la balance âgée au ${frDate(fin)}, puis provisionner (Crédit ; Instr. BCC 003, art. 12)`);
   const ba = E.balancesAgees.find((b) => b.date === fin);
@@ -7996,7 +8065,7 @@ const finPeriode = {
     let mois = null;
     if (m) {
       let reevaluation: ReturnType<typeof vueReevaluation> & { erreur?: string };
-      try { reevaluation = vueReevaluation(positionsFin(finMois(ex, m)), finMois(ex, m)); }
+      try { reevaluation = vueReevaluation(positionsFin(finMois(ex, m)), finMois(ex, m), ajustementDevises(finMois(ex, m))); }
       catch (err) { reevaluation = { date: finMois(ex, m), lignes: [], profit: 0, perte: 0, erreur: (err as Error).message }; }
       mois = { mois: m, libelle: MOIS_FR[m - 1]!, controles: controlesFin(ex, m), reevaluation };
     }
@@ -8252,7 +8321,7 @@ const normes = {
     const produitsN1 = -[...mv1].reduce((t, [k, v]) => t + (k.startsWith("7") ? v : 0), 0);
     const net: Record<string, { net: number; volume: number }> = {}, encours = new Map<number, number>();
     for (const { e } of ecrituresDefinitives(null, au, true)) for (const l of e.lignes) {
-      if (l.devise !== "CDF" && "1345".includes(l.compte[0]!)) { const x = (net[l.devise] ??= { net: 0, volume: 0 }); x.net += l.sens === "D" ? l.montant : -l.montant; x.volume += l.montant; }
+      if (l.devise !== "CDF" && "1345".includes(l.compte[0]!) && !COMPTES_POSITION.some((p) => l.compte.startsWith(p))) { const x = (net[l.devise] ??= { net: 0, volume: 0 }); x.net += l.sens === "D" ? l.montant : -l.montant; x.volume += l.montant; }
       if (["30", "31", "32", "39", "00"].includes(l.compte.slice(0, 2)) && l.contrat) {
         const [genre, ref] = l.contrat.split(":");
         const tid = genre === "credit" ? E.credits.find((c) => c.id === Number(ref))?.tiersId : genre === "engagement" ? E.engagementsSignature.find((x) => x.reference === ref)?.tiersId : undefined;
@@ -10060,6 +10129,7 @@ const construireLocale = () => ({
   etatsFinanciers: asynchrone(numerote(etatsFinanciers, { bilan: "bilan", horsBilan: "hors-bilan", resultat: "resultat", annexe: "annexe", indicateurs: "indicateurs" }), "etatsFinanciers"),
   normes: asynchrone(numerote(normes, { etat: "normes" }), "normes"),
   decouverts: asynchrone(decouverts, "decouverts"),
+  creancesRadiees: asynchrone(creancesRadiees, "creancesRadiees"),
   budgets: asynchrone(budgets, "budgets"),
   finPeriode: asynchrone(finPeriode, "finPeriode"),
   operationsCompta: asynchrone(operationsCompta, "operationsCompta"),

@@ -116,6 +116,7 @@ def etat(u, p) -> dict:
     for r in lignes("""select l.devise, sum(case l.sens when 'D' then l.montant_devise else -l.montant_devise end) as net, sum(l.montant_devise) as volume
                        from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join journee_comptable jc on jc.id = e.journee_id join compte k on k.id = l.compte_id
                        where e.institution_id = %s and jc.statut = 'fermee' and e.date_valeur <= %s and l.devise <> 'CDF' and left(k.numero, 1) in ('1', '3', '4', '5')
+                         and left(k.numero, 3) not in ('472', '473', '474')
                        group by 1""", (i, au)):
         t = cours(r["devise"], au)
         positions[r["devise"].strip()] = {"position": round(int(r["net"]) * t), "volume": round(int(r["volume"]) * t)}

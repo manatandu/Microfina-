@@ -422,14 +422,18 @@ def derniere_journee(u, annee: int, mois: int | None) -> dict | None:
                (u["agence_id"], date(annee, mois or 1, 1), fin_de(annee, mois)))
 
 
+POSITION, CONTREVALEUR, AJUSTEMENT = "472", "473", "474"      # PCCI § 7.1 : position de change, contre-valeur, ajustement devises
+
+
 def positions(u, d: date) -> list[dict]:
-    """Avoirs et dettes tenus en devise : solde en devise, contre-valeur au livre, valeur au cours de la date, écart"""
+    """Avoirs et dettes tenus en devise : solde en devise, contre-valeur au livre, valeur au cours de la date, écart. Les comptes de position de change
+    (472, 473, 474) se traitent à part."""
     out = []
     for r in lignes(f"""select c.numero, coalesce(l.contrat_ref, '') as contrat, trim(l.devise) as devise,
                               sum(case l.sens when 'D' then l.montant_devise else -l.montant_devise end)::bigint as sd,
                               sum(case l.sens when 'D' then l.montant_cdf else -l.montant_cdf end)::bigint as sc
                        from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join compte c on c.id = l.compte_id
-                       where e.institution_id = %s and e.date_valeur <= %s and l.devise <> 'CDF' and {MONETAIRES}
+                       where e.institution_id = %s and e.date_valeur <= %s and l.devise <> 'CDF' and {MONETAIRES} and left(c.numero, 3) not in ('472', '473', '474')
                        group by 1, 2, 3 order by 1, 2, 3""", (u["institution_id"], d)):
         if r["sd"] or r["sc"]:
             cible = arrondi(Decimal(r["sd"]) * Decimal(str(cours(r["devise"], d))))
@@ -438,26 +442,72 @@ def positions(u, d: date) -> list[dict]:
     return out
 
 
-def vue_reevaluation(pos: list[dict], d: date) -> dict:
+def solde_position(u, d: date, compte: str) -> dict:
+    """Soldes débiteurs (débit moins crédit) d'un compte de position, par devise : montant en devise et contre-valeur"""
+    return {r["devise"]: (int(r["sd"]), int(r["sc"])) for r in lignes(
+        """select trim(l.devise) as devise, sum(case l.sens when 'D' then l.montant_devise else -l.montant_devise end) as sd,
+                  sum(case l.sens when 'D' then l.montant_cdf else -l.montant_cdf end) as sc
+           from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join compte c on c.id = l.compte_id
+           where e.institution_id = %s and e.date_valeur <= %s and c.numero like %s group by 1""", (u["institution_id"], d, compte + "%"))}
+
+
+def vue_reevaluation(pos: list[dict], d: date, ajustement: int = 0) -> dict:
+    """Profit ou perte de change de la clôture, net par devise (PCCI § 7.1), plus le solde du compte d'ajustement (474)"""
     g: dict = defaultdict(lambda: {"soldeDevise": 0, "valeurLivre": 0, "valeurCours": 0, "ecart": 0})
+    net: dict = defaultdict(int)
     for x in pos:
+        net[x["devise"]] += x["ecart"]
         for k in ("soldeDevise", "valeurLivre", "valeurCours", "ecart"):
             g[(x["compte"], x["devise"])][k] += x[k]
     return {"date": d.isoformat(), "lignes": [{"compte": c, "devise": dv, **v} for (c, dv), v in sorted(g.items()) if v["ecart"]],
-            "profit": sum(x["ecart"] for x in pos if x["ecart"] > 0), "perte": -sum(x["ecart"] for x in pos if x["ecart"] < 0)}
+            "profit": sum(v for v in net.values() if v > 0) + max(-ajustement, 0), "perte": -sum(v for v in net.values() if v < 0) + max(ajustement, 0)}
 
 
-def lignes_reevaluation(pos: list[dict]) -> list[dict]:
-    """Chaque compte en devise est ramené à sa valeur au cours de clôture, sans toucher au montant en devise ; profits au 723, pertes au 623,
-    sans compensation (PCCI § 4.3.8)"""
-    lg = [{"compte": x["compte"], "contrat": x["contrat"] or None, "sens": "D" if x["ecart"] > 0 else "C", "devise": x["devise"], "montant": 0, "cdf": abs(x["ecart"])}
-          for x in pos if x["ecart"]]
-    gains, pertes = sum(x["ecart"] for x in pos if x["ecart"] > 0), -sum(x["ecart"] for x in pos if x["ecart"] < 0)
-    if gains:
-        lg.append({"compte": PROFIT_CHANGE, "sens": "C", "devise": "CDF", "montant": gains, "cdf": gains})
-    if pertes:
-        lg.append({"compte": PERTE_CHANGE, "sens": "D", "devise": "CDF", "montant": pertes, "cdf": pertes})
-    return lg
+def ajustement_devises(u, d: date) -> int:
+    """Solde débiteur du compte d'ajustement (474), en CDF : écarts d'arrondi logés en cours de période (registre T37)"""
+    return sum(v[1] for v in solde_position(u, d, AJUSTEMENT).values())
+
+
+def lignes_reevaluation(u, pos: list[dict], d: date) -> list[dict]:
+    """Chaque compte en devise est ramené à sa valeur au cours de clôture, sans toucher au montant en devise. Par devise, le 472 reçoit le mouvement
+    de la position (en devise) et la réévaluation de la position déjà tenue, le 473 est porté à la valeur de la position, et la différence est le
+    résultat de change de la devise : 723 (profit) ou 623 (perte), sans compensation entre devises (PCCI § 7.1 et § 4.3.8). Le solde du 474 suit."""
+    def resultat(lg: list[dict]):
+        solde = sum(x["cdf"] if x["sens"] == "D" else -x["cdf"] for x in lg)
+        if solde > 0:
+            lg.append({"compte": PROFIT_CHANGE, "sens": "C", "devise": "CDF", "montant": solde, "cdf": solde})
+        elif solde < 0:
+            lg.append({"compte": PERTE_CHANGE, "sens": "D", "devise": "CDF", "montant": -solde, "cdf": -solde})
+        return lg
+
+    p472 = solde_position(u, d, POSITION)
+    p473 = {r["contrat"]: int(r["sc"]) for r in lignes(
+        """select coalesce(l.contrat_ref, '') as contrat, sum(case l.sens when 'D' then l.montant_cdf else -l.montant_cdf end) as sc
+           from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join compte c on c.id = l.compte_id
+           where e.institution_id = %s and e.date_valeur <= %s and c.numero like '473%%' group by 1""", (u["institution_id"], d))}
+    out = []
+    for dv in sorted({x["devise"] for x in pos} | set(p472)):
+        l = [x for x in pos if x["devise"] == dv]
+        lg = [{"compte": x["compte"], "contrat": x["contrat"] or None, "sens": "D" if x["ecart"] > 0 else "C", "devise": dv, "montant": 0, "cdf": abs(x["ecart"])}
+              for x in l if x["ecart"]]
+        position, valeur_ = sum(x["soldeDevise"] for x in l), sum(x["valeurCours"] for x in l)
+        tenue_d, tenue_c = (-v for v in p472.get(dv, (0, 0)))                       # 472 : solde créditeur, en devise et en CDF
+        mouvement = position - tenue_d
+        cdf_mouvement = arrondi(Decimal(abs(mouvement)) * Decimal(str(cours(dv, d)))) * (1 if mouvement > 0 else -1)
+        if cdf_mouvement:
+            lg.append({"compte": POSITION, "sens": "C" if mouvement > 0 else "D", "devise": dv, "montant": abs(mouvement), "cdf": abs(cdf_mouvement)})
+        reste = valeur_ - tenue_c - cdf_mouvement                                   # réévaluation de la position déjà tenue
+        if reste:
+            lg.append({"compte": POSITION, "sens": "C" if reste > 0 else "D", "devise": dv, "montant": 0, "cdf": abs(reste)})
+        contre = p473.get(f"devise:{dv}", 0)                                        # 473 : solde débiteur de la devise, en CDF
+        if valeur_ - contre:
+            m = abs(valeur_ - contre)
+            lg.append({"compte": CONTREVALEUR, "contrat": f"devise:{dv}", "sens": "D" if valeur_ > contre else "C", "devise": "CDF", "montant": m, "cdf": m})
+        out += resultat(lg)
+    aj = ajustement_devises(u, d)
+    if aj:
+        out += resultat([{"compte": AJUSTEMENT, "sens": "C" if aj > 0 else "D", "devise": "CDF", "montant": abs(aj), "cdf": abs(aj)}])
+    return out
 
 
 def reevaluer(u, annee: int, mois: int | None) -> int:
@@ -465,11 +515,11 @@ def reevaluer(u, annee: int, mois: int | None) -> int:
     j = derniere_journee(u, annee, mois)
     if not j:
         return 0
-    pos = [x for x in positions(u, fin_de(annee, mois)) if x["ecart"]]
-    if not pos:
+    d = fin_de(annee, mois)
+    lg = lignes_reevaluation(u, positions(u, d), d)
+    if not lg:
         return 0
-    ecrire(u, j["id"], j["date_comptable"], f"Réévaluation des comptes en devises au {fin_de(annee, mois).strftime('%d/%m/%Y')}", "reevaluation", "reevaluation",
-           lignes_reevaluation(pos))
+    ecrire(u, j["id"], j["date_comptable"], f"Réévaluation des comptes en devises au {d.strftime('%d/%m/%Y')}", "reevaluation", "reevaluation", lg)
     return 1
 
 
@@ -512,6 +562,18 @@ def controles(u, annee: int, mois: int | None) -> list[dict]:
                     where e.institution_id = %s and e.date_valeur <= %s and (c.numero like '475%%' or c.numero like '37%%') group by 1
                     having sum(case l.sens when 'D' then l.montant_cdf else -l.montant_cdf end) <> 0 order by 1""", (i, fin))
     ajouter("Comptes d'attente (475) et de suspens (37) soldés", not att, "Non soldés : " + ", ".join(r["numero"] for r in att))
+    # B23 : le compte 59 « Virements internes » est un compte d'attente qui doit être soldé en fin de période (PCCI, fiche du compte 59)
+    vi = lignes("""select c.numero from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join compte c on c.id = l.compte_id
+                   where e.institution_id = %s and e.date_valeur <= %s and c.numero like '59%%' group by 1
+                   having sum(case l.sens when 'D' then l.montant_cdf else -l.montant_cdf end) <> 0 order by 1""", (i, fin))
+    ajouter("Virements internes (59) soldés", not vi, "Non soldés : " + ", ".join(r["numero"] for r in vi))
+    # B24 : un suspens se reclasse dans la semaine (PCCI, fiche du compte 37) : ceux qui n'étaient déjà pas soldés sept jours plus tôt sont signalés
+    vieux = lignes("""select c.numero from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join compte c on c.id = l.compte_id
+                      where e.institution_id = %s and e.date_valeur <= %s and c.numero like '37%%' group by c.numero, coalesce(l.contrat_ref, '')
+                      having sum(case l.sens when 'D' then l.montant_cdf else -l.montant_cdf end) <> 0
+                         and sum(case when e.date_valeur <= %s then (case l.sens when 'D' then l.montant_cdf else -l.montant_cdf end) else 0 end) <> 0
+                      order by 1""", (i, fin, fin - timedelta(days=7)))
+    ajouter("Suspens (37) reclassés dans la semaine", not vieux, "En suspens depuis plus d'une semaine : " + ", ".join(sorted({r["numero"] for r in vieux})))
     credits = valeur("select count(*) from credit where institution_id = %s and statut = 'debloque' and debloque_le <= %s", (i, fin))
     ba = valeur("select 1 from balance_agee where institution_id = %s and date_lancement = %s", (i, fin))
     ajouter(f"Balance âgée et provisions {quoi}", not credits or ba,
@@ -597,7 +659,7 @@ def apercu_cloture(u, p: dict) -> dict:
            "controles": controles(u, ex, None), "soldes": resultats(u, ex)}
     if m:
         try:
-            reev = vue_reevaluation(positions(u, fin_de(ex, m)), fin_de(ex, m))
+            reev = vue_reevaluation(positions(u, fin_de(ex, m)), fin_de(ex, m), ajustement_devises(u, fin_de(ex, m)))
         except ErreurMetier as err:
             reev = {"date": fin_de(ex, m).isoformat(), "lignes": [], "profit": 0, "perte": 0, "erreur": str(err)}
         out["mois"] = {"mois": m, "libelle": MOIS[m - 1], "controles": controles(u, ex, m), "reevaluation": reev}
