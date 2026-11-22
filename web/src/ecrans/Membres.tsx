@@ -485,7 +485,7 @@ function RenseignementsGroupe({ f, maj, ctx }: { f: NouveauTiers; maj: Maj; ctx:
 
 // ---------- S37 : Client > Enrôlement > Physique (manuel p. 48 et 49) ----------
 
-const ONGLETS_PHYSIQUE = ["Informations de base", "Renseignements généraux", "Autres renseignements", "Personnes Liées", "Bénéficiaires", "Photo"] as const;
+const ONGLETS_PHYSIQUE = ["Informations de base", "Renseignements généraux", "Autres renseignements", "Personnes Liées", "Héritiers désignés", "Photo"] as const;
 
 export function EnrolementPhysique() {
   const c = useCommun();
@@ -629,7 +629,7 @@ export function EnrolementGroupe() {
 
 /** Onglets de la capture p. 56 (client physique) ; entreprise et groupe : ceux de leur enrôlement, sans l'onglet Photo, repris par S49 (registre S46-2) */
 const ONGLETS_MODIFICATION = {
-  physique: ["Info de base", "Info Généraux", "Autre Info", "Personnes Liées", "Bénéficiaires"],
+  physique: ["Info de base", "Info Généraux", "Autre Info", "Personnes Liées", "Héritiers désignés"],
   morale: ["Informations de base", "Renseignements généraux", "Autres renseignements", "Dirigeant", "Personnes Liées", "Signataires"],
   groupe: ["Informations de base", "Renseignements généraux", "Membres Groupe", "Autres renseignements", "Personnes Liées"],
 } as const;
@@ -694,7 +694,7 @@ export function MiseAJourClient() {
             <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
           </div>
           <Champ libelle="Intitulé">{(p) => <Lecture {...p} value={t ? t.intitule || nomComplet(t) : ""} />}</Champ>
-          <Champ libelle="Catégorie">{(p) => <Lecture {...p} value={t ? t.typeClient : ""} />}</Champ>
+          <Champ libelle="Nature">{(p) => <Lecture {...p} value={t ? ({ physique: "Personne physique", morale: "Entreprise", groupe: "Groupe" } as const)[t.type] : ""} />}</Champ>
         </div>
       </section>
       <div className="onglets" role="tablist" aria-label={titre}>
@@ -743,7 +743,7 @@ export function MiseAJourClient() {
                     <tr key={x.id}><td className="chiffres">{x.numero}</td><td>{nomComplet(x)}</td><td>{l}</td><td>{l === LIENS.effectif ? controles[x.id]?.nature : ""}</td>
                       <td className="chiffres">{l === LIENS.effectif ? controles[x.id]?.part : ""}</td></tr>)}</tbody></table>
               ))}
-            {nom === "Bénéficiaires" && <Beneficiaires liste={f.beneficiaires ?? []} onChange={(l) => maj({ beneficiaires: l })} filiations={ctx.listesFiche.filiation ?? []} />}
+            {nom === "Héritiers désignés" && <Beneficiaires liste={f.beneficiaires ?? []} onChange={(l) => maj({ beneficiaires: l })} filiations={ctx.listesFiche.filiation ?? []} />}
             {(nom === "Signataires" || nom === "Membres Groupe") &&
               <ListeRepresentants fiche={genre === "groupe" ? "Membre du groupe" : "Signataire"} ajouter={genre === "groupe" ? "Ajouter" : "+Ajouter"} liste={liste} onChange={setListe}
                 ctx={ctx} qualite={genre === "morale"} erreur={erreur} />}

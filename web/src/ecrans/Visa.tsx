@@ -263,7 +263,7 @@ const agent = (l: { id: number; nom: string }[] | undefined, id?: number | null)
 
 /** Onglets en lecture du bas de l'écran (p. 52) : Info de base, Info Généraux, Autre Info, Personnes Liées, Bénéficiaires */
 function DetailClient({ t }: { t: Tiers }) {
-  const onglets = ["Info de base", "Info Généraux", "Autre Info", "Personnes Liées", "Bénéficiaires",
+  const onglets = ["Info de base", "Info Généraux", "Autre Info", "Personnes Liées", "Héritiers désignés",
     ...(t.type === "morale" ? ["Dirigeant", "Signataires"] : t.type === "groupe" ? ["Membres Groupe"] : [])];
   const [o, setO] = useState(0);
   const { donnees: liees } = useDonnees(() => Promise.all(t.liees.map((id) => api.tiers.lire(id))), [t.id]);
@@ -381,7 +381,7 @@ export function ValidationClientModifie() {
             <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
           </div>
           <Champ libelle="Intitulé :">{(p) => <Lecture {...p} value={t ? t.intitule || nomComplet(t) : ""} />}</Champ>
-          <Champ libelle="Catégorie :">{(p) => <Lecture {...p} value={t?.typeClient ?? ""} />}</Champ>
+          <Champ libelle="Nature :">{(p) => <Lecture {...p} value={t ? ({ physique: "Personne physique", morale: "Entreprise", groupe: "Groupe" } as const)[t.type] : ""} />}</Champ>
         </fieldset>
         <div className="actions-onglets">
           <button className="bouton" type="button" onClick={activer}>activer client</button>
@@ -729,7 +729,7 @@ export function PhotosSignatures() {
             <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
           </div>
           <Champ libelle="Intitulé">{(p) => <Lecture {...p} value={t ? t.intitule || nomComplet(t) : ""} />}</Champ>
-          <Champ libelle="Catégorie">{(p) => <Lecture {...p} value={t?.typeClient ?? ""} />}</Champ>
+          <Champ libelle="Nature">{(p) => <Lecture {...p} value={t ? ({ physique: "Personne physique", morale: "Entreprise", groupe: "Groupe" } as const)[t.type] : ""} />}</Champ>
         </div>
       </section>
       <section className="bloc pile" aria-label="Photo et signature">

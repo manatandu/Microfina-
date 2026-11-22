@@ -54,7 +54,7 @@ export function NouveauCompte() {
               <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
             </div>
             <Champ libelle="Intitulé :">{(p) => <Lecture {...p} value={t ? nomComplet(t) : ""} />}</Champ>
-            <Champ libelle="Catégorie :">{(p) => <Lecture {...p} value={t?.typeClient ?? ""} />}</Champ>
+            <Champ libelle="Nature :">{(p) => <Lecture {...p} value={t ? ({ physique: "Personne physique", morale: "Entreprise", groupe: "Groupe" } as const)[t.type] : ""} />}</Champ>
           </fieldset>
           <fieldset className="pile cadre-champs">
             <legend>Informations sur le compte</legend>

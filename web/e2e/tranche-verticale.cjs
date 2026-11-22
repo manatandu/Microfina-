@@ -270,7 +270,7 @@ const OUT = process.argv[2];
   await p.getByLabel('Secteur d\'activité :').selectOption('TERTIAIRE'); await p.getByLabel("Type d'activité :").selectOption('Commerce');
   await p.getByLabel("Pièce d'habilitation professionnelle : *").fill('Patente 0412/2026');   // A7 : loi 22/068, art. 33, al. 4
   await etape('04b2-autres-renseignements');
-  await p.getByRole('tab', { name: 'Bénéficiaires' }).click(); await p.getByRole('button', { name: '+Ajouter' }).click();
+  await p.getByRole('tab', { name: 'Héritiers désignés' }).click(); await p.getByRole('button', { name: '+Ajouter' }).click();
   const be = p.getByRole('dialog', { name: 'Bénéficiaire' }); await be.getByLabel('Nom : *').fill('Tshala'); await be.getByLabel('Prénom :').fill('Paul');
   await be.getByRole('button', { name: 'Ajouter', exact: true }).click(); await be.getByRole('button', { name: 'Fermer' }).click();
   await p.getByRole('cell', { name: 'Paul' }).waitFor(); await etape('04b3-beneficiaires');
