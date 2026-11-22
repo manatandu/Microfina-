@@ -98,8 +98,8 @@ export function ChequesClients() {
                   <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
                 </div>
                 {lu_("Intitulé", t ? nomComplet(t) : "")}
-                <Champ libelle="Compte *">{(p) => <select {...p} className="saisie" value={f.compte} onChange={(e) => maj({ compte: e.target.value })}>
-                  <option value=""></option>{(comptes ?? []).map((c) => <option key={c.id} value={c.id}>{c.numero}</option>)}</select>}</Champ>
+                <Champ libelle="Compte *">{(p) => <select {...p} className="saisie" value={f.compte} disabled={!comptes} onChange={(e) => maj({ compte: e.target.value })}>
+                  <option value="">{comptes ? "" : "Choisir d'abord le client"}</option>{(comptes ?? []).map((c) => <option key={c.id} value={c.id}>{c.numero}</option>)}</select>}</Champ>
                 {lu_("Intitulé Compte", cc?.intitule ?? "")}
               </fieldset>
               <fieldset className="pile cadre-champs">

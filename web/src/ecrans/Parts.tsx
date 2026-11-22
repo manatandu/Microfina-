@@ -70,8 +70,8 @@ export function PartsSociales() {
               <button className="bouton secondaire" type="button" aria-label="Rechercher un client" disabled={!!fait} onClick={() => setRecherche(true)}>Rechercher</button>
             </div>
             <Champ libelle="Intitulé">{(p) => <Lecture {...p} value={t ? nomComplet(t) : ""} />}</Champ>
-            <Champ libelle="N° Compte *">{(p) => <select {...p} className="saisie" required disabled={!!fait} value={compteId} onChange={(e) => setCompteId(Number(e.target.value))}>
-              <option value={0}></option>{comptes.map((x) => <option key={x.id} value={x.id}>{x.numero}</option>)}</select>}</Champ>
+            <Champ libelle="N° Compte *">{(p) => <select {...p} className="saisie" required disabled={!!fait || !t} value={compteId} onChange={(e) => setCompteId(Number(e.target.value))}>
+              <option value={0}>{t ? "" : "Choisir d'abord le client"}</option>{comptes.map((x) => <option key={x.id} value={x.id}>{x.numero}</option>)}</select>}</Champ>
             <Champ libelle="N° Comptable">{(p) => <input {...p} className="saisie code" readOnly value={c?.pcci ?? ""} />}</Champ>
             <Champ libelle="Produit">{(p) => <Lecture {...p} value={c ? `${c.intitule} ${c.devise}` : ""} />}</Champ>
           </fieldset>

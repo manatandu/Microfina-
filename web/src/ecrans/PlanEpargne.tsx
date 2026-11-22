@@ -111,12 +111,12 @@ function Nouveau({ ctx }: { ctx: Contexte }) {
             <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
           </div>
           <Champ libelle="Nom et prénom :">{(pp) => <Lecture {...pp} value={t ? nomComplet(t) : ""} />}</Champ>
-          <Champ libelle="N° Compte épargne :">{(pp) => <select {...pp} className="saisie" value={f.epargne} onChange={(e) => maj({ epargne: e.target.value })}>
-            <option value=""></option>{(comptes ?? []).filter((c) => !duProduit(c) && (!p || c.devise === p.devise)).map((c) => <option key={c.id} value={c.id}>{c.numero}</option>)}</select>}</Champ>
+          <Champ libelle="N° Compte épargne :">{(pp) => <select {...pp} className="saisie" value={f.epargne} disabled={!comptes} onChange={(e) => maj({ epargne: e.target.value })}>
+            <option value="">{comptes ? "" : "Choisir d'abord le client"}</option>{(comptes ?? []).filter((c) => !duProduit(c) && (!p || c.devise === p.devise)).map((c) => <option key={c.id} value={c.id}>{c.numero}</option>)}</select>}</Champ>
           <Champ libelle="Produit : *">{(pp) => <select {...pp} className="saisie" value={f.produit} onChange={(e) => maj({ produit: e.target.value, plan: "" })}>
             <option value=""></option>{ctx.produits.map((x) => <option key={x.id} value={x.id}>{x.libelle}</option>)}</select>}</Champ>
-          <Champ libelle="Compte Plan épargne :">{(pp) => <select {...pp} className="saisie" value={f.plan} onChange={(e) => maj({ plan: e.target.value })}>
-            <option value=""></option>{(comptes ?? []).filter(duProduit).map((c) => <option key={c.id} value={c.id}>{c.numero}</option>)}</select>}</Champ>
+          <Champ libelle="Compte Plan épargne :">{(pp) => <select {...pp} className="saisie" value={f.plan} disabled={!comptes} onChange={(e) => maj({ plan: e.target.value })}>
+            <option value="">{comptes ? "" : "Choisir d'abord le client"}</option>{(comptes ?? []).filter(duProduit).map((c) => <option key={c.id} value={c.id}>{c.numero}</option>)}</select>}</Champ>
           <div className="ligne-champ"><span>Ajouter :</span><button className="bouton secondaire" type="button" disabled={!t} onClick={() => setBenef(true)}>Bénéficiaire</button></div>
         </fieldset>
         <fieldset className="pile cadre-champs">

@@ -200,7 +200,7 @@ export function DeblocageBanque() {
         <fieldset className="cadre-champs formulaire"><legend>Infos banque</legend>
           <Champ libelle="Banque *">{(p) => <select {...p} className="saisie" value={f.banque} onChange={(e) => setF({ ...f, banque: e.target.value, compte: "" })}><option value=""></option>
             {t.banques.map((b) => <option key={b.id} value={b.id}>{b.libelle}</option>)}</select>}</Champ>
-          <Champ libelle="Compte *">{(p) => <select {...p} className="saisie" value={f.compte} onChange={(e) => setF({ ...f, compte: e.target.value })}><option value=""></option>
+          <Champ libelle="Compte *">{(p) => <select {...p} className="saisie" value={f.compte} disabled={!f.banque} onChange={(e) => setF({ ...f, compte: e.target.value })}><option value="">{f.banque ? "" : "Choisir d'abord la banque"}</option>
             {comptes.map((c) => <option key={c.id} value={c.id}>{`${c.compte} (${c.devise})`}</option>)}</select>}</Champ>
           <p>Solde banque <strong className="chiffres">{cb ? montant(cb.solde, cb.devise as Devise) : ""}</strong></p>
           <Champ libelle="N°chèque *">{(p) => <input {...p} className="saisie code" autoComplete="off" value={f.cheque} onChange={(e) => setF({ ...f, cheque: e.target.value })} />}</Champ>

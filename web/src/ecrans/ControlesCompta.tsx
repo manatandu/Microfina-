@@ -58,7 +58,7 @@ export function Rapprochement() {
           <div className="ligne-champ">
             <Champ libelle="Banque *">{(p) => <select {...p} className="saisie" value={f.banque} onChange={(e) => setF({ ...f, banque: e.target.value, compte: "" })}><option value=""></option>
               {ctx.banques.map((b) => <option key={b.id} value={b.id}>{b.libelle}</option>)}</select>}</Champ>
-            <Champ libelle="Compte *">{(p) => <select {...p} className="saisie" value={f.compte} onChange={(e) => setF({ ...f, compte: e.target.value })}><option value=""></option>
+            <Champ libelle="Compte *">{(p) => <select {...p} className="saisie" value={f.compte} disabled={!f.banque} onChange={(e) => setF({ ...f, compte: e.target.value })}><option value="">{f.banque ? "" : "Choisir d'abord la banque"}</option>
               {ctx.comptes.filter((c) => String(c.banqueId) === f.banque).map((c) => <option key={c.id} value={c.id}>{`${c.numero} (${c.devise})`}</option>)}</select>}</Champ>
           </div>
           <div className="deux-colonnes">

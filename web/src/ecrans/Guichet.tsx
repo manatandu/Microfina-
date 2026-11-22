@@ -130,7 +130,7 @@ export default function GuichetDepotRetrait() {
             </div>
             <Champ libelle="N° compte">{(p) => (
               <select {...p} className="saisie code" disabled={!t || !!fait} value={c?.id ?? ""} onChange={(e) => { setCompteId(Number(e.target.value)); setCoupures({}); nouvelle(); }}>
-                {comptes.map((x) => <option key={x.id} value={x.id}>{x.numero}</option>)}
+                {!t && <option value="">Choisir d'abord le client</option>}{comptes.map((x) => <option key={x.id} value={x.id}>{x.numero}</option>)}
               </select>)}</Champ>
             <Champ libelle="Intitulé">{(p) => <textarea {...p} className="saisie" rows={2} readOnly value={t ? nomComplet(t) : ""} />}</Champ>
             <Champ libelle="Type compte">{(p) => <Lecture {...p} value={c?.intitule ?? ""} />}</Champ>

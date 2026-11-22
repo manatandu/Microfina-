@@ -52,8 +52,8 @@ export default function ClotureCompte() {
               <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
             </div>
             <Champ libelle="Nom et prénom :">{(pp) => <Lecture {...pp} value={t ? nomComplet(t) : ""} />}</Champ>
-            <Champ libelle="N° compte : *">{(pp) => <select {...pp} className="saisie" value={compte} onChange={(e) => setCompte(e.target.value)}>
-              <option value=""></option>{(comptes ?? []).map((x) => <option key={x.id} value={x.id}>{x.numero} {x.intitule}</option>)}</select>}</Champ>
+            <Champ libelle="N° compte : *">{(pp) => <select {...pp} className="saisie" value={compte} disabled={!comptes} onChange={(e) => setCompte(e.target.value)}>
+              <option value="">{comptes ? "" : "Choisir d'abord le client"}</option>{(comptes ?? []).map((x) => <option key={x.id} value={x.id}>{x.numero} {x.intitule}</option>)}</select>}</Champ>
           </div>
           <div className="pile">
             <p>Solde : <strong className="chiffres">{c ? montant(c.solde ?? 0, c.devise as Devise) : ""}</strong></p>

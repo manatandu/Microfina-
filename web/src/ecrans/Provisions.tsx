@@ -142,7 +142,7 @@ function CreancesRadiees() {
           <td className="num chiffres">{montant(x.reste, x.devise as Devise)}</td></tr>)}</tbody>
       </table></div>
       {c && <fieldset className="pile cadre-champs champs-a-gauche"><legend>Rentrée sur le crédit {c.numero}</legend>
-        <Champ libelle="Compte Client : *">{(p) => <select {...p} className="saisie code" value={f.compte} onChange={(e) => setF({ ...f, compte: e.target.value })}><option value=""></option>
+        <Champ libelle="Compte Client : *">{(p) => <select {...p} className="saisie code" value={f.compte} disabled={!comptes} onChange={(e) => setF({ ...f, compte: e.target.value })}><option value="">{comptes ? "" : "Choisir d'abord le client"}</option>
           {(comptes ?? []).filter((k) => k.devise === c.devise).map((k) => <option key={k.id} value={k.id}>{k.numero}</option>)}</select>}</Champ>
         <Champ libelle="Ordre du client : *">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.ordre} onChange={(e) => setF({ ...f, ordre: e.target.value })} />}</Champ>
         <Champ libelle="Montant de la rentrée : *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={f.montant} onChange={(e) => setF({ ...f, montant: e.target.value })} />}</Champ>
