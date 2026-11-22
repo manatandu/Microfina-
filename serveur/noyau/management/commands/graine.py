@@ -59,7 +59,7 @@ LISTES_CLIENT = {
     "categorie_groupe": ["Groupe de femmes", "Groupe d'hommes", "Groupe mixte"],      # pratique : composition du groupe selon le genre
 }
 # Sous types de client (S14h) : ceux des deux captures p. 25 (« Homme » dans la seconde)
-SOUS_TYPES = ("Homme", "Femme", "Entreprise", "Institution financière", "Établissement", "SARL", "SA", "Groupement", "Association", "Église", "ONG", "Atelier")
+SOUS_TYPES = ("Personne physique", "Entreprise", "Groupe")   # les frais se règlent par nature du membre (plan d'allègement, point 2.2)
 
 
 def completer(ins: int) -> int:

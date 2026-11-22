@@ -35,7 +35,7 @@ export const LISTES_CLIENT: Record<string, string[]> = {
   categorie_groupe: ["Groupe de femmes", "Groupe d'hommes", "Groupe mixte"], // pratique : composition du groupe selon le genre
 };
 // Sous types de client (S14h) : ceux des deux captures p. 25
-export const SOUS_TYPES = ["Homme", "Femme", "Entreprise", "Institution financière", "Établissement", "SARL", "SA", "Groupement", "Association", "Église", "ONG", "Atelier"];
+export const SOUS_TYPES = ["Personne physique", "Entreprise", "Groupe"];   // les frais se règlent par nature du membre (plan d'allègement, point 2.2)
 
 const FONDS_G2: { CDF: Comptage; USD: Comptage } = {
   USD: { 100: 140, 50: 12, 20: 8, 10: 3, 5: 2, 1: 6 },                    // 14 806 USD

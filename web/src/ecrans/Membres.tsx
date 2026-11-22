@@ -79,8 +79,9 @@ function InformationsDeBase({ genre, f, maj, ctx, numero, depot, setDepot, chois
         <Champ libelle={entreprise ? "N° de l'entreprise :" : groupe ? "N° du groupe :" : "N° du Client :"}>{(p) => <input {...p} className="saisie code" readOnly value={numero} />}</Champ>
         <Champ libelle="N° Manuel :">{(p) => <input {...p} className="saisie code" autoComplete="off" value={f.numeroManuel} onChange={(e) => maj({ numeroManuel: e.target.value })} />}</Champ>
         {physique && <Champ libelle="N° Matricule :">{(p) => <input {...p} className="saisie code" autoComplete="off" value={f.matricule} onChange={(e) => maj({ matricule: e.target.value })} />}</Champ>}
-        <Champ libelle={entreprise ? "Type entreprise : *" : groupe ? "Type de groupe *" : "Type Client : *"}>{(p) => <select {...p} className="saisie" required {...sel("typeClient")}>
-          {!physique && <option value=""></option>}{types.map((t) => <option key={t} value={t}>{enClair(t)}</option>)}</select>}</Champ>
+        {/* Type client : une seule valeur, posée d'office pour la personne physique (plan d'allègement, point 2.3) */}
+        {!physique && <Champ libelle={entreprise ? "Agent économique (PCCI) : *" : "Type de groupe *"}>{(p) => <select {...p} className="saisie" required {...sel("typeClient")}>
+          <option value=""></option>{types.map((t) => <option key={t} value={t}>{enClair(t)}</option>)}</select>}</Champ>}
         {groupe && <>
           <Champ libelle="Nombre d'Homme :">{(p) => <input {...p} className="saisie code court" inputMode="numeric" autoComplete="off" {...nombre("nbHommes")} />}</Champ>
           <Champ libelle="Nombre de Femme :">{(p) => <input {...p} className="saisie code court" inputMode="numeric" autoComplete="off" {...nombre("nbFemmes")} />}</Champ>
@@ -344,7 +345,6 @@ function IdentitePhysique({ f, maj, ctx }: { f: NouveauTiers; maj: (p: Partial<N
   return (
     <div className="deux-colonnes">
       <div className="pile">
-        <ChoixListe libelle="Civilité :" k="civilite" valeurs={ctx.listesFiche.civilite ?? []} f={f} maj={maj} />
         <Champ libelle="Nom : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("nom")} />}</Champ>
         <Champ libelle="Post-nom :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("postnom")} />}</Champ>
         <Champ libelle="Prénom : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("prenom")} />}</Champ>
@@ -381,7 +381,7 @@ function IdentitePhysique({ f, maj, ctx }: { f: NouveauTiers; maj: (p: Partial<N
 
 /** Onglet Autres renseignements (Autre Info en S46) : domicile (S20), coordonnées, activité (S14, S14a, S14c, S14h), personne exposée (registre S37-1, S37-2).
  * Groupe : Catégorie de groupe, S14j (registre S39-1) */
-function AutresRenseignements({ f, maj, ctx, categories, physique }: { f: NouveauTiers; maj: (p: Partial<NouveauTiers>) => void; ctx: Ctx; categories?: string[];
+function AutresRenseignements({ f, maj, ctx, physique }: { f: NouveauTiers; maj: (p: Partial<NouveauTiers>) => void; ctx: Ctx;
   physique?: boolean }) {
   const texte = (k: CleTexte, libelle: string, classe = "saisie") => (
     <Champ libelle={libelle}>{(p) => <input {...p} className={classe} autoComplete="off" value={f[k] ?? ""} onChange={(e) => maj({ [k]: e.target.value })} />}</Champ>);
@@ -403,8 +403,6 @@ function AutresRenseignements({ f, maj, ctx, categories, physique }: { f: Nouvea
         {/* A7 : activité déclarée, pièce qui habilite à l'exercer (loi 22/068, art. 33, al. 4 ; Instr. BCC 15, art. 13, al. 2) ; sa copie se dépose dans Photos et signatures */}
         {physique && <Champ libelle={f.secteurActivite ? "Pièce d'habilitation professionnelle : *" : "Pièce d'habilitation professionnelle :"}>{(p) =>
           <input {...p} className="saisie" required={!!f.secteurActivite} autoComplete="off" value={f.habilitationReference ?? ""} onChange={(e) => maj({ habilitationReference: e.target.value })} />}</Champ>}
-        <ChoixListe libelle="Catégorie :" k="categorie" valeurs={categories ?? ctx.listesFiche.categorie ?? []} f={f} maj={maj} />
-        <ChoixListe libelle="Sous type client :" k="sousTypeClient" valeurs={ctx.listesFiche.sousTypeClient ?? []} f={f} maj={maj} />
         <label className="case"><input type="checkbox" checked={f.personneExposee} onChange={(e) => maj({ personneExposee: e.target.checked })} /><span>Personne politiquement exposée</span></label>
       </div>
     </div>
@@ -619,7 +617,7 @@ export function EnrolementGroupe() {
 
       {c.onglet === 2 && <ListeRepresentants fiche="Membre du groupe" ajouter="Ajouter" liste={membres} onChange={setMembres} ctx={ctx} erreur={c.erreur} />}
 
-      {c.onglet === 3 && <AutresRenseignements f={f} maj={maj} ctx={ctx} categories={ctx.listesFiche.categorieGroupe ?? []} />}
+      {c.onglet === 3 && <AutresRenseignements f={f} maj={maj} ctx={ctx} />}
 
       {c.onglet === 4 && <PersonnesLiees key={c.generation} liees={c.liees} onChange={c.setLiees} />}
 
@@ -711,8 +709,8 @@ export function MiseAJourClient() {
               <div className="deux-colonnes">
                 <div className="pile">
                   <ChampDate libelle="Date demande : *" valeur={f.dateDemande} onChange={(v) => maj({ dateDemande: v })} requis />
-                  <Champ libelle={genre === "morale" ? "Type entreprise : *" : genre === "groupe" ? "Type de groupe *" : "Type Client : *"}>{(p) =>
-                    <select {...p} className="saisie" required {...sel("typeClient")}>{genre !== "physique" && <option value=""></option>}{types.map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
+                  {genre !== "physique" && <Champ libelle={genre === "morale" ? "Agent économique (PCCI) : *" : "Type de groupe *"}>{(p) =>
+                    <select {...p} className="saisie" required {...sel("typeClient")}><option value=""></option>{types.map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>}
                   {genre === "groupe" && <>
                     <Champ libelle="Nombre d'Homme :">{(p) => <input {...p} className="saisie code court" inputMode="numeric" autoComplete="off" {...nombre("nbHommes")} />}</Champ>
                     <Champ libelle="Nombre de Femme :">{(p) => <input {...p} className="saisie code court" inputMode="numeric" autoComplete="off" {...nombre("nbFemmes")} />}</Champ>
@@ -732,7 +730,7 @@ export function MiseAJourClient() {
             {nom === "Info Généraux" && <IdentitePhysique f={f} maj={maj} ctx={ctx} />}
             {nom === "Renseignements généraux" && (genre === "morale" ? <RenseignementsEntreprise f={f} maj={maj} ctx={ctx} /> : <RenseignementsGroupe f={f} maj={maj} ctx={ctx} />)}
             {(nom === "Autre Info" || nom === "Autres renseignements") &&
-              <AutresRenseignements f={f} maj={maj} ctx={ctx} categories={genre === "groupe" ? ctx.listesFiche.categorieGroupe ?? [] : undefined} physique={genre === "physique"} />}
+              <AutresRenseignements f={f} maj={maj} ctx={ctx} physique={genre === "physique"} />}
             {nom === "Dirigeant" && <>
               <label className="case"><input type="checkbox" checked={avecDirigeant} onChange={(e) => setAvecDirigeant(e.target.checked)} /><span>Renseigner Dirigeant</span></label>
               {avecDirigeant && <ChampsRepresentant r={dirigeant} maj={(p) => setDirigeant({ ...dirigeant, ...p })} ctx={ctx} qualite exposee />}

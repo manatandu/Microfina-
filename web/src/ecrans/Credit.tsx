@@ -6,7 +6,6 @@ import { exporterExcel } from "../lib/excel";
 import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 
 const SOURCES: Record<string, string> = {
-  types_objet: "Manuel Microfina++, p. 32 : Type Objet*, Secteur Activité*, Enregistrer, Effacer, Supprimer ; grille Type Objet, Secteur Activite",
   objets: "Manuel Microfina++, p. 33 : Objet Credit*, Type Objet*, grille Objet Credit, Type Objet, Exporter",
   types_produit: "Manuel Microfina++, p. 33 : Type produit Credit, grille Nom, ID, Exporter",
   cycles: "Manuel Microfina++, p. 34 : Cycle Crédit, Code*, Libellé*",
@@ -22,14 +21,14 @@ const SOURCES: Record<string, string> = {
 /** S21 : Produits > Crédits > Général (manuel Microfina++, p. 32 à 36), onze onglets */
 export default function CreditGeneral() {
   const [params, setParams] = useSearchParams();
-  const page = CATALOGUE_CREDIT.some((c) => c.page === params.get("onglet")) ? params.get("onglet")! : "types_objet";
+  const page = CATALOGUE_CREDIT.some((c) => c.page === params.get("onglet")) ? params.get("onglet")! : "objets";
   return (
     <>
       <h2>Crédits : Général</h2>
       <div className="onglets" role="tablist" aria-label="Crédits : Général">
         {CATALOGUE_CREDIT.map((c) => (
           <button key={c.page} type="button" role="tab" id={`onglet-${c.page}`} aria-controls="volet" aria-selected={c.page === page}
-            onClick={() => setParams(c.page === "types_objet" ? {} : { onglet: c.page })}>{c.menu}</button>
+            onClick={() => setParams(c.page === "objets" ? {} : { onglet: c.page })}>{c.menu}</button>
         ))}
       </div>
       <Onglet key={page} page={page} />

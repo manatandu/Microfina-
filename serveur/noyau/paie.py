@@ -32,7 +32,7 @@ COLONNES = {"agenceId": "agence_id", "matricule": "matricule", "numeroSecuriteSo
 DATES = {"dateNaissance", "dateDebutCarriere", "dateEmbauche", "dateReferenceAnciennete", "dateDebutContrat", "dateFinContrat"}
 ENTIERS = {"personnesACharge", "salaireBase", "surSalaire", "dureeAnciennete", "montantAnciennete", "congesDus"}
 IDS = {"agenceId", "categorieId", "classeId", "echelonId", "centreId"}
-OBLIGATOIRES = {"matricule": "Matricule", "sexe": "Sexe", "civilite": "Civilité", "nom": "Nom", "prenoms": "Prénom(s)", "dateNaissance": "Date de naissance",
+OBLIGATOIRES = {"matricule": "Matricule", "sexe": "Sexe", "nom": "Nom", "prenoms": "Prénom(s)", "dateNaissance": "Date de naissance",
                 "dateEmbauche": "Date d'embauche"}
 
 
@@ -86,7 +86,7 @@ def valider(u, d: dict, eid: int | None) -> tuple[dict, list[dict], list[int]]:
         if v[k] and not DATE.match(v[k]):
             raise ErreurMetier("Date invalide.")
         v[k] = v[k] or None
-    if v["sexe"] not in SEXES or v["civilite"] not in CIVILITES:
+    if v["sexe"] not in SEXES or (v["civilite"] and v["civilite"] not in CIVILITES):
         raise ErreurMetier("Sexe ou civilité inconnu.")
     if v["groupeSanguin"] and v["groupeSanguin"] not in GROUPES_SANGUINS:
         raise ErreurMetier("Groupe sanguin inconnu.")

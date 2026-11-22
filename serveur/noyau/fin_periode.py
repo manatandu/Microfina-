@@ -83,6 +83,10 @@ def deja(type_: str, ex: int, m: int) -> dict:
 
 
 # ---------- S128 : Frais de tenue de comptes ----------
+# Les frais se règlent par nature du membre (plan d'allègement, point 2.2) : les trois valeurs de la liste « sous_type_client »
+NATURE_MEMBRE = {"physique": "Personne physique", "morale": "Entreprise", "groupe": "Groupe"}
+
+
 def frais_tenue(u, sous_type: str | None) -> dict | None:
     """Le frais de tenue de compte paramétré pour le sous type du client (Paramétrage > Frais) ; un Montant, en CDF (registre S16-3)"""
     return une("""select pf.valeur, coalesce(pf.compte, %s) as compte, f.libelle from parametrage_frais pf join frais f on f.id = pf.frais_id
@@ -105,7 +109,7 @@ def apercu_tenue(u, p: dict) -> dict:
     for c in comptes_ouverts(u, "p.tenue_compte is true and t.prelever_agios is true and coalesce(p.categorie_compte, '') <> 'DAT'"):
         if c["ouvert_le"] and c["ouvert_le"] > au:
             continue
-        f = frais_tenue(u, c["sous_type_client"])
+        f = frais_tenue(u, NATURE_MEMBRE.get(c["type_tiers"], ""))
         ligne = {"compteId": c["id"], "numero": c["numero"], "client": titulaire(c["tiers_id"]), "produit": c["produit"], "devise": c["devise"], "montant": 0, "etat": ""}
         if c["id"] in fait:
             ligne.update(montant=fait[c["id"]]["montant"], etat="Déjà prélevé")

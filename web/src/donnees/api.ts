@@ -546,8 +546,9 @@ function controlerUnivocite(type: string, numero: string, sauf?: number) {
   if (x) throw new ErreurMetier(`Cette pièce d'identité est déjà celle du client n° ${x.numero} : une personne n'a qu'une fiche (Instr. BCC 15, art. 23).`);
 }
 export function controlerEnrolement(d: NouveauTiers, images: Images, ctx: CtxControle) {
+  d.typeClient ||= "Client";   // le type client n'a qu'une valeur : posé d'office (plan d'allègement, point 2.3)
   controlerBase(d, [["date demande", d.dateDemande], ["type client", d.typeClient], ["type de compte à créer", d.produitCode],
-    ["nom", d.nom], ["type de pièce", d.pieceType], ["numéro de pièce", d.pieceNumero]], valeursListe("type_client").map((l) => l.libelle), false, ctx);
+    ["nom", d.nom], ["type de pièce", d.pieceType], ["numéro de pièce", d.pieceNumero]], (valeursListe("type_client").map((l) => l.libelle).length ? valeursListe("type_client").map((l) => l.libelle) : ["Client"]), false, ctx);
   if (!["", "F", "M"].includes(d.sexe)) throw new ErreurMetier("Sexe inconnu.");
   controlerPiece(d.pieceType, d.pieceExpire, ctx.jour);
   controlerFichePhysique(d, ctx.jour);
@@ -556,9 +557,9 @@ export function controlerEnrolement(d: NouveauTiers, images: Images, ctx: CtxCon
 }
 
 // ---------- S37 : fiche du client physique (registre S37-1 à S37-3). Règles identiques côté serveur (services.controler_fiche_physique). ----------
-export const LISTES_FICHE: Record<string, [string, string]> = { civilite: ["civilite", "Civilité"], situationMatrimoniale: ["situation_matrimoniale", "Situation matrimoniale"],
-  secteurActivite: ["secteur_activite", "Secteur d'activité"], typeActivite: ["type_activite", "Type d'activité"], categorie: ["categorie", "Catégorie"],
-  sousTypeClient: ["sous_type_client", "Sous type client"] };
+// Civilité, catégorie et sous type ne sont plus demandés (plan d'allègement, points 2.2, 2.4 et 2.6)
+export const LISTES_FICHE: Record<string, [string, string]> = { situationMatrimoniale: ["situation_matrimoniale", "Situation matrimoniale"],
+  secteurActivite: ["secteur_activite", "Secteur d'activité"], typeActivite: ["type_activite", "Type d'activité"] };
 const OBLIGATOIRES_IDENTITE: [string, keyof NouveauTiers][] = [["prénom", "prenom"], ["date de naissance", "naissance"], ["lieu de naissance", "lieuNaissance"],
   ["adresse", "adresse"], ["délivrée le", "pieceDelivreeLe"], ["lieu de délivrance", "pieceLieu"], ["autorité de délivrance", "pieceAutorite"], ["valide jusqu'au", "pieceExpire"]];
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -624,6 +625,11 @@ function ajouterQuartier(d: Adresse & { nom?: string }) {
 const moduleAdresse = { ajouterQuartier };
 const CHAMPS_ADRESSE = ["pays", "province", "ville", "commune", "quartier", "rue", "numeroRue"] as const;
 /** identite = false : entreprise et groupe, sans mentions d'une personne physique */
+/** Catégorie du groupe, calculée d'après les nombres d'hommes et de femmes (plan d'allègement, point 2.5 ; même règle que services.categorie_groupe) */
+export function categorieGroupe(hommes?: number | null, femmes?: number | null) {
+  const h = Number(hommes ?? 0), f = Number(femmes ?? 0);
+  return f && !h ? "Groupe de femmes" : h && !f ? "Groupe d'hommes" : h && f ? "Groupe mixte" : "";
+}
 export function controlerFichePhysique(d: NouveauTiers, jour: string, identite = true, categorie = "categorie") {
   const txt = (k: keyof NouveauTiers) => (typeof d[k] === "string" ? (d[k] as string).trim() : "");
   const aujourdhui = new Date().toISOString().slice(0, 10);
@@ -821,8 +827,9 @@ function controlerApurement(id: number) {
 
 /** S46, client physique (p. 56) : contrôles de l'enrôlement, mentions de l'identité comprises (registre S46-3). Identique au serveur (services.modifier_tiers). */
 function modifierPhysique(t: Tiers, d: NouveauTiers, ctx: CtxControle) {
+  d.typeClient ||= "Client";   // plan d'allègement, point 2.3
   controlerBase(d, [["date demande", d.dateDemande], ["type client", d.typeClient],
-    ["nom", d.nom], ["type de pièce", d.pieceType], ["numéro de pièce", d.pieceNumero]], valeursListe("type_client").map((l) => l.libelle), false, ctx);
+    ["nom", d.nom], ["type de pièce", d.pieceType], ["numéro de pièce", d.pieceNumero]], (valeursListe("type_client").map((l) => l.libelle).length ? valeursListe("type_client").map((l) => l.libelle) : ["Client"]), false, ctx);
   if (!["", "F", "M"].includes(d.sexe)) throw new ErreurMetier("Sexe inconnu.");
   controlerPiece(d.pieceType, d.pieceExpire, ctx.jour);
   controlerUnivocite(d.pieceType, d.pieceNumero, t.id);   // A9
@@ -883,7 +890,7 @@ const tiers = {
     if (!u) throw new ErreurMetier("Session fermée.");
     controlerGroupe(d, membres, images, ctxControle());
     controlerRelation(d, false);   // A8
-    const t = nouveauTiers({ ...d, ...SANS_IDENTITE, centreActivite: "", activite: d.typeActivite ?? "", beneficiaires: [] }, u.id,   // registre S39-1
+    const t = nouveauTiers({ ...d, ...SANS_IDENTITE, centreActivite: "", activite: d.typeActivite ?? "", beneficiaires: [], categorie: categorieGroupe(d.nbHommes, d.nbFemmes) }, u.id,   // registre S39-1 ; catégorie calculée (plan 2.5)
       { type: "groupe", dirigeant: null, signataires: [], membres: membres.map(versRepresentant), photo: !!images.photo, specimen: !!images.signature });
     if (images.photo || images.signature || images.copiePiece || images.justificatifAdresse) E.images[t.id] = images;
     rapprocherGel([t.id]);   // A13
@@ -980,7 +987,7 @@ const tiers = {
       const mb = r.membres ?? [];
       controlerGroupe(dd, mb, {}, ctx, t.membres);
       ecrire([...fiche, "nbHommes", "nbFemmes"]);
-      Object.assign(t, { activite: d.typeActivite ?? "", membres: remplacerRepresentants(t, t.membres, mb) });
+      Object.assign(t, { activite: d.typeActivite ?? "", categorie: categorieGroupe(t.nbHommes, t.nbFemmes), membres: remplacerRepresentants(t, t.membres, mb) });
     } else {
       modifierPhysique(t, dd, ctx);
     }
@@ -1501,11 +1508,9 @@ export interface FicheListe { liste: string; ecran: string; titre: string; code:
 export const CATALOGUE_LISTES: FicheListe[] = ([
   { liste: "secteur_activite", ecran: "S14", titre: "Secteur d'activité", code: "N° secteur", libelle: "Secteur d'activite", colonne: "Secteur" },
   { liste: "type_activite", ecran: "S14a", titre: "Type d'activité", parent: "secteur_activite" },
-  { liste: "profession", ecran: "S14b", titre: "Profession" }, { liste: "categorie", ecran: "S14c", titre: "Catégorie" },
-  { liste: "type_piece", ecran: "S14d", titre: "Type de pièce" }, { liste: "civilite", ecran: "S14e", titre: "Civilité" },
-  { liste: "type_groupe", ecran: "S14f", titre: "Type de groupe" }, { liste: "type_client", ecran: "S14g", titre: "Type client" },
-  { liste: "sous_type_client", ecran: "S14h", titre: "Sous type de client" }, { liste: "forme_juridique", ecran: "S14i", titre: "Forme juridique" },
-  { liste: "categorie_groupe", ecran: "S14j", titre: "Catégorie de groupe" }, { liste: "filiation", ecran: "S14k", titre: "Filiation" },
+  { liste: "profession", ecran: "S14b", titre: "Profession" },
+  { liste: "type_groupe", ecran: "S14f", titre: "Type de groupe" }, { liste: "forme_juridique", ecran: "S14i", titre: "Forme juridique" },
+  { liste: "filiation", ecran: "S14k", titre: "Filiation" },
   { liste: "situation_matrimoniale", ecran: "S14l", titre: "Situation matrimoniale" }, 
   // S18 (p. 26) : même liste que S14m (registre S18-1), avec la forme de sa capture : Libelle Motif seul, Reinitialiser
   { liste: "motif_depart", ecran: "S14m", titre: "Motif de départ", entete: "Motif de départ d'un client", libelle: "Libellé Motif", colonne: "Libellé Motif", sansCode: true, effacer: "Effacer" },
@@ -8094,7 +8099,7 @@ const finPeriode = {
       const base = { compteId: c.id, numero: c.numero, client: titulaire(t), produit: produitDuCompte(c)?.libelle ?? "", devise: c.devise, montant: 0, compteFrais: "", etat: "" };
       const f = fait.get(c.id);
       if (f) return { ...base, montant: f.montant, etat: "Déjà prélevé" };
-      const pf = E.paramOperations.find((x) => x.sousType === (t.sousTypeClient ?? "") && x.nature === "Montant" && (x.valeur ?? 0) > 0 && E.frais.find((y) => y.id === x.fraisId)?.typeOperation === "TENUE_COMPTE");
+      const pf = E.paramOperations.find((x) => x.sousType === ({ physique: "Personne physique", morale: "Entreprise", groupe: "Groupe" } as const)[t.type] && x.nature === "Montant" && (x.valeur ?? 0) > 0 && E.frais.find((y) => y.id === x.fraisId)?.typeOperation === "TENUE_COMPTE");
       if (!pf) return { ...base, etat: "Aucun frais paramétré pour ce sous type de client" };
       const montant = c.devise === "CDF" ? pf.valeur! : Math.round(pf.valeur! / coursDe(c.devise, j.date));
       return { ...base, montant, compteFrais: pf.compte || "720", etat: montant > 0 && montant <= disponibleFin(c) ? "À prélever" : "Disponible insuffisant" };
@@ -8890,12 +8895,12 @@ const paie = {
       return Number(x);
     };
     const idv = (k: keyof SaisieEmploye) => { const x = d[k] as unknown; return typeof x === "number" && Number.isInteger(x) && x > 0 ? x : null; };
-    const manque = ([["matricule", "Matricule"], ["sexe", "Sexe"], ["civilite", "Civilité"], ["nom", "Nom"], ["prenoms", "Prénom(s)"], ["dateNaissance", "Date de naissance"],
+    const manque = ([["matricule", "Matricule"], ["sexe", "Sexe"], ["nom", "Nom"], ["prenoms", "Prénom(s)"], ["dateNaissance", "Date de naissance"],
       ["dateEmbauche", "Date d'embauche"]] as const).filter(([k]) => !t(k)).map(([, x]) => x);
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
     for (const k of ["dateNaissance", "dateDebutCarriere", "dateEmbauche", "dateReferenceAnciennete", "dateDebutContrat", "dateFinContrat"] as const)
       if (t(k) && !DATE_ISO.test(t(k))) throw new ErreurMetier("Date invalide.");
-    if (!SEXES.includes(t("sexe")) || !CIVILITES.includes(t("civilite"))) throw new ErreurMetier("Sexe ou civilité inconnu.");
+    if (!SEXES.includes(t("sexe")) || (t("civilite") && !CIVILITES.includes(t("civilite")))) throw new ErreurMetier("Sexe ou civilité inconnu.");
     if (t("groupeSanguin") && !GROUPES_SANGUINS.includes(t("groupeSanguin"))) throw new ErreurMetier("Groupe sanguin inconnu.");
     if (t("situationMatrimoniale") && !ctx.situations.includes(t("situationMatrimoniale"))) throw new ErreurMetier("Situation matrimoniale inconnue.");
     if (t("email") && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(t("email"))) throw new ErreurMetier("Email invalide.");

@@ -300,7 +300,7 @@ const OUT = process.argv[2];
   await succes();
   // Entreprise (S38)
   await aller('/clients/s38');
-  await p.getByLabel('Type entreprise : *').selectOption('Entreprises privées'); await p.getByLabel('Zone : *').selectOption('Matete');
+  await p.getByLabel('Agent économique (PCCI) : *').selectOption('Entreprises privées'); await p.getByLabel('Zone : *').selectOption('Matete');
   await p.getByLabel('Type de compte à créer *').selectOption('EAV-CDF'); await etape('05b-entreprise');
   await p.getByLabel('Objet et nature de la relation : *').fill('Épargne et crédit');   // A8 : loi 22/068, art. 47
   await p.getByLabel('Origine des fonds : *').fill('Ventes de la boulangerie');   // Instr. BCC 15, art. 17 b
@@ -1380,7 +1380,7 @@ const OUT = process.argv[2];
   await dernierePage(); await p.getByRole('cell', { name: '250000' }).waitFor(); await etape('31c-grille-salariale');
   await listePaie('Type de retenue'); await p.getByRole('heading', { name: 'Création et mise à jour des types de retenue' }).waitFor(); await p.getByLabel('Libellé *').fill('Acompte sur salaire'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await aller('/paie/s133'); await p.getByRole('heading', { name: "Enregistrement d'un employé" }).waitFor();
-  await p.getByLabel('Matricule : *').fill('EMP/001/26'); await p.getByLabel('Sexe : *').selectOption('Féminin'); await p.getByLabel('Civilité : *').selectOption('Madame');
+  await p.getByLabel('Matricule : *').fill('EMP/001/26'); await p.getByLabel('Sexe : *').selectOption('Féminin');
   await p.getByLabel('Nom : *').fill('MUJINGA'); await p.getByLabel('Prénom(s) : *').fill('Rose'); await p.getByLabel('Date de naissance : *').fill('02041990');
   await p.getByLabel("Date d'embauche : *").fill('01022024'); await etape('31d-employe');
   await p.getByRole('tab', { name: 'Classification' }).click(); await p.getByLabel('Catégorie :').selectOption({ label: 'A' }); await p.getByLabel('Classe :').selectOption({ label: 'I' });

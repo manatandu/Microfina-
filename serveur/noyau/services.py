@@ -604,7 +604,7 @@ def vue_tiers(t: dict) -> dict:
             # S37 : fiche du client (registre S37-1 à S37-3)
             "civilite": t["civilite"] or "", "nationalite": t["nationalite"] or "", "situationMatrimoniale": t["situation_matrimoniale"] or "",
             "pere": t["pere"] or "", "mere": t["mere"] or "", "commune": t["commune"] or "", "secteurActivite": t["secteur_activite"] or "",
-            "typeActivite": t["type_activite"] or "", "categorie": t["categorie"] or "", "sousTypeClient": t["sous_type_client"] or "",
+            "typeActivite": t["type_activite"] or "", "categorie": categorie_groupe(t["nb_hommes"], t["nb_femmes"]) if t["type"] == "groupe" else (t["categorie"] or ""), "sousTypeClient": t["sous_type_client"] or "",
             "gestionnaireId": t["gestionnaire_agent_id"],
             "beneficiaires": [{"nom": b["nom"], "postnom": b["postnom"] or "", "prenom": b["prenom"] or "", "sexe": b["sexe"] or "",
                                "naissance": iso(b["date_naissance"]), "filiation": b["filiation"] or "", "telephone": b["telephone"] or ""}
@@ -821,9 +821,9 @@ def inserer_tiers(u: dict, d: dict, b: dict, type_: str, agent: str) -> int:
 
 # ---------- S37 : fiche du client physique (registre S37-1 à S37-3) ----------
 # Listes que lit la fiche (S37-2) : clé du formulaire -> (liste de S14, nom affiché)
-LISTES_FICHE = {"civilite": ("civilite", "Civilité"), "situationMatrimoniale": ("situation_matrimoniale", "Situation matrimoniale"),
-                "secteurActivite": ("secteur_activite", "Secteur d'activité"), "typeActivite": ("type_activite", "Type d'activité"),
-                "categorie": ("categorie", "Catégorie"), "sousTypeClient": ("sous_type_client", "Sous type client")}
+# Civilité, catégorie et sous type ne sont plus demandés (plan d'allègement, points 2.2, 2.4 et 2.6)
+LISTES_FICHE = {"situationMatrimoniale": ("situation_matrimoniale", "Situation matrimoniale"),
+                "secteurActivite": ("secteur_activite", "Secteur d'activité"), "typeActivite": ("type_activite", "Type d'activité")}
 # Mentions de la pièce et de l'identité (Instr. BCC 15, art. 12 et 13)
 OBLIGATOIRES_IDENTITE = [("prénom", "prenom"), ("date de naissance", "naissance"), ("lieu de naissance", "lieuNaissance"), ("adresse", "adresse"),
                          ("délivrée le", "pieceDelivreeLe"), ("lieu de délivrance", "pieceLieu"), ("autorité de délivrance", "pieceAutorite"),
@@ -839,6 +839,12 @@ def controler_lieu(texte, quoi: str = "Pays, ville, commune ou quartier"):
     """L'adresse (Localisation, S20) : facultative, mais cohérente (registre T41, noyau/adresse.py)"""
     from .adresse import controler
     controler(texte, requis=bool(texte("province")), quoi=quoi)       # une adresse commencée par la province va jusqu'au quartier
+
+
+def categorie_groupe(hommes, femmes) -> str:
+    """Catégorie du groupe, calculée d'après les nombres d'hommes et de femmes déjà saisis (plan d'allègement, point 2.5)"""
+    h, f = int(hommes or 0), int(femmes or 0)
+    return "Groupe de femmes" if f and not h else "Groupe d'hommes" if h and not f else "Groupe mixte" if h and f else ""
 
 
 def controler_fiche_physique(u: dict, d: dict, texte, j: dict | None, identite: bool = True, categorie: str = "categorie") -> dict:
@@ -905,9 +911,9 @@ def ecrire_fiche_physique(tid: int, texte, f: dict):
                                           numero_rue = coalesce(%s, numero_rue), habilitation_reference = coalesce(%s, habilitation_reference) where tiers_id = %s""",
              (*[texte(k) or None for k in ("civilite", "nationalite", "situationMatrimoniale", "pere", "mere", "profession", "pays", "ville", "commune",
                                            "quartier", "rue", "email", "bp", "telephoneFixe", "province", "numeroRue", "habilitationReference")], tid))
-    executer("""update tiers set secteur_activite = %s, type_activite = %s, categorie = %s, sous_type_client = %s, gestionnaire_agent_id = %s,
+    executer("""update tiers set secteur_activite = %s, type_activite = %s, categorie = %s, sous_type_client = (case type when 'physique' then 'Personne physique' when 'morale' then 'Entreprise' else 'Groupe' end), gestionnaire_agent_id = %s,
                                  sensibilisateur_id = %s, commercial_id = %s where id = %s""",
-             (*[texte(k) or None for k in ("secteurActivite", "typeActivite", "categorie", "sousTypeClient")], f["gestionnaire"], *f["agents"], tid))
+             (*[texte(k) or None for k in ("secteurActivite", "typeActivite", "categorie")], f["gestionnaire"], *f["agents"], tid))
     executer("delete from tiers_beneficiaire where tiers_id = %s", (tid,))
     for t in f["beneficiaires"]:
         executer("""insert into tiers_beneficiaire (tiers_id, nom, postnom, prenom, sexe, date_naissance, filiation, telephone) values (%s, %s, %s, %s, %s, %s, %s, %s)""",
@@ -917,8 +923,9 @@ def ecrire_fiche_physique(tid: int, texte, f: dict):
 def creer_tiers(u: dict, d: dict) -> dict:
     """S37. Mêmes contrôles que controlerEnrolement (web/src/donnees/api.ts)."""
     exiger(u)
+    d = {**d, "typeClient": d.get("typeClient") or "Client"}   # le type client n'a qu'une valeur : posé d'office (plan d'allègement, point 2.3)
     b = controler_base(u, d, [("date demande", "dateDemande"), ("type client", "typeClient"), ("type de compte à créer", "produitCode"),
-                              ("nom", "nom"), ("type de pièce", "pieceType"), ("numéro de pièce", "pieceNumero")], libelles_liste(u, "type_client"), False)
+                              ("nom", "nom"), ("type de pièce", "pieceType"), ("numéro de pièce", "pieceNumero")], libelles_liste(u, "type_client") or ["Client"], False)
     texte = b["texte"]
     if texte("sexe") not in ("", "F", "M"):
         raise ErreurMetier("Sexe inconnu.")
@@ -1092,9 +1099,9 @@ def ecrire_fiche_morale(tid: int, texte, f: dict):
     executer("""update tiers_morale set pays = %s, ville = %s, commune = %s, quartier = %s, rue = %s, email = %s, bp = %s, telephone_fixe = %s, province = %s,
                                         numero_rue = %s where tiers_id = %s""",
              (*[texte(k) or None for k in ("pays", "ville", "commune", "quartier", "rue", "email", "bp", "telephoneFixe", "province", "numeroRue")], tid))
-    executer("""update tiers set secteur_activite = %s, type_activite = %s, categorie = %s, sous_type_client = %s, gestionnaire_agent_id = %s,
+    executer("""update tiers set secteur_activite = %s, type_activite = %s, categorie = %s, sous_type_client = (case type when 'physique' then 'Personne physique' when 'morale' then 'Entreprise' else 'Groupe' end), gestionnaire_agent_id = %s,
                                  sensibilisateur_id = %s, commercial_id = %s where id = %s""",
-             (*[texte(k) or None for k in ("secteurActivite", "typeActivite", "categorie", "sousTypeClient")], f["gestionnaire"], *f["agents"], tid))
+             (*[texte(k) or None for k in ("secteurActivite", "typeActivite", "categorie")], f["gestionnaire"], *f["agents"], tid))
 
 
 def inserer_representants(tid: int, liste: list[tuple[str, dict]]):
@@ -1309,9 +1316,10 @@ def modifier_tiers(u: dict, tid: int, d: dict) -> dict:
         ecrire_fiche_morale(tid, texte, fiche)
         remplacer_representants(u, tid, "membre", membres)
         return terminer_modification(u, tid, b, avant)
+    d = {**d, "typeClient": d.get("typeClient") or "Client"}   # plan d'allègement, point 2.3
     b = controler_base(u, d,
                        [("date demande", "dateDemande"), ("type client", "typeClient"), ("nom", "nom"), ("type de pièce", "pieceType"),
-                        ("numéro de pièce", "pieceNumero")], libelles_liste(u, "type_client"), False)
+                        ("numéro de pièce", "pieceNumero")], libelles_liste(u, "type_client") or ["Client"], False)
     texte = b["texte"]
     if texte("sexe") not in ("", "F", "M"):
         raise ErreurMetier("Sexe inconnu.")

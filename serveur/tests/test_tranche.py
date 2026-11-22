@@ -445,13 +445,12 @@ def test_fiche_groupe(clients, journee):
     executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'categorie_groupe', 'G1', 'Groupe de femmes')", (ins,))
     executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'type_groupe', '9', 'Tontine')", (ins,))
     base = {**FICHE, "typeClient": "Tontine", "nom": "Tontine Kinsaku", "adresse": "Matete", "membres": [], "secteurActivite": "Primaire",
-            "categorie": "Groupe de femmes", "email": "tontine@exemple.cd"}
+            "nbHommes": 0, "nbFemmes": 3, "email": "tontine@exemple.cd"}   # catégorie calculée (plan d'allègement, point 2.5)
     def refus(corps):
         r = agent.post("/api/tiers/groupes", corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
     assert "Forme juridique : valeur inconnue" in refus({**base, "formeJuridique": "ASBL de fait"})
     assert "Forme juridique : valeur inconnue" in refus({**base, "formeJuridique": "Société anonyme"})                  # forme de société : pas pour un groupe (S39-5)
     assert agent.get("/api/referentiel", **H).json()["listesFiche"]["formeJuridiqueGroupe"][2] == "Organisation non gouvernementale (ONG)"
-    assert "Catégorie : valeur inconnue" in refus({**base, "categorie": "Catégorie A"})
     assert "Email invalide" in refus({**base, "email": "tontine"})
     assert "Sensibilisateur inconnu" in refus({**base, "sensibilisateurId": 999999})
     r = agent.post("/api/tiers/groupes", base, **H); assert r.status_code == 200, r.content
@@ -713,7 +712,7 @@ def test_parametrage_frais(clients):
     assert "Droit manquant" in refus(agent, "/api/parametrage/frais", {"typeOperation": "ADHESION", "libelle": "Droit d'entrée", "fondement": "droit_adhesion"})
     f = chef.post("/api/parametrage/frais", {"typeOperation": "ADHESION", "libelle": "Droit d'entrée", "fondement": "droit_adhesion"}, **H).json()
     assert "existe déjà" in refus(chef, "/api/parametrage/frais", {"typeOperation": "ADHESION", "libelle": "Droit d'entrée", "fondement": "droit_adhesion"})
-    assert "Paramétrage frais Adhésion" in refus(chef, "/api/parametrage/frais-operation", {"fraisId": f["id"], "nature": "Montant", "sousTypes": ["Femme"]})
+    assert "Paramétrage frais Adhésion" in refus(chef, "/api/parametrage/frais-operation", {"fraisId": f["id"], "nature": "Montant", "sousTypes": ["Personne physique"]})
     assert "Compte" in refus(chef, "/api/parametrage/frais-adhesion", {"fraisId": f["id"], "nature": "Montant", "valeur": 500000, "compte": "70A", "typesMembre": ["Physique"]})
     # Règle T16 : le compte de l'exemple du manuel (70291) n'est pas dans le plan de comptes ; S16-2 : un frais d'adhésion est un Montant
     assert "plan de comptes" in refus(chef, "/api/parametrage/frais-adhesion", {"fraisId": f["id"], "nature": "Montant", "valeur": 500000, "compte": "70291", "typesMembre": ["Physique"]})
@@ -724,7 +723,7 @@ def test_parametrage_frais(clients):
     assert chef.post(f"/api/parametrage/frais-adhesion/{pid}", {"nature": "Montant", "valeur": 200000, "compte": "727"}, **H).status_code == 200
     lu = chef.get("/api/parametrage/frais").json()
     assert [x for x in lu["adhesion"] if x["fraisId"] == f["id"]] == [{"id": pid, "fraisId": f["id"], "typeMembre": "Physique", "valeur": 200000, "compte": "727", "nature": "Montant"}]
-    assert lu["compteAdhesion"] == "727" and "Femme" in lu["sousTypes"] and lu["natures"] == ["Montant", "Taux"]   # S16-4, S16-8, S16-2
+    assert lu["compteAdhesion"] == "727" and "Personne physique" in lu["sousTypes"] and lu["natures"] == ["Montant", "Taux"]   # S16-4, S16-8, S16-2
     assert chef.get(f"/api/tiers/{T('0412-000318')}/frais").json() == [{"fraisId": ident("select id from frais where libelle = 'Part sociale standard'"), "libelle": "Part sociale standard",
                                                                        "compte": "1030", "montant": 400000, "part": True},
                                                                       {"fraisId": f["id"], "libelle": "Droit d'entrée", "compte": "727", "montant": 200000, "part": False}]
@@ -738,8 +737,8 @@ def test_parametrage_frais(clients):
     assert "droit d'adhésion se perçoit" in refus(chef, "/api/parametrage/frais", {"typeOperation": "PART_SOCIALE", "libelle": "Frais de part", "fondement": "droit_adhesion"})
     fp = chef.post("/api/parametrage/frais", {"typeOperation": "PART_SOCIALE", "libelle": "Frais de part", "fondement": "autorisation_bcc", "autorisationBcc": "BCC/DSIF/2026/031"}, **H).json()
     assert next(x for x in chef.get("/api/parametrage/frais").json()["frais"] if x["id"] == fp["id"])["autorisationBcc"] == "BCC/DSIF/2026/031"
-    assert "Taux invalide" in refus(chef, "/api/parametrage/frais-operation", {"fraisId": fp["id"], "nature": "Taux", "valeur": 20000, "compte": "727", "sousTypes": ["Femme"]})
-    [po] = chef.post("/api/parametrage/frais-operation", {"fraisId": fp["id"], "nature": "Taux", "valeur": 150, "compte": "727", "sousTypes": ["Femme"]}, **H).json()
+    assert "Taux invalide" in refus(chef, "/api/parametrage/frais-operation", {"fraisId": fp["id"], "nature": "Taux", "valeur": 20000, "compte": "727", "sousTypes": ["Personne physique"]})
+    [po] = chef.post("/api/parametrage/frais-operation", {"fraisId": fp["id"], "nature": "Taux", "valeur": 150, "compte": "727", "sousTypes": ["Personne physique"]}, **H).json()
     assert chef.get("/api/parametrage/frais").json()["operations"][0]["nature"] == "Taux"
     chef.delete(f"/api/parametrage/frais-operation/{po}", **H); chef.delete(f"/api/parametrage/frais/{fp['id']}", **H)
     # S41 : montant propre au client
@@ -1279,7 +1278,7 @@ def test_listes_general(clients):
     chef, agent = clients["chef"], clients["agent"]
     connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
     l = chef.get("/api/listes/secteur_activite", **H).json()
-    assert [x["code"] for x in l["lignes"]][:3] == ["S1", "S2", "S3"] and l["lignes"][0]["libelle"] == "Primaire" and len(l["catalogue"]) == 16   # S14o : forme juridique du groupe (S39-5)
+    assert [x["code"] for x in l["lignes"]][:3] == ["S1", "S2", "S3"] and l["lignes"][0]["libelle"] == "Primaire" and len(l["catalogue"]) == 10   # pages retirées : plan d'allègement, points 2.2 à 2.7
     def refus(chemin, c):
         r = chef.post(chemin, c, **H); assert r.status_code == 422, r.content; return r.json()["message"]
     assert "N° secteur" in refus("/api/listes/secteur_activite", {"code": "", "libelle": "Pêche"})
@@ -2232,7 +2231,7 @@ def test_parametrage_epargne(clients):
     l = chef.get("/api/parametrage-epargne", **H).json()
     assert [(o["onglet"], o["compte"]) for o in l["onglets"]] == [("Epargne", "330"), ("Courant", "331"), ("DAT", "340"), ("Bloqué", "334")]
     assert [x["libelle"] for x in l["typesClient"]] == ["Client"]                         # S14g de la démonstration (registre S37-2)
-    tc = next(x for x in chef.post("/api/listes/type_client", {"code": "2", "libelle": "Membre"}, **H).json()["lignes"] if x["libelle"] == "Membre")
+    tc = l["typesClient"][0]   # le type client n'a qu'une valeur et n'a plus de page (plan d'allègement, point 2.3)
     eav = next(p for p in l["produits"] if p["code"] == "EAV-CDF")
     def refus(corps):
         r = chef.post("/api/parametrage-epargne", corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
@@ -4809,16 +4808,17 @@ def test_calculs_et_clotures(clients, journee):
     q = {"exercice": 2026, "mois": 11}
     assert "Paramétrage > Frais" in msg(compta.get(f"{A}/calculs/tenue", q, **H))
     f = chef.post("/api/parametrage/frais", {"typeOperation": "TENUE_COMPTE", "libelle": "Tenue de compte", "fondement": "autorisation_bcc", "autorisationBcc": "BCC/2026/001"}, **H).json()
-    assert "Montant" in msg(chef.post("/api/parametrage/frais-operation", {"fraisId": f["id"], "nature": "Taux", "valeur": 100, "compte": "720", "sousTypes": ["Homme"]}, **H))
-    assert chef.post("/api/parametrage/frais-operation", {"fraisId": f["id"], "nature": "Montant", "valeur": 50000, "compte": "720", "sousTypes": ["Homme"]}, **H).status_code == 200
+    assert "Montant" in msg(chef.post("/api/parametrage/frais-operation", {"fraisId": f["id"], "nature": "Taux", "valeur": 100, "compte": "720", "sousTypes": ["Personne physique"]}, **H))
+    assert chef.post("/api/parametrage/frais-operation", {"fraisId": f["id"], "nature": "Montant", "valeur": 50000, "compte": "720", "sousTypes": ["Personne physique"]}, **H).status_code == 200
     em = C("0412-000318-02")
     a = compta.get(f"{A}/calculs/tenue", q, **H).json()
     etats = {x["numero"]: x["etat"] for x in a["lignes"]}
-    assert etats["0412-000318-02"] == "À prélever" and etats["0412-000319-02"].startswith("Aucun frais"), etats
+    n = sum(1 for e in etats.values() if e == "À prélever")   # frais par nature du membre : toutes les personnes physiques (plan d'allègement, point 2.2)
+    assert etats["0412-000318-02"] == "À prélever" and n >= 2, etats
     avant = solde_compte("720")
     r = compta.post(f"{A}/calculs/tenue", q, **H)
-    assert r.status_code == 200 and r.json()["passes"] == 1, r.content
-    assert avant - solde_compte("720") == 50000
+    assert r.status_code == 200 and r.json()["passes"] == n, r.content
+    assert avant - solde_compte("720") == 50000 * n
     assert "Rien à prélever" in msg(compta.post(f"{A}/calculs/tenue", q, **H))
     assert "pas fini" in msg(compta.get(f"{A}/calculs/interets-dav", q, **H))
     assert clients["caisse"].post(f"{A}/calculs/tenue", q, **H).status_code == 403

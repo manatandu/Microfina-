@@ -806,7 +806,6 @@ describe("journée de guichet", () => {
       email: "ong@exemple.cd" };
     expect((await api.referentiel.contexte()).typesGroupe).toEqual(["Groupement solidaire", "Association", "ONG"]);
     await expect(api.tiers.creerGroupe({ ...base, formeJuridique: "ASBL de fait" }, [])).rejects.toThrow("Forme juridique : valeur inconnue");
-    await expect(api.tiers.creerGroupe({ ...base, categorie: "Catégorie A" }, [])).rejects.toThrow("Catégorie : valeur inconnue");
     await expect(api.tiers.creerGroupe({ ...base, email: "ong" }, [])).rejects.toThrow("Email invalide");
     const t = await api.tiers.creerGroupe(base, []);
     expect(t).toMatchObject({ typeClient: "ONG", secteurActivite: "Primaire", email: "ong@exemple.cd" });
@@ -831,7 +830,7 @@ describe("journée de guichet", () => {
     await expect(p.creerFrais({ typeOperation: "DEPOT", libelle: "FRAIS VERSEMENT" })).rejects.toThrow("Instr. BCC 37");
     const f = await p.creerFrais({ typeOperation: "ADHESION", libelle: "Droit d'entrée", fondement: "droit_adhesion" });
     await expect(p.creerFrais({ typeOperation: "ADHESION", libelle: "Droit d'entrée", fondement: "droit_adhesion" })).rejects.toThrow("existe déjà");
-    await expect(p.parametrerOperation({ fraisId: f.id, nature: "Montant", valeur: null, compte: "", sousTypes: ["Femme"] })).rejects.toThrow("Paramétrage frais Adhésion");
+    await expect(p.parametrerOperation({ fraisId: f.id, nature: "Montant", valeur: null, compte: "", sousTypes: ["Personne physique"] })).rejects.toThrow("Paramétrage frais Adhésion");
     await expect(p.parametrerAdhesion({ fraisId: f.id, nature: "Montant", valeur: 500000, compte: "70A", typesMembre: ["Physique"] })).rejects.toThrow("Compte");
     // Règle T16 : 70291 (exemple du manuel) n'est pas dans le plan de comptes ; S16-2 : un frais d'adhésion est un Montant
     await expect(p.parametrerAdhesion({ fraisId: f.id, nature: "Montant", valeur: 500000, compte: "70291", typesMembre: ["Physique"] })).rejects.toThrow("plan de comptes");
@@ -843,7 +842,7 @@ describe("journée de guichet", () => {
     expect(await p.fraisLies(1)).toEqual([{ fraisId: 1, libelle: "Part sociale standard", compte: "1030", montant: 400000, part: true },
       { fraisId: f.id, libelle: "Droit d'entrée", compte: "727", montant: 200000, part: false }]);
     const lu = await p.lireFrais();
-    expect([lu.compteAdhesion, lu.sousTypes.includes("Femme"), lu.natures]).toEqual(["727", true, ["Montant", "Taux"]]);   // S16-4, S16-8, S16-2
+    expect([lu.compteAdhesion, lu.sousTypes.includes("Personne physique"), lu.natures]).toEqual(["727", true, ["Montant", "Taux"]]);   // S16-4, S16-8, S16-2
     await p.modifierCategorie(pid, "Personne morale");                                                                         // S16-6
     expect((await p.lireFrais()).adhesion.find((x) => x.id === pid)!.typeMembre).toBe("Personne morale");
     await p.modifierCategorie(pid, "Physique");
@@ -852,8 +851,8 @@ describe("journée de guichet", () => {
     await expect(p.creerFrais({ typeOperation: "PART_SOCIALE", libelle: "Frais de part", fondement: "droit_adhesion" })).rejects.toThrow("droit d'adhésion se perçoit");
     const fp = await p.creerFrais({ typeOperation: "PART_SOCIALE", libelle: "Frais de part", fondement: "autorisation_bcc", autorisationBcc: "BCC/DSIF/2026/031" });   // S16-1
     expect((await p.lireFrais()).frais.find((x) => x.id === fp.id)!.autorisationBcc).toBe("BCC/DSIF/2026/031");
-    await expect(p.parametrerOperation({ fraisId: fp.id, nature: "Taux", valeur: 20000, compte: "727", sousTypes: ["Femme"] })).rejects.toThrow("Taux invalide");
-    const [po] = await p.parametrerOperation({ fraisId: fp.id, nature: "Taux", valeur: 150, compte: "727", sousTypes: ["Femme"] });
+    await expect(p.parametrerOperation({ fraisId: fp.id, nature: "Taux", valeur: 20000, compte: "727", sousTypes: ["Personne physique"] })).rejects.toThrow("Taux invalide");
+    const [po] = await p.parametrerOperation({ fraisId: fp.id, nature: "Taux", valeur: 150, compte: "727", sousTypes: ["Personne physique"] });
     expect((await p.lireFrais()).operations[0]!.nature).toBe("Taux");
     await p.supprimerParametrage("operation", po!); await p.supprimerFrais(fp.id);
     // S41 : montant propre au client
@@ -2081,7 +2080,7 @@ describe("journée de guichet", () => {
     const l = await api.parametrageEpargne.lire();
     expect(l.onglets.map((o) => [o.onglet, o.compte])).toEqual([["Epargne", "330"], ["Courant", "331"], ["DAT", "340"], ["Bloqué", "334"]]);
     expect(l.typesClient.map((x) => x.libelle)).toEqual(["Client"]);   // S14g de la démonstration (registre S37-2)
-    const tc = (await api.listes.enregistrer("type_client", { code: "2", libelle: "Membre" })).lignes.find((x) => x.libelle === "Membre")!;
+    const tc = l.typesClient[0]!;   // le type client n'a qu'une valeur et n'a plus de page (plan d'allègement, point 2.3)
     const eav = l.produits.find((p) => p.code === "EAV-CDF")!;
     await expect(api.parametrageEpargne.enregistrer({ onglet: "Epargne" })).rejects.toThrow("Produit");
     await expect(api.parametrageEpargne.enregistrer({ onglet: "Epargne", produitId: eav.id, compteLie: "570" })).rejects.toThrow("comptes 33 à 35");
@@ -3556,15 +3555,16 @@ describe("journée de guichet", () => {
     await expect(api.finPeriode.apercuTenue(q)).rejects.toThrow("Paramétrage > Frais");
     await connecter("jpmukendi");
     const f = await api.parametrage.creerFrais({ typeOperation: "TENUE_COMPTE", libelle: "Tenue de compte", fondement: "autorisation_bcc", autorisationBcc: "BCC/2026/001" });
-    await expect(api.parametrage.parametrerOperation({ fraisId: f.id, nature: "Taux", valeur: 100, compte: "720", sousTypes: ["Homme"] })).rejects.toThrow("Montant");
-    await api.parametrage.parametrerOperation({ fraisId: f.id, nature: "Montant", valeur: 50000, compte: "720", sousTypes: ["Homme"] });
+    await expect(api.parametrage.parametrerOperation({ fraisId: f.id, nature: "Taux", valeur: 100, compte: "720", sousTypes: ["Personne physique"] })).rejects.toThrow("Montant");
+    await api.parametrage.parametrerOperation({ fraisId: f.id, nature: "Montant", valeur: 50000, compte: "720", sousTypes: ["Personne physique"] });
     await connecter("plumbala");
     const a = await api.finPeriode.apercuTenue(q);
     const kal = a.lignes.find((x) => x.client.startsWith("KALALA") || x.etat === "À prélever");
     expect(kal?.etat).toBe("À prélever");
     const solde720 = () => E0.ecritures.flatMap((e) => e.lignes).filter((x) => x.compte === "720").reduce((t, x) => t + (x.sens === "C" ? x.montant : -x.montant), 0);
-    expect((await api.finPeriode.passerTenue(q)).passes).toBe(1);
-    expect(solde720()).toBe(50000);
+    const aPrelever = a.lignes.filter((x) => x.etat === "À prélever").length;   // frais par nature du membre : toutes les personnes physiques (plan d'allègement, point 2.2)
+    expect((await api.finPeriode.passerTenue(q)).passes).toBe(aPrelever);
+    expect(solde720()).toBe(50000 * aPrelever);
     await expect(api.finPeriode.passerTenue(q)).rejects.toThrow("Rien à prélever");
     await expect(api.finPeriode.apercuInteretsDav(q)).rejects.toThrow("pas fini");
     // DAT : 1 000 000 à 7,5 %, 92 jours = 18 904 d'intérêts courus, repris à la rupture

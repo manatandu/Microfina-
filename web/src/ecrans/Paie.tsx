@@ -135,7 +135,7 @@ export function NouvelEmploye() {
       {onglet === 0 && <div className="deux-colonnes">
         <fieldset className="cadre-champs formulaire"><legend className="sr-only">Identité</legend>
           {texte("matricule", "Matricule :", { requis: true })}{texte("numeroSecuriteSociale", "N° Sécurité sociale :")}
-          {choix("sexe", "Sexe :", ctx.sexes, true)}{choix("civilite", "Civilité :", ctx.civilites, true)}
+          {choix("sexe", "Sexe :", ctx.sexes, true)}
           {texte("nom", "Nom :", { requis: true })}{texte("prenoms", "Prénom(s) :", { requis: true })}{texte("nomJeuneFille", "Nom de jeune fille :")}
           {choix("situationMatrimoniale", "Situation matrimoniale :", ctx.situations)}{date("dateNaissance", "Date de naissance :", true)}
           {texte("lieuNaissance", "Lieu de naissance :")}{texte("nationalite", "Nationalité :")}
