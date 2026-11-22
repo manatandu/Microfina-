@@ -447,9 +447,10 @@ Le porteur a demandé de répondre par les textes aux points du § 16.
 - **B22 corrigé** (Instr. BCC 008, art. 9 ; PCCI § 3.1) : édition des schémas comptables appliqués, par évènement, depuis « Journal comptables » (registre T108).
 - **B27 corrigé** (PCCI § 10.6 et 10.7) : deux états annexes, par durée initiale et par durée résiduelle, pour les crédits, les dépôts à terme, les plans d'épargne, les emprunts et les engagements par signature (registre T109).
 - **B13 corrigé** (Instr. BCC 009, art. 3 et annexe) : rapport d'activités annuel au modèle, en état annexe ; le logiciel remplit les tableaux, l'institution rédige les rubriques (registre T110).
-- **B20 non construit** (PCCI 14.4.1) : le PCCI ne donne que les titres des 22 sous-tableaux du T.E.F.F. ; leurs modèles sont dans le Plan comptable général congolais, absent des sources lues. À construire sur les modèles officiels, à fournir (registre T112, à confirmer).
+- **B20 non construit** (PCCI 14.4.1) : le PCCI ne donne que les titres des sous-tableaux du T.E.F.F. Le porteur cherche leurs modèles lui-même (décision du 22/11/2026) : point clos de notre côté (registre T112).
 - **B32 laissé tel quel** : aucun texte ne dit sur quelles écritures se lisent les indicateurs (registre T113).
-- **Lot terminé le 22/11/2026.** Restent : B20 (modèles à fournir), le compte 08 de B25 (aucune règle de déclenchement dans les textes), le fichier FinA (T88).
+- **Compte 08, recherche du 22/11/2026** (suite de B25). Le PCCI donne le jeu d'écritures du compte 08 et, au § 7.3.1.2, la provision pour risque quand une perte est probable sur une garantie donnée. Il ne dit pas quand un engagement devient douteux, et l'Instruction 003 ne parle que des crédits. Les textes voisins concordent : l'engagement par signature suit le classement des crédits du même client (Instr. BCC 16 aux banques, art. 10 à 14 ; son art. 2 l'écarte pour les COOPEC et les IMF ; même règle en zone CEMAC, en zone UMOA et en France). Proposition au porteur, non construite : registre T117.
+- **Lot terminé le 22/11/2026.** Restent : le compte 08 de B25 (proposition au porteur, T117), le fichier FinA (T88).
 
 ### Points du § 18.2 vérifiés le 22/11/2026
 
