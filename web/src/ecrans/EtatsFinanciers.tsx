@@ -249,7 +249,7 @@ function EditionAnnexes({ ctx, jour }: { ctx: Ctx; jour: string }) {
           {x.titre && <h3>{x.titre}</h3>}
           {x.rubriques?.map((t) => <p key={t}>{t}</p>)}
           {x.colonnes && <div className="defile-x"><table className="grille">
-            <thead><tr><th scope="col">{x.titre === "INDICATEURS DE PERFORMANCE" ? "INDICATEUR" : x.titre === "RATIOS PRUDENTIELS" ? "RATIOS" : "RUBRIQUES"}</th>
+            <thead><tr><th scope="col">{x.titre === "INDICATEURS DE PERFORMANCE" ? "TYPE D'INDICATEUR" : x.titre === "RATIOS PRUDENTIELS" ? "RATIOS" : "RUBRIQUES"}</th>
               {x.colonnes.map((c, i) => <th key={i} scope="col" className={c.type === "texte" ? undefined : "num"}>{c.titre}</th>)}</tr></thead>
             <tbody>{(x.lignes ?? []).map((l, j) => <tr key={j}><th scope="row">{l.titre || l.gras ? <strong>{l.libelle}</strong> : l.libelle}</th>
               {l.valeurs.map((v, i) => <td key={i} className={typeof v === "number" ? "num chiffres" : undefined}>{celluleRapport(v, l.type ?? x.colonnes![i]!.type)}</td>)}</tr>)}</tbody>

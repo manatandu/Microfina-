@@ -8572,7 +8572,7 @@ function rapportActivites(du: string, au: string, ex: number): { sections: Secti
   const lp: LigneRa[] = RA.ratios.map((m, k) => ({ libelle: m.libelle, valeurs: [rn[k]![0], rn[k]![1], rn1[k]![1]], type: m.fondsPropres ? "montant" : "taux" }));
   const ind = (a: string, z: string) => new Map(rapportsCredit.indicateurs!({ du: a, au: z }).lignes.map((x) => [String(x.v[1]), x.v[4] as number | null]));
   const i = ind(du, au), i1 = ind(du1, au1);
-  const li: LigneRa[] = RA.indicateurs.map((m) => ({ libelle: m.libelle, valeurs: [m.type, i.get(m.ratio) ?? null, i1.get(m.ratio) ?? null] }));
+  const li: LigneRa[] = RA.indicateurs.map((m) => ({ libelle: m.type, valeurs: [m.libelle, i.get(m.ratio) ?? null, i1.get(m.ratio) ?? null] }));   // ordre du modèle : type, indicateur
   const C = (...c: [string, string][]) => c.map(([titre, type]) => ({ titre, type }));
   return { sections: [...RA.rediger.map((x) => ({ ...x })),
     { titre: "", colonnes: C(["N", "texte"], ["N-1", "texte"]), lignes: identiteRa(au, au1) },
@@ -8580,7 +8580,7 @@ function rapportActivites(du: string, au: string, ex: number): { sections: Secti
     { titre: "BILAN", colonnes: C(["N", "montant"], ["%", "taux"], ["N-1", "montant"], ["%", "taux"], ["Var. %", "taux"]), lignes: lb },
     { titre: "5. COMPTE DE GESTION OU COMPTE DE RESULTAT", colonnes: C(["N", "montant"], ["N - 1", "montant"], ["VAR. %", "taux"]), lignes: lr },
     { titre: "RATIOS PRUDENTIELS", colonnes: C(["NORME", "texte"], ["N", "taux"], ["N-1", "taux"]), lignes: lp },
-    { titre: "INDICATEURS DE PERFORMANCE", colonnes: C(["TYPE D'INDICATEUR", "texte"], ["N", "taux"], ["N-1", "taux"]), lignes: li },
+    { titre: "INDICATEURS DE PERFORMANCE", colonnes: C(["INDICATEUR", "texte"], ["N", "taux"], ["N-1", "taux"]), lignes: li },
     { titre: RA.conclusion }] };
 }
 

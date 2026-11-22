@@ -2341,7 +2341,7 @@ describe("journée de guichet", () => {
     expect([b.get("TOTAL ACTIF")![0], b.get("TOTAL PASSIF")![0], b.get("TOTAL ACTIF")![1]]).toEqual([bilan.actif.reduce((t, x) => t + x.n, 0), bilan.actif.reduce((t, x) => t + x.n, 0), 100]);
     const net = (await api.etatsFinanciers.resultat({ ...q, sansVidage: true })).lignes.find((x) => x.libelle === "Résultat net de l'exercice")!.n;
     expect([table(5).get("RESULTAT NET DE L'EXERCICE")![0], b.get("- Résultat net")![0]]).toEqual([net, net]);
-    expect([table(6).get("Capitalisation"), table(6).get("Solvabilité")![0], table(7).get("Portefeuille à Risque (PAR)")![0]]).toEqual([["", null, null], "≥ 10 %", "II. INDICATEUR DE QUALITE DU PORTEFEUILLE"]);
+    expect([table(6).get("Capitalisation"), table(6).get("Solvabilité")![0], [r.sections[7]!.lignes![3]!.libelle, r.sections[7]!.lignes![3]!.valeurs[0]]]).toEqual([["", null, null], "≥ 10 %", ["II. INDICATEUR DE QUALITE DU PORTEFEUILLE", "Portefeuille à Risque (PAR)"]]);
   });
 
   it("pièce d'identité univoque (A9 ; Instr. BCC 15, art. 23 ; Code du numérique, art. 171) : une pièce ne sert qu'à une fiche de client en cours", async () => {

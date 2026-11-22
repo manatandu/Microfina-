@@ -136,7 +136,7 @@ def rapport(u, du: date, au: date, ex: int) -> dict:
     lp = [{"libelle": m["libelle"], "valeurs": [rn[k][0], rn[k][1], rn1[k][1]], "type": "montant" if m.get("fondsPropres") else "taux"} for k, m in enumerate(RA["ratios"])]
     ind = lambda a, z: {x["v"][1]: x["v"][4] for x in indicateurs(u, {"du": a.isoformat(), "au": z.isoformat()})["lignes"]}
     i, i1 = ind(du, au), ind(du1, au1)
-    li = [{"libelle": m["libelle"], "valeurs": [m["type"], i.get(m["ratio"]), i1.get(m["ratio"])]} for m in RA["indicateurs"]]
+    li = [{"libelle": m["type"], "valeurs": [m["libelle"], i.get(m["ratio"]), i1.get(m["ratio"])]} for m in RA["indicateurs"]]   # ordre du modèle : type, indicateur
     C = lambda *c: [{"titre": t, "type": y} for t, y in c]
     return {"sections": [
         *RA["rediger"],
@@ -145,5 +145,5 @@ def rapport(u, du: date, au: date, ex: int) -> dict:
         {"titre": "BILAN", "colonnes": C(("N", "montant"), ("%", "taux"), ("N-1", "montant"), ("%", "taux"), ("Var. %", "taux")), "lignes": lb},
         {"titre": "5. COMPTE DE GESTION OU COMPTE DE RESULTAT", "colonnes": C(("N", "montant"), ("N - 1", "montant"), ("VAR. %", "taux")), "lignes": lr},
         {"titre": "RATIOS PRUDENTIELS", "colonnes": C(("NORME", "texte"), ("N", "taux"), ("N-1", "taux")), "lignes": lp},
-        {"titre": "INDICATEURS DE PERFORMANCE", "colonnes": C(("TYPE D'INDICATEUR", "texte"), ("N", "taux"), ("N-1", "taux")), "lignes": li},
+        {"titre": "INDICATEURS DE PERFORMANCE", "colonnes": C(("INDICATEUR", "texte"), ("N", "taux"), ("N-1", "taux")), "lignes": li},
         {"titre": RA["conclusion"]}]}

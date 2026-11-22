@@ -5223,7 +5223,7 @@ def test_rapport_activites(clients, journee):
     assert cr["RESULTAT NET DE L'EXERCICE"][0] == net and cr["RESULTAT AVANT IMPOT"][0] >= net and b["- Résultat net"][0] == net
     ratios = {x["libelle"]: x["valeurs"] for x in r["sections"][6]["lignes"]}
     assert ratios["Capitalisation"] == ["", None, None] and ratios["Solvabilité"][0] == "≥ 10 %" and ratios["Fonds Propres Prudentiels"][1] is not None
-    assert [x["libelle"] for x in r["sections"][7]["lignes"]][3] == "Portefeuille à Risque (PAR)" and r["sections"][7]["lignes"][0]["valeurs"][0] == "I. INDICATEUR DE RENTABILITE"
+    assert r["sections"][7]["lignes"][3]["valeurs"][0] == "Portefeuille à Risque (PAR)" and r["sections"][7]["lignes"][0]["libelle"] == "I. INDICATEUR DE RENTABILITE"
     assert clients["caisse"].get("/api/comptabilite/etats-financiers/annexe", {**q, "annexe": "rapport-activites"}, **H).status_code == 403
 
 
