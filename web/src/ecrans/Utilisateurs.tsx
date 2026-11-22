@@ -28,7 +28,7 @@ export default function EnregistrementUtilisateurs() {
   const choisir = (x: Ligne) => { setChoisi(x.id); setF({ ...VIDE, nom: x.nom, agenceId: x.agenceId ? String(x.agenceId) : "", controleConnecte: x.controleConnecte, login: x.login,
     rue: x.rue, adresse: x.adresse, bp: x.bp, telephoneFixe: x.telephoneFixe, portable: x.portable, email: x.email }); };
   const enregistrer = () => setBoite({ type: "confirmation", message: choisi === null ? "Voulez-vous vraiment enregistrer ?" : "Voulez-vous vraiment modifier ?", oui: async () => {
-    try { await api.comptesUtilisateurs.enregistrer({ ...f, agenceId: f.agenceId ? Number(f.agenceId) : null }, choisi ?? undefined); effacer(); setRelu((x) => x + 1);
+    try { await api.comptesUtilisateurs.enregistrer({ ...f, agenceId: f.agenceId ? Number(f.agenceId) : donnees!.agences.length === 1 ? donnees!.agences[0]!.id : null }, choisi ?? undefined); effacer(); setRelu((x) => x + 1);
       setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   } });
@@ -43,8 +43,8 @@ export default function EnregistrementUtilisateurs() {
           <fieldset className="cadre-champs pile champs-a-gauche">
             <legend>Informations</legend>
             {texte("nom", "Nom et prénom(s) *")}
-            <Champ libelle="Agence *">{(p) => <select {...p} className="saisie" value={f.agenceId} onChange={(e) => setF({ ...f, agenceId: e.target.value })}>
-              <option value=""></option>{donnees.agences.map((a: { id: number; nom: string }) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
+            {donnees.agences.length > 1 && <Champ libelle="Agence *">{(p) => <select {...p} className="saisie" value={f.agenceId} onChange={(e) => setF({ ...f, agenceId: e.target.value })}>
+              <option value=""></option>{donnees.agences.map((a: { id: number; nom: string }) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>}
             <label className="case-jour"><input type="checkbox" checked={f.controleConnecte} onChange={(e) => setF({ ...f, controleConnecte: e.target.checked })} /> Control utilisateur connecté</label>
           </fieldset>
           <fieldset className="cadre-champs pile champs-a-gauche">

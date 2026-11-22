@@ -104,7 +104,6 @@ function Garanties({ erreur }: Proprietes) {
         <fieldset className="pile cadre-champs"><legend><span className="sr-only">Filtres</span></legend>
           <Champ libelle="Produit">{(p) => <select {...p} className="saisie" value={f.produit} onChange={(e) => setF({ ...f, produit: e.target.value })}>
             <option value="">Tous les produits</option>{produits.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>
-          <Champ libelle="Agence">{(p) => <select {...p} className="saisie"><option>{ctx.agence.nom}</option></select>}</Champ>
           <Champ libelle="Agent">{(p) => <select {...p} className="saisie" value={f.agent} onChange={(e) => setF({ ...f, agent: e.target.value })}>
             <option value="">Tous les agents</option>{agents.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
         </fieldset>
@@ -190,7 +189,6 @@ function Multicritere({ erreur }: Proprietes) {
           {produits.map((x) => <option key={x.id} value={x.id}>{x.libelle}</option>)}</select>}</Champ>
         <Champ libelle="Nom">{(p) => <input {...p} className="saisie" autoComplete="off" value={c.nom} onChange={(e) => maj({ nom: e.target.value })} />}</Champ>
         <Champ libelle="Prénoms">{(p) => <input {...p} className="saisie" autoComplete="off" value={c.prenoms} onChange={(e) => maj({ prenoms: e.target.value })} />}</Champ>
-        <Champ libelle="Agence :">{(p) => <select {...p} className="saisie"><option>{ctx.agence.nom}</option></select>}</Champ>
         <Champ libelle="TypeClient">{(p) => <select {...p} className="saisie" value={c.typeClient} onChange={(e) => maj({ typeClient: e.target.value })}><option value=""></option>
           {[...ctx.typesClient, ...ctx.typesEntreprise, ...ctx.typesGroupe].map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
         <Champ libelle="Catégorie :">{(p) => <select {...p} className="saisie" value={c.categorie} onChange={(e) => maj({ categorie: e.target.value as CriteresMulticritere["categorie"] })}>

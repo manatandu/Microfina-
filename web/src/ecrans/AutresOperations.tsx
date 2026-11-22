@@ -104,7 +104,6 @@ function VirementPrelevement({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
   return <>
     <div className="deux-colonnes">
       <fieldset className="cadre-champs formulaire"><legend>Agence</legend>
-        <Champ libelle="Agence">{(p) => <Lecture {...p} value={ctx.agence.nom} />}</Champ>
         <ChampDate libelle="Date opération *" valeur={date || ctx.date} onChange={setDate} requis />
       </fieldset>
       <Identifiant titre="Identifiant Client" agence={ctx.agence.nom} k={k} chercher={() => setCherche(true)} />

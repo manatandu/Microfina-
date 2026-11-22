@@ -26,6 +26,7 @@ export function GestionGuichets() {
   const { donnees } = useDonnees(() => api.guichets.lire(), [relu]);
   if (!donnees) return <Chargement />;
   const { agences, journaux, types, comptesDefaut, guichets, devises } = donnees;   // une valeur par devise tenue (registre S08-3, S79-5)
+  const seule = agences.length === 1 ? agences[0]!.id : 0;   // une seule agence : prise d'office, la case se cache (plan d'allègement, point 1.10)
   const neuf = (): Formulaire => ({ ...VIDE, ...comptesDefaut });
   const v = f ?? neuf();
   const plafond = (d: string) => v.plafonds[d] ?? { maximum: "0", retrait: "0" };
@@ -43,7 +44,7 @@ export function GestionGuichets() {
   function enregistrer() {
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try {
-        await api.guichets.enregistrer({ ...v, agenceId: Number(v.agenceId), journalId: Number(v.journalId),
+        await api.guichets.enregistrer({ ...v, agenceId: Number(v.agenceId || seule), journalId: Number(v.journalId),
           plafonds: Object.fromEntries(devises.map((d) => [d, { maximum: montantSaisi(plafond(d).maximum), retrait: montantSaisi(plafond(d).retrait) }])) }, choisi ?? undefined);
         effacer(); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" });
       } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
@@ -56,8 +57,8 @@ export function GestionGuichets() {
         <div className="deux-colonnes">
           <fieldset className="pile cadre-champs">
             <legend>Informations sur le guichet</legend>
-            <Champ libelle="Agence *">{(p) => <select {...p} className="saisie" value={v.agenceId || ""} onChange={champ("agenceId")}>
-              <option value=""></option>{agences.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
+            {!seule && <Champ libelle="Agence *">{(p) => <select {...p} className="saisie" value={v.agenceId || ""} onChange={champ("agenceId")}>
+              <option value=""></option>{agences.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>}
             <Champ libelle="Code guichet *">{(p) => <input {...p} className="saisie code" value={v.code} onChange={champ("code")} />}</Champ>
             <Champ libelle="Désignation *">{(p) => <input {...p} className="saisie" value={v.designation} onChange={champ("designation")} />}</Champ>
             <Champ libelle="Type de guichet *">{(p) => <select {...p} className="saisie" value={v.typeGuichet} onChange={champ("typeGuichet")}>

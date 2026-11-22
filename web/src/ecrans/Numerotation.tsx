@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, composerNumero, composerNumeroCompte } from "../donnees/api";
 import type { RegleNumerotation } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
@@ -15,6 +15,8 @@ export default function ParametragesClients() {
   const [apercu, setApercu] = useState("");
   const [boite, setBoite] = useState<Boite | null>(null);
   const { donnees } = useDonnees(() => api.numerotation.lire());
+  // Une seule institution : choisie d'office, la case se cache (plan d'allègement, point 1.10)
+  useEffect(() => { if (donnees && !inst && donnees.institutions.length === 1) { const v = String(donnees.institutions[0]!.id); setInst(v); setR(donnees.regles[v] ?? VIDE); } }, [donnees]);   // eslint-disable-line react-hooks/exhaustive-deps
   if (!donnees) return <Chargement />;
   function institution(v: string) { setInst(v); setR(donnees!.regles[v] ?? VIDE); setChoisi(null); setApercu(""); }
   /** Cocher un élément le met à la fin de l'ordre ; le décocher l'en retire */
@@ -63,14 +65,14 @@ export default function ParametragesClients() {
     <>
       <h1>Paramétrages liés aux clients</h1>
       <section className="bloc pile" aria-label="Paramétrages liés aux clients">
-        <div className="ligne-champ champs-a-gauche">
+        {donnees.institutions.length > 1 && <div className="ligne-champ champs-a-gauche">
           <div className="champ">
             <label htmlFor="num-institution">Institution *</label>
             <select id="num-institution" className="saisie" value={inst} onChange={(e) => institution(e.target.value)}>
               <option value=""></option>{donnees.institutions.map((i) => <option key={i.id} value={i.id}>{i.nom}</option>)}
             </select>
           </div>
-        </div>
+        </div>}
         <div className="numerotation">
           <div className="pile">
             <div className="ligne-numerotation entete"><span /><span>Elément</span><span>Valeur</span></div>

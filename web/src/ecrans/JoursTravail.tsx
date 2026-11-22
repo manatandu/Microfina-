@@ -26,12 +26,14 @@ export default function JoursTravail() {
 }
 
 function Journees() {
-  const [agence, setAgence] = useState("");
+  const [choixAgence, setAgence] = useState("");
   const [jours, setJours] = useState<boolean[] | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   const [relu, setRelu] = useState(0);
   const { donnees } = useDonnees(() => api.jours.lire() as Promise<Donnees>, [relu]);
   if (!donnees) return <Chargement />;
+  const unique = donnees.agences.length === 1;   // une seule agence : prise d'office, la case se cache (plan d'allègement, point 1.10)
+  const agence = choixAgence || (unique ? String(donnees.agences[0]!.id) : "");
   const a = donnees.agences.find((x) => String(x.id) === agence);
   const coches = jours ?? a?.jours ?? Array(7).fill(false);
   const annuler = () => { setAgence(""); setJours(null); };
@@ -43,8 +45,8 @@ function Journees() {
     <section className="bloc pile" id="volet-journees" role="tabpanel" aria-labelledby="onglet-journees">
       <fieldset className="cadre-champs pile champs-a-gauche">
         <legend>Journées de travail</legend>
-        <Champ libelle="Agence">{(p) => <select {...p} className="saisie" value={agence} onChange={(e) => { setAgence(e.target.value); setJours(null); }}>
-          <option value=""></option>{donnees.agences.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>
+        {!unique && <Champ libelle="Agence">{(p) => <select {...p} className="saisie" value={agence} onChange={(e) => { setAgence(e.target.value); setJours(null); }}>
+          <option value=""></option>{donnees.agences.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>}
         {JOURS.map((j, i) => (
           <label key={j} className="case-jour"><input type="checkbox" checked={coches[i]} disabled={!a}
             onChange={(e) => setJours(coches.map((c, k) => (k === i ? e.target.checked : c)))} /> {j}</label>
@@ -61,13 +63,15 @@ function Journees() {
 }
 
 function Feries() {
-  const [institution, setInstitution] = useState("");
+  const [choixInstitution, setInstitution] = useState("");
   const [liste, setListe] = useState<JourFerie[] | null>(null);
   const [f, setF] = useState({ date: "", description: "", exercice: "" });
   const [boite, setBoite] = useState<Boite | null>(null);
   const [relu, setRelu] = useState(0);
   const { donnees } = useDonnees(() => api.jours.lire() as Promise<Donnees>, [relu]);
   if (!donnees) return <Chargement />;
+  const unique = donnees.institutions.length === 1;   // une seule institution : choisie d'office (plan d'allègement, point 1.10)
+  const institution = choixInstitution || (unique ? String(donnees.institutions[0]!.id) : "");
   const lignes = liste ?? (institution ? donnees.feries : []);
   const annuler = () => { setInstitution(""); setListe(null); setF({ date: "", description: "", exercice: "" }); };
   function ajouter() {
@@ -84,8 +88,8 @@ function Feries() {
   return (
     <section className="bloc pile" id="volet-feries" role="tabpanel" aria-labelledby="onglet-feries">
       <div className="ligne-champ">
-        <Champ libelle="Institution">{(p) => <select {...p} className="saisie" value={institution} onChange={(e) => { setInstitution(e.target.value); setListe(null); }}>
-          <option value=""></option>{donnees.institutions.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>
+        {!unique && <Champ libelle="Institution">{(p) => <select {...p} className="saisie" value={institution} onChange={(e) => { setInstitution(e.target.value); setListe(null); }}>
+          <option value=""></option>{donnees.institutions.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>}
         <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
         <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
       </div>

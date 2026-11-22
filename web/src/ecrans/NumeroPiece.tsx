@@ -9,7 +9,7 @@ const DEFAUT: Record<Elt, string> = { INSTITUTION: "", AGENCE: "1", JOURNAL: "2"
 
 /** S29 : Comptabilité > Numéro pièce, Paramétrage du numéro de pièce (manuel Microfina++, p. 41) */
 export default function NumeroPiece() {
-  const [institutionId, setInstitutionId] = useState("");
+  const [choixInstitution, setInstitutionId] = useState("");
   const [institution, setInstitution] = useState<boolean | null>(null);
   const [positions, setPositions] = useState<Record<Elt, string> | null>(null);
   const [apercu, setApercu] = useState("");
@@ -18,6 +18,9 @@ export default function NumeroPiece() {
   const { donnees } = useDonnees(() => api.numerotation.lirePiece(), [relu]);
   if (!donnees) return <Chargement />;
   const regle = donnees.regle as ReglePiece | null;
+  // Une seule institution : choisie d'office, la case se cache (plan d'allègement, point 1.10)
+  const unique = donnees.institutions.length === 1;
+  const institutionId = choixInstitution || (unique ? String(donnees.institutions[0]!.id) : "");
   // Les valeurs affichées : la saisie en cours, sinon la règle enregistrée, sinon l'ordre par défaut
   const inst = institution ?? regle?.institution ?? false;
   const pos: Record<Elt, string> = positions ?? (regle
@@ -41,8 +44,8 @@ export default function NumeroPiece() {
     <>
       <h1>Paramétrage du numéro de piece</h1>
       <section className="bloc pile" aria-label="Paramétrage du numéro de piece">
-        <Champ libelle="Institution *">{(p) => <select {...p} className="saisie" value={institutionId} onChange={(e) => setInstitutionId(e.target.value)}>
-          <option value=""></option>{donnees.institutions.map((i: { id: number; nom: string }) => <option key={i.id} value={i.id}>{i.nom}</option>)}</select>}</Champ>
+        {!unique && <Champ libelle="Institution *">{(p) => <select {...p} className="saisie" value={institutionId} onChange={(e) => setInstitutionId(e.target.value)}>
+          <option value=""></option>{donnees.institutions.map((i: { id: number; nom: string }) => <option key={i.id} value={i.id}>{i.nom}</option>)}</select>}</Champ>}
         <div className="ligne-champ">
           <div className="pile">
             <label className="case"><input type="checkbox" checked disabled /><span>Exercice</span></label>

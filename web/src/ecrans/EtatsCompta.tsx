@@ -34,8 +34,8 @@ function Onglets({ nom, valeur, changer, libelles = ONGLETS }: { nom: string; va
 }
 function Communs({ ctx, f, setF }: { ctx: Ctx; f: { agence: string; exercice: string }; setF: (x: { agence: string; exercice: string }) => void }) {
   return <>
-    <Champ libelle="Agence :">{(p) => <select {...p} className="saisie" value={f.agence} onChange={(e) => setF({ ...f, agence: e.target.value })}><option value="">Toutes les agences</option>
-      {ctx.agences.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
+    {ctx.agences.length > 1 && <Champ libelle="Agence :">{(p) => <select {...p} className="saisie" value={f.agence} onChange={(e) => setF({ ...f, agence: e.target.value })}><option value="">Toutes les agences</option>
+      {ctx.agences.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>}
   </>;
 }
 

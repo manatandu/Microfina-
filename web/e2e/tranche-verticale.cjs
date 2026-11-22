@@ -50,7 +50,7 @@ const OUT = process.argv[2];
   await p.getByRole('cell', { name: '05/11/2026' }).waitFor(); await etape('02-journee-ouverte');
   // Chef : créer un guichet (S08, p. 18)
   await aller('/administration/s08');
-  await p.getByLabel('Agence *').selectOption({ label: 'Matete' }); await p.getByLabel('Code guichet *').fill('G3'); await p.getByLabel('Désignation *').fill('Caisse 3');
+  await p.getByLabel('Code guichet *').fill('G3'); await p.getByLabel('Désignation *').fill('Caisse 3');
   await p.getByLabel('Type de guichet *').selectOption('SECONDAIRE'); await p.getByLabel('Journal *').selectOption({ label: 'Caisse' });
   await p.getByLabel('Guichet Actif').check();
   await etape('02a-gestion-guichets'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
@@ -147,7 +147,7 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Appliquer les comptes au degré et au terme choisis' }).click();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Modèle ressources affectées' }).waitFor(); await etape('02f16-modele-credit');
   // Chef : paramétrages liés aux clients (S15, p. 23 et 24)
-  await aller('/parametrage/s15'); await p.getByLabel('Institution *').selectOption({ label: 'COOPEC Tujenge' });
+  await aller('/parametrage/s15');
   await p.getByLabel('Choisir : Préfixe').check(); await p.getByLabel('Valeur : Préfixe').fill('TJ'); await p.getByLabel('Choisir : Agence').check();
   await p.getByRole('cell', { name: 'AGENCE' }).click(); await p.getByRole('button', { name: 'Tout en haut' }).click();
   await p.getByRole('button', { name: 'Générer' }).click(); await p.getByText('0412-000321-TJ').waitFor(); await etape('02g-parametrages-clients');
@@ -164,7 +164,7 @@ const OUT = process.argv[2];
     await p.getByRole('group', { name: nom }).getByLabel(rep).check();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Epargne De Garantie' }).waitFor(); await etape('02f17-produit-epargne');
   // Chef : numéro de pièce (S29, p. 41) : Institution cochée en tête, Générer, Enregistrer
-  await aller('/parametrage/s29'); await p.getByLabel('Institution *').selectOption({ label: 'COOPEC Tujenge' });
+  await aller('/parametrage/s29');
   await p.getByText('Position Institution', { exact: true }).click(); await p.getByLabel('Position Institution').and(p.locator('input.saisie')).fill('1');
   await p.getByLabel('Position Agence').and(p.locator('input.saisie')).fill('2'); await p.getByLabel('Position Journal').and(p.locator('input.saisie')).fill('3');
   await p.getByLabel('Position compteur').and(p.locator('input.saisie')).fill('4');
@@ -190,10 +190,10 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('02f23-agents-agence');
   await p.getByRole('button', { name: 'Liste des sensibilisateurs' }).click(); await p.getByRole('cell', { name: 'Mbuyi' }).waitFor(); await p.getByRole('button', { name: 'Fermer' }).click();
   // Chef : journées de travail et jours fériés (S34, p. 44) : lundi à samedi pour l'agence ; un jour férié variable
-  await aller('/parametrage/s34'); await p.getByLabel('Agence').selectOption({ label: 'Matete' });
+  await aller('/parametrage/s34');
   for (const j of ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']) await p.getByRole('checkbox', { name: j }).check();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('02f24-journees-travail');
-  await p.getByRole('tab', { name: 'Jours fériés' }).click(); await p.getByLabel('Institution').selectOption({ index: 1 });
+  await p.getByRole('tab', { name: 'Jours fériés' }).click();
   await p.getByLabel('Date *').fill('30/06/2026'); await p.getByLabel('Description *').fill("Fête de l'indépendance");
   await p.getByLabel('Exercice').selectOption('2026'); await p.getByRole('button', { name: 'Ajouter' }).click();
   await p.getByRole('cell', { name: "Fête de l'indépendance" }).waitFor();
@@ -213,7 +213,7 @@ const OUT = process.argv[2];
   await aller('/administration/s03'); await p.getByLabel('Nom Droit *').fill('AUDITEUR'); await p.getByLabel('Description').fill('PROFIL DES AUDITEURS');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'AUDITEUR', exact: true }).waitFor(); await etape('02f31-profils');
   // Administrateur sécurité : un utilisateur (S05, p. 17)
-  await aller('/administration/s05'); await p.getByLabel('Nom et prénom(s) *').fill('Mbala Joseph'); await p.getByLabel('Agence *').selectOption({ label: 'Matete' });
+  await aller('/administration/s05'); await p.getByLabel('Nom et prénom(s) *').fill('Mbala Joseph');
   await p.getByLabel('Nom utilisateur *').fill('jmbala'); await p.getByLabel('Mot de passe *').fill('secret-1'); await p.getByLabel('Confirmation *').fill('secret-1');
   await p.getByLabel('Portable : *').fill('+243 810 000 444'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: 'Mbala', exact: true }).waitFor(); await etape('02f33-utilisateurs');

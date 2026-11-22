@@ -55,7 +55,6 @@ export function VirementPrelevement() {
           </fieldset>
           <fieldset className="pile cadre-champs">
             <legend>Identifiant Client</legend>
-            <Champ libelle="Agence">{(p) => <select {...p} className="saisie" disabled><option>{ctx.agence.nom}</option></select>}</Champ>
             <div className="ligne-champ">
               <Champ libelle="N° Client">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
               <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>

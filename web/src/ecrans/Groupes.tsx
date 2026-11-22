@@ -62,7 +62,7 @@ export function GroupeSolidaire() {
   const [coches, setCoches] = useState<number[]>([]);
   const [recherche, setRecherche] = useState(false);
   if (!donnees) return <Chargement />;
-  const { ctx, g } = donnees;
+  const { g } = donnees;
   const erreur = (x: unknown) => setBoite({ type: "erreur", message: message(x) });
   const effacer = () => { setCode(null); setNom(""); setEdition(null); };
   const executer = async (faire: () => Promise<unknown>, succes: string, apres?: () => void) => {
@@ -88,7 +88,6 @@ export function GroupeSolidaire() {
           <div className="formulaire">
             <Champ libelle="Code groupe *">{(p) => <input {...p} className="saisie code" required autoComplete="off" value={code ?? g.codeSuivant} onChange={(e) => setCode(e.target.value)} />}</Champ>
             <Champ libelle="nom groupe *">{(p) => <input {...p} className="saisie" required autoComplete="off" value={nom} onChange={(e) => setNom(e.target.value)} />}</Champ>
-            <Champ libelle="Agence">{(p) => <select {...p} className="saisie" disabled><option>{ctx.agence.nom}</option></select>}</Champ>
           </div>
           <div className="actions-onglets">
             <button className="bouton" type="button" onClick={() => {

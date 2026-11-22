@@ -5,7 +5,6 @@ import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { coupuresDe, DEVISES, libelleCoupure, lireMontant, montant, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 import { Attention, Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
-import { fr } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
 
 const enSaisie = (m: number) => (m ? String(m / 100).replace(".", ",") : "");
@@ -25,7 +24,7 @@ export function BilletageCaisse() {
   }, [relu]);
   if (!donnees) return <Chargement />;
   if (!donnees.s) return <><h1>Billetage</h1><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>;
-  const { s, ctx, j, billetages, theorique } = donnees as Required<typeof donnees>;
+  const { s, ctx, billetages, theorique } = donnees as Required<typeof donnees>;
   const saisis = nombres ?? Object.fromEntries(DEVISES.map((d) => {
     const b = billetages.find((x) => x.devise === d);
     return [d, Object.fromEntries(coupuresDe(d).map((v) => [v, String(b?.compte[v] ?? 0)]))];
@@ -54,7 +53,6 @@ export function BilletageCaisse() {
             <legend>{d}</legend>
             <div className="grille-cadres quatre">
               <Champ libelle={`Solde Caisse (${d}) :`}>{(p) => <input {...p} className="saisie montant" readOnly value={montant(totalComptage(theorique[d] ?? {}), d)} />}</Champ>
-              <Champ libelle="Journées:">{(p) => <select {...p} className="saisie code" disabled value={j?.date ?? ""}><option value={j?.date ?? ""}>{j ? fr(j.date) : ""}</option></select>}</Champ>
               <Champ libelle={`Bon de Caisse (${d})`}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={bonsSaisis[d] ?? ""}
                 onChange={(e) => { setNombres(saisis); setBons({ ...bonsSaisis, [d]: e.target.value }); }} />}</Champ>
               <Champ libelle={`Total Caisse (${d})`}>{(p) => <input {...p} className="saisie montant" readOnly value={montant(totalComptage(compte(d)) + (bonDe(d) ?? 0), d)} />}</Champ>
@@ -107,7 +105,7 @@ export function ValidationBilletage() {
     return { ctx, j, sessions, billetages: billetages.filter((b) => b.moment === "arret"), comptable: Object.fromEntries(DEVISES.map((d, i) => [d, soldes[i] ?? 0])) as Record<Devise, number> };
   }, [guichetId, relu]);
   if (!donnees) return <Chargement />;
-  const { ctx, j, sessions, billetages, comptable } = donnees;
+  const { ctx, sessions, billetages, comptable } = donnees;
   const de = (d: Devise) => billetages.find((b) => b.devise === d);
   const guichet = ctx.guichets.find((g) => g.id === guichetId);
   function valider() {
@@ -129,7 +127,6 @@ export function ValidationBilletage() {
               {ctx.guichets.filter((g) => sessions.some((x) => x.guichetId === g.id)).map((g) => <option key={g.id} value={g.id}>{g.nom}</option>)}
             </select>)}</Champ>
           {/* Registre S80-6 : les journées ouvertes du guichet, comme à S79 */}
-          <Champ libelle="Journées:">{(p) => <select {...p} className="saisie code" disabled value={j?.date ?? ""}><option value={j?.date ?? ""}>{j ? fr(j.date) : ""}</option></select>}</Champ>
         </div>
         <div className="pile a-imprimer">
           {/* Registre T12 : la capture p. 92 est reprise pour chaque devise que tient le guichet */}

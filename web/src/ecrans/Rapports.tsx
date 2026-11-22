@@ -104,7 +104,6 @@ function Multicritere({ ctx, cx, clients }: { ctx: Ctx; cx: ContexteRapport; cli
         <legend>Éléments de la recherche</legend>
         <Champ libelle="Nom :">{(p) => <input {...p} className="saisie" autoComplete="off" value={c.nom} onChange={(e) => maj({ nom: e.target.value })} />}</Champ>
         <Champ libelle="Prénoms :">{(p) => <input {...p} className="saisie" autoComplete="off" value={c.prenoms} onChange={(e) => maj({ prenoms: e.target.value })} />}</Champ>
-        <Champ libelle="Agence :">{(p) => <select {...p} className="saisie"><option>{ctx.agence.nom}</option></select>}</Champ>
         <Champ libelle="TypeClient :">{(p) => <select {...p} className="saisie" value={c.typeClient} onChange={(e) => maj({ typeClient: e.target.value })}><option value=""></option>
           {[...ctx.typesClient, ...ctx.typesEntreprise, ...ctx.typesGroupe].map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
         <Champ libelle="Catégorie :">{(p) => <select {...p} className="saisie" value={c.categorie} onChange={(e) => maj({ categorie: e.target.value as CriteresMulticritere["categorie"] })}>
@@ -172,7 +171,6 @@ function Prospects({ ctx, clients }: { ctx: Ctx; clients: Tiers[] }) {
         <legend>Éléments de la recherche</legend>
         <Champ libelle="Nom :">{(p) => <input {...p} className="saisie" autoComplete="off" value={c.nom} onChange={(e) => maj({ nom: e.target.value })} />}</Champ>
         <Champ libelle="Prénoms :">{(p) => <input {...p} className="saisie" autoComplete="off" value={c.prenoms} onChange={(e) => maj({ prenoms: e.target.value })} />}</Champ>
-        <Champ libelle="Agence :">{(p) => <select {...p} className="saisie"><option>{ctx.agence.nom}</option></select>}</Champ>
         <Champ libelle="Zone :">{(p) => <select {...p} className="saisie" value={c.quartier} onChange={(e) => maj({ quartier: e.target.value })}><option value=""></option>{quartiers.map((q) => <option key={q} value={q}>{enClair(q)}</option>)}</select>}</Champ>
         <ChoixAgent libelle="Commercial :" liste={ctx.commerciaux} valeur={c.commercial} onChange={(v) => maj({ commercial: v })} />
         <Champ libelle="Genre :">{(p) => <select {...p} className="saisie" value={c.genre} onChange={(e) => maj({ genre: e.target.value as CriteresProspect["genre"] })}>
@@ -212,7 +210,6 @@ function Modifies({ ctx, clients, modifs }: { ctx: Ctx; clients: Tiers[]; modifs
           <ChampDate libelle="Du :" valeur={c.du} onChange={(v) => maj({ du: v })} /><ChampDate libelle="Au :" valeur={c.au} onChange={(v) => maj({ au: v })} />
         </fieldset>
         <fieldset className="pile cadre-champs"><legend>Critères</legend>
-          <Champ libelle="Agence :">{(p) => <select {...p} className="saisie"><option>{ctx.agence.nom}</option></select>}</Champ>
           <Champ libelle="Utilisateur :">{(p) => <select {...p} className="saisie" value={c.utilisateur} onChange={(e) => maj({ utilisateur: e.target.value })}><option value=""></option>
             {utilisateurs.map((u) => <option key={u.id} value={String(u.id)}>{u.nom}</option>)}</select>}</Champ>
           <Champ libelle="État :">{(p) => <select {...p} className="saisie" value={c.etat} onChange={(e) => maj({ etat: e.target.value as CriteresModifies["etat"] })}>

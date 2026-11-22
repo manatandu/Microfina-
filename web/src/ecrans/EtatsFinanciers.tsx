@@ -45,8 +45,8 @@ function Edition({ ctx, f, setF, libelleType, types, libelleVidage }: { ctx: Ctx
     <fieldset className="cadre-champs formulaire"><legend className="sr-only">État</legend>
       <Champ libelle={libelleType}>{(p) => <select {...p} className="saisie" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}>
         {types.map((t) => <option key={t.code} value={t.code}>{t.libelle}</option>)}</select>}</Champ>
-      <Champ libelle="Agence :">{(p) => <select {...p} className="saisie" value={f.agence} onChange={(e) => setF({ ...f, agence: e.target.value })}><option value="">Toutes les agences</option>
-        {ctx.agences.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
+      {ctx.agences.length > 1 && <Champ libelle="Agence :">{(p) => <select {...p} className="saisie" value={f.agence} onChange={(e) => setF({ ...f, agence: e.target.value })}><option value="">Toutes les agences</option>
+        {ctx.agences.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>}
       <Champ libelle="Période :">{(p) => <select {...p} className="saisie" value={f.periode} onChange={(e) => periode(e.target.value)}><option value=""></option>
         {ctx.mois.map((m, i) => <option key={m} value={String(i + 1).padStart(2, "0")}>{m}</option>)}</select>}</Champ>
       <Champ libelle="Exercice :">{(p) => <select {...p} className="saisie court" value={f.exercice} onChange={(e) => setF({ ...f, exercice: e.target.value, periode: "" })}>
@@ -204,8 +204,8 @@ function EditionAnnexes({ ctx, jour }: { ctx: Ctx; jour: string }) {
       <h2>Edition des états annexes</h2>
       <div className="deux-colonnes">
         <fieldset className="cadre-champs formulaire"><legend className="sr-only">Période</legend>
-          <Champ libelle="Agence :">{(p) => <select {...p} className="saisie" value={f.agence} onChange={(e) => setF({ ...f, agence: e.target.value })}><option value="">Toutes les agences</option>
-            {ctx.agences.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
+          {ctx.agences.length > 1 && <Champ libelle="Agence :">{(p) => <select {...p} className="saisie" value={f.agence} onChange={(e) => setF({ ...f, agence: e.target.value })}><option value="">Toutes les agences</option>
+            {ctx.agences.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>}
           <ChampDate libelle="Date début période :" valeur={f.du} onChange={(v) => setF({ ...f, du: v })} />
           <ChampDate libelle="Date fin période :" valeur={f.au} onChange={(v) => setF({ ...f, au: v })} />
         </fieldset>
