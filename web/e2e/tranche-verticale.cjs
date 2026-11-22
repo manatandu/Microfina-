@@ -119,7 +119,7 @@ const OUT = process.argv[2];
   await p.getByRole('cell', { name: 'Intérêt', exact: true }).click(); await p.getByRole('button', { name: 'Tout en haut' }).click();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'ICPES' }).waitFor(); await etape('02f11-ordre-remboursement');
   // Chef : produit crédit (S23, p. 37 et 38) : Information de base, puis Suivant jusqu'à Autres informations et Enregistrer
-  await aller('/parametrage/s23'); await p.getByRole('tab', { name: 'Information de base' }).waitFor();
+  await aller('/parametrage/s23'); await p.getByRole('tab', { name: 'Caractéristiques' }).waitFor();
   const pc = async (l, v) => p.getByRole('tabpanel').getByLabel(l, { exact: true }).fill(v);
   const blocs = p.getByRole('tabpanel').locator('fieldset');
   await blocs.nth(0).getByLabel('Montant *').fill('100000'); await blocs.nth(0).getByLabel('Durée (mois) *').fill('3'); await blocs.nth(0).getByLabel('Différé (mois) *').fill('0');
@@ -127,8 +127,7 @@ const OUT = process.argv[2];
   await pc('Num Produit *', 'L001'); await pc('Nom du produit *', 'Crédit commerce'); await p.getByLabel('Devise *').selectOption('CDF');
   await pc("Taux d'intérêt mensuel (%) *", '2,5'); await pc('Taux différé (%) *', '2'); await p.getByText('Physique', { exact: true }).click();
   await p.getByLabel('Périodicité *').selectOption({ label: 'Mensuel' }); await pc('Age max *', '65'); await etape('02f12-produit-credit');
-  for (let i = 0; i < 4; i++) await p.getByRole('button', { name: 'Suivant' }).click();
-  await p.getByLabel('Catégorie de prêt *').selectOption('Prêt commercial'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByLabel('Catégorie de prêt *').selectOption('Prêt commercial'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();   // trois parties, Enregistrer toujours visible (plan 2.16)
   await p.getByRole('button', { name: 'Produits credit' }).click(); await p.getByRole('cell', { name: 'Crédit commerce' }).waitFor(); await etape('02f13-produits-credit');
   await p.getByRole('button', { name: 'Fermer' }).click();
   // Chef : liste des produits crédits (S24, p. 38) : la fenêtre s'ouvre d'emblée ; un clic charge le produit
@@ -181,7 +180,7 @@ const OUT = process.argv[2];
   await etape('02f22-info-societe');
   await p.getByRole('tab', { name: 'Agence' }).click(); await p.getByRole('cell', { name: '0412' }).waitFor();
   // Chef : agents d'agence (S33, p. 43) : un sensibilisateur
-  await aller('/parametrage/s33'); await p.getByRole('tab', { name: 'Sensibilisateur' }).click(); await p.getByLabel('Portable :').waitFor();   // fiche allégée (plan d'allègement, point 2.20)
+  await aller('/parametrage/s33'); await p.getByRole('tab', { name: 'Sensibilisateur' }).click(); await p.getByRole('button', { name: 'Liste des sensibilisateurs' }).waitFor();   // fiche allégée (plan d'allègement, point 2.20)
   await p.getByLabel('Nom : *', { exact: true }).fill('Mbuyi'); await p.getByLabel('Prénom : *', { exact: true }).fill('Sarah');
   await p.getByLabel('Sexe : *').selectOption('F');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('02f23-agents-agence');

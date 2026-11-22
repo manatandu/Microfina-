@@ -56,7 +56,7 @@ id,lot,titre,ecrans,statut,question,reste
 2.13,2,Référentiel du crédit,S21 S26,partiel,oui,"Fait : quatre onglets, règles du crédit en lecture. Reste : cycle calculé (question au porteur sur les plafonds par cycle)"
 2.14,2,Ordre de remboursement,S21 S22 S23,à faire,oui,
 2.15,2,Comptes des crédits,S26,fait,,
-2.16,2,Produits de crédit,S23 S24 S25,à faire,,
+2.16,2,Produits de crédit,S23 S24 S25,partiel,,"Fait : fiche en trois parties, Enregistrer toujours visible, listes à une valeur en phrase, un seul réglage du remboursement anticipé. Reste : liste, activation et fiche dans une seule entrée ; TEG indicatif du produit"
 2.17,2,Produits d'épargne,S27 S28,à faire,,
 2.18,2,Frais,S16,à faire,oui,
 2.19,2,Numérotation,S15 S17 S29,partiel,,"Fait : un écran à trois onglets, case Institution cachée. Reste : même disposition des trois onglets, ordre par flèches seulement, aperçu en direct"

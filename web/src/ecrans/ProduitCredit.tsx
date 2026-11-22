@@ -3,7 +3,7 @@ import { api, type FraisProduit, type ProduitCreditVue } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee } from "../composants";
 
-const ONGLETS = ["Information de base", "Garanties financières", "Assurance", "Frais", "Autres informations"];
+const ONGLETS = ["Caractéristiques", "Retenues au déblocage", "Remboursement et pénalités"];   // cinq onglets ramenés à trois parties (plan d'allègement, point 2.16)
 type Saisie = Record<string, string | boolean>;
 const VIDE: Saisie = {
   typeProduit: "CNO", cyclique: false, numero: "", nom: "", devise: "", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: "", tauxDiffere: "",
@@ -45,6 +45,8 @@ export default function ProduitCredit({ listeOuverte = false }: { listeOuverte?:
     const d: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(f)) d[k] = IDS.includes(k) ? (v ? Number(v) : null) : k === "interetAnticipation" ? (v === "OUI" ? true : v === "NON" ? false : null) : v;
     d.frais = frais;
+    // Une pénalité de remboursement anticipé (au plus 50 % des intérêts restant dus, Instr. BCC 38, art. 14) suffit : elle vaut perception (plan 2.16)
+    d.interetAnticipation = Number(String(f.penaliteAnticipation ?? "").replace(",", ".")) > 0;
     return d;
   };
   const enregistrer = () => setBoite({ type: "confirmation", message: choisi === null ? "Voulez-vous vraiment enregistrer ?" : "Voulez-vous vraiment modifier ?", oui: async () => {
@@ -69,26 +71,23 @@ export default function ProduitCredit({ listeOuverte = false }: { listeOuverte?:
         {cadre("Minimum", <>{texte("montantMin", "Montant *", "saisie montant")}{texte("dureeMin", "Durée (mois) *", "saisie nombre")}{texte("differeMin", "Différé (mois) *", "saisie nombre")}{texte("interetMin", "Intérêt", "saisie nombre")}</>)}
         {cadre("Maximum", <>{texte("montantMax", "Montant *", "saisie montant")}{texte("dureeMax", "Durée (mois) *", "saisie nombre")}{texte("differeMax", "Différé (mois) *", "saisie nombre")}{texte("interetMax", "Intérêt", "saisie nombre")}</>)}
         {cadre("Identification", <>{choix("typeProduit", "Type Produit *", o.typesProduit.map((t: { code: string; libelle: string }) => ({ v: t.code, l: t.libelle })), false)}{case_("cyclique", "Cyclique")}
-          {texte("numero", "Num Produit *", "saisie code")}{texte("nom", "Nom du produit *")}{choix("devise", "Devise *", simple(o.devises))}{choix("modeCalcul", "Mode calcul int *", simple(o.modesCalcul), false)}</>)}
-        {cadre("Intérêt", <>{choix("typeInteret", "Type *", simple(o.typesInteret), false)}{texte("tauxInteret", "Taux d'intérêt mensuel (%) *", "saisie nombre")}<Champ libelle="Équivalent annuel (%)">{(p) => <input {...p} className="saisie nombre" readOnly value={annuel(String(f.tauxInteret))} />}</Champ>{texte("tauxDiffere", "Taux différé (%) *", "saisie nombre")}</>)}
+          {texte("numero", "Num Produit *", "saisie code")}{texte("nom", "Nom du produit *")}{choix("devise", "Devise *", simple(o.devises))}</>)}
+        {cadre("Intérêt", <><p>Intérêts calculés sur le capital restant dû (méthode dégressive), à taux fixe ; différé réparti.</p>{texte("tauxInteret", "Taux d'intérêt mensuel (%) *", "saisie nombre")}<Champ libelle="Équivalent annuel (%)">{(p) => <input {...p} className="saisie nombre" readOnly value={annuel(String(f.tauxInteret))} />}</Champ>{texte("tauxDiffere", "Taux différé (%) *", "saisie nombre")}</>)}
       </div>
       <div className="grille-deux">
         {cadre("Types de client", <>{case_("clientPhysique", "Physique")}{case_("clientGroupe", "Groupe")}{case_("clientEntreprise", "Personne morale")}{case_("maxParMembre", "Appliquer montant max. prêt par mbre du groupe")}</>)}
         {cadre("Divers", <>{choix("periodicite", "Périodicité *", o.periodicites.map((t: { code: string; libelle: string }) => ({ v: t.code, l: t.libelle })))}
-          {choix("modeDiffere", "Mode différé: *", simple(o.modesDiffere), false)}{choix("paiementInteret", "Paiement intérêt *", simple(o.paiementsInteret), false)}
-          {choix("interetAnticipation", "Percevoir int. par anticipation *", simple(["OUI", "NON"]), false)}{texte("ageMax", "Age max *", "saisie nombre")}</>)}
+          {texte("ageMax", "Age max *", "saisie nombre")}</>)}
+        {cadre("Catégorie de prêt", <>{choix("categorie", "Catégorie de prêt *", simple(o.categories))}{case_("tauxRegle", "Taux réglementé ou bonifié")}</>)}
       </div>
     </div>,
-    <div key="garanties" className="grille-deux">
+    <div key="retenues" className="pile"><div className="grille-deux">
       {cadre("Épargne obligatoire", <>{choix("epargneNature", "Nature", natures)}{texte("epargneValeur", "Valeur", "saisie code")}</>)}
       {cadre("Fonds de solidarité", <>{choix("solidariteNature", "Nature", natures)}{texte("solidariteValeur", "Valeur", "saisie code")}</>)}
-    </div>,
-    <div key="assurance">
       {cadre("Assurance", <>{choix("typeAssuranceId", "Type assurance", o.typesAssurance.map((t: { id: number; libelle: string }) => ({ v: String(t.id), l: t.libelle })))}
         {choix("assuranceNature", "Nature", natures)}{texte("assuranceValeur", "Valeur", "saisie code")}</>)}
-    </div>,
-    <div key="frais" className="pile">
-      <table className="grille">
+    </div>
+      <table className="grille" aria-label="Frais retenus au déblocage">
         <thead><tr><th scope="col">Type de frais</th><th scope="col">Nature</th><th scope="col" className="num">Valeur</th><th scope="col">Compte</th><th scope="col"><span className="sr-only">Retirer</span></th></tr></thead>
         <tbody>
           {frais.length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
@@ -110,8 +109,7 @@ export default function ProduitCredit({ listeOuverte = false }: { listeOuverte?:
       </table>
       <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setFrais([...frais, { ...LIGNE_FRAIS }])}>Ajouter un frais</button></div>
     </div>,
-    <div key="autres" className="grille-deux">
-      {cadre("Taux effectif global", <>{choix("categorie", "Catégorie de prêt *", simple(o.categories))}{case_("tauxRegle", "Taux réglementé ou bonifié")}</>)}
+    <div key="remboursement" className="grille-deux">
       {cadre("Pénalités", <>{texte("penaliteRetard", "Pénalité de retard (%)", "saisie code")}{texte("penaliteAnticipation", "Pénalité de remboursement anticipé (% des intérêts restant dus)", "saisie code")}</>)}
       {cadre("Remboursement", <>{choix("ordreId", "Ordre de remboursement", o.ordres.map((t: { id: number; libelle: string }) => ({ v: String(t.id), l: t.libelle })))}</>)}
       {cadre("Comptabilisation", <>{choix("modeleId", "Modèle", o.modeles.map((t: { id: number; libelle: string }) => ({ v: String(t.id), l: t.libelle })))}</>)}
@@ -133,9 +131,8 @@ export default function ProduitCredit({ listeOuverte = false }: { listeOuverte?:
         {pages[onglet]}
         <div className="actions-onglets">
           <button className="bouton secondaire" type="button" disabled={onglet === 0} onClick={() => setOnglet(onglet - 1)}>Précédent</button>
-          {onglet < ONGLETS.length - 1
-            ? <button className="bouton" type="button" onClick={() => setOnglet(onglet + 1)}>Suivant</button>
-            : <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>}
+          {onglet < ONGLETS.length - 1 && <button className="bouton secondaire" type="button" onClick={() => setOnglet(onglet + 1)}>Suivant</button>}
+          <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
         </div>
         <Textes sources={["Manuel Microfina++, p. 37 et 38 : pages Information de base, Garanties financières, Assurance, Frais, Autres informations ; Information de base (Minimum, Maximum, Identification, Intérêt, Types de client, Divers) ; liste des produits crédits (Numero, Produit, Type de client, Taux interet, Taux différé)",
           "Instr. BCC n°38 du 03/01/2019 (TEG) : art. 5 (taux réglementés ou bonifiés), 6 (composantes et catégories), 9 (épargne obligatoire), 11 (méthode dégressive), 14 (remboursement anticipé : au plus 50 % des intérêts restant dus)",
