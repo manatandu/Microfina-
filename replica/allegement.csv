@@ -38,7 +38,7 @@ id,lot,titre,ecrans,statut,question,reste
 1.13,1,Un clic suffit,S09 S125,fait,,
 1.14,1,Pagination,,fait,,
 1.15,1,Boutons qui ne font rien de plus,S19 S65 S104 S110 S126 S132 S133 S136,fait,,
-1.16,1,"Un mot par notion, le même partout",S42 S44 S46 S48 S49 S73,à faire,,
+1.16,1,"Un mot par notion, le même partout",S42 S44 S46 S48 S49 S73,partiel,,"Fait : Nature du client, Héritiers désignés, Arrêté de caisse. Reste : Versé par / Remis à, nantissement et dépôt de garantie, épargne obligatoire, identifiant de connexion, agent de crédit, membre ou client"
 1.17,1,Taux d'intérêt du crédit,S23 S25 S84 S95,fait,,
 1.18,1,"Pas de texte superflu (demande du porteur, 22/11/2026)",,partiel,,"Harmoniser la présentation d'un écran à l'autre (avec 1.6, titres)"
 2.1,2,Activité (l'exemple du porteur),S14 S21 S37 S38 S39 S46,à faire,,
