@@ -47,7 +47,7 @@ id,lot,titre,ecrans,statut,question,reste
 2.4,2,Civilité : supprimée,S14 S133,fait,,
 2.5,2,Groupe,S39,fait,,
 2.6,2,Membre effectif ou auxiliaire,,fait,,
-2.7,2,Type de pièce : page supprimée,,partiel,,Reste : le libellé unique « Pièce d'identité » partout
+2.7,2,Type de pièce : page supprimée,,fait,,
 2.8,2,Motifs de départ,S14 S18,fait,,
 2.9,2,Filiation,,fait,,
 2.10,2,Listes mal rangées,S47,partiel,oui,Fait : le type de guichet n'a plus de page de liste. Reste : les valeurs de départ des types de procuration (question au porteur)

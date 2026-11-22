@@ -227,7 +227,7 @@ export function ChampsRepresentant({ r, maj, ctx, qualite, exposee }: { r: Repre
         {qualite && <Champ libelle="Qualité ou pouvoir : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...t("qualite")} />}</Champ>}
         <ChampDate libelle="Date de naissance : *" valeur={r.naissance ?? ""} onChange={(v) => maj({ naissance: v })} requis />
         <Champ libelle="Lieu de naissance : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...t("lieuNaissance")} />}</Champ>
-        <Champ libelle="Type de pièce : *">{(p) => <select {...p} className="saisie" required value={r.pieceType} onChange={(e) => maj({ pieceType: e.target.value })}>
+        <Champ libelle="Pièce d'identité : *">{(p) => <select {...p} className="saisie" required value={r.pieceType} onChange={(e) => maj({ pieceType: e.target.value })}>
           <option value=""></option>{ctx.pieces.map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
         <Champ libelle="N° de pièce : *">{(p) => <input {...p} className="saisie code" required autoComplete="off" {...t("pieceNumero")} />}</Champ>
         <Champ libelle="Pays de délivrance :">{(p) => <select {...p} className="saisie" value={r.piecePays ?? ""} onChange={(e) => maj({ piecePays: e.target.value })}>

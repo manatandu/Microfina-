@@ -34,7 +34,7 @@ const OUT = process.argv[2];
     await z.getByLabel('Nom : *', { exact: true }).fill(nom); await z.getByLabel('Prénom : *', { exact: true }).fill(prenom);
     if (qualite) await z.getByLabel('Qualité ou pouvoir : *').fill(qualite);
     await z.getByLabel('Date de naissance : *').fill('02051980'); await z.getByLabel('Lieu de naissance : *').fill('Kinshasa');
-    await z.getByLabel('Type de pièce : *').selectOption(piece); await z.getByLabel('N° de pièce : *').fill(numero);
+    await z.getByLabel("Pièce d'identité : *").selectOption(piece); await z.getByLabel('N° de pièce : *').fill(numero);
     await z.getByLabel('Lieu de délivrance : *').fill('Kinshasa'); await z.getByLabel('Date de délivrance : *').fill('10012024');
     await z.getByLabel("Date d'expiration : *").fill('10012030'); await z.getByLabel('Autorité de délivrance : *').fill('DGM');
     await z.getByLabel('Province : *').selectOption('Kinshasa'); await z.getByLabel('Ville ou territoire : *').selectOption('Kinshasa');

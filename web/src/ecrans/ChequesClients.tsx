@@ -125,7 +125,7 @@ export function ChequesClients() {
               <legend>Autre info</legend>
               <div className="formulaire">
                 <Champ libelle="N° Pièce">{(p) => <input {...p} className="saisie code" autoComplete="off" value={f.pieceNumero} onChange={(e) => maj({ pieceNumero: e.target.value })} />}</Champ>
-                <Champ libelle="Type Pièce">{(p) => <select {...p} className="saisie" value={f.pieceType} onChange={(e) => maj({ pieceType: e.target.value })}>
+                <Champ libelle="Pièce d'identité">{(p) => <select {...p} className="saisie" value={f.pieceType} onChange={(e) => maj({ pieceType: e.target.value })}>
                   <option value=""></option>{ctx.pieces.map((x: string) => <option key={x}>{x}</option>)}</select>}</Champ>
                 <Champ libelle="Etablie à">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.etabliA} onChange={(e) => maj({ etabliA: e.target.value })} />}</Champ>
                 <ChampDate libelle="Date d'expiration" valeur={f.expire} onChange={(v) => maj({ expire: v })} />

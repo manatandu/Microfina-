@@ -293,7 +293,7 @@ function DetailClient({ t }: { t: Tiers }) {
             {t.type === "physique" ? <>
               {lu("Nom :", t.nom)}{lu("Post-nom :", t.postnom)}{lu("Prénom :", t.prenom)}{lu("Sexe :", t.sexe === "F" ? "Féminin" : t.sexe === "M" ? "Masculin" : "")}
               {lu("Date de naissance :", fr(t.naissance))}{lu("Lieu de naissance :", t.lieuNaissance)}{lu("Adresse :", t.adresse)}{lu("Téléphone :", t.telephone)}
-              {lu("Type de pièce :", t.pieceType)}{lu("N° de pièce :", t.pieceNumero)}{lu("Valide jusqu'au :", fr(t.pieceExpire))}
+              {lu("Pièce d'identité :", t.pieceType)}{lu("N° de pièce :", t.pieceNumero)}{lu("Valide jusqu'au :", fr(t.pieceExpire))}
             </> : <>
               {lu("Dénomination :", t.nom)}{lu("Forme juridique :", t.formeJuridique)}{lu(t.type === "groupe" ? "N° du registre ou de l'acte :" : "N° du registre :", t.registre)}
               {lu(t.type === "groupe" ? "Adresse :" : "Adresse du siège :", t.adresse)}{lu("Nature de l'activité :", t.activite)}
@@ -413,7 +413,7 @@ export function ValidationClientModifie() {
 
 /** Libellés des champs comparés dans « informations initiales et actuelles » */
 const CHAMPS_SUIVIS: [keyof Tiers, string][] = [["nom", "Nom"], ["postnom", "Post-nom"], ["prenom", "Prénom"], ["sexe", "Sexe"], ["naissance", "Date de naissance"],
-  ["lieuNaissance", "Lieu de naissance"], ["adresse", "Adresse"], ["telephone", "Téléphone"], ["pieceType", "Type de pièce"], ["pieceNumero", "N° de pièce"],
+  ["lieuNaissance", "Lieu de naissance"], ["adresse", "Adresse"], ["telephone", "Téléphone"], ["pieceType", "Pièce d'identité"], ["pieceNumero", "N° de pièce"],
   ["pieceExpire", "Valide jusqu'au"], ["typeClient", "Type Client"], ["zone", "Zone"], ["resident", "Résident"], ["preleverAgios", "Prelever Agios"],
   ["calculerInteret", "Calculer intéret"], ["personneExposee", "Personne politiquement exposée"], ["liees", "Personnes liées"]];
 const enTexte = (v: unknown) => (typeof v === "boolean" ? (v ? "Oui" : "Non") : Array.isArray(v) ? v.join(", ") : /^\d{4}-\d{2}-\d{2}$/.test(String(v ?? "")) ? fr(String(v)) : String(v ?? ""));
@@ -469,7 +469,7 @@ export function InformationsClient() {
             {t.type === "physique" ? <>
               {lu("Nom :", t.nom)}{lu("Post-nom :", t.postnom)}{lu("Prénom :", t.prenom)}{lu("Sexe :", t.sexe === "F" ? "Féminin" : t.sexe === "M" ? "Masculin" : "")}
               {lu("Date de naissance :", fr(t.naissance))}{lu("Lieu de naissance :", t.lieuNaissance)}{lu("Adresse :", t.adresse)}{lu("Téléphone :", t.telephone)}
-              {lu("Type de pièce :", t.pieceType)}{lu("N° de pièce :", t.pieceNumero)}{lu("Valide jusqu'au :", fr(t.pieceExpire))}
+              {lu("Pièce d'identité :", t.pieceType)}{lu("N° de pièce :", t.pieceNumero)}{lu("Valide jusqu'au :", fr(t.pieceExpire))}
             </> : <>
               {lu("Dénomination :", t.nom)}{lu("Forme juridique :", t.formeJuridique)}{lu("N° du registre :", t.registre)}{lu("Adresse :", t.adresse)}{lu("Nature de l'activité :", t.activite)}
             </>}
@@ -570,7 +570,7 @@ export function ResiliationClient() {
           {lu("Activité :", t?.typeActivite ?? "")}{lu("Secteur :", enClair(t?.secteurActivite ?? ""))}
           {lu(t?.type === "physique" ? "Nom :" : "Raison sociale :", t ? nomComplet(t) : "")}{t?.type !== "physique" && lu("RCCM :", t?.registre ?? "")}
           {lu("Créé le :", t ? fr(t.creeLe) : "")}{t?.type === "physique" && lu("Nationalité :", t?.nationalite ?? "")}
-          {lu("Type de pièce :", t?.pieceType ?? "")}{lu("Numéro de pièce :", t?.pieceNumero ?? "")}
+          {lu("Pièce d'identité :", t?.pieceType ?? "")}{lu("Numéro de pièce :", t?.pieceNumero ?? "")}
           {lu("Etabli à:", t?.pieceLieu ?? "")}{lu("Date dexpiration : *", t ? fr(t.pieceExpire) : "")}
           {t?.type === "groupe" && <>{lu("Type de Groupement :", t.typeClient)}{lu("Nombre d'Homme :", String(t.nbHommes))}{lu("Nombre de Femme :", String(t.nbFemmes))}</>}
         </fieldset>
@@ -818,7 +818,7 @@ export function Consentement() {
             <dl className="infos">
               {info("Intitulé client :", t ? t.intitule || nomComplet(t) : "")}{info("Téléphone :", t?.telephone ?? "")}{info("Adresse :", t?.adresse ?? "")}
               {info("Sexe :", t?.sexe ?? "")}{info("Email :", t?.email ?? "")}{info("Résident :", t ? (t.resident ? "Oui" : "Non") : "")}
-              {info("Type Pièce", t?.pieceType ?? "")}{info("N° de Pièce :", t?.pieceNumero ?? "")}{info("Pays de délivrance :", t?.pieceLieu ?? "")}
+              {info("Pièce d'identité", t?.pieceType ?? "")}{info("N° de Pièce :", t?.pieceNumero ?? "")}{info("Pays de délivrance :", t?.pieceLieu ?? "")}
               {info("Date de délivrance :", t ? fr(t.pieceDelivreeLe) : "")}{info("Date d'expiration :", t ? fr(t.pieceExpire) : "")}
             </dl>
           </fieldset>
