@@ -89,7 +89,18 @@ def enregistrer_monnaie(u, d, actuelle: tuple[str, int] | None = None) -> dict:
     brute, devise, tid = d.get("valeur"), texte(d, "devise"), d.get("typeId")
     brute = str(brute).strip().replace(",", ".") if brute not in (None, "") and not isinstance(brute, bool) else ""
     tid = tid if isinstance(tid, int) and not isinstance(tid, bool) else None
-    manque = [n for n, v in (("Valeur fiduciaire", brute), ("Type de Monnaie", tid), ("Devise", devise)) if not v]
+    nature = texte(d, "nature")
+    if tid is None and nature:   # Coupures : devise, billet ou pièce, valeur ; le libellé se compose seul (plan d'allègement, point 2.23)
+        if nature not in ("Billet", "Pièce"):
+            raise ErreurMetier("Nature : billet ou pièce.")
+        if brute and devise:
+            try:
+                lib = f"{nature} de {format(Decimal(brute).normalize(), 'f').replace('.', ',')} {devise}"
+            except InvalidOperation:
+                lib = ""
+            if lib:
+                tid = valeur("select id from type_monnaie where lower(libelle) = lower(%s)", (lib,)) or valeur("insert into type_monnaie (libelle) values (%s) returning id", (lib,))
+    manque = [n for n, v in (("Valeur fiduciaire", brute), ("Billet ou pièce" if nature or tid is None else "Type de Monnaie", tid), ("Devise", devise)) if not v]
     if manque:
         raise ErreurMetier("À remplir : " + ", ".join(manque) + ".")
     dv = une("select code, subdivision from devise where code = %s", (devise,))

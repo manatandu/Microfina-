@@ -198,11 +198,10 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('02f25-jours-feries');
   // Chef : devises, types de monnaie, monnaies (S35, p. 45 et 46) : la pièce de 50 centimes du franc congolais
   await aller('/parametrage/s35'); await p.getByRole('cell', { name: 'Franc congolais' }).waitFor(); await etape('02f26-devises');
-  await p.getByRole('tab', { name: 'Types de coupures' }).click(); await p.getByLabel('Type de Monnaie:').fill('Pièce de 50 centimes');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Pièce de 50 centimes' }).waitFor();
-  await p.getByRole('tab', { name: 'Coupures', exact: true }).click(); await p.getByLabel('Valeur fiduciaire:').fill('0,50');
-  await p.getByLabel('Type de Monnaie :').selectOption({ label: 'Pièce de 50 centimes' }); await p.getByLabel('Devise :').selectOption('CDF');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: '0,5', exact: true }).waitFor(); await etape('02f27-monnaies');
+  // Coupures : devise, billet ou pièce, valeur ; le libellé se compose seul (plan d'allègement, point 2.23)
+  await p.getByRole('tab', { name: 'Coupures', exact: true }).click(); await p.getByLabel('Billet ou pièce :').selectOption('Pièce'); await p.getByLabel('Valeur fiduciaire:').fill('0,50');
+  await p.getByLabel('Devise :').selectOption('CDF');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Pièce de 0,5 CDF' }).waitFor(); await etape('02f27-monnaies');
   await p.getByRole('tab', { name: 'Cours', exact: true }).click(); await p.getByLabel('Cours (CDF pour une unité) :').waitFor(); await p.getByLabel('Devise :').selectOption('USD'); await p.getByLabel('Date :').fill('05/11/2026');
   await p.getByLabel('Cours (CDF pour une unité) :').fill('2850'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: '05/11/2026' }).waitFor(); await etape('02f28-cours');

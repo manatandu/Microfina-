@@ -2410,7 +2410,7 @@ def test_jours_travail_feries(clients):
 
 
 def test_devises_monnaies(clients):
-    """S35 (p. 45 et 46) : Devise, Code, Unité, Subdivision ; Type de Monnaie ; Valeur fiduciaire, Type de Monnaie, Devise ;
+    """S35 (p. 45 et 46) : Devise, Code, Unité, Subdivision ; Type de Monnaie ; Valeur fiduciaire, Billet ou pièce, Devise ;
     franc congolais : FC et cent centimes (D.-L. 080/1998, art. 1 et 2) ; registre S35-1 à S35-4"""
     chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
     l = chef.get("/api/devises", **H).json()
@@ -2431,7 +2431,7 @@ def test_devises_monnaies(clients):
     assert "Type de Monnaie" in refus("/api/types-monnaie", {"libelle": " "})
     assert "existe déjà" in refus("/api/types-monnaie", {"libelle": "billet de 500"})
     t = chef.post("/api/types-monnaie", {"libelle": "Pièce de 50 centimes"}, **H).json()["types"][-1]
-    assert "Valeur fiduciaire, Type de Monnaie, Devise" in refus("/api/monnaies", {})
+    assert "Valeur fiduciaire, Billet ou pièce, Devise" in refus("/api/monnaies", {})
     assert "deux décimales" in refus("/api/monnaies", {"valeur": "0.505", "typeId": t["id"], "devise": "CDF"})
     assert "existe déjà" in refus("/api/monnaies", {"valeur": 500, "typeId": t["id"], "devise": "CDF"})
     m = chef.post("/api/monnaies", {"valeur": "0,50", "typeId": t["id"], "devise": "CDF"}, **H).json()["monnaies"]

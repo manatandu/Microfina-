@@ -10111,11 +10111,20 @@ const devises = {
     enregistrer(); return devises.lire();
   },
   /** Enregistrement de monnaies : Valeur fiduciaire, Type de Monnaie, Devise (registre S35-3) ; une monnaie qui a servi garde sa valeur et sa devise */
-  enregistrerMonnaie(d: { valeur?: number | string; typeId?: number | null; devise?: string }, actuelle?: { devise: string; valeur: number }) {
+  enregistrerMonnaie(d: { valeur?: number | string; typeId?: number | null; devise?: string; nature?: string }, actuelle?: { devise: string; valeur: number }) {
     exiger("chef_agence");
     const brut = d.valeur === undefined || d.valeur === null ? "" : String(d.valeur).trim().replace(",", ".");
-    const devise = txt(d.devise), typeId = typeof d.typeId === "number" ? d.typeId : null;
-    const manque = manquants([["Valeur fiduciaire", brut], ["Type de Monnaie", typeId ? "x" : ""], ["Devise", devise]]);
+    const devise = txt(d.devise), nature = txt(d.nature);
+    let typeId = typeof d.typeId === "number" ? d.typeId : null;
+    if (typeId === null && nature) {   // Coupures : devise, billet ou pièce, valeur ; le libellé se compose seul (plan d'allègement, point 2.23 ; comme devises.py)
+      if (!["Billet", "Pièce"].includes(nature)) throw new ErreurMetier("Nature : billet ou pièce.");
+      if (brut && devise && Number.isFinite(Number(brut))) {
+        const lib = `${nature} de ${String(Number(brut)).replace(".", ",")} ${devise}`;
+        typeId = E.typesMonnaie.find((x) => x.libelle.toLowerCase() === lib.toLowerCase())?.id ?? null;
+        if (typeId === null) { typeId = prochainSans("type_monnaie", E.typesMonnaie); E.typesMonnaie.push({ id: typeId, libelle: lib }); }
+      }
+    }
+    const manque = manquants([["Valeur fiduciaire", brut], [nature || typeId === null ? "Billet ou pièce" : "Type de Monnaie", typeId ? "x" : ""], ["Devise", devise]]);
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
     const dv = E.devises.find((x) => x.code === devise);
     if (!dv) throw new ErreurMetier("Devise inconnue.");

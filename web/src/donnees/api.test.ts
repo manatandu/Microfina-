@@ -1903,7 +1903,7 @@ describe("journée de guichet", () => {
     await expect(api.devises.enregistrerDevise({ ...E, code: "EUA" }, "EUR")).rejects.toThrow("ne se modifie pas");
     await expect(api.devises.enregistrerType({ libelle: "billet de 500" })).rejects.toThrow("existe déjà");
     const t = (await api.devises.enregistrerType({ libelle: "Pièce de 50 centimes" })).types.at(-1)!;
-    await expect(api.devises.enregistrerMonnaie({})).rejects.toThrow("Valeur fiduciaire, Type de Monnaie, Devise");
+    await expect(api.devises.enregistrerMonnaie({})).rejects.toThrow("Valeur fiduciaire, Billet ou pièce, Devise");
     await expect(api.devises.enregistrerMonnaie({ valeur: "0.505", typeId: t.id, devise: "CDF" })).rejects.toThrow("deux décimales");
     await expect(api.devises.enregistrerMonnaie({ valeur: 500, typeId: t.id, devise: "CDF" })).rejects.toThrow("existe déjà");
     expect((await api.devises.enregistrerMonnaie({ valeur: "0,50", typeId: t.id, devise: "CDF" })).monnaies).toContainEqual({ devise: "CDF", valeur: 0.5, typeId: t.id, libelle: "Pièce de 50 centimes" });

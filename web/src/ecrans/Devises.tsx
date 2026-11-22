@@ -6,7 +6,7 @@ import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite } from "../c
 import { fr } from "../lib/dates";
 import { definirMonnaies } from "@design/montant.js";
 
-const PAGES = [["devise", "Devise", "Enregistrement des devises"], ["type", "Types de coupures", "Enregistrer un type de monnaies"], ["sous", "Coupures", "Enregistrement de monnaies"],
+const PAGES = [["devise", "Devise", "Enregistrement des devises"], ["sous", "Coupures", "Enregistrement de monnaies"],
   ["cours", "Cours", "Cours du jour"]] as const;
 type Devise = { code: string; libelle: string; unite: string; subdivision: number };
 type Monnaie = { devise: string; valeur: number; typeId: number; libelle: string };
@@ -26,7 +26,6 @@ export default function Devises() {
           onClick={() => setParams(p === "devise" ? {} : { page: p })}>{nom}</button>)}
       </div>
       {page[0] === "devise" && <PageDevise />}
-      {page[0] === "type" && <PageType />}
       {page[0] === "sous" && <PageSous />}
       {page[0] === "cours" && <PageCours />}
     </>
@@ -91,46 +90,29 @@ function PageDevise() {
   );
 }
 
-function PageType() {
-  const [libelle, setLibelle] = useState("");
-  const [choisi, setChoisi] = useState<number | null>(null);
-  const { donnees, boite, fermer, confirmer } = useVolet();
-  if (!donnees) return <Chargement />;
-  const annuler = () => { setLibelle(""); setChoisi(null); };
-  return (
-    <Volet id="type" boite={boite} fermer={fermer} annuler={annuler}
-      champs={<Champ libelle="Type de Monnaie:">{(p) => <input {...p} className="saisie" value={libelle} onChange={(e) => setLibelle(e.target.value)} />}</Champ>}
-      enregistrer={() => confirmer(choisi !== null, () => api.devises.enregistrerType({ libelle }, choisi ?? undefined), annuler)}
-      grille={<table className="grille">
-        <thead><tr><th scope="col">Type de Monnaie</th></tr></thead>
-        <tbody>{donnees.types.map((t) => ligne(String(t.id), t.id === choisi, () => { setChoisi(t.id); setLibelle(t.libelle); }, <td>{t.libelle}</td>))}</tbody>
-      </table>}
-      sources={[`${MANUEL} ; capture « Enregistrer un type de monnaies » : Type de Monnaie, Enregistrer, Annuler ; grille Type de Monnaie (Piece de 1 … Billet de 5000)`]} />
-  );
-}
-
 function PageSous() {
-  const VIDE = { valeur: "", typeId: "", devise: "" };
+  const VIDE = { valeur: "", nature: "", devise: "", typeId: "" };
   const [f, setF] = useState(VIDE);
   const [choisie, setChoisie] = useState<{ devise: string; valeur: number } | null>(null);
   const { donnees, boite, fermer, confirmer } = useVolet();
   if (!donnees) return <Chargement />;
   const annuler = () => { setF(VIDE); setChoisie(null); };
-  const envoi = { valeur: f.valeur, typeId: f.typeId ? Number(f.typeId) : null, devise: f.devise };
+  // Devise, billet ou pièce, valeur : le libellé se compose seul (« Billet de 50 CDF ») ; une coupure existante garde son libellé (plan d'allègement, point 2.23)
+  const envoi = f.typeId ? { valeur: f.valeur, typeId: Number(f.typeId), devise: f.devise } : { valeur: f.valeur, nature: f.nature, devise: f.devise };
   return (
     <Volet id="sous" boite={boite} fermer={fermer} annuler={annuler}
       champs={<>
+        <Champ libelle="Billet ou pièce :">{(p) => <select {...p} className="saisie" value={f.typeId ? "" : f.nature} disabled={!!f.typeId} onChange={(e) => setF({ ...f, nature: e.target.value })}>
+          <option value=""></option><option>Billet</option><option>Pièce</option></select>}</Champ>
         <Champ libelle="Valeur fiduciaire:">{(p) => <input {...p} className="saisie code" inputMode="decimal" value={f.valeur} onChange={(e) => setF({ ...f, valeur: e.target.value })} />}</Champ>
-        <Champ libelle="Type de Monnaie :">{(p) => <select {...p} className="saisie" value={f.typeId} onChange={(e) => setF({ ...f, typeId: e.target.value })}>
-          <option value=""></option>{donnees.types.map((t) => <option key={t.id} value={t.id}>{t.libelle}</option>)}</select>}</Champ>
         <Champ libelle="Devise :">{(p) => <select {...p} className="saisie" value={f.devise} onChange={(e) => setF({ ...f, devise: e.target.value })}>
           <option value=""></option>{donnees.devises.map((d) => <option key={d.code} value={d.code}>{d.code}</option>)}</select>}</Champ></>}
       enregistrer={() => confirmer(choisie !== null, () => api.devises.enregistrerMonnaie(envoi, choisie ?? undefined), annuler)}
       grille={<table className="grille">
-        <thead><tr><th scope="col">Valeur fiduciaire</th><th scope="col">Libellé complète</th><th scope="col">Type de Monnaie</th><th scope="col">Devise</th></tr></thead>
+        <thead><tr><th scope="col">Valeur fiduciaire</th><th scope="col">Libellé</th><th scope="col">Devise</th></tr></thead>
         <tbody>{donnees.monnaies.map((m) => ligne(`${m.devise}-${m.valeur}`, choisie?.devise === m.devise && choisie.valeur === m.valeur,
-          () => { setChoisie({ devise: m.devise, valeur: m.valeur }); setF({ valeur: valeurFr(m.valeur), typeId: String(m.typeId), devise: m.devise }); },
-          <><td className="chiffres">{valeurFr(m.valeur)}</td><td>{m.libelle}</td><td>{m.libelle}</td><td>{m.devise}</td></>))}</tbody>
+          () => { setChoisie({ devise: m.devise, valeur: m.valeur }); setF({ valeur: valeurFr(m.valeur), nature: "", typeId: String(m.typeId), devise: m.devise }); },
+          <><td className="chiffres">{valeurFr(m.valeur)}</td><td>{m.libelle}</td><td>{m.devise}</td></>))}</tbody>
       </table>}
       sources={[`${MANUEL} ; capture « Enregistrement de monnaies » : Valeur fiduciaire, Type de Monnaie, Devise, Enregistrer, Annuler ; grille Valeur fiduciaire, Libellé complète (celui du type de monnaie sur la capture), Type de Monnaie, Devise`]} />
   );

@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**985 décisions.** Solidité : 440 fortes (le manuel ou un texte répond), 463 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 978 déjà en place, 7 à appliquer.
+**986 décisions.** Solidité : 441 fortes (le manuel ou un texte répond), 463 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 979 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2187,6 +2187,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S21-9 | Activité et objet du crédit | Une seule liste « Activité » sur la fiche (les types de la capture qui redisaient des domaines sont retirés ; restent les 14 domaines du ROME/RDC et les activités ajoutées par l'institution) ; le secteur s'en déduit et s'affiche en lecture, il reste un critère des rapports. L'onglet « Type Objet » disparaît ; l'objet du crédit reprend la catégorisation des produits de l'Instr. BCC 38, art. 6 (prêt à la consommation, prêt commercial, crédit de trésorerie, prêt d'investissement), l'institution peut en ajouter et marquer l'objet interdit de souscription de parts ; la mise en place reçoit un « Usage précis » libre. L'état annexe des crédits par secteur lit le secteur de l'emprunteur | Choix du porteur : Plan d'allègement, point 2.1 ; Instr. BCC 38, art. 6 (lu) ; Instr. BCC 15, art. 13 (lu) | forte | en place |
+
+## S35 Devises et coupures
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S35-7 | Coupures | Les onglets « Types de coupures » et « Coupures » deviennent « Coupures » : devise, billet ou pièce, valeur ; le libellé se compose seul (« Pièce de 0,5 CDF », « Billet de 50 CDF »). Une coupure existante garde son libellé | Choix du porteur : Plan d'allègement, point 2.23 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 
