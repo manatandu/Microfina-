@@ -631,4 +631,5 @@ export interface ImmoBien {
   dateAcquisition: string; dureeVie: number; utilisationId: number; localisationId: number; dateMiseService: string; fournisseurId: number | null; factureId: number | null;
   montantTtc: number; tva: number; prixAcquisition: number; amortissable: boolean; subventionne: boolean; immatriculation: string; chassis: string; carburant: string;
   titreFoncier: string; description: string; statut: "LIBRE" | "AFFECTE" | "SORTI"; detenteurId: number | null; creePar: number;
+  autorisationBcc?: string;   // Instr. BCC 41, art. 33 : acquisition au-delà de 10 % des fonds propres de base
 }

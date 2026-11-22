@@ -9054,11 +9054,15 @@ const immobilisations = {
     const ttc = ent("montantTtc")!, taux = ut.tvaApplicable && ut.tva ? Number(String(ut.tva).replace(",", ".")) : 0, tva = Math.round(ttc * taux / (100 + taux));
     const opt = (k: "immatriculation" | "chassis" | "carburant" | "titreFoncier" | "description") => (f[k] ? t(k) : "");
     const ancien = id === undefined ? undefined : bienImmo(id);
+    // Acquisition d'un actif patrimonial au-delà de 10 % des fonds propres de base : autorisation préalable de la BCC (Instr. BCC 41, art. 33), comme la cession
+    const autorisationBcc = t("autorisationBcc");
+    if (!autorisationBcc) { const { s, resultat, anterieurs } = soldesEf(j.date, Number(j.date.slice(0, 4)), true);
+      if ((ttc - tva) * 10 > Math.max(fondsPropresNormes(s, resultat + anterieurs).base, 0)) throw new ErreurMetier("Acquisition au-delà de 10 % des fonds propres de base : à remplir, Autorisation BCC (Instr. BCC 41, art. 33)."); }
     const b: ImmoBien = { id: ancien?.id ?? prochain(E.immoBiens), actif: true, numeroPiece: ancien?.numeroPiece ?? piece("OD"), dateOperation: ancien?.dateOperation ?? j.date,
       codification: t("codification"), refConstructeur: t("refConstructeur"), categorieId: ent("categorieId")!, familleId: f.id, libelle: t("libelle"), dateAcquisition: t("dateAcquisition"),
       dureeVie: ent("dureeVie")!, utilisationId: ut.id, localisationId: ent("localisationId")!, dateMiseService: t("dateMiseService"), fournisseurId: ent("fournisseurId"), factureId: ent("factureId"),
       montantTtc: ttc, tva, prixAcquisition: ttc - tva, amortissable: d.amortissable !== false, subventionne: d.subventionne === true, immatriculation: opt("immatriculation"), chassis: opt("chassis"),
-      carburant: opt("carburant"), titreFoncier: opt("titreFoncier"), description: opt("description"), statut: ancien?.statut ?? "LIBRE", detenteurId: ancien?.detenteurId ?? null, creePar: ancien?.creePar ?? u.id };
+      carburant: opt("carburant"), titreFoncier: opt("titreFoncier"), description: opt("description"), autorisationBcc, statut: ancien?.statut ?? "LIBRE", detenteurId: ancien?.detenteurId ?? null, creePar: ancien?.creePar ?? u.id };
     if (ancien) Object.assign(ancien, b); else E.immoBiens.push(b);
     enregistrer(); return vueBien(b);
   },

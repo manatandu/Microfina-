@@ -97,7 +97,7 @@ def vue(u, b: dict) -> dict:
             "dateAcquisition": b["date_acquisition"].isoformat(), "dureeVie": b["duree_vie"], "utilisationId": b["utilisation_id"], "localisationId": b["localisation_id"],
             "localisation": loc["libelle"], "dateMiseService": b["date_mise_service"].isoformat(), "fournisseurId": b["fournisseur_id"], "factureId": b["facture_id"],
             "montantTtc": b["montant_ttc"], "tva": b["tva"], "prixAcquisition": b["prix_acquisition"], "amortissable": b["amortissable"], "subventionne": b["subventionne"],
-            "immatriculation": b["immatriculation"], "chassis": b["chassis"], "carburant": b["carburant"], "titreFoncier": b["titre_foncier"], "description": b["description"],
+            "immatriculation": b["immatriculation"], "chassis": b["chassis"], "carburant": b["carburant"], "titreFoncier": b["titre_foncier"], "description": b["description"], "autorisationBcc": b.get("autorisation_bcc") or "",
             "statut": b["statut"], "detenteurId": b["detenteur_id"], "detenteur": f"{det['matricule']} {det['nom']} {det['prenoms']}" if det else "",
             "departement": det["fonction"] if det else "", "systeme": f["systeme"], "periodicite": f["periodicite"],
             "comptes": {k: f[c] for k, c in (("acquisition", "compte_acquisition"), ("dotation", "compte_dotation"), ("amortissement", "compte_amortissement"),
@@ -157,6 +157,16 @@ def valider(u, d: dict, bid: int | None) -> dict:
          "amortissable": d.get("amortissable") is not False, "subventionne": d.get("subventionne") is True}
     for k, c in (("immatriculation", "immatriculation"), ("chassis", "chassis"), ("carburant", "carburant"), ("titreFoncier", "titre_foncier"), ("description", "description")):
         v[c] = t(k) if f[c] else ""
+    # Acquisition d'un actif patrimonial au-delà de 10 % des fonds propres de base : autorisation préalable de la BCC (Instr. BCC 41, art. 33), comme la cession
+    v["autorisation_bcc"] = t("autorisationBcc")
+    if not v["autorisation_bcc"]:
+        from .etats_financiers import soldes
+        from .normes import fonds_propres
+        j = journee_courante(u)
+        jd = date.fromisoformat(j["date"]) if j else date.today()
+        s, res, ant = soldes(u, jd, jd.year, vidage=True)
+        if v["prix_acquisition"] * 10 > max(fonds_propres(s, res + ant)["base"], 0):
+            raise ErreurMetier("Acquisition au-delà de 10 % des fonds propres de base : à remplir, Autorisation BCC (Instr. BCC 41, art. 33).")
     return v
 
 

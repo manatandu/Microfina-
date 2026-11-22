@@ -1400,7 +1400,8 @@ const OUT = process.argv[2];
   await p.getByLabel('Codification *').fill('MAB-001'); await p.getByLabel('Catégorie : *').selectOption({ label: 'MAB MATERIEL DE BUREAU' }); await p.getByLabel('Famille *').selectOption({ label: 'Petit matériel de bureau' });
   await p.getByLabel('Libellé Bien *').fill('Ordinateur'); await p.getByLabel('Date Acquisition *').fill('01072026'); await p.getByLabel('Durée de vie *').fill('3');
   await p.getByLabel('Utilisation *').selectOption({ label: 'ENT ENTREPRISE' }); await p.getByLabel('Localisation *').selectOption({ label: '10.DG.01 Bureau Directeur Général' });
-  await p.getByLabel('Montant TTC *').fill('1000000'); await p.getByLabel('Date mise en service *').fill('15072026'); await etape('32c-creation-bien');
+  await p.getByLabel('Montant TTC *').fill('1000000'); await p.getByLabel('Date mise en service *').fill('15072026');
+  await p.getByLabel('Autorisation BCC (au-delà de 10 % des fonds propres de base)').fill('BCC/DSIF/2026/044'); await etape('32c-creation-bien');   // Instr. BCC 41, art. 33
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('button', { name: 'Tableau amortissement' }).click(); await p.getByRole('dialog', { name: 'Tableau amortissement' }).getByRole('cell', { name: '143 678' }).first().waitFor();   // base hors TVA : 1 000 000 / 1,16 (utilisation ENT, TVA 16 %)
   await etape('32d-tableau-amortissement'); await p.keyboard.press('Escape');

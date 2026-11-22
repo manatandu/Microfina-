@@ -71,7 +71,7 @@ export function CreationBien() {
     utilisationId: v("utilisationId") ? Number(v("utilisationId")) : null, localisationId: v("localisationId") ? Number(v("localisationId")) : null, dateMiseService: v("dateMiseService"),
     fournisseurId: v("fournisseurId") ? Number(v("fournisseurId")) : null, factureId: v("factureId") ? Number(v("factureId")) : null, montantTtc: v("montantTtc") ? Number(v("montantTtc")) : null,
     amortissable: v("amortissable") === "oui", subventionne: v("subventionne") === "oui", immatriculation: v("immatriculation"), chassis: v("chassis"), carburant: v("carburant"),
-    titreFoncier: v("titreFoncier"), description: v("description") });
+    titreFoncier: v("titreFoncier"), description: v("description"), autorisationBcc: v("autorisationBcc") });
   const sel = (k: string, l: string, o: { id: number; libelle: string }[], req = true) => <Champ libelle={`${l}${req ? " *" : ""}`}>{(p) => <select {...p} className="saisie" value={v(k)} onChange={(e) => maj(k, e.target.value)}>
     <option value=""></option>{o.map((x) => <option key={x.id} value={String(x.id)}>{x.libelle}</option>)}</select>}</Champ>;
   const txt = (k: string, l: string, req = false) => <Champ libelle={`${l}${req ? " *" : ""}`}>{(p) => <input {...p} className="saisie" value={v(k)} onChange={(e) => maj(k, e.target.value)} />}</Champ>;
@@ -89,6 +89,7 @@ export function CreationBien() {
         {sel("utilisationId", "Utilisation", ctx.utilisations)}{sel("localisationId", "Localisation", ctx.localisations)}
         {fam?.immatriculation && txt("immatriculation", "Immatriculation")}{fam?.chassis && txt("chassis", "N°chassis")}{fam?.carburant && txt("carburant", "Carburant")}
         {fam?.titreFoncier && txt("titreFoncier", "Ref. titre foncier")}{fam?.description && txt("description", "Description")}
+        {txt("autorisationBcc", "Autorisation BCC (au-delà de 10 % des fonds propres de base)")}
       </fieldset>
       <fieldset className="cadre-champs formulaire"><legend className="sr-only">Acquisition</legend>
         {sel("fournisseurId", "Fournisseur", ctx.fournisseurs, false)}

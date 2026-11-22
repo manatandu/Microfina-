@@ -4969,11 +4969,13 @@ def test_immobilisations(clients, journee):
     loc = ident_(ok(f"{R}/localisations", {"code": "10.DG.01", "libelle": "Bureau Directeur Général"}), "code", "10.DG.01")
     loc2 = ident_(ok(f"{R}/localisations", {"code": "10.DG.02", "libelle": "Salle d'attente"}), "code", "10.DG.02")
     B = {"codification": "MAB-001", "categorieId": cat, "familleId": fam, "libelle": "Ordinateur", "dateAcquisition": "2026-07-01", "dureeVie": 3, "utilisationId": ut,
-         "localisationId": loc, "dateMiseService": "2026-07-15", "montantTtc": 1160000, "amortissable": True, "subventionne": False}
+         "localisationId": loc, "dateMiseService": "2026-07-15", "montantTtc": 1160000, "amortissable": True, "subventionne": False, "autorisationBcc": "BCC/DSIF/2026/044"}
     assert "Codification" in msg("/api/immobilisations/biens", {})
+    assert "Acquisition au-delà de 10 %" in msg("/api/immobilisations/biens", {**B, "autorisationBcc": ""})     # Instr. BCC 41, art. 33 : acquisition comme cession
     assert "entre 1 et 10" in msg("/api/immobilisations/biens", {**B, "dureeVie": 12})
     b = ok("/api/immobilisations/biens", B)
     assert (b["tva"], b["prixAcquisition"], b["statut"], bool(b["numeroPiece"])) == (160000, 1000000, "LIBRE", True)
+    assert b["autorisationBcc"] == "BCC/DSIF/2026/044"
     assert "existe déjà" in msg("/api/immobilisations/biens", {**B, "codification": "mab-001"})
     t = compta.get(f"/api/immobilisations/biens/{b['id']}/tableau", **H).json()
     assert [(x["exercice"], x["dotation"]) for x in t] == [(2026, 166667), (2027, 333333), (2028, 333333), (2029, 166667)]

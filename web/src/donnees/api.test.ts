@@ -3663,8 +3663,9 @@ describe("journée de guichet", () => {
     const loc = id(await R.enregistrer("localisations", { code: "10.DG.01", libelle: "Bureau Directeur Général" }), "code", "10.DG.01");
     const loc2 = id(await R.enregistrer("localisations", { code: "10.DG.02", libelle: "Salle d'attente" }), "code", "10.DG.02");
     const B = { codification: "MAB-001", categorieId: cat, familleId: fam, libelle: "Ordinateur", dateAcquisition: "2026-07-01", dureeVie: 3, utilisationId: ut, localisationId: loc,
-      dateMiseService: "2026-07-15", montantTtc: 1160000, amortissable: true, subventionne: false };
+      dateMiseService: "2026-07-15", montantTtc: 1160000, amortissable: true, subventionne: false, autorisationBcc: "BCC/DSIF/2026/044" };
     await expect(api.immobilisations.enregistrer({})).rejects.toThrow("Codification");
+    await expect(api.immobilisations.enregistrer({ ...B, autorisationBcc: "" })).rejects.toThrow("Acquisition au-delà de 10 %");   // Instr. BCC 41, art. 33 : acquisition comme cession
     await expect(api.immobilisations.enregistrer({ ...B, dureeVie: 12 })).rejects.toThrow("entre 1 et 10");
     const b = await api.immobilisations.enregistrer(B);
     expect([b.tva, b.prixAcquisition, b.statut, !!b.numeroPiece]).toEqual([160000, 1000000, "LIBRE", true]);
