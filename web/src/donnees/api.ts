@@ -4422,7 +4422,7 @@ function couvertureRapport(c: CreditPret, d: string) {
 }
 const enCoursRapport = (p: CriteresRapport, d: string) => creditsRapport(p, d).map((c) => ({ c, s: etatCredit(c, d), l: ligneVisa(c) }))
   .filter(({ c, s }) => s.capitalRestant > 0 && !(c.statut === "passe_en_perte" && (c.radieLe ?? "") <= d));
-const ORDRES_RAPPORT: Record<string, string> = { produit: "Produit", agent: "Agent crédit", degre: "Degré", sexe: "Sexe" };
+const ORDRES_RAPPORT: Record<string, string> = { produit: "Produit", agent: "Agent de crédit", degre: "Degré", sexe: "Sexe" };
 const jourRapport = () => journees.courante()?.date ?? new Date().toISOString().slice(0, 10);
 const pctRapport = (a: number, b: number) => (b ? Math.round(a * 10000 / b) / 100 : null);
 function soldesRapport(du: string | null, au: string) {
@@ -4455,7 +4455,7 @@ const rapportsCredit: Record<string, (p: CriteresRapport) => Rapport> = {
   },
   base(p) {
     const [du, au] = periodeRapport(p);
-    return { colonnes: colRapport(["N° crédit", "code"], ["N°Membre", "code"], ["Intitulé", "texte"], ["Produit", "texte"], ["Agent crédit", "texte"], ["Date déblocage", "date"], ["Durée", "nombre"],
+    return { colonnes: colRapport(["N° crédit", "code"], ["N°Membre", "code"], ["Intitulé", "texte"], ["Produit", "texte"], ["Agent de crédit", "texte"], ["Date déblocage", "date"], ["Durée", "nombre"],
       ["Taux", "texte"], ["Montant prêt", "montant"], ["Capital restant", "montant"], ["Statut", "texte"]),
       lignes: creditsRapport(p, au).filter((c) => c.debloqueLe >= du).map((c) => { const l = ligneVisa(c), s = etatCredit(c, au);
         return { v: [c.numero, membreDe(c.tiersId), l.client, l.produit, l.agent, c.debloqueLe, c.duree, String(c.tauxInteret ?? "").replace(".", ","), c.montant, s.capitalRestant, STATUTS_RAPPORT[c.statut]!], devise: c.devise }; }) };
@@ -4470,7 +4470,7 @@ const rapportsCredit: Record<string, (p: CriteresRapport) => Rapport> = {
       return { colonnes: colRapport([ORDRES_RAPPORT[ordre]!, "texte"], ["Nombre", "nombre"], ["Montant prêt", "montant"], ["Capital restant", "montant"]),
         lignes: [...g.values()].sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1])).map(([k, dv, n, m, r]) => ({ v: [k, n, m, r], devise: dv })) };
     }
-    return { colonnes: colRapport(["N° crédit", "code"], ["N°Membre", "code"], ["Intitulé", "texte"], ["Sexe", "texte"], ["Produit", "texte"], ["Agent crédit", "texte"], ["Montant prêt", "montant"],
+    return { colonnes: colRapport(["N° crédit", "code"], ["N°Membre", "code"], ["Intitulé", "texte"], ["Sexe", "texte"], ["Produit", "texte"], ["Agent de crédit", "texte"], ["Montant prêt", "montant"],
       ["Capital restant", "montant"], ["Jours retard", "nombre"], ["Degré", "texte"]),
       lignes: rows.map((x) => ({ v: [x.c.numero, membreDe(x.c.tiersId), x.l.client, x.sexe, x.l.produit, x.l.agent, x.c.montant, x.s.capitalRestant, x.s.joursRetard, x.s.degreLibelle], devise: x.c.devise })) };
   },
@@ -4492,7 +4492,7 @@ const rapportsCredit: Record<string, (p: CriteresRapport) => Rapport> = {
     const [du, au] = periodeRapport(p), g = new Map<string, [string, string, number, number]>();
     for (const c of creditsRapport(p, au)) { const ag = ligneVisa(c).agent;
       for (const { e, paye } of couvertureRapport(c, au)) if (e.date >= du && e.date <= au) { const cle = `${ag}\u0000${c.devise}`, t = g.get(cle) ?? [ag, c.devise, 0, 0]; t[2] += e.capital + e.interet; t[3] += paye; g.set(cle, t); } }
-    return { colonnes: colRapport(["Agent crédit", "texte"], ["Montant échu", "montant"], ["Montant remboursé", "montant"], ["Impayé", "montant"], ["Taux de remboursement", "taux"]),
+    return { colonnes: colRapport(["Agent de crédit", "texte"], ["Montant échu", "montant"], ["Montant remboursé", "montant"], ["Impayé", "montant"], ["Taux de remboursement", "taux"]),
       lignes: [...g.values()].sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1])).map(([a, dv, e, r]) => ({ v: [a, e, r, e - r, e ? Math.round(r * 10000 / e) / 100 : 0], devise: dv })) };
   },
   previsionnel(p) {
@@ -4515,7 +4515,7 @@ const rapportsCredit: Record<string, (p: CriteresRapport) => Rapport> = {
     for (const c of creditsRapport(p, au).filter((x) => x.statut === "debloque")) { const l = ligneVisa(c);
       for (const { e, paye } of couvertureRapport(c, jour)) { const reste = e.capital + e.interet - paye;
         if (e.date >= du && e.date <= au && reste > 0) lignes.push({ v: [c.numero, membreDe(c.tiersId), l.client, ficheClient(c.tiersId).telephone, l.agent, e.date, e.capital, e.interet, reste, Math.max(0, joursRemb(e.date, jour))], devise: c.devise }); } }
-    return { colonnes: colRapport(["N° crédit", "code"], ["N°Membre", "code"], ["Intitulé", "texte"], ["Contact", "texte"], ["Agent crédit", "texte"], ["Date échéance", "date"], ["Capital", "montant"],
+    return { colonnes: colRapport(["N° crédit", "code"], ["N°Membre", "code"], ["Intitulé", "texte"], ["Contact", "texte"], ["Agent de crédit", "texte"], ["Date échéance", "date"], ["Capital", "montant"],
       ["Intérêt", "montant"], ["Reste dû", "montant"], ["Jours retard", "nombre"]), lignes: lignes.sort((a, b) => String(a.v[5]).localeCompare(String(b.v[5])) || String(a.v[0]).localeCompare(String(b.v[0]))) };
   },
   indicateurs(p) {
@@ -9390,7 +9390,7 @@ export const CATALOGUE_CREDIT: FicheBudget[] = [
     champs: [ch("nom", "Nom Assureur:", "Nom Assureur", "texte", true, { cadre: "Info générale" }),
       ch("typeAssuranceId", "Type Assurance:", "Type Assurance", "choix", true, { ref: "types_assurance", cadre: "Info générale" }),
       ch("compte", "Compte Assureur", "Compte Assureur", "compteSimple", false, { cadre: "Info générale" }), ...adresse("Données D'adresse")] },
-  { page: "gestionnaires", menu: "Gestionnaire de Portefeuille", portefeuille: true,
+  { page: "gestionnaires", menu: "Agent de crédit", portefeuille: true,
     champs: [ch("code", "Code :", "Code"), ch("utilisateurId", "Utilisateur", "Utilisateur", "choix", false, { ref: "utilisateurs", grille: false }),
       ch("montantDe", "Montant de", "Montant Début", "entier", false), ch("montantA", "à", "Montant Fin", "entier", false),
       ch("dureeDe", "Durée de", "Durée Début", "entier", false), ch("dureeA", "Au", "Durée Fin", "entier", false),
@@ -9445,7 +9445,7 @@ const credit = {
   /** Bouton Portefeuille (capture p. 36) : les clients suivis par l'utilisateur rattaché au gestionnaire. La fiche client ne porte pas encore le gestionnaire (S37-2). */
   portefeuille(id: number): { id: number; numero: string; nom: string }[] {
     exiger();
-    if (!stockCredit("gestionnaires").some((g) => g.id === id && g.actif)) throw new ErreurMetier("Gestionnaire introuvable.");
+    if (!stockCredit("gestionnaires").some((g) => g.id === id && g.actif)) throw new ErreurMetier("Agent de crédit introuvable.");
     return [];
   },
 };

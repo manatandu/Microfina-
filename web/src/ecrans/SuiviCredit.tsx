@@ -19,7 +19,7 @@ const debutAnnee = debutExercice;
 const aujourdhui = jusquAujourdhui;   // visas et approbations sont datés à l'heure réelle (registre T120)
 
 function GrilleCredits({ lignes, choisie, choisir, groupe }: { lignes: Ligne[]; choisie?: number; choisir?: (l: Ligne) => void; groupe?: boolean }) {
-  const titres = ["N° credit", "Date demande", "Compte", "Intitulé", "Montant pret", "Durée (mois)", "Produit", groupe ? "Groupe solidaire" : "Agent crédit"];
+  const titres = ["N° credit", "Date demande", "Compte", "Intitulé", "Montant pret", "Durée (mois)", "Produit", groupe ? "Groupe solidaire" : "Agent de crédit"];
   return (
     <Paginee lignes={lignes} colonnes={(x) => [null, null, x.compte, x.client, null, null, x.produit, null]}>{(v) => (<div className="defile-x"><table className="grille">
       <thead><tr>{titres.map((t, i) => <th key={t} scope="col" className={i === 4 || i === 5 ? "num" : undefined}>{t}</th>)}</tr>
@@ -64,12 +64,12 @@ export function VisasCredit() {
         {NIVEAUX.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={k === niveau} onClick={() => { setParams({ page: k }); setChoisie(null); }}>{l}</button>)}
       </div>
       <section className="bloc pile" aria-label={`Visa crédit - ${titre}`}>
-        <Champ libelle="Agent crédit">{(p) => <select {...p} className="saisie" value={agent} onChange={(e) => setAgent(e.target.value)}><option value="">--Tout les agents--</option>
+        <Champ libelle="Agent de crédit">{(p) => <select {...p} className="saisie" value={agent} onChange={(e) => setAgent(e.target.value)}><option value="">--Tout les agents--</option>
           {ctx.agents.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
         <GrilleCredits lignes={liste} choisie={choisie?.id} choisir={setChoisie} />
         <div className="actions-onglets"><button className="bouton" type="button" disabled={!choisie}
           onClick={() => { setF({ avis: "", motif: "", pv: "", membres: [{ nom: "", avis: "" }, { nom: "", avis: "" }, { nom: "", avis: "" }] }); setOuverte(true); }}>Viser</button></div>
-        <Textes sources={["Manuel Microfina++, p. 114 et 115 : Visa crédit - Responsable crédit, Comité de crédit, Service financier (trois captures : Agent crédit, grille)",
+        <Textes sources={["Manuel Microfina++, p. 114 et 115 : Visa crédit - Responsable crédit, Comité de crédit, Service financier (trois captures : Agent de crédit, grille)",
           "Registre CR-5 : tout crédit passe par les trois visas, dans l'ordre ; un refus arrête le crédit. Registre CR-4 : commission de crédit d'une COOPEC, trois membres, unanimité (loi 002/2002, art. 41 à 43 ; Instr. BCC 007, art. 32)"]} />
       </section>
       <Fiche titre={`Visa ${titre.toLowerCase()} : ${choisie?.numero ?? ""}`} ouverte={ouverte} fermer={() => setOuverte(false)}>
@@ -97,7 +97,7 @@ export function HistoriqueVisas() {
   const [f, setF] = useState({ niveau: "service_financier", avis: "accepte", du: debutAnnee(), au: aujourdhui() });
   const [l, setL] = useState<Awaited<ReturnType<typeof api.visasCredit.historique>>>([]);
   const [boite, setBoite] = useState<Boite | null>(null);
-  const COL = ["N° credit", "Date demande", "Intitulé", "Montant pret", "Durée", "Produit", "Agent crédit", "Visé le", "Visé par", "Motif"];
+  const COL = ["N° credit", "Date demande", "Intitulé", "Montant pret", "Durée", "Produit", "Agent de crédit", "Visé le", "Visé par", "Motif"];
   // B29 : appel d'un refus de la Commission de crédit devant le Conseil d'administration (Instr. BCC 007, art. 18)
   const [appel, setAppel] = useState<{ id: number; numero: string; decision: string; reference: string } | null>(null);
   const refusCommission = f.niveau === "comite" && f.avis === "refuse";
@@ -124,7 +124,7 @@ export function HistoriqueVisas() {
         </div>
         <Paginee lignes={l} colonnes={(x) => [x.numero, null, x.client, null, null, x.produit, x.agent, null, null, null]}>{(v) => (<div className="defile-x"><table className="grille">
           <thead><tr>{COL.map((t, i) => <th key={t} scope="col" className={i === 3 || i === 4 ? "num" : undefined}>{t}</th>)}{refusCommission && <th scope="col">Appel</th>}</tr>
-            <LigneFiltres titres={["N° credit", null, "Intitulé", null, null, "Produit", "Agent crédit", null, null, null, ...(refusCommission ? [null] : [])]} /></thead>
+            <LigneFiltres titres={["N° credit", null, "Intitulé", null, null, "Produit", "Agent de crédit", null, null, null, ...(refusCommission ? [null] : [])]} /></thead>
           <tbody>{v.length === 0 && <tr><td colSpan={11}>Aucune ligne.</td></tr>}
             {v.map((x, i) => <tr key={i}><td className="code">{x.numero}</td><td className="chiffres">{fr(x.dateDemande)}</td><td>{x.client}</td>
               <td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td><td className="num chiffres">{x.duree}</td><td>{x.produit}</td><td>{x.agent}</td>
@@ -162,7 +162,7 @@ export function ValidesNonDebloques() {
         <fieldset className="cadre-champs"><legend>Recherche</legend><div className="barre-filtres">
           <ChampDate libelle="Du *" valeur={f.du} onChange={(v) => setF({ ...f, du: v })} />
           <ChampDate libelle="A *" valeur={f.au} onChange={(v) => setF({ ...f, au: v })} />
-          <Champ libelle="Agent">{(p) => <select {...p} className="saisie" value={f.agent} onChange={(e) => setF({ ...f, agent: e.target.value })}><option value="">Tous les agents</option>
+          <Champ libelle="Agent de crédit">{(p) => <select {...p} className="saisie" value={f.agent} onChange={(e) => setF({ ...f, agent: e.target.value })}><option value="">Tous les agents</option>
             {ctx[0].agents.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
           <label className="case"><input type="checkbox" checked={f.archives} onChange={(e) => setF({ ...f, archives: e.target.checked })} /><span>Afficher les crédits archivés</span></label>
         </div></fieldset>
@@ -189,7 +189,7 @@ export function EtatCredit() {
   const [fiche, setFiche] = useState<{ id: number; devise: Devise; quoi: "plan" | "contrat" } | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   if (!ctx) return <Chargement />;
-  const COL = ["N° crédit", "Date Approbation", "N°Membre", "Intitulé", "Contact", "Groupe", "Montant prêt", "Produit", "Agent crédit", "Statut", "Capital restant", "Jours retard", "Degré"];
+  const COL = ["N° crédit", "Date Approbation", "N°Membre", "Intitulé", "Contact", "Groupe", "Montant prêt", "Produit", "Agent de crédit", "Statut", "Capital restant", "Jours retard", "Degré"];
   async function executer() {
     try {
       const m = f.montant.trim() ? lireMontant(f.montant) : null;
@@ -210,7 +210,7 @@ export function EtatCredit() {
             {ctx[2].produits.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>
           <Champ libelle="Niveau de validation">{(p) => <select {...p} className="saisie" value={f.niveau} onChange={(e) => setF({ ...f, niveau: e.target.value })}><option value="">Tous</option>
             {NIVEAUX.map(([k, t]) => <option key={k} value={k}>{`Visa du ${t.toLowerCase()}`}</option>)}</select>}</Champ>
-          <Champ libelle="Agent">{(p) => <select {...p} className="saisie" value={f.agent} onChange={(e) => setF({ ...f, agent: e.target.value })}><option value="">Tous les agents</option>
+          <Champ libelle="Agent de crédit">{(p) => <select {...p} className="saisie" value={f.agent} onChange={(e) => setF({ ...f, agent: e.target.value })}><option value="">Tous les agents</option>
             {ctx[0].agents.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
           <Champ libelle="Montant prêt">{(p) => <select {...p} className="saisie court" value={f.operateur} onChange={(e) => setF({ ...f, operateur: e.target.value })}>
             {["", "=", ">", "<", ">=", "<="].map((o) => <option key={o} value={o}>{o}</option>)}</select>}</Champ>
@@ -276,7 +276,7 @@ export function AffectationDossier() {
       <section className="bloc pile" aria-label="Affectation de crédit">
         <div className="grille-deux">
           <div className="pile">
-            {choix(de, setDe, "Gestionnaire dont le portefeuille sera réduit", true)}
+            {choix(de, setDe, "Agent de crédit dont le portefeuille sera réduit", true)}
             <Paginee lignes={gauche} colonnes={(x) => [null, x.numero, montant(x.montant, x.devise as Devise), x.client]}>{(v) => (<div className="defile-x"><table className="grille">
               <thead><tr><th scope="col"><input type="checkbox" aria-label="Tout cocher" checked={tous} onChange={(e) => setCoches(e.target.checked ? gauche.map((x) => x.id) : [])} /></th>
                 <th scope="col">Crédit N°</th><th scope="col" className="num">Montant</th><th scope="col">Client</th></tr>
@@ -288,7 +288,7 @@ export function AffectationDossier() {
             </table></div>)}</Paginee>
           </div>
           <div className="pile">
-            {choix(vers, setVers, "Gestionnaire dont le portefeuille sera augmenté")}
+            {choix(vers, setVers, "Agent de crédit dont le portefeuille sera augmenté")}
             <Paginee lignes={droite}>{(v) => (<div className="defile-x"><table className="grille">
               <thead><tr><th scope="col">Crédit N°</th><th scope="col" className="num">Montant</th><th scope="col">Client</th></tr></thead>
               <tbody>{v.length === 0 && <tr><td colSpan={3}>Aucune ligne.</td></tr>}

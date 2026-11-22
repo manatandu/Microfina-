@@ -39,7 +39,7 @@ function InfosCredit({ d }: { d: Detail | null }) {
   return <>
     {v("Date demande", fr(d?.dateDemande ?? ""))}{v("Durée", d ? `${d.duree} Mois` : "")}{v("Date effet", fr(d?.dateEffet ?? ""))}{v("Date début", fr(d?.echeancierDeblocage[0]?.date ?? ""))}
     {v("Montant du prêt", d ? montant(d.montant, dv) : "")}{v("Différé", d ? `${d.differe} Mois` : "")}{v("Nombre traite", String(d?.nombreTraites ?? ""))}
-    {v("Produit", d?.produit ?? "")}{v("Objet du crédit", d?.objet ?? "")}{v("Agent crédit", d?.agent ?? "")}
+    {v("Produit", d?.produit ?? "")}{v("Objet du crédit", d?.objet ?? "")}{v("Agent de crédit", d?.agent ?? "")}
     {v("Taux d'intérêt mensuel", d ? `${d.tauxInteret.replace(".", ",")} % (${String(Math.round(Number(d.tauxInteret) * 1200) / 100).replace(".", ",")} % l'an)` : "")}
   </>;
 }

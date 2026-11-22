@@ -82,11 +82,11 @@ def base(u, p) -> dict:
         l, s = ligne(c), etat(c, au)
         out.append({"v": [c["numero"], valeur("select numero from tiers where id = %s", (c["tiers_id"],)), l["client"], l["produit"], l["agent"], c["debloque_le"].isoformat(),
                           c["duree_mois"], str(c["taux_interet"] or "").replace(".", ","), c["montant"], s["capitalRestant"], STATUTS[c["statut"]]], "devise": l["devise"]})
-    return {"colonnes": col(("N° crédit", "code"), ("N°Membre", "code"), ("Intitulé", "texte"), ("Produit", "texte"), ("Agent crédit", "texte"), ("Date déblocage", "date"),
+    return {"colonnes": col(("N° crédit", "code"), ("N°Membre", "code"), ("Intitulé", "texte"), ("Produit", "texte"), ("Agent de crédit", "texte"), ("Date déblocage", "date"),
                             ("Durée", "nombre"), ("Taux", "texte"), ("Montant prêt", "montant"), ("Capital restant", "montant"), ("Statut", "texte")), "lignes": out}
 
 
-ORDRES = {"produit": "Produit", "agent": "Agent crédit", "degre": "Degré", "sexe": "Sexe"}
+ORDRES = {"produit": "Produit", "agent": "Agent de crédit", "degre": "Degré", "sexe": "Sexe"}
 
 
 def en_cours(u, p: dict, d: date) -> list[tuple[dict, dict, dict]]:
@@ -118,7 +118,7 @@ def multicritere(u, p) -> dict:
             t[0] += 1; t[1] += x["c"]["montant"]; t[2] += x["s"]["capitalRestant"]
         return {"colonnes": col((ORDRES[ordre], "texte"), ("Nombre", "nombre"), ("Montant prêt", "montant"), ("Capital restant", "montant")),
                 "lignes": [{"v": [k, n, m, r], "devise": dv} for (k, dv), (n, m, r) in sorted(g.items())]}
-    return {"colonnes": col(("N° crédit", "code"), ("N°Membre", "code"), ("Intitulé", "texte"), ("Sexe", "texte"), ("Produit", "texte"), ("Agent crédit", "texte"),
+    return {"colonnes": col(("N° crédit", "code"), ("N°Membre", "code"), ("Intitulé", "texte"), ("Sexe", "texte"), ("Produit", "texte"), ("Agent de crédit", "texte"),
                             ("Montant prêt", "montant"), ("Capital restant", "montant"), ("Jours retard", "nombre"), ("Degré", "texte")),
             "lignes": [{"v": [x["c"]["numero"], valeur("select numero from tiers where id = %s", (x["c"]["tiers_id"],)), x["l"]["client"], x["sexe"], x["l"]["produit"],
                               x["l"]["agent"], x["c"]["montant"], x["s"]["capitalRestant"], x["s"]["joursRetard"], x["s"]["degreLibelle"]], "devise": x["l"]["devise"]} for x in rows]}
@@ -159,7 +159,7 @@ def taux_remboursement(u, p) -> dict:
             if du <= e["date_due"] <= au:
                 t = g[(ag, c["devise"].strip())]
                 t[0] += e["capital"] + e["interet"]; t[1] += paye
-    return {"colonnes": col(("Agent crédit", "texte"), ("Montant échu", "montant"), ("Montant remboursé", "montant"), ("Impayé", "montant"), ("Taux de remboursement", "taux")),
+    return {"colonnes": col(("Agent de crédit", "texte"), ("Montant échu", "montant"), ("Montant remboursé", "montant"), ("Impayé", "montant"), ("Taux de remboursement", "taux")),
             "lignes": [{"v": [a, e, r, e - r, round(r * 10000 / e) / 100 if e else 0], "devise": dv} for (a, dv), (e, r) in sorted(g.items())]}
 
 
@@ -210,7 +210,7 @@ def exigibles(u, p) -> dict:
                 out.append({"v": [c["numero"], valeur("select numero from tiers where id = %s", (c["tiers_id"],)), l["client"], client(c["tiers_id"])["telephone"], l["agent"],
                                   e["date_due"].isoformat(), e["capital"], e["interet"], reste, max(0, (jour - e["date_due"]).days)], "devise": l["devise"]})
     out.sort(key=lambda x: (x["v"][5], x["v"][0]))
-    return {"colonnes": col(("N° crédit", "code"), ("N°Membre", "code"), ("Intitulé", "texte"), ("Contact", "texte"), ("Agent crédit", "texte"), ("Date échéance", "date"),
+    return {"colonnes": col(("N° crédit", "code"), ("N°Membre", "code"), ("Intitulé", "texte"), ("Contact", "texte"), ("Agent de crédit", "texte"), ("Date échéance", "date"),
                             ("Capital", "montant"), ("Intérêt", "montant"), ("Reste dû", "montant"), ("Jours retard", "nombre")), "lignes": out}
 
 

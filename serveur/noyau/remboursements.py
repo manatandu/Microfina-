@@ -447,7 +447,7 @@ def ajouter_memo(u, cid: int, p) -> list[dict]:
 
 def consultation(u, cid: int, d: str | None = None) -> dict:
     """S95 : Crédit > Consulter prêt (texte p. 118, capture p. 119) : la situation du remboursement (S76) et les champs de la capture : Rang, Degré réel,
-    Terme, Agent crédit, Groupe Solidaire, Percevoir int. par anticipation, Durée prêt, Taux annuel, Nbre trait, Périodicité, Différé de paiement (registre S95-1 à S95-3)"""
+    Terme, Agent de crédit, Groupe Solidaire, Percevoir int. par anticipation, Durée prêt, Taux annuel, Nbre trait, Périodicité, Différé de paiement (registre S95-1 à S95-3)"""
     from .deblocage import terme
     from .produits_credit import FIXES
     exiger(u)

@@ -63,7 +63,7 @@ CATALOGUE = [
         ch("nom", "nom", "Nom Assureur:", colonne="Nom Assureur", cadre="Info générale"),
         ch("typeAssuranceId", "type_assurance_id", "Type Assurance:", "choix", True, "types_assurance", colonne="Type Assurance", cadre="Info générale"),
         ch("compte", "compte", "Compte Assureur", "compteSimple", False, colonne="Compte Assureur", cadre="Info générale"), *adresse(ADRESSE)]},
-    {"page": "gestionnaires", "table": "credit_gestionnaire", "menu": "Gestionnaire de Portefeuille", "etiquette": "nom", "portefeuille": True, "champs": [
+    {"page": "gestionnaires", "table": "credit_gestionnaire", "menu": "Agent de crédit", "etiquette": "nom", "portefeuille": True, "champs": [
         ch("code", "code", "Code :", colonne="Code"), ch("utilisateurId", "utilisateur_id", "Utilisateur", "choix", False, "utilisateurs", grille=False),
         ch("montantDe", "montant_de", "Montant de", "entier", False, colonne="Montant Début"), ch("montantA", "montant_a", "à", "entier", False, colonne="Montant Fin"),
         ch("dureeDe", "duree_de", "Durée de", "entier", False, colonne="Durée Début"), ch("dureeA", "duree_a", "Au", "entier", False, colonne="Durée Fin"),
@@ -147,7 +147,7 @@ def portefeuille(u, gid: int) -> list[dict]:
     exiger(u)
     g = une("select utilisateur_id from credit_gestionnaire where id = %s and institution_id = %s and actif", (gid, u["institution_id"]))
     if not g:
-        raise ErreurMetier("Gestionnaire introuvable.")
+        raise ErreurMetier("Agent de crédit introuvable.")
     if g["utilisateur_id"] is None:
         return []
     return lignes("""select t.id, t.numero, coalesce(nullif(trim(concat_ws(' ', p.nom, p.postnom, p.prenom)), ''), m.raison_sociale, '') as nom

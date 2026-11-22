@@ -16,7 +16,7 @@ const SOURCES: Record<string, string> = {
   periodicites: "Manuel Microfina++, p. 35 : Périodicité, grille Libelle, Code, Denominateur, Contante, Unité, Exporter",
   types_assurance: "Manuel Microfina++, p. 36 : Type assurance, Code Type Assurance*, Libellé Type Assurance*, Enregistrer, Annuler, Exporter",
   assureurs: "Manuel Microfina++, p. 36 : Assureur crédit, Info générale (Nom Assureur*, Type Assurance*, Compte Assureur), Données D'adresse",
-  gestionnaires: "Manuel Microfina++, p. 36 : Gestionnaire de Portefeuille, Code*, Utilisateur, Montant de, à, Durée de, Au, Actif, Nom prénom*, Portefeuille, Adresse",
+  gestionnaires: "Manuel Microfina++, p. 36 : Agent de crédit, Code*, Utilisateur, Montant de, à, Durée de, Au, Actif, Nom prénom*, Portefeuille, Adresse",
 };
 
 /** S21 : Produits > Crédits > Général (manuel Microfina++, p. 32 à 36), onze onglets */

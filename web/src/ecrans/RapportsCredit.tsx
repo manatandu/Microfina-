@@ -78,7 +78,7 @@ function UnRapport({ onglet, ctx, erreur }: { onglet: Onglet; ctx: Ctx; erreur: 
         {c.filtres && <>
           <Champ libelle="Produit crédit">{(p) => <select {...p} className="saisie" value={f.produit} onChange={(e) => setF({ ...f, produit: e.target.value })}><option value="">Tous les produits</option>
             {ctx[2].produits.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>
-          <Champ libelle="Agent">{(p) => <select {...p} className="saisie" value={f.agent} onChange={(e) => setF({ ...f, agent: e.target.value })}><option value="">Tous les agents</option>
+          <Champ libelle="Agent de crédit">{(p) => <select {...p} className="saisie" value={f.agent} onChange={(e) => setF({ ...f, agent: e.target.value })}><option value="">Tous les agents</option>
             {ctx[0].agents.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ></>}
         {c.multi && <>
           <Champ libelle="Sexe">{(p) => <select {...p} className="saisie court" value={f.sexe} onChange={(e) => setF({ ...f, sexe: e.target.value })}>
@@ -86,7 +86,7 @@ function UnRapport({ onglet, ctx, erreur }: { onglet: Onglet; ctx: Ctx; erreur: 
           <Champ libelle="Degré">{(p) => <select {...p} className="saisie" value={f.degre} onChange={(e) => setF({ ...f, degre: e.target.value })}>
             <option value="">Tous</option>{["Sains", "Impayés", "Douteux", "Irrécupérables"].map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
           <Champ libelle="Ordonner suivant">{(p) => <select {...p} className="saisie" value={f.ordre} onChange={(e) => setF({ ...f, ordre: e.target.value })}>
-            <option value="produit">Produit</option><option value="agent">Agent crédit</option><option value="degre">Degré</option><option value="sexe">Sexe</option></select>}</Champ>
+            <option value="produit">Produit</option><option value="agent">Agent de crédit</option><option value="degre">Degré</option><option value="sexe">Sexe</option></select>}</Champ>
           <fieldset className="cadre-champs"><legend>Résultat</legend>
             <label className="case"><input type="radio" name="mc-mode" checked={f.mode === "detaille"} onChange={() => setF({ ...f, mode: "detaille" })} /><span>Détaillé</span></label>
             <label className="case"><input type="radio" name="mc-mode" checked={f.mode === "groupe"} onChange={() => setF({ ...f, mode: "groupe" })} /><span>Groupé</span></label>

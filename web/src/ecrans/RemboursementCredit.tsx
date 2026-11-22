@@ -17,7 +17,7 @@ import { OngletsGuichet, Recu, SoldesCaisse } from "./Guichet";
 import { RechercheClient } from "./Visa";
 
 type Rep = Record<string, number>;
-const REPARTITION: [string, string][] = [["capital", "Capital"], ["interet", "Intérêt"], ["tva", "TVA"], ["epargne", "Epargne"], ["solidarite", "Fonds solid."], ["penalite", "Pénalité"]];
+const REPARTITION: [string, string][] = [["capital", "Capital"], ["interet", "Intérêt"], ["tva", "TVA"], ["epargne", "Épargne obligatoire"], ["solidarite", "Fonds de solidarité"], ["penalite", "Pénalité"]];
 const vide = (n: number) => (n ? decimal.format(n / 100) : "");
 
 /** Situation (brouillard, capture p. 88), Plan, Réel, Memo : les fenêtres communes de S76, S55 et S95 */
@@ -43,7 +43,7 @@ export function FenetresCredit({ cid, devise, ouverte, fermer }: { cid: number |
         <thead>
           <tr><th scope="col" rowSpan={2}>N° pièce</th><th scope="col" rowSpan={2}>Date rembours.</th><th scope="colgroup" colSpan={6}>Suivi d'échéances</th>
             <th scope="col" rowSpan={2} className="num">Total échéance</th><th scope="col" rowSpan={2} className="num">Montant rembours.</th><th scope="colgroup" colSpan={6}>Remboursements</th></tr>
-          <tr>{["Echéance", "Intérêts", "Capital", "Epargne", "Fond Solid.", "Cap. Restant", "Intérêts", "Capital", "Pénalité", "Epargne", "Fond Solid.", "Cap. Restant"].map((t, i) =>
+          <tr>{["Échéance", "Intérêts", "Capital", "Épargne obligatoire", "Fonds de solidarité", "Capital restant", "Intérêts", "Capital", "Pénalité", "Épargne obligatoire", "Fonds de solidarité", "Capital restant"].map((t, i) =>
             <th key={i} scope="col" className={i ? "num" : undefined}>{t}</th>)}</tr>
         </thead>
         <tbody>{x.s.brouillard.length === 0 && <tr><td colSpan={16}>Aucune ligne.</td></tr>}
@@ -157,7 +157,7 @@ function RepartitionDetail({ e, fige, setBoite }: { e: Etat; fige: boolean; setB
       <div className="grille-deux">
         <Champ libelle="Dernier payement">{(p) => <Lecture {...p} value={d?.dernierPaiement ? fr(d.dernierPaiement) : ""} />}</Champ>
         {ro("Interêt total", d?.interetTotal)}{ro("Int. restant", d?.interetRestant)}{ro("Retard capit.", d?.du.capital)}{ro("Retard intérêt", d?.du.interet)}
-        {ro("Retard fond Solid.", d?.du.solidarite)}{ro("Retard Epargne", d?.du.epargne)}{ro("Pénalité", d?.du.penalite)}
+        {ro("Retard fonds de solidarité", d?.du.solidarite)}{ro("Retard épargne obligatoire", d?.du.epargne)}{ro("Pénalité", d?.du.penalite)}
         <Champ libelle="Retard total">{(p) => <Lecture {...p} value={d ? montant(d.retardTotal, dv) : ""} />}</Champ>
       </div>
       <div className="actions-onglets"><button className="bouton secondaire" type="button" disabled={fige || !d} onClick={() => { e.setModifie(null); e.setSaisie(d ? decimal.format(d.toutSurLeCredit / 100) : ""); }}>Tout sur le crédit</button></div>
@@ -450,7 +450,7 @@ export function ConsulterPret() {
               <div className="info-ligne"><dt>Degré crédit:</dt><dd>{d ? <>{d.degre} <span className="negatif">Jour retard : {d.joursRetard}</span></> : ""}</dd></div>
               <div className="info-ligne"><dt>Degré réel</dt><dd>{d?.degre ?? ""}</dd></div>
               <div className="info-ligne"><dt>Terme :</dt><dd>{d?.terme ?? ""}</dd></div>
-              <div className="info-ligne"><dt>Agent crédit :</dt><dd>{d?.agent ?? ""}</dd></div>
+              <div className="info-ligne"><dt>Agent de crédit :</dt><dd>{d?.agent ?? ""}</dd></div>
             </dl>
           </fieldset>
         </div>
@@ -459,7 +459,7 @@ export function ConsulterPret() {
             <Champ libelle="Percevoir int. par anticipation">{(p) => <select {...p} className="saisie court" disabled value={d ? (d.interetAnticipation ? "OUI" : "NON") : ""}>
               <option value=""></option><option>OUI</option><option>NON</option></select>}</Champ>
             {ro("Dernier payement", d?.dernierPaiement ? fr(d.dernierPaiement) : "")}{ro("Interêt total", mt(d?.interetTotal))}{ro("Int. restant", mt(d?.interetRestant))}
-            {ro("Retard capil.", mt(d?.du.capital))}{ro("Retard intérêt", mt(d?.du.interet))}{ro("Retard fond Solid.", mt(d?.du.solidarite))}{ro("Retard Epargne", mt(d?.du.epargne))}
+            {ro("Retard capil.", mt(d?.du.capital))}{ro("Retard intérêt", mt(d?.du.interet))}{ro("Retard fonds de solidarité", mt(d?.du.solidarite))}{ro("Retard épargne obligatoire", mt(d?.du.epargne))}
             {ro("Pénalité", mt(d?.du.penalite))}{ro("Retard total", d ? montant(d.retardTotal, dv) : "")}{ro("Durée prêt (mois)", String(d?.duree ?? ""))}
             {ro("Taux d'intérêt mensuel (%)", d ? decimal.format(d.tauxAnnuel / 12) : "")}{ro("Équivalent annuel (%)", d ? decimal.format(d.tauxAnnuel) : "")}{ro("Nbre trait", String(d?.nombreTraites ?? ""))}{ro("Périodicité", d?.periodiciteLibelle ?? "")}
             {ro("Différé de paiement (jour)", String(d?.differeJours ?? ""))}
