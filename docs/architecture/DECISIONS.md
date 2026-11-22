@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**993 décisions.** Solidité : 447 fortes (le manuel ou un texte répond), 464 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 986 déjà en place, 7 à appliquer.
+**996 décisions.** Solidité : 449 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 989 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -487,6 +487,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S102-8 | Recherche par N°compte | Montre le compte cherché, ses parents et ses comptes divisionnaires | Écran voisin : Arbre de la consultation (p. 122 et 147) | moyenne | en place |
 | S102-9 | Concordance des comptes (p. 156) | Non reprise : Likelemba n'a qu'un plan, le PCCI ; la concordance servait à passer d'un référentiel à un autre | Texte réglementaire : Instr. BCC n° 006 (PCCI seul plan) ; recon : référentiel des SFD de l'UEMOA non repris | forte | en place |
 | S102-10 | Statut Fermé, Nature Non saisible | Un compte fermé ou non saisissable ne reçoit pas d'écriture | Donnée exigée ailleurs : Saisie d'écritures (S109) | moyenne | en place |
+| S102-11 | Une page au lieu de trois vues | L'arbre du plan s'affiche d'emblée avec une recherche (numéro ou libellé ; le compte trouvé et ses parents), la fiche du compte à côté. Un clic sur un compte du PCCI le pose comme Parent du compte à ouvrir ; un clic sur un compte de l'institution le charge pour être modifié. Les huit options sans effet (saisie analytique, clé de répartition, échéance, lettrage automatique, saisie compte tiers, immobilisation, compte de taxe, compte taxable) sont masquées ; leurs valeurs déjà saisies sont gardées. La vue Modèle disparaît : le groupe de chaque classe se lit dans l'arbre. | Choix du porteur : Plan d'allègement, point 2.26 (accord du porteur, 22/11/2026) ; PCCI § 9 et § 13 | forte | en place |
 
 ## S103 Plan des tiers
 
@@ -495,6 +496,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S103-1 | Formulaire | La capture ne montre que la liste. Formulaire d'après le texte, en trois cadres : Entreprise (Type Tiers *, Intitulé *, Qualité, Date création, Compte *, Pays), Contact (nom, téléphone, email, adresse), Banque (banque, compte banque). Boutons Enregistrer, Effacer, Supprimer | Manuel : Texte p. 123 et p. 156 ; COMPLEMENTS § 4.1 | moyenne | en place |
 | S103-2 | Listes Type Tiers et Qualité | Type Tiers : FOURNISSEUR (seul montré), CLIENT, PERSONNEL, ETAT, ASSOCIE, DIVERS, d'après les comptes de tiers de la classe 4. Qualité : formes juridiques (Entreprise individuelle, SARL, SA, SAS, SNC, SCS, GIE, Société coopérative, ASBL, Établissement public, Personne physique) | Texte réglementaire : PCCI, classe 4 (comptes 40, 42, 43, 44, 46) ; capture p. 123 (FOURNISSEUR, SARL) | faible | en place |
 | S103-3 | Compte | Un compte du plan de comptes (T16) ; le tiers est l'auxiliaire des écritures passées sur ce compte | Écran voisin : T16 ; ARCHITECTURE P1 | moyenne | en place |
+| S103-4 | Compte proposé, banque de la liste | Le compte se saisit avec, en propositions, les comptes saisissables du plan suivis pour ce type de tiers (type de suivi, S102-7) ou rangés sous le compte du PCCI du type : Fournisseur 40, Personnel 42, État 43, Associé 44, Divers 46. Client : aucun compte de la classe 4 du PCCI ne lui correspond, seules les propositions par type de suivi. La banque se choisit dans la liste des banques (Banque > Banques et comptes) ; un nom déjà saisi qui correspond à une banque la reprend. | Choix du porteur : Plan d'allègement, point 2.26 (accord du porteur, 22/11/2026) ; PCCI, classe 4, comptes 40, 42, 43, 44, 46 | moyenne | en place |
 
 ## S104 Taxes
 
@@ -502,6 +504,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | S104-1 | Écran et taux | Comme la capture : Code *, Désignation *, Taux * ; Enregistrer, Effacer, Supprimer ; Listes de taxes (Désignation, Taux %), Rafraichir. Taux à deux décimales. Aucune taxe créée d'avance : l'institution saisit les siennes | Manuel : Capture p. 124 ; texte p. 123 | forte | en place |
 | S104-2 | Taxes de départ | TVA 16,00 et prélèvement sur les prestations des non-résidents 14,00 (et non les taux togolais de la capture p. 124) | Texte réglementaire : O.-L. 10/001, art. 35, modifié par la LF 25/060, art. 46 ; loi 23/053, art. 142 à 144 | forte | en place |
+| S104-3 | Compte de la taxe | Chaque taxe porte son compte : un compte 432 Impôts et taxes déductibles ou 433 Impôts et taxes collectés du PCCI (ou l'un de leurs sous-comptes), obligatoire. La TVA des factures fournisseurs se passe au compte de la taxe TVA ; une retenue au compte de sa taxe. Les taxes déjà saisies reçoivent 432 pour la TVA, 433 pour les autres, les comptes qu'utilisaient les factures. | Choix du porteur : Plan d'allègement, point 2.26 (accord du porteur, 22/11/2026) ; PCCI, compte 43 : 432 et 433 | forte | en place |
 
 ## S111 Comptabilisation
 

@@ -80,6 +80,9 @@ def _compte_taxe(compte):
         raise ErreurMetier("Compte : un compte 432 (impôts et taxes déductibles) ou 433 (impôts et taxes collectés) du PCCI.")
 
 
+# Plan des tiers (S103) : la banque se choisit dans la liste des banques (plan d'allègement, point 2.26)
+CHOIX["tiers"] = {"banques": lambda u: lignes("""select id, nom as libelle from banque where institution_id = %s and supprime_le is null order by code""",
+                                              (u["institution_id"],))}
 TYPES_TIERS = next(f["valeurs"] for f in DESCRIPTION["tiers"]["pages"][0]["champs"] if f["cle"] == "typeTiers")
 
 

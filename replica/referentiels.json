@@ -177,7 +177,17 @@
       "defaut": null,
       "cadre": "Entreprise",
       "grille": true,
-      "rang": 6
+      "rang": 6,
+      "selon": {
+       "cle": "typeTiers",
+       "comptes": {
+        "FOURNISSEUR": "40",
+        "PERSONNEL": "42",
+        "ETAT": "43",
+        "ASSOCIE": "44",
+        "DIVERS": "46"
+       }
+      }
      },
      {
       "cle": "pays",
@@ -246,12 +256,12 @@
       "grille": false
      },
      {
-      "cle": "banque",
-      "col": "banque",
+      "cle": "banqueId",
+      "col": "banque_id",
       "libelle": "Banque",
-      "type": "texte",
+      "type": "choix",
       "obligatoire": false,
-      "ref": null,
+      "ref": "banques",
       "aide": null,
       "colonne": "Banque",
       "defaut": null,

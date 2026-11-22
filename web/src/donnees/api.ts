@@ -6478,7 +6478,8 @@ export function preparerDemo() {
 // Règles identiques côté serveur (noyau/moteur.py, budget.py, credit.py). ----------
 export type TypeChampBudget = "texte" | "texteLong" | "entier" | "jjmm" | "choix" | "annee" | "compte" | "compteSimple" | "operation" | "email" | "ouiNon";
 export interface ChampBudget { cle: string; libelle: string; type: TypeChampBudget; obligatoire: boolean; ref?: string; aide?: string; colonne: string; defaut?: number | boolean;
-  sansEtoile?: boolean; cadre?: string; grille?: boolean; valeurs?: string[]; format?: "decimal" | "date"; rang?: number; propose?: string }   // sansEtoile : la capture ne montre pas l'astérisque ; grille false : champ absent de la grille
+  sansEtoile?: boolean; cadre?: string; grille?: boolean; valeurs?: string[]; format?: "decimal" | "date"; rang?: number; propose?: string;
+  selon?: { cle: string; comptes: Record<string, string> } }   // selon : comptes proposés d'après la valeur d'un autre champ (plan d'allègement, point 2.26)   // sansEtoile : la capture ne montre pas l'astérisque ; grille false : champ absent de la grille
 export interface FicheBudget { page: string; menu: string; groupe?: string; onglet?: string; entete?: string; grille?: string; cadre?: string; rafraichir?: boolean; filtres?: boolean; unique?: string[];
   parentMemeTable?: boolean; exporter?: boolean; outils?: boolean; portefeuille?: boolean; ordres?: boolean; fixe?: Record<string, unknown>[]; champs: ChampBudget[] }
 const ch = (cle: string, libelle: string, colonne: string, type: TypeChampBudget = "texte", obligatoire = true, x: Partial<ChampBudget> = {}): ChampBudget =>
@@ -8823,6 +8824,8 @@ function referentielPartage(famille: string) {
 }
 /** Lignes actives d'un référentiel partagé, pour les écrans qui s'en servent */
 export const valeursRef = (famille: string, page: string) => stockRef(famille, page).filter((l) => l.actif).sort((a, b) => a.id - b.id);
+// Plan des tiers (S103) : la banque se choisit dans la liste des banques (plan d'allègement, point 2.26). Identique au serveur.
+CHOIX_REF.tiers = { banques: () => [...E.banques].sort((a, b) => a.code.localeCompare(b.code)).map((b) => ({ id: b.id, libelle: b.libelle })) };
 const refTaxes = referentielPartage("taxes"), refTiers = referentielPartage("tiers");
 // S126 : Budget > Financement (p. 143 à 145) : lignes de financement, types de financement, bailleurs
 UTILISE_PAR_REF.financement = { types_financement: [["lignes_financement", "typeId", "Lignes de financement"]] };

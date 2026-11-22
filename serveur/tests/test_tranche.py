@@ -4047,6 +4047,7 @@ def test_referentiels_compta(clients, journee):
     assert "Type Tiers inconnu" in ti({**base, "typeTiers": "AMI"}).json()["message"]
     assert "n'existe pas au plan" in ti({**base, "compte": "999999"}).json()["message"]
     assert "JJ/MM/AAAA" in ti({**base, "dateCreation": "2026-11-05"}).json()["message"]
+    assert "Banque inconnu" in ti({**base, "banqueId": 999}).json()["message"]   # liste des banques (plan 2.26)
     r = ti(base)
     assert r.status_code == 200, r.content
     assert [f["cle"] for f in r.json()["fiche"]["champs"] if f.get("rang") == 1] == ["compteBanque"]

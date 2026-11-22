@@ -2797,6 +2797,7 @@ describe("journée de guichet", () => {
     await expect(api.refTiers.enregistrer("tiers", { ...base, typeTiers: "AMI" })).rejects.toThrow("Type Tiers inconnu");
     await expect(api.refTiers.enregistrer("tiers", { ...base, compte: "999999" })).rejects.toThrow("n'existe pas au plan");
     await expect(api.refTiers.enregistrer("tiers", { ...base, dateCreation: "2026-11-05" })).rejects.toThrow("JJ/MM/AAAA");
+    await expect(api.refTiers.enregistrer("tiers", { ...base, banqueId: 999 })).rejects.toThrow("Banque inconnu");   // liste des banques (plan 2.26)
     expect((await api.refTiers.enregistrer("tiers", base)).lignes).toHaveLength(1);
     expect((await api.comptes.lire()).typesSuivi[0]).toBe("FOURNISSEUR");
     await connecter("engalula");
