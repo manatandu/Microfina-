@@ -2028,6 +2028,20 @@ def retrait(u: dict, p: dict) -> dict:
     return vue_operation(une("select * from operation where id = %s", (oid,)))
 
 
+STATUTS_CREDIT = {"mis_en_place": "Mis en place, en visa", "vise": "Visé, à débloquer", "refuse": "Refusé", "debloque": "En cours", "solde": "Soldé",
+                  "passe_en_perte": "Passé en perte"}
+
+
+def credits_du_tiers(u: dict, tid: int) -> list[dict]:
+    """S43, onglet Crédits : les prêts du membre (numéro, produit, montant, devise, déblocage, état), au lieu d'une liste toujours vide
+    (plan d'allègement, point 0.16 ; registre S43-4)"""
+    exiger(u)
+    return [{"numero": c["numero"], "produit": c["produit"], "montant": c["montant"], "devise": c["devise"].strip(), "debloqueLe": c["debloque_le"].isoformat() if c["debloque_le"] else "",
+             "etat": STATUTS_CREDIT.get(c["statut"], c["statut"])}
+            for c in lignes("""select c.numero, p.nom as produit, c.montant, c.devise, c.debloque_le, c.statut from credit c join produit_credit p on p.id = c.produit_id
+                               where c.tiers_id = %s and c.institution_id = %s order by c.id""", (tid, u["institution_id"]))]
+
+
 def compte_adhesion(u: dict, tid: int) -> dict:
     """Le compte d'épargne que l'adhésion ouvrira : produit choisi à l'enrôlement et numéro selon la règle de S17, sans rien ouvrir
     (plan d'allègement, point 0.6 ; registre S73-6)"""

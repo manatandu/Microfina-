@@ -5,7 +5,7 @@ import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
-import { fr } from "../lib/dates";
+import { debutExercice, fr, jourOuvert } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
 import { exporterExcel } from "../lib/excel";
 import { CATEGORIES, CRITERES_TRI, INCONNU, multicritere, valeur, type ContexteRapport, type CriteresMulticritere, type Tri } from "../lib/rapports";
@@ -16,8 +16,8 @@ const ONGLETS = [["virements", "Rapports virement compte à compte"], ["garantie
   ["indicateurs", "Indicateur crédit épargne"], ["inactifs", "Rapports des comptes inactifs"], ["dormants", "Rapports des comptes dormants"]] as const;
 type Onglet = (typeof ONGLETS)[number][0];
 type Agent = { id: number; nom: string };
-const debutAnnee = () => `${new Date().getFullYear()}-01-01`;
-const aujourdhui = () => new Date().toISOString().slice(0, 10);
+const debutAnnee = debutExercice;
+const aujourdhui = jourOuvert;   // la journée ouverte (registre T120)
 const nomComplet = (t: Tiers) => t.intitule || [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
 const m = (v: number, d: string) => montant(v, d as Devise);
 const vide = (n: number, texte = "No records found.") => <tr><td colSpan={n}>{texte}</td></tr>;

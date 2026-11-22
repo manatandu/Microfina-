@@ -397,7 +397,7 @@
  },
  {
   "id": "S41",
-  "nom": "Modifier les frais d'ouverture",
+  "nom": "Modifier les frais d'adhésion",
   "acces": "Client > Visa > Modifier frais",
   "but": "Changer le montant des frais liés",
   "module": "clients",

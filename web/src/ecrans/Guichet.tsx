@@ -165,7 +165,6 @@ export default function GuichetDepotRetrait() {
               <legend>{cadre}</legend>
               <Champ libelle="Montant *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" readOnly={!!fait} value={saisie}
                 onChange={(e) => { setSaisie(e.target.value); nouvelle(); }} />}</Champ>
-              <Champ libelle="Total frais">{(p) => <input {...p} className="saisie montant" readOnly value="" />}</Champ>
               {op === "depot"
                 ? <Champ libelle="Mandataire">{(p) => <input {...p} className="saisie" readOnly={!!fait} value={mandataire} onChange={(e) => setMandataire(e.target.value)} />}</Champ>
                 /* Retrait : le titulaire, ou un mandataire d'une procuration en cours (loi 22/068, art. 31, al. 3 ; confrontation du 21/11/2026, E2) */
@@ -174,13 +173,7 @@ export default function GuichetDepotRetrait() {
                     {procurations.map((x) => <option key={x.id} value={x.id}>{[x.nom, x.postnom, x.prenom].filter(Boolean).join(" ")} : {x.pieceType} {x.pieceNumero}</option>)}</select>}</Champ>}
               <Champ libelle="Motif:">{(p) => <input {...p} className="saisie" readOnly={!!fait} value={motif} onChange={(e) => setMotif(e.target.value)} />}</Champ>
             </fieldset>
-            <fieldset className="pile cadre-champs">
-              <legend>Frais d'opération</legend>
-              <table className="grille">
-                <thead><tr><th scope="col">Libelle Frais</th><th scope="col">Frais</th></tr></thead>
-                <tbody></tbody>
-              </table>
-            </fieldset>
+            {/* Ni « Total frais » ni « Frais d'opération » : dépôt et retrait d'espèces sont gratuits (Instr. BCC 37, art. 2, 3 et annexe ; plan d'allègement, point 0.15) */}
           </div>
           <div className="actions-onglets">
             <button className="bouton" type="button" disabled={!t || !!fait} onClick={enregistrer}>Enregistrer</button>

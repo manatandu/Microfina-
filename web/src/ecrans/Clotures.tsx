@@ -57,7 +57,6 @@ export default function ClotureCompte() {
           </div>
           <div className="pile">
             <p>Solde : <strong className="chiffres">{c ? montant(c.solde ?? 0, c.devise as Devise) : ""}</strong></p>
-            <p>Frais de clôture : <strong className="chiffres">0</strong></p>
             <Champ libelle="Observation :">{(pp) => <textarea {...pp} className="saisie" rows={2} value={observation} onChange={(e) => setObservation(e.target.value)} />}</Champ>
           </div>
         </div>

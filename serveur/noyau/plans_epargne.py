@@ -134,9 +134,7 @@ def creer(u, d) -> dict:
         raise ErreurMetier("À remplir : Périodicité.")
     if not montant or montant <= 0:
         raise ErreurMetier("Montant : un montant supérieur à zéro.")
-    mode = texte(d, "modeReglement") or "CHEQUE"
-    if mode not in MODES:
-        raise ErreurMetier("Mode règlement inconnu.")
+    mode = "VIREMENT"   # les cotisations passent toujours par virement du compte d'épargne au compte du plan (plan d'allègement, point 0.23 ; registre S69-10)
     debut = texte(d, "dateDebut") or j["date"]
     if not re.match(r"^\d{4}-\d{2}-\d{2}$", debut):
         raise ErreurMetier("À remplir : Début.")

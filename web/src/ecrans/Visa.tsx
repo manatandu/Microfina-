@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { api, IMAGE_MAX, ageAu, MAJORITE } from "../donnees/api";
 import type { Representant, Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
+import { jourOuvert } from "../lib/dates";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Silhouette, Textes, type Boite, Lecture, Paginee } from "../composants";
-import { lireMontant, montant } from "@design/montant.js";
+import { lireMontant, montant, type Devise } from "@design/montant.js";
 import { aDesParts, mots } from "../lib/vocabulaire";
 
 type Ctx = Awaited<ReturnType<typeof api.referentiel.contexte>>;
@@ -81,7 +82,7 @@ export function VisaClient() {
             {t && !vise && aDesParts(ctx.institution) && ctx.institution.membresAuxiliaires && <label className="case"><input type="checkbox" checked={auxiliaire} onChange={(e) => setAuxiliaire(e.target.checked)} />
               <span>Membre auxiliaire (loi 002/2002, art. 23 ; statuts : {ctx.institution.membresAuxiliaires})</span></label>}
             {t && vise && t.auxiliaire && <p className="aide">Membre auxiliaire (loi 002/2002, art. 23)</p>}
-            {t && !vise && t.type === "physique" && t.naissance && ageAu(t.naissance, dateVisa || new Date().toISOString().slice(0, 10)) < MAJORITE && <fieldset className="pile cadre-champs">
+            {t && !vise && t.type === "physique" && t.naissance && ageAu(t.naissance, dateVisa || jourOuvert()) < MAJORITE && <fieldset className="pile cadre-champs">
               <legend>Client mineur (Code de la famille, art. 219)</legend>
               {(!aDesParts(ctx.institution) || auxiliaire) && <Champ libelle="Représentant légal : nom, qualité (père, mère ou tuteur), pièce">{(p) => <input {...p} className="saisie" value={mineur.representantLegal} onChange={(e) => setMineur({ ...mineur, representantLegal: e.target.value })} />}</Champ>}
               <Champ libelle="Émancipation : référence de la décision du Tribunal pour enfants">{(p) => <input {...p} className="saisie code" value={mineur.emancipationReference} onChange={(e) => setMineur({ ...mineur, emancipationReference: e.target.value })} />}</Champ>
@@ -256,12 +257,17 @@ export function ModificationFrais() {
   );
 }
 
+/** Nom d'un agent (S33) d'après son identifiant : la fiche montre la personne choisie, plus une case vide écrite en dur (plan d'allègement, point 0.16 ; registre S40-3) */
+type Agents = { gestionnaires?: { id: number; nom: string }[]; sensibilisateurs?: { id: number; nom: string }[]; commerciaux?: { id: number; nom: string }[] } | undefined;
+const agent = (l: { id: number; nom: string }[] | undefined, id?: number | null) => (id ? l?.find((a) => a.id === id)?.nom ?? "" : "");
+
 /** Onglets en lecture du bas de l'écran (p. 52) : Info de base, Info Généraux, Autre Info, Personnes Liées, Bénéficiaires */
 function DetailClient({ t }: { t: Tiers }) {
   const onglets = ["Info de base", "Info Généraux", "Autre Info", "Personnes Liées", "Bénéficiaires",
     ...(t.type === "morale" ? ["Dirigeant", "Signataires"] : t.type === "groupe" ? ["Membres Groupe"] : [])];
   const [o, setO] = useState(0);
   const { donnees: liees } = useDonnees(() => Promise.all(t.liees.map((id) => api.tiers.lire(id))), [t.id]);
+  const { donnees: cx } = useDonnees(() => api.referentiel.contexte() as Promise<Agents>);
   const lu = (libelle: string, v: string) => <Champ libelle={libelle}>{(p) => <Lecture {...p} value={v} />}</Champ>;
   const coche = (libelle: string, v: boolean) => <label className="case"><input type="checkbox" checked={v} disabled /><span>{libelle}</span></label>;
   const reps = (l: Representant[]) => l.length === 0 ? <p>Liste vide</p> : (
@@ -277,7 +283,7 @@ function DetailClient({ t }: { t: Tiers }) {
         {o === 0 && (
           <div className="deux-colonnes">
             <div className="pile">{lu("Date demande :", fr(t.dateDemande))}{lu(t.type === "groupe" ? "Type de groupe :" : t.type === "morale" ? "Type entreprise :" : "Type Client :", t.typeClient)}{lu("Zone :", t.zone)}</div>
-            <div className="pile">{lu("Sensibilisateur :", "")}{lu("Gestionnaire :", "")}{lu("Commercial :", "")}
+            <div className="pile">{lu("Sensibilisateur :", agent(cx?.sensibilisateurs, t.sensibilisateurId))}{lu("Gestionnaire :", agent(cx?.gestionnaires, t.gestionnaireId))}{lu("Commercial :", agent(cx?.commerciaux, t.commercialId))}
               {coche("Résident", t.resident)}{coche("Prelever Agios", t.preleverAgios)}{coche("Calculer intéret", t.calculerInteret)}</div>
           </div>
         )}
@@ -294,12 +300,16 @@ function DetailClient({ t }: { t: Tiers }) {
             </>}
           </div>
         )}
-        {o === 2 && coche("Personne politiquement exposée", t.personneExposee)}
+        {o === 2 && <div className="formulaire">
+          {lu("Secteur d'activité :", t.secteurActivite ?? "")}{lu("Type d'activité :", t.typeActivite ?? "")}{t.type === "physique" && lu("Profession :", t.profession)}
+          {lu("Adresse :", t.adresse)}{lu("BP :", t.bp)}{coche("Personne politiquement exposée", t.personneExposee)}</div>}
         {o === 3 && (!liees || liees.length === 0 ? <p>Liste vide</p> : (
           <table className="grille"><thead><tr><th scope="col">N° du Client</th><th scope="col">Nom</th></tr></thead>
             <tbody>{liees.filter((x): x is Tiers => !!x).map((x) => <tr key={x.id}><td className="chiffres">{x.numero}</td><td>{nomComplet(x)}</td></tr>)}</tbody></table>
         ))}
-        {o === 4 && <p>Liste vide</p>}
+        {o === 4 && ((t.beneficiaires ?? []).length === 0 ? <p>Aucun héritier désigné.</p> : (
+          <table className="grille"><thead><tr><th scope="col">Nom</th><th scope="col">Lien de parenté</th><th scope="col">Téléphone</th></tr></thead>
+            <tbody>{(t.beneficiaires ?? []).map((b, i) => <tr key={i}><td>{[b.nom, b.postnom, b.prenom].filter(Boolean).join(" ")}</td><td>{b.filiation}</td><td>{b.telephone}</td></tr>)}</tbody></table>))}
         {onglets[o] === "Dirigeant" && (t.dirigeant ? reps([t.dirigeant]) : <p>Liste vide</p>)}
         {onglets[o] === "Signataires" && reps(t.signataires)}
         {onglets[o] === "Membres Groupe" && reps(t.membres)}
@@ -346,8 +356,13 @@ export function ValidationClientModifie() {
   const [t, setT] = useState<Tiers | null>(null);
   const [recherche, setRecherche] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
-  const { donnees: comptes } = useDonnees(() => (t ? api.tiers.comptes(t.id) : Promise.resolve([])), [t?.id]);
+  // Ce que la personne qui valide doit voir : la modification en attente, champ par champ, avec son auteur et sa date (Instr. BCC 008, art. 66 ;
+  // Instr. BCC 15, art. 10 ; plan d'allègement, point 0.16 ; registre S42-1)
+  const { donnees: modifs } = useDonnees(() => (t ? api.tiers.modifications(t.id) : Promise.resolve([])), [t?.id]);
   if (!ctx) return <Chargement />;
+  const attente = [...(modifs ?? [])].reverse().find((m) => !m.validePar);
+  const changes = attente ? CHAMPS_SUIVIS.filter(([k]) => enTexte(attente.avant[k]) !== enTexte(attente.apres[k])) : [];
+  const auteur = attente ? ((ctx as { utilisateurs?: { id: number; nom: string }[] }).utilisateurs ?? []).find((x) => x.id === attente.modifiePar)?.nom ?? "" : "";
   function activer() {
     if (!t) { setBoite({ type: "erreur", message: "À remplir : numéro du client." }); return; }
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
@@ -372,16 +387,16 @@ export function ValidationClientModifie() {
           <button className="bouton" type="button" onClick={activer}>activer client</button>
           <button className="bouton secondaire" type="button" onClick={() => setT(null)}>Annuler</button>
         </div>
-        <fieldset className="pile cadre-champs">
-          <legend>Liste des Comptes du membre</legend>
-          <table className="grille">
-            <thead><tr><th scope="col">N° Compte</th><th scope="col">Produit</th><th scope="col">Agence</th><th scope="col">Membre</th></tr></thead>
-            <tbody>
-              {(!t || !comptes || comptes.length === 0) && <tr><td colSpan={4}>liste vide</td></tr>}
-              {t && comptes?.map((c) => <tr key={c.id}><td className="chiffres">{c.numero}</td><td>{c.intitule} {c.devise}</td><td>{ctx.agence.nom}</td><td>{nomComplet(t)}</td></tr>)}
-            </tbody>
-          </table>
-        </fieldset>
+        {t && <fieldset className="pile cadre-champs">
+          <legend>Modification à valider</legend>
+          {!attente ? <p>Aucune modification en attente pour ce client.</p> : <>
+            <p>Modifiée le {fr(attente.modifieLe.slice(0, 10))}{auteur ? ` par ${auteur}` : ""}.</p>
+            <table className="grille" aria-label="Modification à valider">
+              <thead><tr><th scope="col">Champ</th><th scope="col">Avant</th><th scope="col">Après</th></tr></thead>
+              <tbody>{changes.length === 0 ? <tr><td colSpan={3}>Aucun champ suivi n'a changé.</td></tr>
+                : changes.map(([k, l]) => <tr key={k}><td>{l}</td><td>{enTexte(attente.avant[k])}</td><td>{enTexte(attente.apres[k])}</td></tr>)}</tbody>
+            </table></>}
+        </fieldset>}
         <Textes sources={["Manuel Microfina++, p. 54 : écran Validation d'un client modifié, Numéro du client obligatoire, bouton activer client",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "ARCHITECTURE P7 : la validation vient d'une autre personne que celle qui a modifié"]} />
@@ -409,7 +424,8 @@ export function InformationsClient() {
   const [onglet, setOnglet] = useState(0);
   const [recherche, setRecherche] = useState(false);
   const { donnees: detail } = useDonnees(async () => t
-    ? { images: await api.tiers.images(t.id), modifications: await api.tiers.modifications(t.id), comptes: await api.tiers.comptes(t.id), parts: await api.tiers.parts(t.id), adhesion: await api.tiers.adhesion(t.id) }
+    ? { images: await api.tiers.images(t.id), modifications: await api.tiers.modifications(t.id), comptes: await api.tiers.comptes(t.id), parts: await api.tiers.parts(t.id), adhesion: await api.tiers.adhesion(t.id),
+        credits: await api.tiers.credits(t.id) }
     : null, [t?.id]);
   if (!ctx) return <Chargement />;
   const onglets = ["Renseignements généraux", "Autres renseignements", "Dépôts", "Crédits", "Part sociale"];
@@ -430,9 +446,9 @@ export function InformationsClient() {
         <div className="deux-colonnes">
           <fieldset className="cadre-champs formulaire">
             <legend>Renseignements généraux</legend>
-            {lu("N° du Client :", t?.numero ?? "")}{lu("Gestionnaire :", "")}
-            {lu("N° Manuel:", t?.numeroManuel ?? "")}{lu("Commercial :", "")}
-            {lu("N° Matricule :", t?.matricule ?? "")}{lu("Sensibilisateur :", "")}
+            {lu("N° du Client :", t?.numero ?? "")}{lu("Gestionnaire :", agent((ctx as Agents)?.gestionnaires, t?.gestionnaireId))}
+            {lu("N° Manuel:", t?.numeroManuel ?? "")}{lu("Commercial :", agent((ctx as Agents)?.commerciaux, t?.commercialId))}
+            {lu("N° Matricule :", t?.matricule ?? "")}{lu("Sensibilisateur :", agent((ctx as Agents)?.sensibilisateurs, t?.sensibilisateurId))}
           </fieldset>
           <fieldset className="cadre-champs">
             <legend>Photo / Signature</legend>
@@ -492,7 +508,11 @@ export function InformationsClient() {
             </tbody>
           </table>
         )}
-        {t && onglet === 3 && <p>Liste vide</p>}
+        {t && onglet === 3 && ((detail?.credits ?? []).length === 0 ? <p>Aucun crédit.</p> : (
+          <table className="grille" aria-label="Crédits du membre"><thead><tr><th scope="col">N° crédit</th><th scope="col">Produit</th><th scope="col" className="num">Montant</th>
+            <th scope="col">Débloqué le</th><th scope="col">État</th></tr></thead>
+            <tbody>{detail!.credits.map((c) => <tr key={c.numero}><td className="code">{c.numero}</td><td>{c.produit}</td><td className="num chiffres">{montant(c.montant, c.devise as Devise)}</td>
+              <td className="chiffres">{c.debloqueLe ? fr(c.debloqueLe) : ""}</td><td>{c.etat}</td></tr>)}</tbody></table>))}
         {t && onglet === 4 && (
           <div className="formulaire">
             {lu("Nombre de parts :", String(detail?.parts ?? 0))}{lu("Valeur des parts :", montant((detail?.parts ?? 0) * (ctx.valeurPart ?? 0), "CDF"))}
@@ -546,10 +566,9 @@ export function ResiliationClient() {
         </div>
         <fieldset className="cadre-champs formulaire">
           <legend>Informations générales du client</legend>
-          {lu("Secteur d'activité :", "")}{lu("Type d'activité :", "")}
-          {lu("Raison sociale :", t ? nomComplet(t) : "")}{lu("RCCM :", t?.registre ?? "")}
-          {lu("Autorisation d'Installation :", "")}{lu("Crée le :", "")}
-          {lu("Catégorie :", t?.typeClient ?? "")}{lu("Nationalité :", "")}
+          {lu("Secteur d'activité :", t?.secteurActivite ?? "")}{lu("Type d'activité :", t?.typeActivite ?? "")}
+          {lu(t?.type === "physique" ? "Nom :" : "Raison sociale :", t ? nomComplet(t) : "")}{t?.type !== "physique" && lu("RCCM :", t?.registre ?? "")}
+          {lu("Créé le :", t ? fr(t.creeLe) : "")}{t?.type === "physique" && lu("Nationalité :", t?.nationalite ?? "")}
           {lu("Type de pièce :", t?.pieceType ?? "")}{lu("Numero de pièce :", t?.pieceNumero ?? "")}
           {lu("Etabli à:", t?.pieceLieu ?? "")}{lu("Date dexpiration : *", t ? fr(t.pieceExpire) : "")}
           {t?.type === "groupe" && <>{lu("Type de Groupement :", t.typeClient)}{lu("Nombre d'Homme :", String(t.nbHommes))}{lu("Nombre de Femme :", String(t.nbFemmes))}</>}
@@ -569,10 +588,7 @@ export function ResiliationClient() {
               <ChampDate libelle="Date de la décision : *" valeur={exclusion.date} onChange={(v) => setExclusion({ ...exclusion, date: v })} requis />
             </>}
           </div>
-          <fieldset className="pile cadre-champs">
-            <legend>Frais de résiliation de contrat</legend>
-            <table className="grille"><thead><tr><th scope="col">Libelle Frais</th><th scope="col">Frais</th></tr></thead><tbody><tr><td colSpan={2}>Liste vide</td></tr></tbody></table>
-          </fieldset>
+          {/* Aucun frais de résiliation : la clôture de compte est gratuite (Instr. BCC 37, annexe, point 1 ; plan d'allègement, point 0.15) */}
         </div>
         {/* A16 (confrontation du 21/11/2026) : décès du titulaire ; les procurations prennent fin (Code civil, art. 544), les retraits passent par un ayant droit */}
         {t?.type === "physique" && <fieldset className="pile cadre-champs sans-impression">
@@ -780,7 +796,7 @@ export function PhotosSignatures() {
 /** S50 : Client > Consentement (manuel Microfina++, p. 58). En RDC : Instr. BCC 5, art. 13, consentement écrit à la Centrale des risques. */
 export function Consentement() {
   const [t, setT] = useState<Tiers | null>(null);
-  const aujourdhui = new Date().toISOString().slice(0, 10);
+  const aujourdhui = jourOuvert();   // registre T120
   const vide = { code: "", dateDebut: aujourdhui, dateFin: "", commentaire: "" };
   const [d, setD] = useState(vide);
   const [recherche, setRecherche] = useState(false);

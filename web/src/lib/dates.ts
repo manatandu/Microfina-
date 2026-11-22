@@ -15,3 +15,10 @@ export function texteEdition(e?: { numero: number; le: string }) {
   const d = new Date(e.le), p = (n: number) => String(n).padStart(2, "0");
   return `, édition n° ${e.numero} du ${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} à ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
+
+/** La journée ouverte, que la coquille lit avant d'afficher un écran : les dates proposées partent d'elle, pas de l'horloge de l'ordinateur
+ *  (plan d'allègement, point 0.9 ; registre T120). Sans journée connue, la date de l'ordinateur. */
+let jourCourant = "";
+export function definirJourOuvert(d?: string | null) { jourCourant = d ?? ""; }
+export function jourOuvert() { return jourCourant || new Date().toISOString().slice(0, 10); }
+export function debutExercice() { return `${jourOuvert().slice(0, 4)}-01-01`; }

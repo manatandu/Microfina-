@@ -1951,6 +1951,7 @@ def test_deblocage_epargne(clients, journee):
     cid = credit_vise(clients)
     d = compta.get(f"/api/credit/deblocage/{cid}", **H).json()
     tid = ident("select tiers_id from credit where id = %s", (cid,))
+    assert [x["etat"] for x in compta.get(f"/api/tiers/{tid}/credits", **H).json()] == ["Visé, à débloquer"]      # S43, onglet Crédits (registre S43-4)
     solde = lambda: next(x for x in compta.get(f"/api/credit/remboursement/comptes/{tid}", **H).json() if x["numero"] == d["comptePositionnement"])
     k, avant = solde()["id"], solde()["solde"]
     r = compta.post(f"/api/comptabilite/deblocage/{cid}", {}, **H)

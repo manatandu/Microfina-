@@ -30,7 +30,8 @@ def lire(u) -> dict:
     exiger(u)
     i = u["institution_id"]
     return {
-        "typesOperation": TYPES_OPERATION, "natures": list(NATURES), "typesMembre": list(TYPES_MEMBRE), "fondements": FONDEMENTS,
+        # Dépôt et retrait ne sont pas proposés : ils sont gratuits (Instr. BCC 37, art. 2, 3 et annexe ; plan d'allègement, point 0.15)
+        "typesOperation": [t for t in TYPES_OPERATION if t not in ("DEPOT", "RETRAIT")], "natures": list(NATURES), "typesMembre": list(TYPES_MEMBRE), "fondements": FONDEMENTS,
         "sousTypes": [r["libelle"] for r in valeurs_liste(u, "sous_type_client")],   # registre S16-8 : Général > Sous type de client
         "compteAdhesion": "727",                                                       # registre S16-4 : proposé, modifiable
         "frais": lignes("""select id, libelle, type_operation as "typeOperation", coalesce(fondement, '') as fondement, coalesce(autorisation_bcc, '') as "autorisationBcc"

@@ -88,7 +88,6 @@ export function MiseEnPlaceDat() {
           <fieldset className="pile cadre-champs">
             <legend>Infos Certificat</legend>
             <p>Certificat N° : <strong className="chiffres">{fait ? String(fait.certificat).padStart(6, "0") : ""}</strong></p>
-            <label className="case"><input type="checkbox" checked={f.aEcheance} onChange={(e) => maj({ aEcheance: e.target.checked })} /><span>A échéance</span></label>
             <Champ libelle="Montant : *">{(pp) => <input {...pp} className="saisie montant" inputMode="decimal" autoComplete="off" value={f.montant} onChange={(e) => maj({ montant: e.target.value })} />}</Champ>
             <Champ libelle="Durée (Mois) : *">{(pp) => <input {...pp} className="saisie code" inputMode="numeric" autoComplete="off" value={f.duree} onChange={(e) => { if (/^\d{0,3}$/.test(e.target.value)) maj({ duree: e.target.value }); }} />}</Champ>
             <Champ libelle="Taux intérêt (%) :">{(pp) => <input {...pp} className="saisie code" inputMode="decimal" autoComplete="off" value={f.ti} onChange={(e) => maj({ ti: e.target.value })} />}</Champ>

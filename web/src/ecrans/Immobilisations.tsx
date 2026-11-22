@@ -18,7 +18,6 @@ type Ctx = Awaited<ReturnType<typeof api.immobilisations.contexte>>;
 type Bien = Awaited<ReturnType<typeof api.immobilisations.fiche>>;
 type Plan = Awaited<ReturnType<typeof api.immobilisations.simuler>>;
 const M = (p: string) => `Manuel Microfina++, chap. 7, ${p}`;
-const maintenant = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 
 function useCtx() { return useDonnees(() => api.immobilisations.contexte()).donnees; }
 function useConfirmer() {
@@ -146,16 +145,18 @@ export function MouvementsBiens() {
   const [params, setParams] = useSearchParams();
   const page = PAGES_MOUV.find(([k]) => k === params.get("page"))?.[0] ?? "affectation";
   const ctx = useCtx();
-  const [emp, setEmp] = useState(""), [emp2, setEmp2] = useState(""), [loc, setLoc] = useState(""), [quand, setQuand] = useState(maintenant());
+  const [emp, setEmp] = useState(""), [emp2, setEmp2] = useState(""), [loc, setLoc] = useState(""), [saisie, setQuand] = useState("");
+  const { donnees: jr } = useDonnees(() => api.journees.courante());
+  const quand = saisie || jr?.date || "";   // la journée ouverte, sans heure (plan d'allègement, point 0.8 ; registre S138-4)
   const [choisis, setChoisis] = useState<Bien[]>([]), [bien, setBien] = useState<Bien | null>(null), [liste, setListe] = useState<"" | "LIBRE" | "AFFECTE">("");
   const c = useConfirmer();
   if (!ctx) return <Chargement />;
-  const vider = () => { setChoisis([]); setBien(null); setEmp(""); setEmp2(""); setLoc(""); setQuand(maintenant()); };
+  const vider = () => { setChoisis([]); setBien(null); setEmp(""); setEmp2(""); setLoc(""); setQuand(""); };
   const choisirEmp = (val: string, set: (x: string) => void, l: string) => <Champ libelle={l}>{(p) => <select {...p} className="saisie" value={val} onChange={(e) => set(e.target.value)}><option value=""></option>
     {ctx.employes.map((e) => <option key={e.id} value={String(e.id)}>{e.matricule} {e.nom}</option>)}</select>}</Champ>;
   const local = (req = false) => <Champ libelle={`Localisation${req ? " *" : ""}`}>{(p) => <select {...p} className="saisie" value={loc} onChange={(e) => setLoc(e.target.value)}><option value=""></option>
     {ctx.localisations.map((x) => <option key={x.id} value={String(x.id)}>{x.libelle}</option>)}</select>}</Champ>;
-  const date = (l: string) => <Champ libelle={`${l} *`}>{(p) => <input {...p} className="saisie code" type="datetime-local" value={quand} onChange={(e) => setQuand(e.target.value)} />}</Champ>;
+  const date = (l: string) => <ChampDate libelle={`${l} *`} valeur={quand} onChange={setQuand} />;
   const ajouter = (b: Bien) => { if (!choisis.some((x) => x.id === b.id)) setChoisis([...choisis, b]); };
   const ids = choisis.map((b) => b.id), num = (x: string) => (x ? Number(x) : null);
   return <>

@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**963 décisions.** Solidité : 424 fortes (le manuel ou un texte répond), 457 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 956 déjà en place, 7 à appliquer.
+**977 décisions.** Solidité : 432 fortes (le manuel ou un texte répond), 463 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 970 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -132,6 +132,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | T117 | Compte 08 : quand un engagement devient douteux (S100 Engagement par signature ; S127 Clôtures) | Recherche du 22/11/2026. Le PCCI donne le jeu d'écritures (080 débité par le crédit du compte d'engagement donné, soldé par le 090 à la résiliation ou à la mise en jeu) et demande une provision pour risque dès qu'une perte est probable sur la garantie donnée, mais ne dit pas quand l'engagement devient douteux ; l'Instruction 003 ne parle que des crédits. Les textes voisins disent tous la même chose : l'engagement par signature suit le classement des crédits du même client, ou se classe sur un risque probable de défaillance (Instr. BCC 16 aux banques, art. 10 à 14, que son art. 2 écarte pour les COOPEC et les IMF ; règlement COBAC R-2018/01 ; guide du plan comptable bancaire de l'UMOA ; règlement français CRC 2002-03). Proposition : virer au 080 l'engagement d'un client dès que l'un de ses crédits est douteux (31 jours, Instr. 003, art. 7), avec la provision pour risque à saisir. Non construit : aucun texte de la microfinance ne l'impose | Texte réglementaire : PCCI, fiche du compte 08 et § 7.3.1.2 ; Instr. BCC 003, art. 6 et 7 ; Instr. BCC 16, art. 2, 10, 12 à 14 ; confrontation du 21/11/2026, B25 | faible | à appliquer |
 | T118 | Langue des libellés : français et anglais (tout le logiciel) | Menu Langue de la barre des menus : Français, English ; le choix se garde sur le poste et la page repart dans la langue choisie. En anglais, tous les libellés affichés (menus, écrans, boutons, messages du serveur, aide, plan de comptes, exports Excel) passent par un dictionnaire rédigé dans l'anglais des établissements de crédit (glossaire : member, loan disbursement, portfolio at risk, enhanced due diligence…), pas une traduction mot à mot. Rien ne change dans les données ni dans ce que le logiciel enregistre. Restent en français : les actes signés par le client (contrat de prêt, acte d'engagement, convention de compte) et la liasse transmise à la BCC | Choix du porteur : Manuel p. 14, article XX ; demande du porteur du 22/11/2026 ; Constitution, art. 1er (langue officielle) ; PCCI § 3.2 | moyenne | en place |
 | T119 | Aide en ligne : contenu écran par écran (tout le logiciel) | Le bouton « ? » montre, pour l'écran ouvert : son accès et son but ; ses onglets, ses zones obligatoires et ses boutons, lus sur l'écran tel qu'il est affiché ; les règles qu'il applique, avec leur texte (lois, Instructions de la BCC, PCCI), sans les notes internes au projet ; puis la marche générale du manuel (enregistrer, annuler, modifier, supprimer, grilles). Les règles restent invisibles sur l'écran lui-même | Manuel : Manuel p. 14, article XXI (« très riche en information ») ; p. 9 (grilles) et p. 11 et 12 ; registre T30 | moyenne | en place |
+| T120 | Toutes les dates proposées (T) | Les dates proposées (période des rapports, date de début du consentement, du visa) partent de la journée ouverte que la coquille lit avant d'afficher un écran, pas de l'horloge de l'ordinateur ; sans journée connue, la date de l'ordinateur | Écran voisin : Plan d'allègement, point 0.9 | moyenne | en place |
 
 ## S03 Profils : création et modification
 
@@ -277,6 +278,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S16-8 | Sous types de client | Liste S14h | Donnée exigée ailleurs : Capture p. 25 (cadre Sous type client) | forte | en place |
 | S16-9 | Frais interdits | S16 refuse un frais sur un service gratuit : ouverture de compte, dépôt, retrait, changement d'éléments du dossier du client, clôture de compte, virement de compte à compte interne, domiciliation de salaire | Texte réglementaire : Instr. BCC 37, annexe (liste des services gratuits) | forte | en place |
 | S16-10 | Frais de livret | Reste paramétrable : l'annexe de l'Instr. BCC 37 ne cite pas le livret. À retirer si la BCC l'assimile à l'ouverture de compte | Texte réglementaire : Instr. BCC 37, annexe | faible | en place |
+| S16-15 | Opérations proposées | Dépôt et retrait ne sont plus proposés dans la liste des opérations d'un frais : ils sont gratuits (le refus à l'enregistrement reste) | Texte réglementaire : Instr. BCC 37, art. 2, 3 et annexe ; plan d'allègement, point 0.15 | forte | en place |
 
 ## S16 Frais, S73, S77
 
@@ -434,6 +436,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S74-2 | Bouton à côté de la recherche du client | Photo et signature du client | Donnée exigée ailleurs : S49 (p. 57) ; DESIGN § 2.3 | moyenne | en place |
 | S74-3 | Libellé du cadre au retrait | « Retrait en espèces » | Manuel : Texte p. 86 | forte | en place |
 | S74-4 | Frais d'opération (« FRAIS VERSEMENT » sur la capture) | Aucun frais sur un dépôt ou un retrait | Texte réglementaire : Instr. BCC 37, art. 2 et 3, annexe | forte | en place |
+| S74-7 | Total frais et frais d'opération | Retirés de l'écran : dépôt et retrait d'espèces sont gratuits, la case et le tableau restaient toujours vides | Texte réglementaire : Instr. BCC 37, art. 2, 3 et annexe ; plan d'allègement, point 0.15 | forte | en place |
 
 ## S77 Part sociale
 
@@ -1046,6 +1049,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S69-7 | Fin du plan | À l'ouverture de journée (comme les DAT, S65-9) : un plan dont la fin est atteinte est clos ; le versé et les intérêts acquis, nets de la retenue, vont au compte épargne (débit compte du plan et 613, crédit compte épargne et 433). Titulaire aux avoirs gelés : le plan attend (E10) | Choix du porteur : Registre S65-9 ; PCCI, comptes 35 et 613 ; décision du porteur, 19/11/2026 | moyenne | en place |
 | S69-8 | Rupture | Écran sur le modèle de la rupture de DAT (S67) : le versé et l'intérêt acquis des échéances cotisées dont la date est atteinte, moins la retenue de 20 %, reviennent au compte épargne ; sans pénalité | Choix du porteur : Titre p. 80 ; capture p. 77 ; décision du porteur, 19/11/2026 | forte | en place |
 | S69-9 | Compte des intérêts | PCCI 613 selon le compte du plan : 6132 épargne-logement (352), 6133 épargne-retraite (353), 6134 autres comptes d'épargne à régime spécial | Texte réglementaire : PCCI, compte 613 | forte | en place |
+| S69-10 | Mode de règlement | Retiré de l'écran : les cotisations passent toujours par virement du compte d'épargne au compte du plan, enregistré « VIREMENT » (au lieu de « CHEQUE » par défaut) | Écran voisin : Plan d'allègement, point 0.23 | moyenne | en place |
 
 ## S70 Clôturer un compte
 
@@ -1728,6 +1732,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S117-5 | Enregistrer et suite | Bouton Enregistrer sous la liste (capture coupée) : le lot part au visa dans « Virement et prélèvement » (une ligne), puis à la validation ; la comptabilisation passe une seule écriture : le compte de l'institution débité du total, chaque compte crédité de son salaire | Écran voisin : Capture p. 136 ; COMPLEMENTS § 6 ; Instr. BCC 008, art. 66 | moyenne | en place |
 | S117-6 | Prélèvement automatique | Même écran : chaque compte de la liste est débité, dans son disponible, et le compte de l'institution crédité. Le lot se lance chaque mois par l'utilisateur ; pas d'exécution sans intervention | Écran voisin : Manuel p. 136 (« l'onglet ne marche pas ») ; Instr. BCC 37, annexe, point 1 (autorisation de prélèvement gratuite) | faible | en place |
 | S117-7 | Salaire du personnel | Même écran que la domiciliation (manuel : « l'onglet ne marche pas ») : la source est le compte 421 « Rémunérations dues et non payées » de l'institution, en CDF ou en USD ; chaque compte de la liste est crédité du salaire de l'employé ; visa, validation, comptabilisation comme les autres virements. La charge de personnel (650) se constate avant au 421 par une écriture (S109) | Texte réglementaire : PCCI, comptes 421 et 650 ; manuel p. 136 ; Instr. BCC 37, annexe, point 1 | moyenne | en place |
+| S117-8 | Commission | Champ et colonne retirés : domiciliation de salaire et prélèvement permanent sont gratuits (ils affichaient 0) | Texte réglementaire : Instr. BCC 37, art. 2, 3 et annexe, points 1 et 2 ; plan d'allègement, point 0.15 | forte | en place |
 
 ## S107 Factures
 
@@ -2115,6 +2120,60 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S127-14 | Mois proposé | Le dernier mois terminé à la journée ouverte (décembre de l'année précédente en janvier), le seul qu'on puisse calculer ou clôturer | Écran voisin : Plan d'allègement, point 0.19 | moyenne | en place |
+
+## S55, S95, S105, S106 Crédit
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S55-5 | Champ de la date de règlement | Le champ date du projet (jj/mm/aaaa) au lieu du champ du navigateur, qui écrivait mois et jour à l'américaine ; en lecture une fois l'opération faite | Écran voisin : Plan d'allègement, point 0.8 | moyenne | en place |
+
+## S138 Mouvements de biens
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S138-4 | Date du mouvement | La journée ouverte, sans heure, dans le champ date du projet (au lieu de l'heure de l'ordinateur au format américain) | Écran voisin : Plan d'allègement, point 0.8 | moyenne | en place |
+
+## S70 Clôture de compte
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S70-7 | Frais de clôture | Ligne retirée : la clôture de compte est gratuite (elle affichait 0 écrit en dur) | Texte réglementaire : Instr. BCC 37, annexe, point 1 ; plan d'allègement, point 0.15 | forte | en place |
+
+## S48 Résiliation
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S48-3 | Frais de résiliation et résumé d'identité | Cadre des frais retiré (clôture gratuite). Le résumé montre le secteur, l'activité, la date de création et la nationalité de la fiche au lieu de cases vides écrites en dur ; « Autorisation d'installation » retirée | Texte réglementaire : Instr. BCC 37, annexe, point 1 ; plan d'allègement, points 0.15 et 0.16 | forte | en place |
+
+## S41 Frais du membre
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S41-2 | Nom du menu | « Modifier les frais d'adhésion » au lieu de « Modifier les frais d'ouverture » : l'ouverture de compte est gratuite, l'écran modifie le droit d'adhésion | Texte réglementaire : Instr. BCC 37, annexe, point 1 ; loi 002/2002, art. 22, 5° ; plan d'allègement, point 0.15 | forte | en place |
+
+## S40 Visa
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S40-3 | Détail du client sous le visa | Les agents (sensibilisateur, gestionnaire, commercial) d'après la fiche, les héritiers désignés, et dans « Autre Info » le secteur, l'activité, la profession, l'adresse et la BP, au lieu de cases vides et de « Liste vide » écrits en dur | Texte réglementaire : Instr. BCC 15, art. 33 (l'approbation porte sur une fiche complète) ; plan d'allègement, point 0.16 | forte | en place |
+
+## S43 Informations client
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S43-4 | Agents et crédits | Les agents de la fiche, et dans l'onglet Crédits les prêts du membre (numéro, produit, montant, déblocage, état) au lieu d'une liste toujours vide | Écran voisin : Plan d'allègement, point 0.16 | moyenne | en place |
+
+## S42 Validation d'un client modifié
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S42-1 | Ce que voit la personne qui valide | La modification en attente, champ par champ (avant, après), avec son auteur et sa date ; la liste des comptes, sans objet ici, est retirée | Texte réglementaire : Instr. BCC 008, art. 66 ; Instr. BCC 15, art. 10 ; plan d'allègement, point 0.16 | forte | en place |
+
+## S65 Mise en place de DAT
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S65-12 | Case « A échéance » | Retirée : aucun calcul ni document ne s'en servait | Écran voisin : Plan d'allègement, point 0.23 | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

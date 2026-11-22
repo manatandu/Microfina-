@@ -97,7 +97,6 @@ function Mensuel({ mode }: { mode: "domiciliation" | "personnel" | "prelevement"
           {cl.comptes.filter((c) => (perso ? c.devise === dv : !inst.c || c.devise === inst.c.devise)).map((c) => <option key={c.id} value={c.id}>{c.numero}</option>)}</select>}</Champ>
         <Champ libelle="Intitulé du compte *">{(p) => <Lecture {...p} value={nomDe(cl.t)} />}</Champ>
         <Champ libelle={`${libelleMontant} *`}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={salaire} onChange={(e) => setSalaire(e.target.value)} />}</Champ>
-        <Champ libelle="Commission *">{(p) => <Lecture {...p} value={montant(0, dv)} />}</Champ>
         <div className="ligne-champ">
           <label className="bouton secondaire">Choose<input className="sr-only" type="file" accept=".csv,.txt,text/csv,text/plain" onChange={(e) => setFichier(e.target.files?.[0] ?? null)} /></label>
           <button className="bouton secondaire" type="button" disabled={!fichier} onClick={importer}>Upload</button>
@@ -111,12 +110,12 @@ function Mensuel({ mode }: { mode: "domiciliation" | "personnel" | "prelevement"
     <fieldset className="cadre-champs pile"><legend>Liste des Client</legend>
       <div className="defile-x"><table className="grille">
         <thead><tr><th scope="col">N° Client</th><th scope="col">N° compte</th><th scope="col">Intitulé du compte</th><th scope="col">Institution</th><th scope="col" className="num">{libelleMontant}</th>
-          <th scope="col" className="num">Commission</th><th scope="col"><span className="sr-only">Retirer</span></th></tr></thead>
-        <tbody>{liste.length === 0 && <tr><td colSpan={7}>No records found.</td></tr>}
+          <th scope="col"><span className="sr-only">Retirer</span></th></tr></thead>
+        <tbody>{liste.length === 0 && <tr><td colSpan={6}>Aucune ligne.</td></tr>}
           {liste.map((x) => <tr key={x.compteDepotId}><td className="chiffres">{x.client}</td><td className="code">{x.numero}</td><td>{x.intitule}</td><td>{perso ? "Personnel" : nomDe(inst.t)}</td>
-            <td className="num chiffres">{montant(x.montant, dv)}</td><td className="num chiffres">{montant(0, dv)}</td>
+            <td className="num chiffres">{montant(x.montant, dv)}</td>
             <td><button className="bouton secondaire" type="button" aria-label={`Retirer ${x.numero}`} onClick={() => setListe(liste.filter((y) => y !== x))}>Supprimer</button></td></tr>)}</tbody>
-        <tfoot><tr><th scope="row" colSpan={4}>Total</th><td className="num chiffres">{montant(liste.reduce((t, x) => t + x.montant, 0), dv)}</td><td></td><td></td></tr></tfoot>
+        <tfoot><tr><th scope="row" colSpan={4}>Total</th><td className="num chiffres">{montant(liste.reduce((t, x) => t + x.montant, 0), dv)}</td><td></td></tr></tfoot>
       </table></div>
     </fieldset>
     <div className="actions-onglets"><button className="bouton" type="button" disabled={liste.length === 0} onClick={enregistrer}>Enregistrer</button>

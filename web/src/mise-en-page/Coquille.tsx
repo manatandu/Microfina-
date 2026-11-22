@@ -5,7 +5,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { api, SUR_SERVEUR } from "../donnees/api";
 import { useDonnees } from "../lib/useDonnees";
-import { fr } from "../lib/dates";
+import { definirJourOuvert, fr } from "../lib/dates";
 import { menus, applicationDe, APPLICATIONS, ECRANS, type Menu } from "../ecrans/registre";
 import { CONSTRUITS, prechargerEcrans } from "../ecrans/construits";
 import { definirMonnaies } from "@design/montant.js";
@@ -26,6 +26,7 @@ export function Coquille() {
   const { donnees } = useDonnees(async () => {
     const [u, ctx, j] = await Promise.all([api.session.courante(), api.referentiel.contexte(), api.journees.courante()]);
     if (u) definirMonnaies(ctx.devises, ctx.monnaies);   // devises et monnaies de S35 pour les guichets (registre S79-5)
+    definirJourOuvert(j?.date);                          // les dates proposées partent de la journée ouverte (registre T120)
     return { u, ctx, j };
   });
   const connecte = !!donnees?.u;

@@ -6,7 +6,7 @@ import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
-import { fr } from "../lib/dates";
+import { debutExercice, fr, jourOuvert } from "../lib/dates";
 import { lireMontant, montant, type Devise } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Paginee, Textes, type Boite } from "../composants";
 import { RechercheClient } from "./Visa";
@@ -255,7 +255,7 @@ function Materiel() {
 /** 5-5 Rapport (p. 118) : onglets Nantissement et Caution, du … au …, Exécuter */
 function Rapport() {
   const [onglet, setOnglet] = useState<"depot_garantie" | "caution">("depot_garantie");
-  const [f, setF] = useState({ du: `${new Date().getFullYear()}-01-01`, au: new Date().toISOString().slice(0, 10) });
+  const [f, setF] = useState({ du: debutExercice(), au: jourOuvert() });   // registre T120
   const [l, setL] = useState<Awaited<ReturnType<typeof api.garanties.rapport>>>([]);
   const [boite, setBoite] = useState<Boite | null>(null);
   const mot = onglet === "caution" ? "Caution" : "Nantissement";

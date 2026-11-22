@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { fr } from "../lib/dates";
+import { debutExercice, fr, jourOuvert } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
 import { montant, type Devise } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Paginee, Textes, type Boite } from "../composants";
@@ -14,8 +14,8 @@ const ONGLETS = [["journal", "Journal"], ["base", "Rapports de base"], ["multicr
   ["taux", "Taux de remboursements"], ["previsionnel", "Encours Prévisionnel"], ["exigibles", "Rapport des exigibles"], ["indicateurs", "Indicateur de Gestion"]] as const;
 type Onglet = (typeof ONGLETS)[number][0];
 type Rapport = Awaited<ReturnType<typeof api.rapportsCredit.rapport>>;
-const debutAnnee = () => `${new Date().getFullYear()}-01-01`;
-const aujourdhui = () => new Date().toISOString().slice(0, 10);
+const debutAnnee = debutExercice;
+const aujourdhui = jourOuvert;   // la journée ouverte (registre T120)
 /** Critères de chaque rapport (registre S101-2 à S101-10) */
 const CRITERES: Record<Onglet, { periode?: boolean; date?: boolean; filtres?: boolean; multi?: boolean; libelle?: string }> = {
   journal: { periode: true, filtres: true, libelle: "Période (date de l'écriture)" }, base: { periode: true, filtres: true, libelle: "Période (date de déblocage)" },
@@ -54,7 +54,7 @@ type Ctx = [Awaited<ReturnType<typeof api.visasCredit.contexte>>, Awaited<Return
 
 function UnRapport({ onglet, ctx, erreur }: { onglet: Onglet; ctx: Ctx; erreur: (x: unknown) => void }) {
   const c = CRITERES[onglet], titre = ONGLETS.find(([k]) => k === onglet)![1];
-  const [f, setF] = useState({ du: onglet === "previsionnel" ? aujourdhui() : debutAnnee(), au: onglet === "previsionnel" ? `${new Date().getFullYear() + 1}-12-31` : aujourdhui(),
+  const [f, setF] = useState({ du: onglet === "previsionnel" ? aujourdhui() : debutAnnee(), au: onglet === "previsionnel" ? `${Number(jourOuvert().slice(0, 4)) + 1}-12-31` : aujourdhui(),
     date: aujourdhui(), produit: "", agent: "", sexe: "", degre: "", ordre: "produit", mode: "detaille" });
   const [r, setR] = useState<Rapport | null>(null);
   async function afficher() {

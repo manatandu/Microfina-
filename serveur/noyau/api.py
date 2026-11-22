@@ -357,6 +357,11 @@ def tiers_adhesion(request, tid: int):
     return s.date_adhesion(tid)
 
 
+@api.get("/tiers/{tid}/credits")
+def tiers_credits(request, tid: int):
+    return s.credits_du_tiers(u(request), tid)
+
+
 @api.get("/tiers/{tid}/compte-adhesion")
 def tiers_compte_adhesion(request, tid: int):
     return s.compte_adhesion(u(request), tid)

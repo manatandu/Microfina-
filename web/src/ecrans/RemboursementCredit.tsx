@@ -12,7 +12,7 @@ import { boiteOperation } from "../lib/examen";
 import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
 import { decimal, lireMontant, montant, totalComptage, type Comptage, type Devise } from "@design/montant.js";
-import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
+import { Attention, Billetage, Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
 import { OngletsGuichet, Recu, SoldesCaisse } from "./Guichet";
 import { RechercheClient } from "./Visa";
 
@@ -273,7 +273,8 @@ export function RemboursementBanque() {
       <h1>Remboursement de crédits par banque</h1>
       <section className="bloc pile" aria-label="Remboursement de crédits par banque">
         <div className="entete-ecran"><p>Numéro de pièce : <strong className="chiffres">{fait?.piece ?? ""}</strong></p>
-          <Champ libelle="Date règlement : *">{(p) => <input {...p} type="date" className="saisie date" readOnly={fige} max={j?.date} value={date || j?.date || ""} onChange={(x) => setDate(x.target.value)} />}</Champ></div>
+          {fige ? <Champ libelle="Date règlement : *">{(p) => <Lecture {...p} value={fr(date || j?.date || "")} />}</Champ>
+            : <ChampDate libelle="Date règlement : *" valeur={date || j?.date || ""} onChange={setDate} />}</div>
         <div className="grille-cadres client-large">
           <InfosClient e={e} fige={fige} rechercher={() => setFiche("recherche")} />
           <InfosCredit e={e} fige={fige} banque />
@@ -349,7 +350,8 @@ export function RemboursementPrelevement() {
       <h1>Remboursement de crédits par prélèvement sur compte</h1>
       <section className="bloc pile" aria-label="Remboursement de crédits par prélèvement sur compte">
         <div className="entete-ecran"><p>Numéro de pièce : <strong className="chiffres">{fait?.piece ?? ""}</strong></p>
-          <Champ libelle="Date règlement : *">{(p) => <input {...p} type="date" className="saisie date" readOnly={fige} max={j?.date} value={date || j?.date || ""} onChange={(x) => setDate(x.target.value)} />}</Champ></div>
+          {fige ? <Champ libelle="Date règlement : *">{(p) => <Lecture {...p} value={fr(date || j?.date || "")} />}</Champ>
+            : <ChampDate libelle="Date règlement : *" valeur={date || j?.date || ""} onChange={setDate} />}</div>
         <div className="grille-deux">
           <InfosClient e={e} fige={fige} rechercher={() => setFiche("recherche")}>
             <Champ libelle="Compte Client:">{(p) => <select {...p} className="saisie code" disabled={fige} value={compte} onChange={(x) => setCompte(x.target.value)}><option value=""></option>
@@ -432,7 +434,7 @@ export function ConsulterPret() {
       <h1>Consultation de prêts</h1>
       <section className="bloc pile" aria-label="Consultation de prêts">
         <div className="entete-ecran"><span></span>
-          <Champ libelle="Date règlement : *">{(p) => <input {...p} type="date" className="saisie date" max={j?.date} value={date || j?.date || ""} onChange={(x) => setDate(x.target.value)} />}</Champ></div>
+          <ChampDate libelle="Date règlement : *" valeur={date || j?.date || ""} onChange={setDate} /></div>
         <div className="grille-deux">
           <fieldset className="pile cadre-champs"><legend>Infos Client</legend>
             <div className="ligne-champ"><Champ libelle="N° du Client :">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>

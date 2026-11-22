@@ -1117,6 +1117,13 @@ const tiers = {
     const s = o && E.sessions.find((x) => x.id === o.sessionId);
     return (s && E.journees.find((j) => j.id === s.journeeId)?.date) || "";
   },
+  /** S43, onglet Crédits : les prêts du membre et leur état (registre S43-4). Mêmes règles côté serveur (services.credits_du_tiers). */
+  credits(tiersId: number) {
+    exiger();
+    const etats: Record<string, string> = { mis_en_place: "Mis en place, en visa", vise: "Visé, à débloquer", refuse: "Refusé", debloque: "En cours", solde: "Soldé", passe_en_perte: "Passé en perte" };
+    return E.credits.filter((c) => c.tiersId === tiersId).sort((a, b) => a.id - b.id).map((c) => ({ numero: c.numero, produit: String(E.produitsCredit.find((p) => p.id === c.produitId)?.nom ?? ""),
+      montant: c.montant, devise: c.devise as string, debloqueLe: c.debloqueLe ?? "", etat: etats[c.statut] ?? c.statut }));
+  },
   /** Le compte d'épargne que l'adhésion ouvrira : produit choisi à l'enrôlement, numéro selon la règle de S17, sans rien ouvrir (registre S73-6) */
   compteAdhesion(tiersId: number) {
     exiger();
@@ -1182,7 +1189,8 @@ function ligneParam(liste: ParamFrais[], id: number) {
 const parametrage = {
   lireFrais() {
     exiger();
-    return { typesOperation: TYPES_OPERATION, natures: NATURES, typesMembre: Object.keys(TYPES_MEMBRE), sousTypes: sousTypes(), compteAdhesion: "727", fondements: FONDEMENTS_FRAIS,   // S16-4
+    // Dépôt et retrait ne sont pas proposés : ils sont gratuits (Instr. BCC 37, art. 2, 3 et annexe ; plan d'allègement, point 0.15)
+    return { typesOperation: TYPES_OPERATION.filter((t) => t !== "DEPOT" && t !== "RETRAIT"), natures: NATURES, typesMembre: Object.keys(TYPES_MEMBRE), sousTypes: sousTypes(), compteAdhesion: "727", fondements: FONDEMENTS_FRAIS,   // S16-4
       frais: E.frais, operations: E.paramOperations, adhesion: E.paramAdhesion };
   },
   creerFrais(d: SaisieFrais): Frais {
@@ -2447,8 +2455,7 @@ const plansEpargne = {
     if (!d.duree || d.duree < 1) throw new ErreurMetier("Durée Plan épargne : au moins 1 mois.");
     if (!periodicitePlan(d.periodicite ?? "")) throw new ErreurMetier("À remplir : Périodicité.");
     if (!d.montant || d.montant <= 0) throw new ErreurMetier("Montant : un montant supérieur à zéro.");
-    const mode = d.modeReglement?.trim() || "CHEQUE";
-    if (!MODES_PLAN.includes(mode)) throw new ErreurMetier("Mode règlement inconnu.");
+    const mode = "VIREMENT";   // les cotisations passent toujours par virement du compte d'épargne au compte du plan (registre S69-10)
     const debut = d.dateDebut?.trim() || j.date;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(debut)) throw new ErreurMetier("À remplir : Début.");
     const n = echeancesPlan(d.duree, d.periodicite!), taux = p.tauxInteret || "0";

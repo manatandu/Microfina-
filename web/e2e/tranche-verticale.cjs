@@ -450,7 +450,7 @@ const OUT = process.argv[2];
   await login('J.-P. Mukendi'); await aller('/clients/s42');
   await p.getByRole('button', { name: 'Rechercher un client' }).click();
   await p.getByRole('dialog', { name: "Recherche d'un client" }).getByRole('row').filter({ hasText: 'Mwamba' }).dblclick();
-  await p.getByRole('cell', { name: '0412-000319-01' }).waitFor(); await etape('06l-validation-client-modifie');
+  await p.getByRole('table', { name: 'Modification à valider' }).waitFor(); await etape('06l-validation-client-modifie');   // avant et après (registre S42-1)
   await p.getByRole('button', { name: 'activer client' }).click(); await ok();
   // Mise à jour d'une entreprise (S46, registre S46-2) : onglets de son enrôlement, signataire ajouté, puis validation (S42)
   // Simulation d'échéancier (S84, p. 111 ; registre S84-1 à S84-9) : 1 000 000 CDF sur 12 mois à 2,5 % par mois, échéance constante, TEG (Instr. BCC 38)

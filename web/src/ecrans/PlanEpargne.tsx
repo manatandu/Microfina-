@@ -130,8 +130,6 @@ function Nouveau({ ctx }: { ctx: Contexte }) {
             <option value=""></option>{ctx.periodicites.map((x) => <option key={x.code} value={x.code}>{x.libelle}</option>)}</select>}</Champ>
           <Champ libelle="Montant : *">{(pp) => <input {...pp} className="saisie montant" inputMode="decimal" autoComplete="off" value={f.montant} onChange={(e) => maj({ montant: e.target.value })} />}</Champ>
           <p>Taux intérêt : <strong className="chiffres">{p?.taux ?? ""}</strong> %</p>
-          <Champ libelle="Mode reglement :">{(pp) => <select {...pp} className="saisie" value={f.mode} onChange={(e) => maj({ mode: e.target.value })}>
-            {ctx.modes.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
           <fieldset className="pile cadre-champs">
             <legend>Date</legend>
             <div className="ligne-champ">

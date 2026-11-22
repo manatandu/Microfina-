@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { fr } from "../lib/dates";
+import { debutExercice, fr, jourOuvert } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
 import { lireMontant, montant, type Devise } from "@design/montant.js";
 import { ContratPret } from "./ContratPret";
@@ -15,8 +15,8 @@ type Ligne = Awaited<ReturnType<typeof api.visasCredit.aViser>>[number];
 const NIVEAUX = [["responsable_credit", "Responsable crédit"], ["comite", "Comité de crédit"], ["service_financier", "Service financier"]] as const;
 type Niveau = (typeof NIVEAUX)[number][0];
 const AVIS = [["accepte", "Accepté"], ["refuse", "Refusé"]] as const;
-const debutAnnee = () => `${new Date().getFullYear()}-01-01`;
-const aujourdhui = () => new Date().toISOString().slice(0, 10);
+const debutAnnee = debutExercice;
+const aujourdhui = jourOuvert;   // la journée ouverte (registre T120)
 
 function GrilleCredits({ lignes, choisie, choisir, groupe }: { lignes: Ligne[]; choisie?: number; choisir?: (l: Ligne) => void; groupe?: boolean }) {
   const titres = ["N° credit", "Date demande", "Compte", "Intitulé", "Montant pret", "Durée (mois)", "Produit", groupe ? "Groupe solidaire" : "Agent crédit"];
