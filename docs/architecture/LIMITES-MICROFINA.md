@@ -4,6 +4,8 @@ Demande du porteur, 13/11/2026 : quand tous les travaux seront finis, faire une 
 
 Chaque ligne dit ce qui a été constaté, où, et ce que Likelemba fait déjà quand un texte l'impose.
 
+L'analyse approfondie de la phase 2 (22/11/2026) a repris ce relevé avec la revue de tous les écrans : elle est dans `PLAN-ALLEGEMENT.md`, à corriger lot par lot après l'accord du porteur.
+
 ## Écarts avec les textes de la RDC (déjà corrigés, car un texte l'impose)
 
 | Écran | Constat dans Microfina++ | Texte | Ce que fait Likelemba |

@@ -151,7 +151,7 @@ export function graine(): Etat {
     listes: [...[["S1", "PRIMAIRE"], ["S2", "SECONDAIRE"], ["S3", "TERTIAIRE"]]
       .map(([code, libelle]) => ({ liste: "secteur_activite", code: code!, libelle: libelle! })),
       // Décision du porteur (18/11/2026, registre S14-3) : les autres lignes de la capture p. 23 sont des types d'activité (S14a), sous leur secteur (ids 1 à 3 ci-dessus)
-      // + les 14 grands domaines du ROME/RDC (ONEM), sous leur secteur (question du porteur du 22/11/2026, registre S14-5)
+      // + les 14 grands domaines du ROME/RDC (ONEM), sous leur secteur (question du porteur du 22/11/2026, registre S14-6)
       ...([["T1", "Elevage", 1], ["T2", "Pêche", 1], ["T3", "Transformation", 2], ["T4", "Artisanat", 2], ["T5", "Commerce", 3],
         ["R-A", "Agriculture et pêche, espaces naturels et espaces verts, soins aux animaux", 1], ["R-B", "Artisanat et façonnage d'ouvrages d'art", 2], ["R-F", "Construction, bâtiment et travaux publics", 2], ["R-H", "Industrie", 2], ["R-I", "Installation et maintenance", 2], ["R-C", "Banque, assurance, immobilier", 3], ["R-D", "Commerce, vente et grande distribution", 3], ["R-E", "Communication, média et multimédia", 3], ["R-G", "Hôtellerie-restauration, tourisme, loisirs et animation", 3], ["R-J", "Santé", 3], ["R-K", "Services à la personne et à la collectivité", 3], ["R-L", "Spectacle", 3], ["R-M", "Support à l'entreprise", 3], ["R-N", "Transport et logistique", 3]] as const)
         .map(([code, libelle, parentId]) => ({ liste: "type_activite", code, libelle, parentId })), { liste: "type_guichet", code: "1", libelle: "PRINCIPALE" }, { liste: "type_guichet", code: "2", libelle: "SECONDAIRE" },

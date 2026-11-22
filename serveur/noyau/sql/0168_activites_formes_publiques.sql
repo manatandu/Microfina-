@@ -1,5 +1,5 @@
 -- Question du porteur du 22/11/2026 (« l'État, une banque, une compagnie d'assurance… ; un fonctionnaire, un travailleur de banque ou de cabinet d'audit :
--- quel secteur et quelle activité ? ») ; registre S14-5 et S38-6.
+-- quel secteur et quelle activité ? ») ; registre S14-6 et S38-6.
 -- 1. Types d'activité : les 14 grands domaines du Répertoire opérationnel des métiers et des emplois de la RDC (ROME/RDC, ONEM), rangés sous les trois secteurs.
 insert into liste_reference (institution_id, liste, code, libelle, parent_id)
 select s.institution_id, 'type_activite', v.code, v.libelle, s.id

@@ -25,7 +25,7 @@ SECTEURS = [("S1", "PRIMAIRE"), ("S2", "SECONDAIRE"), ("S3", "TERTIAIRE")]
 # Décision du porteur (18/11/2026, registre S14-3) : les autres lignes de la capture p. 23 sont des types d'activité (S14a), rangés sous leur secteur
 TYPES_ACTIVITE = [("T1", "Elevage", "S1"), ("T2", "Pêche", "S1"), ("T3", "Transformation", "S2"), ("T4", "Artisanat", "S2"), ("T5", "Commerce", "S3")]
 # Les 14 grands domaines du ROME/RDC (ONEM), sous leur secteur : toute activité, salariée ou non, y trouve sa place (fonctionnaire : services à la collectivité ;
-# employé de banque : banque, assurance, immobilier ; cabinet d'audit : support à l'entreprise). Question du porteur du 22/11/2026, registre S14-5
+# employé de banque : banque, assurance, immobilier ; cabinet d'audit : support à l'entreprise). Question du porteur du 22/11/2026, registre S14-6
 TYPES_ACTIVITE += [("R-A", "Agriculture et pêche, espaces naturels et espaces verts, soins aux animaux", "S1"), ("R-B", "Artisanat et façonnage d'ouvrages d'art", "S2"), ("R-F", "Construction, bâtiment et travaux publics", "S2"), ("R-H", "Industrie", "S2"), ("R-I", "Installation et maintenance", "S2"), ("R-C", "Banque, assurance, immobilier", "S3"), ("R-D", "Commerce, vente et grande distribution", "S3"), ("R-E", "Communication, média et multimédia", "S3"), ("R-G", "Hôtellerie-restauration, tourisme, loisirs et animation", "S3"), ("R-J", "Santé", "S3"), ("R-K", "Services à la personne et à la collectivité", "S3"), ("R-L", "Spectacle", "S3"), ("R-M", "Support à l'entreprise", "S3"), ("R-N", "Transport et logistique", "S3")]
 
 # Constitution, art. 2 : la ville de Kinshasa (statut de province) et les 25 provinces
