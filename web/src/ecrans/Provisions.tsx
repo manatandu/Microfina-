@@ -5,8 +5,8 @@ import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
-import { montant, type Devise } from "@design/montant.js";
-import { ChampDate, Chargement, Dialogue, LigneFiltres, Paginee, Textes, type Boite } from "../composants";
+import { lireMontant, montant, type Devise } from "@design/montant.js";
+import { Champ, ChampDate, Chargement, Dialogue, LigneFiltres, Paginee, Textes, type Boite } from "../composants";
 
 type Ligne = Awaited<ReturnType<typeof api.provisions.charger>>[number];
 
@@ -58,12 +58,59 @@ export default function Provisions() {
               <td className="num chiffres">{x.taux} %</td><td className="num chiffres">{montant(x.provisionRequise, x.devise as Devise)}</td>
               <td className="num chiffres">{montant(x.provision, x.devise as Devise)}</td></tr>)}</tbody>
         </table></div>)}</Paginee>
+        <ComptesCourantsDebiteurs />
         <Textes sources={["Manuel Microfina++, p. 121 : 10-Déclassement Provision/Crédit, capture sans texte (Provisionner tout les crédits, Date Opération, Charger crédits, Radier par anticipation, Provisionner)",
           "Registre CR-21b, CR-19 : avant de provisionner un crédit en retard, son dépôt nanti (épargne obligatoire, dépôt de garantie) paie l'échu par compensation, la pénalité d'abord (loi 11/020, art. 48) ; les intérêts non réglés d'un crédit litigieux sont suivis en hors bilan, 0630 contre 096 (Instr. BCC 003, art. 11)",
           "Registre S99-1 à S99-6 : crédits de la balance âgée de la date (S98) ; capital déclassé au compte 390 de la tranche ; provision au taux de la tranche au compte 380, dotation 6902, reprise 7902 ; radiation d'un irrécupérable au 31 décembre seulement, perte 6910 (6911 au-delà de la provision), suivi en hors bilan 0612 contre 096",
           "Instr. BCC 003, art. 6, 9, 10 et 12 : sain assimilé impayé ; irrécupérable au-delà de 12 mois, passé en perte à la clôture du bilan au 31 décembre et suivi en hors bilan ; provisions mensuelles 5, 25, 50, 75 et 100 % du capital restant dû",
-          "PCCI : comptes 38 (provisions sur crédits en retard), 39 (créances en retard), 690, 691, 790 ; hors bilan 06 et 096 (créances annulées à recouvrer)"]} />
+          "PCCI : comptes 38 (provisions sur crédits en retard), 39 (créances en retard), 690, 691, 790 ; hors bilan 06 et 096 (créances annulées à recouvrer)",
+          "Instr. BCC 003, art. 7, al. 2 ; PCCI, fiche du compte 33 : le compte courant débiteur sans versement depuis plus de 30 jours est un crédit douteux ; son solde est viré au compte 39 et provisionné (registre T84, T86)"]} />
       </section>
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </>
+  );
+}
+
+/** B4 (confrontation du 21/11/2026) : comptes courants débiteurs sans versement depuis plus de 30 jours (Instr. BCC 003, art. 7, al. 2 ; PCCI, comptes 33 et 39) */
+function ComptesCourantsDebiteurs() {
+  const [relu, setRelu] = useState(0);
+  const { donnees } = useDonnees(() => api.decouverts.lire().catch(() => null), [relu]);
+  const [choisi, setChoisi] = useState<number | null>(null);
+  const [m, setM] = useState("");
+  const [boite, setBoite] = useState<Boite | null>(null);
+  if (!donnees) return null;
+  const agir = (question: string, f: () => Promise<unknown>) => setBoite({ type: "confirmation", message: question, oui: async () => {
+    try { await f(); setM(""); setChoisi(null); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Opération effectuée avec succès !" }); }
+    catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+  } });
+  return (
+    <>
+      <h2>Comptes courants débiteurs</h2>
+      <div className="defile-x"><table className="grille" aria-label="Comptes courants débiteurs à classer">
+        <thead><tr><th scope="col">N° compte</th><th scope="col">Client</th><th scope="col" className="num">Solde débiteur</th><th scope="col">Dernier versement</th>
+          <th scope="col" className="num">Jours de retard</th><th scope="col">Degré</th><th scope="col" className="num">Taux</th></tr></thead>
+        <tbody>{donnees.candidats.length === 0 && <tr><td colSpan={7}>Aucune donnée dans la liste</td></tr>}
+          {donnees.candidats.map((x) => <tr key={x.compteId}><td className="code">{x.numero}</td><td>{x.client}</td><td className="num chiffres">{montant(x.solde, x.devise as Devise)}</td>
+            <td className="chiffres">{x.dernierVersement ? fr(x.dernierVersement) : ""}</td><td className="num chiffres">{x.joursRetard}</td><td>{x.degre}</td><td className="num chiffres">{x.taux} %</td></tr>)}</tbody>
+      </table></div>
+      <div className="actions-onglets">
+        <button className="bouton" type="button" disabled={donnees.candidats.length + donnees.creances.length === 0}
+          onClick={() => agir("Voulez-vous vraiment classer et provisionner les comptes courants débiteurs ?", () => api.decouverts.classer())}>Classer et provisionner</button>
+      </div>
+      <div className="defile-x"><table className="grille" aria-label="Créances sur comptes courants">
+        <thead><tr><th scope="col">N° compte</th><th scope="col">Client</th><th scope="col" className="num">Reste dû</th><th scope="col" className="num">Jours de retard</th>
+          <th scope="col">Degré</th><th scope="col" className="num">Taux</th><th scope="col" className="num">Provision requise</th><th scope="col" className="num">Provision constituée</th></tr></thead>
+        <tbody>{donnees.creances.length === 0 && <tr><td colSpan={8}>Aucune donnée dans la liste</td></tr>}
+          {donnees.creances.map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} aria-selected={x.id === choisi} onClick={() => setChoisi(x.id)}
+            onKeyDown={(e) => { if (e.key === "Enter") setChoisi(x.id); }}><td className="code">{x.numero}</td><td>{x.client}</td>
+            <td className="num chiffres">{montant(x.restant, x.devise as Devise)}</td><td className="num chiffres">{x.joursRetard}</td><td>{x.degre}</td><td className="num chiffres">{x.taux} %</td>
+            <td className="num chiffres">{montant(x.provisionRequise, x.devise as Devise)}</td><td className="num chiffres">{montant(x.provision, x.devise as Devise)}</td></tr>)}</tbody>
+      </table></div>
+      {choisi !== null && <div className="ligne-champ">
+        <Champ libelle="Montant à recouvrer : *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={m} onChange={(e) => setM(e.target.value)} />}</Champ>
+        <button className="bouton" type="button" onClick={() => agir("Voulez-vous vraiment recouvrer ce montant sur le compte du client ?",
+          () => api.decouverts.recouvrer(choisi, { montant: m.trim() ? lireMontant(m) : null }))}>Recouvrer</button>
+      </div>}
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );

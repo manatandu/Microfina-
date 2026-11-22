@@ -3275,6 +3275,23 @@ describe("journée de guichet", () => {
     expect(await api.controlesCompta.annulations({ du: "2026-11-01", au: "2026-11-30", type: "depot" })).toEqual([]);
     expect(await soldeCdfGrandLivre()).toBe(0);
   });
+  it("comptes courants débiteurs (B4 ; Instr. BCC 003, art. 7, al. 2 ; PCCI 33 et 39) : virement au 39, provision, recouvrement", async () => {
+    await journeeOuverte(); await connecter("bkasongo");
+    const E = _etat(), modele = E.comptes.find((c) => c.numero === "0412-000319-02")!, p = E.produits.find((x) => x.libelle === modele.intitule && x.devise === modele.devise)!;
+    p.categorie = "Courant";
+    const k = { ...modele, id: 9001, numero: "0412-000319-09" };   // un compte courant neuf, débiteur depuis plus de 30 jours
+    E.comptes.push(k); E.journees.unshift({ id: 9001, date: "2026-09-01", statut: "fermee" });
+    const ligne = (compte: string, contrat: string | undefined, sens: "D" | "C", montant: number) => ({ compte, contrat, sens, devise: "CDF" as const, montant, montantCdf: montant });
+    E.ecritures.push({ ...E.ecritures[0]!, id: 9001, numero: "ESSAI-1", journeeId: 9001, libelle: "Découvert d'essai", piece: "ESSAI-1",
+      lignes: [ligne(k.pcci, `depot:${k.id}`, "D", 3000000), ligne("570", undefined, "C", 3000000)] });
+    let r = await api.decouverts.lire();
+    expect(r.candidats.map((x) => [x.numero, x.solde])).toEqual([["0412-000319-09", 3000000]]);
+    r = await api.decouverts.classer();
+    const x = r.creances[0]!;
+    expect([r.candidats.length, x.restant, x.provision]).toEqual([0, 3000000, Math.floor(3000000 * x.taux / 100)]);
+    await expect(api.decouverts.recouvrer(x.id, { montant: 1000000 })).rejects.toThrow("solde du compte");
+    await expect(api.decouverts.recouvrer(x.id, { montant: 4000000 })).rejects.toThrow("au plus ce qui reste dû");
+  });
   it("normes prudentielles (SN01 ; Instr. BCC 002 ; loi 002/2002, art. 59) : état à une date, droit du comptable", async () => {
     await journeeOuverte(); await connecter("plumbala");
     const j = (await api.journees.courante())!.date;

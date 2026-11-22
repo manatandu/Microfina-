@@ -418,3 +418,16 @@ Lecture arrêtée le 21/11/2026 à la demande du porteur. Ce qui suit n'est pas 
 - **B12 corrigé** (PCCI § 3.4) : états périodiques numérotés et datés, numéro continu gardé en base (registre T85).
 - **B7 en attente** : le format FinA n'est pas dans les textes lus ; il faut le cahier des charges de la BCC.
 - **B8 sans suite** : le PCCI, § 6.4, dit « peut » ; aucun texte lu n'oblige à passer les intérêts courus non échus.
+
+## Réponses tirées des textes (22/11/2026)
+
+Le porteur a demandé de répondre par les textes aux points du § 16.
+
+- **Versement « significatif »** (Instr. 003, art. 7) : aucun seuil pour la microfinance. L'Instr. 16, art. 21, en fixe un pour les banques et écarte les COOPEC et les IMF (art. 2). Tout versement compte (registre T84).
+- **B4 terminé** : le solde débiteur est viré au compte 39 (PCCI, fiche du compte 33), provisionné par tranche (Instr. 003, art. 12) et recouvré sur le compte du client (registre T86).
+- **Liquidité de 80 %** : l'Instr. 002 est prise pour l'application des art. 58 à 61 de la loi 002/2002 et ne définit que la liquidité immédiate ; l'annexe de l'Instr. 009 ne demande que celle-ci. Non calculée (registre T79).
+- **FinA** : aucun texte ne décrit le format. Non construit ; le fichier est celui que la BCC remet (registre T88).
+- **Subvention d'exploitation** : déjà tranchée par le porteur (S122-6). L'autosuffisance garde la formule écrite de l'Instr. 004 (registre T89).
+- **Intérêts courus sur crédits sains** : à passer (PCCI § 4.1.3, classe 3, § 6.4, lus ensemble ; registre T90).
+- **Compte divisionnaire** : détailler est libre (PCCI, chap. 9) ; une opération hors nomenclature demande l'autorisation, dont la référence se note sur le compte (registre T87 ; B19 terminé).
+- **Les autres points** : registre T92.

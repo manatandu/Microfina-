@@ -138,6 +138,11 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       tout: (p: unknown) => post("/credit/provisions/tout", p),
       radier: (p: unknown) => post("/credit/provisions/radiation", p),
     },
+    decouverts: {
+      lire: () => get("/credit/provisions/decouverts"),
+      classer: () => post("/credit/provisions/decouverts/classement"),
+      recouvrer: (id: number, p: unknown) => post(`/credit/provisions/decouverts/${id}/recouvrement`, p),
+    },
     engagements: {
       lister: () => get("/credit/engagements"),
       contexte: () => get("/credit/engagements/contexte"),

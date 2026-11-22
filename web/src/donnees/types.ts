@@ -409,6 +409,8 @@ export interface Etat {
   affectationsCredit: { id: number; creditId: number; de: number; vers: number; le: string; par: number }[];   // S96
   liberationsGarantie: { id: number; garantieId: number; montant: number; date: string; ecritureId: number | null; par: number }[];
   nantissementsMateriel?: NantissementMateriel[];   // A4 et P3
+  decouvertsDouteux?: { id: number; compteId: number; devise: string; montant: number; restant: number; retardDepuis: string; degre: number; provision: number;
+    classeLe: string; classePar: number; soldeLe: string }[];   // B4 : comptes courants débiteurs virés au 39 (Instr. BCC 003, art. 7, al. 2)
   editions?: { numero: number; etat: string; le: string; par: number }[];   // B12 : états périodiques numérotés et datés (PCCI § 3.4)
   visasCredit: VisaCredit[];   // S90
   declarationsRisque: { type: string; objetId: number; dateEvenement: string; declareLe: string; reference: string; declarePar: number }[];   // E26, Instr. BCC 05
@@ -511,6 +513,7 @@ export interface LigneListe { id: number; liste: string; code: string; libelle: 
 export interface OptionsCompte {
   ouvert: boolean; saisissable: boolean; saisieAnalytique: boolean; saisieEcheance: boolean; lettrageAuto: boolean; saisieTiers: boolean;
   immobilisation: boolean; compteTaxe: boolean; compteTaxable: boolean; typeSuivi: string;
+  autorisationBcc?: string;   // B19 : autorisation préalable de la BCC pour une opération hors nomenclature du PCCI (Instr. BCC 006, art. 3)
 }
 export type CompteInstitution = OptionsCompte & { numero: string; libelle: string; classe: number };
 

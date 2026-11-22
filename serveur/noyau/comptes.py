@@ -21,7 +21,7 @@ def droit(u):
 
 def vue(r) -> dict:
     return {"numero": r["numero"], "libelle": r["libelle"], "classe": r["classe"], "pcci": r["institution_id"] is None,
-            "ouvert": r["ouvert"], "saisissable": r["saisissable"], "typeSuivi": r["type_suivi"] or "",
+            "ouvert": r["ouvert"], "saisissable": r["saisissable"], "typeSuivi": r["type_suivi"] or "", "autorisationBcc": r.get("autorisation_bcc") or "",
             **{k: r[c] for k, c in COLONNES.items()}}
 
 
@@ -75,12 +75,13 @@ def enregistrer(u, d, numero_actuel: str | None = None) -> dict:
     from .referentiels import TYPES_TIERS
     if texte("typeSuivi") and texte("typeSuivi") not in TYPES_TIERS:      # registre S102-7
         raise ErreurMetier("Type de suivi inconnu.")
-    valeurs = (libelle, bool(d.get("ouvert")), bool(d.get("saisissable")), *(bool(d.get(k)) for k in OPTIONS), texte("typeSuivi") or None)
+    # B19 : référence de l'autorisation préalable de la BCC, quand le compte sert une opération hors nomenclature du PCCI (Instr. BCC 006, art. 3)
+    valeurs = (libelle, bool(d.get("ouvert")), bool(d.get("saisissable")), *(bool(d.get(k)) for k in OPTIONS), texte("typeSuivi") or None, texte("autorisationBcc") or None)
     if numero_actuel is None:
         if une("select 1 from compte where numero = %s and (institution_id is null or institution_id = %s)", (numero, i)):
             raise ErreurMetier(f"Le compte {numero} existe déjà.")
-        executer(f"""insert into compte (institution_id, numero, classe, nature, libelle, ouvert, saisissable, {", ".join(COLONNES.values())}, type_suivi)
-                     values (%s, %s, %s, %s, %s, %s, %s, {", ".join(["%s"] * len(COLONNES))}, %s)""", (i, numero, p["classe"], p["nature"], *valeurs))
+        executer(f"""insert into compte (institution_id, numero, classe, nature, libelle, ouvert, saisissable, {", ".join(COLONNES.values())}, type_suivi,
+                                         autorisation_bcc) values (%s, %s, %s, %s, %s, %s, %s, {", ".join(["%s"] * len(COLONNES))}, %s, %s)""", (i, numero, p["classe"], p["nature"], *valeurs))
     else:
         c = une("select * from compte where numero = %s and institution_id = %s for update", (numero_actuel, i))
         if not c:
@@ -88,8 +89,8 @@ def enregistrer(u, d, numero_actuel: str | None = None) -> dict:
             raise ErreurMetier("Ce compte est un compte du PCCI : il ne se modifie pas. Ouvrez un compte divisionnaire.")
         if numero != numero_actuel:
             raise ErreurMetier("Le numéro d'un compte ne change pas : créez un nouveau compte.")
-        executer(f"""update compte set libelle = %s, ouvert = %s, saisissable = %s, {", ".join(f"{c_} = %s" for c_ in COLONNES.values())}, type_suivi = %s
-                     where id = %s""", (*valeurs, c["id"]))
+        executer(f"""update compte set libelle = %s, ouvert = %s, saisissable = %s, {", ".join(f"{c_} = %s" for c_ in COLONNES.values())}, type_suivi = %s,
+                     autorisation_bcc = %s where id = %s""", (*valeurs, c["id"]))
     return lire(u)
 
 

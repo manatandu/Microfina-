@@ -222,6 +222,12 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "S54",
 "S75"
 ],
+"decouverts.classer": [
+"S99"
+],
+"decouverts.recouvrer": [
+"S99"
+],
 "depotsTerme.annuler": [
 "S65"
 ],
@@ -496,9 +502,6 @@ export const DROITS_METHODES: Record<string, string[]> = {
 ],
 "modeles.supprimer": [
 "S26"
-],
-"normes.etat": [
-"SN01"
 ],
 "numerotation.enregistrer": [
 "S15"

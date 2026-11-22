@@ -4045,6 +4045,82 @@ const provisions = {
     return { credits: ids.length, lignes: provisions.charger(d) };
   },
 };
+
+// ---------- B4 (confrontation du 21/11/2026) : comptes courants débiteurs. Mêmes règles que serveur/noyau/decouverts.py : sans versement depuis plus de
+// 30 jours, le compte est inclus dans les crédits douteux (Instr. BCC 003, art. 7, al. 2 ; tout versement compte, registre T84) ; son solde débiteur est viré
+// au compte 39 (PCCI, fiche du compte 33) et provisionné au taux de sa tranche (art. 12) ; le compte 39 est crédité du montant remboursé. ----------
+const COMPTE_RETARD: Record<number, string> = { 2: "3900", 3: "3901", 4: "3902", 5: "3903", 6: "3904", 7: "3904" };   // PCCI 390
+type DecouvertDouteux = NonNullable<Etat["decouvertsDouteux"]>[number];
+function candidatsDecouvert(d: string) {
+  return E.comptes.filter((k) => !k.closLe && produitDuCompte(k)?.categorie === "Courant").flatMap((k) => {
+    let solde = 0, dernier = "", premier = "";
+    for (const e of E.ecritures) { const j = E.journees.find((x) => x.id === e.journeeId); if (!j || j.date > d) continue;
+      for (const l of e.lignes) if (l.contrat === `depot:${k.id}`) { solde += l.sens === "D" ? l.montant : -l.montant;
+        if (l.sens === "C" && j.date > dernier) dernier = j.date; if (!premier || j.date < premier) premier = j.date; } }
+    const depuis = dernier || premier;
+    if (solde <= 0 || !depuis || joursEntre(depuis, d) <= 30) return [];
+    const jours = joursEntre(depuis, d), [g, lib] = degreDe(jours);
+    return [{ compteId: k.id, numero: k.numero, client: titulaire(E.tiers.find((t) => t.id === k.tiersId)!), devise: k.devise as string, solde, dernierVersement: dernier,
+      retardDepuis: depuis, joursRetard: jours, degre: lib, taux: tauxProvision(g) }];
+  }).sort((a, b) => a.numero.localeCompare(b.numero));
+}
+function vueDecouvert(x: DecouvertDouteux, d: string) {
+  const k = E.comptes.find((c) => c.id === x.compteId)!, jours = joursEntre(x.retardDepuis, d), [g, lib] = degreDe(jours);
+  return { id: x.id, compteId: x.compteId, numero: k.numero, client: titulaire(E.tiers.find((t) => t.id === k.tiersId)!), devise: x.devise, montant: x.montant, restant: x.restant,
+    retardDepuis: x.retardDepuis, joursRetard: jours, degre: lib, taux: tauxProvision(g), provisionRequise: Math.floor(x.restant * tauxProvision(g) / 100), provision: x.provision, classeLe: x.classeLe };
+}
+function ecrireDecouvert(u: number, libelle: string, lg: Omit<Ligne, "montantCdf">[]) {
+  if (lg.length) poster({ journal: "OD", journeeId: jourDeblocage().id, libelle, piece: piece("OD"), saisiPar: u, validePar: u,
+    lignes: lg.map((l) => ({ ...l, montantCdf: cdf(l.montant, l.devise) })) });
+}
+/** Tranche et provision de la créance à la date (comme decouverts.ajuster) */
+function ajusterDecouvert(u: number, x: DecouvertDouteux, d: string, restant: number) {
+  const g = restant ? degreDe(joursEntre(x.retardDepuis, d))[0] : x.degre, k = `decouvert:${x.id}`, dv = x.devise as Devise, lg: Omit<Ligne, "montantCdf">[] = [];
+  if (restant && g !== x.degre) lg.push({ compte: COMPTE_RETARD[g]!, contrat: k, sens: "D", devise: dv, montant: restant }, { compte: COMPTE_RETARD[x.degre]!, contrat: k, sens: "C", devise: dv, montant: restant });
+  const cible = Math.floor(restant * tauxProvision(g) / 100); let ancien = x.provision;
+  if (ancien && (g !== x.degre || cible < ancien)) { const repris = g !== x.degre ? ancien : ancien - cible;
+    lg.push({ compte: COMPTE_PROVISION[x.degre]!, contrat: k, sens: "D", devise: dv, montant: repris }, { compte: "7902", contrat: k, sens: "C", devise: dv, montant: repris }); ancien -= repris; }
+  if (cible > ancien) lg.push({ compte: "6902", contrat: k, sens: "D", devise: dv, montant: cible - ancien }, { compte: COMPTE_PROVISION[g]!, contrat: k, sens: "C", devise: dv, montant: cible - ancien });
+  ecrireDecouvert(u, `Provision du compte courant débiteur ${E.comptes.find((c) => c.id === x.compteId)!.numero}`, lg);
+  Object.assign(x, { degre: g, provision: cible, restant, soldeLe: restant ? "" : d });
+}
+const decouverts = {
+  lire() {
+    lectureAdmin(["S99"]);
+    const d = jourDeblocage().date;
+    return { date: d, candidats: candidatsDecouvert(d), creances: (E.decouvertsDouteux ?? []).filter((x) => x.restant > 0).map((x) => vueDecouvert(x, d)) };
+  },
+  /** Bouton Classer et provisionner : solde débiteur viré au compte 39, puis tranche et provision de toutes les créances */
+  classer() {
+    const u = exiger(), d = jourDeblocage().date, l = (E.decouvertsDouteux ??= []);
+    for (const c of candidatsDecouvert(d)) {
+      const k = E.comptes.find((x) => x.id === c.compteId)!, m = -soldeContrat(`depot:${k.id}`, k.devise, "C");
+      if (m <= 0) continue;
+      const g = degreDe(c.joursRetard)[0], x: DecouvertDouteux = { id: prochain(l), compteId: k.id, devise: k.devise, montant: m, restant: m, retardDepuis: c.retardDepuis, degre: g, provision: 0,
+        classeLe: d, classePar: u.id, soldeLe: "" };
+      l.push(x);
+      ecrireDecouvert(u.id, `Compte courant débiteur ${k.numero} viré en créances douteuses`, [{ compte: COMPTE_RETARD[g]!, contrat: `decouvert:${x.id}`, sens: "D", devise: k.devise as Devise, montant: m },
+        { compte: k.pcci, contrat: `depot:${k.id}`, sens: "C", devise: k.devise as Devise, montant: m }]);
+    }
+    for (const x of l.filter((y) => y.restant > 0)) ajusterDecouvert(u.id, x, d, x.restant);
+    enregistrer(); return decouverts.lire();
+  },
+  /** Remboursement de la créance par le débit du compte du client (PCCI, compte 39 : crédité du montant remboursé) */
+  recouvrer(id: number, p: { montant?: number | null }) {
+    const u = exiger(), x = (E.decouvertsDouteux ?? []).find((y) => y.id === id && y.restant > 0);
+    if (!x) throw new ErreurMetier("Choisir la créance dans la liste.");
+    if (!Number.isInteger(p.montant) || p.montant! <= 0) throw new ErreurMetier("À remplir : Montant à recouvrer.");
+    if (p.montant! > x.restant) throw new ErreurMetier("Montant à recouvrer : au plus ce qui reste dû.");
+    const k = E.comptes.find((c) => c.id === x.compteId)!;
+    if (p.montant! > soldeContrat(`depot:${k.id}`, k.devise, "C")) throw new ErreurMetier("Montant à recouvrer : plus que le solde du compte du client.");
+    const d = jourDeblocage().date, dv = x.devise as Devise;
+    ecrireDecouvert(u.id, `Recouvrement de la créance sur le compte courant ${k.numero}`, [{ compte: k.pcci, contrat: `depot:${k.id}`, sens: "D", devise: dv, montant: p.montant! },
+      { compte: COMPTE_RETARD[x.degre]!, contrat: `decouvert:${x.id}`, sens: "C", devise: dv, montant: p.montant! }]);
+    ajusterDecouvert(u.id, x, d, x.restant - p.montant!);
+    enregistrer(); return decouverts.lire();
+  },
+};
+
 // ---------- S100 : Crédit > Engagement par signature (manuel p. 121). Mêmes règles que serveur/noyau/engagements.py.
 // Hors bilan 0001 ou 0012 contre 090 ; frais = montant × pourcentage + forfait au compte 727 ; garantie saisie bloquée sur le compte garanti ;
 // plafonds avec les crédits (Instr. BCC 002, art. 23, 25 à 29) ; liste rouge et gel. Registre S100-1 à S100-7, CR-22, CR-14. ----------
@@ -4705,6 +4781,7 @@ const comptes = {
     const numero = parent + suite;
     if (d.typeSuivi?.trim() && !TYPES_TIERS.includes(d.typeSuivi.trim())) throw new ErreurMetier("Type de suivi inconnu.");   // registre S102-7
     const v: CompteInstitution = { numero, libelle, classe: p.classe, ouvert: !!d.ouvert, saisissable: !!d.saisissable, typeSuivi: d.typeSuivi?.trim() ?? "",
+      autorisationBcc: d.autorisationBcc?.trim() ?? "",   // B19 : Instr. BCC 006, art. 3
       ...Object.fromEntries(OPTIONS_COMPTE.map((k) => [k, !!d[k]])) as Pick<OptionsCompte, (typeof OPTIONS_COMPTE)[number]> };
     if (numeroActuel === undefined) {
       if (planComptable().includes(numero)) throw new ErreurMetier(`Le compte ${numero} existe déjà.`);
@@ -9938,6 +10015,7 @@ const construireLocale = () => ({
   etatsCompta: asynchrone(numerote(etatsCompta, { journaux: "journaux", grandLivre: "grand-livre", balance: "balance" }), "etatsCompta"),
   etatsFinanciers: asynchrone(numerote(etatsFinanciers, { bilan: "bilan", horsBilan: "hors-bilan", resultat: "resultat", annexe: "annexe", indicateurs: "indicateurs" }), "etatsFinanciers"),
   normes: asynchrone(numerote(normes, { etat: "normes" }), "normes"),
+  decouverts: asynchrone(decouverts, "decouverts"),
   budgets: asynchrone(budgets, "budgets"),
   finPeriode: asynchrone(finPeriode, "finPeriode"),
   operationsCompta: asynchrone(operationsCompta, "operationsCompta"),

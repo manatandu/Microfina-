@@ -599,6 +599,24 @@ def provisions_charger(request, date: str = ""):
     return pv.charger(u(request), {"date": date})
 
 
+@api.get("/credit/provisions/decouverts")
+def decouverts_lire(request):
+    from . import decouverts as dc
+    return dc.lire(u(request))
+
+
+@api.post("/credit/provisions/decouverts/classement")
+def decouverts_classer(request):
+    from . import decouverts as dc
+    return dc.classer(u(request))
+
+
+@api.post("/credit/provisions/decouverts/{did}/recouvrement")
+def decouverts_recouvrer(request, did: int, corps: dict = Body(...)):
+    from . import decouverts as dc
+    return dc.recouvrer(u(request), did, corps)
+
+
 @api.post("/credit/provisions/provisionner")
 def provisions_provisionner(request, corps: dict = Body(...)):
     from . import provisions as pv

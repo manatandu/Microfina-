@@ -5019,3 +5019,44 @@ def test_etats_numerotes(clients, journee):
     b = compta.get("/api/comptabilite/etats-financiers/bilan?exercice=2026&du=2026-01-01&au=2026-11-05", **H).json()
     assert b.get("edition", {}).get("numero") == a["numero"] + 1, b
     assert a["le"][:4] == str(__import__("datetime").date.today().year)
+
+
+def test_comptes_courants_debiteurs(clients, journee, monkeypatch):
+    """B4 (confrontation du 21/11/2026) : compte courant débiteur sans versement depuis plus de 30 jours : viré au 39, provisionné au taux de sa tranche,
+    puis recouvré (Instr. BCC 003, art. 7, al. 2, et art. 12 ; PCCI, comptes 33, 38, 39)"""
+    from datetime import date as D
+    from noyau import decouverts as dc
+    from noyau.bd import executer, une, valeur
+    from noyau.provisions import taux
+    from noyau.remboursements import degre_de
+    compta = clients["agent"]            # S99 : droit de l'agent de crédit
+    kid = C("0412-000319-02")
+    k = une("select c.*, p.famille, p.compte_lie from compte_depot c join produit_epargne p on p.id = c.produit_id where c.id = %s", (kid,))
+    executer("update produit_epargne set categorie_compte = 'Courant' where id = %s", (k["produit_id"],))
+    util = une("select u.id, u.login, u.nom, u.institution_id, u.agence_id from utilisateur u where u.login = 'plumbala'")
+    util["roles"] = ["comptable"]
+    from noyau.services import compte_du_produit, solde_contrat
+    solde = solde_contrat(f"depot:{kid}", k["devise"], "C")
+    dc.ecrire(util, D(2026, 11, 5), "Découvert d'essai", "provision_credit",        # le compte passe débiteur de 3 000 000
+              [{"compte": compte_du_produit(k), "contrat": f"depot:{kid}", "sens": "D", "devise": "CDF", "montant": solde + 3_000_000},
+               {"compte": "570", "contrat": "", "sens": "C", "devise": "CDF", "montant": solde + 3_000_000}])
+    assert dc.candidats(util, D(2026, 11, 20)) == []                                # moins de 30 jours
+    monkeypatch.setattr(dc, "jour", lambda u: D(2026, 12, 20))                      # 45 jours après : tranche de 31 à 60 jours
+    r = compta.get("/api/credit/provisions/decouverts", **H).json(); assert "candidats" in r, r
+    assert [(x["numero"], x["solde"]) for x in r["candidats"]] == [("0412-000319-02", 3_000_000)]
+    jours = r["candidats"][0]["joursRetard"]
+    assert 31 <= jours <= 60
+    r = compta.post("/api/credit/provisions/decouverts/classement", **H).json()
+    g = degre_de(jours)[0]
+    x = r["creances"][0]
+    assert r["candidats"] == [] and (x["restant"], x["provision"], x["taux"]) == (3_000_000, 3_000_000 * taux(g) // 100, taux(g))
+    assert solde_contrat(f"depot:{kid}", "CDF", "C") == 0 and solde_contrat(f"decouvert:{x['id']}", "CDF", "D") == 3_000_000
+    route = f"/api/credit/provisions/decouverts/{x['id']}/recouvrement"
+    assert "solde du compte" in compta.post(route, {"montant": 1_000_000}, **H).json()["message"]
+    dc.ecrire(util, D(2026, 11, 5), "Versement d'essai", "provision_credit",
+              [{"compte": "570", "contrat": "", "sens": "D", "devise": "CDF", "montant": 1_000_000},
+               {"compte": compte_du_produit(k), "contrat": f"depot:{kid}", "sens": "C", "devise": "CDF", "montant": 1_000_000}])
+    r = compta.post(route, {"montant": 1_000_000}, **H).json()
+    y = r["creances"][0]
+    assert (y["restant"], y["provision"]) == (2_000_000, 2_000_000 * taux(g) // 100)
+    assert clients["caisse"].get("/api/credit/provisions/decouverts", **H).status_code == 403

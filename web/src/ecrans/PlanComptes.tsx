@@ -42,7 +42,7 @@ export default function PlanComptes() {
   );
 }
 
-const VIDE = { parent: "", suite: "", libelle: "", ouvert: "1", saisissable: "1", typeSuivi: "",
+const VIDE = { parent: "", suite: "", libelle: "", ouvert: "1", saisissable: "1", typeSuivi: "", autorisationBcc: "",
   saisieAnalytique: false, saisieEcheance: false, lettrageAuto: false, saisieTiers: false, immobilisation: false, compteTaxe: false, compteTaxable: false };
 
 function Creation({ comptes, typesSuivi, relire }: { comptes: LigneCompte[]; typesSuivi: string[]; relire: () => void }) {
@@ -62,7 +62,7 @@ function Creation({ comptes, typesSuivi, relire }: { comptes: LigneCompte[]; typ
   function charger(c: LigneCompte) {
     const p = parentDe(numeros, c.numero);
     setChoisi(c.numero);
-    setF({ parent: p, suite: c.numero.slice(p.length), libelle: c.libelle, ouvert: c.ouvert ? "1" : "0", saisissable: c.saisissable ? "1" : "0", typeSuivi: c.typeSuivi,
+    setF({ parent: p, suite: c.numero.slice(p.length), libelle: c.libelle, ouvert: c.ouvert ? "1" : "0", saisissable: c.saisissable ? "1" : "0", typeSuivi: c.typeSuivi, autorisationBcc: c.autorisationBcc ?? "",
       saisieAnalytique: c.saisieAnalytique, saisieEcheance: c.saisieEcheance, lettrageAuto: c.lettrageAuto, saisieTiers: c.saisieTiers, immobilisation: c.immobilisation,
       compteTaxe: c.compteTaxe, compteTaxable: c.compteTaxable });
   }
@@ -98,6 +98,8 @@ function Creation({ comptes, typesSuivi, relire }: { comptes: LigneCompte[]; typ
           {OPTIONS.slice(1).map(([k, l]) => <label key={k} className="case"><input type="checkbox" checked={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.checked })} /><span>{l}</span></label>)}
           <Champ libelle="Type de suivi">{(p) => <select {...p} className="saisie" value={f.typeSuivi} onChange={(e) => setF({ ...f, typeSuivi: e.target.value })}><option value=""></option>
             {typesSuivi.map((x) => <option key={x}>{x}</option>)}</select>}</Champ>
+          <Champ libelle="Autorisation BCC (opération hors nomenclature du PCCI) :">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.autorisationBcc}
+            onChange={(e) => setF({ ...f, autorisationBcc: e.target.value })} />}</Champ>
         </fieldset>
       </div>
       <div className="actions-onglets">

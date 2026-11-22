@@ -370,4 +370,4 @@ Points non vérifiés dans le code :
 - **T2 tranché par le texte** (Code civil, livre III, art. 52) : la pénalité de retard court sur le seul capital échu impayé (registre T74, CR-7 mis à jour).
 - **A2 corrigé avec B6** (loi 002/2002, art. 59, 2°, 4°, 5°, 6°, et art. 60 ; Instr. BCC 002) : état « Normes prudentielles » (SN01), registre T75 à T80. Le 3° (liquidité de 80 %) n'est pas calculé : ses éléments ne sont définis par aucune instruction lue (T79).
 - Reste en gravité 3 : A9 (identification électronique, à préciser avec la loi sur le numérique, non lue).
-
+- **Droit des sociétés d'une IMF** : la loi 11/020, art. 22, renvoie la forme et l'organisation aux statuts ; aucune autre source à confronter (registre T91).
