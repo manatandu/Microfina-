@@ -144,6 +144,10 @@ export function ValidationBilletage() {
                   <Champ libelle={`Solde Reel (${d})`}>{(p) => <input {...p} className="saisie montant" readOnly value={b ? montant(totalComptage(b.compte) + bon, d) : ""} />}</Champ>
                   {/* Registre S80-2 : solde du compte comptable du guichet (S08) à la journée */}
                   <Champ libelle={`Compte Comptable (${d})`}>{(p) => <input {...p} className="saisie montant" readOnly value={comptable ? montant(comptable[d] ?? 0, d) : ""} />}</Champ>
+                  {/* L'écart que la validation passe en écriture, montré avant de valider (plan d'allègement, point 0.11 ; registre S80-7) */}
+                  {b && comptable && (() => { const ecart = totalComptage(b.compte) + bon - (comptable[d] ?? 0);   // comme services.ecriture_ecart (registre S80-5)
+                    return <Champ libelle={`Écart (${d}) : solde réel moins compte du guichet`} aide={ecart > 0 ? "Excédent de caisse" : ecart < 0 ? "Manquant de caisse" : "Aucun écart"}>{(p) =>
+                      <input {...p} className="saisie montant" readOnly data-ecart={ecart ? "" : undefined} value={montant(ecart, d)} />}</Champ>; })()}
                 </div>
                 <table className="grille">
                   <thead><tr><th scope="col">Libelle</th><th scope="col">Nombre</th><th scope="col" className="num">Montant</th></tr></thead>

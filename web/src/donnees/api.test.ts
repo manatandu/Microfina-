@@ -535,11 +535,13 @@ describe("journée de guichet", () => {
     const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), ...IDENTITE, produitCode: "EAV-USD", nom: "Kabongo", prenom: "Ruth", pieceType: "Passeport", pieceNumero: "OP-300001", pieceExpire: "2031-01-01", adresse: "Matete" });
     await connecter("jpmukendi"); await api.tiers.viser(t.id);
     await connecter("engalula");
+    const prevu = await api.tiers.compteAdhesion(t.id);   // le numéro affiché avant l'adhésion : celui du compte USD, pas « -02 » (registre S73-6)
     const corps = { cle: cle(), tiersId: t.id, parts: 1, depot: 10000, coupures: { 1000: 4 } };
     await expect(api.guichet.adhesion(corps)).rejects.toThrow("billetage");
     const o = await api.guichet.adhesion({ ...corps, coupuresDepot: { 100: 1 } });
     expect([o.devise, o.montant]).toEqual(["CDF", 400000]);
-    expect((await api.tiers.comptes(t.id)).map((c) => [c.devise, c.solde])).toEqual([["USD", 10000]]);
+    expect((await api.tiers.comptes(t.id)).map((c) => [c.devise, c.solde, c.numero])).toEqual([["USD", 10000, prevu.numero]]);
+    expect([prevu.devise, prevu.numero.endsWith("-02")]).toEqual(["USD", false]);
     expect(await api.tiers.parts(t.id)).toBe(1);
   });
 

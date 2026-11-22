@@ -1115,7 +1115,8 @@ const OUT = process.argv[2];
   await aller('/caisse/s83'); await p.getByRole('heading', { name: 'Journal des Opérations' }).waitFor();
   await p.getByLabel('Rechercher par :').selectOption({ label: 'Libellé' }); await p.getByLabel('Valeur :').fill('Versement en banque');
   await p.getByRole('button', { name: 'Rechercher', exact: true }).click();
-  await p.getByRole('row').filter({ hasText: 'Versement en banque, chèque 0001234' }).getByRole('cell', { name: '1 000,00 CDF' }).waitFor(); await etape('14g-journal-caisse');
+  await p.getByRole('row').filter({ hasText: 'Versement en banque, chèque 0001234' }).getByRole('cell', { name: '1 000,00 CDF' }).waitFor();
+  await p.getByRole('table', { name: 'Soldes et totaux par devise' }).getByRole('cell', { name: 'CDF', exact: true }).waitFor(); await etape('14g-journal-caisse');   // registre S83-6
   // Comptabilité : saisie d'écriture (S109, p. 128 et 129), autres opérations (S116, p. 133 à 135), virements mensuels (S117, p. 136)
   await login('Patrick Lumbala'); await aller('/comptabilite/s109');
   const cj = p.getByRole('dialog', { name: 'Choix du journal' });

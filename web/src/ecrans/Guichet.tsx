@@ -33,6 +33,15 @@ export function OngletsGuichet() {
 
 const nomComplet = (t: Tiers) => t.intitule || titulaireDe(t);
 
+/** Solde de la caisse dans chaque devise, chargé dès l'ouverture : le même dans tous les onglets du guichet (plan d'allègement, point 0.10 ; registre S74-9) */
+export function SoldesCaisse({ sessionId }: { sessionId: number }) {
+  const { donnees } = useDonnees(async () => {
+    const devises = ((await api.referentiel.contexte()).devises ?? [{ code: "CDF" }, { code: "USD" }]).map((d: { code: string }) => d.code as Devise);
+    return Promise.all(devises.map(async (d) => [d, totalComptage(await api.caisses.theorique(sessionId, d))] as const));
+  }, [sessionId]);
+  return <>{(donnees ?? []).map(([d, m]) => <div key={d} className="info-ligne"><dt>Solde {d}</dt><dd className="chiffres">{montant(m, d)}</dd></div>)}</>;
+}
+
 /** S74 : Caisse > Opération > Dépôt / Retrait (manuel Microfina++, p. 86) */
 export const MASQUE = "Solde masqué : « Voir solde client » n'est pas coché pour vous (Administration > Guichet > Affectation)";
 
@@ -142,7 +151,7 @@ export default function GuichetDepotRetrait() {
               <div className="info-ligne"><dt>Agence</dt><dd>{ctx.agence.nom}</dd></div>
               <div className="info-ligne"><dt>Nom</dt><dd>{ctx.guichets.find((g) => g.id === s.guichetId)?.nom ?? ""}</dd></div>
               <div className="info-ligne"><dt>Caissier</dt><dd>{u?.nom ?? ""}</dd></div>
-              <div className="info-ligne"><dt>Solde</dt><dd className="chiffres">{montant(totalComptage(stock), devise)}</dd></div>
+              <SoldesCaisse sessionId={s.id} />
             </dl>
           </fieldset>
         </div>

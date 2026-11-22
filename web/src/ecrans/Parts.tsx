@@ -6,9 +6,9 @@ import { boiteOperation } from "../lib/examen";
 import type { Operation, Tiers } from "../donnees/types";
 import { useDonnees } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
-import { montant, totalComptage, type Comptage } from "@design/montant.js";
+import { montant, type Comptage } from "@design/montant.js";
 import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
-import { OngletsGuichet, Recu } from "./Guichet";
+import { OngletsGuichet, Recu, SoldesCaisse } from "./Guichet";
 import { RechercheClient } from "./Visa";
 import { MASQUE } from "./Guichet";
 
@@ -86,7 +86,7 @@ export function PartsSociales() {
               <div className="info-ligne"><dt>Agence</dt><dd>{ctx.agence.nom}</dd></div>
               <div className="info-ligne"><dt>Nom</dt><dd>{ctx.guichets.find((g) => g.id === s.guichetId)?.nom ?? ""}</dd></div>
               <div className="info-ligne"><dt>Caissier</dt><dd>{u?.nom ?? ""}</dd></div>
-              <div className="info-ligne"><dt>Solde</dt><dd className="chiffres">{montant(totalComptage(stock), "CDF")}</dd></div>
+              <SoldesCaisse sessionId={s.id} />
             </dl>
           </fieldset>
         </div>

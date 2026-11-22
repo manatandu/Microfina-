@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**955 décisions.** Solidité : 419 fortes (le manuel ou un texte répond), 454 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 948 déjà en place, 7 à appliquer.
+**959 décisions.** Solidité : 421 fortes (le manuel ou un texte répond), 456 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 952 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2060,6 +2060,30 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S05-4 | Utilisateur qui quitte l'institution | Désactiver, puis au besoin réactiver, avec un motif ; date et auteur gardés ; on ne se désactive pas soi-même. Désactivé, l'utilisateur ne se connecte plus (sa session tombe), ne se modifie plus et reste nommé dans les historiques. La grille montre la colonne Actif | Texte réglementaire : Instr. BCC 008, art. 16 (gestion des accès et authentification maîtrisées) ; plan d'allègement, point 0.5 | forte | en place |
+
+## S73 Guichet : adhésion
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S73-6 | Numéro du compte d'épargne affiché avant l'adhésion | Celui que la règle de numérotation des comptes (S17) donnera au compte du produit choisi à l'enrôlement, calculé sans rien ouvrir (au lieu du numéro du client suivi de « -02 ») | Écran voisin : Registre S17-6 ; plan d'allègement, point 0.6 | moyenne | en place |
+
+## S73 à S77 Guichet
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S74-9 | Solde de la caisse dans les onglets | Le solde de la caisse dans chaque devise, chargé dès l'ouverture et le même dans tous les onglets (avant : 0 tant qu'aucun compte ou crédit n'était choisi) | Écran voisin : Plan d'allègement, point 0.10 | moyenne | en place |
+
+## S80 Validation du billetage
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S80-7 | Écart montré avant de valider | Par devise : l'écart entre le solde réel (billetage et bons de caisse) et le compte comptable du guichet, celui que la validation passe en écriture, avec la mention excédent ou manquant | Texte réglementaire : PCCI, comptes 671 et 7790 ; registre S80-5 ; plan d'allègement, point 0.11 | forte | en place |
+
+## S83 Journal de caisse
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S83-6 | Soldes et totaux | Une colonne Devise ; par devise, le solde au début de la période, les totaux débit et crédit, le solde à la fin ; un montant absent reste vide | Texte réglementaire : PCCI, compte 57 (caisse débitée des entrées, créditée des sorties) ; plan d'allègement, point 0.12 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

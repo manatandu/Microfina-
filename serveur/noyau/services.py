@@ -2028,6 +2028,20 @@ def retrait(u: dict, p: dict) -> dict:
     return vue_operation(une("select * from operation where id = %s", (oid,)))
 
 
+def compte_adhesion(u: dict, tid: int) -> dict:
+    """Le compte d'épargne que l'adhésion ouvrira : produit choisi à l'enrôlement et numéro selon la règle de S17, sans rien ouvrir
+    (plan d'allègement, point 0.6 ; registre S73-6)"""
+    exiger(u)
+    t = une("select * from tiers where id = %s and institution_id = %s", (tid, u["institution_id"]))
+    if not t:
+        raise ErreurMetier("Client introuvable.")
+    produit = une("select * from produit_epargne where id = %s", (t["produit_id"],)) if t["produit_id"] else \
+        une("select * from produit_epargne where institution_id = %s and famille = 'EPARGNE' and devise = 'CDF' and actif and not supprime order by version desc limit 1", (u["institution_id"],))
+    if not produit:
+        return {"numero": "", "produit": "", "devise": ""}
+    return {"numero": numero_compte(u, t, produit), "produit": produit["libelle"], "devise": produit["devise"].strip()}
+
+
 def preparer_adhesion(u: dict, p: dict) -> dict:
     """Contrôles communs de l'adhésion, au guichet (S73) et par banque (S56) : client actif, pas déjà membre avec un compte, compte épargne en CDF,
     au moins une part payée en entier, frais d'adhésion sur des comptes du plan. Loi 002/2002, art. 21 et 22."""

@@ -582,10 +582,11 @@ def test_adhesion_apres_visa(clients, journee):
     f = chef.post("/api/parametrage/frais", {"typeOperation": "ADHESION", "libelle": "Droit d'entrée", "fondement": "droit_adhesion"}, **H).json()
     chef.post("/api/parametrage/frais-adhesion", {"fraisId": f["id"], "nature": "Montant", "valeur": 200000, "compte": "728", "typesMembre": ["Physique"]}, **H)
     assert "billetage" in caisse.post("/api/guichet/adhesions", corps, **H).json()["message"]      # 12 000 de parts + 2 000 de frais
+    prevu = caisse.get(f"/api/tiers/{t['id']}/compte-adhesion", **H).json()["numero"]            # le numéro affiché avant l'adhésion (registre S73-6)
     assert caisse.post("/api/guichet/adhesions", {**corps, "coupures": {"5000": 2, "1000": 4}}, **H).status_code == 200
     assert caisse.get(f"/api/tiers/{t['id']}/parts").json() == 3
     assert [c["devise"] for c in caisse.get(f"/api/tiers/{t['id']}/comptes").json()] == ["CDF"]
-    assert [c["numero"] for c in caisse.get(f"/api/tiers/{t['id']}/comptes").json()] == [f"{t['numero']}-02"]   # S17-6 : sans règle, suffixe du produit CDF
+    assert [c["numero"] for c in caisse.get(f"/api/tiers/{t['id']}/comptes").json()] == [f"{t['numero']}-02"] == [prevu]   # S17-6 : sans règle, suffixe du produit CDF
     assert ident("select sum(montant_devise) from ligne_ecriture l join compte c on c.id = l.compte_id where c.numero = '728'") == 200000
     assert caisse.get(f"/api/tiers/{t['id']}/adhesion").json() == ident("select date_comptable::text from journee_comptable where statut = 'ouverte'")   # S43, registre S43-2
     # S41 : après l'encaissement de l'adhésion, les frais ne se modifient plus (registre S41-1, PCCI § 3.4)

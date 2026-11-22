@@ -7,9 +7,9 @@ import { aDesParts } from "../lib/vocabulaire";
 import type { Operation, Tiers } from "../donnees/types";
 import { useDonnees } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
-import { lireMontant, montant, montantEnLettres, totalComptage, type Comptage, type Devise } from "@design/montant.js";
+import { lireMontant, montant, montantEnLettres, type Comptage, type Devise } from "@design/montant.js";
 import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
-import { OngletsGuichet, Recu } from "./Guichet";
+import { OngletsGuichet, Recu, SoldesCaisse } from "./Guichet";
 import { RechercheClient } from "./Visa";
 
 const fr = (iso: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "");
@@ -31,13 +31,13 @@ export default function Adhesion() {
   const [boite, setBoite] = useState<Boite | null>(null);
   const { donnees } = useDonnees(async () => {
     const [s, ctx, u, j] = await Promise.all([api.caisses.duCaissier(), api.referentiel.contexte(), api.session.courante(), api.journees.courante()]);
-    const stock = s ? await api.caisses.theorique(s.id, "CDF") : {};
     const frais = t ? await api.parametrage.fraisLies(t.id) : [];
     const piece = fait ? (await api.operations.recu(fait.id)).piece : "";
-    return { s, ctx, u, j, stock, frais, piece };
+    const compte = t ? await api.tiers.compteAdhesion(t.id) : null;   // le numéro que la règle de S17 donnera au compte (registre S73-6)
+    return { s, ctx, u, j, frais, piece, compte };
   }, [t?.id, fait?.id]);
   if (!donnees) return <Chargement />;
-  const { s, ctx, u, j, stock, frais, piece } = donnees;
+  const { s, ctx, u, j, frais, piece, compte } = donnees;
   if (!s || s.statut !== "ouverte") return (
     <><h1>Guichet</h1><OngletsGuichet /><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>
   );
@@ -81,7 +81,7 @@ export default function Adhesion() {
           </fieldset>
           <fieldset className="pile cadre-champs">
             <legend>Informations sur le Compte</legend>
-            <Champ libelle="N° compte épargne : *">{(p) => <input {...p} className="saisie code" readOnly value={t ? `${t.numero}-02` : ""} />}</Champ>
+            <Champ libelle="N° compte épargne : *">{(p) => <input {...p} className="saisie code" readOnly value={compte?.numero ?? ""} />}</Champ>
             <Champ libelle={`Premier dépôt : *${produit ? ` (${produit.devise})` : ""}`}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" required readOnly={!!fait}
               autoComplete="off" value={depot} onChange={(e) => { setDepot(e.target.value); setCle(nouvelleCle()); }} />}</Champ>
             <p>Total : <strong className="chiffres">{montant(totalCdf, "CDF")}</strong>{enDevise && mDepot ? <> + <strong className="chiffres">{montant(mDepot, devDepot)}</strong></> : null}</p>
@@ -92,7 +92,7 @@ export default function Adhesion() {
               <div className="info-ligne"><dt>Agence</dt><dd>{ctx.agence.nom}</dd></div>
               <div className="info-ligne"><dt>Caisse</dt><dd>{ctx.guichets.find((g) => g.id === s.guichetId)?.nom ?? ""}</dd></div>
               <div className="info-ligne"><dt>Caissier</dt><dd>{u?.nom ?? ""}</dd></div>
-              <div className="info-ligne"><dt>Solde</dt><dd className="chiffres">{montant(totalComptage(stock), "CDF")}</dd></div>
+              <SoldesCaisse sessionId={s.id} />
             </dl>
           </fieldset>
         </div>

@@ -1117,6 +1117,14 @@ const tiers = {
     const s = o && E.sessions.find((x) => x.id === o.sessionId);
     return (s && E.journees.find((j) => j.id === s.journeeId)?.date) || "";
   },
+  /** Le compte d'épargne que l'adhésion ouvrira : produit choisi à l'enrôlement, numéro selon la règle de S17, sans rien ouvrir (registre S73-6) */
+  compteAdhesion(tiersId: number) {
+    exiger();
+    const t = E.tiers.find((x) => x.id === tiersId);
+    if (!t) throw new ErreurMetier("Client introuvable.");
+    const produit = E.produits.find((x) => x.code === t.produitCode) ?? E.produits.find((x) => x.devise === "CDF");
+    return produit ? { numero: numeroCompte(t.numero, produit), produit: produit.libelle, devise: produit.devise as string } : { numero: "", produit: "", devise: "" };
+  },
 };
 export type CompteAvecSolde = CompteDepot & { solde: number; disponible: number };
 

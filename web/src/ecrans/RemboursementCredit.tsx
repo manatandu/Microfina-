@@ -13,7 +13,7 @@ import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
 import { decimal, lireMontant, montant, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
-import { OngletsGuichet, Recu } from "./Guichet";
+import { OngletsGuichet, Recu, SoldesCaisse } from "./Guichet";
 import { RechercheClient } from "./Visa";
 
 type Rep = Record<string, number>;
@@ -208,7 +208,7 @@ export function RemboursementGuichet() {
             <div className="info-ligne"><dt>Agence</dt><dd>{ctx.agence.nom}</dd></div>
             <div className="info-ligne"><dt>Caisse</dt><dd>{ctx.guichets.find((x) => x.id === s.guichetId)?.nom ?? ""}</dd></div>
             <div className="info-ligne"><dt>Caissier</dt><dd>{u?.nom ?? ""}</dd></div>
-            <div className="info-ligne"><dt>Solde</dt><dd className="chiffres">{montant(totalComptage(stock), dv)}</dd></div>
+            <SoldesCaisse sessionId={s.id} />
           </dl></fieldset>
         </div>
         <RepartitionDetail e={e} fige={fige} setBoite={setBoite} />

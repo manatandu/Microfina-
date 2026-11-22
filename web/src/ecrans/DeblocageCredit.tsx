@@ -10,9 +10,9 @@ import type { Operation } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
-import { montant, montantEnLettres, totalComptage, type Comptage, type Devise } from "@design/montant.js";
+import { montant, montantEnLettres, type Comptage, type Devise } from "@design/montant.js";
 import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
-import { OngletsGuichet } from "./Guichet";
+import { OngletsGuichet, SoldesCaisse } from "./Guichet";
 import { ContratPret } from "./ContratPret";
 
 type Detail = Awaited<ReturnType<typeof api.deblocage.detail>>;
@@ -120,7 +120,7 @@ export function DeblocageGuichet() {
           <div className="info-ligne"><dt>Agence</dt><dd>{ctx.agence.nom}</dd></div>
           <div className="info-ligne"><dt>Nom</dt><dd>{ctx.guichets.find((g) => g.id === s.guichetId)?.nom ?? ""}</dd></div>
           <div className="info-ligne"><dt>Caissier</dt><dd>{u?.nom ?? ""}</dd></div>
-          <div className="info-ligne"><dt>Solde</dt><dd className="chiffres">{montant(totalComptage(stock), dv)}</dd></div>
+          <SoldesCaisse sessionId={s.id} />
         </dl></div>
         <div className="grille-deux">
           <fieldset className="cadre-champs formulaire"><legend>Info crédit</legend>
