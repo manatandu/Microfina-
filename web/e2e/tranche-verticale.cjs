@@ -154,10 +154,9 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Annuler' }).click();
   // Chef : produit épargne (S27, p. 40) : un produit de garantie, famille BLOQUE
   await aller('/parametrage/s27'); await p.getByLabel('N° Produit : *').fill('5'); await p.getByLabel('Code produit : *').fill('G');
-  await p.getByLabel('Famille produit : *').selectOption('BLOQUE'); await p.getByLabel('Libellé produit : *').fill('Epargne De Garantie');
+  await p.getByLabel('Famille produit : *').selectOption('BLOQUE'); await p.getByLabel('Nature : *').selectOption('Bloqué'); await p.getByLabel('Libellé produit : *').fill('Epargne De Garantie');   // la nature donne le compte 334 (plan 2.17)
   await p.getByLabel('Devise : *').selectOption('CDF'); await p.getByLabel('Solde minimum : *').fill('0'); await p.getByLabel('Max compte à créer *').fill('1');
-  for (const [nom, rep] of [['Opérer sur compte : *', 'Oui'], ['Dépôt de chèque : *', 'Non'], ['Caution : *', 'Non'], ['Nantissement : *', 'Oui'], ['Calculer interêt: *', 'Non']])
-    await p.getByRole('group', { name: nom }).getByLabel(rep).check();
+  await p.getByLabel('Nantissement', { exact: true }).check();   // les autres cases gardent la valeur proposée (plan 2.17)
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Epargne De Garantie' }).waitFor(); await etape('02f17-produit-epargne');
   // Chef : numéro de pièce (S29, p. 41) : Institution cochée en tête, Générer, Enregistrer
   await aller('/parametrage/s15?onglet=pieces');
@@ -193,7 +192,7 @@ const OUT = process.argv[2];
   await p.getByRole('tab', { name: 'Jours fériés' }).click(); await p.getByRole('cell', { name: "Journée de l'indépendance" }).first().waitFor();
   await p.getByLabel('Date *').fill('15/07/2026'); await p.getByLabel('Description *').fill("Fête de l'agence");
   await p.getByLabel('Exercice').selectOption('2026'); await p.getByRole('button', { name: 'Ajouter' }).click();
-  await p.getByRole('cell', { name: "Fête de l'agence" }).waitFor();
+  await p.getByRole('button', { name: 'Page suivante' }).first().click(); await p.getByRole('cell', { name: "Fête de l'agence" }).waitFor();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('02f25-jours-feries');
   // Chef : devises, types de monnaie, monnaies (S35, p. 45 et 46) : la pièce de 50 centimes du franc congolais
   await aller('/parametrage/s35'); await p.getByRole('cell', { name: 'Franc congolais' }).waitFor(); await etape('02f26-devises');
@@ -236,10 +235,8 @@ const OUT = process.argv[2];
   await p.getByLabel('Désactiver : Retenue sur loyers').click(); await oui(); await etape('02f29b-element-desactive');
   await p.getByRole('tab', { name: 'Référence Commande' }).click(); await p.getByLabel('Code : *').fill('ACHA_M'); await p.getByLabel('Type Commande : *').fill('Achat de matériel');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Achat de matériel' }).waitFor(); await etape('02f30-reference-commande');
-  // Chef : paramétrage des produits épargne (S28, p. 41) : l'épargne de garantie dans l'onglet Bloqué, compte 334 proposé
-  await aller('/parametrage/s28'); await p.getByRole('tab', { name: 'Bloqué' }).click(); await p.getByLabel('Compte lié').and(p.locator('[value="334"]')).waitFor();
-  await p.getByLabel('Produit: *').selectOption({ label: 'Epargne De Garantie (G)' }); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  await p.getByRole('cell', { name: 'Epargne De Garantie' }).waitFor(); await etape('02f18-parametrage-epargne');
+  // Produits épargne : la nature et le compte se règlent dans la fiche du produit (S28 disparaît, plan d'allègement, point 2.17)
+  await aller('/parametrage/s27'); await p.getByRole('cell', { name: 'Epargne De Garantie' }).waitFor(); await etape('02f18-parametrage-epargne');
   // Caissière : ouvrir la caisse (sans comptage : Microfina++ ne compte qu'à l'arrêté, p. 90 et 91)
   await login('Esther Ngalula');
   await aller('/principal'); await etape('01c-menu-general');
@@ -985,16 +982,12 @@ const OUT = process.argv[2];
   await etape('06c21-releve'); await p.getByRole('dialog', { name: 'Relevé de compte' }).getByRole('button', { name: 'Fermer' }).click();
   await p.getByRole('button', { name: 'Situation du client' }).click(); await p.getByRole('dialog', { name: 'Situation du client' }).getByText('N° SFD').waitFor();
   await etape('06c22-situation-client'); await p.getByRole('dialog', { name: 'Situation du client' }).getByRole('button', { name: 'Fermer' }).click();
-  // Dépôt à terme (S65, S66) : le chef crée le produit DAT (S27) et le range dans l'onglet DAT (S28) ; l'agent ouvre le compte DAT (S63) puis met en place ; le chef valide et imprime le contrat
+  // Dépôt à terme (S65, S66) : le chef crée le produit DAT (S27), nature Dépôt à terme ; l'agent ouvre le compte DAT (S63) puis met en place ; le chef valide et imprime le contrat
   await login('J.-P. Mukendi'); await aller('/parametrage/s27'); await p.getByLabel('N° Produit : *').fill('6'); await p.getByLabel('Code produit : *').fill('DAT');
-  await p.getByLabel('Famille produit : *').selectOption('EPARGNE'); await p.getByLabel('Libellé produit : *').fill('Dépôt à terme');
+  await p.getByLabel('Famille produit : *').selectOption('EPARGNE'); await p.getByLabel('Nature : *').selectOption('DAT'); await p.getByLabel('Libellé produit : *').fill('Dépôt à terme');
   await p.getByLabel('Devise : *').selectOption('CDF'); await p.getByLabel('Solde minimum : *').fill('0'); await p.getByLabel('Max compte à créer *').fill('1');
-  for (const [nom, rep] of [['Opérer sur compte : *', 'Oui'], ['Dépôt de chèque : *', 'Non'], ['Caution : *', 'Non'], ['Nantissement : *', 'Non'], ['Calculer interêt: *', 'Oui']])
-    await p.getByRole('group', { name: nom }).getByLabel(rep).check();
   await p.getByLabel('Actif', { exact: true }).check();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Dépôt à terme' }).waitFor();
-  await aller('/parametrage/s28'); await p.getByRole('tab', { name: 'DAT' }).click(); await p.getByLabel('Compte lié').and(p.locator('[value="340"]')).waitFor();
-  await p.getByLabel('Produit: *').selectOption({ label: 'Dépôt à terme (DAT)' }); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await login('Bijou Kasongo'); await aller('/epargne/s63'); await p.getByLabel('Produit Epargne *').selectOption({ label: 'Dépôt à terme (DAT)' });
   await p.getByRole('button', { name: 'Rechercher un client' }).click();
   const rdc = p.getByRole('dialog', { name: "Recherche d'un client" });

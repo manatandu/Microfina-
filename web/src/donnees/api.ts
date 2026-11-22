@@ -9710,7 +9710,7 @@ const produitsEpargne = {
   lire() {
     exiger();
     return { familles: [...FAMILLES_EPARGNE], devises: E.devises.map((x) => x.code).sort().reverse(),
-      produits: E.produits.filter((p) => !p.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ supprime: _x, ...p }) => ({ ...p })) };
+      produits: E.produits.filter((p) => !p.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ supprime: _x, ...p }) => ({ ...p, nature: p.categorie ?? "", compteLie: p.compteLie ?? "" })) };
   },
   /** Enregistrer (nouveau produit) ou Modifier (produit choisi dans la grille), après confirmation (p. 10 à 12) */
   enregistrer(d: Record<string, unknown>, id?: number) {
@@ -9745,8 +9745,14 @@ const produitsEpargne = {
     if (actuel && E.tiers.some((t) => t.produitCode === actuel.code))          // registre S27-3
       for (const k of ["devise", "famille", "numero"] as const) if (v[k] !== actuel[k]) throw new ErreurMetier(`Des comptes sont ouverts sur ce produit : ${CHAMPS_EPARGNE[k]![0]} ne se change plus.`);
     // Registre S27-4 et S74-6 : le solde négatif n'est possible que sur un compte courant (catégorie posée en S28). Identique au serveur.
-    if (v.soldeNegatif === true && actuel?.categorie !== "Courant") throw new ErreurMetier("Solde négatif = Oui : seulement pour un compte courant (catégorie Courant, PCCI 331). Une épargne, un dépôt à terme ou une épargne bloquée ne devient pas débiteur ; un découvert est un crédit (PCCI, compte 33 ; Instr. BCC 003, art. 7).");
-    if (actuel) Object.assign(actuel, v); else E.produits.push({ ...(v as unknown as ProduitEpargne), id: prochain(E.produits), supprime: false });
+    const nature = typeof d.nature === "string" && d.nature ? d.nature : null;   // nature du produit, portée par sa fiche (plan d'allègement, point 2.17)
+    if (v.soldeNegatif === true && (nature ?? actuel?.categorie) !== "Courant") throw new ErreurMetier("Solde négatif = Oui : seulement pour un compte courant (catégorie Courant, PCCI 331). Une épargne, un dépôt à terme ou une épargne bloquée ne devient pas débiteur ; un découvert est un crédit (PCCI, compte 33 ; Instr. BCC 003, art. 7).");
+    let pid = actuel?.id;
+    if (actuel) Object.assign(actuel, v); else { pid = prochain(E.produits); E.produits.push({ ...(v as unknown as ProduitEpargne), id: pid, supprime: false }); }
+    if (nature) {   // la nature donne le compte du PCCI d'office, modifiable vers un sous-compte : mêmes contrôles qu'en S28
+      const compte = (typeof d.compteLie === "string" ? d.compteLie.trim() : "") || ({ Epargne: "330", Courant: "331", DAT: "340", "Bloqué": "334" } as Record<string, string>)[nature] || "";
+      parametrageEpargne.enregistrer({ onglet: nature, produitId: pid!, compteLie: compte, typesClient: valeursListe("type_client").map((l) => l.id) });
+    }
     enregistrer(); return produitsEpargne.lire();
   },
   /** Supprimer (p. 12) : logique (T02) ; un produit qui a des comptes ne se supprime pas : décocher Actif (registre S27-3) */

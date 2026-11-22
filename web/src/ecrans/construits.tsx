@@ -81,7 +81,6 @@ const FICHIERS: (() => Promise<unknown>)[] = [
   () => import("./ActivationProduits"),
   () => import("./ModeleCredit"),
   () => import("./ProduitEpargne"),
-  () => import("./ParametrageEpargne"),
   () => import("./NumeroPiece"),
   () => import("./Journaux"),
   () => import("./OperationsDiverses"),
@@ -239,7 +238,6 @@ const ListeProduitsCredit = paresseux(() => import("./ProduitCredit"), "ListePro
 const ActivationProduitsCredit = paresseux(() => import("./ActivationProduits"), "default");
 const ModeleCredit = paresseux(() => import("./ModeleCredit"), "default");
 const GestionProduitsEpargne = paresseux(() => import("./ProduitEpargne"), "default");
-const ParametrageProduitsEpargne = paresseux(() => import("./ParametrageEpargne"), "default");
 const Journaux = paresseux(() => import("./Journaux"), "default");
 const ParametrageAutresOperations = paresseux(() => import("./OperationsDiverses"), "default");
 const InfoSocietePage = paresseux(() => import("./Societe"), "default");
@@ -294,7 +292,6 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S25: ActivationProduitsCredit,
   S26: ModeleCredit,
   S27: GestionProduitsEpargne,
-  S28: ParametrageProduitsEpargne,
   S30: Journaux,
   S31: ParametrageAutresOperations,
   S32: InfoSocietePage,

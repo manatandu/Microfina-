@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**992 décisions.** Solidité : 447 fortes (le manuel ou un texte répond), 463 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 985 déjà en place, 7 à appliquer.
+**993 décisions.** Solidité : 447 fortes (le manuel ou un texte répond), 464 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 986 déjà en place, 7 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -645,6 +645,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S27-3 | Produit qui a des comptes | Devise, famille et N° Produit ne se changent plus ; Supprimer est refusé : décocher Actif. Un produit inactif ou supprimé n'est plus proposé à l'enrôlement | Donnée exigée ailleurs : T02 ; T08 | moyenne | en place |
 | S27-4 | Option Solde négatif | Gardée comme dans Microfina++, mais seulement pour un compte courant : « Solde négatif = Oui » est refusé pour un produit qui n'est pas rangé en Courant (S28), et un produit qui l'a ne se range qu'en Courant. Une épargne (330), un dépôt à terme (340) ou une épargne bloquée (334) ne devient pas débiteur : le déposant prête à l'institution. Le PCCI n'admet de solde débiteur que comme créance à surveiller (passage en créances litigieuses après trois mois sans mouvement) et l'Instr. 003 ne parle que des comptes courants débiteurs, douteux après 30 jours | Texte réglementaire : PCCI, compte 33 (fonctionnement : solde débiteur des comptes sans mouvement après trois mois porté en créances litigieuses ou en retard) ; Instr. BCC 003, art. 7 ; décision du porteur 18/11/2026 | forte | en place |
 | S27-5 | Taux intérêt | Champ « Taux intérêt (%) » ajouté à la fiche produit : le plan d'épargne l'affiche (capture p. 79, « Taux intérêt : % » sans saisie) ; publié aux conditions de banque | Choix du porteur : Capture p. 79 ; Instr. BCC 40, art. 4 ; décision du porteur, 19/11/2026 | forte | en place |
+| S27-6 | Nature et compte dans la fiche ; questions Oui/Non en cases | La fiche porte « Nature » (épargne à vue 330, compte courant 331, dépôt à terme 340, épargne bloquée 334) qui donne le compte du PCCI d'office, modifiable vers un sous-compte avec les mêmes contrôles qu'avant ; le produit est ouvert à tous les types de client. S28 disparaît du menu. Les questions Oui/Non deviennent des cases : proposées Opérer sur compte cochée, les autres décochées (valeurs des produits d'exemple) ; « Calculer intérêt » se déduit du taux saisi. | Choix du porteur : Plan d'allègement, point 2.17 (accord du porteur, 22/11/2026) ; PCCI, comptes 330, 331, 334, 340 | moyenne | en place |
 
 ## S63, S73, S74 Ouverture de compte et guichet
 

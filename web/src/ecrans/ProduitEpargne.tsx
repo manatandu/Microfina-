@@ -9,11 +9,14 @@ type Saisie = Record<string, string | boolean | null>;
 const VIDE: Saisie = {
   numero: "", code: "", famille: "", libelle: "", devise: "", soldeMinimum: "", retraitMaxJour: "", nbMaxComptes: "",
   afficherAdhesion: false, actif: false, virementPrelevement: false,
-  operer: null, depotCheque: null, caution: null, nantissement: null, tenueCompte: null, calculerInteret: null, soldeNegatif: false, repartitionGroupe: false, tauxInteret: "",
+  operer: true, depotCheque: false, caution: false, nantissement: false, tenueCompte: false, soldeNegatif: false, repartitionGroupe: false, tauxInteret: "",
+  nature: "", compteLie: "",
 };
-const OUI_NON: [string, string, boolean][] = [["operer", "Opérer sur compte :", true], ["depotCheque", "Dépôt de chèque :", true], ["caution", "Caution :", true],
-  ["nantissement", "Nantissement :", true], ["tenueCompte", "Tenu de compte :", false], ["calculerInteret", "Calculer interêt:", true],
-  ["soldeNegatif", "Solde négatif :", true], ["repartitionGroupe", "Repartition groupe obligatoire :", true]];
+// Nature du produit : elle donne le compte du PCCI d'office, modifiable vers un sous-compte (plan d'allègement, point 2.17)
+const NATURES: [string, string, string][] = [["Epargne", "Épargne à vue", "330"], ["Courant", "Compte courant", "331"], ["DAT", "Dépôt à terme", "340"], ["Bloqué", "Épargne bloquée", "334"]];
+// Les questions Oui/Non deviennent des cases avec une valeur proposée ; « Calculer intérêt » se déduit du taux (plan d'allègement, point 2.17)
+const CASES: [string, string][] = [["operer", "Opérer sur compte"], ["depotCheque", "Dépôt de chèque"], ["caution", "Caution"], ["nantissement", "Nantissement"],
+  ["tenueCompte", "Tenue de compte"], ["soldeNegatif", "Solde négatif"], ["repartitionGroupe", "Répartition groupe obligatoire"]];
 const enUnites = (n: number | null) => (n === null ? "" : String(n / 100).replace(".", ","));
 
 /** S27 : Paramétrage > Produit > Epargne > Gestion des produits épargnes (manuel Microfina++, p. 40) */
@@ -27,13 +30,14 @@ export default function GestionProduitsEpargne() {
   const effacer = () => { setF(VIDE); setChoisi(null); };
   const choisir = (p: ProduitEpargne) => {
     setChoisi(p.id);
-    const { id: _id, supprime: _s, categorie: _c, compteLie: _l, typesClient: _t, ...reste } = p;
-    setF({ ...reste, numero: String(p.numero), soldeMinimum: enUnites(p.soldeMinimum), retraitMaxJour: enUnites(p.retraitMaxJour), nbMaxComptes: String(p.nbMaxComptes) });
+    const { id: _id, supprime: _s, categorie: _c, compteLie: _l, typesClient: _t, calculerInteret: _i, ...reste } = p;
+    setF({ ...reste, nature: p.categorie ?? "", compteLie: p.compteLie ?? "", numero: String(p.numero), soldeMinimum: enUnites(p.soldeMinimum), retraitMaxJour: enUnites(p.retraitMaxJour), nbMaxComptes: String(p.nbMaxComptes) });
   };
   function envoi() {
     const montant = (k: string) => { const t = String(f[k] ?? "").trim(); if (!t) return null; const m = lireMontant(t); if (m === null) throw new Error(`Montant illisible : ${t}`); return m; };
     const entier = (k: string) => { const t = String(f[k] ?? "").trim(); return t === "" ? null : /^\d+$/.test(t) ? Number(t) : -1; };
-    return { ...f, numero: entier("numero"), nbMaxComptes: entier("nbMaxComptes"), soldeMinimum: montant("soldeMinimum"), retraitMaxJour: montant("retraitMaxJour") };
+    const taux = Number(String(f.tauxInteret ?? "").trim().replace(",", "."));
+    return { ...f, calculerInteret: taux > 0, numero: entier("numero"), nbMaxComptes: entier("nbMaxComptes"), soldeMinimum: montant("soldeMinimum"), retraitMaxJour: montant("retraitMaxJour") };
   }
   const confirmer = (texte: string, faire: () => Promise<unknown>) => setBoite({ type: "confirmation", message: texte, oui: async () => {
     try { await faire(); effacer(); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
@@ -53,6 +57,9 @@ export default function GestionProduitsEpargne() {
             {texte("code", "Code produit : *", "saisie code")}
             <Champ libelle="Famille produit : *">{(p) => <select {...p} className="saisie" value={String(f.famille)} onChange={(e) => setF({ ...f, famille: e.target.value })}>
               <option value=""></option>{donnees.familles.map((x: string) => <option key={x}>{x}</option>)}</select>}</Champ>
+            <Champ libelle="Nature : *">{(p) => <select {...p} className="saisie" value={String(f.nature)} onChange={(e) => setF({ ...f, nature: e.target.value, compteLie: NATURES.find(([k]) => k === e.target.value)?.[2] ?? "" })}>
+              <option value=""></option>{NATURES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}</Champ>
+            {texte("compteLie", "Compte (PCCI) :", "saisie code")}
             {texte("libelle", "Libellé produit : *")}
             <Champ libelle="Devise : *">{(p) => <select {...p} className="saisie code" value={String(f.devise)} onChange={(e) => setF({ ...f, devise: e.target.value })}>
               <option value=""></option>{donnees.devises.map((x: string) => <option key={x}>{x}</option>)}</select>}</Champ>
@@ -63,13 +70,7 @@ export default function GestionProduitsEpargne() {
             <div className="ligne-champ">{case_("afficherAdhesion", "Afficher à l'adhésion")}{case_("actif", "Actif")}{case_("virementPrelevement", "Virement prélèvement")}</div>
           </div>
           <div className="pile">
-            {OUI_NON.map(([k, libelle, requis]) => (
-              <fieldset key={k} className="oui-non">
-                <legend>{libelle}{requis ? " *" : ""}</legend>
-                <label><input type="radio" name={k} checked={f[k] === true} onChange={() => setF({ ...f, [k]: true })} /> Oui</label>
-                <label><input type="radio" name={k} checked={f[k] === false} onChange={() => setF({ ...f, [k]: false })} /> Non</label>
-              </fieldset>
-            ))}
+            {CASES.map(([k, libelle]) => <div key={k}>{case_(k, libelle)}</div>)}
           </div>
         </div>
         <div className="actions-onglets">
@@ -82,7 +83,7 @@ export default function GestionProduitsEpargne() {
           <thead><tr><th scope="col">Code Produit</th><th scope="col">Famille</th><th scope="col">Produit</th></tr></thead>
           <tbody>
             {donnees.produits.length === 0 && <tr><td colSpan={3}>Aucune ligne.</td></tr>}
-            {(donnees.produits as ProduitEpargne[]).map((p) => (
+            {(donnees.produits as unknown as ProduitEpargne[]).map((p) => (
               <tr key={p.id} className="ligne-choix" tabIndex={0} aria-selected={p.id === choisi} onClick={() => choisir(p)} onKeyDown={(e) => { if (e.key === "Enter") choisir(p); }}>
                 <td>{p.code}</td><td>{p.famille}</td><td>{p.libelle}</td>
               </tr>

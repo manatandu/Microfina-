@@ -30,7 +30,8 @@ def lire_taux(t) -> str:
 
 
 def vue(r) -> dict:
-    return {"id": r["id"], **{k: (lire_taux(r[col]) if sorte == "taux" else r[col]) for k, (col, _, sorte) in CHAMPS.items()}}
+    return {"id": r["id"], **{k: (lire_taux(r[col]) if sorte == "taux" else r[col]) for k, (col, _, sorte) in CHAMPS.items()},
+            "nature": r["categorie_compte"] or "", "compteLie": r["compte_lie"] or ""}   # nature et compte, portés par la fiche (plan d'allègement, point 2.17)
 
 
 def lire(u) -> dict:
@@ -97,14 +98,19 @@ def enregistrer(u, d, pid: int | None = None) -> dict:
             if v[k] != actuel[CHAMPS[k][0]]:
                 raise ErreurMetier(f"Des comptes sont ouverts sur ce produit : {CHAMPS[k][1]} ne se change plus.")
     # Registre S27-4 et S74-6 : le solde négatif n'est possible que sur un compte courant (catégorie posée en S28)
-    if v["soldeNegatif"] is True and (actuel or {}).get("categorie_compte") != "Courant":
+    nature = d.get("nature") if isinstance(d.get("nature"), str) and d.get("nature") else None   # nature du produit, portée par sa fiche (plan d'allègement, point 2.17)
+    if v["soldeNegatif"] is True and (nature or (actuel or {}).get("categorie_compte")) != "Courant":
         raise ErreurMetier("Solde négatif = Oui : seulement pour un compte courant (catégorie Courant, PCCI 331). Une épargne, un dépôt à terme ou une épargne bloquée ne devient pas débiteur ; un découvert est un crédit (PCCI, compte 33 ; Instr. BCC 003, art. 7).")
     cols = [c for c, _, _ in CHAMPS.values()]
     vals = [v[k] for k in CHAMPS]
     if pid is None:
-        executer(f"insert into produit_epargne (institution_id, {', '.join(cols)}) values (%s, {', '.join(['%s'] * len(cols))})", (i, *vals))
+        pid = valeur(f"insert into produit_epargne (institution_id, {', '.join(cols)}) values (%s, {', '.join(['%s'] * len(cols))}) returning id", (i, *vals))
     else:
         executer(f"update produit_epargne set {', '.join(f'{c} = %s' for c in cols)} where id = %s", (*vals, pid))
+    if nature:   # la nature donne le compte du PCCI d'office (330, 331, 340, 334), modifiable vers un sous-compte : mêmes contrôles qu'en S28
+        from .parametrage_epargne import ONGLETS, enregistrer as ranger
+        types = [r["id"] for r in lignes("select id from liste_reference where institution_id = %s and liste = 'type_client' and actif", (i,))]
+        ranger(u, {"onglet": nature, "produitId": pid, "compteLie": (d.get("compteLie") or "").strip() or ONGLETS.get(nature, ""), "typesClient": types})
     return lire(u)
 
 

@@ -252,15 +252,6 @@
     "chemin": "/parametrage/s27"
   },
   {
-    "id": "S28",
-    "nom": "Comptes des produits épargne",
-    "acces": "Produits > Épargne > Paramétrage des produits",
-    "but": "Comptes comptables par nature : épargne, courant, DAT, bloqué",
-    "module": "parametrage",
-    "priorite": "must",
-    "chemin": "/parametrage/s28"
-  },
-  {
     "id": "SP01",
     "nom": "Conditions de banque",
     "acces": "Paramétrage > Produit > Conditions de banque",

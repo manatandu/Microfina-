@@ -43,7 +43,7 @@ id,lot,titre,ecrans,statut,question,reste
 1.18,1,"Pas de texte superflu (demande du porteur, 22/11/2026)",,fait,,
 2.1,2,Activité (l'exemple du porteur),S14 S21 S37 S38 S39 S46,fait,,
 2.2,2,Sous type de client : supprimé,S14,fait,,
-2.3,2,Type client : supprimé,S14 S28 S37,partiel,,"Reste : les cases « types clients » du paramétrage des produits d'épargne (S28), qui disparaît avec le 2.17"
+2.3,2,Type client : supprimé,S14 S28 S37,fait,,
 2.4,2,Civilité : supprimée,S14 S133,fait,,
 2.5,2,Groupe,S39,fait,,
 2.6,2,Membre effectif ou auxiliaire,,fait,,
@@ -57,7 +57,7 @@ id,lot,titre,ecrans,statut,question,reste
 2.14,2,Ordre de remboursement,S21 S22 S23,à faire,oui,
 2.15,2,Comptes des crédits,S26,fait,,
 2.16,2,Produits de crédit,S23 S24 S25,partiel,,"Fait : fiche en trois parties, Enregistrer toujours visible, listes à une valeur en phrase, un seul réglage du remboursement anticipé. Reste : liste, activation et fiche dans une seule entrée ; TEG indicatif du produit"
-2.17,2,Produits d'épargne,S27 S28,à faire,,
+2.17,2,Produits d'épargne,S27 S28,fait,,
 2.18,2,Frais,S16,à faire,oui,
 2.19,2,Numérotation,S15 S17 S29,partiel,,"Fait : un écran à trois onglets, case Institution cachée. Reste : même disposition des trois onglets, ordre par flèches seulement, aperçu en direct"
 2.20,2,Agents,S33,partiel,,"Fait : fiche réduite à nom, prénom, sexe, portable. Reste : une seule liste avec les rôles à cocher et l'utilisateur lié"
