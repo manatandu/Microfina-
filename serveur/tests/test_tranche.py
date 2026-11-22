@@ -4627,7 +4627,7 @@ def test_etats_financiers(clients, journee):
     viser_valider(clients, e["id"])
     EF, q = "/api/comptabilite/etats-financiers", {"du": "2026-01-01", "au": "2026-11-05", "exercice": 2026}
     ctx = compta.get(f"{EF}/contexte", **H).json()
-    assert [a["code"] for a in ctx["annexes"]] == ["emplois", "flux", "credits", "depots", "avoirs", "monnaies", "emprunts", "engagements-normaux", "engagements-litigieux", "engagements-recus", "hors-bilan-litigieux", "agr", "balance-agee-nature", "durees-initiales", "durees-residuelles", "rapport-activites"] and ctx["typesBilan"][0]["libelle"] == "Version développée"
+    assert [a["code"] for a in ctx["annexes"]] == ["emplois", "flux", "credits", "depots", "avoirs", "monnaies", "emprunts", "engagements-normaux", "engagements-litigieux", "engagements-recus", "hors-bilan-litigieux", "agr", "balance-agee-nature", "durees-initiales", "durees-residuelles", "pertes-prets", "rapport-activites"] and ctx["typesBilan"][0]["libelle"] == "Version développée"
     avant = compta.get(f"{EF}/bilan", q, **H).json()
     comptabiliser_journee(clients, journee)
     b = compta.get(f"{EF}/bilan", q, **H).json()
@@ -5159,6 +5159,23 @@ def test_comptes_courants_debiteurs(clients, journee, monkeypatch):
     y = r["creances"][0]
     assert (y["restant"], y["provision"]) == (2_000_000, 2_000_000 * taux(g) // 100)
     assert clients["caisse"].get("/api/credit/provisions/decouverts", **H).status_code == 403
+
+
+def test_pertes_sur_prets(clients, journee):
+    """PCCI 14.4.2, point 5 : état des pertes sur prêts et avances : dotation de la période (6902), provision à la clôture (38), prêts dont les
+    intérêts ne sont pas comptabilisés (39)"""
+    from noyau.bd import executer
+    agent, compta = clients["agent"], clients["compta"]
+    cid = credit_debloque(clients, journee, {**PRODUIT, "epargneValeur": 0})
+    cap = lignes_bd("select montant from credit where id = %s", (cid,))[0][0]
+    executer("update echeance set date_due = (date_due - 40 * interval '1 day')::date where credit_id = %s", (cid,))      # 10 jours de retard : 5 %
+    agent.post("/api/credit/balance-agee", {"date": "2026-11-05"}, **H)
+    assert agent.post("/api/credit/provisions/provisionner", {"date": "2026-11-05", "credits": [cid]}, **H).status_code == 200
+    comptabiliser_journee(clients, journee)
+    r = compta.get("/api/comptabilite/etats-financiers/annexe", {"exercice": 2026, "du": "2026-01-01", "au": "2026-11-05", "annexe": "pertes-prets"}, **H).json()
+    assert (r["forme"], [c["titre"] for c in r["colonnes"]], r["totaux"]) == ("tableau", ["Exercice", "Exercice précédent"], [])
+    assert [x["valeurs"] for x in r["lignes"]] == [[cap * 5 // 100, 0], [0, 0], [0, 0], [0, 0], [cap * 5 // 100, 0], [cap, 0]]
+    assert r["lignes"][0]["libelle"].startswith("Montant comptabilisé en provision") and "compte 39" in r["lignes"][5]["libelle"]
 
 
 def test_etats_par_duree(clients, journee):

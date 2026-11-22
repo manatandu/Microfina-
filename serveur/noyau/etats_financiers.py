@@ -442,6 +442,18 @@ def annexe(u, p) -> dict:
         lg = [{"libelle": k, "valeurs": v} for k, v in sorted(g2.items())]
         return {**base, "forme": "tableau", "colonnes": [{"titre": "Nombre de crédits", "type": "nombre"}, {"titre": "Encours", "type": "montant"}],
                 "lignes": lg, "totaux": [sum(x["valeurs"][k] for x in lg) for k in (0, 1)]}
+    if a["code"] == "pertes-prets":
+        # PCCI 14.4.2, point 5 : mouvements des provisions pour pertes sur prêts et avances de la période, provision à la clôture, prêts dont les
+        # intérêts ne sont pas comptabilisés. Colonnes : la période demandée et les mêmes dates un an plus tôt.
+        def colonne(d1: date, d2: date, annee: int) -> list:
+            mv = mouvements_gestion(u, d1, d2, vidage=False, agence=agence)
+            sd, _, _ = soldes(u, d2, annee, vidage=True, agence=agence)
+            somme = lambda src, pref: sum(v for k, v in src.items() if k.startswith(tuple(pref)))
+            return [somme(mv, m["charges"]) if "charges" in m else -somme(mv, m["produits"]) if "produits" in m else -somme(sd, m["crediteur"]) if "crediteur" in m
+                    else sum(max(v, 0) for k, v in sd.items() if k.startswith(tuple(m["debiteur"]))) for m in a["lignes"]]
+        n, n1 = colonne(du, au, ex), colonne(an_dernier(du), an_dernier(au), ex - 1)
+        return {**base, "forme": "tableau", "colonnes": [{"titre": "Exercice", "type": "montant"}, {"titre": "Exercice précédent", "type": "montant"}],
+                "lignes": [{"libelle": m["libelle"], "valeurs": [n[k], n1[k]]} for k, m in enumerate(a["lignes"])], "totaux": []}
     if a["code"] == "rapport-activites":
         # B13 : rapport d'activités annuel au modèle de l'annexe de l'Instr. BCC 009 (art. 3)
         from .rapport_activites import rapport

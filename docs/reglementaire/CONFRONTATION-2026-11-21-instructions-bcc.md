@@ -460,3 +460,7 @@ Le porteur a demandé de répondre par les textes aux points du § 16.
 - **Compte 591 : couvert par le contrôle de clôture** « comptes 59 soldés » (B23, registre T95) : un virement interne resté ouvert est signalé avant la clôture, sans la bloquer.
 - **Frais de crédit : aucun compte proposé par défaut.** L'institution saisit le compte de chaque frais sur le produit (S23) ; le logiciel exige seulement qu'il existe au plan. Le PCCI range les commissions sur crédits au 715 : c'est ce compte qui les fait entrer dans le « rendement du portefeuille ». À dire à la mise en service ; aucun texte n'impose un contrôle.
 - **Miroir local** : chaque règle ajoutée depuis le 21/11/2026 a son essai des deux côtés, avec les mêmes valeurs attendues. Les règles plus anciennes n'ont pas été relues ligne à ligne.
+
+### Textes du § 18.1 relus le 22/11/2026
+
+- **PCCI 14.4.2, points 4 à 8, lus en entier.** Point 5 : la COOPEC ou l'IMF « doit indiquer » les mouvements des provisions pour pertes sur prêts, la provision à la clôture et les prêts dont les intérêts ne sont pas comptabilisés : état annexe ajouté (registre T116). Point 4 : positions nettes en monnaies étrangères, déjà à l'annexe 6. Points 6 à 8 : risques financiers généraux, actifs donnés en garantie, parties liées : commentaires de la direction ou données que le logiciel ne tient pas.

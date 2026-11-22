@@ -134,7 +134,7 @@ export function HistoriqueVisas() {
         {appel && <fieldset className="pile cadre-champs champs-a-gauche"><legend>Appel devant le Conseil d'administration, crédit {appel.numero}</legend>
           <Champ libelle="Décision du Conseil : *">{(p) => <select {...p} className="saisie" value={appel.decision} onChange={(e) => setAppel({ ...appel, decision: e.target.value })}><option value=""></option>
             <option value="accorde">Accordé</option><option value="confirme">Refus confirmé</option></select>}</Champ>
-          <Champ libelle="Référence de la décision : *">{(p) => <input {...p} className="saisie" autoComplete="off" value={appel.reference} onChange={(e) => setAppel({ ...appel, reference: e.target.value })} />}</Champ>
+          <Champ libelle="Référence : *">{(p) => <input {...p} className="saisie" autoComplete="off" value={appel.reference} onChange={(e) => setAppel({ ...appel, reference: e.target.value })} />}</Champ>
           <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrerAppel}>Enregistrer</button>
             <button className="bouton secondaire" type="button" onClick={() => setAppel(null)}>Annuler</button></div>
         </fieldset>}

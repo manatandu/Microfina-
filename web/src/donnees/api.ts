@@ -7655,7 +7655,8 @@ interface ModeleEtats { liquidites: string[]; bilan: { actif: PosteBilan[]; pass
   horsBilan: { code: string; libelle: string; lignes: { libelle: string; comptes: string[] }[] }[];
   resultat: { signe?: "+" | "-"; solde?: "courant" | "exceptionnel" | "net"; libelle: string; comptes?: string[]; exceptionnel?: boolean; impot?: boolean }[];
   flux: { titre?: string; libelle?: string; comptes?: string[]; groupe?: string; reste?: boolean; change?: boolean; total?: string; sens?: "entree" | "sortie" }[];
-  annexes: { code: string; libelle: string; sens?: "D" | "C"; sections?: { libelle: string; comptes: string[]; niveau?: number }[] }[];
+  annexes: { code: string; libelle: string; sens?: "D" | "C"; sections?: { libelle: string; comptes: string[]; niveau?: number }[];
+    lignes?: { libelle: string; charges?: string[]; produits?: string[]; crediteur?: string[]; debiteur?: string[] }[] }[];
   // B13 : modèle du rapport d'activités annuel (Instr. BCC 009, annexe)
   rapportActivites: { contre: string[]; rediger: { titre: string; rubriques?: string[] }[]; autres: string[]; conclusion: string;
     bilan: { libelle: string; titre?: boolean; total?: string; fondsPropres?: boolean; actif?: string[]; passif?: string[]; resultat?: boolean }[];
@@ -8364,6 +8365,15 @@ const etatsFinanciers = {
       return { ...base, forme: "tableau" as const, balanceDu: "", colonnes: [{ titre: "Nombre de crédits", type: "nombre" }, { titre: "Encours", type: "montant" }], lignes,
         totaux: [0, 1].map((k) => lignes.reduce((t, x) => t + x.valeurs[k]!, 0)) };
     }
+    if (a.code === "pertes-prets") {   // PCCI 14.4.2, point 5 : pertes sur prêts et avances. Comme etats_financiers.annexe
+      const colonne = (d1: string, d2: string, annee: number) => { const mv = mouvementsGestionEf(d1, d2, false), sd = soldesEf(d2, annee, true).s;
+        const somme = (src: Map<string, number>, pref: string[]) => [...src].reduce((t, [k, v]) => t + (commence(k, pref) ? v : 0), 0);
+        return (a.lignes ?? []).map((m) => m.charges ? somme(mv, m.charges) : m.produits ? 0 - somme(mv, m.produits) : m.crediteur ? 0 - somme(sd, m.crediteur)
+          : [...sd].reduce((t, [k, v]) => t + (commence(k, m.debiteur) ? Math.max(v, 0) : 0), 0)); };
+      const n = colonne(du, au, ex), n1 = colonne(anDernier(du), anDernier(au), ex - 1);
+      return { ...base, forme: "tableau" as const, balanceDu: "", colonnes: [{ titre: "Exercice", type: "montant" }, { titre: "Exercice précédent", type: "montant" }],
+        lignes: (a.lignes ?? []).map((m, k) => ({ libelle: m.libelle, valeurs: [n[k]!, n1[k]!] })), totaux: [] as number[] };
+    }
     if (a.code === "rapport-activites") return { ...base, forme: "rapport" as const, ...rapportActivites(du, au, ex) };   // B13 : Instr. BCC 009, art. 3 et annexe
     if (a.code === "durees-initiales" || a.code === "durees-residuelles") {   // B27 : PCCI § 10.6 et 10.7. Comme etats_financiers.durees
       const initiale = a.code === "durees-initiales", g = new Map(LIGNES_DUREE.map(([k]) => [k, TRANCHES_DUREE.map(() => 0)]));
@@ -8525,7 +8535,7 @@ function compteResultatRa(mv: Map<string, number>): number[] {
   const r = rubriquesEf(mv, () => true).out, soldes = new Map(ME.resultat.map((m, i) => [m.libelle, r[i]!.valeur] as [string, number]).filter((_, i) => !!ME.resultat[i]!.solde));
   const somme = (pref: readonly string[] = []) => [...mv].reduce((t, [k, v]) => t + (debuteRa(k, pref) ? v : 0), 0);
   return RA.resultat.map((m) => {
-    return m.solde ? soldes.get(m.solde)! + somme(m.plus) : m.produits ? -somme(m.produits) : somme(m.charges); });
+    return m.solde ? soldes.get(m.solde)! + somme(m.plus) : m.produits ? 0 - somme(m.produits) : somme(m.charges); });
 }
 const pctRa = (a: number, b: number) => (b ? Math.round(a * 10000 / b) / 100 : null);
 const variationRa = (n: number | null, n1: number | null) => (n !== null && n1 ? pctRa(n - n1, Math.abs(n1)) : null);

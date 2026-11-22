@@ -2357,6 +2357,22 @@ describe("journée de guichet", () => {
     expect((await fiche("Troisième", "UN-1")).statut).toBe("a_viser");                      // la fiche refusée ne compte plus
   });
 
+  it("pertes sur prêts et avances (PCCI 14.4.2, point 5) : dotation de la période, provision à la clôture, prêts dont les intérêts ne sont pas comptabilisés", async () => {
+    const cid = await creditDebloque({ ...PRODUIT_CREDIT, epargneValeur: 0 });
+    const j = _etat().journees.at(-1)!, c = _etat().credits.find((x) => x.id === cid)!, cap = c.montant;
+    const ecart = Math.round((Date.parse(`${c.echeancier[0]!.date}T00:00:00Z`) - Date.parse(`${j.date}T00:00:00Z`)) / 86400000);
+    for (const e of c.echeancier) e.date = new Date(Date.parse(`${e.date}T00:00:00Z`) - (ecart + 10) * 86400000).toISOString().slice(0, 10);   // 10 jours de retard : 5 %
+    await connecter("bkasongo");
+    await api.balanceAgee.lancer({ date: j.date });
+    await api.provisions.provisionner({ date: j.date, credits: [cid] });
+    await comptabiliserJournee(j.id, _etat().sessions.find((x) => x.journeeId === j.id && x.statut !== "fermee")!.id);
+    await connecter("plumbala");
+    const r = await api.etatsFinanciers.annexe({ exercice: "2026", du: "2026-01-01", au: "2026-11-05", annexe: "pertes-prets" });
+    if (r.forme !== "tableau") throw new Error("forme");
+    const p5 = Math.floor(cap * 5 / 100);
+    expect([r.colonnes.map((x) => x.titre), r.totaux, r.lignes.map((x) => x.valeurs)]).toEqual([["Exercice", "Exercice précédent"], [], [[p5, 0], [0, 0], [0, 0], [0, 0], [p5, 0], [cap, 0]]]);   // comme le serveur
+  });
+
   it("états par durée (B27 ; PCCI § 10.6 et 10.7) : crédit débloqué classé par durée initiale et par durée résiduelle", async () => {
     const cid = await creditDebloque();
     const c = _etat().credits.find((x) => x.id === cid)!, montant = c.montant;
@@ -3438,7 +3454,7 @@ describe("journée de guichet", () => {
     await connecter("plumbala");
     const q = { du: "2026-01-01", au: "2026-11-05", exercice: 2026 };
     const ctx = await api.etatsFinanciers.contexte();
-    expect(ctx.annexes.map((a) => a.code)).toEqual(["emplois", "flux", "credits", "depots", "avoirs", "monnaies", "emprunts", "engagements-normaux", "engagements-litigieux", "engagements-recus", "hors-bilan-litigieux", "agr", "balance-agee-nature", "durees-initiales", "durees-residuelles", "rapport-activites"]);
+    expect(ctx.annexes.map((a) => a.code)).toEqual(["emplois", "flux", "credits", "depots", "avoirs", "monnaies", "emprunts", "engagements-normaux", "engagements-litigieux", "engagements-recus", "hors-bilan-litigieux", "agr", "balance-agee-nature", "durees-initiales", "durees-residuelles", "pertes-prets", "rapport-activites"]);
     for (const annexe of ["engagements-normaux", "hors-bilan-litigieux", "agr", "balance-agee-nature"]) {   // B7 : Instr. BCC 009, art. 1er
       const x = await api.etatsFinanciers.annexe({ exercice: "2026", du: "2026-01-01", au: "2026-11-05", annexe });
       expect(x.forme).toBe(annexe === "agr" || annexe === "balance-agee-nature" ? "tableau" : "ventilation");

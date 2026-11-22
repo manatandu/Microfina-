@@ -880,6 +880,48 @@
    "libelle": "VENTILATION PAR DUREE RESIDUELLE (PCCI § 10.7)"
   },
   {
+   "code": "pertes-prets",
+   "libelle": "PERTES SUR PRETS ET AVANCES (PCCI 14.4.2, point 5)",
+   "lignes": [
+    {
+     "libelle": "Montant comptabilisé en provision pour l'exercice (dotations, compte 6902)",
+     "charges": [
+      "6902"
+     ]
+    },
+    {
+     "libelle": "Montant sorti du bilan pour non-recouvrement (compte 691)",
+     "charges": [
+      "691"
+     ]
+    },
+    {
+     "libelle": "Montant crédité pour les créances recouvrées (compte 791)",
+     "produits": [
+      "791"
+     ]
+    },
+    {
+     "libelle": "Reprises de provisions (compte 7902)",
+     "produits": [
+      "7902"
+     ]
+    },
+    {
+     "libelle": "Montant global de la provision à la date de clôture (compte 38)",
+     "crediteur": [
+      "38"
+     ]
+    },
+    {
+     "libelle": "Montant global des prêts dont les intérêts ne sont pas comptabilisés (crédits en retard, compte 39 : leurs intérêts ne sont constatés qu'à l'encaissement)",
+     "debiteur": [
+      "39"
+     ]
+    }
+   ]
+  },
+  {
    "code": "rapport-activites",
    "libelle": "RAPPORT D'ACTIVITES ANNUEL (Instr. BCC 009, art. 3 et annexe)"
   }

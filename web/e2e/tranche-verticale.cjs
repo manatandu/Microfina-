@@ -622,7 +622,7 @@ const OUT = process.argv[2];
   await fCom.getByRole('button', { name: 'Viser' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByText('Visa enregistré : crédit refusé.').waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
   await aller('/credit/s91'); await p.getByLabel('Niveau hiérarchique *').selectOption('comite'); await p.getByLabel('Avis *').selectOption('refuse'); await p.getByRole('button', { name: 'Rechercher' }).click();
-  await p.getByRole('button', { name: 'Appel au Conseil' }).click(); await p.getByLabel('Décision du Conseil : *').selectOption('accorde'); await p.getByLabel('Référence de la décision : *').fill('CA-2026-07');
+  await p.getByRole('button', { name: 'Appel au Conseil' }).click(); await p.getByLabel('Décision du Conseil : *').selectOption('accorde'); await p.getByLabel('Référence : *').fill('CA-2026-07');
   await etape('06w5b-appel-conseil'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: 'Accordé (CA-2026-07)' }).waitFor();
   await login('Patrick Lumbala'); await viser('service_financier', async (fv) => fv.getByLabel('Avis *').selectOption('accepte'));
@@ -1298,6 +1298,9 @@ const OUT = process.argv[2];
     await p.getByLabel('Annexe :').selectOption(code); await p.getByRole('button', { name: 'Rechercher' }).click();
     await p.getByRole('rowheader', { name: 'Emplois : crédits à la clientèle ou aux membres' }).waitFor(); await p.getByRole('columnheader', { name: 'Plus de 6 mois' }).waitFor(); await etape(nom);
   }
+  // Pertes sur prêts et avances (PCCI 14.4.2, point 5)
+  await p.getByLabel('Annexe :').selectOption('pertes-prets'); await p.getByRole('button', { name: 'Rechercher' }).click();
+  await p.getByRole('rowheader', { name: /^Montant global de la provision/ }).waitFor(); await etape('27f5-pertes-sur-prets');
   // Rapport d'activités annuel (B13 ; Instr. BCC 009, art. 3 et annexe) : sections du modèle, tableaux remplis par le logiciel
   await p.getByLabel('Annexe :').selectOption('rapport-activites'); await p.getByRole('button', { name: 'Rechercher' }).click();
   await p.getByRole('heading', { name: '5. COMPTE DE GESTION OU COMPTE DE RESULTAT' }).waitFor(); await p.getByRole('rowheader', { name: 'TOTAL ACTIF' }).waitFor();
