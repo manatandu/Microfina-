@@ -119,7 +119,7 @@ export function graine(): Etat {
     // S16 : la part sociale, ligne « Part sociale standard » des frais d'adhésion (capture p. 89), compte 103 selon le membre (PCCI),
     // valeur des statuts (loi 002/2002, art. 20) ; exemple du manuel, 4 000 (registre S16-11)
     frais: [{ id: 1, typeOperation: "ADHESION", libelle: "Part sociale standard", fondement: "part_sociale" }], paramOperations: [],
-    paramAdhesion: ([["Physique", "1030"], ["Personne morale", "1032"], ["Groupe", "1031"]] as const).map(([typeMembre, compte], i) => ({ id: i + 1, fraisId: 1, typeMembre, nature: "Montant", valeur: VALEUR_PART_EXEMPLE, compte })), fraisClient: [], modifications: [], groupesSolidaires: [], membresGroupes: [], typesProcuration: [], supprimes: [], consentements: [], banques: [], comptesBancaires: [],
+    paramAdhesion: ([["Physique", "1030"], ["Personne morale", "1032"], ["Groupe", "1031"]] as const).map(([typeMembre, compte], i) => ({ id: i + 1, fraisId: 1, typeMembre, nature: "Montant", valeur: VALEUR_PART_EXEMPLE, compte })), fraisClient: [], modifications: [], groupesSolidaires: [], membresGroupes: [], typesProcuration: [{ id: 1, libelle: "Mandat général (actes d'administration)" }, { id: 2, libelle: "Mandat spécial" }], supprimes: [], consentements: [], banques: [], comptesBancaires: [],
     // S14 : secteurs de la capture du manuel p. 23 ; S14n : types de guichet de la capture p. 19 (registre S08-1)
     // Référentiel crédit (S21) : zone de démonstration et exemples des captures p. 32 à 36
     credit: {

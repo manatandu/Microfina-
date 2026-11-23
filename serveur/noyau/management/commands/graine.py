@@ -44,6 +44,7 @@ FORMES_JURIDIQUES = ("Société en nom collectif", "Société en commandite simp
                      # Personnes morales publiques et coopératives (loi 08/009 sur les établissements publics ; loi 002/2002) ; registre S38-6
                      "Administration publique (État, province, entité territoriale décentralisée)", "Établissement public", "Coopérative d'épargne et de crédit (COOPEC)")
 # Formes juridiques des groupes : loi n° 004/2001 sur les ASBL, art. 2 et titre II ; groupement sans personnalité juridique (manuel p. 47) ; registre S39-5
+TYPES_PROCURATION = ("Mandat général (actes d'administration)", "Mandat spécial")
 FORMES_JURIDIQUES_GROUPE = ("Groupement sans personnalité juridique", "Association sans but lucratif à caractère culturel, social, éducatif ou économique",
                             "Organisation non gouvernementale (ONG)", "Association confessionnelle", "Établissement d'utilité publique")
 
@@ -256,6 +257,9 @@ class Command(BaseCommand):
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'forme_juridique', %s, %s)", (ins, str(n), fj))
         for n, fj in enumerate(FORMES_JURIDIQUES_GROUPE, 1):
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'forme_juridique_groupe', %s, %s)", (ins, str(n), fj))
+        # Types de procuration de départ : Code civil, livre III, art. 529 et 530 (plan d'allègement, point 2.10 ; registre T132)
+        for tp in TYPES_PROCURATION:
+            executer("insert into type_procuration (institution_id, libelle) values (%s, %s)", (ins, tp))
         # Utilisateurs et profils
         uid, pids = {}, {}
         # Sarah Tshibanda, responsable crédit, vérifie les dossiers : la vérification et l'autorisation d'un crédit reviennent à deux personnes

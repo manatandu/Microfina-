@@ -827,13 +827,14 @@ def test_prospect(clients):
 def test_type_procuration(clients):
     agent = clients["agent"]
     connecter(agent, "bkasongo")
-    assert agent.get("/api/types-procuration").json() == []
+    depart = ["Mandat général (actes d'administration)", "Mandat spécial"]   # Code civil, livre III, art. 529 et 530 (registre T132)
+    assert [x["libelle"] for x in agent.get("/api/types-procuration").json()] == depart
     r = agent.post("/api/types-procuration", {"libelle": " "}, **H); assert r.status_code == 422 and "libellé" in r.json()["message"]
     t = agent.post("/api/types-procuration", {"libelle": "Procuration générale"}, **H).json()
     r = agent.post("/api/types-procuration", {"libelle": "procuration générale"}, **H); assert r.status_code == 422 and "existe déjà" in r.json()["message"]
-    assert [x["libelle"] for x in agent.get("/api/types-procuration").json()] == ["Procuration générale"]
+    assert [x["libelle"] for x in agent.get("/api/types-procuration").json()] == [*depart, "Procuration générale"]
     assert agent.delete(f"/api/types-procuration/{t['id']}", **H).status_code == 200
-    assert agent.get("/api/types-procuration").json() == []
+    assert [x["libelle"] for x in agent.get("/api/types-procuration").json()] == depart
     # Registre T02 (manuel p. 12) : suppression logique ; la ligne reste en base, datée et signée ; le libellé peut être repris
     from noyau.bd import une
     r = une("select supprime_le, supprime_par from type_procuration where id = %s", (t["id"],))

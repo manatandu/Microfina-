@@ -950,7 +950,7 @@ describe("journée de guichet", () => {
     const t = await api.procurations.creer({ libelle: "Procuration générale" });
     await expect(api.procurations.creer({ libelle: "procuration générale" })).rejects.toThrow("existe déjà");
     await api.procurations.supprimer(t.id);
-    expect(await api.procurations.lire()).toEqual([]);
+    expect((await api.procurations.lire()).map((x) => x.libelle)).toEqual(["Mandat général (actes d'administration)", "Mandat spécial"]);   // valeurs de départ (registre T132)
     // Registre T02 (manuel p. 12) : suppression logique ; la ligne reste, datée et signée ; le libellé se reprend sous un autre numéro
     const s = _etat().supprimes.find((x) => x.table === "type_procuration");
     expect(s && s.par !== null && (s.ligne as { id: number }).id === t.id).toBe(true);
