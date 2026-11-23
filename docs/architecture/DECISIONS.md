@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1008 décisions.** Solidité : 461 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 999 déjà en place, 9 à appliquer.
+**1009 décisions.** Solidité : 462 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1000 déjà en place, 9 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2209,6 +2209,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S40-3 | Détail du client sous le visa | Les agents (sensibilisateur, gestionnaire, commercial) d'après la fiche, les héritiers désignés, et dans « Autre Info » le secteur, l'activité, la profession, l'adresse et la BP, au lieu de cases vides et de « Liste vide » écrits en dur | Texte réglementaire : Instr. BCC 15, art. 33 (l'approbation porte sur une fiche complète) ; plan d'allègement, point 0.16 | forte | en place |
+
+## S40 Visa ; contrat d'adhésion
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S40-4 | Premier dépôt et versements initiaux | Le premier dépôt se saisit à l'enrôlement et se lit au visa (il ne s'y modifie plus) ; il arrive prérempli au guichet, où le montant versé fait foi. Le contrat d'adhésion détaille les versements initiaux : Part sociale, Droit d'adhésion (frais liés du membre), Premier dépôt, puis le total (un total par devise quand le compte n'est pas en CDF) ; les héritiers désignés s'impriment sous leur rubrique. | Texte réglementaire : Loi 002/2002, art. 22 (libération d'au moins une part sociale à l'adhésion) ; plan d'allègement, point 3.7 | forte | en place |
 
 ## S43 Informations client
 

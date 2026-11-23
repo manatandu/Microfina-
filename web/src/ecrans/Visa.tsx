@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { enClair } from "../lib/enclair";
 import { api, IMAGE_MAX, ageAu, MAJORITE } from "../donnees/api";
 import type { Representant, Tiers } from "../donnees/types";
@@ -18,7 +18,6 @@ export function VisaClient() {
   const { donnees } = useDonnees(async () => ({ ctx: await api.referentiel.contexte(), attente: await api.tiers.aViser() }));
   const [t, setT] = useState<Tiers | null>(null);
   const [intitule, setIntitule] = useState("");
-  const [depot, setDepot] = useState("");
   const [dateVisa, setDateVisa] = useState("");
   const [admission, setAdmission] = useState({ le: "", reference: "" });   // écart E05
   const [mineur, setMineur] = useState({ emancipationReference: "", representantLegal: "" });   // écart E18
@@ -41,14 +40,13 @@ export function VisaClient() {
 
   async function choisir(x: Tiers) {
     const j = await api.journees.courante();
-    setT(x); setIntitule(x.intitule || nomComplet(x)); setDepot(x.premierDepot ? String(x.premierDepot / 100).replace(".", ",") : "0");
+    setT(x); setIntitule(x.intitule || nomComplet(x));
     setDateVisa(j?.statut === "ouverte" ? j.date : ""); setRecherche(false);
   }
-  function annuler() { setT(null); setIntitule(""); setDepot(""); setDateVisa(""); setAdmission({ le: "", reference: "" }); setMineur({ emancipationReference: "", representantLegal: "" }); setAuxiliaire(false); }
+  function annuler() { setT(null); setIntitule(""); setDateVisa(""); setAdmission({ le: "", reference: "" }); setMineur({ emancipationReference: "", representantLegal: "" }); setAuxiliaire(false); }
   function viser() {
     if (!t) { setBoite({ type: "erreur", message: "Rechercher d'abord le client." }); return; }
-    const m = depot.trim() ? lireMontant(depot) : 0;
-    if (m === null || m < 0) { setBoite({ type: "erreur", message: "Premier dépôt invalide." }); return; }
+    const m = t.premierDepot ?? 0;
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try {
         setT(await api.tiers.viser(t.id, { dateVisa, intitule, premierDepot: m, ...(admission.le || admission.reference ? { admissionLe: admission.le, admissionReference: admission.reference } : {}), ...mineur, ...(auxiliaire ? { auxiliaire } : {}) }));
@@ -69,7 +67,8 @@ export function VisaClient() {
               <button className="bouton secondaire" type="button" aria-label="Rechercher un client" disabled={vise} onClick={() => setRecherche(true)}>Rechercher</button>
             </div>
             <Champ libelle="Intitulé : *">{(p) => <input {...p} className="saisie" required readOnly={!t || vise} autoComplete="off" value={intitule} onChange={(e) => setIntitule(e.target.value)} />}</Champ>
-            <Champ libelle={`Premier dépôt :${t ? ` (${deviseDe(ctx, t)})` : ""}`}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" readOnly={!t || vise} autoComplete="off" value={depot} onChange={(e) => setDepot(e.target.value)} />}</Champ>
+            {/* Le premier dépôt se saisit à l'enrôlement et se lit au visa ; au guichet, le montant versé fait foi (plan d'allègement, point 3.7) */}
+            <Champ libelle={`Premier dépôt :${t ? ` (${deviseDe(ctx, t)})` : ""}`}>{(p) => <input {...p} className="saisie montant" readOnly value={t ? montant(t.premierDepot, deviseDe(ctx, t)) : ""} />}</Champ>
             <Champ libelle="Date Demande">{(p) => <input {...p} className="saisie date" readOnly value={t ? fr(t.dateDemande) : ""} />}</Champ>
             <ChampDate libelle="Date Visa *" valeur={dateVisa} onChange={setDateVisa} requis />
             {t && aDesParts(ctx.institution) && (vise
@@ -136,7 +135,7 @@ export function VisaClient() {
           choisir={(x) => void choisir(x)} fermer={() => setRecherche(false)} />
       </Fiche>
       <Fiche titre="Demande d'adhésion" ouverte={contrat} fermer={() => setContrat(false)}>
-        {t && <Contrat t={t} ctx={ctx} />}
+        {t && <Contrat t={t} ctx={ctx} frais={frais} />}
         <div className="actions-onglets sans-impression">
           <button className="bouton secondaire" type="button" onClick={() => setContrat(false)}>Fermer</button>
           <button className="bouton" type="button" onClick={() => window.print()}>Imprimer</button>
@@ -319,9 +318,10 @@ function DetailClient({ t }: { t: Tiers }) {
   );
 }
 
-/** Contrat d'adhésion imprimé après le visa (p. 52). Ce que la capture coupe (fin de « Héritier désigné ») reste à confirmer. */
-function Contrat({ t, ctx }: { t: Tiers; ctx: Ctx }) {
+/** Contrat d'adhésion imprimé après le visa (p. 52) : versements initiaux détaillés et héritiers désignés sous leur rubrique (plan d'allègement, point 3.7). */
+function Contrat({ t, ctx, frais }: { t: Tiers; ctx: Ctx; frais: { montant: number | null; part: boolean }[] }) {
   const inst = ctx.institution.nom, m = mots(ctx.institution);   // registre S40-2 : membre pour une COOPEC, client pour une IMF
+  const devise = deviseDe(ctx, t), partSociale = frais.filter((x) => x.part).reduce((a, x) => a + (x.montant ?? 0), 0), droits = frais.filter((x) => !x.part).reduce((a, x) => a + (x.montant ?? 0), 0);
   const ligne = (a: string, b: string) => <p className="contrat-ligne"><span>{a}</span><strong>{b}</strong></p>;
   return (
     <article className="contrat">
@@ -335,7 +335,17 @@ function Contrat({ t, ctx }: { t: Tiers; ctx: Ctx }) {
       {ligne("Sollicite mon adhésion à", inst)}
       <p>Je m'engage à respecter ses statuts, ses règlements et les décisions des organes d'administration, à défendre les intérêts de {inst} et à être loyal(e) envers elle.</p>
       <h4>VERSEMENTS INITIAUX</h4>
-      <div className="contrat-deux">{ligne("ADHESION", montant(t.premierDepot, deviseDe(ctx, t)))}{ligne("Total", montant(t.premierDepot, deviseDe(ctx, t)))}</div>
+      {/* Part sociale, droit d'adhésion, premier dépôt, puis le total par devise (loi 002/2002, art. 22 ; plan d'allègement, point 3.7) */}
+      <div className="contrat-deux">
+        {ligne("Part sociale", montant(partSociale, "CDF"))}{ligne("Droit d'adhésion", montant(droits, "CDF"))}
+        {ligne("Premier dépôt", montant(t.premierDepot, devise))}
+        {devise === "CDF" ? ligne("Total", montant(partSociale + droits + t.premierDepot, "CDF"))
+          : <>{ligne("Total (CDF)", montant(partSociale + droits, "CDF"))}{ligne(`Total (${devise})`, montant(t.premierDepot, devise))}</>}
+      </div>
+      {(t.beneficiaires ?? []).length > 0 && <>
+        <h4>HÉRITIERS DÉSIGNÉS</h4>
+        <div className="contrat-deux">{(t.beneficiaires ?? []).map((b, i) => <Fragment key={i}>{ligne(`${[b.nom, b.postnom, b.prenom].filter(Boolean).join(" ")}`, b.filiation)}</Fragment>)}</div>
+      </>}
       <div className="contrat-deux">{ligne("Fait à", ctx.agence.nom)}{ligne("le", fr(t.dateVisa))}</div>
       <p className="contrat-signature">Signature</p>
       <h4>DÉCISION DU CONSEIL D'ADMINISTRATION</h4>
