@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1012 décisions.** Solidité : 465 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1003 déjà en place, 9 à appliquer.
+**1013 décisions.** Solidité : 466 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1004 déjà en place, 9 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -811,6 +811,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | S39-1 | Fiche complétée comme S37 (reste de S38-1) | Sensibilisateur, Gestionnaire, Commercial pris dans S33 au lieu de INCONNU seul ; Autres renseignements comme le client physique ; saisies libres remplacées par les listes de paramétrage — Construit pour S39 : Sensibilisateur, Gestionnaire, Commercial de S33 ; Forme juridique de S14i (facultative) ; onglet Autres renseignements du client physique, Catégorie prise dans Catégorie de groupe (S14j) ; la saisie libre « Nature de l'activité » est remplacée par Secteur et Type d'activité | Donnée exigée ailleurs : S37-1, S37-2, S38-1 | moyenne | en place |
 | S39-2 | Liste du Type de groupe | Liste lue dans Type de groupe (S14f). Agent économique (PCCI § 10.2.2) : Association et ONG en institutions sans but lucratif ; tout autre groupe, sans personnalité juridique, en Ménages, parce que ses membres sont des personnes physiques. Même règle que la retenue d'impôt (S67-7). Décidé par délégation du porteur (15/11/2026). | Texte réglementaire : Manuel p. 47 ; PCCI § 10.2.2 | moyenne | en place |
+
+## S46 Mise à jour
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S46-4 | La même fiche que l'enrôlement | La mise à jour prend les cinq onglets de « Nouveau membre » (Informations de base, Identité, Adresse et activité, Personnes, Photos et pièces), ouverte directement en modification depuis la fiche du membre ; deux boutons, Enregistrer et Annuler (le bouton Modifier disparaît). Les photos et pièces changées s'enregistrent avec la fiche. La fiche modifiée passe « à revalider » et se valide dans Membres à viser, par une autre personne. | Choix du porteur : Plan d'allègement, point 3.2 (accord du porteur, 22/11/2026) ; Instr. BCC 15, art. 10, 12 et 13 ; registre S46-3 | forte | en place |
 
 ## S39 Fiche du groupe ; S14o
 
