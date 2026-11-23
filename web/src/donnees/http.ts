@@ -410,6 +410,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       demander: (d: unknown) => post("/credit/dossiers", d),
       controler: (id: number, d: unknown) => post(`/credit/dossiers/${id}/controle`, d),
       approuver: (id: number, d: unknown) => post(`/credit/dossiers/${id}/approbation`, d),
+      appel: (id: number, d: unknown) => post(`/credit/dossiers/${id}/appel`, d),   // plan d'allègement, point 6.1
     },
     analyses: {
       historique: (tiersId: number) => get(`/credit/analyses?tiersId=${tiersId}`),

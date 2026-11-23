@@ -258,6 +258,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "devises.enregistrerType": [
 "S35"
 ],
+"dossiers.appel": [
+"S88"
+],
 "dossiers.approuver": [
 "S88"
 ],

@@ -780,18 +780,18 @@
   },
   {
     "id": "S87",
-    "nom": "Dossier : contrôle",
-    "acces": "Crédit > Dossier > Contrôle",
-    "but": "Contrôler en ressaisissant les chiffres",
+    "nom": "Dossier : vérification",
+    "acces": "Crédit > Dossier > Vérification",
+    "but": "Vérifier la demande : montant ressaisi, Centrale des risques, avis (contrôle et visa du responsable crédit réunis, plan d'allègement, point 6.1)",
     "module": "credit",
     "priorite": "must",
     "chemin": "/credit/s87"
   },
   {
     "id": "S88",
-    "nom": "Dossier : approbation",
-    "acces": "Crédit > Dossier > Approbation",
-    "but": "Approuver un montant",
+    "nom": "Dossier : décision",
+    "acces": "Crédit > Dossier > Décision",
+    "but": "Décider : montant approuvé, commission de crédit, plafonds ; le crédit naît à la décision (approbation et visa du comité réunis, plan d'allègement, point 6.1)",
     "module": "credit",
     "priorite": "must",
     "chemin": "/credit/s88"
@@ -803,13 +803,14 @@
     "but": "Monter le prêt",
     "module": "credit",
     "priorite": "must",
-    "chemin": "/credit/s89"
+    "chemin": "/credit/s89",
+    "menu": false
   },
   {
     "id": "S90",
-    "nom": "Visas du crédit",
+    "nom": "Visa du service financier",
     "acces": "Crédit > Suivi dossier > Visa responsable crédit ; comité ; service financier",
-    "but": "Trois niveaux de visa",
+    "but": "Viser les crédits décidés : fonds disponibles, ligne de financement (plan d'allègement, point 6.1)",
     "module": "credit",
     "priorite": "must",
     "chemin": "/credit/s90"

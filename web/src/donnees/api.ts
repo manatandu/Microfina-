@@ -3370,7 +3370,11 @@ const vueDemande = (x: DemandeCredit) => { const t = E.tiers.find((y) => y.id ==
     nbHommes: x.nbHommes, nbFemmes: x.nbFemmes, montantHommes: x.montantHommes, montantFemmes: x.montantFemmes, nbGroupes: x.nbGroupes, montant: x.montant, duree: x.duree,
     montantApprouve: x.montantApprouve, province: lieu(x.provinceId), ville: lieu(x.villeId), commune: x.communeId ? lieu(x.communeId) : "", parts: x.parts, statut: x.statut, date: x.creeLe,
     saisiPar: nomUtilisateur(x.saisiPar), controlePar: nomUtilisateur(x.controlePar ?? undefined), approuvePar: nomUtilisateur(x.approuvePar ?? undefined),
-    consultationCrLe: x.consultationCrLe, consultationCrRef: x.consultationCrRef, accordConseilRef: x.accordConseilRef, accordBccRef: x.accordBccRef }; };
+    consultationCrLe: x.consultationCrLe, consultationCrRef: x.consultationCrRef, accordConseilRef: x.accordConseilRef, accordBccRef: x.accordBccRef,
+    differe: x.differe ?? 0, objetId: x.objetId ?? null, objet: String(stockCredit("objets").find((o) => o.id === x.objetId)?.libelle ?? ""), usagePrecis: x.usagePrecis ?? "",
+    compteEpargneId: x.compteEpargneId ?? null, compteSolidariteId: x.compteSolidariteId ?? null, assureurId: x.assureurId ?? null, ligneBudgetId: x.ligneBudgetId ?? null,
+    refusNiveau: x.refusNiveau ?? "", motif: x.decisionMotif || x.verificationMotif || "", appel: x.appelDecision ?? "",
+    creditId: E.credits.find((c) => c.demandeId === x.id)?.id ?? null }; };
 const effectifsDossier = (d: Record<string, unknown> | undefined) => ({ nbHommes: entierDossier(d, "nbHommes", "Effectif hommes"), nbFemmes: entierDossier(d, "nbFemmes", "Effectif femmes"),
   montantHommes: entierDossier(d, "montantHommes", "Montant hommes"), montantFemmes: entierDossier(d, "montantFemmes", "Montant femmes"),
   nbGroupes: entierDossier(d, "nbGroupes", "Nombre de groupes solidaires") });
@@ -3385,13 +3389,17 @@ const dossiers = {
     lectureAdmin(["S86", "S87", "S88", "S89"]);
     return { produits: E.produitsCredit.filter((p) => p.actif !== false).sort((a, b) => String(a.numero).localeCompare(String(b.numero))).map((p) => ({ id: p.id, nom: String(p.nom),
         devise: String(p.devise) as Devise, physique: !!p.clientPhysique, groupe: !!p.clientGroupe, entreprise: !!p.clientEntreprise, montantMin: Number(p.montantMin) * 100,
-        montantMax: Number(p.montantMax) * 100, dureeMin: Number(p.dureeMin), dureeMax: Number(p.dureeMax) })),
+        montantMax: Number(p.montantMax) * 100, dureeMin: Number(p.dureeMin), dureeMax: Number(p.dureeMax), typeAssuranceId: (p.typeAssuranceId as number | null) ?? null })),
       cycles: stockCredit("cycles").filter((c) => c.actif !== false).map((c) => ({ id: c.id, code: String(c.code ?? ""), libelle: String(c.libelle ?? "") })),
       provinces: E.lieux.filter((l) => l.niveau === "province" && l.actif).map((l) => ({ id: l.id, nom: l.nom })).sort((a, b) => a.nom.localeCompare(b.nom)),
       villes: E.lieux.filter((l) => l.niveau === "ville" && l.actif).map((l) => ({ id: l.id, provinceId: l.parentId, nom: l.nom, nature: l.nature || "Ville" })).sort((a, b) => a.nom.localeCompare(b.nom)),
       // lieu de l'activité jusqu'à la commune, au secteur ou à la chefferie (registre T41)
       communes: E.lieux.filter((l) => l.niveau === "commune" && l.actif).map((l) => ({ id: l.id, villeId: l.parentId, nom: l.nom, nature: l.nature || "Commune" })).sort((a, b) => a.nom.localeCompare(b.nom)),   // nature : registre S20-8
-      fondsPropres: fondsPropresActuels(), coopec: estCoopec() };
+      fondsPropres: fondsPropresActuels(), coopec: estCoopec(),
+      // Plan d'allègement, point 6.1 : ce que la mise en place demandait se saisit à la demande
+      objets: stockCredit("objets").filter((o) => o.actif !== false).map((o) => ({ id: o.id, libelle: String(o.libelle ?? "") })),
+      assureurs: stockCredit("assureurs").map((a) => ({ id: a.id, nom: String(a.nom ?? ""), typeAssuranceId: (a.typeAssuranceId as number | null) ?? null })),
+      lignesBudget: (E.budget["lignes"] ?? []).filter((x) => x.actif).map((x) => ({ id: x.id, numero: String(x.numero ?? ""), libelle: String(x.libelle ?? "") })) };
   },
   fondsPropres() { exiger(); return fondsPropresActuels(); },
   /** Registre CR-2 : saisis chaque mois par la direction, montant du dernier arrêté (Instr. BCC 002, art. 7 à 11) */
@@ -3421,7 +3429,7 @@ const dossiers = {
   },
   lister(statut: DemandeCredit["statut"]) {
     lectureAdmin(["S86", "S87", "S88", "S89"]);
-    if (!["saisie", "controlee", "approuvee", "mise_en_place"].includes(statut)) throw new ErreurMetier("Statut inconnu.");
+    if (!["saisie", "controlee", "approuvee", "rejetee", "mise_en_place"].includes(statut)) throw new ErreurMetier("Statut inconnu.");
     return E.demandes.filter((x) => x.statut === statut).map(vueDemande);
   },
   /** 2.1 à 2.8 (p. 113) ; registre S86-1 à S86-6 */
@@ -3474,28 +3482,45 @@ const dossiers = {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(consLe)) throw new ErreurMetier("À remplir : Consentement à la Centrale des risques, signé le (Instr. BCC 05, art. 13).");
     if (!consRef) throw new ErreurMetier("À remplir : Consentement à la Centrale des risques, référence de la pièce signée (Instr. BCC 05, art. 13).");
     if (consLe > jourDossier()) throw new ErreurMetier("Consentement à la Centrale des risques : la date de signature ne peut pas être après la journée.");
+    const ic = infosCreditDemande(d, t, p, montant, duree);   // plan d'allègement, point 6.1
     E.consentements.push({ id: prochain(E.consentements), tiersId: t.id, code: consRef, dateDebut: consLe, dateFin: "", commentaire: `Demande de crédit DC${String(E.demandes.length + 1).padStart(6, "0")}` });
     const x: DemandeCredit = { id: prochain(E.demandes), numero: `DC${String(E.demandes.length + 1).padStart(6, "0")}`, tiersId: t.id, produitId: p.id, devise: String(p.devise) as Devise,
       analyseId: aid, cycleId: cid, provinceId: pr.id, villeId: vi.id, communeId: co?.id ?? null, ...e, montant, duree, parts, statut: "saisie", creeLe: jourDossier(), saisiPar: u.id, controlePar: null,
-      approuvePar: null, montantApprouve: null, consultationCrLe: "", consultationCrRef: "", accordConseilRef: "", accordBccRef: "" };
+      approuvePar: null, montantApprouve: null, consultationCrLe: "", consultationCrRef: "", accordConseilRef: "", accordBccRef: "", ...ic };
     E.demandes.push(x); enregistrer(); return vueDemande(x);
   },
-  /** 2.9 à 2.12 : effectif, nombre de groupes et montant ressaisis par un autre utilisateur (registre S87-1 à S87-3) */
+  /** Vérification (plan d'allègement, point 6.1) : contrôle et visa du responsable crédit réunis ; montant ressaisi sans le voir, Centrale des risques
+   * (Instr. BCC 05, art. 4 et 13), avis. Comme dossiers.controler. */
   controler(id: number, d: Record<string, unknown>) {
     const u = exiger();
     const x = demandeAuStatut(id, "saisie");
-    if (x.saisiPar === u.id) throw new ErreurMetier("Quatre yeux : le contrôle est fait par un autre utilisateur que celui qui a saisi la demande.");
+    if (x.saisiPar === u.id) throw new ErreurMetier("Quatre yeux : la vérification est faite par un autre utilisateur que celui qui a saisi la demande.");
     separerCredit(u.id, "verification", x.id);
-    if (entierDossier(d, "effectif", "Effectif") !== x.nbHommes + x.nbFemmes || entierDossier(d, "nbGroupes", "Nombre de groupes solidaires") !== x.nbGroupes
-      || entierDossier(d, "montant", "Montant") !== x.montant) throw new ErreurMetier("L'effectif, le nombre de groupes ou le montant ressaisis ne correspondent pas à la demande.");
-    x.statut = "controlee"; x.controlePar = u.id; enregistrer(); return vueDemande(x);
+    const { avis, motif } = avisDossier(d);
+    if (avis === "accepte") {
+      if (entierDossier(d, "montant", "Montant") !== x.montant) throw new ErreurMetier("Le montant ressaisi ne correspond pas à la demande.");
+      const cr = String(d.consultationCrLe ?? "");
+      if (!DATE_ISO.test(cr)) throw new ErreurMetier("À remplir : Date de consultation de la Centrale des risques (Instr. BCC 05, art. 4).");
+      const ref = typeof d.consultationCrRef === "string" ? d.consultationCrRef.trim() : "";
+      if (cr > jourDossier() || !ref) throw new ErreurMetier("Consultation de la Centrale des risques : date (pas après la journée) et référence du rapport (Instr. BCC 05, art. 4 et 13).");
+      Object.assign(x, { statut: "controlee", controlePar: u.id, controleLe: jourDossier(), consultationCrLe: cr, consultationCrRef: ref });
+    } else Object.assign(x, { statut: "rejetee", controlePar: u.id, controleLe: jourDossier(), verificationMotif: motif, refusNiveau: "responsable_credit" });
+    enregistrer(); return vueDemande(x);
   },
-  /** 2.13 à 2.15 : montant approuvé ressaisi ; registre S88-1 à S88-6, CR-3, CR-14, CR-25 */
+  /** Décision (plan d'allègement, point 6.1) : approbation et visa du comité réunis ; le crédit naît à la décision. Registre S88-1 à S88-6, CR-3, CR-4, CR-14, CR-25. */
   approuver(id: number, d: Record<string, unknown>) {
     const u = exiger();
     const x = demandeAuStatut(id, "controlee");
-    if (u.id === x.saisiPar) throw new ErreurMetier("Quatre yeux : l'approbation est faite par un autre utilisateur que celui qui a saisi la demande.");
+    if (u.id === x.saisiPar) throw new ErreurMetier("Quatre yeux : la décision est prise par un autre utilisateur que celui qui a saisi la demande.");
     separerCredit(u.id, "autorisation", x.id);
+    const { membres, unanimite } = membresCommission(d);
+    if (unanimite) d = { ...d, avis: unanimite, motif: (typeof d.motif === "string" && d.motif.trim()) || (unanimite === "refuse" ? "Commission de crédit : refus d'un membre" : "") };
+    const { avis, motif } = avisDossier(d);
+    const pv = typeof d.referencePv === "string" ? d.referencePv.trim() : "";
+    if (avis === "refuse") {
+      Object.assign(x, { statut: "rejetee", approuvePar: u.id, approuveLe: jourDossier(), decisionMembres: membres, decisionPv: pv, decisionMotif: motif, refusNiveau: "comite" });
+      enregistrer(); return vueDemande(x);
+    }
     const m = entierDossier(d, "montantApprouve", "Montant approuvé", 1);
     const p = E.produitsCredit.find((y) => y.id === x.produitId)!;
     if (m > x.montant) throw new ErreurMetier("Montant approuvé : pas plus que le montant demandé.");
@@ -3506,19 +3531,87 @@ const dossiers = {
     controlerRetard(x.tiersId);   // registre CR-15
     if (!E.consentements.some((c) => c.tiersId === x.tiersId && c.dateDebut <= j && (!c.dateFin || c.dateFin >= j)))
       throw new ErreurMetier("Pas de consentement écrit à la Centrale des risques en cours de validité (demande de crédit ; Instr. BCC 05, art. 13).");
-    const cr = String(d.consultationCrLe ?? "");
-    if (!DATE_ISO.test(cr)) throw new ErreurMetier("À remplir : Date de consultation de la Centrale des risques (Instr. BCC 05, art. 4).");
     const txt = (k: string) => (typeof d[k] === "string" ? (d[k] as string).trim() : "");
-    const ref = txt("consultationCrRef");
-    if (cr > j || !ref) throw new ErreurMetier("Consultation de la Centrale des risques : date (pas après la journée) et référence du rapport (Instr. BCC 05, art. 4 et 13).");
     const t = E.tiers.find((y) => y.id === x.tiersId)!;
     const conseil = txt("accordConseilRef"), bcc = txt("accordBccRef");
     if (t.apparente && !conseil) throw new ErreurMetier("Personne apparentée : référence de l'accord préalable du Conseil d'administration (Instr. BCC 51 ; registre CR-3).");
     controlerPlafonds(x.tiersId, Math.round(m * coursDe(x.devise, j)), !!t.apparente, bcc);
-    Object.assign(x, { statut: "approuvee", montantApprouve: m, approuvePar: u.id, approuveLe: jourDossier(), consultationCrLe: cr, consultationCrRef: ref, accordConseilRef: conseil, accordBccRef: bcc });
-    enregistrer(); return vueDemande(x);
+    Object.assign(x, { statut: "approuvee", montantApprouve: m, approuvePar: u.id, approuveLe: jourDossier(), accordConseilRef: conseil, accordBccRef: bcc, decisionMembres: membres, decisionPv: pv });
+    creerCreditDemande(x); enregistrer(); return vueDemande(x);
+  },
+  /** B29 : appel d'un refus de la Commission de crédit devant le Conseil d'administration, dans une COOPEC (Instr. BCC 007, art. 18). Comme dossiers.appel. */
+  appel(id: number, d: { decision?: string; reference?: string; montantApprouve?: number }) {
+    const u = exiger();
+    if (!estCoopec()) throw new ErreurMetier("L'appel devant le Conseil d'administration est propre aux coopératives (Instr. BCC 007, art. 18).");
+    const x = E.demandes.find((y) => y.id === id);
+    if (!x || x.statut !== "rejetee" || x.refusNiveau !== "comite" || x.appelDecision) throw new ErreurMetier("Seul un refus de la Commission de crédit, pas encore porté en appel, se porte devant le Conseil d'administration.");
+    if (d.decision !== "accorde" && d.decision !== "confirme") throw new ErreurMetier("À remplir : Décision du Conseil d'administration.");
+    const ref = (d.reference ?? "").trim();
+    if (!ref) throw new ErreurMetier("À remplir : Référence de la décision du Conseil d'administration.");
+    Object.assign(x, { appelDecision: d.decision, appelReference: ref, appelLe: jourDossier() });
+    if (d.decision === "accorde") {
+      const m = d.montantApprouve ?? x.montant;
+      if (m > x.montant) throw new ErreurMetier("Montant approuvé : pas plus que le montant demandé.");
+      Object.assign(x, { statut: "approuvee", montantApprouve: m }); creerCreditDemande(x);
+    }
+    void u; enregistrer(); return vueDemande(x);
   },
 };
+const avisDossier = (d: Record<string, unknown>) => {
+  const avis = d.avis;
+  if (avis !== "accepte" && avis !== "refuse") throw new ErreurMetier("À remplir : Avis.");
+  const motif = typeof d.motif === "string" ? d.motif.trim() : "";
+  if (avis === "refuse" && !motif) throw new ErreurMetier("À remplir : motif du refus.");
+  return { avis: avis as "accepte" | "refuse", motif };
+};
+/** Comité d'une COOPEC : la commission de crédit, trois membres, unanimité (loi 002/2002, art. 41 à 43 ; Instr. BCC 007, art. 32 ; registre CR-4) */
+function membresCommission(d: Record<string, unknown>) {
+  if (!estCoopec()) return { membres: [] as { nom: string; avis: "accepte" | "refuse" }[], unanimite: null };
+  const brut = d.membres;
+  if (!Array.isArray(brut) || brut.length !== 3) throw new ErreurMetier("Commission de crédit : les trois membres et l'avis de chacun (loi 002/2002, art. 41).");
+  const membres = brut.map((m: { nom?: unknown; avis?: unknown }) => { const nom = typeof m?.nom === "string" ? m.nom.trim() : "";
+    if (!nom || (m.avis !== "accepte" && m.avis !== "refuse")) throw new ErreurMetier("Commission de crédit : le nom et l'avis de chacun des trois membres.");
+    return { nom, avis: m.avis as "accepte" | "refuse" }; });
+  return { membres, unanimite: membres.every((m) => m.avis === "accepte") ? "accepte" : "refuse" };
+}
+/** Ce que la mise en place demandait se saisit à la demande (plan d'allègement, point 6.1) ; mêmes contrôles que S89. Comme dossiers.infos_credit. */
+function infosCreditDemande(d: Record<string, unknown>, t: Tiers, p: Record<string, unknown> & { id: number }, montant: number, duree: number) {
+  const s = simulationCredit.simuler({ produitId: p.id, montant, duree, differe: Number(d.differe ?? 0) || 0, dateDeblocage: jourDossier() });
+  const ids = new Set(E.comptes.filter((c) => c.tiersId === t.id && !c.closLe && c.devise === p.devise).map((c) => c.id));
+  const ce = (d.compteEpargneId ?? null) as number | null, cs = (d.compteSolidariteId ?? null) as number | null;
+  if (s.epargneObligatoire && !ids.has(ce ?? -1)) throw new ErreurMetier("À remplir : compte d'épargne obligatoire du client, dans la devise du crédit.");
+  const fonds = chargeCredit(p.solidariteNature, p.solidariteValeur, montant);
+  if (fonds && !ids.has(cs ?? -1)) throw new ErreurMetier("À remplir : compte du fonds de solidarité du client, dans la devise du crédit.");
+  let assureur = (d.assureurId ?? null) as number | null;
+  if (p.typeAssuranceId) { if (!stockCredit("assureurs").some((y) => y.id === assureur && Number(y.typeAssuranceId) === Number(p.typeAssuranceId))) throw new ErreurMetier("À remplir : Assureur (de l'assurance du produit)."); }
+  else assureur = null;
+  const objet = stockCredit("objets").find((o) => o.id === d.objetId && o.actif !== false);
+  if (!objet) throw new ErreurMetier("À remplir : Objet de crédit.");
+  if (objet.souscriptionParts === true) throw new ErreurMetier("Objet interdit : pas de crédit pour souscrire ou acquérir des parts ou des actions de l'institution (loi 22/069, titre II, chap. II, section 4).");   // A6
+  const ligne = (d.ligneBudgetId ?? null) as number | null;
+  if (ligne && !(E.budget["lignes"] ?? []).some((y) => y.id === ligne && y.actif)) throw new ErreurMetier("Ligne de financement inconnue.");
+  return { differe: s.differe, objetId: objet.id, usagePrecis: String(d.usagePrecis ?? "").trim().slice(0, 200), compteEpargneId: s.epargneObligatoire ? ce : null,
+    compteSolidariteId: fonds ? cs : null, assureurId: assureur, ligneBudgetId: ligne };
+}
+/** Le crédit naît à la décision ; la vérification et la décision tiennent les deux premiers visas (plan d'allègement, point 6.1). Comme dossiers.creer_credit. */
+function creerCreditDemande(x: DemandeCredit) {
+  const p = E.produitsCredit.find((y) => y.id === x.produitId)!, t = E.tiers.find((y) => y.id === x.tiersId)!;
+  const s = simulationCredit.simuler({ produitId: x.produitId, montant: x.montantApprouve!, duree: x.duree, differe: x.differe ?? 0, dateDeblocage: jourDossier() });
+  const fonds = chargeCredit(p.solidariteNature, p.solidariteValeur, x.montantApprouve!);
+  const lb = x.ligneBudgetId ? (E.budget["lignes"] ?? []).find((y) => y.id === x.ligneBudgetId) : null;
+  const c: CreditPret = { id: prochain(E.credits), demandeId: x.id, numero: `${E.agence.code}/${String(p.numero)}/${String(E.credits.length + 1).padStart(5, "0")}`, tiersId: x.tiersId,
+    produitId: p.id, montant: x.montantApprouve!, devise: x.devise, duree: x.duree, nombreTraites: s.nombreTraites, differe: s.differe, periodicite: s.periodicite,
+    tauxInteret: s.tauxInteret, tauxDiffere: s.tauxDiffere, dateEffet: s.dateEffet, dateDebut: s.dateDebut, cycleId: x.cycleId, zoneId: stockCredit("zones").find((z) => z.nom === t.zone)?.id ?? 0,
+    agentId: x.saisiPar, ligneBudgetId: lb?.id ?? null, ligneFinancement: lb ? `${String(lb.numero ?? "")} ${String(lb.libelle ?? "")}` : "", bailleur: "", structure: STRUCTURES[0]!,
+    compteEpargneId: s.epargneObligatoire ? x.compteEpargneId ?? null : null, compteSolidariteId: fonds ? x.compteSolidariteId ?? null : null, epargneObligatoire: s.epargneObligatoire,
+    fondsSolidarite: fonds, frais: s.frais, assurance: s.assurance, assureurId: p.typeAssuranceId ? x.assureurId ?? null : null, objetId: x.objetId!, usagePrecis: x.usagePrecis ?? "",
+    tegR: s.tegR, tegA: s.tegA, parts: x.parts, statut: "mis_en_place", misEnPlacePar: x.saisiPar, misEnPlaceLe: jourDossier(), debloqueLe: "",
+    echeancier: s.echeancier.map((l) => ({ rang: l.rang, date: l.date, capital: l.capital, interet: l.interet })) };
+  E.credits.push(c); x.statut = "mise_en_place";
+  E.visasCredit.push({ creditId: c.id, niveau: "responsable_credit", avis: "accepte", par: x.controlePar!, le: x.controleLe || jourDossier(), motif: "", referencePv: "", membres: [] },
+    { creditId: c.id, niveau: "comite", avis: "accepte", par: x.approuvePar!, le: x.approuveLe || jourDossier(), motif: "", referencePv: x.decisionPv ?? "", membres: x.decisionMembres ?? [] });
+  return c;
+}
 
 // ---------- S89 : Crédit > Dossier de crédit > Mise en place (manuel p. 113 et 114, texte 2.16 à 2.23). Mêmes règles que serveur/noyau/mise_en_place.py.
 // Registre S89-1 à S89-9, CR-6, CR-8, CR-24. ----------
@@ -3654,7 +3747,13 @@ const visasCredit = {
     dateVisa(du, "Du"); dateVisa(au, "A");
     return E.visasCredit.filter((v) => v.niveau === n && v.avis === avis && v.le >= du && v.le <= au).map((v) => ({ ...ligneVisa(E.credits.find((c) => c.id === v.creditId)!),
       visaLe: v.le, visePar: nomUtilisateur(v.par), motif: v.motif, membres: v.membres, referencePv: v.referencePv, creditId: v.creditId,
-      appel: v.appelDecision ? `${v.appelDecision === "accorde" ? "Accordé" : "Refus confirmé"} (${v.appelReference ?? ""})` : "" }));
+      appel: v.appelDecision ? `${v.appelDecision === "accorde" ? "Accordé" : "Refus confirmé"} (${v.appelReference ?? ""})` : "" as string, demandeId: null as number | null }))
+      .concat(avis === "refuse" && n !== "service_financier" ? E.demandes.filter((x) => x.refusNiveau === n && (n === "comite" ? x.approuveLe ?? "" : x.controleLe ?? "") >= du
+        && (n === "comite" ? x.approuveLe ?? "" : x.controleLe ?? "") <= au).map((x) => ({ id: 0, numero: x.numero, dateDemande: x.creeLe, compte: "", client: titulaire(E.tiers.find((t) => t.id === x.tiersId)!),
+          montant: x.montant, devise: x.devise, duree: x.duree, produit: String(E.produitsCredit.find((p) => p.id === x.produitId)?.nom ?? ""), agentId: x.saisiPar, agent: nomUtilisateur(x.saisiPar),
+          groupe: "", visaLe: (n === "comite" ? x.approuveLe : x.controleLe) ?? "", visePar: nomUtilisateur((n === "comite" ? x.approuvePar : x.controlePar) ?? undefined),
+          motif: (n === "comite" ? x.decisionMotif : x.verificationMotif) ?? "", membres: x.decisionMembres ?? [], referencePv: x.decisionPv ?? "", creditId: 0,
+          appel: x.appelDecision ? `${x.appelDecision === "accorde" ? "Accordé" : "Refus confirmé"} (${x.appelReference ?? ""})` : "", demandeId: x.id as number | null })) : []);   // plan 6.1
   },
   /** B29 : appel d'un refus de la Commission de crédit devant le Conseil d'administration, dans une COOPEC (Instr. BCC 007, art. 18). Comme visas_credit.appel. */
   appel(id: number, d: { decision?: string; reference?: string }) {

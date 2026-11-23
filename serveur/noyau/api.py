@@ -822,6 +822,12 @@ def dossier_approuver(request, did: int, corps: dict = Body(...)):
     return dossiers.approuver(u(request), did, corps)
 
 
+@api.post("/credit/dossiers/{did}/appel")
+def dossier_appel(request, did: int, corps: dict = Body(...)):
+    from . import dossiers
+    return dossiers.appel(u(request), did, corps)
+
+
 @api.get("/credit/fonds-propres")
 def fonds_propres_lire(request):
     from . import dossiers

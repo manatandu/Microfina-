@@ -67,6 +67,35 @@ def entier_ou_rien(d, k):
     return v
 
 
+def creer_depuis_demande(u, x: dict) -> int:
+    """Plan d'allègement, point 6.1 : le crédit naît à la décision, avec ce que la demande a recueilli (différé, objet, comptes, assureur, ligne de
+    financement) ; la zone est celle du membre, l'agent celui qui a saisi la demande. Mêmes contrôles qu'à l'ancienne mise en place (S89)."""
+    p = une("select * from produit_credit where id = %s", (x["produit_id"],))
+    s = simuler(u, {"produitId": p["id"], "montant": x["montant_approuve"], "duree": x["duree_mois"], "differe": x["differe_mois"] or 0, "dateDeblocage": jour(u).isoformat()})
+    fonds = charge(p["solidarite_nature"], p["solidarite_valeur"], x["montant_approuve"])
+    lb = une("select b.numero, b.libelle, b.bailleur_id from budget_ligne b where b.id = %s", (x["ligne_budget_id"],)) if x["ligne_budget_id"] else None
+    bailleur = valeur("select nom from bailleur where id = %s", (lb["bailleur_id"],)) if lb and lb["bailleur_id"] else None
+    n = int(valeur("select count(*) from credit where institution_id = %s", (u["institution_id"],))) + 1
+    numero = f"{valeur('select code from agence where id = %s', (x['agence_id'],))}/{p['numero']}/{n:05d}"
+    zone = valeur("select zone_id from tiers where id = %s", (x["tiers_id"],))
+    cid = valeur("""insert into credit (institution_id, demande_id, numero, tiers_id, produit_id, montant, devise, duree_mois, date_effet, date_debut, nb_echeances,
+                    zone_id, agent_id, ligne_financement, statut, cycle_id, periodicite, taux_interet, taux_differe, differe_mois, ligne_budget_id, bailleur, structure,
+                    compte_epargne_id, compte_solidarite_id, epargne_obligatoire, fonds_solidarite, frais, assurance, assureur_id, objet_id, teg_r, teg_a, parts,
+                    mis_en_place_par, mis_en_place_le, usage_precis)
+                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'mis_en_place', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                    %s, %s, %s, %s, %s, %s) returning id""",
+                 (u["institution_id"], x["id"], numero, x["tiers_id"], p["id"], x["montant_approuve"], p["devise"], x["duree_mois"], s["dateEffet"], s["dateDebut"],
+                  s["nombreTraites"], zone, x["agent_id"] or x["saisi_par"], f"{lb['numero']} {lb['libelle']}" if lb else None, x["cycle_id"], s["periodicite"],
+                  p["taux_interet"], p["taux_differe"], s["differe"], x["ligne_budget_id"], bailleur, STRUCTURES[0],
+                  x["compte_epargne_id"] if s["epargneObligatoire"] else None, x["compte_solidarite_id"] if fonds else None, s["epargneObligatoire"], fonds,
+                  s["frais"], s["assurance"], x["assureur_id"] if p["type_assurance_id"] else None, x["objet_id"], s["tegR"], s["tegA"],
+                  Jsonb(json_lu(x["parts"]) or []), x["saisi_par"], jour(u), x["usage_precis"] or ""))
+    for l in s["echeancier"]:
+        executer("insert into echeance (credit_id, rang, date_due, capital, interet) values (%s, %s, %s, %s, %s)", (cid, l["rang"], l["date"], l["capital"], l["interet"]))
+    executer("update demande_credit set statut = 'mise_en_place' where id = %s", (x["id"],))
+    return cid
+
+
 def mettre_en_place(u, did: int, d) -> dict:
     """2.16 à 2.23 ; registre S89-1 à S89-9"""
     exiger(u)

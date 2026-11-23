@@ -43,14 +43,18 @@ def contexte(u) -> dict:
     i = u["institution_id"]
     return {"produits": [{"id": p["id"], "nom": p["nom"], "devise": p["devise"].strip(), "physique": p["client_physique"], "groupe": p["client_groupe"],
                           "entreprise": p["client_entreprise"], "montantMin": int(p["montant_min"] * 100), "montantMax": int(p["montant_max"] * 100),
-                          "dureeMin": p["duree_min"], "dureeMax": p["duree_max"]}
+                          "dureeMin": p["duree_min"], "dureeMax": p["duree_max"], "typeAssuranceId": p["type_assurance_id"]}
                          for p in lignes("select * from produit_credit where institution_id = %s and actif order by numero", (i,))],
             "cycles": lignes("select id, code, libelle from credit_cycle where institution_id = %s and actif order by code", (i,)),
             "provinces": lignes("select id, nom from localite where niveau = 'province' and actif order by nom"),
             "villes": lignes("select id, parent_id as \"provinceId\", nom, nature from localite where niveau = 'ville' and actif order by nom"),   # nature : registre S20-8
             # lieu de l'activité jusqu'à la commune, au secteur ou à la chefferie (registre T41)
             "communes": lignes("select id, parent_id as \"villeId\", nom, nature from localite where niveau = 'commune' and actif order by nom"),
-            "fondsPropres": fonds_propres(u), "coopec": est_coopec(u)}
+            "fondsPropres": fonds_propres(u), "coopec": est_coopec(u),
+            # Plan d'allègement, point 6.1 : ce que la mise en place demandait se saisit à la demande
+            "objets": lignes("select id, libelle from credit_objet where institution_id = %s and actif order by libelle", (i,)),
+            "assureurs": lignes("select id, nom, type_assurance_id as \"typeAssuranceId\" from credit_assureur where institution_id = %s order by nom", (i,)),
+            "lignesBudget": lignes("select id, numero, libelle from budget_ligne where institution_id = %s and actif order by numero", (i,))}
 
 
 def fonds_propres(u) -> dict | None:
@@ -103,12 +107,17 @@ def vue(x: dict) -> dict:
             "province": valeur("select nom from localite where id = %s", (x["province_id"],)) or "", "ville": valeur("select nom from localite where id = %s", (x["ville_id"],)) or "", "commune": valeur("select nom from localite where id = %s", (x["commune_id"],)) or "" if x.get("commune_id") else "",
             "parts": json_lu(x["parts"]) or [], "statut": x["statut"], "date": x["cree_le"].date().isoformat(), "saisiPar": nom(x["saisi_par"]),
             "controlePar": nom(x["controle_par"]), "approuvePar": nom(x["approuve_par"]), "consultationCrLe": x["consultation_cr_le"].isoformat() if x["consultation_cr_le"] else "",
-            "consultationCrRef": x["consultation_cr_ref"] or "", "accordConseilRef": x["accord_conseil_ref"] or "", "accordBccRef": x["accord_bcc_ref"] or ""}
+            "consultationCrRef": x["consultation_cr_ref"] or "", "accordConseilRef": x["accord_conseil_ref"] or "", "accordBccRef": x["accord_bcc_ref"] or "",
+            "differe": x["differe_mois"], "objetId": x["objet_id"], "objet": valeur("select libelle from credit_objet where id = %s", (x["objet_id"],)) or "",
+            "usagePrecis": x["usage_precis"] or "", "compteEpargneId": x["compte_epargne_id"], "compteSolidariteId": x["compte_solidarite_id"],
+            "assureurId": x["assureur_id"], "ligneBudgetId": x["ligne_budget_id"], "refusNiveau": x["refus_niveau"] or "",
+            "motif": x["decision_motif"] or x["verification_motif"] or "", "appel": x["appel_decision"] or "",
+            "creditId": valeur("select id from credit where demande_id = %s", (x["id"],))}
 
 
 def lister(u, statut: str) -> list[dict]:
     exiger(u)
-    if statut not in ("saisie", "controlee", "approuvee", "mise_en_place"):
+    if statut not in ("saisie", "controlee", "approuvee", "rejetee", "mise_en_place"):
         raise ErreurMetier("Statut inconnu.")
     return [vue(x) for x in lignes("select * from demande_credit where institution_id = %s and statut = %s order by id", (u["institution_id"], statut))]
 
@@ -193,14 +202,17 @@ def demander(u, d) -> dict:
         raise ErreurMetier("À remplir : Consentement à la Centrale des risques, référence de la pièce signée (Instr. BCC 05, art. 13).")
     if cons_le > jour(u):
         raise ErreurMetier("Consentement à la Centrale des risques : la date de signature ne peut pas être après la journée.")
+    ic = infos_credit(u, d, t, p, montant, duree)
     n = int(valeur("select count(*) from demande_credit where institution_id = %s", (u["institution_id"],))) + 1
     executer("insert into consentement (tiers_id, code, date_debut, date_fin, commentaire, saisi_par) values (%s, %s, %s, null, %s, %s)",
              (t["id"], cons_ref, cons_le.isoformat(), f"Demande de crédit DC{n:06d}", u["id"]))
     did = valeur("""insert into demande_credit (institution_id, agence_id, tiers_id, produit_id, montant_demande, duree_mois, nb_hommes, nb_femmes, montant_hommes,
-                    montant_femmes, nb_groupes, statut, numero, analyse_id, cycle_id, province_id, ville_id, devise, parts, saisi_par, commune_id)
-                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'saisie', %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
+                    montant_femmes, nb_groupes, statut, numero, analyse_id, cycle_id, province_id, ville_id, devise, parts, saisi_par, commune_id, agent_id,
+                    differe_mois, objet_id, usage_precis, compte_epargne_id, compte_solidarite_id, assureur_id, ligne_budget_id)
+                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'saisie', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
                  (u["institution_id"], u["agence_id"], t["id"], p["id"], montant, duree, e["nbHommes"], e["nbFemmes"], e["montantHommes"], e["montantFemmes"],
-                  e["nbGroupes"], f"DC{n:06d}", aid, cid, pr["id"], vi["id"], p["devise"], Jsonb(parts), u["id"], co["id"] if co else None))
+                  e["nbGroupes"], f"DC{n:06d}", aid, cid, pr["id"], vi["id"], p["devise"], Jsonb(parts), u["id"], co["id"] if co else None, u["id"],
+                  ic["differe"], ic["objet"], ic["usage"], ic["epargne"], ic["solidarite"], ic["assureur"], ic["ligne"]))
     return vue(une("select * from demande_credit where id = %s", (did,)))
 
 
@@ -209,22 +221,46 @@ def demande(u, did, statut: str) -> dict:
     if not x:
         raise ErreurMetier("Demande introuvable.")
     if x["statut"] != statut:
-        raise ErreurMetier({"saisie": "Cette demande n'est plus à contrôler.", "controlee": "Cette demande n'est plus à approuver."}[statut])
+        raise ErreurMetier({"saisie": "Cette demande n'est plus à vérifier.", "controlee": "Cette demande n'est plus à décider."}[statut])
     return x
 
 
+def avis_de(d) -> tuple[str, str]:
+    avis = (d or {}).get("avis")
+    if avis not in ("accepte", "refuse"):
+        raise ErreurMetier("À remplir : Avis.")
+    motif = texte(d, "motif")
+    if avis == "refuse" and not motif:
+        raise ErreurMetier("À remplir : motif du refus.")
+    return avis, motif
+
+
 def controler(u, did: int, d) -> dict:
-    """2.9 à 2.12 : effectif, nombre de groupes et montant ressaisis, Terminer ; un autre utilisateur que celui qui a saisi (registre S87-1 à S87-3)"""
+    """Vérification (plan d'allègement, point 6.1) : le contrôle (2.9 à 2.12) et le visa du responsable crédit réunis. Le responsable relit le dossier,
+    ressaisit le seul montant sans le voir, note la consultation de la Centrale des risques (Instr. BCC 05, art. 4 et 13) et donne son avis.
+    Un autre utilisateur que celui qui a saisi (Instr. BCC 008, art. 66 ; registre S87-1 à S87-3, S90-2)."""
     exiger(u)
     x = demande(u, did, "saisie")
     if x["saisi_par"] == u["id"]:
-        raise ErreurMetier("Quatre yeux : le contrôle est fait par un autre utilisateur que celui qui a saisi la demande.")
+        raise ErreurMetier("Quatre yeux : la vérification est faite par un autre utilisateur que celui qui a saisi la demande.")
     from .separation_credit import separer
     separer(u, "verification", x["id"])
-    if (entier(d, "effectif", "Effectif"), entier(d, "nbGroupes", "Nombre de groupes solidaires"), entier(d, "montant", "Montant")) != \
-            (x["nb_hommes"] + x["nb_femmes"], x["nb_groupes"], x["montant_demande"]):
-        raise ErreurMetier("L'effectif, le nombre de groupes ou le montant ressaisis ne correspondent pas à la demande.")
-    executer("update demande_credit set statut = 'controlee', controle_par = %s, controle_le = now() where id = %s", (u["id"], x["id"]))
+    avis, motif = avis_de(d)
+    if avis == "accepte":
+        if entier(d, "montant", "Montant") != x["montant_demande"]:
+            raise ErreurMetier("Le montant ressaisi ne correspond pas à la demande.")
+        try:
+            cr = date.fromisoformat((d or {}).get("consultationCrLe") or "")
+        except ValueError:
+            raise ErreurMetier("À remplir : Date de consultation de la Centrale des risques (Instr. BCC 05, art. 4).")
+        ref = texte(d, "consultationCrRef")
+        if cr > jour(u) or not ref:
+            raise ErreurMetier("Consultation de la Centrale des risques : date (pas après la journée) et référence du rapport (Instr. BCC 05, art. 4 et 13).")
+        executer("""update demande_credit set statut = 'controlee', controle_par = %s, controle_le = now(), consultation_cr_le = %s, consultation_cr_ref = %s
+                    where id = %s""", (u["id"], cr, ref, x["id"]))
+    else:
+        executer("""update demande_credit set statut = 'rejetee', controle_par = %s, controle_le = now(), verification_motif = %s, refus_niveau = 'responsable_credit'
+                    where id = %s""", (u["id"], motif, x["id"]))
     return vue(une("select * from demande_credit where id = %s", (x["id"],)))
 
 
@@ -320,14 +356,40 @@ def texte(d, k) -> str:
     return v.strip() if isinstance(v, str) else ""
 
 
+def membres_commission(u, d) -> tuple[list[dict], str | None]:
+    """Comité d'une COOPEC : la commission de crédit, trois membres, unanimité (loi 002/2002, art. 41 à 43 ; Instr. BCC 007, art. 32 ; registre CR-4)"""
+    if not est_coopec(u):
+        return [], None
+    brut = (d or {}).get("membres")
+    if not isinstance(brut, list) or len(brut) != 3:
+        raise ErreurMetier("Commission de crédit : les trois membres et l'avis de chacun (loi 002/2002, art. 41).")
+    membres = []
+    for m in brut:
+        nom = m.get("nom", "").strip() if isinstance(m, dict) and isinstance(m.get("nom"), str) else ""
+        if not nom or (m or {}).get("avis") not in ("accepte", "refuse"):
+            raise ErreurMetier("Commission de crédit : le nom et l'avis de chacun des trois membres.")
+        membres.append({"nom": nom, "avis": m["avis"]})
+    return membres, "accepte" if all(m["avis"] == "accepte" for m in membres) else "refuse"
+
+
 def approuver(u, did: int, d) -> dict:
-    """2.13 à 2.15 : montant approuvé ressaisi, Approuver ; registre S88-1 à S88-6, CR-3, CR-14, CR-25"""
+    """Décision (plan d'allègement, point 6.1) : l'approbation (2.13 à 2.15) et le visa du comité réunis ; le crédit naît à la décision.
+    Registre S88-1 à S88-6, S90-2 à S90-5, CR-3, CR-4, CR-14, CR-25."""
     exiger(u)
     x = demande(u, did, "controlee")
     if u["id"] == x["saisi_par"]:
-        raise ErreurMetier("Quatre yeux : l'approbation est faite par un autre utilisateur que celui qui a saisi la demande.")
+        raise ErreurMetier("Quatre yeux : la décision est prise par un autre utilisateur que celui qui a saisi la demande.")
     from .separation_credit import separer
     separer(u, "autorisation", x["id"])
+    membres, unanimite = membres_commission(u, d)
+    if unanimite:
+        d = {**(d or {}), "avis": unanimite, "motif": texte(d, "motif") or ("Commission de crédit : refus d'un membre" if unanimite == "refuse" else "")}
+    avis, motif = avis_de(d)
+    pv = texte(d, "referencePv") or None
+    if avis == "refuse":
+        executer("""update demande_credit set statut = 'rejetee', approuve_par = %s, approuve_le = %s, decision_membres = %s, decision_pv = %s, decision_motif = %s,
+                    refus_niveau = 'comite' where id = %s""", (u["id"], jour(u), Jsonb(membres), pv, motif, x["id"]))
+        return vue(une("select * from demande_credit where id = %s", (x["id"],)))
     m = entier(d, "montantApprouve", "Montant approuvé", 1)
     p = produit(u, x["produit_id"])
     if m > x["montant_demande"]:
@@ -343,19 +405,82 @@ def approuver(u, did: int, d) -> dict:
     controler_retard(u, x["tiers_id"])                                 # registre CR-15
     if not une("""select 1 from consentement where tiers_id = %s and date_debut <= %s and (date_fin is null or date_fin >= %s)""", (x["tiers_id"], j, j)):
         raise ErreurMetier("Pas de consentement écrit à la Centrale des risques en cours de validité (demande de crédit ; Instr. BCC 05, art. 13).")
-    try:
-        cr = date.fromisoformat((d or {}).get("consultationCrLe") or "")
-    except ValueError:
-        raise ErreurMetier("À remplir : Date de consultation de la Centrale des risques (Instr. BCC 05, art. 4).")
-    ref = texte(d, "consultationCrRef")
-    if cr > j or not ref:
-        raise ErreurMetier("Consultation de la Centrale des risques : date (pas après la journée) et référence du rapport (Instr. BCC 05, art. 4 et 13).")
     t = une("select type, apparente from tiers where id = %s", (x["tiers_id"],))
     conseil, bcc = texte(d, "accordConseilRef"), texte(d, "accordBccRef")
     if t["apparente"] and not conseil:
         raise ErreurMetier("Personne apparentée : référence de l'accord préalable du Conseil d'administration (Instr. BCC 51 ; registre CR-3).")
     controler_plafonds(u, x["tiers_id"], round(m * cours(x["devise"], j)), t["apparente"], bcc)
-    executer("""update demande_credit set statut = 'approuvee', montant_approuve = %s, approuve_par = %s, approuve_le = %s, consultation_cr_le = %s,
-                consultation_cr_ref = %s, accord_conseil_ref = %s, accord_bcc_ref = %s where id = %s""",
-             (m, u["id"], jour(u), cr, ref, conseil or None, bcc or None, x["id"]))
-    return vue(une("select * from demande_credit where id = %s", (x["id"],)))
+    executer("""update demande_credit set statut = 'approuvee', montant_approuve = %s, approuve_par = %s, approuve_le = %s, accord_conseil_ref = %s,
+                accord_bcc_ref = %s, decision_membres = %s, decision_pv = %s where id = %s""",
+             (m, u["id"], jour(u), conseil or None, bcc or None, Jsonb(membres), pv, x["id"]))
+    return vue(une("select * from demande_credit where id = %s", (creer_credit(u, x["id"]),)))
+
+
+def creer_credit(u, did: int) -> int:
+    """Le crédit naît à la décision ; les deux premiers visas sont ceux de la vérification et de la décision (plan d'allègement, point 6.1)"""
+    from .mise_en_place import creer_depuis_demande
+    x = une("select * from demande_credit where id = %s", (did,))
+    cid = creer_depuis_demande(u, x)
+    executer("insert into visa_credit (credit_id, niveau, avis, par, le) values (%s, 'responsable_credit', 'accepte', %s, %s)", (cid, x["controle_par"], x["controle_le"]))
+    executer("insert into visa_credit (credit_id, niveau, avis, par, reference_pv, membres) values (%s, 'comite', 'accepte', %s, %s, %s)",
+             (cid, x["approuve_par"], x["decision_pv"], Jsonb(json_lu(x["decision_membres"]) or [])))
+    return did
+
+
+def appel(u, did: int, d) -> dict:
+    """B29 : appel d'un refus de la Commission de crédit devant le Conseil d'administration, dans une COOPEC (Instr. BCC 007, art. 18).
+    Accordé : la décision devient favorable et le crédit naît ; confirmé : le refus reste (registre T107)."""
+    exiger(u)
+    d = d if isinstance(d, dict) else {}
+    if not est_coopec(u):
+        raise ErreurMetier("L'appel devant le Conseil d'administration est propre aux coopératives (Instr. BCC 007, art. 18).")
+    x = une("select * from demande_credit where id = %s and institution_id = %s for update", (did, u["institution_id"]))
+    if not x or x["statut"] != "rejetee" or x["refus_niveau"] != "comite" or x["appel_decision"]:
+        raise ErreurMetier("Seul un refus de la Commission de crédit, pas encore porté en appel, se porte devant le Conseil d'administration.")
+    if d.get("decision") not in ("accorde", "confirme"):
+        raise ErreurMetier("À remplir : Décision du Conseil d'administration.")
+    ref = texte(d, "reference")
+    if not ref:
+        raise ErreurMetier("À remplir : Référence de la décision du Conseil d'administration.")
+    executer("update demande_credit set appel_decision = %s, appel_reference = %s, appel_le = %s, appel_par = %s where id = %s",
+             (d["decision"], ref, jour(u), u["id"], did))
+    if d["decision"] == "accorde":
+        m = entier(d, "montantApprouve", "Montant approuvé", 1) if d.get("montantApprouve") not in (None, "") else x["montant_demande"]
+        if m > x["montant_demande"]:
+            raise ErreurMetier("Montant approuvé : pas plus que le montant demandé.")
+        executer("update demande_credit set statut = 'approuvee', montant_approuve = %s where id = %s", (m, did))
+        creer_credit(u, did)
+    return vue(une("select * from demande_credit where id = %s", (did,)))
+
+
+def infos_credit(u, d, t, p, montant: int, duree: int) -> dict:
+    """Ce que la mise en place demandait (2.16 à 2.23) se saisit à la demande (plan d'allègement, point 6.1) : différé, objet et son usage, comptes de
+    l'épargne obligatoire et du fonds de solidarité, assureur, ligne de financement ; mêmes contrôles que S89 (registre S89-1 à S89-9, CR-6)."""
+    from .simulation_credit import charge, simuler
+    from .mise_en_place import comptes_client, entier_ou_rien
+    differe = (d or {}).get("differe") or 0
+    s = simuler(u, {"produitId": p["id"], "montant": montant, "duree": duree, "differe": differe, "dateDeblocage": jour(u).isoformat()})
+    ids = {c["id"] for c in comptes_client(u, t["id"], p["devise"].strip())}
+    ce, cs = entier_ou_rien(d, "compteEpargneId"), entier_ou_rien(d, "compteSolidariteId")
+    if s["epargneObligatoire"] and ce not in ids:
+        raise ErreurMetier("À remplir : compte d'épargne obligatoire du client, dans la devise du crédit.")
+    fonds = charge(p["solidarite_nature"], p["solidarite_valeur"], montant)
+    if fonds and cs not in ids:
+        raise ErreurMetier("À remplir : compte du fonds de solidarité du client, dans la devise du crédit.")
+    assureur = entier_ou_rien(d, "assureurId")
+    if p["type_assurance_id"]:
+        if not une("select 1 from credit_assureur where id = %s and institution_id = %s and type_assurance_id = %s", (assureur, u["institution_id"], p["type_assurance_id"])):
+            raise ErreurMetier("À remplir : Assureur (de l'assurance du produit).")
+    else:
+        assureur = None
+    objet = entier_ou_rien(d, "objetId")
+    o = une("select souscription_parts from credit_objet where id = %s and institution_id = %s and actif", (objet, u["institution_id"]))
+    if not o:
+        raise ErreurMetier("À remplir : Objet de crédit.")
+    if o["souscription_parts"]:   # A6
+        raise ErreurMetier("Objet interdit : pas de crédit pour souscrire ou acquérir des parts ou des actions de l'institution (loi 22/069, titre II, chap. II, section 4).")
+    ligne = entier_ou_rien(d, "ligneBudgetId")
+    if ligne and not une("select 1 from budget_ligne where id = %s and institution_id = %s and actif", (ligne, u["institution_id"])):
+        raise ErreurMetier("Ligne de financement inconnue.")
+    return {"differe": s["differe"], "objet": objet, "usage": str((d or {}).get("usagePrecis") or "").strip()[:200] or None,
+            "epargne": ce if s["epargneObligatoire"] else None, "solidarite": cs if fonds else None, "assureur": assureur, "ligne": ligne}

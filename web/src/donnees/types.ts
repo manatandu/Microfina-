@@ -565,9 +565,13 @@ export interface AnalyseFinanciere {
 export interface DemandeCredit {
   id: number; numero: string; tiersId: number; produitId: number; devise: Devise; analyseId: number | null; cycleId: number | null; provinceId: number; villeId: number; communeId?: number | null;
   nbHommes: number; nbFemmes: number; montantHommes: number; montantFemmes: number; nbGroupes: number; montant: number; duree: number;
-  parts: { membre: string; montant: number }[]; statut: "saisie" | "controlee" | "approuvee" | "mise_en_place"; creeLe: string; saisiPar: number;
+  parts: { membre: string; montant: number }[]; statut: "saisie" | "controlee" | "approuvee" | "rejetee" | "mise_en_place"; creeLe: string; saisiPar: number;
   controlePar: number | null; approuvePar: number | null; approuveLe?: string; montantApprouve: number | null; consultationCrLe: string; consultationCrRef: string;
   accordConseilRef: string; accordBccRef: string;
+  // Plan d'allègement, point 6.1 : ce que la mise en place demandait se saisit à la demande ; vérification et décision portent avis et motif
+  differe?: number; objetId?: number | null; usagePrecis?: string; compteEpargneId?: number | null; compteSolidariteId?: number | null; assureurId?: number | null;
+  ligneBudgetId?: number | null; controleLe?: string; verificationMotif?: string; decisionMembres?: { nom: string; avis: "accepte" | "refuse" }[]; decisionPv?: string;
+  decisionMotif?: string; refusNiveau?: "responsable_credit" | "comite" | null; appelDecision?: "accorde" | "confirme" | null; appelReference?: string; appelLe?: string;
 }
 
 /** S89 : crédit mis en place, avec son échéancier et son TEG (registre S89, CR-6, CR-8, CR-24) */

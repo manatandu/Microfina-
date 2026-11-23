@@ -14,6 +14,8 @@ import { Champ, ChampDate, Chargement, Dialogue, Fiche, LigneFiltres, Paginee, T
 type Ligne = Awaited<ReturnType<typeof api.visasCredit.aViser>>[number];
 const NIVEAUX = [["responsable_credit", "Responsable crédit"], ["comite", "Comité de crédit"], ["service_financier", "Service financier"]] as const;
 type Niveau = (typeof NIVEAUX)[number][0];
+// Plan d'allègement, point 6.1 : la vérification et la décision tiennent les deux premiers visas ; reste à viser le service financier
+const A_VISER = NIVEAUX.filter(([k]) => k === "service_financier");
 const AVIS = [["accepte", "Accepté"], ["refuse", "Refusé"]] as const;
 const debutAnnee = debutExercice;
 const aujourdhui = jusquAujourdhui;   // visas et approbations sont datés à l'heure réelle (registre T120)
@@ -35,7 +37,7 @@ function GrilleCredits({ lignes, choisie, choisir, groupe }: { lignes: Ligne[]; 
 /** S90 : 4-1 à 4-3, Visa crédit : un écran par niveau (?page=), la file des crédits à viser, Viser, avis, confirmation */
 export function VisasCredit() {
   const [params, setParams] = useSearchParams();
-  const niveau = (NIVEAUX.some(([k]) => k === params.get("page")) ? params.get("page") : "responsable_credit") as Niveau;
+  const niveau = (A_VISER.some(([k]) => k === params.get("page")) ? params.get("page") : "service_financier") as Niveau;
   const [agent, setAgent] = useState("");
   const [relu, setRelu] = useState(0);
   const { donnees } = useDonnees(() => Promise.all([api.visasCredit.contexte(), api.visasCredit.aViser(niveau, agent ? Number(agent) : null)]), [niveau, agent, relu]);
@@ -61,7 +63,7 @@ export function VisasCredit() {
     <>
       <h2>Visa crédit - {titre}</h2>
       <div className="onglets" role="tablist" aria-label="Visa crédit">
-        {NIVEAUX.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={k === niveau} onClick={() => { setParams({ page: k }); setChoisie(null); }}>{l}</button>)}
+        {A_VISER.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={k === niveau} onClick={() => { setParams({ page: k }); setChoisie(null); }}>{l}</button>)}
       </div>
       <section className="bloc pile" aria-label={`Visa crédit - ${titre}`}>
         <Champ libelle="Agent de crédit">{(p) => <select {...p} className="saisie" value={agent} onChange={(e) => setAgent(e.target.value)}><option value="">--Tout les agents--</option>
@@ -99,10 +101,11 @@ export function HistoriqueVisas() {
   const [boite, setBoite] = useState<Boite | null>(null);
   const COL = ["N° credit", "Date demande", "Intitulé", "Montant pret", "Durée", "Produit", "Agent de crédit", "Visé le", "Visé par", "Motif"];
   // B29 : appel d'un refus de la Commission de crédit devant le Conseil d'administration (Instr. BCC 007, art. 18)
-  const [appel, setAppel] = useState<{ id: number; numero: string; decision: string; reference: string } | null>(null);
+  const [appel, setAppel] = useState<{ id: number; numero: string; decision: string; reference: string; demande?: boolean } | null>(null);
   const refusCommission = f.niveau === "comite" && f.avis === "refuse";
   const enregistrerAppel = () => appel && setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer la décision du Conseil d'administration ?", oui: async () => {
-    try { await api.visasCredit.appel(appel.id, { decision: appel.decision, reference: appel.reference }); setAppel(null); await rechercher(); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+    try { if (appel.demande) await api.dossiers.appel(appel.id, { decision: appel.decision, reference: appel.reference });   // refus à la décision (plan 6.1)
+      else await api.visasCredit.appel(appel.id, { decision: appel.decision, reference: appel.reference }); setAppel(null); await rechercher(); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); } } });
   async function rechercher() { try { setL(await api.visasCredit.historique(f.niveau, f.avis, f.du, f.au)); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } }
   return (
@@ -129,7 +132,7 @@ export function HistoriqueVisas() {
             {v.map((x, i) => <tr key={i}><td className="code">{x.numero}</td><td className="chiffres">{fr(x.dateDemande)}</td><td>{x.client}</td>
               <td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td><td className="num chiffres">{x.duree}</td><td>{x.produit}</td><td>{x.agent}</td>
               <td className="chiffres">{fr(x.visaLe)}</td><td>{x.visePar}</td><td>{x.motif}</td>
-              {refusCommission && <td>{x.appel || <button className="bouton secondaire" type="button" onClick={() => setAppel({ id: x.creditId, numero: x.numero, decision: "", reference: "" })}>Appel au Conseil</button>}</td>}</tr>)}</tbody>
+              {refusCommission && <td>{x.appel || <button className="bouton secondaire" type="button" onClick={() => setAppel(x.demandeId ? { id: x.demandeId, numero: x.numero, decision: "", reference: "", demande: true } : { id: x.creditId, numero: x.numero, decision: "", reference: "" })}>Appel au Conseil</button>}</td>}</tr>)}</tbody>
         </table></div>)}</Paginee>
         {appel && <fieldset className="pile cadre-champs champs-a-gauche"><legend>Appel devant le Conseil d'administration, crédit {appel.numero}</legend>
           <Champ libelle="Décision du Conseil : *">{(p) => <select {...p} className="saisie" value={appel.decision} onChange={(e) => setAppel({ ...appel, decision: e.target.value })}><option value=""></option>

@@ -121,6 +121,20 @@ def historique(u, niveau: str, avis: str, du: str, au: str) -> list[dict]:
         sortie.append({**ligne(v), "visaLe": v["le"].date().isoformat(), "visePar": valeur("select nom from utilisateur where id = %s", (v["par"],)) or "",
                        "motif": v["motif"] or "", "membres": json_lu(v["membres"]) or [], "referencePv": v["reference_pv"] or "", "creditId": v["credit_id"],
                        "appel": ({"accorde": "Accordé", "confirme": "Refus confirmé"}[v["appel_decision"]] + f" ({v['appel_reference']})") if v.get("appel_decision") else ""})
+    if avis == "refuse" and niveau in ("responsable_credit", "comite"):   # refus à la vérification ou à la décision : le crédit n'est pas né (plan 6.1)
+        for x in lignes("""select * from demande_credit where institution_id = %s and refus_niveau = %s and
+                           (case when refus_niveau = 'comite' then approuve_le::date else controle_le::date end) between %s and %s order by id""",
+                        (u["institution_id"], niveau, d1, d2)):
+            par = x["approuve_par"] if niveau == "comite" else x["controle_par"]
+            le = x["approuve_le"] if niveau == "comite" else x["controle_le"]
+            sortie.append({"id": None, "numero": x["numero"], "dateDemande": x["cree_le"].date().isoformat(), "compte": "", "client": titulaire(x["tiers_id"]),
+                           "montant": x["montant_demande"], "devise": (x["devise"] or "").strip(), "duree": x["duree_mois"],
+                           "produit": valeur("select nom from produit_credit where id = %s", (x["produit_id"],)), "agentId": x["saisi_par"],
+                           "agent": valeur("select nom from utilisateur where id = %s", (x["saisi_par"],)) or "", "groupe": "",
+                           "visaLe": (le.date() if hasattr(le, "date") else le).isoformat(), "visePar": valeur("select nom from utilisateur where id = %s", (par,)) or "",
+                           "motif": (x["decision_motif"] if niveau == "comite" else x["verification_motif"]) or "", "membres": json_lu(x["decision_membres"]) or [],
+                           "referencePv": x["decision_pv"] or "", "creditId": None, "demandeId": x["id"],
+                           "appel": ({"accorde": "Accordé", "confirme": "Refus confirmé"}[x["appel_decision"]] + f" ({x['appel_reference']})") if x["appel_decision"] else ""})
     return sortie
 
 
