@@ -31,17 +31,19 @@ def lire(u) -> dict:
     i = u["institution_id"]
     return {
         # Dépôt et retrait ne sont pas proposés : ils sont gratuits (Instr. BCC 37, art. 2, 3 et annexe ; plan d'allègement, point 0.15)
-        "typesOperation": [t for t in TYPES_OPERATION if t not in ("DEPOT", "RETRAIT")], "natures": list(NATURES), "typesMembre": list(TYPES_MEMBRE), "fondements": FONDEMENTS,
+        "typesOperation": [t for t in TYPES_OPERATION if t not in ("DEPOT", "RETRAIT")], "natures": list(NATURES), "typesMembre": list(TYPES_MEMBRE),
+        "fondements": {k: v for k, v in FONDEMENTS.items() if k != "part_sociale"},      # la part se règle dans la fiche Société (T134)
         "sousTypes": [r["libelle"] for r in valeurs_liste(u, "sous_type_client")],   # registre S16-8 : Général > Sous type de client
         "compteAdhesion": "727",                                                       # registre S16-4 : proposé, modifiable
         "frais": lignes("""select id, libelle, type_operation as "typeOperation", coalesce(fondement, '') as fondement, coalesce(autorisation_bcc, '') as "autorisationBcc"
-                           from frais where institution_id = %s and supprime_le is null order by id""", (i,)),
+                           from frais where institution_id = %s and supprime_le is null and coalesce(fondement, '') <> 'part_sociale' order by id""", (i,)),
         "operations": lignes("""select p.id, p.frais_id as "fraisId", s.libelle as "sousType", p.valeur, p.compte, initcap(p.nature) as nature
                                  from parametrage_frais p join liste_reference s on s.id = p.sous_type_id join frais f on f.id = p.frais_id
                                  where f.institution_id = %s and p.supprime_le is null and f.supprime_le is null order by p.id""", (i,)),
         "adhesion": [{**r, "typeMembre": next(k for k, v in TYPES_MEMBRE.items() if v == r["typeMembre"])} for r in
                      lignes("""select p.id, p.frais_id as "fraisId", p.type_membre as "typeMembre", p.valeur, p.compte, initcap(p.nature) as nature
-                               from parametrage_frais_adhesion p join frais f on f.id = p.frais_id where f.institution_id = %s and p.supprime_le is null and f.supprime_le is null order by p.id""", (i,))],
+                               from parametrage_frais_adhesion p join frais f on f.id = p.frais_id where f.institution_id = %s and p.supprime_le is null and f.supprime_le is null
+                               and p.compte not like '103%%' order by p.id""", (i,))],
     }
 
 
@@ -58,6 +60,8 @@ def controler_frais(u, d) -> tuple[str, str, str, str | None]:
         raise ErreurMetier("À remplir : fondement.")
     if fo not in FONDEMENTS:
         raise ErreurMetier("Fondement inconnu.")
+    if fo == "part_sociale":
+        raise ErreurMetier(MSG_SOCIETE)
     if fo in ("part_sociale", "droit_adhesion") and not est_coopec(u):
         raise ErreurMetier("Part sociale et droit d'adhésion : propres aux coopératives (loi 002/2002, art. 22). Sinon, autorisation de la BCC (Instr. BCC 40, art. 12).")
     if fo == "droit_adhesion" and t != "ADHESION":
@@ -126,10 +130,28 @@ COMPTES_PART = {"physique": ("1030",), "morale": ("1032",), "groupe": ("1031", "
 NOMS_MEMBRE = {v: k for k, v in TYPES_MEMBRE.items()}
 
 
+MSG_SOCIETE = "La valeur de la part sociale, celle des statuts, se règle dans Paramétrage > Info société (loi 002/2002, art. 20 ; registre T134)."
+
+
+def fixer_valeur_part(u, v: int):
+    """Fiche Société (registre T134) : la valeur nominale de la part tient la ligne de part des frais d'adhésion, un compte 103 par nature de membre"""
+    i = u["institution_id"]
+    fid = valeur("select id from frais where institution_id = %s and fondement = 'part_sociale' and supprime_le is null order by id limit 1", (i,)) or \
+        valeur("insert into frais (institution_id, type_operation, libelle, fondement) values (%s, 'ADHESION', 'Part sociale standard', 'part_sociale') returning id", (i,))
+    for tm, cp in (("physique", "1030"), ("morale", "1032"), ("groupe", "1031")):
+        pid = valeur("""select p.id from parametrage_frais_adhesion p join frais f on f.id = p.frais_id where f.institution_id = %s and p.type_membre = %s
+                        and p.compte like '103%%' and p.supprime_le is null""", (i, tm))
+        if pid:
+            executer("update parametrage_frais_adhesion set valeur = %s where id = %s", (v, pid))
+        else:
+            executer("insert into parametrage_frais_adhesion (frais_id, type_membre, nature, valeur, compte) values (%s, %s, 'montant', %s, %s)", (fid, tm, v, cp))
+
+
 def controler_part(u, types: list[str], v, c, sauf: int | None = None):
-    """Contrôles de la ligne de part (registre S16-11), pour les types de membre donnés (physique, morale, groupe)"""
+    """La ligne de part ne se saisit plus dans les frais : elle suit la fiche Société (plan d'allègement, point 2.18 ; registre T134)"""
     if not c or not c.startswith("103"):
         return
+    raise ErreurMetier(MSG_SOCIETE)
     if not v:
         raise ErreurMetier("Part sociale : la valeur de la part, celle des statuts, est obligatoire (loi 002/2002, art. 20).")
     for t in types:
@@ -209,6 +231,8 @@ def modifier_parametrage(u, table: str, pid: int, d):
     """« Modif Paramétrage frais » et « … Adhésion » : Action > Modifier infos (p. 26 et 27)."""
     droit(u)
     r = ligne_de(u, table, pid)
+    if (r.get("compte") or "").startswith("103"):
+        raise ErreurMetier(MSG_SOCIETE)
     nat, v, c = controler_valeurs(u, d, adhesion=table == "parametrage_frais_adhesion")
     if table == "parametrage_frais_adhesion":
         controler_part(u, [r["type_membre"]], v, c, sauf=pid)
@@ -232,6 +256,8 @@ def modifier_categorie(u, pid: int, d):
 
 def supprimer_parametrage(u, table: str, pid: int):
     droit(u)
+    if (ligne_de(u, table, pid).get("compte") or "").startswith("103"):
+        raise ErreurMetier(MSG_SOCIETE)
     ligne_de(u, table, pid)
     executer(f"update {table} set supprime_le = now(), supprime_par = %s where id = %s", (u["id"], pid))   # registre T02 : suppression logique
 

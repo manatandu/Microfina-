@@ -7,7 +7,9 @@ export interface Utilisateur { id: number; login: string; nom: string; roles: Ro
   profilId?: number;   // S06 : profil de l'utilisateur
   agenceId?: number; controleConnecte?: boolean; rue?: string; adresse?: string; bp?: string; telephoneFixe?: string; portable?: string; email?: string;
   actif?: boolean }   // S05 : désactivé, il ne se connecte plus (registre S05-4)
-export interface Institution { nom: string; sigle?: string; profil: string;
+export interface Institution {
+  nom: string; sigle?: string; profil: string;
+  partEffet?: string;   // date d'effet de la valeur de la part (statuts ; registre T134)
   // S32 Info générale
   description?: string; directeur?: string; numeroAgrement?: string; journeeMax?: number; compteHorsBilan1?: string | null; compteHorsBilan2?: string | null;
   ifu?: string; nrc?: string; assuranceAssureur?: string; assurancePolice?: string; assuranceEcheance?: string;   // police de la trésorerie (SN01-4)

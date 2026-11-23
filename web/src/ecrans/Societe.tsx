@@ -6,7 +6,7 @@ import type { Adresse } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 import { fr } from "../lib/dates";
-import { lireMontant, montant } from "@design/montant.js";
+import { decimal, lireMontant, montant } from "@design/montant.js";
 
 const PAGES = [["societe", "Information Société"], ["agence", "Agence"]] as const;   // la zone passe dans « Agents et zones », les fonds propres dans les normes (plan d'allègement, point 2.21)
 
@@ -29,6 +29,7 @@ export default function InfoSocietePage() {
 
 function InformationSociete() {
   const [f, setF] = useState<InfoSociete | null>(null);
+  const [part, setPart] = useState<string | null>(null);   // valeur nominale de la part, saisie en CDF (registre T134)
   const [boite, setBoite] = useState<Boite | null>(null);
   const [relu, setRelu] = useState(0);
   const { donnees } = useDonnees(() => api.societe.lire(), [relu]);
@@ -44,7 +45,8 @@ function InformationSociete() {
     const r = new FileReader(); r.onload = () => maj({ logo: String(r.result) }); r.readAsDataURL(fichier);
   }
   const enregistrer = () => setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
-    try { await api.societe.enregistrer({ ...v, journeeMax: /^\d+$/.test(String(v.journeeMax)) ? Number(v.journeeMax) : null }); setF(null); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+    try { await api.societe.enregistrer({ ...v, journeeMax: /^\d+$/.test(String(v.journeeMax)) ? Number(v.journeeMax) : null,
+      valeurPart: part === null ? v.valeurPart : part.trim() ? lireMontant(part) : null }); setF(null); setPart(null); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   } });
   return (
@@ -71,6 +73,12 @@ function InformationSociete() {
             {(v.typeBase === "coopec" || v.typeBase === "faitiere") && texte("delegationAdmission", "Délégation d'admission (décision du CA) :")}
             {v.typeBase === "coopec" && texte("faitiereAffiliation", "Faîtière d'affiliation :")}
             {(v.typeBase === "coopec" || v.typeBase === "faitiere") && texte("membresAuxiliaires", "Membres auxiliaires (article des statuts) :")}
+            {/* Part sociale : valeur nominale des statuts et sa date d'effet (loi 002/2002, art. 20 ; plan d'allègement, point 2.18 ; registre T134) */}
+            {(v.typeBase === "coopec" || v.typeBase === "faitiere") && <>
+              <Champ libelle="Valeur nominale de la part (CDF) :">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off"
+                value={part ?? (v.valeurPart ? decimal.format(v.valeurPart / 100) : "")} onChange={(e) => setPart(e.target.value)} />}</Champ>
+              <ChampDate libelle="Date d'effet (statuts) :" valeur={String(v.partEffet ?? "")} onChange={(x) => maj({ partEffet: x })} />
+            </>}
           </div>
           <div className="pile champs-a-gauche">
             <BlocAdresse valeur={v} maj={(x) => maj(x)} arbre={donnees.arbreLieux} ajouterQuartier={api.adresse.ajouterQuartier} />

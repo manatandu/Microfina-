@@ -159,13 +159,14 @@ describe("journée de guichet", () => {
   it("part sociale (S16, registre S16-11) : ligne des frais d'adhésion au compte 103 du membre, une seule valeur (loi 002/2002, art. 20)", async () => {
     await connecter("jpmukendi");
     const p = api.parametrage;
-    const lu = (await p.lireFrais()).adhesion;
-    expect(lu.map((x) => [x.typeMembre, x.compte, x.valeur])).toEqual([["Physique", "1030", 400000], ["Personne morale", "1032", 400000], ["Groupe", "1031", 400000]]);
+    expect((await p.lireFrais()).adhesion.some((x) => x.compte?.startsWith("103"))).toBe(false);   // la part suit la fiche Société (plan 2.18 ; T134)
     expect((await api.referentiel.contexte()).valeurPart).toBe(400000);
-    await expect(p.modifierParametrage("adhesion", 1, { nature: "Montant", valeur: 400000, compte: "1032" })).rejects.toThrow("compte 1030");
-    await expect(p.modifierParametrage("adhesion", 1, { nature: "Montant", valeur: 500000, compte: "1030" })).rejects.toThrow("seule valeur nominale");
-    const f = await p.creerFrais({ typeOperation: "ADHESION", libelle: "Autre part", fondement: "part_sociale" });
-    await expect(p.parametrerAdhesion({ fraisId: f.id, nature: "Montant", valeur: 400000, compte: "1030", typesMembre: ["Physique"] })).rejects.toThrow("déjà paramétrée");
+    await expect(p.modifierParametrage("adhesion", 1, { nature: "Montant", valeur: 500000, compte: "1030" })).rejects.toThrow("Info société");
+    await expect(p.creerFrais({ typeOperation: "ADHESION", libelle: "Autre part", fondement: "part_sociale" })).rejects.toThrow("Info société");
+    const s = (await api.societe.lire()).institution;
+    await expect(api.societe.enregistrer({ ...s, valeurPart: 500000, partEffet: "" })).rejects.toThrow("date d'effet");
+    await api.societe.enregistrer({ ...s, valeurPart: 500000, partEffet: "2026-11-01" });
+    expect([(await api.referentiel.contexte()).valeurPart, (await api.societe.lire()).institution.partEffet]).toEqual([500000, "2026-11-01"]);
   });
 
   it("la même clé ne paie pas deux fois", async () => {
@@ -865,7 +866,7 @@ describe("journée de guichet", () => {
     await expect(p.creerFrais({ typeOperation: "ADHESION", libelle: "Frais de livret" })).rejects.toThrow("Droit manquant");
     await connecter("jpmukendi");
     await p.supprimerParametrage("adhesion", pid); await p.supprimerFrais(f.id);
-    expect((await p.lireFrais()).frais.map((x) => x.libelle)).toEqual(["Part sociale standard"]);
+    expect((await p.lireFrais()).frais.map((x) => x.libelle)).toEqual([]);   // la part se règle dans la fiche Société (T134)
   });
 
   it("mise à jour d'un client (S46) : contrôles de l'enrôlement, client à revalider, bloqué au guichet", async () => {

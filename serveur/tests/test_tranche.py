@@ -676,22 +676,19 @@ def test_part_sociale_frais_adhesion(clients):
     chef = clients["chef"]; connecter(chef, "jpmukendi")
     def refus(chemin, c):
         r = chef.post(chemin, c, **H); assert r.status_code == 422, r.content; return r.json()["message"]
-    lu = chef.get("/api/parametrage/frais").json()["adhesion"]
-    parts = {x["typeMembre"]: x for x in lu if x["compte"].startswith("103")}
-    assert {k: (v["compte"], v["valeur"]) for k, v in parts.items()} == {"Physique": ("1030", 400000), "Personne morale": ("1032", 400000), "Groupe": ("1031", 400000)}
+    from noyau.bd import lignes
+    parts = {x["type_membre"]: x for x in lignes("select id, type_membre, frais_id, compte, valeur from parametrage_frais_adhesion where compte like '103%%' and supprime_le is null")}
+    assert {k: (v["compte"], v["valeur"]) for k, v in parts.items()} == {"physique": ("1030", 400000), "morale": ("1032", 400000), "groupe": ("1031", 400000)}
+    assert not any(x["compte"].startswith("103") for x in chef.get("/api/parametrage/frais").json()["adhesion"])   # la part suit la fiche Société (plan 2.18 ; T134)
     assert chef.get("/api/referentiel").json()["valeurPart"] == 400000
-    pid = parts["Physique"]["id"]
-    assert "compte 1030" in refus(f"/api/parametrage/frais-adhesion/{pid}", {"nature": "Montant", "valeur": 400000, "compte": "1032"})
-    assert "seule valeur nominale" in refus(f"/api/parametrage/frais-adhesion/{pid}", {"nature": "Montant", "valeur": 500000, "compte": "1030"})
-    assert "obligatoire" in refus(f"/api/parametrage/frais-adhesion/{pid}", {"nature": "Montant", "valeur": None, "compte": "1030"})
-    f = chef.post("/api/parametrage/frais", {"typeOperation": "ADHESION", "libelle": "Autre part", "fondement": "part_sociale"}, **H).json()
-    assert "déjà paramétrée" in refus("/api/parametrage/frais-adhesion", {"fraisId": f["id"], "nature": "Montant", "valeur": 400000, "compte": "1030", "typesMembre": ["Physique"]})
-    # Nouvelle valeur des statuts : la même sur les trois lignes
-    for x in parts.values():
-        executer = __import__("noyau.bd", fromlist=["executer"]).executer
-        executer("update parametrage_frais_adhesion set valeur = 500000 where id = %s", (x["id"],))
-    assert chef.get("/api/referentiel").json()["valeurPart"] == 500000
-    fps = parts["Physique"]["fraisId"]
+    assert "Info société" in refus(f"/api/parametrage/frais-adhesion/{parts['physique']['id']}", {"nature": "Montant", "valeur": 500000, "compte": "1030"})
+    assert "Info société" in refus("/api/parametrage/frais", {"typeOperation": "ADHESION", "libelle": "Autre part", "fondement": "part_sociale"})
+    # Nouvelle valeur des statuts, saisie dans la fiche Société avec sa date d'effet : la même sur les trois lignes
+    s_ = chef.get("/api/societe").json()["institution"]
+    assert "date d'effet" in refus("/api/societe", {**s_, "valeurPart": 500000, "partEffet": ""})
+    assert chef.post("/api/societe", {**s_, "valeurPart": 500000, "partEffet": "2026-11-01"}, **H).status_code == 200
+    assert chef.get("/api/referentiel").json()["valeurPart"] == 500000 and chef.get("/api/societe").json()["institution"]["partEffet"] == "2026-11-01"
+    fps = parts["physique"]["frais_id"]
     assert "ne se modifie pas pour un client" in refus(f"/api/tiers/{T('0412-000318')}/frais", {"frais": [{"fraisId": fps, "montant": 1}]})
 
 
@@ -751,7 +748,7 @@ def test_parametrage_frais(clients):
     assert next(x for x in chef.get(f"/api/tiers/{T('0412-000319')}/frais").json() if x["fraisId"] == f["id"])["montant"] == 200000
     assert chef.delete(f"/api/parametrage/frais-adhesion/{pid}", **H).status_code == 200
     assert chef.delete(f"/api/parametrage/frais/{f['id']}", **H).status_code == 200
-    assert [x["libelle"] for x in chef.get("/api/parametrage/frais").json()["frais"]] == ["Part sociale standard"]   # registre S16-11
+    assert [x["libelle"] for x in chef.get("/api/parametrage/frais").json()["frais"]] == []   # la part se règle dans la fiche Société (T134)
 
 
 def test_groupe_solidaire(clients):

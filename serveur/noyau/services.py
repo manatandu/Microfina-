@@ -169,8 +169,8 @@ def unites(c: int) -> str:
     return str(c // 100) if c % 100 == 0 else str((Decimal(c) / 100).normalize())
 
 
-MSG_PART = ("Part sociale non paramétrée : Paramétrage > Frais et opérations > Paramétrage frais Adhésion, "
-            "un frais au compte 1030, 1031 ou 1032 (registre S16-11).")
+MSG_PART = ("Part sociale non paramétrée : sa valeur nominale, celle des statuts, se saisit dans Paramétrage > Info société "
+            "(loi 002/2002, art. 20 ; registre T134).")
 
 
 def profil_institution(u: dict) -> str:

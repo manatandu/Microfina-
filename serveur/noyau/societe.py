@@ -33,6 +33,9 @@ def lire(u) -> dict:
     i = u["institution_id"]
     r = une(f"select {', '.join(f'{c} as \"{k}\"' for k, c in CHAMPS.items())} from institution where id = %s", (i,))
     r["code"] = r["code"] or ""
+    from .services import valeur_part_ou_rien                       # part sociale : valeur des statuts et date d'effet (plan 2.18 ; registre T134)
+    r["valeurPart"] = valeur_part_ou_rien(i)
+    r["partEffet"] = valeur("select coalesce(part_effet::text, '') from institution where id = %s", (i,))
     from .adresse import arbre
     return {"institution": r, "types": [{"code": k, "libelle": v} for k, v in PROFILS.items()], "localites": localites(), "arbreLieux": arbre(),
             "agences": lignes(f"""select id, code, nom, coalesce(autorisation_bcc_reference, '') as "autorisationReference",
@@ -74,6 +77,18 @@ def enregistrer(u, d) -> dict:
             raise ErreurMetier("Logo : une image PNG ou JPEG.")
         if len(logo) > LOGO_MAX:
             raise ErreurMetier("Logo : image trop lourde (200 Ko au plus).")
+    vp, pe = d.get("valeurPart"), t("partEffet")
+    from .services import valeur_part_ou_rien
+    if vp not in (None, "") and (vp != valeur_part_ou_rien(i) or pe != valeur("select coalesce(part_effet::text, '') from institution where id = %s", (i,))):
+        if v["typeBase"] not in ("coopec", "faitiere"):
+            raise ErreurMetier("Parts sociales : propres aux coopératives (loi 002/2002, art. 20).")
+        if not isinstance(vp, int) or isinstance(vp, bool) or vp <= 0:
+            raise ErreurMetier("Valeur nominale de la part : un montant supérieur à zéro.")
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", pe):
+            raise ErreurMetier("À remplir : date d'effet de la valeur de la part (statuts).")
+        from .frais import fixer_valeur_part
+        fixer_valeur_part(u, vp)
+        executer("update institution set part_effet = %s where id = %s", (pe, i))
     v["journeeMax"], v["logo"] = jm, logo or None
     v["compteHorsBilan1"], v["compteHorsBilan2"] = v["compteHorsBilan1"] or None, v["compteHorsBilan2"] or None
     executer(f"update institution set {', '.join(f'{c} = %s' for c in CHAMPS.values())} where id = %s", (*[v[k] for k in CHAMPS], i))

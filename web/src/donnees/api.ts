@@ -1181,6 +1181,7 @@ function controlerFrais(d: SaisieFrais) {
   if (GRATUITS[t]) throw new ErreurMetier(`Aucun frais sur le ${GRATUITS[t]} : service gratuit sans condition (Instr. BCC 37, art. 2 et 3, annexe).`);
   if (!fo) throw new ErreurMetier("À remplir : fondement.");
   if (!FONDEMENTS_FRAIS[fo]) throw new ErreurMetier("Fondement inconnu.");
+  if (fo === "part_sociale") throw new ErreurMetier(MSG_SOCIETE);
   if ((fo === "part_sociale" || fo === "droit_adhesion") && !estCoopec())
     throw new ErreurMetier("Part sociale et droit d'adhésion : propres aux coopératives (loi 002/2002, art. 22). Sinon, autorisation de la BCC (Instr. BCC 40, art. 12).");
   if (fo === "droit_adhesion" && t !== "ADHESION") throw new ErreurMetier("Le droit d'adhésion se perçoit à l'adhésion (loi 002/2002, art. 22, 5°).");
@@ -1214,7 +1215,7 @@ const parametrage = {
     exiger();
     // Dépôt et retrait ne sont pas proposés : ils sont gratuits (Instr. BCC 37, art. 2, 3 et annexe ; plan d'allègement, point 0.15)
     return { typesOperation: TYPES_OPERATION.filter((t) => t !== "DEPOT" && t !== "RETRAIT"), natures: NATURES, typesMembre: Object.keys(TYPES_MEMBRE), sousTypes: sousTypes(), compteAdhesion: "727", fondements: FONDEMENTS_FRAIS,   // S16-4
-      frais: E.frais, operations: E.paramOperations, adhesion: E.paramAdhesion };
+      frais: E.frais.filter((f) => f.fondement !== "part_sociale"), operations: E.paramOperations, adhesion: E.paramAdhesion.filter((x) => !estPart(x.compte)) };   // la part suit la fiche Société (T134)
   },
   creerFrais(d: SaisieFrais): Frais {
     droitParametrage();
@@ -1267,6 +1268,7 @@ const parametrage = {
   modifierParametrage(genre: "operation" | "adhesion", id: number, d: ValeursFrais) {
     droitParametrage();
     const r = ligneParam(genre === "operation" ? E.paramOperations : E.paramAdhesion, id);
+    if (estPart(r.compte)) throw new ErreurMetier(MSG_SOCIETE);
     const v = controlerValeurs(d, genre === "adhesion");
     if (genre === "adhesion") controlerPart([(r as ParamAdhesion).typeMembre], v, id);
     else controlerTenue(fraisDe(r.fraisId).typeOperation, v.nature);
@@ -1283,6 +1285,7 @@ const parametrage = {
   },
   supprimerParametrage(genre: "operation" | "adhesion", id: number) {
     droitParametrage();
+    if (estPart(ligneParam(genre === "operation" ? E.paramOperations : E.paramAdhesion, id).compte)) throw new ErreurMetier(MSG_SOCIETE);
     archiver(genre === "operation" ? "parametrage_frais" : "parametrage_frais_adhesion", ligneParam(genre === "operation" ? E.paramOperations : E.paramAdhesion, id));
     if (genre === "operation") E.paramOperations = E.paramOperations.filter((x) => x.id !== id);
     else E.paramAdhesion = E.paramAdhesion.filter((x) => x.id !== id);
@@ -5082,24 +5085,24 @@ export function compteParts(t: Tiers) {
 /** Registre S16-11 : la part sociale est la ligne des frais d'adhésion portée par un compte 103 ; valeur nominale des statuts (loi 002/2002, art. 20).
  *  Règles identiques côté serveur (services.valeur_part, frais.controler_part). */
 const estPart = (c: string | null | undefined) => !!c && c.startsWith("103");
-const MSG_PART = "Part sociale non paramétrée : Paramétrage > Frais et opérations > Paramétrage frais Adhésion, un frais au compte 1030, 1031 ou 1032 (registre S16-11).";
+const MSG_PART = "Part sociale non paramétrée : sa valeur nominale, celle des statuts, se saisit dans Paramétrage > Info société (loi 002/2002, art. 20 ; registre T134).";
+const MSG_SOCIETE = "La valeur de la part sociale, celle des statuts, se règle dans Paramétrage > Info société (loi 002/2002, art. 20 ; registre T134).";
+/** Fiche Société (registre T134) : la valeur nominale tient la ligne de part des frais d'adhésion, un compte 103 par nature de membre */
+function fixerValeurPart(v: number) {
+  let f = E.frais.find((x) => x.fondement === "part_sociale");
+  if (!f) { f = { id: prochainSans("frais", E.frais), typeOperation: "ADHESION", libelle: "Part sociale standard", fondement: "part_sociale" }; E.frais.push(f); }
+  for (const [typeMembre, compte] of [["Physique", "1030"], ["Personne morale", "1032"], ["Groupe", "1031"]] as const) {
+    const l = E.paramAdhesion.find((x) => x.typeMembre === typeMembre && estPart(x.compte));
+    if (l) l.valeur = v; else E.paramAdhesion.push({ id: prochainSans("parametrage_frais_adhesion", E.paramAdhesion), fraisId: f.id, typeMembre, nature: "Montant", valeur: v, compte });
+  }
+}
 function valeurPart() {
   const v = E.paramAdhesion.find((x) => estPart(x.compte) && (x.valeur ?? 0) > 0)?.valeur;
   if (!v) throw new ErreurMetier(MSG_PART);
   return v;
 }
-const COMPTES_PART: Record<string, string[]> = { physique: ["1030"], morale: ["1032"], groupe: ["1031", "1032"] };
-function controlerPart(types: string[], v: { valeur: number | null; compte: string | null }, sauf?: number) {
-  if (!estPart(v.compte)) return;
-  if (!v.valeur) throw new ErreurMetier("Part sociale : la valeur de la part, celle des statuts, est obligatoire (loi 002/2002, art. 20).");
-  for (const t of types) {
-    const ok = COMPTES_PART[TYPES_MEMBRE[t]!]!;
-    if (!ok.includes(v.compte!)) throw new ErreurMetier(`Part sociale « ${t} » : compte ${ok.join(" ou ")} (PCCI, compte 103), pas ${v.compte}.`);
-    if (E.paramAdhesion.some((x) => x.id !== sauf && x.typeMembre === t && estPart(x.compte))) throw new ErreurMetier(`Une part sociale est déjà paramétrée pour « ${t} ».`);
-  }
-  const autre = E.paramAdhesion.find((x) => x.id !== sauf && estPart(x.compte));
-  if (autre && autre.valeur !== v.valeur)
-    throw new ErreurMetier("La part sociale a une seule valeur nominale, celle des statuts (loi 002/2002, art. 20) : la même pour tous les types de membre.");
+function controlerPart(_types: string[], v: { valeur: number | null; compte: string | null }, _sauf?: number) {
+  if (estPart(v.compte)) throw new ErreurMetier(MSG_SOCIETE);   // la ligne de part suit la fiche Société (plan 2.18 ; T134)
 }
 
 /** Espèces déjà versées (dépôts, adhésion) ou déjà remises (retraits) à ce membre dans la journée, en USD */
@@ -9983,7 +9986,7 @@ export const PROFILS_INSTITUTION: Record<string, string> = { coopec: "COOPEC", s
 export type InfoSociete = { code: string; denomination: string; typeBase: string; description: string; directeur: string; agrement: string; journeeMax: number;
   compteHorsBilan1: string | null; compteHorsBilan2: string | null; ifu: string; pays: string; province?: string; ville: string; commune: string; quartier: string; rue: string; numeroRue?: string; email: string; bp: string;
   telephoneFixe: string; adresse: string; logo: string | null; delegationAdmission?: string; membresAuxiliaires?: string; faitiereAffiliation?: string; nrc?: string;
-  assuranceAssureur?: string; assurancePolice?: string; assuranceEcheance?: string };
+  assuranceAssureur?: string; assurancePolice?: string; assuranceEcheance?: string; valeurPart?: number | null; partEffet?: string };
 const societe = {
   lire() {
     exiger();
@@ -9993,7 +9996,8 @@ const societe = {
       ifu: i.ifu ?? "", pays: i.pays ?? "", province: i.province ?? "", ville: i.ville ?? "", commune: i.commune ?? "", quartier: i.quartier ?? "", rue: i.rue ?? "",
       numeroRue: i.numeroRue ?? "", email: i.email ?? "", bp: i.bp ?? "",
       telephoneFixe: i.telephoneFixe ?? "", adresse: i.adresse ?? "", logo: i.logo ?? null, delegationAdmission: i.delegationAdmission ?? "", membresAuxiliaires: i.membresAuxiliaires ?? "", faitiereAffiliation: i.faitiereAffiliation ?? "", nrc: i.nrc ?? "",
-      assuranceAssureur: i.assuranceAssureur ?? "", assurancePolice: i.assurancePolice ?? "", assuranceEcheance: i.assuranceEcheance ?? "" };
+      assuranceAssureur: i.assuranceAssureur ?? "", assurancePolice: i.assurancePolice ?? "", assuranceEcheance: i.assuranceEcheance ?? "",
+      valeurPart: E.paramAdhesion.find((x) => estPart(x.compte) && (x.valeur ?? 0) > 0)?.valeur ?? null, partEffet: i.partEffet ?? "" };   // registre T134
     return { institution, types: Object.entries(PROFILS_INSTITUTION).map(([code, libelle]) => ({ code, libelle })), localites: localites(), arbreLieux: arbreLieux(),
       agences: E.agences.filter((a) => !a.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ id, code, nom, autorisationReference, autorisationLe, ...x }) => ({ id, code, nom,
         autorisationReference: autorisationReference ?? "", autorisationLe: autorisationLe ?? "",   // A3
@@ -10017,6 +10021,15 @@ const societe = {
     if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) throw new ErreurMetier("email invalide.");
     const [aa, ap, ae] = [t(d.assuranceAssureur), t(d.assurancePolice), t(d.assuranceEcheance)];   // police de la trésorerie : tout ou rien (registre SN01-4)
     if ((aa || ap || ae) && !(aa && ap && /^\d{4}-\d{2}-\d{2}$/.test(ae))) throw new ErreurMetier("Assurance de la trésorerie : assureur, numéro de police et date d'échéance.");
+    // Part sociale : valeur des statuts et date d'effet, réglées ici (plan d'allègement, point 2.18 ; registre T134)
+    const vp = d.valeurPart, pe = t(d.partEffet);
+    const actuelle = E.paramAdhesion.find((x) => estPart(x.compte) && (x.valeur ?? 0) > 0)?.valeur ?? null;
+    const change = vp !== undefined && vp !== null && (vp !== actuelle || pe !== (E.institution.partEffet ?? ""));
+    if (change) {
+      if (!["coopec", "faitiere"].includes(v.typeBase)) throw new ErreurMetier("Parts sociales : propres aux coopératives (loi 002/2002, art. 20).");
+      if (!Number.isInteger(vp) || vp <= 0) throw new ErreurMetier("Valeur nominale de la part : un montant supérieur à zéro.");
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(pe)) throw new ErreurMetier("À remplir : date d'effet de la valeur de la part (statuts).");
+    }
     const logo = d.logo ?? null;
     if (logo) {
       if (!/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(logo)) throw new ErreurMetier("Logo : une image PNG ou JPEG.");
@@ -10027,6 +10040,7 @@ const societe = {
       quartier: v.quartier, rue: t(d.rue), numeroRue: t(d.numeroRue), email: v.email, bp: t(d.bp), telephoneFixe: t(d.telephoneFixe), adresse: t(d.adresse), logo,
       delegationAdmission: t(d.delegationAdmission), membresAuxiliaires: t(d.membresAuxiliaires), faitiereAffiliation: t(d.faitiereAffiliation), nrc: t(d.nrc),
       assuranceAssureur: t(d.assuranceAssureur), assurancePolice: t(d.assurancePolice), assuranceEcheance: t(d.assuranceEcheance) });
+    if (change) { fixerValeurPart(vp!); E.institution.partEffet = pe; }
     enregistrer(); return societe.lire();
   },
   /** Page Agence : Code et Nom (registre S32-5) ; le code d'une agence qui a des clients ne change plus (il entre dans leurs numéros, S15) */
