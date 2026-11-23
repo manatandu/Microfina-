@@ -2442,6 +2442,11 @@ const dateRangPlan = (debut: string, code: string, k: number) => { const p = per
   return p.unite === "Mois" ? ajouterMois(debut, pas * k) : new Date(Date.parse(`${debut}T00:00:00Z`) + 7 * pas * k * 86400000).toISOString().slice(0, 10); };
 /** Intérêt d'une échéance : le cumul versé, au taux annuel, pour une période (registre S69-3) */
 const interetPlan = (cumul: number, taux: string, code: string) => Math.round(cumul * Number(taux.replace(",", ".")) / 100 / Number(periodicitePlan(code)!.denominateur));
+/** Montant à terme d'un plan : les versements et l'intérêt prévu de chaque échéance, comme l'échéancier enregistré (plan d'allègement, point 5.4) */
+export function montantATermePlan(duree: number, code: string, montant: number, taux: string) {
+  const n = echeancesPlan(duree, code);
+  return Array.from({ length: n }, (_, k) => montant + interetPlan(montant * (k + 1), taux || "0", code)).reduce((a, b) => a + b, 0);
+}
 /** PCCI 613 : 6132 épargne-logement (352), 6133 épargne-retraite (353), 6134 autres */
 const compteInteretPlan = (pcci: string) => ({ "352": "6132", "353": "6133" } as Record<string, string>)[pcci.slice(0, 3)] ?? "6134";
 const produitsPlan = () => E.produits.filter((p) => p.actif && !p.supprime && (p.compteLie ?? "").startsWith("35"));

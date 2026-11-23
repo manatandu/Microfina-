@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1053 décisions.** Solidité : 502 fortes (le manuel ou un texte répond), 469 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1040 déjà en place, 13 à appliquer.
+**1054 décisions.** Solidité : 502 fortes (le manuel ou un texte répond), 470 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1041 déjà en place, 13 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1119,6 +1119,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S69-8 | Rupture | Écran sur le modèle de la rupture de DAT (S67) : le versé et l'intérêt acquis des échéances cotisées dont la date est atteinte, moins la retenue de 20 %, reviennent au compte épargne ; sans pénalité | Choix du porteur : Titre p. 80 ; capture p. 77 ; décision du porteur, 19/11/2026 | forte | en place |
 | S69-9 | Compte des intérêts | PCCI 613 selon le compte du plan : 6132 épargne-logement (352), 6133 épargne-retraite (353), 6134 autres comptes d'épargne à régime spécial | Texte réglementaire : PCCI, compte 613 | forte | en place |
 | S69-10 | Mode de règlement | Retiré de l'écran : les cotisations passent toujours par virement du compte d'épargne au compte du plan, enregistré « VIREMENT » (au lieu de « CHEQUE » par défaut) | Écran voisin : Plan d'allègement, point 0.23 | moyenne | en place |
+| S69-11 | Onglets et sélecteur | Le client et le N° de contrat se choisissent une fois, au-dessus des onglets Échéancier, Nouveau et Rupture. Échéancier réunit la consultation du tableau d'amortissement et l'édition des cotisations : les sept filtres, toutes les colonnes, les cases des échéances non cotisées, Enregistrer, Annuler, Imprimer. La Simulation disparaît : Nouveau affiche le montant à terme pendant la saisie, versements et intérêt prévu du produit, comme l'échéancier enregistré. | Écran voisin : Plan d'allègement, point 5.4 ; registre S69-3 | moyenne | en place |
 
 ## S70 Clôturer un compte
 

@@ -962,7 +962,7 @@ const OUT = process.argv[2];
   await p.getByLabel('N° Compte :').selectOption({ label: '0412-000318-02' });
   await p.getByLabel('Montant : *').fill('100 000'); await p.getByLabel('Durée (Mois) : *').fill('6'); await p.getByLabel('Taux pénalité (%) :').fill('2');
   await p.getByText('3 000').first().waitFor(); await etape('06c23-mise-en-place-dat');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: '000001' }).waitFor();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: '000001', exact: true }).waitFor();
   // Dépôts à terme (point 5.1) : la ligne du DAT porte ses actions ; le chef valide (quatre yeux), imprime le contrat, puis rompt et imprime l'avis
   await login('J.-P. Mukendi'); await aller('/epargne/s68'); await p.getByRole('heading', { name: 'Dépôts à terme' }).waitFor();
   await p.getByLabel('Statut :').selectOption({ label: 'À valider' }); await p.getByRole('button', { name: 'Valider 000001' }).waitFor(); await etape('06c24-validation-dat');
@@ -977,13 +977,14 @@ const OUT = process.argv[2];
   await p.getByRole('dialog', { name: 'Avis de rupture de DAT' }).getByRole('button', { name: 'Fermer' }).click();
   await drt.getByRole('button', { name: 'Fermer' }).click(); await p.getByText(/Numéro de pièce : \S+/).waitFor();
   await p.getByLabel('Statut :').selectOption({ label: 'Rompus' }); await p.getByRole('button', { name: 'Avis de rupture 000001' }).waitFor(); await etape('06c28-recherche-dat');
-  // Plan épargne (S69, p. 78) : la simulation donne le montant périodique d'un montant à terme
-  await aller('/epargne/s69'); await p.getByRole('heading', { name: 'Simulation du Plan épargne' }).waitFor();
-  await p.getByLabel('Montant à  terme :').fill('1 200 000'); await p.getByLabel('Durée plan épargne :').fill('12');
-  await p.getByLabel('Périodicité :').selectOption({ label: 'Mensuel' }); await p.getByRole('button', { name: 'Simuler' }).click();
-  await p.waitForFunction(() => [...document.querySelectorAll('input')].some((i) => i.value === '100000')).catch(() => { throw new Error('S69 : simulation'); });
+  // Plan épargne (S69 ; plan d'allègement, point 5.4) : client et contrat choisis une fois, onglets Échéancier, Nouveau, Rupture ; montant à terme pendant la saisie
+  await aller('/epargne/s69'); await p.getByRole('tab', { name: 'Échéancier' }).waitFor();
+  await p.getByRole('button', { name: 'Rechercher un client' }).click(); const rpe = p.getByRole('dialog', { name: "Recherche d'un client" });
+  await rpe.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rpe.getByRole('row').filter({ hasText: 'Kalala' }).first().click();
   await etape('06c29-plan-simulation');
-  await p.getByRole('tab', { name: 'Nouveau' }).click(); await p.getByRole('heading', { name: 'Création du plan épargne' }).waitFor(); await etape('06c30-plan-nouveau');
+  await p.getByRole('tab', { name: 'Nouveau' }).click(); await p.getByLabel('Durée Plan épargne : *').fill('12');
+  await p.getByLabel('Périodicité : *').selectOption({ label: 'Mensuel' }); await p.getByLabel('Montant : *').fill('100 000');
+  await p.getByText('Montant à terme : 1 200 000').waitFor(); await etape('06c30-plan-nouveau');
   // Clôturer un compte (S70) : un compte avec solde ne se clôture pas (registre S70-1)
   await aller('/epargne/s70'); await p.getByRole('heading', { name: 'Clôturer un Compte' }).waitFor();
   await p.getByRole('button', { name: 'Rechercher un client' }).click();
