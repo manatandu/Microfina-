@@ -263,7 +263,7 @@ const OUT = process.argv[2];
   const pl = p.getByRole('region', { name: 'Personnes liées' });
   await pl.getByLabel('Membre :').fill('Kalala'); await pl.getByRole('button', { name: 'Rechercher' }).click(); await pl.getByRole('button', { name: '+Ajouter' }).click();
   await p.getByRole('cell', { name: '0412-000318' }).waitFor(); await etape('04c-personnes-liees');
-  await p.getByRole('tab', { name: 'Photos et pièces' }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click();
+  await p.getByRole('tab', { name: 'Photos et pièces' }).click(); await p.getByRole('button', { name: 'Enregistrer', exact: true }).click();
   await p.getByRole('dialog', { name: 'Confirmation' }).waitFor(); await etape('04d-confirmation');
   await oui(); await etape('05-enrole');
   // Groupe : même écran « Nouveau membre », nature Groupe (plan 3.1)
@@ -521,7 +521,7 @@ const OUT = process.argv[2];
   await p.getByLabel('Date de délivrance : *').fill('10012024'); await p.getByLabel('Lieu de délivrance : *').fill('Kinshasa'); await p.getByLabel('Autorité de délivrance : *').fill('DGM');
   await p.getByLabel("Date d'expiration : *").fill('10012030');
   await p.getByRole('tab', { name: 'Adresse et activité' }).click(); await adresseKinsaku('Kinsaku', '20');
-  await p.getByRole('tab', { name: 'Photos et pièces' }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
+  await p.getByRole('tab', { name: 'Photos et pièces' }).click(); await p.getByRole('button', { name: 'Enregistrer', exact: true }).click(); await ok();
   // Types de procuration (S47)
   await aller('/clients/s47'); await p.getByLabel('Libellé *').fill('Procuration générale');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
