@@ -18,7 +18,7 @@ const OUT = process.argv[2];
   await etape('01-connexion');
   // Chef : ouvrir la journée
   await login('J.-P. Mukendi');
-  await p.getByRole('link', { name: 'EXOFINA' }).waitFor();   // module lié au profil (registre S02-1)
+  await p.getByRole('link', { name: 'Exofina' }).waitFor();   // module lié au profil (registre S02-1)
   if (!(await p.getByRole('link', { name: 'Paie' }).count())) throw new Error('Paie fermée au chef qui vise les retenues (S135)');
   if (await p.getByRole('link', { name: 'Immo' }).count()) throw new Error('Immobilisations ouvertes sans droit');
   await etape('01b-modules');

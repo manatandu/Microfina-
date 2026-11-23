@@ -29,9 +29,9 @@ def ecrire(n, s): open(f"{OUT}/{n}", "w").write(s)
 def borne(ch):
     b = BoundsPen(gs); gs[cmap[ord(ch)]].draw(b); return b.bounds
 ASC = borne("f")[3]; XH = borne("x")[3]
-TRACK = -0.02                                            # approche serrée, comme le mot DWAC
-def mot(x0, base, hauteur, c_exo, c_fina, texte="exofina", coupe=3, sur="asc"):
-    ref = ASC if sur == "asc" else borne("E")[3]
+TRACK = -0.03                                            # approche serrée, mot d'un seul tenant (comme le nom Sage)
+def mot(x0, base, hauteur, c_exo, c_fina, texte="Exofina", coupe=3, sur="asc"):
+    ref = max(ASC, borne("E")[3]) if sur == "asc" else borne("E")[3]
     size = hauteur * upm / ref; s = size / upm; tr = TRACK * size; x = x0; parts = ([], []); gauche = None
     for i, ch in enumerate(texte):
         g = cmap[ord(ch)]; pen = SVGPathPen(gs); gs[g].draw(TransformPen(pen, (s, 0, 0, -s, x, base)))
@@ -43,10 +43,10 @@ def mot(x0, base, hauteur, c_exo, c_fina, texte="exofina", coupe=3, sur="asc"):
 
 HM = 0.70 * H                    # hauteur du mot (sommet du f) ; ligne de base = bas de la pièce
 ESP = 0.22 * H
-def ligne(ce, cf, texte="exofina", sur="asc"):
+def ligne(ce, cf, texte="Exofina", sur="asc"):
     _, _, _, g, _ = mot(0, 0, HM, ce, cf, texte=texte, sur=sur)
     return mot(40 + LARG + ESP - g, 216, HM, ce, cf, texte=texte, sur=sur)
-def en_ligne(cs, ce, cf, texte="exofina", sur="asc"):
+def en_ligne(cs, ce, cf, texte="Exofina", sur="asc"):
     p, _, _, _, dr = ligne(ce, cf, texte, sur)
     return svg(dr + 40, 256, chemin(symbole(), cs) + p)
 def en_pile(cs, ce, cf):
@@ -68,13 +68,14 @@ def tuile(fond, c):
     k = 0.62; w = LARG * k; return svg(256, 256, f'<rect width="256" height="256" rx="56" fill="{fond}"/>' + chemin(symbole(dx=(256 - w) / 2, dy=(256 - H * k) / 2, k=k), c))
 ecrire("exofina-icone-nuit.svg", tuile(N, BL)); ecrire("exofina-icone-rouge.svg", tuile(R, BL)); ecrire("exofina-icone-blanche.svg", tuile(BL, R))
 ecrire("favicon.svg", svg(LARG + 16, H + 16, chemin(symbole(dx=8, dy=8), R)))
-ecrire("exofina-en-ligne-capitales-clair.svg", en_ligne(R, R, N, texte="EXOFINA", sur="cap"))
-_, de, df, g, dr = ligne(R, N)
+# Logo de l'application : le mot seul, « Exofina » (E majuscule), comme le nom Sage ; la pièce sert aux icônes et à la page des modules
+_, _, _, g0, _ = mot(0, 0, 120, R, N); _, de, df, g, dr = mot(-g0, 120, 120, R, N)
+desc = max(-borne(ch)[1] for ch in "Exofina") * 120 / max(ASC, borne("E")[3])
 open(f"{OUT}/exofina-traces.ts", "w").write(
     "/** Tracés du logo Exofina, sortis de docs/design/logo-exofina/construction.py. Ne pas retoucher à la main.\n"
-    " * Pièce en « e » (rouge) ; « exo » rouge ; « fina » de la couleur du texte (Bleu Nuit sur clair, blanc sur sombre). */\n"
-    f'export const LOGO_CADRE = "40 40 {r2(dr - 40)} 176";\n'
-    f'export const LOGO_SYMBOLE = "{symbole()}";\n'
+    " * Mot « Exofina » : « Exo » rouge, « fina » de la couleur du texte (Bleu Nuit sur clair, blanc sur sombre). Pièce en « e » pour les icônes. */\n"
+    f'export const LOGO_CADRE = "0 0 {r2(dr)} {r2(120 + desc)}";\n'
     f'export const LOGO_EXO = "{de}";\nexport const LOGO_FINA = "{df}";\n'
+    f'export const LOGO_SYMBOLE = "{symbole()}";\n'
     f'export const SYMBOLE_CADRE = "40 40 {r2(LARG)} 176";\n')
 print("ok", r2(LARG))

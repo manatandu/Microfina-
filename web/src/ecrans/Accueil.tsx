@@ -56,8 +56,8 @@ export function PageModules() {
           })}
         </div>
         {liees.has("principal")
-          ? <Link to="/principal" className="module centre">{symbole}<span className="nom-marque"><span className="exo">EXO</span>FINA</span></Link>
-          : <span className="module centre inactif" aria-disabled="true" title="Module non lié à votre profil">{symbole}<span className="nom-marque"><span className="exo">EXO</span>FINA</span></span>}
+          ? <Link to="/principal" className="module centre">{symbole}<span className="nom-marque"><span className="exo">Exo</span>fina</span></Link>
+          : <span className="module centre inactif" aria-disabled="true" title="Module non lié à votre profil">{symbole}<span className="nom-marque"><span className="exo">Exo</span>fina</span></span>}
         {AUTOUR.map((m, i) => {
           const style = { gridColumn: m.colonne, gridRow: m.rangee, "--rang": i } as React.CSSProperties;
           const contenu = <><span className="pastille">{m.icone}</span><span>{m.libelle}</span></>;
