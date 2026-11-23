@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1005 décisions.** Solidité : 458 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 996 déjà en place, 9 à appliquer.
+**1006 décisions.** Solidité : 459 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 997 déjà en place, 9 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -419,6 +419,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S01-2 | Mot de passe sur le site en ligne | Le serveur exige le mot de passe par défaut : comparé à l'empreinte du compte (S05-3), même message pour un identifiant inconnu, un compte sans mot de passe et un mauvais mot de passe. Sur le site en ligne, la liste des identifiants n'est pas publique et les comptes de démonstration n'apparaissent pas (écart avec la page déjà faite, demande du porteur). La démonstration dans le navigateur reste sans mot de passe. Premier mot de passe d'un compte : commande definir_mot_de_passe, saisie à l'invite | Choix du porteur : Demande du porteur, 14/11/2026 ; Instr. BCC 008, art. 16 (authentification maîtrisée) | forte | en place |
 | S01-3 | Règles de mot de passe et de blocage | Règle des mots de passe (T24) et blocage après 5 refus en 15 minutes (T22), demandés par le porteur le 15/11/2026 | Choix du porteur : Instr. BCC 008, art. 16 ; S05-3 | faible | en place |
 | S01-4 | Disposition de la page de connexion | Une seule carte au milieu de la page, le logo en haut à gauche, les champs l'un sous l'autre (nom d'utilisateur, mot de passe, journée ouverte, date système), le serveur, le bouton Connexion à droite. Couleurs et logo du logiciel. | Choix du porteur : Demande du porteur, 21/11/2026, avec capture du 14/11/2026 (« la disposition de la page, pas la couleur sombre ni le logo ») | forte | en place |
+
+## S37 à S39, S46 Fiche du membre
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S37-9 | Cadre « Suivi commercial » | La zone et les agents (gestionnaire, sensibilisateur, commercial) se rangent dans un cadre « Suivi commercial », le même pour les trois natures et pour la mise à jour. Chaque liste d'agents n'apparaît que s'il existe des agents de ce rôle et reste vide par défaut. La zone garde sa règle (obligatoire pour l'entreprise). | Choix du porteur : Plan d'allègement, point 3.10 (accord du porteur, 22/11/2026) ; registre S33-4, S37-2 | forte | en place |
 
 ## S49 Photo et signature
 

@@ -76,7 +76,7 @@ id,lot,titre,ecrans,statut,question,reste
 3.7,3,Premier dépôt et contrat d'adhésion,,à faire,,
 3.8,3,Fiche du membre (S43) : la porte d'entrée,S42 S43 S46 S50 S73,à faire,,
 3.9,3,Personne politiquement exposée,,fait,,
-3.10,3,Cases de la fiche,,partiel,,Fait : « N° Manuel » et « N° Matricule » supprimés (T130) ; le numéro du membre s'affiche une fois attribué. Reste : le cadre « Suivi commercial » (agents et zone)
+3.10,3,Cases de la fiche,,fait,,
 3.11,3,Prospect,S45 S51,à faire,,
 3.12,3,Groupe solidaire,S39 S44,à faire,,
 3.13,3,Résiliation,S48,fait,,

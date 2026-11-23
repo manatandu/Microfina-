@@ -84,22 +84,9 @@ function InformationsDeBase({ genre, f, maj, ctx, numero, depot, setDepot, chois
           <Champ libelle="Nombre d'Homme :">{(p) => <input {...p} className="saisie code court" inputMode="numeric" autoComplete="off" {...nombre("nbHommes")} />}</Champ>
           <Champ libelle="Nombre de Femme :">{(p) => <input {...p} className="saisie code court" inputMode="numeric" autoComplete="off" {...nombre("nbFemmes")} />}</Champ>
         </>}
-        <Champ libelle={entreprise ? "Zone : *" : "Zone :"}>{(p) => <select {...p} className="saisie" required={entreprise} {...sel("zone")}><option value=""></option>
-          {ctx.zones.map((z) => <option key={z} value={z}>{enClair(z)}</option>)}</select>}</Champ>
-        {physique && <Champ libelle="Sensibilisateur :">{(p) => <select {...p} className="saisie" value={f.sensibilisateurId ?? ""}
-          onChange={(e) => maj({ sensibilisateurId: e.target.value ? Number(e.target.value) : null })}><option value=""></option>
-          {ctx.sensibilisateurs.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>}
       </div>
       <div className="pile">
-        {!physique && <AgentsClient f={f} maj={maj} ctx={ctx} />}
-        {physique ? <>
-          <Champ libelle="Gestionnaire :">{(p) => <select {...p} className="saisie" value={f.gestionnaireId ?? ""}
-            onChange={(e) => maj({ gestionnaireId: e.target.value ? Number(e.target.value) : null })}><option value=""></option>
-            {ctx.gestionnaires.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
-          <Champ libelle="Commercial :">{(p) => <select {...p} className="saisie" value={f.commercialId ?? ""}
-            onChange={(e) => maj({ commercialId: e.target.value ? Number(e.target.value) : null })}><option value=""></option>
-            {ctx.commerciaux.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
-        </> : null}
+        <SuiviCommercial f={f} maj={maj} ctx={ctx} zoneRequise={entreprise} />
         <Champ libelle="Type de compte à créer *">{(p) => <select {...p} className="saisie" required {...sel("produitCode")}><option value=""></option>
           {ctx.produits.map((x) => <option key={x.code} value={x.code}>{x.libelle} {x.devise}</option>)}</select>}</Champ>
         <Champ libelle={`Premier dépôt :${produit ? ` (${produit.devise})` : ""}`}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={depot} onChange={(e) => setDepot(e.target.value)} />}</Champ>
@@ -309,13 +296,19 @@ function useCommun() {
     numero: d ? "" : cree?.numero ?? "" };
 }
 
-/** Sensibilisateur, Gestionnaire, Commercial : agents d'agence de S33 ; case vide = aucun (registre S33-4, S37-2 ; plan d'allègement, point 1.5) */
-function AgentsClient({ f, maj, ctx }: { f: NouveauTiers; maj: (p: Partial<NouveauTiers>) => void; ctx: Ctx }) {
-  const liste = (libelle: string, k: "sensibilisateurId" | "gestionnaireId" | "commercialId", agents: { id: number; nom: string }[]) => (
+/** Cadre « Suivi commercial » : la zone et les agents d'agence (S33) ; une liste n'apparaît que s'il existe des agents de ce rôle, vide par défaut
+ *  (registre S33-4, S37-2 ; plan d'allègement, point 3.10) */
+function SuiviCommercial({ f, maj, ctx, zoneRequise }: { f: NouveauTiers; maj: (p: Partial<NouveauTiers>) => void; ctx: Ctx; zoneRequise: boolean }) {
+  const liste = (libelle: string, k: "sensibilisateurId" | "gestionnaireId" | "commercialId", agents: { id: number; nom: string }[]) => agents.length > 0 && (
     <Champ libelle={libelle}>{(p) => <select {...p} className="saisie" value={f[k] ?? ""} onChange={(e) => maj({ [k]: e.target.value ? Number(e.target.value) : null })}>
       <option value=""></option>{agents.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>);
-  return <>{liste("Sensibilisateur :", "sensibilisateurId", ctx.sensibilisateurs)}{liste("Gestionnaire :", "gestionnaireId", ctx.gestionnaires)}
-    {liste("Commercial :", "commercialId", ctx.commerciaux)}</>;
+  return (
+    <fieldset className="pile cadre-champs champs-a-gauche"><legend>Suivi commercial</legend>
+      <Champ libelle={zoneRequise ? "Zone : *" : "Zone :"}>{(p) => <select {...p} className="saisie" required={zoneRequise} value={f.zone ?? ""} onChange={(e) => maj({ zone: e.target.value })}>
+        <option value=""></option>{ctx.zones.map((z) => <option key={z} value={z}>{enClair(z)}</option>)}</select>}</Champ>
+      {liste("Gestionnaire :", "gestionnaireId", ctx.gestionnaires)}{liste("Sensibilisateur :", "sensibilisateurId", ctx.sensibilisateurs)}{liste("Commercial :", "commercialId", ctx.commerciaux)}
+    </fieldset>
+  );
 }
 
 type CleTexte = "civilite" | "situationMatrimoniale" | "secteurActivite" | "typeActivite" | "categorie" | "sousTypeClient" | "nationalite" | "profession" | "piecePays"
@@ -714,12 +707,10 @@ export function MiseAJourClient() {
                     <Champ libelle="Nombre d'Homme :">{(p) => <input {...p} className="saisie code court" inputMode="numeric" autoComplete="off" {...nombre("nbHommes")} />}</Champ>
                     <Champ libelle="Nombre de Femme :">{(p) => <input {...p} className="saisie code court" inputMode="numeric" autoComplete="off" {...nombre("nbFemmes")} />}</Champ>
                   </>}
-                  <Champ libelle={genre === "morale" ? "Zone : *" : "Zone :"}>{(p) => <select {...p} className="saisie" required={genre === "morale"} {...sel("zone")}><option value=""></option>
-                    {ctx.zones.map((z) => <option key={z} value={z}>{enClair(z)}</option>)}</select>}</Champ>
                   <ChampsRelation f={f} maj={maj} morale={genre === "morale"} />
                 </div>
                 <div className="pile">
-                  <AgentsClient f={f} maj={maj} ctx={ctx} />
+                  <SuiviCommercial f={f} maj={maj} ctx={ctx} zoneRequise={genre === "morale"} />
                   <label className="case"><input type="checkbox" checked={f.resident} onChange={(e) => maj({ resident: e.target.checked })} /><span>Résident</span></label>
                   <label className="case"><input type="checkbox" checked={f.preleverAgios} onChange={(e) => maj({ preleverAgios: e.target.checked })} /><span>Prelever Agios</span></label>
                   <label className="case"><input type="checkbox" checked={f.calculerInteret} onChange={(e) => maj({ calculerInteret: e.target.checked })} /><span>Calculer intéret</span></label>
