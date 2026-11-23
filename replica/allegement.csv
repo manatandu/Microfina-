@@ -98,7 +98,7 @@ id,lot,titre,ecrans,statut,question,reste
 4.12,4,Journal de caisse,S83,fait,,
 4.13,4,Menu Caisse,S74 S79 S80 S81 S83,fait,,
 5.1,5,Dépôts à terme,S65 S66 S67 S68,à faire,,
-5.2,5,Mise en place d'un DAT,,à faire,,
+5.2,5,Mise en place d'un DAT,,fait,,
 5.3,5,Intérêts courus des DAT,S127 S128,à faire,,
 5.4,5,Plan d'épargne,S69,à faire,,
 5.5,5,Rupture,,à faire,,

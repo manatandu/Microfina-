@@ -2344,9 +2344,10 @@ const depotsTerme = {
   },
   /** Bouton Annuler (capture p. 75) : un DAT saisi et pas encore validé s'annule ; aucune écriture n'existe encore (registre S65-6) */
   annuler(id: number) {
-    exiger();
+    const u = exiger();
     const x = E.depotsTerme.find((y) => y.id === id);
     if (!x || x.statut !== "saisie") throw new ErreurMetier("Seul un DAT en attente de validation s'annule ; un DAT validé se rompt (Rupture de DAT).");
+    if (x.saisiPar !== u.id) throw new ErreurMetier("Seule la personne qui a mis ce DAT en place peut l'annuler.");   // plan d'allègement, point 5.1
     x.statut = "annule"; enregistrer(); return vueDat(x);
   },
   /** Bouton Contrat (S66) : document de l'institution cliente (registre S65-7) */

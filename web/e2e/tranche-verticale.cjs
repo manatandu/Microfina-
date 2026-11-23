@@ -375,7 +375,7 @@ const OUT = process.argv[2];
   await etape('06d-frais-refus-bcc37');
   await p.getByLabel('Type Opération: *').selectOption('ADHESION'); await p.getByLabel('Libellé du frais: *').fill("Droit d'entrée"); await p.getByLabel('Fondement: *').selectOption('droit_adhesion');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
-  await p.getByRole('cell', { name: "Droit d'entrée" }).waitFor(); await etape('06e-frais');
+  await p.getByRole('cell', { name: "Droit d'entrée", exact: true }).waitFor(); await etape('06e-frais');
   // Les frais et leur barème sur une page (plan d'allègement, point 2.18)
   await p.getByRole('button', { name: "Barème : Droit d'entrée" }).click(); const b16 = p.getByRole('dialog', { name: "Barème : Droit d'entrée" });
   await b16.getByLabel('Nature du frais *').selectOption('Montant');
@@ -950,7 +950,8 @@ const OUT = process.argv[2];
   await p.getByLabel('Taux intérêt (%) :').fill('6'); await p.getByLabel('Actif', { exact: true }).check();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Dépôt à terme' }).waitFor();
   await login('Bijou Kasongo');
-  await aller('/epargne/s65'); await p.getByRole('heading', { name: 'Mise en place DAT' }).waitFor();
+  await aller('/epargne/s68'); await p.getByRole('heading', { name: 'Dépôts à terme' }).waitFor();
+  await p.getByRole('button', { name: 'Nouveau DAT' }).click(); await p.getByRole('dialog', { name: 'Mise en place DAT' }).waitFor();
   await p.getByRole('button', { name: 'Rechercher un client' }).click();
   const rdt = p.getByRole('dialog', { name: "Recherche d'un client" });
   await rdt.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rdt.getByRole('row').filter({ hasText: 'Kalala' }).first().click();
@@ -961,22 +962,21 @@ const OUT = process.argv[2];
   await p.getByLabel('N° Compte :').selectOption({ label: '0412-000318-02' });
   await p.getByLabel('Montant : *').fill('100 000'); await p.getByLabel('Durée (Mois) : *').fill('6'); await p.getByLabel('Taux pénalité (%) :').fill('2');
   await p.getByText('3 000').first().waitFor(); await etape('06c23-mise-en-place-dat');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  await login('J.-P. Mukendi'); await aller('/epargne/s66'); await p.getByRole('heading', { name: 'Validation DAT' }).waitFor();
-  await p.getByRole('row').filter({ hasText: '000001' }).click(); await etape('06c24-validation-dat');
-  await p.getByRole('button', { name: 'Valider' }).click(); await oui(); await p.getByText(/Numéro de pièce : \S+/).waitFor();
-  await p.getByRole('button', { name: 'Contrat' }).click(); await p.getByRole('article', { name: 'Contrat de dépôt à terme' }).waitFor(); await etape('06c25-contrat-dat');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: '000001' }).waitFor();
+  // Dépôts à terme (point 5.1) : la ligne du DAT porte ses actions ; le chef valide (quatre yeux), imprime le contrat, puis rompt et imprime l'avis
+  await login('J.-P. Mukendi'); await aller('/epargne/s68'); await p.getByRole('heading', { name: 'Dépôts à terme' }).waitFor();
+  await p.getByLabel('Statut :').selectOption({ label: 'À valider' }); await p.getByRole('button', { name: 'Valider 000001' }).waitFor(); await etape('06c24-validation-dat');
+  await p.getByRole('button', { name: 'Valider 000001' }).click(); await oui(); await p.getByText(/Numéro de pièce : \S+/).waitFor();
+  await p.getByLabel('Statut :').selectOption({ label: 'En cours' });
+  await p.getByRole('button', { name: 'Contrat 000001' }).click(); await p.getByRole('article', { name: 'Contrat de dépôt à terme' }).waitFor(); await etape('06c25-contrat-dat');
   await p.getByRole('dialog', { name: 'Contrat de dépôt à terme' }).getByRole('button', { name: 'Fermer' }).click();
-  // Rupture DAT (S67) : le chef choisit le DAT, voit intérêt, pénalité, IRC et montant à verser, rompt puis imprime l'avis
-  await aller('/epargne/s67'); await p.getByRole('heading', { name: 'Rupture DAT' }).waitFor();
-  await p.getByRole('button', { name: 'Rechercher un DAT' }).click(); await p.getByRole('dialog', { name: 'Liste DAT à rompre' }).getByRole('row').filter({ hasText: '000001' }).click();
-  await p.getByText('Montant à verser : 98 000').waitFor(); await etape('06c26-rupture-dat');
-  await p.getByRole('button', { name: 'Rompre le DAT' }).click(); await oui(); await p.getByText(/Numéro de pièce : \S+/).waitFor();
-  await p.getByRole('button', { name: 'Imprimer' }).click(); await p.getByRole('article', { name: 'Avis de rupture de DAT' }).waitFor(); await etape('06c27-avis-rupture-dat');
+  await p.getByRole('button', { name: 'Rompre 000001' }).click(); const drt = p.getByRole('dialog', { name: 'Rupture DAT' });
+  await drt.getByText('Montant à verser : 98 000').waitFor(); await etape('06c26-rupture-dat');
+  await drt.getByRole('button', { name: 'Rompre le DAT' }).click(); await oui();
+  await drt.getByRole('button', { name: 'Imprimer' }).click(); await p.getByRole('article', { name: 'Avis de rupture de DAT' }).waitFor(); await etape('06c27-avis-rupture-dat');
   await p.getByRole('dialog', { name: 'Avis de rupture de DAT' }).getByRole('button', { name: 'Fermer' }).click();
-  // Recherche multicritères DAT (S68) : mis en place depuis le début de l'année
-  await aller('/epargne/s68'); await p.getByRole('heading', { name: 'Recherche multicritères DAT' }).waitFor();
-  await p.getByRole('button', { name: 'Valider' }).click(); await p.getByRole('cell', { name: '000001' }).waitFor(); await etape('06c28-recherche-dat');
+  await drt.getByRole('button', { name: 'Fermer' }).click(); await p.getByText(/Numéro de pièce : \S+/).waitFor();
+  await p.getByLabel('Statut :').selectOption({ label: 'Rompus' }); await p.getByRole('button', { name: 'Avis de rupture 000001' }).waitFor(); await etape('06c28-recherche-dat');
   // Plan épargne (S69, p. 78) : la simulation donne le montant périodique d'un montant à terme
   await aller('/epargne/s69'); await p.getByRole('heading', { name: 'Simulation du Plan épargne' }).waitFor();
   await p.getByLabel('Montant à  terme :').fill('1 200 000'); await p.getByLabel('Durée plan épargne :').fill('12');

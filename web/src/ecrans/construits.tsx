@@ -168,10 +168,7 @@ const RegistreMembres = paresseux(() => import("./RegistreMembres"), "default");
 const ConditionsBanque = paresseux(() => import("./ConditionsBanque"), "default");
 const RetenuesReverser = paresseux(() => import("./RetenuesReverser"), "default");
 const JournalSecurite = paresseux(() => import("./JournalSecurite"), "default");
-const MiseEnPlaceDat = paresseux(() => import("./DepotsTerme"), "MiseEnPlaceDat");
-const RechercheDat = paresseux(() => import("./DepotsTerme"), "RechercheDat");
-const RuptureDat = paresseux(() => import("./DepotsTerme"), "RuptureDat");
-const ValidationDat = paresseux(() => import("./DepotsTerme"), "ValidationDat");
+const DepotsATerme = paresseux(() => import("./DepotsTerme"), "default");   // plan d'allègement, point 5.1 : S65 à S68 en un écran
 const PlanEpargne = paresseux(() => import("./PlanEpargne"), "default");
 const ClotureCompte = paresseux(() => import("./Clotures"), "default");
 const BlocageCompte = paresseux(() => import("./Blocages"), "default");
@@ -311,10 +308,10 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S62: RapportsBanque,
   S63: NouveauCompte,
   S64: ReleveCompte,
-  S65: MiseEnPlaceDat,
-  S66: ValidationDat,
-  S67: RuptureDat,
-  S68: RechercheDat,
+  S65: DepotsATerme,
+  S66: DepotsATerme,
+  S67: DepotsATerme,
+  S68: DepotsATerme,
   S69: PlanEpargne,
   S70: ClotureCompte,
   S71: BlocageCompte,

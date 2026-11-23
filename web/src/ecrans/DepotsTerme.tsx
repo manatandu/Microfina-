@@ -1,5 +1,6 @@
-// S65 : Épargne > Dépôt à terme > Mise en place DAT (manuel Microfina++, p. 75 texte, p. 76 capture) ; S66 : Validation DAT (p. 76) et contrat.
-// Échéance, intérêt et montant à verser calculés ; le DAT attend sa validation par une autre personne, qui passe l'écriture (PCCI 340). Registre S65-1 à S65-8.
+// Épargne > Dépôts à terme (plan d'allègement, point 5.1) : une liste filtrée par statut, les actions permises sur chaque ligne, un bouton « Nouveau DAT ».
+// Reprend S65 mise en place (manuel Microfina++, p. 75 et 76), S66 validation et contrat (p. 76), S67 rupture (p. 76 et 77), S68 recherche (p. 77).
+// Le DAT attend sa validation par une autre personne, qui passe l'écriture (PCCI 340). Registre S65-1 à S65-13, S67-1 à S67-6.
 import { useState } from "react";
 import { ajouterMois, api, interetDat } from "../donnees/api";
 import type { Beneficiaire, Tiers } from "../donnees/types";
@@ -8,24 +9,22 @@ import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
 import { lireMontant, montant, montantEnLettres, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee, LigneFiltres } from "../composants";
 import { RechercheClient } from "./Visa";
-import { valeur as valeurCritere } from "../lib/rapports";
 
 type Dat = Awaited<ReturnType<typeof api.depotsTerme.liste>>[number];
 type Contrat = Awaited<ReturnType<typeof api.depotsTerme.contrat>>;
 const nomComplet = (t: Tiers) => t.intitule || [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
 const VIDE = { produit: "", compte: "", montant: "", duree: "", ti: "", tp: "", aEcheance: false, depot: "", observation: "", reconduction: false };
 
-export function MiseEnPlaceDat() {
+/** « Nouveau DAT » : la fenêtre de mise en place (S65) */
+function FormulaireDat({ fini }: { fini: () => void }) {
   const { donnees } = useDonnees(async () => ({ produits: await api.depotsTerme.produits(), j: await api.journees.courante() }));
   const [f, setF] = useState(VIDE);
   const [t, setT] = useState<Tiers | null>(null);
   const [fait, setFait] = useState<Dat | null>(null);
   const [cle, setCle] = useState(nouvelleCle);
   const [recherche, setRecherche] = useState(false);
-  const [liste, setListe] = useState<Dat[] | null>(null);
-  const [aAnnuler, setAAnnuler] = useState<Dat | null>(null);
   const [benef, setBenef] = useState<Beneficiaire[] | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   const { donnees: comptes } = useDonnees(() => (t ? api.tiers.comptes(t.id) : Promise.resolve([])), [t?.id]);
@@ -47,14 +46,6 @@ export function MiseEnPlaceDat() {
   const echeance = depot && mois ? ajouterMois(depot, mois) : "";
   const effacer = () => { setF(VIDE); setT(null); setFait(null); setCle(nouvelleCle()); };
 
-  /** Bouton Annuler (capture p. 75) : le DAT choisi dans Liste DAT, encore en attente de validation (registre S65-6) */
-  function annuler() {
-    if (!aAnnuler) return;
-    setBoite({ type: "confirmation", message: `Voulez-vous vraiment annuler le DAT n° ${String(aAnnuler.certificat).padStart(6, "0")} ?`, oui: async () => {
-      try { await api.depotsTerme.annuler(aAnnuler.id); setAAnnuler(null); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
-      catch (x) { setBoite({ type: "erreur", message: message(x) }); }
-    } });
-  }
   function enregistrer() {
     const d = { cle, produitId: p?.id, tiersId: t?.id, compteEmetteurId: f.compte ? Number(f.compte) : undefined,
       montant: m ?? 0, duree: mois, tauxInteret: f.ti, tauxPenalite: f.tp, aEcheance: f.aEcheance, dateDepot: depot, observation: f.observation, reconduction: f.reconduction };
@@ -66,12 +57,7 @@ export function MiseEnPlaceDat() {
 
   return (
     <>
-      <h2>Mise en place DAT</h2>
-      <div className="actions-onglets">
-        <button className="bouton secondaire" type="button" disabled={!aAnnuler} aria-label="Annuler un DAT" title="Annuler le DAT choisi dans Liste DAT" onClick={annuler}>⊘</button>
-        <button className="bouton secondaire" type="button" onClick={async () => setListe(await api.depotsTerme.liste())}>Liste DAT</button>
-      </div>
-      <section className="bloc pile" aria-label="Mise en place DAT">
+      <section className="pile" aria-label="Mise en place DAT">
         <div className="grille-deux">
           <fieldset className="pile cadre-champs">
             <legend>Infos de base</legend>
@@ -113,22 +99,16 @@ export function MiseEnPlaceDat() {
         <div className="actions-onglets">
           <button className="bouton" type="button" disabled={!!fait} onClick={enregistrer}>Enregistrer</button>
           <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
+          <button className="bouton secondaire" type="button" onClick={fini}>Fermer</button>
         </div>
         <p className="montant-lettres">{m ? montantEnLettres(m, dev) : ""}</p>
-        <Textes sources={["Manuel Microfina++, p. 75 (texte : numéro de compte du client, montant, durée en mois, compte émetteur, échéance, intérêt et montant à verser calculés, reconduction automatique) et p. 76 (capture Mise en place DAT)",
-          "PCCI, compte 34 : 340 Dépôts à terme ; compte 612 : 6121 plus de 12 mois, 6122 neuf mois au plus, 6124 six mois au plus",
-          "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur ; validation par une autre personne (Épargne > Dépôt à terme > Validation DAT)"]} />
       </section>
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut === "actif") : [])}
           choisir={(x) => { setT(x); maj({ compte: "" }); setRecherche(false); }} fermer={() => setRecherche(false)} />
       </Fiche>
       <FicheBeneficiaires lignes={benef} fermer={() => setBenef(null)} />
-      <Fiche titre="Liste DAT" ouverte={!!liste} fermer={() => setListe(null)}>
-        <ListeDat lignes={liste ?? []} avecStatut choisi={aAnnuler?.id ?? null} choisir={(y) => setAAnnuler(y.statut === "saisie" ? y : null)} />
-        <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setListe(null)}>Fermer</button></div>
-      </Fiche>
-      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+      <Dialogue boite={boite} fermer={() => { const b = boite; setBoite(null); if (b?.type === "succes") fini(); }} />
     </>
   );
 }
@@ -149,62 +129,88 @@ export function FicheBeneficiaires({ lignes, fermer }: { lignes: Beneficiaire[] 
     </Fiche>
   );
 }
-function ListeDat({ lignes, choisi, choisir, avecStatut }: { lignes: Dat[]; choisi?: number | null; choisir?: (x: Dat) => void; avecStatut?: boolean }) {
-  const statut = avecStatut ?? !choisir;
-  return (
-    <Paginee lignes={lignes}>{(visibles) => (<div className="defile-x"><table className="grille">
-      <thead><tr><th scope="col">Certificat</th><th scope="col">Date opération</th><th scope="col">N° compte</th><th scope="col">N° membre</th><th scope="col" className="montant">Montant dépôt</th>
-        <th scope="col">Durée</th><th scope="col">Taux interêt</th><th scope="col" className="montant">Montant interêt</th><th scope="col">Date échéance</th>{statut && <th scope="col">Statut</th>}</tr></thead>
-      <tbody>
-        {lignes.length === 0 && <tr><td colSpan={statut ? 10 : 9}>Aucune ligne.</td></tr>}
-        {visibles.map((x) => (
-          <tr key={x.id} {...(choisir ? { className: "ligne-choix", tabIndex: 0, "aria-selected": choisi === x.id, onClick: () => choisir(x), onKeyDown: (e: React.KeyboardEvent) => { if (e.key === "Enter") choisir(x); } } : {})}>
-            <td className="chiffres">{String(x.certificat).padStart(6, "0")}</td><td className="chiffres">{fr(x.dateDepot)}</td><td className="chiffres">{x.compteDat}</td><td className="chiffres">{x.membre}</td>
-            <td className="montant chiffres">{montant(x.montant, x.devise as Devise)}</td><td>{x.duree} mois</td><td className="chiffres">{x.tauxInteret} %</td>
-            <td className="montant chiffres">{montant(x.montantInteret, x.devise as Devise)}</td><td className="chiffres">{fr(x.dateEcheance)}</td>{statut && <td>{STATUTS[x.statut]}</td>}
-          </tr>
-        ))}
-      </tbody>
-    </table></div>)}</Paginee>
-  );
-}
-
-export function ValidationDat() {
+/** Épargne > Dépôts à terme (plan d'allègement, point 5.1) : chaque ligne montre les actions que le statut et les droits de l'utilisateur permettent */
+const FILTRES: [string, string, Dat["statut"][]][] = [["", "Tous", []], ["saisie", "À valider", ["saisie"]], ["valide", "En cours", ["valide"]],
+  ["echu", "Échus", ["echu", "reconduit"]], ["rompu", "Rompus", ["rompu"]], ["annule", "Annulés", ["annule"]]];
+export default function DepotsATerme() {
   const [relu, setRelu] = useState(0);
-  const { donnees } = useDonnees(() => api.depotsTerme.liste("saisie"), [relu]);
-  const [choisi, setChoisi] = useState<number | null>(null);
-  const [dernier, setDernier] = useState<Dat | null>(null);
+  const { donnees } = useDonnees(async () => {
+    const [lignes, u] = await Promise.all([api.depotsTerme.liste(), api.session.courante()]);
+    return { lignes, droits: new Set((u as { droits?: string[] } | null)?.droits ?? []) };
+  }, [relu]);
+  const [filtre, setFiltre] = useState("");
+  const [nouveau, setNouveau] = useState(false);
+  const [rompre, setRompre] = useState<Dat | null>(null);
   const [contrat, setContrat] = useState<Contrat | null>(null);
+  const [avis, setAvis] = useState<Contrat | null>(null);
+  const [piece, setPiece] = useState("");
   const [boite, setBoite] = useState<Boite | null>(null);
   if (!donnees) return <Chargement />;
-  function valider() {
-    if (choisi === null) { setBoite({ type: "erreur", message: "Choisir un DAT dans la liste." }); return; }
-    setBoite({ type: "confirmation", message: "Voulez-vous vraiment valider ?", oui: async () => {
-      try { setDernier(await api.depotsTerme.valider(choisi)); setChoisi(null); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
-      catch (x) { setBoite({ type: "erreur", message: message(x) }); }
-    } });
-  }
-  const pourContrat = choisi ?? dernier?.id ?? null;
+  const { droits } = donnees;
+  const statuts = FILTRES.find(([k]) => k === filtre)?.[2] ?? [];
+  const lignes = donnees.lignes.filter((x) => !statuts.length || statuts.includes(x.statut));
+  const relire = () => setRelu((v) => v + 1);
+  const confirmer = (question: string, faire: () => Promise<void>) => setBoite({ type: "confirmation", message: question, oui: async () => {
+    try { await faire(); relire(); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+    catch (e) { setBoite({ type: "erreur", message: message(e) }); }
+  } });
+  const num = (x: Dat) => String(x.certificat).padStart(6, "0");
+  const actions = (x: Dat) => {
+    const b: [string, () => void][] = [];
+    if (x.statut === "saisie" && droits.has("S66")) b.push(["Valider", () => confirmer("Voulez-vous vraiment valider ?", async () => { setPiece((await api.depotsTerme.valider(x.id)).piece ?? ""); })]);
+    if (x.statut === "saisie" && droits.has("S65")) b.push(["Annuler", () => confirmer(`Voulez-vous vraiment annuler le DAT n° ${num(x)} ?`, async () => { await api.depotsTerme.annuler(x.id); })]);
+    if (x.statut !== "annule" && x.statut !== "rompu") b.push(["Contrat", async () => setContrat(await api.depotsTerme.contrat(x.id))]);
+    if (x.statut === "valide" && droits.has("S67")) b.push(["Rompre", () => setRompre(x)]);
+    if (x.statut === "rompu") b.push(["Avis de rupture", async () => setAvis(await api.depotsTerme.contrat(x.id))]);
+    return b;
+  };
   return (
     <>
-      <h2>Validation DAT</h2>
-      <section className="bloc pile" aria-label="Validation DAT">
-        {(dernier?.piece ?? "") ? <p>Numéro de pièce : <strong className="chiffres">{dernier?.piece ?? ""}</strong></p> : null}
-        <fieldset className="pile cadre-champs">
-          <legend>Liste DAT à valider</legend>
-          <ListeDat lignes={donnees} choisi={choisi} choisir={(x) => setChoisi(x.id)} />
-        </fieldset>
-        <div className="actions-onglets">
-          <button className="bouton" type="button" disabled={choisi === null} onClick={valider}>Valider</button>
-          <button className="bouton secondaire" type="button" disabled={pourContrat === null} onClick={async () => pourContrat !== null && setContrat(await api.depotsTerme.contrat(pourContrat))}>Contrat</button>
+      <section className="bloc pile" aria-label="Dépôts à terme">
+        <div className="ligne-champ">
+          <Champ libelle="Statut :">{(pp) => <select {...pp} className="saisie" value={filtre} onChange={(e) => setFiltre(e.target.value)}>
+            {FILTRES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}</Champ>
+          {droits.has("S65") && <button className="bouton" type="button" onClick={() => setNouveau(true)}>Nouveau DAT</button>}
         </div>
-        <Textes sources={["Manuel Microfina++, p. 76 (texte : la liste des DAT en attente de validation, choisir puis Valider ; capture « Liste DAT à valider », boutons Valider et Contrat)",
-          "Quatre yeux : la validation vient d'une autre personne que celle qui a mis le DAT en place (Instr. BCC 008, art. 66) ; écriture au journal des opérations diverses, du compte émetteur au compte DAT (PCCI 340)"]} />
+        {piece ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}
+        <Paginee lignes={lignes} colonnes={(x) => [num(x), fr(x.dateDepot), x.membre, x.client, x.compteDat, montant(x.montant, x.devise as Devise), `${x.duree} mois`, `${x.tauxInteret} %`,
+          montant(x.montantInteret, x.devise as Devise), fr(x.dateEcheance), STATUTS[x.statut] ?? "", null]}>{(visibles) => (<div className="defile-x"><table className="grille">
+          <thead><tr><th scope="col">Certificat</th><th scope="col">Date dépôt</th><th scope="col">N° membre</th><th scope="col">Client</th><th scope="col">N° compte DAT</th>
+            <th scope="col" className="montant">Montant dépôt</th><th scope="col">Durée</th><th scope="col">Taux intérêt</th><th scope="col" className="montant">Montant intérêt</th>
+            <th scope="col">Date échéance</th><th scope="col">Statut</th><th scope="col"><span className="sr-only">Actions</span></th></tr>
+            <LigneFiltres titres={["Certificat", "Date dépôt", "N° membre", "Client", "N° compte DAT", "Montant dépôt", "Durée", "Taux intérêt", "Montant intérêt", "Date échéance", "Statut", null]} /></thead>
+          <tbody>
+            {visibles.length === 0 && <tr><td colSpan={12}>Aucune ligne.</td></tr>}
+            {visibles.map((x) => <tr key={x.id}>
+              <td className="chiffres">{num(x)}</td><td className="chiffres">{fr(x.dateDepot)}</td><td className="chiffres">{x.membre}</td><td>{x.client}</td><td className="chiffres">{x.compteDat}</td>
+              <td className="montant chiffres">{montant(x.montant, x.devise as Devise)}</td><td>{x.duree} mois</td><td className="chiffres">{x.tauxInteret} %</td>
+              <td className="montant chiffres">{montant(x.montantInteret, x.devise as Devise)}</td><td className="chiffres">{fr(x.dateEcheance)}</td><td>{STATUTS[x.statut]}</td>
+              <td><div className="ligne-champ">{actions(x).map(([l, f]) => <button key={l} className="bouton secondaire" type="button" aria-label={`${l} ${num(x)}`} onClick={f}>{l}</button>)}</div></td>
+            </tr>)}
+          </tbody>
+        </table></div>)}</Paginee>
+        <Textes sources={["Manuel Microfina++, p. 75 à 77 : mise en place, validation et contrat, rupture, recherche des DAT",
+          "Plan d'allègement, point 5.1 : une liste par statut, les actions sur la ligne, un bouton Nouveau DAT",
+          "Quatre yeux : la validation vient d'une autre personne que celle qui a mis le DAT en place (Instr. BCC 008, art. 66) ; écriture du compte émetteur au compte DAT (PCCI 340)",
+          "Rupture : retenue de 20 % sur l'intérêt brut des dépôts à échéance fixe des personnes physiques (loi 23/053, art. 78, 81 et 120), au compte 433 ; pénalité au compte 7791"]} />
       </section>
+      <Fiche titre="Mise en place DAT" ouverte={nouveau} fermer={() => setNouveau(false)}>
+        {nouveau && <FormulaireDat fini={() => { setNouveau(false); relire(); }} />}
+      </Fiche>
+      <Fiche titre="Rupture DAT" ouverte={!!rompre} fermer={() => { setRompre(null); relire(); }}>
+        {rompre && <FormulaireRupture dat={rompre} fini={(pc) => { setRompre(null); if (pc) setPiece(pc); relire(); }} />}
+      </Fiche>
       <Fiche titre="Contrat de dépôt à terme" ouverte={!!contrat} fermer={() => setContrat(null)}>
         {contrat && <ContratDat c={contrat} />}
         <div className="actions-onglets sans-impression">
           <button className="bouton secondaire" type="button" onClick={() => setContrat(null)}>Fermer</button>
+          <button className="bouton" type="button" onClick={() => imprimer(".fiche .a-imprimer")}>Imprimer</button>
+        </div>
+      </Fiche>
+      <Fiche titre="Avis de rupture de DAT" ouverte={!!avis} fermer={() => setAvis(null)}>
+        {avis && <AvisRupture c={avis} />}
+        <div className="actions-onglets sans-impression">
+          <button className="bouton secondaire" type="button" onClick={() => setAvis(null)}>Fermer</button>
           <button className="bouton" type="button" onClick={() => imprimer(".fiche .a-imprimer")}>Imprimer</button>
         </div>
       </Fiche>
@@ -250,14 +256,14 @@ function ContratDat({ c }: { c: Contrat }) {
 }
 
 type Apercu = Awaited<ReturnType<typeof api.depotsTerme.apercuRupture>>;
-/** S67 : Épargne > Dépôt à terme > Rupture de DAT (manuel p. 76 texte, p. 77 capture). Registre S67-1 à S67-6. */
-export function RuptureDat() {
-  const { donnees: j } = useDonnees(() => api.journees.courante());
+/** Action « Rompre » d'un DAT en cours : la fenêtre de S67 (manuel p. 76 texte, p. 77 capture). Registre S67-1 à S67-6. */
+function FormulaireRupture({ dat, fini }: { dat: Dat; fini: (piece?: string) => void }) {
+  const { donnees: j } = useDonnees(async () => { const jj = await api.journees.courante(); const d = jj && jj.statut === "ouverte" ? jj.date : "";
+    try { setCalc(await api.depotsTerme.apercuRupture(dat.id, d)); } catch (e) { setBoite({ type: "erreur", message: message(e) }); } return jj; }, [dat.id]);
   const [date, setDate] = useState("");
   const [demande, setDemande] = useState("");
-  const [choix, setChoix] = useState<Dat | null>(null);
+  const choix = dat;
   const [calc, setCalc] = useState<Apercu | null>(null);
-  const [liste, setListe] = useState<Dat[] | null>(null);
   const [fait, setFait] = useState<Dat | null>(null);
   const [avis, setAvis] = useState<Contrat | null>(null);
   const [benef, setBenef] = useState<Beneficiaire[] | null>(null);
@@ -266,13 +272,11 @@ export function RuptureDat() {
   const jour = j && j.statut === "ouverte" ? j.date : "";
   const dr = date || jour;
   async function calculer(x: Dat, d: string) {
-    setChoix(x); setFait(null);
+    setFait(null);
     try { setCalc(await api.depotsTerme.apercuRupture(x.id, d)); }
     catch (e) { setCalc(null); setBoite({ type: "erreur", message: message(e) }); }
   }
-  async function ouvrirListe() { setListe((await api.depotsTerme.liste("valide")).filter((x) => !dr || x.dateEcheance > dr)); }
   function rompre() {
-    if (!choix) { setBoite({ type: "erreur", message: "À remplir : Certificat N° (choisir le DAT dans la liste)." }); return; }
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment rompre ce DAT ?", oui: async () => {
       try { setFait(await api.depotsTerme.rompre(choix.id, { dateRupture: dr, dateDemande: demande || dr })); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
       catch (e) { setBoite({ type: "erreur", message: message(e) }); }
@@ -284,8 +288,7 @@ export function RuptureDat() {
   const mt = (v: number | undefined) => (x && v !== undefined ? montant(v, dev) : "");
   return (
     <>
-      <h2>Rupture DAT</h2>
-      <section className="bloc pile" aria-label="Rupture DAT">
+      <section className="pile" aria-label="Rupture DAT">
         <div className="grille-deux">
           {(fait?.rupture?.piece ?? "") ? <p>Numéro de pièce : <strong className="chiffres">{fait?.rupture?.piece ?? ""}</strong></p> : null}
           <ChampDate libelle="Date rupture : *" valeur={dr} onChange={(v) => { setDate(v); if (choix && !fait) void calculer(choix, v); }} requis />
@@ -293,10 +296,7 @@ export function RuptureDat() {
         <div className="grille-deux">
           <fieldset className="pile cadre-champs">
             <legend>Infos du DAT</legend>
-            <div className="ligne-champ">
-              <Champ libelle="Certificat N° :">{(pp) => <input {...pp} className="saisie code" readOnly value={x ? String(x.certificat).padStart(6, "0") : ""} />}</Champ>
-              <button className="bouton secondaire" type="button" aria-label="Rechercher un DAT" onClick={ouvrirListe}>Rechercher</button>
-            </div>
+            <Champ libelle="Certificat N° :">{(pp) => <input {...pp} className="saisie code" readOnly value={x ? String(x.certificat).padStart(6, "0") : ""} />}</Champ>
             <ChampDate libelle="Date demande :" valeur={demande || dr} onChange={setDemande} />
             <p>Durée prêt : <strong className="chiffres">{x ? `${x.duree} Mois` : "Mois"}</strong></p>
             <Champ libelle="Date échéance :">{(pp) => <input {...pp} className="saisie date" readOnly value={x ? fr(x.dateEcheance) : ""} />}</Champ>
@@ -326,18 +326,12 @@ export function RuptureDat() {
           </fieldset>
         </div>
         <div className="actions-onglets">
-          <button className="bouton" type="button" disabled={!choix || !!fait} onClick={rompre}>Rompre le DAT</button>
+          <button className="bouton" type="button" disabled={!!fait} onClick={rompre}>Rompre le DAT</button>
           <button className="bouton secondaire" type="button" disabled={!fait} onClick={async () => fait && setAvis(await api.depotsTerme.contrat(fait.id))}>Imprimer</button>
+          <button className="bouton secondaire" type="button" onClick={() => fini(fait?.rupture?.piece)}>Fermer</button>
         </div>
-        <Textes sources={["Manuel Microfina++, p. 76 (texte : la liste des DAT en attente de rupture, choisir le DAT par un double clic puis Rompre le DAT) et p. 77 (capture « Rupture DAT »)",
-          "Intérêt couru au prorata des jours, pénalité sur le montant du DAT (décisions du porteur, 15/11/2026)",
-          "Retenue de 20 % sur l'intérêt brut des dépôts à échéance fixe des personnes physiques (loi 23/053, art. 78, 81 et 120), au compte 433 ; pénalité au compte 7791 ; intérêt au compte 612 de la durée du DAT (PCCI)"]} />
       </section>
       <FicheBeneficiaires lignes={benef} fermer={() => setBenef(null)} />
-      <Fiche titre="Liste DAT à rompre" ouverte={!!liste} fermer={() => setListe(null)}>
-        {liste && <ListeDat lignes={liste} choisi={choix?.id ?? null} choisir={(y) => { setListe(null); void calculer(y, dr); }} />}
-        <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setListe(null)}>Fermer</button></div>
-      </Fiche>
       <Fiche titre="Avis de rupture de DAT" ouverte={!!avis} fermer={() => setAvis(null)}>
         {avis && <AvisRupture c={avis} />}
         <div className="actions-onglets sans-impression">
@@ -380,87 +374,5 @@ function AvisRupture({ c }: { c: Contrat }) {
         <span>{[e.agrement && `Agrément BCC n° ${e.agrement}`, e.ifu && `N° impôt : ${e.ifu}`, e.bp && `B.P. ${e.bp}`].filter(Boolean).join(" · ")}</span>
       </footer>
     </article>
-  );
-}
-
-type LigneRecherche = Awaited<ReturnType<typeof api.depotsTerme.recherche>>[number];
-const CRITERES_DAT = [["agence", "Agence"], ["agent", "Agent de crédit"], ["genre", "Genre"], ["produit", "Produit"], ["objet", "Objet du crédit"], ["terme", "Terme du crédit"],
-  ["profession", "Profession"], ["categorie", "Catégorie"], ["zone", "Zone"], ["nationalite", "Nationalité"], ["gestionnaire", "Gestionnaire"], ["secteur", "Secteur"], ["montant", "Montant"]] as const;
-type CritereDat = (typeof CRITERES_DAT)[number][0];
-
-/** S68 : Épargne > Dépôt à terme > Recherche multicritères DAT (manuel p. 77). Registre S68-1 à S68-4. */
-export function RechercheDat() {
-  const { donnees } = useDonnees(async () => ({ ctx: await api.referentiel.contexte(), clients: await api.rapports.clients(), j: await api.journees.courante() }));
-  const [choix, setChoix] = useState<"mise_en_place" | "echus" | "encours">("mise_en_place");
-  const [coches, setCoches] = useState<Set<CritereDat>>(() => new Set(CRITERES_DAT.map(([k]) => k)));
-  const [du, setDu] = useState(""); const [au, setAu] = useState("");
-  const [lignes, setLignes] = useState<LigneRecherche[] | null>(null);
-  const [boite, setBoite] = useState<Boite | null>(null);
-  if (!donnees) return <Chargement />;
-  const { ctx, clients } = donnees;
-  const agents = Object.fromEntries([...ctx.gestionnaires, ...ctx.commerciaux, ...ctx.sensibilisateurs].map((a) => [a.id, a.nom]));
-  const cx = { agence: ctx.agence.nom, agents };
-  const fin = au || donnees.j?.date || "", debut = du || (fin ? `${fin.slice(0, 4)}-01-01` : "");
-  const cols = CRITERES_DAT.filter(([k]) => coches.has(k));
-  const cellule = (x: LigneRecherche, k: CritereDat) => {
-    const t = clients.find((c) => c.id === x.tiersId);
-    switch (k) {
-      case "agence": return x.agence; case "agent": return x.agent; case "produit": return x.produit; case "terme": return x.terme;
-      case "objet": return "";   // pas d'objet pour un dépôt (registre S68-2)
-      case "montant": return montant(x.montant, x.devise as Devise);
-      case "profession": return t?.profession ?? "";
-      default: return t ? valeurCritere(t, k, cx) : "";
-    }
-  };
-  async function valider() {
-    try { setLignes(await api.depotsTerme.recherche(choix, debut, fin)); }
-    catch (e) { setBoite({ type: "erreur", message: message(e) }); }
-  }
-  const basculer = (k: CritereDat) => setCoches((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
-  const totaux = lignes && coches.has("montant") ? Object.entries(lignes.reduce<Record<string, number>>((m, x) => ({ ...m, [x.devise]: (m[x.devise] ?? 0) + x.montant }), {})) : [];
-  return (
-    <>
-      <h2>Recherche multicritères DAT</h2>
-      <section className="bloc pile" aria-label="Recherche multicritères DAT">
-        <div className="grille-deux">
-          <fieldset className="pile cadre-champs">
-            <legend>Recherche par</legend>
-            <fieldset className="pile cadre-champs">
-              <legend>Choix</legend>
-              {([["mise_en_place", "Mise en place"], ["echus", "Echûs"], ["encours", "Encours"]] as const).map(([v, l]) =>
-                <label key={v} className="case"><input type="radio" name="choix-dat" checked={choix === v} onChange={() => { setChoix(v); setLignes(null); }} /><span>{l}</span></label>)}
-            </fieldset>
-            {CRITERES_DAT.map(([k, l]) => <label key={k} className="case"><input type="checkbox" checked={coches.has(k)} onChange={() => basculer(k)} /><span>{l}</span></label>)}
-          </fieldset>
-          <div className="pile">
-            <fieldset className="pile cadre-champs">
-              <legend>Date de recherche</legend>
-              <div className="ligne-champ">
-                <ChampDate libelle="Du" valeur={debut} onChange={(v) => { setDu(v); setLignes(null); }} />
-                <ChampDate libelle="Au" valeur={fin} onChange={(v) => { setAu(v); setLignes(null); }} />
-                <button className="bouton" type="button" onClick={valider}>Valider</button>
-              </div>
-            </fieldset>
-            <fieldset className="pile cadre-champs">
-              <legend>Element de recherche</legend>
-              {lignes && <div className="defile-x"><table className="grille">
-                <thead><tr><th scope="col">Certificat</th><th scope="col">Date dépôt</th><th scope="col">Date échéance</th><th scope="col">N° compte DAT</th><th scope="col">Client</th>
-                  {cols.map(([k, l]) => <th key={k} scope="col" className={k === "montant" ? "montant" : undefined}>{l}</th>)}</tr></thead>
-                <tbody>
-                  {lignes.length === 0 && <tr><td colSpan={5 + cols.length}>Aucune ligne.</td></tr>}
-                  {lignes.map((x) => <tr key={x.id}><td className="chiffres">{String(x.certificat).padStart(6, "0")}</td><td className="chiffres">{fr(x.dateDepot)}</td>
-                    <td className="chiffres">{fr(x.dateEcheance)}</td><td className="chiffres">{x.compteDat}</td><td>{x.client}</td>
-                    {cols.map(([k]) => <td key={k} className={k === "montant" ? "montant chiffres" : undefined}>{cellule(x, k)}</td>)}</tr>)}
-                </tbody>
-                {totaux.length > 0 && <tfoot>{totaux.map(([d, m]) => <tr key={d}><th scope="row" colSpan={4 + cols.length}>Total {d}</th><td className="montant chiffres">{montant(m, d as Devise)}</td></tr>)}</tfoot>}
-              </table></div>}
-            </fieldset>
-          </div>
-        </div>
-        <Textes sources={["Manuel Microfina++, p. 77 (texte : date de début et de fin, cocher les éléments recherchés, Valider ; capture « Recherche par » : Mise en place, Echûs, Encours et treize cases)",
-          "Terme selon la durée, comme le classement des crédits du PCCI (comptes 30 à 32) : un an au plus court terme, 1 à 5 ans moyen terme, au-delà long terme"]} />
-      </section>
-      <Dialogue boite={boite} fermer={() => setBoite(null)} />
-    </>
   );
 }

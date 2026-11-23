@@ -551,7 +551,8 @@
     "but": "Constituer un DAT à partir d'un compte",
     "module": "epargne",
     "priorite": "must",
-    "chemin": "/epargne/s65"
+    "chemin": "/epargne/s65",
+    "menu": false
   },
   {
     "id": "S66",
@@ -560,7 +561,8 @@
     "but": "Valider les DAT saisis ; imprimer le contrat",
     "module": "epargne",
     "priorite": "should",
-    "chemin": "/epargne/s66"
+    "chemin": "/epargne/s66",
+    "menu": false
   },
   {
     "id": "S67",
@@ -569,13 +571,14 @@
     "but": "Rompre un DAT avant terme",
     "module": "epargne",
     "priorite": "should",
-    "chemin": "/epargne/s67"
+    "chemin": "/epargne/s67",
+    "menu": false
   },
   {
     "id": "S68",
-    "nom": "Recherche des DAT",
-    "acces": "Épargne > Dépôt à terme > Recherche multicritère",
-    "but": "Rechercher par type d'opération et période",
+    "nom": "Dépôts à terme",
+    "acces": "Épargne > Dépôts à terme",
+    "but": "Lister les DAT par statut ; mettre en place, valider, imprimer le contrat, annuler, rompre",
     "module": "epargne",
     "priorite": "must",
     "chemin": "/epargne/s68"

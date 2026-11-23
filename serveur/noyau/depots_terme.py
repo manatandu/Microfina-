@@ -201,6 +201,8 @@ def annuler(u, did: int) -> dict:
     x = une("select * from depot_terme where id = %s and institution_id = %s for update", (did, u["institution_id"]))
     if not x or x["statut"] != "saisie":
         raise ErreurMetier("Seul un DAT en attente de validation s'annule ; un DAT validé se rompt (Rupture de DAT).")
+    if x["saisi_par"] != u["id"]:                      # plan d'allègement, point 5.1 : annulé par son auteur
+        raise ErreurMetier("Seule la personne qui a mis ce DAT en place peut l'annuler.")
     executer("update depot_terme set statut = 'annule' where id = %s", (did,))
     return vue(une("select * from depot_terme where id = %s", (did,)))
 
