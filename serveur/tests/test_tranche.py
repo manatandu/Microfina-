@@ -1757,7 +1757,6 @@ def test_visas_credit(clients, journee):
     # qui a vérifié n'autorise pas (Instr. BCC 008, art. 66 ; registre CR-28)
     assert "Séparation des tâches" in clients["resp"].post(f"/api/credit/visas/{cid}/service_financier", {"avis": "accepte"}, **H).json()["message"]
     assert chef.post(f"/api/credit/visas/{cid}/service_financier", {"avis": "accepte"}, **H).json()["statut"] == "vise"
-    assert [x["id"] for x in chef.get("/api/credit/valides-non-debloques?du=2026-01-01&au=2026-12-31", **H).json()] == [cid]
     h = chef.get("/api/credit/visas-historique?niveau=comite&avis=accepte&du=2026-01-01&au=2026-12-31", **H).json()
     assert h[0]["numero"] == "0412/L001/00001" and h[0]["referencePv"] == "PV-1" and len(h[0]["membres"]) == 3
 
@@ -1938,8 +1937,9 @@ def test_remboursement_caisse(clients, journee):
     assert len(s["reel"]) == 2 and s["reel"][1]["repartition"]["anticipation"] > 0 and s["reel"][-1]["capitalRestant"] == 0
     assert balance_equilibree(caisse)
     assert "pas en cours" in refus(base)
-    assert chef.post(f"/api/credit/credits/{cid}/memos", {"texte": "Client prévenu par téléphone"}, **H).status_code == 403
-    assert caisse.post(f"/api/credit/credits/{cid}/memos", {"texte": "Client prévenu"}, **H).json()[0]["texte"] == "Client prévenu"
+    # plan 6.4 : le chef d'agence ouvre la fiche du crédit depuis le portefeuille, et peut y noter un mémo
+    assert chef.post(f"/api/credit/credits/{cid}/memos", {"texte": "Client prévenu par téléphone"}, **H).status_code == 200
+    assert "Client prévenu" in [x["texte"] for x in caisse.post(f"/api/credit/credits/{cid}/memos", {"texte": "Client prévenu"}, **H).json()]
 
 
 def test_remboursement_banque(clients, journee):
@@ -2018,6 +2018,26 @@ def test_etat_credit(clients, journee):
     assert q(du="2026-11-01", au="2026-11-05", operateur=">", montant=100000000).json() == []
     assert "Date début" in q(du="2026-11-06", au="2026-11-05").json()["message"]
     assert caisse.get("/api/credit/etat", {"du": "2026-11-01", "au": "2026-11-05"}, **H).status_code == 403
+
+
+def test_portefeuille_credit(clients, journee):
+    """Plan d'allègement, point 6.4 : le portefeuille (S93) montre la demande puis le crédit selon son état ; l'historique du crédit (registre S93-5 à S93-7)"""
+    chef = clients["chef"]
+    q = lambda **k: chef.get("/api/credit/portefeuille", {"du": "2026-01-01", "au": "2026-12-31", **k}, **H)
+    _, did, _ = demande_verifiee(clients)
+    r = q()
+    assert r.status_code == 200, r.content
+    assert [(x["type"], x["id"], x["etat"], x["statut"]) for x in r.json()] == [("demande", did, "verifie", "Vérifié")]
+    assert q(etat="demande").json() == []
+    assert chef.post(f"/api/credit/dossiers/{did}/approbation", {"montantApprouve": 100000000, **DECISION}, **H).status_code == 200
+    cid = ident("select id from credit where demande_id = %s", (did,))
+    assert [(x["type"], x["id"], x["etat"]) for x in q().json()] == [("credit", cid, "decide")]
+    assert chef.post(f"/api/credit/visas/{cid}/service_financier", {"avis": "accepte"}, **H).json()["statut"] == "vise"
+    assert [x["etat"] for x in q(etat="vise").json()] == ["vise"] and q(etat="decide").json() == []
+    assert "État inconnu" in q(etat="x").json()["message"]
+    h = chef.get(f"/api/credit/credits/{cid}/historique", **H).json()
+    assert [x["etape"] for x in h] == ["Demande", "Vérification", "Décision", "Visa du service financier"]
+    assert clients["caisse"].get("/api/credit/portefeuille", {"du": "2026-01-01", "au": "2026-12-31"}, **H).status_code == 403
 
 
 def test_garanties(clients, journee):

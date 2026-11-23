@@ -4037,9 +4037,10 @@ const affectation = {
 // Sur une période (date d'approbation) ou à une date fixe ; produit, niveau de validation, agent, montant prêt, crédits archivés. Registre S93-1 à S93-4. ----------
 const STATUTS_CREDIT: Record<CreditPret["statut"], string> = { mis_en_place: "Mis en place", vise: "Visé", debloque: "Débloqué", solde: "Soldé", refuse: "Refusé", passe_en_perte: "Passé en perte" };
 const OPERATEURS_MONTANT: Record<string, (a: number, b: number) => boolean> = { "=": (a, b) => a === b, ">": (a, b) => a > b, "<": (a, b) => a < b, ">=": (a, b) => a >= b, "<=": (a, b) => a <= b };
+type FiltresSituation = { mode?: string; du?: string; au?: string; date?: string; produitId?: number | null; niveau?: string | null; agentId?: number | null; operateur?: string | null;
+  montant?: number | null; archives?: boolean };
 const etatCredits = {
-  situation(p: { mode?: string; du?: string; au?: string; date?: string; produitId?: number | null; niveau?: string | null; agentId?: number | null; operateur?: string | null;
-    montant?: number | null; archives?: boolean }) {
+  situation(p: FiltresSituation) {
     lectureAdmin(["S93"]);
     let d1: string | null = null, d: string;
     if (p.mode === "date") d = dateVisa(p.date ?? "", "Date");
@@ -4058,7 +4059,50 @@ const etatCredits = {
         contact: ficheClient(c.tiersId).telephone, statut: STATUTS_CREDIT[c.statut], capitalRestant: s ? s.capitalRestant : null, joursRetard: s ? s.joursRetard : null, degre: s ? s.degreLibelle : "" };
     });
   },
+  /** Plan d'allègement, point 6.4 : le portefeuille de crédits, demandes en cours et refusées comprises ; prorogé et contentieux précisent l'état d'un crédit
+   *  débloqué (Instr. BCC 003, art. 5 et 8). Registre S93-5 à S93-7 */
+  portefeuille(p: FiltresSituation & { etat?: string | null }) {
+    if (p.etat && !ETATS_PORTEFEUILLE[p.etat]) throw new ErreurMetier("État inconnu.");
+    const etats = p.etat ? [p.etat] : p.archives ? Object.keys(ETATS_PORTEFEUILLE) : EN_COURS_PORTEFEUILLE;
+    const credits = etatCredits.situation({ ...p, archives: true }).map((x) => { const e = etatPortefeuille(E.credits.find((c) => c.id === x.id)!);
+      return { ...x, type: "credit" as "credit" | "demande", dateDemande: x.dateDemande, dateApprobation: x.dateApprobation as string | null, duree: x.duree, etat: e, statut: ETATS_PORTEFEUILLE[e]!, refusNiveau: "", appel: "" }; })
+      .filter((x) => etats.includes(x.etat));
+    if (p.niveau) return credits;
+    const d2 = p.mode === "date" ? p.date! : p.au!, d1 = p.mode === "date" ? null : p.du!;
+    const k = { saisie: "demande", controlee: "verifie", rejetee: "refuse" } as Record<string, string>;
+    const demandes = E.demandes.filter((x) => k[x.statut] && etats.includes(k[x.statut]!) && x.creeLe.slice(0, 10) <= d2 && (!d1 || x.creeLe.slice(0, 10) >= d1)
+      && (!p.produitId || x.produitId === p.produitId) && (!p.agentId || ((x as { agentId?: number }).agentId ?? x.saisiPar) === p.agentId)
+      && (!p.operateur || OPERATEURS_MONTANT[p.operateur]!(x.montant, p.montant!))).map((x) => { const t = E.tiers.find((y) => y.id === x.tiersId)!, e = k[x.statut]!;
+      return { type: "demande" as "credit" | "demande", id: x.id, numero: x.numero, dateDemande: x.creeLe.slice(0, 10), dateApprobation: null as string | null, compte: "", membre: t.numero,
+        client: titulaire(t), contact: ficheClient(t.id).telephone, groupe: t.type === "groupe" ? titulaire(t) : "", montant: x.montant, devise: x.devise as string, duree: x.duree,
+        produit: String(E.produitsCredit.find((y) => y.id === x.produitId)?.nom ?? ""), agentId: x.saisiPar, agent: nomUtilisateur(x.saisiPar), etat: e, statut: ETATS_PORTEFEUILLE[e]!,
+        capitalRestant: null as number | null, joursRetard: null as number | null, degre: "", refusNiveau: x.refusNiveau ?? "", appel: x.appelDecision ?? "" }; });
+    return [...credits, ...demandes];
+  },
+  historique(cid: number) {
+    lectureAdmin(["S93", "S95"]);
+    const c = E.credits.find((x) => x.id === cid); if (!c) throw new ErreurMetier("Crédit introuvable.");
+    const d = E.demandes.find((x) => x.id === c.demandeId)!;
+    const h: { date: string; etape: string; par: string; detail: string }[] = [{ date: d.creeLe.slice(0, 10), etape: "Demande", par: nomUtilisateur(d.saisiPar), detail: "" }];
+    if (d.controleLe) h.push({ date: d.controleLe.slice(0, 10), etape: "Vérification", par: nomUtilisateur(d.controlePar ?? undefined), detail: "Accepté" });
+    if (d.approuveLe) h.push({ date: d.approuveLe.slice(0, 10), etape: "Décision", par: nomUtilisateur(d.approuvePar ?? undefined), detail: "Accepté" + (d.appelDecision === "accorde" ? `, appel au Conseil ${d.appelReference}` : "") });
+    for (const v of E.visasCredit.filter((x) => x.creditId === cid && x.niveau === "service_financier"))
+      h.push({ date: v.le.slice(0, 10), etape: "Visa du service financier", par: nomUtilisateur(v.par), detail: (v.avis === "accepte" ? "Accepté" : "Refusé") + (v.motif ? ` : ${v.motif}` : "") });
+    if (c.debloqueLe) h.push({ date: c.debloqueLe, etape: "Déblocage", par: "", detail: "" });
+    for (const x of E.prorogations.filter((y) => y.creditId === cid)) h.push({ date: x.date, etape: "Prorogation", par: nomUtilisateur(x.par), detail: `${x.mois} mois : ${x.motif}` });
+    for (const x of E.contentieux.filter((y) => y.creditId === cid).sort((a, b) => a.id - b.id)) {
+      h.push({ date: x.ouvertLe, etape: "Contentieux ouvert", par: nomUtilisateur(x.ouvertPar), detail: x.reference });
+      if (x.closLe) h.push({ date: x.closLe, etape: "Contentieux clos", par: nomUtilisateur((x as { closPar?: number }).closPar), detail: x.issue });
+    }
+    if (c.radieLe) h.push({ date: c.radieLe, etape: "Passage en perte", par: "", detail: "" });
+    return h;   // dans l'ordre des étapes, comme le serveur
+  },
 };
+const ETATS_PORTEFEUILLE: Record<string, string> = { demande: "Demandé", verifie: "Vérifié", decide: "Décidé", vise: "Visé", debloque: "Débloqué", solde: "Soldé", refuse: "Refusé",
+  proroge: "Prorogé", contentieux: "Contentieux", perte: "Passé en perte" };
+const EN_COURS_PORTEFEUILLE = ["demande", "verifie", "decide", "vise", "debloque", "proroge", "contentieux"];
+const etatPortefeuille = (c: CreditPret) => c.statut === "debloque" ? (E.contentieux.some((x) => x.creditId === c.id && !x.closLe) ? "contentieux" : E.prorogations.some((x) => x.creditId === c.id) ? "proroge" : "debloque")
+  : ({ mis_en_place: "decide", vise: "vise", solde: "solde", refuse: "refuse", passe_en_perte: "perte" } as Record<string, string>)[c.statut]!;
 
 // ---------- S75 et S54 : déblocage du crédit, au guichet (manuel p. 86 et 87) et par banque (p. 62). Mêmes règles que serveur/noyau/deblocage.py.
 // Retenues sur le prêt (CR-6), épargne obligatoire et fonds de solidarité bloqués en garantie, échéancier recalé avec report au jour ouvré (S75-1),

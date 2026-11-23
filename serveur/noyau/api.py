@@ -502,6 +502,23 @@ def credit_etat(request):
                                       "archives": g.get("archives") == "1"})
 
 
+@api.get("/credit/portefeuille")
+def credit_portefeuille(request):
+    """Plan d'allègement, point 6.4 : portefeuille de crédits (S93)"""
+    from . import etat_credit as ec
+    g = request.GET
+    n = lambda k: int(g[k]) if g.get(k, "").lstrip("-").isdigit() else None
+    return ec.portefeuille(u(request), {"mode": g.get("mode"), "du": g.get("du"), "au": g.get("au"), "date": g.get("date"), "produitId": n("produitId"),
+                                         "niveau": g.get("niveau") or None, "agentId": n("agentId"), "operateur": g.get("operateur") or None, "montant": n("montant"),
+                                         "archives": g.get("archives") == "1", "etat": g.get("etat") or None})
+
+
+@api.get("/credit/credits/{cid}/historique")
+def credit_historique(request, cid: int):
+    from . import etat_credit as ec
+    return ec.historique(u(request), cid)
+
+
 # ---------- S94 : caution et nantissement (p. 116 à 118) ----------
 @api.get("/credit/garanties/clients/{tid}")
 def garanties_credits(request, tid: int):

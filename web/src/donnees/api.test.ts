@@ -2233,9 +2233,22 @@ describe("journée de guichet", () => {
     await expect(api.visasCredit.viser(cid, "service_financier", { avis: "accepte" })).rejects.toThrow("Séparation des tâches");   // registre CR-28
     await connecter("jpmukendi");
     expect((await api.visasCredit.viser(cid, "service_financier", { avis: "accepte" })).statut).toBe("vise");
-    expect((await api.visasCredit.validesNonDebloques("2026-01-01", "2026-12-31")).map((x) => x.id)).toEqual([cid]);
     const h = await api.visasCredit.historique("comite", "accepte", "2026-01-01", "2026-12-31");
     expect([h[0]!.numero, h[0]!.referencePv, h[0]!.membres.length]).toEqual(["0412/L001/00001", "PV-1", 3]);
+  });
+
+  it("portefeuille de crédits (plan 6.4) : la demande puis le crédit selon son état ; historique du crédit (registre S93-5 à S93-7, comme le serveur)", async () => {
+    const did = await demandeVerifiee();
+    await connecter("jpmukendi");
+    const q = (etat?: string) => api.etatCredits.portefeuille({ du: "2026-01-01", au: "2026-12-31", etat: etat ?? null });
+    expect((await q()).map((x) => [x.type, x.id, x.etat, x.statut])).toEqual([["demande", did, "verifie", "Vérifié"]]);
+    expect(await q("demande")).toEqual([]);
+    const cid = (await api.dossiers.approuver(did, { montantApprouve: 100000000, ...DECISION })).creditId!;
+    expect((await q()).map((x) => [x.type, x.id, x.etat])).toEqual([["credit", cid, "decide"]]);
+    await api.visasCredit.viser(cid, "service_financier", { avis: "accepte" });
+    expect([(await q("vise")).map((x) => x.etat), await q("decide")]).toEqual([["vise"], []]);
+    await expect(q("x")).rejects.toThrow("État inconnu");
+    expect((await api.etatCredits.historique(cid)).map((x) => x.etape)).toEqual(["Demande", "Vérification", "Décision", "Visa du service financier"]);
   });
 
   it("vérification et décision (plan 6.1) : un refus arrête la demande, aucun crédit ; commission unanime ; appel au Conseil (B29 ; Instr. BCC 007, art. 18)", async () => {

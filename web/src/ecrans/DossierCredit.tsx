@@ -7,10 +7,9 @@ import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { lireMontant, montant, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Paginee, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
 import { RechercheClient } from "./Visa";
 
-type Demande = Awaited<ReturnType<typeof api.dossiers.lister>>[number];
 const nomComplet = (t: Tiers) => t.intitule || [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
 const EFFECTIFS = [["nbHommes", "Effectif hommes", "n"], ["nbFemmes", "Effectif femmes", "n"], ["montantHommes", "Montant hommes", "m"], ["montantFemmes", "Montant femmes", "m"],
   ["nbGroupes", "Nombre de groupes solidaires", "n"]] as const;
@@ -160,19 +159,6 @@ export function DemandeCredit() {
   );
 }
 
-function Grille({ lignes, choisir, choisie }: { lignes: Demande[]; choisir: (d: Demande) => void; choisie?: number }) {
-  return (
-    <Paginee lignes={lignes}>{(v) => (<div className="defile-x"><table className="grille">
-      <thead><tr><th scope="col">N° demande</th><th scope="col">Date</th><th scope="col">N° client</th><th scope="col">Intitulé</th><th scope="col">Produit</th>
-        <th scope="col" className="num">Montant</th><th scope="col" className="num">Durée (mois)</th><th scope="col">Saisi par</th></tr></thead>
-      <tbody>{v.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
-        {v.map((x) => <tr key={x.id} aria-selected={x.id === choisie} onClick={() => choisir(x)}>
-          <td className="code">{x.numero}</td><td className="chiffres">{fr(x.date)}</td><td className="code">{x.membre}</td><td>{x.client}</td><td>{x.produit}</td>
-          <td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td><td className="num chiffres">{x.duree}</td><td>{x.saisiPar}</td></tr>)}</tbody>
-    </table></div>)}</Paginee>
-  );
-}
-
 const AVIS = [["accepte", "Accepté"], ["refuse", "Refusé"]] as const;
 function ChoixAvis({ avis, motif, maj }: { avis: string; motif: string; maj: (x: { avis?: string; motif?: string }) => void }) {
   return <>
@@ -182,116 +168,98 @@ function ChoixAvis({ avis, motif, maj }: { avis: string; motif: string; maj: (x:
   </>;
 }
 
-/** S87, Vérification (plan d'allègement, point 6.1) : le contrôle (2.9 à 2.12) et le visa du responsable crédit réunis. Le responsable relit le dossier,
- * ressaisit le seul montant sans le voir, note la consultation de la Centrale des risques (Instr. BCC 05, art. 4 et 13), donne son avis. */
-export function ControleDemande() {
-  const [relu, setRelu] = useState(0);
-  const { donnees } = useDonnees(() => Promise.all([api.dossiers.lister("saisie"), api.journees.courante()]), [relu]);
-  const [d, setD] = useState<Demande | null>(null);
-  const [f, setF] = useState({ montant: "", crLe: "", crRef: "", avis: "", motif: "" });
+/** S87, Vérification (plan d'allègement, points 6.1 et 6.4) : le contrôle (2.9 à 2.12) et le visa du responsable crédit réunis, ouverts depuis la ligne du
+ * portefeuille. Le responsable relit le dossier, ressaisit le seul montant sans le voir, note la consultation de la Centrale des risques
+ * (Instr. BCC 05, art. 4 et 13), donne son avis. */
+export function FormulaireVerification({ id, fini }: { id: number; fini: (msg?: string) => void }) {
+  const { donnees } = useDonnees(() => Promise.all([api.dossiers.lister("saisie"), api.journees.courante()]), [id]);
+  const [f, setF] = useState<{ montant: string; crLe: string | null; crRef: string; avis: string; motif: string }>({ montant: "", crLe: null, crRef: "", avis: "", motif: "" });
   const [boite, setBoite] = useState<Boite | null>(null);
   if (!donnees) return <Chargement />;
   const [liste, j] = donnees;
+  const d = liste.find((x) => x.id === id);
+  if (!d) return <p>Cette demande n'est plus à vérifier.</p>;
+  const crLe = f.crLe ?? j?.date ?? "";
   function enregistrer() {
     if (!d) return;
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer la vérification ?", oui: async () => {
-      try { const r = await api.dossiers.controler(d.id, { avis: f.avis, motif: f.motif, montant: somme(f.montant), consultationCrLe: f.crLe, consultationCrRef: f.crRef.trim() });
-        setD(null); setRelu((v) => v + 1); setBoite({ type: "succes", message: r.statut === "rejetee" ? "Demande refusée." : "Demande vérifiée : elle passe à la décision." }); }
+      try { const r = await api.dossiers.controler(d.id, { avis: f.avis, motif: f.motif, montant: somme(f.montant), consultationCrLe: crLe, consultationCrRef: f.crRef.trim() });
+        fini(r.statut === "rejetee" ? "Demande refusée." : "Demande vérifiée : elle passe à la décision."); }
       catch (x) { setBoite({ type: "erreur", message: message(x) }); }
     } });
   }
   return (
-    <>
-      <section className="bloc pile" aria-label="Vérification de la demande">
-        <Grille lignes={liste} choisir={(x) => { setD(x); setF({ montant: "", crLe: j?.date ?? "", crRef: "", avis: "", motif: "" }); }} choisie={d?.id} />
-        <Textes sources={["Manuel Microfina++, p. 113, 2.9 à 2.12 (contrôle) et p. 114, 4-1 (visa du responsable crédit) ; plan d'allègement, point 6.1 : une seule vérification",
-          "Instr. BCC 05, art. 4 et 13 : consultation de la Centrale des risques avant l'octroi ; Instr. BCC 008, art. 66 : vérification par un autre utilisateur que celui qui a saisi"]} />
-      </section>
-      <Fiche titre={`Vérification de la demande ${d?.numero ?? ""}`} ouverte={!!d} fermer={() => setD(null)}>
-        {d && <div className="pile">
-          <p>{d.client} · {d.produit} · {d.duree} mois{d.differe ? `, différé ${d.differe} mois` : ""} · {d.objet}{d.usagePrecis ? ` (${d.usagePrecis})` : ""}</p>
-          <Champ libelle="Montant (ressaisi) *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={f.montant} onChange={(e) => setF({ ...f, montant: e.target.value })} />}</Champ>
-          <ChampDate libelle="Consultation de la Centrale des risques le *" valeur={f.crLe} onChange={(v) => setF({ ...f, crLe: v })} />
-          <Champ libelle="Référence du rapport de la Centrale *">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.crRef} onChange={(e) => setF({ ...f, crRef: e.target.value })} />}</Champ>
-          <ChoixAvis avis={f.avis} motif={f.motif} maj={(x) => setF({ ...f, ...x })} />
-          <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
-            <button className="bouton secondaire" type="button" onClick={() => setD(null)}>Fermer</button></div>
-        </div>}
-      </Fiche>
+    <div className="pile">
+      <p>{d.client} · {d.produit} · {d.duree} mois{d.differe ? `, différé ${d.differe} mois` : ""} · {d.objet}{d.usagePrecis ? ` (${d.usagePrecis})` : ""}</p>
+      <Champ libelle="Montant (ressaisi) *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={f.montant} onChange={(e) => setF({ ...f, montant: e.target.value })} />}</Champ>
+      <ChampDate libelle="Consultation de la Centrale des risques le *" valeur={crLe} onChange={(v) => setF({ ...f, crLe: v })} />
+      <Champ libelle="Référence du rapport de la Centrale *">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.crRef} onChange={(e) => setF({ ...f, crRef: e.target.value })} />}</Champ>
+      <ChoixAvis avis={f.avis} motif={f.motif} maj={(x) => setF({ ...f, ...x })} />
+      <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
+        <button className="bouton secondaire" type="button" onClick={() => fini()}>Fermer</button></div>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
-    </>
+    </div>
   );
 }
 
-/** S88, Décision (plan d'allègement, point 6.1) : l'approbation (2.13 à 2.15) et le visa du comité réunis ; montant approuvé ressaisi, commission de crédit
- * d'une COOPEC (trois membres, unanimité), plafonds et apparentés ; le crédit naît à la décision. Refus de la commission : appel au Conseil (B29). */
-export function ApprobationDemande() {
-  const [relu, setRelu] = useState(0);
-  const { donnees } = useDonnees(() => Promise.all([api.dossiers.lister("controlee"), api.dossiers.contexte(), api.dossiers.lister("rejetee")]), [relu]);
-  const [choisie, setChoisie] = useState<Demande | null>(null);
-  const VIDE = { montant: "", conseil: "", bcc: "", pv: "", avis: "", motif: "", membres: [{ nom: "", avis: "" }, { nom: "", avis: "" }, { nom: "", avis: "" }] };
-  const [f, setF] = useState(VIDE);
-  const [appel, setAppel] = useState<{ d: Demande; decision: string; reference: string } | null>(null);
+const VIDE_DECISION = { montant: "", conseil: "", bcc: "", pv: "", avis: "", motif: "", membres: [{ nom: "", avis: "" }, { nom: "", avis: "" }, { nom: "", avis: "" }] };
+/** S88, Décision (plan d'allègement, points 6.1 et 6.4) : l'approbation (2.13 à 2.15) et le visa du comité réunis, ouverts depuis la ligne du portefeuille ;
+ * montant approuvé ressaisi, commission de crédit d'une COOPEC (trois membres, unanimité), plafonds et apparentés ; le crédit naît à la décision. */
+export function FormulaireDecision({ id, fini }: { id: number; fini: (msg?: string) => void }) {
+  const { donnees } = useDonnees(() => Promise.all([api.dossiers.lister("controlee"), api.dossiers.contexte()]), [id]);
+  const [f, setF] = useState(VIDE_DECISION);
   const [boite, setBoite] = useState<Boite | null>(null);
   if (!donnees) return <Chargement />;
-  const [liste, ctx, rejetees] = donnees;
-  const refusCommission = rejetees.filter((x) => x.refusNiveau === "comite");
-  const fini = (msg: string) => { setChoisie(null); setAppel(null); setRelu((v) => v + 1); setBoite({ type: "succes", message: msg }); };
+  const [liste, ctx] = donnees;
+  const d = liste.find((x) => x.id === id);
+  if (!d) return <p>Cette demande n'est plus à décider.</p>;
   function decider() {
-    if (!choisie) return;
+    if (!d) return;
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer la décision ?", oui: async () => {
-      try { const r = await api.dossiers.approuver(choisie.id, { montantApprouve: somme(f.montant), accordConseilRef: f.conseil, accordBccRef: f.bcc, referencePv: f.pv,
+      try { const r = await api.dossiers.approuver(d.id, { montantApprouve: somme(f.montant), accordConseilRef: f.conseil, accordBccRef: f.bcc, referencePv: f.pv,
           avis: f.avis, motif: f.motif, membres: ctx.coopec ? f.membres : undefined });
         fini(r.statut === "rejetee" ? "Demande refusée." : "Crédit accordé : il attend le visa du service financier."); }
       catch (x) { setBoite({ type: "erreur", message: message(x) }); }
     } });
   }
-  const enregistrerAppel = () => appel && setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer la décision du Conseil d'administration ?", oui: async () => {
-    try { await api.dossiers.appel(appel.d.id, { decision: appel.decision, reference: appel.reference.trim() }); fini("Enregistré avec succès !"); }
+  return (
+    <div className="pile">
+      <p>{d.client} · {d.produit} · demandé {montant(d.montant, d.devise as Devise)} sur {d.duree} mois · Centrale des risques {d.consultationCrRef} du {fr(d.consultationCrLe)}</p>
+      <p>Fonds propres prudentiels : <strong className="chiffres">{ctx.fondsPropres ? `${montant(ctx.fondsPropres.montant, "CDF")} au ${fr(ctx.fondsPropres.dateArrete)}` : "non saisis (Paramétrage > Info société)"}</strong></p>
+      <Champ libelle="Montant approuvé *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={f.montant} onChange={(e) => setF({ ...f, montant: e.target.value })} />}</Champ>
+      {ctx.coopec ? <fieldset className="pile cadre-champs"><legend>Commission de crédit</legend>
+        {f.membres.map((m, i) => <div key={i} className="ligne-champ">
+          <Champ libelle={`Membre ${i + 1} *`}>{(p) => <input {...p} className="saisie" autoComplete="off" value={m.nom} onChange={(e) => setF({ ...f, membres: f.membres.map((x, k) => (k === i ? { ...x, nom: e.target.value } : x)) })} />}</Champ>
+          <Champ libelle={`Avis du membre ${i + 1} *`}>{(p) => <select {...p} className="saisie" value={m.avis} onChange={(e) => setF({ ...f, membres: f.membres.map((x, k) => (k === i ? { ...x, avis: e.target.value } : x)) })}>
+            <option value=""></option>{AVIS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}</Champ></div>)}
+        <Champ libelle="Motif d'un refus">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.motif} onChange={(e) => setF({ ...f, motif: e.target.value })} />}</Champ>
+      </fieldset> : <ChoixAvis avis={f.avis} motif={f.motif} maj={(x) => setF({ ...f, ...x })} />}
+      <Champ libelle="N° du procès-verbal">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.pv} onChange={(e) => setF({ ...f, pv: e.target.value })} />}</Champ>
+      <Champ libelle="Accord du Conseil d'administration (personne apparentée)">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.conseil} onChange={(e) => setF({ ...f, conseil: e.target.value })} />}</Champ>
+      <Champ libelle="Accord ou dérogation de la BCC (au-delà du plafond)">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.bcc} onChange={(e) => setF({ ...f, bcc: e.target.value })} />}</Champ>
+      <div className="actions-onglets"><button className="bouton" type="button" onClick={decider}>Enregistrer</button>
+        <button className="bouton secondaire" type="button" onClick={() => fini()}>Fermer</button></div>
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </div>
+  );
+}
+
+/** Appel devant le Conseil d'administration d'un refus de la commission de crédit (Instr. BCC 007, art. 18 ; registre B29), depuis la ligne du portefeuille */
+export function FormulaireAppel({ id, fini }: { id: number; fini: (msg?: string) => void }) {
+  const [a, setA] = useState({ decision: "", reference: "" });
+  const [boite, setBoite] = useState<Boite | null>(null);
+  const enregistrer = () => setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer la décision du Conseil d'administration ?", oui: async () => {
+    try { await api.dossiers.appel(id, { decision: a.decision, reference: a.reference.trim() }); fini("Enregistré avec succès !"); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   } });
   return (
-    <>
-      <section className="bloc pile" aria-label="Décision">
-        <p>Fonds propres prudentiels : <strong className="chiffres">{ctx.fondsPropres ? `${montant(ctx.fondsPropres.montant, "CDF")} au ${fr(ctx.fondsPropres.dateArrete)}` : "non saisis (Paramétrage > Info société)"}</strong></p>
-        <Grille lignes={liste} choisir={(x) => { setChoisie(x); setF(VIDE); }} choisie={choisie?.id} />
-        {ctx.coopec && refusCommission.length > 0 && <fieldset className="pile cadre-champs"><legend>Refus de la commission de crédit</legend>
-          <div className="defile-x"><table className="grille"><thead><tr><th scope="col">N° demande</th><th scope="col">Intitulé</th><th scope="col">Motif</th><th scope="col">Appel</th></tr></thead>
-            <tbody>{refusCommission.map((x) => <tr key={x.id}><td className="code">{x.numero}</td><td>{x.client}</td><td>{x.motif}</td>
-              <td>{x.appel ? (x.appel === "accorde" ? "Accordé" : "Refus confirmé") : <button className="bouton secondaire" type="button" onClick={() => setAppel({ d: x, decision: "", reference: "" })}>Appel au Conseil</button>}</td></tr>)}</tbody>
-          </table></div></fieldset>}
-        <Textes sources={["Manuel Microfina++, p. 113 et 114, 2.13 à 2.15 (approbation) et p. 114, 4-2 (visa du comité) ; plan d'allègement, point 6.1 : une seule décision, le crédit naît à la décision",
-          "Loi 002/2002, art. 41 à 43 ; Instr. BCC 007, art. 32 : commission de crédit d'une COOPEC, unanimité ; Instr. BCC 007, art. 18 : appel devant le Conseil d'administration",
-          "Instr. BCC 002, art. 25 à 29 ; loi 002/2002, art. 59 à 61 : plafonds par emprunteur et pour les apparentés ; Instr. BCC 51 : accord du Conseil (registre CR-2, CR-3, CR-14)"]} />
-      </section>
-      <Fiche titre={`Décision sur la demande ${choisie?.numero ?? ""}`} ouverte={!!choisie} fermer={() => setChoisie(null)}>
-        {choisie && <div className="pile">
-          <p>{choisie.client} · {choisie.produit} · demandé {montant(choisie.montant, choisie.devise as Devise)} sur {choisie.duree} mois · Centrale des risques {choisie.consultationCrRef} du {fr(choisie.consultationCrLe)}</p>
-          <Champ libelle="Montant approuvé *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={f.montant} onChange={(e) => setF({ ...f, montant: e.target.value })} />}</Champ>
-          {ctx.coopec ? <fieldset className="pile cadre-champs"><legend>Commission de crédit</legend>
-            {f.membres.map((m, i) => <div key={i} className="ligne-champ">
-              <Champ libelle={`Membre ${i + 1} *`}>{(p) => <input {...p} className="saisie" autoComplete="off" value={m.nom} onChange={(e) => setF({ ...f, membres: f.membres.map((x, k) => (k === i ? { ...x, nom: e.target.value } : x)) })} />}</Champ>
-              <Champ libelle={`Avis du membre ${i + 1} *`}>{(p) => <select {...p} className="saisie" value={m.avis} onChange={(e) => setF({ ...f, membres: f.membres.map((x, k) => (k === i ? { ...x, avis: e.target.value } : x)) })}>
-                <option value=""></option>{AVIS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}</Champ></div>)}
-            <Champ libelle="Motif d'un refus">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.motif} onChange={(e) => setF({ ...f, motif: e.target.value })} />}</Champ>
-          </fieldset> : <ChoixAvis avis={f.avis} motif={f.motif} maj={(x) => setF({ ...f, ...x })} />}
-          <Champ libelle="N° du procès-verbal">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.pv} onChange={(e) => setF({ ...f, pv: e.target.value })} />}</Champ>
-          <Champ libelle="Accord du Conseil d'administration (personne apparentée)">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.conseil} onChange={(e) => setF({ ...f, conseil: e.target.value })} />}</Champ>
-          <Champ libelle="Accord ou dérogation de la BCC (au-delà du plafond)">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.bcc} onChange={(e) => setF({ ...f, bcc: e.target.value })} />}</Champ>
-          <div className="actions-onglets"><button className="bouton" type="button" onClick={decider}>Enregistrer</button>
-            <button className="bouton secondaire" type="button" onClick={() => setChoisie(null)}>Fermer</button></div>
-        </div>}
-      </Fiche>
-      <Fiche titre={`Appel devant le Conseil d'administration, demande ${appel?.d.numero ?? ""}`} ouverte={!!appel} fermer={() => setAppel(null)}>
-        {appel && <div className="pile">
-          <Champ libelle="Décision du Conseil : *">{(p) => <select {...p} className="saisie" value={appel.decision} onChange={(e) => setAppel({ ...appel, decision: e.target.value })}>
-            <option value=""></option><option value="accorde">Accordé</option><option value="confirme">Refus confirmé</option></select>}</Champ>
-          <Champ libelle="Référence : *">{(p) => <input {...p} className="saisie" autoComplete="off" value={appel.reference} onChange={(e) => setAppel({ ...appel, reference: e.target.value })} />}</Champ>
-          <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrerAppel}>Enregistrer</button>
-            <button className="bouton secondaire" type="button" onClick={() => setAppel(null)}>Fermer</button></div>
-        </div>}
-      </Fiche>
+    <div className="pile">
+      <Champ libelle="Décision du Conseil : *">{(p) => <select {...p} className="saisie" value={a.decision} onChange={(e) => setA({ ...a, decision: e.target.value })}>
+        <option value=""></option><option value="accorde">Accordé</option><option value="confirme">Refus confirmé</option></select>}</Champ>
+      <Champ libelle="Référence : *">{(p) => <input {...p} className="saisie" autoComplete="off" value={a.reference} onChange={(e) => setA({ ...a, reference: e.target.value })} />}</Champ>
+      <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
+        <button className="bouton secondaire" type="button" onClick={() => fini()}>Fermer</button></div>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
-    </>
+    </div>
   );
 }

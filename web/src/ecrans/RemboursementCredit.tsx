@@ -3,7 +3,7 @@
 // Client, montant à payer, répartition proposée (Modifier), Détail crédit, Tout sur le crédit ; Situation (brouillard p. 88), Plan, Réel, Memo ; Billetage, Imprimer.
 // Registre S76-1 à S76-9, S55-2 à S55-4, S106-1 à S106-4, CR-7, CR-20.
 import { useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { vers } from "./registre";
 import { api } from "../donnees/api";
 import type { Operation, Tiers } from "../donnees/types";
@@ -398,16 +398,19 @@ export function ConsulterPret() {
   const [t, setT] = useState<Tiers | null>(null);
   const [cid, setCid] = useState<number | null>(null);
   const [date, setDate] = useState("");
-  const [fiche, setFiche] = useState<"" | "situation" | "plan" | "reel" | "memo" | "recherche">("");
+  const [fiche, setFiche] = useState<"" | "situation" | "plan" | "reel" | "memo" | "recherche" | "historique">("");
   const [boite, setBoite] = useState<Boite | null>(null);
+  const [params, setParams] = useSearchParams();
+  const depuis = !t && Number(params.get("credit")) || null;   // ouvert depuis le portefeuille (plan d'allègement, point 6.4)
   const { donnees } = useDonnees(async () => {
     const j = await api.journees.courante();
-    const credits = t ? await api.remboursementsCredit.creditsConsultation(t.id) : [];
-    const id = cid ?? credits[0]?.id ?? null;
-    return { j, credits, d: id ? await api.remboursementsCredit.consultation(id, date || undefined) : null };
-  }, [t?.id, cid, date]);
+    const tid = t?.id ?? (depuis ? (await api.remboursementsCredit.consultation(depuis)).tiersId : null);
+    const credits = tid ? await api.remboursementsCredit.creditsConsultation(tid) : [];
+    const id = cid ?? depuis ?? credits[0]?.id ?? null;
+    return { j, credits, d: id ? await api.remboursementsCredit.consultation(id, date || undefined) : null, h: id && fiche === "historique" ? await api.etatCredits.historique(id) : [] };
+  }, [t?.id, cid, date, depuis, fiche === "historique"]);
   if (!donnees) return <Chargement />;
-  const { j, credits, d } = donnees;
+  const { j, credits, d, h } = donnees;
   const dv = (d?.devise ?? "CDF") as Devise;
   const ro = (l: string, v: string) => <Champ key={l} libelle={l}>{(p) => <Lecture {...p} value={d ? v : ""} />}</Champ>;
   const mt = (v: number | undefined) => montant(v ?? 0, dv);
@@ -419,7 +422,7 @@ export function ConsulterPret() {
           <ChampDate libelle="Situation au" valeur={date || j?.date || ""} onChange={setDate} /></div>
         <div className="grille-deux">
           <fieldset className="pile cadre-champs"><legend>Infos Client</legend>
-            <div className="ligne-champ"><Champ libelle="N° du Client :">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
+            <div className="ligne-champ"><Champ libelle="N° du Client :">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? d?.membre ?? ""} />}</Champ>
               <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setFiche("recherche")}>Rechercher</button></div>
             <Champ libelle="Intitulé du compte">{(p) => <textarea {...p} className="saisie" rows={2} readOnly value={d?.client ?? (t ? [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ") : "")} />}</Champ>
             <dl className="infos"><div className="info-ligne"><dt>Groupe Solidaire</dt><dd>{d?.groupe ?? ""}</dd></div></dl>
@@ -456,12 +459,20 @@ export function ConsulterPret() {
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("reel")}>Paiements reçus</button>
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("memo")}>Mémo</button>
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => d && setBoite({ type: "succes", message: `Tout sur le crédit au ${fr(d.dateReglement)} : ${montant(d.toutSurLeCredit, dv)}.` })}>Tout sur le crédit</button>
-          <button className="bouton secondaire" type="button" onClick={() => { setT(null); setCid(null); setDate(""); }}>Effacer</button>
+          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("historique")}>Historique</button>
+          <button className="bouton secondaire" type="button" onClick={() => { setT(null); setCid(null); setDate(""); setParams({}); }}>Effacer</button>
         </div>
         <Textes sources={["Manuel Microfina++, p. 118 : 6-Consulter prêt, N° Client, Situation, Réel, Plan, Mémo ; capture p. 119",
           "Registre S95-1 à S95-3 : même situation que le remboursement (S76) ; Tout sur le crédit affiche la somme due ; H reste grisé (non expliqué par le manuel)"]} />
       </section>
       <FenetresCredit cid={d?.id ?? null} devise={dv} ouverte={(["situation", "plan", "reel", "memo"] as const).find((x) => x === fiche) ?? ""} fermer={() => setFiche("")} />
+      <Fiche titre={`Historique du crédit ${d?.numero ?? ""}`} ouverte={fiche === "historique"} fermer={() => setFiche("")}>
+        <div className="defile-x"><table className="grille">
+          <thead><tr><th scope="col">Date</th><th scope="col">Etape</th><th scope="col">Par</th><th scope="col">Détail</th></tr></thead>
+          <tbody>{h.map((x, i) => <tr key={i}><td className="chiffres">{fr(x.date)}</td><td>{x.etape}</td><td>{x.par}</td><td>{x.detail}</td></tr>)}</tbody>
+        </table></div>
+        <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setFiche("")}>Fermer</button></div>
+      </Fiche>
       <Fiche titre="Recherche d'un client" ouverte={fiche === "recherche"} fermer={() => setFiche("")}>
         <RechercheClient source={async (x) => (x ? (await api.tiers.rechercher(x)).filter((y) => y.statut === "actif") : [])}
           choisir={(x) => { setT(x); setCid(null); setFiche(""); }} fermer={() => setFiche("")} />

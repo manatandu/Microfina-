@@ -563,29 +563,28 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByText('Demande N° DC000001').waitFor();
   // Vérification (plan 6.1 ; Instr. BCC 008, art. 66 ; registre CR-28) : la responsable crédit ressaisit le montant sans le voir, note la Centrale des risques, donne son avis
-  await login('Sarah Tshibanda'); await aller('/credit/s87');
-  await p.getByRole('cell', { name: 'DC000001' }).click(); const ctl = p.getByRole('dialog', { name: /Vérification de la demande/ });
+  // Plan 6.4 : vérifier, décider et viser se font sur la ligne du portefeuille de crédits (S93)
+  const portefeuille = async (etat) => { await aller('/credit/s93'); if (etat) await p.getByLabel('Etat').selectOption({ label: etat }); await p.getByRole('button', { name: 'Exécuter' }).click(); };
+  await login('Sarah Tshibanda'); await portefeuille();
+  await p.getByRole('button', { name: 'Vérifier DC000001' }).click(); const ctl = p.getByRole('dialog', { name: /Vérification de la demande/ });
   await ctl.getByLabel('Montant (ressaisi) *').fill('1 000 000'); await ctl.getByLabel('Référence du rapport de la Centrale *').fill('CR-2026-0001'); await ctl.getByLabel('Accepté').check();
   await etape('06w2-controle-demande');
   await ctl.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await p.getByText('Demande vérifiée').waitFor();
   // Décision (plan 6.1) : la commission refuse sur un avis contraire (loi 002/2002, art. 43), puis le Conseil d'administration accorde en appel (B29 ; Instr. BCC 007,
   // art. 18) : le crédit naît et attend le visa du service financier
-  await login('J.-P. Mukendi'); await aller('/credit/s88'); await p.getByRole('cell', { name: 'DC000001' }).click();
+  await login('J.-P. Mukendi'); await portefeuille(); await p.getByRole('button', { name: 'Décider DC000001' }).click();
   const dec = p.getByRole('dialog', { name: /Décision sur la demande/ });
   await dec.getByLabel('Montant approuvé *').fill('1 000 000');
   for (const [i, nom, avis] of [[1, 'Mbala', 'accepte'], [2, 'Ilunga', 'refuse'], [3, 'Kabeya', 'accepte']]) { await dec.getByLabel(`Membre ${i} *`, { exact: true }).fill(nom); await dec.getByLabel(`Avis du membre ${i} *`).selectOption(avis); }
   await dec.getByLabel("Motif d'un refus").fill('Capacité de remboursement à revoir'); await dec.getByLabel('N° du procès-verbal').fill('PV-2026-12'); await etape('06w3-approbation');
   await dec.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await p.getByText('Demande refusée.').waitFor();
-  await p.getByRole('button', { name: 'Appel au Conseil' }).click(); await p.getByLabel('Décision du Conseil : *').selectOption('accorde'); await p.getByLabel('Référence : *').fill('CA-2026-07');
+  await portefeuille('Refusé'); await p.getByRole('button', { name: 'Appel au Conseil DC000001' }).click(); await p.getByLabel('Décision du Conseil : *').selectOption('accorde'); await p.getByLabel('Référence : *').fill('CA-2026-07');
   await etape('06w5b-appel-conseil'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();   // accordé : la demande quitte la liste des refus
   // Visa du service financier (S90 ; registre CR-5, CR-28) : le comptable
-  const viser = async (page, remplir) => {
-    await aller(`/credit/s90?page=${page}`); await p.getByRole('cell', { name: '0412/L001/00001' }).click(); await p.getByRole('button', { name: 'Viser' }).click();
-    const fv = p.getByRole('dialog', { name: /^Visa / }); await remplir(fv); await fv.getByRole('button', { name: 'Viser' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
-    await p.getByText('Visa enregistré : crédit accepté.').waitFor();
-  };
-  await login('Patrick Lumbala'); await viser('service_financier', async (fv) => fv.getByLabel('Avis *').selectOption('accepte'));
-  await aller('/credit/s92'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('cell', { name: '0412/L001/00001' }).waitFor(); await etape('06w6-valides-non-debloques');
+  await login('Patrick Lumbala'); await portefeuille(); await p.getByRole('button', { name: 'Viser 0412/L001/00001' }).click();
+  const fv = p.getByRole('dialog', { name: /Visa du service financier/ }); await fv.getByLabel('Avis *').selectOption('accepte'); await fv.getByRole('button', { name: 'Viser' }).click();
+  await p.getByRole('button', { name: 'Oui' }).click(); await p.getByText('Visa enregistré : crédit accepté.').waitFor();
+  await portefeuille('Visé'); await p.getByRole('cell', { name: '0412/L001/00001' }).waitFor(); await etape('06w6-portefeuille-vise');
   await login('J.-P. Mukendi');
   // Rapports clients (S51)
   await aller('/clients/s51'); await p.getByRole('button', { name: 'Rechercher' }).click();
@@ -748,6 +747,10 @@ const OUT = process.argv[2];
   // État de crédit (S93, p. 115 et 116), par l'agent de crédit : situation des crédits approuvés sur la période
   await login('Bijou Kasongo'); await aller('/credit/s93'); await p.getByRole('button', { name: 'Exécuter' }).click();
   await p.getByRole('cell', { name: '0412/L001/00001', exact: true }).waitFor(); await p.getByRole('cell', { name: '900 000,00 CDF' }).waitFor(); await etape('11f-etat-credit');
+  // Plan 6.4 : un clic sur la ligne ouvre la fiche du crédit (S95), avec son historique
+  await p.getByRole('cell', { name: '0412/L001/00001', exact: true }).click(); await p.getByRole('button', { name: 'Historique' }).click();
+  await p.getByRole('dialog', { name: /Historique du crédit/ }).getByRole('cell', { name: 'Déblocage' }).waitFor(); await etape('11f2-fiche-historique');
+  await p.getByRole('dialog', { name: /Historique du crédit/ }).getByRole('button', { name: 'Fermer' }).click();
   // Caution et nantissement (S94, p. 116 à 118) : Mwamba se porte caution du crédit de Kalala sur son compte en CDF (CR-21 ; PCCI, hors bilan 0112)
   await aller('/credit/s94?page=ajout_caution'); await p.getByRole('heading', { name: 'Ajout caution' }).waitFor();
   const cherche = async (bouton, nom) => { await p.getByRole('button', { name: bouton }).click(); const r = p.getByRole('dialog', { name: "Recherche d'un client" });

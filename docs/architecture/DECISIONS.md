@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1068 décisions.** Solidité : 505 fortes (le manuel ou un texte répond), 481 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1056 déjà en place, 12 à appliquer.
+**1071 décisions.** Solidité : 505 fortes (le manuel ou un texte répond), 484 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1059 déjà en place, 12 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1673,6 +1673,19 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S93-2 | Colonnes après Groupe | Coupées sur la capture : Montant prêt, Produit, Agent crédit (comme S92), Statut, Capital restant, Jours retard, Degré (la situation que calcule le remboursement S76) | Écran voisin : Grille S92 (capture p. 115) ; S76-3 ; Instr. BCC 003, art. 3 à 9 | moyenne | en place |
 | S93-3 | Période et date fixe | Sur une période : crédits approuvés entre les deux dates, situation à la date fin. A une date fixe : crédits approuvés au plus tard ce jour, situation à ce jour (remboursements jusqu'à cette date). La date d'approbation est celle de la journée ouverte | Manuel : Capture p. 116 (« Période(Date d'approbation) ») ; texte p. 115 | moyenne | en place |
 | S93-4 | Niveau de validation, archivés | Niveau : crédits qui ont l'avis « accepté » de ce niveau (S90). Crédits archivés Oui : s'y ajoutent les crédits soldés, refusés et passés en perte | Écran voisin : S90 ; S92-2 | moyenne | en place |
+
+## S93 Portefeuille de crédits
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S93-5 | Écran et états | « Situation des crédits » devient le « Portefeuille de crédits ». Mêmes filtres que la capture, plus un choix Etat : Demandé, Vérifié, Décidé, Visé, Débloqué, Soldé, Refusé, Prorogé, Contentieux. Les demandes en cours (saisie, vérifiée) et refusées s'y lisent avec les crédits ; leur période se lit sur la date de la demande, celle des crédits sur la date d'approbation. Un crédit débloqué est Prorogé s'il a une prorogation, Contentieux s'il a un dossier ouvert. Tous, sans les archivés : les états en cours. Colonne Action : Vérifier (demandé, droit S87), Décider (vérifié, S88), Appel au Conseil (refus de la commission d'une COOPEC, S88), Viser (décidé, S90). S92 et les listes de S87, S88, S90 sortent du menu ; qui avait ces droits reçoit le portefeuille et la fiche du crédit. | Écran voisin : Plan d'allègement, point 6.4 ; Instr. BCC 003, art. 5 et 8 ; Instr. BCC 007, art. 18 | moyenne | en place |
+| S93-6 | Fiche au clic | Un clic sur la ligne d'un crédit en cours de remboursement (débloqué, prorogé, contentieux) ouvre la fiche du crédit (S95), qui ne consulte que ces crédits (registre S95-1). Les boutons Echéancier et Contrat de la capture restent sur chaque ligne de crédit. | Écran voisin : Plan d'allègement, point 6.4 ; registre S95-1 | moyenne | en place |
+
+## S95 Consulter un prêt
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S93-7 | Historique | Bouton Historique : la vie du crédit dans l'ordre des étapes (demande, vérification, décision et appel au Conseil, visa du service financier, déblocage, prorogation, contentieux ouvert et clos, passage en perte), avec la date, l'auteur et le détail. | Écran voisin : Plan d'allègement, point 6.4 | moyenne | en place |
 
 ## S94 Caution et nantissement
 

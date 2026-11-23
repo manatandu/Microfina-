@@ -370,6 +370,9 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
     etatCredits: {
       situation: (p: Record<string, unknown>) => get(`/credit/etat?${new URLSearchParams(Object.entries(p).filter(([, v]) => v !== null && v !== undefined && v !== "" && v !== false)
         .map(([k, v]) => [k, v === true ? "1" : String(v)])).toString()}`),
+      portefeuille: (p: Record<string, unknown>) => get(`/credit/portefeuille?${new URLSearchParams(Object.entries(p).filter(([, v]) => v !== null && v !== undefined && v !== "" && v !== false)
+        .map(([k, v]) => [k, v === true ? "1" : String(v)])).toString()}`),
+      historique: (cid: number) => get(`/credit/credits/${cid}/historique`),
     },
     remboursementsCredit: {
       creditsDuClient: (tid: number) => get(`/credit/remboursement/clients/${tid}`),

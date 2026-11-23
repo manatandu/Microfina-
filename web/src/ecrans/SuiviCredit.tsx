@@ -1,7 +1,8 @@
-// S90 à S92 : Crédit > Suivi dossier crédit (manuel Microfina++, p. 114 et 115, cinq captures) : Visa crédit (Responsable crédit, Comité de crédit,
-// Service financier), Historique, Crédits validés non débloqués. Registre S90-1 à S92-3, CR-4, CR-5.
+// S90 à S93 : Crédit > Suivi dossier crédit (manuel Microfina++, p. 114 et 115, cinq captures). Plan d'allègement, point 6.4 : le portefeuille de crédits
+// (S93) porte la vérification, la décision et le visa sur la ligne ; il remplace la liste des crédits validés non débloqués (S92). Registre S90-1 à S93-7, CR-4, CR-5.
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { FormulaireAppel, FormulaireDecision, FormulaireVerification } from "./DossierCredit";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { debutExercice, fr, jusquAujourdhui } from "../lib/dates";
@@ -11,86 +12,32 @@ import { ContratPret } from "./ContratPret";
 import { FenetresCredit } from "./RemboursementCredit";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, LigneFiltres, Paginee, Textes, type Boite } from "../composants";
 
-type Ligne = Awaited<ReturnType<typeof api.visasCredit.aViser>>[number];
 const NIVEAUX = [["responsable_credit", "Responsable crédit"], ["comite", "Comité de crédit"], ["service_financier", "Service financier"]] as const;
-type Niveau = (typeof NIVEAUX)[number][0];
-// Plan d'allègement, point 6.1 : la vérification et la décision tiennent les deux premiers visas ; reste à viser le service financier
-const A_VISER = NIVEAUX.filter(([k]) => k === "service_financier");
 const AVIS = [["accepte", "Accepté"], ["refuse", "Refusé"]] as const;
 const debutAnnee = debutExercice;
 const aujourdhui = jusquAujourdhui;   // visas et approbations sont datés à l'heure réelle (registre T120)
 
-function GrilleCredits({ lignes, choisie, choisir, groupe }: { lignes: Ligne[]; choisie?: number; choisir?: (l: Ligne) => void; groupe?: boolean }) {
-  const titres = ["N° credit", "Date demande", "Compte", "Intitulé", "Montant pret", "Durée (mois)", "Produit", groupe ? "Groupe solidaire" : "Agent de crédit"];
-  return (
-    <Paginee lignes={lignes} colonnes={(x) => [null, null, x.compte, x.client, null, null, x.produit, null]}>{(v) => (<div className="defile-x"><table className="grille">
-      <thead><tr>{titres.map((t, i) => <th key={t} scope="col" className={i === 4 || i === 5 ? "num" : undefined}>{t}</th>)}</tr>
-        <LigneFiltres titres={[null, null, "Compte", "Intitulé", null, null, "Produit", null]} /></thead>
-      <tbody>{v.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
-        {v.map((x) => <tr key={x.id} aria-selected={x.id === choisie} onClick={() => choisir?.(x)}><td className="code">{x.numero}</td><td className="chiffres">{fr(x.dateDemande)}</td>
-          <td className="code">{x.compte}</td><td>{x.client}</td><td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td><td className="num chiffres">{x.duree}</td>
-          <td>{x.produit}</td><td>{groupe ? x.groupe : x.agent}</td></tr>)}</tbody>
-    </table></div>)}</Paginee>
-  );
-}
-
-/** S90 : 4-1 à 4-3, Visa crédit : un écran par niveau (?page=), la file des crédits à viser, Viser, avis, confirmation */
-export function VisasCredit() {
-  const [params, setParams] = useSearchParams();
-  const niveau = (A_VISER.some(([k]) => k === params.get("page")) ? params.get("page") : "service_financier") as Niveau;
-  const [agent, setAgent] = useState("");
-  const [relu, setRelu] = useState(0);
-  const { donnees } = useDonnees(() => Promise.all([api.visasCredit.contexte(), api.visasCredit.aViser(niveau, agent ? Number(agent) : null)]), [niveau, agent, relu]);
-  const [choisie, setChoisie] = useState<Ligne | null>(null);
-  const [ouverte, setOuverte] = useState(false);
-  const [f, setF] = useState({ avis: "", motif: "", pv: "", membres: [{ nom: "", avis: "" }, { nom: "", avis: "" }, { nom: "", avis: "" }] });
+/** S90 : visa du service financier (plan d'allègement, points 6.1 et 6.4) : ouvert depuis la ligne d'un crédit décidé dans le portefeuille ; avis et motif */
+export function FormulaireVisa({ ligne, fini }: { ligne: { id: number; numero: string; client: string; produit: string; montant: number; devise: string; duree: number }; fini: (msg?: string) => void }) {
+  const [f, setF] = useState({ avis: "", motif: "" });
   const [boite, setBoite] = useState<Boite | null>(null);
-  if (!donnees) return <Chargement />;
-  const [ctx, liste] = donnees;
-  const titre = NIVEAUX.find(([k]) => k === niveau)![1];
-  const commission = niveau === "comite" && ctx.coopec;
   function viser() {
-    if (!choisie) return;
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ce visa ?", oui: async () => {
-      try {
-        const r = await api.visasCredit.viser(choisie.id, niveau, { avis: f.avis, motif: f.motif, referencePv: f.pv, membres: commission ? f.membres : undefined });
-        setOuverte(false); setChoisie(null); setRelu((v) => v + 1);
-        setBoite({ type: "succes", message: r.avis === "accepte" ? "Visa enregistré : crédit accepté." : "Visa enregistré : crédit refusé." });
-      } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+      try { const r = await api.visasCredit.viser(ligne.id, "service_financier", { avis: f.avis, motif: f.motif, referencePv: "" });
+        fini(r.avis === "accepte" ? "Visa enregistré : crédit accepté." : "Visa enregistré : crédit refusé."); }
+      catch (x) { setBoite({ type: "erreur", message: message(x) }); }
     } });
   }
   return (
-    <>
-      <h2>Visa crédit - {titre}</h2>
-      <div className="onglets" role="tablist" aria-label="Visa crédit">
-        {A_VISER.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={k === niveau} onClick={() => { setParams({ page: k }); setChoisie(null); }}>{l}</button>)}
-      </div>
-      <section className="bloc pile" aria-label={`Visa crédit - ${titre}`}>
-        <Champ libelle="Agent de crédit">{(p) => <select {...p} className="saisie" value={agent} onChange={(e) => setAgent(e.target.value)}><option value="">--Tout les agents--</option>
-          {ctx.agents.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
-        <GrilleCredits lignes={liste} choisie={choisie?.id} choisir={setChoisie} />
-        <div className="actions-onglets"><button className="bouton" type="button" disabled={!choisie}
-          onClick={() => { setF({ avis: "", motif: "", pv: "", membres: [{ nom: "", avis: "" }, { nom: "", avis: "" }, { nom: "", avis: "" }] }); setOuverte(true); }}>Viser</button></div>
-        <Textes sources={["Manuel Microfina++, p. 114 et 115 : Visa crédit - Responsable crédit, Comité de crédit, Service financier (trois captures : Agent de crédit, grille)",
-          "Registre CR-5 : tout crédit passe par les trois visas, dans l'ordre ; un refus arrête le crédit. Registre CR-4 : commission de crédit d'une COOPEC, trois membres, unanimité (loi 002/2002, art. 41 à 43 ; Instr. BCC 007, art. 32)"]} />
-      </section>
-      <Fiche titre={`Visa ${titre.toLowerCase()} : ${choisie?.numero ?? ""}`} ouverte={ouverte} fermer={() => setOuverte(false)}>
-        {choisie && <div className="pile">
-          <p>{choisie.client} · {choisie.produit} · {montant(choisie.montant, choisie.devise as Devise)} sur {choisie.duree} mois</p>
-          {commission ? f.membres.map((m, i) => <div key={i} className="ligne-champ">
-            <Champ libelle={`Membre ${i + 1} *`}>{(p) => <input {...p} className="saisie" autoComplete="off" value={m.nom} onChange={(e) => setF({ ...f, membres: f.membres.map((x, j) => (j === i ? { ...x, nom: e.target.value } : x)) })} />}</Champ>
-            <Champ libelle={`Avis du membre ${i + 1} *`}>{(p) => <select {...p} className="saisie" value={m.avis} onChange={(e) => setF({ ...f, membres: f.membres.map((x, j) => (j === i ? { ...x, avis: e.target.value } : x)) })}>
-              <option value=""></option>{AVIS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}</Champ>
-          </div>) : <Champ libelle="Avis *">{(p) => <select {...p} className="saisie" value={f.avis} onChange={(e) => setF({ ...f, avis: e.target.value })}><option value=""></option>
-            {AVIS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}</Champ>}
-          <Champ libelle="Motif (refus)">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.motif} onChange={(e) => setF({ ...f, motif: e.target.value })} />}</Champ>
-          {niveau === "comite" && <Champ libelle="N° du procès-verbal">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.pv} onChange={(e) => setF({ ...f, pv: e.target.value })} />}</Champ>}
-          <div className="actions-onglets"><button className="bouton" type="button" onClick={viser}>Viser</button>
-            <button className="bouton secondaire" type="button" onClick={() => setOuverte(false)}>Fermer</button></div>
-        </div>}
-      </Fiche>
+    <div className="pile">
+      <p>{ligne.client} · {ligne.produit} · {montant(ligne.montant, ligne.devise as Devise)} sur {ligne.duree} mois</p>
+      <Champ libelle="Avis *">{(p) => <select {...p} className="saisie" value={f.avis} onChange={(e) => setF({ ...f, avis: e.target.value })}><option value=""></option>
+        {AVIS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}</Champ>
+      <Champ libelle="Motif (refus)">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.motif} onChange={(e) => setF({ ...f, motif: e.target.value })} />}</Champ>
+      <div className="actions-onglets"><button className="bouton" type="button" onClick={viser}>Viser</button>
+        <button className="bouton secondaire" type="button" onClick={() => fini()}>Fermer</button></div>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
-    </>
+    </div>
   );
 }
 
@@ -149,66 +96,51 @@ export function HistoriqueVisas() {
   );
 }
 
-/** S92 : 4-5 Crédits validés non débloqués (capture p. 115) : Du, A, Agence, Agent, Afficher les crédits archivés ; Rechercher, Exporter */
-export function ValidesNonDebloques() {
-  const { donnees: ctx } = useDonnees(() => Promise.all([api.visasCredit.contexte(), api.referentiel.contexte()]));
-  const [f, setF] = useState({ du: debutAnnee(), au: aujourdhui(), agent: "", archives: false });
-  const [l, setL] = useState<Ligne[]>([]);
-  const [boite, setBoite] = useState<Boite | null>(null);
-  if (!ctx) return <Chargement />;
-  const COL = ["N° credit", "Date demande", "Intitulé", "Montant pret", "Durée (mois)", "Produit", "Groupe solidaire"];
-  async function rechercher() { try { setL(await api.visasCredit.validesNonDebloques(f.du, f.au, f.agent ? Number(f.agent) : null, f.archives)); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } }
-  return (
-    <>
-      
-      <section className="bloc pile" aria-label="Crédits validés non débloqués">
-        <fieldset className="cadre-champs"><legend>Recherche</legend><div className="barre-filtres">
-          <ChampDate libelle="Du *" valeur={f.du} onChange={(v) => setF({ ...f, du: v })} />
-          <ChampDate libelle="A *" valeur={f.au} onChange={(v) => setF({ ...f, au: v })} />
-          <Champ libelle="Agent de crédit">{(p) => <select {...p} className="saisie" value={f.agent} onChange={(e) => setF({ ...f, agent: e.target.value })}><option value="">Tous les agents</option>
-            {ctx[0].agents.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
-          <label className="case"><input type="checkbox" checked={f.archives} onChange={(e) => setF({ ...f, archives: e.target.checked })} /><span>Afficher les crédits archivés</span></label>
-        </div></fieldset>
-        <div className="actions-onglets">
-          <button className="bouton" type="button" onClick={rechercher}>Rechercher</button>
-          <button className="bouton secondaire" type="button" disabled={l.length === 0} onClick={() => exporterExcel("Crédits validés non débloqués", COL,
-            l.map((x) => [x.numero, fr(x.dateDemande), x.client, montant(x.montant, x.devise as Devise), x.duree, x.produit, x.groupe]))}>Exporter</button>
-        </div>
-        <GrilleCredits lignes={l} groupe />
-        <Textes sources={["Manuel Microfina++, p. 115 : 4-5 Crédits validés non débloqués ; capture (Du, A, Agence, Agent, Afficher les crédits archivés, Rechercher, Exporter, grille)",
-          "Registre S92-1 à S92-3 : crédits visés par les trois niveaux, pas encore débloqués ; « archivés » : les crédits validés déjà débloqués s'y ajoutent ; période sur la date de la demande"]} />
-      </section>
-      <Dialogue boite={boite} fermer={() => setBoite(null)} />
-    </>
-  );
-}
-
-/** S93 : 4-6 Etat de crédit, « Situation des crédits » (texte p. 115, capture p. 116) : sur une période ou à une date fixe ; Exécuter, Export.
- *  Colonnes après « Groupe » (coupées sur la capture) : celles de S92 et la situation du remboursement (registre S93-2) */
-export function EtatCredit() {
-  const { donnees: ctx } = useDonnees(() => Promise.all([api.visasCredit.contexte(), api.referentiel.contexte(), api.produitsCredit.lire()]));
-  const [f, setF] = useState({ du: debutAnnee(), au: aujourdhui(), produit: "", niveau: "", agent: "", operateur: "", montant: "", archives: false });
-  const [l, setL] = useState<Awaited<ReturnType<typeof api.etatCredits.situation>>>([]);
+const ETATS = [["demande", "Demandé"], ["verifie", "Vérifié"], ["decide", "Décidé"], ["vise", "Visé"], ["debloque", "Débloqué"], ["solde", "Soldé"], ["refuse", "Refusé"],
+  ["proroge", "Prorogé"], ["contentieux", "Contentieux"]] as const;
+type LignePf = Awaited<ReturnType<typeof api.etatCredits.portefeuille>>[number];
+/** S93 : Portefeuille de crédits (plan d'allègement, point 6.4), à partir de « Situation des crédits » (texte p. 115, capture p. 116) : mêmes filtres, plus l'état.
+ *  Vérifier, décider, viser se font sur la ligne, selon l'état et les droits ; un clic sur un crédit ouvre sa fiche (S95). Registre S93-1 à S93-7 */
+export function Portefeuille() {
+  const navigate = useNavigate();
+  // listes des filtres : chacun ne lit que ce que ses droits ouvrent (le comptable vise sans lire les dossiers)
+  const { donnees: ctx } = useDonnees(() => Promise.all([api.visasCredit.contexte().catch(() => ({ agents: [] as { id: number; nom: string }[] })), api.session.courante(),
+    api.produitsCredit.lire().catch(() => ({ produits: [] as { id: number; nom: string }[] })), api.dossiers.contexte().catch(() => ({ coopec: false }))]));
+  const [f, setF] = useState({ du: debutAnnee(), au: aujourdhui(), etat: "", produit: "", niveau: "", agent: "", operateur: "", montant: "", archives: false });
+  const [l, setL] = useState<LignePf[] | null>(null);
   const [fiche, setFiche] = useState<{ id: number; devise: Devise; quoi: "plan" | "contrat" } | null>(null);
+  const [action, setAction] = useState<{ quoi: "verifier" | "decider" | "viser" | "appel"; x: LignePf } | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   if (!ctx) return <Chargement />;
-  const COL = ["N° crédit", "Date Approbation", "N°Membre", "Intitulé", "Contact", "Groupe", "Montant prêt", "Produit", "Agent de crédit", "Statut", "Capital restant", "Jours retard", "Degré"];
+  const droits = new Set((ctx[1] as { droits?: string[] } | null)?.droits ?? []);
+  const COL = ["N° crédit", "Date demande", "Date Approbation", "N°Membre", "Intitulé", "Contact", "Groupe", "Montant prêt", "Produit", "Agent de crédit", "Etat", "Capital restant", "Jours retard", "Degré"];
   async function executer() {
     try {
       const m = f.montant.trim() ? lireMontant(f.montant) : null;
-      setL(await api.etatCredits.situation({ mode: f.du ? "periode" : "date", du: f.du, au: f.au, date: f.au, produitId: f.produit ? Number(f.produit) : null, niveau: f.niveau || null,
-        agentId: f.agent ? Number(f.agent) : null, operateur: f.operateur || null, montant: m, archives: f.archives }));
+      setL(await api.etatCredits.portefeuille({ mode: f.du ? "periode" : "date", du: f.du, au: f.au, date: f.au, etat: f.etat || null, produitId: f.produit ? Number(f.produit) : null,
+        niveau: f.niveau || null, agentId: f.agent ? Number(f.agent) : null, operateur: f.operateur || null, montant: m, archives: f.archives }));
     } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   }
-  const dv = (x: (typeof l)[number]) => x.devise as Devise;
+  const fini = async (msg?: string) => { setAction(null); if (msg) { setBoite({ type: "succes", message: msg }); await executer(); } };
+  const dv = (x: LignePf) => x.devise as Devise;
+  const actions = (x: LignePf): [string, () => void][] => {
+    const b: [string, () => void][] = [];
+    if (x.type === "demande" && x.etat === "demande" && droits.has("S87")) b.push(["Vérifier", () => setAction({ quoi: "verifier", x })]);
+    if (x.type === "demande" && x.etat === "verifie" && droits.has("S88")) b.push(["Décider", () => setAction({ quoi: "decider", x })]);
+    if (x.type === "demande" && x.etat === "refuse" && x.refusNiveau === "comite" && !x.appel && ctx[3].coopec && droits.has("S88")) b.push(["Appel au Conseil", () => setAction({ quoi: "appel", x })]);
+    if (x.type === "credit" && x.etat === "decide" && droits.has("S90")) b.push(["Viser", () => setAction({ quoi: "viser", x })]);
+    return b;
+  };
+  const TITRES = { verifier: "Vérification de la demande", decider: "Décision sur la demande", viser: "Visa du service financier", appel: "Appel devant le Conseil d'administration, demande" };
   return (
     <>
-      <h2>Situation des crédits</h2>
-      <section className="bloc pile" aria-label="Situation des crédits">
+      <section className="bloc pile" aria-label="Portefeuille de crédits">
         <div className="barre-filtres">
-          <fieldset className="cadre-champs double"><legend>Période (date d'approbation)</legend>
+          <fieldset className="cadre-champs double"><legend>Période</legend>
             <div className="ligne-champ"><ChampDate libelle="Du :" valeur={f.du} onChange={(v) => setF({ ...f, du: v })} /><ChampDate libelle="Au :" valeur={f.au} onChange={(v) => setF({ ...f, au: v })} /></div>
           </fieldset>
+          <Champ libelle="Etat">{(p) => <select {...p} className="saisie" value={f.etat} onChange={(e) => setF({ ...f, etat: e.target.value })}><option value="">Tous</option>
+            {ETATS.map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select>}</Champ>
           <Champ libelle="Produit crédit">{(p) => <select {...p} className="saisie" value={f.produit} onChange={(e) => setF({ ...f, produit: e.target.value })}><option value="">Tous les produits</option>
             {ctx[2].produits.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>
           <Champ libelle="Niveau de validation">{(p) => <select {...p} className="saisie" value={f.niveau} onChange={(e) => setF({ ...f, niveau: e.target.value })}><option value="">Tous</option>
@@ -223,24 +155,32 @@ export function EtatCredit() {
         </div>
         <div className="actions-onglets">
           <button className="bouton" type="button" onClick={executer}>Exécuter</button>
-          <button className="bouton secondaire" type="button" disabled={l.length === 0} onClick={() => exporterExcel("Situation des crédits", COL, l.map((x) => [x.numero, fr(x.dateApprobation),
-            x.membre, x.client, x.contact, x.groupe, montant(x.montant, dv(x)), x.produit, x.agent, x.statut, x.capitalRestant === null ? "" : montant(x.capitalRestant, dv(x)),
-            x.joursRetard ?? "", x.degre]))}>Export</button>
+          <button className="bouton secondaire" type="button" disabled={!l?.length} onClick={() => l && exporterExcel("Portefeuille de crédits", COL, l.map((x) => [x.numero, fr(x.dateDemande),
+            x.dateApprobation ? fr(x.dateApprobation) : "", x.membre, x.client, x.contact, x.groupe, montant(x.montant, dv(x)), x.produit, x.agent, x.statut,
+            x.capitalRestant === null ? "" : montant(x.capitalRestant, dv(x)), x.joursRetard ?? "", x.degre]))}>Export</button>
         </div>
-        <Paginee lignes={l} colonnes={(x) => [null, null, null, null, null, x.client, null, x.groupe]}>{(v) => (<div className="defile-x"><table className="grille">
-          <thead><tr>{["Echéancier", "Contrat prêt", ...COL].map((t, i) => <th key={t} scope="col" className={[8, 12, 13].includes(i) ? "num" : undefined}>{t}</th>)}</tr>
-            <LigneFiltres titres={[null, null, null, null, null, "Intitulé", null, "Groupe", null, null, null, null, null, null, null]} /></thead>
-          <tbody>{v.length === 0 && <tr><td colSpan={15}>Aucune ligne.</td></tr>}
-            {v.map((x) => <tr key={x.id}>
-              <td><button className="bouton secondaire petit" type="button" aria-label={`Echéancier ${x.numero}`} onClick={() => setFiche({ id: x.id, devise: dv(x), quoi: "plan" })}>Echéancier</button></td>
-              <td><button className="bouton secondaire petit" type="button" aria-label={`Contrat prêt ${x.numero}`} onClick={() => setFiche({ id: x.id, devise: dv(x), quoi: "contrat" })}>Contrat</button></td>
-              <td className="code">{x.numero}</td><td className="chiffres">{fr(x.dateApprobation)}</td><td className="code">{x.membre}</td><td>{x.client}</td><td className="chiffres">{x.contact}</td>
-              <td>{x.groupe}</td><td className="num chiffres">{montant(x.montant, dv(x))}</td><td>{x.produit}</td><td>{x.agent}</td><td>{x.statut}</td>
-              <td className="num chiffres">{x.capitalRestant === null ? "" : montant(x.capitalRestant, dv(x))}</td><td className="num chiffres">{x.joursRetard ?? ""}</td><td>{x.degre}</td></tr>)}</tbody>
-        </table></div>)}</Paginee>
+        {l && <Paginee lignes={l} colonnes={(x) => [null, null, null, null, null, null, x.client, null, x.groupe]}>{(v) => (<div className="defile-x"><table className="grille">
+          <thead><tr>{["Echéancier", "Contrat prêt", ...COL, "Action"].map((t, i) => <th key={t} scope="col" className={[9, 13, 14].includes(i) ? "num" : undefined}>{t}</th>)}</tr>
+            <LigneFiltres titres={[null, null, null, null, null, null, "Intitulé", null, "Groupe", null, null, null, null, null, null, null, null]} /></thead>
+          <tbody>{v.length === 0 && <tr><td colSpan={17}>Aucune ligne.</td></tr>}
+            {v.map((x) => <tr key={`${x.type}-${x.id}`} className={x.type === "credit" ? "ligne-choix" : undefined} onClick={x.type === "credit" ? () => navigate(`/credit/s95?credit=${x.id}`) : undefined}>
+              <td>{x.type === "credit" && <button className="bouton secondaire petit" type="button" aria-label={`Echéancier ${x.numero}`} onClick={(e) => { e.stopPropagation(); setFiche({ id: x.id, devise: dv(x), quoi: "plan" }); }}>Echéancier</button>}</td>
+              <td>{x.type === "credit" && <button className="bouton secondaire petit" type="button" aria-label={`Contrat prêt ${x.numero}`} onClick={(e) => { e.stopPropagation(); setFiche({ id: x.id, devise: dv(x), quoi: "contrat" }); }}>Contrat</button>}</td>
+              <td className="code">{x.numero}</td><td className="chiffres">{fr(x.dateDemande)}</td><td className="chiffres">{x.dateApprobation ? fr(x.dateApprobation) : ""}</td>
+              <td className="code">{x.membre}</td><td>{x.client}</td><td className="chiffres">{x.contact}</td><td>{x.groupe}</td><td className="num chiffres">{montant(x.montant, dv(x))}</td>
+              <td>{x.produit}</td><td>{x.agent}</td><td>{x.statut}</td><td className="num chiffres">{x.capitalRestant === null ? "" : montant(x.capitalRestant, dv(x))}</td>
+              <td className="num chiffres">{x.joursRetard ?? ""}</td><td>{x.degre}</td>
+              <td>{actions(x).map(([t, fn]) => <button key={t} className="bouton petit" type="button" aria-label={`${t} ${x.numero}`} onClick={(e) => { e.stopPropagation(); fn(); }}>{t}</button>)}</td></tr>)}</tbody>
+        </table></div>)}</Paginee>}
         <Textes sources={["Manuel Microfina++, p. 115 : 4-6 Etat de crédit, sur une période ou à une date fixe, date début et date fin, Exécuter, Exporter ; capture p. 116",
-          "Registre S93-1 à S93-4 : période sur la date d'approbation ; situation (capital restant, jours de retard, degré selon l'Instr. BCC 003) à la date fixe ou à la date fin ; archivés : soldés, refusés, passés en perte"]} />
+          "Plan d'allègement, point 6.4 : le portefeuille remplace S92 et les listes de S87, S88 et S90 ; registre S93-1 à S93-7 (prorogé : Instr. BCC 003, art. 5 ; contentieux : art. 8)"]} />
       </section>
+      <Fiche titre={action ? `${TITRES[action.quoi]} ${action.x.numero}` : ""} ouverte={!!action} fermer={() => setAction(null)}>
+        {action?.quoi === "verifier" && <FormulaireVerification id={action.x.id} fini={fini} />}
+        {action?.quoi === "decider" && <FormulaireDecision id={action.x.id} fini={fini} />}
+        {action?.quoi === "appel" && <FormulaireAppel id={action.x.id} fini={fini} />}
+        {action?.quoi === "viser" && <FormulaireVisa ligne={action.x} fini={fini} />}
+      </Fiche>
       <FenetresCredit cid={fiche?.quoi === "plan" ? fiche.id : null} devise={fiche?.devise ?? "CDF"} ouverte={fiche?.quoi === "plan" ? "plan" : ""} fermer={() => setFiche(null)} />
       <Fiche titre="Contrat de prêt" ouverte={fiche?.quoi === "contrat"} fermer={() => setFiche(null)}>{fiche?.quoi === "contrat" && <ContratPret id={fiche.id} titre="Contrat de prêt" fermer={() => setFiche(null)} />}</Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />

@@ -180,15 +180,11 @@ const Transferts = paresseux(() => import("./Transferts"), "default");
 const JournalCaisse = paresseux(() => import("./JournalCaisse"), "default");
 const SimulationCredit = paresseux(() => import("./SimulationCredit"), "default");
 const AnalyseFinanciere = paresseux(() => import("./AnalyseFinanciere"), "default");
-const ApprobationDemande = paresseux(() => import("./DossierCredit"), "ApprobationDemande");
-const ControleDemande = paresseux(() => import("./DossierCredit"), "ControleDemande");
 const DemandeCredit = paresseux(() => import("./DossierCredit"), "DemandeCredit");
 const MiseEnPlace = paresseux(() => import("./MiseEnPlace"), "default");
 const AffectationDossier = paresseux(() => import("./SuiviCredit"), "AffectationDossier");
-const EtatCredit = paresseux(() => import("./SuiviCredit"), "EtatCredit");
+const Portefeuille = paresseux(() => import("./SuiviCredit"), "Portefeuille");
 const HistoriqueVisas = paresseux(() => import("./SuiviCredit"), "HistoriqueVisas");
-const ValidesNonDebloques = paresseux(() => import("./SuiviCredit"), "ValidesNonDebloques");
-const VisasCredit = paresseux(() => import("./SuiviCredit"), "VisasCredit");
 const DeblocageBanque = paresseux(() => import("./DeblocageCredit"), "DeblocageBanque");
 const DeblocageGuichet = paresseux(() => import("./DeblocageCredit"), "DeblocageGuichet");
 const DeblocageEpargne = paresseux(() => import("./DeblocageCredit"), "DeblocageEpargne");
@@ -339,13 +335,13 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S84: SimulationCredit,
   S85: AnalyseFinanciere,
   S86: DemandeCredit,
-  S87: ControleDemande,
-  S88: ApprobationDemande,
+  S87: Portefeuille,
+  S88: Portefeuille,
   S89: MiseEnPlace,
-  S90: VisasCredit,
+  S90: Portefeuille,
   S91: HistoriqueVisas,
-  S92: ValidesNonDebloques,
-  S93: EtatCredit,
+  S92: Portefeuille,
+  S93: Portefeuille,
   S94: Garanties,
   S95: ConsulterPret,
   S96: AffectationDossier,

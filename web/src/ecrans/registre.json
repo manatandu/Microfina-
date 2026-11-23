@@ -785,7 +785,8 @@
     "but": "Vérifier la demande : montant ressaisi, Centrale des risques, avis (contrôle et visa du responsable crédit réunis, plan d'allègement, point 6.1)",
     "module": "credit",
     "priorite": "must",
-    "chemin": "/credit/s87"
+    "chemin": "/credit/s87",
+    "menu": false
   },
   {
     "id": "S88",
@@ -794,7 +795,8 @@
     "but": "Décider : montant approuvé, commission de crédit, plafonds ; le crédit naît à la décision (approbation et visa du comité réunis, plan d'allègement, point 6.1)",
     "module": "credit",
     "priorite": "must",
-    "chemin": "/credit/s88"
+    "chemin": "/credit/s88",
+    "menu": false
   },
   {
     "id": "S89",
@@ -813,7 +815,8 @@
     "but": "Viser les crédits décidés : fonds disponibles, ligne de financement (plan d'allègement, point 6.1)",
     "module": "credit",
     "priorite": "must",
-    "chemin": "/credit/s90"
+    "chemin": "/credit/s90",
+    "menu": false
   },
   {
     "id": "S91",
@@ -828,16 +831,17 @@
     "id": "S92",
     "nom": "Crédits validés non débloqués",
     "acces": "Crédit > Suivi dossier",
-    "but": "Suivre les crédits approuvés en attente",
+    "but": "Suivre les crédits approuvés en attente (remplacé par le portefeuille de crédits, plan d'allègement, point 6.4)",
     "module": "credit",
     "priorite": "must",
-    "chemin": "/credit/s92"
+    "chemin": "/credit/s92",
+    "menu": false
   },
   {
     "id": "S93",
-    "nom": "État de crédit",
-    "acces": "Crédit > Suivi dossier > État",
-    "but": "Situation des crédits",
+    "nom": "Portefeuille de crédits",
+    "acces": "Crédit > Portefeuille de crédits",
+    "but": "Toutes les demandes et tous les crédits par état ; vérifier, décider, viser sur la ligne ; la fiche du crédit au clic (plan d'allègement, point 6.4)",
     "module": "credit",
     "priorite": "must",
     "chemin": "/credit/s93"
