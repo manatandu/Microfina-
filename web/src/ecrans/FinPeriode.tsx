@@ -47,38 +47,34 @@ function useTraitement() {
   return { boite, setBoite, erreur, confirmer, dialogue: <Dialogue boite={boite} fermer={() => setBoite(null)} /> };
 }
 
-function FraisTenue({ ctx, jour }: { ctx: Ctx; jour: string }) {
-  const [f, setF] = useState(moisTermine(jour));
-  const [r, setR] = useState<Tenue | null>(null);
+/** Épargne > Fin de mois (plan d'allègement, point 5.6) : intérêts des comptes à vue et frais de tenue du mois, Calculer, deux listes, un seul Valider.
+ * Retenue de 20 % sur les intérêts des personnes physiques (loi 23/053, art. 78, 80 et 120). */
+export function FinDeMois() {
+  const cadre = useCadre();
+  const [f, setF] = useState<{ exercice: string; mois: string } | null>(null);
+  const [r, setR] = useState<{ dav: Dav; tenue: Tenue } | null>(null);
   const t = useTraitement();
-  const calculer = async () => { try { setR(await api.finPeriode.apercuTenue(f)); } catch (x) { t.erreur(x); } };
-  return <section className="bloc pile" aria-label="Frais de tenue de comptes"><h2>Frais de tenue de comptes</h2>
-    <Periode ctx={ctx} f={f} setF={(x) => { setF(x); setR(null); }} />
+  if (!cadre) return <Chargement />;
+  const jour = cadre.j?.date ?? new Date().toISOString().slice(0, 10);
+  const p = f ?? moisTermine(jour);
+  const calculer = async () => { try { const [dav, tenue] = await Promise.all([api.finPeriode.apercuInteretsDav(p), api.finPeriode.apercuTenue(p)]); setR({ dav, tenue }); } catch (x) { t.erreur(x); } };
+  const aFaire = !!r && (r.dav.lignes.some((x) => x.etat === "À servir") || r.tenue.lignes.some((x) => x.etat === "À prélever"));
+  return <section className="bloc pile" aria-label="Fin de mois de l'épargne">
+    <Periode ctx={cadre.ctx} f={p} setF={(x) => { setF(x); setR(null); }} />
     <div className="actions-onglets"><button className="bouton" type="button" onClick={calculer}>Calculer</button>
-      <button className="bouton secondaire" type="button" disabled={!r?.lignes.some((x) => x.etat === "À prélever")}
-        onClick={() => t.confirmer("Voulez-vous vraiment prélever les frais de tenue de compte ?", async () => setR(await api.finPeriode.passerTenue(f)))}>Valider</button></div>
-    {r && <table className="grille"><caption>Comptes</caption>
-      <thead><tr><th scope="col">N° compte</th><th scope="col">Client</th><th scope="col">Produit</th><th scope="col">Devise</th><th scope="col" className="num">Montant</th><th scope="col">État</th></tr></thead>
-      <tbody>{r.lignes.map((x) => <tr key={x.compteId}><td className="code">{x.numero}</td><td>{x.client}</td><td>{x.produit}</td><td>{x.devise}</td>
-        <td className="num chiffres">{x.montant ? n(x.montant) : ""}</td><td>{x.etat}</td></tr>)}</tbody></table>}
-    {t.dialogue}</section>;
-}
-
-function InteretsDav({ ctx, jour }: { ctx: Ctx; jour: string }) {
-  const [f, setF] = useState(moisTermine(jour));
-  const [r, setR] = useState<Dav | null>(null);
-  const t = useTraitement();
-  const calculer = async () => { try { setR(await api.finPeriode.apercuInteretsDav(f)); } catch (x) { t.erreur(x); } };
-  return <section className="bloc pile" aria-label="Calcul intérêt sur DAV"><h2>Calcul intérêt sur DAV</h2>
-    <Periode ctx={ctx} f={f} setF={(x) => { setF(x); setR(null); }} />
-    <div className="actions-onglets"><button className="bouton" type="button" onClick={calculer}>Calculer</button>
-      <button className="bouton secondaire" type="button" disabled={!r?.lignes.some((x) => x.etat === "À servir")}
-        onClick={() => t.confirmer("Voulez-vous vraiment servir les intérêts ?", async () => setR(await api.finPeriode.passerInteretsDav(f)))}>Valider</button></div>
-    {r && <table className="grille"><caption>Comptes</caption>
+      <button className="bouton secondaire" type="button" disabled={!aFaire}
+        onClick={() => t.confirmer("Voulez-vous vraiment servir les intérêts et prélever les frais de tenue de compte ?", async () => { await api.finPeriode.interetsEtFrais(p); await calculer(); })}>Valider</button></div>
+    {r && <div className="defile-x"><table className="grille"><caption>Intérêts sur comptes à vue</caption>
       <thead><tr><th scope="col">N° compte</th><th scope="col">Client</th><th scope="col">Devise</th><th scope="col" className="num">Taux</th><th scope="col" className="num">Solde moyen</th>
         <th scope="col" className="num">Intérêt</th><th scope="col" className="num">Retenue</th><th scope="col" className="num">Net</th><th scope="col">État</th></tr></thead>
-      <tbody>{r.lignes.map((x) => <tr key={x.compteId}><td className="code">{x.numero}</td><td>{x.client}</td><td>{x.devise}</td><td className="num chiffres">{x.taux} %</td>
-        <td className="num chiffres">{n(x.base)}</td><td className="num chiffres">{n(x.interet)}</td><td className="num chiffres">{n(x.retenue)}</td><td className="num chiffres">{n(x.net)}</td><td>{x.etat}</td></tr>)}</tbody></table>}
+      <tbody>{r.dav.lignes.length === 0 && <tr><td colSpan={9}>Aucune ligne.</td></tr>}
+        {r.dav.lignes.map((x) => <tr key={x.compteId}><td className="code">{x.numero}</td><td>{x.client}</td><td>{x.devise}</td><td className="num chiffres">{x.taux} %</td>
+        <td className="num chiffres">{n(x.base)}</td><td className="num chiffres">{n(x.interet)}</td><td className="num chiffres">{n(x.retenue)}</td><td className="num chiffres">{n(x.net)}</td><td>{x.etat}</td></tr>)}</tbody></table></div>}
+    {r && <div className="defile-x"><table className="grille"><caption>Frais de tenue de comptes</caption>
+      <thead><tr><th scope="col">N° compte</th><th scope="col">Client</th><th scope="col">Produit</th><th scope="col">Devise</th><th scope="col" className="num">Montant</th><th scope="col">État</th></tr></thead>
+      <tbody>{r.tenue.lignes.length === 0 && <tr><td colSpan={6}>Aucune ligne.</td></tr>}
+        {r.tenue.lignes.map((x) => <tr key={x.compteId}><td className="code">{x.numero}</td><td>{x.client}</td><td>{x.produit}</td><td>{x.devise}</td>
+        <td className="num chiffres">{x.montant ? n(x.montant) : ""}</td><td>{x.etat}</td></tr>)}</tbody></table></div>}
     {t.dialogue}</section>;
 }
 
@@ -130,18 +126,6 @@ function InteretsCredits({ jour }: { jour: string }) {
           <td className="code">{x.compteRattache}</td><td className="code">{x.compteProduit}</td></tr>)}</tbody>
       <tfoot>{Object.entries(r.totaux).map(([dv, v]) => <tr key={dv}><th scope="row" colSpan={4}>Total {dv}</th><td className="num chiffres"><strong>{n(v.couru)}</strong></td><td></td>
         <td className="num chiffres"><strong>{n(v.aPasser)}</strong></td><td colSpan={2}></td></tr>)}</tfoot></table>}
-    {t.dialogue}</section>;
-}
-
-function InteretsEtFrais({ ctx, jour }: { ctx: Ctx; jour: string }) {
-  const [f, setF] = useState(moisTermine(jour));
-  const [r, setR] = useState<{ interets: number; frais: number } | null>(null);
-  const t = useTraitement();
-  return <section className="bloc pile" aria-label="Intérêt et frais de tenue de comptes"><h2>Intérêt et frais de tenue de comptes</h2>
-    <Periode ctx={ctx} f={f} setF={(x) => { setF(x); setR(null); }} />
-    <div className="actions-onglets"><button className="bouton" type="button"
-      onClick={() => t.confirmer("Voulez-vous vraiment servir les intérêts et prélever les frais de tenue de compte ?", async () => setR(await api.finPeriode.interetsEtFrais(f)))}>Valider</button></div>
-    {r && <p>Intérêts servis : {r.interets} compte(s). Frais prélevés : {r.frais} compte(s).</p>}
     {t.dialogue}</section>;
 }
 
@@ -260,16 +244,14 @@ function useCadreCloture() {
   return donnees;
 }
 
-const PAGES_CALCULS = [["tenue", "Frais de tenue de comptes"], ["dav", "Calcul intérêt sur DAV"], ["interets-frais", "Intérêt et frais de tenue de comptes"],
-  ["provisions", "État des provisions de crédits"], ["credits", "Intérêts courus sur crédits"]] as const;
+// Frais de tenue, intérêts sur DAV et leur passage groupé : Épargne > Fin de mois (point 5.6) ; intérêts courus des DAT : Dépôts à terme (point 5.3)
+const PAGES_CALCULS = [["provisions", "État des provisions de crédits"], ["credits", "Intérêts courus sur crédits"]] as const;
 export function Calculs() {
-  const o = Onglets({ pages: PAGES_CALCULS, titre: "Calculs", defaut: "tenue" });
+  const o = Onglets({ pages: PAGES_CALCULS, titre: "Calculs", defaut: "provisions" });
   const cadre = useCadre();
   if (!cadre) return <Chargement />;
   const jour = cadre.j?.date ?? new Date().toISOString().slice(0, 10);
   return <>{o.barre}
-    {o.page === "tenue" && <FraisTenue ctx={cadre.ctx} jour={jour} />}{o.page === "dav" && <InteretsDav ctx={cadre.ctx} jour={jour} />}
-    {o.page === "interets-frais" && <InteretsEtFrais ctx={cadre.ctx} jour={jour} />}
     {o.page === "provisions" && <EtatProvisions jour={jour} cloture={false} />}{o.page === "credits" && <InteretsCredits jour={jour} />}</>;
 }
 

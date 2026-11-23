@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1055 décisions.** Solidité : 502 fortes (le manuel ou un texte répond), 471 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1042 déjà en place, 13 à appliquer.
+**1056 décisions.** Solidité : 502 fortes (le manuel ou un texte répond), 472 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1043 déjà en place, 13 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2428,6 +2428,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S67-7 | Présentation de la rupture | Même modèle pour un DAT et un plan d'épargne : capital, intérêt acquis (avec son taux), pénalité s'il y en a, retenue d'impôt (avec son taux), net à verser. Les deux écrans se rangent sous « Épargne > Épargne à terme ». | Écran voisin : Plan d'allègement, point 5.5 ; loi 23/053, art. 120 (retenue) | moyenne | en place |
+
+## SE02 Fin de mois de l'épargne
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| SE02-1 | Un écran pour la fin de mois | Intérêts des comptes à vue et frais de tenue de compte, jusqu'ici trois onglets de Calculs (S128), deviennent l'écran « Fin de mois de l'épargne » (Épargne > Fin de mois) : Exercice et Mois (le dernier mois terminé proposé), Calculer, deux listes (intérêts avec leur retenue, frais), un seul Valider qui sert les intérêts et prélève les frais. Calculs garde l'état des provisions et les intérêts courus sur crédits. Le profil comptable de départ reçoit l'écran. | Écran voisin : Plan d'allègement, point 5.6 ; loi 23/053, art. 78, 80 et 120 (retenue) | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

@@ -1298,7 +1298,9 @@ const OUT = process.argv[2];
   await p.getByRole('tab', { name: 'Consommation par centre de cout' }).click(); await p.getByRole('heading', { name: 'Consommation par centre de coût' }).waitFor(); await p.getByLabel('Période :').selectOption({ label: '1er Trimestre' });
   await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByRole('cell', { name: 'Agence de Matete' }).waitFor(); await etape('29g-consommation-centre');
   // Comptable : calculs (S128, p. 163) et clôtures (S127)
-  await aller('/budget/s128'); await p.getByRole('heading', { name: 'Frais de tenue de comptes' }).waitFor(); await etape('30a-calculs');
+  // Fin de mois de l'épargne (point 5.6) : intérêts des comptes à vue et frais de tenue, deux listes, un seul Valider
+  await aller('/epargne/se02'); await p.getByRole('heading', { name: "Fin de mois de l'épargne" }).waitFor();
+  await p.getByRole('button', { name: 'Calculer' }).click(); await p.getByText('Intérêts sur comptes à vue').waitFor(); await p.getByText('Frais de tenue de comptes').waitFor(); await etape('30a-calculs');
   // Intérêts courus des DAT : un seul tableau, dans Dépôts à terme (plan d'allègement, point 5.3)
   await aller('/epargne/s68'); await p.getByRole('button', { name: 'Intérêts courus' }).click(); const dic = p.getByRole('dialog', { name: 'Intérêts courus sur dépôts à terme' });
   await dic.getByRole('button', { name: 'Calculer' }).click(); await dic.getByText('Intérêts courus au').waitFor(); await dic.getByRole('button', { name: 'Valider' }).waitFor(); await etape('30b-interets-dat');

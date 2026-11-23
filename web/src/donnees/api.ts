@@ -8193,7 +8193,7 @@ const finPeriode = {
       exercices: [...E.exercices].sort((a, b) => b.annee - a.annee).map((e) => ({ annee: e.annee, ouvert: e.ouvert, valide: e.valide, cloture: !!e.clotureLe })) };
   },
   apercuTenue(p: { exercice?: unknown; mois?: unknown }) {
-    lectureAdmin(["S128"]);
+    lectureAdmin(["SE02"]);   // plan d'allègement, point 5.6
     const { ex, m, au } = periodeFin(p);
     if (!E.frais.some((f) => f.typeOperation === "TENUE_COMPTE"))
       throw new ErreurMetier("Frais de tenue de compte : le créer d'abord dans Paramétrage > Frais (opération TENUE COMPTE), avec la référence de l'autorisation de la BCC (Instr. BCC 40, art. 12).");
@@ -8227,7 +8227,7 @@ const finPeriode = {
     return { ...finPeriode.apercuTenue(p), passes: n };
   },
   apercuInteretsDav(p: { exercice?: unknown; mois?: unknown }) {
-    lectureAdmin(["S128"]);
+    lectureAdmin(["SE02"]);   // plan d'allègement, point 5.6
     const { ex, m, du, au } = periodeFin(p);
     if (jourOuvertFin().date < au) throw new ErreurMetier("Le mois n'est pas fini : l'intérêt se calcule une fois le dernier jour du mois atteint.");
     const fait = dejaFin("interet_dav", ex, m);
@@ -8287,7 +8287,7 @@ const finPeriode = {
     return { ...finPeriode.apercuInteretsCredits(p), passes: n };
   },
   apercuInteretsDat(p: { date?: string } = {}) {
-    lectureAdmin(["S127", "S128"]);
+    lectureAdmin(["S68", "S128"]);   // plan d'allègement, point 5.3
     const d = dateArrete(p);
     const lignes = E.depotsTerme.filter((x) => x.statut === "valide" && x.dateDepot <= d).sort((a, b) => a.certificat - b.certificat).map((x) => {
       const c = couruDat(x, d), deja = x.interetsCourus ?? 0, t = E.tiers.find((y) => y.id === x.tiersId);

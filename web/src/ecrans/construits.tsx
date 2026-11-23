@@ -138,6 +138,7 @@ const ConsultationBudget = paresseux(() => import("./Budgets"), "ConsultationBud
 const NouveauBudget = paresseux(() => import("./Budgets"), "NouveauBudget");
 const Calculs = paresseux(() => import("./FinPeriode"), "Calculs");
 const Clotures = paresseux(() => import("./FinPeriode"), "Clotures");
+const FinDeMois = paresseux(() => import("./FinPeriode"), "FinDeMois");   // plan d'allègement, point 5.6
 const DonneesBasePaie = paresseux(() => import("./Paie"), "DonneesBasePaie");
 const GrillesEtats = paresseux(() => import("./Paie"), "GrillesEtats");
 const NouvelEmploye = paresseux(() => import("./Paie"), "NouvelEmploye");
@@ -376,6 +377,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S126: Financement,
   S127: Clotures,
   S128: Calculs,
+  SE02: FinDeMois,
   S131: DonneesBasePaie,
   S132: GrillesEtats,
   S133: NouvelEmploye,
