@@ -2361,7 +2361,7 @@ const depotsTerme = {
     const em = E.comptes.find((c) => c.id === x.compteEmetteurId)!;
     if (x.montant > disponibleDat(em) + x.montant) throw new ErreurMetier("Solde disponible insuffisant sur le compte émetteur.");   // le DAT lui-même est compté « en attente »
     const pc = piece("OD");
-    const e = poster({ evenement: "dat_constitution", journal: "OD", journeeId: j.id, libelle: `Constitution DAT n° ${x.certificat}`, piece: pc, saisiPar: u.id, validePar: u.id, lignes: [
+    const e = poster({ evenement: "dat_constitution", journal: "OD", journeeId: j.id, libelle: `Constitution DAT n° ${x.certificat}${x.dateDepot !== j.date ? `, valeur ${x.dateDepot.split("-").reverse().join("/")}` : ""}`, piece: pc, saisiPar: u.id, validePar: u.id, lignes: [
       { compte: em.pcci, contrat: `depot:${em.id}`, sens: "D", devise: x.devise, montant: x.montant, montantCdf: cdf(x.montant, x.devise) },
       { compte: p.compteLie!, contrat: `depot:${x.compteDatId}`, sens: "C", devise: x.devise, montant: x.montant, montantCdf: cdf(x.montant, x.devise) },
     ] });

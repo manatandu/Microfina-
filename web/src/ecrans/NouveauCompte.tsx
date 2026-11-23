@@ -6,7 +6,8 @@ import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { montant, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
+import { fr } from "../lib/dates";
 import { RechercheClient } from "./Visa";
 import { ConventionCompte, type DonneesConvention } from "./Convention";
 import { imprimer } from "../lib/imprimer";
@@ -59,7 +60,7 @@ export function NouveauCompte() {
           <fieldset className="pile cadre-champs">
             <legend>Informations sur le compte</legend>
             <Champ libelle="N° du compte :">{(p) => <input {...p} className="saisie code" readOnly value={ap?.numero ?? ""} />}</Champ>
-            <ChampDate libelle="Date création : *" valeur={date || jour} onChange={setDate} requis />
+            <Champ libelle="Date création">{(p) => <input {...p} className="saisie date" readOnly value={fr(date || jour)} />}</Champ>
           </fieldset>
         </div>
         {erreur && t && produit && <p role="alert" className="erreur-champ">{erreur}</p>}

@@ -174,7 +174,8 @@ def valider(u, did: int) -> dict:
     if x["montant"] > disponible(em["id"], x["devise"].strip()):
         raise ErreurMetier("Solde disponible insuffisant sur le compte émetteur.")
     dev = x["devise"].strip()
-    eid = poster(u, journal="OD", journee_id=j["id"], libelle=f"Constitution DAT n° {x['certificat']}", piece=nouvelle_piece(u, "OD", date.fromisoformat(j["date"])),
+    eid = poster(u, journal="OD", journee_id=j["id"], libelle=f"Constitution DAT n° {x['certificat']}" + (f", valeur {x['date_depot'].strftime('%d/%m/%Y')}" if x["date_depot"].isoformat() != j["date"] else ""),   # PCCI § 3.4
+                 piece=nouvelle_piece(u, "OD", date.fromisoformat(j["date"])),
                  evenement="dat_constitution", cle=str(uuid.uuid4()), valide_par=u["id"],
                  lignes_ecr=[{"compte": compte_du_produit(em), "contrat": f"depot:{em['id']}", "sens": "D", "devise": dev, "montant": x["montant"]},
                              {"compte": compte_dat, "contrat": f"depot:{x['compte_dat_id']}", "sens": "C", "devise": dev, "montant": x["montant"]}])

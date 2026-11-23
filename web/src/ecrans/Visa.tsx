@@ -113,7 +113,8 @@ export function VisaClient({ initial, fait }: { initial?: Tiers; fait?: () => vo
             {/* Le premier dépôt se saisit à l'enrôlement et se lit au visa ; au guichet, le montant versé fait foi (plan d'allègement, point 3.7) */}
             <Champ libelle={`Premier dépôt :${t ? ` (${deviseDe(ctx, t)})` : ""}`}>{(p) => <input {...p} className="saisie montant" readOnly value={t ? montant(t.premierDepot, deviseDe(ctx, t)) : ""} />}</Champ>
             <Champ libelle="Date Demande">{(p) => <input {...p} className="saisie date" readOnly value={t ? fr(t.dateDemande) : ""} />}</Champ>
-            <ChampDate libelle="Date Visa *" valeur={dateVisa} onChange={setDateVisa} requis />
+            {/* Plan d'allègement, point 0.22 : la journée ouverte, en lecture seule (PCCI § 3.4 ; registre T131) */}
+            <Champ libelle="Date Visa">{(p) => <input {...p} className="saisie date" readOnly value={fr(dateVisa || jourOuvert())} />}</Champ>
             {t && aDesParts(ctx.institution) && (vise
               ? <p className="aide">Admis le {fr(t.admissionLe ?? "")} : {t.admissionReference}</p>
               : ctx.institution.delegationAdmission

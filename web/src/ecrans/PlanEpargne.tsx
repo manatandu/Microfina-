@@ -9,7 +9,7 @@ import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
 import { lireMontant, montant, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee } from "../composants";
+import { Champ, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee } from "../composants";
 import { RechercheClient } from "./Visa";
 import { FicheBeneficiaires } from "./DepotsTerme";
 
@@ -133,7 +133,7 @@ function Nouveau({ ctx }: { ctx: Contexte }) {
           <fieldset className="pile cadre-champs">
             <legend>Date</legend>
             <div className="ligne-champ">
-              <ChampDate libelle="Début :" valeur={debut} onChange={(v) => maj({ debut: v })} />
+              <Champ libelle="Début :">{(pp) => <input {...pp} className="saisie date" readOnly value={fr(debut)} />}</Champ>
               <Champ libelle="Fin :">{(pp) => <input {...pp} className="saisie date" readOnly value={debut && mois ? fr(ajouterMois(debut, mois)) : ""} />}</Champ>
             </div>
           </fieldset>

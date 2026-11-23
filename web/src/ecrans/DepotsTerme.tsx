@@ -98,7 +98,7 @@ export function MiseEnPlaceDat() {
               <option value=""></option>{comptesDat.map((c) => <option key={c.id} value={c.id}>{c.numero}</option>)}</select>}</Champ>
             <p>Montant intérêt : <strong className="chiffres">{montant(interet, dev)}</strong></p>
             <p>Montant à verser : <strong className="chiffres">{montant((m ?? 0) + interet, dev)}</strong></p>
-            <ChampDate libelle="Date de dépôt : *" valeur={depot} onChange={(v) => maj({ depot: v })} requis />
+            <Champ libelle="Date de dépôt">{(p) => <input {...p} className="saisie date" readOnly value={fr(depot)} />}</Champ>
             <Champ libelle="Date échéance :">{(pp) => <input {...pp} className="saisie date" readOnly value={echeance ? fr(echeance) : ""} />}</Champ>
           </fieldset>
           <fieldset className="pile cadre-champs">
