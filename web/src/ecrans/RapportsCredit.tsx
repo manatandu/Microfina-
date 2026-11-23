@@ -72,7 +72,6 @@ function UnRapport({ onglet, ctx, erreur }: { onglet: Onglet; ctx: Ctx; erreur: 
   const lignes = r?.lignes ?? [];
   return (
     <section className="bloc pile" aria-label={titre}>
-      <h2>{titre}</h2>
       <div className="barre-filtres">
         <fieldset className="cadre-champs double"><legend>{c.libelle ?? "Date"}</legend>
           <div className="ligne-champ">{c.periode ? <><ChampDate libelle="Du" valeur={f.du} onChange={(v) => setF({ ...f, du: v })} /><ChampDate libelle="Au" valeur={f.au} onChange={(v) => setF({ ...f, au: v })} /></>
@@ -137,7 +136,6 @@ function Garanties({ erreur }: { erreur: (x: unknown) => void }) {
   const lignes = groupe ? [...l].sort((a, b) => nomProduit(a.produitId).localeCompare(nomProduit(b.produitId)) || a.credit.localeCompare(b.credit)) : l;
   return (
     <section className="bloc pile" aria-label="Rapport des garanties">
-      <h2>Rapport des garanties</h2>
       <div className="grille-cadres">
         <fieldset className="pile cadre-champs"><legend>Période(Date deblocage)</legend>
           <ChampDate libelle="Du :" valeur={f.du} onChange={(v) => setF({ ...f, du: v })} />

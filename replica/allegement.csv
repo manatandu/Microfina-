@@ -124,7 +124,7 @@ id,lot,titre,ecrans,statut,question,reste
 6.12,6,Garanties du crédit,S94,à faire,,
 6.13,6,Balance âgée et provisions,S98 S99 S101 S127 S128,à faire,,
 6.14,6,Autres écrans du crédit,S96 S97 S100 SL01,fait,,
-6.15,6,Rapports crédit,S101,à faire,,
+6.15,6,Rapports crédit,S101,partiel,,« Indicateurs de gestion » renvoie aux Indicateurs et normes (7.9) quand ils seront refaits
 6.16,6,"Menu Crédit, dans l'ordre de la vie du crédit",,à faire,,
 10.1,10,Seuls les comptes de l'institution reçoivent des écritures,S102,à faire,,
 10.2,10,"Comptes au plan par produit et catégorie, membre en auxiliaire",S63 S65 S102,à faire,,
