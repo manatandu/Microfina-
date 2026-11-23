@@ -1217,9 +1217,9 @@ const OUT = process.argv[2];
   await aller('/caisse/s81'); await p.getByText(/^Droit manquant : Transferts de fonds/).waitFor(); await etape('23i-droit-manquant');
   // Annulation de règlement de crédit (S142, p. 158) : le règlement par prélèvement saisi par le comptable, annulé par le chef (PCCI § 3.3)
   await aller('/comptabilite/s142'); await p.getByRole('button', { name: 'Rechercher un règlement' }).click();
-  const an = p.getByRole('dialog', { name: 'Règlements par prélèvement sur compte' });
+  const an = p.getByRole('dialog', { name: 'Remboursements annulables' });
   await an.getByRole('row').filter({ hasText: 'Kalala' }).first().click(); await etape('24a-annulation-reglement');
-  await p.getByRole('button', { name: 'Valider' }).click(); await oui(); await etape('24b-reglement-annule');
+  await p.getByRole('button', { name: 'Annuler ce remboursement' }).click(); await oui(); await etape('24b-reglement-annule');
   // Caissière : règlement des factures en espèces, dans les paiements préparés (S82)
   await login('Esther Ngalula'); await aller('/caisse/s82'); await p.getByRole('region', { name: 'Paiements préparés' }).waitFor();   // plan 4.9 : règlements en espèces dans les paiements préparés await etape('24c-reglement-espece');
   // Rapprochement bancaire (S110, p. 129, 154 et 155), historique (S112, p. 130)

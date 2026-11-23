@@ -291,12 +291,12 @@ def revenus(u, p: dict) -> dict:
 
 # ---------- S142 : Annulation de règlement d'un crédit effectué par prélèvement sur compte ----------
 def reglements_annulables(u) -> list[dict]:
-    """Recherche du « N° de pièce » : les règlements par prélèvement sur compte de l'agence, le dernier de chaque crédit en cours"""
+    """Recherche du « N° de pièce » : les remboursements par prélèvement sur compte ou par banque (plan d'allègement, point 6.9), le dernier de chaque crédit en cours"""
     exiger(u)
     out = []
     for r in lignes("""select r.*, pc.numero as piece, c.numero as credit, c.tiers_id, c.statut, c.devise from remboursement r join credit c on c.id = r.credit_id
                        join ecriture e on e.id = r.ecriture_id join piece pc on pc.id = e.piece_id
-                       where c.institution_id = %s and r.mode = 'epargne' and c.statut = 'debloque'
+                       where c.institution_id = %s and r.mode in ('epargne', 'banque') and c.statut = 'debloque'
                          and r.id = (select x.id from remboursement x where x.credit_id = c.id order by x.date_reglement desc, x.id desc limit 1)
                        order by r.date_reglement desc, r.id desc""", (u["institution_id"],)):
         out.append(vue_reglement(r))
@@ -307,8 +307,10 @@ def vue_reglement(r: dict) -> dict:
     rep = json_lu(r["repartition"])
     k = une("""select cd.numero from ligne_ecriture l join compte_depot cd on l.contrat_ref = 'depot:' || cd.id where l.ecriture_id = %s and l.sens = 'D' limit 1""", (r["ecriture_id"],))
     t = une("select numero from tiers where id = %s", (r["tiers_id"],))
+    if r["mode"] == "banque":                          # le compte bancaire de l'institution qui a reçu le remboursement
+        k = une("select cb.numero from compte_bancaire cb where cb.id = %s", (r["compte_bancaire_id"],))
     return {"id": r["id"], "piece": r["piece"], "date": r["date_reglement"].isoformat(), "credit": r["credit"], "client": f"{t['numero']} {titulaire(r['tiers_id'])}",
-            "compteClient": k["numero"] if k else "", "devise": r["devise"].strip(), "capital": rep.get("capital", 0), "interet": rep.get("interet", 0), "epargne": rep.get("epargne", 0),
+            "mode": "Banque" if r["mode"] == "banque" else "Prélèvement sur compte", "compteClient": k["numero"] if k else "", "devise": r["devise"].strip(), "capital": rep.get("capital", 0), "interet": rep.get("interet", 0), "epargne": rep.get("epargne", 0),
             "solidarite": rep.get("solidarite", 0), "penalite": rep.get("penalite", 0) + rep.get("anticipation", 0), "montant": r["montant"]}
 
 
@@ -319,8 +321,8 @@ def annuler_reglement(u, rid: int) -> dict:
     exiger(u)
     r = une("""select r.*, pc.numero as piece, c.numero as credit, c.tiers_id, c.statut, c.devise, e.libelle from remboursement r join credit c on c.id = r.credit_id
                join ecriture e on e.id = r.ecriture_id join piece pc on pc.id = e.piece_id where r.id = %s and c.institution_id = %s for update of r""", (rid, u["institution_id"]))
-    if not r or r["mode"] != "epargne":
-        raise ErreurMetier("À remplir : N° de pièce d'un règlement par prélèvement sur compte.")
+    if not r or r["mode"] not in ("epargne", "banque"):            # prélèvement sur compte ou banque (plan d'allègement, point 6.9)
+        raise ErreurMetier("À remplir : N° de pièce d'un remboursement par prélèvement sur compte ou par banque.")
     if r["statut"] != "debloque":
         raise ErreurMetier("Crédit soldé : ce règlement ne s'annule plus.")
     if valeur("select id from remboursement where credit_id = %s order by date_reglement desc, id desc limit 1", (r["credit_id"],)) != r["id"]:

@@ -7511,7 +7511,8 @@ function codeLettrage(n: number) { let s = ""; while (n > 0) { const r = (n - 1)
 const TYPES_ANNULATION: Record<string, string> = { remboursement_credit: "Remboursement de crédit" };
 const repartitionAnnulable = (r: RemboursementCredit) => { const c = E.credits.find((x) => x.id === r.creditId)!, t = E.tiers.find((x) => x.id === c.tiersId)!, e = E.ecritures.find((x) => x.id === r.ecritureId);
   const dep = /^depot:(\d+)$/.exec(e?.lignes.find((l) => l.sens === "D" && (l.contrat ?? "").startsWith("depot:"))?.contrat ?? "")?.[1];
-  return { id: r.id, piece: e?.piece ?? "", date: r.date, credit: c.numero, client: `${t.numero} ${titulaire(t)}`, compteClient: E.comptes.find((k) => k.id === Number(dep))?.numero ?? "", devise: c.devise as string,
+  const compte = r.mode === "banque" ? E.comptesBancaires.find((k) => k.id === r.compteBancaireId)?.numeroBancaire ?? "" : E.comptes.find((k) => k.id === Number(dep))?.numero ?? "";   // point 6.9
+  return { id: r.id, piece: e?.piece ?? "", date: r.date, credit: c.numero, client: `${t.numero} ${titulaire(t)}`, mode: r.mode === "banque" ? "Banque" : "Prélèvement sur compte", compteClient: compte, devise: c.devise as string,
     capital: r.repartition.capital ?? 0, interet: r.repartition.interet ?? 0, epargne: r.repartition.epargne ?? 0, solidarite: r.repartition.solidarite ?? 0,
     penalite: (r.repartition.penalite ?? 0) + (r.repartition.anticipation ?? 0), montant: r.montant }; };
 const dernierRemboursement = (creditId: number) => E.remboursementsCredit.filter((x) => x.creditId === creditId).sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id)[0];
@@ -7636,13 +7637,13 @@ const controlesCompta = {
   /** S142, recherche du « N° de pièce » : les règlements par prélèvement sur compte, le dernier de chaque crédit en cours */
   reglementsAnnulables() {
     lectureAdmin(["S142"]);
-    return E.remboursementsCredit.filter((r) => r.mode === "epargne" && E.credits.find((c) => c.id === r.creditId)?.statut === "debloque" && dernierRemboursement(r.creditId)?.id === r.id)
+    return E.remboursementsCredit.filter((r) => (r.mode === "epargne" || r.mode === "banque") && E.credits.find((c) => c.id === r.creditId)?.statut === "debloque" && dernierRemboursement(r.creditId)?.id === r.id)
       .sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id).map(repartitionAnnulable);
   },
   /** S142, bouton Valider : écriture inverse liée à l'écriture d'origine (PCCI § 3.3) ; le règlement quitte les remboursements du crédit (registre S142-1 à S142-5) */
   annulerReglement(id: number) {
     const u = exiger(), r = E.remboursementsCredit.find((x) => x.id === id);
-    if (!r || r.mode !== "epargne") throw new ErreurMetier("À remplir : N° de pièce d'un règlement par prélèvement sur compte.");
+    if (!r || (r.mode !== "epargne" && r.mode !== "banque")) throw new ErreurMetier("À remplir : N° de pièce d'un remboursement par prélèvement sur compte ou par banque.");   // point 6.9
     const c = E.credits.find((x) => x.id === r.creditId)!;
     if (c.statut !== "debloque") throw new ErreurMetier("Crédit soldé : ce règlement ne s'annule plus.");
     if (dernierRemboursement(c.id)?.id !== r.id) throw new ErreurMetier("Seul le dernier règlement du crédit s'annule.");

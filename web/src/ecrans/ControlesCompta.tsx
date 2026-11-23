@@ -346,7 +346,7 @@ export function AnnulationReglement() {
   const { j, l } = donnees, r = l.find((x) => x.id === choisi) ?? null, dv = (r?.devise ?? "CDF") as Devise;
   function valider() {
     if (!r) { setBoite({ type: "erreur", message: "À remplir : N° de pièce." }); return; }
-    setBoite({ type: "confirmation", message: "Voulez-vous vraiment annuler ce règlement ?", oui: async () => {
+    setBoite({ type: "confirmation", message: "Voulez-vous vraiment annuler ce remboursement ?", oui: async () => {
       try { const x = await api.controlesCompta.annulerReglement(r.id); setFait({ piece: x.pieceAnnulation }); setChoisi(null); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Opération effectuée avec succès !" }); }
       catch (x) { setBoite({ type: "erreur", message: message(x) }); }
     } });
@@ -354,7 +354,6 @@ export function AnnulationReglement() {
   const m = (libelle: string, v: number | undefined) => <Champ libelle={libelle}>{(p) => <Lecture {...p} value={r ? montant(v ?? 0, dv) : ""} />}</Champ>;
   return (
     <>
-      <h2>Annulation de règlement d'un crédit effectué par prélèvement sur compte</h2>
       <section className="bloc pile" aria-label="Annulation de règlement de crédit">
         <div className="entete-ecran">{(fait?.piece ?? "") ? <p>Numéro de pièce : <strong className="chiffres">{fait?.piece ?? ""}</strong></p> : null}<p>Date Opération: <strong className="chiffres">{fr(j?.date ?? "")}</strong></p></div>
         <div className="deux-colonnes">
@@ -364,24 +363,26 @@ export function AnnulationReglement() {
             <Champ libelle="Date règlement :">{(p) => <Lecture {...p} value={r ? fr(r.date) : ""} />}</Champ>
             <Champ libelle="Credit:">{(p) => <Lecture {...p} value={r?.credit ?? ""} />}</Champ>
             <Champ libelle="Client :">{(p) => <Lecture {...p} value={r?.client ?? ""} />}</Champ>
-            <Champ libelle="Compte client:">{(p) => <Lecture {...p} value={r?.compteClient ?? ""} />}</Champ>
+            <Champ libelle="Mode :">{(p) => <Lecture {...p} value={r?.mode ?? ""} />}</Champ>
+            <Champ libelle="Compte :">{(p) => <Lecture {...p} value={r?.compteClient ?? ""} />}</Champ>
           </fieldset>
           <fieldset className="cadre-champs formulaire"><legend>Détail montant règlement</legend>
             {m("Capital", r?.capital)}{m("Intérêt", r?.interet)}{m("Epargne", r?.epargne)}{m("Fonds solid.", r?.solidarite)}{m("Pénalité", r?.penalite)}{m("Montant total", r?.montant)}
           </fieldset>
         </div>
-        <div className="actions-onglets"><button className="bouton" type="button" onClick={valider}>Valider</button><button className="bouton secondaire" type="button" onClick={() => { setChoisi(null); setFait(null); }}>Effacer</button></div>
+        <div className="actions-onglets"><button className="bouton" type="button" onClick={valider}>Annuler ce remboursement</button><button className="bouton secondaire" type="button" onClick={() => { setChoisi(null); setFait(null); }}>Effacer</button></div>
         <Textes sources={["Manuel Microfina++, p. 158 : sélectionner le numéro de pièce du règlement à annuler puis Valider ; capture « Annulation de règlement d'un crédit effectué par prélèvement sur compte »",
+          "Plan d'allègement, point 6.9 : ouverte aussi aux remboursements par banque ; bouton « Annuler ce remboursement »",
           "PCCI § 3.3 : toute correction d'erreur s'effectue par inscription en négatif des éléments erronés ; § 3.4 : irréversibilité des enregistrements",
           "Instr. BCC 008, art. 66 : séparation des tâches ; registre S142-1 à S142-5 : dernier règlement d'un crédit en cours ; écriture inverse liée à l'écriture d'origine ; le client retrouve la somme ; les échéances d'avant un remboursement anticipé reviennent"]} />
       </section>
-      <Fiche titre="Règlements par prélèvement sur compte" ouverte={cherche} fermer={() => setCherche(false)}>
+      <Fiche titre="Remboursements annulables" ouverte={cherche} fermer={() => setCherche(false)}>
         <div className="pile"><div className="defile-x"><table className="grille">
-          <thead><tr><th scope="col">N° de pièce</th><th scope="col">Date règlement</th><th scope="col">Crédit</th><th scope="col">Client</th><th scope="col" className="num">Montant total</th></tr></thead>
-          <tbody>{l.length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
+          <thead><tr><th scope="col">N° de pièce</th><th scope="col">Date règlement</th><th scope="col">Crédit</th><th scope="col">Client</th><th scope="col">Mode</th><th scope="col" className="num">Montant total</th></tr></thead>
+          <tbody>{l.length === 0 && <tr><td colSpan={6}>Aucune ligne.</td></tr>}
             {l.map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} onClick={() => { setChoisi(x.id); setFait(null); setCherche(false); }}
               onKeyDown={(e) => { if (e.key === "Enter") { setChoisi(x.id); setFait(null); setCherche(false); } }}>
-              <td className="chiffres">{x.piece}</td><td className="chiffres">{fr(x.date)}</td><td className="code">{x.credit}</td><td>{x.client}</td><td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td></tr>)}</tbody>
+              <td className="chiffres">{x.piece}</td><td className="chiffres">{fr(x.date)}</td><td className="code">{x.credit}</td><td>{x.client}</td><td>{x.mode}</td><td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td></tr>)}</tbody>
         </table></div><div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setCherche(false)}>Fermer</button></div></div>
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
