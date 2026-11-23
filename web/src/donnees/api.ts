@@ -8317,7 +8317,7 @@ const finPeriode = {
     exiger();
     let i = 0, f = 0;
     try { i = finPeriode.passerInteretsDav(p).passes; } catch (e) { if (!String((e as Error).message).includes("Aucun intérêt")) throw e; }
-    try { f = finPeriode.passerTenue(p).passes; } catch (e) { if (!String((e as Error).message).includes("Rien à prélever")) throw e; }
+    try { f = finPeriode.passerTenue(p).passes; } catch (e) { const m = String((e as Error).message); if (!m.includes("Rien à prélever") && !m.includes("créer d'abord")) throw e; }   // sans frais paramétré, rien ne se prélève (registre T135)
     if (!i && !f) throw new ErreurMetier("Rien à passer pour ce mois : ni intérêt, ni frais de tenue de compte.");
     return { interets: i, frais: f };
   },
@@ -10479,8 +10479,8 @@ const comptesUtilisateurs = {
 const APPLI_MODULE: Record<string, string> = { paie: "Paie", immobilisations: "Immobilisations" };
 /** Liste des modules liés : les applications où le profil a au moins un droit (registre S06-1) */
 const modulesLies = (droits: string[]) => {
-  const noms = new Set((registreEcrans as { id: string; module: string }[]).filter((e) => droits.includes(e.id)).map((e) => APPLI_MODULE[e.module] ?? "Dwacfina"));
-  return ["Dwacfina", "Paie", "Immobilisations"].filter((n) => noms.has(n));
+  const noms = new Set((registreEcrans as { id: string; module: string }[]).filter((e) => droits.includes(e.id)).map((e) => APPLI_MODULE[e.module] ?? "Exofina"));
+  return ["Exofina", "Paie", "Immobilisations"].filter((n) => noms.has(n));
 };
 const profilsUtilisateurs = {
   lire(utilisateur?: number) {

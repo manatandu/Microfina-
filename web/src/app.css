@@ -14,7 +14,7 @@ a { color: var(--tampon); text-underline-offset: 3px; }
 }
 .logo { display: flex; align-items: center; gap: var(--espace-2); padding-right: var(--espace-4); margin-right: var(--espace-1); border-right: 1px solid var(--nuit-trait); color: var(--nuit-fort); text-decoration: none; font-weight: 700; white-space: nowrap; }
 .logo:focus-visible { outline: 2px solid var(--ciel); outline-offset: -2px; }
-/* Logo Dwacfina : jamais déformé, sans ombre ni dégradé (page d'usage, docs/design/logo-dwacfina) */
+/* Logo Exofina : jamais déformé, sans ombre ni dégradé (docs/design/logo-exofina) */
 .marque { display: inline-flex; align-items: center; color: var(--encre); }
 .marque-sombre { color: var(--nuit-fort); }
 .marque-logo { display: block; width: auto; }
@@ -129,7 +129,8 @@ a.module:active { transform: scale(.97); }
 .module.inactif { color: var(--nuit-texte); cursor: not-allowed; }
 .module.inactif .pastille { background: var(--nuit); border: 1px dashed var(--nuit-trait); box-shadow: none; color: color-mix(in srgb, var(--nuit-texte) 70%, var(--nuit)); }
 .module.inactif > span:last-child { opacity: .75; }
-/* Le centre : le signe de Dwacfina dans un grand cartouche, le nom dessous */
+/* Le centre : le signe d'Exofina dans un grand cartouche, le nom dessous (« EXO » en rouge) */
+.nom-marque .exo { color: var(--marque-rouge); }
 .module.centre { grid-column: 2; grid-row: 2; gap: var(--espace-3); font-family: var(--police-marque); font-size: 17px; font-weight: 700; letter-spacing: .12em; }
 .module.centre .symbole {
   box-sizing: content-box; width: 84px; height: 84px; padding: 34px; border-radius: 30px; background: var(--nuit-2);

@@ -360,7 +360,7 @@ def interets_et_frais(u, p: dict) -> dict:
     try:
         f = passer_tenue(u, p)["passes"]
     except ErreurMetier as e:
-        if "Rien à prélever" not in str(e):
+        if "Rien à prélever" not in str(e) and "créer d'abord" not in str(e):   # sans frais paramétré, rien ne se prélève (registre T135)
             raise
     if not i and not f:
         raise ErreurMetier("Rien à passer pour ce mois : ni intérêt, ni frais de tenue de compte.")

@@ -5,14 +5,14 @@ from .bd import ErreurMetier, executer, lignes, une
 from .droits import ecrans
 from .services import exiger
 
-APPLICATIONS = {"paie": "Paie", "immobilisations": "Immobilisations"}     # les autres modules sont ceux de Dwacfina (page des modules, p. 6)
+APPLICATIONS = {"paie": "Paie", "immobilisations": "Immobilisations"}     # les autres modules sont ceux d'Exofina (page des modules, p. 6)
 
 
 def modules_lies(pid: int) -> list[str]:
     """Liste des modules liés : les applications où le profil a au moins un droit (registre S06-1)"""
     codes = {r["droit_code"] for r in lignes("select droit_code from profil_droit where profil_id = %s", (pid,))}
-    noms = {APPLICATIONS.get(e["module"], "Dwacfina") for e in ecrans() if e["id"] in codes}
-    return [n for n in ("Dwacfina", "Paie", "Immobilisations") if n in noms]
+    noms = {APPLICATIONS.get(e["module"], "Exofina") for e in ecrans() if e["id"] in codes}
+    return [n for n in ("Exofina", "Paie", "Immobilisations") if n in noms]
 
 
 def lire(u, uid: int | None = None) -> dict:

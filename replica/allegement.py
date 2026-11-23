@@ -1,4 +1,4 @@
-"""Produit la page « Allègement Dwacfina » : l'avancement du plan de la phase 2 (docs/architecture/PLAN-ALLEGEMENT.md).
+"""Produit la page « Allègement Exofina » : l'avancement du plan de la phase 2 (docs/architecture/PLAN-ALLEGEMENT.md).
     python replica/allegement.py <fichier de sortie>
 L'état de chaque point est tenu dans replica/allegement.csv (statut : à faire, partiel, fait ; reste : ce qui manque).
 Le texte de chaque point est lu dans le plan, pour que la page dise toujours la même chose que lui."""
@@ -80,11 +80,11 @@ span.q{display:inline-block;margin-left:.4rem;padding:0 .45rem;border-radius:.6r
 ol.qs{line-height:1.6;padding-left:1.2rem}
 """
 page = f"""<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Allègement Dwacfina</title>
+<title>Allègement Exofina</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;600;700&display=swap" rel="stylesheet">
 <style>{STYLE}</style></head><body><main>
-<header><h1>Allègement de Dwacfina, lot par lot</h1><p class="intro">Phase 2 : alléger le logiciel, fusionner ce qui se répète, mettre chaque chose à sa place (demande du porteur, 22/11/2026).
+<header><h1>Allègement d'Exofina, lot par lot</h1><p class="intro">Phase 2 : alléger le logiciel, fusionner ce qui se répète, mettre chaque chose à sa place (demande du porteur, 22/11/2026).
 Chaque point du plan, dans l'ordre de travail. Un clic sur un point montre ce qui change et le texte qui oblige à garder quelque chose.
 « Fait » : appliqué, essayé et poussé. « Partiel » : commencé, ce qui manque est écrit sous le point. Rien ne commence avant l'accord du porteur.
 Source : <code>docs/architecture/PLAN-ALLEGEMENT.md</code> et <code>replica/allegement.csv</code>, état au {date.today():%d/%m/%Y}.</p></header>

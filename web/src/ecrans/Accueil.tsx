@@ -3,12 +3,12 @@ import { Link, Navigate } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees } from "../lib/useDonnees";
 import { ICONES } from "../mise-en-page/icones";
-import { LOGO_SYMBOLE } from "../marque/dwacfina-traces";
+import { LOGO_SYMBOLE, SYMBOLE_CADRE } from "../marque/exofina-traces";
 import { ECRANS } from "./registre";
 
 // S02 : page des modules de Microfina++ (manuel, p. 6, figure 2) : le module principal au centre, huit modules autour, dans le même ordre.
 // Présentation du 21/11/2026 (demande du porteur : « change-le, présente-le autrement, l'animation est lente ») : un tableau de trois sur trois,
-// Dwacfina dans la case du centre, chaque module à la place qu'il a sur la capture (Grh en haut, puis dans le sens des aiguilles d'une montre),
+// Exofina dans la case du centre, chaque module à la place qu'il a sur la capture (Grh en haut, puis dans le sens des aiguilles d'une montre),
 // un trait du centre vers chaque module. Aucun calcul graphique : la page s'affiche d'un coup, l'entrée dure moins d'une seconde (DESIGN § 2.7 ter).
 // Un module s'ouvre si le profil de l'utilisateur y a au moins un droit : « Liste des modules liés » (S06-1), « ces différents
 // modules sont gérés grâce au module [Administration] » (p. 6) ; registre S02-1. Grh et Stock : hors périmètre ; Performance sociale,
@@ -24,7 +24,7 @@ const AUTOUR: { libelle: string; application?: "paie" | "immobilisations"; chemi
   { libelle: "Spy", icone: ICONES.budget, colonne: 1, rangee: 1 },
 ];
 
-/** Applications où l'utilisateur tient au moins un droit ; « principal » pour les modules de Dwacfina (mêmes règles que modules_lies, S06-1) */
+/** Applications où l'utilisateur tient au moins un droit ; « principal » pour les modules d'Exofina (mêmes règles que modules_lies, S06-1) */
 export function applicationsLiees(droits: string[]): Set<string> {
   const a = new Set<string>();
   for (const e of ECRANS) if (droits.includes(e.id)) a.add(e.module === "paie" || e.module === "immobilisations" ? e.module : "principal");
@@ -43,7 +43,7 @@ export function PageModules() {
   if (donnees === null) return <Navigate to="/connexion" replace />;
   if (!donnees) return <main className="page-modules" aria-busy="true" />;
   const liees = applicationsLiees((donnees as { droits?: string[] }).droits ?? []);
-  const symbole = <svg className="symbole" viewBox="40 40 176 176" aria-hidden="true"><path fill="var(--marque-rouge)" fillRule="evenodd" d={LOGO_SYMBOLE} /></svg>;
+  const symbole = <svg className="symbole" viewBox={SYMBOLE_CADRE} aria-hidden="true"><path fill="var(--marque-rouge)" d={LOGO_SYMBOLE} /></svg>;
   return (
     <main className="page-modules" data-entree={entree ? "complete" : "retour"}>
       <h1 className="sr-only">Modules</h1>
@@ -56,8 +56,8 @@ export function PageModules() {
           })}
         </div>
         {liees.has("principal")
-          ? <Link to="/principal" className="module centre">{symbole}<span>DWACFINA</span></Link>
-          : <span className="module centre inactif" aria-disabled="true" title="Module non lié à votre profil">{symbole}<span>DWACFINA</span></span>}
+          ? <Link to="/principal" className="module centre">{symbole}<span className="nom-marque"><span className="exo">EXO</span>FINA</span></Link>
+          : <span className="module centre inactif" aria-disabled="true" title="Module non lié à votre profil">{symbole}<span className="nom-marque"><span className="exo">EXO</span>FINA</span></span>}
         {AUTOUR.map((m, i) => {
           const style = { gridColumn: m.colonne, gridRow: m.rangee, "--rang": i } as React.CSSProperties;
           const contenu = <><span className="pastille">{m.icone}</span><span>{m.libelle}</span></>;

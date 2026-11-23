@@ -7,7 +7,7 @@ import time
 
 from django.db import connection
 
-journal = logging.getLogger("dwacfina.chrono")
+journal = logging.getLogger("exofina.chrono")
 LENT_MS = 1500
 FICHIER = os.environ.get("LIKELEMBA_CHRONO")
 

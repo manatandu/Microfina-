@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1060 décisions.** Solidité : 503 fortes (le manuel ou un texte répond), 475 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1047 déjà en place, 13 à appliquer.
+**1061 décisions.** Solidité : 504 fortes (le manuel ou un texte répond), 475 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1048 déjà en place, 13 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -158,6 +158,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | T143 | Rendu au membre ou mis en commun ? (10.4 Fonds de solidarité) | Les deux, au choix du produit de crédit : rendu au membre à la fin du prêt (dépôt de la clientèle, classe 3), ou mis en commun pour couvrir les impayés (compte 172 « Fonds de garantie mutuels », fonds propres complémentaires). | Choix du porteur : Décision du porteur, 23/11/2026 ; PCCI, compte 17 (lu) ; Instr. BCC 002, art. 9 (lu) | forte | à appliquer |
 | T144 | Menus de la barre ou page des modules ? (9.3 Personnel et immobilisations) | On garde la page des modules, comme Microfina (manuel p. 6, figure 2) : Paie et Immobilisations restent des modules à part, avec leur menu. Le point 9.3 du plan est retiré. | Choix du porteur : Accord du porteur, 23/11/2026 ; manuel Microfina++, p. 6 | forte | en place |
 | T145 | Ordre des entrées (Menu Épargne) | Nouveau compte, Relevé de compte, Blocage, Clôturer un compte, Virement entre comptes, Comptes en voie de prescription, Épargne à terme (Dépôts à terme, Plan d'épargne), Fin de mois, Rapports. Dans ce menu seulement, une entrée de premier niveau garde sa place après un sous-menu ; les autres menus ne changent pas. | Écran voisin : Plan d'allègement, point 5.13 | moyenne | en place |
+| T146 | Nom et logo du logiciel (Marque) | Le logiciel s'appelle Exofina (ex-Dwacfina). Logo : une pièce en « e », fente droite et bouche ouverte vers l'extérieur, inspirée de DWAC sans en reprendre l'éventail ; mot en Poppins ExtraBold, la police la plus proche du mot DWAC. « exo » en rouge ; « fina » en Bleu Nuit sur papier clair, en blanc sur fond sombre. Construction : docs/design/logo-exofina/construction.py. L'adresse du site (dwacfina.web.app) ne change qu'avec l'accord du porteur. | Choix du porteur : Demande du porteur, 23/11/2026 | forte | en place |
 
 ## S03 Profils : création et modification
 

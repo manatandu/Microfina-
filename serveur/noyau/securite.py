@@ -14,7 +14,7 @@ from django.http import JsonResponse
 
 from .bd import ErreurMetier
 
-journal = logging.getLogger("dwacfina.securite")
+journal = logging.getLogger("exofina.securite")
 
 ESSAIS_PAR_LOGIN = 5           # connexions refusées pour un identifiant, sur la fenêtre
 ESSAIS_PAR_ADRESSE = 20        # connexions refusées depuis une même adresse, sur la fenêtre

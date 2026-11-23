@@ -52,12 +52,14 @@ function useTraitement() {
 export function FinDeMois() {
   const cadre = useCadre();
   const [f, setF] = useState<{ exercice: string; mois: string } | null>(null);
-  const [r, setR] = useState<{ dav: Dav; tenue: Tenue } | null>(null);
+  const [r, setR] = useState<{ dav: Dav; tenue: Tenue; sansFrais: string } | null>(null);
   const t = useTraitement();
   if (!cadre) return <Chargement />;
   const jour = cadre.j?.date ?? new Date().toISOString().slice(0, 10);
   const p = f ?? moisTermine(jour);
-  const calculer = async () => { try { const [dav, tenue] = await Promise.all([api.finPeriode.apercuInteretsDav(p), api.finPeriode.apercuTenue(p)]); setR({ dav, tenue }); } catch (x) { t.erreur(x); } };
+  // Sans frais de tenue paramétré (registre T135), la liste des frais reste vide et dit pourquoi ; les intérêts se calculent quand même
+  const calculer = async () => { try { const [dav, tenue] = await Promise.all([api.finPeriode.apercuInteretsDav(p), api.finPeriode.apercuTenue(p).then((x) => ({ x, m: "" }), (e) => ({ x: { lignes: [] } as unknown as Tenue, m: message(e) }))]);
+    setR({ dav, tenue: tenue.x, sansFrais: tenue.m }); } catch (x) { t.erreur(x); } };
   const aFaire = !!r && (r.dav.lignes.some((x) => x.etat === "À servir") || r.tenue.lignes.some((x) => x.etat === "À prélever"));
   return <section className="bloc pile" aria-label="Fin de mois de l'épargne">
     <Periode ctx={cadre.ctx} f={p} setF={(x) => { setF(x); setR(null); }} />
@@ -72,7 +74,7 @@ export function FinDeMois() {
         <td className="num chiffres">{n(x.base)}</td><td className="num chiffres">{n(x.interet)}</td><td className="num chiffres">{n(x.retenue)}</td><td className="num chiffres">{n(x.net)}</td><td>{x.etat}</td></tr>)}</tbody></table></div>}
     {r && <div className="defile-x"><table className="grille"><caption>Frais de tenue de comptes</caption>
       <thead><tr><th scope="col">N° compte</th><th scope="col">Client</th><th scope="col">Produit</th><th scope="col">Devise</th><th scope="col" className="num">Montant</th><th scope="col">État</th></tr></thead>
-      <tbody>{r.tenue.lignes.length === 0 && <tr><td colSpan={6}>Aucune ligne.</td></tr>}
+      <tbody>{r.tenue.lignes.length === 0 && <tr><td colSpan={6}>{r.sansFrais || "Aucune ligne."}</td></tr>}
         {r.tenue.lignes.map((x) => <tr key={x.compteId}><td className="code">{x.numero}</td><td>{x.client}</td><td>{x.produit}</td><td>{x.devise}</td>
         <td className="num chiffres">{x.montant ? n(x.montant) : ""}</td><td>{x.etat}</td></tr>)}</tbody></table></div>}
     {t.dialogue}</section>;

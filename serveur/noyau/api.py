@@ -61,7 +61,7 @@ from .bd import ErreurMetier
 from .securite import adresse, controler_tentatives, noter
 
 # Documentation technique de l'API : seulement en développement ; en ligne, elle décrirait toutes les routes à un attaquant (registre T25)
-api = NinjaAPI(title="Dwacfina", version="0.1", urls_namespace="likelemba", docs_url="/docs" if settings.DEBUG else None,
+api = NinjaAPI(title="Exofina", version="0.1", urls_namespace="likelemba", docs_url="/docs" if settings.DEBUG else None,
                openapi_url="/openapi.json" if settings.DEBUG else None)
 
 METHODES_SURES = {"GET", "HEAD", "OPTIONS"}

@@ -79,8 +79,8 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 2_000_000
 LOGGING = {"version": 1, "disable_existing_loggers": False, "handlers": {"console": {"class": "logging.StreamHandler"}},
            "root": {"handlers": ["console"], "level": "WARNING"},
            "loggers": {"django": {"handlers": ["console"], "level": "WARNING", "propagate": False},
-                       "dwacfina.securite": {"handlers": ["console"], "level": "WARNING", "propagate": False},
-                       "dwacfina.chrono": {"handlers": ["console"], "level": "WARNING", "propagate": False}}}
+                       "exofina.securite": {"handlers": ["console"], "level": "WARNING", "propagate": False},
+                       "exofina.chrono": {"handlers": ["console"], "level": "WARNING", "propagate": False}}}
 
 USE_TZ = True
 TIME_ZONE = "UTC"                   # horodatage en UTC ; l'heure affichée suit l'agence

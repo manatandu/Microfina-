@@ -31,7 +31,7 @@ export default function Connexion() {
   return (
     <main className="connexion">
       <form className="carte-connexion" onSubmit={entrer}>
-        <h1 className="sr-only">Dwacfina, connexion</h1>
+        <h1 className="sr-only">Exofina, connexion</h1>
         <div className="champs-connexion">
           <div className="marque-connexion" aria-hidden="true"><Marque taille={44} /></div>
           <div className="champ">
