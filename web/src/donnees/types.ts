@@ -548,8 +548,10 @@ export interface ProduitEpargne extends Produit {
 export type ReglePieceEtat = { institution: boolean; positions: Record<"INSTITUTION" | "AGENCE" | "JOURNAL" | "COMPTEUR", number> };
 
 /** S33 : gestionnaire, sensibilisateur ou commercial d'agence (manuel p. 43) */
-export interface AgentAgence { id: number; role: "gestionnaire" | "sensibilisateur" | "commercial"; agenceId: number | null; nom: string; prenom: string; naissance: string;
-  lieuNaissance: string; sexe: "M" | "F"; profession: string; rue: string; email: string; bp: string; telephoneFixe: string; portable: string; actif: boolean }
+/** S33 : un agent, ses rôles cochés et l'utilisateur lié (plan d'allègement, point 2.20). « role » : ancienne forme, un rôle par ligne. */
+export interface AgentAgence { id: number; role?: "gestionnaire" | "sensibilisateur" | "commercial"; gestionnaire?: boolean; sensibilisateur?: boolean; commercial?: boolean;
+  utilisateurId?: number | null; agenceId: number | null; nom: string; prenom: string; sexe: "M" | "F"; portable: string; actif: boolean;
+  naissance?: string; lieuNaissance?: string; profession?: string; rue?: string; email?: string; bp?: string; telephoneFixe?: string }
 
 /** S85 : analyse financière, allégée ou développée (registre CR-11, S85-1 à S85-6) */
 export interface AnalyseFinanciere {

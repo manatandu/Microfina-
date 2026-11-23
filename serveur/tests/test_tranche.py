@@ -376,7 +376,7 @@ def test_fiche_entreprise(clients, journee):
     dirigeant = {**REP, "nom": "Ilunga", "prenom": "Paul", "pieceType": "Passeport", "pieceNumero": "OP9"}
     morale = agent.post("/api/tiers/entreprises", {**FICHE, "typeClient": "Entreprises privées", "zone": "Matete", "nom": "Témoin SA",
                         "formeJuridique": "Société anonyme", "registre": "R0", "adresse": "Matete", "dirigeant": dirigeant}, **H).json()["id"]
-    sens = ident("select id from agent_agence where role = 'sensibilisateur' and actif order by id limit 1")
+    sens = ident("select id from agent_agence where sensibilisateur and actif order by id limit 1")
     base = {**FICHE, "typeClient": "Entreprises privées", "zone": "Matete", "nom": "Kinsaku Pain SARL", "formeJuridique": "Société à responsabilité limitée",
             "registre": "R2", "adresse": "Matete", "secteurActivite": "Primaire", "pays": "", "email": "contact@exemple.cd", "sensibilisateurId": sens,
             "dirigeant": dirigeant}
@@ -2350,33 +2350,35 @@ def test_info_societe(clients):
 
 
 def test_agents_agence(clients):
-    """S33 (p. 43) : onglets Gestionnaire, Sensibilisateur, Commercial ; obligatoires selon l'onglet ; pas de Supprimer pour le sensibilisateur ;
-    le prospect (S45) choisit son sensibilisateur et son commercial dans ces listes (registre S33-1 à S33-4)"""
+    """S33 (p. 43) : une seule liste d'agents, rôles cochés et utilisateur lié (plan d'allègement, point 2.20) ; le prospect (S45) choisit son
+    sensibilisateur et son commercial parmi les agents qui ont ce rôle (registre S33-3, S33-4)"""
     chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
     A = "/api/agents"
-    l = chef.get(f"{A}/gestionnaire", **H).json()
-    assert l["agents"] == [] and l["agenceDefaut"] and "Commerçant" in l["professions"]
-    def refus(role, corps, suffixe=""):
-        r = chef.post(f"{A}/{role}{suffixe}", corps, **H); assert r.status_code in (403, 404, 422), r.content; return r.json()["message"]
-    P = {"nom": "Kabeya", "prenom": "Sarah", "naissance": "1990-04-02", "sexe": "F", "profession": "Commerçant"}
-    assert agent.post(f"{A}/gestionnaire", P, **H).status_code == 403
-    assert "Nom, Prénom, Sexe" in refus("gestionnaire", {})              # fiche allégée : naissance et lieu facultatifs (plan d'allègement, point 2.20)
-    assert "date invalide" in refus("gestionnaire", {**P, "naissance": "2999-01-01"})
-    assert "Profession inconnue" in refus("gestionnaire", {**P, "profession": "Astronaute"})
-    g = chef.post(f"{A}/gestionnaire", {**P, "agenceId": l["agenceDefaut"]}, **H).json()["agents"][0]
-    assert (g["nom"], g["naissance"], g["agenceId"]) == ("Kabeya", "1990-04-02", l["agenceDefaut"])
-    s = chef.post(f"{A}/sensibilisateur", {**P, "nom": "Mbuyi", "lieuNaissance": "Kananga"}, **H).json()["agents"][0]
-    c = chef.post(f"{A}/commercial", {**P, "nom": "Tshala", "lieuNaissance": "Mbuji-Mayi"}, **H).json()["agents"][0]
-    assert "ne se supprime pas" in refus("sensibilisateur", {}, f"/{s['id']}/suppression")
+    l = chef.get(A, **H).json()
+    assert l["agents"] == [] and l["agenceDefaut"] and l["utilisateurs"]
+    def refus(corps, suffixe=""):
+        r = chef.post(f"{A}{suffixe}", corps, **H); assert r.status_code in (403, 404, 422), r.content; return r.json()["message"]
+    P = {"nom": "Kabeya", "prenom": "Sarah", "sexe": "F", "portable": "+243 810 000 111"}
+    assert agent.post(A, {**P, "gestionnaire": True}, **H).status_code == 403
+    assert "Nom, Prénom, Sexe, Rôles" in refus({})
+    assert "Rôles" in refus(P)
+    us = l["utilisateurs"][0]["id"]
+    g = chef.post(A, {**P, "gestionnaire": True, "agenceId": l["agenceDefaut"], "utilisateurId": us}, **H).json()["agents"][0]
+    assert (g["nom"], g["agenceId"], g["gestionnaire"], g["utilisateurId"]) == ("Kabeya", l["agenceDefaut"], True, us)
+    assert "déjà lié" in refus({**P, "nom": "Autre", "commercial": True, "utilisateurId": us})
+    s = chef.post(A, {**P, "nom": "Mbuyi", "sensibilisateur": True, "commercial": True}, **H).json()["agents"]
+    s = next(x for x in s if x["nom"] == "Mbuyi")
+    c = next(x for x in chef.post(A, {**P, "nom": "Tshala", "commercial": True}, **H).json()["agents"] if x["nom"] == "Tshala")
     ctx = chef.get("/api/referentiel", **H).json()
-    assert [x["nom"] for x in ctx["sensibilisateurs"]] == ["Mbuyi Sarah"] and [x["nom"] for x in ctx["commerciaux"]] == ["Tshala Sarah"]
+    assert [x["nom"] for x in ctx["sensibilisateurs"]] == ["Mbuyi Sarah"] and [x["nom"] for x in ctx["commerciaux"]] == ["Mbuyi Sarah", "Tshala Sarah"]
     pr = {"nom": "Ilunga", "prenom": "Marc", "naissance": "1988-01-01", "lieuNaissance": "Kinshasa", "sexe": "M", "pays": "République démocratique du Congo",
           "ville": "Kinshasa", "quartier": "Kinsaku", "telephone": "+243 810 000 333"}
-    assert "Commercial inconnu" in agent.post("/api/prospects", {**pr, "commercialId": s["id"]}, **H).json()["message"]
+    assert "Sensibilisateur inconnu" in agent.post("/api/prospects", {**pr, "sensibilisateurId": c["id"]}, **H).json()["message"]
     t = agent.post("/api/prospects", {**pr, "sensibilisateurId": s["id"], "commercialId": c["id"]}, **H).json()
     assert (t["sensibilisateurId"], t["commercialId"]) == (s["id"], c["id"])
-    assert "Des clients" in refus("commercial", {}, f"/{c['id']}/suppression")
-    assert chef.post(f"{A}/gestionnaire/{g['id']}/suppression", {}, **H).status_code == 200
+    assert "comme commercial" in refus({**P, "nom": "Tshala", "gestionnaire": True}, f"/{c['id']}")
+    assert "Des clients" in refus({}, f"/{c['id']}/suppression")
+    assert chef.post(f"{A}/{g['id']}/suppression", {}, **H).status_code == 200
 
 
 def test_jours_travail_feries(clients):

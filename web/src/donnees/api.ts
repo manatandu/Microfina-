@@ -128,7 +128,7 @@ function contexte() {
       formeJuridiqueGroupe: valeursListe("forme_juridique_groupe").map((l) => l.libelle),   // registre S39-5
       categorieGroupe: valeursListe("categorie_groupe").map((l) => l.libelle) } as Record<string, string[]>,
     typesActivite: valeursListe("type_activite").map((l) => ({ libelle: l.libelle, secteur: l.parent })),
-    gestionnaires: E.agents.filter((a) => a.role === "gestionnaire" && a.actif).map((a) => ({ id: a.id, nom: `${a.nom} ${a.prenom}`.trim() })),
+    gestionnaires: agentsActifs("gestionnaire"),
     // S35 : devises et monnaies, lues par les guichets (registre S79-5)
     devises: E.devises.map(({ code, libelle, unite }) => ({ code, libelle, unite })),
     monnaies: Object.fromEntries([...new Set(E.monnaies.map((m) => m.devise))].sort().map((d) => [d, E.monnaies.filter((m) => m.devise === d).sort((a, b) => b.valeur - a.valeur)
@@ -654,7 +654,7 @@ export function controlerFichePhysique(d: NouveauTiers, jour: string, identite =
   if (txt("piecePays") && !localites().some((p) => p.pays === txt("piecePays"))) throw new ErreurMetier("Pays de délivrance : pays inconnu (Paramétrage > Localisation).");
   controlerLieu(d);
   if (txt("email") && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(txt("email"))) throw new ErreurMetier("Email invalide.");
-  if (d.gestionnaireId != null && !E.agents.some((a) => a.id === d.gestionnaireId && a.role === "gestionnaire" && a.actif)) throw new ErreurMetier("Gestionnaire inconnu.");
+  if (d.gestionnaireId != null && !E.agents.some((a) => a.id === d.gestionnaireId && aLeRole(a, "gestionnaire") && a.actif)) throw new ErreurMetier("Gestionnaire inconnu.");
   agentsProspect(d);
   const filiations = valeursListe("filiation").map((l) => l.libelle);
   (d.beneficiaires ?? []).forEach((b, i) => {
@@ -760,7 +760,7 @@ function agentsProspect(d: Prospect) {
   for (const [k, role, nom] of [["sensibilisateurId", "sensibilisateur", "Sensibilisateur"], ["commercialId", "commercial", "Commercial"]] as const) {
     const x = d[k];
     if (x === null || x === undefined) continue;
-    if (!E.agents.some((a) => a.id === x && a.role === role && a.actif)) throw new ErreurMetier(`${nom} inconnu.`);
+    if (!E.agents.some((a) => a.id === x && aLeRole(a, role as RoleAgent) && a.actif)) throw new ErreurMetier(`${nom} inconnu.`);
     r[k] = x;
   }
   return r;
@@ -9984,48 +9984,58 @@ const societe = {
   },
 };
 
-// ---------- Agence > Paramètre : gestionnaire, sensibilisateur, commercial (S33, manuel p. 43). Règles identiques côté serveur (noyau/agents.py). ----------
-const agentsActifs = (role: AgentAgence["role"]) => E.agents.filter((a) => a.role === role && a.actif)
+// ---------- Agence > Paramètre : agents (S33, manuel p. 43). Une seule liste, rôles cochés et utilisateur lié (plan d'allègement, point 2.20).
+// Règles identiques côté serveur (noyau/agents.py). ----------
+type RoleAgent = "gestionnaire" | "sensibilisateur" | "commercial";
+const ROLES_AGENT: [RoleAgent, string][] = [["gestionnaire", "Gestionnaire"], ["sensibilisateur", "Sensibilisateur"], ["commercial", "Commercial"]];
+/** Un agent a-t-il ce rôle ? Les données d'avant gardent un rôle par ligne. */
+const aLeRole = (a: AgentAgence, r: RoleAgent) => a[r] ?? a.role === r;
+const agentsActifs = (role: RoleAgent) => E.agents.filter((a) => aLeRole(a, role) && a.actif)
   .sort((a, b) => `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`)).map((a) => ({ id: a.id, nom: `${a.nom} ${a.prenom}`.trim() }));
-const ROLES_AGENT = ["gestionnaire", "sensibilisateur", "commercial"];
+const PORTE_AGENT: Record<RoleAgent, (t: Tiers) => number | null | undefined> = { gestionnaire: (t) => t.gestionnaireId, sensibilisateur: (t) => t.sensibilisateurId, commercial: (t) => t.commercialId };
 const agents = {
-  lire(role: string) {
+  lire() {
     exiger();
-    if (!ROLES_AGENT.includes(role)) throw new ErreurMetier("Onglet inconnu.");
-    return { role, agenceDefaut: E.agence.id, agences: E.agences.filter((a) => !a.supprime).map(({ id, nom }) => ({ id, nom })), professions: professions(),
-      agents: E.agents.filter((a) => a.role === role && a.actif).sort((a, b) => `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`)).map(({ role: _r, actif: _a, ...x }) => x) };
+    return { agenceDefaut: E.agence.id, agences: E.agences.filter((a) => !a.supprime).map(({ id, nom }) => ({ id, nom })),
+      utilisateurs: E.utilisateurs.filter((x) => x.actif !== false).map((x) => ({ id: x.id, nom: x.nom })).sort((a, b) => a.nom.localeCompare(b.nom)),
+      agents: E.agents.filter((a) => a.actif).sort((a, b) => `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`)).map((a) => ({
+        id: a.id, nom: a.nom, prenom: a.prenom, sexe: a.sexe, portable: a.portable, agenceId: a.agenceId, gestionnaire: aLeRole(a, "gestionnaire"),
+        sensibilisateur: aLeRole(a, "sensibilisateur"), commercial: aLeRole(a, "commercial"), utilisateurId: a.utilisateurId ?? null,
+        utilisateur: E.utilisateurs.find((x) => x.id === a.utilisateurId)?.nom ?? "" })) };
   },
-  /** Enregistrer (nouvel agent) ou Modifier (agent choisi dans la liste) ; registre S33-1 à S33-3 */
-  enregistrer(role: string, d: Partial<AgentAgence>, id?: number) {
+  /** Enregistrer (nouvel agent) ou Modifier (agent choisi dans la liste) */
+  enregistrer(d: Partial<AgentAgence>, id?: number) {
     exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
-    if (!ROLES_AGENT.includes(role)) throw new ErreurMetier("Onglet inconnu.");
     const t = (x: unknown) => (typeof x === "string" ? x.trim() : "");
-    const v = { nom: t(d.nom), prenom: t(d.prenom), naissance: t(d.naissance), lieuNaissance: t(d.lieuNaissance), sexe: t(d.sexe), profession: t(d.profession),
-      rue: t(d.rue), email: t(d.email), bp: t(d.bp), telephoneFixe: t(d.telephoneFixe), portable: t(d.portable) };
-    const oblig: [string, string][] = [["Nom", v.nom], ["Prénom", v.prenom], ["Sexe", v.sexe]];   // fiche allégée (plan d'allègement, point 2.20)
-    const manque = manquants(oblig);
+    const v = { nom: t(d.nom), prenom: t(d.prenom), sexe: t(d.sexe), portable: t(d.portable) };
+    const roles = Object.fromEntries(ROLES_AGENT.map(([r]) => [r, d[r] === true])) as Record<RoleAgent, boolean>;
+    const manque = manquants([["Nom", v.nom], ["Prénom", v.prenom], ["Sexe", v.sexe]]);
+    if (!Object.values(roles).some(Boolean)) manque.push("Rôles");
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
     if (!["M", "F"].includes(v.sexe)) throw new ErreurMetier("Sexe inconnu.");
-    if (v.naissance && (!/^\d{4}-\d{2}-\d{2}$/.test(v.naissance) || v.naissance > new Date().toISOString().slice(0, 10))) throw new ErreurMetier("Né(e) le : date invalide.");
-    if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) throw new ErreurMetier("Email invalide.");
-    if (v.profession && !professions().includes(v.profession)) throw new ErreurMetier("Profession inconnue.");
-    const agenceId = role === "gestionnaire" ? d.agenceId ?? null : null;
+    const agenceId = roles.gestionnaire ? d.agenceId ?? null : null;
     if (agenceId !== null && !E.agences.some((a) => a.id === agenceId && !a.supprime)) throw new ErreurMetier("Agence inconnue.");
-    const actuel = id === undefined ? undefined : E.agents.find((a) => a.id === id && a.role === role && a.actif);
+    const us = d.utilisateurId ?? null;
+    if (us !== null) {
+      if (!E.utilisateurs.some((x) => x.id === us && x.actif !== false)) throw new ErreurMetier("Utilisateur inconnu.");
+      if (E.agents.some((a) => a.actif && a.utilisateurId === us && a.id !== id)) throw new ErreurMetier("Cet utilisateur est déjà lié à un autre agent.");
+    }
+    const actuel = id === undefined ? undefined : E.agents.find((a) => a.id === id && a.actif);
     if (id !== undefined && !actuel) throw new ErreurMetier("Agent introuvable.");
-    const x = { ...v, sexe: v.sexe as AgentAgence["sexe"], agenceId };
-    if (actuel) Object.assign(actuel, x); else E.agents.push({ id: prochain(E.agents), role: role as AgentAgence["role"], actif: true, ...x });
-    enregistrer(); return agents.lire(role);
+    if (actuel) for (const [r, nom] of ROLES_AGENT)   // un rôle que des clients utilisent ne se décoche pas
+      if (!roles[r] && E.tiers.some((x) => PORTE_AGENT[r](x) === id)) throw new ErreurMetier(`Des clients portent cet agent comme ${nom.toLowerCase()} : ce rôle reste coché.`);
+    const x = { ...v, sexe: v.sexe as AgentAgence["sexe"], agenceId, ...roles, utilisateurId: us };
+    if (actuel) { delete actuel.role; Object.assign(actuel, x); } else E.agents.push({ id: prochain(E.agents), actif: true, ...x });
+    enregistrer(); return agents.lire();
   },
-  /** Supprimer (onglets Gestionnaire et Commercial) : logique (T02) ; refusé si des clients le portent (registre S33-3) */
-  supprimer(role: string, id: number) {
+  /** Supprimer : logique (T02) ; refusé si des clients portent l'agent, dans quelque rôle que ce soit (registre S33-3) */
+  supprimer(id: number) {
     exiger("chef_agence");
-    if (role === "sensibilisateur") throw new ErreurMetier("Un sensibilisateur ne se supprime pas.");
-    const a = E.agents.find((x) => x.id === id && x.role === role && x.actif);
+    const a = E.agents.find((x) => x.id === id && x.actif);
     if (!a) throw new ErreurMetier("Agent introuvable.");
-    if (E.tiers.some((t) => t.sensibilisateurId === id || t.commercialId === id)) throw new ErreurMetier("Des clients portent cet agent : il ne se supprime pas.");
+    if (E.tiers.some((t) => t.gestionnaireId === id || t.sensibilisateurId === id || t.commercialId === id)) throw new ErreurMetier("Des clients portent cet agent : il ne se supprime pas.");
     a.actif = false;
-    enregistrer(); return agents.lire(role);
+    enregistrer(); return agents.lire();
   },
 };
 

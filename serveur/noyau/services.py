@@ -234,15 +234,13 @@ def contexte(u: dict) -> dict:
                         "categorieGroupe": libelles_liste(u, "categorie_groupe")},
         "typesActivite": lignes("""select t.libelle, s.libelle as secteur from liste_reference t join liste_reference s on s.id = t.parent_id
                                    where t.institution_id = %s and t.liste = 'type_activite' and t.actif order by t.code""", (u["institution_id"],)),
-        "gestionnaires": lignes("""select id, trim(nom || ' ' || prenom) as nom from agent_agence where institution_id = %s and role = 'gestionnaire' and actif
-                                   order by nom, prenom""", (u["institution_id"],)),
+        "gestionnaires": __import__("noyau.agents", fromlist=["actifs"]).actifs(u, "gestionnaire"),
         "typesEntreprise": TYPES_ENTREPRISE,
         "typesGroupe": libelles_liste(u, "type_groupe"),
         "pieces": PIECES,
         "professions": libelles_liste(u, "profession"),   # S14b (registre S14b-2)
         # S33 : sensibilisateurs et commerciaux proposés au prospect et à la fiche client (registre S33-4)
-        **{cle: lignes("""select id, trim(nom || ' ' || prenom) as nom from agent_agence where institution_id = %s and role = %s and actif order by nom, prenom""",
-                       (u["institution_id"], role)) for cle, role in (("sensibilisateurs", "sensibilisateur"), ("commerciaux", "commercial"))},
+        **{cle: __import__("noyau.agents", fromlist=["actifs"]).actifs(u, role) for cle, role in (("sensibilisateurs", "sensibilisateur"), ("commerciaux", "commercial"))},
         "localites": localites(),
         "arbreLieux": __import__("noyau.adresse", fromlist=["arbre"]).arbre(),   # adresse unique : province, ville ou territoire, commune, quartier (registre T41)
         "motifsDepart": [r["libelle"] for r in sorted(listes.get("motif_depart", []), key=lambda r: r["id"])],
@@ -881,8 +879,7 @@ def controler_fiche_physique(u: dict, d: dict, texte, j: dict | None, identite: 
     if texte("email") and not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", texte("email")):
         raise ErreurMetier("Email invalide.")
     g = d.get("gestionnaireId")
-    if g is not None and (not isinstance(g, int) or isinstance(g, bool) or not une(
-            "select 1 from agent_agence where id = %s and institution_id = %s and role = 'gestionnaire' and actif", (g, u["institution_id"]))):
+    if g is not None and not __import__("noyau.agents", fromlist=["a_le_role"]).a_le_role(u, g, "gestionnaire"):
         raise ErreurMetier("Gestionnaire inconnu.")
     benef = d.get("beneficiaires") or []
     if not isinstance(benef, list):
@@ -1557,8 +1554,7 @@ def agents_prospect(u: dict, d: dict) -> tuple:
         if x is None:
             r.append(None)
             continue
-        if not isinstance(x, int) or isinstance(x, bool) or not une("select 1 from agent_agence where id = %s and institution_id = %s and role = %s and actif",
-                                                                      (x, u["institution_id"], role)):
+        if not __import__("noyau.agents", fromlist=["a_le_role"]).a_le_role(u, x, role):
             raise ErreurMetier(f"{nom} inconnu.")
         r.append(x)
     return tuple(r)

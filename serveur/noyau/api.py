@@ -2378,24 +2378,24 @@ def pe_supprimer(request, pid: int):
 
 
 # ---------- Agence > Paramètre : gestionnaire, sensibilisateur, commercial (S33) ----------
-@api.get("/agents/{role}")
-def ag_lire(request, role: str):
-    return ag.lire(u(request), role)
+@api.get("/agents")
+def ag_lire(request):
+    return ag.lire(u(request))
 
 
-@api.post("/agents/{role}")
-def ag_creer(request, role: str, corps: dict = Body(...)):
-    return ag.enregistrer(u(request), role, corps)
+@api.post("/agents")
+def ag_creer(request, corps: dict = Body(...)):
+    return ag.enregistrer(u(request), corps)
 
 
-@api.post("/agents/{role}/{aid}")
-def ag_modifier(request, role: str, aid: int, corps: dict = Body(...)):
-    return ag.enregistrer(u(request), role, corps, aid)
+@api.post("/agents/{aid}")
+def ag_modifier(request, aid: int, corps: dict = Body(...)):
+    return ag.enregistrer(u(request), corps, aid)
 
 
-@api.post("/agents/{role}/{aid}/suppression")
-def ag_supprimer(request, role: str, aid: int):
-    return ag.supprimer(u(request), role, aid)
+@api.post("/agents/{aid}/suppression")
+def ag_supprimer(request, aid: int):
+    return ag.supprimer(u(request), aid)
 
 
 # ---------- Agence > Journée de travail et Jours fériés (S34) ----------

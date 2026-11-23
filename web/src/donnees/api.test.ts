@@ -1847,26 +1847,28 @@ describe("journée de guichet", () => {
     expect(await api.credit.portefeuille(g.id)).toEqual([]);
   });
 
-  it("agents d'agence (S33, p. 43) : obligatoires selon l'onglet, pas de suppression du sensibilisateur, choisis par le prospect (S45)", async () => {
+  it("agents d'agence (S33, p. 43) : une liste, rôles cochés, utilisateur lié (plan 2.20) ; choisis par le prospect (S45)", async () => {
     await connecter("jpmukendi");
-    expect((await api.agents.lire("gestionnaire")).agents).toEqual([]);
-    const P = { nom: "Kabeya", prenom: "Sarah", naissance: "1990-04-02", sexe: "F" as const, profession: "Commerçant" };
-    await expect(api.agents.enregistrer("gestionnaire", {})).rejects.toThrow("Nom, Prénom, Sexe");   // fiche allégée (plan d'allègement, point 2.20)
-    await expect(api.agents.enregistrer("gestionnaire", { ...P, naissance: "2999-01-01" })).rejects.toThrow("date invalide");
-    await api.agents.enregistrer("gestionnaire", { ...P, agenceId: 1 });
-    const s = (await api.agents.enregistrer("sensibilisateur", { ...P, nom: "Mbuyi", lieuNaissance: "Kananga" })).agents[0]!;
-    const c = (await api.agents.enregistrer("commercial", { ...P, nom: "Tshala", lieuNaissance: "Mbuji-Mayi" })).agents[0]!;
-    await expect(api.agents.supprimer("sensibilisateur", s.id)).rejects.toThrow("ne se supprime pas");
+    expect((await api.agents.lire()).agents).toEqual([]);
+    const P = { nom: "Kabeya", prenom: "Sarah", sexe: "F" as const, portable: "+243 810 000 111" };
+    await expect(api.agents.enregistrer({})).rejects.toThrow("Nom, Prénom, Sexe, Rôles");
+    await expect(api.agents.enregistrer(P)).rejects.toThrow("Rôles");
+    const us = (await api.agents.lire()).utilisateurs[0]!.id;
+    await api.agents.enregistrer({ ...P, gestionnaire: true, agenceId: 1, utilisateurId: us });
+    await expect(api.agents.enregistrer({ ...P, nom: "Autre", commercial: true, utilisateurId: us })).rejects.toThrow("déjà lié");
+    const s = (await api.agents.enregistrer({ ...P, nom: "Mbuyi", sensibilisateur: true, commercial: true })).agents.find((x) => x.nom === "Mbuyi")!;
+    const c = (await api.agents.enregistrer({ ...P, nom: "Tshala", commercial: true })).agents.find((x) => x.nom === "Tshala")!;
     const ctx = await api.referentiel.contexte();
-    expect([ctx.sensibilisateurs.map((x) => x.nom), ctx.commerciaux.map((x) => x.nom)]).toEqual([["Mbuyi Sarah"], ["Tshala Sarah"]]);
+    expect([ctx.sensibilisateurs.map((x) => x.nom), ctx.commerciaux.map((x) => x.nom)]).toEqual([["Mbuyi Sarah"], ["Mbuyi Sarah", "Tshala Sarah"]]);
     await connecter("bkasongo");
     const pr = { nom: "Ilunga", prenom: "Marc", naissance: "1988-01-01", lieuNaissance: "Kinshasa", sexe: "M" as const, profession: "", pays: "République démocratique du Congo",
       ville: "Kinshasa", quartier: "Kinsaku", rue: "", email: "", bp: "", telephoneFixe: "", telephone: "+243 810 000 333" };
-    await expect(api.tiers.creerProspect({ ...pr, commercialId: s.id })).rejects.toThrow("Commercial inconnu");
+    await expect(api.tiers.creerProspect({ ...pr, sensibilisateurId: c.id })).rejects.toThrow("Sensibilisateur inconnu");
     const t = await api.tiers.creerProspect({ ...pr, sensibilisateurId: s.id, commercialId: c.id });
     expect([t.sensibilisateurId, t.commercialId]).toEqual([s.id, c.id]);
     await connecter("jpmukendi");
-    await expect(api.agents.supprimer("commercial", c.id)).rejects.toThrow("Des clients");
+    await expect(api.agents.enregistrer({ ...P, nom: "Tshala", gestionnaire: true }, c.id)).rejects.toThrow("comme commercial");
+    await expect(api.agents.supprimer(c.id)).rejects.toThrow("Des clients");
   });
 
   it("journées de travail et jours fériés (S34, p. 44) : cases par agence ; jours fériés variables dans leur exercice", async () => {
