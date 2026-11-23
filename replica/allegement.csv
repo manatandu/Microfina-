@@ -20,7 +20,7 @@ id,lot,titre,ecrans,statut,question,reste
 0.19,0,Fin de mois bloquée,S127 S128,fait,,
 0.20,0,Rapport des transactions,S13,fait,,
 0.21,0,Simulation de crédit,S84,fait,,
-0.22,0,Dates modifiables qui changent un calcul,S40 S63 S65 S69,à faire,oui,Attend ta réponse : faut-il un droit à part pour enregistrer à une date antérieure à la journée ?
+0.22,0,Dates modifiables qui changent un calcul,S40 S63 S65 S69,à faire,,Attend ta réponse : faut-il un droit à part pour enregistrer à une date antérieure à la journée ?
 0.23,0,Cases enregistrées qui n'agissent sur rien,S14 S19 S23 S26 S32 S65 S69 S102 S126 S136,partiel,,"Fait : « A échéance » (S65), « Mode règlement » (S69), compte interne (2.15), hors bilan 1 et 2 (2.21), options du plan des comptes (2.26), page Type de pièce (2.7), champs du produit de crédit (2.16). Reste, avec leurs écrans refaits : périodicité des familles de biens (9.6), financement et pages du budget (9.4)."
 0.24,0,Écrans non repris encore dans les menus,S129 S130,fait,,
 1.1,1,Tableau vide,,fait,,
@@ -50,15 +50,15 @@ id,lot,titre,ecrans,statut,question,reste
 2.7,2,Type de pièce : page supprimée,,fait,,
 2.8,2,Motifs de départ,S14 S18,fait,,
 2.9,2,Filiation,,fait,,
-2.10,2,Listes mal rangées,S47,partiel,oui,Fait : le type de guichet n'a plus de page de liste. Reste : les valeurs de départ des types de procuration (question au porteur)
+2.10,2,Listes mal rangées,S47,partiel,,Fait : le type de guichet n'a plus de page de liste. Reste : les valeurs de départ des types de procuration (question au porteur)
 2.11,2,Profession,S14b,à faire,oui,
 2.12,2,Résultat pour les listes du membre,,partiel,,"Fait : 16 pages ramenées à 7, menu « Listes de la fiche du membre », secteur et activité sur une page. Reste : types de procuration (question 2.10)"
 2.13,2,Référentiel du crédit,S21 S26,partiel,oui,"Fait : quatre onglets, règles du crédit en lecture. Reste : cycle calculé (question au porteur sur les plafonds par cycle)"
-2.14,2,Ordre de remboursement,S21 S22 S23,à faire,oui,
+2.14,2,Ordre de remboursement,S21 S22 S23,à faire,,
 2.15,2,Comptes des crédits,S26,fait,,
 2.16,2,Produits de crédit,S23 S24 S25,fait,,
 2.17,2,Produits d'épargne,S27 S28,fait,,
-2.18,2,Frais,S16,à faire,oui,
+2.18,2,Frais,S16,à faire,,
 2.19,2,Numérotation,S15 S17 S29,fait,,
 2.20,2,Agents,S33,fait,,
 2.21,2,Société,S32,fait,,
@@ -71,7 +71,7 @@ id,lot,titre,ecrans,statut,question,reste
 3.2,3,Mise à jour,S46,fait,,
 3.3,3,Personnes autour du membre,,fait,,
 3.4,3,Photos et pièces,,fait,,
-3.5,3,« Prélever agios » et « Calculer intérêt » quittent la fiche,,à faire,oui,
+3.5,3,« Prélever agios » et « Calculer intérêt » quittent la fiche,,à faire,,
 3.6,3,Membres à viser,S40 S41 S42,fait,,
 3.7,3,Premier dépôt et contrat d'adhésion,,fait,,
 3.8,3,Fiche du membre (S43) : la porte d'entrée,S42 S43 S46 S50 S73,fait,,
@@ -119,7 +119,7 @@ id,lot,titre,ecrans,statut,question,reste
 6.7,6,Une seule étape pour débloquer,S54 S105,à faire,,
 6.8,6,Remboursement,S55 S106,à faire,,
 6.9,6,Annulation d'un remboursement,S142,à faire,,
-6.10,6,Simulation,S84,à faire,oui,
+6.10,6,Simulation,S84,à faire,,
 6.11,6,Analyse financière,S85,à faire,,
 6.12,6,Garanties du crédit,S94,à faire,,
 6.13,6,Balance âgée et provisions,S98 S99 S101 S127 S128,à faire,,
@@ -133,7 +133,7 @@ id,lot,titre,ecrans,statut,question,reste
 10.5,10,Un compte pour chaque opération,S102,à faire,,
 10.6,10,Statut « Bloqué » et export du plan,S102 S109,à faire,,
 7.1,7,Opérations en attente,S57 S113 S114,à faire,,
-7.2,7,"Même nature, même contrôle",,à faire,oui,
+7.2,7,"Même nature, même contrôle",,à faire,,
 7.3,7,Virement et prélèvement sur compte client,S53 S116,à faire,,
 7.4,7,Encaissements et décaissements divers,S52 S78 S116,à faire,,
 7.5,7,Virements internes de trésorerie,S52 S81,à faire,,
@@ -147,7 +147,7 @@ id,lot,titre,ecrans,statut,question,reste
 7.13,7,Rapprochement et lettrage,S110 S112 S119,à faire,,
 7.14,7,Saisie d'écritures,S109,à faire,,
 7.15,7,Factures,S107,à faire,,
-7.16,7,"Banques, chèques, emprunts",S58 S59 S60 S61,à faire,oui,
+7.16,7,"Banques, chèques, emprunts",S58 S59 S60 S61,à faire,,
 7.17,7,Bloc budget,,à faire,,
 7.18,7,Schémas comptables,,à faire,,
 7.19,7,Menu Comptabilité,,à faire,,
