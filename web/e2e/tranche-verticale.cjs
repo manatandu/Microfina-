@@ -921,11 +921,11 @@ const OUT = process.argv[2];
   // Nouveau compte (S63) : le chef active le produit Epargne De Garantie (S27), puis l'agent de crédit ouvre ce compte pour Kalala
   await login('J.-P. Mukendi'); await aller('/parametrage/s27'); await p.getByRole('row').filter({ hasText: 'Epargne De Garantie' }).first().click();
   await p.getByLabel('Actif', { exact: true }).check(); await p.getByRole('button', { name: 'Modifier' }).click(); await oui();
-  await login('Bijou Kasongo'); await aller('/epargne/s63'); await p.getByRole('heading', { name: "Création d'un compte Epargne" }).waitFor();
-  await p.getByLabel('Produit Epargne *').selectOption({ label: 'Epargne De Garantie (G)' });
-  await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  await login('Bijou Kasongo'); await aller('/epargne/s63'); await p.getByRole('heading', { name: "Ouverture d'un compte d'épargne" }).waitFor();
+  await p.getByRole('button', { name: 'Rechercher un client' }).click();   // le client d'abord, le produit ensuite (plan 5.11)
   const rnc = p.getByRole('dialog', { name: "Recherche d'un client" });
   await rnc.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rnc.getByRole('row').filter({ hasText: 'Kalala' }).first().click();
+  await p.getByLabel('Produit Epargne *').selectOption({ label: 'Epargne De Garantie (G)' });
   await p.getByLabel('N° du compte :').and(p.locator('[value$="-05"]')).waitFor(); await etape('06c18-nouveau-compte');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: /^0412-000318-05$/ }).waitFor(); await etape('06c19-nouveau-compte-liste');
@@ -949,10 +949,11 @@ const OUT = process.argv[2];
   await p.getByLabel('Devise : *').selectOption('CDF'); await p.getByLabel('Solde minimum : *').fill('0'); await p.getByLabel('Max compte à créer *').fill('1');
   await p.getByLabel('Actif', { exact: true }).check();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Dépôt à terme' }).waitFor();
-  await login('Bijou Kasongo'); await aller('/epargne/s63'); await p.getByLabel('Produit Epargne *').selectOption({ label: 'Dépôt à terme (DAT)' });
+  await login('Bijou Kasongo'); await aller('/epargne/s63');
   await p.getByRole('button', { name: 'Rechercher un client' }).click();
   const rdc = p.getByRole('dialog', { name: "Recherche d'un client" });
   await rdc.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rdc.getByRole('row').filter({ hasText: 'Kalala' }).first().click();
+  await p.getByLabel('Produit Epargne *').selectOption({ label: 'Dépôt à terme (DAT)' });
   await p.getByLabel('N° du compte :').and(p.locator('[value$="-06"]')).waitFor();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await aller('/epargne/s65'); await p.getByRole('heading', { name: 'Mise en place DAT' }).waitFor();

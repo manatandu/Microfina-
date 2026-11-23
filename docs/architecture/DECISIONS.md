@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1047 décisions.** Solidité : 500 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1033 déjà en place, 14 à appliquer.
+**1048 décisions.** Solidité : 501 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1034 déjà en place, 14 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2400,6 +2400,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S80-8 | Comptage et validation | Les deux écrans s'appellent « Arrêté de caisse : comptage » et « Arrêté de caisse : validation ». La validation montre l'écart avant de valider (0.11) ; « Journées » n'y figure plus ; sans guichet ouvert, la phrase « Aucun guichet ouvert aujourd'hui. » remplace la liste vide. Le solde théorique reste affiché pendant le comptage (accord du porteur, 23/11/2026). | Choix du porteur : Plan d'allègement, point 4.11 ; registre S80-7, T130 | forte | en place |
+
+## S63 Ouverture de compte
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S63-8 | Client d'abord | L'écran s'appelle « Ouverture d'un compte d'épargne » ; le client se choisit d'abord, le produit ensuite. La convention de compte reste. | Choix du porteur : Plan d'allègement, point 5.11 ; loi 22/069 (convention) | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

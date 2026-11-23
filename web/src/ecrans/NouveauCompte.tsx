@@ -40,13 +40,7 @@ export function NouveauCompte() {
 
   return (
     <>
-      <h2>Création d'un compte Epargne</h2>
-      <section className="bloc pile" aria-label="Création d'un compte Epargne">
-        <fieldset className="pile cadre-champs">
-          <legend>Informations sur le Produit</legend>
-          <Champ libelle="Produit Epargne *">{(p) => <select {...p} className="saisie" value={produit} onChange={(e) => setProduit(e.target.value)}>
-            <option value=""></option>{donnees.produits.map((x) => <option key={x.id} value={x.id}>{x.libelle} ({x.code})</option>)}</select>}</Champ>
-        </fieldset>
+      <section className="bloc pile" aria-label="Ouverture d'un compte d'épargne">
         <div className="grille-cadres">
           <fieldset className="pile cadre-champs">
             <legend>Informations sur le client</legend>
@@ -56,6 +50,12 @@ export function NouveauCompte() {
             </div>
             <Champ libelle="Intitulé :">{(p) => <Lecture {...p} value={t ? nomComplet(t) : ""} />}</Champ>
             <Champ libelle="Nature :">{(p) => <Lecture {...p} value={t ? ({ physique: "Personne physique", morale: "Entreprise", groupe: "Groupe" } as const)[t.type] : ""} />}</Champ>
+          </fieldset>
+          {/* Le client d'abord, le produit ensuite (plan d'allègement, point 5.11) */}
+          <fieldset className="pile cadre-champs">
+            <legend>Informations sur le Produit</legend>
+            <Champ libelle="Produit Epargne *">{(p) => <select {...p} className="saisie" disabled={!t} value={produit} onChange={(e) => setProduit(e.target.value)}>
+              <option value="">{t ? "" : "Choisir d'abord le client"}</option>{donnees.produits.map((x) => <option key={x.id} value={x.id}>{x.libelle} ({x.code})</option>)}</select>}</Champ>
           </fieldset>
           <fieldset className="pile cadre-champs">
             <legend>Informations sur le compte</legend>

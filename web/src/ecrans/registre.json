@@ -528,7 +528,7 @@
   },
   {
     "id": "S63",
-    "nom": "Nouveau compte",
+    "nom": "Ouverture d'un compte d'épargne",
     "acces": "Épargne > Nouveau compte",
     "but": "Ouvrir un compte d'un produit pour un client",
     "module": "epargne",
