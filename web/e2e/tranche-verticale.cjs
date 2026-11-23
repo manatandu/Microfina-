@@ -440,7 +440,7 @@ const OUT = process.argv[2];
   // Simulation d'échéancier (S84, p. 111 ; registre S84-1 à S84-9) : 1 000 000 CDF sur 12 mois à 2,5 % par mois, échéance constante, TEG (Instr. BCC 38)
   await login('Bijou Kasongo'); await aller('/credit/s84'); await p.getByRole('heading', { name: "Simulation d'échéancier" }).waitFor();
   await p.getByLabel('Produit *').selectOption({ label: 'Crédit commerce' }); await p.getByText('Mensuel', { exact: true }).waitFor(); await p.getByLabel('Montant du prêt *').fill('1 000 000'); await p.getByLabel('Durée (mois) *').fill('12');
-  await p.getByRole('button', { name: 'Calculer' }).click(); await p.getByText('34,49 %').first().waitFor();   // TEG annuel seul (registre T137) await etape('06c37-simulation-recapitulatif');
+  await p.getByRole('button', { name: 'Calculer' }).click(); await p.getByText('30,00 %').first().waitFor();   // TEG annuel seul, 2,5 % × 12 (registre T137) await etape('06c37-simulation-recapitulatif');
   await p.getByRole('button', { name: 'Echéancier' }).click();
   await p.getByRole('dialog', { name: 'Echéancier' }).getByRole('cell', { name: '97 487,13 CDF' }).first().waitFor(); await etape('06c38-simulation-echeancier');
   await p.getByRole('dialog', { name: 'Echéancier' }).getByRole('button', { name: 'Fermer' }).click();
