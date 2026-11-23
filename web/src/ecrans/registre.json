@@ -638,6 +638,15 @@
     "chemin": "/epargne/se02"
   },
   {
+    "id": "SE03",
+    "nom": "Virement entre comptes",
+    "acces": "Épargne > Virement entre comptes",
+    "but": "Virer d'un compte d'un client au compte d'un client, dans la même devise ; visé et validé en comptabilité (plan d'allègement, point 5.12)",
+    "module": "epargne",
+    "priorite": "must",
+    "chemin": "/epargne/se03"
+  },
+  {
     "id": "S73",
     "nom": "Guichet : adhésion",
     "acces": "Caisse > Opération > Adhésion",
@@ -1061,7 +1070,7 @@
     "id": "S116",
     "nom": "Autres opérations",
     "acces": "Comptabilité > Autres opérations",
-    "but": "Virement et prélèvement, virement de compte à compte, opération diverse (à payer en caisse ou sur compte client), opération déplacée",
+    "but": "Virement et prélèvement, opération diverse (à payer en caisse ou sur compte client), opération déplacée",
     "module": "comptabilite",
     "priorite": "must",
     "chemin": "/comptabilite/s116"

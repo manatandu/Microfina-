@@ -120,6 +120,7 @@ const VisasComptables = paresseux(() => import("./VisasCompta"), "VisasComptable
 const SaisieEcriture = paresseux(() => import("./SaisieEcriture"), "default");
 const JournauxComptables = paresseux(() => import("./JournauxComptables"), "default");
 const AutresOperations = paresseux(() => import("./AutresOperations"), "default");
+const VirementEntreComptes = paresseux(() => import("./AutresOperations"), "VirementEntreComptes");   // plan d'allègement, point 5.12
 const ValidationCaisse = paresseux(() => import("./ValidationCaisse"), "default");
 const VirementsMensuels = paresseux(() => import("./VirementsMensuels"), "default");
 const Factures = paresseux(() => import("./Factures"), "default");
@@ -378,6 +379,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S127: Clotures,
   S128: Calculs,
   SE02: FinDeMois,
+  SE03: VirementEntreComptes,
   S131: DonneesBasePaie,
   S132: GrillesEtats,
   S133: NouvelEmploye,

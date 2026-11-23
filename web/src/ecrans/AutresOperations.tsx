@@ -1,6 +1,5 @@
-// S116 : Comptabilité > Autres opérations (manuel Microfina++, p. 133 à 135 ; procédures p. 160 et 161). Quatre onglets : Virement/Prélèvement,
-// Virement compte à compte (Compte DAV vers un Autre Compte, Compte Tontine vers un Compte DAV ; Emetteur, Recepteur, Suivant), Opération diverse,
-// Operations deplacées. Saisies ici, visées (S113), puis validées (S114) et comptabilisées (S111), ou payées en caisse (S82). Registre S116-1 à S116-7.
+// S116 : Comptabilité > Autres opérations (manuel Microfina++, p. 133 à 135 ; procédures p. 160 et 161). Trois onglets : Virement/Prélèvement, Opération diverse,
+// Operations deplacées ; le virement compte à compte est sous Épargne > Virement entre comptes (SE03, plan d'allègement, point 5.12). Saisies ici, visées (S113), puis validées (S114) et comptabilisées (S111), ou payées en caisse (S82). Registre S116-1 à S116-7.
 import { useState } from "react";
 import { api, type LigneOperationCompta } from "../donnees/api";
 import type { Tiers } from "../donnees/types";
@@ -122,60 +121,43 @@ function VirementPrelevement({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
   </>;
 }
 
-function CompteACompte({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
+/** Épargne > Virement entre comptes (SE03 ; plan d'allègement, point 5.12) : un formulaire, émetteur, récepteur, montant. Un compte tontine émetteur vire
+ * vers un compte d'épargne à vue (« Compte Tontine vers un Compte DAV », p. 134) ; sinon « Compte DAV vers un Autre Compte ». Visé (S113), validé (S114). */
+export function VirementEntreComptes() {
+  const { donnees: ctx } = useDonnees(() => api.operationsCompta.lire());
   const e = useClient(), r = useClient();
-  const [onglet, setOnglet] = useState<"dav" | "tontine">("dav");
-  const [etape, setEtape] = useState<"emetteur" | "recepteur">("emetteur");
   const [saisie, setSaisie] = useState("");
   const [cle, setCle] = useState(nouvelleCle);
   const [cherche, setCherche] = useState<"" | "e" | "r">("");
-  const annuler = () => { e.choisir(null); r.choisir(null); setSaisie(""); setEtape("emetteur"); setCle(nouvelleCle()); };
+  const [boite, setBoite] = useState<Boite | null>(null);
+  if (!ctx) return <Chargement />;
+  const annuler = () => { e.choisir(null); r.choisir(null); setSaisie(""); setCle(nouvelleCle()); };
   const m = lireMontant(saisie);
-  function suivant() {
-    const manque = !e.c ? "N° Compte de l'émetteur" : !m ? "Montant" : "";
-    if (manque) { poser({ type: "erreur", message: `À remplir : ${manque}.` }); return; }
-    setEtape("recepteur");
-  }
+  const tontine = e.c?.famille === "TONTINE";
   function enregistrer() {
-    poser({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
-      try { await api.operationsCompta.enregistrerCompteACompte({ cle, onglet, emetteurId: e.c?.id ?? null, recepteurId: r.c?.id ?? null, montant: m });
-        annuler(); poser({ type: "succes", message: "Enregistré avec succès !" }); }
-      catch (x) { poser({ type: "erreur", message: message(x) }); }
+    setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
+      try { await api.operationsCompta.enregistrerCompteACompte({ cle, onglet: tontine ? "tontine" : "dav", emetteurId: e.c?.id ?? null, recepteurId: r.c?.id ?? null, montant: m });
+        annuler(); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+      catch (x) { setBoite({ type: "erreur", message: message(x) }); }
     } });
   }
-  return <>
-    <div className="onglets" role="tablist" aria-label="Virement compte à compte">
-      <button type="button" role="tab" aria-selected={onglet === "dav"} onClick={() => { setOnglet("dav"); annuler(); }}>Compte DAV vers un Autre Compte</button>
-      <button type="button" role="tab" aria-selected={onglet === "tontine"} onClick={() => { setOnglet("tontine"); annuler(); }}>Compte Tontine vers un Compte DAV</button>
+  return <section className="bloc pile" aria-label="Virement entre comptes">
+    <div className="deux-colonnes">
+      <Identifiant titre="Identifiant Emetteur" agence={ctx.agence.nom} k={e} chercher={() => setCherche("e")} />
+      <CadreCompte titre="Compte Emetteur" k={e} garde={(c) => c.famille === "EPARGNE" || c.famille === "TONTINE"} />
+      <Identifiant titre="Identifiant Recepteur" agence={ctx.agence.nom} k={r} chercher={() => setCherche("r")} />
+      <CadreCompte titre="Compte Recepteur" k={r} garde={(c) => c.id !== e.c?.id && (!e.c || c.devise === e.c.devise) && (!tontine || c.famille === "EPARGNE")} />
+      <fieldset className="cadre-champs formulaire"><legend>Montant</legend>
+        <Champ libelle="Montant *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={saisie} onChange={(x) => setSaisie(x.target.value)} />}</Champ>
+      </fieldset>
     </div>
-    <div className="entete-ecran">
-      <div className="onglets" role="tablist" aria-label="Emetteur et récepteur">
-        <button type="button" role="tab" aria-selected={etape === "emetteur"} onClick={() => setEtape("emetteur")}>Emetteur</button>
-        <button type="button" role="tab" aria-selected={etape === "recepteur"} onClick={suivant}>Recepteur</button>
-      </div>
-      <p>Période <strong className="chiffres">{fr(ctx.date)}</strong></p>
-    </div>
-    {etape === "emetteur" ? <>
-      <div className="deux-colonnes">
-        <Identifiant titre="Identifiant Emetteur" agence={ctx.agence.nom} k={e} chercher={() => setCherche("e")} />
-        <CadreCompte titre="Compte Emetteur" k={e} garde={(c) => c.famille === (onglet === "tontine" ? "TONTINE" : "EPARGNE")} />
-        <fieldset className="cadre-champs formulaire"><legend>Montant</legend>
-          <Champ libelle="Montant *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={saisie} onChange={(x) => setSaisie(x.target.value)} />}</Champ>
-        </fieldset>
-      </div>
-      <div className="actions-onglets"><button className="bouton" type="button" onClick={suivant}>Suivant</button></div>
-    </> : <>
-      <div className="deux-colonnes">
-        <Identifiant titre="Identifiant Recepteur" agence={ctx.agence.nom} k={r} chercher={() => setCherche("r")} />
-        <CadreCompte titre="Compte Recepteur" k={r} garde={(c) => c.id !== e.c?.id && c.devise === e.c?.devise && (onglet !== "tontine" || c.famille === "EPARGNE")} />
-        <fieldset className="cadre-champs formulaire"><legend>Montant</legend>
-          <Champ libelle="Montant">{(p) => <Lecture {...p} value={m && e.c ? montant(m, e.c.devise as Devise) : ""} />}</Champ>
-        </fieldset>
-      </div>
-      <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button><button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button></div>
-    </>}
+    <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button><button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button></div>
+    <Textes sources={["Manuel Microfina++, p. 134 : Virement compte à compte (Compte DAV vers un Autre Compte, Compte Tontine vers un Compte DAV ; Emetteur, Recepteur)",
+      "Plan d'allègement, point 5.12 : un formulaire, rangé sous Épargne ; visé (Comptabilité > Visa) puis validé (Comptabilité > Validation)",
+      "Instr. BCC 37, art. 2 et 3, annexe, point 2 : le virement de compte à compte dans le même établissement est gratuit"]} />
     <Recherche ouverte={cherche !== ""} fermer={() => setCherche("")} choisir={(x) => (cherche === "e" ? e : r).choisir(x)} />
-  </>;
+    <Dialogue boite={boite} fermer={() => setBoite(null)} />
+  </section>;
 }
 
 /** Flèche de la première colonne : ↑ entrée de fonds (encaissement, dépôt), ↓ sortie (décaissement, retrait) */
@@ -273,7 +255,7 @@ function OperationsDeplacees({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
   </>;
 }
 
-const ONGLETS = ["Virement/Prélèvement", "Virement compte à compte", "Opération diverse", "Opérations déplacées"];
+const ONGLETS = ["Virement/Prélèvement", "Opération diverse", "Opérations déplacées"];   // le virement compte à compte : Épargne > Virement entre comptes (point 5.12)
 export default function AutresOperations() {
   const { donnees: ctx } = useDonnees(() => api.operationsCompta.lire());
   const [onglet, setOnglet] = useState(0);
@@ -287,9 +269,8 @@ export default function AutresOperations() {
       </div>
       <section className="bloc pile" id="ao-volet" role="tabpanel" aria-labelledby={`ao-${onglet}`}>
         {onglet === 0 && <VirementPrelevement ctx={ctx} poser={setBoite} />}
-        {onglet === 1 && <CompteACompte ctx={ctx} poser={setBoite} />}
-        {onglet === 2 && <OperationDiverse ctx={ctx} poser={setBoite} />}
-        {onglet === 3 && <OperationsDeplacees ctx={ctx} poser={setBoite} />}
+        {onglet === 1 && <OperationDiverse ctx={ctx} poser={setBoite} />}
+        {onglet === 2 && <OperationsDeplacees ctx={ctx} poser={setBoite} />}
         <Textes sources={SOURCES} />
       </section>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />

@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1058 décisions.** Solidité : 503 fortes (le manuel ou un texte répond), 473 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1045 déjà en place, 13 à appliquer.
+**1059 décisions.** Solidité : 503 fortes (le manuel ou un texte répond), 474 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1046 déjà en place, 13 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2441,6 +2441,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | E11-4 | Nom et étapes de la procédure | SE01 prend le nom « Comptes en voie de prescription » (la loi parle d'un compte « susceptible d'être atteint par la prescription »). La procédure se suit sur un écran : lettre avec accusé de réception, clôture aux dix ans, puis versement des avoirs à la BCC (venu du bas de S70, droits de ces deux actions passés à SE01). S70 ne garde que la clôture demandée par le client. Dans les rapports d'épargne (S72), l'onglet des comptes dormants (même population) disparaît ; celui des comptes inactifs devient « Comptes sans mouvement », titré « Comptes sans mouvement depuis N jours ». | Écran voisin : Plan d'allègement, point 5.7 ; loi 22/069, titre III, chap. Ier (lu) ; PCCI, compte 36 | forte | en place |
+
+## SE03 Virement entre comptes
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| SE03-1 | Un formulaire sous Épargne | Le virement de compte à compte quitte Autres opérations (S116) : un écran « Virement entre comptes » (Épargne), un formulaire Émetteur, Récepteur, Montant, Enregistrer, Annuler. Un compte tontine émetteur vire vers un compte d'épargne à vue ; tout autre émetteur est un compte d'épargne à vue. Même devise. Le virement reste visé puis validé en comptabilité. Les profils qui avaient S116 reçoivent l'écran. | Écran voisin : Plan d'allègement, point 5.12 ; registre S116-1 à S116-7 ; Instr. BCC 37, annexe, point 2 | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 
